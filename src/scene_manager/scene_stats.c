@@ -1,0 +1,450 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / Scene Management sub-project
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *
+ */
+
+#include <gpac/scene_manager.h>
+#include <gpac/constants.h>
+#include <gpac/internal/scenegraph_dev.h>
+
+#ifndef GPAC_READ_ONLY
+
+struct _statman
+{
+	GF_SceneStatistics *stats;
+	GF_List *def_nodes;
+};
+
+static GF_SceneStatistics *NewSceneStats()
+{
+	GF_SceneStatistics *tmp = malloc(sizeof(GF_SceneStatistics));
+	memset(tmp, 0, sizeof(GF_SceneStatistics));
+	tmp->node_stats = gf_list_new();
+	tmp->proto_stats = gf_list_new();
+
+	tmp->max_2d.x = FIX_MIN;
+	tmp->max_2d.y = FIX_MIN;
+	tmp->max_3d.x = FIX_MIN;
+	tmp->max_3d.y = FIX_MIN;
+	tmp->max_3d.z = FIX_MIN;
+	tmp->min_2d.x = FIX_MAX;
+	tmp->min_2d.y = FIX_MAX;
+	tmp->min_3d.x = FIX_MAX;
+	tmp->min_3d.y = FIX_MAX;
+	tmp->min_3d.z = FIX_MAX;
+	return tmp;
+}
+
+static void ResetStatisitics(GF_SceneStatistics *stat)
+{
+	while (gf_list_count(stat->node_stats)) {
+		GF_NodeStats *ptr = gf_list_get(stat->node_stats, 0);
+		gf_list_rem(stat->node_stats, 0);
+		free(ptr);
+	}
+	while (gf_list_count(stat->proto_stats)) {
+		GF_NodeStats *ptr = gf_list_get(stat->proto_stats, 0);
+		gf_list_rem(stat->proto_stats, 0);
+		free(ptr);
+	}
+	stat->max_2d.x = FIX_MIN;
+	stat->max_2d.y = FIX_MIN;
+	stat->max_3d.x = FIX_MIN;
+	stat->max_3d.y = FIX_MIN;
+	stat->max_3d.z = FIX_MIN;
+	stat->min_2d.x = FIX_MAX;
+	stat->min_2d.y = FIX_MAX;
+	stat->min_3d.x = FIX_MAX;
+	stat->min_3d.y = FIX_MAX;
+	stat->min_3d.z = FIX_MAX;
+	stat->count_2d = stat->rem_2d = stat->count_3d = stat->rem_3d = stat->count_float = 0;
+	stat->rem_float = stat->count_color = stat->rem_color = stat->count_2f = stat->count_3f = 0;
+}
+
+static void DeleteStatisitics(GF_SceneStatistics *stat)
+{
+	ResetStatisitics(stat);
+	gf_list_del(stat->node_stats);
+	gf_list_del(stat->proto_stats);
+	free(stat);
+}
+
+static void StatNode(GF_SceneStatistics *stat, GF_Node *n, Bool isUsed, Bool isDelete, GF_Node *prev)
+{
+	u32 i;
+	GF_NodeStats *ptr = NULL;
+	if (!stat) return;
+
+	if (n->sgprivate->tag == TAG_ProtoNode) {
+		GF_ProtoInstance *pr = (GF_ProtoInstance *)n;
+		for (i=0; i<gf_list_count(stat->proto_stats); i++) {
+			ptr = gf_list_get(stat->proto_stats, i);
+			if (pr->proto_interface->ID == ptr->tag) break;
+			ptr = NULL;
+		}
+		if (!ptr) {
+			ptr = malloc(sizeof(GF_NodeStats));
+			memset(ptr, 0, sizeof(GF_NodeStats));
+			ptr->tag = pr->proto_interface->ID;
+			ptr->name = gf_sg_proto_get_class_name(pr->proto_interface);
+			gf_list_add(stat->proto_stats, ptr);
+		}
+	} else {
+		for (i=0; i<gf_list_count(stat->node_stats); i++) {
+			ptr = gf_list_get(stat->node_stats, i);
+			if (n->sgprivate->tag == ptr->tag) break;
+			ptr = NULL;
+		}
+		if (!ptr) {
+			ptr = malloc(sizeof(GF_NodeStats));
+			memset(ptr, 0, sizeof(GF_NodeStats));
+			ptr->tag = n->sgprivate->tag;
+			ptr->name = gf_node_get_class_name(n);
+			gf_list_add(stat->node_stats, ptr);
+		}
+	}
+	if (isDelete) ptr->nb_del += n->sgprivate->num_instances;
+	else if (isUsed) ptr->nb_used += 1;
+	/*this is because the node passes twice in the stat, once on DumpNode and once in replaceALL*/
+	else ptr->nb_created += prev ? (prev->sgprivate->num_instances - 1) : 1;
+}
+
+static void StatSFVec2f(GF_SceneStatistics *stat, SFVec2f *val)
+{
+	if (!stat) return;
+	if (stat->max_2d.x < val->x) stat->max_2d.x = val->x;
+	if (stat->max_2d.y < val->y) stat->max_2d.y = val->y;
+	if (stat->min_2d.x > val->x) stat->min_2d.x = val->x;
+	if (stat->min_2d.y > val->y) stat->min_2d.y = val->y;
+}
+
+static void StatSFVec3f(GF_SceneStatistics *stat, SFVec3f *val)
+{
+	if (!stat) return;
+	if (stat->max_3d.x < val->x) stat->max_3d.x = val->x;
+	if (stat->max_3d.y < val->y) stat->max_3d.y = val->y;
+	if (stat->max_3d.z < val->z) stat->max_3d.z = val->y;
+	if (stat->min_3d.x > val->x) stat->min_3d.x = val->x;
+	if (stat->min_3d.y > val->y) stat->min_3d.y = val->y;
+	if (stat->min_3d.z > val->z) stat->min_3d.z = val->z;
+}
+
+static void StatField(GF_SceneStatistics *stat, GF_FieldInfo *field)
+{
+	u32 i;
+
+	switch (field->fieldType) {
+	case GF_SG_VRML_SFFLOAT:
+		stat->count_float++;
+		break;
+	case GF_SG_VRML_SFCOLOR:
+		stat->count_color++;
+		break;
+	case GF_SG_VRML_SFVEC2F:
+		stat->count_2f++;
+		break;
+	case GF_SG_VRML_SFVEC3F:
+		stat->count_3f++;
+		break;
+
+	case GF_SG_VRML_MFFLOAT:
+		stat->count_float+= ((MFFloat *)field->far_ptr)->count;
+		break;
+	case GF_SG_VRML_MFCOLOR:
+		stat->count_color+= ((MFColor *)field->far_ptr)->count;
+		break;
+	case GF_SG_VRML_MFVEC2F:
+	{
+		MFVec2f *mf2d = (MFVec2f *)field->far_ptr;
+		for (i=0; i<mf2d->count; i++) {
+			StatSFVec2f(stat, &mf2d->vals[i]);
+			stat->count_2d ++;
+		}
+	}
+		break;
+	case GF_SG_VRML_MFVEC3F:
+	{
+		MFVec3f *mf3d = (MFVec3f *)field->far_ptr;
+		for (i=0; i<mf3d->count; i++) {
+			StatSFVec3f(stat, &mf3d->vals[i]);
+			stat->count_3d ++;
+		}
+	}
+		break;
+	}
+}
+
+
+static void StatSingleField(GF_SceneStatistics *stat, GF_FieldInfo *field)
+{
+	switch (field->fieldType) {
+	case GF_SG_VRML_SFVEC2F:
+		StatSFVec2f(stat, (SFVec2f *)field->far_ptr);
+		break;
+	case GF_SG_VRML_MFVEC3F:
+		StatSFVec3f(stat, (SFVec3f *)field->far_ptr);
+		break;
+	}
+}
+
+
+static void StatRemField(GF_SceneStatistics *stat, u32 fieldType, GF_FieldInfo *field)
+{
+	u32 count = 1;
+	if (field) count = ((GenMFField*)field->far_ptr)->count;
+	switch (fieldType) {
+	case GF_SG_VRML_MFFLOAT:
+		stat->rem_float += count;
+		break;
+	case GF_SG_VRML_SFCOLOR:
+		stat->rem_color += count;
+		break;
+	case GF_SG_VRML_MFVEC2F:
+		stat->rem_2d += count;
+		break;
+	case GF_SG_VRML_MFVEC3F:
+		stat->rem_3d += count;
+		break;
+	}
+}
+
+
+Bool StatIsUSE(GF_StatManager *st, GF_Node *n) 
+{
+	u32 i;
+	if (!n || !n->sgprivate->NodeID) return 0;
+	for (i=0; i<gf_list_count(st->def_nodes); i++) {
+		GF_Node *ptr = gf_list_get(st->def_nodes, i);
+		if (ptr == n) return 1;
+	}
+	gf_list_add(st->def_nodes, n);
+	return 0;
+}
+
+static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
+{
+	GF_Node *child, *clone;
+	GF_List *list;
+	u32 i, count, j;
+	GF_FieldInfo field, clone_field;
+
+	if (!n) return GF_OK;
+	StatNode(st->stats, n, StatIsUSE(st, n), 0, NULL);
+	count = gf_node_get_field_count(n);
+
+	if (n->sgprivate->tag != TAG_ProtoNode) {
+		clone = gf_node_new(n->sgprivate->scenegraph, n->sgprivate->tag);
+	} else {
+		clone = gf_sg_proto_create_node(n->sgprivate->scenegraph, ((GF_ProtoInstance *)n)->proto_interface, NULL);
+	}
+	gf_node_register(clone, NULL);
+
+	for (i=0; i<count; i++) {
+		gf_node_get_field(n, i, &field);
+		if (field.eventType==GF_SG_EVENT_IN) continue;
+		if (field.eventType==GF_SG_EVENT_OUT) continue;
+
+		switch (field.fieldType) {
+		case GF_SG_VRML_SFNODE:
+			child = *((GF_Node **)field.far_ptr);
+			StatNodeGraph(st, child);
+			break;
+		case GF_SG_VRML_MFNODE:
+			list = *((GF_List **)field.far_ptr);
+			for (j=0; j<gf_list_count(list); j++) {
+				child = gf_list_get(list, j);
+				StatNodeGraph(st, child);
+			}
+			break;
+		default:
+			gf_node_get_field(clone, i, &clone_field);
+			if (!gf_sg_vrml_field_equal(clone_field.far_ptr, field.far_ptr, field.fieldType)) {
+				StatField(st->stats, &field);
+			}
+			break;
+		}
+	}
+	gf_node_unregister(clone, NULL);
+	return GF_OK;
+}
+
+GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
+{
+	GF_FieldInfo field;
+	GF_Err e;
+	u32 i;
+	GF_List *list;
+	GF_CommandField *inf = NULL;
+	if (gf_list_count(com->command_fields)) 
+		inf = gf_list_get(com->command_fields, 0);
+
+	if (!com || !stat) return GF_BAD_PARAM;
+	switch (com->tag) {
+	case GF_SG_SCENE_REPLACE:
+		if (com->node) StatNodeGraph(stat, com->node);
+		break;
+	case GF_SG_NODE_REPLACE:
+		if (inf && inf->new_node) StatNodeGraph(stat, inf->new_node);
+		break;
+	case GF_SG_FIELD_REPLACE:
+		if (!inf) return GF_OK;
+		e = gf_node_get_field(com->node, inf->fieldIndex, &field);
+		if (e) return e;
+
+		switch (field.fieldType) {
+		case GF_SG_VRML_SFNODE:
+			if (inf->new_node) StatNodeGraph(stat, inf->new_node);
+			break;
+		case GF_SG_VRML_MFNODE:
+			list = * ((GF_List **) inf->field_ptr);
+			for (i=0; i<gf_list_count(list); i++) {
+				GF_Node *node = gf_list_get(list, i);
+				StatNodeGraph(stat, node);
+			}
+			break;
+		default:
+			field.far_ptr = inf->field_ptr;
+			StatField(stat->stats, &field);
+			break;
+		}
+		break;
+	case GF_SG_INDEXED_REPLACE:
+		if (!inf) return GF_OK;
+		e = gf_node_get_field(com->node, inf->fieldIndex, &field);
+		if (e) return e;
+
+		if (field.fieldType == GF_SG_VRML_MFNODE) {
+			StatNodeGraph(stat, inf->new_node);
+		} else {
+			field.fieldType = gf_sg_vrml_get_sf_type(field.fieldType);
+			field.far_ptr = inf->field_ptr;
+			StatSingleField(stat->stats, &field);
+		}
+		break;
+	case GF_SG_NODE_DELETE:
+		if (com->node) StatNode(stat->stats, com->node, 0, 1, NULL);
+		break;
+	case GF_SG_INDEXED_DELETE:
+		if (!inf) return GF_OK;
+		e = gf_node_get_field(com->node, inf->fieldIndex, &field);
+		if (e) return e;
+
+		/*then we need special handling in case of a node*/
+		if (gf_sg_vrml_get_sf_type(field.fieldType) == GF_SG_VRML_SFNODE) {
+			GF_Node *n = gf_list_get(* ((GF_List **) field.far_ptr), inf->pos);
+			if (n) StatNode(stat->stats, n, 0, 1, NULL);
+		} else {
+			StatRemField(stat->stats, inf->fieldType, NULL);
+		}
+		break;
+	case GF_SG_NODE_INSERT:
+		if (inf && inf->new_node) StatNodeGraph(stat, inf->new_node);
+		break;
+	case GF_SG_INDEXED_INSERT:
+		if (!inf) return GF_OK;
+		e = gf_node_get_field(com->node, inf->fieldIndex, &field);
+		if (e) return e;
+
+		/*rescale the MFField and parse the SFField*/
+		if (field.fieldType != GF_SG_VRML_MFNODE) {
+			field.fieldType = gf_sg_vrml_get_sf_type(field.fieldType);
+			field.far_ptr = inf->field_ptr;
+			StatSingleField(stat->stats, &field);
+		} else {
+			if (inf->new_node) StatNodeGraph(stat, inf->new_node);
+		}
+		break;
+	case GF_SG_ROUTE_REPLACE:
+	case GF_SG_ROUTE_DELETE:
+	case GF_SG_ROUTE_INSERT:
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+	return GF_OK;
+}
+
+static GF_Err gf_sm_stat_au(GF_List *commandList, GF_StatManager *st)
+{
+	u32 i, count;
+	count = gf_list_count(commandList);
+	for (i=0; i<count; i++) {
+		GF_Command *com = gf_list_get(commandList, i);
+		gf_sm_stats_for_command(st, com);
+	}
+	return GF_OK;
+}
+
+GF_Err gf_sm_stats_for_scene(GF_StatManager *stat, GF_SceneManager *sm)
+{
+	u32 i, j;
+	GF_Err e;
+
+	for (i=0; i<gf_list_count(sm->streams); i++) {
+		GF_StreamContext *sc = gf_list_get(sm->streams, i);
+		if (sc->streamType != GF_STREAM_SCENE) continue;
+
+		for (j=0; j<gf_list_count(sc->AUs); j++) {
+			GF_AUContext *au = gf_list_get(sc->AUs, j);
+			e = gf_sm_stat_au(au->commands, stat);
+			if (e) return e;
+		}
+	}
+	return GF_OK;
+}
+
+GF_Err gf_sm_stats_for_graph(GF_StatManager *stat, GF_SceneGraph *sg)
+{
+	if (!stat || !sg) return GF_BAD_PARAM;
+	return StatNodeGraph(stat, sg->RootNode);
+}
+
+/*creates new stat handler*/
+GF_StatManager *gf_sm_stats_new()
+{
+	GF_StatManager *sm = malloc(sizeof(GF_StatManager));
+	sm->def_nodes = gf_list_new();
+	sm->stats = NewSceneStats();
+	return sm;
+
+}
+/*deletes stat object returned by one of the above functions*/
+void gf_sm_stats_del(GF_StatManager *stat)
+{
+	gf_list_del(stat->def_nodes);
+	DeleteStatisitics(stat->stats);
+	free(stat);
+}
+
+GF_SceneStatistics *gf_sm_stats_get(GF_StatManager *stat)
+{
+	return stat->stats;
+}
+
+void gf_sm_stats_reset(GF_StatManager *stat)
+{
+	if (!stat) return;
+	ResetStatisitics(stat->stats);
+}
+
+#endif
+

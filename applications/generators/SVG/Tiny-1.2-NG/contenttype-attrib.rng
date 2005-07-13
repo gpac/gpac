@@ -1,0 +1,22 @@
+
+<!-- ==============================================================
+      SVG12-RNG | Content type attribute
+     ============================================================== -->
+
+<grammar ns='http://www.w3.org/2000/svg'
+         xml:lang='en'
+         xmlns='http://relaxng.org/ns/structure/1.0'
+         xmlns:a='http://relaxng.org/ns/compatibility/annotations/1.0'
+         xmlns:svg='http://www.w3.org/2005/02/svg-annotations'
+         datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
+         >
+
+  <define name='svg.ContentType.attr' combine='interleave'>
+    <optional>
+      <attribute name='type' svg:animatable='false' svg:inheritable='false'>
+        <ref name='ContentType.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>

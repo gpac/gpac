@@ -1,0 +1,2411 @@
+# Microsoft eMbedded Visual Tools Project File - Name="amr_dec" - Package Owner=<4>
+# Microsoft eMbedded Visual Tools Generated Build File, Format Version 6.02
+# ** DO NOT EDIT **
+
+# TARGTYPE "Win32 (WCE ARM) Dynamic-Link Library" 0x8502
+
+CFG=amr_dec - Win32 (WCE ARM) Debug
+!MESSAGE This is not a valid makefile. To build this project using NMAKE,
+!MESSAGE use the Export Makefile command and run
+!MESSAGE 
+!MESSAGE NMAKE /f "amr_dec.vcn".
+!MESSAGE 
+!MESSAGE You can specify a configuration when running NMAKE
+!MESSAGE by defining the macro CFG on the command line. For example:
+!MESSAGE 
+!MESSAGE NMAKE /f "amr_dec.vcn" CFG="amr_dec - Win32 (WCE ARM) Debug"
+!MESSAGE 
+!MESSAGE Possible choices for configuration are:
+!MESSAGE 
+!MESSAGE "amr_dec - Win32 (WCE ARM) Release" (based on "Win32 (WCE ARM) Dynamic-Link Library")
+!MESSAGE "amr_dec - Win32 (WCE ARM) Debug" (based on "Win32 (WCE ARM) Dynamic-Link Library")
+!MESSAGE 
+
+# Begin Project
+# PROP AllowPerConfigDependencies 0
+# PROP Scc_ProjName ""
+# PROP Scc_LocalPath ""
+# PROP ATL_Project 2
+CPP=clarm.exe
+MTL=midl.exe
+RSC=rc.exe
+
+!IF  "$(CFG)" == "amr_dec - Win32 (WCE ARM) Release"
+
+# PROP BASE Use_MFC 0
+# PROP BASE Use_Debug_Libraries 0
+# PROP BASE Output_Dir "ARMRel"
+# PROP BASE Intermediate_Dir "ARMRel"
+# PROP BASE CPU_ID "{D6518FFC-710F-11D3-99F2-00105A0DF099}"
+# PROP BASE Platform_ID "{8A9A2F80-6887-11D3-842E-005004848CBA}"
+# PROP BASE Target_Dir ""
+# PROP Use_MFC 0
+# PROP Use_Debug_Libraries 0
+# PROP Output_Dir "obj/amr_dec_rel"
+# PROP Intermediate_Dir "obj/amr_dec_rel"
+# PROP CPU_ID "{D6518FFC-710F-11D3-99F2-00105A0DF099}"
+# PROP Platform_ID "{8A9A2F80-6887-11D3-842E-005004848CBA}"
+# PROP Ignore_Export_Lib 0
+# PROP Target_Dir ""
+# ADD BASE RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "UNICODE" /d "_UNICODE" /d "NDEBUG" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /r
+# ADD RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "UNICODE" /d "_UNICODE" /d "NDEBUG" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /r
+# ADD BASE CPP /nologo /W3 /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_USRDLL" /D "AMR_DEC_EXPORTS" /YX /Oxs /M$(CECrtMT) /c
+# ADD CPP /nologo /W3 /O2 /I "../../include" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_USRDLL" /D "__MSDOS__" /D "MMS_IO" /Oxs /M$(CECrtMT) /c
+# SUBTRACT CPP /YX
+# ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
+# ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
+BSC32=bscmake.exe
+# ADD BASE BSC32 /nologo
+# ADD BSC32 /nologo
+LINK32=link.exe
+# ADD BASE LINK32 commctrl.lib coredll.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /nodefaultlib:"$(CENoDefaultLib)" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
+# ADD LINK32 /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc02_rel/amr_dec.dll" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
+
+!ELSEIF  "$(CFG)" == "amr_dec - Win32 (WCE ARM) Debug"
+
+# PROP BASE Use_MFC 0
+# PROP BASE Use_Debug_Libraries 1
+# PROP BASE Output_Dir "ARMDbg"
+# PROP BASE Intermediate_Dir "ARMDbg"
+# PROP BASE CPU_ID "{D6518FFC-710F-11D3-99F2-00105A0DF099}"
+# PROP BASE Platform_ID "{8A9A2F80-6887-11D3-842E-005004848CBA}"
+# PROP BASE Target_Dir ""
+# PROP Use_MFC 0
+# PROP Use_Debug_Libraries 1
+# PROP Output_Dir "obj/amr_dec_deb"
+# PROP Intermediate_Dir "obj/amr_dec_deb"
+# PROP CPU_ID "{D6518FFC-710F-11D3-99F2-00105A0DF099}"
+# PROP Platform_ID "{8A9A2F80-6887-11D3-842E-005004848CBA}"
+# PROP Ignore_Export_Lib 0
+# PROP Target_Dir ""
+# ADD BASE RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "UNICODE" /d "_UNICODE" /d "DEBUG" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /r
+# ADD RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "UNICODE" /d "_UNICODE" /d "DEBUG" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /r
+# ADD BASE CPP /nologo /W3 /Zi /Od /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_USRDLL" /D "AMR_DEC_EXPORTS" /YX /M$(CECrtMTDebug) /c
+# ADD CPP /nologo /W3 /Zi /Od /I "../../include" /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_USRDLL" /D "__MSDOS__" /D "MMS_IO" /M$(CECrtMTDebug) /c
+# SUBTRACT CPP /YX
+# ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
+# ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
+BSC32=bscmake.exe
+# ADD BASE BSC32 /nologo
+# ADD BSC32 /nologo
+LINK32=link.exe
+# ADD BASE LINK32 commctrl.lib coredll.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /debug /nodefaultlib:"$(CENoDefaultLib)" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
+# ADD LINK32 /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /debug /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc02_deb/amr_dec.dll" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
+
+!ENDIF 
+
+# Begin Target
+
+# Name "amr_dec - Win32 (WCE ARM) Release"
+# Name "amr_dec - Win32 (WCE ARM) Debug"
+# Begin Group "amr_nb"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\a_refl.c
+DEP_CPP_A_REF=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\a_refl.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\a_refl.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\agc.c
+DEP_CPP_AGC_C=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\agc.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\inv_sqrt.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\agc.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\autocorr.c
+DEP_CPP_AUTOC=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\autocorr.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\autocorr.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\az_lsp.c
+DEP_CPP_AZ_LS=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\az_lsp.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\grid.tab"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\az_lsp.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\b_cn_cod.c
+DEP_CPP_B_CN_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\b_cn_cod.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	"..\..\modules\amr_dec\amr_nb\window.tab"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\b_cn_cod.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\basic_op.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\basicop2.c
+DEP_CPP_BASIC=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\bgnscd.c
+DEP_CPP_BGNSC=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\bgnscd.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\gmed_n.h"\
+	"..\..\modules\amr_dec\amr_nb\set_zero.h"\
+	"..\..\modules\amr_dec\amr_nb\sqrt_l.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\bgnscd.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\bits2prm.c
+DEP_CPP_BITS2=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\bitno.tab"\
+	"..\..\modules\amr_dec\amr_nb\bits2prm.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\bits2prm.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\c1035pf.c
+DEP_CPP_C1035=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\c1035pf.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\cor_h.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\gray.tab"\
+	"..\..\modules\amr_dec\amr_nb\inv_sqrt.h"\
+	"..\..\modules\amr_dec\amr_nb\s10_8pf.h"\
+	"..\..\modules\amr_dec\amr_nb\set_sign.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\c1035pf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\c2_11pf.c
+DEP_CPP_C2_11=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\c2_11pf.h"\
+	"..\..\modules\amr_dec\amr_nb\c2_11pf.tab"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\cor_h.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\inv_sqrt.h"\
+	"..\..\modules\amr_dec\amr_nb\set_sign.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\c2_11pf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\c2_9pf.c
+DEP_CPP_C2_9P=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\c2_9pf.h"\
+	"..\..\modules\amr_dec\amr_nb\c2_9pf.tab"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\cor_h.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\inv_sqrt.h"\
+	"..\..\modules\amr_dec\amr_nb\set_sign.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\c2_9pf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\c3_14pf.c
+DEP_CPP_C3_14=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\c3_14pf.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\cor_h.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\inv_sqrt.h"\
+	"..\..\modules\amr_dec\amr_nb\set_sign.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\c3_14pf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\c4_17pf.c
+DEP_CPP_C4_17=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\c4_17pf.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\cor_h.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\gray.tab"\
+	"..\..\modules\amr_dec\amr_nb\inv_sqrt.h"\
+	"..\..\modules\amr_dec\amr_nb\set_sign.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\c4_17pf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\c8_31pf.c
+DEP_CPP_C8_31=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\c8_31pf.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\cor_h.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\inv_sqrt.h"\
+	"..\..\modules\amr_dec\amr_nb\s10_8pf.h"\
+	"..\..\modules\amr_dec\amr_nb\set_sign.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\c8_31pf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\c_g_aver.c
+DEP_CPP_C_G_A=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\c_g_aver.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\set_zero.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\c_g_aver.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\calc_cor.c
+DEP_CPP_CALC_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\calc_cor.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\calc_cor.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\calc_en.c
+DEP_CPP_CALC_E=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\calc_en.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\log2.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\calc_en.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\cbsearch.c
+DEP_CPP_CBSEA=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\c1035pf.h"\
+	"..\..\modules\amr_dec\amr_nb\c2_11pf.h"\
+	"..\..\modules\amr_dec\amr_nb\c2_9pf.h"\
+	"..\..\modules\amr_dec\amr_nb\c3_14pf.h"\
+	"..\..\modules\amr_dec\amr_nb\c4_17pf.h"\
+	"..\..\modules\amr_dec\amr_nb\c8_31pf.h"\
+	"..\..\modules\amr_dec\amr_nb\cbsearch.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\cbsearch.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\cl_ltp.c
+DEP_CPP_CL_LT=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cl_ltp.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\convolve.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\enc_lag3.h"\
+	"..\..\modules\amr_dec\amr_nb\enc_lag6.h"\
+	"..\..\modules\amr_dec\amr_nb\g_pitch.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\pitch_fr.h"\
+	"..\..\modules\amr_dec\amr_nb\pred_lt.h"\
+	"..\..\modules\amr_dec\amr_nb\q_gain_p.h"\
+	"..\..\modules\amr_dec\amr_nb\ton_stab.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\cl_ltp.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\cnst.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\cnst_vad.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\cod_amr.c
+DEP_CPP_COD_A=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cbsearch.h"\
+	"..\..\modules\amr_dec\amr_nb\cl_ltp.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst_vad.h"\
+	"..\..\modules\amr_dec\amr_nb\cod_amr.h"\
+	"..\..\modules\amr_dec\amr_nb\convolve.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\dtx_enc.h"\
+	"..\..\modules\amr_dec\amr_nb\g_adapt.h"\
+	"..\..\modules\amr_dec\amr_nb\gain_q.h"\
+	"..\..\modules\amr_dec\amr_nb\gc_pred.h"\
+	"..\..\modules\amr_dec\amr_nb\levinson.h"\
+	"..\..\modules\amr_dec\amr_nb\lpc.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\ol_ltp.h"\
+	"..\..\modules\amr_dec\amr_nb\p_ol_wgh.h"\
+	"..\..\modules\amr_dec\amr_nb\pitch_fr.h"\
+	"..\..\modules\amr_dec\amr_nb\pre_big.h"\
+	"..\..\modules\amr_dec\amr_nb\pred_lt.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\qua_gain.h"\
+	"..\..\modules\amr_dec\amr_nb\set_zero.h"\
+	"..\..\modules\amr_dec\amr_nb\spreproc.h"\
+	"..\..\modules\amr_dec\amr_nb\spstproc.h"\
+	"..\..\modules\amr_dec\amr_nb\ton_stab.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	"..\..\modules\amr_dec\amr_nb\vad.h"\
+	"..\..\modules\amr_dec\amr_nb\vad1.h"\
+	"..\..\modules\amr_dec\amr_nb\vad2.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\cod_amr.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\convolve.c
+DEP_CPP_CONVO=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\convolve.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\convolve.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\copy.c
+DEP_CPP_COPY_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\copy.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\cor_h.c
+DEP_CPP_COR_H=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\cor_h.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\inv_sqrt.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\cor_h.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\count.c
+DEP_CPP_COUNT=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\count.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d1035pf.c
+DEP_CPP_D1035=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\d1035pf.h"\
+	"..\..\modules\amr_dec\amr_nb\gray.tab"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d1035pf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d2_11pf.c
+DEP_CPP_D2_11=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\d2_11pf.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d2_11pf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d2_9pf.c
+DEP_CPP_D2_9P=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\c2_9pf.tab"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\d2_9pf.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d2_9pf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d3_14pf.c
+DEP_CPP_D3_14=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\d3_14pf.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d3_14pf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d4_17pf.c
+DEP_CPP_D4_17=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\d4_17pf.h"\
+	"..\..\modules\amr_dec\amr_nb\gray.tab"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d4_17pf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d8_31pf.c
+DEP_CPP_D8_31=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\d8_31pf.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d8_31pf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d_gain_c.c
+DEP_CPP_D_GAI=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\d_gain_c.h"\
+	"..\..\modules\amr_dec\amr_nb\gains.tab"\
+	"..\..\modules\amr_dec\amr_nb\gc_pred.h"\
+	"..\..\modules\amr_dec\amr_nb\log2.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\pow2.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d_gain_c.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d_gain_p.c
+DEP_CPP_D_GAIN=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\d_gain_p.h"\
+	"..\..\modules\amr_dec\amr_nb\gains.tab"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d_gain_p.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d_homing.c
+DEP_CPP_D_HOM=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\bitno.tab"\
+	"..\..\modules\amr_dec\amr_nb\bits2prm.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\d_homing.h"\
+	"..\..\modules\amr_dec\amr_nb\d_homing.tab"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d_homing.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d_plsf.c
+DEP_CPP_D_PLS=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\d_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf_5.tab"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d_plsf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d_plsf_3.c
+DEP_CPP_D_PLSF=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\d_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp_lsf.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf_3.tab"\
+	"..\..\modules\amr_dec\amr_nb\reorder.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\d_plsf_5.c
+DEP_CPP_D_PLSF_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\d_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp_lsf.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf_5.tab"\
+	"..\..\modules\amr_dec\amr_nb\reorder.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\dec_amr.c
+DEP_CPP_DEC_A=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\agc.h"\
+	"..\..\modules\amr_dec\amr_nb\b_cn_cod.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\bgnscd.h"\
+	"..\..\modules\amr_dec\amr_nb\bitno.tab"\
+	"..\..\modules\amr_dec\amr_nb\c_g_aver.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\d1035pf.h"\
+	"..\..\modules\amr_dec\amr_nb\d2_11pf.h"\
+	"..\..\modules\amr_dec\amr_nb\d2_9pf.h"\
+	"..\..\modules\amr_dec\amr_nb\d3_14pf.h"\
+	"..\..\modules\amr_dec\amr_nb\d4_17pf.h"\
+	"..\..\modules\amr_dec\amr_nb\d8_31pf.h"\
+	"..\..\modules\amr_dec\amr_nb\d_gain_c.h"\
+	"..\..\modules\amr_dec\amr_nb\d_gain_p.h"\
+	"..\..\modules\amr_dec\amr_nb\d_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\dec_amr.h"\
+	"..\..\modules\amr_dec\amr_nb\dec_gain.h"\
+	"..\..\modules\amr_dec\amr_nb\dec_lag3.h"\
+	"..\..\modules\amr_dec\amr_nb\dec_lag6.h"\
+	"..\..\modules\amr_dec\amr_nb\dtx_dec.h"\
+	"..\..\modules\amr_dec\amr_nb\dtx_enc.h"\
+	"..\..\modules\amr_dec\amr_nb\ec_gains.h"\
+	"..\..\modules\amr_dec\amr_nb\ex_ctrl.h"\
+	"..\..\modules\amr_dec\amr_nb\gc_pred.h"\
+	"..\..\modules\amr_dec\amr_nb\int_lpc.h"\
+	"..\..\modules\amr_dec\amr_nb\int_lsf.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp.tab"\
+	"..\..\modules\amr_dec\amr_nb\lsp_avg.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp_lsf.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\ph_disp.h"\
+	"..\..\modules\amr_dec\amr_nb\pred_lt.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\set_zero.h"\
+	"..\..\modules\amr_dec\amr_nb\sqrt_l.h"\
+	"..\..\modules\amr_dec\amr_nb\syn_filt.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\dec_amr.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\dec_gain.c
+DEP_CPP_DEC_G=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\dec_gain.h"\
+	"..\..\modules\amr_dec\amr_nb\gc_pred.h"\
+	"..\..\modules\amr_dec\amr_nb\log2.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\pow2.h"\
+	"..\..\modules\amr_dec\amr_nb\qgain475.tab"\
+	"..\..\modules\amr_dec\amr_nb\qua_gain.tab"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\dec_gain.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\dec_lag3.c
+DEP_CPP_DEC_L=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\dec_lag3.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\dec_lag3.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\dec_lag6.c
+DEP_CPP_DEC_LA=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\dec_lag6.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\dec_lag6.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\dtx_dec.c
+DEP_CPP_DTX_D=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\a_refl.h"\
+	"..\..\modules\amr_dec\amr_nb\b_cn_cod.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\c_g_aver.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\d_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\dtx_dec.h"\
+	"..\..\modules\amr_dec\amr_nb\dtx_enc.h"\
+	"..\..\modules\amr_dec\amr_nb\gc_pred.h"\
+	"..\..\modules\amr_dec\amr_nb\log2.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp.tab"\
+	"..\..\modules\amr_dec\amr_nb\lsp_az.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp_lsf.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\pow2.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf_5.tab"\
+	"..\..\modules\amr_dec\amr_nb\reorder.h"\
+	"..\..\modules\amr_dec\amr_nb\set_zero.h"\
+	"..\..\modules\amr_dec\amr_nb\syn_filt.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\dtx_dec.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\dtx_enc.c
+DEP_CPP_DTX_E=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\dtx_enc.h"\
+	"..\..\modules\amr_dec\amr_nb\gc_pred.h"\
+	"..\..\modules\amr_dec\amr_nb\log2.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp.tab"\
+	"..\..\modules\amr_dec\amr_nb\lsp_lsf.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\reorder.h"\
+	"..\..\modules\amr_dec\amr_nb\set_zero.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\dtx_enc.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\e_homing.c
+DEP_CPP_E_HOM=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\e_homing.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\e_homing.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\ec_gains.c
+DEP_CPP_EC_GA=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\ec_gains.h"\
+	"..\..\modules\amr_dec\amr_nb\gains.tab"\
+	"..\..\modules\amr_dec\amr_nb\gc_pred.h"\
+	"..\..\modules\amr_dec\amr_nb\gmed_n.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\ec_gains.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\enc_lag3.c
+DEP_CPP_ENC_L=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\enc_lag3.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\enc_lag3.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\enc_lag6.c
+DEP_CPP_ENC_LA=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\enc_lag6.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\enc_lag6.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\ex_ctrl.c
+DEP_CPP_EX_CT=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\ex_ctrl.h"\
+	"..\..\modules\amr_dec\amr_nb\gmed_n.h"\
+	"..\..\modules\amr_dec\amr_nb\set_zero.h"\
+	"..\..\modules\amr_dec\amr_nb\sqrt_l.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\ex_ctrl.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\frame.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\g_adapt.c
+DEP_CPP_G_ADA=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\g_adapt.h"\
+	"..\..\modules\amr_dec\amr_nb\gmed_n.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\g_adapt.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\g_code.c
+DEP_CPP_G_COD=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\g_code.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\g_code.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\g_pitch.c
+DEP_CPP_G_PIT=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\g_pitch.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\g_pitch.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\gain_q.c
+DEP_CPP_GAIN_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\calc_en.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\g_adapt.h"\
+	"..\..\modules\amr_dec\amr_nb\g_code.h"\
+	"..\..\modules\amr_dec\amr_nb\gain_q.h"\
+	"..\..\modules\amr_dec\amr_nb\gc_pred.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\q_gain_c.h"\
+	"..\..\modules\amr_dec\amr_nb\qgain475.h"\
+	"..\..\modules\amr_dec\amr_nb\qgain795.h"\
+	"..\..\modules\amr_dec\amr_nb\qua_gain.h"\
+	"..\..\modules\amr_dec\amr_nb\set_zero.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\gain_q.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\gc_pred.c
+DEP_CPP_GC_PR=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\gc_pred.h"\
+	"..\..\modules\amr_dec\amr_nb\log2.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\gc_pred.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\gmed_n.c
+DEP_CPP_GMED_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\gmed_n.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\gmed_n.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\hp_max.c
+DEP_CPP_HP_MA=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\hp_max.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\hp_max.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\int_lpc.c
+DEP_CPP_INT_L=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\int_lpc.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp_az.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\int_lpc.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\int_lsf.c
+DEP_CPP_INT_LS=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\int_lsf.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\int_lsf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\inter_36.c
+DEP_CPP_INTER=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\inter_36.h"\
+	"..\..\modules\amr_dec\amr_nb\inter_36.tab"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\inter_36.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\inv_sqrt.c
+DEP_CPP_INV_S=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\inv_sqrt.h"\
+	"..\..\modules\amr_dec\amr_nb\inv_sqrt.tab"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\inv_sqrt.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\lag_wind.c
+DEP_CPP_LAG_W=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\lag_wind.h"\
+	"..\..\modules\amr_dec\amr_nb\lag_wind.tab"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\lag_wind.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\levinson.c
+DEP_CPP_LEVIN=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\levinson.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\levinson.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\lflg_upd.c
+DEP_CPP_LFLG_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	"..\..\modules\amr_dec\amr_nb\vad2.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\log2.c
+DEP_CPP_LOG2_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\log2.h"\
+	"..\..\modules\amr_dec\amr_nb\log2.tab"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\log2.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\lpc.c
+DEP_CPP_LPC_C=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\autocorr.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\lag_wind.h"\
+	"..\..\modules\amr_dec\amr_nb\levinson.h"\
+	"..\..\modules\amr_dec\amr_nb\lpc.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	"..\..\modules\amr_dec\amr_nb\window.tab"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\lpc.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\lsfwt.c
+DEP_CPP_LSFWT=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\lsfwt.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\lsfwt.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\lsp.c
+DEP_CPP_LSP_C=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\az_lsp.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\int_lpc.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp.tab"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\lsp.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\lsp_avg.c
+DEP_CPP_LSP_A=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp_avg.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf_5.tab"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\lsp_avg.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\lsp_az.c
+DEP_CPP_LSP_AZ=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp_az.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\lsp_az.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\lsp_lsf.c
+DEP_CPP_LSP_L=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp_lsf.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp_lsf.tab"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\lsp_lsf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\mac_32.c
+DEP_CPP_MAC_3=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\mac_32.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\mac_32.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\mode.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\n_proc.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\n_proc.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\ol_ltp.c
+DEP_CPP_OL_LT=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst_vad.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\ol_ltp.h"\
+	"..\..\modules\amr_dec\amr_nb\p_ol_wgh.h"\
+	"..\..\modules\amr_dec\amr_nb\pitch_ol.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	"..\..\modules\amr_dec\amr_nb\vad.h"\
+	"..\..\modules\amr_dec\amr_nb\vad1.h"\
+	"..\..\modules\amr_dec\amr_nb\vad2.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\ol_ltp.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\oper_32b.c
+DEP_CPP_OPER_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\oper_32b.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\p_ol_wgh.c
+DEP_CPP_P_OL_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\calc_cor.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst_vad.h"\
+	"..\..\modules\amr_dec\amr_nb\corrwght.tab"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\gmed_n.h"\
+	"..\..\modules\amr_dec\amr_nb\hp_max.h"\
+	"..\..\modules\amr_dec\amr_nb\inv_sqrt.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\p_ol_wgh.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	"..\..\modules\amr_dec\amr_nb\vad.h"\
+	"..\..\modules\amr_dec\amr_nb\vad1.h"\
+	"..\..\modules\amr_dec\amr_nb\vad2.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\p_ol_wgh.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\ph_disp.c
+DEP_CPP_PH_DI=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\ph_disp.h"\
+	"..\..\modules\amr_dec\amr_nb\ph_disp.tab"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\ph_disp.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\pitch_fr.c
+DEP_CPP_PITCH=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\convolve.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\enc_lag3.h"\
+	"..\..\modules\amr_dec\amr_nb\enc_lag6.h"\
+	"..\..\modules\amr_dec\amr_nb\inter_36.h"\
+	"..\..\modules\amr_dec\amr_nb\inv_sqrt.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\pitch_fr.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\pitch_fr.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\pitch_ol.c
+DEP_CPP_PITCH_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\calc_cor.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst_vad.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\hp_max.h"\
+	"..\..\modules\amr_dec\amr_nb\inv_sqrt.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\pitch_ol.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	"..\..\modules\amr_dec\amr_nb\vad.h"\
+	"..\..\modules\amr_dec\amr_nb\vad1.h"\
+	"..\..\modules\amr_dec\amr_nb\vad2.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\pitch_ol.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\post_pro.c
+DEP_CPP_POST_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\post_pro.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\post_pro.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\pow2.c
+DEP_CPP_POW2_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\pow2.h"\
+	"..\..\modules\amr_dec\amr_nb\pow2.tab"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\pow2.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\pre_big.c
+DEP_CPP_PRE_B=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\pre_big.h"\
+	"..\..\modules\amr_dec\amr_nb\residu.h"\
+	"..\..\modules\amr_dec\amr_nb\syn_filt.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	"..\..\modules\amr_dec\amr_nb\weight_a.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\pre_big.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\pre_proc.c
+DEP_CPP_PRE_P=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\pre_proc.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\pre_proc.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\pred_lt.c
+DEP_CPP_PRED_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\pred_lt.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\pred_lt.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\preemph.c
+DEP_CPP_PREEM=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\preemph.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\preemph.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\prm2bits.c
+DEP_CPP_PRM2B=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\bitno.tab"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\prm2bits.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\prm2bits.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\pstfilt.c
+DEP_CPP_PSTFI=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\agc.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\preemph.h"\
+	"..\..\modules\amr_dec\amr_nb\pstfilt.h"\
+	"..\..\modules\amr_dec\amr_nb\residu.h"\
+	"..\..\modules\amr_dec\amr_nb\set_zero.h"\
+	"..\..\modules\amr_dec\amr_nb\syn_filt.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	"..\..\modules\amr_dec\amr_nb\weight_a.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\pstfilt.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\q_gain_c.c
+DEP_CPP_Q_GAI=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\gains.tab"\
+	"..\..\modules\amr_dec\amr_nb\gc_pred.h"\
+	"..\..\modules\amr_dec\amr_nb\log2.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\pow2.h"\
+	"..\..\modules\amr_dec\amr_nb\q_gain_c.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\q_gain_c.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\q_gain_p.c
+DEP_CPP_Q_GAIN=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\gains.tab"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\q_gain_p.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\q_gain_p.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\q_plsf.c
+DEP_CPP_Q_PLS=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\q_plsf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\q_plsf_3.c
+DEP_CPP_Q_PLSF=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\lsfwt.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp_lsf.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf_3.tab"\
+	"..\..\modules\amr_dec\amr_nb\reorder.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\q_plsf_5.c
+DEP_CPP_Q_PLSF_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\lsfwt.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp_lsf.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf_5.tab"\
+	"..\..\modules\amr_dec\amr_nb\reorder.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\qgain475.c
+DEP_CPP_QGAIN=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\gc_pred.h"\
+	"..\..\modules\amr_dec\amr_nb\log2.h"\
+	"..\..\modules\amr_dec\amr_nb\mac_32.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\pow2.h"\
+	"..\..\modules\amr_dec\amr_nb\qgain475.h"\
+	"..\..\modules\amr_dec\amr_nb\qgain475.tab"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\qgain475.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\qgain795.c
+DEP_CPP_QGAIN7=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\calc_en.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\g_adapt.h"\
+	"..\..\modules\amr_dec\amr_nb\gains.tab"\
+	"..\..\modules\amr_dec\amr_nb\log2.h"\
+	"..\..\modules\amr_dec\amr_nb\mac_32.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\pow2.h"\
+	"..\..\modules\amr_dec\amr_nb\q_gain_p.h"\
+	"..\..\modules\amr_dec\amr_nb\qgain795.h"\
+	"..\..\modules\amr_dec\amr_nb\sqrt_l.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\qgain795.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\qua_gain.c
+DEP_CPP_QUA_G=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\gc_pred.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\pow2.h"\
+	"..\..\modules\amr_dec\amr_nb\qua_gain.h"\
+	"..\..\modules\amr_dec\amr_nb\qua_gain.tab"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\qua_gain.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\r_fft.c
+DEP_CPP_R_FFT=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	"..\..\modules\amr_dec\amr_nb\vad2.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\reorder.c
+DEP_CPP_REORD=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\reorder.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\reorder.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\residu.c
+DEP_CPP_RESID=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\residu.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\residu.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\s10_8pf.c
+DEP_CPP_S10_8=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\s10_8pf.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\s10_8pf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\set_sign.c
+DEP_CPP_SET_S=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\inv_sqrt.h"\
+	"..\..\modules\amr_dec\amr_nb\set_sign.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\set_sign.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\set_zero.c
+DEP_CPP_SET_Z=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\set_zero.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\set_zero.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\sid_sync.c
+DEP_CPP_SID_S=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\sid_sync.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\sid_sync.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\sp_dec.c
+DEP_CPP_SP_DE=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\agc.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\bgnscd.h"\
+	"..\..\modules\amr_dec\amr_nb\bitno.tab"\
+	"..\..\modules\amr_dec\amr_nb\bits2prm.h"\
+	"..\..\modules\amr_dec\amr_nb\c_g_aver.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\d_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\dec_amr.h"\
+	"..\..\modules\amr_dec\amr_nb\dtx_dec.h"\
+	"..\..\modules\amr_dec\amr_nb\dtx_enc.h"\
+	"..\..\modules\amr_dec\amr_nb\ec_gains.h"\
+	"..\..\modules\amr_dec\amr_nb\gc_pred.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp_avg.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\ph_disp.h"\
+	"..\..\modules\amr_dec\amr_nb\post_pro.h"\
+	"..\..\modules\amr_dec\amr_nb\preemph.h"\
+	"..\..\modules\amr_dec\amr_nb\pstfilt.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\set_zero.h"\
+	"..\..\modules\amr_dec\amr_nb\sp_dec.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\sp_dec.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\sp_enc.c
+DEP_CPP_SP_EN=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\bitno.tab"\
+	"..\..\modules\amr_dec\amr_nb\cl_ltp.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst_vad.h"\
+	"..\..\modules\amr_dec\amr_nb\cod_amr.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\dtx_enc.h"\
+	"..\..\modules\amr_dec\amr_nb\g_adapt.h"\
+	"..\..\modules\amr_dec\amr_nb\gain_q.h"\
+	"..\..\modules\amr_dec\amr_nb\gc_pred.h"\
+	"..\..\modules\amr_dec\amr_nb\levinson.h"\
+	"..\..\modules\amr_dec\amr_nb\lpc.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\p_ol_wgh.h"\
+	"..\..\modules\amr_dec\amr_nb\pitch_fr.h"\
+	"..\..\modules\amr_dec\amr_nb\pre_proc.h"\
+	"..\..\modules\amr_dec\amr_nb\prm2bits.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\set_zero.h"\
+	"..\..\modules\amr_dec\amr_nb\sp_enc.h"\
+	"..\..\modules\amr_dec\amr_nb\ton_stab.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	"..\..\modules\amr_dec\amr_nb\vad.h"\
+	"..\..\modules\amr_dec\amr_nb\vad1.h"\
+	"..\..\modules\amr_dec\amr_nb\vad2.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\sp_enc.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\spreproc.c
+DEP_CPP_SPREP=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\residu.h"\
+	"..\..\modules\amr_dec\amr_nb\spreproc.h"\
+	"..\..\modules\amr_dec\amr_nb\syn_filt.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	"..\..\modules\amr_dec\amr_nb\weight_a.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\spreproc.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\spstproc.c
+DEP_CPP_SPSTP=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\spstproc.h"\
+	"..\..\modules\amr_dec\amr_nb\syn_filt.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\spstproc.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\sqrt_l.c
+DEP_CPP_SQRT_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\sqrt_l.h"\
+	"..\..\modules\amr_dec\amr_nb\sqrt_l.tab"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\sqrt_l.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\strfunc.c
+DEP_CPP_STRFU=\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\strfunc.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\strfunc.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\syn_filt.c
+DEP_CPP_SYN_F=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\syn_filt.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\syn_filt.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\ton_stab.c
+DEP_CPP_TON_S=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\copy.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\set_zero.h"\
+	"..\..\modules\amr_dec\amr_nb\ton_stab.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\ton_stab.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\typedef.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\typedefs.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\vad.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\vad1.c
+DEP_CPP_VAD1_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst_vad.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	"..\..\modules\amr_dec\amr_nb\vad.h"\
+	"..\..\modules\amr_dec\amr_nb\vad1.h"\
+	"..\..\modules\amr_dec\amr_nb\vad2.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\vad1.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\vad2.c
+DEP_CPP_VAD2_=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\log2.h"\
+	"..\..\modules\amr_dec\amr_nb\oper_32b.h"\
+	"..\..\modules\amr_dec\amr_nb\pow2.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	"..\..\modules\amr_dec\amr_nb\vad2.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\vad2.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\vadname.c
+DEP_CPP_VADNA=\
+	"..\..\modules\amr_dec\amr_nb\vadname.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\vadname.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\weight_a.c
+DEP_CPP_WEIGH=\
+	"..\..\include\gpac\setup.h"\
+	"..\..\modules\amr_dec\amr_nb\basic_op.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\count.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	"..\..\modules\amr_dec\amr_nb\weight_a.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_nb\weight_a.h
+# End Source File
+# End Group
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_dec.c
+DEP_CPP_AMR_D=\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\modules\amr_dec\amr_nb\agc.h"\
+	"..\..\modules\amr_dec\amr_nb\bgnscd.h"\
+	"..\..\modules\amr_dec\amr_nb\c_g_aver.h"\
+	"..\..\modules\amr_dec\amr_nb\cnst.h"\
+	"..\..\modules\amr_dec\amr_nb\d_homing.h"\
+	"..\..\modules\amr_dec\amr_nb\d_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\dec_amr.h"\
+	"..\..\modules\amr_dec\amr_nb\dtx_dec.h"\
+	"..\..\modules\amr_dec\amr_nb\dtx_enc.h"\
+	"..\..\modules\amr_dec\amr_nb\ec_gains.h"\
+	"..\..\modules\amr_dec\amr_nb\gc_pred.h"\
+	"..\..\modules\amr_dec\amr_nb\lsp_avg.h"\
+	"..\..\modules\amr_dec\amr_nb\mode.h"\
+	"..\..\modules\amr_dec\amr_nb\ph_disp.h"\
+	"..\..\modules\amr_dec\amr_nb\post_pro.h"\
+	"..\..\modules\amr_dec\amr_nb\preemph.h"\
+	"..\..\modules\amr_dec\amr_nb\pstfilt.h"\
+	"..\..\modules\amr_dec\amr_nb\q_plsf.h"\
+	"..\..\modules\amr_dec\amr_nb\sp_dec.h"\
+	"..\..\modules\amr_dec\amr_nb\typedef.h"\
+	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_dec.def
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\amr_dec\amr_in.c
+DEP_CPP_AMR_I=\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\isomedia.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
+	
+# End Source File
+# End Target
+# End Project

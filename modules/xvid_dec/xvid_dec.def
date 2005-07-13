@@ -1,0 +1,6 @@
+LIBRARY     xvid_dec.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

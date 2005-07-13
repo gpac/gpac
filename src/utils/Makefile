@@ -1,0 +1,69 @@
+include ../../config.mak
+
+VPATH=$(SRC_PATH)/src/utils
+
+CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
+
+ifeq ($(DEBUGBUILD), yes)
+CFLAGS+=-g
+LDFLAGS+=-g
+endif
+
+
+#common obj
+OBJS=list.o base_encoding.o bitstream.o configfile.o downloader.o error.o math.o path2d.o path2d_stroker.o module.o token.o url.o utf.o xml_parser.o yuv_to_rgb.o
+
+
+ifeq ($(HAS_OPENSSL), yes)
+CFLAGS+=-DGPAC_HAS_SSL
+endif
+
+#per-platform source 
+ifeq ($(CONFIG_WIN32), yes)
+OBJS += ./w32/os_divers.o ./w32/os_net.o ./w32/os_module.o ./w32/os_thread.o
+endif
+ifeq ($(CONFIG_LINUX), yes)
+OBJS += ./linux/os_divers.o ./linux/os_net.o ./linux/os_module.o ./linux/os_thread.o
+endif
+ifeq ($(CONFIG_FREEBSD), yes)
+OBJS += ./linux/os_divers.o ./linux/os_net.o ./linux/os_module.o ./linux/os_thread.o
+CFLAGS+=-DCONFIG_FREEBSD
+endif
+ifeq ($(CONFIG_DARWIN), yes)
+OBJS += ./linux/os_divers.o ./linux/os_net.o ./linux/os_module.o ./linux/os_thread.o
+endif
+
+SRCS := $(OBJS:.o=.c) 
+
+LIB=../../bin/gcc/temp/libgpac_utils.a
+
+all: $(LIB)
+
+
+$(LIB): $(OBJS)
+	$(AR) rc $@ $(OBJS)
+	$(RANLIB) $@
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c -o $@ $< 
+
+
+clean: 
+	rm -f $(OBJS) $(LIB)
+
+dep: depend
+
+depend:
+	rm -f .depend	
+	$(CC) -MM $(CFLAGS) $(SRCS) 1>.depend
+
+distclean: clean
+	rm -f Makefile.bak .depend
+
+
+
+# include dependency files if they exist
+#
+ifneq ($(wildcard .depend),)
+include .depend
+endif

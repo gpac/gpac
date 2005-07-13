@@ -1,0 +1,148 @@
+		GPAC Scene Graph generator documentation - v0.4.0
+
+			Last Modified: July 2005
+
+
+
+0 - Foreword
+
+
+
+The sets (MPEG4, X3D and SVG) of nodes handled by the GPAC are genrated through "Scene Generators" applications:
+
+applications/generators/MPEG4 for MPEG4 along with the official MPEG-4 template files needed to generate nodes and their encoding tables.
+
+applications/generators/X3D for X3D along with the X3D template file needed to generate nodes.
+
+applications/generators/SVG for SVG along with the SVG template.
+
+
+
+MPEG-4 Template files are numbered by versions of amendments to the MPEG-4 systems standard. 
+
+X3D and SVG templates do not have versionning.
+
+
+
+1 - Regenerating the scene graph
+
+
+
+First recompile the appropriated scene generator application. You don't need to recompile GPAC to recompile it.
+
+The generators DIRECTLY overwrites source code files in the GPAC distribution, you MUST NOT try to run it from a different 
+
+location than gpac/applications/generators/*
+
+
+
+For MPEG-4 you must provide MPEG4Gen with the set of template files. For example, if you're planning to use only nodes defined in the 
+
+first version of the standard (1998) described in templates1.txt file, just type:
+
+
+
+MPEG4Gen templates1.txt
+
+
+
+Template files MUST be fed in order, and versions cannot be skipped: you SHALL NOT try to generate version1 and version3 without version2. 
+
+To generate a scene graph handling v1 to v3 of the BIFS system, type:
+
+MPEG4Gen templates1.txt templates2.txt templates3.txt
+
+
+
+For X3D, simply run X3DGen, it will automatically load the "templates_X3D.txt" file
+
+For SVG, simply run SVGGen completesvgt12rng.xml
+
+
+
+
+
+2 - Customizing the scene graph
+
+
+
+As of 0.2.2, all nodes in current gpac version are supported by renderers and cannot be removed. You will therefore have to REMOVE some code in the renderers
+
+and the scene graph in order to recompile GPAC. You should therefore not try to customize the scene graph unless you know what you're doing.
+
+
+
+	2.1 - Customizing the MPEG-4 scene graph
+
+
+
+As said above, it is not possible to skip a BIFS version when regenerating the scene graph since this will break binary encoding of the nodes.
+
+However MPEG4Gen allows you to specify which nodes should be supported or not in the scene graph. This is currently specified
+
+with a simple text file where unwanted nodes are listed one by line ('#' acting as a line comment). The file is specified by
+
+the "-p " switch
+
+
+
+For example, generating a scene graph for BIFS V1 without support for the BIFS audio nodes will be:
+
+MPEG4Gen -p skip_audio.txt templates1.txt
+
+
+
+and the content of skip_audio.txt file will be
+
+
+
+AudioBuffer
+
+AudioClip
+
+AudioDelay
+
+AudioFX
+
+AudioMix
+
+AudioSwitch
+
+AudioSource
+
+
+
+	2.2 - Customizing the X3D scene graph
+
+	
+
+X3DGen uses the same mechanism as MPEG4Gen for node skinpping, eg: X3DGen skipfile
+
+
+
+	2.3 - Customizing the SVG scene graph
+
+
+
+This is undocumented and probably not supported
+
+
+
+3 - Advanced Manupulations
+
+
+
+	It is possible to develop custom templates. The resulting encoding/decoding will not be compliant with MPEG-4 BIFS but it can
+
+be interesting to see how a single-version mechanism with only the desired nodes reduces applications and bitstreams sizes
+
+To write your own templates, you must:
+
+	follow the syntax of regular templates
+
+	make sure the SFWorldNode type is defined and used by all nodes (needed for BIFS updates)
+
+	make sure at least one node will be of type SFTopNode (needed for BIFS Scene Replace command)
+
+
+

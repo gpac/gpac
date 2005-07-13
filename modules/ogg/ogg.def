@@ -1,0 +1,6 @@
+LIBRARY     ogg_xiph.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

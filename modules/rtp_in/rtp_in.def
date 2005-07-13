@@ -1,0 +1,6 @@
+LIBRARY     rtp_in.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

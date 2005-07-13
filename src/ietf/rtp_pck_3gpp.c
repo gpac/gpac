@@ -1,0 +1,538 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *
+ */
+
+#include <gpac/internal/ietf_dev.h>
+#include <gpac/constants.h>
+
+static void rtp_amr_flush(GP_RTPPacketizer *builder)
+{
+	char *hdr;
+	u32 hdr_size;
+	if (!builder->bytesInPacket) return;
+	gf_bs_get_content(builder->pck_hdr, (unsigned char **)&hdr, &hdr_size);
+	gf_bs_del(builder->pck_hdr);
+	builder->pck_hdr = NULL;
+	/*overwrite last frame F bit*/
+	hdr[builder->last_au_sn] &= 0x7F;
+	builder->OnData(builder->cbk_obj, hdr, hdr_size, 1);
+	free(hdr);
+	builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+	builder->bytesInPacket = 0;
+	builder->last_au_sn = 0;
+}
+
+GF_Err gp_rtp_builder_do_amr(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
+{
+	u32 offset, rtp_ts, block_size;
+
+	if (!data) {
+		rtp_amr_flush(builder);
+		return GF_OK;
+	}
+
+	rtp_ts = (u32) builder->sl_header.compositionTimeStamp;
+
+	offset = 0;
+	while (data_size>offset) {
+		u8 ft = (data[offset] & 0x78) >> 3;
+		u8 size;
+
+		if (builder->rtp_payt == GP_RTP_PAYT_AMR_WB) {
+			size = GF_AMR_WB_FRAME_SIZE[ft];
+			block_size = 320;
+		} else {
+			size = GF_AMR_FRAME_SIZE[ft];
+			block_size = 160;
+		}
+
+		/*packet full or too long*/
+		if (builder->bytesInPacket + 1 + size > builder->Path_MTU)
+			rtp_amr_flush(builder);
+
+		/*need new*/
+		if (!builder->bytesInPacket) {
+			builder->rtp_header.TimeStamp = rtp_ts;
+			builder->rtp_header.Marker = 0;	/*never set*/
+			builder->rtp_header.SequenceNumber += 1;
+			builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
+			assert(builder->pck_hdr==NULL);
+
+			/*always have header and TOC*/
+			builder->pck_hdr = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			/*CMR + res (all 0, no interleaving)*/
+			gf_bs_write_int(builder->pck_hdr, ft, 4);
+			gf_bs_write_int(builder->pck_hdr, 0, 4);
+			builder->bytesInPacket = 1;
+			/*no interleaving*/
+		}
+
+		/*F always to 1*/
+		gf_bs_write_int(builder->pck_hdr, 1, 1);
+		gf_bs_write_int(builder->pck_hdr, ft, 4);
+		/*Q*/
+		gf_bs_write_int(builder->pck_hdr, (data[offset] & 0x4) ? 1 : 0, 1);
+		gf_bs_write_int(builder->pck_hdr, 0, 2);
+		builder->bytesInPacket ++;
+
+		/*remove frame type byte*/
+		offset++;
+
+		/*add frame data without rate_type byte header*/
+		if (builder->OnDataReference) {
+			builder->OnDataReference(builder->cbk_obj, size, offset);
+		} else {
+			builder->OnData(builder->cbk_obj, data+offset, size, 0);
+		}
+		builder->last_au_sn++;
+		builder->bytesInPacket += size;
+		offset += size;
+		rtp_ts += block_size;
+		assert(builder->bytesInPacket<=builder->Path_MTU);
+		/*take care of aggregation, flush if needed*/
+		if (builder->last_au_sn==builder->auh_size) rtp_amr_flush(builder);
+	}
+	return GF_OK;
+}
+
+static GFINLINE u8 qes_get_rate_size(u32 idx, u32 *rates, u32 nb_rates)
+{
+	u32 i;
+	for (i=0; i<nb_rates; i++) {
+		if (rates[2*i]==idx) return rates[2*i+1];
+	}
+	return 0;
+}
+
+GF_Err gp_rtp_builder_do_qcelp(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
+{
+	u32 offset, rtp_ts;
+	u8 hdr;
+
+	if (!data) {
+		if (builder->bytesInPacket) builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+		builder->bytesInPacket = 0;
+		builder->last_au_sn = 0;
+		return GF_OK;
+	}
+
+	rtp_ts = (u32) builder->sl_header.compositionTimeStamp;
+
+
+	offset = 0;
+	while (data_size>offset) {
+		u8 frame_type = data[offset];
+		u8 size = qes_get_rate_size(frame_type, (u32 *)GF_QCELP_RATE_TO_SIZE, GF_QCELP_RATE_TO_SIZE_NB);
+		/*reserved, not sent)*/
+		if (frame_type>=5) {
+			offset += size;
+			continue;
+		}
+		/*packet full or too long*/
+		if (builder->bytesInPacket + size > builder->Path_MTU) {
+			builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+			builder->bytesInPacket = 0;
+			builder->last_au_sn = 0;
+		}
+
+		/*need new*/
+		if (!builder->bytesInPacket) {
+			builder->rtp_header.TimeStamp = rtp_ts;
+			builder->rtp_header.Marker = 0;	/*never set*/
+			builder->rtp_header.SequenceNumber += 1;
+			builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
+			hdr = 0;/*no interleaving*/
+			builder->OnData(builder->cbk_obj, (char*)&hdr, 1, 0);
+			builder->bytesInPacket = 1;
+		}
+		if (builder->OnDataReference) {
+			builder->OnDataReference(builder->cbk_obj, size, offset);
+		} else {
+			builder->OnData(builder->cbk_obj, data+offset, size, 0);
+		}
+		builder->bytesInPacket += size;
+		offset += size;
+		rtp_ts += 160;
+		assert(builder->bytesInPacket<=builder->Path_MTU);
+
+		/*take care of aggregation, flush if needed*/
+		builder->last_au_sn++;
+		if (builder->last_au_sn==builder->auh_size) {
+			builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+			builder->bytesInPacket = 0;
+			builder->last_au_sn = 0;
+		}
+	}
+	return GF_OK;
+}
+
+
+static void rtp_evrc_smv_flush(GP_RTPPacketizer *builder)
+{
+	if (!builder->bytesInPacket) return;
+	if (builder->auh_size>1) {
+		char *hdr;
+		u32 hdr_size;
+		/*padding*/
+		if (builder->last_au_sn % 2) gf_bs_write_int(builder->pck_hdr, 0, 4);
+		gf_bs_get_content(builder->pck_hdr, (unsigned char **)&hdr, &hdr_size);
+		gf_bs_del(builder->pck_hdr);
+		builder->pck_hdr = NULL;
+		/*overwrite count*/
+		hdr[0] = 0;
+		hdr[1] = builder->last_au_sn-1;/*MMM + frameCount-1*/
+		builder->OnData(builder->cbk_obj, hdr, hdr_size, 1);
+		free(hdr);
+	}
+	builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+	builder->bytesInPacket = 0;
+	builder->last_au_sn = 0;
+}
+
+GF_Err gp_rtp_builder_do_smv(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
+{
+	u32 offset, rtp_ts;
+
+	if (!data) {
+		rtp_evrc_smv_flush(builder);
+		return GF_OK;
+	}
+
+	rtp_ts = (u32) builder->sl_header.compositionTimeStamp;
+
+	offset = 0;
+	while (data_size>offset) {
+		u8 frame_type = data[offset];
+		u8 size = qes_get_rate_size(frame_type, (u32 *)GF_SMV_EVRC_RATE_TO_SIZE, GF_SMV_EVRC_RATE_TO_SIZE_NB);
+
+		/*reserved, not sent)*/
+		if (frame_type>=5) {
+			offset += size;
+			continue;
+		}
+		/*packet full or too long*/
+		if (builder->bytesInPacket + size > builder->Path_MTU) 
+			rtp_evrc_smv_flush(builder);
+
+		/*need new*/
+		if (!builder->bytesInPacket) {
+			builder->rtp_header.TimeStamp = rtp_ts;
+			builder->rtp_header.Marker = 0;	/*never set*/
+			builder->rtp_header.SequenceNumber += 1;
+			builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
+			assert(builder->pck_hdr==NULL);
+
+			if (builder->auh_size>1) {
+				builder->pck_hdr = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+				/*RRLLLNNN (all 0, no interleaving)*/
+				gf_bs_write_u8(builder->pck_hdr, 0);
+				/*MMM + count-1 : overriden when flushing*/
+				gf_bs_write_u8(builder->pck_hdr, 0);
+				builder->bytesInPacket = 2;
+			}
+		}
+
+		/*bundle mode: cat rate byte to TOC, on 4 bits*/
+		if (builder->auh_size>1) {
+			gf_bs_write_int(builder->pck_hdr, data[offset], 4);
+			if (!(builder->last_au_sn % 2)) builder->bytesInPacket += 1;
+		}
+		/*note that EVEN in header-free format the rate_type byte is removed*/
+		offset++;
+		size--;
+
+		/*add frame data without rate_type byte header*/
+		if (builder->OnDataReference) {
+			builder->OnDataReference(builder->cbk_obj, size, offset);
+		} else {
+			builder->OnData(builder->cbk_obj, data+offset, size, 0);
+		}
+		builder->last_au_sn++;
+		builder->bytesInPacket += size;
+		offset += size;
+		rtp_ts += 160;
+		assert(builder->bytesInPacket<=builder->Path_MTU);
+		/*take care of aggregation, flush if needed*/
+		if (builder->last_au_sn==builder->auh_size) rtp_evrc_smv_flush(builder);
+	}
+	return GF_OK;
+}
+
+GF_Err gp_rtp_builder_do_h264(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
+{
+	GF_BitStream *bs;
+	char hdr[2];
+	Bool Pbit;
+	u32 offset, size, max_size;
+
+	builder->rtp_header.TimeStamp = (u32) builder->sl_header.compositionTimeStamp;
+	
+	/*the H263 hinter doesn't perform inter-sample concatenation*/
+	if (!data) return GF_OK;
+
+	Pbit = 1;
+
+	/*skip 16 0'ed bits of start code*/
+	offset = 2;
+	data_size -= 2;
+	max_size = builder->Path_MTU - 2;
+
+	while(data_size > 0) {
+		if(data_size > max_size){
+			size = max_size;
+			builder->rtp_header.Marker = 0;
+		}else{
+			size = data_size;
+			builder->rtp_header.Marker = 1;
+		}
+
+		data_size -= size;
+
+		/*create new RTP Packet */
+		builder->rtp_header.SequenceNumber += 1;
+		builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
+		
+		bs = gf_bs_new(hdr, 2, GF_BITSTREAM_WRITE);
+		gf_bs_write_int(bs, 0, 5);
+		gf_bs_write_int(bs, Pbit, 1);
+		gf_bs_write_int(bs, 0, 10);
+		gf_bs_del(bs);
+
+		/*add header*/
+		builder->OnData(builder->cbk_obj, (char*) hdr, 2, 1);
+		/*add payload*/
+		if (builder->OnDataReference) 
+			builder->OnDataReference(builder->cbk_obj, size, offset);
+		else
+			builder->OnData(builder->cbk_obj, data + offset, size, 0);
+
+		builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+
+		offset += size;
+		Pbit = 0;
+	}
+	return GF_OK;
+}
+
+GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex)
+{
+	GF_BitStream *bs;
+	unsigned char *hdr;
+	u32 samp_size, txt_size, pay_start, hdr_size, txt_done, cur_frag, nb_frag;
+	Bool is_utf_16 = 0;
+	
+	if (!data) {
+		/*flush packet*/
+		if (builder->bytesInPacket) {
+			builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+			builder->bytesInPacket = 0;
+		}
+		return GF_OK;
+	}
+	/*cfg packet*/
+	txt_size = data[0]; txt_size <<= 8; txt_size |= (unsigned char) data[1];
+	/*remove BOM*/
+	pay_start = 2;
+	if (txt_size>2) {
+		/*seems 3GP only accepts BE UTF-16 (no LE, no UTF32)*/
+		if (((u8) data[2]==(u8) 0xFE) && ((u8) data[3]==(u8) 0xFF)) {
+			is_utf_16 = 1;
+			pay_start = 4;
+			txt_size -= 2;
+		}
+	}
+	samp_size = data_size - pay_start;
+
+	/*if TTU does not fit in packet flush packet*/
+	if (builder->bytesInPacket && (builder->bytesInPacket + 3 + 6 + samp_size > builder->Path_MTU)) {
+		builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+		builder->bytesInPacket = 0;
+	}
+
+	/*first TTU in packet*/
+	if (!builder->bytesInPacket) {
+		builder->rtp_header.TimeStamp = (u32) builder->sl_header.compositionTimeStamp;
+		builder->rtp_header.Marker = 1;
+		builder->rtp_header.SequenceNumber += 1;
+		builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
+	}
+	/*fits entirely*/
+	if (builder->bytesInPacket + 3 + 6 + samp_size <= builder->Path_MTU) {
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_write_int(bs, is_utf_16, 1);
+		gf_bs_write_int(bs, 0, 4);
+		gf_bs_write_int(bs, 1, 3);
+		gf_bs_write_u16(bs, 8 + samp_size);
+		gf_bs_write_u8(bs, descIndex);
+		gf_bs_write_u24(bs, duration);
+		gf_bs_write_u16(bs, txt_size);
+		gf_bs_get_content(bs, &hdr, &hdr_size);
+		gf_bs_del(bs);
+		builder->OnData(builder->cbk_obj, hdr, hdr_size, 0);
+		builder->bytesInPacket += hdr_size;
+		free(hdr);
+		
+		if (txt_size) {
+			if (builder->OnDataReference) {
+				builder->OnDataReference(builder->cbk_obj, samp_size, pay_start);
+			} else {
+				builder->OnData(builder->cbk_obj, data + pay_start, samp_size, 0);
+			}
+			builder->bytesInPacket += samp_size;
+		}
+		/*disable aggregation*/
+		if (!(builder->flags & GP_RTP_PCK_USE_MULTI)) {
+			builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+			builder->bytesInPacket = 0;
+		}
+		return GF_OK;
+	}
+	/*doesn't fit and already data, flush packet*/
+	if (builder->bytesInPacket) {
+		builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+		builder->rtp_header.TimeStamp = (u32) builder->sl_header.compositionTimeStamp;
+		/*split unit*/
+		builder->rtp_header.Marker = 0;
+		builder->rtp_header.SequenceNumber += 1;
+		builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
+		builder->bytesInPacket = 0;
+	}
+	/*write all type2 units (text only) - FIXME: split at char boundaries, NOT SUPPORTED YET*/
+	txt_done = 0;
+	nb_frag = 1;
+	/*all fragments needed for Type2 units*/
+	while (txt_done + (builder->Path_MTU-10) < txt_size) {
+		txt_done += (builder->Path_MTU-10);
+		nb_frag += 1;
+	}
+	/*all fragments needed for Type3/4 units*/
+	txt_done = txt_size;
+	while (txt_done + (builder->Path_MTU-7) < samp_size) {
+		txt_done += (builder->Path_MTU-7);
+		nb_frag += 1;
+	}
+
+
+	cur_frag = 0;
+	txt_done = 0;
+	while (txt_done<txt_size) {
+		u32 size;
+		if (txt_done + (builder->Path_MTU-10) < txt_size) {
+			size = builder->Path_MTU-10;
+		} else {
+			size = txt_size - txt_done;
+		}
+
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_write_int(bs, is_utf_16, 1);
+		gf_bs_write_int(bs, 0, 4);
+		gf_bs_write_int(bs, 2, 3);
+		gf_bs_write_u16(bs, 9 + size);
+		gf_bs_write_int(bs, nb_frag, 4);
+		gf_bs_write_int(bs, cur_frag, 4);
+		gf_bs_write_u24(bs, duration);
+		gf_bs_write_u8(bs, descIndex);
+		/*SLEN is the full original length minus text len and BOM (put here for buffer allocation purposes)*/
+		gf_bs_write_u16(bs, samp_size);
+		gf_bs_get_content(bs, &hdr, &hdr_size);
+		gf_bs_del(bs);
+		builder->OnData(builder->cbk_obj, hdr, hdr_size, 0);
+		builder->bytesInPacket += hdr_size;
+		free(hdr);
+	
+		if (builder->OnDataReference) {
+			builder->OnDataReference(builder->cbk_obj, size, pay_start + txt_done);
+		} else {
+			builder->OnData(builder->cbk_obj, data + pay_start + txt_done, size, 0);
+		}
+		builder->bytesInPacket += size;
+		cur_frag++;
+		
+		/*flush packet*/
+		if (cur_frag == nb_frag) {
+			txt_done = txt_size;
+			if (pay_start + txt_done == data_size) {
+				builder->rtp_header.Marker = 1;
+				builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+				builder->bytesInPacket = 0;
+			}
+		} else {
+			txt_done += size;
+			builder->rtp_header.Marker = 0;
+			builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+			builder->rtp_header.SequenceNumber += 1;
+			builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
+			builder->bytesInPacket = 0;
+		}
+	}
+
+	txt_done = txt_size;
+
+	/*write all modifiers - OPT: split at modifiers boundaries*/
+	while (txt_done<samp_size) {
+		u32 size, type;
+		type = (txt_done == txt_size) ? 3 : 4;
+
+		if (txt_done + (builder->Path_MTU-7) < samp_size) {
+			size = builder->Path_MTU-10;
+		} else {
+			size = samp_size - txt_done;
+		}
+
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_write_int(bs, is_utf_16, 1);
+		gf_bs_write_int(bs, 0, 4);
+		gf_bs_write_int(bs, type, 3);
+		gf_bs_write_u16(bs, 6 + size);
+		gf_bs_write_int(bs, nb_frag, 4);
+		gf_bs_write_int(bs, cur_frag, 4);
+		gf_bs_write_u24(bs, duration);
+
+		gf_bs_get_content(bs, &hdr, &hdr_size);
+		gf_bs_del(bs);
+		builder->OnData(builder->cbk_obj, hdr, hdr_size, 0);
+		builder->bytesInPacket += hdr_size;
+		free(hdr);
+
+		if (builder->OnDataReference) {
+			builder->OnDataReference(builder->cbk_obj, size, pay_start + txt_done);
+		} else {
+			builder->OnData(builder->cbk_obj, data + pay_start + txt_done, size, 0);
+		}
+		builder->bytesInPacket += size;
+		cur_frag++;
+		if (cur_frag==nb_frag) {
+			builder->rtp_header.Marker = 1;
+			builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+			builder->bytesInPacket = 0;
+		} else {
+			builder->rtp_header.Marker = 0;
+			builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+			builder->rtp_header.SequenceNumber += 1;
+			builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
+			builder->bytesInPacket = 0;
+		}
+		txt_done += size;
+	}
+	return GF_OK;
+}

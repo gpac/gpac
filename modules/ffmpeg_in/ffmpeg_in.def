@@ -1,0 +1,6 @@
+LIBRARY     ffmpeg_in.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

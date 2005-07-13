@@ -1,0 +1,18 @@
+AT 1000 {
+    REPLACE REC.size BY 50 50
+}
+AT 2000 {
+    REPLACE M.emissiveColor BY 1 1 1
+}
+AT 3000 {
+    REPLACE M.filled BY FALSE
+}
+AT 4000 {
+    REPLACE REC.size BY 30 20
+}
+AT 5000 {
+    DELETE REC
+}
+AT 6000 {
+    DELETE M
+}

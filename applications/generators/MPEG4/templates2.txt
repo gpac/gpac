@@ -1,0 +1,592 @@
+#-- Version 2 --#
+# templates for the BIFS nodes of v2
+# ==================================
+# Notations I = Infinity
+# %q=x	Quantization method x
+#	0	None
+#	1	3D Position			(SFVec3F)
+#	2	2D Position			(SFVec2F)
+#	3	drawing Order
+#	4	Color 				(SFColor)
+#	5	Texture Coordinate
+#	6	Angle 				(SFFloat 0-2PI)
+#	7	Scale 				(SFVec2F or SFVec3F)
+#	8	Interpolators keys
+#	9	Normals
+#	10	Rotations			(SFRotation)
+#	11	Object Size 3D 		(SFVec3F and SFFloat)
+#	12	Object Size  2D
+#	13	Linear Quantization (+ Nb Bits)
+#	14	Index (of IndexedFaceSet,...)
+#	15	Reserved
+#
+# %a=y	Animation method for fields that can be animated
+#
+## OO 081498 To match BIFS's update numbering
+#	0	None
+#	1	Position 3D
+#	2	Position 2D
+#	4	Color
+#	6	Angle
+#	7	Float
+#	8	BoundFloat			(intensities, transparencies,...)
+#	9	Normal
+#	10	Rotation
+#	11	Size 3D
+#	12	Size 2D
+#	13	Integer
+#	14	Reserved
+##	0	3D Position
+##	1	2D positon
+##	2	Color					(SFColor)
+##	3	Angle					(SFFloat 0-2pi)
+##	4	Normals
+##	5	Scale					(SFVec2F)
+##	6	Rotation				(SFRotation)
+##	7	Object Size or Scalar	(SFFloat)
+#
+# %b=[min,max] bounds of value
+#  For each scalar or vectorial value, bounds may be specified.
+#  This will be used to check if user-specified values are out of bounds. In
+# this case, bounds specified in the templates will be used (if not infinity).
+#
+# %NDT=Node Data Type
+#  For each node, one or several Node Data Types are assigned, specifying which node sub
+# types the node belongs to. Moreover, each field of type SF/MF3DNode is re assigned
+# a unique correct NodeDataType according to specify the allowed values of the field
+#
+# %COD	Type of encoding
+#	N	Normal Syntax : The node syntax follos the generic syntax for nodes
+#	S	Special Syntax : The node has a specific syntax
+#
+#
+# NCT => VRML type equivalence
+#
+#  SF/MFxxxNode         => SF/MFNode
+#  SF/MFURL             => SF/MFString
+#  SF/MFCommandBuffer   => SF/MFString
+#  SF/MFScript          => SF/MFString
+#
+#
+# Modification History
+# ------------------------------------------------
+# JS: Created on 990726
+# _________________
+# YF: modified 990726
+# added NDT to nodes below, but probably incorrectly.
+#BodySegmentConnectionHint [ #%NDT=SFWorldNode
+#MaterialKey [#%NDT=SFWorldNode
+#PROTO ServerCommand [#%NDT=SFWorldNode
+#Hierarchical3DMesh {#%NDT=SFWorldNode
+#
+# JS: modified 990726
+# Cleaned up NDTs.
+# re-ordered in the right order fields and events: eventIn, exposedField, field, eventOut
+# => FPDAM needs to be changed accordingly
+# corrected case of fields and event types!
+# re-aligned stuff with spaces so that we may conserve a kind of alignment. Please be 
+# careful! did not finish for BAp, too long!
+# 
+# YF: modified 990728
+# YF: fixed typo in Hierarchical3DMesh, finishd BAP allignment
+# 
+# YF: modified 990729
+# YF: many more typos
+#
+# Aug 23, 1999 (Mikael Bourges-Sevenier) added body animation nodes from Tolga
+# Aug 26, 1999 (Mikael Bourges-Sevenier) added body audio nodes from Riitta
+# Sep 1, 1999 (MBS) cross-checked everything.
+# Dec 20, 1999 YF
+# bounds of form (x,y) changed to form [a,b] e.g.:
+# numInterpolatorkeys gets new range [2,+I)
+# bapIds gets new range [1,296]
+# BAPs set to +I default value
+# added application window
+#
+# 23.1.2000 (Riitta)
+# Fixed AcousticMaterial, AcousticScene, DirectiveSound
+# to comply with the latest spec (FDIS).
+#
+# Feb 8, 2000 (YF) NULL -> [] in BodySegmentConnectionHint 
+# remove "," from Vec3f values and put [ ] around MFFloat values
+#
+# July 27, 2000 (YF) NDT of Hierarchical3DMech changed to SFGeometryNode
+#
+# August 10, 2000 (YF per Steve Wood): 
+# Add [] around default values of MF field in AcousticMaterial, AcousticScene 
+#        DirectiveSound, PerceptualParameters
+# ApplicationWindow parameter field default value just []
+
+#PROTO AcousticMaterial [#%NDT=SFMaterialNode,SFWorldNode  %COD=N
+#exposedField    SFFloat ambientIntensity   0.2               #%b=[0,1]   #%q=4 #%a=8
+#exposedField    SFColor diffuseColor       0.8, 0.8, 0.8     #%b=[0,1]   #%q=4 #%a=8
+#exposedField    SFColor emissiveColor      0, 0, 0           #%b=[0,1]   #%q=4 #%a=8
+#exposedField    SFFloat shininess          0.2               #%b=[0,1]   #%q=4 #%a=8
+#exposedField    SFColor specularColor      0, 0, 0           #%b=[0,1]   #%q=4 #%a=8
+#exposedField    SFFloat transparency       0                 #%b=[0,1]   #%q=4 #%a=8
+#field           SFFloat reffunc            0                 #%b=(-I,+I) #%q=0
+#field           SFFloat transfunc          1                 #%b=(-I,+I) #%q=0
+#]{
+#}
+
+PROTO AcousticMaterial [#%NDT=SFMaterialNode,SFWorldNode  %COD=N
+exposedField    SFFloat ambientIntensity   0.2               #%b=[0,1]   #%q=4 #%a=8
+exposedField    SFColor diffuseColor       0.8 0.8 0.8     #%b=[0,1]   #%q=4 #%a=8
+exposedField    SFColor emissiveColor      0 0 0           #%b=[0,1]   #%q=4 #%a=8
+exposedField    SFFloat shininess          0.2               #%b=[0,1]   #%q=4 #%a=8
+exposedField    SFColor specularColor      0 0 0           #%b=[0,1]   #%q=4 #%a=8
+exposedField    SFFloat transparency       0                 #%b=[0,1]   #%q=4 #%a=8
+field           MFFloat reffunc            [0]                 #%b=(-I,+I) #%q=0
+field           MFFloat transfunc          [1]                 #%b=(-I,+I) #%q=0
+field           MFFloat refFrequency       [0]                 #%b=(0,+I) #%q=0
+field           MFFloat transFrequency     [0]                 #%b=(0,+I) #%q=0
+]{
+}
+
+#PROTO AcousticScene [#%NDT=SFWorldNode,SF3DNode  %COD=N
+#exposedField    SFFloat reverbLevel     0.4       #%b=(-I,+I)     #%q=0   #%a=7
+#exposedField    SFTime  reverbDelay     0.5       #%b=(-I,+I)     #%q=0
+#field           SFVec3f center          0 0 0     #%b=(-I,+I)     #%q=11  #%a=11
+#field           SFVec3f Size            -1 -1 -1  #%b=(-I,+I)     #%q=1  #%a=1
+#field           MFTime  reverbTime      [0]         #%b=(-I,+I)     #%q=0
+#field           MFFloat reverbFreq      [1000]      #%b=(0 ,+I)     #%q=0
+#]{
+#}
+
+PROTO AcousticScene [#%NDT=SFWorldNode,SF3DNode  %COD=N
+field           SFVec3f center          0 0 0     #%b=(-I,+I)     #%q=1  
+field           SFVec3f Size            -1 -1 -1  #%b=(-I,+I)     #%q=11 
+field           MFTime  reverbTime      [0]         #%b=(0 ,+I)     #%q=0
+field           MFFloat reverbFreq      [1000]      #%b=(0 ,+I)     #%q=0
+exposedField    SFFloat reverbLevel     0.4       #%b=(0 ,+I)     #%q=0  #%a=7
+exposedField    SFTime  reverbDelay     0.5       #%b=(0 ,+I)     #%q=0 
+]{
+}
+
+PROTO ApplicationWindow [#%NDT=SFWorldNode,SF2DNode  %COD=N
+exposedField    SFBool    isActive      FALSE       
+exposedField    SFTime    startTime     0       #%b=(-I,+I)     #%q=0
+exposedField    SFTime    stopTime      0       #%b=(-I,+I)     #%q=0
+exposedField    SFString  description   ""
+exposedField    MFString  parameter     []
+exposedField    MFURL     url           []
+exposedField    SFVec2f   size          0 0    #%b=(-I,+I)     #%q=12  #%a=12
+]{
+}
+
+PROTO BAP [#%NDT=SFWorldNode,SFBAPNode %COD=N
+exposedField    SFInt32 sacroiliac_tilt      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 sacroiliac_torsion   +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 sacroiliac_roll      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_hip_flexion        +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_hip_flexion        +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_hip_abduct         +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_hip_abduct         +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_hip_twisting       +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_hip_twisting       +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_knee_flexion       +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_knee_flexion       +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_knee_twisting      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_knee_twisting      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_ankle_flexion      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_ankle_flexion      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_ankle_twisting     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_ankle_twisting     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_subtalar_flexion   +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_subtalar_flexion   +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_midtarsal_flexion  +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_midtarsal_flexion  +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_metatarsal_flexion +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_metatarsal_flexion +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_sternoclavicular_abduct   +I   #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_sternoclavicular_abduct   +I   #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_sternoclavicular_rotate   +I   #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_sternoclavicular_rotate   +I   #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_acromioclavicular_abduct  +I   #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_acromioclavicular_abduct  +I   #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_acromioclavicular_rotate  +I   #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_acromioclavicular_rotate  +I   #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_shoulder_flexion   +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_shoulder_flexion   +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_shoulder_abduct    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_shoulder_abduct    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_shoulder_twisting  +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_shoulder_twisting  +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_elbow_flexion      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_elbow_flexion      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_elbow_twisting     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_elbow_twisting     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_wrist_flexion      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_wrist_flexion      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_wrist_pivot        +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_wrist_pivot        +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_wrist_twisting     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_wrist_twisting     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 skullbase_roll       +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 skullbase_torsion    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 skullbase_tilt       +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc1roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc1torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc1tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc2roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc2torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc2tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc3roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc3torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc3tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc4roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc4torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc4tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc5roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc5torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc5tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc6roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc6torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc6tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc7roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc7torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vc7tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt1roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt1torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt1tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt2roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt2torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt2tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt3roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt3torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt3tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt4roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt4torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt4tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt5roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt5torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt5tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt6roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt6torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt6tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt7roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt7torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt7tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt8roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt8torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt8tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt9roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt9torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt9tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt10roll             +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt10torsion          +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt10tilt             +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt11roll             +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt11torsion          +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt11tilt             +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt12roll             +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt12torsion          +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vt12tilt             +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vl1roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vl1torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vl1tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vl2roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vl2torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vl2tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vl3roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vl3torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vl3tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vl4roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vl4torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vl4tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vl5roll              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vl5torsion           +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 vl5tilt              +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_pinky0_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_pinky0_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_pinky1_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_pinky1_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_pinky1_pivot       +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_pinky1_pivot       +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_pinky1_twisting    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_pinky1_twisting    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_pinky2_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_pinky2_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_pinky3_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_pinky3_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_ring0_flexion      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_ring0_flexion      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_ring1_flexion      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_ring1_flexion      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_ring1_pivot        +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_ring1_pivot        +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_ring1_twisting     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_ring1_twisting     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_ring2_flexion      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_ring2_flexion      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_ring3_flexion      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_ring3_flexion      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_middle0_flexion    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_middle0_flexion    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_middle1_flexion    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_middle1_flexion    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_middle1_pivot      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_middle1_pivot      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_middle1_twisting   +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_middle1_twisting   +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_middle2_flexion    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_middle2_flexion    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_middle3_flexion    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_middle3_flexion    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_index0_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_index0_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_index1_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_index1_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_index1_pivot       +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_index1_pivot       +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_index1_twisting    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_index1_twisting    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_index2_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_index2_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_index3_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_index3_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_thumb1_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_thumb1_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_thumb1_pivot       +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_thumb1_pivot       +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_thumb1_twisting    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_thumb1_twisting    +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_thumb2_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_thumb2_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 l_thumb3_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 r_thumb3_flexion     +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 HumanoidRoot_tr_vertical    +I   #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 HumanoidRoot_tr_lateral     +I   #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 HumanoidRoot_tr_frontal     +I   #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 HumanoidRoot_rt_body_turn   +I   #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 HumanoidRoot_rt_body_roll   +I   #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 HumanoidRoot_rt_body_tilt   +I   #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap187      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap188      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap189      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap190      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap191      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap192      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap193      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap194      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap195      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap196      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap197      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap198      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap199      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap200      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap201      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap202      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap203      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap204      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap205      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap206      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap207      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap208      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap209      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap210      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap211      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap212      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap213      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap214      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap215      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap216      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap217      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap218      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap219      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap220      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap221      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap222      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap223      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap224      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap225      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap226      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap227      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap228      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap229      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap230      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap231      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap232      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap233      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap234      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap235      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap236      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap237      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap238      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap239      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap240      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap241      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap242      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap243      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap244      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap245      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap246      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap247      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap248      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap249      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap250      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap251      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap252      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap253      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap254      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap255      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap256      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap257      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap258      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap259      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap260      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap261      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap262      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap263      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap264      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap265      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap266      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap267      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap268      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap269      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap270      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap271      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap272      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap273      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap274      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap275      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap276      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap277      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap278      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap279      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap280      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap281      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap282      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap283      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap284      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap285      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap286      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap287      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap288      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap289      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap290      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap291      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap292      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap293      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap294      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap295      +I  #%b=(-I,+I)  #%q=0
+exposedField    SFInt32 extensionBap296      +I  #%b=(-I,+I)  #%q=0
+] {
+}
+
+PROTO BDP [#%NDT=SFWorldNode,SFBDPNode %COD=N 
+exposedField	MFBodyDefTableNode	bodyDefTables	 []
+exposedField	MF3DNode	bodySceneGraph     []
+] {
+}
+
+PROTO Body [#%NDT=SFWorldNode,SF3DNode,SF2DNode %COD=N 
+exposedField	SFBDPNode	bdp	 		NULL	
+exposedField	SFBAPNode	bap	 		NULL	
+exposedField	MF3DNode	renderedBody	[]
+]
+{
+}
+
+PROTO BodyDefTable [#%NDT=SFWorldNode,SFBodyDefTableNode %COD=N 
+exposedField	SFString    bodySceneGraphNodeName   ""
+exposedField	MFInt32     bapIDs             []  #%b=[1,296]  #%q=13 9
+exposedField	MFInt32     vertexIds          []  #%b=[0,+I)  #%q=0
+exposedField	MFInt32     bapCombinations    []  #%b=(-I,+I) #%q=0
+exposedField	MFVec3f     displacements      []
+exposedField	SFInt32     numInterpolateKeys   2   #%b=[2,+I) #%q=0
+] {
+}
+
+PROTO BodySegmentConnectionHint [#%NDT=SFWorldNode,SFBodySegmentConnectionHintNode %COD=N
+exposedField   SFString     firstSegmentNodeName   ""
+exposedField   SFString     secondSegmentNodeName  ""
+exposedField   MFInt32      firstVertexIdList      [] #%b=[0,+I) #%q=0
+exposedField   MFInt32      secondVertexIdList     [] #%b=[0,+I) #%q=0
+] {
+}
+
+#PROTO DirectiveSound [#%NDT=SFWorldNode,SF2DNode,SF3DNode  %COD=N 
+#exposedField    SFVec3f                     direction     0 0 -1  #%b=(-I,+I) #%q=9 #%a=9
+#exposedField    SFFloat                     intensity     1       #%b=(-I,+I) #%q=0 #%a=7
+#exposedField    SFVec3f                     location      0 0 0 #%b=(-I,+I) #%q=1 #%a=1
+#exposedField    SFAudioNode                 source        NULL
+#exposedField    SFPerceptualParameterNode   perceptualParameters    NULL
+#exposedField    SFBool                      roomEffect    FALSE
+#exposedField    SFBool                      spatialize    TRUE
+#field           MFFloat                     angles       1 #%b=[0,3.14159265] #%q=6 #%a=8
+#field           MFFloat                     directivity   1       #%b=(-I,+I) #%q=0
+#field           SFFloat                     speedOfSound  340     #%b=(-I,+I) #%q=1 #%a=1
+#field           SFFloat                     distance      100     #%b=(-I,+I) #%q=0
+#field           SFBool                      useAirabs     FALSE
+#]{
+#}
+
+PROTO DirectiveSound [#%NDT=SFWorldNode,SF3DNode  %COD=N 
+exposedField    SFVec3f                     direction     0 0 -1  #%b=(-I,+I) #%q=9 #%a=9
+exposedField    SFFloat                     intensity     1       #%b=(0,+I) #%q=0 #%a=7
+exposedField    SFVec3f                     location      0 0 0 #%b=(-I,+I) #%q=1 #%a=1
+exposedField    SFAudioNode                 source        NULL
+exposedField    SFPerceptualParameterNode   perceptualParameters    NULL
+exposedField    SFBool                      roomEffect    FALSE
+exposedField    SFBool                      spatialize    TRUE
+field           MFFloat                     directivity   1       #%b=(-I,+I) #%q=0
+field           MFFloat                     angles       1 #%b=[0,3.14159265] #%q=6 
+field		MFFloat			    frequency	  []      #%b=(0,+I) #%q=0
+field           SFFloat                     speedOfSound  340     #%b=(0,+I) #%q=1
+field           SFFloat                     distance      100     #%b=(0,+I) #%q=0
+field           SFBool                      useAirabs     FALSE
+]{
+}
+
+PROTO Hierarchical3DMesh [#%NDT=SFWorldNode,SFGeometryNode %COD=N
+eventIn         SFInt32      triangleBudget  1000   #%b=(-1,+I)     #%q=0
+exposedField    SFFloat      level           1      #%b=(-1,+I)     #%q=0
+field           MFURL        url             []
+eventOut        SFBool       doneLoading
+]{
+}
+
+PROTO MaterialKey [#%NDT=SFWorldNode,SFMaterialNode %COD=N
+exposedField    SFBool    isKeyed         TRUE
+exposedField    SFBool    isRGB           TRUE
+exposedField    SFColor   keyColor        0 0 0  #%b=[0,1]       #%q=4 #%a=4
+exposedField    SFFloat   lowThreshold    0        #%b=[0,1]       #%q=4 #%a=8
+exposedField    SFFloat   highThreshold   0        #%b=[0,1]       #%q=4 #%a=8
+exposedField    SFFloat   transparency    0        #%b=[0,1]       #%q=4 #%a=8
+]{
+}
+
+PROTO PerceptualParameters [#%NDT=SFWorldNode,SFPerceptualParameterNode  %COD=N 
+exposedField    SFFloat  sourcePresence      1.0             #%b=(-I,+I) #%q=0 #%a=7
+exposedField    SFFloat  sourceWarmth        1.0             #%b=(-I,+I) #%q=0 #%a=7
+exposedField    SFFloat  sourceBrilliance    1.0             #%b=(-I,+I) #%q=0 #%a=7
+exposedField    SFFloat  roomPresence        1.0             #%b=(-I,+I) #%q=0 #%a=7
+exposedField    SFFloat  runningReverberance 1.0             #%b=(-I,+I) #%q=0 #%a=7
+exposedField    SFFloat  envelopment         0.0             #%b=(-I,+I) #%q=0 #%a=7
+exposedField    SFFloat  lateReverberance    1.0             #%b=(-I,+I) #%q=0 #%a=7
+exposedField    SFFloat  heavyness           1.0             #%b=(-I,+I) #%q=0 #%a=7
+exposedField    SFFloat  liveness            1.0             #%b=(-I,+I) #%q=0 #%a=7
+exposedField    MFFloat omniDirectivity     [1.0]             #%b=(-I,+I) #%q=0 #%a=7
+exposedField    MFFloat directFilterGains   [1.0, 1.0, 1.0]   #%b=(-I,+I) #%q=0 #%a=7
+exposedField    MFFloat inputFilterGains    [1.0, 1.0, 1.0]   #%b=(-I,+I) #%q=0 #%a=7
+exposedField    SFFloat refDistance         1.0             #%b=(-I,+I) #%q=0 #%a=7
+exposedField    SFFloat freqLow             250.0           #%b=(-I,+I) #%q=0 #%a=7
+exposedField    SFFloat freqHigh            4000.0          #%b=(-I,+I) #%q=0 #%a=7
+exposedField    SFTime  timeLimit1          0.02            #%b=(-I,+I) #%q=0 
+exposedField    SFTime  timeLimit2          0.04            #%b=(-I,+I) #%q=0 
+exposedField    SFTime  timeLimit3          0.1             #%b=(-I,+I) #%q=0 
+exposedField    SFTime  modalDensity        0.8             #%b=(-I,+I) #%q=0 
+]{
+}
+
+#PROTO ServerCommand [#%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N
+#eventIn         SFBool          trigger   FALSE
+#exposedField    SFBool          enable    FALSE
+#exposedField    MFURL           url       [ ]
+#eventIn         SFString        command   ""
+#]{
+#}
+
+
+

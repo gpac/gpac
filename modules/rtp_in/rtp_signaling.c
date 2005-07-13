@@ -1,0 +1,689 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / RTP input module
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *		
+ */
+
+#include "rtp_in.h"
+
+
+Bool channel_is_valid(RTPClient *rtp, RTPStream *ch)
+{
+	u32 i;
+	for (i=0; i<gf_list_count(rtp->channels); i++) {
+		if (gf_list_get(rtp->channels, i) == ch) return 1;
+	}
+	return 0;
+}
+
+void RP_StopChannel(RTPStream *ch)
+{
+	if (!ch || !ch->rtsp) return;
+
+	ch->flags &= ~CH_Idle;
+	ch->status = RTP_Disconnected;
+	//remove interleaved
+	if (gf_rtp_is_interleaved(ch->rtp_ch)) {
+		gf_rtsp_unregister_interleave(ch->rtsp->session, gf_rtp_get_low_interleave_id(ch->rtp_ch));
+	}
+}
+
+/*this prevent sending teardown on session with running channels*/
+Bool RP_SessionActive(RTPStream *ch)
+{
+	u32 i, count, idle;
+	idle = count = 0;
+	for (i=0; i<gf_list_count(ch->owner->channels); i++) {
+		RTPStream *ach = gf_list_get(ch->owner->channels, i);
+		if (ach->rtsp != ch->rtsp) continue;
+		/*count only active channels*/
+		if (ach->status == RTP_Running) continue;
+		count++;
+		if (ach->flags & CH_Idle) idle++;
+	}
+	return (count==idle) ? 0 : 1;
+}
+
+
+/*
+ 						channel setup functions
+																*/
+
+void RP_Setup(RTPStream *ch)
+{
+	GF_RTSPCommand *com;
+	GF_RTSPTransport *trans;
+
+	com = gf_rtsp_command_new();	
+	com->method = strdup(GF_RTSP_SETUP);
+
+	//setup ports if unicast non interleaved
+	if (gf_rtp_is_unicast(ch->rtp_ch) && !ch->owner->rtp_mode && !gf_rtp_is_interleaved(ch->rtp_ch) )
+		gf_rtp_set_ports(ch->rtp_ch);
+
+	trans = gf_rtsp_transport_clone(gf_rtp_get_transport(ch->rtp_ch));
+	if (trans->source) {
+		free(trans->source);
+		trans->source = NULL;
+	}
+	/*some servers get confused when trying to resetup on the same remote ports, so reset info*/
+	trans->port_first = trans->port_last = 0;
+	trans->SSRC = 0;
+
+
+	/*turn off interleaving in case of re-setup, some servers don't like it (we still signal it
+	through RTP/AVP/TCP profile so it's OK)*/
+	trans->IsInterleaved = 0;
+	gf_list_add(com->Transports, trans);
+	if (strlen(ch->control)) com->ControlString = strdup(ch->control);
+
+	com->user_data = ch;
+	ch->status = RTP_WaitingForAck;
+
+	gf_mx_p(ch->owner->mx);
+	gf_list_add(ch->rtsp->rtsp_commands, com);
+	gf_mx_v(ch->owner->mx);
+}
+
+/*filter setup if no session (rtp only)*/
+GF_Err RP_SetupChannel(RTPStream *ch, ChannelDescribe *ch_desc)
+{
+	GF_Err resp;
+
+	/*assign ES_ID of the channel*/
+	if (ch_desc && !ch->ES_ID && ch_desc->ES_ID) ch->ES_ID = ch_desc->ES_ID;
+
+	ch->status = RTP_Setup;
+
+	/*assign channel handle if not done*/
+	if (ch_desc && ch->channel) {
+		assert(ch->channel == ch_desc->channel);
+	} else if (!ch->channel) {
+		assert(ch_desc);
+		assert(ch_desc->channel);
+		ch->channel = ch_desc->channel;
+	}
+
+	/*no session , setup for pure rtp*/
+	if (!ch->rtsp) {
+		ch->flags |= CH_Connected;
+		/*init rtp*/
+		resp = RP_InitStream(ch, 0),
+		/*send confirmation to user*/
+		RP_ConfirmChannelConnect(ch, resp);
+	} else {
+		RP_Setup(ch);
+	}
+	return GF_OK;
+}
+
+void RP_ProcessSetup(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
+{
+	RTPStream *ch;
+	u32 i;
+	GF_RTSPTransport *trans;
+	
+	
+	ch = com->user_data;
+	if (e) goto exit;
+
+	switch (sess->rtsp_rsp->ResponseCode) {
+	case NC_RTSP_OK:
+		break;
+	case NC_RTSP_Not_Found:
+		e = GF_STREAM_NOT_FOUND;
+		goto exit;
+	default:
+		e = GF_SERVICE_ERROR;
+		goto exit;
+	}
+	e = GF_SERVICE_ERROR;
+	if (!ch) goto exit;
+
+	/*transport setup: break at the first correct transport */
+	for (i=0; i<gf_list_count(sess->rtsp_rsp->Transports); i++) {
+		trans = gf_list_get(sess->rtsp_rsp->Transports, 0);
+		e = gf_rtp_setup_transport(ch->rtp_ch, trans, gf_rtsp_get_server_name(sess->session));
+		if (!e) break;
+	}
+	if (e) goto exit;
+
+	e = RP_InitStream(ch, 0);
+	if (e) goto exit;
+	ch->status = RTP_Connected;
+
+	//in case this is TCP channel, setup callbacks
+	ch->flags &= ~CH_IsInterleaved;
+	if (gf_rtp_is_interleaved(ch->rtp_ch)) {
+		ch->flags |= CH_IsInterleaved;
+		gf_rtsp_set_interleave_callback(sess->session, RP_DataOnTCP);
+	}
+
+exit:
+	/*confirm only on first connect, otherwise this is a re-SETUP of the rtsp session, not the channel*/
+	if (! (ch->flags & CH_Connected) ) {
+		ch->flags |= CH_Connected;
+		RP_ConfirmChannelConnect(ch, e);
+	}
+	com->user_data = NULL;
+}
+
+
+
+/*
+ 						session/channel describe functions
+																*/
+/*filter describe commands in case of ESD URLs*/
+Bool RP_PreprocessDescribe(RTPSession *sess, GF_RTSPCommand *com)
+{
+	RTPStream *ch;
+	ChannelDescribe *ch_desc;
+	/*not a channel describe*/
+	if (!com->user_data) {
+		gf_term_on_message(sess->owner->service, GF_OK, "Connecting...");
+		return 1;
+	}
+
+	ch_desc = (ChannelDescribe *)com->user_data;
+	ch = RP_FindChannel(sess->owner, NULL, ch_desc->ES_ID, ch_desc->esd_url, 0);
+	if (!ch) return 1;
+
+	/*channel has been described already, skip describe and send setup directly*/
+	RP_SetupChannel(ch, ch_desc);
+	
+	if (ch_desc->esd_url) free(ch_desc->esd_url);
+	free(ch_desc);
+	return 0;
+}
+
+/*process describe reply*/
+void RP_ProcessDescribe(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
+{
+	RTPStream *ch;
+	ChannelDescribe *ch_desc;
+
+	ch = NULL;
+	ch_desc = com->user_data;
+	if (e) goto exit;
+
+	switch (sess->rtsp_rsp->ResponseCode) {
+	//TODO handle all 3xx codes  (redirections)
+	case NC_RTSP_Multiple_Choice:
+		e = ch_desc ? GF_STREAM_NOT_FOUND : GF_URL_ERROR;
+		goto exit;
+	case NC_RTSP_Not_Found:
+		e = GF_URL_ERROR;
+		goto exit;
+	case NC_RTSP_OK:
+		break;
+	default:
+		//we should have a basic error code mapping here
+		e = GF_SERVICE_ERROR;
+		goto exit;
+	}
+
+	ch = NULL;
+	if (ch_desc) {
+		ch = RP_FindChannel(sess->owner, ch_desc->channel, ch_desc->ES_ID, ch_desc->esd_url, 0);
+	} else {
+		gf_term_on_message(sess->owner->service, GF_OK, "Connected");
+	}
+
+	/*error on loading SDP is done internally*/
+	RP_LoadSDP(sess->owner, sess->rtsp_rsp->body, sess->rtsp_rsp->Content_Length, ch);
+
+	if (!ch_desc) goto exit;
+	if (!ch) {
+		e = GF_STREAM_NOT_FOUND;
+		goto exit;
+	}
+	e = RP_SetupChannel(ch, ch_desc);
+
+exit:
+	if (e) {
+		if (!ch_desc) {
+			gf_term_on_connect(sess->owner->service, NULL, e);
+		} else if (ch) {
+			RP_ConfirmChannelConnect(ch, e);
+		} else {
+			gf_term_on_connect(sess->owner->service, ch_desc->channel, e);
+		}
+	}
+	if (ch_desc) free(ch_desc);
+	com->user_data = NULL;
+}
+
+/*send describe*/
+void RP_Describe(RTPSession *sess, char *esd_url, LPNETCHANNEL channel)
+{
+	RTPStream *ch;
+	ChannelDescribe *ch_desc;
+	GF_RTSPCommand *com;
+
+	/*locate the channel by URL - if we have one, this means the channel is already described
+	this happens when 2 ESD with URL use the same RTSP service - skip describe and send setup*/
+	if (esd_url || channel) {
+		ch = RP_FindChannel(sess->owner, channel, 0, esd_url, 0);
+		if (ch) {
+			if (!ch->channel) ch->channel = channel;
+			ch_desc = malloc(sizeof(ChannelDescribe));
+			ch_desc->esd_url = esd_url ? strdup(esd_url) : NULL;
+			ch_desc->channel = channel;
+			RP_SetupChannel(ch, ch_desc);
+			
+			if (esd_url) free(ch_desc->esd_url);
+			free(ch_desc);
+			return;
+		}
+		/*channel not found, send describe on service*/
+	}
+
+	/*send describe*/
+	com = gf_rtsp_command_new();
+	com->method = strdup(GF_RTSP_DESCRIBE);
+
+	if (channel || esd_url) {
+		com->Accept = strdup("application/sdp");
+		com->ControlString = esd_url ? strdup(esd_url) : NULL;
+
+		ch_desc = malloc(sizeof(ChannelDescribe));
+		ch_desc->esd_url = esd_url ? strdup(esd_url) : NULL;
+		ch_desc->channel = channel;
+		
+		com->user_data = ch_desc;
+	} else {
+		//always accept both SDP and IOD
+		com->Accept = strdup("application/sdp, application/mpeg4-iod");
+//		com->Accept = strdup("application/sdp");
+	}
+	com->Bandwidth = sess->owner->bandwidth;
+
+	gf_mx_p(sess->owner->mx);
+	gf_list_add(sess->rtsp_commands, com);
+	gf_mx_v(sess->owner->mx);
+}
+
+/*
+ 						channel control functions
+																*/
+/*remove command if session is using aggregated control*/
+Bool RP_PreprocessUserCom(RTPSession *sess, GF_RTSPCommand *com)
+{
+	ChannelControl *ch_ctrl;
+	RTPStream *ch;
+	GF_Err e;
+	Bool skip_it;
+
+	ch_ctrl = com->user_data;
+	if (!ch_ctrl) return 1;
+	ch = ch_ctrl->ch;
+	
+	if (!channel_is_valid(sess->owner, ch)) {
+		free(ch_ctrl);
+		com->user_data = NULL;
+		return 0;
+	}
+
+	assert(ch->rtsp == sess);
+	assert(ch->channel==ch_ctrl->com.base.on_channel);
+
+	skip_it = 0;
+	if (!com->Session) {
+		/*re-SETUP failed*/
+		if (!strcmp(com->method, GF_RTSP_PLAY) || !strcmp(com->method, GF_RTSP_PAUSE)) {
+			e = GF_SERVICE_ERROR;
+			goto err_exit;
+		}
+		/*this is a stop, no need for SessionID just skip*/
+		skip_it = 1;
+	}
+	/*check if aggregation discards this command*/
+	if ((ch->flags & CH_Idle) || skip_it || (sess->has_aggregated_control && (ch->flags & CH_SkipNextCommand) )) {
+		ch->flags &= ~CH_SkipNextCommand;
+		ch->flags &= ~CH_Idle;
+		gf_term_on_command(sess->owner->service, &ch_ctrl->com, GF_OK);
+		free(ch_ctrl);
+		com->user_data = NULL;
+		return 0;
+	}
+	return 1;
+
+err_exit:
+	gf_rtsp_reset_aggregation(ch->rtsp->session);
+	ch->status = RTP_Disconnected;
+	ch->check_rtp_time = 0;
+	gf_term_on_command(sess->owner->service, &ch_ctrl->com, e);
+	free(ch_ctrl);
+	com->user_data = NULL;
+	return 0;
+}
+
+static void SkipCommandOnSession(RTPStream *ch)
+{
+	u32 i;
+	if (!ch || (ch->flags & CH_SkipNextCommand) || !ch->rtsp->has_aggregated_control) return;
+	for (i=0; i<gf_list_count(ch->owner->channels); i++) {
+		RTPStream *a_ch = gf_list_get(ch->owner->channels, i);
+		if ((a_ch->flags & CH_Idle) || (ch == a_ch) || (a_ch->rtsp != ch->rtsp) ) continue;
+		a_ch->flags |= CH_SkipNextCommand;
+	}
+}
+
+
+void RP_ProcessUserCommand(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
+{
+	ChannelControl *ch_ctrl;
+	RTPStream *ch, *agg_ch;
+	u32 i;
+	GF_RTPInfo *info;
+
+
+	ch_ctrl = com->user_data;
+	ch = ch_ctrl->ch;
+
+	if (!channel_is_valid(sess->owner, ch)) {
+		free(ch_ctrl);
+		com->user_data = NULL;
+		return;
+	}
+
+	assert(ch->channel==ch_ctrl->com.base.on_channel);
+
+	/*some consistency checking: on interleaved sessions, some servers do NOT reply to the 
+	teardown. If our command is STOP just skip the error notif*/
+	if (e) {
+		if (!strcmp(com->method, GF_RTSP_TEARDOWN)) {
+			goto process_reply;
+		} else {
+			goto err_exit;
+		}
+	}
+
+	switch (sess->rtsp_rsp->ResponseCode) {
+	//handle all 3xx codes  (redirections)
+	case NC_RTSP_Method_Not_Allowed:
+		e = GF_NOT_SUPPORTED;
+		goto err_exit;
+	case NC_RTSP_OK:
+		break;
+	default:
+		//we should have a basic error code mapping here
+		e = GF_SERVICE_ERROR;
+		goto err_exit;
+	}
+
+process_reply:
+
+	gf_term_on_command(sess->owner->service, &ch_ctrl->com, GF_OK);
+
+	if ( (ch_ctrl->com.command_type==GF_NET_CHAN_PLAY) 
+		|| (ch_ctrl->com.command_type==GF_NET_CHAN_SET_SPEED)
+		|| (ch_ctrl->com.command_type==GF_NET_CHAN_RESUME) ) {
+
+		//auto-detect any aggregated control if not done yet
+		if (gf_list_count(sess->rtsp_rsp->RTP_Infos) > 1) {
+			sess->has_aggregated_control = 1;
+		}
+
+		//process all RTP infos
+		for (i=0;i<gf_list_count(sess->rtsp_rsp->RTP_Infos); i++) {
+			info = gf_list_get(sess->rtsp_rsp->RTP_Infos, i);
+			agg_ch = RP_FindChannel(sess->owner, NULL, 0, info->url, 0);
+
+			if (!agg_ch || (agg_ch->rtsp != sess) ) continue;
+			
+			/*if play/seeking we must send update RTP/NPT link*/
+			if (ch_ctrl->com.command_type != GF_NET_CHAN_RESUME) {
+				agg_ch->check_rtp_time = 1;
+			}
+			/*this is used to discard RTP packets re-sent on resume*/
+			else {
+				agg_ch->check_rtp_time = 2;
+			}
+			/* reset the buffers */
+			RP_InitStream(agg_ch, 1);
+
+			gf_rtp_set_info_rtp(agg_ch->rtp_ch, info->seq, info->rtp_time, info->ssrc);
+			agg_ch->status = RTP_Running;
+
+			/*skip next play command on this channel if aggregated control*/
+			if (ch!=agg_ch && ch->rtsp->has_aggregated_control) agg_ch->flags |= CH_SkipNextCommand;
+
+
+			if (gf_rtp_is_interleaved(agg_ch->rtp_ch)) {
+				gf_rtsp_register_interleave(sess->session, 
+								agg_ch, 
+								gf_rtp_get_low_interleave_id(agg_ch->rtp_ch), 
+								gf_rtp_get_hight_interleave_id(agg_ch->rtp_ch));
+			}
+		}
+		/*no rtp info (just in case), no time mapped - set to 0 and specify we're not interactive*/
+		if (!i) {
+			ch->current_start = 0.0;
+			ch->check_rtp_time = 1;
+			RP_InitStream(ch, 1);
+			ch->status = RTP_Running;
+			if (gf_rtp_is_interleaved(ch->rtp_ch)) {
+				gf_rtsp_register_interleave(sess->session, 
+								ch, gf_rtp_get_low_interleave_id(ch->rtp_ch), gf_rtp_get_hight_interleave_id(ch->rtp_ch));
+			}
+		}
+		ch->flags &= ~CH_SkipNextCommand;
+	} else if (ch_ctrl->com.command_type == GF_NET_CHAN_PAUSE) {
+		SkipCommandOnSession(ch);
+		ch->flags &= ~CH_SkipNextCommand;
+	} else if (ch_ctrl->com.command_type == GF_NET_CHAN_STOP) {
+		assert(0);
+	}
+	free(ch_ctrl);
+	com->user_data = NULL;
+	return;
+
+
+err_exit:
+	ch->status = RTP_Disconnected;
+	gf_term_on_command(sess->owner->service, &ch_ctrl->com, e);
+	gf_rtsp_reset_aggregation(ch->rtsp->session);
+	ch->check_rtp_time = 0;
+	free(ch_ctrl);
+	com->user_data = NULL;
+}
+
+static void RP_FlushAndTearDown(RTPSession *sess)
+{
+	GF_RTSPCommand *com;
+	gf_mx_p(sess->owner->mx);
+
+	while (gf_list_count(sess->rtsp_commands)) {
+		com = gf_list_get(sess->rtsp_commands, 0);
+		gf_list_rem(sess->rtsp_commands, 0);
+		gf_rtsp_command_del(com);
+	}
+	if (sess->wait_for_reply) {
+		GF_Err e;
+		while (1) {
+			e = gf_rtsp_get_response(sess->session, sess->rtsp_rsp);
+			if (e!= GF_IP_NETWORK_EMPTY) break;
+		}
+		sess->wait_for_reply = 0;
+	}
+	/*no private stack on teardown - shutdown now*/
+	com	= gf_rtsp_command_new();
+	com->method = strdup(GF_RTSP_TEARDOWN);
+	gf_list_add(sess->rtsp_commands, com);
+	gf_mx_v(sess->owner->mx);
+}
+
+
+
+void RP_UserCommand(RTPSession *sess, RTPStream *ch, GF_NetworkCommand *command)
+{
+	RTPStream *a_ch;
+	ChannelControl *ch_ctrl;
+	u32 i;
+	GF_RTSPCommand *com;
+	GF_RTSPRange *range;
+
+	assert(ch->rtsp==sess);
+	
+	/*we may need to re-setup stream/session*/
+	if ( (command->command_type==GF_NET_CHAN_PLAY) || (command->command_type==GF_NET_CHAN_RESUME) || (command->command_type==GF_NET_CHAN_PAUSE)) {
+		if (ch->status == RTP_Disconnected) {
+			if (sess->has_aggregated_control) {
+				for (i=0; i<gf_list_count(sess->owner->channels); i++) {
+					a_ch = gf_list_get(sess->owner->channels, i);
+					if (a_ch->rtsp != sess) continue;
+					RP_Setup(a_ch);
+				}
+			} else {
+				RP_Setup(ch);
+			}
+		}
+	}
+	
+	com	= gf_rtsp_command_new();
+	range = NULL;
+
+	if ( (command->command_type==GF_NET_CHAN_PLAY) || (command->command_type==GF_NET_CHAN_RESUME) ) {
+
+		range = gf_rtsp_range_new();
+		range->start = ch->range_start;
+		range->end = ch->range_end;
+		
+		com->method = strdup(GF_RTSP_PLAY);
+		
+		/*specify pause range on resume - this is not mandatory but most servers need it*/
+		if (command->command_type==GF_NET_CHAN_RESUME) {
+			range->start = ch->current_start;
+
+			ch->stat_start_time -= ch->stat_stop_time;
+			ch->stat_start_time += gf_sys_clock();
+			ch->stat_stop_time = 0;
+		} else {
+			range->start = ch->range_start;
+			if (command->play.start_range>=0) range->start += command->play.start_range;
+			range->end = ch->range_start;
+			if (command->play.end_range >=0) {
+				range->end += command->play.end_range;
+				if (range->end > ch->range_end) range->end = ch->range_end;
+			}
+
+			ch->stat_start_time = gf_sys_clock();
+			ch->stat_stop_time = 0;
+		}
+		/*if aggregated the command is sent once, so store info at session level*/
+		if (ch->flags & CH_SkipNextCommand) {
+			ch->current_start = ch->rtsp->last_range;
+		} else {
+			ch->rtsp->last_range = range->start;
+			ch->current_start = range->start;
+		}
+		/*some RTSP servers don't accept Range=npt:0.0- (for ex, broadcast only...), so skip it if:
+		- a range was given in initial describe
+		- the command is not a RESUME
+		*/
+		if (!(ch->flags & CH_HasRange) && (command->command_type != GF_NET_CHAN_RESUME) ) {
+			gf_rtsp_range_del(range);
+			com->Range = NULL;
+		} else {
+			com->Range = range;
+		}
+
+		if (!sess->has_aggregated_control && strlen(ch->control)) com->ControlString = strdup(ch->control);
+
+	} else if (command->command_type==GF_NET_CHAN_PAUSE) {
+		range = gf_rtsp_range_new();
+		range->start = ch->range_start;
+		range->end = ch->range_end;
+		com->method = strdup(GF_RTSP_PAUSE);
+		/*update current time*/
+		ch->current_start += gf_rtp_get_current_time(ch->rtp_ch);
+		range->start = ch->current_start;
+		range->end = -1.0;
+		com->Range = range;
+
+		ch->stat_stop_time = gf_sys_clock();
+
+	}
+	//nb: we could actually send a PAUSE in order to keep the session alive
+	//but let's be nice to the server
+	else if (command->command_type==GF_NET_CHAN_STOP) {
+		ch->current_start = 0;
+		ch->flags |= CH_Idle;
+
+		ch->stat_stop_time = gf_sys_clock();
+
+		/*last stream running*/
+		if (!RP_SessionActive(ch)) {
+			ch->flags &= ~CH_Idle;
+			RP_StopChannel(ch);
+			SkipCommandOnSession(ch);
+			ch->flags &= ~CH_SkipNextCommand;
+			gf_rtsp_command_del(com);
+			RP_FlushAndTearDown(sess);
+		} else {
+			ch->flags &= ~CH_SkipNextCommand;
+			if (com) gf_rtsp_command_del(com);
+		}
+		return;
+	} else {
+		gf_term_on_command(sess->owner->service, command, GF_NOT_SUPPORTED);
+		gf_rtsp_command_del(com);
+		return;
+	}
+
+	ch_ctrl = malloc(sizeof(ChannelControl));
+	ch_ctrl->ch = ch;
+	memcpy(&ch_ctrl->com, command, sizeof(GF_NetworkCommand));
+	com->user_data = ch_ctrl;
+
+	gf_mx_p(sess->owner->mx);
+	gf_list_add(sess->rtsp_commands, com);
+	gf_mx_v(sess->owner->mx);
+
+	return;
+}
+
+
+/*
+ 						session/channel teardown functions
+																*/
+void RP_ProcessTeardown(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
+{
+	/*this is a disconnect (channel or service) - nothing to do, status is updated
+	before sending the command*/
+}
+
+void RP_Teardown(RTPSession *sess, RTPStream *ch)
+{
+	GF_RTSPCommand *com;
+
+	if (sess->has_aggregated_control && ch) return;
+	if (!gf_rtsp_get_session_id(sess->session)) return;
+	com = gf_rtsp_command_new();
+	com->method = strdup(GF_RTSP_TEARDOWN);
+	if (!sess->has_aggregated_control && ch && ch->control) com->ControlString = strdup(ch->control);
+
+	gf_mx_p(sess->owner->mx);
+	gf_list_add(sess->rtsp_commands, com);
+	gf_mx_v(sess->owner->mx);
+}
+

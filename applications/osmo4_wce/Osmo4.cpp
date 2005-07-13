@@ -1,0 +1,613 @@
+// Osmo4.cpp : Defines the class behaviors for the application.
+//
+
+#include "stdafx.h"
+#include "Osmo4.h"
+
+#include <gpac/options.h>
+#include "MainFrm.h"
+#include "OpenDlg.h"
+#include "Options.h"
+#include <gx.h>
+
+
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+// COsmo4
+
+BEGIN_MESSAGE_MAP(COsmo4, CWinApp)
+	//{{AFX_MSG_MAP(COsmo4)
+	ON_COMMAND(ID_APP_ABOUT, OnAppAbout)
+	ON_COMMAND(IDD_CONFIGURE, OnConfigure)
+	ON_COMMAND(ID_OPEN_FILE, OnOpenFile)
+	ON_COMMAND(ID_OPEN_URL, OnOpenUrl)
+	ON_COMMAND(ID_SHORTCUTS, OnShortcuts)
+	//}}AFX_MSG_MAP
+END_MESSAGE_MAP()
+
+
+
+
+
+
+Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
+{
+	u32 dur;
+	COsmo4 *app = (COsmo4 *) priv;
+	CMainFrame *pFrame = (CMainFrame *) app->m_pMainWnd;
+	/*shutdown*/
+	if (!pFrame) return 0;
+
+	switch (event->type) {
+	case GF_EVT_MESSAGE:
+		if (event->message.error!=GF_OK) {
+			if (event->message.error<GF_OK) {
+				pFrame->console_err = event->message.error;
+				pFrame->console_message = event->message.message;
+				pFrame->PostMessage(WM_CONSOLEMSG, 0, 0);
+			}
+			return 0;
+		}
+		if (1) return 0;
+		/*process user message*/
+		pFrame->console_err = GF_OK;
+		pFrame->console_message = event->message.message;
+		pFrame->PostMessage(WM_CONSOLEMSG, 0, 0);
+		break;
+	case GF_EVT_SCENESIZE:
+		app->m_open = 1;
+		app->m_scene_width = event->size.width;
+		app->m_scene_height = event->size.height;
+		pFrame->PostMessage(WM_SETSIZE, event->size.width, event->size.height);
+		break;
+	case GF_EVT_DURATION:
+		dur = (u32) (1000 * event->duration.duration);
+		if (dur<2000) dur = 0;
+		app->max_duration = dur;
+		app->m_can_seek = event->duration.can_seek;
+		pFrame->m_progBar.m_range_invalidated = 1;
+		/*by default, don't display timing if not seekable and vice-versa*/
+		if (app->m_can_seek != pFrame->m_view_timing) {
+			pFrame->m_view_timing = app->m_can_seek;
+			pFrame->PostMessage(WM_SETSIZE, 0, 0);
+		}
+		break;
+	case GF_EVT_NAVIGATE:
+		/*store URL since it may be destroyed, and post message*/
+		app->m_navigate_url = event->navigate.to_url;
+		pFrame->PostMessage(WM_NAVIGATE, NULL, NULL);
+		return 1;
+	case GF_EVT_QUIT:
+		pFrame->PostMessage(WM_CLOSE, 0L, 0L);
+		break;
+	/*ipaq keys*/
+	case GF_EVT_VKEYDOWN:
+		switch (event->key.vk_code) {
+		case GF_VK_F1: 
+			pFrame->PostMessage(WM_COMMAND, ID_FILE_OPEN); 
+			break;
+		case GF_VK_F2:
+			pFrame->PostMessage(WM_QUIT); 
+			break;
+		case GF_VK_F3:
+			pFrame->PostMessage(WM_COMMAND, ID_FILE_RESTART);
+			break;
+		case GF_VK_F5:
+			pFrame->PostMessage(WM_COMMAND, ID_VIEW_FULLSCREEN);
+			break;
+		case GF_VK_RETURN:
+			pFrame->PostMessage(WM_COMMAND, ID_FILE_PAUSE);
+			break;
+		case GF_VK_LEFT:
+			if (app->max_duration>=2000) {
+				s32 res = gf_term_get_time_in_ms(app->m_term) - 5*app->max_duration/100;
+				if (res<0) res=0;
+				gf_term_play_from_time(app->m_term, res);
+			}
+			break;
+		case GF_VK_RIGHT:
+			if (app->max_duration>=2000) {
+				u32 res = gf_term_get_time_in_ms(app->m_term) + 5*app->max_duration/100;
+				if (res>=app->max_duration) res = 0;
+				gf_term_play_from_time(app->m_term, res);
+			}
+			break;
+		case GF_VK_UP:
+			if (app->max_duration>=2000) pFrame->PostMessage(WM_COMMAND, ID_FILE_STEP);	
+			break;
+		case GF_VK_DOWN:
+			gf_term_refresh(app->m_term);
+			break;
+		}
+		break;
+	case GF_EVT_LDOUBLECLICK:
+		pFrame->PostMessage(WM_COMMAND, ID_VIEW_FULLSCREEN);
+		return 0;
+	}
+	
+	return 0;
+}
+
+COsmo4::COsmo4()
+	: CWinApp()
+{
+	// TODO: add construction code here,
+	// Place all significant initialization in InitInstance
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// The one and only COsmo4 object
+
+COsmo4 theApp;
+
+/////////////////////////////////////////////////////////////////////////////
+// COsmo4 initialization
+
+BOOL COsmo4::InitInstance()
+{
+	if (!AfxSocketInit())
+	{
+		AfxMessageBox(IDP_SOCKETS_INIT_FAILED);
+		return FALSE;
+	}
+	SetRegistryKey(_T("GPAC"));
+
+	m_prev_batt_bl = m_prev_ac_bl = 0;
+
+	m_screen_width = GetSystemMetrics(SM_CXSCREEN);
+	m_screen_height = GetSystemMetrics(SM_CYSCREEN);
+	m_menu_height = GetSystemMetrics(SM_CYMENU);
+	m_scene_width = m_scene_height = 0;
+
+	CMainFrame* pFrame = new CMainFrame;
+	m_pMainWnd = pFrame;
+
+	pFrame->LoadFrame(IDR_MAINFRAME, WS_VISIBLE, NULL, NULL);
+
+	pFrame->ShowWindow(m_nCmdShow);
+	pFrame->UpdateWindow();
+
+	unsigned char config_path[MAX_PATH];
+	CE_WideToChar((unsigned short *) (LPCTSTR) AfxGetApp()->m_pszHelpFilePath, (char *) config_path);
+
+	while (config_path[strlen((char *) config_path)-1] != '\\') config_path[strlen((char *) config_path)-1] = 0;
+
+	/*setup user*/
+	memset(&m_user, 0, sizeof(GF_User));
+
+	/*init config and plugins*/
+	m_user.config = gf_cfg_new((const char *) config_path, "GPAC.cfg");
+	if (!m_user.config) {
+		/*create blank config file in the exe dir*/
+		unsigned char config_file[MAX_PATH];
+		strcpy((char *) config_file, (const char *) config_path);
+		strcat((char *) config_file, "GPAC.cfg");
+		FILE *ft = fopen((const char *) config_file, "wt");
+		fclose(ft);
+		m_user.config = gf_cfg_new((const char *) config_path, "GPAC.cfg");
+		if (!m_user.config) {
+			MessageBox(NULL, _T("GPAC Configuration file not found"), _T("Fatal Error"), MB_OK);
+			m_pMainWnd->PostMessage(WM_CLOSE);
+		}
+	}
+	char *str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
+	m_user.modules = gf_modules_new((const unsigned char *) str, m_user.config);
+	if (!m_user.modules) {
+		char *sOpt;
+		/*inital launch*/
+		m_user.modules = gf_modules_new((const unsigned char *) config_path, m_user.config);
+		if (m_user.modules) {
+			gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) config_path);
+
+			sOpt = gf_cfg_get_key(m_user.config, "Rendering", "Raster2D");
+			if (!sOpt) gf_cfg_set_key(m_user.config, "Rendering", "Raster2D", "m4_rend");
+
+			sOpt = gf_cfg_get_key(m_user.config, "General", "CacheDirectory");
+			if (!sOpt) {
+				unsigned char str_path[MAX_PATH];
+				sprintf((char *) str_path, "%scache", config_path);
+				gf_cfg_set_key(m_user.config, "General", "CacheDirectory", (const char *) str_path);
+			}
+			/*setup UDP traffic autodetect*/
+			gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "yes");
+			gf_cfg_set_key(m_user.config, "Network", "UDPNotAvailable", "no");
+			gf_cfg_set_key(m_user.config, "Network", "UDPTimeout", "10000");
+			gf_cfg_set_key(m_user.config, "Network", "BufferLength", "3000");
+		}
+
+		/*check audio config on windows, force config*/
+		sOpt = gf_cfg_get_key(m_user.config, "Audio", "ForceConfig");
+		if (!sOpt) {
+			gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "no");
+			gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "8");
+			gf_cfg_set_key(m_user.config, "Audio", "BuffersPerSecond", "16");
+		}
+		/*by default use GDIplus, much faster than freetype on font loading*/
+		gf_cfg_set_key(m_user.config, "FontEngine", "DriverName", "gdip_rend");
+	}	
+	if (! gf_modules_get_count(m_user.modules) ) {
+		MessageBox(NULL, _T("No plugins available - system cannot work"), _T("Fatal Error"), MB_OK);
+		m_pMainWnd->PostMessage(WM_QUIT);
+	}
+
+	/*setup font dir*/
+	str = gf_cfg_get_key(m_user.config, "FontEngine", "FontDirectory");
+	if (!str || !strlen(str) ) {
+		strcpy((char *) config_path, "\\Windows");
+		gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", (const char *) config_path);
+	}
+	/*work with iPaq's default fonts ...*/
+	str = gf_cfg_get_key(m_user.config, "FontEngine", "FontSerif");
+	if (!str) gf_cfg_set_key(m_user.config, "FontEngine", "FontSerif", "Tahoma");
+	str = gf_cfg_get_key(m_user.config, "FontEngine", "FontSans");
+	if (!str) gf_cfg_set_key(m_user.config, "FontEngine", "FontSans", "Frutiger");
+	str = gf_cfg_get_key(m_user.config, "FontEngine", "FontFixed");
+	if (!str) gf_cfg_set_key(m_user.config, "FontEngine", "FontFixed", "Courier New");
+
+	/*audio only works with free config*/
+	gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "no");
+
+	/*check video driver, if none or raw_out use dx_hw by default*/
+	str = gf_cfg_get_key(m_user.config, "Video", "DriverName");
+	if (!str || !stricmp(str, "raw_out")) {
+		gf_cfg_set_key(m_user.config, "Video", "DriverName", "gapi");
+	}
+
+	m_user.config = m_user.config;
+	m_user.modules = m_user.modules;
+	m_user.EventProc = Osmo4CE_EventProc;
+	m_user.opaque = this;
+	m_user.os_window_handler = pFrame->m_wndView.m_hWnd;
+
+
+	m_term = gf_term_new(&m_user);
+	if (! m_term) {
+		MessageBox(NULL, _T("Cannot load MPEG-4 Terminal"), _T("Fatal Error"), MB_OK);
+		m_pMainWnd->PostMessage(WM_QUIT);
+	}
+
+	m_open = 0;
+	m_can_seek = 0;
+	m_DoResume = 0;
+	SetOptions();
+	pFrame->SendMessage(WM_SETSIZE, 0, 0);
+	ShowTaskBar(0);
+
+	CCommandLineInfo cmdInfo;
+	ParseCommandLine(cmdInfo);
+
+	if (! cmdInfo.m_strFileName.IsEmpty()) {
+		m_filename = cmdInfo.m_strFileName;
+		m_pMainWnd->PostMessage(WM_OPENURL);
+	}
+
+	return TRUE;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// COsmo4 message handlers
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+// CAboutDlg dialog used for App About
+
+class CAboutDlg : public CDialog
+{
+public:
+	CAboutDlg();
+
+// Dialog Data
+	//{{AFX_DATA(CAboutDlg)
+	enum { IDD = IDD_ABOUTBOX };
+	CStatic m_AbtTxt;
+	//}}AFX_DATA
+
+	// ClassWizard generated virtual function overrides
+	//{{AFX_VIRTUAL(CAboutDlg)
+	protected:
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+	//}}AFX_VIRTUAL
+
+// Implementation
+protected:
+	//{{AFX_MSG(CAboutDlg)
+	virtual BOOL OnInitDialog();		// Added for WCE apps
+	//}}AFX_MSG
+	DECLARE_MESSAGE_MAP()
+};
+
+CAboutDlg::CAboutDlg() : CDialog(CAboutDlg::IDD)
+{
+	//{{AFX_DATA_INIT(CAboutDlg)
+	//}}AFX_DATA_INIT
+}
+
+void CAboutDlg::DoDataExchange(CDataExchange* pDX)
+{
+	CDialog::DoDataExchange(pDX);
+	//{{AFX_DATA_MAP(CAboutDlg)
+	DDX_Control(pDX, IDC_ABT_TEXT, m_AbtTxt);
+	//}}AFX_DATA_MAP
+}
+
+BEGIN_MESSAGE_MAP(CAboutDlg, CDialog)
+	//{{AFX_MSG_MAP(CAboutDlg)
+		// No message handlers
+	//}}AFX_MSG_MAP
+END_MESSAGE_MAP()
+
+/////////////////////////////////////////////////////////////////////////////
+// COsmo4 commands
+// Added for WCE apps
+
+BOOL CAboutDlg::OnInitDialog() 
+{
+	CDialog::OnInitDialog();
+	CString str = _T("Osmo4 Player\nGPAC V");
+	str += _T(GPAC_VERSION);
+	m_AbtTxt.SetWindowText(str);
+	return TRUE; 
+}
+
+
+
+void COsmo4::OnAppAbout()
+{
+	CAboutDlg aboutDlg;
+	ShowTaskBar(1);
+	aboutDlg.DoModal();
+	ShowTaskBar(0);
+}
+
+
+int COsmo4::ExitInstance() 
+{
+	gf_term_del(m_term);
+	gf_modules_del(m_user.modules);
+	gf_cfg_del(m_user.config);
+	SetBacklightState(0);
+	return CWinApp::ExitInstance();
+}
+
+void COsmo4::SetOptions()
+{
+	char *sOpt = gf_cfg_get_key(m_user.config, "General", "Loop");
+	m_Loop = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
+	sOpt = gf_cfg_get_key(m_user.config, "General", "FillScreen");
+	m_fit_screen = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
+	sOpt = gf_cfg_get_key(m_user.config, "General", "DisableBackLight");
+	m_disable_backlight = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
+	gf_term_set_option(m_term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP);
+
+	//gf_term_set_option(m_term, GF_OPT_AUDIO_VOLUME, 100);
+}
+
+void COsmo4::Pause()
+{
+	if (!m_open) return;
+
+	if (gf_term_get_option(m_term, GF_OPT_PLAY_STATE)==GF_STATE_PLAYING) {
+		gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
+		SetBacklightState(0);
+	} else {
+		gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
+		SetBacklightState(1);
+	}
+	((CMainFrame*)m_pMainWnd)->SetPauseButton();
+}
+
+void COsmo4::OnConfigure()
+{
+	COptions dlg;
+	
+	ShowTaskBar(1);
+	dlg.DoModal();
+	
+	ShowTaskBar(0);
+}
+
+void COsmo4::ShowTaskBar(Bool showIt, Bool pause_only)
+{
+	if (showIt) {
+		m_DoResume = 0;
+		if (gf_term_get_option(m_term, GF_OPT_PLAY_STATE)==GF_STATE_PLAYING) {
+			m_DoResume = 1;
+			gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
+		}
+		gf_term_set_option(m_term, GF_OPT_FREEZE_DISPLAY, 1);
+		if (!pause_only) SHFullScreen(GetForegroundWindow(), SHFS_HIDESTARTICON | SHFS_SHOWTASKBAR);
+		SetBacklightState(0);
+	} else {
+		if (!pause_only) SHFullScreen(GetForegroundWindow(), SHFS_HIDESTARTICON | SHFS_HIDETASKBAR);
+		gf_term_set_option(m_term, GF_OPT_FREEZE_DISPLAY, 0);
+		gf_term_refresh(m_term);
+		if (m_DoResume) {
+			gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
+			SetBacklightState(1);
+			m_DoResume = 0;
+		}
+		m_pMainWnd->SetFocus();
+	}
+}
+
+
+CString COsmo4::GetFileFilter()
+{
+	u32 keyCount, i;
+	CString sFiles;
+	CString sExts;
+	CString supportedFiles;
+
+	supportedFiles = "All Known Files|*.m3u;*.pls";
+
+	sExts = "";
+	sFiles = "";
+	keyCount = gf_cfg_get_key_count(m_user.config, "MimeTypes");
+	for (i=0; i<keyCount; i++) {
+		const char *sMime;
+		Bool first;
+		char *sKey;
+		char szKeyList[1000], sDesc[1000];
+		short swKeyList[1000], swDesc[1000];
+		sMime = gf_cfg_get_key_name(m_user.config, "MimeTypes", i);
+		if (!sMime) continue;
+		CString sOpt;
+		sKey = gf_cfg_get_key(m_user.config, "MimeTypes", sMime);
+		/*remove #include <gpac/options.h>
+ name*/
+		strcpy(szKeyList, sKey+1);
+		sKey = strrchr(szKeyList, '\"');
+		if (!sKey) continue;
+		sKey[0] = 0;
+		/*get description*/
+		sKey = strrchr(szKeyList, '\"');
+		if (!sKey) continue;
+		strcpy(sDesc, sKey+1);
+		sKey[0] = 0;
+		sKey = strrchr(szKeyList, '\"');
+		if (!sKey) continue;
+		sKey[0] = 0;
+
+		CE_CharToWide(sDesc, (unsigned short *)swDesc);
+		CE_CharToWide(szKeyList, (unsigned short *)swKeyList);
+
+		/*if same description for # mime types skip (means an old mime syntax)*/
+		if (sFiles.Find((LPCTSTR) swDesc)>=0) continue;
+		/*if same extensions for # mime types skip (don't polluate the file list)*/
+		if (sExts.Find((LPCTSTR) swKeyList)>=0) continue;
+
+		sExts += (LPCTSTR) swKeyList;
+		sExts += " ";
+		sFiles += (LPCTSTR) swDesc;
+		sFiles += "|";
+
+		first = 1;
+
+		sOpt = CString(szKeyList);
+		while (1) {
+			
+			int pos = sOpt.Find(' ');
+			CString ext = (pos==-1) ? sOpt : sOpt.Left(pos);
+			/*WATCHOUT: we do have some "double" ext , eg .wrl.gz - these are NOT supported by windows*/
+			if (ext.Find(_T("."))<0) {
+				if (!first) {
+					sFiles += ";";
+				} else {
+					first = 0;
+				}
+				sFiles += "*.";
+				sFiles += ext;
+
+				CString sext = ext;
+				sext += ";";
+				if (supportedFiles.Find(sext)<0) {
+					supportedFiles += ";*.";
+					supportedFiles += ext;
+				}
+			}
+
+			if (sOpt==ext) break;
+			CString rem;
+			rem.Format(_T("%s "), (LPCTSTR) ext);
+			sOpt.Replace((LPCTSTR) rem, _T(""));
+		}
+		sFiles += "|";
+	}
+	supportedFiles += "|";
+	supportedFiles += sFiles;
+	//supportedFiles += "M3U Playlists|*.m3u|ShoutCast Playlists|*.pls|All Files |*.*|";
+	supportedFiles += "All Files |*.*|";
+	return supportedFiles;
+}
+
+void COsmo4::OnOpenFile() 
+{
+	Bool res;
+	CFileDialog fd(TRUE,NULL,_T("\\"),OFN_HIDEREADONLY, GetFileFilter());
+
+	ShowTaskBar(1);
+	res = 0;
+	if (fd.DoModal()==IDOK) {
+		res = 1;
+		m_filename = fd.GetPathName();
+		m_DoResume = 0;/*done by term*/
+	} 
+	ShowTaskBar(0);
+	if (res) m_pMainWnd->PostMessage(WM_OPENURL);
+}
+
+void COsmo4::OnOpenUrl() 
+{
+	OpenDlg dlg;
+	Bool res;
+	ShowTaskBar(1, 1);
+	res = 0;
+	if (dlg.DoModal() == IDOK) {
+		res = 1;
+		m_DoResume = 0;/*done by term*/
+	} 
+	ShowTaskBar(0, 1);
+	if (res) m_pMainWnd->PostMessage(WM_OPENURL);
+}
+
+void COsmo4::SetBacklightState(Bool disable) 
+{
+	HKEY hKey = 0;
+	DWORD dwSize;
+	DWORD dwValue;
+	HANDLE hBL;
+
+	if (!m_disable_backlight) return;
+
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, _T("ControlPanel\\Backlight"), 0, 0, &hKey ) != ERROR_SUCCESS) return;
+
+	if (disable) {
+		dwSize = 4;
+		RegQueryValueEx(hKey, _T("BatteryTimeout"), NULL, NULL,(unsigned char*) &m_prev_batt_bl, &dwSize);
+		dwSize = 4;
+		RegQueryValueEx(hKey, _T("ACTimeout"), NULL, NULL, (unsigned char*) &m_prev_ac_bl,&dwSize);
+		dwSize = 4;
+		dwValue = 0xefff ;
+		RegSetValueEx(hKey, _T("BatteryTimeout"), NULL, REG_DWORD, (unsigned char *)&dwValue, dwSize);
+		dwSize = 4;
+		dwValue = 0xefff ;
+		RegSetValueEx( hKey, _T("ACTimeout"), NULL, REG_DWORD, (unsigned char *)&dwValue, dwSize);
+	} else {
+		if (m_prev_batt_bl) {
+			dwSize = 4;
+			RegSetValueEx(hKey, _T("BatteryTimeout"), NULL, REG_DWORD, (unsigned char *)&m_prev_batt_bl, dwSize);
+		}
+		if (m_prev_ac_bl) {
+			dwSize = 4;
+			RegSetValueEx(hKey, _T("ACTimeout"), NULL, REG_DWORD,(unsigned char *)&m_prev_ac_bl, dwSize);
+		}
+	}
+	RegCloseKey(hKey);
+	hBL = CreateEvent(NULL, FALSE, FALSE, _T("BackLightChangeEvent"));
+	if (hBL) {
+		SetEvent(hBL);
+		CloseHandle(hBL);
+	}
+}
+
+void COsmo4::OnShortcuts() 
+{
+	ShowTaskBar(1);
+
+	MessageBox(NULL,
+		_T("Double Click: Fullscreen on/off\n"),
+
+		_T("Osmo4 Shortcuts"),
+		MB_OK);
+	
+	ShowTaskBar(0);
+}
+

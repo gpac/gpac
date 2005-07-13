@@ -1,0 +1,938 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / ISO Media File Format sub-project
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *
+ */
+
+#include <gpac/internal/isomedia_dev.h>
+
+Bool IsHintTrack(GF_TrackBox *trak)
+{
+	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_HINT) return 0;
+	//QT doesn't specify any InfoHeader on HintTracks
+	if (trak->Media->information->InfoHeader 
+			&& trak->Media->information->InfoHeader->type != GF_ISOM_BOX_TYPE_HMHD) 
+		return 0;
+
+	return 1;
+}
+
+u32 GetHintFormat(GF_TrackBox *trak)
+{
+	GF_HintMediaHeaderBox *hmhd = (GF_HintMediaHeaderBox *)trak->Media->information->InfoHeader;
+	if (!hmhd->subType) {
+		GF_Box *a = gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, 0);
+		if (a) hmhd->subType = a->type;
+	}
+	return hmhd->subType;
+}
+
+Bool CheckHintFormat(GF_TrackBox *trak, u32 HintType)
+{
+	if (!IsHintTrack(trak)) return 0;
+	if (GetHintFormat(trak) != HintType) return 0;
+	return 1;
+}
+
+#ifndef GPAC_READ_ONLY
+
+GF_Err AdjustHintInfo(GF_HintSampleEntryBox *entry, u32 HintSampleNumber)
+{
+	u32 offset, count, i, size;
+	GF_HintPacket *pck;
+	GF_Err e;
+
+	offset = Size_HintSample(entry->w_sample) - entry->w_sample->dataLength;
+	count = gf_list_count(entry->w_sample->packetTable);
+	
+	for (i=0; i<count; i++) {
+		pck = gf_list_get(entry->w_sample->packetTable, i);
+		if (offset && entry->w_sample->dataLength) {
+			//adjust any offset in this packet (GF_SampleDTE)
+			e = Offset_HintPacket(entry->w_sample->HintType, pck, offset, HintSampleNumber);
+			if (e) return e;
+		}
+		//adjust the max packet size for this sample entry...
+		size = Length_HintPacket(entry->w_sample->HintType, pck);
+		if (entry->MaxPacketSize < size) entry->MaxPacketSize = size;
+	}
+	return GF_OK;
+}
+
+
+GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, u32 HintType)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_TrackReferenceBox *tref;
+	GF_TrackReferenceTypeBox *dpnd;
+	GF_HintMediaHeaderBox *hmhd;
+	//UDTA related ...
+	GF_UserDataBox *udta;
+
+	GF_Err tref_AddBox(GF_TrackReferenceBox *ptr, GF_Box *a);
+	GF_Err trak_AddBox(GF_TrackBox *ptr, GF_Box *a);
+	GF_Err moov_AddBox(GF_MovieBox *ptr, GF_Box *a);
+	GF_Err udta_AddBox(GF_UserDataBox *ptr, GF_Box *a);
+
+	//what do we support
+	switch (HintType) {
+	case GF_ISOM_HINT_RTP:
+		break;
+	default:
+		return GF_NOT_SUPPORTED;
+	}
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return gf_isom_last_error(movie);
+	if (movie->openMode != GF_ISOM_OPEN_EDIT) return GF_ISOM_INVALID_MODE;
+
+	//check we have a hint ...
+	if ( !IsHintTrack(trak)) {
+		return GF_BAD_PARAM;
+	}
+	hmhd = (GF_HintMediaHeaderBox *)trak->Media->information->InfoHeader;
+	//make sure the subtype was not already defined
+	if (hmhd->subType) return GF_BAD_PARAM;
+	//store the HintTrack format for later use...
+	hmhd->subType = HintType;
+
+	
+	//hint tracks always have a tref and everything ...
+	if (!trak->References) {
+		if (!trak->References) {
+			tref = (GF_TrackReferenceBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TREF);
+			e = trak_AddBox(trak, (GF_Box *)tref);
+			if (e) return e;
+		}
+	}
+	tref = trak->References;
+
+	//do we have a hint reference on this trak ???
+	e = Track_FindRef(trak, GF_ISOM_BOX_TYPE_HINT, &dpnd);
+	if (e) return e;
+	//if yes, return false (existing hint track...)
+	if (dpnd) return GF_BAD_PARAM;
+
+	//create our dep
+	dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_HINT);
+	e = tref_AddBox(tref, (GF_Box *) dpnd);
+	if (e) return e;
+
+	//for RTP, we need to do some UDTA-related stuff...
+	if (HintType != GF_ISOM_HINT_RTP) return GF_OK;
+
+	if (!trak->udta) {
+		//create one
+		udta = (GF_UserDataBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA);
+		e = trak_AddBox(trak, (GF_Box *) udta);
+		if (e) return e;
+	}
+	udta = trak->udta;
+
+	//HNTI
+	e = udta_AddBox(udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI));
+	if (e) return e;
+
+/*
+	//NAME
+	e = udta_AddBox(udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_NAME));
+	if (e) return e;
+	//HINF
+	return udta_AddBox(udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HINF));
+*/
+	return GF_OK;
+}
+
+//to use with internally supported protocols
+GF_Err gf_isom_new_hint_description(GF_ISOFile *the_file, u32 trackNumber, s32 HintTrackVersion, s32 LastCompatibleVersion, u8 Rely, u32 *HintDescriptionIndex)
+{
+	GF_Err e;
+	u32 drefIndex;
+	GF_TrackBox *trak;
+	GF_HintSampleEntryBox *hdesc;
+	GF_RelyHintBox *relyA;
+
+	GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a);
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	*HintDescriptionIndex = 0;
+	if (!trak || !IsHintTrack(trak)) return GF_BAD_PARAM;
+
+	//OK, create a new HintSampleDesc
+	hdesc = (GF_HintSampleEntryBox *) gf_isom_box_new(GetHintFormat(trak));
+
+	if (HintTrackVersion > 0) hdesc->HintTrackVersion = HintTrackVersion;
+	if (LastCompatibleVersion > 0) hdesc->LastCompatibleVersion = LastCompatibleVersion;
+
+	//create a data reference - WE ONLY DEAL WITH SELF-CONTAINED HINT TRACKS
+	e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, NULL, NULL, &drefIndex);
+	if (e) return e;
+	hdesc->dataReferenceIndex = drefIndex;
+
+	//add the entry to our table...
+	e = stsd_AddBox(trak->Media->information->sampleTable->SampleDescription, (GF_Box *) hdesc);
+	if (e) return e;
+	*HintDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
+
+	//RTP needs a default timeScale... use the media one.
+	if (CheckHintFormat(trak, GF_ISOM_HINT_RTP)) {
+		e = gf_isom_rtp_set_timescale(the_file, trackNumber, *HintDescriptionIndex, trak->Media->mediaHeader->timeScale);
+		if (e) return e;
+	}
+	if (!Rely) return GF_OK;
+
+	//we need a rely box (common to all protocols)
+	relyA = (GF_RelyHintBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_RELY);
+	if (Rely == 1) {
+		relyA->prefered = 1;
+	} else {
+		relyA->required = 1;
+	}
+	return gf_list_add(hdesc->HintDataTable, relyA);
+}
+
+
+/*******************************************************************
+					RTP WRITING API
+*******************************************************************/
+
+//sets the RTP TimeScale
+GF_Err gf_isom_rtp_set_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 HintDescriptionIndex, u32 TimeScale)
+{
+	GF_TrackBox *trak;
+	GF_HintSampleEntryBox *hdesc;
+	u32 i, count;
+	GF_TSHintEntryBox *ent;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !CheckHintFormat(trak, GF_ISOM_HINT_RTP)) return GF_BAD_PARAM;
+
+	//OK, create a new HintSampleDesc
+	hdesc = gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, HintDescriptionIndex - 1);
+	count = gf_list_count(hdesc->HintDataTable);
+
+	for (i=0; i< count; i++) {
+		ent = gf_list_get(hdesc->HintDataTable, i);
+		if (ent->type == GF_ISOM_BOX_TYPE_TIMS) {			
+			ent->timeScale = TimeScale;
+			return GF_OK;
+		}
+	}
+	//we have to create a new entry...
+	ent = (GF_TSHintEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TIMS);
+	ent->timeScale = TimeScale;
+	return gf_list_add(hdesc->HintDataTable, ent);
+}
+
+//sets the RTP TimeOffset that the server will add to the packets
+//if not set, the server adds a random offset
+GF_Err gf_isom_rtp_set_time_offset(GF_ISOFile *the_file, u32 trackNumber, u32 HintDescriptionIndex, u32 TimeOffset)
+{
+	GF_TrackBox *trak;
+	GF_HintSampleEntryBox *hdesc;
+	u32 i, count;
+	GF_TimeOffHintEntryBox *ent;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !CheckHintFormat(trak, GF_ISOM_HINT_RTP)) return GF_BAD_PARAM;
+
+	//OK, create a new HintSampleDesc
+	hdesc = gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, HintDescriptionIndex - 1);
+	count = gf_list_count(hdesc->HintDataTable);
+
+	for (i=0; i< count; i++) {
+		ent = gf_list_get(hdesc->HintDataTable, i);
+		if (ent->type == GF_ISOM_BOX_TYPE_TSRO) {			
+			ent->TimeOffset = TimeOffset;
+			return GF_OK;
+		}
+	}
+	//we have to create a new entry...
+	ent = (GF_TimeOffHintEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TSRO);
+	ent->TimeOffset = TimeOffset;
+	return gf_list_add(hdesc->HintDataTable, ent);
+}
+
+//sets the RTP SequenceNumber Offset that the server will add to the packets
+//if not set, the server adds a random offset
+GF_Err gf_isom_rtp_set_time_sequence_offset(GF_ISOFile *the_file, u32 trackNumber, u32 HintDescriptionIndex, u32 SequenceNumberOffset)
+{
+	GF_TrackBox *trak;
+	GF_HintSampleEntryBox *hdesc;
+	u32 i, count;
+	GF_SeqOffHintEntryBox *ent;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !CheckHintFormat(trak, GF_ISOM_HINT_RTP)) return GF_BAD_PARAM;
+
+	//OK, create a new HintSampleDesc
+	hdesc = gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, HintDescriptionIndex - 1);
+	count = gf_list_count(hdesc->HintDataTable);
+
+	for (i=0; i< count; i++) {
+		ent = gf_list_get(hdesc->HintDataTable, i);
+		if (ent->type == GF_ISOM_BOX_TYPE_SNRO) {			
+			ent->SeqOffset = SequenceNumberOffset;
+			return GF_OK;
+		}
+	}
+	//we have to create a new entry...
+	ent = (GF_SeqOffHintEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SNRO);
+	ent->SeqOffset = SequenceNumberOffset;
+	return gf_list_add(hdesc->HintDataTable, ent);
+}
+
+//Starts a new sample for the hint track. A sample is just a collection of packets
+//the transmissionTime is indicated in the media timeScale of the hint track
+GF_Err gf_isom_begin_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 HintDescriptionIndex, u32 TransmissionTime)
+{
+	GF_TrackBox *trak;
+	u32 descIndex, dataRefIndex;
+	GF_HintSample *samp;
+	GF_HintSampleEntryBox *entry;
+	GF_Err e;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !IsHintTrack(trak)) return GF_BAD_PARAM;
+
+	//assert we're increasing the timing...
+	if (trak->Media->information->sampleTable->TimeToSample->w_LastDTS > TransmissionTime) return GF_BAD_PARAM;
+
+	//store the descIndex for this sample
+	descIndex = HintDescriptionIndex;
+	if (!HintDescriptionIndex) {
+		descIndex = trak->Media->information->sampleTable->currentEntryIndex;
+	}
+	e = Media_GetSampleDesc(trak->Media, descIndex, (GF_SampleEntryBox **) &entry, &dataRefIndex);
+	if (e) return e;
+	if (!entry || !dataRefIndex) return GF_BAD_PARAM;
+	//set the current to this one if no packet is used
+	if (entry->w_sample) return GF_BAD_PARAM;
+	trak->Media->information->sampleTable->currentEntryIndex = descIndex;
+
+	//create a new sample based on the protocol type of the hint description entry
+	samp = New_HintSample(entry->type);
+	if (!samp) return GF_NOT_SUPPORTED;
+
+	//OK, let's store the time of this sample
+	samp->TransmissionTime = TransmissionTime;
+	//OK, set our sample in the entry...
+	entry->w_sample = samp;
+	return GF_OK;
+}
+
+//stores the hint sample in the file
+//set IsRandomAccessPoint if you want to indicate that this is a random access point 
+//in the stream
+GF_Err gf_isom_end_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u8 IsRandomAccessPoint)
+{
+	GF_TrackBox *trak;
+	GF_HintSampleEntryBox *entry;
+	u32 dataRefIndex;
+	GF_Err e;
+	GF_BitStream *bs;
+	GF_ISOSample *samp;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !IsHintTrack(trak)) return GF_BAD_PARAM;
+
+	e = Media_GetSampleDesc(trak->Media, trak->Media->information->sampleTable->currentEntryIndex, (GF_SampleEntryBox **) &entry, &dataRefIndex);
+	if (e) return e;
+	if (!entry->w_sample) return GF_BAD_PARAM;
+
+	//first of all, we need to adjust the offset for data referenced IN THIS hint sample
+	//and get some PckSize
+	e = AdjustHintInfo(entry, trak->Media->information->sampleTable->SampleSize->sampleCount + 1);
+	if (e) return e;	
+	
+	//ok, let's write the sample
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	e = Write_HintSample(entry->w_sample, bs);
+	if (e) {
+		gf_bs_del(bs);
+		return e;
+	}
+	samp = gf_isom_sample_new();
+	samp->CTS_Offset = 0;
+	samp->IsRAP = IsRandomAccessPoint;
+	samp->DTS = entry->w_sample->TransmissionTime;
+	//get the sample
+	gf_bs_get_content(bs, (unsigned char **) &samp->data, &samp->dataLength);
+	gf_bs_del(bs);
+
+	//finally add the sample 
+	e = gf_isom_add_sample(the_file, trackNumber, trak->Media->information->sampleTable->currentEntryIndex, samp);
+	gf_isom_sample_del(&samp);
+
+	//and delete the sample in our entry ...
+	Del_HintSample(entry->w_sample);
+	entry->w_sample = NULL;
+	return e;
+}
+
+
+//adds a blank chunk of data in the sample that is skipped while streaming
+GF_Err gf_isom_hint_blank_data(GF_ISOFile *the_file, u32 trackNumber, u8 AtBegin)
+{
+	GF_TrackBox *trak;
+	GF_HintSampleEntryBox *entry;
+	u32 count;
+	GF_HintPacket *pck;
+	GF_EmptyDTE *dte;
+	GF_Err e;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !IsHintTrack(trak)) return GF_BAD_PARAM;
+
+	e = Media_GetSampleDesc(trak->Media, trak->Media->information->sampleTable->currentEntryIndex, (GF_SampleEntryBox **) &entry, &count);
+	if (e) return e;
+	if (!entry->w_sample) return GF_BAD_PARAM;
+	count = gf_list_count(entry->w_sample->packetTable);
+	if (!count) return GF_BAD_PARAM;
+	pck = gf_list_get(entry->w_sample->packetTable, count - 1);
+
+	dte = (GF_EmptyDTE *) NewDTE(0);
+	return AddDTE_HintPacket(entry->w_sample->HintType, pck, (GF_GenericDTE *)dte, AtBegin);
+}
+
+
+//adds a chunk of data (max 14 bytes) in the packet that is directly copied 
+//while streaming
+GF_Err gf_isom_hint_direct_data(GF_ISOFile *the_file, u32 trackNumber, char *data, u32 dataLength, u8 AtBegin)
+{
+	GF_TrackBox *trak;
+	GF_HintSampleEntryBox *entry;
+	u32 count;
+	GF_HintPacket *pck;
+	GF_ImmediateDTE *dte;
+	GF_Err e;
+	u32 offset = 0;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !IsHintTrack(trak) || (dataLength > 14)) return GF_BAD_PARAM;
+
+	e = Media_GetSampleDesc(trak->Media, trak->Media->information->sampleTable->currentEntryIndex, (GF_SampleEntryBox **) &entry, &count);
+	if (e) return e;
+	if (!entry->w_sample) return GF_BAD_PARAM;
+	count = gf_list_count(entry->w_sample->packetTable);
+	if (!count) return GF_BAD_PARAM;
+	pck = gf_list_get(entry->w_sample->packetTable, count - 1);
+
+	dte = (GF_ImmediateDTE *) NewDTE(1);
+	memcpy(dte->data, data + offset, dataLength);
+	dte->dataLength = dataLength;
+	return AddDTE_HintPacket(entry->w_sample->HintType, pck, (GF_GenericDTE *)dte, AtBegin);
+}
+
+GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, u32 SourceTrackID, u32 SampleNumber, u16 DataLength, u32 offsetInSample, char *extra_data, u8 AtBegin)
+{
+	GF_TrackBox *trak;
+	GF_HintSampleEntryBox *entry;
+	u32 count;
+	u16 refIndex;
+	GF_HintPacket *pck;
+	GF_SampleDTE *dte;
+	GF_Err e;
+	GF_TrackReferenceTypeBox *hint;
+
+	GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !IsHintTrack(trak)) return GF_BAD_PARAM;
+
+
+	e = Media_GetSampleDesc(trak->Media, trak->Media->information->sampleTable->currentEntryIndex, (GF_SampleEntryBox **) &entry, &count);
+	if (e) return e;
+	if (!entry->w_sample) return GF_BAD_PARAM;
+	count = gf_list_count(entry->w_sample->packetTable);
+	if (!count) return GF_BAD_PARAM;
+	pck = gf_list_get(entry->w_sample->packetTable, count - 1);
+
+	dte = (GF_SampleDTE *) NewDTE(2);
+
+	dte->dataLength = DataLength;
+	dte->sampleNumber = SampleNumber;
+	dte->byteOffset = offsetInSample;
+
+	//we're getting data from another track
+	if (SourceTrackID != trak->Header->trackID) {
+		//get (or set) the track reference index 
+		e = Track_FindRef(trak, GF_ISOM_REF_HINT, &hint);
+		if (e) return e;
+		e = reftype_AddRefTrack(hint, SourceTrackID, &refIndex);
+		if (e) return e;
+		//WARNING: IN QT, MUST BE 0-based !!!
+		dte->trackRefIndex = (u8) (refIndex - 1);
+	} else {
+		//we're in the hint track
+		dte->trackRefIndex = -1;
+		//basic check...
+		if (SampleNumber > trak->Media->information->sampleTable->SampleSize->sampleCount + 1) {
+			DelDTE((GF_GenericDTE *)dte);
+			return GF_BAD_PARAM;
+		}
+
+		//are we in the current sample ??
+		if (!SampleNumber || (SampleNumber == trak->Media->information->sampleTable->SampleSize->sampleCount + 1)) {
+			//we adding some stuff in the current sample ...
+			dte->byteOffset += entry->w_sample->dataLength;
+			if (entry->w_sample->AdditionalData) {
+				entry->w_sample->AdditionalData = realloc(entry->w_sample->AdditionalData, sizeof(char) * (entry->w_sample->dataLength + DataLength));
+				memcpy(entry->w_sample->AdditionalData + entry->w_sample->dataLength, extra_data, DataLength);
+				entry->w_sample->dataLength += DataLength;
+			} else {
+				entry->w_sample->AdditionalData = malloc(sizeof(char) * DataLength);
+				memcpy(entry->w_sample->AdditionalData, extra_data, DataLength);
+				entry->w_sample->dataLength = DataLength;
+			}
+			//and set the sample number ...
+			dte->sampleNumber = trak->Media->information->sampleTable->SampleSize->sampleCount + 1;
+		}
+	}
+	//OK, add the entry
+	return AddDTE_HintPacket(entry->w_sample->HintType, pck, (GF_GenericDTE *)dte, AtBegin);
+}
+
+GF_Err gf_isom_hint_sample_description_data(GF_ISOFile *the_file, u32 trackNumber, u32 SourceTrackID, u32 StreamDescriptionIndex, u16 DataLength, u32 offsetInDescription, u8 AtBegin)
+{
+	GF_TrackBox *trak;
+	GF_HintSampleEntryBox *entry;
+	u32 count;
+	u16 refIndex;
+	GF_HintPacket *pck;
+	GF_StreamDescDTE *dte;
+	GF_Err e;
+	GF_TrackReferenceTypeBox *hint;
+
+	GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !IsHintTrack(trak)) return GF_BAD_PARAM;
+
+	e = Media_GetSampleDesc(trak->Media, trak->Media->information->sampleTable->currentEntryIndex, (GF_SampleEntryBox **) &entry, &count);
+	if (e) return e;
+	if (!entry->w_sample) return GF_BAD_PARAM;
+	count = gf_list_count(entry->w_sample->packetTable);
+	if (!count) return GF_BAD_PARAM;
+	pck = gf_list_get(entry->w_sample->packetTable, count - 1);
+
+	dte = (GF_StreamDescDTE *) NewDTE(3);
+	dte->byteOffset = offsetInDescription;
+	dte->dataLength = DataLength;
+	dte->streamDescIndex = StreamDescriptionIndex;
+	if (SourceTrackID == trak->Header->trackID) {
+		dte->trackRefIndex = -1;
+	} else {
+		//get (or set) the track reference index 
+		e = Track_FindRef(trak, GF_ISOM_REF_HINT, &hint);
+		if (e) return e;
+		e = reftype_AddRefTrack(hint, SourceTrackID, &refIndex);
+		if (e) return e;
+		//WARNING: IN QT, MUST BE 0-based !!!
+		dte->trackRefIndex = (u8) (refIndex - 1);
+	}
+	return AddDTE_HintPacket(entry->w_sample->HintType, pck, (GF_GenericDTE *)dte, AtBegin);
+}
+
+#endif //GPAC_READ_ONLY
+
+GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 boxType);
+
+#ifndef GPAC_READ_ONLY
+
+GF_Err gf_isom_rtp_packet_set_flags(GF_ISOFile *the_file, u32 trackNumber,
+						   u8 PackingBit, 
+						   u8 eXtensionBit, 
+						   u8 MarkerBit, 
+						   u8 disposable_packet, 
+						   u8 IsRepeatedPacket)
+{
+	GF_TrackBox *trak;
+	GF_HintSampleEntryBox *entry;
+	GF_RTPPacket *pck;
+	u32 dataRefIndex, ind;
+	GF_Err e;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !CheckHintFormat(trak, GF_ISOM_HINT_RTP)) return GF_BAD_PARAM;
+
+	e = Media_GetSampleDesc(trak->Media, trak->Media->information->sampleTable->currentEntryIndex, (GF_SampleEntryBox **) &entry, &dataRefIndex);
+	if (e) return e;
+	if (!entry->w_sample) return GF_BAD_PARAM;
+
+	ind = gf_list_count(entry->w_sample->packetTable);
+	if (!ind) return GF_BAD_PARAM;
+	pck = gf_list_get(entry->w_sample->packetTable, ind-1);
+
+	pck->P_bit = PackingBit ? 1 : 0;
+	pck->X_bit = eXtensionBit ? 1 : 0;
+	pck->M_bit = MarkerBit ? 1 : 0;
+	pck->B_bit = disposable_packet ? 1 : 0;
+	pck->R_bit = IsRepeatedPacket ? 1 : 0;
+	return GF_OK;
+}
+
+GF_Err gf_isom_rtp_packet_begin(GF_ISOFile *the_file, u32 trackNumber, 
+						   s32 relativeTime, 
+						   u8 PackingBit, 
+						   u8 eXtensionBit, 
+						   u8 MarkerBit, 
+						   u8 PayloadType, 
+						   u8 B_frame, 
+						   u8 IsRepeatedPacket, 
+						   u16 SequenceNumber)
+{
+	GF_TrackBox *trak;
+	GF_HintSampleEntryBox *entry;
+	GF_RTPPacket *pck;
+	u32 dataRefIndex;
+	GF_Err e;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !CheckHintFormat(trak, GF_ISOM_HINT_RTP)) return GF_BAD_PARAM;
+
+	e = Media_GetSampleDesc(trak->Media, trak->Media->information->sampleTable->currentEntryIndex, (GF_SampleEntryBox **) &entry, &dataRefIndex);
+	if (e) return e;
+	if (!entry->w_sample) return GF_BAD_PARAM;
+
+	pck = (GF_RTPPacket *) New_HintPacket(entry->w_sample->HintType);
+
+	pck->P_bit = PackingBit ? 1 : 0;
+	pck->X_bit = eXtensionBit ? 1 : 0;
+	pck->M_bit = MarkerBit ? 1 : 0;
+	pck->payloadType = PayloadType;
+	pck->SequenceNumber = SequenceNumber;
+	pck->B_bit = B_frame ? 1 : 0;
+	pck->R_bit = IsRepeatedPacket ? 1 : 0;
+	pck->relativeTransTime = relativeTime;
+	return gf_list_add(entry->w_sample->packetTable, pck);
+}
+
+
+//set the time offset of this packet. This enables packets to be placed in the hint track 
+//in decoding order, but have their presentation time-stamp in the transmitted 
+//packet be in a different order. Typically used for MPEG video with B-frames
+GF_Err gf_isom_rtp_packet_set_offset(GF_ISOFile *the_file, u32 trackNumber, s32 timeOffset)
+{
+	GF_RTPOBox *rtpo;
+	GF_TrackBox *trak;
+	GF_HintSampleEntryBox *entry;
+	GF_RTPPacket *pck;
+	u32 dataRefIndex, i;
+	GF_Err e;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !CheckHintFormat(trak, GF_ISOM_HINT_RTP)) return GF_BAD_PARAM;
+
+	e = Media_GetSampleDesc(trak->Media, trak->Media->information->sampleTable->currentEntryIndex, (GF_SampleEntryBox **) &entry, &dataRefIndex);
+	if (e) return e;
+	if (!entry->w_sample) return GF_BAD_PARAM;
+
+	pck = gf_list_get(entry->w_sample->packetTable, gf_list_count(entry->w_sample->packetTable) - 1);
+	if (!pck) return GF_BAD_PARAM;
+
+	//look in the TLV
+	for (i=0; i<gf_list_count(pck->TLV); i++) {
+		rtpo = gf_list_get(pck->TLV, i);
+		if (rtpo->type == GF_ISOM_BOX_TYPE_RTPO) {
+			rtpo->timeOffset = timeOffset;
+			return GF_OK;
+		}
+	}
+	//not found, add it
+	rtpo = (GF_RTPOBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_RTPO);
+	rtpo->timeOffset = timeOffset;
+
+	return gf_list_add(pck->TLV, rtpo);
+}
+
+
+static void AddSDPLine(GF_List *list, char *sdp_text, Bool is_movie_sdp)
+{
+	char *sdp_order;
+	u32 i, count = gf_list_count(list);
+	char fc = sdp_text[0];
+
+	sdp_order = (is_movie_sdp) ? "vosiuepcbzkatr" : "micbka";
+	for (i=0; i<count; i++) {
+		char *l = gf_list_get(list, i);
+		char *s1 = strchr(sdp_order, l[0]);
+		char *s2 = strchr(sdp_order, fc);
+		if (s1 && s2 && (strlen(s2)>strlen(s1))) {
+			gf_list_insert(list, sdp_text, i);
+			return;
+		}
+	}
+	gf_list_add(list, sdp_text);
+}
+
+static void ReorderSDP(char *sdp_text, Bool is_movie_sdp)
+{
+	char *cur, b;
+	GF_List *lines = gf_list_new();
+	cur = sdp_text;
+	while (cur) {
+		char *st = strstr(cur, "\r\n");
+		assert(st);
+		st += 2;
+		if (!st[0]) {
+			AddSDPLine(lines, strdup(cur), is_movie_sdp);
+			break;
+		}
+		b = st[0];
+		st[0] = 0;
+		AddSDPLine(lines, strdup(cur), is_movie_sdp);
+		st[0] = b;
+		cur = st;
+	}
+	strcpy(sdp_text, "");
+	while (gf_list_count(lines)) {
+		char *cur = gf_list_get(lines, 0);
+		gf_list_rem(lines, 0);
+		strcat(sdp_text, cur);
+		free(cur);
+	}
+	gf_list_del(lines);
+}
+
+//add an SDP line to the SDP container at the track level (media-specific SDP info)
+GF_Err gf_isom_sdp_add_track_line(GF_ISOFile *the_file, u32 trackNumber, const char *text)
+{
+	GF_TrackBox *trak;
+	GF_UserDataMap *map;
+	GF_HintTrackInfoBox *hnti;
+	GF_SDPBox *sdp;
+	GF_Err e;
+	char *buf;
+	GF_Err hnti_AddBox(GF_HintTrackInfoBox *hnti, GF_Box *a);
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	//currently, only RTP hinting supports SDP
+	if (!CheckHintFormat(trak, GF_ISOM_HINT_RTP)) return GF_BAD_PARAM;
+
+	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_HNTI);
+	if (!map) return GF_ISOM_INVALID_FILE;
+
+	//we should have only one HNTI in the UDTA
+	if (gf_list_count(map->boxList) != 1) return GF_ISOM_INVALID_FILE;
+
+	hnti = gf_list_get(map->boxList, 0);
+	if (!hnti->SDP) {
+		e = hnti_AddBox(hnti, gf_isom_box_new(GF_ISOM_BOX_TYPE_SDP));
+		if (e) return e;
+	}
+	sdp = (GF_SDPBox *) hnti->SDP;
+
+	if (!sdp->sdpText) {
+		sdp->sdpText = malloc(sizeof(char) * (strlen(text) + 3));
+		strcpy(sdp->sdpText, text);
+		strcat(sdp->sdpText, "\r\n");
+		return GF_OK;
+	}
+	buf = malloc(sizeof(char) * (strlen(sdp->sdpText) + strlen(text) + 3));
+	strcpy(buf, sdp->sdpText);
+	strcat(buf, text);
+	strcat(buf, "\r\n");
+	free(sdp->sdpText);
+	ReorderSDP(buf, 0);
+	sdp->sdpText = buf;	
+	return GF_OK;
+}
+
+//remove all SDP info at the track level
+GF_Err gf_isom_sdp_clean_track(GF_ISOFile *the_file, u32 trackNumber)
+{
+	GF_TrackBox *trak;
+	GF_UserDataMap *map;
+	GF_HintTrackInfoBox *hnti;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	//currently, only RTP hinting supports SDP
+	if (!CheckHintFormat(trak, GF_ISOM_HINT_RTP)) return GF_BAD_PARAM;
+
+	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_HNTI);
+	if (!map) return GF_ISOM_INVALID_FILE;
+
+	//we should have only one HNTI in the UDTA
+	if (gf_list_count(map->boxList) != 1) return GF_ISOM_INVALID_FILE;
+
+	hnti = gf_list_get(map->boxList, 0);
+	if (!hnti->SDP) return GF_OK;
+	//and free the SDP
+	free(((GF_SDPBox *)hnti->SDP)->sdpText);
+	((GF_SDPBox *)hnti->SDP)->sdpText = NULL;
+	return GF_OK;
+}
+
+
+//add an SDP line to the SDP container at the movie level (presentation SDP info)
+//NOTE: the \r\n end of line for SDP is automatically inserted
+GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
+{
+	GF_UserDataMap *map;
+	GF_RTPBox *rtp;
+	GF_Err e;
+	GF_HintTrackInfoBox *hnti;
+	char *buf;
+
+	GF_Err udta_AddBox(GF_UserDataBox *ptr, GF_Box *a);
+	GF_Err hnti_AddBox(GF_HintTrackInfoBox *hnti, GF_Box *a);
+	GF_Err moov_AddBox(GF_MovieBox *moov, GF_Box *a);
+
+	if (!movie->moov) return GF_BAD_PARAM;
+
+	//check if we have a udta ...
+	if (!movie->moov->udta) {
+		e = moov_AddBox(movie->moov, gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA));
+		if (e) return e;
+	}
+	//find a hnti in the udta
+	map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI);
+	if (!map) {
+		e = udta_AddBox(movie->moov->udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI));
+		if (e) return e;
+		map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI);
+	}
+
+	//there should be one and only one hnti
+	if (!gf_list_count(map->boxList) ) {
+		e = udta_AddBox(movie->moov->udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI));
+		if (e) return e;
+	}
+	else if (gf_list_count(map->boxList) < 1) return GF_ISOM_INVALID_FILE;
+
+	hnti = gf_list_get(map->boxList, 0);
+
+	if (!hnti->SDP) {
+		//we have to create it by hand, as we have a duplication of box type 
+		//(GF_RTPSampleEntryBox and GF_RTPBox have the same type...)
+		rtp = malloc(sizeof(GF_RTPBox));
+		rtp->subType = GF_ISOM_BOX_TYPE_SDP;
+		rtp->type = GF_ISOM_BOX_TYPE_RTP;
+		rtp->sdpText = NULL;
+		hnti_AddBox(hnti, (GF_Box *)rtp);
+	}
+	rtp = (GF_RTPBox *) hnti->SDP;
+
+	if (!rtp->sdpText) {
+		rtp->sdpText = malloc(sizeof(char) * (strlen(text) + 3));
+		strcpy(rtp->sdpText, text);
+		strcat(rtp->sdpText, "\r\n");
+		return GF_OK;
+	}
+	buf = malloc(sizeof(char) * (strlen(rtp->sdpText) + strlen(text) + 3));
+	strcpy(buf, rtp->sdpText);
+	strcat(buf, text);
+	strcat(buf, "\r\n");
+	free(rtp->sdpText);
+	ReorderSDP(buf, 1);
+	rtp->sdpText = buf;	
+	return GF_OK;
+}
+
+
+//remove all SDP info at the movie level
+GF_Err gf_isom_sdp_clean(GF_ISOFile *movie)
+{
+	GF_UserDataMap *map;
+	GF_HintTrackInfoBox *hnti;
+
+	//check if we have a udta ...
+	if (!movie->moov || !movie->moov->udta) return GF_OK;
+
+	//find a hnti in the udta
+	map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI);
+	if (!map) return GF_OK;
+
+	//there should be one and only one hnti
+	if (gf_list_count(map->boxList) != 1) return GF_ISOM_INVALID_FILE;
+	hnti = gf_list_get(map->boxList, 0);
+
+	//remove and destroy the entry
+	gf_list_rem(map->boxList, 0);
+	gf_isom_box_del((GF_Box *)hnti);
+	return GF_OK;
+}
+
+#endif //GPAC_READ_ONLY
+
+GF_Err gf_isom_sdp_get(GF_ISOFile *movie, const char **sdp, u32 *length)
+{
+	GF_UserDataMap *map;
+	GF_HintTrackInfoBox *hnti;
+	GF_RTPBox *rtp;
+	*length = 0;
+	*sdp = NULL;
+	if (!movie || !movie->moov) return GF_BAD_PARAM;
+	//check if we have a udta ...
+	if (!movie->moov->udta) return GF_OK;
+
+	//find a hnti in the udta
+	map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI);
+	if (!map) return GF_OK;
+
+	//there should be one and only one hnti
+	if (gf_list_count(map->boxList) != 1) return GF_ISOM_INVALID_FILE;
+	hnti = gf_list_get(map->boxList, 0);
+
+	if (!hnti->SDP) return GF_OK;
+	rtp = (GF_RTPBox *) hnti->SDP;
+
+	*length = strlen(rtp->sdpText);
+	*sdp = rtp->sdpText;
+	return GF_OK;
+}
+
+GF_Err gf_isom_sdp_track_get(GF_ISOFile *the_file, u32 trackNumber, const char **sdp, u32 *length)
+{
+	GF_TrackBox *trak;
+	GF_UserDataMap *map;
+	GF_HintTrackInfoBox *hnti;
+	GF_SDPBox *sdpa;
+
+	*sdp = NULL;
+	*length = 0;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	if (!trak->udta) return GF_OK;
+
+	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_HNTI);
+	if (!map) return GF_ISOM_INVALID_FILE;
+
+	//we should have only one HNTI in the UDTA
+	if (gf_list_count(map->boxList) != 1) return GF_ISOM_INVALID_FILE;
+
+	hnti = gf_list_get(map->boxList, 0);
+	if (!hnti->SDP) return GF_OK;
+	sdpa = (GF_SDPBox *) hnti->SDP;
+
+	*length = strlen(sdpa->sdpText);
+	*sdp = sdpa->sdpText;
+	return GF_OK;
+}
+
+

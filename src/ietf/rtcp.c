@@ -1,0 +1,543 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *
+ */
+
+
+#include <gpac/internal/ietf_dev.h>
+#include <gpac/bitstream.h>
+
+u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
+{
+	GF_Err e;
+	u32 res;
+
+	//only if the socket exist (otherwise RTSP interleaved channel)
+	if (!ch || !ch->rtcp) return 0;
+
+	e = gf_sk_receive(ch->rtcp, buffer, buffer_size, 0, &res);
+	if (e) return 0;
+	return res;
+}
+
+GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size)
+{
+	GF_RTCPHeader rtcp_hdr;
+	GF_BitStream *bs;
+	char sdes_buffer[300];
+	u32 i, sender_ssrc, cur_ssrc, val, NTP_H, NTP_L, sdes_type, sdes_len, res, first;
+	GF_Err e = GF_OK;
+	
+	//bad RTCP packet
+	if (pck_size < 4 ) return GF_NON_COMPLIANT_BITSTREAM;
+	bs = gf_bs_new((unsigned char *)pck, pck_size, GF_BITSTREAM_READ);
+
+	first = 1;
+	while (pck_size) {
+		//global header
+		rtcp_hdr.Version = gf_bs_read_int(bs, 2);
+		if (rtcp_hdr.Version != 2 ) {
+			gf_bs_del(bs);
+			return GF_NOT_SUPPORTED;
+		}
+		rtcp_hdr.Padding = gf_bs_read_int(bs, 1);
+		rtcp_hdr.Count = gf_bs_read_int(bs, 5);
+		rtcp_hdr.PayloadType = gf_bs_read_u8(bs);
+		rtcp_hdr.Length = gf_bs_read_u16(bs);	
+
+		//check pck size
+		if (pck_size < (u32) (rtcp_hdr.Length + 1) * 4) {
+			gf_bs_del(bs);
+			//we return OK
+			return GF_CORRUPTED_DATA;
+		}
+		//substract this RTCP pck size
+		pck_size -= (rtcp_hdr.Length + 1) * 4;
+		//all RTCP are Compounds (>1 pck), the first SHALL be SR or RR without padding
+		if (first) {
+			if ( ( (rtcp_hdr.PayloadType!=200) && (rtcp_hdr.PayloadType!=201) )
+				|| rtcp_hdr.Padding
+				|| !pck_size
+				) {
+				gf_bs_del(bs);
+				return GF_CORRUPTED_DATA;
+			}
+			first = 0;
+		}
+			
+		//specific extensions
+		switch (rtcp_hdr.PayloadType) {
+		//Sender report - we assume there's only one sender
+		case 200:
+			//sender ssrc
+			sender_ssrc = gf_bs_read_u32(bs);
+			rtcp_hdr.Length -= 1;
+			/*not for us...*/
+			if (ch->SenderSSRC && (ch->SenderSSRC != sender_ssrc)) break;
+
+			//NTP
+			NTP_H = gf_bs_read_u32(bs);
+			NTP_L = gf_bs_read_u32(bs);
+			if (ch->first_SR) {
+				ch->first_SR = 0;
+				gf_rtp_get_next_report_time(ch);
+				//this is to make sure we only handle ONE sender
+				ch->SenderSSRC = sender_ssrc;
+				if (ch->rtp_log) fprintf(ch->rtp_log, "Got Sender SSRC: %d\n", ch->SenderSSRC); 
+			}
+			if (sender_ssrc == ch->SenderSSRC) {
+				ch->last_report_time = gf_rtp_get_report_time();
+				ch->last_SR_NTP_sec = NTP_H;
+				ch->last_SR_NTP_frac = NTP_L;
+			}
+			//extract RTP ts too for multicast
+			val = gf_bs_read_u32(bs);
+			if (sender_ssrc == ch->SenderSSRC) ch->last_SR_rtp_time = val;
+			//pck count
+			val = gf_bs_read_u32(bs);
+			if (sender_ssrc == ch->SenderSSRC) ch->total_pck = val;
+			//payload byte count
+			val = gf_bs_read_u32(bs);
+			if (sender_ssrc == ch->SenderSSRC) ch->total_bytes = val;
+
+			rtcp_hdr.Length -= 5;
+			
+			//common encoding for SR and RR
+			goto process_reports;
+
+
+		case 201:
+			//sender ssrc
+			sender_ssrc = gf_bs_read_u32(bs);
+			rtcp_hdr.Length -= 1;
+
+process_reports:
+			//process all reports - we actually don't since we do not handle sources
+			//to add
+			for (i=0; i<rtcp_hdr.Count; i++) {
+				//ssrc slot
+				cur_ssrc = gf_bs_read_u32(bs);
+				//frac lost
+				gf_bs_read_u8(bs);
+				//cumulative lost
+				gf_bs_read_u24(bs);
+				//extended seq num
+				gf_bs_read_u32(bs);
+				//jitter
+				gf_bs_read_u32(bs);
+				//LSR
+				gf_bs_read_u32(bs);
+				//DLSR
+				gf_bs_read_u32(bs);
+
+				rtcp_hdr.Length -= 6;
+			}
+			//remaining bytes? we skip (this includes padding and crypto - not supported)
+			while (rtcp_hdr.Length) {
+				gf_bs_read_u32(bs);
+				rtcp_hdr.Length -= 1;
+			}
+			break;
+
+		//SDES
+		case 202:
+			for (i=0; i<rtcp_hdr.Count; i++) {
+				cur_ssrc = gf_bs_read_u32(bs);
+				rtcp_hdr.Length -= 1;
+
+				val = 0;
+				while (1) {
+					sdes_type = gf_bs_read_u8(bs);
+					val += 1;
+					if (!sdes_type) break;
+					sdes_len = gf_bs_read_u8(bs);
+					val += 1;
+					gf_bs_read_data(bs, sdes_buffer, sdes_len);
+					sdes_buffer[sdes_len] = 0;
+					val += sdes_len;
+				}
+
+				//re-align on 32bit
+				res = val%4;
+				if (res) {
+					gf_bs_skip_bytes(bs, (4-res));
+					val = val/4 + 1;
+				} else {
+					val = val/4;
+				}
+				rtcp_hdr.Length -= val;
+			}
+			break;
+
+		//BYE packet - close the channel - we work with 1 SSRC only */
+		case 203:
+			for (i=0; i<rtcp_hdr.Count; i++) {
+				cur_ssrc = gf_bs_read_u32(bs);
+				rtcp_hdr.Length -= 1;
+				if (ch->SenderSSRC == cur_ssrc) {
+					e = GF_EOS;
+					break;
+				}
+			}
+			//extra info - skip it
+			while (rtcp_hdr.Length) {
+				gf_bs_read_u32(bs);
+				rtcp_hdr.Length -= 1;
+			}
+			break;
+/*
+		//APP packet
+		case 204:
+
+
+			//sender ssrc
+			sender_ssrc = gf_bs_read_u32(bs);
+			//ASCI 4 char type
+			gf_bs_read_u8(bs);
+			gf_bs_read_u8(bs);
+			gf_bs_read_u8(bs);
+			gf_bs_read_u8(bs);
+			
+			rtcp_hdr.Length -= 2;
+
+			//till endd of pck
+			gf_bs_read_data(bs, sdes_buffer, rtcp_hdr.Length*4);
+			rtcp_hdr.Length = 0;
+			break;
+*/
+		default:
+			//read all till end
+			gf_bs_read_data(bs, sdes_buffer, rtcp_hdr.Length*4);
+			rtcp_hdr.Length = 0;
+			break;
+		}
+		//WE SHALL CONSUME EVERYTHING otherwise the packet is bad
+		if (rtcp_hdr.Length) {
+			gf_bs_del(bs);
+			return GF_CORRUPTED_DATA;
+		}
+	}
+
+	gf_bs_del(bs);
+	return e;
+}
+
+
+static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
+{
+	u32 length, is_sr, sec, frac, expected, val, size;
+	s32 extended, expect_diff, loss_diff;
+	Double f;
+
+	is_sr = ch->pck_sent_since_last_sr ? 1 : 0;
+
+	//common header
+	//version
+	gf_bs_write_int(bs, 2, 2);
+	//padding - reports are aligned
+	gf_bs_write_int(bs, 0, 1);
+	//count - only one for now in RR, 0 in sender mode
+	gf_bs_write_int(bs, !is_sr, 5);
+	//if we have sent stuff send an SR, otherwise an RR. We need to determine whether 
+	//we are active or not
+	//type
+	gf_bs_write_u8(bs, is_sr ? 200 : 201);
+	//length = (num of 32bit words in full pck) - 1
+	//we're updating only one ssrc for now in RR and none in SR
+	length = is_sr ? 6 : (1 + 6 * 1);
+	gf_bs_write_u16(bs, length);
+
+	//sender SSRC
+	gf_bs_write_u32(bs, ch->SSRC);
+
+	size = 8;
+
+	//SenderReport part
+	if (is_sr) {
+		gf_get_ntp(&sec, &frac);
+		//sender time
+		gf_bs_write_u32(bs, sec);
+		gf_bs_write_u32(bs, frac);
+		//RTP time at this time
+		f = 1000 * (sec - ch->last_pck_ntp_sec);
+		f += ((frac - ch->last_pck_ntp_frac) >> 4) / 0x10000;
+		f /= 1000;
+		f *= ch->TimeScale;
+		val = (u32) f + ch->last_pck_ts;
+		gf_bs_write_u32(bs, val);
+		//num pck sent
+		gf_bs_write_u32(bs, ch->num_pck_sent);
+		//num payload bytes sent
+		gf_bs_write_u32(bs, ch->num_payload_bytes);
+
+
+		size += 20;
+		//nota: as we only support single-way channels we are done for SR...
+		return size;
+	}
+	//loop through all our sources (1) and send information...
+	gf_bs_write_u32(bs, ch->SenderSSRC);
+
+	//Fraction lost and cumulative lost
+	extended = ( (ch->num_sn_loops << 16) | ch->last_pck_sn);
+	expected = extended - ch->rtp_first_SN;
+	expect_diff = expected - ch->tot_num_pck_expected;
+	loss_diff = expect_diff - ch->last_num_pck_rcv;	
+
+	if (!expect_diff || (loss_diff <= 0)) loss_diff = 0;
+	else loss_diff = (loss_diff<<8) / expect_diff;
+
+	if (ch->rtp_log)
+		fprintf(ch->rtp_log, "SSRC %d Sending report at %u: %d extended - since last: %d expected %d loss %u Jitter\n", 
+								ch->SSRC, NTP_Time, extended, expect_diff, loss_diff, ch->Jitter >> 4);
+
+	
+	gf_bs_write_u8(bs, loss_diff);
+
+	//update and write cumulative loss
+	ch->tot_num_pck_rcv += ch->last_num_pck_rcv;
+	ch->tot_num_pck_expected = expected;
+	gf_bs_write_u24(bs, (expected - ch->tot_num_pck_rcv));
+
+	//Extend sequence number
+	gf_bs_write_u32(bs, extended);
+
+	
+	//Jitter
+	//RTP specs annexe A.8
+	gf_bs_write_u32(bs, ( ch->Jitter >> 4));
+	//LSR
+	val = ch->last_SR_NTP_sec ? gf_get_ntp_frac(ch->last_SR_NTP_sec, ch->last_SR_NTP_frac) : 0;
+	gf_bs_write_u32(bs, val);
+
+	// DLSR
+	gf_bs_write_u32(bs, (NTP_Time - ch->last_report_time));
+
+	size += 24;
+	return size;
+}
+
+
+static u32 RTCP_FormatSDES(GF_RTPChannel *ch, GF_BitStream *bs)
+{
+	u32 length, padd;
+
+	//one item (type, len, data) + \0 marker at the end of the item
+	length = 2+strlen(ch->CName) + 1;
+//	length = 2+strlen(ch->CName);
+	padd = length % 4;
+	if (padd*4 != length) {
+		//padding octets
+		padd = 4 - padd;
+		//header length
+		length = length/4 + 1;
+	} else {
+		padd = 0;
+		length = length/4;
+	}
+	//add SSRC
+	length += 1;
+	
+	//common part as usual
+	gf_bs_write_int(bs, 2, 2);
+	//notify padding? according to RFC1889 "In a compound RTCP packet, padding should 
+	//only be required on the last individual packet because the compound packet is 
+	//encrypted as a whole" -> we write it without notifying it (this is a bit messy in 
+	//the spec IMO)
+	gf_bs_write_int(bs, 0, 1);
+	gf_bs_write_int(bs, 1, 5);
+	//SDES pck type
+	gf_bs_write_u8(bs, 202);
+	//length
+	gf_bs_write_u16(bs, length);
+
+	//SSRC
+	gf_bs_write_u32(bs, ch->SSRC);
+
+	//CNAME type
+	gf_bs_write_u8(bs, 1);
+	//length and cname
+	gf_bs_write_u8(bs, strlen(ch->CName));	
+	gf_bs_write_data(bs, ch->CName, strlen(ch->CName));
+
+	gf_bs_write_u8(bs, 0);
+
+	//32-align field with 0
+	gf_bs_write_int(bs, 0, 8*padd);
+	return (length + 1)*4;
+}
+
+
+static u32 RTCP_FormatBYE(GF_RTPChannel *ch, GF_BitStream *bs)
+{
+	//version
+	gf_bs_write_int(bs, 2, 2);
+	//no padding
+	gf_bs_write_int(bs, 0, 1);
+	//count - only one for now
+	gf_bs_write_int(bs, 1, 5);
+	//type=BYE
+	gf_bs_write_u8(bs, 203);
+	//length = (num of 32bit words in full pck) - 1
+	gf_bs_write_u16(bs, 1);
+
+	//sender SSRC
+	gf_bs_write_u32(bs, ch->SSRC);
+	return 8;
+}
+
+GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
+						GF_Err (*RTP_TCPCallback)(void *cbk, char *pck, u32 pck_size),
+						void *rtsp_cbk)
+{
+	GF_BitStream *bs;
+	u32 report_size;
+	char *report_buf;
+	GF_Err e = GF_OK;
+
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	//pck were recieved/sent send the RR/SR - note we don't wait for next Report
+	//and force its emission now
+	if (ch->last_num_pck_rcv || ch->pck_sent_since_last_sr) {
+		RTCP_FormatReport(ch, bs, gf_rtp_get_report_time());
+	}
+
+	//always send SDES (CNAME shall be sent at each RTCP)
+	RTCP_FormatSDES(ch, bs);
+
+	//send BYE
+	RTCP_FormatBYE(ch, bs);
+
+
+	report_buf = NULL;
+	report_size = 0;
+	gf_bs_get_content(bs, (unsigned char **) &report_buf, &report_size);
+	gf_bs_del(bs);
+
+	if (ch->rtcp) {
+		e = gf_sk_send(ch->rtcp, report_buf, report_size);
+	} else {
+		if (RTP_TCPCallback) 
+			e = RTP_TCPCallback(rtsp_cbk, report_buf, report_size);
+		else
+			e = GF_BAD_PARAM;
+	}
+	free(report_buf);
+	return e;
+}
+
+GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch, 
+						GF_Err (*RTP_TCPCallback)(void *cbk, char *pck, u32 pck_size),
+						void *rtsp_cbk)
+{
+	u32 Time, report_size;
+	GF_BitStream *bs;
+	char *report_buf;
+	GF_Err e = GF_OK;
+
+	if (ch->first_SR) return GF_OK;
+	Time = gf_rtp_get_report_time();
+	if ( Time < ch->next_report_time) return GF_OK;
+
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	//pck were recieved/sent send the RR/SR
+	if (ch->last_num_pck_rcv || ch->pck_sent_since_last_sr) {
+		RTCP_FormatReport(ch, bs, Time);
+	}
+
+	//always send SDES (CNAME shall be sent at each RTCP)
+	RTCP_FormatSDES(ch, bs);
+
+
+	//get content
+	report_buf = NULL;
+	report_size = 0;
+	gf_bs_get_content(bs, (unsigned char **) &report_buf, &report_size);
+	gf_bs_del(bs);
+
+
+	if (ch->rtcp) {
+		e = gf_sk_send(ch->rtcp, report_buf, report_size);
+	} else {
+		if (RTP_TCPCallback) 
+			e = RTP_TCPCallback(rtsp_cbk, report_buf, report_size);
+		else
+			e = GF_BAD_PARAM;
+	}
+
+	ch->rtcp_bytes_sent += report_size;
+
+	free(report_buf);
+	
+	if (!e) {
+		//Update the channel record if no error - otherwise next RTCP will triger an RR
+		ch->last_num_pck_rcv = ch->last_num_pck_expected = ch->last_num_pck_loss = 0;
+	}
+	gf_rtp_get_next_report_time(ch);
+	return e;
+}
+
+
+
+#define RTCP_SAFE_FREE(p) if (p) free(p);	\
+					p = NULL;
+
+GF_Err gf_rtp_set_info_rtcp(GF_RTPChannel *ch, u32 InfoCode, char *info_string)
+{
+	if (!ch) return GF_BAD_PARAM;
+
+	switch (InfoCode) {
+	case GF_RTCP_INFO_NAME:
+		RTCP_SAFE_FREE(ch->s_name);
+		if (info_string) ch->s_name = strdup(info_string);
+		break;
+	case GF_RTCP_INFO_EMAIL:
+		RTCP_SAFE_FREE(ch->s_email);
+		if (info_string) ch->s_email = strdup(info_string);
+		break;
+	case GF_RTCP_INFO_PHONE:
+		RTCP_SAFE_FREE(ch->s_phone);
+		if (info_string) ch->s_phone = strdup(info_string);
+		break;
+	case GF_RTCP_INFO_LOCATION:
+		RTCP_SAFE_FREE(ch->s_location);
+		if (info_string) ch->s_location = strdup(info_string);
+		break;
+	case GF_RTCP_INFO_TOOL:
+		RTCP_SAFE_FREE(ch->s_tool);
+		if (info_string) ch->s_tool = strdup(info_string);
+		break;
+	case GF_RTCP_INFO_NOTE:
+		RTCP_SAFE_FREE(ch->s_note);
+		if (info_string) ch->s_note = strdup(info_string);
+		break;
+	case GF_RTCP_INFO_PRIV:
+		RTCP_SAFE_FREE(ch->s_priv);
+		if (info_string) ch->s_name = strdup(info_string);
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
+	return GF_OK;
+}

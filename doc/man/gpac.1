@@ -1,0 +1,364 @@
+.TH "GPAC" 1 "July 2005" "GPAC Configuration" "GPAC Configuration"
+.
+.SH NAME
+.LP
+GPAC	\- MPEG-4 Systems Framework and Software Development Kit
+.SH "DESCRIPTION"
+.LP
+GPAC stands (does it ?) for GPAC Project on Advanced Content. It is an implementation of the MPEG-4 Systems standard written in ANSI C. GPAC provides tools for media playback, vector graphics and 3D rendering, MPEG-4 authoring and distribution.
+This man page is about configuration of the GPAC framework version 0.4.0.
+.
+.SH INTRODUCTION
+Some applications in the GPAC framework use a configuration file shared among modules and reloadable at run time. This file is located in the user home directory and called ".gpacrc".
+.LP
+The configuration file is based on the win32 .ini file model, ordered by sections and keys.
+.LP 
+A section is declared as 
+.B [SectionName]
+, a key is declared as
+.B keyName=value
+, the key value is not interpreted and always handled as ASCII text. Plugins may use the configuration file as well (to avoid multiple files).
+.LP
+.B Note on plugin names: 
+Plugin names as given in the configuration file are names exported by each interface and not name of the physical library file (.dll/.so ...).
+The physical file name can however be used to identify a plugin, it will be replaced by the interface name if the plugin was successfully loaded.
+.
+.
+.SH SECTION "General"
+.LP
+The "General" section holds generic, OS and player specific options. This section is not used by the GPAC Framework.
+.
+.TP
+.B ModulesDirectory (value: path)
+path to modules (plugins) location. The client cannot be loaded without modules. This option is used by all GPAC clients on all platforms
+.TP
+.B CacheDirectory (value: path)
+specifies location of temp files. This must be the absolute path to a directory with write access. Although not used by applications, this is used by several plugins.
+.LP
+The following options are defined for Osmo4/wxWidgets player.
+.TP
+.B Loop (value: yes, no)
+specifies whether the presentation has to be restarted when done playing.
+.TP
+.B ConsoleOff (value: yes, no)
+specifies whether application messages (script, buffering, download progress) are displayed in the console or not.
+.TP
+.B Browser (value: string)
+specifies prefered browser for WWW anchors and scene graph viewing - Only used by Osmo4/wxWidgets.
+.TP
+.B LookForSubtitles (value: yes, no)
+specifies if Osmo4 shall look for subtitle files when opening a presentation.
+.TP
+.B PLEntry (value: unsigned int)
+indicates active playlist entry when player was last closed. Playlist backup is ".gpac_pl.m3u", stored in user home directory.
+.TP
+.B last_file_XX (value: string)
+indicates last URL played (XX is from 0 to 10 when storing URLs to cfg file, but not limited when reading them).
+.
+.SH SECTION "Systems"
+.LP
+The "Systems" section holds all configuration options for the MPEG-4 Systems engine. The following options are defined:
+.TP
+.B Language (value: 3-char code from ISO 639-2)
+specifies the user prefered language. This is used to select streams in case of alternate content in an audio object.
+.TP
+.B AlwaysDrawBIFS (value: yes, no)
+if set, late BIFS frame will still be drawn. If not set, the scene won't be redrawn until BIFS streams are back in sync. This is by default off to keep better sync, but may be changed when testing heavy content or slow renderers.
+.TP
+.B ForceSingleClock (value: yes, no)
+One big problem with MP4 files is that the notion of "duration" has been unclear for a long time, and most content available (audio-video files) specifiy a wrong BIFS duration. In such a case the movie cannot be controled/seek into.
+.br
+Another problem with ISMA streaming is that BIFS/OD don't use the same clock as audio/video, thus seeking the main 
+timeline does not seek AV media. 
+.br
+Setting the ForceSingleClock will handle both cases by using a single timeline for all media streams and setting
+the duration to the one of the longest stream.
+.TP
+.B ThreadingPolicy (value: Free, Single, Multi)
+specifies how media decoders are to be threaded. 
+.br
+Free: lets decoders decide of their threading.
+.br
+Single: means that all decoders are managed in a single thread performing scheduling and priority handling.
+.br
+Multi: means that each decoder runs in its own thread.
+.TP
+.B Priority (value: low, normal, high, real-time)
+specifies the priority of the decoders (priority is applied to decoder thread(s) regardless of threading mode).
+.TP
+.B hardcoded_protos (value: list of strings separated by space)
+holds a list list of EXTERNPROTO URLs (NO OD_ID !!!) implemented in hard in the renderer - for development only.
+.TP
+.B NoVisualThread (value: yes, no)
+specifies whether the visual rendering is done in the main codec manager or in a dedicated thread.
+.TP
+.B DefAudioDec, DefVideoDec (value: string)
+Specifies which plugin to use by default for audio/video decoding. Example, "DefVideoDec=name".
+The name given is the name of the plugin to be used (same considerations as other plugins, cf above).
+.TP
+.B codec_XX_XX (value: string)
+Allows to specify default media plugin (audio/video) per stream type and object type. This is usefull if you have more than one decoder for a given type. The syntax is 
+.B codec_AA_BB=pluginname
+where AA is the hexadecimal MPEG-4 streamType value for the codec (0x04=visual, 0x05=audio) and BB is the hexadecimal MPEG-4 objectTypeIndication of the media (0x20 = MPEG-4 video, 0x40=MPEG-4 Audio, ...). The name given is the name of the plugin to be used (same considerations as other plugins, cf above).
+.
+.SH SECTION "Rendering"
+The "Rendering" section holds all configuration options for the logical rendering engines, whether 2D or 3D. The following options are defined:
+.TP
+.B RendererName (value: string)
+specifies which renderer should be used. There are currently 2 renderers available in GPAC, "GPAC 2D Renderer" and "GPAC 3D Renderer". Renderers cannot be reloaded at run-time, the complete system must be restarted.
+.TP
+.B GF_Raster2D (value: string)
+specifies the 2D rasterizer to use for vectorial drawing. Used by 2D renderer (for everything) and 3D renderer (for textured text and gradients).
+.TP
+.B FrameRate (value: float)
+specifies the simulation frame-rate of the presentation - this value is also used by the MPEG-4 Systems engine to determine when a BIFS frame is mature for decoding.
+.TP
+.B AntiAlias (value: None, All, Text)
+specifies antialiasing settings - whether the setting is applied or not depends on the graphics plugin/graphic card.
+.br
+None: no anti-aliasing
+.br
+Text: anti-aliasing for text only
+.br
+All: complete anti-aliasing
+.TP
+.B FastRender (value: yes, no)
+specifies whether rendering should target speed or quality - whether the setting is applied or not depends on the graphics plugin/graphic card.
+.TP
+.B ForceSceneSize (value: yes, no)
+forces the scene to resize to the biggest bitmap available if no size info is given in the BIFS configuration.
+.TP
+.B StressMode (value: yes, no)
+specifies that the renderer runs in worst case scenario, recomputing all vectorial paths, meshes, outlines and reloading textures (sending them to graphics card) at each frame.
+.TP
+.B BoundingVolume (value: None, Box, AABB)
+specifies whether the bounding volume of an object shall be drawn or not. Note that the 2D renderer only uses rectangles as bounding volumes. The "AABB" value is used by the 3D renderer only, and specifies the object bounding-box tree shall be drawn.
+.
+.SH SECTION "Render2D"
+The "Render2D" section holds all configuration options for the 2D tile rendering engine. The following options are defined:
+.TP
+.B DirectRender (value: yes, no)
+specifies whether direct rendering should be used or not. In direct rendering mode, the screen is completely redrawn at each frame. In indirect rendering object positioning is tracked from frame to frame and dirty rectangles info is collected in order to redraw the minimal amount of the screen buffer.Whether the  setting is applied or not depends on the graphics plugin (currently all plugins handle both mode).
+.TP
+.B ScalableZoom (value: yes, no)
+specifies whether scalable zoom should be used or not. When scalable zoom is enabled, resizing the output window will also recompute all vectorial objects. Otherwise only the final buffer is stretched.
+.
+.SH SECTION "Render3D"
+The "Render3D" section holds all configuration options for the 3D openGL rendering engine. The following options are defined:
+.TP
+.B RasterOutlines (value: yes, no)
+specifies that outlining shall be done through openGL pen width rather than vectorial outlining. 
+.TP
+.B PolygonAA (value: yes, no)
+specifies whether polygon antialiasing should be used in full antialiasing mode. If not set, only lines and points antialiasing are used.
+.TP
+.B Wireframe (value: WireNone, WireOnly, WireOnSolid)
+specifies wireframe drawing options:
+.br
+WireNone: objects are drawn as solid
+.br
+WireOnly: objects are drawn as wireframe only
+.br
+WireOnSolid: objects are drawn as solid and wireframe is then drawn
+.TP
+.B DisableRectExt (value: yes, no)
+specifies whether openGL rectangular texture extension (GL_EXT_gf_sr_texture_rectangle or GL_NV_gf_sr_texture_rectangle) shall be used or not. 
+.br
+If "yes", textures whose dimensions are not power of two are rescaled except if hardware support non-power-of-two textures (GL_ARB_gf_sr_texture_non_power_of_two) natively
+.br
+If "no" and extension is available, textures are used without rescaling. Note that in this case texture transformation are disabled.
+.TP
+.B EmulatePOW2 (value: yes, no)
+enables power of 2 emulation. Ignored if openGL rectangular texture extension is enabled.
+.br
+if set, video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations.
+.br
+if not set, video is resized to a power of 2 texture when mapping to a shape.
+.TP
+.B BitmapCopyPixels (value: yes, no)
+specifies whether the bitmap node should be drawn with regular openGL texturing ("no") or through pixel copy routines ("yes"). This greatly impacts video rendering through bitmap depending on the graphics card. Some cards will have faster pixel copy routines that texture transfer ones, some won't.
+.
+.SH SECTION "Audio"
+The "Audio" section holds all configuration options for the audio rendering engine
+and hardware. Note that most options depend on the driver used and may be ignored by the driver. The following options are defined:
+.TP
+.B ForceConfig (value: yes, no)
+Forces a given sound card configuration to be used. If not set the sound card will be setup to use audio buffers with a duration close to 30 frame per seconds (depending on audio samplerate). This may be not supported by some audio cards, therefore forcing the config may be very usefull
+.TP
+.B NumBuffers (value: integer, 0 forbidden)
+When config is forced, specifies the number of audio buffers to allocate (audio buffers are played in ring if possible, otherwise a single audio
+buffer is allocated).
+.TP
+.B BuffersPerSecond (value: integer, 0 forbidden)
+When config is forced, specifies the number of audio buffers per second. For example, a value of 15 means that each buffer will hold 1000/15 milliseconds of audio data. The total amount of audio buffering (and hence audio delay) is therefore:
+.B		NumBuffers * 1000 / BuffersPerSecond milliseconds
+.br
+.B Note:
+The SDL audio plugin does not use the buffers per seconds and num buffers in the same way, it just computes the desired audio buffer size with this settings and picks the next power of 2 size for audio buffer size. It does not use ring buffers either.
+.TP
+.B NoResync (value: yes, no)
+Disables audio resynchronization: audio clock is never adjusted and A/V sync may get breoken
+.TP
+.B DisableNotification (value: yes, no)
+Disables usage of audio buffer notifications when supported (currently only DirectSound supports it). If DirectSound audio sounds weird try without notifications. Ignored on other platforms than Win32/DX.
+.TP
+.B DriverName (value: string)
+specifies the driver to use for audio rendering.
+.TP
+.B Volume (value: integer, range 0-100)
+specifies the default audio volume used when launching GPAC.
+.TP
+.B Pan (value: integer, range 0-100)
+specifies the default audio stereo balance used when launching GPAC - 0 for full left, 100 for full right, 50 for balanced.
+.
+.SH SECTION "Video"
+The "Video" section holds all configuration options for the video renderer and hardware. The following options are defined:
+.TP
+.B DisableYUV (value: yes, no) - used by 2D renderer only
+disables YUV hardware support (YUV hardware support may not be available for the current plugin).
+.TP
+.B SwitchResolution (value: yes, no)
+if enabled, selects smallest video resolution larger than scene size, otherwise use current video resolution.
+.TP
+.B DriverName (value: string)
+specifies the driver to use for video memory access.
+.
+.SH SECTION "Network"
+The "Network" section holds all configuration options for the network used by plugins and systems engine. The following options are defined:
+.TP
+.B AutoReconfigUDP (value: yes, no)
+specifies if network manager shall reconnect a scene if UDP traffic is blocked.
+.TP
+.B DataTimeout (value: unsigned int)
+specifies timeout in milliseconds befor initial buffering aborts. Default terminal value is 20000 (20 seconds).
+.TP
+.B UDPNotAvailable (value: yes, no)
+specifies that UDP traffic is not available (usually set by GPAC)
+.TP
+.B UDPTimeout (value: unsigned int)
+specifies timeout in milliseconds for initial UDP detection. Once a UDP packet is recieved the timeout is ignored.
+.TP
+.B BufferLength (value: unsigned int)
+specifies the default length of the decoding buffer in milliseconds. The client will wait for the buffer to be filled before starting decoding. A plugin may decide to use a different value based on protocol and network jitters.
+.TP
+.B RebufferLength (value: unsigned int)
+specifies rebuffering length of the decoding buffer in milliseconds. Whenever the decoding buffer fullness is less than this value, the object clock is paused and the stream rebuffered till BufferLength. Therefore a value of 0 means no rebuffering. A plugin may decide to use a different value based on protocol and network jitters.
+.
+.SH SECTION "FontEngine"
+The "FontEngine" section holds all configuration options for the font handling. The GPAC rendering module handles text through vectorial outline, allowing graphics plugin development without having to integrate text rendering which is always heavy work. The following options are defined:
+.TP
+.B DriverName (value: string)
+specifies the driver to use for font handling.
+.TP
+.B FontDirectory (value: path)
+specifies the directory where fonts are located - currently only one directory can be specified (however nothing stops a font plugin from using a private directory). If the directory is invalid or does not contain fonts, text may be unavailable in GPAC.
+.TP
+.B UseTextureText (value: yes, no)
+specifies whether text shall be drawn to a texture and then rendered or directly rendered. Using textured text can improve text look in the 3D renderer and also improve text-on-video like content.
+.TP
+.B FontSerif (value: string)
+specifies default SERIF font.
+.TP
+.B FontSans (value: string)
+specifies default SANS font.
+.TP
+.B FontFixed (value: string)
+specifies default FIXED font.
+.LP
+.B Note:
+The freetype plugin uses this section to maintain associations between font names and truetype font file names. This greatly speeds up font selection at run-time.
+.
+.SH SECTION "Downloader"
+The "Downloader" section holds all configuration options for file downloading and caching. This is a plugin configuration section. The following options are defined:
+.TP
+.B CleanCache (value: yes, no)
+specifies whether downloaded files shall be removed once used.
+.TP
+.B RestartFiles (value: yes, no)
+specifies whether incompletely downloaded files shall be removed before redownloading.
+.
+.SH SECTION "Streaming"
+The "Streaming" section holds all configuration options for real-time streaming using IETF SDP/RTSP/RTP/RTCP protocols. This is a plugin configuration section. The following options are defined:
+.TP
+.B DefaultPort (value: unsigned short)
+specifies the default port to use when connecting to a server (ignored if a port is specified in the url). If the port is 80 or 8080 (HTTP), the client will connect to the RTSP server through an HTTP tunnel, and transport will take place on the RTSP connection.
+.TP
+.B ReorderSize (value: integer)
+size of the RTP reordering buffer - 0 means no reordering. Ignored when transport takes place on the RTSP connection
+.TP
+.B RTPoverRTSP (value: yes, no)
+specifies whether RTP packets should be carried on the RTSP connection (TCP or UDP) when possible, or carried on UDP. If the connection port is an HTTP port, this value is assumed to be true
+.TP
+.B RTSPTimeout (value: unsigned int)
+specifies connection timeout with the server: an RTSP request is considered as failed when the timeout expires.
+.TP
+.B FirstPacketDrop (value: unsigned int)
+specifies the first SL packet to be droped - 0 means no packet drop. Used for packet drop simulation tests.
+.TP
+.B PacketDropFrequency (value: unsigned int)
+specifies the frequency at which SL packets are droped. If value is 20, one packet every 20 recieved packets will be droped. Used for packet drop simulation tests.
+.TP
+.B LogFile (value: path_and_filename)
+if set specifies a file where RTSP traffic is logged (must have write access to the file), "stdout" for stdout.
+.
+.SH SECTION "MimeTypes"
+This section is used to keep MIME types and file associations for GPAC plugins. The format of the key is:
+.B	mimeType="fileExt1 filexExt2 .. filexExtN" "MimeType description" PluginName
+.br
+The description is used for GUI purposes (open file dialogs). You may modify the file extension list to support your own extensions. 
+MIME Type is always checked when processing a remote ressource (eg http file) in order to load the appropriated plugins. 
+If MIME type is not available, provided extensions are first checked, then all input plugins are queried.
+.
+.SH SECTION "MimeTypes"
+The "StreamingCache" section of the config file holds all configuration options for the streaming cache. Streaming cache allows for recording of live sources such as RTP/RTSP sessions and internet radios. This is currently just an experimental feature in GPAC.
+.br
+.B RecordDirectory (value: path)
+specifies path for recorded files. Cached data is written directly to disk (no re-interleaving or similar processes). If not specified, the default cache directory is used.
+.TP
+.B BaseFileName (value: string)
+specifies the base name for recorded files. If not present in configuration file, the service name (URL) is used.
+.TP
+.B KeepExistingFiles (value: yes no)
+specifies if cached files with same name should be kept or not. If not, an integer number is added to the cached file name, the higest number for the latest file.
+.TP
+
+.SH SECTION "XviD"
+The "XviD" section holds all configuration options for the XviD codec. This is a plugin configuration section. The following options are defined:
+.TP
+.SH PostProc (value: string)
+specifies filters to apply when decoding video. The string is a list of filters separated with a space character. Filters supported are:
+.br
+FilmEffect: xvid 1.0.0 filmEffect.
+.br
+Deblock_Y: Y plane deblocking filter.
+.br
+Deblock_UV: UV plane deblocking filter.
+.TP
+.B Threaded (value yes, no)
+specifies whether the decoder should run in its own thread or not.
+.
+.SH Section "FFMPEG"
+The "FFMPEG" section holds all configuration options for the FFMPEG demuxer and codec. This is a plugin configuration section. The following options are defined:
+.TP
+.SH DataBufferMS (value: unsigned int)
+specifies the amount of video/audio data (in milliseconds) to be bufferer before starting decoding. For developpers only.
+.TP
+.SH EnablePixelAspectRatio (value: yes, no)
+specifies if pixel aspect ratio should be kept if indicated. Default is no due to bugs and lack of optimizations.
+.
+.SH CREATING THE CONFIGURATION FILE
+.TP
+If not found, a default configuration file is created when launching MP4Client or Osmo4. In this process the font directory and the cache directory must be entered at prompt. The file is located in the user home directory and called ".gpacrc"
+.
+.SH "FILES"
+.LP 
+.B GPAC Configuration File:
+~/.gpacrc
+.
+.SH "AUTHORS"
+.LP 
+Jean Le Feuvre <jeanlf@users.sourceforge.net> - GPAC (c) 2000-2005
+.
+.SH "SEE ALSO"
+.LP 
+MP4Client(1), MP42AVI(1), MP4Box(1)

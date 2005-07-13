@@ -1,0 +1,6 @@
+LIBRARY     amr_dec.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

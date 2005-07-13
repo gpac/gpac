@@ -1,0 +1,1022 @@
+#!/bin/sh
+# GPAC MPEG-4 SDK configure script (c) 2003-2005 Jean Le Feuvre
+#		inspired from ffmpeg configure from Fabrice Bellard (c) 2000-2002
+
+#Configure Usage
+if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
+cat << EOF
+
+Usage: configure [options]
+Options: [defaults in brackets after descriptions]
+
+EOF
+echo "GPAC configuration options:"
+echo "  --help                   print this message"
+echo "  --prefix=PREFIX          install in PREFIX [$prefix]"
+echo "  --mandir=DIR             man documentation in DIR [PREFIX/man]"
+echo ""
+echo "  --source-path=PATH       path of source code [$source_path]"
+echo "  --cross-prefix=PREFIX    use PREFIX for compile tools [$cross_prefix]"
+echo "  --cc=CC                  use C compiler CC [$cc]"
+echo "  --make=MAKE              use specified make [$make]"
+echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS [$CFLAGS]"
+echo "  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS [$LDFLAGS]"
+echo "  --extra-libs=ELIBS       add ELIBS [$ELIBS]"
+echo "  --cpu=CPU                force cpu to CPU  [$cpu]"
+echo "  --sdl-cfg=SDL_PATH       specify path to sdl-config for local install [$sdl_path]"
+echo "  --enable-sdl-static      use static SDL linking [default=no]"
+echo "  --dxsdk-path=DX_PATH     specify directX SDK for MinGW [$dxsdk_path]"
+echo ""
+echo "  --disable-js             disable SpiderMonkey ECMAScript support [default=no]"
+echo "  --disable-ft             disable FreeType text support"
+echo "  --disable-jpeg           disable JPEG support"
+echo "  --disable-png            disable PNG support"
+echo "  --disable-faad           disable AAC (FAAD) support"
+echo "  --disable-mad            disable MP3 (MAD) support"
+echo "  --disable-xvid           disable XVID support"
+echo "  --disable-ffmpeg         disable FFMPEG support"
+echo "  --enable-amr-nb-fixed    enables AMR NB fixed-point decoder"
+echo "  --enable-amr-nb          enables AMR NB library"
+echo "  --enable-amr-wb          enables AMR WB library"
+echo "  --enable-amr             enables both AMR NB and WB libraries"
+echo "  --enable-debug           produces debug version"
+echo "  --disable-opt            disables GCC optimizations"
+echo "  --enable-oss-audio       enables OSS audio on Linux"
+echo "  --disable-fragments      disables movie fragments in ISO media support"
+echo "  --enable-readonly        forces ISO media to be read-only"
+echo "  --disable-svg            disable SVG support"
+echo "  --enable-fixed-point     forces ISO media to be read-only"
+echo "  --disable-opengl         disable OpenGL support"
+echo "  --disable-ssl            disable OpenSSL support"
+echo ""
+echo "NOTE: The object files are build at the place where configure is launched"
+exit 1
+fi
+
+# set temporary file name
+if test ! -z "$TMPDIR" ; then
+    TMPDIR1="${TMPDIR}"
+elif test ! -z "$TEMPDIR" ; then
+    TMPDIR1="${TEMPDIR}"
+else
+    TMPDIR1="/tmp"
+fi
+
+TMPC="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.c"
+TMPH="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.h"
+TMPCPP="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.cpp"
+TMPE="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}"
+TMPO="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.o"
+TMPS="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.S"
+
+# default parameters
+prefix="/usr/local"
+mandir=""
+cross_prefix=""
+dxsdk_path=""
+cc="gcc"
+ar="ar"
+ranlib="ranlib"
+make="make"
+strip="strip"
+cpu=`uname -m`
+debuginfo="no"
+sdl_path=""
+sdl_local="no"
+sdl_static="no"
+
+#GPAC module config
+js_flags="XP_UNIX"
+js_lib="js"
+iso_fragments="yes"
+make_readonly="no"
+has_mingw_directx="no"
+has_js="no"
+has_ft="no"
+has_jpeg="no"
+has_png="no"
+has_xvid="no"
+has_mad="no"
+has_faad="no"
+has_ffmpeg="no"
+has_amr_nb_fixed="no"
+has_amr_nb="no"
+has_amr_wb="no"
+has_ogg="no"
+has_vorbis="no"
+has_theora="no"
+has_linux_audio_oss="no"
+use_oss_audio="no"
+disable_svg="no"
+no_gcc_opt="no"
+use_fixed_point="no"
+has_opengl="no"
+has_ssl="no"
+
+win32="no"
+mingw32="no"
+cygwin="no"
+linux="no"
+freebsd="no"
+darwin="no"
+alt_macosx_dir=""
+extralibs="-lm"
+bigendian="no"
+SHFLAGS=-shared
+need_inet_aton="no"
+LDFLAGS=-Wl,--warn-common
+#avoid the strict aliasing warnings...
+CFLAGS="-fno-strict-aliasing"
+GPAC_SH_FLAGS=-lpthread
+DYN_LIB_SUFFIX="so"
+
+case "$cpu" in
+  i386|i486|i586|i686|i86pc|BePC)
+    cpu="x86"
+  ;;
+  armv4l)
+    cpu="armv4l"
+  ;;
+  alpha)
+    cpu="alpha"
+  ;;
+  "Power Macintosh"|ppc)
+    cpu="powerpc"
+  ;;
+  mips)
+    cpu="mips"
+  ;;
+  *)
+    cpu="unknown"
+  ;;
+esac
+
+# find source path
+# XXX: we assume an absolute path is given when launching configure, 
+# except in './configure' case.
+source_path=${0%configure}
+source_path=${source_path%/}
+source_path_used="yes"
+if test -z "$source_path" -o "$source_path" = "." ; then
+    source_path=`pwd`
+    source_path_used="no"
+fi
+
+# OS specific
+targetos=`uname -s`
+case $targetos in
+BeOS)
+js_flags=-DXP_BEOS
+prefix="/boot/home/config"
+CFLAGS="$CFLAGS -DPIC -fomit-frame-pointer"
+# 3 gcc releases known for BeOS, each with ugly bugs
+gcc_version="$($cc -v 2>&1 | grep version | cut -d ' ' -f3-)"
+case "$gcc_version" in
+2.9-beos-991026*|2.9-beos-000224*) echo "R5/GG gcc"
+;;
+*20010315*) echo "BeBits gcc"
+CFLAGS="$CFLAGS -fno-expensive-optimizations"
+;;
+esac
+
+SHFLAGS=-nostart
+# no need for libm, but the inet stuff
+# Check for BONE
+if (echo $BEINCLUDES|grep 'headers/be/bone' >/dev/null); then
+extralibs="-lbind -lsocket"
+else
+need_inet_aton="yes"
+extralibs="-lnet"
+fi ;;
+
+SunOS)
+make="gmake"
+LDFLAGS=""
+need_inet_aton="yes"
+extralibs="$extralibs -lsocket -lnsl"
+;;
+
+FreeBSD)
+make="gmake"
+LDFLAGS="$LDFLAGS -export-dynamic"
+CFLAGS="$CFLAGS -pthread"
+GPAC_SH_FLAGS=-pthread
+freebsd="yes"
+js_flags="-DXP_UNIX -I/usr/include/js"
+;;
+
+BSD/OS)
+extralibs="-lpoll -lgnugetopt -lm"
+make="gmake"
+;;
+
+Darwin)
+js_flags=-DXP_MAC
+if test -d /sw/bin ; then
+ alt_macosx_dir="/sw"
+elif test -d /opt/local/bin ; then
+ alt_macosx_dir="/opt/local"
+fi
+cc="cc"
+SHFLAGS="-dynamiclib"
+DYN_LIB_SUFFIX="dylib"
+extralibs=""
+GPAC_SH_FLAGS=""
+strip="strip -x"
+LDFLAGS="-read_only_relocs warning"
+darwin="yes"
+gcc_version=`$cc -v 2>&1 | grep version | cut -d ' ' -f3`
+case "$gcc_version" in
+*2.95*) 
+CFLAGS="$CFLAGS -no-cpp-precomp -pipe -fomit-frame-pointer"
+;;
+*) 
+CFLAGS="$CFLAGS -no-cpp-precomp -pipe -fomit-frame-pointer -mdynamic-no-pic -fno-common"
+;;
+esac
+;;
+
+MINGW32*)
+js_flags="-DXP_PC -D_declspec=__declspec"
+mingw32="yes"
+win32="yes"
+extralibs="$extralibs -lws2_32 -lwinmm"
+;;
+
+CYGWIN*)
+js_flags=-DXP_PC 
+extralibs="$extralibs -lws2_32 -lwinmm"
+cygwin="yes"
+win32="yes"
+;;
+
+Linux)
+js_flags="-DXP_UNIX -I/usr/include/js"
+linux="yes"
+#LDFLAGS="$LDFLAGS -rdynamic"
+;;
+*) ;;
+esac
+
+#look for zlib
+cat > $TMPC << EOF
+#include <zlib.h>
+int main( void ) { if (zlibVersion() != ZLIB_VERSION) { puts("zlib version differs !!!"); return 1; } return 0; }
+EOF
+
+has_zlib="no"
+if $cc -o $TMPO $TMPC -lz 2> /dev/null  ; then
+has_zlib="system"
+elif $cc -o $TMPO $TMPC -I$local_inc/zlib -L$local_lib -lz 2> /dev/null  ; then
+has_zlib="local"
+else
+  echo "error: zlib not found on system or in local libs"
+  exit 1
+fi
+
+#check dlopen
+cat > $TMPC << EOF
+#include <dlfcn.h>
+int main( void ) { return (int) dlopen("foo", 0); }
+EOF
+
+if $cc -o $TMPE $TMPC > /dev/null 2>&1 ; then
+dlopen="yes"
+elif $cc -o $TMPE $TMPC -ldl > /dev/null 2>&1 ; then
+GPAC_SH_FLAGS="$GPAC_SH_FLAGS -ldl"
+else
+	if test "$win32" = "no"; then
+    echo "error: dlopen not found on system"
+    exit 1
+	fi
+fi
+
+
+#OK check for all local & systems lib
+local_inc=$source_path/extra_lib/include
+local_lib=$source_path/extra_lib/lib/gcc
+
+#look for spidermonkey JS support
+
+cat > $TMPC << EOF
+#include <jsapi.h>
+int main( void ) { return 0; }
+EOF
+
+#regular spidermonkey
+if $cc -o $TMPO $TMPC $js_flags -ljs 2> /dev/null  ; then
+has_js="system"
+else
+#debian spidermonkey (smjs)
+js_flags="-DXP_UNIX -I/usr/include/smjs"
+if $cc -o $TMPO $TMPC $js_flags -lsmjs 2> /dev/null  ; then
+has_js="system"
+js_lib="smjs"
+else
+#try local
+js_flags="-DXP_UNIX -I$local_inc/js"
+if $cc -o $TMPO $TMPC $js_flags -L$local_lib -ljs 2> /dev/null  ; then
+has_js="local"
+fi
+fi
+fi
+
+#look for freetype support
+ft_cflags="`freetype-config --cflags`"
+ft_lflags="`freetype-config --libs`"
+
+cat > $TMPC << EOF
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#include FT_GLYPH_H
+#include FT_OUTLINE_H
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC $ft_cflags $ft_lflags 2> /dev/null  ; then
+has_ft="system"
+else
+ft_cflags="-I$local_inc/freetype"
+ft_lflags="-L$local_lib -lfreetype"
+if $cc -o $TMPO $TMPC $ft_cflags $ft_lflags 2> /dev/null  ; then
+has_ft="local"
+fi
+fi
+
+#look for OpenGL support
+cat > $TMPC << EOF
+#include <GL/gl.h>
+#include <GL/glu.h>
+int main( void ) { return 0; }
+EOF
+
+if test "$win32" = "yes" ; then
+LINK3D="-lopengl32 -lglu32"
+else
+LINK3D="-lGL -lGLU"
+fi
+
+if $cc -o $TMPO $TMPC $LINK3D 2> /dev/null  ; then
+has_opengl="yes"
+fi
+
+#look for OpenSSL support
+cat > $TMPC << EOF
+#include <openssl/ssl.h>
+#include <openssl/x509.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+int main( void ) { return 0; }
+EOF
+
+if test "$win32" = "yes" ; then
+LINK_SSL="-lssleay32 -leay32"
+else
+LINK_SSL="-lssl -lcrypto"
+fi
+
+if $cc -o $TMPO $TMPC $LINK_SSL 2> /dev/null  ; then
+has_ssl="yes"
+fi
+
+
+#look for JPEG support
+cat > $TMPC << EOF
+#include <stdio.h>
+#include <jpeglib.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC -ljpeg 2> /dev/null  ; then
+has_jpeg="system"
+elif test "$alt_macosx_dir" != "" ; then
+ if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -ljpeg 2> /dev/null ; then
+ has_jpeg="system"
+ fi
+elif $cc -o $TMPO $TMPC -I$local_inc/jpeg -L$local_lib -ljpeg 2> /dev/null  ; then
+has_jpeg="local"
+fi
+
+#look for PNG support
+cat > $TMPC << EOF
+#include <png.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC -lpng 2> /dev/null  ; then
+has_png="system"
+elif test "$alt_macosx_dir" != "" ; then
+ if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lpng 2> /dev/null ; then
+ has_png="system"
+ fi
+elif $cc -o $TMPO $TMPC -I$local_inc/png -L$local_lib -lpng 2> /dev/null  ; then
+has_png="local"
+fi
+
+#look for MAD support
+cat > $TMPC << EOF
+#include <mad.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC -lmad 2> /dev/null  ; then
+has_mad="system"
+elif test "$alt_macosx_dir" != "" ; then
+ if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lmad 2> /dev/null ; then
+ has_mad="system"
+ fi
+elif $cc -o $TMPO $TMPC -I$local_inc/mad -L$local_lib -lmad 2> /dev/null  ; then
+has_mad="local"
+fi
+
+#look for XVID support
+cat > $TMPC << EOF
+#include <xvid.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC -lxvidcore 2> /dev/null  ; then
+has_xvid="system"
+elif test "$alt_macosx_dir" != "" ; then
+ if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lxvidcore 2> /dev/null ; then
+ has_xvid="system"
+ fi
+elif $cc -o $TMPO $TMPC -I$local_inc/xvid -L$local_lib -lxvidcore 2> /dev/null  ; then
+has_xvid="local"
+fi
+
+#look for FAAD support
+cat > $TMPC << EOF
+#include <faad.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC -lfaad -lm 2> /dev/null  ; then
+has_faad="system"
+elif test "$alt_macosx_dir" != "" ; then
+ if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lfaad 2> /dev/null ; then
+ has_faad ="system"
+ fi
+elif $cc -o $TMPO $TMPC -I$local_inc/faad -L$local_lib -lfaad -lm 2> /dev/null  ; then
+has_faad="local"
+fi
+
+
+#look for FFMPEG support
+cat > $TMPC << EOF
+#include <stddef.h>
+#include <ffmpeg/avcodec.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC -lz -lavcodec -lavformat 2> /dev/null  ; then
+has_ffmpeg="system"
+elif test "$alt_macosx_dir" != "" ; then
+ if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lz -lavcodec -lavformat 2> /dev/null ; then
+ has_ffmpeg ="system"
+ fi
+elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -lz -lavcodec -lavformat 2> /dev/null  ; then
+has_ffmpeg="local"
+fi
+
+
+#look for vorbis support
+cat > $TMPC << EOF
+#include <vorbis/codec.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC -lvorbis 2> /dev/null  ; then
+has_vorbis="system"
+elif test "$alt_macosx_dir" != "" ; then
+ if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lvorbis 2> /dev/null ; then
+ has_vorbis ="system"
+ fi
+elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -lvorbis -lm 2> /dev/null  ; then
+has_vorbis="local"
+fi
+
+#look for theora support
+cat > $TMPC << EOF
+#include <theora/theora.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC -ltheora 2> /dev/null  ; then
+has_theora="system"
+elif test "$alt_macosx_dir" != "" ; then
+ if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -ltheora 2> /dev/null ; then
+ has_theora ="system"
+ fi
+elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -ltheora -lm 2> /dev/null  ; then
+has_theora="local"
+fi
+
+#look for Ogg support
+cat > $TMPC << EOF
+#include <ogg/ogg.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC -logg 2> /dev/null  ; then
+has_ogg="system"
+elif test "$alt_macosx_dir" != "" ; then
+ if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -logg 2> /dev/null ; then
+ has_ogg ="system"
+ fi
+elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -logg -lm 2> /dev/null  ; then
+has_ogg="local"
+else
+has_vorbis=no
+has_theora=no
+fi
+
+for opt do
+  case "$opt" in
+  --prefix=*) prefix=`echo $opt | cut -d '=' -f 2`
+  ;;
+  --mandir=*) mandir=`echo $opt | cut -d '=' -f 2`
+  ;;
+  --source-path=*) source_path=`echo $opt | cut -d '=' -f 2`
+  ;;
+  --cross-prefix=*) cross_prefix=`echo $opt | cut -d '=' -f 2`
+  ;;
+  --cc=*) cc=`echo $opt | cut -d '=' -f 2`
+  ;;
+  --make=*) make=`echo $opt | cut -d '=' -f 2`
+  ;;
+  --extra-cflags=*) CFLAGS="$CFLAGS ${opt#--extra-cflags=}"
+  ;;
+  --extra-ldflags=*) LDFLAGS="$LDFLAGS ${opt#--extra-ldflags=}"
+  ;;
+  --extra-libs=*) extralibs=${opt#--extra-libs=}
+  ;;
+  --cpu=*) cpu=`echo $opt | cut -d '=' -f 2`
+  ;;
+  --sdl-cfg=*) sdl_path=`echo $opt | cut -d '=' -f 2`; sdl_local="yes"
+  ;;
+  --enable-sdl-static=*) sdl_static="yes"
+  ;;
+  --dxsdk-path=*) dxsdk_path=`echo $opt | cut -d '=' -f 2`
+  ;;
+  --disable-js) has_js="no"
+  ;;
+  --disable-ft) has_ft="no"
+  ;;
+  --disable-faad) has_faad="no"
+  ;;
+  --disable-mad) has_mad="no"
+  ;;
+  --disable-xvid) has_xvid="no"
+  ;;
+  --disable-jpeg) has_jpeg="no"
+  ;;
+  --disable-ffmpeg) has_ffmpeg="no"
+  ;;
+  --disable-png) has_png="no"
+  ;;
+  --enable-amr-nb-fixed) has_amr_nb_fixed="yes"
+  ;;
+  --enable-amr-nb) has_amr_nb="yes"
+  ;;
+  --enable-amr-wb) has_amr_wb="yes"
+  ;;
+  --enable-amr) has_amr_wb="yes"; has_amr_nb="yes"
+  ;;
+	--disable-oggvorbis) has_oggvorbis="no"
+  ;;
+  --enable-debug) debuginfo="yes"; no_gcc_opt="yes"
+  ;;
+  --disable-opt) no_gcc_opt="yes"
+  ;;
+  --disable-fragments) iso_fragments="no"
+  ;;
+  --enable-readonly) make_readonly="yes"
+  ;;
+  --enable-oss-audio) use_oss_audio="yes"
+  ;;
+  --disable-svg) disable_svg="yes"
+  ;;
+  --enable-fixed-point) use_fixed_point="yes"
+  ;;
+  --disable-opengl) has_opengl="no"
+  ;;
+  --disable-ssl) has_ssl="no"
+  ;;
+  esac
+done
+
+#GCC opt
+if test "$no_gcc_opt" = "no"; then
+CFLAGS="-O3 $CFLAGS"
+fi
+
+if test "$use_oss_audio" = "yes"; then
+#look for linux_audio_oss support
+cat > $TMPC << EOF
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/soundcard.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC 2> /dev/null  ; then
+has_linux_audio_oss="system"
+fi
+fi
+
+
+#look for DX support
+dx_include=""
+dx_lib=""
+has_mingw_directx="no"
+if test "$win32" = "yes" ; then
+
+cat > $TMPC << EOF
+#include <ddraw.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC 2> /dev/null  ; then
+has_mingw_directx="yes"
+else
+dx_include="$dxsdk_path/include"
+dx_lib="$dxsdk_path/lib"
+if $cc -o $TMPO $TMPC -I$dx_include -L$dx_lib -lddraw 2> /dev/null  ; then
+has_mingw_directx="yes"
+fi
+fi
+
+fi
+
+
+#look for SDL support
+cat > $TMPC << EOF
+#include <SDL.h>
+#undef main
+int main( void ) { return SDL_Init (SDL_INIT_VIDEO); }
+EOF
+
+sdl_too_old=no
+has_sdl=no
+sdl_config="sdl-config"
+if test "$sdl_local" = "yes"; then
+sdl_config="$sdl_path/sdl-config"
+sdl_static="yes"
+fi
+
+if test "$sdl_static" = "yes"; then
+sdl_lib_flags=`$sdl_config --static-libs`
+else
+sdl_lib_flags=`$sdl_config --libs`
+fi
+sdl_cflags=`$sdl_config --cflags`
+
+if $cc -o $TMPO $sdl_cflags $TMPC $sdl_lib_flags  > /dev/null 2>&1  ; then
+_sdlversion=`$sdl_config --version | sed 's/[^0-9]//g'`
+if test "$_sdlversion" -lt 121 ; then
+sdl_too_old=yes
+else
+has_sdl=yes
+fi
+fi
+
+#look for wxWidgets support
+has_wx="no"
+wx_too_old="no"
+wx_cflags=`wx-config --cxxflags`
+wx_lflags=`wx-config --libs`
+
+cat > $TMPCPP << EOF
+#include <wx/wx.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc $wx_cflags -o $TMPO $TMPCPP $wx_lflags > /dev/null 2>&1 ; then
+wx_version=`wx-config --version | sed 's/[^0-9]//g'`
+if test "$wx_version" -lt 254 ; then
+wx_too_old="yes"
+else
+has_wx="yes"
+fi
+fi
+
+#look for libxml2 support
+has_xml2="no"
+xml2_too_old="no"
+xml2_cflags=`xml2-config --cflags`
+xml2_lflags=`xml2-config --libs`
+
+cat > $TMPC << EOF
+#include <stdio.h>
+#include <string.h>
+#include <libxml/tree.h>
+#include <libxml/parser.h>
+#include <libxml/xpath.h>
+#include <libxml/xpathInternals.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc $xml2_cflags -o $TMPO $TMPC $xml2_lflags > /dev/null 2>&1 ; then
+xml2_version=`xml2-config --version | sed 's/[^0-9]//g'`
+if test "$xml2_version" -lt 260 ; then
+xml2_too_old="yes"
+else
+has_xml2="yes"
+fi
+fi
+
+
+# Checking for CFLAGS
+if test -z "$CFLAGS"; then
+    CFLAGS="-O3"
+fi
+
+if test "$win32" = "yes" ; then
+    cross_prefix=""
+fi
+
+if test "$mingw32" = "yes" ; then
+    cross_prefix=""
+fi
+
+cc="${cross_prefix}${cc}"
+ar="${cross_prefix}${ar}"
+ranlib="${cross_prefix}${ranlib}"
+strip="${cross_prefix}${strip}"
+
+if test -z "$cross_prefix" ; then
+
+# big/little endian test
+cat > $TMPC << EOF
+#include <inttypes.h>
+int main(int argc, char ** argv){
+	volatile uint32_t i=0x01234567;
+	return (*((uint8_t*)(&i))) == 0x67;
+}
+EOF
+
+if $cc -o $TMPO $TMPC 2>/dev/null ; then
+$TMPO && bigendian="yes"
+else
+echo big/little endian test failed
+fi
+
+else
+
+# if cross compiling, cannot launch a program, so make a static guess
+if test "$cpu" = "powerpc" -o "$cpu" = "mips" ; then
+    bigendian="yes"
+fi
+
+fi
+
+
+if test x"$mandir" = x""; then
+mandir="${prefix}/man"
+fi
+
+version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h |
+ cut -d '"' -f 2`
+
+echo "Install prefix: $prefix"
+echo "Source path: $source_path"
+echo "GPAC Version: $version"
+echo "C compiler: $cc"
+echo "make: $make"
+echo "CPU: $cpu"
+echo "Big Endian: $bigendian"
+if test $cpu = "mips"; then
+echo "MMI enabled: $mmi"
+fi
+echo "debug version: $debuginfo"
+echo "read-only version: $make_readonly"
+echo "fixed-point version: $use_fixed_point"
+echo "IsoMedia movie fragments: $iso_fragments"
+echo "SVG Support disabled: $disable_svg"
+echo ""
+
+echo "Detected libraries:"
+echo "zlib: $has_zlib"
+echo "SpiderMonkey: $has_js"
+echo "FreeType: $has_ft"
+echo "JPEG: $has_jpeg"
+echo "PNG: $has_png"
+echo "MAD: $has_mad"
+echo "FAAD: $has_faad"
+echo "XVID: $has_xvid"
+echo "FFMPEG: $has_ffmpeg"
+echo "Xiph OGG: $has_ogg"
+if test "$has_ogg" = "no"; then
+has_ogg="no"
+else
+echo "Xiph Vorbis: $has_vorbis"
+echo "Xiph Theora: $has_theora"
+fi
+echo "Linux-Audio OSS: $has_linux_audio_oss"
+echo "SDL Support: $has_sdl"
+if test "$sdl_too_old" = "yes" ; then
+echo "SDL Version too old - please upgrade for SDL support"
+fi
+if test "$wx_too_old" = "yes" ; then
+echo "wxWidgets Version too old - please upgrade to 2.6.0 for wxWidgets support"
+fi
+echo "libXML2: $has_xml2"
+if test "$xml2_too_old" = "yes" ; then
+echo "XML2 Version too old - please upgrade for libXML2 support (SVG parser)"
+fi
+echo "OpenGL support: $has_opengl"
+echo "OpenSSL support: $has_ssl"
+
+if test "$win32" = "yes" ; then
+echo "DirectX Support: $has_mingw_directx"
+fi
+echo "wxWidgets support: $has_wx"
+
+echo ""
+if test "$has_amr_nb_fixed" = "yes" ; then
+  echo "*** AMR NB FIXED-POINT NOTICE ***"
+  echo "Make sure you have downloaded TS26.073 from:"
+  echo "http://www.3gpp.org/ftp/Specs/archive/26_series/26.073/26073-600.zip"
+  echo "or through gpac_extra_libs and extracted src to modules/amr_dec/amr_nb"
+  echo "without overwriting typedefs.h file"
+  echo ""
+fi
+
+echo ""
+if test "$has_amr_nb" = "yes" ; then
+  echo "*** AMR NB NOTICE ***"
+  echo "Make sure you have downloaded TS26.104 from:"
+  echo "http://www.3gpp.org/ftp/Specs/archive/26_series/26.104/26104-610.zip"
+  echo "or through gpac_extra_libs and extracted src to modules/amr_float_dec/amr_nb_ft"
+  echo "without overwriting typedefs.h file"
+  echo ""
+fi
+
+
+echo ""
+if test "$has_amr_wb" = "yes" ; then
+  echo "*** AMR WB NOTICE ***"
+  echo "Make sure you have downloaded TS26.204 from:"
+  echo "http://www.3gpp.org/ftp/Specs/archive/26_series/26.204/26204-600.zip"
+  echo "or through gpac_extra_libs and extracted src to modules/amr_float_dec/amr_wb_ft"
+  echo "without overwriting typedefs.h file"
+  echo ""
+fi
+
+echo "Creating config.mak"
+
+echo "# Automatically generated by configure - do not modify" > config.mak
+
+echo "prefix=$prefix" >> config.mak
+echo "moddir=$prefix/lib/gpac" >> config.mak
+echo "mandir=$mandir" >> config.mak
+echo "MAKE=$make" >> config.mak
+echo "CC=$cc" >> config.mak
+echo "AR=$ar" >> config.mak
+echo "RANLIB=$ranlib" >> config.mak
+echo "STRIP=$strip" >> config.mak
+echo "OPTFLAGS=$CFLAGS" >> config.mak
+echo "LDFLAGS=$LDFLAGS" >> config.mak
+echo "SHFLAGS=$SHFLAGS" >> config.mak
+
+if test "$cpu" = "x86" ; then
+  echo "TARGET_ARCH_X86=yes" >> config.mak
+elif test "$cpu" = "armv4l" ; then
+  echo "TARGET_ARCH_ARMV4L=yes" >> config.mak
+elif test "$cpu" = "alpha" ; then
+  echo "TARGET_ARCH_ALPHA=yes" >> config.mak
+elif test "$cpu" = "sparc64" ; then
+  echo "TARGET_ARCH_SPARC64=yes" >> config.mak
+elif test "$cpu" = "powerpc" ; then
+  echo "TARGET_ARCH_POWERPC=yes" >> config.mak
+elif test "$cpu" = "mips" ; then
+  echo "TARGET_ARCH_MIPS=yes" >> config.mak
+fi
+if test "$bigendian" = "yes" ; then
+  echo "IS_BIGENDIAN=yes" >> config.mak
+fi
+echo "EXTRALIBS=$extralibs" >> config.mak
+echo "VERSION=$version" >>config.mak
+
+if test "$win32" = "yes" ; then
+  echo "CONFIG_WIN32=yes" >> config.mak
+elif test "$linux" = "yes" ; then
+  echo "CONFIG_LINUX=yes" >> config.mak
+elif test "$freebsd" = "yes" ; then
+  echo "CONFIG_FREEBSD=yes" >> config.mak
+elif test "$darwin" = "yes" ; then
+ echo "CONFIG_DARWIN=yes" >> config.mak
+fi
+
+if test "$win32" = "no" ; then
+	echo "GPAC_SH_FLAGS=$GPAC_SH_FLAGS" >> config.mak
+	echo "DYN_LIB_SUFFIX=$DYN_LIB_SUFFIX" >> config.mak
+else
+	echo "DYN_LIB_SUFFIX=dll" >> config.mak
+fi
+
+echo "CONFIG_JS=$has_js" >> config.mak
+if test "$has_js" = "no" ; then
+	has_js="no"
+else
+echo "JS_FLAGS=$js_flags" >> config.mak
+echo "JS_LIBS=$js_lib" >> config.mak
+fi
+echo "CONFIG_ZLIB=$has_zlib" >> config.mak
+echo "CONFIG_FT=$has_ft" >> config.mak
+echo "CONFIG_JPEG=$has_jpeg" >> config.mak
+echo "CONFIG_PNG=$has_png" >> config.mak
+echo "CONFIG_FAAD=$has_faad" >> config.mak
+echo "CONFIG_MAD=$has_mad" >> config.mak
+echo "CONFIG_XVID=$has_xvid" >> config.mak
+echo "CONFIG_OGG=$has_ogg" >> config.mak
+echo "CONFIG_VORBIS=$has_vorbis" >> config.mak
+echo "CONFIG_THEORA=$has_theora" >> config.mak
+echo "CONFIG_FFMPEG=$has_ffmpeg" >> config.mak
+echo "CONFIG_LINUX_AUDIO_OSS=$has_linux_audio_oss" >> config.mak
+echo "DISABLE_SVG=$disable_svg" >> config.mak
+echo "HAS_OPENGL=$has_opengl" >> config.mak
+if test "$has_opengl" = "yes" ; then
+  echo "OGL_LIBS=$LINK3D" >> config.mak
+fi
+echo "HAS_OPENSSL=$has_ssl" >> config.mak
+if test "$has_ssl" = "yes" ; then
+  echo "SSL_LIBS=$LINK_SSL" >> config.mak
+fi
+
+echo "CONFIG_SDL=$has_sdl" >> config.mak
+if test "$has_sdl" = "yes" ; then
+  echo "SDL_CFLAGS=$sdl_cflags" >> config.mak
+  echo "SDL_LIBS=$sdl_lib_flags" >> config.mak
+fi
+if test "$has_ft" = "no" ; then
+	has_ft="no"
+else
+  echo "FT_CFLAGS=$ft_cflags" >> config.mak
+  echo "FT_LIBS=$ft_lflags" >> config.mak
+fi
+echo "CONFIG_AMR_NB=$has_amr_nb_fixed" >> config.mak
+echo "CONFIG_AMR_NB_FT=$has_amr_nb" >> config.mak
+echo "CONFIG_AMR_WB_FT=$has_amr_wb" >> config.mak
+echo "DEBUGBUILD=$debuginfo" >> config.mak
+echo "ISOFRAGMENTS=$iso_fragments" >> config.mak
+echo "GPACREADONLY=$make_readonly" >> config.mak
+
+if test "$win32" = "yes" ; then
+echo "CONFIG_DIRECTX=$has_mingw_directx" >> config.mak
+if test "$has_mingw_directx" = "yes" ; then
+echo "DX_INCLUDE=$dx_include" >> config.mak
+echo "DX_LIB=$dx_lib" >> config.mak
+fi
+fi
+
+echo "USE_WXWIDGETS=$has_wx" >> config.mak
+if test "$has_wx" = "yes"; then
+echo "WX_CFLAGS=$wx_cflags" >> config.mak
+echo "WX_LFLAGS=$wx_lflags" >> config.mak
+fi
+
+echo "HAS_LIBXML2=$has_xml2" >> config.mak
+if test "$has_xml2" = "yes"; then
+echo "XML2_CFLAGS=$xml2_cflags" >> config.mak
+echo "XML2_LFLAGS=$xml2_lflags" >> config.mak
+fi
+
+#overwrite fixed-point in math.h
+if test "$use_fixed_point" = "yes"; then
+sed -e 's/#define GPAC_NO_FIXED_POINT/#define GPAC_FIXED_POINT/' $source_path/include/gpac/math.h >$TMPH
+else
+sed -e 's/#define GPAC_FIXED_POINT/#define GPAC_NO_FIXED_POINT/' $source_path/include/gpac/math.h >$TMPH
+fi
+cp -f $TMPH $source_path/include/gpac/math.h
+
+
+# build tree in object directory if source path is different from current one
+if test "$source_path_used" = "yes" ; then
+    DIRS="src/utils src/isom src/ietf src/odf src/bifs src/scenegraph src/terminal src/mcrypt src/media src/scene_manager src/render"
+    FILES="Makefile src/utils/Makefile src/isom/Makefile src/ietf/Makefile src/odf/Makefile src/bifs/Makefile src/scenegraph/Makefile src/terminal/Makefile src/mcrypt/Makefile src/media/Makefile src/scene_manager/Makefile src/render/Makefile"
+    for dir in $DIRS ; do
+            mkdir -p $dir
+    done
+    for f in $FILES ; do
+        ln -sf $source_path/$f $f
+    done
+fi
+echo "SRC_PATH=$source_path" >> config.mak
+
+
+rm -f $TMPO $TMPC $TMPS $TMPCPP
+
+if [ ! -d "./bin" ]; then
+	mkdir ./bin
+fi
+if [ ! -d "./bin/gcc" ]; then
+	mkdir ./bin/gcc
+fi
+if [ ! -d "./bin/gcc/temp" ]; then
+	mkdir ./bin/gcc/temp
+fi
+
+echo "done - type 'make help' for make info, 'make' to build"

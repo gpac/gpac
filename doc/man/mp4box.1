@@ -1,0 +1,524 @@
+.TH "MP4Box" 1 "June 2005" "MP4Box" "GPAC"
+.
+.SH NAME
+.LP 
+MP4Box \- MPEG-4 Systems Toolbox
+.SH "SYNOPSIS"
+.LP 
+.B MP4Box
+.RI [options] \ file \ [options]
+.br
+.
+.SH "DESCRIPTION"
+.LP 
+MP4Box is a multi-purpose command line tool to create and edit MPEG-4 Systems presentations and manipulate ISO-media files (MP4, 3GP, MOV).
+.LP
+MP4Box supports file conversion from various raw formats and IsoMedia/AVI/MPEG-PS/OGG containers, file hinting for RTP streaming for QuickTime compatible streaming servers, file interleaving, file fragmentation and track extraction.
+.LP
+MP4Box also provides dump tools used to inspect file layout, RTP hint tracks, SDP information, scene composition. It may also be used to convert to and from BT/XMT-A/VRML/X3D.
+.LP
+MP4Box also features MPEG-4 Systems encoders and decoders for BIFS and OD tools.
+.LP
+MP4Box doesn't expect any particular order in options at prompt.
+.
+.SH GETTING HELP WITH MP4Box
+.TP
+.B \-h [type]
+prints help screen. "type" can be one of "general", "hint", "import", "encode", "extract", "dump", "swf", "meta", "crypt", "format" for specific help.
+.TP
+.B \-version
+prints version of MP4Box.
+.TP
+.B \-nodes
+lists supported MPEG-4 Systems nodes in MP4Box current build.
+.TP
+.B \-node NodeName
+prints the node syntax. Each field is listed as
+.br
+.I eventType fieldType fieldName defaultValue
+.br
+and field quantization information and quantization bounds if any.
+.
+.
+.SH GENERAL OPTIONS
+.P
+.TP
+.B \-inter duration
+interleaves media data in chunks of the maximum specified duration (expressed in milliseconds) and prepare file for HTTP/FTP streaming. By default MP4Box always stores with 0.5 second interleaving. An interleaving value of '0' stores without interleaving (meta-data then track after track). 
+.br
+.B NOTE: Track Edit Lists are ignored when performing interleaving.
+.TP
+.B \-flat
+stores file with all media data first, non interleaved. If used when creating a new file, no temporary file is created (faster storage).
+.TP
+.B \-frag duration
+fragments file using ISO-Media movie fragments. Tracks will be fragmented so that no track run exceeds the specified duration (expressed in milliseconds). Disables interleaving.
+.TP
+.B -out\ \<filename>
+specifies output file name. 
+.TP
+.B -tmp\ \<dirname>
+specifies driectory for temporary storage. If not set, temporary storage is OS-dependent.
+.TP
+.B \-nosys
+removes all MPEG-4 Systems information from the file but keeps an empty IOD for MPEG-4 Profile@Level indications.
+.TP
+.B \-isma
+rewrites the file as an ISMA 1.0 Audio/Video file (all systems info rewritten) with proper clock references.
+.TP
+.B \-ismax
+rewrites the file as an ISMA 1.0 Audio/Video file (all systems info rewritten) with ISMA clock references (streams not explicetly synchronized).
+.br 
+.B NOTE: Seeking may be broken with some players (in ISMA, audio and video streams do not depend on main scene clock).
+.TP
+.B \-3gp
+rewrites the file as a 3GP file (no more MPEG-4 Systems specific info). This option is turned on by default when input file extension is .3gp or .3g2.
+.TP
+.B -cprt string
+adds string copyright notice to file.
+.TP
+.B \-chap chap_file
+adds chapter information contained in chap_file to movie. For more details on chapter file syntax, cf http://gpac.sourceforge.net/auth_mp4box.php.
+.TP
+.B -rem trackID
+removes given track from file - can be specified multiple times.
+.TP
+.B -new
+forces creation of a new destination file.
+.TP
+.B -lang [tkID=]LAN
+sets the language of all tracks or the given track. LAN is the ISO 639-2 3 character code.
+.TP
+.B -delay [tkID=]delay_ms
+sets the delay in milliseconds of all tracks or the given track. LAN is the ISO 639-2 3 character code.
+.TP
+.B \-split time_in_seconds
+splits in files of desired maximum duration. This will remove all MPEG-4 Systems media.
+.TP
+.B \-splits size_in_kilobytes
+splits in files of desired maximum size. This will remove all MPEG-4 Systems media.
+.TP
+.B \-splitx start:end
+extracts a new file from specified start to end times (in seconds). This will remove all MPEG-4 Systems media.
+.B When input file is an ISO-Media file (QT, MP4, 3GP), if no output is specified THE INPUT FILE IS OVERWRITTEN.
+.
+.
+.SH HINTING OPTIONS
+.TP
+.B \-hint
+hint the file for RTP\/RTSP sessions. Payload type is automatically detected and configured unless forced through one of MPEG-4 Generic RTP payload.
+.TP
+.B \-mtu size
+specifies Maximum Transmission Unit size in bytes (eg maximum RTP packet size). Default size is 1500 bytes (Ethernet MTU). This must be choosen carefully: specifying too large packets will result in undesired packet fragmentation at UDP layer while specifying too small packets will result in RTP header overhead.
+.TP
+.B \-copy
+forces hinted data to be copied to the hint track instead of simply referenced. This speeds up RTP packet construction at the server side but results in much bigger files.
+.TP
+.B \-tight
+performs sample-based interleaving of media tracks and hint tracks. This should reduce disk seeks at server side (depending on server implementation) but results in a bigger file.
+.TP
+.B \-multi [maxptime]
+enables Access Units concatenation in RTP packets if possible. maxptime is optional and specifies the maximum packet duration in milliseconds (default 100).
+.TP
+.B \-rate ck_rate
+specifies the rtp rate in Hz when no default rate for payload. Default value is 90000 (MPEG rtp rates).
+.TP
+.B \-mpeg4
+forces usage of the MPEG-4 generic payload whenever possible. Media tracks without a mapping to MPEG-4 Systems cannot use this.
+.TP
+.B \-latm
+forces usage of the LATM payload for AAC audio.
+.TP
+.B \-static
+enables usage of static RTP payload IDs for streams with official payload IDs. By default MP4Box always uses dynamic payload IDs for maximum interoperability, some players having troubles with static ones.
+.
+.P
+.B MPEG-4 Generic Payload Options (Experts only)
+.IP
+.B \-ocr
+forces all media tracks in the file to be served synchronized. This is needed because most streaming servers don't support desynchronized tracks in a single file. Be extremelly carefull when designing MPEG-4 interactive presentations for streaming since you will have to take care of the streaming server capabilities... MP4Box generates warnings when the file timeline can be ambiguously interpreted by the server.
+.IP
+.B \-rap
+signals Access Units random access flag in RTP packets. This is usually only needed for streaming of MPEG-4 Systems streams.
+.IP
+.B \-ts
+signals Access Units Time Stamps (CTS and DTS) in RTP packets.
+.IP
+.B \-size
+signals Access Units size in RTP packets.
+.IP
+.B \-idx
+signals Access Units indexes (sequence numbers) in RTP packets.
+.IP
+.B \-multi
+enables Access Units concatenation in RTP packets (-ts, -size and -idx are selected if needed).
+.IP
+.B \-iod
+prevents system tracks embedding in IOD (ISMA-like IOD) when generating in SDP. MP4Box automatically detects ambiguous (ISMA/non-ISMA) files but nobody's perfect. This shouldn't be used with -isma option.
+.
+.TP
+.B \-sdp_ex string
+adds string to movie SDP or track SDP (tkID:string, where tkID is the OD of the hint track or its media track). This takes care of SDP line reordering, but not of SDP content validity.
+.TP
+.B \-unhint
+removes all hint tracks and other hinting info from the file.
+.
+.SH IMPORT OPTIONS
+.TP
+.B \-add <src_file>
+adds all src_file tracks to input file, creating it if not exisiting. Up to 20 cumulated -add operations can be used. Supported syntaxes are:
+.br
+file#video: imports first video track from src_file.
+.br
+file#audio: imports first audio track from src_file.
+.br
+file#trackID=ID or file#ID: imports given trackfrom src_file. To get a listing of tracks in input file, use -info [ID]
+.br
+[;lang=LAN]: specifies language of imported media.
+.br
+[;delay=delay_ms]: specifies initial delay in milliseconds of imported media.
+.TP
+.B \-cat <src_file>
+concatenates all src_file tracks to input file, creating it if not exisiting. Media samples are added at the end of existing compatible tracks. If no compatible track is found for a media it is created. Up to 20 cumulated -cat operations can be used. Syntax is the same as -add.
+.TP
+.B \-keepsys
+by default all MPEG-4 systems media are removed with -add and -cat. This option will avoid removing them from final file.
+.TP
+.
+.TP
+.B \-dref
+keeps media data in original file an only imports meta-data (frame timing, size and random access). 
+.br
+.TP
+.B NOTE
+Data referencing may fail with some AVI because it requires the framed data (eg an MP4 sample) to be continuous in the original file, which is not always the case depending on the original interleaving.
+.TP
+.B \-nodrop
+forces constant FPS when importing AVI video. By default non coded frames (n-vop) are removed at import time, resulting in a variable frame-rate media.
+.TP
+.B \-packed
+for CMP/M4V (raw MPEG-4 Visual), forces packed-bitstream mode (removes all n-vops and import at constant frame rate).
+.TP
+.B \-sbr
+imports AAC as AAC-SBR, with backward compatible signaling (non AAC-SBR decoders should be able to play it).
+.TP
+.B \-sbrx
+imports AAC as AAC-SBR, with non-backward compatible signaling (non AAC-SBR decoders will not be able to play it).
+.TP 
+.B \-fps FrameRate
+overrides the input video frame rate or specifies it for SUB subtitles.
+.TP 
+.B \-mpeg4
+forces using MPEG-4 sample descriptions rather than 3GP ones (3GP2 QCELP/EVRC/SMV audio only).
+.TP 
+.B \-agg N
+aggregates N audio frames in 1 sample (3GP media only). Maximum possible value is 15, and default value is 1 (no aggregation).
+.
+.SH ENCODING OPTIONS
+.TP
+.B \-mp4
+specifies input file is for encoding. Supported inputs are BT/XMT-A/WRL/SWF files. Output file name is by default the input file name without extensions plus ".mp4" extension. 
+.TP
+.B \-def
+encodes DEF'ed nodes and routes with their textual names.
+.TP
+.B \-log
+generates BIFS encoder log file.
+.TP
+.B \-ms file
+specifies file for track importing - by default FILE.mp4 is used when encoding FILE.bt (in-place rewrite). This option is only needed if you don't provide
+a proper muxInfo per stream in the BT/XMT file.
+.TP
+.B \-sync time
+forces BIFS random access point generation every time milliseconds. Cannot be used with -shadow. WARNING: this may result in weird behavior of your presentation since a BIFS random access point restarts all media currently running in the scene (EXPERTS ONLY - DANGEROUS). Cannot be used with -shadow.
+.TP
+.B \-shadow time
+forces BIFS shadow random access points generation every time milliseconds. Shadow samples are random access points that can be used instead of non random access points when seeking. WARNING: this may be not supported by some players (EXPERTS ONLY - DANGEROUS). Cannot be used with -sync.
+.TP
+.B \-inctx file
+specifies initial context (MP4/BT/XMTA) for chunk processing. Input file must then be a command-only file: no IOD, and no implicit commands (commands without 'AT').
+.TP
+.B \-outctx file
+specifies output file of updated context (MP4/BT/XMTA) in chunk processing mode. This is optional, chunk processing doesn't need to store the final context.
+.
+.SH EXTRACTING OPTIONS
+.TP
+.B \-raw TrackID
+extracts given track in native format when supported.
+.TP
+.B \-raws TrackID
+extract each track sample to a file. Note: 'TrackID:N' extracts Nth sample of the track.
+.TP
+.B \-nhnt TrackID
+extracts given track in NHNT format. All track types except ObjectDescriptors tracks can be exported.
+.TP
+.B \-single TrackID
+extracts given track to a new mp4 file with a single track.
+.TP
+.B \-avi TrackID
+extracts visual track to an avi file.
+.TP
+.B \-qcp TrackID
+same as '-raw' but defaults to QCP file format for AVRC and SMV audio codecs.
+.TP
+.B \-aviraw TK
+extracts AVI track to its raw format. TK can be one of "video", "audio" or "audioN" for multi-track avi files (cf '-info'). 
+.
+.SH DUMP OPTIONS
+.TP
+.B \-info [TrackID]
+prints movie and tracks information. If TrackID specified, dumps only extended track info. If input file is not an IsoMedia file, lists known tracks for import.
+.TP
+.B \-bt
+dumps complete scene in a BT file. This will remove unknown MPEG4 nodes.
+.TP
+.B \-xmt
+dumps complete scene in an XMT-A file. This will remove unknown MPEG4 nodes.
+.TP
+.B \-wrl
+dumps complete scene in an VRML97 WRL file. This will remove unknown VRML97 nodes.
+.TP
+.B \-x3d
+dumps complete scene in an X3D XML file. This will remove unknown X3D nodes.
+.TP
+.B \-x3dv
+dumps complete scene in an X3D Text (VRML) file. This will remove unknown X3D nodes.
+.TP
+.B \-diso
+creates XML image of the file atoms.
+.TP
+.B \-drtp
+creates XML image of all hint tracks samples of a hinted mp4 file.
+.TP
+.B \-dcr
+creates XML image of all ISMACryp tracks samples of an mp4 file.
+.TP
+.B \-sdp
+creates SDP file associated with a hinted mp4 file.
+.TP
+.B \-ttxt
+converts input subtitle to GPAC TTXT format.
+.TP
+.B \-ttxt trackID
+exports given text track to GPAC TTXT format.
+.TP
+.B \-srt
+converts input subtitle to SRT format.
+.TP
+.B \-srt trackID
+exports given text track to SRT subtitle format.
+.TP
+.B \-std
+dumps to stdout rather than file.
+.TP
+.B \-stat
+generates statitistic report on node/field usage for the whole presentation.
+.TP
+.B \-stats
+generates statistic report on node/field usage per BIFS Access Unit.
+.TP
+.B \-statx
+generates statistic report on node/field usage in the scene graph after each BIFS Access Unit.
+.
+.SH Meta OPTIONS
+.
+.LP
+MP4Box supports the Meta addition to IsoMedia file format, used to make the file a generic data container (timed or untimed).
+.TP
+.B \-set-meta args
+sets meta object type. Syntax is "ABCD[;tk=N] where:
+.br ABCD is the four character code of the type, or O/NULL to remove the meta object
+.br tk indicates whether the meta is at the root level (no "tk"), at the moov level (tk=0) or at the track level (tk=trackID).
+.TP 
+.B \-add-item args
+adds resource to the given meta. args is the item file path followed by ';' separated options:
+.br tk=N: same as above
+.br name=item_name: specifies the item name, otherwise file name is used
+.br mime=mimeType: specifies the item mime type, otherwise application/octet-stream is used
+.br encoding=enctype: specifies the content encoding type
+Note that file path set to "this" or "self" will identify the item added as the whole IsoMedia file
+.TP
+.B \-rem-item args
+removes item from given meta. Syntax is itemID[;tk=ID].
+.TP
+.B \-set-primary args
+sets given item as the primary one of the given meta. Syntax is itemID[;tk=ID].
+.TP
+.B \-set-xml args
+sets XML to the given meta. Syntax is xml_file_path[;tk=ID][;binary].
+.TP
+.B \-rem-xml [tk=ID]
+removes XML data from the given meta.
+.TP
+.B \-dump-xml xml_out_file_name[;tk=ID]
+dumps the XML data of the given meta to a file.
+.TP
+.B \-dump-item itemID[;tk=ID][;path=fileName]
+dumps the given item of the the given meta to a file. By default the item name is used as the output file name.
+.
+.SH SWF OPTIONS
+.
+.LP
+MP4Box can import very simple Macromedia Flash files (".SWF"). You can specify a SWF input file with -bt, xmt and -mp4 switches.
+.TP
+.B \-static
+all SWF defines are placed in first scene replace. By default SWF defines are sent when needed.
+.TP
+.B \-ctrl
+uses a dedicated stream for movie control (forces -static option).
+.TP
+.B \-notext
+removes all SWF text.
+.TP
+.B \-nofont
+removes all embedded SWF Fonts, forcing usage of MPEG-4 Text and terminal fonts.
+.TP
+.B \-noline
+removes all lines from SWF shapes.
+.TP
+.B \-nograd
+removes all gradients from swf shapes.
+.TP
+.B \-quad
+uses quadratic bezier curves instead of cubic ones.
+.TP
+.B \-xlp
+support for lines transparency and scalability.
+.TP
+.B \-flatten Value
+replaces 2 consecutive lines by a single one when angle between lines is less than Value (expressed in radians). Value 0 disables flattening.
+.
+.
+.SH SUPPORTED INPUT FORMATS
+.TP
+.B RAW Formats and extensions
+.IP
+NHNT (.media .nhnt .info)
+.br
+MPEG Audio (.mp3)
+.br
+ADTS-AAC (.aac)
+.br
+MPEG-4 Visual (.cmp .m4v)
+.br
+H263 Video (.263 .h263)
+.br
+AVC/H264 Video (.h264 .h26L .264 .26L)
+.br
+JPEG Images (.jpg .jpeg)
+.br
+PNG Images (.png)
+.br
+AMR(WB) Audio (.amr .awb)
+.br
+EVRC Audio (.evc)
+.br
+SMV Audio (.smv)
+.
+.TP
+.B Container Formats and extensions
+.IP
+AVI (.avi)
+.br
+MPEG-PS (.mpg .mpeg .vob .vcd .svcd)
+.br
+QCP (.qcp)
+.br
+OGG (.ogg)
+.br
+ISO-Media files (no extension checking)
+.
+.TP
+.B Text Formats and extensions
+.IP
+.br
+SRT Subtitles (.srt)
+.br
+SUB Subtitles (.sub)
+.br
+GPAC Timed Text (.ttxt)
+.br
+QuickTime TeXML Text (.xml)  (cf QT documentation)
+.
+.TP
+.B Scene Formats and extensions
+.IP
+MPEG-4 XMT-A (.xmt .xmta .xmt.gz .xmta.gz)
+.br
+.br
+MPEG-4 BT (.bt .bt.gz)
+.br
+VRML (.wrl .wrl.gz)
+.br
+X3D-XML (.x3d .x3d.gz)
+.br
+X3D-VRML (.x3dv .x3dv.gz)
+.br
+MacroMedia Flash (.swf) - very limitted import support only
+.
+.
+.SH COMMON USAGE
+.TP
+.B Importing a file
+.IP
+Import an AVI: MP4Box -add myfile.avi mymp4.mp4
+.br
+Import audio from an AVI: MP4Box -add myfile.avi#audio mymp4.mp4
+.br
+Import video from an AVI: MP4Box -add myfile.avi#video mymp4.mp4
+.br
+Import an MP3 and leave data outside: MP4Box -dref -add myfile.mp3 mymp4.mp4
+.br
+Import a JPEG or PNG: MP4Box -add myfile.jpg mymp4.mp4
+.br
+Create a movie with subtitle: MP4Box -add video.avi -add audio.mp3 -add Subtitle.srt mymp4.mp4
+.br
+.TP
+.B Base File operations
+.IP
+Convert file for HTTP/FTP streaming: MP4Box -inter 1000 myfile.mp4
+.br
+Convert unknown file to ISMA for HTTP/FTP streaming: MP4Box -isma -inter 1000 myfile.mp4
+.br
+Convert unknown file to ISMA and respect ISMA broken sync: MP4Box -ismax myfile.mp4
+.br
+Convert unknown file to 3GP : MP4Box -3gp myfile.mp4
+.br
+.TP
+.B Hinting a File
+.IP
+Prepare any mp4 for ISMA streaming: MP4Box -isma -hint myfile.mp4
+.br
+Prepare any 3GP for streaming: MP4Box -hint myfile.3gp
+.br
+Prepare any 3GP for streaming with RTP aggregation : MP4Box -hint -multi myfile.3gp
+.br
+Prepare a simple audio/video mp4 optimized for server: MP4Box -hint -copy -tight myfile.mp4
+.br
+Prepare a complex mp4 with BIFS for streaming: MP4Box -ocr -iod -hint myfile.mp4
+.br
+.TP
+.B Encoding/Decoding a file
+.IP
+Encode a BT file and keep node names for later inspection: MP4Box -mp4 -def pres.bt
+.br
+Encode a XMT-A file: MP4Box -mp4 pres.xmt
+.br
+Translate BT to XMT-A file: MP4Box -xmt pres.bt
+.br
+Translate XMT-A to BT file: MP4Box -bt pres.xmt
+.br
+Decode MP4 to BT: MP4Box -bt pres.mp4
+.br
+.
+.SH BUGS and OTHER HELP
+.TP
+For bug reports, more information on BT or XMT-A formats or GPAC TTXT files or ISMACryp, MPEG-4 Systems usage and more help on MP4Box please visit the GPAC web site http://gpac.sourceforge.net
+.
+.SH "AUTHORS"
+.LP 
+Jean Le Feuvre <jeanlf@users.sourceforge.net> - GPAC (c) 2000-2005
+.
+.SH "SEE ALSO"
+.LP 
+GPAC(1), MP4Client(1), MP42AVI(1)

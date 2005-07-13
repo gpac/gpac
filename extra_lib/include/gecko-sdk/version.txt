@@ -1,0 +1,2 @@
+Gecko Win32 SDK from Mozilla 1.4b:
+http://ftp25moz.newaol.com/pub/mozilla/releases/mozilla1.4b/gecko-sdk-win32-1.4b.zip

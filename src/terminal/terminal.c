@@ -1,0 +1,808 @@
+
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Copyright (c) Jean Le Feuvre 2000-2005
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / Media terminal sub-project
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *
+ */
+
+
+#include <gpac/internal/terminal_dev.h>
+#include <gpac/renderer.h>
+#include <gpac/constants.h>
+#include <gpac/options.h>
+
+u32 gf_term_get_time(GF_Terminal *term)
+{
+	assert(term);
+	return gf_sr_get_clock(term->renderer);
+}
+
+void gf_term_invalidate_renderer(GF_Terminal *term)
+{
+	gf_sr_invalidate(term->renderer, NULL);
+}
+
+static Bool check_user(GF_User *user)
+{
+	if (!user->config) return 0;
+	if (!user->modules) return 0;
+	if (!user->opaque) return 0;
+	if (!user->os_window_handler) user->dont_override_window_proc = 0;
+	/*we need an event proc in this case*/
+	if (user->dont_override_window_proc && !user->EventProc) return 0;
+	return 1;
+}
+
+/*script API*/
+typedef struct
+{
+	GF_DownloadSession * sess;
+	void (*OnDone)(void *cbck, Bool success, const char *the_file_path);
+	void *cbk;
+} JSDownload;
+
+void JS_OnData(void *cbck, char *data, u32 data_size, u32 state, GF_Err e)
+{
+	JSDownload *jsdnload = (JSDownload *)cbck;
+	if (e<GF_OK) {
+		jsdnload->OnDone(jsdnload->cbk, 0, NULL);
+		gf_term_download_del(jsdnload->sess);
+		free(jsdnload);
+	}
+	else if (e==GF_EOS) {
+		const char *szCache = gf_dm_get_cache_name(jsdnload->sess);
+		jsdnload->OnDone(jsdnload->cbk, 1, szCache);
+		gf_term_download_del(jsdnload->sess);
+		free(jsdnload);
+	}
+}
+
+Bool OnJSGetScriptFile(void *opaque, GF_SceneGraph *parent_graph, const char *url, void (*OnDone)(void *cbck, Bool success, const char *the_file_path), void *cbk)
+{
+	JSDownload *jsdnload;
+	GF_InlineScene *is;
+	if (!parent_graph || !OnDone) return 0;
+	is = gf_sg_get_private(parent_graph);
+	if (!is) return 0;
+	SAFEALLOC(jsdnload, sizeof(JSDownload));
+	jsdnload->OnDone = OnDone;
+	jsdnload->cbk = cbk;
+	jsdnload->sess = gf_term_download_new(is->root_od->net_service, url, 0, JS_OnData, jsdnload);
+	if (!jsdnload->sess) {
+		free(jsdnload);
+		OnDone(cbk, 0, NULL);
+		return 0;
+	}
+	return 1;
+}
+
+const char *OnJSGetOption(void *opaque, char *option)
+{
+	GF_Terminal *term = (GF_Terminal *) opaque;
+	if (!stricmp(option, "WorldURL")) return term->root_scene->root_od->net_service->url;
+	return NULL;
+}
+void OnJSError(void *opaque, const char *msg)
+{
+	GF_Terminal *term = (GF_Terminal *) opaque;
+	gf_term_message(term, term->root_scene->root_od->net_service->url, msg, GF_SCRIPT_ERROR);
+}
+void OnJSPrint(void *opaque, const char *msg)
+{
+	GF_Terminal *term = (GF_Terminal *) opaque;
+	gf_term_message(term, term->root_scene->root_od->net_service->url, msg, GF_SCRIPT_INFO);
+}
+
+Bool OnJSLoadURL(void *opaque, const char *url, const char **params, u32 nb_params)
+{
+	GF_Event evt;
+	GF_Terminal *term = (GF_Terminal *) opaque;
+	if (!term->user->EventProc) return 0;
+	evt.type = GF_EVT_NAVIGATE;
+	evt.navigate.to_url = url;
+	evt.navigate.parameters = params;
+	evt.navigate.param_count = nb_params;
+	return term->user->EventProc(term->user->opaque, &evt);
+}
+
+static void gf_term_reload_cfg(GF_Terminal *term)
+{
+	char *sOpt;
+	Double fps;
+	u32 mode;
+	s32 prio;
+
+	if (!term) return;
+	
+	/*reload term part*/
+
+	sOpt = gf_cfg_get_key(term->user->config, "Systems", "AlwaysDrawBIFS");
+	if (sOpt && !stricmp(sOpt, "yes"))
+		term->bifs_can_resync = 0;
+	else
+		term->bifs_can_resync = 1;
+
+	sOpt = gf_cfg_get_key(term->user->config, "Systems", "ForceSingleClock");
+	if (sOpt && !stricmp(sOpt, "yes")) 
+		term->force_single_clock = 1;
+	else
+		term->force_single_clock = 0;
+
+	sOpt = gf_cfg_get_key(term->user->config, "Rendering", "FrameRate");
+	if (sOpt) {
+		fps = atof(sOpt);
+		if (term->system_fps != fps) {
+			term->system_fps = fps;
+			term->half_frame_duration = (u32) (500/fps);
+			gf_sr_set_fps(term->renderer, fps);
+		}
+	}
+
+	prio = GF_THREAD_PRIORITY_NORMAL;
+	sOpt = gf_cfg_get_key(term->user->config, "Systems", "Priority");
+	if (sOpt) {
+		if (!stricmp(sOpt, "low")) prio = GF_THREAD_PRIORITY_LOWEST;
+		else if (!stricmp(sOpt, "normal")) prio = GF_THREAD_PRIORITY_NORMAL;
+		else if (!stricmp(sOpt, "high")) prio = GF_THREAD_PRIORITY_HIGHEST;
+		else if (!stricmp(sOpt, "real-time")) prio = GF_THREAD_PRIORITY_REALTIME;
+	} else {
+		gf_cfg_set_key(term->user->config, "Systems", "Priority", "normal");
+	}
+	gf_mm_set_priority(term->mediaman, prio);
+
+	sOpt = gf_cfg_get_key(term->user->config, "Systems", "ThreadingPolicy");
+	if (sOpt) {
+		mode = 0;
+		if (!stricmp(sOpt, "Single")) mode = 1;
+		else if (!stricmp(sOpt, "Multi")) mode = 2;
+		gf_mm_set_threading(term->mediaman, mode);
+	}
+
+	/*default data timeout is 20 sec*/
+	term->net_data_timeout = 20000;
+	sOpt = gf_cfg_get_key(term->user->config, "Network", "DataTimeout");
+	if (sOpt) term->net_data_timeout = atoi(sOpt);
+
+	if (term->root_scene) gf_is_set_duration(term->root_scene);
+	/*reload renderer config*/
+	gf_sr_set_option(term->renderer, GF_OPT_RELOAD_CONFIG, 1);
+}
+
+static Bool gf_term_get_user_pass(void *usr_cbk, const char *site_url, char *usr_name, char *password)
+{
+	GF_Event evt;
+	GF_Terminal *term = (GF_Terminal *)usr_cbk;
+	evt.auth.site_url = site_url;
+	evt.auth.user = usr_name;
+	evt.auth.password = password;
+	return term->user->EventProc(term->user->opaque, &evt);
+}
+
+GF_Terminal *gf_term_new(GF_User *user)
+{
+	GF_Terminal *tmp;
+	char *cf;
+	if (!check_user(user)) return NULL;
+
+	tmp = malloc(sizeof(GF_Terminal));
+	if (!tmp) return NULL;
+	memset(tmp, 0, sizeof(GF_Terminal));
+
+	gf_sys_clock_start();
+
+	tmp->user = user;
+	tmp->js_ifce.callback = tmp;
+	tmp->js_ifce.Error = OnJSError;
+	tmp->js_ifce.Print = OnJSPrint;
+	tmp->js_ifce.GetOption = OnJSGetOption;
+	tmp->js_ifce.GetScriptFile = OnJSGetScriptFile;
+	tmp->js_ifce.LoadURL = OnJSLoadURL;
+
+	/*this is not changeable at runtime*/
+	cf = gf_cfg_get_key(user->config, "Systems", "NoVisualThread");
+	if (!cf || !stricmp(cf, "no")) {
+		tmp->render_frames = 0;
+	} else {
+		tmp->render_frames = 1;
+	}
+
+	/*setup scene renderer*/
+	tmp->renderer = gf_sr_new(user, !tmp->render_frames, 0, tmp);
+	if (!tmp->renderer) {
+		free(tmp);
+		return NULL;
+	}
+	tmp->system_fps = 30.0;
+	gf_sr_set_fps(tmp->renderer, tmp->system_fps);
+	tmp->half_frame_duration = (u32) (500/tmp->system_fps);
+
+	tmp->downloader = gf_dm_new(user->config);
+	gf_dm_set_auth_callback(tmp->downloader, gf_term_get_user_pass, tmp);
+
+	tmp->net_services = gf_list_new();
+	tmp->net_services_to_remove = gf_list_new();
+	tmp->channels_pending = gf_list_new();
+	tmp->od_pending = gf_list_new();
+	
+	tmp->net_mx = gf_mx_new();
+	tmp->input_streams = gf_list_new();
+	tmp->x3d_sensors = gf_list_new();
+
+	/*mode is changed when reloading cfg*/
+	tmp->mediaman = gf_mm_new(tmp, GF_TERM_THREAD_FREE);
+	gf_term_reload_cfg(tmp);
+	return tmp;
+}
+
+GF_Err gf_term_del(GF_Terminal * term)
+{
+	GF_Err e;
+	u32 timeout;
+
+	if (!term) return GF_BAD_PARAM;
+
+	/*disconnect main scene from the renderer*/
+	gf_sr_set_scene(term->renderer, NULL);
+
+	/*close main service*/
+	gf_term_disconnect(term);
+
+	/*wait for destroy*/
+	e = GF_IO_ERR;
+	timeout = 1000;
+	while (term->root_scene || gf_list_count(term->net_services) || gf_list_count(term->net_services_to_remove)) {
+		gf_sleep(30);
+		/*this shouldn't be needed but unfortunately there's a bug hanging around there...*/
+		timeout--;
+		if (!timeout) break;
+	}
+	if (timeout) {
+		assert(!gf_list_count(term->net_services));
+		assert(!gf_list_count(term->net_services_to_remove));
+		e = GF_OK;
+	} 
+
+	/*stop the media manager */
+	gf_mm_del(term->mediaman);
+
+	/*delete renderer before the input sensor stacks to avoid recieving events from the renderer
+	when destroying these stacks*/
+	gf_sr_del(term->renderer);
+
+	gf_list_del(term->net_services);
+	gf_list_del(term->net_services_to_remove);
+	gf_list_del(term->input_streams);
+	gf_list_del(term->x3d_sensors);
+	assert(!gf_list_count(term->channels_pending));
+	gf_list_del(term->channels_pending);
+	assert(!gf_list_count(term->od_pending));
+	gf_list_del(term->od_pending);
+	if (term->downloader) gf_dm_delete(term->downloader);
+	gf_mx_del(term->net_mx);
+	gf_sys_clock_stop();
+	free(term);
+	return e;
+}
+
+
+void gf_term_message(GF_Terminal *term, const char *service, const char *message, GF_Err error)
+{
+	if (!term || !term->user) return;
+	GF_USER_MESSAGE(term->user, service, message, error);
+}
+
+
+void gf_term_connect_from_time(GF_Terminal * term, const char *URL, u32 startTime)
+{
+	GF_InlineScene *is;
+	GF_ObjectManager *odm;
+	const char *main_url;
+	if (!URL || !strlen(URL)) return;
+
+	if (term->root_scene) {
+		if (term->root_scene->root_od && term->root_scene->root_od->net_service) {
+			main_url = term->root_scene->root_od->net_service->url;
+			if (main_url && !strcmp(main_url, URL)) {
+				gf_term_play_from_time(term, 0);
+				return;
+			}
+		}
+		/*disconnect*/
+		gf_term_disconnect(term);
+	}
+
+	gf_term_lock_net(term, 1);
+	/*create a new scene*/
+	is = gf_is_new(NULL);
+	odm = gf_odm_new();
+	gf_sg_set_javascript_api(is->graph, &term->js_ifce);
+
+	is->root_od = odm;
+	term->root_scene = is;
+	odm->parentscene = NULL;
+	odm->subscene = is;
+	odm->term = term;
+	gf_term_lock_net(term, 0);
+
+	term->restart_time = startTime;
+
+	/*connect - we don't have any parentID */
+	gf_term_connect_object(term, odm, (char *) URL, NULL);
+}
+
+void gf_term_connect(GF_Terminal * term, const char *URL)
+{
+	gf_term_connect_from_time(term, URL, 0);
+}
+
+static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_audio)
+{
+	u32 i, j;
+	/*only play/pause if connected*/
+	if (!term || !term->root_scene) return;
+	/*and if not already paused/playing*/
+	if (!term->play_state && !PlayState) return;
+	if (term->play_state && (PlayState==GF_STATE_PAUSED)) return;
+
+	/*pause renderer*/
+	if ((PlayState==GF_STATE_PLAYING) && reset_audio)
+		gf_sr_set_option(term->renderer, GF_OPT_PLAY_STATE, 0xFF);
+	else
+		gf_sr_set_option(term->renderer, GF_OPT_PLAY_STATE, PlayState);
+	/*step mode real pause is done by renderer*/
+	if (PlayState==GF_STATE_STEP_PAUSE) return;
+	term->play_state = PlayState;
+
+	/*pause all clocks on all services*/
+	for (i=0; i<gf_list_count(term->net_services); i++) {
+		GF_ClientService *ns = gf_list_get(term->net_services, i);
+		for (j=0; j<gf_list_count(ns->Clocks); j++) {
+			GF_Clock *ck = gf_list_get(ns->Clocks, j);
+			if (PlayState) gf_clock_pause(ck);
+			else gf_clock_resume(ck);
+		}
+	}
+}
+
+void gf_term_disconnect(GF_Terminal *term)
+{
+	if (!term->root_scene) return;
+	/*resume*/
+	if (term->play_state) gf_term_set_play_state(term, GF_STATE_PLAYING, 1);
+
+	gf_sr_set_scene(term->renderer, NULL);
+	gf_odm_disconnect(term->root_scene->root_od, 1);
+	while (term->root_scene) gf_sleep(10);
+}
+
+
+static GF_Err gf_term_set_cache_state(GF_Terminal *term, u32 state)
+{
+	GF_Err e;
+	if (!term) return GF_BAD_PARAM;
+	if (term->enable_cache && (state==GF_MEDIA_CACHE_ENABLED)) return GF_OK;
+	if (!term->enable_cache && (state!=GF_MEDIA_CACHE_ENABLED)) return GF_OK;
+
+	term->enable_cache = !term->enable_cache;
+	/*not connected, nothing to do*/
+	if (!term->root_scene) return GF_OK;
+	gf_term_lock_net(term, 1);
+	if (term->enable_cache) {
+		/*otherwise start cache*/
+		e = gf_term_service_cache_load(term->root_scene->root_od->net_service);
+	} else {
+		e = gf_term_service_cache_close(term->root_scene->root_od->net_service, (state==GF_MEDIA_CACHE_DISCARD) ? 1 : 0);
+	}
+	gf_term_lock_net(term, 0);
+	return e;
+}
+
+
+/*set rendering option*/
+GF_Err gf_term_set_option(GF_Terminal * term, u32 type, u32 value)
+{
+	if (!term) return GF_BAD_PARAM;
+	switch (type) {
+	case GF_OPT_PLAY_STATE:
+		gf_term_set_play_state(term, value, 0);
+		return GF_OK;
+	case GF_OPT_RELOAD_CONFIG:
+		gf_term_reload_cfg(term);
+		return GF_OK;
+	case GF_OPT_MEDIA_CACHE:
+		gf_term_set_cache_state(term, value);
+		return GF_OK;
+	default:
+		return gf_sr_set_option(term->renderer, type, value);
+	}
+}
+
+
+/*returns 0 if any of the clock still hasn't seen EOS*/
+u32 Term_CheckClocks(GF_ClientService *ns, GF_InlineScene *is)
+{
+	u32 i;
+	if (is) {
+		if (is->root_od->net_service != ns) {
+			if (!Term_CheckClocks(is->root_od->net_service, is)) return 0;
+		}
+		for (i=0; i<gf_list_count(is->ODlist); i++) {
+			GF_ObjectManager *odm = gf_list_get(is->ODlist, i);
+			if (odm->net_service != ns) {
+				while (odm->remote_OD) odm = odm->remote_OD;
+				if (!Term_CheckClocks(odm->net_service, NULL)) return 0;
+			}
+		}
+	}
+	for (i=0; i<gf_list_count(ns->Clocks); i++) {
+		GF_Clock *ck = gf_list_get(ns->Clocks, i);
+		if (!ck->has_seen_eos) return 0;
+	}
+	return 1;
+}
+
+u32 Term_CheckIsOver(GF_Terminal *term)
+{
+	GF_ObjectManager *odm;
+	if (!term->root_scene) return 1;
+	/*if input sensors consider the scene runs forever*/
+	if (gf_list_count(term->input_streams)) return 0;
+	if (gf_list_count(term->x3d_sensors)) return 0;
+	odm = term->root_scene->root_od;
+	while (odm->remote_OD) odm = odm->remote_OD;
+	/*check no clocks are still running*/
+	if (!Term_CheckClocks(odm->net_service, term->root_scene)) return 0;
+	if (term->root_scene->is_dynamic_scene) return 1;
+	/*ask renderer if there are sensors*/
+	return gf_sr_get_option(term->renderer, GF_OPT_IS_FINISHED);
+}
+
+/*get rendering option*/
+u32 gf_term_get_option(GF_Terminal * term, u32 type)
+{
+	if (!term) return 0;
+	switch (type) {
+	case GF_OPT_HAS_JAVASCRIPT: return gf_sg_has_scripting();
+	case GF_OPT_IS_FINISHED: return Term_CheckIsOver(term);
+	case GF_OPT_PLAY_STATE: return term->play_state ? GF_STATE_PAUSED : GF_STATE_PLAYING;
+	case GF_OPT_MEDIA_CACHE: 
+		if (!term->enable_cache) return GF_MEDIA_CACHE_DISABLED;
+		else if (term->root_scene && term->root_scene->root_od->net_service->cache) return GF_MEDIA_CACHE_RUNNING;
+		else return GF_MEDIA_CACHE_ENABLED;
+	case GF_OPT_CAN_SELECT_STREAMS: return (term->root_scene && term->root_scene->is_dynamic_scene) ? 1 : 0;
+	default: return gf_sr_get_option(term->renderer, type);
+	}
+}
+
+/*call by owner when size / position has changed*/
+void gf_term_refresh(GF_Terminal * term)
+{
+	if (!term) return;
+	gf_sr_refresh(term->renderer);
+}
+
+GF_Err gf_term_size_changed(GF_Terminal * term, u32 NewWidth, u32 NewHeight)
+{
+	if (!term) return 0;
+	return gf_sr_size_changed(term->renderer, NewWidth, NewHeight);
+}
+
+GF_Err gf_term_set_size(GF_Terminal * term, u32 NewWidth, u32 NewHeight)
+{
+	if (!term) return 0;
+	return gf_sr_set_size(term->renderer, NewWidth, NewHeight);
+}
+
+void gf_term_handle_services(GF_Terminal *term)
+{
+	GF_ClientService *ns;
+
+	/*play ODs that need it*/
+	gf_mx_p(term->net_mx);
+	while (gf_list_count(term->od_pending)) {
+		GF_ObjectManager *odm = gf_list_get(term->od_pending, 0);
+		gf_list_rem(term->od_pending, 0);
+		gf_odm_play(odm);
+	}
+	gf_mx_v(term->net_mx);
+
+	/*lock to avoid any start attemps from renderer*/
+	gf_sr_lock(term->renderer, 1);
+	while (gf_list_count(term->net_services_to_remove)) {
+		gf_mx_p(term->net_mx);
+		ns = gf_list_get(term->net_services_to_remove, 0);
+		if (ns) gf_list_rem(term->net_services_to_remove, 0);
+		gf_mx_v(term->net_mx);
+		if (!ns) break;
+		gf_term_service_del(ns);
+	}
+	gf_sr_lock(term->renderer, 0);
+
+	/*need to reload*/
+	if (term->reload_state == 1) {
+		term->reload_state = 2;
+		gf_term_disconnect(term);
+	}
+	if (term->reload_state == 2) {
+		term->reload_state = 0;
+		gf_term_connect(term, term->reload_url);
+		free(term->reload_url);
+		term->reload_url = NULL;
+	}
+}
+
+void gf_term_close_services(GF_Terminal *term, GF_ClientService *ns)
+{
+	GF_Err e = ns->ifce->CloseService(ns->ifce);
+	ns->owner = NULL;
+	/*if error don't wait for ACK to remove from main list*/
+	if (e) {
+		gf_list_del_item(term->net_services, ns);
+		gf_list_add(term->net_services_to_remove, ns);
+	}
+}
+
+void gf_term_lock_renderer(GF_Terminal *term, Bool LockIt)
+{
+	gf_sr_lock(term->renderer, LockIt);
+}
+
+void gf_term_lock_net(GF_Terminal *term, Bool LockIt)
+{
+	if (LockIt) {
+		gf_mx_p(term->net_mx);
+	} else {
+		gf_mx_v(term->net_mx);
+	}
+}
+
+
+/*connects given OD manager to its URL*/
+void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, GF_ClientService *ParentService)
+{
+	u32 i;
+	GF_Err e;
+	gf_term_lock_net(term, 1);
+
+	/*for remoteODs/dynamic ODs, check if one of the running service cannot be used*/
+	for (i=0; i<gf_list_count(term->net_services); i++) {
+		GF_ClientService *ns = gf_list_get(term->net_services, i);
+		if (gf_term_service_can_handle_url(ns, serviceURL)) {
+			odm->net_service = ns;
+			gf_odm_setup_entry_point(odm, serviceURL);
+			gf_term_lock_net(term, 0);
+			return;
+		}
+	}
+
+	odm->net_service = gf_term_service_new(term, odm, serviceURL, ParentService, &e);
+	if (!odm->net_service) {
+		gf_term_lock_net(term, 0);
+		gf_term_message(term, serviceURL, "Cannot open service", e);
+		gf_odm_disconnect(odm, 1);
+		return;
+	}
+	/*OK connect*/
+	odm->net_service->ifce->ConnectService(odm->net_service->ifce, odm->net_service, odm->net_service->url);
+
+	gf_term_lock_net(term, 0);
+}
+
+/*connects given channel to its URL if needed*/
+GF_Err gf_term_connect_remote_channel(GF_Terminal *term, GF_Channel *ch, char *URL)
+{
+	GF_Err e;
+	u32 i;
+	GF_ClientService *ns;
+
+	gf_term_lock_net(term, 1);
+
+	/*if service is handled by current service don't create new one*/
+	if (gf_term_service_can_handle_url(ch->service, URL)) {
+		gf_term_lock_net(term, 0);
+		return GF_OK;
+	}
+	for (i=0; i<gf_list_count(term->net_services); i++) {
+		ns = gf_list_get(term->net_services, i);
+		if (gf_term_service_can_handle_url(ns, URL)) {
+			ch->service = ns;
+			gf_term_lock_net(term, 0);
+			return GF_OK;
+		}
+	}
+	/*use parent OD for parent service*/
+	ns = gf_term_service_new(term, NULL, URL, ch->odm->net_service, &e);
+	if (!ns) return e;
+	ch->service = ns;
+	ns->ifce->ConnectService(ns->ifce, ns, ns->url);
+
+	gf_term_lock_net(term, 0);
+	return GF_OK;
+}
+
+void gf_term_play_from_time(GF_Terminal *term, u32 from_time)
+{
+	if (!term || !term->root_scene) return;
+	if (term->root_scene->root_od->no_time_ctrl) return;
+
+	/*for dynamic scene OD ressources are static and all object use the same clock, so don't restart the root 
+	OD, just act as a mediaControl on all playing streams*/
+	if (term->root_scene->is_dynamic_scene) {
+		/*exit pause mode*/
+		gf_term_set_play_state(term, GF_STATE_PLAYING, 1);
+		gf_sr_lock(term->renderer, 1);
+		gf_is_restart_dynamic(term->root_scene, from_time);
+		gf_sr_lock(term->renderer, 0);
+		return;
+	}
+
+	/*pause everything*/
+	gf_term_set_play_state(term, GF_STATE_PAUSED, 0);
+	gf_sr_lock(term->renderer, 1);
+	gf_sr_set_scene(term->renderer, NULL);
+	/*stop root*/
+	gf_odm_stop(term->root_scene->root_od, 1);
+	gf_is_disconnect(term->root_scene, 0);
+	/*make sure we don't have OD queued*/
+	while (gf_list_count(term->od_pending)) gf_list_rem(term->od_pending, 0);
+	term->restart_time = from_time;
+
+	gf_odm_start(term->root_scene->root_od);
+	gf_sr_lock(term->renderer, 0);
+	gf_term_set_play_state(term, GF_STATE_PLAYING, 1);
+}
+
+
+void gf_term_user_input(GF_Terminal * term, GF_Event *evt)
+{
+	if (term) gf_sr_user_input(term->renderer, evt);
+}
+
+
+Double gf_term_get_framerate(GF_Terminal *term, Bool absoluteFPS)
+{
+	if (!term || !term->renderer) return 0;
+	return gf_sr_get_fps(term->renderer, absoluteFPS);
+}
+
+/*get main scene current time in sec*/
+u32 gf_term_get_time_in_ms(GF_Terminal *term)
+{
+	if (!term || !term->root_scene || !term->root_scene->scene_codec) return 0;
+	return gf_clock_time(term->root_scene->scene_codec->ck);
+}
+
+GF_Node *gf_term_pick_node(GF_Terminal *term, s32 X, s32 Y)
+{
+	if (!term || !term->renderer) return NULL;
+	return gf_sr_pick_node(term->renderer, X, Y);
+}
+
+void gf_term_reload(GF_Terminal *term)
+{
+	if (!term->root_scene) return;
+	if (term->reload_url) free(term->reload_url);
+	term->reload_url = strdup(term->root_scene->root_od->net_service->url);
+	term->reload_state = 1;
+}
+
+GF_Err gf_term_get_viewpoint(GF_Terminal *term, u32 viewpoint_idx, const char **outName, Bool *is_bound)
+{
+	return gf_sr_get_viewpoint(term->renderer, viewpoint_idx, outName, is_bound);
+}
+
+GF_Err gf_term_set_viewpoint(GF_Terminal *term, u32 viewpoint_idx, const char *viewpoint_name)
+{
+	return gf_sr_set_viewpoint(term->renderer, viewpoint_idx, viewpoint_name);
+}
+
+GF_Err gf_term_add_object(GF_Terminal *term, const char *url, Bool auto_play)
+{
+	GF_MediaObject *mo;
+	SFURL sfurl;
+	MFURL mfurl;
+	if (!url || !term || !term->root_scene || !term->root_scene->is_dynamic_scene) return GF_BAD_PARAM;
+
+	sfurl.OD_ID = GF_ESM_DYNAMIC_OD_ID;
+	sfurl.url = (char *) url;
+	mfurl.count = 1;
+	mfurl.vals = &sfurl;
+	/*only text tracks are supported for now...*/
+	mo = gf_is_get_media_object(term->root_scene, &mfurl, GF_MEDIA_OBJECT_TEXT);
+	/*check if we must deactivate it*/
+	if (mo && mo->odm) {
+		if (mo->num_open && !auto_play) {
+			gf_is_select_object(term->root_scene, mo->odm);
+		} else {
+			mo->odm->OD_PL = auto_play ? 1 : 0;
+		}
+	}
+	return mo ? GF_OK : GF_NOT_SUPPORTED;
+}
+
+
+void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
+{
+	Bool net_check_interface(GF_InputService *ifce);
+	GF_InlineScene *is;
+	GF_ObjectManager *odm;
+	if (!net_check_interface(service_hdl)) return;
+
+	if (term->root_scene) gf_term_disconnect(term);
+
+	gf_term_lock_net(term, 1);
+	
+	/*create a new scene*/
+	is = gf_is_new(NULL);
+	odm = gf_odm_new();
+	gf_sg_set_javascript_api(is->graph, &term->js_ifce);
+
+	is->root_od = odm;
+	term->root_scene = is;
+	odm->parentscene = NULL;
+	odm->subscene = is;
+	odm->term = term;
+	term->restart_time = 0;
+
+	odm->net_service = malloc(sizeof(GF_ClientService));
+	memset(odm->net_service, 0, sizeof(GF_ClientService));
+	odm->net_service->term = term;
+	odm->net_service->owner = odm;
+	odm->net_service->ifce = service_hdl;
+	odm->net_service->url = strdup("Internal Service Handler");
+	odm->net_service->Clocks = gf_list_new();
+	gf_list_add(term->net_services, odm->net_service);
+
+	gf_term_lock_net(term, 0);
+
+	/*OK connect*/
+	odm->net_service->ifce->ConnectService(odm->net_service->ifce, odm->net_service, odm->net_service->url);
+}
+
+/*exported for renderers*/
+Bool gf_term_process_anchor(GF_Node *caller, GF_Event *evt)
+{
+	u32 i;
+	GF_Terminal *term;
+	GF_InlineScene *is;
+	GF_SceneGraph *sg = gf_node_get_graph(caller);
+	if (!sg) return 1;
+	is = (GF_InlineScene *)gf_sg_get_private(sg);
+	if (!is) return 1;
+	term = is->root_od->term;
+
+	/*if main scene forward to user. If no params or first one not "self" forward to user*/
+	if ((term->root_scene==is) || !evt->navigate.parameters || !evt->navigate.param_count || stricmp(evt->navigate.parameters[0], "self")) {
+		if (term->user->EventProc) return term->user->EventProc(term->user->opaque, evt);
+		return 1;
+	}
+	/*this is ugly, we assume the navigate URL is really an MPEG4 one...*/
+	for (i=0; i<gf_list_count(is->inline_nodes); i++) {
+		M_Inline *inl = gf_list_get(is->inline_nodes, i);
+		gf_sg_vrml_mf_reset(&inl->url, GF_SG_VRML_MFURL);
+		gf_sg_vrml_mf_alloc(&inl->url, GF_SG_VRML_MFURL, 1);
+		inl->url.vals[0].url = strdup(evt->navigate.to_url ? evt->navigate.to_url : "");
+		/*signal URL change but don't destroy inline scene now since we got this event from inside the scene, 
+		this could crash renderers*/
+		is->needs_restart = 2;
+	}
+	return 1;
+}

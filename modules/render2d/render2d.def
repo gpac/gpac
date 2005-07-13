@@ -1,0 +1,6 @@
+LIBRARY     render2d.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

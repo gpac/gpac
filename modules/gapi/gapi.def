@@ -1,0 +1,6 @@
+LIBRARY     gapi.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

@@ -1,0 +1,6 @@
+LIBRARY     ctx_load.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

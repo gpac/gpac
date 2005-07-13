@@ -1,0 +1,121 @@
+Installation instructions for GPAC 0.4.0 on windows CE platform
+last modified: July 2005
+
+0 Foreword
+	Compilation has only been tested with eVC3 and ARM platforms
+	
+	GPAC 0.4.0 should be stable on most PDA devices running PocketPC 2002 - it has NOT been tested on SmartPhones or PocketPC 2003 devices. 
+
+	The output directory for all plugins and applications is
+		gpac/bin/arm_ppc02_deb in debug mode
+		gpac/bin/arm_ppc02_rel in release mode
+	
+	As of 0.2.2, GPAC cannot be compiled without ZLIB. You'd better make sure it is installed locally or on your system (zlib is provided in gpac_extra_libs package)
+	
+I Extra lib installation
+	It is recommended to download and compile all extra libs needed by gpac on winCE.
+	In case you don't do so, you will need to to modify project settings.
+
+
+II GPAC compilation
+
+	open /IDEs/eVC3/GPAC.dsw (GPAC workspace) with eVC3
+	
+	NEVER ATTEMPT TO LOAD A PROJECT OUTSIDE THIS WORKSPACE
+	
+	II.1 Recompiling libgpac
+		libgpac is the core library of the GPAC framework used by all GPAC applications 
+		Set the "libgpac_dll" project as the active one
+		If you have not installed the SpiderMonkey (JavaScript, libjs) library, remove the GPAC_HAS_SPIDERMONKEY preprocessor variable from the libgpac project settings (not "libgpac_dll" !!)
+		recompile
+	
+	II.2 Recompiling Osmo4
+		Osmo4 is the GUI MPEG-4 player of GPAC for the windows CE.
+		Set Osmo4 as the active project
+		recompile
+		
+		NOTE: another way of building is removing unneeded plugins from the workspace (or the BuildAll GUI) and do a "rebuild all".
+
+	II.3 Recompiling Plugins
+		
+		Before compiling GPAC plugins, you must make sure the projects are configured with the right libraries
+		* aac_in
+			If you have not installed faad2 library, remove the GPAC_HAS_FAAD preprocessor variable from the aac_in project settings.
+			Note that if no aac decoder	is installed for gpac you may as well remove the "aac_in" project from the workspace (DEL).
+
+		* mp3_in
+			If you have not installed mad library, remove the GPAC_HAS_MAD preprocessor variable from the mp3_in project settings.
+			Note that if no mp3 decoder is installed for gpac you may as well remove the "mp3_in" project from the workspace (DEL).
+
+		* amr_nb		
+			This plugin handles speech coded data using AMR Narrow Band format. It uses the decoder of the 3GPP consortium (TS26.073) available 
+			from http://www.3gpp.org/ftp/Specs/archive/26_series/26.073/26073-510.zip. 
+			It is the same version included in gpac_extra_libs/AMR_NB with a slight header modifcation.
+ 			To compile this plugin, copy the source code to modules/amr_dec/amr_nb WITHOUT OVERWRITING typedefs.h file.
+ 			Otherwise, remove the "amr_dec" project from the workspace (DEL).
+
+		* img_in:
+			If you have not installed libpng, remove the GPAC_HAS_PNG preprocessor variable from the img_in project settings
+			If you have not installed libjpeg, remove the GPAC_HAS_JPEG preprocessor variable from the img_in project settings
+			If none of the above lib is installed, you can simply remove the img_in project from the workspace (DEL).
+		
+		* ft_font
+			if you have not installed freetype, remove the project dependecies to freetype in project Osmo4 and MP4Client
+			NOTE: if you have not installed freetype, you won't have text support at all in GPAC.
+
+		* ogg
+			if you have not installed libogg library, remove the "ogg" project from the workspace (DEL).
+			if you have not installed libvorbis library, remove the GPAC_HAS_VORBIS preprocessor variable from the ogg project settings
+			if you have not installed libtheora library, remove the GPAC_HAS_THEORA preprocessor variable from the ogg project settings
+			Note that if you have only installed libogg you can also remove the "ogg" project from the workspace, it won't be any usefull.
+				
+		* gapi:
+			you must make sure you have installed the GAPI SDK for windows (also known as GX) before compiling - cf gpac_extra_libs/ReadMe
+
+		* svg_loader:
+			the svg reader requires libxml2 for SVG parsing. WinCE binaries of LibXML2 are available in gpac_extra_lib package, and can be recompiled from the official libxml2 soiurce tree (http://www.xmlsoft.org).
+			To install the precompiled binaries from gpac_extra_lib, copy the gpac_extra_lib/libxml2_arm_ppc2002/include/libxml ENTIRE DIRECTORY in gpac/extra_libs/include, and copy
+			gpac_extra_lib/libxml2_arm_ppc2002/lib/libxml2.lib to both gpac/extra_lib/lib/arm_ppc2002_deb and gpac/extra_lib/lib/arm_ppc2002_rel, and the libxml2.dll to gpac/bin/arm_ppc2002_deb and gpac/bin/arm_ppc2002_rel
+			To install from the official libxm2 source tree, rebuild libxml2 for ARM and update svg_loader project settings to point to the right directories for include and library files.
+			If you don't want to install libxml2 or don't plan to test svg, simply remove the "svg_loader" project from the workspace (DEL).
+
+		Recompile all plugins by hand or with a batch buil (menu build->Batch Build -> Build)
+						
+	II.4 Launching Osmo4
+		Osmo4 will automatically create a config file in the Osmo4 executable directory if needed. You must copy all plugins to this directory (recommended), or edit
+		by hand the config file "ModulesDirectory" key to point to the plugins directory, otherwise Osmo4 will not launch.
+		You can then launch Osmo4 (cf Misc section below)
+		
+	II.5 Compiling render3D for Osmo4 on CE
+		There are no instructions for that, you are left alone. 3D support for handheld devices is comming but not stable enough for Osmo4 to use it. We however recommend using
+		the klimt library (http://studierstube.org/klimt/index.php) to build the 3D version. Note that some opengl or GLU primitives are not implemented in klimt therefore
+		you will need to modify quite some code in the 3D renderer. You will also have to modify the GAPI video output plugin.
+
+III GPAC Installer for WinCE
+
+		The GPAC installer uses MS installer and EZSetup to get an Osmo4 installer on PocketPC systems
+				THIS INSTALLER IS ONLY INTENDED FOR STRONGARM BASED DEVICES
+		
+		* compile Osmo4 for PocketPC
+		* make sure the js.dll is copied in gpac/bin/arm_ppc2002_rel if you have compiled GPAC with SpiderMonkey support, otherwise comment lines "js.dll" in osmo4.inf
+		* make sure the libxml2.dll is copied in gpac/bin/arm_ppc2002_rel if you have compiled the svg loader, otherwise comment lines "libxml2.dll" in osmo4.inf
+		* remove any lines in osmo4.inf that refer to plugins you have not built.
+		* get MS PocketPC Cabwizard (search for Cabwiz.exe in your ActiveSync distribution)
+		* go to gpac/bin/arm_ppc2002_rel/install
+		* copy cabwiz.exe, cabwiz.ddf and MAKECAB.exe in this directory
+		* copy gx.dll in this directory (download from microsoft, or use gpac extra libs version)
+		* get Ezsetup from http://www.eskimo.com/~scottlu/win/, and copy it in this directory
+		* run do.bat file
+		
+IV Misc
+
+	IV.1 Note on Video
+		As of 0.2.3, the OpenDivx plugin is no longer included in GPAC. A new, modified version of XviD 1.0 for ARM is included (cf gpac/modules/xvid_dec/xvid_wce/ReadMe.txt)
+	
+	IV.2 Note on Network
+		Ipaq devices under WindowsCE below Windows CE .NET 4.1 (and maybe other devices) have a small default UDP buffer size, and this buffer size cannot 
+		be changed through WinSock (software) calls. To increase it, you must manually edit the registry and set (add a DWORD key if not present):
+					HKEY_LOCAL_MACHINE\Comm\Afd\DgramBuffer 16
+		16 is the maximum value possible, DON'T TRY TO SPECIFY MORE.
+		The device MUST be reseted (soft reset, cf your manual)	for the parameter to be taken into account.
+

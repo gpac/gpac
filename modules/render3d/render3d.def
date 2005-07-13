@@ -1,0 +1,6 @@
+LIBRARY     render3d.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

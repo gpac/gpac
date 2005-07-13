@@ -1,0 +1,462 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+
+<HEAD>
+	<META HTTP-EQUIV="Content-Type" CONTENT="text/html;CHARSET=iso-8859-1">
+	<TITLE>GPAC Configuration documentation </TITLE>
+</HEAD>
+
+<A NAME="Overview"/>
+<BODY>
+
+<P ALIGN="CENTER"><BR>
+<SPAN STYLE="Font-Size : 14pt"><FONT FACE="Times New Roman"><BR></FONT></SPAN>
+<B><SPAN STYLE="Font-Size : 24pt"><FONT FACE="Times New Roman">GPAC Configuration file documentation - version 0.4.0</FONT></SPAN></B>
+<BR>
+<SPAN STYLE="Font-Size : 18pt"><FONT FACE="Times New Roman">Last Modified July 2005</FONT></SPAN></B>
+
+</P>
+
+<BR><BR>
+
+<P ALIGN="LEFT">
+<B><U>Overview</U></B>
+<BR><BR>
+<DD>
+<P ALIGN="LEFT">Some applications in the GPAC framework use a configuration file shared among modules and reloadable at run time. Modules may use the configuration file as well (to avoid multiple config files). This doc attempts to provide explanations for the different options.
+
+<P ALIGN="LEFT">The config file is based on the win32 .ini file model, thus is ordered by sections and keys.
+<BR><DD>A section is declared as <B><I>SectionName</I></B>. Defined sections are:
+<BR><BR>
+<B><U><A HREF="#General">General</A></U></B>
+<B><U><A HREF="#Systems">Systems</A></U></B>
+<B><U><A HREF="#Rendering">Rendering</A></U></B>
+<B><U><A HREF="#Render2D">Render2D</A></U></B>
+<B><U><A HREF="#Render3D">Render3D</A></U></B>
+<B><U><A HREF="#Audio">Audio</A></U></B>
+<B><U><A HREF="#Video">Video</A></U></B>
+<B><U><A HREF="#Network">Network</A></U></B>
+<B><U><A HREF="#FontEngine">FontEngine</A></U></B>
+<B><U><A HREF="#Downloader">Downloader</A></U></B>
+<B><U><A HREF="#Streaming">Streaming</A></U></B>
+<B><U><A HREF="#MimeTypes">MimeTypes</A></U></B>
+<B><U><A HREF="#GF_StreamingCache">GF_StreamingCache</A></U></B>
+<B><U><A HREF="#WviD">XviD</A></U></B>
+<B><U><A HREF="#FFMPEG">FFMPEG</A></U></B>
+
+<BR>
+<BR><DD>A key is declared as <B><I>keyName</I></B>=<I>value</I>. The key value is not interpreted and always handled as ASCII text.
+<BR><BR>
+<U>On Windows plateforms,</U> this config file is called "GPAC.cfg" and is <I>usually</I> located in C:\\Program Files\\GPAC. Note that Osmo4 will always create a config file in its own directory when none is found.
+<BR>
+<U>On Windows CE plateform,</U> this config file is called "GPAC.cfg" and is <I>usually</I> located in \\Program Files\\GPAC. Note that Osmo4 / CE will always create a config file in its own directory when none is found.
+<BR>
+<U>On Linux plateforms,</U> this config file is called ".gpacrc" and is <I>always</I> located at the root of the user home directory (for ex, /home/jean/.gpacrc).
+<BR>
+
+<BR><BR><I>Note on module names:</I>
+<BR><DD>Module names as given in the config file are names exported by each interface and not name of the physical library file (<I>.dll, .so, ...</I>). The physical file name can however be used to identify a module - it will then be replaced by the module name.
+</P>
+
+<P ALIGN="LEFT">
+<B><U><A NAME="General">Section "General"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+<DD>The <B>General</B> section of the config file holds player specific options. This section is not used by GPAC core engine.
+<BR><BR>
+<B>ModulesDirectory</B> [value: <I>path to directory</I>]
+<BR><DD>Specifies the path to modules directory. The MPEG-4 Systems engine cannot be loaded without modules. This option is used by all MP4Client on all platforms.
+<BR>
+<B>CacheDirectory</B> [value: <I>path to storage directory</I>]<BR>
+<DD>Specifies location of temp files. The user must have write access to this location. Although not used by applications, this is used by several modules.<BR>
+<BR><BR><DD><U>Options defined for Osmo4 (Windows version and wxWidgets version):</U><BR><BR>
+<B>Loop</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies whether the presentation has to be restarted when done playing.<BR>
+
+<BR>
+<B>ConsoleOff</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies whether application messages (script, buffering, download progress) are displayed in the console or not.<BR>
+
+<BR>
+<B>Browser</B> [value: <I>string</I>]<BR>
+<DD>Specifies prefered browser for WWW anchors and scene graph viewing - Only used by Osmo4/wxWidgets.<BR>
+	
+<BR>
+<B>LookForSubtitles</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies if Osmo4 shall look for subtitle files when opening a presentation.<BR>
+
+<BR>
+<B>PLEntry</B> [value: <I>positive integer</I>]<BR>
+<DD>Indicates active playlist entry when player was last closed. Playlist backup is:
+<DD><LI>"gpac_pl.m3u" on win32 platforms, stored in same directory as application</LI>
+<DD><LI>".gpac_pl.m3u" on other platforms, stored in user home directory</LI>
+<BR>
+<BR>
+<B>last_file_XX</B> [value: <I>string</I>]<BR>
+<DD>Indicates last URL played (XX is from 0 to 10 when storing URLs to cfg file, but not limited when reading them).
+	
+</P>
+
+<BR>
+
+<P ALIGN="LEFT">
+<B><U><A NAME="Systems">Section "Systems"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+
+<DD>The "Systems" section of the config file holds all configuration options for the MPEG-4 Systems engine.
+<BR><BR>
+<B>Language</B> [value: <I>3-char code from ISO 639-2</I>]<BR>
+<DD>Specifies the user prefered language. This is used to select streams in case of alternate content in an audio object.<BR>
+
+<BR>
+<B>AlwaysDrawBIFS</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>If set, late BIFS frame will still be drawn. If not set, the scene won't be redrawn untill BIFS streams are back in sync. This is by default off to keep better sync, but may be usefull when testing heavy content or slow renderers.<BR>
+
+<BR>
+<B>ForceSingleClock</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>One big problem with MP4 files is that the notion of "duration" has been unclear for a long time, and  most content available (audio-video files) specifiy a 
+wrong BIFS duration. In such a case the movie cannot be controled/seeked into. Another problem with ISMA streaming is that BIFS/OD don't use the same clock as 
+audio/video, thus seeking the main timeline does not seek AV media. Setting the ForceSingleClock will handle both cases by using a single timeline for all media 
+streams and setting the duration to the one of the longest stream.<BR>
+
+<BR>
+<B>ThreadingPolicy</B> [value: <I>"Free" "Single" "Multi"</I>]<BR>
+<DD>Specifies how media decoders are to be threaded. "Free" lets decoders decide of their threading, "Single" means that all decoders are managed in a single thread performing scheduling and priority
+handling and "Multi" means that each decoder runs in its own thread.<BR>
+
+<BR>
+<B>Priority</B> [value: <I>"low" "normal" "high" "real-time"</I>]<BR>
+<DD>Specifies the priority of the decoders (priority is applied to decoder thread(s) regardless of threading mode).<BR>
+
+<BR>
+<B>NoVisualThread</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies whether the visual rendering is done in the main codec manager or in a dedicated thread.<BR>
+
+<BR>
+<B>DefAudioDec</B> and <B>DefVideoDec</B> [value: <I>string</I>]<BR>
+<DD>Specifies which module to use by default for audio/video decoding. The string is the name of the module to be used (same considerations as other modules, cf introduction).<BR>
+	
+<BR>
+<B>codec_<I>XX</I>_<I>XX</I></B> [value: <I>string</I>]<BR>
+<DD>Allows to specify default media module (audio/video) per stream type and object type. This is usefull if you have more than one decoder for a given type (ex, XviD and FFMPEG for MPEG-4 visual SP). The syntax is:<BR>
+<DD><DD>codec_<I>AA</I>_<I>BB</I>=<I>modulename</I><BR>
+where <I>AA</I> is the hexadecimal MPEG-4 streamType value for the codec (04=visual, 05=audio) and <I>BB</I> is the hexadecimal MPEG-4 objectTypeIndication of the media (0x20 = MPEG-4 video, 0x40=MPEG-4 Audio, ...).
+The string is the name of the module to be used (same considerations as other modules, cf introduction).<BR>
+
+</P>
+<BR>
+<P ALIGN="LEFT">
+<B><U><A NAME="Rendering">Section "Rendering"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+<DD>The "Rendering" section of the config file holds all configuration options for the logical rendering engine.
+<BR><BR>
+<B>RendererName</B> [value: <I>string</I>]<BR>
+<DD>Specifies which renderer should be used. There are currently 2 renderers available in GPAC, "GPAC 2D Renderer" and "GPAC 3D Renderer". Renderers cannot be reloaded during a presentation, the GPAC client shall be shutdown and restarted.<BR>
+<BR>
+<B>GF_Raster2D</B> [value: <I>string</I>]<BR>
+<DD>Specifies the 2D rasterizer to use for vectorial drawing. Same as above, this module cannot be reloaded during a presentation. This is used by the 2D renderer for all drawings
+and by the 3D renderer for text texturing and gradients compute.<BR>
+
+<BR>
+<B>FrameRate</B> [value: <I>float</I>]<BR>
+<DD>Specifies the simulation frame-rate of the presentation - this value is also used by the MPEG-4 Systems engine to determine when a BIFS frame is mature for decoding.<BR>
+
+<BR>
+<B>AntiAlias</B> [value: <I>"None" "All" "Text"</I>]<BR>
+<DD>Specifies antialiasing settings - whether the setting is applied or not depends on the graphics module / graphic card.<BR>
+<DD><LI><I>"None"</I>: no anti-aliasing</LI><BR>
+<DD><LI><I>"Text"</I>: anti-aliasing for text only</LI><BR>
+<DD><LI><I>"All"</I>: complete anti-aliasing</LI><BR>
+
+<BR>
+<B>FastRender</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies whether rendering should target speed or quality - whether the setting is applied or not depends on the renderer, graphics module / graphic card.<BR>
+
+<BR>
+<B>ForceSceneSize</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Forces the scene to resize to the biggest bitmap available if no size info is given in the BIFS configuration.<BR>
+
+<BR>
+<B>StressMode</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies that the renderer runs in worst case scenario, recomputing all vectorial paths, outline or display lists and reloading textures (sending them to graphics card) at each frame.<BR>
+
+<BR>
+<B>BoundingVolume</B> [value: <I>"None" "Box" "AABB"</I>]<BR>
+<DD>Specifies whether the bounding volume of an object shall be drawn or not. Note that the 2D renderer only uses rectangles as bounding volumes. The "AABB" value is used by the 
+3D renderer only, and specifies the object bounding-box tree shall be drawn.
+
+		
+</P>
+<BR>
+<P ALIGN="LEFT">
+<B><U><A NAME="Render2D">Section "Render2D"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+<DD>The "Render2D" section of the config file holds all configuration options for the 2D tile rendering engine and hardware.<BR>
+<BR>
+<B>DirectRender</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies whether direct rendering should be used or not. In direct rendering mode, the screen is completely redrawn at each frame. In indirect rendering 
+object positioning is tracked from frame to frame and dirty rectangles info is collected in order to redraw the minimal amount of the screen buffer. Whether 
+the  setting is applied or not depends on the graphics module (currently all modules handle both mode).<BR>
+<BR>
+<B>ScalableZoom</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies whether scalable zoom should be used or not. When scalable zoom is enabled, resizing the output window will also recompute all vectorial objects. Otherwise only the final buffer is stretched.<BR>
+<BR>
+<B>DisableYUV</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Disables YUV hardware support (YUV hardware support may not be available for the current video output module).<BR>
+
+</P>
+
+<BR>
+<P ALIGN="LEFT">
+<B><U><A NAME="Render3D">Section "Render3D"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+<DD>The "Render3D" section of the config file holds all configuration options for the 3D rendering engine and OpenGL hardware.<BR>
+<BR>
+<B>RasterOutlines</B> [value: <I>"yes"  "no"</I>]<BR>
+<DD>Specifies that outlining shall be done through OpenGL pen width rather than vectorial outlining.<BR>
+<BR>
+<B>PolygonAA</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies whether polygon antialiasing should be used in full antialiasing mode. If not set, only lines and points antialiasing are used.<BR>
+<BR>
+<B>DisableBackFaceCulling</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies whether backface culling shall be disable or not. If not set, backface culling is performed.<BR>
+<BR>
+<B>Wireframe</B> [value: <I>"WireNone" "WireOnly" "WireOnSolid"</I>]<BR>
+<DD>Specifies wireframe drawing options:<BR>
+<DD><LI><I>"WireNone"</I>: objects are drawn as solid</LI><BR>
+<DD><LI><I>"WireOnly"</I>: objects are drawn as wireframe only</LI><BR>
+<DD><LI><I>"WireOnSolid"</I>: objects are drawn as solid and wireframe is then drawn</LI><BR>
+<BR>
+<B>DisableRectExt</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies whether OpenGL rectangular texture extension (GL_EXT_gf_sr_texture_rectangle or GL_NV_gf_sr_texture_rectangle) shall be used or not.<BR>
+<DD><LI>"yes": textures whose dimensions are not power of two are rescaled except if hardware support non-power-of-two textures (GL_ARB_gf_sr_texture_non_power_of_two) natively.</LI><BR>
+<DD><LI>"no": if extension is available, textures are used without rescaling. Note that in this case texture transformations are disabled.</LI><BR>
+
+<BR>
+<B>EmulatePOW2</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Enables power of 2 emulation. Ignored if openGL rectangular texture extension is enabled.
+<DD><LI>"yes": video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations.</LI><BR>
+<DD><LI>"no": video is resized to a power of 2 texture when mapping to a shape.</LI><BR>
+
+<BR>
+<B>BitmapCopyPixels</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies whether the bitmap node should be drawn with regular openGL texturing ("no") or through pixel copy routines ("yes"). This greatly impacts video rendering through 
+bitmap depending on the graphics card. Some cards will have faster pixel copy routines that texture transfer ones, some won't.<BR>
+
+</P>
+
+<BR>
+<P ALIGN="LEFT">
+<B><U><A NAME="Audio">Section "Audio"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+<DD>The "Audio" section of the config file holds all configuration options for the audio rendering engine and hardware.<BR>
+<BR>
+<B>DriverName</B> [value: <I>string</I>]<BR>
+<DD>Specifies the driver to use for audio rendering. This driver cannot be reloaded at run-time, the complete system must be restarted.<BR>
+<BR>
+<B>ForceConfig</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Forces a given sound card configuration to be used. If not set the sound card will be setup to use audio buffers with a duration close to 30 frame per seconds (depending on audio samplerate). This may be not
+supported by some audio cards, therefore forcing the config may be very usefull.<BR>
+<BR>
+<B>NumBuffers</B> [value: <I>positive integer, 0 forbidden</I>]<BR>
+<DD>When config is forced, specifies the number of audio buffers to allocate (audio buffers are played in ring).<BR>
+<BR>
+<B>BuffersPerSecond</B> [value: <I>positive integer, 0 forbidden</I>]<BR>
+<DD>When config is forced, specifies the number of audio buffers per second. For example, a value of 15 means that each buffer will hold 1000/15 milliseconds of audio data. The total amount of audio buffering
+(and hence audio delay) is therefore <I>NumBuffers * 1000 / BuffersPerSecond milliseconds</I><BR>
+<BR>
+<B>NoResync</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Disables audio resynchronization: audio data is never dropped but may get out of sync.<BR>
+<BR>
+<B>DisableNotification</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Disables usage of audio buffer notifications when supported (currently only DirectSound supports it). If DirectSound audio sounds weird try without notifications.<BR>
+<BR>
+<B>Volume</B> [value: integer (0-100)]<BR>
+<DD>Default audio volume used when launching GPAC.<BR>
+<BR>
+<B>Pan</B> [value: integer (0-100)]<BR>
+<DD>Default audio stereo balance used when launching GPAC - 0 for full left, 100 for full right, 50 for balanced.<BR>
+	
+</P>
+
+<BR>
+<P ALIGN="LEFT">
+<B><U><A NAME="Video">Section "Video"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+<DD>The "Video" section of the config file holds all configuration options for the video renderer and hardware.<BR>
+<BR>
+<B>DriverName</B> [value: <I>string</I>]<BR>
+<DD>Specifies the driver to use for video memory access. This driver cannot be reloaded at run-time, the complete system must be restarted.<BR>
+<BR>
+<B>SwitchResolution</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies fullscreen resolution mode. If enabled, selects smallest video resolution larger than scene size, otherwise use current video resolution.<BR>
+</P>
+
+<BR>
+<P ALIGN="LEFT">
+<B><U><A NAME="Network">Section "Network"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+<DD>The "Network" section of the config file holds all configuration options for the network used by modules and systems engine.<BR>
+<BR>
+<B>AutoReconfigUDP</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies if network manager shall reconnect a scene if UDP is not present.<BR>
+<BR>
+<B>DataTimeout</B> [value: <I>positive integer</I>]<BR>
+<DD>Specifies timeout in ms befor initial media buffering aborts. Default terminal value is 20000 (20 seconds).<BR>
+<BR>
+<B>UDPNotAvailable</B> [value: "yes" "no"</I>]<BR>
+<DD>Specifies if UDP traffic is not available. This is automatically set by the engine if <I>AutoReconfigUDP</I> is set.<BR>
+<BR>
+<B>UDPTimeout</B> [value: <I>positive integer</I>]<BR>
+<DD>Specifies timeout in ms for initial UDP detection. Once a UDP packet is recieved the timeout is ignored.<BR>
+<BR>
+<B>BufferLength</B> [value: <I>positive integer</I>]<BR>
+<DD>Specifies the length of the decoding buffer in milliseconds. The client will wait for the buffer to be filled before starting decoding. A module may decide to use a different value based on protocol and network jitters. <BR>
+<BR>
+<B>RebufferLength</B> [value: <I>positive integer</I>]<BR>
+<DD>Specifies rebuffering length of the decoding buffer in milliseconds. Whenever the decoding buffer fullness is less than this value, the object clock is paused and 
+the stream rebuffered till BufferLength. Therefore a value of 0 means no rebuffering. A module may decide to use a different value based on protocol and network jitters.<BR>
+
+</P>
+
+<BR>
+<P ALIGN="LEFT">
+<B><U><A NAME="FontEngine">Section "FontEngine"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+<DD>The "FontEngine" section of the config file holds all configuration options for the font handling. The GPAC rendering module handles text through vectorial outline, allowing graphics module development without having to 
+integrate text rendering which is always heavy work.<BR>
+<BR>
+<B>DriverName</B> [value: <I>string</I>]<BR>
+<DD>Specifies the driver to use for font handling. This driver cannot be reloaded at run-time, the complete system must be restarted.<BR>
+<BR>
+<B>FontDirectory</B> (value: <I>path to TrueType (*.ttf, *.ttc) font directory</I>]<BR>
+<DD>Specifies the directory where fonts are located - currently only one directory can be specified (however nothing stops a font module from using a private directory).<BR>
+<BR>
+<B>UseTextureText</B> (value: <I>"yes", "no"</I>]<BR>
+<DD>Specifies whether text shall be drawn to a texture and then rendered or directly rendered. Using textured text can improve text look in the 3D renderer and also improve text-on-video like content.<BR>
+<BR>
+<B>FontSerif</B> [value: <I>string</I>]}: specifies default SERIF font.<BR>
+<B>FontSans</B> [value: <I>string</I>]}: specifies default SANS font.<BR>
+<B>FontFixed</B> [value: <I>string</I>]}: specifies default fixed font.<BR>
+<BR>
+<U><I>Note:</I></U><BR>
+<DD>The FreeType module uses this section to cache familly names to font file name associations.
+
+</P>
+
+<BR>
+<P ALIGN="LEFT">
+<B><U><A NAME="Downloader">Section "Downloader"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+<DD>The "Downloader" section of the config file holds all configuration options for file downloading and caching.<BR>
+<BR>
+<B>CleanCache</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies whether downloaded files shall be removed once used.<BR>
+<BR>
+<B>RestartFiles</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies whether incompletely downloaded files shall be removed before redownloading.<BR>
+</P>
+
+<BR>
+<P ALIGN="LEFT">
+<B><U><A NAME="Streaming">Section "Streaming"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+<DD>The "Streaming" section of the config file holds all configuration options for real-time streaming using IETF SDP/RTSP/RTP/RTCP protocols.<BR>
+<BR>
+<B>DefaultPort</B> [value: <I>unsigned short</I>]<BR>
+<DD>Specifies the default port to use when connecting to a server (ignored if a port is specified in the url) if the port is 80 or 8080 (HTTP), the client will connect to the 
+RTSP server through an HTTP tunnel, and transport will take place on the RTSP connection.<BR>
+<BR>
+<B>ReorderSize</B> [value: <I>positive integer</I>]<BR>
+<DD>Size of the RTP reordering buffer - 0 means no reordering. Ignored when transport takes place on the RTSP connection. The bigger this value, the longer the reordering delay will be.<BR>
+<BR>
+<B>RTPoverRTSP</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies whether RTP packets should be carried on the RTSP connection (TCP or UDP) when possible, or carried on UDP. If the connection port is an HTTP port, this value is assumed to be true.<BR>
+<BR>
+<B>RTSPTimeout</B> [value: <I>positive integer</I>]<BR>
+<DD>Specifies connection timeout with the server: an RTSP request is considered as failed when the timeout expires.<BR>
+<BR>
+<B>FirstPacketDrop</B> [value: <I>positive integer</I>]<BR>
+<DD>Specifies the sequence number of the first RTP packet to be droped - 0 means no packet drop. Used for packet drop simulation tests.<BR>
+<BR>
+<B>PacketDropFrequency</B> [value: <I>positive integer</I>]<BR>
+<DD>Specifies the frequency at which SL packets are droped. If value is 20, one packet every 20 recieved packets will be droped. Used for packet drop simulation tests.<BR>
+<BR>
+<B>LogFile</B> [value: <I>filename</I>]<BR>
+<DD>If set, specifies a file where RTSP traffic is logged - use "stdout" for stdout.<BR>
+
+</P>
+
+<BR>
+<P ALIGN="LEFT">
+<B><U><A NAME="MimeTypes">Section "MimeTypes"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+<DD>This section is used to keep MIME types and file associations for GPAC modules.
+<BR>The format of the key is:
+<BR><DD><I>mimeType</I>=<B>"</B>fileExt1 filexExt2 .. filexExtN<B>"</B> <B>"</B>MimeType description<B>"</B> ModuleName
+<BR>
+The description is used for GUI purposes (open file dialogs). You may modify the file extension list to support your own extensions. 
+MIME Type is always checked when processing a remote ressource (eg http file) in order to load the appropriated modules. 
+If MIME type is not available, provided extensions are first checked, then all input modules are queried.
+<BR>
+	
+</P>
+
+<BR>
+<P ALIGN="LEFT">
+<B><U><A NAME="GF_StreamingCache">Section "GF_StreamingCache"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+<DD>The "StreamingCache" section of the config file holds all configuration options for the streaming cache. Streaming cache allows for recording of 
+live sources such as RTP/RTSP sessions and internet radios. This is currently just an experimental feature in GPAC.<BR>
+<BR>
+<B>RecordDirectory</B> [value: <I>path</I>]<BR>
+<DD>Specifies path for recorded files. Cached data is written directly to disk (no re-interleaving or similar processes).
+If not specified, the default cache directory (cf <A HREF="#General">General</A>) is used.<BR>
+<BR>
+<B>BaseFileName</B> [value: <I>string</I>]<BR>
+<DD>Specifies the base name for recorded files. If not present in configuration file, the service name (URL) is used.<BR>
+<BR>
+<B>KeepExistingFiles</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies if cached files with same name should be kept or not. If not, an integer number is added to the cached file name, the higest number for the latest file.<BR>
+	
+</P>
+
+<BR>
+<P ALIGN="LEFT">
+<B><U><A NAME="XviD">Section "XviD"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+<DD>The "XviD" section of the config file holds all configuration options for the XviD codec.<BR>
+<BR>
+<B>PostProc</B> [value: <I>"FilmEffect" "Deblock_Y" "Deblock_UV"</I>]<BR>
+<DD>Specifies filters to apply when decoding video. The string is a list of filters separated with a space character.<BR>
+<DD><I>"FilmEffect"</I>: xvid 1.0.0 filmEffect.<BR>
+<DD><I>"Deblock_Y"</I>: Y plane deblocking filter.<BR>
+<DD><I>"Deblock_UV"</I>: UV plane deblocking filter.<BR>
+<BR>
+<B>Threaded</B> [value <I>"yes" "no"</I>]<BR>
+<DD>Specifies whether the decoder should run in its own thread or not.<BR>
+	
+</P>
+
+
+<BR>
+<P ALIGN="LEFT">
+<B><U><A NAME="FFMPEG">Section "FFMPEG"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+<DD>The "FFMPEG" section of the config file holds all configuration options for the FFMPEG demuxer and decoder.<BR>
+<BR>
+<B>DataBufferMS</B> [value: <I>positive integer</I>]<BR>
+<DD>Specifies the amount of video/audio data (in milliseconds) to be bufferer before starting decoding. For developpers only.<BR>
+<BR>
+<B>EnablePixelAspectRatio</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies if pixel aspect ratio should be kept if indicated. Default is no (due to bugs and lack of optimization).<BR>
+<BR>
+
+
+<BR><BR><BR>
+<P ALIGN="RIGHT">
+<A HREF="http://gpac.sourceforge.net">GPAC</A> (C) 2001 - 2005 <A HREF="mailto:jeanlf@users.sourceforge.net">Jean Le Feuvre</A>
+</P>
+
+</BODY>
+
+</HTML>

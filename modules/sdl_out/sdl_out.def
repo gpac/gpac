@@ -1,0 +1,6 @@
+LIBRARY     sdl_out.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

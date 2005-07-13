@@ -1,0 +1,242 @@
+#-- Version 6 --#
+#-- Beta Advanced Text Graphics --#
+# templates for the BIFS nodes
+# =============================
+# Notations I = Infinity
+# %q=x	Quantization method x
+#	0	None
+#	1	3D Position			(SFVec3F)
+#	2	2D Position			(SFVec2F)
+#	3	drawing Order
+#	4	Color 				(SFColor)
+#	5	Texture Coordinate
+#	6	Angle 				(SFFloat 0-2PI)
+#	7	Scale 				(SFVec2F or SFVec3F)
+#	8	Interpolators keys
+#	9	Normals
+#	10	Rotations			(SFRotation)
+#	11	Object Size 3D 		(SFVec3F and SFFloat)
+#	12	Object Size  2D
+#	13	Linear Quantization (+ Nb Bits)
+#	14	Index (of IndexedFaceSet,...)
+#	15	Reserved
+#
+# %a=y	Animation method for fields that can be animated
+#
+## OO 081498 To match BIFS's update numbering
+#	0	None
+#	1	Position 3D
+#	2	Position 2D
+#	4	Color
+#	6	Angle
+#	7	Float
+#	8	BoundFloat			(intensities, transparencies,...)
+#	9	Normal
+#	10	Rotation
+#	11	Size 3D
+#	12	Size 2D
+#	13	Integer
+#	14	Reserved
+##	0	3D Position
+##	1	2D positon
+##	2	Color					(SFColor)
+##	3	Angle					(SFFloat 0-2pi)
+##	4	Normals
+##	5	Scale					(SFVec2F)
+##	6	Rotation				(SFRotation)
+##	7	Object Size or Scalar	(SFFloat)
+#
+# %b=[min,max] bounds of value
+#  For each scalar or vectorial value, bounds may be specified.
+#  This will be used to check if user-specified values are out of bounds. In
+# this case, bounds specified in the templates will be used (if not infinity).
+#
+# %NDT=Node Data Type
+#  For each node, one or several Node Data Types are assigned, specifying which node sub
+# types the node belongs to. Moreover, each field of type SF/MF3DNode is re assigned
+# a unique correct NodeDataType according to specify the allowed values of the field
+#
+# %COD	Type of encoding
+#	N	Normal Syntax : The node syntax follos the generic syntax for nodes
+#	S	Special Syntax : The node has a specific syntax
+#
+#
+# NCT => VRML type equivalence
+#
+#  SF/MFxxxNode         => SF/MFNode
+#  SF/MFURL             => SF/MFString
+#  SF/MFCommandBuffer   => SF/MFString
+#  SF/MFScript          => SF/MFString
+#
+#
+# Modification History
+# ------------------------------------------------
+# July 31, 2003 [CC, ENST] updated to FPDAM2 (w5774)
+# April 28, 2003 [JLF, ENST] updated to PDAM (w5645)
+# January 9, 2003 [JLF, ENST] updated to WD3.0 (w5475)
+# September 17, 2002 [JLF, ENST] created for AdvancedText & Graphics WD 2.0
+#NB: XFontStyle.feature* MFInt32 fields should have some quantization type ?
+
+PROTO Clipper2D [ #%NDT=SFWorldNode,SF2DNode,SF3DNode  %COD=N
+eventIn			MF2DNode		addChildren
+eventIn			MF2DNode		removeChildren
+exposedField	MF2DNode		children			[]
+exposedField 	SFGeometryNode 	geometry  			NULL
+exposedField 	SFBool			inside				TRUE
+exposedField 	SF2DNode		transform			NULL
+exposedField 	SFBool     		XOR	        		FALSE
+] {
+}
+
+PROTO ColorTransform [ #%NDT=SFWorldNode,SF2DNode,SF3DNode  %COD=N
+eventIn			MF3DNode		addChildren
+eventIn			MF3DNode		removeChildren
+exposedField	MF3DNode		children		[]
+exposedField	SFFloat			mrr 		1		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			mrg 		0		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			mrb 		0		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			mra 		0		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			tr 			0		#%b=(-I, +I) #%q=4 #%a=7
+exposedField	SFFloat			mgr 		0		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			mgg 		1		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			mgb 		0		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			mga 		0		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			tg 			0		#%b=(-I, +I) #%q=4 #%a=7
+exposedField	SFFloat			mbr 		0		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			mbg 		0		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			mbb 		1		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			mba 		0		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			tb 			0		#%b=(-I, +I) #%q=4 #%a=7
+exposedField	SFFloat			mar 		0		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			mag 		0		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			mab 		0		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			maa 		1		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			ta 			0		#%b=(-I, +I) #%q=4 #%a=7
+] {
+}
+
+PROTO Ellipse [ #%NDT=SFWorldNode,SFGeometryNode %COD=N
+exposedField	SFVec2f radius 1 1					#%b=[0,+I)	#%q=12	#%a=2
+]{}
+
+PROTO LinearGradient [ #%NDT=SFWorldNode,SFTextureNode %COD=N
+exposedField	SFVec2f		endPoint		1 0		#%b=(-I, +I) #%q=5 #%a=2
+exposedField	MFFloat		key				[]  	#%b=[0,1]	#%q=8
+exposedField	MFColor		keyValue		[]  	#%b=[0,1]	#%q=4
+exposedField	MFFloat		opacity			[1] 	#%b=[0,1]	#%q=7
+exposedField	SFInt32		spreadMethod	0		#%b=[0,2]   #%q=13 2
+exposedField	SFVec2f		startPoint		0 0		#%b=(-I, +I) #%q=5 #%a=2
+exposedField	SF3DNode	transform		NULL
+]{}
+
+PROTO PathLayout [ #%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N
+eventIn MF2DNode addChildren	
+eventIn MF2DNode removeChildren
+exposedField MF2DNode children			[]
+exposedField SFGeometryNode geometry	NULL
+exposedField MFInt32 alignment			[0 0]		#%b=[-1,1]   #%q=13 2
+exposedField SFFloat pathOffset			0			#%b=[-I,I]	 #%q=7 #%a=7
+exposedField SFFloat spacing			1.0			#%b=[-I,I]	 #%q=7 #%a=7
+exposedField SFBool reverseLayout		FALSE
+exposedField SFInt32 wrapMode			0			#%b=[0,2]   #%q=13 2
+exposedField SFBool splitText			TRUE
+] {
+}
+
+PROTO RadialGradient [ #%NDT=SFWorldNode,SFTextureNode %COD=N
+exposedField	SFVec2f	center			0.5 0.5		#%b=(-I, +I) #%q=5 #%a=2
+exposedField	SFVec2f	focalPoint		0 0			#%b=(-I, +I) #%q=5 #%a=2
+exposedField	MFFloat	key				[] 			#%b=[0,1]	#%q=8
+exposedField	MFColor	keyValue		[] 			#%b=[0,1]	#%q=4
+exposedField	MFFloat	opacity			[1] 		#%b=[0,1]	#%q=7
+exposedField	SFFloat	radius			0.5			#%b=[0,+I)	#%q=12 #%a=7		
+exposedField	SFInt32	spreadMethod	0			#%b=[0,2]   #%q=13 2
+exposedField	SF3DNode transform		NULL
+]{}
+
+PROTO SynthesizedTexture [ #%NDT=SFWorldNode,SFTextureNode  %COD=N
+exposedField	MFVec3f			translation 		[]		#%b=[-I,+I] #%q=1 #%a=1
+exposedField	MFRotation		rotation	 		[]		#%b=[-I,+I] #%q=10 #%a=10
+exposedField	SFInt32			pixelWidth 			-1 		#%b=[0,65535]	#%q=13 16
+exposedField	SFInt32         pixelHeight 		-1 		#%b=[0,65535]	#%q=13 16
+exposedField 	SFBool			loop             	FALSE
+exposedField 	SFFloat			speed            	1.0     #%b=(-I,+I) #%q=0 #%a=7
+exposedField 	SFTime			startTime        	0       #%b=(-I,+I)
+exposedField 	SFTime			stopTime         	0       #%b=(-I,+I)
+exposedField 	MFURL			url		        	[]
+eventOut     	SFTime	    	duration_changed
+eventOut     	SFBool			isActive
+]{
+}
+
+PROTO TransformMatrix2D [ #%NDT=SFWorldNode,SF2DNode,SF3DNode,SFTextureTransformNode  %COD=N
+eventIn			MF2DNode		addChildren
+eventIn			MF2DNode		removeChildren
+exposedField	MF2DNode		children		[]
+exposedField	SFFloat			mxx 		1		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			mxy 		0		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			tx	 		0		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			myx 		0		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			myy 		1		#%b=(-I, +I) #%q=7 #%a=7
+exposedField	SFFloat			ty	 		0		#%b=(-I, +I) #%q=7 #%a=7
+] {
+}
+
+PROTO Viewport [ #%NDT=SFWorldNode,SF3DNode,SF2DNode,SFViewportNode  %COD=N
+eventIn      	SFBool     		set_bind
+exposedField 	SFVec2f    		position       		0 0    		#%b=(-I,+I) 	#%q=1  #%a=1
+exposedField	SFVec2f 	    size		    	-1 -1		#%b=(-I,+I)		#%q=12  #%a=12
+exposedField	SFFloat			orientation 		0			#%b=[0,6.2831853] #%q=6 #%a=6
+exposedField	MFInt32			alignment			[0 0]		#%b=[-1,1]	#%q=13 3
+exposedField	SFInt32			fit					0			#%b=[0,2]	#%q=13 3
+field			SFString		description			""
+eventOut		SFTime			bindTime
+eventOut		SFBool			isBound
+
+] {
+}
+
+PROTO XCurve2D [ #%NDT=SFWorldNode,SFGeometryNode  %COD=N
+exposedField	SFCoordinate2DNode	point	 []
+exposedField	SFFloat			fineness 0.5	#%b=[0,1] #%q=0 #%a=7
+exposedField	MFInt32			type	 []	#%b=[0,15] #%q=13 4
+] {
+}
+
+PROTO XFontStyle [ #%NDT=SFWorldNode,SFFontStyleNode  %COD=N
+exposedField 	MFString		fontName       		["SERIF"]
+exposedField 	SFBool   		horizontal   		TRUE
+exposedField 	MFString 		justify      		["BEGIN"]
+exposedField 	SFString 		language     		""
+exposedField 	SFBool   		leftToRight  		TRUE
+exposedField 	SFFloat  		size         		1.0          #%b=[0,+I)	#%q=11 
+exposedField 	SFString  		stretch      		"NORMAL"
+exposedField 	SFFloat  		letterSpacing      	0.0          #%b=[0,+I)	#%q=11  
+exposedField 	SFFloat  		wordSpacing      	0.0          #%b=[0,+I)	#%q=11  
+exposedField 	SFInt32			weight				400			   
+exposedField 	SFBool   		fontKerning 		TRUE
+exposedField	SFString		style       		"PLAIN"
+exposedField	SFBool  		topToBottom  		TRUE
+exposedField	MFString  		featureName  		[""]
+exposedField	MFInt32  		featureStartOffset	[]			#%b=(-I, +I) 
+exposedField	MFInt32  		featureLength		[]			#%b=(-I, +I) 
+exposedField	MFInt32  		featureValue		[]			#%b=(-I, +I) 
+] {
+}
+
+PROTO XLineProperties [ #%NDT=SFWorldNode,SFLinePropertiesNode  %COD=N
+exposedField	SFColor			lineColor		0 0 0	#%b=[0,1] #%q=4 #%a=4
+exposedField	SFInt32			lineStyle		0  		#%b=[0,5] #%q=13 3
+exposedField	SFBool			isCenterAligned	TRUE
+exposedField	SFBool			isScalable		TRUE
+exposedField	SFInt32			lineCap			0		#%b=[0,2]	#%q=13 3
+exposedField	SFInt32			lineJoin		0		#%b=[0,2]	#%q=13 3
+exposedField	SFFloat			miterLimit		4		#%b=[1,+I)	#%q=12
+exposedField	SFFloat			transparency	0		#%b=[0,1]	#%q=4 #%a=8
+exposedField	SFFloat			width			1  		#%b=[0,+I) #%q=12 #%a=7
+exposedField	SFFloat			dashOffset		0  		#%b=[0,+I) #%q=12 #%a=7
+exposedField	MFFloat			dashes			[]  	#%b=[0,+I) #%q=12 #%a=7
+exposedField	SFTextureNode	texture			NULL
+exposedField	SFTextureTransformNode textureTransform		NULL
+]{
+}

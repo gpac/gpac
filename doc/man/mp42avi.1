@@ -1,0 +1,69 @@
+.TH "MP42AVI" 1 "March 2005" "MP42AVI" "GPAC"
+.
+.SH NAME
+.LP 
+MP42AVI \- MPEG-4 BIFS to Video converter
+.SH "SYNOPSIS"
+.LP 
+.B MP42AVI
+.RI [options] \ file\ 
+.br
+.
+.SH "DESCRIPTION"
+.LP 
+MP42AVI is a tool to convert a pure MPEG-4 BIFS presentation (no audio, no image, no video) to an uncompressed sequence of images or an uncompressed RGB avi file.
+.
+.
+.SH OPTIONS
+.P
+.TP
+.B \-fps Framerate
+specifies extraction framerate. If not set the framerate is computed from the BIFS track duration.
+.TP
+.B \-size WxH
+forces BIFS scene size to the given resolution
+.TP
+.B \-raw [frame]
+uses raw format for output. If frame is specified, only the given frame is dumped. Otherwise, all samples are dumped into raw files.
+.TP
+.B \-bmp [frame]
+uses BMP format for output. If frame is specified, only the given frame is dumped. Otherwise, all samples are dumped into BMP files.
+.TP
+.B \-outpath path
+specifies output directory to dump frames/movie.
+.TP
+.B \-cfg
+specifies path to GPAC config file.
+.TP
+.B \-v
+prints build version.
+.TP
+.B \-h
+prints this message
+.
+.SH SPECIAL CONSIDERATIONS
+.TP
+.B Frame Dumping 
+When dumping a frame, either the frame number (sample number) can be specified or the frame time
+in the format hh:mm:ss:xFz where hh, mm, ss are hours, minutes, seconds, x the number
+of the frame in the seconds and z the frame rate used to express the time
+.TP
+.br
+.B Input Files
+The current version of MP42AVI is only designed to handle pure BIFS presentation. If the input BIFS scene uses audio or visual media, these are ignored during the dump. It may even crash MP42AVI.
+.TP
+.B GPAC Config File
+MP42AVI needs the GPAC configuration file in order to locate the different plugins used for rasterization. You must therefore have launched successfully MP4Client before trying to use MP42AVI
+.
+.SH "FILES"
+.LP 
+.B GPAC Configuration File:
+~/.gpacrc
+.
+.SH "AUTHORS"
+.LP 
+Jean Le Feuvre <jeanlf@users.sourceforge.net> - GPAC (c) 2000-2005
+.
+.SH "SEE ALSO"
+.LP 
+MP4Client(1), MP4Box(1), GPAC(1)

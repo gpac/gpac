@@ -1,0 +1,6 @@
+LIBRARY     svg_loader.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

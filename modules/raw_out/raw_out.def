@@ -1,0 +1,6 @@
+LIBRARY     raw_out.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

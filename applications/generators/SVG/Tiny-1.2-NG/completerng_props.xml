@@ -1,0 +1,2766 @@
+<?xml version="1.0"?>
+<!-- ==============================================================
+      SVG12-RNG | SVG 1.2 Tiny Driver
+     ============================================================== -->
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <!-- ... common libraries and attributes ........................ -->
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="Boolean.datatype">
+    <choice>
+      <value>false</value>
+      <value>true</value>
+    </choice>
+  </define>
+
+  <define name="ClipFillRule.datatype">
+    <choice>
+      <value>nonzero</value>
+      <value>evenodd</value>
+    </choice>
+  </define>
+
+  <define name="ContentType.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="Coordinate.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="Coordinates.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="Color.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="Integer.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="LanguageCode.datatype">
+    <data type="language"/>
+  </define>
+
+  <define name="LanguageCodes.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="Length.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="Lengths.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="Number.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="Numbers.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="NumberOrPercentage.datatype">
+    <data type="string"/>
+  </define>
+
+
+  <define name="OpacityValue.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="PathData.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="PreserveAspectRatioSpec.datatype">
+    <data type="string">
+      <!--
+      <param name='pattern'>\s*(none|xMidYMid)\s*(meet)?\s*</param>
+      <param name='pattern'>\s*(none|xMinYMin|xMidYMin|xMaxYMin|xMinYMid|xMidYMid|xMaxYMid|xMinYMax|xMidYMax|xMaxYMax)\s*(meet|slice)?\s*</param>
+      -->
+    </data>
+  </define>
+
+  <define name="Script.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="SVGColor.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="Text.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="TransformList.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="IRI.datatype">
+    <!--<data type='anyURI'/>-->
+    <data type="string"/>
+  </define>
+
+  <define name="ViewBoxSpec.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="Paint.datatype"><data type="string"/></define>
+  <define name="StrokeDashArrayValue.datatype"><data type="string"/></define>
+  <define name="StrokeDashOffsetValue.datatype"><data type="string"/></define>
+  <define name="StrokeMiterLimitValue.datatype"><data type="string"/></define>
+  <define name="StrokeWidthValue.datatype"><data type="string"/></define>
+
+  <define name="GradientOffset.datatype">
+    <ref name="Number.datatype"/>
+  </define>
+
+  <define name="ExtensionList.datatype">
+    <data type="string"/>
+  </define>
+  <define name="FeatureList.datatype">
+    <data type="string"/>
+  </define>
+  <define name="FormatList.datatype">
+    <data type="string"/>
+  </define>
+  <define name="FontList.datatype">
+    <data type="string"/>
+  </define>
+  <define name="LinkTarget.datatype">
+    <data type="NMTOKEN"/>
+  </define>
+
+  <define name="Focus.datatype">
+    <!--
+    <choice>
+      <value>auto</value>
+      -->
+      <data type="IDREF"/>
+    <!--</choice>-->
+  </define>
+
+  <define name="FontFamilyValue.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="FontSizeValue.datatype">
+    <data type="string"/>
+  </define>
+
+  <define name="Points.datatype">
+    <data type="string"/>
+  </define>
+
+
+  <define name="ID.datatype">
+    <data type="ID"/>
+  </define>
+
+  <define name="XSLT-QName.datatype">
+    <choice>
+      <data type="NMTOKEN"/>
+      <data type="QName"/>
+    </choice>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <!--
+    This module predefines a set of empty groups that can then be
+    referenced even when their corresponding modules are not included
+    in a given profile.
+    -->
+
+  <!-- ... element groups ......................................... -->
+  <define name="svg.G.group"><notAllowed/></define>
+  <define name="svg.GCommon.group"><notAllowed/></define>
+  <define name="svg.Desc.group"><notAllowed/></define>
+  <define name="svg.Animate.group"><notAllowed/></define>
+  <define name="svg.Handler.group"><notAllowed/></define>
+  <define name="svg.TextCommon.group"><notAllowed/></define>
+  <define name="svg.Discard.group"><notAllowed/></define>
+
+
+  <!-- ... attribute groups ....................................... -->
+  <define name="svg.Properties.attr"><empty/></define>
+  <define name="svg.Conditional.attr"><empty/></define>
+  <define name="svg.Core.attr"><empty/></define>
+  <define name="svg.CorePreserve.attr"><empty/></define>
+  <define name="svg.External.attr"><empty/></define>
+  <define name="svg.Editable.attr"><empty/></define>
+  <define name="svg.Opacity.attr"><empty/></define>
+  <define name="svg.Focus.attr"><empty/></define>
+  <define name="svg.Transform.attr"><empty/></define>
+  <define name="svg.ContentType.attr"><empty/></define>
+  <define name="svg.Overflow.attr"><empty/></define>
+  <define name="svg.XLink.attr"><empty/></define>
+  <define name="svg.XLinkEmbed.attr"><empty/></define>
+  <define name="svg.XLinkRequired.attr"><empty/></define>
+  <define name="svg.XLinkReplace.attr"><empty/></define>
+  <define name="svg.AnimateTiming.attr"><empty/></define>
+  <define name="svg.AnimateSync.attr"><empty/></define>
+  <define name="svg.AnimateBegin.attr"><empty/></define>
+  <define name="svg.AnimateTimingNoMinMax.attr"><empty/></define>
+  <define name="svg.AnimateTimingNoFillNoMinMax.attr"><empty/></define>
+  <define name="svg.PAR.attr"><empty/></define>
+  <define name="svg.CxCy.attr"><empty/></define>
+  <define name="svg.D.attr"><empty/></define>
+  <define name="svg.R.attr"><empty/></define>
+  <define name="svg.X12Y12.attr"><empty/></define>
+  <define name="svg.XY.attr"><empty/></define>
+  <define name="svg.WH.attr"><empty/></define>
+
+  <define name="svg.XYWH.attr">
+    <ref name="svg.XY.attr"/>
+    <ref name="svg.WH.attr"/>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.CoreCommon.attr" combine="interleave">
+    <optional>
+      <attribute name="id" svg:animatable="false" svg:inheritable="false">
+        <ref name="ID.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="class" svg:animatable="false" svg:inheritable="false">
+        <text/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="xml:id" svg:animatable="false" svg:inheritable="false">
+        <ref name="ID.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="xml:base" svg:animatable="false" svg:inheritable="false">
+        <ref name="IRI.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="xml:lang" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <ref name="LanguageCode.datatype"/>
+          <empty/>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="svg.Core.attr" combine="interleave">
+    <ref name="svg.CoreCommon.attr"/>
+    <optional>
+      <attribute name="xml:space" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value>default</value>
+          <value>preserve</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <define name="svg.CorePreserve.attr" combine="interleave">
+    <ref name="svg.CoreCommon.attr"/>
+    <optional>
+      <attribute name="xml:space" a:defaultValue="preserve" svg:animatable="false" svg:inheritable="false">
+        <value>preserve</value>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.XY.attr" combine="interleave">
+    <optional>
+      <attribute name="x" svg:animatable="true" svg:inheritable="false">
+        <ref name="Coordinate.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="y" svg:animatable="true" svg:inheritable="false">
+        <ref name="Coordinate.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <define name="svg.WH.attr" combine="interleave">
+    <optional>
+      <attribute name="width" svg:animatable="true" svg:inheritable="false">
+        <ref name="Length.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="height" svg:animatable="true" svg:inheritable="false">
+        <ref name="Length.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.External.attr" combine="interleave">
+    <optional>
+      <attribute name="externalResourcesRequired" svg:animatable="false" svg:inheritable="false">
+        <ref name="Boolean.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.Focus.attr" combine="interleave">
+    <optional>
+      <attribute name="focusable" a:defaultValue="auto" svg:animatable="true" svg:inheritable="false">
+        <choice>
+          <value>auto</value>
+          <ref name="Boolean.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="focusNext" svg:animatable="true" svg:inheritable="false">
+        <ref name="Focus.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="focusPrev" svg:animatable="true" svg:inheritable="false">
+        <ref name="Focus.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="focusNorth" svg:animatable="true" svg:inheritable="false">
+        <ref name="Focus.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="focusNorthEast" svg:animatable="true" svg:inheritable="false">
+        <ref name="Focus.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="focusEast" svg:animatable="true" svg:inheritable="false">
+        <ref name="Focus.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="focusSouthEast" svg:animatable="true" svg:inheritable="false">
+        <ref name="Focus.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="focusSouth" svg:animatable="true" svg:inheritable="false">
+        <ref name="Focus.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="focusSouthWest" svg:animatable="true" svg:inheritable="false">
+        <ref name="Focus.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="focusWest" svg:animatable="true" svg:inheritable="false">
+        <ref name="Focus.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="focusNorthWest" svg:animatable="true" svg:inheritable="false">
+        <ref name="Focus.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.Properties.attr" combine="interleave">
+    <optional>
+      <attribute name="display" svg:animatable="true" svg:inheritable="explicit">
+        <choice>
+          <value>inline</value>
+          <value>block</value>
+          <value>list-item</value>
+          <value>run-in</value>
+          <value>compact</value>
+          <value>marker</value>
+          <value>table</value>
+          <value>inline-table</value>
+          <value>table-row-group</value>
+          <value>table-header-group</value>
+          <value>table-footer-group</value>
+          <value>table-row</value>
+          <value>table-column-group</value>
+          <value>table-column</value>
+          <value>table-cell</value>
+          <value>table-caption</value>
+          <value>none</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="visibility" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>visible</value>
+          <value>hidden</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="image-rendering" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>auto</value>
+          <value>optimizeSpeed</value>
+          <value>optimizeQuality</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="pointer-events" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>visiblePainted</value>
+          <value>visibleFill</value>
+          <value>visibleStroke</value>
+          <value>visible</value>
+          <value>painted</value>
+          <value>fill</value>
+          <value>stroke</value>
+          <value>all</value>
+          <value>none</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="shape-rendering" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>auto</value>
+          <value>optimizeSpeed</value>
+          <value>crispEdges</value>
+          <value>geometricPrecision</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="text-rendering" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>auto</value>
+          <value>optimizeSpeed</value>
+          <value>optimizeLegibility</value>
+          <value>geometricPrecision</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.Properties.attr" combine="interleave">
+    
+  <optional>
+      <attribute name="audio-level" svg:animatable="true" svg:inheritable="false">
+        <choice>
+          <value>inherit</value>
+          <ref name="Number.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="svg.Media.attr" combine="interleave">
+    <optional>
+      <attribute name="audio-level" svg:animatable="true" svg:inheritable="false">
+        <choice>
+          <value>inherit</value>
+          <ref name="Number.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.Transform.attr" combine="interleave">
+    <optional>
+      <attribute name="transform" svg:animatable="true" svg:inheritable="false">
+        <ref name="TransformList.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <!--
+    NOTE
+    In this schema xlink:type has been made optional and defaulting to "simple".
+    This is done in anticipation of XLink 1.1 which is to make this change, and
+    to conform to implementation reality.
+    -->
+
+  <define name="svg.XLinkBase.attr" combine="interleave">
+    <optional>
+      <attribute name="xlink:type" svg:animatable="true" svg:inheritable="false">
+        <value>simple</value>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="xlink:role" svg:animatable="false" svg:inheritable="false">
+        <ref name="IRI.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="xlink:arcrole" svg:animatable="false" svg:inheritable="false">
+        <ref name="IRI.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="xlink:title" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+  </define>
+
+
+  <define name="svg.XLinkHrefRequired.attr" combine="interleave">
+    <attribute name="xlink:href" svg:animatable="true" svg:inheritable="false">
+      <ref name="IRI.datatype"/>
+    </attribute>
+  </define>
+
+  <define name="svg.XLinkBaseRequired.attr" combine="interleave">
+    <ref name="svg.XLinkBase.attr"/>
+    <ref name="svg.XLinkHrefRequired.attr"/>
+  </define>
+
+
+  <define name="svg.XLinkActuateOnLoad.attr" combine="interleave">
+    <optional>
+      <attribute name="xlink:actuate" svg:animatable="false" svg:inheritable="false">
+        <value>onLoad</value>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="svg.XLinkShowOther.attr" combine="interleave">
+    <optional>
+      <attribute name="xlink:show" svg:animatable="false" svg:inheritable="false">
+        <value>other</value>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <define name="svg.XLinkEmbed.attr" combine="interleave">
+    <optional>
+      <attribute name="xlink:show" svg:animatable="false" svg:inheritable="false">
+        <value>embed</value>
+      </attribute>
+    </optional>
+    <ref name="svg.XLinkActuateOnLoad.attr"/>
+    <ref name="svg.XLinkBaseRequired.attr"/>
+  </define>
+
+
+  <define name="svg.XLinkRequired.attr" combine="interleave">
+    <ref name="svg.XLinkShowOther.attr"/>
+    <ref name="svg.XLinkActuateOnLoad.attr"/>
+    <ref name="svg.XLinkBaseRequired.attr"/>
+  </define>
+
+
+  <define name="svg.XLinkReplace.attr" combine="interleave">
+    <optional>
+      <attribute name="xlink:show" a:defaultValue="replace" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value>new</value>
+          <value>replace</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="xlink:actuate" svg:animatable="false" svg:inheritable="false">
+        <value>onRequest</value>
+      </attribute>
+    </optional>
+    <ref name="svg.XLinkBaseRequired.attr"/>
+  </define>
+
+  <define name="svg.XLink.attr" combine="interleave">
+    <optional>
+      <ref name="svg.XLinkHrefRequired.attr"/>
+    </optional>
+    <ref name="svg.XLinkShowOther.attr"/>
+    <ref name="svg.XLinkActuateOnLoad.attr"/>
+    <ref name="svg.XLinkBase.attr"/>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.Properties.attr" combine="interleave">
+    <optional>
+      <attribute name="fill-opacity" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>inherit</value>
+          <ref name="OpacityValue.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="stroke-opacity" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>inherit</value>
+          <ref name="OpacityValue.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="svg.Opacity.attr" combine="interleave">
+    <optional>
+      <attribute name="opacity" svg:animatable="true" svg:inheritable="false">
+        <choice>
+          <value>inherit</value>
+          <ref name="OpacityValue.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.Properties.attr" combine="interleave">
+    <optional>
+      <attribute name="fill" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>inherit</value>
+          <ref name="Paint.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="fill-rule" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>inherit</value>
+          <ref name="ClipFillRule.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="stroke" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>inherit</value>
+          <ref name="Paint.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="stroke-dasharray" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>inherit</value>
+          <ref name="StrokeDashArrayValue.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="stroke-dashoffset" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>inherit</value>
+          <ref name="StrokeDashOffsetValue.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="stroke-linecap" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>butt</value>
+          <value>round</value>
+          <value>square</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="stroke-linejoin" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>miter</value>
+          <value>round</value>
+          <value>bevel</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="stroke-miterlimit" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>inherit</value>
+          <ref name="StrokeMiterLimitValue.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="stroke-width" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>inherit</value>
+          <ref name="StrokeWidthValue.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="color" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>inherit</value>
+          <ref name="Color.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="color-rendering" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>auto</value>
+          <value>optimizeSpeed</value>
+          <value>optimizeQuality</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.Properties.attr" combine="interleave">
+    <optional>
+      <attribute name="vector-effect" svg:animatable="true" svg:inheritable="false">
+        <choice>
+          <value>default</value>
+          <value>non-scaling-stroke</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.Properties.attr" combine="interleave">
+    <optional>
+      <attribute name="viewport-fill" svg:animatable="true" svg:inheritable="false">
+        <choice>
+          <value>inherit</value>
+          <ref name="Paint.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="viewport-fill-opacity" svg:animatable="true" svg:inheritable="false">
+        <choice>
+          <value>inherit</value>
+          <ref name="OpacityValue.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="svg.Overflow.attr" combine="interleave">
+    <optional>
+      <attribute name="overflow" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value>visible</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.ContentType.attr" combine="interleave">
+    <optional>
+      <attribute name="type" svg:animatable="false" svg:inheritable="false">
+        <ref name="ContentType.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>
+
+  <!-- ... element definitions .................................... -->
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <start>
+    <ref name="svg"/>
+  </start>
+
+
+  <!--
+    Reusable groups
+    -->
+  <define name="svg.Desc.group" combine="choice">
+    <choice>
+      <ref name="desc"/>
+      <ref name="title"/>
+      <ref name="metadata"/>
+      <element name="switch">
+        <ref name="switch.AT"/>
+        <zeroOrMore><ref name="svg.Desc.group"/></zeroOrMore>
+      </element>
+    </choice>
+  </define>
+
+  <define name="svg.G-noA.group" combine="choice">
+    <choice>
+      <ref name="svg.Desc.group"/>
+      <ref name="svg.GCommon.group"/>
+      <ref name="g"/>
+      <ref name="defs"/>
+      <ref name="use"/>
+      <element name="switch">
+        <ref name="switch.AT"/>
+        <zeroOrMore><ref name="svg.G-noA.group"/></zeroOrMore>
+      </element>
+    </choice>
+  </define>
+
+  <define name="svg.G.group" combine="choice">
+    <choice>
+      <ref name="svg.Desc.group"/>
+      <ref name="svg.GCommon.group"/>
+      <ref name="g"/>
+      <ref name="defs"/>
+      <ref name="use"/>
+      <element name="switch">
+        <ref name="switch.AT"/>
+        <zeroOrMore><ref name="svg.G.group"/></zeroOrMore>
+      </element>
+      <element name="a">
+        <ref name="a.AT"/>
+        <zeroOrMore><ref name="svg.G-noA.group"/></zeroOrMore>
+      </element>
+    </choice>
+  </define>
+
+  <define name="svg.PAR.attr" combine="interleave">
+    <optional>
+      <attribute name="preserveAspectRatio" a:defaultValue="xMidYMid meet" svg:animatable="true" svg:inheritable="false">
+        <ref name="PreserveAspectRatioSpec.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+  <!-- ... svg .................................................... -->
+  <define name="svg">
+    <element name="svg">
+      <ref name="svg.AT"/>
+      <zeroOrMore><ref name="svg.G.group"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="svg.AT" combine="interleave">
+    <ref name="svg.Properties.attr"/>
+    <ref name="svg.External.attr"/>
+    <ref name="svg.Focus.attr"/>
+    <ref name="svg.AnimateSync.attr"/>
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.WH.attr"/>
+    <ref name="svg.PAR.attr"/>
+    <optional>
+      <attribute name="viewBox" svg:animatable="true" svg:inheritable="false">
+        <ref name="ViewBoxSpec.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="zoomAndPan" a:defaultValue="magnify" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value>disable</value>
+          <value>magnify</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="version" a:defaultValue="1.1" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value type="string">1.0</value>
+          <value type="string">1.1</value>
+          <value type="string">1.2</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="baseProfile" a:defaultValue="none" svg:animatable="false" svg:inheritable="false">
+        <ref name="Text.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="contentScriptType" a:defaultValue="text/ecmascript" svg:animatable="false" svg:inheritable="false">
+        <ref name="ContentType.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="snapshotTime" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name="timelineBegin" a:defaultValue="onLoad" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value type="string">onLoad</value>
+          <value type="string">onStart</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="playbackOrder" a:defaultValue="all" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value type="string">all</value>
+          <value type="string">forwardOnly</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+
+
+  <!-- ... g ...................................................... -->
+  <define name="g">
+    <element name="g">
+      <ref name="g.AT"/>
+      <zeroOrMore><ref name="svg.G.group"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="g.AT" combine="interleave">
+    <ref name="svg.Properties.attr"/>
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.External.attr"/>
+    <ref name="svg.Conditional.attr"/>
+    <ref name="svg.Focus.attr"/>
+    <ref name="svg.Transform.attr"/>
+  </define>
+
+
+
+  <!-- ... defs ................................................... -->
+  <define name="defs">
+    <element name="defs">
+      <ref name="defs.AT"/>
+      <zeroOrMore><ref name="svg.G.group"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="defs.AT" combine="interleave">
+    <ref name="svg.Properties.attr"/>
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.Transform.attr"/>
+  </define>
+
+
+
+  <!-- ... desc, title, metadata .................................. -->
+  <define name="desc">
+    <element name="desc">
+      <ref name="DTM.AT"/>
+      <ref name="DTM.CM"/>
+    </element>
+  </define>
+
+  <define name="title">
+    <element name="title">
+      <ref name="DTM.AT"/>
+      <ref name="DTM.CM"/>
+    </element>
+  </define>
+
+  <define name="metadata">
+    <element name="metadata">
+      <ref name="DTM.AT"/>
+      <ref name="DTM.CM"/>
+    </element>
+  </define>
+
+  <define name="DTM.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+  </define>
+
+  <define name="DTM.CM">
+    <text/>
+  </define>
+
+
+
+  <!-- ... use .................................................... -->
+  <define name="use">
+    <element name="use">
+      <ref name="use.AT"/>
+      <ref name="use.CM"/>
+    </element>
+  </define>
+
+  <define name="use.AT" combine="interleave">
+    <ref name="svg.Properties.attr"/>
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.Conditional.attr"/>
+    <ref name="svg.Transform.attr"/>
+    <ref name="svg.XLinkEmbed.attr"/>
+    <ref name="svg.Focus.attr"/>
+    <ref name="svg.External.attr"/>
+    <ref name="svg.XY.attr"/>
+    <ref name="svg.Overflow.attr"/>
+  </define>
+
+  <define name="use.CM">
+    <zeroOrMore>
+      <choice>
+        <ref name="svg.Desc.group"/>
+        <ref name="svg.Animate.group"/>
+        <ref name="svg.Handler.group"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+
+  <define name="svg.GCommon.group" combine="choice">
+    <ref name="svg.Animate.group"/>
+  </define>
+
+  <!--
+    Reusable groups
+    -->
+  <define name="svg.Animate.group" combine="choice">
+    <choice>
+      <ref name="animate"/>
+      <ref name="set"/>
+      <ref name="animateColor"/>
+      <ref name="animateTransform"/>
+      <ref name="animateMotion"/>
+    </choice>
+  </define>
+
+  <define name="svg.AnimateTiming.attr" combine="interleave">
+    <ref name="svg.AnimateTimingNoMinMax.attr"/>
+    <optional><attribute name="min" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+    <optional><attribute name="max" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+  </define>
+
+  <define name="svg.AnimateTimingNoMinMax.attr" combine="interleave">
+    <ref name="svg.AnimateTimingNoFillNoMinMax.attr"/>
+    <optional>
+      <attribute name="fill" a:defaultValue="remove" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value>remove</value>
+          <value>freeze</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="svg.AnimateTimingNoFillNoMinMax.attr" combine="interleave">
+    <ref name="svg.AnimateBegin.attr"/>
+    <optional><attribute name="dur" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+    <optional><attribute name="end" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+    <optional><attribute name="repeatCount" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+    <optional><attribute name="repeatDur" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+    <optional>
+      <attribute name="restart" a:defaultValue="always" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value>always</value>
+          <value>never</value>
+          <value>whenNotActive</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="svg.AnimateBegin.attr" combine="interleave">
+    <optional><attribute name="begin" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+  </define>
+
+  <define name="svg.AnimateSync.attr" combine="interleave">
+    <optional>
+      <attribute name="syncBehavior" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value>canSlip</value>
+          <value>locked</value>
+          <value>independent</value>
+          <value>default</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="syncBehaviorDefault" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value>canSlip</value>
+          <value>locked</value>
+          <value>independent</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="syncTolerance" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value>Clock-value</value>
+          <value>default</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="syncToleranceDefault" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value>Clock-value</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+
+
+  <!--
+    Common Attributes
+    -->
+  <define name="svg.AnimateCommon.attr">
+    <ref name="svg.XLink.attr"/>
+  </define>
+
+  <define name="svg.AnimateAttributeCommon.attr">
+    <attribute name="attributeName" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    <optional>
+      <attribute name="attributeType" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value>XML</value>
+          <value>CSS</value>
+          <value>auto</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="svg.AnimateToCommon.attr" combine="interleave">
+    <optional><attribute name="to" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+  </define>
+
+  <define name="svg.AnimateValueCommon.attr">
+    <ref name="svg.AnimateToCommon.attr"/>
+    <optional>
+      <attribute name="calcMode" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value>discrete</value>
+          <value>linear</value>
+          <value>paced</value>
+          <value>spline</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional><attribute name="values" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+    <optional><attribute name="keyTimes" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+    <optional><attribute name="keySplines" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+    <optional><attribute name="from" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+    <optional><attribute name="by" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+  </define>
+
+  <define name="svg.AnimateAdditionCommon.attr">
+    <optional>
+      <attribute name="additive" a:defaultValue="replace" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value>replace</value>
+          <value>sum</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="accumulate" a:defaultValue="none" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value>none</value>
+          <value>sum</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="svg.AnimateTypeCommon.attr">
+    <optional>
+      <attribute name="type" a:defaultValue="translate" svg:animatable="false" svg:inheritable="false">
+        <choice>
+          <value>translate</value>
+          <value>scale</value>
+          <value>rotate</value>
+          <value>skewX</value>
+          <value>skewY</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <!--
+    Common Content Model
+    -->
+  <define name="animateCommon.CM">
+    <choice>
+      <ref name="svg.Desc.group"/>
+      <ref name="svg.Handler.group"/>
+    </choice>
+  </define>
+
+
+  <!-- ... animate ................................................ -->
+  <define name="animate">
+    <element name="animate">
+      <ref name="animate.AT"/>
+      <zeroOrMore><ref name="animateCommon.CM"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="animate.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.AnimateCommon.attr"/>
+    <ref name="svg.AnimateAttributeCommon.attr"/>
+    <ref name="svg.AnimateTiming.attr"/>
+    <ref name="svg.AnimateValueCommon.attr"/>
+    <ref name="svg.AnimateAdditionCommon.attr"/>
+  </define>
+
+
+  <!-- ... set .................................................... -->
+  <define name="set">
+    <element name="set">
+      <ref name="set.AT"/>
+      <zeroOrMore><ref name="animateCommon.CM"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="set.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.AnimateCommon.attr"/>
+    <ref name="svg.AnimateAttributeCommon.attr"/>
+    <ref name="svg.AnimateTiming.attr"/>
+    <ref name="svg.AnimateToCommon.attr"/>
+  </define>
+
+
+  <!-- ... animateColor ........................................... -->
+  <define name="animateColor">
+    <element name="animateColor">
+      <ref name="animateColor.AT"/>
+      <zeroOrMore><ref name="animateCommon.CM"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="animateColor.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.AnimateCommon.attr"/>
+    <ref name="svg.AnimateAttributeCommon.attr"/>
+    <ref name="svg.AnimateTiming.attr"/>
+    <ref name="svg.AnimateValueCommon.attr"/>
+    <ref name="svg.AnimateAdditionCommon.attr"/>
+  </define>
+
+
+  <!-- ... animateTransform ....................................... -->
+  <define name="animateTransform">
+    <element name="animateTransform">
+      <ref name="animateTransform.AT"/>
+      <zeroOrMore><ref name="animateCommon.CM"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="animateTransform.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.AnimateCommon.attr"/>
+    <ref name="svg.AnimateAttributeCommon.attr"/>
+    <ref name="svg.AnimateTiming.attr"/>
+    <ref name="svg.AnimateValueCommon.attr"/>
+    <ref name="svg.AnimateAdditionCommon.attr"/>
+    <ref name="svg.AnimateTypeCommon.attr"/>
+  </define>
+
+
+  <!-- ... animateMotion .......................................... -->
+  <define name="animateMotion">
+    <element name="animateMotion">
+      <ref name="animateMotion.AT"/>
+      <zeroOrMore>
+        <ref name="animateCommon.CM"/>
+      </zeroOrMore>
+      <optional>
+        <ref name="mpath"/>
+      </optional>
+      <zeroOrMore>
+        <ref name="animateCommon.CM"/>
+      </zeroOrMore>
+    </element>
+  </define>
+
+  <define name="animateMotion.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.AnimateCommon.attr"/>
+    <ref name="svg.AnimateTiming.attr"/>
+    <ref name="svg.AnimateAdditionCommon.attr"/>
+    <ref name="svg.AnimateValueCommon.attr"/>
+    <ref name="svg.AnimateTypeCommon.attr"/>
+    <optional><attribute name="path" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+    <optional><attribute name="keyPoints" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+    <optional><attribute name="rotate" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+    <optional><attribute name="origin" svg:animatable="false" svg:inheritable="false"><text/></attribute></optional>
+  </define>
+
+
+
+  <!-- ... mpath .................................................. -->
+  <define name="mpath">
+    <element name="mpath">
+      <ref name="mpath.AT"/>
+      <zeroOrMore><ref name="svg.Desc.group"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="mpath.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.XLinkRequired.attr"/>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+
+  <define name="svg.GCommon.group" combine="choice">
+    <choice>
+      <ref name="animation"/>
+    </choice>
+  </define>
+
+
+  <!-- ... animation .............................................. -->
+  <define name="animation">
+    <element name="animation">
+      <ref name="animation.AT"/>
+      <ref name="animation.CM"/>
+    </element>
+  </define>
+
+  <define name="animation.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.Media.attr"/>
+    <ref name="svg.Conditional.attr"/>
+    <ref name="svg.External.attr"/>
+    <ref name="svg.XLinkEmbed.attr"/>
+    <ref name="svg.Focus.attr"/>
+    <ref name="svg.AnimateTimingNoMinMax.attr"/>
+    <ref name="svg.AnimateSync.attr"/>
+    <ref name="svg.XYWH.attr"/>
+    <ref name="svg.PAR.attr"/>
+    <ref name="svg.Overflow.attr"/>
+  </define>
+
+  <define name="animation.CM">
+    <zeroOrMore>
+      <choice>
+        <ref name="svg.Desc.group"/>
+        <ref name="svg.Animate.group"/>
+        <ref name="svg.Discard.group"/>
+        <ref name="svg.Handler.group"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.GCommon.group" combine="choice">
+    <ref name="audio"/>
+  </define>
+
+  <!-- ... audio .................................................. -->
+  <define name="audio">
+    <element name="audio">
+      <ref name="audio.AT"/>
+      <ref name="audio.CM"/>
+    </element>
+  </define>
+
+  <define name="audio.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.XLinkEmbed.attr"/>
+    <ref name="svg.Conditional.attr"/>
+    <ref name="svg.External.attr"/>
+    <ref name="svg.AnimateTimingNoFillNoMinMax.attr"/>
+    <ref name="svg.AnimateSync.attr"/>
+    <ref name="svg.Media.attr"/>
+    <ref name="svg.ContentType.attr"/>
+  </define>
+
+  <define name="audio.CM">
+    <zeroOrMore>
+      <choice>
+        <ref name="svg.Desc.group"/>
+        <ref name="svg.Animate.group"/>
+        <ref name="svg.Handler.group"/>
+        <ref name="svg.Discard.group"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <!--
+    The 'switch' is not defined here, only its attributes are, alongside
+    the test attributes that may be used to express conditions on subtrees.
+    The reason for this is because 'switch' has a content model that is
+    equivalent to the content model of the element that contains it. It is
+    therefore defined everywhere that it is allowable.
+    -->
+
+
+  <define name="svg.Conditional.attr" combine="interleave">
+    <optional>
+      <attribute name="requiredFeatures" svg:animatable="false" svg:inheritable="false">
+        <ref name="FeatureList.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="requiredExtensions" svg:animatable="false" svg:inheritable="false">
+        <ref name="ExtensionList.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="requiredFormats" svg:animatable="false" svg:inheritable="false">
+        <ref name="FormatList.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="requiredFonts" svg:animatable="false" svg:inheritable="false">
+        <ref name="FontList.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="systemLanguage" svg:animatable="false" svg:inheritable="false">
+        <ref name="LanguageCodes.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <!-- ... switch's attributes .................................... -->
+  <define name="switch.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.Conditional.attr"/>
+    <ref name="svg.Properties.attr"/>
+    <ref name="svg.External.attr"/>
+    <ref name="svg.Transform.attr"/>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+
+  <define name="svg.GCommon.group" combine="choice">
+    <ref name="foreignObject"/>
+  </define>
+
+  <!-- ... foreignObject .......................................... -->
+  <define name="foreignObject">
+    <element name="foreignObject">
+      <ref name="foreignObject.AT"/>
+      <ref name="foreignObject.CM"/>
+    </element>
+  </define>
+
+  <define name="foreignObject.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.Conditional.attr"/>
+    <ref name="svg.XLinkEmbed.attr"/>
+    <ref name="svg.Focus.attr"/>
+    <ref name="svg.External.attr"/>
+    <ref name="svg.Properties.attr"/>
+    <ref name="svg.Transform.attr"/>
+    <ref name="svg.XYWH.attr"/>
+  </define>
+
+  <define name="foreignObject.CM">
+    <empty/>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+
+  <define name="svg.GCommon.group" combine="choice">
+    <ref name="handler"/>
+  </define>
+
+  <define name="svg.Handler.group" combine="choice">
+    <ref name="handler"/>
+  </define>
+
+  <!-- ... handler ................................................ -->
+  <define name="handler">
+    <element name="handler">
+      <ref name="handler.AT"/>
+      <ref name="handler.CM"/>
+    </element>
+  </define>
+
+  <define name="handler.AT" combine="interleave">
+    <ref name="svg.CorePreserve.attr"/>
+    <ref name="svg.External.attr"/>
+    <attribute name="ev:event" svg:animatable="false" svg:inheritable="false">
+      <ref name="XSLT-QName.datatype"/>
+    </attribute>
+    <ref name="svg.ContentType.attr"/>
+  </define>
+
+  <define name="handler.CM">
+    <choice>
+      <group>
+        <ref name="svg.XLinkRequired.attr"/>
+      </group>
+      <text/>
+    </choice>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <!--
+    The 'a' is not defined here, only its attributes are. The reason for this
+    is because 'a' has a content model that is equivalent to the content model
+    of the element that contains it. It is therefore defined everywhere that
+    it is allowable.
+    -->
+
+  <!-- ... a's attributes ......................................... -->
+  <define name="a.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.Conditional.attr"/>
+    <ref name="svg.Properties.attr"/>
+    <ref name="svg.External.attr"/>
+    <ref name="svg.Focus.attr"/>
+    <ref name="svg.Transform.attr"/>
+    <ref name="svg.XLinkReplace.attr"/>
+    <optional>
+      <attribute name="target" svg:animatable="true" svg:inheritable="false">
+        <ref name="LinkTarget.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.GCommon.group" combine="choice">
+    <ref name="image"/>
+  </define>
+
+  <!-- ... image .................................................. -->
+  <define name="image">
+    <element name="image">
+      <ref name="image.AT"/>
+      <ref name="image.CM"/>
+    </element>
+  </define>
+
+  <define name="image.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.XLinkEmbed.attr"/>
+    <ref name="svg.Conditional.attr"/>
+    <ref name="svg.External.attr"/>
+    <ref name="svg.Focus.attr"/>
+    <ref name="svg.Transform.attr"/>
+    <ref name="svg.Opacity.attr"/>
+    <ref name="svg.XYWH.attr"/>
+    <ref name="svg.PAR.attr"/>
+    <ref name="svg.ContentType.attr"/>
+  </define>
+
+  <define name="image.CM">
+    <zeroOrMore>
+      <choice>
+        <ref name="svg.Desc.group"/>
+        <ref name="svg.Animate.group"/>
+        <ref name="svg.Discard.group"/>
+        <ref name="svg.Handler.group"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.GCommon.group" combine="choice">
+    <ref name="discard"/>
+  </define>
+
+  <define name="svg.Discard.group" combine="choice">
+    <ref name="discard"/>
+  </define>
+
+  <!-- ... discard ................................................ -->
+  <define name="discard">
+    <element name="discard">
+      <ref name="discard.AT"/>
+      <ref name="discard.CM"/>
+    </element>
+  </define>
+
+  <define name="discard.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.XLinkRequired.attr"/>
+    <ref name="svg.AnimateBegin.attr"/>
+  </define>
+
+  <define name="discard.CM">
+    <zeroOrMore>
+      <ref name="svg.Desc.group"/>
+      <ref name="svg.Handler.group"/>
+    </zeroOrMore>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.GCommon.group" combine="choice">
+    <ref name="prefetch"/>
+  </define>
+
+  <!-- ... prefetch ............................................... -->
+  <define name="prefetch">
+    <element name="prefetch">
+      <ref name="prefetch.AT"/>
+      <ref name="prefetch.CM"/>
+    </element>
+  </define>
+
+  <define name="prefetch.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.XLinkRequired.attr"/>
+    <optional>
+      <attribute name="mediaSize" svg:animatable="false" svg:inheritable="false">
+        <ref name="NumberOrPercentage.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="mediaTime" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name="mediaCharacterEncoding" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name="mediaContentEncodings" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name="bandwidth" svg:animatable="false" svg:inheritable="false">
+        <ref name="NumberOrPercentage.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="prefetch.CM">
+    <zeroOrMore>
+      <ref name="svg.Desc.group"/>
+    </zeroOrMore>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+
+  <define name="svg.GCommon.group" combine="choice">
+    <ref name="script"/>
+  </define>
+
+  <!-- ... script ................................................. -->
+  <define name="script">
+    <element name="script">
+      <ref name="script.AT"/>
+      <ref name="script.CM"/>
+    </element>
+  </define>
+
+  <define name="script.AT" combine="interleave">
+    <ref name="svg.CorePreserve.attr"/>
+    <ref name="svg.External.attr"/>
+    <ref name="svg.ContentType.attr"/>
+  </define>
+
+  <define name="script.CM">
+    <choice>
+      <group>
+        <ref name="svg.XLinkRequired.attr"/>
+      </group>
+      <text/>
+    </choice>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.GCommon.group" combine="choice">
+    <choice>
+      <ref name="path"/>
+      <ref name="rect"/>
+      <ref name="circle"/>
+      <ref name="line"/>
+      <ref name="ellipse"/>
+      <ref name="polyline"/>
+      <ref name="polygon"/>
+    </choice>
+  </define>
+
+
+  <!--
+    Common Attributes
+    -->
+  <define name="svg.ShapeCommon.attr">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.Transform.attr"/>
+    <ref name="svg.Properties.attr"/>
+    <ref name="svg.Conditional.attr"/>
+    <ref name="svg.Focus.attr"/>
+  </define>
+
+  <define name="svg.D.attr" combine="interleave">
+    <optional>
+      <attribute name="d" svg:animatable="true" svg:inheritable="false">
+        <ref name="PathData.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="svg.R.attr" combine="interleave">
+    <attribute name="r" svg:animatable="true" svg:inheritable="false">
+      <ref name="Length.datatype"/>
+    </attribute>
+  </define>
+
+  <define name="svg.X12Y12.attr" combine="interleave">
+    <optional>
+      <attribute name="x1" svg:animatable="true" svg:inheritable="false">
+        <ref name="Coordinate.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="y1" svg:animatable="true" svg:inheritable="false">
+        <ref name="Coordinate.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="x2" svg:animatable="true" svg:inheritable="false">
+        <ref name="Coordinate.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="y2" svg:animatable="true" svg:inheritable="false">
+        <ref name="Coordinate.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="svg.CxCy.attr" combine="interleave">
+    <optional>
+      <attribute name="cx" svg:animatable="true" svg:inheritable="false">
+        <ref name="Coordinate.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="cy" svg:animatable="true" svg:inheritable="false">
+        <ref name="Coordinate.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="svg.RxRyCommon.attr">
+    <optional>
+      <attribute name="rx" svg:animatable="true" svg:inheritable="false">
+        <ref name="Length.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="ry" svg:animatable="true" svg:inheritable="false">
+        <ref name="Length.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <!--
+    Common Content Model
+    -->
+  <define name="shapeCommon.CM">
+    <choice>
+      <ref name="svg.Desc.group"/>
+      <ref name="svg.Handler.group"/>
+      <ref name="svg.Animate.group"/>
+      <ref name="svg.Discard.group"/>
+    </choice>
+  </define>
+
+
+
+  <!-- ... path ................................................... -->
+  <define name="path">
+    <element name="path">
+      <ref name="path.AT"/>
+      <zeroOrMore><ref name="shapeCommon.CM"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="path.AT" combine="interleave">
+    <ref name="svg.ShapeCommon.attr"/>
+    <ref name="svg.D.attr"/>
+    <optional>
+      <attribute name="pathLength" svg:animatable="true" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <!-- ... rect ................................................... -->
+  <define name="rect">
+    <element name="rect">
+      <ref name="rect.AT"/>
+      <zeroOrMore><ref name="shapeCommon.CM"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="rect.AT" combine="interleave">
+    <ref name="svg.ShapeCommon.attr"/>
+    <ref name="svg.XYWH.attr"/>
+    <ref name="svg.RxRyCommon.attr"/>
+  </define>
+
+
+
+
+  <!-- ... circle ................................................. -->
+  <define name="circle">
+    <element name="circle">
+      <ref name="circle.AT"/>
+      <zeroOrMore><ref name="shapeCommon.CM"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="circle.AT" combine="interleave">
+    <ref name="svg.ShapeCommon.attr"/>
+    <ref name="svg.CxCy.attr"/>
+    <ref name="svg.R.attr"/>
+  </define>
+
+
+
+  <!-- ... line ................................................... -->
+  <define name="line">
+    <element name="line">
+      <ref name="line.AT"/>
+      <zeroOrMore><ref name="shapeCommon.CM"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="line.AT" combine="interleave">
+    <ref name="svg.ShapeCommon.attr"/>
+    <ref name="svg.X12Y12.attr"/>
+  </define>
+
+
+
+  <!-- ... ellipse ................................................ -->
+  <define name="ellipse">
+    <element name="ellipse">
+      <ref name="ellipse.AT"/>
+      <zeroOrMore><ref name="shapeCommon.CM"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="ellipse.AT" combine="interleave">
+    <ref name="svg.ShapeCommon.attr"/>
+    <ref name="svg.RxRyCommon.attr"/>
+    <ref name="svg.CxCy.attr"/>
+  </define>
+
+
+
+  <!-- ... polyline ............................................... -->
+  <define name="polyline">
+    <element name="polyline">
+      <ref name="polyCommon.AT"/>
+      <zeroOrMore><ref name="shapeCommon.CM"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="polyCommon.AT" combine="interleave">
+    <ref name="svg.ShapeCommon.attr"/>
+    <attribute name="points" svg:animatable="true" svg:inheritable="false">
+      <ref name="Points.datatype"/>
+    </attribute>
+  </define>
+
+
+
+  <!-- ... polygon ................................................ -->
+  <define name="polygon">
+    <element name="polygon">
+      <ref name="polyCommon.AT"/>
+      <zeroOrMore><ref name="shapeCommon.CM"/></zeroOrMore>
+    </element>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+
+  <define name="svg.Properties.attr" combine="interleave">
+    <optional>
+      <attribute name="solid-color" svg:animatable="true" svg:inheritable="false">
+        <choice>
+          <value>inherit</value>
+          <ref name="SVGColor.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="solid-opacity" svg:animatable="true" svg:inheritable="false">
+        <choice>
+          <value>inherit</value>
+          <ref name="OpacityValue.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <define name="svg.GCommon.group" combine="choice">
+    <ref name="solidColor"/>
+  </define>
+
+
+  <!-- ... solidColor ............................................. -->
+  <define name="solidColor">
+    <element name="solidColor">
+      <ref name="solidColor.AT"/>
+      <ref name="solidColor.CM"/>
+    </element>
+  </define>
+
+  <define name="solidColor.CM">
+    <zeroOrMore>
+      <choice>
+        <ref name="svg.Desc.group"/>
+        <ref name="svg.Animate.group"/>
+        <ref name="svg.Handler.group"/>
+        <ref name="svg.Discard.group"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+  <define name="solidColor.AT" combine="interleave">
+    <ref name="svg.Properties.attr"/>
+    <ref name="svg.Core.attr"/>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+  <define name="svg.GCommon.group" combine="choice">
+    <ref name="video"/>
+  </define>
+
+  <!-- ... video .................................................. -->
+  <define name="video">
+    <element name="video">
+      <ref name="video.AT"/>
+      <ref name="video.CM"/>
+    </element>
+  </define>
+
+  <define name="video.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.Media.attr"/>
+    <ref name="svg.XLinkEmbed.attr"/>
+    <ref name="svg.Conditional.attr"/>
+    <ref name="svg.External.attr"/>
+    <ref name="svg.AnimateTimingNoFillNoMinMax.attr"/>
+    <ref name="svg.AnimateSync.attr"/>
+    <ref name="svg.Focus.attr"/>
+    <ref name="svg.Transform.attr"/>
+    <ref name="svg.XYWH.attr"/>
+    <ref name="svg.PAR.attr"/>
+    <ref name="svg.ContentType.attr"/>
+    <optional>
+      <attribute name="transformBehavior" a:defaultValue="geometric" svg:animatable="no" svg:inheritable="false">
+        <choice>
+          <value>geometric</value>
+          <value>pinned</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="overlay" a:defaultValue="none" svg:animatable="no" svg:inheritable="false">
+        <choice>
+          <value>none</value>
+          <value>top</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="video.CM">
+    <zeroOrMore>
+      <choice>
+        <ref name="svg.Desc.group"/>
+        <ref name="svg.Animate.group"/>
+        <ref name="svg.Handler.group"/>
+        <ref name="svg.Discard.group"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+
+  <define name="svg.Properties.attr" combine="interleave">
+    <optional>
+      <attribute name="display-align" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>auto</value>
+          <value>before</value>
+          <value>center</value>
+          <value>after</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="line-increment" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>auto</value>
+          <value>inherit</value>
+          <ref name="Number.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <define name="svg.GCommon.group" combine="choice">
+    <choice>
+      <ref name="textArea"/>
+    </choice>
+  </define>
+
+
+  <!--
+    This will be meaningless if you support textArea but not text, which is
+    considered improbable at best
+    -->
+  <define name="svg.TextCommon-noA.group" combine="choice">
+    <choice>
+      <ref name="tBreak"/>
+    </choice>
+  </define>
+
+  <define name="svg.TextCommon.group" combine="choice">
+    <choice>
+      <ref name="tBreak"/>
+    </choice>
+  </define>
+
+
+  <!-- ... textArea ............................................... -->
+  <define name="textArea">
+    <element name="textArea">
+      <ref name="textArea.AT"/>
+      <zeroOrMore><ref name="svg.TextCommon.group"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="textArea.AT" combine="interleave">
+    <ref name="svg.Properties.attr"/>
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.Conditional.attr"/>
+    <ref name="svg.Focus.attr"/>
+    <ref name="svg.Transform.attr"/>
+    <ref name="svg.XYWH.attr"/>
+    <ref name="svg.Editable.attr"/>
+  </define>
+
+
+  <!-- ... tBreak ................................................. -->
+  <define name="tBreak">
+    <element name="tBreak">
+      <ref name="tBreak.AT"/>
+      <empty/>
+    </element>
+  </define>
+
+  <define name="tBreak.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+
+  <define name="svg.GCommon.group" combine="choice">
+    <choice>
+      <ref name="font"/>
+      <ref name="font-face"/>
+    </choice>
+  </define>
+
+
+  <define name="svg.FontAdvOrigCommon.attr" combine="interleave">
+    <optional>
+      <attribute name="horiz-adv-x" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <!-- ... font ................................................... -->
+  <define name="font">
+    <element name="font">
+      <ref name="font.AT"/>
+      <ref name="font.CM"/>
+    </element>
+  </define>
+
+  <define name="font.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.External.attr"/>
+    <ref name="svg.FontAdvOrigCommon.attr"/>
+    <optional>
+      <attribute name="horiz-origin-x" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="font.CM">
+    <zeroOrMore>
+      <choice>
+        <ref name="svg.Desc.group"/>
+        <ref name="font-face"/>
+        <ref name="missing-glyph"/>
+        <ref name="glyph"/>
+        <ref name="hkern"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+
+
+
+  <!-- ... font-face .............................................. -->
+  <define name="font-face">
+    <element name="font-face">
+      <ref name="font-face.AT"/>
+      <ref name="font-face.CM"/>
+    </element>
+  </define>
+
+  <define name="font-face.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.External.attr"/>
+    <optional><attribute name="font-family" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional><attribute name="font-style" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional><attribute name="font-weight" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional><attribute name="font-size" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional><attribute name="font-variant" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional><attribute name="font-stretch" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional><attribute name="unicode-range" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional><attribute name="panose-1" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional><attribute name="widths" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional><attribute name="bbox" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name="units-per-em" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="stemv" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="stemh" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="slope" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="cap-height" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="x-height" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="accent-height" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="ascent" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="descent" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="ideographic" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="alphabetic" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="mathematical" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="hanging" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="underline-position" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="underline-thickness" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="strikethrough-position" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="strikethrough-thickness" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="overline-position" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="overline-thickness" svg:animatable="false" svg:inheritable="false">
+        <ref name="Number.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="font-face.CM">
+    <zeroOrMore>
+      <choice>
+        <ref name="svg.Desc.group"/>
+        <ref name="font-face-src"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+
+
+  <!-- ... glyph .................................................. -->
+  <define name="glyph">
+    <element name="glyph">
+      <ref name="glyph.AT"/>
+      <ref name="glyph.CM"/>
+    </element>
+  </define>
+
+  <define name="glyph.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.FontAdvOrigCommon.attr"/>
+    <ref name="svg.D.attr"/>
+    <attribute name="unicode" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    <optional><attribute name="glyph-name" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional><attribute name="arabic-form" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name="lang" svg:animatable="false" svg:inheritable="false">
+        <ref name="LanguageCodes.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="glyph.CM">
+    <zeroOrMore>
+      <choice>
+        <ref name="svg.Desc.group"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+
+
+  <!-- ... missing-glyph .......................................... -->
+  <define name="missing-glyph">
+    <element name="missing-glyph">
+      <ref name="missing-glyph.AT"/>
+      <ref name="missing-glyph.CM"/>
+    </element>
+  </define>
+
+  <define name="missing-glyph.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.FontAdvOrigCommon.attr"/>
+    <ref name="svg.D.attr"/>
+  </define>
+
+  <define name="missing-glyph.CM">
+    <zeroOrMore>
+      <choice>
+        <ref name="svg.Desc.group"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+
+
+  <!-- ... hkern .................................................. -->
+  <define name="hkern">
+    <element name="hkern">
+      <ref name="hkern.AT"/>
+      <ref name="hkern.CM"/>
+    </element>
+  </define>
+
+  <define name="hkern.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <optional>
+      <attribute name="u1" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name="g1" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name="u2" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name="g2" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+    <attribute name="k" svg:animatable="false" svg:inheritable="false">
+      <ref name="Number.datatype"/>
+    </attribute>
+  </define>
+
+  <define name="hkern.CM">
+    <zeroOrMore>
+      <choice>
+        <ref name="svg.Desc.group"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+
+
+  <!-- ... font-face-src .......................................... -->
+  <define name="font-face-src">
+    <element name="font-face-src">
+      <ref name="font-face-src.AT"/>
+      <ref name="font-face-src.CM"/>
+    </element>
+  </define>
+
+  <define name="font-face-src.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+  </define>
+
+  <define name="font-face-src.CM">
+    <zeroOrMore>
+      <choice>
+        <ref name="svg.Desc.group"/>
+        <ref name="font-face-uri"/>
+        <ref name="font-face-name"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+
+
+  <!-- ... font-face-uri .......................................... -->
+  <define name="font-face-uri">
+    <element name="font-face-uri">
+      <ref name="font-face-uri.AT"/>
+      <ref name="font-face-uri.CM"/>
+    </element>
+  </define>
+
+  <define name="font-face-uri.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.XLinkRequired.attr"/>
+  </define>
+
+  <define name="font-face-uri.CM">
+    <zeroOrMore>
+      <choice>
+        <ref name="svg.Desc.group"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+
+
+  <!-- ... font-face-name ......................................... -->
+  <define name="font-face-name">
+    <element name="font-face-name">
+      <ref name="font-face-name.AT"/>
+      <ref name="font-face-name.CM"/>
+    </element>
+  </define>
+
+  <define name="font-face-name.AT" combine="interleave">
+    <ref name="svg.Core.attr"/>
+    <optional>
+      <attribute name="name" svg:animatable="false" svg:inheritable="false"><text/></attribute>
+    </optional>
+  </define>
+
+  <define name="font-face-name.CM">
+    <zeroOrMore>
+      <choice>
+        <ref name="svg.Desc.group"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+
+  <define name="svg.Properties.attr" combine="interleave">
+    <optional>
+      <attribute name="stop-color" svg:animatable="true" svg:inheritable="explicit">
+        <choice>
+          <value>inherit</value>
+          <ref name="SVGColor.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="stop-opacity" svg:animatable="true" svg:inheritable="explicit">
+        <choice>
+          <value>inherit</value>
+          <ref name="OpacityValue.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="svg.GCommon.group" combine="choice">
+    <choice>
+      <ref name="linearGradient"/>
+      <ref name="radialGradient"/>
+    </choice>
+  </define>
+
+
+  <!-- ... *Gradient .............................................. -->
+  <define name="svg.GradientCommon.attr" combine="interleave">
+    <ref name="svg.Properties.attr"/>
+    <ref name="svg.Core.attr"/>
+    <optional>
+      <attribute name="gradientUnits" svg:animatable="true" svg:inheritable="false">
+        <choice>
+          <value>userSpaceOnUse</value>
+          <value>objectBoundingBox</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="GradientCommon.CM">
+    <zeroOrMore>
+      <choice>
+        <ref name="svg.Desc.group"/>
+        <ref name="svg.Animate.group"/>
+        <ref name="svg.Discard.group"/>
+        <ref name="stop"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+
+  <!-- ... linearGradient ......................................... -->
+  <define name="linearGradient">
+    <element name="linearGradient">
+      <ref name="linearGradient.AT"/>
+      <ref name="GradientCommon.CM"/>
+    </element>
+  </define>
+
+  <define name="linearGradient.AT" combine="interleave">
+    <ref name="svg.Properties.attr"/>
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.X12Y12.attr"/>
+  </define>
+
+
+  <!-- ... radialGradient ......................................... -->
+  <define name="radialGradient">
+    <element name="radialGradient">
+      <ref name="radialGradient.AT"/>
+      <ref name="GradientCommon.CM"/>
+    </element>
+  </define>
+
+  <define name="radialGradient.AT" combine="interleave">
+    <ref name="svg.Properties.attr"/>
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.CxCy.attr"/>
+    <ref name="svg.R.attr"/>
+  </define>
+
+
+  <!-- ... stop ................................................... -->
+  <define name="stop">
+    <element name="stop">
+      <ref name="stop.AT"/>
+      <ref name="stop.CM"/>
+    </element>
+  </define>
+
+  <define name="stop.CM">
+    <zeroOrMore>
+      <choice>
+        <ref name="svg.Desc.group"/>
+        <ref name="svg.Animate.group"/>
+      </choice>
+    </zeroOrMore>
+  </define>
+
+  <define name="stop.AT" combine="interleave">
+    <ref name="svg.Properties.attr"/>
+    <ref name="svg.Core.attr"/>
+    <attribute name="offset" svg:animatable="true" svg:inheritable="false">
+      <ref name="GradientOffset.datatype"/>
+    </attribute>
+  </define>
+
+</grammar>
+  <grammar xmlns="http://relaxng.org/ns/structure/1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns:svg="http://www.w3.org/2005/02/svg-annotations" ns="http://www.w3.org/2000/svg" xml:lang="en" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+
+
+  <define name="svg.Properties.attr" combine="interleave">
+    <optional>
+      <attribute name="font-family" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>inherit</value>
+          <ref name="FontFamilyValue.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="font-size" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>inherit</value>
+          <ref name="FontSizeValue.datatype"/>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="font-style" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>normal</value>
+          <value>italic</value>
+          <value>oblique</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="font-weight" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>normal</value>
+          <value>bold</value>
+          <value>bolder</value>
+          <value>lighter</value>
+          <value>100</value>
+          <value>200</value>
+          <value>300</value>
+          <value>400</value>
+          <value>500</value>
+          <value>600</value>
+          <value>700</value>
+          <value>800</value>
+          <value>900</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="text-anchor" svg:animatable="true" svg:inheritable="true">
+        <choice>
+          <value>start</value>
+          <value>middle</value>
+          <value>end</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <define name="svg.GCommon.group" combine="choice">
+    <choice>
+      <ref name="text"/>
+    </choice>
+  </define>
+
+  <define name="svg.Editable.attr" combine="interleave">
+    <optional>
+      <attribute name="editable" a:defaultValue="false" svg:animatable="false" svg:inheritable="false">
+        <ref name="Boolean.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+  <!--
+    CM defined to have switch an 'a' defined correctly
+    -->
+  <define name="svg.TextCommon-noA.group" combine="choice">
+    <choice>
+      <ref name="svg.Desc.group"/>
+      <ref name="svg.Animate.group"/>
+      <ref name="svg.Handler.group"/>
+      <ref name="svg.Discard.group"/>
+      <ref name="tspan"/>
+      <text/>
+      <element name="switch">
+        <ref name="switch.AT"/>
+        <zeroOrMore><ref name="svg.TextCommon-noA.group"/></zeroOrMore>
+      </element>
+    </choice>
+  </define>
+
+  <define name="svg.TextCommon.group" combine="choice">
+    <choice>
+      <ref name="svg.Desc.group"/>
+      <ref name="svg.Animate.group"/>
+      <ref name="svg.Handler.group"/>
+      <ref name="svg.Discard.group"/>
+      <ref name="tspan"/>
+      <text/>
+      <element name="switch">
+        <ref name="switch.AT"/>
+        <zeroOrMore><ref name="svg.TextCommon.group"/></zeroOrMore>
+      </element>
+      <element name="a">
+        <ref name="a.AT"/>
+        <zeroOrMore><ref name="svg.TextCommon-noA.group"/></zeroOrMore>
+      </element>
+    </choice>
+  </define>
+
+
+
+  <!-- ... text ................................................... -->
+  <define name="text">
+    <element name="text">
+      <ref name="text.AT"/>
+      <zeroOrMore><ref name="svg.TextCommon.group"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="text.AT" combine="interleave">
+    <ref name="svg.Properties.attr"/>
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.Conditional.attr"/>
+    <ref name="svg.Editable.attr"/>
+    <ref name="svg.Focus.attr"/>
+    <ref name="svg.Transform.attr"/>
+    <optional>
+      <attribute name="x" svg:animatable="true" svg:inheritable="false">
+        <ref name="Coordinates.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="y" svg:animatable="true" svg:inheritable="false">
+        <ref name="Coordinates.datatype"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="rotate" svg:animatable="true" svg:inheritable="false">
+        <ref name="Numbers.datatype"/>
+      </attribute>
+    </optional>
+  </define>
+
+
+  <!-- ... tspan .................................................. -->
+  <define name="tspan">
+    <element name="tspan">
+      <ref name="tspan.AT"/>
+      <zeroOrMore><ref name="svg.TextCommon.group"/></zeroOrMore>
+    </element>
+  </define>
+
+  <define name="tspan.AT" combine="interleave">
+    <ref name="svg.Properties.attr"/>
+    <ref name="svg.Core.attr"/>
+    <ref name="svg.Conditional.attr"/>
+    <ref name="svg.Focus.attr"/>
+  </define>
+
+</grammar>
+
+</grammar>

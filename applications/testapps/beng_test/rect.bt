@@ -1,0 +1,42 @@
+GF_InitialObjectDescriptor {
+ objectDescriptorID 1
+ audioProfileLevelIndication 255
+ visualProfileLevelIndication 254
+ sceneProfileLevelIndication 1
+ graphicsProfileLevelIndication 1
+ ODProfileLevelIndication 1
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   decConfigDescr GF_DecoderConfig {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+        nodeIdBits 10
+     isCommandStream true
+     pixelMetric true
+     pixelWidth 400
+     pixelHeight 400
+    }
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  Background2D {
+   backColor 1 1 0
+  }
+  Shape {
+   appearance Appearance {
+    material DEF M Material2D {
+     emissiveColor 0.5 0.6 0.4
+     filled TRUE
+    }
+   }
+   geometry DEF REC Rectangle {
+    size 50 100
+   }
+  }
+ ]
+}

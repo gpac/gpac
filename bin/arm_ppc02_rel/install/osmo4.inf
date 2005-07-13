@@ -1,0 +1,109 @@
+[Version]
+Signature = "$Windows NT$"
+Provider = "GPAC 0.4.0"
+CESignature = "$Windows CE$"
+
+[CEStrings]
+AppName = "Osmo4"
+InstallDir = \Program Files\Osmo4
+
+;==================================================
+
+[DefaultInstall]
+CopyFiles = Exefiles
+AddReg = Osmo4Reg
+CEShortcuts = Shortcut , ProgLink
+
+;==================================================
+
+[SourceDisksNames]
+
+1 =, "Common Files",, D:\gpac2\bin\arm_ppc02_rel
+2 =, "Extra Files",, D:\gpac2\bin\arm_ppc02_rel\install
+
+[SourceDisksFiles]
+
+aac_in.dll = 1
+amr_dec.dll = 1
+bifs_dec.dll = 1
+ctx_load.dll = 1
+dummy_in.dll = 1
+ft_font.dll = 1
+gapi.dll = 1
+img_in.dll = 1
+isom_in.dll = 1
+js.dll = 1
+libgpac.dll = 1
+mp3_in.dll = 1
+odf_dec.dll = 1
+Osmo4.exe = 1
+render2d.dll = 1
+rtp_in.dll = 1
+timedtext.dll = 1
+soft_raster.dll = 1
+wav_out.dll = 1
+xvid_dec.dll = 1
+gpac.cfg = 2
+svg_loader.dll = 1
+libxml2.dll = 2
+;gx.dll = 2
+;ogg_xiph.dll = 1
+
+;==================================================
+
+
+
+; Ouput directories for files & shortcuts
+
+[DestinationDirs]
+
+Exefiles = 0, %InstallDir%
+Shortcut = 0, %CE17%
+ProgLink = 0, %CE11%
+DefaultDestDir = 0, %InstallDir%
+
+
+[Exefiles]
+"aac_in.dll"
+"amr_dec.dll"
+"bifs_dec.dll"
+"ctx_load.dll"
+"dummy_in.dll"
+"ft_font.dll"
+"gapi.dll"
+"img_in.dll"
+"isom_in.dll"
+"js.dll"
+"libgpac.dll"
+"mp3_in.dll"
+"odf_dec.dll"
+"Osmo4.exe"
+"render2d.dll"
+"rtp_in.dll"
+"soft_raster.dll"
+"timedtext.dll"
+"wav_out.dll"
+"xvid_dec.dll"
+"gpac.cfg"
+"svg_loader.dll"
+"libxml2.dll"
+;"gx.dll"
+;"ogg_xiph.dll"
+
+[Osmo4Reg]
+;UDP socket overwrite
+HKLM,Comm\Afd,DgramBuffer,0x00010001,16
+;GPAC cfg file association
+HKCR,.cfg,,0x00000000,txtfile
+;MP4 file association
+HKCR,.mp4,,0x00000000,mp4file
+HKCR,mp4file\Shell\Open\Command,,0x00000000,"""%InstallDir%\Osmo4.exe""" """%%L"""
+;Icon number is bin ID of ressource in app
+HKCR,mp4file\DefaultIcon,,0x00000000,"%InstallDir%\Osmo4.exe,-128"
+
+[Shortcut]
+"Osmo4", 0, "Osmo4.exe"
+
+[ProgLink]
+"Osmo4", 0, "Osmo4.exe"
+

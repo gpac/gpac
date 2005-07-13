@@ -1,0 +1,84 @@
+include ../config.mak
+
+#all OS and lib independent
+PLUGDIRS=aac_in bifs_dec ctx_load dummy_in soft_raster mp3_in isom_in odf_dec rtp_in raw_out render2d timedtext img_in
+
+ifeq ($(CONFIG_FT), no)
+else
+PLUGDIRS+=ft_font
+endif
+
+ifeq ($(CONFIG_FFMPEG), no)
+else
+PLUGDIRS+=ffmpeg_in
+endif
+
+ifeq ($(CONFIG_XVID), no)
+else
+PLUGDIRS+=xvid_dec
+endif
+
+ifeq ($(CONFIG_OGG), no)
+else
+PLUGDIRS+=ogg
+endif
+
+ifeq ($(CONFIG_AMR_NB), yes)
+PLUGDIRS+=amr_dec
+endif
+
+ifeq ($(CONFIG_AMR_NB_FT), yes)
+PLUGDIRS+=amr_float_dec
+else
+ifeq ($(CONFIG_AMR_WB_FT), yes)
+PLUGDIRS+=amr_float_dec
+endif
+endif
+
+ifeq ($(CONFIG_LINUX_AUDIO_OSS), no)
+else
+PLUGDIRS+=oss_audio
+endif
+
+ifeq ($(CONFIG_SDL), yes)
+PLUGDIRS+=sdl_out
+endif
+
+ifeq ($(DISABLE_SVG), no)
+ifeq ($(HAS_LIBXML2), yes)
+PLUGDIRS+=svg_loader
+endif
+endif
+
+
+ifeq ($(HAS_OPENGL), yes)
+PLUGDIRS+=render3d
+endif
+
+#w32 plugins
+ifeq ($(CONFIG_WIN32),yes)
+
+PLUGDIRS+=wav_out
+
+ifeq ($(CONFIG_DIRECTX),yes)
+PLUGDIRS+=dx_hw
+endif
+
+endif
+
+
+
+
+all: plugs
+
+plugs:	
+	for i in $(PLUGDIRS) ; do $(MAKE) -C $$i all; done 
+
+dep:
+	for i in $(PLUGDIRS) ; do $(MAKE) -C $$i dep; done 
+
+clean:
+	for i in $(PLUGDIRS) ; do $(MAKE) -C $$i clean; done 
+
+distclean:	
+	for i in $(PLUGDIRS) ; do $(MAKE) -C $$i distclean; done 

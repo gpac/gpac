@@ -1,0 +1,40 @@
+Installation instructions for GPAC 0.4.0 - July 2005:
+
+
+* Foreword
+	
+	GPAC may be compiled without any third party libraries, but in this case its functionalities are very
+limited (no still image, no audio, no video, no text, no scripting). It is therefore recommended to download the 
+extra lib package available at http://sourceforge.net/projects/gpac. Compilation instructions for these libraries 
+are provided per library in the package. 
+	The current extra_lib package to use with gpac 0.4.0 is gpac_extra_libs 0.3.0.
+
+	In case you have some of these libs already installed on your system, the detailed list of dependencies is
+	* freetype2 from version 2.1.4 on.
+	* SpiderMonkey v1.5 RC 4 (libjs from mozilla - you will need gmake to compile this one). RC5 and RC6 can be used but need
+	changes in /include/gpac/setup.h or configure script
+	* libjpg version 6b
+	* Libpng version 1.2.5 
+	* MAD version 0.15.1b (older versions should work)
+	* xvid version 1.0 (0.9.0 / .1 / .2 should also work)
+	* ffmpeg 15 June 2005 CVS version
+	* libogg 1.1, libvorbis 1.1 and libtheora 1.0 from Xiph.org
+	* faad2, version 2.0 or 2.1 (CVS from www.audiocoding.com)
+		NOTE FOR 0.3.0 RELEASE:
+		If you plan to use AAC radios you must use the latest FAAD2 CVS snapshot available at http://www.audiocoding.com.
+		Note that the last test made gave bad results with multichannel AAC files, therefore using the FAAD2 version included in 
+		gpac_extra_libs 0.3.0 is recommended.
+
+	Windows user are invited to download and install the Microsoft Platform SDK at
+		http://www.microsoft.com/msdownload/platformsdk/sdkupdate
+	If you don't have enough bandwidth (it's big) the GDIplus SDK is also included in the extra lib package
+
+
+Detailed instruction for Win32 MSVC Compilation are available in gpac/doc/INSTALL.w32
+
+Detailed instruction for WinCE eVC Compilation are available in gpac/doc/INSTALL.wCE
+
+Detailed instruction for GCC Compilation are available in gpac/doc/INSTALL.gcc
+
+	
+	

@@ -1,0 +1,24 @@
+BUGS
+
+	These are known bugs. Do not send bug reports concerning these issues.
+If you manage to fix one of these, patches are welcome.
+
+BUG REPORTS
+
+If you find a bug that is not in the list above, please send an e-mail to
+		Jean Le Feuvre (jeanlf at users.sourceforge.net)
+with the following line in the subject:
+	
+	GPAC BUG: <a brief description>
+
+and in the body of the message please explain the version of GPAC you used, and how to reproduce the bug,
+along with the full description of the bug.
+	
+If you made a patch to correct this, please attach it to the e-mail :)
+Also please ensure that the e-mail can be replied to, so that you will be noticed of the changes made to correct the bug.
+
+
+OPEN BUGS LIST
+* audio isn't working an all iPaq's
+* initial freeze of Osmo4 w32
+* scene initial resize sometimes ignored on win32

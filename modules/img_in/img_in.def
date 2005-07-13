@@ -1,0 +1,6 @@
+LIBRARY     img_in.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

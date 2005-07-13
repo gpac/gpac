@@ -1,0 +1,447 @@
+Last CVS update: 13/07/05
+  - GPAC is now licensed under LGPL. Massive code rewrite and repository reorganization in order to comply to some 
+    base coding style (cf gpac/doc/CODING_STYLE). APIs are not backward compatible, but should now be in a frozen state/spelling
+    for the most common tools (utils, MPEG-4 OD, IsoMedia and terminal APIs)
+  - misc fixes in MP4Box option parsing, in RTP multicast setup
+  - Osmozilla should now be much more stable on Win32 - Linux version to come.
+
+  
+20/06/05: GPAC 0.3.0 release
+  - fixed bug in 4GB file writing in interleaving mode
+  - fixed bug in absolute path usage in MP4Box
+  - added -cat file*.mpg syntax support
+  - added support for mass encryption in ISMACrypt drm_file (trackID="*" means all tracks get encrypted with the desired key)
+  - fixed compilation of wxOsmo4 with wxWidgets+Unicode
+  - fixed bug in 3GPP text layout when not fully contained in video
+  - added mapping between OD.ESD.GF_Language and MP4.MediaHeader.Language (BT/XMT <-> MP4)
+  - fixed bug in SDP playback without RTSP session attached (live casts)
+  - added language and delay selection at import time (cf MP4Box -h import)
+  - made -lang able to change all tracks languages by default !erase language specified at import time!
+  - added -lang option to MP4Box to change track language
+  - added -delay option to MP4Box to change initil media delay - ALTHOUGH 100% STANDARD, THIS MAY NOT BE SUPPORTED BY SOME PLAYERS
+	- updated configure for opengl disabling and fixed-point configuration
+  - misc fixes in ffmpeg decoder and MP4Box ISMA for PAR - this is disabled by default due to some unsolved crashes, cf gpac/doc/configuration.html or man gpac.s
+  - misc updates in MP4Box meta handling for item extraction.
+  - fixed MPEG-2 aac importing and info dumping
+  - fixed 3GPP text display bug when stoping and changing an animationStream using a 3GPP text object.
+  - fixed AVC/H264 HP parsing
+  - added BIFS track visual size info at BT/XMT encoding stage
+  - MOVED FFMPEG INCLUDE FILES TO LATEST CVS VERSION to support AVC/H264 HP decoding
+	- added meta self reference item for dual-headed files
+	- commit MPEG-4 LATM Audio hinting patch and added rtp aggregation. RTP reassembler NOT UPDATED YET
+	- fixed bugs in TeXML parser
+	- fixed bt/xmt to MP4 encoding for IOD with single BIFS ESD.URLString set
+	- fixed SVG outline handling and SVG/SMIL anim on appearance/geometry
+	- fixed svg_loader compilation on winCE (ARM binaries and include to follow in next release of gpac_extra_libs)
+	- commit of SVG fixed-point version
+	- Fixed MP4Box spliter crash introduced by MetaBox support.
+	- Merged MP21 and MP4 handling, added meta support in MP4Box (creation/extraction - cf MP4Box -h meta)
+
+	FROM THIS DAY ON, ALL WORK ADDED TO GPAC IS COPYLEFT ENST
+
+15/05/05: 
+	- Updated makefiles and configure for MacOSX support
+	- commit of GPAC fixed-point version - may not be completely stable yet :)
+	- changed all project files location for soon-to-come EVC4 and Visual .NET support
+	- changed 2D path object to directly support cubic and quadratic bezier (outliner do support them too), inspired from FreeType.
+	- MSVC Users: moved to wxWidgets 2.6.0 !!
+	- more fixes on CTTS in H264/AVC importer (p-frame reorder and some I/B sequences with neg POC)
+	- fixed last sample duration in mp4 for BIFS/OD/Text
+	- completely rewrote AVC CTS computing to handle b-refs properly
+	- fixed improper instanciation of externProto with VRML files not declaring default field values in externProtos
+	- reworked file splitter to support duration and size based splittings
+	- fixes in file concatanation
+	- support for "self" parameter in Anchor to replace only inline scenes on anchors
+	- fixed H263 raw importer (frame boundary detection and frame size) - changed default H263 frame rate to 15 fps (more used than 25 in 3GP).
+	- added support for new chaper format: CHAPTERX=HH:MM:SS[:ms or .ms] and CHAPTERXNAME=string
+	- committed AVC parser patch from bobolobo (SEI parsing and recovery points)
+	- added support for nero chapters in MP4 ('chpl' box), in MP4Box (-chap file.chp) and selection in players (chapters mapped to MPEG-4 SegmentDescriptors).
+		note regarding chp files: not sure about file syntax, currently support for (one chapter entry per line):
+			 ZoomPlayer syntax: AddChapter (-fps for import framerate selection), AddChapterBySecond and AddChapterByTime
+			 Regular time code … la SRT: HH:MM:SS[:ms or .ms] [Chapter Name]
+			 SMPTE time code: HH:MM:SS;fr/fps [Chapter Name] - if fps is omitted, use '-fps' if specified or 25 fps default.
+			 
+	- fixed avi packed bitstream flag removal bug with beta versions of DivX.
+	- fixed bugs in AVC CTTS compute
+	- wxOsmo4 now single-windowed on win32 with DirectX output driver (SDL one buggy).
+	- fixed bugs in media exporter for non-MPEG4 streams (AMR & co).
+	- added '-dts' option to MP4Box - dumps samp num, DTS and CTS for all tracks and performs sanity check of CTS offsets.
+	- added '-split time_sec' option to MP4Box - splits a simple AV IsoMedia file (no systems, only ONE VIDEO stream supported) into several movies of time_sec duration.
+	- added '-cat' option to MP4Box - concatenates several input file (IsoMedia or not) to a single IsoMedia file. Same options as -add. 
+			** Streams with different sample descriptions are imported as distinct tracks **
+	- fixed bugs in OD and IPMPX parsers (ipmpDescrPtr and IPMP_ToolID)
+
+30/03/05: GPAC 0.2.4 release
+	- Added TeXML import (QT XML format for 3GPP text)
+	- Added SRT extraction for text tracks.
+	- Added SUB subtitles support (SUB->3GPP text, SUB->BIFS)
+	- New lifting for MP4Box - nicer progress notifications and help screens.
+	- changed MP4Box to OVERRIDE FILES BY DEFAULT if '-out' is not specified.
+	- changed MP4Box to use 0.5sec interleaving storage by default on all operations.
+	- added file associations for Osmo4/Win32 (not for wx version) 
+	- added volume control and playlist restoring (Osmo4_w32 and Osmo4_wx) as well as fullscreen restoring when changing file through playlist
+	- added '-unhint' option in MP4Box to remove all hinting from file.
+	- many rewrite and fixes in WinCE version (Osmo4 and gapi), much more stable and usable player.
+	- changed SBR import in MP4Box: -sbr for backward compatible HE-AAC (implicit) signaling, -sbrx for non-backward compatible (explicit) signaling.
+	- added bandwidth signaling in SDP (b=AS:X) for some players compatibility
+	- added H263 and MPEG4 Visual(CMP) importers in MP4Box
+	- added extra SDP lines support in MP4Box - PLEASE refer to rfc2327 before complaining :)
+	- added hinters for QCELP (RFC 2658) and EVRC/SMV (RFC 3558). Not tested (no decoder available) - QCELP hinter works with QT6.5.
+	- added QCP importer/export in MP4Box and raw EVRC and SMV importers (not tested)
+	- added support for 3GPP2 extensions in IsoMedia (EVRC, QCELP and SMV config)
+	- added basic media cache for stream recording (rtp, internet radios). Only MP4 cache available, but other formats possible (plugin)
+	- added raw samples export and avi track to raw export in MP4Box
+	- More H264: import/export/rtp hinter in MP4Box, rtp reassembler
+	- Basic ISMACryp support in client (RTP and file)
+	- ISMACryp hinter in MP4Box
+	- ISMACryp support in MP4Box - cf "MP4Box -h crypt" for more details. Selective encryption (sample-based) is supported but not key switching (only one key at this time). 
+	- added smaller version of libmcrypt to M4Systems library for ISMA AES-128 CTR (but kept other algos for future IPMPX usage)
+	- added simple converter from cubic QTVR to MP4
+	- added 3GGP AMR NB and WB (float code) plugin (Fixed Point AMRWB is just so slow ....)
+	- moved 3GGP AMR NB decoder to 600 release (old lib should still be compatible)
+	- moved to latest official ffmpeg tarball for AVC B-frames decoding support (older ffmpeg versions should still work despite some API changes)
+	- added IPMPX base code (read/write and BT/XMT dump/parse)
+	- added chunk encoding in MP4Box (uses 2 input files, one with base scene, one with BIFS updates only)
+	- changed OGG muxing in MP4 - one single OTI (0xDD) used for all OGG streams - DSI format same as before.
+	- Fixed bug in CTTS computing in MPEG4 Video import caused by consecutive I frames.
+	- fixed MPA hinter RTP agregation mode (was always on).
+	- misc updates in importers, exporters and ISMACryp APIs
+	- cleaning of ISMA and 3GP related stuff in m4systems, forced 3GP file to be branded '3GP5' for QT compatibility...
+	- rewrote AMR hinter for RTP agregation, added maxptime hint param for speech rtp payloads (AMR/QCELP/EVRC/SMV).
+	- Fixed MediaControl/Inline URL changing
+	- fixed video RTP timescale in hinters for QT compatibility
+	- fixed language-based alternate stream selection in ODs
+	- cleanup of m4_config.h (removing all unneeded includes, misc cleanup for FreeBSD port)
+	- brought XMT-A in line with spec regarding MFString/MFURL/MFScript (parsers and dumpers)
+	- added support for "od://" in XMT-A urls according to XMT spec
+	- fixed raw aac export bug
+	- fixed DIV5 import issues with PLs
+
+05/01/05: GPAC 0.2.3 release
+	- new regression tests (X3D and some other features)
+	- MPEG-4 playback from BT/XMT now supports proper startTime/stopTime behaviour
+	- found a port of XVID for WinCE/ARM, removed OpenDivX from distribution (seemed no longer maintained). This XviD port is BTW much faster & more reliable than old OpenDivx
+	- split codec_pack in xvid_dec, img_in and mp3_in plugins
+	- fixed ffmpeg H264 support
+	- scene time for VRML/X3D now complies with spec (VRML uses absolute UTC timing since 1970)
+	- fixed 3D spot/point lighting bug
+	- added support for raw AMR file format (AMR and AMR-WB, multichannel AMR not supported) in MP4Box (import/extract) and reader plugin.
+	- added MP4Box '-tmp directory': forces temp file creation to given directory rather than OS-specific temp file storage.
+	- integrated the very nice mpeg ps parser from MPEG4IP - MP4Box now supports MPEG PS import to MP4 (ATM only one audio, one video, and only MP3 audio)
+	- added basic MPEG 1/2 Video RTP hinter and reassembler, checked MPEG files hinted to MP4 compatibility with QT player.
+	- fixed color transform and texturing issues.
+	- various fixes due to "dynamic scenes" in RTP stack and ESM module
+	- fixed copy/paste in Osmo4 address bar, mp4 on http issues, MP4Box -add pbs with IsoMedia
+	- Freezing TTXT format version 1.0 - documentation avail on gpac.sf.net
+	- Updated MP4Box documentation on gpac.sf.net to 0.2.3 version.
+	- Changed NetClientPluggin API (got rid of status query, status handled internally in ESM and in plugin if needed)
+	- Updated evc3 projects, made M4Systems READ/WRITE on CE to enable timedtext parsing (and future streaming cache, who knows ...).
+	- Added 3GPP text hinting in MP4Box and 3GPP text reassembler in rtp plugin.
+	- Bug fixes and testing of 3GP timed text with some 3GP files
+	- GF_InlineScene now supports MediaControl with mediaStartTime and mediaStopTime
+	- AAC SBR import now uses backward compatible decoder config.
+	- 3GPP/MPEG4 timed text decoder - supports everything except soft wrap & dynamic highlighting (karaoke) - vertical text not fully tested
+	- new "ttxt" format (for "timed text"): XML representation of 3GPP/MPEG4 timed text streams - importer (from ttxt and from srt) and dumper (to ttxt only) support.
+	- MP4Box "-ttxt" option: converts an SRT file to a TTXT one.
+	- Input plugin for ttxt and srt files.
+	- Support for "dynamic scenes", eg gpac will now generate on the fly a scene description when none is found, and allows stream selection in GUI.
+	- Modified Osmo4 & wxOsmo4 GUI: stream selection & subtitle adding
+	- Changed MP4Box "-import" to "-convert" ("-import" is kept for backward compatibility).
+	- Added MP4Box -nosys (removes all MPEG-4 systems streams and writes an empty IOD)
+	- Added MP4Box "-add": adds any supported format to an mp4 file (same input conventions as -convert). Several input can be specified (ex: -add audio1.aac -add sub1.srt video.mp4 -out full_movie.mp4)
+	- fixed a nasty bug in RTSP stack screwing up all mediaControl & rtsp session.
+	- 3D NonLinearDeformer (AFX) support (taper, twister and bender)
+	- Completed X3D geometry set: LineSet, (Indexed)TriangleSet, (Indexed)TriangleStripSet, (Indexed)TriangleFanSet 
+	- Full multichannel audio mixing and resampling (and better audio speed support). Multichannel->stereo conversion (not configurable atm).
+	- Yet Another Announcement of a stable ffmpeg demuxer - stable with avi & mpeg, still sync issues with some QT files (same issues with ffplay).
+	- added SBR mode for aac importing ('-sbr' switch) in MP4Box.
+	- fixed: MP4Box hinters (empty tracks), SDL -> BIFS coord mapping in fullscreen, rounding segmentDescriptor.startTime pbs in seeking with mp4menu
+	- Added Playlist and brower-like navigation to Osmo4 and wxOsmo4
+	- AAC/ADTS file & streaming input (radios) - FAAD decoder moved to aac_in plugin
+	- ADTS import/extraction in MP4Box
+	- fixed OD XMT-A for ESD.OCR_ES_ID and ESD.dependsOn_ES_ID (now use IDREFs and not binary IDs)
+	- integrated ogg lib in gpac (<gpac/m4_ogg.h>), and added ogg/vorbis and ogg/theora importers to mp4 - THIS IS NOT STANDARD AT ALL. 
+		The current syntax is to put needed headers in the MPEG-4 DecoderSpecificInfo, with the following syntax:
+			u16 sizeof_header;
+			char *header_data;
+		for each header (quite similar to what is found in qtcomponents). Vorbis ObjectTypeIndication is 0xDE, theora ObjectTypeIndication is 0xDF.
+		Need some more testing before filing a request to mp4ra.org.
+		Streaming possible as MPEG-4 streams, Vorbis RTP packetizer still to be done. 
+	
+09/11/04: GPAC 0.2.2 release
+	- Xiph OGG demuxer: supports file, http download (not tested) and icecast servers.
+	- Xiph Vorbis decoder
+	- Xiph Theora support (should work with fluendo but I can't get any data from the server...)
+	- Better FFMPEG support (moved to latest ffmpeg cvs tarball).
+	- all file associations in client are made through mime types, and changed handling of service (mime type query if possible before loading plugin)
+	- network stats & changed all UIs for that.
+	- decoder stats & changed all UIs for that.
+	- nicer Osmo4/wxGTK
+	- shoutcast support in mp3 reader
+	- Install doc cleanup
+	- MP4Box "-single" option now work for 3GP files
+	- MP4Box "-rem TrackID" option to remove a track
+	- made 3GP hinter produce QT-compatible streams (as usual QT only accepts specific RTP timescales)
+	- moved M4Systems to a dynamic lib (static is still first built & used for MP4Box)
+	- moved all scene decoders (bifs, OD and context loader) to real plugins
+	- moved BT & XMT parsers from stdio to ZLIB io, in order to support GZIPed VRML & X3D (and consequently, BT and XMT-A ;). GPAC CAN NO LONGER COMPILE WITHOUT ZLIB
+	- massive cleanups in scenegraph & MPEG-4 node naming convention
+	- !!!scene graph no longer customizable without code hacking!!!
+	- X3D scene graph generator (decided NOT TO SUPPORT VRML 97 extensions, since they are in X3D and with a different format...)
+	- updated vrml tools for X3D support (Double precision coords & RGBA colors)
+	- culling of AABB tree against frustum at draw stage in 3D renderer - greatly speeds up large meshes & terrains rendering
+	- support for weird cyclic graphs in scenegraph (mainly to support encoding of conditionals). Works with nodes as well, configurable through scenegraph but this can 
+	likely crash a renderer other than GPACs (tested with blaxxun & old GPAC versions, crash works each time:)
+	- lighting and transformations now properly set in 3D renderer 
+	- improved gravity (ground detection) and added jump in walk mode (right click or 'j')
+	- support for streams without systems timing knowledge (non MPEG4), eg streams where timing is computed after decoding (and not given by transport layer) for simpler ogg support.
+	- support for multiple URL in VRML nodes (including remote script)
+	- '#Viewpoint' and 'URL#Viewpoint' support in Anchor and Inline - #segment_name is not supported and should not be used (not standard IMHO)
+	- ColorRGBA support for X3D
+	- texture generator (only "SPHERE-LCOAL" and "COORD" supported for now)
+	- XML scene dumper now supports X3D (scene dumping API has changed)
+	- X3D support in BT and XMT-A loader
+	- updated 3D renderer & ESM for X3D support
+	- added X3D geometry2D nodes in 3D renderer
+	- Anchor.activate now works with no children
+	- plethora of bug fixes
+
+
+15/10/04: GPAC 0.2.1 release
+	- massive fixes in javascript (assignment was only 50% working), new faster, less memory-hungry implementation (and Othello reg test now passes!!)
+	- CreateVrmlFromScript support for VRML content.
+	- collision detection
+	- gravity (not really working)
+	- Layer3D fully supported (including navigation!)
+	- InputSensor in non-encoded scenes (bt/xmt)
+	- aabb tree in 3D meshes for faster picking/collision - needs more cfg options though
+	- user input in composite texture 2D/3D, and completed TouchSensor (hitNormal & texCoords event out) in 3D renderer
+	- added full blending support in 3D renderer (depth sorting)
+	- fixed handling of clipers (layout/form) and layer2D.
+	- added text change checking in spidermonkey to avoid rebuilding text
+	- support for usual coords in 2D renderer (window top-left in 0, 0 and decreasing y) for SVG integration 
+	- 3D normal renormalization for GL when scaling (eg now there's a proper lighting)
+	- 4/3 and 16/9 aspect ratio modes now work as expected
+	- interactions with fullscreen SDL now happen where they should
+	- LinearGradient and RadialGradient in 3D renderer
+	- hide all scene context importing through a single ContextLoader object to get first frame and progress info for swf loading in player
+	- added Orbit navigation mode (orbit around the user look point) & updated interfaces
+	- massive cleanup of scene handling & decoders to enable run-time modules for scene decoding. APIs have changed, 2 new ones for scene decoders and media decoders 
+	- finished BT/XMT/WRL scene handler and added support for SWF.
+	- added toolbar for Osmo4_w32 (_wx one to come)
+	- added PlanarExtrusion hardcoded proto (2D shape extruded by 2D shape)
+	- added bt/wrl support in MP4Client, update scene graph accordingly to use a single graph & lots of related fixes in ESM
+	- added texture text support in 3D renderer (graphics plugin being now loaded by main renderer)
+	- upgraded avilib to latest version from ogmtools (should support OpenDML 2.0)
+	- updated configure, Makefiles, & EVC3 project files
+	- textured text support (eg render to texture then blit) in 2D renderer
+	- ElevationGrid, Extrusion, VisibilitySensor, LOD support
+	- Sound support (stereo spatializer only) and reworked generic audio renderer for Sound/Sound2D support
+	- MPEG-4 V5 animators (not complete)
+	- reworked hardcoded proto mechanism to comply with VRML recommendations - some doc to come soon
+	- hardcoded proto PathExtrusion for any 2D shape extrusion except Bitmap and PointSet2D - eg EXTRUDED TEXT SUPPORT :)
+	- fixed Win32 large file support in GPAC, needs testing of AVI importer...
+	- cleaned up multichannel support, fixed faad channel reordering
+	- added background support: sky & ground dome, cube image (6 sides)
+	- added navigation support (WALK/FLY/EXAMINE/ + extra modes a la blaxxun) and user selection in Osmo4/wxOsmo4 and MP4Client
+	- added animation between viewpoints
+	- changed handling of empty boundable stacks according to VRML: no more default backColor, and real 3D scenes (top=Group or Layer3D) no longer may use orthographic projections
+	- normal smoothing for IFS.
+	- full lighting support (spot, point and directional)
+	- fog and billboard support.
+	- basic AVC support in MP4 (only AVCSampleEntry and child atoms)
+	- VRML/MPEG-4 interaction sensor support (added ProximitySensor, SphereSensor, PlaneSensor and CylinderSensors). still some work to do on TouchSensor hitNormal & hitTex
+	- SWF parser updates: PlaceObject2 and defineShape2.NewStyle bugs, support for soundStream
+	- added user interaction in 3D renderer (ray casting) in both ortho and projection modes
+	- frustum is now only recomputed when change in size or viewpoint
+	- viewport/viewpoint selection to osmo4/wxOsmo4 GUIs
+	- BT parser supports basic VRML (uncompressed .WRL should now be imported fine)
+	- plethora of bug fixes
+	
+02/09/04: GPAC 0.2.0 release
+	- updated cfg file doc man pages & makefiles
+	- massive re-arch of renderer(s) to be able to load at run-time either 2D or 3D renderer, instead of static linking
+	- new 2D and 3D renderers
+	- re-organized development headers
+	- added basic file<->plugin association by file extension (cf doc)
+	- Osmo4/wxWidgets version in Applications/Osmo4_wx
+	- put zoom & pan back in place in 2D render plugin
+	- fixed V4Studio (upgrade to wxWidgets 2.5.2)
+	- MP42AVI supports 3D scenes duming
+	- updated templates for v5 & v6. WARNING: it seems that some nodes will be removed from v5 (AFX COR) which will invalidate v6 bitstreams
+	- still more fixes related to scenegraph arch changes
+	- reworked importers & exporters
+	- updated new regression test suite (no 3D yet)
+	- bug fixes in MediaControl, MediaSensor & inline scene control
+	- more fixes related to scenegraph arch changes
+	- cleanup of SWF importer: 
+			* shape importing is OK, gradient so-so (wrong matrix mapping), no bitmap fill
+			* font & text OK.
+			* sprites should work
+			* sound work - sound stream not done yet
+		there will likely not be any new SWF feature supported, ActionScript & buttons are out of scope for GPAC.
+	- added swf support from MP4Box (cf -swf switch)
+	- fixed XMT-A syntax of script and proto SF/MFNode field, and BIFS/XMT UTF-16 support
+	- fixed avg/max rate compute on large files for AVI and MP3 importers
+	- Background2D texturing uses hw blitter when possible (2D renderer only)
+	- better inline scene & segment descriptors handling
+	- encoding of IOD extra descriptors now supported
+	- configure script fixes
+	- changed all 3D handling, encapsulating all GL calls in a single file
+	- moved all primitives in 3D renderer to use a single mesh object (rendering done through vertex arrays)
+	- added IFS, ILS, Sphere
+	- optimized AVI importer, fixed vbr mp3 in avi import
+	- changed scenegraph: 
+		* all nodes now keep track of their parents in order to signal sub-tree changes for frustum culling
+		* no more "SimulationTime" used in scenegraph, using node modif flags instead
+		* updated 2D and 3D renderer accordingly
+	- added support for rectangular textures in GL (most graphic cards support this, at least on win32)
+	- added frustum culling
+	- added SFTime->SFString formating in valuator (current MPEG-4 COR)
+	- plethora of bug fixes
+
+11/05/04: JLF: dev version 0.1.9
+	- changed source code architecture: rendering code is now in a dedicated static link outside libm4systems
+	- intergated draft 3D renderer:
+			- Most 2D features have been ported to the new renderer (missing: viewport, colorTransform and gradients)
+			- no user interaction, no viewpoint, no background, no lighting, NO ETC !!!!
+			- Box, cylinder, cone working
+			- texture mapping working (still images and video)
+	- changed video plugin API accordingly
+	- changed graphics API: all path handling (building & flatening , outlining & dashing) moved to authoring subproject
+	- changed font API: no more graphics driver used to get font outline
+	- cf install documentation to recompile.
+	- updated all node tables to COMPLETE BIFS (eg all nodes from v1 to v6)
+	- updated v6 template & code to final amendment version
+	- fixed inline scene start/stop when modifying inline URL.
+	- updated TODO :)
+	- uploaded ultra basic SWF convertor (so that it doesn't get lost on my hard drive:)
+	- plethora of bug fixes
+
+28/04/04: GPAC Release 0.1.4
+	- MP4Box avi import fixes (key frames, VOL removal, n-VOP handling)
+	- Fixed MP4 and NHNT importers (visual tracks sizes)
+	- MP4Box avi extractor for visual tracks
+	- XMT-A parser fixes (unicode, DEF routes, proto namespaces)
+	- better ExternProto resolving
+	- added VRML addressing (eg url "protolib#protoName" and "protolib#protoID")
+	- added pause/resume in Layout scrolling
+	- fixed rendering of layout nodes (layout, Form and Layer2D) in layout nodes
+	- fixed port reuse bug: 2 instances of the client may now use RTP streaming (UDP or TCP) at the same time
+	- fixed video Profile and Levels handling (was old 2000 spec version)
+	- added -merge option in MP4Box (merges 2 files into a single AV file)
+	- Fixes in SDL surfaces handling
+	- better "end of presentation" support
+	- plethora of bug fixes
+		
+18/04/04: JLF: GPAC Release 0.1.3 rc2
+	- MP4Box default hinting is now QT compatible - b-frame hinting support
+	- DecodingBuffer and CompositionMemory occupancey in ODInfo
+	- layout text splitting (word boundaries only)
+	- linux install and man pages
+	- OCR stream support in (authoring/playing) - only tested with MP4. MediaControl supported on OCR
+	- MP4Box B-frame import now works with data referencing
+	- fixed many seeking and buffering issues
+	- multi-framed audio units (needed for most formats understood by ffmpeg demux)
+	- multiplexed input streams now properly setup
+	- networking under linux (http and rtp)
+	- fixed udp streaming on win32/winCE, rtp reordering (was never on), default udp buffer size.
+	- changed config file for reordering
+	- changed audio driver interface (retrieve the HW config on setup for SDL) + some audio resync addons
+	- support for console events detection in MP4Client linux (a la win32 kbhit())
+	- anchor (mp4 navigation only) support in MP4Client
+	- uploaded linux version of extra libs
+	- added non-system SDL support in GCC configure script (cf --sdl-cfg)
+	- default font handling in freetype plugin: some text will be diplayed if at least one font is present
+	- better MPEG-4 video import (B-frame and packed bitstream)
+	- updated MP4 with full trackHeader (was old v1) and fixed MP4Box compatibility issues with 3ivx splitter
+	- moved all windowing architecture to the video output plugins (keyboard and mouse events, WM messages) in order to support SDL, moved old input functions to new event model
+	- modified jconfig.h to support both win32 and MinGW.
+	- updated V4Studio to work with new event/windowing architecture (work with SDL and DX)
+	- UDP autoconfig option (if no UDP traffic is recieved, restart with TCP)
+	- moved to FAAD2.1 (CVS), fixed faad2 compil on MinGW & winCE
+	- cleaned up install docs
+	- added support for SDL with software YUV->RGB and software stretching
+	- fixed ffmpeg audio support
+  - added ffmpeg JPEG support
+	- moved to FreeType 2.1.7 
+	- moved to libmad 0.15.1b
+	- MinGW support in all extra libs
+	- MinGW compilation supported - including DirectX under mingw
+	- added support for xvid 1.0.0
+	- plethora of bug fixes
+
+28/01/04: GPAC Release 0.1.2
+	- codec selection in Osmo4 GUI
+	- PocketPC installer
+	- OpenDivx plugin
+	- clean-up extra lib package, install notes and added missing libs
+	- FFMPEG demuxer done (synchro not good and seeking pbs). GPAC now supports all FFMPEG-supported formats.
+	- new NSIS script for complete install
+	- fixed hang on PocketPC WavOut and misc cleanups for PocketPC compilation
+	- H263 in 3GP files (use FFMPEG dec)
+	- H263 streaming (RFC 2429)
+	- B-frame parsing and CTS reconstruction in AVI importer (needs debug).
+	- muxInfo.duration parameter is now in milliseconds (was in seconds)
+	- '-node' options to MP4Box to get a given node syntax (fields default value and QP info)
+	- relative time stamps in BT ('AT D1000 ' means 'at last AU TS + 1000')
+	- FFMPEG decoder plugin now working with latest CVS snapshot
+	- MediaControl switching (several MC on single object)
+	- separate file downloader API and streaming client API / cleanup of plugins and ESM module
+	- base support for non-MPEG4 URLs in the scene (eg, url "http://whatever/resource")
+	- loader (local/network) for JPEG and PNG files
+	- loader (local/network) for MP3 files. Would be nice to add SHOUTCAST/ICECAST too...
+	- support for ESD URLs and non-inline OD URLs (supports any service, local file, download and streaming)
+	- MP4Box no longer needs SpiderMonkey
+	- added MatteTexture support (needs testing and debug)
+	- cleanup of exported headers (install in <gpac/m4_xxx.h>)
+	- move all config info to a single include file <gpac/m4_config.h> and updated some compil macro to avoid touching the file
+	- persistant associations font name / file name for freetype in GPAC.cfg
+	- support for conditional in proto creating node interfacing with the proto
+	- complete XMT-A parser (script, proto, externProto and extendedUpdates)
+	- edit list support in MP4 reader plugin
+	- BT->XMT-A and XMT-A->BT in MP4Box
+	- support for MP4 track start offset in BT/MP4Box (edit Lists)
+	- BIFS random access point generation in MP4Box (sync shadow or regular RAP) for cartoons
+	- AMR NB support (payload parsing and 3GP codec plugin)
+	- plethora of bug fixes
+		
+20/11/03: GPAC Release 0.1.1 
+	- 3GP rtsp streaming support
+	- GPAC uses latest stable extra libs: faad2 2.0rc3, FreeType 2.1.5 and mad 0.15.0b, and dev version (20031117) of xvid
+	- support for MediaSegment ranges ("#seg+" and "#seg1-seg2") in MediaControl/MediaSensor
+	- flow control for RTP over RTSP and session restart when RTSP TEARDOWN not acknowledged
+	- 3GPP hinting (AMR NB and H263) contribution by Andrew Voznytsa 
+	- playback support for basic 3GPP files (that is only MPEG-4 visual and AAC audio)
+	- support for MPA payload format - RFC 2250 (hinting and playback)
+	- support for mode detection (CELP and AAC) in hinting since QT6 understands only these modes
+	- support for several mediaSensors per OD
+	- AudioBuffer
+	- removed DirectDraw display resolution changes when switching to fullscreen
+	- BIFS Extended Updates from AFX/MU amendment (integrated in GF_SceneGraph, dumping, memory decoding and encoding)
+	- BT parser completed - complete BIFS syntax is now supported except PMF
+	- SRT importer through BT (converts SRT file to a BIFS animationStream)
+	- better audio playback/sync
+	- ffmpeg plugin, decoder seems OK (MPEG1 and MPEG4 visual tested), demuxer not working yet.
+	- added AVI/mp3/MP4/NHNT import to mp4box
+	- BIFS encoder initial release (missing: PMF, BIFS extended Updates), bt parser almost done, bt->mp4 working
+	- exporters in MP4Box (cmp, aac, mp3, jpg, png and nhnt) 
+	- mp4 XML reports for hint tracks and atoms in MP4Box
+	- merged old soft rasterizer with charcoal + freetype (using ftgrays standalone raster) - better quality, faster ...
+	- added BIFS stat tools in MP4Box
+	- lots of updates in dirty rect algo.
+	- changed GraphicsDriver2D API
+	- scene graph dumper in Osmo4 win32
+	- New app MP42AVI for BIFS to video (AVI, BMP, RAW) conversion, single-frame dump support
+	- MP4 dumping to XMT-A and bt (BIFS, OD and OCI) - cf MP4Box
+	- PredictiveMFField support (only IPPPPPPP...)
+	- segment descriptors in MediaControl
+	- ported wav audio for WinCE - TEST AND FIXING NEEDEED , DOESN'T WORK ON ALL IPAQs
+	- support for hardcoded proto testing
+	- WinCE port + GAPI video renderer (for iPaq only)
+	- externProto support (only tested with local proto libs)
+	- InputSensor (keySensor, Mouse and StringSensor)
+	- plethora of bug fixes
+	
+version 0.1.0:
+	initial release

@@ -1,0 +1,6 @@
+LIBRARY     soft_raster.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

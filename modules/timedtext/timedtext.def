@@ -1,0 +1,6 @@
+LIBRARY     timedtext.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

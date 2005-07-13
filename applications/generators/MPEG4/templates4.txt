@@ -1,0 +1,129 @@
+#-- Version 4 --#
+# templates for the BIFS nodes
+# =============================
+# Notations I = Infinity
+# %q=x	Quantization method x
+#	0	None
+#	1	3D Position			(SFVec3F)
+#	2	2D Position			(SFVec2F)
+#	3	drawing Order
+#	4	Color 				(SFColor)
+#	5	Texture Coordinate
+#	6	Angle 				(SFFloat 0-2PI)
+#	7	Scale 				(SFVec2F or SFVec3F)
+#	8	Interpolators keys
+#	9	Normals
+#	10	Rotations			(SFRotation)
+#	11	Object Size 3D 		(SFVec3F and SFFloat)
+#	12	Object Size  2D
+#	13	Linear Quantization (+ Nb Bits)
+#	14	Index (of IndexedFaceSet,...)
+#	15	Reserved
+#
+# %a=y	Animation method for fields that can be animated
+#
+## OO 081498 To match BIFS's update numbering
+#	0	None
+#	1	Position 3D
+#	2	Position 2D
+#	4	Color
+#	6	Angle
+#	7	Float
+#	8	BoundFloat			(intensities, transparencies,...)
+#	9	Normal
+#	10	Rotation
+#	11	Size 3D
+#	12	Size 2D
+#	13	Integer
+#	14	Reserved
+##	0	3D Position
+##	1	2D positon
+##	2	Color					(SFColor)
+##	3	Angle					(SFFloat 0-2pi)
+##	4	Normals
+##	5	Scale					(SFVec2F)
+##	6	Rotation				(SFRotation)
+##	7	Object Size or Scalar	(SFFloat)
+#
+# %b=[min,max] bounds of value
+#  For each scalar or vectorial value, bounds may be specified.
+#  This will be used to check if user-specified values are out of bounds. In
+# this case, bounds specified in the templates will be used (if not infinity).
+#
+# %NDT=Node Data Type
+#  For each node, one or several Node Data Types are assigned, specifying which node sub
+# types the node belongs to. Moreover, each field of type SF/MF3DNode is re assigned
+# a unique correct NodeDataType according to specify the allowed values of the field
+#
+# %COD	Type of encoding
+#	N	Normal Syntax : The node syntax follos the generic syntax for nodes
+#	S	Special Syntax : The node has a specific syntax
+#
+#
+# NCT => VRML type equivalence
+#
+#  SF/MFxxxNode         => SF/MFNode
+#  SF/MFURL             => SF/MFString
+#  SF/MFCommandBuffer   => SF/MFString
+#  SF/MFScript          => SF/MFString
+#
+#
+# Modification History
+# ------------------------------------------------
+# Jan 29, 2000 created for v4 nodes (called group 4 now)
+#
+# Aug 21, 2001 Changed SFCommandBuffer from SFString buffer in InputSensor
+#  SFURL -> MFURL in MediaControl
+
+PROTO InputSensor [#%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N
+exposedField SFBool  enabled         TRUE
+exposedField SFCommandBuffer buffer         ""
+exposedField MFURL url  ""
+eventOut SFTime eventTime
+]{
+}
+
+PROTO MatteTexture [#%NDT=SFWorldNode,SFTextureNode,SF2DNode,SF3DNode %COD=N
+field           SFTextureNode  surfaceA         NULL
+field           SFTextureNode  surfaceB         NULL
+field           SFTextureNode  alphaSurface     NULL
+exposedField    SFString       operation        ""
+field           SFBool         overwrite        FALSE
+exposedField    SFFloat        fraction         0
+exposedField    MFFloat        parameter        0
+]{ 
+}
+
+PROTO MediaBuffer [ #%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N
+exposedField SFFloat bufferSize 0.0 #%b=[0,+I)
+exposedField MFURL url []   
+exposedField SFTime mediaStartTime -1       #%b=(-I,+I)
+exposedField SFTime mediaStopTime +I     #%b=(-I,+I)
+eventOut SFBool isBuffered 
+exposedField SFBool enabled TRUE 
+] { 
+}
+ 
+PROTO MediaControl [ #%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N  
+exposedField MFURL url [] 
+exposedField SFTime mediaStartTime -1   #%b=(-I,+I)
+exposedField SFTime mediaStopTime +I    #%b=(-I,+I)
+exposedField SFFloat mediaSpeed 1.0     #%b=(-I,+I) 
+exposedField SFBool loop    FALSE
+exposedField SFBool preRoll TRUE  
+exposedField SFBool mute FALSE   
+exposedField SFBool enabled TRUE 
+eventOut SFBool isPreRolled 
+] { 
+}
+
+PROTO MediaSensor  [ #%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N  
+exposedField MFURL url [] 
+eventOut SFTime mediaCurrentTime 
+eventOut SFTime streamObjectStartTime 
+eventOut SFTime mediaDuration 
+eventOut SFBool isActive 
+eventOut MFString info 
+] { 
+}
+
