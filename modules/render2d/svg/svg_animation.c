@@ -370,21 +370,21 @@ static void SVG_SaveBaseValue(SMIL_AnimationStack *stack)
 {
 	switch(stack->targetAttributeType) {
 	case SVG_Color_datatype:
-		SAFEALLOC(stack->init_value, sizeof(SVG_Color))
+		GF_SAFEALLOC(stack->init_value, sizeof(SVG_Color))
 		memcpy(stack->init_value, stack->targetAttribute, sizeof(SVG_Color));
 		break;
 	case SVG_Paint_datatype:
-		SAFEALLOC(stack->init_value, sizeof(SVG_Color))
+		GF_SAFEALLOC(stack->init_value, sizeof(SVG_Color))
 		memcpy((SVG_Color *)stack->init_value, ((SVG_Paint *)stack->targetAttribute)->color, sizeof(SVG_Color));
 		break;
 	case SVG_StrokeWidthValue_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
-		SAFEALLOC(stack->init_value, sizeof(SVG_Length))
+		GF_SAFEALLOC(stack->init_value, sizeof(SVG_Length))
 		memcpy(stack->init_value, stack->targetAttribute, sizeof(SVG_Length));
 		break;
 	case SVG_TransformList_datatype:
-		SAFEALLOC(stack->init_value, sizeof(SVG_Matrix))
+		GF_SAFEALLOC(stack->init_value, sizeof(SVG_Matrix))
 		memcpy(stack->init_value, (SVG_Matrix *)stack->targetAttribute, sizeof(SVG_Matrix));
 /*		fprintf(stdout, "a=%f, b=%f, c=%f, d=%f, e=%f, f=%f\n", FIX2FLT(((SVG_Matrix *)stack->init_value)->m[0]),
 															  FIX2FLT(((SVG_Matrix *)stack->init_value)->m[1]),
@@ -395,19 +395,19 @@ static void SVG_SaveBaseValue(SMIL_AnimationStack *stack)
 		break;
 	case SVG_DisplayValue_datatype:
 	case SVG_VisibilityValue_datatype:
-		SAFEALLOC(stack->init_value, sizeof(u8))
+		GF_SAFEALLOC(stack->init_value, sizeof(u8))
 		memcpy(stack->init_value, stack->targetAttribute, sizeof(u8));
 		break;
 	case SVG_StrokeDashOffsetValue_datatype:
 	case SVG_OpacityValue_datatype:
 	case SVG_FontSizeValue_datatype:
 	case SVG_StrokeMiterLimitValue_datatype:
-		SAFEALLOC(stack->init_value, sizeof(SVGInheritableFloat))
+		GF_SAFEALLOC(stack->init_value, sizeof(SVGInheritableFloat))
 		memcpy(stack->init_value, stack->targetAttribute, sizeof(SVGInheritableFloat));
 		break;
 	case SVG_Motion_datatype:
 		/* Motion type is an exception: it gathers to attributes x,y into one point */
-		SAFEALLOC(stack->init_value, sizeof(SVG_Point))
+		GF_SAFEALLOC(stack->init_value, sizeof(SVG_Point))
 		((SVG_Point *)stack->init_value)->x = ((SVG_Matrix *)stack->targetAttribute)->m[2];
 		((SVG_Point *)stack->init_value)->y = ((SVG_Matrix *)stack->targetAttribute)->m[5];
 		break;
@@ -647,7 +647,7 @@ void SVG_Init_animateTransform(Render2D *sr, GF_Node *node)
 		GF_List *trlist = *(SVG_TransformList *)info.far_ptr;
 		SVG_Transform *tr = gf_list_get(trlist, 0);
 		if (!tr) {
-			SAFEALLOC(tr, sizeof(SVG_Transform));
+			GF_SAFEALLOC(tr, sizeof(SVG_Transform));
 			gf_mx2d_init(tr->matrix);
 			gf_list_add(trlist, tr);
 		}
@@ -691,7 +691,7 @@ void SVG_Init_animateMotion(Render2D *sr, GF_Node *node)
 		GF_List *trlist = *(SVG_TransformList *)info.far_ptr;
 		SVG_Transform *tr = gf_list_get(trlist, 0);
 		if (!tr) {
-			SAFEALLOC(tr, sizeof(SVG_Transform));
+			GF_SAFEALLOC(tr, sizeof(SVG_Transform));
 			gf_mx2d_init(tr->matrix);
 			gf_list_add(trlist, tr);
 		}

@@ -182,7 +182,7 @@ void *SDL_NewAudio()
 
 	dr = malloc(sizeof(GF_AudioOutput));
 	memset(dr, 0, sizeof(GF_AudioOutput));
-	GF_REGISTER_MODULE(dr, GF_AUDIO_OUTPUT_INTERFACE, "SDL Audio Output", "gpac distribution", 0);
+	GF_REGISTER_MODULE_INTERFACE(dr, GF_AUDIO_OUTPUT_INTERFACE, "SDL Audio Output", "gpac distribution");
 
 	dr->opaque = ctx;
 

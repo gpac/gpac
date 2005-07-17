@@ -534,7 +534,7 @@ void svg_parse_transform(SVGParser *parser, SVG_Matrix *mat, xmlChar *attribute_
 				i++;
 			}
 			gf_mx2d_init(tmp);
-			gf_mx2d_add_skewX(&tmp, angle);
+			gf_mx2d_add_skew_x(&tmp, angle);
 			gf_mx2d_add_matrix(&tmp, mat);
 			gf_mx2d_copy(*mat, tmp);
 			while(str[i] != 0 && str[i] == ' ') i++;
@@ -548,7 +548,7 @@ void svg_parse_transform(SVGParser *parser, SVG_Matrix *mat, xmlChar *attribute_
 				i++;
 			}
 			gf_mx2d_init(tmp);
-			gf_mx2d_add_skewY(&tmp, angle);
+			gf_mx2d_add_skew_y(&tmp, angle);
 			gf_mx2d_add_matrix(&tmp, mat);
 			gf_mx2d_copy(*mat, tmp);
 			while(str[i] != 0 && str[i] == ' ') i++;
@@ -601,7 +601,7 @@ next_command:
 			case 'L':
 			case 'l':
 				i++;
-				SAFEALLOC(command, sizeof(u8))
+				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
 				if (c == 'M' || c == 'm') *command = 0;
 				if (c == 'L' || c == 'l') {
@@ -609,7 +609,7 @@ next_command:
 					subpath_closed = 0;	
 				}
 				
-				SAFEALLOC(pt, sizeof(SVG_Point))
+				GF_SAFEALLOC(pt, sizeof(SVG_Point))
 				gf_list_add(d_points, pt);
 				i += svg_parse_coordinate(&(d[i]), &(pt->x), 0);
 				i += svg_parse_coordinate(&(d[i]), &(pt->y), 0);				
@@ -637,12 +637,12 @@ next_command:
 			case 'H':
 			case 'h':
 				i++;				
-				SAFEALLOC(command, sizeof(u8))
+				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
 				*command = 1;
 				subpath_closed = 0;
 
-				SAFEALLOC(pt, sizeof(SVG_Point))
+				GF_SAFEALLOC(pt, sizeof(SVG_Point))
 				gf_list_add(d_points, pt);
 				i += svg_parse_coordinate(&(d[i]), &(pt->x), 0);
 				if (c == 'h') {
@@ -655,12 +655,12 @@ next_command:
 			case 'V':
 			case 'v':
 				i++;				
-				SAFEALLOC(command, sizeof(u8))
+				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
 				*command = 1;
 				subpath_closed = 0;
 
-				SAFEALLOC(pt, sizeof(SVG_Point))
+				GF_SAFEALLOC(pt, sizeof(SVG_Point))
 				gf_list_add(d_points, pt);
 				i += svg_parse_coordinate(&(d[i]), &(pt->y), 0);
 				if (c == 'v') {
@@ -673,13 +673,13 @@ next_command:
 			case 'C':
 			case 'c':
 				i++;				
-				SAFEALLOC(command, sizeof(u8))
+				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
 				*command = 2;
 				subpath_closed = 0;
 				
 				for (k=0; k<3; k++) {
-					SAFEALLOC(pt, sizeof(SVG_Point))
+					GF_SAFEALLOC(pt, sizeof(SVG_Point))
 					gf_list_add(d_points, pt);
 					i += svg_parse_coordinate(&(d[i]), &(pt->x), 0);
 					i += svg_parse_coordinate(&(d[i]), &(pt->y), 0);				
@@ -695,13 +695,13 @@ next_command:
 			case 'S':
 			case 's':
 				i++;				
-				SAFEALLOC(command, sizeof(u8))
+				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
 				*command = 3;
 				subpath_closed = 0;
 				
 				for (k=0; k<2; k++) {
-					SAFEALLOC(pt, sizeof(SVG_Point))
+					GF_SAFEALLOC(pt, sizeof(SVG_Point))
 					gf_list_add(d_points, pt);
 					i += svg_parse_coordinate(&(d[i]), &(pt->x), 0);
 					i += svg_parse_coordinate(&(d[i]), &(pt->y), 0);				
@@ -717,13 +717,13 @@ next_command:
 			case 'Q':
 			case 'q':
 				i++;				
-				SAFEALLOC(command, sizeof(u8))
+				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
 				*command = 4;
 				subpath_closed = 0;
 				
 				for (k=0; k<2; k++) {
-					SAFEALLOC(pt, sizeof(SVG_Point))
+					GF_SAFEALLOC(pt, sizeof(SVG_Point))
 					gf_list_add(d_points, pt);
 					i += svg_parse_coordinate(&(d[i]), &(pt->x), 0);
 					i += svg_parse_coordinate(&(d[i]), &(pt->y), 0);				
@@ -739,12 +739,12 @@ next_command:
 			case 'T':
 			case 't':
 				i++;				
-				SAFEALLOC(command, sizeof(u8))
+				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
 				*command = 5;
 				subpath_closed = 0;
 				
-				SAFEALLOC(pt, sizeof(SVG_Point))
+				GF_SAFEALLOC(pt, sizeof(SVG_Point))
 				gf_list_add(d_points, pt);
 				i += svg_parse_coordinate(&(d[i]), &(pt->x), 0);
 				i += svg_parse_coordinate(&(d[i]), &(pt->y), 0);				
@@ -761,12 +761,12 @@ next_command:
 				{
 					Fixed tmp;
 					i++;				
-					SAFEALLOC(command, sizeof(u8))
+					GF_SAFEALLOC(command, sizeof(u8))
 					gf_list_add(d_commands, command);
 					*command = 7;
 					subpath_closed = 0;
 	
-					SAFEALLOC(pt, sizeof(SVG_Point))
+					GF_SAFEALLOC(pt, sizeof(SVG_Point))
 					gf_list_add(d_points, pt);
 					i += svg_parse_coordinate(&(d[i]), &(pt->x), 0);	
 					i += svg_parse_coordinate(&(d[i]), &(pt->y), 0);				
@@ -775,7 +775,7 @@ next_command:
 					i += svg_parse_coordinate(&(d[i]), &(tmp), 0);				
 					i += svg_parse_coordinate(&(d[i]), &(tmp), 0);	
 					
-					SAFEALLOC(pt, sizeof(SVG_Point))
+					GF_SAFEALLOC(pt, sizeof(SVG_Point))
 					gf_list_add(d_points, pt);
 					i += svg_parse_coordinate(&(d[i]), &(pt->x), 0);	
 					i += svg_parse_coordinate(&(d[i]), &(pt->y), 0);				
@@ -791,7 +791,7 @@ next_command:
 			case 'Z':
 			case 'z':
 				i++;				
-				SAFEALLOC(command, sizeof(u8))
+				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
 				*command = 6;
 				subpath_closed = 1;
@@ -1072,11 +1072,11 @@ void smil_parse_begin_or_end_list(SVGParser *parser, GF_List *values, char *begi
 			SMIL_BeginOrEndValue *begin_or_end_value;
 			u32 single_value_len = i - (psemi+1);
 
-			SAFEALLOC(value_string, single_value_len+1);
+			GF_SAFEALLOC(value_string, single_value_len+1);
 			memcpy(value_string, str + (psemi+1), single_value_len);
 			value_string[single_value_len] = 0;
 			
-			SAFEALLOC(begin_or_end_value, sizeof(SMIL_BeginOrEndValue))
+			GF_SAFEALLOC(begin_or_end_value, sizeof(SMIL_BeginOrEndValue))
 			svg_parse_begin_or_end(value_string, begin_or_end_value);
 
 			gf_list_add(values, begin_or_end_value);
@@ -1181,7 +1181,7 @@ void svg_parse_coordinates(SVGParser *parser, GF_List *values, char *value_strin
 	u32 len = strlen(str);
 	while (i < len) {
 		Fixed *f;
-		SAFEALLOC(f, sizeof(Fixed));
+		GF_SAFEALLOC(f, sizeof(Fixed));
 		i+=svg_parse_coordinate(&(str[i]), f, 0);
 		gf_list_add(values, f);
 	}
@@ -1194,7 +1194,7 @@ void svg_parse_points(SVGParser *parser, GF_List *values, char *value_string)
 	u32 len = strlen(str);
 	while (i < len) {
 		SVG_Point *p;
-		SAFEALLOC(p, sizeof(SVG_Point))
+		GF_SAFEALLOC(p, sizeof(SVG_Point))
 		i+=svg_parse_coordinate(&(str[i]), &(p->x), 0);
 		i+=svg_parse_coordinate(&(str[i]), &(p->y), 0);
 		gf_list_add(values, p);
@@ -1215,12 +1215,12 @@ void svg_parse_strokedasharray(SVGParser *parser, SVG_StrokeDashArrayValue *valu
 		char *str = value_string;
 		while (i < len) {
 			Fixed *f;
-			SAFEALLOC(f, sizeof(Fixed));
+			GF_SAFEALLOC(f, sizeof(Fixed));
 			i+=svg_parse_coordinate(&(str[i]), f, 0);
 			gf_list_add(values, f);
 		}
 		vals->count = gf_list_count(values);
-		SAFEALLOC(vals->vals, (sizeof(Fixed)*vals->count));
+		GF_SAFEALLOC(vals->vals, (sizeof(Fixed)*vals->count));
 		for (i = 0; i < vals->count; i++) {
 			Fixed *f = gf_list_get(values, i);
 			vals->vals[i] = *f;
@@ -1235,7 +1235,7 @@ void svg_parse_transformlist(SVGParser *parser, GF_List *list, char *value_strin
 {
 	/* To be fixed to parse all the transform values */
 	SVG_Transform *tr;
-	SAFEALLOC(tr, sizeof(SVG_Transform));
+	GF_SAFEALLOC(tr, sizeof(SVG_Transform));
 	svg_parse_transform(parser, &(tr->matrix), value_string);
 	gf_list_add(list, tr);
 }
@@ -1254,7 +1254,7 @@ void svg_parse_iri(SVGParser *parser, SVG_IRI *iri, char *attribute_content)
 		{ // initializes the path of the file to be cached
 			u32 i, last_sep;
 			char tmp[MAX_URI_LENGTH];
-			char *cache_dir = gf_modules_get_option(parser->sdec, FD_OPT_SECTION, FD_OPT_CACHE);
+			char *cache_dir = gf_modules_get_option((GF_BaseInterface *)parser->sdec, FD_OPT_SECTION, FD_OPT_CACHE);
 			if (!cache_dir || !strlen(cache_dir) ) return;
 
 			if (cache_dir[strlen(cache_dir)-1] != GF_PATH_SEPARATOR) {
@@ -1289,7 +1289,7 @@ void svg_parse_iri(SVGParser *parser, SVG_IRI *iri, char *attribute_content)
 			encoding[(encoding_end - mimeType_end)-1] = 0;
 		}
 
-		SAFEALLOC(data, strlen(attribute_content)*2)
+		GF_SAFEALLOC(data, strlen(attribute_content)*2)
 		if (!strcmp(encoding, "base64")) {
 			/* decoding is done in place */
 			data_size = gf_base64_decode(encoding_end+1, strlen(encoding_end+1), data, strlen(attribute_content)*2);
@@ -1360,8 +1360,8 @@ void *svg_parse_one_anim_value(SVGParser *parser, const char *attribute_name, u8
 	case SVG_Paint_datatype:
 		{
 			SVG_Paint *paint;				
-			SAFEALLOC(paint, sizeof(SVG_Paint));
-			SAFEALLOC(paint->color, sizeof(SVG_Color));
+			GF_SAFEALLOC(paint, sizeof(SVG_Paint));
+			GF_SAFEALLOC(paint->color, sizeof(SVG_Color));
 			svg_parse_paint(parser, attribute_name, paint, single_value_string);
 			return paint;
 		}
@@ -1371,7 +1371,7 @@ void *svg_parse_one_anim_value(SVGParser *parser, const char *attribute_name, u8
 	case SVG_Coordinate_datatype:
 		{
 			SVG_Length *length;
-			SAFEALLOC(length, sizeof(SVG_Length))
+			GF_SAFEALLOC(length, sizeof(SVG_Length))
 			svg_parse_length(parser, length, single_value_string);
 			return length;
 		}
@@ -1379,7 +1379,7 @@ void *svg_parse_one_anim_value(SVGParser *parser, const char *attribute_name, u8
 	case SVG_VisibilityValue_datatype:
 		{
 			SVG_VisibilityValue *visibility;
-			SAFEALLOC(visibility, sizeof(u8))
+			GF_SAFEALLOC(visibility, sizeof(u8))
 			svg_parse_visibility(parser, visibility, single_value_string);
 			return visibility;
 		}
@@ -1387,7 +1387,7 @@ void *svg_parse_one_anim_value(SVGParser *parser, const char *attribute_name, u8
 	case SVG_DisplayValue_datatype:
 		{
 			SVG_DisplayValue *display;
-			SAFEALLOC(display, sizeof(u8))
+			GF_SAFEALLOC(display, sizeof(u8))
 			svg_parse_display(parser, display, single_value_string);
 			return display;
 		}
@@ -1398,7 +1398,7 @@ void *svg_parse_one_anim_value(SVGParser *parser, const char *attribute_name, u8
 	case SVG_StrokeMiterLimitValue_datatype:
 		{
 			SVGInheritableFloat *p;
-			SAFEALLOC(p, sizeof(SVGInheritableFloat));
+			GF_SAFEALLOC(p, sizeof(SVGInheritableFloat));
 			svg_parse_inheritablefloat(parser, p, single_value_string);
 			return p;
 		}
@@ -1410,7 +1410,7 @@ void *svg_parse_one_anim_value(SVGParser *parser, const char *attribute_name, u8
 			case SVG_TRANSFORM_SCALE:
 				{
 					SVG_Point *p;
-					SAFEALLOC(p, sizeof(SVG_Point));
+					GF_SAFEALLOC(p, sizeof(SVG_Point));
 					i+=svg_parse_coordinate(&(single_value_string[i]), &(p->x), 0);
 					if (single_value_string[i] == 0) {
 						p->y = p->x;
@@ -1423,7 +1423,7 @@ void *svg_parse_one_anim_value(SVGParser *parser, const char *attribute_name, u8
 			case SVG_TRANSFORM_ROTATE:
 				{
 					SVG_Point_Angle *p;
-					SAFEALLOC(p, sizeof(SVG_Point_Angle));
+					GF_SAFEALLOC(p, sizeof(SVG_Point_Angle));
 					i+=svg_parse_coordinate(&(single_value_string[i]), &(p->angle), 1);
 					if (single_value_string[i] == 0) {
 						p->y = p->x = 0;
@@ -1438,7 +1438,7 @@ void *svg_parse_one_anim_value(SVGParser *parser, const char *attribute_name, u8
 			case SVG_TRANSFORM_SKEWY:
 				{
 					Fixed *p;
-					SAFEALLOC(p, sizeof(Fixed));
+					GF_SAFEALLOC(p, sizeof(Fixed));
 					i+=svg_parse_coordinate(&(single_value_string[i]), p, 1);
 					return p;
 				}
@@ -1448,7 +1448,7 @@ void *svg_parse_one_anim_value(SVGParser *parser, const char *attribute_name, u8
 		{
 			u32 i = 0;
 			SVG_Point *p;
-			SAFEALLOC(p, sizeof(SVG_Point));
+			GF_SAFEALLOC(p, sizeof(SVG_Point));
 			i+=svg_parse_coordinate(&(single_value_string[i]), &(p->x), 0);
 			i+=svg_parse_coordinate(&(single_value_string[i]), &(p->y), 0);
 			return p;
@@ -1475,7 +1475,7 @@ void svg_parse_anim_values(SVGParser *parser, const char *attribute_name, SMIL_A
 		if (str[i] == ';' || str[i] == 0) {
 			u32 single_value_len = 0;
 			single_value_len = i - (psemi+1);
-			SAFEALLOC(value_string, single_value_len+1);
+			GF_SAFEALLOC(value_string, single_value_len+1);
 			memcpy(value_string, str + (psemi+1), single_value_len);
 			value_string[single_value_len] = 0;
 			psemi = i;
@@ -1650,7 +1650,7 @@ void svg_parse_style(SVGParser *parser, SVGElement *elt, char *style)
 			char *value_string;
 			u32 single_value_len = 0;
 			single_value_len = i - (psemi+1);
-			SAFEALLOC(value_string, single_value_len+1);
+			GF_SAFEALLOC(value_string, single_value_len+1);
 			memcpy(value_string, str + (psemi+1), single_value_len);
 			value_string[single_value_len] = 0;
 			psemi = i;
@@ -1845,7 +1845,7 @@ SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *pa
 SVGParser *NewSVGParser()
 {
 	SVGParser *tmp;
-	SAFEALLOC(tmp, sizeof(SVGParser));
+	GF_SAFEALLOC(tmp, sizeof(SVGParser));
 	return tmp;
 }
 

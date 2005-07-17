@@ -193,15 +193,6 @@ char * my_str_lwr(char *str);
 #define NULL 0
 #endif
 
-/*large file handling (os-dep) - you only need to call this functions if you're suspecting the file to be a large
-one (usually only media files), otherwise use regular stdio*/
-FILE *f64_open(const char *file_name, const char *mode);
-u64 f64_tell(FILE *f);
-u64 f64_seek(FILE *f, s64 pos, s32 whence);
-
-/*gf_sleep function*/
-void gf_sleep(u32 milliseconds);
-
 
 typedef double Double;
 typedef float Float;

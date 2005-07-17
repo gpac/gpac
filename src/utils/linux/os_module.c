@@ -136,7 +136,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		}
 		dlclose(ModuleLib);
 
-		SAFEALLOC(inst, sizeof(ModuleInstance));
+		GF_SAFEALLOC(inst, sizeof(ModuleInstance));
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
 		strcpy(inst->szName, the_file->d_name);

@@ -313,9 +313,9 @@ GF_BaseDecoder *NewMADDec()
 	GF_MediaDecoder *ifce;
 	MADDec *dec;
 	
-	SAFEALLOC(ifce, sizeof(GF_MediaDecoder));
-	SAFEALLOC(dec, sizeof(MADDec));
-	GF_REGISTER_MODULE(ifce, GF_MEDIA_DECODER_INTERFACE, "MAD Decoder", "gpac distribution", 0)
+	GF_SAFEALLOC(ifce, sizeof(GF_MediaDecoder));
+	GF_SAFEALLOC(dec, sizeof(MADDec));
+	GF_REGISTER_MODULE_INTERFACE(ifce, GF_MEDIA_DECODER_INTERFACE, "MAD Decoder", "gpac distribution")
 	ifce->privateStack = dec;
 
 	dec->cb_size = 12;

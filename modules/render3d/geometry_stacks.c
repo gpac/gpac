@@ -978,7 +978,7 @@ static Bool NLD_GetMatrix(M_NonLinearDeformer *nld, GF_Matrix *mx)
 	r.x = gf_mulfix(v1.y, v2.z) - gf_mulfix(v2.y, v1.z);
 	r.y = gf_mulfix(v1.z, v2.x) - gf_mulfix(v2.z, v1.x);
 	r.z = gf_mulfix(v1.x, v2.y) - gf_mulfix(v2.x, v1.y);
-	r.q = gf_atan2(dot, gf_sqrt(FIX_ONE - gf_mulfix(dot, dot)));
+	r.q = gf_atan2(gf_sqrt(FIX_ONE - gf_mulfix(dot, dot)), dot);
 	gf_mx_init(*mx);
 	gf_mx_add_rotation(mx, r.q, r.x, r.y, r.z);
 	return 1;

@@ -349,7 +349,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					u32 sample_rate;
 					if (!is_crypted) {
 						GF_ISOSample *samp = gf_isom_get_sample(file, TrackNum, 1, NULL);
-						u32 hdr = FOUR_CHAR_INT((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
+						u32 hdr = GF_FOUR_CHAR_INT((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
 						nb_ch = gf_mp3_num_channels(hdr);
 						sample_rate = gf_mp3_sampling_rate(hdr);
 						gf_isom_sample_del(&samp);

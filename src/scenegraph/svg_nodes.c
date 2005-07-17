@@ -395,7 +395,7 @@ static GF_Err SVG_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_a()
 {
 	SVGaElement *p;
-	SAFEALLOC(p, sizeof(SVGaElement));
+	GF_SAFEALLOC(p, sizeof(SVGaElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_a);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -417,12 +417,12 @@ void *SVG_New_a()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -447,7 +447,7 @@ void *SVG_New_a()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -657,7 +657,7 @@ static GF_Err SVG_animate_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_animate()
 {
 	SVGanimateElement *p;
-	SAFEALLOC(p, sizeof(SVGanimateElement));
+	GF_SAFEALLOC(p, sizeof(SVGanimateElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_animate);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -874,7 +874,7 @@ static GF_Err SVG_animateColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_animateColor()
 {
 	SVGanimateColorElement *p;
-	SAFEALLOC(p, sizeof(SVGanimateColorElement));
+	GF_SAFEALLOC(p, sizeof(SVGanimateColorElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_animateColor);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -1106,7 +1106,7 @@ static GF_Err SVG_animateMotion_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_animateMotion()
 {
 	SVGanimateMotionElement *p;
-	SAFEALLOC(p, sizeof(SVGanimateMotionElement));
+	GF_SAFEALLOC(p, sizeof(SVGanimateMotionElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_animateMotion);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -1329,7 +1329,7 @@ static GF_Err SVG_animateTransform_get_attribute(GF_Node *node, GF_FieldInfo *in
 void *SVG_New_animateTransform()
 {
 	SVGanimateTransformElement *p;
-	SAFEALLOC(p, sizeof(SVGanimateTransformElement));
+	GF_SAFEALLOC(p, sizeof(SVGanimateTransformElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_animateTransform);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -1610,7 +1610,7 @@ static GF_Err SVG_animation_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_animation()
 {
 	SVGanimationElement *p;
-	SAFEALLOC(p, sizeof(SVGanimationElement));
+	GF_SAFEALLOC(p, sizeof(SVGanimationElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_animation);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -1802,7 +1802,7 @@ static GF_Err SVG_audio_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_audio()
 {
 	SVGaudioElement *p;
-	SAFEALLOC(p, sizeof(SVGaudioElement));
+	GF_SAFEALLOC(p, sizeof(SVGaudioElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_audio);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -2147,7 +2147,7 @@ static GF_Err SVG_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_circle()
 {
 	SVGcircleElement *p;
-	SAFEALLOC(p, sizeof(SVGcircleElement));
+	GF_SAFEALLOC(p, sizeof(SVGcircleElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_circle);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -2169,12 +2169,12 @@ void *SVG_New_circle()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -2199,7 +2199,7 @@ void *SVG_New_circle()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -2446,7 +2446,7 @@ static GF_Err SVG_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_defs()
 {
 	SVGdefsElement *p;
-	SAFEALLOC(p, sizeof(SVGdefsElement));
+	GF_SAFEALLOC(p, sizeof(SVGdefsElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_defs);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -2468,12 +2468,12 @@ void *SVG_New_defs()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -2498,7 +2498,7 @@ void *SVG_New_defs()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -2564,7 +2564,7 @@ static GF_Err SVG_desc_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_desc()
 {
 	SVGdescElement *p;
-	SAFEALLOC(p, sizeof(SVGdescElement));
+	GF_SAFEALLOC(p, sizeof(SVGdescElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_desc);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -2671,7 +2671,7 @@ static GF_Err SVG_discard_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_discard()
 {
 	SVGdiscardElement *p;
-	SAFEALLOC(p, sizeof(SVGdiscardElement));
+	GF_SAFEALLOC(p, sizeof(SVGdiscardElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_discard);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -3018,7 +3018,7 @@ static GF_Err SVG_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_ellipse()
 {
 	SVGellipseElement *p;
-	SAFEALLOC(p, sizeof(SVGellipseElement));
+	GF_SAFEALLOC(p, sizeof(SVGellipseElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_ellipse);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -3040,12 +3040,12 @@ void *SVG_New_ellipse()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -3070,7 +3070,7 @@ void *SVG_New_ellipse()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -3151,7 +3151,7 @@ static GF_Err SVG_font_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_font()
 {
 	SVGfontElement *p;
-	SAFEALLOC(p, sizeof(SVGfontElement));
+	GF_SAFEALLOC(p, sizeof(SVGfontElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_font);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -3365,7 +3365,7 @@ static GF_Err SVG_font_face_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_font_face()
 {
 	SVGfont_faceElement *p;
-	SAFEALLOC(p, sizeof(SVGfont_faceElement));
+	GF_SAFEALLOC(p, sizeof(SVGfont_faceElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_font_face);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -3435,7 +3435,7 @@ static GF_Err SVG_font_face_name_get_attribute(GF_Node *node, GF_FieldInfo *info
 void *SVG_New_font_face_name()
 {
 	SVGfont_face_nameElement *p;
-	SAFEALLOC(p, sizeof(SVGfont_face_nameElement));
+	GF_SAFEALLOC(p, sizeof(SVGfont_face_nameElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_font_face_name);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -3500,7 +3500,7 @@ static GF_Err SVG_font_face_src_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_font_face_src()
 {
 	SVGfont_face_srcElement *p;
-	SAFEALLOC(p, sizeof(SVGfont_face_srcElement));
+	GF_SAFEALLOC(p, sizeof(SVGfont_face_srcElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_font_face_src);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -3601,7 +3601,7 @@ static GF_Err SVG_font_face_uri_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_font_face_uri()
 {
 	SVGfont_face_uriElement *p;
-	SAFEALLOC(p, sizeof(SVGfont_face_uriElement));
+	GF_SAFEALLOC(p, sizeof(SVGfont_face_uriElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_font_face_uri);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -3988,7 +3988,7 @@ static GF_Err SVG_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_foreignObject()
 {
 	SVGforeignObjectElement *p;
-	SAFEALLOC(p, sizeof(SVGforeignObjectElement));
+	GF_SAFEALLOC(p, sizeof(SVGforeignObjectElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_foreignObject);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -4010,12 +4010,12 @@ void *SVG_New_foreignObject()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -4040,7 +4040,7 @@ void *SVG_New_foreignObject()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -4372,7 +4372,7 @@ static GF_Err SVG_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_g()
 {
 	SVGgElement *p;
-	SAFEALLOC(p, sizeof(SVGgElement));
+	GF_SAFEALLOC(p, sizeof(SVGgElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_g);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -4394,12 +4394,12 @@ void *SVG_New_g()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -4424,7 +4424,7 @@ void *SVG_New_g()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -4521,7 +4521,7 @@ static GF_Err SVG_glyph_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_glyph()
 {
 	SVGglyphElement *p;
-	SAFEALLOC(p, sizeof(SVGglyphElement));
+	GF_SAFEALLOC(p, sizeof(SVGglyphElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_glyph);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -4603,7 +4603,7 @@ static GF_Err SVG_handler_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_handler()
 {
 	SVGhandlerElement *p;
-	SAFEALLOC(p, sizeof(SVGhandlerElement));
+	GF_SAFEALLOC(p, sizeof(SVGhandlerElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_handler);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -4693,7 +4693,7 @@ static GF_Err SVG_hkern_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_hkern()
 {
 	SVGhkernElement *p;
-	SAFEALLOC(p, sizeof(SVGhkernElement));
+	GF_SAFEALLOC(p, sizeof(SVGhkernElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_hkern);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -4920,7 +4920,7 @@ static GF_Err SVG_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_image()
 {
 	SVGimageElement *p;
-	SAFEALLOC(p, sizeof(SVGimageElement));
+	GF_SAFEALLOC(p, sizeof(SVGimageElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_image);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -5267,7 +5267,7 @@ static GF_Err SVG_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_line()
 {
 	SVGlineElement *p;
-	SAFEALLOC(p, sizeof(SVGlineElement));
+	GF_SAFEALLOC(p, sizeof(SVGlineElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_line);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -5289,12 +5289,12 @@ void *SVG_New_line()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -5319,7 +5319,7 @@ void *SVG_New_line()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -5580,7 +5580,7 @@ static GF_Err SVG_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *info
 void *SVG_New_linearGradient()
 {
 	SVGlinearGradientElement *p;
-	SAFEALLOC(p, sizeof(SVGlinearGradientElement));
+	GF_SAFEALLOC(p, sizeof(SVGlinearGradientElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_linearGradient);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -5601,12 +5601,12 @@ void *SVG_New_linearGradient()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -5631,7 +5631,7 @@ void *SVG_New_linearGradient()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -5697,7 +5697,7 @@ static GF_Err SVG_metadata_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_metadata()
 {
 	SVGmetadataElement *p;
-	SAFEALLOC(p, sizeof(SVGmetadataElement));
+	GF_SAFEALLOC(p, sizeof(SVGmetadataElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_metadata);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -5773,7 +5773,7 @@ static GF_Err SVG_missing_glyph_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_missing_glyph()
 {
 	SVGmissing_glyphElement *p;
-	SAFEALLOC(p, sizeof(SVGmissing_glyphElement));
+	GF_SAFEALLOC(p, sizeof(SVGmissing_glyphElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_missing_glyph);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -5876,7 +5876,7 @@ static GF_Err SVG_mpath_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_mpath()
 {
 	SVGmpathElement *p;
-	SAFEALLOC(p, sizeof(SVGmpathElement));
+	GF_SAFEALLOC(p, sizeof(SVGmpathElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_mpath);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -6213,7 +6213,7 @@ static GF_Err SVG_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_path()
 {
 	SVGpathElement *p;
-	SAFEALLOC(p, sizeof(SVGpathElement));
+	GF_SAFEALLOC(p, sizeof(SVGpathElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_path);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -6237,12 +6237,12 @@ void *SVG_New_path()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -6267,7 +6267,7 @@ void *SVG_New_path()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -6600,7 +6600,7 @@ static GF_Err SVG_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_polygon()
 {
 	SVGpolygonElement *p;
-	SAFEALLOC(p, sizeof(SVGpolygonElement));
+	GF_SAFEALLOC(p, sizeof(SVGpolygonElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_polygon);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -6623,12 +6623,12 @@ void *SVG_New_polygon()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -6653,7 +6653,7 @@ void *SVG_New_polygon()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -6986,7 +6986,7 @@ static GF_Err SVG_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_polyline()
 {
 	SVGpolylineElement *p;
-	SAFEALLOC(p, sizeof(SVGpolylineElement));
+	GF_SAFEALLOC(p, sizeof(SVGpolylineElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_polyline);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -7009,12 +7009,12 @@ void *SVG_New_polyline()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -7039,7 +7039,7 @@ void *SVG_New_polyline()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -7166,7 +7166,7 @@ static GF_Err SVG_prefetch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_prefetch()
 {
 	SVGprefetchElement *p;
-	SAFEALLOC(p, sizeof(SVGprefetchElement));
+	GF_SAFEALLOC(p, sizeof(SVGprefetchElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_prefetch);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -7421,7 +7421,7 @@ static GF_Err SVG_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *info
 void *SVG_New_radialGradient()
 {
 	SVGradialGradientElement *p;
-	SAFEALLOC(p, sizeof(SVGradialGradientElement));
+	GF_SAFEALLOC(p, sizeof(SVGradialGradientElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_radialGradient);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -7442,12 +7442,12 @@ void *SVG_New_radialGradient()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -7472,7 +7472,7 @@ void *SVG_New_radialGradient()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -7829,7 +7829,7 @@ static GF_Err SVG_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_rect()
 {
 	SVGrectElement *p;
-	SAFEALLOC(p, sizeof(SVGrectElement));
+	GF_SAFEALLOC(p, sizeof(SVGrectElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_rect);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -7851,12 +7851,12 @@ void *SVG_New_rect()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -7881,7 +7881,7 @@ void *SVG_New_rect()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -7957,7 +7957,7 @@ static GF_Err SVG_script_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_script()
 {
 	SVGscriptElement *p;
-	SAFEALLOC(p, sizeof(SVGscriptElement));
+	GF_SAFEALLOC(p, sizeof(SVGscriptElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_script);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -8121,7 +8121,7 @@ static GF_Err SVG_set_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_set()
 {
 	SVGsetElement *p;
-	SAFEALLOC(p, sizeof(SVGsetElement));
+	GF_SAFEALLOC(p, sizeof(SVGsetElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_set);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -8366,7 +8366,7 @@ static GF_Err SVG_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_solidColor()
 {
 	SVGsolidColorElement *p;
-	SAFEALLOC(p, sizeof(SVGsolidColorElement));
+	GF_SAFEALLOC(p, sizeof(SVGsolidColorElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_solidColor);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -8387,12 +8387,12 @@ void *SVG_New_solidColor()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -8417,7 +8417,7 @@ void *SVG_New_solidColor()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -8663,7 +8663,7 @@ static GF_Err SVG_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_stop()
 {
 	SVGstopElement *p;
-	SAFEALLOC(p, sizeof(SVGstopElement));
+	GF_SAFEALLOC(p, sizeof(SVGstopElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_stop);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -8684,12 +8684,12 @@ void *SVG_New_stop()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -8714,7 +8714,7 @@ void *SVG_New_stop()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -9090,7 +9090,7 @@ static GF_Err SVG_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_svg()
 {
 	SVGsvgElement *p;
-	SAFEALLOC(p, sizeof(SVGsvgElement));
+	GF_SAFEALLOC(p, sizeof(SVGsvgElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_svg);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -9111,12 +9111,12 @@ void *SVG_New_svg()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -9141,7 +9141,7 @@ void *SVG_New_svg()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -9418,7 +9418,7 @@ static GF_Err SVG_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_switch()
 {
 	SVGswitchElement *p;
-	SAFEALLOC(p, sizeof(SVGswitchElement));
+	GF_SAFEALLOC(p, sizeof(SVGswitchElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_switch);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -9440,12 +9440,12 @@ void *SVG_New_switch()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -9470,7 +9470,7 @@ void *SVG_New_switch()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -9536,7 +9536,7 @@ static GF_Err SVG_tBreak_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_tBreak()
 {
 	SVGtBreakElement *p;
-	SAFEALLOC(p, sizeof(SVGtBreakElement));
+	GF_SAFEALLOC(p, sizeof(SVGtBreakElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_tBreak);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -9884,7 +9884,7 @@ static GF_Err SVG_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_text()
 {
 	SVGtextElement *p;
-	SAFEALLOC(p, sizeof(SVGtextElement));
+	GF_SAFEALLOC(p, sizeof(SVGtextElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_text);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -9908,12 +9908,12 @@ void *SVG_New_text()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -9938,7 +9938,7 @@ void *SVG_New_text()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -10290,7 +10290,7 @@ static GF_Err SVG_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_textArea()
 {
 	SVGtextAreaElement *p;
-	SAFEALLOC(p, sizeof(SVGtextAreaElement));
+	GF_SAFEALLOC(p, sizeof(SVGtextAreaElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_textArea);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -10312,12 +10312,12 @@ void *SVG_New_textArea()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -10342,7 +10342,7 @@ void *SVG_New_textArea()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -10408,7 +10408,7 @@ static GF_Err SVG_title_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_title()
 {
 	SVGtitleElement *p;
-	SAFEALLOC(p, sizeof(SVGtitleElement));
+	GF_SAFEALLOC(p, sizeof(SVGtitleElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_title);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -10728,7 +10728,7 @@ static GF_Err SVG_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_tspan()
 {
 	SVGtspanElement *p;
-	SAFEALLOC(p, sizeof(SVGtspanElement));
+	GF_SAFEALLOC(p, sizeof(SVGtspanElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_tspan);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -10749,12 +10749,12 @@ void *SVG_New_tspan()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -10779,7 +10779,7 @@ void *SVG_New_tspan()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -11162,7 +11162,7 @@ static GF_Err SVG_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_use()
 {
 	SVGuseElement *p;
-	SAFEALLOC(p, sizeof(SVGuseElement));
+	GF_SAFEALLOC(p, sizeof(SVGuseElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_use);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -11184,12 +11184,12 @@ void *SVG_New_use()
 	p->stroke_opacity.type = SVGFLOAT_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->fill.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
 	p->properties.fill = &(p->fill);
 	p->fill_rule = SVGFillRule_inherit;
 	p->properties.fill_rule = &(p->fill_rule);
 	p->stroke.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
@@ -11214,7 +11214,7 @@ void *SVG_New_use()
 	p->properties.display_align = &(p->display_align);
 	p->properties.line_increment = &(p->line_increment);
 	p->stop_color.paintType = SVG_PAINTTYPE_INHERIT;
-	SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
+	GF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
@@ -11494,7 +11494,7 @@ static GF_Err SVG_video_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *SVG_New_video()
 {
 	SVGvideoElement *p;
-	SAFEALLOC(p, sizeof(SVGvideoElement));
+	GF_SAFEALLOC(p, sizeof(SVGvideoElement));
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_video);
 	gf_sg_parent_setup((GF_Node *) p);

@@ -44,7 +44,7 @@ static void ReplaceDEFNode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool
 GF_SceneGraph *gf_sg_new()
 {
 	GF_SceneGraph *tmp;
-	SAFEALLOC(tmp, sizeof(GF_SceneGraph));
+	GF_SAFEALLOC(tmp, sizeof(GF_SceneGraph));
 	if (!tmp) return NULL;
 
 	tmp->protos = gf_list_new();
@@ -806,7 +806,7 @@ u32 gf_sg_get_max_node_id(GF_SceneGraph *sg)
 
 void gf_node_setup(GF_Node *p, u32 tag)
 {
-	SAFEALLOC(p->sgprivate, sizeof(NodePriv));
+	GF_SAFEALLOC(p->sgprivate, sizeof(NodePriv));
 	p->sgprivate->tag = tag;
 	p->sgprivate->is_dirty = GF_SG_NODE_DIRTY;
 #ifdef GF_ARRAY_PARENT_NODES

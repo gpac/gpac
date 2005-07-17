@@ -68,7 +68,7 @@ void JS_OnData(void *cbck, char *data, u32 data_size, u32 state, GF_Err e)
 		free(jsdnload);
 	}
 	else if (e==GF_EOS) {
-		const char *szCache = gf_dm_get_cache_name(jsdnload->sess);
+		const char *szCache = gf_dm_sess_get_cache_name(jsdnload->sess);
 		jsdnload->OnDone(jsdnload->cbk, 1, szCache);
 		gf_term_download_del(jsdnload->sess);
 		free(jsdnload);
@@ -82,7 +82,7 @@ Bool OnJSGetScriptFile(void *opaque, GF_SceneGraph *parent_graph, const char *ur
 	if (!parent_graph || !OnDone) return 0;
 	is = gf_sg_get_private(parent_graph);
 	if (!is) return 0;
-	SAFEALLOC(jsdnload, sizeof(JSDownload));
+	GF_SAFEALLOC(jsdnload, sizeof(JSDownload));
 	jsdnload->OnDone = OnDone;
 	jsdnload->cbk = cbk;
 	jsdnload->sess = gf_term_download_new(is->root_od->net_service, url, 0, JS_OnData, jsdnload);
@@ -125,7 +125,7 @@ Bool OnJSLoadURL(void *opaque, const char *url, const char **params, u32 nb_para
 
 static void gf_term_reload_cfg(GF_Terminal *term)
 {
-	char *sOpt;
+	const char *sOpt;
 	Double fps;
 	u32 mode;
 	s32 prio;
@@ -199,7 +199,7 @@ static Bool gf_term_get_user_pass(void *usr_cbk, const char *site_url, char *usr
 GF_Terminal *gf_term_new(GF_User *user)
 {
 	GF_Terminal *tmp;
-	char *cf;
+	const char *cf;
 	if (!check_user(user)) return NULL;
 
 	tmp = malloc(sizeof(GF_Terminal));
@@ -295,7 +295,7 @@ GF_Err gf_term_del(GF_Terminal * term)
 	gf_list_del(term->channels_pending);
 	assert(!gf_list_count(term->od_pending));
 	gf_list_del(term->od_pending);
-	if (term->downloader) gf_dm_delete(term->downloader);
+	if (term->downloader) gf_dm_del(term->downloader);
 	gf_mx_del(term->net_mx);
 	gf_sys_clock_stop();
 	free(term);

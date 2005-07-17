@@ -324,7 +324,7 @@ static void Bitmap_BuildGraph(BitmapStack *st, DrawableContext *ctx, RenderEffec
 	gf_mx2d_apply_coords(&mat, &w, &h);
 	gf_path_add_rect_center(st->graph->path, 0, 0, w, h);
 
-	gf_rect_center(&ctx->original, w, h);
+	ctx->original = gf_rect_center(w, h);
 }
 
 static void RenderBitmap(GF_Node *node, void *rs)

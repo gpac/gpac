@@ -113,7 +113,7 @@ static void RenderLayer2D(GF_Node *node, void *rs)
 		/*setup bounds in local coord system*/
 		if (l->size.x>=0) st->clip.width = l->size.x;
 		if (l->size.y>=0) st->clip.height = l->size.y;
-		gf_rect_center(&st->clip, st->clip.width, st->clip.height);
+		st->clip = gf_rect_center(st->clip.width, st->clip.height);
 		
 		gf_bbox_from_rect(&st->bbox, &st->clip);
 	}
@@ -315,7 +315,7 @@ static void RenderLayer3D(GF_Node *node, void *rs)
 		/*setup bounds in local coord system*/
 		if (l->size.x>=0) st->clip.width = l->size.x;
 		if (l->size.y>=0) st->clip.height = l->size.y;
-		gf_rect_center(&st->clip, st->clip.width, st->clip.height);
+		st->clip = gf_rect_center(st->clip.width, st->clip.height);
 		gf_bbox_from_rect(&st->bbox, &st->clip);
 	}
 
@@ -523,7 +523,7 @@ l3d_exit:
 void R3D_InitLayer3D(Render3D *sr, GF_Node *node)
 {
 	Layer3DStack *stack;
-	SAFEALLOC(stack, sizeof(Layer3DStack));
+	GF_SAFEALLOC(stack, sizeof(Layer3DStack));
 	SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, ((M_Layer3D *)node)->children);
 	stack->backs = gf_list_new();
 	stack->views = gf_list_new();

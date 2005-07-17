@@ -783,6 +783,10 @@ SOURCE=..\..\src\terminal\term_node_init.c
 
 SOURCE=..\..\src\terminal\terminal.c
 # End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\internal\terminal_dev.h
+# End Source File
 # End Group
 # Begin Group "renderer"
 
@@ -897,6 +901,10 @@ SOURCE=..\..\include\gpac\list.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\gpac\math.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\gpac\media_tools.h
 # End Source File
 # Begin Source File
@@ -913,6 +921,10 @@ SOURCE=..\..\include\gpac\mpeg4_odf.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\gpac\network.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\gpac\nodes_mpeg4.h
 # End Source File
 # Begin Source File
@@ -922,6 +934,10 @@ SOURCE=..\..\include\gpac\nodes_svg.h
 # Begin Source File
 
 SOURCE=..\..\include\gpac\nodes_x3d.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\options.h
 # End Source File
 # Begin Source File
 

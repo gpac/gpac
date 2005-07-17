@@ -94,7 +94,7 @@ void isor_on_data(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 	if (e==GF_EOS) {
 		const char *local_name;
 		if (read->mov) return;
-		local_name = gf_dm_get_cache_name(read->dnload);
+		local_name = gf_dm_sess_get_cache_name(read->dnload);
 		if (!local_name) {
 			gf_term_on_connect(read->service, NULL, GF_SERVICE_ERROR);
 			return;
@@ -112,7 +112,7 @@ void isor_on_data(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 	if (read->mov) return;
 
 	/*try to open the service*/
-	local_name = (char *)gf_dm_get_cache_name(read->dnload);
+	local_name = (char *)gf_dm_sess_get_cache_name(read->dnload);
 	if (!local_name) {
 		gf_term_on_connect(read->service, NULL, GF_SERVICE_ERROR);
 		return;
@@ -654,7 +654,7 @@ GF_InputService *isor_client_load()
 	ISOMReader *reader;
 	GF_InputService *plug = malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
-	GF_REGISTER_MODULE(plug, GF_NET_CLIENT_INTERFACE, "GPAC IsoMedia Reader", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC IsoMedia Reader", "gpac distribution")
 
 	plug->CanHandleURL = ISOR_CanHandleURL;
 	plug->ConnectService = ISOR_ConnectService;

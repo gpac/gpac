@@ -48,7 +48,7 @@ IMPLEMENT_APP(wxOsmo4App)
 
 wxString get_pref_browser(GF_Config *cfg)
 {
-	char *sOpt = gf_cfg_get_key(cfg, "General", "Browser");
+	const char *sOpt = gf_cfg_get_key(cfg, "General", "Browser");
 	if (sOpt) return wxString(sOpt, wxConvUTF8);
 #ifdef __WXMAC__
 	return wxT("safari");
@@ -107,7 +107,7 @@ OpenURLDlg::OpenURLDlg(wxWindow *parent, GF_Config *cfg)
 
 	m_cfg = cfg;
 
-	char *sOpt;
+	const char *sOpt;
 	char filename[1024];
 	u32 i=0;
 
@@ -123,7 +123,7 @@ OpenURLDlg::OpenURLDlg(wxWindow *parent, GF_Config *cfg)
 void OpenURLDlg::OnGo(wxCommandEvent& event)
 {
 	m_urlVal = m_url->GetValue();
-	char *sOpt;
+	const char *sOpt;
 	char filename[1024];
 	u32 i=0;
 
@@ -355,7 +355,7 @@ extern "C" {
 void wxOsmo4Frame::CheckVideoOut()
 {
 #ifdef WIN32
-	char *sOpt = gf_cfg_get_key(m_user.config, "Video", "DriverName");
+	const char *sOpt = gf_cfg_get_key(m_user.config, "Video", "DriverName");
 #endif
 	void *os_handle = NULL;
 
@@ -509,7 +509,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 
 	/*initial launch*/
 	if (first_launch || !gf_modules_get_count(m_user.modules)) {
-		char *sOpt;
+		const char *sOpt;
 		wxDirDialog dlg(NULL, wxT("Locate GPAC modules directory"));
 		if  (!gf_modules_get_count(m_user.modules)) {
 		  gf_modules_del(m_user.modules);
@@ -527,11 +527,11 @@ Bool wxOsmo4Frame::LoadTerminal()
 
 		u32 i;
 		for (i=0; i<gf_modules_get_count(m_user.modules); i++) {
-			GF_InputService *ifce;
-			if (!gf_modules_load_interface(m_user.modules, i, GF_NET_CLIENT_INTERFACE, (void **) &ifce)) continue;
+			GF_InputService *ifce = (GF_InputService *) gf_modules_load_interface(m_user.modules, i, GF_NET_CLIENT_INTERFACE);
+			if (!ifce) continue;
 			if (ifce) {
 				ifce->CanHandleURL(ifce, "test.test");
-				gf_modules_close_interface(ifce);
+				gf_modules_close_interface((GF_BaseInterface *) ifce);
 			}
 		}
 
@@ -811,7 +811,7 @@ wxOsmo4Frame::wxOsmo4Frame() :
 
 	UpdateRenderSwitch();
 
-	char *sOpt = gf_cfg_get_key(m_user.config, "General", "ConsoleOff");
+	const char *sOpt = gf_cfg_get_key(m_user.config, "General", "ConsoleOff");
 	m_console_off = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 	sOpt = gf_cfg_get_key(m_user.config, "General", "Loop");
 	m_loop = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
@@ -841,7 +841,7 @@ wxOsmo4Frame::wxOsmo4Frame() :
 		strcat(sPL, ".gpac_pl.m3u");
 #endif
 		m_pPlayList->OpenPlaylist(wxString(sPL, wxConvUTF8) );
-		char *sOpt = gf_cfg_get_key(m_user.config, "General", "PLEntry");
+		const char *sOpt = gf_cfg_get_key(m_user.config, "General", "PLEntry");
 		if (sOpt) {
 			m_pPlayList->m_cur_entry = atoi(sOpt);
 			if (m_pPlayList->m_cur_entry>=(s32)gf_list_count(m_pPlayList->m_entries))
@@ -1062,12 +1062,13 @@ wxString wxOsmo4Frame::GetFileFilter()
 		Bool first = 1;
 		const char *sMime;
 		char *sKey;
+		const char *opt;
 		char szKeyList[1000], sDesc[1000];
 		sMime = gf_cfg_get_key_name(m_user.config, "MimeTypes", i);
 		if (!sMime) continue;
-		sKey = gf_cfg_get_key(m_user.config, "MimeTypes", sMime);
+		opt = gf_cfg_get_key(m_user.config, "MimeTypes", sMime);
 		/*remove module name*/
-		strcpy(szKeyList, sKey+1);
+		strcpy(szKeyList, opt+1);
 		sKey = strrchr(szKeyList, '\"');
 		if (!sKey) continue;
 		sKey[0] = 0;
@@ -1420,10 +1421,11 @@ Bool is_supported_file(GF_Config *cfg, const char *fileName, Bool disable_no_ext
 	keyCount = gf_cfg_get_key_count(cfg, "MimeTypes");
 	for (i=0; i<keyCount; i++) {
 		char *sKey;
+		const char *opt;
 		sKey = (char *) gf_cfg_get_key_name(cfg, "MimeTypes", i);
 		if (!sKey) continue;
-		sKey = gf_cfg_get_key(cfg, "MimeTypes", sKey);
-		strcpy(mimes, sKey+1);
+		opt = gf_cfg_get_key(cfg, "MimeTypes", sKey);
+		strcpy(mimes, opt+1);
 		sKey = strchr(mimes, '"');
 		if (!sKey) continue;
 		sKey[0] = 0;
@@ -1759,7 +1761,7 @@ void wxOsmo4Frame::OnUpdateNavigation(wxUpdateUIEvent & event)
 
 void wxOsmo4Frame::OnRenderSwitch(wxCommandEvent &WXUNUSED(event))
 {
-	char *opt = gf_cfg_get_key(m_user.config, "Rendering", "RendererName");
+	const char *opt = gf_cfg_get_key(m_user.config, "Rendering", "RendererName");
 	if (!stricmp(opt, "GPAC 2D Renderer"))
 		gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 3D Renderer");
 	else
@@ -1770,7 +1772,7 @@ void wxOsmo4Frame::OnRenderSwitch(wxCommandEvent &WXUNUSED(event))
 
 void wxOsmo4Frame::UpdateRenderSwitch()
 {
-	char *opt = gf_cfg_get_key(m_user.config, "Rendering", "RendererName");
+	const char *opt = gf_cfg_get_key(m_user.config, "Rendering", "RendererName");
 	m_pToolBar->RemoveTool(SWITCH_RENDER);
 	if (!stricmp(opt, "GPAC 3D Renderer")) 
 		m_pToolBar->InsertTool(12, SWITCH_RENDER, *m_pSW3D, wxNullBitmap, FALSE, NULL, wxT("Switch to 2D Renderer"));
@@ -1885,7 +1887,7 @@ void wxMyComboBox::OnKeyUp(wxKeyEvent &event)
 
 void wxOsmo4Frame::ReloadURLs()
 {
-	char *sOpt;
+	const char *sOpt;
 	char filename[1024];
 	u32 i=0;
 
@@ -1903,7 +1905,7 @@ void wxOsmo4Frame::SelectionReady()
 {
 	wxString urlVal = m_Address->GetValue();
 	if (urlVal.Find(wxT("://"))>0) {
-		char *sOpt;
+		const char *sOpt;
 		char filename[1024];
 		u32 i=0;
 
@@ -2266,13 +2268,8 @@ void wxOsmo4Frame::BuildChapterList(Bool reset_only)
 		}
 		chap_menu->AppendCheckItem(ID_SETCHAP_FIRST + m_num_chapters, wxString(szLabel, wxConvUTF8));
 
-		if (!m_chapters_start) {
-			m_chapters_start = (Double *) malloc(sizeof(Double));
-			m_chapters_start[0] = seg->startTime;
-		} else {
-			m_chapters_start = (Double *) realloc(m_chapters_start, sizeof(Double)*(m_num_chapters+1));
-			m_chapters_start[m_num_chapters] = seg->startTime;
-		}
+		m_chapters_start = (Double *) realloc(m_chapters_start, sizeof(Double)*(m_num_chapters+1));
+		m_chapters_start[m_num_chapters] = seg->startTime;
 		m_num_chapters++;
 	}
 }

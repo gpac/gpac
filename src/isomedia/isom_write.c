@@ -1199,7 +1199,7 @@ GF_Err gf_isom_set_edit_segment(GF_ISOFile *movie, u32 trackNumber, u32 EditTime
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
-	edts = trak->GF_EditBox;
+	edts = trak->editBox;
 	if (! edts) {
 		edts = (GF_EditBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EDTS);
 		if (!edts) return GF_OUT_OF_MEM;
@@ -1284,17 +1284,17 @@ GF_Err gf_isom_remove_edit_segments(GF_ISOFile *movie, u32 trackNumber)
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
-	if (!trak->GF_EditBox || !trak->GF_EditBox->editList) return GF_OK;
+	if (!trak->editBox || !trak->editBox->editList) return GF_OK;
 
-	while (gf_list_count(trak->GF_EditBox->editList->entryList)) {
-		ent = (GF_EdtsEntry*)gf_list_get(trak->GF_EditBox->editList->entryList, 0);
+	while (gf_list_count(trak->editBox->editList->entryList)) {
+		ent = (GF_EdtsEntry*)gf_list_get(trak->editBox->editList->entryList, 0);
 		free(ent);
-		e = gf_list_rem(trak->GF_EditBox->editList->entryList, 0);
+		e = gf_list_rem(trak->editBox->editList->entryList, 0);
 		if (e) return e;
 	}
 	//then delete the GF_EditBox...
-	gf_isom_box_del((GF_Box *)trak->GF_EditBox);
-	trak->GF_EditBox = NULL;
+	gf_isom_box_del((GF_Box *)trak->editBox);
+	trak->editBox = NULL;
 	return SetTrackDuration(trak);
 }
 
@@ -1311,12 +1311,12 @@ GF_Err gf_isom_remove_edit_segment(GF_ISOFile *movie, u32 trackNumber, u32 seg_i
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
-	if (!trak->GF_EditBox || !trak->GF_EditBox->editList) return GF_OK;
-	if (gf_list_count(trak->GF_EditBox->editList->entryList)<=1) return gf_isom_remove_edit_segments(movie, trackNumber);
+	if (!trak->editBox || !trak->editBox->editList) return GF_OK;
+	if (gf_list_count(trak->editBox->editList->entryList)<=1) return gf_isom_remove_edit_segments(movie, trackNumber);
 
-	ent = (GF_EdtsEntry*) gf_list_get(trak->GF_EditBox->editList->entryList, seg_index-1);
-	gf_list_rem(trak->GF_EditBox->editList->entryList, seg_index-1);
-	next_ent = gf_list_get(trak->GF_EditBox->editList->entryList, seg_index-1);
+	ent = (GF_EdtsEntry*) gf_list_get(trak->editBox->editList->entryList, seg_index-1);
+	gf_list_rem(trak->editBox->editList->entryList, seg_index-1);
+	next_ent = gf_list_get(trak->editBox->editList->entryList, seg_index-1);
 	if (next_ent) next_ent->segmentDuration += ent->segmentDuration;
 	free(ent);
 	return SetTrackDuration(trak);
@@ -1334,15 +1334,15 @@ GF_Err gf_isom_append_edit_segment(GF_ISOFile *movie, u32 trackNumber, u32 EditD
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
-	if (!trak->GF_EditBox) {
+	if (!trak->editBox) {
 		GF_EditBox *edts = (GF_EditBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EDTS);
 		if (!edts) return GF_OUT_OF_MEM;
 		trak_AddBox(trak, (GF_Box *)edts);
 	}
-	if (!trak->GF_EditBox->editList) {
+	if (!trak->editBox->editList) {
 		GF_EditListBox *elst = (GF_EditListBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_ELST);
 		if (!elst) return GF_OUT_OF_MEM;
-		edts_AddBox(trak->GF_EditBox, (GF_Box *)elst);
+		edts_AddBox(trak->editBox, (GF_Box *)elst);
 	}
 	ent = malloc(sizeof(GF_EdtsEntry));
 	if (!ent) return GF_OUT_OF_MEM;
@@ -1362,7 +1362,7 @@ GF_Err gf_isom_append_edit_segment(GF_ISOFile *movie, u32 trackNumber, u32 EditD
 		ent->mediaTime = MediaTime;
 		break;
 	}
-	gf_list_add(trak->GF_EditBox->editList->entryList, ent);
+	gf_list_add(trak->editBox->editList->entryList, ent);
 	return SetTrackDuration(trak);
 }
 
@@ -1376,9 +1376,9 @@ GF_Err gf_isom_modify_edit_segment(GF_ISOFile *movie, u32 trackNumber, u32 seg_i
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
-	if (!trak->GF_EditBox || !trak->GF_EditBox->editList) return GF_OK;
-	if (gf_list_count(trak->GF_EditBox->editList->entryList)<seg_index) return GF_BAD_PARAM;
-	ent = (GF_EdtsEntry*) gf_list_get(trak->GF_EditBox->editList->entryList, seg_index-1);
+	if (!trak->editBox || !trak->editBox->editList) return GF_OK;
+	if (gf_list_count(trak->editBox->editList->entryList)<seg_index) return GF_BAD_PARAM;
+	ent = (GF_EdtsEntry*) gf_list_get(trak->editBox->editList->entryList, seg_index-1);
 
 	ent->segmentDuration = EditDuration;
 	switch (EditMode) {
@@ -1439,7 +1439,6 @@ GF_Err gf_isom_remove_track(GF_ISOFile *movie, u32 trackNumber)
 
 	//remove the track from the movie
 	gf_list_del_item(movie->moov->trackList, the_trak);
-	gf_list_del_item(movie->moov->boxList, the_trak);
 
 	//rewrite any OD tracks
 	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
@@ -1606,7 +1605,7 @@ GF_Err gf_isom_add_chapter(GF_ISOFile *movie, u32 trackNumber, u64 timestamp, ch
 		gf_list_add(map->boxList, ptr);
 	}
 
-	SAFEALLOC(ce, sizeof(GF_ChapterEntry));
+	GF_SAFEALLOC(ce, sizeof(GF_ChapterEntry));
 	ce->start_time = timestamp * 10000L;
 	ce->name = name ? strdup(name) : NULL;
 
@@ -2194,7 +2193,6 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	GF_BitStream *bs;
 	unsigned char *data;
 	u32 data_size;
-	u64 read;
 	GF_Err e;
 	GF_SampleTableBox *stbl, *stbl_temp;
 	
@@ -2210,8 +2208,6 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	stbl_temp = (GF_SampleTableBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STBL);
 	stbl_temp->SampleDescription = stbl->SampleDescription;
 	trak->Media->information->sampleTable = stbl_temp;
-	gf_list_del_item(trak->Media->information->boxList, stbl);
-	gf_list_add(trak->Media->information->boxList, stbl_temp);
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
@@ -2220,13 +2216,10 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	gf_bs_get_content(bs, &data, &data_size);
 	gf_bs_del(bs);
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
-	read = 0;
-	e = gf_isom_parse_box((GF_Box **) &new_tk, bs, &read);
+	e = gf_isom_parse_box((GF_Box **) &new_tk, bs);
 	gf_bs_del(bs);
 	free(data);
 	trak->Media->information->sampleTable = stbl;
-	gf_list_del_item(trak->Media->information->boxList, stbl_temp);
-	gf_list_add(trak->Media->information->boxList, stbl);
 
 	stbl_temp->SampleDescription = NULL;
 	gf_isom_box_del((GF_Box *)stbl_temp);
@@ -2266,7 +2259,6 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	GF_BitStream *bs;
 	unsigned char *data;
 	u32 data_size;
-	u64 read;
 	GF_Box *entry;
 	GF_Err e;
 	u32 dataRefIndex;
@@ -2290,8 +2282,7 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	gf_bs_get_content(bs, &data, &data_size);
 	gf_bs_del(bs);
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
-	read = 0;
-	e = gf_isom_parse_box(&entry, bs, &read);
+	e = gf_isom_parse_box(&entry, bs);
 	gf_bs_del(bs);
 	free(data);
 	if (e) return e;
@@ -2750,9 +2741,9 @@ GF_Err gf_isom_store_movie_config(GF_ISOFile *movie, Bool remove_all)
 	bin128 binID;
 	if (movie == NULL) return GF_BAD_PARAM;
 
-	gf_isom_remove_user_data(movie, 0, FOUR_CHAR_INT('G','P','A','C'), binID);
+	gf_isom_remove_user_data(movie, 0, GF_FOUR_CHAR_INT('G','P','A','C'), binID);
 	count = gf_isom_get_track_count(movie);
-	for (i=0; i<count; i++) gf_isom_remove_user_data(movie, i+1, FOUR_CHAR_INT('G','P','A','C'), binID);
+	for (i=0; i<count; i++) gf_isom_remove_user_data(movie, i+1, GF_FOUR_CHAR_INT('G','P','A','C'), binID);
 
 	if (remove_all) return GF_OK;
 
@@ -2763,7 +2754,7 @@ GF_Err gf_isom_store_movie_config(GF_ISOFile *movie, Bool remove_all)
 	gf_bs_write_u32(bs, movie->interleavingTime);
 	gf_bs_get_content(bs, (unsigned char **) &data, &len);
 	gf_bs_del(bs);
-	gf_isom_add_user_data(movie, 0, FOUR_CHAR_INT('G','P','A','C'), binID, data, len);
+	gf_isom_add_user_data(movie, 0, GF_FOUR_CHAR_INT('G','P','A','C'), binID, data, len);
 	free(data);
 	/*update tracks: interleaving group/priority and track edit name*/
 	for (i=0; i<count; i++) {
@@ -2778,7 +2769,7 @@ GF_Err gf_isom_store_movie_config(GF_ISOFile *movie, Bool remove_all)
 		for (j=0; j<len; j++) gf_bs_write_u8(bs, trak->name[j]);
 		gf_bs_get_content(bs, (unsigned char **) &data, &len);
 		gf_bs_del(bs);
-		gf_isom_add_user_data(movie, i+1, FOUR_CHAR_INT('G','P','A','C'), binID, data, len);
+		gf_isom_add_user_data(movie, i+1, GF_FOUR_CHAR_INT('G','P','A','C'), binID, data, len);
 		free(data);
 	}
 	return GF_OK;
@@ -2796,10 +2787,10 @@ GF_Err gf_isom_load_movie_config(GF_ISOFile *movie)
 
 	found_cfg = 0;
 	/*restore movie*/
-	count = gf_isom_get_user_data_count(movie, 0, FOUR_CHAR_INT('G','P','A','C'), binID);
+	count = gf_isom_get_user_data_count(movie, 0, GF_FOUR_CHAR_INT('G','P','A','C'), binID);
 	for (i=0; i<count; i++) {
 		data = NULL;
-		gf_isom_get_user_data(movie, 0, FOUR_CHAR_INT('G','P','A','C'), binID, i+1, &data, &len);
+		gf_isom_get_user_data(movie, 0, GF_FOUR_CHAR_INT('G','P','A','C'), binID, i+1, &data, &len);
 		if (!data) continue;
 		/*check marker*/
 		if ((unsigned char) data[0] != 0xFE) {
@@ -2819,10 +2810,10 @@ GF_Err gf_isom_load_movie_config(GF_ISOFile *movie)
 	for (i=0; i<gf_isom_get_track_count(movie); i++) {
 		u32 j;
 		GF_TrackBox *trak = gf_isom_get_track_from_file(movie, i+1);
-		count = gf_isom_get_user_data_count(movie, i+1, FOUR_CHAR_INT('G','P','A','C'), binID);
+		count = gf_isom_get_user_data_count(movie, i+1, GF_FOUR_CHAR_INT('G','P','A','C'), binID);
 		for (j=0; j<count; j++) {
 			data = NULL;
-			gf_isom_get_user_data(movie, i+1, FOUR_CHAR_INT('G','P','A','C'), binID, j+1, &data, &len);
+			gf_isom_get_user_data(movie, i+1, GF_FOUR_CHAR_INT('G','P','A','C'), binID, j+1, &data, &len);
 			if (!data) continue;
 			/*check marker*/
 			if ((unsigned char) data[0] != 0xFE) {
@@ -2873,10 +2864,10 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 	scale = newTS;
 	scale /= trak->Media->mediaHeader->timeScale;
 	trak->Media->mediaHeader->timeScale = newTS;
-	if (trak->GF_EditBox) {
+	if (trak->editBox) {
 		u32 i;
-		for (i=0; i<gf_list_count(trak->GF_EditBox->editList->entryList); i++) {
-			GF_EdtsEntry *ent = (GF_EdtsEntry*)gf_list_get(trak->GF_EditBox->editList->entryList, i);
+		for (i=0; i<gf_list_count(trak->editBox->editList->entryList); i++) {
+			GF_EdtsEntry *ent = (GF_EdtsEntry*)gf_list_get(trak->editBox->editList->entryList, i);
 			ent->mediaTime = (u32) (scale*ent->mediaTime);
 		}
 	}

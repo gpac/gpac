@@ -57,7 +57,7 @@ static Bool ds_is_enabled(SensorHandler *sh)
 
 static Fixed ds_point_to_angle(DiscSensorStack *st, M_DiscSensor *ds, Fixed X, Fixed Y)
 {
-	Fixed result = gf_atan2(X, Y) - st->start_angle + ds->offset;
+	Fixed result = gf_atan2(Y, X) - st->start_angle + ds->offset;
 	if (ds->minAngle < ds->maxAngle) {
 		/*FIXME this doesn't work properly*/
 		if (result < ds->minAngle) result = ds->minAngle;
@@ -104,7 +104,7 @@ static void OnDiscSensor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor
 		gf_mx2d_copy(stack->inv_init_matrix, *sensor_matrix);
 		gf_mx2d_inverse(&stack->inv_init_matrix);
 		gf_mx2d_apply_coords(&stack->inv_init_matrix, &X, &Y);
-		stack->start_angle = gf_atan2(X, Y);
+		stack->start_angle = gf_atan2(Y, X);
 		ds->isActive = 1;
 		gf_node_event_out_str(sh->owner, "isActive");
 		R2D_RegisterSensor(stack->compositor, &stack->hdl);	

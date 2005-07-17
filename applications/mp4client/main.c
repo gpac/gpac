@@ -445,7 +445,7 @@ void set_navigation()
 
 int main (int argc, char **argv)
 {
-	char *str;
+	const char *str;
 	u32 i, url_arg;
 	GF_User user;
 
@@ -1135,7 +1135,7 @@ void ViewODs(GF_Terminal *term, Bool show_timing)
 
 void PrintGPACConfig(GF_Terminal *term, GF_Config *cfg_file)
 {
-	char *str;
+	const char *str;
 	fprintf(stdout, "\n\n*** GPAC Configuration ***\n\n");
 	/*I've only put there important options when debugging...*/
 	fprintf(stdout, "Video Output: %s\n", gf_cfg_get_key(cfg_file, "Video", "DriverName"));

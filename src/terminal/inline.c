@@ -785,7 +785,7 @@ void gf_is_set_duration(GF_InlineScene *is)
 static Bool IS_IsHardcodedProto(MFURL *url, GF_Config *cfg)
 {
 	u32 i;
-	char *sOpt = gf_cfg_get_key(cfg, "Systems", "hardcoded_protos");
+	const char *sOpt = gf_cfg_get_key(cfg, "Systems", "hardcoded_protos");
 	for (i=0; i<url->count; i++) {
 		if (!url->vals[i].url) continue;
 		if (strstr(url->vals[i].url, "urn:inet:gpac:builtin")) return 1;

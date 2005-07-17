@@ -33,7 +33,7 @@ GF_SceneManager *gf_sm_new(GF_SceneGraph *graph)
 	GF_SceneManager *tmp;
 	
 	if (!graph) return NULL;
-	SAFEALLOC(tmp, sizeof(GF_SceneManager));
+	GF_SAFEALLOC(tmp, sizeof(GF_SceneManager));
 	tmp->streams = gf_list_new();
 	tmp->scene_graph = graph;
 	return tmp;

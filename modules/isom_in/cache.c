@@ -114,7 +114,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 		case GF_STREAM_TEXT: mtype = GF_ISOM_MEDIA_TEXT; break;
 		default: return GF_NOT_SUPPORTED;
 		}
-		SAFEALLOC(mch, sizeof(ISOMChannel));
+		GF_SAFEALLOC(mch, sizeof(ISOMChannel));
 		mch->time_scale = esd->slConfig->timestampResolution;
 		mch->is_video = (mtype==GF_ISOM_MEDIA_VISUAL) ? 1 : 0;
 		mch->track = gf_isom_new_track(cache->mov, com.cache_esd.esd->ESID, mtype, mch->time_scale);
@@ -124,7 +124,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 		gf_isom_set_track_enabled(cache->mov, mch->track, 1);
 		/*translate 3GP streams to MP4*/
 		mapped = 0;
-		if (esd->decoderConfig->objectTypeIndication==GPAC_QT_CODECS_OTI) {
+		if (esd->decoderConfig->objectTypeIndication==GPAC_EXTRA_CODECS_OTI) {
 			char szCode[5];
 			strncpy(szCode, esd->decoderConfig->decoderSpecificInfo->data, 4);
 			if (!stricmp(szCode, "samr") || !stricmp(szCode, "amr ") || !stricmp(szCode, "sawb")) {
@@ -133,13 +133,13 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 				memset(&amrc, 0, sizeof(GF_3GPConfig));
 				amrc.frames_per_sample = 1;
 				amrc.type = (!stricmp(szCode, "sawb")) ? GF_ISOM_SUBTYPE_3GP_AMR_WB : GF_ISOM_SUBTYPE_3GP_AMR;
-				amrc.vendor = FOUR_CHAR_INT('G','P','A','C');
+				amrc.vendor = GF_FOUR_CHAR_INT('G','P','A','C');
 				gf_isom_3gp_config_new(cache->mov, mch->track, &amrc, NULL, NULL, &di);
 			} else if (!stricmp(szCode, "h263")) {
 				GF_3GPConfig h263c;
 				memset(&h263c, 0, sizeof(GF_3GPConfig));
 				h263c.type = GF_ISOM_SUBTYPE_3GP_H263;
-				h263c.vendor = FOUR_CHAR_INT('G','P','A','C');
+				h263c.vendor = GF_FOUR_CHAR_INT('G','P','A','C');
 				gf_isom_3gp_config_new(cache->mov, mch->track, &h263c, NULL, NULL, &di);
 				mapped = 1;
 			}
@@ -235,8 +235,8 @@ GF_BaseInterface *isow_load_cache()
 {
 	ISOMReader *cache;
 	GF_StreamingCache *plug;
-	SAFEALLOC(plug, sizeof(GF_StreamingCache));
-	GF_REGISTER_MODULE(plug, GF_STREAMING_MEDIA_CACHE, "GPAC IsoMedia Cache", "gpac distribution", 0)
+	GF_SAFEALLOC(plug, sizeof(GF_StreamingCache));
+	GF_REGISTER_MODULE_INTERFACE(plug, GF_STREAMING_MEDIA_CACHE, "GPAC IsoMedia Cache", "gpac distribution")
 
 	plug->Open = ISOW_Open;
 	plug->Close = ISOW_Close;
@@ -245,7 +245,7 @@ GF_BaseInterface *isow_load_cache()
 	plug->ChannelReleaseSLP = ISOW_ChannelReleaseSLP;
 	plug->ServiceCommand = ISOW_ServiceCommand;
 
-	SAFEALLOC(cache, sizeof(ISOMReader));
+	GF_SAFEALLOC(cache, sizeof(ISOMReader));
 	cache->channels = gf_list_new();
 	plug->priv = cache;
 	return (GF_BaseInterface *) plug;

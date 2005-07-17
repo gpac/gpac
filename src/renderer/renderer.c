@@ -156,7 +156,7 @@ u32 SR_RenderRun(void *par)
 
 	/*destroy video out*/
 	sr->video_out->Shutdown(sr->video_out);
-	gf_modules_close_interface(sr->video_out);
+	gf_modules_close_interface((GF_BaseInterface *)sr->video_out);
 	sr->video_out = NULL;
 
 	sr->video_th_state = 3;
@@ -196,7 +196,7 @@ static Bool check_graphics2D_driver(GF_Raster2D *ifce)
 
 static GF_Renderer *SR_New(GF_User *user)
 {
-	char *sOpt;
+	const char *sOpt;
 	GF_GLConfig cfg, *gl_cfg;
 	GF_Renderer *tmp = malloc(sizeof(GF_Renderer));
 	if (!tmp) return NULL;
@@ -206,17 +206,15 @@ static GF_Renderer *SR_New(GF_User *user)
 	/*load renderer to check for GL flag*/
 	sOpt = gf_cfg_get_key(user->config, "Rendering", "RendererName");
 	if (sOpt) {
-		if (!gf_modules_load_interface_by_name(user->modules, sOpt, GF_RENDERER_INTERFACE, (void **) &tmp->visual_renderer) ) {
-			tmp->visual_renderer = NULL;
-			sOpt = NULL;
-		}
+		tmp->visual_renderer = (GF_VisualRenderer *) gf_modules_load_interface_by_name(user->modules, sOpt, GF_RENDERER_INTERFACE);
+		if (!tmp->visual_renderer) sOpt = NULL;
 	}
 	if (!tmp->visual_renderer) {
 		u32 i, count;
 		count = gf_modules_get_count(user->modules);
 		for (i=0; i<count; i++) {
-			if (gf_modules_load_interface(user->modules, i, GF_RENDERER_INTERFACE, (void **) &tmp->visual_renderer)) break;
-			tmp->visual_renderer = NULL;
+			tmp->visual_renderer = (GF_VisualRenderer *) gf_modules_load_interface(user->modules, i, GF_RENDERER_INTERFACE);
+			if (tmp->visual_renderer) break;
 		}
 		if (tmp->visual_renderer) gf_cfg_set_key(user->config, "Rendering", "RendererName", tmp->visual_renderer->module_name);
 	}
@@ -233,17 +231,17 @@ static GF_Renderer *SR_New(GF_User *user)
 	/*load video out*/
 	sOpt = gf_cfg_get_key(user->config, "Video", "DriverName");
 	if (sOpt) {
-		if (!gf_modules_load_interface_by_name(user->modules, sOpt, GF_VIDEO_OUTPUT_INTERFACE, (void **) &tmp->video_out)) {
-			tmp->video_out = NULL;
-			sOpt = NULL;
-		} else {
+		tmp->video_out = (GF_VideoOutput *) gf_modules_load_interface_by_name(user->modules, sOpt, GF_VIDEO_OUTPUT_INTERFACE);
+		if (tmp->video_out) {
 			tmp->video_out->evt_cbk_hdl = tmp;
 			tmp->video_out->on_event = gf_sr_on_event;
 			/*init hw*/
 			if (tmp->video_out->SetupHardware(tmp->video_out, user->os_window_handler, user->os_display, user->dont_override_window_proc, gl_cfg) != GF_OK) {
-				gf_modules_close_interface(tmp->video_out);
+				gf_modules_close_interface((GF_BaseInterface *)tmp->video_out);
 				tmp->video_out = NULL;
 			}
+		} else {
+			sOpt = NULL;
 		}
 	}
 
@@ -251,7 +249,8 @@ static GF_Renderer *SR_New(GF_User *user)
 		u32 i, count;
 		count = gf_modules_get_count(user->modules);
 		for (i=0; i<count; i++) {
-			if (!gf_modules_load_interface(user->modules, i, GF_VIDEO_OUTPUT_INTERFACE, (void **) &tmp->video_out)) continue;
+			tmp->video_out = (GF_VideoOutput *) gf_modules_load_interface(user->modules, i, GF_VIDEO_OUTPUT_INTERFACE);
+			if (!tmp->video_out) continue;
 			tmp->video_out->evt_cbk_hdl = tmp;
 			tmp->video_out->on_event = gf_sr_on_event;
 			/*init hw*/
@@ -259,13 +258,13 @@ static GF_Renderer *SR_New(GF_User *user)
 				gf_cfg_set_key(user->config, "Video", "DriverName", tmp->video_out->module_name);
 				break;
 			}
-			gf_modules_close_interface(tmp->video_out);
+			gf_modules_close_interface((GF_BaseInterface *)tmp->video_out);
 			tmp->video_out = NULL;
 		}
 	}
 
 	if (!tmp->video_out ) {
-		gf_modules_close_interface(tmp->visual_renderer);
+		gf_modules_close_interface((GF_BaseInterface *)tmp->visual_renderer);
 		free(tmp);
 		return NULL;
 	}
@@ -273,11 +272,11 @@ static GF_Renderer *SR_New(GF_User *user)
 	/*try to load a raster driver*/
 	sOpt = gf_cfg_get_key(user->config, "Rendering", "Raster2D");
 	if (sOpt) {
-		if (!gf_modules_load_interface_by_name(user->modules, sOpt, GF_RASTER_2D_INTERFACE, (void **) &tmp->r2d)) {
-			tmp->r2d = NULL;
+		tmp->r2d = (GF_Raster2D *) gf_modules_load_interface_by_name(user->modules, sOpt, GF_RASTER_2D_INTERFACE);
+		if (!tmp->r2d) {
 			sOpt = NULL;
 		} else if (!check_graphics2D_driver(tmp->r2d)) {
-			gf_modules_close_interface(tmp->r2d);
+			gf_modules_close_interface((GF_BaseInterface *)tmp->r2d);
 			tmp->r2d = NULL;
 			sOpt = NULL;
 		}
@@ -286,9 +285,10 @@ static GF_Renderer *SR_New(GF_User *user)
 		u32 i, count;
 		count = gf_modules_get_count(user->modules);
 		for (i=0; i<count; i++) {
-			if (!gf_modules_load_interface(user->modules, i, GF_RASTER_2D_INTERFACE, (void **) &tmp->r2d)) continue;
+			tmp->r2d = (GF_Raster2D *) gf_modules_load_interface(user->modules, i, GF_RASTER_2D_INTERFACE);
+			if (!tmp->r2d) continue;
 			if (check_graphics2D_driver(tmp->r2d)) break;
-			gf_modules_close_interface(tmp->r2d);
+			gf_modules_close_interface((GF_BaseInterface *)tmp->r2d);
 			tmp->r2d = NULL;
 		}
 		if (tmp->r2d) gf_cfg_set_key(user->config, "Rendering", "Raster2D", tmp->r2d->module_name);
@@ -296,9 +296,9 @@ static GF_Renderer *SR_New(GF_User *user)
 
 	/*and init*/
 	if (tmp->visual_renderer->LoadRenderer(tmp->visual_renderer, tmp) != GF_OK) {
-		gf_modules_close_interface(tmp->visual_renderer);
+		gf_modules_close_interface((GF_BaseInterface *)tmp->visual_renderer);
 		tmp->video_out->Shutdown(tmp->video_out);
-		gf_modules_close_interface(tmp->video_out);
+		gf_modules_close_interface((GF_BaseInterface *)tmp->video_out);
 		free(tmp);
 		return NULL;
 	}
@@ -368,10 +368,10 @@ void gf_sr_del(GF_Renderer *sr)
 
 	if (sr->video_out) {
 		sr->video_out->Shutdown(sr->video_out);
-		gf_modules_close_interface(sr->video_out);
+		gf_modules_close_interface((GF_BaseInterface *)sr->video_out);
 	}
 	sr->visual_renderer->UnloadRenderer(sr->visual_renderer);
-	gf_modules_close_interface(sr->visual_renderer);
+	gf_modules_close_interface((GF_BaseInterface *)sr->visual_renderer);
 
 	if (sr->audio_renderer) gf_sr_ar_del(sr->audio_renderer);
 
@@ -387,7 +387,7 @@ void gf_sr_del(GF_Renderer *sr)
 
 	if (sr->font_engine) {
 		sr->font_engine->shutdown_font_engine(sr->font_engine);
-		gf_modules_close_interface(sr->font_engine);
+		gf_modules_close_interface((GF_BaseInterface *)sr->font_engine);
 	}
 	gf_list_del(sr->textures);
 	gf_list_del(sr->time_nodes);
@@ -708,15 +708,13 @@ void SR_SetFontEngine(GF_Renderer *sr)
 
 	ifce = NULL;
 	sOpt = gf_cfg_get_key(sr->user->config, "FontEngine", "DriverName");
-	if (sOpt) {
-		if (!gf_modules_load_interface_by_name(sr->user->modules, sOpt, GF_FONT_RASTER_INTERFACE, (void **) &ifce)) 
-			ifce = NULL;
-	}
+	if (sOpt) ifce = (GF_FontRaster *) gf_modules_load_interface_by_name(sr->user->modules, sOpt, GF_FONT_RASTER_INTERFACE);
 
 	if (!ifce) {
 		count = gf_modules_get_count(sr->user->modules);
 		for (i=0; i<count; i++) {
-			if (gf_modules_load_interface(sr->user->modules, i, GF_FONT_RASTER_INTERFACE, (void **) &ifce)) {
+			ifce = (GF_FontRaster *) gf_modules_load_interface(sr->user->modules, i, GF_FONT_RASTER_INTERFACE);
+			if (ifce) {
 				gf_cfg_set_key(sr->user->config, "FontEngine", "DriverName", ifce->module_name);
 				sOpt = ifce->module_name;
 				break;
@@ -727,7 +725,7 @@ void SR_SetFontEngine(GF_Renderer *sr)
 
 	/*cannot init font engine*/
 	if (ifce->init_font_engine(ifce) != GF_OK) {
-		gf_modules_close_interface(ifce);
+		gf_modules_close_interface((GF_BaseInterface *)ifce);
 		return;
 	}
 
@@ -736,7 +734,7 @@ void SR_SetFontEngine(GF_Renderer *sr)
 	gf_sr_lock(sr, 1);
 	if (sr->font_engine) {
 		sr->font_engine->shutdown_font_engine(sr->font_engine);
-		gf_modules_close_interface(sr->font_engine);
+		gf_modules_close_interface((GF_BaseInterface *)sr->font_engine);
 	}
 	sr->font_engine = ifce;
 

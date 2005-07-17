@@ -66,13 +66,13 @@ static Bool ft_conic_is_small_enough( GF_Point2D*  base, Fixed *angle_in, Fixed 
 		if ( close2 )
 			*angle_in = *angle_out = 0;
 		else
-			*angle_in = *angle_out = gf_atan2(d2.x, d2.y);
+			*angle_in = *angle_out = gf_atan2(d2.y, d2.x);
 	}
 	else if ( close2 ) {
-		*angle_in = *angle_out = gf_atan2(d1.x, d1.y);
+		*angle_in = *angle_out = gf_atan2(d1.y, d1.x);
 	} else {
-		*angle_in  = gf_atan2(d1.x, d1.y);
-		*angle_out = gf_atan2(d2.x, d2.y);
+		*angle_in  = gf_atan2(d1.y, d1.x);
+		*angle_out = gf_atan2(d2.y, d2.x);
 	}
 	theta = ABS( gf_angle_diff(*angle_in, *angle_out));
 	return ( theta < FT_SMALL_CONIC_THRESHOLD ) ? 1 : 0;
@@ -124,22 +124,22 @@ static Bool ft_cubic_is_small_enough(GF_Point2D *base, Fixed *angle_in, Fixed *a
 			/* basically a point */
 			*angle_in = *angle_out = *angle_mid = 0;
 		} else if ( close1 ) {
-			*angle_in  = *angle_mid = gf_atan2( d2.x, d2.y );
-			*angle_out = gf_atan2( d3.x, d3.y );
+			*angle_in  = *angle_mid = gf_atan2( d2.y, d2.x);
+			*angle_out = gf_atan2( d3.y, d3.x);
 		} 
 		/* close2 */ 
 		else {
-			*angle_in  = gf_atan2( d1.x, d1.y );
-			*angle_mid = *angle_out = gf_atan2( d2.x, d2.y );
+			*angle_in  = gf_atan2(d1.y, d1.x);
+			*angle_mid = *angle_out = gf_atan2(d2.y, d2.x);
 		}
     }
     else if ( close2 ) {
-		*angle_in  = *angle_mid = gf_atan2( d1.x, d1.y );
-		*angle_out = gf_atan2( d3.x, d3.y );
+		*angle_in  = *angle_mid = gf_atan2(d1.y, d1.x);
+		*angle_out = gf_atan2(d3.y, d3.x);
     } else {
-		*angle_in  = gf_atan2( d1.x, d1.y );
-		*angle_mid = gf_atan2( d2.x, d2.y );
-		*angle_out = gf_atan2( d3.x, d3.y );
+		*angle_in  = gf_atan2(d1.y, d1.x);
+		*angle_mid = gf_atan2(d2.y, d2.x);
+		*angle_out = gf_atan2(d3.y, d3.x);
     }
     theta1 = ABS( gf_angle_diff( *angle_in,  *angle_mid ) );
     theta2 = ABS( gf_angle_diff( *angle_mid, *angle_out ) );
@@ -293,7 +293,7 @@ static s32 ft_stroke_border_arcto( FT_StrokeBorder  border,
 	GF_Point2D  a, b, a2, b2;
 	Fixed length;
 	/* compute start point */
-	gf_v2d_from_polar( &a, radius, angle_start );
+	a = gf_v2d_from_polar(radius, angle_start );
 	a.x += center->x;
 	a.y += center->y;
 
@@ -320,18 +320,18 @@ static s32 ft_stroke_border_arcto( FT_StrokeBorder  border,
 #endif
 
 		/* compute end point */
-		gf_v2d_from_polar( &b, radius, next );
+		b = gf_v2d_from_polar(radius, next );
 		b.x += center->x;
 		b.y += center->y;
 
 		/* compute first and second control points */
 		length = gf_muldiv( radius, gf_sin( theta ) * 4, ( FIX_ONE + gf_cos( theta ) ) * 3 );
 
-		gf_v2d_from_polar( &a2, length, angle + rotate );
+		a2 = gf_v2d_from_polar(length, angle + rotate );
 		a2.x += a.x;
 		a2.y += a.y;
 
-		gf_v2d_from_polar( &b2, length, next - rotate );
+		b2 = gf_v2d_from_polar(length, next - rotate );
 		b2.x += b.x;
 		b2.y += b.y;
 
@@ -508,15 +508,15 @@ static s32 ft_stroker_cap(FT_Stroker  *stroker, Fixed angle, s32 side)
 		FT_StrokeBorder  border = stroker->borders + side;
 
 
-		gf_v2d_from_polar( &delta,  radius, angle );
+		delta = gf_v2d_from_polar(radius, angle);
 		delta.x = 4*delta.x/3;
 		delta.y = 4*delta.y/3;
 
-		gf_v2d_from_polar( &delta2, radius, angle + rotate );
+		delta2 = gf_v2d_from_polar(radius, angle + rotate);
 		ctl1.x = delta.x + stroker->center.x + delta2.x;
 		ctl1.y = delta.y + stroker->center.y + delta2.y;
 
-		gf_v2d_from_polar( &delta2, radius, angle - rotate );
+		delta2 = gf_v2d_from_polar(radius, angle - rotate);
 		ctl2.x = delta.x + delta2.x + stroker->center.x;
 		ctl2.y = delta.y + delta2.y + stroker->center.y;
 
@@ -532,8 +532,8 @@ static s32 ft_stroker_cap(FT_Stroker  *stroker, Fixed angle, s32 side)
 		FT_StrokeBorder  border = stroker->borders + side;
 
 
-		gf_v2d_from_polar( &delta2, radius, angle + rotate );
-		gf_v2d_from_polar( &delta,  radius, angle );
+		delta2 = gf_v2d_from_polar(radius, angle + rotate);
+		delta = gf_v2d_from_polar(radius, angle);
 
 		delta.x += stroker->center.x + delta2.x;
 		delta.y += stroker->center.y + delta2.y;
@@ -542,8 +542,8 @@ static s32 ft_stroker_cap(FT_Stroker  *stroker, Fixed angle, s32 side)
 		if ( error )
 			goto Exit;
 
-		gf_v2d_from_polar( &delta2, radius, angle - rotate );
-		gf_v2d_from_polar( &delta,  radius, angle );
+		delta2 = gf_v2d_from_polar(radius, angle - rotate);
+		delta = gf_v2d_from_polar(radius, angle);
 
 		delta.x += delta2.x + stroker->center.x;
 		delta.y += delta2.y + stroker->center.y;
@@ -555,7 +555,7 @@ static s32 ft_stroker_cap(FT_Stroker  *stroker, Fixed angle, s32 side)
 		Fixed radius = stroker->radius;
 		FT_StrokeBorder  border = stroker->borders + side;
 		border->movable = 0;
-		gf_v2d_from_polar(&delta, radius, angle);
+		delta = gf_v2d_from_polar(radius, angle);
 		delta.x += stroker->center.x;
 		delta.y += stroker->center.y;
 		error = ft_stroke_border_lineto(border, &delta, 0);
@@ -590,13 +590,13 @@ static s32 ft_stroker_inside(FT_Stroker *stroker, s32 side)
 	sigma  = gf_mulfix( stroker->miter_limit, thcos );
 
 	if ( sigma < FIX_ONE ) {
-		gf_v2d_from_polar( &delta, stroker->radius, stroker->angle_out + rotate );
+		delta = gf_v2d_from_polar(stroker->radius, stroker->angle_out + rotate );
 		delta.x += stroker->center.x;
 		delta.y += stroker->center.y;
 		border->movable = 0;
 	} else {
 		length = gf_divfix( stroker->radius, thcos );
-		gf_v2d_from_polar( &delta, length, phi + rotate );
+		delta = gf_v2d_from_polar(length, phi + rotate );
 		delta.x += stroker->center.x;
 		delta.y += stroker->center.y;
 	}
@@ -644,14 +644,14 @@ static s32 ft_stroker_outside( FT_Stroker *stroker, s32 side )
 			Fixed   length;
 
 			/* compute middle point */
-			gf_v2d_from_polar( &middle, gf_mulfix(radius, stroker->miter_limit), phi);
+			middle = gf_v2d_from_polar(gf_mulfix(radius, stroker->miter_limit), phi);
 			middle.x += stroker->center.x;
 			middle.y += stroker->center.y;
 
 			/* compute first angle point */
 			length = gf_mulfix(radius, gf_divfix( FIX_ONE - sigma, ABS( gf_sin( theta ) ) ) );
 
-			gf_v2d_from_polar( &delta, length, phi + rotate );
+			delta = gf_v2d_from_polar(length, phi + rotate );
 			delta.x += middle.x;
 			delta.y += middle.y;
 
@@ -660,7 +660,7 @@ static s32 ft_stroker_outside( FT_Stroker *stroker, s32 side )
 				goto Exit;
 
 			/* compute second angle point */
-			gf_v2d_from_polar( &delta, length, phi - rotate );
+			delta = gf_v2d_from_polar(length, phi - rotate);
 			delta.x += middle.x;
 			delta.y += middle.y;
 
@@ -669,7 +669,7 @@ static s32 ft_stroker_outside( FT_Stroker *stroker, s32 side )
 				goto Exit;
 
 			/* finally, add a movable end point */
-			gf_v2d_from_polar( &delta, radius, stroker->angle_out + rotate );
+			delta = gf_v2d_from_polar(radius, stroker->angle_out + rotate );
 			delta.x += stroker->center.x;
 			delta.y += stroker->center.y;
 
@@ -683,7 +683,7 @@ static s32 ft_stroker_outside( FT_Stroker *stroker, s32 side )
 
 			length = gf_divfix( stroker->radius, thcos );
 
-			gf_v2d_from_polar( &delta, length, phi );
+			delta = gf_v2d_from_polar(length, phi );
 			delta.x += stroker->center.x;
 			delta.y += stroker->center.y;
 
@@ -691,7 +691,7 @@ static s32 ft_stroker_outside( FT_Stroker *stroker, s32 side )
 			if (error) goto Exit;
 
 			/* now add end point */
-			gf_v2d_from_polar( &delta, stroker->radius, stroker->angle_out + rotate );
+			delta = gf_v2d_from_polar(stroker->radius, stroker->angle_out + rotate );
 			delta.x += stroker->center.x;
 			delta.y += stroker->center.y;
 
@@ -744,7 +744,7 @@ static s32 ft_stroker_subpath_start( FT_Stroker *stroker, Fixed start_angle )
 	s32 error;
 	FT_StrokeBorder  border;
 	
-	gf_v2d_from_polar( &delta, stroker->radius, start_angle + GF_PI2 );
+	delta = gf_v2d_from_polar(stroker->radius, start_angle + GF_PI2 );
 
     point.x = stroker->center.x + delta.x;
     point.y = stroker->center.y + delta.y;
@@ -780,8 +780,8 @@ static s32 FT_Stroker_LineTo( FT_Stroker *stroker, GF_Point2D*  to )
     delta.x = to->x - stroker->center.x;
     delta.y = to->y - stroker->center.y;
 
-    angle = gf_atan2( delta.x, delta.y );
-    gf_v2d_from_polar( &delta, stroker->radius, angle + GF_PI2 );
+    angle = gf_atan2( delta.y, delta.x);
+    delta = gf_v2d_from_polar(stroker->radius, angle + GF_PI2 );
 
     /* process corner if necessary */
     if ( stroker->first_point ) {
@@ -877,12 +877,12 @@ static s32 FT_Stroker_ConicTo(FT_Stroker *stroker, GF_Point2D*  control, GF_Poin
 				rotate = FT_SIDE_TO_ROTATE( side );
 
 				/* compute control point */
-				gf_v2d_from_polar( &ctrl, length, phi + rotate );
+				ctrl = gf_v2d_from_polar(length, phi + rotate );
 				ctrl.x += arc[1].x;
 				ctrl.y += arc[1].y;
 
 				/* compute end point */
-				gf_v2d_from_polar( &end, stroker->radius, angle_out + rotate );
+				end = gf_v2d_from_polar(stroker->radius, angle_out + rotate );
 				end.x += arc[0].x;
 				end.y += arc[0].y;
 
@@ -971,16 +971,16 @@ static s32 FT_Stroker_CubicTo(FT_Stroker *stroker,
 				rotate = FT_SIDE_TO_ROTATE( side );
 
 				/* compute control points */
-				gf_v2d_from_polar( &ctrl1, length1, phi1 + rotate );
+				ctrl1 = gf_v2d_from_polar(length1, phi1 + rotate );
 				ctrl1.x += arc[2].x;
 				ctrl1.y += arc[2].y;
 
-				gf_v2d_from_polar( &ctrl2, length2, phi2 + rotate );
+				ctrl2 = gf_v2d_from_polar(length2, phi2 + rotate );
 				ctrl2.x += arc[1].x;
 				ctrl2.y += arc[1].y;
 
 				/* compute end point */
-				gf_v2d_from_polar( &end, stroker->radius, angle_out + rotate );
+				end = gf_v2d_from_polar(stroker->radius, angle_out + rotate );
 				end.x += arc[0].x;
 				end.y += arc[0].y;
 

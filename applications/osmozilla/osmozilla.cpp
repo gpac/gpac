@@ -233,7 +233,7 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	/*need to have a valid cfg file for now*/
 	if (!m_user.config) return FALSE;
 
-	char *str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
+	const char *str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	m_user.modules = gf_modules_new((const unsigned char *) str, m_user.config);
 	m_user.opaque = this;
 	
@@ -385,7 +385,7 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 
 void nsOsmozillaInstance::SetOptions()
 {
-	char *sOpt = gf_cfg_get_key(m_user.config, "General", "Loop");
+	const char *sOpt = gf_cfg_get_key(m_user.config, "General", "Loop");
 	m_Loop = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 	m_bAutoStart = 1;
 

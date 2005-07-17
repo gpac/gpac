@@ -10,9 +10,6 @@ EXPORTS
 	gf_error_to_string
 	gf_rand_init
 	gf_rand
-	gf_utc_time_since_1970
-	gf_get_ntp
-	gf_get_ntp_frac
 	gf_get_user_name
 	gf_enum_directory
 	gf_cbk_on_progress
@@ -59,7 +56,6 @@ EXPORTS
 	gf_bs_available
 	gf_bs_get_content
 	gf_bs_skip_bytes
-	gf_bs_rewind
 	gf_bs_seek
 	gf_bs_peek_bits
 	gf_bs_get_position
@@ -117,6 +113,8 @@ EXPORTS
 	gf_url_is_local
 	gf_url_get_absolute_path
 	gf_url_concatenate
+	gf_utc_time_since_1970
+	gf_get_ntp
 
 ;base_coding.h exports
 	gf_base64_encode
@@ -155,10 +153,9 @@ EXPORTS
 	gf_utf8_wcslen
 
 ;download.h exports
-	gf_dm_get_cache_name
-	gf_dm_get_stats
-	gf_dm_fetch_data
-	gf_dm_get_last_error
+	gf_dm_sess_get_cache_name
+	gf_dm_sess_get_stats
+	gf_dm_sess_fetch_data
 
 ;math.h exports
 ;	gf_mulfix
@@ -188,8 +185,8 @@ EXPORTS
 	gf_mx2d_add_scale
 	gf_mx2d_add_scale_at
 	gf_mx2d_add_skew
-	gf_mx2d_add_skewX
-	gf_mx2d_add_skewY
+	gf_mx2d_add_skew_x
+	gf_mx2d_add_skew_y
 	gf_mx2d_inverse
 	gf_mx2d_apply_coords
 	gf_mx2d_apply_point
@@ -457,6 +454,8 @@ EXPORTS
 	gf_isom_has_movie
 	gf_isom_is_single_av
 	gf_isom_guess_specification
+	gf_isom_reset_hint_reader
+	gf_isom_next_hint_packet
 
 ;NON-READ-ONLY exports
 	gf_isom_set_temp_dir

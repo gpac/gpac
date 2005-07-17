@@ -282,7 +282,8 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	Float duration, cur_time;
 	GF_VideoSurface fb;
 	GF_Err e;
-	char old_driv[1024], *test;
+	char old_driv[1024];
+	const char *test;
 	char config_path[GF_MAX_PATH];
 	avi_t *avi_out; 
 	Bool reset_fps;

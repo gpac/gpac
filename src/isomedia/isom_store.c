@@ -345,10 +345,7 @@ GF_Err WriteSample(MovieWriter *mw, u32 size, u64 offset, u8 isEdited, GF_BitStr
 	GF_DataMap *map;
 	u32 bytes;
 
-	if (!mw->buffer) {
-		mw->buffer = malloc(size);
-		mw->size = size;
-	} else if (size>mw->size) {
+	if (size>mw->size) {
 		mw->buffer = realloc(mw->buffer, size);
 		mw->size = size;
 	}
@@ -413,16 +410,16 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 		if (!iloc->data_reference_index) {
 			/*new resource*/
 			if (iinf->full_path) {
-				FILE *src = f64_open(iinf->full_path, "rb");
+				FILE *src = gf_f64_open(iinf->full_path, "rb");
 
 				if (!src) continue;
-				f64_seek(src, 0, SEEK_END);
-				it_size = f64_tell(src);
-				f64_seek(src, 0, SEEK_SET);
+				gf_f64_seek(src, 0, SEEK_END);
+				it_size = gf_f64_tell(src);
+				gf_f64_seek(src, 0, SEEK_SET);
 				if (maxExtendSize<it_size) maxExtendSize = it_size;
 
 				if (!gf_list_count(iloc->extent_entries)) {
-					SAFEALLOC(entry, sizeof(GF_ItemExtentEntry));
+					GF_SAFEALLOC(entry, sizeof(GF_ItemExtentEntry));
 					gf_list_add(iloc->extent_entries, entry);
 				}
 				entry = gf_list_get(iloc->extent_entries, 0);
@@ -1158,7 +1155,7 @@ GF_Err WriteToFile(GF_ISOFile *movie, void (*progress)(void *cbk, u32 done, u32 
 		e = WriteFlat(&mw, 0, movie->editFileMap->bs);
 	} else {
 		//OK, we need a new bitstream
-		stream = f64_open(movie->finalName, "wb");
+		stream = gf_f64_open(movie->finalName, "wb");
 		if (!stream) return GF_IO_ERR;
 		bs = gf_bs_from_file(stream, GF_BITSTREAM_WRITE);
 		if (!bs) {

@@ -37,11 +37,11 @@ GF_Err gdip_init_font_engine(GF_FontRaster *dr)
 	const char *sOpt;
 	FontPriv *ctx = (FontPriv *)dr->priv;
 
-	sOpt = gf_modules_get_option(dr, "FontEngine", "FontSerif");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif");
 	strcpy(ctx->font_serif, sOpt ? sOpt : "Times New Roman");
-	sOpt = gf_modules_get_option(dr, "FontEngine", "FontSans");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSans");
 	strcpy(ctx->font_sans, sOpt ? sOpt : "Arial");
-	sOpt = gf_modules_get_option(dr, "FontEngine", "FontFixed");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed");
 	strcpy(ctx->font_fixed, sOpt ? sOpt : "Courier New");
 
 	return GF_OK;
@@ -346,11 +346,11 @@ GF_FontRaster *gdip_new_font_driver()
 	GF_FontRaster *dr;
 	FontPriv *ctx;
 
-	GF_SAFEALLOC(ctx, FontPriv);
-	GF_SAFEALLOC(dr, GF_FontRaster);
+	SAFEALLOC(ctx, FontPriv);
+	SAFEALLOC(dr, GF_FontRaster);
 	GdiplusStartup(&ctx->gdiToken, &startupInput, NULL);
 
-	GF_REGISTER_MODULE(dr, GF_FONT_RASTER_INTERFACE, "GDIplus Font Engine", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(dr, GF_FONT_RASTER_INTERFACE, "GDIplus Font Engine", "gpac distribution")
 	dr->add_text_to_path = gdip_add_text_to_path;
 	dr->get_font_metrics = gdip_get_font_metrics;
 	dr->get_text_size = gdip_get_text_size;
@@ -386,21 +386,22 @@ Bool QueryInterface(u32 InterfaceType)
 GF_Raster2D *gdip_LoadRenderer();
 void gdip_ShutdownRenderer(GF_Raster2D *driver);
 
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-	if (InterfaceType==GF_FONT_RASTER_INTERFACE) return gdip_new_font_driver();
-	if (InterfaceType==GF_RASTER_2D_INTERFACE) return gdip_LoadRenderer();
+	if (InterfaceType==GF_FONT_RASTER_INTERFACE) return (GF_BaseInterface *)gdip_new_font_driver();
+	if (InterfaceType==GF_RASTER_2D_INTERFACE) return (GF_BaseInterface *)gdip_LoadRenderer();
 	return NULL;
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseInterface *dr = (GF_BaseInterface *)ifce;
-	if (dr->InterfaceType == GF_FONT_RASTER_INTERFACE) {
-		gdip_delete_font_driver((GF_FontRaster *)dr);
-	}
-	if (dr->InterfaceType == GF_RASTER_2D_INTERFACE) {
-		gdip_ShutdownRenderer((GF_Raster2D *)dr);
+	switch (ifce->InterfaceType) {
+	case GF_FONT_RASTER_INTERFACE:
+		gdip_delete_font_driver((GF_FontRaster *)ifce);
+		break;
+	case GF_RASTER_2D_INTERFACE:
+		gdip_ShutdownRenderer((GF_Raster2D *)ifce);
+		break;
 	}
 }
 

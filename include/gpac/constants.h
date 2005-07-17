@@ -31,87 +31,166 @@ extern "C" {
 
 #include <gpac/tools.h>
 
-/*
-		this file contains some constants used through-out the SDK, without a particulary sub-project attached to	
-*/
+/*! \addtogroup cst_grp constants
+ *	\brief Constants used within GPAC
+ *
+ *	This section documents some constants used in the GPAC framework which are not related to
+ *	any specific sub-project.
+ *	\ingroup utils_grp
+ *	@{
+ */
 
-/*
-	supported stream types
+
+/*!
+ *	\brief Supported media stream types
+ *	\hideinitializer
+ *
+ * Supported media stream types for media objects.
 */
 enum
 {
-	/*MPEG-4 stream types*/
+	/*!MPEG-4 Object Descriptor Stream*/
 	GF_STREAM_OD		= 0x01,
+	/*!MPEG-4 Object Clock Reference Stream*/
 	GF_STREAM_OCR		= 0x02,
+	/*!MPEG-4 Scene Description Stream*/
 	GF_STREAM_SCENE		= 0x03,
+	/*!Visual Stream (Video, Image or MPEG-4 SNHC Tools)*/
 	GF_STREAM_VISUAL	= 0x04,
+	/*!Audio Stream (Audio, MPEG-4 Structured-Audio Tools)*/
 	GF_STREAM_AUDIO		= 0x05,
+	/*!MPEG-7 Description Stream*/
 	GF_STREAM_MPEG7		= 0x06,
+	/*!MPEG-4 Intellectual Property Management and Protection Stream*/
 	GF_STREAM_IPMP		= 0x07,
+	/*!MPEG-4 Object Content Information Stream*/
 	GF_STREAM_OCI		= 0x08,
+	/*!MPEG-4 MPEGlet Stream*/
 	GF_STREAM_MPEGJ		= 0x09,
+	/*!MPEG-4 User Interaction Stream*/
 	GF_STREAM_INTERACT	= 0x0A,
+	/*!MPEG-4 IPMP Tool Stream*/
 	GF_STREAM_IPMP_TOOL	= 0x0B,
+	/*!MPEG-4 Font Data Stream*/
 	GF_STREAM_FONT		= 0x0C,
+	/*!MPEG-4 Streaming Text Stream*/
 	GF_STREAM_TEXT		= 0x0D,
 
 	/*GPAC internal stream types*/
+
+
+	/*!GPAC Private Scene streams\n
+	*\n\note
+	*this streamtype (MPEG-4 user-private) is reserved for streams only used to create a scene decoder handling the service 
+	*by itself, as is the case of the BT/VRML reader and can be used by many other things.\n
+	*The decoderSpecificInfo carried is simply the local filename of the service (remote files are first entirelly fetched).
+	*The inBufferLength param for decoders using these streams is the stream clock in ms (no input data is given).\n
+	*There is a dummy module available generating this stream and taking care of proper clock init in case of seeking.\n
+	*This is a reentrant streamtype: if any media object with this streamtype also exist in the scene, they will be 
+	*attached to the scene decoder (except when a new inline scene is detected, in which case a new decoder will 
+	*be created). This allows for animation/sprite usage along with the systems timing/stream management.\n
+	*\n
+	*the objectTypeIndication currently in use for these streams are\n
+	*0x00	-	 Forbidden\n
+	*0x01	-	 VRML/BT/XMT/SWF loader (similar to MP4Box context loading)\n
+	*0x02	-	 SVG loader\n
+	*0x03	-	 SVG-M loader (experimental fragmenting of SVG cartoons over RTP)\n
+	*/
+	GF_STREAM_PRIVATE_SCENE	= 0x20,
 };
 
 
+/*!
+ *	Media Object types
+ * 
+ *	This type provides a hint to network modules which may have to generate an service descriptor on the fly.
+ *	They occur only if objects/services used in the scene are not referenced through ObjectDescriptors (MPEG-4) 
+ *	but direct through URL
+*/
+enum
+{
+	/*!service descriptor expected is of undefined type. This should be treated like GF_MEDIA_OBJECT_SCENE*/
+	GF_MEDIA_OBJECT_UNDEF = 0,
+	/*!service descriptor expected is of SCENE type and shall contain a scene stream and OD one if needed*/
+	GF_MEDIA_OBJECT_SCENE,
+	/*!service descriptor expected is of SCENE type (animation streams)*/
+	GF_MEDIA_OBJECT_BIFS,
+	/*!service descriptor expected is of VISUAL type*/
+	GF_MEDIA_OBJECT_VIDEO,
+	/*!service descriptor expected is of AUDIO type*/
+	GF_MEDIA_OBJECT_AUDIO,
+	/*!service descriptor expected is of TEXT type (3GPP/MPEG4)*/
+	GF_MEDIA_OBJECT_TEXT,
+	/*!service descriptor expected is of UserInteraction type (MPEG-4 InputSensor)*/
+	GF_MEDIA_OBJECT_INTERACT,
+};
 
-/*supported pixel formats for everything using video*/
+
+/*!
+ * \brief Pixel Formats
+ * 
+ *	Supported pixel formats for everything using video
+ *\note	For textures using 32 bit ARGB/RGB_32/BGR_32:
+ *\li on little endian machines, shall be ordered in memory as BGRA, 
+ *\li on big endians, shall be ordered in memory as ARGB
+ *so that *(u32*)pixel_mem is always ARGB (0xAARRGGBB).
+*/
 typedef enum
 {
-	/*8 bit GREY */
-	GF_PIXEL_GREYSCALE	=	FOUR_CHAR_INT('G','R','E','Y'),
-	/*16 bit greyscale*/
-	GF_PIXEL_ALPHAGREY	=	FOUR_CHAR_INT('G','R','A','L'),
-	/*15 bit RGB*/
-	GF_PIXEL_RGB_555	=	FOUR_CHAR_INT('R','5','5','5'),
-	/*16 bit RGB*/
-	GF_PIXEL_RGB_565	=	FOUR_CHAR_INT('R','5','6','5'),
-	/*24 bit RGB*/
-	GF_PIXEL_RGB_24		=	FOUR_CHAR_INT('R','G','B','3'),
-	/*24 bit BGR - used for graphics cards video format signaling*/
-	GF_PIXEL_BGR_24		=	FOUR_CHAR_INT('B','G','R','3'),
-	/*32 bit RGB*/
-	GF_PIXEL_RGB_32		=	FOUR_CHAR_INT('R','G','B','4'),
-	/*32 bit BGR - used for graphics cards video format signaling*/
-	GF_PIXEL_BGR_32		=	FOUR_CHAR_INT('B','G','R','4'),
+	/*!8 bit GREY */
+	GF_PIXEL_GREYSCALE	=	GF_FOUR_CHAR_INT('G','R','E','Y'),
+	/*!16 bit greyscale*/
+	GF_PIXEL_ALPHAGREY	=	GF_FOUR_CHAR_INT('G','R','A','L'),
+	/*!15 bit RGB*/
+	GF_PIXEL_RGB_555	=	GF_FOUR_CHAR_INT('R','5','5','5'),
+	/*!16 bit RGB*/
+	GF_PIXEL_RGB_565	=	GF_FOUR_CHAR_INT('R','5','6','5'),
+	/*!24 bit RGB*/
+	GF_PIXEL_RGB_24		=	GF_FOUR_CHAR_INT('R','G','B','3'),
+	/*!24 bit BGR - used for graphics cards video format signaling*/
+	GF_PIXEL_BGR_24		=	GF_FOUR_CHAR_INT('B','G','R','3'),
+	/*!32 bit RGB*/
+	GF_PIXEL_RGB_32		=	GF_FOUR_CHAR_INT('R','G','B','4'),
+	/*!32 bit BGR - used for graphics cards video format signaling*/
+	GF_PIXEL_BGR_32		=	GF_FOUR_CHAR_INT('B','G','R','4'),
 
-	/*32 bit ARGB.
+	/*!32 bit ARGB.*/
+	GF_PIXEL_ARGB		=	GF_FOUR_CHAR_INT('A','R','G','B'),
+	/*!32 bit RGBA (openGL like)*/
+	GF_PIXEL_RGBA		=	GF_FOUR_CHAR_INT('R','G','B', 'A'),
+
+	/*!YUV packed format*/
+	GF_PIXEL_YUY2		=	GF_FOUR_CHAR_INT('Y','U','Y','2'),
+	/*!YUV packed format*/
+	GF_PIXEL_YVYU		=	GF_FOUR_CHAR_INT('Y','V','Y','U'),
+	/*!YUV packed format*/
+	GF_PIXEL_UYVY		=	GF_FOUR_CHAR_INT('U','Y','V','Y'),
+	/*!YUV packed format*/
+	GF_PIXEL_VYUY		=	GF_FOUR_CHAR_INT('V','Y','U','Y'),
+	/*!YUV packed format*/
+	GF_PIXEL_Y422		=	GF_FOUR_CHAR_INT('Y','4','2','2'),
+	/*!YUV packed format*/
+	GF_PIXEL_UYNV		=	GF_FOUR_CHAR_INT('U','Y','N','V'),
+	/*!YUV packed format*/
+	GF_PIXEL_YUNV		=	GF_FOUR_CHAR_INT('Y','U','N','V'),
+	/*!YUV packed format*/
+	GF_PIXEL_V422		=	GF_FOUR_CHAR_INT('V','4','2','2'),
 	
-	  Note on textures using 32 bit ARGB: 
-		on little endian machines, shall be ordered in memory as BGRA, 
-		on big endians, shall be ordered in memory as ARGB
-	  so that *(u32*)pixel_mem is always ARGB (0xAARRGGBB).
-	*/
-	GF_PIXEL_ARGB		=	FOUR_CHAR_INT('A','R','G','B'),
-	/*32bit RGBA (openGL like)*/
-	GF_PIXEL_RGBA		=	FOUR_CHAR_INT('R','G','B', 'A'),
+	/*!YUV planar format*/
+	GF_PIXEL_YV12		=	GF_FOUR_CHAR_INT('Y','V','1','2'),
+	/*!YUV planar format*/
+	GF_PIXEL_IYUV		=	GF_FOUR_CHAR_INT('I','Y','U','V'),
+	/*!YUV planar format*/
+	GF_PIXEL_I420		=	GF_FOUR_CHAR_INT('I','4','2','0'),
 
-	/*	YUV packed formats sampled 1:2:2 horiz, 1:1:1 vert*/
-	GF_PIXEL_YUY2		=	FOUR_CHAR_INT('Y','U','Y','2'),
-	GF_PIXEL_YVYU		=	FOUR_CHAR_INT('Y','V','Y','U'),
-	GF_PIXEL_UYVY		=	FOUR_CHAR_INT('U','Y','V','Y'),
-	GF_PIXEL_VYUY		=	FOUR_CHAR_INT('V','Y','U','Y'),
-	GF_PIXEL_Y422		=	FOUR_CHAR_INT('Y','4','2','2'),
-	GF_PIXEL_UYNV		=	FOUR_CHAR_INT('U','Y','N','V'),
-	GF_PIXEL_YUNV		=	FOUR_CHAR_INT('Y','U','N','V'),
-	GF_PIXEL_V422		=	FOUR_CHAR_INT('V','4','2','2'),
-	
-	/*	YUV planar formats sampled 1:2:2 horiz, 1:2:2 vert*/
-	GF_PIXEL_YV12		=	FOUR_CHAR_INT('Y','V','1','2'),
-	GF_PIXEL_IYUV		=	FOUR_CHAR_INT('I','Y','U','V'),
-	GF_PIXEL_I420		=	FOUR_CHAR_INT('I','4','2','0'),
-
-	/*YV12 + Alpha plane*/
-	GF_PIXEL_YUVA		=	FOUR_CHAR_INT('Y', 'U', 'V', 'A')
+	/*!YV12 + Alpha plane*/
+	GF_PIXEL_YUVA		=	GF_FOUR_CHAR_INT('Y', 'U', 'V', 'A')
 
 } GF_PixelFormat;
 
-
+/*!
+ \cond DUMMY_DOXY_SECTION
+*/
 
 /*AVC NAL unit types*/
 #define GF_AVC_NALU_NON_IDR_SLICE 0x1
@@ -149,106 +228,96 @@ static const u32 GF_AMR_WB_FRAME_SIZE[16] = { 17, 23, 32, 36, 40, 46, 50, 58, 60
 
 
 
-
-
-/*extensions for undefined codecs - this allows demuxers and codecs to talk the same language*/
-
-/*this is the OTI (user-priv) used for all undefined codec using MP4/QT 4CC codes*/
-#define GPAC_QT_CODECS_OTI				0x80
-
-/*The decoder specific info for all unknown decoders - it is always carried encoded
-
-	u32 codec_four_cc: the codec 4CC reg code
-	- for audio - 
-	u16 sample_rate: sampling rate or 0 if unknown
-	u8 nb_channels: num channels or 0 if unknown
-	u8 nb_bits_per_sample: nb bits or 0 if unknown
-	u8 num_samples: num audio samples per frame or 0 if unknown
-
-  	- for video - 
-	u16 width: video width or 0 if unknown;
-	u16 height: video height or 0 if unknown;
-
-	- till end of DSI bitstream-
-	char *data: per-codec extensions 
+/*!
+ \endcond
 */
 
-/*this streamtype (user-priv) is reserved for streams only used to create a scene decoder handling the service 
-by itself, as is the case of the BT/VRML reader and can be used by many other things. 
-The decoderSpecificInfo carried is simply the local filename of the service (remote files are first entirelly fetched).
-The inBufferLength param for decoders using these streams is the stream clock in ms (no input data is given)
-There is a dummy module available generating this stream and taking care of proper clock init in case 
-of seeking
-*this is a reentrant streamtype: if any media object with this streamtype also exist in the scene, they will be 
-attached to the scene decoder (except when a new inline scene is detected, in which case a new decoder will 
-be created). This allows for animation/sprite usage along with the systems timing/stream management
 
-the objectTypeIndication used for these streams are
-		0x00	-	 Forbidden
-		0x01	-	 VRML/BT/XMT/SWF loader (eg MP4Box context loading)
-		0x02	-	 SVG loader
+/*!
+ * \brief Extra ObjectTypeIndication
+ *
+ *	ObjectTypeIndication for codecs not defined in MPEG-4. Since GPAC signals streams through MPEG-4 Descriptions,
+ *	it needs extensions for non-MPEG-4 streams such as AMR, H263 , etc.\n
+ *\note The decoder specific info for such streams is always carried encoded, with the following syntax:\n
+ *	DSI Syntax for audio streams
+ \code 
+ *	u32 codec_four_cc: the codec 4CC reg code
+ *	u16 sample_rate: sampling rate or 0 if unknown
+ *	u8 nb_channels: num channels or 0 if unknown
+ *	u8 nb_bits_per_sample: nb bits or 0 if unknown
+ *	u8 num_samples: num audio samples per frame or 0 if unknown
+ *	char *data: per-codec extensions till end of DSI bitstream
+ \endcode
+ \n
+ *	DSI Syntax for video streams
+ \code 
+ *	u32 codec_four_cc: the codec 4CC reg code
+ *	u16 width: video width or 0 if unknown
+ *	u16 height: video height or 0 if unknown
+ *	char *data: per-codec extensions till end of DSI bitstream
+ \endcode
 */
-#define GF_STREAM_PRIVATE_SCENE	0x20
+#define GPAC_EXTRA_CODECS_OTI				0x80
 
-/*object type indication for static OD
-	this is used when scene information is not available (or not trustable :), in which case the IOD will 
-	only contain the OD stream with this OTI. 
-	This OD stream shall send one access unit with all available ressources in the service. Note that it may
-	still act as a regular OD stream in case ressources are updated on the fly (broadcast radio/tv for ex).
-	The scenegraph wll be regenerated at each OD AU, based on all available objects.
-	Using this OTI will enable user stream selection (if provided in GUI) which is otherwise disabled.
-	In this mode all clock references are ignored and all streams synchronized on the OD stream.
+
+/*!
+ * \brief Static Ressources ObjectTypeIndication
+ *
+ *	This ObjectTypeIndication indicates that scene information is not available (or not trustable :), in which case the IOD will only contain the OD stream with this OTI.\n
+ *	This OD stream shall send one access unit with all available ressources in the service. Note that it may still act as a regular OD stream in case ressources are updated on the fly (broadcast radio/tv for ex).\n
+ *	The scenegraph wll be regenerated at each OD AU, based on all available objects.\n
+ *	Using this OTI will enable user stream selection (if provided in GUI) which is otherwise disabled.\n
+ *	In this mode all clock references are ignored and all streams share the same clock.
 */
 #define GPAC_STATIC_OD_OTI		0x81
 
-/*object type indication for all OGG media
-	DSI is formated as follows:
-		while (dsi_size) {
-			bit(16) packet_size;
-			char packet[packet_size];
-			dsi_size -= packet_size;
-		}
-	this allows storing all initialization pages for vorbis, theora and co
+/*!
+ * \brief OGG ObjectTypeIndication
+ *
+ *	Object type indication for all OGG media. The DSI contains all intitialization ogg packets for the codec
+ * and is formated as follows:\n
+ *\code 
+	while (dsi_size) {
+		bit(16) packet_size;
+		char packet[packet_size];
+		dsi_size -= packet_size;
+	}\endcode
 */
 #define GPAC_OGG_MEDIA_OTI		0xDD
 
 
 
-
 /*channel cfg flags - DECODERS MUST OUTPUT STEREO/MULTICHANNEL IN THIS ORDER*/
+/*!
+ * \brief Audio Channel Configuration
+ *
+ *	Audio channel flags for spatialization.
+ \note Decoders must output stereo/multichannel audio channels in this order in the decoded audio frame.
+ */
 enum
 {
-	GF_AUDIO_CH_UNKNOWN = 0,
+	/*!Left Audio Channel*/
 	GF_AUDIO_CH_FRONT_LEFT = (1),
+	/*!Right Audio Channel*/
 	GF_AUDIO_CH_FRONT_RIGHT = (1<<1),
+	/*!Center Audio Channel - may also be used to signal monophonic audio*/
 	GF_AUDIO_CH_FRONT_CENTER = (1<<2),
+	/*!LFE Audio Channel*/
 	GF_AUDIO_CH_LFE = (1<<3),
+	/*!Back Left Audio Channel*/
 	GF_AUDIO_CH_BACK_LEFT = (1<<4),
+	/*!Back Right Audio Channel*/
 	GF_AUDIO_CH_BACK_RIGHT = (1<<5),
+	/*!Back Center Audio Channel*/
 	GF_AUDIO_CH_BACK_CENTER = (1<<6),
+	/*!Side Left Audio Channel*/
 	GF_AUDIO_CH_SIDE_LEFT = (1<<7),
+	/*!Side Right Audio Channel*/
 	GF_AUDIO_CH_SIDE_RIGHT = (1<<8)
 };
 
-/*Media Object types. This type provides a hint to network modules which may have to generate an OD/IOD on the fly
-they occur only if objects/services used in the scene are not referenced through OD IDs but direct URL*/
-enum
-{
-	/*OD expected is of undefined type*/
-	GF_MEDIA_OBJECT_UNDEF = 0,
-	/*OD expected is of SCENE type (eg, BIFS and OD if needed)*/
-	GF_MEDIA_OBJECT_SCENE,
-	/*OD expected is of BIFS type (anim streams)*/
-	GF_MEDIA_OBJECT_BIFS,
-	/*OD expected is of VISUAL type*/
-	GF_MEDIA_OBJECT_VIDEO,
-	/*OD expected is of AUDIO type*/
-	GF_MEDIA_OBJECT_AUDIO,
-	/*OD expected is of TEXT type (3GPP/MPEG4)*/
-	GF_MEDIA_OBJECT_TEXT,
-	/*OD expected is of InputSensor type*/
-	GF_MEDIA_OBJECT_INTERACT,
-};
+
+/*! @} */
 
 #ifdef __cplusplus
 }

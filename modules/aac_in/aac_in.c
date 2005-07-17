@@ -199,15 +199,9 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 	GF_BitStream *bs;
 	ADTSHeader hdr;
 	
-	if (!read->es_data) {
-		read->es_data = malloc(sizeof(char)*data_size);
-		read->es_data_size = data_size;
-		memcpy(read->es_data, data, sizeof(char)*data_size);
-	} else {
-		read->es_data = realloc(read->es_data, sizeof(char)*(read->es_data_size+data_size) );
-		memcpy(read->es_data + read->es_data_size, data, sizeof(char)*data_size);
-		read->es_data_size += data_size;
-	}
+	read->es_data = realloc(read->es_data, sizeof(char)*(read->es_data_size+data_size) );
+	memcpy(read->es_data + read->es_data_size, data, sizeof(char)*data_size);
+	read->es_data_size += data_size;
 
 	if (read->needs_connection) {
 		read->needs_connection = 0;
@@ -275,7 +269,7 @@ void AAC_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 	/*data fetching*/
 	if (e >= GF_OK) {
 		if (read->needs_connection) {
-			gf_dm_get_stats(read->dnload, NULL, NULL, &total_size, NULL, NULL, NULL);
+			gf_dm_sess_get_stats(read->dnload, NULL, NULL, &total_size, NULL, NULL, NULL);
 			if (!total_size) read->is_live = 1;
 		}
 		if (read->is_live) {
@@ -285,7 +279,7 @@ void AAC_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 		if (read->stream) return;
 
 		/*open service*/
-		szCache = gf_dm_get_cache_name(read->dnload);
+		szCache = gf_dm_sess_get_cache_name(read->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
 			read->stream = fopen((char *) szCache, "rb");
@@ -297,7 +291,7 @@ void AAC_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 				/*not enough data*/
 				if (!AAC_ConfigureFromFile(read)) {
 					/*get amount downloaded and check*/
-					gf_dm_get_stats(read->dnload, NULL, NULL, NULL, &bytes_done, NULL, NULL);
+					gf_dm_sess_get_stats(read->dnload, NULL, NULL, NULL, &bytes_done, NULL, NULL);
 					if (bytes_done>10*1024) {
 						e = GF_CORRUPTED_DATA;
 					} else {
@@ -695,7 +689,7 @@ GF_InputService *AAC_Load()
 	AACReader *reader;
 	GF_InputService *plug = malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
-	GF_REGISTER_MODULE(plug, GF_NET_CLIENT_INTERFACE, "GPAC AAC Reader", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC AAC Reader", "gpac distribution")
 
 	plug->CanHandleURL = AAC_CanHandleURL;
 	plug->ConnectService = AAC_ConnectService;
@@ -736,26 +730,25 @@ GF_BaseDecoder *NewFAADDec();
 void DeleteFAADDec(GF_BaseDecoder *ifcg);
 #endif
 
-void *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
-	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return AAC_Load();
+	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)AAC_Load();
 #ifdef GPAC_HAS_FAAD
-	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return NewFAADDec();
+	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *)NewFAADDec();
 #endif
 	return NULL;
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseInterface *ptr = (GF_BaseInterface *)ifce;
-	switch (ptr->InterfaceType) {
+	switch (ifce->InterfaceType) {
 #ifdef GPAC_HAS_FAAD
 	case GF_MEDIA_DECODER_INTERFACE:
-		DeleteFAADDec(ifce);
+		DeleteFAADDec((GF_BaseDecoder *)ifce);
 		break;
 #endif
 	case GF_NET_CLIENT_INTERFACE:
-		AAC_Delete(ptr);
+		AAC_Delete(ifce);
 		break;
 	}
 }

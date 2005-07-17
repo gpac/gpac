@@ -153,7 +153,8 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	AVFormatContext *ctx;
 	AVOutputFormat *fmt_out;
 	Bool ret = 0;
-	char *ext, szName[1000], szExt[20], *szExtList;
+	char *ext, szName[1000], szExt[20];
+	const char *szExtList;
 
 	strcpy(szName, url);
 	ext = strrchr(szName, '#');
@@ -223,7 +224,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 			strcpy(szExt, &ext[1]);
 			strlwr(szExt);
 
-			szExtList = gf_modules_get_option(plug, "MimeTypes", "video/ffmpeg-files");
+			szExtList = gf_modules_get_option((GF_BaseInterface *)plug, "MimeTypes", "video/ffmpeg-files");
 			if (!szExtList) {
 				gf_term_register_mime_type(plug, "video/ffmpeg-files", szExt, "Other Movies (FFMPEG)");
 			} else if (!strstr(szExtList, szExt)) {
@@ -233,7 +234,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 				buf = malloc(sizeof(char)*len);
 				sprintf(buf, "\"%s ", szExt);
 				strcat(buf, &szExtList[1]);
-				gf_modules_set_option(plug, "MimeTypes", "video/ffmpeg-files", buf);
+				gf_modules_set_option((GF_BaseInterface *)plug, "MimeTypes", "video/ffmpeg-files", buf);
 				free(buf);
 			}
 		}
@@ -249,7 +250,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	GF_Err e;
 	s64 last_aud_pts;
 	s32 i;
-	char *sOpt;
+	const char *sOpt;
 	FFDemux *ffd = plug->priv;
 	char *ext, szName[1000];
 
@@ -299,7 +300,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	/*setup indexes for BIFS/OD*/
 	ffd->od_es_id = 2 + MAX(ffd->video_st, ffd->audio_st);
 
-	sOpt = gf_modules_get_option(plug, "FFMPEG", "DataBufferMS"); 
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "DataBufferMS"); 
 	ffd->data_buffer_ms = 0;
 	if (sOpt) ffd->data_buffer_ms = atoi(sOpt);
 	if (!ffd->data_buffer_ms) ffd->data_buffer_ms = FFD_DATA_BUFFER;
@@ -740,7 +741,7 @@ void *New_FFMPEG_Demux()
 	priv->thread = gf_th_new();
 	priv->mx = gf_mx_new();
 
-	GF_REGISTER_MODULE(ffd, GF_NET_CLIENT_INTERFACE, "FFMPEG Demuxer", "gpac distribution", 0);
+	GF_REGISTER_MODULE_INTERFACE(ffd, GF_NET_CLIENT_INTERFACE, "FFMPEG Demuxer", "gpac distribution");
 	ffd->priv = priv;
 	return ffd;
 }

@@ -142,9 +142,9 @@ GF_BaseDecoder *NewBIFSDec()
 	BIFSPriv *priv;
 	GF_SceneDecoder *tmp;
 	
-	SAFEALLOC(tmp, sizeof(GF_SceneDecoder));
+	GF_SAFEALLOC(tmp, sizeof(GF_SceneDecoder));
 	if (!tmp) return NULL;
-	SAFEALLOC(priv, sizeof(BIFSPriv));
+	GF_SAFEALLOC(priv, sizeof(BIFSPriv));
 	priv->codec = NULL;
 	tmp->privateStack = priv;
 	tmp->AttachStream = BIFS_AttachStream;
@@ -155,7 +155,7 @@ GF_BaseDecoder *NewBIFSDec()
 	tmp->AttachScene = BIFS_AttachScene;
 	tmp->CanHandleStream = BIFS_CanHandleStream;
 	tmp->ReleaseScene = BIFS_ReleaseScene;
-	GF_REGISTER_MODULE(tmp, GF_SCENE_DECODER_INTERFACE, "GPAC BIFS Decoder", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(tmp, GF_SCENE_DECODER_INTERFACE, "GPAC BIFS Decoder", "gpac distribution")
 	return (GF_BaseDecoder *) tmp;
 }
 
@@ -169,22 +169,21 @@ Bool QueryInterface(u32 InterfaceType)
 	}
 }
 
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
 	case GF_SCENE_DECODER_INTERFACE:
-		return NewBIFSDec();
+		return (GF_BaseInterface *)NewBIFSDec();
 	default:
 		return NULL;
 	}
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseDecoder *ifcd = (GF_BaseDecoder *)ifce;
-	switch (ifcd->InterfaceType) {
+	switch (ifce->InterfaceType) {
 	case GF_SCENE_DECODER_INTERFACE:
-		DeleteBIFSDec(ifcd);
+		DeleteBIFSDec((GF_BaseDecoder *)ifce);
 		break;
 	}
 }

@@ -387,8 +387,7 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file, void (*lo
 		e = gf_isom_get_ismacryp_info(mp4, track, 1, NULL, &scheme_type, NULL, &scheme_URI, &KMS_URI, NULL, NULL, NULL);
 
 		if (!e && (scheme_type != GF_ISOM_ISMACRYP_SCHEME)) {
-			char name[5];
-			log_message(logs, cbk, "Encrypted track #%d uses an unsupported encryption scheme: %s", tci.trackID, gf_4cc_to_str(scheme_type, name));
+			log_message(logs, cbk, "Encrypted track #%d uses an unsupported encryption scheme: %s", tci.trackID, gf_4cc_to_str(scheme_type));
 			if (scheme_URI) log_message(logs, cbk, "scheme defined at %s", scheme_URI);
 			continue;
 		} else if (!is_ismacryp) {

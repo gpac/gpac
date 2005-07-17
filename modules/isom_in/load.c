@@ -157,22 +157,21 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 
-void *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
-	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return isor_client_load();
+	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)isor_client_load();
 #ifndef GPAC_READ_ONLY
-	if (InterfaceType == GF_STREAMING_MEDIA_CACHE) return isow_load_cache();
+	if (InterfaceType == GF_STREAMING_MEDIA_CACHE) return (GF_BaseInterface *)isow_load_cache();
 #endif
 	return NULL;
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseInterface *ptr = (GF_BaseInterface *)ifce;
-	switch (ptr->InterfaceType) {
-	case GF_NET_CLIENT_INTERFACE: isor_client_del(ptr); break;
+	switch (ifce->InterfaceType) {
+	case GF_NET_CLIENT_INTERFACE: isor_client_del(ifce); break;
 #ifndef GPAC_READ_ONLY
-	case GF_STREAMING_MEDIA_CACHE: isow_delete_cache(ptr); break;
+	case GF_STREAMING_MEDIA_CACHE: isow_delete_cache(ifce); break;
 #endif
 	}
 }

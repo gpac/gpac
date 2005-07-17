@@ -38,8 +38,6 @@ typedef s16 INT16;
 typedef u16 UINT16;
 #endif
 
-#define GF_SAFEALLOC(__ptr, __struc) __ptr = (__struc*)malloc(sizeof(__struc)); if (__ptr) memset(__ptr, 0, sizeof(__struc));
-
 /*all GDIPLUS includes for C api*/
 
 struct IDirectDrawSurface7;
@@ -137,7 +135,7 @@ static
 GF_SURFACE gf_new_surface(GF_Raster2D *, Bool center_coords)
 {
 	struct _graphics *graph;
-	GF_SAFEALLOC(graph, struct _graphics);
+	SAFEALLOC(graph, struct _graphics);
 	graph->center_coords = center_coords;
 	return graph;
 }
@@ -477,11 +475,11 @@ GF_Raster2D *gdip_LoadRenderer()
 	GdiplusStartupInput startupInput;
 	GF_Raster2D *driver;
 	struct _gf_context *ctx;
-	GF_SAFEALLOC(ctx, struct _gf_context);
-	GF_SAFEALLOC(driver, GF_Raster2D);
+	SAFEALLOC(ctx, struct _gf_context);
+	SAFEALLOC(driver, GF_Raster2D);
 	GdiplusStartup(&ctx->gdiToken, &startupInput, NULL);
 	driver->internal = ctx;
-	GF_REGISTER_MODULE(driver, GF_RASTER_2D_INTERFACE, "GDIplus 2D Raster", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(driver, GF_RASTER_2D_INTERFACE, "GDIplus 2D Raster", "gpac distribution")
 	gf_init_driver_texture(driver);
 	gf_init_driver_surface(driver);
 	gf_init_driver_grad(driver);

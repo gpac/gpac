@@ -29,40 +29,72 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/base_coding.h>
+ *	\brief Base coding functions.
+ */
+
+/*!
+ *	\addtogroup bascod_grp base coding
+ *	\ingroup utils_grp
+ *	\brief Base Coding functions
+ *
+ *	This section documents the base encoding and decoding functions of the GPAC framework.
+ *	@{
+ */
+
 #include <gpac/tools.h>
 
-/* Base64 encoding 
-@in_buffer, in_buffer_size: input buffer and size
-@out_buffer, @out_buffer_size: output buffer and available size in output
-
-  return value: encoded buffer size
-*/
+/*!
+ *\brief base64 encoder
+ *
+ *Encodes a data buffer to Base64
+ *\param in_buffer input data buffer
+ *\param in_buffer_size input data buffer size
+ *\param out_buffer output Base64 buffer location
+ *\param out_buffer_size output Base64 buffer allocated size
+ *\return size of the encoded Base64 buffer
+ *\note the encoded data buffer is not NULL-terminated.
+ */
 u32 gf_base64_encode(unsigned char *in_buffer, u32 in_buffer_size, unsigned char *out_buffer, u32 out_buffer_size);
-
-/* Base64 decoding 
-@in_buffer, in_buffer_size: input buffer and size
-@out_buffer, @out_buffer_size: output buffer and available size in output
-
-  return value: decoded buffer size
-*/
+/*!
+ *\brief base64 decoder
+ *
+ *Decodes a Base64 buffer to data
+ *\param in_buffer input Base64 buffer
+ *\param in_buffer_size input Base64 buffer size
+ *\param out_buffer output data buffer location
+ *\param out_buffer_size output data buffer allocated size
+ *\return size of the decoded buffer
+ */
 u32 gf_base64_decode(unsigned char *in_buffer, u32 in_buffer_size, unsigned char *out_buffer, u32 out_buffer_size);
 
-/* Base16 encoding 
-@in_buffer, in_buffer_size: input buffer and size
-@out_buffer, @out_buffer_size: output buffer and available size in output
+/*!
+ *\brief base16 encoder
+ *
+ *Encodes a data buffer to Base16
+ *\param in_buffer input data buffer
+ *\param in_buffer_size input data buffer size
+ *\param out_buffer output Base16 buffer location
+ *\param out_buffer_size output Base16 buffer allocated size
+ *\return size of the encoded Base16 buffer
+ *\note the encoded data buffer is not NULL-terminated.
+ */
+u32 gf_base16_encode(unsigned char *in_buffer, u32 in_buffer_size, unsigned char *out_buffer, u32 out_buffer_size);
 
-  return value: encoded buffer size
-*/
-u32 gf_base16_encode(unsigned char *in, u32 inSize, unsigned char *out, u32 outSize);
+/*!
+ *\brief base16 decoder
+ *
+ *Decodes a Base16 buffer to data
+ *\param in_buffer input Base16 buffer
+ *\param in_buffer_size input Base16 buffer size
+ *\param out_buffer output data buffer location
+ *\param out_buffer_size output data buffer allocated size
+ *\return size of the decoded buffer
+ */
+u32 gf_base16_decode(unsigned char *in_buffer, u32 in_buffer_size, unsigned char *out_buffer, u32 out_buffer_size);
 
-/* Base16 decoding 
-@in_buffer, in_buffer_size: input buffer and size
-@out_buffer, @out_buffer_size: output buffer and available size in output
-
-  return value: encoded buffer size
-*/
-u32 gf_base16_decode(unsigned char *in, u32 inSize, unsigned char *out, u32 outSize);
-
+/*! @} */
 
 #ifdef __cplusplus
 }

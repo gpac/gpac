@@ -69,7 +69,7 @@ GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm)
 {
 	GF_Codec *tmp;
 	if (!codec->decio) return NULL;
-	SAFEALLOC(tmp, sizeof(GF_Codec));
+	GF_SAFEALLOC(tmp, sizeof(GF_Codec));
 	tmp->type = codec->type;
 	tmp->inChannels = gf_list_new();	
 	tmp->Status = GF_ESM_CODEC_STOP;
@@ -782,7 +782,7 @@ void gf_codec_set_status(GF_Codec *codec, u32 Status)
 static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 {
 	char szPrefDec[500];
-	char *sOpt;
+	const char *sOpt;
 	GF_BaseDecoder *ifce;
 	u32 i, plugCount;
 	u32 ifce_type;
@@ -822,12 +822,13 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	}
 	
 	if (sOpt) {
-		if (gf_modules_load_interface_by_name(term->user->modules, sOpt, ifce_type, (void **) &ifce)) {
+		ifce = (GF_BaseDecoder *) gf_modules_load_interface_by_name(term->user->modules, sOpt, ifce_type);
+		if (ifce) {
 			if (ifce->CanHandleStream && ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication, cfg, cfg_size, PL) ) {
 				codec->decio = ifce;
 				return GF_OK;
 			}
-			gf_modules_close_interface(ifce);		
+			gf_modules_close_interface((GF_BaseInterface *) ifce);		
 		}
 	}
 
@@ -835,23 +836,25 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	sprintf(szPrefDec, "codec_%02x_%02x", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 	sOpt = gf_cfg_get_key(term->user->config, "Systems", szPrefDec);
 	if (sOpt) {
-		if (gf_modules_load_interface_by_name(term->user->modules, sOpt, ifce_type, (void **) &ifce)) {
+		ifce = (GF_BaseDecoder *) gf_modules_load_interface_by_name(term->user->modules, sOpt, ifce_type);
+		if (ifce) {
 			if (ifce->CanHandleStream && ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication, cfg, cfg_size, PL) ) {
 				codec->decio = ifce;
 				return GF_OK;
 			}
-			gf_modules_close_interface(ifce);		
+			gf_modules_close_interface((GF_BaseInterface *) ifce);		
 		}
 	}
 	/*not found, check all modules*/
 	plugCount = gf_modules_get_count(term->user->modules);
 	for (i = 0; i < plugCount ; i++) {
-		if (!gf_modules_load_interface(term->user->modules, i, ifce_type, (void **) &ifce)) continue;
+		ifce = (GF_BaseDecoder *) gf_modules_load_interface(term->user->modules, i, ifce_type);
+		if (!ifce) continue;
 		if (ifce->CanHandleStream && ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication, cfg, cfg_size, PL) ) {
 			codec->decio = ifce;
 			return GF_OK;
 		}
-		gf_modules_close_interface(ifce);
+		gf_modules_close_interface((GF_BaseInterface *) ifce);
 	}
 	return GF_CODEC_NOT_FOUND;
 }
@@ -890,7 +893,7 @@ void gf_codec_del(GF_Codec *codec)
 			gf_mx_v(codec->odm->term->net_mx);
 			break;
 		default:
-			gf_modules_close_interface(codec->decio);
+			gf_modules_close_interface((GF_BaseInterface *) codec->decio);
 			break;
 		}
 	}

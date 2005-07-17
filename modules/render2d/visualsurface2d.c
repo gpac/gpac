@@ -145,7 +145,7 @@ void VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 
 	/*setup clipper*/
 	if (surf->center_coords) {
-		gf_rect_center(&rc, INT2FIX(surf->width), INT2FIX(surf->height));
+		rc = gf_rect_center(INT2FIX(surf->width), INT2FIX(surf->height));
 	} else {
 		rc.x = 0;
 		rc.width = INT2FIX(surf->width);

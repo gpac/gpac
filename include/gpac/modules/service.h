@@ -246,8 +246,8 @@ typedef union __netcommand
 	network modules
 */
 
-/*MPEG-4 streaming client interface name*/
-#define GF_NET_CLIENT_INTERFACE			FOUR_CHAR_INT('G', 'N', 'C', 'I')
+/*interface name and version for input service*/
+#define GF_NET_CLIENT_INTERFACE			GF_FOUR_CHAR_INT('G', 'I', 'S', 0x01)
 
 typedef struct _netinterface
 {
@@ -364,7 +364,7 @@ void gf_term_download_update_stats(GF_DownloadSession * sess);
 
 
 /*MPEG-4 media cache interface name*/
-#define GF_STREAMING_MEDIA_CACHE		FOUR_CHAR_INT('G', 'S', 'M', 'C')
+#define GF_STREAMING_MEDIA_CACHE		GF_FOUR_CHAR_INT('G', 'M', 'C', 0x01)
 
 typedef struct _cacheinterface
 {

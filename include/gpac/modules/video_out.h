@@ -51,8 +51,8 @@ typedef struct
 	Bool double_buffered;
 } GF_GLConfig;
 
-/*interface name for video output*/
-#define GF_VIDEO_OUTPUT_INTERFACE	FOUR_CHAR_INT('M','V','I','D') 
+/*interface name and version for video output*/
+#define GF_VIDEO_OUTPUT_INTERFACE	GF_FOUR_CHAR_INT('G','V','O',0x01) 
 
 /*
 			video output interface

@@ -119,8 +119,8 @@ GF_Renderer *SR_NewStandaloneRenderer()
 {
 	GF_GLConfig cfg, *gl_cfg;
 	GF_Renderer *tmp;
-	SAFEALLOC(tmp, sizeof(GF_Renderer))
-	SAFEALLOC(tmp->user, sizeof(GF_User))
+	GF_SAFEALLOC(tmp, sizeof(GF_Renderer))
+	GF_SAFEALLOC(tmp->user, sizeof(GF_User))
 
 	tmp->visual_renderer = NewVisualRenderer();
 

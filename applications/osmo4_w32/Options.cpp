@@ -200,7 +200,7 @@ BOOL COptGen::OnInitDialog()
 	CDialog::OnInitDialog();
 
 	WinGPAC *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 	
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "Loop");
 	m_Loop.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
@@ -331,7 +331,7 @@ BOOL COptSystems::OnInitDialog()
 	CDialog::OnInitDialog();
 	
 	WinGPAC *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Systems", "Language");
 	if (!sOpt) sOpt = "eng";
@@ -431,14 +431,15 @@ BOOL OptDecoder::OnInitDialog()
 	s32 select = 0;
 	s32 to_sel = 0;
 	for (u32 i=0; i<count; i++) {
-		if (!gf_modules_load_interface(gpac->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE, (void **) &ifce)) continue;
+		ifce = (GF_BaseDecoder *) gf_modules_load_interface(gpac->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE);
+		if (!ifce) continue;
 
 		if (ifce->CanHandleStream(ifce, GF_STREAM_AUDIO, 0, NULL, 0, 0)) {
 			if (sOpt && !stricmp(ifce->module_name, sOpt)) select = to_sel;
 			m_Audio.AddString(ifce->module_name);
 			to_sel++;
 		}
-		gf_modules_close_interface(ifce);
+		gf_modules_close_interface((GF_BaseInterface *)ifce);
 	}
 	m_Audio.SetCurSel(select);
 
@@ -449,14 +450,15 @@ BOOL OptDecoder::OnInitDialog()
 	select = 0;
 	to_sel = 0;
 	for (i=0; i<count; i++) {
-		if (!gf_modules_load_interface(gpac->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE, (void **) &ifce)) continue;
+		ifce = (GF_BaseDecoder *) gf_modules_load_interface(gpac->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE);
+		if (!ifce) continue;
 
 		if (ifce->CanHandleStream(ifce, GF_STREAM_VISUAL, 0, NULL, 0, 0)) {
 			if (sOpt && !stricmp(ifce->module_name, sOpt)) select = to_sel;
 			m_Video.AddString(ifce->module_name);
 			to_sel++;
 		}
-		gf_modules_close_interface(ifce);
+		gf_modules_close_interface((GF_BaseInterface *)ifce);
 	}
 	m_Video.SetCurSel(select);
 	return TRUE;  
@@ -529,7 +531,7 @@ BOOL COptRender::OnInitDialog()
 	CDialog::OnInitDialog();
 	
 	WinGPAC *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 	
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "RendererName");
 	m_Use3DRender.SetCheck( (sOpt && strstr(sOpt, "3D")) ? 1 : 0);
@@ -565,13 +567,14 @@ BOOL COptRender::OnInitDialog()
 	while (m_Graphics.GetCount()) m_Graphics.DeleteString(0);
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "Raster2D");
 	s32 count = gf_modules_get_count(gpac->m_user.modules);
-	void *ifce;
+	GF_BaseInterface *ifce;
 	select = 0;
 	u32 to_sel = 0;
 	for (i=0; i<count; i++) {
-		if (!gf_modules_load_interface(gpac->m_user.modules, i, GF_RASTER_2D_INTERFACE, &ifce)) continue;
-		if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
-		m_Graphics.AddString(((GF_BaseInterface *)ifce)->module_name);
+		ifce = gf_modules_load_interface(gpac->m_user.modules, i, GF_RASTER_2D_INTERFACE);
+		if (!ifce) continue;
+		if (sOpt && !stricmp(ifce->module_name, sOpt)) select = to_sel;
+		m_Graphics.AddString(ifce->module_name);
 		gf_modules_close_interface(ifce);
 		to_sel++;
 	}
@@ -610,7 +613,7 @@ Bool COptRender::SaveOptions()
 	m_Graphics.GetWindowText(str, 50);
 	gf_cfg_set_key(gpac->m_user.config, "Rendering", "Raster2D", str);
 
-	char *opt;
+	const char *opt;
 	opt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "RendererName");
 	if (!opt || strstr(opt, "2D")) {
 		if (!m_Use3DRender.GetCheck()) return 0;
@@ -657,7 +660,7 @@ BOOL COptRender2D::OnInitDialog()
 	CDialog::OnInitDialog();
 	
 	WinGPAC *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render2D", "DirectRender");
 	if (sOpt && !stricmp(sOpt, "yes")) {
@@ -692,8 +695,8 @@ void COptRender2D::SetYUV()
 	if (!yuv_format) {
 		m_YUVFormat.SetWindowText("(No YUV used)");
 	} else {
-		char fmt[5], str[100];
-		sprintf(str, "(%s used)", gf_4cc_to_str(yuv_format, fmt));
+		char str[100];
+		sprintf(str, "(%s used)", gf_4cc_to_str(yuv_format));
 		m_YUVFormat.SetWindowText(str);
 	}
 }
@@ -747,7 +750,7 @@ BOOL COptRender3D::OnInitDialog()
 	
 
 	WinGPAC *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "RasterOutlines");
 	m_RasterOutlines.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
@@ -829,7 +832,7 @@ BOOL COptVideo::OnInitDialog()
 	CDialog::OnInitDialog();
 
 	WinGPAC *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 	
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Video", "SwitchResolution");
 	if (sOpt && !stricmp(sOpt, "yes")) {
@@ -840,7 +843,7 @@ BOOL COptVideo::OnInitDialog()
 
 	
 	u32 count = gf_modules_get_count(gpac->m_user.modules);
-	void *ifce;
+	GF_BaseInterface *ifce;
 	s32 to_sel = 0;
 	s32 select = 0;
 	/*video drivers enum*/
@@ -848,9 +851,10 @@ BOOL COptVideo::OnInitDialog()
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Video", "DriverName");
 
 	for (u32 i=0; i<count; i++) {
-		if (!gf_modules_load_interface(gpac->m_user.modules, i, GF_VIDEO_OUTPUT_INTERFACE, &ifce)) continue;
-		if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
-		m_Videos.AddString(((GF_BaseInterface *)ifce)->module_name);
+		ifce = gf_modules_load_interface(gpac->m_user.modules, i, GF_VIDEO_OUTPUT_INTERFACE);
+		if (!ifce) continue;
+		if (sOpt && !stricmp(ifce->module_name, sOpt)) select = to_sel;
+		m_Videos.AddString(ifce->module_name);
 		gf_modules_close_interface(ifce);
 		to_sel++;
 	}
@@ -913,7 +917,7 @@ BOOL COptAudio::OnInitDialog()
 	m_SpinFPS.SetBuddy(& m_AudioFPS);
 
 	WinGPAC *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "ForceConfig");
 	if (sOpt && !stricmp(sOpt, "yes")) {
@@ -951,7 +955,8 @@ BOOL COptAudio::OnInitDialog()
 	s32 select = 0;
 	s32 to_sel = 0;
 	for (u32 i=0; i<count; i++) {
-		if (!gf_modules_load_interface(gpac->m_user.modules, i, GF_AUDIO_OUTPUT_INTERFACE, (void **) &ifce)) continue;
+		ifce = gf_modules_load_interface(gpac->m_user.modules, i, GF_AUDIO_OUTPUT_INTERFACE);
+		if (!ifce) continue;
 		if (sOpt && !stricmp(ifce->module_name, sOpt)) select = to_sel;
 		m_DriverList.AddString(ifce->module_name);
 		gf_modules_close_interface(ifce);
@@ -1048,12 +1053,12 @@ END_MESSAGE_MAP()
 BOOL COptFont::OnInitDialog() 
 {
 	u32 i;
-	void *ifce;
+	GF_BaseInterface *ifce;
 	
 	CDialog::OnInitDialog();
 	
 	WinGPAC *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 
 	/*video drivers enum*/
 	while (m_Fonts.GetCount()) m_Fonts.DeleteString(0);
@@ -1062,9 +1067,10 @@ BOOL COptFont::OnInitDialog()
 	s32 select = 0;
 	u32 count = gf_modules_get_count(gpac->m_user.modules);
 	for (i=0; i<count; i++) {
-		if (!gf_modules_load_interface(gpac->m_user.modules, i, GF_FONT_RASTER_INTERFACE, &ifce)) continue;
-		if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
-		m_Fonts.AddString(((GF_BaseInterface *)ifce)->module_name);
+		ifce = gf_modules_load_interface(gpac->m_user.modules, i, GF_FONT_RASTER_INTERFACE);
+		if (!ifce) continue;
+		if (sOpt && !stricmp(ifce->module_name, sOpt)) select = to_sel;
+		m_Fonts.AddString(ifce->module_name);
 		gf_modules_close_interface(ifce);
 		to_sel++;
 	}
@@ -1201,7 +1207,7 @@ BOOL COptHTTP::OnInitDialog()
 	CDialog::OnInitDialog();
 	
 	WinGPAC *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Downloader", "CleanCache");
 	if (sOpt && !stricmp(sOpt, "yes")) {
@@ -1276,7 +1282,7 @@ BOOL COptStream::OnInitDialog()
 	CDialog::OnInitDialog();
 
 	WinGPAC *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 
 	while (m_Port.GetCount()) m_Port.DeleteString(0);
 	m_Port.AddString("554 (RTSP standard)");
@@ -1537,7 +1543,7 @@ BOOL COptMCache::OnInitDialog()
 	CDialog::OnInitDialog();
 	
 	WinGPAC *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 	
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "StreamingCache", "RecordDirectory");
 	if (!sOpt) sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "CacheDirectory");
@@ -1629,11 +1635,12 @@ BOOL OptFiles::OnInitDialog()
 	count = gf_cfg_get_key_count(gpac->m_user.config, "MimeTypes");
 	for (i=0; i<count; i++) {
 		char *sMime, *sKey, sDesc[200];
+		const char *sOpt;
 		sMime = (char *) gf_cfg_get_key_name(gpac->m_user.config, "MimeTypes", i);
 		if (!sMime) continue;
-		sKey = gf_cfg_get_key(gpac->m_user.config, "MimeTypes", sMime);
-		if (!sKey) continue;
-		sKey = strstr(sKey, "\" \"");
+		sOpt = gf_cfg_get_key(gpac->m_user.config, "MimeTypes", sMime);
+		if (!sOpt) continue;
+		sKey = strstr(sOpt, "\" \"");
 		if (!sKey) continue;
 		strcpy(sDesc, sKey+3);
 		sKey = strchr(sDesc, '\"');

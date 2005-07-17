@@ -228,7 +228,7 @@ next:
 void R2D_InitPathLayout(Render2D *sr, GF_Node *node)
 {
 	PathLayoutStack *stack;
-	SAFEALLOC(stack, sizeof(PathLayoutStack));
+	GF_SAFEALLOC(stack, sizeof(PathLayoutStack));
 	SetupGroupingNode2D((GroupingNode2D*)stack, sr, node);
 
 	gf_node_set_private(node, stack);

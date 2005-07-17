@@ -63,11 +63,11 @@ GF_BaseDecoder *OGG_LoadDecoder()
 {
 	GF_MediaDecoder *ifce;
 	OGGWraper *wrap;
-	SAFEALLOC(ifce, sizeof(GF_MediaDecoder));
-	SAFEALLOC(wrap, sizeof(OGGWraper));
+	GF_SAFEALLOC(ifce, sizeof(GF_MediaDecoder));
+	GF_SAFEALLOC(wrap, sizeof(OGGWraper));
 	ifce->privateStack = wrap;
 	ifce->CanHandleStream = OGG_CanHandleStream;
-	GF_REGISTER_MODULE(ifce, GF_MEDIA_DECODER_INTERFACE, "GPAC XIPH.org package", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(ifce, GF_MEDIA_DECODER_INTERFACE, "GPAC XIPH.org package", "gpac distribution")
 
 	/*other interfaces will be setup at run time*/
 	return (GF_BaseDecoder *)ifce;
@@ -98,22 +98,21 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 
-void *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
-	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return OGG_LoadDemux();
-	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return OGG_LoadDecoder();
+	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)OGG_LoadDemux();
+	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *)OGG_LoadDecoder();
 	return NULL;
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseInterface *ptr = (GF_BaseInterface *)ifce;
-	switch (ptr->InterfaceType) {
+	switch (ifce->InterfaceType) {
 	case GF_NET_CLIENT_INTERFACE:
-		OGG_DeleteDemux(ptr);
+		OGG_DeleteDemux(ifce);
 		break;
 	case GF_MEDIA_DECODER_INTERFACE:
-		DeleteOGGDecoder(ifce);
+		DeleteOGGDecoder((GF_BaseDecoder *) ifce);
 		break;
 	}
 }

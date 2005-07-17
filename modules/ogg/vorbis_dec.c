@@ -246,7 +246,7 @@ static const char *VORB_GetCodecName(GF_BaseDecoder *dec)
 u32 NewVorbisDecoder(GF_BaseDecoder *ifcd)
 {
 	VorbDec *dec;
-	SAFEALLOC(dec, sizeof(VorbDec));
+	GF_SAFEALLOC(dec, sizeof(VorbDec));
 	((OGGWraper *)ifcd->privateStack)->opaque = dec;
 	((OGGWraper *)ifcd->privateStack)->type = OGG_VORBIS;
 	/*setup our own interface*/	

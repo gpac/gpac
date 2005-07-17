@@ -29,134 +29,320 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/network.h>
+ *	\brief IP network functions.
+ */
+
+ /*!
+ *	\addtogroup net_grp network
+ *	\ingroup utils_grp
+ *	\brief IP Network Functions
+ *
+ *This section documents the IP network functions of the GPAC framework.
+ *	@{
+ */
+
 #include <gpac/tools.h>
 
 
+/*!
+ *\brief URL local test
+ *
+ *Tests whether a URL describes a local file or not
+ *\param url the url to analyze
+ *\return 1 if the URL describes a local file, 0 otherwise
+ */
+Bool gf_url_is_local(const char *url);
 
-/*********************************************************************
-					URL Manipulation
-**********************************************************************/
-
-Bool gf_url_is_local(const char *pathName);
-
-/*gets absolute file path - returned string must be freed by user*/
+/*!
+ *\brief gets absolute file path
+ *
+ *Gets the absolute file path from a relative path and its parent absolute one. This can only be used with file paths.
+ *\param pathName the relative path name of a file
+ *\param parentPath the absolute parent path name 
+ *\return absolute path name of the file, or NULL if bad paths are provided.
+ \note the returned string must be freed by user
+ */
 char *gf_url_get_absolute_path(const char *pathName, const char *parentPath);
 /*concatenates URL and gets back full URL - returned string must be freed by user*/
+/*!
+ *\brief URL concatenation
+ *
+ *Concatenates a relative URL with its parent URL
+ *\param parentName URL of the parent service
+ *\param pathName URL of the service
+ *\return absolute path name of the service, or NULL if bad paths are provided or if the service path is already an absolute one.
+ \note the returned string must be freed by user
+ */
 char *gf_url_concatenate(const char *parentName, const char *pathName);
 
 
-/*gets UTC time since midnight Jan 1970*/
+/*!
+ *\brief gets UTC time 
+ *
+ *Gets UTC time since midnight Jan 1970
+ *\param sec number of seconds
+ *\param msec number of milliseconds
+ */
 void gf_utc_time_since_1970(u32 *sec, u32 *msec);
-/*Get NTP time in sec + fractional side ( in 1 / (1<<32 - 1) sec units)*/
+
+/*!
+ *\brief gets NTP time 
+ *
+ *Gets NTP (Network Time Protocol) in seconds and fractional side
+ \param sec NTP time in seconds
+ \param frac fractional NTP time expressed in 1 / (1<<32 - 1) seconds units
+ */
 void gf_get_ntp(u32 *sec, u32 *frac);
-/*get reduced NTP time on 32 bits (used in RTP a lot)*/
-u32 gf_get_ntp_frac(u32 sec, u32 frac);
 
 
-/*********************************************************************
-					Socket Object
-**********************************************************************/
 
-#define GF_MAX_IP_NAME_LEN	516
-
-/* socket types */
-#define GF_SOCK_TYPE_UDP		0x01
-#define GF_SOCK_TYPE_TCP		0x02
-
+/*!
+ *\brief abstracted socket object
+ *
+ *The abstracted socket object allows you to build client and server applications very simply
+ *with support for unicast and multicast (no IPv6 yet)
+*/
 typedef struct __tag_socket GF_Socket;
 
+/*!Buffer size to pass for IP address retrieval*/
+#define GF_MAX_IP_NAME_LEN	516
+
+/*!socket is a UDP socket*/
+#define GF_SOCK_TYPE_UDP		0x01
+/*!socket is a TCP socket*/
+#define GF_SOCK_TYPE_TCP		0x02
+
+/*!
+ *\brief socket constructor
+ *
+ *Constructs a socket object
+ *\param SocketType the socket type to create, either UDP or TCP
+ *\return the socket object or NULL if network initialization failure
+ */
 GF_Socket *gf_sk_new(u32 SocketType);
+/*!
+ *\brief socket destructor
+ *
+ *Deletes a socket object
+ *\param sock the socket object
+ */
 void gf_sk_del(GF_Socket *sock);
 
-/* forces a reset of the socket buffer */
+/*!
+ *\brief reset internal buffer
+ *
+ *Forces the internal socket buffer to be reseted (discarded)
+ *\param sock the socket object
+ */
 void gf_sk_reset(GF_Socket *sock);
-/* set the buffer size for the socket. If SendBuffer is 0, set the recieving buffer */
-GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool SendBuffer, u32 NewSize);
+/*!
+ *\brief socket buffer size control
+ *
+ *Sets the size of the internal buffer of the socket. 
+ *\param sock the socket object
+ *\param send_buffer if 0, sets the size of the reception buffer, otherwise sets the size of the emission buffer
+ *\param new_size new size of the buffer in bytes.
+ *\warning This operation may fail depending on the provider, hardware...
+ */
+GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool send_buffer, u32 new_size);
 
-/* set the blocking mode of a socket on or off. By default, sockets
-are created in blocking mode (BSD style) */
-GF_Err gf_sk_set_blocking(GF_Socket *sock, u32 NonBlockingOn);
-/* binds the given socket to the specified port. If ReUse is true
-this will enable reuse of ports on a single machine */
-GF_Err gf_sk_bind(GF_Socket *sock, u16 PortNumber, Bool reUse);
-/*connects a socket to a remote peer on a given port */
-GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber);
-/* send a buffer on the socket */
+/*!
+ *\brief blocking mode control
+ *
+ *Sets the blocking mode of a socket on or off. A blocking socket will wait for the net operation to be possible 
+ *while a non-blocking one would return an error. By default, sockets are created in blocking mode
+ *\param sock the socket object
+ *\param NonBlockingOn set to 1 to use on-blocking sockets, 0 otherwise
+ */
+GF_Err gf_sk_set_blocking(GF_Socket *sock, Bool NonBlockingOn);
+/*!
+ *\brief socket binding
+ *
+ *Binds the given socket to the specified port.
+ *\param sock the socket object
+ *\param port port number to bind this socket to
+ *\param re_use set to 1 to enable reuse of ports on a single machine, 0 otherwise
+ */
+GF_Err gf_sk_bind(GF_Socket *sock, u16 port, Bool re_use);
+/*!
+ *\brief connects a socket 
+ *
+ *Connetcs a socket to a remote peer on a given port 
+ *\param sock the socket object
+ *\param peer_name the remote server address (IP or DNS)
+ *\param port remote port number to connect the socket to
+ */
+GF_Err gf_sk_connect(GF_Socket *sock, char *peer_name, u16 port);
+/*!
+ *\brief data emission
+ *
+ *Sends a buffer on the socket. The socket must be in a bound or connected mode
+ *\param sock the socket object
+ *\param buffer the data buffer to send
+ *\param length the data length to send
+ */
 GF_Err gf_sk_send(GF_Socket *sock, unsigned char *buffer, u32 length);
-/* fetch nb bytes on a socket and fill the buffer from startFrom */
-GF_Err gf_sk_receive(GF_Socket *sock, unsigned char *buffer, u32 length, u32 startFrom, u32 *BytesRead);
+/*!
+ *\brief data reception
+ * 
+ *Fetches data on a socket. The socket must be in a bound or connected state
+ *\param sock the socket object
+ *\param buffer the recpetion buffer where data is written
+ *\param length the allocated size of the reception buffer
+ *\param start_from the offset in the reception buffer where to start writing
+ *\param read the actual number of bytes received
+ */
+GF_Err gf_sk_receive(GF_Socket *sock, unsigned char *buffer, u32 length, u32 start_from, u32 *read);
+/*!
+ *\brief socket listening
+ *
+ *Sets the socket in a listening state. This socket must have been bound to a port before 
+ *\param sock the socket object
+ *\param max_conn the maximum number of simultaneous connection this socket will accept
+ */
+GF_Err gf_sk_listen(GF_Socket *sock, u32 max_conn);
+/*!
+ *\brief socket accept
+ *
+ *Accepts an incomming connection on a listening socket
+ *\param sock the socket object
+ *\param new_conn the resulting connection socket object
+ */
+GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **new_conn);
 
-/* make the specified socket listen. This socket MUST have been bound to a port before */
-Bool gf_sk_listen(GF_Socket *sock, u32 MaxConnection);
-/* accept an incomming connection */
-GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection);
+/*!
+ *\brief server socket mode 
+ *
+ *Disable the Nable algo (e.g. set TCP_NODELAY) and set the KEEPALIVE on 
+ *\param sock the socket object
+ *\param server_on sets server mode on or off
+*/
+GF_Err gf_sk_server_mode(GF_Socket *sock, Bool server_on);
 
-/* disable the Nable algo (aka set TCP_NODELAY) and set the KEEPALIVE on */
-GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn);
-
-/* buffer must be GF_MAX_IP_NAME_LEN long */
+/*!
+ *\brief get local host name
+ *
+ *Retrieves local host name.
+ *\param buffer destination buffer for name. Buffer must be GF_MAX_IP_NAME_LEN long
+ */
 GF_Err gf_sk_get_host_name(char *buffer);
-/* Get local IP for connected sockets (typically used for server after an ACCEPT */
-GF_Err gf_sk_get_local_ip(GF_Socket *sock, char *buffer);
-GF_Err gf_sk_get_local_info(GF_Socket *sock, u16 *Port, u32 *Familly);
 
-/* get the remote address of a peer. Socket MUST be connected
-buffer must be GF_MAX_IP_NAME_LEN long */
+/*!
+ *\brief get local IP
+ *
+ *Gets local IP address of a connected socket, typically used for server after an ACCEPT
+ *\param sock the socket object
+ *\param buffer destination buffer for IP address. Buffer must be GF_MAX_IP_NAME_LEN long
+ */
+GF_Err gf_sk_get_local_ip(GF_Socket *sock, char *buffer);
+/*!
+ *\brief get local info
+ *
+ *Gets local socket info of a socket
+ *\param sock the socket object
+ *\param port local port number of the socket
+ *\param sock_type socket type (UDP or TCP)
+ */
+GF_Err gf_sk_get_local_info(GF_Socket *sock, u16 *port, u32 *sock_type);
+
+/*!
+ *\brief get remote address
+ *
+ *Gets the remote address of a peer. The socket MUST be connected.
+ *\param sock the socket object
+ *\param buffer destination buffer for IP address. Buffer must be GF_MAX_IP_NAME_LEN long
+ */
 GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buffer);
 
-/* Connection-less sockets (UDP server side) to use with SendTo and RecieveFrom */
-/* Set the remote address of a socket */
+/*!
+ *\brief set remote address
+ *
+ *Sets the remote address of a socket. This is used by connectionless sockets using SendTo and RecieveFrom
+ *\param sock the socket object
+ *\param address the remote peer address
+ */
 GF_Err gf_sk_set_remote_address(GF_Socket *sock, char *address);
-/* Set the remote port for a socket */
-GF_Err gf_sk_set_remote_port(GF_Socket *sock, u16 RemotePort);
+/*!
+ *\brief set remote port
+ *
+ *Sets the remote port of a socket. This is used by connectionless sockets using SendTo and RecieveFrom
+ *\param sock the socket object
+ *\param port the remote peer port
+ */
+GF_Err gf_sk_set_remote_port(GF_Socket *sock, u16 port);
 
-/* send data to the specified host. If no host is specified (NULL), the
-default host (gf_sk_set_remote_address ...) is used */
-GF_Err gf_sk_send_to(GF_Socket *sock, unsigned char *buffer, u32 length, unsigned char *remoteHost, u16 remotePort);
+/*!
+ *\brief connection-less emission 
+ *
+ *Sends data to the specified host. 
+ *\param sock the socket object
+ *\param buffer the data buffer to send
+ *\param length the data length to send
+ *\param remote_host the remote address to send data to. If NULL, the default host is used (cf \ref gf_sk_set_remote_address)
+ *\param remote_port the remote port to send data to. This must be specified if the remote_host is used
+ */
+GF_Err gf_sk_send_to(GF_Socket *sock, unsigned char *buffer, u32 length, unsigned char *remote_host, u16 remote_port);
 
 
-/* Performs multicast BIND and JOIN */
-GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNumber, u32 TTL, Bool NoBind);
-/* returns 1 if multicast address, 0 otherwise*/
-u32 gf_sk_is_multicast_address(char *multi_IPAdd);
+/*!
+ *\brief multicast setup
+ *
+ *Performs multicast setup (BIND and JOIN) for the socket object
+ *\param sock the socket object
+ *\param multi_ip_add the multicast IP address
+ *\param multi_port the multicast port number
+ *\param TTL the multicast TTL (Time-To-Live)
+ *\param no_bind if sets, only join the multicast
+ */
+GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_ip_add, u16 multi_port, u32 TTL, Bool no_bind);
+/*!
+ *brief multicast address test
+ *
+ *tests whether an IP address is a multicast one or not
+ *\param multi_ip_add the multicast IP address to test
+ *\return 1 if the address is a multicast one, 0 otherwise
+ */
+u32 gf_sk_is_multicast_address(char *multi_ip_add);
 
-/* send data with a max wait delay of Second - used for http / ftp sockets mainly*/
-GF_Err gf_sk_send_wait(GF_Socket *sock, unsigned char *buffer, u32 length, u32 Second );
+/*!
+ *\brief send data with wait delay
+ *
+ *Sends data with a max wait delay. This is used for http / ftp sockets mainly. The socket must be connected.
+ *\param sock the socket object
+ *\param buffer the data buffer to send
+ *\param length the data length to send
+ *\param delay_sec the maximum delay in second to wait before aborting
+ *\return If the operation timeed out, the function will return a GF_IP_SOCK_WOULD_BLOCK error.
+ */
+GF_Err gf_sk_send_wait(GF_Socket *sock, unsigned char *buffer, u32 length, u32 delay_sec);
 /* recieve data with a max wait delay of Second - used for http / ftp sockets mainly*/
-GF_Err gf_sk_receive_wait(GF_Socket *sock, unsigned char *buffer, u32 length, u32 startFrom, u32 *BytesRead, u32 Second );
+/*!
+ *\brief receive data with wait delay
+ *
+ *Fetches data with a max wait delay. This is used for http / ftp sockets mainly. The socket must be connected.
+ *\param sock the socket object
+ *\param buffer the recpetion buffer where data is written
+ *\param length the allocated size of the reception buffer
+ *\param start_from the offset in the reception buffer where to start writing
+ *\param read the actual number of bytes received
+ *\param delay_sec the maximum delay in second to wait before aborting
+ *\return If the operation timeed out, the function will return a GF_IP_SOCK_WOULD_BLOCK error.
+ */
+GF_Err gf_sk_receive_wait(GF_Socket *sock, unsigned char *buffer, u32 length, u32 start_from, u32 *read, u32 delay_sec);
 
-/*returns socket handle (used by SSL)*/
+/*!
+ *\brief gets socket handle
+ *
+ *Gets the socket low-level handle as used by OpenSSL.
+ *\param sock the socket object
+ *\return the socket handle
+ */
 s32 gf_sk_get_handle(GF_Socket *sock);
 
 
-/*********************************************************************
-					Socket Group Object
-**********************************************************************/
-#define GF_SOCK_GROUP_READ		0x01
-#define GF_SOCK_GROUP_WRITE		0x02
-#define GF_SOCK_GROUP_ERROR		0x03
-
-/* Socket Group for select(). The group is a collection of sockets
-ready for reading / writing */
-typedef struct __tag_sock_group GF_SocketGroup;
-
-GF_SocketGroup *gf_sk_group_new();
-void gf_sk_group_del(GF_SocketGroup *group);
-void gf_sk_group_set_time(GF_SocketGroup *group, u32 DelayInS, u32 DelayInMicroS);
-
-/* call this to add the socket into a group */
-void gf_sk_group_add(GF_SocketGroup *group, GF_Socket *sock, u32 GroupType);
-/* call this to remove the socket from a group */
-void gf_sk_group_rem(GF_SocketGroup *group, GF_Socket *sock, u32 GroupType);
-
-
-/* call this after a SKG_Select to know if the socket is ready */
-Bool gf_sk_group_is_in(GF_SocketGroup *group, GF_Socket *sock, u32 GroupType);
-/* select the socket(s) watched in this group. Return the number of pending socket
-or 0 if none are ready */
-u32 gf_sk_group_select(GF_SocketGroup *group);
-
-
+/*! @} */
 
 #ifdef __cplusplus
 }

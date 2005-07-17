@@ -397,7 +397,7 @@ GF_Err gf_odf_encode_ui_config(GF_UIConfig *cfg, GF_DefaultDescriptor **out_dsi)
 GF_AVCConfig *gf_odf_avc_cfg_new()
 {
 	GF_AVCConfig *cfg;
-	SAFEALLOC(cfg, sizeof(GF_AVCConfig));
+	GF_SAFEALLOC(cfg, sizeof(GF_AVCConfig));
 	if (!cfg) return NULL;
 	cfg->sequenceParameterSets = gf_list_new();
 	cfg->pictureParameterSets = gf_list_new();
@@ -581,7 +581,6 @@ GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *
 		u8 sample_index;
 		GF_TextSampleDescriptor *txdesc;
 		GF_TextSampleEntryBox *a;
-		u64 read;
 		s32 avail;
 		u32 nb_desc = gf_bs_read_int(bs, 8);
 
@@ -590,7 +589,7 @@ GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *
 		for (i=0; i<nb_desc; i++) {
 			sample_index = gf_bs_read_int(bs, 8);
 			avail -= 1;
-			e = gf_isom_parse_box((GF_Box **) &a, bs, &read);
+			e = gf_isom_parse_box((GF_Box **) &a, bs);
 			if (e) goto exit;
 			avail -= (s32) a->size;
 

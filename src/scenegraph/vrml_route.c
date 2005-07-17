@@ -34,7 +34,7 @@ GF_Route *gf_sg_route_new(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField, G
 	GF_FieldInfo info;
 	if (!sg || !toNode || !fromNode) return NULL;
 
-	SAFEALLOC(r, sizeof(GF_Route));
+	GF_SAFEALLOC(r, sizeof(GF_Route));
 	if (!r) return NULL;
 	r->FromNode = fromNode;
 	r->FromFieldIndex = fromField;

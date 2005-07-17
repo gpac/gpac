@@ -80,7 +80,7 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 	op.b_o_s = 1;
 	op.e_o_s = 0;
 
-	out = f64_open(szName, "wb");
+	out = gf_f64_open(szName, "wb");
 	if (!out) return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 
 	theora_kgs = 0;
@@ -176,12 +176,52 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 	return GF_OK;
 }
 
+GF_Err gf_export_hint(GF_MediaExporter *dumper)
+{
+	GF_Err e;
+	char szName[1000], szType[5];
+	char *pck;
+	FILE *out;
+	u32 track, i, size, m_stype, sn, count;
+
+	track = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
+	m_stype = gf_isom_get_media_subtype(dumper->file, track, 1);
+
+	e = gf_isom_reset_hint_reader(dumper->file, track, dumper->sample_num ? dumper->sample_num : 1, 0, 0, 0);
+	if (e) return gf_export_message(dumper, e, "Error initializing hint reader");
+
+	gf_export_message(dumper, GF_OK, "Extracting hint track samples - type %s", szType);
+
+	count = gf_isom_get_sample_count(dumper->file, track);
+	if (dumper->sample_num) count = 0;
+
+	i = 1;
+	while (1) {
+		e = gf_isom_next_hint_packet(dumper->file, track, &pck, &size, NULL, NULL, NULL, &sn);
+		if (e==GF_EOS) break;
+		if (dumper->sample_num && (dumper->sample_num != sn)) {
+			free(pck);
+			break;
+		}
+		if (e) return gf_export_message(dumper, e, "Error fetching hint packet %d", i);
+		sprintf(szName, "%s_pck_%04d.%s", dumper->out_name, i, gf_4cc_to_str(m_stype));
+		out = fopen(szName, "wb");
+		fwrite(pck, size, 1, out);
+		fclose(out);
+		free(pck);
+		i++;
+		if (count) dump_progress(dumper, sn, count);
+	}
+	if (count) dump_progress(dumper, count, count);
+
+	return GF_OK;
+}
 
 GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 {
 	GF_DecoderConfig *dcfg;
 	GF_GenericSampleDescription *udesc;
-	char szName[1000], szEXT[10], szType[5], szNum[1000];
+	char szName[1000], szEXT[10], szNum[1000];
 	FILE *out;
 	GF_BitStream *bs;
 	u32 track, i, di, count, m_type, m_stype;
@@ -291,17 +331,17 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	} else if (m_type==GF_ISOM_MEDIA_FLASH) {
 		gf_export_message(dumper, GF_OK, "Extracting Macromedia Flash Movie sample%s", szNum);
 		strcpy(szEXT, ".swf");
+	} else if (m_type==GF_ISOM_MEDIA_HINT) {
+		return gf_export_hint(dumper);
 	} else {
-		char szMType[5];
-		gf_4cc_to_str(m_stype, szMType);
 		strcpy(szEXT, ".");
-		strcat(szEXT, szMType);
+		strcat(szEXT, gf_4cc_to_str(m_stype));
 		udesc = gf_isom_get_generic_sample_description(dumper->file, track, 1);
 		switch (m_type) {
 		case GF_ISOM_MEDIA_VISUAL: gf_export_message(dumper, GF_OK, "Extracting \'%s\' Video - Compressor %s", szEXT, udesc ? udesc->szCompressorName : "Unknown"); break;
 		case GF_ISOM_MEDIA_AUDIO: gf_export_message(dumper, GF_OK, "Extracting \'%s\' Audio - Compressor %s", szEXT, udesc ? udesc->szCompressorName : "Unknown"); break;
 		default:
-			gf_export_message(dumper, GF_OK, "Extracting \'%s\' Track (type '%s') - Compressor %s sample%s", szEXT, gf_4cc_to_str(m_type, szType), udesc ? udesc->szCompressorName : "Unknown", szNum);
+			gf_export_message(dumper, GF_OK, "Extracting \'%s\' Track (type '%s') - Compressor %s sample%s", szEXT, gf_4cc_to_str(m_type), udesc ? udesc->szCompressorName : "Unknown", szNum);
 			break;
 		}
 		if (udesc) free(udesc);
@@ -353,7 +393,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 {
 	GF_DecoderConfig *dcfg;
 	GF_GenericSampleDescription *udesc;
-	char szName[1000], szEXT[5], szType[5], GUID[16];
+	char szName[1000], szEXT[5], GUID[16];
 	FILE *out;
 	u32 *qcp_rates;
 	GF_AVCConfig *avccfg;
@@ -520,9 +560,8 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			gf_export_message(dumper, GF_OK, "Extracting Macromedia Flash Movie");
 			strcat(szName, ".swf");
 		} else {
-			gf_4cc_to_str(m_stype, szEXT);
 			strcat(szName, ".");
-			strcat(szName, szEXT);
+			strcat(szName, gf_4cc_to_str(m_stype));
 			udesc = gf_isom_get_generic_sample_description(dumper->file, track, 1);
 			if (udesc) {
 				dsi = udesc->extension_buf; udesc->extension_buf = NULL;
@@ -532,7 +571,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			case GF_ISOM_MEDIA_VISUAL: gf_export_message(dumper, GF_OK, "Extracting \'%s\' Video - Compressor %s", szEXT, udesc ? udesc->szCompressorName : "Unknown"); break;
 			case GF_ISOM_MEDIA_AUDIO: gf_export_message(dumper, GF_OK, "Extracting \'%s\' Audio - Compressor %s", szEXT, udesc ? udesc->szCompressorName : "Unknown"); break;
 			default:
-				gf_export_message(dumper, GF_OK, "Extracting \'%s\' Track (type '%s') - Compressor %s", szEXT, gf_4cc_to_str(m_type, szType), udesc ? udesc->szCompressorName : "Unknown");
+				gf_export_message(dumper, GF_OK, "Extracting \'%s\' Track (type '%s') - Compressor %s", szEXT, gf_4cc_to_str(m_type), udesc ? udesc->szCompressorName : "Unknown");
 				break;
 			}
 			if (udesc) free(udesc);
@@ -887,7 +926,7 @@ GF_Err gf_media_export_nhnt(GF_MediaExporter *dumper)
 	}
 
 	sprintf(szName, "%s.media", dumper->out_name);
-	out_med = f64_open(szName, "wb");
+	out_med = gf_f64_open(szName, "wb");
 	if (!out_med) {
 		gf_odf_desc_del((GF_Descriptor *) esd);
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);

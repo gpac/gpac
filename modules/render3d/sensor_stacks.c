@@ -205,7 +205,7 @@ static void OnDiscSensor(SensorHandler *sh, Bool is_over, u32 eventType, RayHitI
 	else if ((eventType==GF_EVT_LEFTDOWN) && !ds->isActive) {
 		/*store inverse matrix*/
 		gf_mx_copy(stack->initial_matrix, hit_info->local_to_world);
-		stack->start_angle = gf_atan2(hit_info->local_point.x, hit_info->local_point.y);
+		stack->start_angle = gf_atan2(hit_info->local_point.y, hit_info->local_point.x);
 		ds->isActive = 1;
 		gf_node_event_out_str(sh->owner, "isActive");
 		R3D_SetGrabbed(stack->compositor, 1);
@@ -218,7 +218,7 @@ static void OnDiscSensor(SensorHandler *sh, Bool is_over, u32 eventType, RayHitI
 		gf_mx_apply_ray(&stack->initial_matrix, &loc_ray);
 		R3D_Get2DPlaneIntersection(&loc_ray, &res);
 	
-		rot = gf_atan2(res.x, res.y) - stack->start_angle + ds->offset;
+		rot = gf_atan2(res.y, res.x) - stack->start_angle + ds->offset;
 		if (ds->minAngle < ds->maxAngle) {
 			/*FIXME this doesn't work properly*/
 			if (rot < ds->minAngle) rot = ds->minAngle;

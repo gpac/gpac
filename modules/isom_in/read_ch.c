@@ -74,7 +74,7 @@ static void init_reader(ISOMChannel *ch)
 		/*incomplete file - check if we're still downloading or not*/
 		if (gf_isom_get_missing_bytes(ch->owner->mov, ch->track)) {
 			u32 net_status;
-			gf_dm_get_stats(ch->owner->dnload, NULL, NULL, NULL, NULL, NULL, &net_status);
+			gf_dm_sess_get_stats(ch->owner->dnload, NULL, NULL, NULL, NULL, NULL, &net_status);
 			if (net_status == GF_DOWNLOAD_STATE_RUNNING) {
 				ch->last_state = GF_OK;
 				return;
@@ -137,7 +137,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		/*incomplete file - check if we're still downloading or not*/
 		if (gf_isom_get_missing_bytes(ch->owner->mov, ch->track)) {
 			u32 net_status;
-			gf_dm_get_stats(ch->owner->dnload, NULL, NULL, NULL, NULL, NULL, &net_status);
+			gf_dm_sess_get_stats(ch->owner->dnload, NULL, NULL, NULL, NULL, NULL, &net_status);
 			if (net_status == GF_DOWNLOAD_STATE_RUNNING) {
 				ch->last_state = GF_OK;
 			} else {

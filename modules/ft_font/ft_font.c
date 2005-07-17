@@ -31,7 +31,7 @@ static GF_Err ft_init_font_engine(GF_FontRaster *dr)
 	const char *sOpt;
 	FTBuilder *ftpriv = (FTBuilder *)dr->priv;
 
-	sOpt = gf_modules_get_option(dr, "FontEngine", "FontDirectory");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontDirectory");
 	if (!sOpt) return GF_BAD_PARAM;
 
 	/*inits freetype*/
@@ -53,24 +53,24 @@ static GF_Err ft_init_font_engine(GF_FontRaster *dr)
 		free(ftpriv->font_dir);
 		ftpriv->font_dir = temp;
 	}
-	sOpt = gf_modules_get_option(dr, "FontEngine", "FontSerif");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif");
 	if (!sOpt) {
 		sOpt = "Times New Roman";
-		gf_modules_set_option(dr, "FontEngine", "FontSerif", "Times New Roman");
+		gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif", "Times New Roman");
 	}
 	strcpy(ftpriv->font_serif, sOpt);
 
-	sOpt = gf_modules_get_option(dr, "FontEngine", "FontSans");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSans");
 	if (!sOpt) {
 		sOpt = "Arial";
-		gf_modules_set_option(dr, "FontEngine", "FontSans", "Arial");
+		gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSans", "Arial");
 	}
 	strcpy(ftpriv->font_sans, sOpt);
 	
-	sOpt = gf_modules_get_option(dr, "FontEngine", "FontFixed");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed");
 	if (!sOpt) {
 		sOpt = "Courier New";
-		gf_modules_set_option(dr, "FontEngine", "FontFixed", "Courier New");
+		gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed", "Courier New");
 	}
 	strcpy(ftpriv->font_fixed, sOpt);
 	return GF_OK;
@@ -219,14 +219,14 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 		} else if (ftpriv->tmp_font_style && strstr(ftpriv->tmp_font_style, "ITALIC") ) {
 			strcat(szFont, " Italic");
 		}
-		gf_modules_set_option(dr, "FontEngine", szFont, file_name);
+		gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", szFont, file_name);
 	}
 	return 1;
 }
 
 static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const char *styles)
 {
-	char *file_name, fname[1024];
+	char fname[1024];
 	char *fontName;
 	GF_Err e;
 	FTBuilder *ftpriv = (FTBuilder *)dr->priv;
@@ -258,6 +258,7 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 	/*check cfg file - freetype is slow at loading fonts so we keep the (font name + styles)=fontfile associations
 	in the cfg file*/
 	if (fontName) {
+		const char *opt;
 		char file_path[GF_MAX_PATH];
 		strcpy(fname, fontName);
 		if (styles && strstr(styles, "BOLD") && strstr(styles, "ITALIC")) {
@@ -269,11 +270,11 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 		else if (styles && strstr(styles, "ITALIC")) {
 			strcat(fname, " Italic");
 		}
-		file_name = gf_modules_get_option(dr, "FontEngine", fname);
-		if (file_name) {
+		opt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", fname);
+		if (opt) {
 			strcpy(file_path, ftpriv->font_dir);
-			strcat(file_path, file_name);
-			if (ft_enum_fonts(dr, file_name, file_path)) return GF_OK;
+			strcat(file_path, opt);
+			if (ft_enum_fonts(dr, (char *)opt, file_path)) return GF_OK;
 		}
 	}
 
@@ -288,15 +289,15 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 	if (fontName) {
 		/*remove cache if default fonts not found*/
 		if (!OrigFontName || !stricmp(OrigFontName, "SERIF")) {
-			gf_modules_set_option(dr, "FontEngine", "FontSerif", NULL);
+			gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif", NULL);
 			strcpy(ftpriv->font_serif, "");
 		}
 		else if (!stricmp(OrigFontName, "SANS")) {
-			gf_modules_set_option(dr, "FontEngine", "FontSans", NULL);
+			gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSans", NULL);
 			strcpy(ftpriv->font_sans, "");
 		}
 		else if (!stricmp(OrigFontName, "TYPEWRITTER")) {
-			gf_modules_set_option(dr, "FontEngine", "FontFixed", NULL);
+			gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed", NULL);
 			strcpy(ftpriv->font_fixed, "");
 		}
 		e = ft_set_font(dr, NULL, styles);
@@ -305,15 +306,15 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 
 		/*reassign default - they may be wrong, but this will avoid future browsing*/
 		if (!OrigFontName || !stricmp(OrigFontName, "SERIF")) {
-			gf_modules_set_option(dr, "FontEngine", "FontSerif", ftpriv->active_face->family_name);
+			gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif", ftpriv->active_face->family_name);
 			strcpy(ftpriv->font_serif, ftpriv->active_face->family_name);
 		}
 		else if (!stricmp(OrigFontName, "SANS")) {
-			gf_modules_set_option(dr, "FontEngine", "FontSans", ftpriv->active_face->family_name);
+			gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSans", ftpriv->active_face->family_name);
 			strcpy(ftpriv->font_sans, ftpriv->active_face->family_name);
 		}
 		else if (!stricmp(OrigFontName, "TYPEWRITTER")) {
-			gf_modules_set_option(dr, "FontEngine", "FontFixed", ftpriv->active_face->family_name);
+			gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed", ftpriv->active_face->family_name);
 			strcpy(ftpriv->font_fixed, ftpriv->active_face->family_name);
 		}
 
@@ -587,7 +588,7 @@ GF_FontRaster *FT_Load()
 	FTBuilder *ftpriv;
 	dr = malloc(sizeof(GF_FontRaster));
 	memset(dr, 0, sizeof(GF_FontRaster));
-	GF_REGISTER_MODULE(dr, GF_FONT_RASTER_INTERFACE, "FreeType Font Engine", "gpac distribution", 0);
+	GF_REGISTER_MODULE_INTERFACE(dr, GF_FONT_RASTER_INTERFACE, "FreeType Font Engine", "gpac distribution");
 
 	ftpriv = malloc(sizeof(FTBuilder));
 	memset(ftpriv, 0, sizeof(FTBuilder));
@@ -632,18 +633,17 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 
-void *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
-	if (InterfaceType == GF_FONT_RASTER_INTERFACE) return FT_Load();
+	if (InterfaceType == GF_FONT_RASTER_INTERFACE) return (GF_BaseInterface *)FT_Load();
 	return NULL;
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseInterface *ptr = (GF_BaseInterface *)ifce;
-	switch (ptr->InterfaceType) {
+	switch (ifce->InterfaceType) {
 	case GF_FONT_RASTER_INTERFACE:
-		FT_Delete(ptr);
+		FT_Delete(ifce);
 		break;
 	}
 }

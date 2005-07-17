@@ -88,12 +88,7 @@ void gf_sleep(u32 ms)
 */
 
 #define SECS_1900_TO_1970 2208988800ul
-
-u32 gf_get_ntp_frac(u32 sec, u32 frac)
-{
-	return ( ((sec  & 0x0000ffff) << 16) |  ((frac & 0xffff0000) >> 16));
-}
-         
+       
 
 void gf_get_ntp(u32 *sec, u32 *frac)
 {
@@ -227,7 +222,7 @@ char * my_str_lwr(char *str)
 
 
 
-u64 f64_tell(FILE *f)
+u64 gf_f64_tell(FILE *f)
 {
 #ifdef CONFIG_LINUX
 	return (u64) ftello64(f);
@@ -238,7 +233,7 @@ u64 f64_tell(FILE *f)
 #endif
 }
 
-u64 f64_seek(FILE *f, s64 pos, s32 whence)
+u64 gf_f64_seek(FILE *f, s64 pos, s32 whence)
 {
 #ifdef CONFIG_LINUX
 	return fseeko64(f, (off64_t) pos, whence);
@@ -249,7 +244,7 @@ u64 f64_seek(FILE *f, s64 pos, s32 whence)
 #endif
 }
 
-FILE *f64_open(const char *file_name, const char *mode)
+FILE *gf_f64_open(const char *file_name, const char *mode)
 {
 #ifdef CONFIG_LINUX
 	return fopen64(file_name, mode);

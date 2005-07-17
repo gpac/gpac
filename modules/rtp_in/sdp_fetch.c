@@ -80,7 +80,7 @@ void SDP_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 
 	if (e == GF_OK) return;
 	else if (e == GF_EOS) {
-		const char *szFile = gf_dm_get_cache_name(rtp->dnload);
+		const char *szFile = gf_dm_sess_get_cache_name(rtp->dnload);
 		if (!szFile) {
 			e = GF_SERVICE_ERROR;
 		} else {

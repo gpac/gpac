@@ -542,8 +542,8 @@ GF_BaseDecoder *NewContextLoader()
 	CTXLoadPriv *priv;
 	GF_SceneDecoder *tmp;
 	
-	SAFEALLOC(tmp, sizeof(GF_SceneDecoder));
-	SAFEALLOC(priv, sizeof(CTXLoadPriv));
+	GF_SAFEALLOC(tmp, sizeof(GF_SceneDecoder));
+	GF_SAFEALLOC(priv, sizeof(CTXLoadPriv));
 	priv->files_to_delete = gf_list_new();
 
 	tmp->privateStack = priv;
@@ -556,7 +556,7 @@ GF_BaseDecoder *NewContextLoader()
 	tmp->ReleaseScene = CTXLoad_ReleaseScene;
 	tmp->GetName = CTXLoad_GetName;
 	tmp->CanHandleStream = CTXLoad_CanHandleStream;
-	GF_REGISTER_MODULE(tmp, GF_SCENE_DECODER_INTERFACE, "GPAC Context Loader", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(tmp, GF_SCENE_DECODER_INTERFACE, "GPAC Context Loader", "gpac distribution")
 	return (GF_BaseDecoder*)tmp;
 }
 
@@ -571,21 +571,20 @@ Bool QueryInterface(u32 InterfaceType)
 	}
 }
 
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
-	case GF_SCENE_DECODER_INTERFACE: return NewContextLoader();
+	case GF_SCENE_DECODER_INTERFACE: return (GF_BaseInterface *)NewContextLoader();
 	default:
 		return NULL;
 	}
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseDecoder *ifcd = (GF_BaseDecoder *)ifce;
-	switch (ifcd->InterfaceType) {
+	switch (ifce->InterfaceType) {
 	case GF_SCENE_DECODER_INTERFACE:
-		DeleteContextLoader(ifcd);
+		DeleteContextLoader((GF_BaseDecoder *)ifce);
 		break;
 	}
 }

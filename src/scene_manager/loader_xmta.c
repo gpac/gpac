@@ -2565,7 +2565,7 @@ err:
 					return;
 				}
 			}
-			if (!xml_element_done(&parser->xml_parser, "GF_ODUpdate")) {
+			if (!xml_element_done(&parser->xml_parser, "ObjectDescriptorUpdate")) {
 				xmt_report(parser, GF_BAD_PARAM, "Expecting </ObjectDescriptorUpdate>");
 				return;
 			}
@@ -2990,7 +2990,7 @@ GF_Err gf_sm_load_init_XMT(GF_SceneLoader *load)
 	XMTParser *parser;
 
 	if (!load->ctx || !load->fileName) return GF_BAD_PARAM;
-	SAFEALLOC(parser, sizeof(XMTParser));
+	GF_SAFEALLOC(parser, sizeof(XMTParser));
 
 	parser->load = load;
 	e = xml_init_parser(&parser->xml_parser, load->fileName);

@@ -49,34 +49,33 @@ void ghnt_del(GF_Box *s)
 	
 	ptr = (GF_HintSampleEntryBox *)s;
 	gf_isom_box_array_del(ptr->HintDataTable);
-	if (ptr->w_sample) Del_HintSample(ptr->w_sample);
+	if (ptr->hint_sample) gf_isom_hint_sample_del(ptr->hint_sample);
 	free(ptr);
 }
 
-GF_Err ghnt_Read(GF_Box *s, GF_BitStream *bs, u64 *read)
+GF_Err ghnt_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Box *a;
-	u64 sr;
 	GF_Err e;
 	GF_HintSampleEntryBox *ptr = (GF_HintSampleEntryBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
 
+	if (ptr->size < 16) return GF_ISOM_INVALID_FILE;
+
 	gf_bs_read_data(bs, ptr->reserved, 6);
 	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
-	*read += 8;
 	ptr->HintTrackVersion = gf_bs_read_u16(bs);
 	ptr->LastCompatibleVersion = gf_bs_read_u16(bs);
 	ptr->MaxPacketSize = gf_bs_read_u32(bs);
-	*read += 8;
+	ptr->size -= 16;
 
-	while (*read < ptr->size) {
-		e = gf_isom_parse_box(&a, bs, &sr);
+	while (ptr->size) {
+		e = gf_isom_parse_box(&a, bs);
 		if (e) return e;
 		e = gf_list_add(ptr->HintDataTable, a);
 		if (e) return e;
-		*read += a->size;
+		ptr->size -= a->size;
 	}
-	if (*read != ptr->size) return GF_ISOM_INVALID_FILE;
 	return GF_OK;
 }
 
@@ -114,7 +113,7 @@ GF_Err ghnt_Size(GF_Box *s)
 #endif	//GPAC_READ_ONLY
 
 
-GF_HintSample *New_HintSample(u32 ProtocolType)
+GF_HintSample *gf_isom_hint_sample_new(u32 ProtocolType)
 {
 	GF_HintSample *tmp;
 	u8 type;
@@ -126,31 +125,37 @@ GF_HintSample *New_HintSample(u32 ProtocolType)
 	default:
 		return NULL;
 	}
-	tmp = malloc(sizeof(GF_HintSample));
+	GF_SAFEALLOC(tmp, sizeof(GF_HintSample));
 	tmp->packetTable = gf_list_new();
-	tmp->AdditionalData = NULL;
-	tmp->dataLength = 0;
 	tmp->HintType = type;
-	tmp->TransmissionTime = 0;
-	tmp->reserved = 0;
 	return tmp;
 }
 
-void Del_HintSample(GF_HintSample *ptr)
+void gf_isom_hint_sample_del(GF_HintSample *ptr)
 {
 	GF_HintPacket *pck;
 
 	while (gf_list_count(ptr->packetTable)) {
 		pck = gf_list_get(ptr->packetTable, 0);
-		Del_HintPacket(ptr->HintType, pck);
+		gf_isom_hint_pck_del(ptr->HintType, pck);
 		gf_list_rem(ptr->packetTable, 0);
 	}
 	gf_list_del(ptr->packetTable);
 	if (ptr->AdditionalData) free(ptr->AdditionalData);
+
+	if (ptr->sample_cache) {
+		while (gf_list_count(ptr->sample_cache)) {
+			GF_HintDataCache *hdc = gf_list_get(ptr->sample_cache, 0);
+			gf_list_rem(ptr->sample_cache, 0);
+			if (hdc->samp) gf_isom_sample_del(&hdc->samp);
+			free(hdc);
+		}
+		gf_list_del(ptr->sample_cache);
+	}
 	free(ptr);
 }
 
-GF_Err Read_HintSample(GF_HintSample *ptr, GF_BitStream *bs, u32 sampleSize)
+GF_Err gf_isom_hint_sample_read(GF_HintSample *ptr, GF_BitStream *bs, u32 sampleSize)
 {
 	u16 entryCount, i;
 	GF_HintPacket *pck;
@@ -163,8 +168,8 @@ GF_Err Read_HintSample(GF_HintSample *ptr, GF_BitStream *bs, u32 sampleSize)
 	ptr->reserved = gf_bs_read_u16(bs);
 
 	for (i = 0; i < entryCount; i++) {
-		pck = New_HintPacket(ptr->HintType);
-		e = Read_HintPacket(ptr->HintType, pck, bs);
+		pck = gf_isom_hint_pck_new(ptr->HintType);
+		e = gf_isom_hint_pck_read(ptr->HintType, pck, bs);
 		if (e) return e;
 		gf_list_add(ptr->packetTable, pck);
 	}
@@ -183,7 +188,7 @@ GF_Err Read_HintSample(GF_HintSample *ptr, GF_BitStream *bs, u32 sampleSize)
 
 #ifndef GPAC_READ_ONLY
 
-u32 Write_HintSample(GF_HintSample *ptr, GF_BitStream *bs)
+u32 gf_isom_hint_sample_write(GF_HintSample *ptr, GF_BitStream *bs)
 {
 	u32 count, i;
 	GF_HintPacket *pck;
@@ -195,7 +200,7 @@ u32 Write_HintSample(GF_HintSample *ptr, GF_BitStream *bs)
 	//write the packet table
 	for (i=0; i<count; i++) {
 		pck = gf_list_get(ptr->packetTable, i);
-		e = Write_HintPacket(ptr->HintType, pck, bs);
+		e = gf_isom_hint_pck_write(ptr->HintType, pck, bs);
 		if (e) return e;
 	}
 	//write additional data
@@ -206,7 +211,7 @@ u32 Write_HintSample(GF_HintSample *ptr, GF_BitStream *bs)
 }
 
 
-u32 Size_HintSample(GF_HintSample *ptr)
+u32 gf_isom_hint_sample_size(GF_HintSample *ptr)
 {
 	u32 size, count, i;
 	GF_HintPacket *pck;
@@ -215,7 +220,7 @@ u32 Size_HintSample(GF_HintSample *ptr)
 	count = gf_list_count(ptr->packetTable);
 	for (i=0; i<count; i++) {
 		pck = gf_list_get(ptr->packetTable, i);
-		size += Size_HintPacket(ptr->HintType, pck);
+		size += gf_isom_hint_pck_size(ptr->HintType, pck);
 	}
 	size += ptr->dataLength;
 	return size;
@@ -225,33 +230,32 @@ u32 Size_HintSample(GF_HintSample *ptr)
 
 
 
-GF_HintPacket *New_HintPacket(u8 HintType)
+GF_HintPacket *gf_isom_hint_pck_new(u8 HintType)
 {
 	switch (HintType) {
-	case GF_ISMO_HINT_RTP:
-		return (GF_HintPacket *) New_RTPPacket();
-
-	default:
+	case GF_ISMO_HINT_RTP: 
+		return (GF_HintPacket *) gf_isom_hint_rtp_new();
+	default: 
 		return NULL;
 	}
 }
 
-void Del_HintPacket(u8 HintType, GF_HintPacket *ptr)
+void gf_isom_hint_pck_del(u8 HintType, GF_HintPacket *ptr)
 {
 	switch (HintType) {
 	case GF_ISMO_HINT_RTP:
-		Del_RTPPacket((GF_RTPPacket *)ptr);
+		gf_isom_hint_rtp_del((GF_RTPPacket *)ptr);
 		break;
 	default:
 		break;
 	}
 }
 
-GF_Err Read_HintPacket(u8 HintType, GF_HintPacket *ptr, GF_BitStream *bs)
+GF_Err gf_isom_hint_pck_read(u8 HintType, GF_HintPacket *ptr, GF_BitStream *bs)
 {
 	switch (HintType) {
 	case GF_ISMO_HINT_RTP:
-		return Read_RTPPacket((GF_RTPPacket *)ptr, bs);
+		return gf_isom_hint_rtp_read((GF_RTPPacket *)ptr, bs);
 	default:
 		return GF_NOT_SUPPORTED;
 	}
@@ -259,37 +263,37 @@ GF_Err Read_HintPacket(u8 HintType, GF_HintPacket *ptr, GF_BitStream *bs)
 
 #ifndef GPAC_READ_ONLY
 
-GF_Err Write_HintPacket(u8 HintType, GF_HintPacket *ptr, GF_BitStream *bs)
+GF_Err gf_isom_hint_pck_write(u8 HintType, GF_HintPacket *ptr, GF_BitStream *bs)
 {
 	switch (HintType) {
 	case GF_ISMO_HINT_RTP:
-		return Write_RTPPacket((GF_RTPPacket *)ptr, bs);
+		return gf_isom_hint_rtp_write((GF_RTPPacket *)ptr, bs);
 	default:
 		return GF_NOT_SUPPORTED;
 	}
 }
 
-u32 Size_HintPacket(u8 HintType, GF_HintPacket *ptr)
+u32 gf_isom_hint_pck_size(u8 HintType, GF_HintPacket *ptr)
 {
 	switch (HintType) {
 	case GF_ISMO_HINT_RTP:
-		return Size_RTPPacket((GF_RTPPacket *)ptr);
+		return gf_isom_hint_rtp_size((GF_RTPPacket *)ptr);
 	default:
 		return 0;
 	}
 }
 
-GF_Err Offset_HintPacket(u8 HintType, GF_HintPacket *ptr, u32 offset, u32 HintSampleNumber)
+GF_Err gf_isom_hint_pck_offset(u8 HintType, GF_HintPacket *ptr, u32 offset, u32 HintSampleNumber)
 {
 	switch (HintType) {
 	case GF_ISMO_HINT_RTP:
-		return Offset_RTPPacket((GF_RTPPacket *)ptr, offset, HintSampleNumber);
+		return gf_isom_hint_rtp_offset((GF_RTPPacket *)ptr, offset, HintSampleNumber);
 	default:
 		return GF_NOT_SUPPORTED;
 	}
 }
 
-GF_Err AddDTE_HintPacket(u8 HintType, GF_HintPacket *ptr, GF_GenericDTE *dte, u8 AtBegin)
+GF_Err gf_isom_hint_pck_add_dte(u8 HintType, GF_HintPacket *ptr, GF_GenericDTE *dte, u8 AtBegin)
 {
 	switch (HintType) {
 	case GF_ISMO_HINT_RTP:
@@ -303,11 +307,11 @@ GF_Err AddDTE_HintPacket(u8 HintType, GF_HintPacket *ptr, GF_GenericDTE *dte, u8
 	}
 }
 
-u32 Length_HintPacket(u8 HintType, GF_HintPacket *ptr)
+u32 gf_isom_hint_pck_length(u8 HintType, GF_HintPacket *ptr)
 {
 	switch (HintType) {
 	case GF_ISMO_HINT_RTP:
-		return Length_RTPPacket((GF_RTPPacket *)ptr);
+		return gf_isom_hint_rtp_length((GF_RTPPacket *)ptr);
 	default:
 		return 0;
 	}
@@ -436,7 +440,7 @@ GF_Err Read_ImmediateDTE(GF_ImmediateDTE *dte, GF_BitStream *bs)
 	dte->dataLength = gf_bs_read_u8(bs);
 	if (dte->dataLength > 14) return GF_ISOM_INVALID_FILE;
 	gf_bs_read_data(bs, dte->data, dte->dataLength);
-	gf_bs_read_data(bs, dte->data, 14 - dte->dataLength);
+	if (dte->dataLength < 14) gf_bs_skip_bytes(bs, 14 - dte->dataLength);
 	return GF_OK;
 }
 
@@ -563,7 +567,7 @@ GF_Err OffsetDTE(GF_GenericDTE *dte, u32 offset, u32 HintSampleNumber)
 	return GF_OK;
 }
 
-GF_RTPPacket *New_RTPPacket()
+GF_RTPPacket *gf_isom_hint_rtp_new()
 {
 	GF_RTPPacket *tmp = malloc(sizeof(GF_RTPPacket));
 	tmp->TLV = gf_list_new();
@@ -574,7 +578,7 @@ GF_RTPPacket *New_RTPPacket()
 	return tmp;
 }
 
-void Del_RTPPacket(GF_RTPPacket *ptr)
+void gf_isom_hint_rtp_del(GF_RTPPacket *ptr)
 {
 	GF_GenericDTE *p;
 	//the DTE
@@ -589,7 +593,7 @@ void Del_RTPPacket(GF_RTPPacket *ptr)
 	free(ptr);
 }
 
-GF_Err Read_RTPPacket(GF_RTPPacket *ptr, GF_BitStream *bs)
+GF_Err gf_isom_hint_rtp_read(GF_RTPPacket *ptr, GF_BitStream *bs)
 {
 	GF_Err e;
 	u8 hasTLV, type;
@@ -620,8 +624,7 @@ GF_Err Read_RTPPacket(GF_RTPPacket *ptr, GF_BitStream *bs)
 		tempSize = 4;	//TLVsize includes its field length 
 		TLVsize = gf_bs_read_u32(bs);
 		while (tempSize < TLVsize) {
-			u64 sr;
-			e = gf_isom_parse_box(&a, bs, &sr);
+			e = gf_isom_parse_box(&a, bs);
 			if (e) return e;
 			gf_list_add(ptr->TLV, a);
 			tempSize += (u32) a->size;
@@ -631,16 +634,32 @@ GF_Err Read_RTPPacket(GF_RTPPacket *ptr, GF_BitStream *bs)
 
 	//read the DTEs
 	for (i=0; i<count; i++) {
+		Bool add_it = 0;
 		type = gf_bs_read_u8(bs);
 		dte = NewDTE(type);
 		e = ReadDTE(dte, bs);
 		if (e) return e;
-		gf_list_add(ptr->DataTable, dte);
+		/*little opt, remove empty dte*/
+		switch (type) {
+		case 1:
+			if ( ((GF_ImmediateDTE *)dte)->dataLength) add_it = 1;
+			break;
+		case 2:
+			if ( ((GF_SampleDTE *)dte)->dataLength) add_it = 1;
+			break;
+		case 3:
+			if ( ((GF_StreamDescDTE *)dte)->dataLength) add_it = 1;
+			break;
+		}
+		if (add_it)
+			gf_list_add(ptr->DataTable, dte);
+		else
+			DelDTE(dte);
 	}
 	return GF_OK;
 }
 
-GF_Err Offset_RTPPacket(GF_RTPPacket *ptr, u32 offset, u32 HintSampleNumber)
+GF_Err gf_isom_hint_rtp_offset(GF_RTPPacket *ptr, u32 offset, u32 HintSampleNumber)
 {
 	u32 count, i;
 	GF_GenericDTE *dte;
@@ -658,7 +677,7 @@ GF_Err Offset_RTPPacket(GF_RTPPacket *ptr, u32 offset, u32 HintSampleNumber)
 
 //Gets the REAL size of the packet once rebuild, but without CSRC fields in the
 //header
-u32 Length_RTPPacket(GF_RTPPacket *ptr)
+u32 gf_isom_hint_rtp_length(GF_RTPPacket *ptr)
 {
 	u32 size, count, i;
 	GF_GenericDTE *dte;
@@ -690,7 +709,7 @@ u32 Length_RTPPacket(GF_RTPPacket *ptr)
 
 #ifndef GPAC_READ_ONLY
 
-u32 Size_RTPPacket(GF_RTPPacket *ptr)
+u32 gf_isom_hint_rtp_size(GF_RTPPacket *ptr)
 {
 	GF_Box none;
 	u32 size, count;
@@ -711,7 +730,7 @@ u32 Size_RTPPacket(GF_RTPPacket *ptr)
 	return size;
 }
 
-GF_Err Write_RTPPacket(GF_RTPPacket *ptr, GF_BitStream *bs)
+GF_Err gf_isom_hint_rtp_write(GF_RTPPacket *ptr, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 TLVcount, DTEcount, i;
@@ -758,3 +777,203 @@ GF_Err Write_RTPPacket(GF_RTPPacket *ptr, GF_BitStream *bs)
 }
 
 #endif	//GPAC_READ_ONLY
+
+GF_Err gf_isom_reset_hint_reader(GF_ISOFile *the_file, u32 trackNumber, u32 sample_start, u32 ts_offset, u32 sn_offset, u32 ssrc)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_HintSampleEntryBox *entry;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	if (!sample_start) return GF_BAD_PARAM;
+	if (sample_start>=trak->Media->information->sampleTable->SampleSize->sampleCount) return GF_BAD_PARAM;
+
+	e = Media_GetSampleDesc(trak->Media, 1, (GF_SampleEntryBox **) &entry, NULL);
+	if (e) return e;
+	switch (entry->type) {
+	case GF_ISOM_BOX_TYPE_RTP_STSD:
+		break;
+	default:
+		return GF_NOT_SUPPORTED;
+	}
+
+	entry->hint_ref = NULL;
+	e = Track_FindRef(trak, GF_ISOM_REF_HINT, &entry->hint_ref);
+	if (e) return e;
+
+	entry->cur_sample = sample_start;
+	entry->pck_sn = 1 + sn_offset;
+	entry->ssrc = ssrc;
+	entry->ts_offset = ts_offset;
+	if (entry->hint_sample) gf_isom_hint_sample_del(entry->hint_sample);
+	entry->hint_sample = NULL;
+	return GF_OK;
+}
+
+static GF_Err gf_isom_load_next_hint_sample(GF_ISOFile *the_file, u32 trackNumber, GF_TrackBox *trak, GF_HintSampleEntryBox *entry)
+{
+	GF_BitStream *bs;
+	u32 descIdx;
+	GF_ISOSample *samp;
+
+	if (!entry->cur_sample) return GF_BAD_PARAM;
+	if (entry->cur_sample==trak->Media->information->sampleTable->SampleSize->sampleCount) return GF_EOS;
+
+	samp = gf_isom_get_sample(the_file, trackNumber, entry->cur_sample, &descIdx);
+	if (!samp) return GF_IO_ERR;
+	entry->cur_sample++;
+
+	if (entry->hint_sample) gf_isom_hint_sample_del(entry->hint_sample);
+
+	bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
+	entry->hint_sample = gf_isom_hint_sample_new(entry->type);
+	gf_isom_hint_sample_read(entry->hint_sample, bs, samp->dataLength);
+	gf_bs_del(bs);
+	entry->hint_sample->TransmissionTime = samp->DTS;
+	gf_isom_sample_del(&samp);
+	entry->hint_sample->sample_cache = gf_list_new();
+	return GF_OK;
+}
+
+static GF_ISOSample *gf_isom_get_data_sample(GF_HintSample *hsamp, GF_TrackBox *trak, u32 sample_num)
+{
+	GF_ISOSample *samp;
+	GF_HintDataCache *hdc;
+	u32 i, count;
+	count = gf_list_count(hsamp->sample_cache);
+	for (i=0; i<count; i++) {
+		hdc = gf_list_get(hsamp->sample_cache, i);
+		if ((hdc->sample_num==sample_num) && (hdc->trak==trak)) return hdc->samp;
+	}
+
+	samp = gf_isom_sample_new();
+	Media_GetSample(trak->Media, sample_num, &samp, &i, 0, NULL);
+	if (!samp) return NULL;
+	GF_SAFEALLOC(hdc, sizeof(GF_HintDataCache));
+	hdc->samp = samp;
+	hdc->sample_num = sample_num;
+	hdc->trak = trak;
+	/*we insert all new samples, since they're more likely to be fetched next (except for audio 
+	interleaving and other multiplex)*/
+	gf_list_insert(hsamp->sample_cache, hdc, 0);
+	return samp;
+}
+
+GF_Err gf_isom_next_hint_packet(GF_ISOFile *the_file, u32 trackNumber, char **pck_data, u32 *pck_size, Bool *disposable, Bool *repeated, u32 *trans_ts, u32 *sample_num)
+{
+	GF_RTPPacket *pck;
+	GF_Err e;
+	GF_BitStream *bs;
+	GF_TrackBox *trak, *ref_trak;
+	GF_HintSampleEntryBox *entry;
+	u32 i, count;
+	s32 cts_off;
+
+	*pck_data = NULL;
+	*pck_size = 0;
+	if (trans_ts) *trans_ts = 0;
+	if (disposable) *disposable = 0;
+	if (repeated) *repeated = 0;
+	if (sample_num) *sample_num = 0;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	e = Media_GetSampleDesc(trak->Media, 1, (GF_SampleEntryBox **) &entry, NULL);
+	if (e) return e;
+	switch (entry->type) {
+	case GF_ISOM_BOX_TYPE_RTP_STSD:
+		break;
+	default:
+		return GF_NOT_SUPPORTED;
+	}
+
+	if (!entry->hint_sample) {
+		e = gf_isom_load_next_hint_sample(the_file, trackNumber, trak, entry);
+		if (e) return e;
+	}
+	pck = gf_list_get(entry->hint_sample->packetTable, 0);
+	gf_list_rem(entry->hint_sample->packetTable, 0);
+	if (!pck) return GF_BAD_PARAM;
+
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	/*write RTP header*/
+	gf_bs_write_int(bs, 2, 2);	/*version*/
+	gf_bs_write_int(bs, pck->P_bit, 1);	/*P bit*/
+	gf_bs_write_int(bs, pck->X_bit, 1);	/*X bit*/
+	gf_bs_write_int(bs, 0, 4);	/*CSRC count*/
+	gf_bs_write_int(bs, pck->M_bit, 1);	/*M bit*/
+	gf_bs_write_int(bs, pck->payloadType, 7);	/*payt*/
+	gf_bs_write_u16(bs, entry->pck_sn);	/*seq num*/
+	entry->pck_sn++;
+
+	/*look for CTS offset in TLV*/
+	cts_off = 0;
+	count = gf_list_count(pck->TLV);
+	for (i=0; i<count; i++) {
+		GF_RTPOBox *rtpo = gf_list_get(pck->TLV, i);
+		if (rtpo->type == GF_ISOM_BOX_TYPE_RTPO) {
+			cts_off = rtpo->timeOffset;
+			break;
+		}
+	}
+	gf_bs_write_u32(bs, entry->hint_sample->TransmissionTime + pck->relativeTransTime + entry->ts_offset + cts_off);	/*TS*/
+	gf_bs_write_u32(bs, entry->ssrc);	/*SSRC*/
+	
+	/*then build all data*/
+	count = gf_list_count(pck->DataTable);
+	for (i=0; i<count; i++) {
+		GF_GenericDTE *dte = gf_list_get(pck->DataTable, i);
+		switch (dte->source) {
+		/*empty*/
+		case 0: 
+			break;
+		/*immediate data*/
+		case 1:
+			gf_bs_write_data(bs, ((GF_ImmediateDTE *)dte)->data, ((GF_ImmediateDTE *)dte)->dataLength);
+			break;
+		/*sample data*/
+		case 2: 
+		{
+			GF_ISOSample *samp;
+			GF_SampleDTE *sdte = (GF_SampleDTE *)dte;
+			/*get track if not this one*/
+			if (sdte->trackRefIndex != -1) {
+				if (!entry->hint_ref || !entry->hint_ref->trackIDs) {
+					gf_isom_hint_rtp_del(pck);
+					gf_bs_del(bs);
+					return GF_ISOM_INVALID_FILE;
+				}
+				ref_trak = gf_isom_get_track_from_id(trak->moov, entry->hint_ref->trackIDs[sdte->trackRefIndex]);
+			} else {
+				ref_trak = trak;
+			}
+			samp = gf_isom_get_data_sample(entry->hint_sample, ref_trak, sdte->sampleNumber);
+			if (!samp) {
+				gf_isom_hint_rtp_del(pck);
+				gf_bs_del(bs);
+				return GF_IO_ERR;
+			}
+			gf_bs_write_data(bs, samp->data + sdte->byteOffset, sdte->dataLength);
+		}
+			break;
+		/*sample desc data - currently NOT SUPPORTED !!!*/
+		case 3: 
+			break;
+		}
+	}
+	if (trans_ts) *trans_ts = entry->hint_sample->TransmissionTime + pck->relativeTransTime + entry->ts_offset;
+	if (disposable) *disposable = pck->B_bit;
+	if (repeated) *repeated = pck->R_bit;
+	if (sample_num) *sample_num = entry->cur_sample-1;
+
+	gf_bs_get_content(bs, pck_data, pck_size);
+	gf_bs_del(bs);
+	gf_isom_hint_rtp_del(pck);
+	if (!gf_list_count(entry->hint_sample->packetTable)) {
+		gf_isom_hint_sample_del(entry->hint_sample);
+		entry->hint_sample = NULL;
+	}
+	return GF_OK;
+}

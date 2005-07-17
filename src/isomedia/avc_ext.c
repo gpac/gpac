@@ -217,14 +217,13 @@ void btrt_del(GF_Box *s)
 	GF_MPEG4BitRateBox *ptr = (GF_MPEG4BitRateBox *)s;
 	if (ptr) free(ptr);
 }
-GF_Err btrt_Read(GF_Box *s, GF_BitStream *bs, u64 *read)
+GF_Err btrt_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_MPEG4BitRateBox *ptr = (GF_MPEG4BitRateBox *)s;
 	ptr->bufferSizeDB = gf_bs_read_u32(bs);
 	ptr->maxBitrate = gf_bs_read_u32(bs);
 	ptr->avgBitrate = gf_bs_read_u32(bs);
-	*read += 12;
-	return (*read != ptr->size) ? GF_ISOM_INVALID_FILE : GF_OK;
+	return GF_OK;
 }
 GF_Box *btrt_New()
 {
@@ -267,18 +266,17 @@ void m4ds_del(GF_Box *s)
 	gf_list_del(ptr->descriptors);
 	free(ptr);
 }
-GF_Err m4ds_Read(GF_Box *s, GF_BitStream *bs, u64 *read)
+GF_Err m4ds_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	char *enc_od;
 	GF_MPEG4ExtensionDescriptorsBox *ptr = (GF_MPEG4ExtensionDescriptorsBox *)s;
-	u32 od_size = (u32) (ptr->size - *read);
+	u32 od_size = (u32) ptr->size;
 	if (!od_size) return GF_OK;
 	enc_od = malloc(sizeof(char) * od_size);
 	gf_bs_read_data(bs, enc_od, od_size);
 	e = gf_odf_desc_list_read(enc_od, od_size, ptr->descriptors);
 	free(enc_od);
-	*read = ptr->size;
 	return e;
 }
 GF_Box *m4ds_New()
@@ -331,7 +329,7 @@ void avcc_del(GF_Box *s)
 	if (ptr->config) gf_odf_avc_cfg_del(ptr->config);
 	free(ptr);
 }
-GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs, u64 *read)
+GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i, count;
 	GF_AVCConfigurationBox *ptr = (GF_AVCConfigurationBox *)s;
@@ -346,7 +344,6 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs, u64 *read)
 	ptr->config->nal_unit_size = 1 + gf_bs_read_int(bs, 2);
 	gf_bs_read_int(bs, 3);
 	count = gf_bs_read_int(bs, 5);
-	*read += 6;
 
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *sl = malloc(sizeof(GF_AVCConfigSlot));
@@ -354,25 +351,17 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs, u64 *read)
 		sl->data = malloc(sizeof(char) * sl->size);
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(ptr->config->sequenceParameterSets, sl);
-		*read += 2+sl->size;
 	}
 
 	count = gf_bs_read_u8(bs);
-	*read += 1;
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *sl = malloc(sizeof(GF_AVCConfigSlot));
 		sl->size = gf_bs_read_u16(bs);
 		sl->data = malloc(sizeof(char) * sl->size);
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(ptr->config->pictureParameterSets, sl);
-		*read += 2+sl->size;
 	}
-	/*"Readers should be prepared to ignore unrecognised data beyond the definition of the data they understand"*/
-	if (*read < ptr->size) {
-		gf_bs_skip_bytes(bs, (ptr->size - *read) );
-		*read = ptr->size;
-	}
-	return (*read != ptr->size) ? GF_ISOM_INVALID_FILE : GF_OK;
+	return GF_OK;
 }
 GF_Box *avcc_New()
 {
@@ -449,9 +438,9 @@ void avc1_del(GF_Box *s)
 	free(ptr);
 }
 
-GF_Err avc1_AddBox(GF_AVCSampleEntryBox *ptr, GF_Box *a)
+GF_Err avc1_AddBox(GF_Box *s, GF_Box *a)
 {
-	if (!a) return GF_OK;
+	GF_AVCSampleEntryBox *ptr = (GF_AVCSampleEntryBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_AVCC:
 		if (ptr->avc_config) return GF_ISOM_INVALID_FILE;
@@ -470,25 +459,18 @@ GF_Err avc1_AddBox(GF_AVCSampleEntryBox *ptr, GF_Box *a)
 	}
 	return GF_OK;
 }
-GF_Err avc1_Read(GF_Box *s, GF_BitStream *bs, u64 *read)
+GF_Err avc1_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u64 sr;
-	GF_Box *a;
 	GF_AVCSampleEntryBox *ptr = (GF_AVCSampleEntryBox *)s;
 
-	gf_isom_video_sample_entry_read((GF_VisualSampleEntryBox *)ptr, bs, read);
-	
-	while (*read < ptr->size) {
-		e = gf_isom_parse_box(&a, bs, &sr);
-		if (e) return e;
-		*read += a->size;
-		e = avc1_AddBox(ptr, a);
-		if (e) return e;
-	}
+	e = gf_isom_video_sample_entry_read((GF_VisualSampleEntryBox *)ptr, bs);
+	if (e) return e;
+	e = gf_isom_read_box_list(s, bs, avc1_AddBox);
 	AVC_RewriteESDescriptor(ptr);
-	return (*read != ptr->size) ? GF_ISOM_INVALID_FILE : GF_OK;
+	return e;
 }
+
 GF_Box *avc1_New()
 {
 	GF_AVCSampleEntryBox *tmp = (GF_AVCSampleEntryBox *) malloc(sizeof(GF_AVCSampleEntryBox));

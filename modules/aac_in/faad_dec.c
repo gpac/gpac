@@ -286,9 +286,9 @@ GF_BaseDecoder *NewFAADDec()
 	GF_MediaDecoder *ifce;
 	FAADDec *dec;
 
-	SAFEALLOC(ifce, sizeof(GF_MediaDecoder));
-	SAFEALLOC(dec, sizeof(FAADDec));
-	GF_REGISTER_MODULE(ifce, GF_MEDIA_DECODER_INTERFACE, "FAAD2 Decoder", "gpac distribution", 0)
+	GF_SAFEALLOC(ifce, sizeof(GF_MediaDecoder));
+	GF_SAFEALLOC(dec, sizeof(FAADDec));
+	GF_REGISTER_MODULE_INTERFACE(ifce, GF_MEDIA_DECODER_INTERFACE, "FAAD2 Decoder", "gpac distribution")
 
 	ifce->privateStack = dec;
 

@@ -32,8 +32,10 @@ void gf_isom_video_sample_entry_init(GF_VisualSampleEntryBox *ent)
 	ent->color_table_index = -1;
 }
 
-void gf_isom_video_sample_entry_read(GF_VisualSampleEntryBox *ptr, GF_BitStream *bs, u64 *read)
+GF_Err gf_isom_video_sample_entry_read(GF_VisualSampleEntryBox *ptr, GF_BitStream *bs)
 {
+	if (ptr->size < 78) return GF_ISOM_INVALID_FILE;
+	ptr->size -= 78;
 	gf_bs_read_data(bs, (unsigned char*)ptr->reserved, 6);
 	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
 	ptr->version = gf_bs_read_u16(bs);
@@ -51,7 +53,7 @@ void gf_isom_video_sample_entry_read(GF_VisualSampleEntryBox *ptr, GF_BitStream 
 	ptr->compressor_name[32] = 0;
 	ptr->bit_depth = gf_bs_read_u16(bs);
 	ptr->color_table_index = gf_bs_read_u16(bs);
-	*read += 78;
+	return GF_OK;
 }
 
 #ifndef GPAC_READ_ONLY
@@ -93,8 +95,10 @@ void gf_isom_audio_sample_entry_init(GF_AudioSampleEntryBox *ptr)
 	ptr->bitspersample = 16;
 }
 
-void gf_isom_audio_sample_entry_read(GF_AudioSampleEntryBox *ptr, GF_BitStream *bs, u64 *read)
+GF_Err gf_isom_audio_sample_entry_read(GF_AudioSampleEntryBox *ptr, GF_BitStream *bs)
 {
+	if (ptr->size<28) return GF_ISOM_INVALID_FILE;
+	ptr->size -= 28;
 	gf_bs_read_data(bs, (unsigned char*)ptr->reserved, 6);
 	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
 	ptr->version = gf_bs_read_u16(bs);
@@ -106,7 +110,7 @@ void gf_isom_audio_sample_entry_read(GF_AudioSampleEntryBox *ptr, GF_BitStream *
 	ptr->packet_size = gf_bs_read_u16(bs);
 	ptr->samplerate_hi = gf_bs_read_u16(bs);
 	ptr->samplerate_lo = gf_bs_read_u16(bs);
-	*read += 28;
+	return GF_OK;
 }
 
 #ifndef GPAC_READ_ONLY

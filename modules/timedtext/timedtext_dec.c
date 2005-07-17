@@ -669,7 +669,7 @@ void TTD_SplitChunks(GF_TextSample *txt, u32 nb_chars, GF_List *chunks, GF_Box *
 		/*need to split chunk at begin*/
 		if (tc->start_char<start_char) {
 			TTDTextChunk *tc2;
-			SAFEALLOC(tc2, sizeof(TTDTextChunk));
+			GF_SAFEALLOC(tc2, sizeof(TTDTextChunk));
 			memcpy(tc2, tc, sizeof(TTDTextChunk));
 			tc2->start_char = start_char;
 			tc2->end_char = tc->end_char;
@@ -681,7 +681,7 @@ void TTD_SplitChunks(GF_TextSample *txt, u32 nb_chars, GF_List *chunks, GF_Box *
 		/*need to split chunks at end*/
 		if (tc->end_char>end_char) {
 			TTDTextChunk *tc2;
-			SAFEALLOC(tc2, sizeof(TTDTextChunk));
+			GF_SAFEALLOC(tc2, sizeof(TTDTextChunk));
 			memcpy(tc2, tc, sizeof(TTDTextChunk));
 			tc2->start_char = tc->start_char;
 			tc2->end_char = end_char;
@@ -851,7 +851,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	chunks = gf_list_new();
 	/*flatten all modifiers*/
 	if (!txt->styles || !txt->styles->entry_count) {
-		SAFEALLOC(tc, sizeof(TTDTextChunk));
+		GF_SAFEALLOC(tc, sizeof(TTDTextChunk));
 		tc->end_char = char_count;
 		gf_list_add(chunks, tc);
 	} else {
@@ -863,12 +863,12 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 			if (srec->startCharOffset==srec->endCharOffset) continue;
 			/*handle not continuous modifiers*/
 			if (char_offset < srec->startCharOffset) {
-				SAFEALLOC(tc, sizeof(TTDTextChunk));
+				GF_SAFEALLOC(tc, sizeof(TTDTextChunk));
 				tc->start_char = char_offset;
 				tc->end_char = srec->startCharOffset;
 				gf_list_add(chunks, tc);
 			}
-			SAFEALLOC(tc, sizeof(TTDTextChunk));
+			GF_SAFEALLOC(tc, sizeof(TTDTextChunk));
 			tc->start_char = srec->startCharOffset;
 			tc->end_char = srec->endCharOffset;
 			tc->srec = srec;
@@ -877,7 +877,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 		}
 
 		if (srec->endCharOffset<char_count) {
-			SAFEALLOC(tc, sizeof(TTDTextChunk));
+			GF_SAFEALLOC(tc, sizeof(TTDTextChunk));
 			tc->start_char = char_offset;
 			tc->end_char = char_count;
 			gf_list_add(chunks, tc);
@@ -1079,9 +1079,9 @@ GF_BaseDecoder *NewTimedTextDec()
 	TTDPriv *priv;
 	GF_SceneDecoder *tmp;
 	
-	SAFEALLOC(tmp, sizeof(GF_SceneDecoder));
+	GF_SAFEALLOC(tmp, sizeof(GF_SceneDecoder));
 	if (!tmp) return NULL;
-	SAFEALLOC(priv, sizeof(TTDPriv));
+	GF_SAFEALLOC(priv, sizeof(TTDPriv));
 
 	tmp->privateStack = priv;
 	tmp->AttachStream = TTD_AttachStream;
@@ -1092,7 +1092,7 @@ GF_BaseDecoder *NewTimedTextDec()
 	tmp->AttachScene = TTD_AttachScene;
 	tmp->CanHandleStream = TTD_CanHandleStream;
 	tmp->ReleaseScene = TTD_ReleaseScene;
-	GF_REGISTER_MODULE(tmp, GF_SCENE_DECODER_INTERFACE, "GPAC TimedText Decoder", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(tmp, GF_SCENE_DECODER_INTERFACE, "GPAC TimedText Decoder", "gpac distribution")
 	return (GF_BaseDecoder *) tmp;
 }
 
@@ -1111,27 +1111,26 @@ void DeleteTTReader(void *ifce);
 void *NewTTReader();
 #endif
 
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
-	case GF_SCENE_DECODER_INTERFACE: return NewTimedTextDec();
+	case GF_SCENE_DECODER_INTERFACE: return (GF_BaseInterface *)NewTimedTextDec();
 #ifndef GPAC_READ_ONLY
-	case GF_NET_CLIENT_INTERFACE: return NewTTReader();
+	case GF_NET_CLIENT_INTERFACE: return (GF_BaseInterface *)NewTTReader();
 #endif
 	default: return NULL;
 	}
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseDecoder *ifcd = (GF_BaseDecoder *)ifce;
-	switch (ifcd->InterfaceType) {
+	switch (ifce->InterfaceType) {
 	case GF_SCENE_DECODER_INTERFACE:
-		DeleteTimedTextDec(ifcd);
+		DeleteTimedTextDec((GF_BaseDecoder *)ifce);
 		break;
 #ifndef GPAC_READ_ONLY
 	case GF_NET_CLIENT_INTERFACE:
-		DeleteTTReader(ifcd);
+		DeleteTTReader(ifce);
 		break;
 #endif
 	}

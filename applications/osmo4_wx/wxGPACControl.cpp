@@ -410,13 +410,14 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	select = 0;
 	s32 to_sel = 0;
 	for (i=0; i<count; i++) {
-		if (!gf_modules_load_interface(m_pApp->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE, (void **) &ifc_d)) continue;
+		ifc_d = (GF_BaseDecoder *) gf_modules_load_interface(m_pApp->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE);
+		if (!ifc_d) continue;
 		if (ifc_d->CanHandleStream(ifc_d, GF_STREAM_AUDIO, 0, NULL, 0, 0)) {
 			if (sOpt && !stricmp(ifc_d->module_name, sOpt)) select = to_sel;
 			m_decaudio->Append(wxString(ifc_d->module_name, wxConvUTF8) );
 			to_sel++;
 		}
-		gf_modules_close_interface(ifc_d);
+		gf_modules_close_interface((GF_BaseInterface *) ifc_d);
 	}
 	m_decaudio->SetSelection(select);
 
@@ -424,13 +425,14 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	sOpt = gf_cfg_get_key(cfg, "Systems", "DefVideoDec");
 	select = to_sel = 0;
 	for (i=0; i<count; i++) {
-		if (!gf_modules_load_interface(m_pApp->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE, (void **) &ifc_d)) continue;
+		ifc_d = (GF_BaseDecoder *) gf_modules_load_interface(m_pApp->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE);
+		if (!ifc_d) continue;
 		if (ifc_d->CanHandleStream(ifc_d, GF_STREAM_VISUAL, 0, NULL, 0, 0)) {
 			if (sOpt && !stricmp(ifc_d->module_name, sOpt)) select = to_sel;
 			m_decvideo->Append(wxString(ifc_d->module_name, wxConvUTF8) );
 			to_sel++;
 		}
-		gf_modules_close_interface(ifc_d);
+		gf_modules_close_interface((GF_BaseInterface *) ifc_d);
 	}
 	m_decvideo->SetSelection(select);
 
@@ -482,10 +484,11 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 
 	/*graphics driver enum*/
 	sOpt = gf_cfg_get_key(cfg, "Rendering", "Raster2D");
-	void *ifce;
+	GF_BaseInterface *ifce;
 	select = to_sel = 0;
 	for (i=0; i<count; i++) {
-		if (!gf_modules_load_interface(m_pApp->m_user.modules, i, GF_RASTER_2D_INTERFACE, &ifce)) continue;
+		ifce = gf_modules_load_interface(m_pApp->m_user.modules, i, GF_RASTER_2D_INTERFACE);
+		if (!ifce) continue;
 		if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
 		m_graph->Append(wxString(((GF_BaseInterface *)ifce)->module_name, wxConvUTF8) );
 		gf_modules_close_interface(ifce);
@@ -520,7 +523,8 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	sOpt = gf_cfg_get_key(cfg, "Video", "DriverName");
 	select = to_sel = 0;
 	for (i=0; i<count; i++) {
-		if (!gf_modules_load_interface(m_pApp->m_user.modules, i, GF_VIDEO_OUTPUT_INTERFACE, &ifce)) continue;
+		ifce = gf_modules_load_interface(m_pApp->m_user.modules, i, GF_VIDEO_OUTPUT_INTERFACE);
+		if (!ifce) continue;
 		if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
 		m_video->Append(wxString(((GF_BaseInterface *)ifce)->module_name, wxConvUTF8) );
 		gf_modules_close_interface(ifce);
@@ -544,7 +548,8 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	sOpt = gf_cfg_get_key(cfg, "Audio", "DriverName");
 	select = to_sel = 0;
 	for (i=0; i<count; i++) {
-		if (!gf_modules_load_interface(m_pApp->m_user.modules, i, GF_AUDIO_OUTPUT_INTERFACE, &ifce)) continue;
+		ifce = gf_modules_load_interface(m_pApp->m_user.modules, i, GF_AUDIO_OUTPUT_INTERFACE);
+		if (!ifce) continue;
 		if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
 		m_audio->Append(wxString(((GF_BaseInterface *)ifce)->module_name, wxConvUTF8) );
 		gf_modules_close_interface(ifce);
@@ -562,7 +567,8 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	sOpt = gf_cfg_get_key(cfg, "FontEngine", "DriverName");
 	to_sel = select = 0;
 	for (i=0; i<count; i++) {
-		if (!gf_modules_load_interface(m_pApp->m_user.modules, i, GF_FONT_RASTER_INTERFACE, &ifce)) continue;
+		ifce = gf_modules_load_interface(m_pApp->m_user.modules, i, GF_FONT_RASTER_INTERFACE);
+		if (!ifce) continue;
 		if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
 		m_font->Append(wxString(((GF_BaseInterface *)ifce)->module_name, wxConvUTF8) );
 		gf_modules_close_interface(ifce);

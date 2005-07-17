@@ -218,7 +218,8 @@ static Bool gf_dm_can_handle_url(GF_DownloadManager *dm, const char *url)
 void gf_dm_configure_cache(GF_DownloadSession *sess)
 {
 	u32 i, last_sep;
-	char cache_name[GF_MAX_PATH], tmp[GF_MAX_PATH], *opt;
+	char cache_name[GF_MAX_PATH], tmp[GF_MAX_PATH];
+	const char *opt;
 
 	if (!sess->dm->cache_directory) return;
 	if (sess->flags & GF_DOWNLOAD_SESSION_NOT_CACHED) return;
@@ -279,9 +280,9 @@ static void gf_dm_disconnect(GF_DownloadSession *sess)
 	if (sess->num_retry) sess->num_retry--;
 }
 
-void gf_dm_free_session(GF_DownloadSession *sess)
+void gf_dm_sess_del(GF_DownloadSession *sess)
 {
-	char *opt;
+	const char *opt;
 	gf_dm_disconnect(sess);
 	/*if threaded wait for thread exit*/
 	if (sess->th) {
@@ -313,7 +314,7 @@ void gf_dm_free_session(GF_DownloadSession *sess)
 void http_do_requests(GF_DownloadSession *sess);
 
 
-GF_Err gf_dm_get_last_error(GF_DownloadSession *sess)
+GF_Err gf_dm_sess_last_error(GF_DownloadSession *sess)
 {
 	if (!sess) return GF_BAD_PARAM;
 	return sess->last_error;
@@ -425,7 +426,7 @@ static u32 gf_dm_session_thread(void *par)
 
 #define SESSION_RETRY_COUNT	20
 
-GF_DownloadSession *gf_dm_new_session(GF_DownloadManager *dm, char *url, u32 dl_flags,
+GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, char *url, u32 dl_flags,
 									  void (*OnDataRcv)(void *usr_cbk, char *data, u32 data_size, u32 dnload_status, GF_Err dl_error),
 									  void *usr_cbk,
 									  void *private_data,
@@ -446,7 +447,7 @@ GF_DownloadSession *gf_dm_new_session(GF_DownloadManager *dm, char *url, u32 dl_
 	}
 
 
-	SAFEALLOC(sess, sizeof(GF_DownloadSession));
+	GF_SAFEALLOC(sess, sizeof(GF_DownloadSession));
 	sess->flags = dl_flags;
 	sess->OnDataRcv = OnDataRcv;
 	sess->usr_cbk = usr_cbk;
@@ -456,7 +457,7 @@ GF_DownloadSession *gf_dm_new_session(GF_DownloadManager *dm, char *url, u32 dl_
 
 	*e = gf_dm_setup_from_url(sess, url);
 	if (*e) {
-		gf_dm_free_session(sess);
+		gf_dm_sess_del(sess);
 		return NULL;
 	}
 	if (!(sess->flags & GF_DOWNLOAD_SESSION_NOT_THREADED) ) {
@@ -591,7 +592,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 #endif
 }
 
-const char *gf_dm_get_mime_type(GF_DownloadSession *sess)
+const char *gf_dm_sess_mime_type(GF_DownloadSession *sess)
 {
 	Bool go;
 	u32 flags = sess->flags;
@@ -626,10 +627,10 @@ const char *gf_dm_get_mime_type(GF_DownloadSession *sess)
 
 GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 {
-	char *opt;
+	const char *opt;
 	GF_DownloadManager *dm;
 	if (!cfg) return NULL;
-	SAFEALLOC(dm, sizeof(GF_DownloadManager));
+	GF_SAFEALLOC(dm, sizeof(GF_DownloadManager));
 	dm->sessions = gf_list_new();
 	dm->cfg = cfg;
 
@@ -658,12 +659,12 @@ void gf_dm_set_auth_callback(GF_DownloadManager *dm,
 	}
 }
 
-void gf_dm_delete(GF_DownloadManager *dm)
+void gf_dm_del(GF_DownloadManager *dm)
 {
 	/*this should never happen (bad cleanup from user)*/
 	while (gf_list_count(dm->sessions)) {
 		GF_DownloadSession *sess = gf_list_get(dm->sessions, 0);
-		gf_dm_free_session(sess);
+		gf_dm_sess_del(sess);
 	}
 	gf_list_del(dm->sessions);
 
@@ -744,7 +745,7 @@ static GFINLINE void gf_dm_data_recieved(GF_DownloadSession *sess, char *data, u
 }
 
 
-GF_Err gf_dm_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_size, u32 *read_size)
+GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_size, u32 *read_size)
 {
 	GF_Err e;
 	if (sess->cache || !buffer || !buffer_size) return GF_BAD_PARAM;
@@ -773,7 +774,7 @@ GF_Err gf_dm_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_size,
 	return GF_OK;
 }
 
-GF_Err gf_dm_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u32 *total_size, u32 *bytes_done, u32 *bytes_per_sec, u32 *net_status)
+GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u32 *total_size, u32 *bytes_done, u32 *bytes_per_sec, u32 *net_status)
 {
 	if (!sess) return GF_BAD_PARAM;
 	if (server) *server = sess->server_name;
@@ -786,7 +787,7 @@ GF_Err gf_dm_get_stats(GF_DownloadSession * sess, const char **server, const cha
 	return GF_OK;
 }
 
-const char *gf_dm_get_cache_name(GF_DownloadSession * sess)
+const char *gf_dm_sess_get_cache_name(GF_DownloadSession * sess)
 {
 	if (!sess) return NULL;
 	if (sess->cache) return sess->cache_name;
@@ -794,7 +795,7 @@ const char *gf_dm_get_cache_name(GF_DownloadSession * sess)
 	return NULL;
 }
 
-void gf_dm_abort(GF_DownloadSession * sess)
+void gf_dm_sess_abort(GF_DownloadSession * sess)
 {
 	if (sess->mx) {
 		gf_mx_p(sess->mx);
@@ -805,7 +806,7 @@ void gf_dm_abort(GF_DownloadSession * sess)
 		gf_dm_disconnect(sess);
 	}
 }
-void *gf_dm_get_private_data(GF_DownloadSession * sess)
+void *gf_dm_sess_get_private(GF_DownloadSession * sess)
 {
 	return sess ? sess->usr_private : NULL;
 }
@@ -876,8 +877,8 @@ void http_do_requests(GF_DownloadSession *sess)
 #if 0
 		if (strstr(sess->remote_path, "getKey.php?")) {
 			char *sLogin, *sPass;
-			sLogin = gf_modules_get_option(sess->dm->cfg, "General", "KMS_User");
-			sPass = gf_modules_get_option(sess->dm->cfg, "General", "KMS_Password");
+			sLogin = gf_modules_get_option((GF_BaseInterface *)sess->dm->cfg, "General", "KMS_User");
+			sPass = gf_modules_get_option((GF_BaseInterface *)sess->dm->cfg, "General", "KMS_Password");
 			if (!sLogin) sLogin = "mix";
 			if (!sPass) sPass = "mix";
 			sprintf(https_get_buffer, "%s&login=%s&password=%s", sess->remote_path, sLogin, sPass);

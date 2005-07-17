@@ -221,7 +221,9 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		if (!ch->rtp) {
 			ch->CName = strdup("mpeg4rtp");
 		} else {
+			void gf_get_user_name(char *buf, u32 buf_size);
 			char name[GF_MAX_IP_NAME_LEN];
+
 			s32 start;
 			gf_get_user_name(name, 1024);
 			if (strlen(name)) strcat(name, "@");

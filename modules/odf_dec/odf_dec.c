@@ -294,9 +294,9 @@ GF_BaseDecoder *NewODDec()
 	GF_SceneDecoder *tmp;
 	ODPriv *priv;
 	
-	SAFEALLOC(tmp, sizeof(GF_SceneDecoder));
+	GF_SAFEALLOC(tmp, sizeof(GF_SceneDecoder));
 	if (!tmp) return NULL;
-	SAFEALLOC(priv, sizeof(ODPriv));
+	GF_SAFEALLOC(priv, sizeof(ODPriv));
 
 	tmp->privateStack = priv;
 	tmp->AttachStream = ODF_AttachStream;
@@ -307,7 +307,7 @@ GF_BaseDecoder *NewODDec()
 	tmp->AttachScene = ODF_AttachScene;
 	tmp->CanHandleStream = ODF_CanHandleStream;
 
-	GF_REGISTER_MODULE(tmp, GF_SCENE_DECODER_INTERFACE, "GPAC OD Decoder", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(tmp, GF_SCENE_DECODER_INTERFACE, "GPAC OD Decoder", "gpac distribution")
 	return (GF_BaseDecoder *) tmp;
 }
 
@@ -322,22 +322,21 @@ Bool QueryInterface(u32 InterfaceType)
 	}
 }
 
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
 	case GF_SCENE_DECODER_INTERFACE:
-		return NewODDec();
+		return (GF_BaseInterface *)NewODDec();
 	default:
 		return NULL;
 	}
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseDecoder *ifcd = (GF_BaseDecoder *)ifce;
-	switch (ifcd->InterfaceType) {
+	switch (ifce->InterfaceType) {
 	case GF_SCENE_DECODER_INTERFACE:
-		DeleteODDec(ifcd);
+		DeleteODDec((GF_BaseDecoder *)ifce);
 		break;
 	}
 }

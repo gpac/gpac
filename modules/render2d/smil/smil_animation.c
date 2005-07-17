@@ -373,7 +373,7 @@ static void SMIL_Destroy_AnimationStack(GF_Node *node)
 SMIL_AnimationStack *SMIL_Init_AnimationStack(Render2D *sr, GF_Node *node, void (*UpdateTimeNode)(GF_TimeNode *))
 {
 	SMIL_AnimationStack *stack;
-	SAFEALLOC(stack, sizeof(SMIL_AnimationStack))
+	GF_SAFEALLOC(stack, sizeof(SMIL_AnimationStack))
 	stack->time_handle.UpdateTimeNode = UpdateTimeNode;
 	stack->time_handle.obj = node;
 	stack->compositor = sr->compositor;

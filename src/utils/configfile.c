@@ -198,7 +198,7 @@ char *IF_GetPath(GF_Config *iniFile)
 }
 
 
-char *gf_cfg_get_key(GF_Config *iniFile, const char *secName, const char *keyName)
+const char *gf_cfg_get_key(GF_Config *iniFile, const char *secName, const char *keyName)
 {
 	u32 i;
 	IniSection *sec;

@@ -77,10 +77,10 @@ static Bool MP4_IsLargeFile(char *path)
 #ifndef _WIN32_WCE
 	FILE *stream;
 	s64 size;
-	stream = f64_open(path, "rb");
+	stream = gf_f64_open(path, "rb");
 	if (!stream) return 0;
-	f64_seek(stream, 0, SEEK_END);
-	size = f64_tell(stream);
+	gf_f64_seek(stream, 0, SEEK_END);
+	size = gf_f64_tell(stream);
 	fclose(stream);
 	if (size == -1L) return 0;
 	if (size > 0xFFFFFFFF) return 1;
@@ -284,7 +284,7 @@ GF_DataMap *gf_isom_fdm_new_temp(const char *sPath)
 		} else {
 			sprintf(szPath, "%s%d_isotmp", sPath, (u32) tmp);
 		}
-		tmp->stream = f64_open(szPath, "w+b");
+		tmp->stream = gf_f64_open(szPath, "w+b");
 		tmp->temp_file = strdup(szPath);
 	}
 	if (!tmp->stream) {
@@ -323,13 +323,13 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 
 	switch (mode) {
 	case GF_ISOM_DATA_MAP_READ:
-		if (!tmp->stream) tmp->stream = f64_open(sPath, "rb");
+		if (!tmp->stream) tmp->stream = gf_f64_open(sPath, "rb");
 		bs_mode = GF_BITSTREAM_READ;
 		break;
 	///we open the file in READ/WRITE mode, in case 
 	case GF_ISOM_DATA_MAP_WRITE:
-		if (!tmp->stream) tmp->stream = f64_open(sPath, "w+b");
-		if (!tmp->stream) tmp->stream = f64_open(sPath, "wb");
+		if (!tmp->stream) tmp->stream = gf_f64_open(sPath, "w+b");
+		if (!tmp->stream) tmp->stream = gf_f64_open(sPath, "wb");
 		bs_mode = GF_BITSTREAM_READ;
 		break;
 	default:

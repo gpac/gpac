@@ -30,18 +30,18 @@
 GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpected)
 {
 	GF_Err ret;
-	u64 read;
+	u64 start;
 	//first make sure we can at least get the box size and type...
 	//18 = size (int32) + type (int32)
 	if (gf_bs_available(bs) < 8) {
 		*bytesExpected = 8;
 		return GF_ISOM_INCOMPLETE_FILE;
 	}
-	ret = gf_isom_parse_box(outBox, bs, &read);
+	start = gf_bs_get_position(bs);
+	ret = gf_isom_parse_box(outBox, bs);
 	if (ret == GF_ISOM_INCOMPLETE_FILE) {
-		*bytesExpected = (*outBox)->size - read - gf_bs_available(bs);
-		//rewind our GF_BitStream for next parsing
-		gf_bs_rewind(bs, read);
+		*bytesExpected = (*outBox)->size;
+		gf_bs_seek(bs, start);
 		gf_isom_box_del(*outBox);
 		*outBox = NULL;
 	}
@@ -49,10 +49,10 @@ GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpec
 }
 
 
-GF_Err gf_isom_parse_box(GF_Box **outBox, GF_BitStream *bs, u64 *read)
+GF_Err gf_isom_parse_box(GF_Box **outBox, GF_BitStream *bs)
 {
-	u32 type;
-	u64 size;
+	u32 type, hdr_size;
+	u64 size, start, end;
 	u8 uuid[16];
 	GF_Err e;
 	GF_Box *newBox;
@@ -60,16 +60,17 @@ GF_Err gf_isom_parse_box(GF_Box **outBox, GF_BitStream *bs, u64 *read)
 	if ((bs == NULL) || (outBox == NULL) ) return GF_BAD_PARAM;
 	*outBox = NULL;
 
-	//read box header
+	start = gf_bs_get_position(bs);
+
 	size = (u64) gf_bs_read_u32(bs);
-	*read = 4;
+	hdr_size = 4;
 	/*fix for some boxes found in some old hinted files*/
 	if ((size >= 2) && (size <= 4)) {
 		size = 4;
 		type = GF_ISOM_BOX_TYPE_VOID;
 	} else {
 		type = gf_bs_read_u32(bs);
-		*read += 4;
+		hdr_size += 4;
 		/*no size means till end of file - EXCEPT FOR some old QuickTime boxes...*/
 		if (type == GF_ISOM_BOX_TYPE_TOTL)
 			size = 12;
@@ -79,55 +80,73 @@ GF_Err gf_isom_parse_box(GF_Box **outBox, GF_BitStream *bs, u64 *read)
 	memset(uuid, 0, 16);
 	if (type == GF_ISOM_BOX_TYPE_UUID ) {
 		gf_bs_read_data(bs, (unsigned char *) uuid, 16);
-		*read += 16;
+		hdr_size += 16;
 	}
 	
 	//handle large box
 	if (size == 1) {
 		size = gf_bs_read_u64(bs);
-		*read += 8;
+		hdr_size += 8;
 	}
+//	gf_trace(2, 0, "ISOMedia", "Read Box type %s size %d\n", gf_4cc_to_str(type), size);
 
-	if ( size - *read < 0 ) return GF_ISOM_INVALID_FILE;
+	if ( size < hdr_size ) return GF_ISOM_INVALID_FILE;
+
 	//OK, create the box based on the type
 	newBox = gf_isom_box_new(type);
-	if (! newBox) return GF_OUT_OF_MEM;
+	if (!newBox) return GF_OUT_OF_MEM;
 
 	//OK, init and read this box
-	newBox->size = size;
 	memcpy(newBox->uuid, uuid, 16);
 	if (!newBox->type) newBox->type = type; 
 
-	if (newBox->size - *read > gf_bs_available(bs) ) {
+	end = gf_bs_available(bs);
+	if (size - hdr_size > end ) {
+		newBox->size = size - hdr_size - end;
 		*outBox = newBox;
 		return GF_ISOM_INCOMPLETE_FILE;
 	}
 	//we need a special reading for these boxes...
 	if (newBox->type == GF_ISOM_BOX_TYPE_STDP) {
+		newBox->size = size;
 		*outBox = newBox;
 		return GF_OK;
 	}
+	
+	newBox->size = size - hdr_size;
+	e = gf_isom_box_read(newBox, bs);	
+	newBox->size = size;
+	end = gf_bs_get_position(bs);
 
-	e = gf_isom_box_read(newBox, bs, read);	
-
-	if (e < 0 && e != GF_ISOM_INCOMPLETE_FILE) {
+	if (e && (e != GF_ISOM_INCOMPLETE_FILE)) {
 		gf_isom_box_del(newBox);
 		*outBox = NULL;
 		return e;
 	}
+
+	if (end-start > size) {
+		//gf_trace(0, 0, "ISOMedia", "Box size %d invalid (read %d)\n", (u32) size, (u32) end-start);
+		/*let's still try to load the file since no error was notified*/
+		gf_bs_seek(bs, start+size);
+	} else if (end-start < size) {
+		u32 to_skip = (u32) (size-(end-start));
+		//gf_trace(1, 0, "ISOMedia", "Box has %d extra bytes\n", to_skip);
+		gf_bs_skip_bytes(bs, to_skip);
+	}
+
 	*outBox = newBox;
 	return e;
 }
 
 
 
-GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs, u64 *read)
+GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs)
 {
-	GF_FullBox *self;
-	self = (GF_FullBox *) ptr;
+	GF_FullBox *self = (GF_FullBox *) ptr;
+	if (ptr->size<4) return GF_ISOM_INVALID_FILE;
 	self->version = gf_bs_read_u8(bs);
 	self->flags = gf_bs_read_u24(bs);
-	*read += 4;
+	ptr->size -= 4;
 	return GF_OK;
 }
 
@@ -153,6 +172,23 @@ void gf_isom_box_array_del(GF_List *boxList)
 	gf_list_del(boxList);
 }
 
+GF_Err gf_isom_read_box_list(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b))
+{
+	GF_Err e;
+	GF_Box *a;
+	while (parent->size) {
+		e = gf_isom_parse_box(&a, bs);
+		if (e) return e;
+		if (parent->size < a->size) return GF_ISOM_INVALID_FILE;
+		parent->size -= a->size;
+		e = add_box(parent, a);
+		if (e) {
+			gf_isom_box_del(a);
+			return e;
+		}
+	}
+	return GF_OK;
+}
 
 
 //from here, for write/edit versions
@@ -610,7 +646,7 @@ void gf_isom_box_del(GF_Box *a)
 
 
 
-GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs, u64 *read)
+GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 {
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_HINT:
@@ -618,96 +654,96 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs, u64 *read)
 	case GF_ISOM_BOX_TYPE_MPOD:
 	case GF_ISOM_BOX_TYPE_SYNC:
 	case GF_ISOM_BOX_TYPE_IPIR:
-		return reftype_Read(a, bs, read);
+		return reftype_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_FREE:
 	case GF_ISOM_BOX_TYPE_SKIP:
-		return free_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_MDAT: return mdat_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_MOOV: return moov_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_MVHD: return mvhd_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_MDHD: return mdhd_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_VMHD: return vmhd_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_SMHD: return smhd_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_HMHD: return hmhd_Read(a, bs, read);
+		return free_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_MDAT: return mdat_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_MOOV: return moov_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_MVHD: return mvhd_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_MDHD: return mdhd_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_VMHD: return vmhd_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_SMHD: return smhd_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_HMHD: return hmhd_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_ODHD:
 	case GF_ISOM_BOX_TYPE_CRHD:
 	case GF_ISOM_BOX_TYPE_SDHD:
 	case GF_ISOM_BOX_TYPE_NMHD:
-		return nmhd_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_STBL: return stbl_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_DINF: return dinf_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_URL: return url_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_URN: return urn_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_CPRT: return cprt_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_HDLR: return hdlr_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_IODS: return iods_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TRAK: return trak_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_MP4S: return mp4s_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_MP4V: return mp4v_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_MP4A: return mp4a_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_EDTS: return edts_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_UDTA: return udta_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_DREF: return dref_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_STSD: return stsd_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_STTS: return stts_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_CTTS: return ctts_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_STSH: return stsh_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_ELST: return elst_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_STSC: return stsc_Read(a, bs, read);
+		return nmhd_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_STBL: return stbl_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_DINF: return dinf_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_URL: return url_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_URN: return urn_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_CPRT: return cprt_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_HDLR: return hdlr_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_IODS: return iods_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TRAK: return trak_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_MP4S: return mp4s_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_MP4V: return mp4v_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_MP4A: return mp4a_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_EDTS: return edts_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_UDTA: return udta_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_DREF: return dref_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_STSD: return stsd_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_STTS: return stts_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_CTTS: return ctts_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_STSH: return stsh_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_ELST: return elst_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_STSC: return stsc_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_STZ2:
 	case GF_ISOM_BOX_TYPE_STSZ:
-		return stsz_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_STCO: return stco_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_STSS: return stss_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_STDP: return stdp_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_CO64: return co64_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_ESDS: return esds_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_MINF: return minf_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TKHD: return tkhd_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TREF: return tref_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_MDIA: return mdia_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_CHPL: return chpl_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_FTYP: return ftyp_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_FADB: return padb_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_VOID: return void_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_STSF: return stsf_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_PDIN: return pdin_Read(a, bs, read);
+		return stsz_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_STCO: return stco_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_STSS: return stss_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_STDP: return stdp_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_CO64: return co64_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_ESDS: return esds_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_MINF: return minf_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TKHD: return tkhd_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TREF: return tref_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_MDIA: return mdia_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_CHPL: return chpl_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_FTYP: return ftyp_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_FADB: return padb_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_VOID: return void_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_STSF: return stsf_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_PDIN: return pdin_Read(a, bs);
 	
-	case GF_ISOM_BOX_TYPE_RTP_STSD: return ghnt_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_RTPO: return rtpo_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_HNTI: return hnti_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_SDP: return sdp_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_HINF: return hinf_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_RELY: return rely_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TIMS: return tims_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TSRO: return tsro_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_SNRO: return snro_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TRPY: return trpy_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_NUMP: return nump_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TOTL: return totl_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_NPCK: return npck_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TPYL: return tpyl_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TPAY: return tpay_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_MAXR: return maxr_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_DMED: return dmed_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_DIMM: return dimm_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_DREP: return drep_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TMIN: return tmin_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TMAX: return tmax_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_PMAX: return pmax_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_DMAX: return dmax_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_PAYT: return payt_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_NAME: return name_Read(a, bs, read);
+	case GF_ISOM_BOX_TYPE_RTP_STSD: return ghnt_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_RTPO: return rtpo_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_HNTI: return hnti_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_SDP: return sdp_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_HINF: return hinf_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_RELY: return rely_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TIMS: return tims_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TSRO: return tsro_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_SNRO: return snro_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TRPY: return trpy_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_NUMP: return nump_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TOTL: return totl_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_NPCK: return npck_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TPYL: return tpyl_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TPAY: return tpay_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_MAXR: return maxr_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_DMED: return dmed_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_DIMM: return dimm_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_DREP: return drep_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TMIN: return tmin_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TMAX: return tmax_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_PMAX: return pmax_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_DMAX: return dmax_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_PAYT: return payt_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_NAME: return name_Read(a, bs);
 	
 #ifndef	GF_ISOM_NO_FRAGMENTS
-	case GF_ISOM_BOX_TYPE_MVEX: return mvex_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_MEHD: return mehd_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TREX: return trex_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_MOOF: return moof_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_MFHD: return mfhd_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TRAF: return traf_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TFHD: return tfhd_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TRUN: return trun_Read(a, bs, read);
+	case GF_ISOM_BOX_TYPE_MVEX: return mvex_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_MEHD: return mehd_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TREX: return trex_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_MOOF: return moof_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_MFHD: return mfhd_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TRAF: return traf_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TFHD: return tfhd_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TRUN: return trun_Read(a, bs);
 #endif
 	
 
@@ -717,58 +753,58 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs, u64 *read)
 	case GF_ISOM_SUBTYPE_3GP_EVRC:
 	case GF_ISOM_SUBTYPE_3GP_QCELP:
 	case GF_ISOM_SUBTYPE_3GP_SMV:
-		return gppa_Read(a, bs, read);
-	case GF_ISOM_SUBTYPE_3GP_H263: return gppv_Read(a, bs, read);
+		return gppa_Read(a, bs);
+	case GF_ISOM_SUBTYPE_3GP_H263: return gppv_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_DAMR:
 	case GF_ISOM_BOX_TYPE_DEVC: 
 	case GF_ISOM_BOX_TYPE_DQCP:
 	case GF_ISOM_BOX_TYPE_DSMV:
 	case GF_ISOM_BOX_TYPE_D263:
-		return gppc_Read(a, bs, read);
+		return gppc_Read(a, bs);
 
-	case GF_ISOM_BOX_TYPE_AVCC: return avcc_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_BTRT: return btrt_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_M4DS: return m4ds_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_AVC1: return avc1_Read(a, bs, read);
+	case GF_ISOM_BOX_TYPE_AVCC: return avcc_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_BTRT: return btrt_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_M4DS: return m4ds_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_AVC1: return avc1_Read(a, bs);
 
 	/*3GPP streaming text*/
-	case GF_ISOM_BOX_TYPE_FTAB: return ftab_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TX3G: return tx3g_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_STYL: return styl_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_HLIT: return hlit_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_HCLR: return hclr_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_KROK: return krok_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_DLAY: return dlay_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_HREF: return href_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TBOX: return tbox_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_BLNK: return blnk_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_TWRP: return twrp_Read(a, bs, read);
+	case GF_ISOM_BOX_TYPE_FTAB: return ftab_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TX3G: return tx3g_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_STYL: return styl_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_HLIT: return hlit_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_HCLR: return hclr_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_KROK: return krok_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_DLAY: return dlay_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_HREF: return href_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TBOX: return tbox_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_BLNK: return blnk_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TWRP: return twrp_Read(a, bs);
 
 	/* ISMA 1.0 Encryption and Authentication V 1.0 */
-	case GF_ISOM_BOX_TYPE_IKMS: return iKMS_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_ISFM: return iSFM_Read(a, bs, read);
+	case GF_ISOM_BOX_TYPE_IKMS: return iKMS_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_ISFM: return iSFM_Read(a, bs);
 
 	/* ISO FF extensions for MPEG-21 */
-	case GF_ISOM_BOX_TYPE_META: return meta_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_XML: return xml_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_BXML: return bxml_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_ILOC: return iloc_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_PITM: return pitm_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_IPRO: return ipro_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_INFE: return infe_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_IINF: return iinf_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_IMIF: return imif_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_IPMC: return ipmc_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_SINF: return sinf_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_FRMA: return frma_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_SCHM: return schm_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_SCHI: return schi_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_ENCA: return mp4a_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_ENCV: return mp4v_Read(a, bs, read);
-	case GF_ISOM_BOX_TYPE_ENCS: return mp4s_Read(a, bs, read);
+	case GF_ISOM_BOX_TYPE_META: return meta_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_XML: return xml_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_BXML: return bxml_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_ILOC: return iloc_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_PITM: return pitm_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_IPRO: return ipro_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_INFE: return infe_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_IINF: return iinf_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_IMIF: return imif_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_IPMC: return ipmc_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_SINF: return sinf_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_FRMA: return frma_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_SCHM: return schm_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_SCHI: return schi_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_ENCA: return mp4a_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_ENCV: return mp4v_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_ENCS: return mp4s_Read(a, bs);
 
 	default:
-		return defa_Read(a, bs, read);
+		return defa_Read(a, bs);
 	}
 }
 

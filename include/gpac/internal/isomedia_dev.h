@@ -58,15 +58,17 @@ typedef struct
 GF_Box *gf_isom_box_new(u32 boxType);
 
 GF_Err gf_isom_box_write(GF_Box *ptr, GF_BitStream *bs);
-GF_Err gf_isom_box_read(GF_Box *ptr, GF_BitStream *bs, u64 *read);
+GF_Err gf_isom_box_read(GF_Box *ptr, GF_BitStream *bs);
 void gf_isom_box_del(GF_Box *ptr);
 GF_Err gf_isom_box_size(GF_Box *ptr);
 
-GF_Err gf_isom_parse_box(GF_Box **outBox, GF_BitStream *bs, u64 *read);
+GF_Err gf_isom_parse_box(GF_Box **outBox, GF_BitStream *bs);
+GF_Err gf_isom_read_box_list(GF_Box *s, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b));
+
 GF_Err gf_isom_box_get_size(GF_Box *ptr);
 GF_Err gf_isom_full_box_get_size(GF_Box *ptr);
 GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs);
-GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs, u64 *read);
+GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs);
 GF_Err gf_isom_full_box_write(GF_Box *s, GF_BitStream *bs);
 void gf_isom_full_box_init(GF_Box *ptr);
 void gf_isom_box_array_del(GF_List *boxList);
@@ -76,165 +78,165 @@ GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list);
 
 enum
 {
-	GF_ISOM_BOX_TYPE_CO64	= FOUR_CHAR_INT( 'c', 'o', '6', '4' ),
-	GF_ISOM_BOX_TYPE_STCO	= FOUR_CHAR_INT( 's', 't', 'c', 'o' ),
-	GF_ISOM_BOX_TYPE_CRHD	= FOUR_CHAR_INT( 'c', 'r', 'h', 'd' ),
-	GF_ISOM_BOX_TYPE_CTTS	= FOUR_CHAR_INT( 'c', 't', 't', 's' ),
-	GF_ISOM_BOX_TYPE_CPRT	= FOUR_CHAR_INT( 'c', 'p', 'r', 't' ),
-	GF_ISOM_BOX_TYPE_CHPL	= FOUR_CHAR_INT( 'c', 'h', 'p', 'l' ),
-	GF_ISOM_BOX_TYPE_URL	= FOUR_CHAR_INT( 'u', 'r', 'l', ' ' ),
-	GF_ISOM_BOX_TYPE_URN	= FOUR_CHAR_INT( 'u', 'r', 'n', ' ' ),
-	GF_ISOM_BOX_TYPE_DINF	= FOUR_CHAR_INT( 'd', 'i', 'n', 'f' ),
-	GF_ISOM_BOX_TYPE_DREF	= FOUR_CHAR_INT( 'd', 'r', 'e', 'f' ),
-	GF_ISOM_BOX_TYPE_STDP	= FOUR_CHAR_INT( 's', 't', 'd', 'p' ),
-	GF_ISOM_BOX_TYPE_EDTS	= FOUR_CHAR_INT( 'e', 'd', 't', 's' ),
-	GF_ISOM_BOX_TYPE_ELST	= FOUR_CHAR_INT( 'e', 'l', 's', 't' ),
-	GF_ISOM_BOX_TYPE_UUID	= FOUR_CHAR_INT( 'u', 'u', 'i', 'd' ),
-	GF_ISOM_BOX_TYPE_FREE	= FOUR_CHAR_INT( 'f', 'r', 'e', 'e' ),
-	GF_ISOM_BOX_TYPE_HDLR	= FOUR_CHAR_INT( 'h', 'd', 'l', 'r' ),
-	GF_ISOM_BOX_TYPE_HMHD	= FOUR_CHAR_INT( 'h', 'm', 'h', 'd' ),
-	GF_ISOM_BOX_TYPE_HINT	= FOUR_CHAR_INT( 'h', 'i', 'n', 't' ),
-	GF_ISOM_BOX_TYPE_MDIA	= FOUR_CHAR_INT( 'm', 'd', 'i', 'a' ),
-	GF_ISOM_BOX_TYPE_MDAT	= FOUR_CHAR_INT( 'm', 'd', 'a', 't' ),
-	GF_ISOM_BOX_TYPE_MDHD	= FOUR_CHAR_INT( 'm', 'd', 'h', 'd' ),
-	GF_ISOM_BOX_TYPE_MINF	= FOUR_CHAR_INT( 'm', 'i', 'n', 'f' ),
-	GF_ISOM_BOX_TYPE_MOOV	= FOUR_CHAR_INT( 'm', 'o', 'o', 'v' ),
-	GF_ISOM_BOX_TYPE_MVHD	= FOUR_CHAR_INT( 'm', 'v', 'h', 'd' ),
-	GF_ISOM_BOX_TYPE_STSD	= FOUR_CHAR_INT( 's', 't', 's', 'd' ),
-	GF_ISOM_BOX_TYPE_STSZ	= FOUR_CHAR_INT( 's', 't', 's', 'z' ),
-	GF_ISOM_BOX_TYPE_STZ2	= FOUR_CHAR_INT( 's', 't', 'z', '2' ),
-	GF_ISOM_BOX_TYPE_STBL	= FOUR_CHAR_INT( 's', 't', 'b', 'l' ),
-	GF_ISOM_BOX_TYPE_STSC	= FOUR_CHAR_INT( 's', 't', 's', 'c' ),
-	GF_ISOM_BOX_TYPE_STSH	= FOUR_CHAR_INT( 's', 't', 's', 'h' ),
-	GF_ISOM_BOX_TYPE_SKIP	= FOUR_CHAR_INT( 's', 'k', 'i', 'p' ),
-	GF_ISOM_BOX_TYPE_SMHD	= FOUR_CHAR_INT( 's', 'm', 'h', 'd' ),
-	GF_ISOM_BOX_TYPE_STSS	= FOUR_CHAR_INT( 's', 't', 's', 's' ),
-	GF_ISOM_BOX_TYPE_STTS	= FOUR_CHAR_INT( 's', 't', 't', 's' ),
-	GF_ISOM_BOX_TYPE_TRAK	= FOUR_CHAR_INT( 't', 'r', 'a', 'k' ),
-	GF_ISOM_BOX_TYPE_TKHD	= FOUR_CHAR_INT( 't', 'k', 'h', 'd' ),
-	GF_ISOM_BOX_TYPE_TREF	= FOUR_CHAR_INT( 't', 'r', 'e', 'f' ),
-	GF_ISOM_BOX_TYPE_UDTA	= FOUR_CHAR_INT( 'u', 'd', 't', 'a' ),
-	GF_ISOM_BOX_TYPE_VMHD	= FOUR_CHAR_INT( 'v', 'm', 'h', 'd' ),
-	GF_ISOM_BOX_TYPE_FTYP	= FOUR_CHAR_INT( 'f', 't', 'y', 'p' ),
-	GF_ISOM_BOX_TYPE_FADB	= FOUR_CHAR_INT( 'p', 'a', 'd', 'b' ),
-	GF_ISOM_BOX_TYPE_PDIN	= FOUR_CHAR_INT( 'p', 'd', 'i', 'n' ),
+	GF_ISOM_BOX_TYPE_CO64	= GF_FOUR_CHAR_INT( 'c', 'o', '6', '4' ),
+	GF_ISOM_BOX_TYPE_STCO	= GF_FOUR_CHAR_INT( 's', 't', 'c', 'o' ),
+	GF_ISOM_BOX_TYPE_CRHD	= GF_FOUR_CHAR_INT( 'c', 'r', 'h', 'd' ),
+	GF_ISOM_BOX_TYPE_CTTS	= GF_FOUR_CHAR_INT( 'c', 't', 't', 's' ),
+	GF_ISOM_BOX_TYPE_CPRT	= GF_FOUR_CHAR_INT( 'c', 'p', 'r', 't' ),
+	GF_ISOM_BOX_TYPE_CHPL	= GF_FOUR_CHAR_INT( 'c', 'h', 'p', 'l' ),
+	GF_ISOM_BOX_TYPE_URL	= GF_FOUR_CHAR_INT( 'u', 'r', 'l', ' ' ),
+	GF_ISOM_BOX_TYPE_URN	= GF_FOUR_CHAR_INT( 'u', 'r', 'n', ' ' ),
+	GF_ISOM_BOX_TYPE_DINF	= GF_FOUR_CHAR_INT( 'd', 'i', 'n', 'f' ),
+	GF_ISOM_BOX_TYPE_DREF	= GF_FOUR_CHAR_INT( 'd', 'r', 'e', 'f' ),
+	GF_ISOM_BOX_TYPE_STDP	= GF_FOUR_CHAR_INT( 's', 't', 'd', 'p' ),
+	GF_ISOM_BOX_TYPE_EDTS	= GF_FOUR_CHAR_INT( 'e', 'd', 't', 's' ),
+	GF_ISOM_BOX_TYPE_ELST	= GF_FOUR_CHAR_INT( 'e', 'l', 's', 't' ),
+	GF_ISOM_BOX_TYPE_UUID	= GF_FOUR_CHAR_INT( 'u', 'u', 'i', 'd' ),
+	GF_ISOM_BOX_TYPE_FREE	= GF_FOUR_CHAR_INT( 'f', 'r', 'e', 'e' ),
+	GF_ISOM_BOX_TYPE_HDLR	= GF_FOUR_CHAR_INT( 'h', 'd', 'l', 'r' ),
+	GF_ISOM_BOX_TYPE_HMHD	= GF_FOUR_CHAR_INT( 'h', 'm', 'h', 'd' ),
+	GF_ISOM_BOX_TYPE_HINT	= GF_FOUR_CHAR_INT( 'h', 'i', 'n', 't' ),
+	GF_ISOM_BOX_TYPE_MDIA	= GF_FOUR_CHAR_INT( 'm', 'd', 'i', 'a' ),
+	GF_ISOM_BOX_TYPE_MDAT	= GF_FOUR_CHAR_INT( 'm', 'd', 'a', 't' ),
+	GF_ISOM_BOX_TYPE_MDHD	= GF_FOUR_CHAR_INT( 'm', 'd', 'h', 'd' ),
+	GF_ISOM_BOX_TYPE_MINF	= GF_FOUR_CHAR_INT( 'm', 'i', 'n', 'f' ),
+	GF_ISOM_BOX_TYPE_MOOV	= GF_FOUR_CHAR_INT( 'm', 'o', 'o', 'v' ),
+	GF_ISOM_BOX_TYPE_MVHD	= GF_FOUR_CHAR_INT( 'm', 'v', 'h', 'd' ),
+	GF_ISOM_BOX_TYPE_STSD	= GF_FOUR_CHAR_INT( 's', 't', 's', 'd' ),
+	GF_ISOM_BOX_TYPE_STSZ	= GF_FOUR_CHAR_INT( 's', 't', 's', 'z' ),
+	GF_ISOM_BOX_TYPE_STZ2	= GF_FOUR_CHAR_INT( 's', 't', 'z', '2' ),
+	GF_ISOM_BOX_TYPE_STBL	= GF_FOUR_CHAR_INT( 's', 't', 'b', 'l' ),
+	GF_ISOM_BOX_TYPE_STSC	= GF_FOUR_CHAR_INT( 's', 't', 's', 'c' ),
+	GF_ISOM_BOX_TYPE_STSH	= GF_FOUR_CHAR_INT( 's', 't', 's', 'h' ),
+	GF_ISOM_BOX_TYPE_SKIP	= GF_FOUR_CHAR_INT( 's', 'k', 'i', 'p' ),
+	GF_ISOM_BOX_TYPE_SMHD	= GF_FOUR_CHAR_INT( 's', 'm', 'h', 'd' ),
+	GF_ISOM_BOX_TYPE_STSS	= GF_FOUR_CHAR_INT( 's', 't', 's', 's' ),
+	GF_ISOM_BOX_TYPE_STTS	= GF_FOUR_CHAR_INT( 's', 't', 't', 's' ),
+	GF_ISOM_BOX_TYPE_TRAK	= GF_FOUR_CHAR_INT( 't', 'r', 'a', 'k' ),
+	GF_ISOM_BOX_TYPE_TKHD	= GF_FOUR_CHAR_INT( 't', 'k', 'h', 'd' ),
+	GF_ISOM_BOX_TYPE_TREF	= GF_FOUR_CHAR_INT( 't', 'r', 'e', 'f' ),
+	GF_ISOM_BOX_TYPE_UDTA	= GF_FOUR_CHAR_INT( 'u', 'd', 't', 'a' ),
+	GF_ISOM_BOX_TYPE_VMHD	= GF_FOUR_CHAR_INT( 'v', 'm', 'h', 'd' ),
+	GF_ISOM_BOX_TYPE_FTYP	= GF_FOUR_CHAR_INT( 'f', 't', 'y', 'p' ),
+	GF_ISOM_BOX_TYPE_FADB	= GF_FOUR_CHAR_INT( 'p', 'a', 'd', 'b' ),
+	GF_ISOM_BOX_TYPE_PDIN	= GF_FOUR_CHAR_INT( 'p', 'd', 'i', 'n' ),
 
 #ifndef	GF_ISOM_NO_FRAGMENTS
 	/*Movie Fragments*/
-	GF_ISOM_BOX_TYPE_MVEX	= FOUR_CHAR_INT( 'm', 'v', 'e', 'x' ),
-	GF_ISOM_BOX_TYPE_MEHD	= FOUR_CHAR_INT( 'm', 'e', 'h', 'd' ),
-	GF_ISOM_BOX_TYPE_TREX	= FOUR_CHAR_INT( 't', 'r', 'e', 'x' ),
-	GF_ISOM_BOX_TYPE_MOOF	= FOUR_CHAR_INT( 'm', 'o', 'o', 'f' ),
-	GF_ISOM_BOX_TYPE_MFHD	= FOUR_CHAR_INT( 'm', 'f', 'h', 'd' ),
-	GF_ISOM_BOX_TYPE_TRAF	= FOUR_CHAR_INT( 't', 'r', 'a', 'f' ),
-	GF_ISOM_BOX_TYPE_TFHD	= FOUR_CHAR_INT( 't', 'f', 'h', 'd' ),
-	GF_ISOM_BOX_TYPE_TRUN	= FOUR_CHAR_INT( 't', 'r', 'u', 'n' ),
+	GF_ISOM_BOX_TYPE_MVEX	= GF_FOUR_CHAR_INT( 'm', 'v', 'e', 'x' ),
+	GF_ISOM_BOX_TYPE_MEHD	= GF_FOUR_CHAR_INT( 'm', 'e', 'h', 'd' ),
+	GF_ISOM_BOX_TYPE_TREX	= GF_FOUR_CHAR_INT( 't', 'r', 'e', 'x' ),
+	GF_ISOM_BOX_TYPE_MOOF	= GF_FOUR_CHAR_INT( 'm', 'o', 'o', 'f' ),
+	GF_ISOM_BOX_TYPE_MFHD	= GF_FOUR_CHAR_INT( 'm', 'f', 'h', 'd' ),
+	GF_ISOM_BOX_TYPE_TRAF	= GF_FOUR_CHAR_INT( 't', 'r', 'a', 'f' ),
+	GF_ISOM_BOX_TYPE_TFHD	= GF_FOUR_CHAR_INT( 't', 'f', 'h', 'd' ),
+	GF_ISOM_BOX_TYPE_TRUN	= GF_FOUR_CHAR_INT( 't', 'r', 'u', 'n' ),
 #endif
 
 	/*MP4 extensions*/
-	GF_ISOM_BOX_TYPE_DPND	= FOUR_CHAR_INT( 'd', 'p', 'n', 'd' ),
-	GF_ISOM_BOX_TYPE_IODS	= FOUR_CHAR_INT( 'i', 'o', 'd', 's' ),
-	GF_ISOM_BOX_TYPE_ESDS	= FOUR_CHAR_INT( 'e', 's', 'd', 's' ),
-	GF_ISOM_BOX_TYPE_MPOD	= FOUR_CHAR_INT( 'm', 'p', 'o', 'd' ),
-	GF_ISOM_BOX_TYPE_SYNC	= FOUR_CHAR_INT( 's', 'y', 'n', 'c' ),
-	GF_ISOM_BOX_TYPE_IPIR	= FOUR_CHAR_INT( 'i', 'p', 'i', 'r' ),
-	GF_ISOM_BOX_TYPE_SDHD	= FOUR_CHAR_INT( 's', 'd', 'h', 'd' ),
-	GF_ISOM_BOX_TYPE_ODHD	= FOUR_CHAR_INT( 'o', 'd', 'h', 'd' ),
-	GF_ISOM_BOX_TYPE_NMHD	= FOUR_CHAR_INT( 'n', 'm', 'h', 'd' ),
-	GF_ISOM_BOX_TYPE_MP4S	= FOUR_CHAR_INT( 'm', 'p', '4', 's' ),
-	GF_ISOM_BOX_TYPE_MP4A	= FOUR_CHAR_INT( 'm', 'p', '4', 'a' ),
-	GF_ISOM_BOX_TYPE_MP4V	= FOUR_CHAR_INT( 'm', 'p', '4', 'v' ),
+	GF_ISOM_BOX_TYPE_DPND	= GF_FOUR_CHAR_INT( 'd', 'p', 'n', 'd' ),
+	GF_ISOM_BOX_TYPE_IODS	= GF_FOUR_CHAR_INT( 'i', 'o', 'd', 's' ),
+	GF_ISOM_BOX_TYPE_ESDS	= GF_FOUR_CHAR_INT( 'e', 's', 'd', 's' ),
+	GF_ISOM_BOX_TYPE_MPOD	= GF_FOUR_CHAR_INT( 'm', 'p', 'o', 'd' ),
+	GF_ISOM_BOX_TYPE_SYNC	= GF_FOUR_CHAR_INT( 's', 'y', 'n', 'c' ),
+	GF_ISOM_BOX_TYPE_IPIR	= GF_FOUR_CHAR_INT( 'i', 'p', 'i', 'r' ),
+	GF_ISOM_BOX_TYPE_SDHD	= GF_FOUR_CHAR_INT( 's', 'd', 'h', 'd' ),
+	GF_ISOM_BOX_TYPE_ODHD	= GF_FOUR_CHAR_INT( 'o', 'd', 'h', 'd' ),
+	GF_ISOM_BOX_TYPE_NMHD	= GF_FOUR_CHAR_INT( 'n', 'm', 'h', 'd' ),
+	GF_ISOM_BOX_TYPE_MP4S	= GF_FOUR_CHAR_INT( 'm', 'p', '4', 's' ),
+	GF_ISOM_BOX_TYPE_MP4A	= GF_FOUR_CHAR_INT( 'm', 'p', '4', 'a' ),
+	GF_ISOM_BOX_TYPE_MP4V	= GF_FOUR_CHAR_INT( 'm', 'p', '4', 'v' ),
 
 	/*AVC / H264 extension*/
-	GF_ISOM_BOX_TYPE_AVCC	= FOUR_CHAR_INT( 'a', 'v', 'c', 'C' ),
-	GF_ISOM_BOX_TYPE_BTRT	= FOUR_CHAR_INT( 'b', 't', 'r', 't' ),
-	GF_ISOM_BOX_TYPE_M4DS	= FOUR_CHAR_INT( 'm', '4', 'd', 's' ),
-	GF_ISOM_BOX_TYPE_AVC1	= FOUR_CHAR_INT( 'a', 'v', 'c', '1' ),
+	GF_ISOM_BOX_TYPE_AVCC	= GF_FOUR_CHAR_INT( 'a', 'v', 'c', 'C' ),
+	GF_ISOM_BOX_TYPE_BTRT	= GF_FOUR_CHAR_INT( 'b', 't', 'r', 't' ),
+	GF_ISOM_BOX_TYPE_M4DS	= GF_FOUR_CHAR_INT( 'm', '4', 'd', 's' ),
+	GF_ISOM_BOX_TYPE_AVC1	= GF_FOUR_CHAR_INT( 'a', 'v', 'c', '1' ),
 
 	/*3GPP extensions*/
-	GF_ISOM_BOX_TYPE_DAMR	= FOUR_CHAR_INT( 'd', 'a', 'm', 'r' ),
-	GF_ISOM_BOX_TYPE_D263	= FOUR_CHAR_INT( 'd', '2', '6', '3' ),
-	GF_ISOM_BOX_TYPE_DEVC	= FOUR_CHAR_INT( 'd', 'e', 'v', 'c' ),
-	GF_ISOM_BOX_TYPE_DQCP	= FOUR_CHAR_INT( 'd', 'q', 'c', 'p' ),
-	GF_ISOM_BOX_TYPE_DSMV	= FOUR_CHAR_INT( 'd', 's', 'm', 'v' ),
+	GF_ISOM_BOX_TYPE_DAMR	= GF_FOUR_CHAR_INT( 'd', 'a', 'm', 'r' ),
+	GF_ISOM_BOX_TYPE_D263	= GF_FOUR_CHAR_INT( 'd', '2', '6', '3' ),
+	GF_ISOM_BOX_TYPE_DEVC	= GF_FOUR_CHAR_INT( 'd', 'e', 'v', 'c' ),
+	GF_ISOM_BOX_TYPE_DQCP	= GF_FOUR_CHAR_INT( 'd', 'q', 'c', 'p' ),
+	GF_ISOM_BOX_TYPE_DSMV	= GF_FOUR_CHAR_INT( 'd', 's', 'm', 'v' ),
 
 	/*3GPP text / MPEG-4 StreamingText*/
-	GF_ISOM_BOX_TYPE_FTAB	= FOUR_CHAR_INT( 'f', 't', 'a', 'b' ),
-	GF_ISOM_BOX_TYPE_TX3G	= FOUR_CHAR_INT( 't', 'x', '3', 'g' ),
-	GF_ISOM_BOX_TYPE_STYL	= FOUR_CHAR_INT( 's', 't', 'y', 'l' ),
-	GF_ISOM_BOX_TYPE_HLIT	= FOUR_CHAR_INT( 'h', 'l', 'i', 't' ),
-	GF_ISOM_BOX_TYPE_HCLR	= FOUR_CHAR_INT( 'h', 'c', 'l', 'r' ),
-	GF_ISOM_BOX_TYPE_KROK	= FOUR_CHAR_INT( 'k', 'r', 'o', 'k' ),
-	GF_ISOM_BOX_TYPE_DLAY	= FOUR_CHAR_INT( 'd', 'l', 'a', 'y' ),
-	GF_ISOM_BOX_TYPE_HREF	= FOUR_CHAR_INT( 'h', 'r', 'e', 'f' ),
-	GF_ISOM_BOX_TYPE_TBOX	= FOUR_CHAR_INT( 't', 'b', 'o', 'x' ),
-	GF_ISOM_BOX_TYPE_BLNK	= FOUR_CHAR_INT( 'b', 'l', 'n', 'k' ),
-	GF_ISOM_BOX_TYPE_TWRP	= FOUR_CHAR_INT( 't', 'w', 'r', 'p' ),
+	GF_ISOM_BOX_TYPE_FTAB	= GF_FOUR_CHAR_INT( 'f', 't', 'a', 'b' ),
+	GF_ISOM_BOX_TYPE_TX3G	= GF_FOUR_CHAR_INT( 't', 'x', '3', 'g' ),
+	GF_ISOM_BOX_TYPE_STYL	= GF_FOUR_CHAR_INT( 's', 't', 'y', 'l' ),
+	GF_ISOM_BOX_TYPE_HLIT	= GF_FOUR_CHAR_INT( 'h', 'l', 'i', 't' ),
+	GF_ISOM_BOX_TYPE_HCLR	= GF_FOUR_CHAR_INT( 'h', 'c', 'l', 'r' ),
+	GF_ISOM_BOX_TYPE_KROK	= GF_FOUR_CHAR_INT( 'k', 'r', 'o', 'k' ),
+	GF_ISOM_BOX_TYPE_DLAY	= GF_FOUR_CHAR_INT( 'd', 'l', 'a', 'y' ),
+	GF_ISOM_BOX_TYPE_HREF	= GF_FOUR_CHAR_INT( 'h', 'r', 'e', 'f' ),
+	GF_ISOM_BOX_TYPE_TBOX	= GF_FOUR_CHAR_INT( 't', 'b', 'o', 'x' ),
+	GF_ISOM_BOX_TYPE_BLNK	= GF_FOUR_CHAR_INT( 'b', 'l', 'n', 'k' ),
+	GF_ISOM_BOX_TYPE_TWRP	= GF_FOUR_CHAR_INT( 't', 'w', 'r', 'p' ),
 
 	/* ISO Base Media File Format Extensions for MPEG-21 */
-	GF_ISOM_BOX_TYPE_META	= FOUR_CHAR_INT( 'm', 'e', 't', 'a' ),
-	GF_ISOM_BOX_TYPE_XML	= FOUR_CHAR_INT( 'x', 'm', 'l', ' ' ),
-	GF_ISOM_BOX_TYPE_BXML	= FOUR_CHAR_INT( 'b', 'x', 'm', 'l' ),
-	GF_ISOM_BOX_TYPE_ILOC	= FOUR_CHAR_INT( 'i', 'l', 'o', 'c' ),
-	GF_ISOM_BOX_TYPE_PITM	= FOUR_CHAR_INT( 'p', 'i', 't', 'm' ),
-	GF_ISOM_BOX_TYPE_IPRO	= FOUR_CHAR_INT( 'i', 'p', 'r', 'o' ),
-	GF_ISOM_BOX_TYPE_INFE	= FOUR_CHAR_INT( 'i', 'n', 'f', 'e' ),
-	GF_ISOM_BOX_TYPE_IINF	= FOUR_CHAR_INT( 'i', 'i', 'n', 'f' ),
-	GF_ISOM_BOX_TYPE_IMIF	= FOUR_CHAR_INT( 'i', 'm', 'i', 'f' ),
-	GF_ISOM_BOX_TYPE_IPMC	= FOUR_CHAR_INT( 'i', 'p', 'm', 'c' ),
-	GF_ISOM_BOX_TYPE_ENCA	= FOUR_CHAR_INT( 'e', 'n', 'c', 'a' ),
-	GF_ISOM_BOX_TYPE_ENCV	= FOUR_CHAR_INT( 'e', 'n', 'c', 'v' ),
-	GF_ISOM_BOX_TYPE_ENCT	= FOUR_CHAR_INT( 'e', 'n', 'c', 't' ),
-	GF_ISOM_BOX_TYPE_ENCS	= FOUR_CHAR_INT( 'e', 'n', 'c', 's' ),
-	GF_ISOM_BOX_TYPE_SINF	= FOUR_CHAR_INT( 's', 'i', 'n', 'f' ),
-	GF_ISOM_BOX_TYPE_FRMA	= FOUR_CHAR_INT( 'f', 'r', 'm', 'a' ),
-	GF_ISOM_BOX_TYPE_SCHM	= FOUR_CHAR_INT( 's', 'c', 'h', 'm' ),
-	GF_ISOM_BOX_TYPE_SCHI	= FOUR_CHAR_INT( 's', 'c', 'h', 'i' ),
+	GF_ISOM_BOX_TYPE_META	= GF_FOUR_CHAR_INT( 'm', 'e', 't', 'a' ),
+	GF_ISOM_BOX_TYPE_XML	= GF_FOUR_CHAR_INT( 'x', 'm', 'l', ' ' ),
+	GF_ISOM_BOX_TYPE_BXML	= GF_FOUR_CHAR_INT( 'b', 'x', 'm', 'l' ),
+	GF_ISOM_BOX_TYPE_ILOC	= GF_FOUR_CHAR_INT( 'i', 'l', 'o', 'c' ),
+	GF_ISOM_BOX_TYPE_PITM	= GF_FOUR_CHAR_INT( 'p', 'i', 't', 'm' ),
+	GF_ISOM_BOX_TYPE_IPRO	= GF_FOUR_CHAR_INT( 'i', 'p', 'r', 'o' ),
+	GF_ISOM_BOX_TYPE_INFE	= GF_FOUR_CHAR_INT( 'i', 'n', 'f', 'e' ),
+	GF_ISOM_BOX_TYPE_IINF	= GF_FOUR_CHAR_INT( 'i', 'i', 'n', 'f' ),
+	GF_ISOM_BOX_TYPE_IMIF	= GF_FOUR_CHAR_INT( 'i', 'm', 'i', 'f' ),
+	GF_ISOM_BOX_TYPE_IPMC	= GF_FOUR_CHAR_INT( 'i', 'p', 'm', 'c' ),
+	GF_ISOM_BOX_TYPE_ENCA	= GF_FOUR_CHAR_INT( 'e', 'n', 'c', 'a' ),
+	GF_ISOM_BOX_TYPE_ENCV	= GF_FOUR_CHAR_INT( 'e', 'n', 'c', 'v' ),
+	GF_ISOM_BOX_TYPE_ENCT	= GF_FOUR_CHAR_INT( 'e', 'n', 'c', 't' ),
+	GF_ISOM_BOX_TYPE_ENCS	= GF_FOUR_CHAR_INT( 'e', 'n', 'c', 's' ),
+	GF_ISOM_BOX_TYPE_SINF	= GF_FOUR_CHAR_INT( 's', 'i', 'n', 'f' ),
+	GF_ISOM_BOX_TYPE_FRMA	= GF_FOUR_CHAR_INT( 'f', 'r', 'm', 'a' ),
+	GF_ISOM_BOX_TYPE_SCHM	= GF_FOUR_CHAR_INT( 's', 'c', 'h', 'm' ),
+	GF_ISOM_BOX_TYPE_SCHI	= GF_FOUR_CHAR_INT( 's', 'c', 'h', 'i' ),
 
 	/* ISMA 1.0 Encryption and Authentication V 1.0 */
-	GF_ISOM_BOX_TYPE_IKMS	= FOUR_CHAR_INT( 'i', 'K', 'M', 'S' ),
-	GF_ISOM_BOX_TYPE_ISFM	= FOUR_CHAR_INT( 'i', 'S', 'F', 'M' ),
+	GF_ISOM_BOX_TYPE_IKMS	= GF_FOUR_CHAR_INT( 'i', 'K', 'M', 'S' ),
+	GF_ISOM_BOX_TYPE_ISFM	= GF_FOUR_CHAR_INT( 'i', 'S', 'F', 'M' ),
 
 	/* Hinting boxes */
-	GF_ISOM_BOX_TYPE_RTP_STSD	= FOUR_CHAR_INT( 'r', 't', 'p', ' ' ),
-	GF_ISOM_BOX_TYPE_HNTI	= FOUR_CHAR_INT( 'h', 'n', 't', 'i' ),
-	GF_ISOM_BOX_TYPE_RTP	= FOUR_CHAR_INT( 'r', 't', 'p', ' ' ),
-	GF_ISOM_BOX_TYPE_SDP	= FOUR_CHAR_INT( 's', 'd', 'p', ' ' ),
-	GF_ISOM_BOX_TYPE_HINF	= FOUR_CHAR_INT( 'h', 'i', 'n', 'f' ),
-	GF_ISOM_BOX_TYPE_NAME	= FOUR_CHAR_INT( 'n', 'a', 'm', 'e' ),
-	GF_ISOM_BOX_TYPE_TRPY	= FOUR_CHAR_INT( 't', 'r', 'p', 'y' ),
-	GF_ISOM_BOX_TYPE_NUMP	= FOUR_CHAR_INT( 'n', 'u', 'm', 'p' ),
-	GF_ISOM_BOX_TYPE_TOTL	= FOUR_CHAR_INT( 't', 'o', 't', 'l' ),
-	GF_ISOM_BOX_TYPE_NPCK	= FOUR_CHAR_INT( 'n', 'p', 'c', 'k' ),
-	GF_ISOM_BOX_TYPE_TPYL	= FOUR_CHAR_INT( 't', 'p', 'y', 'l' ),
-	GF_ISOM_BOX_TYPE_TPAY	= FOUR_CHAR_INT( 't', 'p', 'a', 'y' ),
-	GF_ISOM_BOX_TYPE_MAXR	= FOUR_CHAR_INT( 'm', 'a', 'x', 'r' ),
-	GF_ISOM_BOX_TYPE_DMED	= FOUR_CHAR_INT( 'd', 'm', 'e', 'd' ),
-	GF_ISOM_BOX_TYPE_DIMM	= FOUR_CHAR_INT( 'd', 'i', 'm', 'm' ),
-	GF_ISOM_BOX_TYPE_DREP	= FOUR_CHAR_INT( 'd', 'r', 'e', 'p' ),
-	GF_ISOM_BOX_TYPE_TMIN	= FOUR_CHAR_INT( 't', 'm', 'i', 'n' ),
-	GF_ISOM_BOX_TYPE_TMAX	= FOUR_CHAR_INT( 't', 'm', 'a', 'x' ),
-	GF_ISOM_BOX_TYPE_PMAX	= FOUR_CHAR_INT( 'p', 'm', 'a', 'x' ),
-	GF_ISOM_BOX_TYPE_DMAX	= FOUR_CHAR_INT( 'd', 'm', 'a', 'x' ),
-	GF_ISOM_BOX_TYPE_PAYT	= FOUR_CHAR_INT( 'p', 'a', 'y', 't' ),
-	GF_ISOM_BOX_TYPE_RELY	= FOUR_CHAR_INT( 'r', 'e', 'l', 'y' ),
-	GF_ISOM_BOX_TYPE_TIMS	= FOUR_CHAR_INT( 't', 'i', 'm', 's' ),
-	GF_ISOM_BOX_TYPE_TSRO	= FOUR_CHAR_INT( 't', 's', 'r', 'o' ),
-	GF_ISOM_BOX_TYPE_SNRO	= FOUR_CHAR_INT( 's', 'n', 'r', 'o' ),
-	GF_ISOM_BOX_TYPE_RTPO	= FOUR_CHAR_INT( 'r', 't', 'p', 'o' ),
+	GF_ISOM_BOX_TYPE_RTP_STSD	= GF_FOUR_CHAR_INT( 'r', 't', 'p', ' ' ),
+	GF_ISOM_BOX_TYPE_HNTI	= GF_FOUR_CHAR_INT( 'h', 'n', 't', 'i' ),
+	GF_ISOM_BOX_TYPE_RTP	= GF_FOUR_CHAR_INT( 'r', 't', 'p', ' ' ),
+	GF_ISOM_BOX_TYPE_SDP	= GF_FOUR_CHAR_INT( 's', 'd', 'p', ' ' ),
+	GF_ISOM_BOX_TYPE_HINF	= GF_FOUR_CHAR_INT( 'h', 'i', 'n', 'f' ),
+	GF_ISOM_BOX_TYPE_NAME	= GF_FOUR_CHAR_INT( 'n', 'a', 'm', 'e' ),
+	GF_ISOM_BOX_TYPE_TRPY	= GF_FOUR_CHAR_INT( 't', 'r', 'p', 'y' ),
+	GF_ISOM_BOX_TYPE_NUMP	= GF_FOUR_CHAR_INT( 'n', 'u', 'm', 'p' ),
+	GF_ISOM_BOX_TYPE_TOTL	= GF_FOUR_CHAR_INT( 't', 'o', 't', 'l' ),
+	GF_ISOM_BOX_TYPE_NPCK	= GF_FOUR_CHAR_INT( 'n', 'p', 'c', 'k' ),
+	GF_ISOM_BOX_TYPE_TPYL	= GF_FOUR_CHAR_INT( 't', 'p', 'y', 'l' ),
+	GF_ISOM_BOX_TYPE_TPAY	= GF_FOUR_CHAR_INT( 't', 'p', 'a', 'y' ),
+	GF_ISOM_BOX_TYPE_MAXR	= GF_FOUR_CHAR_INT( 'm', 'a', 'x', 'r' ),
+	GF_ISOM_BOX_TYPE_DMED	= GF_FOUR_CHAR_INT( 'd', 'm', 'e', 'd' ),
+	GF_ISOM_BOX_TYPE_DIMM	= GF_FOUR_CHAR_INT( 'd', 'i', 'm', 'm' ),
+	GF_ISOM_BOX_TYPE_DREP	= GF_FOUR_CHAR_INT( 'd', 'r', 'e', 'p' ),
+	GF_ISOM_BOX_TYPE_TMIN	= GF_FOUR_CHAR_INT( 't', 'm', 'i', 'n' ),
+	GF_ISOM_BOX_TYPE_TMAX	= GF_FOUR_CHAR_INT( 't', 'm', 'a', 'x' ),
+	GF_ISOM_BOX_TYPE_PMAX	= GF_FOUR_CHAR_INT( 'p', 'm', 'a', 'x' ),
+	GF_ISOM_BOX_TYPE_DMAX	= GF_FOUR_CHAR_INT( 'd', 'm', 'a', 'x' ),
+	GF_ISOM_BOX_TYPE_PAYT	= GF_FOUR_CHAR_INT( 'p', 'a', 'y', 't' ),
+	GF_ISOM_BOX_TYPE_RELY	= GF_FOUR_CHAR_INT( 'r', 'e', 'l', 'y' ),
+	GF_ISOM_BOX_TYPE_TIMS	= GF_FOUR_CHAR_INT( 't', 'i', 'm', 's' ),
+	GF_ISOM_BOX_TYPE_TSRO	= GF_FOUR_CHAR_INT( 't', 's', 'r', 'o' ),
+	GF_ISOM_BOX_TYPE_SNRO	= GF_FOUR_CHAR_INT( 's', 'n', 'r', 'o' ),
+	GF_ISOM_BOX_TYPE_RTPO	= GF_FOUR_CHAR_INT( 'r', 't', 'p', 'o' ),
 	
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
 
 	/*generic handlers*/
-	GF_ISOM_BOX_TYPE_GNRM	= FOUR_CHAR_INT( 'g', 'n', 'r', 'm' ),
-	GF_ISOM_BOX_TYPE_GNRV	= FOUR_CHAR_INT( 'g', 'n', 'r', 'v' ),
-	GF_ISOM_BOX_TYPE_GNRA	= FOUR_CHAR_INT( 'g', 'n', 'r', 'a' ),
+	GF_ISOM_BOX_TYPE_GNRM	= GF_FOUR_CHAR_INT( 'g', 'n', 'r', 'm' ),
+	GF_ISOM_BOX_TYPE_GNRV	= GF_FOUR_CHAR_INT( 'g', 'n', 'r', 'v' ),
+	GF_ISOM_BOX_TYPE_GNRA	= GF_FOUR_CHAR_INT( 'g', 'n', 'r', 'a' ),
 	/*storage of AU fragments (for MPEG-4 visual resync marker (video packets), located in stbl.*/
-	GF_ISOM_BOX_TYPE_STSF	=  FOUR_CHAR_INT( 'S', 'T', 'S', 'F' ),
+	GF_ISOM_BOX_TYPE_STSF	=  GF_FOUR_CHAR_INT( 'S', 'T', 'S', 'F' ),
 	/*base constructor of all hint formats (currently only RTP uses it)*/
-	GF_ISOM_BOX_TYPE_GHNT	= FOUR_CHAR_INT( 'g', 'h', 'n', 't' ),
+	GF_ISOM_BOX_TYPE_GHNT	= GF_FOUR_CHAR_INT( 'g', 'h', 'n', 't' ),
 	/*for compatibility with old files hinted for DSS - needs special parsing*/
-	GF_ISOM_BOX_TYPE_VOID	= FOUR_CHAR_INT( 'V', 'O', 'I', 'D' ),
+	GF_ISOM_BOX_TYPE_VOID	= GF_FOUR_CHAR_INT( 'V', 'O', 'I', 'D' ),
 };
 
 
@@ -304,7 +306,6 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_BOX
-	GF_List *boxList;
 	GF_EditListBox *editList;
 } GF_EditBox;
 
@@ -334,11 +335,11 @@ typedef struct
 #endif
 	/*meta box if any*/
 	struct __tag_meta_box *meta;
+	/*track boxes*/
+	GF_List *trackList;
 
 	GF_ISOFile *mov;
 
-	GF_List *boxList;
-	GF_List *trackList;
 } GF_MovieBox;
 
 typedef struct
@@ -372,12 +373,12 @@ typedef struct
 	GF_UserDataBox *udta;
 	GF_TrackHeaderBox *Header;
 	struct __tag_media_box *Media;
-	GF_EditBox *GF_EditBox;
+	GF_EditBox *editBox;
 	GF_TrackReferenceBox *References;
-	GF_MovieBox *moov;
-	GF_List *boxList;
 	/*meta box if any*/
 	struct __tag_meta_box *meta;
+
+	GF_MovieBox *moov;
 	/*private for media padding*/
 	u32 padding_bytes;
 	/*private for editing*/
@@ -415,7 +416,6 @@ typedef struct __tag_media_box
 	GF_MediaHeaderBox *mediaHeader;
 	GF_HandlerBox *handler;
 	struct __tag_media_info_box *information;
-	GF_List *boxList;
 	u64 BytesMissing;
 } GF_MediaBox;
 
@@ -473,7 +473,6 @@ typedef struct
 {
 	GF_ISOM_BOX
 	GF_DataReferenceBox *dref;
-	GF_List *boxList;
 } GF_DataInformationBox;
 
 #define GF_ISOM_DATAENTRY_FIELDS	\
@@ -627,7 +626,7 @@ typedef struct
 } GF_VisualSampleEntryBox;
 
 void gf_isom_video_sample_entry_init(GF_VisualSampleEntryBox *ent);
-void gf_isom_video_sample_entry_read(GF_VisualSampleEntryBox *ptr, GF_BitStream *bs, u64 *read);
+GF_Err gf_isom_video_sample_entry_read(GF_VisualSampleEntryBox *ptr, GF_BitStream *bs);
 #ifndef GPAC_READ_ONLY
 void gf_isom_video_sample_entry_write(GF_VisualSampleEntryBox *ent, GF_BitStream *bs);
 void gf_isom_video_sample_entry_size(GF_VisualSampleEntryBox *ent);
@@ -708,7 +707,7 @@ typedef struct
 } GF_AudioSampleEntryBox;
 
 void gf_isom_audio_sample_entry_init(GF_AudioSampleEntryBox *ptr);
-void gf_isom_audio_sample_entry_read(GF_AudioSampleEntryBox *ptr, GF_BitStream *bs, u64 *read);
+GF_Err gf_isom_audio_sample_entry_read(GF_AudioSampleEntryBox *ptr, GF_BitStream *bs);
 #ifndef GPAC_READ_ONLY
 void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream *bs);
 void gf_isom_audio_sample_entry_size(GF_AudioSampleEntryBox *ptr);
@@ -879,7 +878,6 @@ typedef struct __tag_media_info_box
 	GF_Box *InfoHeader;
 	struct __tag_data_map *dataHandler;
 	u32 dataEntryIndex;
-	GF_List *boxList;
 } GF_MediaInformationBox;
 
 
@@ -1147,8 +1145,6 @@ typedef struct
 	GF_ISOM_BOX
 	GF_ISMAKMSBox *ikms;
 	GF_ISMASampleFormatBox *isfm;
-	/*unknown boxes*/
-	GF_List *boxList;
 } GF_SchemeInformationBox;
 
 typedef struct __tag_protect_box
@@ -1316,10 +1312,14 @@ typedef struct
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
 	u16 HintTrackVersion;
 	u16 LastCompatibleVersion;
-	/*this is where we store the current RTP sample in write mode*/
-	struct __tag_hint_sample *w_sample;
 	u32 MaxPacketSize;
 	GF_List *HintDataTable;
+	/*this is where we store the current RTP sample in read/write mode*/
+	struct __tag_hint_sample *hint_sample;
+	/*current hint sample in read mode, 1-based (0 is reset)*/
+	u32 cur_sample;
+	u32 pck_sn, ts_offset, ssrc;
+	GF_TrackReferenceTypeBox *hint_ref;
 } GF_HintSampleEntryBox;
 
 
@@ -1505,18 +1505,6 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_BOX
-
-	GF_Box *numBytes;
-	GF_Box *numPack;
-	GF_NTYLBox *nbDataBytes;
-	GF_DMEDBox *nbMediaBytes;
-	GF_DIMMBox *nbImmediateBytes;
-	GF_DREPBox *nbRepeatedBytes;
-	GF_TMINBox *minTransTime;
-	GF_TMAXBox *maxTransTime;
-	GF_PMAXBox *maxPackSize;
-	GF_DMAXBox *maxPackDur;
-	GF_PAYTBox *payload;
 	GF_List *dataRates;
 	GF_List *boxList;
 } GF_HintInfoBox;
@@ -1880,24 +1868,35 @@ GF_Err OffsetDTE(GF_GenericDTE *dte, u32 offset, u32 HintSampleNumber);
 		RTP Sample
 *****************************************************/
 
+/*data cache when reading*/
+typedef struct __tag_hint_data_cache
+{
+	GF_ISOSample *samp;
+	GF_TrackBox *trak;
+	u32 sample_num;
+} GF_HintDataCache;
+
+
 typedef struct __tag_hint_sample
 {
 	/*used internally for future protocol support (write only)*/
 	u8 HintType;
-	/*used internally for hinting (write only)*/
-	u32 TransmissionTime;
 	/*QT packets*/
 	u16 reserved;
 	GF_List *packetTable;
 	char *AdditionalData;
 	u32 dataLength;
+	/*used internally for hinting*/
+	u32 TransmissionTime;
+	/*for read only, used to store samples fetched while building packets*/
+	GF_List *sample_cache;
 } GF_HintSample;
 
-GF_HintSample *New_HintSample();
-void Del_HintSample(GF_HintSample *ptr);
-GF_Err Read_HintSample(GF_HintSample *ptr, GF_BitStream *bs, u32 sampleSize);
-u32 Write_HintSample(GF_HintSample *ptr, GF_BitStream *bs);
-u32 Size_HintSample(GF_HintSample *ptr);
+GF_HintSample *gf_isom_hint_sample_new();
+void gf_isom_hint_sample_del(GF_HintSample *ptr);
+GF_Err gf_isom_hint_sample_read(GF_HintSample *ptr, GF_BitStream *bs, u32 sampleSize);
+u32 gf_isom_hint_sample_write(GF_HintSample *ptr, GF_BitStream *bs);
+u32 gf_isom_hint_sample_size(GF_HintSample *ptr);
 
 /*****************************************************
 		Hint Packets (generic packet for future protocol support)
@@ -1911,15 +1910,15 @@ typedef struct
 	GF_ISOM_BASE_PACKET
 } GF_HintPacket;
 
-GF_HintPacket *New_HintPacket(u8 HintType);
-void Del_HintPacket(u8 HintType, GF_HintPacket *ptr);
-GF_Err Read_HintPacket(u8 HintType, GF_HintPacket *ptr, GF_BitStream *bs);
-GF_Err Write_HintPacket(u8 HintType, GF_HintPacket *ptr, GF_BitStream *bs);
-u32 Size_HintPacket(u8 HintType, GF_HintPacket *ptr);
-GF_Err Offset_HintPacket(u8 HintType, GF_HintPacket *ptr, u32 offset, u32 HintSampleNumber);
-GF_Err AddDTE_HintPacket(u8 HintType, GF_HintPacket *ptr, GF_GenericDTE *dte, u8 AtBegin);
-/*get the size of the packet AS RECONSTRUCTED BY THE SERVER (without SSRC AND CSRC)*/
-u32 Length_HintPacket(u8 HintType, GF_HintPacket *ptr);
+GF_HintPacket *gf_isom_hint_pck_new(u8 HintType);
+void gf_isom_hint_pck_del(u8 HintType, GF_HintPacket *ptr);
+GF_Err gf_isom_hint_pck_read(u8 HintType, GF_HintPacket *ptr, GF_BitStream *bs);
+GF_Err gf_isom_hint_pck_write(u8 HintType, GF_HintPacket *ptr, GF_BitStream *bs);
+u32 gf_isom_hint_pck_size(u8 HintType, GF_HintPacket *ptr);
+GF_Err gf_isom_hint_pck_offset(u8 HintType, GF_HintPacket *ptr, u32 offset, u32 HintSampleNumber);
+GF_Err gf_isom_hint_pck_add_dte(u8 HintType, GF_HintPacket *ptr, GF_GenericDTE *dte, u8 AtBegin);
+/*get the size of the packet AS RECONSTRUCTED BY THE SERVER (without CSRC)*/
+u32 gf_isom_hint_pck_length(u8 HintType, GF_HintPacket *ptr);
 
 /*the RTP packet*/
 typedef struct
@@ -1942,13 +1941,13 @@ typedef struct
 	GF_List *DataTable;
 } GF_RTPPacket;
 
-GF_RTPPacket *New_RTPPacket();
-void Del_RTPPacket(GF_RTPPacket *ptr);
-GF_Err Read_RTPPacket(GF_RTPPacket *ptr, GF_BitStream *bs);
-GF_Err Write_RTPPacket(GF_RTPPacket *ptr, GF_BitStream *bs);
-u32 Size_RTPPacket(GF_RTPPacket *ptr);
-GF_Err Offset_RTPPacket(GF_RTPPacket *ptr, u32 offset, u32 HintSampleNumber);
-u32 Length_RTPPacket(GF_RTPPacket *ptr);
+GF_RTPPacket *gf_isom_hint_rtp_new();
+void gf_isom_hint_rtp_del(GF_RTPPacket *ptr);
+GF_Err gf_isom_hint_rtp_read(GF_RTPPacket *ptr, GF_BitStream *bs);
+GF_Err gf_isom_hint_rtp_write(GF_RTPPacket *ptr, GF_BitStream *bs);
+u32 gf_isom_hint_rtp_size(GF_RTPPacket *ptr);
+GF_Err gf_isom_hint_rtp_offset(GF_RTPPacket *ptr, u32 offset, u32 HintSampleNumber);
+u32 gf_isom_hint_rtp_length(GF_RTPPacket *ptr);
 
 
 
@@ -2173,51 +2172,51 @@ GF_Err gnrv_Size(GF_Box *);
 GF_Err gnra_Size(GF_Box *);
 GF_Err pdin_Size(GF_Box *);
 
-GF_Err reftype_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err free_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err mdat_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err moov_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err mvhd_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err mdhd_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err vmhd_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err smhd_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err hmhd_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err nmhd_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err stbl_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err dinf_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err url_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err urn_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err chpl_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err cprt_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err hdlr_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err iods_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err trak_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err mp4s_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err mp4v_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err mp4a_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err edts_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err udta_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err dref_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err stsd_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err stts_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err ctts_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err stsh_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err elst_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err stsc_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err stsz_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err stco_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err stss_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err stdp_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err co64_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err esds_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err minf_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err tkhd_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err tref_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err mdia_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err defa_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err void_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err stsf_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err pdin_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
+GF_Err reftype_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err free_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err mdat_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err moov_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err mvhd_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err mdhd_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err vmhd_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err smhd_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err hmhd_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err nmhd_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err stbl_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err dinf_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err url_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err urn_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err chpl_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err cprt_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err hdlr_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err iods_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err trak_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err mp4s_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err mp4v_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err mp4a_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err edts_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err udta_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err dref_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err stsd_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err stts_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err ctts_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err stsh_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err elst_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err stsc_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err stsz_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err stco_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err stss_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err stdp_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err co64_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err esds_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err minf_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err tkhd_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err tref_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err mdia_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err defa_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err void_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err stsf_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err pdin_Read(GF_Box *s, GF_BitStream *bs);
 
 
 GF_Box *hinf_New();
@@ -2272,31 +2271,31 @@ void hnti_del(GF_Box *a);
 void sdp_del(GF_Box *a);
 void rtpo_del(GF_Box *s);
 
-GF_Err hinf_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err trpy_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err totl_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err nump_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err npck_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err tpyl_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err tpay_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err maxr_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err dmed_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err dimm_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err drep_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err tmin_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err tmax_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err pmax_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err dmax_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err payt_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err name_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err rely_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err snro_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err tims_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err tsro_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err ghnt_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err hnti_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err sdp_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err rtpo_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
+GF_Err hinf_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err trpy_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err totl_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err nump_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err npck_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err tpyl_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err tpay_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err maxr_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err dmed_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err dimm_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err drep_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err tmin_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err tmax_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err pmax_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err dmax_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err payt_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err name_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err rely_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err snro_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err tims_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err tsro_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err ghnt_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err hnti_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err sdp_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err rtpo_Read(GF_Box *s, GF_BitStream *bs);
 
 GF_Err hinf_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err trpy_Write(GF_Box *s, GF_BitStream *bs);
@@ -2353,13 +2352,13 @@ GF_Err rtpo_Size(GF_Box *s);
 
 GF_Box *ftyp_New();
 void ftyp_del(GF_Box *s);
-GF_Err ftyp_Read(GF_Box *s,GF_BitStream *bs, u64 *read);
+GF_Err ftyp_Read(GF_Box *s,GF_BitStream *bs);
 GF_Err ftyp_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err ftyp_Size(GF_Box *s);
 
 GF_Box *padb_New();
 void padb_del(GF_Box *s);
-GF_Err padb_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
+GF_Err padb_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err padb_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err padb_Size(GF_Box *s);
 
@@ -2369,9 +2368,9 @@ GF_Box *gppc_New(u32 type);
 void gppa_del(GF_Box *s);
 void gppv_del(GF_Box *s);
 void gppc_del(GF_Box *s);
-GF_Err gppa_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err gppv_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err gppc_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
+GF_Err gppa_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err gppv_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err gppc_Read(GF_Box *s, GF_BitStream *bs);
 #ifndef GPAC_READ_ONLY
 GF_Err gppa_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err gppv_Write(GF_Box *s, GF_BitStream *bs);
@@ -2399,13 +2398,13 @@ void traf_del(GF_Box *s);
 void tfhd_del(GF_Box *s);
 void trun_del(GF_Box *s);
 
-GF_Err mvex_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err trex_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err moof_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err mfhd_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err traf_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err tfhd_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err trun_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
+GF_Err mvex_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err trex_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err moof_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err mfhd_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err traf_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err tfhd_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err trun_Read(GF_Box *s, GF_BitStream *bs);
 
 GF_Err mvex_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err trex_Write(GF_Box *s, GF_BitStream *bs);
@@ -2426,7 +2425,7 @@ GF_Err trun_Size(GF_Box *s);
 
 GF_Box *mehd_New();
 void mehd_del(GF_Box *s);
-GF_Err mehd_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
+GF_Err mehd_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err mehd_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err mehd_Size(GF_Box *s);
 
@@ -2435,25 +2434,25 @@ GF_Err mehd_Size(GF_Box *s);
 /*avc ext*/
 GF_Box *avcc_New();
 void avcc_del(GF_Box *s);
-GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
+GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err avcc_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err avcc_Size(GF_Box *s);
 
 GF_Box *avc1_New();
 void avc1_del(GF_Box *s);
-GF_Err avc1_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
+GF_Err avc1_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err avc1_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err avc1_Size(GF_Box *s);
 
 GF_Box *m4ds_New();
 void m4ds_del(GF_Box *s);
-GF_Err m4ds_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
+GF_Err m4ds_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err m4ds_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err m4ds_Size(GF_Box *s);
 
 GF_Box *btrt_New();
 void btrt_del(GF_Box *s);
-GF_Err btrt_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
+GF_Err btrt_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err btrt_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err btrt_Size(GF_Box *s);
 
@@ -2483,17 +2482,17 @@ void tbox_del(GF_Box *s);
 void blnk_del(GF_Box *s);
 void twrp_del(GF_Box *s);
 
-GF_Err ftab_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err styl_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err hlit_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err hclr_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err krok_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err dlay_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err href_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err tbox_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err blnk_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err twrp_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
+GF_Err ftab_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err styl_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err hlit_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err hclr_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err krok_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err dlay_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err href_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err tbox_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err blnk_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err twrp_Read(GF_Box *s, GF_BitStream *bs);
 
 #ifndef GPAC_READ_ONLY
 GF_Err ftab_Write(GF_Box *s, GF_BitStream *bs);
@@ -2556,20 +2555,20 @@ void frma_del(GF_Box *s);
 void schm_del(GF_Box *s);
 void schi_del(GF_Box *s);
 
-GF_Err meta_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err xml_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err bxml_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err iloc_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err pitm_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err ipro_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err infe_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err iinf_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err imif_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err ipmc_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err sinf_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err frma_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err schm_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err schi_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
+GF_Err meta_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err xml_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err bxml_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err iloc_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err pitm_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err ipro_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err infe_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err iinf_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err imif_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err ipmc_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err sinf_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err frma_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err schm_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err schi_Read(GF_Box *s, GF_BitStream *bs);
 
 #ifndef GPAC_READ_ONLY
 GF_Err meta_Write(GF_Box *s, GF_BitStream *bs);
@@ -2611,8 +2610,8 @@ GF_Box *iKMS_New();
 GF_Box *iSFM_New();
 void iKMS_del(GF_Box *s);
 void iSFM_del(GF_Box *s);
-GF_Err iKMS_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
-GF_Err iSFM_Read(GF_Box *s, GF_BitStream *bs, u64 *read);
+GF_Err iKMS_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err iSFM_Read(GF_Box *s, GF_BitStream *bs);
 #ifndef GPAC_READ_ONLY
 GF_Err iKMS_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err iSFM_Write(GF_Box *s, GF_BitStream *bs);

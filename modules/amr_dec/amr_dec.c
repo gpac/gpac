@@ -71,7 +71,7 @@ static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, unsigned char *d
 	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
 	codec_4cc = gf_bs_read_u32(bs);
 	gf_bs_del(bs);
-	gf_4cc_to_str(codec_4cc, name);
+	strcpy(name, gf_4cc_to_str(codec_4cc));
 	
 	if (stricmp(name, "samr") && stricmp(name, "amr ")) return GF_NOT_SUPPORTED;
 
@@ -263,12 +263,12 @@ static u32 AMR_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectTy
 	if (!ObjectType) return (StreamType==GF_STREAM_AUDIO) ? 1 : 0;
 
 	/*audio dec*/
-	if (!decSpecInfo || (StreamType != GF_STREAM_AUDIO) || (ObjectType != GPAC_QT_CODECS_OTI)) return 0;
+	if (!decSpecInfo || (StreamType != GF_STREAM_AUDIO) || (ObjectType != GPAC_EXTRA_CODECS_OTI)) return 0;
 	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
 	codec_4cc = gf_bs_read_u32(bs);
 	gf_bs_del(bs);
 
-	gf_4cc_to_str(codec_4cc, name);
+	strcpy(name, gf_4cc_to_str(codec_4cc));
 
 	if (!stricmp(name, "samr") || !stricmp(name, "amr ")) return 1;
 	return 0;
@@ -284,7 +284,7 @@ GF_MediaDecoder *NewAMRDecoder()
 {
 	AMRDec *dec;
 	GF_MediaDecoder *ifce;
-	SAFEALLOC(ifce , sizeof(GF_MediaDecoder));
+	GF_SAFEALLOC(ifce , sizeof(GF_MediaDecoder));
 	dec = malloc(sizeof(AMRDec));
 	memset(dec, 0, sizeof(AMRDec));
 	ifce->privateStack = dec;
@@ -301,7 +301,7 @@ GF_MediaDecoder *NewAMRDecoder()
 	ifce->ProcessData = AMR_ProcessData;
 	ifce->GetName = AMR_GetCodecName;
 
-	GF_REGISTER_MODULE(ifce, GF_MEDIA_DECODER_INTERFACE, "AMR-NB 3GPP decoder", "gpac distribution", 0);
+	GF_REGISTER_MODULE_INTERFACE(ifce, GF_MEDIA_DECODER_INTERFACE, "AMR-NB 3GPP decoder", "gpac distribution");
 
 	return ifce;
 }
@@ -325,20 +325,19 @@ Bool QueryInterface(u32 InterfaceType)
 GF_InputService *NewAESReader();
 void DeleteAESReader(void *ifce);
 
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
-	case GF_MEDIA_DECODER_INTERFACE: return NewAMRDecoder();
-	case GF_NET_CLIENT_INTERFACE: return NewAESReader();
+	case GF_MEDIA_DECODER_INTERFACE: return (GF_BaseInterface *) NewAMRDecoder();
+	case GF_NET_CLIENT_INTERFACE: return (GF_BaseInterface *) NewAESReader();
 	default: return NULL;
 	}
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseDecoder *ifcd = (GF_BaseDecoder *)ifce;
-	switch (ifcd->InterfaceType) {
-	case GF_MEDIA_DECODER_INTERFACE: DeleteAMRDecoder(ifcd); break;
+	switch (ifce->InterfaceType) {
+	case GF_MEDIA_DECODER_INTERFACE: DeleteAMRDecoder((GF_BaseDecoder *)ifce); break;
 	case GF_NET_CLIENT_INTERFACE:  DeleteAESReader(ifce); break;
 	}
 }

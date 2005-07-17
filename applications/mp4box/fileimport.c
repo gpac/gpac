@@ -38,7 +38,6 @@ extern Float swf_flatten_angle;
 
 void convert_file_info(char *inName, u32 trackID)
 {
-	char szType[5];
 	GF_Err e;
 	u32 i;
 	Bool found;
@@ -72,7 +71,7 @@ void convert_file_info(char *inName, u32 trackID)
 		case GF_ISOM_MEDIA_AUDIO: fprintf(stdout, "Audio\n"); break;
 		case GF_ISOM_MEDIA_TEXT: fprintf(stdout, "Text\n"); break;
 		case GF_ISOM_MEDIA_BIFS: fprintf(stdout, "BIFS\n"); break;
-		default: fprintf(stdout, "Other (4CC: %s)\n", gf_4cc_to_str(import.tk_info[i].type, szType)); break;
+		default: fprintf(stdout, "Other (4CC: %s)\n", gf_4cc_to_str(import.tk_info[i].type)); break;
 		}
 		if (!trackID) continue;
 		fprintf(stdout, "Import Capabilities:\n");
@@ -249,7 +248,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 
 	conv_type = 0;
 	switch (gf_isom_guess_specification(mp4)) {
-	case FOUR_CHAR_INT('I','S','M','A'): conv_type = 1; break;
+	case GF_FOUR_CHAR_INT('I','S','M','A'): conv_type = 1; break;
 	case GF_ISOM_BRAND_3GP4: 
 	case GF_ISOM_BRAND_3GP5:
 	case GF_ISOM_BRAND_3GP6:
@@ -261,7 +260,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 	if (!stricmp(ext, ".3gp") || !stricmp(ext, ".3g2")) conv_type = 2;
 
 	count = gf_isom_get_track_count(mp4);
-	SAFEALLOC(tks, sizeof(TKInfo)*count);
+	GF_SAFEALLOC(tks, sizeof(TKInfo)*count);
 
 	e = GF_OK;
 	max_dur = 0;
@@ -272,7 +271,6 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 	for (i=0; i<count; i++) {
 		u32 mtype;
 		Double dur;
-		char szType[5];
 		tks[nb_tk].tk = i+1;
 		tks[nb_tk].can_duplicate = 0;
 
@@ -297,12 +295,12 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		case GF_ISOM_MEDIA_MPEGJ:
 		case GF_ISOM_MEDIA_MPEG7:
 		case GF_ISOM_MEDIA_FLASH:
-			fprintf(stdout, "WARNING: Track ID %d (type %s) not handled by spliter - skipping\n", gf_isom_get_track_id(mp4, i+1), gf_4cc_to_str(mtype, szType));
+			fprintf(stdout, "WARNING: Track ID %d (type %s) not handled by spliter - skipping\n", gf_isom_get_track_id(mp4, i+1), gf_4cc_to_str(mtype));
 			continue;
 		default:
 			/*for all other track types, only split if more than one sample*/
 			if (gf_isom_get_sample_count(mp4, i+1)==1) {
-				fprintf(stdout, "WARNING: Track ID %d (type %s) not handled by spliter - skipping\n", gf_isom_get_track_id(mp4, i+1), gf_4cc_to_str(mtype, szType));
+				fprintf(stdout, "WARNING: Track ID %d (type %s) not handled by spliter - skipping\n", gf_isom_get_track_id(mp4, i+1), gf_4cc_to_str(mtype));
 				continue;
 			}
 			tks[nb_tk].can_duplicate = 1;
@@ -600,7 +598,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		nb_tk_done = 0;
 		if (!is_last) {
 			for (i=0; i<nb_tk; i++) {
-				Double time;
+				Double time = 0;
 				u32 last_samp;
 				tki = &tks[i];
 				while (1) {
@@ -613,8 +611,10 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 					time /= tki->time_scale;
 					/*done*/
 					if (tki->last_sample==tki->sample_count) {
-						tki->stop_state=2;
-						break;
+						if (!tki->can_duplicate) {
+							tki->stop_state=2;
+							break;
+						}
 					}
 					if (time<file_split_dur) break;
 
@@ -631,9 +631,9 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 					time = dts - tki->firstDTS;
 					time /= tki->time_scale;
 					/*re-insert prev sample*/
-					if (tki->can_duplicate && (time>file_split_dur)) {
+					if (tki->can_duplicate && (time>file_split_dur) ) {
 						tki->last_sample--;
-						dts = gf_isom_get_sample_dts(mp4, tki->tk, tki->last_sample);
+						dts = gf_isom_get_sample_dts(mp4, tki->tk, tki->last_sample+1);
 						tki->firstDTS += (u32) (file_split_dur*tki->time_scale);
 						gf_isom_set_last_sample_duration(dest, tki->dst_tk, tki->firstDTS - dts);
 					} else {
@@ -663,6 +663,9 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			}
 			if (gf_isom_has_time_offset(mp4, tki->tk)) {
 				gf_isom_set_cts_packing(dest, tki->dst_tk, 0);
+			}
+			if (is_last && tki->can_duplicate) {
+				gf_isom_set_last_sample_duration(dest, tki->dst_tk, gf_isom_get_sample_duration(mp4, tki->tk, tki->sample_count));
 			}
 		}
 		/*check chapters*/
@@ -716,7 +719,6 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	u32 i, j, count, nb_tracks, nb_samp, nb_done;
 	GF_ISOFile *orig;
 	GF_Err e;
-	char szType[5];
 	Float ts_scale;
 	Double dest_orig_dur;
 	u32 dst_tk, tk_id, mtype, insert_dts;
@@ -737,7 +739,6 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	nb_samp = 0;
 	nb_tracks = gf_isom_get_track_count(orig);
 	for (i=0; i<nb_tracks; i++) {
-		char szType[5];
 		u32 mtype = gf_isom_get_media_type(orig, i+1);
 		switch (mtype) {
 		case GF_ISOM_MEDIA_AUDIO:
@@ -754,12 +755,12 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		case GF_ISOM_MEDIA_MPEGJ:
 		case GF_ISOM_MEDIA_MPEG7:
 		case GF_ISOM_MEDIA_FLASH:
-			fprintf(stdout, "WARNING: Track ID %d (type %s) not handled by concatenation - removing from destination\n", gf_isom_get_track_id(orig, i+1), gf_4cc_to_str(mtype, szType));
+			fprintf(stdout, "WARNING: Track ID %d (type %s) not handled by concatenation - removing from destination\n", gf_isom_get_track_id(orig, i+1), gf_4cc_to_str(mtype));
 			continue;
 		default:
 			/*for all other track types, only split if more than one sample*/
 			if (gf_isom_get_sample_count(dest, i+1)==1) {
-				fprintf(stdout, "WARNING: Track ID %d (type %s) not handled by concatenation - removing from destination\n", gf_isom_get_track_id(orig, i+1), gf_4cc_to_str(mtype, szType));
+				fprintf(stdout, "WARNING: Track ID %d (type %s) not handled by concatenation - removing from destination\n", gf_isom_get_track_id(orig, i+1), gf_4cc_to_str(mtype));
 				continue;
 			}
 			break;
@@ -835,7 +836,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		}
 		/*looks like a new file*/
 		if (!dst_tk) {
-			fprintf(stdout, "No suitable destination track found - creating new one (type %s)\n", gf_4cc_to_str(mtype, szType));
+			fprintf(stdout, "No suitable destination track found - creating new one (type %s)\n", gf_4cc_to_str(mtype));
 			e = gf_isom_clone_track(orig, i+1, dest, &dst_tk);
 			if (e) goto err_exit;
 			gf_isom_clone_pl_indications(orig, dest);

@@ -128,10 +128,10 @@ GF_BitStream *gf_bs_from_file(FILE *f, u32 mode)
 	tmp->stream = f;
 
 	/*get the size of this file (for read streams)*/
-	tmp->position = f64_tell(f);
-	f64_seek(f, 0, SEEK_END);
-	tmp->size = f64_tell(f);
-	f64_seek(f, tmp->position, SEEK_SET);
+	tmp->position = gf_f64_tell(f);
+	gf_f64_seek(f, 0, SEEK_END);
+	tmp->size = gf_f64_tell(f);
+	gf_f64_seek(f, tmp->position, SEEK_SET);
 	return tmp;
 }
 
@@ -504,15 +504,17 @@ u32 gf_bs_write_data(GF_BitStream *bs, unsigned char *data, u32 nbBytes)
 /*align return the num of bits read in READ mode, 0 in WRITE*/
 u8 gf_bs_align(GF_BitStream *bs)
 {
+	u8 res = 8 - bs->nbBits;
 	if ( (bs->bsmode == GF_BITSTREAM_READ) || (bs->bsmode == GF_BITSTREAM_FILE_READ)) {
-		u8 res = 8 - bs->nbBits;
 		if (res > 0) {
 			gf_bs_read_int(bs, res);
 		}
 		return res;
 	}
-	if (bs->nbBits > 0)
-		gf_bs_write_int (bs, 0, 8 - bs->nbBits);
+	if (bs->nbBits > 0) {
+		gf_bs_write_int (bs, 0, res);
+		return res;
+	}
 	return 0;
 }
 
@@ -535,10 +537,10 @@ u64 gf_bs_available(GF_BitStream *bs)
 	/*FILE READ: assume size hasn't changed, otherwise the user shall call gf_bs_get_refreshed_size*/
 	if (bs->bsmode==GF_BITSTREAM_FILE_READ) return (bs->size - bs->position);
 
-	cur = f64_tell(bs->stream);
-	f64_seek(bs->stream, 0, SEEK_END);
-	end = f64_tell(bs->stream);
-	f64_seek(bs->stream, cur, SEEK_SET);	
+	cur = gf_f64_tell(bs->stream);
+	gf_f64_seek(bs->stream, 0, SEEK_END);
+	end = gf_f64_tell(bs->stream);
+	gf_f64_seek(bs->stream, cur, SEEK_SET);	
 	return (u64) (end - cur);
 }
 
@@ -594,7 +596,7 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes)
 	
 	/*special case for file skipping...*/
 	if ((bs->bsmode == GF_BITSTREAM_FILE_WRITE) || (bs->bsmode == GF_BITSTREAM_FILE_READ)) {
-		f64_seek(bs->stream, nbBytes, SEEK_CUR);
+		gf_f64_seek(bs->stream, nbBytes, SEEK_CUR);
 		bs->position += nbBytes;
 		return;
 	}
@@ -609,25 +611,6 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes)
 		gf_bs_write_int(bs, 0, 8);
 		nbBytes--;
 	}
-}
-
-/*Only valid for files right now AND ONLY READ*/
-void gf_bs_rewind(GF_BitStream *bs, u64 nbBytes)
-{
-	s64 cur;
-	
-	/*special case for file skipping...*/
-	if (bs->bsmode != GF_BITSTREAM_FILE_READ) return;
-
-	gf_bs_align(bs);
-	cur = f64_tell(bs->stream);
-	if ((u64) cur > nbBytes) {
-		f64_seek(bs->stream, (cur - nbBytes), SEEK_SET);
-		bs->position = cur - nbBytes;
-		return;
-	}
-	f64_seek(bs->stream, 0, SEEK_SET);
-	bs->position = 0;
 }
 
 /*Only valid for READ MEMORY*/
@@ -669,7 +652,7 @@ GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
 		return GF_OK;
 	}
 
-	f64_seek(bs->stream, offset, SEEK_SET);
+	gf_f64_seek(bs->stream, offset, SEEK_SET);
 
 	bs->position = offset;
 	bs->current = 0;
@@ -723,10 +706,10 @@ u64 gf_bs_get_refreshed_size(GF_BitStream *bs)
 		return bs->size;
 
 	default:
-		offset = f64_tell(bs->stream);
-		f64_seek(bs->stream, 0, SEEK_END);
-		bs->size = f64_tell(bs->stream);
-		f64_seek(bs->stream, offset, SEEK_SET);
+		offset = gf_f64_tell(bs->stream);
+		gf_f64_seek(bs->stream, 0, SEEK_END);
+		bs->size = gf_f64_tell(bs->stream);
+		gf_f64_seek(bs->stream, offset, SEEK_SET);
 		return bs->size;
 	}
 }

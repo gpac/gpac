@@ -151,19 +151,20 @@ Bool is_supported_file(GF_Config *cfg, const char *fileName, Bool disable_no_ext
 
 	keyCount = gf_cfg_get_key_count(cfg, "MimeTypes");
 	for (i=0; i<keyCount; i++) {
-		char *sKey;
+		const char *sKey;
+		char *ext;
 		sKey = (char *) gf_cfg_get_key_name(cfg, "MimeTypes", i);
 		if (!sKey) continue;
 		sKey = gf_cfg_get_key(cfg, "MimeTypes", sKey);
 		strcpy(mimes, sKey+1);
-		sKey = strchr(mimes, '"');
-		if (!sKey) continue;
-		sKey[0] = 0;
-		sKey = mimes;
-		while (sKey) {
-			if (!strnicmp(sKey, szExt, strlen(szExt))) return 1;
-			sKey = strchr(sKey, ' ');
-			if (sKey) sKey+=1;
+		ext = strchr(mimes, '"');
+		if (!ext) continue;
+		ext[0] = 0;
+		ext = mimes;
+		while (ext) {
+			if (!strnicmp(ext, szExt, strlen(szExt))) return 1;
+			ext = strchr(ext, ' ');
+			if (ext) ext+=1;
 		}
 	}
 	if (!strstr(fileName, "http://")) return 1;
@@ -358,10 +359,10 @@ BOOL WinGPAC::InitInstance()
 		}
 	}
 
-	char *str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
+	const char *str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	m_user.modules = gf_modules_new((const unsigned char *) str, m_user.config);
 	if (!m_user.modules) {
-		char *sOpt;
+		const char *sOpt;
 		/*inital launch*/
 		m_user.modules = gf_modules_new((const unsigned char *) szAppPath, m_user.config);
 		if (m_user.modules) {
@@ -385,11 +386,11 @@ BOOL WinGPAC::InitInstance()
 			/*first launch, register all files ext*/
 			u32 i;
 			for (i=0; i<gf_modules_get_count(m_user.modules); i++) {
-				GF_InputService *ifce;
-				if (!gf_modules_load_interface(m_user.modules, i, GF_NET_CLIENT_INTERFACE, (void **) &ifce)) continue;
+				GF_InputService *ifce = (GF_InputService *) gf_modules_load_interface(m_user.modules, i, GF_NET_CLIENT_INTERFACE);
+				if (!ifce) continue;
 				if (ifce) {
 					ifce->CanHandleURL(ifce, "test.test");
-					gf_modules_close_interface(ifce);
+					gf_modules_close_interface((GF_BaseInterface *)ifce);
 				}
 			}
 		}
@@ -464,7 +465,7 @@ BOOL WinGPAC::InitInstance()
 		strcpy((char *) sPL, szAppPath);
 		strcat(sPL, "gpac_pl.m3u");
 		pFrame->m_pPlayList->OpenPlayList(sPL);
-		char *sOpt = gf_cfg_get_key(GetApp()->m_user.config, "General", "PLEntry");
+		const char *sOpt = gf_cfg_get_key(GetApp()->m_user.config, "General", "PLEntry");
 		if (sOpt) {
 			pFrame->m_pPlayList->m_cur_entry = atoi(sOpt);
 			if (pFrame->m_pPlayList->m_cur_entry>=(s32)gf_list_count(pFrame->m_pPlayList->m_entries))
@@ -590,7 +591,7 @@ int WinGPAC::ExitInstance()
 
 void WinGPAC::SetOptions()
 {
-	char *sOpt = gf_cfg_get_key(m_user.config, "General", "Loop");
+	const char *sOpt = gf_cfg_get_key(m_user.config, "General", "Loop");
 	m_Loop = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 	sOpt = gf_cfg_get_key(m_user.config, "General", "LookForSubtitles");
 	m_LookForSubtitles = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
@@ -631,13 +632,14 @@ CString WinGPAC::GetFileFilter()
 		const char *sMime;
 		Bool first;
 		char *sKey;
+		const char *opt;
 		char szKeyList[1000], sDesc[1000];
 		sMime = gf_cfg_get_key_name(m_user.config, "MimeTypes", i);
 		if (!sMime) continue;
 		CString sOpt;
-		sKey = gf_cfg_get_key(m_user.config, "MimeTypes", sMime);
+		opt = gf_cfg_get_key(m_user.config, "MimeTypes", sMime);
 		/*remove module name*/
-		strcpy(szKeyList, sKey+1);
+		strcpy(szKeyList, opt+1);
 		sKey = strrchr(szKeyList, '\"');
 		if (!sKey) continue;
 		sKey[0] = 0;
@@ -830,7 +832,7 @@ void WinGPAC::OnUpdateFileStop(CCmdUI* pCmdUI)
 
 void WinGPAC::OnSwitchRender() 
 {
-	char *opt = gf_cfg_get_key(m_user.config, "Rendering", "RendererName");
+	const char *opt = gf_cfg_get_key(m_user.config, "Rendering", "RendererName");
 	if (!stricmp(opt, "GPAC 2D Renderer"))
 		gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 3D Renderer");
 	else
@@ -841,7 +843,7 @@ void WinGPAC::OnSwitchRender()
 
 void WinGPAC::UpdateRenderSwitch()
 {
-	char *opt = gf_cfg_get_key(m_user.config, "Rendering", "RendererName");
+	const char *opt = gf_cfg_get_key(m_user.config, "Rendering", "RendererName");
 	if (!stricmp(opt, "GPAC 3D Renderer"))
 		((CMainFrame *) m_pMainWnd)->m_wndToolBar.SetButtonInfo(12, ID_SWITCH_RENDER, TBBS_BUTTON, 10);
 	else

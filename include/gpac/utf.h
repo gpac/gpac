@@ -29,19 +29,56 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/utf.h>
+ *	\brief UTF functions.
+ */
+
+/*!
+ *	\addtogroup utf_grp UTF
+ *	\ingroup utils_grp
+ *	\brief UTF encoding functions
+ *
+ *This section documents the UTF functions of the GPAC framework.\n
+ *The wide characters in GPAC are unsignad shorts, in other words GPAC only supports UTF8 and UTF16 coding styles.
+ *\note these functions are just ports of libutf8 library tools into GPAC.
+ *	@{
+ */
+
 #include <gpac/tools.h>
 
-/*UTF-8 basic routines*/
-
-/*converts wide-char string to multibyte string - returns (-1) if error. set @srcp to next char to be
-converted if not enough space*/
-size_t gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp);
+/*!
+ *\brief wide-char to multibyte conversion
+ *
+ *Converts a wide-char string to a multibyte string
+ *\param dst multibyte destination buffer
+ *\param dst_len multibyte destination buffer size
+ *\param srcp address of the wide-char string. This will be set to the next char to be converted in the input buffer if not enough space in the destination, or NULL if conversion was completed.
+ *\return length (in byte) of the multibyte string or -1 if error.
+ */
+size_t gf_utf8_wcstombs(char* dst, size_t dst_len, const unsigned short** srcp);
 /*converts UTF8 string to wide char string - returns (-1) if error. set @srcp to next char to be
 converted if not enough space*/
-size_t gf_utf8_mbstowcs(unsigned short* dest, size_t len, const char** srcp);
-/*returns size in characters of the wide-char string*/
+/*!
+ *\brief multibyte to wide-char conversion
+ *
+ *Converts a multibyte string to a wide-char string 
+ *\param dst wide-char destination buffer
+ *\param dst_len wide-char destination buffer size
+ *\param srcp address of the multibyte character buffer. This will be set to the next char to be converted in the input buffer if not enough space in the destination, or NULL if conversion was completed.
+ *\return length (in unsigned short) of the wide-char string or -1 if error.
+ */
+size_t gf_utf8_mbstowcs(unsigned short* dst, size_t dst_len, const char** srcp);
+/*!
+ *\brief wide-char string length
+ *
+ *Returns the length in character of a wide-char string
+ *\param s the wide-char string
+ *\return the wide-char string length
+ */
 size_t gf_utf8_wcslen(const unsigned short *s);
 
+/*! @} */
 
 #ifdef __cplusplus
 }

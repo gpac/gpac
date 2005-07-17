@@ -156,7 +156,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
 static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 *outHeight)
 {
 	GF_Err e;
-	char *sOpt;
+	const char *sOpt;
 	u32 MaxWidth, MaxHeight;
 	DDCONTEXT;
 
@@ -169,14 +169,14 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 	on the dest pixel format)*/
 	dd->yuv_init = 0;
 	if (dd->fullscreen) {
-		char *sOpt = gf_modules_get_option(dr, "Video", "SwitchResolution");
+		const char *sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "SwitchResolution");
 		if (sOpt && !stricmp(sOpt, "yes")) dd->switch_res = 1;
 		/*get current or best fitting mode*/
 		if (GetDisplayMode(dd) != GF_OK) return GF_IO_ERR;
 	}
 
 	MaxWidth = MaxHeight = 0;
-	sOpt = gf_modules_get_option(dr, "Video", "MaxResolution");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "MaxResolution");
 	if (sOpt) sscanf(sOpt, "%dx%d", &MaxWidth, &MaxHeight);
 
 	dd->is_resizing = 1;
@@ -360,7 +360,7 @@ static void *NewVideoOutput()
 	DDContext *pCtx;
 	GF_VideoOutput *driv = (GF_VideoOutput *) malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
-	GF_REGISTER_MODULE(driv, GF_VIDEO_OUTPUT_INTERFACE, "DirectX Video Output", "gpac distribution", 0);
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "DirectX Video Output", "gpac distribution");
 
 	pCtx = malloc(sizeof(DDContext));
 	memset(pCtx, 0, sizeof(DDContext));
@@ -397,19 +397,18 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 /*interface create*/
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return NewVideoOutput();
 	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return NewAudioOutput();
 	return NULL;
 }
 /*interface destroy*/
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_VideoOutput *dd = (GF_VideoOutput *)ifce;
-	switch (dd->InterfaceType) {
+	switch (ifce->InterfaceType) {
 	case GF_VIDEO_OUTPUT_INTERFACE:
-		DeleteVideoOutput(dd);
+		DeleteVideoOutput((GF_VideoOutput *)ifce);
 		break;
 	case GF_AUDIO_OUTPUT_INTERFACE:
 		DeleteAudioOutput(ifce);

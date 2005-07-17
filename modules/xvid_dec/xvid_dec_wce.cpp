@@ -65,7 +65,7 @@ static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, unsigned char *
 	if (e) return e;
 	if (!dsi.width || !dsi.height) return GF_NON_COMPLIANT_BITSTREAM;
 
-	ctx->codec =  InitCodec(dsi.width, dsi.height, FOUR_CHAR_INT('x', 'v', 'i', 'd'));
+	ctx->codec =  InitCodec(dsi.width, dsi.height, GF_FOUR_CHAR_INT('x', 'v', 'i', 'd'));
 
 	DecodeFrame(ctx->codec, decSpecInfo, decSpecInfoSize, ptr, ptr, ptr, pitch);
 
@@ -130,7 +130,7 @@ static GF_Err XVID_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		break;
 	case GF_CODEC_WANTS_THREAD:
 	{
-		const char *sOpt = gf_modules_get_option(ifcg, "XviD", "Threaded");
+		const char *sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "XviD", "Threaded");
 		capability->cap.valueInt = (sOpt && stricmp(sOpt, "yes")) ? 1 : 0;
 	}
 		break;
@@ -246,7 +246,7 @@ GF_BaseDecoder *NewXVIDDec()
 	ifcd->ProcessData = XVID_ProcessData;
 	ifcd->CanHandleStream = XVID_CanHandleStream;
 	ifcd->privateStack = dec;
-	GF_REGISTER_MODULE(ifcd, GF_MEDIA_DECODER_INTERFACE, "XviD for CE Decoder", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(ifcd, GF_MEDIA_DECODER_INTERFACE, "XviD for CE Decoder", "gpac distribution", 0)
 	return (GF_BaseDecoder *) ifcd;
 }
 
@@ -265,18 +265,17 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 
-void *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return NewXVIDDec();
 	return NULL;
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseDecoder *ptr = (GF_BaseDecoder*)ifce;
-	switch (ptr->InterfaceType) {
+	switch (ifce->InterfaceType) {
 	case GF_MEDIA_DECODER_INTERFACE: 
-		DeleteXVIDDec(ptr);
+		DeleteXVIDDec((GF_BaseDecoder *)ifce);
 		break;
 	}
 }

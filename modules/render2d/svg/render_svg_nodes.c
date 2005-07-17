@@ -34,73 +34,73 @@ static void SVGInitProperties(SVGStylingProperties *svg_props)
 {
 	if (!svg_props) return;
 
-	SAFEALLOC(svg_props->fill, sizeof(SVG_Paint));
+	GF_SAFEALLOC(svg_props->fill, sizeof(SVG_Paint));
 	svg_props->fill->paintType = SVG_PAINTTYPE_COLOR;
-	SAFEALLOC(svg_props->fill->color, sizeof(SVG_Color));
+	GF_SAFEALLOC(svg_props->fill->color, sizeof(SVG_Color));
 	svg_props->fill->color->colorType = SVG_COLORTYPE_RGBCOLOR;
 	svg_props->fill->color->red = 0;
 	svg_props->fill->color->green = 0;
 	svg_props->fill->color->blue = 0;
 
-	SAFEALLOC(svg_props->fill_rule, sizeof(SVG_ClipFillRule));
+	GF_SAFEALLOC(svg_props->fill_rule, sizeof(SVG_ClipFillRule));
 	*svg_props->fill_rule = SVGFillRule_nonzero;
 
-	SAFEALLOC(svg_props->fill_opacity, sizeof(SVG_OpacityValue));
+	GF_SAFEALLOC(svg_props->fill_opacity, sizeof(SVG_OpacityValue));
 	svg_props->fill_opacity->type = SVGFLOAT_VALUE;
 	svg_props->fill_opacity->value = FIX_ONE;
 	
-	SAFEALLOC(svg_props->stroke, sizeof(SVG_Paint));
+	GF_SAFEALLOC(svg_props->stroke, sizeof(SVG_Paint));
 	svg_props->stroke->paintType = SVG_PAINTTYPE_NONE;
-	SAFEALLOC(svg_props->stroke->color, sizeof(SVG_Color));
+	GF_SAFEALLOC(svg_props->stroke->color, sizeof(SVG_Color));
 	svg_props->stroke->color->colorType = SVG_COLORTYPE_RGBCOLOR;
 
-	SAFEALLOC(svg_props->stroke_opacity, sizeof(SVG_OpacityValue));
+	GF_SAFEALLOC(svg_props->stroke_opacity, sizeof(SVG_OpacityValue));
 	svg_props->stroke_opacity->type = SVGFLOAT_VALUE;
 	svg_props->stroke_opacity->value = FIX_ONE;
 
-	SAFEALLOC(svg_props->stroke_width, sizeof(SVG_StrokeWidthValue));
+	GF_SAFEALLOC(svg_props->stroke_width, sizeof(SVG_StrokeWidthValue));
 	svg_props->stroke_width->unitType = SVG_LENGTHTYPE_NUMBER;
 	svg_props->stroke_width->number = FIX_ONE;
 
-	SAFEALLOC(svg_props->stroke_linecap, sizeof(SVG_StrokeLineCapValue));
+	GF_SAFEALLOC(svg_props->stroke_linecap, sizeof(SVG_StrokeLineCapValue));
 	*(svg_props->stroke_linecap) = SVGStrokeLineCap_butt;
-	SAFEALLOC(svg_props->stroke_linejoin, sizeof(SVG_StrokeLineJoinValue));
+	GF_SAFEALLOC(svg_props->stroke_linejoin, sizeof(SVG_StrokeLineJoinValue));
 	*(svg_props->stroke_linejoin) = SVGStrokeLineJoin_miter;
 
-	SAFEALLOC(svg_props->stroke_miterlimit, sizeof(SVGInheritableFloat));
+	GF_SAFEALLOC(svg_props->stroke_miterlimit, sizeof(SVGInheritableFloat));
 	svg_props->stroke_miterlimit->type = SVGFLOAT_VALUE;
 	svg_props->stroke_miterlimit->value = 4*FIX_ONE;
 
-	SAFEALLOC(svg_props->stroke_dashoffset , sizeof(SVG_StrokeDashOffsetValue));
+	GF_SAFEALLOC(svg_props->stroke_dashoffset , sizeof(SVG_StrokeDashOffsetValue));
 	svg_props->stroke_dashoffset->type = SVGFLOAT_VALUE;
 	svg_props->stroke_dashoffset->value = 0;
 
-	SAFEALLOC(svg_props->stroke_dasharray, sizeof(SVG_StrokeDashArrayValue));
+	GF_SAFEALLOC(svg_props->stroke_dasharray, sizeof(SVG_StrokeDashArrayValue));
 	svg_props->stroke_dasharray->type = SVG_STROKEDASHARRAY_NONE;
 
-	SAFEALLOC(svg_props->font_family, sizeof(SVG_FontFamilyValue));
+	GF_SAFEALLOC(svg_props->font_family, sizeof(SVG_FontFamilyValue));
 	svg_props->font_family->type = SVGFontFamily_string;
 	svg_props->font_family->value.string = strdup("Arial");
 	svg_props->font_family->value.length = 6;
 
-	SAFEALLOC(svg_props->font_size, sizeof(SVGInheritableFloat));
+	GF_SAFEALLOC(svg_props->font_size, sizeof(SVGInheritableFloat));
 	svg_props->font_size->type = SVGFLOAT_VALUE;
 	svg_props->font_size->value = 12*FIX_ONE;
 
-	SAFEALLOC(svg_props->font_style, sizeof(SVG_FontStyleValue));
+	GF_SAFEALLOC(svg_props->font_style, sizeof(SVG_FontStyleValue));
 	*(svg_props->font_style) = SVGFontStyle_normal;
 
-	SAFEALLOC(svg_props->color, sizeof(SVG_Color));
+	GF_SAFEALLOC(svg_props->color, sizeof(SVG_Color));
 	svg_props->color->colorType = SVG_COLORTYPE_RGBCOLOR;
 	/* svg_props->color->red, green, blue set to zero, so initial value for color property is black */
 
-	SAFEALLOC(svg_props->text_anchor, sizeof(SVG_TextAnchorValue));
+	GF_SAFEALLOC(svg_props->text_anchor, sizeof(SVG_TextAnchorValue));
 	*svg_props->text_anchor = SVG_TEXTANCHOR_START;
 
-	SAFEALLOC(svg_props->visibility, sizeof(SVG_VisibilityValue));
+	GF_SAFEALLOC(svg_props->visibility, sizeof(SVG_VisibilityValue));
 	*svg_props->visibility = SVG_VISIBILITY_VISIBLE;
 
-	SAFEALLOC(svg_props->display, sizeof(SVG_DisplayValue));
+	GF_SAFEALLOC(svg_props->display, sizeof(SVG_DisplayValue));
 	*svg_props->display = SVG_DISPLAY_INLINE;
 
 }
@@ -294,7 +294,7 @@ void SVG_Init_svg(Render2D *sr, GF_Node *node)
 {
 	SVGStylingProperties *svgp;
 
-	SAFEALLOC(svgp, sizeof(SVGStylingProperties));
+	GF_SAFEALLOC(svgp, sizeof(SVGStylingProperties));
 	SVGInitProperties(svgp);
 	gf_node_set_private(node, svgp);
 
@@ -919,7 +919,7 @@ static void SVG_OnUserEvent_a(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *s
 			tag == TAG_SVG_discard) {
 			SVGsetElement *set = (SVGsetElement *)a->xlink_href.target_element;
 			SMIL_BeginOrEndValue *begin;
-			SAFEALLOC(begin, sizeof(SMIL_BeginOrEndValue));
+			GF_SAFEALLOC(begin, sizeof(SMIL_BeginOrEndValue));
 			begin->type = SMILBeginOrEnd_offset_value;
 			begin->clock_value = gf_node_get_scene_time((GF_Node *)set);
 			gf_list_insert(set->begin, begin, 0);
@@ -936,7 +936,7 @@ SensorHandler *SVG_GetHandler_a(GF_Node *n)
 void SVG_Init_a(Render2D *sr, GF_Node *node)
 {
 	SVG_Stack_a *stack;
-	SAFEALLOC(stack, sizeof(SVG_Stack_a))
+	GF_SAFEALLOC(stack, sizeof(SVG_Stack_a))
 
 	SetupGroupingNode2D((GroupingNode2D*)stack, sr, node);
 

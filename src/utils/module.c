@@ -80,63 +80,54 @@ u32 gf_modules_get_count(GF_ModuleManager *pm)
 }
 
 
-Bool gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug, u32 InterfaceFamily, void **interface_obj)
+GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug, u32 InterfaceFamily)
 {
 	ModuleInstance *inst;
 	GF_BaseInterface *ifce;
 
-	if (!pm) return 0;
+	if (!pm) return NULL;
 	inst = gf_list_get(pm->plug_list, whichplug);
-	if (!inst) return 0;
-	if (!gf_modules_load_library(inst)) return 0;
+	if (!inst) return NULL;
+	if (!gf_modules_load_library(inst)) return NULL;
 
-	if (! inst->query_func(InterfaceFamily) ) return 0;
+	if (! inst->query_func(InterfaceFamily) ) return NULL;
 
 	ifce = (GF_BaseInterface *) inst->load_func(InterfaceFamily);
-	if (!ifce) return 0;
+	if (!ifce) return NULL;
 
 	/*sanity check*/
 	if (!ifce->module_name || (ifce->InterfaceType != InterfaceFamily)) {
 		inst->destroy_func(ifce);
-		return 0;
+		return NULL;
 	}
 	gf_list_add(inst->interfaces, ifce);
 	/*keep track of parent*/
 	ifce->HPLUG = inst;
-	*interface_obj = ifce;
-	return 1;
+	return ifce;
 }
 
 
-Bool gf_modules_load_interface_by_name(GF_ModuleManager *pm, const char *plug_name, u32 InterfaceFamily, void **interface_obj)
+GF_BaseInterface *gf_modules_load_interface_by_name(GF_ModuleManager *pm, const char *plug_name, u32 InterfaceFamily)
 {
 	u32 i;
 	GF_BaseInterface *ifce;
 	for (i=0; i<gf_list_count(pm->plug_list); i++) {
-		if (gf_modules_load_interface(pm, i, InterfaceFamily, (void **) &ifce)) {
-			/*check by driver name*/
-			if (ifce->module_name && !stricmp(ifce->module_name, plug_name)) {
-				*interface_obj = ifce;
-				return 1;
-			}
-			/*check by file name*/
-			if (!stricmp(((ModuleInstance *)ifce->HPLUG)->szName, plug_name)) {
-				*interface_obj = ifce;
-				return 1;
-			}
-			gf_modules_close_interface(ifce);
-		}
+		ifce = gf_modules_load_interface(pm, i, InterfaceFamily);
+		if (!ifce) continue;
+		/*check by driver name*/
+		if (ifce->module_name && !stricmp(ifce->module_name, plug_name)) return ifce;
+		/*check by file name*/
+		if (!stricmp(((ModuleInstance *)ifce->HPLUG)->szName, plug_name)) return ifce;
+		gf_modules_close_interface(ifce);
 	}
-	return 0;
+	return NULL;
 }
 
-GF_Err gf_modules_close_interface(void *interface_obj)
+GF_Err gf_modules_close_interface(GF_BaseInterface *ifce)
 {
-	GF_BaseInterface *ifce;
 	ModuleInstance *par;
 	u32 i;
-	if (!interface_obj) return GF_BAD_PARAM;
-	ifce = (GF_BaseInterface *)interface_obj;
+	if (!ifce) return GF_BAD_PARAM;
 	par = ifce->HPLUG;
 
 	if (!par || !ifce->InterfaceType) return GF_BAD_PARAM;
@@ -144,27 +135,31 @@ GF_Err gf_modules_close_interface(void *interface_obj)
 	i = gf_list_find(par->plugman->plug_list, par);
 	if (i<0) return GF_BAD_PARAM;
 
-	i = gf_list_find(par->interfaces, interface_obj);
+	i = gf_list_find(par->interfaces, ifce);
 	if (i<0) return GF_BAD_PARAM;
 	gf_list_rem(par->interfaces, (u32) i);
-	par->destroy_func(interface_obj);
+	par->destroy_func(ifce);
 
 	gf_modules_unload_library(par);
 	return GF_OK;
 }
 
-char *gf_modules_get_option(void *interface_obj, const char *secName, const char *keyName)
+const char *gf_modules_get_option(GF_BaseInterface *ifce, const char *secName, const char *keyName)
 {
-	GF_BaseInterface *ifce = (GF_BaseInterface *) interface_obj;
+	GF_Config *cfg;
 	if (!ifce || !ifce->HPLUG) return NULL;
-	return gf_cfg_get_key(((ModuleInstance *)ifce->HPLUG)->plugman->cfg, secName, keyName);
+	cfg = ((ModuleInstance *)ifce->HPLUG)->plugman->cfg;
+	if (!cfg) return NULL;
+	return gf_cfg_get_key(cfg, secName, keyName);
 }
 
-GF_Err gf_modules_set_option(void *interface_obj, const char *secName, const char *keyName, const char *keyValue)
+GF_Err gf_modules_set_option(GF_BaseInterface *ifce, const char *secName, const char *keyName, const char *keyValue)
 {
-	GF_BaseInterface *ifce = (GF_BaseInterface *) interface_obj;
+	GF_Config *cfg;
 	if (!ifce || !ifce->HPLUG) return GF_BAD_PARAM;
-	return gf_cfg_set_key(((ModuleInstance *)ifce->HPLUG)->plugman->cfg, secName, keyName, keyValue);
+	cfg = ((ModuleInstance *)ifce->HPLUG)->plugman->cfg;
+	if (!cfg) return GF_NOT_SUPPORTED;
+	return gf_cfg_set_key(cfg, secName, keyName, keyValue);
 }
 
 const char *gf_modules_get_file_name(GF_ModuleManager *pm, u32 i)

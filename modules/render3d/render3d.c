@@ -49,7 +49,7 @@ void effect3d_reset(RenderEffect3D *eff)
 RenderEffect3D *effect3d_new()
 {
 	RenderEffect3D *eff;
-	SAFEALLOC(eff, sizeof(RenderEffect3D));
+	GF_SAFEALLOC(eff, sizeof(RenderEffect3D));
 	eff->sensors = gf_list_new();
 	eff->local_lights = gf_list_new();
 	return eff;
@@ -381,23 +381,23 @@ void R3D_ReloadConfig(GF_VisualRenderer *vr)
 
 	gf_sr_lock(sr->compositor, 1);
 
-	sOpt = gf_modules_get_option(vr, "Render3D", "RasterOutlines");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "RasterOutlines");
 	sr->raster_outlines = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
-	sOpt = gf_modules_get_option(vr, "Render3D", "EmulatePOW2");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "EmulatePOW2");
 	sr->emul_pow2 = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
-	sOpt = gf_modules_get_option(vr, "Render3D", "PolygonAA");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "PolygonAA");
 	sr->poly_aa = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
-	sOpt = gf_modules_get_option(vr, "Render3D", "DisableBackFaceCulling");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "DisableBackFaceCulling");
 	sr->no_backcull = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
-	sOpt = gf_modules_get_option(vr, "Render3D", "Wireframe");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "Wireframe");
 	if (sOpt && !stricmp(sOpt, "WireOnly")) sr->wiremode = GF_WIREFRAME_ONLY;
 	else if (sOpt && !stricmp(sOpt, "WireOnSolid")) sr->wiremode = GF_WIREFRAME_SOLID;
 	else sr->wiremode = GF_WIREFRAME_NONE;
 
-	sOpt = gf_modules_get_option(vr, "Render3D", "BitmapCopyPixels");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "BitmapCopyPixels");
 	sr->bitmap_use_pixels = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
 
-	sOpt = gf_modules_get_option(vr, "Render3D", "DisableRectExt");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "DisableRectExt");
 	sr->disable_rect_ext = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
 	/*RECT texture support - we must reload HW*/
 	gf_sr_reset_graphics(sr->compositor);
@@ -631,7 +631,7 @@ void R3D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_root, void *rs)
 }
 
 /*interface create*/
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	GF_VisualRenderer *sr;
 	if (InterfaceType != GF_RENDERER_INTERFACE) return NULL;
@@ -639,7 +639,7 @@ void *LoadInterface(u32 InterfaceType)
 	sr = malloc(sizeof(GF_VisualRenderer));
 	if (!sr) return NULL;
 	memset(sr, 0, sizeof(GF_VisualRenderer));
-	GF_REGISTER_MODULE(sr, GF_RENDERER_INTERFACE, "GPAC 3D Renderer", "gpac distribution", 0);
+	GF_REGISTER_MODULE_INTERFACE(sr, GF_RENDERER_INTERFACE, "GPAC 3D Renderer", "gpac distribution");
 
 	sr->LoadRenderer = R3D_LoadRenderer;
 	sr->UnloadRenderer = R3D_UnloadRenderer;
@@ -667,12 +667,12 @@ void *LoadInterface(u32 InterfaceType)
 	/*signal we need openGL*/
 	sr->bNeedsGL = 1;
 	sr->user_priv = NULL;
-	return sr;
+	return (GF_BaseInterface *)sr;
 }
 
 
 /*interface destroy*/
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	GF_VisualRenderer *rend = (GF_VisualRenderer *)ifce;
 	if (rend->InterfaceType != GF_RENDERER_INTERFACE) return;

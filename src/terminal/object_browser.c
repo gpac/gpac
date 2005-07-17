@@ -253,7 +253,7 @@ Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_
 	sess = gf_list_get(odm->net_service->dnloads, *d_enum);
 	if (!sess) return 0;
 	(*d_enum) ++;
-	gf_dm_get_stats(sess, server, path, bytes_done, total_bytes, bytes_per_sec, NULL);
+	gf_dm_sess_get_stats(sess, server, path, bytes_done, total_bytes, bytes_per_sec, NULL);
 	return 1;
 }
 

@@ -342,7 +342,7 @@ Fixed gf_tan(Fixed angle)
     return gf_divfix( v.y, v.x );
 }
 
-Fixed gf_atan2(Fixed  dx, Fixed  dy)
+Fixed gf_atan2(Fixed dy, Fixed dx)
 {
 	GF_Point2D v;
 	if ( dx == 0 && dy == 0 ) return 0;
@@ -438,20 +438,24 @@ void gf_v2d_polarize(GF_Point2D *vec, Fixed *length, Fixed *angle)
     *angle  = v.y;
 }
 
-void gf_v2d_from_polar(GF_Point2D *vec, Fixed length, Fixed angle)
+GF_Point2D gf_v2d_from_polar(Fixed length, Fixed angle)
 {
-    vec->x = length;
-    vec->y = 0;
-    gf_v2d_rotate(vec, angle);
+	GF_Point2D vec;
+    vec.x = length;
+    vec.y = 0;
+    gf_v2d_rotate(&vec, angle);
+	return vec;
 }
 
 #else
 
 
-void gf_v2d_from_polar(GF_Point2D *vec, Fixed length, Fixed angle)
+GF_Point2D gf_v2d_from_polar(Fixed length, Fixed angle)
 {
-    vec->x = length*(Float) cos(angle);
-    vec->y = length*(Float) sin(angle);
+	GF_Point2D vec;
+    vec.x = length*(Float) cos(angle);
+    vec.y = length*(Float) sin(angle);
+	return vec;
 }
 
 Fixed gf_v2d_len(GF_Point2D *vec)
@@ -466,7 +470,7 @@ Fixed gf_v2d_len(GF_Point2D *vec)
 Fixed gf_cos(_a) { return (Float) cos(_a); }
 Fixed gf_sin(_a) { return (Float) sin(_a); }
 Fixed gf_tan(_a) { return (Float) tan(_a); }
-Fixed gf_atan2(_x, _y) { return (Float) atan2(_y, _x); }
+Fixed gf_atan2(_y, _x) { return (Float) atan2(_y, _x); }
 Fixed gf_sqrt(_x) { return (Float) sqrt(_x); }
 Fixed gf_ceil(_a) { return (Float) ceil(_a); }
 Fixed gf_floor(_a) { return (Float) floor(_a); }
@@ -578,7 +582,7 @@ void gf_mx2d_add_skew(GF_Matrix2D *_this, Fixed skew_x, Fixed skew_y)
 	gf_mx2d_add_matrix(_this, &tmp);
 }
 
-void gf_mx2d_add_skewX(GF_Matrix2D *_this, Fixed angle)
+void gf_mx2d_add_skew_x(GF_Matrix2D *_this, Fixed angle)
 {
 	GF_Matrix2D tmp;
 	Fixed a_sin = gf_sin(angle);
@@ -589,7 +593,7 @@ void gf_mx2d_add_skewX(GF_Matrix2D *_this, Fixed angle)
 	gf_mx2d_add_matrix(_this, &tmp);
 }
 
-void gf_mx2d_add_skewY(GF_Matrix2D *_this, Fixed angle)
+void gf_mx2d_add_skew_y(GF_Matrix2D *_this, Fixed angle)
 {
 	GF_Matrix2D tmp;
 	Fixed a_sin = gf_sin(angle);
@@ -808,9 +812,11 @@ void gf_rect_union(GF_Rect *rc1, GF_Rect *rc2)
 	if (rc2->y - rc2->height < rc1->y - rc1->height) rc1->height = rc1->y - rc2->y + rc2->height;
 }
 
-void gf_rect_center(GF_Rect *rc, Fixed w, Fixed h)
+GF_Rect gf_rect_center(Fixed w, Fixed h)
 {
-	rc->x=-w/2; rc->y=h/2; rc->width=w; rc->height=h;
+	GF_Rect rc;
+	rc.x=-w/2; rc.y=h/2; rc.width=w; rc.height=h;
+	return rc;
 }
 
 Bool gf_rect_overlaps(GF_Rect rc1, GF_Rect rc2)
@@ -1205,6 +1211,8 @@ void gf_mx_lookat(GF_Matrix *mx, GF_Vec eye, GF_Vec center, GF_Vec upVector)
 
 	gf_mx_add_translation(mx, -eye.x, -eye.y, -eye.z);
 }
+
+GF_Vec4 gf_quat_from_matrix(GF_Matrix *mx);
 
 void gf_mx_decompose(GF_Matrix *mx, GF_Vec *translate, GF_Vec *scale, GF_Vec4 *rotate, GF_Vec *shear)
 {

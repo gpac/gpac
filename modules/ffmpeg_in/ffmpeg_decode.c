@@ -29,7 +29,7 @@ static AVCodec *ffmpeg_get_codec(u32 codec_4cc)
 {
 	char name[5];
 	AVCodec *codec;
-	gf_4cc_to_str(codec_4cc, name);
+	strcpy(name, gf_4cc_to_str(codec_4cc));
 
 	codec = avcodec_find_decoder_by_name(name);
 	if (!codec) {
@@ -74,7 +74,7 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, Bool from_ff_demux)
 		size = gf_bs_read_u32(bs);
 		/*there should be an 'SMI' entry*/
 		at_type = gf_bs_read_u32(bs);
-		if (at_type == FOUR_CHAR_INT('S', 'M', 'I', ' ')) {
+		if (at_type == GF_FOUR_CHAR_INT('S', 'M', 'I', ' ')) {
 			av_free(ffd->ctx->extradata);
 			ffd->ctx->extradata_size = 0x5a + size;
 			ffd->ctx->extradata = (uint8_t*) av_mallocz(ffd->ctx->extradata_size);
@@ -119,7 +119,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, unsigned char 
 {
 	u32 codec_id;
 	GF_BitStream *bs;
-	char *sOpt;
+	const char *sOpt;
 	GF_M4VDecSpecInfo dsi;
 	GF_Err e;
 	FFDec *ffd = (FFDec *)plug->privateStack;
@@ -157,7 +157,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, unsigned char 
 		gf_bs_del(bs);
 	} 
 	/*private QT DSI*/
-	else if (ffd->oti == GPAC_QT_CODECS_OTI) {
+	else if (ffd->oti == GPAC_EXTRA_CODECS_OTI) {
 		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
 		codec_id = gf_bs_read_u32(bs);
 		if (ffd->st==GF_STREAM_AUDIO) {
@@ -167,7 +167,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, unsigned char 
 			ffd->ctx->bits_per_sample = gf_bs_read_u8(bs);
 			ffd->ctx->frame_size = gf_bs_read_u8(bs);
 			/*just in case...*/
-			if (codec_id == FOUR_CHAR_INT('a', 'm', 'r', ' ')) {
+			if (codec_id == GF_FOUR_CHAR_INT('a', 'm', 'r', ' ')) {
 			  ffd->ctx->sample_rate = 8000;
 			  ffd->ctx->channels = 1;
 			  ffd->ctx->bits_per_sample = 16;
@@ -284,7 +284,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, unsigned char 
 	av_log_set_level(AV_LOG_DEBUG);
 #endif
 	
-	sOpt = gf_modules_get_option(plug, "FFMPEG", "EnablePixelAspectRatio");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "EnablePixelAspectRatio");
 	ffd->enable_par = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 
 	return GF_OK;
@@ -593,7 +593,7 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, u32 Obje
 		gf_bs_del(bs);
 	}
 	/*private from IsoMedia input*/
-	else if (ObjectType == GPAC_QT_CODECS_OTI) {
+	else if (ObjectType == GPAC_EXTRA_CODECS_OTI) {
 		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
 		codec_id = gf_bs_read_u32(bs);
 		check_4cc = 1;
@@ -654,8 +654,8 @@ void *FFDEC_Load()
     avcodec_init();
 	avcodec_register_all();
 
-	SAFEALLOC(ptr , sizeof(GF_MediaDecoder));
-	SAFEALLOC(priv , sizeof(FFDec));
+	GF_SAFEALLOC(ptr , sizeof(GF_MediaDecoder));
+	GF_SAFEALLOC(priv , sizeof(FFDec));
 	ptr->privateStack = priv;
 
 	ptr->AttachStream = FFDEC_AttachStream;
@@ -666,7 +666,7 @@ void *FFDEC_Load()
 	ptr->GetName = FFDEC_GetCodecName;
 	ptr->ProcessData = FFDEC_ProcessData;
 
-	GF_REGISTER_MODULE(ptr, GF_MEDIA_DECODER_INTERFACE, "FFMPEG decoder", "gpac distribution", 0);
+	GF_REGISTER_MODULE_INTERFACE(ptr, GF_MEDIA_DECODER_INTERFACE, "FFMPEG decoder", "gpac distribution");
 	return (GF_BaseInterface *) ptr;
 }
 

@@ -899,7 +899,7 @@ GF_ESD *gp_media_map_esd(GF_ISOFile *mp4, u32 track)
 		esd->OCRESID = esd->ESID;
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 		/*use private DSI*/
-		esd->decoderConfig->objectTypeIndication = GPAC_QT_CODECS_OTI;
+		esd->decoderConfig->objectTypeIndication = GPAC_EXTRA_CODECS_OTI;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		/*format ext*/
 		gf_bs_write_u32(bs, subtype);
@@ -918,10 +918,10 @@ GF_ESD *gp_media_map_esd(GF_ISOFile *mp4, u32 track)
 		esd->OCRESID = esd->ESID;
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
 		/*use private DSI*/
-		esd->decoderConfig->objectTypeIndication = GPAC_QT_CODECS_OTI;
+		esd->decoderConfig->objectTypeIndication = GPAC_EXTRA_CODECS_OTI;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		/*format ext*/
-		gf_bs_write_u32(bs, FOUR_CHAR_INT('h', '2', '6', '3'));
+		gf_bs_write_u32(bs, GF_FOUR_CHAR_INT('h', '2', '6', '3'));
 		gf_isom_get_visual_info(mp4, track, 1, &w, &h);
 		gf_bs_write_u16(bs, w);
 		gf_bs_write_u16(bs, h);
@@ -937,7 +937,7 @@ GF_ESD *gp_media_map_esd(GF_ISOFile *mp4, u32 track)
 	esd->OCRESID = esd->ESID = gf_isom_get_track_id(mp4, track);
 	esd->slConfig->useTimestampsFlag = 1;
 	esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);
-	esd->decoderConfig->objectTypeIndication = GPAC_QT_CODECS_OTI;
+	esd->decoderConfig->objectTypeIndication = GPAC_EXTRA_CODECS_OTI;
 	/*format ext*/
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u32(bs, subtype);

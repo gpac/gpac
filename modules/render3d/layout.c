@@ -453,7 +453,7 @@ static void RenderLayout(GF_Node *node, void *rs)
 		/*setup bounds in local coord system*/
 		if (l->size.x>=0) st->clip.width = l->size.x;
 		if (l->size.y>=0) st->clip.height = l->size.y;
-		gf_rect_center(&st->clip, st->clip.width, st->clip.height);
+		st->clip = gf_rect_center(st->clip.width, st->clip.height);
 		gf_bbox_from_rect(&st->bbox, &st->clip);
 	}
 

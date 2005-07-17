@@ -2896,9 +2896,9 @@ GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
 	gzInput = gzopen(load->fileName, "rb");
 	if (!gzInput) return GF_IO_ERR;
 
-	SAFEALLOC(parser, sizeof(GF_BTParser));
+	GF_SAFEALLOC(parser, sizeof(GF_BTParser));
 	parser->load = load;
-	SAFEALLOC(parser->line_buffer, sizeof(char)*BT_LINE_SIZE);
+	GF_SAFEALLOC(parser->line_buffer, sizeof(char)*BT_LINE_SIZE);
 	parser->file_size = size;
 
 	gzgets(gzInput, BOM, 5);

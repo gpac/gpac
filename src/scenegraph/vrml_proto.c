@@ -40,7 +40,7 @@ GF_Proto *gf_sg_proto_new(GF_SceneGraph *inScene, u32 ProtoID, char *name, Bool 
 		if (tmp) return NULL;
 	}
 
-	SAFEALLOC(tmp, sizeof(GF_Proto));
+	GF_SAFEALLOC(tmp, sizeof(GF_Proto));
 	if (!tmp) return NULL;
 
 	tmp->proto_fields = gf_list_new();
@@ -193,7 +193,7 @@ GF_ProtoFieldInterface *gf_sg_proto_field_new(GF_Proto *proto, u32 fieldType, u3
 		tmp = gf_sg_proto_field_find_by_name(proto, fieldName);
 		if (tmp) return NULL;
 	}
-	SAFEALLOC(tmp, sizeof(GF_ProtoFieldInterface));
+	GF_SAFEALLOC(tmp, sizeof(GF_ProtoFieldInterface));
 	if (!tmp) return NULL;
 
 	tmp->FieldType = fieldType;
@@ -630,7 +630,7 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 	GF_ProtoFieldInterface *field;
 
 	GF_ProtoInstance *proto_node;
-	SAFEALLOC(proto_node, sizeof(GF_ProtoInstance));
+	GF_SAFEALLOC(proto_node, sizeof(GF_ProtoInstance));
 	if (!proto_node) return NULL;
 
 	gf_node_setup((GF_Node *)proto_node, TAG_ProtoNode);
@@ -806,7 +806,7 @@ GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node 
 		}
 	}
 
-	SAFEALLOC(r, sizeof(GF_Route));
+	GF_SAFEALLOC(r, sizeof(GF_Route));
 	if (!r) return GF_OUT_OF_MEM;
 	r->IS_route = 1;
 
@@ -865,7 +865,7 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 		}
 	}
 
-	SAFEALLOC(r, sizeof(GF_Route));
+	GF_SAFEALLOC(r, sizeof(GF_Route));
 	if (!r) return GF_OUT_OF_MEM;
 	r->IS_route = 1;
 

@@ -29,43 +29,110 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/list.h>
+ *	\brief list functions.
+ */
+
+/*!
+ *	\addtogroup list_grp list
+ *	\ingroup utils_grp
+ *	\brief List object
+ *
+ *	This section documents the list object of the GPAC framework.
+ *	@{
+ */
+
 #include <gpac/tools.h>
 
-/**********************************************************************
-					CHAIN: list tool
-**********************************************************************/
 typedef struct _tag_array GF_List;
 
-/*array constructor*/
+/*!
+ *	\brief list constructor
+ *
+ *	Constructs a new list object
+ *	\return new list object
+ */
 GF_List *gf_list_new();
-
-/*array destructor - you must delete your objects*/
+/*!
+ *	\brief list destructor
+ *
+ *	Destructs a list object
+ *	\param ptr list object to destruct
+ *	\note It is the caller responsability to destroy the content of the list if needed
+ */
 void gf_list_del(GF_List *ptr);
-
-/* Get the number of items */
+/*!
+ *	\brief get count
+ *
+ *	Returns number of items in the list
+ *	\param ptr target list object
+ *	\return number of items in the list
+ */
 u32 gf_list_count(GF_List *ptr);
-
-/* Add an item at the end of the array */
+/*!
+ *	\brief add item
+ *
+ *	Adds an item at the end of the list
+ *	\param ptr target list object
+ *	\param item item to add
+ */
 GF_Err gf_list_add(GF_List *ptr, void* item);
-
-/* insert an item at the specified position (between 0 and gf_list_count() - 1) */
+/*!
+ *	\brief inserts item
+ *
+ *	Insert an item in the list
+ *	\param ptr target list object
+ *	\param item item to add
+ *	\param position insertion position. It is expressed between 0 and gf_list_count-1, and any bigger value is equivalent to gf_list_add
+ */
 GF_Err gf_list_insert(GF_List *ptr, void *item, u32 position);
-
-/* Delete an entry from the array (between 0 and gf_list_count() - 1)*/
-GF_Err gf_list_rem(GF_List *ptr, u32 item_number);
-
-/* get the specified entry (between 0 and gf_list_count() - 1) */
-void *gf_list_get(GF_List *ptr, u32 item_number);
-
-/*returns entry index if item has been found, -1 otherwise*/
+/*!
+ *	\brief removes item
+ *
+ *	Removes an item from the list given its position
+ *	\param ptr target list object
+ *	\param position position of the item to remove. It is expressed between 0 and gf_list_count-1.
+ *	\note It is the caller responsability to destroy the content of the list if needed
+ */
+GF_Err gf_list_rem(GF_List *ptr, u32 position);
+/*!
+ *	\brief gets item
+ *
+ *	Gets an item from the list given its position
+ *	\param ptr target list object
+ *	\param position position of the item to get. It is expressed between 0 and gf_list_count-1.
+ */
+void *gf_list_get(GF_List *ptr, u32 position);
+/*!
+ *	\brief finds item
+ *
+ *	Finds an item in the list
+ *	\param ptr target list object.
+ *	\param item the item to find.
+ *	\return 0-based item position in the list, or -1 if the item could not be found.
+ */
 s32 gf_list_find(GF_List *ptr, void *item);
-
-/*removes item by pointer. returns entry index if found, -1 otherwise*/
+/*!
+ *	\brief deletes item
+ *
+ *	Deletes an item from the list
+ *	\param ptr target list object.
+ *	\param item the item to find.
+ *	\return 0-based item position in the list before removal, or -1 if the item could not be found.
+ */
 s32 gf_list_del_item(GF_List *ptr, void *item);
-
-/*empty list content*/
+/*!
+ *	\brief resets list
+ *
+ *	Resets the content of the list
+ *	\param ptr target list object.
+ *	\note It is the caller responsability to destroy the content of the list if needed
+ */
 void gf_list_reset(GF_List *ptr);
 
+
+/*! @} */
 
 #ifdef __cplusplus
 }

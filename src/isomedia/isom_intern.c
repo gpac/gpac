@@ -433,7 +433,7 @@ GF_Err GetMediaTime(GF_TrackBox *trak, u32 movieTime, u64 *MediaTime, s64 *Segme
 	}
 
 	//No edits, 1 to 1 mapping
-	if (! trak->GF_EditBox || !trak->GF_EditBox->editList) {
+	if (! trak->editBox || !trak->editBox->editList) {
 		*MediaTime = movieTime;
 		//check this is in our media time line
 		if (*MediaTime > lastSampleTime) *MediaTime = lastSampleTime;
@@ -448,9 +448,9 @@ GF_Err GetMediaTime(GF_TrackBox *trak, u32 movieTime, u64 *MediaTime, s64 *Segme
 
 	time = 0;
 	ent = NULL;
-	for (i = 0; i < gf_list_count(trak->GF_EditBox->editList->entryList); i++) {
+	for (i = 0; i < gf_list_count(trak->editBox->editList->entryList); i++) {
 		//get all the entries that are empty at the begining...
-		ent = (GF_EdtsEntry*)gf_list_get(trak->GF_EditBox->editList->entryList, i);
+		ent = (GF_EdtsEntry*)gf_list_get(trak->editBox->editList->entryList, i);
 		if (time + ent->segmentDuration > m_time) {
 			goto ent_found;
 		}
@@ -541,12 +541,12 @@ GF_Err GetNextMediaTime(GF_TrackBox *trak, u32 movieTime, u64 *OutMovieTime)
 	GF_EdtsEntry *ent;
 
 	*OutMovieTime = 0;
-	if (! trak->GF_EditBox || !trak->GF_EditBox->editList) return GF_BAD_PARAM;
+	if (! trak->editBox || !trak->editBox->editList) return GF_BAD_PARAM;
 
 	time = 0;
 	ent = NULL;
-	for (i = 0; i < gf_list_count(trak->GF_EditBox->editList->entryList); i++) {
-		ent = (GF_EdtsEntry*)gf_list_get(trak->GF_EditBox->editList->entryList, i);
+	for (i = 0; i < gf_list_count(trak->editBox->editList->entryList); i++) {
+		ent = (GF_EdtsEntry*)gf_list_get(trak->editBox->editList->entryList, i);
 		if (time * trak->Media->mediaHeader->timeScale >= movieTime * trak->moov->mvhd->timeScale) {
 			/*skip empty edits*/
 			if (ent->mediaTime >= 0) {
@@ -569,12 +569,12 @@ GF_Err GetPrevMediaTime(GF_TrackBox *trak, u32 movieTime, u64 *OutMovieTime)
 	GF_EdtsEntry *ent;
 
 	*OutMovieTime = 0;
-	if (! trak->GF_EditBox || !trak->GF_EditBox->editList) return GF_BAD_PARAM;
+	if (! trak->editBox || !trak->editBox->editList) return GF_BAD_PARAM;
 
 	time = 0;
 	ent = NULL;
-	for (i = 0; i < gf_list_count(trak->GF_EditBox->editList->entryList); i++) {
-		ent = (GF_EdtsEntry*)gf_list_get(trak->GF_EditBox->editList->entryList, i);
+	for (i = 0; i < gf_list_count(trak->editBox->editList->entryList); i++) {
+		ent = (GF_EdtsEntry*)gf_list_get(trak->editBox->editList->entryList, i);
 		if (ent->mediaTime == -1) {
 			if ( (time + ent->segmentDuration) * trak->Media->mediaHeader->timeScale >= movieTime * trak->moov->mvhd->timeScale) {
 				*OutMovieTime = time * trak->Media->mediaHeader->timeScale / trak->moov->mvhd->timeScale;

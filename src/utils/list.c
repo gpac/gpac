@@ -453,11 +453,7 @@ GF_Err gf_list_add(GF_List *ptr, void* item)
     if (! ptr) return GF_BAD_PARAM;
 
 	ptr->entryCount ++;
-	if (ptr->slots) {
-		ptr->slots = realloc(ptr->slots, ptr->entryCount*sizeof(void*));
-	} else {
-		ptr->slots = malloc(sizeof(void*)*ptr->entryCount);
-	}
+	ptr->slots = realloc(ptr->slots, ptr->entryCount*sizeof(void*));
 	if (!ptr->slots) {
 		ptr->entryCount = 0;
 		return GF_OUT_OF_MEM;
@@ -552,11 +548,7 @@ void gf_list_del(GF_List *ptr)
 static void realloc_chain(GF_List *ptr)
 {
 	ptr->allocSize += GF_ARRAY_STEP_ALLOC;
-	if (ptr->slots) {
-		ptr->slots = realloc(ptr->slots, ptr->allocSize*sizeof(void*));
-	} else {
-		ptr->slots = malloc(sizeof(void*)*ptr->allocSize);
-	}
+	ptr->slots = realloc(ptr->slots, ptr->allocSize*sizeof(void*));
 }
 
 GF_Err gf_list_add(GF_List *ptr, void* item)
@@ -574,11 +566,7 @@ void ChainExpand(GF_List *ptr, u32 nbItems)
 {
 	if (ptr->entryCount+nbItems>ptr->allocSize) {
 		ptr->allocSize = ptr->entryCount+nbItems;
-		if (ptr->slots) {
-			ptr->slots = realloc(ptr->slots, ptr->allocSize*sizeof(void*));
-		} else {
-			ptr->slots = malloc(sizeof(void*)*ptr->allocSize);
-		}
+		ptr->slots = realloc(ptr->slots, ptr->allocSize*sizeof(void*));
 	}
 }
 

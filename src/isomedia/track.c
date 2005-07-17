@@ -314,9 +314,9 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 
 	//if we have an edit list, the duration is the sum of all the editList 
 	//entries' duration (always expressed in MovieTimeScale)
-	if (trak->GF_EditBox && trak->GF_EditBox->editList) {
+	if (trak->editBox && trak->editBox->editList) {
 		trackDuration = 0;
-		elst = trak->GF_EditBox->editList;
+		elst = trak->editBox->editList;
 		for (i = 0; i<gf_list_count(elst->entryList); i++) {
 			ent = (GF_EdtsEntry*)gf_list_get(elst->entryList, i);
 			trackDuration += ent->segmentDuration;

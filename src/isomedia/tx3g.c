@@ -60,7 +60,7 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 
 	txt->font_table = (GF_FontTableBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_FTAB);
 	txt->font_table->entry_count = desc->font_count;
-	SAFEALLOC(txt->font_table->fonts, sizeof(GF_FontRecord) * desc->font_count);
+	GF_SAFEALLOC(txt->font_table->fonts, sizeof(GF_FontRecord) * desc->font_count);
 	for (i=0; i<desc->font_count; i++) {
 		txt->font_table->fonts[i].fontID = desc->fonts[i].fontID;
 		if (desc->fonts[i].fontName) txt->font_table->fonts[i].fontName = strdup(desc->fonts[i].fontName);
@@ -106,7 +106,7 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 	txt->font_table = (GF_FontTableBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_FTAB);
 	txt->font_table->entry_count = desc->font_count;
 
-	SAFEALLOC(txt->font_table->fonts, sizeof(GF_FontRecord) * desc->font_count);
+	GF_SAFEALLOC(txt->font_table->fonts, sizeof(GF_FontRecord) * desc->font_count);
 	for (i=0; i<desc->font_count; i++) {
 		txt->font_table->fonts[i].fontID = desc->fonts[i].fontID;
 		if (desc->fonts[i].fontName) txt->font_table->fonts[i].fontName = strdup(desc->fonts[i].fontName);
@@ -121,15 +121,9 @@ GF_Err gf_isom_text_add_text(GF_TextSample *samp, char *text_data, u32 text_len)
 {
 	if (!samp) return GF_BAD_PARAM;
 	if (!text_len) return GF_OK;
-	if (!samp->text) {
-		samp->text = malloc(sizeof(char) * text_len);
-		memcpy(samp->text, text_data, sizeof(char) * text_len);
-		samp->len = text_len;
-	} else {
-		samp->text = realloc(samp->text, sizeof(char) * (samp->len + text_len) );
-		memcpy(samp->text + samp->len, text_data, sizeof(char) * text_len);
-		samp->len += text_len;
-	}
+	samp->text = realloc(samp->text, sizeof(char) * (samp->len + text_len) );
+	memcpy(samp->text + samp->len, text_data, sizeof(char) * text_len);
+	samp->len += text_len;
 	return GF_OK;
 }
 
@@ -152,17 +146,10 @@ GF_Err gf_isom_text_add_style(GF_TextSample *samp, GF_StyleRecord *rec)
 		samp->styles = (GF_TextStyleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STYL);
 		if (!samp->styles) return GF_OUT_OF_MEM;
 	}
-	if (!samp->styles->entry_count) {
-		samp->styles->entry_count = 1;
-		SAFEALLOC(samp->styles->styles, sizeof(GF_StyleRecord));
-		if (!samp->styles->styles) return GF_OUT_OF_MEM;
-		samp->styles->styles[0] = *rec;
-	} else {
-		samp->styles->styles = realloc(samp->styles->styles, sizeof(GF_StyleRecord)*(samp->styles->entry_count+1));
-		if (!samp->styles->styles) return GF_OUT_OF_MEM;
-		samp->styles->styles[samp->styles->entry_count] = *rec;
-		samp->styles->entry_count++;
-	}
+	samp->styles->styles = realloc(samp->styles->styles, sizeof(GF_StyleRecord)*(samp->styles->entry_count+1));
+	if (!samp->styles->styles) return GF_OUT_OF_MEM;
+	samp->styles->styles[samp->styles->entry_count] = *rec;
+	samp->styles->entry_count++;
 	return GF_OK;
 }
 
@@ -219,21 +206,12 @@ GF_Err gf_isom_text_add_karaoke(GF_TextSample *samp, u32 start_time)
 GF_Err gf_isom_text_set_karaoke_segment(GF_TextSample *samp, u32 end_time, u16 start_char, u16 end_char)
 {
 	if (!samp || !samp->cur_karaoke) return GF_BAD_PARAM;
-	if (!samp->cur_karaoke->entrycount) {
-		samp->cur_karaoke->entrycount = 1;
-		SAFEALLOC(samp->cur_karaoke->records, sizeof(KaraokeRecord));
-		if (!samp->cur_karaoke->records) return GF_OUT_OF_MEM;
-		samp->cur_karaoke->records[0].end_charoffset = end_char;
-		samp->cur_karaoke->records[0].start_charoffset = start_char;
-		samp->cur_karaoke->records[0].highlight_endtime = end_time;
-	} else {
-		samp->cur_karaoke->records = realloc(samp->cur_karaoke->records, sizeof(KaraokeRecord)*(samp->cur_karaoke->entrycount+1));
-		if (!samp->cur_karaoke->records) return GF_OUT_OF_MEM;
-		samp->cur_karaoke->records[samp->cur_karaoke->entrycount].end_charoffset = end_char;
-		samp->cur_karaoke->records[samp->cur_karaoke->entrycount].start_charoffset = start_char;
-		samp->cur_karaoke->records[samp->cur_karaoke->entrycount].highlight_endtime = end_time;
-		samp->cur_karaoke->entrycount++;
-	}
+	samp->cur_karaoke->records = realloc(samp->cur_karaoke->records, sizeof(KaraokeRecord)*(samp->cur_karaoke->entrycount+1));
+	if (!samp->cur_karaoke->records) return GF_OUT_OF_MEM;
+	samp->cur_karaoke->records[samp->cur_karaoke->entrycount].end_charoffset = end_char;
+	samp->cur_karaoke->records[samp->cur_karaoke->entrycount].start_charoffset = start_char;
+	samp->cur_karaoke->records[samp->cur_karaoke->entrycount].highlight_endtime = end_time;
+	samp->cur_karaoke->entrycount++;
 	return GF_OK;
 }
 
@@ -397,7 +375,7 @@ GF_Err gf_isom_text_has_similar_description(GF_ISOFile *movie, u32 trackNumber, 
 GF_TextSample *gf_isom_new_text_sample()
 {
 	GF_TextSample *res;
-	SAFEALLOC(res, sizeof(GF_TextSample));
+	GF_SAFEALLOC(res, sizeof(GF_TextSample));
 	if (!res) return NULL;
 	res->others = gf_list_new();
 	return res;
@@ -452,14 +430,13 @@ GF_TextSample *gf_isom_parse_texte_sample(GF_BitStream *bs)
 	if (s->len) {
 		/*2 extra bytes for UTF-16 term char just in case (we don't know if a BOM marker is present or 
 		not since this may be a sample carried over RTP*/
-		SAFEALLOC(s->text, sizeof(char)*(s->len+2) );
+		GF_SAFEALLOC(s->text, sizeof(char)*(s->len+2) );
 		gf_bs_read_data(bs, s->text, s->len);
 	}
 
 	while (gf_bs_available(bs)) {
 		GF_Box *a;
-		u64 read;
-		GF_Err e = gf_isom_parse_box(&a, bs, &read);
+		GF_Err e = gf_isom_parse_box(&a, bs);
 		if (!e) {
 			switch (a->type) {
 			case GF_ISOM_BOX_TYPE_STYL:

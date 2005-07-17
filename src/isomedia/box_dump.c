@@ -33,8 +33,6 @@
 
 GF_Err DumpBox(GF_Box *a, FILE * trace)
 {
-	char name[5];
-
 	if (a->size > 0xFFFFFFFF) {
 		fprintf(trace, "<BoxInfo LargeSize=\""LLD"\" ", a->size);
 	} else {
@@ -43,7 +41,7 @@ GF_Err DumpBox(GF_Box *a, FILE * trace)
 	if (a->type == GF_ISOM_BOX_TYPE_UUID ) {
 		fprintf(trace, "ExtendedType=\"%s\"/>\n", a->uuid);
 	} else {
-		fprintf(trace, "Type=\"%s\"/>\n", gf_4cc_to_str(a->type, name));
+		fprintf(trace, "Type=\"%s\"/>\n", gf_4cc_to_str(a->type));
 	}
 	return GF_OK;
 }
@@ -56,8 +54,7 @@ void NullBoxErr(FILE * trace)
 
 void BadTopBoxErr(GF_Box *a, FILE * trace)
 {
-	char name[5];
-	fprintf(trace, "<!--ERROR: Invalid Top-level Box Found (\"%s\")-->\n", gf_4cc_to_str(a->type, name));
+	fprintf(trace, "<!--ERROR: Invalid Top-level Box Found (\"%s\")-->\n", gf_4cc_to_str(a->type));
 }
 
 static void DumpData(FILE *trace, char *data, u32 dataLength)
@@ -493,7 +490,7 @@ GF_Err dinf_dump(GF_Box *a, FILE * trace)
 	p = (GF_DataInformationBox *)a;
 	fprintf(trace, "<DataInformationBox>");
 	DumpBox(a, trace);
-	gb_box_array_dump(p->boxList, trace);
+	gb_box_dump(p->dref, trace);
 	fprintf(trace, "</DataInformationBox>\n");
 	return GF_OK;
 }
@@ -600,14 +597,13 @@ GF_Err dpin_dump(GF_Box *a, FILE * trace)
 
 GF_Err hdlr_dump(GF_Box *a, FILE * trace)
 {
-	char name[5];
 	u32 len;
 	char *str;
 	short uniLine[5000];
 	GF_HandlerBox *p;
 
 	p = (GF_HandlerBox *)a;
-	fprintf(trace, "<HandlerBox Type=\"%s\" Name=\"", gf_4cc_to_str(p->handlerType, name));
+	fprintf(trace, "<HandlerBox Type=\"%s\" Name=\"", gf_4cc_to_str(p->handlerType));
 	len = strlen(p->nameUTF8);
 	str = p->nameUTF8;
 	len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &str);
@@ -628,7 +624,7 @@ GF_Err iods_dump(GF_Box *a, FILE * trace)
 	GF_ObjectDescriptorBox *p;
 
 	p = (GF_ObjectDescriptorBox *)a;
-	fprintf(trace, "<GF_ObjectDescriptorBox>\n");
+	fprintf(trace, "<ObjectDescriptorBox>\n");
 	DumpBox(a, trace);
 	gb_full_box_dump(a, trace);
 
@@ -637,7 +633,7 @@ GF_Err iods_dump(GF_Box *a, FILE * trace)
 	} else {
 		fprintf(trace, "<!--WARNING: Object GF_Descriptor not present-->\n");
 	}
-	fprintf(trace, "</GF_ObjectDescriptorBox>\n");
+	fprintf(trace, "</ObjectDescriptorBox>\n");
 	return GF_OK;
 }
 
@@ -655,8 +651,8 @@ GF_Err trak_dump(GF_Box *a, FILE * trace)
 	}
 	if (p->References) gb_box_dump(p->References, trace);
 	if (p->meta) gb_box_dump(p->meta, trace);
-	if (p->GF_EditBox) gb_box_dump(p->GF_EditBox, trace);
-	gb_box_array_dump(p->boxList, trace);
+	if (p->editBox) gb_box_dump(p->editBox, trace);
+	if (p->Media) gb_box_dump(p->Media, trace);
 	if (p->udta) gb_box_dump(p->udta, trace);	
 	fprintf(trace, "</TrackBox>\n");
 	return GF_OK;
@@ -788,7 +784,7 @@ GF_Err edts_dump(GF_Box *a, FILE * trace)
 	p = (GF_EditBox *)a;
 	fprintf(trace, "<EditBox>\n");
 	DumpBox(a, trace);
-	gb_box_array_dump(p->boxList, trace);
+	gb_box_dump(p->editList, trace);
 	fprintf(trace, "</EditBox>\n");
 	return GF_OK;
 }
@@ -798,7 +794,6 @@ GF_Err udta_dump(GF_Box *a, FILE * trace)
 	GF_UserDataBox *p;
 	GF_UserDataMap *map;
 	u32 i;
-	char name[5];
 
 	p = (GF_UserDataBox *)a;
 	fprintf(trace, "<UserDataBox>\n");
@@ -806,7 +801,7 @@ GF_Err udta_dump(GF_Box *a, FILE * trace)
 
 	for (i = 0; i < gf_list_count(p->recordList); i++) {
 		map = (GF_UserDataMap*) gf_list_get(p->recordList, i);
-		fprintf(trace, "<UDTARecord Type=\"%s\">\n", gf_4cc_to_str(map->boxType, name));
+		fprintf(trace, "<UDTARecord Type=\"%s\">\n", gf_4cc_to_str(map->boxType));
 		gb_box_array_dump(map->boxList, trace);
 		fprintf(trace, "</UDTARecord>\n");
 	}
@@ -1077,7 +1072,7 @@ GF_Err minf_dump(GF_Box *a, FILE * trace)
 
 	gb_box_dump(p->InfoHeader, trace);	
 	gb_box_dump(p->dataInformation, trace);	
-	gb_box_array_dump(p->boxList, trace);
+	gb_box_dump(p->sampleTable, trace);	
 	fprintf(trace, "</MediaInformationBox>\n");
 	return GF_OK;
 }
@@ -1135,18 +1130,15 @@ GF_Err mdia_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gb_box_dump(p->mediaHeader, trace);
 	gb_box_dump(p->handler, trace);
-	gb_box_array_dump(p->boxList, trace);
+	gb_box_dump(p->information, trace);
 	fprintf(trace, "</MediaBox>\n");
 	return GF_OK;
 }
 
 GF_Err defa_dump(GF_Box *a, FILE * trace)
 {
-	char name[5];
-	GF_UnknownBox *p;
-
-	p = (GF_UnknownBox *)a;
-	fprintf(trace, "<UnknownBox Type=\"%s\" Size=\"%d\"/>\n", gf_4cc_to_str(a->type, name), p->dataSize);
+	GF_UnknownBox *p = (GF_UnknownBox *)a;
+	fprintf(trace, "<UnknownBox Type=\"%s\" Size=\"%d\"/>\n", gf_4cc_to_str(a->type), p->dataSize);
 	return GF_OK;
 }
 
@@ -1159,15 +1151,14 @@ GF_Err void_dump(GF_Box *a, FILE * trace)
 GF_Err ftyp_dump(GF_Box *a, FILE * trace)
 {
 	GF_FileTypeBox *p;
-	char name[5];
 	u32 i;
 
 	p = (GF_FileTypeBox *)a;
-	fprintf(trace, "<FileTypeBox MajorBrand=\"%s\" MinorVersion=\"%d\">\n", gf_4cc_to_str(p->majorBrand, name), p->minorVersion);
+	fprintf(trace, "<FileTypeBox MajorBrand=\"%s\" MinorVersion=\"%d\">\n", gf_4cc_to_str(p->majorBrand), p->minorVersion);
 	DumpBox(a, trace);
 
 	for (i=0; i<p->altCount; i++) {
-		fprintf(trace, "<BrandEntry AlternateBrand=\"%s\"/>\n", gf_4cc_to_str(p->altBrand[i], name));
+		fprintf(trace, "<BrandEntry AlternateBrand=\"%s\"/>\n", gf_4cc_to_str(p->altBrand[i]));
 	}
 	fprintf(trace, "</FileTypeBox>\n");
 	return GF_OK;
@@ -1264,7 +1255,7 @@ GF_Err gppc_dump(GF_Box *a, FILE * trace)
 {
 	char name[5];
 	GF_3GPPConfigBox *p = (GF_3GPPConfigBox *)a;
-	gf_4cc_to_str(p->cfg.vendor, name);
+	gf_4cc_to_str(p->cfg.vendor);
 	switch (p->cfg.type) {
 	case GF_ISOM_SUBTYPE_3GP_AMR:
 	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
@@ -1891,12 +1882,11 @@ GF_Err tsro_dump(GF_Box *a, FILE * trace)
 
 GF_Err ghnt_dump(GF_Box *a, FILE * trace)
 {
-	char name[5];
 	GF_HintSampleEntryBox *p;
 
 	p = (GF_HintSampleEntryBox *)a;
 	fprintf(trace, "<GenericHintSampleEntryBox EntrySubType=\"%s\" DataReferenceIndex=\"%d\" HintTrackVersion=\"%d\" LastCompatibleVersion=\"%d\" MaxPacketSize=\"%d\">\n", 
-		gf_4cc_to_str(p->type, name), p->dataReferenceIndex, p->HintTrackVersion, p->LastCompatibleVersion, p->MaxPacketSize);	
+		gf_4cc_to_str(p->type), p->dataReferenceIndex, p->HintTrackVersion, p->LastCompatibleVersion, p->MaxPacketSize);	
 	
 	DumpBox(a, trace);
 	gb_box_array_dump(p->HintDataTable, trace);
@@ -1909,7 +1899,6 @@ GF_Err hnti_dump(GF_Box *a, FILE * trace)
 	GF_HintTrackInfoBox *p;
 	GF_Box *ptr;
 	GF_RTPBox *rtp;
-	char name[5];
 	u32 i;
 
 	p = (GF_HintTrackInfoBox *)a;
@@ -1922,7 +1911,7 @@ GF_Err hnti_dump(GF_Box *a, FILE * trace)
 			gb_box_dump(ptr, trace);
 		} else {
 			rtp = (GF_RTPBox *)ptr;
-			fprintf(trace, "<RTPInfoBox subType=\"%s\">\n", gf_4cc_to_str(rtp->subType, name));
+			fprintf(trace, "<RTPInfoBox subType=\"%s\">\n", gf_4cc_to_str(rtp->subType));
 			fprintf(trace, "<!-- sdp text: %s -->\n", rtp->sdpText);
 			fprintf(trace, "</RTPInfoBox>\n");
 		}
@@ -2185,8 +2174,8 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 	}
 
 	bs = gf_bs_new(tmp->data, tmp->dataLength, GF_BITSTREAM_READ);
-	s = New_HintSample(entry->type);
-	Read_HintSample(s, bs, tmp->dataLength);
+	s = gf_isom_hint_sample_new(entry->type);
+	gf_isom_hint_sample_read(s, bs, tmp->dataLength);
 	gf_bs_del(bs);
 
 	count = gf_list_count(s->packetTable);
@@ -2200,10 +2189,10 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 			i+1,  pck->P_bit, pck->X_bit, pck->M_bit, pck->payloadType);
 
 		fprintf(trace, " SequenceNumber=\"%d\" RepeatedPacket=\"%d\" DropablePacket=\"%d\" RelativeTransmissionTime=\"%d\" FullPacketSize=\"%d\">\n", 
-			pck->SequenceNumber, pck->R_bit, pck->B_bit, pck->relativeTransTime, Length_RTPPacket(pck));
+			pck->SequenceNumber, pck->R_bit, pck->B_bit, pck->relativeTransTime, gf_isom_hint_rtp_length(pck));
 
 		
-		//TLV is made of Boxess
+		//TLV is made of Boxes
 		count2 = gf_list_count(pck->TLV);
 		if (count2) {
 			fprintf(trace, "<PrivateExtensionTable EntryCount=\"%d\">\n", count2);
@@ -2222,7 +2211,7 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 
 	fprintf(trace, "</RTPHintSample>\n");
 	gf_isom_sample_del(&tmp);
-	Del_HintSample(s);
+	gf_isom_hint_sample_del(s);
 	return GF_OK;
 }
 
@@ -2672,10 +2661,9 @@ GF_Err sinf_dump(GF_Box *a, FILE * trace)
 
 GF_Err frma_dump(GF_Box *a, FILE * trace)
 {
-	char name[5];
 	GF_OriginalFormatBox *p;
 	p = (GF_OriginalFormatBox *)a;
-	fprintf(trace, "<OriginalFormatBox data_format=\"%s\">\n", gf_4cc_to_str(p->data_format, name));
+	fprintf(trace, "<OriginalFormatBox data_format=\"%s\">\n", gf_4cc_to_str(p->data_format));
 	DumpBox(a, trace);
 	fprintf(trace, "</OriginalFormatBox>\n");
 	return GF_OK;
@@ -2683,10 +2671,9 @@ GF_Err frma_dump(GF_Box *a, FILE * trace)
 
 GF_Err schm_dump(GF_Box *a, FILE * trace)
 {
-	char name[5];
 	GF_SchemeTypeBox *p;
 	p = (GF_SchemeTypeBox *)a;
-	fprintf(trace, "<SchemeTypeBox scheme_type=\"%s\" scheme_version=\"%d\" scheme_uri=\"%s\">\n", gf_4cc_to_str(a->type, name), p->scheme_version, p->URI);
+	fprintf(trace, "<SchemeTypeBox scheme_type=\"%s\" scheme_version=\"%d\" scheme_uri=\"%s\">\n", gf_4cc_to_str(a->type), p->scheme_version, p->URI);
 	DumpBox(a, trace);
 	gb_full_box_dump(a, trace);
 	fprintf(trace, "</SchemeTypeBox>\n");
@@ -2701,7 +2688,6 @@ GF_Err schi_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	if (p->ikms) gb_box_dump(p->ikms, trace);
 	if (p->isfm) gb_box_dump(p->isfm, trace);
-	gb_box_array_dump(p->boxList, trace);
 	fprintf(trace, "</SchemeInformationBox>\n");
 	return GF_OK;
 }

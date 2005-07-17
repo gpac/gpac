@@ -137,7 +137,7 @@ static GF_Err SVG_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool
 	SVGParser *parser = plug->privateStack;
 	parser->inline_scene = scene;
 	parser->graph = scene->graph;
-	parser->temp_dir = gf_modules_get_option(plug, "General", "CacheDirectory");
+	parser->temp_dir = (char *) gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
 	return GF_OK;
 }
 
@@ -200,14 +200,14 @@ static GF_Err SVG_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapability
 }
 
 /*interface create*/
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	SVGParser *parser;
 	GF_SceneDecoder *sdec;
 	if (InterfaceType != GF_SCENE_DECODER_INTERFACE) return NULL;
 	
-	SAFEALLOC(sdec, sizeof(GF_SceneDecoder))
-	GF_REGISTER_MODULE(sdec, GF_SCENE_DECODER_INTERFACE, "GPAC SVG Parser", "gpac distribution", 0);
+	GF_SAFEALLOC(sdec, sizeof(GF_SceneDecoder))
+	GF_REGISTER_MODULE_INTERFACE(sdec, GF_SCENE_DECODER_INTERFACE, "GPAC SVG Parser", "gpac distribution");
 
 	parser = NewSVGParser();
 
@@ -224,12 +224,12 @@ void *LoadInterface(u32 InterfaceType)
 	sdec->GetName = SVG_GetName;
 	sdec->SetCapabilities = SVG_SetCapabilities;
 	sdec->GetCapabilities = SVG_GetCapabilities;
-	return sdec;
+	return (GF_BaseInterface *)sdec;
 }
 
 
 /*interface destroy*/
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	GF_SceneDecoder *sdec = (GF_SceneDecoder *)ifce;
 	SVGParser *parser = (SVGParser *) sdec->privateStack;
@@ -252,14 +252,14 @@ Bool QueryInterface(u32 InterfaceType)
 
 
 /*interface create*/
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	return NULL;
 }
 
 
 /*interface destroy*/
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
 }
 

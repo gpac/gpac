@@ -1369,13 +1369,8 @@ void CMainFrame::BuildChapterList(Bool reset_only)
 		}
 		pChaps->AppendMenu(MF_ENABLED, ID_SETCHAP_FIRST + m_num_chapters, szLabel);
 
-		if (!m_chapters_start) {
-			m_chapters_start = (Double *) malloc(sizeof(Double));
-			m_chapters_start[0] = seg->startTime;
-		} else {
-			m_chapters_start = (Double *) realloc(m_chapters_start, sizeof(Double)*(m_num_chapters+1));
-			m_chapters_start[m_num_chapters] = seg->startTime;
-		}
+		m_chapters_start = (Double *) realloc(m_chapters_start, sizeof(Double)*(m_num_chapters+1));
+		m_chapters_start[m_num_chapters] = seg->startTime;
 		m_num_chapters++;
 	}
 }

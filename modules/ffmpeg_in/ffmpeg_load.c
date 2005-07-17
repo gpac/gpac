@@ -33,22 +33,21 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 
-void *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return FFDEC_Load();
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return New_FFMPEG_Demux();
 	return NULL;
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseInterface *ptr = (GF_BaseInterface *)ifce;
-	switch (ptr->InterfaceType) {
+	switch (ifce->InterfaceType) {
 	case GF_MEDIA_DECODER_INTERFACE:
-		FFDEC_Delete(ptr);
+		FFDEC_Delete(ifce);
 		break;
 	case GF_NET_CLIENT_INTERFACE:
-		Delete_FFMPEG_Demux(ptr);
+		Delete_FFMPEG_Demux(ifce);
 		break;
 	}
 }

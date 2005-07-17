@@ -26,18 +26,18 @@
 
 static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 {
-	char *sOpt;
+	const char *sOpt;
 
-	sOpt = gf_modules_get_option(plug, "Streaming", "DefaultPort");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "DefaultPort");
 	if (sOpt) {
 		rtp->default_port = atoi(sOpt);
 	} else {
 		rtp->default_port = 554;
 	}
 	if ((rtp->default_port == 80) || (rtp->default_port == 8080))
-		gf_modules_set_option(plug, "Streaming", "RTPoverRTSP", "yes");
+		gf_modules_set_option((GF_BaseInterface *)plug, "Streaming", "RTPoverRTSP", "yes");
 	
-	sOpt = gf_modules_get_option(plug, "Streaming", "RTPoverRTSP");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "RTPoverRTSP");
 	if (sOpt && !stricmp(sOpt, "yes")) {
 		rtp->rtp_mode = 1;
 		/*HTTP tunnel*/
@@ -51,11 +51,11 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 		get heneral network config for UDP
 	*/
 	/*if UDP not available don't try it*/
-	sOpt = gf_modules_get_option(plug, "Network", "UDPNotAvailable");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "UDPNotAvailable");
 	if (!rtp->rtp_mode && sOpt && !stricmp(sOpt, "yes")) rtp->rtp_mode = 1;
 	
 	if (!rtp->rtp_mode) {
-		sOpt = gf_modules_get_option(plug, "Network", "UDPTimeout");
+		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "UDPTimeout");
 		if (sOpt ) {
 			rtp->udp_time_out = atoi(sOpt);
 		} else {
@@ -63,24 +63,24 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 		}
 	}
 
-	sOpt = gf_modules_get_option(plug, "Network", "BufferLength");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "BufferLength");
 	if (sOpt) {
 		rtp->buffer_len_ms = atoi(sOpt);
 	} else {
 		rtp->buffer_len_ms = 1000;
 	}
 	rtp->rebuffer_len_ms = 0;
-	sOpt = gf_modules_get_option(plug, "Network", "RebufferLength");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "RebufferLength");
 	if (sOpt) rtp->rebuffer_len_ms = atoi(sOpt);
 	
 	rtp->reorder_size = 0;
 	if (!rtp->rtp_mode) {
-		sOpt = gf_modules_get_option(plug, "Streaming", "ReorderSize");
+		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "ReorderSize");
 		if (sOpt) rtp->reorder_size = atoi(sOpt);
 	}
 	if (!rtp->reorder_size) rtp->reorder_size = 10;
 
-	sOpt = gf_modules_get_option(plug, "Streaming", "RTSPTimeout");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "RTSPTimeout");
 	if (sOpt ) {
 		rtp->time_out = atoi(sOpt);
 	} else {
@@ -88,20 +88,20 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 	}
 
 	/*packet drop emulation*/
-	sOpt = gf_modules_get_option(plug, "Streaming", "FirstPacketDrop");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "FirstPacketDrop");
 	if (sOpt) {
 		rtp->first_packet_drop = atoi(sOpt);
 	} else {
 		rtp->first_packet_drop = 0;
 	}
-	sOpt = gf_modules_get_option(plug, "Streaming", "PacketDropFrequency");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "PacketDropFrequency");
 	if (sOpt) {
 		rtp->frequency_drop = atoi(sOpt);
 	} else {
 		rtp->frequency_drop = 0;
 	}
 	
-	sOpt = gf_modules_get_option(plug, "Streaming", "LogFile");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "LogFile");
 	if (sOpt && strlen(sOpt)) {
 		if (!stricmp(sOpt, "stdout"))
 			rtp->logs = stdout;
@@ -603,7 +603,7 @@ GF_InputService *RTP_Load()
 	RTPClient *priv;
 	GF_InputService *plug = malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
-	GF_REGISTER_MODULE(plug, GF_NET_CLIENT_INTERFACE, "GPAC RTP/RTSP Client", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC RTP/RTSP Client", "gpac distribution")
 
 	plug->CanHandleURL = RP_CanHandleURL;
 	plug->CanHandleURLInService = RP_CanHandleURLInService;
@@ -683,18 +683,17 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 
-void *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
-	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return RTP_Load();
+	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)RTP_Load();
 	return NULL;
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseInterface *ptr = (GF_BaseInterface *)ifce;
-	switch (ptr->InterfaceType) {
+	switch (ifce->InterfaceType) {
 	case GF_NET_CLIENT_INTERFACE:
-		RTP_Delete(ptr);
+		RTP_Delete(ifce);
 		break;
 	}
 }

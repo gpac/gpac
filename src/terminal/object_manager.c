@@ -323,7 +323,7 @@ GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline, Bool *externalCloc
 	u32 i;
 	u16 es_id;
 	GF_ESD *esd, *base_scene;
-	char *sOpt;
+	const char *sOpt;
 	u32 lang, nb_od, nb_ocr, nb_scene, nb_mp7, nb_ipmp, nb_oci, nb_mpj, nb_other, prev_st;
 
 	nb_od = nb_ocr = nb_scene = nb_mp7 = nb_ipmp = nb_oci = nb_mpj = nb_other = 0;

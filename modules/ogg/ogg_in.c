@@ -114,14 +114,14 @@ static Bool OGG_ReadPage(OGGReader *read, ogg_page *oggpage)
 	/*remote file, check if we use cache*/
 	if (read->is_remote) {
 		u32 total_size, status;
-		e = gf_dm_get_stats(read->dnload, NULL, NULL, &total_size, NULL, NULL, &status);
+		e = gf_dm_sess_get_stats(read->dnload, NULL, NULL, &total_size, NULL, NULL, &status);
 		/*not ready*/
 		if ((e<GF_OK) || (status != GF_DOWNLOAD_STATE_RUNNING)) return 0;
 		if (!total_size) {
 			read->is_live = 1;
 		}
 		if (!read->is_live  && !read->ogfile) {
-			const char *szCache = gf_dm_get_cache_name(read->dnload);
+			const char *szCache = gf_dm_sess_get_cache_name(read->dnload);
 			if (!szCache) return 0;
 			read->ogfile = fopen((char *) szCache, "rb");
 			if (!read->ogfile) return 0;
@@ -139,7 +139,7 @@ static Bool OGG_ReadPage(OGGReader *read, ogg_page *oggpage)
 			}
 			bytes = fread(buf, 1, OGG_BUFFER_SIZE, read->ogfile);
 		} else {
-			e = gf_dm_fetch_data(read->dnload, buf, OGG_BUFFER_SIZE, &bytes);
+			e = gf_dm_sess_fetch_data(read->dnload, buf, OGG_BUFFER_SIZE, &bytes);
 			if (e) return 0;
 		}
 		if (!bytes) return 0;
@@ -185,7 +185,7 @@ static GF_ObjectDescriptor *OGG_GetOD(OGGStream *st, Bool no_ocr)
 	else esd->slConfig->useRandomAccessPointFlag = 1;
 
 	esd->decoderConfig->decoderSpecificInfo->dataLength = st->dsi_len;
-	SAFEALLOC(esd->decoderConfig->decoderSpecificInfo->data, st->dsi_len);
+	GF_SAFEALLOC(esd->decoderConfig->decoderSpecificInfo->data, st->dsi_len);
 	memcpy(esd->decoderConfig->decoderSpecificInfo->data, st->dsi, sizeof(char) * st->dsi_len);
 	gf_list_add(od->ESDescriptors, esd);
 	return od;
@@ -379,7 +379,7 @@ static void OGG_NewStream(OGGReader *read, ogg_page *oggpage)
 		}
 	}
 
-	SAFEALLOC(st, sizeof(OGGStream));
+	GF_SAFEALLOC(st, sizeof(OGGStream));
     st->serial_no = serial_no;
     ogg_stream_init(&st->os, st->serial_no);
 	ogg_stream_pagein(&st->os, oggpage);
@@ -997,7 +997,7 @@ GF_InputService *OGG_LoadDemux()
 	OGGReader *reader;
 	GF_InputService *plug = malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
-	GF_REGISTER_MODULE(plug, GF_NET_CLIENT_INTERFACE, "GPAC OGG Reader", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC OGG Reader", "gpac distribution")
 
 	plug->CanHandleURL = OGG_CanHandleURL;
 	plug->ConnectService = OGG_ConnectService;

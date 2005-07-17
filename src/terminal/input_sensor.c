@@ -394,7 +394,7 @@ GF_BaseDecoder *NewISCodec(u32 PL)
 	/*we don't use this...*/
 	tmp->AttachScene = NULL;
 
-	GF_REGISTER_MODULE(tmp, GF_SCENE_DECODER_INTERFACE, "GPAC InputSensor Decoder", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(tmp, GF_SCENE_DECODER_INTERFACE, "GPAC InputSensor Decoder", "gpac distribution")
 
 #if GPAC_HTK_DEMO
 	priv->th = gf_th_new();
@@ -808,7 +808,7 @@ void DestroyStringSensor(GF_Node *node)
 void InitStringSensor(GF_InlineScene *is, GF_Node *node)
 {
 	StringSensorStack*st;
-	SAFEALLOC(st, sizeof(StringSensorStack));
+	GF_SAFEALLOC(st, sizeof(StringSensorStack));
 	st->term = is->root_od->term;
 	gf_node_set_private(node, st);
 	gf_node_set_predestroy_function(node, DestroyStringSensor);

@@ -195,14 +195,14 @@ static void mesh_subdivide_aabbtree(GF_Mesh *mesh, AABBNode *node)
 	}
 	mesh->nb_nodes += 2;
 
-	SAFEALLOC(node->pos, sizeof(AABBNode));
+	GF_SAFEALLOC(node->pos, sizeof(AABBNode));
 	node->pos->indices = &node->indices[0];
 	node->pos->nb_idx = num_pos;
 	update_node_bounds(mesh, node->pos);
 	mesh_subdivide_aabbtree(mesh, node->pos);
 	mesh->aabb_nb_index --;
 
-	SAFEALLOC(node->neg, sizeof(AABBNode));
+	GF_SAFEALLOC(node->neg, sizeof(AABBNode));
 	node->neg->indices = &node->indices[num_pos];
 	node->neg->nb_idx = node->nb_idx - num_pos;
 	update_node_bounds(mesh, node->neg);
@@ -225,7 +225,7 @@ void gf_mesh_build_aabbtree(GF_Mesh *mesh)
 
 	mesh->split_type = AABB_BEST_AXIS;
 
-	SAFEALLOC(mesh->aabb_root, sizeof(AABBNode));
+	GF_SAFEALLOC(mesh->aabb_root, sizeof(AABBNode));
 	mesh->aabb_root->min = mesh->bounds.min_edge;
 	mesh->aabb_root->max = mesh->bounds.max_edge;
 	mesh->aabb_root->indices = mesh->aabb_indices;

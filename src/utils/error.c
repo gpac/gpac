@@ -24,11 +24,13 @@
 
 #include <gpac/tools.h>
 
+static char szTYPE[5];
 
-char *gf_4cc_to_str(u32 type, char *name)
+const char *gf_4cc_to_str(u32 type)
 {
 	u32 ch, i;
-	char *ptr = name;
+	char *ptr, *name = (char *)szTYPE;
+	ptr = name;
 	for (i = 0; i < 4; i++, name++) {
 		ch = type >> (8 * (3-i) ) & 0xff;
 		if ( ch >= 0x20 && ch <= 0x7E ) {
@@ -38,7 +40,7 @@ char *gf_4cc_to_str(u32 type, char *name)
 		}
 	}
 	*name = 0;
-	return ptr;
+	return (const char *) ptr;
 }
 
 u32 gf_get_bit_size(u32 MaxVal)
@@ -78,8 +80,13 @@ static u32 prev_pos = 0;
 static u32 prev_pc = 0;
 void gf_cbk_on_progress(void *_title, u32 done, u32 total)
 {
-	u32 pos = MIN((u32) (20 * ((Float)done)/total), 20);
+	Double prog;
+	u32 pos;
 	char *szT = _title ? (char *)_title : "";
+	prog = done;
+	prog /= total;
+	pos = MIN((u32) (20 * prog), 20);
+
 	if (pos>prev_pos) {
 		prev_pos = 0;
 		prev_pc = 0;
@@ -90,7 +97,7 @@ void gf_cbk_on_progress(void *_title, u32 done, u32 total)
 		fprintf(stdout, "\r");
 	}
 	else {
-		u32 pc = (u32) ( 100 * ((Float)done) / total );
+		u32 pc = (u32) ( 100 * prog);
 		if ((pos!=prev_pos) || (pc!=prev_pc)) {
 			prev_pos = pos;
 			prev_pc = pc;
@@ -98,6 +105,19 @@ void gf_cbk_on_progress(void *_title, u32 done, u32 total)
 			fflush(stdout);
 		}
 	}
+}
+
+static s32 log_level = 0;
+static s32 log_flags = 0xFFFFFFFF;
+
+void gf_trace(s32 level, u32 logflags, const char *mod_name, const char *fmt, ...)
+{
+	va_list vl;
+	if (level<log_level) return;
+	va_start(vl, fmt);
+	fprintf(stderr, "%s: ", mod_name);
+	vfprintf(stderr, fmt, vl);
+	va_end(vl);
 }
 
 

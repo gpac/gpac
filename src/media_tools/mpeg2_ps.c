@@ -174,7 +174,7 @@ struct mpeg2ps_ {
  *************************************************************************/
 static FILE *file_open (const char *name)
 {
-  return f64_open(name, "rb");
+  return gf_f64_open(name, "rb");
 }
 
 static Bool file_okay (FILE *fd)
@@ -198,25 +198,25 @@ static Bool file_read_bytes(FILE *fd,
 // note: len could be negative.
 static void file_skip_bytes (FILE *fd, s32 len)
 {
-  f64_seek(fd, len, SEEK_CUR);
+  gf_f64_seek(fd, len, SEEK_CUR);
 }
 
-#define file_location(__f) f64_tell(__f)
-#define file_seek_to(__f, __off) f64_seek(__f, __off, SEEK_SET)
+#define file_location(__f) gf_f64_tell(__f)
+#define file_seek_to(__f, __off) gf_f64_seek(__f, __off, SEEK_SET)
 
 static s64 file_size(FILE *fd)
 {
 	s64 ret;
-  f64_seek(fd, 0, SEEK_END);
-  ret = f64_tell(fd);
-  f64_seek(fd, 0, SEEK_SET);
+  gf_f64_seek(fd, 0, SEEK_END);
+  ret = gf_f64_tell(fd);
+  gf_f64_seek(fd, 0, SEEK_SET);
   return ret;
 }
 
 static mpeg2ps_record_pes_t *create_record (s64 loc, u64 ts)
 {
   mpeg2ps_record_pes_t *ret;
-  SAFEALLOC(ret, sizeof(mpeg2ps_record_pes_t));
+  GF_SAFEALLOC(ret, sizeof(mpeg2ps_record_pes_t));
 
   ret->next_rec = NULL;
   ret->dts = ts;
@@ -399,7 +399,7 @@ static mpeg2ps_stream_t *mpeg2ps_stream_create (u8 stream_id,
 						u8 substream)
 {
   mpeg2ps_stream_t *ptr;
-  SAFEALLOC(ptr, sizeof(mpeg2ps_stream_t));
+  GF_SAFEALLOC(ptr, sizeof(mpeg2ps_stream_t));
   ptr->m_stream_id = stream_id;
   ptr->m_substream_id = substream;
   ptr->is_video = stream_id >= 0xe0;
@@ -1046,7 +1046,7 @@ static void get_info_from_frame (mpeg2ps_stream_t *sptr,
 
   if (sptr->m_stream_id >= 0xc0) {
     // mpeg audio
-    u32 hdr = FOUR_CHAR_INT(buffer[0],buffer[1],buffer[2],buffer[3]);
+    u32 hdr = GF_FOUR_CHAR_INT(buffer[0],buffer[1],buffer[2],buffer[3]);
 
     sptr->channels = gf_mp3_num_channels(hdr);
     sptr->freq = gf_mp3_sampling_rate(hdr);
@@ -1627,7 +1627,7 @@ u32 mpeg2ps_get_audio_stream_bitrate (mpeg2ps_t *ps, u32 streamno)
 mpeg2ps_t *mpeg2ps_init (const char *filename)
 {
   mpeg2ps_t *ps;
-  SAFEALLOC(ps, sizeof(mpeg2ps_t));
+  GF_SAFEALLOC(ps, sizeof(mpeg2ps_t));
 
   if (ps == NULL) {
     return NULL;
@@ -1786,12 +1786,12 @@ s64 mpeg2ps_get_ps_size(mpeg2ps_t *ps)
 s64 mpeg2ps_get_video_pos(mpeg2ps_t *ps, u32 streamno)
 {
   if (invalid_video_streamno(ps, streamno)) return 0;
-  return f64_tell(ps->video_streams[streamno]->m_fd);
+  return gf_f64_tell(ps->video_streams[streamno]->m_fd);
 }
 s64 mpeg2ps_get_audio_pos(mpeg2ps_t *ps, u32 streamno)
 {
   if (invalid_audio_streamno(ps, streamno)) return 0;
-  return f64_tell(ps->audio_streams[streamno]->m_fd);
+  return gf_f64_tell(ps->audio_streams[streamno]->m_fd);
 }
 
 #endif

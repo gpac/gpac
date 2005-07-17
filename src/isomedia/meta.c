@@ -80,7 +80,7 @@ GF_Err gf_isom_extract_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	}
 	if (!xml || !xml->xml || !xml->xml_length) return GF_BAD_PARAM;
 	
-	didfile = f64_open(outName, "wt");
+	didfile = gf_f64_open(outName, "wt");
 	if (!didfile) return GF_IO_ERR;
 	fwrite(xml->xml, xml->xml_length, 1, didfile);
 	fclose(didfile);
@@ -198,7 +198,7 @@ GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num
 		if (item_entry->item_name) strcpy(szPath, item_entry->item_name);
 		else sprintf(szPath, "item_id%02d", item_entry->item_ID);
 	}
-	resource = f64_open(szPath, "wb");
+	resource = gf_f64_open(szPath, "wb");
 		
 	for (i=0; i<count; i++) {
 		char buf_cache[4096];
@@ -231,7 +231,7 @@ u32 gf_isom_get_meta_primary_item_id(GF_ISOFile *file, Bool root_meta, u32 track
 
 GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 metaType)
 {
-	char szType[5], szName[20];
+	char szName[20];
 	GF_MetaBox *meta;
 
 	GF_Err e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
@@ -281,7 +281,7 @@ GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u3
 
 	if (meta->handler->nameUTF8) free(meta->handler->nameUTF8);
 	meta->handler->handlerType = metaType;
-	sprintf(szName, "GPAC %s Handler", gf_4cc_to_str(metaType, szType));
+	sprintf(szName, "GPAC %s Handler", gf_4cc_to_str(metaType));
 	meta->handler->nameLength = strlen(szName) + 1;
 	meta->handler->nameUTF8 = strdup(szName);
 	return GF_OK;
@@ -427,7 +427,7 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 	location_entry->data_reference_index = 0;
 	if (self_reference) {
 		GF_ItemExtentEntry *entry;
-		SAFEALLOC(entry, sizeof(GF_ItemExtentEntry));
+		GF_SAFEALLOC(entry, sizeof(GF_ItemExtentEntry));
 		gf_list_add(location_entry->extent_entries, entry);
 		if (!infe->item_name) infe->item_name = strdup("");
 		return GF_OK;
@@ -451,7 +451,7 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 	if ((file->openMode == GF_ISOM_OPEN_WRITE) && !location_entry->data_reference_index) {
 		FILE *src;
 		GF_ItemExtentEntry *entry;
-		SAFEALLOC(entry, sizeof(GF_ItemExtentEntry));
+		GF_SAFEALLOC(entry, sizeof(GF_ItemExtentEntry));
 
 		location_entry->base_offset = gf_bs_get_position(file->editFileMap->bs);
 
@@ -463,13 +463,13 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 		entry->extent_offset = 0;
 		gf_list_add(location_entry->extent_entries, entry);
 
-		src = f64_open(resource_path, "rb");
+		src = gf_f64_open(resource_path, "rb");
 		if (src) {
 			char cache_data[4096];
 			u64 remain;
-			f64_seek(src, 0, SEEK_END);
-			entry->extent_length = f64_tell(src);
-			f64_seek(src, 0, SEEK_SET);
+			gf_f64_seek(src, 0, SEEK_END);
+			entry->extent_length = gf_f64_tell(src);
+			gf_f64_seek(src, 0, SEEK_SET);
 
 			remain = entry->extent_length;
 			while (remain) {

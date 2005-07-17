@@ -119,7 +119,7 @@ static GF_Err Anchor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Anchor_Create()
 {
 	X_Anchor *p;
-	SAFEALLOC(p, sizeof(X_Anchor));
+	GF_SAFEALLOC(p, sizeof(X_Anchor));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Anchor);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -216,7 +216,7 @@ static GF_Err Appearance_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Appearance_Create()
 {
 	X_Appearance *p;
-	SAFEALLOC(p, sizeof(X_Appearance));
+	GF_SAFEALLOC(p, sizeof(X_Appearance));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Appearance);
 
@@ -290,7 +290,7 @@ static GF_Err Arc2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Arc2D_Create()
 {
 	X_Arc2D *p;
-	SAFEALLOC(p, sizeof(X_Arc2D));
+	GF_SAFEALLOC(p, sizeof(X_Arc2D));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Arc2D);
 
@@ -374,7 +374,7 @@ static GF_Err ArcClose2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *ArcClose2D_Create()
 {
 	X_ArcClose2D *p;
-	SAFEALLOC(p, sizeof(X_ArcClose2D));
+	GF_SAFEALLOC(p, sizeof(X_ArcClose2D));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_ArcClose2D);
 
@@ -509,7 +509,7 @@ static GF_Err AudioClip_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *AudioClip_Create()
 {
 	X_AudioClip *p;
-	SAFEALLOC(p, sizeof(X_AudioClip));
+	GF_SAFEALLOC(p, sizeof(X_AudioClip));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_AudioClip);
 
@@ -659,7 +659,7 @@ static GF_Err Background_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Background_Create()
 {
 	X_Background *p;
-	SAFEALLOC(p, sizeof(X_Background));
+	GF_SAFEALLOC(p, sizeof(X_Background));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Background);
 
@@ -750,7 +750,7 @@ static GF_Err Billboard_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Billboard_Create()
 {
 	X_Billboard *p;
-	SAFEALLOC(p, sizeof(X_Billboard));
+	GF_SAFEALLOC(p, sizeof(X_Billboard));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Billboard);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -835,7 +835,7 @@ static GF_Err BooleanFilter_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *BooleanFilter_Create()
 {
 	X_BooleanFilter *p;
-	SAFEALLOC(p, sizeof(X_BooleanFilter));
+	GF_SAFEALLOC(p, sizeof(X_BooleanFilter));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_BooleanFilter);
 
@@ -932,7 +932,7 @@ static GF_Err BooleanSequencer_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *BooleanSequencer_Create()
 {
 	X_BooleanSequencer *p;
-	SAFEALLOC(p, sizeof(X_BooleanSequencer));
+	GF_SAFEALLOC(p, sizeof(X_BooleanSequencer));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_BooleanSequencer);
 
@@ -1001,7 +1001,7 @@ static GF_Err BooleanToggle_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *BooleanToggle_Create()
 {
 	X_BooleanToggle *p;
-	SAFEALLOC(p, sizeof(X_BooleanToggle));
+	GF_SAFEALLOC(p, sizeof(X_BooleanToggle));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_BooleanToggle);
 
@@ -1070,7 +1070,7 @@ static GF_Err BooleanTrigger_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *BooleanTrigger_Create()
 {
 	X_BooleanTrigger *p;
-	SAFEALLOC(p, sizeof(X_BooleanTrigger));
+	GF_SAFEALLOC(p, sizeof(X_BooleanTrigger));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_BooleanTrigger);
 
@@ -1132,7 +1132,7 @@ static GF_Err Box_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Box_Create()
 {
 	X_Box *p;
-	SAFEALLOC(p, sizeof(X_Box));
+	GF_SAFEALLOC(p, sizeof(X_Box));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Box);
 
@@ -1197,7 +1197,7 @@ static GF_Err Circle2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Circle2D_Create()
 {
 	X_Circle2D *p;
-	SAFEALLOC(p, sizeof(X_Circle2D));
+	GF_SAFEALLOC(p, sizeof(X_Circle2D));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Circle2D);
 
@@ -1304,7 +1304,7 @@ static GF_Err Collision_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Collision_Create()
 {
 	X_Collision *p;
-	SAFEALLOC(p, sizeof(X_Collision));
+	GF_SAFEALLOC(p, sizeof(X_Collision));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Collision);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -1369,7 +1369,7 @@ static GF_Err Color_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Color_Create()
 {
 	X_Color *p;
-	SAFEALLOC(p, sizeof(X_Color));
+	GF_SAFEALLOC(p, sizeof(X_Color));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Color);
 
@@ -1452,7 +1452,7 @@ static GF_Err ColorInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *ColorInterpolator_Create()
 {
 	X_ColorInterpolator *p;
-	SAFEALLOC(p, sizeof(X_ColorInterpolator));
+	GF_SAFEALLOC(p, sizeof(X_ColorInterpolator));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_ColorInterpolator);
 
@@ -1514,7 +1514,7 @@ static GF_Err ColorRGBA_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *ColorRGBA_Create()
 {
 	X_ColorRGBA *p;
-	SAFEALLOC(p, sizeof(X_ColorRGBA));
+	GF_SAFEALLOC(p, sizeof(X_ColorRGBA));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_ColorRGBA);
 
@@ -1594,7 +1594,7 @@ static GF_Err Cone_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Cone_Create()
 {
 	X_Cone *p;
-	SAFEALLOC(p, sizeof(X_Cone));
+	GF_SAFEALLOC(p, sizeof(X_Cone));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Cone);
 
@@ -1678,7 +1678,7 @@ static GF_Err Contour2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Contour2D_Create()
 {
 	X_Contour2D *p;
-	SAFEALLOC(p, sizeof(X_Contour2D));
+	GF_SAFEALLOC(p, sizeof(X_Contour2D));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Contour2D);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -1742,7 +1742,7 @@ static GF_Err ContourPolyline2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *ContourPolyline2D_Create()
 {
 	X_ContourPolyline2D *p;
-	SAFEALLOC(p, sizeof(X_ContourPolyline2D));
+	GF_SAFEALLOC(p, sizeof(X_ContourPolyline2D));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_ContourPolyline2D);
 
@@ -1805,7 +1805,7 @@ static GF_Err Coordinate_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Coordinate_Create()
 {
 	X_Coordinate *p;
-	SAFEALLOC(p, sizeof(X_Coordinate));
+	GF_SAFEALLOC(p, sizeof(X_Coordinate));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Coordinate);
 
@@ -1868,7 +1868,7 @@ static GF_Err CoordinateDouble_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *CoordinateDouble_Create()
 {
 	X_CoordinateDouble *p;
-	SAFEALLOC(p, sizeof(X_CoordinateDouble));
+	GF_SAFEALLOC(p, sizeof(X_CoordinateDouble));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_CoordinateDouble);
 
@@ -1931,7 +1931,7 @@ static GF_Err Coordinate2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Coordinate2D_Create()
 {
 	X_Coordinate2D *p;
-	SAFEALLOC(p, sizeof(X_Coordinate2D));
+	GF_SAFEALLOC(p, sizeof(X_Coordinate2D));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Coordinate2D);
 
@@ -2015,7 +2015,7 @@ static GF_Err CoordinateInterpolator_get_field(GF_Node *node, GF_FieldInfo *info
 static GF_Node *CoordinateInterpolator_Create()
 {
 	X_CoordinateInterpolator *p;
-	SAFEALLOC(p, sizeof(X_CoordinateInterpolator));
+	GF_SAFEALLOC(p, sizeof(X_CoordinateInterpolator));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_CoordinateInterpolator);
 
@@ -2099,7 +2099,7 @@ static GF_Err CoordinateInterpolator2D_get_field(GF_Node *node, GF_FieldInfo *in
 static GF_Node *CoordinateInterpolator2D_Create()
 {
 	X_CoordinateInterpolator2D *p;
-	SAFEALLOC(p, sizeof(X_CoordinateInterpolator2D));
+	GF_SAFEALLOC(p, sizeof(X_CoordinateInterpolator2D));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_CoordinateInterpolator2D);
 
@@ -2185,7 +2185,7 @@ static GF_Err Cylinder_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Cylinder_Create()
 {
 	X_Cylinder *p;
-	SAFEALLOC(p, sizeof(X_Cylinder));
+	GF_SAFEALLOC(p, sizeof(X_Cylinder));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Cylinder);
 
@@ -2313,7 +2313,7 @@ static GF_Err CylinderSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *CylinderSensor_Create()
 {
 	X_CylinderSensor *p;
-	SAFEALLOC(p, sizeof(X_CylinderSensor));
+	GF_SAFEALLOC(p, sizeof(X_CylinderSensor));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_CylinderSensor);
 
@@ -2405,7 +2405,7 @@ static GF_Err DirectionalLight_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *DirectionalLight_Create()
 {
 	X_DirectionalLight *p;
-	SAFEALLOC(p, sizeof(X_DirectionalLight));
+	GF_SAFEALLOC(p, sizeof(X_DirectionalLight));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_DirectionalLight);
 
@@ -2482,7 +2482,7 @@ static GF_Err Disk2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Disk2D_Create()
 {
 	X_Disk2D *p;
-	SAFEALLOC(p, sizeof(X_Disk2D));
+	GF_SAFEALLOC(p, sizeof(X_Disk2D));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Disk2D);
 
@@ -2633,7 +2633,7 @@ static GF_Err ElevationGrid_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *ElevationGrid_Create()
 {
 	X_ElevationGrid *p;
-	SAFEALLOC(p, sizeof(X_ElevationGrid));
+	GF_SAFEALLOC(p, sizeof(X_ElevationGrid));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_ElevationGrid);
 
@@ -2794,7 +2794,7 @@ static GF_Err Extrusion_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Extrusion_Create()
 {
 	X_Extrusion *p;
-	SAFEALLOC(p, sizeof(X_Extrusion));
+	GF_SAFEALLOC(p, sizeof(X_Extrusion));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Extrusion);
 
@@ -2902,7 +2902,7 @@ static GF_Err FillProperties_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *FillProperties_Create()
 {
 	X_FillProperties *p;
-	SAFEALLOC(p, sizeof(X_FillProperties));
+	GF_SAFEALLOC(p, sizeof(X_FillProperties));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_FillProperties);
 
@@ -3002,7 +3002,7 @@ static GF_Err Fog_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Fog_Create()
 {
 	X_Fog *p;
-	SAFEALLOC(p, sizeof(X_Fog));
+	GF_SAFEALLOC(p, sizeof(X_Fog));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Fog);
 
@@ -3122,7 +3122,7 @@ static GF_Err FontStyle_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *FontStyle_Create()
 {
 	X_FontStyle *p;
-	SAFEALLOC(p, sizeof(X_FontStyle));
+	GF_SAFEALLOC(p, sizeof(X_FontStyle));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_FontStyle);
 
@@ -3217,7 +3217,7 @@ static GF_Err Group_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Group_Create()
 {
 	X_Group *p;
-	SAFEALLOC(p, sizeof(X_Group));
+	GF_SAFEALLOC(p, sizeof(X_Group));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Group);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -3293,7 +3293,7 @@ static GF_Err ImageTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *ImageTexture_Create()
 {
 	X_ImageTexture *p;
-	SAFEALLOC(p, sizeof(X_ImageTexture));
+	GF_SAFEALLOC(p, sizeof(X_ImageTexture));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_ImageTexture);
 
@@ -3479,7 +3479,7 @@ static GF_Err IndexedFaceSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *IndexedFaceSet_Create()
 {
 	X_IndexedFaceSet *p;
-	SAFEALLOC(p, sizeof(X_IndexedFaceSet));
+	GF_SAFEALLOC(p, sizeof(X_IndexedFaceSet));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_IndexedFaceSet);
 
@@ -3593,7 +3593,7 @@ static GF_Err IndexedLineSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *IndexedLineSet_Create()
 {
 	X_IndexedLineSet *p;
-	SAFEALLOC(p, sizeof(X_IndexedLineSet));
+	GF_SAFEALLOC(p, sizeof(X_IndexedLineSet));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_IndexedLineSet);
 
@@ -3721,7 +3721,7 @@ static GF_Err IndexedTriangleFanSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *IndexedTriangleFanSet_Create()
 {
 	X_IndexedTriangleFanSet *p;
-	SAFEALLOC(p, sizeof(X_IndexedTriangleFanSet));
+	GF_SAFEALLOC(p, sizeof(X_IndexedTriangleFanSet));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_IndexedTriangleFanSet);
 
@@ -3852,7 +3852,7 @@ static GF_Err IndexedTriangleSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *IndexedTriangleSet_Create()
 {
 	X_IndexedTriangleSet *p;
-	SAFEALLOC(p, sizeof(X_IndexedTriangleSet));
+	GF_SAFEALLOC(p, sizeof(X_IndexedTriangleSet));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_IndexedTriangleSet);
 
@@ -3983,7 +3983,7 @@ static GF_Err IndexedTriangleStripSet_get_field(GF_Node *node, GF_FieldInfo *inf
 static GF_Node *IndexedTriangleStripSet_Create()
 {
 	X_IndexedTriangleStripSet *p;
-	SAFEALLOC(p, sizeof(X_IndexedTriangleStripSet));
+	GF_SAFEALLOC(p, sizeof(X_IndexedTriangleStripSet));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_IndexedTriangleStripSet);
 
@@ -4056,7 +4056,7 @@ static GF_Err Inline_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Inline_Create()
 {
 	X_Inline *p;
-	SAFEALLOC(p, sizeof(X_Inline));
+	GF_SAFEALLOC(p, sizeof(X_Inline));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Inline);
 
@@ -4154,7 +4154,7 @@ static GF_Err IntegerSequencer_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *IntegerSequencer_Create()
 {
 	X_IntegerSequencer *p;
-	SAFEALLOC(p, sizeof(X_IntegerSequencer));
+	GF_SAFEALLOC(p, sizeof(X_IntegerSequencer));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_IntegerSequencer);
 
@@ -4229,7 +4229,7 @@ static GF_Err IntegerTrigger_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *IntegerTrigger_Create()
 {
 	X_IntegerTrigger *p;
-	SAFEALLOC(p, sizeof(X_IntegerTrigger));
+	GF_SAFEALLOC(p, sizeof(X_IntegerTrigger));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_IntegerTrigger);
 
@@ -4342,7 +4342,7 @@ static GF_Err KeySensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *KeySensor_Create()
 {
 	X_KeySensor *p;
-	SAFEALLOC(p, sizeof(X_KeySensor));
+	GF_SAFEALLOC(p, sizeof(X_KeySensor));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_KeySensor);
 
@@ -4417,7 +4417,7 @@ static GF_Err LineProperties_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *LineProperties_Create()
 {
 	X_LineProperties *p;
-	SAFEALLOC(p, sizeof(X_LineProperties));
+	GF_SAFEALLOC(p, sizeof(X_LineProperties));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_LineProperties);
 
@@ -4499,7 +4499,7 @@ static GF_Err LineSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *LineSet_Create()
 {
 	X_LineSet *p;
-	SAFEALLOC(p, sizeof(X_LineSet));
+	GF_SAFEALLOC(p, sizeof(X_LineSet));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_LineSet);
 
@@ -4592,7 +4592,7 @@ static GF_Err LOD_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *LOD_Create()
 {
 	X_LOD *p;
-	SAFEALLOC(p, sizeof(X_LOD));
+	GF_SAFEALLOC(p, sizeof(X_LOD));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_LOD);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -4688,7 +4688,7 @@ static GF_Err Material_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Material_Create()
 {
 	X_Material *p;
-	SAFEALLOC(p, sizeof(X_Material));
+	GF_SAFEALLOC(p, sizeof(X_Material));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Material);
 
@@ -4777,7 +4777,7 @@ static GF_Err MetadataDouble_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *MetadataDouble_Create()
 {
 	X_MetadataDouble *p;
-	SAFEALLOC(p, sizeof(X_MetadataDouble));
+	GF_SAFEALLOC(p, sizeof(X_MetadataDouble));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MetadataDouble);
 
@@ -4854,7 +4854,7 @@ static GF_Err MetadataFloat_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *MetadataFloat_Create()
 {
 	X_MetadataFloat *p;
-	SAFEALLOC(p, sizeof(X_MetadataFloat));
+	GF_SAFEALLOC(p, sizeof(X_MetadataFloat));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MetadataFloat);
 
@@ -4931,7 +4931,7 @@ static GF_Err MetadataInteger_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *MetadataInteger_Create()
 {
 	X_MetadataInteger *p;
-	SAFEALLOC(p, sizeof(X_MetadataInteger));
+	GF_SAFEALLOC(p, sizeof(X_MetadataInteger));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MetadataInteger);
 
@@ -5009,7 +5009,7 @@ static GF_Err MetadataSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *MetadataSet_Create()
 {
 	X_MetadataSet *p;
-	SAFEALLOC(p, sizeof(X_MetadataSet));
+	GF_SAFEALLOC(p, sizeof(X_MetadataSet));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MetadataSet);
 	p->value = gf_list_new();	
@@ -5087,7 +5087,7 @@ static GF_Err MetadataString_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *MetadataString_Create()
 {
 	X_MetadataString *p;
-	SAFEALLOC(p, sizeof(X_MetadataString));
+	GF_SAFEALLOC(p, sizeof(X_MetadataString));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MetadataString);
 
@@ -5222,7 +5222,7 @@ static GF_Err MovieTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *MovieTexture_Create()
 {
 	X_MovieTexture *p;
-	SAFEALLOC(p, sizeof(X_MovieTexture));
+	GF_SAFEALLOC(p, sizeof(X_MovieTexture));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MovieTexture);
 
@@ -5326,7 +5326,7 @@ static GF_Err MultiTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *MultiTexture_Create()
 {
 	X_MultiTexture *p;
-	SAFEALLOC(p, sizeof(X_MultiTexture));
+	GF_SAFEALLOC(p, sizeof(X_MultiTexture));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MultiTexture);
 	p->texture = gf_list_new();	
@@ -5395,7 +5395,7 @@ static GF_Err MultiTextureCoordinate_get_field(GF_Node *node, GF_FieldInfo *info
 static GF_Node *MultiTextureCoordinate_Create()
 {
 	X_MultiTextureCoordinate *p;
-	SAFEALLOC(p, sizeof(X_MultiTextureCoordinate));
+	GF_SAFEALLOC(p, sizeof(X_MultiTextureCoordinate));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MultiTextureCoordinate);
 	p->texCoord = gf_list_new();	
@@ -5460,7 +5460,7 @@ static GF_Err MultiTextureTransform_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *MultiTextureTransform_Create()
 {
 	X_MultiTextureTransform *p;
-	SAFEALLOC(p, sizeof(X_MultiTextureTransform));
+	GF_SAFEALLOC(p, sizeof(X_MultiTextureTransform));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MultiTextureTransform);
 	p->textureTransform = gf_list_new();	
@@ -5575,7 +5575,7 @@ static GF_Err NavigationInfo_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *NavigationInfo_Create()
 {
 	X_NavigationInfo *p;
-	SAFEALLOC(p, sizeof(X_NavigationInfo));
+	GF_SAFEALLOC(p, sizeof(X_NavigationInfo));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_NavigationInfo);
 
@@ -5658,7 +5658,7 @@ static GF_Err Normal_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Normal_Create()
 {
 	X_Normal *p;
-	SAFEALLOC(p, sizeof(X_Normal));
+	GF_SAFEALLOC(p, sizeof(X_Normal));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Normal);
 
@@ -5742,7 +5742,7 @@ static GF_Err NormalInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *NormalInterpolator_Create()
 {
 	X_NormalInterpolator *p;
-	SAFEALLOC(p, sizeof(X_NormalInterpolator));
+	GF_SAFEALLOC(p, sizeof(X_NormalInterpolator));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_NormalInterpolator);
 
@@ -5825,7 +5825,7 @@ static GF_Err OrientationInterpolator_get_field(GF_Node *node, GF_FieldInfo *inf
 static GF_Node *OrientationInterpolator_Create()
 {
 	X_OrientationInterpolator *p;
-	SAFEALLOC(p, sizeof(X_OrientationInterpolator));
+	GF_SAFEALLOC(p, sizeof(X_OrientationInterpolator));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_OrientationInterpolator);
 
@@ -5900,7 +5900,7 @@ static GF_Err PixelTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *PixelTexture_Create()
 {
 	X_PixelTexture *p;
-	SAFEALLOC(p, sizeof(X_PixelTexture));
+	GF_SAFEALLOC(p, sizeof(X_PixelTexture));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_PixelTexture);
 
@@ -6019,7 +6019,7 @@ static GF_Err PlaneSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *PlaneSensor_Create()
 {
 	X_PlaneSensor *p;
-	SAFEALLOC(p, sizeof(X_PlaneSensor));
+	GF_SAFEALLOC(p, sizeof(X_PlaneSensor));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_PlaneSensor);
 
@@ -6126,7 +6126,7 @@ static GF_Err PointLight_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *PointLight_Create()
 {
 	X_PointLight *p;
-	SAFEALLOC(p, sizeof(X_PointLight));
+	GF_SAFEALLOC(p, sizeof(X_PointLight));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_PointLight);
 
@@ -6211,7 +6211,7 @@ static GF_Err PointSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *PointSet_Create()
 {
 	X_PointSet *p;
-	SAFEALLOC(p, sizeof(X_PointSet));
+	GF_SAFEALLOC(p, sizeof(X_PointSet));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_PointSet);
 
@@ -6274,7 +6274,7 @@ static GF_Err Polyline2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Polyline2D_Create()
 {
 	X_Polyline2D *p;
-	SAFEALLOC(p, sizeof(X_Polyline2D));
+	GF_SAFEALLOC(p, sizeof(X_Polyline2D));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Polyline2D);
 
@@ -6337,7 +6337,7 @@ static GF_Err Polypoint2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Polypoint2D_Create()
 {
 	X_Polypoint2D *p;
-	SAFEALLOC(p, sizeof(X_Polypoint2D));
+	GF_SAFEALLOC(p, sizeof(X_Polypoint2D));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Polypoint2D);
 
@@ -6420,7 +6420,7 @@ static GF_Err PositionInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *PositionInterpolator_Create()
 {
 	X_PositionInterpolator *p;
-	SAFEALLOC(p, sizeof(X_PositionInterpolator));
+	GF_SAFEALLOC(p, sizeof(X_PositionInterpolator));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_PositionInterpolator);
 
@@ -6503,7 +6503,7 @@ static GF_Err PositionInterpolator2D_get_field(GF_Node *node, GF_FieldInfo *info
 static GF_Node *PositionInterpolator2D_Create()
 {
 	X_PositionInterpolator2D *p;
-	SAFEALLOC(p, sizeof(X_PositionInterpolator2D));
+	GF_SAFEALLOC(p, sizeof(X_PositionInterpolator2D));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_PositionInterpolator2D);
 
@@ -6613,7 +6613,7 @@ static GF_Err ProximitySensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *ProximitySensor_Create()
 {
 	X_ProximitySensor *p;
-	SAFEALLOC(p, sizeof(X_ProximitySensor));
+	GF_SAFEALLOC(p, sizeof(X_ProximitySensor));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_ProximitySensor);
 
@@ -6682,7 +6682,7 @@ static GF_Err Rectangle2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Rectangle2D_Create()
 {
 	X_Rectangle2D *p;
-	SAFEALLOC(p, sizeof(X_Rectangle2D));
+	GF_SAFEALLOC(p, sizeof(X_Rectangle2D));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Rectangle2D);
 
@@ -6767,7 +6767,7 @@ static GF_Err ScalarInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *ScalarInterpolator_Create()
 {
 	X_ScalarInterpolator *p;
-	SAFEALLOC(p, sizeof(X_ScalarInterpolator));
+	GF_SAFEALLOC(p, sizeof(X_ScalarInterpolator));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_ScalarInterpolator);
 
@@ -6842,7 +6842,7 @@ static GF_Err Script_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Script_Create()
 {
 	X_Script *p;
-	SAFEALLOC(p, sizeof(X_Script));
+	GF_SAFEALLOC(p, sizeof(X_Script));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Script);
 
@@ -6914,7 +6914,7 @@ static GF_Err Shape_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Shape_Create()
 {
 	X_Shape *p;
-	SAFEALLOC(p, sizeof(X_Shape));
+	GF_SAFEALLOC(p, sizeof(X_Shape));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Shape);
 
@@ -7032,7 +7032,7 @@ static GF_Err Sound_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Sound_Create()
 {
 	X_Sound *p;
-	SAFEALLOC(p, sizeof(X_Sound));
+	GF_SAFEALLOC(p, sizeof(X_Sound));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Sound);
 
@@ -7107,7 +7107,7 @@ static GF_Err Sphere_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Sphere_Create()
 {
 	X_Sphere *p;
-	SAFEALLOC(p, sizeof(X_Sphere));
+	GF_SAFEALLOC(p, sizeof(X_Sphere));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Sphere);
 
@@ -7213,7 +7213,7 @@ static GF_Err SphereSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *SphereSensor_Create()
 {
 	X_SphereSensor *p;
-	SAFEALLOC(p, sizeof(X_SphereSensor));
+	GF_SAFEALLOC(p, sizeof(X_SphereSensor));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_SphereSensor);
 
@@ -7335,7 +7335,7 @@ static GF_Err SpotLight_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *SpotLight_Create()
 {
 	X_SpotLight *p;
-	SAFEALLOC(p, sizeof(X_SpotLight));
+	GF_SAFEALLOC(p, sizeof(X_SpotLight));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_SpotLight);
 
@@ -7417,7 +7417,7 @@ static GF_Err StaticGroup_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *StaticGroup_Create()
 {
 	X_StaticGroup *p;
-	SAFEALLOC(p, sizeof(X_StaticGroup));
+	GF_SAFEALLOC(p, sizeof(X_StaticGroup));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_StaticGroup);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -7506,7 +7506,7 @@ static GF_Err StringSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *StringSensor_Create()
 {
 	X_StringSensor *p;
-	SAFEALLOC(p, sizeof(X_StringSensor));
+	GF_SAFEALLOC(p, sizeof(X_StringSensor));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_StringSensor);
 
@@ -7594,7 +7594,7 @@ static GF_Err Switch_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Switch_Create()
 {
 	X_Switch *p;
-	SAFEALLOC(p, sizeof(X_Switch));
+	GF_SAFEALLOC(p, sizeof(X_Switch));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Switch);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -7680,7 +7680,7 @@ static GF_Err Text_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Text_Create()
 {
 	X_Text *p;
-	SAFEALLOC(p, sizeof(X_Text));
+	GF_SAFEALLOC(p, sizeof(X_Text));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Text);
 
@@ -7839,7 +7839,7 @@ static GF_Err TextureBackground_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TextureBackground_Create()
 {
 	X_TextureBackground *p;
-	SAFEALLOC(p, sizeof(X_TextureBackground));
+	GF_SAFEALLOC(p, sizeof(X_TextureBackground));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TextureBackground);
 
@@ -7910,7 +7910,7 @@ static GF_Err TextureCoordinate_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TextureCoordinate_Create()
 {
 	X_TextureCoordinate *p;
-	SAFEALLOC(p, sizeof(X_TextureCoordinate));
+	GF_SAFEALLOC(p, sizeof(X_TextureCoordinate));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TextureCoordinate);
 
@@ -7980,7 +7980,7 @@ static GF_Err TextureCoordinateGenerator_get_field(GF_Node *node, GF_FieldInfo *
 static GF_Node *TextureCoordinateGenerator_Create()
 {
 	X_TextureCoordinateGenerator *p;
-	SAFEALLOC(p, sizeof(X_TextureCoordinateGenerator));
+	GF_SAFEALLOC(p, sizeof(X_TextureCoordinateGenerator));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TextureCoordinateGenerator);
 
@@ -8062,7 +8062,7 @@ static GF_Err TextureTransform_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TextureTransform_Create()
 {
 	X_TextureTransform *p;
-	SAFEALLOC(p, sizeof(X_TextureTransform));
+	GF_SAFEALLOC(p, sizeof(X_TextureTransform));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TextureTransform);
 
@@ -8203,7 +8203,7 @@ static GF_Err TimeSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TimeSensor_Create()
 {
 	X_TimeSensor *p;
-	SAFEALLOC(p, sizeof(X_TimeSensor));
+	GF_SAFEALLOC(p, sizeof(X_TimeSensor));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TimeSensor);
 
@@ -8278,7 +8278,7 @@ static GF_Err TimeTrigger_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TimeTrigger_Create()
 {
 	X_TimeTrigger *p;
-	SAFEALLOC(p, sizeof(X_TimeTrigger));
+	GF_SAFEALLOC(p, sizeof(X_TimeTrigger));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TimeTrigger);
 
@@ -8383,7 +8383,7 @@ static GF_Err TouchSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TouchSensor_Create()
 {
 	X_TouchSensor *p;
-	SAFEALLOC(p, sizeof(X_TouchSensor));
+	GF_SAFEALLOC(p, sizeof(X_TouchSensor));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TouchSensor);
 
@@ -8494,7 +8494,7 @@ static GF_Err Transform_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Transform_Create()
 {
 	X_Transform *p;
-	SAFEALLOC(p, sizeof(X_Transform));
+	GF_SAFEALLOC(p, sizeof(X_Transform));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Transform);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -8631,7 +8631,7 @@ static GF_Err TriangleFanSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TriangleFanSet_Create()
 {
 	X_TriangleFanSet *p;
-	SAFEALLOC(p, sizeof(X_TriangleFanSet));
+	GF_SAFEALLOC(p, sizeof(X_TriangleFanSet));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TriangleFanSet);
 
@@ -8747,7 +8747,7 @@ static GF_Err TriangleSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TriangleSet_Create()
 {
 	X_TriangleSet *p;
-	SAFEALLOC(p, sizeof(X_TriangleSet));
+	GF_SAFEALLOC(p, sizeof(X_TriangleSet));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TriangleSet);
 
@@ -8814,7 +8814,7 @@ static GF_Err TriangleSet2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TriangleSet2D_Create()
 {
 	X_TriangleSet2D *p;
-	SAFEALLOC(p, sizeof(X_TriangleSet2D));
+	GF_SAFEALLOC(p, sizeof(X_TriangleSet2D));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TriangleSet2D);
 
@@ -8933,7 +8933,7 @@ static GF_Err TriangleStripSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TriangleStripSet_Create()
 {
 	X_TriangleStripSet *p;
-	SAFEALLOC(p, sizeof(X_TriangleStripSet));
+	GF_SAFEALLOC(p, sizeof(X_TriangleStripSet));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TriangleStripSet);
 
@@ -9049,7 +9049,7 @@ static GF_Err Viewpoint_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Viewpoint_Create()
 {
 	X_Viewpoint *p;
-	SAFEALLOC(p, sizeof(X_Viewpoint));
+	GF_SAFEALLOC(p, sizeof(X_Viewpoint));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Viewpoint);
 
@@ -9153,7 +9153,7 @@ static GF_Err VisibilitySensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *VisibilitySensor_Create()
 {
 	X_VisibilitySensor *p;
-	SAFEALLOC(p, sizeof(X_VisibilitySensor));
+	GF_SAFEALLOC(p, sizeof(X_VisibilitySensor));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_VisibilitySensor);
 
@@ -9230,7 +9230,7 @@ static GF_Err WorldInfo_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *WorldInfo_Create()
 {
 	X_WorldInfo *p;
-	SAFEALLOC(p, sizeof(X_WorldInfo));
+	GF_SAFEALLOC(p, sizeof(X_WorldInfo));
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_WorldInfo);
 

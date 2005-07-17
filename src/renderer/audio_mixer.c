@@ -156,7 +156,7 @@ void gf_mixer_add_input(GF_AudioMixer *am, GF_AudioInterface *src)
 	MixerInput *in;
 	if (gf_mixer_is_src_present(am, src)) return;
 	gf_mixer_lock(am, 1);
-	SAFEALLOC(in, sizeof(MixerInput));
+	GF_SAFEALLOC(in, sizeof(MixerInput));
 	in->src = src;
 	gf_list_add(am->sources, in);
 	am->must_reconfig = 1;
@@ -605,7 +605,7 @@ do_mix:
 		if (in->buffer_size<buffer_size) { 
 			for (j=0; j<GF_SR_MAX_CHANNELS; j++) {
 				if (in->ch_buf[j]) free(in->ch_buf[j]); 
-				SAFEALLOC(in->ch_buf[j], sizeof(u32) * buffer_size);
+				GF_SAFEALLOC(in->ch_buf[j], sizeof(u32) * buffer_size);
 			}
 			in->buffer_size = buffer_size; 
 		}

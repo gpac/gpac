@@ -332,8 +332,8 @@ void swf_parse_styles(SWFReader *read, u32 revision, SWFShape *shape, u32 *bits_
 				swf_align(read);
 				style->nbGrad = swf_read_int(read, 8);
 				if (style->nbGrad) {
-					SAFEALLOC(style->grad_col, sizeof(u32) * style->nbGrad);
-					SAFEALLOC(style->grad_ratio, sizeof(u8) * style->nbGrad);
+					GF_SAFEALLOC(style->grad_col, sizeof(u32) * style->nbGrad);
+					GF_SAFEALLOC(style->grad_ratio, sizeof(u8) * style->nbGrad);
 					for (j=0; j<style->nbGrad; j++) {
 						style->grad_ratio[j] = swf_read_int(read, 8);
 						if (revision==2) style->grad_col[j] = swf_get_argb(read);
@@ -346,8 +346,8 @@ void swf_parse_styles(SWFReader *read, u32 revision, SWFShape *shape, u32 *bits_
 						u32 i;
 						u32 *grad_col;
 						u8 *grad_ratio;
-						SAFEALLOC(grad_ratio, sizeof(u8) * (style->nbGrad+1));
-						SAFEALLOC(grad_col, sizeof(u32) * (style->nbGrad+1));
+						GF_SAFEALLOC(grad_ratio, sizeof(u8) * (style->nbGrad+1));
+						GF_SAFEALLOC(grad_col, sizeof(u32) * (style->nbGrad+1));
 						grad_col[0] = style->grad_col[0];
 						grad_ratio[0] = 0;
 						for (i=0; i<style->nbGrad; i++) {
@@ -420,22 +420,15 @@ void swf_parse_styles(SWFReader *read, u32 revision, SWFShape *shape, u32 *bits_
 
 void swf_path_realloc_pts(SWFPath *path, u32 nbPts)
 {
-	if (path->nbPts) {
-		path->pts = realloc(path->pts, sizeof(SFVec2f) * (path->nbPts + nbPts));
-	} else {
-		path->pts = malloc(sizeof(SFVec2f) * nbPts);
-	}
+	path->pts = realloc(path->pts, sizeof(SFVec2f) * (path->nbPts + nbPts));
 }
 void swf_path_add_com(SWFShapeRec *sr, SFVec2f pt, SFVec2f ctr, u32 type)
 {
 	/*not an error*/
 	if (!sr) return;
 
-	if (sr->path->nbType) {
-		sr->path->types = realloc(sr->path->types, sizeof(u32) * (sr->path->nbType+1));
-	} else {
-		sr->path->types = malloc(sizeof(u32));
-	}
+	sr->path->types = realloc(sr->path->types, sizeof(u32) * (sr->path->nbType+1));
+
 	sr->path->types[sr->path->nbType] = type;
 	switch (type) {
 	case 2:
@@ -541,11 +534,7 @@ void swf_append_path(SWFPath *a, SWFPath *b)
 
 void swf_path_add_type(SWFPath *path, u32 val)
 {
-	if (path->nbType) {
-		path->types = realloc(path->types, sizeof(u32) * (path->nbType + 1));
-	} else {
-		path->types = malloc(sizeof(u32));
-	}
+	path->types = realloc(path->types, sizeof(u32) * (path->nbType + 1));
 	path->types[path->nbType] = val;
 	path->nbType++;
 }
@@ -1886,7 +1875,7 @@ GF_Err swf_def_sound(SWFReader *read)
 			bytes[1] = swf_read_int(read, 8);
 			bytes[2] = swf_read_int(read, 8);
 			bytes[3] = swf_read_int(read, 8);
-			hdr = FOUR_CHAR_INT(bytes[0], bytes[1], bytes[2], bytes[3]);
+			hdr = GF_FOUR_CHAR_INT(bytes[0], bytes[1], bytes[2], bytes[3]);
 			size = gf_mp3_frame_size(hdr);
 			if (alloc_size<size-4) {
 				frame = realloc(frame, sizeof(char)*(size-4));
@@ -2177,7 +2166,7 @@ GF_Err swf_soundstream_block(SWFReader *read)
 		bytes[1] = swf_read_int(read, 8);
 		bytes[2] = swf_read_int(read, 8);
 		bytes[3] = swf_read_int(read, 8);
-		hdr = FOUR_CHAR_INT(bytes[0], bytes[1], bytes[2], bytes[3]);
+		hdr = GF_FOUR_CHAR_INT(bytes[0], bytes[1], bytes[2], bytes[3]);
 		size = gf_mp3_frame_size(hdr);
 		if (alloc_size<size-4) {
 			frame = realloc(frame, sizeof(char)*(size-4));
@@ -2586,7 +2575,7 @@ GF_Err gf_sm_load_init_SWF(GF_SceneLoader *load)
 	input = fopen(load->fileName, "rb");
 	if (!input) return GF_URL_ERROR;
 
-	SAFEALLOC(read, sizeof(SWFReader));
+	GF_SAFEALLOC(read, sizeof(SWFReader));
 	read->load = load;
 	
 	e = GF_OK;

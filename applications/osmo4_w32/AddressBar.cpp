@@ -122,7 +122,7 @@ void AddressBar::OnClose()
 void AddressBar::ReloadURLs()
 {
 	WinGPAC *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 	char filename[1024];
 	u32 i=0;
 
@@ -150,7 +150,7 @@ void AddressBar::SelectionReady()
 	Playlist *pl = ((CMainFrame*)gpac->m_pMainWnd)->m_pPlayList;
 	/*don't store local files*/
 	if (URL.Find("://", 0)>0) {
-		char *sOpt;
+		const char *sOpt;
 		char filename[1024];
 		u32 i=0;
 

@@ -135,7 +135,7 @@ static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCha
 {
     u32 i;
 	HRESULT hr; 
-	char *sOpt;
+	const char *sOpt;
 	DSBUFFERDESC dsbBufferDesc;
 	IDirectSoundNotify *pNotify;
 #ifdef USE_WAVE_EX
@@ -165,7 +165,7 @@ static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCha
 	while (ctx->buffer_size % ctx->format.nBlockAlign) ctx->buffer_size++;
 
 	ctx->use_notif = 1;
-	sOpt = gf_modules_get_option(dr, "Audio", "DisableNotification");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Audio", "DisableNotification");
 	if (sOpt && !stricmp(sOpt, "yes")) ctx->use_notif = 0;
 
 	memset(&dsbBufferDesc, 0, sizeof(DSBUFFERDESC));
@@ -200,7 +200,7 @@ static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCha
 	hr = IDirectSound_CreateSoundBuffer(ctx->pDS, &dsbBufferDesc, &ctx->pOutput, NULL );
 	if (FAILED(hr)) {
 retry:
-		if (ctx->use_notif) gf_modules_set_option(dr, "Audio", "DisableNotification", "yes");
+		if (ctx->use_notif) gf_modules_set_option((GF_BaseInterface *)dr, "Audio", "DisableNotification", "yes");
 		ctx->use_notif = 0;
 		dsbBufferDesc.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_GLOBALFOCUS;
 		hr = IDirectSound_CreateSoundBuffer(ctx->pDS, &dsbBufferDesc, &ctx->pOutput, NULL );
@@ -426,7 +426,7 @@ void *NewAudioOutput()
 
 	driv = malloc(sizeof(GF_AudioOutput));
 	memset(driv, 0, sizeof(GF_AudioOutput));
-	GF_REGISTER_MODULE(driv, GF_AUDIO_OUTPUT_INTERFACE, "DirectSound Audio Output", "gpac distribution", 0);
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "DirectSound Audio Output", "gpac distribution");
 
 	driv->opaque = ctx;
 

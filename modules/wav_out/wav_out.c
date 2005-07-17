@@ -431,7 +431,7 @@ void *NewWAVRender()
 	ctx->vol = 100;
 	driv = malloc(sizeof(GF_AudioOutput));
 	memset(driv, 0, sizeof(GF_AudioOutput));
-	GF_REGISTER_MODULE(driv, GF_AUDIO_OUTPUT_INTERFACE, "Windows MME Output", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "Windows MME Output", "gpac distribution")
 
 	driv->opaque = ctx;
 
@@ -464,18 +464,17 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return NewWAVRender();
 	return NULL;
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_AudioOutput *dr = (GF_AudioOutput *) ifce;
-	switch (dr->InterfaceType) {
+	switch (ifce->InterfaceType) {
 	case GF_AUDIO_OUTPUT_INTERFACE:
-		DeleteWAVRender(dr);
+		DeleteWAVRender((GF_AudioOutput *) ifce);
 		break;
 	}
 }

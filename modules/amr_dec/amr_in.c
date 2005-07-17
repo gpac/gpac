@@ -167,7 +167,7 @@ static void AMR_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 		if (read->stream) return;
 
 		/*open service*/
-		szCache = gf_dm_get_cache_name(read->dnload);
+		szCache = gf_dm_sess_get_cache_name(read->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
 			read->stream = fopen((char *) szCache, "rb");
@@ -179,7 +179,7 @@ static void AMR_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 				/*not enough data*/
 				if (!AMR_ConfigureFromFile(read)) {
 					/*bad data...*/
-					gf_dm_get_stats(read->dnload, NULL, NULL, NULL, &bytes_done, NULL, NULL);
+					gf_dm_sess_get_stats(read->dnload, NULL, NULL, NULL, &bytes_done, NULL, NULL);
 					if (bytes_done>10*1024) {
 						e = GF_CORRUPTED_DATA;
 					} else {
@@ -276,7 +276,7 @@ static GF_ESD *AMR_GetESD(AMR_Reader *read)
 	esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 
 	if ((read->mtype==GF_ISOM_SUBTYPE_3GP_AMR) || (read->mtype==GF_ISOM_SUBTYPE_3GP_AMR_WB)) {
-		esd->decoderConfig->objectTypeIndication = GPAC_QT_CODECS_OTI;
+		esd->decoderConfig->objectTypeIndication = GPAC_EXTRA_CODECS_OTI;
 		dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_write_u32(dsi, read->mtype);
 		gf_bs_get_content(dsi, (unsigned char **) & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
@@ -546,7 +546,7 @@ GF_InputService *NewAESReader()
 	AMR_Reader *reader;
 	GF_InputService *plug = malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
-	GF_REGISTER_MODULE(plug, GF_NET_CLIENT_INTERFACE, "GPAC AMR/EVRC/SMV Reader", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC AMR/EVRC/SMV Reader", "gpac distribution")
 
 	plug->CanHandleURL = AMR_CanHandleURL;
 	plug->ConnectService = AMR_ConnectService;

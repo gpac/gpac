@@ -168,7 +168,7 @@ static void Bitmap_PreDestroy(GF_Node *n)
 
 void R3D_InitBitmap(Render3D *sr, GF_Node *node)
 {
-	BitmapStack *st = SAFEALLOC(st, sizeof(BitmapStack));
+	BitmapStack *st = GF_SAFEALLOC(st, sizeof(BitmapStack));
 	stack_setup(st, node, sr->compositor);
 	gf_node_set_private(node, st);
 	gf_node_set_predestroy_function(node, Bitmap_PreDestroy);

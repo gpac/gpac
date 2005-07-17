@@ -130,7 +130,7 @@ GF_Rect R2D_ClipperToPixelMetrics(RenderEffect2D *eff, SFVec2f size)
 		if (size.x>=0) res.width = gf_mulfix(res.width, size.x / 2);
 		if (size.y>=0) res.height = gf_mulfix(res.height, size.y / 2);
 	}
-	gf_rect_center(&res, res.width, res.height);
+	res = gf_rect_center(res.width, res.height);
 	return res;
 }
 
@@ -970,7 +970,7 @@ void R2D_ReloadConfig(GF_VisualRenderer *vr)
 
 	gf_sr_lock(sr->compositor, 1);
 
-	sOpt = gf_modules_get_option(vr, "Render2D", "DirectRender");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render2D", "DirectRender");
 
 	if (sOpt && !stricmp(sOpt, "yes") ) {
 		sr->top_effect->trav_flags |= TF_RENDER_DIRECT;
@@ -978,9 +978,9 @@ void R2D_ReloadConfig(GF_VisualRenderer *vr)
 		sr->top_effect->trav_flags &= ~TF_RENDER_DIRECT;
 	}
 
-	sOpt = gf_modules_get_option(vr, "Render2D", "ScalableZoom");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render2D", "ScalableZoom");
 	sr->scalable_zoom = (!sOpt || !stricmp(sOpt, "yes") ) ? 1 : 0;
-	sOpt = gf_modules_get_option(vr, "Render2D", "DisableYUV");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render2D", "DisableYUV");
 	sr->enable_yuv_hw = (sOpt && !stricmp(sOpt, "yes") ) ? 0 : 1;
 	/*emulate size message to force AR recompute*/
 	gf_sr_size_changed(sr->compositor, sr->compositor->width, sr->compositor->height);
@@ -1135,7 +1135,7 @@ void *NewVisualRenderer()
 #ifndef GPAC_STANDALONE_RENDER_2D
 
 /*interface create*/
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	GF_VisualRenderer *sr;
 	if (InterfaceType != GF_RENDERER_INTERFACE) return NULL;
@@ -1143,7 +1143,7 @@ void *LoadInterface(u32 InterfaceType)
 	sr = malloc(sizeof(GF_VisualRenderer));
 	if (!sr) return NULL;
 	memset(sr, 0, sizeof(GF_VisualRenderer));
-	GF_REGISTER_MODULE(sr, GF_RENDERER_INTERFACE, "GPAC 2D Renderer", "gpac distribution", 0);
+	GF_REGISTER_MODULE_INTERFACE(sr, GF_RENDERER_INTERFACE, "GPAC 2D Renderer", "gpac distribution");
 
 	sr->LoadRenderer = R2D_LoadRenderer;
 	sr->UnloadRenderer = R2D_UnloadRenderer;
@@ -1167,12 +1167,12 @@ void *LoadInterface(u32 InterfaceType)
 	sr->SetViewpoint = R2D_SetViewport;
 
 	sr->user_priv = NULL;
-	return sr;
+	return (GF_BaseInterface *)sr;
 }
 
 
 /*interface destroy*/
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	GF_VisualRenderer *rend = (GF_VisualRenderer *)ifce;
 	if (rend->InterfaceType != GF_RENDERER_INTERFACE) return;

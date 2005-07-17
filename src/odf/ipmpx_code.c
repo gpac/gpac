@@ -212,7 +212,7 @@ GF_Err GF_IPMPX_AUTH_Parse(GF_BitStream *bs, GF_IPMPX_Authentication **auth)
 	case GF_IPMPX_AUTH_KeyDescr_Tag:
 		{
 			GF_IPMPX_AUTH_KeyDescriptor *p;
-			SAFEALLOC(p, sizeof(GF_IPMPX_AUTH_KeyDescriptor));
+			GF_SAFEALLOC(p, sizeof(GF_IPMPX_AUTH_KeyDescriptor));
 			if (!p) return GF_OUT_OF_MEM;
 			p->tag = tag;
 			p->keyBodyLength = size;
@@ -226,7 +226,7 @@ GF_Err GF_IPMPX_AUTH_Parse(GF_BitStream *bs, GF_IPMPX_Authentication **auth)
 		{
 			Bool isReg;
 			GF_IPMPX_AUTH_AlgorithmDescriptor *p;
-			SAFEALLOC(p, sizeof(GF_IPMPX_AUTH_AlgorithmDescriptor));
+			GF_SAFEALLOC(p, sizeof(GF_IPMPX_AUTH_AlgorithmDescriptor));
 			if (!p) return GF_OUT_OF_MEM;
 			p->tag = tag;
 			isReg = gf_bs_read_int(bs, 1);
@@ -1313,7 +1313,7 @@ static GF_Err ReadGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_Da
 	while (count) {
 		Bool is_block;
 		GF_IPMPX_SelEncBuffer *sb;
-		SAFEALLOC(sb, sizeof(GF_IPMPX_SelEncBuffer));
+		GF_SAFEALLOC(sb, sizeof(GF_IPMPX_SelEncBuffer));
 		gf_list_add(p->SelEncBuffer, sb);
 		count--;
 		gf_bs_read_data(bs, (unsigned char *) sb->cipher_Id, 16);
@@ -1335,7 +1335,7 @@ static GF_Err ReadGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_Da
 		count = gf_bs_read_int(bs, 8);
 		while (count) {
 			GF_IPMPX_SelEncField *sf;
-			SAFEALLOC(sf, sizeof(GF_IPMPX_SelEncField));
+			GF_SAFEALLOC(sf, sizeof(GF_IPMPX_SelEncField));
 			gf_list_add(p->SelEncFields, sf);
 			count--;
 			sf->field_Id = gf_bs_read_int(bs, 8);

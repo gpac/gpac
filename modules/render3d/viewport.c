@@ -153,7 +153,7 @@ static void RenderViewport(GF_Node *node, void *rs)
 	gf_mx2d_add_rotation(&mat, 0, 0, vp->orientation);
 
 	//compute scaling ratio
-	gf_rect_center(&rc, vp->size.x, vp->size.y);
+	rc = gf_rect_center(vp->size.x, vp->size.y);
 	gf_mx2d_apply_rect(&mat, &rc);
 
 	w = eff->bbox.max_edge.x - eff->bbox.min_edge.x;

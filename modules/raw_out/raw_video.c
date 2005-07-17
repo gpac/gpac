@@ -278,7 +278,7 @@ void *NewVideoOutput()
 	RawContext *pCtx;
 	GF_VideoOutput *driv = (GF_VideoOutput *) malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
-	GF_REGISTER_MODULE(driv, GF_VIDEO_OUTPUT_INTERFACE, "Raw Video Output", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "Raw Video Output", "gpac distribution")
 
 	pCtx = malloc(sizeof(RawContext));
 	memset(pCtx, 0, sizeof(RawContext));
@@ -332,18 +332,17 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 /*interface create*/
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return NewVideoOutput();
 	return NULL;
 }
 /*interface destroy*/
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_VideoOutput *dd = (GF_VideoOutput *)ifce;
-	switch (dd->InterfaceType) {
+	switch (ifce->InterfaceType) {
 	case GF_VIDEO_OUTPUT_INTERFACE:
-		DeleteVideoOutput(dd);
+		DeleteVideoOutput((GF_VideoOutput *)ifce);
 		break;
 	}
 }

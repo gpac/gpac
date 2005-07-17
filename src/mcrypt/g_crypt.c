@@ -58,7 +58,7 @@ static GF_Crypt *gf_crypt_open_intern(const char *algorithm, const char *mode, B
 	GF_Crypt *td;
 	if ((!algorithm || !mode) && !is_check) return NULL;
 	
-	SAFEALLOC(td, sizeof(GF_Crypt));
+	GF_SAFEALLOC(td, sizeof(GF_Crypt));
 	if (td==NULL) return NULL;
 
 	

@@ -891,13 +891,8 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 							while (!xml_element_done(&parser, "FontTable")) {
 								str = xml_get_element(&parser);
 								if (!strcmp(str, "FontTableEntry")) {
-									if (!td.fonts) {
-										td.fonts = malloc(sizeof(GF_FontRecord));
-										td.font_count = 1;
-									} else {
-										td.font_count += 1;
-										td.fonts = realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
-									}
+									td.font_count += 1;
+									td.fonts = realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
 									while (xml_has_attributes(&parser)) {
 										str = xml_get_attribute(&parser);
 										if (!stricmp(str, "fontID")) td.fonts[td.font_count-1].fontID = atoi(parser.value_buffer);
@@ -1278,13 +1273,8 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 						while (!xml_element_done(&parser, "FontTable")) {
 							str = xml_get_element(&parser);
 							if (!strcmp(str, "font")) {
-								if (!td.fonts) {
-									td.fonts = malloc(sizeof(GF_FontRecord));
-									td.font_count = 1;
-								} else {
-									td.font_count += 1;
-									td.fonts = realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
-								}
+								td.font_count += 1;
+								td.fonts = realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
 								while (xml_has_attributes(&parser)) {
 									str = xml_get_attribute(&parser);
 									if (!stricmp(str, "id")) td.fonts[td.font_count-1].fontID = atoi(parser.value_buffer);

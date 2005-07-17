@@ -152,7 +152,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		CE_WideToChar(w_file, file);
 
 		FreeLibrary(ModuleLib);
-		SAFEALLOC(inst, sizeof(ModuleInstance));
+		GF_SAFEALLOC(inst, sizeof(ModuleInstance));
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
 		strcpy(inst->szName, file);

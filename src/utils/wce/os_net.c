@@ -65,11 +65,6 @@ static u32 IsInit = 0;
 
 
 #define SECS_1900_TO_1970 2208988800
-
-u32 gf_get_ntp_frac(u32 sec, u32 frac)
-{
-	return ( ((sec  & 0x0000ffff) << 16) |  ((frac & 0xffff0000) >> 16));
-}
          
 
 void gf_get_ntp(u32 *sec, u32 *frac)
@@ -449,15 +444,15 @@ GF_Err gf_sk_receive(GF_Socket *sock, unsigned char *buffer, u32 length, u32 sta
 }
 
 
-Bool gf_sk_listen(GF_Socket *sock, u32 MaxConnection)
+GF_Err gf_sk_listen(GF_Socket *sock, u32 MaxConnection)
 {
 	s32 i;
-	if (sock->status != SK_STATUS_BIND) return 0;
+	if (sock->status != SK_STATUS_BIND) return GF_BAD_PARAM;
 	if (MaxConnection >= SOMAXCONN) MaxConnection = SOMAXCONN;
 	i = listen(sock->socket, MaxConnection);
-	if (i == SOCKET_ERROR) return 0;
+	if (i == SOCKET_ERROR) return GF_IP_NETWORK_FAILURE;
 	sock->status = SK_STATUS_LISTEN;
-	return 1;
+	return GF_OK;
 }
 
 GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)

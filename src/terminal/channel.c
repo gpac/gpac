@@ -986,7 +986,7 @@ void gf_es_on_connect(GF_Channel *ch)
 	/*buffer setup*/
 	ch->MinBuffer = ch->MaxBuffer = 0;
 	if (can_buffer) {
-		char *sOpt;
+		const char *sOpt;
 		com.command_type = GF_NET_CHAN_BUFFER;
 		com.base.on_channel = ch;
 
@@ -1038,11 +1038,11 @@ GF_Err Channel_GetGPAC_KMS(GF_Channel *ch, char *kms_url)
 	if (!sess) goto err_exit;
 
 	while (1) {
-		e = gf_dm_get_stats(sess, NULL, NULL, NULL, NULL, NULL, NULL);
+		e = gf_dm_sess_get_stats(sess, NULL, NULL, NULL, NULL, NULL, NULL);
 		if (e) break;
 	}
 	if (e!= GF_EOS) goto err_exit;
-	e = gf_ismacryp_gpac_get_info(ch->esd->ESID, (char *) gf_dm_get_cache_name(sess), ch->key, ch->salt);
+	e = gf_ismacryp_gpac_get_info(ch->esd->ESID, (char *) gf_dm_sess_get_cache_name(sess), ch->key, ch->salt);
 
 err_exit:
 	gf_term_download_del(sess);
@@ -1059,7 +1059,7 @@ void gf_es_config_ismacryp(GF_Channel *ch, GF_NetComISMACryp *isma_cryp)
 
 	ch->is_protected = 1;
 	e = GF_OK;
-	if ((isma_cryp->scheme_version != 1) || (isma_cryp->scheme_type != FOUR_CHAR_INT('i','A','E','C')) ) {
+	if ((isma_cryp->scheme_version != 1) || (isma_cryp->scheme_type != GF_FOUR_CHAR_INT('i','A','E','C')) ) {
 		gf_term_message(ch->odm->term, ch->service->url, "Unknown ISMACryp scheme and version", GF_NOT_SUPPORTED);
 		goto exit;
 	}

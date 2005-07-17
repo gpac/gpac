@@ -242,7 +242,7 @@ void vp_setup(GF_Node *n, RenderEffect2D *eff, GF_Rect *surf_clip)
 	gf_mx2d_copy(mat, eff->transform);
 
 	//compute scaling ratio
-	gf_rect_center(&rc, vp->size.x, vp->size.y);
+	rc = gf_rect_center(vp->size.x, vp->size.y);
 	gf_mx2d_apply_rect(&mat, &rc);
 
 	w = surf_clip->width;

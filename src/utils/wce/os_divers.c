@@ -240,17 +240,17 @@ char * my_str_lwr(char *str)
 }
 
 
-u64 f64_tell(FILE *f)
+u64 gf_f64_tell(FILE *f)
 {
 	return (u64) ftell(f);
 }
 
-u64 f64_seek(FILE *f, s64 pos, s32 whence)
+u64 gf_f64_seek(FILE *f, s64 pos, s32 whence)
 {
 	return (u64) fseek(f, (s32) pos, whence);
 }
 
-FILE *f64_open(const char *file_name, const char *mode)
+FILE *gf_f64_open(const char *file_name, const char *mode)
 {
 	return fopen(file_name, mode);
 }

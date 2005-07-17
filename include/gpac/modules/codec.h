@@ -158,8 +158,8 @@ typedef struct _basedecoder
 	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
 } GF_BaseDecoder;
 
-/*media decoder interface name*/
-#define GF_MEDIA_DECODER_INTERFACE		FOUR_CHAR_INT('G', 'M', 'D', 'E')
+/*interface name and version for media decoder */
+#define GF_MEDIA_DECODER_INTERFACE		GF_FOUR_CHAR_INT('G', 'M', 'D', 0x01)
 
 /*the media module interface. A media module MUST be implemented in synchronous mode as time 
 and resources management is done by the terminal*/
@@ -184,34 +184,10 @@ typedef struct _mediadecoder
 
 
 
-
-/*extensions for undefined codecs - this allows demuxers and codecs to talk the same language*/
-
-/*this is the OTI (user-priv) used for all undefined codec using MP4/QT 4CC codes*/
-#define GPAC_QT_CODECS_OTI				0x80
-
-/*The decoder specific info for all unknown decoders - it is always carried encoded
-
-	u32 codec_four_cc: the codec 4CC reg code
-	- for audio - 
-	u16 sample_rate: sampling rate or 0 if unknown
-	u8 nb_channels: num channels or 0 if unknown
-	u8 nb_bits_per_sample: nb bits or 0 if unknown
-	u8 num_samples: num audio samples per frame or 0 if unknown
-
-  	- for video - 
-	u16 width: video width or 0 if unknown;
-	u16 height: video height or 0 if unknown;
-
-	- till end of DSI bitstream-
-	char *data: per-codec extensions 
-*/
-
-
 typedef struct _inline_scene *LPINLINESCENE;
 
-/*scene decoder interface name*/
-#define GF_SCENE_DECODER_INTERFACE		FOUR_CHAR_INT('G', 'S', 'D', 'E')
+/*interface name and version for scene decoder */
+#define GF_SCENE_DECODER_INTERFACE		GF_FOUR_CHAR_INT('G', 'S', 'D', 0x01)
 
 typedef struct _scenedecoder
 {

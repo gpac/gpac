@@ -783,7 +783,7 @@ static void *NewVideoOutput()
 	GAPIPriv *priv;
 	GF_VideoOutput *driv = (GF_VideoOutput *) malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
-	GF_REGISTER_MODULE(driv, GF_VIDEO_OUTPUT_INTERFACE, "GAPI Video Output", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "GAPI Video Output", "gpac distribution", 0)
 
 	priv = (GAPIPriv *) malloc(sizeof(GAPIPriv));
 	memset(priv, 0, sizeof(GAPIPriv));
@@ -832,13 +832,13 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 /*interface create*/
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return NewVideoOutput();
 	return NULL;
 }
 /*interface destroy*/
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	GF_VideoOutput *dd = (GF_VideoOutput *)ifce;
 	switch (dd->InterfaceType) {

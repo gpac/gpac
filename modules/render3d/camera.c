@@ -29,7 +29,7 @@
 GF_Camera *new_camera()
 {
 	GF_Camera *tmp;
-	SAFEALLOC(tmp, sizeof(GF_Camera));
+	GF_SAFEALLOC(tmp, sizeof(GF_Camera));
 	tmp->zoom = FIX_ONE;
 	return tmp;
 }

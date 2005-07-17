@@ -162,7 +162,7 @@ static GF_Err XVID_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		break;
 	case GF_CODEC_WANTS_THREAD:
 	{
-		const char *sOpt = gf_modules_get_option(ifcg, "XviD", "Threaded");
+		const char *sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "XviD", "Threaded");
 		capability->cap.valueInt = (sOpt && stricmp(sOpt, "yes")) ? 1 : 0;
 	}
 		break;
@@ -309,9 +309,9 @@ GF_BaseDecoder *NewXVIDDec()
 	GF_MediaDecoder *ifcd;
 	XVIDDec *dec;
 	
-	SAFEALLOC(ifcd, sizeof(GF_MediaDecoder));
-	SAFEALLOC(dec, sizeof(XVIDDec));
-	GF_REGISTER_MODULE(ifcd, GF_MEDIA_DECODER_INTERFACE, "XviD Decoder", "gpac distribution", 0)
+	GF_SAFEALLOC(ifcd, sizeof(GF_MediaDecoder));
+	GF_SAFEALLOC(dec, sizeof(XVIDDec));
+	GF_REGISTER_MODULE_INTERFACE(ifcd, GF_MEDIA_DECODER_INTERFACE, "XviD Decoder", "gpac distribution")
 
 	ifcd->privateStack = dec;
 
@@ -337,7 +337,7 @@ GF_BaseDecoder *NewXVIDDec()
 
 	/*get config*/
 	dec->base_filters = 0;
-	sOpt = gf_modules_get_option(ifcd, "XviD", "PostProc");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcd, "XviD", "PostProc");
 	if (sOpt) {
 #ifndef XVID_USE_OLD_API
 		if (strstr(sOpt, "FilmEffect")) dec->base_filters |= XVID_FILMEFFECT;
@@ -384,18 +384,17 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 
-void *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
-	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return NewXVIDDec();
+	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *)NewXVIDDec();
 	return NULL;
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseDecoder *ptr = (GF_BaseDecoder*)ifce;
-	switch (ptr->InterfaceType) {
+	switch (ifce->InterfaceType) {
 	case GF_MEDIA_DECODER_INTERFACE: 
-		DeleteXVIDDec(ptr);
+		DeleteXVIDDec((GF_BaseDecoder*)ifce);
 		break;
 	}
 }

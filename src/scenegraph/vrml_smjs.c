@@ -119,7 +119,7 @@ static GFINLINE GF_JSInterface *JS_GetInterface(JSContext *c)
 static GFINLINE GF_JSField *NewJSField()
 {
 	GF_JSField *ptr;
-	SAFEALLOC(ptr, sizeof(GF_JSField));
+	GF_SAFEALLOC(ptr, sizeof(GF_JSField));
 	return ptr;
 }
 
@@ -784,7 +784,7 @@ static GFINLINE GF_JSField *SFImage_Create(JSContext *c, JSObject *obj, u32 w, u
 	v->width = w;
 	v->height = h;
 	v->numComponents = nbComp;
-	SAFEALLOC(v->pixels, sizeof(u8) * nbComp * w * h);
+	GF_SAFEALLOC(v->pixels, sizeof(u8) * nbComp * w * h);
 	len = MIN(nbComp * w * h, pixels->count);
 	for (i=0; i<len; i++) v->pixels[i] = (u8) pixels->vals[i];
 	JS_SetPrivate(c, obj, field);
@@ -866,7 +866,7 @@ static JSBool image_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			pixels = (MFInt32 *) ((GF_JSField *) JS_GetPrivate(c, JSVAL_TO_OBJECT(*vp)))->field.far_ptr;
 			if (sfi->pixels) free(sfi->pixels);
 			len = sfi->width*sfi->height*sfi->numComponents;
-			SAFEALLOC(sfi->pixels, sizeof(char)*len);
+			GF_SAFEALLOC(sfi->pixels, sizeof(char)*len);
 			len = MAX(len, pixels->count);
 			for (i=0; i<len; i++) sfi->pixels[i] = (u8) pixels->vals[i];
 			changed = 1;
@@ -1328,7 +1328,7 @@ static JSBool SFRotationConstructor(JSContext *c, JSObject *obj, uintN argc, jsv
 	l1 = gf_vec_len(v1);
 	l2 = gf_vec_len(v2);
 	dot = gf_divfix(gf_vec_dot(v1, v2), gf_mulfix(l1, l2) );
-	a = gf_atan2(dot, gf_sqrt(FIX_ONE - gf_mulfix(dot, dot)) );
+	a = gf_atan2(gf_sqrt(FIX_ONE - gf_mulfix(dot, dot)), dot);
 	SFRotation_Create(c, obj, gf_mulfix(v1.y, v2.z) - gf_mulfix(v2.y, v1.z),
 								gf_mulfix(v1.z, v2.x) - gf_mulfix(v2.z, v1.x),
 								gf_mulfix(v1.x, v2.y) - gf_mulfix(v2.x, v1.y),

@@ -58,7 +58,7 @@ void COpenUrl::OnButgo()
 	}
 
 	WinGPAC *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 	char filename[1024];
 	u32 i=0;
 
@@ -88,7 +88,7 @@ BOOL COpenUrl::OnInitDialog()
 	CDialog::OnInitDialog();
 	
 	WinGPAC *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 	char filename[1024];
 	u32 i=0;
 

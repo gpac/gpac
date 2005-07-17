@@ -30,7 +30,7 @@ GF_Raster2D *EVG_LoadRenderer()
 {
 	GF_Raster2D *dr = malloc(sizeof(GF_Raster2D));
 	memset(dr, 0, sizeof(GF_Raster2D));
-	GF_REGISTER_MODULE(dr, GF_RASTER_2D_INTERFACE, "GPAC 2D Raster", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(dr, GF_RASTER_2D_INTERFACE, "GPAC 2D Raster", "gpac distribution")
 
 
 	dr->stencil_new = evg_stencil_new;
@@ -79,19 +79,18 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType==GF_RASTER_2D_INTERFACE) {
-		return EVG_LoadRenderer();
+		return (GF_BaseInterface *)EVG_LoadRenderer();
 	}
 	return NULL;
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_Raster2D *dr = (GF_Raster2D *)ifce;
-	if (dr->InterfaceType == GF_RASTER_2D_INTERFACE) {
-		EVG_ShutdownRenderer(dr);
+	if (ifce->InterfaceType == GF_RASTER_2D_INTERFACE) {
+		EVG_ShutdownRenderer((GF_Raster2D *)ifce);
 	}
 }
 

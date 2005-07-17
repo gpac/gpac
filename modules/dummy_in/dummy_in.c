@@ -105,7 +105,7 @@ void DC_OnData(void *cbk, char *data, u32 data_size, u32 status, GF_Err e)
 	/*wait to get the whole file*/
 	if (e == GF_OK) return;
 	else if (e==GF_EOS) {
-		szCache = gf_dm_get_cache_name(read->dnload);
+		szCache = gf_dm_sess_get_cache_name(read->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
 			e = GF_OK;
@@ -276,7 +276,7 @@ GF_Err DC_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char
 		gf_term_on_connect(read->service, channel, GF_STREAM_NOT_FOUND);
 	} else {
 		DummyChannel *dc;
-		SAFEALLOC(dc, sizeof(DummyChannel));
+		GF_SAFEALLOC(dc, sizeof(DummyChannel));
 		dc->ch = channel;
 		dc->ESID = ESID;
 		gf_list_add(read->channels, dc);
@@ -328,14 +328,14 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	DCReader *read;
 	GF_InputService *plug;
 	if (InterfaceType != GF_NET_CLIENT_INTERFACE) return NULL;
 
-	SAFEALLOC(plug, sizeof(GF_InputService));
-	GF_REGISTER_MODULE(plug, GF_NET_CLIENT_INTERFACE, "GPAC Dummy Loader", "gpac distribution", 0)
+	GF_SAFEALLOC(plug, sizeof(GF_InputService));
+	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC Dummy Loader", "gpac distribution")
 
 	plug->CanHandleURL = DC_CanHandleURL;
 	plug->ConnectService = DC_ConnectService;
@@ -347,10 +347,10 @@ void *LoadInterface(u32 InterfaceType)
 	plug->CanHandleURLInService = DC_CanHandleURLInService;
 	plug->ChannelGetSLP = DC_ChannelGetSLP;
 	plug->ChannelReleaseSLP = DC_ChannelReleaseSLP;
-	SAFEALLOC(read, sizeof(DCReader));
+	GF_SAFEALLOC(read, sizeof(DCReader));
 	read->channels = gf_list_new();
 	plug->priv = read;
-	return plug;
+	return (GF_BaseInterface *)plug;
 }
 
 void ShutdownInterface(GF_BaseInterface *bi)

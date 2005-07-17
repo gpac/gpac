@@ -712,13 +712,11 @@ static char *format_duration(u64 dur, u32 timescale, char *szDur)
 static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *name)
 {
 	u32 i, count, brand;
-	char sType[5];
-
 	brand = gf_isom_get_meta_type(file, root_meta, tk_num);
 	if (!brand) return;
 
 	count = gf_isom_get_meta_item_count(file, root_meta, tk_num);
-	fprintf(stdout, "%s type: \"%s\" - %d resource item(s)\n", name, gf_4cc_to_str(brand, sType), count);
+	fprintf(stdout, "%s type: \"%s\" - %d resource item(s)\n", name, gf_4cc_to_str(brand), count);
 	switch (gf_isom_has_meta_xml(file, root_meta, tk_num)) {
 	case 1: fprintf(stdout, "Meta has XML resource\n"); break;
 	case 2: fprintf(stdout, "Meta has BinaryXML resource\n"); break;
@@ -760,10 +758,10 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	gf_isom_get_media_language(file, trackNum, sType);
 	fprintf(stdout, "Media Info: Language \"%s\" - ", sType);
 	mtype = gf_isom_get_media_type(file, trackNum);
-	fprintf(stdout, "Type \"%s\" - ", gf_4cc_to_str(mtype, sType));
+	fprintf(stdout, "Type \"%s\" - ", gf_4cc_to_str(mtype));
 	msub_type = gf_isom_get_mpeg4_subtype(file, trackNum, 1);
 	if (!msub_type) msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
-	fprintf(stdout, "Sub Type \"%s\" - %d samples\n", gf_4cc_to_str(msub_type, sType), gf_isom_get_sample_count(file, trackNum));
+	fprintf(stdout, "Sub Type \"%s\" - %d samples\n", gf_4cc_to_str(msub_type), gf_isom_get_sample_count(file, trackNum));
 
 	gf_isom_get_audio_info(file, trackNum, 1, &sr, &nb_ch, &bps);
 	
@@ -841,7 +839,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						fprintf(stdout, "MPEG-1/2 Audio - %d Channels - SampleRate %d\n", nb_ch, sr);
 					} else {
 						GF_ISOSample *samp = gf_isom_get_sample(file, trackNum, 1, &oti);
-						oti = FOUR_CHAR_INT((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
+						oti = GF_FOUR_CHAR_INT((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
 						if (full_dump) fprintf(stdout, "\t");
 						fprintf(stdout, "%s Audio - %d GF_Channel(s) - SampleRate %d - Layer %d\n",
 							gf_mp3_version_name(oti),
@@ -898,16 +896,14 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 
 			/*ISMACryp*/
 			if (msub_type == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
-				char name[5];
 				const char *scheme_URI, *KMS_URI;
 				u32 scheme_type, version;
 				u8 IV_size;
 				Bool use_sel_enc;
 				gf_isom_get_ismacryp_info(file, trackNum, 1, NULL, &scheme_type, &version, &scheme_URI, &KMS_URI, &use_sel_enc, &IV_size, NULL);
-				gf_4cc_to_str(scheme_type, name);
 
 				if (gf_isom_is_ismacryp_media(file, trackNum, 1)) {
-					fprintf(stdout, "\n*Encrypted stream - ISMA scheme %s (version %d)\n", name, version);
+					fprintf(stdout, "\n*Encrypted stream - ISMA scheme %s (version %d)\n", gf_4cc_to_str(scheme_type), version);
 					if (scheme_URI) fprintf(stdout, "scheme location: %s\n", scheme_URI);
 					if (KMS_URI) {
 						if (!strnicmp(KMS_URI, "(key)", 5)) fprintf(stdout, "KMS location: key in file\n");
@@ -915,7 +911,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					}
 					fprintf(stdout, "ISMA Config: IV length: %d - Selective Encryption: %s\n", IV_size, use_sel_enc ? "Yes" : "No");
 				} else {
-					fprintf(stdout, "\n*Encrypted stream - unknown scheme %s\n", name);
+					fprintf(stdout, "\n*Encrypted stream - unknown scheme %s\n", gf_4cc_to_str(scheme_type));
 					if (scheme_URI) fprintf(stdout, "scheme location: %s\n", scheme_URI);
 				}
 			}
@@ -1035,7 +1031,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 {
 	GF_InitialObjectDescriptor *iod;
 	u32 i, brand, min, timescale, count;
-	char sType[5], szDur[50];
+	char szDur[50];
 	
 	DumpMetaItem(file, 1, 0, "Root Meta");
 	if (!gf_isom_has_movie(file)) {
@@ -1048,7 +1044,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 		timescale, format_duration(gf_isom_get_duration(file), timescale, szDur), gf_isom_is_fragmented(file) ? "yes" : "no", gf_isom_get_track_count(file));
 
 	if (gf_isom_get_brand_info(file, &brand, &min, NULL) == GF_OK) {
-		fprintf(stdout, "\tFile Brand %s - version %d\n", gf_4cc_to_str(brand, sType), min);
+		fprintf(stdout, "\tFile Brand %s - version %d\n", gf_4cc_to_str(brand), min);
 	}
 	fprintf(stdout, "\n");
 

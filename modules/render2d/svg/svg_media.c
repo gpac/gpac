@@ -37,7 +37,7 @@ void SVG_SetMFURLFromURI(MFURL *mfurl, char *uri)
 {
 	SFURL *sfurl = NULL;
 	mfurl->count = 1;
-	SAFEALLOC(mfurl->vals, sizeof(SFURL))
+	GF_SAFEALLOC(mfurl->vals, sizeof(SFURL))
 	sfurl = mfurl->vals;
 	sfurl->OD_ID = GF_ESM_DYNAMIC_OD_ID;
 	sfurl->url = strdup(uri);
@@ -254,7 +254,7 @@ static void SVG_Destroy_image(GF_Node *node)
 void SVG_Init_image(Render2D *sr, GF_Node *node)
 {
 	SVG_image_stack *st;
-	SAFEALLOC(st, sizeof(SVG_image_stack))
+	GF_SAFEALLOC(st, sizeof(SVG_image_stack))
 	st->graph = NewDrawableNode();
 
 	gf_sr_traversable_setup(st->graph, node, sr->compositor);
@@ -409,7 +409,7 @@ static void SVG_Destroy_video(GF_Node *node)
 void SVG_Init_video(Render2D *sr, GF_Node *node)
 {
 	SVG_video_stack *st;
-	SAFEALLOC(st, sizeof(SVG_video_stack))
+	GF_SAFEALLOC(st, sizeof(SVG_video_stack))
 	st->graph = NewDrawableNode();
 
 	gf_sr_traversable_setup(st->graph, node, sr->compositor);
@@ -520,7 +520,7 @@ static void SVG_Destroy_audio(GF_Node *node)
 void SVG_Init_audio(Render2D *sr, GF_Node *node)
 {
 	SVG_audio_stack *st;
-	SAFEALLOC(st, sizeof(SVG_audio_stack))
+	GF_SAFEALLOC(st, sizeof(SVG_audio_stack))
 
 	gf_sr_audio_setup(&st->input, sr->compositor, node);
 

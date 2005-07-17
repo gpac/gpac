@@ -746,7 +746,7 @@ GF_Err gf_bifs_enc_commands(GF_BifsEncoder *codec, GF_List *comList, GF_BitStrea
 				GF_Route *r;
 				GF_Command *rcom = gf_list_get(comList, i+1);
 				if (rcom->tag!=GF_SG_ROUTE_INSERT) break;
-				SAFEALLOC(r, sizeof(GF_Route));
+				GF_SAFEALLOC(r, sizeof(GF_Route));
 				r->FromFieldIndex = rcom->fromFieldIndex;
 				r->FromNode = gf_sg_find_node(codec->scene_graph, rcom->fromNodeID);
 				r->ToFieldIndex = rcom->toFieldIndex;

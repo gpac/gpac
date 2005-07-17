@@ -143,15 +143,9 @@ static void MP3_OnLiveData(MP3Reader *read, char *data, u32 data_size)
 	}
 	if (!data_size) return;
 
-	if (!read->es_data) {
-		read->es_data = malloc(sizeof(char)*data_size);
-		read->es_data_size = data_size;
-		memcpy(read->es_data, data, sizeof(char)*data_size);
-	} else {
-		read->es_data = realloc(read->es_data, sizeof(char)*(read->es_data_size+data_size) );
-		memcpy(read->es_data + read->es_data_size, data, sizeof(char)*data_size);
-		read->es_data_size += data_size;
-	}
+	read->es_data = realloc(read->es_data, sizeof(char)*(read->es_data_size+data_size) );
+	memcpy(read->es_data + read->es_data_size, data, sizeof(char)*data_size);
+	read->es_data_size += data_size;
 	if (!read->es_ch) return;
 
 	
@@ -204,7 +198,7 @@ void MP3_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 
 	if (e >= GF_OK) {
 		if (read->needs_connection) {
-			gf_dm_get_stats(read->dnload, NULL, NULL, &total_size, NULL, NULL, NULL);
+			gf_dm_sess_get_stats(read->dnload, NULL, NULL, &total_size, NULL, NULL, NULL);
 			if (!total_size) read->is_live = 1;
 		}
 		/*looks like a live stream*/
@@ -216,7 +210,7 @@ void MP3_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 		if (read->stream) return;
 
 		/*open service*/
-		szCache = gf_dm_get_cache_name(read->dnload);
+		szCache = gf_dm_sess_get_cache_name(read->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
 			read->stream = fopen((char *) szCache, "rb");
@@ -227,7 +221,7 @@ void MP3_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 				e = GF_OK;
 				/*not enough data*/
 				if (!MP3_ConfigureFromFile(read)) {
-					gf_dm_get_stats(read->dnload, NULL, NULL, NULL, &bytes_done, NULL, NULL);
+					gf_dm_sess_get_stats(read->dnload, NULL, NULL, NULL, &bytes_done, NULL, NULL);
 					/*bad data - there's likely some ID3 around...*/
 					if (bytes_done>10*1024) {
 						e = GF_CORRUPTED_DATA;
@@ -610,7 +604,7 @@ GF_InputService *MP3_Load()
 	MP3Reader *reader;
 	GF_InputService *plug = malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
-	GF_REGISTER_MODULE(plug, GF_NET_CLIENT_INTERFACE, "GPAC MP3 Reader", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC MP3 Reader", "gpac distribution")
 
 	plug->CanHandleURL = MP3_CanHandleURL;
 	plug->ConnectService = MP3_ConnectService;
@@ -652,26 +646,25 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 
-void *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
-	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return MP3_Load();
+	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)MP3_Load();
 #ifdef GPAC_HAS_MAD
-	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return NewMADDec();
+	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *)NewMADDec();
 #endif
 	return NULL;
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseInterface *ptr = (GF_BaseInterface *)ifce;
-	switch (ptr->InterfaceType) {
+	switch (ifce->InterfaceType) {
 #ifdef GPAC_HAS_MAD
 	case GF_MEDIA_DECODER_INTERFACE:
-		DeleteMADDec(ifce);
+		DeleteMADDec((GF_BaseDecoder *) ifce);
 		break;
 #endif
 	case GF_NET_CLIENT_INTERFACE:
-		MP3_Delete(ptr);
+		MP3_Delete(ifce);
 		break;
 	}
 }

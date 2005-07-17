@@ -84,7 +84,7 @@ GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 
 	char szFILE[GF_MAX_PATH];
 	TTIn *tti = (TTIn *)plug->priv;
-	char *cache_dir = gf_modules_get_option(plug, "General", "CacheDirectory");
+	const char *cache_dir = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
 	
 	if (cache_dir && strlen(cache_dir)) {
 		if (cache_dir[strlen(cache_dir)-1] != GF_PATH_SEPARATOR) {
@@ -128,7 +128,7 @@ void TTIn_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 	/*wait to get the whole file*/
 	if (e == GF_OK) return;
 	else if (e==GF_EOS) {
-		szCache = gf_dm_get_cache_name(tti->dnload);
+		szCache = gf_dm_sess_get_cache_name(tti->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
 			e = TTIn_LoadFile(plug, szCache, 1);
@@ -394,7 +394,7 @@ void *NewTTReader()
 	TTIn *priv;
 	GF_InputService *plug = malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
-	GF_REGISTER_MODULE(plug, GF_NET_CLIENT_INTERFACE, "GPAC SubTitle Reader", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC SubTitle Reader", "gpac distribution")
 
 	plug->CanHandleURL = TTIn_CanHandleURL;
 	plug->CanHandleURLInService = NULL;

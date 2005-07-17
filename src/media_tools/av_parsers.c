@@ -739,7 +739,7 @@ u32 gf_mp3_get_next_header(FILE* in)
 
 		if (state==3) {
 			bytes[state] = b;
-			return FOUR_CHAR_INT(bytes[0], bytes[1], bytes[2], bytes[3]);
+			return GF_FOUR_CHAR_INT(bytes[0], bytes[1], bytes[2], bytes[3]);
 		}
 		if (state==2) {
 			if (((b & 0xF0) == 0) || ((b & 0xF0) == 0xF0) || ((b & 0x0C) == 0x0C)) {
@@ -793,7 +793,7 @@ u32 gf_mp3_get_next_header_mem(char *buffer, u32 size, u32 *pos)
 		if (state==3) {
 			bytes[state] = b; 
 			*pos = dropped;
-			return FOUR_CHAR_INT(bytes[0], bytes[1], bytes[2], bytes[3]);;
+			return GF_FOUR_CHAR_INT(bytes[0], bytes[1], bytes[2], bytes[3]);;
 		}
 		if (state==2) {
 			if (((b & 0xF0) == 0) || ((b & 0xF0) == 0xF0) || ((b & 0x0C) == 0x0C)) {

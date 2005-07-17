@@ -219,7 +219,7 @@ GF_Err Q_EncCoordOnUnitSphere(GF_BifsEncoder *codec, GF_BitStream *bs, u32 NbBit
 	if(NbComp==2) gf_bs_write_int(bs, ((m_ft[orientation]>0) ? 0 : 1), 1); 
 	gf_bs_write_int(bs, orientation, 2);
 	for (i=0; i<NbComp; i++) {
-		Fixed v = gf_mulfix(gf_divfix(INT2FIX(4), GF_PI) , gf_atan2(m_ft[(orientation+i+1) % len], m_ft[orientation]));
+		Fixed v = gf_mulfix(gf_divfix(INT2FIX(4), GF_PI) , gf_atan2(m_ft[orientation], m_ft[(orientation+i+1) % len]));
 		s32 qdt = Q_Quantize(0, 1, NbBits-1, (v>=0 ? v : -v));
 		s32 qv = (1<<(NbBits-1)) + (v>=0 ? 1 : -1) * qdt;
 		gf_bs_write_int(bs, qv, NbBits);

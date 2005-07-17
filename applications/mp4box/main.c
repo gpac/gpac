@@ -65,6 +65,12 @@ Float swf_flatten_angle = 0;
 void PrintVersion()
 {
 	fprintf(stdout, "MP4Box - GPAC version " GPAC_VERSION "\n"
+#ifdef GPAC_FIXED_POINT
+				"GPAC compiled in fixed-point version
+#endif
+#ifdef GPAC_READ_ONLY
+				"GPAC compiled in read-only version
+#endif
 		"GPAC Copyright: (c) Jean Le Feuvre 2000-2005\n\t\t(c) ENST 2005-200X\n");
 }
 
@@ -427,7 +433,7 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 	u32 i, val, res, streamType;
 	u32 sl_mode, prev_ocr, single_ocr, nb_done, tot_bw, bw, flags, spec_type;
 	GF_Err e;
-	char szType[5], szSubType[5], szPayload[30];
+	char szPayload[30];
 	GF_RTPHinter *hinter;
 	Bool copy, has_iod, single_av;
 	u8 init_payt = BASE_PAYT;
@@ -469,7 +475,6 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 		if (!gf_isom_get_sample_count(file, i+1)) continue;
 
 		mtype = gf_isom_get_media_type(file, i+1);
-		gf_4cc_to_str(mtype, szType);
 		switch (mtype) {
 		case GF_ISOM_MEDIA_VISUAL:
 			if (single_av) {
@@ -487,11 +492,10 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 			continue;
 		default:
 			/*no hinting of systems track on isma*/
-			if (spec_type==FOUR_CHAR_INT('I','S','M','A')) continue;
+			if (spec_type==GF_FOUR_CHAR_INT('I','S','M','A')) continue;
 		}
 		mtype = gf_isom_get_media_subtype(file, i+1, 1);
 		if ((mtype==GF_ISOM_SUBTYPE_MPEG4) || (mtype==GF_ISOM_SUBTYPE_MPEG4_CRYP) ) mtype = gf_isom_get_mpeg4_subtype(file, i+1, 1);
-		gf_4cc_to_str(mtype, szSubType);
 
 		if (!single_av) {
 			/*one media per group only (we should prompt user for group selection)*/
@@ -544,7 +548,7 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 		tot_bw += bw;
 		flags = gf_hinter_track_get_flags(hinter);
 		gf_hinter_track_get_payload_name(hinter, szPayload);
-		fprintf(stdout, "Hinting track ID %d - Type \"%s:%s\" (%s) - BW %d kbps\n", gf_isom_get_track_id(file, i+1), szType, szSubType, szPayload, bw);
+		fprintf(stdout, "Hinting track ID %d - Type \"%s:%s\" (%s) - BW %d kbps\n", gf_isom_get_track_id(file, i+1), gf_4cc_to_str(mtype), gf_4cc_to_str(mtype), szPayload, bw);
 /*
 		if (flags & GP_RTP_PCK_FORCE_MPEG4) fprintf(stdout, "\tMPEG4 transport forced\n");
 		if (flags & GP_RTP_PCK_USE_MULTI) fprintf(stdout, "\tRTP aggregation enabled\n");
@@ -676,7 +680,7 @@ u32 get_file_type_by_ext(char *inName)
 static Bool can_convert_to_isma(GF_ISOFile *file)
 {
 	u32 spec = gf_isom_guess_specification(file);
-	if (spec==FOUR_CHAR_INT('I','S','M','A')) return 1;
+	if (spec==GF_FOUR_CHAR_INT('I','S','M','A')) return 1;
 	return 0;
 }
 
@@ -751,7 +755,7 @@ static Bool parse_meta_args(MetaAction *meta, char *opts)
 			switch (meta->act_type) {
 			case 0:
 				if (!stricmp(szSlot, "null") || !stricmp(szSlot, "0")) meta->meta_4cc = 0;
-				else meta->meta_4cc = FOUR_CHAR_INT(szSlot[0], szSlot[1], szSlot[2], szSlot[3]);
+				else meta->meta_4cc = GF_FOUR_CHAR_INT(szSlot[0], szSlot[1], szSlot[2], szSlot[3]);
 				ret = 1;
 				break;
 			case 1: 
@@ -1273,7 +1277,7 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-brand")) { 
 			char *b = argv[i+1];
 			CHECK_NEXT_ARG 
-			major_brand = FOUR_CHAR_INT(b[0], b[1], b[2], b[3]);
+			major_brand = GF_FOUR_CHAR_INT(b[0], b[1], b[2], b[3]);
 			open_edit = 1;
 			i++;
 		}
@@ -1284,7 +1288,7 @@ int main(int argc, char **argv)
 				fprintf(stdout, "Sorry - no more than %d brand remove operations allowed\n", MAX_CUMUL_OPS);
 				return 1;
 			}
-			brand_add[nb_alt_brand_add] = FOUR_CHAR_INT(b[0], b[1], b[2], b[3]);
+			brand_add[nb_alt_brand_add] = GF_FOUR_CHAR_INT(b[0], b[1], b[2], b[3]);
 			nb_alt_brand_add++;
 			open_edit = 1;
 			i++;
@@ -1296,7 +1300,7 @@ int main(int argc, char **argv)
 				fprintf(stdout, "Sorry - no more than %d brand remove operations allowed\n", MAX_CUMUL_OPS);
 				return 1;
 			}
-			brand_rem[nb_alt_brand_rem] = FOUR_CHAR_INT(b[0], b[1], b[2], b[3]);
+			brand_rem[nb_alt_brand_rem] = GF_FOUR_CHAR_INT(b[0], b[1], b[2], b[3]);
 			nb_alt_brand_rem++;
 			open_edit = 1;
 			i++;
@@ -1571,6 +1575,8 @@ int main(int argc, char **argv)
 	
 	if (split_duration || split_size) {
 		split_isomedia_file(file, split_duration, split_size, inName, InterleavingTime, split_start);
+		/*never save file when splitting is desired*/
+		open_edit = 0;
 	}
 
 	if (track_dump_type) {

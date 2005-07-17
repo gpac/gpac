@@ -241,6 +241,10 @@ process_reports:
 	return e;
 }
 
+u32 gf_rtp_get_ntp_frac(u32 sec, u32 frac)
+{
+	return ( ((sec  & 0x0000ffff) << 16) |  ((frac & 0xffff0000) >> 16));
+}
 
 static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 {
@@ -326,7 +330,7 @@ static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 	//RTP specs annexe A.8
 	gf_bs_write_u32(bs, ( ch->Jitter >> 4));
 	//LSR
-	val = ch->last_SR_NTP_sec ? gf_get_ntp_frac(ch->last_SR_NTP_sec, ch->last_SR_NTP_frac) : 0;
+	val = ch->last_SR_NTP_sec ? gf_rtp_get_ntp_frac(ch->last_SR_NTP_sec, ch->last_SR_NTP_frac) : 0;
 	gf_bs_write_u32(bs, val);
 
 	// DLSR

@@ -29,23 +29,60 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/token.h>
+ *	\brief tokenizer functions.
+ */
+
+ /*!
+ *	\addtogroup tok_grp tokenizer
+ *	\ingroup utils_grp
+ *	\brief String Tokenizer Functions
+ *
+ *This section documents the basic string tokenizer of the GPAC framework.
+ *	@{
+ */
+
 #include <gpac/tools.h>
 
-/*********************************************************************
-					a simple string parser
-**********************************************************************/
-/*get string component 
-	@Buffer: src string
-	@start: start offset in src
-	@SeparatorSet: separator characters used
-	@Container, @ContainerSize: output
-*/
-s32 gf_token_get(unsigned char *Buffer, s32 Start, unsigned char *SeparatorSet, unsigned char *Container, s32 ContainerSize);
-/*line delimeters checked: \r\n, \n and \r*/
-s32 gf_token_get_line(unsigned char	*Buffer, u32 Start, u32 Size, unsigned char *LineBuffer, u32 LineBufferSize);
-/*locates pattern in buffer*/
-s32 gf_token_find(unsigned char *Buffer, u32 Start, u32 Size, unsigned char *Pattern);
+/*!
+ *\brief get string component 
+ *
+ *Gets the next string component comprised in a given set of characters
+ *\param buffer source string to scan
+ *\param start char offset from begining of buffer where tokenization shall start
+ *\param separators separator characters to use
+ *\param token output buffer location
+ *\param token_size output buffer allocated size
+ *\return position of the first char in the buffer after the last terminating separator, or -1 if token could not be found
+ */
+s32 gf_token_get(unsigned char *buffer, s32 start, unsigned char *separators, unsigned char *token, s32 token_size);
+/*!
+ *\brief line removal
+ *
+ *Gets one line from buffer and remove delimiters CR, LF and CRLF
+ *\param buffer source string to scan
+ *\param start char offset from begining of buffer where tokenization shall start
+ *\param size size of the input buffer to analyze
+ *\param line_buffer output buffer location
+ *\param line_buffer_size output buffer allocated size
+ *\return position of the first char in the buffer after the last line delimiter, or -1 if no line could be found
+ */
+s32 gf_token_get_line(unsigned char	*buffer, u32 start, u32 size, unsigned char *line_buffer, u32 line_buffer_size);
+/*!
+ *\brief pattern location
+ *
+ *Locates a pattern in the buffer
+ *\param buffer source string to scan
+ *\param start char offset from begining of buffer where tokenization shall start
+ *\param size size of the input buffer to analyze
+ *\param pattern pattern to locate
+ *\return position of the first char in the buffer after the pattern, or -1 if pattern could not be found
+ */
+s32 gf_token_find(unsigned char *buffer, u32 start, u32 size, unsigned char *pattern);
 
+
+/*! @} */
 
 #ifdef __cplusplus
 }

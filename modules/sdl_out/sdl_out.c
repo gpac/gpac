@@ -57,17 +57,16 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 /*interface create*/
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return SDL_NewVideo();
 	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return SDL_NewAudio();
 	return NULL;
 }
 /*interface destroy*/
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseInterface *dd = (GF_BaseInterface *)ifce;
-	switch (dd->InterfaceType) {
+	switch (ifce->InterfaceType) {
 	case GF_VIDEO_OUTPUT_INTERFACE:
 		SDL_DeleteVideo(ifce);
 		break;

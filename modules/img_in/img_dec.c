@@ -56,13 +56,13 @@ GF_BaseDecoder *NewBaseDecoder()
 {
 	GF_MediaDecoder *ifce;
 	IMGDec *wrap;
-	SAFEALLOC(ifce, sizeof(GF_MediaDecoder));
+	GF_SAFEALLOC(ifce, sizeof(GF_MediaDecoder));
 	wrap = malloc(sizeof(IMGDec));
 	memset(wrap, 0, sizeof(IMGDec));
 	ifce->privateStack = wrap;
 	ifce->CanHandleStream = DEC_CanHandleStream;
 
-	GF_REGISTER_MODULE(ifce, GF_MEDIA_DECODER_INTERFACE, "GPAC Image Decoder", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(ifce, GF_MEDIA_DECODER_INTERFACE, "GPAC Image Decoder", "gpac distribution")
 
 	/*other interfaces will be setup at run time*/
 	return (GF_BaseDecoder *)ifce;
@@ -105,24 +105,23 @@ Bool QueryInterface(u32 InterfaceType)
 	}
 }
 
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
 	case GF_MEDIA_DECODER_INTERFACE:
-		return NewBaseDecoder();
+		return (GF_BaseInterface *)NewBaseDecoder();
 	case GF_NET_CLIENT_INTERFACE:
-		return NewLoaderInterface();
+		return (GF_BaseInterface *)NewLoaderInterface();
 	default:
 		return NULL;
 	}
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_BaseDecoder *ifcd = (GF_BaseDecoder *)ifce;
-	switch (ifcd->InterfaceType) {
+	switch (ifce->InterfaceType) {
 	case GF_MEDIA_DECODER_INTERFACE:
-		DeleteBaseDecoder(ifcd);
+		DeleteBaseDecoder((GF_BaseDecoder *)ifce);
 		break;
 	case GF_NET_CLIENT_INTERFACE:
 		DeleteLoaderInterface(ifce);

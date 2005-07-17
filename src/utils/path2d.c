@@ -29,7 +29,7 @@
 GF_Path *gf_path_new()
 {
 	GF_Path *gp;
-	SAFEALLOC(gp, sizeof(GF_Path));
+	GF_SAFEALLOC(gp, sizeof(GF_Path));
 	gp->fineness = FIX_ONE;
 	return gp;
 }
@@ -52,7 +52,7 @@ void gf_path_reset(GF_Path *gp)
 GF_Path *gf_path_clone(GF_Path *gp)
 {
 	GF_Path *dst;
-	SAFEALLOC(dst, sizeof(GF_Path));
+	GF_SAFEALLOC(dst, sizeof(GF_Path));
 	if (!dst) return NULL;
 	dst->contours = malloc(sizeof(u32)*gp->n_contours);
 	if (!dst->contours) { free(dst); return NULL; }
@@ -83,16 +83,10 @@ void gf_path_del(GF_Path *gp)
 #define PATH_POINT_ALLOC_STEP	10
 
 #define GF_2D_REALLOC_POINT(_gp, _nb)	\
-	if (_gp->points) {	\
-		if (_gp->n_alloc_points <= _gp->n_points+_nb) {	\
-			_gp->n_alloc_points += PATH_POINT_ALLOC_STEP;	\
-			_gp->points = realloc(_gp->points, sizeof(GF_Point2D)*(_gp->n_alloc_points));	\
-			_gp->tags = realloc(_gp->tags, sizeof(u8)*(_gp->n_alloc_points));	\
-		}	\
-	} else {	\
-		_gp->n_alloc_points = PATH_POINT_ALLOC_STEP;	\
-		_gp->points = malloc(sizeof(GF_Point2D)*_gp->n_alloc_points);	\
-		_gp->tags = malloc(sizeof(u8)*_gp->n_alloc_points);	\
+	if (_gp->n_alloc_points <= _gp->n_points+_nb) {	\
+		_gp->n_alloc_points += PATH_POINT_ALLOC_STEP;	\
+		_gp->points = realloc(_gp->points, sizeof(GF_Point2D)*(_gp->n_alloc_points));	\
+		_gp->tags = realloc(_gp->tags, sizeof(u8)*(_gp->n_alloc_points));	\
 	}	\
 
 GF_Err gf_path_add_move_to(GF_Path *gp, Fixed x, Fixed y)
@@ -106,11 +100,7 @@ GF_Err gf_path_add_move_to(GF_Path *gp, Fixed x, Fixed y)
 		return GF_OK;
 	}
 
-	if (gp->contours) {
-		gp->contours = realloc(gp->contours, sizeof(u32)*(gp->n_contours+1));
-	} else {
-		gp->contours = malloc(sizeof(u32));
-	}
+	gp->contours = realloc(gp->contours, sizeof(u32)*(gp->n_contours+1));
 	GF_2D_REALLOC_POINT(gp, 1)
 
 	gp->points[gp->n_points].x = x;
@@ -339,7 +329,7 @@ GF_Err gf_path_add_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed fa_x, Fix
 	cx = (fb_x + fa_x)/2;
 	cy = (fb_y + fa_y)/2;
 
-	angle = gf_atan2(fb_x-fa_x, fb_y-fa_y);
+	angle = gf_atan2(fb_y-fa_y, fb_x-fa_x);
 	gf_mx2d_init(mat);
 	gf_mx2d_add_rotation(&mat, 0, 0, angle);
 	gf_mx2d_add_translation(&mat, cx, cy);
@@ -352,8 +342,8 @@ GF_Err gf_path_add_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed fa_x, Fix
 	gf_mx2d_apply_coords(&inv, &fb_x, &fb_y);
 
 	//start angle and end angle
-	start_angle = gf_atan2(start_x, start_y);
-	end_angle = gf_atan2(end_x, end_y);
+	start_angle = gf_atan2(start_y, start_x);
+	end_angle = gf_atan2(end_y, end_x);
 	tmp = gf_mulfix((start_x - fa_x), (start_x - fa_x)) + gf_mulfix((start_y - fa_y), (start_y - fa_y));
 	axis_w = gf_sqrt(tmp);
 	tmp = gf_mulfix((start_x - fb_x) , (start_x - fb_x)) + gf_mulfix((start_y - fb_y), (start_y - fb_y)); 
@@ -933,7 +923,7 @@ GF_PathIterator *gf_path_iterator_new(GF_Path *gp)
 	u32 i, j, cur;
 	GF_Point2D start, end;
 
-	SAFEALLOC(it, sizeof(GF_PathIterator));
+	GF_SAFEALLOC(it, sizeof(GF_PathIterator));
 	if (!it) return NULL;
 	flat = gf_path_flatten(gp);
 	if (!flat) {

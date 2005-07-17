@@ -168,7 +168,7 @@ void *NewOSSRender()
 	driv->QueryOutputSampleRate = OSS_QueryOutputSampleRate;
 	driv->WriteAudio = OSS_WriteAudio;
 
-	GF_REGISTER_MODULE(driv, GF_AUDIO_OUTPUT_INTERFACE, "Linux OSS Audio Output", "gpac distribution (zefir k.)", 0);
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "Linux OSS Audio Output", "gpac distribution (zefir k.)", 0);
 	return driv;
 }
 
@@ -192,16 +192,15 @@ Bool QueryInterface(u32 InterfaceType)
 	return 0;
 }
 
-void *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) 
 		return NewOSSRender();
 	return NULL;
 }
 
-void ShutdownInterface(void *ifce)
+void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_AudioOutput*dr = (GF_AudioOutput*) ifce;
-	if(dr->InterfaceType==GF_AUDIO_OUTPUT_INTERFACE)
-		DeleteOSSRender(dr);
+	if (ifce->InterfaceType==GF_AUDIO_OUTPUT_INTERFACE)
+		DeleteOSSRender((GF_AudioOutput*)ifce);
 }

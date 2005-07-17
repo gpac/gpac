@@ -52,7 +52,7 @@ GF_Err AR_SetupAudioFormat(GF_AudioRenderer *ar, GF_AudioOutput *dr)
 
 GF_AudioRenderer *gf_sr_ar_load(GF_User *user)
 {
-	char *sOpt;
+	const char *sOpt;
 	u32 i, count;
 	GF_Err e;
 	GF_AudioRenderer *ar;
@@ -80,7 +80,8 @@ GF_AudioRenderer *gf_sr_ar_load(GF_User *user)
 	/*get a prefered renderer*/
 	sOpt = gf_cfg_get_key(user->config, "Audio", "DriverName");
 	if (sOpt) {
-		if (!gf_modules_load_interface_by_name(user->modules, sOpt, GF_AUDIO_OUTPUT_INTERFACE, (void **) &ar->audio_out)) {
+		ar->audio_out = (GF_AudioOutput *) gf_modules_load_interface_by_name(user->modules, sOpt, GF_AUDIO_OUTPUT_INTERFACE);
+		if (!ar->audio_out) {
 			ar->audio_out = NULL;
 			sOpt = NULL;
 		}
@@ -88,15 +89,15 @@ GF_AudioRenderer *gf_sr_ar_load(GF_User *user)
 	if (!ar->audio_out) {
 		count = gf_modules_get_count(ar->user->modules);
 		for (i=0; i<count; i++) {
-			if (!gf_modules_load_interface(ar->user->modules, i, GF_AUDIO_OUTPUT_INTERFACE, (void **) &ar->audio_out)) continue;
-
+			ar->audio_out = (GF_AudioOutput *) gf_modules_load_interface(ar->user->modules, i, GF_AUDIO_OUTPUT_INTERFACE);
+			if (ar->audio_out) continue;
 			/*check that's a valid audio renderer*/
 			if (ar->audio_out->SelfThreaded) {
 				if (ar->audio_out->SetPriority) break;
 			} else {
 				if (ar->audio_out->WriteAudio) break;
 			}
-			gf_modules_close_interface(ar->audio_out);
+			gf_modules_close_interface((GF_BaseInterface *)ar->audio_out);
 			ar->audio_out = NULL;
 		}
 	}
@@ -108,7 +109,7 @@ GF_AudioRenderer *gf_sr_ar_load(GF_User *user)
 		e = ar->audio_out->SetupHardware(ar->audio_out, ar->user->os_window_handler, ar->num_buffers, ar->num_buffer_per_sec);
 		if (e==GF_OK) e = AR_SetupAudioFormat(ar, ar->audio_out);
 		if (e != GF_OK) {
-			gf_modules_close_interface(ar->audio_out);
+			gf_modules_close_interface((GF_BaseInterface *)ar->audio_out);
 			ar->audio_out = NULL;
 		} else {
 			/*remember the module we use*/
@@ -156,7 +157,7 @@ void gf_sr_ar_del(GF_AudioRenderer *ar)
 		ar->need_reconfig = 1;
 		gf_mixer_lock(ar->mixer, 1);
 		ar->audio_out->Shutdown(ar->audio_out);
-		gf_modules_close_interface(ar->audio_out);
+		gf_modules_close_interface((GF_BaseInterface *)ar->audio_out);
 		gf_mixer_lock(ar->mixer, 0);
 	}
 

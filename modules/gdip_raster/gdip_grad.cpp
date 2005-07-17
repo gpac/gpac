@@ -39,7 +39,7 @@ GF_STENCIL gf_new_stencil(GF_Raster2D *, GF_StencilType type)
 	default:
 		return NULL;
 	}
-	GF_SAFEALLOC(sten, struct _stencil);
+	SAFEALLOC(sten, struct _stencil);
 	sten->type = type;
 	sten->alpha = 255;
 	return (GF_STENCIL) sten;

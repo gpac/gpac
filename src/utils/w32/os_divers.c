@@ -117,13 +117,13 @@ void gf_get_user_name(char *buf, u32 buf_size)
 
 
 /*enumerate directories*/
-GF_Err gf_enum_directory(const char *dir, Bool enum_directory, Bool (*enum_dir_item)(void *cbck, char *item_name, char *item_path), void *cbck)
+GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item enum_dir_fct, void *cbck)
 {
 	unsigned char path[GF_MAX_PATH], item_path[GF_MAX_PATH];
 	WIN32_FIND_DATA FindData;
 	HANDLE SearchH;
 
-	if (!dir) return GF_BAD_PARAM;
+	if (!dir || !enum_dir_fct) return GF_BAD_PARAM;
 	if (dir[strlen(dir) - 1] == GF_PATH_SEPARATOR) {
 		sprintf(path, "%s*", dir);
 	} else {
@@ -144,7 +144,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, Bool (*enum_dir_i
 
 		strcpy(item_path, path);
 		strcat(item_path, FindData.cFileName);
-		if (enum_dir_item(cbck, FindData.cFileName, item_path)) {
+		if (enum_dir_fct(cbck, FindData.cFileName, item_path)) {
 			FindClose(SearchH);
 			break;
 		}
@@ -159,7 +159,7 @@ next:
 }
 
 
-u64 f64_tell(FILE *fp)
+u64 gf_f64_tell(FILE *fp)
 {
 	fpos_t pos;
 	if (fgetpos(fp, &pos))
@@ -168,7 +168,7 @@ u64 f64_tell(FILE *fp)
 		return ((u64) pos);
 }
 
-u64 f64_seek(FILE *fp, s64 offset, s32 whence)
+u64 gf_f64_seek(FILE *fp, s64 offset, s32 whence)
 {
 	fpos_t pos;
 	if (whence == SEEK_CUR) {
@@ -182,7 +182,7 @@ u64 f64_seek(FILE *fp, s64 offset, s32 whence)
 	return fsetpos(fp, &pos);
 }
 
-FILE *f64_open(const char *file_name, const char *mode)
+FILE *gf_f64_open(const char *file_name, const char *mode)
 {
 	return fopen(file_name, mode);
 }

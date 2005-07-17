@@ -584,7 +584,7 @@ void wxFileProps::OnViewWorld(wxCommandEvent &WXUNUSED(event))
 
 void wxFileProps::OnViewSG(wxCommandEvent &WXUNUSED(event)) 
 {
-	char *sOpt;
+	const char *sOpt;
 	Bool dump_xmt;
 	wxFileName out_file;
 	char szOutFile[GF_MAX_PATH];

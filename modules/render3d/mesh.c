@@ -927,10 +927,7 @@ struct pt_info
 
 void register_point_in_face(struct face_info *fi, u32 pt_index)
 {
-	if (!fi->idx_count) {
-		fi->idx_alloc = 10;
-		fi->idx = malloc(sizeof(u32)*fi->idx_alloc);
-	} else  if (fi->idx_count==fi->idx_alloc) {
+	if (fi->idx_count==fi->idx_alloc) {
 		fi->idx_alloc += 10;
 		fi->idx = realloc(fi->idx, sizeof(u32)*fi->idx_alloc);
 	}
@@ -940,10 +937,7 @@ void register_point_in_face(struct face_info *fi, u32 pt_index)
 
 void register_face_in_point(struct pt_info *pi, u32 face_index)
 {
-	if (!pi->face_count) {
-		pi->face_alloc = 10;
-		pi->faces = malloc(sizeof(u32)*pi->face_alloc);
-	} else if (pi->face_count==pi->face_alloc) {
+	if (pi->face_count==pi->face_alloc) {
 		pi->face_alloc += 10;
 		pi->faces = realloc(pi->faces, sizeof(u32)*pi->face_alloc);
 	}
@@ -1551,8 +1545,8 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 	
 	spine = thespine->vals;
 	nb_spine = thespine->count;
-	SAFEALLOC(SCPs, sizeof(SCP) * nb_spine);
-	SAFEALLOC(SCPi, sizeof(SCPInfo) * nb_spine);
+	GF_SAFEALLOC(SCPs, sizeof(SCP) * nb_spine);
+	GF_SAFEALLOC(SCPi, sizeof(SCPInfo) * nb_spine);
 
 	/*collect all # SCPs: 
 	1- if a spine has identical consecutive points with # orientation, these points use the same SCPs

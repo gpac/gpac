@@ -550,7 +550,7 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, u32 bFullScreenOn, u32 *screen_w
 	if (ctx->fullscreen) {
 		u32 flags;
 		Bool switch_res = 0;
-		char *sOpt = gf_modules_get_option(dr, "Video", "SwitchResolution");
+		const char *sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "SwitchResolution");
 		if (sOpt && !stricmp(sOpt, "yes")) switch_res = 1;
 		if (!ctx->display_width || !ctx->display_height) switch_res = 1;
 
@@ -671,7 +671,7 @@ void *SDL_NewVideo()
 	
 	driv = malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
-	GF_REGISTER_MODULE(driv, GF_VIDEO_OUTPUT_INTERFACE, "SDL Video Output", "gpac distribution", 0);
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "SDL Video Output", "gpac distribution");
 
 	ctx = malloc(sizeof(SDLVidCtx));
 	memset(ctx, 0, sizeof(SDLVidCtx));

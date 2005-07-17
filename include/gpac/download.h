@@ -25,6 +25,23 @@
 #ifndef _GF_DOWNLOAD_H_
 #define _GF_DOWNLOAD_H_
 
+/*!
+ *	\file <gpac/download.h>
+ *	\brief Downloader functions.
+ */
+
+/*!
+ *	\addtogroup dld_grp downloader
+ *	\ingroup utils_grp
+ *	\brief File Downloader objects
+ *
+ *	This section documents the file downloading tools the GPAC framework. Currently HTTP is supported, HTTPS is under testing but may not be supported
+ *depending on GPAC compilation options (HTTPS in GPAC needs OpenSSL installed on the system).
+ *
+ *	@{
+ */
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,94 +50,193 @@ extern "C" {
 #include <gpac/module.h>
 
 
-/*download manager*/
+/*!the download manager object. This is usually not used by GPAC modules*/
 typedef struct __gf_download_manager GF_DownloadManager;
+/*!the download manager session.*/
 typedef struct __gf_download_session GF_DownloadSession;
 
-/*creates a new download manager
-@cfg: configuration file (needed for cache and other options)
+/*!
+ *\brief download manager constructor
+ *
+ *Creates a new download manager object.
+ *\param cfg optional configuration file. Currently the download manager needs a configuration file for cache location and 
+ *other options. The cache directory must be indicated in the section "General", key "CacheDirectory" of the configuration
+ *file. If the cache directory is not found, the cache will be disabled but the downloader will still work.
+ *\return the download manager object
 */
 GF_DownloadManager *gf_dm_new(GF_Config *cfg);
-/*deletes download manager - all current sessions are aborted*/
-void gf_dm_delete(GF_DownloadManager *dm);
+/*
+ *\brief download manager destructor
+ *
+ *Deletes the download manager. All running sessions are aborted
+ *\param dm the download manager object
+ */
+void gf_dm_del(GF_DownloadManager *dm);
 
-/*sets callback for password retrieval
-@GetUserPassword: function used to retrieve user&pass for a given site. the user and pass buffer passsed to 
-this function are 50 bytes long.
-@usr_cbk: user data passed back to GetUserPassword
+/*!
+ *\brief callback function for authentication
+ *
+ * The gf_dm_get_usr_pass type is the type for the callback of the \ref gf_dm_set_auth_callback function used for password retrieval
+ *\param usr_cbk opaque user data
+ *\param site_url url of the site the user and password are requested for
+ *\param usr_name the user name for this site. The allocated space for this buffer is 50 bytes. \note this varaibale may already be formatted.
+ *\param password the password for this site and user. The allocated space for this buffer is 50 bytes.
+ *\return 0 if user didn't fill in the information which will result in an authentication failure, 1 otherwise.
 */
-void gf_dm_set_auth_callback(GF_DownloadManager *dm,
-							  Bool (*GetUserPassword)(void *usr_cbk, const char *site_url, char *usr_name, char *password), 
-							  void *usr_cbk);
+typedef Bool (*gf_dm_get_usr_pass)(void *usr_cbk, const char *site_url, char *usr_name, char *password);
 
-/*downloader session status*/
+/*!
+ *\brief password retrieval assignment
+ *
+ *Assigns the callback function used for user password retrieval. If no such function is assigned to the download manager, 
+ *all downloads requiring authentication will fail.
+ *\param dm the download manager object
+ *\param get_pass \ref gf_dm_get_usr_pass callback function for user and password retrieval. 
+ *\param usr_cbk opaque user data passed to callback function
+ */
+void gf_dm_set_auth_callback(GF_DownloadManager *dm, gf_dm_get_usr_pass get_pass, void *usr_cbk);
+
+/*!downloader session status*/
 enum
 {
-	/*setup and waits for connection request*/
+	/*!setup and waiting for connection request*/
 	GF_DOWNLOAD_STATE_SETUP = 0,
-	/*connection OK*/
+	/*!connection is done*/
 	GF_DOWNLOAD_STATE_CONNECTED,
-	/*waiting for server reply*/
+	/*!waiting for server reply*/
 	GF_DOWNLOAD_STATE_WAIT_FOR_REPLY,
-	/*data exchange on this downloader*/
+	/*!data exchange on this downloader*/
 	GF_DOWNLOAD_STATE_RUNNING,
-	/*deconnection OK */
+	/*!deconnection OK */
 	GF_DOWNLOAD_STATE_DISCONNECTED,
-	/*downloader session failed or destroyed*/
+	/*!downloader session failed or destroyed*/
 	GF_DOWNLOAD_STATE_UNAVAILABLE
 };
 
-/*session download flags*/
+/*!session download flags*/
 enum
 {
-	/*session is not threaded, the user must retrieve the data by hand*/
+	/*!session is not threaded, the user must retrieve the data by hand*/
 	GF_DOWNLOAD_SESSION_NOT_THREADED	=	1,
-	/*session has no cache: data will be sent to the user if threaded mode (live streams like radios & co)*/
+	/*!session has no cache: data will be sent to the user if threaded mode (live streams like radios & co)*/
 	GF_DOWNLOAD_SESSION_NOT_CACHED	=	1<<1,
 };
 
-/*creates a new download session
-@dm: download manager
-@url: file to retrieve (no PUT/POST yet, only download supported)
-@dl_flags: one of the above download flags
-@OnDataRcv, @usr_cbk: callback function and user data for communication & co:
-	void (*OnDataRcv)(void *usr_cbk, char *data, u32 data_size, u32 dnload_status, GF_Err dl_error)
-		@data, @data_size: buffer just received if no cache is used
-		@dnload_status: session state (one of the above)
-		@dl_error: session error if any. It may alse be an GF_SCRIPT_INFO error, in which case the data send is
-	some meta info (only used with SHOUTcast and ICEcast live mp3 servers)
 
-@private_data: usually NULL, unless you need to store a pointer which is not the main callback (mainly 
-used for bandwidth management)
-@error: error for failure cases - if no error and NULL session is returned, this means the file is
-local
+/*!
+ *\brief callback function for data reception and state signaling
+ *
+ * The gf_dm_on_data_rcv type is the type for the data callback function of a download session
+ *\param usr_cbk opaque user data
+ *\param data 
+	- buffer just received if no cache is used
+	- NULL if cache is used
+	- NULL if session is not threaded
+	- NULL if message callback
+ *\param data_size
+	- size of buffer just received
+	- 0 if message callback or if session is not threaded
+ *\param dnload_status session state for message callback
+ *\param dl_error session error if any
 */
-GF_DownloadSession * gf_dm_new_session(GF_DownloadManager *dm, char *url, u32 dl_flags,
-									  void (*OnDataRcv)(void *usr_cbk, char *data, u32 data_size, u32 dnload_status, GF_Err dl_error),
+typedef void (*gf_dm_on_data_rcv)(void *usr_cbk, char *data, u32 data_size, u32 dnload_status, GF_Err dl_error);
+
+/*!
+ *\brief download session constructor
+ *
+ *Creates a new download session
+ *\param dm the download manager object
+ *\param url file to retrieve (no PUT/POST yet, only downloading is supported)
+ *\param dl_flags combination of session download flags
+ *\param OnDataRcv \ref gf_dm_on_data_rcv callback function for data reception and service messages
+ *\param usr_cbk opaque user data passed to callback function
+ *\param private_data private data associated with session.
+ *\param error error for failure cases 
+ *\return the session object or NULL if error. If no error is indicated and a NULL session is returned, this means the file is local
+ *\warning the private_data parameter is reserved for bandwidth statistics per service when used in the GPAC terminal.
+ */
+GF_DownloadSession * gf_dm_sess_new(GF_DownloadManager *dm, char *url, u32 dl_flags,
+									  gf_dm_on_data_rcv OnDataRcv,
 									  void *usr_cbk,
 									  void *private_data,
 									  GF_Err *error);
 
-/*deletes downloader session*/
-void gf_dm_free_session(GF_DownloadSession * sess);
-/*aborts all operations*/
-void gf_dm_abort(GF_DownloadSession * sess);
-/*gets private data*/
-void *gf_dm_get_private_data(GF_DownloadSession * sess);
+/*!
+ *brief downloader session destructor
+ *
+ *Deletes the download session, cleaning the cache if indicated in the configuration file of the download manager (section "Downloader", key "CleanCache")
+ *\param sess the download session
+*/
+void gf_dm_sess_del(GF_DownloadSession * sess);
+/*!
+ *\brief aborts downloading
+ *
+ *Aborts all operations in the session, regardless of its state. The session cannot be reused once this is called.
+ *\param sess the download session
+ */
+void gf_dm_sess_abort(GF_DownloadSession * sess);
+/*!
+ *\brief gets private data
+ *
+ *Gets private data associated with the session.
+ *\param sess the download session
+ *\return the private data
+ *\warning the private_data parameter is reserved for bandwidth statistics per service when used in the GPAC terminal.
+ */
+void *gf_dm_sess_get_private(GF_DownloadSession * sess);
 
-GF_Err gf_dm_get_last_error(GF_DownloadSession *sess);
+/*!
+ *\brief gets last session error 
+ *
+ *Gets the last error that occured in the session
+ *\param sess the download session
+ *\return the last error
+ */
+GF_Err gf_dm_sess_last_error(GF_DownloadSession *sess);
 
-/*fetches data - this will also performs connections and all needed exchange with server.
-can only be used when not threaded*/
-GF_Err gf_dm_fetch_data(GF_DownloadSession * sess, char *buffer, u32 buffer_size, u32 *read_size);
+/*!
+ *\brief fetches data on session
+ *
+ *Fetches data from the server. This will also performs connections and all needed exchange with server.
+ *\param sess the download session
+ *\param buffer destination buffer
+ *\param buffer_size destination buffer allocated size
+ *\param read_size amount of data actually fetched
+ *\note this can only be used when the session is not threaded
+ */
+GF_Err gf_dm_sess_fetch_data(GF_DownloadSession * sess, char *buffer, u32 buffer_size, u32 *read_size);
 
-/*get (fetches it if needed) mime type for given session*/
-const char *gf_dm_get_mime_type(GF_DownloadSession * sess);
-/*get cache file name, NULL if no cache*/
-const char *gf_dm_get_cache_name(GF_DownloadSession * sess);
-/*gets stats - all paramls are optional*/
-GF_Err gf_dm_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u32 *total_size, u32 *bytes_done, u32 *bytes_per_sec, u32 *net_status);
+/*!
+ *\brief get mime type 
+ *
+ *Fetches the mime type of the URL this session is fetching
+ *\param sess the download session
+ *\return the mime type of the URL, or NULL if error. You should get the error with \ref gf_dm_sess_last_error
+ */
+const char *gf_dm_sess_mime_type(GF_DownloadSession * sess);
+/*!
+ *\brief get cache file name
+ *
+ *Gets the cache file name for the session.
+ *\param sess the download session
+ *\return the absolute path of the cache file, or NULL if the session is not cached*/
+const char *gf_dm_sess_get_cache_name(GF_DownloadSession * sess);
+/*!
+ *\brief get statistics
+ *
+ *Gets download statistics for the session. All output parameters are optional and may be set to NULL.
+ *\param sess the download session
+ *\param server the remote server address
+ *\param path the path on the remote server
+ *\param total_size the total size in bytes the file fetched, 0 if unknown.
+ *\param bytes_done the amount of bytes received from the server
+ *\param bytes_per_sec the average data rate in bytes per seconds
+ *\param net_status the session status
+ */
+GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u32 *total_size, u32 *bytes_done, u32 *bytes_per_sec, u32 *net_status);
 
+
+/*! @} */
 
 #ifdef __cplusplus
 }

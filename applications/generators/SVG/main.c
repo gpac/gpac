@@ -78,7 +78,7 @@ typedef struct
 SVGProperty *NewSVGProperty()
 {
 	SVGProperty *p;
-	SAFEALLOC(p, sizeof(SVGProperty))
+	GF_SAFEALLOC(p, sizeof(SVGProperty))
 	return p;
 }
 
@@ -93,7 +93,7 @@ void deleteSVGProperty(SVGProperty **p)
 SVGAttribute *NewSVGAttribute()
 {
 	SVGAttribute *att;
-	SAFEALLOC(att, sizeof(SVGAttribute))
+	GF_SAFEALLOC(att, sizeof(SVGAttribute))
 	att->attr_or_prop = 1;
 	return att;
 }
@@ -109,7 +109,7 @@ void deleteSVGAttribute(SVGAttribute **p)
 SVGElement *NewSVGElement() 
 {
 	SVGElement *elt;
-	SAFEALLOC(elt, sizeof(SVGElement));
+	GF_SAFEALLOC(elt, sizeof(SVGElement));
 	if (elt) {
 		elt->attributes = gf_list_new();
 	}

@@ -88,7 +88,7 @@ void IMG_OnData(void *cbk, char *data, u32 data_size, u32 status, GF_Err e)
 	/*wait to get the whole file*/
 	if (e == GF_OK) return;
 	else if (e==GF_EOS) {
-		szCache = gf_dm_get_cache_name(jpl->dnload);
+		szCache = gf_dm_sess_get_cache_name(jpl->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
 			jpl->stream = fopen((char *) szCache, "rb");
@@ -359,7 +359,7 @@ void *NewLoaderInterface()
 	IMGLoader *priv;
 	GF_InputService *plug = malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
-	GF_REGISTER_MODULE(plug, GF_NET_CLIENT_INTERFACE, "GPAC Image Reader", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC Image Reader", "gpac distribution")
 
 	plug->CanHandleURL = IMG_CanHandleURL;
 	plug->CanHandleURLInService = NULL;

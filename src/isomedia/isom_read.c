@@ -85,7 +85,7 @@ Bool gf_isom_probe_file(const char *fileName)
 	type = 0;
 	if (fread(data, 1, 4, f) == 4) {
 		if (fread(data, 1, 4, f) == 4) {
-			type = FOUR_CHAR_INT(data[0], data[1], data[2], data[3]);
+			type = GF_FOUR_CHAR_INT(data[0], data[1], data[2], data[3]);
 		}
 	}
 	fclose(f);
@@ -98,7 +98,7 @@ Bool gf_isom_probe_file(const char *fileName)
 	case GF_ISOM_BOX_TYPE_UDTA:
 	case GF_ISOM_BOX_TYPE_META:
 	case GF_ISOM_BOX_TYPE_VOID:
-	case FOUR_CHAR_INT('w','i','d','e'):
+	case GF_FOUR_CHAR_INT('w','i','d','e'):
 		return 1;
 	default:
 		return 0;
@@ -1303,8 +1303,8 @@ u32 gf_isom_get_edit_segment_count(GF_ISOFile *the_file, u32 trackNumber)
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return 0;
 
-	if (!trak->GF_EditBox || !trak->GF_EditBox->editList) return 0;
-	return gf_list_count(trak->GF_EditBox->editList->entryList);
+	if (!trak->editBox || !trak->editBox->editList) return 0;
+	return gf_list_count(trak->editBox->editList->entryList);
 }
 
 
@@ -1321,13 +1321,13 @@ GF_Err gf_isom_get_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u32 Segme
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
-	if (!trak || !trak->GF_EditBox || 
-		!trak->GF_EditBox->editList || 
-		(SegmentIndex > gf_list_count(trak->GF_EditBox->editList->entryList)) || 
+	if (!trak || !trak->editBox || 
+		!trak->editBox->editList || 
+		(SegmentIndex > gf_list_count(trak->editBox->editList->entryList)) || 
 		!SegmentIndex)
 		return GF_BAD_PARAM;
 
-	elst = trak->GF_EditBox->editList;
+	elst = trak->editBox->editList;
 	startTime = 0;
 
 	for (i = 0; i < SegmentIndex; i++) {
@@ -2032,7 +2032,7 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 	/*MP3: ISMA and MPEG4*/
 	if (nb_mp3) {
 		if (!nb_text && (nb_v<=1) && (nb_a<=1) && (nb_bifs==1) && (nb_od==1))
-			return FOUR_CHAR_INT('I', 'S', 'M', 'A');
+			return GF_FOUR_CHAR_INT('I', 'S', 'M', 'A');
 		return GF_ISOM_BRAND_MP42;
 	}
 	/*MP4*/
@@ -2043,7 +2043,7 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 	}
 	/*use ISMA (3GP fine too)*/
 	if (!nb_amr && !nb_h263 && !nb_text) {
-		if ((nb_v<=1) && (nb_a<=1)) return FOUR_CHAR_INT('I', 'S', 'M', 'A');
+		if ((nb_v<=1) && (nb_a<=1)) return GF_FOUR_CHAR_INT('I', 'S', 'M', 'A');
 		return GF_ISOM_BRAND_MP42;
 	}
 

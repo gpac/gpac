@@ -44,20 +44,20 @@ static void term_on_message(void *user_priv, GF_ClientService *service, GF_Err e
 
 	/*check for UDP timeout*/
 	if (error==GF_IP_UDP_TIMEOUT) {
-		char *sOpt = gf_cfg_get_key(term->user->config, "Network", "AutoReconfigUDP");
+		const char *sOpt = gf_cfg_get_key(term->user->config, "Network", "AutoReconfigUDP");
 		if (sOpt && !stricmp(sOpt, "yes")) {
 			sOpt = gf_cfg_get_key(term->user->config, "Network", "UDPNotAvailable");
 			/*if option is already set don't bother try reconfig*/
 			if (!sOpt || stricmp(sOpt, "yes")) {
-				char szMsg[1024];
+				char szMsg[1024], *opt;
 				sprintf(szMsg, "UDP down (%s) - Retrying with TCP", message);
 				gf_term_message(term, service->url, szMsg, GF_OK);
 				/*reconnect top-level*/
-				sOpt = strdup(term->root_scene->root_od->net_service->url);
+				opt = strdup(term->root_scene->root_od->net_service->url);
 				gf_term_disconnect(term);
 				gf_cfg_set_key(term->user->config, "Network", "UDPNotAvailable", "yes");
-				gf_term_connect(term, sOpt);
-				free(sOpt);
+				gf_term_connect(term, opt);
+				free(opt);
 				return;
 			}
 		}
@@ -288,16 +288,16 @@ char *NM_GetMimeType(GF_Terminal *term, const char *url, GF_Err *ret_code)
 	GF_DownloadSession * sess;
 
 	(*ret_code) = GF_OK;
-	sess = gf_dm_new_session(term->downloader, (char *) url, GF_DOWNLOAD_SESSION_NOT_THREADED, NM_OnMimeData, NULL, NULL, ret_code);
+	sess = gf_dm_sess_new(term->downloader, (char *) url, GF_DOWNLOAD_SESSION_NOT_THREADED, NM_OnMimeData, NULL, NULL, ret_code);
 	if (!sess) {
 		if (strstr(url, "rtsp://")) (*ret_code) = GF_OK;
 		else if (strstr(url, "rtp://")) (*ret_code) = GF_OK;
 		return NULL;
 	}
-	mime_type = (char *) gf_dm_get_mime_type(sess);
+	mime_type = (char *) gf_dm_sess_mime_type(sess);
 	if (mime_type) mime_type = strdup(mime_type);
-	else *ret_code = gf_dm_get_last_error(sess);
-	gf_dm_free_session(sess);
+	else *ret_code = gf_dm_sess_last_error(sess);
+	gf_dm_sess_del(sess);
 	return mime_type;
 }
 
@@ -366,13 +366,13 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 
 	/*load from mime type*/
 	if (mime_type) {
-		char *sPlug = gf_cfg_get_key(term->user->config, "MimeTypes", mime_type);
+		const char *sPlug = gf_cfg_get_key(term->user->config, "MimeTypes", mime_type);
 		if (sPlug) sPlug = strrchr(sPlug, '"');
 		if (sPlug) {
 			sPlug += 2;
-			gf_modules_load_interface_by_name(term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE, (void **) &ifce);
+			ifce = (GF_InputService *) gf_modules_load_interface_by_name(term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
 			if (ifce && !net_check_interface(ifce) ) {
-				gf_modules_close_interface(ifce);
+				gf_modules_close_interface((GF_BaseInterface *) ifce);
 				ifce = NULL;
 			}
 		}
@@ -400,20 +400,21 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 
 		keyCount = gf_cfg_get_key_count(term->user->config, "MimeTypes");
 		for (i=0; i<keyCount; i++) {
-			char *sMime, *sKey, *sPlug;
+			char *sMime, *sPlug;
+			const char *sKey;
 			sMime = (char *) gf_cfg_get_key_name(term->user->config, "MimeTypes", i);
 			if (!sMime) continue;
 			sKey = gf_cfg_get_key(term->user->config, "MimeTypes", sMime);
 			if (!sKey) continue;
-			if (!check_extension(sKey, szExt)) continue;
+			if (!check_extension((char *)sKey, szExt)) continue;
 			sPlug = strrchr(sKey, '"');
 			if (!sPlug) continue;	/*bad format entry*/
 			sPlug += 2;
 
-			gf_modules_load_interface_by_name(term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE, (void **) &ifce);
+			ifce = (GF_InputService *) gf_modules_load_interface_by_name(term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
 			if (!ifce) continue;
 			if (!net_check_interface(ifce)) {
-				gf_modules_close_interface(ifce);
+				gf_modules_close_interface((GF_BaseInterface *) ifce);
 				ifce = NULL;
 				continue;
 			}
@@ -424,10 +425,10 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 	/*browse all modules*/
 	if (!ifce) {
 		for (i=0; i< gf_modules_get_count(term->user->modules); i++) {
-			gf_modules_load_interface(term->user->modules, i, GF_NET_CLIENT_INTERFACE, (void **) &ifce);
+			ifce = (GF_InputService *) gf_modules_load_interface(term->user->modules, i, GF_NET_CLIENT_INTERFACE);
 			if (!ifce) continue;
 			if (net_check_interface(ifce) && ifce->CanHandleURL(ifce, sURL)) break;
-			gf_modules_close_interface(ifce);
+			gf_modules_close_interface((GF_BaseInterface *) ifce);
 			ifce = NULL;
 		}
 	}
@@ -506,9 +507,9 @@ const char *gf_term_get_service_url(GF_ClientService *service)
 
 void NM_DeleteService(GF_ClientService *ns)
 {
-	char *sOpt = gf_cfg_get_key(ns->term->user->config, "StreamingCache", "AutoSave");
+	const char *sOpt = gf_cfg_get_key(ns->term->user->config, "StreamingCache", "AutoSave");
 	if (ns->cache) gf_term_service_cache_close(ns, (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	gf_modules_close_interface(ns->ifce);
+	gf_modules_close_interface((GF_BaseInterface *)ns->ifce);
 	free(ns->url);
 
 	/*delete all the clocks*/
@@ -535,7 +536,7 @@ GF_DownloadSession * gf_term_download_new(GF_ClientService *service, const char 
 	sURL = gf_url_concatenate(service->url, url);
 	/*path was absolute*/
 	if (!sURL) sURL = strdup(url);
-	sess = gf_dm_new_session(service->term->downloader, sURL, flags, OnData, cbk, service, &e);
+	sess = gf_dm_sess_new(service->term->downloader, sURL, flags, OnData, cbk, service, &e);
 	free(sURL);
 	if (!sess) return NULL;
 	gf_list_add(service->dnloads, sess);
@@ -546,10 +547,10 @@ void gf_term_download_del(GF_DownloadSession * sess)
 {
 	GF_ClientService *serv;
 	if (!sess) return;
-	serv = gf_dm_get_private_data(sess);
+	serv = gf_dm_sess_get_private(sess);
 
 	/*avoid sending data back to user*/
-	gf_dm_abort(sess);
+	gf_dm_sess_abort(sess);
 	/*unregister from service*/
 	gf_list_del_item(serv->dnloads, sess);
 
@@ -565,8 +566,8 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 	Float perc;
 	u32 total_size, bytes_done, net_status, bytes_per_sec;
 	
-	gf_dm_get_stats(sess, NULL, NULL, &total_size, &bytes_done, &bytes_per_sec, &net_status);
-	serv = gf_dm_get_private_data(sess);
+	gf_dm_sess_get_stats(sess, NULL, NULL, &total_size, &bytes_done, &bytes_per_sec, &net_status);
+	serv = gf_dm_sess_get_private(sess);
 	switch (net_status) {
 	case GF_DOWNLOAD_STATE_SETUP:
 		gf_term_on_message(serv, GF_OK, "Connecting");
@@ -592,7 +593,7 @@ void gf_term_service_del(GF_ClientService *ns)
 {
 	/*this is a downloader session*/
 	if (! * (u32 *) ns) {
-		gf_dm_free_session((GF_DownloadSession * ) ns);
+		gf_dm_sess_del((GF_DownloadSession * ) ns);
 	} else {
 		NM_DeleteService(ns);
 	}
@@ -612,34 +613,36 @@ void gf_term_register_mime_type(GF_InputService *ifce, const char *mimeType, con
 	strcat(buf, description);
 	strcat(buf, "\" ");
 	strcat(buf, ifce->module_name);
-	gf_modules_set_option(ifce, "MimeTypes", mimeType, buf);
+	gf_modules_set_option((GF_BaseInterface *)(GF_BaseInterface *)ifce, "MimeTypes", mimeType, buf);
 	free(buf);
 }
 
 Bool gf_term_check_extension(GF_InputService *ifce, const char *mimeType, const char *extList, const char *description, const char *fileExt)
 {
-	char *szExtList, szExt[50];
+	const char *szExtList;
+	char *ext, szExt[50];
 	if (!ifce || !mimeType || !extList || !description || !fileExt) return 0;
 	if (fileExt[0]=='.') fileExt++;
 	strcpy(szExt, fileExt);
 	strlwr(szExt);
-	szExtList = strchr(szExt, '#');
-	if (szExtList) szExtList[0]=0;
+	ext = strchr(szExt, '#');
+	if (ext) ext[0]=0;
 
 
-	szExtList = gf_modules_get_option(ifce, "MimeTypes", mimeType);
+	szExtList = gf_modules_get_option((GF_BaseInterface *)(GF_BaseInterface *)ifce, "MimeTypes", mimeType);
 	if (!szExtList) {
 		gf_term_register_mime_type(ifce, mimeType, extList, description);
-		szExtList = gf_modules_get_option(ifce, "MimeTypes", mimeType);
+		szExtList = gf_modules_get_option((GF_BaseInterface *)(GF_BaseInterface *)ifce, "MimeTypes", mimeType);
 	}
 	if (!strstr(szExtList, ifce->module_name)) return 0;
-	return check_extension(szExtList, szExt);
+	return check_extension((char *)szExtList, szExt);
 }
 
 GF_Err gf_term_service_cache_load(GF_ClientService *ns)
 {
 	GF_Err e;
-	char *sOpt, szName[GF_MAX_PATH], szURL[1024];
+	const char *sOpt;
+	char szName[GF_MAX_PATH], szURL[1024];
 	GF_NetworkCommand com;
 	u32 i;
 	GF_StreamingCache *mcache = NULL;
@@ -651,9 +654,9 @@ GF_Err gf_term_service_cache_load(GF_ClientService *ns)
 
 	/*locate a cache*/
 	for (i=0; i< gf_modules_get_count(ns->term->user->modules); i++) {
-		gf_modules_load_interface(ns->term->user->modules, i, GF_STREAMING_MEDIA_CACHE, (void **) &mcache);
+		mcache = (GF_StreamingCache *) gf_modules_load_interface(ns->term->user->modules, i, GF_STREAMING_MEDIA_CACHE);
 		if (mcache && mcache->Open && mcache->Close && mcache->Write && mcache->ChannelGetSLP && mcache->ChannelReleaseSLP && mcache->ServiceCommand) break;
-		if (mcache) gf_modules_close_interface(mcache);
+		if (mcache) gf_modules_close_interface((GF_BaseInterface *)mcache);
 		mcache = NULL;
 	}
 	if (!mcache) return GF_NOT_SUPPORTED;
@@ -670,6 +673,7 @@ GF_Err gf_term_service_cache_load(GF_ClientService *ns)
 	if (sOpt) {
 		strcat(szName, sOpt);
 	} else {
+		char *sep;
 		strcat(szName, "rec_");
 		sOpt = strrchr(ns->url, '/');
 		if (!sOpt) sOpt = strrchr(ns->url, '\\');
@@ -680,8 +684,8 @@ GF_Err gf_term_service_cache_load(GF_ClientService *ns)
 			else sOpt = ns->url;
 		}
 		strcpy(szURL, sOpt);
-		sOpt = strrchr(szURL, '.');
-		if (sOpt) sOpt[0] = 0;
+		sep = strrchr(szURL, '.');
+		if (sep) sep[0] = 0;
 		for (i=0; i<strlen(szURL); i++) {
 			switch (szURL[i]) {
 			case '/': case '\\': case '.': case ':': case '?': 
@@ -695,7 +699,7 @@ GF_Err gf_term_service_cache_load(GF_ClientService *ns)
 	sOpt = gf_cfg_get_key(ns->term->user->config, "StreamingCache", "KeepExistingFiles");
 	e = mcache->Open(mcache, ns, szName, (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	if (e) {
-		gf_modules_close_interface(mcache);
+		gf_modules_close_interface((GF_BaseInterface *)mcache);
 		return e;
 	}
 	ns->cache = mcache;
@@ -708,7 +712,7 @@ GF_Err gf_term_service_cache_close(GF_ClientService *ns, Bool no_save)
 	if (!ns->cache) return GF_OK;
 	e = ns->cache->Close(ns->cache, no_save);
 
-	gf_modules_close_interface(ns->cache);
+	gf_modules_close_interface((GF_BaseInterface *)ns->cache);
 	ns->cache = NULL;
 	return e;
 }

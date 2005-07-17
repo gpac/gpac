@@ -278,7 +278,7 @@ bool GPACInit(void *application, GF_Terminal **term, GF_User *user, bool quiet)
 
 	/*initial launch*/
 	if (first_launch || !gf_modules_get_count(user->modules)) {
-		char *sOpt;
+		const char *sOpt;
 		wxDirDialog dlg(NULL, "Locate GPAC modules directory");
 		if  (!gf_modules_get_count(user->modules)) {
 		  gf_modules_del(user->modules);

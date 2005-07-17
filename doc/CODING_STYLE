@@ -55,6 +55,9 @@ All exported header files shall be in lower case
 All source files within the gpac core shall be in lower case
 
 All comments should be C-like ones (/**/) not C++ ones (//)
+All exported headers documentation should be written with dowygen syntax
+All constructor-like functions should be of style gf_zzz_new
+All destructor like functions should be of style gf_zzz_del
 
 3 Rearchitecture of the GPAC repository
   

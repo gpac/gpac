@@ -71,7 +71,7 @@ typedef struct
 TextLineEntry2D *NewTextLine2D(Render2D *sr)
 {
 	TextLineEntry2D *tl;
-	SAFEALLOC(tl, sizeof(TextLineEntry2D));
+	GF_SAFEALLOC(tl, sizeof(TextLineEntry2D));
 	tl->path = gf_path_new();
 	/*text texturing enabled*/
 	tl->sr = sr;

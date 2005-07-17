@@ -46,8 +46,8 @@ extern "C" {
 	Audio hardware output module
 */
 
-/*interface name for audio driver*/
-#define GF_AUDIO_OUTPUT_INTERFACE		FOUR_CHAR_INT('G','A','U','D')
+/*interface name and version for audio output*/
+#define GF_AUDIO_OUTPUT_INTERFACE		GF_FOUR_CHAR_INT('G','A','O', 0x01)
 
 /*interface returned on query interface*/
 typedef struct _audiooutput
