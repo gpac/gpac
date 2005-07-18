@@ -764,8 +764,18 @@ GF_Err gf_sk_send_wait(GF_Socket *sock, unsigned char *buffer, u32 length, u32 S
 
 
 
+//Socket Group for select(). The group is a collection of sockets ready for reading / writing
+typedef struct __tag_sock_group
+{
+	//the max time value before a select returns
+	struct timeval timeout;
+	fd_set ReadGroup;
+	fd_set WriteGroup;
+} GF_SocketGroup;
 
 
+#define GF_SOCK_GROUP_READ 0
+#define GF_SOCK_GROUP_WRITE 1
 
 
 
