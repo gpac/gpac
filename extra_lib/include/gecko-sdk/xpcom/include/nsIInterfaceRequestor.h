@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/base/nsIInterfaceRequestor.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIInterfaceRequestor.idl
  */
 
 #ifndef __gen_nsIInterfaceRequestor_h__

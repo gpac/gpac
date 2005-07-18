@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/components/nsIClassInfo.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIClassInfo.idl
  */
 
 #ifndef __gen_nsIClassInfo_h__

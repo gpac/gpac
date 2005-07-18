@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/components/nsICategoryManager.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsICategoryManager.idl
  */
 
 #ifndef __gen_nsICategoryManager_h__
@@ -45,7 +45,7 @@ class NS_NO_VTABLE nsICategoryManager : public nsISupports {
      * @param aCategory The name of the category ("protocol")
      * @param aEntry The entry to be added ("http")
      * @param aValue The value for the entry ("moz.httprulez.1")
-     * @param aPersist Should we persist between invocations?
+     * @param aPersist Should this data persist between invocations?
      * @param aReplace Should we replace an existing entry?
      * @return Previous entry, if any
      */
@@ -56,7 +56,7 @@ class NS_NO_VTABLE nsICategoryManager : public nsISupports {
      * Delete an entry from the category.
      * @param aCategory The name of the category ("protocol")
      * @param aEntry The entry to be added ("http")
-     * @param aPersist Delete entry from registry, if present?
+     * @param aPersist Delete persistent data from registry, if present?
      */
   /* void deleteCategoryEntry (in string aCategory, in string aEntry, in boolean aPersist); */
   NS_IMETHOD DeleteCategoryEntry(const char *aCategory, const char *aEntry, PRBool aPersist) = 0;
@@ -71,13 +71,17 @@ class NS_NO_VTABLE nsICategoryManager : public nsISupports {
   /**
      * Enumerate the entries in a category.
      * @param aCategory The category to be enumerated.
+     * @return a simple enumerator, each result QIs to
+     *         nsISupportsCString.
      */
   /* nsISimpleEnumerator enumerateCategory (in string aCategory); */
   NS_IMETHOD EnumerateCategory(const char *aCategory, nsISimpleEnumerator **_retval) = 0;
 
   /**
-     * Enumerate the entries in a category.
+     * Enumerate all existing categories
      * @param aCategory The category to be enumerated.
+     * @return a simple enumerator, each result QIs to
+     *         nsISupportsCString.
      */
   /* nsISimpleEnumerator enumerateCategories (); */
   NS_IMETHOD EnumerateCategories(nsISimpleEnumerator **_retval) = 0;

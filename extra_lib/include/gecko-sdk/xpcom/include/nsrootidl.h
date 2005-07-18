@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/base/nsrootidl.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsrootidl.idl
  */
 
 #ifndef __gen_nsrootidl_h__

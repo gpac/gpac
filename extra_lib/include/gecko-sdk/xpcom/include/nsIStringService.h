@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/ds/nsIStringService.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIStringService.idl
  */
 
 #ifndef __gen_nsIStringService_h__

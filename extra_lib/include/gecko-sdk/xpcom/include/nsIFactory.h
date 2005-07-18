@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/components/nsIFactory.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIFactory.idl
  */
 
 #ifndef __gen_nsIFactory_h__

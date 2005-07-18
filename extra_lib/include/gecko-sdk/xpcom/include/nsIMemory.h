@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/base/nsIMemory.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIMemory.idl
  */
 
 #ifndef __gen_nsIMemory_h__

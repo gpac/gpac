@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/components/nsIModule.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIModule.idl
  */
 
 #ifndef __gen_nsIModule_h__

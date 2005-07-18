@@ -89,11 +89,11 @@
   #pragma warning( disable: 4514 )
 #endif
 
-#define NSCAP_FEATURE_FACTOR_DESTRUCTOR
+#define NSCAP_FEATURE_USE_BASE
 
 #ifdef NS_DEBUG
   #define NSCAP_FEATURE_TEST_DONTQUERY_CASES
-  #define NSCAP_FEATURE_DEBUG_PTR_TYPES
+  #undef NSCAP_FEATURE_USE_BASE
 //#define NSCAP_FEATURE_TEST_NONNULL_QUERY_SUCCEEDS
 #endif
 
@@ -107,12 +107,20 @@
   #undef NSCAP_FEATURE_TEST_DONTQUERY_CASES
 #endif
 
-#if defined(NSCAP_DISABLE_DEBUG_PTR_TYPES) || !defined(NS_DEBUG)
-  #undef NSCAP_FEATURE_DEBUG_PTR_TYPES
+#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 3)
+  // Our use of nsCOMPtr_base::mRawPtr violates the C++ standard's aliasing
+  // rules. Mark it with the may_alias attribute so that gcc 3.3 and higher
+  // don't reorder instructions based on aliasing assumptions for
+  // this variable.  Fortunately, gcc versions < 3.3 do not do any
+  // optimizations that break nsCOMPtr.
+
+  #define NS_MAY_ALIAS_PTR(t)    t*  __attribute__((__may_alias__))
+#else
+  #define NS_MAY_ALIAS_PTR(t)    t*
 #endif
 
-#ifdef NSCAP_FEATURE_DEBUG_PTR_TYPES
-  #undef NSCAP_FEATURE_FACTOR_DESTRUCTOR
+#if defined(NSCAP_DISABLE_DEBUG_PTR_TYPES)
+  #define NSCAP_FEATURE_USE_BASE
 #endif
 
 
@@ -196,7 +204,7 @@ class nsDerivedSafe : public T
       nsrefcnt Release(void);
 #endif
 
-#if !defined(XP_OS2_VACPP) && !defined(AIX) && !defined(IRIX)
+#if !defined(AIX) && !defined(IRIX)
       void operator delete( void*, size_t );                  // NOT TO BE IMPLEMENTED
         // declaring |operator delete| private makes calling delete on an interface pointer a compile error
 #endif
@@ -209,6 +217,13 @@ class nsDerivedSafe : public T
           If you see that, that means somebody checked in a [XP]COM interface class that declares an
           |operator=()|, and that's _bad_.  So bad, in fact, that this declaration exists explicitly
           to stop people from doing it.
+        */
+
+    protected:
+      nsDerivedSafe();                                        // NOT TO BE IMPLEMENTED
+        /*
+          This ctor exists to avoid compile errors and warnings about nsDeriviedSafe using the
+          default ctor but inheriting classes without an empty ctor. See bug 209667.
         */
   };
 
@@ -294,25 +309,6 @@ const already_AddRefed<T>
 dont_AddRef( const already_AddRefed<T> aAlreadyAddRefedPtr )
   {
     return aAlreadyAddRefedPtr;
-  }
-
-
-
-
-  /*
-    There used to be machinery to allow |dont_QueryInterface()| to work, but
-     since it is now equivalent to using a raw pointer ... all that machinery
-     has gone away.  For pointer arguments, the following definition should
-     optimize away.  This is better than using a |#define| because it is
-     scoped.
-  */
-
-template <class T>
-inline
-T*
-dont_QueryInterface( T* expr )
-  {
-    return expr;
   }
 
 
@@ -406,20 +402,14 @@ class nsCOMPtr_base
           // nothing else to do here
         }
 
-#ifdef NSCAP_FEATURE_FACTOR_DESTRUCTOR
       NS_COM ~nsCOMPtr_base();
-#else
-      // Allow debug builds to link with optimized versions of nsCOMPtr-using
-      // plugins (e.g., JVMs).
-      NS_COM ~nsCOMPtr_base() { }
-#endif
 
       NS_COM void    assign_with_AddRef( nsISupports* );
       NS_COM void    assign_from_helper( const nsCOMPtr_helper&, const nsIID& );
       NS_COM void**  begin_assignment();
 
     protected:
-      nsISupports* mRawPtr;
+      NS_MAY_ALIAS_PTR(nsISupports) mRawPtr;
 
       void
       assign_assuming_AddRef( nsISupports* newPtr )
@@ -445,23 +435,16 @@ class nsCOMPtr_base
 
 template <class T>
 class nsCOMPtr
-#ifndef NSCAP_FEATURE_DEBUG_PTR_TYPES
+#ifdef NSCAP_FEATURE_USE_BASE
     : private nsCOMPtr_base
 #endif
   {
-    enum { _force_even_compliant_compilers_to_fail_ = sizeof(T) };
-      /*
-        The declaration above exists specifically to make |nsCOMPtr<T>| _not_ compile with only
-        a forward declaration of |T|.  This should prevent Windows and Mac engineers from
-        breaking Solaris and other compilers that naturally have this behavior.  Thank
-        <law@netscape.com> for inventing this specific trick.
 
-        Of course, if you're using |nsCOMPtr| outside the scope of wanting to compile on
-        Solaris and old GCC, you probably want to remove the enum so you can exploit forward
-        declarations.
-      */
+#ifdef NSCAP_FEATURE_USE_BASE
+  #define NSCAP_CTOR_BASE(x) nsCOMPtr_base(x)
+#else
+  #define NSCAP_CTOR_BASE(x) mRawPtr(x)
 
-#ifdef NSCAP_FEATURE_DEBUG_PTR_TYPES
     private:
       void    assign_with_AddRef( nsISupports* );
       void    assign_from_helper( const nsCOMPtr_helper&, const nsIID& );
@@ -480,16 +463,12 @@ class nsCOMPtr
 
     private:
       T* mRawPtr;
-
-  #define NSCAP_CTOR_BASE(x) mRawPtr(x)
-#else
-  #define NSCAP_CTOR_BASE(x) nsCOMPtr_base(x)
 #endif
 
     public:
       typedef T element_type;
       
-#ifndef NSCAP_FEATURE_FACTOR_DESTRUCTOR
+#ifndef NSCAP_FEATURE_USE_BASE
      ~nsCOMPtr()
         {
           NSCAP_LOG_RELEASE(this, mRawPtr);
@@ -628,10 +607,10 @@ class nsCOMPtr
       swap( nsCOMPtr<T>& rhs )
           // ...exchange ownership with |rhs|; can save a pair of refcount operations
         {
-#ifdef NSCAP_FEATURE_DEBUG_PTR_TYPES
-          T* temp = rhs.mRawPtr;
-#else
+#ifdef NSCAP_FEATURE_USE_BASE
           nsISupports* temp = rhs.mRawPtr;
+#else
+          T* temp = rhs.mRawPtr;
 #endif
           NSCAP_LOG_ASSIGNMENT(&rhs, mRawPtr);
           NSCAP_LOG_ASSIGNMENT(this, temp);
@@ -646,10 +625,10 @@ class nsCOMPtr
       swap( T*& rhs )
           // ...exchange ownership with |rhs|; can save a pair of refcount operations
         {
-#ifdef NSCAP_FEATURE_DEBUG_PTR_TYPES
-          T* temp = rhs;
-#else
+#ifdef NSCAP_FEATURE_USE_BASE
           nsISupports* temp = rhs;
+#else
+          T* temp = rhs;
 #endif
           NSCAP_LOG_ASSIGNMENT(this, temp);
           NSCAP_LOG_RELEASE(this, mRawPtr);
@@ -765,16 +744,6 @@ class nsCOMPtr<nsISupports>
   {
     public:
       typedef nsISupports element_type;
-
-#ifndef NSCAP_FEATURE_FACTOR_DESTRUCTOR
-     ~nsCOMPtr()
-        {
-          NSCAP_LOG_RELEASE(this, mRawPtr);
-          if ( mRawPtr )
-            NSCAP_RELEASE(this, mRawPtr);
-        }
-#endif
-
 
         // Constructors
 
@@ -970,7 +939,7 @@ class nsCOMPtr<nsISupports>
         }
   };
 
-#ifdef NSCAP_FEATURE_DEBUG_PTR_TYPES
+#ifndef NSCAP_FEATURE_USE_BASE
 template <class T>
 void
 nsCOMPtr<T>::assign_with_AddRef( nsISupports* rawPtr )
@@ -1158,7 +1127,7 @@ inline
 NSCAP_BOOL
 operator==( const nsCOMPtr<T>& lhs, const nsCOMPtr<U>& rhs )
   {
-    return NS_STATIC_CAST(const void*, lhs.get()) == NS_STATIC_CAST(const void*, rhs.get());
+    return NS_STATIC_CAST(const T*, lhs.get()) == NS_STATIC_CAST(const U*, rhs.get());
   }
 
 
@@ -1167,7 +1136,7 @@ inline
 NSCAP_BOOL
 operator!=( const nsCOMPtr<T>& lhs, const nsCOMPtr<U>& rhs )
   {
-    return NS_STATIC_CAST(const void*, lhs.get()) != NS_STATIC_CAST(const void*, rhs.get());
+    return NS_STATIC_CAST(const T*, lhs.get()) != NS_STATIC_CAST(const U*, rhs.get());
   }
 
 
@@ -1178,7 +1147,7 @@ inline
 NSCAP_BOOL
 operator==( const nsCOMPtr<T>& lhs, const U* rhs )
   {
-    return NS_STATIC_CAST(const void*, lhs.get()) == NS_STATIC_CAST(const void*, rhs);
+    return NS_STATIC_CAST(const T*, lhs.get()) == rhs;
   }
 
 template <class T, class U>
@@ -1186,7 +1155,7 @@ inline
 NSCAP_BOOL
 operator==( const U* lhs, const nsCOMPtr<T>& rhs )
   {
-    return NS_STATIC_CAST(const void*, lhs) == NS_STATIC_CAST(const void*, rhs.get());
+    return lhs == NS_STATIC_CAST(const T*, rhs.get());
   }
 
 template <class T, class U>
@@ -1194,7 +1163,7 @@ inline
 NSCAP_BOOL
 operator!=( const nsCOMPtr<T>& lhs, const U* rhs )
   {
-    return NS_STATIC_CAST(const void*, lhs.get()) != NS_STATIC_CAST(const void*, rhs);
+    return NS_STATIC_CAST(const T*, lhs.get()) != rhs;
   }
 
 template <class T, class U>
@@ -1202,7 +1171,7 @@ inline
 NSCAP_BOOL
 operator!=( const U* lhs, const nsCOMPtr<T>& rhs )
   {
-    return NS_STATIC_CAST(const void*, lhs) != NS_STATIC_CAST(const void*, rhs.get());
+    return lhs != NS_STATIC_CAST(const T*, rhs.get());
   }
 
   // To avoid ambiguities caused by the presence of builtin |operator==|s
@@ -1215,7 +1184,7 @@ operator!=( const U* lhs, const nsCOMPtr<T>& rhs )
 // This is defined by an autoconf test, but VC++ also has a bug that
 // prevents us from using these.  (It also, fortunately, has the bug
 // that we don't need them either.)
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && (_MSC_VER < 1310)
 #define NSCAP_DONT_PROVIDE_NONCONST_OPEQ
 #endif
 
@@ -1225,7 +1194,7 @@ inline
 NSCAP_BOOL
 operator==( const nsCOMPtr<T>& lhs, U* rhs )
   {
-    return NS_STATIC_CAST(const void*, lhs.get()) == NS_STATIC_CAST(void*, rhs);
+    return NS_STATIC_CAST(const T*, lhs.get()) == NS_CONST_CAST(const U*, rhs);
   }
 
 template <class T, class U>
@@ -1233,7 +1202,7 @@ inline
 NSCAP_BOOL
 operator==( U* lhs, const nsCOMPtr<T>& rhs )
   {
-    return NS_STATIC_CAST(void*, lhs) == NS_STATIC_CAST(const void*, rhs.get());
+    return NS_CONST_CAST(const U*, lhs) == NS_STATIC_CAST(const T*, rhs.get());
   }
 
 template <class T, class U>
@@ -1241,7 +1210,7 @@ inline
 NSCAP_BOOL
 operator!=( const nsCOMPtr<T>& lhs, U* rhs )
   {
-    return NS_STATIC_CAST(const void*, lhs.get()) != NS_STATIC_CAST(void*, rhs);
+    return NS_STATIC_CAST(const T*, lhs.get()) != NS_CONST_CAST(const U*, rhs);
   }
 
 template <class T, class U>
@@ -1249,7 +1218,7 @@ inline
 NSCAP_BOOL
 operator!=( U* lhs, const nsCOMPtr<T>& rhs )
   {
-    return NS_STATIC_CAST(void*, lhs) != NS_STATIC_CAST(const void*, rhs.get());
+    return NS_CONST_CAST(const U*, lhs) != NS_STATIC_CAST(const T*, rhs.get());
   }
 #endif
 

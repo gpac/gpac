@@ -204,14 +204,15 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 {	
 	unsigned char config_path[GF_MAX_PATH];
 	char *gpac_cfg;
+	const char *str;
 	
 	if(aWindow == NULL) return FALSE;
 
 #ifdef XP_WIN
 	gpac_cfg = "GPAC.cfg";
-//#ifdef _DEBUG
-#if 0
-	strcpy((char *) config_path, "D:\\gpac2\\bin\\w32_debug");
+#ifdef _DEBUG
+//#if 0
+	strcpy((char *) config_path, "D:\\CVS\\gpac\\bin\\w32_deb");
 #else
 	HKEY hKey = NULL;
 	DWORD dwSize;
@@ -231,14 +232,29 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	memset(&m_user, 0, sizeof(m_user));
 	m_user.config = gf_cfg_new((const char *) config_path, gpac_cfg);
 	/*need to have a valid cfg file for now*/
-	if (!m_user.config) return FALSE;
+	if (!m_user.config) goto err_exit;
 
-	const char *str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
+	str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	m_user.modules = gf_modules_new((const unsigned char *) str, m_user.config);
+	if (!gf_modules_get_count(m_user.modules)) goto err_exit;
+
 	m_user.opaque = this;
 	
 	if (SetWindow(aWindow)) mInitialized = TRUE;
 	return mInitialized;
+
+err_exit:
+
+#ifdef WIN32
+	MessageBox(NULL, "GPAC CONFIGURATION FILE NOT FOUND OR INVALID - PLEASE LAUNCH OSMO4 FIRST", "OSMOZILLA FATAL ERROR", MB_OK);
+#else
+	fprintf(stdout, "OSMOZILLA FATAL ERROR\nGPAC CONFIGURATION FILE NOT FOUND OR INVALID\nPLEASE LAUNCH OSMO4 or MP4Client FIRST\n");
+#endif
+	if (m_user.modules) gf_modules_del(m_user.modules);
+	m_user.modules = NULL;
+	if (m_user.config) gf_cfg_del(m_user.config);
+	m_user.config = NULL;
+	return FALSE;
 }
 
 void nsOsmozillaInstance::shut()

@@ -45,35 +45,20 @@
 #include "nsISupportsBase.h"
 #endif
 
-#include "pratom.h" /* needed for PR_AtomicIncrement and PR_AtomicDecrement */
+#include "prthread.h" /* needed for thread-safety checks */
+#include "pratom.h"   /* needed for PR_AtomicIncrement and PR_AtomicDecrement */
 
-#ifdef XPCOM_GLUE
-// nsTraceRefcnt needs a cleaning...
-#define NS_LOG_ADDREF(_p, _rc, _type, _size)
-#define NS_LOG_RELEASE(_p, _rc, _type)
-#define NS_LOG_NEW_XPCOM(_p,_type,_size,_file,_line)
-#define NS_LOG_DELETE_XPCOM(_p,_file,_line)
-#define NS_LOG_ADDREF_CALL(_p,_rc,_file,_line) _rc
-#define NS_LOG_RELEASE_CALL(_p,_rc,_file,_line) _rc
-#define MOZ_DECL_CTOR_COUNTER(_type)
-#define MOZ_COUNT_CTOR(_type)
-#define MOZ_COUNT_DTOR(_type)
-#else
+#include "nsDebug.h"
 #include "nsTraceRefcnt.h" 
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // Macros to help detect thread-safety:
 
-#if defined(NS_DEBUG) && !defined(XPCOM_GLUE)
-
-extern "C" NS_COM void* NS_CurrentThread(void);
-extern "C" NS_COM void NS_CheckThreadSafe(void* owningThread,
-                                             const char* msg);
+#if defined(NS_DEBUG)
 
 class nsAutoOwningThread {
 public:
-    nsAutoOwningThread() { mThread = NS_CurrentThread(); }
+    nsAutoOwningThread() { mThread = PR_GetCurrentThread(); }
     void *GetThread() const { return mThread; }
 
 private:
@@ -255,8 +240,6 @@ NS_IMETHODIMP _class::QueryInterface(REFNSIID aIID, void** aInstancePtr)      \
 {                                                                             \
   NS_ASSERTION(aInstancePtr,                                                  \
                "QueryInterface requires a non-NULL destination!");            \
-  if ( !aInstancePtr )                                                        \
-    return NS_ERROR_NULL_POINTER;                                             \
   nsISupports* foundInterface;
 
 #define NS_IMPL_QUERY_BODY(_interface)                                        \

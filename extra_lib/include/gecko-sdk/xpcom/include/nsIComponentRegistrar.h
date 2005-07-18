@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/components/nsIComponentRegistrar.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIComponentRegistrar.idl
  */
 
 #ifndef __gen_nsIComponentRegistrar_h__

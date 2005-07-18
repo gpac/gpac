@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM d:/BUILDS/tinderbox/Mozilla1.6/WINNT_5.0_Clobber/mozilla/xpcom/base/nsIDebug.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIDebug.idl
  */
 
 #ifndef __gen_nsIDebug_h__

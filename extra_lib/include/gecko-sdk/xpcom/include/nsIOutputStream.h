@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/io/nsIOutputStream.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIOutputStream.idl
  */
 
 #ifndef __gen_nsIOutputStream_h__

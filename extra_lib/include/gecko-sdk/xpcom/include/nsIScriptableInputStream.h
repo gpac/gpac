@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/io/nsIScriptableInputStream.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIScriptableInputStream.idl
  */
 
 #ifndef __gen_nsIScriptableInputStream_h__

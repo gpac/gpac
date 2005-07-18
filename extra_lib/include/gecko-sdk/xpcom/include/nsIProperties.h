@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/ds/nsIProperties.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIProperties.idl
  */
 
 #ifndef __gen_nsIProperties_h__

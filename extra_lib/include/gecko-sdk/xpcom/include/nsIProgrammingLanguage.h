@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/base/nsIProgrammingLanguage.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIProgrammingLanguage.idl
  */
 
 #ifndef __gen_nsIProgrammingLanguage_h__

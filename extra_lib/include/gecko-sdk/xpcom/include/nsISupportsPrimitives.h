@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/ds/nsISupportsPrimitives.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsISupportsPrimitives.idl
  */
 
 #ifndef __gen_nsISupportsPrimitives_h__

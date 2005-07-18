@@ -40,10 +40,9 @@
 /**
  * Make sure that we have the proper platform specific 
  * c++ definitions needed by nscore.h
- * Add ifdef to speed up compliation but mozilla-config.h is still required
  */
-#ifndef _MOZILLA_CONFIG_H_
-#include "mozilla-config.h"
+#ifndef _XPCOM_CONFIG_H_
+#include "xpcom-config.h"
 #endif
 
 /**
@@ -70,10 +69,10 @@
 
 #ifdef NS_WIN32
 
-#define NS_IMPORT _declspec(dllimport)
-#define NS_IMPORT_(type) type _declspec(dllimport) __stdcall
-#define NS_EXPORT _declspec(dllexport)
-#define NS_EXPORT_(type) type _declspec(dllexport) __stdcall
+#define NS_IMPORT __declspec(dllimport)
+#define NS_IMPORT_(type) type __declspec(dllimport) __stdcall
+#define NS_EXPORT __declspec(dllexport)
+#define NS_EXPORT_(type) type __declspec(dllexport) __stdcall
 #define NS_IMETHOD_(type) virtual type __stdcall
 #define NS_IMETHODIMP_(type) type __stdcall
 #define NS_METHOD_(type) type __stdcall
@@ -86,18 +85,6 @@
 #define NS_IMPORT_(type) type
 #define NS_EXPORT __declspec(export)
 #define NS_EXPORT_(type) __declspec(export) type
-#define NS_IMETHOD_(type) virtual type
-#define NS_IMETHODIMP_(type) type
-#define NS_METHOD_(type) type
-#define NS_CALLBACK_(_type, _name) _type (* _name)
-#define NS_STDCALL
-
-#elif defined(XP_OS2)
-
-#define NS_IMPORT
-#define NS_IMPORT_(type) type
-#define NS_EXPORT
-#define NS_EXPORT_(type) type
 #define NS_IMETHOD_(type) virtual type
 #define NS_IMETHODIMP_(type) type
 #define NS_METHOD_(type) type
@@ -118,13 +105,30 @@
 #endif
 
 /**
- * Macro for creating function protoypes which use stdcall
+ * Macro for creating typedefs for pointer-to-member types which are
+ * declared with stdcall.  It is important to use this for any type which is
+ * declared as stdcall (i.e. NS_IMETHOD).  For example, instead of writing:
+ *
+ *  typedef nsresult (nsIFoo::*someType)(nsISupports* arg);
+ *
+ *  you should write:
+ *
+ *  typedef
+ *  NS_STDCALL_FUNCPROTO(nsresult, someType, nsIFoo, typeFunc, (nsISupports*));
+ *
+ *  where nsIFoo::typeFunc is any method declared as
+ *  NS_IMETHOD typeFunc(nsISupports*);
+ *
+ *  XXX this can be simplified to always use the non-typeof implementation
+ *  when http://gcc.gnu.org/bugzilla/show_bug.cgi?id=11893 is fixed.
  */
 
 #ifdef __GNUC__
-#define NS_STDCALL_FUNCPROTO(func,args) (func) args NS_STDCALL
+#define NS_STDCALL_FUNCPROTO(ret, name, class, func, args) \
+  typeof(&class::func) name
 #else
-#define NS_STDCALL_FUNCPROTO(func,args) (NS_STDCALL func) args
+#define NS_STDCALL_FUNCPROTO(ret, name, class, func, args) \
+  ret (NS_STDCALL class::*name) args
 #endif
 
 /**
@@ -208,7 +212,6 @@ typedef PRUint32 nsresult;
 #if defined(_MSC_VER) && (_MSC_VER>=1100)
   /* VC++ 5.0 and greater implement template specialization, 4.2 is unknown */
   #define HAVE_CPP_MODERN_SPECIALIZE_TEMPLATE_SYNTAX
-  #define HAVE_CPP_EXTERN_INSTANTIATION
 
   #define HAVE_CPP_EXPLICIT
   #define HAVE_CPP_TYPENAME

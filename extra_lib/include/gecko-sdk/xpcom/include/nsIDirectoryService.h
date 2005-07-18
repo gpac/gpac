@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/io/nsIDirectoryService.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIDirectoryService.idl
  */
 
 #ifndef __gen_nsIDirectoryService_h__

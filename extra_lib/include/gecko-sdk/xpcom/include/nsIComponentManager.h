@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/components/nsIComponentManager.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIComponentManager.idl
  */
 
 #ifndef __gen_nsIComponentManager_h__

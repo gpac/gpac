@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/ds/nsIObserver.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIObserver.idl
  */
 
 #ifndef __gen_nsIObserver_h__

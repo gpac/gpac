@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
-# ADD LINK32 advapi32.lib /nologo /dll /machine:I386 /out:"../../bin/w32_rel/nposmozilla.dll"
+# ADD LINK32 advapi32.lib user32.lib /nologo /dll /machine:I386 /out:"../../bin/w32_rel/nposmozilla.dll"
 # SUBTRACT LINK32 /map
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
@@ -75,7 +75,7 @@ PostBuild_Cmds=copy ..\..\applications\osmozilla\nsIOsmozilla.xpt ..\..\bin\w32_
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "OSMOZILLA_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\..\extra_lib\include\gecko-sdk" /I "..\..\extra_lib\include\gecko-sdk\java\include" /I "..\..\extra_lib\include\gecko-sdk\plugin\include" /I "..\..\extra_lib\include\gecko-sdk\nspr\include" /I "..\..\extra_lib\include\gecko-sdk\xpcom\include" /I "..\..\include" /D "XP_WIN32" /D "XP_WIN" /D "_X86_" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "NPBASIC_EXPORTS" /D "MOZILLA_STRICT_API" /D "XPCOM_GLUE" /FR /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\..\extra_lib\include\gecko-sdk" /I "..\..\extra_lib\include\gecko-sdk\java\include" /I "..\..\extra_lib\include\gecko-sdk\plugin\include" /I "..\..\extra_lib\include\gecko-sdk\nspr\include" /I "..\..\extra_lib\include\gecko-sdk\xpcom\include" /I "..\..\include" /D "WIN32" /D "XP_WIN32" /D "XP_WIN" /D "_X86_" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "NPBASIC_EXPORTS" /D "MOZILLA_STRICT_API" /D "XPCOM_GLUE" /FR /FD /GZ /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32

@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/io/nsILocalFile.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsILocalFile.idl
  */
 
 #ifndef __gen_nsILocalFile_h__

@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/components/nsIServiceManager.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsIServiceManager.idl
  */
 
 #ifndef __gen_nsIServiceManager_h__

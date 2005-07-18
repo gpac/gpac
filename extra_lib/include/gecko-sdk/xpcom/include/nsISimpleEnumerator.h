@@ -1,5 +1,5 @@
 /*
- * DO NOT EDIT.  THIS FILE IS GENERATED FROM c:/builds/seamonkey/mozilla/xpcom/ds/nsISimpleEnumerator.idl
+ * DO NOT EDIT.  THIS FILE IS GENERATED FROM nsISimpleEnumerator.idl
  */
 
 #ifndef __gen_nsISimpleEnumerator_h__

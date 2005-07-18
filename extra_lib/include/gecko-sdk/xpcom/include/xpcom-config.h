@@ -9,37 +9,40 @@
  */
 #define CPP_THROW_NEW throw()
 
+#ifndef WIN32
+
+
 /* Define if the c++ compiler supports a 2-byte wchar_t */
-/* #undef HAVE_CPP_2BYTE_WCHAR_T */
+#define HAVE_CPP_2BYTE_WCHAR_T 1
 
 /* Define if the c++ compiler supports changing access with |using| */
 /* #undef HAVE_CPP_ACCESS_CHANGING_USING */
 
 /* Define if the c++ compiler can resolve ambiguity with |using| */
-/* #undef HAVE_CPP_AMBIGUITY_RESOLVING_USING */
+#define HAVE_CPP_AMBIGUITY_RESOLVING_USING 1
 
 /* Define if the c++ compiler has builtin Bool type */
 /* #undef HAVE_CPP_BOOL */
 
 /* Define if a dyanmic_cast to void* gives the most derived object */
-/* #undef HAVE_CPP_DYNAMIC_CAST_TO_VOID_PTR */
+#define HAVE_CPP_DYNAMIC_CAST_TO_VOID_PTR 1
 
 /* Define if the c++ compiler supports the |explicit| keyword */
-/* #undef HAVE_CPP_EXPLICIT */
+#define HAVE_CPP_EXPLICIT 1
 
 /* Define if the c++ compiler supports the modern template 
  * specialization syntax 
  */
-/* #undef HAVE_CPP_MODERN_SPECIALIZE_TEMPLATE_SYNTAX */
+#define HAVE_CPP_MODERN_SPECIALIZE_TEMPLATE_SYNTAX 1
 
 /* Define if the c++ compiler supports the |std| namespace */
-/* #undef HAVE_CPP_NAMESPACE_STD */
+#define HAVE_CPP_NAMESPACE_STD 1
 
 /* Define if the c++ compiler supports reinterpret_cast */
-/* #undef HAVE_CPP_NEW_CASTS */
+#define HAVE_CPP_NEW_CASTS 1
 
 /* Define if the c++ compiler supports partial template specialization */
-/* #undef HAVE_CPP_PARTIAL_SPECIALIZATION */
+#define HAVE_CPP_PARTIAL_SPECIALIZATION 1
 
 /* Define if the c++ compiler has trouble comparing a constant
  * reference to a templatized class to zero
@@ -47,18 +50,22 @@
 /* #undef HAVE_CPP_TROUBLE_COMPARING_TO_ZERO */
 
 /* Define if the c++ compiler supports the |typename| keyword */
-/* #undef HAVE_CPP_TYPENAME */
+#define HAVE_CPP_TYPENAME 1
 
 /* Define if the stanard template operator!=() is ambiguous */
-/* #undef HAVE_CPP_UNAMBIGUOUS_STD_NOTEQUAL */
+#define HAVE_CPP_UNAMBIGUOUS_STD_NOTEQUAL 1
 
 /* Define if statvfs() is available */
-/* #undef HAVE_STATVFS */
+#define HAVE_STATVFS 1
 
 /* Define if the c++ compiler requires implementations of 
  * unused virtual methods
  */
-/* #undef NEED_CPP_UNUSED_IMPLEMENTATIONS */
+#define NEED_CPP_UNUSED_IMPLEMENTATIONS 1
+
+
+#endif
+
 
 /* Define to either <new> or <new.h> */
 #define NEW_H <new>
