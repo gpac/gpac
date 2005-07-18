@@ -31,6 +31,9 @@ sggen:
 mods:
 	$(MAKE) -C modules all
 
+instmoz:
+	$(MAKE) -C applications/osmozilla install
+
 depend:
 	$(MAKE) -C src dep
 	$(MAKE) -C applications dep
@@ -58,8 +61,8 @@ tar:
 
 install:
 	install -d "$(prefix)/bin"
-	install -c -s -m 755 bin/gcc/mp4box "$(prefix)/bin"
-	install -c -s -m 755 bin/gcc/mp42avi "$(prefix)/bin"
+	install -c -s -m 755 bin/gcc/MP4Box "$(prefix)/bin"
+	install -c -s -m 755 bin/gcc/MP42Avi "$(prefix)/bin"
 	$(MAKE) -C applications install
 	install -d "$(moddir)"
 	install -c bin/gcc/*.$(DYN_LIB_SUFFIX) "$(moddir)"
@@ -70,7 +73,7 @@ ifeq ($(CONFIG_WIN32),yes)
 else
 	install -s -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
 	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac.$(DYN_LIB_SUFFIX)
-	#not sure wether darwin uses ldconfig or not...
+#not sure wether darwin uses ldconfig or not...
 ifeq ($(CONFIG_DARWIN),yes)
 else
 	ldconfig || true
@@ -83,7 +86,7 @@ endif
 	install -c -m 644 doc/man/gpac.1 $(mandir)/man1/
 
 uninstall:
-	$(MAKE) -C Applications uninstall
+	$(MAKE) -C applications uninstall
 	rm -rf $(moddir)
 	rm -rf $(prefix)/lib/libgpac*
 	rm -rf $(prefix)/bin/mp4box
@@ -116,7 +119,7 @@ help:
 	@echo "lib: builds GPAC library only (libgpac.a)"
 	@echo "apps: builds programs only"
 	@echo "mods: builds mods only"
-	@echo 
+	@echo "instmoz: build and local install of osmozilla"
 	@echo "sggen: builds SGGen application only for scene graph regeneration"
 	@echo 
 	@echo "clean: clean src repository"
@@ -126,8 +129,10 @@ help:
 	@echo "install: install applications and plugins on system"
 	@echo "uninstall: uninstall applications and plugins"
 	@echo 
-	@echo "install-lib: install gpac library (ligpac.a) and headers <gpac/*.h> and <gpac/internal/*.h>"
+	@echo "install-lib: install gpac library (ligpac.a) and headers <gpac/*.h>, <gpac/modules/*.h> and <gpac/internal/*.h>"
 	@echo "uninstall-lib: uninstall gpac library (libgpac.a) and headers"
+	@echo
+	@echo "to build libgpac documentation, go to gpac/doc and type 'doxygen'"
 
 ifneq ($(wildcard .depend),)
 include .depend

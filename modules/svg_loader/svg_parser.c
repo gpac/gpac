@@ -346,10 +346,10 @@ end:
 void svg_parse_clock_value(char *d, Double *clock_value) 
 {
 	char *tmp;
-	if (tmp = strchr(d, ':')) {
+	if ((tmp = strchr(d, ':'))) {
 		char *tmp1 = tmp;
 		tmp++;
-		if (tmp = strchr(tmp, ':')) {
+		if ((tmp = strchr(tmp, ':'))) {
 			s32 hours;
 			s32 sign;
 			s32 minutes;
@@ -386,28 +386,28 @@ void svg_parse_clock_value(char *d, Double *clock_value)
 			sscanf(tmp1, "%f", &seconds);
 			*clock_value += sign*seconds;
 		}
-	} else if (tmp = strstr(d, "h")) {
+	} else if ((tmp = strstr(d, "h"))) {
 		Float hours;
 		char shours[100];
 		memcpy(shours, d, tmp - d);		
 		shours[tmp - d]= 0;
 		sscanf(shours, "%f", &hours);
 		*clock_value = hours*3600;
-	} else if (tmp = strstr(d, "min")) {
+	} else if ((tmp = strstr(d, "min"))) {
 		Float minutes;
 		char sminutes[100];
 		memcpy(sminutes, d, tmp - d);		
 		sminutes[tmp - d]= 0;
 		sscanf(sminutes, "%f", &minutes);
 		*clock_value = minutes*60;
-	} else if (tmp = strstr(d, "ms")) {
+	} else if ((tmp = strstr(d, "ms"))) {
 		Float milliseconds;
 		char smilliseconds[100];
 		memcpy(smilliseconds, d, tmp - d);		
 		smilliseconds[tmp - d]= 0;
 		sscanf(smilliseconds, "%f", &milliseconds);
 		*clock_value = milliseconds/1000;
-	} else if (tmp = strstr(d, "s")) {
+	} else if ((tmp = strstr(d, "s"))) {
 		Float seconds;
 		char sseconds[100];
 		memcpy(sseconds, d, tmp - d);
@@ -430,18 +430,18 @@ void svg_parse_begin_or_end(char *d, SMIL_BeginOrEndValue *v)
 	char *tmp;
 	if (!strcmp(d, "indefinite")) {
 		v->type = SMILBeginOrEnd_indefinite;
-	} else if (tmp = strstr(d, "wallclock")) {
+	} else if ((tmp = strstr(d, "wallclock"))) {
 		v->type = SMILBeginOrEnd_wallclock_sync_value;
 		tmp += 10;
-	} else if (tmp = strstr(d, "accessKey")) {
+	} else if ((tmp = strstr(d, "accessKey"))) {
 		v->type = SMILBeginOrEnd_accessKey_value;
-	} else if (tmp = strstr(d, "repeat")) {
+	} else if ((tmp = strstr(d, "repeat"))) {
 		v->type = SMILBeginOrEnd_repeat_value;
-	} else if (tmp = strstr(d, "begin")) {
+	} else if ((tmp = strstr(d, "begin"))) {
 		v->type = SMILBeginOrEnd_syncbase_value;
-	} else if (tmp = strstr(d, "end")) {
+	} else if ((tmp = strstr(d, "end"))) {
 		v->type = SMILBeginOrEnd_syncbase_value;
-	} else if (tmp = strstr(d, "click")) {
+	} else if ((tmp = strstr(d, "click"))) {
 		v->type = SMILBeginOrEnd_event_value;
 //	} else if (tmp = strstr(d, "click")) { add all other events, what are they?
 	} else {
@@ -1707,7 +1707,7 @@ SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *pa
 		if (!gf_node_get_field_by_name((GF_Node *)elt, "xlink:href", &xlink_href)) {
 			char *href;
 			u8 anim_transform_type;
-			if (href = xmlGetProp(node, "href")) {
+			if ((href = xmlGetProp(node, "href"))) {
 				svg_parse_attribute(parser, &xlink_href, elt, href, 0, &anim_transform_type);
 			} else {
 				/* default is the parent element */
@@ -1724,7 +1724,7 @@ SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *pa
 			char *attributeName;
 			if (tag == TAG_SVG_animateTransform) {
 				char *type;
-				if (type = xmlGetProp(node, "type")) {
+				if ((type = xmlGetProp(node, "type"))) {
 					GF_FieldInfo type_info;
 					if (!gf_node_get_field_by_name((GF_Node *)elt, "type", &type_info)) {
 						svg_parse_attribute(parser, &type_info, elt, type, 0, &anim_transform_type);
@@ -1736,7 +1736,7 @@ SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *pa
 					fprintf(stdout, "Warning: type attribute not specified in animateTransform.\n");
 				} 
 			}
-			if (attributeName = xmlGetProp(node, "attributeName")) {
+			if ((attributeName = xmlGetProp(node, "attributeName"))) {
 				GF_FieldInfo attributeName_info;
 				u8 anim_transform_type;
 				if (!gf_node_get_field_by_name((GF_Node *)elt, "attributeName", &attributeName_info)) {
@@ -1752,7 +1752,7 @@ SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *pa
 	}
 
 	/* Parsing the style attribute */
-	if (style = xmlGetProp(node, "style")) {
+	if ((style = xmlGetProp(node, "style"))) {
 		svg_parse_style(parser, elt, style);
 	}
 

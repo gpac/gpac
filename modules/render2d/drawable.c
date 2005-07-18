@@ -25,7 +25,7 @@
 #include "drawable.h"
 #include "visualsurface2d.h"
 #include "stacks2d.h"
-#include "SVG/svg_stacks.h"
+#include "svg/svg_stacks.h"
 
 #define BOUNDSINFO_STEPALLOC		1
 

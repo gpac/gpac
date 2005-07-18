@@ -51,8 +51,11 @@
 *                         INCLUDE FILES
 ********************************************************************************
 */
-#include <gpac/setup.h>
+#include <limits.h>
 
+#ifndef MMS_IO
+#define MMS_IO
+#endif
 
 /*
 ********************************************************************************
@@ -123,13 +126,6 @@ typedef unsigned long UWord32;
 #error cannot find 32-bit type
 #endif
 
-/*
- ********* define complex type
- */
-typedef struct {
-  Float r;  /* real      part */
-  Float i;  /* imaginary part */
-} CPX;
 
 /*
  ********* define boolean type
@@ -156,6 +152,17 @@ typedef struct {
 #define PC
 #define PLATFORM "PC"
 #define LSBFIRST
+#elif defined(WIN32)
+#define PC
+#define PLATFORM "PC"
+#define LSBFIRST
+#elif defined(_WIN32_WCE)
+#define PC
+#define PLATFORM "PC"
+#define LSBFIRST
+#ifndef abort
+#define abort() exit(0)
+#endif
 #else
 #error "can't determine architecture; adapt typedefs.h to your platform"
 #endif

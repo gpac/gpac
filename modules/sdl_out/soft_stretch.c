@@ -22,7 +22,7 @@
  *		
  */
 
-#include "SDL_out.h"
+#include "sdl_out.h"
 
 
 

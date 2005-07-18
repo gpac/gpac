@@ -130,9 +130,9 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 
 	s_header = new wxBoxSizer(wxHORIZONTAL);
 	//s_header->Add(new wxStaticText(this, 0, wxT("Category"), wxDefaultPosition, wxSize(60, 20)), wxALIGN_CENTER);
-	m_select = new wxComboBox(this, ID_SELECT, wxT(""), wxDefaultPosition, wxSize(120, 20), 0, NULL, wxCB_READONLY);
+	m_select = new wxComboBox(this, ID_SELECT, wxT(""), wxDefaultPosition, wxSize(120, 30), 0, NULL, wxCB_READONLY);
 	s_header->Add(m_select, 2, wxALIGN_CENTER | wxADJUST_MINSIZE);
-	s_header->Add( new wxButton(this, ID_APPLY, wxT("Apply"), wxDefaultPosition, wxSize(40, 20)),
+	s_header->Add( new wxButton(this, ID_APPLY, wxT("Apply"), wxDefaultPosition, wxSize(40, 30)),
 		1, wxALIGN_CENTER | wxALIGN_RIGHT | wxADJUST_MINSIZE);
 	s_main->Add(s_header, 0, wxEXPAND, 0);
 		
@@ -223,8 +223,8 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	bs = new wxBoxSizer(wxHORIZONTAL);
 	m_noyuv = new wxCheckBox(this, 0, wxT("Disable YUV hardware"));
 	bs->Add(m_noyuv, wxALIGN_CENTER | wxADJUST_MINSIZE);
-	m_yuvtxt = new wxStaticText(this, 0, wxT("(No YUV used)"), wxDefaultPosition, wxSize(80, 20), wxALIGN_LEFT);
-	bs->Add(m_yuvtxt, wxALIGN_CENTER);
+	m_yuvtxt = new wxStaticText(this, 0, wxT("(No YUV used)"), wxDefaultPosition, wxSize(60, 20), wxALIGN_LEFT);
+	bs->Add(m_yuvtxt, wxALIGN_CENTER|wxADJUST_MINSIZE);
 	s_rend2d->Add(bs, 0, wxALL|wxEXPAND, 2);
 	s_main->Add(s_rend2d, 0, wxEXPAND, 0);
 
@@ -323,7 +323,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	s_stream = new wxBoxSizer(wxVERTICAL);
 	bs = new wxBoxSizer(wxHORIZONTAL);
 	bs->Add(new wxStaticText(this, 0, wxT("Default RTSP port")), wxALIGN_CENTER | wxADJUST_MINSIZE | wxALIGN_RIGHT);
-	m_port = new wxComboBox(this, ID_RTSP_PORT, wxT(""), wxPoint(160, 40), wxSize(140, 20), 0, NULL, wxCB_READONLY);
+	m_port = new wxComboBox(this, ID_RTSP_PORT, wxT(""), wxPoint(160, 40), wxSize(140, 30), 0, NULL, wxCB_READONLY);
 	bs->Add(m_port, wxALIGN_CENTER | wxADJUST_MINSIZE);
 	s_stream->Add(bs, 0, wxALL|wxEXPAND, 2);
 	m_rtsp = new wxCheckBox(this, ID_RTP_OVER_RTSP, wxT("RTP over RTSP"), wxPoint(10, 80), wxSize(140, 20));

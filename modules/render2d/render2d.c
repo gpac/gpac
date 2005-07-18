@@ -29,7 +29,7 @@
 #include <gpac/options.h>
 
 #ifndef GPAC_DISABLE_SVG
-#include "SVG/svg_stacks.h"
+#include "svg/svg_stacks.h"
 #endif
 
 void R2D_MapCoordsToAR(GF_VisualRenderer *vr, s32 inX, s32 inY, Fixed *x, Fixed *y)

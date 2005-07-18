@@ -597,21 +597,9 @@ GF_Err dpin_dump(GF_Box *a, FILE * trace)
 
 GF_Err hdlr_dump(GF_Box *a, FILE * trace)
 {
-	u32 len;
-	char *str;
-	short uniLine[5000];
-	GF_HandlerBox *p;
-
-	p = (GF_HandlerBox *)a;
+	GF_HandlerBox *p = (GF_HandlerBox *)a;
 	fprintf(trace, "<HandlerBox Type=\"%s\" Name=\"", gf_4cc_to_str(p->handlerType));
-	len = strlen(p->nameUTF8);
-	str = p->nameUTF8;
-	len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &str);
-	if (len != (size_t) -1) {
-		fwprintf(trace, L"%s", uniLine);
-	} else {
-		fprintf(trace, "Unavailable (Badly formated)");
-	}
+	fprintf(trace, "%s", p->nameUTF8);
 	fprintf(trace, "\">\n");
 	DumpBox(a, trace);
 	gb_full_box_dump(a, trace);

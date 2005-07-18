@@ -31,7 +31,7 @@
 #endif
 
 #ifndef GPAC_DISABLE_SVG
-#include "SVG/svg_stacks.h"
+#include "svg/svg_stacks.h"
 #endif
 
 void R2D_InitLineProps(Render2D *sr, GF_Node *node);

@@ -1196,7 +1196,6 @@ void set_echo_off(Bool echo_off)
 
 static struct termios t_orig, t_new;
 static s32 ch_peek = -1;
-static Bool echo_on = 1;
 
 void init_keyboard()
 {
@@ -1220,7 +1219,7 @@ void set_echo_off(Bool echo_off)
 	init_keyboard();
 	if (echo_off) t_orig.c_lflag &= ~ECHO;
 	else t_orig.c_lflag |= ECHO;
-	close_keyboard();
+	close_keyboard(0);
 }
 
 Bool has_input()

@@ -20,12 +20,12 @@ OBJS= main.o filedump.o fileimport.o
 LINKFLAGS=-L../../bin/gcc
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
-PROG=mp4box$(EXE)
+PROG=MP4Box$(EXE)
 #LINKFLAGS+=-lgpac_static -lz $(EXTRALIBS)
 LINKFLAGS+=-lgpac
 else
 EXT=
-PROG=mp4box
+PROG=MP4Box
 #LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS) -lz
 LINKFLAGS+=-lgpac
 endif

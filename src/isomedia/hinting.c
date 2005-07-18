@@ -968,7 +968,7 @@ GF_Err gf_isom_next_hint_packet(GF_ISOFile *the_file, u32 trackNumber, char **pc
 	if (repeated) *repeated = pck->R_bit;
 	if (sample_num) *sample_num = entry->cur_sample-1;
 
-	gf_bs_get_content(bs, pck_data, pck_size);
+	gf_bs_get_content(bs, (unsigned char **) pck_data, pck_size);
 	gf_bs_del(bs);
 	gf_isom_hint_rtp_del(pck);
 	if (!gf_list_count(entry->hint_sample->packetTable)) {

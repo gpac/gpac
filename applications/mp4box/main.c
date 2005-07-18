@@ -66,10 +66,10 @@ void PrintVersion()
 {
 	fprintf(stdout, "MP4Box - GPAC version " GPAC_VERSION "\n"
 #ifdef GPAC_FIXED_POINT
-				"GPAC compiled in fixed-point version
+				"GPAC compiled in fixed-point version\n"
 #endif
 #ifdef GPAC_READ_ONLY
-				"GPAC compiled in read-only version
+				"GPAC compiled in read-only version\n"
 #endif
 		"GPAC Copyright: (c) Jean Le Feuvre 2000-2005\n\t\t(c) ENST 2005-200X\n");
 }

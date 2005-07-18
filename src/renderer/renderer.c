@@ -496,12 +496,12 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 				/*security in case the user doesn't get the message (this happens on w32, resize message
 				with same values are discarded)*/
 //				gf_sr_size_changed(sr, width, height);
-				GF_USER_SETSIZE(sr->user, width, height);
 				sr->override_size_flags &= ~2;
 			} else {
 				/*signal size changed*/
 				gf_sr_set_size(sr,width, height);
 			}
+			GF_USER_SETSIZE(sr->user, width, height);
 		}
 		sr->has_size_info = (width && height) ? 1 : 0;
 	}

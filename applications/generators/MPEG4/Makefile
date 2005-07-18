@@ -16,6 +16,7 @@ ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=MPEG4Gen$(EXE)
 else
+OBJS+=../../../src/utils/linux/os_divers.o
 EXT=
 PROG=MPEG4Gen
 endif

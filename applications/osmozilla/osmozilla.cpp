@@ -55,10 +55,10 @@ nsIServiceManager *gServiceManager = NULL;
 	"audio/mp4:mp4,mpg4,mpeg4,m4a:MPEG-4 Audio;" \
 	"audio/aac:aac:MPEG-4 AAC Music;" \
 	"audio/aacp:aac:MPEG-4 AACPlus Music;" \
-	"audio/basic:snd,au:Basic Audio"	\
-	"audio/x-wav:wav:WAV Audio"	\
-	"audio/3gpp:3gp,3gpp:3GPP/MMS Music"	\
-	"audio/3gpp2:3g2,3gp2:3GPP2/MMS Music"	\
+	"audio/basic:snd,au:Basic Audio;"	\
+	"audio/x-wav:wav:WAV Audio;"	\
+	"audio/3gpp:3gp,3gpp:3GPP/MMS Music;"	\
+	"audio/3gpp2:3g2,3gp2:3GPP2/MMS Music;"	\
 	"video/mpeg:mpg,mpeg,mpe,mpv2:MPEG Video;" \
 	"video/x-mpeg:mpg,mpeg,mpe,mpv2:MPEG Video;" \
 	"video/mpeg-system:mpg,mpeg,mpe,vob,mpv2:MPEG Video;" \
@@ -66,7 +66,7 @@ nsIServiceManager *gServiceManager = NULL;
 	"video/avi:avi:AVI Video;" \
 	"video/quicktime:mov,qt:QuickTime Movies;" \
 	"video/x-ms-asf:asf,asx:Windows Media Video;" \
-	"video/x-ms-wmv:wmv:Windows Media" \
+	"video/x-ms-wmv:wmv:Windows Media;" \
 	"video/mp4:mp4,mpg4:MPEG-4 Video;" \
 	"video/3gpp:3gp,3gpp:3GPP/MMS Video;" \
 	"video/3gpp2:3g2,3gp2:3GPP2/MMS Video;" \
@@ -80,7 +80,7 @@ nsIServiceManager *gServiceManager = NULL;
 	"x-subtitle/ttxt:ttxt:GPAC 3GPP TimedText;"	\
 	"model/vrml:wrl,wrl.gz:VRML World;"	\
 	"model/x3d+vrml:x3dv,x3dv.gz,x3dvz:X3D/VRML World;"	\
-	"model/x3d+xml:x3d,x3d.gz,x3dz:X3D/XML World" \
+	"model/x3d+xml:x3d,x3d.gz,x3dz:X3D/XML World;" \
 	"application/ogg:ogg:Ogg Media;" \
 	"application/x-ogg:ogg:Ogg Media;" \
 	"application/x-bt:bt,bt.gz,btz:MPEG-4 Text (BT);"	\
@@ -133,7 +133,7 @@ NPError NS_PluginGetValue(NPPVariable aVariable, void *aValue)
 		*((char **)aValue) = "Osmozilla";
 		break;
 	case NPPVpluginDescriptionString:
-		*((char **)aValue) = "GPAC Plugin for Mozilla";
+		*((char **)aValue) = "GPAC Plugin for Mozilla. For more information go to <a href=\"http://gpac.sourceforge.net\">GPAC website</a>";
 		break;
 	default:
 		err = NPERR_INVALID_PARAM;
@@ -166,7 +166,7 @@ nsOsmozillaInstance::nsOsmozillaInstance(nsPluginCreateData * aCreateDataStruct)
   mInstance(aCreateDataStruct->instance)
 {
 #ifdef XP_UNIX
-	mWindow = NULL;
+	mWindow = 0L;
 	mFontInfo = NULL;
 	mXtwidget = NULL;
 #endif
@@ -369,8 +369,8 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 #endif
 
 #ifdef XP_UNIX
-    m_user.os_window_handler = aWindow->window;
-    m_user.os_display = ((NPSetWindowCallbackStruct *)aWindow->ws_info)->display;
+  //    m_user.os_window_handler = aWindow->window;
+  //    m_user.os_display = ((NPSetWindowCallbackStruct *)aWindow->ws_info)->display;
 #endif
 		
 	m_term = gf_term_new(&m_user);
@@ -427,7 +427,6 @@ void nsOsmozillaInstance::SetOptions()
 NPError nsOsmozillaInstance::NewStream(NPMIMEType type, NPStream * stream,
 				    NPBool seekable, uint16 * stype)
 {
-
 	m_szURL = strdup((const char *)stream->url);
 	gf_term_connect(m_term, (const char *) m_szURL);
     *stype = NP_SEEK;

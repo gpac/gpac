@@ -15,10 +15,10 @@ OBJS= main.o
 
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
-PROG=mp42avi$(EXE)
+PROG=MP42Avi$(EXE)
 else
 EXT=
-PROG=mp42avi
+PROG=MP42Avi
 endif
 
 SRCS := $(OBJS:.o=.c) 

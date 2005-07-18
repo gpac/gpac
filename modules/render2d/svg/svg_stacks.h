@@ -35,7 +35,7 @@
 #include "../stacks2d.h"
 
 /* Importing SMIL stacks for animation */
-#include "../SMIL/smil_stacks.h"
+#include "../smil/smil_stacks.h"
 
 /* Creates a rendering context and Translates the SVG Styling properties into a context
    that the renderer can understand */

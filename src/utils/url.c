@@ -65,22 +65,17 @@ Bool gf_url_is_local(const char *pathName)
 
 char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 {
-	char *outPath;
-	u32 prot_type;
-
-	prot_type = URL_GetProtocolType(pathName);
+	u32 prot_type = URL_GetProtocolType(pathName);
 
 	/*abs path name*/
 	if (prot_type == GF_URL_TYPE_FILE) {
-		u32 offset = URL_SEP_LENGTH + 4;
+	  /*abs path*/
 		if (!strstr(pathName, "://") && !strstr(pathName, "|//")) return strdup(pathName);
+		pathName += 6;
 		/*not sure if "file:///C:\..." is std, but let's handle it anyway*/
-		if (strstr(pathName, ":///") || strstr(pathName, "|///")) {
-			if (pathName[offset+2]==':') offset += 1;
-		}
-		outPath = (char *) malloc(strlen(pathName) - offset + 1);
-		strcpy(outPath, pathName + offset);
-		return outPath;
+		if ((pathName[0]=='/') && (pathName[2]==':')) pathName += 1;
+		fprintf(stdout, "abs URL is %s\n", pathName);
+		return strdup(pathName);
 	}
 	if (prot_type==GF_URL_TYPE_ANY) return NULL;
 	if (!parentPath) return strdup(pathName);

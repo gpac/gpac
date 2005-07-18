@@ -26,6 +26,7 @@ echo "  --cpu=CPU                force cpu to CPU  [$cpu]"
 echo "  --sdl-cfg=SDL_PATH       specify path to sdl-config for local install [$sdl_path]"
 echo "  --enable-sdl-static      use static SDL linking [default=no]"
 echo "  --dxsdk-path=DX_PATH     specify directX SDK for MinGW [$dxsdk_path]"
+echo "  --mozdir=MOZ_PATH        specify mozilla main directory path for system install"
 echo ""
 echo "  --disable-js             disable SpiderMonkey ECMAScript support [default=no]"
 echo "  --disable-ft             disable FreeType text support"
@@ -74,6 +75,7 @@ prefix="/usr/local"
 mandir=""
 cross_prefix=""
 dxsdk_path=""
+moz_path="local"
 cc="gcc"
 ar="ar"
 ranlib="ranlib"
@@ -559,6 +561,8 @@ for opt do
   ;;
   --dxsdk-path=*) dxsdk_path=`echo $opt | cut -d '=' -f 2`
   ;;
+  --mozdir=*) moz_path=`echo $opt | cut -d '=' -f 2`
+  ;;
   --disable-js) has_js="no"
   ;;
   --disable-ft) has_ft="no"
@@ -583,7 +587,7 @@ for opt do
   ;;
   --enable-amr) has_amr_wb="yes"; has_amr_nb="yes"
   ;;
-	--disable-oggvorbis) has_oggvorbis="no"
+  --disable-oggvorbis) has_oggvorbis="no"
   ;;
   --enable-debug) debuginfo="yes"; no_gcc_opt="yes"
   ;;
@@ -983,6 +987,8 @@ if test "$has_xml2" = "yes"; then
 echo "XML2_CFLAGS=$xml2_cflags" >> config.mak
 echo "XML2_LFLAGS=$xml2_lflags" >> config.mak
 fi
+
+echo "MOZILLA_DIR=$moz_path" >> config.mak
 
 #overwrite fixed-point in math.h
 if test "$use_fixed_point" = "yes"; then

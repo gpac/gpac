@@ -81,7 +81,7 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = D:/CVS/gpac/include/gpac
+INPUT                  = ../include/gpac
 FILE_PATTERNS          = *.c \
                          *.cc \
                          *.cxx \

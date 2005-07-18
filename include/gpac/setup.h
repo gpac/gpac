@@ -136,9 +136,15 @@ char * my_str_lwr(char *str);
 /*UNIX likes*/
 
 /*force large file support*/
+#ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64
+#endif
+#ifndef _LARGEFILE_SOURCE
 #define _LARGEFILE_SOURCE
+#endif
+#ifndef _LARGEFILE64_SOURCE
 #define _LARGEFILE64_SOURCE
+#endif
 
 #include <stdint.h>
 #include <stdio.h>

@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/applications/Osmo4_wx
+VPATH=$(SRC_PATH)/applications/osmo4_wx
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
@@ -18,8 +18,6 @@ else
 INSTALL_FLAGS=
 endif
 
-LINKFLAGS=-L../../bin/gcc -lm4systems
-
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=Osmo4$(EXE)
@@ -34,7 +32,7 @@ SRCS := $(OBJS:.o=.cpp)
 all: $(PROG)
 
 Osmo4$(EXE): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lm4systems $(WX_LFLAGS)
+	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(WX_LFLAGS)
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) $(INSTALL_FLAGS) $(WX_CFLAGS) -c -o $@ $< 

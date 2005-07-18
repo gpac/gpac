@@ -3907,9 +3907,7 @@ void nmhd_del(GF_Box *s)
 
 GF_Err nmhd_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	GF_MPEGMediaHeaderBox *ptr = (GF_MPEGMediaHeaderBox *)s;
-	e = gf_isom_full_box_read(s, bs);
+	GF_Err e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	return GF_OK;
 }

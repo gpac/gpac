@@ -2,12 +2,20 @@ include ../../config.mak
 
 VPATH=$(SRC_PATH)/applications/osmozilla
 
+GECKO_PATH=$(SRC_PATH)/extra_lib/include/gecko-sdk
+
+USER_NAME=$(shell whoami)
+ifeq ($(USER_NAME), root)
+else
+MOZILLA_DIR=local
+endif
+
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include \
-  -I$(SRC_PATH)/extra_lib/include/gecko-sdk \
-  -I$(SRC_PATH)/extra_lib/include/gecko-sdk/plugin/include  \
-  -I$(SRC_PATH)/extra_lib/include/gecko-sdk/nspr/include \
-  -I$(SRC_PATH)/extra_lib/include/gecko-sdk/java/include \
-  -I$(SRC_PATH)/extra_lib/include/gecko-sdk/xpcom/include \
+  -I$(GECKO_PATH) \
+  -I$(GECKO_PATH)/plugin/include  \
+  -I$(GECKO_PATH)/nspr/include \
+  -I$(GECKO_PATH)/java/include \
+  -I$(GECKO_PATH)/xpcom/include \
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -50,17 +58,31 @@ else
 	$(CXX) $(SHFLAGS) $(LDFLAGS) $(OBJS) $(LINKLIBS) -o ../../bin/gcc/$@ 
 endif
 	cp nsIOsmozilla.xpt ../../bin/gcc/nposmozilla.xpt
+	@echo $(USER_ROOT)
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) -c -o $@ $< 
 
 clean:
-	rm -f $(OBJS) ../../bin/gcc/$(LIB) ../../bin/gcc/osmozilla.xpt
+	rm -f $(OBJS) ../../bin/gcc/$(LIB) ../../bin/gcc/nposmozilla.xpt
 ifeq ($(CONFIG_WIN32),yes)
 	rm -f osmoz.o
 endif
 
-  
+install: $(LIB)
+ifeq ($(MOZILLA_DIR), local)
+ifeq ($(USER_NAME), root)
+	@echo "*** Root cannot install local mozilla plugins! ***"
+	@echo "*** Exit root mode and reinstall mozilla plugin! ***"
+else
+	install -D -m 755 ../../bin/gcc/$(LIB) "$(HOME)/.mozilla/plugins/$(LIB)"
+	install -D -m 755 ../../bin/gcc/nposmozilla.xpt "$(HOME)/.mozilla/components/nposmozilla.xpt"
+endif
+else
+	install -D -m 755 ../../bin/gcc/$(LIB) "$(MOZILLA_DIR)/components/$(LIB)"
+	install -D -m 755 ../../bin/gcc/nposmozilla.xpt "$(MOZILLA_DIR)/components/nposmozilla.xpt"
+endif
+
 dep: depend
 
 depend:

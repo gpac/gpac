@@ -2,7 +2,7 @@ include ../config.mak
 
 APPDIRS=mp4box mp4client mp42avi generators osmozilla
 V4STUDIODIR=
-INSTDIRS=mp4client
+INSTDIRS=mp4client osmozilla
 
 ifeq ($(USE_WXWIDGETS), yes)
 APPDIRS+=osmo4_wx

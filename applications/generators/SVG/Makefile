@@ -10,7 +10,7 @@ LDFLAGS+=-g
 endif
 
 #common obj
-OBJS= main.o ../../../src/utils/array.o
+OBJS= main.o ../../../src/utils/list.o
 
 CFLAGS+=-g
 LDFLAGS+=-g
