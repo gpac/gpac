@@ -344,8 +344,8 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 	/*path absolute*/
 	if (!sURL) {
 		char *tmp = (char *) url;
-		if (!strnicmp(url, "file:///", 8)) tmp += 8;
-		else if (!strnicmp(url, "file://", 7)) tmp += 7;
+		if (!strnicmp(url, "file://", 7)) tmp += 7;
+		if ((tmp[0]=='\\') && (tmp[2]==':')) tmp += 2;
 		sURL = strdup(tmp);
 	}
 

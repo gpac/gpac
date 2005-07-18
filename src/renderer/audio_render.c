@@ -90,7 +90,7 @@ GF_AudioRenderer *gf_sr_ar_load(GF_User *user)
 		count = gf_modules_get_count(ar->user->modules);
 		for (i=0; i<count; i++) {
 			ar->audio_out = (GF_AudioOutput *) gf_modules_load_interface(ar->user->modules, i, GF_AUDIO_OUTPUT_INTERFACE);
-			if (ar->audio_out) continue;
+			if (!ar->audio_out) continue;
 			/*check that's a valid audio renderer*/
 			if (ar->audio_out->SelfThreaded) {
 				if (ar->audio_out->SetPriority) break;
