@@ -297,11 +297,14 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			gf_sg_vrml_mf_append(inf->field_ptr, GF_SG_VRML_MFSTRING, (void **) &sfstr);
 			len = 0;
 			for (i=0; i<strlen(ptr); i++) {
+				/*FIXME - UTF8 support & BOMs !!*/
+#if 0
 				if (ptr[i] & 0x80) {
 					szText[len] = 0xc0 | ( (ptr[i] >> 6) & 0x3 );
 					len++;
 					ptr[i] &= 0xbf;
 				}
+#endif
 				szText[len] = ptr[i];
 				len++;
 			}
