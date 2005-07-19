@@ -1180,7 +1180,7 @@ static void reset_collide_cursor(Render3D *sr)
 		GF_Event evt;
 		sr->last_cursor = evt.cursor.cursor_type = GF_CURSOR_NORMAL;
 		evt.type = GF_EVT_SET_CURSOR;
-		sr->compositor->video_out->PushEvent(sr->compositor->video_out, &evt);
+		sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
 	}
 }
 
@@ -1349,7 +1349,7 @@ Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_UserEvent *ev,
 			GF_Event evt;
 			evt.type = GF_EVT_SET_CURSOR;
 			evt.cursor.cursor_type = stype;
-			sr->compositor->video_out->PushEvent(sr->compositor->video_out, &evt);
+			sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
 			sr->last_cursor = stype;
 		}
 	} else {
@@ -1562,7 +1562,7 @@ void VS_DoCollisions(RenderEffect3D *eff, GF_List *node_list)
 			eff->camera->last_had_col = 1;
 			evt.type = GF_EVT_SET_CURSOR;
 			eff->surface->render->last_cursor = evt.cursor.cursor_type = GF_CURSOR_COLLIDE;
-			eff->surface->render->compositor->video_out->PushEvent(eff->surface->render->compositor->video_out, &evt);
+			eff->surface->render->compositor->video_out->ProcessEvent(eff->surface->render->compositor->video_out, &evt);
 		}
 
 		/*regular collision*/

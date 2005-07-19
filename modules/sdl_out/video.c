@@ -366,7 +366,7 @@ u32 SDL_EventProc(void *par)
 		while (SDL_PollEvent(&sdl_evt)) {
 			switch (sdl_evt.type) {
 			case SDL_VIDEORESIZE:
-				gpac_evt.type = GF_EVT_NEEDRESIZE;
+				gpac_evt.type = GF_EVT_WINDOWSIZE;
 				gpac_evt.size.width = sdl_evt.resize.w;
 				gpac_evt.size.height = sdl_evt.resize.h;
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
@@ -475,7 +475,7 @@ exit:
 }
 
 
-GF_Err SDLVid_SetupHardware(struct _video_out *dr, void *os_handle, void *os_display, u32 no_proc_override, GF_GLConfig *cfg)
+GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u32 no_proc_override, GF_GLConfig *cfg)
 {
 	SDLVID();
 	/*SDL hack for window reuse is not really stable nor working on Win32...*/
@@ -516,23 +516,6 @@ static void SDLVid_Shutdown(GF_VideoOutput *dr)
 	ctx->is_init = 0;
 }
 
-GF_Err SDLVid_Resize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight)
-{
-	SDLVID();
-
-	/*ignored in 3D*/
-	if (ctx->is_3D_out) return GF_OK;
-
-	if (ctx->back_buffer && ((u32) ctx->back_buffer->w==newWidth) && ((u32) ctx->back_buffer->h==newHeight)) {
-		return GF_OK;
-	}
-	if (ctx->back_buffer) SDL_FreeSurface(ctx->back_buffer);
-	ctx->back_buffer = SDL_CreateRGBSurface(0L, newWidth, newHeight, ctx->screen->format->BitsPerPixel, ctx->screen->format->Rmask, ctx->screen->format->Gmask, ctx->screen->format->Bmask, 0);
-	ctx->width = newWidth;
-	ctx->height = newHeight;
-	if (!ctx->back_buffer) return GF_IO_ERR;
-	return GF_OK;
-}
 
 GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, u32 bFullScreenOn, u32 *screen_width, u32 *screen_height)
 {
@@ -644,7 +627,7 @@ static void SDLVid_SetCursor(GF_VideoOutput *dr, u32 cursor_type)
 	}
 }
 
-static GF_Err SDLVid_PushEvent(GF_VideoOutput *dr, GF_Event *evt)
+static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 {
 	switch (evt->type) {
 	case GF_EVT_SET_CURSOR:
@@ -657,7 +640,7 @@ static GF_Err SDLVid_PushEvent(GF_VideoOutput *dr, GF_Event *evt)
 		/*the only way to have proper show/hide with SDL is to shutdown the video system and reset it up
 		which we don't want to do since the setup MUST occur in the rendering thread for some configs (openGL)*/
 		return GF_NOT_SUPPORTED;
-	case GF_EVT_NEEDRESIZE:
+	case GF_EVT_SCENESIZE:
 		SDL_ResizeWindow(dr, evt->size.width, evt->size.height);
 		break;
 	}
@@ -680,12 +663,11 @@ void *SDL_NewVideo()
 	ctx->evt_mx = gf_mx_new();
 	
 	driv->opaque = ctx;
-	driv->SetupHardware = SDLVid_SetupHardware;
+	driv->Setup = SDLVid_Setup;
 	driv->Shutdown = SDLVid_Shutdown;
-	driv->Resize = SDLVid_Resize;
 	driv->SetFullScreen = SDLVid_SetFullScreen;
 	driv->FlushVideo = SDLVid_FlushVideo;
-	driv->PushEvent = SDLVid_PushEvent;
+	driv->ProcessEvent = SDLVid_ProcessEvent;
 	driv->bHas3DSupport = 1;
 	SDL_SetupVideo2D(driv);
 	return driv;

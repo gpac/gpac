@@ -262,7 +262,7 @@ void SVG_Init_image(Render2D *sr, GF_Node *node)
 	st->graph->IsPointOver = SVG_PointOver_bitmap;
 
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
-	st->txh.update_gf_sr_texture_fcnt = SVG_Update_image;
+	st->txh.update_texture_fcnt = SVG_Update_image;
 	st->txh.flags = 0;
 
 	/* builds the MFURL to be used by the texture */
@@ -417,7 +417,7 @@ void SVG_Init_video(Render2D *sr, GF_Node *node)
 	st->graph->IsPointOver = SVG_PointOver_bitmap;
 
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
-	st->txh.update_gf_sr_texture_fcnt = SVG_Update_video;
+	st->txh.update_texture_fcnt = SVG_Update_video;
 	st->txh.flags = 0;
 	st->time_handle.UpdateTimeNode = SVG_UpdateTime_video;
 	st->time_handle.obj = node;

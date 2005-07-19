@@ -665,6 +665,7 @@ int main (int argc, char **argv)
 		case '2':
 		case '3':
 		{
+			u32 now = gf_term_get_time_in_ms(term);
 			Bool reconnect = is_connected;
 			str = gf_cfg_get_key(cfg_file, "Rendering", "RendererName");
 			if (strstr(str, "2D") && (c=='2')) { fprintf(stdout, "Already using 2D Renderer\n"); break; }
@@ -677,7 +678,7 @@ int main (int argc, char **argv)
 				goto exit;
 			}
 			fprintf(stdout, "Using %s\n", gf_cfg_get_key(cfg_file, "Rendering", "RendererName"));
-			if (reconnect) gf_term_connect(term, the_url);
+			if (reconnect) gf_term_connect_from_time(term, the_url, now);
 		}
 			break;
 		case 'k':
@@ -848,6 +849,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID)
 		case GF_STREAM_VISUAL:
 			fprintf(stdout, "Video Object: Width %d - Height %d\r\n", odi.width, odi.height);
 			fprintf(stdout, "Media Codec: %s\n", odi.codec_name);
+			if (odi.par) fprintf(stdout, "Pixel Aspect Ratio: %d:%d\n", (odi.par>>16)&0xFF, (odi.par)&0xFF);
 			break;
 		case GF_STREAM_AUDIO:
 			fprintf(stdout, "Audio Object: Sample Rate %d - %d channels\r\n", odi.sample_rate, odi.num_channels);

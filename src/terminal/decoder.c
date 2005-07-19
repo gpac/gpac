@@ -500,7 +500,9 @@ static GF_Err ResizeCompositionBuffer(GF_Codec *dec, u32 NewSize)
 		if (!dec->CB->Min) dec->CB->Min = 1;
 	}
 	if ((dec->type==GF_STREAM_VISUAL) && dec->odm->parentscene->is_dynamic_scene) {
-		gf_is_force_scene_size(dec->odm->parentscene, dec->odm->mo->width, dec->odm->mo->height);
+		void gf_is_force_scene_size_video(GF_InlineScene *is, GF_MediaObject *mo);
+
+		gf_is_force_scene_size_video(dec->odm->parentscene, dec->odm->mo);
 	}
 	return GF_OK;
 }

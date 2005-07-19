@@ -330,7 +330,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 	case GF_ISOM_DATA_MAP_WRITE:
 		if (!tmp->stream) tmp->stream = gf_f64_open(sPath, "w+b");
 		if (!tmp->stream) tmp->stream = gf_f64_open(sPath, "wb");
-		bs_mode = GF_BITSTREAM_READ;
+		bs_mode = GF_BITSTREAM_WRITE;
 		break;
 	default:
 		free(tmp);

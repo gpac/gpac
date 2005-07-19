@@ -159,7 +159,8 @@ GF_Err gf_odf_dump_desc(void *ptr, FILE *trace, u32 indent, Bool XMTDump)
 		return gf_odf_dump_segment((GF_Segment *)desc, trace, indent, XMTDump);
 	case GF_ODF_MEDIATIME_TAG:
 		return gf_odf_dump_mediatime((GF_MediaTime *)desc, trace, indent, XMTDump);
-
+	case GF_ODF_TEXT_CFG_TAG:
+		return gf_odf_dump_txtcfg((GF_TextConfig *)desc, trace, indent, XMTDump);
 	case GF_ODF_MUXINFO_TAG:
 		return gf_odf_dump_muxinfo((GF_MuxInfo *)desc, trace, indent, XMTDump);
 	case GF_ODF_BIFS_CFG_TAG:
@@ -282,7 +283,7 @@ static void DumpIntHex(FILE *trace, char *attName, u32  val, u32 indent, Bool XM
 	if (single_byte) {
 		fprintf(trace, "0x%02X", val);
 	} else {
-		fprintf(trace, "0x%04X", val);
+		fprintf(trace, "0x%08X", val);
 	}
 	EndAttribute(trace, indent, XMTDump);
 }
@@ -685,6 +686,81 @@ GF_Err DumpRawBIFSConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Boo
 	return GF_OK;
 }
 
+
+GF_Err gf_odf_dump_txtcfg(GF_TextConfig *desc, FILE *trace, u32 indent, Bool XMTDump)
+{
+	u32 i;
+	char ind_buf[OD_MAX_TREE];
+	StartDescDump(trace, "TextConfig", indent, XMTDump);
+	indent++;
+	DumpIntHex(trace, "3GPPBaseFormat", desc->Base3GPPFormat, indent, XMTDump, 1);
+	DumpIntHex(trace, "MPEGExtendedFormat", desc->MPEGExtendedFormat, indent, XMTDump, 1);
+	DumpIntHex(trace, "profileLevel", desc->profileLevel, indent, XMTDump, 1);
+	DumpInt(trace, "durationClock", desc->timescale, indent, XMTDump);
+	DumpInt(trace, "layer", desc->layer, indent, XMTDump);
+	DumpInt(trace, "text_width", desc->text_width, indent, XMTDump);
+	DumpInt(trace, "text_height", desc->text_height, indent, XMTDump);
+	if (desc->video_width) DumpInt(trace, "video_width", desc->video_width, indent, XMTDump);
+	if (desc->video_height) DumpInt(trace, "video_height", desc->video_height, indent, XMTDump);
+	if (desc->horiz_offset) DumpInt(trace, "horizontal_offset", desc->horiz_offset, indent, XMTDump);
+	if (desc->vert_offset) DumpInt(trace, "vertical_offset", desc->vert_offset, indent, XMTDump);
+
+	StartElement(trace, "SampleDescriptions", indent, XMTDump, 1);
+	indent++;
+	OD_FORMAT_INDENT(ind_buf, indent);
+	
+	for (i=0; i<gf_list_count(desc->sample_descriptions); i++) {
+		char szStyles[1024];
+		u32 j;
+		GF_TextSampleDescriptor *sd = (GF_TextSampleDescriptor *)gf_list_get(desc->sample_descriptions, i);
+		if (!XMTDump) fprintf(trace, "%s", ind_buf);
+		StartDescDump(trace, "TextSampleDescriptor", indent, XMTDump);
+		indent++;
+		DumpIntHex(trace, "displayFlags", sd->displayFlags, indent, XMTDump, 0);
+		DumpInt(trace, "horiz_justif", sd->horiz_justif, indent, XMTDump);
+		DumpInt(trace, "vert_justif", sd->vert_justif, indent, XMTDump);
+		DumpIntHex(trace, "back_color", sd->back_color, indent, XMTDump, 0);
+		DumpInt(trace, "top", sd->default_pos.top, indent, XMTDump);
+		DumpInt(trace, "bottom", sd->default_pos.bottom, indent, XMTDump);
+		DumpInt(trace, "left", sd->default_pos.left, indent, XMTDump);
+		DumpInt(trace, "right", sd->default_pos.right, indent, XMTDump);
+		DumpInt(trace, "style_font_ID", sd->default_style.fontID, indent, XMTDump);
+		DumpInt(trace, "style_font_size", sd->default_style.font_size, indent, XMTDump);
+		DumpIntHex(trace, "style_text_color", sd->default_style.text_color, indent, XMTDump, 0);
+		strcpy(szStyles, "");
+		if (sd->default_style.style_flags & GF_TXT_STYLE_BOLD) strcat(szStyles, "bold ");
+		if (sd->default_style.style_flags & GF_TXT_STYLE_ITALIC) strcat(szStyles, "italic ");
+		if (sd->default_style.style_flags & GF_TXT_STYLE_UNDERLINED) strcat(szStyles, "underlined ");
+		if (strlen(szStyles)) DumpString(trace, "style_flag", szStyles, indent, XMTDump);
+
+		for (j=0; j<sd->font_count; j++) {
+			DumpInt(trace, "fontID", sd->fonts[j].fontID, indent, XMTDump);
+			DumpString(trace, "fontName", sd->fonts[i].fontName, indent, XMTDump);
+		}
+
+		indent--;
+		EndDescDump(trace, "TextSampleDescriptor", indent, XMTDump);
+	}
+
+	indent--;
+	EndElement(trace, "SampleDescriptions", indent, XMTDump, 1);
+
+	indent--;
+	EndDescDump(trace, "TextConfig", indent, XMTDump);
+	return GF_OK;
+}
+
+GF_Err DumpRawTextConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Bool XMTDump, u32 oti)
+{
+	GF_TextConfig *cfg = (GF_TextConfig *) gf_odf_desc_new(GF_ODF_TEXT_CFG_TAG);
+	GF_Err e = gf_odf_get_text_config(dsi, (u8) oti, cfg);
+	if (!e) gf_odf_dump_desc(cfg, trace, indent, XMTDump);
+	gf_odf_desc_del((GF_Descriptor *) cfg);
+	return e;
+}
+
+
+
 GF_Err gf_odf_dump_ui_cfg(GF_UIConfig *uid, FILE *trace, u32 indent, Bool XMTDump)
 {
 	char devName[255];
@@ -802,12 +878,16 @@ GF_Err OD_DumpDSI(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Bool XMTDu
 	switch (streamType) {
 	case GF_STREAM_SCENE:
 		if (oti<=2) return DumpRawBIFSConfig(dsi, trace, indent, XMTDump, oti);
-		return GF_OK;
+		break;
 	case GF_STREAM_INTERACT:
 		return DumpRawUIConfig(dsi, trace, indent, XMTDump, oti);
+	case GF_STREAM_TEXT:
+		if (oti==0x08) return DumpRawTextConfig(dsi, trace, indent, XMTDump, oti);
+		break;
 	default:
-		return gf_odf_dump_desc(dsi, trace, indent, XMTDump);
+		break;
 	}
+	return gf_odf_dump_desc(dsi, trace, indent, XMTDump);
 }
 
 GF_Err gf_odf_dump_dcd(GF_DecoderConfig *dcd, FILE *trace, u32 indent, Bool XMTDump)

@@ -52,12 +52,13 @@ typedef struct
 } GF_GLConfig;
 
 /*interface name and version for video output*/
-#define GF_VIDEO_OUTPUT_INTERFACE	GF_FOUR_CHAR_INT('G','V','O',0x01) 
+#define GF_VIDEO_OUTPUT_INTERFACE	GF_FOUR_CHAR_INT('G','V','O',0x02) 
 
 /*
 			video output interface
 
-	the vidoe output may run in 2 modes: 2D and 3D.
+	the video output may run in 2 modes: 2D and 3D.
+
 	** the 2D video output works by creating surfaces on the video mem board - the app refers to the surfaces 
 	by their IDs, and access them through the GF_VideoSurface handler. 
 	Surface index 0 is reserved for the main video memory (if double (or n) buffering is performed by the driver 
@@ -67,6 +68,9 @@ typedef struct
 	** the 3D video output only handles window management and openGL contexts setup.
 	The context shall be setup in Resize and SetFullScreen calls which are always happening in the main 
 	rendering thread. This will take care of openGL context issues with multithreading
+
+	Except Setup and Shutdown functions, all interface functions are called through the main renderer thread
+	or its user to avoid multithreading issues. Care must still be taken when handling events
 */
 typedef struct _video_out
 {
@@ -78,11 +82,10 @@ typedef struct _video_out
 	@no_proc_override: when set and a os_handle is passed, the module shall not try to
 	override the window proc
 	if cfg is specified, the output is 3D, otherwise 2D*/
-	GF_Err (*SetupHardware)(struct _video_out *vout, void *os_handle, void *os_display, Bool no_proc_override, GF_GLConfig *cfg);
+	GF_Err (*Setup)(struct _video_out *vout, void *os_handle, void *os_display, Bool no_proc_override, GF_GLConfig *cfg);
 	/*shutdown system */
 	void (*Shutdown) (struct _video_out *vout);
-	/*resize main video*/
-	GF_Err (*Resize) (struct _video_out *vout, u32 newWidth, u32 newHeight);
+
 	/*set full screen - screen resolution shall be reported in screen_width and screen_height when turning 
 	on FS, otherwise retored window size shall be reported - the screen mode to select shall be the smallest 
 	one bigger than current output size - the driver may destroy all extra surfaces created when 
@@ -94,8 +97,10 @@ typedef struct _video_out
 	it shall be ugnored when using 3D output (buffer flip only)*/
 	GF_Err (*FlushVideo) (struct _video_out *vout, GF_Window *dest);
 
-	/*window events: only set cursor, set title, set style and set visible used*/
-	GF_Err (*PushEvent)(struct _video_out *vout, GF_Event *event);
+	/*window events sent to output:
+	GF_EVT_SET_CURSOR, GF_EVT_SET_STYLE, GF_EVT_SET_CAPTION, GF_EVT_SHOWHIDE and GF_EVT_SCENESIZE for inital window resize
+	*/
+	GF_Err (*ProcessEvent)(struct _video_out *vout, GF_Event *event);
 
 	/*pass events to user (assigned before setup)*/
 	void *evt_cbk_hdl;
@@ -121,7 +126,7 @@ typedef struct _video_out
 	GF_Err (*UnlockSurface)(struct _video_out *vout, u32 surface_id);
 	/*checks if the surface is valid - this is used to discard surfaces when changing video mode (fullscreen)*/
 	Bool (*IsSurfaceValid) (struct _video_out *vout, u32 surface_id);
-	/*resize surface - the resulting surface can still be larger than what requested*/
+	/*resize surface - this may also be called on surfaceID=0 (eg, backbuffer)*/
 	GF_Err (*ResizeSurface) (struct _video_out *vout, u32 surface_id, u32 width, u32 height);
 
 	/*lock video mem through OS context (HDC, ...)*/

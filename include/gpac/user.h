@@ -65,7 +65,6 @@ enum {
 	GF_EVT_KEYUP,
 	/*window events*/
 	GF_EVT_WINDOWSIZE,	/*size has changed - indicate new w & h in .x end .y fields of event*/
-	GF_EVT_NEEDRESIZE,	/*size must be changed - this is needed for video out not supported multithreading - indicate new w & h in .x end .y fields of event. This event may also be pushed by the terminal to indicate resize*/
 	GF_EVT_SHOWHIDE,	/*window show/hide (minimized or other)*/
 	GF_EVT_SET_CURSOR,	/*set mouse cursor*/
 	GF_EVT_SET_STYLE,	/*set window style*/
@@ -77,7 +76,8 @@ enum {
 	GF_EVT_CONNECT,	/*signal URL is connected*/
 	GF_EVT_DURATION,	/*signal duration of presentation*/
 	/*signal size of the scene client display (if indicated in scene) upon connection
-	if scene size hasn't changed (seeking or other) this event is not sent*/
+	if scene size hasn't changed (seeking or other) this event is not sent
+	this event is also sent to video output for intial scene resize*/
 	GF_EVT_SCENESIZE,	
 	GF_EVT_AUTHORIZATION,	/*indicates a user and pass is queried*/
 	GF_EVT_NAVIGATE, /*indicates the user app should load or jump to the given URL.*/

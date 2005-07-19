@@ -331,7 +331,7 @@ void R2D_InitBackground2D(Render2D *sr, GF_Node *node)
 
 
 	gf_sr_texture_setup(&ptr->txh, sr->compositor, node);
-	ptr->txh.update_gf_sr_texture_fcnt = UpdateBackgroundTexture;
+	ptr->txh.update_texture_fcnt = UpdateBackgroundTexture;
 
 	gf_node_set_private(node, ptr);
 	gf_node_set_predestroy_function(node, DestroyBackground2D);

@@ -223,6 +223,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 			info->width = odm->mo->width;
 			info->height = odm->mo->height;
 			info->pixelFormat = odm->mo->pixelFormat;
+			info->par = odm->mo->pixel_ar;
 			break;
 		case GF_STREAM_AUDIO:
 			info->sample_rate = odm->mo->sample_rate;

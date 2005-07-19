@@ -36,6 +36,23 @@ static Bool SDLVid_SurfaceOK(SDLVidCtx *ctx, SDLWrapSurface *surf, Bool remove)
 	return 1;
 }
 
+
+GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight)
+{
+	SDLVID();
+
+	if (ctx->is_3D_out) return GF_BAD_PARAM;
+	if (ctx->back_buffer && ((u32) ctx->back_buffer->w==newWidth) && ((u32) ctx->back_buffer->h==newHeight)) {
+		return GF_OK;
+	}
+	if (ctx->back_buffer) SDL_FreeSurface(ctx->back_buffer);
+	ctx->back_buffer = SDL_CreateRGBSurface(0L, newWidth, newHeight, ctx->screen->format->BitsPerPixel, ctx->screen->format->Rmask, ctx->screen->format->Gmask, ctx->screen->format->Bmask, 0);
+	ctx->width = newWidth;
+	ctx->height = newHeight;
+	if (!ctx->back_buffer) return GF_IO_ERR;
+	return GF_OK;
+}
+
 static u32 SDLVid_MapPixelFormat(SDL_PixelFormat *format)
 {
 	if (format->palette) return 0;
@@ -190,6 +207,9 @@ static GF_Err SDLVid_ResizeSurface(GF_VideoOutput *dr, u32 surface_id, u32 width
 {
 	SDLVID();
 	SDLWrapSurface *wrap = (SDLWrapSurface *) surface_id;
+	
+	if (!surface_id) return SDLVid_SetBackbufferSize(dr, width, height);
+
 	if (!SDLVid_SurfaceOK(ctx, wrap, 0)) return GF_BAD_PARAM;
 	if (wrap->surface && ((u32) wrap->surface->w >= width) && ((u32) wrap->surface->h >= height)) return GF_OK;
 	width = MAX((u32) wrap->surface->w, width);
@@ -310,11 +330,9 @@ void SDL_SetupVideo2D(GF_VideoOutput *driv)
 	driv->UnlockSurface = SDLVid_UnlockSurface;
 	driv->ResizeSurface	= SDLVid_ResizeSurface;
 	driv->IsSurfaceValid = SDLVid_IsSurfaceValid;
-
 	/*
 	driv->BlitKey = SDLVid_BltKey;
 	driv->BlitAlpha = SDLVid_BlitAlpha;
 	driv->YV12_to_RGB = SDLVid_YV12_to_RGB;
 	*/
-
 }

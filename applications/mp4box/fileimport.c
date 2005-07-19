@@ -110,17 +110,17 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 	szLan[0] = szLan[3] = 0;
 	delay = 0;
-	ext = strchr(szName, ';');
+	ext = strchr(szName, ':');
 	while (ext) {
-		char *ext2 = strchr(ext+1, ';');
+		char *ext2 = strchr(ext+1, ':');
 		if (ext2) ext2[0] = 0;
 		if (!strnicmp(ext+1, "lang=", 5)) strncpy(szLan, ext+6, 3);
 		else if (!strnicmp(ext+1, "delay=", 6)) delay = atoi(ext+7);
 
-		if (ext2) ext2[0] = ';';
+		if (ext2) ext2[0] = ':';
 		ext2 = ext+1;
 		ext[0] = 0;
-		ext = strchr(ext+1, ';');
+		ext = strchr(ext+1, ':');
 	}
 
 	/*check duration import*/
@@ -958,7 +958,7 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Do
 	sep[0] = 0;
 	sep = strchr(cat_enum.szRad2, '%');
 	if (!sep) sep = strchr(cat_enum.szRad2, '#');
-	if (!sep) sep = strchr(cat_enum.szRad2, ';');
+	if (!sep) sep = strchr(cat_enum.szRad2, ':');
 	strcpy(cat_enum.szOpt, "");
 	if (sep) {
 		strcpy(cat_enum.szOpt, sep);

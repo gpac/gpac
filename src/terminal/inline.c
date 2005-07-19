@@ -939,13 +939,24 @@ void gf_is_register_extra_graph(GF_InlineScene *is, GF_SceneGraph *extra_scene, 
 }
 
 
+static void gf_is_get_video_size(GF_MediaObject *mo, u32 *w, u32 *h)
+{
+	*w = mo->width;
+	*h = mo->height;
+	if (mo->pixel_ar) {
+		u32 n, d;
+		n = (mo->pixel_ar>>16) & 0xFF;
+		d = (mo->pixel_ar) & 0xFF;
+		*w = (mo->width * n) / d;
+	}
+}
 
 static void IS_UpdateVideoPos(GF_InlineScene *is)
 {
 	MFURL url;
 	M_Transform2D *tr;
 	GF_MediaObject *mo;
-	s32 w, h;
+	s32 w, h, v_w, v_h;
 	if (!is->visual_url.OD_ID && !is->visual_url.url) return;
 
 	url.count = 1;
@@ -958,8 +969,9 @@ static void IS_UpdateVideoPos(GF_InlineScene *is)
 	gf_sg_get_scene_size_info(is->graph, &w, &h);
 	if (!w || !h) return;
 
-	tr->translation.x = INT2FIX((s32) (w - mo->width)) / 2;
-	tr->translation.y = INT2FIX((s32) (h - mo->height)) / 2;
+	gf_is_get_video_size(mo, &v_w, &v_h);
+	tr->translation.x = INT2FIX((s32) (w - v_w)) / 2;
+	tr->translation.y = INT2FIX((s32) (h - v_h)) / 2;
 	gf_node_dirty_set((GF_Node *)tr, 0, 0);
 
 	if (is->root_od->term->root_scene == is) {
@@ -985,6 +997,14 @@ static Bool is_odm_url(SFURL *url, GF_ObjectManager *odm)
 	if (!url->url || !odm->OD->URLString) return 0;
 	return !stricmp(url->url, odm->OD->URLString);
 }
+
+void gf_is_force_scene_size_video(GF_InlineScene *is, GF_MediaObject *mo)
+{
+	u32 w, h;
+	gf_is_get_video_size(mo, &w, &h);
+	gf_is_force_scene_size(is, w, h);
+}
+
 
 /*regenerates the scene graph for dynamic scene.
 This will also try to reload any previously presented streams. Note that in the usual case the scene is generated
@@ -1077,7 +1097,10 @@ void gf_is_regenerate(GF_InlineScene *is)
 			gf_sg_vrml_mf_append(&mt->url, GF_SG_VRML_MFURL, (void **) &sfu);
 			sfu->OD_ID = is->visual_url.OD_ID;
 			if (is->visual_url.url) sfu->url = strdup(is->visual_url.url);
-			if (first_odm->mo) gf_sg_set_scene_size_info(is->graph, first_odm->mo->width, first_odm->mo->height, 1);
+			if (first_odm->mo) {
+				gf_is_get_video_size(first_odm->mo, &w, &h);
+				gf_sg_set_scene_size_info(is->graph, w, h, 1);
+			}
 			first_odm = NULL;
 			nb_obj++;
 			break;
@@ -1092,7 +1115,10 @@ void gf_is_regenerate(GF_InlineScene *is)
 		gf_sg_vrml_mf_append(&mt->url, GF_SG_VRML_MFURL, (void **) &sfu);
 		sfu->OD_ID = is->visual_url.OD_ID;
 		if (is->visual_url.url) sfu->url = strdup(is->visual_url.url);
-		if (first_odm->mo) gf_sg_set_scene_size_info(is->graph, first_odm->mo->width, first_odm->mo->height, 1);
+		if (first_odm->mo) {
+			gf_is_get_video_size(first_odm->mo, &w, &h);
+			gf_sg_set_scene_size_info(is->graph, w, h, 1);
+		}
 		nb_obj++;
 	}
 

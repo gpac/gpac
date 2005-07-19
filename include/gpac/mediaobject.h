@@ -72,7 +72,7 @@ struct _mediaobj
 
 	/*video props*/
 	Fixed FPS;	/*this is not known by default, but computed on the fly*/
-	u32 width, height, stride;
+	u32 width, height, stride, pixel_ar;
 	u32 pixelFormat;
 	/*changing at each frame for shape coding, or always 0 for frame coding, indicates 
 	X and Y coordinate of object in frame(width, height)*/

@@ -328,7 +328,7 @@ void R3D_InitCompositeTexture3D(Render3D *sr, GF_Node *node)
 	st->surface->camera.is_3D = 1;
 	camera_invalidate(&st->surface->camera);
 	st->surface->render = sr;
-	st->txh.update_gf_sr_texture_fcnt = UpdateCompositeTexture;
+	st->txh.update_texture_fcnt = UpdateCompositeTexture;
 	gf_node_set_private(node, st);
 	gf_node_set_predestroy_function(node, DestroyCompositeTexture);
 }
@@ -346,7 +346,7 @@ void R3D_InitCompositeTexture2D(Render3D *sr, GF_Node *node)
 	st->surface->camera.is_3D = 0;
 	camera_invalidate(&st->surface->camera);
 	st->surface->render = sr;
-	st->txh.update_gf_sr_texture_fcnt = UpdateCompositeTexture;
+	st->txh.update_texture_fcnt = UpdateCompositeTexture;
 	gf_node_set_private(node, st);
 	gf_node_set_predestroy_function(node, DestroyCompositeTexture);
 }

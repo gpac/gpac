@@ -272,6 +272,7 @@ void DD_WindowThread(void *par)
 		ctx->ThreadID = 0;
 		ExitThread(1);
 	}
+	SetForegroundWindow(ctx->hWnd);
 	ShowWindow(ctx->hWnd, SW_SHOWNORMAL);
 
 	/*get border & title bar sizes*/
@@ -373,7 +374,7 @@ HWND DD_GetGlobalHWND()
 
 
 
-GF_Err DD_PushEvent(GF_VideoOutput*dr, GF_Event *evt)
+GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 {
 	switch (evt->type) {
 	case GF_EVT_SET_CURSOR:
@@ -393,7 +394,7 @@ GF_Err DD_PushEvent(GF_VideoOutput*dr, GF_Event *evt)
 		if (ctx->hWnd) ShowWindow(ctx->hWnd, evt->show.show_type ? SW_SHOW : SW_HIDE);
 	}
 		break;
-	case GF_EVT_NEEDRESIZE:
+	case GF_EVT_SCENESIZE:
 	{
 		DDContext *ctx = (DDContext *)dr->opaque;
 		ctx->is_resizing = 1;

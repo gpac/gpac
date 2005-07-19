@@ -766,7 +766,7 @@ static GF_Err GAPI_PushEvent(GF_VideoOutput *dr, GF_Event *evt)
 	case GF_EVT_SHOWHIDE:
 		if (gctx->hWnd) ShowWindow(gctx->hWnd, evt->show.show_type ? SW_SHOW : SW_HIDE);
 		break;
-	case GF_EVT_NEEDRESIZE:
+	case GF_EVT_SCENESIZE:
 		gctx->is_resizing = 1;
 		SetWindowPos(gctx->hWnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE);
 		gctx->is_resizing = 0;

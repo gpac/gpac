@@ -358,6 +358,7 @@ static GF_Err TTD_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 	gf_sg_del(priv->sg);
 	priv->sg = NULL;
 	gf_odf_desc_del((GF_Descriptor *) priv->cfg);
+	priv->cfg = NULL;
 	priv->nb_streams = 0;
 	gf_list_del(priv->blink_nodes);
 	return GF_OK;

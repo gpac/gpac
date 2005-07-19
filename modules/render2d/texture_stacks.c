@@ -229,7 +229,7 @@ void R2D_InitCompositeTexture2D(Render2D *sr, GF_Node *node)
 	Composite2DStack *st = malloc(sizeof(Composite2DStack));
 	memset(st, 0, sizeof(Composite2DStack));
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
-	st->txh.update_gf_sr_texture_fcnt = UpdateComposite2D;
+	st->txh.update_texture_fcnt = UpdateComposite2D;
 	
 	/*create composite surface*/
 	st->surf = NewVisualSurface2D();
@@ -446,7 +446,7 @@ void R2D_InitLinearGradient(Render2D *sr, GF_Node *node)
 	memset(st, 0, sizeof(GradientStack));
 
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
-	st->txh.update_gf_sr_texture_fcnt = UpdateLinearGradient;
+	st->txh.update_texture_fcnt = UpdateLinearGradient;
 
 	st->txh.compute_gradient_matrix = LG_ComputeMatrix;
 	gf_node_set_private(node, st);
@@ -545,7 +545,7 @@ void R2D_InitRadialGradient(Render2D *sr, GF_Node *node)
 	memset(st, 0, sizeof(GradientStack));
 
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
-	st->txh.update_gf_sr_texture_fcnt = UpdateRadialGradient;
+	st->txh.update_texture_fcnt = UpdateRadialGradient;
 
 	st->txh.compute_gradient_matrix = RG_ComputeMatrix;
 

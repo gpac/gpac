@@ -158,8 +158,8 @@ void PrintImportUsage()
 			" \"#video\" \"#audio\":   base import for most AV files\n"
 			" \"#trackID=ID\":       track import for IsoMedia and other files\n"
 			" \"%%X\":                imports only the first X seconds\n"
-			" \";lang=LAN\":         sets imported media language code\n"
-			" \";delay=delay_ms\":   sets imported media initial delay in ms\n"
+			" \":lang=LAN\":         sets imported media language code\n"
+			" \":delay=delay_ms\":   sets imported media initial delay in ms\n"
 			"\n"
 			" -add file:           add file tracks to (new) output file\n"
 			" -cat file:           concatenates file samples to (new) output file\n"
@@ -320,25 +320,25 @@ void PrintDumpUsage()
 void PrintMetaUsage()
 {
 	fprintf(stdout, "Meta handling Options\n"
-			" -set-meta args:      sets given meta type - syntax: \"ABCD[;tk=ID]\"\n"
+			" -set-meta args:      sets given meta type - syntax: \"ABCD[:tk=ID]\"\n"
 			"                       * ABCD: four char meta type (NULL or 0 to remove meta)\n"
-			"                       * [;tk=ID]: if not set use root (file) meta\n"
+			"                       * [:tk=ID]: if not set use root (file) meta\n"
 			"                                if ID is 0 use moov meta\n"
 			"                                if ID is not 0 use track meta\n"
 			" -add-item args:      adds resource to meta\n"
-			"                       * syntax: file_path + options (\';\' separated):\n"
+			"                       * syntax: file_path + options (\':\' separated):\n"
 			"                        tk=ID: meta adressing (file, moov, track)\n"
 			"                        name=str: item name\n"
 			"                        mime=mtype: item mime type\n"
 			"                        encoding=enctype: item content-encoding type\n"
 			"                       * file_path \"this\" or \"self\": item is the file itself\n"
-			" -rem-item args:      removes resource from meta - syntax: item_ID[;tk=ID]\n"
-			" -set-primary args:   sets item as primary for meta - syntax: item_ID[;tk=ID]\n"
+			" -rem-item args:      removes resource from meta - syntax: item_ID[:tk=ID]\n"
+			" -set-primary args:   sets item as primary for meta - syntax: item_ID[:tk=ID]\n"
 			" -set-xml args:       sets meta XML data\n"
-			"                       * syntax: xml_file_path[;tk=ID][;binary]\n"
+			"                       * syntax: xml_file_path[:tk=ID][:binary]\n"
 			" -rem-xml [tk=ID]:    removes meta XML data\n"
-			" -dump-xml args:      dumps meta XML to file - syntax file_path[;tk=ID]\n"
-			" -dump-item args:     dumps item to file - syntax item_ID[;tk=ID][;path=fileName]\n"
+			" -dump-xml args:      dumps meta XML to file - syntax file_path[:tk=ID]\n"
+			" -dump-item args:     dumps item to file - syntax item_ID[:tk=ID][:path=fileName]\n"
 			"\n");
 }
 
@@ -733,9 +733,9 @@ static Bool parse_meta_args(MetaAction *meta, char *opts)
 	if (!opts) return 0;
 	while (1) {
 		if (!opts || !opts[0]) return ret;
-		if (opts[0]==';') opts += 1;
+		if (opts[0]==':') opts += 1;
 		strcpy(szSlot, opts);
-		next = strchr(szSlot, ';');
+		next = strchr(szSlot, ':');
 		if (next) next[0] = 0;
 		
 		if (!strnicmp(szSlot, "tk=", 3)) {

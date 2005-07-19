@@ -103,11 +103,11 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 			GF_Event evt;
 			Bool restore_fs = sr->fullscreen;
 			/*send resize event*/
-			evt.type = GF_EVT_NEEDRESIZE;
+			evt.type = GF_EVT_SCENESIZE;
 			evt.size.width = sr->new_width;
 			evt.size.height = sr->new_height;
 			if (restore_fs) gf_sr_set_fullscreen(sr);
-			sr->video_out->PushEvent(sr->video_out, &evt);
+			sr->video_out->ProcessEvent(sr->video_out, &evt);
 			gf_sr_set_output_size(sr, sr->new_width, sr->new_height);
 			sr->new_width = sr->new_height = 0;
 			if (restore_fs) gf_sr_set_fullscreen(sr);
@@ -236,7 +236,7 @@ static GF_Renderer *SR_New(GF_User *user)
 			tmp->video_out->evt_cbk_hdl = tmp;
 			tmp->video_out->on_event = gf_sr_on_event;
 			/*init hw*/
-			if (tmp->video_out->SetupHardware(tmp->video_out, user->os_window_handler, user->os_display, user->dont_override_window_proc, gl_cfg) != GF_OK) {
+			if (tmp->video_out->Setup(tmp->video_out, user->os_window_handler, user->os_display, user->dont_override_window_proc, gl_cfg) != GF_OK) {
 				gf_modules_close_interface((GF_BaseInterface *)tmp->video_out);
 				tmp->video_out = NULL;
 			}
@@ -254,7 +254,7 @@ static GF_Renderer *SR_New(GF_User *user)
 			tmp->video_out->evt_cbk_hdl = tmp;
 			tmp->video_out->on_event = gf_sr_on_event;
 			/*init hw*/
-			if (tmp->video_out->SetupHardware(tmp->video_out, user->os_window_handler, user->os_display, user->dont_override_window_proc, gl_cfg)==GF_OK) {
+			if (tmp->video_out->Setup(tmp->video_out, user->os_window_handler, user->os_display, user->dont_override_window_proc, gl_cfg)==GF_OK) {
 				gf_cfg_set_key(user->config, "Video", "DriverName", tmp->video_out->module_name);
 				break;
 			}
@@ -649,11 +649,11 @@ GF_Err gf_sr_set_option(GF_Renderer *sr, u32 type, u32 value)
 		break;
 	case GF_OPT_VISIBLE:
 		sr->is_hidden = !value;
-		if (sr->video_out->PushEvent) {
+		if (sr->video_out->ProcessEvent) {
 			GF_Event evt;
 			evt.type = GF_EVT_SHOWHIDE;
 			evt.show.show_type = value ? 1 : 0;
-			e = sr->video_out->PushEvent(sr->video_out, &evt);
+			e = sr->video_out->ProcessEvent(sr->video_out, &evt);
 		}
 		break;
 	case GF_OPT_FREEZE_DISPLAY: 
@@ -935,7 +935,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 		GF_TextureHandler *st = gf_list_get(sr->textures, i);
 		/*signal graphics reset before updating*/
 		if (sr->reset_graphics && st->hwtx) sr->visual_renderer->TextureHWReset(st);
-		st->update_gf_sr_texture_fcnt(st);
+		st->update_texture_fcnt(st);
 	}
 
 	/*if invalidated, draw*/
@@ -1025,9 +1025,6 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 		break;
 	case GF_EVT_WINDOWSIZE:
 		gf_sr_size_changed(sr, event->size.width, event->size.height);
-		break;
-	case GF_EVT_NEEDRESIZE:
-		gf_sr_set_size(sr, event->size.width, event->size.height);
 		break;
 	case GF_EVT_VKEYDOWN:
 		s = c = m = 0;

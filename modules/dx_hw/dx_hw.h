@@ -116,7 +116,7 @@ typedef struct
 
 void DD_SetupWindow(GF_VideoOutput *dr);
 void DD_ShutdownWindow(GF_VideoOutput*dr);
-GF_Err DD_PushEvent(GF_VideoOutput*dr, GF_Event *evt);
+GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt);
 
 void DestroyObjects(DDContext *dd);
 GF_Err GetDisplayMode(DDContext *dd);

@@ -135,6 +135,7 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 		}
 	}
 	samp_done = 1;
+	gf_isom_text_set_streaming_mode(load->isom, 1);
 
 	for (i=0; i<gf_isom_get_track_count(load->isom); i++) {
 		u32 type = gf_isom_get_media_type(load->isom, i+1);
@@ -205,6 +206,7 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 		gf_odf_desc_del((GF_Descriptor *) esd);
 		esd = NULL;
 	}
+	gf_isom_text_set_streaming_mode(load->isom, 0);
 
 exit:
 	gf_bifs_decoder_del(bdec);

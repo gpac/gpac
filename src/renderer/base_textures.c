@@ -152,7 +152,7 @@ void InitMovieTexture(GF_Renderer *sr, GF_Node *node)
 	MovieTextureStack *st = malloc(sizeof(MovieTextureStack));
 	memset(st, 0, sizeof(MovieTextureStack));
 	gf_sr_texture_setup(&st->txh, sr, node);
-	st->txh.update_gf_sr_texture_fcnt = UpdateMovieTexture;
+	st->txh.update_texture_fcnt = UpdateMovieTexture;
 	st->time_handle.UpdateTimeNode = MT_UpdateTime;
 	st->time_handle.obj = node;
 	st->fetch_first_frame = 1;
@@ -221,7 +221,7 @@ void InitImageTexture(GF_Renderer *sr, GF_Node *node)
 {
 	ImageTextureStack *st = malloc(sizeof(ImageTextureStack));
 	gf_sr_texture_setup(&st->txh, sr, node);
-	st->txh.update_gf_sr_texture_fcnt = UpdateImageTexture;
+	st->txh.update_texture_fcnt = UpdateImageTexture;
 	gf_node_set_private(node, st);
 	gf_node_set_predestroy_function(node, DestroyImageTexture);
 	st->txh.flags = 0;
@@ -336,7 +336,7 @@ void InitPixelTexture(GF_Renderer *sr, GF_Node *node)
 	PixelTextureStack *st = malloc(sizeof(PixelTextureStack));
 	gf_sr_texture_setup(&st->txh, sr, node);
 	st->pixels = NULL;
-	st->txh.update_gf_sr_texture_fcnt = UpdatePixelTexture;
+	st->txh.update_texture_fcnt = UpdatePixelTexture;
 
 	gf_node_set_private(node, st);
 	gf_node_set_predestroy_function(node, DestroyPixelTexture);

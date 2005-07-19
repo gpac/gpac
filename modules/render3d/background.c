@@ -198,7 +198,7 @@ void R3D_InitBackground2D(Render3D *sr, GF_Node *node)
 	ptr->reg_stacks = gf_list_new();
 	((M_Background2D *)node)->on_set_bind = b2D_set_bind;
 	gf_sr_texture_setup(&ptr->txh, sr->compositor, node);
-	ptr->txh.update_gf_sr_texture_fcnt = UpdateBackgroundTexture;
+	ptr->txh.update_texture_fcnt = UpdateBackgroundTexture;
 	gf_node_set_private(node, ptr);
 	gf_node_set_predestroy_function(node, DestroyBackground2D);
 	gf_node_set_render_function(node, RenderBackground2D);
@@ -599,17 +599,17 @@ void R3D_InitBackground(Render3D *sr, GF_Node *node)
 
 
 	gf_sr_texture_setup(&ptr->txh_back, sr->compositor, node);
-	ptr->txh_back.update_gf_sr_texture_fcnt = UpdateBackgroundTexture;
+	ptr->txh_back.update_texture_fcnt = UpdateBackgroundTexture;
 	gf_sr_texture_setup(&ptr->txh_front, sr->compositor, node);
-	ptr->txh_front.update_gf_sr_texture_fcnt = UpdateBackgroundTexture;
+	ptr->txh_front.update_texture_fcnt = UpdateBackgroundTexture;
 	gf_sr_texture_setup(&ptr->txh_top, sr->compositor, node);
-	ptr->txh_top.update_gf_sr_texture_fcnt = UpdateBackgroundTexture;
+	ptr->txh_top.update_texture_fcnt = UpdateBackgroundTexture;
 	gf_sr_texture_setup(&ptr->txh_bottom, sr->compositor, node);
-	ptr->txh_bottom.update_gf_sr_texture_fcnt = UpdateBackgroundTexture;
+	ptr->txh_bottom.update_texture_fcnt = UpdateBackgroundTexture;
 	gf_sr_texture_setup(&ptr->txh_left, sr->compositor, node);
-	ptr->txh_left.update_gf_sr_texture_fcnt = UpdateBackgroundTexture;
+	ptr->txh_left.update_texture_fcnt = UpdateBackgroundTexture;
 	gf_sr_texture_setup(&ptr->txh_right, sr->compositor, node);
-	ptr->txh_right.update_gf_sr_texture_fcnt = UpdateBackgroundTexture;
+	ptr->txh_right.update_texture_fcnt = UpdateBackgroundTexture;
 
 	gf_node_set_private(node, ptr);
 	gf_node_set_predestroy_function(node, DestroyBackground);

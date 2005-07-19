@@ -28,7 +28,7 @@
 #define DDCONTEXT	DDContext *dd = (DDContext *)dr->opaque;
 
 
-GF_Err DD_SetupHardware(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no_proc_override, GF_GLConfig *cfg)
+GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no_proc_override, GF_GLConfig *cfg)
 {
 	RECT rc;
 	DDCONTEXT
@@ -247,21 +247,6 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 }
 
 
-static GF_Err DD_Resize(GF_VideoOutput *dr, u32 width, u32 height)
-{
-	DDCONTEXT;
-
-	if (dd->is_3D_out) {
-		dd->width = width;
-		dd->height = height;
-		return DD_SetupOpenGL(dr);
-	}
-	if (!dd->ddraw_init) 
-		return InitDirectDraw(dr, width, height);
-	else
-		return CreateBackBuffer(dr, width, height);
-}
-
 
 static GF_Err DD_FlushVideo(GF_VideoOutput *dr, GF_Window *dest)
 {
@@ -367,11 +352,10 @@ static void *NewDXVideoOutput()
 	pCtx->surfaces = gf_list_new();
 	driv->opaque = pCtx;
 	driv->FlushVideo = DD_FlushVideo;
-	driv->Resize = DD_Resize;
 	driv->SetFullScreen = DD_SetFullScreen;
-	driv->SetupHardware = DD_SetupHardware;
+	driv->Setup  = DD_Setup;
 	driv->Shutdown = DD_Shutdown;
-	driv->PushEvent = DD_PushEvent;
+	driv->ProcessEvent = DD_ProcessEvent;
 	driv->bHas3DSupport = 1;
 
 	DD_SetupDDraw(driv);

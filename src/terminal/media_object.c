@@ -98,6 +98,13 @@ void MO_UpdateCaps(GF_MediaObject *mo)
 		cap.CapCode = GF_CODEC_FPS;
 		gf_codec_get_capability(mo->odm->codec, &cap);
 		mo->odm->codec->fps = cap.cap.valueFloat;
+		/*get PAR settings*/
+		cap.CapCode = GF_CODEC_PAR;
+		gf_codec_get_capability(mo->odm->codec, &cap);
+		mo->odm->codec->fps = cap.cap.valueFloat;
+		mo->pixel_ar = cap.cap.valueInt;
+		if (! (mo->pixel_ar & 0x0000FFFF)) mo->pixel_ar = 0;
+		if (! (mo->pixel_ar & 0xFFFF0000)) mo->pixel_ar = 0;
 	}
 	else if (mo->type == GF_MEDIA_OBJECT_AUDIO) {
 		cap.CapCode = GF_CODEC_SAMPLERATE;

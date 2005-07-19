@@ -241,7 +241,7 @@ void R3D_InitLinearGradient(Render3D *sr, GF_Node *node)
 	GradientStack *st = malloc(sizeof(GradientStack));
 	memset(st, 0, sizeof(GradientStack));
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
-	st->txh.update_gf_sr_texture_fcnt = UpdateLinearGradient;
+	st->txh.update_texture_fcnt = UpdateLinearGradient;
 	gf_node_set_private(node, st);
 	gf_node_set_predestroy_function(node, DestroyLinearGradient);
 }
@@ -437,7 +437,7 @@ void R3D_InitRadialGradient(Render3D *sr, GF_Node *node)
 	GradientStack *st = malloc(sizeof(GradientStack));
 	memset(st, 0, sizeof(GradientStack));
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
-	st->txh.update_gf_sr_texture_fcnt = UpdateRadialGradient;
+	st->txh.update_texture_fcnt = UpdateRadialGradient;
 	gf_node_set_private(node, st);
 	gf_node_set_predestroy_function(node, DestroyRadialGradient);
 }

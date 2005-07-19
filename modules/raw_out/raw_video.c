@@ -75,7 +75,7 @@ static RawSurface *raw_get_surface(GF_VideoOutput *dr, u32 id)
 	return NULL;
 }
 
-GF_Err RAW_SetupHardware(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no_proc_override, GF_GLConfig *cfg)
+GF_Err RAW_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no_proc_override, GF_GLConfig *cfg)
 {
 	if (cfg) return GF_NOT_SUPPORTED;
 	raw_resize(dr, 100, 100);
@@ -259,13 +259,7 @@ static GF_Err RAW_ResizeSurface(GF_VideoOutput *dr, u32 surface_id, u32 width, u
 	return GF_OK;
 }
 
-
-static GF_Err RAW_Resize(GF_VideoOutput *dr, u32 width, u32 height)
-{
-	return RAW_ResizeSurface(dr, 0, width, height);
-}
-
-static GF_Err RAW_PushEvent(GF_VideoOutput *dr, GF_Event *evt)
+static GF_Err RAW_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 {
 	if (evt->type == GF_EVT_WINDOWSIZE) {
 		return RAW_ResizeSurface(dr, 0, evt->size.width, evt->size.height);
@@ -300,14 +294,12 @@ GF_VideoOutput *NewRawVideoOutput()
 	driv->LockSurface = RAW_LockSurface;
 	driv->ReleaseContext = RAW_ReleaseContext;
 	driv->IsSurfaceValid = RAW_IsSurfaceValid;
-	driv->Resize = RAW_Resize;
 	driv->SetFullScreen = RAW_SetFullScreen;
-	driv->SetupHardware = RAW_SetupHardware;
+	driv->Setup = RAW_Setup;
 	driv->Shutdown = RAW_Shutdown;
 	driv->UnlockSurface = RAW_UnlockSurface;
 	driv->ResizeSurface	= RAW_ResizeSurface;
-
-	driv->PushEvent = RAW_PushEvent;
+	driv->ProcessEvent = RAW_ProcessEvent;
 	return (void *)driv;
 }
 

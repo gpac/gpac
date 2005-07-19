@@ -92,34 +92,10 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, Bool from_ff_demux)
 	}
 }
 
-static Bool FFDec_UpdateAspectRatio(FFDec *ffd)
-{
-	u32 vow, voh;
-	vow = ffd->ctx->width;
-	voh = ffd->ctx->height;
-	if (ffd->enable_par && (ffd->ctx->sample_aspect_ratio.num != 0)) {
-		vow = (ffd->ctx->width*ffd->ctx->sample_aspect_ratio.num) / ffd->ctx->sample_aspect_ratio.den;
-	}
-	if ((vow==ffd->vout_width) && (voh==ffd->vout_height)) return 0;
-	if (ffd->resamp_yuv) img_resample_close(ffd->resamp_yuv);
-	ffd->resamp_yuv = NULL;
-
-	ffd->vout_width = vow;
-	ffd->vout_height = voh;
-	if (ffd->ctx->sample_aspect_ratio.num != 0) {
-		ffd->resamp_yuv = img_resample_init(vow, voh, ffd->ctx->width, ffd->ctx->height);
-	}
-	/*output in YV12 only - let the player handle conversion*/
-	ffd->out_size = ffd->vout_width * ffd->vout_height * 3;
-	if (ffd->codec->id!=CODEC_ID_MJPEG) ffd->out_size /= 2;
-	return 1;
-}
-
 static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, unsigned char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
 	u32 codec_id;
 	GF_BitStream *bs;
-	const char *sOpt;
 	GF_M4VDecSpecInfo dsi;
 	GF_Err e;
 	FFDec *ffd = (FFDec *)plug->privateStack;
@@ -243,6 +219,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, unsigned char 
 				ffd->ctx->width = dsi.width;
 				ffd->ctx->height = dsi.height;
 				if (!dsi.width && !dsi.height) ffd->check_short_header = 1;
+				ffd->previous_par = (dsi.par_num<<16) | dsi.par_den;
 			}
 
 			/*setup dsi for FFMPEG context BEFORE attaching decoder (otherwise not proper init)*/
@@ -265,28 +242,24 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, unsigned char 
 		if (!ffd->ctx->sample_rate) ffd->ctx->sample_rate = 44100;
 		if (!ffd->ctx->channels) ffd->ctx->channels = 2;
 	} else {
-		FFDec_UpdateAspectRatio(ffd);
-	}
-
-	switch (ffd->codec->id) {
-	case CODEC_ID_MJPEG:
-	case CODEC_ID_MJPEGB:
-	case CODEC_ID_LJPEG:
-		ffd->pix_fmt = GF_PIXEL_RGB_24; 
-		break;
-	default:
-		ffd->pix_fmt = GF_PIXEL_YV12; 
-		break;
+		switch (ffd->codec->id) {
+		case CODEC_ID_MJPEG:
+		case CODEC_ID_MJPEGB:
+		case CODEC_ID_LJPEG:
+			ffd->pix_fmt = GF_PIXEL_RGB_24; 
+			break;
+		default:
+			ffd->pix_fmt = GF_PIXEL_YV12; 
+			break;
+		}
+		ffd->out_size = ffd->ctx->width * ffd->ctx->height * 3;
+		if (ffd->pix_fmt!=GF_PIXEL_RGB_24) ffd->out_size /= 2;
 	}
 
 #if 0
 	ffd->ctx->debug = FF_DEBUG_PICT_INFO | FF_DEBUG_BITSTREAM | FF_DEBUG_STARTCODE;
 	av_log_set_level(AV_LOG_DEBUG);
 #endif
-	
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "EnablePixelAspectRatio");
-	ffd->enable_par = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
-
 	return GF_OK;
 }
 static GF_Err FFDEC_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
@@ -299,9 +272,6 @@ static GF_Err FFDEC_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 		avcodec_close(ffd->ctx);
 		ffd->ctx = NULL;
 	}
-	if (ffd->resamp_yuv) img_resample_close(ffd->resamp_yuv);
-	ffd->resamp_yuv = NULL;
-
 	return GF_OK;
 }
 
@@ -354,16 +324,19 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		capability->cap.valueInt =  (ffd->st==GF_STREAM_AUDIO) ? ffd->ctx->frame_size : 0;
 		break;
 	case GF_CODEC_WIDTH:
-		capability->cap.valueInt = ffd->vout_width;
+		capability->cap.valueInt = ffd->ctx->width;
 		break;
 	case GF_CODEC_HEIGHT:
-		capability->cap.valueInt = ffd->vout_height;
+		capability->cap.valueInt = ffd->ctx->height;
 		break;
 	case GF_CODEC_STRIDE:
-		capability->cap.valueInt = (ffd->pix_fmt==GF_PIXEL_RGB_24) ? ffd->vout_width*3 : ffd->vout_width;
+		capability->cap.valueInt = (ffd->pix_fmt==GF_PIXEL_RGB_24) ? ffd->ctx->width*3 : ffd->ctx->width;
 		break;
 	case GF_CODEC_FPS:
 		capability->cap.valueFloat = 30.0f;
+		break;
+	case GF_CODEC_PAR:
+		capability->cap.valueInt = ffd->previous_par;
 		break;
 	case GF_CODEC_PIXEL_FORMAT:
 		if (ffd->ctx->width) {
@@ -519,20 +492,23 @@ redecode:
 			}
 		}
 		ffd->ctx->hurry_up = 0;
-
-		if (FFDec_UpdateAspectRatio(ffd)) {
-			*outBufferLength = ffd->out_size;
-			return GF_BUFFER_TOO_SMALL;
-		}
-
-
-		outsize = (u32) ffd->vout_width * ffd->vout_height * 3;
+		/*recompute outsize in case on-the-fly change*/
+		outsize = ffd->ctx->width * ffd->ctx->height * 3;
 		if (ffd->pix_fmt!=GF_PIXEL_RGB_24) outsize /= 2;
+
 		if (ffd->out_size != outsize) {
 			ffd->out_size = outsize;
 			*outBufferLength = ffd->out_size;
 			return GF_BUFFER_TOO_SMALL;
 		}
+		/*check PAR in case on-the-fly change*/
+		outsize = (ffd->ctx->sample_aspect_ratio.num<<16) | ffd->ctx->sample_aspect_ratio.den;
+		if (outsize!=ffd->previous_par) {
+			ffd->previous_par=outsize;
+			*outBufferLength = ffd->out_size;
+			return GF_BUFFER_TOO_SMALL;
+		}
+
 		*outBufferLength = 0;
 		if (mmlevel	== GF_CODEC_LEVEL_SEEK) return GF_OK;
 
@@ -542,25 +518,19 @@ redecode:
 			memset(&pict, 0, sizeof(pict));
 			if (ffd->pix_fmt==GF_PIXEL_RGB_24) {
 				pict.data[0] = outBuffer;
-				pict.linesize[0] = 3*ffd->vout_width;
+				pict.linesize[0] = 3*ffd->ctx->width;
 				pix_out = PIX_FMT_RGB24;
 			} else {
-
 				pict.data[0] = outBuffer;
-				pict.data[1] = outBuffer + ffd->vout_width * ffd->vout_height;
-				pict.data[2] = outBuffer + 5 * ffd->vout_width * ffd->vout_height / 4;
-				pict.linesize[0] = ffd->vout_width;
-				pict.linesize[1] = pict.linesize[2] = ffd->vout_width/2;
+				pict.data[1] = outBuffer + ffd->ctx->width * ffd->ctx->height;
+				pict.data[2] = outBuffer + 5 * ffd->ctx->width * ffd->ctx->height / 4;
+				pict.linesize[0] = ffd->ctx->width;
+				pict.linesize[1] = pict.linesize[2] = ffd->ctx->width/2;
 				pix_out = PIX_FMT_YUV420P;
 			}
 			pict.data[3] = 0;
 			pict.linesize[3] = 0;
-
-			if (ffd->resamp_yuv) {
-				img_resample(ffd->resamp_yuv, &pict, (AVPicture *) ffd->frame);
-			} else {
-				img_convert(&pict, pix_out, (AVPicture *) ffd->frame, ffd->ctx->pix_fmt, ffd->ctx->width, ffd->ctx->height);
-			}
+			img_convert(&pict, pix_out, (AVPicture *) ffd->frame, ffd->ctx->pix_fmt, ffd->ctx->width, ffd->ctx->height);
 			*outBufferLength = ffd->out_size;
 		}
 	}

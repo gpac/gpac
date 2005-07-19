@@ -788,8 +788,14 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					if (full_dump) fprintf(stdout, "\t");
 					w = dsi.width;
 					h = dsi.height;
-					if (w && h) 
+					if (w && h) {
 						fprintf(stdout, "MPEG-4 Visual Size %d x %d - %s\n", dsi.width, dsi.height, gf_m4v_get_profile_name(dsi.VideoPL));
+						if (dsi.par_den && dsi.par_num) {
+							u32 tw, th;
+							gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
+							fprintf(stdout, "Pixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", dsi.par_num, dsi.par_den, tw, th);
+						}
+					}
 				} else if (esd->decoderConfig->objectTypeIndication==0x21) {
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 					if (full_dump) fprintf(stdout, "\t");

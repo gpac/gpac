@@ -41,6 +41,18 @@ static Bool surface_valid(DDContext *dd, DDSurface *ds, Bool remove)
 }
 
 
+static GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height)
+{
+	DDCONTEXT;
+
+	if (dd->is_3D_out) return GF_BAD_PARAM;
+
+	if (!dd->ddraw_init) 
+		return InitDirectDraw(dr, width, height);
+	else
+		return CreateBackBuffer(dr, width, height);
+}
+
 
 static GF_Err DD_ClearBackBuffer(GF_VideoOutput *dr, u32 color)
 {
@@ -648,7 +660,8 @@ static GF_Err DD_ResizeSurface(GF_VideoOutput *dr, u32 surface_id, u32 width, u3
 	HRESULT hr;
 	DDCONTEXT;
 
-	if (!surface_id) return GF_BAD_PARAM;
+	if (!surface_id) DD_SetBackBufferSize(dr, width, height);
+
 	ds = (DDSurface *) surface_id;
 	if (!surface_valid(dd, ds, 0)) return GF_BAD_PARAM;
 	if ( (ds->height>=height) && (ds->width>=width)) return GF_OK;

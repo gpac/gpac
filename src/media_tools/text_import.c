@@ -94,12 +94,26 @@ static void gf_text_get_video_size(GF_ISOFile *dest, u32 *width, u32 *height)
 			gf_isom_get_visual_info(dest, i+1, 1, &w, &h);
 			if (w > (*width)) (*width) = w;
 			if (h > (*height)) (*height) = h;
+			gf_isom_get_track_layout_info(dest, i+1, &w, &h, NULL, NULL, NULL);
+			if (w > (*width)) (*width) = w;
+			if (h > (*height)) (*height) = h;
 			break;
 		}
 	}
 }
 
 
+static void gf_text_import_set_language(GF_MediaImporter *import, u32 track)
+{
+	if (import->esd && import->esd->langDesc) {
+		char lang[4];
+		lang[0] = (import->esd->langDesc->langCode>>16) & 0xFF;
+		lang[1] = (import->esd->langDesc->langCode>>8) & 0xFF;
+		lang[2] = (import->esd->langDesc->langCode) & 0xFF;
+		lang[3] = 0;
+		gf_isom_set_media_language(import->dest, track, lang);
+	}
+}
 
 static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 {
@@ -229,7 +243,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		gf_import_message(import, GF_OK, "Timed Text (SRT) import - text track %d x %d, font %s (size %d)", w, h, sd->fonts[0].fontName, rec.font_size);
 		gf_odf_desc_del((GF_Descriptor *)sd);
 	}
-
+	gf_text_import_set_language(import, track);
 	duration = (u32) (((Double) import->duration)*timescale/1000.0);
 
 	e = GF_OK;
@@ -486,6 +500,8 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 	}
 	gf_isom_set_track_enabled(import->dest, track, 1);
 	if (import->esd && !import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
+
+	gf_text_import_set_language(import, track);
 
 	file_size = 0;
 	/*setup track*/
@@ -812,6 +828,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 		import->esd->decoderConfig->objectTypeIndication = 0x08;
 		if (import->esd->OCRESID) gf_isom_set_track_reference(import->dest, track, GF_ISOM_REF_OCR, import->esd->OCRESID);
 	}
+	gf_text_import_set_language(import, track);
 
 	gf_import_message(import, GF_OK, "Timed Text (GPAC TTXT) Import");
 	parser.OnProgress = xml_import_progress;
@@ -1196,6 +1213,8 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 	}
 	DTS = 0;
 	gf_isom_set_track_layout_info(import->dest, track, w<<16, h<<16, tx<<16, ty<<16, (s16) layer);
+
+	gf_text_import_set_language(import, track);
 
 	gf_import_message(import, GF_OK, "Timed Text (QT TeXML) Import - Track Size %d x %d", w, h);
 	parser.OnProgress = xml_import_progress;

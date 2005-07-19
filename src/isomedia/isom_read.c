@@ -1876,11 +1876,11 @@ GF_Err gf_isom_get_track_layout_info(GF_ISOFile *movie, u32 trackNumber, u32 *wi
 {
 	GF_TrackBox *tk = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!tk) return GF_BAD_PARAM;
-	*width = tk->Header->width;
-	*height = tk->Header->height;
-	*layer = tk->Header->layer;
-	*translation_x = tk->Header->matrix[6];
-	*translation_y = tk->Header->matrix[7];
+	if (width) *width = tk->Header->width;
+	if (height) *height = tk->Header->height;
+	if (layer) *layer = tk->Header->layer;
+	if (translation_x) *translation_x = tk->Header->matrix[6];
+	if (translation_y) *translation_y = tk->Header->matrix[7];
 	return GF_OK;
 }
 

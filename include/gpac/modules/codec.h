@@ -91,6 +91,8 @@ enum
 	GF_CODEC_HEIGHT,
 	GF_CODEC_STRIDE,
 	GF_CODEC_FPS,
+	/*Pixel Aspect Ratio, expressed as (par.num<<16) | par.den*/
+	GF_CODEC_PAR,
 	/*video color mode - color modes are defined in constants.h*/
 	GF_CODEC_PIXEL_FORMAT,
 	/*isgnal decoder performs frame re-ordering in temporal scalability*/

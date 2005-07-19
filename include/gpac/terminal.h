@@ -148,7 +148,7 @@ typedef struct
 	/*audio properties*/
 	u32 sample_rate, bits_per_sample, num_channels;
 	/*video properties (w & h also used for scene codecs)*/
-	u32 width, height, pixelFormat;
+	u32 width, height, pixelFormat, par;
 
 	/*average birate over last second and max bitrate over one second at decoder input - expressed in bits per sec*/
 	u32 avg_bitrate, max_bitrate;

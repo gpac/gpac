@@ -45,7 +45,7 @@ typedef struct
 	void *codec;
 	/*no support for scalability in XVID yet*/
 	u16 ES_ID;
-	u32 width, height, out_size;
+	u32 width, height, out_size, pixel_ar;
 	Bool first_frame;
 	s32 base_filters;
 	Float FPS;
@@ -84,6 +84,7 @@ static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, unsigned char *
 	ctx->FPS = dsi.clock_rate;
 	ctx->FPS /= 1000;
 	if (!ctx->FPS) ctx->FPS = 30.0f;
+	ctx->pixel_ar = (dsi.par_num<<16) | dsi.par_den;
 
 #ifndef XVID_USE_OLD_API
 	par.version = XVID_VERSION;
@@ -139,6 +140,9 @@ static GF_Err XVID_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		break;
 	case GF_CODEC_FPS:
 		capability->cap.valueFloat = ctx->FPS;
+		break;
+	case GF_CODEC_PAR:
+		capability->cap.valueInt = ctx->pixel_ar;
 		break;
 	case GF_CODEC_OUTPUT_SIZE:
 		capability->cap.valueInt = ctx->out_size;

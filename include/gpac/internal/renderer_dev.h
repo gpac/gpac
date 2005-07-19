@@ -190,7 +190,7 @@ typedef struct _gf_sr_texture_handler
 	URLs (when they could in VRML), the MF is only holding media segment descriptions*/
 	MFURL current_url;
 	/*to override by each texture node*/
-	void (*update_gf_sr_texture_fcnt)(struct _gf_sr_texture_handler *txh);
+	void (*update_texture_fcnt)(struct _gf_sr_texture_handler *txh);
 	/*needs_release if a visual frame is grabbed (not used by modules)*/
 	Bool needs_release;
 	/*stream_finished: indicates stream is over (not used by modules)*/
@@ -213,7 +213,7 @@ typedef struct _gf_sr_texture_handler
 
 	/*image data for natural media*/
 	char *data;
-	u32 width, height, stride, pixelformat, frame_size;
+	u32 width, height, stride, pixelformat, pixel_ar;
 	/*if set texture has been transformed by MatteTexture -> disable blit*/
 	Bool has_cmat;
 

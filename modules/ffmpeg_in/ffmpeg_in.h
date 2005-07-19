@@ -63,16 +63,13 @@ typedef struct
 	u32 ES_ID;
 	u32 out_size;
 	u32 oti, st;
-	u32 enable_par;
+	u32 previous_par;
 
 	Bool check_short_header;
 	AVCodecContext *ctx;
     AVCodec *codec;
 	AVFrame *frame;
 	u32 pix_fmt;
-	/*video out size (to deal with pixel aspect ratio)*/
-	u32 vout_width, vout_height;
-	ImgReSampleContext *resamp_yuv;
 
 	/*for audio packed frames*/
 	u32 frame_start;

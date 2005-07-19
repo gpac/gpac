@@ -255,7 +255,7 @@ void R2D_UnregisterSensor(GF_Renderer *compositor, SensorHandler *sh)
 }
 
 
-#define R2DSETCURSOR(t) { GF_Event evt; evt.type = GF_EVT_SET_CURSOR; evt.cursor.cursor_type = (t); sr->compositor->video_out->PushEvent(sr->compositor->video_out, &evt); }
+#define R2DSETCURSOR(t) { GF_Event evt; evt.type = GF_EVT_SET_CURSOR; evt.cursor.cursor_type = (t); sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt); }
 
 static Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 {
@@ -295,39 +295,38 @@ static Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	//3- mark all sensors of the context to skip deactivation
 	ev->context = ctx;
 	if (ctx) {	
+		SensorContext *sc;
 		count = gf_list_count(ctx->sensors);
 		for (i=0; i<count; i++) {
 			SensorContext *sc = gf_list_get(ctx->sensors, i);
 			sc->h_node->skip_second_pass = 1;
 		}
 
-		if (sr->compositor->video_out->PushEvent) {
-			SensorContext *sc = gf_list_get(ctx->sensors, count-1);
-			//also notify the app we're above a sensor
-			type = GF_CURSOR_NORMAL;
-			switch (gf_node_get_tag(sc->h_node->owner)) {
-			case TAG_MPEG4_Anchor: type = GF_CURSOR_ANCHOR; break;
-			case TAG_MPEG4_PlaneSensor2D: type = GF_CURSOR_PLANE; break;
-			case TAG_MPEG4_DiscSensor: type = GF_CURSOR_ROTATE; break;
-			case TAG_MPEG4_ProximitySensor2D: type = GF_CURSOR_PROXIMITY; break;
-			case TAG_MPEG4_TouchSensor: type = GF_CURSOR_TOUCH; break;
+		sc = gf_list_get(ctx->sensors, count-1);
+		//also notify the app we're above a sensor
+		type = GF_CURSOR_NORMAL;
+		switch (gf_node_get_tag(sc->h_node->owner)) {
+		case TAG_MPEG4_Anchor: type = GF_CURSOR_ANCHOR; break;
+		case TAG_MPEG4_PlaneSensor2D: type = GF_CURSOR_PLANE; break;
+		case TAG_MPEG4_DiscSensor: type = GF_CURSOR_ROTATE; break;
+		case TAG_MPEG4_ProximitySensor2D: type = GF_CURSOR_PROXIMITY; break;
+		case TAG_MPEG4_TouchSensor: type = GF_CURSOR_TOUCH; break;
 #ifndef GPAC_DISABLE_SVG
-			case TAG_SVG_a: type = GF_CURSOR_ANCHOR; break;
+		case TAG_SVG_a: type = GF_CURSOR_ANCHOR; break;
 #endif
-			}
-			if (type != GF_CURSOR_NORMAL) {
-				if (sr->last_sensor != type) {
-					GF_Event evt;
-					evt.type = GF_EVT_SET_CURSOR;
-					evt.cursor.cursor_type = type;
-					sr->compositor->video_out->PushEvent(sr->compositor->video_out, &evt);
-					sr->last_sensor = type;
-				}
+		}
+		if (type != GF_CURSOR_NORMAL) {
+			if (sr->last_sensor != type) {
+				GF_Event evt;
+				evt.type = GF_EVT_SET_CURSOR;
+				evt.cursor.cursor_type = type;
+				sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
+				sr->last_sensor = type;
 			}
 		}
 	}
 
-	if (sr->compositor->video_out->PushEvent && !ctx && (sr->last_sensor != GF_CURSOR_NORMAL)) {
+	if (!ctx && (sr->last_sensor != GF_CURSOR_NORMAL)) {
 		R2DSETCURSOR(GF_CURSOR_NORMAL);
 		sr->last_sensor = GF_CURSOR_NORMAL;
 	}
@@ -526,7 +525,7 @@ static GF_Err R2D_RecomputeAR(GF_VisualRenderer *vr)
 		sr->compositor->scene_height = sr->cur_height = sr->out_height;
 		R2D_SetScaling(sr, 1, 1);
 		/*and resize hardware surface*/
-		return sr->compositor->video_out->Resize(sr->compositor->video_out, sr->cur_width, sr->cur_height);
+		return sr->compositor->video_out->ResizeSurface(sr->compositor->video_out, 0, sr->cur_width, sr->cur_height);
 	}
 
 	switch (sr->compositor->aspect_ratio) {
@@ -581,7 +580,7 @@ static GF_Err R2D_RecomputeAR(GF_VisualRenderer *vr)
 	R2D_SetScaling(sr, scaleX, scaleY);
 	gf_sr_invalidate(sr->compositor, NULL);
 	/*and resize hardware surface*/
-	return sr->compositor->video_out->Resize(sr->compositor->video_out, sr->cur_width, sr->cur_height);
+	return sr->compositor->video_out->ResizeSurface(sr->compositor->video_out, 0, sr->cur_width, sr->cur_height);
 }
 
 GF_Node *R2D_PickNode(GF_VisualRenderer *vr, s32 X, s32 Y)

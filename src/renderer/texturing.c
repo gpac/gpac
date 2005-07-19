@@ -229,8 +229,8 @@ void gf_sr_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	txh->height = txh->stream->height;
 	txh->pixelformat = txh->stream->pixelFormat;
 	txh->stride = txh->stream->stride;
-	txh->frame_size = txh->stream->current_size;
 	txh->data = txh->stream->current_frame;
+	txh->pixel_ar = txh->stream->pixel_ar;
 
 #endif
 	/*try to push texture on graphics but don't complain if failure*/

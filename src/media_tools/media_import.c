@@ -703,6 +703,11 @@ GF_Err gf_import_cmp(GF_MediaImporter *import)
 	if (e) goto exit;
 	gf_isom_set_visual_info(import->dest, track, di, dsi.width, dsi.height);
 	gf_import_message(import, GF_OK, "MPEG-4 Video import - %d x %d @ %02.4f FPS\nIndicated Profile: %s", dsi.width, dsi.height, FPS, gf_m4v_get_profile_name((u8) PL));
+	if (dsi.par_den && dsi.par_num) {
+		u32 w = (dsi.width * dsi.par_num) / dsi.par_den;
+		gf_import_message(import, GF_OK, "Pixel Aspect Ratio %d:%d", dsi.par_num, dsi.par_den);
+		gf_isom_set_track_layout_info(import->dest, track, w, dsi.height, 0, 0, 0);
+	}
 	has_cts_offset = 0;
 	nb_samp = b_frames = ref_frame = 0;
 	do_vfr = !(import->flags & GF_IMPORT_NO_FRAME_DROP);
@@ -2467,7 +2472,7 @@ GF_Err gf_import_h263(GF_MediaImporter *import)
 
 	/*parse header*/
 	gf_bs_read_int(bs, 22);
-	gf_bs_read_u8(bs);
+	gf_bs_read_int(bs, 8);
 	/*spare+0+split_screen_indicator+document_camera_indicator+freeze_picture_release*/
 	gf_bs_read_int(bs, 5);
 
