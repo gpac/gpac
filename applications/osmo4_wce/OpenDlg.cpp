@@ -55,7 +55,7 @@ void OpenDlg::OnOK()
 	}
 
 	COsmo4 *app = GetApp();
-	char *sOpt;
+	const char *sOpt;
 	char filename[1024];
 	u32 i=0;
 
@@ -87,7 +87,7 @@ BOOL OpenDlg::OnInitDialog()
 	CDialog::OnInitDialog();
 	
 	COsmo4 *app = GetApp();
-	char *sOpt;
+	const char *sOpt;
 	char filename[1024];
 	u32 i=0;
 
@@ -98,7 +98,7 @@ BOOL OpenDlg::OnInitDialog()
 		if (!sOpt) 
 			break;
 
-		CE_CharToWide(sOpt, w_str);
+		CE_CharToWide((char *) sOpt, w_str);
 		m_URLs.AddString(w_str);
 		i++;
 	}

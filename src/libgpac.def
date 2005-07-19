@@ -1,6 +1,6 @@
 LIBRARY     libgpac.dll
 
-;Note: the APIs and headers are likely to change a lot until 0.3.0 is reached, until all symbols needed
+;Note: the APIs and headers are likely to change a lot until 0.5.0 is reached, until all symbols needed
 ;by different scene decoders (SVG, X3D, etc) are identified
 
 EXPORTS

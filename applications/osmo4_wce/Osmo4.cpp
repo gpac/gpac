@@ -195,10 +195,10 @@ BOOL COsmo4::InitInstance()
 			m_pMainWnd->PostMessage(WM_CLOSE);
 		}
 	}
-	char *str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
+	const char *str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	m_user.modules = gf_modules_new((const unsigned char *) str, m_user.config);
 	if (!m_user.modules) {
-		char *sOpt;
+		const char *sOpt;
 		/*inital launch*/
 		m_user.modules = gf_modules_new((const unsigned char *) config_path, m_user.config);
 		if (m_user.modules) {
@@ -379,7 +379,7 @@ int COsmo4::ExitInstance()
 
 void COsmo4::SetOptions()
 {
-	char *sOpt = gf_cfg_get_key(m_user.config, "General", "Loop");
+	const char *sOpt = gf_cfg_get_key(m_user.config, "General", "Loop");
 	m_Loop = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 	sOpt = gf_cfg_get_key(m_user.config, "General", "FillScreen");
 	m_fit_screen = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
@@ -460,10 +460,10 @@ CString COsmo4::GetFileFilter()
 		sMime = gf_cfg_get_key_name(m_user.config, "MimeTypes", i);
 		if (!sMime) continue;
 		CString sOpt;
-		sKey = gf_cfg_get_key(m_user.config, "MimeTypes", sMime);
+		const char *opt = gf_cfg_get_key(m_user.config, "MimeTypes", sMime);
 		/*remove #include <gpac/options.h>
  name*/
-		strcpy(szKeyList, sKey+1);
+		strcpy(szKeyList, opt+1);
 		sKey = strrchr(szKeyList, '\"');
 		if (!sKey) continue;
 		sKey[0] = 0;

@@ -1,4 +1,9 @@
-Last CVS update: 17/07/05
+Last CVS update: 19/07/05
+  - fixed anamorphic video handling in GPAC, both playing (2D and 3D) and MP4Box parsers (only done for MPEG-4 Visual, not AVC). Video is
+    now only rescaled at blit time
+  - changed ';' separators to ':' seprators in MP4Box (meta options and track import options) for linux prompt compatibility.
+  - misc fixes in tx3g track import, tx3g bt dump and couple of issues introduced in 0.3.0->0.4.0 migration
+  - misc cleanup of GF_VideoOutput interface.
 	- started doc manager using doxygen (doxyfile added in gpac/doc). APIs may be slightly reworked during the documentation phase. 
 		Documentation will only be produced for libgpac, eg all exported headers in gpac/include/gpac
 		Development APIs documentation (gpac/include/gpac/internal) will come later.

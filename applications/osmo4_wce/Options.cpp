@@ -168,7 +168,7 @@ BOOL COptAudio::OnInitDialog()
 	m_SpinFPS.SetBuddy(& m_AudioFPS);
 
 	COsmo4 *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 	TCHAR wTmp[500];
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "ForceConfig");
@@ -181,14 +181,14 @@ BOOL COptAudio::OnInitDialog()
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "NumBuffers");
 	if (sOpt) {
-		CE_CharToWide(sOpt, wTmp);
+		CE_CharToWide((char *)sOpt, wTmp);
 		m_AudioEdit.SetWindowText(wTmp);
 	} else {
 		m_AudioEdit.SetWindowText(_T("6"));
 	}
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "BuffersPerSecond");
 	if (sOpt) {
-		CE_CharToWide(sOpt, wTmp);
+		CE_CharToWide((char *)sOpt, wTmp);
 		m_AudioFPS.SetWindowText(wTmp);
 	} else {
 		m_AudioFPS.SetWindowText(_T("15"));
@@ -207,11 +207,12 @@ BOOL COptAudio::OnInitDialog()
 	while (m_DriverList.GetCount()) m_DriverList.DeleteString(0);
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "DriverName");
 	u32 count = gf_modules_get_count(gpac->m_user.modules);
-	void *ifce;
+	GF_BaseInterface *ifce;
 	s32 select = 0;
 	s32 to_sel = 0;
 	for (u32 i=0; i<count; i++) {
-		if (!gf_modules_load_interface(gpac->m_user.modules, i, GF_AUDIO_OUTPUT_INTERFACE, &ifce)) continue;
+		ifce = gf_modules_load_interface(gpac->m_user.modules, i, GF_AUDIO_OUTPUT_INTERFACE);
+		if (!ifce) continue;
 		if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
 		CE_CharToWide((char *) ((GF_BaseInterface *)ifce)->module_name, wTmp);
 		m_DriverList.AddString(wTmp);
@@ -290,7 +291,7 @@ BOOL COptDecoder::OnInitDialog()
 	CDialog::OnInitDialog();
 	
 	COsmo4 *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 
 	/*audio dec enum*/
 	while (m_Audio.GetCount()) m_Audio.DeleteString(0);
@@ -300,15 +301,16 @@ BOOL COptDecoder::OnInitDialog()
 	s32 select = 0;
 	s32 to_sel = 0;
 	for (u32 i=0; i<count; i++) {
-		if (!gf_modules_load_interface(gpac->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE, (void **) &ifce)) continue;
+		ifce = (GF_BaseDecoder *) gf_modules_load_interface(gpac->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE);
+		if (!ifce) continue;
 		if (ifce->CanHandleStream(ifce, GF_STREAM_AUDIO, 0, NULL, 0, 0)) {
 			if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
 			TCHAR wzTmp[500];
-			CE_CharToWide((char *) ((GF_BaseInterface *)ifce)->module_name, wzTmp);
+			CE_CharToWide((char *) ifce->module_name, wzTmp);
 			m_Audio.AddString(wzTmp);
 			to_sel++;
 		}
-		gf_modules_close_interface(ifce);
+		gf_modules_close_interface((GF_BaseInterface *) ifce);
 	}
 	m_Audio.SetCurSel(select);
 
@@ -319,15 +321,16 @@ BOOL COptDecoder::OnInitDialog()
 	select = 0;
 	to_sel = 0;
 	for (i=0; i<count; i++) {
-		if (!gf_modules_load_interface(gpac->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE, (void **) &ifce)) continue;
+		ifce  = (GF_BaseDecoder *) gf_modules_load_interface(gpac->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE);
+		if (!ifce) continue;
 		if (ifce->CanHandleStream(ifce, GF_STREAM_VISUAL, 0, NULL, 0, 0)) {
 			if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
 			TCHAR wzTmp[500];
-			CE_CharToWide((char *) ((GF_BaseInterface *)ifce)->module_name, wzTmp);
+			CE_CharToWide((char *) ifce->module_name, wzTmp);
 			m_Video.AddString(wzTmp);
 			to_sel++;
 		}
-		gf_modules_close_interface(ifce);
+		gf_modules_close_interface((GF_BaseInterface *) ifce);
 	}
 	m_Video.SetCurSel(select);
 
@@ -381,13 +384,13 @@ END_MESSAGE_MAP()
 BOOL COptFont::OnInitDialog() 
 {
 	u32 i;
-	void *ifce;
+	GF_BaseInterface *ifce;
 	
 	CDialog::OnInitDialog();
 	
 	COsmo4 *gpac = GetApp();
 	TCHAR wTmp[500];
-	char *sOpt;
+	const char *sOpt;
 
 	/*video drivers enum*/
 	while (m_Fonts.GetCount()) m_Fonts.DeleteString(0);
@@ -396,9 +399,10 @@ BOOL COptFont::OnInitDialog()
 	s32 select = 0;
 	u32 count = gf_modules_get_count(gpac->m_user.modules);
 	for (i=0; i<count; i++) {
-		if (!gf_modules_load_interface(gpac->m_user.modules, i, GF_FONT_RASTER_INTERFACE, &ifce)) continue;
+		ifce = gf_modules_load_interface(gpac->m_user.modules, i, GF_FONT_RASTER_INTERFACE);
+		if (!ifce) continue;
 		if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
-		CE_CharToWide((char *) ((GF_BaseInterface *)ifce)->module_name, wTmp);
+		CE_CharToWide((char *) ifce->module_name, wTmp);
 		m_Fonts.AddString(wTmp);
 		gf_modules_close_interface(ifce);
 		to_sel++;
@@ -407,7 +411,7 @@ BOOL COptFont::OnInitDialog()
 	
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "FontDirectory");
-	CE_CharToWide(sOpt, wTmp);
+	CE_CharToWide((char *)sOpt, wTmp);
 	if (sOpt) m_BrowseFont.SetWindowText(wTmp);
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "UseTextureText");
@@ -473,7 +477,7 @@ BOOL COptGen::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 	COsmo4 *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 	
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "Loop");
 	if (sOpt && !stricmp(sOpt, "yes")) {
@@ -584,7 +588,7 @@ BOOL COptHTTP::OnInitDialog()
 	
 	COsmo4 *gpac = GetApp();
 	TCHAR wTmp[500];
-	char *sOpt;
+	const char *sOpt;
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Downloader", "CleanCache");
 	if (sOpt && !stricmp(sOpt, "yes")) {
@@ -600,7 +604,7 @@ BOOL COptHTTP::OnInitDialog()
 	}
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "CacheDirectory");
-	CE_CharToWide(sOpt, wTmp);
+	CE_CharToWide((char *) sOpt, wTmp);
 	if (sOpt) m_CacheDir.SetWindowText(wTmp);
 	
 	return TRUE; 
@@ -678,7 +682,7 @@ BOOL COptRender::OnInitDialog()
 	CDialog::OnInitDialog();
 	
 	COsmo4 *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 	
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render2D", "DirectRender");
 	if (sOpt && !stricmp(sOpt, "yes")) {
@@ -788,7 +792,7 @@ BOOL COptStream::OnInitDialog()
 
 	COsmo4 *gpac = GetApp();
 	TCHAR wTmp[500];
-	char *sOpt;
+	const char *sOpt;
 
 	while (m_Port.GetCount()) m_Port.DeleteString(0);
 	m_Port.AddString(_T("554 (RTSP standard)"));
@@ -1096,7 +1100,7 @@ BOOL COptSystems::OnInitDialog()
 	CDialog::OnInitDialog();
 	
 	COsmo4 *gpac = GetApp();
-	char *sOpt;
+	const char *sOpt;
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Systems", "Language");
 	if (!sOpt) sOpt = "eng";

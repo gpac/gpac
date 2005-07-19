@@ -102,16 +102,6 @@ GF_Err gf_sk_get_local_ip(GF_Socket *sock, char *buffer)
 	return GF_OK;
 }
 
-
-//Socket Group for select(). The group is a collection of sockets ready for reading / writing
-struct __tag_sock_group
-{
-	//the max time value before a select returns
-	struct timeval timeout;
-	fd_set ReadGroup;
-	fd_set WriteGroup;
-};
-
 GF_Socket *gf_sk_new(u32 SocketType)
 {
 	GF_Socket *tmp;

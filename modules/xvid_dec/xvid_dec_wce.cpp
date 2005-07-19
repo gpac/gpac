@@ -246,7 +246,7 @@ GF_BaseDecoder *NewXVIDDec()
 	ifcd->ProcessData = XVID_ProcessData;
 	ifcd->CanHandleStream = XVID_CanHandleStream;
 	ifcd->privateStack = dec;
-	GF_REGISTER_MODULE_INTERFACE(ifcd, GF_MEDIA_DECODER_INTERFACE, "XviD for CE Decoder", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(ifcd, GF_MEDIA_DECODER_INTERFACE, "XviD for CE Decoder", "gpac distribution")
 	return (GF_BaseDecoder *) ifcd;
 }
 
@@ -267,7 +267,7 @@ Bool QueryInterface(u32 InterfaceType)
 
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
-	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return NewXVIDDec();
+	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *) NewXVIDDec();
 	return NULL;
 }
 

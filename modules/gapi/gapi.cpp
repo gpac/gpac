@@ -339,11 +339,11 @@ GF_Err GAPI_Clear(GF_VideoOutput *dr, u32 color)
 }
 
 
-static Bool GAPI_InitSurface(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoHeight)
+static GF_Err GAPI_InitSurface(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoHeight)
 {
 	GAPICTX(dr);
 
-	if (!gctx || !VideoWidth || !VideoHeight) return FALSE;
+	if (!gctx || !VideoWidth || !VideoHeight) return GF_BAD_PARAM;
 
 	gf_mx_p(gctx->mx);
 
@@ -365,7 +365,7 @@ static Bool GAPI_InitSurface(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoHeight
 		gctx->bitsPP = 24;
 	} else {
 		gf_mx_v(gctx->mx);
-		return 0;
+		return GF_NOT_SUPPORTED;
 	}
 	gctx->screen_w = gctx->gx.cxWidth;
 	gctx->screen_h = gctx->gx.cyHeight;
@@ -380,10 +380,10 @@ static Bool GAPI_InitSurface(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoHeight
 
 	GAPI_Clear(dr, 0);
 	gf_mx_v(gctx->mx);
-	return 1;
+	return GF_OK;
 }
 
-GF_Err GAPI_SetupHardware(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no_proc_override, GF_GLConfig *cfg)
+GF_Err GAPI_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool noover, GF_GLConfig *cfg)
 {
 	RECT rc;
 	GAPICTX(dr);
@@ -616,7 +616,7 @@ static GF_Err GAPI_Blit(GF_VideoOutput *dr, u32 src_id, u32 dst_id, GF_Window *s
 	GAPICTX(dr);
 
 	/*NOT SUPPORTED*/
-	if (dst_id) return 0;
+	if (dst_id) return GF_BAD_PARAM;
 
 	e = GAPI_LockSurface(dr, src_id, &vs);
 	if (e) return e;
@@ -759,7 +759,7 @@ static GF_Err GAPI_ResizeSurface(GF_VideoOutput *dr, u32 surface_id, u32 width, 
 	return GF_BAD_PARAM;
 }
 
-static GF_Err GAPI_PushEvent(GF_VideoOutput *dr, GF_Event *evt)
+static GF_Err GAPI_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 {
 	GAPICTX(dr);
 	switch (evt->type) {
@@ -783,7 +783,7 @@ static void *NewGAPIVideoOutput()
 	GAPIPriv *priv;
 	GF_VideoOutput *driv = (GF_VideoOutput *) malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
-	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "GAPI Video Output", "gpac distribution", 0)
+	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "GAPI Video Output", "gpac distribution")
 
 	priv = (GAPIPriv *) malloc(sizeof(GAPIPriv));
 	memset(priv, 0, sizeof(GAPIPriv));
@@ -804,13 +804,12 @@ static void *NewGAPIVideoOutput()
 	driv->GetPixelFormat = GAPI_GetPixelFormat;
 	driv->LockSurface = GAPI_LockSurface;
 	driv->IsSurfaceValid = GAPI_IsSurfaceValid;
-	driv->Resize = GAPI_Resize;
 	driv->SetFullScreen = GAPI_SetFullScreen;
-	driv->SetupHardware = GAPI_SetupHardware;
+	driv->Setup = GAPI_Setup;
 	driv->Shutdown = GAPI_Shutdown;
 	driv->UnlockSurface = GAPI_UnlockSurface;
 	driv->ResizeSurface	= GAPI_ResizeSurface;
-	driv->PushEvent = GAPI_PushEvent;
+	driv->ProcessEvent = GAPI_ProcessEvent;
 	return (void *)driv;
 }
 
@@ -834,7 +833,7 @@ Bool QueryInterface(u32 InterfaceType)
 /*interface create*/
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return NewGAPIVideoOutput();
+	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return (GF_BaseInterface *) NewGAPIVideoOutput();
 	return NULL;
 }
 /*interface destroy*/

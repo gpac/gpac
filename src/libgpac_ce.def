@@ -1,6 +1,6 @@
 LIBRARY     libgpac.dll
 
-;Note: the APIs and headers are likely to change a lot until 0.3.0 is reached, until all symbols needed
+;Note: the APIs and headers are likely to change a lot until 0.5.0 is reached, until all symbols needed
 ;by different scene decoders (SVG, X3D, etc) are identified
 
 EXPORTS
@@ -17,7 +17,6 @@ EXPORTS
 	gf_rand
 	gf_utc_time_since_1970
 	gf_get_ntp
-	gf_get_ntp_frac
 	gf_get_user_name
 	gf_enum_directory
 	gf_cbk_on_progress
@@ -64,7 +63,6 @@ EXPORTS
 	gf_bs_available
 	gf_bs_get_content
 	gf_bs_skip_bytes
-	gf_bs_rewind
 	gf_bs_seek
 	gf_bs_peek_bits
 	gf_bs_get_position
@@ -160,10 +158,10 @@ EXPORTS
 	gf_utf8_wcslen
 
 ;download.h exports
-	gf_dm_get_cache_name
-	gf_dm_get_stats
-	gf_dm_fetch_data
-	gf_dm_get_last_error
+	gf_dm_sess_get_cache_name
+	gf_dm_sess_get_stats
+	gf_dm_sess_fetch_data
+	gf_dm_sess_last_error
 
 ;math.h exports
 	gf_mulfix
@@ -193,8 +191,8 @@ EXPORTS
 	gf_mx2d_add_scale
 	gf_mx2d_add_scale_at
 	gf_mx2d_add_skew
-	gf_mx2d_add_skewX
-	gf_mx2d_add_skewY
+	gf_mx2d_add_skew_x
+	gf_mx2d_add_skew_y
 	gf_mx2d_inverse
 	gf_mx2d_apply_coords
 	gf_mx2d_apply_point
