@@ -58,7 +58,7 @@ LINK32=link.exe
 # SUBTRACT LINK32 /map
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
-PostBuild_Cmds=copy ..\..\applications\osmozilla\nsIOsmozilla.xpt ..\..\bin\w32_rel\nposmozilla.xpt
+PostBuild_Cmds=copy ..\..\applications\osmozilla\nsIOsmozilla.xpt_w32 ..\..\bin\w32_rel\nposmozilla.xpt
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "osmozilla - Win32 Debug"

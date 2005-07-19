@@ -54,10 +54,11 @@ $(LIB): $(OBJS)
 ifeq ($(CONFIG_WIN32),yes)
 	windres osmozilla.rc osmoz.o
 	$(CXX) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) osmoz.o $(LINKLIBS)
+	cp nsIOsmozilla.xpt_w32 ../../bin/gcc/nposmozilla.xpt
 else
 	$(CXX) $(SHFLAGS) $(LDFLAGS) $(OBJS) $(LINKLIBS) -o ../../bin/gcc/$@ 
+	cp nsIOsmozilla.xpt_linux ../../bin/gcc/nposmozilla.xpt
 endif
-	cp nsIOsmozilla.xpt ../../bin/gcc/nposmozilla.xpt
 	@echo $(USER_ROOT)
 
 %.o: %.cpp
