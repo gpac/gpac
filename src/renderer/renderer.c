@@ -486,6 +486,7 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 		gf_sg_get_scene_size_info(sr->scene, &width, &height);
 		/*set scene size only if different, otherwise keep scaling/FS*/
 		if ( !width || (sr->scene_width!=width) || !height || (sr->scene_height!=height)) {
+			Bool do_notif = (width && height) ? 1 : 0;
 			SR_SetSceneSize(sr, width, height);
 			/*get actual size in pixels*/
 			width = sr->scene_width;
@@ -501,7 +502,7 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 				/*signal size changed*/
 				gf_sr_set_size(sr,width, height);
 			}
-			GF_USER_SETSIZE(sr->user, width, height);
+			if (do_notif) GF_USER_SETSIZE(sr->user, width, height);
 		}
 		sr->has_size_info = (width && height) ? 1 : 0;
 	}

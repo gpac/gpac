@@ -619,7 +619,7 @@ GF_Err iods_dump(GF_Box *a, FILE * trace)
 	if (p->descriptor) {
 		gf_odf_dump_desc(p->descriptor, trace, 1, 1);
 	} else {
-		fprintf(trace, "<!--WARNING: Object GF_Descriptor not present-->\n");
+		fprintf(trace, "<!--WARNING: Object Descriptor not present-->\n");
 	}
 	fprintf(trace, "</ObjectDescriptorBox>\n");
 	return GF_OK;
@@ -1044,7 +1044,7 @@ GF_Err esds_dump(GF_Box *a, FILE * trace)
 	if (p->desc) {
 		gf_odf_dump_desc(p->desc, trace, 1, 1);
 	} else {
-		fprintf(trace, "<!--INVALID MP4 FILE: GF_ESD not present in MPEG Sample Description or corrupted-->\n");
+		fprintf(trace, "<!--INVALID MP4 FILE: ESD not present in MPEG Sample Description or corrupted-->\n");
 	}
 	fprintf(trace, "</MPEG4ESDescriptorBox>\n");
 	return GF_OK;
@@ -1356,7 +1356,7 @@ GF_Err ftab_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<FontTableBox>\n");
 	DumpBox(a, trace);
 	for (i=0; i<p->entry_count; i++) {
-		fprintf(trace, "<GF_FontRecord ID=\"%d\" name=\"%s\"/>\n", p->fonts[i].fontID, p->fonts[i].fontName ? p->fonts[i].fontName : "NULL");
+		fprintf(trace, "<FontRecord ID=\"%d\" name=\"%s\"/>\n", p->fonts[i].fontID, p->fonts[i].fontName ? p->fonts[i].fontName : "NULL");
 	}
 	fprintf(trace, "</FontTableBox>\n");
 	return GF_OK;
@@ -1368,11 +1368,11 @@ static void gpp_dump_rgba(FILE * trace, char *name, u32 col)
 }
 static void gpp_dump_box(FILE * trace, GF_BoxRecord *rec)
 {
-	fprintf(trace, "<GF_BoxRecord top=\"%d\" left=\"%d\" bottom=\"%d\" right=\"%d\"/>\n", rec->top, rec->left, rec->bottom, rec->right);
+	fprintf(trace, "<BoxRecord top=\"%d\" left=\"%d\" bottom=\"%d\" right=\"%d\"/>\n", rec->top, rec->left, rec->bottom, rec->right);
 }
 static void gpp_dump_style(FILE * trace, GF_StyleRecord *rec)
 {
-	fprintf(trace, "<GF_StyleRecord startChar=\"%d\" endChar=\"%d\" fontID=\"%d\" styles=\"", rec->startCharOffset, rec->endCharOffset, rec->fontID);
+	fprintf(trace, "<StyleRecord startChar=\"%d\" endChar=\"%d\" fontID=\"%d\" styles=\"", rec->startCharOffset, rec->endCharOffset, rec->fontID);
 	if (!rec->style_flags) {
 		fprintf(trace, "Normal");
 	} else {
@@ -1589,10 +1589,10 @@ GF_Err iloc_dump(GF_Box *a, FILE * trace)
 	for (i=0;i<count;i++) {
 		GF_ItemLocationEntry *ie = gf_list_get(p->location_entries, i);
 		count2 = gf_list_count(ie->extent_entries);
-		fprintf(trace, "<GF_ItemLocationEntry item_ID=\"%d\" data_reference_index=\"%d\" base_offset_size=\""LLD"\" />\n", ie->item_ID, ie->data_reference_index, ie->base_offset);
+		fprintf(trace, "<ItemLocationEntry item_ID=\"%d\" data_reference_index=\"%d\" base_offset_size=\""LLD"\" />\n", ie->item_ID, ie->data_reference_index, ie->base_offset);
 		for (j=0; j<count2; j++) {
 			GF_ItemExtentEntry *iee = gf_list_get(ie->extent_entries, j);
-			fprintf(trace, "<GF_ItemExtentEntry extent_offset=\""LLD"\" extent_length=\""LLD"\" />\n", iee->extent_offset, iee->extent_length);
+			fprintf(trace, "<ItemExtentEntry extent_offset=\""LLD"\" extent_length=\""LLD"\" />\n", iee->extent_offset, iee->extent_length);
 		}
 	}
 	fprintf(trace, "</ItemLocationBox>\n");
@@ -2353,7 +2353,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		GF_ISOSample *s = gf_isom_get_sample(the_file, track, i+1, &di);
 		if (!s) continue;
 
-		fprintf(dump, "<GF_TextSample sampleTime=\"%s\"", ttd_format_time(s->DTS, trak->Media->mediaHeader->timeScale, szDur, 0));
+		fprintf(dump, "<TextSample sampleTime=\"%s\"", ttd_format_time(s->DTS, trak->Media->mediaHeader->timeScale, szDur, 0));
 		if (nb_descs>1) fprintf(dump, " sampleDescriptionIndex=\"%d\"", di);
 
 		bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
@@ -2470,7 +2470,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 			}
 		}
 
-		fprintf(dump, "</GF_TextSample>\n");
+		fprintf(dump, "</TextSample>\n");
 		gf_isom_sample_del(&s);
 		gf_isom_delete_text_sample(txt);
 		if (OnProgress) OnProgress(cbk, i, count);

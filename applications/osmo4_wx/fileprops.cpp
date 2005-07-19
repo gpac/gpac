@@ -330,7 +330,7 @@ void wxFileProps::SetStreamsInfo()
 	for (i=0; i<count; i++) {
 		GF_ESD *esd = (GF_ESD *) gf_list_get(odi.od->ESDescriptors, i);
 		
-		info += wxString::Format(wxT("Stream ID %d - GF_Clock ID %d\n"), esd->ESID, esd->OCRESID);
+		info += wxString::Format(wxT("Stream ID %d - Clock ID %d\n"), esd->ESID, esd->OCRESID);
 		if (esd->dependsOnESID) {
 			info += wxString::Format(wxT("\tDepends on Stream ID %d for decoding\n"), esd->dependsOnESID);
 		}
@@ -339,7 +339,7 @@ void wxFileProps::SetStreamsInfo()
 			info += wxString::Format(wxT("\tOD Stream - version %d\n"), esd->decoderConfig->objectTypeIndication);
 			break;
 		case GF_STREAM_OCR:
-			info += wxT("\tObject GF_Clock Reference Stream\n");
+			info += wxT("\tObject Clock Reference Stream\n");
 			break;
 		case GF_STREAM_SCENE:
 			info += wxString::Format(wxT("\tScene Description Stream - version %d\n"), esd->decoderConfig->objectTypeIndication);
@@ -417,7 +417,7 @@ void wxFileProps::SetStreamsInfo()
 		if (esd->slConfig->predefined==SLPredef_SkipSL) {
 			info += wxString::Format(wxT("\tNot using MPEG-4 Synchronization Layer\n"));
 		} else {
-			info += wxString::Format(wxT("\tStream GF_Clock Resolution %d\n"), esd->slConfig->timestampResolution);
+			info += wxString::Format(wxT("\tStream Clock Resolution %d\n"), esd->slConfig->timestampResolution);
 		}
 		if (esd->URLString) 
 			info += wxT("\tStream Location: ") + wxString(esd->URLString, wxConvUTF8) + wxT("\n");

@@ -1100,7 +1100,7 @@ GF_Err R2D_ReleaseScreenBuffer(GF_VisualRenderer *vr, GF_VideoSurface *framebuff
 GF_Err R2D_GetViewport(GF_VisualRenderer *vr, u32 viewpoint_idx, const char **outName, Bool *is_bound);
 GF_Err R2D_SetViewport(GF_VisualRenderer *vr, u32 viewpoint_idx, const char *viewpoint_name);
 
-void *NewVisualRenderer()
+GF_VisualRenderer *NewVisualRenderer()
 {
 	GF_VisualRenderer *sr;	
 	sr = malloc(sizeof(GF_VisualRenderer));

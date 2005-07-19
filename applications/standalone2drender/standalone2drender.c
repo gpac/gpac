@@ -31,9 +31,9 @@
 #include "ft_font.h"
 
 void SR_ResetFrameRate(GF_Renderer *);
-void *EVG_LoadRenderer();
-void *NewVideoOutput();
-void *NewVisualRenderer();
+GF_Raster2D *EVG_LoadRenderer();
+GF_VideoOutput *NewRawVideoOutput();
+GF_VisualRenderer *NewVisualRenderer();
 GF_Err R2D_GetSurfaceAccess(VisualSurface2D *surf);
 void R2D_ReleaseSurfaceAccess(VisualSurface2D *surf);
 Bool R2D_SupportsFormat(VisualSurface2D *surf, u32 pixel_format);
@@ -128,7 +128,7 @@ GF_Renderer *SR_NewStandaloneRenderer()
 	cfg.double_buffered = 1;
 	gl_cfg = tmp->visual_renderer->bNeedsGL ? &cfg : NULL;
 
-	tmp->video_out = NewVideoOutput();
+	tmp->video_out = NewRawVideoOutput();
 	tmp->video_out->evt_cbk_hdl = tmp;
 	tmp->video_out->on_event = NULL;
 

@@ -191,7 +191,7 @@ const char *gf_error_to_string(GF_Err e)
 		return "Dialog Failure with remote peer";
 
 	case GF_STREAM_NOT_FOUND:
-		return "Media GF_Channel couldn't be found";
+		return "Media Channel couldn't be found";
 	
 	case GF_IP_ADDRESS_NOT_FOUND:
 		return "IP Address Not Found";

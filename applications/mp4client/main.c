@@ -878,7 +878,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID)
 	for (i=0; i<count; i++) {
 		GF_ESD *esd = (GF_ESD *) gf_list_get(odi.od->ESDescriptors, i);
 
-		fprintf(stdout, "\nStream ID %d - GF_Clock ID %d\n", esd->ESID, esd->OCRESID);
+		fprintf(stdout, "\nStream ID %d - Clock ID %d\n", esd->ESID, esd->OCRESID);
 		if (esd->dependsOnESID) fprintf(stdout, "\tDepends on Stream ID %d for decoding\n", esd->dependsOnESID);
 
 		switch (esd->decoderConfig->streamType) {
@@ -944,7 +944,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID)
 		if (esd->slConfig->predefined==SLPredef_SkipSL) {
 			fprintf(stdout, "\tNot using MPEG-4 Synchronization Layer\n");
 		} else {
-			fprintf(stdout, "\tStream GF_Clock Resolution %d\n", esd->slConfig->timestampResolution);
+			fprintf(stdout, "\tStream Clock Resolution %d\n", esd->slConfig->timestampResolution);
 		}
 		if (esd->URLString) fprintf(stdout, "\tStream Location: %s\n", esd->URLString);
 

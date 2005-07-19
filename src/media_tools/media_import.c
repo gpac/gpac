@@ -1323,7 +1323,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 {
 	GF_Err e;
 	u64 offset;
-	u32 track, di, trackID, track_in, i, num_samples, sampDTS, mtype, w, h, duration, sr, ch;
+	u32 track, di, trackID, track_in, i, num_samples, sampDTS, mtype, stype, w, h, duration, sr, ch;
 	u8 bps;
 	char lang[4];
 	const char *url, *urn;
@@ -1414,7 +1414,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			if (e) goto exit;
 		}
 	}
-	if (origin_esd) {
+	/*check if MPEG-4 or not*/
+	stype = gf_isom_get_media_subtype(import->dest, track, 1);
+	if ((stype==GF_ISOM_SUBTYPE_MPEG4) || (stype==GF_ISOM_SUBTYPE_MPEG4_CRYP)) {
 		e = gf_isom_new_mpeg4_description(import->dest, track, origin_esd, (char *) url, (char *) urn, &di);
 	} else {
 		e = gf_isom_clone_sample_description(import->dest, track, import->orig, track_in, 1, (char *) url, (char *) urn, &di);

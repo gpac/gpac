@@ -121,7 +121,7 @@ enum
 	GF_ISOM_REF_OD			= GF_FOUR_CHAR_INT( 'm', 'p', 'o', 'd' ),
 	/*ref type for stream dependencies*/
 	GF_ISOM_REF_DECODE = GF_FOUR_CHAR_INT( 'd', 'p', 'n', 'd' ),
-	/*ref type for OCR (Object GF_Clock Reference) dependencies*/
+	/*ref type for OCR (Object Clock Reference) dependencies*/
 	GF_ISOM_REF_OCR				= GF_FOUR_CHAR_INT( 's', 'y', 'n', 'c' ),
 	/*ref type for IPI (Intellectual Property Information) dependencies*/
 	GF_ISOM_REF_IPI				= GF_FOUR_CHAR_INT( 'i', 'p', 'i', 'r' ),

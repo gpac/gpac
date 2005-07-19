@@ -778,7 +778,7 @@ static GF_Err GAPI_PushEvent(GF_VideoOutput *dr, GF_Event *evt)
 }
 
 
-static void *NewVideoOutput()
+static void *NewGAPIVideoOutput()
 {
 	GAPIPriv *priv;
 	GF_VideoOutput *driv = (GF_VideoOutput *) malloc(sizeof(GF_VideoOutput));
@@ -834,7 +834,7 @@ Bool QueryInterface(u32 InterfaceType)
 /*interface create*/
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return NewVideoOutput();
+	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return NewGAPIVideoOutput();
 	return NULL;
 }
 /*interface destroy*/

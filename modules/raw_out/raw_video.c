@@ -273,7 +273,7 @@ static GF_Err RAW_PushEvent(GF_VideoOutput *dr, GF_Event *evt)
 	return GF_OK;
 }
 
-void *NewVideoOutput()
+GF_VideoOutput *NewRawVideoOutput()
 {
 	RawContext *pCtx;
 	GF_VideoOutput *driv = (GF_VideoOutput *) malloc(sizeof(GF_VideoOutput));
@@ -334,7 +334,7 @@ Bool QueryInterface(u32 InterfaceType)
 /*interface create*/
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return NewVideoOutput();
+	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return (GF_BaseInterface *) NewRawVideoOutput();
 	return NULL;
 }
 /*interface destroy*/

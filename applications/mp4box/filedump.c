@@ -828,7 +828,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					if (full_dump) fprintf(stdout, "\t");
 					if (e) fprintf(stdout, "Corrupted AAC Config\n");
 					else {
-						fprintf(stdout, "MPEG-%d Audio %s - %d GF_Channel(s) - SampleRate %d", is_mp2 ? 2 : 4, gf_m4a_object_type_name(a_cfg.base_object_type), a_cfg.nb_chan, a_cfg.base_sr);
+						fprintf(stdout, "MPEG-%d Audio %s - %d Channel(s) - SampleRate %d", is_mp2 ? 2 : 4, gf_m4a_object_type_name(a_cfg.base_object_type), a_cfg.nb_chan, a_cfg.base_sr);
 						if (a_cfg.has_sbr) fprintf(stdout, " - SBR SampleRate %d", a_cfg.sbr_sr);
 						fprintf(stdout, "\n");
 					}
@@ -841,7 +841,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						GF_ISOSample *samp = gf_isom_get_sample(file, trackNum, 1, &oti);
 						oti = GF_FOUR_CHAR_INT((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
 						if (full_dump) fprintf(stdout, "\t");
-						fprintf(stdout, "%s Audio - %d GF_Channel(s) - SampleRate %d - Layer %d\n",
+						fprintf(stdout, "%s Audio - %d Channel(s) - SampleRate %d - Layer %d\n",
 							gf_mp3_version_name(oti),
 							gf_mp3_num_channels(oti), 
 							gf_mp3_sampling_rate(oti), 

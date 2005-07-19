@@ -1266,7 +1266,7 @@ void DumpNode(GF_SceneDumper *sdump, GF_Node *node, Bool in_list, char *fieldCon
 		} else {
 			if (isDEF) {
 				if (isProto) {
-					fprintf(sdump->trace, "<GF_ProtoInstance name=\"%s\" DEF=\"", name);
+					fprintf(sdump->trace, "<ProtoInstance name=\"%s\" DEF=\"", name);
 				} else {
 					fprintf(sdump->trace, "<%s DEF=\"", name);
 				}
@@ -1274,7 +1274,7 @@ void DumpNode(GF_SceneDumper *sdump, GF_Node *node, Bool in_list, char *fieldCon
 				fprintf(sdump->trace, "\"/>\n");
 			} else {
 				if (isProto) {
-					fprintf(sdump->trace, "<GF_ProtoInstance name=\"%s\"/>\n", name);
+					fprintf(sdump->trace, "<ProtoInstance name=\"%s\"/>\n", name);
 				} else {
 					fprintf(sdump->trace, "<%s/>\n", name);
 				}

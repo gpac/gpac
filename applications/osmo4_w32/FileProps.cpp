@@ -497,7 +497,7 @@ void CFileProps::SetStreamsInfo()
 	for (i=0; i<count; i++) {
 		GF_ESD *esd = (GF_ESD *) gf_list_get(odi.od->ESDescriptors, i);
 
-		sprintf(buf, "\t** Stream ID %d - GF_Clock ID %d **\r\n", esd->ESID, esd->OCRESID);
+		sprintf(buf, "\t** Stream ID %d - Clock ID %d **\r\n", esd->ESID, esd->OCRESID);
 		strcat(info, buf);
 		if (esd->dependsOnESID) {
 			sprintf(buf, "Depends on Stream ID %d for decoding\r\n", esd->dependsOnESID);
@@ -607,7 +607,7 @@ void CFileProps::SetStreamsInfo()
 		if (esd->slConfig->predefined==SLPredef_SkipSL) {
 			sprintf(buf, "Not using MPEG-4 Synchronization Layer\r\n");
 		} else {
-			sprintf(buf, "Stream GF_Clock Resolution %d\r\n", esd->slConfig->timestampResolution);
+			sprintf(buf, "Stream Clock Resolution %d\r\n", esd->slConfig->timestampResolution);
 		}
 		strcat(info, buf);
 		if (esd->URLString) {
