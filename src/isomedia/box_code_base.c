@@ -889,6 +889,7 @@ GF_Err edts_Size(GF_Box *s)
 		if (e) return e;
 		e = gf_isom_box_size((GF_Box *)ptr->editList);
 		if (e) return e;
+		ptr->size += ptr->editList->size;
 	}
 	return GF_OK;
 }
@@ -1423,9 +1424,10 @@ GF_Err hdlr_Read(GF_Box *s, GF_BitStream *bs)
 	gf_bs_read_data(bs, ptr->reserved2, 12);
 	ptr->size -= 20;
 	ptr->nameLength = (u32) (ptr->size);
-	ptr->nameUTF8 = (char*)malloc(ptr->nameLength);
+	ptr->nameUTF8 = (char*)malloc(ptr->nameLength+1);
 	if (ptr->nameUTF8 == NULL) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, (unsigned char*)ptr->nameUTF8, ptr->nameLength);
+	ptr->nameUTF8[ptr->nameLength]=0;
 	return GF_OK;
 }
 

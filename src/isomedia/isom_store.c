@@ -158,7 +158,7 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 		if (movie->storageMode != GF_ISOM_STORE_INTERLEAVED) {
 			gf_list_add(writers, writer);	
 		} else {
-			if (writer->mdia->information->InfoHeader->type == GF_ISOM_BOX_TYPE_SMHD) {
+			if (writer->mdia->information->InfoHeader && writer->mdia->information->InfoHeader->type == GF_ISOM_BOX_TYPE_SMHD) {
 				gf_list_add(writers, writer);	
 			} else {
 				gf_list_insert(writers, writer, 0);	

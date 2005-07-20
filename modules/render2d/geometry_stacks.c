@@ -383,8 +383,8 @@ static void DrawBitmap(DrawableContext *ctx)
 	ctx->transform.m[1] = ctx->transform.m[3] = 0;
 
 	has_scale = 0;
-	if (bmp->scale.x>0 && bmp->scale.x!=1) has_scale = 1;
-	if (bmp->scale.y>0 && bmp->scale.y!=1) has_scale = 1;
+	if (bmp->scale.x>0 && (bmp->scale.x!=FIX_ONE) ) has_scale = 1;
+	if (bmp->scale.y>0 && (bmp->scale.y!=FIX_ONE) ) has_scale = 1;
 
 	use_hw = 1;
 	alpha = GF_COL_A(ctx->aspect.fill_color);

@@ -18,8 +18,8 @@ CEShortcuts = Shortcut , ProgLink
 
 [SourceDisksNames]
 
-1 =, "Common Files",, D:\gpac2\bin\arm_ppc02_rel
-2 =, "Extra Files",, D:\gpac2\bin\arm_ppc02_rel\install
+1 =, "Common Files",, ..
+2 =, "Extra Files",, .
 
 [SourceDisksFiles]
 
@@ -43,7 +43,7 @@ timedtext.dll = 1
 soft_raster.dll = 1
 wav_out.dll = 1
 xvid_dec.dll = 1
-gpac.cfg = 2
+;gpac.cfg = 2
 svg_loader.dll = 1
 libxml2.dll = 2
 ;gx.dll = 2
@@ -84,7 +84,7 @@ DefaultDestDir = 0, %InstallDir%
 "timedtext.dll"
 "wav_out.dll"
 "xvid_dec.dll"
-"gpac.cfg"
+;"gpac.cfg"
 "svg_loader.dll"
 "libxml2.dll"
 ;"gx.dll"

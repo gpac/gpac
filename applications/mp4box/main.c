@@ -633,9 +633,16 @@ void remove_systems_tracks(GF_ISOFile *file)
 			gf_isom_remove_track_from_root_od(file, i+1);
 			check_media_profile(file, i+1);
 			break;
-		default:
+		/*only remove real systems tracks (eg, delaing with scene description & presentation)
+		but keep meta & all unknown tracks*/
+		case GF_ISOM_MEDIA_BIFS:
+		case GF_ISOM_MEDIA_OD:
+		case GF_ISOM_MEDIA_OCR:
+		case GF_ISOM_MEDIA_MPEGJ:
 			gf_isom_remove_track(file, i+1);
 			i--;
+			break;
+		default:
 			break;
 		}
 	}

@@ -475,6 +475,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 
 void gf_isom_box_del(GF_Box *a)
 {
+	if (!a) return;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_HINT:
 	case GF_ISOM_BOX_TYPE_DPND:
