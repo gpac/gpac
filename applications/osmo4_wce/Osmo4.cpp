@@ -205,7 +205,7 @@ BOOL COsmo4::InitInstance()
 			gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) config_path);
 
 			sOpt = gf_cfg_get_key(m_user.config, "Rendering", "Raster2D");
-			if (!sOpt) gf_cfg_set_key(m_user.config, "Rendering", "Raster2D", "m4_rend");
+			if (!sOpt) gf_cfg_set_key(m_user.config, "Rendering", "Raster2D", "soft_rend");
 
 			sOpt = gf_cfg_get_key(m_user.config, "General", "CacheDirectory");
 			if (!sOpt) {
@@ -228,7 +228,7 @@ BOOL COsmo4::InitInstance()
 			gf_cfg_set_key(m_user.config, "Audio", "BuffersPerSecond", "16");
 		}
 		/*by default use GDIplus, much faster than freetype on font loading*/
-		gf_cfg_set_key(m_user.config, "FontEngine", "DriverName", "gdip_rend");
+		gf_cfg_set_key(m_user.config, "FontEngine", "DriverName", "ft_font");
 	}	
 	if (! gf_modules_get_count(m_user.modules) ) {
 		MessageBox(NULL, _T("No plugins available - system cannot work"), _T("Fatal Error"), MB_OK);

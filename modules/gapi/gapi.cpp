@@ -391,15 +391,17 @@ GF_Err GAPI_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no
 	
 	if (cfg) return GF_NOT_SUPPORTED;
 	GAPI_SetupWindow(dr);
-	if (!gctx->hWnd || !GXOpenDisplay(gctx->hWnd, 0L)) return GF_IO_ERR;
+	if (!gctx->hWnd || !GXOpenDisplay(gctx->hWnd, 0L)) {
+		MessageBox(NULL, _T("Cannot open display"), _T("GAPI Error"), MB_OK);
+		return GF_IO_ERR;
+	}
 
 	gctx->gapi_open = 1;
     GetClientRect(gctx->hWnd, &rc);
 	gctx->disp_w = rc.right - rc.left;
 	gctx->disp_h = rc.bottom - rc.top;
 	gctx->keys = GXGetDefaultKeys(GX_NORMALKEYS);
-	if (!GAPI_InitSurface(dr, gctx->disp_w, gctx->disp_h)) return GF_IO_ERR;
-	return GF_OK;
+	return GAPI_InitSurface(dr, gctx->disp_w, gctx->disp_h);
 }
 
 static void GAPI_Shutdown(GF_VideoOutput *dr)
@@ -472,18 +474,12 @@ static GF_Err GAPI_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u3
 			*outWidth = gctx->disp_w;
 			*outHeight = gctx->disp_h;
 		}
-		if (!GAPI_InitSurface(dr, *outWidth, *outHeight)) e = GF_IO_ERR; 
+		e = GAPI_InitSurface(dr, *outWidth, *outHeight); 
 	}
 	GAPI_Clear(dr, 0);
 	gf_mx_v(gctx->mx);
 
 	return e;
-}
-
-static GF_Err GAPI_Resize(GF_VideoOutput *dr, u32 width, u32 height)
-{
-	GAPICTX(dr);
-	return GAPI_InitSurface(dr, width, height); 
 }
 
 
@@ -741,7 +737,7 @@ static GF_Err GAPI_ResizeSurface(GF_VideoOutput *dr, u32 surface_id, u32 width, 
 {
 	u32 i;
 	GAPICTX(dr);
-	if (!surface_id) return GF_BAD_PARAM;
+	if (!surface_id) return GAPI_InitSurface(dr, width, height); 
 
 	/*check surfaces*/
 	for (i=0; i<gf_list_count(gctx->surfaces); i++) {
@@ -768,7 +764,7 @@ static GF_Err GAPI_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		break;
 	case GF_EVT_SCENESIZE:
 		gctx->is_resizing = 1;
-		SetWindowPos(gctx->hWnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE);
+		//SetWindowPos(gctx->hWnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE);
 		gctx->is_resizing = 0;
 		gctx->disp_w = evt->size.width;
 		gctx->disp_h = evt->size.height;

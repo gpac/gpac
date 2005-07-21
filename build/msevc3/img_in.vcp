@@ -101,14 +101,56 @@ LINK32=link.exe
 # Begin Source File
 
 SOURCE=..\..\modules\img_in\bmp_dec.c
+DEP_CPP_BMP_D=\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\modules\img_in\img_in.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\modules\img_in\img_dec.c
+DEP_CPP_IMG_D=\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\modules\img_in\img_in.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\modules\img_in\img_in.c
+DEP_CPP_IMG_I=\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\modules\img_in\img_in.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -121,10 +163,52 @@ SOURCE=..\..\modules\img_in\img_in.h
 # Begin Source File
 
 SOURCE=..\..\modules\img_in\jpeg_dec.c
+DEP_CPP_JPEG_=\
+	"..\..\extra_lib\include\jpeg\jconfig.h"\
+	"..\..\extra_lib\include\jpeg\jmorecfg.h"\
+	"..\..\extra_lib\include\jpeg\jpeglib.h"\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\modules\img_in\img_in.h"\
+	
+NODEP_CPP_JPEG_=\
+	"..\..\extra_lib\include\jpeg\jerror.h"\
+	"..\..\extra_lib\include\jpeg\jpegint.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\modules\img_in\png_dec.c
+DEP_CPP_PNG_D=\
+	"..\..\extra_lib\include\png\png.h"\
+	"..\..\extra_lib\include\png\pngconf.h"\
+	"..\..\extra_lib\include\zlib\zconf.h"\
+	"..\..\extra_lib\include\zlib\zlib.h"\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\modules\img_in\img_in.h"\
+	
+NODEP_CPP_PNG_D=\
+	"..\..\extra_lib\include\png\alloc.h"\
+	
 # End Source File
 # End Target
 # End Project
