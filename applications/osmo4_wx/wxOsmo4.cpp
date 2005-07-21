@@ -348,7 +348,7 @@ extern "C" {
  * 	posiotning is so-so
  * 	fullscreen doesn't work
  */
-//#define USE_SDL_HACK
+#define USE_SDL_HACK
 #endif
 
 /*thats a bit ugly, but SDL hack doesnt work properly*/
@@ -371,20 +371,20 @@ void wxOsmo4Frame::CheckVideoOut()
 #else
 		m_pView = new wxWindow(this, 1, wxDefaultPosition, wxDefaultSize, wxSIMPLE_BORDER|wxWS_EX_TRANSIENT );
 #endif
-			
+
 		m_pView->SetBackgroundColour(wxColour(wxT("BLACK")));
 
 #ifdef __WXGTK__
 #ifdef USE_SDL_HACK
-		//#ifdef __WXGTK20__
-#if __WXGTK20__
-		os_handle = (void *)gdk_x11_drawable_get_xid( (GtkWidget *) m_pView->GetHandle() );
+#ifdef __WXGTK20__
+		GtkWidget* widget = m_pView->GetHandle();
+		os_handle = (void *)gdk_x11_drawable_get_xid(gtk_widget_get_parent_window(widget));
 		fprintf(stdout, "os handle %d\n", (u32) os_handle);
 #else
 		os_handle =  (void *)*(int *)( (char *)gtk_widget_get_parent_window( m_pView->GetHandle() ) + 2 * sizeof(void *) );
 #endif
 #endif
-		
+
 #elif defined (WIN32)
 		os_handle = m_pView->GetHandle();
 #endif
@@ -614,14 +614,16 @@ Bool wxOsmo4Frame::LoadTerminal()
 #endif
 
 wxOsmo4Frame::wxOsmo4Frame() :
-		wxFrame((wxFrame *) NULL, -1, wxT("Osmo4 - GPAC"), wxPoint(-1, -1), wxSize(320, FRAME_H), wxDEFAULT_FRAME_STYLE & ~(wxMAXIMIZE_BOX | wxRESIZE_BORDER))
+		wxFrame((wxFrame *) NULL, -1, wxT("Osmo4 - GPAC"), wxPoint(-1, -1), wxSize(320, FRAME_H), //wxDEFAULT_FRAME_STYLE & ~(wxMAXIMIZE_BOX | wxRESIZE_BORDER)
+wxDEFAULT_FRAME_STYLE
+		)
 
 {
 	int ws[3];
 	m_Address = NULL;
 	m_pView = NULL;
 	SetIcon(wxIcon(osmo4));
-	
+
 	m_num_chapters = 0;
 	m_chapters_start = NULL;
 
@@ -872,7 +874,8 @@ wxOsmo4Frame::~wxOsmo4Frame()
 	delete m_pPrev;
 	delete m_pNext;
 	delete m_pPlay;
-	delete m_pPause;
+	delete m_pPause;	wxSize a_size = m_Address->GetSize();
+
 	delete m_pStep;
 	delete m_pStop;
 	delete m_pInfo;
@@ -958,7 +961,7 @@ BEGIN_EVENT_TABLE(wxOsmo4Frame, wxFrame)
 	EVT_MENU(ID_GRAVITY, wxOsmo4Frame::OnGravity)
 	EVT_UPDATE_UI(ID_GRAVITY, wxOsmo4Frame::OnUpdateGravity)  
 
-	EVT_UPDATE_UI(FILE_PROPERTIES, wxOsmo4Frame::OnUpdateNeedsConnect)  
+	EVT_UPDATE_UI(FILE_PROPERTIES, wxOsmo4Frame::OnUpdateNeedsConnect)
 	EVT_UPDATE_UI(FILE_RELOAD, wxOsmo4Frame::OnUpdateNeedsConnect)  
 	EVT_UPDATE_UI(FILE_PLAY, wxOsmo4Frame::OnUpdatePlay)  
 	EVT_UPDATE_UI(FILE_STOP, wxOsmo4Frame::OnUpdateNeedsConnect)  
@@ -983,7 +986,7 @@ void wxOsmo4Frame::DoLayout(u32 v_width, u32 v_height)
 
 	wxSize a_size = m_Address->GetSize();
 	wxSize p_size = m_pProg->GetSize();
-	
+
 	wxSize size;
 	if (v_width && v_height) {
 		m_orig_width = v_width;
@@ -1016,10 +1019,14 @@ void wxOsmo4Frame::DoLayout(u32 v_width, u32 v_height)
 	pos.x = 0;
 	pos.y = sy;
 	pos = ClientToScreen(pos);
-	
+
 	if (m_pView) {
 		m_pView->Move(pos.x, pos.y);
+#ifdef WIN32
 		m_pView->Raise();
+#else
+		m_pView->Hide();
+#endif
 		gf_term_set_size(m_term, size.x, size.y);
 	}
 }

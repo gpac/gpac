@@ -78,7 +78,7 @@ static char hand_data[] =
 };
 
 
-static char collide_data[] = 
+static char collide_data[] =
 {
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 
@@ -483,6 +483,7 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 	if (os_handle) return GF_NOT_SUPPORTED;
 #endif
 
+	fprintf(stdout, "SDL HW setup\n");
 	ctx->os_handle = os_handle;
 	ctx->is_init = 0;
 	ctx->is_3D_out = cfg ? 1 : 0;

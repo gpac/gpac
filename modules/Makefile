@@ -51,15 +51,18 @@ endif
 endif
 
 
-ifeq ($(HAS_OPENGL), yes)
+ifeq ($(HAS_OPENGL),yes)
 PLUGDIRS+=render3d
 endif
 
+ifeq ($(CONFIG_LINUX),yes)
+PLUGDIRS+=x11_out
+endif
+
+
 #w32 plugins
 ifeq ($(CONFIG_WIN32),yes)
-
 PLUGDIRS+=wav_out
-
 ifeq ($(CONFIG_DIRECTX),yes)
 PLUGDIRS+=dx_hw
 endif
