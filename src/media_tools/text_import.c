@@ -49,12 +49,41 @@ enum
 	}	\
 
 
+static s32 gf_text_get_utf_type(FILE *in_src)
+{
+	unsigned char BOM[5];
+	fread(BOM, 5, 1, in_src);
+
+	if ((BOM[0]==0xFF) && (BOM[1]==0xFE)) {
+		/*UTF32 not supported*/
+		if (!BOM[2] && !BOM[3]) return -1;
+		fseek(in_src, 2, SEEK_SET);
+		return 3;
+	} 
+	if ((BOM[0]==0xFE) && (BOM[1]==0xFF)) {
+		/*UTF32 not supported*/
+		if (!BOM[2] && !BOM[3]) return -1;
+		fseek(in_src, 2, SEEK_SET);
+		return 2;
+	} else if ((BOM[0]==0xEF) && (BOM[1]==0xBB) && (BOM[2]==0xBF)) {
+		fseek(in_src, 3, SEEK_SET);
+		return 1;
+	}
+	if (BOM[0]<0x80) {
+		fseek(in_src, 0, SEEK_SET);
+		return 0;
+	}
+	return -1;
+}
+
 static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 {
 	char szLine[2048], szTest[10];
 	u32 val;
+	s32 uni_type;
 	FILE *test = fopen(filename, "rt");
 	if (!test) return GF_URL_ERROR;
+	uni_type = gf_text_get_utf_type(test);
 
 	while (fgets(szLine, 2048, test) != NULL) {
 		REM_TRAIL_MARKS(szLine, "\r\n\t ")
@@ -115,6 +144,42 @@ static void gf_text_import_set_language(GF_MediaImporter *import, u32 track)
 	}
 }
 
+
+static char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicode_type)
+{
+	u32 i;
+	char *sOK;
+	char szLineConv[1024];
+	unsigned short *sptr;
+
+	memset(szLine, 0, sizeof(char)*lineSize);
+	sOK = fgets(szLine, lineSize, txt_in); 
+	if (!sOK || (unicode_type<=1)) return sOK;
+
+#ifdef GPAC_BIG_ENDIAN
+	if (unicode_type==3) {
+#else
+	if (unicode_type==2) {
+#endif
+		i=0;
+		while (1) {
+			char c;
+			if (!szLine[i] && !szLine[i+1]) break;
+			c = szLine[i+1];
+			szLine[i+1] = szLine[i];
+			szLine[i] = c;
+			i+=2;
+		}
+	}
+	sptr = (short *)szLine;
+	i = gf_utf8_wcstombs(szLineConv, 1024, &sptr);
+	szLineConv[i] = 0;
+	strcpy(szLine, szLineConv);
+	/*this is ugly indeed: since input is UTF16-LE, there are many chances the fgets never reads the \0 after a \n*/
+	if (unicode_type==3) fgetc(txt_in); 
+	return sOK;
+}
+
 static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 {
 	FILE *srt_in;
@@ -128,10 +193,20 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	u32 sh, sm, ss, sms, eh, em, es, ems, start, end, prev_end, txt_line, char_len, char_line, nb_samp, j, duration, nb_styles, file_size;
 	Bool set_start_char, set_end_char, first_samp, has_alt_desc, use_italic_desc;
 	u32 state, curLine, line, len, ID, OCR_ES_ID;
+	s32 unicode_type;
 	char szLine[2048], szText[2048], *ptr;
 	unsigned short uniLine[5000];
 
 	srt_in = fopen(import->in_name, "rt");
+	fseek(srt_in, 0, SEEK_END);
+	file_size = ftell(srt_in);
+	fseek(srt_in, 0, SEEK_SET);
+
+	unicode_type = gf_text_get_utf_type(srt_in);
+	if (unicode_type<0) {
+		fclose(srt_in);
+		return gf_import_message(import, GF_NOT_SUPPORTED, "Unsupported SRT UTF encoding");
+	}
 
 	cfg = NULL;
 	has_alt_desc = 0;
@@ -257,19 +332,15 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	nb_samp = 0;
 	samp = gf_isom_new_text_sample();
 
-	fseek(srt_in, 0, SEEK_END);
-	file_size = ftell(srt_in);
-	fseek(srt_in, 0, SEEK_SET);
-
 	scale = timescale;
 	scale /= 1000;
 
 	use_italic_desc = 0;
 	first_samp = 1;
 	while (1) {
-		char *sOK = fgets(szLine, 2048, srt_in); 
-		if (sOK) REM_TRAIL_MARKS(szLine, "\r\n\t ")
+		char *sOK = gf_text_get_utf8_line(szLine, 2048, srt_in, unicode_type);
 
+		if (sOK) REM_TRAIL_MARKS(szLine, "\r\n\t ")
 		if (!sOK || !strlen(szLine)) {
 			state = 0;
 			rec.style_flags = 0;
@@ -379,14 +450,11 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 					set_end_char = 1;
 				}
 				else {
-					/*FIXME - UTF8 support & BOMs !!*/
-#if 0
-					if (ptr[i] & 0x80) {
+					if (!unicode_type && (ptr[i] & 0x80)) {
 						szText[len] = 0xc0 | ( (ptr[i] >> 6) & 0x3 );
 						len++;
 						ptr[i] &= 0xbf;
 					}
-#endif
 					szText[len] = ptr[i];
 					len++;
 					i++;
@@ -466,10 +534,20 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 	Double FPS;
 	GF_TextSample * samp;
 	Bool first_samp;
+	s32 unicode_type;
 	char szLine[2048], szTime[20], szText[2048];
 	GF_ISOSample *s;
 
 	sub_in = fopen(import->in_name, "rt");
+	fseek(sub_in, 0, SEEK_END);
+	file_size = ftell(sub_in);
+	fseek(sub_in, 0, SEEK_SET);
+	
+	unicode_type = gf_text_get_utf_type(sub_in);
+	if (unicode_type<0) {
+		fclose(sub_in);
+		return gf_import_message(import, GF_NOT_SUPPORTED, "Unsupported SUB UTF encoding");
+	}
 
 	FPS = 25.0;
 	if (import->video_fps) FPS = import->video_fps;
@@ -576,16 +654,15 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 	nb_samp = 0;
 	samp = gf_isom_new_text_sample();
 
-	fseek(sub_in, 0, SEEK_END);
-	file_size = ftell(sub_in);
-	fseek(sub_in, 0, SEEK_SET);
-
 	FPS = ((Double) timescale ) / FPS;
 	start = end = prev_end = 0;
 
 	line = 0;
 	first_samp = 1;
-	while (fgets(szLine, 2048, sub_in) != NULL) {
+	while (1) {
+		char *sOK = gf_text_get_utf8_line(szLine, 2048, sub_in, unicode_type);
+		if (!sOK) break;
+
 		REM_TRAIL_MARKS(szLine, "\r\n\t ")
 
 		line++;

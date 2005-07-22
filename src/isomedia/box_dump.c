@@ -2366,41 +2366,41 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		if (!txt->len) {
 			fprintf(dump, " text=\"\"");
 		}else {
-			s16 uniLine[10000];
+			s16 utf16Line[10000];
 			/*UTF16*/
 			if ((txt->len>2) && ((unsigned char) txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) txt->text[1] == (unsigned char) 0xFF)) {
 				/*copy 2 more chars because the lib always add 2 '0' at the end for UTF16 end of string*/
-				memcpy((char *) uniLine, txt->text+2, sizeof(char) * (txt->len));
-				len = gf_utf8_wcslen(uniLine);
+				memcpy((char *) utf16Line, txt->text+2, sizeof(char) * (txt->len));
+				len = gf_utf8_wcslen(utf16Line);
 			} else {
 				char *str;
 				str = txt->text;
-				len = gf_utf8_mbstowcs(uniLine, 10000, (const char **) &str);
+				len = gf_utf8_mbstowcs(utf16Line, 10000, (const char **) &str);
 			}
 			if (len>=0) {
-				uniLine[len] = 0;
+				utf16Line[len] = 0;
 				fprintf(dump, " text=\"\'");
 				for (j=0; j<len; j++) {
-					if ((uniLine[j]=='\n') || (uniLine[j]=='\r') || (uniLine[j]==0x85) || (uniLine[j]==0x2028) || (uniLine[j]==0x2029) ) {
+					if ((utf16Line[j]=='\n') || (utf16Line[j]=='\r') || (utf16Line[j]==0x85) || (utf16Line[j]==0x2028) || (utf16Line[j]==0x2029) ) {
 						fprintf(dump, "\'\'");
-						if ((uniLine[j]=='\r') && (uniLine[j+1]=='\n')) {
+						if ((utf16Line[j]=='\r') && (utf16Line[j+1]=='\n')) {
 							shift_offset[so_count] = j;
 							so_count++;
 							j++;
 						}
 					} 
 					else {
-						switch (uniLine[j]) {
+						switch (utf16Line[j]) {
 						case '\'': fprintf(dump, "&apos;"); break;
 						case '\"': fprintf(dump, "&quot;"); break;
 						case '&': fprintf(dump, "&amp;"); break;
 						case '>': fprintf(dump, "&gt;"); break;
 						case '<': fprintf(dump, "&lt;"); break;
 						default:
-							if (uniLine[j] < 128) {
-								fprintf(dump, "%c", (u8) uniLine[j]);
+							if (utf16Line[j] < 128) {
+								fprintf(dump, "%c", (u8) utf16Line[j]);
 							} else {
-								fprintf(dump, "&#%d;", uniLine[j]);
+								fprintf(dump, "&#%d;", utf16Line[j]);
 							}
 							break;
 						}
@@ -2530,16 +2530,17 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 		if (!txt->len) {
 			fprintf(dump, "\n");
 		}else {
-			u8 utf8Line[10000];
+			u16 utf16Line[10000];
 
 			/*UTF16*/
 			if ((txt->len>2) && ((unsigned char) txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) txt->text[1] == (unsigned char) 0xFF)) {
-				u16 *str = (u16 *) (txt->text+2);
-				len = gf_utf8_wcstombs(utf8Line, 10000, (const unsigned short **) &str);
-				utf8Line[len] = 0;
-			} else {
-				memcpy((char *) utf8Line, txt->text, sizeof(char) * (txt->len));
+				memcpy(utf16Line, txt->text+2, sizeof(char)*txt->len);
+				( ((char *)utf16Line)[txt->len] ) = 0;
 				len = txt->len;
+			} else {
+				u8 *str = (u8 *) (txt->text);
+				len = gf_utf8_mbstowcs(utf16Line, 10000, &str);
+				utf16Line[len] = 0;
 			}
 			if (len>=0) {
 				u32 styles, do_start, do_end, char_num;
@@ -2579,8 +2580,8 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 
 					/*not sure if styles must be reseted at line breaks in srt...*/
 					is_new_line = 0;
-					if ((utf8Line[j]=='\n') || (utf8Line[j]=='\r') ) {
-						if ((utf8Line[j]=='\r') && (utf8Line[j+1]=='\n')) j++;
+					if ((utf16Line[j]=='\n') || (utf16Line[j]=='\r') ) {
+						if ((utf16Line[j]=='\r') && (utf16Line[j+1]=='\n')) j++;
 						fprintf(dump, "\n");
 						is_new_line = 1;
 					} 
@@ -2590,18 +2591,15 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 						if (styles & GF_TXT_STYLE_BOLD) fprintf(dump, "<b>");
 					}
 					if (!is_new_line) {
-						u8 c = utf8Line[j];
-						fputc(c, dump);
-						if (c > 0x80) {
-							if (c < 0xE0) {
-								fputc(utf8Line[j+1], dump);
-								j += 1;
-							} else if (c < 0xF0) {
-								fputc(utf8Line[j+1], dump);
-								fputc(utf8Line[j+2], dump);
-								j += 2;
-							}
-						}
+						u32 sl;
+						char szChar[30];
+						s16 swT[2], *swz;
+						swT[0] = utf16Line[j];
+						swT[1] = 0;
+						swz=&swT;
+						sl = gf_utf8_wcstombs(szChar, 30, &swz);
+						szChar[sl]=0;
+						fprintf(dump, "%s", szChar);
 					}
 					char_num++;
 
