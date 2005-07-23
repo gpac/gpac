@@ -347,6 +347,7 @@ Bool Osmozilla_EventProc(void *priv, GF_Event *evt)
 	case GF_EVT_DURATION:		
 		break;
 	case GF_EVT_LDOUBLECLICK:
+    fprintf(stdout, "fullscreen toggle\n");
 		gf_term_set_option(gpac->m_term, GF_OPT_FULLSCREEN, !gf_term_get_option(gpac->m_term, GF_OPT_FULLSCREEN));
 		return 0;
 	}
@@ -369,8 +370,8 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 #endif
 
 #ifdef XP_UNIX
-  //    m_user.os_window_handler = aWindow->window;
-  //    m_user.os_display = ((NPSetWindowCallbackStruct *)aWindow->ws_info)->display;
+  m_user.os_window_handler = aWindow->window;
+  m_user.os_display = ((NPSetWindowCallbackStruct *)aWindow->ws_info)->display;
 #endif
 		
 	m_term = gf_term_new(&m_user);

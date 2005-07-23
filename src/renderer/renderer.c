@@ -197,6 +197,7 @@ static Bool check_graphics2D_driver(GF_Raster2D *ifce)
 static GF_Renderer *SR_New(GF_User *user)
 {
 	const char *sOpt;
+	GF_VisualRenderer *vrend;
 	GF_GLConfig cfg, *gl_cfg;
 	GF_Renderer *tmp = malloc(sizeof(GF_Renderer));
 	if (!tmp) return NULL;
@@ -227,7 +228,8 @@ static GF_Renderer *SR_New(GF_User *user)
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.double_buffered = 1;
 	gl_cfg = tmp->visual_renderer->bNeedsGL ? &cfg : NULL;
-
+	vrend = tmp->visual_renderer;
+	tmp->visual_renderer = NULL;
 	/*load video out*/
 	sOpt = gf_cfg_get_key(user->config, "Video", "DriverName");
 	if (sOpt) {
@@ -262,7 +264,7 @@ static GF_Renderer *SR_New(GF_User *user)
 			tmp->video_out = NULL;
 		}
 	}
-
+	tmp->visual_renderer = vrend;
 	if (!tmp->video_out ) {
 		gf_modules_close_interface((GF_BaseInterface *)tmp->visual_renderer);
 		free(tmp);
@@ -1014,7 +1016,7 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 	u32 s, c, m;
 	GF_Renderer *sr = (GF_Renderer *)cbck;
 	/*not assigned yet*/
-	if (!sr || !sr->video_out) return;
+	if (!sr || !sr->visual_renderer) return;
 
 	switch (event->type) {
 	case GF_EVT_REFRESH:

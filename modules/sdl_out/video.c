@@ -244,7 +244,7 @@ static void SDLVid_MapBIFSCoordinate(SDLVidCtx *ctx, SDL_Event *sdl_evt, GF_Even
 }
 
 
-#define SDL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL
+#define SDL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL | SDL_RESIZABLE
 #define SDL_FULLSCREEN_FLAGS		SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL | SDL_FULLSCREEN
 #define SDL_GL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_OPENGL | SDL_HWACCEL | SDL_RESIZABLE
 #define SDL_GL_FULLSCREEN_FLAGS		SDL_HWSURFACE | SDL_OPENGL | SDL_HWACCEL | SDL_FULLSCREEN
@@ -300,14 +300,12 @@ static void SDL_SetHack(void *os_handle, Bool set_on)
 		snprintf(buf, sizeof(buf), "%u", (u32) os_handle);
 		setenv("SDL_WINDOWID", buf, 1);
 	}
-	fprintf(stdout, "SDLout: env %s\n", getenv("SDL_WINDOWID"));
 #endif
 }
 
 u32 SDL_EventProc(void *par)
 {
 	u32 flags, last_mouse_move;
-	s32 wheel_delta;
 	Bool cursor_on;
 	SDL_Event sdl_evt;
 	GF_Event gpac_evt;
@@ -333,7 +331,6 @@ u32 SDL_EventProc(void *par)
 	SDL_EnableUNICODE(1);
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 
-	wheel_delta = 0;
 	last_mouse_move = SDL_GetTicks();
 	cursor_on = 1;
 
@@ -366,7 +363,7 @@ u32 SDL_EventProc(void *par)
 		while (SDL_PollEvent(&sdl_evt)) {
 			switch (sdl_evt.type) {
 			case SDL_VIDEORESIZE:
-				gpac_evt.type = GF_EVT_WINDOWSIZE;
+			  	gpac_evt.type = GF_EVT_WINDOWSIZE;
 				gpac_evt.size.width = sdl_evt.resize.w;
 				gpac_evt.size.height = sdl_evt.resize.h;
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
@@ -436,9 +433,8 @@ send_key:
 				case SDL_BUTTON_WHEELDOWN:
 					/*SDL handling is not perfect there, it just says up/down but no info on how much
 					the wheel was rotated...*/
-					wheel_delta += (sdl_evt.button.button==SDL_BUTTON_WHEELUP) ? 1 : -1;
+					gpac_evt.mouse.wheel_pos = (sdl_evt.button.button==SDL_BUTTON_WHEELUP) ? FIX_ONE : -FIX_ONE;
 					gpac_evt.type = GF_EVT_MOUSEWHEEL;
-					gpac_evt.mouse.wheel_pos = FLT2FIX(wheel_delta);
 					dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 					break;
 #endif
@@ -478,13 +474,8 @@ exit:
 GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u32 no_proc_override, GF_GLConfig *cfg)
 {
 	SDLVID();
-	/*SDL hack for window reuse is not really stable nor working on Win32...*/
-#ifdef WIN32
+	/*we don't allow SDL hack, not stable enough*/
 	if (os_handle) return GF_NOT_SUPPORTED;
-#endif
-
-	fprintf(stdout, "SDL HW setup\n");
-	ctx->os_handle = os_handle;
 	ctx->is_init = 0;
 	ctx->is_3D_out = cfg ? 1 : 0;
 	if (!SDLOUT_InitSDL()) return GF_IO_ERR;

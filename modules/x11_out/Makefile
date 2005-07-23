@@ -23,7 +23,7 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L/usr/X11R6/lib -lX11 -lXext -L../../bin/gcc -lgpac
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L/usr/X11R6/lib -lX11 -lXext -lGL -L../../bin/gcc -lgpac
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $< 

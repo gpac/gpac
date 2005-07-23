@@ -689,7 +689,7 @@ fi
 #look for wxWidgets support
 has_wx="no"
 wx_too_old="no"
-wx_cflags=`wx-config --cxxflags`
+wx_cflags=`wx-config --cppflags`
 wx_lflags=`wx-config --libs`
 
 cat > $TMPCPP << EOF

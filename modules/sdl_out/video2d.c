@@ -40,7 +40,7 @@ static Bool SDLVid_SurfaceOK(SDLVidCtx *ctx, SDLWrapSurface *surf, Bool remove)
 GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight)
 {
 	SDLVID();
-
+	
 	if (ctx->is_3D_out) return GF_BAD_PARAM;
 	if (ctx->back_buffer && ((u32) ctx->back_buffer->w==newWidth) && ((u32) ctx->back_buffer->h==newHeight)) {
 		return GF_OK;

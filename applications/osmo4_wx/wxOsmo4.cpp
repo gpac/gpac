@@ -339,68 +339,55 @@ bool GPACLogs::OnFrameClose(wxFrame *frame)
 extern "C" {
 #ifdef __WXGTK20__
     int gdk_x11_drawable_get_xid( void * );
+    void *gdk_x11_drawable_get_xdisplay( void * );
 #endif
     void *gtk_widget_get_parent_window( void * );
     void gtk_widget_realize( void *);
 }
-/*results are really bad so use at your own risk...
- * 	no proc override->we'd need to remap all events
- * 	posiotning is so-so
- * 	fullscreen doesn't work
- */
-#define USE_SDL_HACK
 #endif
 
 /*thats a bit ugly, but SDL hack doesnt work properly*/
 void wxOsmo4Frame::CheckVideoOut()
 {
-#ifdef WIN32
 	const char *sOpt = gf_cfg_get_key(m_user.config, "Video", "DriverName");
-#endif
 	void *os_handle = NULL;
-
-	if (1
-#ifdef WIN32
-	    && sOpt && stricmp(sOpt, "SDL Video Output")
-#endif
-	    ) {
-		if (m_pView) return;
-#ifdef WIN32
-		m_pView = new wxFrame(this, -1, wxT(""), wxDefaultPosition, wxDefaultSize, wxFRAME_FLOAT_ON_PARENT|wxFRAME_NO_TASKBAR|wxWS_EX_TRANSIENT );
-		m_pView->Reparent(NULL);
-#else
-		m_pView = new wxWindow(this, 1, wxDefaultPosition, wxDefaultSize, wxSIMPLE_BORDER|wxWS_EX_TRANSIENT );
-#endif
-
-		m_pView->SetBackgroundColour(wxColour(wxT("BLACK")));
+	void *os_display = NULL;
+	/*build a child window for embed display*/
+	if (stricmp(sOpt, "SDL Video Output")) {
+	  if (m_pView) return;
+	  m_pView = new wxWindow(this, 1, wxDefaultPosition, wxDefaultSize, wxSIMPLE_BORDER);
+	  m_pView->SetBackgroundColour(wxColour(wxT("BLACK")));
 
 #ifdef __WXGTK__
-#ifdef USE_SDL_HACK
+	  GtkWidget* widget = m_pView->GetHandle();
 #ifdef __WXGTK20__
-		GtkWidget* widget = m_pView->GetHandle();
-		os_handle = (void *)gdk_x11_drawable_get_xid(gtk_widget_get_parent_window(widget));
-		fprintf(stdout, "os handle %d\n", (u32) os_handle);
+	  os_handle = (void *)gdk_x11_drawable_get_xid(gtk_widget_get_parent_window(widget));
+	  os_display = (void *)gdk_x11_drawable_get_xdisplay(gtk_widget_get_parent_window(widget));
 #else
-		os_handle =  (void *)*(int *)( (char *)gtk_widget_get_parent_window( m_pView->GetHandle() ) + 2 * sizeof(void *) );
+	  os_handle =  (void *)*(int *)( (char *)gtk_widget_get_parent_window(widget) + 2 * sizeof(void *) );
 #endif
-#endif
+	  /*FIXME - X11 output is not stable enough*/
+	  os_handle = NULL;
+	  os_display = NULL;
 
 #elif defined (WIN32)
-		os_handle = m_pView->GetHandle();
+	  os_handle = m_pView->GetHandle();
 #endif
-		if (os_handle) {
-			m_user.os_window_handler = os_handle;
-			m_pView->Raise();
-			m_pView->Show();
-			SetWindowStyle(wxDEFAULT_FRAME_STYLE);
-			DoLayout();
-			return;
-		}
+	  if (os_handle) {
+	    m_user.os_window_handler = os_handle;
+	    m_user.os_display = os_display;
+	    m_pView->Raise();
+	    m_pView->Show();
+	    SetWindowStyle(wxDEFAULT_FRAME_STYLE);
+	    DoLayout();
+	    return;
+	  }
 	}
-
+	/*we're using SDL, don't use SDL hack*/
 	if (m_pView) delete m_pView;
 	m_pView = NULL;
 	m_user.os_window_handler = 0;
+	m_user.os_display = NULL;
 	SetWindowStyle(wxDEFAULT_FRAME_STYLE & ~(wxMAXIMIZE_BOX | wxRESIZE_BORDER));
 	DoLayout();
 }
@@ -595,7 +582,6 @@ Bool wxOsmo4Frame::LoadTerminal()
 	m_user.EventProc = GPAC_EventProc;
 
 	CheckVideoOut();
-
 	m_term = gf_term_new(&m_user);
 	if (!m_term) {
 		wxMessageDialog(NULL, wxT("Fatal Error"), wxT("Cannot load MPEG-4 Terminal"), wxOK).ShowModal();
@@ -1021,13 +1007,13 @@ void wxOsmo4Frame::DoLayout(u32 v_width, u32 v_height)
 	pos = ClientToScreen(pos);
 
 	if (m_pView) {
-		m_pView->Move(pos.x, pos.y);
+	  m_pView->Move(pos.x, pos.y);
 #ifdef WIN32
-		m_pView->Raise();
+	  m_pView->Raise();
 #else
-		m_pView->Hide();
+	  m_pView->Hide();
 #endif
-		gf_term_set_size(m_term, size.x, size.y);
+	  gf_term_size_changed(m_term, size.x, size.y);
 	}
 }
 

@@ -2539,7 +2539,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 				len = txt->len;
 			} else {
 				u8 *str = (u8 *) (txt->text);
-				len = gf_utf8_mbstowcs(utf16Line, 10000, &str);
+				len = gf_utf8_mbstowcs(utf16Line, 10000, (const char **) &str);
 				utf16Line[len] = 0;
 			}
 			if (len>=0) {
@@ -2596,8 +2596,8 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 						s16 swT[2], *swz;
 						swT[0] = utf16Line[j];
 						swT[1] = 0;
-						swz=&swT;
-						sl = gf_utf8_wcstombs(szChar, 30, &swz);
+						swz= (s16 *)swT;
+						sl = gf_utf8_wcstombs(szChar, 30, (const unsigned short **) &swz);
 						szChar[sl]=0;
 						fprintf(dump, "%s", szChar);
 					}

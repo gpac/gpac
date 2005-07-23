@@ -14,15 +14,24 @@ X11_FlushVideo (struct _video_out *vout, GF_Window * dest)
 	 * write backbuffer to screen
 	 */
 	X11VID ();
+	assert(xWindow->surface);
+	gf_mx_p(xWindow->mx);
+	if (xWindow->is_3D_out) {
+	  glXSwapBuffers(xWindow->display, xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd);
+	  gf_mx_v(xWindow->mx);
+	  return GF_OK;
+	}
+
 	switch (xWindow->videoaccesstype)
 	{
 
 	case VIDEO_XI_STANDARD:
-		XPutImage (xWindow->display, xWindow->os_handle, xWindow->gc,
+		XPutImage (xWindow->display, xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd, xWindow->the_gc,
 			   xWindow->surface, 0, 0, dest->x, dest->y, dest->w,
 			   dest->h);
 		break;
 	}
+	gf_mx_v(xWindow->mx);
 	return GF_OK;
 }
 
@@ -104,19 +113,43 @@ X11_TranslateActionKey (u32 VirtKey)
 static void
 X11_MapBIFSCoordinate (XWindow * xWindow, XEvent * xevent, GF_Event * evt)
 {
-	if (xWindow->fullscreen && xWindow->is_3D_out)
-	{
+	if (xWindow->fullscreen && xWindow->is_3D_out) {
 		evt->mouse.x =
 			xevent->xmotion.x - xWindow->display_width / 2;
 		evt->mouse.y =
 			xWindow->display_height / 2 - xevent->xmotion.y;
-	}
-	else
-	{
-		evt->mouse.x = xevent->xmotion.x - xWindow->width / 2;
-		evt->mouse.y = xWindow->height / 2 - xevent->xmotion.y;
+	} else {
+	  evt->mouse.x = xevent->xmotion.x - xWindow->w_width / 2;
+	  evt->mouse.y = xWindow->w_height / 2 - xevent->xmotion.y;
 	}
 }
+
+static GF_Err X11_SetupGL(GF_VideoOutput *vout)
+{
+  GF_Event evt;
+  XWindow *xWin = (XWindow *)vout->opaque;
+  XSync(xWin->display, False);
+  xWin->glx_context = glXCreateContext(xWin->display,xWin->glx_visualinfo, NULL, True);
+  XSync(xWin->display, False);
+  if (!xWin->glx_context) return GF_IO_ERR;
+  if ( ! glXMakeCurrent(xWin->display, xWin->fullscreen ? xWin->full_wnd : xWin->wnd, xWin->glx_context) ) return GF_IO_ERR;
+  XSync(xWin->display, False);
+  evt.type = GF_EVT_GL_CHANGED;
+  vout->on_event (vout->evt_cbk_hdl,&evt);
+  return GF_OK;
+}
+
+static void X11_ReleaseGL(XWindow *xWin)
+{
+  XSync(xWin->display, False);
+  if (xWin->glx_context) {
+    glXMakeCurrent(xWin->display, None, NULL);
+    glXDestroyContext(xWin->display, xWin->glx_context);
+    xWin->glx_context = NULL;
+  }
+  XSync(xWin->display, False);
+}
+
 
 //=====================================
 /*
@@ -128,6 +161,9 @@ u32 X11_EventProc (void *par)
 {
 	GF_VideoOutput *vout = (GF_VideoOutput *) par;
 	GF_Event evt;
+	Window the_window;
+	XComposeStatus state;
+	unsigned char keybuf[32];
 
 	X11VID ();
 
@@ -136,137 +172,114 @@ u32 X11_EventProc (void *par)
 	xWindow->x11_th_state = 1;
 	XEvent xevent;
 
-	char ukey;
-	while (xWindow->x11_th_state)
-	{
+	while (xWindow->x11_th_state==1) {
+	  gf_mx_p(xWindow->mx);
+	  the_window = xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd;
 		while (XCheckWindowEvent
-		       (xWindow->display, xWindow->os_handle,
+		       (xWindow->display, the_window,
 			StructureNotifyMask | ExposureMask | KeyPressMask |
 			KeyReleaseMask | ButtonPressMask | ButtonReleaseMask |
 			PointerMotionMask, &xevent))
 		{
-			switch (xevent.type)
-			{
-//======================================
+			switch (xevent.type) {
 				/*
 				 * X11 window resized event
 				 * must inform GPAC to resize os_handle wnd
 				 */
 			case ConfigureNotify:
-				if ((unsigned int) xevent.xconfigure.width !=
-				    xWindow->width
-				    || (unsigned int) xevent.xconfigure.
-				    height != xWindow->height)
+				if ((unsigned int) xevent.xconfigure.width != xWindow->w_width
+				    || (unsigned int) xevent.xconfigure.height != xWindow->w_height)
 				{
 					evt.type = GF_EVT_WINDOWSIZE;
-					evt.size.width =
-						xevent.xconfigure.width;
-					evt.size.height =
-						xevent.xconfigure.height;
-					vout->on_event (vout->evt_cbk_hdl,
-							&evt);
+					xWindow->w_width = evt.size.width = xevent.xconfigure.width;
+					xWindow->w_height = evt.size.height = xevent.xconfigure.height;
+					vout->on_event (vout->evt_cbk_hdl,&evt);
 				}
 				break;
-//======================================
 				/*
 				 * Windows need repaint
 				 */
 			case Expose:
-				if (xevent.xexpose.count > 0)
-					break;
+				if (xevent.xexpose.count > 0)	break;
 				evt.type = GF_EVT_REFRESH;
-				evt.size.width = xevent.xexpose.width;
-				evt.size.height = xevent.xexpose.height;
 				vout->on_event (vout->evt_cbk_hdl, &evt);
 				break;
-//======================================
+
+			/* Have we been requested to quit (or another client message?) */
+			case ClientMessage: 
+			  fprintf(stdout, "client message\n");
+			  if ( (xevent.xclient.format == 32) && (xevent.xclient.data.l[0] == xWindow->WM_DELETE_WINDOW) ) {
+			    fprintf(stdout, "QUIT request\n");
+                                if (xWindow->x11_th_state==1) {
+                                        evt.type = GF_EVT_QUIT;
+                                        vout->on_event(vout->evt_cbk_hdl, &evt);
+                                }
+			  }
+			  break;
+
 			case KeyPress:
 			case KeyRelease:
-				evt.key.vk_code =
-					X11_TranslateActionKey (xevent.xkey.
-								keycode);
-				evt.key.virtual_code =
-					XKeycodeToKeysym (xWindow->display,
-							  xevent.xkey.keycode,
-							  0);
-				if (evt.key.vk_code)
-				{
-					fprintf(stdout, "MPEG-4 VK key press/release\n");
+				evt.key.virtual_code = XKeycodeToKeysym (xWindow->display, xevent.xkey.keycode, 0);
+				evt.key.vk_code = X11_TranslateActionKey (evt.key.virtual_code);
+				evt.key.virtual_code &= 0xFF;
+
+				if (evt.key.vk_code) {
 					evt.type = (xevent.type ==KeyPress) ? GF_EVT_VKEYDOWN :GF_EVT_VKEYUP;
-					if (evt.key.vk_code <=GF_VK_RIGHT)
-						evt.key.virtual_code = 0;
+					if (evt.key.vk_code <= GF_VK_RIGHT) evt.key.virtual_code = 0;
 					vout->on_event (vout->evt_cbk_hdl, &evt);
 					/*also send a normal key for non-key-sensors */
-					if (evt.key.vk_code >
-					    GF_VK_RIGHT)
-						goto send_key;
-				}
-				else
-				{
-					fprintf(stdout, "MPEG-4 non-VK key press/release\n");
-				      send_key:
-					XLookupString (&xevent.xkey, &ukey, 1,
-						       NULL, NULL);
-					evt.type =
-						(xevent.type ==
-						 KeyPress) ? GF_EVT_VKEYDOWN :
-						GF_EVT_VKEYUP;
-					vout->on_event (vout->evt_cbk_hdl,
-							&evt);
+					if (evt.key.vk_code > GF_VK_RIGHT) goto send_key;
+				} else {
+send_key:
+					XLookupString (&xevent.xkey, (char *) keybuf, sizeof(keybuf), NULL, &state);
+					evt.type = (xevent.type == KeyPress) ? GF_EVT_KEYDOWN : GF_EVT_KEYUP;
+					vout->on_event (vout->evt_cbk_hdl, &evt);
 
-					if ((xevent.type == KeyPress) && ukey)
-					{
-						evt.character.
-							unicode_char = ukey;
+					if ((xevent.type == KeyPress) && keybuf[0]) {
+						evt.character.unicode_char = keybuf[0];
 						evt.type = GF_EVT_CHAR;
-						vout->on_event (vout->
-								evt_cbk_hdl,
-								&evt);
+						vout->on_event (vout->evt_cbk_hdl, &evt);
 					}
 				}
 				break;
 //======================================
 			case ButtonPress:
 			case ButtonRelease:
-				last_mouse_move =
-					((XButtonEvent *) & xevent)->time;
-				X11_MapBIFSCoordinate (xWindow, &xevent,
-						       &evt);
-				switch (((XButtonEvent *) & xevent)->button)
-				{
+				last_mouse_move = ((XButtonEvent *) & xevent)->time;
+				X11_MapBIFSCoordinate (xWindow, &xevent, &evt);
+				switch (((XButtonEvent *) & xevent)->button) {
 				case Button1:
-					evt.type =
-						(xevent.type ==
-						 ButtonRelease) ? GF_EVT_LEFTUP :
-						GF_EVT_LEFTDOWN;
-					vout->on_event (vout->evt_cbk_hdl,
-							&evt);
-					break;
-				case Button3:
-					evt.type =
-						(xevent.type ==
-						 ButtonRelease) ? GF_EVT_MIDDLEUP
-						: GF_EVT_MIDDLEDOWN;
-					vout->on_event (vout->evt_cbk_hdl,
-							&evt);
+					evt.type = (xevent.type == ButtonRelease) ? GF_EVT_LEFTUP : GF_EVT_LEFTDOWN;
+					vout->on_event (vout->evt_cbk_hdl, &evt);
 					break;
 				case Button2:
-					evt.type =
-						(xevent.type ==
-						 ButtonRelease) ? GF_EVT_RIGHTUP
-						: GF_EVT_RIGHTDOWN;
-					vout->on_event (vout->evt_cbk_hdl,
-							&evt);
+					evt.type = (xevent.type == ButtonRelease) ? GF_EVT_MIDDLEUP : GF_EVT_MIDDLEDOWN;
+					vout->on_event (vout->evt_cbk_hdl, &evt);
 					break;
+				case Button3:
+					evt.type = (xevent.type == ButtonRelease) ? GF_EVT_RIGHTUP: GF_EVT_RIGHTDOWN;
+					vout->on_event (vout->evt_cbk_hdl, &evt);
+					break;
+				case Button4:
+				  evt.type = GF_EVT_MOUSEWHEEL;
+				  evt.mouse.wheel_pos = FIX_ONE;
+				  vout->on_event(vout->evt_cbk_hdl, &evt);
+				  break;
+				case Button5:
+				  evt.type = GF_EVT_MOUSEWHEEL;
+				  evt.mouse.wheel_pos = -FIX_ONE;
+				  vout->on_event(vout->evt_cbk_hdl, &evt);
+				  break;
+				default:
+				  fprintf(stdout, "X11 out: unknown button %d\n", ((XButtonEvent *) & xevent)->button);
+				  break;
 				}
 				break;
 //======================================
 			case MotionNotify:
-				last_mouse_move =
-					((XButtonEvent *) & xevent)->time;
+				last_mouse_move = ((XButtonEvent *) & xevent)->time;
 				evt.type = GF_EVT_MOUSEMOVE;
-				X11_MapBIFSCoordinate (xWindow, &xevent,
-						       &evt);
+				X11_MapBIFSCoordinate (xWindow, &xevent, &evt);
 				vout->on_event (vout->evt_cbk_hdl, &evt);
 				break;
 //======================================
@@ -282,7 +295,7 @@ u32 X11_EventProc (void *par)
 				break;
 //======================================
 			case DestroyNotify:
-				xWindow->x11_th_state = 0;
+				xWindow->x11_th_state = 2;
 				evt.type = GF_EVT_QUIT;
 				vout->on_event (vout->evt_cbk_hdl, &evt);
 				break;
@@ -291,8 +304,10 @@ u32 X11_EventProc (void *par)
 				break;
 			}
 		}
+		gf_mx_v(xWindow->mx);
 		gf_sleep (5);
 	}			/* End while */
+	xWindow->x11_th_state = 3;
 	return 0;
 }
 
@@ -302,28 +317,21 @@ u32 X11_EventProc (void *par)
  */
 //=====================================
 
-void
-X11_DeleteBackBuffer (GF_VideoOutput * vout)
+static void
+X11_ReleaseBackBuffer (GF_VideoOutput * vout)
 {
 	X11VID ();
-	if (xWindow->is_init == 1)
-	{
-		switch (xWindow->videoaccesstype)
-		{
-		case VIDEO_XI_STANDARD:
-			if (xWindow->back_buffer)
-			{
-				if (xWindow->back_buffer->buffer)
-				{
-					free (xWindow->back_buffer->buffer);
-				}
-			}
-			if (xWindow->surface)
-				XFree (xWindow->surface);
-			break;
-		}
-		xWindow->is_init = 0;
+	if (xWindow->is_init == 1) {
+	  switch (xWindow->videoaccesstype) {
+	    case VIDEO_XI_STANDARD:
+		if (xWindow->back_buffer->buffer) free (xWindow->back_buffer->buffer);
+		xWindow->back_buffer->buffer = NULL;
+		if (xWindow->surface) XFree(xWindow->surface);
+		xWindow->surface = NULL;
+		break;
+	  }
 	}
+	xWindow->is_init = 0;
 }
 
 //=====================================
@@ -345,9 +353,7 @@ X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeight)
 		return GF_BAD_PARAM;
 
 	gf_mx_p(xWindow->mx);
-
-	//~ X11_DeleteBackBuffer (vout);
-
+	X11_ReleaseBackBuffer(vout);
 	xWindow->back_buffer->BPP = xWindow->bpp;
 	xWindow->back_buffer->width = VideoWidth;
 	xWindow->back_buffer->height = VideoHeight;
@@ -386,8 +392,10 @@ X11_Shutdown (struct _video_out *vout)
 	 */
 	// /*delete window if created by plugin*/
 	X11VID ();
-	gf_mx_p (xWindow->mx);
+	xWindow->x11_th_state = 2;
+	while (	xWindow->x11_th_state == 2) gf_sleep(2);
 
+	gf_mx_p (xWindow->mx);
 
 	while (gf_list_count (xWindow->surfaces))
 	{
@@ -404,31 +412,22 @@ X11_Shutdown (struct _video_out *vout)
 	}
 	gf_list_del(xWindow->surfaces);
 
-	X11_DeleteBackBuffer (vout);
+	X11_ReleaseBackBuffer (vout);
+	X11_ReleaseGL(xWindow);
+	free(xWindow->back_buffer);
+	XFreeGC (xWindow->display, xWindow->the_gc);
 
-
-	XFreeGC (xWindow->display, xWindow->gc);
-
-	if (xWindow->ext_wnd)
-	{
-		XUnmapWindow (xWindow->display, (Window) xWindow->normal_wnd);
+	if (xWindow->owns_wnd) {
+	  XUnmapWindow (xWindow->display, (Window) xWindow->wnd);
+	  XDestroyWindow (xWindow->display, (Window) xWindow->wnd);
 	}
-
-	XDestroyWindow (xWindow->display, (Window) xWindow->normal_wnd);
 	XDestroyWindow (xWindow->display, (Window) xWindow->full_wnd);
-
 	XCloseDisplay (xWindow->display);
-
-	xWindow->x11_th_state = 0;
-
-	gf_sleep (5);
-
-	gf_th_del(xWindow->th);	//sometimes get hung here
 
 	gf_mx_v (xWindow->mx);
 
+	gf_th_del(xWindow->th);	//sometimes get hung here
 	gf_mx_del(xWindow->mx);
-
 	free (xWindow);
 }
 
@@ -440,9 +439,6 @@ X11_Shutdown (struct _video_out *vout)
 GF_Err
 X11_ResizeBackBuffer (struct _video_out *vout, u32 newWidth, u32 newHeight)
 {
-	/*
-	 * resize BACKBUFFER & associated resource || recreate openGL context
-	 */
 	X11VID ();
 	if ((newWidth != xWindow->back_buffer->width)
 	    || (newHeight != xWindow->back_buffer->height))
@@ -464,6 +460,7 @@ X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 {
 	X11VID ();
 	GF_Window a_wnd;
+	gf_mx_p (xWindow->mx);
 	switch (evt->type)
 	{
 	case GF_EVT_REFRESH:
@@ -475,24 +472,21 @@ X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 		gf_mx_v (xWindow->mx);
 		break;
 	case GF_EVT_SET_CURSOR:
-
 		break;
 	case GF_EVT_SET_CAPTION:
-
 		break;
 	case GF_EVT_SHOWHIDE:
-
 		break;
 	case GF_EVT_SCENESIZE:
-		gf_mx_p (xWindow->mx);
-		fprintf(stdout, "resizing window to %d %d\n", evt->size.width, evt->size.height);
-		xWindow->width = evt->size.width, xWindow->height =
-			evt->size.height;
-		XResizeWindow (xWindow->display, xWindow->os_handle,
-			       evt->size.width, evt->size.height);
-		gf_mx_v(xWindow->mx);
+	  if (!xWindow->fullscreen) {
+		xWindow->w_width = evt->size.width;
+		xWindow->w_height = evt->size.height;
+		XResizeWindow (xWindow->display, xWindow->wnd, evt->size.width, evt->size.height);
+		if (xWindow->is_3D_out) X11_SetupGL(vout);
+	  }
 		break;
 	}
+	gf_mx_v(xWindow->mx);
 	return GF_OK;
 
 }
@@ -507,40 +501,43 @@ X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn,
 		   u32 * screen_width, u32 * screen_height)
 {
 	X11VID ();
-	fprintf(stdout, "Set Full Screen: %dx%d\n", *screen_width, *screen_height);
 	gf_mx_p (xWindow->mx);
 	xWindow->fullscreen = bFullScreenOn;
+	if (xWindow->is_3D_out) X11_ReleaseGL(xWindow);
+
 	if (bFullScreenOn)
 	{
-		xWindow->store_width = xWindow->width;
-		xWindow->store_height = xWindow->height;
+		xWindow->store_width = *screen_width;
+		xWindow->store_height = *screen_height;
 		
-		xWindow->width = xWindow->display_width;
-		xWindow->height = xWindow->display_height;
+		xWindow->w_width = xWindow->display_width;
+		xWindow->w_height = xWindow->display_height;
+
+		XFreeGC (xWindow->display, xWindow->the_gc);
+		xWindow->the_gc = XCreateGC (xWindow->display, xWindow->full_wnd, 0, NULL);
 
 		XMoveResizeWindow (xWindow->display,
 				   (Window) xWindow->full_wnd, 0, 0,
 				   xWindow->display_width,
 				   xWindow->display_height);
-		if (!xWindow->ext_wnd)
-			XUnmapWindow (xWindow->display,
-				      (Window) xWindow->normal_wnd);
-		xWindow->os_handle = (Window) xWindow->full_wnd;
-		*screen_width = xWindow->width;
-		*screen_height = xWindow->height;
+		*screen_width = xWindow->w_width;
+		*screen_height = xWindow->w_height;
+		XUnmapWindow (xWindow->display, xWindow->wnd);
+		XMapWindow (xWindow->display, xWindow->full_wnd);
+		XSetInputFocus(xWindow->display, xWindow->full_wnd, RevertToNone, CurrentTime);
+		XRaiseWindow(xWindow->display, xWindow->full_wnd);
+		XGrabKeyboard(xWindow->display, xWindow->full_wnd, True, GrabModeAsync, GrabModeAsync, CurrentTime);
+	} else {
+		*screen_width = xWindow->store_width;
+		*screen_height = xWindow->store_height;
+		XFreeGC (xWindow->display, xWindow->the_gc);
+		xWindow->the_gc = XCreateGC (xWindow->display, xWindow->wnd, 0, NULL);
+		XUnmapWindow (xWindow->display, xWindow->full_wnd);
+		XMapWindow (xWindow->display, xWindow->wnd);
+		XUngrabKeyboard(xWindow->display, CurrentTime);
+		/*backbuffer resize will be done right after this is called */
 	}
-	else
-	{
-		XUnmapWindow (xWindow->display, (Window) xWindow->full_wnd);
-		xWindow->os_handle = (Window) xWindow->normal_wnd;
-		xWindow->width = xWindow->store_width;
-		xWindow->height = xWindow->store_height;
-		X11_ResizeBackBuffer(vout, xWindow->width, xWindow->height);
-		*screen_width = xWindow->width;
-		*screen_height = xWindow->height;
-	}
-
-	XMapRaised (xWindow->display, xWindow->os_handle);
+	if (xWindow->is_3D_out) X11_SetupGL(vout);
 	gf_mx_v (xWindow->mx);
 	return GF_OK;
 }
@@ -552,16 +549,15 @@ GF_Err
 X11_Clear (struct _video_out * vout, u32 color)
 {
 	X11VID ();
-	return GF_OK;
-
+	Window the_window;
 	gf_mx_p (xWindow->mx);
-	switch (xWindow->videoaccesstype)
-	{
+	the_window = xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd;
+
+	switch (xWindow->videoaccesstype) {
 	case VIDEO_XI_STANDARD:
 		// TODO convert color to PIXEL
-		XSetWindowBackground (xWindow->display, xWindow->os_handle,
-				      color);
-		XClearWindow (xWindow->display, xWindow->os_handle);
+		XSetWindowBackground (xWindow->display, the_window, color);
+		XClearWindow (xWindow->display, the_window);
 		break;
 	}
 	gf_mx_v (xWindow->mx);
@@ -757,8 +753,9 @@ X11_ResizeSurface (struct _video_out * vout, u32 surface_id,
 {
 	X11WrapSurface *wrap;
 	X11VID ();
-	//do nothing ????
+
 	if (!surface_id) return X11_ResizeBackBuffer(vout, width, height);
+
 	gf_mx_p(xWindow->mx);
 	wrap = X11_GetSurface(vout, surface_id);
 	if (!wrap || !wrap->BPP) {
@@ -774,6 +771,7 @@ X11_ResizeSurface (struct _video_out * vout, u32 surface_id,
 	wrap->width = width;
 	wrap->height = height;
 	wrap->buffer = malloc(sizeof(char) * wrap->pitch * wrap->height);
+	gf_mx_v(xWindow->mx);
 	return GF_OK;
 }
 
@@ -863,25 +861,19 @@ X11_GetPixelFormat (struct _video_out * vout, u32 surfaceID,
  */
 //=====================================
 void
-X11_SetupWindow (GF_VideoOutput * vout)
+X11_SetupWindow (GF_VideoOutput * vout, GF_GLConfig *cfg)
 {
 	X11VID ();
 
-	/*
-	 * normal X11 routine
-	 */
-	//==============================================
 	if (!xWindow->display)
 		xWindow->display = XOpenDisplay (NULL);
 
 	xWindow->screennum = DefaultScreen (xWindow->display);
-
 	xWindow->screenptr = DefaultScreenOfDisplay (xWindow->display);
 	xWindow->visual = DefaultVisualOfScreen (xWindow->screenptr);
 	xWindow->depth = DefaultDepth (xWindow->display, xWindow->screennum);
 
-	switch (xWindow->depth)
-	{
+	switch (xWindow->depth) {
 	case 8:
 		xWindow->pixel_format = GF_PIXEL_GREYSCALE;
 		break;
@@ -898,149 +890,81 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	xWindow->bpp = xWindow->depth / 8;
 	xWindow->bpp = xWindow->bpp == 3 ? 4 : xWindow->bpp;
 
-	char *title = "Test de X11_out";
-	if (title)
-	{
-		xWindow->title = (char *) malloc (strlen (title));
-		strcpy (xWindow->title, title);
-	}
-
 	xWindow->display_width =
 		DisplayWidth (xWindow->display, xWindow->screennum);
 	xWindow->display_height =
 		DisplayHeight (xWindow->display, xWindow->screennum);
-	//==============================================
 
 	/*
 	 * Full screen wnd
 	 */
-	Window fullscreen = XCreateWindow (xWindow->display,
-					   RootWindowOfScreen (xWindow->
-							       screenptr),
+	xWindow->full_wnd = XCreateWindow (xWindow->display,
+					   RootWindowOfScreen (xWindow->screenptr),
 					   0, 0,
 					   xWindow->display_width,
 					   xWindow->display_height, 0,
 					   xWindow->depth, InputOutput,
 					   xWindow->visual, 0, NULL);
 
-	xWindow->full_wnd = (Window *) fullscreen;
+	XSelectInput (xWindow->display,  xWindow->full_wnd,
+		       PointerMotionMask | ButtonReleaseMask | ButtonPressMask | KeyPressMask | KeyReleaseMask);
 
-	XSelectInput (xWindow->display, (Window) xWindow->full_wnd,
-		      ExposureMask |
-		      PointerMotionMask | ButtonReleaseMask | ButtonPressMask
-		      | KeyPressMask | KeyReleaseMask);
-	//==============================================	
-
-	/*
-	 * normal wnd
-	 */
-	//==============================================
-	Window normal_wnd;
-	if (!xWindow->ext_wnd)
-	{
-		normal_wnd =
-			XCreateWindow (xWindow->display,
-				       RootWindowOfScreen (xWindow->
-							   screenptr), 0, 0,
-				       xWindow->width, xWindow->height, 0,
+	if (!xWindow->wnd) {
+	  xWindow->w_width = 320;
+	  xWindow->w_height = 20;
+	  xWindow->wnd = XCreateWindow (xWindow->display,
+				       RootWindowOfScreen(xWindow->screenptr), 0, 0,
+				       xWindow->w_width, xWindow->w_height, 0,
 				       xWindow->depth, InputOutput,
 				       xWindow->visual, 0, NULL);
+	  xWindow->owns_wnd = 1;
+	  XMapWindow (xWindow->display, (Window) xWindow->wnd);
+	} else {
+	  xWindow->owns_wnd = 0;
+	  xWindow->w_width = 320;
+	  xWindow->w_height = 20;
 	}
-	else
-	{
-		Window win_tmp;
-		unsigned int tmp1, tmp2;	// don't know :) ask vlc guys
-		XGetGeometry (xWindow->display, (Window) xWindow->ext_wnd,
-			      &win_tmp, &tmp1, &tmp2, &xWindow->width,
-			      &xWindow->height, &tmp1, &tmp2);
+	XSelectInput (xWindow->display, xWindow->wnd,
+		      StructureNotifyMask | PropertyChangeMask | ExposureMask | PointerMotionMask | ButtonReleaseMask | ButtonPressMask | KeyPressMask | KeyReleaseMask);
 
-		normal_wnd =
-			XCreateWindow (xWindow->display,
-				       (Window) xWindow->ext_wnd,
-				       0, 0,
-				       xWindow->width, xWindow->height, 0,
-				       xWindow->depth, 0,
-				       xWindow->visual, 0, NULL);
 
-	}
-
-	xWindow->normal_wnd = (Window *) normal_wnd;
-	/*
-	 * base os_handle
-	 */
-	//==============================================
-	xWindow->os_handle = (Window) xWindow->normal_wnd;
-
-	XSelectInput (xWindow->display, xWindow->os_handle,
-		      StructureNotifyMask | PropertyChangeMask | ExposureMask
-		      | PointerMotionMask | ButtonReleaseMask |
-		      ButtonPressMask | KeyPressMask | KeyReleaseMask);
-	//==============================================
-
-	/*
-	 * Size Hints for nds
-	 */
-	//==============================================
 	XSizeHints *Hints = XAllocSizeHints ();
 	Hints->flags = PSize | PMinSize;
 	Hints->min_width = 32;
 	Hints->min_height = 32;
 	Hints->max_height = 4096;
 	Hints->max_width = 4096;
-	XSetWMNormalHints (xWindow->display, xWindow->os_handle, Hints);
+	if (xWindow->owns_wnd) {
+	  XSetWMNormalHints (xWindow->display, xWindow->wnd, Hints);
+	  XStoreName (xWindow->display, xWindow->wnd, "GPAC X11 Output");
+	}
 	Hints->x = 0;
 	Hints->y = 0;
 	Hints->flags |= USPosition;
-	XSetWMNormalHints (xWindow->display, (Window) xWindow->full_wnd,
-			   Hints);
+	XSetWMNormalHints (xWindow->display, xWindow->full_wnd, Hints);
 	XFree (Hints);
-	//==============================================
-
-	/*
-	 * Wnds attributes
-	 */
-	//==============================================	 
-	XStoreName (xWindow->display, xWindow->os_handle, xWindow->title);
-
-	xWindow->gc =
-		XCreateGC (xWindow->display, xWindow->os_handle, 0, NULL);
-
+	xWindow->the_gc = XCreateGC (xWindow->display, xWindow->wnd, 0, NULL);
 	xWindow->videoaccesstype = VIDEO_XI_STANDARD;
-
-	xWindow->screensize = xWindow->height * xWindow->width * xWindow->bpp;
-
-	xWindow->back_buffer =
-		(X11WrapSurface *) malloc (sizeof (X11WrapSurface));
-
+	GF_SAFEALLOC(xWindow->back_buffer, sizeof (X11WrapSurface));
 	xWindow->back_buffer->id = -1;
 
 	XSetWindowAttributes xsw;
 	xsw.border_pixel = WhitePixel (xWindow->display, xWindow->screennum);
-	xsw.background_pixel =
-		BlackPixel (xWindow->display, xWindow->screennum);
+	xsw.background_pixel = BlackPixel (xWindow->display, xWindow->screennum);
 	xsw.win_gravity = NorthWestGravity;
-	XChangeWindowAttributes (xWindow->display, (Window) xWindow->normal_wnd,
-				 CWBackPixel | CWBorderPixel | CWWinGravity,
-				 &xsw);
+	if (xWindow->owns_wnd) {
+	  XChangeWindowAttributes (xWindow->display, xWindow->wnd,
+				 CWBackPixel | CWBorderPixel | CWWinGravity, &xsw);
+	}
 
-	/*
-	 * make full_wnd full screen
-	 */
-	//==============================================
 	xsw.override_redirect = True;
-	XChangeWindowAttributes (xWindow->display, (Window) xWindow->full_wnd,
-				 CWOverrideRedirect | CWBackPixel |
-				 CWBorderPixel | CWWinGravity, &xsw);
-	//==============================================
+	XChangeWindowAttributes(xWindow->display, xWindow->full_wnd,
+				CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWWinGravity, &xsw);
 
-	/*
-	 * Wnds manager
-	 */
-	//==============================================
-	xWindow->WM_DELETE_WINDOW =
-		XInternAtom (xWindow->display, "WM_DELETE_WINDOW", False);
-	XSetWMProtocols (xWindow->display, xWindow->os_handle,
-			 &xWindow->WM_DELETE_WINDOW, 1);
+	if (xWindow->owns_wnd) {
+	  xWindow->WM_DELETE_WINDOW = XInternAtom (xWindow->display, "WM_DELETE_WINDOW", False);
+	  XSetWMProtocols(xWindow->display, xWindow->wnd, &xWindow->WM_DELETE_WINDOW, 1);
+	}
 
 	{
 		XEvent ev;
@@ -1049,16 +973,35 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		memset (&ev, 0, sizeof (ev));
 		ev.xclient.type = ClientMessage;
 		ev.xclient.window = RootWindowOfScreen (xWindow->screenptr);
-		ev.xclient.message_type = XInternAtom (xWindow->display,
-						       "KWM_KEEP_ON_TOP",
-						       False);
+		ev.xclient.message_type = XInternAtom (xWindow->display, "KWM_KEEP_ON_TOP", False);
 		ev.xclient.format = 32;
-		ev.xclient.data.l[0] = (Window) xWindow->full_wnd;
+		ev.xclient.data.l[0] = xWindow->full_wnd;
 		ev.xclient.data.l[1] = CurrentTime;
 		mask = SubstructureRedirectMask;
 		XSendEvent (xWindow->display,
 			    RootWindowOfScreen (xWindow->screenptr), False,
 			    mask, &ev);
+	}
+	xWindow->is_3D_out = 0;
+	if (cfg) {
+	  int attribs[64];
+	  int i;
+
+	  xWindow->is_3D_out = 1;
+	  i=0;
+	  attribs[i++] = GLX_RGBA;
+	  attribs[i++] = GLX_RED_SIZE;
+	  attribs[i++] = 5;
+	  attribs[i++] = GLX_GREEN_SIZE;
+	  attribs[i++] = 5;
+	  attribs[i++] = GLX_BLUE_SIZE;
+	  attribs[i++] = 5;
+	  attribs[i++] = GLX_DEPTH_SIZE;
+	  attribs[i++] = 16;
+	  attribs[i++] = GLX_DOUBLEBUFFER;
+	  attribs[i++] = None;
+	  xWindow->glx_visualinfo = glXChooseVisual(xWindow->display, xWindow->screennum, attribs);
+	  if (!xWindow->glx_visualinfo) fprintf(stdout, "Error selecting GL display\n");
 	}
 }
 
@@ -1075,17 +1018,13 @@ X11_Setup(struct _video_out *vout, void *os_handle,
 {
 	GF_Err e;
 	X11VID ();
-	if (os_display)
-	{
-		xWindow->display = (Display *) os_display;
-	}
-	if (os_handle) xWindow->ext_wnd = os_handle;
-
-	X11_SetupWindow (vout);
-
-	e = X11_InitBackBuffer (vout, xWindow->width, xWindow->height);
+	/*assign display and window if any*/
+	xWindow->display = (Display *) os_display;
+	xWindow->wnd = (Window) os_handle;
+	/*and setup*/
+	X11_SetupWindow (vout, cfg);
+	e = X11_InitBackBuffer (vout, xWindow->w_width, xWindow->w_height);
 	if (e) return e;
-	XMapWindow (xWindow->display, (Window) xWindow->normal_wnd);
 	gf_th_run(xWindow->th, X11_EventProc, vout);
 	return GF_OK;
 }
@@ -1096,23 +1035,18 @@ NewX11VideoOutput ()
 {
 	GF_VideoOutput *driv = (GF_VideoOutput *) malloc (sizeof (GF_VideoOutput));
 
-	if (!driv)
-		return NULL;
+	if (!driv) return NULL;
 
 	memset (driv, 0, sizeof (GF_VideoOutput));
 
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "X11 Video Output",
 		     "gpac distribution")
-		XWindow *xWindow = (XWindow *) malloc (sizeof (XWindow));
-
+	XWindow *xWindow = (XWindow *) malloc (sizeof (XWindow));
 	memset (xWindow, 0, sizeof (XWindow));
 
 	xWindow->th = gf_th_new();
 	xWindow->mx = gf_mx_new();
 	xWindow->surfaces = gf_list_new();
-	xWindow->width = 320;
-	xWindow->height = 240;
-
 	driv->opaque = xWindow;
 
 	driv->Blit = X11_Blit;
@@ -1129,8 +1063,7 @@ NewX11VideoOutput ()
 	driv->UnlockSurface = X11_UnlockSurface;
 	driv->ResizeSurface = X11_ResizeSurface;
 	driv->ProcessEvent = X11_ProcessEvent;
-
-	fprintf(stdout,"NewX11VideoOutput OK\n");
+	driv->bHas3DSupport = 1;
 	return (void *) driv;
 
 }

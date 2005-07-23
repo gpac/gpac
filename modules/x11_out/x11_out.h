@@ -43,6 +43,8 @@ extern "C"
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
 
+#include <GL/glx.h>
+
 #include <stdio.h>
 #include <stdlib.h>		/* getenv(), etc. */
 #include <unistd.h>		/* sleep(), etc.  */
@@ -66,21 +68,20 @@ X11WrapSurface;
 typedef struct
 {
 	Display *display;	//required by all X11 method, provide by XOpenDisplay, Mozilla wnd ...
-	Window os_handle;	//main window handler
-	void *normal_wnd;	//base wnd
-	void *full_wnd;		//full screen
-	void *ext_wnd;		//external wnd give by wxOsmo Mozilla
+	Window wnd;	//main window handler 
+	Bool owns_wnd; 
+	Window full_wnd;	//full screen
+  //void *ext_wnd;		//external wnd give by wxOsmo Mozilla
 	Screen *screenptr;	//X11 stuff
 	int screennum;		//...
 	Visual *visual;		//...
-	GC gc;			//graphics context
+	GC the_gc;			//graphics context
 	XImage *surface;	//main drawing image: software mode
 	Atom WM_DELETE_WINDOW;	//window deletion
 
 	X11WrapSurface *back_buffer;	//back buffer
 	Colormap colormap;	//not for now
 	int videoaccesstype;	//
-	char *title;		//
 
 	GF_Thread *th;		//handle event thread
 	GF_Mutex *mx;		//mutex blocker
@@ -93,17 +94,13 @@ typedef struct
 	/*display size */
 	u32 display_width, display_height;
 
-	u32 width, height;
-
+	u32 w_width, w_height;
 	u32 x11_th_state;
-
-	u32 depth, bpp, screensize;
-
-	u32 pixel_format;
-
+	u32 depth, bpp, pixel_format;
 	Bool is_3D_out;
-}
-XWindow;
+	XVisualInfo *glx_visualinfo;
+	GLXContext glx_context;
+} XWindow;
 
 void StretchBits(void *dst, u32 dst_bpp, u32 dst_w, u32 dst_h, u32 dst_pitch,
 				void *src, u32 src_bpp, u32 src_w, u32 src_h, u32 src_pitch,

@@ -146,6 +146,13 @@ static u32 FFDemux_Run(void *par)
 	return 0;
 }
 
+/*some recent changes in ffmpeg AVStream - not sure about the lib version the change happened*/
+#if (LIBAVCODEC_BUILD<4756) 
+#define FFD_GET_AVCODECCONTEXT(__ctx, __stID) &__ctx->streams[__stID]->codec;
+#else
+#define FFD_GET_AVCODECCONTEXT(__ctx, __stID) __ctx->streams[__stID]->codec;
+#endif
+
 static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	Bool has_audio, has_video;
@@ -201,7 +208,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	/*figure out if we can use codecs or not*/
 	has_video = has_audio = 0;
     for(i = 0; i < ctx->nb_streams; i++) {
-        AVCodecContext *enc = &ctx->streams[i]->codec;
+        AVCodecContext *enc = FFD_GET_AVCODECCONTEXT(ctx, i);
         switch(enc->codec_type) {
         case CODEC_TYPE_AUDIO:
             if (!has_audio) has_audio = 1;
@@ -281,7 +288,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	/*figure out if we can use codecs or not*/
 	ffd->audio_st = ffd->video_st = -1;
     for (i = 0; i < ffd->ctx->nb_streams; i++) {
-        AVCodecContext *enc = &ffd->ctx->streams[i]->codec;
+        AVCodecContext *enc = FFD_GET_AVCODECCONTEXT(ffd->ctx, i);
         switch(enc->codec_type) {
         case CODEC_TYPE_AUDIO:
             if (ffd->audio_st<0) ffd->audio_st = i;
@@ -349,7 +356,8 @@ static GF_ESD *FFD_GetESDescriptor(FFDemux *ffd, Bool for_audio)
 	/*remap std object types - depending on input formats, FFMPEG may not have separate DSI from initial frame. 
 	In this case we have no choice but using FFMPEG decoders*/
 	if (for_audio) {
-		switch (ffd->ctx->streams[ffd->audio_st]->codec.codec_id) {
+	  AVCodecContext *dec = FFD_GET_AVCODECCONTEXT(ffd->ctx, ffd->audio_st);
+ 		switch (dec->codec_id) {
 		case CODEC_ID_MP2:
 			esd->decoderConfig->objectTypeIndication = 0x6B;
 			break;
@@ -358,30 +366,29 @@ static GF_ESD *FFD_GetESDescriptor(FFDemux *ffd, Bool for_audio)
 			break;
 		case CODEC_ID_MPEG4AAC:
 		case CODEC_ID_AAC:
-			if (!ffd->ctx->streams[ffd->audio_st]->codec.extradata_size) goto opaque_audio;
+			if (!dec->extradata_size) goto opaque_audio;
 			esd->decoderConfig->objectTypeIndication = 0x40;
-			esd->decoderConfig->decoderSpecificInfo->dataLength = ffd->ctx->streams[ffd->audio_st]->codec.extradata_size;
-			esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char)*ffd->ctx->streams[ffd->audio_st]->codec.extradata_size);
+			esd->decoderConfig->decoderSpecificInfo->dataLength = dec->extradata_size;
+			esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char)*dec->extradata_size);
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data, 
-					ffd->ctx->streams[ffd->audio_st]->codec.extradata, 
-					sizeof(char)*ffd->ctx->streams[ffd->audio_st]->codec.extradata_size);
+					dec->extradata, 
+					sizeof(char)*dec->extradata_size);
 			break;
 		default:
 opaque_audio:
 			esd->decoderConfig->objectTypeIndication = GPAC_FFMPEG_CODECS_OTI;
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			gf_bs_write_u32(bs, ffd->ctx->streams[ffd->audio_st]->codec.codec_id);
-			gf_bs_write_u32(bs, ffd->ctx->streams[ffd->audio_st]->codec.sample_rate);
-			gf_bs_write_u16(bs, ffd->ctx->streams[ffd->audio_st]->codec.channels);
-			gf_bs_write_u16(bs, ffd->ctx->streams[ffd->audio_st]->codec.bits_per_sample);
-			gf_bs_write_u16(bs, ffd->ctx->streams[ffd->audio_st]->codec.frame_size);
-			gf_bs_write_u16(bs, ffd->ctx->streams[ffd->audio_st]->codec.block_align);
+			gf_bs_write_u32(bs, dec->codec_id);
+			gf_bs_write_u32(bs, dec->sample_rate);
+			gf_bs_write_u16(bs, dec->channels);
+			gf_bs_write_u16(bs, dec->bits_per_sample);
+			gf_bs_write_u16(bs, dec->frame_size);
+			gf_bs_write_u16(bs, dec->block_align);
 
-			gf_bs_write_u32(bs, ffd->ctx->streams[ffd->audio_st]->codec.codec_tag);
-			gf_bs_write_u32(bs, ffd->ctx->streams[ffd->audio_st]->codec.bit_rate);
-
-			if (ffd->ctx->streams[ffd->audio_st]->codec.extradata_size) {
-				gf_bs_write_data(bs, ffd->ctx->streams[ffd->audio_st]->codec.extradata, ffd->ctx->streams[ffd->audio_st]->codec.extradata_size);
+			gf_bs_write_u32(bs, dec->codec_tag);
+			gf_bs_write_u32(bs, dec->bit_rate);
+			if (dec->extradata_size) {
+				gf_bs_write_data(bs, dec->extradata, dec->extradata_size);
 			}
 			gf_bs_get_content(bs, (unsigned char **) &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 			gf_bs_del(bs);
@@ -389,18 +396,19 @@ opaque_audio:
 		}
 		dont_use_sl = ffd->unreliable_audio_timing;
 	} else {
-		switch (ffd->ctx->streams[ffd->video_st]->codec.codec_id) {
+	  AVCodecContext *dec = FFD_GET_AVCODECCONTEXT(ffd->ctx, ffd->video_st);
+		switch (dec->codec_id) {
 		case CODEC_ID_MPEG4:
 		case CODEC_ID_H264:
 			/*if dsi not detected force use ffmpeg*/
-			if (!ffd->ctx->streams[ffd->video_st]->codec.extradata_size) goto opaque_video;
+			if (!dec->extradata_size) goto opaque_video;
 			/*otherwise use any MPEG-4 Visual*/
-			esd->decoderConfig->objectTypeIndication = (ffd->ctx->streams[ffd->video_st]->codec.codec_id==CODEC_ID_H264) ? 0x21 : 0x20;
-			esd->decoderConfig->decoderSpecificInfo->dataLength = ffd->ctx->streams[ffd->video_st]->codec.extradata_size;
-			esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char)*ffd->ctx->streams[ffd->video_st]->codec.extradata_size);
+			esd->decoderConfig->objectTypeIndication = (dec->codec_id==CODEC_ID_H264) ? 0x21 : 0x20;
+			esd->decoderConfig->decoderSpecificInfo->dataLength = dec->extradata_size;
+			esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char)*dec->extradata_size);
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data, 
-					ffd->ctx->streams[ffd->video_st]->codec.extradata, 
-					sizeof(char)*ffd->ctx->streams[ffd->video_st]->codec.extradata_size);
+					dec->extradata, 
+					sizeof(char)*dec->extradata_size);
 			break;
 		case CODEC_ID_MPEG1VIDEO:
 			esd->decoderConfig->objectTypeIndication = 0x6A;
@@ -412,14 +420,14 @@ opaque_audio:
 opaque_video:
 			esd->decoderConfig->objectTypeIndication = GPAC_FFMPEG_CODECS_OTI;
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			gf_bs_write_u32(bs, ffd->ctx->streams[ffd->video_st]->codec.codec_id);
-			gf_bs_write_u32(bs, ffd->ctx->streams[ffd->video_st]->codec.width);
-			gf_bs_write_u32(bs, ffd->ctx->streams[ffd->video_st]->codec.height);
-			gf_bs_write_u32(bs, ffd->ctx->streams[ffd->video_st]->codec.codec_tag);
-			gf_bs_write_u32(bs, ffd->ctx->streams[ffd->video_st]->codec.bit_rate);
+			gf_bs_write_u32(bs, dec->codec_id);
+			gf_bs_write_u32(bs, dec->width);
+			gf_bs_write_u32(bs, dec->height);
+			gf_bs_write_u32(bs, dec->codec_tag);
+			gf_bs_write_u32(bs, dec->bit_rate);
 
-			if (ffd->ctx->streams[ffd->video_st]->codec.extradata_size) {
-				gf_bs_write_data(bs, ffd->ctx->streams[ffd->video_st]->codec.extradata, ffd->ctx->streams[ffd->video_st]->codec.extradata_size);
+			if (dec->extradata_size) {
+				gf_bs_write_data(bs, dec->extradata, dec->extradata_size);
 			}
 			gf_bs_get_content(bs, (unsigned char **) &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 			gf_bs_del(bs);
