@@ -396,7 +396,7 @@ opaque_audio:
 		}
 		dont_use_sl = ffd->unreliable_audio_timing;
 	} else {
-	  AVCodecContext *dec = FFD_GET_AVCODECCONTEXT(ffd->ctx, ffd->video_st);
+		AVCodecContext *dec = FFD_GET_AVCODECCONTEXT(ffd->ctx, ffd->video_st);
 		switch (dec->codec_id) {
 		case CODEC_ID_MPEG4:
 		case CODEC_ID_H264:

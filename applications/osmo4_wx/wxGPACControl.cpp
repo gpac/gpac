@@ -115,6 +115,18 @@ static char *BIFSRates[11] =
 	"100.0"
 };
 
+void wxGPACControl::SetYUVLabel()
+{
+	u32 yuv_format = gf_term_get_option(m_pApp->m_term, GF_OPT_YUV_FORMAT);
+	if (!yuv_format) {
+		m_yuvtxt->SetLabel(wxT("(No YUV used)"));
+	} else {
+		char str[100];
+		sprintf(str, "(%s used)", gf_4cc_to_str(yuv_format));
+		m_yuvtxt->SetLabel(wxString(str, wxConvUTF8) );
+	}
+}
+
 wxGPACControl::wxGPACControl(wxWindow *parent)
              : wxDialog(parent, -1, wxString(wxT("GPAC Control Panel")))
 {
@@ -481,6 +493,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_scalable->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(cfg, "Render2D", "DisableYUV");
 	m_noyuv->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	SetYUVLabel();
 
 	/*graphics driver enum*/
 	sOpt = gf_cfg_get_key(cfg, "Rendering", "Raster2D");

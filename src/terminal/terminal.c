@@ -499,12 +499,6 @@ void gf_term_refresh(GF_Terminal * term)
 	gf_sr_refresh(term->renderer);
 }
 
-GF_Err gf_term_size_changed(GF_Terminal * term, u32 NewWidth, u32 NewHeight)
-{
-	if (!term) return 0;
-	return gf_sr_size_changed(term->renderer, NewWidth, NewHeight);
-}
-
 GF_Err gf_term_set_size(GF_Terminal * term, u32 NewWidth, u32 NewHeight)
 {
 	if (!term) return 0;

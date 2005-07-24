@@ -36,9 +36,12 @@ void R2D_MapCoordsToAR(GF_VisualRenderer *vr, s32 inX, s32 inY, Fixed *x, Fixed 
 {
 	Render2D *sr = (Render2D*)vr->user_priv;
 
-	/*add offsets of aspect ratio*/
-	*x = INT2FIX(inX - (s32) sr->out_x);
-	*y = INT2FIX(inY + (s32) sr->out_y);
+
+	/*revert to BIFS like*/
+	inX = inX - sr->compositor->width/2;
+	inY = sr->compositor->height/2 - inY;
+	*x = INT2FIX(inX);
+	*y = INT2FIX(inY);
 
 	/*if no size info scaling is never applied*/
 	if (!sr->compositor->has_size_info) return;
@@ -981,8 +984,8 @@ void R2D_ReloadConfig(GF_VisualRenderer *vr)
 	sr->scalable_zoom = (!sOpt || !stricmp(sOpt, "yes") ) ? 1 : 0;
 	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render2D", "DisableYUV");
 	sr->enable_yuv_hw = (sOpt && !stricmp(sOpt, "yes") ) ? 0 : 1;
-	/*emulate size message to force AR recompute*/
-	gf_sr_size_changed(sr->compositor, sr->compositor->width, sr->compositor->height);
+
+	sr->compositor->msg_type |= GF_SR_CFG_AR;
 	sr->compositor->draw_next_frame = 1;
 	gf_sr_lock(sr->compositor, 0);
 }
@@ -1005,7 +1008,7 @@ GF_Err R2D_SetOption(GF_VisualRenderer *vr, u32 option, u32 value)
 	case GF_OPT_SCALABLE_ZOOM:
 		sr->scalable_zoom = value;
 		/*emulate size message to force AR recompute*/
-		gf_sr_size_changed(sr->compositor, sr->compositor->width, sr->compositor->height);
+		sr->compositor->msg_type |= GF_SR_CFG_AR;
 		return GF_OK;
 	case GF_OPT_YUV_HARDWARE:
 		sr->enable_yuv_hw = value;

@@ -975,7 +975,6 @@ EXPORTS
 	gf_term_dump_scene
 	gf_term_refresh
 	gf_term_set_size
-	gf_term_size_changed
 	gf_term_user_input
 	gf_term_mouse_input
 	gf_term_keyboard_input
@@ -997,7 +996,6 @@ EXPORTS
 	gf_sr_user_input
 	gf_sr_map_point
 	gf_sr_refresh
-	gf_sr_size_changed
 	gf_sr_set_option
 	gf_sr_get_option
 	gf_sr_get_fps

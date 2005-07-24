@@ -289,15 +289,22 @@ void R3D_DrawScene(GF_VisualRenderer *vr)
 
 static Bool R3D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 {
+	GF_UserEvent evt;
 	Render3D *sr = (Render3D *)vr->user_priv;
+	/*revert to BIFS like*/
+	evt = *event;
+	if (evt.event_type<=GF_EVT_LEFTUP) {
+		evt.mouse.x = event->mouse.x - sr->compositor->width/2;
+		evt.mouse.y = sr->compositor->height/2 - event->mouse.y;
+	}
 	sr->top_effect->is_pixel_metrics = gf_sg_use_pixel_metrics(sr->compositor->scene);
 	/*process regular events*/
-	if ((sr->compositor->interaction_level & GF_INTERACT_NORMAL) && VS_ExecuteEvent(sr->surface, sr->top_effect, event, NULL)) 
+	if ((sr->compositor->interaction_level & GF_INTERACT_NORMAL) && VS_ExecuteEvent(sr->surface, sr->top_effect, &evt, NULL)) 
 		return 1;
 	/*remember active layer on mouse click - may be NULL*/
 	if (event->event_type==GF_EVT_LEFTDOWN) sr->active_layer = sr->top_effect->collect_layer;
 	/*process navigation events*/
-	if (sr->compositor->interaction_level & GF_INTERACT_NAVIGATION) return R3D_HandleUserEvent(sr, event);
+	if (sr->compositor->interaction_level & GF_INTERACT_NAVIGATION) return R3D_HandleUserEvent(sr, &evt);
 	return 0;
 }
 

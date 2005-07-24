@@ -212,7 +212,6 @@ private:
 	void OnKeyUp(wxKeyEvent &event);
 };
 
-
 class wxOsmo4Frame : public wxFrame {
 public:
     wxOsmo4Frame();
@@ -243,12 +242,13 @@ public:
 
 	void AddSubtitle(const char *fileName, Bool auto_play);
 
+	wxWindow *m_pView;
+	wxBoxSizer *m_pSizer, *m_pViewSizer;
+
 #ifdef __WXGTK__
 	wxScrollBar *m_pProg;
-	wxWindow *m_pView;
 #else
-	wxSlider *m_pProg;
-	wxFrame *m_pView;
+	wxSlider *m_pProg;	
 #endif
 
 	wxPlaylist *m_pPlayList;
@@ -261,7 +261,6 @@ private:
 	DECLARE_EVENT_TABLE()
 
 	void OnCloseApp(wxCloseEvent &event);
-	void OnMove(wxMoveEvent &event);
 	void OnSize(wxSizeEvent &event);
 
 	void OnFileOpen(wxCommandEvent &event);
@@ -362,6 +361,7 @@ private:
 
 	u32 m_num_chapters;
 	Double *m_chapters_start;
+	Bool m_bExternalView;
 };
 
 

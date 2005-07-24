@@ -105,25 +105,6 @@ X11_TranslateActionKey (u32 VirtKey)
 	}
 }
 
-//=====================================
-/*
- * detect mouse pos
- */
-//=====================================
-static void
-X11_MapBIFSCoordinate (XWindow * xWindow, XEvent * xevent, GF_Event * evt)
-{
-	if (xWindow->fullscreen && xWindow->is_3D_out) {
-		evt->mouse.x =
-			xevent->xmotion.x - xWindow->display_width / 2;
-		evt->mouse.y =
-			xWindow->display_height / 2 - xevent->xmotion.y;
-	} else {
-	  evt->mouse.x = xevent->xmotion.x - xWindow->w_width / 2;
-	  evt->mouse.y = xWindow->w_height / 2 - xevent->xmotion.y;
-	}
-}
-
 static GF_Err X11_SetupGL(GF_VideoOutput *vout)
 {
   GF_Event evt;
@@ -246,7 +227,9 @@ send_key:
 			case ButtonPress:
 			case ButtonRelease:
 				last_mouse_move = ((XButtonEvent *) & xevent)->time;
-				X11_MapBIFSCoordinate (xWindow, &xevent, &evt);
+				evt.mouse.x = xevent.xmotion.x;
+				evt.mouse.y = xevent.xmotion.y;
+
 				switch (((XButtonEvent *) & xevent)->button) {
 				case Button1:
 					evt.type = (xevent.type == ButtonRelease) ? GF_EVT_LEFTUP : GF_EVT_LEFTDOWN;
@@ -279,7 +262,8 @@ send_key:
 			case MotionNotify:
 				last_mouse_move = ((XButtonEvent *) & xevent)->time;
 				evt.type = GF_EVT_MOUSEMOVE;
-				X11_MapBIFSCoordinate (xWindow, &xevent, &evt);
+				evt.mouse.x = xevent.xmotion.x;
+				evt.mouse.y = xevent.xmotion.y;
 				vout->on_event (vout->evt_cbk_hdl, &evt);
 				break;
 //======================================

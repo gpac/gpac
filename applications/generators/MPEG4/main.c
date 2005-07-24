@@ -838,12 +838,14 @@ void WriteNodeCode(GF_List *BNodes)
 				|| !strcmp(bf->familly, "SFString")
 				|| !strcmp(bf->familly, "SFURL")
 				|| !strcmp(bf->familly, "SFImage")
-				
 				) {
 				char szName[500];
 				strcpy(szName, bf->familly);
 				strlwr(szName);
 				fprintf(f, "\tgf_sg_%s_del(p->%s);\n", szName, bf->name);
+			}
+			else if (!strcmp(bf->familly, "SFCommandBuffer")) {
+				fprintf(f, "\tgf_sg_sfcommand_del(p->%s);\n", bf->name);
 			}
 			else if (strstr(bf->familly, "Node")) {		
 				//this is a POINTER to a node 
@@ -865,7 +867,7 @@ void WriteNodeCode(GF_List *BNodes)
 		//		Constructor
 		//
 
-		fprintf(f, "\n\nGF_Node *%s_Create()\n{\n\tM_%s *p;\n\tSAFEALLOC(p, sizeof(M_%s));\n", n->name, n->name, n->name);
+		fprintf(f, "\n\nGF_Node *%s_Create()\n{\n\tM_%s *p;\n\tGF_SAFEALLOC(p, sizeof(M_%s));\n", n->name, n->name, n->name);
 		fprintf(f, "\tif(!p) return NULL;\n");
 		fprintf(f, "\tgf_node_setup((GF_Node *)p, TAG_MPEG4_%s);\n", n->name);
 

@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed Jul 13 11:49:51 2005
+	DO NOT MOFIFY - File generated on GMT Sun Jul 24 17:07:41 2005
 
 	BY MPEG4Gen for GPAC Version 0.4.0
 */
@@ -2918,6 +2918,7 @@ GF_Node *CompositeTexture3D_Create()
 static void Conditional_Del(GF_Node *node)
 {
 	M_Conditional *p = (M_Conditional *) node;
+	gf_sg_sfcommand_del(p->buffer);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -15015,6 +15016,7 @@ GF_Node *ServerCommand_Create()
 static void InputSensor_Del(GF_Node *node)
 {
 	M_InputSensor *p = (M_InputSensor *) node;
+	gf_sg_sfcommand_del(p->buffer);
 	gf_sg_mfurl_del(p->url);
 	gf_node_free((GF_Node *) p);
 }

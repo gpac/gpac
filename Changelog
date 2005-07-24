@@ -1,4 +1,6 @@
-Last CVS update: 19/07/05
+Last CVS update: 24/07/05
+	- moved all fullscreen handling to dedicated windows, refinement of wxOsmo4.
+	- more work on x11 plugin (events handling, 3D support) - not entirely stable yet...
   - fixed anamorphic video handling in GPAC, both playing (2D and 3D) and MP4Box parsers (only done for MPEG-4 Visual, not AVC). Video is
     now only rescaled at blit time
   - changed ';' separators to ':' seprators in MP4Box (meta options and track import options) for linux prompt compatibility.

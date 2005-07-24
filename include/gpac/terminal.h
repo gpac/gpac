@@ -198,21 +198,18 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, Bool xml_dump, Bool
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
 void gf_term_refresh(GF_Terminal *term);
 
-/*request window size change (window resized)*/
-/*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
+/*request visual output size change:
+	* NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)
+	* if the user app manages the output window it shall resize it before calling this
+*/
 GF_Err gf_term_set_size(GF_Terminal *term, u32 NewWidth, u32 NewHeight);
-
-/*signal window size change (window resized)*/
-/*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
-GF_Err gf_term_size_changed(GF_Terminal *term, u32 NewWidth, u32 NewHeight);
 
 /*post user interaction to terminal*/
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
 void gf_term_user_input(GF_Terminal *term, GF_Event *event);
 
 /*post extended user mouse interaction to terminal 
-	X and Y are point coordinates in the display expressed in BIFS-like fashion (0,0) at center of 
-	display and Y increasing from bottom to top
+	X and Y are point coordinates in the display expressed in 2D coord system top-left (0,0), Y increasing towards bottom
 	@xxx_but_down: specifiy whether the mouse button is down(2) or up (1), 0 if unchanged
 	@wheel: specifiy current wheel inc (0: unchanged , +1 for one wheel delta forward, -1 for one wheel delta backward)
 */

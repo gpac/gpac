@@ -32,26 +32,18 @@
 #define WHEEL_DELTA                     120
 #endif
 
-#ifndef WM_MOUSEHOVER
-#define WM_MOUSEHOVER                   0x02A1
-#endif
-
+/*mouse hiding timeout in fullscreen, in milliseconds*/
+#define MOUSE_HIDE_TIMEOUT	1500
 
 void DD_SetCursor(GF_VideoOutput *dr, u32 cursor_type);
 
 static GF_VideoOutput *the_video_driver = NULL;
 
-static void DD_MapBIFSCorrdinate(DWORD lParam, GF_Event *evt)
+static void DD_GetCoordinates(DWORD lParam, GF_Event *evt)
 {
-	DDContext *ctx = (DDContext *)the_video_driver->opaque;
 	POINTS pt = MAKEPOINTS(lParam);
-	if (ctx->fullscreen) {
-		evt->mouse.x = pt.x - ctx->fs_store_width / 2;
-		evt->mouse.y = ctx->fs_store_height / 2 - pt.y;
-	} else {
-		evt->mouse.x = pt.x - ctx->width / 2;
-		evt->mouse.y = ctx->height / 2 - pt.y;
-	}
+	evt->mouse.x = pt.x;
+	evt->mouse.y = pt.y;
 }
 
 static u32 DD_TranslateActionKey(u32 VirtKey) 
@@ -87,33 +79,33 @@ static u32 DD_TranslateActionKey(u32 VirtKey)
 	}
 }
 
+
+static void mouse_move(DDContext *ctx)
+{
+	if (ctx->fullscreen) {
+		ctx->last_mouse_move = gf_sys_clock();
+		if (ctx->cursor_type==GF_CURSOR_HIDE) DD_SetCursor(the_video_driver, ctx->cursor_type_backup);
+	}
+}
+
+static void mouse_start_timer(DDContext *ctx, HWND hWnd)
+{
+	if (ctx->fullscreen) {
+		if (!ctx->timer) ctx->timer = SetTimer(hWnd, 10, 1000, NULL);
+		mouse_move(ctx);
+	}
+}
+
 void grab_mouse(DDContext *ctx)
 {
-	if (ctx->fullscreen) DD_SetCursor(the_video_driver, GF_CURSOR_NORMAL);
-	SetCapture(ctx->hWnd);
+//	if (ctx->fullscreen) DD_SetCursor(the_video_driver, GF_CURSOR_NORMAL);
+	SetCapture(ctx->cur_hwnd);
+	mouse_move(ctx);
 }
-
-#define USE_MOUSE_HOVER	0
-
-void mouse_hover(DDContext *ctx)
-{
-#if USE_MOUSE_HOVER
-	if (ctx->fullscreen) {
-		TRACKMOUSEEVENT hover;
-		hover.cbSize = sizeof(TRACKMOUSEEVENT);
-		hover.dwFlags = TME_HOVER;
-		hover.hwndTrack = ctx->hWnd;
-		hover.dwHoverTime = 2000;
-		TrackMouseEvent(&hover);
-	}
-#endif
-}
-void release_mouse(DDContext *ctx)
+void release_mouse(DDContext *ctx, HWND hWnd)
 {
 	ReleaseCapture();
-#if USE_MOUSE_HOVER
-	mouse_hover(ctx);
-#endif
+	mouse_start_timer(ctx, hWnd);
 }
 
 LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
@@ -122,11 +114,11 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	DDContext *ctx;
 
 	if (!the_video_driver) return DefWindowProc (hWnd, msg, wParam, lParam);
-
 	ctx = (DDContext *)the_video_driver->opaque;
+
 	switch (msg) {
 	case WM_SIZE:
-		if (!ctx->is_resizing) {
+		if (!ctx->is_resizing && ctx->owns_hwnd) {
 			ctx->is_resizing = 1;
 			evt.type = GF_EVT_WINDOWSIZE;
 			ctx->width = evt.size.width = LOWORD(lParam);
@@ -136,83 +128,106 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		}
 		break;
 	case WM_CLOSE:
-		evt.type = GF_EVT_QUIT;
-		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+		if (hWnd==ctx->os_hwnd) {
+			evt.type = GF_EVT_QUIT;
+			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+		}
 		return 1;
 	case WM_DESTROY:
 		PostQuitMessage (0);
 		break;
+	case WM_ACTIVATE:
+		if (ctx->fullscreen && (LOWORD(wParam)==WA_INACTIVE) && (hWnd==ctx->fs_hwnd)) {
+			evt.type = GF_EVT_SHOWHIDE;
+			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+		}
+		break;
+
 	case WM_SETCURSOR:
-		DD_SetCursor(the_video_driver, ctx->cursor_type);
+		if (ctx->cur_hwnd==hWnd) DD_SetCursor(the_video_driver, ctx->cursor_type);
 		return 1;
 	case WM_ERASEBKGND:
 	case WM_PAINT:
-		evt.type = GF_EVT_REFRESH;
-		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+		if (ctx->cur_hwnd==hWnd) {
+			evt.type = GF_EVT_REFRESH;
+			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+		}
 		break;
 
 	case WM_MOUSEMOVE:
+		if (ctx->cur_hwnd!=hWnd) break;
 		if (ctx->last_mouse_pos != lParam) {
 			ctx->last_mouse_pos = lParam;
-			DD_SetCursor(the_video_driver, (ctx->cursor_type==GF_CURSOR_HIDE) ? GF_CURSOR_NORMAL : ctx->cursor_type);
+			DD_SetCursor(the_video_driver, (ctx->cursor_type==GF_CURSOR_HIDE) ? ctx->cursor_type_backup : ctx->cursor_type);
 			evt.type = GF_EVT_MOUSEMOVE;
-			DD_MapBIFSCorrdinate(lParam, &evt);
+			DD_GetCoordinates(lParam, &evt);
 			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
-
-			mouse_hover(ctx);
+			mouse_start_timer(ctx, hWnd);
 		}
 		break;
-	case WM_MOUSEHOVER:
-		DD_SetCursor(the_video_driver, GF_CURSOR_HIDE);
+	case WM_TIMER:
+		if (wParam==10) {
+			if (ctx->fullscreen && (ctx->cursor_type!=GF_CURSOR_HIDE)) {
+				if (gf_sys_clock() > MOUSE_HIDE_TIMEOUT + ctx->last_mouse_move) {
+					ctx->cursor_type_backup = ctx->cursor_type;
+					DD_SetCursor(the_video_driver, GF_CURSOR_HIDE);
+					KillTimer(hWnd, ctx->timer);
+					ctx->timer = 0;
+				}
+			}
+		}
 		break;
 	case WM_LBUTTONDOWN:
 	case WM_LBUTTONDBLCLK:
 		grab_mouse(ctx);
 		evt.type = GF_EVT_LEFTDOWN;
-		DD_MapBIFSCorrdinate(lParam, &evt);
+		DD_GetCoordinates(lParam, &evt);
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		break;
 	case WM_LBUTTONUP:
-		release_mouse(ctx);
+		release_mouse(ctx, hWnd);
 		evt.type = GF_EVT_LEFTUP;
-		DD_MapBIFSCorrdinate(lParam, &evt);
+		DD_GetCoordinates(lParam, &evt);
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		break;
 	case WM_RBUTTONDOWN:
 	case WM_RBUTTONDBLCLK:
 		grab_mouse(ctx);
 		evt.type = GF_EVT_RIGHTDOWN;
-		DD_MapBIFSCorrdinate(lParam, &evt);
+		DD_GetCoordinates(lParam, &evt);
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		break;
 	case WM_RBUTTONUP:
-		release_mouse(ctx);
+		release_mouse(ctx, hWnd);
 		evt.type = GF_EVT_RIGHTUP;
-		DD_MapBIFSCorrdinate(lParam, &evt);
+		DD_GetCoordinates(lParam, &evt);
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+		mouse_start_timer(ctx, hWnd);
 		break;
 	case WM_MBUTTONDOWN:
 	case WM_MBUTTONDBLCLK:
 		grab_mouse(ctx);
 		evt.type = GF_EVT_MIDDLEDOWN;
-		DD_MapBIFSCorrdinate(lParam, &evt);
+		DD_GetCoordinates(lParam, &evt);
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		break;
 	case WM_MBUTTONUP:
-		release_mouse(ctx);
+		release_mouse(ctx, hWnd);
 		evt.type = GF_EVT_MIDDLEUP;
-		DD_MapBIFSCorrdinate(lParam, &evt);
+		DD_GetCoordinates(lParam, &evt);
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+		mouse_start_timer(ctx, hWnd);
 		break;
 	case WM_MOUSEWHEEL: 
-		DD_SetCursor(the_video_driver, GF_CURSOR_NORMAL);
-		evt.type = GF_EVT_MOUSEWHEEL;
-		DD_MapBIFSCorrdinate(lParam, &evt);
-		evt.mouse.wheel_pos = FLT2FIX( ((Float) (s16) HIWORD(wParam)) / WHEEL_DELTA );
-		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
-
-		mouse_hover(ctx);
-		break;
+		if (ctx->cur_hwnd==hWnd) {
+			DD_SetCursor(the_video_driver, (ctx->cursor_type==GF_CURSOR_HIDE) ? ctx->cursor_type_backup : ctx->cursor_type);
+			evt.type = GF_EVT_MOUSEWHEEL;
+			DD_GetCoordinates(lParam, &evt);
+			evt.mouse.wheel_pos = FLT2FIX( ((Float) (s16) HIWORD(wParam)) / WHEEL_DELTA );
+			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+			mouse_start_timer(ctx, hWnd);
+		}
+		return 1;
 
 	/*FIXME - there's a bug on alt state (we miss one event)*/
 	case WM_SYSKEYDOWN:
@@ -250,70 +265,83 @@ send_key:
 	return DefWindowProc (hWnd, msg, wParam, lParam);
 }
 
-void DD_WindowThread(void *par)
+u32 DD_WindowThread(void *par)
 {
 	RECT rc;
 	MSG msg;
 	WNDCLASS wc;
+	HINSTANCE hInst;
 	DDContext *ctx = (DDContext *)the_video_driver->opaque;
 
+	hInst = GetModuleHandle("dx_hw.dll");
 	memset(&wc, 0, sizeof(WNDCLASS));
 	wc.style = CS_BYTEALIGNWINDOW;
-	wc.hInstance = GetModuleHandle("dx_hw.dll");
+	wc.hInstance = hInst;
 	wc.lpfnWndProc = DD_WindowProc;
 	wc.hIcon = LoadIcon (NULL, IDI_APPLICATION);
 	wc.hCursor = LoadCursor (NULL, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)GetStockObject (BLACK_BRUSH);
 	wc.lpszClassName = "GPAC DirectDraw Output";
 	RegisterClass (&wc);
-	
-	ctx->hWnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw Output", WS_OVERLAPPEDWINDOW, 0, 0, 120, 100, NULL, NULL, wc.hInstance, NULL);
-	if (ctx->hWnd == NULL) {
-		ctx->ThreadID = 0;
-		ExitThread(1);
-	}
-	SetForegroundWindow(ctx->hWnd);
-	ShowWindow(ctx->hWnd, SW_SHOWNORMAL);
 
-	/*get border & title bar sizes*/
-	rc.left = rc.top = 0;
-	rc.right = rc.bottom = 100;
-	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, 0);
-	ctx->off_w = rc.right - rc.left - 100;
-	ctx->off_h = rc.bottom - rc.top - 100;
+	if (!ctx->os_hwnd) {
+		ctx->os_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw Output", WS_OVERLAPPEDWINDOW, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+		if (ctx->os_hwnd == NULL) {
+			ctx->th_state = 2;
+			return 1;
+		}
+		SetForegroundWindow(ctx->os_hwnd);
+		ShowWindow(ctx->os_hwnd, SW_SHOWNORMAL);
+
+		/*get border & title bar sizes*/
+		rc.left = rc.top = 0;
+		rc.right = rc.bottom = 100;
+		AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, 0);
+		ctx->off_w = rc.right - rc.left - 100;
+		ctx->off_h = rc.bottom - rc.top - 100;
+		ctx->owns_hwnd = 1;
+	}
+		
+	ctx->fs_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw FS Output", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+	if (!ctx->fs_hwnd) {
+		ctx->th_state = 2;
+		return 1;
+	}
+	ShowWindow(ctx->fs_hwnd, SW_HIDE);
+	ctx->th_state = 1;
+
+	/*load cursors*/
+	ctx->curs_normal = LoadCursor(NULL, IDC_ARROW);
+	assert(ctx->curs_normal);
+	ctx->curs_hand = LoadCursor(hInst, MAKEINTRESOURCE(IDC_HAND_PTR));
+	ctx->curs_collide = LoadCursor(hInst, MAKEINTRESOURCE(IDC_COLLIDE));
+	ctx->cursor_type = GF_CURSOR_NORMAL;
 
 	while (GetMessage (&(msg), NULL, 0, 0)) {
 		TranslateMessage (&(msg));
 		DispatchMessage (&(msg));
 	}
-	ctx->ThreadID = 0;
-	ExitThread (0);
+	ctx->th_state = 2;
+	return 0;
 }
 
 
 void DD_SetupWindow(GF_VideoOutput *dr)
 {
-	HINSTANCE hInst;
 	DDContext *ctx = (DDContext *)dr->opaque;
 	if (the_video_driver) return;
 	the_video_driver = dr;
 
-	if (!ctx->hWnd) {
-		ctx->hThread = CreateThread (NULL, 0, (LPTHREAD_START_ROUTINE) DD_WindowThread, (LPVOID) dr, 0, &(ctx->ThreadID) );
-		while (!ctx->hWnd && ctx->hThread) gf_sleep(10);
-		if (!ctx->hThread) return;
-		ctx->owns_hwnd = 1;
-	} else {
-		ctx->orig_wnd_proc = GetWindowLong(ctx->hWnd, GWL_WNDPROC);
+	if (ctx->os_hwnd) {
+		ctx->orig_wnd_proc = GetWindowLong(ctx->os_hwnd, GWL_WNDPROC);
 		/*override window proc*/
-		SetWindowLong(ctx->hWnd, GWL_WNDPROC, (DWORD) DD_WindowProc);
+		SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, (DWORD) DD_WindowProc);
 	}
-
-	/*load cursors*/
-	ctx->curs_normal = LoadCursor(NULL, IDC_ARROW);
-	hInst = GetModuleHandle("dx_hw.dll");
-	ctx->curs_hand = LoadCursor(hInst, MAKEINTRESOURCE(IDC_HAND_PTR));
-	ctx->curs_collide = LoadCursor(hInst, MAKEINTRESOURCE(IDC_COLLIDE));
+	/*create our event thread - since we always have a dedicated window for fullscreen, we need that
+	even when a window is passed to us*/
+	ctx->th = gf_th_new();
+	gf_th_run(ctx->th, DD_WindowThread, dr);
+	while (!ctx->th_state) gf_sleep(2);
 
 }
 
@@ -322,17 +350,19 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 	DDContext *ctx = (DDContext *)dr->opaque;
 
 	if (ctx->owns_hwnd) {
-		PostMessage(ctx->hWnd, WM_DESTROY, 0, 0);
-		while (ctx->ThreadID) gf_sleep(10);
-		UnregisterClass("GPAC DirectDraw Output", GetModuleHandle("dx_hw.dll"));
-		CloseHandle(ctx->hThread);
-		ctx->hThread = NULL;
+		PostMessage(ctx->os_hwnd, WM_DESTROY, 0, 0);
 	} else {
 		/*restore window proc*/
-		SetWindowLong(ctx->hWnd, GWL_WNDPROC, ctx->orig_wnd_proc);
+		SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, ctx->orig_wnd_proc);
 		ctx->orig_wnd_proc = 0L;
 	}
-	ctx->hWnd = NULL;
+	PostMessage(ctx->fs_hwnd, WM_DESTROY, 0, 0);
+	while (ctx->th_state!=2) gf_sleep(10);
+	UnregisterClass("GPAC DirectDraw Output", GetModuleHandle("dx_hw.dll"));
+	gf_th_del(ctx->th);
+	ctx->th = NULL;
+	ctx->os_hwnd = NULL;
+	ctx->fs_hwnd = NULL;
 	the_video_driver = NULL;
 }
 
@@ -369,7 +399,7 @@ void DD_SetCursor(GF_VideoOutput *dr, u32 cursor_type)
 HWND DD_GetGlobalHWND()
 {
 	if (!the_video_driver) return NULL;
-	return ((DDContext*)the_video_driver->opaque)->hWnd;
+	return ((DDContext*)the_video_driver->opaque)->os_hwnd;
 }
 
 
@@ -385,20 +415,20 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 	case GF_EVT_SET_CAPTION:
 	{
 		DDContext *ctx = (DDContext *)dr->opaque;
-		if (ctx->hWnd && evt->caption.caption) SetWindowText(ctx->hWnd, evt->caption.caption);
+		if (evt->caption.caption) SetWindowText(ctx->os_hwnd, evt->caption.caption);
 	}
 		break;
 	case GF_EVT_SHOWHIDE:
 	{
 		DDContext *ctx = (DDContext *)dr->opaque;
-		if (ctx->hWnd) ShowWindow(ctx->hWnd, evt->show.show_type ? SW_SHOW : SW_HIDE);
+		ShowWindow(ctx->os_hwnd, evt->show.show_type ? SW_SHOW : SW_HIDE);
 	}
 		break;
 	case GF_EVT_SCENESIZE:
 	{
 		DDContext *ctx = (DDContext *)dr->opaque;
 		ctx->is_resizing = 1;
-		SetWindowPos(ctx->hWnd, NULL, 0, 0, evt->size.width + ctx->off_w, evt->size.height + ctx->off_h, SWP_NOZORDER | SWP_NOMOVE);
+		if (ctx->owns_hwnd) SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width + ctx->off_w, evt->size.height + ctx->off_h, SWP_NOZORDER | SWP_NOMOVE);
 		ctx->width = evt->size.width;
 		ctx->height = evt->size.height;
 		ctx->is_resizing = 0;

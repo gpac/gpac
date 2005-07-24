@@ -285,12 +285,12 @@ Section "Osmozilla (GPAC Plugin for Mozilla)"
   File "..\nposmozilla.xpt"
 
   WriteRegStr HKCR GPAC "InstallDir" "$INSTDIR"
-  WriteRegStr HKLM HK_MOZ "Path" "$INSTDIR\mozilla\nposmozilla.dll"
-  WriteRegStr HKLM HK_MOZ "XPTPath" "$INSTDIR\mozilla\nposmozilla.xpt"
-  WriteRegStr HKLM HK_MOZ "Version" "${GPAC_VERSION}"
-  WriteRegStr HKLM HK_MOZ "Vendor" "GPAC"
-  WriteRegStr HKLM HK_MOZ "Description" "Osmo4/GPAC plugin for Mozilla"
-  WriteRegStr HKLM HK_MOZ "ProductName" "Osmozilla"
+  WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Path" "$INSTDIR\mozilla\nposmozilla.dll"
+  WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "XPTPath" "$INSTDIR\mozilla\nposmozilla.xpt"
+  WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Version" "${GPAC_VERSION}"
+  WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Vendor" "GPAC"
+  WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Description" "Osmo4/GPAC plugin for Mozilla"
+  WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "ProductName" "Osmozilla"
 
 
 SectionEnd

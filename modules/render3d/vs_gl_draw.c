@@ -36,14 +36,14 @@ void R3D_LoadExtensions(Render3D *sr)
 
 	if (CHECK_GL_EXT("GL_ARB_multisample") || CHECK_GL_EXT("GLX_ARB_multisample") || CHECK_GL_EXT("WGL_ARB_multisample")) 
 		sr->hw_caps.multisample = 1;
-	if (CHECK_GL_EXT("GL_ARB_gf_sr_texture_non_power_of_two")) 
+	if (CHECK_GL_EXT("GL_ARB_texture_non_power_of_two")) 
 		sr->hw_caps.npot_texture = 1;
 	if (CHECK_GL_EXT("GL_EXT_abgr")) 
 		sr->hw_caps.abgr_texture = 1;
 	if (CHECK_GL_EXT("GL_EXT_bgra")) 
 		sr->hw_caps.bgra_texture = 1;
 
-	if (CHECK_GL_EXT("GL_EXT_gf_sr_texture_rectangle") || CHECK_GL_EXT("GL_NV_gf_sr_texture_rectangle")) 
+	if (CHECK_GL_EXT("GL_EXT_texture_rectangle") || CHECK_GL_EXT("GL_NV_texture_rectangle")) 
 		sr->hw_caps.rect_texture = 1;
 }
 

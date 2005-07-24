@@ -322,7 +322,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVT_QUIT:
 		Run = 0;
 		break;
-
 	case GF_EVT_NAVIGATE:
 		if (is_supported_file(evt->navigate.to_url)) {
 			/*eek that's ugly but I don't want to write an event queue for that*/

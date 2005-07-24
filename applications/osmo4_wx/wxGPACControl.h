@@ -79,6 +79,7 @@ private:
 	void OnRecDir(wxCommandEvent &event);
 	void DoSelect();
 	s32 m_sel;
+	void SetYUVLabel();
 
 	wxBoxSizer *s_header, *s_main, *s_general, *s_mpeg4, *s_mdec, *s_rend, *s_rend2d, *s_rend3d, *s_audio, *s_video, *s_font, *s_dnld, *s_stream, *s_rec;
 

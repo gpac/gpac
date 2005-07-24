@@ -145,7 +145,7 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
     LPDIRECTDRAWCLIPPER pcClipper;
 	DDCONTEXT;
 	
-	if (!dd->hWnd || !Width || !Height) return GF_BAD_PARAM;
+	if (!dd->cur_hwnd || !Width || !Height) return GF_BAD_PARAM;
 	DestroyObjects(dd);
 
 	if( FAILED( hr = DirectDrawCreate(NULL, &ddraw, NULL ) ) )
@@ -166,14 +166,6 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 
 		/*change display mode*/
 		if (dd->switch_res) {
-			/*when switching res weird messages are sent to parent -> store current rect and post
-			a size/pos message on restore */
-			if (!dd->owns_hwnd) {
-				HWND hWnd = GetParent(dd->hWnd);
-				if (!hWnd) hWnd = dd->hWnd;
-				GetWindowRect(hWnd, &dd->rcWnd);
-			}
-
 #ifdef USE_DX_3
 			hr = IDirectDraw_SetDisplayMode(dd->pDD, dd->fs_width, dd->fs_height, dd->video_bpp);
 #else
@@ -181,22 +173,15 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 #endif
 			if( FAILED(hr)) return GF_IO_ERR;
 		}
-		/*force size change*/
-		if (dd->owns_hwnd) {
-			dd->prev_styles = GetWindowLong(dd->hWnd, GWL_STYLE);
-			SetWindowLong(dd->hWnd, GWL_STYLE, WS_POPUP);
-			SetForegroundWindow(dd->hWnd);
-			SetWindowPos(dd->hWnd, NULL, 0, 0, dd->fs_width, dd->fs_height, SWP_NOZORDER);
-		} 
 		dd->NeedRestore = 1;
 		cooplev = DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN;
 	}
 
 	
 #ifdef USE_DX_3
-	hr = IDirectDraw_SetCooperativeLevel(dd->pDD, dd->hWnd, cooplev);
+	hr = IDirectDraw_SetCooperativeLevel(dd->pDD, dd->cur_hwnd, cooplev);
 #else
-	hr = IDirectDraw7_SetCooperativeLevel(dd->pDD, dd->hWnd, cooplev);
+	hr = IDirectDraw7_SetCooperativeLevel(dd->pDD, dd->cur_hwnd, cooplev);
 #endif
 	if( FAILED(hr) ) return GF_IO_ERR;
 
@@ -258,7 +243,7 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
         return GF_IO_ERR;
 #endif
 	
-	if( FAILED( hr = IDirectDrawClipper_SetHWnd(pcClipper, 0, dd->hWnd) ) ) {
+	if( FAILED( hr = IDirectDrawClipper_SetHWnd(pcClipper, 0, dd->cur_hwnd) ) ) {
         IDirectDrawClipper_Release(pcClipper);
         return GF_IO_ERR;
     }
@@ -295,7 +280,7 @@ static GF_Err DD_LockSurface(GF_VideoOutput *dr, u32 surface_id, GF_VideoSurface
 	} else {
 		surf = dd->pBack;
 		vi->pixel_format = dd->pixelFormat;
-		vi->os_handle = dd->hWnd;
+		vi->os_handle = dd->cur_hwnd;
 	}
 
 	if (!surf) return GF_BAD_PARAM;

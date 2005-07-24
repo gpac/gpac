@@ -410,7 +410,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 		//		Constructor
 		//
 
-		fprintf(vrml_code, "\n\nstatic GF_Node *%s_Create()\n{\n\tX_%s *p;\n\tSAFEALLOC(p, sizeof(X_%s));\n", n->name, n->name, n->name);
+		fprintf(vrml_code, "\n\nstatic GF_Node *%s_Create()\n{\n\tX_%s *p;\n\tGF_SAFEALLOC(p, sizeof(X_%s));\n", n->name, n->name, n->name);
 		fprintf(vrml_code, "\tif(!p) return NULL;\n");
 		fprintf(vrml_code, "\tgf_node_setup((GF_Node *)p, TAG_X3D_%s);\n", n->name);
 

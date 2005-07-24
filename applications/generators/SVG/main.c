@@ -678,7 +678,7 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 	fprintf(output, "\t\tdefault: return GF_BAD_PARAM;\n\t}\n}\n\n");
 
 	fprintf(output, "void *SVG_New_%s()\n{\n\tSVG%sElement *p;\n", svg_elt->implementation_name,svg_elt->implementation_name);
-	fprintf(output, "\tSAFEALLOC(p, sizeof(SVG%sElement));\n\tif (!p) return NULL;\n\tgf_node_setup((GF_Node *)p, TAG_SVG_%s);\n\tgf_sg_parent_setup((GF_Node *) p);\n",svg_elt->implementation_name,svg_elt->implementation_name);
+	fprintf(output, "\tGF_SAFEALLOC(p, sizeof(SVG%sElement));\n\tif (!p) return NULL;\n\tgf_node_setup((GF_Node *)p, TAG_SVG_%s);\n\tgf_sg_parent_setup((GF_Node *) p);\n",svg_elt->implementation_name,svg_elt->implementation_name);
 	fprintf(output, "#ifdef GF_NODE_USE_POINTERS\n");
 	fprintf(output, "\t((GF_Node *p)->sgprivate->name = \"%s\";\n", svg_elt->implementation_name);
 	fprintf(output, "\t((GF_Node *p)->sgprivate->node_del = SVG_%s_Del;\n", svg_elt->implementation_name);
@@ -693,7 +693,7 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			/* default values should be handled more properly, generically */
 			if (!att->attr_or_prop && !strcmp(att->implementation_name, "fill")) {
 				fprintf(output, "\tp->fill.paintType = SVG_PAINTTYPE_INHERIT;\n");
-				fprintf(output, "\tSAFEALLOC(p->fill.color, sizeof(SVG_Color));\n");
+				fprintf(output, "\tGF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));\n");
 			} else if (!strcmp(att->svg_name, "color")) {
 				fprintf(output, "\tp->color.colorType = SVG_COLORTYPE_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "fill-rule")) {
@@ -702,10 +702,10 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 				fprintf(output, "\tp->fill_opacity.type = SVGFLOAT_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "stroke")) {
 				fprintf(output, "\tp->stroke.paintType = SVG_PAINTTYPE_INHERIT;\n");
-				fprintf(output, "\tSAFEALLOC(p->stroke.color, sizeof(SVG_Color));\n");
+				fprintf(output, "\tGF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));\n");
 			} else if (!strcmp(att->svg_name, "stop-color")) {
 				fprintf(output, "\tp->stop_color.paintType = SVG_PAINTTYPE_INHERIT;\n");
-				fprintf(output, "\tSAFEALLOC(p->stop_color.color, sizeof(SVG_Color));\n");
+				fprintf(output, "\tGF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));\n");
 			} else if (!strcmp(att->svg_name, "stroke-opacity")) {
 				fprintf(output, "\tp->stroke_opacity.type = SVGFLOAT_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "stroke-width")) {

@@ -190,7 +190,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;
 
 	// create a view to occupy the client area of the frame
-	if (!m_pWndView->CreateEx(0, NULL, NULL, WS_POPUP , 0, 0, 300, 200, m_hWnd, NULL, NULL))
+	if (!m_pWndView->CreateEx(0, NULL, NULL, WS_CHILD, 0, 0, 300, 200, m_hWnd, NULL, NULL))
 	{
 		TRACE0("Failed to create view window\n");
 		return -1;
@@ -309,6 +309,7 @@ void CMainFrame::Dump(CDumpContext& dc) const
 // CMainFrame message handlers
 void CMainFrame::OnSetFocus(CWnd* pOldWnd)
 {
+	m_pWndView->SetFocus();
 }
 
 BOOL CMainFrame::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo)
@@ -333,7 +334,6 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
 		CFrameWnd::OnSize(nType, cx, cy);
 		return;
 	}
-
 	m_wndToolBar.GetClientRect(&rc2);
 	tool_h = rc2.bottom - rc2.top;
 	m_Address.GetClientRect(&rc2);
@@ -352,17 +352,16 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
 
 	m_Address.SetWindowPos(this, 0, 0, cx, add_h, SWP_SHOWWINDOW | SWP_NOMOVE);
 
+	m_pWndView->ShowWindow(SW_SHOW);
+	m_pWndView->SetWindowPos(this, 0, add_h + tool_h, cx, cy, SWP_NOZORDER);
+
 	/*and update pos (the view window is not a child one)*/
 	pt.x = 0;
 	pt.y = add_h + tool_h + cy;
 	ClientToScreen(&pt);
 	m_Sliders.SetWindowPos(this, pt.x, pt.y, cx, slide_h, SWP_SHOWWINDOW);
-	
-	m_pWndView->ShowWindow(SW_SHOW);
-	/*and set size through the terminal (this takes care of threading issues with opengl)*/
+	/*and resize term*/
 	gf_term_set_size(GetApp()->m_term, cx, cy);
-
-	//SetFocus();
 }
 
 

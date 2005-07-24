@@ -32,6 +32,7 @@
 #include <gpac/modules/video_out.h>
 #include <gpac/list.h>
 #include <gpac/constants.h>
+#include <gpac/thread.h>
 
 #include <windows.h>
 #include <mmsystem.h>
@@ -62,7 +63,7 @@ typedef struct
 
 typedef struct
 {
-	HWND hWnd;
+	HWND os_hwnd, fs_hwnd, cur_hwnd;
 	Bool NeedRestore;
 	Bool switch_res;
 
@@ -92,12 +93,9 @@ typedef struct
 	u32 yuv_format;
 	Bool yuv_init;
 
-	RECT rcWnd;
-	RECT rcChildWnd;
-
 	/*if we own the window*/
-	HANDLE hThread;
-	DWORD ThreadID;
+	GF_Thread *th;
+	u32 th_state;
 	Bool owns_hwnd, is_resizing;
 	u32 off_w, off_h, prev_styles;
 	LONG last_mouse_pos;
@@ -112,6 +110,8 @@ typedef struct
 	Bool is_3D_out;
 
 	DWORD orig_wnd_proc;
+
+	u32 last_mouse_move, timer, cursor_type_backup;
 } DDContext;
 
 void DD_SetupWindow(GF_VideoOutput *dr);

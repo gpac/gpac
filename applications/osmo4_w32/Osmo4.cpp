@@ -172,6 +172,10 @@ Bool is_supported_file(GF_Config *cfg, const char *fileName, Bool disable_no_ext
 	return 0;
 }
 
+static log_msg(char *msg)
+{
+	::MessageBox(NULL, msg, "GPAC", MB_OK);
+}
 Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 {
 	u32 dur;
@@ -224,8 +228,11 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 	case GF_EVT_SCENESIZE:
 		gpac->orig_width = evt->size.width;
 		gpac->orig_height = evt->size.height;
-		if (gpac->m_term) 
+		if (gpac->m_term) {
 			pFrame->PostMessage(WM_SETSIZE, evt->size.width, evt->size.height);
+			/*not sure what's wrong, not sleeping result to another attempt to lock gpac's renderer which deadlocks!!*/
+			gf_sleep(20);
+		}
 		break;
 
 	case GF_EVT_CONNECT:
@@ -241,6 +248,9 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		pFrame->m_wndToolBar.SetButtonInfo(5, ID_FILE_PLAY, TBBS_BUTTON, gpac->m_isopen ? 4 : 3);
 		pFrame->m_Sliders.m_PosSlider.SetPos(0);
 		pFrame->SetProgTimer(1);
+		pFrame->SetFocus();
+		pFrame->SetForegroundWindow();
+
 		break;
 
 	case GF_EVT_QUIT:
@@ -474,6 +484,8 @@ BOOL WinGPAC::InitInstance()
 			pFrame->m_pPlayList->m_cur_entry = -1;
 		}
 	}
+	pFrame->SetFocus();
+	pFrame->SetForegroundWindow();
 	return TRUE;
 }
 

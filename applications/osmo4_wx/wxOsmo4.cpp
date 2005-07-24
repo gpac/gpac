@@ -44,6 +44,12 @@ IMPLEMENT_APP(wxOsmo4App)
 
 #include "Playlist.h"
 
+#ifdef WIN32
+#define	FRAME_H	140
+#else
+#define	FRAME_H	110
+#endif
+
 
 
 wxString get_pref_browser(GF_Config *cfg)
@@ -239,15 +245,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 		break;
 
-	/*we use CTRL and not ALT for keys, since windows shortcuts keypressed with ALT*/
-	case GF_EVT_KEYDOWN:
-	{
-		wxGPACEvent wxevt(app);
-		wxevt.gpac_evt = *evt;
-		app->AddPendingEvent(wxevt);
-	}
-		break;
-
 	case GF_EVT_CONNECT:
 	{
 		wxGPACEvent wxevt(app);
@@ -257,14 +254,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		app->AddPendingEvent(wxevt);
 	}
 		break;
-	case GF_EVT_QUIT:
-	{
-		wxGPACEvent wxevt(app);
-		wxevt.gpac_evt.type = GF_EVT_QUIT;
-		app->AddPendingEvent(wxevt);
-	}
-		break;
-
 	case GF_EVT_NAVIGATE:
 	{
 		wxGPACEvent wxevt(app);
@@ -273,18 +262,26 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		app->AddPendingEvent(wxevt);
 	}
 		return 1;
+
+	case GF_EVT_KEYDOWN:
+	case GF_EVT_QUIT:
 	case GF_EVT_VIEWPOINTS:
-		app->BuildViewList();
-		break;
 	case GF_EVT_STREAMLIST:
-		app->BuildStreamList(0);
-		break;
 	case GF_EVT_SCENESIZE:
-		app->DoLayout(evt->size.width, evt->size.height);
+	{
+		wxGPACEvent wxevt(app);
+		wxevt.gpac_evt = *evt;
+		app->AddPendingEvent(wxevt);
+	}
 		break;
 	case GF_EVT_LDOUBLECLICK:
 		gf_term_set_option(app->m_term, GF_OPT_FULLSCREEN, !gf_term_get_option(app->m_term, GF_OPT_FULLSCREEN));
 		return 0;
+	case GF_EVT_LEFTDOWN:
+	case GF_EVT_RIGHTDOWN:
+	case GF_EVT_MIDDLEDOWN:
+		app->m_pView->SetFocus();
+		break;
 	}
 	return 0;
 }
@@ -342,7 +339,6 @@ extern "C" {
     void *gdk_x11_drawable_get_xdisplay( void * );
 #endif
     void *gtk_widget_get_parent_window( void * );
-    void gtk_widget_realize( void *);
 }
 #endif
 
@@ -354,42 +350,46 @@ void wxOsmo4Frame::CheckVideoOut()
 	void *os_display = NULL;
 	/*build a child window for embed display*/
 	if (stricmp(sOpt, "SDL Video Output")) {
-	  if (m_pView) return;
-	  m_pView = new wxWindow(this, 1, wxDefaultPosition, wxDefaultSize, wxSIMPLE_BORDER);
-	  m_pView->SetBackgroundColour(wxColour(wxT("BLACK")));
+		if (m_user.os_window_handler) return;
+		m_bExternalView = 0;
 
 #ifdef __WXGTK__
-	  GtkWidget* widget = m_pView->GetHandle();
+		GtkWidget* widget = m_pView->GetHandle();
 #ifdef __WXGTK20__
-	  os_handle = (void *)gdk_x11_drawable_get_xid(gtk_widget_get_parent_window(widget));
-	  os_display = (void *)gdk_x11_drawable_get_xdisplay(gtk_widget_get_parent_window(widget));
+		os_handle = (void *)gdk_x11_drawable_get_xid(gtk_widget_get_parent_window(widget));
+		os_display = (void *)gdk_x11_drawable_get_xdisplay(gtk_widget_get_parent_window(widget));
 #else
-	  os_handle =  (void *)*(int *)( (char *)gtk_widget_get_parent_window(widget) + 2 * sizeof(void *) );
+		os_handle =  (void *)*(int *)( (char *)gtk_widget_get_parent_window(widget) + 2 * sizeof(void *) );
 #endif
-	  /*FIXME - X11 output is not stable enough*/
-	  os_handle = NULL;
-	  os_display = NULL;
+		/*FIXME - X11 output is not stable enough*/
+		os_handle = NULL;
+		os_display = NULL;
 
 #elif defined (WIN32)
-	  os_handle = m_pView->GetHandle();
+		os_handle = m_pView->GetHandle();
 #endif
-	  if (os_handle) {
-	    m_user.os_window_handler = os_handle;
-	    m_user.os_display = os_display;
-	    m_pView->Raise();
-	    m_pView->Show();
-	    SetWindowStyle(wxDEFAULT_FRAME_STYLE);
-	    DoLayout();
-	    return;
-	  }
+
+		if (os_handle) {
+			m_user.os_window_handler = os_handle;
+			m_user.os_display = os_display;
+//			m_pSizer->Show(m_pViewSizer, 1);
+			m_pView->Show(1);
+			SetSize(wxSize(320, 240+FRAME_H));
+			SetWindowStyle(wxDEFAULT_FRAME_STYLE);
+			DoLayout(320, 240);
+			return;
+		}
 	}
 	/*we're using SDL, don't use SDL hack*/
-	if (m_pView) delete m_pView;
-	m_pView = NULL;
+	m_bExternalView = 1;
+//	m_pSizer->Show(m_pViewSizer, 0);
 	m_user.os_window_handler = 0;
 	m_user.os_display = NULL;
-	SetWindowStyle(wxDEFAULT_FRAME_STYLE & ~(wxMAXIMIZE_BOX | wxRESIZE_BORDER));
+	SetSize(wxSize(320,FRAME_H));
+	m_pView->SetSize(320,0);
+	m_pView->Show(0);
 	DoLayout();
+	SetWindowStyle(wxDEFAULT_FRAME_STYLE & ~(wxMAXIMIZE_BOX | wxRESIZE_BORDER));
 }
 
 Bool wxOsmo4Frame::LoadTerminal()
@@ -582,6 +582,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 	m_user.EventProc = GPAC_EventProc;
 
 	CheckVideoOut();
+
 	m_term = gf_term_new(&m_user);
 	if (!m_term) {
 		wxMessageDialog(NULL, wxT("Fatal Error"), wxT("Cannot load MPEG-4 Terminal"), wxOK).ShowModal();
@@ -593,12 +594,6 @@ Bool wxOsmo4Frame::LoadTerminal()
 }
 
 
-#ifdef WIN32
-#define	FRAME_H	140
-#else
-#define	FRAME_H	110
-#endif
-
 wxOsmo4Frame::wxOsmo4Frame() :
 		wxFrame((wxFrame *) NULL, -1, wxT("Osmo4 - GPAC"), wxPoint(-1, -1), wxSize(320, FRAME_H), //wxDEFAULT_FRAME_STYLE & ~(wxMAXIMIZE_BOX | wxRESIZE_BORDER)
 wxDEFAULT_FRAME_STYLE
@@ -608,7 +603,9 @@ wxDEFAULT_FRAME_STYLE
 	int ws[3];
 	m_Address = NULL;
 	m_pView = NULL;
+	m_term = NULL;
 	SetIcon(wxIcon(osmo4));
+	m_bExternalView = 0;
 
 	m_num_chapters = 0;
 	m_chapters_start = NULL;
@@ -720,13 +717,15 @@ wxDEFAULT_FRAME_STYLE
 	m_pStatusbar->SetFieldsCount(3, ws);
 
 	SetStatusBarPane(2);
+	wxColour foreCol = m_pStatusbar->GetBackgroundColour();
+
 
 	m_pTimer = new wxTimer();
 	m_pTimer->SetOwner(this, ID_CTRL_TIMER);
 	m_bGrabbed = 0;
 
 	/*create toolbar*/
-	m_pToolBar = CreateToolBar(wxTB_HORIZONTAL);
+	m_pToolBar = CreateToolBar(wxTB_FLAT|wxTB_HORIZONTAL);
 	m_pOpenFile = new wxBitmap(tool_open_file);
 	m_pPrev = new wxBitmap(tool_prev);
 	m_pNext = new wxBitmap(tool_next);
@@ -761,22 +760,45 @@ wxDEFAULT_FRAME_STYLE
 	m_pToolBar->Realize();
 
 	m_Address = new wxMyComboBox(this, ID_ADDRESS, wxT(""), wxPoint(50, 0), wxSize(260, 20));
+	wxStaticText *add_text = new wxStaticText(this, 0, wxT("Location"));
+	add_text->SetBackgroundColour(foreCol);
 
 	m_pAddBar = new wxBoxSizer(wxHORIZONTAL);
-	m_pAddBar->Add(new wxStaticText(this, 0, wxT("Addres")), 0, wxALIGN_CENTER|/*wxFIXED_MINSIZE|*/wxRIGHT, 2);
-	m_pAddBar->Add(m_Address, wxALIGN_CENTER | wxADJUST_MINSIZE);
+	m_pAddBar->Add(add_text, 0, wxALIGN_BOTTOM|wxADJUST_MINSIZE|wxEXPAND, 0);
+	m_pAddBar->Add(m_Address, 2, wxALIGN_CENTER|wxEXPAND);
 
 	
 #ifdef __WXGTK__
 	m_pProg = new wxScrollBar(this, ID_SLIDER, wxPoint(0, 20), wxSize(320, 20), wxSB_HORIZONTAL | wxNO_BORDER);
 	m_pProg->SetScrollbar(0, 1, 1000, 1);
 #else
-	m_pProg = new wxSlider(this, ID_SLIDER, 0, 0, 1000, wxPoint(0, 22), wxSize(320, 22), wxSL_HORIZONTAL | wxSUNKEN_BORDER);
+	m_pProg = new wxSlider(this, ID_SLIDER, 0, 0, 1000, wxPoint(0, 22), wxSize(320, 22), wxSL_HORIZONTAL|wxSUNKEN_BORDER);
 #endif
 	m_pProg->Enable(0);
 	m_pProg->Show();
+	m_pProg->SetBackgroundColour(foreCol);
 
+	m_pView = new wxWindow(this, -1, wxDefaultPosition, wxDefaultSize, wxNO_BORDER);
+	m_pView->SetBackgroundColour(wxColour(wxT("BLACK")));
 
+	wxBoxSizer *bs;
+	m_pSizer = new wxBoxSizer(wxVERTICAL);
+	/*on WIN32 platforms the toolbar is part of the frame, not of the client area*/
+#if 0
+	bs = new wxBoxSizer(wxHORIZONTAL);
+	bs->Add(m_pToolBar, 1, wxALIGN_CENTER|wxADJUST_MINSIZE|wxEXPAND);
+	m_pSizer->Add(bs, 0, wxALL, 0);
+#endif
+
+	m_pSizer->Add(m_pAddBar, 0, wxALL|wxADJUST_MINSIZE|wxEXPAND, 0);
+
+	m_pViewSizer = new wxBoxSizer(wxHORIZONTAL);
+	m_pViewSizer->Add(m_pView, 1, wxALIGN_CENTER|wxADJUST_MINSIZE|wxEXPAND, 0);
+	m_pSizer->Add(m_pViewSizer, 1, wxEXPAND|wxADJUST_MINSIZE|wxEXPAND, 0);
+
+	bs = new wxBoxSizer(wxHORIZONTAL);
+	bs->Add(m_pProg, 1, wxALL|wxALIGN_CENTER|wxADJUST_MINSIZE|wxEXPAND, 0);
+	m_pSizer->Add(bs, 0, wxALL|wxADJUST_MINSIZE|wxEXPAND, 0);
 
 	m_pPlayList = new wxPlaylist(this);
 	m_pPlayList->SetIcon(wxIcon(osmo4));
@@ -788,14 +810,15 @@ wxDEFAULT_FRAME_STYLE
 		Close(TRUE);
 		return;
 	}
-	
-	if (m_pView) {
-		m_pView->Raise();
-		m_pView->Show();
+
+	SetSizer(m_pSizer);
+	if (!m_bExternalView) {
+//		m_pSizer->Show(m_pViewSizer, 1);
 	} else {
+//		m_pSizer->Show(m_pViewSizer, 0);
 		SetWindowStyle(wxDEFAULT_FRAME_STYLE & ~(wxMAXIMIZE_BOX | wxRESIZE_BORDER));
 	}
-	DoLayout();
+	DoLayout(320, 240);
 
 	UpdateRenderSwitch();
 
@@ -860,8 +883,7 @@ wxOsmo4Frame::~wxOsmo4Frame()
 	delete m_pPrev;
 	delete m_pNext;
 	delete m_pPlay;
-	delete m_pPause;	wxSize a_size = m_Address->GetSize();
-
+	delete m_pPause;
 	delete m_pStep;
 	delete m_pStop;
 	delete m_pInfo;
@@ -959,70 +981,37 @@ BEGIN_EVENT_TABLE(wxOsmo4Frame, wxFrame)
 	EVT_UPDATE_UI(VIEW_AR_169, wxOsmo4Frame::OnUpdateAR)
 	EVT_UPDATE_UI(VIEW_AR_43, wxOsmo4Frame::OnUpdateAR)
 
-	
-	EVT_MOVE(wxOsmo4Frame::OnMove) 
 	EVT_SIZE(wxOsmo4Frame::OnSize) 
 END_EVENT_TABLE()
 
 void wxOsmo4Frame::DoLayout(u32 v_width, u32 v_height)
 {
-	int sy;
 	wxPoint pos;
 	if (!m_Address || !m_pProg) return;
 
-	wxSize a_size = m_Address->GetSize();
-	wxSize p_size = m_pProg->GetSize();
-
-	wxSize size;
 	if (v_width && v_height) {
 		m_orig_width = v_width;
 		m_orig_height = v_height;
-		if (m_pView) {
-			size.x = v_width;
-			size.y = v_height + a_size.y + p_size.y;
-		} else {
-			size = GetClientSize();
-			size.y = a_size.y + p_size.y;
-		}
-		SetClientSize(size);
+		if (!m_bExternalView) m_pView->SetSize(wxSize(v_width, v_height));
+		/*this will call setSize*/
+		m_pSizer->Fit(this);
 		return;
-	} else {
-		size = GetClientSize();
-		if (!m_pView) {
-			size.y = a_size.y + p_size.y;
-			SetClientSize(size);
+	}
+	Layout();
+	if (!m_bExternalView) {
+		wxSize s = GetClientSize();
+		s.y -= m_pAddBar->GetSize().y;
+		s.y -= m_pProg->GetSize().y;
+		if (!m_bExternalView) {
+			m_pView->SetSize(s.x, s.y);
+			if (m_term) gf_term_set_size(m_term, s.x, s.y);
 		}
 	}
-	m_pAddBar->SetDimension(0, 0, size.x, a_size.y);
-	sy = a_size.y;
-
-	size.y -= a_size.y;
-
-	a_size = m_pProg->GetSize();
-	m_pProg->SetSize(0, size.y, size.x, a_size.y);
-	size.y -= a_size.y;
-
-	pos.x = 0;
-	pos.y = sy;
-	pos = ClientToScreen(pos);
-
-	if (m_pView) {
-	  m_pView->Move(pos.x, pos.y);
-#ifdef WIN32
-	  m_pView->Raise();
-#else
-	  m_pView->Hide();
-#endif
-	  gf_term_size_changed(m_term, size.x, size.y);
-	}
 }
 
-void wxOsmo4Frame::OnMove(wxMoveEvent &WXUNUSED(event))
+void wxOsmo4Frame::OnSize(wxSizeEvent &event)
 {
-	DoLayout();
-}
-void wxOsmo4Frame::OnSize(wxSizeEvent &WXUNUSED(event))
-{
+	SetSize(event.m_size.x, event.m_size.y);
 	DoLayout();
 }
 
@@ -1030,13 +1019,6 @@ void wxOsmo4Frame::OnCloseApp(wxCloseEvent &WXUNUSED(event))
 {
 	if (m_term) gf_term_del(m_term);
 	m_term = NULL;
-	/*there is  a crash here that did not happen with wxWidgets < 2.6.0 - to investigate ...*/
-	if (m_pView) {
-		m_pView->Reparent(NULL);
-//		delete m_pView;
-		m_pView->Destroy();
-		m_pView = NULL;
-	}
 	Destroy();
 }
 
@@ -1183,6 +1165,7 @@ void wxOsmo4Frame::DoConnect()
 
 	wxString url = m_pPlayList->GetURL();
 	m_Address->SetValue(url);
+	m_pView->SetFocus();
 
 	wxString txt = wxT("Osmo4 - ");
 	txt += m_pPlayList->GetDisplayName();
@@ -1478,6 +1461,16 @@ void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 			OnFileStep(evt);
 			break;
 		}
+		break;
+	case GF_EVT_SCENESIZE:
+		DoLayout(event.gpac_evt.size.width, event.gpac_evt.size.height);
+		break;
+	case GF_EVT_VIEWPOINTS:
+		BuildViewList();
+		break;
+	case GF_EVT_STREAMLIST:
+		BuildStreamList(0);
+		break;
 	}
 }
 

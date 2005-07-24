@@ -29,7 +29,6 @@
 
 #include "playlist.xpm"
 
-
 PLEntry::PLEntry(wxString url)
 {
 	m_url = strdup(url.mb_str(wxConvUTF8));
@@ -130,7 +129,7 @@ wxPlaylist::wxPlaylist(wxWindow *parent)
 	m_cur_entry = -1;
 	m_all_dead_entries = -1;
 
-	SetSize(300, 400);
+	SetSize(200, 300);
 	Centre();
 }
 
@@ -151,7 +150,7 @@ wxPlaylist::~wxPlaylist()
 }
 
 
-BEGIN_EVENT_TABLE(wxPlaylist, wxFrame)
+BEGIN_EVENT_TABLE(wxPlaylist, wxWindow)
 	EVT_CLOSE(wxPlaylist::OnClose)
 	EVT_SIZE(wxPlaylist::OnSize)
 	EVT_TOOL(ID_PL_ADD_FILE, wxPlaylist::OnAddFile) 
@@ -187,10 +186,10 @@ void wxPlaylist::OnClose(wxCloseEvent &event)
 void wxPlaylist::OnSize(wxSizeEvent &event)
 {
 	wxSize s = event.GetSize();
-	m_FileList->SetSize(0, 0, s.GetWidth()-5, s.GetHeight());
+	m_FileList->SetSize(0, 0, s.GetWidth()-2, s.GetHeight());
 	m_FileList->SetColumnWidth(0, 30);
 	m_FileList->SetColumnWidth(2, 60);
-	m_FileList->SetColumnWidth(1, s.GetWidth()-100);
+	m_FileList->SetColumnWidth(1, s.GetWidth()-96);
 }
 
 void wxPlaylist::Clear()

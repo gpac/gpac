@@ -28,63 +28,27 @@
 #define DDCONTEXT	DDContext *dd = (DDContext *)dr->opaque;
 
 
-GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no_proc_override, GF_GLConfig *cfg)
-{
-	RECT rc;
-	DDCONTEXT
-	dd->hWnd = (HWND) os_handle;
-	
-	DD_SetupWindow(dr);
-	/*fatal error*/
-	if (!dd->hWnd) return GF_IO_ERR;
-	
-	GetWindowRect(dd->hWnd, &rc);
-	dd->is_3D_out = cfg ? 1 : 0;
-	return InitDirectDraw(dr, rc.right - rc.left, rc.bottom - rc.top);
-}
-
 static void RestoreWindow(DDContext *dd) 
 {
-	HWND hWnd = dd->hWnd;
-	if (!dd->NeedRestore) goto exit;
+	if (!dd->NeedRestore) return;
 
-	if (!dd->owns_hwnd && dd->switch_res) hWnd = GetParent(dd->hWnd);
 
 	dd->NeedRestore = 0;
 	if (dd->is_3D_out) {
 		ChangeDisplaySettings(NULL,0);
 		SetForegroundWindow(GetDesktopWindow());
-		SetForegroundWindow(dd->hWnd);
+		SetForegroundWindow(dd->cur_hwnd);
 	} else {
 #ifdef USE_DX_3
-		IDirectDraw_SetCooperativeLevel(dd->pDD, hWnd, DDSCL_NORMAL);
+		IDirectDraw_SetCooperativeLevel(dd->pDD, dd->cur_hwnd, DDSCL_NORMAL);
 #else
-		IDirectDraw7_SetCooperativeLevel(dd->pDD, hWnd, DDSCL_NORMAL);
+		IDirectDraw7_SetCooperativeLevel(dd->pDD, dd->cur_hwnd, DDSCL_NORMAL);
 #endif
-
 		dd->NeedRestore = 0;
 	}
 
-	if (dd->owns_hwnd || dd->is_3D_out) SetWindowLong(dd->hWnd, GWL_STYLE, dd->prev_styles);
-		
-	if (dd->owns_hwnd) SetWindowText(dd->hWnd, "GPAC DirectDraw Output");
-
-	if (!dd->switch_res || dd->owns_hwnd) {
-		SetWindowPos(dd->hWnd, NULL, dd->rcWnd.left, dd->rcWnd.top, dd->rcWnd.right - dd->rcWnd.left, dd->rcWnd.bottom - dd->rcWnd.top, SWP_NOZORDER);
-	} else {
-		/*post a message to the parent wnd*/
-		RECT rc = dd->rcWnd;
-		HWND hWnd = GetParent(dd->hWnd);
-		if (!hWnd) hWnd = dd->hWnd;
-		if (dd->is_3D_out) SetWindowPos(dd->hWnd, NULL, dd->rcChildWnd.left, dd->rcChildWnd.top, dd->rcChildWnd.right - dd->rcChildWnd.left, dd->rcChildWnd.bottom - dd->rcChildWnd.top, SWP_NOZORDER);
-		SetWindowPos(hWnd, NULL, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, SWP_NOZORDER);
-		SetForegroundWindow(hWnd);
-		SetFocus(hWnd);
-	}
-
-exit:
-	/*store client rect*/
-	GetWindowRect(dd->hWnd, &dd->rcWnd);
+	SetForegroundWindow(dd->cur_hwnd);
+	SetFocus(dd->cur_hwnd);
 }
 
 void DestroyObjects(DDContext *dd)
@@ -106,21 +70,14 @@ void DestroyObjects(DDContext *dd)
 
 	/*delete openGL context*/
 	if (dd->gl_HRC) {
+		wglMakeCurrent(dd->gl_HDC, NULL);
 		wglDeleteContext(dd->gl_HRC);
 		dd->gl_HRC = NULL;
 	}
 	if (dd->gl_HDC) {
-		ReleaseDC(dd->hWnd, dd->gl_HDC);
+		ReleaseDC(dd->cur_hwnd, dd->gl_HDC);
 		dd->gl_HDC = NULL;
 	}
-}
-
-static void DD_Shutdown(GF_VideoOutput *dr)
-{
-	DDCONTEXT
-	DestroyObjects(dd);
-
-	DD_ShutdownWindow(dr);
 }
 
 GF_Err DD_SetupOpenGL(GF_VideoOutput *dr) 
@@ -133,7 +90,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
 	/*already setup*/
 	if (dd->gl_HRC) return GF_OK;
 
-	dd->gl_HDC = GetDC(dd->hWnd);
+	dd->gl_HDC = GetDC(dd->cur_hwnd);
 	if (!dd->gl_HDC) return GF_IO_ERR;
 
     memset(&pfd, 0, sizeof(pfd));
@@ -144,13 +101,45 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
     pfd.iPixelType = PFD_TYPE_RGBA;
     pfd.cColorBits = pfd.cDepthBits = 16;
     if ( (pixelformat = ChoosePixelFormat(dd->gl_HDC, &pfd)) == FALSE ) return GF_IO_ERR; 
-    if (SetPixelFormat(dd->gl_HDC, pixelformat, &pfd) == FALSE) return GF_IO_ERR; 
+    if (SetPixelFormat(dd->gl_HDC, pixelformat, &pfd) == FALSE) 
+		return GF_IO_ERR; 
 	dd->gl_HRC = wglCreateContext(dd->gl_HDC);
 	if (!dd->gl_HRC) return GF_IO_ERR;
 	if (!wglMakeCurrent(dd->gl_HDC, dd->gl_HRC)) return GF_IO_ERR;
 	evt.type = GF_EVT_GL_CHANGED;
 	dr->on_event(dr->evt_cbk_hdl, &evt);	
 	return GF_OK;
+}
+
+
+
+
+GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no_proc_override, GF_GLConfig *cfg)
+{
+	RECT rc;
+	DDCONTEXT
+	dd->os_hwnd = (HWND) os_handle;
+	
+	DD_SetupWindow(dr);
+	/*fatal error*/
+	if (!dd->os_hwnd) return GF_IO_ERR;
+	dd->cur_hwnd = dd->os_hwnd;
+
+	if (cfg) {
+		dd->is_3D_out = 1;
+		return GF_OK;
+	}
+	dd->is_3D_out = 0;
+	GetWindowRect(dd->cur_hwnd, &rc);
+	return InitDirectDraw(dr, rc.right - rc.left, rc.bottom - rc.top);
+}
+
+static void DD_Shutdown(GF_VideoOutput *dr)
+{
+	DDCONTEXT
+	DestroyObjects(dd);
+
+	DD_ShutdownWindow(dr);
 }
 
 static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 *outHeight)
@@ -162,6 +151,7 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 
 	if (!dd->width ||!dd->height) return GF_BAD_PARAM;
 	if (bOn == dd->fullscreen) return GF_OK;
+	if (!dd->fs_hwnd) return GF_NOT_SUPPORTED;
 	dd->fullscreen = bOn;
 
 	
@@ -180,37 +170,30 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 	if (sOpt) sscanf(sOpt, "%dx%d", &MaxWidth, &MaxHeight);
 
 	dd->is_resizing = 1;
+	/*destroy all objects*/
+	DestroyObjects(dd);
+	if (dd->timer) KillTimer(dd->cur_hwnd, dd->timer);
+	dd->timer = 0;
+	ShowWindow(dd->cur_hwnd, SW_HIDE);
+	dd->cur_hwnd = dd->fullscreen ? dd->fs_hwnd : dd->os_hwnd;
+	ShowWindow(dd->cur_hwnd, SW_SHOWNORMAL);
+	SetForegroundWindow(dd->cur_hwnd);
+
 
 	if (dd->is_3D_out) {
 		DEVMODE settings;
 		e = GF_OK;
-
-		/*recreate the GL context whenever changing display settings, it's safer...*/
-		DestroyObjects(dd);
 		/*Setup FS*/
 		if (dd->fullscreen) {
 			/*change display mode*/
-			if (dd->switch_res) {
-				/*when switching res weird messages are sent to parent -> store current rect and post
-				a size/pos message on restore */
-				if (!dd->owns_hwnd) {
-					HWND hWnd = GetParent(dd->hWnd);
-					if (!hWnd) hWnd = dd->hWnd;
-					GetWindowRect(hWnd, &dd->rcWnd);
-				}
-			}
-
 			if ((MaxWidth && (dd->fs_width >= MaxWidth)) || (MaxHeight && (dd->fs_height >= MaxHeight)) ) {
 				dd->fs_width = MaxWidth;
 				dd->fs_height = MaxHeight;
 			}
 
 			/*force size change (we do it whether we own or not the window)*/
-			dd->prev_styles = GetWindowLong(dd->hWnd, GWL_STYLE);
-			GetWindowRect(dd->hWnd, &dd->rcChildWnd);
-			SetWindowLong(dd->hWnd, GWL_STYLE, WS_POPUP);
-			SetWindowPos(dd->hWnd, NULL, 0, 0, dd->fs_width, dd->fs_height, SWP_NOZORDER | SWP_SHOWWINDOW);
-			SetForegroundWindow(dd->hWnd);
+			SetWindowPos(dd->cur_hwnd, NULL, 0, 0, dd->fs_width, dd->fs_height, SWP_NOZORDER | SWP_SHOWWINDOW);
+			SetForegroundWindow(dd->cur_hwnd);
 
 			memset(&settings, 0, sizeof(DEVMODE));
 			settings.dmSize = sizeof(DEVMODE);
@@ -265,7 +248,7 @@ static GF_Err DD_FlushVideo(GF_VideoOutput *dr, GF_Window *dest)
 		POINT pt;
 		pt.x = dest->x;
 		pt.y = dest->y;
-		ClientToScreen(dd->hWnd, &pt);
+		ClientToScreen(dd->cur_hwnd, &pt);
 		dest->x = pt.x;
 		dest->y = pt.y;
 		MAKERECT(rc, dest);

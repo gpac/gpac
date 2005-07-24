@@ -65,7 +65,7 @@ enum {
 	GF_EVT_KEYUP,
 	/*window events*/
 	GF_EVT_WINDOWSIZE,	/*size has changed - indicate new w & h in .x end .y fields of event*/
-	GF_EVT_SHOWHIDE,	/*window show/hide (minimized or other)*/
+	GF_EVT_SHOWHIDE,	/*window show/hide (minimized or other). This is also sent to the user to signal focus switch in fullscreen*/
 	GF_EVT_SET_CURSOR,	/*set mouse cursor*/
 	GF_EVT_SET_STYLE,	/*set window style*/
 	GF_EVT_SET_CAPTION,	/*set window caption*/
@@ -132,7 +132,7 @@ typedef struct
 {
 	/*GF_EVT_MOUSEMOVE, GF_EVT_MOUSEWHEEL, GF_EVT_LEFTDOWN, GF_EVT_LEFTUP, GF_EVT_MIDDLEDOWN, GF_EVT_MIDDLEUP, GF_EVT_RIGHTDOWN, GF_EVT_RIGHTUP*/
 	u8 type;
-	/*mouse location in BIFS-like coordinates (window center is 0,0, increasing Y from bottom to top) */
+	/*mouse location in output window, 2D-like:  top-left (0,0), increasing y towards bottom*/
 	s32 x, y;
 	/*wheel position (wheel current delta / wheel absolute delta) for GF_EVT_MouseWheel*/
 	Fixed wheel_pos;

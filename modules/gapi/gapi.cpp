@@ -35,7 +35,7 @@
 
 static GF_VideoOutput *the_video_driver = NULL;
 
-static void GAPI_MapBIFSCorrdinate(DWORD lParam, GF_Event *evt)
+static void GAPI_GetCoordinates(DWORD lParam, GF_Event *evt)
 {
 	GAPIPriv *ctx = (GAPIPriv *)the_video_driver->opaque;
 	evt->mouse.x = LOWORD(lParam);
@@ -47,15 +47,12 @@ static void GAPI_MapBIFSCorrdinate(DWORD lParam, GF_Event *evt)
 		pt.y = evt->mouse.y;
 		ClientToScreen(ctx->hWnd, &pt);
 		if (ctx->gx.ffFormat & kfLandscape) {
-			evt->mouse.x = ctx->fs_w/2 - pt.y;
-			evt->mouse.y = ctx->fs_h/2 - pt.x;
+			evt->mouse.x = ctx->fs_w - pt.y;
+			evt->mouse.y = pt.x;
 		} else {
-			evt->mouse.y = ctx->fs_h/2 - pt.y;
-			evt->mouse.x = ctx->fs_w/2 - pt.x;
+			evt->mouse.x = pt.x;
+			evt->mouse.y = pt.y;
 		}
-	} else {
-		evt->mouse.x -= ctx->bb_width / 2;
-		evt->mouse.y = (ctx->bb_height ) / 2 - evt->mouse.y;
 	}
 }
 
@@ -153,18 +150,18 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		break;
 
 	case WM_MOUSEMOVE:
-		GAPI_MapBIFSCorrdinate(lParam, &evt);
+		GAPI_GetCoordinates(lParam, &evt);
 		evt.type = GF_EVT_MOUSEMOVE;
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		break;
 	case WM_LBUTTONDOWN:
 	case WM_LBUTTONDBLCLK:
-		GAPI_MapBIFSCorrdinate(lParam, &evt);
+		GAPI_GetCoordinates(lParam, &evt);
 		evt.type = GF_EVT_LEFTDOWN;
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		break;
 	case WM_LBUTTONUP:
-		GAPI_MapBIFSCorrdinate(lParam, &evt);
+		GAPI_GetCoordinates(lParam, &evt);
 		evt.type = GF_EVT_LEFTUP;
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		break;

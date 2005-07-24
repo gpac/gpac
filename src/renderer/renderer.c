@@ -462,6 +462,7 @@ static GF_Err SR_SetSceneSize(GF_Renderer *sr, u32 Width, u32 Height)
 GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 {
 	u32 width, height;
+	Bool do_notif;
 
 	if (!sr) return GF_BAD_PARAM;
 
@@ -482,13 +483,13 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 
 	/*set current graph*/
 	sr->scene = scene_graph;
-	
+	do_notif = 0;
 	if (scene_graph) {
 		/*get pixel size if any*/
 		gf_sg_get_scene_size_info(sr->scene, &width, &height);
 		/*set scene size only if different, otherwise keep scaling/FS*/
 		if ( !width || (sr->scene_width!=width) || !height || (sr->scene_height!=height)) {
-			Bool do_notif = (width && height) ? 1 : 0;
+			do_notif = (width && height) ? 1 : 0;
 			SR_SetSceneSize(sr, width, height);
 			/*get actual size in pixels*/
 			width = sr->scene_width;
@@ -498,13 +499,11 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 			if (sr->user->os_window_handler) {
 				/*security in case the user doesn't get the message (this happens on w32, resize message
 				with same values are discarded)*/
-//				gf_sr_size_changed(sr, width, height);
 				sr->override_size_flags &= ~2;
 			} else {
 				/*signal size changed*/
 				gf_sr_set_size(sr,width, height);
 			}
-			if (do_notif) GF_USER_SETSIZE(sr->user, width, height);
 		}
 		sr->has_size_info = (width && height) ? 1 : 0;
 	}
@@ -513,6 +512,10 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 	sr->draw_next_frame = 1;
 	gf_mx_v(sr->ev_mx);
 	gf_sr_lock(sr, 0);
+	/*here's a nasty trick: the app may respond to this by calling a gf_sr_set_size from a different
+	thread, but in an atomic way (typically happen on Win32 when changing the window size). WE MUST
+	NOTIFY THE SIZE CHANGE AFTER RELEASING THE RENDERER MUTEX*/
+	if (do_notif) GF_USER_SETSIZE(sr->user, width, height);
 	return GF_OK;
 }
 
@@ -530,33 +533,18 @@ void gf_sr_refresh(GF_Renderer *sr)
 	if (sr) sr->draw_next_frame = 1;
 }
 
-
-GF_Err gf_sr_size_changed(GF_Renderer *sr, u32 NewWidth, u32 NewHeight)
-{
-	if (!NewWidth || !NewHeight) {
-		sr->override_size_flags &= ~2;
-		return GF_OK;
-	}
-//	gf_sr_lock(sr, 1);
-	sr->new_width = NewWidth;
-	sr->new_height = NewHeight;
-	sr->msg_type |= GF_SR_CFG_SIZE_CHANGE;
-//	gf_sr_lock(sr, 0);
-	return GF_OK;
-}
-
 GF_Err gf_sr_set_size(GF_Renderer *sr, u32 NewWidth, u32 NewHeight)
 {
 	if (!NewWidth || !NewHeight) {
 		sr->override_size_flags &= ~2;
 		return GF_OK;
 	}
-	/*the safe way would have the scene locked, but it hangs with win32 osmo4 & not fixed yet*/
-//	gf_sr_lock(sr, 1);
+	if ((sr->width == NewWidth) && (sr->height == NewHeight) ) return GF_OK;
+	gf_sr_lock(sr, 1);
 	sr->new_width = NewWidth;
 	sr->new_height = NewHeight;
 	sr->msg_type |= GF_SR_CFG_SET_SIZE;
-//	gf_sr_lock(sr, 0);
+	gf_sr_lock(sr, 0);
 	/*force video resize*/
 	if (!sr->VisualThread) gf_sr_reconfig_task(sr);
 	return GF_OK;
@@ -698,6 +686,9 @@ u32 gf_sr_get_option(GF_Renderer *sr, u32 type)
 
 void gf_sr_map_point(GF_Renderer *sr, s32 X, s32 Y, Fixed *bifsX, Fixed *bifsY)
 {
+	/*coordinates are in user-like OS....*/
+	X = X - sr->width/2;
+	Y = sr->height/2 - Y;
 	*bifsX = INT2FIX(X);
 	*bifsY = INT2FIX(Y);
 }
@@ -1026,7 +1017,14 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 		gf_sr_reset_graphics(sr);
 		break;
 	case GF_EVT_WINDOWSIZE:
-		gf_sr_size_changed(sr, event->size.width, event->size.height);
+		/*resize message from plugin (only happens when plugin manages the window)*/
+		if (!sr->user->os_window_handler) {
+			gf_sr_lock(sr, 1);
+			sr->new_width = event->size.width;
+			sr->new_height = event->size.height;
+			sr->msg_type |= GF_SR_CFG_SIZE_CHANGE;
+			gf_sr_lock(sr, 0);
+		}
 		break;
 	case GF_EVT_VKEYDOWN:
 		s = c = m = 0;
@@ -1080,6 +1078,10 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 		if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) )
 			gf_term_string_input(sr->term , event->character.unicode_char);
 		SR_UserInputIntern(sr, event, 1);
+		break;
+	/*switch fullscreen off!!!*/
+	case GF_EVT_SHOWHIDE:
+		gf_sr_set_option(sr, GF_OPT_FULLSCREEN, 0);
 		break;
 
 	case GF_EVT_MOUSEMOVE:

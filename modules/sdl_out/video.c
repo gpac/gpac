@@ -232,17 +232,6 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 	ctx->back_buffer = NULL;
 }
 
-static void SDLVid_MapBIFSCoordinate(SDLVidCtx *ctx, SDL_Event *sdl_evt, GF_Event *gpac_evt)
-{
-	if (ctx->fullscreen && ctx->is_3D_out) {
-		gpac_evt->mouse.x = sdl_evt->motion.x - ctx->fs_width/2;
-		gpac_evt->mouse.y = ctx->fs_height/2 - sdl_evt->motion.y;
-	} else {
-		gpac_evt->mouse.x = sdl_evt->motion.x - ctx->width/2;
-		gpac_evt->mouse.y = ctx->height/2 - sdl_evt->motion.y;
-	}
-}
-
 
 #define SDL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL | SDL_RESIZABLE
 #define SDL_FULLSCREEN_FLAGS		SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL | SDL_FULLSCREEN
@@ -288,11 +277,9 @@ void SDL_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 	gf_mx_v(ctx->evt_mx);
 }
 
-/*SDL hack for window reuse is not really stable nor working on Win32...*/
+#if 0
 static void SDL_SetHack(void *os_handle, Bool set_on)
 {
-#ifndef WIN32
-
 	unsetenv("SDL_WINDOWID=");
 	if (!os_handle) return;
 	if (set_on) {
@@ -300,8 +287,8 @@ static void SDL_SetHack(void *os_handle, Bool set_on)
 		snprintf(buf, sizeof(buf), "%u", (u32) os_handle);
 		setenv("SDL_WINDOWID", buf, 1);
 	}
-#endif
 }
+#endif
 
 u32 SDL_EventProc(void *par)
 {
@@ -311,8 +298,6 @@ u32 SDL_EventProc(void *par)
 	GF_Event gpac_evt;
 	GF_VideoOutput *dr = (GF_VideoOutput *)par;
 	SDLVID();
-
-	SDL_SetHack(ctx->os_handle, 1);
 
 	flags = SDL_WasInit(SDL_INIT_VIDEO);
 	if (!(flags & SDL_INIT_VIDEO)) {
@@ -408,13 +393,15 @@ send_key:
 			case SDL_MOUSEMOTION:
 				last_mouse_move = SDL_GetTicks();
 				gpac_evt.type = GF_EVT_MOUSEMOVE;
-				SDLVid_MapBIFSCoordinate(ctx, &sdl_evt, &gpac_evt);
+				gpac_evt.mouse.x = sdl_evt.motion.x;
+				gpac_evt.mouse.y = sdl_evt.motion.y;
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 				break;
 			case SDL_MOUSEBUTTONDOWN:
 			case SDL_MOUSEBUTTONUP:
 				last_mouse_move = SDL_GetTicks();
-				SDLVid_MapBIFSCoordinate(ctx, &sdl_evt, &gpac_evt);
+				gpac_evt.mouse.x = sdl_evt.motion.x;
+				gpac_evt.mouse.y = sdl_evt.motion.y;
 				switch (sdl_evt.button.button) {
 				case SDL_BUTTON_LEFT:
 					gpac_evt.type = (sdl_evt.type==SDL_MOUSEBUTTONUP) ? GF_EVT_LEFTUP : GF_EVT_LEFTDOWN;
@@ -529,8 +516,6 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, u32 bFullScreenOn, u32 *screen_w
 		if (sOpt && !stricmp(sOpt, "yes")) switch_res = 1;
 		if (!ctx->display_width || !ctx->display_height) switch_res = 1;
 
-		SDL_SetHack(ctx->os_handle, 0);
-
 		flags = ctx->is_3D_out ? SDL_GL_FULLSCREEN_FLAGS : SDL_FULLSCREEN_FLAGS;
 		ctx->store_width = *screen_width;
 		ctx->store_height = *screen_height;
@@ -563,8 +548,6 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, u32 bFullScreenOn, u32 *screen_w
 			dr->on_event(dr->evt_cbk_hdl, &evt);
 		}
 	} else {
-		SDL_SetHack(ctx->os_handle, 1);
-
 		SDL_ResizeWindow(dr, ctx->store_width, ctx->store_height);
 		*screen_width = ctx->store_width;
 		*screen_height = ctx->store_height;

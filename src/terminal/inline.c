@@ -1171,7 +1171,6 @@ void gf_is_regenerate(GF_InlineScene *is)
 		is->graph_attached = 1;
 		evt.type = GF_EVT_STREAMLIST;
 		GF_USER_SENDEVENT(is->root_od->term->user,&evt);
-
 		IS_UpdateVideoPos(is);
 	} else {
 		is->graph_attached = 1;
