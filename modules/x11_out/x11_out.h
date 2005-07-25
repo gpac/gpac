@@ -31,17 +31,13 @@ extern "C"
 #endif
 
 
-
-#ifdef __cplusplus
-}
-#endif
-
 #include <gpac/modules/video_out.h>
 #include <gpac/thread.h>
 #include <gpac/list.h>
 
 
-#define __USE_X_SHAREDMEMORY__
+//#define __USE_X_SHAREDMEMORY__
+
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
@@ -79,10 +75,9 @@ X11WrapSurface;
 typedef struct
 {
 	Display *display;	//required by all X11 method, provide by XOpenDisplay, Mozilla wnd ...
-	Window wnd;	//main window handler 
-	Bool owns_wnd; 
+	Window wnd;	//main window handler
+	Bool owns_wnd;
 	Window full_wnd;	//full screen
-  //void *ext_wnd;		//external wnd give by wxOsmo Mozilla
 	Screen *screenptr;	//X11 stuff
 	int screennum;		//...
 	Visual *visual;		//...
@@ -93,17 +88,12 @@ typedef struct
 	X11WrapSurface *back_buffer;	//back buffer
 	Colormap colormap;	//not for now
 	int videoaccesstype;	//
-<<<<<<< x11_out.h
-	char *title;		//
-	
+
 #ifdef __USE_X_SHAREDMEMORY__
 	Pixmap pixmap;		//main drawing image : local sharememory mode
 	XShmSegmentInfo *shmseginfo;
 #endif
 	
-=======
-
->>>>>>> 1.2
 	GF_Thread *th;		//handle event thread
 	GF_Mutex *mx;		//mutex blocker
 	GF_List *surfaces;	//surfaces list
@@ -123,14 +113,8 @@ typedef struct
 	GLXContext glx_context;
 } XWindow;
 
-void CopyPrevRow (u8 * src, u8 * dst, u32 dst_w, u32 BPP);
-
-void CopyRow_8bpp (u8 * src, u32 src_w, u8 * dst, u32 dst_w);
-void CopyRow_16bpp (u16 * src, u32 src_w, u16 * dst, u32 dst_w);
-void CopyRow_24bpp (u8 * src, u32 src_w, u8 * dst, u32 dst_w);
-void CopyRow_32bpp (u32 * src, u32 src_w, u32 * dst, u32 dst_w);
-void ConvertRGBLine (u8 * src_bits, u32 src_bpp, u8 * dst_bits, u32 dst_bpp, u32 width);
 void StretchBits (void *dst, u32 dst_bpp, u32 dst_w, u32 dst_h, u32 dst_pitch,
 	     void *src, u32 src_bpp, u32 src_w, u32 src_h, u32 src_pitch, Bool FlipIt);
+
 
 #endif /* _X11_OUT_H */

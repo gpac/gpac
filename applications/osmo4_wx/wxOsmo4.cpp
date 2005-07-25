@@ -361,9 +361,6 @@ void wxOsmo4Frame::CheckVideoOut()
 #else
 		os_handle =  (void *)*(int *)( (char *)gtk_widget_get_parent_window(widget) + 2 * sizeof(void *) );
 #endif
-		/*FIXME - X11 output is not stable enough*/
-		os_handle = NULL;
-		os_display = NULL;
 
 #elif defined (WIN32)
 		os_handle = m_pView->GetHandle();
