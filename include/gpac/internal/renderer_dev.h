@@ -48,9 +48,8 @@ enum
 {
 	GF_SR_CFG_OVERRIDE_SIZE = 1,
 	GF_SR_CFG_SET_SIZE = 1<<1,
-	GF_SR_CFG_SIZE_CHANGE = 1<<2,
-	GF_SR_CFG_AR = 1<<3,
-	GF_SR_CFG_FULLSCREEN = 1<<4,
+	GF_SR_CFG_AR = 1<<2,
+	GF_SR_CFG_FULLSCREEN = 1<<3,
 };
 
 struct __tag_base_renderer

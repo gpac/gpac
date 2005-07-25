@@ -445,7 +445,7 @@ static void OnTouchSensor(SensorHandler *sh, Bool is_over, u32 eventType, RayHit
 {
 	M_TouchSensor *ts = (M_TouchSensor *)sh->owner;
 	TouchSensorStack *st = (TouchSensorStack *) gf_node_get_private(sh->owner);
-	assert(ts->enabled);
+	//assert(ts->enabled);
 
 	/*isActive becomes false, send touch time*/
 	if ((eventType==GF_EVT_LEFTUP) && ts->isActive) {

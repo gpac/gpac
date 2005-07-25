@@ -111,7 +111,20 @@ void Sliders::OnSize(UINT nType, int cx, int cy)
 /*we sure don't want to close this window*/
 void Sliders::OnClose() 
 {
+	u32 i = 0;
+	return;
 }
+
+BOOL Sliders::PreTranslateMessage(MSG* pMsg) 
+{
+	if (pMsg->message == WM_KEYDOWN) {
+		GetApp()->m_pMainWnd->SetFocus();
+		GetApp()->m_pMainWnd->PostMessage(pMsg->message, pMsg->wParam, pMsg->lParam);
+		return TRUE;
+	}
+	return CDialog::PreTranslateMessage(pMsg);
+}
+
 
 BOOL Sliders::OnInitDialog() 
 {

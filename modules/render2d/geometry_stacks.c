@@ -313,8 +313,8 @@ static void Bitmap_BuildGraph(BitmapStack *st, DrawableContext *ctx, RenderEffec
 	w = INT2FIX(ctx->h_texture->width);
 	/*if we have a PAR update it!!*/
 	if (ctx->h_texture->pixel_ar) {
-		u32 n = (ctx->h_texture->pixel_ar>>16) & 0xFF;
-		u32 d = (ctx->h_texture->pixel_ar) & 0xFF;
+		u32 n = (ctx->h_texture->pixel_ar>>16) & 0xFFFF;
+		u32 d = (ctx->h_texture->pixel_ar) & 0xFFFF;
 		w = INT2FIX((ctx->h_texture->width * n) / d);
 	}
 	h = INT2FIX(ctx->h_texture->height);

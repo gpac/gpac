@@ -43,6 +43,7 @@ protected:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnClose();
 	virtual BOOL OnInitDialog();
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

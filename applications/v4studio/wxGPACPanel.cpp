@@ -55,7 +55,7 @@ Bool V4S_EventProc(void *par, GF_Event *evt)
 		gf_sr_refresh(panel->GetSceneRenderer());
 		break;
 	case GF_EVT_WINDOWSIZE:
-		gf_sr_size_changed(panel->GetSceneRenderer(), evt->size.width, evt->size.height);
+//		gf_sr_set_size(panel->GetSceneRenderer(), evt->size.width, evt->size.height);
 		panel->Update();
 		break;
 	case GF_EVT_LEFTDOWN:

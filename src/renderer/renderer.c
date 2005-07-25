@@ -112,11 +112,6 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 			sr->new_width = sr->new_height = 0;
 			if (restore_fs) gf_sr_set_fullscreen(sr);
 		}
-		/*size changed*/
-		if ((sr->msg_type & GF_SR_CFG_SIZE_CHANGE) && sr->new_width && sr->new_height) {
-			gf_sr_set_output_size(sr, sr->new_width, sr->new_height);
-			sr->new_width = sr->new_height = 0;
-		}
 		/*aspect ratio modif*/
 		if (sr->msg_type & GF_SR_CFG_AR) {
 			sr->visual_renderer->RecomputeAR(sr->visual_renderer);

@@ -325,10 +325,8 @@ BOOL CMainFrame::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO*
 
 void CMainFrame::OnSize(UINT nType, int cx, int cy) 
 {
-	POINT pt;
 	RECT rc2;
 	u32 tool_h, slide_h, add_h, stat_h;
-
 
 	if (m_bInitShow) {
 		CFrameWnd::OnSize(nType, cx, cy);
@@ -355,11 +353,7 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
 	m_pWndView->ShowWindow(SW_SHOW);
 	m_pWndView->SetWindowPos(this, 0, add_h + tool_h, cx, cy, SWP_NOZORDER);
 
-	/*and update pos (the view window is not a child one)*/
-	pt.x = 0;
-	pt.y = add_h + tool_h + cy;
-	ClientToScreen(&pt);
-	m_Sliders.SetWindowPos(this, pt.x, pt.y, cx, slide_h, SWP_SHOWWINDOW);
+	m_Sliders.SetWindowPos(this, 0, add_h + tool_h + cy, cx, slide_h, SWP_NOZORDER|SWP_SHOWWINDOW);
 	/*and resize term*/
 	gf_term_set_size(GetApp()->m_term, cx, cy);
 }

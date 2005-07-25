@@ -89,9 +89,9 @@ static void RenderBitmap(GF_Node *node, void *rs)
 	size.y = txh->height*sy;
 	/*if we have a PAR update it!!*/
 	if (txh->pixel_ar) {
-		u32 n = (txh->pixel_ar>>16) & 0xFF;
-		u32 d = (txh->pixel_ar) & 0xFF;
-		size.x = INT2FIX((txh->width * n) / d);
+		u32 n = (txh->pixel_ar>>16) & 0xFFFF;
+		u32 d = (txh->pixel_ar) & 0xFFFF;
+		size.x = ( (txh->width * n) / d) * sx;
 	}
 
 
