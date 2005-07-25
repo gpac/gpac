@@ -497,7 +497,7 @@ int main (int argc, char **argv)
 	/*dummy in this case (global vars) but MUST be non-NULL*/
 	user.opaque = user.modules;
 
-	fprintf(stdout, "Loading MPEG-4 terminal ... ");
+	fprintf(stdout, "Loading GPAC Terminal ... ");
 	term = gf_term_new(&user);
 	if (!term) {
 		fprintf(stdout, "Init error - check you have at least one video out...\nFound modules:\n");
@@ -722,7 +722,7 @@ int main (int argc, char **argv)
 		}
 	}
 
-	fprintf(stdout, "Deleting MPEG4 terminal...\n");
+	fprintf(stdout, "Deleting terminal...\n");
 	gf_term_del(term);
 exit:
 	fprintf(stdout, "Unloading modules...\n");

@@ -65,8 +65,11 @@ void gf_sr_invalidate(GF_Renderer *sr, GF_Node *byObj);
 /*return the renderer time - this is the time every time line syncs on*/
 u32 gf_sr_get_clock(GF_Renderer *sr);
 
-/*locks/unlocks the scene rendering - modification of the scene tree shall only happen when scene renderer is locked*/
+
+/*locks/unlocks the visual scene rendering - modification of the scene tree shall only happen when scene renderer is locked*/
 void gf_sr_lock(GF_Renderer *sr, Bool doLock);
+/*locks/unlocks the audio scene rendering - this is needed whenever an audio object changes config on the fly*/
+void gf_sr_lock_audio(GF_Renderer *sr, Bool doLock);
 
 /*notify user input - only GF_EventMouse and GF_EventKey are checked, depending on the renderer used...*/
 void gf_sr_user_input(GF_Renderer *sr, GF_Event *event);

@@ -24,12 +24,6 @@
 
 #include "ffmpeg_in.h"
 
-#ifdef AVSEEK_FLAG_BACKWARD
-#define my_av_seek_frame(a, b, c, d) av_seek_frame(a, b, c, AVSEEK_FLAG_BACKWARD)
-#else
-#define my_av_seek_frame(a, b, c, d) av_seek_frame(a, b, c)
-#endif
-
 /*default buffer is 200 ms per channel*/
 #define FFD_DATA_BUFFER		800
 
@@ -59,7 +53,7 @@ static u32 FFDemux_Run(void *par)
 
 	/*it appears that ffmpeg has trouble resyncing on some mpeg files - we trick it by restarting to 0 to get the 
 	first video frame, and only then seek*/
-	if (ffd->seekable) my_av_seek_frame(ffd->ctx, -1, video_init ? seek_to : 0, 0);
+	if (ffd->seekable) av_seek_frame(ffd->ctx, -1, video_init ? seek_to : 0, AVSEEK_FLAG_BACKWARD);
 	do_seek = !video_init;
 	map_audio_time = video_init ? ffd->unreliable_audio_timing : 0;
 
@@ -69,6 +63,7 @@ static u32 FFDemux_Run(void *par)
 		/*EOF*/
         if (av_read_frame(ffd->ctx, &pkt) <0) break;
 		if (pkt.pts == AV_NOPTS_VALUE) pkt.pts = pkt.dts;
+		if (!pkt.dts) pkt.dts = pkt.pts;
 
 		slh.compositionTimeStamp = pkt.pts;
 		slh.decodingTimeStamp = pkt.dts;
@@ -76,6 +71,9 @@ static u32 FFDemux_Run(void *par)
 		gf_mx_p(ffd->mx);
 		/*blindly send audio as soon as video is init*/
 		if (ffd->audio_ch && (pkt.stream_index == ffd->audio_st) && !do_seek) {
+			slh.compositionTimeStamp *= ffd->audio_tscale.num;
+			slh.decodingTimeStamp *= ffd->audio_tscale.num;
+
 			if (map_audio_time) {
 				map.base.on_channel = ffd->audio_ch;
 				map.map_time.media_time = ffd->seek_time;
@@ -85,13 +83,12 @@ static u32 FFDemux_Run(void *par)
 				map_audio_time = 0;
 				gf_term_on_command(ffd->service, &map, GF_OK);
 			}
-			/*seeking*/
-			if (slh.compositionTimeStamp < (u64) seek_to) {
-				slh.compositionTimeStamp = slh.decodingTimeStamp = seek_to;
-			}
 			gf_term_on_sl_packet(ffd->service, ffd->audio_ch, pkt.data, pkt.size, &slh, GF_OK);
 		} 
 		else if (ffd->video_ch && (pkt.stream_index == ffd->video_st)) {
+			slh.compositionTimeStamp *= ffd->video_tscale.num;
+			slh.decodingTimeStamp *= ffd->video_tscale.num;
+
 			/*if we get pts = 0 after a seek the demuxer is reseting PTSs, so force map time*/
 			if ((!do_seek && seek_to && !slh.compositionTimeStamp) || (map_video_time) ) {
 				seek_to = 0;
@@ -102,8 +99,6 @@ static u32 FFDemux_Run(void *par)
 				map.map_time.media_time = ffd->seek_time;
 				map.map_time.reset_buffers = 0;
 				gf_term_on_command(ffd->service, &map, GF_OK);
-			} else if (slh.compositionTimeStamp < (u64) seek_to) {
-				slh.compositionTimeStamp = slh.decodingTimeStamp = seek_to;
 			}
 			gf_term_on_sl_packet(ffd->service, ffd->video_ch, pkt.data, pkt.size, &slh, GF_OK);
 			video_init = 1;
@@ -114,7 +109,7 @@ static u32 FFDemux_Run(void *par)
 		/*here's the trick - only seek after sending the first packets of each stream - this allows ffmpeg video decoders
 		to resync properly*/
 		if (do_seek && video_init && ffd->seekable) {
-			my_av_seek_frame(ffd->ctx, -1, seek_to, 0);
+			av_seek_frame(ffd->ctx, -1, seek_to, AVSEEK_FLAG_BACKWARD);
 			do_seek = 0;
 			map_audio_time = ffd->unreliable_audio_timing;
 		}
@@ -145,13 +140,6 @@ static u32 FFDemux_Run(void *par)
 
 	return 0;
 }
-
-/*some recent changes in ffmpeg AVStream - not sure about the lib version the change happened*/
-#if (LIBAVCODEC_BUILD<4756) 
-#define FFD_GET_AVCODECCONTEXT(__ctx, __stID) &__ctx->streams[__stID]->codec;
-#else
-#define FFD_GET_AVCODECCONTEXT(__ctx, __stID) __ctx->streams[__stID]->codec;
-#endif
 
 static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 {
@@ -208,7 +196,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	/*figure out if we can use codecs or not*/
 	has_video = has_audio = 0;
     for(i = 0; i < ctx->nb_streams; i++) {
-        AVCodecContext *enc = FFD_GET_AVCODECCONTEXT(ctx, i);
+        AVCodecContext *enc = ctx->streams[i]->codec;
         switch(enc->codec_type) {
         case CODEC_TYPE_AUDIO:
             if (!has_audio) has_audio = 1;
@@ -288,13 +276,19 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	/*figure out if we can use codecs or not*/
 	ffd->audio_st = ffd->video_st = -1;
     for (i = 0; i < ffd->ctx->nb_streams; i++) {
-        AVCodecContext *enc = FFD_GET_AVCODECCONTEXT(ffd->ctx, i);
+        AVCodecContext *enc = ffd->ctx->streams[i]->codec;
         switch(enc->codec_type) {
         case CODEC_TYPE_AUDIO:
-            if (ffd->audio_st<0) ffd->audio_st = i;
+            if (ffd->audio_st<0) {
+				ffd->audio_st = i;
+				ffd->audio_tscale = ffd->ctx->streams[i]->time_base;
+			}
             break;
         case CODEC_TYPE_VIDEO:
-            if (ffd->video_st<0) ffd->video_st = i;
+            if (ffd->video_st<0) {
+				ffd->video_st = i;
+				ffd->video_tscale = ffd->ctx->streams[i]->time_base;
+			}
             break;
         default:
             break;
@@ -314,18 +308,20 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 	/*check we do have increasing pts. If not we can't rely on pts, we must skip SL
 	we assume video pts is always present*/
-	last_aud_pts = 0;
-	for (i=0; i<20; i++) {
-		AVPacket pkt;
-		pkt.stream_index = -1;
-	    if (av_read_frame(ffd->ctx, &pkt) <0) break;
-		if (pkt.pts == AV_NOPTS_VALUE) pkt.pts = pkt.dts;
-		if (pkt.stream_index==ffd->audio_st) last_aud_pts = pkt.pts;
+	if (ffd->audio_st>=0) {
+		last_aud_pts = 0;
+		for (i=0; i<20; i++) {
+			AVPacket pkt;
+			pkt.stream_index = -1;
+			if (av_read_frame(ffd->ctx, &pkt) <0) break;
+			if (pkt.pts == AV_NOPTS_VALUE) pkt.pts = pkt.dts;
+			if (pkt.stream_index==ffd->audio_st) last_aud_pts = pkt.pts;
+		}
+		if (last_aud_pts*ffd->audio_tscale.den<10*ffd->audio_tscale.num) ffd->unreliable_audio_timing = 1;
 	}
-	if (last_aud_pts == 0) ffd->unreliable_audio_timing = 1;
 
 	/*build seek*/
-	ffd->seekable = (my_av_seek_frame(ffd->ctx, -1, 0, 0)<0) ? 0 : 1;
+	ffd->seekable = (av_seek_frame(ffd->ctx, -1, 0, AVSEEK_FLAG_BACKWARD)<0) ? 0 : 1;
 	if (!ffd->seekable) {
 	    av_close_input_file(ffd->ctx);
 		av_open_input_file(&ffd->ctx, szName, NULL, 0, NULL);
@@ -356,7 +352,8 @@ static GF_ESD *FFD_GetESDescriptor(FFDemux *ffd, Bool for_audio)
 	/*remap std object types - depending on input formats, FFMPEG may not have separate DSI from initial frame. 
 	In this case we have no choice but using FFMPEG decoders*/
 	if (for_audio) {
-	  AVCodecContext *dec = FFD_GET_AVCODECCONTEXT(ffd->ctx, ffd->audio_st);
+        AVCodecContext *dec = ffd->ctx->streams[ffd->audio_st]->codec;
+		esd->slConfig->timestampResolution = ffd->audio_tscale.den;
  		switch (dec->codec_id) {
 		case CODEC_ID_MP2:
 			esd->decoderConfig->objectTypeIndication = 0x6B;
@@ -396,7 +393,8 @@ opaque_audio:
 		}
 		dont_use_sl = ffd->unreliable_audio_timing;
 	} else {
-		AVCodecContext *dec = FFD_GET_AVCODECCONTEXT(ffd->ctx, ffd->video_st);
+        AVCodecContext *dec = ffd->ctx->streams[ffd->video_st]->codec;
+		esd->slConfig->timestampResolution = ffd->video_tscale.den;
 		switch (dec->codec_id) {
 		case CODEC_ID_MPEG4:
 		case CODEC_ID_H264:
@@ -443,7 +441,6 @@ opaque_video:
 		esd->slConfig->useAccessUnitStartFlag = esd->slConfig->useAccessUnitEndFlag = 0;
 		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 		esd->slConfig->useTimestampsFlag = 1;
-		esd->slConfig->timestampResolution = AV_TIME_BASE;
 	}
 
 	return esd;

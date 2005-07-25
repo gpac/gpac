@@ -33,7 +33,7 @@
 #endif
 
 /*mouse hiding timeout in fullscreen, in milliseconds*/
-#define MOUSE_HIDE_TIMEOUT	1500
+#define MOUSE_HIDE_TIMEOUT	1000
 
 void DD_SetCursor(GF_VideoOutput *dr, u32 cursor_type);
 
@@ -120,7 +120,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	case WM_SIZE:
 		if (!ctx->is_resizing && ctx->owns_hwnd) {
 			ctx->is_resizing = 1;
-			evt.type = GF_EVT_WINDOWSIZE;
+			evt.type = GF_EVT_SIZE;
 			ctx->width = evt.size.width = LOWORD(lParam);
 			ctx->height = evt.size.height = HIWORD(lParam);
 			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
@@ -406,6 +406,7 @@ HWND DD_GetGlobalHWND()
 
 GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 {
+	DDContext *ctx = (DDContext *)dr->opaque;
 	switch (evt->type) {
 	case GF_EVT_SET_CURSOR:
 		DD_SetCursor(dr, evt->cursor.cursor_type);
@@ -413,30 +414,22 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 	case GF_EVT_SET_STYLE:
 		break;
 	case GF_EVT_SET_CAPTION:
-	{
-		DDContext *ctx = (DDContext *)dr->opaque;
 		if (evt->caption.caption) SetWindowText(ctx->os_hwnd, evt->caption.caption);
-	}
 		break;
 	case GF_EVT_SHOWHIDE:
-	{
-		DDContext *ctx = (DDContext *)dr->opaque;
 		ShowWindow(ctx->os_hwnd, evt->show.show_type ? SW_SHOW : SW_HIDE);
-	}
 		break;
-	case GF_EVT_SCENESIZE:
-	{
-		DDContext *ctx = (DDContext *)dr->opaque;
+	/*if scene resize resize window*/
+	case GF_EVT_SIZE:
 		ctx->is_resizing = 1;
 		if (ctx->owns_hwnd) SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width + ctx->off_w, evt->size.height + ctx->off_h, SWP_NOZORDER | SWP_NOMOVE);
+	/*in any case resetup openGL*/
+	case GF_EVT_VIDEO_SETUP:
 		ctx->width = evt->size.width;
 		ctx->height = evt->size.height;
 		ctx->is_resizing = 0;
 		if (ctx->is_3D_out) DD_SetupOpenGL(the_video_driver);
-	}
 		break;
 	}
-
-
 	return GF_OK;
 }

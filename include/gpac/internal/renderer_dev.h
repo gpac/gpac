@@ -50,6 +50,8 @@ enum
 	GF_SR_CFG_SET_SIZE = 1<<1,
 	GF_SR_CFG_AR = 1<<2,
 	GF_SR_CFG_FULLSCREEN = 1<<3,
+	/*special flag indicating the set size is actually due to a notif by the plugin*/
+	GF_SR_CFG_WINDOWSIZE_NOTIF = 1<<10,
 };
 
 struct __tag_base_renderer
@@ -357,10 +359,11 @@ typedef struct _audiointerface
 	Bool (*IsMuted)(void *callback);
 	/*user callback*/
 	void *callback;
-	/*returns 0 if config is not known yet, otherwise updates member var below and return TRUE.
+	/*returns 0 if config is not known yet or changed, 
+	otherwise AND IF @for_reconf is set, updates member var below and return TRUE
 	You may return 0 to force parent user invalidation*/
-	Bool (*GetConfig)(struct _audiointerface *ai);
-	/*cfg*/
+	Bool (*GetConfig)(struct _audiointerface *ai, Bool for_reconf);
+	/*updated cfg, or 0 otherwise*/
 	u32 chan, bps, sr, ch_cfg;
 } GF_AudioInterface;
 

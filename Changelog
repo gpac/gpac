@@ -1,4 +1,7 @@
-Last CVS update: 24/07/05
+Last CVS update: 25/07/05
+	- fixed old bug in audio renderer screwing up the audio from time to time
+	- moved ffmpeg to latest CVS version (25/07/05). THIS VERSION IS NO LONGER COMPATIBLE with previous ones used in GPAC, update
+	  your binaries!! Also updated ffmpeg plugin to new ffmpeg API
 	- moved all fullscreen handling to dedicated windows, refinement of wxOsmo4.
 	- more work on x11 plugin (events handling, 3D support) - not entirely stable yet...
   - fixed anamorphic video handling in GPAC, both playing (2D and 3D) and MP4Box parsers (only done for MPEG-4 Visual, not AVC). Video is

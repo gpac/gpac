@@ -225,7 +225,7 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		gpac->m_pMainWnd->PostMessage(WM_CONSOLEMSG, 0, 0);
 		break;
 
-	case GF_EVT_SCENESIZE:
+	case GF_EVT_SIZE:
 		gpac->orig_width = evt->size.width;
 		gpac->orig_height = evt->size.height;
 		if (gpac->m_term) {
@@ -448,7 +448,7 @@ BOOL WinGPAC::InitInstance()
 
 	m_term = gf_term_new(&m_user);
 	if (! m_term) {
-		MessageBox(NULL, "Cannot load MPEG-4 Terminal", "Fatal Error", MB_OK);
+		MessageBox(NULL, "Cannot load GPAC Terminal", "Fatal Error", MB_OK);
 		m_pMainWnd->PostMessage(WM_CLOSE);
 		return TRUE;
 	}
@@ -495,7 +495,7 @@ void WinGPAC::ReloadTerminal()
 	Bool reconnect = m_isopen;
 	CMainFrame *pFrame = (CMainFrame *) m_pMainWnd;
 	pFrame->console_err = GF_OK;
-	pFrame->console_message = "Reloading MPEG-4 Terminal";
+	pFrame->console_message = "Reloading GPAC Terminal";
 	m_pMainWnd->PostMessage(WM_CONSOLEMSG, 0, 0);
 
 	m_reconnect_time = 0;
@@ -508,10 +508,10 @@ void WinGPAC::ReloadTerminal()
 		m_pMainWnd->PostMessage(WM_DESTROY);
 		return;
 	}
-	if (reconnect) m_pMainWnd->PostMessage(WM_OPENURL);
-	pFrame->console_message = "MPEG-4 Terminal reloaded";
+	pFrame->console_message = "GPAC Terminal reloaded";
 	m_pMainWnd->PostMessage(WM_CONSOLEMSG, 0, 0);
 	UpdateRenderSwitch();
+	if (reconnect) m_pMainWnd->PostMessage(WM_OPENURL);
 }
 
 

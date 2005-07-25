@@ -261,7 +261,7 @@ static GF_Err RAW_ResizeSurface(GF_VideoOutput *dr, u32 surface_id, u32 width, u
 
 static GF_Err RAW_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 {
-	if (evt->type == GF_EVT_WINDOWSIZE) {
+	if (evt->type == GF_EVT_SIZE) {
 		return RAW_ResizeSurface(dr, 0, evt->size.width, evt->size.height);
 	}
 	return GF_OK;

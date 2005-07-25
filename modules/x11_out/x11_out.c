@@ -104,7 +104,7 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
   if (!xWin->glx_context) return GF_IO_ERR;
   if ( ! glXMakeCurrent(xWin->display, xWin->fullscreen ? xWin->full_wnd : xWin->wnd, xWin->glx_context) ) return GF_IO_ERR;
   XSync(xWin->display, False);
-  evt.type = GF_EVT_GL_CHANGED;
+  evt.type = GF_EVT_VIDEO_SETUP;
   vout->on_event (vout->evt_cbk_hdl,&evt);
   return GF_OK;
 }
@@ -157,7 +157,7 @@ u32 X11_EventProc (void *par)
 				if ((unsigned int) xevent.xconfigure.width != xWindow->w_width
 				    || (unsigned int) xevent.xconfigure.height != xWindow->w_height)
 				{
-					evt.type = GF_EVT_WINDOWSIZE;
+					evt.type = GF_EVT_SIZE;
 					xWindow->w_width = evt.size.width = xevent.xconfigure.width;
 					xWindow->w_height = evt.size.height = xevent.xconfigure.height;
 					vout->on_event (vout->evt_cbk_hdl,&evt);
@@ -456,11 +456,12 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 		break;
 	case GF_EVT_SHOWHIDE:
 		break;
-	case GF_EVT_SCENESIZE:
-		xWindow->w_width = evt->size.width;
-		xWindow->w_height = evt->size.height;
+	case GF_EVT_SIZE:
 		/*if owning the window and not in fullscreen, resize it (initial scene size)*/
 		if (!xWindow->fullscreen && xWindow->owns_wnd) XResizeWindow (xWindow->display, xWindow->wnd, evt->size.width, evt->size.height);
+	case GF_EVT_VIDEO_SETUP:
+		xWindow->w_width = evt->size.width;
+		xWindow->w_height = evt->size.height;
 		/*and resetup OpenGL*/
 		if (xWindow->is_3D_out) X11_SetupGL(vout);
 		break;

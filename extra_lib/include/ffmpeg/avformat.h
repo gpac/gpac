@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#define LIBAVFORMAT_BUILD       4625
+#define LIBAVFORMAT_BUILD       4629
 
 #define LIBAVFORMAT_VERSION_INT FFMPEG_VERSION_INT
 #define LIBAVFORMAT_VERSION     FFMPEG_VERSION
@@ -42,6 +42,7 @@ typedef struct AVPacket {
 #define PKT_FLAG_KEY   0x0001
 
 void av_destruct_packet_nofree(AVPacket *pkt);
+void av_destruct_packet(AVPacket *pkt);
 
 /* initialize optional fields of a packet */
 static inline void av_init_packet(AVPacket *pkt)
@@ -107,7 +108,7 @@ typedef struct AVFormatParameters {
     enum PixelFormat pix_fmt;
     struct AVImageFormat *image_format;
     int channel; /* used to select dv channel */
-    const char *device; /* video4linux, audio or DV device */
+    const char *device; /* video, audio or DV device */
     const char *standard; /* tv standard, NTSC, PAL, SECAM */
     int mpeg2ts_raw:1;  /* force raw MPEG2 transport stream output, if possible */
     int mpeg2ts_compute_pcr:1; /* compute exact PCR for each transport
@@ -212,20 +213,16 @@ typedef struct AVIndexEntry {
     int min_distance;         /* min distance between this and the previous keyframe, used to avoid unneeded searching */
 } AVIndexEntry;
 
-enum AVDiscard{
-//we leave some space between them for extensions (drop some keyframes for intra only or drop just some bidir frames)
-    AVDISCARD_NONE   =-16, ///< discard nothing
-    AVDISCARD_DEFAULT=  0, ///< discard useless packets like 0 size packets in avi
-    AVDISCARD_BIDIR  = 16, ///< discard all bidirectional frames
-    AVDISCARD_NONKEY = 32, ///< discard all frames except keyframes
-    AVDISCARD_ALL    = 48, ///< discard all
-};
-
 typedef struct AVStream {
     int index;    /* stream index in AVFormatContext */
     int id;       /* format specific stream id */
-    AVCodecContext codec; /* codec context */
-    AVRational r_frame_rate;     /* real frame rate of the stream */
+    AVCodecContext *codec; /* codec context */
+    /**
+     * real base frame rate of the stream.
+     * for example if the timebase is 1/90000 and all frames have either 
+     * approximately 3600 or 1800 timer ticks then r_frame_rate will be 50/1
+     */
+    AVRational r_frame_rate;
     void *priv_data;
     /* internal data used in av_find_stream_info() */
     int64_t codec_info_duration;     
@@ -248,6 +245,8 @@ typedef struct AVStream {
        seconds. */
     int64_t duration;
 
+    char language[4]; /* ISO 639 3-letter language code (empty string if undefined) */
+
     /* av_read_frame() support */
     int need_parsing;
     struct AVCodecParserContext *parser;
@@ -260,6 +259,8 @@ typedef struct AVStream {
                                     support seeking natively */
     int nb_index_entries;
     int index_entries_allocated_size;
+    
+    int64_t nb_frames;                 ///< number of frames in this stream if known or 0
 } AVStream;
 
 #define AVFMTCTX_NOHEADER      0x0001 /* signal that no header is present
@@ -325,6 +326,12 @@ typedef struct AVFormatContext {
     int packet_size;
     int preload;
     int max_delay;
+
+#define AVFMT_NOOUTPUTLOOP -1 
+#define AVFMT_INFINITEOUTPUTLOOP 0 
+    /* number of times to loop output in formats that support it */
+    int loop_output;
+    
 } AVFormatContext;
 
 typedef struct AVPacketList {
@@ -454,6 +461,9 @@ int amr_init(void);
 
 /* wav.c */
 int ff_wav_init(void);
+
+/* mmf.c */
+int ff_mmf_init(void);
 
 /* raw.c */
 int pcm_read_seek(AVFormatContext *s, 

@@ -235,12 +235,14 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 	for (i=0; i<count; i++) {
 		Bool has_cfg;
 		MixerInput *in = (MixerInput *) gf_list_get(am->sources, i);
-		has_cfg = in->src->GetConfig(in->src);
-		if (in->bytes_per_sec && has_cfg) {
-			numInit++;
-			continue;
-		}
-		if (!has_cfg) continue;
+		has_cfg = in->src->GetConfig(in->src, 1);
+		if (has_cfg) {
+			/*check same cfg...*/
+			if (in->src->sr * in->src->chan * in->src->bps == 8*in->bytes_per_sec) {
+				numInit++;
+				continue;
+			}
+		} else continue;
 		/*update out cfg*/
 		if ((count==1) && (max_sample_rate != in->src->sr)) {
 			cfg_changed = 1;
@@ -539,10 +541,12 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size)
 
 	single_source = NULL;
 	if (count!=1) goto do_mix;
+	assert(!am->force_channel_out);
 	if (am->force_channel_out) goto do_mix;
 	single_source = (MixerInput *) gf_list_get(am->sources, 0);
 	/*if cfg changed or unknown return*/
-	if (!single_source->src->GetConfig(single_source->src)) {
+	if (!single_source->src->GetConfig(single_source->src, 0)) {
+		am->must_reconfig = 1;
 		gf_mixer_reconfig(am);
 		memset(buffer, 0, buffer_size);
 		gf_mixer_lock(am, 0);
@@ -591,7 +595,6 @@ single_source_mix:
 do_mix:
 	nb_act_src = 0;
 	nb_samples = buffer_size / (am->nb_channels * am->bits_per_sample / 8);
-
 	/*step 1, cfg*/
 	if (am->output_size<buffer_size) {
 		if (am->output) free(am->output);
@@ -616,8 +619,9 @@ do_mix:
 		in->in_bytes_used = 0;
 
 		/*if cfg unknown or changed (AudioBuffer child...) reconfig*/
-		if (!in->src->GetConfig(in->src)) {
+		if (!in->src->GetConfig(in->src, 0)) {
 			nb_act_src = 0;
+			am->must_reconfig = 1;
 			gf_mixer_reconfig(am);
 			break;
 		} else if (in->speed==0) {

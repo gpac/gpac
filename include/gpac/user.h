@@ -64,21 +64,32 @@ enum {
 	GF_EVT_KEYDOWN,
 	GF_EVT_KEYUP,
 	/*window events*/
-	GF_EVT_WINDOWSIZE,	/*size has changed - indicate new w & h in .x end .y fields of event*/
+	/*size has changed - indicate new w & h in .x end .y fields of event. 
+	When sent to the user event proc, signals the scene size (if indicated in scene) upon connection
+		if scene size hasn't changed (seeking or other) this event is not sent
+	When sent from gpac to a video plugin, indicates the output size should be changed. This is only sent when the plugin
+	manages the output video himself
+	When sent from a video plugin to gpac, indicates the output size has been changed. This is only sent when the plugin
+	manages the output video himself
+	*/
+	GF_EVT_SIZE,		
 	GF_EVT_SHOWHIDE,	/*window show/hide (minimized or other). This is also sent to the user to signal focus switch in fullscreen*/
 	GF_EVT_SET_CURSOR,	/*set mouse cursor*/
 	GF_EVT_SET_STYLE,	/*set window style*/
 	GF_EVT_SET_CAPTION,	/*set window caption*/
 	GF_EVT_REFRESH, /*window needs repaint (whenever needed, eg restore, hide->show, background refresh, paint)*/
 	GF_EVT_QUIT,	/*window is being closed*/
-	GF_EVT_GL_CHANGED,	/*GL context has been changed*/
+	/*video hw setup message:
+		when sent from gpac to plugin, indicates that the plugin should resetup hardware context due to a window resize
+		when sent from plugin to gpac, indicates that hardware resources must be resetup before next render step (this is mainly
+		due to discard all openGL textures and cached objects. 
+	This is done in two steps because depending on windowing systems it could be possible to resize a window without
+	destroying the GL context.
+	*/
+	GF_EVT_VIDEO_SETUP,
 	/*terminal events*/
 	GF_EVT_CONNECT,	/*signal URL is connected*/
 	GF_EVT_DURATION,	/*signal duration of presentation*/
-	/*signal size of the scene client display (if indicated in scene) upon connection
-	if scene size hasn't changed (seeking or other) this event is not sent
-	this event is also sent to video output for intial scene resize*/
-	GF_EVT_SCENESIZE,	
 	GF_EVT_AUTHORIZATION,	/*indicates a user and pass is queried*/
 	GF_EVT_NAVIGATE, /*indicates the user app should load or jump to the given URL.*/
 	GF_EVT_MESSAGE, /*message from the MPEG-4 terminal*/
@@ -165,7 +176,7 @@ typedef struct
 /*event proc return value: ignored*/
 typedef struct
 {
-	/*GF_EVT_WINDOWSIZE, GF_EVT_SCENESIZE*/
+	/*GF_EVT_SIZE*/
 	u8 type;
 	/*width and height*/
 	u16 width, height;

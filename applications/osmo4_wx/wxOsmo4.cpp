@@ -267,7 +267,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVT_QUIT:
 	case GF_EVT_VIEWPOINTS:
 	case GF_EVT_STREAMLIST:
-	case GF_EVT_SCENESIZE:
+	case GF_EVT_SIZE:
 	{
 		wxGPACEvent wxevt(app);
 		wxevt.gpac_evt = *evt;
@@ -573,7 +573,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 		::wxLogMessage(wxT("\t") + wxString(gf_modules_get_file_name(m_user.modules, i), wxConvUTF8) );
 	}
 
-	::wxLogMessage(wxT("Starting MPEG-4 Terminal"));
+	::wxLogMessage(wxT("Starting GPAC Terminal"));
 	/*now load terminal*/
 	m_user.opaque = this;
 	m_user.EventProc = GPAC_EventProc;
@@ -582,10 +582,10 @@ Bool wxOsmo4Frame::LoadTerminal()
 
 	m_term = gf_term_new(&m_user);
 	if (!m_term) {
-		wxMessageDialog(NULL, wxT("Fatal Error"), wxT("Cannot load MPEG-4 Terminal"), wxOK).ShowModal();
+		wxMessageDialog(NULL, wxT("Fatal Error"), wxT("Cannot load GPAC Terminal"), wxOK).ShowModal();
 		return 0;
 	} else {
-		::wxLogMessage(wxT("MPEG-4 Terminal started - using ") + wxString(gf_cfg_get_key(m_user.config, "Rendering", "RendererName"), wxConvUTF8) );
+		::wxLogMessage(wxT("GPAC Terminal started - using ") + wxString(gf_cfg_get_key(m_user.config, "Rendering", "RendererName"), wxConvUTF8) );
 	}
 	return 1;
 }
@@ -629,7 +629,7 @@ wxDEFAULT_FRAME_STYLE
 	menu->Append(0, wxT("&Streaming Cache"), smenu);
 	menu->Enable(FILE_PROPERTIES, 0);
 	menu->AppendSeparator();
-	menu->Append(TERM_RELOAD, wxT("Reload &Player"), wxT("Reload MPEG-4 Terminal"));
+	menu->Append(TERM_RELOAD, wxT("Reload &Player"), wxT("Reload GPAC Terminal"));
 	menu->AppendSeparator();
 	menu->Append(FILE_QUIT, wxT("E&xit"), wxT("Quit the application"));
 	b->Append(menu, wxT("&File"));
@@ -1459,7 +1459,7 @@ void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 			break;
 		}
 		break;
-	case GF_EVT_SCENESIZE:
+	case GF_EVT_SIZE:
 		DoLayout(event.gpac_evt.size.width, event.gpac_evt.size.height);
 		break;
 	case GF_EVT_VIEWPOINTS:
@@ -1632,7 +1632,7 @@ void wxOsmo4Frame::OnSlide(wxScrollEvent &event)
 void wxOsmo4Frame::ReloadTerminal()
 {
 	Bool reconnect = m_connected;
-	::wxLogMessage(wxT("Reloading MPEG-4 Terminal"));
+	::wxLogMessage(wxT("Reloading GPAC Terminal"));
 
 	u32 reconnect_time = 0;
 	if (m_duration) reconnect_time = gf_term_get_time_in_ms(m_term);
@@ -1655,7 +1655,7 @@ void wxOsmo4Frame::ReloadTerminal()
 			gf_term_connect(m_term, m_pPlayList->GetURL().mb_str(wxConvUTF8));
 		}
 	}
-	::wxLogMessage(wxT("MPEG-4 Terminal reloaded"));
+	::wxLogMessage(wxT("GPAC Terminal reloaded"));
 
 	UpdateRenderSwitch();
 }

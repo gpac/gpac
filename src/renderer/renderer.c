@@ -32,7 +32,7 @@
 	{	\
 		GF_Event evt;	\
 		if (_user->EventProc) {	\
-			evt.type = GF_EVT_SCENESIZE;	\
+			evt.type = GF_EVT_SIZE;	\
 			evt.size.width = _w;	\
 			evt.size.height = _h;	\
 			_user->EventProc(_user->opaque, &evt);	\
@@ -103,7 +103,7 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 			GF_Event evt;
 			Bool restore_fs = sr->fullscreen;
 			/*send resize event*/
-			evt.type = GF_EVT_SCENESIZE;
+			evt.type = (sr->msg_type & GF_SR_CFG_WINDOWSIZE_NOTIF) ? GF_EVT_VIDEO_SETUP : GF_EVT_SIZE;
 			evt.size.width = sr->new_width;
 			evt.size.height = sr->new_height;
 			if (restore_fs) gf_sr_set_fullscreen(sr);
@@ -495,6 +495,7 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 				/*security in case the user doesn't get the message (this happens on w32, resize message
 				with same values are discarded)*/
 				sr->override_size_flags &= ~2;
+				gf_sr_set_size(sr,width, height);
 			} else {
 				/*signal size changed*/
 				gf_sr_set_size(sr,width, height);
@@ -512,6 +513,13 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 	NOTIFY THE SIZE CHANGE AFTER RELEASING THE RENDERER MUTEX*/
 	if (do_notif) GF_USER_SETSIZE(sr->user, width, height);
 	return GF_OK;
+}
+
+void gf_sr_lock_audio(GF_Renderer *sr, Bool doLock)
+{
+	if (sr->audio_renderer) {
+		gf_mixer_lock(sr->audio_renderer->mixer, doLock);
+	}
 }
 
 void gf_sr_lock(GF_Renderer *sr, Bool doLock)
@@ -1008,16 +1016,16 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 	case GF_EVT_REFRESH:
 		gf_sr_refresh(sr);
 		break;
-	case GF_EVT_GL_CHANGED:
+	case GF_EVT_VIDEO_SETUP:
 		gf_sr_reset_graphics(sr);
 		break;
-	case GF_EVT_WINDOWSIZE:
+	case GF_EVT_SIZE:
 		/*resize message from plugin (only happens when plugin manages the window)*/
 		if (!sr->user->os_window_handler) {
 			gf_sr_lock(sr, 1);
 			sr->new_width = event->size.width;
 			sr->new_height = event->size.height;
-			sr->msg_type |= GF_SR_CFG_SET_SIZE;
+			sr->msg_type |= GF_SR_CFG_SET_SIZE | GF_SR_CFG_WINDOWSIZE_NOTIF;
 			gf_sr_lock(sr, 0);
 		}
 		break;

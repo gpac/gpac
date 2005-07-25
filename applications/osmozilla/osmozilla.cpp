@@ -333,7 +333,7 @@ Bool Osmozilla_EventProc(void *priv, GF_Event *evt)
 #endif
 		break;
 
-	case GF_EVT_SCENESIZE:	
+	case GF_EVT_SIZE:	
 		gf_term_set_size(gpac->m_term, gpac->m_width, gpac->m_height);
 		break;
 	case GF_EVT_CONNECT:	

@@ -54,7 +54,7 @@ Bool V4S_EventProc(void *par, GF_Event *evt)
 	case GF_EVT_REFRESH:
 		gf_sr_refresh(panel->GetSceneRenderer());
 		break;
-	case GF_EVT_WINDOWSIZE:
+	case GF_EVT_SIZE:
 //		gf_sr_set_size(panel->GetSceneRenderer(), evt->size.width, evt->size.height);
 		panel->Update();
 		break;
@@ -342,7 +342,7 @@ bool GPACInit(void *application, GF_Terminal **term, GF_User *user, bool quiet)
 		if (!quiet) ::wxLogMessage("\t%s", gf_modules_get_file_name(user->modules, i));
 	}
 
-	if (!quiet) ::wxLogMessage("Starting MPEG-4 Terminal");
+	if (!quiet) ::wxLogMessage("Starting GPAC Terminal");
 	/*now load terminal*/
 	user->opaque = application;
 	user->EventProc = V4S_EventProc;
@@ -353,10 +353,10 @@ bool GPACInit(void *application, GF_Terminal **term, GF_User *user, bool quiet)
 
 	*term = gf_term_new(user);
 	if (!*term) {
-		wxMessageDialog(NULL, "Fatal Error", "Cannot load MPEG-4 Terminal", wxOK).ShowModal();
+		wxMessageDialog(NULL, "Fatal Error", "Cannot load GPAC Terminal", wxOK).ShowModal();
 		return 0;
 	} else {
-		if (!quiet) ::wxLogMessage("MPEG-4 Terminal started - using %s", gf_cfg_get_key(user->config, "Rendering", "RendererName"));
+		if (!quiet) ::wxLogMessage("GPAC Terminal started - using %s", gf_cfg_get_key(user->config, "Rendering", "RendererName"));
 	}
 
 	return 1;

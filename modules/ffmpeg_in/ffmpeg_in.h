@@ -103,6 +103,7 @@ typedef struct
 	LPNETCHANNEL audio_ch;
 	LPNETCHANNEL video_ch;
 	Bool audio_run, video_run;
+	AVRational audio_tscale, video_tscale;
 	/*stream fetch state*/
 	u32 od_state;
 	u32 data_buffer_ms;

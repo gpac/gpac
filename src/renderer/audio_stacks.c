@@ -515,7 +515,7 @@ static Bool AB_IsMuted(void *callback)
 	return 0;
 }
 
-static Bool AB_GetConfig(GF_AudioInterface *aifc)
+static Bool AB_GetConfig(GF_AudioInterface *aifc, Bool for_reconf)
 {
 	AudioBufferStack *st = (AudioBufferStack *) gf_node_get_private( ((GF_AudioInput *) aifc->callback)->owner);
 
@@ -526,6 +526,7 @@ static Bool AB_GetConfig(GF_AudioInterface *aifc)
 
 		gf_mixer_get_config(st->am, &aifc->sr, &aifc->chan, &aifc->bps, &aifc->ch_cfg);
 		st->is_init = (aifc->sr && aifc->chan && aifc->bps) ? 1 : 0;
+		if (!st->is_init) aifc->sr = aifc->chan = aifc->bps = aifc->ch_cfg = 0;
 		/*this will force invalidation*/
 		return 0;
 	}

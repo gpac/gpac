@@ -5887,6 +5887,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->boxList, i);
 			genv = (GF_GenericVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRV);
 			bs = gf_bs_new(a->data, a->size, GF_BITSTREAM_READ);
+			genv->size = a->size;
 			gf_isom_video_sample_entry_read((GF_VisualSampleEntryBox *) genv, bs);
 			genv->data_size = (u32) gf_bs_available(bs);
 			if (genv->data_size) {
@@ -5903,6 +5904,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			/*remove entry*/
 			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->boxList, i);
 			gena = (GF_GenericAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRA);
+			gena->size = a->size;
 			bs = gf_bs_new(a->data, a->size, GF_BITSTREAM_READ);
 			gf_isom_audio_sample_entry_read((GF_AudioSampleEntryBox *) gena, bs);
 			gena->data_size = (u32) gf_bs_available(bs);
@@ -5921,6 +5923,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			/*remove entry*/
 			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->boxList, i);
 			genm = (GF_GenericSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRM);
+			genm->size = a->size;
 			bs = gf_bs_new(a->data, a->size, GF_BITSTREAM_READ);
 			read = 0;
 			gf_bs_read_data(bs, genm->reserved, 6);

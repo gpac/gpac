@@ -106,7 +106,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
 	dd->gl_HRC = wglCreateContext(dd->gl_HDC);
 	if (!dd->gl_HRC) return GF_IO_ERR;
 	if (!wglMakeCurrent(dd->gl_HDC, dd->gl_HRC)) return GF_IO_ERR;
-	evt.type = GF_EVT_GL_CHANGED;
+	evt.type = GF_EVT_VIDEO_SETUP;
 	dr->on_event(dr->evt_cbk_hdl, &evt);	
 	return GF_OK;
 }

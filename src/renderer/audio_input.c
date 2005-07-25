@@ -98,12 +98,14 @@ static Bool AI_IsMuted(void *callback)
 	return gf_mo_is_muted(ai->stream);
 }
 
-static Bool AI_GetConfig(GF_AudioInterface *aifc)
+static Bool AI_GetConfig(GF_AudioInterface *aifc, Bool for_recf)
 {
 	GF_AudioInput *ai = (GF_AudioInput *) aifc->callback;
 	if (!ai->stream) return 0;
 	/*watchout for object reuse*/
 	if (aifc->sr && (ai->stream->mo_flags & GF_MO_IS_INIT)) return 1;
+	if (!for_recf) 
+		return 0;
 
 	aifc->sr = ai->stream->sample_rate;
 	aifc->chan = ai->stream->num_channels;

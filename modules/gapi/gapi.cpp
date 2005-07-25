@@ -122,7 +122,7 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		GAPIPriv *ctx = (GAPIPriv *)the_video_driver->opaque;
 		if (!ctx->is_resizing) {
 			ctx->is_resizing = 1;
-			evt.type = GF_EVT_WINDOWSIZE;
+			evt.type = GF_EVT_SIZE;
 			evt.size.width = LOWORD(lParam);
 			evt.size.height = HIWORD(lParam);
 			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
@@ -759,10 +759,12 @@ static GF_Err GAPI_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	case GF_EVT_SHOWHIDE:
 		if (gctx->hWnd) ShowWindow(gctx->hWnd, evt->show.show_type ? SW_SHOW : SW_HIDE);
 		break;
-	case GF_EVT_SCENESIZE:
+	case GF_EVT_SIZE:
 		gctx->is_resizing = 1;
 		//SetWindowPos(gctx->hWnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE);
 		gctx->is_resizing = 0;
+	/*we should actually never see a windowsize event*/
+	case GF_EVT_VIDEO_SETUP:
 		gctx->disp_w = evt->size.width;
 		gctx->disp_h = evt->size.height;
 		break;

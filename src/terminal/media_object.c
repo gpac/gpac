@@ -80,7 +80,6 @@ GF_MediaObject *gf_mo_new(GF_Terminal *term)
 void MO_UpdateCaps(GF_MediaObject *mo)
 {
 	GF_CodecCapability cap;
-	mo->mo_flags &= ~GF_MO_IS_INIT;
 
 	if (mo->type == GF_MEDIA_OBJECT_VIDEO) {
 		cap.CapCode = GF_CODEC_WIDTH;
@@ -104,8 +103,11 @@ void MO_UpdateCaps(GF_MediaObject *mo)
 		mo->pixel_ar = cap.cap.valueInt;
 		if (! (mo->pixel_ar & 0x0000FFFF)) mo->pixel_ar = 0;
 		if (! (mo->pixel_ar & 0xFFFF0000)) mo->pixel_ar = 0;
+		mo->mo_flags &= ~GF_MO_IS_INIT;
 	}
 	else if (mo->type == GF_MEDIA_OBJECT_AUDIO) {
+		void gf_sr_lock_audio(void *, Bool );
+
 		cap.CapCode = GF_CODEC_SAMPLERATE;
 		gf_codec_get_capability(mo->odm->codec, &cap);
 		mo->sample_rate = cap.cap.valueInt;
@@ -119,6 +121,10 @@ void MO_UpdateCaps(GF_MediaObject *mo)
 		cap.CapCode = GF_CODEC_CHANNEL_CONFIG;
 		gf_codec_get_capability(mo->odm->codec, &cap);
 		mo->channel_config = cap.cap.valueInt;
+
+		gf_sr_lock_audio(mo->term->renderer, 1);
+		mo->mo_flags &= ~GF_MO_IS_INIT;
+		gf_sr_lock_audio(mo->term->renderer, 0);
 	}
 	else if (mo->type==GF_MEDIA_OBJECT_TEXT) {
 		cap.CapCode = GF_CODEC_WIDTH;
@@ -127,6 +133,7 @@ void MO_UpdateCaps(GF_MediaObject *mo)
 		cap.CapCode = GF_CODEC_HEIGHT;
 		gf_codec_get_capability(mo->odm->codec, &cap);
 		mo->height = cap.cap.valueInt;
+		mo->mo_flags &= ~GF_MO_IS_INIT;
 	}
 }
 
