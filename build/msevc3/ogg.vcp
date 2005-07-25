@@ -59,7 +59,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 commctrl.lib coredll.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /nodefaultlib:"$(CENoDefaultLib)" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
-# ADD LINK32 ogg_static.lib vorbis_static.lib theora_static.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc02_rel/ogg_xiph.dll" /libpath:"../../extra_lib/lib/arm_ppc2002_rel" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
+# ADD LINK32 ogg_static.lib vorbis_static.lib theora_static.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc02_rel/ogg_xiph.dll" /libpath:"../../extra_lib/lib/arm_ppc02_rel" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
 
 !ELSEIF  "$(CFG)" == "ogg - Win32 (WCE ARM) Debug"
 
@@ -90,7 +90,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 commctrl.lib coredll.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /debug /nodefaultlib:"$(CENoDefaultLib)" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
-# ADD LINK32 ogg_static_d.lib vorbis_static_d.lib theora_static_d.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /debug /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc02_deb/ogg_xiph.dll" /libpath:"../../extra_lib/lib/arm_ppc2002_deb" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
+# ADD LINK32 ogg_static.lib vorbis_static.lib theora_static.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /debug /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc02_deb/ogg_xiph.dll" /libpath:"../../extra_lib/lib/arm_ppc02_deb" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
 
 !ENDIF 
 

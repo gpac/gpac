@@ -59,7 +59,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 commctrl.lib coredll.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /nodefaultlib:"$(CENoDefaultLib)" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
-# ADD LINK32 /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc02_rel/render2d.dll" /libpath:"../../extra_lib/lib/arm_release" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
+# ADD LINK32 /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc02_rel/render2d.dll" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
 
 !ELSEIF  "$(CFG)" == "render2d - Win32 (WCE ARM) Debug"
 
@@ -226,6 +226,7 @@ DEP_CPP_SVG_M=\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\renderer_dev.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mediaobject.h"\
@@ -536,6 +537,7 @@ DEP_CPP_GROUPI=\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\renderer_dev.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mediaobject.h"\
@@ -783,14 +785,13 @@ DEP_CPP_RENDER2D=\
 	"..\..\include\gpac\user.h"\
 	"..\..\modules\render2d\drawable.h"\
 	"..\..\modules\render2d\grouping.h"\
-	"..\..\modules\render2d\LASeR\laser_stacks.h"\
 	"..\..\modules\render2d\render2d.h"\
 	"..\..\modules\render2d\smil\smil_stacks.h"\
 	"..\..\modules\render2d\stacks2d.h"\
 	"..\..\modules\render2d\svg\svg_stacks.h"\
 	
 NODEP_CPP_RENDER2D=\
-	"..\..\M4Systems\LASeR\m4_laser_dev.h"\
+	"..\..\modules\render2d\LASeR\laser_stacks.h"\
 	
 # End Source File
 # Begin Source File
@@ -946,6 +947,7 @@ DEP_CPP_VIEWP=\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\renderer_dev.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mediaobject.h"\
