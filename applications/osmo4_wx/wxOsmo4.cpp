@@ -532,7 +532,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 		if (!sOpt) {
 			gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "yes");
 			gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "8");
-			gf_cfg_set_key(m_user.config, "Audio", "BuffersPerSecond", "16");
+			gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "400");
 		}
 
 #ifdef WIN32

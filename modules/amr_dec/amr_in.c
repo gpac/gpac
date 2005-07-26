@@ -481,13 +481,16 @@ fetch_next:
 		toc = fgetc(read->stream);
 		switch (read->mtype) {
 		case GF_ISOM_SUBTYPE_3GP_AMR:
+			ft = (toc >> 3) & 0x0F;
+			read->es_data_size = GF_AMR_FRAME_SIZE[ft];
+			break;
 		case GF_ISOM_SUBTYPE_3GP_AMR_WB:
-			ft = (ft >> 3) & 0x0F;
-			read->es_data_size = (read->mtype==GF_ISOM_SUBTYPE_3GP_AMR_WB) ? GF_AMR_WB_FRAME_SIZE[ft] : GF_AMR_FRAME_SIZE[ft];
+			ft = (toc >> 3) & 0x0F;
+			read->es_data_size = GF_AMR_WB_FRAME_SIZE[ft];
 			break;
 		default:
 			for (i=0; i<GF_SMV_EVRC_RATE_TO_SIZE_NB; i++) {
-				if (GF_SMV_EVRC_RATE_TO_SIZE[2*i]==ft) {
+				if (GF_SMV_EVRC_RATE_TO_SIZE[2*i]==toc) {
 					/*remove rate_type byte*/
 					read->es_data_size = GF_SMV_EVRC_RATE_TO_SIZE[2*i+1] - 1;
 					break;

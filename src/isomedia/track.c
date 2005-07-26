@@ -705,6 +705,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		trak->Media->mediaHeader->packedLanguage[1] = (esd->langDesc->langCode>>8)&0xFF;
 		trak->Media->mediaHeader->packedLanguage[2] = (esd->langDesc->langCode)&0xFF;
 		gf_odf_desc_del((GF_Descriptor *)esd->langDesc);
+		esd->langDesc = NULL;
 	}
 
 	//we have a streamDescritpionIndex, use it

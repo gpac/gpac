@@ -130,7 +130,7 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	gf_cfg_set_key(cfg, "General", "ModulesDirectory", szPath);
 	gf_cfg_set_key(cfg, "Audio", "ForceConfig", "yes");
 	gf_cfg_set_key(cfg, "Audio", "NumBuffers", "8");
-	gf_cfg_set_key(cfg, "Audio", "BuffersPerSecond", "16");
+	gf_cfg_set_key(cfg, "Audio", "TotalDuration", "400");
 	gf_cfg_set_key(cfg, "Audio", "DisableNotification", "no");
 	gf_cfg_set_key(cfg, "FontEngine", "DriverName", "ft_font");
 	fprintf(stdout, "Please enter full path to a TrueType font directory (.ttf, .ttc):\n");

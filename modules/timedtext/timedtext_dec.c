@@ -258,6 +258,7 @@ static GF_Err TTD_AttachStream(GF_BaseDecoder *plug,
 	e = gf_odf_get_text_config(&dsi, (u8) objectTypeIndication, priv->cfg);
 	if (e) {
 		gf_odf_desc_del((GF_Descriptor *) priv->cfg);
+		priv->cfg = NULL;
 		return e;
 	}
 	priv->nb_streams++;
@@ -357,7 +358,7 @@ static GF_Err TTD_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 
 	gf_sg_del(priv->sg);
 	priv->sg = NULL;
-	gf_odf_desc_del((GF_Descriptor *) priv->cfg);
+	if (priv->cfg) gf_odf_desc_del((GF_Descriptor *) priv->cfg);
 	priv->cfg = NULL;
 	priv->nb_streams = 0;
 	gf_list_del(priv->blink_nodes);

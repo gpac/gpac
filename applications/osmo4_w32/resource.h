@@ -58,6 +58,7 @@
 #define IDC_FORCE_AUDIO                 1026
 #define IDC_SPIN_FPS                    1027
 #define IDC_AUDIO_FPS                   1028
+#define IDC_AUDIO_MULTICH               1029
 #define IDC_GD_LIST                     1031
 #define IDC_FAST_RENDER                 1032
 #define IDC_FORCE_DURATION              1033

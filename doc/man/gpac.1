@@ -189,15 +189,17 @@ Forces a given sound card configuration to be used. If not set the sound card wi
 When config is forced, specifies the number of audio buffers to allocate (audio buffers are played in ring if possible, otherwise a single audio
 buffer is allocated).
 .TP
-.B BuffersPerSecond (value: integer, 0 forbidden)
-When config is forced, specifies the number of audio buffers per second. For example, a value of 15 means that each buffer will hold 1000/15 milliseconds of audio data. The total amount of audio buffering (and hence audio delay) is therefore:
-.B		NumBuffers * 1000 / BuffersPerSecond milliseconds
+.B TotalDuration (value: integer, 0 forbidden)
+When config is forced, specifies the total audio buffer size in milliseconds.
 .br
 .B Note:
-The SDL audio plugin does not use the buffers per seconds and num buffers in the same way, it just computes the desired audio buffer size with this settings and picks the next power of 2 size for audio buffer size. It does not use ring buffers either.
+The SDL audio plugin does not use the TotalDuration and num buffers in the same way, it just computes the desired audio buffer size with this settings and picks the next power of 2 size for audio buffer size. It does not use ring buffers either.
 .TP
 .B NoResync (value: yes, no)
-Disables audio resynchronization: audio clock is never adjusted and A/V sync may get breoken
+Disables audio resynchronization: audio clock is never adjusted and A/V sync may get broken
+.TP
+.B DisableMultiChannel (value: yes, no)
+Disables audio multichannel output and always downmix to stereo. This may be usefull if the multichannel output behaves weirdly.
 .TP
 .B DisableNotification (value: yes, no)
 Disables usage of audio buffer notifications when supported (currently only DirectSound supports it). If DirectSound audio sounds weird try without notifications. Ignored on other platforms than Win32/DX.

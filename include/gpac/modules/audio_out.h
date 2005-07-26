@@ -58,10 +58,11 @@ typedef struct _audiooutput
 	/*setup system 
 		Win32: os_handle is HWND
 
-	if num_buffer is set, the audio driver should work with num_buffers of 1000/num_buffers_per_sec ms length each
+	if num_buffer is set, the audio driver should work with num_buffers with a total amount of audio data
+	equal to total_duration ms
 	if not set the driver is free to decide what to do
 	*/
-	GF_Err (*SetupHardware) (struct _audiooutput *aout, void *os_handle, u32 num_buffers, u32 num_buffers_per_sec);
+	GF_Err (*Setup) (struct _audiooutput *aout, void *os_handle, u32 num_buffers, u32 total_duration);
 
 	/*shutdown system */
 	void (*Shutdown) (struct _audiooutput *aout);

@@ -69,12 +69,24 @@ GF_Err gf_isom_parse_box(GF_Box **outBox, GF_BitStream *bs)
 		size = 4;
 		type = GF_ISOM_BOX_TYPE_VOID;
 	} else {
-		type = gf_bs_read_u32(bs);
-		hdr_size += 4;
-		/*no size means till end of file - EXCEPT FOR some old QuickTime boxes...*/
-		if (type == GF_ISOM_BOX_TYPE_TOTL)
-			size = 12;
-		if (!size) size = gf_bs_available(bs) + 8;
+		/*now here's a bad thing: some files use size 0 for void atoms, some for "till end of file" indictaion..*/
+		if (!size) {
+			type = gf_bs_peek_bits(bs, 32, 0);
+			if (!isalnum((type>>24)&0xFF) || !isalnum((type>>16)&0xFF) || !isalnum((type>>8)&0xFF) || !isalnum(type&0xFF)) {
+				size = 4;
+				type = GF_ISOM_BOX_TYPE_VOID;
+			} else {
+				goto proceed_box;
+			}
+		} else {
+proceed_box:
+			type = gf_bs_read_u32(bs);
+			hdr_size += 4;
+			/*no size means till end of file - EXCEPT FOR some old QuickTime boxes...*/
+			if (type == GF_ISOM_BOX_TYPE_TOTL)
+				size = 12;
+			if (!size) size = gf_bs_available(bs) + 8;
+		}
 	}
 	/*handle uuid*/
 	memset(uuid, 0, 16);

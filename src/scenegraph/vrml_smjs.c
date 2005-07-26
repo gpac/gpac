@@ -2478,6 +2478,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 			JSObject *node_obj;
 			JS_GetElement(c, p->js_list, (jsint) i, &item);
 			if (JSVAL_IS_NULL(item)) break;
+			if (!JSVAL_IS_OBJECT(item)) break;
 			node_obj = JSVAL_TO_OBJECT(item);
 			if ( !JS_InstanceOf(c, node_obj, &SFNodeClass, NULL)) break;
 			from = (GF_JSField *) JS_GetPrivate(c, node_obj);

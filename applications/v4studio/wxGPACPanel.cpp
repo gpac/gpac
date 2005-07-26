@@ -301,7 +301,7 @@ bool GPACInit(void *application, GF_Terminal **term, GF_User *user, bool quiet)
 		if (!sOpt) {
 			gf_cfg_set_key(user->config, "Audio", "ForceConfig", "yes");
 			gf_cfg_set_key(user->config, "Audio", "NumBuffers", "8");
-			gf_cfg_set_key(user->config, "Audio", "BuffersPerSecond", "16");
+			gf_cfg_set_key(user->config, "Audio", "TotalDuration", "400");
 		}
 
 #ifdef WIN32

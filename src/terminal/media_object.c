@@ -333,12 +333,15 @@ void gf_mo_restart(GF_MediaObject *mo)
 
 Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url)
 {
+	u32 od_id;
 	Bool ret = 0;
 	if (!mo) return (url ? 1 : 0);
-	if ( (mo->OD_ID != GF_ESM_DYNAMIC_OD_ID) && (URL_GetODID(url) != mo->OD_ID)) ret = 1;
-	else if (URL_GetODID(url) != GF_ESM_DYNAMIC_OD_ID) ret = 1;
-	else ret = !gf_is_same_url(&mo->URLs, url);
-
+	od_id = URL_GetODID(url);
+	if ( (mo->OD_ID == GF_ESM_DYNAMIC_OD_ID) && (od_id == GF_ESM_DYNAMIC_OD_ID)) {
+		ret = !gf_is_same_url(&mo->URLs, url);
+	} else {
+		ret = (mo->OD_ID == od_id) ? 0 : 1;
+	}
 	/*special case for 3GPP text: if not playing and user node changed, force removing it*/
 	if (ret && mo->odm && !mo->num_open && (mo->type == GF_MEDIA_OBJECT_TEXT)) {
 		mo->mo_flags |= GF_MO_DISPLAY_REMOVE;

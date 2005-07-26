@@ -528,7 +528,7 @@ static Bool AB_GetConfig(GF_AudioInterface *aifc, Bool for_reconf)
 		st->is_init = (aifc->sr && aifc->chan && aifc->bps) ? 1 : 0;
 		if (!st->is_init) aifc->sr = aifc->chan = aifc->bps = aifc->ch_cfg = 0;
 		/*this will force invalidation*/
-		return 0;
+		return (for_reconf && st->is_init) ? 1 : 0;
 	}
 	return st->is_init;
 }

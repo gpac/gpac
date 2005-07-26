@@ -1,4 +1,5 @@
-Last CVS update: 25/07/05
+Last CVS update: 26/07/05
+  - regression testing done for players and most of MP4Box
 	- fixed old bug in audio renderer screwing up the audio from time to time
 	- moved ffmpeg to latest CVS version (25/07/05). THIS VERSION IS NO LONGER COMPATIBLE with previous ones used in GPAC, update
 	  your binaries!! Also updated ffmpeg plugin to new ffmpeg API

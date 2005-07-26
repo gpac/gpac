@@ -33,7 +33,7 @@ void sdl_fill_audio(void *udata, Uint8 *stream, int len)
 }
 
 
-static GF_Err SDLAud_SetupHardware(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u32 num_buffers_per_sec)
+static GF_Err SDLAud_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u32 total_duration)
 {
 	u32 flags;
 	SDL_AudioSpec want_format, got_format;
@@ -65,7 +65,7 @@ static GF_Err SDLAud_SetupHardware(GF_AudioOutput *dr, void *os_handle, u32 num_
 	SDL_CloseAudio();
 	ctx->is_init = 1;
 	ctx->num_buffers = num_buffers;
-	ctx->num_buffers_per_sec = num_buffers_per_sec;
+	ctx->total_duration = total_duration;
 	return GF_OK;
 }
 
@@ -97,9 +97,9 @@ static GF_Err SDLAud_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *N
 	want_format.callback = sdl_fill_audio;
 	want_format.userdata = dr;
 
-	if (ctx->num_buffers && ctx->num_buffers_per_sec) {
-		nb_samples = want_format.freq;
-		nb_samples /= ctx->num_buffers_per_sec;
+	if (ctx->num_buffers && ctx->total_duration) {
+		nb_samples = want_format.freq * ctx->total_duration;
+		nb_samples /= (1000 * ctx->num_buffers);
 		if (nb_samples % 2) nb_samples--;
 	} else {
 		nb_samples = 1024;
@@ -186,7 +186,7 @@ void *SDL_NewAudio()
 
 	dr->opaque = ctx;
 
-	dr->SetupHardware = SDLAud_SetupHardware;
+	dr->Setup = SDLAud_Setup;
 	dr->Shutdown = SDLAud_Shutdown;
 	dr->ConfigureOutput = SDLAud_ConfigureOutput;
 	dr->SetVolume = SDLAud_SetVolume;

@@ -282,20 +282,26 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_forcecfg = new wxCheckBox(this, ID_FORCE_AUDIO, wxT("Force Audio Config"));
 	m_forcecfg->SetValue(1);
 	s_audio->Add(m_forcecfg, 0, wxALL|wxEXPAND, 2);
+
+
 	bs = new wxBoxSizer(wxHORIZONTAL);
-	bs->Add(new wxStaticText(this, 0, wxT("Number of Audio Buffers")), wxALIGN_CENTER | wxADJUST_MINSIZE);
-	m_nbbuf = new wxSpinCtrl(this, -1, wxT(""), wxDefaultPosition, wxSize(30, 20), wxSP_WRAP | wxSP_ARROW_KEYS, 1, 30, 15);
+	bs->Add(new wxStaticText(this, 0, wxT("Number of buffers")), wxALIGN_CENTER|wxADJUST_MINSIZE);
+	m_nbbuf = new wxSpinCtrl(this, -1, wxT(""), wxDefaultPosition, wxSize(20, 20), wxSP_WRAP | wxSP_ARROW_KEYS, 1, 30, 15);
 	m_nbbuf->SetValue(8);
 	bs->Add(m_nbbuf, wxALIGN_CENTER | wxADJUST_MINSIZE);
 	s_audio->Add(bs, 0, wxALL|wxEXPAND, 2);
+
 	bs = new wxBoxSizer(wxHORIZONTAL);
-	bs->Add(new wxStaticText(this, 0, wxT("Buffers per Second")), wxALIGN_CENTER | wxADJUST_MINSIZE);
-	m_buflen = new wxSpinCtrl(this, -1, wxT(""), wxDefaultPosition, wxSize(30, 20), wxSP_WRAP | wxSP_ARROW_KEYS, 1, 30, 15);
-	m_buflen->SetValue(16);
-	bs->Add(m_buflen, wxALIGN_CENTER | wxADJUST_MINSIZE);
+	bs->Add(new wxStaticText(this, 0, wxT("Total length in ms")), wxALIGN_CENTER | wxADJUST_MINSIZE);
+	m_buflen = new wxSpinCtrl(this, -1, wxT(""), wxDefaultPosition, wxSize(20, 20), wxSP_WRAP | wxSP_ARROW_KEYS, 1, 1000);
+	m_buflen->SetValue(400);
+	bs->Add(m_buflen, wxALIGN_CENTER | wxADJUST_MINSIZE|wxLEFT,10);
 	s_audio->Add(bs, 0, wxALL|wxEXPAND, 2);
-	m_noresync = new wxCheckBox(this, -1, wxT("Disable Audio Resync"));
+
+	m_noresync = new wxCheckBox(this, -1, wxT("Disable Resynchronization"));
 	s_audio->Add(m_noresync);
+	m_nomulitch = new wxCheckBox(this, -1, wxT("Disable Multichannel"));
+	s_audio->Add(m_nomulitch);
 #ifdef WIN32
 	m_notifs = new wxCheckBox(this, -1, wxT("Disable DirectSound Notifications"));
 	s_audio->Add(m_notifs);
@@ -550,12 +556,14 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_forcecfg->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(cfg, "Audio", "NumBuffers");
 	m_nbbuf->SetValue( sOpt ? wxString(sOpt, wxConvUTF8) : wxT("6"));
-	sOpt = gf_cfg_get_key(cfg, "Audio", "BuffersPerSecond");
-	m_buflen->SetValue( sOpt ? wxString(sOpt, wxConvUTF8) : wxT("15"));
+	sOpt = gf_cfg_get_key(cfg, "Audio", "TotalDuration");
+	m_buflen->SetValue( sOpt ? wxString(sOpt, wxConvUTF8) : wxT("400"));
 	wxCommandEvent event;
 	ForceAudio(event);
 	sOpt = gf_cfg_get_key(cfg, "Audio", "NoResync");
 	m_noresync->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(cfg, "Audio", "DisableMultiChannel");
+	m_nomulitch->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 
 	/*driver enum*/
 	sOpt = gf_cfg_get_key(cfg, "Audio", "DriverName");
@@ -905,8 +913,10 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 
 	gf_cfg_set_key(cfg, "Audio", "ForceConfig", m_forcecfg->GetValue() ? "yes" : "no");
 	gf_cfg_set_key(cfg, "Audio", "NoResync", m_noresync->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "Audio", "DisableMultiChannel", m_nomulitch->GetValue() ? "yes" : "no");
+	
 	gf_cfg_set_key(cfg, "Audio", "NumBuffers", wxString::Format(wxT("%d"), m_nbbuf->GetValue()).mb_str(wxConvUTF8) );
-	gf_cfg_set_key(cfg, "Audio", "BuffersPerSecond", wxString::Format(wxT("%d"), m_buflen->GetValue()).mb_str(wxConvUTF8) );
+	gf_cfg_set_key(cfg, "Audio", "TotalDuration", wxString::Format(wxT("%d"), m_buflen->GetValue()).mb_str(wxConvUTF8) );
 	gf_cfg_set_key(cfg, "Audio", "DriverName", m_audio->GetStringSelection().mb_str(wxConvUTF8));
 #ifdef WIN32
 	if (m_notifs->IsEnabled()) 

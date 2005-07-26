@@ -233,6 +233,7 @@ GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load)
 		if (e) return e;
 	} else if ((load->ctx->root_od->tag != GF_ODF_OD_TAG) && (load->ctx->root_od->tag != GF_ODF_IOD_TAG)) {
 		gf_odf_desc_del((GF_Descriptor *) load->ctx->root_od);
+		load->ctx->root_od = NULL;
 	}
 
 	e = GF_OK;

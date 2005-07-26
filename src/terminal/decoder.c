@@ -486,15 +486,19 @@ static GF_Err ResizeCompositionBuffer(GF_Codec *dec, u32 NewSize)
 		u32 unit_size, audio_buf_len, unit_count;
 		GF_CodecCapability cap;
 		unit_size = NewSize;
+#if 0
 		audio_buf_len = gf_sr_get_audio_buffer_length(dec->odm->term->renderer);
 		if (audio_buf_len < 400) audio_buf_len = 400;
+#else
+		/*a bit ugly, make some provision for speed>1, always decode at least 1 sec*/
+		audio_buf_len = 1200;
+#endif
 		cap.CapCode = GF_CODEC_BUFFER_MAX;
 		gf_codec_get_capability(dec, &cap);
 		unit_count = cap.cap.valueInt;
 		/*at least 2 units for dec and render ...*/
 		if (unit_count<2) unit_count = 2;
 		while (unit_size*unit_count*1000 < dec->bytes_per_sec*audio_buf_len) unit_count++;
-
 		CB_Reinit(dec->CB, unit_size, unit_count);
 		dec->CB->Min = unit_size/3;
 		if (!dec->CB->Min) dec->CB->Min = 1;

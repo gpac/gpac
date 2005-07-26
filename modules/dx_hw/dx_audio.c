@@ -48,7 +48,7 @@ const static GUID  GPAC_KSDATAFORMAT_SUBTYPE_PCM = {0x00000001,0x0000,0x0010,
 typedef struct 
 {
 	Bool force_config;
-	u32 cfg_num_buffers, cfg_num_buffer_per_sec;
+	u32 cfg_num_buffers, cfg_duration;
 
 	HWND hWnd;
 	LPDIRECTSOUND pDS;
@@ -69,7 +69,7 @@ typedef struct
 void DS_WriteAudio(GF_AudioOutput *dr);
 void DS_WriteAudio_Notifs(GF_AudioOutput *dr);
 
-static GF_Err DS_SetupHardware(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u32 num_buffer_per_sec)
+static GF_Err DS_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u32 total_duration)
 {
 	DWORD flags;
     HRESULT hr;
@@ -81,9 +81,9 @@ static GF_Err DS_SetupHardware(GF_AudioOutput *dr, void *os_handle, u32 num_buff
 	/*too bad, use desktop as window*/
 	if (!ctx->hWnd) ctx->hWnd = GetDesktopWindow();
 
-	ctx->force_config = (num_buffers && num_buffer_per_sec) ? 1 : 0;
+	ctx->force_config = (num_buffers && total_duration) ? 1 : 0;
 	ctx->cfg_num_buffers = num_buffers;
-	ctx->cfg_num_buffer_per_sec = num_buffer_per_sec;
+	ctx->cfg_duration = total_duration;
 	if (ctx->cfg_num_buffers <= 1) ctx->cfg_num_buffers = 2;
 
 	if ( FAILED( hr = DirectSoundCreate( NULL, &ctx->pDS, NULL ) ) ) return GF_IO_ERR;
@@ -158,7 +158,7 @@ static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCha
 		ctx->num_audio_buffer = 8;
 	} else {
 		ctx->num_audio_buffer = ctx->cfg_num_buffers;
-		ctx->buffer_size = ctx->format.nAvgBytesPerSec / ctx->cfg_num_buffer_per_sec;
+		ctx->buffer_size = (ctx->format.nAvgBytesPerSec * ctx->cfg_duration) / (1000 * ctx->cfg_num_buffers);
 	}
 
 	/*make sure we're aligned*/
@@ -430,7 +430,7 @@ void *NewAudioOutput()
 
 	driv->opaque = ctx;
 
-	driv->SetupHardware = DS_SetupHardware;
+	driv->Setup = DS_Setup;
 	driv->Shutdown = DS_Shutdown;
 	driv->ConfigureOutput = DS_ConfigureOutput;
 	driv->SetVolume = DS_SetVolume;

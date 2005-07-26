@@ -466,23 +466,25 @@ IDD_OPT_AUDIO DIALOG DISCARDABLE  0, 20, 169, 76
 STYLE DS_CONTROL | WS_CHILD | WS_THICKFRAME
 FONT 8, "MS Sans Serif"
 BEGIN
-    LTEXT           "Number of buffers",IDC_STATIC,6,17,57,8
     CONTROL         "Spin1",IDC_SPIN_AUDIO,"msctls_updown32",UDS_SETBUDDYINT | 
-                    UDS_ARROWKEYS | UDS_HORZ,132,13,16,14
-    EDITTEXT        IDC_EDIT_AUDIO,80,13,48,14,ES_READONLY | ES_NUMBER
+                    UDS_ARROWKEYS,27,15,11,14
+    EDITTEXT        IDC_EDIT_AUDIO,5,15,19,14,ES_READONLY | ES_NUMBER
     CONTROL         "Force Audio Config",IDC_FORCE_AUDIO,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,6,3,73,10
-    LTEXT           "Buffers per Second",IDC_STATIC,6,33,62,8
+    LTEXT           "buffers",IDC_STATIC,43,18,23,8
     CONTROL         "Spin1",IDC_SPIN_FPS,"msctls_updown32",UDS_SETBUDDYINT | 
-                    UDS_ARROWKEYS | UDS_HORZ,132,29,16,14
-    EDITTEXT        IDC_AUDIO_FPS,80,29,48,14,ES_READONLY | ES_NUMBER
+                    UDS_ARROWKEYS,104,15,11,14
+    EDITTEXT        IDC_AUDIO_FPS,77,15,24,14,ES_NUMBER
     LTEXT           "Audio Driver",IDC_STATIC,7,63,40,8
-    CONTROL         "No Audio Resync",IDC_AUDIO_RESYNC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,6,48,71,10
+    CONTROL         "No Resynchronization",IDC_AUDIO_RESYNC,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,4,46,82,10
     COMBOBOX        IDC_DRIVER_LIST,63,60,103,62,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    CONTROL         "Disable DS Notifications",IDC_AUDIO_NOTIFS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,78,48,90,10
+    CONTROL         "Disable Notifications",IDC_AUDIO_NOTIFS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,89,47,79,10
+    CONTROL         "Disable Multichannel",IDC_AUDIO_MULTICH,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,4,34,81,10
+    LTEXT           "ms total length",IDC_STATIC,118,18,49,8
 END
 
 IDD_OPT_VIDEO DIALOG DISCARDABLE  0, 20, 169, 76

@@ -334,6 +334,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		if (mp4->moov->iods && (mp4->moov->iods->descriptor->tag == GF_ODF_ISOM_IOD_TAG) ) {
 			GF_IsomInitialObjectDescriptor *iod = (GF_IsomInitialObjectDescriptor *)mp4->moov->iods->descriptor;
 			if (iod->IPMPToolList) gf_odf_desc_del((GF_Descriptor*) iod->IPMPToolList);
+			iod->IPMPToolList = NULL;
 		}
 		break;
 	}

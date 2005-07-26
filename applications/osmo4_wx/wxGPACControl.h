@@ -106,7 +106,7 @@ private:
 	/*audio*/
 	wxSpinCtrl *m_nbbuf, *m_buflen;
 	wxComboBox *m_audio;
-	wxCheckBox *m_forcecfg, *m_noresync;
+	wxCheckBox *m_forcecfg, *m_noresync, *m_nomulitch;
 #ifdef WIN32
 	wxCheckBox *m_notifs;
 #endif

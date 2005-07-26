@@ -85,7 +85,7 @@ void StretchBits(void *dst, u32 dst_bpp, u32 dst_w, u32 dst_h, u32 dst_pitch,
 */
 typedef struct
 {
-	u32 num_buffers, num_buffers_per_sec, delay_ms, total_size;
+	u32 num_buffers, total_duration, delay_ms, total_size;
 	Bool is_init, is_running;
 } SDLAudCtx;
 

@@ -1420,7 +1420,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		}
 	}
 	/*check if MPEG-4 or not*/
-	stype = gf_isom_get_media_subtype(import->dest, track, 1);
+	stype = gf_isom_get_media_subtype(import->orig, track_in, 1);
 	if ((stype==GF_ISOM_SUBTYPE_MPEG4) || (stype==GF_ISOM_SUBTYPE_MPEG4_CRYP)) {
 		e = gf_isom_new_mpeg4_description(import->dest, track, origin_esd, (char *) url, (char *) urn, &di);
 	} else {

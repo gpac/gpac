@@ -883,11 +883,16 @@ GF_ESD *gp_media_map_esd(GF_ISOFile *mp4, u32 track)
 	GF_ESD *esd;
 
 	u32 subtype = gf_isom_get_media_subtype(mp4, track, 1);
-	if ((subtype == GF_ISOM_SUBTYPE_MPEG4) || (subtype == GF_ISOM_SUBTYPE_MPEG4_CRYP))
+	/*all types with an official MPEG-4 mapping*/
+	switch (subtype) {
+	case GF_ISOM_SUBTYPE_MPEG4:
+	case GF_ISOM_SUBTYPE_MPEG4_CRYP:
+	case GF_ISOM_SUBTYPE_AVC_H264:
+	case GF_ISOM_SUBTYPE_3GP_EVRC:
+	case GF_ISOM_SUBTYPE_3GP_QCELP:
+	case GF_ISOM_SUBTYPE_3GP_SMV:
 		return gf_isom_get_esd(mp4, track, 1);
-
-	if (subtype == GF_ISOM_SUBTYPE_AVC_H264)
-		return gf_isom_get_esd(mp4, track, 1);
+	}
 
 	if (gf_isom_get_media_type(mp4, track) == GF_ISOM_MEDIA_TEXT)
 		return gf_isom_get_esd(mp4, track, 1);

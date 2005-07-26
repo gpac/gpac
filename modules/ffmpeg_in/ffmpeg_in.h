@@ -64,6 +64,7 @@ typedef struct
 	u32 out_size;
 	u32 oti, st;
 	u32 previous_par;
+	Bool no_par_update;
 
 	Bool check_short_header;
 	AVCodecContext *ctx;

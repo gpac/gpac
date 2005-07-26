@@ -490,7 +490,7 @@ static void AM_GetInputData(GF_AudioMixer *am, MixerInput *in, u32 audio_delay)
 		if (in->out_samples_written == in->out_samples_to_write) break;
 		i++;
 	}
-	if (ratio==255) {
+	if (!(ratio%255)) {
 		in->has_prev = 0;
 		if (next==src_samp) {
 			in->in_bytes_used = src_size;
@@ -537,11 +537,10 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size)
 		return 0;
 	}
 	delay = 0;
-	if (am->ar && am->ar->resync_clocks) delay = am->ar->audio_delay;
+	if (am->ar && (am->ar->flags & GF_SR_AUDIO_NO_RESYNC) ) delay = am->ar->audio_delay;
 
 	single_source = NULL;
 	if (count!=1) goto do_mix;
-	assert(!am->force_channel_out);
 	if (am->force_channel_out) goto do_mix;
 	single_source = (MixerInput *) gf_list_get(am->sources, 0);
 	/*if cfg changed or unknown return*/

@@ -156,7 +156,8 @@ static void AS_Deactivate(AnimationStreamStack *stack, M_AnimationStream *as)
 		gf_node_event_out_str((GF_Node*)as, "isActive");
 	}
 	if (stack->stream) {
-		if (gf_mo_url_changed(stack->stream, &as->url)) stack->stream->mo_flags |= GF_MO_DISPLAY_REMOVE;
+		if (gf_mo_url_changed(stack->stream, &as->url)) 
+			stack->stream->mo_flags |= GF_MO_DISPLAY_REMOVE;
 		gf_mo_stop(stack->stream);
 	}
 	stack->time_handle.needs_unregister = 1;

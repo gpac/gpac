@@ -2454,7 +2454,7 @@ GF_Err SWF_InitContext(SWFReader *read)
 	esd->decoderConfig->objectTypeIndication = 1;
 	esd->slConfig->timestampResolution = read->bifs_es->timeScale;
 	gf_odf_desc_del((GF_Descriptor *) esd->decoderConfig->decoderSpecificInfo);
-	esd->decoderConfig->decoderSpecificInfo = NULL;;
+	esd->decoderConfig->decoderSpecificInfo = NULL;
 	gf_list_add(od->ESDescriptors, esd);
 	e = swf_insert_od(read, 0, od);
 	if (e) {

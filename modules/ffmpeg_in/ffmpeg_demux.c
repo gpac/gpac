@@ -31,6 +31,7 @@ static u32 FFDemux_Run(void *par)
 {
 	AVPacket pkt;
 	s64 seek_to;
+	u64 seek_audio, seek_video;
 	Bool video_init, do_seek, map_audio_time, map_video_time;
 	GF_NetworkCommand com;
 	GF_NetworkCommand map;
@@ -50,6 +51,9 @@ static u32 FFDemux_Run(void *par)
 	map_video_time = !ffd->seekable;
 
 	video_init = (seek_to && ffd->video_ch) ? 0 : 1;
+	seek_audio = seek_video = 0;
+	if (ffd->seekable && (ffd->audio_st>=0)) seek_audio = (u64) (s64) (ffd->seek_time*ffd->audio_tscale.den);
+	if (ffd->seekable && (ffd->video_st>=0)) seek_video = (u64) (s64) (ffd->seek_time*ffd->video_tscale.den);
 
 	/*it appears that ffmpeg has trouble resyncing on some mpeg files - we trick it by restarting to 0 to get the 
 	first video frame, and only then seek*/
@@ -83,6 +87,9 @@ static u32 FFDemux_Run(void *par)
 				map_audio_time = 0;
 				gf_term_on_command(ffd->service, &map, GF_OK);
 			}
+			else if (slh.compositionTimeStamp < seek_audio) {
+				slh.decodingTimeStamp = slh.compositionTimeStamp = seek_audio;
+			}
 			gf_term_on_sl_packet(ffd->service, ffd->audio_ch, pkt.data, pkt.size, &slh, GF_OK);
 		} 
 		else if (ffd->video_ch && (pkt.stream_index == ffd->video_st)) {
@@ -99,6 +106,9 @@ static u32 FFDemux_Run(void *par)
 				map.map_time.media_time = ffd->seek_time;
 				map.map_time.reset_buffers = 0;
 				gf_term_on_command(ffd->service, &map, GF_OK);
+			}
+			else if (slh.compositionTimeStamp < seek_video) {
+				slh.decodingTimeStamp = slh.compositionTimeStamp = seek_video;
 			}
 			gf_term_on_sl_packet(ffd->service, ffd->video_ch, pkt.data, pkt.size, &slh, GF_OK);
 			video_init = 1;

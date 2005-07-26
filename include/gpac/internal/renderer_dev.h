@@ -391,35 +391,37 @@ u32 gf_mixer_get_src_count(GF_AudioMixer *am);
 void gf_mixer_force_chanel_out(GF_AudioMixer *am, u32 num_channels);
 u32 gf_mixer_get_block_align(GF_AudioMixer *am);
 
+
+enum
+{
+	GF_SR_AUDIO_NO_RESYNC	= (1),
+	GF_SR_AUDIO_NO_MULTI_CH = (1<<1),
+};
+
 /*the audio renderer*/
 typedef struct _audio_render
 {
 	GF_AudioOutput *audio_out;
+	u32 flags;
+
 	/*startup time (the audio renderer is used when present as the system clock)*/
 	u32 startTime;
 	/*frozen time counter if set*/
 	Bool Frozen;
 	u32 FreezeTime;
-
+	
 	/*final output*/
 	GF_AudioMixer *mixer;
+	Bool need_reconfig;
 	/*client*/
 	GF_User *user;
 
-	/*audio thread*/
+	/*audio thread if output not self-threaded*/
 	GF_Thread *th;
 	/*thread state: 0: not intit, 1: running, 2: waiting for stop, 3: done*/
 	u32 audio_th_state;
 
-	Bool resync_clocks;
-	Bool force_cfg;
-	u32 num_buffers, num_buffer_per_sec;
-	
-	Bool need_reconfig;
-	u32 priority;
-
-	u32 audio_delay;
-	u32 volume, pan;
+	u32 audio_delay, volume, pan;
 } GF_AudioRenderer;
 
 /*creates audio renderer*/

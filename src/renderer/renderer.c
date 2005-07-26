@@ -542,11 +542,13 @@ GF_Err gf_sr_set_size(GF_Renderer *sr, u32 NewWidth, u32 NewHeight)
 		sr->override_size_flags &= ~2;
 		return GF_OK;
 	}
-	if ((sr->width == NewWidth) && (sr->height == NewHeight) ) return GF_OK;
 	gf_sr_lock(sr, 1);
 	sr->new_width = NewWidth;
 	sr->new_height = NewHeight;
 	sr->msg_type |= GF_SR_CFG_SET_SIZE;
+	/*if same size only request for video setup */
+	if ((sr->width == NewWidth) && (sr->height == NewHeight) ) 
+		sr->msg_type |= GF_SR_CFG_WINDOWSIZE_NOTIF;
 	gf_sr_lock(sr, 0);
 	/*force video resize*/
 	if (!sr->VisualThread) gf_sr_reconfig_task(sr);
@@ -601,6 +603,15 @@ void SR_ReloadConfig(GF_Renderer *sr)
 
 	sOpt = gf_cfg_get_key(sr->user->config, "FontEngine", "UseTextureText");
 	sr->use_gf_sr_texture_text = (sOpt && ! stricmp(sOpt, "yes")) ? 1 : 0;
+
+	sOpt = gf_cfg_get_key(sr->user->config, "Audio", "NoResync");
+	if (sOpt && !stricmp(sOpt, "yes")) sr->audio_renderer->flags |= GF_SR_AUDIO_NO_RESYNC;
+	else sr->audio_renderer->flags &= ~GF_SR_AUDIO_NO_RESYNC;
+
+	sOpt = gf_cfg_get_key(sr->user->config, "Audio", "DisableMultiChannel");
+	if (sOpt && !stricmp(sOpt, "yes")) sr->audio_renderer->flags |= GF_SR_AUDIO_NO_MULTI_CH;
+	else sr->audio_renderer->flags &= ~GF_SR_AUDIO_NO_MULTI_CH;
+
 
 	sr->draw_next_frame = 1;
 

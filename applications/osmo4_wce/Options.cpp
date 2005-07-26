@@ -186,12 +186,12 @@ BOOL COptAudio::OnInitDialog()
 	} else {
 		m_AudioEdit.SetWindowText(_T("6"));
 	}
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "BuffersPerSecond");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "TotalDuration");
 	if (sOpt) {
 		CE_CharToWide((char *)sOpt, wTmp);
 		m_AudioFPS.SetWindowText(wTmp);
 	} else {
-		m_AudioFPS.SetWindowText(_T("15"));
+		m_AudioFPS.SetWindowText(_T("400"));
 	}
 
 	OnForceAudio();
@@ -240,7 +240,7 @@ void COptAudio::SaveOptions()
 	gf_cfg_set_key(gpac->m_user.config, "Audio", "NumBuffers", str);
 	m_AudioFPS.GetWindowText(wstr, 20);
 	CE_WideToChar(wstr, str);
-	gf_cfg_set_key(gpac->m_user.config, "Audio", "BuffersPerSecond", str);
+	gf_cfg_set_key(gpac->m_user.config, "Audio", "TotalDuration", str);
 
 	m_DriverList.GetWindowText(wstr, 50);
 	CE_WideToChar(wstr, str);

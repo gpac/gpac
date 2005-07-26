@@ -79,7 +79,7 @@ AntiAlias=All
 [Audio]
 ForceConfig=yes
 NumBuffers=8
-BuffersPerSecond=16
+TotalDuration=400
 DriverName=dx_hw
 
 [FontEngine]

@@ -135,7 +135,7 @@ static GF_Err AMR_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capa
 		capability->cap.valueInt = ctx->num_samples;
 		break;
 	case GF_CODEC_PADDING_BYTES:
-		capability->cap.valueInt = 0;
+		capability->cap.valueInt = 4;
 		break;
 	case GF_CODEC_CHANNEL_CONFIG:
 		if (ctx->num_channels==1) {

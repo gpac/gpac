@@ -20,7 +20,8 @@ public:
 	CButton	m_Notifs;
 	CComboBox	m_DriverList;
 	CButton	m_AudioResync;
-	CEdit	m_AudioFPS;
+	CButton	m_AudioMultiCH;
+	CEdit	m_AudioDur;
 	CSpinButtonCtrl	m_SpinFPS;
 	CButton	m_ForceConfig;
 	CSpinButtonCtrl	m_AudioSpin;

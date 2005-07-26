@@ -410,7 +410,7 @@ BOOL WinGPAC::InitInstance()
 		if (!sOpt) {
 			gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "yes");
 			gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "8");
-			gf_cfg_set_key(m_user.config, "Audio", "BuffersPerSecond", "16");
+			gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "400");
 		}
 		/*by default use GDIplus, much faster than freetype on font loading*/
 		gf_cfg_set_key(m_user.config, "FontEngine", "DriverName", "gdip_rend");

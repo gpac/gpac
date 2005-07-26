@@ -27,20 +27,23 @@
 void AR_FillBuffer(void *ar, char *buffer, u32 buffer_size);
 u32 AR_MainLoop(void *ar);
 
-GF_Err AR_SetupAudioFormat(GF_AudioRenderer *ar, GF_AudioOutput *dr)
+GF_Err AR_SetupAudioFormat(GF_AudioRenderer *ar)
 {
 	GF_Err e;
 	u32 freq, nb_bits, nb_chan, BPS, ch_cfg;
 	gf_mixer_get_config(ar->mixer, &freq, &nb_chan, &nb_bits, &ch_cfg);
 
+	/*user disabled multichannel audio*/
+	if ((ar->flags && GF_SR_AUDIO_NO_MULTI_CH) && (nb_chan>2)) nb_chan = 2;
+
 	/*we try to set the FPS so that SR*2/FPS is an integer, and FPS the smallest int >= 30 fps */
 	BPS = freq * nb_chan * nb_bits / 8;
-
-	e = dr->ConfigureOutput(dr, &freq, &nb_chan, &nb_bits, ch_cfg);
+	
+	e = ar->audio_out->ConfigureOutput(ar->audio_out, &freq, &nb_chan, &nb_bits, ch_cfg);
 	if (e) {
 		if (nb_chan>2) {
 			nb_chan=2;
-			e = dr->ConfigureOutput(dr, &freq, &nb_chan, &nb_bits, ch_cfg);
+			e = ar->audio_out->ConfigureOutput(ar->audio_out, &freq, &nb_chan, &nb_bits, ch_cfg);
 		}
 		if (e) return e;
 	}
@@ -54,25 +57,25 @@ GF_AudioRenderer *gf_sr_ar_load(GF_User *user)
 {
 	const char *sOpt;
 	u32 i, count;
+	u32 num_buffers, total_duration;
 	GF_Err e;
 	GF_AudioRenderer *ar;
 	ar = (GF_AudioRenderer *) malloc(sizeof(GF_AudioRenderer));
 	memset(ar, 0, sizeof(GF_AudioRenderer));
 
-	ar->force_cfg = 0;
-	ar->num_buffers = ar->num_buffer_per_sec = 0;
+	num_buffers = total_duration = 0;
 	sOpt = gf_cfg_get_key(user->config, "Audio", "ForceConfig");
 	if (sOpt && !stricmp(sOpt, "yes")) {
-		ar->force_cfg = 1;
 		sOpt = gf_cfg_get_key(user->config, "Audio", "NumBuffers");
-		ar->num_buffers = sOpt ? atoi(sOpt) : 6;
-		sOpt = gf_cfg_get_key(user->config, "Audio", "BuffersPerSecond");
-		ar->num_buffer_per_sec = sOpt ? atoi(sOpt) : 15;
+		num_buffers = sOpt ? atoi(sOpt) : 6;
+		sOpt = gf_cfg_get_key(user->config, "Audio", "TotalDuration");
+		total_duration = sOpt ? atoi(sOpt) : 400;
 	}
 
-	ar->resync_clocks = 1;
 	sOpt = gf_cfg_get_key(user->config, "Audio", "NoResync");
-	if (sOpt && !stricmp(sOpt, "yes")) ar->resync_clocks = 0;
+	if (sOpt && !stricmp(sOpt, "yes")) ar->flags |= GF_SR_AUDIO_NO_RESYNC;
+	sOpt = gf_cfg_get_key(user->config, "Audio", "DisableMultiChannel");
+	if (sOpt && !stricmp(sOpt, "yes")) ar->flags |= GF_SR_AUDIO_NO_MULTI_CH;
 	
 	ar->mixer = gf_mixer_new(ar);
 	ar->user = user;
@@ -106,8 +109,8 @@ GF_AudioRenderer *gf_sr_ar_load(GF_User *user)
 	if (ar->audio_out) {
 		ar->audio_out->FillBuffer = AR_FillBuffer;
 		ar->audio_out->audio_renderer = ar;
-		e = ar->audio_out->SetupHardware(ar->audio_out, ar->user->os_window_handler, ar->num_buffers, ar->num_buffer_per_sec);
-		if (e==GF_OK) e = AR_SetupAudioFormat(ar, ar->audio_out);
+		e = ar->audio_out->Setup(ar->audio_out, ar->user->os_window_handler, num_buffers, total_duration);
+		if (e==GF_OK) e = AR_SetupAudioFormat(ar);
 		if (e != GF_OK) {
 			gf_modules_close_interface((GF_BaseInterface *)ar->audio_out);
 			ar->audio_out = NULL;
@@ -242,7 +245,6 @@ void gf_sr_ar_remove_src(GF_AudioRenderer *ar, GF_AudioInterface *source)
 
 void gf_sr_ar_set_priority(GF_AudioRenderer *ar, u32 priority)
 {
-	ar->priority = priority;
 	if (ar->audio_out && ar->audio_out->SelfThreaded) {
 		ar->audio_out->SetPriority(ar->audio_out, priority);
 	} else {
@@ -283,7 +285,7 @@ void gf_sr_ar_reconfig(GF_AudioRenderer *ar)
 
 	AR_FreezeIntern(ar, 1, 1, 0);
 
-	AR_SetupAudioFormat(ar, ar->audio_out);
+	AR_SetupAudioFormat(ar);
 
 	AR_FreezeIntern(ar, 0, 1, 0);
 	

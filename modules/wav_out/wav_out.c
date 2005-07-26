@@ -44,7 +44,7 @@ typedef struct
 	u32 delay, total_length_ms;
 
 	Bool force_config;
-	u32 cfg_num_buffers, cfg_num_buffer_per_sec;
+	u32 cfg_num_buffers, cfg_duration;
 
 	char *wav_buf;
 } WAVContext;
@@ -112,14 +112,14 @@ const static GUID  GPAC_KSDATAFORMAT_SUBTYPE_PCM = {0x00000001,0x0000,0x0010, {0
 
 #define WAVCTX()	WAVContext *ctx = (WAVContext *)dr->opaque;
 
-static GF_Err WAV_SetupHardware(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u32 num_buffer_per_sec)
+static GF_Err WAV_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u32 total_duration)
 {
 	WAVCTX();
 
-	ctx->force_config = (num_buffers && num_buffer_per_sec) ? 1 : 0;
+	ctx->force_config = (num_buffers && total_duration) ? 1 : 0;
 	ctx->cfg_num_buffers = num_buffers;
 	if (ctx->cfg_num_buffers <= 1) ctx->cfg_num_buffers = 2;
-	ctx->cfg_num_buffer_per_sec = num_buffer_per_sec;
+	ctx->cfg_duration = total_duration;
 	if (!ctx->force_config) ctx->num_buffers = 6;
 
 	return GF_OK;
@@ -266,7 +266,7 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 		ctx->num_buffers = 8;
 	} else {
 		ctx->num_buffers = ctx->cfg_num_buffers;
-		ctx->buffer_size = ctx->fmt.nAvgBytesPerSec / ctx->cfg_num_buffer_per_sec;
+		ctx->buffer_size = (ctx->fmt.nAvgBytesPerSec * ctx->cfg_duration) / (1000 * ctx->cfg_num_buffers);
 	}
 
     ctx->event = CreateEvent( NULL, FALSE, FALSE, NULL);
@@ -436,7 +436,7 @@ void *NewWAVRender()
 	driv->opaque = ctx;
 
 	driv->SelfThreaded = 0;
-	driv->SetupHardware = WAV_SetupHardware;
+	driv->Setup = WAV_Setup;
 	driv->Shutdown = WAV_Shutdown;
 	driv->ConfigureOutput = WAV_ConfigureOutput;
 	driv->GetAudioDelay = WAV_GetAudioDelay;

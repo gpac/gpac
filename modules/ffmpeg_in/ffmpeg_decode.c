@@ -220,6 +220,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, unsigned char 
 				ffd->ctx->height = dsi.height;
 				if (!dsi.width && !dsi.height) ffd->check_short_header = 1;
 				ffd->previous_par = (dsi.par_num<<16) | dsi.par_den;
+				ffd->no_par_update = 1;
 			}
 
 			/*setup dsi for FFMPEG context BEFORE attaching decoder (otherwise not proper init)*/
@@ -442,7 +443,7 @@ redecode:
 		if (ffd->out_size < (u32) gotpic) {
 			ffd->ctx->bits_per_sample = 16;
 			/*looks like relying on frame_size is not a good idea for all codecs, so we use gotpic*/
-			ffd->out_size = gotpic;
+			(*outBufferLength) = ffd->out_size = gotpic;
 			return GF_BUFFER_TOO_SMALL;
 		}
 		if (ffd->out_size > buf_size) {
@@ -502,11 +503,13 @@ redecode:
 			return GF_BUFFER_TOO_SMALL;
 		}
 		/*check PAR in case on-the-fly change*/
-		outsize = (ffd->ctx->sample_aspect_ratio.num<<16) | ffd->ctx->sample_aspect_ratio.den;
-		if (outsize!=ffd->previous_par) {
-			ffd->previous_par=outsize;
-			*outBufferLength = ffd->out_size;
-			return GF_BUFFER_TOO_SMALL;
+		if (!ffd->no_par_update) {
+			outsize = (ffd->ctx->sample_aspect_ratio.num<<16) | ffd->ctx->sample_aspect_ratio.den;
+			if (outsize!=ffd->previous_par) {
+				ffd->previous_par=outsize;
+				*outBufferLength = ffd->out_size;
+				return GF_BUFFER_TOO_SMALL;
+			}
 		}
 
 		*outBufferLength = 0;

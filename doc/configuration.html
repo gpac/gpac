@@ -260,12 +260,14 @@ supported by some audio cards, therefore forcing the config may be very usefull.
 <B>NumBuffers</B> [value: <I>positive integer, 0 forbidden</I>]<BR>
 <DD>When config is forced, specifies the number of audio buffers to allocate (audio buffers are played in ring).<BR>
 <BR>
-<B>BuffersPerSecond</B> [value: <I>positive integer, 0 forbidden</I>]<BR>
-<DD>When config is forced, specifies the number of audio buffers per second. For example, a value of 15 means that each buffer will hold 1000/15 milliseconds of audio data. The total amount of audio buffering
-(and hence audio delay) is therefore <I>NumBuffers * 1000 / BuffersPerSecond milliseconds</I><BR>
+<B>TotalDuration</B> [value: <I>positive integer, 0 forbidden</I>]<BR>
+<DD>When config is forced, specifies the total audio buffer size in milliseconds.<BR>
 <BR>
 <B>NoResync</B> [value: <I>"yes" "no"</I>]<BR>
 <DD>Disables audio resynchronization: audio data is never dropped but may get out of sync.<BR>
+<BR>
+<B>DisableMultiChannel</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Disables audio multichannel output and always downmix to stereo. This may be usefull if the multichannel output behaves weirdly.<BR>
 <BR>
 <B>DisableNotification</B> [value: <I>"yes" "no"</I>]<BR>
 <DD>Disables usage of audio buffer notifications when supported (currently only DirectSound supports it). If DirectSound audio sounds weird try without notifications.<BR>

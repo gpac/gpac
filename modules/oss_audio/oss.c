@@ -53,7 +53,7 @@
 #define OSSCTX()	OSSContext *ctx = (OSSContext *)dr->opaque;
 
 
-static GF_Err OSS_SetupHardware(GF_AudioOutput*dr, void *os_handle, u32 num_buffers, u32 num_buffer_per_sec)
+static GF_Err OSS_Setup(GF_AudioOutput*dr, void *os_handle, u32 num_buffers, u32 total_duration)
 {
 	int audio;
 	OSSCTX();

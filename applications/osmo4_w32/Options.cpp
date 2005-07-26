@@ -890,7 +890,8 @@ void COptAudio::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_AUDIO_NOTIFS, m_Notifs);
 	DDX_Control(pDX, IDC_DRIVER_LIST, m_DriverList);
 	DDX_Control(pDX, IDC_AUDIO_RESYNC, m_AudioResync);
-	DDX_Control(pDX, IDC_AUDIO_FPS, m_AudioFPS);
+	DDX_Control(pDX, IDC_AUDIO_MULTICH, m_AudioMultiCH);
+	DDX_Control(pDX, IDC_AUDIO_FPS, m_AudioDur);
 	DDX_Control(pDX, IDC_SPIN_FPS, m_SpinFPS);
 	DDX_Control(pDX, IDC_FORCE_AUDIO, m_ForceConfig);
 	DDX_Control(pDX, IDC_SPIN_AUDIO, m_AudioSpin);
@@ -914,7 +915,8 @@ BOOL COptAudio::OnInitDialog()
 	CDialog::OnInitDialog();
 
 	m_AudioSpin.SetBuddy(& m_AudioEdit);
-	m_SpinFPS.SetBuddy(& m_AudioFPS);
+	m_SpinFPS.SetBuddy(& m_AudioDur);
+	m_SpinFPS.SetRange(0, 2000);
 
 	WinGPAC *gpac = GetApp();
 	const char *sOpt;
@@ -931,21 +933,19 @@ BOOL COptAudio::OnInitDialog()
 	} else {
 		m_AudioEdit.SetWindowText("6");
 	}
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "BuffersPerSecond");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "TotalDuration");
 	if (sOpt) {
-		m_AudioFPS.SetWindowText(sOpt);
+		m_AudioDur.SetWindowText(sOpt);
 	} else {
-		m_AudioFPS.SetWindowText("15");
+		m_AudioDur.SetWindowText("400");
 	}
 
 	OnForceAudio();
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "NoResync");
-	if (sOpt && !stricmp(sOpt, "yes")) {
-		m_AudioResync.SetCheck(1);
-	} else {
-		m_AudioResync.SetCheck(0);
-	}
+	m_AudioResync.SetCheck( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "DisableMultiChannel");
+	m_AudioMultiCH.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	
 	/*driver enum*/
 	while (m_DriverList.GetCount()) m_DriverList.DeleteString(0);
@@ -984,11 +984,12 @@ void COptAudio::SaveOptions()
 
 	gf_cfg_set_key(gpac->m_user.config, "Audio", "ForceConfig", m_ForceConfig.GetCheck() ? "yes" : "no");
 	gf_cfg_set_key(gpac->m_user.config, "Audio", "NoResync", m_AudioResync.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Audio", "DisableMultiChannel", m_AudioMultiCH.GetCheck() ? "yes" : "no");
 
 	m_AudioEdit.GetWindowText(str, 20);
 	gf_cfg_set_key(gpac->m_user.config, "Audio", "NumBuffers", str);
-	m_AudioFPS.GetWindowText(str, 20);
-	gf_cfg_set_key(gpac->m_user.config, "Audio", "BuffersPerSecond", str);
+	m_AudioDur.GetWindowText(str, 20);
+	gf_cfg_set_key(gpac->m_user.config, "Audio", "TotalDuration", str);
 
 	m_DriverList.GetWindowText(str, 50);
 	gf_cfg_set_key(gpac->m_user.config, "Audio", "DriverName", str);
@@ -1006,7 +1007,7 @@ void COptAudio::OnForceAudio()
 	m_AudioSpin.EnableWindow(en);
 	m_AudioEdit.EnableWindow(en);
 	m_SpinFPS.EnableWindow(en);
-	m_AudioFPS.EnableWindow(en);
+	m_AudioDur.EnableWindow(en);
 }
 
 void COptAudio::OnSelchangeDriverList() 
