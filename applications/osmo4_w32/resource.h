@@ -80,6 +80,7 @@
 #define IDC_FONT_LIST                   1050
 #define IDC_BROWSE_FONT                 1051
 #define IDC_USE_FONT                    1052
+#define IDC_TEXTURE_MODE                1052
 #define IDC_SAVEOPT                     1053
 #define IDC_PORT                        1054
 #define IDC_RTSP                        1055

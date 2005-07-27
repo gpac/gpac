@@ -41,7 +41,7 @@ typedef struct
 	Fixed ascent, descent;
 	GF_List *text_lines;
 	GF_Rect bounds;
-	Bool gf_sr_texture_text_flag;
+	Bool texture_text_flag;
 } TextStack;
 
 /*default value when no fontStyle*/
@@ -795,7 +795,7 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 	char *hlight;
 	SFColorRGBA hl_color;
 	CachedTextLine *tl;
-	Bool draw2D, draw3D, vect_outline, has_texture, do_gf_sr_texture_text, renorm;
+	Bool draw2D, draw3D, vect_outline, has_texture, can_texture_text, renorm;
 	Render3D *sr = (Render3D*)st->compositor->visual_renderer->user_priv;
 	M_FontStyle *fs = (M_FontStyle *) ((M_Text *) st->owner)->fontStyle;
 
@@ -860,18 +860,18 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 		}
 		if (asp.alpha == 0) hlight = NULL;
 	}
-	if (strstr(fs_style, "TEXTURED")) st->gf_sr_texture_text_flag = 1;
+	if (strstr(fs_style, "TEXTURED")) st->texture_text_flag = 1;
 
 	renorm = (draw3D && eff->has_scale) ? 1 : 0;
 
 	/*setup texture*/
-	do_gf_sr_texture_text = 0;
+	can_texture_text = 0;
 	has_texture = VS_setup_texture(eff);
 	if (draw2D || draw3D) {
 		/*check if we can use text texturing*/
-		if (!has_texture && (sr->compositor->use_gf_sr_texture_text || st->gf_sr_texture_text_flag) ) {
-			do_gf_sr_texture_text = 1;
-			if (draw2D && asp.pen_props.width) do_gf_sr_texture_text = 0;
+		if (!has_texture && (sr->compositor->texture_text_mode || st->texture_text_flag) ) {
+			can_texture_text = 1;
+			if (draw2D && asp.pen_props.width) can_texture_text = 0;
 		}
 	}
 
@@ -884,7 +884,7 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 			assert(tl);
 			if (hlight) VS3D_FillRect(eff->surface, tl->bounds, hl_color);
 
-			if (do_gf_sr_texture_text && TextLine_TextureIsReady(tl)) {
+			if (can_texture_text && TextLine_TextureIsReady(tl)) {
 				tx_enable(&tl->txh, NULL);
 				VS3D_DrawMesh(eff, tl->tx_mesh, eff->has_scale);
 				tx_disable(&tl->txh);
@@ -900,7 +900,7 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 
 				if (hlight) VS3D_FillRect(eff->surface, tl->bounds, hl_color);
 
-				if (do_gf_sr_texture_text && TextLine_TextureIsReady(tl)) {
+				if (can_texture_text && TextLine_TextureIsReady(tl)) {
 					tx_enable(&tl->txh, NULL);
 					VS3D_DrawMesh(eff, tl->tx_mesh, eff->has_scale);
 					tx_disable(&tl->txh);
@@ -1056,7 +1056,7 @@ static void RenderTextureText(GF_Node *node, void *rs)
 	ntag = gf_node_get_tag(text);
 	if ((ntag != TAG_MPEG4_Text) && (ntag != TAG_X3D_Text)) return;
 	stack = (TextStack *) gf_node_get_private(text);
-	stack->gf_sr_texture_text_flag = *(SFBool*)field.far_ptr ? 1 : 0;
+	stack->texture_text_flag = *(SFBool*)field.far_ptr ? 1 : 0;
 }
 
 void R3D_InitTextureText(Render3D *sr, GF_Node *node)

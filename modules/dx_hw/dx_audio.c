@@ -154,8 +154,8 @@ static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCha
 	ctx->format.nAvgBytesPerSec = ctx->format.nSamplesPerSec * ctx->format.nBlockAlign;
 
 	if (!ctx->force_config) {
-		ctx->buffer_size = ctx->format.nBlockAlign * 2048;
-		ctx->num_audio_buffer = 8;
+		ctx->buffer_size = ctx->format.nBlockAlign * 1024;
+		ctx->num_audio_buffer = 2;
 	} else {
 		ctx->num_audio_buffer = ctx->cfg_num_buffers;
 		ctx->buffer_size = (ctx->format.nAvgBytesPerSec * ctx->cfg_duration) / (1000 * ctx->cfg_num_buffers);

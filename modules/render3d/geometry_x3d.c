@@ -442,6 +442,7 @@ static void ITS_SetIndex(GF_Node *node)
 {
 	X_IndexedTriangleSet *its = (X_IndexedTriangleSet*)node;
 	gf_sg_vrml_field_copy(&its->index, &its->set_index, GF_SG_VRML_MFINT32);
+	gf_sg_vrml_mf_reset(&its->set_index, GF_SG_VRML_MFINT32);
 }
 
 void R3D_InitIndexedTriangleSet(Render3D *sr, GF_Node *node)
@@ -692,6 +693,7 @@ static void ITSS_SetIndex(GF_Node *node)
 {
 	X_IndexedTriangleStripSet *itss = (X_IndexedTriangleStripSet*)node;
 	gf_sg_vrml_field_copy(&itss->index, &itss->set_index, GF_SG_VRML_MFINT32);
+	gf_sg_vrml_mf_reset(&itss->set_index, GF_SG_VRML_MFINT32);
 }
 
 void R3D_InitIndexedTriangleStripSet(Render3D *sr, GF_Node *node)
@@ -915,6 +917,7 @@ static void ITFS_SetIndex(GF_Node *node)
 {
 	X_IndexedTriangleFanSet *itfs = (X_IndexedTriangleFanSet *)node;
 	gf_sg_vrml_field_copy(&itfs->index, &itfs->set_index, GF_SG_VRML_MFINT32);
+	gf_sg_vrml_mf_reset(&itfs->set_index, GF_SG_VRML_MFINT32);
 }
 
 void R3D_InitIndexedTriangleFanSet(Render3D *sr, GF_Node *node)

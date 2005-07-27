@@ -129,8 +129,8 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 #endif
 	gf_cfg_set_key(cfg, "General", "ModulesDirectory", szPath);
 	gf_cfg_set_key(cfg, "Audio", "ForceConfig", "yes");
-	gf_cfg_set_key(cfg, "Audio", "NumBuffers", "8");
-	gf_cfg_set_key(cfg, "Audio", "TotalDuration", "400");
+	gf_cfg_set_key(cfg, "Audio", "NumBuffers", "2");
+	gf_cfg_set_key(cfg, "Audio", "TotalDuration", "120");
 	gf_cfg_set_key(cfg, "Audio", "DisableNotification", "no");
 	gf_cfg_set_key(cfg, "FontEngine", "DriverName", "ft_font");
 	fprintf(stdout, "Please enter full path to a TrueType font directory (.ttf, .ttc):\n");
@@ -844,6 +844,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID)
 		fprintf(stdout, "Service URL: %s\n", odi.service_url);
 	}		
 	if (odi.codec_name) {
+		Float avg_dec_time;
 		switch (odi.od_type) {
 		case GF_STREAM_VISUAL:
 			fprintf(stdout, "Video Object: Width %d - Height %d\r\n", odi.width, odi.height);
@@ -871,6 +872,14 @@ void ViewOD(GF_Terminal *term, u32 OD_ID)
 			fprintf(stdout, "Text Codec %s\n", odi.codec_name);
 			break;
 		}
+	
+		avg_dec_time = 0;
+		if (odi.nb_dec_frames) { 
+			avg_dec_time = (Float) odi.total_dec_time; 
+			avg_dec_time /= odi.nb_dec_frames; 
+		}
+		fprintf(stdout, "\tBitrate over last second: %d kbps\n\tMax bitrate over one second: %d kbps\n\tAverage Decoding Time %.2f ms (%d max)\n\tTotal decoded frames %d\n", 
+			(u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time, odi.nb_dec_frames);
 	}
 	if (odi.protection) fprintf(stdout, "Encrypted Media%s\n", (odi.protection==2) ? " NOT UNLOCKED" : "");
 
@@ -1159,7 +1168,7 @@ void PrintGPACConfig(GF_Terminal *term, GF_Config *cfg_file)
 	}
 	str = gf_cfg_get_key(cfg_file, "Rendering", "FrameRate"); fprintf(stdout, "Target Frame Rate: %s\n", str ? str : "30.0");
 	str = gf_cfg_get_key(cfg_file, "Rendering", "AntiAlias"); fprintf(stdout, "Anti-Aliasing level: %s\n", str ? str : "None");
-	str = gf_cfg_get_key(cfg_file, "FontEngine", "UseTextureText"); fprintf(stdout, "Text uses texturing: %s\n", str ? str : "no");
+	str = gf_cfg_get_key(cfg_file, "FontEngine", "TextureTextMode"); fprintf(stdout, "Text Texturing: %s\n", str ? str : "no");
 	str = gf_cfg_get_key(cfg_file, "Network", "BufferLength"); fprintf(stdout, "Network Buffering: %s ms - ", str ? str : "no");
 	str = gf_cfg_get_key(cfg_file, "Network", "RebufferLength"); 
 	if (!str || !atoi(str)) {

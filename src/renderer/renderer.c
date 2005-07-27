@@ -601,8 +601,10 @@ void SR_ReloadConfig(GF_Renderer *sr)
 		if (stricmp(dr_name, sOpt)) SR_SetFontEngine(sr);
 	}
 
-	sOpt = gf_cfg_get_key(sr->user->config, "FontEngine", "UseTextureText");
-	sr->use_gf_sr_texture_text = (sOpt && ! stricmp(sOpt, "yes")) ? 1 : 0;
+	sOpt = gf_cfg_get_key(sr->user->config, "FontEngine", "TextureTextMode");
+	if (sOpt && !stricmp(sOpt, "Always")) sr->texture_text_mode = GF_TEXTURE_TEXT_ALWAYS;
+	else if (sOpt && !stricmp(sOpt, "3D")) sr->texture_text_mode = GF_TEXTURE_TEXT_3D;
+	else sr->texture_text_mode = GF_TEXTURE_TEXT_NONE;
 
 	sOpt = gf_cfg_get_key(sr->user->config, "Audio", "NoResync");
 	if (sOpt && !stricmp(sOpt, "yes")) sr->audio_renderer->flags |= GF_SR_AUDIO_NO_RESYNC;
@@ -636,7 +638,7 @@ GF_Err gf_sr_set_option(GF_Renderer *sr, u32 type, u32 value)
 	case GF_OPT_ANTIALIAS: sr->antiAlias = value; break;
 	case GF_OPT_HIGHSPEED: sr->high_speed = value; break;
 	case GF_OPT_DRAW_BOUNDS: sr->draw_bvol = value; break;
-	case GF_OPT_TEXTURE_TEXT: sr->use_gf_sr_texture_text = value; break;
+	case GF_OPT_TEXTURE_TEXT: sr->texture_text_mode = value; break;
 	case GF_OPT_ASPECT_RATIO: 
 		sr->aspect_ratio = value; 
 		sr->msg_type |= GF_SR_CFG_AR;
@@ -693,7 +695,7 @@ u32 gf_sr_get_option(GF_Renderer *sr, u32 type)
 	case GF_OPT_INTERACTION_LEVEL: return sr->interaction_level;
 	case GF_OPT_VISIBLE: return !sr->is_hidden;
 	case GF_OPT_FREEZE_DISPLAY: return sr->freeze_display;
-	case GF_OPT_TEXTURE_TEXT: return sr->use_gf_sr_texture_text;
+	case GF_OPT_TEXTURE_TEXT: return sr->texture_text_mode;
 	default: return sr->visual_renderer->GetOption(sr->visual_renderer, type);
 	}
 }

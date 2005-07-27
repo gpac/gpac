@@ -184,14 +184,14 @@ BOOL COptAudio::OnInitDialog()
 		CE_CharToWide((char *)sOpt, wTmp);
 		m_AudioEdit.SetWindowText(wTmp);
 	} else {
-		m_AudioEdit.SetWindowText(_T("6"));
+		m_AudioEdit.SetWindowText(_T("2"));
 	}
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "TotalDuration");
 	if (sOpt) {
 		CE_CharToWide((char *)sOpt, wTmp);
 		m_AudioFPS.SetWindowText(wTmp);
 	} else {
-		m_AudioFPS.SetWindowText(_T("400"));
+		m_AudioFPS.SetWindowText(_T("120"));
 	}
 
 	OnForceAudio();
@@ -414,8 +414,8 @@ BOOL COptFont::OnInitDialog()
 	CE_CharToWide((char *)sOpt, wTmp);
 	if (sOpt) m_BrowseFont.SetWindowText(wTmp);
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "UseTextureText");
-	m_UseTexture.SetCheck( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "TextureTextMode");
+	m_UseTexture.SetCheck( (!sOpt || stricmp(sOpt, "Never")) ? 1 : 0);
 
 	return TRUE;  
 }
@@ -438,7 +438,7 @@ void COptFont::SaveOptions()
 	m_BrowseFont.GetWindowText(wstr, 50);
 	CE_WideToChar(wstr, str);
 	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "FontDirectory", str);
-	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "UseTextureText", m_UseTexture.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "TextureTextMode", m_UseTexture.GetCheck() ? "Always" : "Never");
 }
 
 

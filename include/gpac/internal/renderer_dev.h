@@ -122,8 +122,8 @@ struct __tag_base_renderer
 	GF_FontRaster *font_engine;
 
 	/*options*/
-	u32 aspect_ratio, antiAlias;
-	Bool high_speed, stress_mode, use_gf_sr_texture_text;
+	u32 aspect_ratio, antiAlias, texture_text_mode;
+	Bool high_speed, stress_mode;
 
 	/*key modif*/
 	u32 key_states;
@@ -390,6 +390,7 @@ Bool gf_mixer_is_src_present(GF_AudioMixer *am, GF_AudioInterface *ifce);
 u32 gf_mixer_get_src_count(GF_AudioMixer *am);
 void gf_mixer_force_chanel_out(GF_AudioMixer *am, u32 num_channels);
 u32 gf_mixer_get_block_align(GF_AudioMixer *am);
+Bool gf_mixer_must_reconfig(GF_AudioMixer *am);
 
 
 enum

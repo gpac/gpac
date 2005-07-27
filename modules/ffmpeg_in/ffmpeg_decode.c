@@ -391,7 +391,7 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 	u32 outsize;
 	FFDec *ffd = plug->privateStack;
 
-#if 0
+#if 1
 	if (!ffd->ctx->hurry_up) {
 		switch (mmlevel) {
 		case GF_CODEC_LEVEL_SEEK:

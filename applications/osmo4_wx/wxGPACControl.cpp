@@ -144,8 +144,14 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	//s_header->Add(new wxStaticText(this, 0, wxT("Category"), wxDefaultPosition, wxSize(60, 20)), wxALIGN_CENTER);
 	m_select = new wxComboBox(this, ID_SELECT, wxT(""), wxDefaultPosition, wxSize(120, 30), 0, NULL, wxCB_READONLY);
 	s_header->Add(m_select, 2, wxALIGN_CENTER | wxADJUST_MINSIZE);
-	s_header->Add( new wxButton(this, ID_APPLY, wxT("Apply"), wxDefaultPosition, wxSize(40, 30)),
-		1, wxALIGN_CENTER | wxALIGN_RIGHT | wxADJUST_MINSIZE);
+	s_header->Add( new wxButton(this, ID_APPLY, wxT("Apply"), wxDefaultPosition, 
+#ifdef WIN32
+		wxSize(40, 20)
+#else
+		wxSize(40, 30)
+#endif
+		),
+		1, wxALIGN_TOP|wxALIGN_RIGHT|wxADJUST_MINSIZE);
 	s_main->Add(s_header, 0, wxEXPAND, 0);
 		
 	/*general section*/
@@ -320,8 +326,11 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_fontdir = new wxButton(this, ID_FONT_DIR, wxT("..."), wxDefaultPosition, wxDefaultSize);
 	bs->Add(m_fontdir, wxALIGN_CENTER | wxADJUST_MINSIZE);
 	s_font->Add(bs, 0, wxALL|wxEXPAND, 2);
-	m_usetexture = new wxCheckBox(this, -1, wxT("Draw text through texturing"));
-	s_font->Add(m_usetexture);
+	bs = new wxBoxSizer(wxHORIZONTAL);
+	bs->Add(new wxStaticText(this, 0, wxT("Text Texturing Mode")), wxALIGN_CENTER | wxADJUST_MINSIZE | wxALIGN_RIGHT);
+	m_texturemode = new wxComboBox(this, 0, wxT(""), wxDefaultPosition, wxDefaultSize, 0, NULL, wxCB_READONLY);
+	bs->Add(m_texturemode, wxALIGN_CENTER | wxADJUST_MINSIZE);
+	s_font->Add(bs, 0, wxALL|wxEXPAND, 2);
 	s_main->Add(s_font, 0, wxEXPAND, 0);
 
 	/*download*/
@@ -555,9 +564,9 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	sOpt = gf_cfg_get_key(cfg, "Audio", "ForceConfig");
 	m_forcecfg->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(cfg, "Audio", "NumBuffers");
-	m_nbbuf->SetValue( sOpt ? wxString(sOpt, wxConvUTF8) : wxT("6"));
+	m_nbbuf->SetValue( sOpt ? wxString(sOpt, wxConvUTF8) : wxT("2"));
 	sOpt = gf_cfg_get_key(cfg, "Audio", "TotalDuration");
-	m_buflen->SetValue( sOpt ? wxString(sOpt, wxConvUTF8) : wxT("400"));
+	m_buflen->SetValue( sOpt ? wxString(sOpt, wxConvUTF8) : wxT("120"));
 	wxCommandEvent event;
 	ForceAudio(event);
 	sOpt = gf_cfg_get_key(cfg, "Audio", "NoResync");
@@ -598,8 +607,13 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_font->SetSelection(select);
 	sOpt = gf_cfg_get_key(cfg, "FontEngine", "FontDirectory");
 	if (sOpt) m_fontdir->SetLabel(wxString(sOpt, wxConvUTF8) );
-	sOpt = gf_cfg_get_key(cfg, "FontEngine", "UseTextureText");
-	m_usetexture->SetValue((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(cfg, "FontEngine", "TextureTextMode");
+	m_texturemode->Append(wxT("Never"));
+	m_texturemode->Append(wxT("3D Only"));
+	m_texturemode->Append(wxT("Always"));
+	if (sOpt && !stricmp(sOpt, "Always")) m_texturemode->SetSelection(2);
+	else if (sOpt && !stricmp(sOpt, "3D")) m_texturemode->SetSelection(1);
+	else m_texturemode->SetSelection(0);
 
 	/*downloader*/
 	sOpt = gf_cfg_get_key(cfg, "Downloader", "CleanCache");
@@ -925,7 +939,11 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 	
 	gf_cfg_set_key(cfg, "FontEngine", "DriverName", m_font->GetStringSelection().mb_str(wxConvUTF8));
 	gf_cfg_set_key(cfg, "FontEngine", "FontDirectory", m_fontdir->GetLabel().mb_str(wxConvUTF8));
-	gf_cfg_set_key(cfg, "FontEngine", "UseTextureText", m_usetexture->GetValue() ? "yes" : "no");
+	switch (m_texturemode->GetSelection()) {
+	case 2: gf_cfg_set_key(cfg, "FontEngine", "TextureTextMode", "Always"); break;
+	case 1: gf_cfg_set_key(cfg, "FontEngine", "TextureTextMode", "3D"); break;
+	default: gf_cfg_set_key(cfg, "FontEngine", "TextureTextMode", "Never"); break;
+	}
 
 	gf_cfg_set_key(cfg, "Downloader", "CleanCache", m_cleancache->GetValue() ? "yes" : "no");
 	gf_cfg_set_key(cfg, "Downloader", "RestartFiles", m_restartcache->GetValue() ? "yes" : "no");

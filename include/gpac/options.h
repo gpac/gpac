@@ -144,6 +144,15 @@ enum
 	GF_COLLISION_DISPLACEMENT,
 };
 
+/*TextTexturing settings*/
+enum
+{
+	GF_TEXTURE_TEXT_NONE = 0, /*text never drawn as texture*/
+	GF_TEXTURE_TEXT_3D, /*text drawn as texture in 3D mode only*/
+	GF_TEXTURE_TEXT_ALWAYS /*text always drawn as texture*/
+};
+
+
 /*high-level options*/
 enum
 {

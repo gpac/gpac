@@ -93,6 +93,11 @@ GF_AudioMixer *gf_mixer_new(struct _audio_render *ar)
 	return am;
 }
 
+Bool gf_mixer_must_reconfig(GF_AudioMixer *am) 
+{
+	return am->must_reconfig;
+}
+
 void gf_mixer_del(GF_AudioMixer *am)
 {
 	gf_list_del(am->sources);
@@ -104,7 +109,6 @@ void gf_mixer_del(GF_AudioMixer *am)
 void gf_mixer_remove_all(GF_AudioMixer *am)
 {
 	u32 j;
-	if (am->isEmpty) return;
 	gf_mixer_lock(am, 1);
 	while (gf_list_count(am->sources)) {
 		MixerInput *in = gf_list_get(am->sources, 0);
@@ -114,6 +118,7 @@ void gf_mixer_remove_all(GF_AudioMixer *am)
 		}
 		free(in);
 	}
+	am->isEmpty = 1,
 	gf_mixer_lock(am, 0);
 }
 
@@ -179,7 +184,7 @@ void gf_mixer_remove_input(GF_AudioMixer *am, GF_AudioInterface *src)
 		free(in);
 		break;
 	}
-	am->isEmpty = gf_list_count(am->sources);
+	am->isEmpty = gf_list_count(am->sources) ? 0 : 1;
 	/*we don't ask for reconfig when removing a node*/
 	gf_mixer_lock(am, 0);
 }
@@ -220,9 +225,11 @@ void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outBPS, u3
 Bool gf_mixer_reconfig(GF_AudioMixer *am)
 {
 	u32 i, count, numInit, max_sample_rate, max_channels, max_bps, cfg_changed, ch_cfg;
-	if (am->isEmpty || !am->must_reconfig) return 0;
-
 	gf_mixer_lock(am, 1);
+	if (am->isEmpty || !am->must_reconfig) {
+		gf_mixer_lock(am, 0);
+		return 0;
+	}
 	numInit = 0;
 	max_sample_rate = am->sample_rate;
 	max_channels = am->nb_channels;
@@ -232,6 +239,7 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 
 
 	count = gf_list_count(am->sources);
+	assert(count);
 	for (i=0; i<count; i++) {
 		Bool has_cfg;
 		MixerInput *in = (MixerInput *) gf_list_get(am->sources, i);
@@ -617,11 +625,12 @@ do_mix:
 		in->out_samples_written = 0;
 		in->in_bytes_used = 0;
 
-		/*if cfg unknown or changed (AudioBuffer child...) reconfig*/
+		/*if cfg unknown or changed (AudioBuffer child...) invalidate cfg settings*/
 		if (!in->src->GetConfig(in->src, 0)) {
 			nb_act_src = 0;
 			am->must_reconfig = 1;
-			gf_mixer_reconfig(am);
+			/*if main mixer reconfig asap*/
+			if (am->ar) gf_mixer_reconfig(am);
 			break;
 		} else if (in->speed==0) {
 			in->out_samples_to_write = 0;
@@ -720,6 +729,7 @@ do_mix:
 	}
 
 	nb_written *= am->nb_channels*am->bits_per_sample/8;
+	if (am->ar && (buffer_size > nb_written)) memset((char *)buffer + nb_written, 0, sizeof(char)*(buffer_size-nb_written));
 	gf_mixer_lock(am, 0);
 	return nb_written;
 }

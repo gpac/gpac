@@ -254,14 +254,15 @@ bitmap depending on the graphics card. Some cards will have faster pixel copy ro
 <DD>Specifies the driver to use for audio rendering. This driver cannot be reloaded at run-time, the complete system must be restarted.<BR>
 <BR>
 <B>ForceConfig</B> [value: <I>"yes" "no"</I>]<BR>
-<DD>Forces a given sound card configuration to be used. If not set the sound card will be setup to use audio buffers with a duration close to 30 frame per seconds (depending on audio samplerate). This may be not
-supported by some audio cards, therefore forcing the config may be very usefull.<BR>
+<DD>Forces a given sound card configuration to be used. If not set the sound card will be setup to use 2 audio buffers of 1024 samples each. 
+This may not work properly on some audio cards due to hardware latency, therefore forcing the config may be very usefull.<BR>
 <BR>
 <B>NumBuffers</B> [value: <I>positive integer, 0 forbidden</I>]<BR>
 <DD>When config is forced, specifies the number of audio buffers to allocate (audio buffers are played in ring).<BR>
 <BR>
 <B>TotalDuration</B> [value: <I>positive integer, 0 forbidden</I>]<BR>
-<DD>When config is forced, specifies the total audio buffer size in milliseconds.<BR>
+<DD>When config is forced, specifies the total audio buffer size in milliseconds. Be aware that the longer the audio buffer is, the longer the audio latency will be when pausing an 
+audio object. The quality of fast forward audio playback will also be degradated when using large audio buffers.<BR>
 <BR>
 <B>NoResync</B> [value: <I>"yes" "no"</I>]<BR>
 <DD>Disables audio resynchronization: audio data is never dropped but may get out of sync.<BR>
@@ -333,7 +334,7 @@ integrate text rendering which is always heavy work.<BR>
 <B>FontDirectory</B> (value: <I>path to TrueType (*.ttf, *.ttc) font directory</I>]<BR>
 <DD>Specifies the directory where fonts are located - currently only one directory can be specified (however nothing stops a font module from using a private directory).<BR>
 <BR>
-<B>UseTextureText</B> (value: <I>"yes", "no"</I>]<BR>
+<B>TextureTextMode</B> (value: <I>"Never", "3D", "Always"</I>]<BR>
 <DD>Specifies whether text shall be drawn to a texture and then rendered or directly rendered. Using textured text can improve text look in the 3D renderer and also improve text-on-video like content.<BR>
 <BR>
 <B>FontSerif</B> [value: <I>string</I>]}: specifies default SERIF font.<BR>

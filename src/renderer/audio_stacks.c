@@ -305,7 +305,7 @@ typedef struct
 	Bool set_duration;
 	/*AudioBuffer mixes its children*/
 	GF_AudioMixer *am;
-	Bool is_init;
+	Bool is_init, is_muted;
 	/*buffer audio data*/
 	char *buffer;
 	u32 buffer_size;
@@ -385,6 +385,9 @@ static void RenderAudioBuffer(GF_Node *node, void *rs)
 	/*Note the audio buffer is ALWAYS registered untill destroyed since buffer filling shall happen even when inactive*/
 	if (!st->output.register_with_parent || !st->output.register_with_renderer) 
 		gf_sr_audio_register(&st->output, eff);
+
+	/*store mute flag*/
+	st->is_muted = (eff->trav_flags & GF_SR_TRAV_SWITCHED_OFF);
 }
 
 
@@ -511,21 +514,24 @@ static Bool AB_GetChannelVolume(void *callback, Fixed *vol)
 
 static Bool AB_IsMuted(void *callback)
 {
-	/*no mute on AudioBuffer*/
-	return 0;
+	AudioBufferStack *st = (AudioBufferStack *) gf_node_get_private( ((GF_AudioInput *) callback)->owner);
+	return st->is_muted;
 }
 
 static Bool AB_GetConfig(GF_AudioInterface *aifc, Bool for_reconf)
 {
 	AudioBufferStack *st = (AudioBufferStack *) gf_node_get_private( ((GF_AudioInput *) aifc->callback)->owner);
 
-	if (gf_mixer_reconfig(st->am)) {
-		if (st->buffer) free(st->buffer);
-		st->buffer = NULL;
-		st->buffer_size = 0;
+	if (gf_mixer_must_reconfig(st->am)) {
+		if (gf_mixer_reconfig(st->am)) {
+			if (st->buffer) free(st->buffer);
+			st->buffer = NULL;
+			st->buffer_size = 0;
+		}
 
 		gf_mixer_get_config(st->am, &aifc->sr, &aifc->chan, &aifc->bps, &aifc->ch_cfg);
 		st->is_init = (aifc->sr && aifc->chan && aifc->bps) ? 1 : 0;
+		assert(st->is_init);
 		if (!st->is_init) aifc->sr = aifc->chan = aifc->bps = aifc->ch_cfg = 0;
 		/*this will force invalidation*/
 		return (for_reconf && st->is_init) ? 1 : 0;

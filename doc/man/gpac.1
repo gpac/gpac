@@ -183,14 +183,14 @@ The "Audio" section holds all configuration options for the audio rendering engi
 and hardware. Note that most options depend on the driver used and may be ignored by the driver. The following options are defined:
 .TP
 .B ForceConfig (value: yes, no)
-Forces a given sound card configuration to be used. If not set the sound card will be setup to use audio buffers with a duration close to 30 frame per seconds (depending on audio samplerate). This may be not supported by some audio cards, therefore forcing the config may be very usefull
+Forces a given sound card configuration to be used. If not set the sound card will be setup to use 2 audio buffers of 1024 samples each. This may not work properly on some audio cards due to hardware latency, therefore forcing the config may be very usefull.
 .TP
 .B NumBuffers (value: integer, 0 forbidden)
 When config is forced, specifies the number of audio buffers to allocate (audio buffers are played in ring if possible, otherwise a single audio
 buffer is allocated).
 .TP
 .B TotalDuration (value: integer, 0 forbidden)
-When config is forced, specifies the total audio buffer size in milliseconds.
+When config is forced, specifies the total audio buffer size in milliseconds. Be aware that the longer the audio buffer is, the longer the audio latency will be when pausing an audio object. The quality of fast forward audio playback will also be degradated when using large audio buffers.
 .br
 .B Note:
 The SDL audio plugin does not use the TotalDuration and num buffers in the same way, it just computes the desired audio buffer size with this settings and picks the next power of 2 size for audio buffer size. It does not use ring buffers either.
@@ -255,7 +255,7 @@ specifies the driver to use for font handling.
 .B FontDirectory (value: path)
 specifies the directory where fonts are located - currently only one directory can be specified (however nothing stops a font plugin from using a private directory). If the directory is invalid or does not contain fonts, text may be unavailable in GPAC.
 .TP
-.B UseTextureText (value: yes, no)
+.B TextureTextMode (value: Never, 3D, Always)
 specifies whether text shall be drawn to a texture and then rendered or directly rendered. Using textured text can improve text look in the 3D renderer and also improve text-on-video like content.
 .TP
 .B FontSerif (value: string)

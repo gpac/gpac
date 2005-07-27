@@ -27,6 +27,7 @@
 #include "stacks2d.h"
 #include "visualsurface2d.h"
 #include <gpac/utf.h>
+#include <gpac/options.h>
 
 /*default value when no fontStyle*/
 #define FSFAMILY	(fs && fs->family.count) ? (const char *)fs->family.vals[0]	: ""
@@ -746,7 +747,7 @@ static void BuildTextGraph(TextStack2D *st, M_Text *txt, RenderEffect2D *eff)
 void Text2D_Draw(DrawableContext *ctx)
 {
 	u32 i;
-	Bool can_gf_sr_texture_text;
+	Bool can_texture_text;
 	TextLineEntry2D *tl;
 	const char *fs_style;
 	char *hlight;
@@ -782,7 +783,7 @@ void Text2D_Draw(DrawableContext *ctx)
 		}
 		if (GF_COL_A(hl_color) == 0) hl_color = 0;
 	}
-	if (strstr(fs_style, "TEXTURED")) st->gf_sr_texture_text_flag = 1;
+	if (strstr(fs_style, "TEXTURED")) st->texture_text_flag = 1;
 
 	/*text has been splited*/
 	if (ctx->sub_path_index > 0) {
@@ -795,9 +796,9 @@ void Text2D_Draw(DrawableContext *ctx)
 		return;
 	}
 
-	can_gf_sr_texture_text = 0;
-	if (st->graph->compositor->use_gf_sr_texture_text || st->gf_sr_texture_text_flag) {
-		can_gf_sr_texture_text = !ctx->h_texture && !ctx->aspect.pen_props.width;
+	can_texture_text = 0;
+	if ((st->graph->compositor->texture_text_mode==GF_TEXTURE_TEXT_ALWAYS) || st->texture_text_flag) {
+		can_texture_text = !ctx->h_texture && !ctx->aspect.pen_props.width;
 	}
 
 	for (i=0; i<gf_list_count(st->text_lines); i++) {
@@ -805,7 +806,7 @@ void Text2D_Draw(DrawableContext *ctx)
 		
 		if (hl_color) VS2D_FillRect(ctx->surface, ctx, tl->bounds, hl_color);
 
-		if (can_gf_sr_texture_text && TextLine2D_TextureIsReady(tl)) {
+		if (can_texture_text && TextLine2D_TextureIsReady(tl)) {
 			VS2D_TexturePathText(ctx->surface, ctx, tl->tx_path, &tl->bounds, tl->hwtx, &tl->tx_bounds);
 		} else {
 			VS2D_TexturePath(ctx->surface, tl->path, ctx);
@@ -902,7 +903,7 @@ void R2D_InitText(Render2D *sr, GF_Node *node)
 	stack->graph->IsPointOver = Text2D_PointOver;
 	stack->ascent = stack->descent = 0;
 	stack->text_lines = gf_list_new();
-	stack->gf_sr_texture_text_flag = 0;
+	stack->texture_text_flag = 0;
 	
 	gf_sr_traversable_setup(stack->graph, node, sr->compositor);
 	gf_node_set_private(node, stack);
@@ -926,7 +927,7 @@ static void RenderTextureText(GF_Node *node, void *rs)
 
 	if (gf_node_get_tag(text) != TAG_MPEG4_Text) return;
 	stack = (TextStack2D *) gf_node_get_private(text);
-	stack->gf_sr_texture_text_flag = *(SFBool*)field.far_ptr ? 1 : 0;
+	stack->texture_text_flag = *(SFBool*)field.far_ptr ? 1 : 0;
 }
 
 

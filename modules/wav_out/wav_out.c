@@ -263,7 +263,7 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 	if (!ctx->force_config) {
 		/*one wave buffer size*/
 		ctx->buffer_size = 1024 * ctx->fmt.nBlockAlign;
-		ctx->num_buffers = 8;
+		ctx->num_buffers = 2;
 	} else {
 		ctx->num_buffers = ctx->cfg_num_buffers;
 		ctx->buffer_size = (ctx->fmt.nAvgBytesPerSec * ctx->cfg_duration) / (1000 * ctx->cfg_num_buffers);

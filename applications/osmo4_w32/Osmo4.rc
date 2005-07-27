@@ -520,8 +520,9 @@ BEGIN
                     WS_TABSTOP
     PUSHBUTTON      "...",IDC_BROWSE_FONT,2,40,164,12
     LTEXT           "System Font Directory",IDC_STATIC,46,29,70,8
-    CONTROL         "Draw text through texturing",IDC_TEXTURE_TEXT,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,6,60,101,10
+    COMBOBOX        IDC_TEXTURE_MODE,101,58,64,44,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Text Texturing Mode",IDC_STATIC,7,60,69,8
 END
 
 IDD_OPT_SYSTEMS DIALOG DISCARDABLE  0, 20, 169, 76

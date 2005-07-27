@@ -931,13 +931,13 @@ BOOL COptAudio::OnInitDialog()
 	if (sOpt) {
 		m_AudioEdit.SetWindowText(sOpt);
 	} else {
-		m_AudioEdit.SetWindowText("6");
+		m_AudioEdit.SetWindowText("2");
 	}
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "TotalDuration");
 	if (sOpt) {
 		m_AudioDur.SetWindowText(sOpt);
 	} else {
-		m_AudioDur.SetWindowText("400");
+		m_AudioDur.SetWindowText("120");
 	}
 
 	OnForceAudio();
@@ -1035,7 +1035,7 @@ void COptFont::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(COptFont)
-	DDX_Control(pDX, IDC_TEXTURE_TEXT, m_UseTexture);
+	DDX_Control(pDX, IDC_TEXTURE_MODE, m_TextureModes);
 	DDX_Control(pDX, IDC_FONT_LIST, m_Fonts);
 	DDX_Control(pDX, IDC_BROWSE_FONT, m_BrowseFont);
 	//}}AFX_DATA_MAP
@@ -1081,9 +1081,15 @@ BOOL COptFont::OnInitDialog()
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "FontDirectory");
 	if (sOpt) m_BrowseFont.SetWindowText(sOpt);
 
-
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "UseTextureText");
-	m_UseTexture.SetCheck( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	/*text texturing modes*/
+	while (m_TextureModes.GetCount()) m_TextureModes.DeleteString(0);
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "TextureTextMode");
+	m_TextureModes.AddString("Never");
+	m_TextureModes.AddString("Only in 3D");
+	m_TextureModes.AddString("Always");
+	if (sOpt && !stricmp(sOpt, "3D")) m_TextureModes.SetCurSel(1);
+	else if (sOpt && !stricmp(sOpt, "Always")) m_TextureModes.SetCurSel(2);
+	else m_TextureModes.SetCurSel(0);
 
 	return TRUE;  
 }
@@ -1141,7 +1147,11 @@ void COptFont::SaveOptions()
 	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "DriverName", str);
 	m_BrowseFont.GetWindowText(str, 50);
 	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "FontDirectory", str);
-	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "UseTextureText", m_UseTexture.GetCheck() ? "yes" : "no");
+	switch (m_TextureModes.GetCurSel()) {
+	case 2: gf_cfg_set_key(gpac->m_user.config, "FontEngine", "TextureTextMode", "Always"); break;
+	case 1: gf_cfg_set_key(gpac->m_user.config, "FontEngine", "TextureTextMode", "3D"); break;
+	default: gf_cfg_set_key(gpac->m_user.config, "FontEngine", "TextureTextMode", "Never"); break;
+	}
 }
 
 

@@ -100,17 +100,14 @@ static GF_Err SDLAud_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *N
 	if (ctx->num_buffers && ctx->total_duration) {
 		nb_samples = want_format.freq * ctx->total_duration;
 		nb_samples /= (1000 * ctx->num_buffers);
-		if (nb_samples % 2) nb_samples--;
+		if (nb_samples % 2) nb_samples++;
 	} else {
 		nb_samples = 1024;
 	}
-	want_format.samples = nb_samples;
 
-	/*if not win32, respect SDL need for power of 2 - otherwise it works with any even value*/
-#ifndef WIN32
+	/*respect SDL need for power of 2*/
 	want_format.samples = 1;
 	while (want_format.samples*2<nb_samples) want_format.samples *= 2;
-#endif
 
 	if ( SDL_OpenAudio(&want_format, &got_format) < 0 ) return GF_IO_ERR;
 	ctx->is_running = 1;

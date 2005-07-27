@@ -134,7 +134,7 @@ public:
 // Dialog Data
 	//{{AFX_DATA(COptFont)
 	enum { IDD = IDD_OPT_FONT };
-	CButton	m_UseTexture;
+	CComboBox	m_TextureModes;
 	CComboBox	m_Fonts;
 	CButton	m_BrowseFont;
 	//}}AFX_DATA

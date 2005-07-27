@@ -265,12 +265,14 @@ static void IFS2D_SetColorIndex(GF_Node *node)
 {
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
 	gf_sg_vrml_field_copy(&ifs2D->colorIndex, &ifs2D->set_colorIndex, GF_SG_VRML_MFINT32);
+	gf_sg_vrml_mf_reset(&ifs2D->set_colorIndex, GF_SG_VRML_MFINT32);
 }
 
 static void IFS2D_SetCoordIndex(GF_Node *node)
 {
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
 	gf_sg_vrml_field_copy(&ifs2D->coordIndex, &ifs2D->set_coordIndex, GF_SG_VRML_MFINT32);
+	gf_sg_vrml_mf_reset(&ifs2D->set_coordIndex, GF_SG_VRML_MFINT32);
 }
 
 void R2D_InitIFS2D(Render2D *sr, GF_Node *node)

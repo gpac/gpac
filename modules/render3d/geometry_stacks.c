@@ -551,9 +551,10 @@ static void RenderILS2D(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 	}
 
-	VS_GetAspect2D(eff, &asp);
 
 	if (!eff->traversing_mode) {
+		VS_GetAspect2D(eff, &asp);
+
 		VS3D_SetAntiAlias(eff->surface, (eff->surface->render->compositor->antiAlias==GF_ANTIALIAS_FULL) ? 1 : 0);
 		if (ils2D->color) {
 			VS3D_StrikeMesh(eff, st->mesh, Aspect_GetLineWidth(&asp), asp.pen_props.dash);
@@ -578,12 +579,14 @@ static void ILS2D_SetColorIndex(GF_Node *node)
 {
 	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)node;
 	gf_sg_vrml_field_copy(&ils2D->colorIndex, &ils2D->set_colorIndex, GF_SG_VRML_MFINT32);
+	gf_sg_vrml_mf_reset(&ils2D->set_colorIndex, GF_SG_VRML_MFINT32);
 }
 
 static void ILS2D_SetCoordIndex(GF_Node *node)
 {
 	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)node;
 	gf_sg_vrml_field_copy(&ils2D->coordIndex, &ils2D->set_coordIndex, GF_SG_VRML_MFINT32);
+	gf_sg_vrml_mf_reset(&ils2D->set_coordIndex, GF_SG_VRML_MFINT32);
 }
 
 void R3D_InitILS2D(Render3D *sr, GF_Node *node)
@@ -676,9 +679,9 @@ static void RenderIFS2D(GF_Node *node, void *rs)
 		mesh_new_ifs2d(st->mesh, node);
 		gf_node_dirty_clear(node, 0);
 	}
-	VS_GetAspect2D(eff, &asp);
 
 	if (!eff->traversing_mode) {
+		VS_GetAspect2D(eff, &asp);
 		if (ifs2D->color && !asp.filled) {
 			/*use special func to disable outline recompute and handle recompute ourselves*/
 			si = VS_GetStrikeInfoIFS(st, &asp, eff);
@@ -700,18 +703,21 @@ static void IFS2D_SetColorIndex(GF_Node *node)
 {
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
 	gf_sg_vrml_field_copy(&ifs2D->colorIndex, &ifs2D->set_colorIndex, GF_SG_VRML_MFINT32);
+	gf_sg_vrml_mf_reset(&ifs2D->set_colorIndex, GF_SG_VRML_MFINT32);
 }
 
 static void IFS2D_SetCoordIndex(GF_Node *node)
 {
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
 	gf_sg_vrml_field_copy(&ifs2D->coordIndex, &ifs2D->set_coordIndex, GF_SG_VRML_MFINT32);
+	gf_sg_vrml_mf_reset(&ifs2D->set_coordIndex, GF_SG_VRML_MFINT32);
 }
 
 static void IFS2D_SetTexCoordIndex(GF_Node *node)
 {
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
 	gf_sg_vrml_field_copy(&ifs2D->texCoordIndex, &ifs2D->set_texCoordIndex, GF_SG_VRML_MFINT32);
+	gf_sg_vrml_mf_reset(&ifs2D->set_texCoordIndex, GF_SG_VRML_MFINT32);
 }
 
 void R3D_InitIFS2D(Render3D *sr, GF_Node *node)
@@ -772,24 +778,28 @@ static void IFS_SetColorIndex(GF_Node *node)
 {
 	M_IndexedFaceSet *ifs = (M_IndexedFaceSet *)node;
 	gf_sg_vrml_field_copy(&ifs->colorIndex, &ifs->set_colorIndex, GF_SG_VRML_MFINT32);
+	gf_sg_vrml_mf_reset(&ifs->set_colorIndex, GF_SG_VRML_MFINT32);
 }
 
 static void IFS_SetCoordIndex(GF_Node *node)
 {
 	M_IndexedFaceSet *ifs = (M_IndexedFaceSet *)node;
 	gf_sg_vrml_field_copy(&ifs->coordIndex, &ifs->set_coordIndex, GF_SG_VRML_MFINT32);
+	gf_sg_vrml_mf_reset(&ifs->set_coordIndex, GF_SG_VRML_MFINT32);
 }
 
 static void IFS_SetNormalIndex(GF_Node *node)
 {
 	M_IndexedFaceSet *ifs = (M_IndexedFaceSet *)node;
 	gf_sg_vrml_field_copy(&ifs->normalIndex, &ifs->set_normalIndex, GF_SG_VRML_MFINT32);
+	gf_sg_vrml_mf_reset(&ifs->set_normalIndex, GF_SG_VRML_MFINT32);
 }
 
 static void IFS_SetTexCoordIndex(GF_Node *node)
 {
 	M_IndexedFaceSet *ifs = (M_IndexedFaceSet *)node;
 	gf_sg_vrml_field_copy(&ifs->texCoordIndex, &ifs->set_texCoordIndex, GF_SG_VRML_MFINT32);
+	gf_sg_vrml_mf_reset(&ifs->set_texCoordIndex, GF_SG_VRML_MFINT32);
 }
 
 void R3D_InitIFS(Render3D *sr, GF_Node *node)
@@ -827,12 +837,14 @@ static void ILS_SetColorIndex(GF_Node *node)
 {
 	M_IndexedLineSet *ils = (M_IndexedLineSet *)node;
 	gf_sg_vrml_field_copy(&ils->colorIndex, &ils->set_colorIndex, GF_SG_VRML_MFINT32);
+	gf_sg_vrml_mf_reset(&ils->set_colorIndex, GF_SG_VRML_MFINT32);
 }
 
 static void ILS_SetCoordIndex(GF_Node *node)
 {
 	M_IndexedLineSet *ils = (M_IndexedLineSet *)node;
 	gf_sg_vrml_field_copy(&ils->coordIndex, &ils->set_coordIndex, GF_SG_VRML_MFINT32);
+	gf_sg_vrml_mf_reset(&ils->set_coordIndex, GF_SG_VRML_MFINT32);
 }
 
 void R3D_InitILS(Render3D *sr, GF_Node *node)
@@ -865,6 +877,7 @@ static void ElevationGrid_SetHeight(GF_Node *node)
 {
 	M_ElevationGrid *eg = (M_ElevationGrid *)node;
 	gf_sg_vrml_field_copy(&eg->height, &eg->set_height, GF_SG_VRML_MFFLOAT);
+	gf_sg_vrml_mf_reset(&eg->set_height, GF_SG_VRML_MFFLOAT);
 }
 
 void R3D_InitElevationGrid(Render3D *sr, GF_Node *node)
@@ -896,21 +909,25 @@ static void Extrusion_SetCrossSection(GF_Node *node)
 {
 	M_Extrusion *eg = (M_Extrusion *)node;
 	gf_sg_vrml_field_copy(&eg->crossSection, &eg->set_crossSection, GF_SG_VRML_MFVEC2F);
+	gf_sg_vrml_mf_reset(&eg->set_crossSection, GF_SG_VRML_MFVEC2F);
 }
 static void Extrusion_SetOrientation(GF_Node *node)
 {
 	M_Extrusion *eg = (M_Extrusion *)node;
 	gf_sg_vrml_field_copy(&eg->orientation, &eg->set_orientation, GF_SG_VRML_MFROTATION);
+	gf_sg_vrml_mf_reset(&eg->set_orientation, GF_SG_VRML_MFROTATION);
 }
 static void Extrusion_SetScale(GF_Node *node)
 {
 	M_Extrusion *eg = (M_Extrusion *)node;
 	gf_sg_vrml_field_copy(&eg->scale, &eg->set_scale, GF_SG_VRML_MFVEC2F);
+	gf_sg_vrml_mf_reset(&eg->set_scale, GF_SG_VRML_MFVEC2F);
 }
 static void Extrusion_SetSpine(GF_Node *node)
 {
 	M_Extrusion *eg = (M_Extrusion *)node;
 	gf_sg_vrml_field_copy(&eg->spine, &eg->set_spine, GF_SG_VRML_MFVEC3F);
+	gf_sg_vrml_mf_reset(&eg->set_spine, GF_SG_VRML_MFVEC3F);
 }
 void R3D_InitExtrusion(Render3D *sr, GF_Node *node)
 {

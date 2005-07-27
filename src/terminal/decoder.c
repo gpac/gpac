@@ -486,13 +486,11 @@ static GF_Err ResizeCompositionBuffer(GF_Codec *dec, u32 NewSize)
 		u32 unit_size, audio_buf_len, unit_count;
 		GF_CodecCapability cap;
 		unit_size = NewSize;
-#if 0
 		audio_buf_len = gf_sr_get_audio_buffer_length(dec->odm->term->renderer);
-		if (audio_buf_len < 400) audio_buf_len = 400;
-#else
-		/*a bit ugly, make some provision for speed>1, always decode at least 1 sec*/
-		audio_buf_len = 1200;
-#endif
+		/*a bit ugly, make some extra provision for speed >1. this is the drawback of working with pre-allocated memory
+		for composition, we may get into cases where there will never be enough data for high speeds...*/
+		if (audio_buf_len < 800) audio_buf_len = 800;
+
 		cap.CapCode = GF_CODEC_BUFFER_MAX;
 		gf_codec_get_capability(dec, &cap);
 		unit_count = cap.cap.valueInt;

@@ -231,7 +231,7 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		if (gpac->m_term) {
 			pFrame->PostMessage(WM_SETSIZE, evt->size.width, evt->size.height);
 			/*not sure what's wrong, not sleeping result to another attempt to lock gpac's renderer which deadlocks!!*/
-			gf_sleep(20);
+			gf_sleep(100);
 		}
 		break;
 
@@ -409,8 +409,8 @@ BOOL WinGPAC::InitInstance()
 		sOpt = gf_cfg_get_key(m_user.config, "Audio", "ForceConfig");
 		if (!sOpt) {
 			gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "yes");
-			gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "8");
-			gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "400");
+			gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "2");
+			gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "120");
 		}
 		/*by default use GDIplus, much faster than freetype on font loading*/
 		gf_cfg_set_key(m_user.config, "FontEngine", "DriverName", "gdip_rend");

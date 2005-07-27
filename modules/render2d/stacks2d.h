@@ -81,7 +81,7 @@ typedef struct
 	Fixed ascent, descent;
 	GF_List *text_lines;
 	GF_Rect bounds;
-	Bool gf_sr_texture_text_flag;
+	Bool texture_text_flag;
 } TextStack2D;
 
 void R2D_InitText(Render2D *sr, GF_Node *node);

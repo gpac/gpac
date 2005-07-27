@@ -234,13 +234,18 @@ exit:
 	
 	/*update line width*/
 	if (asp->pen_props.width) {
-		GF_Matrix mx;
-		GF_Rect rc;
-		VS3D_GetMatrix(eff->surface, MAT_MODELVIEW, mx.m);
-		rc.x = rc.y = 0;
-		rc.width = rc.height = FIX_ONE;
-		gf_mx_apply_rect(&mx, &rc);
-		asp->line_scale = MAX(rc.width, rc.height);
+		/*if pen is not scalable, apply user/viewport transform so that original aspect is kept*/
+		if (!asp->is_scalable) {
+			GF_Matrix mx;
+			GF_Rect rc;
+			VS3D_GetMatrix(eff->surface, MAT_MODELVIEW, mx.m);
+			rc.x = rc.y = 0;
+			rc.width = rc.height = FIX_ONE;
+			gf_mx_apply_rect(&mx, &rc);
+			asp->line_scale = MAX(rc.width, rc.height);
+		} else {
+			asp->line_scale = FIX_ONE;
+		}
 		if (eff->has_cmat) 
 			gf_cmx_apply_fixed(&eff->color_mat, &asp->line_alpha, &asp->line_color.red, &asp->line_color.green, &asp->line_color.blue);
 	}
@@ -366,7 +371,8 @@ Fixed Aspect_GetLineWidth(Aspect2D *asp)
 {
 	/*for raster outlines are already set to the proper width - note this may not work depending on GL...*/
 	Fixed width = asp->pen_props.width;
-	if (asp->is_scalable) width = gf_mulfix(width, asp->line_scale);
+	if (asp->is_scalable) 
+		width = gf_mulfix(width, asp->line_scale);
 	return width;
 }
 

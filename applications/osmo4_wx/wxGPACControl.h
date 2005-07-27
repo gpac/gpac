@@ -113,7 +113,7 @@ private:
 	/*font*/
 	wxComboBox *m_font;
 	wxButton *m_fontdir;
-	wxCheckBox *m_usetexture;
+	wxComboBox *m_texturemode;
 	/*file download*/
 	wxButton *m_cachedir;
 	wxCheckBox *m_cleancache, *m_restartcache;
