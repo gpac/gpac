@@ -1,10 +1,19 @@
-Last CVS update: 26/07/05
-  - regression testing done for players and most of MP4Box
+28/07/05: GPAC 0.4.0 release
+  ** GPAC is now licensed under LGPL. **
+  Massive code rewrite and repository reorganization in order to comply to some base coding style (cf gpac/doc/CODING_STYLE) have taken place 
+  since previous release. Documentation is still a work in progress.
+  APIs are not backward compatible, but should now be in a frozen state/spelling for the most common tools (utils, MPEG-4 OD, IsoMedia and terminal APIs)
+    
+  - Fixed FAAD multichannel support with latest FAAD CVS version (bug due to FAAD inner channel creation). Latest version should 
+    support both multichannel and AAC radios.
+  - added support for normal drawing (for debug purposes) in 3D renderer
+  - adedd support for single instance of Osmo4/w32 
+  - changed audio configuration options to "Number of buffers" and "TotalDuration"
 	- fixed old bug in audio renderer screwing up the audio from time to time
 	- moved ffmpeg to latest CVS version (25/07/05). THIS VERSION IS NO LONGER COMPATIBLE with previous ones used in GPAC, update
 	  your binaries!! Also updated ffmpeg plugin to new ffmpeg API
 	- moved all fullscreen handling to dedicated windows, refinement of wxOsmo4.
-	- more work on x11 plugin (events handling, 3D support) - not entirely stable yet...
+	- more work on x11 plugin (events handling, 3D support) - THIS IS EXPERIMENTAL AT THIS RELEASE LEVEL, CHECKOUT CVS FOR BETTER SUPPORT...
   - fixed anamorphic video handling in GPAC, both playing (2D and 3D) and MP4Box parsers (only done for MPEG-4 Visual, not AVC). Video is
     now only rescaled at blit time
   - changed ';' separators to ':' seprators in MP4Box (meta options and track import options) for linux prompt compatibility.
@@ -14,9 +23,6 @@ Last CVS update: 26/07/05
 		Documentation will only be produced for libgpac, eg all exported headers in gpac/include/gpac
 		Development APIs documentation (gpac/include/gpac/internal) will come later.
 	- cleaned up IsoMedia reading for more efficient and more reliable parsing
-  - GPAC is now licensed under LGPL. Massive code rewrite and repository reorganization in order to comply to some 
-    base coding style (cf gpac/doc/CODING_STYLE). APIs are not backward compatible, but should now be in a frozen state/spelling
-    for the most common tools (utils, MPEG-4 OD, IsoMedia and terminal APIs)
   - misc fixes in MP4Box option parsing, in RTP multicast setup
   - Osmozilla should now be much more stable on Win32 - Linux version to come.
 
