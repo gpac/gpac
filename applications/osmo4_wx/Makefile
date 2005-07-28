@@ -13,7 +13,7 @@ endif
 OBJS= wxOsmo4.o wxGPACControl.o fileprops.o Playlist.o menubtn.o
 
 ifeq ($(BUILD_INSTALL), yes)
-INSTALL_FLAGS=-DGPAC_PLUGIN_PATH=\"$(moddir)\"
+INSTALL_FLAGS=-DGPAC_MODULES_PATH=\"$(moddir)\"
 else
 INSTALL_FLAGS=
 endif
