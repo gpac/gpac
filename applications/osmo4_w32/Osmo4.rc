@@ -429,13 +429,15 @@ STYLE DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
     CONTROL         "Loop At End",IDC_LOOP,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,4,5,55,10
+                    WS_TABSTOP,4,4,55,10
     CONTROL         "Look for subtitles",IDC_LOOKFORSUB,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,4,50,69,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,4,42,69,10
     CONTROL         "Disable console messages",IDC_NO_CONSOLE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,4,20,99,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,4,17,99,10
     CONTROL         "View Graph in XMT-A format",IDC_DUMP_XMT,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,4,36,105,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,4,30,105,10
+    CONTROL         "Single Instance",IDC_SINGLE_INSTANCE,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,4,54,65,10
 END
 
 IDD_OPT_RENDER DIALOG DISCARDABLE  0, 20, 169, 76
@@ -619,7 +621,7 @@ BEGIN
     CONTROL         "Use OpenGL raster Outlines",IDC_RASTER_OUTLINE,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,6,2,103,10
     CONTROL         "Emulate power-of-two textures for video",IDC_EMUL_POW2,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,33,140,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,45,140,10
     CONTROL         "Polygon Anti-Aliasing",IDC_DISABLE_POLY_AA,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,6,12,78,10
     CONTROL         "Solid Draw",IDC_WIRE_NONE,"Button",BS_AUTORADIOBUTTON | 
@@ -630,12 +632,15 @@ BEGIN
                     31,10
     CONTROL         "Disable rectangular texture extensions",
                     IDC_DISABLE_TX_RECT,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,6,43,135,10
+                    WS_TABSTOP,6,55,135,10
     CONTROL         "Bitmap node uses direct pixel copy",
                     IDC_BITMAP_USE_PIXEL,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,6,53,125,10
+                    WS_TABSTOP,6,65,125,10
     CONTROL         "No Backface Culling",IDC_NO_BACKCULL,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,89,12,78,10
+    LTEXT           "Draw Normals",IDC_STATIC,7,34,47,8
+    COMBOBOX        IDC_DRAW_NORMALS,58,32,59,44,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
 END
 
 IDD_SLIDERS DIALOG DISCARDABLE  0, 0, 218, 18

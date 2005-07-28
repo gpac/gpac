@@ -29,6 +29,7 @@
 <BR><DD>A section is declared as <B><I>SectionName</I></B>. Defined sections are:
 <BR><BR>
 <B><U><A HREF="#General">General</A></U></B>
+<B><U><A HREF="#RecentFiles">RecentFiles</A></U></B>
 <B><U><A HREF="#Systems">Systems</A></U></B>
 <B><U><A HREF="#Rendering">Rendering</A></U></B>
 <B><U><A HREF="#Render2D">Render2D</A></U></B>
@@ -40,7 +41,7 @@
 <B><U><A HREF="#Downloader">Downloader</A></U></B>
 <B><U><A HREF="#Streaming">Streaming</A></U></B>
 <B><U><A HREF="#MimeTypes">MimeTypes</A></U></B>
-<B><U><A HREF="#GF_StreamingCache">GF_StreamingCache</A></U></B>
+<B><U><A HREF="#StreamingCache">StreamingCache</A></U></B>
 <B><U><A HREF="#WviD">XviD</A></U></B>
 <B><U><A HREF="#FFMPEG">FFMPEG</A></U></B>
 
@@ -89,10 +90,16 @@
 <DD>Indicates active playlist entry when player was last closed. Playlist backup is:
 <DD><LI>"gpac_pl.m3u" on win32 platforms, stored in same directory as application</LI>
 <DD><LI>".gpac_pl.m3u" on other platforms, stored in user home directory</LI>
+<BR>	
+</P>
+
 <BR>
-<BR>
-<B>last_file_XX</B> [value: <I>string</I>]<BR>
-<DD>Indicates last URL played (XX is from 0 to 10 when storing URLs to cfg file, but not limited when reading them).
+
+<P ALIGN="LEFT">
+<B><U><A NAME="RecentFiles">Section "RecentFiles"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+<DD>The "RecentFiles" section of the config file holds last accessed files (hardcoded to no more than 20) in the last access order. The keys are
+the file names and no value is used. This section is only used by GUI clients (osmo4/wxOsmo4)
 	
 </P>
 
@@ -152,7 +159,7 @@ The string is the name of the module to be used (same considerations as other mo
 <B>RendererName</B> [value: <I>string</I>]<BR>
 <DD>Specifies which renderer should be used. There are currently 2 renderers available in GPAC, "GPAC 2D Renderer" and "GPAC 3D Renderer". Renderers cannot be reloaded during a presentation, the GPAC client shall be shutdown and restarted.<BR>
 <BR>
-<B>GF_Raster2D</B> [value: <I>string</I>]<BR>
+<B>Raster2D</B> [value: <I>string</I>]<BR>
 <DD>Specifies the 2D rasterizer to use for vectorial drawing. Same as above, this module cannot be reloaded during a presentation. This is used by the 2D renderer for all drawings
 and by the 3D renderer for text texturing and gradients compute.<BR>
 
@@ -227,8 +234,8 @@ the  setting is applied or not depends on the graphics module (currently all mod
 <DD><LI><I>"WireOnSolid"</I>: objects are drawn as solid and wireframe is then drawn</LI><BR>
 <BR>
 <B>DisableRectExt</B> [value: <I>"yes" "no"</I>]<BR>
-<DD>Specifies whether OpenGL rectangular texture extension (GL_EXT_gf_sr_texture_rectangle or GL_NV_gf_sr_texture_rectangle) shall be used or not.<BR>
-<DD><LI>"yes": textures whose dimensions are not power of two are rescaled except if hardware support non-power-of-two textures (GL_ARB_gf_sr_texture_non_power_of_two) natively.</LI><BR>
+<DD>Specifies whether OpenGL rectangular texture extension (GL_EXT_texture_rectangle or GL_NV_texture_rectangle) shall be used or not.<BR>
+<DD><LI>"yes": textures whose dimensions are not power of two are rescaled except if hardware support non-power-of-two textures (GL_ARB_texture_non_power_of_two) natively.</LI><BR>
 <DD><LI>"no": if extension is available, textures are used without rescaling. Note that in this case texture transformations are disabled.</LI><BR>
 
 <BR>
@@ -406,7 +413,7 @@ If MIME type is not available, provided extensions are first checked, then all i
 
 <BR>
 <P ALIGN="LEFT">
-<B><U><A NAME="GF_StreamingCache">Section "GF_StreamingCache"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<B><U><A NAME="StreamingCache">Section "StreamingCache"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>The "StreamingCache" section of the config file holds all configuration options for the streaming cache. Streaming cache allows for recording of 
 live sources such as RTP/RTSP sessions and internet radios. This is currently just an experimental feature in GPAC.<BR>

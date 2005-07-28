@@ -192,6 +192,9 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 		if (gf_term_check_extension(plug, "video/x-ms-asf", "asf wma wmv asx asr", "WindowsMedia Movies", ext)) return 1;
 		if (gf_term_check_extension(plug, "video/x-ms-wmv", "asf wma wmv asx asr", "WindowsMedia Movies", ext)) return 1;
 		if (gf_term_check_extension(plug, "video/avi", "avi", "AVI Movies", ext)) return 1;
+		if (gf_term_check_extension(plug, "video/H263", "h263 263", "H263 Video", ext)) return 1;
+		if (gf_term_check_extension(plug, "video/H264", "h264 264", "H264 Video", ext)) return 1;
+		if (gf_term_check_extension(plug, "video/MPEG4", "cmp m4v", "MPEG-4 Video", ext)) return 1;
 		/*we let ffmpeg handle mov because some QT files with uncompressed or adpcm audio use 1 audio sample 
 		per MP4 sample which is a killer for our MP4 lib, whereas ffmpeg handles these as complete audio chunks 
 		moreover ffmpeg handles cmov, we don't*/
@@ -199,8 +202,15 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	}
 
 	ctx = NULL;
-    if (av_open_input_file(&ctx, szName, NULL, 0, NULL)<0)
-		return 0;
+    if (av_open_input_file(&ctx, szName, NULL, 0, NULL)<0) {
+		AVInputFormat *av_in = NULL;;
+		/*some extensions not supported by ffmpeg*/
+		if (ext && !strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
+
+		if (av_open_input_file(&ctx, szName, av_in, 0, NULL)<0) {
+			return 0;
+		}
+	}
 
     if (!ctx || av_find_stream_info(ctx) <0) goto exit;
 	/*figure out if we can use codecs or not*/
@@ -229,9 +239,9 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 			strcpy(szExt, &ext[1]);
 			strlwr(szExt);
 
-			szExtList = gf_modules_get_option((GF_BaseInterface *)plug, "MimeTypes", "video/ffmpeg-files");
+			szExtList = gf_modules_get_option((GF_BaseInterface *)plug, "MimeTypes", "application/x-ffmpeg");
 			if (!szExtList) {
-				gf_term_register_mime_type(plug, "video/ffmpeg-files", szExt, "Other Movies (FFMPEG)");
+				gf_term_register_mime_type(plug, "application/x-ffmpeg", szExt, "Other Movies (FFMPEG)");
 			} else if (!strstr(szExtList, szExt)) {
 				u32 len;
 				char *buf;
@@ -239,7 +249,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 				buf = malloc(sizeof(char)*len);
 				sprintf(buf, "\"%s ", szExt);
 				strcat(buf, &szExtList[1]);
-				gf_modules_set_option((GF_BaseInterface *)plug, "MimeTypes", "video/ffmpeg-files", buf);
+				gf_modules_set_option((GF_BaseInterface *)plug, "MimeTypes", "application/x-ffmpeg", buf);
 				free(buf);
 			}
 		}
@@ -257,6 +267,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	s32 i;
 	const char *sOpt;
 	FFDemux *ffd = plug->priv;
+	AVInputFormat *av_in = NULL;
 	char *ext, szName[1000];
 
 	if (ffd->ctx) return GF_SERVICE_ERROR;
@@ -272,7 +283,19 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		else if (!stricmp(&ext[1], "audio")) ffd->service_type = 2;
 		ext[0] = 0;
 	}
-    switch (av_open_input_file(&ffd->ctx, szName, NULL, 0, NULL)) {
+	i = av_open_input_file(&ffd->ctx, szName, NULL, 0, NULL);
+	if (i<0) {
+		char szExt[20];
+		ext = strrchr(szName, '.');
+		strcpy(szExt, ext+1);
+		strlwr(szExt);
+
+		/*some extensions not supported by ffmpeg*/
+		if (ext && !strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
+		i = av_open_input_file(&ffd->ctx, szName, av_in, 0, NULL);
+	}
+
+	switch (i) {
 	case 0: e = GF_OK; break;
 	case AVERROR_IO: e = GF_URL_ERROR; goto err_exit;
 	case AVERROR_INVALIDDATA: e = GF_NON_COMPLIANT_BITSTREAM; goto err_exit;
@@ -334,7 +357,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	ffd->seekable = (av_seek_frame(ffd->ctx, -1, 0, AVSEEK_FLAG_BACKWARD)<0) ? 0 : 1;
 	if (!ffd->seekable) {
 	    av_close_input_file(ffd->ctx);
-		av_open_input_file(&ffd->ctx, szName, NULL, 0, NULL);
+		av_open_input_file(&ffd->ctx, szName, av_in, 0, NULL);
 	    av_find_stream_info(ffd->ctx);
 	}
 

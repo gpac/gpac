@@ -391,7 +391,8 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 	u32 outsize;
 	FFDec *ffd = plug->privateStack;
 
-#if 1
+	/*WARNING: this breaks H264 (and maybe others) decoding, disabled for now*/
+#if 0
 	if (!ffd->ctx->hurry_up) {
 		switch (mmlevel) {
 		case GF_CODEC_LEVEL_SEEK:
@@ -470,6 +471,9 @@ redecode:
 		/*more frames in the current sample*/
 		return GF_PACKED_FRAMES;
 	} else {
+		s32 w = ffd->ctx->width;
+		s32 h = ffd->ctx->height;
+
 		if (avcodec_decode_video(ffd->ctx, ffd->frame, &gotpic, inBuffer, inBufferLength) < 0) {
 			if (!ffd->check_short_header) return GF_NON_COMPLIANT_BITSTREAM;
 
@@ -494,10 +498,9 @@ redecode:
 		}
 		ffd->ctx->hurry_up = 0;
 		/*recompute outsize in case on-the-fly change*/
-		outsize = ffd->ctx->width * ffd->ctx->height * 3;
-		if (ffd->pix_fmt!=GF_PIXEL_RGB_24) outsize /= 2;
-
-		if (ffd->out_size != outsize) {
+		if ((w != ffd->ctx->width) || (h != ffd->ctx->height)) {
+			outsize = ffd->ctx->width * ffd->ctx->height * 3;
+			if (ffd->pix_fmt!=GF_PIXEL_RGB_24) outsize /= 2;
 			ffd->out_size = outsize;
 			*outBufferLength = ffd->out_size;
 			return GF_BUFFER_TOO_SMALL;

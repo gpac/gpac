@@ -124,6 +124,17 @@ u32 gf_cfg_get_key_count(GF_Config *cfgFile, const char *secName);
  */
 const char *gf_cfg_get_key_name(GF_Config *cfgFile, const char *secName, u32 keyIndex);
 
+/*!
+ *	\brief key insertion
+ *
+ *Inserts a new key at the begining of a given section. Returns an error if a key with the given name 
+ *already exists in the section
+ *\param cfgFile the target configuration file
+ *\param secName the target section
+ *\param keyName the name of the target key
+ *\param keyVale the value for the new key
+ */
+GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue);
 
 /*! @} */
 

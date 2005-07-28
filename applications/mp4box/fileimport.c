@@ -114,8 +114,18 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	while (ext) {
 		char *ext2 = strchr(ext+1, ':');
 		if (ext2) ext2[0] = 0;
+		/*all extensions for track-based importing*/
 		if (!strnicmp(ext+1, "lang=", 5)) strncpy(szLan, ext+6, 3);
 		else if (!strnicmp(ext+1, "delay=", 6)) delay = atoi(ext+7);
+		else if (!strnicmp(ext+1, "fps=", 4)) force_fps = atof(ext+5);
+		else if (!stricmp(ext+1, "dref")) import_flags |= GF_IMPORT_USE_DATAREF;
+		else if (!stricmp(ext+1, "nodrop")) import_flags |= GF_IMPORT_NO_FRAME_DROP;
+		else if (!stricmp(ext+1, "packed")) import_flags |= GF_IMPORT_FORCE_PACKED;
+		else if (!stricmp(ext+1, "sbr")) import_flags |= GF_IMPORT_SBR_IMPLICIT;
+		else if (!stricmp(ext+1, "sbrx")) import_flags |= GF_IMPORT_SBR_EXPLICIT;
+		else if (!stricmp(ext+1, "mpeg4")) import_flags |= GF_IMPORT_FORCE_MPEG4;
+		else if (!strnicmp(ext+1, "agg=", 4)) frames_per_sample = atoi(ext+5);
+		else if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32) (atof(ext+5) * 1000);
 
 		if (ext2) ext2[0] = ':';
 		ext2 = ext+1;
@@ -123,7 +133,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		ext = strchr(ext+1, ':');
 	}
 
-	/*check duration import*/
+	/*check duration import (old syntax)*/
 	ext = strrchr(szName, '%');
 	if (ext) {
 		import.duration = (u32) (atof(ext+1) * 1000);
@@ -428,7 +438,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			/*track done - we remove the track from destination, an empty video track could cause pbs to some players*/
 			if (tki->stop_state==2) continue;
 
-			e = gf_isom_clone_track(mp4, tki->tk, dest, &tki->dst_tk);
+			e = gf_isom_clone_track(mp4, tki->tk, dest, 0, &tki->dst_tk);
 			if (e) {
 				fprintf(stdout, "Error cloning track %d\n", tki->tk);
 				goto err_exit;
@@ -744,8 +754,11 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_TEXT:
 		case GF_ISOM_MEDIA_VISUAL:
-			nb_samp+= gf_isom_get_sample_count(orig, i+1);
-			break;
+			/*only cat self-contained files*/
+			if (gf_isom_is_self_contained(orig, i+1, 1)) {
+				nb_samp+= gf_isom_get_sample_count(orig, i+1);
+				break;
+			}
 		case GF_ISOM_MEDIA_HINT:
 		case GF_ISOM_MEDIA_BIFS:
 		case GF_ISOM_MEDIA_OCR:
@@ -837,7 +850,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		/*looks like a new file*/
 		if (!dst_tk) {
 			fprintf(stdout, "No suitable destination track found - creating new one (type %s)\n", gf_4cc_to_str(mtype));
-			e = gf_isom_clone_track(orig, i+1, dest, &dst_tk);
+			e = gf_isom_clone_track(orig, i+1, dest, 1, &dst_tk);
 			if (e) goto err_exit;
 			gf_isom_clone_pl_indications(orig, dest);
 		}
@@ -857,10 +870,19 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		for (j=0; j<count; j++) {
 			u32 di;
 			samp = gf_isom_get_sample(orig, i+1, j+1, &di);
+
 			last_DTS = samp->DTS;
 			samp->DTS =  (u32) (samp->DTS * ts_scale) + insert_dts;
 			samp->CTS_Offset =  (u32) (samp->CTS_Offset * ts_scale);
-			e = gf_isom_add_sample(dest, dst_tk, di, samp);
+
+			if (gf_isom_is_self_contained(orig, i+1, di)) {
+				e = gf_isom_add_sample(dest, dst_tk, di, samp);
+			} else {
+				u64 offset;
+				GF_ISOSample *s = gf_isom_get_sample_info(orig, i+1, j+1, &di, &offset);
+				e = gf_isom_add_sample_reference(dest, dst_tk, di, samp, offset);
+				gf_isom_sample_del(&s);
+			}
 			gf_isom_sample_del(&samp);
 			if (e) goto err_exit;
 			gf_cbk_on_progress("Appending", nb_done, nb_samp);

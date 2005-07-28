@@ -69,6 +69,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_MESSAGE(WM_NAVIGATE,OnNavigate)
 	ON_MESSAGE(WM_OPENURL, Open)
 	ON_MESSAGE(WM_SETTIMING, SetTiming)
+	ON_MESSAGE(WM_NEWINSTANCE, NewInstanceOpened)
+	
 	ON_WM_LBUTTONDOWN()
 	ON_WM_LBUTTONDBLCLK()
 	ON_WM_LBUTTONUP()
@@ -481,6 +483,21 @@ LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 	}
 	return 1;	
 }
+
+LONG CMainFrame::NewInstanceOpened(WPARAM wParam, LPARAM lParam)
+{
+	Bool queue_only = 0;
+	char *url = (char *) static_gpac_get_url();
+	if (!strnicmp(url, "-queue ", 7)) {
+		queue_only = 1;
+		url += 7;
+	}
+	m_pPlayList->QueueURL(url);
+	m_pPlayList->RefreshList();
+	if (!queue_only) m_pPlayList->PlayNext();
+	return 1;
+}
+
 
 void CMainFrame::ForwardMessage()
 {

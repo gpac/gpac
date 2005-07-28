@@ -74,8 +74,8 @@ II GPAC compilation
 
 		* svg_loader:
 			the svg reader requires libxml2 for SVG parsing. WinCE binaries of LibXML2 are available in gpac_extra_lib package, and can be recompiled from the official libxml2 soiurce tree (http://www.xmlsoft.org).
-			To install the precompiled binaries from gpac_extra_lib, copy the gpac_extra_lib/libxml2_arm_ppc2002/include/libxml ENTIRE DIRECTORY in gpac/extra_libs/include, and copy
-			gpac_extra_lib/libxml2_arm_ppc2002/lib/libxml2.lib to both gpac/extra_lib/lib/arm_ppc2002_deb and gpac/extra_lib/lib/arm_ppc2002_rel, and the libxml2.dll to gpac/bin/arm_ppc2002_deb and gpac/bin/arm_ppc2002_rel
+			To install the precompiled binaries from gpac_extra_lib, copy the gpac_extra_lib/libxml2_arm_ppc02/include/libxml ENTIRE DIRECTORY in gpac/extra_libs/include, and copy
+			gpac_extra_lib/libxml2_arm_ppc02/lib/libxml2.lib to both gpac/extra_lib/lib/arm_ppc02_deb and gpac/extra_lib/lib/arm_ppc02_rel, and the libxml2.dll to gpac/bin/arm_ppc02_deb and gpac/bin/arm_ppc02_rel
 			To install from the official libxm2 source tree, rebuild libxml2 for ARM and update svg_loader project settings to point to the right directories for include and library files.
 			If you don't want to install libxml2 or don't plan to test svg, simply remove the "svg_loader" project from the workspace (DEL).
 
@@ -97,11 +97,11 @@ III GPAC Installer for WinCE
 				THIS INSTALLER IS ONLY INTENDED FOR STRONGARM BASED DEVICES
 		
 		* compile Osmo4 for PocketPC
-		* make sure the js.dll is copied in gpac/bin/arm_ppc2002_rel if you have compiled GPAC with SpiderMonkey support, otherwise comment lines "js.dll" in osmo4.inf
-		* make sure the libxml2.dll is copied in gpac/bin/arm_ppc2002_rel if you have compiled the svg loader, otherwise comment lines "libxml2.dll" in osmo4.inf
+		* make sure the js.dll is copied in gpac/bin/arm_ppc02_rel if you have compiled GPAC with SpiderMonkey support, otherwise comment lines "js.dll" in osmo4.inf
+		* make sure the libxml2.dll is copied in gpac/bin/arm_ppc02_rel if you have compiled the svg loader, otherwise comment lines "libxml2.dll" in osmo4.inf
 		* remove any lines in osmo4.inf that refer to plugins you have not built.
 		* get MS PocketPC Cabwizard (search for Cabwiz.exe in your ActiveSync distribution)
-		* go to gpac/bin/arm_ppc2002_rel/install
+		* go to gpac/bin/arm_ppc02_rel/install
 		* copy cabwiz.exe, cabwiz.ddf and MAKECAB.exe in this directory
 		* copy gx.dll in this directory (download from microsoft, or use gpac extra libs version)
 		* get Ezsetup from http://www.eskimo.com/~scottlu/win/, and copy it in this directory

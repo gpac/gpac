@@ -64,7 +64,6 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, unsigned char *
 
 	gf_m4a_get_config((unsigned char *) decSpecInfo, decSpecInfoSize, &a_cfg);
 	ctx->is_sbr = a_cfg.has_sbr;
-
 	ctx->num_samples = 1024;
 	ctx->out_size = 2 * ctx->num_samples * ctx->num_channels;
 	ctx->ES_ID = ES_ID;
@@ -200,11 +199,19 @@ static GF_Err FAAD_ProcessData(GF_MediaDecoder *ifcg,
 		*outBufferLength = 0;
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
+	if (!ctx->info.samples || !buffer || !ctx->info.bytesconsumed) {
+		*outBufferLength = 0;
+		return GF_OK;
+	}
+
 	/*FAAD froces us to decode a frame to get channel cfg*/
 	if (ctx->signal_mc) {
 		s32 ch, idx;
 		ctx->signal_mc = 0;
 		idx = 0;
+		/*NOW WATCH OUT!! FAAD may very well decide to output more channels than indicated!!!*/
+		ctx->num_channels = ctx->info.channels;
+
 		/*get cfg*/
 		ch = FAAD_GetChannelPos(ctx, GF_AUDIO_CH_FRONT_LEFT);
 		if (ch>=0) { ctx->ch_reorder[idx] = ch; idx++; }
@@ -224,19 +231,18 @@ static GF_Err FAAD_ProcessData(GF_MediaDecoder *ifcg,
 		if (ch>=0) { ctx->ch_reorder[idx] = ch; idx++; }
 		ch = FAAD_GetChannelPos(ctx, GF_AUDIO_CH_SIDE_RIGHT);
 		if (ch>=0) { ctx->ch_reorder[idx] = ch; idx++; }
+
 		*outBufferLength = ctx->out_size;
+		if (sizeof(short) * ctx->info.samples > *outBufferLength) {
+			*outBufferLength = ctx->out_size = sizeof(short)*ctx->info.samples; 
+		}
 		return GF_BUFFER_TOO_SMALL;
 	}
-
-	if (!ctx->info.samples || !buffer || !ctx->info.bytesconsumed) {
-		*outBufferLength = 0;
-		return GF_OK;
-	}
-
 	if (sizeof(short) * ctx->info.samples > *outBufferLength) {
 		*outBufferLength = sizeof(short)*ctx->info.samples; 
 		return GF_BUFFER_TOO_SMALL;
 	} 
+
 	/*we assume left/right order*/
 	if (ctx->num_channels<=2) {
 		memcpy(outBuffer, buffer, sizeof(short)* ctx->info.samples);

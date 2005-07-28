@@ -83,6 +83,7 @@ BOOL AddressBar::OnInitDialog()
 	return TRUE;
 }
 
+
 void AddressBar::DoDataExchange(CDataExchange* pDX)
 {
 	CInitDialogBar::DoDataExchange(pDX);
@@ -122,15 +123,12 @@ void AddressBar::OnClose()
 void AddressBar::ReloadURLs()
 {
 	WinGPAC *gpac = GetApp();
-	const char *sOpt;
-	char filename[1024];
 	u32 i=0;
 
 	while (m_Address.GetCount()) m_Address.DeleteString(0);
 	while (1) {
-		sprintf(filename, "last_file_%d", i);
-		sOpt = gf_cfg_get_key(gpac->m_user.config, "General", filename);
-		if (!sOpt) break;
+		const char *sOpt = gf_cfg_get_key_name(gpac->m_user.config, "RecentFiles", i);
+		if (!sOpt) return;
 		m_Address.AddString(sOpt);
 		i++;
 	}
@@ -138,6 +136,8 @@ void AddressBar::ReloadURLs()
 
 void AddressBar::SelectionReady() 
 {
+	void UpdateLastFiles(GF_Config *cfg, const char *URL);
+
 	CString URL;
 	int sel = m_Address.GetCurSel();
 	if (sel == CB_ERR) {
@@ -150,29 +150,7 @@ void AddressBar::SelectionReady()
 	Playlist *pl = ((CMainFrame*)gpac->m_pMainWnd)->m_pPlayList;
 	/*don't store local files*/
 	if (URL.Find("://", 0)>0) {
-		const char *sOpt;
-		char filename[1024];
-		u32 i=0;
-
-		while (1) {
-			sprintf(filename, "last_file_%d", i);
-			sOpt = gf_cfg_get_key(gpac->m_user.config, "General", filename);
-			if (!sOpt) break;
-			if (!strcmp(sOpt, URL)) {
-				pl->Truncate();
-				pl->QueueURL(URL);
-				pl->RefreshList();
-				pl->PlayNext();
-				return;
-			}
-			i++;
-		}
-		/*add it*/
-		if (i<10) {
-			gf_cfg_set_key(gpac->m_user.config, "General", filename, URL);
-		} else {
-			gf_cfg_set_key(gpac->m_user.config, "General", "last_file_10", URL);
-		}
+		UpdateLastFiles(gpac->m_user.config, URL);
 		ReloadURLs();
 	}
 	pl->Truncate();

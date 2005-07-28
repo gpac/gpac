@@ -55,6 +55,10 @@ indicates active playlist entry when player was last closed. Playlist backup is 
 .B last_file_XX (value: string)
 indicates last URL played (XX is from 0 to 10 when storing URLs to cfg file, but not limited when reading them).
 .
+.SH SECTION "RecentFiles"
+.LP
+The "RecentFiles" section of the config file holds last accessed files (hardcoded to no more than 20) in the last access order. The keys are the file names and no value is used. This section is only used by GUI clients.
+.
 .SH SECTION "Systems"
 .LP
 The "Systems" section holds all configuration options for the MPEG-4 Systems engine. The following options are defined:
@@ -107,7 +111,7 @@ The "Rendering" section holds all configuration options for the logical renderin
 .B RendererName (value: string)
 specifies which renderer should be used. There are currently 2 renderers available in GPAC, "GPAC 2D Renderer" and "GPAC 3D Renderer". Renderers cannot be reloaded at run-time, the complete system must be restarted.
 .TP
-.B GF_Raster2D (value: string)
+.B Raster2D (value: string)
 specifies the 2D rasterizer to use for vectorial drawing. Used by 2D renderer (for everything) and 3D renderer (for textured text and gradients).
 .TP
 .B FrameRate (value: float)
@@ -162,9 +166,9 @@ WireOnly: objects are drawn as wireframe only
 WireOnSolid: objects are drawn as solid and wireframe is then drawn
 .TP
 .B DisableRectExt (value: yes, no)
-specifies whether openGL rectangular texture extension (GL_EXT_gf_sr_texture_rectangle or GL_NV_gf_sr_texture_rectangle) shall be used or not. 
+specifies whether openGL rectangular texture extension (GL_EXT_texture_rectangle or GL_NV_texture_rectangle) shall be used or not. 
 .br
-If "yes", textures whose dimensions are not power of two are rescaled except if hardware support non-power-of-two textures (GL_ARB_gf_sr_texture_non_power_of_two) natively
+If "yes", textures whose dimensions are not power of two are rescaled except if hardware support non-power-of-two textures (GL_ARB_texture_non_power_of_two) natively
 .br
 If "no" and extension is available, textures are used without rescaling. Note that in this case texture transformation are disabled.
 .TP

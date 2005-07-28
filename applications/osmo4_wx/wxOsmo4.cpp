@@ -114,41 +114,33 @@ OpenURLDlg::OpenURLDlg(wxWindow *parent, GF_Config *cfg)
 	m_cfg = cfg;
 
 	const char *sOpt;
-	char filename[1024];
 	u32 i=0;
 
 	while (1) {
-		sprintf(filename, "last_file_%d", i);
-		sOpt = gf_cfg_get_key(m_cfg, "General", filename);
+		sOpt = gf_cfg_get_key_name(m_cfg, "RecentFiles", i);
 		if (!sOpt) break;
 		m_url->Append(wxString(sOpt, wxConvUTF8) );
 		i++;
 	}
 }
 
+#define MAX_LAST_FILES		20
+void UpdateLastFiles(GF_Config *cfg, const char *URL)
+{
+	u32 nb_entries;
+	gf_cfg_set_key(cfg, "RecentFiles", URL, NULL);
+	gf_cfg_insert_key(cfg, "RecentFiles", URL, "");
+	/*remove last entry if needed*/
+	nb_entries = gf_cfg_get_key_count(cfg, "RecentFiles");
+	if (nb_entries>MAX_LAST_FILES) {
+		gf_cfg_set_key(cfg, "RecentFiles", gf_cfg_get_key_name(cfg, "RecentFiles", nb_entries-1), NULL);
+	}
+}
+
 void OpenURLDlg::OnGo(wxCommandEvent& event)
 {
 	m_urlVal = m_url->GetValue();
-	const char *sOpt;
-	char filename[1024];
-	u32 i=0;
-
-	while (1) {
-		sprintf(filename, "last_file_%d", i);
-		sOpt = gf_cfg_get_key(m_cfg, "General", filename);
-		if (!sOpt) break;
-		if (!strcmp(sOpt, m_urlVal.mb_str(wxConvUTF8))) {
-			EndModal(wxID_OK);
-			return;
-		}
-		i++;
-	}
-	/*add it*/
-	if (i<10) {
-		gf_cfg_set_key(m_cfg, "General", filename, m_urlVal.mb_str(wxConvUTF8));
-	} else {
-		gf_cfg_set_key(m_cfg, "General", "last_file_10", m_urlVal.mb_str(wxConvUTF8));
-	}
+	UpdateLastFiles(m_cfg, m_urlVal.mb_str(wxConvUTF8));
 	EndModal(wxID_OK);
 }
 /*end open file dlg*/
@@ -361,7 +353,8 @@ void wxOsmo4Frame::CheckVideoOut()
 #else
 		os_handle =  (void *)*(int *)( (char *)gtk_widget_get_parent_window(widget) + 2 * sizeof(void *) );
 #endif
-
+    /*commented out for 0.4.0 release - X11 output is not stable enough*/
+		os_handle = os_display = NULL;
 #elif defined (WIN32)
 		os_handle = m_pView->GetHandle();
 #endif
@@ -1416,6 +1409,7 @@ void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 {
 	wxString cmd;
 	wxCommandEvent evt;
+	if (!m_term) return;
 
 	switch (event.gpac_evt.type) {
 	case GF_EVT_NAVIGATE:
@@ -1871,13 +1865,11 @@ void wxMyComboBox::OnKeyUp(wxKeyEvent &event)
 void wxOsmo4Frame::ReloadURLs()
 {
 	const char *sOpt;
-	char filename[1024];
 	u32 i=0;
 
 	m_Address->Clear();
 	while (1) {
-		sprintf(filename, "last_file_%d", i);
-		sOpt = gf_cfg_get_key(m_user.config, "General", filename);
+		sOpt = gf_cfg_get_key_name(m_user.config, "RecentFiles", i);
 		if (!sOpt) break;
 		m_Address->Append(wxString(sOpt, wxConvUTF8) );
 		i++;
@@ -1888,29 +1880,7 @@ void wxOsmo4Frame::SelectionReady()
 {
 	wxString urlVal = m_Address->GetValue();
 	if (urlVal.Find(wxT("://"))>0) {
-		const char *sOpt;
-		char filename[1024];
-		u32 i=0;
-
-		while (1) {
-			sprintf(filename, "last_file_%d", i);
-			sOpt = gf_cfg_get_key(m_user.config, "General", filename);
-			if (!sOpt) break;
-			if (!strcmp(sOpt, urlVal.mb_str(wxConvUTF8))) {
-				m_pPlayList->Truncate();
-				m_pPlayList->QueueURL(urlVal);
-				m_pPlayList->RefreshList();
-				m_pPlayList->PlayNext();
-				return;
-			}
-			i++;
-		}
-		/*add it*/
-		if (i<10) {
-			gf_cfg_set_key(m_user.config, "General", filename, urlVal.mb_str(wxConvUTF8));
-		} else {
-			gf_cfg_set_key(m_user.config, "General", "last_file_10", urlVal.mb_str(wxConvUTF8));
-		}
+		UpdateLastFiles(m_user.config, urlVal.mb_str(wxConvUTF8));
 		ReloadURLs();
 	}
 	m_pPlayList->Truncate();

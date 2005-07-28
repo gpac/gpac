@@ -127,7 +127,7 @@ EXPORTS
 	gf_token_get_line
 	gf_token_find
 
-;module.h exports
+;config.h exports
 	gf_cfg_new
 	gf_cfg_del
 	gf_cfg_get_key
@@ -136,6 +136,9 @@ EXPORTS
 	gf_cfg_get_section_name
 	gf_cfg_get_key_count
 	gf_cfg_get_key_name
+	gf_cfg_insert_key
+
+;module.h exports
 	gf_modules_new
 	gf_modules_del
 	gf_modules_refresh

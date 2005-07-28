@@ -99,7 +99,7 @@ private:
 	wxStaticText *m_yuvtxt;
 	/*Renderer 3D*/
 	wxCheckBox *m_raster_outlines, *m_polyaa, *m_nobackcull, *m_emulpow2, *m_norectext, *m_copypixels;
-	wxComboBox *m_wire;
+	wxComboBox *m_wire, *m_normals;
 	/*video*/
 	wxComboBox *m_video;
 	wxCheckBox *m_switchres;

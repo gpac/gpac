@@ -1037,6 +1037,7 @@ void Text_Extrude(GF_Node *node, RenderEffect3D *eff, GF_Mesh *mesh, MFVec3f *th
 		mesh_extrude_path_ext(mesh, tl->path, thespine, creaseAngle, min_cx, min_cy, width_cx, width_cy, begin_cap, end_cap, spine_ori, spine_scale, txAlongSpine);
 	}
 	mesh_update_bounds(mesh);
+	gf_mesh_build_aabbtree(mesh);
 }
 
 static void RenderTextureText(GF_Node *node, void *rs)

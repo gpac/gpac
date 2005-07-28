@@ -116,15 +116,16 @@ static Bool OGG_ReadPage(OGGReader *read, ogg_page *oggpage)
 		u32 total_size, status;
 		e = gf_dm_sess_get_stats(read->dnload, NULL, NULL, &total_size, NULL, NULL, &status);
 		/*not ready*/
-		if ((e<GF_OK) || (status != GF_DOWNLOAD_STATE_RUNNING)) return 0;
-		if (!total_size) {
-			read->is_live = 1;
-		}
-		if (!read->is_live  && !read->ogfile) {
-			const char *szCache = gf_dm_sess_get_cache_name(read->dnload);
-			if (!szCache) return 0;
-			read->ogfile = fopen((char *) szCache, "rb");
-			if (!read->ogfile) return 0;
+		if ((e<GF_OK) || (status > GF_DOWNLOAD_STATE_RUNNING)) return 0;
+		if (status == GF_DOWNLOAD_STATE_RUNNING) {
+			if (!total_size && !read->is_live) 
+				read->is_live = 1;
+			else if (!read->is_live  && !read->ogfile) {
+				const char *szCache = gf_dm_sess_get_cache_name(read->dnload);
+				if (!szCache) return 0;
+				read->ogfile = fopen((char *) szCache, "rb");
+				if (!read->ogfile) return 0;
+			}
 		}
 	}
 
@@ -143,7 +144,6 @@ static Bool OGG_ReadPage(OGGReader *read, ogg_page *oggpage)
 			if (e) return 0;
 		}
 		if (!bytes) return 0;
-
 		buffer = ogg_sync_buffer(&read->oy, bytes);
 		memcpy(buffer, buf, bytes);
         ogg_sync_wrote(&read->oy, bytes);
@@ -465,7 +465,9 @@ void OGG_Process(OGGReader *read)
 		goto process_stream;
 	}
 
-	if (!OGG_ReadPage(read, &oggpage)) return;
+	if (!OGG_ReadPage(read, &oggpage)) {
+		return;
+	}
 
 	if (ogg_page_bos(&oggpage)) {
 		OGG_NewStream(read, &oggpage);
@@ -721,7 +723,7 @@ void OGG_DownloadFile(GF_InputService *plug, char *url)
 	OGGReader *read = (OGGReader*) plug->priv;
 
 	read->dnload = gf_term_download_new(read->service, url, GF_DOWNLOAD_SESSION_NOT_THREADED, OGG_OnState, read);
-	if (read->dnload) {
+	if (!read->dnload) {
 		read->kill_demux=2;
 		read->needs_connection = 0;
 		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);

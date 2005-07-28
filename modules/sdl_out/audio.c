@@ -83,7 +83,7 @@ static void SDLAud_Shutdown(GF_AudioOutput *dr)
 
 static GF_Err SDLAud_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg)
 {
-	u32 nb_samples;
+	s32 nb_samples;
 	SDL_AudioSpec want_format, got_format;
 	SDLAUD();
 

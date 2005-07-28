@@ -61,7 +61,7 @@ All destructor like functions should be of style gf_zzz_del
 
 3 Rearchitecture of the GPAC repository
   
-  This recaps the changes betwenn gpac 0.3.0 and gpac 0.4.0 as far as the core architecture is concerned.
+  This recaps the changes between gpac 0.3.0 and gpac 0.4.0 as far as the core architecture is concerned.
   
   
   The former M4Systems library is now simply libGPAC (eg libgpac.lib, libgpac.dll, libgpac.so, libgpac.a)
@@ -75,8 +75,8 @@ All destructor like functions should be of style gf_zzz_del
   /gpac/applications/testapps:   added for apps testing some features of gpac (currently only BIFSEngine tester)
   /gpac/bin
     rename of directories:
-      arm_debug -> arm_ppc2002_deb
-      arm_release -> arm_ppc2002_rel
+      arm_debug -> arm_ppc02_deb
+      arm_release -> arm_ppc02_rel
       Debug -> w32_deb
       Release -> w32_rel
   /gpac/build: former IDEs directory, with project files for MS eVC*/VC*
@@ -87,8 +87,8 @@ All destructor like functions should be of style gf_zzz_del
     unchanged
   /gpac/extra_lib/lib
     rename of directories:
-      arm_debug -> arm_ppc2002_deb
-      arm_release -> arm_ppc2002_rel
+      arm_debug -> arm_ppc02_deb
+      arm_release -> arm_ppc02_rel
       w32_debug -> w32_deb
       w32_release -> w32_rel
     

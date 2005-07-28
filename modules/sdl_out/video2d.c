@@ -271,8 +271,8 @@ GF_Err SDLVid_Blit(GF_VideoOutput *dr, u32 src_id, u32 dst_id, GF_Window *src, G
 
 		/*safety check, something went wrong during resize*/
 		if (dst) {
-		  if (dst->x + dst->w > dst_s->w) return GF_OK;
-		  if (dst->y + dst_h > dst_s->h) return GF_OK; 
+		  if (dst->x + dst->w > (u32) dst_s->w) return GF_OK;
+		  if (dst->y + dst_h > (u32) dst_s->h) return GF_OK; 
 		}
 		
 		SDL_LockSurface(dst_s);

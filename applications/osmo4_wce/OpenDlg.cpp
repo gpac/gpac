@@ -53,51 +53,35 @@ void OpenDlg::OnOK()
 		EndDialog(IDCANCEL);
 		return;
 	}
-
 	COsmo4 *app = GetApp();
-	const char *sOpt;
-	char filename[1024];
-	u32 i=0;
+	u32 nb_entries;
 
 	app->m_filename = URL;
 
 	CE_WideToChar((unsigned short *) (LPCTSTR) URL, szUrl);
 
-	while (1) {
-		sprintf(filename, "last_file_%d", i);
-		sOpt = gf_cfg_get_key(app->m_user.config, "General", filename);
-		if (!sOpt) break;
-		if (!strcmp(sOpt, szUrl)) {
-			EndDialog(IDOK);
-			return;
-		}
-		i++;
+	gf_cfg_set_key(app->m_user.config, "RecentFiles", szUrl, NULL);
+	gf_cfg_insert_key(app->m_user.config, "RecentFiles", szUrl, "");
+	/*remove last entry if needed*/
+	nb_entries = gf_cfg_get_key_count(app->m_user.config, "RecentFiles");
+	if (nb_entries>20) {
+		gf_cfg_set_key(app->m_user.config, "RecentFiles", gf_cfg_get_key_name(app->m_user.config, "RecentFiles", nb_entries-1), NULL);
 	}
-	if (i<10) {
-		gf_cfg_set_key(app->m_user.config, "General", filename, szUrl);
-	} else {
-		gf_cfg_set_key(app->m_user.config, "General", "last_file_10", szUrl);
-	}
-	CDialog::OnOK();
+	EndDialog(IDOK);
 }
 
 BOOL OpenDlg::OnInitDialog() 
 {
 	TCHAR w_str[5000];
 	CDialog::OnInitDialog();
-	
 	COsmo4 *app = GetApp();
 	const char *sOpt;
-	char filename[1024];
 	u32 i=0;
 
 	while (m_URLs.GetCount()) m_URLs.DeleteString(0);
 	while (1) {
-		sprintf(filename, "last_file_%d", i);
-		sOpt = gf_cfg_get_key(app->m_user.config, "General", filename);
-		if (!sOpt) 
-			break;
-
+		sOpt = gf_cfg_get_key_name(app->m_user.config, "RecentFiles", i);
+		if (!sOpt) break;
 		CE_CharToWide((char *) sOpt, w_str);
 		m_URLs.AddString(w_str);
 		i++;

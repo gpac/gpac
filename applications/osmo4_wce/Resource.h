@@ -58,7 +58,9 @@
 #define IDC_EDIT_AUDIO                  1026
 #define IDC_SPIN_AUDIO                  1027
 #define IDC_AUDIO_FPS                   1028
+#define IDC_AUDIO_DUR                   1028
 #define IDC_SPIN_FPS                    1029
+#define IDC_SPIN_DUR                    1029
 #define IDC_AUDIO_RESYNC                1030
 #define IDC_DRIVER_LIST                 1031
 #define IDC_FONT_LIST                   1032

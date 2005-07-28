@@ -41,9 +41,9 @@ Before compiling, you should change that path to your path. In the file
 wxGPACPanel.cpp, change:
 	strcpy(config_path, "E:\\MesProjets\\gpac\\gpac\\bin\\Debug");
 into:
-	strcpy(config_path, <gpac_path_with_double_backslash>\\gpac\\bin\\Debug");
+	strcpy(config_path, <gpac_path_with_double_backslash>\\gpac\\bin\\w32_deb");
 
-To link, it needs the js32.lib. Place it under gpac/extra_lib/lib/w32_debug.
+To link, it needs the js32.lib. Place it under gpac/extra_lib/lib/w32_deb.
 
 To link, you also need some elements from wxWidgets, version 2.5.2. You need to change the path
 to the wxWidgets include and library directories, in tools->options, Directories tab

@@ -81,6 +81,8 @@ typedef struct _render3d
 	Bool disable_rect_ext;
 	/*disable RECT extensions (except for Bitmap...)*/
 	Bool bitmap_use_pixels;
+	/*disable RECT extensions (except for Bitmap...)*/
+	u32 draw_normals;
 
 	/*top level effect for zoom/pan*/
 	struct _render3d_effect *top_effect;

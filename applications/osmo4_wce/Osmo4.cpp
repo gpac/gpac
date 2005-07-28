@@ -5,6 +5,7 @@
 #include "Osmo4.h"
 
 #include <gpac/options.h>
+#include <gpac/modules/service.h>
 #include "MainFrm.h"
 #include "OpenDlg.h"
 #include "Options.h"
@@ -218,17 +219,30 @@ BOOL COsmo4::InitInstance()
 			gf_cfg_set_key(m_user.config, "Network", "UDPNotAvailable", "no");
 			gf_cfg_set_key(m_user.config, "Network", "UDPTimeout", "10000");
 			gf_cfg_set_key(m_user.config, "Network", "BufferLength", "3000");
+
+		
+			/*first launch, register all files ext*/
+			u32 i;
+			for (i=0; i<gf_modules_get_count(m_user.modules); i++) {
+				GF_InputService *ifce = (GF_InputService *) gf_modules_load_interface(m_user.modules, i, GF_NET_CLIENT_INTERFACE);
+				if (!ifce) continue;
+				if (ifce) {
+					ifce->CanHandleURL(ifce, "test.test");
+					gf_modules_close_interface((GF_BaseInterface *)ifce);
+				}
+			}
 		}
 
 		/*check audio config on windows, force config*/
 		sOpt = gf_cfg_get_key(m_user.config, "Audio", "ForceConfig");
 		if (!sOpt) {
-			gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "no");
+			gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "yes");
 			gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "2");
-			gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "120");
+			gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "200");
 		}
 		/*by default use GDIplus, much faster than freetype on font loading*/
 		gf_cfg_set_key(m_user.config, "FontEngine", "DriverName", "ft_font");
+		::MessageBox(NULL, _T("Osmo4/GPAC Setup complete"), _T("Initial launch"), MB_OK);
 	}	
 	if (! gf_modules_get_count(m_user.modules) ) {
 		MessageBox(NULL, _T("No plugins available - system cannot work"), _T("Fatal Error"), MB_OK);
@@ -248,9 +262,6 @@ BOOL COsmo4::InitInstance()
 	if (!str) gf_cfg_set_key(m_user.config, "FontEngine", "FontSans", "Frutiger");
 	str = gf_cfg_get_key(m_user.config, "FontEngine", "FontFixed");
 	if (!str) gf_cfg_set_key(m_user.config, "FontEngine", "FontFixed", "Courier New");
-
-	/*audio only works with free config*/
-	gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "no");
 
 	/*check video driver, if none or raw_out use dx_hw by default*/
 	str = gf_cfg_get_key(m_user.config, "Video", "DriverName");

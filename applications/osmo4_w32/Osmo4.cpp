@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "Osmo4.h"
+#include <gpac/network.h>
 
 #include "MainFrm.h"
 #include "OpenUrl.h"
@@ -325,28 +326,30 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 }
 
 
-/////////////////////////////////////////////////////////////////////////////
-// WinGPAC initialization
+/*here's the trick: use a storage section shared among all processes for the wnd handle and for the command line
+NOTE: this has to be static memory of course, don't try to alloc anything there...*/
+#pragma comment(linker, "/SECTION:.shr,RWS") 
+#pragma data_seg(".shr") 
+HWND static_gpac_hwnd = NULL; 
+char static_szCmdLine[MAX_PATH] = "";
+#pragma data_seg() 
+
+const char *static_gpac_get_url()
+{
+	return (const char *) static_szCmdLine;
+}
+
 
 BOOL WinGPAC::InitInstance()
 {
-	// Standard initialization
+	CCommandLineInfo cmdInfo;
 
-#ifdef _AFXDLL
-	Enable3dControls();			// Call this when using MFC in a shared DLL
-#else
-	Enable3dControlsStatic();	// Call this when linking to MFC statically
-#endif
-
-	SetRegistryKey(_T("GPAC"));
-
-	CMainFrame* pFrame = new CMainFrame;
-	m_pMainWnd = pFrame;
-	pFrame->LoadFrame(IDR_MAINFRAME, WS_OVERLAPPEDWINDOW | FWS_ADDTOTITLE, NULL, NULL);
-	m_pMainWnd->DragAcceptFiles();
+	m_term = NULL;
+	memset(&m_user, 0, sizeof(GF_User));
 
 	strcpy((char *) szAppPath, AfxGetApp()->m_pszHelpFilePath);
 	while (szAppPath[strlen((char *) szAppPath)-1] != '\\') szAppPath[strlen((char *) szAppPath)-1] = 0;
+	if (szAppPath[strlen((char *) szAppPath)-1] != '\\') strcat(szAppPath, "\\");
 
 	/*setup user*/
 	memset(&m_user, 0, sizeof(GF_User));
@@ -368,6 +371,70 @@ BOOL WinGPAC::InitInstance()
 			m_pMainWnd->PostMessage(WM_CLOSE);
 		}
 	}
+	const char *opt = gf_cfg_get_key(m_user.config, "General", "SingleInstance");
+	m_SingleInstance = (opt && !stricmp(opt, "yes")) ? 1 : 0;
+
+	m_hMutex = NULL;
+	if (m_SingleInstance) {
+		m_hMutex = CreateMutex(NULL, FALSE, "Osmo4_GPAC_INSTANCE");
+		if ( GetLastError() == ERROR_ALREADY_EXISTS ) {
+			char szDIR[1024];
+			if (m_hMutex) CloseHandle(m_hMutex);
+			m_hMutex = NULL;
+
+			if (!static_gpac_hwnd) {
+				::MessageBox(NULL, "Osmo4 ghost process detected", "Error at last shutdown" , MB_OK);
+			} else {
+				::SetForegroundWindow(static_gpac_hwnd);
+
+				if (m_lpCmdLine && strlen(m_lpCmdLine)) {
+					DWORD res;
+					u32 len;
+					char *the_url, *cmd;
+					GetCurrentDirectory(1024, szDIR);
+					if (szDIR[strlen(szDIR)-1] != '\\') strcat(szDIR, "\\");
+					cmd = (char *)(const char *) m_lpCmdLine;
+					strcpy(static_szCmdLine, "");
+					if (cmd[0]=='"') cmd+=1;
+
+					if (!strnicmp(cmd, "-queue ", 7)) {
+						strcat(static_szCmdLine, "-queue ");
+						cmd += 7;
+					}
+					the_url = gf_url_concatenate(szDIR, cmd);
+					if (!the_url) {
+						strcat(static_szCmdLine, cmd);
+					} else {
+						strcat(static_szCmdLine, the_url);
+						free(the_url);
+					}
+					while ( (len = strlen(static_szCmdLine)) ) {
+						char s = static_szCmdLine[len-1];
+						if ((s==' ') || (s=='"')) static_szCmdLine[len-1]=0;
+						else break;
+					}
+					::SendMessageTimeout(static_gpac_hwnd, WM_NEWINSTANCE, 0, 0, 0, 1000, &res);
+				}
+			}
+			
+			return FALSE;
+		}
+	}
+
+
+	// Standard initialization
+#ifdef _AFXDLL
+	Enable3dControls();			// Call this when using MFC in a shared DLL
+#else
+	Enable3dControlsStatic();	// Call this when linking to MFC statically
+#endif
+	SetRegistryKey(_T("GPAC"));
+	CMainFrame* pFrame = new CMainFrame;
+	m_pMainWnd = pFrame;
+	pFrame->LoadFrame(IDR_MAINFRAME, WS_OVERLAPPEDWINDOW | FWS_ADDTOTITLE, NULL, NULL);
+	m_pMainWnd->DragAcceptFiles();
+
+	if (m_SingleInstance) static_gpac_hwnd = m_pMainWnd->m_hWnd;
 
 	const char *str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	m_user.modules = gf_modules_new((const unsigned char *) str, m_user.config);
@@ -463,7 +530,6 @@ BOOL WinGPAC::InitInstance()
 	m_reconnect_time = 0;
 
 
-	CCommandLineInfo cmdInfo;
 	ParseCommandLine(cmdInfo);
 
 	if (! cmdInfo.m_strFileName.IsEmpty()) {
@@ -487,6 +553,19 @@ BOOL WinGPAC::InitInstance()
 	pFrame->SetFocus();
 	pFrame->SetForegroundWindow();
 	return TRUE;
+}
+
+int WinGPAC::ExitInstance() 
+{
+	if (m_term) gf_term_del(m_term);
+	if (m_user.modules) gf_modules_del(m_user.modules);
+	if (m_user.config) gf_cfg_del(m_user.config);
+	/*last instance*/
+	if (m_hMutex) {
+		CloseHandle(m_hMutex);
+		static_gpac_hwnd = NULL;
+	}
+	return CWinApp::ExitInstance();
 }
 
 
@@ -591,15 +670,6 @@ void CAboutDlg::OnGogpac()
 /////////////////////////////////////////////////////////////////////////////
 // WinGPAC message handlers
 
-
-int WinGPAC::ExitInstance() 
-{
-
-	gf_term_del(m_term);
-	gf_modules_del(m_user.modules);
-	gf_cfg_del(m_user.config);
-	return CWinApp::ExitInstance();
-}
 
 void WinGPAC::SetOptions()
 {

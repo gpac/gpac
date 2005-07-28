@@ -181,6 +181,7 @@ void COptGen::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_DUMP_XMT, m_ViewXMT);
 	DDX_Control(pDX, IDC_NO_CONSOLE, m_NoConsole);
 	DDX_Control(pDX, IDC_LOOP, m_Loop);
+	DDX_Control(pDX, IDC_SINGLE_INSTANCE, m_SingleInstance);
 	//}}AFX_DATA_MAP
 }
 
@@ -210,6 +211,8 @@ BOOL COptGen::OnInitDialog()
 	m_NoConsole.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "ViewXMT");
 	m_ViewXMT.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "SingleInstance");
+	m_SingleInstance.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	return TRUE; 
 }
 
@@ -225,7 +228,8 @@ void COptGen::SaveOptions()
 	gf_cfg_set_key(gpac->m_user.config, "General", "ConsoleOff", gpac->m_NoConsole ? "yes" : "no");
 	gpac->m_ViewXMTA = m_ViewXMT.GetCheck();
 	gf_cfg_set_key(gpac->m_user.config, "General", "ViewXMT", gpac->m_ViewXMTA ? "yes" : "no");
-
+	gpac->m_SingleInstance = m_SingleInstance.GetCheck();
+	gf_cfg_set_key(gpac->m_user.config, "General", "SingleInstance", gpac->m_SingleInstance ? "yes" : "no");
 }
 
 COptSystems::COptSystems(CWnd* pParent /*=NULL*/)
@@ -730,6 +734,7 @@ void COptRender3D::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_RASTER_OUTLINE, m_RasterOutlines);
 	DDX_Control(pDX, IDC_EMUL_POW2, m_EmulPow2);
 	DDX_Control(pDX, IDC_DISABLE_POLY_AA, m_PolyAA);
+	DDX_Control(pDX, IDC_DRAW_NORMALS, m_DrawNormals);
 	DDX_Radio(pDX, IDC_WIRE_NONE, m_Wireframe);
 	//}}AFX_DATA_MAP
 }
@@ -752,6 +757,16 @@ BOOL COptRender3D::OnInitDialog()
 	WinGPAC *gpac = GetApp();
 	const char *sOpt;
 
+	m_DrawNormals.AddString("Never");
+	m_DrawNormals.AddString("Per Face");
+	m_DrawNormals.AddString("Per Vertex");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "DrawNormals");
+	if (sOpt && !stricmp(sOpt, "PerFace")) m_DrawNormals.SetCurSel(1);
+	else if (sOpt && !stricmp(sOpt, "PerVertex")) m_DrawNormals.SetCurSel(2);
+	else m_DrawNormals.SetCurSel(0);
+
+
+	
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "RasterOutlines");
 	m_RasterOutlines.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "EmulatePOW2");
@@ -779,6 +794,9 @@ BOOL COptRender3D::OnInitDialog()
 void COptRender3D::SaveOptions()
 {
 	WinGPAC *gpac = GetApp();
+
+	u32 sel = m_DrawNormals.GetCurSel();
+	gf_cfg_set_key(gpac->m_user.config, "Render3D", "DrawNormals", (sel==2) ? "PerVertex" : (sel==1) ? "PerFace" : "Never");
 
 	gf_cfg_set_key(gpac->m_user.config, "Render3D", "RasterOutlines", m_RasterOutlines.GetCheck() ? "yes" : "no");
 	gf_cfg_set_key(gpac->m_user.config, "Render3D", "EmulatePOW2", m_EmulPow2.GetCheck() ? "yes" : "no");
@@ -1704,7 +1722,7 @@ void OptFiles::SetSelection(u32 sel)
 		sprintf(szReg, "GPAC\\%s", sKey);
 		if (tmp) { tmp[0] = c; tmp += 1; }
 
-		if (RegOpenKeyEx(HKEY_CLASSES_ROOT, szExt, 0, 0, &hKey ) == ERROR_SUCCESS) {
+		if (RegOpenKeyEx(HKEY_CLASSES_ROOT, szExt, 0, KEY_READ, &hKey ) == ERROR_SUCCESS) {
 			dwSize = 200;
 			ok = 1;
 			if (RegQueryValueEx(hKey, "", NULL, NULL,(unsigned char*) sDesc, &dwSize) != ERROR_SUCCESS) ok = 0;

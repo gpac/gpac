@@ -48,6 +48,7 @@
 #define IDC_STOPATEND                   1015
 #define IDC_LOOKFORSUB                  1015
 #define IDC_FILEASSOC                   1016
+#define IDC_SINGLE_INSTANCE             1016
 #define IDC_NO_CONSOLE                  1017
 #define IDC_BIFS_RATE                   1018
 #define IDC_DEC_THREAD                  1019
@@ -143,6 +144,7 @@
 #define IDC_EDIT_USER                   1126
 #define ID_OPT_QUALITY                  1127
 #define IDC_EDIT_PASSWORD               1127
+#define IDC_DRAW_NORMALS                1127
 #define ID_FILE_PROP                    1128
 #define ID_FILE_STEP                    1129
 #define IDD_CONFIGURE                   1130
@@ -267,7 +269,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        189
 #define _APS_NEXT_COMMAND_VALUE         32960
-#define _APS_NEXT_CONTROL_VALUE         1127
+#define _APS_NEXT_CONTROL_VALUE         1128
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

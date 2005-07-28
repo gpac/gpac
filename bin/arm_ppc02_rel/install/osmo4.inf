@@ -45,7 +45,7 @@ wav_out.dll = 1
 xvid_dec.dll = 1
 ;gpac.cfg = 2
 svg_loader.dll = 1
-libxml2.dll = 2
+libxml2.dll = 1
 ;gx.dll = 2
 ;ogg_xiph.dll = 1
 

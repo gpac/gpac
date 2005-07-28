@@ -765,8 +765,21 @@ static GF_Err GAPI_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		gctx->is_resizing = 0;
 	/*we should actually never see a windowsize event*/
 	case GF_EVT_VIDEO_SETUP:
-		gctx->disp_w = evt->size.width;
-		gctx->disp_h = evt->size.height;
+		if (gctx->gx.ffFormat & kfLandscape) {
+			if ((gctx->disp_w < gctx->screen_h) && (gctx->disp_h < gctx->screen_w)) {
+				gctx->disp_w = evt->size.width;
+				gctx->disp_h = evt->size.height;
+			} else {
+				return GF_BAD_PARAM;
+			}
+		} else {
+			if ((gctx->disp_w < gctx->screen_w) && (gctx->disp_h < gctx->screen_h)) {
+				gctx->disp_w = evt->size.width;
+				gctx->disp_h = evt->size.height;
+			} else {
+				return GF_BAD_PARAM;
+			}
+		}
 		break;
 	}
 	return GF_OK;

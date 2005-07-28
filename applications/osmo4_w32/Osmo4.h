@@ -31,10 +31,11 @@ enum {
 	WM_RESTARTURL,
 	WM_CONSOLEMSG,
 	WM_SETTIMING,
+	WM_NEWINSTANCE,
 };
 
 Bool is_supported_file(GF_Config *cfg, const char *fileName, Bool disable_no_ext);
-
+const char *static_gpac_get_url();
 
 class WinGPAC : public CWinApp
 {
@@ -60,13 +61,14 @@ public:
 	void UpdateRenderSwitch();
 
 	/*general options*/
-	Bool m_Loop, m_LookForSubtitles, m_NoConsole;
-	Bool m_ViewXMTA;
+	Bool m_Loop, m_LookForSubtitles, m_NoConsole, m_ViewXMTA, m_SingleInstance;
 
 	void ReloadTerminal();
 	CString GetFileFilter();
 	
 	char szAppPath[GF_MAX_PATH];
+
+	HANDLE m_hMutex;
 
 // Overrides
 	// ClassWizard generated virtual function overrides

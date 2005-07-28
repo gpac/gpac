@@ -923,9 +923,13 @@ void gf_es_on_connect(GF_Channel *ch)
 {
 	Bool can_buffer;
 	GF_NetworkCommand com;
-	GF_CodecCapability cap;
 
-	/*config channel*/
+	/*check whether we can work in pull mode or not*/
+	can_buffer = 1;
+	/*if local interaction streams no buffer nor pull*/
+	if ((ch->esd->decoderConfig->streamType == GF_STREAM_INTERACT) && !ch->esd->URLString) can_buffer = 0;
+
+	/*setup net channel config*/
 	com.command_type = GF_NET_CHAN_CONFIG;
 	com.base.on_channel = ch;
 
@@ -933,22 +937,7 @@ void gf_es_on_connect(GF_Channel *ch)
 	com.cfg.sync_id = (u32) ch->clock;
 	memcpy(&com.cfg.sl_config, ch->esd->slConfig, sizeof(GF_SLConfig));
 	com.cfg.frame_duration = 0;
-
-	/*get the frame duration if audio (used by some network stack)*/
-	if (ch->odm->codec && (ch->odm->codec->type==GF_STREAM_AUDIO) ) {
-		cap.CapCode = GF_CODEC_SAMPLERATE;
-		gf_codec_get_capability(ch->odm->codec, &cap);
-		com.cfg.sample_rate = cap.cap.valueInt;
-		cap.CapCode = GF_CODEC_CU_DURATION;
-		gf_codec_get_capability(ch->odm->codec, &cap);
-		com.cfg.frame_duration = cap.cap.valueInt;
-	} 
 	gf_term_service_command(ch->service, &com);
-
-	/*check whether we can work in pull mode or not*/
-	can_buffer = 1;
-	/*if local interaction streams no buffer nor pull*/
-	if ((ch->esd->decoderConfig->streamType == GF_STREAM_INTERACT) && !ch->esd->URLString) can_buffer = 0;
 
 	ch->is_pulling = 0;
 	if (can_buffer) {

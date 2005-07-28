@@ -103,8 +103,7 @@ static Bool ADTS_SyncFrame(GF_BitStream *bs, Bool is_complete, ADTSHeader *hdr)
 		hdr->no_crc = gf_bs_read_int(bs, 1);
 		pos = (u32) gf_bs_get_position(bs) - 2;
 
-		hdr->profile = gf_bs_read_int(bs, 2);
-		if (!hdr->is_mp2) hdr->profile += 1;
+		hdr->profile = 1 + gf_bs_read_int(bs, 2);
 		hdr->sr_idx = gf_bs_read_int(bs, 4);
 		gf_bs_read_int(bs, 1);
 		hdr->nb_ch = gf_bs_read_int(bs, 3);
@@ -212,7 +211,7 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 		read->nb_ch = hdr.nb_ch;
 		read->prof = hdr.profile;
 		read->sr_idx = hdr.sr_idx;
-		read->oti = hdr.is_mp2 ? read->prof+0x66 : 0x40;
+		read->oti = hdr.is_mp2 ? read->prof+0x66-1 : 0x40;
 		read->sample_rate = GF_M4ASampleRates[read->sr_idx];
 		read->is_live = 1;
 		memset(&read->sl_hdr, 0, sizeof(SLHeader));
@@ -378,6 +377,8 @@ static GF_ESD *AAC_GetESD(AACReader *read)
 {
 	GF_BitStream *dsi;
 	GF_ESD *esd;
+	u32 i, sbr_sr_idx;
+
 	esd = gf_odf_desc_esd_new(0);
 	esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 	esd->decoderConfig->objectTypeIndication = read->oti;
@@ -393,21 +394,18 @@ static GF_ESD *AAC_GetESD(AACReader *read)
 	gf_bs_write_int(dsi, read->nb_ch, 4);
 	gf_bs_align(dsi);
 
-	/*write as SBR AAC*/
-	if (0) {
-		u32 i, sbr_sr_idx;
-		sbr_sr_idx = read->sr_idx;
-		for (i=0; i<16; i++) {
-			if (GF_M4ASampleRates[i] == (u32) 2*read->sample_rate) {
-				sbr_sr_idx = i;
-				break;
-			}
+	/*always signal implicit S	BR in case it's used*/
+	sbr_sr_idx = read->sr_idx;
+	for (i=0; i<16; i++) {
+		if (GF_M4ASampleRates[i] == (u32) 2*read->sample_rate) {
+			sbr_sr_idx = i;
+			break;
 		}
-		gf_bs_write_int(dsi, 0x2b7, 11);
-		gf_bs_write_int(dsi, 5, 5);
-		gf_bs_write_int(dsi, 1, 1);
-		gf_bs_write_int(dsi, sbr_sr_idx, 4);
 	}
+	gf_bs_write_int(dsi, 0x2b7, 11);
+	gf_bs_write_int(dsi, 5, 5);
+	gf_bs_write_int(dsi, 1, 1);
+	gf_bs_write_int(dsi, sbr_sr_idx, 4);
 
 	gf_bs_align(dsi);
 	gf_bs_get_content(dsi, (unsigned char **)&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);

@@ -142,8 +142,8 @@ void COptAudio::DoDataExchange(CDataExchange* pDX)
 	//{{AFX_DATA_MAP(COptAudio)
 	DDX_Control(pDX, IDC_DRIVER_LIST, m_DriverList);
 	DDX_Control(pDX, IDC_AUDIO_RESYNC, m_AudioResync);
-	DDX_Control(pDX, IDC_AUDIO_FPS, m_AudioFPS);
-	DDX_Control(pDX, IDC_SPIN_FPS, m_SpinFPS);
+	DDX_Control(pDX, IDC_AUDIO_DUR, m_AudioDur);
+	DDX_Control(pDX, IDC_SPIN_DUR, m_SpinDur);
 	DDX_Control(pDX, IDC_FORCE_AUDIO, m_ForceConfig);
 	DDX_Control(pDX, IDC_SPIN_AUDIO, m_AudioSpin);
 	DDX_Control(pDX, IDC_EDIT_AUDIO, m_AudioEdit);
@@ -165,19 +165,15 @@ BOOL COptAudio::OnInitDialog()
 	CDialog::OnInitDialog();
 
 	m_AudioSpin.SetBuddy(& m_AudioEdit);
-	m_SpinFPS.SetBuddy(& m_AudioFPS);
+	m_SpinDur.SetBuddy(& m_AudioDur);
+	m_SpinDur.SetRange(0, 1000);
 
 	COsmo4 *gpac = GetApp();
 	const char *sOpt;
 	TCHAR wTmp[500];
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "ForceConfig");
-	if (sOpt && !stricmp(sOpt, "yes")) {
-		m_ForceConfig.SetCheck(1);
-	} else {
-		m_ForceConfig.SetCheck(0);
-	}
-//	m_ForceConfig.EnableWindow(FALSE);
+	m_ForceConfig.SetCheck( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "NumBuffers");
 	if (sOpt) {
@@ -189,9 +185,9 @@ BOOL COptAudio::OnInitDialog()
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "TotalDuration");
 	if (sOpt) {
 		CE_CharToWide((char *)sOpt, wTmp);
-		m_AudioFPS.SetWindowText(wTmp);
+		m_AudioDur.SetWindowText(wTmp);
 	} else {
-		m_AudioFPS.SetWindowText(_T("120"));
+		m_AudioDur.SetWindowText(_T("200"));
 	}
 
 	OnForceAudio();
@@ -238,7 +234,7 @@ void COptAudio::SaveOptions()
 	m_AudioEdit.GetWindowText(wstr, 20);
 	CE_WideToChar(wstr, str);
 	gf_cfg_set_key(gpac->m_user.config, "Audio", "NumBuffers", str);
-	m_AudioFPS.GetWindowText(wstr, 20);
+	m_AudioDur.GetWindowText(wstr, 20);
 	CE_WideToChar(wstr, str);
 	gf_cfg_set_key(gpac->m_user.config, "Audio", "TotalDuration", str);
 
@@ -254,8 +250,8 @@ void COptAudio::OnForceAudio()
 
 	m_AudioSpin.EnableWindow(en);
 	m_AudioEdit.EnableWindow(en);
-	m_SpinFPS.EnableWindow(en);
-	m_AudioFPS.EnableWindow(en);
+	m_SpinDur.EnableWindow(en);
+	m_AudioDur.EnableWindow(en);
 }
 
 

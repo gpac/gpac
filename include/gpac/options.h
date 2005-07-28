@@ -152,6 +152,13 @@ enum
 	GF_TEXTURE_TEXT_ALWAYS /*text always drawn as texture*/
 };
 
+/*Norma drawing settings*/
+enum
+{
+	GF_NORMALS_NONE = 0, /*normals never drawn*/
+	GF_NORMALS_FACE, /*normals drawn per face (at barycenter)*/
+	GF_NORMALS_VERTEX /*normals drawn per vertex*/
+};
 
 /*high-level options*/
 enum
@@ -241,6 +248,8 @@ enum
 	GF_OPT_POLYGON_ANTIALIAS,
 	/*get/set wireframe flag (value: cf above) (may be ugly with some cards)*/
 	GF_OPT_WIREFRAME,
+	/*get/set wireframe flag (value: cf above) (may be ugly with some cards)*/
+	GF_OPT_NORMALS,
 	/*disable backface culling*/
 	GF_OPT_NO_BACK_CULL,
 	/*get/set RECT Ext flag (value: boolean) - when set, GL rectangular texture extension is not used 

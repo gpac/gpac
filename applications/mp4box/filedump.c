@@ -539,6 +539,7 @@ void dump_file_rtp(GF_ISOFile *file, char *inName)
 void dump_file_ts(GF_ISOFile *file, char *inName)
 {
 	u32 i, j, k, count;
+	Bool has_error;
 	FILE *dump;
 	char szBuf[1024];
 
@@ -550,6 +551,7 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 		dump = stdout;
 	}
 
+	has_error = 0;
 	for (i=0; i<gf_isom_get_track_count(file); i++) {	
 		Bool has_cts_offset = gf_isom_has_time_offset(file, i+1);
 
@@ -565,7 +567,7 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 //			dts *= TS_MUL; cts *= TS_MUL;
 
 			fprintf(dump, "Sample %d - DTS %d - CTS %d", j+1, dts, cts);
-			if (cts<dts) fprintf(dump, " #NEGATIVE CTS OFFSET!!!");
+			if (cts<dts) { fprintf(dump, " #NEGATIVE CTS OFFSET!!!"); has_error = 1;}
 		
 			if (has_cts_offset) {
 				for (k=0; k<count; k++) {
@@ -577,20 +579,21 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 //					adts /= TS_DIV; acts /= TS_DIV;
 //					adts *= TS_MUL; acts *= TS_MUL;
 
-					if (adts==dts) fprintf(dump, " #SAME DTS USED!!!");
-					if (acts==cts) fprintf(dump, " #SAME CTS USED!!! ");
+					if (adts==dts) { fprintf(dump, " #SAME DTS USED!!!"); has_error = 1; }
+					if (acts==cts) { fprintf(dump, " #SAME CTS USED!!! "); has_error = 1; }
 
 					gf_isom_sample_del(&samp);
 				}
 			}
 
 			fprintf(dump, "\n");
-			gf_cbk_on_progress("Analysing Track", j+1, count);
+			gf_cbk_on_progress("Analysing Track Timing", j+1, count);
 		}
 		fprintf(dump, "\n\n");
-		gf_cbk_on_progress("Analysing Track", count, count);
+		gf_cbk_on_progress("Analysing Track Timing", count, count);
 	}
 	if (inName) fclose(dump);
+	if (has_error) fprintf(stdout, "\tFile has CTTS table errors\n");
 }
 
 void dump_file_ismacryp(GF_ISOFile *file, char *inName)

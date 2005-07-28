@@ -2187,13 +2187,14 @@ GF_Err gf_isom_clone_pl_indications(GF_ISOFile *orig, GF_ISOFile *dest)
 
 
 
-GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *dest_file, u32 *dest_track)
+GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *dest_file, Bool keep_data_ref, u32 *dest_track)
 {
 	GF_TrackBox *trak, *new_tk;
 	GF_BitStream *bs;
 	unsigned char *data;
 	u32 data_size;
 	GF_Err e;
+	GF_SampleEntryBox *entry;
 	GF_SampleTableBox *stbl, *stbl_temp;
 	
 	e = CanAccessMovie(dest_file, GF_ISOM_OPEN_WRITE);
@@ -2203,6 +2204,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	/*get orig sample desc and clone it*/
 	trak = gf_isom_get_track_from_file(orig_file, orig_track);
 	if (!trak || !trak->Media) return GF_BAD_PARAM;
+	if (gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList)>1) return GF_NOT_SUPPORTED;
 
 	stbl = trak->Media->information->sampleTable;
 	stbl_temp = (GF_SampleTableBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STBL);
@@ -2244,6 +2246,20 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	}
 
 	moov_AddBox(dest_file->moov, (GF_Box *)new_tk);
+
+	/*reset data ref*/
+	if (!keep_data_ref) {
+		gf_isom_box_array_del(new_tk->Media->information->dataInformation->dref->boxList);
+		new_tk->Media->information->dataInformation->dref->boxList = gf_list_new();
+		/*update data ref*/
+		entry = gf_list_get(new_tk->Media->information->sampleTable->SampleDescription->boxList, 0);
+		if (entry) {
+			u32 dref;
+			Media_CreateDataRef(new_tk->Media->information->dataInformation->dref, NULL, NULL, &dref);
+			entry->dataReferenceIndex = dref;
+		}
+	}
+
 	*dest_track = gf_list_count(dest_file->moov->trackList);
 
 	if (dest_file->moov->mvhd->nextTrackID<= new_tk->Header->trackID) 

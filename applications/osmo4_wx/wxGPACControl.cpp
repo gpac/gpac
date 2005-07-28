@@ -254,11 +254,19 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	s_rend3d->Add(m_polyaa, 0, wxALL|wxEXPAND, 2);
 	m_nobackcull = new wxCheckBox(this, 0, wxT("Disable backface culling"));
 	s_rend3d->Add(m_nobackcull, 0, wxALL|wxEXPAND, 2);
+	
 	bs = new wxBoxSizer(wxHORIZONTAL);
 	bs->Add(new wxStaticText(this, 0, wxT("Wireframe mode")), wxALIGN_CENTER | wxADJUST_MINSIZE);
 	m_wire = new wxComboBox(this, 0, wxT(""), wxDefaultPosition, wxDefaultSize, 0, NULL, wxCB_READONLY);
 	bs->Add(m_wire, wxALIGN_CENTER | wxADJUST_MINSIZE);
 	s_rend3d->Add(bs, 0, wxALL|wxEXPAND, 2);
+	
+	bs = new wxBoxSizer(wxHORIZONTAL);
+	bs->Add(new wxStaticText(this, 0, wxT("Draw Normals")), wxALIGN_CENTER | wxADJUST_MINSIZE);
+	m_normals = new wxComboBox(this, 0, wxT(""), wxDefaultPosition, wxDefaultSize, 0, NULL, wxCB_READONLY);
+	bs->Add(m_normals, wxALIGN_CENTER | wxADJUST_MINSIZE);
+	s_rend3d->Add(bs, 0, wxALL|wxEXPAND, 2);
+
 	m_emulpow2 = new wxCheckBox(this, 0, wxT("Emulate power-of-two textures for video"));
 	s_rend3d->Add(m_emulpow2, 0, wxALL|wxEXPAND, 2);
 	m_norectext = new wxCheckBox(this, 0, wxT("Disable rectangular texture extensions"));
@@ -541,9 +549,17 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_wire->Append(wxT("No Wireframe"));
 	m_wire->Append(wxT("Wireframe Only"));
 	m_wire->Append(wxT("Solid and Wireframe"));
+	sOpt = gf_cfg_get_key(cfg, "Render3D", "Wireframe");
 	if (sOpt && !stricmp(sOpt, "WireOnly")) m_wire->SetSelection(1);
 	else if (sOpt && !stricmp(sOpt, "WireOnSolid")) m_wire->SetSelection(2);
 	else m_wire->SetSelection(0);
+	m_normals->Append(wxT("Never"));
+	m_normals->Append(wxT("Per Face"));
+	m_normals->Append(wxT("Per Vertex"));
+	sOpt = gf_cfg_get_key(cfg, "Render3D", "DrawNormals");
+	if (sOpt && !stricmp(sOpt, "PerFace")) m_normals->SetSelection(1);
+	else if (sOpt && !stricmp(sOpt, "PerVertex")) m_normals->SetSelection(2);
+	else m_normals->SetSelection(0);
 
 	/*video*/
 	sOpt = gf_cfg_get_key(cfg, "Video", "SwitchResolution");
@@ -920,6 +936,8 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 
 	sel = m_wire->GetSelection();
 	gf_cfg_set_key(cfg, "Render3D", "Wireframe", (sel==2) ? "WireOnSolid" : ( (sel==1) ? "WireOnly" : "WireNone" ) );
+	sel = m_normals->GetSelection();
+	gf_cfg_set_key(cfg, "Render3D", "DrawNormals", (sel==2) ? "PerVertex" : ( (sel==1) ? "PerFace" : "Never" ) );
 
 	gf_cfg_set_key(cfg, "Video", "SwitchResolution", m_switchres->GetValue() ? "yes" : "no");
 	gf_cfg_set_key(cfg, "Video", "DriverName", m_video->GetStringSelection().mb_str(wxConvUTF8));

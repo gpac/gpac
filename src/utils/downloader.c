@@ -754,7 +754,11 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 	if (sess->status > GF_DOWNLOAD_STATE_RUNNING) return GF_BAD_PARAM;
 
 	*read_size = 0;
-	if (sess->status < GF_DOWNLOAD_STATE_RUNNING) {
+
+	if (sess->status == GF_DOWNLOAD_STATE_SETUP) {
+		gf_dm_connect(sess);
+		return GF_OK;
+	} else if (sess->status < GF_DOWNLOAD_STATE_RUNNING) {
 		sess->do_requests(sess);
 		return GF_OK;
 	}
@@ -968,7 +972,6 @@ void http_do_requests(GF_DownloadSession *sess)
 			goto exit;
 		}
 		sHTTP[BodyStart] = 0;
-
 
 		LinePos = gf_token_get_line(sHTTP, 0, bytesRead, buf, 1024);
 		Pos = gf_token_get(buf, 0, " \t\r\n", comp, 400);

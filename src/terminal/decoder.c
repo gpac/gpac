@@ -26,7 +26,6 @@
 
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/constants.h>
-#include <gpac/renderer.h>
 #include "media_memory.h"
 #include "media_control.h"
 #include "input_sensor.h"
@@ -156,6 +155,27 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		cap.CapCode = GF_CODEC_REORDER;
 		gf_codec_get_capability(codec, &cap);
 		if (cap.cap.valueInt) codec->is_reordering = 1;
+
+		/*setup net channel config*/
+		com.command_type = GF_NET_CHAN_CONFIG;
+		com.base.on_channel = ch;
+
+		com.cfg.priority = ch->esd->streamPriority;
+		com.cfg.sync_id = (u32) ch->clock;
+		memcpy(&com.cfg.sl_config, ch->esd->slConfig, sizeof(GF_SLConfig));
+		com.cfg.frame_duration = 0;
+
+		/*get the frame duration if audio (used by some network stack)*/
+		if (ch->odm->codec && (ch->odm->codec->type==GF_STREAM_AUDIO) ) {
+			cap.CapCode = GF_CODEC_SAMPLERATE;
+			gf_codec_get_capability(ch->odm->codec, &cap);
+			com.cfg.sample_rate = cap.cap.valueInt;
+			cap.CapCode = GF_CODEC_CU_DURATION;
+			gf_codec_get_capability(ch->odm->codec, &cap);
+			com.cfg.frame_duration = cap.cap.valueInt;
+		} 
+		gf_term_service_command(ch->service, &com);
+
 	}
 
 	/*assign the first base layer as the codec clock by default, or current channel clock if no clock set
@@ -486,10 +506,11 @@ static GF_Err ResizeCompositionBuffer(GF_Codec *dec, u32 NewSize)
 		u32 unit_size, audio_buf_len, unit_count;
 		GF_CodecCapability cap;
 		unit_size = NewSize;
-		audio_buf_len = gf_sr_get_audio_buffer_length(dec->odm->term->renderer);
 		/*a bit ugly, make some extra provision for speed >1. this is the drawback of working with pre-allocated memory
-		for composition, we may get into cases where there will never be enough data for high speeds...*/
-		if (audio_buf_len < 800) audio_buf_len = 800;
+		for composition, we may get into cases where there will never be enough data for high speeds...
+		FIXME - WE WILL NEED TO MOVE TO DYNAMIC CU BLOCKS IN ORDER TO SUPPORT ANY SPEED, BUT WHAT IS THE IMPACT
+		FOR LOW RESOURCES DEVICES ??*/
+		audio_buf_len = 1000;
 
 		cap.CapCode = GF_CODEC_BUFFER_MAX;
 		gf_codec_get_capability(dec, &cap);

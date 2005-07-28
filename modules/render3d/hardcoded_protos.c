@@ -320,6 +320,7 @@ static void RenderPlanarExtrusion(GF_Node *node, void *rs)
 			gf_sg_vrml_mf_reset(&spine_vec, GF_SG_VRML_MFVEC3F);
 		}
 		mesh_update_bounds(st->mesh);
+		gf_mesh_build_aabbtree(st->mesh);
 		gf_path_del(spine);
 		gf_path_del(geo);
 	}

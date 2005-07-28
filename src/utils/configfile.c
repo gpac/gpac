@@ -304,3 +304,32 @@ const char *gf_cfg_get_key_name(GF_Config *iniFile, const char *secName, u32 key
 	return NULL;
 }
 
+GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue)
+{
+	u32 i;
+	IniSection *sec;
+	IniKey *key;
+
+	if (!iniFile || !secName || !keyName|| !keyValue) return GF_BAD_PARAM;
+
+	sec = NULL;
+	for (i=0; i<gf_list_count(iniFile->sections); i++) {
+		sec = gf_list_get(iniFile->sections, i);
+		if (!strcmp(secName, sec->section_name)) break;
+		sec = NULL;
+	}
+	if (!sec) return GF_BAD_PARAM;
+
+	key = NULL;
+	for (i=0; i<gf_list_count(sec->keys); i++) {
+		key = gf_list_get(sec->keys, i);
+		if (!strcmp(key->name, keyName)) return GF_BAD_PARAM;
+	}
+
+	key = malloc(sizeof(IniKey));
+	strcpy(key->name, keyName);
+	strcpy(key->value, keyValue);
+	gf_list_insert(sec->keys, key, 0);
+	iniFile->hasChanged = 1;
+	return GF_OK;
+}

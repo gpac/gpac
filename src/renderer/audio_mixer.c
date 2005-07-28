@@ -25,7 +25,7 @@
 #include <gpac/internal/renderer_dev.h>
 
 /*max number of channels we support in mixer*/
-#define GF_SR_MAX_CHANNELS	6
+#define GF_SR_MAX_CHANNELS	16
 
 /*
 	Notes about the mixer:
@@ -545,7 +545,7 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size)
 		return 0;
 	}
 	delay = 0;
-	if (am->ar && (am->ar->flags & GF_SR_AUDIO_NO_RESYNC) ) delay = am->ar->audio_delay;
+	if (am->ar && !(am->ar->flags & GF_SR_AUDIO_NO_RESYNC) ) delay = am->ar->audio_delay;
 
 	single_source = NULL;
 	if (count!=1) goto do_mix;

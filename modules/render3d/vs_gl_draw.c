@@ -323,6 +323,54 @@ void VS3D_DrawMeshIntern(RenderEffect3D *eff, GF_Mesh *mesh)
 	eff->mesh_is_transparent = 0;
 }
 
+/*note we don't perform any culling for normal drawing...*/
+void VS3D_DrawNormals(RenderEffect3D *eff, GF_Mesh *mesh)
+{
+	GF_Vec pt, end;
+	u32 i, j;
+	Fixed scale = mesh->bounds.radius / 4;
+
+	glPushAttrib(GL_ENABLE_BIT);
+	glDisable(GL_LIGHTING | GL_BLEND | GL_COLOR_MATERIAL | GL_TEXTURE_2D);
+	glColor3f(0, 0, 0);
+	if (!mesh->mesh_type && !eff->mesh_is_transparent && (mesh->flags & MESH_IS_SOLID)) {
+		glEnable(GL_CULL_FACE);
+		glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CW : GL_CCW);
+	}
+
+	if (eff->surface->render->draw_normals==GF_NORMALS_VERTEX) {
+		u32 *idx = mesh->indices;
+		for (i=0; i<mesh->i_count; i+=3) {
+			for (j=0; j<3; j++) {
+				pt = mesh->vertices[idx[j]].pos;
+				end = gf_vec_scale(mesh->vertices[idx[j]].normal, scale);
+				gf_vec_add(end, pt, end);
+				glBegin(GL_LINES);
+				glVertex3f(pt.x, pt.y, pt.z);
+				glVertex3f(end.x, end.y, end.z);
+				glEnd();
+			}
+			idx+=3;
+		}
+	} else {
+		u32 *idx = mesh->indices;
+		for (i=0; i<mesh->i_count; i+=3) {
+			gf_vec_add(pt, mesh->vertices[idx[0]].pos, mesh->vertices[idx[1]].pos);
+			gf_vec_add(pt, pt, mesh->vertices[idx[2]].pos);
+			pt = gf_vec_scale(pt, FIX_ONE/3);
+			end = gf_vec_scale(mesh->vertices[idx[0]].normal, scale);
+			gf_vec_add(end, pt, end);
+			glBegin(GL_LINES);
+			glVertex3f(pt.x, pt.y, pt.z);
+			glVertex3f(end.x, end.y, end.z);
+			glEnd();
+			idx += 3;
+		}
+	}
+	glPopAttrib();
+}
+
+
 void VS3D_DrawAABBNodeBounds(RenderEffect3D *eff, AABBNode *node)
 {
 	if (node->pos) {
@@ -384,6 +432,7 @@ void VS3D_DrawMesh(RenderEffect3D *eff, GF_Mesh *mesh, Bool do_normalize)
 		if (do_normalize) glDisable(mode);
 	}
 
+	if (eff->surface->render->draw_normals) VS3D_DrawNormals(eff, mesh);
 	if (eff->surface->render->wiremode != GF_WIREFRAME_NONE) {
 		glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);

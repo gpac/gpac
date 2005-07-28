@@ -266,8 +266,8 @@ public:
 	enum { IDD = IDD_OPT_AUDIO };
 	CComboBox	m_DriverList;
 	CButton	m_AudioResync;
-	CEdit	m_AudioFPS;
-	CSpinButtonCtrl	m_SpinFPS;
+	CEdit	m_AudioDur;
+	CSpinButtonCtrl	m_SpinDur;
 	CButton	m_ForceConfig;
 	CSpinButtonCtrl	m_AudioSpin;
 	CEdit	m_AudioEdit;

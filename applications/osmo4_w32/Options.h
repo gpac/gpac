@@ -176,6 +176,7 @@ public:
 	CButton	m_ViewXMT;
 	CButton	m_NoConsole;
 	CButton	m_Loop;
+	CButton	m_SingleInstance;
 	//}}AFX_DATA
 
 	void SaveOptions();
@@ -365,6 +366,7 @@ public:
 	CButton	m_RasterOutlines;
 	CButton	m_EmulPow2;
 	CButton	m_PolyAA;
+	CComboBox	m_DrawNormals;
 	int		m_Wireframe;
 	//}}AFX_DATA
 

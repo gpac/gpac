@@ -1244,6 +1244,7 @@ void gf_is_select_object(GF_InlineScene *is, GF_ObjectManager *odm)
 		}
 		mt->startTime = gf_is_get_time(is);
 		gf_node_changed((GF_Node *)mt, NULL);
+		if (odm->mo) gf_is_force_scene_size_video(is, odm->mo);
 		return;
 	}
 

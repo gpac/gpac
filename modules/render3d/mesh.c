@@ -1230,7 +1230,7 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 	free(faces);
 	mesh_update_bounds(mesh);
 
-	gf_mesh_build_aabbtree(mesh);
+	if (!coord2D) gf_mesh_build_aabbtree(mesh);
 
 	if (colorRGBA) mesh->flags |= MESH_HAS_ALPHA;
 	if (gen_tex_coords) mesh_generate_tex_coords(mesh, __texCoords);
@@ -2031,6 +2031,7 @@ void mesh_extrude_path(GF_Mesh *mesh, GF_Path *path, MFVec3f *thespine, Fixed cr
 	gf_path_get_bounds(path, &rc);
 	mesh_extrude_path_intern(mesh, path, thespine, creaseAngle, rc.x, rc.y-rc.height, rc.width, rc.height, begin_cap, end_cap, spine_ori, spine_scale, tx_along_spine);
 	mesh_update_bounds(mesh);
+	gf_mesh_build_aabbtree(mesh);
 }
 
 void mesh_new_extrusion(GF_Mesh *mesh, GF_Node *node)
@@ -2049,6 +2050,8 @@ void mesh_new_extrusion(GF_Mesh *mesh, GF_Node *node)
 	mesh_extrude_path(mesh, path, &ext->spine, ext->creaseAngle, ext->beginCap, ext->endCap, &ext->orientation, &ext->scale, 1);
 	gf_path_del(path);
 
+	mesh_update_bounds(mesh);
+	gf_mesh_build_aabbtree(mesh);
 	if (!ext->ccw) mesh->flags |= MESH_IS_CW;
 }
 

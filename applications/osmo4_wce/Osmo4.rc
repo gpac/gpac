@@ -451,12 +451,12 @@ BEGIN
     CONTROL         "Force Audio Config",IDC_FORCE_AUDIO,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,5,33,77,10
     LTEXT           "Number of buffers",IDC_STATIC,5,51,60,8
-    LTEXT           "Buffers per Second",IDC_STATIC,4,69,62,8
+    LTEXT           "Total Duration in ms",IDC_STATIC,4,69,64,8
     EDITTEXT        IDC_EDIT_AUDIO,68,48,34,14,ES_AUTOHSCROLL | ES_READONLY
     CONTROL         "Spin1",IDC_SPIN_AUDIO,"msctls_updown32",UDS_SETBUDDYINT | 
                     UDS_ARROWKEYS | UDS_HORZ,105,49,19,12
-    EDITTEXT        IDC_AUDIO_FPS,68,67,34,14,ES_AUTOHSCROLL | ES_READONLY
-    CONTROL         "Spin1",IDC_SPIN_FPS,"msctls_updown32",UDS_SETBUDDYINT | 
+    EDITTEXT        IDC_AUDIO_DUR,68,67,34,14,ES_AUTOHSCROLL
+    CONTROL         "Spin1",IDC_SPIN_DUR,"msctls_updown32",UDS_SETBUDDYINT | 
                     UDS_ARROWKEYS | UDS_HORZ,105,68,19,12
     CONTROL         "Disable Audio Resync",IDC_AUDIO_RESYNC,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,5,85,84,10

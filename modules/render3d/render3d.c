@@ -401,6 +401,11 @@ void R3D_ReloadConfig(GF_VisualRenderer *vr)
 	else if (sOpt && !stricmp(sOpt, "WireOnSolid")) sr->wiremode = GF_WIREFRAME_SOLID;
 	else sr->wiremode = GF_WIREFRAME_NONE;
 
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "DrawNormals");
+	if (sOpt && !stricmp(sOpt, "PerFace")) sr->draw_normals = GF_NORMALS_FACE;
+	else if (sOpt && !stricmp(sOpt, "PerVertex")) sr->draw_normals = GF_NORMALS_VERTEX;
+	else sr->draw_normals = GF_NORMALS_NONE;
+
 	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "BitmapCopyPixels");
 	sr->bitmap_use_pixels = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
 
@@ -491,6 +496,7 @@ GF_Err R3D_SetOption(GF_VisualRenderer *vr, u32 option, u32 value)
 	case GF_OPT_POLYGON_ANTIALIAS: sr->poly_aa = value; return GF_OK;
 	case GF_OPT_NO_BACK_CULL: sr->no_backcull = value; return GF_OK;
 	case GF_OPT_WIREFRAME: sr->wiremode = value; return GF_OK;
+	case GF_OPT_NORMALS: sr->draw_normals = value; return GF_OK;
 	case GF_OPT_RELOAD_CONFIG:
 		R3D_ReloadConfig(vr);
 		return GF_OK;
@@ -564,6 +570,7 @@ u32 R3D_GetOption(GF_VisualRenderer *vr, u32 option)
 	case GF_OPT_POLYGON_ANTIALIAS: return sr->poly_aa;
 	case GF_OPT_NO_BACK_CULL: return sr->no_backcull;
 	case GF_OPT_WIREFRAME: return sr->wiremode;
+	case GF_OPT_NORMALS: return sr->draw_normals;
 	case GF_OPT_NO_RECT_TEXTURE: return sr->disable_rect_ext;
 	case GF_OPT_BITMAP_COPY: return sr->bitmap_use_pixels;
 	case GF_OPT_NAVIGATION_TYPE: 
