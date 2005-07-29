@@ -40,7 +40,6 @@ extern "C" {
 
 /*NDT check - return 1 if node belongs to given NDT. Handles proto, and assumes undefined nodes
 always belong to the desired NDT*/
-Bool Node_IsInTable(GF_Node *node, u32 NDTType);
 Bool gf_node_in_table(GF_Node *node, u32 NDTType);
 
 /*generic systems access unit context*/
