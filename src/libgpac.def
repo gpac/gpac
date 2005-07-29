@@ -403,6 +403,7 @@ EXPORTS
 	gf_isom_get_sample_for_media_time
 	gf_isom_get_sample_for_movie_time
 	gf_isom_get_sample_dts
+	gf_isom_get_sample_duration
 	gf_isom_get_edit_segment_count
 	gf_isom_get_edit_segment
 	gf_isom_get_copyright_count
