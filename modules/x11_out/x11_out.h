@@ -36,7 +36,7 @@ extern "C"
 #include <gpac/list.h>
 
 
-//#define __USE_X_SHAREDMEMORY__
+#define __USE_X_SHAREDMEMORY__
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
