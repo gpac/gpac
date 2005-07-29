@@ -482,26 +482,21 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 	if (scene_graph) {
 		/*get pixel size if any*/
 		gf_sg_get_scene_size_info(sr->scene, &width, &height);
+		sr->has_size_info = (width && height) ? 1 : 0;
 		/*set scene size only if different, otherwise keep scaling/FS*/
 		if ( !width || (sr->scene_width!=width) || !height || (sr->scene_height!=height)) {
 			do_notif = (width && height) ? 1 : 0;
 			SR_SetSceneSize(sr, width, height);
+
 			/*get actual size in pixels*/
 			width = sr->scene_width;
 			height = sr->scene_height;
 
 			/*only notify user if we are attached to a window*/
-			if (sr->user->os_window_handler) {
-				/*security in case the user doesn't get the message (this happens on w32, resize message
-				with same values are discarded)*/
-				sr->override_size_flags &= ~2;
-				gf_sr_set_size(sr,width, height);
-			} else {
-				/*signal size changed*/
-				gf_sr_set_size(sr,width, height);
-			}
+			if (sr->user->os_window_handler) sr->override_size_flags &= ~2;
+			/*signal size changed even when attached to window to avoid resize message discarding on Win32*/
+			gf_sr_set_size(sr,width, height);
 		}
-		sr->has_size_info = (width && height) ? 1 : 0;
 	}
 
 	SR_ResetFrameRate(sr);	
@@ -538,18 +533,25 @@ void gf_sr_refresh(GF_Renderer *sr)
 
 GF_Err gf_sr_set_size(GF_Renderer *sr, u32 NewWidth, u32 NewHeight)
 {
+	Bool lock_ok;
 	if (!NewWidth || !NewHeight) {
 		sr->override_size_flags &= ~2;
 		return GF_OK;
 	}
-	gf_sr_lock(sr, 1);
+	/*EXTRA CARE HERE: the caller (user app) is likely a different thread than the renderer one, and depending on window 
+	manager we may get called here as a result of a message sent to user but not yet returned */
+	lock_ok = gf_mx_try_lock(sr->mx);
+	
 	sr->new_width = NewWidth;
 	sr->new_height = NewHeight;
 	sr->msg_type |= GF_SR_CFG_SET_SIZE;
+	
 	/*if same size only request for video setup */
 	if ((sr->width == NewWidth) && (sr->height == NewHeight) ) 
 		sr->msg_type |= GF_SR_CFG_WINDOWSIZE_NOTIF;
-	gf_sr_lock(sr, 0);
+	
+	if (lock_ok) gf_sr_lock(sr, 0);
+
 	/*force video resize*/
 	if (!sr->VisualThread) gf_sr_reconfig_task(sr);
 	return GF_OK;
@@ -1033,13 +1035,16 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 		gf_sr_reset_graphics(sr);
 		break;
 	case GF_EVT_SIZE:
-		/*resize message from plugin (only happens when plugin manages the window)*/
-		if (!sr->user->os_window_handler) {
-			gf_sr_lock(sr, 1);
+		/*resize message from plugin - only indicate a resetup of video, no resize*/
+		{
+			/*EXTRA CARE HERE: the caller (video output) is likely a different thread than the renderer one, and the
+			renderer may be locked on the video output (flush or whatever)!!
+			*/
+			Bool lock_ok = gf_mx_try_lock(sr->mx);
 			sr->new_width = event->size.width;
 			sr->new_height = event->size.height;
 			sr->msg_type |= GF_SR_CFG_SET_SIZE | GF_SR_CFG_WINDOWSIZE_NOTIF;
-			gf_sr_lock(sr, 0);
+			if (lock_ok) gf_sr_lock(sr, 0);
 		}
 		break;
 	case GF_EVT_VKEYDOWN:

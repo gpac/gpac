@@ -198,10 +198,10 @@ void gf_mx_v(GF_Mutex *mx)
 	caller = gf_th_id();
 	/*only if we own*/
 	if (caller != mx->Holder) return;
+	assert(mx->HolderCount>0);
+	mx->HolderCount -= 1;
 
-	if (mx->HolderCount) {
-	  mx->HolderCount -= 1;
-	} else {
+	if (!mx->HolderCount) 
 		mx->Holder = 0;
 		pthread_mutex_unlock(&mx->hMutex);
 	}
@@ -220,14 +220,30 @@ u32 gf_mx_p(GF_Mutex *mx)
 
 	if (pthread_mutex_lock(&mx->hMutex) == 0 ) {
 		mx->Holder = caller;
-		mx->HolderCount = 0;
+		mx->HolderCount = 1;
 		return 1;
 	}
 	assert(0);
-	mx->Holder = mx->HolderCount = 0;
 	return 0;
 }
 
+Bool gf_mx_try_lock(GF_Mutex *mx)
+{
+	u32 caller;
+	if (!mx) return 0;
+	
+	caller = gf_th_id();
+	if (caller == mx->Holder) {
+		mx->HolderCount += 1;
+		return 1;
+	}
+	if (pthread_mutex_trylock(&mx->hMutex) == 0 ) {
+		mx->Holder = caller;
+		mx->HolderCount = 1;
+		return 1;
+	}
+	return 0;
+}
 
 
 /*********************************************************************

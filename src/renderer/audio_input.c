@@ -51,7 +51,7 @@ static char *AI_FetchFrame(void *callback, u32 *size, u32 audio_delay_ms)
 
 	/*too early (silence insertions), don't render*/
 	if (drift + (s32) audio_delay_ms + MIN_RESYNC_TIME < 0) {
-		//fprintf(stdout, "audio too early %d\n", drift + audio_delay_ms + MIN_RESYNC_TIME);
+		//fprintf(stdout, "audio too early %d (CTS %d)\n", drift + audio_delay_ms + MIN_RESYNC_TIME, ai->stream->current_ts);
 		ai->need_release = 0;
 		gf_mo_release_data(ai->stream, 0, 0);
 		return NULL;

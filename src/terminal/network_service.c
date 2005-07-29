@@ -233,7 +233,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		ch->seed_ts = com->map_time.timestamp;
 		ch->ts_offset = (u32) (com->map_time.media_time*1000);
 		/*
-		if (Channel_OwnsClock(ch)) {
+		if (gf_es_owns_clock(ch)) {
 			ch->ts_offset = (u32) (com->map_time.media_time*1000);
 		} else {
 			ch->ts_offset = gf_clock_time(ch->clock);

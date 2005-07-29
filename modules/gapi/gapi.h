@@ -67,8 +67,6 @@ typedef struct
 	u32 BPP, bitsPP;
 
 	GF_Window dst_blt;
-
-	Bool is_resizing;
 	DWORD ThreadID;
 	HANDLE hThread;
 	Bool owns_hwnd;

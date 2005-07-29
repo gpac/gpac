@@ -79,6 +79,7 @@ EXPORTS
 	gf_mx_del
 	gf_mx_v
 	gf_mx_p
+	gf_mx_try_lock
 	gf_sema_new
 	gf_sema_del
 	gf_sema_notify

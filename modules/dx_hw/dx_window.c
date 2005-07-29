@@ -118,14 +118,11 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 
 	switch (msg) {
 	case WM_SIZE:
-		if (!ctx->is_resizing && ctx->owns_hwnd) {
-			ctx->is_resizing = 1;
-			evt.type = GF_EVT_SIZE;
-			ctx->width = evt.size.width = LOWORD(lParam);
-			ctx->height = evt.size.height = HIWORD(lParam);
-			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
-			ctx->is_resizing = 0;
-		}
+		/*always notify GPAC since we're not sure the owner of the window is listening to these events*/
+		evt.type = GF_EVT_SIZE;
+		ctx->width = evt.size.width = LOWORD(lParam);
+		ctx->height = evt.size.height = HIWORD(lParam);
+		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		break;
 	case WM_CLOSE:
 		if (hWnd==ctx->os_hwnd) {
@@ -421,13 +418,11 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 		break;
 	/*if scene resize resize window*/
 	case GF_EVT_SIZE:
-		ctx->is_resizing = 1;
 		if (ctx->owns_hwnd) SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width + ctx->off_w, evt->size.height + ctx->off_h, SWP_NOZORDER | SWP_NOMOVE);
 	/*in any case resetup openGL*/
 	case GF_EVT_VIDEO_SETUP:
 		ctx->width = evt->size.width;
 		ctx->height = evt->size.height;
-		ctx->is_resizing = 0;
 		if (ctx->is_3D_out) DD_SetupOpenGL(the_video_driver);
 		break;
 	}

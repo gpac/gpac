@@ -169,7 +169,6 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "MaxResolution");
 	if (sOpt) sscanf(sOpt, "%dx%d", &MaxWidth, &MaxHeight);
 
-	dd->is_resizing = 1;
 	/*destroy all objects*/
 	DestroyObjects(dd);
 	if (dd->timer) KillTimer(dd->cur_hwnd, dd->timer);
@@ -214,8 +213,6 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 	} else {
 		e = InitDirectDraw(dr, dd->width, dd->height);
 	}
-	
-	dd->is_resizing = 0;
 
 	if (bOn) {
 		dd->store_width = *outWidth;

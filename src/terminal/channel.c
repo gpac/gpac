@@ -149,7 +149,7 @@ void gf_es_del(GF_Channel *ch)
 	free(ch);
 }
 
-Bool Channel_OwnsClock(GF_Channel *ch)
+Bool gf_es_owns_clock(GF_Channel *ch)
 {
 	/*if the clock is not in the same namespace (used with dynamic scenes), it's not ours*/
 	if (gf_list_find(ch->odm->net_service->Clocks, ch->clock)<0) return 0;
@@ -169,7 +169,7 @@ GF_Err gf_es_start(GF_Channel *ch)
 	}
 
 	/*reset clock if we own it*/
-	if (Channel_OwnsClock(ch)) gf_clock_reset(ch->clock);
+	if (gf_es_owns_clock(ch)) gf_clock_reset(ch->clock);
 
 	/*reset channel*/
 	Channel_Reset(ch);
@@ -488,7 +488,7 @@ void Channel_RecieveSkipSL(GF_ClientService *serv, GF_Channel *ch, char *StreamB
 
 	/*if channel owns the clock, start it*/
 	if (ch->clock && !ch->IsClockInit) {
-		if (Channel_OwnsClock(ch)) {
+		if (gf_es_owns_clock(ch)) {
 			gf_clock_set_time(ch->clock, 0);
 			ch->IsClockInit = 1;
 			ch->seed_ts = 0;
@@ -678,7 +678,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 
 		/*if channel owns the clock, start it*/
 		if (!ch->IsClockInit) {
-			if (Channel_OwnsClock(ch)) {
+			if (gf_es_owns_clock(ch)) {
 				gf_clock_set_time(ch->clock, ch->DTS);
 				ch->IsClockInit = 1;
 			}
@@ -929,15 +929,9 @@ void gf_es_on_connect(GF_Channel *ch)
 	/*if local interaction streams no buffer nor pull*/
 	if ((ch->esd->decoderConfig->streamType == GF_STREAM_INTERACT) && !ch->esd->URLString) can_buffer = 0;
 
-	/*setup net channel config*/
-	com.command_type = GF_NET_CHAN_CONFIG;
+	/*checks whether the stream is interactive or not*/
+	com.command_type = GF_NET_CHAN_INTERACTIVE;
 	com.base.on_channel = ch;
-
-	com.cfg.priority = ch->esd->streamPriority;
-	com.cfg.sync_id = (u32) ch->clock;
-	memcpy(&com.cfg.sl_config, ch->esd->slConfig, sizeof(GF_SLConfig));
-	com.cfg.frame_duration = 0;
-	gf_term_service_command(ch->service, &com);
 
 	ch->is_pulling = 0;
 	if (can_buffer) {
@@ -955,9 +949,6 @@ void gf_es_on_connect(GF_Channel *ch)
 			}
 		}
 	}
-
-	/*checks whether the stream is interactive or not*/
-	com.command_type = GF_NET_CHAN_INTERACTIVE;
 	if (gf_term_service_command(ch->service, &com)!=GF_OK) {
 		ch->clock->no_time_ctrl = 1;
 		ch->odm->no_time_ctrl = 1;
@@ -1103,16 +1094,6 @@ exit:
 	if (e && ch->crypt) {
 		gf_crypt_close(ch->crypt);
 		ch->crypt = NULL;
-	}
-}
-
-void gf_es_reinit_clock(GF_Channel *ch, u32 fromTS)
-{
-	if (Channel_OwnsClock(ch)) gf_clock_set_time(ch->clock, fromTS);
-	ch->IsClockInit = 1;
-	if (ch->BufferOn) {
-		ch->BufferOn = 0;
-		gf_clock_buffer_off(ch->clock);
 	}
 }
 

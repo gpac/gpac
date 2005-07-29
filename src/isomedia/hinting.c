@@ -945,7 +945,7 @@ GF_Err gf_isom_next_hint_packet(GF_ISOFile *the_file, u32 trackNumber, char **pc
 					gf_bs_del(bs);
 					return GF_ISOM_INVALID_FILE;
 				}
-				ref_trak = gf_isom_get_track_from_id(trak->moov, entry->hint_ref->trackIDs[sdte->trackRefIndex]);
+				ref_trak = gf_isom_get_track_from_id(trak->moov, entry->hint_ref->trackIDs[(u32)sdte->trackRefIndex]);
 			} else {
 				ref_trak = trak;
 			}

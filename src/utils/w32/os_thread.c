@@ -209,7 +209,28 @@ u32 gf_mx_p(GF_Mutex *mx)
 	switch (WaitForSingleObject(mx->hMutex, INFINITE)) {
 	case WAIT_ABANDONED:
 	case WAIT_TIMEOUT:
-		mx->Holder = mx->HolderCount = 0;
+		return 0;
+	default:
+		mx->HolderCount = 1;
+		mx->Holder = caller;
+		return 1;
+	}
+}
+
+Bool gf_mx_try_lock(GF_Mutex *mx)
+{
+	u32 caller;
+	if (!mx) return 0;
+	caller = gf_th_id();
+	if (caller == mx->Holder) {
+		mx->HolderCount += 1;
+		return 1;
+	}
+
+	/*wait for 1 ms (I can't figure out from MS doc if 0 timeout only "tests the state" or also lock the mutex ... */
+	switch (WaitForSingleObject(mx->hMutex, 1)) {
+	case WAIT_ABANDONED:
+	case WAIT_TIMEOUT:
 		return 0;
 	default:
 		mx->HolderCount = 1;

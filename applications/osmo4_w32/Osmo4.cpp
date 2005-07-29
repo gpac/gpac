@@ -229,11 +229,8 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 	case GF_EVT_SIZE:
 		gpac->orig_width = evt->size.width;
 		gpac->orig_height = evt->size.height;
-		if (gpac->m_term) {
+		if (gpac->m_term) 
 			pFrame->PostMessage(WM_SETSIZE, evt->size.width, evt->size.height);
-			/*not sure what's wrong, not sleeping result to another attempt to lock gpac's renderer which deadlocks!!*/
-			gf_sleep(100);
-		}
 		break;
 
 	case GF_EVT_CONNECT:

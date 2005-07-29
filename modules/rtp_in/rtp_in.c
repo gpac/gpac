@@ -425,9 +425,9 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	/*RTP channel config is done upon connection, once the complete SL mapping is known
 	however we must store some info not carried in SDP*/
 	case GF_NET_CHAN_CONFIG:
-		ch->clock_rate = com->cfg.sl_config.timestampResolution;
+		ch->clock_rate = com->cfg.sample_rate ? com->cfg.sample_rate : com->cfg.sl_config.timestampResolution;
 		if (!ch->clock_rate) ch->clock_rate = 1000;
-		ch->unit_duration = com->cfg.frame_duration;
+		if (com->cfg.frame_duration) ch->unit_duration = com->cfg.frame_duration;
 		return GF_OK;
 
 	case GF_NET_CHAN_PLAY:

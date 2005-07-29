@@ -157,14 +157,13 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		if (cap.cap.valueInt) codec->is_reordering = 1;
 
 		/*setup net channel config*/
+		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.command_type = GF_NET_CHAN_CONFIG;
 		com.base.on_channel = ch;
 
 		com.cfg.priority = ch->esd->streamPriority;
 		com.cfg.sync_id = (u32) ch->clock;
 		memcpy(&com.cfg.sl_config, ch->esd->slConfig, sizeof(GF_SLConfig));
-		com.cfg.frame_duration = 0;
-
 		/*get the frame duration if audio (used by some network stack)*/
 		if (ch->odm->codec && (ch->odm->codec->type==GF_STREAM_AUDIO) ) {
 			cap.CapCode = GF_CODEC_SAMPLERATE;

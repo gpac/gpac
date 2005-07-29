@@ -120,14 +120,10 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	case WM_SIZE:
 	{
 		GAPIPriv *ctx = (GAPIPriv *)the_video_driver->opaque;
-		if (!ctx->is_resizing) {
-			ctx->is_resizing = 1;
-			evt.type = GF_EVT_SIZE;
-			evt.size.width = LOWORD(lParam);
-			evt.size.height = HIWORD(lParam);
-			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
-			ctx->is_resizing = 0;
-		}
+		evt.type = GF_EVT_SIZE;
+		evt.size.width = LOWORD(lParam);
+		evt.size.height = HIWORD(lParam);
+		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 	}
 		break;
 	case WM_CLOSE:
@@ -488,8 +484,6 @@ static GF_Err GAPI_FlushVideo(GF_VideoOutput *dr, GF_Window *dest)
 
 	if (!gctx || !gctx->is_init) return GF_BAD_PARAM;
 	if (dest && (!dest->w || !dest->h)) return GF_OK;
-	if (gctx->is_resizing) return GF_OK;
-
 	gf_mx_p(gctx->mx);
 
 	/*get a pointer to video memory*/
@@ -760,9 +754,7 @@ static GF_Err GAPI_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		if (gctx->hWnd) ShowWindow(gctx->hWnd, evt->show.show_type ? SW_SHOW : SW_HIDE);
 		break;
 	case GF_EVT_SIZE:
-		gctx->is_resizing = 1;
 		//SetWindowPos(gctx->hWnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE);
-		gctx->is_resizing = 0;
 	/*we should actually never see a windowsize event*/
 	case GF_EVT_VIDEO_SETUP:
 		if (gctx->gx.ffFormat & kfLandscape) {

@@ -1068,7 +1068,16 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 		/*don't replay OD channel, only init clock if needed*/
 		if (skip_od_st && (ch->esd->decoderConfig->streamType==GF_STREAM_OD)) {
-			gf_es_reinit_clock(ch, (u32) (com.play.start_range*1000));
+			Bool gf_es_owns_clock(GF_Channel *ch);
+
+			if (gf_es_owns_clock(ch) ) 
+				gf_clock_set_time(ch->clock, (u32) (com.play.start_range*1000));
+
+			ch->IsClockInit = 1;
+			if (ch->BufferOn) {
+				ch->BufferOn = 0;
+				gf_clock_buffer_off(ch->clock);
+			}
 		} else {
 			gf_term_service_command(ch->service, &com);
 		}

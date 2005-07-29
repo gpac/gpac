@@ -185,6 +185,7 @@ void gf_mx_del(GF_Mutex *mx);
  *
  *Locks the mutex object, making sure that another thread locking this mutex cannot exectute until the mutex is unlocked.
  *\param mx the mutex object
+ *\return 1 if success, 0 if error locking the mutex (which should never happen)
 */
 u32 gf_mx_p(GF_Mutex *mx);
 /*
@@ -194,6 +195,14 @@ u32 gf_mx_p(GF_Mutex *mx);
  *\param mx the mutex object
 */
 void gf_mx_v(GF_Mutex *mx);
+/*
+ *\brief mutex non-blocking lock
+ *
+ *Attemps to lock the mutex object without blocking until the object is released.
+ *\param mx the mutex object
+ *\return 1 if the mutex has been successfully locked, in which case it shall then be unlocked, or 0 if the mutex is locked by another thread.
+*/
+Bool gf_mx_try_lock(GF_Mutex *mx);
 
 
 /*********************************************************************

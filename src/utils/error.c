@@ -107,7 +107,9 @@ void gf_cbk_on_progress(void *_title, u32 done, u32 total)
 	}
 }
 
+#if 0
 static s32 log_level = 0;
+
 static s32 log_flags = 0xFFFFFFFF;
 
 void gf_trace(s32 level, u32 logflags, const char *mod_name, const char *fmt, ...)
@@ -119,6 +121,7 @@ void gf_trace(s32 level, u32 logflags, const char *mod_name, const char *fmt, ..
 	vfprintf(stderr, fmt, vl);
 	va_end(vl);
 }
+#endif
 
 
 const char *gf_error_to_string(GF_Err e)

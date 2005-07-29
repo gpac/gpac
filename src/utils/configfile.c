@@ -333,3 +333,4 @@ GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *ke
 	iniFile->hasChanged = 1;
 	return GF_OK;
 }
+

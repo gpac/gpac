@@ -491,9 +491,6 @@ these channels are ALWAYS pulling ones, and this function will init the channel 
 void gf_es_init_dummy(GF_Channel *ch);
 /*setup ISMACryp*/
 void gf_es_config_ismacryp(GF_Channel *ch, GF_NetComISMACryp *isma_cryp);
-/*bypasses buffering and initializes clock - this allows to resetup a stream to a given time
-without waiting for data to be recieved (only used for OD streams and seeking)*/
-void gf_es_reinit_clock(GF_Channel *ch, u32 fromTS);
 
 /*
 		decoder stuff
