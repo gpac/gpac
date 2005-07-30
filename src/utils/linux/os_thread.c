@@ -201,7 +201,7 @@ void gf_mx_v(GF_Mutex *mx)
 	assert(mx->HolderCount>0);
 	mx->HolderCount -= 1;
 
-	if (!mx->HolderCount) 
+	if (!mx->HolderCount) {
 		mx->Holder = 0;
 		pthread_mutex_unlock(&mx->hMutex);
 	}
