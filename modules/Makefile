@@ -35,7 +35,7 @@ PLUGDIRS+=amr_float_dec
 endif
 endif
 
-ifeq ($(CONFIG_LINUX_AUDIO_OSS), no)
+ifeq ($(CONFIG_OSS_AUDIO), no)
 else
 PLUGDIRS+=oss_audio
 endif

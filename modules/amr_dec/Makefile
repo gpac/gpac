@@ -14,29 +14,29 @@ endif
 
 #common obj
 OBJS=amr_in.o amr_dec.o \
-	./AMR_NB/agc.o ./AMR_NB/autocorr.o ./AMR_NB/az_lsp.o ./AMR_NB/bits2prm.o ./AMR_NB/cl_ltp.o \
-	./AMR_NB/convolve.o ./AMR_NB/c1035pf.o ./AMR_NB/d_plsf.o ./AMR_NB/d_plsf_5.o ./AMR_NB/d_gain_c.o \
-	./AMR_NB/d_gain_p.o ./AMR_NB/dec_lag6.o ./AMR_NB/d1035pf.o ./AMR_NB/cor_h.o ./AMR_NB/enc_lag3.o \
-	./AMR_NB/enc_lag6.o ./AMR_NB/g_code.o ./AMR_NB/g_pitch.o ./AMR_NB/int_lpc.o ./AMR_NB/inter_36.o \
-	./AMR_NB/inv_sqrt.o ./AMR_NB/lag_wind.o ./AMR_NB/levinson.o ./AMR_NB/lsp_az.o ./AMR_NB/lsp_lsf.o \
-	./AMR_NB/ol_ltp.o ./AMR_NB/pitch_fr.o ./AMR_NB/pitch_ol.o ./AMR_NB/pow2.o ./AMR_NB/pre_big.o \
-	./AMR_NB/pre_proc.o ./AMR_NB/pred_lt.o ./AMR_NB/preemph.o ./AMR_NB/prm2bits.o ./AMR_NB/pstfilt.o \
-	./AMR_NB/q_gain_c.o ./AMR_NB/q_gain_p.o ./AMR_NB/q_plsf.o ./AMR_NB/q_plsf_5.o ./AMR_NB/lsfwt.o \
-	./AMR_NB/reorder.o ./AMR_NB/residu.o ./AMR_NB/lsp.o ./AMR_NB/lpc.o ./AMR_NB/ec_gains.o \
-	./AMR_NB/spreproc.o ./AMR_NB/syn_filt.o ./AMR_NB/weight_a.o ./AMR_NB/qua_gain.o \
-	./AMR_NB/gc_pred.o ./AMR_NB/q_plsf_3.o ./AMR_NB/post_pro.o ./AMR_NB/dec_lag3.o ./AMR_NB/dec_gain.o \
-	./AMR_NB/d_plsf_3.o ./AMR_NB/d4_17pf.o ./AMR_NB/c4_17pf.o ./AMR_NB/d3_14pf.o ./AMR_NB/c3_14pf.o \
-	./AMR_NB/d2_11pf.o ./AMR_NB/c2_11pf.o ./AMR_NB/d2_9pf.o ./AMR_NB/c2_9pf.o ./AMR_NB/cbsearch.o \
-	./AMR_NB/spstproc.o ./AMR_NB/gain_q.o ./AMR_NB/cod_amr.o ./AMR_NB/dec_amr.o ./AMR_NB/sp_enc.o \
-	./AMR_NB/sp_dec.o ./AMR_NB/ph_disp.o ./AMR_NB/g_adapt.o ./AMR_NB/calc_en.o ./AMR_NB/qgain795.o \
-	./AMR_NB/qgain475.o ./AMR_NB/sqrt_l.o ./AMR_NB/set_sign.o ./AMR_NB/s10_8pf.o ./AMR_NB/bgnscd.o \
-	./AMR_NB/gmed_n.o ./AMR_NB/mac_32.o ./AMR_NB/ex_ctrl.o ./AMR_NB/c_g_aver.o ./AMR_NB/lsp_avg.o \
-	./AMR_NB/int_lsf.o ./AMR_NB/c8_31pf.o ./AMR_NB/d8_31pf.o ./AMR_NB/p_ol_wgh.o ./AMR_NB/ton_stab.o \
-	./AMR_NB/vad1.o ./AMR_NB/dtx_enc.o ./AMR_NB/dtx_dec.o ./AMR_NB/a_refl.o ./AMR_NB/b_cn_cod.o \
-	./AMR_NB/calc_cor.o ./AMR_NB/hp_max.o ./AMR_NB/vadname.o ./AMR_NB/vad2.o ./AMR_NB/r_fft.o \
-	./AMR_NB/lflg_upd.o ./AMR_NB/e_homing.o ./AMR_NB/d_homing.o ./AMR_NB/basicop2.o \
-	./AMR_NB/count.o ./AMR_NB/oper_32b.o ./AMR_NB/copy.o ./AMR_NB/log2.o \
-	./AMR_NB/set_zero.o ./AMR_NB/strfunc.o ./AMR_NB/n_proc.o ./AMR_NB/sid_sync.o
+	./amr_nb/agc.o ./amr_nb/autocorr.o ./amr_nb/az_lsp.o ./amr_nb/bits2prm.o ./amr_nb/cl_ltp.o \
+	./amr_nb/convolve.o ./amr_nb/c1035pf.o ./amr_nb/d_plsf.o ./amr_nb/d_plsf_5.o ./amr_nb/d_gain_c.o \
+	./amr_nb/d_gain_p.o ./amr_nb/dec_lag6.o ./amr_nb/d1035pf.o ./amr_nb/cor_h.o ./amr_nb/enc_lag3.o \
+	./amr_nb/enc_lag6.o ./amr_nb/g_code.o ./amr_nb/g_pitch.o ./amr_nb/int_lpc.o ./amr_nb/inter_36.o \
+	./amr_nb/inv_sqrt.o ./amr_nb/lag_wind.o ./amr_nb/levinson.o ./amr_nb/lsp_az.o ./amr_nb/lsp_lsf.o \
+	./amr_nb/ol_ltp.o ./amr_nb/pitch_fr.o ./amr_nb/pitch_ol.o ./amr_nb/pow2.o ./amr_nb/pre_big.o \
+	./amr_nb/pre_proc.o ./amr_nb/pred_lt.o ./amr_nb/preemph.o ./amr_nb/prm2bits.o ./amr_nb/pstfilt.o \
+	./amr_nb/q_gain_c.o ./amr_nb/q_gain_p.o ./amr_nb/q_plsf.o ./amr_nb/q_plsf_5.o ./amr_nb/lsfwt.o \
+	./amr_nb/reorder.o ./amr_nb/residu.o ./amr_nb/lsp.o ./amr_nb/lpc.o ./amr_nb/ec_gains.o \
+	./amr_nb/spreproc.o ./amr_nb/syn_filt.o ./amr_nb/weight_a.o ./amr_nb/qua_gain.o \
+	./amr_nb/gc_pred.o ./amr_nb/q_plsf_3.o ./amr_nb/post_pro.o ./amr_nb/dec_lag3.o ./amr_nb/dec_gain.o \
+	./amr_nb/d_plsf_3.o ./amr_nb/d4_17pf.o ./amr_nb/c4_17pf.o ./amr_nb/d3_14pf.o ./amr_nb/c3_14pf.o \
+	./amr_nb/d2_11pf.o ./amr_nb/c2_11pf.o ./amr_nb/d2_9pf.o ./amr_nb/c2_9pf.o ./amr_nb/cbsearch.o \
+	./amr_nb/spstproc.o ./amr_nb/gain_q.o ./amr_nb/cod_amr.o ./amr_nb/dec_amr.o ./amr_nb/sp_enc.o \
+	./amr_nb/sp_dec.o ./amr_nb/ph_disp.o ./amr_nb/g_adapt.o ./amr_nb/calc_en.o ./amr_nb/qgain795.o \
+	./amr_nb/qgain475.o ./amr_nb/sqrt_l.o ./amr_nb/set_sign.o ./amr_nb/s10_8pf.o ./amr_nb/bgnscd.o \
+	./amr_nb/gmed_n.o ./amr_nb/mac_32.o ./amr_nb/ex_ctrl.o ./amr_nb/c_g_aver.o ./amr_nb/lsp_avg.o \
+	./amr_nb/int_lsf.o ./amr_nb/c8_31pf.o ./amr_nb/d8_31pf.o ./amr_nb/p_ol_wgh.o ./amr_nb/ton_stab.o \
+	./amr_nb/vad1.o ./amr_nb/dtx_enc.o ./amr_nb/dtx_dec.o ./amr_nb/a_refl.o ./amr_nb/b_cn_cod.o \
+	./amr_nb/calc_cor.o ./amr_nb/hp_max.o ./amr_nb/vadname.o ./amr_nb/vad2.o ./amr_nb/r_fft.o \
+	./amr_nb/lflg_upd.o ./amr_nb/e_homing.o ./amr_nb/d_homing.o ./amr_nb/basicop2.o \
+	./amr_nb/count.o ./amr_nb/oper_32b.o ./amr_nb/copy.o ./amr_nb/log2.o \
+	./amr_nb/set_zero.o ./amr_nb/strfunc.o ./amr_nb/n_proc.o ./amr_nb/sid_sync.o
 
 
 SRCS := $(OBJS:.o=.c) 

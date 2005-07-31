@@ -22,15 +22,6 @@
  *		
  */
 
- /*
-   Note on threading: the module handles both 2D and 3D output. 
-   The 2D output model is a direct one: sending a "resize" event to the user results in a synchronous
-   call to the module Resize function
-   The 3D output model is an asynchrone one: due to openGL context in threading environments, all calls 
-   to the modules Resize and SetFullScreen are handled through the main rendering thread 
-   (the one accessing opengl context) to ensure the GL context is always setup and used in a single thread. 
-   Therefore sending a "resize" event to the user will postpone actual resize.
- */
 
 #include "sdl_out.h"
 
@@ -220,6 +211,21 @@ static u32 SDLVid_TranslateActionKey(u32 VirtKey)
 	}
 }
 
+#if 0
+void SDL_SetHack(void *os_handle, Bool set_on)
+{
+  unsetenv("SDL_WINDOWID=");
+	if (!os_handle) return;
+	if (set_on) {
+		char buf[16];
+		snprintf(buf, sizeof(buf), "%u", (u32) os_handle);
+		setenv("SDL_WINDOWID", buf, 1);
+		sprintf(buf, "SDL_WINDOWID=%u", (u32) os_handle);
+		putenv(buf);
+	}
+}
+#endif
+
 static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 {
 	while (gf_list_count(ctx->surfaces)) {
@@ -245,9 +251,10 @@ void SDL_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 
 	/*lock X mutex to make sure the event queue is not being processed*/
 	gf_mx_p(ctx->evt_mx);
+
 	if (ctx->is_3D_out) {
 		u32 flags = SDL_GL_WINDOW_FLAGS;
-		if (ctx->os_handle) flags |= SDL_RESIZABLE;
+		if (ctx->os_handle) flags &= ~SDL_RESIZABLE;
 		if (!ctx->screen) ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, ctx->screen->format->BitsPerPixel);
@@ -267,28 +274,14 @@ void SDL_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		dr->on_event(dr->evt_cbk_hdl, &evt);		
 	} else {
 		u32 flags = SDL_WINDOW_FLAGS;
-		if (ctx->os_handle) flags |= SDL_RESIZABLE;
+		if (ctx->os_handle) flags &= ~SDL_RESIZABLE;
 		ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
 		assert(ctx->screen);
+		if (!ctx->os_handle) SDLVid_SetCaption();
 	}
-	
-	if (!ctx->os_handle) SDLVid_SetCaption();
-
 	gf_mx_v(ctx->evt_mx);
 }
 
-#if 0
-static void SDL_SetHack(void *os_handle, Bool set_on)
-{
-	unsetenv("SDL_WINDOWID=");
-	if (!os_handle) return;
-	if (set_on) {
-		char buf[16];
-		snprintf(buf, sizeof(buf), "%u", (u32) os_handle);
-		setenv("SDL_WINDOWID", buf, 1);
-	}
-}
-#endif
 
 u32 SDL_EventProc(void *par)
 {
@@ -335,7 +328,7 @@ u32 SDL_EventProc(void *par)
     ctx->display_width = GetSystemMetrics(SM_CXSCREEN);
     ctx->display_height = GetSystemMetrics(SM_CYSCREEN);
 #endif
-
+    
 	while (ctx->sdl_th_state==1) {
 		/*after much testing: we must ensure nothing is using the event queue when resizing window.
 		-- under X, it throws Xlib "unexpected async reply" under linux, therefore we don't wait events,
@@ -462,7 +455,8 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 {
 	SDLVID();
 	/*we don't allow SDL hack, not stable enough*/
-	if (os_handle) return GF_NOT_SUPPORTED;
+	//if (os_handle) return GF_NOT_SUPPORTED;
+	ctx->os_handle = os_handle;
 	ctx->is_init = 0;
 	ctx->is_3D_out = cfg ? 1 : 0;
 	if (!SDLOUT_InitSDL()) return GF_IO_ERR;

@@ -249,11 +249,14 @@ GF_Err gf_beng_encode_from_string(GF_BifsEngine *codec, char *auString, GF_Err (
 	
 	/* Assumes there is only one BIFS stream in the context
 	   TODO: check how to do it when several BIFS streams are encoded at the same time */
+	sc = NULL;
 	count = gf_list_count(codec->ctx->streams);
 	for (i=0; i<gf_list_count(codec->ctx->streams); i++) {
 		sc = (GF_StreamContext *)gf_list_get(codec->ctx->streams, i);
 		if (sc->streamType == GF_STREAM_SCENE) break;
+		sc = NULL;
 	}
+	if (!sc) return GF_BAD_PARAM;
 	codec->currentAUCount = gf_list_count(sc->AUs);
 
 	codec->load.flags = GF_SM_LOAD_MPEG4_STRICT | GF_SM_LOAD_CONTEXT_READY;
@@ -280,11 +283,14 @@ GF_Err gf_beng_encode_from_file(GF_BifsEngine *codec, char *auFile, GF_Err (*AUC
 
 	/* Assumes there is only one BIFS stream in the context
 	   TODO: check how to do it when several BIFS streams are encoded at the same time */
+	sc = NULL;
 	count = gf_list_count(codec->ctx->streams);
 	for (i=0; i<gf_list_count(codec->ctx->streams); i++) {
 		sc = (GF_StreamContext *)gf_list_get(codec->ctx->streams, i);
 		if (sc->streamType == GF_STREAM_SCENE) break;
+		sc = NULL;
 	}
+	if (!sc) return GF_BAD_PARAM;
 	codec->currentAUCount = gf_list_count(sc->AUs);
 
 	codec->load.flags = GF_SM_LOAD_MPEG4_STRICT | GF_SM_LOAD_CONTEXT_READY;

@@ -9,12 +9,17 @@ CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
+ifeq ($(OSS_INC_TYPE), SYS)
+else
+CFLAGS+=-DOSS_FIX_INC
+endif
+
 #common obj
 OBJS= oss.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=linux_audio_oss.$(DYN_LIB_SUFFIX)
+LIB=oss_audio.$(DYN_LIB_SUFFIX)
 
 all: $(LIB)
 

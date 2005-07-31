@@ -1,27 +1,27 @@
-/***************************************************************************
-*            X11_out.h
-*
-*  Mon Jun 13 12:13:02 2005
-*  Copyright  2005  DINH Anh Minh
-*  Email anhminh.dinh@gmail.com
-****************************************************************************/
-
 /*
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *					GPAC Multimedia Framework
  *
- *  This program is distributed in the hope that it will be useful,
+ *			Authors: DINH Anh Min - Jean le Feuvre
+ *				Copyright (c) 2005-200X ENST
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / X11 video output module
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Library General Public License for more details.
+ *  GNU Lesser General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
-
 #ifndef _X11_OUT_H
 #define _X11_OUT_H
 
@@ -35,21 +35,15 @@ extern "C"
 #include <gpac/thread.h>
 #include <gpac/list.h>
 
-
-#define __USE_X_SHAREDMEMORY__
-
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
 
+#ifdef GPAC_HAS_OPENGL
 #include <GL/glx.h>
+#endif
 
-#include <stdio.h>
-#include <stdlib.h>		/* getenv(), etc. */
-#include <unistd.h>		/* sleep(), etc.  */
-
-
-#ifdef __USE_X_SHAREDMEMORY__
+#ifdef GPAC_HAS_X11_SHM
 #include <X11/extensions/XShm.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -76,7 +70,7 @@ typedef struct
 {
 	Display *display;	//required by all X11 method, provide by XOpenDisplay, Mozilla wnd ...
 	Window wnd;	//main window handler
-	Bool owns_wnd;
+	Bool owns_wnd, owns_display;
 	Window full_wnd;	//full screen
 	Screen *screenptr;	//X11 stuff
 	int screennum;		//...
@@ -89,7 +83,7 @@ typedef struct
 	Colormap colormap;	//not for now
 	int videoaccesstype;	//
 
-#ifdef __USE_X_SHAREDMEMORY__
+#ifdef GPAC_HAS_X11_SHM
 	Pixmap pixmap;		//main drawing image : local sharememory mode
 	XShmSegmentInfo *shmseginfo;
 #endif
@@ -109,8 +103,10 @@ typedef struct
 	u32 x11_th_state;
 	u32 depth, bpp, pixel_format;
 	Bool is_3D_out;
+#ifdef GPAC_HAS_OPENGL
 	XVisualInfo *glx_visualinfo;
 	GLXContext glx_context;
+#endif
 } XWindow;
 
 void StretchBits (void *dst, u32 dst_bpp, u32 dst_w, u32 dst_h, u32 dst_pitch,

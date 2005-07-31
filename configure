@@ -42,7 +42,8 @@ echo "  --enable-amr-wb          enables AMR WB library"
 echo "  --enable-amr             enables both AMR NB and WB libraries"
 echo "  --enable-debug           produces debug version"
 echo "  --disable-opt            disables GCC optimizations"
-echo "  --enable-oss-audio       enables OSS audio on Linux"
+echo "  --disable-oss-audio      disables OSS audio"
+echo "  --disable-x11-shm        disables X11 shared memory support"
 echo "  --disable-fragments      disables movie fragments in ISO media support"
 echo "  --enable-readonly        forces ISO media to be read-only"
 echo "  --disable-svg            disable SVG support"
@@ -107,8 +108,8 @@ has_amr_wb="no"
 has_ogg="no"
 has_vorbis="no"
 has_theora="no"
-has_linux_audio_oss="no"
-use_oss_audio="no"
+has_oss_audio="no"
+has_x11_shm="no"
 disable_svg="no"
 no_gcc_opt="no"
 use_fixed_point="no"
@@ -514,7 +515,7 @@ elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -ltheora -lm 2> /dev/null  ; t
 has_theora="local"
 fi
 
-#look for Ogg support
+#look for OGG support
 cat > $TMPC << EOF
 #include <ogg/ogg.h>
 int main( void ) { return 0; }
@@ -532,6 +533,45 @@ else
 has_vorbis=no
 has_theora=no
 fi
+
+
+#look for OSS support
+cat > $TMPC << EOF
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/soundcard.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC -logg 2> /dev/null  ; then
+has_oss_audio="SYS"
+else
+cat > $TMPC << EOF
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <soundcard.h>
+int main( void ) { return 0; }
+EOF
+if $cc -o $TMPO $TMPC -logg 2> /dev/null  ; then
+has_oss_audio="YES"
+fi
+fi
+
+#look for X11 shared memory support
+cat > $TMPC << EOF
+#include <X11/Xlib.h>
+#include <X11/extensions/XShm.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC 2> /dev/null  ; then
+has_x11_shm="yes"
+fi
+
 
 for opt do
   case "$opt" in
@@ -597,7 +637,9 @@ for opt do
   ;;
   --enable-readonly) make_readonly="yes"
   ;;
-  --enable-oss-audio) use_oss_audio="yes"
+  --disable-oss-audio) has_oss_audio="no"
+  ;;
+  --disable-x11-shm) has_x11_shm="no"
   ;;
   --disable-svg) disable_svg="yes"
   ;;
@@ -614,22 +656,6 @@ done
 if test "$no_gcc_opt" = "no"; then
 CFLAGS="-O3 $CFLAGS"
 fi
-
-if test "$use_oss_audio" = "yes"; then
-#look for linux_audio_oss support
-cat > $TMPC << EOF
-#include <sys/ioctl.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/soundcard.h>
-int main( void ) { return 0; }
-EOF
-
-if $cc -o $TMPO $TMPC 2> /dev/null  ; then
-has_linux_audio_oss="system"
-fi
-fi
-
 
 #look for DX support
 dx_include=""
@@ -689,8 +715,8 @@ fi
 #look for wxWidgets support
 has_wx="no"
 wx_too_old="no"
-wx_cflags=`wx-config --cppflags`
-wx_lflags=`wx-config --libs`
+wx_cflags=`wx-config --cppflags core,base`
+wx_lflags=`wx-config --libs core,base`
 
 cat > $TMPCPP << EOF
 #include <wx/wx.h>
@@ -730,7 +756,6 @@ else
 has_xml2="yes"
 fi
 fi
-
 
 # Checking for CFLAGS
 if test -z "$CFLAGS"; then
@@ -818,7 +843,16 @@ else
 echo "Xiph Vorbis: $has_vorbis"
 echo "Xiph Theora: $has_theora"
 fi
-echo "Linux-Audio OSS: $has_linux_audio_oss"
+
+if test "$win32" != "yes" ; then
+if test "$has_oss_audio" = "no"; then
+echo "OSS Audio: no"
+else
+echo "OSS Audio: yes"
+fi
+echo "X11 Shared Memory support: $has_x11_shm"
+fi
+
 echo "SDL Support: $has_sdl"
 if test "$sdl_too_old" = "yes" ; then
 echo "SDL Version too old - please upgrade for SDL support"
@@ -939,7 +973,7 @@ echo "CONFIG_OGG=$has_ogg" >> config.mak
 echo "CONFIG_VORBIS=$has_vorbis" >> config.mak
 echo "CONFIG_THEORA=$has_theora" >> config.mak
 echo "CONFIG_FFMPEG=$has_ffmpeg" >> config.mak
-echo "CONFIG_LINUX_AUDIO_OSS=$has_linux_audio_oss" >> config.mak
+echo "CONFIG_OSS_AUDIO=$has_oss_audio" >> config.mak
 echo "DISABLE_SVG=$disable_svg" >> config.mak
 echo "HAS_OPENGL=$has_opengl" >> config.mak
 if test "$has_opengl" = "yes" ; then
@@ -989,6 +1023,15 @@ echo "XML2_LFLAGS=$xml2_lflags" >> config.mak
 fi
 
 echo "MOZILLA_DIR=$moz_path" >> config.mak
+
+
+if test "$has_oss_audio" != "no"; then
+echo "OSS_INC_TYPE=$has_oss_audio" >> config.mak
+fi
+
+if test "$has_x11_shm" = "yes"; then
+echo "USE_X11_SHM=$has_x11_shm" >> config.mak
+fi
 
 #overwrite fixed-point in math.h
 if test "$use_fixed_point" = "yes"; then

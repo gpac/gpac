@@ -84,7 +84,7 @@ public:
   virtual int32   Write(NPStream *stream, int32 offset, 
                         int32 len, void *buffer)                    { return len; }
   virtual void    Print(NPPrint* printInfo)                         { return; }
-  virtual uint16  HandleEvent(void* event)                          { return 0; }
+    virtual uint16  HandleEvent(void* event) { return 0; }
   virtual void    URLNotify(const char* url, NPReason reason, 
                             void* notifyData)                       { return; }
   virtual NPError GetValue(NPPVariable variable, void *value)       { return NPERR_NO_ERROR; }
@@ -106,7 +106,7 @@ NPError NS_PluginGetValue(NPPVariable aVariable, void *aValue);
 char* NPP_GetMIMEDescription(void);
 
 
-#define NO_GPAC
+//#define NO_GPAC
 
 class nsOsmozillaInstance : public nsPluginInstanceBase
 {
@@ -120,14 +120,15 @@ public:
 	NPBool isInitialized() {return mInitialized;}
 
 	NPError GetValue(NPPVariable aVariable, void *aValue);
-
+    virtual uint16 HandleEvent(void* event);
+ 
 	NPError SetWindow(NPWindow* aWindow);
 	NPError DestroyStream(NPStream * stream, NPError reason);
 	NPError NewStream(NPMIMEType type, NPStream * stream, NPBool seekable,uint16 * stype);
 	void StreamAsFile(NPStream* stream, const char* fname);
 	void URLNotify(const char *url, NPReason reason, void *notifyData);
 	void SetArg(nsPluginCreateData * aCreateDataStruct);
-
+    
 
 	nsOsmozillaPeer * getScriptablePeer();
 
@@ -136,6 +137,11 @@ public:
 
 	GF_Terminal *m_term;
 	GF_User m_user;
+
+#ifdef XP_UNIX
+    Display *m_XDisplay;
+    Window m_XWnd;
+#endif
 	
 	char *m_szURL;
 

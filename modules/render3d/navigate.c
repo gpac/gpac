@@ -183,6 +183,8 @@ static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
 		is_pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(sr->active_layer));
 	} else {
 		cam = &sr->surface->camera;
+		assert(sr->compositor);
+		assert(sr->compositor->scene);
 		is_pixel_metrics = gf_sg_use_pixel_metrics(sr->compositor->scene);
 	}
 

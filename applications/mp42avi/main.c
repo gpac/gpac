@@ -309,6 +309,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	}
 	avi_out = NULL;
 	conv_buf = NULL;
+	esd = NULL;
 	needs_raw = 0;
 	test = gf_cfg_get_key(user.config, "General", "ModulesDirectory");
 	user.modules = gf_modules_new((const unsigned char *) test, user.config);

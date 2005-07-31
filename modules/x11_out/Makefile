@@ -9,6 +9,16 @@ CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
+ifeq ($(USE_X11_SHM), yes)
+CFLAGS+=-DGPAC_HAS_X11_SHM
+LDFLAGS+=-lXext
+endif
+
+ifeq ($(HAS_OPENGL), yes)
+CFLAGS +=-DGPAC_HAS_OPENGL
+LDFLAGS+=-lGL
+endif
+
 #common obj
 OBJS=x11_out.o x11_softstretch.o
 
@@ -23,7 +33,7 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L/usr/X11R6/lib -lX11 -lXext -lGL -L../../bin/gcc -lgpac
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L/usr/X11R6/lib -lX11 -L../../bin/gcc -lgpac
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $< 

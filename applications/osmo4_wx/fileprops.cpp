@@ -38,6 +38,8 @@ wxFileProps::wxFileProps(wxWindow *parent)
 
 	m_pApp = (wxOsmo4Frame *)parent;
 	SetSize(540, 260);
+	assert(m_pApp->m_pPlayList);
+
 	m_pTreeView = new wxTreeCtrl(this, ID_TREE_VIEW, wxPoint(4, 2), wxSize(200, 180), wxTR_DEFAULT_STYLE | wxSUNKEN_BORDER);
 	
 	new wxStaticText(this, 0, _T("Information"), wxPoint(210, 2), wxSize(60, 20));
@@ -518,9 +520,9 @@ void wxFileProps::SetNetworkInfo()
 		while (gf_term_get_download_info(m_pApp->m_term, m_current_odm, &d_enum, &url, &path, &done, &total, &bps)) {
 			info += wxString(url, wxConvUTF8);
 			if (total) {
-				info += wxString::Format(wxT(": %d / %d bytes (%.2f %%) - %.2f kBps\n"), done, total, (100.0f*done)/total, bps/1024);
+				info += wxString::Format(wxT(": %d / %d bytes (%.2f %%) - %.2f kBps\n"), done, total, (100.0*done)/total, ((Double)bps)/1024);
 			} else {
-				info += wxString::Format(wxT(": %.2f kBps\n"), bps/1024);
+				info += wxString::Format(wxT(": %.2f kBps\n"), ((Double)bps)/1024);
 			}
 		}
 		if (!d_enum) info = wxT("No Downloads in service\n");

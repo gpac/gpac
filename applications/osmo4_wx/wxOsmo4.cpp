@@ -272,7 +272,10 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVT_LEFTDOWN:
 	case GF_EVT_RIGHTDOWN:
 	case GF_EVT_MIDDLEDOWN:
-		app->m_pView->SetFocus();
+		if (!gf_term_get_option(app->m_term, GF_OPT_FULLSCREEN)) {
+		  app->m_pView->SetFocus();
+		  //XSetInputFocus(app->m_XDisplay, app->m_XWnd, RevertToNone, CurrentTime);
+		}
 		break;
 	}
 	return 0;
@@ -324,17 +327,22 @@ bool GPACLogs::OnFrameClose(wxFrame *frame)
 	return 0;
 }
 
+void wxOsmo4Frame::ShowViewWindow(Bool do_show)
+{
+  m_pView->Show(do_show);
 #ifdef __WXGTK__
-extern "C" {
-#ifdef __WXGTK20__
-    int gdk_x11_drawable_get_xid( void * );
-    void *gdk_x11_drawable_get_xdisplay( void * );
+  if (m_XWnd) {
+    if (do_show) {
+      XMapWindow(m_XDisplay, m_XWnd);
+      XRaiseWindow(m_XDisplay, m_XWnd);
+    }
+    else {
+      XUnmapWindow(m_XDisplay, m_XWnd);
+      XLowerWindow(m_XDisplay, m_XWnd);
+    }
+  }
 #endif
-    void *gtk_widget_get_parent_window( void * );
 }
-#endif
-
-/*thats a bit ugly, but SDL hack doesnt work properly*/
 void wxOsmo4Frame::CheckVideoOut()
 {
 	const char *sOpt = gf_cfg_get_key(m_user.config, "Video", "DriverName");
@@ -346,15 +354,8 @@ void wxOsmo4Frame::CheckVideoOut()
 		m_bExternalView = 0;
 
 #ifdef __WXGTK__
-		GtkWidget* widget = m_pView->GetHandle();
-#ifdef __WXGTK20__
-		os_handle = (void *)gdk_x11_drawable_get_xid(gtk_widget_get_parent_window(widget));
-		os_display = (void *)gdk_x11_drawable_get_xdisplay(gtk_widget_get_parent_window(widget));
-#else
-		os_handle =  (void *)*(int *)( (char *)gtk_widget_get_parent_window(widget) + 2 * sizeof(void *) );
-#endif
-    /*commented out for 0.4.0 release - X11 output is not stable enough*/
-		os_handle = os_display = NULL;
+		os_handle = (void *) m_XWnd;
+		os_display = (void *) m_XDisplay;
 #elif defined (WIN32)
 		os_handle = m_pView->GetHandle();
 #endif
@@ -362,8 +363,8 @@ void wxOsmo4Frame::CheckVideoOut()
 		if (os_handle) {
 			m_user.os_window_handler = os_handle;
 			m_user.os_display = os_display;
-//			m_pSizer->Show(m_pViewSizer, 1);
-			m_pView->Show(1);
+			ShowViewWindow(1);
+			m_pView->SetSize(320, 240);
 			SetSize(wxSize(320, 240+FRAME_H));
 			SetWindowStyle(wxDEFAULT_FRAME_STYLE);
 			DoLayout(320, 240);
@@ -372,12 +373,11 @@ void wxOsmo4Frame::CheckVideoOut()
 	}
 	/*we're using SDL, don't use SDL hack*/
 	m_bExternalView = 1;
-//	m_pSizer->Show(m_pViewSizer, 0);
 	m_user.os_window_handler = 0;
 	m_user.os_display = NULL;
 	SetSize(wxSize(320,FRAME_H));
-	m_pView->SetSize(320,0);
-	m_pView->Show(0);
+	m_pView->SetSize(0, 0);
+	ShowViewWindow(0);
 	DoLayout();
 	SetWindowStyle(wxDEFAULT_FRAME_STYLE & ~(wxMAXIMIZE_BOX | wxRESIZE_BORDER));
 }
@@ -584,6 +584,16 @@ Bool wxOsmo4Frame::LoadTerminal()
 }
 
 
+#ifdef __WXGTK__
+extern "C" {
+#ifdef __WXGTK20__
+    int gdk_x11_drawable_get_xid( void * );
+    void *gdk_x11_drawable_get_xdisplay( void * );
+#endif
+    void *gtk_widget_get_parent_window( void * );
+}
+#endif
+
 wxOsmo4Frame::wxOsmo4Frame() :
 		wxFrame((wxFrame *) NULL, -1, wxT("Osmo4 - GPAC"), wxPoint(-1, -1), wxSize(320, FRAME_H), //wxDEFAULT_FRAME_STYLE & ~(wxMAXIMIZE_BOX | wxRESIZE_BORDER)
 wxDEFAULT_FRAME_STYLE
@@ -592,7 +602,12 @@ wxDEFAULT_FRAME_STYLE
 {
 	int ws[3];
 	m_Address = NULL;
+#ifdef __WXGTK__
+	m_XDisplay = NULL;
+	m_XWnd = 0;
+#else
 	m_pView = NULL;
+#endif
 	m_term = NULL;
 	SetIcon(wxIcon(osmo4));
 	m_bExternalView = 0;
@@ -749,67 +764,67 @@ wxDEFAULT_FRAME_STYLE
 
 	m_pToolBar->Realize();
 
-	m_Address = new wxMyComboBox(this, ID_ADDRESS, wxT(""), wxPoint(50, 0), wxSize(260, 20));
-	wxStaticText *add_text = new wxStaticText(this, 0, wxT("Location"));
+	m_Address = new wxMyComboBox(this, ID_ADDRESS, wxT(""), wxPoint(50, 0), wxSize(80, 20));
+	wxStaticText *add_text = new wxStaticText(this, -1, wxT("URL"));
 	add_text->SetBackgroundColour(foreCol);
 
 	m_pAddBar = new wxBoxSizer(wxHORIZONTAL);
-	m_pAddBar->Add(add_text, 0, wxALIGN_BOTTOM|wxADJUST_MINSIZE|wxEXPAND, 0);
-	m_pAddBar->Add(m_Address, 2, wxALIGN_CENTER|wxEXPAND);
+	m_pAddBar->Add(add_text, 0, wxALIGN_TOP);
+	m_pAddBar->Add(m_Address, 2, wxALIGN_CENTER|wxEXPAND|wxADJUST_MINSIZE);
 
 	
-#ifdef __WXGTK__
-	m_pProg = new wxScrollBar(this, ID_SLIDER, wxPoint(0, 20), wxSize(320, 20), wxSB_HORIZONTAL | wxNO_BORDER);
-	m_pProg->SetScrollbar(0, 1, 1000, 1);
-#else
-	m_pProg = new wxSlider(this, ID_SLIDER, 0, 0, 1000, wxPoint(0, 22), wxSize(320, 22), wxSL_HORIZONTAL|wxSUNKEN_BORDER);
-#endif
+	m_pProg = new wxSlider(this, ID_SLIDER, 0, 0, 1000, wxPoint(0, 22), wxSize(80, 22), wxSL_HORIZONTAL|wxSUNKEN_BORDER);
 	m_pProg->Enable(0);
 	m_pProg->Show();
 	m_pProg->SetBackgroundColour(foreCol);
 
 	m_pView = new wxWindow(this, -1, wxDefaultPosition, wxDefaultSize, wxNO_BORDER);
 	m_pView->SetBackgroundColour(wxColour(wxT("BLACK")));
-
-	wxBoxSizer *bs;
-	m_pSizer = new wxBoxSizer(wxVERTICAL);
-	/*on WIN32 platforms the toolbar is part of the frame, not of the client area*/
-#if 0
-	bs = new wxBoxSizer(wxHORIZONTAL);
-	bs->Add(m_pToolBar, 1, wxALIGN_CENTER|wxADJUST_MINSIZE|wxEXPAND);
-	m_pSizer->Add(bs, 0, wxALL, 0);
-#endif
-
-	m_pSizer->Add(m_pAddBar, 0, wxALL|wxADJUST_MINSIZE|wxEXPAND, 0);
-
-	m_pViewSizer = new wxBoxSizer(wxHORIZONTAL);
-	m_pViewSizer->Add(m_pView, 1, wxALIGN_CENTER|wxADJUST_MINSIZE|wxEXPAND, 0);
-	m_pSizer->Add(m_pViewSizer, 1, wxEXPAND|wxADJUST_MINSIZE|wxEXPAND, 0);
-
-	bs = new wxBoxSizer(wxHORIZONTAL);
-	bs->Add(m_pProg, 1, wxALL|wxALIGN_CENTER|wxADJUST_MINSIZE|wxEXPAND, 0);
-	m_pSizer->Add(bs, 0, wxALL|wxADJUST_MINSIZE|wxEXPAND, 0);
-
 	m_pPlayList = new wxPlaylist(this);
 	m_pPlayList->SetIcon(wxIcon(osmo4));
 	m_pPlayList->Hide();
 	Raise();
 	Show();
+
+#ifdef __WXGTK__
+	GtkWidget* widget = m_pView->GetHandle();
+	Window par_wnd;
+
+#ifdef __WXGTK20__
+	par_wnd = (Window) gdk_x11_drawable_get_xid(gtk_widget_get_parent_window(widget));
+#else
+	par_wnd =  (void *)*(int *)( (char *)gtk_widget_get_parent_window(widget) + 2 * sizeof(void *) );
+#endif
+	
+	/*DON'T USE DISPLAY AS INDICATED BY GDK, IT JUST DOESN'T WORK !!!*/
+	m_XDisplay = XOpenDisplay(NULL);
+	Screen *screenptr = DefaultScreenOfDisplay (m_XDisplay);
+	int scn = DefaultScreen (m_XDisplay);
+	XSetWindowAttributes xsw;
+	xsw.border_pixel = WhitePixel (m_XDisplay, scn);
+	xsw.border_pixel = None;
+	xsw.background_pixel = BlackPixel (m_XDisplay,scn);
+	xsw.win_gravity = NorthWestGravity;
+
+	/*create a child window in the main window*/
+	m_XWnd = XCreateWindow(m_XDisplay, par_wnd, 0, 0, 320, 20, 0, 
+			       DefaultDepth (m_XDisplay, scn), 
+			       InputOutput, 
+			       DefaultVisualOfScreen (screenptr), 
+			       CWBackPixel | CWBorderPixel |CWWinGravity, &xsw);
+
+#endif
+
+
 	m_connected = 0;
 	if (!LoadTerminal()) {
 		Close(TRUE);
 		return;
 	}
 
-	SetSizer(m_pSizer);
-	if (!m_bExternalView) {
-//		m_pSizer->Show(m_pViewSizer, 1);
-	} else {
-//		m_pSizer->Show(m_pViewSizer, 0);
-		SetWindowStyle(wxDEFAULT_FRAME_STYLE & ~(wxMAXIMIZE_BOX | wxRESIZE_BORDER));
-	}
-	DoLayout(320, 240);
 
+	if (m_bExternalView) SetWindowStyle(wxDEFAULT_FRAME_STYLE & ~(wxMAXIMIZE_BOX | wxRESIZE_BORDER));
+	DoLayout(320, 240);
 	UpdateRenderSwitch();
 
 	const char *sOpt = gf_cfg_get_key(m_user.config, "General", "ConsoleOff");
@@ -859,11 +874,15 @@ wxOsmo4Frame::~wxOsmo4Frame()
 	//m_pToolBar->RemoveTool(FILE_NEXT);
 
 	if (m_chapters_start) free(m_chapters_start);
-
 	if (m_user.modules) gf_modules_del(m_user.modules);
 	if (m_user.config) gf_cfg_del(m_user.config);
 
 //	if (m_pView) delete m_pView;
+
+#ifdef __WXGTK__
+	//if (m_XWnd) XDestroyWindow(m_XDisplay, m_XWnd);
+	if (m_XDisplay) XCloseDisplay(m_XDisplay);
+#endif
 
 	delete m_pPrevBut;
 	delete m_pNextBut;
@@ -979,29 +998,54 @@ void wxOsmo4Frame::DoLayout(u32 v_width, u32 v_height)
 	wxPoint pos;
 	if (!m_Address || !m_pProg) return;
 
+	int t_h = m_pToolBar->GetSize().y;
+	int a_h = m_pAddBar->GetSize().y;
+	int p_h = m_pProg->GetSize().y;
+
+	if (m_bExternalView) {
+	  if (v_width && v_height) {
+		m_orig_width = v_width;
+		m_orig_height = v_height;
+	  }
+	  SetClientSize(320, a_h+p_h+t_h);
+	  m_pAddBar->SetDimension(0,0, 320, a_h);
+	  m_pProg->SetSize(0, t_h+a_h, 320, p_h, 0);
+	  return;
+	}
+
 	if (v_width && v_height) {
 		m_orig_width = v_width;
 		m_orig_height = v_height;
-		if (!m_bExternalView) m_pView->SetSize(wxSize(v_width, v_height));
-		/*this will call setSize*/
-		m_pSizer->Fit(this);
+		v_height += a_h + p_h + t_h;
+		SetClientSize(v_width, v_height);
+		m_pAddBar->SetDimension(0, t_h, v_width, a_h);
+		m_pView->SetSize(0, a_h, v_width, v_height, 0);
+		m_pProg->SetSize(0, v_height - p_h, v_width, p_h, 0);
 		return;
 	}
-	Layout();
-	if (!m_bExternalView) {
-		wxSize s = GetClientSize();
-		s.y -= m_pAddBar->GetSize().y;
-		s.y -= m_pProg->GetSize().y;
-		if (!m_bExternalView) {
-			m_pView->SetSize(s.x, s.y);
-			if (m_term) gf_term_set_size(m_term, s.x, s.y);
+	wxSize s = GetClientSize();
+	s.y -= a_h + p_h + t_h;
+	if (m_pView) {
+		m_pAddBar->SetDimension(0, 0, s.x, a_h);
+		m_pAddBar->Layout();
+		m_pView->SetSize(0, a_h+t_h, s.x, s.y, 0);
+		m_pProg->SetSize(0, s.y+t_h+a_h, s.x, p_h, 0);
+
+#ifdef __WXGTK__
+		if (m_XWnd) {
+		  int x, y;
+		  x = y = 0;
+		  m_pView->GetPosition(&x, &y);
+		  XMoveResizeWindow (m_XDisplay,m_XWnd, x, y, s.x, s.y);
+			  XSetInputFocus(m_XDisplay, m_XWnd, RevertToNone, CurrentTime);
 		}
+#endif
+		if (m_term) gf_term_set_size(m_term, s.x, s.y);
 	}
 }
 
 void wxOsmo4Frame::OnSize(wxSizeEvent &event)
 {
-	SetSize(event.m_size.x, event.m_size.y);
 	DoLayout();
 }
 
@@ -1135,7 +1179,7 @@ void wxOsmo4Frame::OnFileQuit(wxCommandEvent & WXUNUSED(event))
 
 void wxOsmo4Frame::OnViewOriginal(wxCommandEvent & WXUNUSED(event))
 {
-	if (m_pView) {
+	if (!m_bExternalView) {
 		DoLayout(m_orig_width, m_orig_height);
 	} else {
 		gf_term_set_option(m_term, GF_OPT_ORIGINAL_VIEW, 1);
@@ -1156,7 +1200,7 @@ void wxOsmo4Frame::DoConnect()
 	wxString url = m_pPlayList->GetURL();
 	m_Address->SetValue(url);
 	m_pView->SetFocus();
-
+	XSetInputFocus(m_XDisplay, m_XWnd, RevertToNone, CurrentTime);
 	wxString txt = wxT("Osmo4 - ");
 	txt += m_pPlayList->GetDisplayName();
 	SetTitle(txt);
@@ -1506,16 +1550,27 @@ void wxOsmo4Frame::OnTimer(wxTimerEvent& WXUNUSED(event))
 		m_pStatusbar->SetStatusText(str, 1);
 		return;
 	}
+#ifdef __WXGTK__
+	if (m_bGrabbed) {
+	  u32 now = gf_sys_clock() - m_last_grab_time;
+	  if (now>200) {
+	    m_bGrabbed = 0;
+	    Double res = (Double) m_last_grab_pos;
+	    res /= 1000;
+	    res *= m_duration;
+	    if (gf_term_get_option(m_term, GF_OPT_PLAY_STATE)==GF_STATE_PAUSED) {
+			gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
+			m_bToReset = 0;
+	    }
+	    gf_term_play_from_time(m_term, (u32) res);
+	    return;
+	  }
+	}
+#endif
+
 	if (!m_bGrabbed) {
 		if ((now >= m_duration + 500) && gf_term_get_option(m_term, GF_OPT_IS_FINISHED)) {
 			m_pPlayList->PlayNext();
-/*
-			if (m_loop) {
-				gf_term_play_from_time(m_term, 0);
-			} else if (m_stop_at_end && !m_paused) {
-				Stop();
-			}
-*/
 		} else {
 			Double val = now * 1000;
 			val /= m_duration;
@@ -1598,8 +1653,20 @@ void wxOsmo4Frame::Stop()
 void wxOsmo4Frame::OnSlide(wxScrollEvent &event)
 {
 	if (!m_duration) return;
-	s32 type = event.GetEventType();
 
+	/*wxSlider on GTK is buggy, so track a release timeout*/
+#ifdef __WXGTK__
+	m_last_grab_time = gf_sys_clock();
+	m_bGrabbed = 1;
+	m_last_grab_pos = event.GetPosition();
+	Double now = (Double) m_last_grab_pos;
+	now /= 1000;
+	now *= m_duration;
+	wxString str = format_time((u32) (now), 1000);
+	m_pStatusbar->SetStatusText(str);
+	if (!m_pTimer->IsRunning()) m_pTimer->Start(100, 0);
+#else
+	s32 type = event.GetEventType();
 	if (type == wxEVT_SCROLL_THUMBTRACK) {
 	  m_bGrabbed = 1;
 	  Double now = (Double) event.GetPosition();
@@ -1616,10 +1683,11 @@ void wxOsmo4Frame::OnSlide(wxScrollEvent &event)
 	    if (gf_term_get_option(m_term, GF_OPT_PLAY_STATE)==GF_STATE_PAUSED) {
 			gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
 			m_bToReset = 0;
-			m_pTimer->Start(100, 0);
+			if (!m_pTimer->IsRunning()) m_pTimer->Start(100, 0);
 	    }
 	    gf_term_play_from_time(m_term, (u32) res);
 	}
+#endif
 }
 
 
