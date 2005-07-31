@@ -4,10 +4,14 @@ VPATH=$(SRC_PATH)/applications/osmozilla
 
 GECKO_PATH=$(SRC_PATH)/extra_lib/include/gecko-sdk
 
+ifeq ($(CONFIG_WIN32),yes)
+USER_NAME=root
+else
 USER_NAME=$(shell whoami)
 ifeq ($(USER_NAME), root)
 else
 MOZILLA_DIR=local
+endif
 endif
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include \

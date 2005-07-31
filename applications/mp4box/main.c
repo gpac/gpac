@@ -745,6 +745,8 @@ static Bool parse_meta_args(MetaAction *meta, char *opts)
 		if (opts[0]==':') opts += 1;
 		strcpy(szSlot, opts);
 		next = strchr(szSlot, ':');
+		/*use ':' as separator, but beware DOS paths...*/
+		if (next && next[1]=='\\') next = strchr(szSlot+2, ':');
 		if (next) next[0] = 0;
 		
 		if (!strnicmp(szSlot, "tk=", 3)) {

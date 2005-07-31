@@ -329,7 +329,7 @@ bool GPACLogs::OnFrameClose(wxFrame *frame)
 
 void wxOsmo4Frame::ShowViewWindow(Bool do_show)
 {
-  m_pView->Show(do_show);
+	m_pView->Show(do_show ? 1 : 0);
 #ifdef __WXGTK__
   if (m_XWnd) {
     if (do_show) {
@@ -723,6 +723,7 @@ wxDEFAULT_FRAME_STYLE
 
 	SetStatusBarPane(2);
 	wxColour foreCol = m_pStatusbar->GetBackgroundColour();
+	SetBackgroundColour(foreCol);
 
 
 	m_pTimer = new wxTimer();
@@ -767,7 +768,7 @@ wxDEFAULT_FRAME_STYLE
 	m_Address = new wxMyComboBox(this, ID_ADDRESS, wxT(""), wxPoint(50, 0), wxSize(80, 20));
 	wxStaticText *add_text = new wxStaticText(this, -1, wxT("URL"));
 	add_text->SetBackgroundColour(foreCol);
-
+	
 	m_pAddBar = new wxBoxSizer(wxHORIZONTAL);
 	m_pAddBar->Add(add_text, 0, wxALIGN_TOP);
 	m_pAddBar->Add(m_Address, 2, wxALIGN_CENTER|wxEXPAND|wxADJUST_MINSIZE);
@@ -1018,18 +1019,17 @@ void wxOsmo4Frame::DoLayout(u32 v_width, u32 v_height)
 		m_orig_height = v_height;
 		v_height += a_h + p_h + t_h;
 		SetClientSize(v_width, v_height);
-		m_pAddBar->SetDimension(0, t_h, v_width, a_h);
 		m_pView->SetSize(0, a_h, v_width, v_height, 0);
+		m_pAddBar->SetDimension(0, t_h, v_width, a_h);
 		m_pProg->SetSize(0, v_height - p_h, v_width, p_h, 0);
+#ifdef __WXGTK
 		return;
+#endif
 	}
 	wxSize s = GetClientSize();
 	s.y -= a_h + p_h + t_h;
 	if (m_pView) {
-		m_pAddBar->SetDimension(0, 0, s.x, a_h);
-		m_pAddBar->Layout();
 		m_pView->SetSize(0, a_h+t_h, s.x, s.y, 0);
-		m_pProg->SetSize(0, s.y+t_h+a_h, s.x, p_h, 0);
 
 #ifdef __WXGTK__
 		if (m_XWnd) {
@@ -1040,6 +1040,10 @@ void wxOsmo4Frame::DoLayout(u32 v_width, u32 v_height)
 			  XSetInputFocus(m_XDisplay, m_XWnd, RevertToNone, CurrentTime);
 		}
 #endif
+		m_pAddBar->SetDimension(0, 0, s.x, a_h);
+		m_pAddBar->Layout();
+		m_pProg->SetSize(0, s.y+t_h+a_h, s.x, p_h, 0);
+
 		if (m_term) gf_term_set_size(m_term, s.x, s.y);
 	}
 }
@@ -1200,7 +1204,9 @@ void wxOsmo4Frame::DoConnect()
 	wxString url = m_pPlayList->GetURL();
 	m_Address->SetValue(url);
 	m_pView->SetFocus();
+#ifdef __WXGTK__
 	XSetInputFocus(m_XDisplay, m_XWnd, RevertToNone, CurrentTime);
+#endif
 	wxString txt = wxT("Osmo4 - ");
 	txt += m_pPlayList->GetDisplayName();
 	SetTitle(txt);

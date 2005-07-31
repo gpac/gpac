@@ -110,7 +110,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 	szLan[0] = szLan[3] = 0;
 	delay = 0;
+	/*use ':' as separator, but beware DOS paths...*/
 	ext = strchr(szName, ':');
+	if (ext && ext[1]=='\\') ext = strchr(szName+2, ':');
+
 	while (ext) {
 		char *ext2 = strchr(ext+1, ':');
 		if (ext2) ext2[0] = 0;
