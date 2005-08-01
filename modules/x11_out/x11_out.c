@@ -571,7 +571,7 @@ GF_Err X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn, u32 * scr
 		XMapWindow (xWindow->display, xWindow->wnd);
 		//if (xWindow->par_wnd) XMapWindow (xWindow->display, xWindow->par_wnd);
 		XUngrabKeyboard(xWindow->display, CurrentTime);
-		XSetInputFocus(xWindow->display, xWindow->wnd, RevertToNone, CurrentTime);
+		if (xWindow->par_wnd) XSetInputFocus(xWindow->display, xWindow->wnd, RevertToNone, CurrentTime);
 		/*backbuffer resize will be done right after this is called */
 	}
 #ifdef GPAC_HAS_OPENGL
@@ -1026,7 +1026,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	  attribs[i++] = GLX_BLUE_SIZE;
 	  attribs[i++] = 5;
 	  attribs[i++] = GLX_DEPTH_SIZE;
-	  attribs[i++] = xWindow->depth;
+	  attribs[i++] = 16;
 	  if (xWindow->gl_cfg.double_buffered) attribs[i++] = GLX_DOUBLEBUFFER;
 	  attribs[i++] = None;
 	  xWindow->glx_visualinfo = glXChooseVisual(xWindow->display, xWindow->screennum, attribs);
