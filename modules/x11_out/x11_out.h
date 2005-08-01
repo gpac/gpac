@@ -68,8 +68,10 @@ X11WrapSurface;
 
 typedef struct
 {
+	Window par_wnd;	//main window handler passed to module
+	Bool setup_done;	//setup is done
 	Display *display;	//required by all X11 method, provide by XOpenDisplay, Mozilla wnd ...
-	Window wnd;	//main window handler
+	Window wnd;	//window handler created by module
 	Bool owns_wnd, owns_display;
 	Window full_wnd;	//full screen
 	Screen *screenptr;	//X11 stuff
@@ -106,6 +108,7 @@ typedef struct
 #ifdef GPAC_HAS_OPENGL
 	XVisualInfo *glx_visualinfo;
 	GLXContext glx_context;
+	GF_GLConfig gl_cfg;
 #endif
 } XWindow;
 

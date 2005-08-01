@@ -26,17 +26,12 @@
 #ifndef _WXOSMO4_H
 #define _WXOSMO4_H
 
-
-#ifdef __WXGTK__
-#include <X11/Xlib.h>
-#endif
-
 #include <gpac/terminal.h>
 
 #include "wx/wxprec.h"
 
 #ifndef WX_PRECOMP
-  #include "wx/wx.h"
+#include "wx/wx.h"
 #endif
 
 #include <wx/image.h>
@@ -44,7 +39,6 @@
 #include <wx/event.h>
 
 #include "menubtn.h"
-
 
 class wxOsmo4App : public wxApp
 {
@@ -248,18 +242,11 @@ public:
 
 	void AddSubtitle(const char *fileName, Bool auto_play);
 
-	/*just so many issues with GTK event loops, we must handle the view
-	 window 100% in X11 to avoid crashes...*/
-#ifdef __WXGTK__
-	Window m_XWnd, m_FakeWnd;
-	Display *m_XDisplay;
-#endif
 	wxWindow *m_pView;
-	//wxBoxSizer *m_pViewSizer;
-	//wxBoxSizer *m_pSizer;
 
 #ifdef __WXGTK__
 	u32 m_last_grab_time, m_last_grab_pos;
+	wxWindow *m_pVisual;
 #endif
 	wxSlider *m_pProg;	
 	wxPlaylist *m_pPlayList;

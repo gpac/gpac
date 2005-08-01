@@ -56,8 +56,8 @@ wxFileProps::wxFileProps(wxWindow *parent)
 	m_pViewInfo->SetBackgroundColour(wxColour(wxT("LIGHT GREY")));
 #endif
 
-	m_pViewWI = new wxButton(this, ID_VIEW_WI, wxT("View World Info"), wxPoint(4, 184), wxSize(200, 20));
-	m_pViewSG = new wxButton(this, ID_VIEW_SG, wxT("View Scene Graph"), wxPoint(4, 210), wxSize(200, 20));
+	m_pViewWI = new wxButton(this, ID_VIEW_WI, wxT("View World Info"), wxPoint(4, 174), wxSize(200, 40));
+	m_pViewSG = new wxButton(this, ID_VIEW_SG, wxT("View Scene Graph"), wxPoint(4, 220), wxSize(200, 40));
 
 
 	wxString str = m_pApp->m_pPlayList->GetDisplayName();

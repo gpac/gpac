@@ -810,8 +810,10 @@ void wxPlaylist::SetDuration(u32 duration)
 
 wxString wxPlaylist::GetDisplayName()
 {
+#ifndef __WXGTK__
 	PLEntry *ple = (PLEntry *) gf_list_get(m_entries, m_cur_entry);
 	if (ple) return wxString(wxString(ple->m_disp_name, wxConvUTF8) );
+#endif
 	return wxT("");
 }
 
