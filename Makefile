@@ -71,11 +71,15 @@ install:
 ifeq ($(CONFIG_WIN32),yes)
 	install -s -m 755 bin/gcc/libgpac.dll $(prefix)/lib
 else
+ifeq ($(DEBUGBUILD),no)
+	$(STRIP) bin/gcc/libgpac.$(DYN_LIB_SUFFIX)
+endif
+ifeq ($(CONFIG_DARWIN),yes)
+	install -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
+	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac.$(DYN_LIB_SUFFIX)
+else
 	install -s -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
 	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac.$(DYN_LIB_SUFFIX)
-#not sure wether darwin uses ldconfig or not...
-ifeq ($(CONFIG_DARWIN),yes)
-else
 	ldconfig || true
 endif
 endif
@@ -114,20 +118,20 @@ uninstall-lib:
 
 help:
 	@echo "Input to GPAC make:"
-	@echo "depend/dep: builds dependencies (developer)"
+	@echo "depend/dep: builds dependencies (dev only)"
 	@echo "all (void): builds main library, programs and plugins"
 	@echo "lib: builds GPAC library only (libgpac.a)"
 	@echo "apps: builds programs only"
-	@echo "mods: builds mods only"
+	@echo "mods: builds mudules only"
 	@echo "instmoz: build and local install of osmozilla"
-	@echo "sggen: builds SGGen application only for scene graph regeneration"
+	@echo "sggen: builds scene graph generators"
 	@echo 
 	@echo "clean: clean src repository"
 	@echo "distclean: clean src repository and host config file"
 	@echo "tar: create GPAC tarball"
 	@echo 
-	@echo "install: install applications and plugins on system"
-	@echo "uninstall: uninstall applications and plugins"
+	@echo "install: install applications and modules on system"
+	@echo "uninstall: uninstall applications and modules"
 	@echo 
 	@echo "install-lib: install gpac library (ligpac.a) and headers <gpac/*.h>, <gpac/modules/*.h> and <gpac/internal/*.h>"
 	@echo "uninstall-lib: uninstall gpac library (libgpac.a) and headers"

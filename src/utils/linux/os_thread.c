@@ -25,7 +25,6 @@
 
 #include <gpac/thread.h>
 
-//#include <features.h>
 #include <sched.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -253,39 +252,65 @@ struct __tag_semaphore
 {
 	sem_t *hSemaphore;
 	sem_t SemaData;
+#ifdef __Darwin__
+	const char *SemName;
+#endif
 };
 
 
 GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 {
 	GF_Semaphore *tmp = malloc(sizeof(GF_Semaphore));
-
-
-
 	if (!tmp) return NULL;
+
+#ifdef __DARWIN__
+	/* sem_init isn't supported on Mac OS X 10.3 & 10.4; it returns ENOSYS
+	To get around this, a NAMED semaphore needs to be used
+	sem_t *sem_open(const char *name, int oflag, ...);
+	http://users.evitech.fi/~hannuvl/ke04/reaaliaika_ohj/memmap_named_semaphores.c
+	*/
+	{
+	char semaName[40];
+	sprintf(semaName,"GPAC_SEM%d", (u32) tmp);
+	tmp->SemName = strdup(semaName);
+	}
+	tmp->hSemaphore = sem_open(tmp->SemName, O_CREAT, S_IRUSR|S_IWUSR, InitCount);
+#else
 	if (sem_init(&tmp->SemaData, 0, InitCount) < 0 ) {
 		free(tmp);
 		return NULL;
 	}
 	tmp->hSemaphore = &tmp->SemaData;
+#endif
 	return tmp;
 }
 
 void gf_sema_del(GF_Semaphore *sm)
 {
+#ifdef __DARWIN__
+	sem_t *sema = sem_open(sm->SemName, 0);
+	sem_destroy(sema);
+	free(tmp->SemName);
+#else
 	sem_destroy(sm->hSemaphore);
+#endif
 	free(sm);
 }
 
 u32 gf_sema_notify(GF_Semaphore *sm, u32 NbRelease)
 {
 	u32 prevCount;
-	
+	sem_t *hSem;
 	if (!sm) return 0;
 
-	sem_getvalue(sm->hSemaphore, (s32 *) &prevCount);
+#ifdef __DARWIN__
+	hSem = sem_open(sm->SemName, 0);
+#else
+	hSem = sm->hSemaphore;
+#endif
+	sem_getvalue(hSem, (s32 *) &prevCount);
 	while (NbRelease) {
-		if (sem_post(sm->hSemaphore) < 0) return 0;
+		if (sem_post(hSem) < 0) return 0;
 		NbRelease -= 1;
 	}
 	return prevCount;
@@ -293,18 +318,30 @@ u32 gf_sema_notify(GF_Semaphore *sm, u32 NbRelease)
 
 void gf_sema_wait(GF_Semaphore *sm)
 {
-	sem_wait(sm->hSemaphore);
+	sem_t *hSem;
+#ifdef __DARWIN__
+	hSem = sem_open(sm->SemName, 0);
+#else
+	hSem = sm->hSemaphore;
+#endif
+	sem_wait(hSem);
 }
 
 Bool gf_sema_wait_for(GF_Semaphore *sm, u32 TimeOut)
 {
+	sem_t *hSem;
+#ifdef __DARWIN__
+	hSem = sem_open(sm->SemName, 0);
+#else
+	hSem = sm->hSemaphore;
+#endif
 	if (!TimeOut) {
-		if (!sem_trywait(sm->hSemaphore)) return 1;
+		if (!sem_trywait(hSem)) return 1;
 		return 0;
 	}
 	TimeOut += gf_sys_clock();
 	do {
-		if (!sem_trywait(sm->hSemaphore)) return 1;
+		if (!sem_trywait(hSem)) return 1;
 		gf_sleep(1);	
 	} while (gf_sys_clock() < TimeOut);
 	return 0;

@@ -28,6 +28,9 @@ LIB=libgpac.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols libgpac.def
 else
+ifeq ($(CONFIG_DARWIN),yes)
+LDFLAGS+=-install_name $(prefix)/lib/$(LIB)
+endif
 EXTRALIBS+=$(GPAC_SH_FLAGS)
 endif
 
