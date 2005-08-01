@@ -905,6 +905,8 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 {	
 	u32 in_time, end_time, i, count;
 
+	sr->video_out->ProcessEvent(sr->video_out, NULL);
+
 	if (sr->freeze_display) {
 		gf_sleep(sr->frame_duration);
 		return;

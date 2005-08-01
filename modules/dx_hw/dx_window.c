@@ -404,6 +404,8 @@ HWND DD_GetGlobalHWND()
 GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 {
 	DDContext *ctx = (DDContext *)dr->opaque;
+	if (!evt) return GF_OK;
+
 	switch (evt->type) {
 	case GF_EVT_SET_CURSOR:
 		DD_SetCursor(dr, evt->cursor.cursor_type);

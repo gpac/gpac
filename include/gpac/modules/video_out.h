@@ -100,6 +100,8 @@ typedef struct _video_out
 	/*window events sent to output:
 	GF_EVT_SET_CURSOR, GF_EVT_SET_STYLE, GF_EVT_SET_CAPTION, GF_EVT_SHOWHIDE, GF_EVT_SIZE for inital window resize
 	and GF_EVT_VIDEO_SETUP for all HW related setup
+	This function is also called with a NULL event at the begining of each rendering cycle, in order to allow event 
+	handling for modules uncapable of safe multithreading (eg X11)
 	*/
 	GF_Err (*ProcessEvent)(struct _video_out *vout, GF_Event *event);
 

@@ -598,6 +598,7 @@ static void SDLVid_SetCursor(GF_VideoOutput *dr, u32 cursor_type)
 
 static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 {
+	if (!evt) return GF_OK;
 	switch (evt->type) {
 	case GF_EVT_SET_CURSOR:
 		SDLVid_SetCursor(dr, evt->cursor.cursor_type);

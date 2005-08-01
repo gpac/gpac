@@ -43,6 +43,9 @@
 #include <openssl/rand.h>
 #endif
 
+
+static void gf_dm_connect(GF_DownloadSession *sess);
+
 #define GF_DOWNLOAD_AGENT_NAME		"GPAC " GPAC_VERSION
 #define GF_DOWNLOAD_BUFFER_SIZE		8192
 
@@ -400,7 +403,6 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 #define GF_WAIT_REPLY_SLEEP	20
 static u32 gf_dm_session_thread(void *par)
 {
-	static void gf_dm_connect(GF_DownloadSession *sess);
 	GF_DownloadSession *sess = par;
 
 	sess->flags &= ~GF_DOWNLOAD_SESSION_THREAD_DEAD;

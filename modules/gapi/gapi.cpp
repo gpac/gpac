@@ -749,6 +749,7 @@ static GF_Err GAPI_ResizeSurface(GF_VideoOutput *dr, u32 surface_id, u32 width, 
 static GF_Err GAPI_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 {
 	GAPICTX(dr);
+	if (!evt) return GF_OK;
 	switch (evt->type) {
 	case GF_EVT_SHOWHIDE:
 		if (gctx->hWnd) ShowWindow(gctx->hWnd, evt->show.show_type ? SW_SHOW : SW_HIDE);

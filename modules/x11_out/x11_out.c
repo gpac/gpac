@@ -471,6 +471,7 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 {
 	X11VID ();
 	GF_Window a_wnd;
+	if (!evt) return GF_OK;
 	gf_mx_p (xWindow->mx);
 	switch (evt->type) {
 	case GF_EVT_REFRESH:
