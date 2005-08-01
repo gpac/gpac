@@ -26,6 +26,14 @@
 #ifndef _WXOSMO4_H
 #define _WXOSMO4_H
 
+/*
+we need to force X to work in sync mode when we use embedded view...
+include first to avoid Bool type redef between X11 and gpac
+*/
+#ifdef __WXGTK__
+#include <X11/Xlib.h>
+#endif
+
 #include <gpac/terminal.h>
 
 #include "wx/wxprec.h"

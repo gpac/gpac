@@ -716,7 +716,7 @@ void wxPlaylist::Play()
 	}
 
 	ple = (PLEntry *) gf_list_get(m_entries, m_cur_entry);
-	if (ple->m_bIsDead) {
+	if (!ple || ple->m_bIsDead) {
 		m_cur_entry++;
 		Play();
 	} else {
@@ -810,10 +810,10 @@ void wxPlaylist::SetDuration(u32 duration)
 
 wxString wxPlaylist::GetDisplayName()
 {
-#ifndef __WXGTK__
-	PLEntry *ple = (PLEntry *) gf_list_get(m_entries, m_cur_entry);
-	if (ple) return wxString(wxString(ple->m_disp_name, wxConvUTF8) );
-#endif
+	if (m_cur_entry>=0) {
+		PLEntry *ple = (PLEntry *) gf_list_get(m_entries, m_cur_entry);
+		if (ple) return wxString(wxString(ple->m_disp_name, wxConvUTF8) );
+	}
 	return wxT("");
 }
 

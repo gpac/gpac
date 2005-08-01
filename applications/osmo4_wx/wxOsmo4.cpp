@@ -285,6 +285,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 
 bool wxOsmo4App::OnInit()
 {
+#ifdef __WXGTK__
+	XSynchronize((Display *) wxGetDisplay(), 1);
+#endif
 	wxFrame *frame = new wxOsmo4Frame();
 	frame->Show(TRUE);
 	SetTopWindow(frame);
