@@ -387,43 +387,12 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 #endif
 
 #ifdef XP_UNIX
-  m_XDisplay = ((NPSetWindowCallbackStruct *)aWindow->ws_info)->display;
-  m_user.os_display = m_XDisplay;
-
-#if 0
   m_user.os_window_handler = aWindow->window;
-#else
-	Screen *screenptr = DefaultScreenOfDisplay (m_XDisplay);
-	int scn = DefaultScreen (m_XDisplay);
-	XSetWindowAttributes xsw;
-	xsw.border_pixel = WhitePixel (m_XDisplay, scn);
-	xsw.border_pixel = None;
-	xsw.background_pixel = BlackPixel (m_XDisplay,scn);
-	xsw.win_gravity = NorthWestGravity;
-  Window par_wnd = (Window) aWindow->window;
-  XSelectInput(m_XDisplay, par_wnd, NoEventMask);
-
-	/*create a child window in the main window*/
-               /*
-	Window a_wnd = XCreateWindow(m_XDisplay, par_wnd, 0, 0, m_width, m_height, 0, 
-			       DefaultDepth (m_XDisplay, scn), 
-			       InputOutput, 
-			       DefaultVisualOfScreen (screenptr), 
-			       CWBackPixel | CWBorderPixel |CWWinGravity, &xsw);
-  XMapWindow(m_XDisplay, a_wnd);
-  XRaiseWindow(m_XDisplay, a_wnd);
-               */
-	/*create a child window in the main window*/
-	m_XWnd = XCreateWindow(m_XDisplay, par_wnd, 0, 0, m_width, m_height, 0, 
-			       DefaultDepth (m_XDisplay, scn), 
-			       InputOutput, 
-			       DefaultVisualOfScreen (screenptr), 
-			       CWBackPixel | CWBorderPixel |CWWinGravity, &xsw);
-  XMapWindow(m_XDisplay, m_XWnd);
-  XRaiseWindow(m_XDisplay, m_XWnd);
-  m_user.os_window_handler = (void *)m_XWnd;
-#endif
-
+  /*HACK - although we don't use the display in the X11 plugin, this is 
+used to signal that the user is mozilla and prevent some X11 calls crashing the browser in file playing mode (eg, "firefox myfile.mp4" )*/
+  m_user.os_display =((NPSetWindowCallbackStruct *)aWindow->ws_info)->display;
+  XSynchronize((Display *) m_user.os_display, True);
+  m_user.os_window_handler = aWindow->window;
 #endif
 		
 	m_term = gf_term_new(&m_user);

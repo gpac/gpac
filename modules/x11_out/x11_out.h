@@ -68,11 +68,10 @@ X11WrapSurface;
 
 typedef struct
 {
-	Window par_wnd;	//main window handler passed to module
-	Bool setup_done;	//setup is done
+	Window par_wnd;	//main window handler passed to module, NULL otherwise
+	Bool setup_done, no_select_input;	//setup is done
 	Display *display;	//required by all X11 method, provide by XOpenDisplay, Mozilla wnd ...
 	Window wnd;	//window handler created by module
-	Bool owns_wnd, owns_display;
 	Window full_wnd;	//full screen
 	Screen *screenptr;	//X11 stuff
 	int screennum;		//...
@@ -90,8 +89,6 @@ typedef struct
 	XShmSegmentInfo *shmseginfo;
 #endif
 	
-	GF_Thread *th;		//handle event thread
-	GF_Mutex *mx;		//mutex blocker
 	GF_List *surfaces;	//surfaces list
 
 	Bool is_init, fullscreen;
@@ -102,7 +99,6 @@ typedef struct
 	u32 display_width, display_height;
 
 	u32 w_width, w_height;
-	u32 x11_th_state;
 	u32 depth, bpp, pixel_format;
 	Bool is_3D_out;
 #ifdef GPAC_HAS_OPENGL

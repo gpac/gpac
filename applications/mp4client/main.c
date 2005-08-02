@@ -148,13 +148,17 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	gf_cfg_set_key(cfg, "Render2D", "ScalableZoom", "yes");
 	gf_cfg_set_key(cfg, "Video", "DriverName", "DirectX Video Output");
 #else
-	/*in case we use SDL, better use non-scalable zoom (much faster since no HW stretch blit)*/
-	gf_cfg_set_key(cfg, "Render2D", "ScalableZoom", "no");
+#ifdef __DARWIN__
 	gf_cfg_set_key(cfg, "Video", "DriverName", "SDL Video Output");
+	/*SDL not so fast with scalable zoom*/
+	gf_cfg_set_key(cfg, "Render2D", "ScalableZoom", "no");
+#else
+	gf_cfg_set_key(cfg, "Video", "DriverName", "X11 Video Output");
+	/*x11 only supports scalable zoom*/
+	gf_cfg_set_key(cfg, "Render2D", "ScalableZoom", "yes");
 #endif
-	/*don't use res switching: it gives better results with openGL renderer and it's broken under linux...*/
+#endif
 	gf_cfg_set_key(cfg, "Video", "SwitchResolution", "no");
-
 	gf_cfg_set_key(cfg, "Network", "AutoReconfigUDP", "yes");
 	gf_cfg_set_key(cfg, "Network", "UDPNotAvailable", "no");
 	gf_cfg_set_key(cfg, "Network", "UDPTimeout", "10000");

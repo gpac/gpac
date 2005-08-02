@@ -355,6 +355,7 @@ void gf_sr_del(GF_Renderer *sr)
 {
 	if (!sr) return;
 
+
 	gf_sr_lock(sr, 1);
 
 	if (sr->VisualThread) {
@@ -362,7 +363,6 @@ void gf_sr_del(GF_Renderer *sr)
 		while (sr->video_th_state!=3) gf_sleep(10);
 		gf_th_del(sr->VisualThread);
 	}
-
 	if (sr->video_out) {
 		sr->video_out->Shutdown(sr->video_out);
 		gf_modules_close_interface((GF_BaseInterface *)sr->video_out);
@@ -905,15 +905,17 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 {	
 	u32 in_time, end_time, i, count;
 
+	/*lock renderer for the whole render cycle*/
+	gf_sr_lock(sr, 1);
+	/*first thing to do, let the video output handle user event if it is not threaded*/
 	sr->video_out->ProcessEvent(sr->video_out, NULL);
 
 	if (sr->freeze_display) {
+		gf_sr_lock(sr, 0);
 		gf_sleep(sr->frame_duration);
 		return;
 	}
 
-	gf_sr_lock(sr, 1);
-	
 	gf_sr_reconfig_task(sr);
 
 	if (!sr->scene) {

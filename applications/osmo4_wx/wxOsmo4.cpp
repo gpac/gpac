@@ -295,8 +295,11 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVT_RIGHTDOWN:
 	case GF_EVT_MIDDLEDOWN:
 		if (!gf_term_get_option(app->m_term, GF_OPT_FULLSCREEN)) {
+#ifdef __WXGTK__
+		  app->m_pVisual->SetFocus();
+#else
 		  app->m_pView->SetFocus();
-		  //XSetInputFocus(app->m_XDisplay, app->m_XWnd, RevertToNone, CurrentTime);
+#endif
 		}
 		break;
 	}
@@ -584,7 +587,14 @@ Bool wxOsmo4Frame::LoadTerminal()
 		if ( dlg2.ShowModal() == wxID_OK ) 
 			gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", (const char *) dlg2.GetPath().mb_str(wxConvUTF8) );
 
+#ifdef __DARWIN__
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "SDL Video Output");
+		gf_cfg_set_key(m_user.config, "Render2D", "ScalableZoom", "no");
+#else
+		gf_cfg_set_key(m_user.config, "Video", "DriverName", "X11 Video Output");
+		gf_cfg_set_key(m_user.config, "Render2D", "ScalableZoom", "yes");
+#endif
+
 #endif
 	}	
 	if (! gf_modules_get_count(m_user.modules) ) {
@@ -1180,7 +1190,11 @@ void wxOsmo4Frame::DoConnect()
 
 	wxString url = m_pPlayList->GetURL();
 	m_Address->SetValue(url);
+#ifdef __WXGTK__
+	m_pVisual->SetFocus();
+#else
 	m_pView->SetFocus();
+#endif
 	wxString txt = wxT("Osmo4 - ");
 	txt += m_pPlayList->GetDisplayName();
 	SetTitle(txt);

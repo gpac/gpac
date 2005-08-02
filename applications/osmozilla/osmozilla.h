@@ -138,11 +138,6 @@ public:
 	GF_Terminal *m_term;
 	GF_User m_user;
 
-#ifdef XP_UNIX
-    Display *m_XDisplay;
-    Window m_XWnd;
-#endif
-	
 	char *m_szURL;
 
 	Bool m_isopen, m_paused, m_url_changed;
