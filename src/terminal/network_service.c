@@ -562,11 +562,10 @@ void gf_term_download_del(GF_DownloadSession * sess)
 void gf_term_download_update_stats(GF_DownloadSession * sess)
 {
 	GF_ClientService *serv;
-	char sMsg[1024];
-	Float perc;
+	const char *szURI;
 	u32 total_size, bytes_done, net_status, bytes_per_sec;
 	
-	gf_dm_sess_get_stats(sess, NULL, NULL, &total_size, &bytes_done, &bytes_per_sec, &net_status);
+	gf_dm_sess_get_stats(sess, NULL, &szURI, &total_size, &bytes_done, &bytes_per_sec, &net_status);
 	serv = gf_dm_sess_get_private(sess);
 	switch (net_status) {
 	case GF_DOWNLOAD_STATE_SETUP:
@@ -581,9 +580,13 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 	case GF_DOWNLOAD_STATE_RUNNING:
 		/*notify some connection / ...*/
 		if (total_size) {
-			perc = (Float) (100 * bytes_done) / (Float) total_size;
-			sprintf(sMsg, "Download %.2f %% (%.2f kBps)", perc, ((Float)bytes_per_sec)/1024.0f);
-			gf_term_on_message(serv, GF_OK, sMsg);
+			GF_Event evt;
+			evt.type = GF_EVT_PROGRESS;
+			evt.progress.progress_type = 1;
+			evt.progress.service = szURI;
+			evt.progress.total = total_size;
+			evt.progress.done = bytes_done;
+			GF_USER_SENDEVENT(serv->term->user, &evt);
 		}
 		break;
 	}

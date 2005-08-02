@@ -627,7 +627,10 @@ static GF_Err FFD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		com->buffer.max = com->buffer.min = 0;
 		return GF_OK;
 	case GF_NET_CHAN_DURATION:
-		com->duration.duration = (Double) ffd->ctx->duration / AV_TIME_BASE;
+		if (ffd->ctx->duration == AV_NOPTS_VALUE)
+			com->duration.duration = -1;
+		else
+			com->duration.duration = (Double) ffd->ctx->duration / AV_TIME_BASE;
 		return GF_OK;
 	/*fetch start time*/
 	case GF_NET_CHAN_PLAY:

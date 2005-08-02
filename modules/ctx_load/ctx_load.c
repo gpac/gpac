@@ -195,11 +195,14 @@ static void CTXLoad_OnMessage(void *cbk, char *szMsg, GF_Err e)
 
 static void CTXLoad_OnProgress(void *cbk, u32 done, u32 tot)
 {
-	char szMsg[1024];
+	GF_Event evt;
 	CTXLoadPriv *priv = (CTXLoadPriv *)cbk;
-	sprintf(szMsg, "Importing %d / %d (%.2f %%)", done, tot, ((Float)100*done)/tot);
-	gf_term_message(priv->inline_scene->root_od->term, 
-		priv->inline_scene->root_od->net_service->url, szMsg, GF_OK);
+	evt.type = GF_EVT_PROGRESS;
+	evt.progress.progress_type = 2;
+	evt.progress.done = done;
+	evt.progress.total = tot;
+	evt.progress.service = priv->inline_scene->root_od->net_service->url;
+	GF_USER_SENDEVENT(priv->inline_scene->root_od->term->user, &evt);
 }
 
 static GF_SceneGraph *CTXLoad_GetProtoLib(void *cbk, MFURL *lib_url)

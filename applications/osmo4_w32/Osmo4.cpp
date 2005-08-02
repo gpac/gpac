@@ -225,6 +225,23 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		pFrame->console_message = evt->message.message;
 		gpac->m_pMainWnd->PostMessage(WM_CONSOLEMSG, 0, 0);
 		break;
+	case GF_EVT_PROGRESS:
+		if (evt->progress.total) {
+			s32 prog = (s32) ( (100 * (u64)evt->progress.done) / evt->progress.total);
+			if (pFrame->m_last_prog < prog) {
+				pFrame->console_err = GF_OK;
+				char *szType;
+				pFrame->m_last_prog = prog;
+				if (evt->progress.progress_type==0) szType = "Buffer ";
+				else if (evt->progress.progress_type==1) szType = "Download ";
+				else if (evt->progress.progress_type==2) szType = "Import ";
+				pFrame->console_message.Format("%s %02d %%", szType, prog);
+				gpac->m_pMainWnd->PostMessage(WM_CONSOLEMSG, 0, 0);
+
+				if (evt->progress.done==evt->progress.total) pFrame->m_last_prog = -1;
+			}
+		}
+		break;
 
 	case GF_EVT_SIZE:
 		gpac->orig_width = evt->size.width;

@@ -226,13 +226,16 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		if (!evt->message.message) return 0;
 		if (evt->message.error) 
 			fprintf(stdout, "%s (%s): %s\n", evt->message.message, servName, gf_error_to_string(evt->message.error));
-		/*file download*/
-		else if (strstr(evt->message.message, "Download") || strstr(evt->message.message, "Buffering") || strstr(evt->message.message, "Importing")) 
-			fprintf(stdout, "%s (%s)\r", evt->message.message, servName);
-		else
-			fprintf(stdout, "%s (%s)\n", evt->message.message, servName);
 	}
-	fflush(stdout);
+		break;
+	case GF_EVT_PROGRESS:
+	{
+		char *szTitle = "";
+		if (evt->progress.progress_type==0) szTitle = "Buffer ";
+		else if (evt->progress.progress_type==1) szTitle = "Download ";
+		else if (evt->progress.progress_type==2) szTitle = "Import ";
+		gf_cbk_on_progress(szTitle, evt->progress.done, evt->progress.total);
+	}
 		break;
 	
 	case GF_EVT_VKEYDOWN:

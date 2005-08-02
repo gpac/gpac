@@ -91,6 +91,7 @@ typedef struct
 	/*file downloader*/
 	GF_DownloadSession * dnload;
 	Bool is_live;
+	u32 tune_in_time;
 } OGGReader;
 
 
@@ -118,8 +119,10 @@ static Bool OGG_ReadPage(OGGReader *read, ogg_page *oggpage)
 		/*not ready*/
 		if ((e<GF_OK) || (status > GF_DOWNLOAD_STATE_RUNNING)) return 0;
 		if (status == GF_DOWNLOAD_STATE_RUNNING) {
-			if (!total_size && !read->is_live) 
+			if (!total_size && !read->is_live) {
 				read->is_live = 1;
+				read->tune_in_time = gf_sys_clock();
+			}
 			else if (!read->is_live  && !read->ogfile) {
 				const char *szCache = gf_dm_sess_get_cache_name(read->dnload);
 				if (!szCache) return 0;
@@ -475,7 +478,16 @@ void OGG_Process(OGGReader *read)
 	}
 
 	st = OGG_FindStreamForPage(read, &oggpage);
-	if (!st) return;
+	if (!st) {
+		if (!read->bos_done && read->is_live) {
+			u32 now = gf_sys_clock();
+			if (now-read->tune_in_time > 1000) {
+				gf_term_on_message(read->service, GF_OK, "Waiting for tune in...");
+				read->tune_in_time = now;
+			}
+		}
+		return;
+	}
 
 	if (ogg_page_eos(&oggpage)) 
 		st->eos_detected = 1;

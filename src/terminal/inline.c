@@ -340,9 +340,8 @@ void gf_is_buffering_info(GF_InlineScene *is)
 {
 	u32 i, j, max_buffer, cur_buffer;
 	GF_Channel *ch;
+	GF_Event evt;
 	GF_ObjectManager *odm;
-	char message[1024];
-
 	if (!is) return;
 
 	max_buffer = cur_buffer = 0;
@@ -372,16 +371,16 @@ void gf_is_buffering_info(GF_InlineScene *is)
 		}
 	}
 
+	evt.type = GF_EVT_PROGRESS;
+	evt.progress.progress_type = 0;
+	evt.progress.service = is->root_od->net_service->url;
 	if (!max_buffer || !cur_buffer || (max_buffer <= cur_buffer)) {
-		sprintf(message, "Buffering 100 %c", '%');
+		evt.progress.done = evt.progress.total = max_buffer;
 	} else {
-		Float ft = (Float) (100*cur_buffer);
-		ft /= max_buffer;
-		sprintf(message, "Buffering %.2f %c", ft, '%');
+		evt.progress.done = cur_buffer;
+		evt.progress.total = max_buffer;
 	}
-	//note we signal it as the main service, even if some streams are running under another 
-	//service (ESD URL, OD URL)
-	gf_term_message(is->root_od->term, is->root_od->net_service->url, message, GF_OK);
+	GF_USER_SENDEVENT(is->root_od->term->user, &evt);
 }
 
 

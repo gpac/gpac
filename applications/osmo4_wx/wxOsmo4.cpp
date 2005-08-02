@@ -189,6 +189,28 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			::wxLogMessage(wxString(evt->message.message, wxConvUTF8) + wxT(" (") + wxString(servName, wxConvUTF8) + wxT(")"));
 	}
 		break;
+	case GF_EVT_PROGRESS:
+	{
+		if (evt->progress.total) {
+			s32 prog = (s32) ( (100 * (u64)evt->progress.done) / evt->progress.total);
+			if (app->m_last_prog < prog) {
+				app->m_last_prog = prog;
+				if (prog<100) {
+					wxString sTitle;
+					if (evt->progress.progress_type==0) sTitle = wxT("Buffer ");
+					else if (evt->progress.progress_type==1) sTitle = wxT("Download ");
+					else if (evt->progress.progress_type==2) sTitle = wxT("Import ");
+					sTitle += wxString::Format(wxT("%02d %%"), prog);
+					app->SetStatus(sTitle);
+				} else {
+					app->SetStatus(wxT(""));
+					app->m_last_prog = -1;
+				}
+
+			}
+		}
+	}
+		break;
 	
 	case GF_EVT_VKEYDOWN:
 		if (app->m_can_seek && (evt->key.key_states & GF_KM_ALT)) {
@@ -608,7 +630,7 @@ wxDEFAULT_FRAME_STYLE
 	m_term = NULL;
 	SetIcon(wxIcon(osmo4));
 	m_bExternalView = 0;
-
+	m_last_prog = -1;
 	m_num_chapters = 0;
 	m_chapters_start = NULL;
 

@@ -102,7 +102,8 @@ public:
 	u32 m_aspect_ratio;
 	RECT backup_wnd_rc;
 	Bool m_bFirstStreamQuery;
-
+	/*filter progress events to avoid killing importers with status bar text display...*/
+	s32 m_last_prog;
 
 public:
 	void SetFullscreen();

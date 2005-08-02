@@ -41,8 +41,9 @@ typedef struct
 	u32 is_threaded;
 	u32 dec_wants_threading;
 	GF_Codec *dec;
-	Bool is_running;
+	Bool is_running, has_error;
 	GF_MediaManager *mm;
+
 } CodecEntry;
 
 GF_MediaManager *gf_mm_new(GF_Terminal *term, u32 threading_mode)
@@ -284,7 +285,11 @@ u32 MM_Loop(void *par)
 			e = gf_codec_process(ce->dec, time_slice);
 			gf_mx_v(ce->mx);
 
-			if (e) gf_term_message(ce->dec->odm->term, ce->dec->odm->net_service->url, "Decoding Error", e);
+			/*avoid signaling errors too often...*/
+			if (e && !ce->has_error) {
+				gf_term_message(ce->dec->odm->term, ce->dec->odm->net_service->url, "Decoding Error", e);
+				ce->has_error = 1;
+			}
 
 			time_taken = gf_sys_clock() - time_taken;
 
@@ -380,6 +385,7 @@ void gf_mm_start_codec(GF_Codec *codec)
 
 	/*lock dec*/
 	gf_mx_p(ce->mx);
+	ce->has_error = 0;
 
 	/*clean decoder memory and wait for RAP*/
 	if (codec->CB) CB_Reset(codec->CB);

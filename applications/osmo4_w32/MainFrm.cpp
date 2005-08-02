@@ -162,6 +162,7 @@ CMainFrame::CMainFrame()
 	m_bInitShow = TRUE;
 	m_num_chapters = 0;
 	m_chapters_start = NULL;
+	m_last_prog = -1;
 }
 
 CMainFrame::~CMainFrame()

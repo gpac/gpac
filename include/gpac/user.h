@@ -93,6 +93,7 @@ enum {
 	GF_EVT_AUTHORIZATION,	/*indicates a user and pass is queried*/
 	GF_EVT_NAVIGATE, /*indicates the user app should load or jump to the given URL.*/
 	GF_EVT_MESSAGE, /*message from the MPEG-4 terminal*/
+	GF_EVT_PROGRESS, /*progress message from the MPEG-4 terminal*/
 	GF_EVT_VIEWPOINTS,	/*indicates viewpoint list has changed - no struct associated*/
 	GF_EVT_STREAMLIST,	/*indicates stream list has changed - no struct associated - only used when no scene info is present*/
 };
@@ -280,6 +281,23 @@ typedef struct
 /*event proc return value: ignored*/
 typedef struct
 {
+	/*GF_EVT_PROGRESS*/
+	u8 type;
+	/*name of service issuing the progress notif*/
+	const char *service;
+	/*progress type: 0: buffering, 1: downloading, 2: importing (BT/VRML/...)*/
+	u32 progress_type;
+	/*amount done and total amount of operation.
+		For buffer events, expresses current and total desired stream buffer in scene in milliseconds
+		For download events, expresses current and total size of download in bytes
+		For import events, no units defined (depends on importers)
+	*/
+	u32 done, total;
+} GF_EventProgress;
+
+/*event proc return value: ignored*/
+typedef struct
+{
 	/*GF_EVT_CONNECT*/
 	u8 type;
 	/*sent upon connection/deconnection completion. if any error, it is signaled through message event*/
@@ -311,6 +329,7 @@ typedef union
 	GF_EventDuration duration;
 	GF_EventNavigate navigate;
 	GF_EventMessage message;
+	GF_EventProgress progress;
 	GF_EventConnect connect;
 	GF_EventCaption caption;
 	GF_EventStyle style;

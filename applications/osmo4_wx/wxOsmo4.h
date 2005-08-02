@@ -260,6 +260,7 @@ public:
 	wxPlaylist *m_pPlayList;
 
 	void DoLayout(u32 v_width = 0, u32 v_height = 0);
+	s32 m_last_prog;
 
 protected:
 
@@ -368,7 +369,6 @@ private:
 	u32 m_num_chapters;
 	Double *m_chapters_start;
 	Bool m_bExternalView;
-
 
 	void ShowViewWindow(Bool do_show);
 };

@@ -725,9 +725,8 @@ fi
 #look for wxWidgets support
 has_wx="no"
 wx_too_old="no"
-wx_unicode_enabled="no"
-wx_cflags=`wx-config --cppflags core,base`
-wx_lflags=`wx-config --libs core,base`
+wx_cflags=`wx-config --cppflags core, base`
+wx_lflags=`wx-config --libs core, base`
 
 if test "$darwin" = "yes" ; then
 wx_lflags="-Wl,-bind_at_load $wx_lflags -lstdc++" #10.4 needs it, not sure about 10.3
