@@ -34,6 +34,8 @@
 #define MAX_URI_LENGTH		4096
 #endif
 
+static Bool xmllib_is_init = 0;
+
 
 /* Generic Scene Graph handling functions for ID */
 Bool SVG_hasBeenIDed(SVGParser *parser, xmlChar *node_name)
@@ -1864,15 +1866,14 @@ static GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 	if (!parser->fileName) return GF_BAD_PARAM;
 
 	/* XML Related code */
-    xmlInitParser();
-	LIBXML_TEST_VERSION
-
-	doc = xmlParseFile(parser->fileName);
-	if (doc == NULL) {
-		xmlCleanupParser();
-		return GF_BAD_PARAM;
+	if (!xmllib_is_init) {
+		xmlInitParser();
+		LIBXML_TEST_VERSION
+		xmllib_is_init=1;
 	}
 
+	doc = xmlParseFile(parser->fileName);
+	if (doc == NULL) return GF_BAD_PARAM;
 	root = xmlDocGetRootElement(doc);
 
 	/* Scene Graph related code */
@@ -1889,7 +1890,6 @@ static GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 		gf_sg_set_root_node(parser->graph, (GF_Node *)n);
 	}
 
-	xmlCleanupParser();
 	return GF_OK;
 }
 
@@ -1978,10 +1978,7 @@ GF_Err SVGParser_ParseFragmentedDoc(SVGParser *parser)
 	
 	doc = xmlParseFile(szTmpFile);
 	
-	if (doc == NULL) {
-		xmlCleanupParser();
-		return GF_BAD_PARAM;
-	}
+	if (doc == NULL) return GF_BAD_PARAM;
 	
 	root = xmlDocGetRootElement(doc);
 	
@@ -2009,7 +2006,6 @@ GF_Err SVGParser_ParseFragmentedDoc(SVGParser *parser)
 		gf_sg_set_root_node(parser->graph, (GF_Node *)n);
 	} 
 	
-	xmlCleanupParser();
 	if (fin) return GF_EOS;
 	return GF_OK;
 }
@@ -2019,6 +2015,17 @@ GF_Err SVGParser_Parse(SVGParser *parser)
 	if (parser->oti == 2) return SVGParser_ParseFullDoc(parser);
 	else if (parser->oti == 3) return SVGParser_ParseFragmentedDoc(parser);
 	return GF_BAD_PARAM;
+}
+
+void SVGParser_Terminate(SVGParser *parser)
+{
+	if (xmllib_is_init) xmlCleanupParser();
+	xmllib_is_init = 0;
+
+	gf_list_del(parser->ided_nodes);
+	if (parser->fileName) free(parser->fileName);
+	if (parser->szOriginalRad) free(parser->szOriginalRad);
+	free(parser);
 }
 
 #endif

@@ -24,14 +24,10 @@
 
 #include <gpac/internal/renderer_dev.h>
 
-#if 0
-#define DANAE
-#pragma message("compiling DANAE Texture handling")
-
 #include <gpac/nodes_svg.h>
 
-void *getDanaeMediaOjbectFromUrl(void *session, char *url, int is_video);
-void releaseDanaeMediaObject(void *dmo);
+#ifdef DANAE
+#pragma message("compiling DANAE Texture handling")
 int getDanaeTextureProperties(void *dmo, unsigned int stime, 
 			int *dmo_last_frame_time,
 			unsigned int *dmo_width, unsigned int *dmo_height,
@@ -164,7 +160,7 @@ void gf_sr_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		txh->height = dmo_height;
 		txh->pixelformat = (dmo_pixelFormat == 0) ? GF_PIXEL_RGB_32 : 0;
 		txh->stride = dmo_stride;
-		txh->frame_size = dmo_current_size;
+		//txh->frame_size = dmo_current_size;
 		txh->data = dmo_current_frame;
 	}
 #else

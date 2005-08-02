@@ -235,10 +235,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	SVGParser *parser = (SVGParser *) sdec->privateStack;
 	if (sdec->InterfaceType != GF_SCENE_DECODER_INTERFACE) return;
 
-	gf_list_del(parser->ided_nodes);
-	if (parser->fileName) free(parser->fileName);
-	if (parser->szOriginalRad) free(parser->szOriginalRad);
-	free(parser);
+	SVGParser_Terminate(parser);
 	free(sdec);
 }
 

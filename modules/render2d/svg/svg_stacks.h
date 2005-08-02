@@ -103,6 +103,10 @@ typedef struct
 	Bool is_active;
 	Double start_time;
 	MFURL aurl;
+#ifdef DANAE
+	GF_Renderer *comp;
+	void *dmo;
+#endif
 } SVG_audio_stack;
 void SVG_Init_audio(Render2D *se, GF_Node *node);
 
