@@ -464,7 +464,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	track = gf_isom_get_track_by_id(mp4, tci->trackID);
 	if (!track) {
 		log_message(logs, cbk, "Cannot find TrackID %d in input file - skipping", tci->trackID);
-		return GF_BAD_PARAM;
+		return GF_OK;
 	}
 	esd = gf_isom_get_esd(mp4, track, 1);
 	if (esd && (esd->decoderConfig->streamType==GF_STREAM_OD)) {
