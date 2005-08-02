@@ -21,6 +21,7 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
  */
+#include <gpac/internal/renderer_dev.h>
 #include "svg_stacks.h"
 #include "../visualsurface2d.h"
 
@@ -28,6 +29,10 @@
 
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
+
+#ifdef DANAE
+int processDanaeAudio(void *param, unsigned int scene_time);
+#endif
 
 /************************/
 /* Generic URI handling */
@@ -463,6 +468,16 @@ static void SVG_Render_audio(GF_Node *node, void *rs)
 	//SVGaudioElement *audio = (SVGaudioElement *)node;
 	SVG_audio_stack *st = (SVG_audio_stack *)gf_node_get_private(node);
 
+#ifdef DANAE
+	if (st->is_active) {
+		if (!st->dmo) st->dmo = getDanaeMediaOjbectFromUrl(st->comp->danae_session, st->aurl.vals[0].url, 2);
+		if (st->dmo) {
+				processDanaeAudio(st->dmo, (u32) (gf_node_get_scene_time(node)*1000));
+				st->comp->draw_next_frame = 1;
+		}
+	}
+
+#else
 	/*check end of stream*/
 	if (st->input.stream && st->input.stream_finished) {
 		/*
@@ -478,6 +493,7 @@ static void SVG_Render_audio(GF_Node *node, void *rs)
 	}
 	/*store mute flag*/
 	st->input.is_muted = (eff->trav_flags & GF_SR_TRAV_SWITCHED_OFF);
+#endif
 }
 
 static void SVG_UpdateTime_audio(GF_TimeNode *tn)
@@ -514,6 +530,9 @@ static void SVG_Destroy_audio(GF_Node *node)
 		gf_sr_unregister_time_node(st->input.compositor, &st->time_handle);
 	}
 	gf_sg_mfurl_del(st->aurl);
+#ifdef DANAE
+	if (st->dmo) releaseDanaeMediaObject(st->dmo); 
+#endif
 	free(st);
 }
 
@@ -535,6 +554,9 @@ void SVG_Init_audio(Render2D *sr, GF_Node *node)
 	gf_node_set_predestroy_function(node, SVG_Destroy_audio);
 
 	gf_sr_register_time_node(sr->compositor, &st->time_handle);
+#ifdef DANAE
+	st->comp = sr->compositor;
+#endif
 }
 
 #endif //GPAC_DISABLE_SVG
