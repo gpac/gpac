@@ -236,7 +236,10 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	gf_rtp_setup_transport(tmp->rtp_ch, &trans, NULL);
 
 	//setup our RTP map
-	payt_setup(tmp, map, media);
+	if (! payt_setup(tmp, map, media)) {
+		RP_DeleteStream(tmp);
+		return NULL;
+	}
 
 //	tmp->status = NM_Disconnected;
 
@@ -317,6 +320,9 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 		break;
 	case GP_RTP_PAYT_H264_AVC:
 		RP_ParsePayloadH264(ch, &hdr, pck + PayloadStart, size - PayloadStart);
+		break;
+	case GP_RTP_PAYT_LATM:
+		RP_ParsePayloadLATM(ch, &hdr, pck + PayloadStart, size - PayloadStart);
 		break;
 	}
 

@@ -222,7 +222,7 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 		gf_bs_write_int(bs, cfg.base_sr_index, 4);
 		gf_bs_write_int(bs, cfg.nb_chan, 4);
 		gf_bs_align(bs);
-		gf_bs_get_content(bs, &ch->sl_map.config, &ch->sl_map.configSize);
+		gf_bs_get_content(bs, (unsigned char **) &ch->sl_map.config, &ch->sl_map.configSize);
 		gf_bs_del(bs);
 		ch->sl_map.StreamType = GF_STREAM_AUDIO;
 		ch->sl_map.ObjectTypeIndication = 0x40;
