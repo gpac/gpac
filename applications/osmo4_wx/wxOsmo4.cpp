@@ -871,6 +871,15 @@ wxDEFAULT_FRAME_STYLE
 				m_pPlayList->m_cur_entry = -1;
 		}
 	}
+
+	sOpt = gf_cfg_get_key(m_user.config, "Audio", "DriverName");
+        if (!strcmp(sOpt, "No Audio Output Available")) {
+	  ::wxLogMessage(wxT("WARNING: no audio output availble - make sure no other program is locking the sound card"));
+	  SetStatus(wxT("No audio ouput available"));
+
+	} else {
+	  SetStatus(wxT("Ready"));
+	}
 }
 
 wxOsmo4Frame::~wxOsmo4Frame()

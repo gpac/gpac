@@ -52,8 +52,12 @@ static GF_Err OSS_Setup(GF_AudioOutput*dr, void *os_handle, u32 num_buffers, u32
 {
 	int audio;
 	OSSCTX();
-	if((audio=open(OSS_AUDIO_DEVICE,O_WRONLY))==-1)
-		return GF_NOT_SUPPORTED;
+	/*open OSS in non-blocking mode*/
+	if((audio=open(OSS_AUDIO_DEVICE,O_WRONLY|O_NDELAY))==-1) 
+	  return GF_NOT_SUPPORTED;
+
+	/*set blocking mode back*/
+	fcntl(audio, F_SETFL, fcntl(audio, F_GETFL) & ~FNDELAY);
 	ctx->audio_dev=audio;
 	ctx->num_buffers = num_buffers;
 	ctx->total_duration = total_duration;
