@@ -131,22 +131,19 @@ static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
 	else {
 		gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication, &bcfg);
 	}
-	/*NO CHANGE TO BIFSC otherwose the generated update will not match the input context*/
+	/*NO CHANGE TO BIFSC otherwise the generated update will not match the input context, UNLESS NO NbBits
+	were specified*/
 	nbb = gf_get_bit_size(codec->ctx->max_node_id);
-	if (bcfg.nodeIDbits<nbb) 
-	{
-		fprintf(stdout, "Warning: BIFSConfig.NodeIDBits TOO SMALL\n");
-	}
+	if (!bcfg.nodeIDbits) bcfg.nodeIDbits = nbb;
+	else if (bcfg.nodeIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.NodeIDBits TOO SMALL\n");
+
 	nbb = gf_get_bit_size(codec->ctx->max_route_id);
-	if (bcfg.routeIDbits<nbb) 
-	{
-		fprintf(stdout, "Warning: BIFSConfig.RouteIDBits TOO SMALL\n");
-	}
+	if (!bcfg.routeIDbits) bcfg.routeIDbits = nbb;
+	else if (bcfg.routeIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.RouteIDBits TOO SMALL\n");
+
 	nbb = gf_get_bit_size(codec->ctx->max_proto_id);
-	if (bcfg.protoIDbits<nbb) 
-	{
-		fprintf(stdout, "Warning: BIFSConfig.ProtoIDBits TOO SMALL\n");
-	}
+	if (!bcfg.protoIDbits) bcfg.protoIDbits=nbb;
+	else if (bcfg.protoIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.ProtoIDBits TOO SMALL\n");
 
 	/*this is the real pb, not stored in cfg or file level, set at EACH replaceScene*/
 	encode_names = 0;
@@ -194,6 +191,7 @@ static GF_Err gf_sm_live_encode_bifs_au(GF_BifsEngine *codec, u32 currentAUCount
 		AUCallback(codec->calling_object, data, size, au->timing);
 		free(data);
 		data = NULL;
+		if (e) break;
 	}
 	return e;
 }
@@ -266,7 +264,6 @@ GF_Err gf_beng_encode_from_string(GF_BifsEngine *codec, char *auString, GF_Err (
 	if (e) goto exit;
 
 	e = gf_sm_live_encode_bifs_au(codec, codec->currentAUCount, AUCallback); 
-	if (e) goto exit;
 exit:
 	return e;
 }

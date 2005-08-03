@@ -234,7 +234,7 @@ static GF_Err gf_sm_load_init_from_string(GF_SceneLoader *load, char *str)
 {
 
 	/*we need at least a scene graph*/
-	if (!load || (!load->ctx && !load->scene_graph) || (!load->fileName && !load->isom)) return GF_BAD_PARAM;
+	if (!load || (!load->ctx && !load->scene_graph)) return GF_BAD_PARAM;
 
 	if (!load->type) return GF_NOT_SUPPORTED;
 

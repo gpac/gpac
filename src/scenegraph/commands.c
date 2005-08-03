@@ -226,7 +226,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				/*we must remove the node before in case the new node uses the same ID (not forbidden) and this
 				command removes the last instance of the node with the same ID*/
 				gf_node_replace_child(com->node, *((GF_List**) field.far_ptr), inf->pos, inf->new_node);
-				gf_node_register(inf->new_node, com->node);
+				if (inf->new_node) gf_node_register(inf->new_node, com->node);
 			}
 			/*erase the field item*/
 			else {
