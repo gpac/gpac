@@ -45,7 +45,7 @@ u32 payt_get_type(RTPClient *rtp, GF_RTPMap *map, GF_SDPMedia *media)
 				if (!stricmp(att->Name, "cpresent") && atoi(att->Value)) return 0;
 			}
 		}
-		return GP_RTP_PAYT_MPEG4;
+		return GP_RTP_PAYT_LATM;
 	}
 	else if (!stricmp(map->payload_name, "MPA") || !stricmp(map->payload_name, "MPV")) return GP_RTP_PAYT_MPEG12;
 	else if (!stricmp(map->payload_name, "H263-1998") || !stricmp(map->payload_name, "H263-2000")) return GP_RTP_PAYT_H263;
@@ -155,7 +155,7 @@ static GF_Err payt_set_param(RTPStream *ch, char *param_name, char *param_val)
 	return GF_OK;
 }
 
-void payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
+u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 {
 	u32 i, j;
 
@@ -179,6 +179,55 @@ void payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 	}
 
 	switch (ch->rtptype) {
+	case GP_RTP_PAYT_LATM:
+	{
+		u32 AudioMuxVersion, AllStreamsSameTime, numSubFrames, numPrograms, numLayers;
+		GF_M4ADecSpecInfo cfg;
+		char *latm_dsi = ch->sl_map.config;
+		GF_BitStream *bs = gf_bs_new(latm_dsi, ch->sl_map.configSize, GF_BITSTREAM_READ);
+		AudioMuxVersion = gf_bs_read_int(bs, 1);
+		AllStreamsSameTime = gf_bs_read_int(bs, 1);
+		numSubFrames = gf_bs_read_int(bs, 6);
+		numPrograms = gf_bs_read_int(bs, 4);
+		numLayers = gf_bs_read_int(bs, 3);
+
+		if (AudioMuxVersion || !AllStreamsSameTime || numSubFrames || numPrograms || numLayers) {
+			gf_bs_del(bs);
+			return 0;
+		}
+		memset(&cfg, 0, sizeof(cfg));
+		cfg.base_object_type = gf_bs_read_int(bs, 5);
+		cfg.base_sr_index = gf_bs_read_int(bs, 4);
+		if (cfg.base_sr_index == 0x0F) {
+			cfg.base_sr = gf_bs_read_int(bs, 24);
+		} else {
+			cfg.base_sr = GF_M4ASampleRates[cfg.base_sr_index];
+		}
+		cfg.nb_chan = gf_bs_read_int(bs, 4);
+		if (cfg.base_object_type==5) {
+			cfg.has_sbr = 1;
+			cfg.sbr_sr_index = gf_bs_read_int(bs, 4);
+			if (cfg.sbr_sr_index == 0x0F) {
+				cfg.sbr_sr = gf_bs_read_int(bs, 24);
+			} else {
+				cfg.sbr_sr = GF_M4ASampleRates[cfg.sbr_sr_index];
+			}
+			cfg.sbr_object_type = gf_bs_read_int(bs, 5);
+		}
+		gf_bs_del(bs);
+		free(ch->sl_map.config);
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		/*write as regular AAC*/
+		gf_bs_write_int(bs, cfg.base_object_type, 5);
+		gf_bs_write_int(bs, cfg.base_sr_index, 4);
+		gf_bs_write_int(bs, cfg.nb_chan, 4);
+		gf_bs_align(bs);
+		gf_bs_get_content(bs, &ch->sl_map.config, &ch->sl_map.configSize);
+		gf_bs_del(bs);
+		ch->sl_map.StreamType = GF_STREAM_AUDIO;
+		ch->sl_map.ObjectTypeIndication = 0x40;
+	}
+		break;
 	case GP_RTP_PAYT_MPEG4:
 		/*mark if AU header is present*/
 		ch->sl_map.auh_first_min_len = 0;
@@ -298,7 +347,7 @@ void payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 				else if (!stricmp(att->Name, "tx3g")) tx3g = att->Value;
 			}
 		}
-		if (!tx3g) return;
+		if (!tx3g) return 0;
 
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_write_u8(bs, tcfg.Base3GPPFormat);
@@ -411,7 +460,7 @@ void payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 		break;
 
 	}
-
+	return 1;
 }
 
 
@@ -1070,5 +1119,33 @@ void RP_ParsePayloadH264(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 si
 		}
 		gf_bs_write_data(ch->inter_bs, payload+2, size-2);
 		if (is_end || hdr->Marker) rtp_avc_flush(ch, hdr, 0);
+	}
+}
+
+
+void RP_ParsePayloadLATM(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 size)
+{
+	u32 remain, latm_hdr_size, latm_size;
+
+	ch->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
+	ch->sl_hdr.compositionTimeStampFlag = 1;
+	ch->sl_hdr.accessUnitStartFlag = ch->sl_hdr.accessUnitEndFlag = 1;
+	ch->sl_hdr.randomAccessPointFlag = 1;
+
+	remain = size;
+	while (remain) {
+		latm_hdr_size = latm_size = 0;
+		while (1) {
+			u8 c = *payload;
+			latm_hdr_size += 1;
+			latm_size += c;
+			payload ++;
+			if (c < 0xFF) break;
+		}
+
+		gf_term_on_sl_packet(ch->owner->service, ch->channel, (char *) payload, latm_size, &ch->sl_hdr, GF_OK);
+		payload += latm_size;
+		remain -= (latm_size+latm_hdr_size);
+		ch->sl_hdr.compositionTimeStamp += ch->unit_duration;
 	}
 }

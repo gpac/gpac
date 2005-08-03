@@ -285,6 +285,8 @@ void RP_ParsePayloadH263(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 si
 void RP_ParsePayloadText(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 size);
 /*parse RTP payload for H264/AVC*/
 void RP_ParsePayloadH264(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 size);
+/*parse RTP payload for LATM audio*/
+void RP_ParsePayloadLATM(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 size);
 
 /*load SDP and setup described media in SDP. If stream is null this is the root
 SDP and IOD will be extracted, otherwise this a channel SDP*/
@@ -292,8 +294,8 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp, u32 sdp_len, RTPStream *stream);
 
 /*returns 1 if payload type is supported*/
 u32 payt_get_type(RTPClient *rtp, GF_RTPMap *map, GF_SDPMedia *media);
-/*setup payload type*/
-void payt_setup(RTPStream *st, GF_RTPMap *map, GF_SDPMedia *media);
+/*setup payload type, returns 1 if success, 0 otherwise (in which case the stream will be deleted)*/
+Bool payt_setup(RTPStream *st, GF_RTPMap *map, GF_SDPMedia *media);
 
 
 /*RTSP signaling is handled by stacking commands and processing them
