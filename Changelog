@@ -1,3 +1,13 @@
+03/08/05: GPAC 0.4.0 RC2
+  * fixed Invalid versioning of previous release (was still 0.4.0-DEV...)
+  * fixed MinGW compilation
+  * fixed MP4Box handling of full MSDOS paths (C:\)
+  * fixed GCC 4 compilation issues
+  * added MacOS X (DARWIN) compilation patches 
+  * fixed OSS audio compilation (seems to perform perfectly on 50% of systems tested and dramatically fail on the rest...)
+  * fixed MP4A-LATM support at client side
+  * fixed X11 module in embedded mode (should work well with both Osmo4/wx and Osmozilla)
+  
 28/07/05: GPAC 0.4.0 release
   ** GPAC is now licensed under LGPL. **
   Massive code rewrite and repository reorganization in order to comply to some base coding style (cf gpac/doc/CODING_STYLE) have taken place 

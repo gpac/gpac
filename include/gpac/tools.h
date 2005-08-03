@@ -65,7 +65,7 @@ extern "C" {
  *
  *	Macro giving GPAC version expressed as an integer, where version X.Y.Z is coded as 0x00XXYYZZ
 */
-#define GPAC_VERSION_INT	0x00000401
+#define GPAC_VERSION_INT	0x00000400
 
 /*!
  *	\brief Memory allocation
