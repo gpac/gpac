@@ -28,28 +28,31 @@ echo "  --enable-sdl-static      use static SDL linking [default=no]"
 echo "  --dxsdk-path=DX_PATH     specify directX SDK for MinGW [$dxsdk_path]"
 echo "  --mozdir=MOZ_PATH        specify mozilla main directory path for system install"
 echo ""
-echo "  --disable-js             disable SpiderMonkey ECMAScript support [default=no]"
-echo "  --disable-ft             disable FreeType text support"
-echo "  --disable-jpeg           disable JPEG support"
-echo "  --disable-png            disable PNG support"
-echo "  --disable-faad           disable AAC (FAAD) support"
-echo "  --disable-mad            disable MP3 (MAD) support"
-echo "  --disable-xvid           disable XVID support"
-echo "  --disable-ffmpeg         disable FFMPEG support"
-echo "  --enable-amr-nb-fixed    enables AMR NB fixed-point decoder"
-echo "  --enable-amr-nb          enables AMR NB library"
-echo "  --enable-amr-wb          enables AMR WB library"
-echo "  --enable-amr             enables both AMR NB and WB libraries"
-echo "  --enable-debug           produces debug version"
-echo "  --disable-opt            disables GCC optimizations"
-echo "  --disable-oss-audio      disables OSS audio"
-echo "  --disable-x11-shm        disables X11 shared memory support"
-echo "  --disable-fragments      disables movie fragments in ISO media support"
-echo "  --enable-readonly        forces ISO media to be read-only"
+echo "  --enable-amr-nb-fixed    enable AMR NB fixed-point decoder"
+echo "  --enable-amr-nb          enable AMR NB library"
+echo "  --enable-amr-wb          enable AMR WB library"
+echo "  --enable-amr             enable both AMR NB and WB libraries"
+echo "  --enable-debug           produce debug version"
+echo "  --disable-fragments      disable movie fragments in ISO media support"
+echo "  --disable-opt            disable GCC optimizations"
+echo "  --disable-oss-audio      disable OSS audio"
+echo "  --disable-x11-shm        disable X11 shared memory support"
+echo "  --disable-fragments      disable movie fragments in ISO media support"
+echo "  --enable-readonly        force ISO media to be read-only"
 echo "  --disable-svg            disable SVG support"
-echo "  --enable-fixed-point     forces ISO media to be read-only"
+echo "  --enable-fixed-point     force ISO media to be read-only"
 echo "  --disable-opengl         disable OpenGL support"
 echo "  --disable-ssl            disable OpenSSL support"
+echo ""
+echo "Extra libraries configuration. You can turn a libray off or force using the local version in gpac/extra_lib/"
+echo "  --use-js=OPT             force SpiderMonkey ECMAScript off/local"
+echo "  --use-ft=OPT             force FreeType OPT=[no,local]"
+echo "  --use-jpeg=OPT           force JPEG OPT=[no,local]"
+echo "  --use-png=OPT            force PNG OPT=[no,local]"
+echo "  --use-faad=OPT           force FAAD OPT=[no,local]"
+echo "  --use-mad=OPT            force MAD OPT=[no,local]"
+echo "  --use-xvid=OPT           force XVID OPT=[no,local]"
+echo "  --use-ffmpeg=OPT         force FFMPEG OPT=[no,local]"
 echo ""
 echo "NOTE: The object files are build at the place where configure is launched"
 exit 1
@@ -613,22 +616,6 @@ for opt do
   ;;
   --mozdir=*) moz_path=`echo $opt | cut -d '=' -f 2`
   ;;
-  --disable-js) has_js="no"
-  ;;
-  --disable-ft) has_ft="no"
-  ;;
-  --disable-faad) has_faad="no"
-  ;;
-  --disable-mad) has_mad="no"
-  ;;
-  --disable-xvid) has_xvid="no"
-  ;;
-  --disable-jpeg) has_jpeg="no"
-  ;;
-  --disable-ffmpeg) has_ffmpeg="no"
-  ;;
-  --disable-png) has_png="no"
-  ;;
   --enable-amr-nb-fixed) has_amr_nb_fixed="yes"
   ;;
   --enable-amr-nb) has_amr_nb="yes"
@@ -658,6 +645,22 @@ for opt do
   --disable-opengl) has_opengl="no"
   ;;
   --disable-ssl) has_ssl="no"
+  ;;
+  --use-faad=*) has_faad=${opt#--use-faad=}
+  ;;
+  --use-js=*) has_js=${opt#--use-js=}
+  ;;
+  --use-ft=*) has_ft=${opt#--use-ft=}
+  ;;
+  --use-mad=*) has_mad==${opt#--use-mad=}
+  ;;
+  --use-xvid=*) has_xvid==${opt#--use-xvid=}
+  ;;
+  --use-jpeg=*) has_jpeg==${opt#--use-jpeg=}
+  ;;
+  --use-ffmpeg=*) has_ffmpeg==${opt#--use-ffmpeg=}
+  ;;
+  --use-png=*) has_png==${opt#--use-png=}
   ;;
   esac
 done
@@ -822,10 +825,10 @@ fi
 
 version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h |
  cut -d '"' -f 2`
-
+echo ""
+echo "** System Configuration"
 echo "Install prefix: $prefix"
 echo "Source path: $source_path"
-echo "GPAC Version: $version"
 echo "C compiler: $cc"
 echo "make: $make"
 echo "CPU: $cpu"
@@ -833,30 +836,17 @@ echo "Big Endian: $bigendian"
 if test $cpu = "mips"; then
 echo "MMI enabled: $mmi"
 fi
+echo ""
+echo "** GPAC $version Core Configuration **"
 echo "debug version: $debuginfo"
 echo "read-only version: $make_readonly"
 echo "fixed-point version: $use_fixed_point"
-echo "IsoMedia movie fragments: $iso_fragments"
+echo "IsoMedia MovieFragments support: $iso_fragments"
 echo "SVG Support disabled: $disable_svg"
 echo ""
 
-echo "Detected libraries:"
+echo "** Detected libraries **"
 echo "zlib: $has_zlib"
-echo "SpiderMonkey: $has_js"
-echo "FreeType: $has_ft"
-echo "JPEG: $has_jpeg"
-echo "PNG: $has_png"
-echo "MAD: $has_mad"
-echo "FAAD: $has_faad"
-echo "XVID: $has_xvid"
-echo "FFMPEG: $has_ffmpeg"
-echo "Xiph OGG: $has_ogg"
-if test "$has_ogg" = "no"; then
-has_ogg="no"
-else
-echo "Xiph Vorbis: $has_vorbis"
-echo "Xiph Theora: $has_theora"
-fi
 
 if test "$win32" != "yes" ; then
 if test "$has_oss_audio" = "no"; then
@@ -885,6 +875,24 @@ if test "$win32" = "yes" ; then
 echo "DirectX Support: $has_mingw_directx"
 fi
 echo "wxWidgets support: $has_wx"
+
+echo ""
+echo "** Extra Libraries used **"
+echo "SpiderMonkey: $has_js"
+echo "FreeType: $has_ft"
+echo "JPEG: $has_jpeg"
+echo "PNG: $has_png"
+echo "MAD: $has_mad"
+echo "FAAD: $has_faad"
+echo "XVID: $has_xvid"
+echo "FFMPEG: $has_ffmpeg"
+echo "Xiph OGG: $has_ogg"
+if test "$has_ogg" = "no"; then
+has_ogg="no"
+else
+echo "Xiph Vorbis: $has_vorbis"
+echo "Xiph Theora: $has_theora"
+fi
 
 echo ""
 if test "$has_amr_nb_fixed" = "yes" ; then
