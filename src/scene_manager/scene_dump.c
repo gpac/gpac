@@ -454,32 +454,32 @@ void DumpSFField(GF_SceneDumper *sdump, u32 type, void *ptr, Bool is_mf)
 		if (str) {
 			len = strlen(str);
 			if (len) {
+			  if (sdump->XMLDump) {
 				uniLine = malloc(sizeof(short) * len);
 				len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
 				if (len != (size_t) (-1)) {
 					for (i=0; i<len; i++) {
 						if (uniLine[i] == (u16) '\"') fprintf(sdump->trace, "\\");
-						if (sdump->XMLDump) {
-							switch (uniLine[i]) {
-							case '\'': fprintf(sdump->trace, "&apos;"); break;
-							case '\"': fprintf(sdump->trace, "&quot;"); break;
-							case '&': fprintf(sdump->trace, "&amp;"); break;
-							case '>': fprintf(sdump->trace, "&gt;"); break;
-							case '<': fprintf(sdump->trace, "&lt;"); break;
-							default:
-								if (uniLine[i]<128) {
-									fprintf(sdump->trace, "%c", (u8) uniLine[i]);
-								} else {
-									fprintf(sdump->trace, "&#%d;", uniLine[i]);
-								}
-								break;
-							}
-						} else {
-							fputwc(uniLine[i], sdump->trace);
+						switch (uniLine[i]) {
+						case '\'': fprintf(sdump->trace, "&apos;"); break;
+						case '\"': fprintf(sdump->trace, "&quot;"); break;
+						case '&': fprintf(sdump->trace, "&amp;"); break;
+						case '>': fprintf(sdump->trace, "&gt;"); break;
+						case '<': fprintf(sdump->trace, "&lt;"); break;
+						default:
+						  if (uniLine[i]<128) {
+						    fprintf(sdump->trace, "%c", (u8) uniLine[i]);
+						  } else {
+						    fprintf(sdump->trace, "&#%d;", uniLine[i]);
+						  }
+						  break;
 						}
 					}
 				}
 				free(uniLine);
+			  } else {
+			    fprintf(sdump->trace, "%s", str);
+			  }
 			}
 		}
 
