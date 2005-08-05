@@ -194,7 +194,7 @@ static void term_on_disconnect(void *user_priv, GF_ClientService *service, LPNET
 	ch->es_state = GF_ESM_ES_DISCONNECTED;
 }
 
-static void term_on_slp_recieved(void *user_priv, GF_ClientService *service, LPNETCHANNEL netch, char *data, u32 data_size, SLHeader *hdr, GF_Err reception_status)
+static void term_on_slp_recieved(void *user_priv, GF_ClientService *service, LPNETCHANNEL netch, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
 {
 	GF_Channel *ch;
 	GET_TERM();
@@ -462,7 +462,7 @@ GF_Err gf_term_service_command(GF_ClientService *ns, GF_NetworkCommand *com)
 { 
 	return ns->ifce->ServiceCommand(ns->ifce, com); 
 }
-GF_Err gf_term_channel_get_sl_packet(GF_ClientService *ns, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
+GF_Err gf_term_channel_get_sl_packet(GF_ClientService *ns, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
 	if (!ns->ifce->ChannelGetSLP) return GF_NOT_SUPPORTED;
 	return ns->ifce->ChannelGetSLP(ns->ifce, channel, out_data_ptr, out_data_size, out_sl_hdr, sl_compressed, out_reception_status, is_new_data);
@@ -493,7 +493,7 @@ void gf_term_on_command(GF_ClientService *service, GF_NetworkCommand *com, GF_Er
 	assert(service);
 	term_on_command(service->term, service, com, response);
 }
-void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, SLHeader *hdr, GF_Err reception_status)
+void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
 {
 	assert(service);
 	term_on_slp_recieved(service->term, service, ns, data, data_size, hdr, reception_status);

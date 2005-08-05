@@ -24,11 +24,12 @@
 
 
 
-#ifndef __MEDIACONTROL_H
-#define __MEDIACONTROL_H
+#ifndef _MEDIA_CONTROL_H_
+#define _MEDIA_CONTROL_H_
 
-#include <gpac/nodes_mpeg4.h>
 #include <gpac/internal/terminal_dev.h>
+/*MediaControl definition*/
+#include <gpac/nodes_mpeg4.h>
 
 
 /*to do: add preroll support*/
@@ -99,4 +100,4 @@ void MS_UpdateTiming(GF_ObjectManager *odm);
 void MS_Stop(MediaSensorStack *st);
 
 
-#endif
+#endif	/*_MEDIA_CONTROL_H_*/

@@ -22,8 +22,6 @@
  *
  */
 
-
-
 #include "stacks2d.h"
 
 static void unregister_sensor(GF_Renderer *comp, SensorHandler *hdl)
@@ -31,7 +29,6 @@ static void unregister_sensor(GF_Renderer *comp, SensorHandler *hdl)
 	R2D_UnregisterSensor(comp, hdl);
 	if (comp->interaction_sensors) comp->interaction_sensors--;
 }
-
 
 typedef struct 
 {

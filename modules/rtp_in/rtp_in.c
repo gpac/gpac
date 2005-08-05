@@ -503,7 +503,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	return GF_NOT_SUPPORTED;
 }
 
-static GF_Err RP_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
+static GF_Err RP_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
 	char *data;
 	RTPStream *ch;
@@ -511,7 +511,7 @@ static GF_Err RP_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char
 
 	if (priv->od_ch==channel) {
 		*sl_compressed = 0;
-		memset(out_sl_hdr, 0, sizeof(SLHeader));
+		memset(out_sl_hdr, 0, sizeof(GF_SLHeader));
 		out_sl_hdr->accessUnitEndFlag = 1;
 		out_sl_hdr->accessUnitStartFlag = 1;
 		out_sl_hdr->compositionTimeStamp = priv->od_start_time;
@@ -537,7 +537,7 @@ static GF_Err RP_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char
 
 	if (ch->current_start>=0) {
 		*sl_compressed = 0;
-		memset(out_sl_hdr, 0, sizeof(SLHeader));
+		memset(out_sl_hdr, 0, sizeof(GF_SLHeader));
 		out_sl_hdr->accessUnitEndFlag = 1;
 		out_sl_hdr->accessUnitStartFlag = 1;
 		out_sl_hdr->compositionTimeStamp = (u64) (ch->current_start * ch->clock_rate);

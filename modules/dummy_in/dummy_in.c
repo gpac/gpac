@@ -295,14 +295,14 @@ GF_Err DC_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	return GF_OK;
 }
 
-GF_Err DC_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
+GF_Err DC_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
 	DummyChannel *dc;
 	DCReader *read = (DCReader *) plug->priv;
 	dc = DC_GetChannel(read, channel);
 	if (!dc) return GF_STREAM_NOT_FOUND;
 
-	memset(out_sl_hdr, 0, sizeof(SLHeader));
+	memset(out_sl_hdr, 0, sizeof(GF_SLHeader));
 	out_sl_hdr->compositionTimeStampFlag = 1;
 	out_sl_hdr->compositionTimeStamp = dc->start;
 	out_sl_hdr->accessUnitStartFlag = 1;

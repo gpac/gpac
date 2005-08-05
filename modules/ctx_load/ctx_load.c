@@ -26,6 +26,7 @@
 #include <gpac/scene_manager.h>
 #include <gpac/constants.h>
 #include <gpac/network.h>
+#include <gpac/nodes_mpeg4.h>
 
 
 typedef struct 

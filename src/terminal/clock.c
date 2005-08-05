@@ -23,7 +23,6 @@
  */
 
 #include <gpac/internal/terminal_dev.h>
-#include <gpac/renderer.h>
 
 GF_Clock *NewClock(GF_Terminal *term)
 {
@@ -157,7 +156,6 @@ void gf_clock_set_time(GF_Clock *ck, u32 TS)
 		ck->clock_init = 1;
 		/*update starttime and pausetime even in pause mode*/
 		ck->PauseTime = ck->StartTime = gf_term_get_time(ck->term);
-		ck->drift = gf_sr_get_audio_delay(ck->term->renderer);
 	}
 	/*TODO: test with pure OCR streams*/
 	if (ck->use_ocr) {

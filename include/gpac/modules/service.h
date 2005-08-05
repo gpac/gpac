@@ -29,7 +29,7 @@
 extern "C" {
 #endif
 
-/*for SL config*/
+/*for SL, ESD and OD*/
 #include <gpac/mpeg4_odf.h>
 #include <gpac/download.h>
 
@@ -308,7 +308,7 @@ typedef struct _netinterface
 	set to signal the app this is a full SL pdu (@out_sl_hdr is then ignored)
 	set to NULL if not supported
 	*/
-	GF_Err (*ChannelGetSLP) (struct _netinterface *, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data);
+	GF_Err (*ChannelGetSLP) (struct _netinterface *, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data);
 
 	/*optional - release SLP data allocated on channel by the previous call, if any
 	set to NULL if not supported*/
@@ -340,10 +340,10 @@ void gf_term_on_command(GF_ClientService *service, GF_NetworkCommand *com, GF_Er
 /*to call when data packet is recieved. 
 @data, data_size: data recieved
 @hdr: uncompressed SL header passed with data for stream sync - if not present then data shall be a valid SL packet 
-	(header + PDU). Note that using an SLConfig resulting in an empty SLHeader allows sending raw data directly
+	(header + PDU). Note that using an SLConfig resulting in an empty GF_SLHeader allows sending raw data directly
 @reception_status: data reception status. To signal end of stream, set this to GF_EOS
 */
-void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, SLHeader *hdr, GF_Err reception_status);
+void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status);
 /*returns URL associated with service (so that you don't need to store it)*/
 const char *gf_term_get_service_url(GF_ClientService *service);
 
@@ -379,12 +379,12 @@ typedef struct _cacheinterface
 	GF_Err (*Close)(struct _cacheinterface *, Bool delete_cache);
 	/*writes data to cache. data is always a complete AU as reconstructed by gpac core
 	If first time data is written, user should query channel desc through service commands*/
-	GF_Err (*Write)(struct _cacheinterface *, LPNETCHANNEL ch, char *data, u32 data_size, SLHeader *sl_hdr);
+	GF_Err (*Write)(struct _cacheinterface *, LPNETCHANNEL ch, char *data, u32 data_size, GF_SLHeader *sl_hdr);
 
 	/*same as reader, except they MUST be provided - in other words, only PULL mode is supported for cache
 	at the current time*/
 	GF_Err (*ServiceCommand) (struct _cacheinterface *, GF_NetworkCommand *com);
-	GF_Err (*ChannelGetSLP) (struct _cacheinterface *, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data);
+	GF_Err (*ChannelGetSLP) (struct _cacheinterface *, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data);
 	GF_Err (*ChannelReleaseSLP) (struct _cacheinterface *, LPNETCHANNEL channel);
 
 	/*module private*/

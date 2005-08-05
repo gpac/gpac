@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef _GF_DESCRIPTORS_H_
-#define _GF_DESCRIPTORS_H_
+#ifndef _GF_MPEG4_ODF_H_
+#define _GF_MPEG4_ODF_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,6 +31,7 @@ extern "C" {
 
 #include <gpac/list.h>
 #include <gpac/bitstream.h>
+#include <gpac/sync_layer.h>
 
 /***************************************
 			Descriptors Tag
@@ -239,48 +240,6 @@ typedef struct
 	GF_List *profileLevelIndicationIndexDescriptor;
 } GF_DecoderConfig;
 
-/*the Sync Layer config descriptor*/
-typedef struct
-{
-	BASE_DESCRIPTOR
-	u8 predefined;
-	u8 useAccessUnitStartFlag;
-	u8 useAccessUnitEndFlag;
-	u8 useRandomAccessPointFlag;
-	u8 hasRandomAccessUnitsOnlyFlag;
-	u8 usePaddingFlag;
-	u8 useTimestampsFlag;
-	u8 useIdleFlag;
-	u8 durationFlag;
-	u32 timestampResolution;
-	u32 OCRResolution;
-	u8 timestampLength;
-	u8 OCRLength;
-	u8 AULength;
-	u8 instantBitrateLength;
-	u8 degradationPriorityLength;
-	u8 AUSeqNumLength;
-	u8 packetSeqNumLength;
-	u32 timeScale;
-	u16 AUDuration;
-	u16 CUDuration;
-	u64 startDTS;
-	u64 startCTS;
-} GF_SLConfig;
-
-/***************************************
-			SLConfig Tag
-***************************************/
-enum
-{
-	SLPredef_Null = 0x01,
-	SLPredef_MP4 = 0x02,
-	/*intern to GPAC, means NO SL at all (for streams unable to handle AU reconstruction a timing)*/
-	SLPredef_SkipSL = 0xF0
-};
-
-/*set SL predefined (assign all fields according to sl->predefined value)*/
-GF_Err gf_odf_slc_set_pref(GF_SLConfig *sl);
 
 /*Content Identification Descriptor*/
 typedef struct {
@@ -379,7 +338,8 @@ typedef struct
 
 
 /*BIFSConfig - parsing only, STORED IN ESD:DCD:DSI*/
-typedef struct {
+typedef struct __tag_bifs_config
+{
 	BASE_DESCRIPTOR
 	u32 version;
 	u16 nodeIDbits;
@@ -1146,47 +1106,6 @@ u32 gf_odf_get_field_type(GF_Descriptor *desc, char *fieldName);
 GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val);
 
 
-/*
-	Although this is not really part of the OD framework, it's so related to SLConfig that we keep it here
-*/
-typedef struct
-{
-	u8 accessUnitStartFlag;
-	u8 accessUnitEndFlag;
-	u8 paddingFlag;
-	u8 randomAccessPointFlag;
-	u8 OCRflag;
-	u8 idleFlag;
-	u8 decodingTimeStampFlag;
-	u8 compositionTimeStampFlag;
-	u8 instantBitrateFlag;
-	u8 degradationPriorityFlag;
-
-	u8 paddingBits;
-	u16 packetSequenceNumber;
-	u64 objectClockReference;
-	u16 AU_sequenceNumber;
-	u64 decodingTimeStamp;
-	u64 compositionTimeStamp;
-	u16 accessUnitLength;
-	u32 instantBitrate;
-	u16 degradationPriority;
-
-	/*this is NOT part of standard SL, only used internally: signals duration of access unit if known
-	this is usefull for streams with very random updates, to prevent buffering for instance a subtitle stream
-	which is likely to have no updates during the first minutes... expressed in media timescale*/
-	u32 au_duration;
-	/*ISMACryp extensions*/
-	u8 isma_encrypted;
-	u64 isma_BSO;
-} SLHeader, LPSLHDR;
-
-/*packetize SL-PDU*/
-void gf_sl_packetize(GF_SLConfig* slConfig, SLHeader *Header, char *PDU, u32 size, char **outPacket, u32 *OutSize);
-/*depacketize SL-PDU*/
-void gf_sl_depacketize(GF_SLConfig *slConfig, SLHeader *Header, char *PDU, u32 PDULength, u32 *HeaderLen);
-
-
 
 
 /*
@@ -1722,4 +1641,4 @@ GF_Err gf_ipmpx_dump_data(GF_IPMPX_Data *_p, FILE *trace, u32 indent, Bool XMTDu
 }
 #endif
 
-#endif	/*_GF_DESCRIPTORS_H_*/
+#endif	/*_GF_MPEG4_ODF_H_*/

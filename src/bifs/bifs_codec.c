@@ -24,6 +24,7 @@
 
 
 #include <gpac/internal/bifs_dev.h>
+#include <gpac/mpeg4_odf.h>
 
 GF_Err ParseConfig(GF_BitStream *bs, BIFSStreamInfo *info, u32 version)
 {

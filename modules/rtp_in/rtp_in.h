@@ -208,7 +208,7 @@ typedef struct
 
 	/*depacketizer config*/
 	GP_RTPSLMap sl_map;
-	SLHeader sl_hdr;
+	GF_SLHeader sl_hdr;
 
 	/*rtp recieve buffer*/
 	char buffer[RTP_BUFFER_SIZE];

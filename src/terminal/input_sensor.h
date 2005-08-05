@@ -22,11 +22,12 @@
  *
  */
 
-
-#ifndef _INPUTSENSOR_H_
-#define _INPUTSENSOR_H_
+#ifndef _INPUT_SENSOR_H_
+#define _INPUT_SENSOR_H_
 
 #include <gpac/internal/terminal_dev.h>
+/*input sensor defs*/
+#include <gpac/nodes_mpeg4.h>
 
 enum
 {
@@ -99,5 +100,5 @@ typedef struct
 
 void InitStringSensor(GF_InlineScene *is, GF_Node *node);
 
-#endif
+#endif	/*_INPUT_SENSOR_H_*/
 

@@ -24,6 +24,7 @@
 
 
 #include <gpac/internal/terminal_dev.h>
+#include <gpac/sync_layer.h>
 
 #include <gpac/ismacryp.h>
 #include <gpac/base_coding.h>
@@ -47,9 +48,9 @@ static void Channel_Reset(GF_Channel *ch)
 
 	/*just in case*/
 	if (ch->BufferOn) {
+		ch->BufferOn = 0;
 		gf_clock_buffer_off(ch->clock);
 	}
-	ch->BufferOn = 0;
 
 	if (ch->buffer) free(ch->buffer);
 	ch->buffer = NULL;
@@ -298,7 +299,7 @@ static Bool Channel_NeedsBuffering(GF_Channel *ch, u32 ForRebuffering)
 static void Channel_UpdateBuffering(GF_Channel *ch, Bool update_info)
 {
 	if (update_info && ch->MaxBuffer) gf_is_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
-	if (!Channel_NeedsBuffering(ch, 0)) {
+	if (!Channel_NeedsBuffering(ch, 0) && ch->BufferOn) {
 		ch->BufferOn = 0;
 		gf_clock_buffer_off(ch->clock);
 		if (ch->MaxBuffer) gf_is_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
@@ -379,8 +380,8 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 	gf_es_lock(ch, 1);
 
 	if (ch->service->cache) {
-		SLHeader slh;
-		memset(&slh, 0, sizeof(SLHeader));
+		GF_SLHeader slh;
+		memset(&slh, 0, sizeof(GF_SLHeader));
 		slh.accessUnitEndFlag = slh.accessUnitStartFlag = 1;
 		slh.compositionTimeStampFlag = slh.decodingTimeStampFlag = 1;
 		slh.decodingTimeStamp = ch->net_dts;
@@ -518,7 +519,7 @@ void Channel_RecieveSkipSL(GF_ClientService *serv, GF_Channel *ch, char *StreamB
 	gf_es_lock(ch, 0);
 }
 
-void Channel_DecryptISMA(GF_Channel *ch, char *data, u32 dataLength, SLHeader *slh)
+void Channel_DecryptISMA(GF_Channel *ch, char *data, u32 dataLength, GF_SLHeader *slh)
 {
 	if (!ch->crypt) return;
 	/*resync IV*/
@@ -551,9 +552,9 @@ void Channel_DecryptISMA(GF_Channel *ch, char *data, u32 dataLength, SLHeader *s
 }
 
 /*handles reception of an SL-PDU, logical or physical*/
-void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *StreamBuf, u32 StreamLength, SLHeader *header, GF_Err reception_status)
+void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *StreamBuf, u32 StreamLength, GF_SLHeader *header, GF_Err reception_status)
 {
-	SLHeader hdr;
+	GF_SLHeader hdr;
 	u32 nbAU, OldLength, size, AUSeqNum, SLHdrLen;
 	Bool EndAU, NewAU;
 	char *payload;
@@ -797,7 +798,7 @@ LPAUBUFFER gf_es_get_au(GF_Channel *ch)
 {
 	Bool comp, is_new_data;
 	GF_Err e, state;
-	SLHeader slh;
+	GF_SLHeader slh;
 
 	if (ch->es_state != GF_ESM_ES_RUNNING) return NULL;
 
@@ -852,7 +853,7 @@ LPAUBUFFER gf_es_get_au(GF_Channel *ch)
 
 void gf_es_init_dummy(GF_Channel *ch)
 {
-	SLHeader slh;
+	GF_SLHeader slh;
 	Bool comp, is_new_data;
 	GF_Err e, state;
 	if (!ch->is_pulling) return;

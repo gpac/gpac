@@ -23,7 +23,8 @@
  */
 
 #include <gpac/internal/renderer_dev.h>
-#include <gpac/user.h>
+/*for user and terminal API (options and InputSensor)*/
+#include <gpac/terminal.h>
 #include <gpac/options.h>
 
 
@@ -442,8 +443,9 @@ static GF_Err SR_SetSceneSize(GF_Renderer *sr, u32 Width, u32 Height)
 			sr->scene_height = 20;
 			sr->scene_width = 320;
 		} else {
-			sr->scene_height = 240;
-			sr->scene_width = 320;
+			/*use current res*/
+			sr->scene_width = sr->width;
+			sr->scene_height = (sr->height==20) ? 240 : sr->height;
 		}
 	} else {
 		sr->has_size_info = 1;
@@ -608,14 +610,15 @@ void SR_ReloadConfig(GF_Renderer *sr)
 	else if (sOpt && !stricmp(sOpt, "3D")) sr->texture_text_mode = GF_TEXTURE_TEXT_3D;
 	else sr->texture_text_mode = GF_TEXTURE_TEXT_NONE;
 
-	sOpt = gf_cfg_get_key(sr->user->config, "Audio", "NoResync");
-	if (sOpt && !stricmp(sOpt, "yes")) sr->audio_renderer->flags |= GF_SR_AUDIO_NO_RESYNC;
-	else sr->audio_renderer->flags &= ~GF_SR_AUDIO_NO_RESYNC;
+	if (sr->audio_renderer) {
+		sOpt = gf_cfg_get_key(sr->user->config, "Audio", "NoResync");
+		if (sOpt && !stricmp(sOpt, "yes")) sr->audio_renderer->flags |= GF_SR_AUDIO_NO_RESYNC;
+		else sr->audio_renderer->flags &= ~GF_SR_AUDIO_NO_RESYNC;
 
-	sOpt = gf_cfg_get_key(sr->user->config, "Audio", "DisableMultiChannel");
-	if (sOpt && !stricmp(sOpt, "yes")) sr->audio_renderer->flags |= GF_SR_AUDIO_NO_MULTI_CH;
-	else sr->audio_renderer->flags &= ~GF_SR_AUDIO_NO_MULTI_CH;
-
+		sOpt = gf_cfg_get_key(sr->user->config, "Audio", "DisableMultiChannel");
+		if (sOpt && !stricmp(sOpt, "yes")) sr->audio_renderer->flags |= GF_SR_AUDIO_NO_MULTI_CH;
+		else sr->audio_renderer->flags &= ~GF_SR_AUDIO_NO_MULTI_CH;
+	}
 
 	sr->draw_next_frame = 1;
 

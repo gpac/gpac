@@ -71,7 +71,7 @@ typedef struct
 
 	/*current sample*/
 	GF_ISOSample *sample;
-	SLHeader current_slh;
+	GF_SLHeader current_slh;
 	GF_Err last_state;
 
 	Bool is_pulling;

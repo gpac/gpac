@@ -894,9 +894,15 @@ void VS_SetupEffects(VisualSurface *surface, RenderEffect3D *eff)
 			eff->camera->width = INT2FIX(eff->surface->width);
 			eff->camera->height = INT2FIX(eff->surface->height);
 		} else {
-			/*WATCHOUT: this will give weird results if pixelMetrics is ON and scene.sizeInfo is not set*/
-			eff->camera->width = eff->camera->vp.width = INT2FIX(eff->surface->render->out_width);
-			eff->camera->height = eff->camera->vp.height = INT2FIX(eff->surface->render->out_height);
+			Fixed sw, sh;
+			sw = INT2FIX(eff->surface->render->out_width);
+			sh = INT2FIX(eff->surface->render->out_height);
+			/*AR changed, rebuild camera*/
+			if ((sw!=eff->camera->vp.width) || (sh!=eff->camera->vp.height)) { 
+				eff->camera->width = eff->camera->vp.width = INT2FIX(eff->surface->render->out_width);
+				eff->camera->height = eff->camera->vp.height = INT2FIX(eff->surface->render->out_height);
+				eff->camera->flags |= CAM_IS_DIRTY;
+			}
 		}
 	}
 	/*composite surface, no AR*/

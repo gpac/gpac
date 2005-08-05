@@ -32,7 +32,8 @@ extern "C" {
 #endif
 
 #include <gpac/list.h>
-#include <gpac/mpeg4_odf.h>
+#include <gpac/bitstream.h>
+#include <gpac/sync_layer.h>
 #include <gpac/network.h>
 
 
@@ -1055,7 +1056,7 @@ enum
 
 /*
 		RTP -> SL packetization tool
-	You should ONLY modify the SLHeader while packetizing, all the rest is private
+	You should ONLY modify the GF_SLHeader while packetizing, all the rest is private
 	to the tool.
 	Also note that AU start/end is automatically updated, therefore you should only
 	set CTS-DTS-OCR-sequenceNumber (which is automatically incremented when spliting a payload)
@@ -1067,7 +1068,7 @@ enum
 struct __tag_rtp_packetizer
 {
 	/*input packet sl header cfg. modify oly if needed*/
-	SLHeader sl_header;
+	GF_SLHeader sl_header;
 
 	/*
 	

@@ -25,9 +25,10 @@
 
 #include <gpac/renderer.h>
 #include <gpac/internal/terminal_dev.h>
-#include <gpac/nodes_x3d.h>
-
+/*includes MPEG4 nodes + input sensor stack*/
 #include "input_sensor.h"
+/*includes X3D nodes for WorldInfo, Inline and Key/String sensors*/
+#include <gpac/nodes_x3d.h>
 
 void InitMediaControl(GF_InlineScene *is, GF_Node *node);
 void MC_Modified(GF_Node *node);

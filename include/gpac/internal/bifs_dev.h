@@ -28,6 +28,7 @@
 
 
 #include <gpac/nodes_mpeg4.h>
+#include <gpac/bitstream.h>
 #include <gpac/bifs.h>
 #include <gpac/thread.h>
 

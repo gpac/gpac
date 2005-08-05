@@ -1721,7 +1721,10 @@ int main(int argc, char **argv)
 			if (e) goto err_exit;
 			needSave = 1;
 		}
+	} else if (outName) {
+		strcpy(outfile, outName);
 	}
+
 
 	for (i=0; i<nb_track_act; i++) {
 		TrackAction *tka = &tracks[i];

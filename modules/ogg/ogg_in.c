@@ -199,7 +199,7 @@ static void OGG_SendStreams(OGGReader *read)
 	GF_ODCodec *codec;
 	char *data;
 	u32 data_len, i;
-	SLHeader slh;
+	GF_SLHeader slh;
 	GF_ODUpdate *odU;
 	GF_ObjectDescriptor *od;
 
@@ -221,7 +221,7 @@ static void OGG_SendStreams(OGGReader *read)
 	data_len = 0;
 	gf_odf_codec_get_au(codec, &data, &data_len);
 	gf_odf_codec_del(codec);
-	memset(&slh, 0, sizeof(SLHeader));
+	memset(&slh, 0, sizeof(GF_SLHeader));
 	slh.accessUnitEndFlag = slh.accessUnitStartFlag = 1;
 	slh.compositionTimeStampFlag = 1;
 	slh.compositionTimeStamp = (u64) (read->start_range * 1000);
@@ -430,8 +430,8 @@ void OGG_SignalEndOfStream(OGGReader *read, OGGStream *st)
 
 GFINLINE void OGG_SendPackets(OGGReader *read, OGGStream *st, ogg_packet *oggpacket)
 {
-	SLHeader slh;
-	memset(&slh, 0, sizeof(SLHeader));
+	GF_SLHeader slh;
+	memset(&slh, 0, sizeof(GF_SLHeader));
 	if (st->info.type==OGG_VORBIS) {
 		slh.accessUnitEndFlag = slh.accessUnitStartFlag = 1;
 		slh.randomAccessPointFlag = 1;

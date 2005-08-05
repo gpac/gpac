@@ -21,13 +21,12 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
  */
-#include <gpac/internal/renderer_dev.h>
+
 #include "svg_stacks.h"
 #include "../visualsurface2d.h"
 
 #ifndef GPAC_DISABLE_SVG
 
-#include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
 
 #ifdef DANAE
@@ -44,7 +43,7 @@ void SVG_SetMFURLFromURI(MFURL *mfurl, char *uri)
 	mfurl->count = 1;
 	GF_SAFEALLOC(mfurl->vals, sizeof(SFURL))
 	sfurl = mfurl->vals;
-	sfurl->OD_ID = GF_ESM_DYNAMIC_OD_ID;
+	sfurl->OD_ID = 0;
 	sfurl->url = strdup(uri);
 }
 

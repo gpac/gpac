@@ -51,7 +51,7 @@ typedef struct
 	u32 od_data_size;
 
 
-	SLHeader sl_hdr;
+	GF_SLHeader sl_hdr;
 
 	/*file downloader*/
 	GF_DownloadSession * dnload;
@@ -258,7 +258,7 @@ static GF_Err IMG_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 }
 
 
-static GF_Err IMG_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
+static GF_Err IMG_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
 	IMGLoader *jpl = plug->priv;
 
@@ -266,7 +266,7 @@ static GF_Err IMG_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 	*sl_compressed = 0;
 	*is_new_data = 0;
 
-	memset(&jpl->sl_hdr, 0, sizeof(SLHeader));
+	memset(&jpl->sl_hdr, 0, sizeof(GF_SLHeader));
 	jpl->sl_hdr.randomAccessPointFlag = 1;
 	jpl->sl_hdr.compositionTimeStampFlag = 1;
 	*out_sl_hdr = jpl->sl_hdr;

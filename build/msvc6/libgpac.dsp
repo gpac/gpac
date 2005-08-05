@@ -977,6 +977,14 @@ SOURCE=..\..\include\gpac\setup.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\gpac\sync_layer.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\term_info.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\gpac\terminal.h
 # End Source File
 # Begin Source File

@@ -1886,8 +1886,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 
 	gf_import_message(import, GF_OK, "NHNT import - Stream Type %s - ObjectTypeIndication %d", gf_odf_stream_type_name(import->esd->decoderConfig->streamType), import->esd->decoderConfig->objectTypeIndication);
 
-	duration = import->duration*import->esd->slConfig->timestampResolution;
-	duration /= 1000;
+	duration = (u32) ( ((Double) import->duration)/ 1000 * import->esd->slConfig->timestampResolution);
 
 	samp = gf_isom_sample_new();
 	samp->data = malloc(sizeof(char) * 1024);

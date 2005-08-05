@@ -22,12 +22,12 @@
  *
  */
 
-
-#include <gpac/renderer.h>
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/utf.h>
 #include <gpac/nodes_x3d.h>
 #include <gpac/constants.h>
+/*for screen to BIFS coordinate mapping (MouseSensor) */
+#include <gpac/renderer.h>
 
 #include "input_sensor.h"
 
@@ -519,7 +519,7 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 	SFFloat wheel_pos;
 	u32 i;
 	GF_BitStream *bs;
-	SLHeader slh;
+	GF_SLHeader slh;
 	unsigned char *buf;
 	u32 buf_size;
 	Fixed bX, bY;
@@ -572,7 +572,7 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 	gf_bs_get_content(bs, &buf, &buf_size);
 	gf_bs_del(bs);
 
-	memset(&slh, 0, sizeof(SLHeader));
+	memset(&slh, 0, sizeof(GF_SLHeader));
 	slh.accessUnitStartFlag = slh.accessUnitEndFlag = 1;
 	slh.compositionTimeStampFlag = 1;
 	/*note we could use an exact TS but it's not needed: since the input is generated locally
@@ -596,13 +596,13 @@ void gf_term_keyboard_input(GF_Terminal *term, s32 keyPressed, s32 keyReleased, 
 {
 	u32 i;
 	GF_BitStream *bs;
-	SLHeader slh;
+	GF_SLHeader slh;
 	unsigned char *buf;
 	u32 buf_size;
 
 	if (!term || (!gf_list_count(term->input_streams) && !gf_list_count(term->x3d_sensors)) ) return;
 
-	memset(&slh, 0, sizeof(SLHeader));
+	memset(&slh, 0, sizeof(GF_SLHeader));
 	slh.accessUnitStartFlag = slh.accessUnitEndFlag = 1;
 	slh.compositionTimeStampFlag = 1;
 	/*cf above*/
@@ -705,14 +705,14 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 {
 	u32 i;
 	GF_BitStream *bs;
-	SLHeader slh;
+	GF_SLHeader slh;
 	unsigned char *buf;
 	u32 buf_size;
 
 	if (!character || !term) return;
 	if (!gf_list_count(term->input_streams) && !gf_list_count(term->x3d_sensors)) return;
 
-	memset(&slh, 0, sizeof(SLHeader));
+	memset(&slh, 0, sizeof(GF_SLHeader));
 	slh.accessUnitStartFlag = slh.accessUnitEndFlag = 1;
 	slh.compositionTimeStampFlag = 1;
 	/*cf above*/
@@ -823,7 +823,7 @@ u32 RunHTKDec(void *par)
 	s32 word_index;
 	u32 len, val, i;
 	Float word_score;
-	SLHeader slh;
+	GF_SLHeader slh;
 	unsigned char *buf;
 	u32 buf_size;
 
@@ -857,7 +857,7 @@ u32 RunHTKDec(void *par)
 	gf_bs_get_content(bs, &buf, &buf_size);
 	gf_bs_del(bs);
 
-	memset(&slh, 0, sizeof(SLHeader));
+	memset(&slh, 0, sizeof(GF_SLHeader));
 	slh.accessUnitStartFlag = slh.accessUnitEndFlag = 1;
 	slh.compositionTimeStamp = 0;
 

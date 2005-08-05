@@ -35,6 +35,7 @@ include first to avoid Bool type redef between X11 and gpac
 #endif
 
 #include <gpac/terminal.h>
+#include <gpac/term_info.h>
 
 #include "wx/wxprec.h"
 

@@ -22,23 +22,22 @@
  *
  */
 
-#ifndef _GF_ESM_DEV_H_
-#define _GF_ESM_DEV_H_
+#ifndef _GF_TERMINAL_DEV_H_
+#define _GF_TERMINAL_DEV_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-#include <gpac/thread.h>
 #include <gpac/terminal.h>
+#include <gpac/mpeg4_odf.h>
+
 #include <gpac/modules/service.h>
 #include <gpac/modules/codec.h>
 #include <gpac/mediaobject.h>
 #include <gpac/crypt.h>
-/*we need mediaControl & co, so include all MPEG-4 nodes*/
-#include <gpac/nodes_mpeg4.h>
-
+#include <gpac/thread.h>
 
 typedef struct _inline_scene GF_InlineScene;
 typedef struct _media_manager GF_MediaManager;
@@ -81,7 +80,7 @@ void gf_term_service_del(GF_ClientService *nets);
 GF_Err gf_term_service_command(GF_ClientService *ns, GF_NetworkCommand *com);
 Bool gf_term_service_can_handle_url(GF_ClientService *ns, char *url);
 
-GF_Err gf_term_channel_get_sl_packet(GF_ClientService *ns, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, SLHeader *out_sl_hdr, Bool *is_compressed, GF_Err *out_reception_status, Bool *is_new_data);
+GF_Err gf_term_channel_get_sl_packet(GF_ClientService *ns, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *is_compressed, GF_Err *out_reception_status, Bool *is_new_data);
 GF_Err gf_term_channel_release_sl_packet(GF_ClientService *ns, LPNETCHANNEL channel);
 
 /*cache open/close*/
@@ -126,7 +125,8 @@ struct _inline_scene
 	/*if not 0, all objects in the scene will run on this clock. Needed in GPAC when clock references do not
 	respect object graph (eg IOD depending on external stream for clock)*/
 	u16 force_sub_clock_id;
-	M_WorldInfo *world_info;
+	/*world info node*/
+	void *world_info;
 
 	Bool is_dynamic_scene;
 	/*URLs of current video, audio and subs (we can't store objects since they're destroyed when seeking)*/
@@ -157,8 +157,8 @@ void gf_is_set_duration(GF_InlineScene *is);
 struct _mediaobj *gf_is_find_object(GF_InlineScene *is, u16 ODID, char *url);
 /*returns scene time in sec - exact meaning of time depends on standard used*/
 Double gf_is_get_time(void *_is);
-/*returns url target view (eg blabla#myview) for the given node (uses node DEF name)*/
-Bool gf_is_default_view(GF_Node *node);
+/*returns true if the given node DEF name is the url target view (eg blabla#myview)*/
+Bool gf_is_default_scene_viewpoint(GF_Node *node);
 /*compares object URL with another URL - ONLY USE THIS WITH DYNAMIC ODs*/
 Bool gf_is_same_url(MFURL *obj_url, MFURL *inline_url);
 /*register extra scene graph for on-screen display*/
@@ -176,6 +176,9 @@ void gf_is_restart_dynamic(GF_InlineScene *is, u32 from_time);
 void gf_is_on_modified(GF_Node *node);
 /*returns scene graph associated with an externProto lib - exported for VRML/X3D loaded*/
 GF_SceneGraph *gf_is_get_proto_lib(void *_is, MFURL *lib_url);
+/*exported for renderers: handles filtering of "self" parameter indicating anchor only acts on container inline scene
+not root one. Returns 1 if handled (cf user.h, navigate event)*/
+Bool gf_is_process_anchor(GF_Node *caller, GF_Event *evt);
 
 
 struct _tag_terminal
@@ -259,10 +262,6 @@ void gf_term_invalidate_renderer(GF_Terminal *term);
 /*callbacks for scene graph library so that all related ESM nodes are properly instanciated*/
 void gf_term_on_node_init(void *_is, GF_Node *node);
 void gf_term_on_node_modified(void *_is, GF_Node *node); 
-
-/*exported for renderers: handles filtering of "self" parameter indicating anchor only acts on container inline scene
-not root one. Returns 1 if handled (cf user.h, navigate event)*/
-Bool gf_term_process_anchor(GF_Node *caller, GF_Event *evt);
 
 
 /*
@@ -472,7 +471,7 @@ GF_Err gf_es_start(GF_Channel *ch);
 /*stop channel from receiving data*/
 GF_Err gf_es_stop(GF_Channel *ch);
 /*handles reception of an SL PDU*/
-void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *StreamBuf, u32 StreamLength, SLHeader *header, GF_Err reception_status);
+void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *StreamBuf, u32 StreamLength, GF_SLHeader *header, GF_Err reception_status);
 /*signals end of stream on the channel*/
 void gf_es_on_eos(GF_Channel *ch);
 /*fetches first AU available for decoding on this channel*/
@@ -695,6 +694,6 @@ u32 URL_GetODID(MFURL *url);
 #endif
 
 
-#endif	/*_GF_ESM_DEV_H_*/
+#endif	/*_GF_TERMINAL_DEV_H_*/
 
 

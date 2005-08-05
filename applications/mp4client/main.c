@@ -22,9 +22,10 @@
  *
  */
 
-
+/*includes both terminal and od browser*/
 #include <gpac/terminal.h>
-#include <gpac/renderer.h>
+#include <gpac/term_info.h>
+//#include <gpac/renderer.h>
 #include <gpac/constants.h>
 #include <gpac/options.h>
 #include <gpac/modules/service.h>

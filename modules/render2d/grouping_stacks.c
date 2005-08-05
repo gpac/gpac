@@ -22,10 +22,9 @@
  *
  */
 
-
-
 #include "stacks2d.h"
 #include "visualsurface2d.h"
+/*for anchor processing, which needs to be filtered at the inline scene level*/
 #include <gpac/internal/terminal_dev.h>
 
 typedef struct
@@ -345,7 +344,7 @@ static void OnAnchor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_mat
 				break;
 			}
 		} else if (st->compositor->term) {
-			if (gf_term_process_anchor(sh->owner, &evt))
+			if (gf_is_process_anchor(sh->owner, &evt))
 				break;
 		} else if (st->compositor->user->EventProc) {
 			if (st->compositor->user->EventProc(st->compositor->user->opaque, &evt))

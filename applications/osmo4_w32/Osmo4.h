@@ -20,8 +20,10 @@
 //
 
 
-/*MPEG4 term*/
+/*GPAC terminal*/
 #include <gpac/terminal.h>
+/*GPAC terminal info (OD browsing)*/
+#include <gpac/term_info.h>
 
 enum {
 	WM_SCENE_DONE = WM_USER + 1, 

@@ -47,9 +47,7 @@ GP_RTPPacketizer *gp_rtp_builder_new(u32 rtp_payt, GF_SLConfig *slc, u32 flags,
 	if (slc) {
 		memcpy(&tmp->sl_config, slc, sizeof(GF_SLConfig));
 	} else {
-		//default
 		memset(&tmp->sl_config, 0, sizeof(GF_SLConfig));
-		tmp->sl_config.tag = GF_ODF_SLC_TAG;
 		tmp->sl_config.useTimestampsFlag = 1;
 		tmp->sl_config.timestampLength = 32;
 	}

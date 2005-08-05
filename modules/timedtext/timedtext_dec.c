@@ -26,6 +26,7 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/utf.h>
 #include <gpac/constants.h>
+#include <gpac/nodes_mpeg4.h>
 
 
 /*

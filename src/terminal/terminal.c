@@ -771,32 +771,3 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 	odm->net_service->ifce->ConnectService(odm->net_service->ifce, odm->net_service, odm->net_service->url);
 }
 
-/*exported for renderers*/
-Bool gf_term_process_anchor(GF_Node *caller, GF_Event *evt)
-{
-	u32 i;
-	GF_Terminal *term;
-	GF_InlineScene *is;
-	GF_SceneGraph *sg = gf_node_get_graph(caller);
-	if (!sg) return 1;
-	is = (GF_InlineScene *)gf_sg_get_private(sg);
-	if (!is) return 1;
-	term = is->root_od->term;
-
-	/*if main scene forward to user. If no params or first one not "self" forward to user*/
-	if ((term->root_scene==is) || !evt->navigate.parameters || !evt->navigate.param_count || stricmp(evt->navigate.parameters[0], "self")) {
-		if (term->user->EventProc) return term->user->EventProc(term->user->opaque, evt);
-		return 1;
-	}
-	/*this is ugly, we assume the navigate URL is really an MPEG4 one...*/
-	for (i=0; i<gf_list_count(is->inline_nodes); i++) {
-		M_Inline *inl = gf_list_get(is->inline_nodes, i);
-		gf_sg_vrml_mf_reset(&inl->url, GF_SG_VRML_MFURL);
-		gf_sg_vrml_mf_alloc(&inl->url, GF_SG_VRML_MFURL, 1);
-		inl->url.vals[0].url = strdup(evt->navigate.to_url ? evt->navigate.to_url : "");
-		/*signal URL change but don't destroy inline scene now since we got this event from inside the scene, 
-		this could crash renderers*/
-		is->needs_restart = 2;
-	}
-	return 1;
-}

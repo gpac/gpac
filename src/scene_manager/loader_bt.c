@@ -2495,9 +2495,11 @@ GF_Descriptor *gf_bt_parse_descriptor(GF_BTParser *parser, char *name)
 	}
 	if (desc->tag == GF_ODF_BIFS_CFG_TAG) {
 		GF_BIFSConfig *bcfg = (GF_BIFSConfig *)desc;
-		parser->load->ctx->scene_width = bcfg->pixelWidth;
-		parser->load->ctx->scene_height = bcfg->pixelHeight;
-		parser->load->ctx->is_pixel_metrics = bcfg->pixelMetrics;
+		if (!parser->load->ctx->scene_width) {
+			parser->load->ctx->scene_width = bcfg->pixelWidth;
+			parser->load->ctx->scene_height = bcfg->pixelHeight;
+			parser->load->ctx->is_pixel_metrics = bcfg->pixelMetrics;
+		}
 
 		/*for bt->xmt*/
 		if (!bcfg->isCommandStream) bcfg->isCommandStream = 1;

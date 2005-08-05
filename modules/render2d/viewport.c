@@ -24,6 +24,7 @@
 
 #include "stacks2d.h"
 #include "visualsurface2d.h"
+/*for default scene view*/
 #include <gpac/internal/terminal_dev.h>
 
 
@@ -199,7 +200,7 @@ static void RenderViewport(GF_Node *node, void *rs)
 				gf_node_event_out_str(node, "bindTime");
 			}
 		} else {
-			if (gf_is_default_view(node)) {
+			if (gf_is_default_scene_viewpoint(node)) {
 				vp->set_bind = 1;
 				vp->on_set_bind(node);
 			}

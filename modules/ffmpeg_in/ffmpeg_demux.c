@@ -35,7 +35,7 @@ static u32 FFDemux_Run(void *par)
 	Bool video_init, do_seek, map_audio_time, map_video_time;
 	GF_NetworkCommand com;
 	GF_NetworkCommand map;
-	SLHeader slh;
+	GF_SLHeader slh;
 	FFDemux *ffd = (FFDemux *) par;
 
 	memset(&map, 0, sizeof(GF_NetworkCommand));
@@ -44,7 +44,7 @@ static u32 FFDemux_Run(void *par)
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.command_type = GF_NET_CHAN_BUFFER_QUERY;
 
-	memset(&slh, 0, sizeof(SLHeader));
+	memset(&slh, 0, sizeof(GF_SLHeader));
 
 	slh.compositionTimeStampFlag = slh.decodingTimeStampFlag = 1;
 	seek_to = (s64) (AV_TIME_BASE*ffd->seek_time);
@@ -667,7 +667,7 @@ static GF_Err FFD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 }
 
 
-GF_Err FFD_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
+GF_Err FFD_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
 	GF_ODCodec *odc;
 	GF_ODCom *com;
@@ -679,7 +679,7 @@ GF_Err FFD_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out
 	if (channel==ffd->video_ch) return GF_BAD_PARAM;
 
 	*sl_compressed = 0;
-	memset(out_sl_hdr, 0, sizeof(SLHeader));
+	memset(out_sl_hdr, 0, sizeof(GF_SLHeader));
 	out_sl_hdr->accessUnitEndFlag = 1;
 	out_sl_hdr->accessUnitStartFlag = 1;
 	out_sl_hdr->compositionTimeStampFlag = 1;

@@ -25,6 +25,9 @@
 #include <gpac/scene_manager.h>
 #include <gpac/constants.h>
 #include <gpac/internal/terminal_dev.h>
+#include <gpac/term_info.h>
+/*WorldInfo node*/
+#include <gpac/nodes_mpeg4.h>
 #include "media_memory.h"
 
 
@@ -289,12 +292,12 @@ char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od, GF_L
 	wi = NULL;
 	if (!scene_od) {
 		if (!term->root_scene) return NULL;
-		wi = term->root_scene->world_info;
+		wi = (M_WorldInfo *) term->root_scene->world_info;
 	} else {
 		if (!gf_term_check_odm(term, scene_od)) return NULL;
 		odm = scene_od;
 		while (odm->remote_OD) odm = odm->remote_OD;
-		wi = odm->subscene ? odm->subscene->world_info : odm->parentscene->world_info;
+		wi = (M_WorldInfo *) (odm->subscene ? odm->subscene->world_info : odm->parentscene->world_info);
 	}
 	if (!wi) return NULL;
 
@@ -311,6 +314,8 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, Bool xml_dump, Bool
 	GF_SceneGraph *sg;
 	GF_ObjectManager *odm;
 	GF_SceneDumper *dumper;
+	u32 mode;
+	char szExt[20], *ext;
 	GF_Err e;
 
 	if (!term || !term->root_scene) return GF_BAD_PARAM;
@@ -332,7 +337,18 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, Bool xml_dump, Bool
 		sg = odm->parentscene->graph;
 	}
 
-	dumper = gf_sm_dumper_new(sg, rad_name, ' ', xml_dump ? GF_SM_DUMP_AUTO_XML : GF_SM_DUMP_AUTO_TXT);
+	mode = xml_dump ? GF_SM_DUMP_AUTO_XML : GF_SM_DUMP_AUTO_TXT;
+	/*figure out best dump format based on extension*/
+	ext = strrchr(odm->net_service->url, '.');
+	if (ext) {
+		strcpy(szExt, ext);
+		strlwr(szExt);
+		if (!strcmp(szExt, ".wrl")) mode = xml_dump ? GF_SM_DUMP_VRML : GF_SM_DUMP_X3D_XML;
+		else if(!strncmp(szExt, ".x3d", 4) || !strncmp(szExt, ".x3dv", 5) ) mode = xml_dump ? GF_SM_DUMP_X3D_VRML : GF_SM_DUMP_X3D_XML;
+		else if(!strncmp(szExt, ".bt", 3) || !strncmp(szExt, ".xmt", 4) || !strncmp(szExt, ".mp4", 4) ) mode = xml_dump ? GF_SM_DUMP_BT : GF_SM_DUMP_XMTA;
+	}
+
+	dumper = gf_sm_dumper_new(sg, rad_name, ' ', mode);
 	if (!dumper) return GF_IO_ERR;
 	e = gf_sm_dump_graph(dumper, skip_protos, 0);
 	gf_sm_dumper_del(dumper);

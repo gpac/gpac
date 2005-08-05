@@ -168,7 +168,7 @@ Bool is_supported_file(GF_Config *cfg, const char *fileName, Bool disable_no_ext
 			if (ext) ext+=1;
 		}
 	}
-	if (!strstr(fileName, "http://")) return 1;
+//	if (!strstr(fileName, "http://")) return 1;
 	/*looks like a regular web link_*/
 	return 0;
 }
@@ -396,7 +396,7 @@ BOOL WinGPAC::InitInstance()
 			if (m_hMutex) CloseHandle(m_hMutex);
 			m_hMutex = NULL;
 
-			if (!static_gpac_hwnd) {
+			if (!static_gpac_hwnd || !IsWindow(static_gpac_hwnd) ) {
 				::MessageBox(NULL, "Osmo4 ghost process detected", "Error at last shutdown" , MB_OK);
 			} else {
 				::SetForegroundWindow(static_gpac_hwnd);

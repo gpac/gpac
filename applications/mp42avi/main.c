@@ -236,9 +236,9 @@ GF_Config *loadconfigfile()
 
 #ifdef WIN32
 #ifdef _DEBUG
-	strcpy(szPath, "d:\\CVS\\gpac\\bin\\debug\\");
+	strcpy(szPath, "d:\\CVS\\gpac\\bin\\w32_deb\\");
 #else
-	strcpy(szPath, "d:\\CVS\\gpac\\bin\\release\\");
+	strcpy(szPath, "d:\\CVS\\gpac\\bin\\w32_rel\\");
 #endif
 	cfg = gf_cfg_new(szPath, "GPAC.cfg");
 	if (cfg) goto success;

@@ -298,13 +298,10 @@ GF_Err gf_odf_write_slc(GF_BitStream *bs, GF_SLConfig *sl)
 }
 
 
-
-
-
-/*allocates and writes the SL-PDU (Header + PDU) given the SLConfig and the SLHeader
+/*allocates and writes the SL-PDU (Header + PDU) given the SLConfig and the GF_SLHeader
 for this PDU. AUs must be split in PDUs by another process if needed (packetizer).*/
 void gf_sl_packetize(GF_SLConfig* slConfig, 
-				  SLHeader *Header, 
+				  GF_SLHeader *Header, 
 				  char *PDU, 
 				  u32 size,
 				  char **outPacket,
@@ -354,13 +351,13 @@ void gf_sl_packetize(GF_SLConfig* slConfig,
 }
 
 
-void gf_sl_depacketize (GF_SLConfig *slConfig, SLHeader *Header, char *PDU, u32 PDULength, u32 *HeaderLen)
+void gf_sl_depacketize (GF_SLConfig *slConfig, GF_SLHeader *Header, char *PDU, u32 PDULength, u32 *HeaderLen)
 {
 	GF_BitStream *bs;
 	*HeaderLen = 0;
 	if (!Header) return;
 	//reset the input header
-	memset(Header, 0, sizeof(SLHeader));
+	memset(Header, 0, sizeof(GF_SLHeader));
 
 	bs = gf_bs_new(PDU, PDULength, GF_BITSTREAM_READ);
 	if (!bs) return;

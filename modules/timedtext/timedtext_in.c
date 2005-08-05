@@ -41,7 +41,7 @@ typedef struct
 	char *od_data;
 	u32 od_data_size;
 
-	SLHeader sl_hdr;
+	GF_SLHeader sl_hdr;
 
 	GF_ISOFile *mp4;
 	char *szFile;
@@ -292,7 +292,7 @@ static GF_Err TTIn_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 }
 
 
-static GF_Err TTIn_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
+static GF_Err TTIn_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
 	TTIn *tti = plug->priv;
 
@@ -300,7 +300,7 @@ static GF_Err TTIn_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, ch
 	*sl_compressed = 0;
 	*is_new_data = 0;
 
-	memset(&tti->sl_hdr, 0, sizeof(SLHeader));
+	memset(&tti->sl_hdr, 0, sizeof(GF_SLHeader));
 	tti->sl_hdr.randomAccessPointFlag = 1;
 	tti->sl_hdr.compositionTimeStampFlag = 1;
 	tti->sl_hdr.accessUnitStartFlag = tti->sl_hdr.accessUnitEndFlag = 1;

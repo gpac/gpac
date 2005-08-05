@@ -48,8 +48,13 @@ typedef struct
 
 
 
+#ifdef DANAE
 #define RAW_OUT_PIXEL_FORMAT		GF_PIXEL_ARGB
 #define NBPP						4
+#else
+#define RAW_OUT_PIXEL_FORMAT		GF_PIXEL_RGB_24
+#define NBPP						3
+#endif
 
 #define RAWCTX	RawContext *rc = (RawContext *)dr->opaque
 

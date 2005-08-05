@@ -141,14 +141,14 @@ static GF_Err V4_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	return GF_OK;
 }
 
-static GF_Err V4_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
+static GF_Err V4_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
 	V4Channel *v4c;
 	V4Service *v4serv = (V4Service *)plug->priv;
 	v4c = v4serv->V4_GetChannel(v4serv, channel);
 	if (!v4c) return GF_STREAM_NOT_FOUND;
 
-	memset(out_sl_hdr, 0, sizeof(SLHeader));
+	memset(out_sl_hdr, 0, sizeof(GF_SLHeader));
 	out_sl_hdr->compositionTimeStampFlag = 1;
 	out_sl_hdr->compositionTimeStamp = v4c->start;
 	out_sl_hdr->accessUnitStartFlag = 1;

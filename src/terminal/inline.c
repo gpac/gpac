@@ -25,10 +25,11 @@
 
 
 /*for OD service types*/
-#include <gpac/renderer.h>
 #include <gpac/constants.h>
 #include <gpac/internal/terminal_dev.h>
 #include "media_control.h"
+/*for inline scene rendering*/
+#include <gpac/renderer.h>
 
 void MO_UpdateCaps(GF_MediaObject *mo);
 
@@ -147,20 +148,9 @@ void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown)
 	GF_ObjectManager *odm;
 	GF_SceneDecoder *dec = NULL;
 	if (is->scene_codec) dec = (GF_SceneDecoder *)is->scene_codec->decio;
-
-	if (is->graph_attached) {
-		root_node = gf_sg_get_root_node(is->graph);
-		while (gf_list_count(is->inline_nodes)) {
-			GF_Node *n = gf_list_get(is->inline_nodes, 0);
-			gf_list_rem(is->inline_nodes, 0);
-			gf_node_unregister(root_node, n);
-		}
-	}
-	/*release the scene*/
-	if (dec && dec->ReleaseScene) dec->ReleaseScene(dec);
-	gf_sg_reset(is->graph);
-	is->graph_attached = 0;
 	
+	/*disconnect / kill all objects BEFORE reseting the scene graph since we have 
+	potentially registered Inline nodes of the a graph with the sub-scene*/
 	if (!for_shutdown && is->static_media_ressources) {
 		u32 i;
 		/*stop all objects but DON'T DESTROY THEM*/
@@ -173,12 +163,28 @@ void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown)
 			GF_MediaObject *obj = gf_list_get(is->media_objects, i);
 			gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
 		}
-		return;
+	} else {
+		while (gf_list_count(is->ODlist)) {
+			odm = gf_list_get(is->ODlist, 0);
+			gf_odm_disconnect(odm, (for_shutdown || !is->static_media_ressources) ? 1 : 0);
+		}
 	}
-	while (gf_list_count(is->ODlist)) {
-		odm = gf_list_get(is->ODlist, 0);
-		gf_odm_disconnect(odm, (for_shutdown || !is->static_media_ressources) ? 1 : 0);
+	
+	if (is->graph_attached) {
+		root_node = gf_sg_get_root_node(is->graph);
+		while (gf_list_count(is->inline_nodes)) {
+			GF_Node *n = gf_list_get(is->inline_nodes, 0);
+			gf_list_rem(is->inline_nodes, 0);
+			gf_node_set_private(n, NULL);
+			gf_node_unregister(root_node, n);
+		}
 	}
+	/*release the scene*/
+	if (dec && dec->ReleaseScene) dec->ReleaseScene(dec);
+	gf_sg_reset(is->graph);
+	is->graph_attached = 0;
+
+
 	assert(!gf_list_count(is->extra_scenes) );
 	/*reset statc ressource flag since we destroyed scene objects*/
 	is->static_media_ressources = 0;
@@ -397,14 +403,18 @@ static Bool Inline_SetScene(M_Inline *root)
 	mo = gf_is_get_media_object(parent, &root->url, GF_MEDIA_OBJECT_SCENE);
 	if (!mo || !mo->odm) return 0;
 	odm = mo->odm;
-	
-	/*we don't handle num_open as with regular ODs since an inline is never "started" by the scene renderer*/
-	if (!mo->num_open && !odm->is_open) gf_odm_start(odm);
-	mo->num_open ++;
 
+	/*we don't handle num_open as with regular ODs since an inline is never "started" by the scene renderer*/
+	if (!mo->num_open && !odm->is_open && !odm->pending_channels) {
+		gf_odm_start(odm);
+	}
 	/*handle remote*/
 	while (odm->remote_OD) odm = odm->remote_OD;
-	if (!odm->subscene) return 0;
+	if (!odm->subscene) {
+		gf_term_invalidate_renderer(parent->root_od->term);
+		return 0;
+	}
+	mo->num_open ++;
 	gf_node_set_private((GF_Node *)root, odm->subscene);
 	return 1;
 }
@@ -433,29 +443,30 @@ void gf_is_on_modified(GF_Node *node)
 	GF_MediaObject *mo;
 	M_Inline *pInline = (M_Inline *) node;
 	GF_InlineScene *pIS = gf_node_get_private(node);
-	if (!pIS) return;
 
-	mo = (pIS->root_od) ? pIS->root_od->mo : NULL;
 	ODID = URL_GetODID(&pInline->url);
+	if (pIS) {
+		mo = (pIS->root_od) ? pIS->root_od->mo : NULL;
 
-	/*disconnect current inline if we're the last one using it (same as regular OD session leave/join)*/
-	if (mo) {
-		Bool changed = 1;
-		if (ODID != GF_ESM_DYNAMIC_OD_ID) {
-			if (ODID && (ODID==pIS->root_od->OD->objectDescriptorID)) changed = 0;
-		} else {
-			if (gf_is_same_url(&mo->URLs, &pInline->url) ) changed = 0;
-		}
-		if (mo->num_open) {
-			if (!changed) return;
-			mo->num_open --;
-			if (!mo->num_open) {
-				gf_odm_stop(pIS->root_od, 1);
-				gf_is_disconnect(pIS, 1);
+		/*disconnect current inline if we're the last one using it (same as regular OD session leave/join)*/
+		if (mo) {
+			Bool changed = 1;
+			if (ODID != GF_ESM_DYNAMIC_OD_ID) {
+				if (ODID && (ODID==pIS->root_od->OD->objectDescriptorID)) changed = 0;
+			} else {
+				if (gf_is_same_url(&mo->URLs, &pInline->url) ) changed = 0;
+			}
+			if (mo->num_open) {
+				if (!changed) return;
+				mo->num_open --;
+				if (!mo->num_open) {
+					gf_odm_stop(pIS->root_od, 1);
+					gf_is_disconnect(pIS, 1);
+					assert(gf_list_count(pIS->ODlist) == 0);
+				}
 			}
 		}
-	}
-	
+	}	
 	if (ODID) Inline_SetScene(pInline);
 }
 
@@ -722,7 +733,7 @@ existing:
 	
 	/*update info*/
 	MO_UpdateCaps(odm->mo);
-	if (odm->mo->num_open && !odm->is_open) {
+	if (odm->mo->num_open && (!odm->is_open || parent->is_open) ) {
 		gf_odm_start(odm);
 		if (odm->mo->speed != FIX_ONE) gf_odm_set_speed(odm, odm->mo->speed);
 	}
@@ -904,7 +915,7 @@ const char *IS_GetSceneViewName(GF_InlineScene *is)
 	return seg_name;
 }
 
-Bool gf_is_default_view(GF_Node *node)
+Bool gf_is_default_scene_viewpoint(GF_Node *node)
 {
 	const char *nname, *sname;
 	GF_SceneGraph *sg = gf_node_get_graph(node);
@@ -1334,3 +1345,32 @@ void gf_is_restart_dynamic(GF_InlineScene *is, u32 from_time)
 	gf_clock_resume(ck);
 }
 
+
+Bool gf_is_process_anchor(GF_Node *caller, GF_Event *evt)
+{
+	u32 i;
+	GF_Terminal *term;
+	GF_InlineScene *is;
+	GF_SceneGraph *sg = gf_node_get_graph(caller);
+	if (!sg) return 1;
+	is = (GF_InlineScene *)gf_sg_get_private(sg);
+	if (!is) return 1;
+	term = is->root_od->term;
+
+	/*if main scene forward to user. If no params or first one not "self" forward to user*/
+	if ((term->root_scene==is) || !evt->navigate.parameters || !evt->navigate.param_count || stricmp(evt->navigate.parameters[0], "self") || stricmp(evt->navigate.parameters[0], "_self")) {
+		if (term->user->EventProc) return term->user->EventProc(term->user->opaque, evt);
+		return 1;
+	}
+	/*FIXME this is too restrictive, we assume the navigate URL is really a presentation one...*/
+	for (i=0; i<gf_list_count(is->inline_nodes); i++) {
+		M_Inline *inl = gf_list_get(is->inline_nodes, i);
+		gf_sg_vrml_mf_reset(&inl->url, GF_SG_VRML_MFURL);
+		gf_sg_vrml_mf_alloc(&inl->url, GF_SG_VRML_MFURL, 1);
+		inl->url.vals[0].url = strdup(evt->navigate.to_url ? evt->navigate.to_url : "");
+		/*signal URL change but don't destroy inline scene now since we got this event from inside the scene, 
+		this could crash renderers*/
+		is->needs_restart = 2;
+	}
+	return 1;
+}

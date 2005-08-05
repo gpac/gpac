@@ -25,8 +25,9 @@
 
 
 #include <gpac/internal/terminal_dev.h>
-#include <gpac/renderer.h>
 #include "media_memory.h"
+/*in case the media manager is also responsible for visual rendering*/
+#include <gpac/renderer.h>
 
 //#define NO_MM_LOCK
 

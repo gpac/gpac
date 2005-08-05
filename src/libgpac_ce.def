@@ -1029,7 +1029,6 @@ EXPORTS
 	gf_sr_texture_restart
 	gf_sr_texture_update_frame
 	gf_sr_texture_release_stream
-	gf_mo_get_loop
 	gf_sr_audio_register
 	gf_sr_audio_unregister
 	gf_sr_audio_setup
@@ -1045,19 +1044,21 @@ EXPORTS
 	gf_is_find_odm
 	gf_is_set_duration
 	gf_is_setup_object
-	gf_is_default_view
+	gf_is_default_scene_viewpoint
 	gf_is_register_extra_graph
 	gf_is_force_scene_size
 	gf_is_get_proto_lib
+	gf_is_process_anchor
 	gf_odm_new
 	gf_odm_setup_object
 	gf_odm_disconnect
 	gf_odm_setup_es
 	gf_odm_remove_es
 	gf_term_on_node_init
-	gf_term_process_anchor
 	gf_term_message
+	gf_mo_get_loop
 	gf_mo_set_speed
+
 
 ;LASeR exports - could be removed and put into plugin but we may have an encoder one day just like BIFS
 ;	LASeR_NewDecoder

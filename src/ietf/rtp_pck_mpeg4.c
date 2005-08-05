@@ -25,8 +25,8 @@
 #include <gpac/internal/ietf_dev.h>
 #include <gpac/constants.h>
 
-//get the size of the RSLH section given the SLHeader and the SLMap
-static u32 gf_rtp_build_au_hdr_size(GP_RTPPacketizer *builder, SLHeader *slh)
+//get the size of the RSLH section given the GF_SLHeader and the SLMap
+static u32 gf_rtp_build_au_hdr_size(GP_RTPPacketizer *builder, GF_SLHeader *slh)
 {
 	u32 nbBits = 0;
 

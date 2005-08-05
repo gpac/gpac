@@ -131,7 +131,7 @@ static void RenderViewport(GF_Node *node, void *rs)
 		if (gf_list_get(eff->viewpoints, 0) == vp) {
 			if (!vp->isBound) Bindable_SetIsBound(node, 1);
 		} else {
-			if (gf_is_default_view(node)) Bindable_SetSetBind(node, 1);
+			if (gf_is_default_scene_viewpoint(node)) Bindable_SetSetBind(node, 1);
 		}
 		VPCHANGED(st->compositor);
 		/*in any case don't draw the first time (since the viewport could have been declared last)*/
@@ -270,7 +270,7 @@ static void RenderViewpoint(GF_Node *node, void *rs)
 		if (gf_list_get(eff->viewpoints, 0) == vp) {
 			if (!vp->isBound) Bindable_SetIsBound(node, 1);
 		} else {
-			if (gf_is_default_view(node)) Bindable_SetSetBind(node, 1);
+			if (gf_is_default_scene_viewpoint(node)) Bindable_SetSetBind(node, 1);
 		}
 		VPCHANGED(st->compositor);
 		/*in any case don't draw the first time (since the viewport could have been declared last)*/

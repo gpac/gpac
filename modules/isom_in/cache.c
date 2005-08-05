@@ -83,7 +83,7 @@ static GF_Err ISOW_Close(GF_StreamingCache *mc, Bool delete_cache)
 	cache->service = NULL;
 	return e;
 }
-static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32 data_size, SLHeader *sl_hdr)
+static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32 data_size, GF_SLHeader *sl_hdr)
 {
 	ISOMChannel *mch;
 	GF_ESD *esd;
@@ -215,7 +215,7 @@ static GF_Err ISOW_ServiceCommand(GF_StreamingCache *mc, GF_NetworkCommand *com)
 
 	return GF_OK;
 }
-static GF_Err ISOW_ChannelGetSLP(GF_StreamingCache *mc, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
+static GF_Err ISOW_ChannelGetSLP(GF_StreamingCache *mc, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
 	ISOMReader *cache = (ISOMReader *)mc->priv;
 	if (!cache->mov || !cache->service) return GF_BAD_PARAM;

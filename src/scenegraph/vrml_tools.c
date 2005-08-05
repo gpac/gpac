@@ -703,6 +703,9 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 	case GF_SG_VRML_MFROTATION:
 		gf_sg_mfrotation_del( * ((MFRotation *)field));
 		break;
+	case GF_SG_VRML_SFURL:
+		gf_sg_sfurl_del( * ((SFURL *) field));
+		break;
 	case GF_SG_VRML_MFURL:
 		gf_sg_mfurl_del( * ((MFURL *) field));
 		break;		

@@ -49,7 +49,7 @@ typedef struct
 	u32 od_data_size;
 
 
-	SLHeader sl_hdr;
+	GF_SLHeader sl_hdr;
 
 	u32 sample_rate, oti;
 	Double start_range, end_range;
@@ -136,7 +136,7 @@ static void MP3_OnLiveData(MP3Reader *read, char *data, u32 data_size)
 		read->sample_rate = gf_mp3_sampling_rate(hdr);
 		read->oti = gf_mp3_object_type_indication(hdr);
 		read->is_live = 1;
-		memset(&read->sl_hdr, 0, sizeof(SLHeader));
+		memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
 
 		read->needs_connection = 0;
 		gf_term_on_connect(read->service, NULL, GF_OK);
@@ -445,7 +445,7 @@ static GF_Err MP3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 }
 
 
-static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
+static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
 	u32 pos, hdr, start_from;
 	MP3Reader *read = plug->priv;
@@ -454,7 +454,7 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 	*sl_compressed = 0;
 	*is_new_data = 0;
 
-	memset(&read->sl_hdr, 0, sizeof(SLHeader));
+	memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
 	read->sl_hdr.randomAccessPointFlag = 1;
 	read->sl_hdr.compositionTimeStampFlag = 1;
 

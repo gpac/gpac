@@ -50,7 +50,7 @@ typedef struct
 	char *od_data;
 	u32 od_data_size;
 
-	SLHeader sl_hdr;
+	GF_SLHeader sl_hdr;
 
 	Double start_range, end_range;
 	u32 current_time;
@@ -413,7 +413,7 @@ static GF_Err AMR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 }
 
 
-static GF_Err AMR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
+static GF_Err AMR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
 	u32 pos, start_from, i;
 	u8 toc, ft;
@@ -423,7 +423,7 @@ static GF_Err AMR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 	*sl_compressed = 0;
 	*is_new_data = 0;
 
-	memset(&read->sl_hdr, 0, sizeof(SLHeader));
+	memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
 	read->sl_hdr.randomAccessPointFlag = 1;
 	read->sl_hdr.compositionTimeStampFlag = 1;
 

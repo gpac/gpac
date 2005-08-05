@@ -31,8 +31,6 @@ extern "C" {
 
 
 #include <gpac/nodes_mpeg4.h>
-/*for BIFS config*/
-#include <gpac/mpeg4_odf.h>
 
 typedef struct __tag_bifs_dec GF_BifsDecoder;
 
@@ -67,8 +65,8 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, 
 u16 gf_bifs_decoder_get_active_stream(GF_BifsDecoder *codec);
 
 
-/*retirves uncompressed BIFS config*/
-GF_Err gf_bifs_decoder_get_config(GF_BifsDecoder *codec, u16 ESID, GF_BIFSConfig *cfg);
+/*retrieves uncompressed BIFS config (struct __tag_bifs_config is defined in <gpac/mpeg4_odf.h> )*/
+GF_Err gf_bifs_decoder_get_config(GF_BifsDecoder *codec, u16 ESID, struct __tag_bifs_config *cfg);
 
 
 /*BIFS encoding*/
@@ -78,8 +76,8 @@ typedef struct __tag_bifs_enc GF_BifsEncoder;
 GF_BifsEncoder *gf_bifs_encoder_new(GF_SceneGraph *graph);
 /*destructor*/
 void gf_bifs_encoder_del(GF_BifsEncoder *codec);
-/*setup a destination stream*/
-GF_Err gf_bifs_encoder_new_stream(GF_BifsEncoder *codec, u16 ESID, GF_BIFSConfig *cfg, Bool encodeNames, Bool has_predictive);
+/*setup a destination stream - struct __tag_bifs_config is defined in <gpac/mpeg4_odf.h> */
+GF_Err gf_bifs_encoder_new_stream(GF_BifsEncoder *codec, u16 ESID, struct __tag_bifs_config *cfg, Bool encodeNames, Bool has_predictive);
 /*encodes a list of commands for the given stream in the output buffer - data is dynamically allocated for output
 the scenegraph used is the one described in SceneReplace command, hence scalable streams shall be encoded in time order
 */

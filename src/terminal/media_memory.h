@@ -22,10 +22,8 @@
  *
  */
 
-
-
-#ifndef __MEDIABUF_H_
-#define __MEDIABUF_H_
+#ifndef _MEDIA_MEMORY_H_
+#define _MEDIA_MEMORY_H_
 
 
 #ifdef __cplusplus
@@ -166,5 +164,5 @@ void CB_AbortBuffering(LPCOMPOBUF cb);
 #endif
 
 
-#endif
+#endif	/*_MEDIA_MEMORY_H_*/
 
