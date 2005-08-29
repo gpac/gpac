@@ -5,16 +5,9 @@ include config.mak
 
 VPATH=$(SRC_PATH)
 
-CFLAGS= $(OPTFLAGS) -Wall -I. -I$(SRC_PATH) -I$(SRC_PATH)/Include
-
+INSTFLAGS=-s
 ifeq ($(DEBUGBUILD),yes)
-CFLAGS+=-g
-LDFLAGS+=-g
-endif
-
-ifeq ($(TARGET_GPROF),yes)
-CFLAGS+=-p
-LDFLAGS+=-p
+INSTFLAGS=
 endif
 
 all: lib apps mods
@@ -61,15 +54,15 @@ tar:
 
 install:
 	install -d "$(prefix)/bin"
-	install -c -s -m 755 bin/gcc/MP4Box "$(prefix)/bin"
-	install -c -s -m 755 bin/gcc/MP42Avi "$(prefix)/bin"
+	install $INSTFLAGS -m 755 bin/gcc/MP4Box "$(prefix)/bin"
+	install $INSTFLAGS -m 755 bin/gcc/MP42Avi "$(prefix)/bin"
 	$(MAKE) -C applications install
 	install -d "$(moddir)"
-	install -c bin/gcc/*.$(DYN_LIB_SUFFIX) "$(moddir)"
+	install bin/gcc/*.$(DYN_LIB_SUFFIX) "$(moddir)"
 	rm -f $(moddir)/libgpac.$(DYN_LIB_SUFFIX)
 	rm -f $(moddir)/nposmozilla.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-	install -s -m 755 bin/gcc/libgpac.dll $(prefix)/lib
+	install $INSTFLAGS -m 755 bin/gcc/libgpac.dll $(prefix)/lib
 else
 ifeq ($(DEBUGBUILD),no)
 	$(STRIP) bin/gcc/libgpac.$(DYN_LIB_SUFFIX)
@@ -78,16 +71,16 @@ ifeq ($(CONFIG_DARWIN),yes)
 	install -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
 	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac.$(DYN_LIB_SUFFIX)
 else
-	install -s -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
+	install $INSTFLAGS -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
 	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac.$(DYN_LIB_SUFFIX)
 	ldconfig || true
 endif
 endif
 	install -d "$(mandir)/man1"
-	install -c -m 644 doc/man/mp4box.1 $(mandir)/man1/
-	install -c -m 644 doc/man/mp42avi.1 $(mandir)/man1/
-	install -c -m 644 doc/man/mp4client.1 $(mandir)/man1/
-	install -c -m 644 doc/man/gpac.1 $(mandir)/man1/
+	install -m 644 doc/man/mp4box.1 $(mandir)/man1/
+	install -m 644 doc/man/mp42avi.1 $(mandir)/man1/
+	install -m 644 doc/man/mp4client.1 $(mandir)/man1/
+	install -m 644 doc/man/gpac.1 $(mandir)/man1/
 
 uninstall:
 	$(MAKE) -C applications uninstall
@@ -120,7 +113,7 @@ help:
 	@echo "Input to GPAC make:"
 	@echo "depend/dep: builds dependencies (dev only)"
 	@echo "all (void): builds main library, programs and plugins"
-	@echo "lib: builds GPAC library only (libgpac.a)"
+	@echo "lib: builds GPAC library only (libgpac.so)"
 	@echo "apps: builds programs only"
 	@echo "mods: builds mudules only"
 	@echo "instmoz: build and local install of osmozilla"
@@ -133,8 +126,8 @@ help:
 	@echo "install: install applications and modules on system"
 	@echo "uninstall: uninstall applications and modules"
 	@echo 
-	@echo "install-lib: install gpac library (ligpac.a) and headers <gpac/*.h>, <gpac/modules/*.h> and <gpac/internal/*.h>"
-	@echo "uninstall-lib: uninstall gpac library (libgpac.a) and headers"
+	@echo "install-lib: install gpac library (ligpac.so) and headers <gpac/*.h>, <gpac/modules/*.h> and <gpac/internal/*.h>"
+	@echo "uninstall-lib: uninstall gpac library (libgpac.so) and headers"
 	@echo
 	@echo "to build libgpac documentation, go to gpac/doc and type 'doxygen'"
 
