@@ -175,7 +175,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 		strcpy(szExt, &ext[1]);
 		strlwr(szExt);
 		/*note we forbid ffmpeg to handle files we support*/
-		if (!strcmp(szExt, "mp4") || !strcmp(szExt, "mpg4") || !strcmp(szExt, "m4a") 
+		if (!strcmp(szExt, "mp4") || !strcmp(szExt, "mpg4") || !strcmp(szExt, "m4a") || !strcmp(szExt, "m21") 
 			|| !strcmp(szExt, "3gp") || !strcmp(szExt, "3gpp") || !strcmp(szExt, "3gp2") || !strcmp(szExt, "3g2") 
 			|| !strcmp(szExt, "mp3") 
 			|| !strcmp(szExt, "amr") 

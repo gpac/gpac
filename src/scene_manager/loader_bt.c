@@ -366,9 +366,18 @@ char *gf_bt_get_string(GF_BTParser *parser)
 		if ((parser->line_buffer[parser->line_pos] != '\\') || (parser->line_buffer[parser->line_pos+1] != '"')) {
 			/*handle UTF-8 - WARNING: if parser is in unicode string is already utf8 multibyte chars*/
 			if (!parser->unicode_type && parser->line_buffer[parser->line_pos] & 0x80) {
-				res[i] = 0xc0 | ( (parser->line_buffer[parser->line_pos] >> 6) & 0x3 );
-				i++;
-				parser->line_buffer[parser->line_pos] &= 0xbf;
+				/*non UTF8 (likely some win-CP)*/
+				if ( (parser->line_buffer[parser->line_pos+1] & 0xc0) != 0x80) {
+					res[i] = 0xc0 | ( (parser->line_buffer[parser->line_pos] >> 6) & 0x3 );
+					i++;
+					parser->line_buffer[parser->line_pos] &= 0xbf;
+				}
+				/*we only handle UTF8 chars on 2 bytes (eg first byte is 0b110xxxxx)*/
+				else if ( (parser->line_buffer[parser->line_pos] & 0xe0) == 0xc0) {
+					res[i] = parser->line_buffer[parser->line_pos]; 
+					parser->line_pos++;
+					i++;
+				}
 			}
 			res[i] = parser->line_buffer[parser->line_pos];
 			i++;

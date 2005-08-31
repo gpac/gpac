@@ -126,8 +126,13 @@ void gf_delete_file(char *fileName)
 
 FILE *gf_temp_file_new()
 {
+	TCHAR pPath[MAX_PATH+1];
 	TCHAR pTemp[MAX_PATH+1];
-	if (GetTempFileName(TEXT("."), TEXT("A8_"), 0, pTemp))
+	if (!GetTempPath(MAX_PATH, pPath)) {
+		pPath[0] = '.';
+		pPath[1] = '.';
+	}
+	if (GetTempFileName(pPath, TEXT("git"), 0, pTemp))
 		return _wfopen(pTemp, TEXT("w+b"));
 
 	return NULL;

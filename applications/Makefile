@@ -1,6 +1,12 @@
 include ../config.mak
 
-APPDIRS=mp4box mp4client mp42avi generators osmozilla
+APPDIRS=mp4box mp4client mp42avi generators
+
+#no osmozilla compilation for mingw, too many issues at the time being
+ifeq ($(CONFIG_WIN32), no)
+APPDIRS+=osmozilla
+endif
+
 V4STUDIODIR=
 INSTDIRS=mp4client osmozilla
 

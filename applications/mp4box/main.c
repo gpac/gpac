@@ -1615,8 +1615,14 @@ int main(int argc, char **argv)
 
 		switch (meta->act_type) {
 		case 0:
+			/*remove main brand when modifying...*/
+			if (meta->root_meta) {
+				u32 m = gf_isom_get_meta_type(file, meta->root_meta, tk);
+				if (m && (m!=meta->meta_4cc)) gf_isom_modify_alternate_brand(file, m, 0);
+			}
 			e = gf_isom_set_meta_type(file, meta->root_meta, tk, meta->meta_4cc);
 			needSave = 1;
+			if (meta->root_meta) gf_isom_modify_alternate_brand(file, meta->meta_4cc, 1);
 			break;
 		case 1:
 			self_ref = !stricmp(meta->szPath, "NULL") || !stricmp(meta->szPath, "this") || !stricmp(meta->szPath, "self");

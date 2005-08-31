@@ -27,7 +27,7 @@
 #include <gpac/internal/isomedia_dev.h>
 
 
-static GF_MetaBox *gf_isom_get_meta(GF_ISOFile *file, Bool root_meta, u32 track_num)
+GF_MetaBox *gf_isom_get_meta(GF_ISOFile *file, Bool root_meta, u32 track_num)
 {
 	GF_TrackBox *tk;
 	if (!file) return NULL;

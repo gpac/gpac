@@ -2493,7 +2493,6 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	if (!trak || (trak->Media->handler->handlerType != GF_ISOM_MEDIA_TEXT)) return GF_BAD_PARAM;
 
 	ts = trak->Media->mediaHeader->timeScale;
-
 	cur_frame = start = end = 0;
 
 	count = gf_isom_get_sample_count(the_file, track);
@@ -2543,39 +2542,35 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 				utf16Line[len] = 0;
 			}
 			if (len>=0) {
-				u32 styles, do_start, do_end, char_num;
-				Bool in_def_styles;
-
+				u32 styles, char_num, new_styles;
 				char_num = 0;
 				styles = 0;
-				in_def_styles = 0;
+				new_styles = txtd->default_style.style_flags;
 				for (j=0; j<len; j++) {
 					Bool is_new_line;
 
-					do_start = do_end = 0;
 					if (txt->styles) {
+						new_styles = txtd->default_style.style_flags;
 						for (k=0; k<txt->styles->entry_count; k++) {
 							if (txt->styles->styles[k].startCharOffset>char_num) continue;
 							if (txt->styles->styles[k].endCharOffset<char_num+1) continue;
 
-							if (txt->styles->styles[k].style_flags & (GF_TXT_STYLE_ITALIC | GF_TXT_STYLE_BOLD)) {
-								styles = txt->styles->styles[k].style_flags;
-								if (txt->styles->styles[k].startCharOffset==char_num) do_start=1;
-								else if (txt->styles->styles[k].endCharOffset==char_num+1) do_end=1;
+							if (txt->styles->styles[k].style_flags & (GF_TXT_STYLE_ITALIC | GF_TXT_STYLE_BOLD | GF_TXT_STYLE_UNDERLINED)) {
+								new_styles = txt->styles->styles[k].style_flags;
 								break;
 							}
 						}
 					}
-					if (do_start && in_def_styles) {
-						if (txtd->default_style.style_flags & GF_TXT_STYLE_BOLD) fprintf(dump, "</b>");
-						if (txtd->default_style.style_flags & GF_TXT_STYLE_ITALIC) fprintf(dump, "</i>");
-						in_def_styles = 0;
-					} 
-					
-					if (!styles && !do_start && !in_def_styles) {
-						if (txtd->default_style.style_flags & GF_TXT_STYLE_ITALIC) fprintf(dump, "<i>");
-						if (txtd->default_style.style_flags & GF_TXT_STYLE_BOLD) fprintf(dump, "<b>");
-						in_def_styles = 1;
+					if (new_styles != styles) {
+						if ((new_styles & GF_TXT_STYLE_BOLD) && !(styles & GF_TXT_STYLE_BOLD)) fprintf(dump, "<b>");
+						if ((new_styles & GF_TXT_STYLE_ITALIC) && !(styles & GF_TXT_STYLE_ITALIC)) fprintf(dump, "<i>");
+						if ((new_styles & GF_TXT_STYLE_UNDERLINED) && !(styles & GF_TXT_STYLE_UNDERLINED)) fprintf(dump, "<u>");
+
+						if ((styles & GF_TXT_STYLE_BOLD) && !(new_styles & GF_TXT_STYLE_BOLD)) fprintf(dump, "</b>");
+						if ((styles & GF_TXT_STYLE_ITALIC) && !(new_styles & GF_TXT_STYLE_ITALIC)) fprintf(dump, "</i>");
+						if ((styles & GF_TXT_STYLE_UNDERLINED) && !(new_styles & GF_TXT_STYLE_UNDERLINED)) fprintf(dump, "</u>");
+
+						styles = new_styles;
 					}
 
 					/*not sure if styles must be reseted at line breaks in srt...*/
@@ -2586,10 +2581,6 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 						is_new_line = 1;
 					} 
 					
-					if (do_start) {
-						if (styles & GF_TXT_STYLE_ITALIC) fprintf(dump, "<i>");
-						if (styles & GF_TXT_STYLE_BOLD) fprintf(dump, "<b>");
-					}
 					if (!is_new_line) {
 						u32 sl;
 						char szChar[30];
@@ -2602,17 +2593,20 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 						fprintf(dump, "%s", szChar);
 					}
 					char_num++;
+				}
+				new_styles = 0;
+				if (new_styles != styles) {
+					if ((new_styles & GF_TXT_STYLE_BOLD) && !(styles & GF_TXT_STYLE_BOLD)) fprintf(dump, "<b>");
+					if ((new_styles & GF_TXT_STYLE_ITALIC) && !(styles & GF_TXT_STYLE_ITALIC)) fprintf(dump, "<i>");
+					if ((new_styles & GF_TXT_STYLE_UNDERLINED) && !(styles & GF_TXT_STYLE_UNDERLINED)) fprintf(dump, "<u>");
 
-					if (do_end) {
-						if (styles & GF_TXT_STYLE_BOLD) fprintf(dump, "</b>");
-						if (styles & GF_TXT_STYLE_ITALIC) fprintf(dump, "</i>");
-						styles = 0;
-					}
+					if ((styles & GF_TXT_STYLE_BOLD) && !(new_styles & GF_TXT_STYLE_BOLD)) fprintf(dump, "</b>");
+					if ((styles & GF_TXT_STYLE_ITALIC) && !(new_styles & GF_TXT_STYLE_ITALIC)) fprintf(dump, "</i>");
+					if ((styles & GF_TXT_STYLE_UNDERLINED) && !(new_styles & GF_TXT_STYLE_UNDERLINED)) fprintf(dump, "</u>");
+
+					styles = new_styles;
 				}
-				if (in_def_styles) {
-					if (txtd->default_style.style_flags & GF_TXT_STYLE_BOLD) fprintf(dump, "</b>");
-					if (txtd->default_style.style_flags & GF_TXT_STYLE_ITALIC) fprintf(dump, "</i>");
-				}
+
 				fprintf(dump, "\n");
 			}
 		}

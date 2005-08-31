@@ -148,6 +148,11 @@ static Bool ft_check_face(FT_Face font, const char *fontName, const char *styles
 			return 0;
 		}
 	}
+	else if (strstr(ft_name, "ITALIC") || strstr(ft_style, "ITALIC") || strstr(ft_name, "BOLD") || strstr(ft_style, "BOLD") ) {
+		free(ft_name);
+		free(ft_style);
+		return 0;
+	}
 	/*looks good, let's use this one*/
 	free(ft_name);
 	free(ft_style);

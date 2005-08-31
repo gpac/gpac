@@ -1905,10 +1905,15 @@ GF_Err gf_isom_modify_alternate_brand(GF_ISOFile *movie, u32 Brand, u8 AddIt)
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	
-	if (!Brand || !movie->brand) return GF_BAD_PARAM;
+	if (!Brand) return GF_BAD_PARAM;
 
 	e = CheckNoData(movie);
 	if (e) return e;
+
+	if (!movie->brand && AddIt) {
+		movie->brand = (GF_FileTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_FTYP);
+		gf_list_add(movie->TopBoxes, movie->brand);
+	}
 
 	//do not mofify major one
 	if (!AddIt && movie->brand->majorBrand == Brand) return GF_OK;

@@ -72,6 +72,11 @@ Bool ISOR_CanHandleURL(GF_InputService *plug, const char *url)
 	if (gf_term_check_extension(plug, "audio/3gpp", "3gp 3gpp", "3GPP/MMS Music",ext)) return 1;
 	if (gf_term_check_extension(plug, "video/3gpp2", "3g2 3gp2", "3GPP2/MMS Movies",ext)) return 1;
 	if (gf_term_check_extension(plug, "audio/3gpp2", "3g2 3gp2", "3GPP2/MMS Music",ext)) return 1;
+
+	if (gf_isom_probe_file(url)) {
+		gf_term_check_extension(plug, "application/x-isomedia", ext+1, "IsoMedia Files", ext);
+		return 1;
+	}
 	return 0;
 }
 

@@ -512,9 +512,18 @@ void xmt_parse_string(XMTParser *parser, const char *name, SFString *val, Bool i
 
 			/*handle UTF-8 - WARNING: if parser is in unicode string is already utf8 multibyte chars*/
 			if (!parser->xml_parser.unicode_type && (str[i] & 0x80)) {
-				value[k] = 0xc0 | ( (str[i] >> 6) & 0x3 );
-				k++;
-				str[i] &= 0xbf;
+				/*non UTF8 (likely some win-CP)*/
+				if ( (str[i+1] & 0xc0) != 0x80) {
+					value[k] = 0xc0 | ( (str[i] >> 6) & 0x3 );
+					k++;
+					str[i] &= 0xbf;
+				}
+				/*we only handle UTF8 chars on 2 bytes (eg first byte is 0b110xxxxx)*/
+				else if ( (str[i] & 0xe0) == 0xc0) {
+					value[k] = str[i];
+					i++;
+					k++;
+				}
 			}
 
 			value[k] = str[i];

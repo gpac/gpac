@@ -1155,7 +1155,7 @@ GF_Err WriteToFile(GF_ISOFile *movie, void (*progress)(void *cbk, u32 done, u32 
 		e = WriteFlat(&mw, 0, movie->editFileMap->bs);
 	} else {
 		//OK, we need a new bitstream
-		stream = gf_f64_open(movie->finalName, "wb");
+		stream = gf_f64_open(movie->finalName, "w+b");
 		if (!stream) return GF_IO_ERR;
 		bs = gf_bs_from_file(stream, GF_BITSTREAM_WRITE);
 		if (!bs) {

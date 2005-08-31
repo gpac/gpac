@@ -31,6 +31,7 @@
 
 
 static GF_Err DD_Clear(GF_VideoOutput *dr, u32 color);
+static void DD_InitYUV(GF_VideoOutput *dr);
 
 static Bool surface_valid(DDContext *dd, DDSurface *ds, Bool remove)
 {
@@ -526,8 +527,6 @@ static u32 get_win_4CC(u32 pixel_format)
 		return 0;
 	}
 }
-
-static void DD_InitYUV(GF_VideoOutput *dr);
 
 static GF_Err DD_CreateSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 pixel_format, u32 *surfaceID)
 {

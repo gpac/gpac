@@ -297,14 +297,21 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			gf_sg_vrml_mf_append(inf->field_ptr, GF_SG_VRML_MFSTRING, (void **) &sfstr);
 			len = 0;
 			for (i=0; i<strlen(ptr); i++) {
-				/*FIXME - UTF8 support & BOMs !!*/
-#if 0
+				/*FIXME - UTF16 support !!*/
 				if (ptr[i] & 0x80) {
-					szText[len] = 0xc0 | ( (ptr[i] >> 6) & 0x3 );
-					len++;
-					ptr[i] &= 0xbf;
+					/*non UTF8 (likely some win-CP)*/
+					if ((ptr[i+1] & 0xc0) != 0x80) {
+						szText[len] = 0xc0 | ( (ptr[i] >> 6) & 0x3 );
+						len++;
+						ptr[i] &= 0xbf;
+					} 
+					/*we only handle UTF8 chars on 2 bytes (eg first byte is 0b110xxxxx)*/
+					else if ((ptr[i] & 0xe0) == 0xc0) {
+						szText[len] = ptr[i];
+						len++;
+						i++;
+					}
 				}
-#endif
 				szText[len] = ptr[i];
 				len++;
 			}
@@ -327,7 +334,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	GF_StreamContext *srt;
 	FILE *sub_in;
 	GF_FieldInfo string, style;
-	u32 start, end, line, i, j, len;
+	u32 start, end, line, i, j, k, len;
 	GF_AUContext *au;
 	GF_Command *com;
 	SFString *sfstr;
@@ -455,12 +462,28 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			gf_list_add(au->commands, com);
 		}
 
+		k=0;
 		for (i=j; i<len; i++) {
 			if (szLine[i]=='|') {
-				szText[i-j] = '\n';
+				szText[k] = '\n';
 			} else {
-				szText[i-j] = szLine[i];
+				if (szLine[i] & 0x80) {
+					/*non UTF8 (likely some win-CP)*/
+					if ( (szLine[i+1] & 0xc0) != 0x80) {
+						szText[k] = 0xc0 | ( (szLine[i] >> 6) & 0x3 );
+						k++;
+						szLine[i] &= 0xbf;
+					}
+					/*we only handle UTF8 chars on 2 bytes (eg first byte is 0b110xxxxx)*/
+					else if ( (szLine[i] & 0xe0) == 0xc0) {
+						szText[k] = szLine[i];
+						i++;
+						k++;
+					}
+				}
+				szText[k] = szLine[i];
 			}
+			k++;
 		}
 		szText[i-j] = 0;
 

@@ -764,6 +764,8 @@ GF_Err gf_import_cmp(GF_MediaImporter *import)
 			if (max_b<b_frames) max_b = b_frames;
 			b_frames = 0;
 		}
+		if (!nb_samp) samp->DTS = 0;
+
 		if (import->flags & GF_IMPORT_USE_DATAREF) {
 			samp->data = NULL;
 			e = gf_isom_add_sample_reference(import->dest, track, di, samp, frame_start);
@@ -780,8 +782,10 @@ GF_Err gf_import_cmp(GF_MediaImporter *import)
 		nb_samp++;
 		gf_import_progress(import, done_size, tot_size);
 		done_size += samp->dataLength;
+		if (e) break;
 		if (duration && (samp->DTS > duration)) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
+
 	}
 	/*final flush*/
 	if (ref_frame && has_cts_offset) 

@@ -1,4 +1,7 @@
-Latest CVS Changes 29/08/05
+Latest CVS Changes 31/08/05
+  - fixed UTF8 vs Win-CP text handling (BT and XMT parsers, subs->bifs and subs->ttxt converters)
+  - improved SRT -> 3GPP convertion - now accepts any number of <b>, <i>, <u> tags at random places. Also cleaned up TTXT->SRT conversion.
+  - fixed bug in unknown stsd boxes handling
   - attempt to fixe gpac compilation on 64 bits platforms
   
 03/08/05: GPAC 0.4.0 RC2

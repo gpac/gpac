@@ -147,14 +147,39 @@ static void gf_text_import_set_language(GF_MediaImporter *import, u32 track)
 
 static char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicode_type)
 {
-	u32 i;
+	u32 i, j, len;
 	char *sOK;
 	char szLineConv[1024];
 	unsigned short *sptr;
 
 	memset(szLine, 0, sizeof(char)*lineSize);
 	sOK = fgets(szLine, lineSize, txt_in); 
-	if (!sOK || (unicode_type<=1)) return sOK;
+	if (!sOK) return NULL;
+	if (unicode_type<=1) {
+		j=0;
+		len = strlen(szLine);
+		for (i=0; i<len; i++) {
+			if (szLine[i] & 0x80) {
+				/*non UTF8 (likely some win-CP)*/
+				if ( (szLine[i+1] & 0xc0) != 0x80) {
+					szLineConv[j] = 0xc0 | ( (szLine[i] >> 6) & 0x3 );
+					j++;
+					szLine[i] &= 0xbf;
+				}
+				/*we only handle UTF8 chars on 2 bytes (eg first byte is 0b110xxxxx)*/
+				else if ( (szLine[i] & 0xe0) == 0xc0) {
+					szLineConv[j] = szLine[i];
+					i++;
+					j++;
+				}
+			}
+			szLineConv[j] = szLine[i];
+			j++;
+		}
+		szLineConv[j] = 0;
+		strcpy(szLine, szLineConv);
+		return sOK;
+	}
 
 #ifdef GPAC_BIG_ENDIAN
 	if (unicode_type==3) {
@@ -184,18 +209,18 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 {
 	FILE *srt_in;
 	Double scale;
-	u32 track, timescale, i, desc_idx;
+	u32 track, timescale, i;
 	GF_TextConfig*cfg;
 	GF_Err e;
 	GF_StyleRecord rec;
 	GF_TextSample * samp;
 	GF_ISOSample *s;
-	u32 sh, sm, ss, sms, eh, em, es, ems, start, end, prev_end, txt_line, char_len, char_line, nb_samp, j, duration, nb_styles, file_size;
-	Bool set_start_char, set_end_char, first_samp, has_alt_desc, use_italic_desc;
+	u32 sh, sm, ss, sms, eh, em, es, ems, start, end, prev_end, txt_line, char_len, char_line, nb_samp, j, duration, file_size, rem_styles;
+	Bool set_start_char, set_end_char, first_samp;
 	u32 state, curLine, line, len, ID, OCR_ES_ID;
 	s32 unicode_type;
 	char szLine[2048], szText[2048], *ptr;
-	unsigned short uniLine[5000];
+	unsigned short uniLine[5000], uniText[5000], *sptr;
 
 	srt_in = fopen(import->in_name, "rt");
 	fseek(srt_in, 0, SEEK_END);
@@ -209,8 +234,6 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	}
 
 	cfg = NULL;
-	has_alt_desc = 0;
-
 	if (import->esd) {
 		if (!import->esd->slConfig) {
 			import->esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
@@ -264,7 +287,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 			/*store attribs*/
 			if (!i) rec = sd->default_style;
 
-			gf_isom_new_text_description(import->dest, track, sd, NULL, NULL, &desc_idx);
+			gf_isom_new_text_description(import->dest, track, sd, NULL, NULL, &state);
 			if (!firstFont) firstFont = sd->fonts[0].fontName;
 		}
 		gf_import_message(import, GF_OK, "Timed Text (SRT) import - text track %d x %d, font %s (size %d)", cfg->text_width, cfg->text_height, firstFont, rec.font_size);
@@ -305,15 +328,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 
 		/*store attribs*/
 		rec = sd->default_style;
-		gf_isom_new_text_description(import->dest, track, sd, NULL, NULL, &desc_idx);
-		/*also create a default italic description - other styles are not really common in SRT files*/
-		sd->default_style.style_flags = GF_TXT_STYLE_ITALIC;
-		gf_isom_new_text_description(import->dest, track, sd, NULL, NULL, &desc_idx);
-#if 0
-		sd->default_style.style_flags = GF_TXT_STYLE_BOLD;
-		gf_isom_new_text_description(import->dest, track, sd, NULL, NULL, &desc_idx);
-#endif
-		has_alt_desc = 1;
+		gf_isom_new_text_description(import->dest, track, sd, NULL, NULL, &state);
 
 		gf_import_message(import, GF_OK, "Timed Text (SRT) import - text track %d x %d, font %s (size %d)", w, h, sd->fonts[0].fontName, rec.font_size);
 		gf_odf_desc_del((GF_Descriptor *)sd);
@@ -327,15 +342,12 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	txt_line = 0;
 	set_start_char = set_end_char = 0;
 	char_len = 0;
-	nb_styles = 0;
 	start = 0;
 	nb_samp = 0;
 	samp = gf_isom_new_text_sample();
 
 	scale = timescale;
 	scale /= 1000;
-
-	use_italic_desc = 0;
 	first_samp = 1;
 	while (1) {
 		char *sOK = gf_text_get_utf8_line(szLine, 2048, srt_in, unicode_type);
@@ -345,15 +357,6 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 			state = 0;
 			rec.style_flags = 0;
 			rec.startCharOffset = rec.endCharOffset = 0;
-
-			if (nb_styles && desc_idx && has_alt_desc) {
-				gf_isom_text_reset_styles(samp);
-				if (desc_idx==2) use_italic_desc = 1;
-			} else {
-				desc_idx = 1;
-			}
-			nb_styles = 0;
-
 			if (txt_line) {
 				if (prev_end && (start != prev_end)) {
 					GF_TextSample * empty_samp = gf_isom_new_text_sample();
@@ -369,7 +372,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 				s = gf_isom_text_to_sample(samp);
 				s->DTS = (u32) (scale*start);
 				s->IsRAP = 1;
-				gf_isom_add_sample(import->dest, track, desc_idx, s);
+				gf_isom_add_sample(import->dest, track, 1, s);
 				gf_isom_sample_del(&s);
 				nb_samp++;
 				prev_end = end;
@@ -383,7 +386,6 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 				gf_import_progress(import, ftell(srt_in), file_size);
 				if (duration && (end >= duration)) break;
 			}
-			desc_idx = 0;
 			if (!sOK) break;
 			continue;
 		}
@@ -425,48 +427,6 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		default:
 			/*reset only when text is present*/
 			first_samp = 0;
-			ptr = szLine;
-			i = j = 0;
-			len = 0;
-			while (ptr[i]) {
-				if (!strnicmp(&ptr[i], "<i>", 3)) {
-					rec.style_flags |= GF_TXT_STYLE_ITALIC;
-					i += 3;
-					set_start_char = 1;
-				}
-				else if (!strnicmp(&ptr[i], "<u>", 3)) {
-					rec.style_flags |= GF_TXT_STYLE_UNDERLINED;
-					i += 3;
-					set_start_char = 1;
-				}
-				else if (!strnicmp(&ptr[i], "<b>", 3)) {
-					rec.style_flags |= GF_TXT_STYLE_BOLD;
-					i += 3;
-					set_start_char = 1;
-				}
-				else if (!strnicmp(&ptr[i], "? <", 3)) i += 2;
-				else if (!strnicmp(&ptr[i], "</i>", 4) || !strnicmp(&ptr[i], "</b>", 4) || !strnicmp(&ptr[i], "</u>", 4)) {
-					i+=4;
-					set_end_char = 1;
-				}
-				else {
-					if (!unicode_type && (ptr[i] & 0x80)) {
-						szText[len] = 0xc0 | ( (ptr[i] >> 6) & 0x3 );
-						len++;
-						ptr[i] &= 0xbf;
-					}
-					szText[len] = ptr[i];
-					len++;
-					i++;
-				}
-			}
-			szText[len] = 0;
-			ptr = (char *) szText;
-			char_line = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
-			if (set_start_char) {
-				rec.startCharOffset = char_len;
-				set_start_char = 0;
-			}
 
 			/*go to line*/
 			if (txt_line) {
@@ -474,26 +434,101 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 				char_len += 1;
 			}
 
-			if (set_end_char) {
-				rec.endCharOffset = char_line + char_len;
-				set_end_char = 0;
-				assert(rec.style_flags);
-				gf_isom_text_add_style(samp, &rec);
-				rec.endCharOffset = rec.startCharOffset = 0;
-				if (!nb_styles) {
-					nb_styles = rec.style_flags;
-					if (nb_styles==GF_TXT_STYLE_ITALIC) desc_idx = 2;
-#if 0
-					else if (nb_styles==GF_TXT_STYLE_BOLD) desc_idx = 3;
-#endif
-				} else if (nb_styles != rec.style_flags) {
-					desc_idx = 0;
+			ptr = (char *) szLine;
+			len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
+			char_line = 0;
+			i=j=0;
+			rem_styles = 0;
+			while (i<len) {
+				/*start of new style*/
+				if ( (uniLine[i]=='<') && (uniLine[i+2]=='>')) {
+					/*store prev style*/
+					if (set_end_char) {
+						assert(set_start_char);
+						gf_isom_text_add_style(samp, &rec);
+						set_end_char = set_start_char = 0;
+						rec.style_flags &= ~rem_styles;
+						rem_styles = 0;
+					}
+					if (set_start_char && (rec.startCharOffset != j)) {
+						rec.endCharOffset = char_len + j;
+						if (rec.style_flags) gf_isom_text_add_style(samp, &rec);
+					}
+					switch (uniLine[i+1]) {
+					case 'b': case 'B': 
+						rec.style_flags |= GF_TXT_STYLE_BOLD; 
+						set_start_char = 1;
+						rec.startCharOffset = char_len + j;
+						break;
+					case 'i': case 'I': 
+						rec.style_flags |= GF_TXT_STYLE_ITALIC; 
+						set_start_char = 1;
+						rec.startCharOffset = char_len + j;
+						break;
+					case 'u': case 'U': 
+						rec.style_flags |= GF_TXT_STYLE_UNDERLINED; 
+						set_start_char = 1;
+						rec.startCharOffset = char_len + j;
+						break;
+					}
+					i+=3;
+					continue;
 				}
-				rec.style_flags = 0;
+
+				/*end of prev style*/
+				if ( (uniLine[i]=='<') && (uniLine[i+1]=='/') && (uniLine[i+3]=='>')) {
+					switch (uniLine[i+2]) {
+					case 'b': case 'B': 
+						rem_styles |= GF_TXT_STYLE_BOLD; 
+						set_end_char = 1;
+						rec.endCharOffset = char_len + j;
+						break;
+					case 'i': case 'I': 
+						rem_styles |= GF_TXT_STYLE_ITALIC; 
+						set_end_char = 1;
+						rec.endCharOffset = char_len + j;
+						break;
+					case 'u': case 'U': 
+						rem_styles |= GF_TXT_STYLE_UNDERLINED; 
+						set_end_char = 1;
+						rec.endCharOffset = char_len + j;
+						break;
+					}
+					i+=4;
+					continue;
+				}
+				/*store style*/
+				if (set_end_char) {
+					gf_isom_text_add_style(samp, &rec);
+					set_end_char = 0;
+					set_start_char = 1;
+					rec.startCharOffset = char_len + j;
+					rec.style_flags &= ~rem_styles;
+					rem_styles = 0;
+				}
+
+				uniText[j] = uniLine[i];
+				j++;
+				i++;
 			}
-			char_len += char_line;
+			/*store last style*/
+			if (set_end_char) {
+				gf_isom_text_add_style(samp, &rec);
+				set_end_char = 0;
+				set_start_char = 1;
+				rec.startCharOffset = char_len + j;
+				rec.style_flags &= ~rem_styles;
+				rem_styles = 0;
+			}
+
+			char_line = j;
+			uniText[j] = 0;
+
+			sptr = (u16 *) uniText;
+			len = gf_utf8_wcstombs(szText, 5000, (const u16 **) &sptr);
 
 			gf_isom_text_add_text(samp, szText, len);
+			char_len += char_line;
 			txt_line ++;
 			break;
 		}
@@ -511,11 +546,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		nb_samp++;
 	}
 	gf_isom_delete_text_sample(samp);
-	if (!use_italic_desc && has_alt_desc) {
-		gf_isom_remove_sample_description(import->dest, track, 2);
-	}
 	gf_isom_set_last_sample_duration(import->dest, track, 0);
-	
 	gf_import_progress(import, nb_samp, nb_samp);
 
 exit:
@@ -810,8 +841,8 @@ void ttxt_parse_text_style(GF_MediaImporter *import, XMLParser *parser, GF_Style
 		else if (!stricmp(str, "color")) style->text_color = ttxt_get_color(import, parser);
 		else if (!stricmp(str, "styles")) {
 			if (strstr(parser->value_buffer, "Bold")) style->style_flags |= GF_TXT_STYLE_BOLD;
-			else if (strstr(parser->value_buffer, "Italic")) style->style_flags |= GF_TXT_STYLE_ITALIC;
-			else if (strstr(parser->value_buffer, "Underlined")) style->style_flags |= GF_TXT_STYLE_UNDERLINED;
+			if (strstr(parser->value_buffer, "Italic")) style->style_flags |= GF_TXT_STYLE_ITALIC;
+			if (strstr(parser->value_buffer, "Underlined")) style->style_flags |= GF_TXT_STYLE_UNDERLINED;
 		}
 	}
 	xml_skip_element(parser, "Style");
@@ -832,9 +863,18 @@ char *ttxt_parse_string(GF_MediaImporter *import, XMLParser *parser)
 			while (str[i] && (str[i] != '\'')) {
 				/*handle UTF-8 - WARNING: if parser is in unicode string is already utf8 multibyte chars*/
 				if (!parser->unicode_type && (str[i] & 0x80)) {
-					value[k] = 0xc0 | ( (str[i] >> 6) & 0x3 );
-					k++;
-					str[i] &= 0xbf;
+					/*non UTF8 (likely some win-CP)*/
+					if ( (str[i+1] & 0xc0) != 0x80) {
+						value[k] = 0xc0 | ( (str[i] >> 6) & 0x3 );
+						k++;
+						str[i] &= 0xbf;
+					}
+					/*we only handle UTF8 chars on 2 bytes (eg first byte is 0b110xxxxx)*/
+					else if ( (str[i] & 0xe0) == 0xc0) {
+						value[k] = str[i];
+						i++;
+						k++;
+					}
 				}
 				value[k] = str[i];
 				i++;
@@ -849,10 +889,19 @@ char *ttxt_parse_string(GF_MediaImporter *import, XMLParser *parser)
 	} else {
 		while (str[i]) {
 			/*handle UTF-8 - WARNING: if parser is in unicode string is already utf8 multibyte chars*/
-			if (!parser->unicode_type && (str[i] & 0x80)) {
-				value[k] = 0xc0 | ( (str[i] >> 6) & 0x3 );
-				k++;
-				str[i] &= 0xbf;
+			if (!parser->unicode_type && (str[i] & 0x80) ) {
+				/*non UTF8 (likely some win-CP)*/
+				if ( (str[i+1] & 0xc0) != 0x80) {
+					value[k] = 0xc0 | ( (str[i] >> 6) & 0x3 );
+					k++;
+					str[i] &= 0xbf;
+				}
+				/*we only handle UTF8 chars on 2 bytes (eg first byte is 0b110xxxxx)*/
+				else if ( (str[i] & 0xe0) == 0xc0) {
+					value[k] = str[i];
+					i++;
+					k++;
+				}
 			}
 			value[k] = str[i];
 			i++;
