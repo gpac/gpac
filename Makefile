@@ -54,15 +54,15 @@ tar:
 
 install:
 	install -d "$(prefix)/bin"
-	install $INSTFLAGS -m 755 bin/gcc/MP4Box "$(prefix)/bin"
-	install $INSTFLAGS -m 755 bin/gcc/MP42Avi "$(prefix)/bin"
+	install $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(prefix)/bin"
+	install $(INSTFLAGS) -m 755 bin/gcc/MP42Avi "$(prefix)/bin"
 	$(MAKE) -C applications install
 	install -d "$(moddir)"
 	install bin/gcc/*.$(DYN_LIB_SUFFIX) "$(moddir)"
 	rm -f $(moddir)/libgpac.$(DYN_LIB_SUFFIX)
 	rm -f $(moddir)/nposmozilla.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-	install $INSTFLAGS -m 755 bin/gcc/libgpac.dll $(prefix)/lib
+	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(prefix)/lib
 else
 ifeq ($(DEBUGBUILD),no)
 	$(STRIP) bin/gcc/libgpac.$(DYN_LIB_SUFFIX)
@@ -71,7 +71,7 @@ ifeq ($(CONFIG_DARWIN),yes)
 	install -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
 	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac.$(DYN_LIB_SUFFIX)
 else
-	install $INSTFLAGS -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
+	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
 	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(prefix)/lib/libgpac.$(DYN_LIB_SUFFIX)
 	ldconfig || true
 endif
