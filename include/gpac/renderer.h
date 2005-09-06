@@ -144,6 +144,8 @@ u32 gf_sr_get_audio_delay(GF_Renderer *sr);
 /*returns total length of audio hardware buffer in ms, 0 if no audio*/
 u32 gf_sr_get_audio_buffer_length(GF_Renderer *sr);
 
+void *gf_sr_get_visual_renderer(GF_Renderer *sr);
+
 #ifdef __cplusplus
 }
 #endif

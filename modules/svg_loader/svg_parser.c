@@ -1884,9 +1884,15 @@ static GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 		SVGsvgElement *root_svg = (SVGsvgElement *)n;
 		svg_convert_length_unit_to_user_unit(parser, &(root_svg->width));
 		svg_convert_length_unit_to_user_unit(parser, &(root_svg->height));
-		parser->svg_w = FIX2INT(root_svg->width.number);
-		parser->svg_h = FIX2INT(root_svg->height.number);
-		gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
+		if (root_svg->width.unitType != SVG_LENGTHTYPE_PERCENTAGE) {
+			parser->svg_w = FIX2INT(root_svg->width.number);
+			parser->svg_h = FIX2INT(root_svg->height.number);
+			gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
+		} else {
+			/* if unit for width & height is in percentage, then the only meaningful value for 
+			width and height is 100 %. In this case, we don't specify a value. It will be assigned by the renderer */
+			parser->svg_w = parser->svg_h = 0;
+		}
 		gf_sg_set_root_node(parser->graph, (GF_Node *)n);
 	}
 

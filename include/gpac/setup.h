@@ -205,6 +205,8 @@ typedef float Float;
 /* 128 bit IDs */
 typedef u8 bin128[16];
 
+#define GF_MAX_DOUBLE		DBL_MAX
+#define GF_MIN_DOUBLE		-GF_MAX_DOUBLE
 #define GF_MAX_FLOAT		FLT_MAX
 #define GF_MIN_FLOAT		-GF_MAX_FLOAT
 #define GF_EPSILON_FLOAT	FLT_EPSILON

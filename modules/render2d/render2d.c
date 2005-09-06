@@ -260,7 +260,7 @@ void R2D_UnregisterSensor(GF_Renderer *compositor, SensorHandler *sh)
 
 #define R2DSETCURSOR(t) { GF_Event evt; evt.type = GF_EVT_SET_CURSOR; evt.cursor.cursor_type = (t); sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt); }
 
-static Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
+Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 {
 	u32 i, type, count;
 	Bool act;

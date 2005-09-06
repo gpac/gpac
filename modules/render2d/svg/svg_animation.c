@@ -150,12 +150,12 @@ static void SVG_AccumulateLength(u8 accumulate, u32 nb_iterations,
 	}
 }
 
-static void SVG_ApplyLength(u8 additive, SVG_Length *target, SVG_Length toApply)
+static void SVG_ApplyLength(u8 additive, SVG_Length *dom_value, SVG_Length *target, SVG_Length toApply)
 {
 	if (additive == SMILAdditiveValue_replace) {
 		target->number = toApply.number;
 	} else {
-		target->number += toApply.number;
+		target->number = dom_value->number + toApply.number;
 	}
 }
 
@@ -220,7 +220,7 @@ static void SVG_Apply(SMIL_AnimationStack *stack, void *value)
 			/* TODO: what if the values are in different units */
 			SVG_AccumulateLength(*(stack->accumulate), stack->nb_iterations, 
 								 *(SVG_Length *)value, *(SVG_Length *)last_specified_value, &tmp);
-			SVG_ApplyLength(*(stack->additive), (SVG_Length *)stack->targetAttribute, tmp);
+			SVG_ApplyLength(*(stack->additive), (SVG_Length *)stack->init_value, (SVG_Length *)stack->targetAttribute, tmp);
 		}
 		break;
 	case SVG_TransformList_datatype:
@@ -420,6 +420,8 @@ static void SVG_SaveBaseValue(SMIL_AnimationStack *stack)
 static void SVG_RestoreValue(SMIL_AnimationStack *stack, Bool init_or_last)
 {
 	void *value = (init_or_last?stack->init_value:SMIL_GetLastSpecifiedValue(stack));
+	if (!value) return;
+
 	switch(stack->targetAttributeType) {
 	case SVG_Color_datatype:
 		if (init_or_last) {
@@ -449,12 +451,12 @@ static void SVG_RestoreValue(SMIL_AnimationStack *stack, Bool init_or_last)
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 		if (init_or_last) {
-			SVG_ApplyLength(SMILAdditiveValue_replace, (SVG_Length *)stack->targetAttribute, *(SVG_Length *)value);
+			SVG_ApplyLength(SMILAdditiveValue_replace, stack->init_value, (SVG_Length *)stack->targetAttribute, *(SVG_Length *)value);
 		} else {
 			SVG_Length tmp;
 			SVG_AccumulateLength(*(stack->accumulate), stack->nb_iterations, 
 								 *(SVG_Length *)value, *(SVG_Length *)value, &tmp);
-			SVG_ApplyLength(*(stack->additive), (SVG_Length *)stack->targetAttribute, tmp);
+			SVG_ApplyLength(*(stack->additive), stack->init_value, (SVG_Length *)stack->targetAttribute, tmp);
 		}
 		break;
 	case SVG_TransformList_datatype:

@@ -1145,3 +1145,8 @@ u32 gf_sr_get_audio_delay(GF_Renderer *sr)
 	return sr->audio_renderer ? sr->audio_renderer->audio_delay : 0;
 }
 
+void *gf_sr_get_visual_renderer(GF_Renderer *sr)
+{
+	return sr->visual_renderer;
+}
+

@@ -901,13 +901,19 @@ static void SVG_OnUserEvent_a(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *s
 	st = (SVG_Stack_a *) gf_node_get_private(sh->owner);
 	a = (SVGaElement *) sh->owner;
 
+#ifndef DANAE
 	if (!st->compositor->user->EventProc) return;
+#endif
 	evt.type = GF_EVT_NAVIGATE;
 	
 	if (a->xlink_href.type == SVGIri_iri) {
 		evt.navigate.to_url = a->xlink_href.iri;
 		if (evt.navigate.to_url) {
+#ifdef DANAE
+			loadDanaeUrl(st->compositor->danae_session, a->xlink_href.iri);
+#else
 			st->compositor->user->EventProc(st->compositor->user->opaque, &evt);
+#endif
 		}
 	} else {
 		u32 tag = gf_node_get_tag((GF_Node *)a->xlink_href.target_element);
