@@ -22,6 +22,7 @@
     <choice>
       <value>nonzero</value>
       <value>evenodd</value>
+      <value>inherit</value>
     </choice>
   </define>
 
@@ -86,8 +87,8 @@
     <data type='string'>
       <!--
       <param name='pattern'>\s*(none|xMidYMid)\s*(meet)?\s*</param>
-      <param name='pattern'>\s*(none|xMinYMin|xMidYMin|xMaxYMin|xMinYMid|xMidYMid|xMaxYMid|xMinYMax|xMidYMax|xMaxYMax)\s*(meet|slice)?\s*</param>
       -->
+      <param name='pattern'>\s*(none|xMinYMin|xMidYMin|xMaxYMin|xMinYMid|xMidYMid|xMaxYMid|xMinYMax|xMidYMax|xMaxYMax)\s*(meet|slice)?\s*</param>
     </data>
   </define>
 
@@ -107,9 +108,8 @@
     <data type='string'/>
   </define>
 
-  <define name='IRI.datatype'>
-    <!--<data type='anyURI'/>-->
-    <data type='string'/>
+  <define name='URI.datatype'>
+    <data type='anyURI'/>
   </define>
 
   <define name='ViewBoxSpec.datatype'>
@@ -143,12 +143,10 @@
   </define>
 
   <define name='Focus.datatype'>
-    <!--
     <choice>
       <value>auto</value>
-      -->
       <data type='IDREF'/>
-    <!--</choice>-->
+    </choice>
   </define>
 
   <define name='FontFamilyValue.datatype'>
@@ -161,18 +159,6 @@
 
   <define name='Points.datatype'>
     <data type='string'/>
-  </define>
-
-
-  <define name='ID.datatype'>
-    <data type='ID'/>
-  </define>
-
-  <define name='XSLT-QName.datatype'>
-    <choice>
-      <data type='NMTOKEN'/>
-      <data type='QName'/>
-    </choice>
   </define>
 
 </grammar>

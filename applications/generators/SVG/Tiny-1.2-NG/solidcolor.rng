@@ -16,24 +16,18 @@
   <define name='svg.Properties.attr' combine='interleave'>
     <optional>
       <attribute name='solid-color' svg:animatable='true' svg:inheritable='false'>
-        <choice>
-          <value>inherit</value>
-          <ref name='SVGColor.datatype'/>
-        </choice>
+        <ref name='SVGColor.datatype'/>
       </attribute>
     </optional>
     <optional>
       <attribute name='solid-opacity' svg:animatable='true' svg:inheritable='false'>
-        <choice>
-          <value>inherit</value>
-          <ref name='OpacityValue.datatype'/>
-        </choice>
+        <ref name='OpacityValue.datatype'/>
       </attribute>
     </optional>
   </define>
 
 
-  <define name='svg.GCommon.group' combine='choice'>
+  <define name='svg.G.group' combine='choice'>
     <ref name='solidColor'/>
   </define>
 
@@ -52,14 +46,15 @@
         <ref name='svg.Desc.group'/>
         <ref name='svg.Animate.group'/>
         <ref name='svg.Handler.group'/>
-        <ref name='svg.Discard.group'/>
       </choice>
     </zeroOrMore>
   </define>
 
   <define name='solidColor.AT' combine='interleave'>
-    <ref name='svg.Properties.attr'/>
-    <ref name='svg.Core.attr'/>
+    <interleave>
+      <ref name='svg.Properties.attr'/>
+      <ref name='svg.Core.attr'/>
+    </interleave>
   </define>
 
 </grammar>

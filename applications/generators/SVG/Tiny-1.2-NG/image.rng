@@ -12,7 +12,7 @@
          datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
          >
 
-  <define name='svg.GCommon.group' combine='choice'>
+  <define name='svg.G.group' combine='choice'>
     <ref name='image'/>
   </define>
 
@@ -25,16 +25,25 @@
   </define>
 
   <define name='image.AT' combine='interleave'>
-    <ref name='svg.Core.attr'/>
-    <ref name='svg.XLinkEmbed.attr'/>
-    <ref name='svg.Conditional.attr'/>
-    <ref name='svg.External.attr'/>
-    <ref name='svg.Focus.attr'/>
-    <ref name='svg.Transform.attr'/>
-    <ref name='svg.Opacity.attr'/>
-    <ref name='svg.XYWH.attr'/>
-    <ref name='svg.PAR.attr'/>
-    <ref name='svg.ContentType.attr'/>
+    <interleave>
+      <ref name='svg.Core.attr'/>
+      <ref name='svg.XLinkEmbed.attr'/>
+      <ref name='svg.Conditional.attr'/>
+      <ref name='svg.External.attr'/>
+      <ref name='svg.Focus.attr'/>
+      <ref name='svg.Transform.attr'/>
+      <ref name='svg.XYWH.attr'/>
+      <optional>
+        <attribute name='preserveAspectRatio' a:defaultValue='xMidYMid meet' svg:animatable='yes' svg:inheritable='false'>
+          <ref name='PreserveAspectRatioSpec.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='type' svg:animatable='false' svg:inheritable='false'>
+          <ref name='ContentType.datatype'/>
+        </attribute>
+      </optional>
+    </interleave>
   </define>
 
   <define name='image.CM'>
@@ -42,7 +51,6 @@
       <choice>
         <ref name='svg.Desc.group'/>
         <ref name='svg.Animate.group'/>
-        <ref name='svg.Discard.group'/>
         <ref name='svg.Handler.group'/>
       </choice>
     </zeroOrMore>

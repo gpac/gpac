@@ -14,7 +14,7 @@
   <define name='svg.CoreCommon.attr' combine='interleave'>
     <optional>
       <attribute name='id' svg:animatable='false' svg:inheritable='false'>
-        <ref name='ID.datatype'/>
+        <data type='ID'/>
       </attribute>
     </optional>
     <optional>
@@ -24,12 +24,12 @@
     </optional>
     <optional>
       <attribute name='xml:id' svg:animatable='false' svg:inheritable='false'>
-        <ref name='ID.datatype'/>
+        <data type='ID'/>
       </attribute>
     </optional>
     <optional>
       <attribute name='xml:base' svg:animatable='false' svg:inheritable='false'>
-        <ref name='IRI.datatype'/>
+        <ref name='URI.datatype'/>
       </attribute>
     </optional>
     <optional>

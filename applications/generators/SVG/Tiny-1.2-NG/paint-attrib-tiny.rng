@@ -14,42 +14,27 @@
   <define name='svg.Properties.attr' combine='interleave'>
     <optional>
       <attribute name='fill' svg:animatable='true' svg:inheritable='true'>
-        <choice>
-          <value>inherit</value>
-          <ref name='Paint.datatype'/>
-        </choice>
+        <ref name='Paint.datatype'/>
       </attribute>
     </optional>
     <optional>
       <attribute name='fill-rule' svg:animatable='true' svg:inheritable='true'>
-        <choice>
-          <value>inherit</value>
-          <ref name='ClipFillRule.datatype'/>
-        </choice>
+        <ref name='ClipFillRule.datatype'/>
       </attribute>
     </optional>
     <optional>
       <attribute name='stroke' svg:animatable='true' svg:inheritable='true'>
-        <choice>
-          <value>inherit</value>
-          <ref name='Paint.datatype'/>
-        </choice>
+        <ref name='Paint.datatype'/>
       </attribute>
     </optional>
     <optional>
       <attribute name='stroke-dasharray' svg:animatable='true' svg:inheritable='true'>
-        <choice>
-          <value>inherit</value>
-          <ref name='StrokeDashArrayValue.datatype'/>
-        </choice>
+        <ref name='StrokeDashArrayValue.datatype'/>
       </attribute>
     </optional>
     <optional>
       <attribute name='stroke-dashoffset' svg:animatable='true' svg:inheritable='true'>
-        <choice>
-          <value>inherit</value>
-          <ref name='StrokeDashOffsetValue.datatype'/>
-        </choice>
+        <ref name='StrokeDashOffsetValue.datatype'/>
       </attribute>
     </optional>
     <optional>
@@ -74,26 +59,17 @@
     </optional>
     <optional>
       <attribute name='stroke-miterlimit' svg:animatable='true' svg:inheritable='true'>
-        <choice>
-          <value>inherit</value>
-          <ref name='StrokeMiterLimitValue.datatype'/>
-        </choice>
+        <ref name='StrokeMiterLimitValue.datatype'/>
       </attribute>
     </optional>
     <optional>
       <attribute name='stroke-width' svg:animatable='true' svg:inheritable='true'>
-        <choice>
-          <value>inherit</value>
-          <ref name='StrokeWidthValue.datatype'/>
-        </choice>
+        <ref name='StrokeWidthValue.datatype'/>
       </attribute>
     </optional>
     <optional>
       <attribute name='color' svg:animatable='true' svg:inheritable='true'>
-        <choice>
-          <value>inherit</value>
-          <ref name='Color.datatype'/>
-        </choice>
+        <ref name='Color.datatype'/>
       </attribute>
     </optional>
     <optional>

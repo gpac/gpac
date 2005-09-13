@@ -14,7 +14,7 @@
          >
 
 
-  <define name='svg.GCommon.group' combine='choice'>
+  <define name='svg.G.group' combine='choice'>
     <ref name='script'/>
   </define>
 
@@ -27,9 +27,15 @@
   </define>
 
   <define name='script.AT' combine='interleave'>
-    <ref name='svg.CorePreserve.attr'/>
-    <ref name='svg.External.attr'/>
-    <ref name='svg.ContentType.attr'/>
+    <interleave>
+      <ref name='svg.CorePreserve.attr'/>
+      <ref name='svg.External.attr'/>
+      <optional>
+        <attribute name='type' svg:animatable='false' svg:inheritable='false'>
+          <ref name='ContentType.datatype'/>
+        </attribute>
+      </optional>
+    </interleave>
   </define>
 
   <define name='script.CM'>

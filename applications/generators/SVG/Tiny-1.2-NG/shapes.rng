@@ -12,7 +12,7 @@
          datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
          >
 
-  <define name='svg.GCommon.group' combine='choice'>
+  <define name='svg.G.group' combine='choice'>
     <choice>
       <ref name='path'/>
       <ref name='rect'/>
@@ -36,69 +36,6 @@
     <ref name='svg.Focus.attr'/>
   </define>
 
-  <define name='svg.D.attr' combine='interleave'>
-    <optional>
-      <attribute name='d' svg:animatable='true' svg:inheritable='false'>
-        <ref name='PathData.datatype'/>
-      </attribute>
-    </optional>
-  </define>
-
-  <define name='svg.R.attr' combine='interleave'>
-    <attribute name='r' svg:animatable='true' svg:inheritable='false'>
-      <ref name='Length.datatype'/>
-    </attribute>
-  </define>
-
-  <define name='svg.X12Y12.attr' combine='interleave'>
-    <optional>
-      <attribute name='x1' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Coordinate.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='y1' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Coordinate.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='x2' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Coordinate.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='y2' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Coordinate.datatype'/>
-      </attribute>
-    </optional>
-  </define>
-
-  <define name='svg.CxCy.attr' combine='interleave'>
-    <optional>
-      <attribute name='cx' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Coordinate.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='cy' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Coordinate.datatype'/>
-      </attribute>
-    </optional>
-  </define>
-
-  <define name='svg.RxRyCommon.attr'>
-    <optional>
-      <attribute name='rx' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Length.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='ry' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Length.datatype'/>
-      </attribute>
-    </optional>
-  </define>
-
 
   <!--
     Common Content Model
@@ -108,7 +45,6 @@
       <ref name='svg.Desc.group'/>
       <ref name='svg.Handler.group'/>
       <ref name='svg.Animate.group'/>
-      <ref name='svg.Discard.group'/>
     </choice>
   </define>
 
@@ -123,13 +59,17 @@
   </define>
 
   <define name='path.AT' combine='interleave'>
-    <ref name='svg.ShapeCommon.attr'/>
-    <ref name='svg.D.attr'/>
-    <optional>
-      <attribute name='pathLength' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
+    <interleave>
+      <ref name='svg.ShapeCommon.attr'/>
+      <attribute name='d' svg:animatable='true' svg:inheritable='false'>
+        <ref name='PathData.datatype'/>
       </attribute>
-    </optional>
+      <optional>
+        <attribute name='pathLength' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+    </interleave>
   </define>
 
 
@@ -142,9 +82,20 @@
   </define>
 
   <define name='rect.AT' combine='interleave'>
-    <ref name='svg.ShapeCommon.attr'/>
-    <ref name='svg.XYWH.attr'/>
-    <ref name='svg.RxRyCommon.attr'/>
+    <interleave>
+      <ref name='svg.ShapeCommon.attr'/>
+      <ref name='svg.XYWH.attr'/>
+      <optional>
+        <attribute name='rx' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Length.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='ry' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Length.datatype'/>
+        </attribute>
+      </optional>
+    </interleave>
   </define>
 
 
@@ -159,9 +110,22 @@
   </define>
 
   <define name='circle.AT' combine='interleave'>
-    <ref name='svg.ShapeCommon.attr'/>
-    <ref name='svg.CxCy.attr'/>
-    <ref name='svg.R.attr'/>
+    <interleave>
+      <ref name='svg.ShapeCommon.attr'/>
+      <optional>
+        <attribute name='cx' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Coordinate.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='cy' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Coordinate.datatype'/>
+        </attribute>
+      </optional>
+      <attribute name='r' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Length.datatype'/>
+      </attribute>
+    </interleave>
   </define>
 
 
@@ -175,8 +139,29 @@
   </define>
 
   <define name='line.AT' combine='interleave'>
-    <ref name='svg.ShapeCommon.attr'/>
-    <ref name='svg.X12Y12.attr'/>
+    <interleave>
+      <ref name='svg.ShapeCommon.attr'/>
+      <optional>
+        <attribute name='x1' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Coordinate.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='y1' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Coordinate.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='x2' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Coordinate.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='y2' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Coordinate.datatype'/>
+        </attribute>
+      </optional>
+    </interleave>
   </define>
 
 
@@ -190,9 +175,25 @@
   </define>
 
   <define name='ellipse.AT' combine='interleave'>
-    <ref name='svg.ShapeCommon.attr'/>
-    <ref name='svg.RxRyCommon.attr'/>
-    <ref name='svg.CxCy.attr'/>
+    <interleave>
+      <ref name='svg.ShapeCommon.attr'/>
+      <optional>
+        <attribute name='cx' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Coordinate.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='cy' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Coordinate.datatype'/>
+        </attribute>
+      </optional>
+      <attribute name='rx' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Length.datatype'/>
+      </attribute>
+      <attribute name='ry' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Length.datatype'/>
+      </attribute>
+    </interleave>
   </define>
 
 
@@ -206,10 +207,12 @@
   </define>
 
   <define name='polyCommon.AT' combine='interleave'>
-    <ref name='svg.ShapeCommon.attr'/>
-    <attribute name='points' svg:animatable='true' svg:inheritable='false'>
-      <ref name='Points.datatype'/>
-    </attribute>
+    <interleave>
+      <ref name='svg.ShapeCommon.attr'/>
+      <attribute name='points' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Points.datatype'/>
+      </attribute>
+    </interleave>
   </define>
 
 

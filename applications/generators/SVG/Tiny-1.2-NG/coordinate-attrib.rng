@@ -13,30 +13,34 @@
          >
 
   <define name='svg.XY.attr' combine='interleave'>
-    <optional>
-      <attribute name='x' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Coordinate.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='y' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Coordinate.datatype'/>
-      </attribute>
-    </optional>
+    <interleave>
+      <optional>
+        <attribute name='x' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Coordinate.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='y' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Coordinate.datatype'/>
+        </attribute>
+      </optional>
+    </interleave>
   </define>
 
 
   <define name='svg.WH.attr' combine='interleave'>
-    <optional>
-      <attribute name='width' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Length.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='height' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Length.datatype'/>
-      </attribute>
-    </optional>
+    <interleave>
+      <optional>
+        <attribute name='width' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Length.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='height' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Length.datatype'/>
+        </attribute>
+      </optional>
+    </interleave>
   </define>
 
 </grammar>

@@ -22,18 +22,21 @@
 
   <!-- ... a's attributes ......................................... -->
   <define name='a.AT' combine='interleave'>
-    <ref name='svg.Core.attr'/>
-    <ref name='svg.Conditional.attr'/>
-    <ref name='svg.Properties.attr'/>
-    <ref name='svg.External.attr'/>
-    <ref name='svg.Focus.attr'/>
-    <ref name='svg.Transform.attr'/>
-    <ref name='svg.XLinkReplace.attr'/>
-    <optional>
-      <attribute name='target' svg:animatable='true' svg:inheritable='false'>
-        <ref name='LinkTarget.datatype'/>
-      </attribute>
-    </optional>
+    <interleave>
+      <ref name='svg.Core.attr'/>
+      <ref name='svg.Conditional.attr'/>
+      <ref name='svg.Properties.attr'/>
+      <ref name='svg.External.attr'/>
+      <ref name='svg.Transform.attr'/>
+      <ref name='svg.Focus.attr'/>
+      <ref name='svg.Transform.attr'/>
+      <ref name='svg.XLinkReplace.attr'/>
+      <optional>
+        <attribute name='target' svg:animatable='true' svg:inheritable='false'>
+          <ref name='LinkTarget.datatype'/>
+        </attribute>
+      </optional>
+    </interleave>
   </define>
 
 </grammar>

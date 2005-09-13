@@ -13,21 +13,13 @@
          >
 
 
-  <define name='svg.GCommon.group' combine='choice'>
+  <define name='svg.G.group' combine='choice'>
     <choice>
       <ref name='font'/>
       <ref name='font-face'/>
     </choice>
   </define>
 
-
-  <define name='svg.FontAdvOrigCommon.attr' combine='interleave'>
-    <optional>
-      <attribute name='horiz-adv-x' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-  </define>
 
 
   <!-- ... font ................................................... -->
@@ -39,14 +31,38 @@
   </define>
 
   <define name='font.AT' combine='interleave'>
-    <ref name='svg.Core.attr'/>
-    <ref name='svg.External.attr'/>
-    <ref name='svg.FontAdvOrigCommon.attr'/>
-    <optional>
-      <attribute name='horiz-origin-x' svg:animatable='false' svg:inheritable='false'>
+    <interleave>
+      <ref name='svg.Core.attr'/>
+      <ref name='svg.External.attr'/>
+      <optional>
+        <attribute name='horiz-origin-x' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='horiz-origin-y' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <attribute name='horiz-adv-x' svg:animatable='false' svg:inheritable='false'>
         <ref name='Number.datatype'/>
       </attribute>
-    </optional>
+      <optional>
+        <attribute name='vert-origin-x' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='vert-origin-y' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='vert-adv-y' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+    </interleave>
   </define>
 
   <define name='font.CM'>
@@ -73,123 +89,145 @@
   </define>
 
   <define name='font-face.AT' combine='interleave'>
-    <ref name='svg.Core.attr'/>
-    <ref name='svg.External.attr'/>
-    <optional><attribute name='font-family' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-    <optional><attribute name='font-style' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-    <optional><attribute name='font-weight' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-    <optional><attribute name='font-size' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-    <optional><attribute name='font-variant' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-    <optional><attribute name='font-stretch' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-    <optional><attribute name='unicode-range' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-    <optional><attribute name='panose-1' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-    <optional><attribute name='widths' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-    <optional><attribute name='bbox' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-    <optional>
-      <attribute name='units-per-em' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='stemv' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='stemh' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='slope' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='cap-height' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='x-height' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='accent-height' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='ascent' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='descent' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='ideographic' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='alphabetic' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='mathematical' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='hanging' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='underline-position' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='underline-thickness' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='strikethrough-position' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='strikethrough-thickness' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='overline-position' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='overline-thickness' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Number.datatype'/>
-      </attribute>
-    </optional>
+    <interleave>
+      <ref name='svg.Core.attr'/>
+      <ref name='svg.External.attr'/>
+      <optional><attribute name='font-family' svg:animatable='true' svg:inheritable='true'><text/></attribute>
+      </optional>
+      <optional><attribute name='font-style' svg:animatable='true' svg:inheritable='true'><text/></attribute>
+      </optional>
+      <optional><attribute name='font-variant' svg:animatable='true' svg:inheritable='true'><text/></attribute>
+      </optional>
+      <optional><attribute name='font-weight' svg:animatable='true' svg:inheritable='true'><text/></attribute>
+      </optional>
+      <optional><attribute name='font-stretch' svg:animatable='true' svg:inheritable='true'><text/></attribute>
+      </optional>
+      <optional><attribute name='font-size' svg:animatable='true' svg:inheritable='true'><text/></attribute>
+      </optional>
+      <optional><attribute name='unicode-range' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+      </optional>
+      <optional><attribute name='panose-1' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+      </optional>
+      <optional><attribute name='widths' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+      </optional>
+      <optional><attribute name='bbox' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+      </optional>
+      <optional>
+        <attribute name='units-per-em' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='stemv' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='stemh' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='slope' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='cap-height' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='x-height' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='accent-height' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='ascent' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='descent' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='ideographic' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='alphabetic' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='mathematical' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='hanging' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='v-ideographic' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='v-alphabetic' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='v-mathematical' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='v-hanging' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='underline-position' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='underline-thickness' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='strikethrough-position' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='strikethrough-thickness' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='overline-position' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='overline-thickness' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+    </interleave>
   </define>
 
   <define name='font-face.CM'>
@@ -212,19 +250,44 @@
   </define>
 
   <define name='glyph.AT' combine='interleave'>
-    <ref name='svg.Core.attr'/>
-    <ref name='svg.FontAdvOrigCommon.attr'/>
-    <ref name='svg.D.attr'/>
-    <attribute name='unicode' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    <optional><attribute name='glyph-name' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-    <optional><attribute name='arabic-form' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-    <optional>
-      <attribute name='lang' svg:animatable='false' svg:inheritable='false'>
-        <ref name='LanguageCodes.datatype'/>
+    <interleave>
+      <ref name='svg.Core.attr'/>
+      <attribute name='unicode' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+      <optional><attribute name='glyph-name' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+      </optional>
+      <optional><attribute name='orientation' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+      </optional>
+      <optional><attribute name='arabic-form' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+      </optional>
+      <attribute name='d' svg:animatable='false' svg:inheritable='false'>
+        <ref name='PathData.datatype'/>
       </attribute>
-    </optional>
+      <optional>
+        <attribute name='lang' svg:animatable='false' svg:inheritable='false'>
+          <ref name='LanguageCodes.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='horiz-adv-x' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='vert-origin-x' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='vert-origin-y' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='vert-adv-y' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+    </interleave>
   </define>
 
   <define name='glyph.CM'>
@@ -246,9 +309,32 @@
   </define>
 
   <define name='missing-glyph.AT' combine='interleave'>
-    <ref name='svg.Core.attr'/>
-    <ref name='svg.FontAdvOrigCommon.attr'/>
-    <ref name='svg.D.attr'/>
+    <interleave>
+      <ref name='svg.Core.attr'/>
+      <attribute name='d' svg:animatable='false' svg:inheritable='false'>
+        <ref name='PathData.datatype'/>
+      </attribute>
+      <optional>
+        <attribute name='horiz-adv-x' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='vert-origin-x' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='vert-origin-y' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='vert-adv-y' svg:animatable='false' svg:inheritable='false'>
+          <ref name='Number.datatype'/>
+        </attribute>
+      </optional>
+    </interleave>
   </define>
 
   <define name='missing-glyph.CM'>
@@ -270,22 +356,24 @@
   </define>
 
   <define name='hkern.AT' combine='interleave'>
-    <ref name='svg.Core.attr'/>
-    <optional>
-      <attribute name='u1' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-    <optional>
-      <attribute name='g1' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-    <optional>
-      <attribute name='u2' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-    <optional>
-      <attribute name='g2' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-    <attribute name='k' svg:animatable='false' svg:inheritable='false'>
-      <ref name='Number.datatype'/>
-    </attribute>
+    <interleave>
+      <ref name='svg.Core.attr'/>
+      <optional>
+        <attribute name='u1' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+      </optional>
+      <optional>
+        <attribute name='g1' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+      </optional>
+      <optional>
+        <attribute name='u2' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+      </optional>
+      <optional>
+        <attribute name='g2' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+      </optional>
+      <attribute name='k' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </interleave>
   </define>
 
   <define name='hkern.CM'>
@@ -307,7 +395,9 @@
   </define>
 
   <define name='font-face-src.AT' combine='interleave'>
-    <ref name='svg.Core.attr'/>
+    <interleave>
+      <ref name='svg.Core.attr'/>
+    </interleave>
   </define>
 
   <define name='font-face-src.CM'>
@@ -331,8 +421,10 @@
   </define>
 
   <define name='font-face-uri.AT' combine='interleave'>
-    <ref name='svg.Core.attr'/>
-    <ref name='svg.XLinkRequired.attr'/>
+    <interleave>
+      <ref name='svg.Core.attr'/>
+      <ref name='svg.XLinkRequired.attr'/>
+    </interleave>
   </define>
 
   <define name='font-face-uri.CM'>
@@ -354,10 +446,12 @@
   </define>
 
   <define name='font-face-name.AT' combine='interleave'>
-    <ref name='svg.Core.attr'/>
-    <optional>
-      <attribute name='name' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
+    <interleave>
+      <ref name='svg.Core.attr'/>
+      <optional>
+        <attribute name='name' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+      </optional>
+    </interleave>
   </define>
 
   <define name='font-face-name.CM'>

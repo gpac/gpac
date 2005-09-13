@@ -13,32 +13,22 @@
 
   <define name='svg.Properties.attr' combine='interleave'>
     <optional>
-      <attribute name='viewport-fill' svg:animatable='true' svg:inheritable='false'>
-        <choice>
-          <value>inherit</value>
-          <ref name='Paint.datatype'/>
-        </choice>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='viewport-fill-opacity' svg:animatable='true' svg:inheritable='false'>
-        <choice>
-          <value>inherit</value>
-          <ref name='OpacityValue.datatype'/>
-        </choice>
-      </attribute>
-    </optional>
-  </define>
-
-  <define name='svg.Overflow.attr' combine='interleave'>
-    <optional>
       <attribute name='overflow' svg:animatable='false' svg:inheritable='false'>
         <choice>
           <value>visible</value>
         </choice>
       </attribute>
     </optional>
+    <optional>
+      <attribute name='viewport-fill' a:defaultValue='none' svg:animatable='true' svg:inheritable='false'>
+        <ref name='Paint.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='viewport-fill-opacity' svg:animatable='true' svg:inheritable='false'>
+        <ref name='OpacityValue.datatype'/>
+      </attribute>
+    </optional>
   </define>
-
 
 </grammar>

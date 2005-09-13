@@ -53,11 +53,13 @@
 
   <!-- ... switch's attributes .................................... -->
   <define name='switch.AT' combine='interleave'>
-    <ref name='svg.Core.attr'/>
-    <ref name='svg.Conditional.attr'/>
-    <ref name='svg.Properties.attr'/>
-    <ref name='svg.External.attr'/>
-    <ref name='svg.Transform.attr'/>
+    <interleave>
+      <ref name='svg.Core.attr'/>
+      <ref name='svg.Conditional.attr'/>
+      <ref name='svg.Properties.attr'/>
+      <ref name='svg.External.attr'/>
+      <ref name='svg.Transform.attr'/>
+    </interleave>
   </define>
 
 </grammar>

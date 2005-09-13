@@ -16,18 +16,12 @@
   <define name='svg.Properties.attr' combine='interleave'>
     <optional>
       <attribute name='font-family' svg:animatable='true' svg:inheritable='true'>
-        <choice>
-          <value>inherit</value>
-          <ref name='FontFamilyValue.datatype'/>
-        </choice>
+        <ref name='FontFamilyValue.datatype'/>
       </attribute>
     </optional>
     <optional>
       <attribute name='font-size' svg:animatable='true' svg:inheritable='true'>
-        <choice>
-          <value>inherit</value>
-          <ref name='FontSizeValue.datatype'/>
-        </choice>
+        <ref name='FontSizeValue.datatype'/>
       </attribute>
     </optional>
     <optional>
@@ -73,19 +67,13 @@
   </define>
 
 
-  <define name='svg.GCommon.group' combine='choice'>
+  <define name='svg.G.group' combine='choice'>
     <choice>
       <ref name='text'/>
     </choice>
   </define>
 
-  <define name='svg.Editable.attr' combine='interleave'>
-    <optional>
-      <attribute name='editable' a:defaultValue='false' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Boolean.datatype'/>
-      </attribute>
-    </optional>
-  </define>
+
 
   <!--
     CM defined to have switch an 'a' defined correctly
@@ -95,7 +83,6 @@
       <ref name='svg.Desc.group'/>
       <ref name='svg.Animate.group'/>
       <ref name='svg.Handler.group'/>
-      <ref name='svg.Discard.group'/>
       <ref name='tspan'/>
       <text/>
       <element name='switch'>
@@ -110,7 +97,6 @@
       <ref name='svg.Desc.group'/>
       <ref name='svg.Animate.group'/>
       <ref name='svg.Handler.group'/>
-      <ref name='svg.Discard.group'/>
       <ref name='tspan'/>
       <text/>
       <element name='switch'>
@@ -135,27 +121,19 @@
   </define>
 
   <define name='text.AT' combine='interleave'>
-    <ref name='svg.Properties.attr'/>
-    <ref name='svg.Core.attr'/>
-    <ref name='svg.Conditional.attr'/>
-    <ref name='svg.Editable.attr'/>
-    <ref name='svg.Focus.attr'/>
-    <ref name='svg.Transform.attr'/>
-    <optional>
-      <attribute name='x' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Coordinates.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='y' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Coordinates.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='rotate' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Numbers.datatype'/>
-      </attribute>
-    </optional>
+    <interleave>
+      <ref name='svg.Properties.attr'/>
+      <ref name='svg.Core.attr'/>
+      <ref name='svg.Conditional.attr'/>
+      <ref name='svg.Focus.attr'/>
+      <ref name='svg.Transform.attr'/>
+      <ref name='svg.XY.attr'/>
+      <optional>
+        <attribute name='editable' a:defaultValue='false' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Boolean.datatype'/>
+        </attribute>
+      </optional>
+    </interleave>
   </define>
 
 
@@ -168,10 +146,12 @@
   </define>
 
   <define name='tspan.AT' combine='interleave'>
-    <ref name='svg.Properties.attr'/>
-    <ref name='svg.Core.attr'/>
-    <ref name='svg.Conditional.attr'/>
-    <ref name='svg.Focus.attr'/>
+    <interleave>
+      <ref name='svg.Properties.attr'/>
+      <ref name='svg.Core.attr'/>
+      <ref name='svg.Conditional.attr'/>
+      <ref name='svg.Focus.attr'/>
+    </interleave>
   </define>
 
 </grammar>

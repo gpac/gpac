@@ -14,7 +14,7 @@
          >
 
 
-  <define name='svg.GCommon.group' combine='choice'>
+  <define name='svg.G.group' combine='choice'>
     <ref name='handler'/>
   </define>
 
@@ -31,12 +31,21 @@
   </define>
 
   <define name='handler.AT' combine='interleave'>
-    <ref name='svg.CorePreserve.attr'/>
-    <ref name='svg.External.attr'/>
-    <attribute name='ev:event' svg:animatable='false' svg:inheritable='false'>
-      <ref name='XSLT-QName.datatype'/>
-    </attribute>
-    <ref name='svg.ContentType.attr'/>
+    <interleave>
+      <ref name='svg.CorePreserve.attr'/>
+      <ref name='svg.External.attr'/>
+      <attribute name='ev:event' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <data type='NMTOKEN'/>
+          <data type='QName'/>
+        </choice>
+      </attribute>
+      <optional>
+        <attribute name='type' svg:animatable='false' svg:inheritable='false'>
+          <ref name='ContentType.datatype'/>
+        </attribute>
+      </optional>
+    </interleave>
   </define>
 
   <define name='handler.CM'>

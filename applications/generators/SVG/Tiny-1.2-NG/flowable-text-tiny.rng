@@ -29,7 +29,6 @@
       <attribute name='line-increment' svg:animatable='true' svg:inheritable='true'>
         <choice>
           <value>auto</value>
-          <value>inherit</value>
           <ref name='Number.datatype'/>
         </choice>
       </attribute>
@@ -37,7 +36,7 @@
   </define>
 
 
-  <define name='svg.GCommon.group' combine='choice'>
+  <define name='svg.G.group' combine='choice'>
     <choice>
       <ref name='textArea'/>
     </choice>
@@ -70,13 +69,24 @@
   </define>
 
   <define name='textArea.AT' combine='interleave'>
-    <ref name='svg.Properties.attr'/>
-    <ref name='svg.Core.attr'/>
-    <ref name='svg.Conditional.attr'/>
-    <ref name='svg.Focus.attr'/>
-    <ref name='svg.Transform.attr'/>
-    <ref name='svg.XYWH.attr'/>
-    <ref name='svg.Editable.attr'/>
+    <interleave>
+      <ref name='svg.Properties.attr'/>
+      <ref name='svg.Core.attr'/>
+      <ref name='svg.Conditional.attr'/>
+      <ref name='svg.Focus.attr'/>
+      <ref name='svg.Transform.attr'/>
+      <ref name='svg.XYWH.attr'/>
+      <optional>
+        <attribute name='rotate' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Numbers.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='editable' a:defaultValue='false' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Boolean.datatype'/>
+        </attribute>
+      </optional>
+    </interleave>
   </define>
 
 
@@ -89,13 +99,9 @@
   </define>
 
   <define name='tBreak.AT' combine='interleave'>
-    <ref name='svg.Core.attr'/>
+    <interleave>
+      <ref name='svg.Core.attr'/>
+    </interleave>
   </define>
 
 </grammar>
-
-
-
-
-
-

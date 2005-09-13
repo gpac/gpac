@@ -13,7 +13,7 @@
          >
 
 
-  <define name='svg.GCommon.group' combine='choice'>
+  <define name='svg.G.group' combine='choice'>
     <ref name='foreignObject'/>
   </define>
 
@@ -26,14 +26,16 @@
   </define>
 
   <define name='foreignObject.AT' combine='interleave'>
-    <ref name='svg.Core.attr'/>
-    <ref name='svg.Conditional.attr'/>
-    <ref name='svg.XLinkEmbed.attr'/>
-    <ref name='svg.Focus.attr'/>
-    <ref name='svg.External.attr'/>
-    <ref name='svg.Properties.attr'/>
-    <ref name='svg.Transform.attr'/>
-    <ref name='svg.XYWH.attr'/>
+    <interleave>
+      <ref name='svg.Core.attr'/>
+      <ref name='svg.Conditional.attr'/>
+      <ref name='svg.XLinkEmbed.attr'/>
+      <ref name='svg.Focus.attr'/>
+      <ref name='svg.External.attr'/>
+      <ref name='svg.Properties.attr'/>
+      <ref name='svg.Transform.attr'/>
+      <ref name='svg.XYWH.attr'/>
+    </interleave>
   </define>
 
   <define name='foreignObject.CM'>
