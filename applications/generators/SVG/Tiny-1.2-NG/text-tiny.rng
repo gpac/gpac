@@ -127,7 +127,16 @@
       <ref name='svg.Conditional.attr'/>
       <ref name='svg.Focus.attr'/>
       <ref name='svg.Transform.attr'/>
-      <ref name='svg.XY.attr'/>
+      <optional>
+        <attribute name='x' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Coordinates.datatype'/>
+        </attribute>
+      </optional>
+      <optional>
+        <attribute name='y' svg:animatable='true' svg:inheritable='false'>
+          <ref name='Coordinates.datatype'/>
+        </attribute>
+      </optional>
       <optional>
         <attribute name='editable' a:defaultValue='false' svg:animatable='true' svg:inheritable='false'>
           <ref name='Boolean.datatype'/>

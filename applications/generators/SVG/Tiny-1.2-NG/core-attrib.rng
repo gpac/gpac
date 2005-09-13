@@ -29,7 +29,7 @@
     </optional>
     <optional>
       <attribute name='xml:base' svg:animatable='false' svg:inheritable='false'>
-        <ref name='URI.datatype'/>
+        <ref name='IRI.datatype'/>
       </attribute>
     </optional>
     <optional>

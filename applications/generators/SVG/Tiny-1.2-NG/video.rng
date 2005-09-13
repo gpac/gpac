@@ -56,6 +56,39 @@
           </choice>
         </attribute>
       </optional>
+    <optional>
+      <attribute name='display' svg:animatable='true' svg:inheritable='explicit'>
+        <choice>
+          <value>inline</value>
+          <value>block</value>
+          <value>list-item</value>
+          <value>run-in</value>
+          <value>compact</value>
+          <value>marker</value>
+          <value>table</value>
+          <value>inline-table</value>
+          <value>table-row-group</value>
+          <value>table-header-group</value>
+          <value>table-footer-group</value>
+          <value>table-row</value>
+          <value>table-column-group</value>
+          <value>table-column</value>
+          <value>table-cell</value>
+          <value>table-caption</value>
+          <value>none</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='visibility' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>visible</value>
+          <value>hidden</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>      
     </interleave>
   </define>
 

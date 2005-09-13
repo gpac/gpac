@@ -108,7 +108,7 @@
     <data type='string'/>
   </define>
 
-  <define name='URI.datatype'>
+  <define name='IRI.datatype'>
     <data type='anyURI'/>
   </define>
 

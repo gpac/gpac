@@ -31,7 +31,7 @@
   </define>
 
   <define name='svg.AnimateTiming.attr' combine='interleave'>
-    <ref name='svg.AnimateTimingNoFillNoMinMax.attr'/>
+    <ref name='svg.AnimateTimingNoMinMax.attr'/>
     <optional><attribute name='min' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
     <optional><attribute name='max' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
   </define>
