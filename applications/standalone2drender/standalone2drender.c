@@ -49,7 +49,7 @@ static GF_Err SA2DR_InitFontEngine(GF_FontRaster *dr)
 	if (FT_Init_FreeType(&ftpriv->library) ) return GF_IO_ERR;
 
 	/*remove the final delimiter*/
-    ftpriv->font_dir = "C:\\WINDOWS\\Fonts";
+    ftpriv->font_dir = strdup("C:\\WINDOWS\\Fonts");
 	strcpy(ftpriv->font_serif,"Arial");
 	strcpy(ftpriv->font_sans,"Times New Roman");
 	strcpy(ftpriv->font_fixed,"Courier New");
@@ -159,3 +159,15 @@ GF_Renderer *SR_NewStandaloneRenderer()
 	tmp->antiAlias = GF_ANTIALIAS_FULL;
 	return tmp;
 }
+
+void SR_DeleteStandaloneRenderer(GF_Renderer *tmp)
+{
+	tmp->visual_renderer->UnloadRenderer(tmp->visual_renderer);
+	free(tmp->visual_renderer);
+	DeleteVideoOutput(tmp->video_out);
+	EVG_ShutdownRenderer(tmp->r2d);
+	FT_Delete(tmp->font_engine);
+	free(tmp->user);
+	free(tmp);
+}
+

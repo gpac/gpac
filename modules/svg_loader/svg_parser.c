@@ -345,112 +345,201 @@ end:
 	return i;
 }
 
+/*
+   Parse an Offset Value, i.e +/- Clock Value
+*/
 void svg_parse_clock_value(char *d, Double *clock_value) 
 {
 	char *tmp;
+	s32 sign = 1;
+	if (d[0] == '+') d++;
+	if (d[0] == '-') { sign = -1; d++; }
+	while (*d == ' ') d++;
+
 	if ((tmp = strchr(d, ':'))) {
-		char *tmp1 = tmp;
+		/* Full or Partial Clock value */
 		tmp++;
 		if ((tmp = strchr(tmp, ':'))) {
-			s32 hours;
-			s32 sign;
-			s32 minutes;
+			/* Full Clock value : hh:mm:ss(.frac) */
+			u32 hours;
+			u32 minutes;
 			Float seconds;
-			char shours[100], sminutes[3];
-			/* between d and tmp1, we read the hours */
-			memcpy(shours, d, tmp1 - d);		
-			shours[tmp1 - d]= 0;
-			sscanf(shours, "%d", &hours);
-			*clock_value = hours*3600;
-			sign = (hours>0?1:-1);
-			/* between tmp1 and tmp, we read the minutes */
-			tmp1++;
-			memcpy(sminutes, tmp1, tmp - tmp1);		
-			sminutes[tmp - tmp1]= 0;
-			sscanf(sminutes, "%d", &minutes);
-			minutes *=sign;
-			*clock_value += minutes*60;
-			tmp++;
-			sscanf(tmp, "%f", &seconds);
-			*clock_value += sign*seconds;
+			sscanf(d, "%d:%d:%f", &hours, &minutes, &seconds);
+			*clock_value = hours*3600 + minutes*60 + seconds;
 		} else {
+			/* Partial Clock value : mm:ss(.frac) */
 			s32 minutes;
 			Float seconds;
-			s32 sign;
-			char sminutes[2];
-			/* between d and tmp1, we read the minutes */
-			memcpy(sminutes, d, tmp1 - d);		
-			sminutes[tmp1 - d]= 0;
-			sscanf(sminutes, "%d", &minutes);
-			*clock_value = minutes*60;
-			sign = (minutes>0?1:-1);
-			tmp1++;
-			sscanf(tmp1, "%f", &seconds);
-			*clock_value += sign*seconds;
+			sscanf(d, "%d:%f", &minutes, &seconds);
+			*clock_value = minutes*60 + seconds;
 		}
 	} else if ((tmp = strstr(d, "h"))) {
-		Float hours;
-		char shours[100];
-		memcpy(shours, d, tmp - d);		
-		shours[tmp - d]= 0;
-		sscanf(shours, "%f", &hours);
-		*clock_value = hours*3600;
-	} else if ((tmp = strstr(d, "min"))) {
-		Float minutes;
-		char sminutes[100];
-		memcpy(sminutes, d, tmp - d);		
-		sminutes[tmp - d]= 0;
-		sscanf(sminutes, "%f", &minutes);
-		*clock_value = minutes*60;
+		Float f;
+		sscanf(d, "%fh", &f);
+		*clock_value = 3600*f;
+	} else if (strstr(d, "min")) {
+		Float f;
+		sscanf(d, "%fmin", &f);
+		*clock_value = 60*f;
 	} else if ((tmp = strstr(d, "ms"))) {
-		Float milliseconds;
-		char smilliseconds[100];
-		memcpy(smilliseconds, d, tmp - d);		
-		smilliseconds[tmp - d]= 0;
-		sscanf(smilliseconds, "%f", &milliseconds);
-		*clock_value = milliseconds/1000;
-	} else if ((tmp = strstr(d, "s"))) {
-		Float seconds;
-		char sseconds[100];
-		memcpy(sseconds, d, tmp - d);
-		sseconds[tmp - d]= 0;
-		sscanf(sseconds, "%f", &seconds);
-		*clock_value = seconds;
+		Float f;
+		sscanf(d, "%fms", &f);
+		*clock_value = f/1000;
+	} else if (strchr(d, 's')) {
+		Float f;
+		sscanf(d, "%fs", &f);
+		*clock_value = f;
 	} else {
-		Float seconds;
-		sscanf(d, "%f", &seconds);
-		*clock_value = seconds;
+		*clock_value = atof(d);
 	}
+	*clock_value *= sign;
 }
 
-/* Parses an SVG time value and return the number of chars read in d
-	  value is 'indefinite', '<number>s', unitless value or 
-		'name.begin', 'name.end', 'name.click' TODO: check all events possible and store event base
- */
-void svg_parse_begin_or_end(char *d, SMIL_BeginOrEndValue *v) 
+/*
+	    list of supported events in Tiny 1.2 as of 2005/09/10:
+		repeat is somehow a special case ...
+*/
+
+
+u32 svg_get_animation_event_by_name(char *name)
 {
+	if (!strcmp(name, "begin"))		return 1;
+	if (!strcmp(name, "end"))		return 2;
+	if (!strncmp(name, "repeat", 6))	return 3;
+	if (!strcmp(name, "focusin"))	return 4;
+	if (!strcmp(name, "focusout"))	return 5;
+	if (!strcmp(name, "activate"))	return 6;
+	if (!strcmp(name, "click"))		return 7;
+	if (!strcmp(name, "mouseup"))	return 8;
+	if (!strcmp(name, "mousedown")) return 9;
+	if (!strcmp(name, "mouseover")) return 10;
+	if (!strcmp(name, "mouseout"))	return 11;
+	if (!strcmp(name, "mousemove")) return 12;
+	if (!strcmp(name, "load"))		return 13;
+	if (!strcmp(name, "resize"))	return 14;
+	if (!strcmp(name, "scroll"))	return 15;
+	if (!strcmp(name, "zoom"))		return 16;
+	if (!strcmp(name, "key"))		return 17;
+	return 0;
+}
+
+/* Parses one SVG time value:
+	  'indefinite', 
+	  'name.begin', 'name.end', 
+	  wallclock,
+	  accessKey,
+	  events, 
+	  clock value.
+ */
+void svg_parse_begin_or_end(SVGParser *parser, SVGElement *e, char *d, SMIL_BeginOrEndValue *v) 
+{
+	u32 len;
 	char *tmp;
-	if (!strcmp(d, "indefinite")) {
+	
+	/* Offset Values */
+	if ((d[0] >= '0' && d[0] <= '9') || d[0] == '+' || d[0] == '-'){
+		v->type = SMILBeginOrEnd_clock;
+		svg_parse_clock_value(d, &(v->clock));
+		return;
+	} 
+	
+	/* Indefinite Values */
+	else if (!strcmp(d, "indefinite")) {
 		v->type = SMILBeginOrEnd_indefinite;
-	} else if ((tmp = strstr(d, "wallclock"))) {
-		v->type = SMILBeginOrEnd_wallclock_sync_value;
+		return;
+	} 
+
+	/* Wallclock Values */
+	else if ((tmp = strstr(d, "wallclock("))) {
+		u32 year, month, day;
+		u32 hours, minutes;
+		u32 nhours, nminutes;
+		Float seconds;
+		char *tmp1, *tmp2;
+
+		v->type = SMILBeginOrEnd_wallclock;
 		tmp += 10;
-	} else if ((tmp = strstr(d, "accessKey"))) {
-		v->type = SMILBeginOrEnd_accessKey_value;
-	} else if ((tmp = strstr(d, "repeat"))) {
-		v->type = SMILBeginOrEnd_repeat_value;
-	} else if ((tmp = strstr(d, "begin"))) {
-		v->type = SMILBeginOrEnd_syncbase_value;
-	} else if ((tmp = strstr(d, "end"))) {
-		v->type = SMILBeginOrEnd_syncbase_value;
-	} else if ((tmp = strstr(d, "click"))) {
-		v->type = SMILBeginOrEnd_event_value;
-//	} else if (tmp = strstr(d, "click")) { add all other events, what are they?
-	} else {
-		Double clock_value;
-		svg_parse_clock_value(d, &clock_value);
-		v->clock_value = clock_value;
-		v->type = SMILBeginOrEnd_offset_value;
+		if (tmp1 = strchr(tmp, 'T')) {
+			/* From tmp to wallStartTime, we parse a date */
+			sscanf(tmp, "%d-%d-%dT", &year, &month, &day);
+			tmp1++;
+			tmp = tmp1;
+		} 	
+		if (tmp1 = strchr(tmp, ':')) {
+			if (tmp2 = strchr(tmp1, ':')) {
+				/* HHMMSS */
+				sscanf(tmp, "%d:%d:%f", &hours, &minutes, &seconds);		
+			} else {
+				/* HHMM */
+				sscanf(tmp, "%d:%d", &hours, &minutes);		
+			}
+		}
+		if (strchr(tmp, 'Z')) {
+			return;
+		} else {
+			if (tmp1 = strchr(tmp, '+')) {
+				sscanf(tmp1, "%d:%d", &nhours, &nminutes);		
+			} else if (tmp1 = strchr(tmp, '-')) {
+				sscanf(tmp1, "%d:%d", &nhours, &nminutes);		
+			}
+		}
+		return;
+	} 
+
+	/* AccessKey Values */
+	else if ((tmp = strstr(d, "accessKey("))) {
+		v->type = SMILBeginOrEnd_event;
+		v->event = 17;
+		tmp+=10;
+		v->parameter = *tmp;
+		tmp = strchr(d, ')');
+		tmp++;
+		while (*tmp == ' ') tmp++;
+		if (*tmp != 0) svg_parse_clock_value(tmp, &(v->clock));
+		return;
+	} 
+
+	else {
+		char token[500];
+		v->type = SMILBeginOrEnd_event;
+		if ((tmp = strchr(d, '+')) || (tmp = strchr(d, '-'))) {
+			len = tmp - d;
+			while (d[len-1] == ' ' && len > 0) len--;
+			memcpy(token, d, len);
+			token[len] = 0;
+			svg_parse_clock_value(tmp, &(v->clock));
+		} else {
+			strcpy(token, d);
+			len = strlen(d);
+		}
+		if (!strchr(token, '.')) {
+			/* animation event name only */
+			v->event = svg_get_animation_event_by_name(token);
+			v->element = e;
+		} else {
+			u32 i;
+			for (i = 0; i < len; i++) {
+				if (token[i] == '\\' && (i+1 < len) && token[i+1] == '.') i++;
+				else if (token[i] == '.') {
+					/* 0 -> i: element_name
+					   i -> len - 1: animation event name */
+					GF_SAFEALLOC(v->element_id, i+1);
+					memcpy(v->element_id, token, i);
+					gf_list_add(parser->unresolved_timing_elements, v);
+					v->event = svg_get_animation_event_by_name(token+i+1);
+				}
+			}
+		}
+
+		if (v->event == 3) { //repeat
+			tmp = strchr(token, '(');
+			if (tmp) {
+				tmp++;
+				v->parameter = atoi(tmp);
+			} else {
+				v->parameter = 1;
+			}
+		}
 	}
 }
 
@@ -1053,54 +1142,92 @@ void smil_parse_attributename(SVGParser *parser, SVGElement *n, GF_FieldInfo *at
 		if (!gf_node_get_field_by_name((GF_Node *)targetElement, value_string, &targetAttribute))
 			memcpy(attributeName, &targetAttribute, sizeof(GF_FieldInfo));
 		else 
-			fprintf(stderr, "Error: Attribute %s does not belong to target element.\n", value_string);
+			fprintf(stderr, "Error: Attribute %s does not belong to target element %s of type %s.\n", value_string, gf_node_get_name((GF_Node *)targetElement), SVG_GetElementName(gf_node_get_tag((GF_Node *)targetElement)));
 	}
 }
 
-void smil_parse_begin_or_end_list(SVGParser *parser, GF_List *values, char *begin_or_end_list)
+void smil_parse_begin_or_end_list(SVGParser *parser, SVGElement *e, GF_List *values, char *begin_or_end_list)
 {
-
-	u32 i = 0;
-	char *str = begin_or_end_list;
-	s32 psemi = -1;
+	SMIL_BeginOrEndValue *value;
+	char value_string[500];
+	char *str = begin_or_end_list, *tmp;
 	u32 len;
 
-	while (str[i] != 0 && (str[i] == ' ' || str[i] == ';')) i++;
-	len = strlen(begin_or_end_list);
-	psemi += i;
-	for (; i < len+1; i++) {
-		if (str[i] == ';' || str[i] == ' ' || str[i] == 0) {
-			char *value_string;
-			SMIL_BeginOrEndValue *begin_or_end_value;
-			u32 single_value_len = i - (psemi+1);
+	/* get rid of leading spaces */
+	while (*str == ' ') str++;
 
-			GF_SAFEALLOC(value_string, single_value_len+1);
-			memcpy(value_string, str + (psemi+1), single_value_len);
-			value_string[single_value_len] = 0;
-			
-			GF_SAFEALLOC(begin_or_end_value, sizeof(SMIL_BeginOrEndValue))
-			svg_parse_begin_or_end(value_string, begin_or_end_value);
+	while (tmp = strchr(str, ';')) {
+		len = tmp-str;
+		memcpy(value_string, str, len);
+		while (value_string[len - 1] == ' ' && len > 0) len--;
+		value_string[len] = 0;
 
-			gf_list_add(values, begin_or_end_value);
-			free(value_string);
-			while (str[i] != 0 && (str[i] == ' ' || str[i] == ';')) i++;
-			psemi = i-1;
-		}
+		GF_SAFEALLOC(value, sizeof(SMIL_BeginOrEndValue))
+		svg_parse_begin_or_end(parser, e, value_string, value);
+ 		gf_list_add(values, value);
+
+		str = tmp + 1;
+		while (*str == ' ') str++;
 	}
 
+	len = strlen(str);
+	memcpy(value_string, str, len);
+	while (value_string[len - 1] == ' ' && len > 0) len--;
+	value_string[len] = 0;
+
+	GF_SAFEALLOC(value, sizeof(SMIL_BeginOrEndValue))
+	svg_parse_begin_or_end(parser, e, value_string, value);
+ 	gf_list_add(values, value);
+
+	/* sorting timing values */
+	if (gf_list_count(values) > 1) {
+		SMIL_BeginOrEndValue *v, *sv;
+		GF_List *sorted = gf_list_new();
+		u32 i;
+		u8 added = 0;
+		do {
+			v = gf_list_get(values, 0);
+			gf_list_rem(values, 0);
+			added = 0;
+			for (i=0; i<gf_list_count(sorted); i++) {
+				sv = gf_list_get(sorted, i);
+				if (v->type >= SMILBeginOrEnd_event) {
+					/* unresolved or indefinite so add at the end of the sorted list */
+					gf_list_add(sorted, v);
+					added = 1;
+					break;
+				} else {
+					if (sv->type >= SMILBeginOrEnd_event) {
+						gf_list_insert(sorted, v, i);
+						added = 1;
+					} else {
+						if (v->clock <= sv->clock) {
+							gf_list_insert(sorted, v, i);
+							added = 1;
+						}
+					}
+				}
+			}
+			if (!added) gf_list_add(sorted, v);
+		} while (gf_list_count(values) > 0);
+
+		for (i = 0; i < gf_list_count(sorted); i++) {
+			gf_list_add(values, gf_list_get(sorted, i));
+		}
+	}
 }
 
 void smil_parse_min_max_dur_repeatdur(SVGParser *parser, SMIL_MinMaxDurRepeatDurValue *value, char *value_string)
 {
 	if (!strcmp(value_string, "indefinite")) {
-		value->type = SMILMinMaxDurRepeatDur_clock_indefinite_value;
+		value->type = SMILMinMaxDurRepeatDur_indefinite;
 	} else if (!strcmp(value_string, "media")) {
-		value->type = SMILMinMaxDurRepeatDur_clock_media_value;
+		value->type = SMILMinMaxDurRepeatDur_value;
 	} else {
 		Double ftime;
 		svg_parse_clock_value(value_string, &ftime);
 		value->clock_value = ftime;
-		value->type = SMILMinMaxDurRepeatDur_clock_value;
+		value->type = SMILMinMaxDurRepeatDur_value;
 	}
 }
 
@@ -1509,7 +1636,7 @@ void svg_parse_attribute(SVGParser *parser, GF_FieldInfo *info, SVGElement *n, x
 		smil_parse_attributename(parser, n, (GF_FieldInfo *)info->far_ptr, attribute_content);
 		break;
 	case SMIL_BeginOrEndValues_datatype:
-		smil_parse_begin_or_end_list(parser, *(GF_List **)info->far_ptr, attribute_content);
+		smil_parse_begin_or_end_list(parser, n, *(GF_List **)info->far_ptr, attribute_content);
 		break;
 	case SMIL_MinMaxDurRepeatDurValue_datatype:
 		smil_parse_min_max_dur_repeatdur(parser, (SMIL_MinMaxDurRepeatDurValue *)info->far_ptr, attribute_content);
@@ -1872,12 +1999,18 @@ static GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 		xmllib_is_init=1;
 	}
 
+	/* determine document wallclock begin time (cf SMIL spec)*/
+	gf_utc_time_since_1970(&(parser->begin_sec), &(parser->begin_ms));
+
 	doc = xmlParseFile(parser->fileName);
 	if (doc == NULL) return GF_BAD_PARAM;
 	root = xmlDocGetRootElement(doc);
 
 	/* Scene Graph related code */
 	parser->ided_nodes = gf_list_new();
+
+	/* List of elements to be after parsing but before rendering */
+	parser->unresolved_timing_elements = gf_list_new();
 
 	n = svg_parse_element(parser, root, NULL);
 	if (n) {
@@ -1896,6 +2029,17 @@ static GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 		gf_sg_set_root_node(parser->graph, (GF_Node *)n);
 	}
 
+	/* Resolve time elements */
+	while (gf_list_count(parser->unresolved_timing_elements) > 0) {
+		SMIL_BeginOrEndValue *v = gf_list_get(parser->unresolved_timing_elements, 0);
+		gf_list_rem(parser->unresolved_timing_elements, 0);
+		v->element = gf_sg_find_node_by_name(parser->graph, v->element_id);
+		if (v->element) {
+			free(v->element_id);
+			v->element_id = NULL;
+		}
+	}
+		
 	return GF_OK;
 }
 
@@ -2029,6 +2173,7 @@ void SVGParser_Terminate(SVGParser *parser)
 	xmllib_is_init = 0;
 
 	gf_list_del(parser->ided_nodes);
+	gf_list_del(parser->unresolved_timing_elements);
 	if (parser->fileName) free(parser->fileName);
 	if (parser->szOriginalRad) free(parser->szOriginalRad);
 	free(parser);

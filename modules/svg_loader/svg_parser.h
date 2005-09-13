@@ -89,11 +89,16 @@ struct _svg_parser
 	char *szOriginalRad;
 	u32 seg_idx;
 
+	/* Unresolved begin/end value */
+	GF_List *unresolved_timing_elements;
+
 	GF_List *ided_nodes;
 	u32 max_node_id;
 
 	u32 svg_w, svg_h;
 
+	/* Document wallclock begin UTC since 1970 */
+	u32 begin_sec, begin_ms;
 #ifdef USE_GPAC_CACHE_MECHANISM
 	/* to handle 'data:' urls */
 	u32 cacheID;

@@ -135,7 +135,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	DrawableContext *ctx;
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
-/*	switch(gf_node_get_tag(node)) {
+	switch(gf_node_get_tag(node)) {
 	case TAG_SVG_image:
 		{
 			SVGimageElement *image = (SVGimageElement *)node;
@@ -151,7 +151,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 		}
 		break;
 	}
-*/
+
 	/*we never cache anything with bitmap...*/
 	gf_node_dirty_clear(node, 0);
 

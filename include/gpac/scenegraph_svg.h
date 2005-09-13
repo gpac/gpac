@@ -143,26 +143,55 @@ typedef DOM_String SVG_XSLT_QName;
 typedef GF_FieldInfo SMIL_AttributeName;
 
 enum {
-	SMILBeginOrEnd_offset_value = 0,
-	SMILBeginOrEnd_syncbase_value,
-	SMILBeginOrEnd_event_value,
-	SMILBeginOrEnd_repeat_value,
-	SMILBeginOrEnd_accessKey_value,
-	SMILBeginOrEnd_wallclock_sync_value,
-	SMILBeginOrEnd_indefinite
+	SMILBeginOrEnd_clock		= 0,
+	SMILBeginOrEnd_wallclock	= 1,
+	SMILBeginOrEnd_event		= 2,
+	SMILBeginOrEnd_indefinite	= 3
+};
+
+enum {
+	unknown				= 0, 
+	begin				= 1,
+	end					= 2,
+	repeat				= 3,
+	focusin				= 4,
+	focusout			= 5, 
+	activate			= 6, 
+	click				= 7, 
+	mouseup				= 8, 
+	mousedown			= 9, 
+	mouseover			=10, 
+	mouseout			=11, 
+	mousemove			=12, 
+	load				=13, 
+	resize				=14, 
+	scroll				=15, 
+	zoom				=16,
+	key					=17
 };
 
 typedef struct {
+	/* Type of timing value*/
 	u8 type;
-	Double clock_value;
+	/* in case of syncbase, event, repeat value: this is the pointer to the source of the event */
+	void *element; 
+	/* id of the element before resolution of the pointer to the element */
+	char *element_id; 
+
+	/* the animation event, the type of syncbase, ... */
+	u8 event;
+	/* either keyCode when event is accessKey or repeatCount when event is repeat */
+	u32 parameter; 
+
+	Double clock;
 } SMIL_BeginOrEndValue;
 
 typedef GF_List * SMIL_BeginOrEndValues;
 
 enum {
-	SMILMinMaxDurRepeatDur_clock_indefinite_value = 0,
-	SMILMinMaxDurRepeatDur_clock_value,
-	SMILMinMaxDurRepeatDur_clock_media_value
+	SMILMinMaxDurRepeatDur_indefinite = 0,
+	SMILMinMaxDurRepeatDur_value,
+	SMILMinMaxDurRepeatDur_media
 };
 typedef struct {
 	u8 type;
@@ -185,13 +214,13 @@ typedef u8 SMIL_FillValue;
 
 typedef Fixed SMIL_RepeatCountValue;
 
-/* TODO: replace SMIL_AnimateValue type by void*, coz' datatype is useless */
+/* TODO: replace SMIL_AnimateValue type by void*, because datatype is useless */
 typedef struct {
 	u8 datatype;
 	void *value;
 } SMIL_AnimateValue;
 
-/* TODO: replace SMIL_AnimateValues type by GF_List*, coz' datatype is useless */
+/* TODO: replace SMIL_AnimateValues type by GF_List*, because datatype is useless */
 typedef struct {
 	u8 datatype;
 	GF_List *values;

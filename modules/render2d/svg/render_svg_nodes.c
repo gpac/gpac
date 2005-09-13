@@ -926,8 +926,8 @@ static void SVG_OnUserEvent_a(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *s
 			SVGsetElement *set = (SVGsetElement *)a->xlink_href.target_element;
 			SMIL_BeginOrEndValue *begin;
 			GF_SAFEALLOC(begin, sizeof(SMIL_BeginOrEndValue));
-			begin->type = SMILBeginOrEnd_offset_value;
-			begin->clock_value = gf_node_get_scene_time((GF_Node *)set);
+			begin->type = SMILBeginOrEnd_clock;
+			begin->clock = gf_node_get_scene_time((GF_Node *)set);
 			gf_list_insert(set->begin, begin, 0);
 		}
 	}

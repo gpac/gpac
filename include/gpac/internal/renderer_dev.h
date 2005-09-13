@@ -48,6 +48,7 @@
 
 void *getDanaeMediaOjbectFromUrl(void *session, char *url, int dmo_type);
 void releaseDanaeMediaObject(void *dmo);
+void loadDanaeUrl(void *session, char *url);
 #endif
 #endif
 

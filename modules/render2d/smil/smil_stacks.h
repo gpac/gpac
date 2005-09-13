@@ -42,6 +42,13 @@ enum {
 	SMIL_STATUS_DONE
 };
 
+typedef struct {
+	SMIL_BeginOrEndValue begin;
+	SMIL_BeginOrEndValue end;
+	Bool is_valid;
+	u32 allocation_cycle;
+} SMIL_Interval;
+
 typedef struct _smil_anim_stack
 {
 	GF_TimeNode time_handle;
@@ -49,9 +56,15 @@ typedef struct _smil_anim_stack
 
 	/* SMIL element life-cycle status */
 	u8 status;
+	u32 cycle_number;
+
+	SMIL_Interval currentInterval;
+
+	/* to be replaced with interval */
+	Double begin, end;
 
 	/* negative values mean indefinite */
-	Double begin, end, simple_duration, active_duration;
+	Double simple_duration, active_duration;
 	Bool is_active_duration_clamped_to_min;
 
 	u32 nb_iterations;

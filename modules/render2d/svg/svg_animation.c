@@ -30,63 +30,216 @@ static Fixed SVG_Interpolate(Fixed keyValue1, Fixed keyValue2, Fixed fraction)
 	return gf_mulfix(keyValue2 - keyValue1, fraction) + keyValue1;
 }
 
-static void SVG_AccumulateColor(u8 accumulate, u32 nb_iterations, 
+
+/* Color functions */
+/* c = a + b */
+static void SVG_AddColor(SVG_Color a, SVG_Color b, SVG_Color *c)
+{
+	c->red   = a.red   + b.red;
+	c->green = a.green + b.green;
+	c->blue  = a.blue  + b.blue;
+}
+
+/* c = k*a */
+static void SVG_MulColor(SVG_Color a, Fixed k, SVG_Color *c)
+{
+	c->red   = k * a.red;
+	c->green = k * a.green;
+	c->blue  = k * a.blue;
+}
+
+/* max(0, min(1, color_component)) */
+static void SVG_ClampColor(SVG_Color *a)
+{
+	a->red   = MAX(0, MIN(FIX_ONE, a->red));
+	a->green = MAX(0, MIN(FIX_ONE, a->green));
+	a->blue  = MAX(0, MIN(FIX_ONE, a->blue));
+}
+
+/* a = b */
+static void SVG_AssignColor(SVG_Color *a, SVG_Color b)
+{
+	a->red   = b.red;
+	a->green = b.green;
+	a->blue  = b.blue;
+}
+
+static void SVG_AccumulateColor(u8 accumulate, 
+								u32 nb_iterations, 
 								SVG_Color current,
 								SVG_Color last,
 								SVG_Color *accumulated)
 {
 	if (accumulate == SMILAccumulateValue_none) {
-		accumulated->red = current.red;
-		accumulated->green = current.green;
-		accumulated->blue = current.blue;
+		SVG_AssignColor(accumulated, current);
 	} else {
-		accumulated->red = MAX(0 , MIN(FIX_ONE, current.red + nb_iterations*last.red));
-		accumulated->green = MAX(0 , MIN(FIX_ONE, current.green + nb_iterations*last.green));
-		accumulated->blue = MAX(0 , MIN(FIX_ONE, current.blue + nb_iterations*last.blue));
+		SVG_Color tmp;
+		SVG_MulColor(last, INT2FIX(nb_iterations), &tmp);
+		SVG_AddColor(current, tmp, &tmp);
+		SVG_ClampColor(&tmp);
+		SVG_AssignColor(accumulated, tmp);
 	}
 }
 
-static void SVG_ApplyColor(u8 additive, SVG_Color *target, 
-										SVG_Color toApply)
+static void SVG_ApplyColor(u8 additive, 
+						   SVG_Color dom_value, 
+						   SVG_Color *target, 
+						   SVG_Color toApply)
 {
 	if (additive == SMILAdditiveValue_replace) {
-		target->red = toApply.red;
-		target->green = toApply.green;
-		target->blue = toApply.blue;
+		SVG_AssignColor(target, toApply);
 	} else {
-		target->red = MAX(0 , MIN(FIX_ONE, toApply.red + target->red));
-		target->green = MAX(0, MIN(FIX_ONE, toApply.green + target->green));
-		target->blue = MAX(0, MIN(FIX_ONE, toApply.blue + target->blue));
+		SVG_Color tmp;
+		SVG_AddColor(toApply, *target, &tmp);
+		SVG_ClampColor(&tmp);
+		SVG_AssignColor(target, tmp);
 	}
 }
+/* end of color */
 
-static void SVG_AccumulateMotion(u8 accumulate, u32 nb_iterations, 
-								SVG_Point current,
-								SVG_Point last,
-								SVG_Point *accumulated)
+/* Motion functions */
+static void SVG_AssignPoint(SVG_Point *a, SVG_Point b)
+{
+	a->x = b.x;
+	a->y = b.y;
+}
+
+static void SVG_MulPoint(SVG_Point a, Fixed k, SVG_Point *c)
+{
+	c->x = a.x * k;
+	c->y = a.y * k;
+}
+
+static void SVG_AddPoint(SVG_Point a, SVG_Point b, SVG_Point *c)
+{
+	c->x = a.x + b.x;
+	c->y = a.y + b.y;
+}
+
+static void SVG_AccumulateMotion(u8 accumulate, 
+								 u32 nb_iterations, 
+								 SVG_Point current,
+								 SVG_Point last,
+								 SVG_Point *accumulated)
 {
 	if (accumulate == SMILAccumulateValue_none) {
-		accumulated->x = current.x;
-		accumulated->y = current.y;
+		SVG_AssignPoint(accumulated, current);
 	} else {
-		accumulated->x = current.x + nb_iterations*last.x;
-		accumulated->y = current.y + nb_iterations*last.y;
+		SVG_Point tmp;
+		SVG_MulPoint(last, INT2FIX(nb_iterations), &tmp);
+		SVG_AddPoint(current, tmp, accumulated);
 	}
 }
 
-static void SVG_ApplyMotion(u8 additive, SVG_Matrix *target, SVG_Point toApply)
+static void SVG_ApplyMotion(u8 additive, 
+							SVG_Matrix dom_value, 
+							SVG_Matrix *target, 
+							SVG_Point toApply)
 {
 	if (additive == SMILAdditiveValue_replace) {
 		target->m[2] = toApply.x;
 		target->m[5] = toApply.y;
 	} else {
-		target->m[2] += toApply.x;
-		target->m[5] += toApply.y;
+		target->m[2] = dom_value.m[2] + toApply.x;
+		target->m[5] = dom_value.m[5] + toApply.y;
+	}
+}
+/* Motion functions end */
+
+/* SVG_Length functions */
+static void SVG_AssignLength(SVG_Length *a, SVG_Length b)
+{
+	a->number = b.number;
+}
+
+static void SVG_MulLength(SVG_Length a, Fixed k, SVG_Length *c)
+{
+	c->number = a.number * k;
+}
+
+static void SVG_AddLength(SVG_Length a, SVG_Length b, SVG_Length *c) 
+{
+	c->number = a.number + b.number;
+}
+
+static void SVG_AccumulateLength(u8 accumulate, 
+								 u32 nb_iterations, 
+								 SVG_Length current,
+								 SVG_Length last,
+								 SVG_Length *accumulated)
+{
+	if (accumulate == SMILAccumulateValue_none) {
+		SVG_AssignLength(accumulated, current);
+	} else {
+		SVG_Length tmp;
+		SVG_MulLength(last, INT2FIX(nb_iterations), &tmp);
+		SVG_AddLength(current, tmp, accumulated);
 	}
 }
 
-static void SVG_AccumulateTransform(u8 transformType, u8 accumulate, u32 nb_iterations, 
-									void *current,void *last, SVG_Matrix *accumulated)
+static void SVG_ApplyLength(u8 additive, 
+							SVG_Length dom_value, 
+							SVG_Length *target, 
+							SVG_Length toApply)
+{
+	if (additive == SMILAdditiveValue_replace) {
+		SVG_AssignLength(target, toApply);
+	} else {
+		SVG_AddLength(dom_value, toApply, target);
+	}
+}
+/* end of Length functions */
+
+/* Inheritable float functions */
+static void SVG_AssignIFloat(SVGInheritableFloat *a, SVGInheritableFloat b)
+{
+	a->value = b.value;
+}
+
+static void SVG_MulIFloat(SVGInheritableFloat a, Fixed k, SVGInheritableFloat *c)
+{
+	c->value = a.value * k;
+}
+
+static void SVG_AddIFloat(SVGInheritableFloat a, SVGInheritableFloat b, SVGInheritableFloat *c)
+{
+	c->value = a.value + b.value;
+}
+
+static void SVG_AccumulateIFloat(u8 accumulate, u32 nb_iterations, 
+								SVGInheritableFloat current,
+								SVGInheritableFloat last,
+								SVGInheritableFloat *accumulated)
+{
+	if (accumulate == SMILAccumulateValue_none) {
+		SVG_AssignIFloat(accumulated, current);
+	} else {
+		SVGInheritableFloat tmp;
+		SVG_MulIFloat(last, INT2FIX(nb_iterations), &tmp);
+		SVG_AddIFloat(current, tmp, accumulated);
+	}
+}
+
+static void SVG_ApplyIFloat(u8 additive, 
+							SVGInheritableFloat dom_value, 
+							SVGInheritableFloat *target, 
+							SVGInheritableFloat toApply)
+{
+	if (additive == SMILAdditiveValue_replace) {
+		SVG_AssignIFloat(target, toApply);
+	} else {
+		SVG_AddIFloat(dom_value, toApply, target);
+	}
+}
+/* end of IFloat functions */
+
+/* Transform functions */
+static void SVG_AccumulateTransform(u8 transformType, 
+									u8 accumulate, 
+									u32 nb_iterations, 
+									void *current,
+									void *last, 
+									SVG_Matrix *accumulated)
 {
 	gf_mx2d_init((*accumulated));
 	if (accumulate == SMILAccumulateValue_none) {
@@ -129,7 +282,11 @@ static void SVG_AccumulateTransform(u8 transformType, u8 accumulate, u32 nb_iter
 	}
 }
 
-static void SVG_ApplyTransform(u8 transformType, u8 additive, SVG_Matrix *target, SVG_Matrix toApply)
+static void SVG_ApplyTransform(u8 transformType, 
+							   u8 additive, 
+							   SVG_Matrix dom_value,
+							   SVG_Matrix *target, 
+							   SVG_Matrix toApply)
 {
 	if (additive == SMILAdditiveValue_replace) {
 		gf_mx2d_copy((*target), toApply);
@@ -137,48 +294,8 @@ static void SVG_ApplyTransform(u8 transformType, u8 additive, SVG_Matrix *target
 		gf_mx2d_add_matrix(target, &toApply);
 	}
 }
+/* end of Transform functions */
 
-static void SVG_AccumulateLength(u8 accumulate, u32 nb_iterations, 
-								SVG_Length current,
-								SVG_Length last,
-								SVG_Length *accumulated)
-{
-	if (accumulate == SMILAccumulateValue_none) {
-		accumulated->number = current.number;
-	} else {
-		accumulated->number = current.number + nb_iterations*last.number;
-	}
-}
-
-static void SVG_ApplyLength(u8 additive, SVG_Length *dom_value, SVG_Length *target, SVG_Length toApply)
-{
-	if (additive == SMILAdditiveValue_replace) {
-		target->number = toApply.number;
-	} else {
-		target->number = dom_value->number + toApply.number;
-	}
-}
-
-static void SVG_AccumulateIFloat(u8 accumulate, u32 nb_iterations, 
-								SVGInheritableFloat current,
-								SVGInheritableFloat last,
-								SVGInheritableFloat *accumulated)
-{
-	if (accumulate == SMILAccumulateValue_none) {
-		accumulated->value = current.value;
-	} else {
-		accumulated->value = current.value + nb_iterations*last.value;
-	}
-}
-
-static void SVG_ApplyIFloat(u8 additive, SVGInheritableFloat *target, SVGInheritableFloat toApply)
-{
-	if (additive == SMILAdditiveValue_replace) {
-		target->value = toApply.value;
-	} else {
-		target->value += toApply.value;
-	}
-}
 
 static void SVG_Apply(SMIL_AnimationStack *stack, void *value) 
 {
@@ -187,11 +304,23 @@ static void SVG_Apply(SMIL_AnimationStack *stack, void *value)
 	case SVG_Color_datatype:
 		{
 			SVG_Color tmp;
-			SVG_AccumulateColor(*(stack->accumulate), stack->nb_iterations, 
-								*(SVG_Color *)value,
-								*(SVG_Color *)last_specified_value,
-								&tmp);
-			SVG_ApplyColor(*(stack->additive), (SVG_Color *)stack->targetAttribute, tmp);
+			if (stack->accumulate) {
+				SVG_AccumulateColor(*(stack->accumulate), 
+									stack->nb_iterations, 
+									*(SVG_Color *)value,
+									*(SVG_Color *)last_specified_value,
+									&tmp);
+				SVG_ApplyColor(*(stack->additive), 
+							   *(SVG_Color *)stack->init_value,
+							   (SVG_Color *)stack->targetAttribute, 
+							   tmp);
+			} else {
+				/* should be a set element */
+				SVG_ApplyColor(SMILAccumulateValue_none, 
+							   *(SVG_Color *)stack->init_value,
+							   (SVG_Color *)stack->targetAttribute, 
+							   *(SVG_Color *)value);
+			}
 		}
 		gf_node_dirty_set(stack->target_element, GF_SG_SVG_APPEARANCE_DIRTY, 0);
 		gf_sr_invalidate(stack->compositor, NULL);
@@ -200,11 +329,22 @@ static void SVG_Apply(SMIL_AnimationStack *stack, void *value)
 	case SVG_Paint_datatype:
 		{
 			SVG_Color tmp;
-			SVG_AccumulateColor(*(stack->accumulate), stack->nb_iterations, 
-								*(SVG_Color *)value,
-								*((SVG_Paint *)last_specified_value)->color,
-								&tmp);
-			SVG_ApplyColor(*(stack->additive), ((SVG_Paint *)stack->targetAttribute)->color, tmp);
+			if (stack->accumulate) {
+				SVG_AccumulateColor(*(stack->accumulate), 
+									stack->nb_iterations, 
+									*(SVG_Color *)value,
+									*((SVG_Paint *)last_specified_value)->color,
+									&tmp);
+				SVG_ApplyColor(*(stack->additive), 
+							   *((SVG_Paint *)stack->init_value)->color,
+							   ((SVG_Paint *)stack->targetAttribute)->color, 
+							   tmp);
+			} else {
+				SVG_ApplyColor(SMILAccumulateValue_none, 
+							   *((SVG_Paint *)stack->init_value)->color,
+							   ((SVG_Paint *)stack->targetAttribute)->color, 
+							   *(SVG_Color *)value);
+			}
 			/* TODO: fix me */
 			((SVG_Paint *)stack->targetAttribute)->paintType = SVG_PAINTTYPE_COLOR;
 		}
@@ -218,18 +358,46 @@ static void SVG_Apply(SMIL_AnimationStack *stack, void *value)
 		{
 			SVG_Length tmp;
 			/* TODO: what if the values are in different units */
-			SVG_AccumulateLength(*(stack->accumulate), stack->nb_iterations, 
-								 *(SVG_Length *)value, *(SVG_Length *)last_specified_value, &tmp);
-			SVG_ApplyLength(*(stack->additive), (SVG_Length *)stack->init_value, (SVG_Length *)stack->targetAttribute, tmp);
+			if (stack->accumulate) {
+				SVG_AccumulateLength(*(stack->accumulate), 
+									 stack->nb_iterations,
+									 *(SVG_Length *)value, 
+									 *(SVG_Length *)last_specified_value, 
+									 &tmp);
+				SVG_ApplyLength(*(stack->additive), 
+					            *(SVG_Length *)stack->init_value, 
+								(SVG_Length *)stack->targetAttribute, 
+								tmp);
+			} else {
+				SVG_ApplyLength(SMILAccumulateValue_none, 
+								*(SVG_Length *)stack->init_value, 
+								(SVG_Length *)stack->targetAttribute, 
+								*(SVG_Length *)value);
+			}
 		}
 		break;
 	case SVG_TransformList_datatype:
 		{
 			SVG_Matrix tmp;
-			SVG_AccumulateTransform(stack->transformType, *(stack->accumulate), stack->nb_iterations,
-									value, last_specified_value, &tmp);
-			SVG_ApplyTransform(stack->transformType, *(stack->additive), 
-							   stack->targetAttribute, tmp);
+			if (stack->accumulate) {
+				SVG_AccumulateTransform(stack->transformType, 
+										*(stack->accumulate), 
+										stack->nb_iterations,
+										value, 
+										last_specified_value, 
+										&tmp);
+				SVG_ApplyTransform(stack->transformType, 
+								   *(stack->additive), 
+								   *(SVG_Matrix *)stack->init_value,
+								   stack->targetAttribute, 
+								   tmp);
+			} else {
+				SVG_ApplyTransform(stack->transformType, 
+								   SMILAccumulateValue_none, 
+								   *(SVG_Matrix *)stack->init_value,
+								   stack->targetAttribute, 
+								   *(GF_Matrix2D *)value);
+			}
 		}
 		break;
 	case SVG_DisplayValue_datatype:
@@ -243,9 +411,22 @@ static void SVG_Apply(SMIL_AnimationStack *stack, void *value)
 	case SVG_Motion_datatype:
 		{ 
 			SVG_Point tmp;
-			SVG_AccumulateMotion(*(stack->accumulate), stack->nb_iterations, 
-								 *(SVG_Point *)value, *(SVG_Point *)last_specified_value, &tmp);
-			SVG_ApplyMotion(*(stack->additive), (SVG_Matrix *)stack->targetAttribute, tmp);
+			if (stack->accumulate) {
+				SVG_AccumulateMotion(*(stack->accumulate), 
+									 stack->nb_iterations, 
+									 *(SVG_Point *)value, 
+									 *(SVG_Point *)last_specified_value, 
+									 &tmp);
+				SVG_ApplyMotion(*(stack->additive), 
+							    *(SVG_Matrix *)stack->init_value,
+								(SVG_Matrix *)stack->targetAttribute, 
+								tmp);
+			} else {
+				SVG_ApplyMotion(SMILAccumulateValue_none, 
+					            *(SVG_Matrix *)stack->init_value,
+								(SVG_Matrix *)stack->targetAttribute, 
+								*(SVG_Point *)value);
+			}
 		}
 		break;
 	case SVG_StrokeDashOffsetValue_datatype:
@@ -255,11 +436,22 @@ static void SVG_Apply(SMIL_AnimationStack *stack, void *value)
 		{
 			SVGInheritableFloat tmp;
 			/* TODO: what if the values are in different units */
-			SVG_AccumulateIFloat(*(stack->accumulate), stack->nb_iterations, 
-								 *(SVGInheritableFloat *)value, 
-								 *(SVGInheritableFloat *)last_specified_value, 
-								 &tmp);
-			SVG_ApplyIFloat(*(stack->additive), (SVGInheritableFloat *)stack->targetAttribute, tmp);
+			if (stack->accumulate) {
+				SVG_AccumulateIFloat(*(stack->accumulate), 
+									 stack->nb_iterations, 
+									 *(SVGInheritableFloat *)value, 
+									 *(SVGInheritableFloat *)last_specified_value, 
+									 &tmp);
+				SVG_ApplyIFloat(*(stack->additive), 
+					            *(SVGInheritableFloat *)stack->init_value,
+								(SVGInheritableFloat *)stack->targetAttribute, 
+								tmp);
+			} else {
+				SVG_ApplyIFloat(SMILAccumulateValue_none, 
+					            *(SVGInheritableFloat *)stack->init_value,
+					            (SVGInheritableFloat *)stack->targetAttribute, 
+								*(SVGInheritableFloat *)value);
+			}
 		}
 		break;
 	default:
@@ -270,8 +462,10 @@ static void SVG_Apply(SMIL_AnimationStack *stack, void *value)
 	gf_sr_invalidate(stack->compositor, NULL);
 }
 
-static void SVG_InterpolateAndAccumulate(SMIL_AnimationStack *stack, Fixed interpFraction, 
-						   void *value1, void *value2)
+static void SVG_InterpolateAndAccumulate(SMIL_AnimationStack *stack, 
+										 Fixed interpFraction, 
+										 void *value1, 
+										 void *value2)
 {
 	switch(stack->targetAttributeType) {
 	case SVG_Paint_datatype:
@@ -290,7 +484,9 @@ static void SVG_InterpolateAndAccumulate(SMIL_AnimationStack *stack, Fixed inter
 	case SVG_Coordinate_datatype:
 		{
 			SVG_Length toLength;
-			toLength.number = SVG_Interpolate( ((SVG_Length *)value1)->number, ((SVG_Length *)value2)->number, interpFraction);
+			toLength.number = SVG_Interpolate(((SVG_Length *)value1)->number, 
+											  ((SVG_Length *)value2)->number, 
+											  interpFraction);
 			SVG_Apply(stack, &toLength);
 		}
 		break;
@@ -342,7 +538,9 @@ static void SVG_InterpolateAndAccumulate(SMIL_AnimationStack *stack, Fixed inter
 	case SVG_StrokeMiterLimitValue_datatype:
 		{
 			SVGInheritableFloat toFloat;
-			toFloat.value = SVG_Interpolate(((SVGInheritableFloat *)value1)->value, ((SVGInheritableFloat *)value2)->value, interpFraction);
+			toFloat.value = SVG_Interpolate(((SVGInheritableFloat *)value1)->value, 
+											((SVGInheritableFloat *)value2)->value, 
+											interpFraction);
 			SVG_Apply(stack, &toFloat);
 		}
 		break;
@@ -374,8 +572,10 @@ static void SVG_SaveBaseValue(SMIL_AnimationStack *stack)
 		memcpy(stack->init_value, stack->targetAttribute, sizeof(SVG_Color));
 		break;
 	case SVG_Paint_datatype:
-		GF_SAFEALLOC(stack->init_value, sizeof(SVG_Color))
-		memcpy((SVG_Color *)stack->init_value, ((SVG_Paint *)stack->targetAttribute)->color, sizeof(SVG_Color));
+		GF_SAFEALLOC(stack->init_value, sizeof(SVG_Paint))
+		memcpy((SVG_Paint *)stack->init_value, (SVG_Paint *)stack->targetAttribute, sizeof(SVG_Paint));
+		GF_SAFEALLOC(((SVG_Paint *)stack->init_value)->color, sizeof(SVG_Color))
+		memcpy(((SVG_Paint *)stack->init_value)->color, ((SVG_Paint *)stack->targetAttribute)->color, sizeof(SVG_Color));
 		break;
 	case SVG_StrokeWidthValue_datatype:
 	case SVG_Length_datatype:
@@ -425,24 +625,42 @@ static void SVG_RestoreValue(SMIL_AnimationStack *stack, Bool init_or_last)
 	switch(stack->targetAttributeType) {
 	case SVG_Color_datatype:
 		if (init_or_last) {
-			SVG_ApplyColor(SMILAdditiveValue_replace, (SVG_Color *)stack->targetAttribute, *(SVG_Color *)value);
+			SVG_ApplyColor(SMILAdditiveValue_replace, 
+						   *(SVG_Color *)stack->init_value,
+						   (SVG_Color *)stack->targetAttribute, 
+						   *(SVG_Color *)value);
 		} else {
 			SVG_Color tmp;
-			SVG_AccumulateColor(*(stack->accumulate), stack->nb_iterations, 
-								*(SVG_Color *)value, *(SVG_Color *)value, &tmp);
-			SVG_ApplyColor(*stack->additive, (SVG_Color *)stack->targetAttribute, tmp);
+			SVG_AccumulateColor(*(stack->accumulate), 
+								FIX2INT(*stack->repeatCount)-1, 
+								*(SVG_Color *)value, 
+								*(SVG_Color *)value, 
+								&tmp);
+			SVG_ApplyColor(*stack->additive, 
+						   *(SVG_Color *)stack->init_value,
+						   (SVG_Color *)stack->targetAttribute, 
+						   tmp);
 		}
 		break;
 	case SVG_Paint_datatype:
 		/*TODO: do it with the SVG_Paint type not SVG_Color, otherwise pb with paint.type 
 		e.g. will not restore inherit */
 		if (init_or_last) {
-			SVG_ApplyColor(SMILAdditiveValue_replace, ((SVG_Paint *)stack->targetAttribute)->color, *(SVG_Color *)value);
+			SVG_ApplyColor(SMILAdditiveValue_replace, 
+						   *((SVG_Paint *)stack->init_value)->color, 
+						   ((SVG_Paint *)stack->targetAttribute)->color, 
+						   *(SVG_Color *)value);
 		} else {
 			SVG_Color tmp;
-			SVG_AccumulateColor(*(stack->accumulate), stack->nb_iterations, 
-								*(SVG_Color *)value, *(SVG_Color *)value, &tmp);
-			SVG_ApplyColor(*stack->additive, ((SVG_Paint *)stack->targetAttribute)->color, tmp);
+			SVG_AccumulateColor(*(stack->accumulate), 
+								FIX2INT(*stack->repeatCount)-1, 
+								*(SVG_Color *)value, 
+								*(SVG_Color *)value, 
+								&tmp);
+			SVG_ApplyColor(*stack->additive, 
+						   *((SVG_Paint *)stack->init_value)->color, 
+						   ((SVG_Paint *)stack->targetAttribute)->color, 
+						   tmp);
 			/*TODO: fix me : restore type value */
 			((SVG_Paint *)stack->targetAttribute)->paintType = SVG_PAINTTYPE_COLOR;
 		}
@@ -451,17 +669,30 @@ static void SVG_RestoreValue(SMIL_AnimationStack *stack, Bool init_or_last)
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 		if (init_or_last) {
-			SVG_ApplyLength(SMILAdditiveValue_replace, stack->init_value, (SVG_Length *)stack->targetAttribute, *(SVG_Length *)value);
+			SVG_ApplyLength(SMILAdditiveValue_replace, 
+							*(SVG_Length *)stack->init_value, 
+							(SVG_Length *)stack->targetAttribute, 
+							*(SVG_Length *)value);
 		} else {
 			SVG_Length tmp;
-			SVG_AccumulateLength(*(stack->accumulate), stack->nb_iterations, 
-								 *(SVG_Length *)value, *(SVG_Length *)value, &tmp);
-			SVG_ApplyLength(*(stack->additive), stack->init_value, (SVG_Length *)stack->targetAttribute, tmp);
+			SVG_AccumulateLength(*(stack->accumulate), 
+								 FIX2INT(*stack->repeatCount)-1, 
+								 *(SVG_Length *)value, 
+								 *(SVG_Length *)value, 
+								 &tmp);
+			SVG_ApplyLength(*(stack->additive), 
+							*(SVG_Length *)stack->init_value, 
+							(SVG_Length *)stack->targetAttribute, 
+							tmp);
 		}
 		break;
 	case SVG_TransformList_datatype:
 		if (init_or_last) {
-			SVG_ApplyTransform(stack->transformType, SMILAdditiveValue_replace, (SVG_Matrix *)stack->targetAttribute, *(SVG_Matrix *)value);
+			SVG_ApplyTransform(stack->transformType, 
+							   SMILAdditiveValue_replace, 
+							   *(SVG_Matrix *)stack->init_value, 
+							   (SVG_Matrix *)stack->targetAttribute, 
+							   *(SVG_Matrix *)value);
 /*			fprintf(stdout, "a=%f, b=%f, c=%f, d=%f, e=%f, f=%f\n", FIX2FLT(((SVG_Matrix *)value)->m[0]),
 																	FIX2FLT(((SVG_Matrix *)value)->m[1]),
 																	FIX2FLT(((SVG_Matrix *)value)->m[2]),
@@ -472,9 +703,17 @@ static void SVG_RestoreValue(SMIL_AnimationStack *stack, Bool init_or_last)
 		} else {
 			/*TODO: accumulation ... ? */
 			SVG_Matrix tmp;
-			SVG_AccumulateTransform(stack->transformType, *(stack->accumulate), stack->nb_iterations,
-									value, value, &tmp);
-			SVG_ApplyTransform(stack->transformType, *stack->additive, (SVG_Matrix *)stack->targetAttribute, tmp);
+			SVG_AccumulateTransform(stack->transformType, 
+									*(stack->accumulate), 
+									FIX2INT(*stack->repeatCount)-1,
+									value, 
+									value, 
+									&tmp);
+			SVG_ApplyTransform(stack->transformType, 
+							   *stack->additive, 
+							   *(SVG_Matrix *)stack->init_value, 
+							   (SVG_Matrix *)stack->targetAttribute, 
+							   tmp);
 /*			fprintf(stdout, "a=%f, b=%f, c=%f, d=%f, e=%f, f=%f\n", FIX2FLT(tmp.m[0]),
 																	FIX2FLT(tmp.m[1]),
 																	FIX2FLT(tmp.m[2]),
@@ -489,12 +728,21 @@ static void SVG_RestoreValue(SMIL_AnimationStack *stack, Bool init_or_last)
 		break;
 	case SVG_Motion_datatype:
 		if (init_or_last) {
-			SVG_ApplyMotion(SMILAdditiveValue_replace, (SVG_Matrix *)stack->targetAttribute, *(SVG_Point *)value);
+			SVG_ApplyMotion(SMILAdditiveValue_replace, 
+							*(SVG_Matrix *)stack->init_value, 
+							(SVG_Matrix *)stack->targetAttribute, 
+							*(SVG_Point *)value);
 		} else {
 			SVG_Point tmp;
-			SVG_AccumulateMotion(*(stack->accumulate), stack->nb_iterations, 
-								 *(SVG_Point *)value, *(SVG_Point *)value, &tmp);
-			SVG_ApplyMotion(*(stack->additive), (SVG_Matrix *)stack->targetAttribute, tmp);
+			SVG_AccumulateMotion(*(stack->accumulate), 
+								 FIX2INT(*stack->repeatCount)-1, 
+								 *(SVG_Point *)value, 
+								 *(SVG_Point *)value, 
+								 &tmp);
+			SVG_ApplyMotion(*(stack->additive), 
+							*(SVG_Matrix *)stack->init_value, 
+							(SVG_Matrix *)stack->targetAttribute, 
+							tmp);
 		}
 		break;
 	case SVG_StrokeDashOffsetValue_datatype:
@@ -502,15 +750,22 @@ static void SVG_RestoreValue(SMIL_AnimationStack *stack, Bool init_or_last)
 	case SVG_FontSizeValue_datatype:
 	case SVG_StrokeMiterLimitValue_datatype:
 		if (init_or_last) {
-			SVG_ApplyIFloat(SMILAdditiveValue_replace, (SVGInheritableFloat *)stack->targetAttribute, *(SVGInheritableFloat *)value);
+			SVG_ApplyIFloat(SMILAdditiveValue_replace, 
+							*(SVGInheritableFloat *)stack->init_value, 
+							(SVGInheritableFloat *)stack->targetAttribute, 
+							*(SVGInheritableFloat *)value);
 		} else {
 			SVGInheritableFloat tmp;
 			/* TODO: what if the values are in different units */
-			SVG_AccumulateIFloat(*(stack->accumulate), stack->nb_iterations, 
+			SVG_AccumulateIFloat(*(stack->accumulate), 
+								 FIX2INT(*stack->repeatCount)-1, 
 								 *(SVGInheritableFloat *)value, 
 								 *(SVGInheritableFloat *)value, 
 								 &tmp);
-			SVG_ApplyIFloat(*(stack->additive), (SVGInheritableFloat *)stack->targetAttribute, tmp);
+			SVG_ApplyIFloat(*(stack->additive), 
+							*(SVGInheritableFloat *)stack->init_value, 
+							(SVGInheritableFloat *)stack->targetAttribute, 
+							tmp);
 		}
 		break;
 	default:
@@ -521,8 +776,11 @@ static void SVG_RestoreValue(SMIL_AnimationStack *stack, Bool init_or_last)
 static void SVG_DeleteStack(SMIL_AnimationStack *stack)
 {
 	switch(stack->targetAttributeType) {
-	case SVG_Color_datatype:
 	case SVG_Paint_datatype:
+		free(((SVG_Paint *)stack->init_value)->color);
+		free(stack->init_value);
+		break;
+	case SVG_Color_datatype:
 	case SVG_StrokeWidthValue_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
@@ -570,7 +828,7 @@ void SVG_Init_set(Render2D *sr, GF_Node *node)
 	stack->min = &(set->min); 
 	stack->max = &(set->max); 
 	stack->fill = &(set->fill); 
-	stack->to = &(set->to); 
+	stack->to = &(set->to);
 }
 
 void SVG_Init_animate(Render2D *sr, GF_Node *node)

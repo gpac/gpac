@@ -644,6 +644,8 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 				fprintf(output, "\tfree(p->fill.color);\n");
 			} else if (!strcmp(att->svg_name, "stroke")) {
 				fprintf(output, "\tfree(p->stroke.color);\n");
+			} else if (!strcmp(att->svg_name, "viewport-fill")) {
+				fprintf(output, "\tfree(p->viewport_fill.color);\n");
 			} else if (!strcmp(att->svg_name, "stroke-dasharray")) {
 				fprintf(output, "\tfree(p->stroke_dasharray.array.vals);\n");
 			} else if (!strcmp(att->svg_name, "stop-color")) {
@@ -703,6 +705,9 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			} else if (!strcmp(att->svg_name, "stroke")) {
 				fprintf(output, "\tp->stroke.paintType = SVG_PAINTTYPE_INHERIT;\n");
 				fprintf(output, "\tGF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));\n");
+			} else if (!strcmp(att->svg_name, "viewport-fill")) {
+				fprintf(output, "\tp->viewport_fill.paintType = SVG_PAINTTYPE_INHERIT;\n");
+				fprintf(output, "\tGF_SAFEALLOC(p->viewport_fill.color, sizeof(SVG_Color));\n");
 			} else if (!strcmp(att->svg_name, "stop-color")) {
 				fprintf(output, "\tp->stop_color.paintType = SVG_PAINTTYPE_INHERIT;\n");
 				fprintf(output, "\tGF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));\n");
