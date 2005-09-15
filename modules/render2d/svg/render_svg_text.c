@@ -92,7 +92,7 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 				sprintf(styles, "%s", "ITALIC");
 				break;
 			}
-			if (ft_dr->set_font(ft_dr, eff->svg_props->font_family->value.string, styles) != GF_OK) {
+			if (ft_dr->set_font(ft_dr, eff->svg_props->font_family->value, styles) != GF_OK) {
 				if (ft_dr->set_font(ft_dr, NULL, styles) != GF_OK) {
 					return;
 				}

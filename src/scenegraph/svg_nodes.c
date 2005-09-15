@@ -46,7 +46,7 @@ static void SVG_a_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -1080,12 +1080,12 @@ static GF_Err SVG_animateMotion_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "path";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PathData_datatype;
 			info->far_ptr = & ((SVGanimateMotionElement *)node)->path;
 			return GF_OK;
 		case 34:
 			info->name = "keyPoints";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SMIL_KeyPointsValues_datatype;
 			info->far_ptr = & ((SVGanimateMotionElement *)node)->keyPoints;
 			return GF_OK;
 		case 35:
@@ -1123,6 +1123,7 @@ void *SVG_New_animateMotion()
 	p->values.values = gf_list_new();
 	p->keyTimes = gf_list_new();
 	p->keySplines = gf_list_new();
+	p->keyPoints = gf_list_new();
 	return p;
 }
 
@@ -1767,7 +1768,7 @@ static void SVG_circle_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -2170,7 +2171,7 @@ static void SVG_defs_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -2676,7 +2677,7 @@ static void SVG_ellipse_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -3655,7 +3656,7 @@ static void SVG_foreignObject_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -4103,7 +4104,7 @@ static void SVG_g_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -5017,7 +5018,7 @@ static void SVG_line_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -5424,7 +5425,7 @@ static void SVG_linearGradient_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -6006,7 +6007,7 @@ static void SVG_path_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -6407,7 +6408,7 @@ static void SVG_polygon_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -6802,7 +6803,7 @@ static void SVG_polyline_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -7321,7 +7322,7 @@ static void SVG_radialGradient_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -7638,7 +7639,7 @@ static void SVG_rect_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -8332,7 +8333,7 @@ static void SVG_solidColor_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -8633,7 +8634,7 @@ static void SVG_stop_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -8939,7 +8940,7 @@ static void SVG_svg_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -9356,7 +9357,7 @@ static void SVG_switch_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -9761,7 +9762,7 @@ static void SVG_text_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -10166,7 +10167,7 @@ static void SVG_textArea_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -10648,7 +10649,7 @@ static void SVG_tspan_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -11031,7 +11032,7 @@ static void SVG_use_Del(GF_Node *node)
 	free(p->stroke_dasharray.array.vals);
 	free(p->viewport_fill.color);
 	free(p->stop_color.color);
-	free(p->font_family.value.string);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }

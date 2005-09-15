@@ -61,7 +61,7 @@ typedef struct _smil_anim_stack
 	SMIL_Interval currentInterval;
 
 	/* to be replaced with interval */
-	Double begin, end;
+//	Double begin, end;
 
 	/* negative values mean indefinite */
 	Double simple_duration, active_duration;
@@ -69,7 +69,11 @@ typedef struct _smil_anim_stack
 
 	u32 nb_iterations;
 
-	void *init_value;
+	/* stores the DOM value */
+	void *base_value;
+
+	/* stores the intermediate value during computation*/
+	void *tmp_value;
 
 	/* animation attributes of the timenode */
 	
@@ -104,6 +108,7 @@ typedef struct _smil_anim_stack
 	SMIL_KeyTimesValues *keyTimes;
 	u32 last_keytime_index;
 	SMIL_KeySplinesValues *keySplines; 
+	SMIL_KeyPointsValues *keyPoints; 
 	SMIL_AnimateValue *from; 
 	SMIL_AnimateValue *to; 
 	SMIL_AnimateValue *by; 
@@ -115,24 +120,56 @@ typedef struct _smil_anim_stack
 
 	/* additional attributes for animateMotion*/
 	/* */
+	SVG_PathData *path;
 
 	/* additional attributes for animateTransform*/
 	/* */
 
 	/* generic api for animation */
-	void (*SetDiscreteValueAndAccumulate)(struct _smil_anim_stack *stack, void *) ;
-	void (*InterpolateAndAccumulate)(struct _smil_anim_stack *stack, Fixed interpolation_coefficient, 
-									void *value1, void *value2);
-	void (*SaveBaseValue)(struct _smil_anim_stack *stack);
-	void (*RestoreValue)(struct _smil_anim_stack *stack, Bool init_or_last);
 	void (*DeleteStack)(struct _smil_anim_stack *stack);
+
+	void (*Animate)(struct _smil_anim_stack *stack, Double sceneTime);
+
+	/* Saves the DOM value and allocates a temporary value in the stack */
+	void (*InitStackValues)(struct _smil_anim_stack *stack);
+	void (*DeleteStackValues)(struct _smil_anim_stack *stack);
+
+	/* Sets the target using the given value
+	   The target type depends on the animation.
+	   The value type depends on the animation and is not necessarily the same as the target type. */
+	void (*Set)(void *target, void *value);
+
+	/* Sets the target using the given value
+	   The target type depends on the animation.
+	   The value type MUST BE the same as the target type. */
+	void (*Assign)(void *target, void *value);
+
+	/* Linearly interpolates a value from value1 to value2 using the given coef
+	   The target type depends on the animation.
+	   The value1 and value2 type depends on the animation and are not necessarily the same as the target type. */
+	void (*Interpolate)(Fixed interpolation_coefficient, void *value1, void *value2, void *target);
+
+	/* Current value can be either the dom or the tmp value depending on the value of additive
+	   all parameters are of same type */
+	void (*ApplyAdditive)(void *current_value, void *toApply, void *target);
+	/* current is the temporary value, 
+	   last is the last specified in the animation 
+	   accumulated is the result
+	   current and accumulated are of the same type. last may not be of the same type */
+	void (*ApplyAccumulate)(u32 nb_iterations, void *current, void *last, void *accumulated);
+
+	void (*Invalidate)(struct _smil_anim_stack *stack);
 
 } SMIL_AnimationStack;
 
-SMIL_AnimationStack *SMIL_Init_AnimationStack(Render2D *sr, GF_Node *node, void (*UpdateTimeNode)(GF_TimeNode *));
+/* To be called for GPAC core initialisation of timed element */
+SMIL_AnimationStack *SMIL_Init_AnimationStack(Render2D *sr, GF_Node *node);
+
+/* To be called after the animation attributes have been assigned in the stack */
+void SMIL_InitAnimateFunction(SMIL_AnimationStack *stack);
+
 void SMIL_Update_Animation(GF_TimeNode *timenode);
 void SMIL_Modified_Animation(GF_Node *node);
-void *SMIL_GetLastSpecifiedValue(SMIL_AnimationStack *stack);
 
 #endif // GPAC_DISABLE_SMIL
 

@@ -62,12 +62,13 @@ static void SVG_Draw_bitmap(DrawableContext *ctx)
 
 	sr = ctx->surface->render;
 
-	/* no rotation allowed, remove skew components */
-	/* ctx->transform.m[1] = ctx->transform.m[3] = 0; */
 
 	has_scale = 0;
 	use_hw = 1;
 	alpha = GF_COL_A(ctx->aspect.fill_color);
+
+	/* no rotation allowed, remove skew components */
+	if (ctx->transform.m[1] || ctx->transform.m[3]) use_hw = 0;
 
 	/*check if driver can handle alpha blit*/
 	if (alpha!=255) {

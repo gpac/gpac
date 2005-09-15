@@ -292,8 +292,8 @@ typedef struct _tagSVGanimateMotionElement
 	SMIL_AnimateValue from; /* optional, animatable: no, inheritable: false */
 	SMIL_AnimateValue to; /* optional, animatable: no, inheritable: false */
 	SMIL_AnimateValue by; /* optional, animatable: no, inheritable: false */
-	SVG_String path; /* optional, animatable: no, inheritable: false */
-	SVG_String keyPoints; /* optional, animatable: no, inheritable: false */
+	SVG_PathData path; /* optional, animatable: no, inheritable: false */
+	SMIL_KeyPointsValues keyPoints; /* optional, animatable: no, inheritable: false */
 	SVG_String rotate; /* optional, animatable: no, inheritable: false */
 	SVG_String origin; /* optional, animatable: no, inheritable: false */
 } SVGanimateMotionElement;

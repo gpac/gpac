@@ -98,7 +98,8 @@ enum {
 	SVG_Focus_datatype						= 60,
 	SVG_ID_datatype							= 61,
 	SVG_FontList_datatype					= 62,
-	SVG_XSLT_QName_datatype					= 63
+	SVG_XSLT_QName_datatype					= 63,
+	SMIL_KeyPointsValues_datatype			= 64
 };
 
 /* 
@@ -114,10 +115,7 @@ enum {
 typedef GF_FieldInfo SVGAttributeInfo;
 
 /* Definition of SVG base data types */
-typedef struct {
-	u32 length;
-	u8 *string;
-} DOM_String;
+typedef u8 *DOM_String;
 typedef DOM_String SVG_Text;
 typedef u8 *SVG_TextContent;
 typedef DOM_String SVG_String;
@@ -227,6 +225,7 @@ typedef struct {
 } SMIL_AnimateValues;
 
 typedef GF_List * SMIL_KeyTimesValues;
+typedef GF_List * SMIL_KeyPointsValues;
 
 /* Fixed between 0 and 1 */
 typedef GF_List * SMIL_KeySplinesValues;

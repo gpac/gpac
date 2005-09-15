@@ -43,6 +43,7 @@ void SVGParser_Terminate(SVGParser *parser);
 #ifndef GPAC_DISABLE_SVG
 
 #include <gpac/scenegraph_svg.h>
+#include <gpac/modules/codec.h>
 
 
 #include <libxml/tree.h>

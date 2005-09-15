@@ -80,8 +80,7 @@ static void SVGInitProperties(SVGStylingProperties *svg_props)
 
 	GF_SAFEALLOC(svg_props->font_family, sizeof(SVG_FontFamilyValue));
 	svg_props->font_family->type = SVGFontFamily_string;
-	svg_props->font_family->value.string = strdup("Arial");
-	svg_props->font_family->value.length = 6;
+	svg_props->font_family->value = strdup("Arial");
 
 	GF_SAFEALLOC(svg_props->font_size, sizeof(SVGInheritableFloat));
 	svg_props->font_size->type = SVGFLOAT_VALUE;
@@ -129,7 +128,7 @@ static void SVGDeleteProperties(SVGStylingProperties **svg_props)
 		free((*svg_props)->stroke_dasharray);
 	}
 	if((*svg_props)->font_family) {
-		if ((*svg_props)->font_family->value.string) free((*svg_props)->font_family->value.string);
+		if ((*svg_props)->font_family->value) free((*svg_props)->font_family->value);
 		free((*svg_props)->font_family);
 	}
 	if((*svg_props)->font_size) free((*svg_props)->font_size);
@@ -320,6 +319,7 @@ static void SVG_Render_g(GF_Node *node, void *rs)
 
 	tr = gf_list_get(g->transform, 0);
 	if (tr) {
+		//fprintf(stdout, "%f,%f,%f,%f,%f,%f\n", tr->matrix.m[0], tr->matrix.m[1],tr->matrix.m[2],tr->matrix.m[3],tr->matrix.m[4],tr->matrix.m[5]);
 		gf_mx2d_copy(eff->transform, tr->matrix);
 		gf_mx2d_add_matrix(&eff->transform, &backup_matrix);
 	}

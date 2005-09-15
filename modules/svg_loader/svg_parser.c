@@ -28,13 +28,12 @@
 
 #ifndef GPAC_DISABLE_SVG
 
-#ifdef USE_GPAC_CACHE_MECHANISM
-#define FD_OPT_SECTION			"Downloader"
-#define FD_OPT_CACHE			"CacheDirectory"
+#include <gpac/base_coding.h>
+
 #define MAX_URI_LENGTH		4096
-#endif
 
 static Bool xmllib_is_init = 0;
+
 
 
 /* Generic Scene Graph handling functions for ID */
@@ -1089,8 +1088,7 @@ void svg_parse_fontfamily(SVGParser *parser, SVG_FontFamilyValue *value, char *v
 		value->type = SVGFontFamily_inherit;
 	} else {
 		value->type = SVGFontFamily_string;
-		value->value.string = strdup(value_string);
-		value->value.length = strlen(value_string);
+		value->value = strdup(value_string);
 	}
 }
 
@@ -1222,7 +1220,7 @@ void smil_parse_min_max_dur_repeatdur(SVGParser *parser, SMIL_MinMaxDurRepeatDur
 	if (!strcmp(value_string, "indefinite")) {
 		value->type = SMILMinMaxDurRepeatDur_indefinite;
 	} else if (!strcmp(value_string, "media")) {
-		value->type = SMILMinMaxDurRepeatDur_value;
+		value->type = SMILMinMaxDurRepeatDur_media;
 	} else {
 		Double ftime;
 		svg_parse_clock_value(value_string, &ftime);
@@ -1379,11 +1377,11 @@ void svg_parse_iri(SVGParser *parser, SVG_IRI *iri, char *attribute_content)
 		char *mimeType_end = NULL, *encoding_end = NULL;
 		char *data;
 		u32 data_size;
+		char tmp[MAX_URI_LENGTH];
 
 		{ // initializes the path of the file to be cached
 			u32 i, last_sep;
-			char tmp[MAX_URI_LENGTH];
-			char *cache_dir = gf_modules_get_option((GF_BaseInterface *)parser->sdec, FD_OPT_SECTION, FD_OPT_CACHE);
+			const char *cache_dir = gf_modules_get_option((GF_BaseInterface *)parser->sdec, "General", "CacheDirectory");
 			if (!cache_dir || !strlen(cache_dir) ) return;
 
 			if (cache_dir[strlen(cache_dir)-1] != GF_PATH_SEPARATOR) {
@@ -1407,12 +1405,12 @@ void svg_parse_iri(SVGParser *parser, SVG_IRI *iri, char *attribute_content)
 			strcat(cache_name, tmp);
 		}
 
-		mimeType_end = strstr(attribute_content+5, ";");
+		mimeType_end = strchr(attribute_content+5, ';');
 		if (mimeType_end) {
 			memcpy(&mimeType, &(attribute_content[5]), (mimeType_end - attribute_content) - 5);
 			mimeType[(mimeType_end - attribute_content) - 5] = 0;
 		}
-		encoding_end = strstr(mimeType_end, ",");
+		encoding_end = strchr(mimeType_end, ',');
 		if (encoding_end) {
 			memcpy(&encoding, mimeType_end+1, (encoding_end - mimeType_end)-1);
 			encoding[(encoding_end - mimeType_end)-1] = 0;
@@ -1428,7 +1426,7 @@ void svg_parse_iri(SVGParser *parser, SVG_IRI *iri, char *attribute_content)
 
 		/* determine the name of the file based on the mime type 
 		   TODO: handle other mime types */
-		if (!strcmp(mimeType,"image/jpeg")) {
+		if (!strcmp(mimeType,"image/jpeg") || !strcmp(mimeType, "image/jpg") ) {
 			FILE *cache_image;
 			if (parser->cacheID<10) {
 				sprintf(tmp, "image0%i.jpg", parser->cacheID);
@@ -1444,9 +1442,8 @@ void svg_parse_iri(SVGParser *parser, SVG_IRI *iri, char *attribute_content)
 		free(data);
 
 		/* Changes the type of the URI and point it to the cache file */
-		((SVG_IRI*)info->far_ptr)->type = SVGUri_uri;
-		((SVG_IRI*)info->far_ptr)->uri.length = strlen(cache_name);
-		((SVG_IRI*)info->far_ptr)->uri.string = strdup(cache_name);
+		iri->type = SVGIri_iri;
+		iri->iri = strdup(cache_name);
 #endif
 	} else {
 		/* TODO: Handle xpointer(id()) syntax */
@@ -1483,8 +1480,13 @@ void svg_parse_animatetransform_type(SVGParser *parser, SVG_AnimateTransformType
 void *svg_parse_one_anim_value(SVGParser *parser, const char *attribute_name, u8 anim_datatype, char *single_value_string, u8 transform_anim_datatype)
 {
 	switch (anim_datatype) {
-	case SVG_Color_datatype:
-		/* TODO: is it needed ? */
+	case SVG_StrokeDashArrayValue_datatype:
+		{
+			SVG_StrokeDashArrayValue *array;
+			GF_SAFEALLOC(array, sizeof(SVG_StrokeDashArrayValue))
+			svg_parse_strokedasharray(parser, array, single_value_string);
+			return array;
+		}
 		break;
 	case SVG_Paint_datatype:
 		{
@@ -1521,6 +1523,30 @@ void *svg_parse_one_anim_value(SVGParser *parser, const char *attribute_name, u8
 			return display;
 		}
 		break;
+	case SVG_ClipFillRule_datatype:
+		{
+			SVG_ClipFillRule *clip_fill_rule;
+			GF_SAFEALLOC(clip_fill_rule, sizeof(u8))
+			svg_parse_clipfillrule(parser, clip_fill_rule, single_value_string);
+			return clip_fill_rule;
+		}
+		break;
+	case SVG_StrokeLineJoinValue_datatype:
+		{
+			SVG_StrokeLineJoinValue *linejoin;
+			GF_SAFEALLOC(linejoin, sizeof(u8))
+			svg_parse_strokelinejoin(parser, linejoin, single_value_string);
+			return linejoin;
+		}
+		break;
+	case SVG_StrokeLineCapValue_datatype:
+		{
+			SVG_StrokeLineCapValue *linecap;
+			GF_SAFEALLOC(linecap, sizeof(u8))
+			svg_parse_strokelinecap(parser, linecap, single_value_string);
+			return linecap;
+		}		
+		break;
 	case SVG_StrokeDashOffsetValue_datatype:
 	case SVG_OpacityValue_datatype:
 	case SVG_FontSizeValue_datatype:
@@ -1536,6 +1562,18 @@ void *svg_parse_one_anim_value(SVGParser *parser, const char *attribute_name, u8
 			u32 i = 0;
 			switch(transform_anim_datatype) {
 			case SVG_TRANSFORM_TRANSLATE:
+				{
+					SVG_Point *p;
+					GF_SAFEALLOC(p, sizeof(SVG_Point));
+					i+=svg_parse_coordinate(&(single_value_string[i]), &(p->x), 0);
+					if (single_value_string[i] == 0) {
+						p->y = 0;
+					} else {
+						i+=svg_parse_coordinate(&(single_value_string[i]), &(p->y), 0);
+					}
+					return p;
+				}
+				break;
 			case SVG_TRANSFORM_SCALE:
 				{
 					SVG_Point *p;
@@ -1581,6 +1619,86 @@ void *svg_parse_one_anim_value(SVGParser *parser, const char *attribute_name, u8
 			i+=svg_parse_coordinate(&(single_value_string[i]), &(p->x), 0);
 			i+=svg_parse_coordinate(&(single_value_string[i]), &(p->y), 0);
 			return p;
+		}
+	case SVG_ViewBoxSpec_datatype:
+		{
+			SVG_ViewBoxSpec *viewbox;
+			GF_SAFEALLOC(viewbox, sizeof(SVG_ViewBoxSpec))
+			svg_parse_viewbox(parser, viewbox, single_value_string);
+			return viewbox;
+		}
+		break;
+	case SVG_IRI_datatype:
+		{
+			SVG_IRI *iri;
+			GF_SAFEALLOC(iri, sizeof(SVG_IRI))
+			svg_parse_iri(parser, iri, single_value_string);
+			return iri;
+		}
+		break;
+	case SVG_Coordinates_datatype:
+		{
+			GF_List *coords = gf_list_new();
+			svg_parse_coordinates(parser, coords, single_value_string);
+			return coords;
+		}
+		break;
+	case SVG_Color_datatype:
+		{
+			SVG_Color *color;
+			GF_SAFEALLOC(color, sizeof(SVG_Color))
+			svg_parse_color(parser, attribute_name, color, single_value_string);
+			return color;
+		}
+		break;
+	case SVG_TextAnchorValue_datatype:
+		{
+			SVG_TextAnchorValue *anchor;
+			GF_SAFEALLOC(anchor, sizeof(SVG_TextAnchorValue))
+			svg_parse_textanchor(parser, anchor, single_value_string);
+			return anchor;
+		}
+		break;
+	case SVG_FontStyleValue_datatype:
+		{
+			SVG_FontStyleValue *fontstyle;
+			GF_SAFEALLOC(fontstyle, sizeof(SVG_FontStyleValue))
+			svg_parse_fontstyle(parser, fontstyle, single_value_string);
+			return fontstyle;
+		}
+		break;
+	case SVG_FontFamilyValue_datatype:
+		{
+			SVG_FontFamilyValue *fontfamily;
+			GF_SAFEALLOC(fontfamily, sizeof(SVG_FontFamilyValue))
+			svg_parse_fontfamily(parser, fontfamily, single_value_string);
+			return fontfamily;
+		}
+		break;
+	case SVG_String_datatype:
+		{
+			SVG_String *string;
+			GF_SAFEALLOC(string, sizeof(SVG_String))
+			*string = strdup(single_value_string);
+			return string;
+		}
+		break;
+	case SVG_Points_datatype:
+		{
+			SVG_Points *points;
+			GF_SAFEALLOC(points, sizeof(SVG_Points))
+			*points = gf_list_new();
+			svg_parse_points(parser, *points, single_value_string);
+			return points;
+		}
+		break;
+	case SVG_PathData_datatype:
+		{
+			SVG_PathData *path = malloc(sizeof(SVG_PathData));
+			path->path_commands = gf_list_new();
+			path->path_points = gf_list_new();
+			svg_parse_path(parser, path, single_value_string);
+			return path;
 		}
 	default:
 		fprintf(stdout, "Warning: Parsing of an animation type is not supported.\n");
@@ -1676,11 +1794,8 @@ void svg_parse_attribute(SVGParser *parser, GF_FieldInfo *info, SVGElement *n, x
 		svg_parse_points(parser, *(GF_List **)(info->far_ptr), attribute_content);
 		break;
 	case SMIL_KeyTimesValues_datatype:
-		svg_parse_coordinates(parser, *(GF_List **)(info->far_ptr), attribute_content);
-		break;
+	case SMIL_KeyPointsValues_datatype:
 	case SMIL_KeySplinesValues_datatype:
-		svg_parse_coordinates(parser, *(GF_List **)(info->far_ptr), attribute_content);
-		break;
 	case SVG_Coordinates_datatype:
 		svg_parse_coordinates(parser, *(GF_List **)(info->far_ptr), attribute_content);
 		break;
@@ -1947,7 +2062,7 @@ SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *pa
 			if (child) gf_list_add(elt->children, child);
 		} else if (children->type == XML_TEXT_NODE && tag == TAG_SVG_text) {
 			SVGtextElement *text = (SVGtextElement *)elt;
-			if (text->xml_space.string && !strcmp(text->xml_space.string, "preserve")) {
+			if (text->xml_space && !strcmp(text->xml_space, "preserve")) {
 				text->textContent = strdup(children->content);
 			} else {
 				char *tmp = children->content;
@@ -2000,7 +2115,7 @@ static GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 	}
 
 	/* determine document wallclock begin time (cf SMIL spec)*/
-	gf_utc_time_since_1970(&(parser->begin_sec), &(parser->begin_ms));
+	//gf_utc_time_since_1970(&(parser->begin_sec), &(parser->begin_ms));
 
 	doc = xmlParseFile(parser->fileName);
 	if (doc == NULL) return GF_BAD_PARAM;

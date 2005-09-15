@@ -346,6 +346,9 @@ GF_Renderer *gf_sr_new(GF_User *user, Bool self_threaded, Bool no_audio, GF_Term
 	if (!tmp->user->os_window_handler) {
 		gf_sr_set_size(tmp, 320, 20);
 	}
+
+	tmp->svg_animated_attributes = gf_list_new();
+	
 	gf_mx_v(tmp->mx);
 
 	return tmp;
@@ -390,6 +393,8 @@ void gf_sr_del(GF_Renderer *sr)
 	gf_list_del(sr->textures);
 	gf_list_del(sr->time_nodes);
 	gf_list_del(sr->extra_scenes);
+
+	gf_list_del(sr->svg_animated_attributes);
 
 	gf_sr_lock(sr, 0);
 	gf_mx_del(sr->mx);
@@ -988,6 +993,8 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 		gf_sr_texture_release_stream(st);
 	}
 	end_time = gf_sys_clock() - in_time;
+
+	gf_list_reset(sr->svg_animated_attributes);
 
 	gf_sr_lock(sr, 0);
 

@@ -256,6 +256,8 @@ void setAttributeType(SVGProperty *att)
 			strcpy(att->impl_type, "SMIL_KeyTimesValues");
 		} else if (!strcmp(att->svg_name, "keySplines")) {
 			strcpy(att->impl_type, "SMIL_KeySplinesValues");
+		} else if (!strcmp(att->svg_name, "keyPoints")) {
+			strcpy(att->impl_type, "SMIL_KeyPointsValues");
 		} else if (!strcmp(att->svg_name, "from") || !strcmp(att->svg_name, "to") || !strcmp(att->svg_name, "by")) {
 			strcpy(att->impl_type, "SMIL_AnimateValue");
 		} else if (!strcmp(att->svg_name, "additive")) {
@@ -623,6 +625,7 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 		for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
 			SVGAttribute *att = gf_list_get(svg_elt->attributes, i);
 			if (!strcmp("SMIL_KeyTimesValues", att->impl_type) ||
+				!strcmp("SMIL_KeyPointsValues", att->impl_type) ||
 				!strcmp("SMIL_KeySplinesValues", att->impl_type) 
 				) {
 				fprintf(output, "\tSVG_DeleteCoordinates(p->%s);\n", att->implementation_name);
@@ -745,6 +748,7 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 						!strcmp("SVG_Points", att->impl_type) || 
 						!strcmp("SVG_Coordinates", att->impl_type) ||
 						!strcmp("SMIL_KeyTimesValues", att->impl_type) ||
+						!strcmp("SMIL_KeyPointsValues", att->impl_type) ||
 						!strcmp("SMIL_KeySplinesValues", att->impl_type) ||			
 						!strcmp("SMIL_BeginOrEndValues", att->impl_type) 
 					  ) {

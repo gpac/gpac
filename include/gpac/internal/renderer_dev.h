@@ -153,6 +153,9 @@ struct __tag_base_renderer
 
 	/*unit box (1.0 size) and unit sphere (1.0 radius)*/
 	u32 draw_bvol;
+
+	/* SVG List of animated attributes */
+	GF_List *svg_animated_attributes;
 };
 
 /*macro setting up rendering stack with following member @owner: node pointer and @compositor: compositor*/

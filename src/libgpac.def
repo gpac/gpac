@@ -1072,4 +1072,7 @@ EXPORTS
 	SVG_NewNode
 	SVG_DeleteTransformList
 	SVG_DeletePaint
+	SVG_DeleteCoordinates
+	SVG_DeletePath
+	SVG_DeletePoints
 	SVG_GetElementName
