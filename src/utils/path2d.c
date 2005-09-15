@@ -120,7 +120,7 @@ GF_Err gf_path_add_move_to_vec(GF_Path *gp, GF_Point2D *pt) { return gf_path_add
 GF_Err gf_path_add_line_to(GF_Path *gp, Fixed x, Fixed y)
 {
 	if (!gp || !gp->n_contours) return GF_BAD_PARAM;
-	if ((gp->points[gp->n_points-1].x == x) && (gp->points[gp->n_points-1].y == y)) return GF_OK;
+	/*we allow line to same point as move (seen in SVG sequences) - striking will make a point*/
 
 	GF_2D_REALLOC_POINT(gp, 1)
 	gp->points[gp->n_points].x = x;
