@@ -585,10 +585,9 @@ void gf_mx2d_add_skew(GF_Matrix2D *_this, Fixed skew_x, Fixed skew_y)
 void gf_mx2d_add_skew_x(GF_Matrix2D *_this, Fixed angle)
 {
 	GF_Matrix2D tmp;
-	Fixed a_sin = gf_sin(angle);
-	if (!_this || !a_sin) return;
+	if (!_this) return;
 	gf_mx2d_init(tmp);
-	tmp.m[1] = gf_divfix(gf_cos(angle), a_sin);
+	tmp.m[1] = gf_tan(angle);
 	tmp.m[3] = 0;
 	gf_mx2d_add_matrix(_this, &tmp);
 }
@@ -596,11 +595,10 @@ void gf_mx2d_add_skew_x(GF_Matrix2D *_this, Fixed angle)
 void gf_mx2d_add_skew_y(GF_Matrix2D *_this, Fixed angle)
 {
 	GF_Matrix2D tmp;
-	Fixed a_sin = gf_sin(angle);
-	if (!_this || !a_sin) return;
+	if (!_this) return;
 	gf_mx2d_init(tmp);
 	tmp.m[1] = 0;
-	tmp.m[3] = gf_divfix(gf_cos(angle), a_sin);
+	tmp.m[3] = gf_tan(angle);
 	gf_mx2d_add_matrix(_this, &tmp);
 }
 
