@@ -29,11 +29,22 @@
 
 #ifndef GPAC_DISABLE_SVG
 
-/*************************************************************************
- *																	 	 *
- * Functions implementing the Basic Decoder and Scene Decoder interfaces *
- *																		 *
- *************************************************************************/
+static GF_Err LSR_ProcessDocument(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
+								u16 ES_ID, u32 stream_time, u32 mmlevel)
+{
+	GF_Err e;
+	SVGParser *parser = plug->privateStack;
+
+	parser->stream_time = stream_time;
+	e = SVGParser_Parse(parser);
+	if (!e && parser->needs_attachement) {
+		parser->needs_attachement = 0;
+		gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
+		gf_is_attach_to_renderer(parser->inline_scene);
+	}
+	return e;
+}
+
 static GF_Err SVG_ProcessDocument(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
@@ -129,6 +140,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 	SVGParser *parser = plug->privateStack;
 	if (parser->oti==2) return SVG_ProcessDocument(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
 	if (parser->oti==3) return SVG_ProcessFragment(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
+	if (parser->oti==4) return LSR_ProcessDocument(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
 	return GF_BAD_PARAM;
 }
 
@@ -185,6 +197,7 @@ Bool SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, u
 	if (StreamType!=GF_STREAM_PRIVATE_SCENE) return 0;
 	if (ObjectType==2) return 1;
 	if (ObjectType==3) return 1;
+	if (ObjectType==4) return 1;
 	return 0;
 }
 

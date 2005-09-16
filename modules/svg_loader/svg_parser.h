@@ -65,6 +65,7 @@ long _ftol2( double dblSource ) { return _ftol( dblSource ); }
 /* uncomment this line if you don't want the GPAC cache mechanism */
 //#undef USE_GPAC_CACHE_MECHANISM
 
+GF_Err SVGParser_ParseLASeR(SVGParser *parser);
 
 struct _svg_parser
 {
@@ -100,6 +101,7 @@ struct _svg_parser
 
 	/* Document wallclock begin UTC since 1970 */
 	u32 begin_sec, begin_ms;
+
 #ifdef USE_GPAC_CACHE_MECHANISM
 	/* to handle 'data:' urls */
 	u32 cacheID;
@@ -107,6 +109,10 @@ struct _svg_parser
 	GF_SceneDecoder *sdec;
 #endif
 
+	/*sceneUpdate node for LASeR parsing*/
+	xmlNodePtr sU;
+	Bool needs_attachement;
+	u32 stream_time;
 };
 
 #endif /*GPAC_DISABLE_SVG*/

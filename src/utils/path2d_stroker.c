@@ -1555,7 +1555,7 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 				e = gf_path_add_line_to_vec(dashed, &pts[i]);
 				if (e) goto err_exit;
 				
-				if (i == (nb_pts - 1) && ((firstindex + 1) != (s32) start_ind ) ) {
+				if ( (firstindex>=0) && (i == (nb_pts - 1) && ((firstindex + 1) != (s32) start_ind ) ))  {
 					/*merge if closed path*/
 					if ((pts[0].x==pts[nb_pts-1].x) && (pts[0].y==pts[nb_pts-1].y)) {
 						e = gf_path_mergedashes(dashed, firstindex);

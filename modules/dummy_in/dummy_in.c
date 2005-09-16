@@ -91,6 +91,7 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 	if (gf_term_check_extension(plug, "application/x-shockwave-flash", "swf", "Macromedia Flash Movie", sExt)) return 1;
 	if (gf_term_check_extension(plug, "image/svg+xml", "svg svg.gz svgz", "SVG Document", sExt)) return 1;
 	if (gf_term_check_extension(plug, "image/x-svgm", "svgm", "SVGM Document", sExt)) return 1;
+	if (gf_term_check_extension(plug, "application/x-LASeR+xml", "xsr", "LASeR Document", sExt)) return 1;
 	return 0;
 }
 
@@ -173,6 +174,8 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 		else if (!stricmp(ext, "svg") || !stricmp(ext, "svgz")) read->oti = 0x02;
 		/*fragmented svg files - experimental*/
 		else if (!stricmp(ext, "svgm")) read->oti = 0x03;
+		/*XML LASeR*/
+		else if (!stricmp(ext, "xsr")) read->oti = 0x04;
 	}
 
 	/*remote fetch*/

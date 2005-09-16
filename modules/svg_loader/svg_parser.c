@@ -32,7 +32,7 @@
 
 #define MAX_URI_LENGTH		4096
 
-static Bool xmllib_is_init = 0;
+Bool xmllib_is_init = 0;
 
 
 
@@ -274,7 +274,8 @@ void svg_parse_color(SVGParser *parser, const char *name, SVG_Color *col, xmlCha
 		if (strstr(str, "%")) is_percentage = 1;
 		str = strstr(str, "(");
 		str++;
-		sscanf(str, "%f", &_val); col->red = FLT2FIX(_val);
+		sscanf(str, "%f", &_val); 
+		col->red = FLT2FIX(_val);
 		str = strstr(str, ",");
 		str++;
 		sscanf(str, "%f", &_val); col->green = FLT2FIX(_val);
@@ -2275,10 +2276,12 @@ GF_Err SVGParser_ParseFragmentedDoc(SVGParser *parser)
 	return GF_OK;
 }
 
+
 GF_Err SVGParser_Parse(SVGParser *parser)
 {
 	if (parser->oti == 2) return SVGParser_ParseFullDoc(parser);
 	else if (parser->oti == 3) return SVGParser_ParseFragmentedDoc(parser);
+	else if (parser->oti == 4) return SVGParser_ParseLASeR(parser);
 	return GF_BAD_PARAM;
 }
 
