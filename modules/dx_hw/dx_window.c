@@ -421,14 +421,15 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 	/*if scene resize resize window*/
 	case GF_EVT_SIZE:
 		if (ctx->owns_hwnd) SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width + ctx->off_w, evt->size.height + ctx->off_h, SWP_NOZORDER | SWP_NOMOVE);
-	/*in any case resetup openGL*/
+		break;
+	/*HW setup*/
 	case GF_EVT_VIDEO_SETUP:
 		if (ctx->is_3D_out) {
 			ctx->width = evt->size.width;
 			ctx->height = evt->size.height;
 			return DD_SetupOpenGL(the_video_driver);
-		} else 
-			return DD_SetBackBufferSize(dr, evt->size.width, evt->size.height);
+		}
+		return DD_SetBackBufferSize(dr, evt->size.width, evt->size.height);
 	}
 	return GF_OK;
 }

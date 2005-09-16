@@ -324,6 +324,15 @@ GF_Err R3D_RecomputeAR(GF_VisualRenderer *vr)
 
 	if (!sr->compositor->height || !sr->compositor->width) return GF_OK;
 
+	/*we're inside a resetup of the window, indocate HW reset */
+	if (sr->compositor->new_width || sr->compositor->new_height) {
+		GF_Event evt;
+		evt.type = GF_EVT_VIDEO_SETUP;
+		evt.size.width = sr->compositor->width;
+		evt.size.height = sr->compositor->height;
+		sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
+	}
+
 	sr->out_width = sr->compositor->width;
 	sr->out_height = sr->compositor->height;
 	sr->out_x = 0;

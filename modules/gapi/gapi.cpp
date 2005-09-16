@@ -34,7 +34,7 @@
 
 #define GAPICTX(dr)	GAPIPriv *gctx = (GAPIPriv *) dr->opaque;
 
-static GF_Err GAPI_InitSurface(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoHeight);
+static GF_Err GAPI_InitBackBuffer(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoHeight);
 
 static GF_VideoOutput *the_video_driver = NULL;
 
@@ -474,7 +474,7 @@ GF_Err GAPI_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no
     GetClientRect(gctx->hWnd, &rc);
 	gctx->backup_w = rc.right - rc.left;
 	gctx->backup_h = rc.bottom - rc.top;
-	return GAPI_InitSurface(dr, gctx->backup_w, gctx->backup_h);
+	return GAPI_InitBackBuffer(dr, gctx->backup_w, gctx->backup_h);
 }
 
 static void GAPI_Shutdown(GF_VideoOutput *dr)
@@ -540,7 +540,7 @@ static GF_Err GAPI_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u3
 			*outWidth = gctx->backup_w;
 			*outHeight = gctx->backup_h;
 		}
-		e = GAPI_InitSurface(dr, *outWidth, *outHeight); 
+		e = GAPI_InitBackBuffer(dr, *outWidth, *outHeight); 
 	}
 	gf_mx_v(gctx->mx);
 
@@ -713,17 +713,19 @@ static GF_Err GAPI_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		if (gctx->hWnd) ShowWindow(gctx->hWnd, evt->show.show_type ? SW_SHOW : SW_HIDE);
 		break;
 	case GF_EVT_SIZE:
+		/*nothing to do since we don't own the window*/
+		break;
 	case GF_EVT_VIDEO_SETUP:
 #ifdef GPAC_USE_OGL_ES
 		if (gctx->is_3D) return GAPI_SetupOGL_ES(the_video_driver);
 #endif
-		return GAPI_InitSurface(dr, evt->size.width, evt->size.height);
+		return GAPI_InitBackBuffer(dr, evt->size.width, evt->size.height);
 	}
 	return GF_OK;
 }
 
 
-static GF_Err GAPI_InitSurface(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoHeight)
+static GF_Err GAPI_InitBackBuffer(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoHeight)
 {
 	GAPICTX(dr);
 

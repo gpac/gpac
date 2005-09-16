@@ -104,12 +104,14 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 		if (sr->msg_type & GF_SR_CFG_SET_SIZE) {
 			GF_Event evt;
 			Bool restore_fs = sr->fullscreen;
-			/*send resize event*/
-			evt.type = (sr->msg_type & GF_SR_CFG_WINDOWSIZE_NOTIF) ? GF_EVT_VIDEO_SETUP : GF_EVT_SIZE;
-			evt.size.width = sr->new_width;
-			evt.size.height = sr->new_height;
 			if (restore_fs) gf_sr_set_fullscreen(sr);
-			sr->video_out->ProcessEvent(sr->video_out, &evt);
+			/*send resize event*/
+			if (!(sr->msg_type & GF_SR_CFG_WINDOWSIZE_NOTIF) ) {
+				evt.type = GF_EVT_SIZE;
+				evt.size.width = sr->new_width;
+				evt.size.height = sr->new_height;
+				sr->video_out->ProcessEvent(sr->video_out, &evt);
+			}
 			gf_sr_set_output_size(sr, sr->new_width, sr->new_height);
 			sr->new_width = sr->new_height = 0;
 			if (restore_fs) gf_sr_set_fullscreen(sr);
@@ -1051,14 +1053,15 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 		break;
 	case GF_EVT_SIZE:
 		/*resize message from plugin - only indicate a resetup of video, no resize*/
-		{
+		if (!sr->user->os_window_handler) {
 			/*EXTRA CARE HERE: the caller (video output) is likely a different thread than the renderer one, and the
 			renderer may be locked on the video output (flush or whatever)!!
 			*/
 			Bool lock_ok = gf_mx_try_lock(sr->mx);
 			sr->new_width = event->size.width;
 			sr->new_height = event->size.height;
-			sr->msg_type |= GF_SR_CFG_SET_SIZE | GF_SR_CFG_WINDOWSIZE_NOTIF;
+			sr->msg_type |= GF_SR_CFG_SET_SIZE /*| GF_SR_CFG_WINDOWSIZE_NOTIF*/;
+			//if (!sr->user->os_window_handler) sr->msg_type |= GF_SR_CFG_WINDOWSIZE_NOTIF;
 			if (lock_ok) gf_sr_lock(sr, 0);
 		}
 		break;
