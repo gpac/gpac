@@ -600,7 +600,7 @@ u32 SDLVid_MapPixelFormat(SDL_PixelFormat *format)
 	}
 }
 
-static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_info, Bool do_lock)
+static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_info, u32 do_lock)
 {
 	SDLVID();
 	if (!ctx->back_buffer) return GF_BAD_PARAM;
@@ -654,7 +654,7 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 
 		SDL_UnlockSurface(ctx->back_buffer);
 		SDL_UnlockSurface(ctx->screen);
-
+		fprintf(stdout, "SDL bad format\n");
 	} else {
 		rc.x = dest->x; rc.y = dest->y; rc.w = dest->w; rc.h = dest->h;
 		SDL_BlitSurface(ctx->back_buffer, NULL, ctx->screen, &rc);

@@ -10,7 +10,7 @@ LDFLAGS+=-g
 endif
 
 #common obj
-OBJS=sdl_out.o audio.o video.o soft_stretch.o video2d.o
+OBJS=sdl_out.o audio.o video.o
 
 SRCS := $(OBJS:.o=.c) 
 

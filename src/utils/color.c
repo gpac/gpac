@@ -698,6 +698,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	dst_h = dst_wnd ? dst_wnd->h : dst->height;
 
 	tmp = malloc(sizeof(char) * src_w * (yuv_type ? 8 : 4) );
+	rows = tmp;
 
 	src_bits = src->video_buffer;
 	dst_bits = dst->video_buffer;
@@ -717,7 +718,8 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 
 	/*for 2 and 4 bytes colors, precompute pitch for u16 and u32 type casting*/
 	if ((dst_bpp==2) || (dst_bpp==4) ) dst_x_pitch /= (s32) dst_bpp;
-	
+
+	ka = kr = kg = kb = 0;
 	if (col_key) {
 		ka = GF_COL_A(*col_key);
 		kr = GF_COL_R(*col_key);

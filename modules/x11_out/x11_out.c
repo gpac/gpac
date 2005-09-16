@@ -441,8 +441,6 @@ GF_Err X11_ResizeBackBuffer (struct _video_out *vout, u32 newWidth, u32 newHeigh
 GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 {
 	X11VID ();
-	GF_Window a_wnd;
-
 
 	if (!xWindow->setup_done) X11_SetupWindow(vout);
 
@@ -457,6 +455,8 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 		break;
 	case GF_EVT_SIZE:
 		/*if owning the window and not in fullscreen, resize it (initial scene size)*/
+	xWindow->w_width = evt->size.width;
+	xWindow->w_height = evt->size.height;
 	  if (!xWindow->fullscreen) {
 	    if (xWindow->par_wnd) {
 	      XWindowAttributes pwa;
@@ -467,15 +467,13 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 		XResizeWindow (xWindow->display, xWindow->wnd, evt->size.width, evt->size.height);
 	    }
 	  }
+	  break;
 	case GF_EVT_VIDEO_SETUP:
-		xWindow->w_width = evt->size.width;
-		xWindow->w_height = evt->size.height;
-		/*and resetup OpenGL*/
+		/*and resetup HW*/
 #ifdef GPAC_HAS_OPENGL
 		if (xWindow->is_3D_out) return X11_SetupGL(vout);
 #endif
-		return X11_ResizeBackBuffer(dr, evt->size.width, evt->size.height);
-		break;
+		return X11_ResizeBackBuffer(vout, evt->size.width, evt->size.height);
 	}
 	} else {
 	  X11_HandleEvents(vout);
@@ -533,13 +531,12 @@ GF_Err X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn, u32 * scr
 /*
  * lock video mem
  */
-GF_Err X11_LockBackBuffer(struct _video_out * vout, GF_VideoSurface * vi, Bool do_lock)
+GF_Err X11_LockBackBuffer(struct _video_out * vout, GF_VideoSurface * vi, u32 do_lock)
 {
-	u32 i;
 	X11VID ();
 
 	if (do_lock) {
-		if (!vi) return GFçBAD_PARAM;
+		if (!vi) return GF_BAD_PARAM;
 		vi->width = xWindow->back_buffer->width;
 		vi->height = xWindow->back_buffer->height;
 		vi->pitch = xWindow->back_buffer->pitch;
@@ -581,6 +578,7 @@ void
 X11_SetupWindow (GF_VideoOutput * vout)
 {
 	X11VID ();
+	const char *sOpt;
 
 	xWindow->display = XOpenDisplay (NULL);
 	xWindow->screennum = DefaultScreen (xWindow->display);
@@ -685,16 +683,18 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	xWindow->videoaccesstype = VIDEO_XI_STANDARD;
 
 #ifdef GPAC_HAS_X11_SHM
-	int XShmMajor, XShmMinor;
-	Bool XShmPixmaps;
-	if (XShmQueryVersion(xWindow->display, &XShmMajor, &XShmMinor, &XShmPixmaps)) {
-	  /*this is disabled due to flip pb (we cannot reposition backbuffer)*/
-		if (0 && XShmPixmaps && (XShmPixmapFormat(xWindow->display) == ZPixmap)) {
-			xWindow->videoaccesstype = VIDEO_XI_SHMPIXMAP;
-		} else {
-			xWindow->videoaccesstype = VIDEO_XI_SHMSTD;
-		}
-
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "UseHardwareMemory");
+        if (sOpt && !strcmp(sOpt, "yes")) {
+	  int XShmMajor, XShmMinor;
+	  Bool XShmPixmaps;
+	  if (XShmQueryVersion(xWindow->display, &XShmMajor, &XShmMinor, &XShmPixmaps)) {
+	    /*this is disabled due to flip pb (we cannot reposition backbuffer)*/
+	    if (0 && XShmPixmaps && (XShmPixmapFormat(xWindow->display) == ZPixmap)) {
+		xWindow->videoaccesstype = VIDEO_XI_SHMPIXMAP;
+	    } else {
+	      xWindow->videoaccesstype = VIDEO_XI_SHMSTD;
+	    }
+	  }
 	}
 #endif
 
