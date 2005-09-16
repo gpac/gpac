@@ -71,6 +71,13 @@ enum
 	MESH_HAS_ALPHA = 1<<6, 
 };
 
+/*indexes as used in glDrawElements - note that integer type is not allowed with oglES*/
+#ifdef GPAC_USE_OGL_ES
+#define IDX_TYPE	u16
+#else
+#define IDX_TYPE	u32
+#endif
+
 /*mesh object used by all 2D/3D primitives. */
 typedef struct
 {
@@ -79,7 +86,7 @@ typedef struct
 	GF_Vertex *vertices;
 	/*triangle indexes*/
 	u32 i_count, i_alloc;
-	u32 *indices;
+	IDX_TYPE *indices;
 
 	/*one of the above type*/
 	u32 mesh_type;
@@ -92,7 +99,7 @@ typedef struct
 
 	/*aabb tree of the mesh if any*/
 	struct __AABBNode *aabb_root;
-	u32 *aabb_indices;
+	IDX_TYPE *aabb_indices;
 	u32 aabb_nb_index;
 	/*max tree depth, 0 is unlimited*/
 	u32 max_depth;
@@ -179,7 +186,7 @@ typedef struct __AABBNode
 	/*bbox*/
 	SFVec3f min, max;
 	/*sorted indices in mesh indices list*/
-	u32 *indices;
+	IDX_TYPE *indices;
 	/*nb triangles*/
 	u32 nb_idx;
 	/*children nodes, NULL if leaf*/

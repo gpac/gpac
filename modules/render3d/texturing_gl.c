@@ -25,8 +25,6 @@
 
 #include "render3d_nodes.h"
 #include "gl_inc.h"
-#include <gpac/yuv.h>
-
 
 /*tx flags*/
 enum
@@ -101,22 +99,22 @@ void tx_bind(GF_TextureHandler *txh)
 	switch (gltx->blend_mode) {
 	case TX_BLEND:
 		if (txh->transparent) glEnable(GL_BLEND);
-		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
 		break;
 	case TX_REPLACE:
 		if (txh->transparent) glEnable(GL_BLEND);
-		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 		break;
 	case TX_MODULATE:
 		if (txh->transparent) glEnable(GL_BLEND);
-		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 		break;
 	case TX_DECAL:
 	default:
 		if ((gltx->gl_format==GL_LUMINANCE) || (gltx->gl_format==GL_LUMINANCE_ALPHA)) {
-			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 		} else {
-			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 		}
 		break;
 	}
@@ -236,6 +234,17 @@ Bool tx_setup_format(GF_TextureHandler *txh)
 	glEnable(gltx->gl_type);
 	glBindTexture(gltx->gl_type, gltx->id);
 
+#ifdef GPAC_USE_OGL_ES
+	glTexParameterx(gltx->gl_type, GL_TEXTURE_WRAP_S, (txh->flags & GF_SR_TEXTURE_REPEAT_S) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+	glTexParameterx(gltx->gl_type, GL_TEXTURE_WRAP_T, (txh->flags & GF_SR_TEXTURE_REPEAT_T) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+	if (gltx->gl_type == GL_TEXTURE_2D) {
+		glTexParameterx(gltx->gl_type, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+		glTexParameterx(gltx->gl_type, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+	} else {
+		glTexParameterx(gltx->gl_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameterx(gltx->gl_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	}
+#else
 	glTexParameteri(gltx->gl_type, GL_TEXTURE_WRAP_S, (txh->flags & GF_SR_TEXTURE_REPEAT_S) ? GL_REPEAT : GL_CLAMP);
 	glTexParameteri(gltx->gl_type, GL_TEXTURE_WRAP_T, (txh->flags & GF_SR_TEXTURE_REPEAT_T) ? GL_REPEAT : GL_CLAMP);
 	if (gltx->gl_type == GL_TEXTURE_2D) {
@@ -245,6 +254,7 @@ Bool tx_setup_format(GF_TextureHandler *txh)
 		glTexParameteri(gltx->gl_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(gltx->gl_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	}
+#endif
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 	glDisable(gltx->gl_type);
@@ -275,11 +285,12 @@ u32 get_next_pow2(u32 s)
 hence is never flipped. Otherwise all textures attached to stream are flipped in order to match uv coords*/
 Bool tx_convert(GF_TextureHandler *txh)
 {
+	GF_VideoSurface src, dst;
+	u32 out_stride;
 	GLTexture *gltx = (GLTexture *) txh->hwtx;
 	Render3D *sr = (Render3D *)txh->compositor->visual_renderer->user_priv;
 
-	u32 out_stride;
-	unsigned char *pY, *pU, *pV;
+
 	switch (txh->pixelformat) {
 	case GF_PIXEL_ARGB:
 		if (!sr->hw_caps.bgra_texture) return 0;
@@ -326,11 +337,20 @@ Bool tx_convert(GF_TextureHandler *txh)
 	}
 	out_stride = 3 * ((gltx->tx_flags & TX_EMULE_POW2) ? gltx->conv_w : txh->width);
 
-	pY = txh->data;
-	pU = pY + txh->width*txh->height;
-	pV = pY + 5*txh->width*txh->height/4;
-	gf_yuv_to_rgb_24_flip(gltx->conv_data, out_stride, pY, pU, pV, txh->stride, txh->stride/2, txh->width, txh->height);
-	gltx->conv_format = GF_PIXEL_RGB_24;
+	dst.width = src.width = txh->width;
+	dst.height = src.height = txh->height;
+	dst.is_hardware_memory = src.is_hardware_memory = 0;
+
+	src.pitch = txh->stride;
+	src.pixel_format = txh->pixelformat;
+	src.video_buffer = txh->data;
+
+	dst.pitch = out_stride;
+	gltx->conv_format = dst.pixel_format = GF_PIXEL_RGB_24;
+	dst.video_buffer = gltx->conv_data;
+
+	/*stretch and flip*/
+	gf_stretch_bits(&dst, &src, NULL, NULL, 0, 0xFF, 1, NULL, NULL);
 	gltx->tx_flags |= TX_NEEDS_HW_LOAD;
 	return 1;
 }
@@ -338,6 +358,7 @@ Bool tx_convert(GF_TextureHandler *txh)
 Bool tx_set_image(GF_TextureHandler *txh, Bool generate_mipmaps)
 {
 	char *data;
+	GLint tx_mode;
 	u32 pixel_format, w, h;
 	GLTexture *gltx = (GLTexture *) txh->hwtx;
 	if (! (gltx->tx_flags & TX_NEEDS_HW_LOAD) ) return 1;
@@ -360,20 +381,41 @@ Bool tx_set_image(GF_TextureHandler *txh, Bool generate_mipmaps)
 		w = txh->width;
 		h = txh->height;
 	}
-
+	tx_mode = gltx->nb_comp;
+#ifdef GPAC_USE_OGL_ES
+	tx_mode = gltx->gl_format;
+#endif
 	/*pow2 texture or hardware support*/
 	if (! (gltx->tx_flags & TX_MUST_SCALE) ) {
 		if (gltx->first_load) {
 			gltx->first_load = 0;
-			glTexImage2D(gltx->gl_type, 0, gltx->nb_comp, w, h, 0, gltx->gl_format, GL_UNSIGNED_BYTE, (unsigned char *) data);
+			glTexImage2D(gltx->gl_type, 0, tx_mode, w, h, 0, gltx->gl_format, GL_UNSIGNED_BYTE, (unsigned char *) data);
 		} else {
 			glTexSubImage2D(gltx->gl_type, 0, 0, 0, w, h, gltx->gl_format, GL_UNSIGNED_BYTE, (unsigned char *) data);
 		}
 	} else {
+#ifdef GPAC_USE_OGL_ES
+		GF_VideoSurface src, dst;
+		src.width = txh->width;
+		src.height = txh->height;
+		src.pitch = txh->stride;
+		src.pixel_format = txh->pixelformat;
+		src.video_buffer = txh->data;
+
+		dst.width = gltx->rescale_width;
+		dst.height = gltx->rescale_height;
+		dst.pitch = gltx->rescale_width*gltx->nb_comp;
+		dst.pixel_format = txh->pixelformat;
+		dst.video_buffer = gltx->scale_data;
+
+		gf_stretch_bits(&dst, &src, NULL, NULL, 0, 0xFF, 0, NULL, NULL);
+#else
 		gluScaleImage(gltx->gl_format, txh->width, txh->height, GL_UNSIGNED_BYTE, data, gltx->rescale_width, gltx->rescale_height, GL_UNSIGNED_BYTE, gltx->scale_data);
+#endif
+
 		if (gltx->first_load) {
 			gltx->first_load = 0;
-			glTexImage2D(gltx->gl_type, 0, gltx->nb_comp, gltx->rescale_width, gltx->rescale_height, 0, gltx->gl_format, GL_UNSIGNED_BYTE, gltx->scale_data);
+			glTexImage2D(gltx->gl_type, 0, tx_mode, gltx->rescale_width, gltx->rescale_height, 0, gltx->gl_format, GL_UNSIGNED_BYTE, gltx->scale_data);
 		} else {
 			glTexSubImage2D(gltx->gl_type, 0, 0, 0, gltx->rescale_width, gltx->rescale_height, gltx->gl_format, GL_UNSIGNED_BYTE, gltx->scale_data);
 		}

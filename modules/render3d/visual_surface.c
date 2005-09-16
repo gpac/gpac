@@ -236,12 +236,10 @@ exit:
 	if (asp->pen_props.width) {
 		/*if pen is not scalable, apply user/viewport transform so that original aspect is kept*/
 		if (!asp->is_scalable) {
-			GF_Matrix mx;
 			GF_Rect rc;
-			VS3D_GetMatrix(eff->surface, MAT_MODELVIEW, mx.m);
 			rc.x = rc.y = 0;
 			rc.width = rc.height = FIX_ONE;
-			gf_mx_apply_rect(&mx, &rc);
+			gf_mx_apply_rect(&eff->model_matrix, &rc);
 			asp->line_scale = MAX(rc.width, rc.height);
 		} else {
 			asp->line_scale = FIX_ONE;
@@ -291,6 +289,7 @@ StrikeInfo *VS_GetStrikeInfo(stack2D *st, Aspect2D *asp, RenderEffect3D *eff)
 		if (si->outline) mesh_free(si->outline);
 		si->outline = new_mesh();
 		si->is_vectorial = vect_outline;
+#ifndef GPAC_USE_OGL_ES
 		if (vect_outline) {
 			u32 i;
 			GF_Path *outline_path;
@@ -316,9 +315,9 @@ StrikeInfo *VS_GetStrikeInfo(stack2D *st, Aspect2D *asp, RenderEffect3D *eff)
 
 			TesselatePath(si->outline, outline_path, asp->txh ? 2 : 1);
 			gf_path_del(outline_path);
-		} else {
+		} else
+#endif
 			mesh_get_outline(si->outline, st->path);
-		}
 	}
 	return si;
 }
@@ -619,12 +618,13 @@ void VS_DrawMesh(RenderEffect3D *eff, GF_Mesh *mesh)
 		VS3D_DrawMesh(eff, mesh, eff->has_scale);
 		VS_disable_texture(eff);
 	}
-
+#ifndef GPAC_USE_OGL_ES
 	if (eff->appear && gf_node_get_tag(eff->appear)==TAG_X3D_Appearance) {
 		X_Appearance *ap = (X_Appearance *)eff->appear;
 		X_FillProperties *fp = ap->fillProperties ? (X_FillProperties *) ap->fillProperties : NULL;
 		if (fp && fp->hatched) VS3D_HatchMesh(eff, mesh, eff->has_scale, fp->hatchStyle, fp->hatchColor);
 	}
+#endif
 }
 
 
@@ -1701,7 +1701,7 @@ void drawable_do_collide(GF_Node *node, RenderEffect3D *eff)
 		GF_Ray r;
 		Bool intersect;
 		r.orig = eff->camera->position;
-		r.dir = gf_vec_scale(eff->camera->up, -1);
+		r.dir = gf_vec_scale(eff->camera->up, -FIX_ONE);
 		gf_mx_apply_ray(&mx, &r);
 
 		if (!st->IntersectWithRay) {

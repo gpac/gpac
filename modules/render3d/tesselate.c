@@ -30,6 +30,9 @@
 #define CALLBACK
 #endif
 
+
+#ifndef GPAC_USE_OGL_ES
+
 typedef struct
 {
 	/*for tesselation*/
@@ -202,6 +205,13 @@ void TesselatePath(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 	if (do_delete) gf_path_del(path);
 }
 
+#else
+
+void TesselatePath(GF_Mesh *mesh, GF_Path *path, u32 outline_style) { }
+
+#endif
+
+
 
 #define GetPoint2D(pt, apt) \
 	if (!direction) { pt.x = - apt.pos.z; pt.y = apt.pos.y;	}	\
@@ -296,9 +306,11 @@ void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 	u32 poly_type, i, nb_pts, init_idx, direction;
     Fixed max_nor_coord, c;
 	SFVec3f v1, v2, nor;
+#ifndef GPAC_USE_OGL_ES
 	u32 *idx;
 	GLdouble vertex[3];
 	MeshTess *tess;
+#endif
 
 	/*get normal*/
 	if (orig->flags & MESH_IS_2D) {
@@ -344,6 +356,7 @@ void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 		break;
 	}
 
+#ifndef GPAC_USE_OGL_ES
 	
 	/*tesselate it*/
 	tess = malloc(sizeof(MeshTess));
@@ -391,17 +404,18 @@ void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 	}
 	gf_list_del(tess->vertex_index);
 	free(tess);
+#endif
 }
 
 
 
+#ifndef GPAC_USE_OGL_ES
 void TesselateFaceMeshComplex(GF_Mesh *dest, GF_Mesh *orig, u32 nbFaces, u32 *ptsPerFaces)
 {
 	u32 i, cur_pt_faces, cur_face;
 	u32 *idx;
 	GLdouble vertex[3];
 	MeshTess *tess;
-
 	
 	/*tesselate it*/
 	tess = malloc(sizeof(MeshTess));
@@ -461,5 +475,7 @@ void TesselateFaceMeshComplex(GF_Mesh *dest, GF_Mesh *orig, u32 nbFaces, u32 *pt
 	gf_list_del(tess->vertex_index);
 	free(tess);
 }
+#endif
+
 
 

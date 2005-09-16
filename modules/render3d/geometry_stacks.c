@@ -985,7 +985,7 @@ static Bool NLD_GetMatrix(M_NonLinearDeformer *nld, GF_Matrix *mx)
 	/*compute rotation matrix from NLD axis to 0 0 1*/
 	v1 = nld->axis;
 	gf_vec_norm(&v1);
-	v2.x = v2.y = 0; v2.z = 1;
+	v2.x = v2.y = 0; v2.z = FIX_ONE;
 	if (gf_vec_equal(v1, v2)) return 0;
 
 	l1 = gf_vec_len(v1);

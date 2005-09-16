@@ -553,14 +553,11 @@ void VS_ViewpointChange(RenderEffect3D *eff, GF_Node *vp, Bool animate_change, F
 	if (eff->camera->z_far<=0) {
 		eff->camera->z_far = INT2FIX(1000);
 		/*use the current graph pm settings, NOT the viewpoint one*/
-		if (eff->is_pixel_metrics) {
 #ifdef GPAC_FIXED_POINT
-			/*avoid any overflow issue and pick a default large z-far*/
-			eff->camera->z_far = FIX_MAX/10;
+		if (eff->is_pixel_metrics) eff->camera->z_far = FIX_MAX/40;
 #else
-			eff->camera->z_far = gf_mulfix(eff->camera->z_far , eff->min_hsize);
+		if (eff->is_pixel_metrics) eff->camera->z_far = gf_mulfix(eff->camera->z_far , eff->min_hsize);
 #endif
-		}
 	}
 
 	if (vp) {

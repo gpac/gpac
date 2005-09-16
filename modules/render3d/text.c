@@ -166,8 +166,8 @@ Bool TextLine_TextureIsReady(CachedTextLine *tl)
 		if (tl->tx_height>=MAX_TX_SIZE) break;
 	}
 	/*and get scaling*/
-	sx = gf_divfix( FIX2INT(tl->tx_width), tl->tx_bounds.width);
-	sy = gf_divfix( FIX2INT(tl->tx_height), tl->tx_bounds.height);
+	sx = gf_divfix( INT2FIX(tl->tx_width), tl->tx_bounds.width);
+	sy = gf_divfix( INT2FIX(tl->tx_height), tl->tx_bounds.height);
 
 	texture2D = r2d->stencil_new(r2d, GF_STENCIL_TEXTURE);
 	if (!texture2D) {
@@ -773,12 +773,19 @@ static void Text_StrikeTextLine(RenderEffect3D *eff, CachedTextLine *tl, Aspect2
 {
 	if (!tl->outline_mesh) {
 		tl->outline_mesh = new_mesh();
+#ifndef GPAC_USE_OGL_ES
 		if (vect_outline) {
 			if (!tl->outline) tl->outline = gf_path_get_outline(tl->path, asp->pen_props);
 			TesselatePath(tl->outline_mesh, tl->outline, asp->txh ? 2 : 1);
 		} else {
 			mesh_get_outline(tl->outline_mesh, tl->path);
 		}
+#else
+		/*VECTORIAL TEXT OUTLINE NOT SUPPORTED ON OGL-ES AT CURRENT TIME*/
+		vect_outline = 0;
+		mesh_get_outline(tl->outline_mesh, tl->path);
+#endif
+
 	}
 	if (vect_outline) {
 		VS3D_DrawMesh(eff, tl->outline_mesh, 0);
@@ -877,6 +884,7 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 
 	VS3D_SetAntiAlias(eff->surface, st->compositor->antiAlias);
 	if (draw2D || draw3D || has_texture) {
+
 		if (draw2D) VS3D_SetMaterial2D(eff->surface, asp.fill_color, asp.alpha);
 
 		if (eff->split_text_idx) {
@@ -899,6 +907,8 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 				tl = gf_list_get(st->text_lines, i);
 
 				if (hlight) VS3D_FillRect(eff->surface, tl->bounds, hl_color);
+
+//				if (draw2D) VS3D_SetMaterial2D(eff->surface, asp.fill_color, asp.alpha);
 
 				if (can_texture_text && TextLine_TextureIsReady(tl)) {
 					tx_enable(&tl->txh, NULL);

@@ -53,13 +53,20 @@ void VS3D_Setup(VisualSurface *surf)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
-	glClearDepth(1.0f);
     glEnable(GL_CULL_FACE);
     glFrontFace(GL_CCW);
     glCullFace(GL_BACK);
+
+#ifdef GPAC_USE_OGL_ES
+	glClearDepthx(FIX_ONE);
+	glLightModelx(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+	glMaterialx(GL_FRONT_AND_BACK, GL_SHININESS, FLT2FIX(0.2f * 128) );
+#else
+	glClearDepth(1.0f);
 	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_FALSE);
 	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
 	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, (float) (0.2 * 128));
+#endif
 
     glShadeModel(GL_SMOOTH);
 	glGetIntegerv(GL_MAX_LIGHTS, &surf->max_lights);
@@ -70,26 +77,34 @@ void VS3D_Setup(VisualSurface *surf)
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 		glHint(GL_LINE_SMOOTH_HINT, GL_FASTEST);
 		glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
+#ifdef GL_POLYGON_SMOOTH_HINT
 		glHint(GL_POLYGON_SMOOTH_HINT, GL_FASTEST);
+#endif
 	} else {
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 		glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 		glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+#ifdef GL_POLYGON_SMOOTH_HINT
 		glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+#endif
 	}
 
 	if (surf->render->compositor->antiAlias == GF_ANTIALIAS_FULL) {
 		glEnable(GL_LINE_SMOOTH);
 		glEnable(GL_POINT_SMOOTH);
+#ifndef GPAC_USE_OGL_ES
 		if (surf->render->poly_aa)
 			glEnable(GL_POLYGON_SMOOTH);
 		else
 			glDisable(GL_POLYGON_SMOOTH);
+#endif
 	} else {
 		glDisable(GL_LINE_SMOOTH);
 		glDisable(GL_POINT_SMOOTH);
+#ifndef GPAC_USE_OGL_ES
 		glDisable(GL_POLYGON_SMOOTH);
+#endif
 	}
 
 	glDisable(GL_COLOR_MATERIAL);
@@ -165,14 +180,18 @@ void VS3D_DrawAABBNode(RenderEffect3D *eff, GF_Mesh *mesh, u32 prim_type, GF_Pla
 	However we must push triangles one by one since primitive order may have been swapped when
 	building the AABB tree*/
 	for (i=0; i<n->nb_idx; i++) {
+#ifdef GPAC_USE_OGL_ES
+		glDrawElements(prim_type, 3, GL_UNSIGNED_SHORT, &mesh->indices[3*n->indices[i]]);
+#else
 		glDrawElements(prim_type, 3, GL_UNSIGNED_INT, &mesh->indices[3*n->indices[i]]);
+#endif
 	}
 }
 
 void VS3D_DrawMeshIntern(RenderEffect3D *eff, GF_Mesh *mesh)
 {
 	u32 prim_type;
-#ifdef GPAC_FIXED_POINT
+#if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_OGL_ES)
 	u32 i;
 	Float *color_array = NULL;
 	Float fix_scale = 1.0f;
@@ -180,7 +199,9 @@ void VS3D_DrawMeshIntern(RenderEffect3D *eff, GF_Mesh *mesh)
 #endif
 
 	glEnableClientState(GL_VERTEX_ARRAY);
-#ifdef GPAC_FIXED_POINT
+#if defined(GPAC_USE_OGL_ES)
+	glVertexPointer(3, GL_FIXED, sizeof(GF_Vertex),  &mesh->vertices[0].pos);
+#elif defined(GPAC_FIXED_POINT)
 	/*scale modelview matrix*/
 	glPushMatrix();
 	glScalef(fix_scale, fix_scale, fix_scale);
@@ -192,10 +213,17 @@ void VS3D_DrawMeshIntern(RenderEffect3D *eff, GF_Mesh *mesh)
 	if (mesh->flags & MESH_HAS_COLOR) {
 		glEnableClientState(GL_COLOR_ARRAY);
 
+#if defined (GPAC_USE_OGL_ES)
+		if (mesh->flags & MESH_HAS_ALPHA) {
+			glEnable(GL_BLEND);
+			eff->mesh_is_transparent = 1;
+		}
+		/*glES only accepts full RGBA colors*/
+		glColorPointer(4, GL_FIXED, sizeof(GF_Vertex), &mesh->vertices[0].color);
+#elif defined (GPAC_FIXED_POINT)
 		/*this is a real pain: we cannot "scale" colors through openGL, and our components are 16.16 (32 bytes) ranging
 		from [0 to 65536] mapping to [0, 1.0], but openGL assumes for s32 a range from [-2^31 2^31] mapping to [0, 1.0]
 		we must thus rebuild a dedicated array...*/
-#ifdef GPAC_FIXED_POINT
 		if (mesh->flags & MESH_HAS_ALPHA) {
 			color_array = malloc(sizeof(Float)*4*mesh->v_count);
 			for (i=0; i<mesh->v_count; i++) {
@@ -231,7 +259,9 @@ void VS3D_DrawMeshIntern(RenderEffect3D *eff, GF_Mesh *mesh)
 
 	if (!mesh->mesh_type && !(mesh->flags & MESH_NO_TEXTURE)) {
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY );
-#ifdef GPAC_FIXED_POINT
+#if defined(GPAC_USE_OGL_ES)
+		glTexCoordPointer(2, GL_FIXED, sizeof(GF_Vertex), &mesh->vertices[0].texcoords);
+#elif defined(GPAC_FIXED_POINT)
 		glMatrixMode(GL_TEXTURE);
 		glPushMatrix();
 		glScalef(fix_scale, fix_scale, fix_scale);
@@ -247,9 +277,11 @@ void VS3D_DrawMeshIntern(RenderEffect3D *eff, GF_Mesh *mesh)
 		if (mesh->mesh_type) glDisable(GL_LIGHTING);
 		glNormal3f(0, 0, 1.0f);
 		glDisable(GL_CULL_FACE);
-	} else {
+	} else if (1) {
 		glEnableClientState(GL_NORMAL_ARRAY );
-#ifdef GPAC_FIXED_POINT
+#if defined(GPAC_USE_OGL_ES)
+		glNormalPointer(GL_FIXED, sizeof(GF_Vertex), &mesh->vertices[0].normal);
+#elif defined(GPAC_FIXED_POINT)
 		glNormalPointer(GL_INT, sizeof(GF_Vertex), &mesh->vertices[0].normal);
 #else
 		glNormalPointer(GL_FLOAT, sizeof(GF_Vertex), &mesh->vertices[0].normal);
@@ -267,22 +299,19 @@ void VS3D_DrawMeshIntern(RenderEffect3D *eff, GF_Mesh *mesh)
 			}
 		}
 	}
-
 	switch (mesh->mesh_type) {
-	case MESH_LINESET:
-		prim_type = GL_LINES;
-		break;
-	case MESH_POINTSET:
-		prim_type = GL_POINTS;
-		break;
-	default:
-		prim_type = GL_TRIANGLES;
-		break;
+	case MESH_LINESET: prim_type = GL_LINES; break;
+	case MESH_POINTSET: prim_type = GL_POINTS; break;
+	default: prim_type = GL_TRIANGLES; break;
 	}
 
 	/*if inside or no aabb for the mesh draw vertex array*/
 	if ((eff->cull_flag==CULL_INSIDE) || !mesh->aabb_root || !mesh->aabb_root->pos) {
+#ifdef GPAC_USE_OGL_ES
+		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_SHORT, mesh->indices);
+#else
 		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_INT, mesh->indices);
+#endif
 	} else {
 		/*otherwise cull aabb against frustum - after some testing it appears (as usual) that there must 
 		be a compromise: we're slowing down the renderer here, however the gain is really appreciable for 
@@ -309,7 +338,7 @@ void VS3D_DrawMeshIntern(RenderEffect3D *eff, GF_Mesh *mesh)
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY );
 	glDisableClientState(GL_NORMAL_ARRAY );
 
-#ifdef GPAC_FIXED_POINT
+#if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_OGL_ES)
 	if (color_array) free(color_array);
 	if (!mesh->mesh_type && !(mesh->flags & MESH_NO_TEXTURE)) {
 		glMatrixMode(GL_TEXTURE);
@@ -323,6 +352,26 @@ void VS3D_DrawMeshIntern(RenderEffect3D *eff, GF_Mesh *mesh)
 	eff->mesh_is_transparent = 0;
 }
 
+#ifdef GPAC_USE_OGL_ES
+u32 ogles_push_enable(u32 mask)
+{
+	u32 attrib = 0;
+	if ((mask & GL_LIGHTING) && glIsEnabled(GL_LIGHTING) ) attrib |= GL_LIGHTING;
+	if ((mask & GL_BLEND) && glIsEnabled(GL_BLEND) ) attrib |= GL_BLEND;
+	if ((mask & GL_COLOR_MATERIAL) && glIsEnabled(GL_COLOR_MATERIAL) ) attrib |= GL_COLOR_MATERIAL;
+	if ((mask & GL_TEXTURE_2D) && glIsEnabled(GL_TEXTURE_2D) ) attrib |= GL_TEXTURE_2D;
+	return attrib;
+}
+void ogles_pop_enable(u32 mask)
+{
+	u32 atts = 0;
+	if (mask & GL_LIGHTING) glEnable(GL_LIGHTING);
+	if (mask & GL_BLEND) glEnable(GL_BLEND);
+	if (mask & GL_COLOR_MATERIAL) glEnable(GL_COLOR_MATERIAL);
+	if (mask & GL_TEXTURE_2D) glEnable(GL_TEXTURE_2D);
+}
+#endif
+
 /*note we don't perform any culling for normal drawing...*/
 void VS3D_DrawNormals(RenderEffect3D *eff, GF_Mesh *mesh)
 {
@@ -330,44 +379,75 @@ void VS3D_DrawNormals(RenderEffect3D *eff, GF_Mesh *mesh)
 	u32 i, j;
 	Fixed scale = mesh->bounds.radius / 4;
 
+#ifdef GPAC_USE_OGL_ES
+	GF_Vec va[2];
+	u16 indices[2];
+	u32 attrib = ogles_push_enable(GL_LIGHTING | GL_BLEND | GL_COLOR_MATERIAL | GL_TEXTURE_2D);
+	glEnableClientState(GL_VERTEX_ARRAY);
+#else
 	glPushAttrib(GL_ENABLE_BIT);
+#endif
+
 	glDisable(GL_LIGHTING | GL_BLEND | GL_COLOR_MATERIAL | GL_TEXTURE_2D);
+#ifdef GPAC_USE_OGL_ES
+	glColor4x(0, 0, 0, 1);
+#else
 	glColor3f(0, 0, 0);
-	if (!mesh->mesh_type && !eff->mesh_is_transparent && (mesh->flags & MESH_IS_SOLID)) {
-		glEnable(GL_CULL_FACE);
-		glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CW : GL_CCW);
-	}
+#endif
 
 	if (eff->surface->render->draw_normals==GF_NORMALS_VERTEX) {
-		u32 *idx = mesh->indices;
+		IDX_TYPE *idx = mesh->indices;
 		for (i=0; i<mesh->i_count; i+=3) {
 			for (j=0; j<3; j++) {
 				pt = mesh->vertices[idx[j]].pos;
 				end = gf_vec_scale(mesh->vertices[idx[j]].normal, scale);
 				gf_vec_add(end, pt, end);
+#ifdef GPAC_USE_OGL_ES
+				va[0] = pt;
+				va[1] = end;
+				indices[0] = 0;
+				indices[1] = 1;
+				glVertexPointer(3, GL_FIXED, 0, va);
+				glDrawElements(GL_LINES, 2, GL_UNSIGNED_SHORT, indices);
+#else
 				glBegin(GL_LINES);
-				glVertex3f(pt.x, pt.y, pt.z);
-				glVertex3f(end.x, end.y, end.z);
+				glVertex3f(FIX2FLT(pt.x), FIX2FLT(pt.y), FIX2FLT(pt.z));
+				glVertex3f(FIX2FLT(end.x), FIX2FLT(end.y), FIX2FLT(end.z));
 				glEnd();
+#endif
 			}
 			idx+=3;
 		}
 	} else {
-		u32 *idx = mesh->indices;
+		IDX_TYPE *idx = mesh->indices;
 		for (i=0; i<mesh->i_count; i+=3) {
 			gf_vec_add(pt, mesh->vertices[idx[0]].pos, mesh->vertices[idx[1]].pos);
 			gf_vec_add(pt, pt, mesh->vertices[idx[2]].pos);
 			pt = gf_vec_scale(pt, FIX_ONE/3);
 			end = gf_vec_scale(mesh->vertices[idx[0]].normal, scale);
 			gf_vec_add(end, pt, end);
-			glBegin(GL_LINES);
-			glVertex3f(pt.x, pt.y, pt.z);
-			glVertex3f(end.x, end.y, end.z);
-			glEnd();
+#ifdef GPAC_USE_OGL_ES
+				va[0] = pt;
+				va[1] = end;
+				indices[0] = 0;
+				indices[1] = 1;
+				glVertexPointer(3, GL_FIXED, 0, va);
+				glDrawElements(GL_LINES, 2, GL_UNSIGNED_SHORT, indices);
+#else
+				glBegin(GL_LINES);
+				glVertex3f(FIX2FLT(pt.x), FIX2FLT(pt.y), FIX2FLT(pt.z));
+				glVertex3f(FIX2FLT(end.x), FIX2FLT(end.y), FIX2FLT(end.z));
+				glEnd();
+#endif
 			idx += 3;
 		}
 	}
+#ifdef GPAC_USE_OGL_ES
+	ogles_pop_enable(attrib);
+	glDisableClientState(GL_VERTEX_ARRAY);
+#else
 	glPopAttrib();
+#endif
 }
 
 
@@ -393,57 +473,74 @@ void VS3D_DrawAABBNodeBounds(RenderEffect3D *eff, AABBNode *node)
 void VS3D_DrawMeshBoundingVolume(RenderEffect3D *eff, GF_Mesh *mesh)
 {
 	SFVec3f c, s;
+#ifdef GPAC_USE_OGL_ES
+	u32 atts = ogles_push_enable(GL_LIGHTING);
+#else
+	glPushAttrib(GL_ENABLE_BIT);
+#endif
 
 	if (mesh->aabb_root && (eff->surface->render->compositor->draw_bvol==GF_BOUNDS_AABB)) {
-		glPushAttrib(GL_ENABLE_BIT);
 		glDisable(GL_LIGHTING);
 		VS3D_DrawAABBNodeBounds(eff, mesh->aabb_root);
-		glPopAttrib();
-		return;
+	} else {
+		gf_vec_diff(s, mesh->bounds.max_edge, mesh->bounds.min_edge);
+		c.x = mesh->bounds.min_edge.x + s.x/2;
+		c.y = mesh->bounds.min_edge.y + s.y/2;
+		c.z = mesh->bounds.min_edge.z + s.z/2;
+
+		glPushMatrix();
+		
+#ifdef GPAC_USE_OGL_ES
+		glTranslatex(c.x, c.y, c.z);
+		glScalex(s.x, s.y, s.z);
+#else
+		glTranslatef(FIX2FLT(c.x), FIX2FLT(c.y), FIX2FLT(c.z));
+		glScalef(FIX2FLT(s.x), FIX2FLT(s.y), FIX2FLT(s.z));
+#endif
+		VS3D_DrawMeshIntern(eff, eff->surface->render->unit_bbox);
+		glPopMatrix();
 	}
-	gf_vec_diff(s, mesh->bounds.max_edge, mesh->bounds.min_edge);
-	c.x = mesh->bounds.min_edge.x + s.x/2;
-	c.y = mesh->bounds.min_edge.y + s.y/2;
-	c.z = mesh->bounds.min_edge.z + s.z/2;
 
-	/*polygon bit pushed for sphere bounds*/
-	glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT);
-	glPushMatrix();
-	
-	glTranslatef(FIX2FLT(c.x), FIX2FLT(c.y), FIX2FLT(c.z));
-
-	glDisable(GL_LIGHTING);
-	glScalef(FIX2FLT(s.x), FIX2FLT(s.y), FIX2FLT(s.z));
-	VS3D_DrawMeshIntern(eff, eff->surface->render->unit_bbox);
-	glPopMatrix();
+#ifdef GPAC_USE_OGL_ES
+	ogles_pop_enable(atts);
+#else
 	glPopAttrib();
+#endif
 }
 
 void VS3D_DrawMesh(RenderEffect3D *eff, GF_Mesh *mesh, Bool do_normalize)
 {
+	Bool mesh_drawn = 0;
 	if (eff->surface->render->wiremode != GF_WIREFRAME_ONLY) {
 		s32 mode = GL_RESCALE_NORMAL;
 		/*since we're rescaling vertices...*/
-#ifdef GPAC_FIXED_POINT
+#if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_OGL_ES)
 		mode = GL_NORMALIZE;
 #endif
 		if (do_normalize) glEnable(mode);
 		VS3D_DrawMeshIntern(eff, mesh);
 		if (do_normalize) glDisable(mode);
+		mesh_drawn = 1;
 	}
 
 	if (eff->surface->render->draw_normals) VS3D_DrawNormals(eff, mesh);
 	if (eff->surface->render->wiremode != GF_WIREFRAME_NONE) {
-		glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glDisable(GL_LIGHTING);
-		glColor3f(0, 0, 0);
-		VS3D_DrawMeshIntern(eff, mesh);
-		glPopAttrib();
+		if (mesh_drawn) glColor4f(0, 0, 0, 1.0f);
+		glEnableClientState(GL_VERTEX_ARRAY);
+#ifdef GPAC_USE_OGL_ES
+		glVertexPointer(3, GL_FIXED, sizeof(GF_Vertex),  &mesh->vertices[0].pos);
+		glDrawElements(GL_LINES, mesh->i_count, GL_UNSIGNED_SHORT, mesh->indices);
+#else
+		glVertexPointer(3, GL_FLOAT, sizeof(GF_Vertex),  &mesh->vertices[0].pos);
+		glDrawElements(GL_LINES, mesh->i_count, GL_UNSIGNED_INT, mesh->indices);
+#endif
+		glDisableClientState(GL_VERTEX_ARRAY);
 	}
 	if (eff->surface->render->compositor->draw_bvol) VS3D_DrawMeshBoundingVolume(eff, mesh);
 }
 
+#ifndef GPAC_USE_OGL_ES
 
 static GLubyte hatch_horiz[] = {
 	0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
@@ -585,14 +682,20 @@ void VS3D_HatchMesh(RenderEffect3D *eff, GF_Mesh *mesh, Bool do_normalize, u32 h
 
 	if (do_normalize) glDisable(/*GL_NORMALIZE*/ GL_RESCALE_NORMAL);
 }
+#endif
 
 /*only used for ILS/ILS2D or IFS2D outline*/
 void VS3D_StrikeMesh(RenderEffect3D *eff, GF_Mesh *mesh, Fixed width, u32 dash_style)
 {
+#ifndef GPAC_USE_OGL_ES
 	u16 style;
+#endif
 	
 	if (mesh->mesh_type != MESH_LINESET) return;
 
+	width/=2;
+	glLineWidth( FIX2FLT(width));
+#ifndef GPAC_USE_OGL_ES
 	switch (dash_style) {
 	case GF_DASH_STYLE_DASH: style = 0x1F1F; break;
 	case GF_DASH_STYLE_DOT: style = 0x3333; break;
@@ -603,9 +706,6 @@ void VS3D_StrikeMesh(RenderEffect3D *eff, GF_Mesh *mesh, Fixed width, u32 dash_s
 		style = 0;
 		break;
 	}
-
-	width/=2;
-	glLineWidth( FIX2FLT(width));
 	if (style) {
 		u32 factor = FIX2INT(width);
 		if (!factor) factor = 1;
@@ -613,9 +713,10 @@ void VS3D_StrikeMesh(RenderEffect3D *eff, GF_Mesh *mesh, Fixed width, u32 dash_s
 		glLineStipple(factor, style); 
 		VS3D_DrawMesh(eff, mesh, 0);
 		glDisable (GL_LINE_STIPPLE);
-	} else {
+	} else 
+#endif
 		VS3D_DrawMesh(eff, mesh, 0);
-	}
+
 }
 
 void VS3D_SetMaterial2D(VisualSurface *surf, SFColor col, Fixed alpha)
@@ -628,7 +729,11 @@ void VS3D_SetMaterial2D(VisualSurface *surf, SFColor col, Fixed alpha)
 		glDisable(GL_BLEND);
 		VS3D_SetAntiAlias(surf, surf->render->compositor->antiAlias ? 1 : 0);
 	}
+#ifdef GPAC_USE_OGL_ES
+	glColor4x(col.red, col.green, col.blue, alpha);
+#else
 	glColor4f(FIX2FLT(col.red), FIX2FLT(col.green), FIX2FLT(col.blue), FIX2FLT(alpha));
+#endif
 }
 
 void VS3D_SetAntiAlias(VisualSurface *surf, Bool bOn)
@@ -636,14 +741,18 @@ void VS3D_SetAntiAlias(VisualSurface *surf, Bool bOn)
 	if (bOn) {
 		glEnable(GL_LINE_SMOOTH);
 		glEnable(GL_POINT_SMOOTH);
+#ifndef GPAC_USE_OGL_ES
 		if (surf->render->poly_aa)
 			glEnable(GL_POLYGON_SMOOTH);
 		else
 			glDisable(GL_POLYGON_SMOOTH);
+#endif
 	} else {
 		glDisable(GL_LINE_SMOOTH);
 		glDisable(GL_POINT_SMOOTH);
+#ifndef GPAC_USE_OGL_ES
 		glDisable(GL_POLYGON_SMOOTH);
+#endif
 	}
 }
 
@@ -653,6 +762,7 @@ void VS3D_ClearSurface(VisualSurface *surf, SFColor color, Fixed alpha)
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 
+#ifndef GPAC_USE_OGL_ES
 void VS3D_DrawImage(VisualSurface *surf, Fixed pos_x, Fixed pos_y, u32 width, u32 height, u32 pixelformat, char *data, Fixed scale_x, Fixed scale_y)
 {
 	u32 gl_format;
@@ -684,6 +794,7 @@ void VS3D_DrawImage(VisualSurface *surf, Fixed pos_x, Fixed pos_y, u32 width, u3
 
 }
 
+
 void VS3D_GetMatrix(VisualSurface *surf, u32 mat_type, Fixed *mat)
 {
 #ifdef GPAC_FIXED_POINT
@@ -707,6 +818,8 @@ void VS3D_GetMatrix(VisualSurface *surf, u32 mat_type, Fixed *mat)
 	memcpy(mat, _mat, sizeof(Fixed)*16);
 #endif
 }
+
+#endif
 
 void VS3D_SetMatrixMode(VisualSurface *surf, u32 mat_type)
 {
@@ -763,12 +876,30 @@ void VS3D_LoadMatrix(VisualSurface *surf, Fixed *mat)
 
 void VS3D_SetClipper2D(VisualSurface *surf, GF_Rect clip)
 {
+#ifdef GPAC_USE_OGL_ES
+
+	Fixed g[4];
+	u32 cp;
+	VS3D_ResetClipper2D(surf);
+	if (surf->num_clips + 4 > surf->max_clips)  return;
+	cp = surf->num_clips;
+	g[2] = 0; g[1] = 0; 
+	g[3] = clip.x + clip.width; g[0] = -FIX_ONE; 
+	glClipPlanex(GL_CLIP_PLANE0 + cp, g); glEnable(GL_CLIP_PLANE0 + cp);
+	g[3] = -clip.x; g[0] = FIX_ONE;
+	glClipPlanex(GL_CLIP_PLANE0 + cp + 1, g); glEnable(GL_CLIP_PLANE0 + cp + 1);
+	g[0] = 0;
+	g[3] = clip.y; g[1] = -FIX_ONE; 
+	glClipPlanex(GL_CLIP_PLANE0 + cp + 2, g); glEnable(GL_CLIP_PLANE0 + cp + 2);
+	g[3] = clip.height - clip.y; g[1] = FIX_ONE; 
+	glClipPlanex(GL_CLIP_PLANE0 + cp + 3, g); glEnable(GL_CLIP_PLANE0 + cp + 3);
+	surf->num_clips += 4;
+#else
 	Double g[4];
 	u32 cp;
-
+	VS3D_ResetClipper2D(surf);
 	if (surf->num_clips + 4 > surf->max_clips) return;
 	cp = surf->num_clips;
-
 	g[2] = 0; 
 	g[1] = 0; 
 	g[3] = FIX2FLT(clip.x) + FIX2FLT(clip.width); g[0] = -1; 
@@ -781,6 +912,7 @@ void VS3D_SetClipper2D(VisualSurface *surf, GF_Rect clip)
 	g[3] = FIX2FLT(clip.height-clip.y); g[1] = 1; 
 	glClipPlane(GL_CLIP_PLANE0 + cp + 3, g); glEnable(GL_CLIP_PLANE0 + cp + 3);
 	surf->num_clips += 4;
+#endif
 }
 
 void VS3D_ResetClipper2D(VisualSurface *surf)
@@ -797,15 +929,25 @@ void VS3D_ResetClipper2D(VisualSurface *surf)
 
 void VS3D_SetClipPlane(VisualSurface *surf, GF_Plane p)
 {
+#ifdef GPAC_USE_OGL_ES
+	Fixed g[4];
+	if (surf->num_clips + 1 > surf->max_clips) return;
+	gf_vec_norm(&p.normal);
+	g[0] = p.normal.x;
+	g[1] = p.normal.y;
+	g[2] = p.normal.z;
+	g[3] = p.d;
+	glClipPlanex(GL_CLIP_PLANE0 + surf->num_clips, g); 
+#else
 	Double g[4];
 	if (surf->num_clips + 1 > surf->max_clips) return;
-
 	gf_vec_norm(&p.normal);
 	g[0] = FIX2FLT(p.normal.x);
 	g[1] = FIX2FLT(p.normal.y);
 	g[2] = FIX2FLT(p.normal.z);
 	g[3] = FIX2FLT(p.d);
 	glClipPlane(GL_CLIP_PLANE0 + surf->num_clips, g); 
+#endif
 	glEnable(GL_CLIP_PLANE0 + surf->num_clips);
 	surf->num_clips++;
 }
@@ -819,7 +961,10 @@ void VS3D_ResetClipPlane(VisualSurface *surf)
 
 void VS3D_SetMaterial(VisualSurface *surf, u32 material_type, Fixed *rgba)
 {
-#ifdef GPAC_FIXED_POINT
+	GLenum mode;
+#if defined(GPAC_USE_OGL_ES)
+	Fixed *_rgba = rgba;
+#elif defined(GPAC_FIXED_POINT)
 	Float _rgba[4];
 	u32 i;
 	for (i=0; i<4; i++) _rgba[i] = FIX2FLT(rgba[i]);
@@ -828,22 +973,26 @@ void VS3D_SetMaterial(VisualSurface *surf, u32 material_type, Fixed *rgba)
 #endif
 
 	switch (material_type) {
-	case MATERIAL_AMBIENT:
-		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, _rgba);
-		break;
-	case MATERIAL_DIFFUSE:
-		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, _rgba);
-		break;
-	case MATERIAL_SPECULAR:
-		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, _rgba);
-		break;
-	case MATERIAL_EMISSIVE:
-		glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, _rgba);
-		break;
+	case MATERIAL_AMBIENT: mode = GL_AMBIENT; break;
+	case MATERIAL_DIFFUSE: mode = GL_DIFFUSE; break;
+	case MATERIAL_SPECULAR: mode = GL_SPECULAR; break;
+	case MATERIAL_EMISSIVE: mode = GL_EMISSION; break;
+
 	case MATERIAL_NONE:
+#ifdef GPAC_USE_OGL_ES
+		glColor4x(_rgba[0], _rgba[1], _rgba[2], _rgba[3]);
+#else
 		glColor4fv(_rgba);
-		break;
+#endif
+		/*fall-through*/
+	default:
+		return;
 	}
+#ifdef GPAC_USE_OGL_ES
+	glMaterialxv(GL_FRONT_AND_BACK, GL_EMISSION, _rgba);
+#else
+	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, _rgba);
+#endif
 }
 
 void VS3D_SetShininess(VisualSurface *surf, Fixed shininess)
@@ -860,7 +1009,11 @@ void VS3D_SetState(VisualSurface *surf, u32 flag_mask, Bool setOn)
 	} else {
 		if (flag_mask & F3D_LIGHT) glDisable(GL_LIGHTING);
 		if (flag_mask & F3D_BLEND) glDisable(GL_BLEND);
+#ifdef GPAC_USE_OGL_ES
+		if (flag_mask & F3D_COLOR) glDisable(GL_COLOR_MATERIAL);
+#else
 		if (flag_mask & F3D_COLOR) glDisable(GL_COLOR_MATERIAL | GL_COLOR_MATERIAL_FACE);
+#endif
 	}
 }
 
@@ -983,6 +1136,19 @@ void VS3D_ClearAllLights(VisualSurface *surf)
 
 void VS3D_SetFog(VisualSurface *surf, const char *type, SFColor color, Fixed density, Fixed visibility)
 {
+#ifdef GPAC_USE_OGL_ES
+	Fixed vals[4];
+	glEnable(GL_FOG);
+	if (!type || !stricmp(type, "LINEAR")) glFogx(GL_FOG_MODE, GL_LINEAR);
+	else if (!stricmp(type, "EXPONENTIAL")) glFogx(GL_FOG_MODE, GL_EXP);
+	else if (!stricmp(type, "EXPONENTIAL2")) glFogx(GL_FOG_MODE, GL_EXP2);
+	glFogx(GL_FOG_DENSITY, density);
+	glFogx(GL_FOG_START, 0);
+	glFogx(GL_FOG_END, visibility);
+	vals[0] = color.red; vals[1] = color.green; vals[2] = color.blue; vals[3] = FIX_ONE;
+	glFogxv(GL_FOG_COLOR, vals);
+	glHint(GL_FOG_HINT, surf->render->compositor->high_speed ? GL_FASTEST : GL_NICEST);
+#else
 	Float vals[4];
 	glEnable(GL_FOG);
 	if (!type || !stricmp(type, "LINEAR")) glFogi(GL_FOG_MODE, GL_LINEAR);
@@ -994,14 +1160,39 @@ void VS3D_SetFog(VisualSurface *surf, const char *type, SFColor color, Fixed den
 	vals[0] = FIX2FLT(color.red); vals[1] = FIX2FLT(color.green); vals[2] = FIX2FLT(color.blue); vals[3] = 1;
 	glFogfv(GL_FOG_COLOR, vals);
 	glHint(GL_FOG_HINT, surf->render->compositor->high_speed ? GL_FASTEST : GL_NICEST);
+#endif
+
 }
 
 void VS3D_FillRect(VisualSurface *surf, GF_Rect rc, SFColorRGBA color)
 {
-	glPushAttrib(GL_ENABLE_BIT | GL_CURRENT_BIT);
 	glDisable(GL_BLEND | GL_LIGHTING | GL_TEXTURE_2D);
 	glNormal3f(0, 0, 1);
 
+#ifdef GPAC_USE_OGL_ES
+	if (color.alpha!=FIX_ONE) glEnable(GL_BLEND);
+	glColor4x(color.red, color.green, color.blue, color.alpha);
+	{
+		Fixed v[8];
+		u16 indices[3];
+		indices[0] = 0;
+		indices[1] = 1;
+		indices[2] = 2;
+
+		v[0] = rc.x; v[1] = rc.y;
+		v[2] = rc.x+rc.width; v[3] = rc.y-rc.height;
+		v[4] = rc.x+rc.width; v[5] = rc.y;
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glVertexPointer(2, GL_FIXED, 0, v);
+		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, indices);
+
+		v[4] = rc.x; v[5] = rc.y-rc.height;
+		glVertexPointer(2, GL_FIXED, 0, v);
+		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, indices);
+
+		glDisableClientState(GL_VERTEX_ARRAY);
+	}
+#else
 	if (color.alpha!=FIX_ONE) {
 		glEnable(GL_BLEND);
 		glColor4f(FIX2FLT(color.red), FIX2FLT(color.green), FIX2FLT(color.blue), FIX2FLT(color.alpha));
@@ -1014,7 +1205,9 @@ void VS3D_FillRect(VisualSurface *surf, GF_Rect rc, SFColorRGBA color)
 	glVertex3f(FIX2FLT(rc.x+rc.width), FIX2FLT(rc.y-rc.height), 0);
 	glVertex3f(FIX2FLT(rc.x), FIX2FLT(rc.y-rc.height), 0);
 	glEnd();
-	glPopAttrib();
+#endif
+
+	glDisable(GL_BLEND);
 }
 
 GF_Err R3D_GetScreenBuffer(GF_VisualRenderer *vr, GF_VideoSurface *fb)
@@ -1027,7 +1220,6 @@ GF_Err R3D_GetScreenBuffer(GF_VisualRenderer *vr, GF_VideoSurface *fb)
 	fb->width = sr->out_width;
 	fb->pitch = 3*sr->out_width;
 	fb->height = sr->out_height;
-	fb->os_handle = NULL;
 	fb->pixel_format = GF_PIXEL_RGB_24;
 
 	/*don't understand why I get BGR when using GL_RGB*/

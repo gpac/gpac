@@ -84,7 +84,6 @@ static void DestroyBackground2D(GF_Node *node)
 	mesh_free(ptr->mesh);
 	free(ptr);
 }
-
 static void RenderBackground2D(GF_Node *node, void *rs)
 {
 	M_Background2D *bck;
@@ -127,6 +126,10 @@ static void RenderBackground2D(GF_Node *node, void *rs)
 
 	VS3D_PushMatrix(eff->surface);
 
+	VS3D_SetMatrixMode(eff->surface, MAT_TEXTURE);
+	VS3D_ResetMatrix(eff->surface);
+	VS3D_SetMatrixMode(eff->surface, MAT_MODELVIEW);
+
 	is_layer = (eff->surface->back_stack == eff->backgrounds) ? 0 : 1;
 	/*little opt: if we clear the main surface clear it entirely */
 	if (!is_layer) {
@@ -158,7 +161,7 @@ static void RenderBackground2D(GF_Node *node, void *rs)
 		}
 		gf_mx_add_scale(&mx, sx, sy, FIX_ONE);
 #ifdef GPAC_FIXED_POINT
-		gf_mx_add_translation(&mx, 0, 0, -85*eff->camera->z_far/100);
+		gf_mx_add_translation(&mx, 0, 0, - (eff->camera->z_far/100)*99);
 #else
 		gf_mx_add_translation(&mx, 0, 0, -0.999f*eff->camera->z_far);
 #endif
@@ -168,7 +171,7 @@ static void RenderBackground2D(GF_Node *node, void *rs)
 							FIX_ONE);
 		/*when in layer2D, DON'T MOVE BACKGROUND TO ZFAR*/
 #ifdef GPAC_FIXED_POINT
-		if (!is_layer) gf_mx_add_translation(&mx, 0, 0, -85*eff->camera->z_far/100);
+		if (!is_layer) gf_mx_add_translation(&mx, 0, 0, -(eff->camera->z_far/100)*99);
 #else
 		if (!is_layer) gf_mx_add_translation(&mx, 0, 0, -0.999f*eff->camera->z_far);
 #endif
@@ -473,7 +476,7 @@ static void RenderBackground(GF_Node *node, void *rs)
 		/*CHECKME - not sure why, we need to scale less in fixed point otherwise z-far clipping occur - probably some
 		rounding issues...*/
 #ifdef GPAC_FIXED_POINT
-		scale = 4*eff->camera->z_far/5;
+		scale = (eff->camera->z_far/10)*8;
 #else
 		scale = 9*eff->camera->z_far/10;
 #endif
@@ -494,7 +497,7 @@ static void RenderBackground(GF_Node *node, void *rs)
 		gf_mx_add_translation(&mx, res.x, res.y, res.z);
 		/*cf above*/
 #ifdef GPAC_FIXED_POINT
-		scale = 75*eff->camera->z_far/100;
+		scale = (eff->camera->z_far/100)*70;
 #else
 		scale = 85*eff->camera->z_far/100;
 #endif
@@ -509,7 +512,7 @@ static void RenderBackground(GF_Node *node, void *rs)
 		gf_mx_init(mx);
 		gf_mx_add_translation(&mx, res.x, res.y, res.z);
 #ifdef GPAC_FIXED_POINT
-		scale = 70*eff->camera->z_far/100;
+		scale = (eff->camera->z_far/100)*70;
 		gf_mx_add_scale(&mx, scale, scale, scale);
 #else
 		gf_mx_add_scale(&mx, eff->camera->z_far, eff->camera->z_far, eff->camera->z_far);

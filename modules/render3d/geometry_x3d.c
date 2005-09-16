@@ -63,6 +63,7 @@ static void RenderDisk2D(GF_Node *node, void *rs)
 	if (gf_node_dirty_get(node)) {
 		Fixed a = ((X_Disk2D *) node)->outerRadius * 2;
 		stack2D_reset(st);
+		/*FIXME - move to 3D stack and skip path stuff to enable it with OpenGL-ES*/
 		gf_path_add_ellipse(st->path, 0, 0, a, a);
 		a = ((X_Disk2D *) node)->innerRadius * 2;
 		if (a) gf_path_add_ellipse(st->path, 0, 0, a, a);

@@ -284,7 +284,7 @@ void R3D_DrawScene(GF_VisualRenderer *vr)
 		VS3D_ClearSurface(sr->surface, c, FIX_ONE);
 	}
 
-	sr->compositor->video_out->FlushVideo(sr->compositor->video_out, NULL);
+	sr->compositor->video_out->Flush(sr->compositor->video_out, NULL);
 }
 
 static Bool R3D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
@@ -331,8 +331,8 @@ GF_Err R3D_RecomputeAR(GF_VisualRenderer *vr)
 
 	if (!sr->compositor->has_size_info) {
 		R3D_SetScaling(sr, FIX_ONE, FIX_ONE);
-		sr->out_width = sr->surface->width = sr->compositor->width;
-		sr->out_height = sr->surface->height = sr->compositor->height;
+		sr->surface->width = sr->out_width;
+		sr->surface->height = sr->out_height;
 		return GF_OK;
 	}
 
@@ -340,12 +340,10 @@ GF_Err R3D_RecomputeAR(GF_VisualRenderer *vr)
 	case GF_ASPECT_RATIO_FILL_SCREEN:
 		break;
 	case GF_ASPECT_RATIO_16_9:
-		sr->out_width = sr->compositor->width;
-		sr->out_height = 9 * sr->compositor->width / 16;
+		sr->out_height = 9 * sr->out_width  / 16;
 		break;
 	case GF_ASPECT_RATIO_4_3:
-		sr->out_width = sr->compositor->width;
-		sr->out_height = 3 * sr->compositor->width / 4;
+		sr->out_height = 3 * sr->out_width / 4;
 		break;
 	default:
 		ratio = sr->compositor->scene_height;
@@ -388,11 +386,24 @@ void R3D_ReloadConfig(GF_VisualRenderer *vr)
 
 	gf_sr_lock(sr->compositor, 1);
 
+	/*currently:
+	- no tesselator for GL-ES, so use raster outlines.
+	- no support for npow2 textures, and no support for DrawPixels
+	*/
+#ifndef GPAC_USE_OGL_ES
 	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "RasterOutlines");
 	sr->raster_outlines = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
 	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "EmulatePOW2");
 	sr->emul_pow2 = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
-	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "PolygonAA");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "BitmapCopyPixels");
+	sr->bitmap_use_pixels = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+#else
+	sr->raster_outlines = 1;
+	sr->emul_pow2 = 1;
+	sr->bitmap_use_pixels = 0;
+#endif
+
+		sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "PolygonAA");
 	sr->poly_aa = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
 	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "DisableBackFaceCulling");
 	sr->no_backcull = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
@@ -405,9 +416,6 @@ void R3D_ReloadConfig(GF_VisualRenderer *vr)
 	if (sOpt && !stricmp(sOpt, "PerFace")) sr->draw_normals = GF_NORMALS_FACE;
 	else if (sOpt && !stricmp(sOpt, "PerVertex")) sr->draw_normals = GF_NORMALS_VERTEX;
 	else sr->draw_normals = GF_NORMALS_NONE;
-
-	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "BitmapCopyPixels");
-	sr->bitmap_use_pixels = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "DisableRectExt");
 	sr->disable_rect_ext = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
@@ -491,7 +499,9 @@ GF_Err R3D_SetOption(GF_VisualRenderer *vr, u32 option, u32 value)
 	GF_Camera *cam;
 	Render3D *sr = (Render3D *)vr->user_priv;
 	switch (option) {
+#ifndef GPAC_USE_OGL_ES
 	case GF_OPT_RASTER_OUTLINES: sr->raster_outlines = value; return GF_OK;
+#endif
 	case GF_OPT_EMULATE_POW2: sr->emul_pow2 = value; return GF_OK;
 	case GF_OPT_POLYGON_ANTIALIAS: sr->poly_aa = value; return GF_OK;
 	case GF_OPT_NO_BACK_CULL: sr->no_backcull = value; return GF_OK;
@@ -566,6 +576,11 @@ u32 R3D_GetOption(GF_VisualRenderer *vr, u32 option)
 	Render3D *sr = (Render3D *)vr->user_priv;
 	switch (option) {
 	case GF_OPT_RASTER_OUTLINES: return sr->raster_outlines;
+#ifndef GPAC_USE_OGL_ES
+		return sr->raster_outlines;
+#else
+		return 1;
+#endif
 	case GF_OPT_EMULATE_POW2: return sr->emul_pow2;
 	case GF_OPT_POLYGON_ANTIALIAS: return sr->poly_aa;
 	case GF_OPT_NO_BACK_CULL: return sr->no_backcull;

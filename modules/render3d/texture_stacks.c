@@ -206,10 +206,14 @@ static void UpdateCompositeTexture(GF_TextureHandler *txh)
 		}
 
 		/*generate texture*/
+#if 1
 		st->txh.pixelformat = GF_PIXEL_RGBA;
-
 		st->txh.stride = st->txh.width*4;
 		st->txh.transparent = 1;
+#else
+		st->txh.pixelformat = GF_PIXEL_RGB_24;
+		st->txh.stride = st->txh.width*3;
+#endif
 		st->surface->width = st->txh.width;
 		st->surface->height = st->txh.height;
 

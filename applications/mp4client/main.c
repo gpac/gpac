@@ -231,6 +231,8 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		if (!evt->message.message) return 0;
 		if (evt->message.error) 
 			fprintf(stdout, "%s (%s): %s\n", evt->message.message, servName, gf_error_to_string(evt->message.error));
+		else
+			fprintf(stdout, "(%s) %s\r", servName, evt->message.message);
 	}
 		break;
 	case GF_EVT_PROGRESS:

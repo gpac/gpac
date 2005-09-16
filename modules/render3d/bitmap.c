@@ -62,10 +62,12 @@ static Bool BitmapIntersectWithRay(GF_Node *owner, GF_Ray *ray, SFVec3f *outPoin
 
 static void RenderBitmap(GF_Node *node, void *rs)
 {
-	Fixed x, y;
 	Aspect2D asp;
+#ifndef GPAC_USE_OGL_ES
+	Fixed x, y;
 	char *data;
 	u32 format;
+#endif
 	GF_TextureHandler *txh;
 	Fixed sx, sy;
 	SFVec2f size;
@@ -135,8 +137,8 @@ static void RenderBitmap(GF_Node *node, void *rs)
 		}
 	}
 
-
 	/*otherwise use glDrawPixels*/
+#ifndef GPAC_USE_OGL_ES
 	data = tx_get_data(txh, &format);
 	if (!data) return;
 
@@ -161,9 +163,10 @@ static void RenderBitmap(GF_Node *node, void *rs)
 	y = gf_mulfix(y, sy);
 
 	}
-
 	VS3D_DrawImage(eff->surface, x, y, txh->width, txh->height, format, data, sx, sy);
+#endif
 }
+
 
 static void Bitmap_PreDestroy(GF_Node *n)
 {

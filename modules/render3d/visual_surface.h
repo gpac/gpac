@@ -222,18 +222,6 @@ GF_TextureHandler *VS_setup_gf_sr_texture_2d(RenderEffect3D *eff, Aspect2D *asp)
 /*disable effect texture*/
 void VS_disable_texture(RenderEffect3D *eff);
 
-/*converts 2D path into a polygon - 
-for_outline:
-	 0, regular odd/even windining rule with texCoords
-	 1, zero-non-zero windining rule without texCoords
-	 2, zero-non-zero windining rule with texCoords
-*/
-void TesselatePath(GF_Mesh *mesh, GF_Path *path, u32 outline_style);
-/*appends given face (and tesselate if needed) to the mesh. Only vertices are used in the face
-indices are ignored. */
-void TesselateFaceMesh(GF_Mesh *mesh, GF_Mesh *face);
-/*same as above plus faces info to determine where are the polygons in the face - used by extruder only*/
-void TesselateFaceMeshComplex(GF_Mesh *dest, GF_Mesh *orig, u32 nbFaces, u32 *ptsPerFaces);
 
 /*
 	till end of file: all 3D specific calls
@@ -284,13 +272,15 @@ void VS3D_MultMatrix(VisualSurface *surf, Fixed *mat);
 void VS3D_LoadMatrix(VisualSurface *surf, Fixed *mat);
 /*pop matrix stack*/
 void VS3D_PopMatrix(VisualSurface *surf);
-/*get matrix for the desired mode*/
-void VS3D_GetMatrix(VisualSurface *surf, u32 mat_type, Fixed *mat);
+
 /*setup viewport (vp: top-left, width, height)*/
 void VS3D_SetViewport(VisualSurface *surf, GF_Rect vp);
-/*setup rectangular cliper (clip: top-left, width, height)*/
+/*setup rectangular cliper (clip: top-left, width, height)
+NOTE: 2D clippers can only be set from a 2D context, hence will always take the 4 first GL clip planes.
+In order to allow multiple Layer2D in Layer2D, THERE IS ALWAYS AT MOST ONE 2D CLIPPER USED AT ANY TIME, 
+it is the caller responsability to restore previous 2D clipers*/
 void VS3D_SetClipper2D(VisualSurface *surf, GF_Rect clip);
-/*remove last clipper set*/
+/*remove 2D clipper*/
 void VS3D_ResetClipper2D(VisualSurface *surf);
 /*set clipping plane*/
 void VS3D_SetClipPlane(VisualSurface *surf, GF_Plane p);
@@ -301,8 +291,6 @@ void VS3D_ResetClipPlane(VisualSurface *surf);
 void VS3D_DrawMesh(RenderEffect3D *eff, GF_Mesh *mesh, Bool do_normalize);
 /*only used for ILS/ILS2D or IFS2D outline*/
 void VS3D_StrikeMesh(RenderEffect3D *eff, GF_Mesh *mesh, Fixed width, u32 dash_style);
-/*X3D hatching*/
-void VS3D_HatchMesh(RenderEffect3D *eff, GF_Mesh *mesh, Bool do_normalize, u32 hatchStyle, SFColor hatchColor);
 
 /*material types*/
 enum
@@ -321,15 +309,6 @@ void VS3D_SetShininess(VisualSurface *surf, Fixed shininess);
 /*set 2D material (eq to disable lighting and set material (none))*/
 void VS3D_SetMaterial2D(VisualSurface *surf, SFColor col, Fixed alpha);
 
-/*draws image data:
-	pos_x, pos_y: top-left pos of image
-	width, height: size of image
-	pixelformat: image pixel format
-	data: image data
-	scale_x, scale_y: x & y scale
-*/
-void VS3D_DrawImage(VisualSurface *surf, Fixed pos_x, Fixed pos_y, u32 width, u32 height, u32 pixelformat, char *data, Fixed scale_x, Fixed scale_y);
-
 /*disables last light created - for directional lights only*/
 void VS3D_RemoveLastLight(VisualSurface *surf);
 /*disables all lights*/
@@ -345,5 +324,50 @@ Bool VS3D_AddDirectionalLight(VisualSurface *surf, Fixed ambientIntensity, SFCol
 void VS3D_SetFog(VisualSurface *surf, const char *type, SFColor color, Fixed density, Fixed visibility);
 /*fill given rect with given color (used for text hilighting only) - context shall not be altered*/
 void VS3D_FillRect(VisualSurface *surf, GF_Rect rc, SFColorRGBA color);
+
+/*non-oglES functions*/
+#ifndef GPAC_USE_OGL_ES
+
+/*draws image data:
+	pos_x, pos_y: top-left pos of image
+	width, height: size of image
+	pixelformat: image pixel format
+	data: image data
+	scale_x, scale_y: x & y scale
+*/
+void VS3D_DrawImage(VisualSurface *surf, Fixed pos_x, Fixed pos_y, u32 width, u32 height, u32 pixelformat, char *data, Fixed scale_x, Fixed scale_y);
+/*get matrix for the desired mode*/
+void VS3D_GetMatrix(VisualSurface *surf, u32 mat_type, Fixed *mat);
+/*X3D hatching*/
+void VS3D_HatchMesh(RenderEffect3D *eff, GF_Mesh *mesh, Bool do_normalize, u32 hatchStyle, SFColor hatchColor);
+
+#endif
+
+
+/*tesselation functions*/
+/*appends given face (and tesselate if needed) to the mesh. Only vertices are used in the face
+indices are ignored. 
+partially implemented on ogl-ES*/
+void TesselateFaceMesh(GF_Mesh *mesh, GF_Mesh *face);
+
+#ifndef GPAC_USE_OGL_ES
+/*converts 2D path into a polygon - these are only partially implemented when using oglES
+for_outline:
+	 0, regular odd/even windining rule with texCoords
+	 1, zero-non-zero windining rule without texCoords
+	 2, zero-non-zero windining rule with texCoords
+*/
+void TesselatePath(GF_Mesh *mesh, GF_Path *path, u32 outline_style);
+
+/*appends given face (and tesselate if needed) to the mesh. Only vertices are used in the face
+indices are ignored. 
+Same as TesselateFaceMesh + faces info to determine where are the polygons in the face - used by extruder only
+*/
+void TesselateFaceMeshComplex(GF_Mesh *dest, GF_Mesh *orig, u32 nbFaces, u32 *ptsPerFaces);
+
+#endif
+
+
+
 #endif
 

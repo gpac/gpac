@@ -29,9 +29,15 @@
 #include <windows.h>
 #endif
 
+#ifdef GPAC_USE_OGL_ES
+#ifndef GPAC_FIXED_POINT
+#error "OpenGL ES defined without fixed-point support - unsupported."
+#endif
+#include "GLES/egl.h"
+#else
 #include <GL/gl.h>
 #include <GL/glu.h>
-
+#endif
 
 /*redefine all ext needed*/
 

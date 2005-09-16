@@ -35,7 +35,7 @@
 #define MESH_CHECK_IDX(m)		\
 	if (m->i_count == m->i_alloc) {	\
 		m->i_alloc += MESH_STEP_ALLOC;	\
-		m->indices = realloc(m->indices, sizeof(u32)*m->i_alloc);	\
+		m->indices = realloc(m->indices, sizeof(IDX_TYPE)*m->i_alloc);	\
 	}	\
 
 
@@ -79,7 +79,7 @@ GF_Mesh *new_mesh()
 		mesh->v_alloc = MESH_STEP_ALLOC;
 		mesh->vertices = malloc(sizeof(GF_Vertex)*mesh->v_alloc);
 		mesh->i_alloc = MESH_STEP_ALLOC;
-		mesh->indices = malloc(sizeof(u32)*mesh->i_alloc);
+		mesh->indices = malloc(sizeof(IDX_TYPE)*mesh->i_alloc);
 	}
 	return mesh;
 }
@@ -119,8 +119,8 @@ void mesh_clone(GF_Mesh *dest, GF_Mesh *orig)
 
 	dest->i_alloc = orig->i_alloc;
 	dest->i_count = orig->i_count;
-	dest->indices = malloc(sizeof(u32)*dest->i_alloc);
-	memcpy(dest->indices, orig->indices, sizeof(u32)*dest->i_count);
+	dest->indices = malloc(sizeof(IDX_TYPE)*dest->i_alloc);
+	memcpy(dest->indices, orig->indices, sizeof(IDX_TYPE)*dest->i_count);
 
 	dest->mesh_type = orig->mesh_type;
 	dest->flags = orig->flags;
@@ -177,7 +177,7 @@ void mesh_set_point(GF_Mesh *mesh, Fixed x, Fixed y, Fixed z, SFColorRGBA col)
 void mesh_set_index(GF_Mesh *mesh, u32 idx)
 {
 	MESH_CHECK_IDX(mesh);
-	mesh->indices[mesh->i_count] = idx;
+	mesh->indices[mesh->i_count] = (IDX_TYPE) idx;
 	mesh->i_count++;
 }
 void mesh_set_triangle(GF_Mesh *mesh, u32 v1_idx, u32 v2_idx, u32 v3_idx)
@@ -623,7 +623,7 @@ void mesh_new_ellipse(GF_Mesh *mesh, Fixed a_dia, Fixed b_dia, Bool low_res)
 		cosa = gf_cos(cur);
 		sina = gf_sin(cur);
 
-		mesh_set_vertex(mesh, a_dia*cosa, b_dia*sina, 0, 
+		mesh_set_vertex(mesh, gf_mulfix(a_dia, cosa), gf_mulfix(b_dia, sina), 0, 
 								0, 0, FIX_ONE, 
 								(FIX_ONE + cosa)/2, (FIX_ONE + sina)/2);
 
@@ -696,7 +696,9 @@ void mesh_from_path_intern(GF_Mesh *mesh, GF_Path *path, Bool make_ccw)
 		}
 	}
 	/*we need to tesselate the path*/
+#ifndef GPAC_USE_OGL_ES
 	TesselatePath(mesh, path, 0);
+#endif
 	if (do_delete) gf_path_del(path);
 }
 
@@ -1972,6 +1974,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 	}
 	if (begin_face) {
 		if (path->n_contours>1) {
+#ifndef GPAC_USE_OGL_ES
 			u32 *ptsPerFace = malloc(sizeof(u32)*path->n_contours);
 			/*we reversed begin cap!!!*/
 			for (i=0; i<path->n_contours; i++) {
@@ -1984,6 +1987,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 			}
 			TesselateFaceMeshComplex(mesh, faces[begin_face], path->n_contours, ptsPerFace);
 			free(ptsPerFace);
+#endif
 		} else {
 			TesselateFaceMesh(mesh, faces[begin_face]);
 		}
@@ -1991,6 +1995,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 	}
 	if (end_face) {
 		if (path->n_contours>1) {
+#ifndef GPAC_USE_OGL_ES
 			u32 *ptsPerFace = malloc(sizeof(u32)*path->n_contours);
 			cur = 0;
 			for (i=0; i<path->n_contours; i++) {
@@ -2000,6 +2005,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 			}
 			TesselateFaceMeshComplex(mesh, faces[end_face], path->n_contours, ptsPerFace);
 			free(ptsPerFace);
+#endif
 		} else {
 			TesselateFaceMesh(mesh, faces[end_face]);
 		}

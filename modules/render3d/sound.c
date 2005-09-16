@@ -210,7 +210,7 @@ static void RenderSound(GF_Node *node, void *rs)
 		usr.y = 0;
 		if (!gf_vec_equal(usr, st->last_pos)) {
 			st->intensity = snd_compute_gain(snd->minBack, snd->minFront, snd->maxBack, snd->maxFront, usr);
-			st->intensity *= snd->intensity;
+			st->intensity = gf_mulfix(st->intensity, snd->intensity);
 			st->last_pos = usr;
 		}
 		st->identity = (st->intensity==FIX_ONE) ? 1 : 0;
