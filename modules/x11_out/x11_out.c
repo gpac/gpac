@@ -33,7 +33,7 @@ void X11_SetupWindow (GF_VideoOutput * vout);
  * Flush video: draw main image(surface/pixmap) -> os_handle
  */
 //=====================================
-GF_Err X11_FlushVideo (struct _video_out *vout, GF_Window * dest)
+GF_Err X11_Flush(struct _video_out *vout, GF_Window * dest)
 {
 	Window cur_wnd;
 	/*
@@ -449,12 +449,6 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 	if (evt) {
 
 	switch (evt->type) {
-	case GF_EVT_REFRESH:
-		a_wnd.w = evt->size.width;
-		a_wnd.h = evt->size.height;
-		a_wnd.x = a_wnd.y = 0;
-		X11_FlushVideo (vout, &a_wnd);
-		break;
 	case GF_EVT_SET_CURSOR:
 		break;
 	case GF_EVT_SET_CAPTION:
@@ -478,8 +472,9 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 		xWindow->w_height = evt->size.height;
 		/*and resetup OpenGL*/
 #ifdef GPAC_HAS_OPENGL
-		if (xWindow->is_3D_out) X11_SetupGL(vout);
+		if (xWindow->is_3D_out) return X11_SetupGL(vout);
 #endif
+		return X11_ResizeBackBuffer(dr, evt->size.width, evt->size.height);
 		break;
 	}
 	} else {
@@ -501,16 +496,16 @@ GF_Err X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn, u32 * scr
 	if (bFullScreenOn) {
 		xWindow->store_width = *screen_width;
 		xWindow->store_height = *screen_height;
-		xWindow->w_width = xWindow->display_width;
-		xWindow->w_height = xWindow->display_height;
+		xWindow->w_width = vout->max_screen_width;
+		xWindow->w_height = vout->max_screen_height;
 
 		XFreeGC (xWindow->display, xWindow->the_gc);
 		xWindow->the_gc = XCreateGC (xWindow->display, xWindow->full_wnd, 0, NULL);
 
 		XMoveResizeWindow (xWindow->display,
 				   (Window) xWindow->full_wnd, 0, 0,
-				   xWindow->display_width,
-				   xWindow->display_height);
+				   vout->max_screen_width,
+				   vout->max_screen_height);
 		*screen_width = xWindow->w_width;
 		*screen_height = xWindow->w_height;
 		XUnmapWindow (xWindow->display, xWindow->wnd);
@@ -535,212 +530,28 @@ GF_Err X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn, u32 * scr
 	return GF_OK;
 }
 
-GF_Err X11_Clear (struct _video_out * vout, u32 color)
-{
-	X11VID ();
-	Window the_window;
-
-	the_window = xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd;
-	switch (xWindow->videoaccesstype) {
-	case VIDEO_XI_STANDARD:
-		// TODO convert color to PIXEL
-		XSetWindowBackground (xWindow->display, the_window, color);
-		XClearWindow (xWindow->display, the_window);
-		break;
-	}
-	return GF_OK;
-}
-
 /*
  * lock video mem
  */
-GF_Err X11_LockSurface (struct _video_out * vout, u32 surface_id, GF_VideoSurface * vi)
+GF_Err X11_LockBackBuffer(struct _video_out * vout, GF_VideoSurface * vi, Bool do_lock)
 {
 	u32 i;
 	X11VID ();
 
-	if (!surface_id) {
+	if (do_lock) {
+		if (!vi) return GFçBAD_PARAM;
 		vi->width = xWindow->back_buffer->width;
 		vi->height = xWindow->back_buffer->height;
 		vi->pitch = xWindow->back_buffer->pitch;
 		vi->pixel_format = xWindow->pixel_format;
-		vi->os_handle = NULL;
 		vi->video_buffer = xWindow->back_buffer->buffer;
+		vi->is_hardware_memory = (xWindow->videoaccesstype==VIDEO_XI_STANDARD) ? 0 : 1;
+		return GF_OK;
+	} else {
 		return GF_OK;
 	}
-
-	for (i = 0; i < gf_list_count(xWindow->surfaces); i++) {
-		X11WrapSurface *ptr = (X11WrapSurface *) gf_list_get(xWindow->surfaces, i);
-		if (ptr->id == surface_id) { 
-			vi->width = ptr->width;
-			vi->height = ptr->height;
-			vi->pitch = ptr->pitch;
-			vi->pixel_format = ptr->pixel_format;
-			vi->os_handle = NULL;
-			vi->video_buffer = ptr->buffer;
-			return GF_OK;
-		}
-	}
-	return GF_BAD_PARAM;
 }
 
-GF_Err X11_UnlockSurface (struct _video_out * vout, u32 surface_id)
-{
-	/*for now nothing to do (offscreen surfaces are not on video memory yet...)*/
-	return GF_OK;
-}
-
-/*
- * creates a offscreen video surface and setup surface id - pixel format
- * MUST be respected except for YUV formats, where the hardware is free to 
- * choose the fastest format for blit
- */
-static GF_Err X11_CreateSurface (struct _video_out *vout, u32 width, u32 height, u32 pixel_format, u32 * surfaceID)
-{
-	u32 size;
-	X11WrapSurface *surf;
-	X11VID ();
-
-
-	GF_SAFEALLOC(surf, sizeof (X11WrapSurface));
-
-	switch (pixel_format) {
-	case GF_PIXEL_RGB_555:		
-		surf->BPP = 2;
-		break;
-	case GF_PIXEL_RGB_565:
-		surf->BPP = 2;
-		break;
-	case GF_PIXEL_RGB_24:		
-		surf->BPP = 3;
-		break;
-	case GF_PIXEL_RGB_32:		
-		surf->BPP = 4;
-		break;
-	}
-	surf->pitch = width * surf->BPP;
-	size = height * surf->pitch;
-	surf->buffer = (unsigned char *) malloc (sizeof (unsigned char) * size);
-	surf->pixel_format = pixel_format;
-	surf->id = (u32) surf;
-	gf_list_add(xWindow->surfaces, surf);
-	*surfaceID = surf->id;
-	return GF_OK;
-}
-
-X11WrapSurface *X11_GetSurface (struct _video_out *vout, u32 surface_id)
-{
-	s32 i;
-	X11WrapSurface *surf;
-	X11VID ();
-	if (!surface_id) return NULL;
-	surf = (X11WrapSurface *)surface_id;
-	i = gf_list_find(xWindow->surfaces, surf);
-	if (i<0) return NULL;
-	return surf;
-}
-
-GF_Err X11_DeleteSurface (struct _video_out * vout, u32 surface_id)
-{
-	X11WrapSurface *surf;
-	X11VID ();
-	if (!surface_id) return GF_BAD_PARAM;
-	surf = X11_GetSurface(vout, surface_id);
-	if (surf) {
-		gf_list_del_item(xWindow->surfaces, surf);
-		if (surf->buffer) free(surf->buffer);
-		free(surf);
-		return GF_OK;
-	}
-	return GF_BAD_PARAM;
-}
-
-
-/*
- * checks if the surface is valid - this is used to discard surfaces when
- * changing video mode (fullscreen)
- */
-u32
-X11_IsSurfaceValid (struct _video_out * vout, u32 surface_id)
-{
-	return (X11_GetSurface(vout, surface_id) != NULL) ? 1 : 0;
-}
-
-/*
- * resize surface - the resulting surface can still be larger than what
- * requested
- */
-GF_Err
-X11_ResizeSurface (struct _video_out * vout, u32 surface_id,
-		   u32 width, u32 height)
-{
-	X11WrapSurface *wrap;
-	if (!surface_id) return X11_ResizeBackBuffer(vout, width, height);
-
-	wrap = X11_GetSurface(vout, surface_id);
-	if (!wrap || !wrap->BPP) return GF_BAD_PARAM;
-	if ((wrap->width>= width) && (wrap->height>=height)) return GF_OK;
-	free(wrap->buffer);
-	wrap->pitch = wrap->BPP * width;
-	wrap->width = width;
-	wrap->height = height;
-	wrap->buffer = malloc(sizeof(char) * wrap->pitch * wrap->height);
-	return GF_OK;
-}
-
-
-/*
- * blit surface src to surface dest - if a window is not specified, the
- * full surface is used _ can be NULL
- */
-GF_Err
-X11_Blit (struct _video_out * vout, u32 src_id, u32 dst_id,
-	  GF_Window * src, GF_Window * dst)
-{
-	void *pdst, *psrc;
-	X11VID ();
-	if (dst_id) return GF_NOT_SUPPORTED;
-
-	X11WrapSurface *dest_surf = xWindow->back_buffer;
-	X11WrapSurface *src_surf = X11_GetSurface (vout, src_id);
-
-	pdst = dest_surf->buffer + dst->y * xWindow->back_buffer->pitch + dst->x * xWindow->bpp;
-	int dst_depth = xWindow->bpp*8;
-	int src_depth = src_surf->BPP*8;
-	int src_bpp = src_surf->BPP;
-	
-	psrc = src_surf->buffer + src->y * src_surf->pitch + src->x * src_bpp;
-	StretchBits (pdst, dst_depth, dst->w, dst->h, dest_surf->pitch,
-					psrc, src_depth, src->w, src->h, src_surf->pitch, 
-					0);
-	return GF_OK;
-}
-
-/*
- * returns pixel format of the surface - if surfaceID is 0, the main video
- * memory format is requested
- */
-GF_Err
-X11_GetPixelFormat (struct _video_out * vout, u32 surfaceID,
-		    u32 * pixel_format)
-{
-	u32 i;
-	X11VID ();
-
-	if (!surfaceID) {
-		*pixel_format = xWindow->pixel_format;
-		return GF_OK;
-	}
-
-	for (i = 0; i < gf_list_count (xWindow->surfaces); i++) {
-		X11WrapSurface *ptr = (X11WrapSurface *) gf_list_get (xWindow->surfaces, i);
-		if (ptr->id == surfaceID) {
-			*pixel_format = ptr->pixel_format;
-			return GF_OK;
-		}
-	}
-	return GF_OK;
-}
 
 static XErrorHandler old_handler = NULL;
 static int selectinput_err = 0;
@@ -794,8 +605,8 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	xWindow->bpp = xWindow->depth / 8;
 	xWindow->bpp = xWindow->bpp == 3 ? 4 : xWindow->bpp;
 
-	xWindow->display_width = DisplayWidth (xWindow->display, xWindow->screennum);
-	xWindow->display_height = DisplayHeight (xWindow->display, xWindow->screennum);
+	vout->max_screen_width = DisplayWidth(xWindow->display, xWindow->screennum);
+	vout->max_screen_height = DisplayHeight(xWindow->display, xWindow->screennum);
 
 	/*
 	 * Full screen wnd
@@ -803,8 +614,8 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	xWindow->full_wnd = XCreateWindow (xWindow->display,
 								   RootWindowOfScreen (xWindow->screenptr),
 								   0, 0,
-								   xWindow->display_width,
-								   xWindow->display_height, 0,
+								   vout->max_screen_width,
+								   vout->max_screen_height, 0,
 								   xWindow->depth, InputOutput,
 								   xWindow->visual, 0, NULL);
 
@@ -967,15 +778,6 @@ void X11_Shutdown (struct _video_out *vout)
 {
 	X11VID ();
 
-	while (gf_list_count (xWindow->surfaces)) {
-		X11WrapSurface *ptr = (X11WrapSurface *) gf_list_get(xWindow->surfaces, 0);
-		gf_list_rem(xWindow->surfaces, 0);
-		if (ptr) {
-			if (ptr->buffer) free (ptr->buffer);
-			free (ptr);
-		}
-	}
-	gf_list_del(xWindow->surfaces);
 	if (xWindow->is_3D_out) {
 #ifdef GPAC_HAS_OPENGL
 		X11_ReleaseGL(xWindow);
@@ -1005,24 +807,16 @@ void *NewX11VideoOutput ()
 		return NULL;
 	}
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "X11 Video Output", "gpac distribution")
-	xWindow->surfaces = gf_list_new();
+
 	driv->opaque = xWindow;
 
-	driv->Blit = X11_Blit;
-	driv->Clear = X11_Clear;
-	driv->CreateSurface = X11_CreateSurface;
-	driv->DeleteSurface = X11_DeleteSurface;
-	driv->FlushVideo = X11_FlushVideo;
-	driv->GetPixelFormat = X11_GetPixelFormat;
-	driv->LockSurface = X11_LockSurface;
-	driv->IsSurfaceValid = X11_IsSurfaceValid;
+	driv->Flush = X11_Flush;
 	driv->SetFullScreen = X11_SetFullScreen;
 	driv->Setup = X11_Setup;
 	driv->Shutdown = X11_Shutdown;
-	driv->UnlockSurface = X11_UnlockSurface;
-	driv->ResizeSurface = X11_ResizeSurface;
+	driv->LockBackBuffer = X11_LockBackBuffer;
 	driv->ProcessEvent = X11_ProcessEvent;
-	driv->bHas3DSupport = 1;
+	driv->hw_caps = GF_VIDEO_HW_HAS_OPENGL;
 	return (void *) driv;
 
 }

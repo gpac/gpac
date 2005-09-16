@@ -130,10 +130,6 @@ SOURCE=..\..\modules\render2d\background2d.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\render2d\copy_pixels.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\modules\render2d\drawable.c
 # End Source File
 # Begin Source File

@@ -64,7 +64,6 @@ public:
 // Operations
 public:
 	void SetPauseButton(Bool force_play_button = 0);
-	void UpdateFullScreenDisplay();
 
 // Overrides
 	// ClassWizard generated virtual function overrides
@@ -88,10 +87,10 @@ protected:  // control bar embedded members
 	void ForwardMessage();
 
 private:
-	Bool m_is_stoped;
+	RECT m_view_rc;
 
 public:
-	CChildView m_wndView, m_wndDumb;
+	CChildView m_wndView;
 	void UpdateTime();
 
 // Generated message map functions
@@ -122,10 +121,13 @@ protected:
 	afx_msg void OnNavNone();
 	afx_msg void OnNavSlide();
 	afx_msg void OnNaveReset();
+	afx_msg void OnSetNavigation(UINT nID);
+
 	afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg void OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg void OnViewTiming();
 	afx_msg void OnUpdateViewTiming(CCmdUI* pCmdUI);
+	afx_msg void OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu);
 	//}}AFX_MSG
 
 	DECLARE_MESSAGE_MAP()

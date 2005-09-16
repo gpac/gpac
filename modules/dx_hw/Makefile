@@ -14,7 +14,7 @@ LINKDXPATH=-L$(DX_LIB)
 LINKDXLIBS=-ldsound -ldxguid -lddraw -lole32 -lgdi32 -lopenGL32
 
 #common obj
-OBJS=dx_audio.o dx_video.o dx_window.o dx_2d.o
+OBJS=dx_audio.o dx_video.o dx_window.o dx_2d.o copy_pixels.o
 
 
 SRCS := $(OBJS:.o=.c) 

@@ -20,7 +20,7 @@
  *  along with this program ; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
- * $Id: decoder.cpp,v 1.1.1.1 2005-07-13 14:36:13 jeanlf Exp $
+ * $Id: decoder.cpp,v 1.2 2005-09-16 14:28:47 jeanlf Exp $
  *
  ****************************************************************************/
 
@@ -38,23 +38,9 @@
 
 //----------------------------
 
-#ifdef _MSC_VER
-
-#if _MSC_VER <= 1200
 # define DECLARE_ALIGNED_MATRIX(name,sizex,sizey,type,alignment) \
                 type name##_storage[(sizex)*(sizey)+(alignment)-1]; \
                 type * name = (type *) (((int) name##_storage+(alignment - 1)) & ~((int)(alignment)-1))
-#else
-# define DECLARE_ALIGNED_MATRIX(name,sizex,sizey,type,alignment) __declspec(align(alignment)) type name[(sizex)*(sizey)]
-#endif
-
-#else
-
-#define DECLARE_ALIGNED_MATRIX(name, sizex, sizey, type, alignment) \
-   type name##_storage[(sizex)*(sizey)+(alignment)-1]; \
-   type * name = (type *) (((dword) name##_storage+(alignment - 1)) & ~((dword)(alignment)-1))
-
-#endif
 
 //----------------------------
 //----------------------------

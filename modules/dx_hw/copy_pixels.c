@@ -22,8 +22,8 @@
  *
  */
 
-#include "render2d.h"
-#include <gpac/yuv.h>
+#include "dx_hw.h"
+
 
 static u32 get_yuv_base(u32 in_pf) 
 {
@@ -47,7 +47,7 @@ static u32 get_yuv_base(u32 in_pf)
 	}
 }
 
-static Bool forgf_mx2d_is_yuv(u32 in_pf)
+static Bool format_is_yuv(u32 in_pf)
 {
 	switch (in_pf) {
 	case GF_PIXEL_YUY2:
@@ -376,72 +376,33 @@ void rgb_to_32(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_
 	}
 }
 
-void R2D_copyPixels(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_w, u32 src_h, u32 src_pf, GF_Window *src_wnd)
+void dx_copy_pixels(GF_VideoSurface *dst_s, GF_VideoSurface *src_s, GF_Window *src_wnd)
 {
 	/*handle YUV input*/
-	if (get_yuv_base(src_pf)==GF_PIXEL_YV12) {
-		if (forgf_mx2d_is_yuv(vs->pixel_format)) {
+	if (get_yuv_base(src_s->pixel_format)==GF_PIXEL_YV12) {
+		if (format_is_yuv(dst_s->pixel_format)) {
 			/*generic YV planar to YUV (planar or not) */
-			VR_write_yv12_to_yuv(vs, src, src_stride, src_pf, src_w, src_h, src_wnd);
+			VR_write_yv12_to_yuv(dst_s, src_s->video_buffer, src_s->pitch, src_s->pixel_format, src_s->width, src_s->height, src_wnd);
 		} else {
-			/*YVplanar to RGB*/
-			unsigned char *pY, *pU, *pV, *pTmp;
-
-			/*setup start point in src*/
-			pY = src;
-			pU = pY + src_w*src_h;
-			pV = pY + 5*src_w*src_h/4;
-
-			pY += src_stride*src_wnd->y + src_wnd->x;
-			pU += (src_stride * src_wnd->y / 2 + src_wnd->x) / 2;
-			pV += (src_stride * src_wnd->y / 2 + src_wnd->x) / 2;
-			assert(src_stride==src_w);
-			
-			if (src_pf != GF_PIXEL_YV12) {
-				pTmp = pU;
-				pU = pV;
-				pV = pTmp;
-			}
-
-
-			switch (vs->pixel_format) {
-			case GF_PIXEL_RGB_555:
-				gf_yuv_to_rgb_555(vs->video_buffer, vs->pitch, pY, pU, pV, src_stride, src_stride/2, src_wnd->w, src_wnd->h);
-				break;
-			case GF_PIXEL_RGB_565:
-				gf_yuv_to_rgb_565(vs->video_buffer, vs->pitch, pY, pU, pV, src_stride, src_stride/2, src_wnd->w, src_wnd->h);
-				break;
-			/*to do: add RB flip*/
-			case GF_PIXEL_RGB_24:
-			case GF_PIXEL_BGR_24:
-				gf_yuv_to_bgr_24(vs->video_buffer, vs->pitch, pY, pU, pV, src_stride, src_stride/2, src_wnd->w, src_wnd->h);
-				break;
-			/*to do: add RB flip*/
-			case GF_PIXEL_RGB_32:
-			case GF_PIXEL_BGR_32:
-				gf_yuv_to_rgb_32(vs->video_buffer, vs->pitch, pY, pU, pV, src_stride, src_stride/2, src_wnd->w, src_wnd->h);
-				break;
-			}
+			gf_stretch_bits(dst_s, src_s, NULL, src_wnd, 0, 0xFF, 0, NULL, NULL);
 		}
-		/*other output formats are ignored*/
-		return;
-	}
-
-	switch (vs->pixel_format) {
-	case GF_PIXEL_RGB_555:
-		rgb_to_555(vs, src, src_stride, src_w, src_h, src_pf, src_wnd);
-		break;
-	case GF_PIXEL_RGB_565:
-		rgb_to_565(vs, src, src_stride, src_w, src_h, src_pf, src_wnd);
-		break;
-	case GF_PIXEL_RGB_24:
-	case GF_PIXEL_BGR_24:
-		rgb_to_24(vs, src, src_stride, src_w, src_h, src_pf, src_wnd);
-		break;
-	case GF_PIXEL_RGB_32:
-	case GF_PIXEL_BGR_32:
-		rgb_to_32(vs, src, src_stride, src_w, src_h, src_pf, src_wnd);
-		break;
+	} else {
+		switch (dst_s->pixel_format) {
+		case GF_PIXEL_RGB_555:
+			rgb_to_555(dst_s, src_s->video_buffer, src_s->pitch, src_s->width, src_s->height, src_s->pixel_format, src_wnd);
+			break;
+		case GF_PIXEL_RGB_565:
+			rgb_to_565(dst_s, src_s->video_buffer, src_s->pitch, src_s->width, src_s->height, src_s->pixel_format, src_wnd);
+			break;
+		case GF_PIXEL_RGB_24:
+		case GF_PIXEL_BGR_24:
+			rgb_to_24(dst_s, src_s->video_buffer, src_s->pitch, src_s->width, src_s->height, src_s->pixel_format, src_wnd);
+			break;
+		case GF_PIXEL_RGB_32:
+		case GF_PIXEL_BGR_32:
+			rgb_to_32(dst_s, src_s->video_buffer, src_s->pitch, src_s->width, src_s->height, src_s->pixel_format, src_wnd);
+			break;
+		}
 	}
 }
 

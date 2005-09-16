@@ -284,7 +284,10 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	s_video->Add(bs, 0, wxALL|wxEXPAND, 2);
 	m_switchres = new wxCheckBox(this, 0, wxT("Change video resolution in fullscreen"));
 	s_video->Add(m_switchres, 0, wxALL|wxEXPAND, 2);
+	m_usehwmem = new wxCheckBox(this, 0, wxT("Use hardware memory in 2D mode"));
+	s_video->Add(m_usehwmem, 0, wxALL|wxEXPAND, 2);
 	s_main->Add(s_video, 0, wxEXPAND, 0);
+	
 
 	/*audio*/
 	s_audio = new wxBoxSizer(wxVERTICAL);
@@ -564,6 +567,8 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	/*video*/
 	sOpt = gf_cfg_get_key(cfg, "Video", "SwitchResolution");
 	m_switchres->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(cfg, "Video", "UseHardwareMemory");
+	m_usehwmem->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(cfg, "Video", "DriverName");
 	select = to_sel = 0;
 	for (i=0; i<count; i++) {
@@ -940,6 +945,7 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 	gf_cfg_set_key(cfg, "Render3D", "DrawNormals", (sel==2) ? "PerVertex" : ( (sel==1) ? "PerFace" : "Never" ) );
 
 	gf_cfg_set_key(cfg, "Video", "SwitchResolution", m_switchres->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "Video", "UseHardwareMemory", m_usehwmem->GetValue() ? "yes" : "no");
 	gf_cfg_set_key(cfg, "Video", "DriverName", m_video->GetStringSelection().mb_str(wxConvUTF8));
 
 

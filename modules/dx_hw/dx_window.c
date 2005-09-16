@@ -120,8 +120,8 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	case WM_SIZE:
 		/*always notify GPAC since we're not sure the owner of the window is listening to these events*/
 		evt.type = GF_EVT_SIZE;
-		ctx->width = evt.size.width = LOWORD(lParam);
-		ctx->height = evt.size.height = HIWORD(lParam);
+		evt.size.width = LOWORD(lParam);
+		evt.size.height = HIWORD(lParam);
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		break;
 	case WM_CLOSE:
@@ -144,6 +144,8 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		if (ctx->cur_hwnd==hWnd) DD_SetCursor(the_video_driver, ctx->cursor_type);
 		return 1;
 	case WM_ERASEBKGND:
+		//InvalidateRect(ctx->cur_hwnd, NULL, TRUE);
+		//break;
 	case WM_PAINT:
 		if (ctx->cur_hwnd==hWnd) {
 			evt.type = GF_EVT_REFRESH;
@@ -410,8 +412,6 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 	case GF_EVT_SET_CURSOR:
 		DD_SetCursor(dr, evt->cursor.cursor_type);
 		break;
-	case GF_EVT_SET_STYLE:
-		break;
 	case GF_EVT_SET_CAPTION:
 		if (evt->caption.caption) SetWindowText(ctx->os_hwnd, evt->caption.caption);
 		break;
@@ -423,10 +423,12 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 		if (ctx->owns_hwnd) SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width + ctx->off_w, evt->size.height + ctx->off_h, SWP_NOZORDER | SWP_NOMOVE);
 	/*in any case resetup openGL*/
 	case GF_EVT_VIDEO_SETUP:
-		ctx->width = evt->size.width;
-		ctx->height = evt->size.height;
-		if (ctx->is_3D_out) DD_SetupOpenGL(the_video_driver);
-		break;
+		if (ctx->is_3D_out) {
+			ctx->width = evt->size.width;
+			ctx->height = evt->size.height;
+			return DD_SetupOpenGL(the_video_driver);
+		} else 
+			return DD_SetBackBufferSize(dr, evt->size.width, evt->size.height);
 	}
 	return GF_OK;
 }

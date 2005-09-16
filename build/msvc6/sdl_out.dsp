@@ -109,15 +109,7 @@ SOURCE=..\..\modules\sdl_out\sdl_out.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\sdl_out\soft_stretch.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\modules\sdl_out\video.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\sdl_out\video2d.c
 # End Source File
 # End Target
 # End Project

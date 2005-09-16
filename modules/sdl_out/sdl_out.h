@@ -37,13 +37,6 @@ void SDLOUT_CloseSDL();
 
 typedef struct
 {
-	SDL_Surface *surface;
-	u32 pixel_format, id;
-
-} SDLWrapSurface;
-
-typedef struct
-{
 	GF_Thread *sdl_th;
 	GF_Mutex *evt_mx;
 	u32 sdl_th_state;
@@ -54,10 +47,7 @@ typedef struct
 	u32 store_width, store_height;
 	/*cursors*/
 	SDL_Cursor *curs_def, *curs_hand, *curs_collide;
-	/*display size*/
-	u32 display_width, display_height;
-
-	GF_List *surfaces;
+	Bool systems_memory;
 
 	SDL_Surface *screen;
 	SDL_Surface *back_buffer;
@@ -70,14 +60,6 @@ typedef struct
 
 void SDL_DeleteVideo(void *ifce);
 void *SDL_NewVideo();
-
-void SDL_SetupVideo2D(GF_VideoOutput *driv);
-GF_Err SDLVid_Blit(GF_VideoOutput *dr, u32 src_id, u32 dst_id, GF_Window *src, GF_Window *dst);
-
-/*soft stretch since SDL doesn't support HW stretch*/
-void StretchBits(void *dst, u32 dst_bpp, u32 dst_w, u32 dst_h, u32 dst_pitch,
-				void *src, u32 src_bpp, u32 src_w, u32 src_h, u32 src_pitch,
-				Bool FlipIt);
 
 
 /*

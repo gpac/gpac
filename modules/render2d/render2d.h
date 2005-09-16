@@ -64,10 +64,6 @@ typedef struct _render_2d
 	void *hardware_context;
 	GF_VideoSurface hw_surface;
 	Bool locked;
-	/*pool surfaces used for HW blitting - one for YUV, one for RGB*/
-	u32 pool_yuv, pool_rgb;
-	/*current YUV pool surface format*/
-	u32 current_yuv_format;
 	Bool scalable_zoom, enable_yuv_hw;
 
 	/*current output info: screen size and top-left point of video surface, and current scaled scene size*/
@@ -186,8 +182,6 @@ Bool R2D_IsPixelMetrics(GF_Node *n);
 
 Bool R2D_NodeChanged(GF_VisualRenderer *vr, GF_Node *byObj);
 void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node);
-/*copy pixels*/
-void R2D_copyPixels(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_w, u32 src_h, u32 src_pf, GF_Window *src_wnd);
 
 GF_TextureHandler *R2D_GetTextureHandler(GF_Node *n);
 

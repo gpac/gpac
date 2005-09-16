@@ -519,6 +519,37 @@ redecode:
 		if (mmlevel	== GF_CODEC_LEVEL_SEEK) return GF_OK;
 
 		if (gotpic) {
+#ifdef _WIN32_WCE
+			if (ffd->pix_fmt==GF_PIXEL_RGB_24) {
+				memcpy(outBuffer, ffd->frame->data[0], sizeof(char)*3*ffd->ctx->width);
+			} else {
+				u32 i;
+				char *pYO, *pUO, *pVO;
+				unsigned char *pYD, *pUD, *pVD;
+				pYO = ffd->frame->data[0];
+				pUO = ffd->frame->data[1];
+				pVO = ffd->frame->data[2];
+				pYD = outBuffer;
+				pUD = outBuffer + ffd->ctx->width * ffd->ctx->height;
+				pVD = outBuffer + 5 * ffd->ctx->width * ffd->ctx->height / 4;
+				
+
+				for (i=0; i<ffd->ctx->height; i++) {
+					memcpy(pYD, pYO, sizeof(char) * ffd->ctx->width);
+					pYD += ffd->ctx->width;
+					pYO += ffd->frame->linesize[0];
+					if (i%2) continue;
+
+					memcpy(pUD, pUO, sizeof(char) * ffd->ctx->width/2);
+					memcpy(pVD, pVO, sizeof(char) * ffd->ctx->width/2);
+					pUD += ffd->ctx->width/2;
+					pVD += ffd->ctx->width/2;
+					pUO += ffd->frame->linesize[1];
+					pVO += ffd->frame->linesize[2];
+				}
+				*outBufferLength = ffd->out_size;
+			}
+#else
 			AVPicture pict;
 			u32 pix_out;
 			memset(&pict, 0, sizeof(pict));
@@ -538,6 +569,7 @@ redecode:
 			pict.linesize[3] = 0;
 			img_convert(&pict, pix_out, (AVPicture *) ffd->frame, ffd->ctx->pix_fmt, ffd->ctx->width, ffd->ctx->height);
 			*outBufferLength = ffd->out_size;
+#endif
 		}
 	}
 	return GF_OK;

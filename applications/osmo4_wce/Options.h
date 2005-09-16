@@ -294,6 +294,42 @@ protected:
 };
 
 
+class COptRender3D : public CDialog
+{
+// Construction
+public:
+	COptRender3D(CWnd* pParent = NULL);   // standard constructor
+
+// Dialog Data
+	//{{AFX_DATA(COptRender)
+	enum { IDD = IDD_OPT_RENDER3D };
+	CComboBox	m_WireMode;
+	CComboBox	m_DrawNormals;
+	CButton	m_Use3DRender;
+	CButton	m_NoBackFace;
+	CButton	m_EmulatePOW2;
+	//}}AFX_DATA
+
+	Bool m_bNeedsReload;
+	void SaveOptions();
+
+// Overrides
+	// ClassWizard generated virtual function overrides
+	//{{AFX_VIRTUAL(COptRender)
+	protected:
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+	//}}AFX_VIRTUAL
+
+// Implementation
+protected:
+
+	// Generated message map functions
+	//{{AFX_MSG(COptRender)
+	virtual BOOL OnInitDialog();
+	//}}AFX_MSG
+	DECLARE_MESSAGE_MAP()
+};
+
 /////////////////////////////////////////////////////////////////////////////
 // COptions dialog
 
@@ -302,6 +338,8 @@ class COptions : public CDialog
 // Construction
 public:
 	COptions(CWnd* pParent = NULL);   // standard constructor
+
+	Bool m_bNeedsReload;
 
 // Dialog Data
 	//{{AFX_DATA(COptions)
@@ -323,11 +361,13 @@ protected:
 	COptGen m_general;
 	COptSystems m_systems;
 	COptRender m_render;
+	COptRender3D m_render3D;
 	COptAudio m_audio;
 	COptHTTP m_http;
 	COptFont m_font;
 	COptStream m_stream;
 	COptDecoder m_decoder;
+
 
 	void HideAll();
 

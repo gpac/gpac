@@ -833,6 +833,7 @@ void COptVideo::DoDataExchange(CDataExchange* pDX)
 	//{{AFX_DATA_MAP(COptVideo)
 	DDX_Control(pDX, IDC_SWITCH_RES, m_SwitchRes);
 	DDX_Control(pDX, IDC_VIDEO_LIST, m_Videos);
+	DDX_Control(pDX, IDC_HWMEMORY, m_UseHWMemory);
 	//}}AFX_DATA_MAP
 }
 
@@ -853,12 +854,10 @@ BOOL COptVideo::OnInitDialog()
 	const char *sOpt;
 	
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Video", "SwitchResolution");
-	if (sOpt && !stricmp(sOpt, "yes")) {
-		m_SwitchRes.SetCheck(1);
-	} else {
-		m_SwitchRes.SetCheck(0);
-	}
-
+	m_SwitchRes.SetCheck(sOpt && !stricmp(sOpt, "yes") ? 1 : 0);
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Video", "UseHardwareMemory");
+	m_UseHWMemory.SetCheck(sOpt && !stricmp(sOpt, "yes") ? 1 : 0);
+	
 	
 	u32 count = gf_modules_get_count(gpac->m_user.modules);
 	GF_BaseInterface *ifce;
@@ -888,6 +887,7 @@ void COptVideo::SaveOptions()
 	char str[50];
 
 	gf_cfg_set_key(gpac->m_user.config, "Video", "SwitchResolution", m_SwitchRes.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Video", "UseHardwareMemory", m_UseHWMemory.GetCheck() ? "yes" : "no");
 	m_Videos.GetWindowText(str, 50);
 	gf_cfg_set_key(gpac->m_user.config, "Video", "DriverName", str);
 }

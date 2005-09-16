@@ -191,10 +191,10 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, Bool (*enum_dir_i
 	HANDLE SearchH;
 
 	if (!dir) return GF_BAD_PARAM;
-	if (dir[strlen(dir) - 1] != GF_PATH_SEPARATOR) {
+	if (dir[strlen(dir) - 1] == GF_PATH_SEPARATOR) {
 		sprintf(_path, "%s*", dir);
 	} else {
-		sprintf(_path, "%s%c*", dir);
+		sprintf(_path, "%s%c*", dir, GF_PATH_SEPARATOR);
 	}
 	CE_CharToWide(_path, path);
 
@@ -226,24 +226,6 @@ next:
 	}
 	return GF_OK;
 }
-
-char * my_str_upr(char *str)
-{
-	u32 i;
-	for (i=0; i<strlen(str); i++) {
-		str[i] = toupper(str[i]);
-	}
-	return str;
-}
-char * my_str_lwr(char *str)
-{
-	u32 i;
-	for (i=0; i<strlen(str); i++) {
-		str[i] = tolower(str[i]);
-	}
-	return str;
-}
-
 
 u64 gf_f64_tell(FILE *f)
 {

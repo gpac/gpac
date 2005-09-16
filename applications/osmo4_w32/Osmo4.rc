@@ -497,7 +497,9 @@ BEGIN
     COMBOBOX        IDC_VIDEO_LIST,55,5,111,44,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
     CONTROL         "Change video resolution in fullscreen",IDC_SWITCH_RES,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,34,131,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,29,131,10
+    CONTROL         "Use Hardware Video Memory in 2D mode",IDC_HWMEMORY,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,44,143,10
 END
 
 IDD_OPT_HTTP DIALOG DISCARDABLE  0, 20, 169, 76
@@ -606,12 +608,12 @@ STYLE DS_MODALFRAME | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
     CONTROL         "Disable YUV Hardware",IDC_YUV,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,5,58,89,10
-    LTEXT           "Static",IDC_FORMAT_YUV,97,59,67,8
+                    WS_TABSTOP,5,54,89,10
+    LTEXT           "Static",IDC_FORMAT_YUV,97,57,67,8
     CONTROL         "Direct Rendering",IDC_DIRECTRENDER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,5,36,72,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,5,32,72,10
     CONTROL         "Scalable Zoom",IDC_ZOOM_SCALABLE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,5,12,77,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,5,10,77,10
 END
 
 IDD_OPT_RENDER3D DIALOG DISCARDABLE  0, 20, 169, 76

@@ -71,10 +71,7 @@ static void SVG_Draw_bitmap(DrawableContext *ctx)
 	if (ctx->transform.m[1] || ctx->transform.m[3]) use_hw = 0;
 
 	/*check if driver can handle alpha blit*/
-	if (alpha!=255) {
-		use_hw = sr->compositor->video_out->bHasAlpha;
-		if (has_scale) use_hw = sr->compositor->video_out->bHasAlphaStretch;
-	}
+	if (alpha!=255) use_hw = 0;
 
 	/*this is not a native texture, use graphics*/
 	if (!ctx->h_texture->data) {
@@ -111,7 +108,7 @@ static void SVG_Draw_bitmap(DrawableContext *ctx)
 
 	/*direct rendering, render without clippers */
 	if (ctx->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
-		ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &ctx->clip, &ctx->unclip);
+		ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &ctx->clip, &ctx->unclip, 0xFF, NULL, NULL);
 	}
 	/*render bitmap for all dirty rects*/
 	else {
@@ -123,7 +120,7 @@ static void SVG_Draw_bitmap(DrawableContext *ctx)
 			clip = ctx->clip;
 			gf_irect_intersect(&clip, &ctx->surface->to_redraw.list[i]);
 			if (clip.width && clip.height) {
-				ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &clip, &ctx->unclip);
+				ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &clip, &ctx->unclip, 0xFF, NULL, NULL);
 			}
 		}
 	}

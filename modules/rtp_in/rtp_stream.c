@@ -226,8 +226,8 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		trans.IsUnicast = 1;
 		trans.client_port_first = media->PortNumber;
 		trans.client_port_last = media->PortNumber + 1;
-		/*we should take care of AVP vs SAVO however most servers don't understand RTP/SAVP client requests*/
-		if (rtp->rtp_mode) {
+		/*we should take care of AVP vs SAVP however most servers don't understand RTP/SAVP client requests*/
+		if (rtp->rtp_mode && rtp->rtsp_session) {
 			trans.Profile = GF_RTSP_PROFILE_RTP_AVP_TCP;
 		} else {
 			trans.Profile = media->Profile;

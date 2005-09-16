@@ -32,6 +32,7 @@ extern "C" {
 
 #include <gpac/path2d.h>
 #include <gpac/module.h>
+#include <gpac/color.h>
 
 
 /*stencil types*/

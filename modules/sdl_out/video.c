@@ -228,12 +228,6 @@ void SDL_SetHack(void *os_handle, Bool set_on)
 
 static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 {
-	while (gf_list_count(ctx->surfaces)) {
-		SDLWrapSurface *ptr = gf_list_get(ctx->surfaces, 0);
-		gf_list_rem(ctx->surfaces, 0);
-		if (ptr->surface) SDL_FreeSurface(ptr->surface);
-		free(ptr);
-	}
 	if (ctx->back_buffer) SDL_FreeSurface(ctx->back_buffer);
 	ctx->back_buffer = NULL;
 }
@@ -313,20 +307,20 @@ u32 SDL_EventProc(void *par)
 	cursor_on = 1;
 
 	/*save display resolution (SDL doesn't give acees to that)*/
-	ctx->display_width = ctx->display_height = 0;
+	dr->max_screen_width = dr->max_screen_height = 0;
 #ifdef HAVE_X11
     {
     Display *dpy = XOpenDisplay(NULL);
     if (dpy) {
-        ctx->display_width = DisplayWidth(dpy, DefaultScreen(dpy));
-        ctx->display_height = DisplayHeight(dpy, DefaultScreen(dpy));
+        dr->max_screen_width = DisplayWidth(dpy, DefaultScreen(dpy));
+        dr->max_screen_height = DisplayHeight(dpy, DefaultScreen(dpy));
 		XCloseDisplay(dpy);
     }
     }
 #endif
 #ifdef WIN32
-    ctx->display_width = GetSystemMetrics(SM_CXSCREEN);
-    ctx->display_height = GetSystemMetrics(SM_CYSCREEN);
+    dr->max_screen_width = GetSystemMetrics(SM_CXSCREEN);
+    dr->max_screen_height = GetSystemMetrics(SM_CYSCREEN);
 #endif
     
 	while (ctx->sdl_th_state==1) {
@@ -508,7 +502,7 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, u32 bFullScreenOn, u32 *screen_w
 		Bool switch_res = 0;
 		const char *sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "SwitchResolution");
 		if (sOpt && !stricmp(sOpt, "yes")) switch_res = 1;
-		if (!ctx->display_width || !ctx->display_height) switch_res = 1;
+		if (!dr->max_screen_width || !dr->max_screen_height) switch_res = 1;
 
 		flags = ctx->is_3D_out ? SDL_GL_FULLSCREEN_FLAGS : SDL_FULLSCREEN_FLAGS;
 		ctx->store_width = *screen_width;
@@ -527,8 +521,8 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, u32 bFullScreenOn, u32 *screen_w
 				}
 			}
 		} else {
-			ctx->fs_width = ctx->display_width;
-			ctx->fs_height = ctx->display_height;
+			ctx->fs_width = dr->max_screen_width;
+			ctx->fs_height = dr->max_screen_height;
 		}
 		ctx->screen = SDL_SetVideoMode(ctx->fs_width, ctx->fs_height, pref_bpp, flags);
 		/*we switched bpp, clean all objects*/
@@ -551,7 +545,74 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, u32 bFullScreenOn, u32 *screen_w
 	return GF_OK;
 }
 
+GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight)
+{
+	u32 col;
+	const char *opt;
+	SDLVID();
+	
+	if (ctx->is_3D_out) return GF_BAD_PARAM;
 
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseHardwareMemory");
+	ctx->systems_memory = (opt && !strcmp(opt, "yes")) ? 0 : 1;
+
+	/*clear screen*/
+	col = SDL_MapRGB(ctx->screen->format, 0, 0, 0);
+	SDL_FillRect(ctx->screen, NULL, col);
+	SDL_Flip(ctx->screen);
+
+	if (ctx->back_buffer && ((u32) ctx->back_buffer->w==newWidth) && ((u32) ctx->back_buffer->h==newHeight)) {
+		return GF_OK;
+	}
+	if (ctx->back_buffer) SDL_FreeSurface(ctx->back_buffer);
+	ctx->back_buffer = SDL_CreateRGBSurface(ctx->systems_memory ? SDL_SWSURFACE : SDL_HWSURFACE, newWidth, newHeight, ctx->screen->format->BitsPerPixel, ctx->screen->format->Rmask, ctx->screen->format->Gmask, ctx->screen->format->Bmask, 0);
+	ctx->width = newWidth;
+	ctx->height = newHeight;
+	if (!ctx->back_buffer) return GF_IO_ERR;
+
+	return GF_OK;
+}
+
+u32 SDLVid_MapPixelFormat(SDL_PixelFormat *format)
+{
+	if (format->palette) return 0;
+	switch (format->BitsPerPixel) {
+	case 16:
+		if ((format->Rmask==0x7c00) && (format->Gmask==0x03e0) && (format->Bmask==0x001f) ) return GF_PIXEL_RGB_555;
+		if ((format->Rmask==0xf800) && (format->Gmask==0x07e0) && (format->Bmask==0x001f) ) return GF_PIXEL_RGB_565;
+		return 0;
+	case 24:
+		if (format->Rmask==0x00FF0000) return GF_PIXEL_RGB_24;
+		if (format->Rmask==0x000000FF) return GF_PIXEL_BGR_24;
+		return 0;
+	case 32:
+		if (format->Amask==0xFF000000) return GF_PIXEL_ARGB;
+		if (format->Rmask==0x00FF0000) return GF_PIXEL_RGB_32;
+		if (format->Rmask==0x000000FF) return GF_PIXEL_BGR_32;
+		return 0;
+	default:
+		return 0;
+	}
+}
+
+static GF_Err SDL_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_info, Bool do_lock)
+{
+	SDLVID();
+	if (!ctx->back_buffer) return GF_BAD_PARAM;
+	if (do_lock) {
+		if (!video_info) return GF_BAD_PARAM;
+		if (SDL_LockSurface(ctx->back_buffer)<0) return GF_IO_ERR;
+		video_info->width = ctx->back_buffer->w;
+		video_info->height = ctx->back_buffer->h;
+		video_info->pitch = ctx->back_buffer->pitch;
+		video_info->video_buffer = ctx->back_buffer->pixels;
+		video_info->pixel_format = SDLVid_MapPixelFormat(ctx->back_buffer->format);
+		video_info->is_hardware_memory = !ctx->systems_memory;
+	} else {
+		SDL_UnlockSurface(ctx->back_buffer);
+	}
+	return GF_OK;
+}
 
 static GF_Err SDLVid_FlushVideo(GF_VideoOutput *dr, GF_Window *dest)
 {
@@ -567,7 +628,28 @@ static GF_Err SDLVid_FlushVideo(GF_VideoOutput *dr, GF_Window *dest)
 	if (!ctx->back_buffer) return GF_BAD_PARAM;
 
 	if ((dest->w != (u32) ctx->back_buffer->w) || (dest->h != (u32) ctx->back_buffer->h)) {
-		SDLVid_Blit(dr, 0, (u32) -1, NULL, dest);
+		GF_VideoSurface src, dst;
+
+		SDL_LockSurface(ctx->back_buffer);
+		SDL_LockSurface(ctx->screen);
+
+		src.height = ctx->back_buffer->h;
+		src.width = ctx->back_buffer->w;
+		src.pitch = ctx->back_buffer->pitch;
+		src.pixel_format = SDLVid_MapPixelFormat(ctx->back_buffer->format);
+		src.video_buffer = ctx->back_buffer->pixels;
+
+		dst.height = ctx->screen->h;
+		dst.width = ctx->screen->w;
+		dst.pitch = ctx->screen->pitch;
+		dst.pixel_format = SDLVid_MapPixelFormat(ctx->screen->format);
+		dst.video_buffer = ctx->screen->pixels;
+
+		gf_stretch_bits(&dst, &src, dest, NULL, 0, 0xFF, 0, NULL, NULL);
+
+		SDL_UnlockSurface(ctx->back_buffer);
+		SDL_UnlockSurface(ctx->screen);
+
 	} else {
 		rc.x = dest->x; rc.y = dest->y; rc.w = dest->w; rc.h = dest->h;
 		SDL_BlitSurface(ctx->back_buffer, NULL, ctx->screen, &rc);
@@ -611,12 +693,21 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		which we don't want to do since the setup MUST occur in the rendering thread for some configs (openGL)*/
 		return GF_NOT_SUPPORTED;
 	case GF_EVT_SIZE:
-	case GF_EVT_VIDEO_SETUP:
 		SDL_ResizeWindow(dr, evt->size.width, evt->size.height);
+		break;
+	case GF_EVT_VIDEO_SETUP:
+	{
+		SDLVID();
+		if (ctx->is_3D_out) SDL_ResizeWindow(dr, evt->size.width, evt->size.height);
+		else SDLVid_SetBackbufferSize(dr, evt->size.width, evt->size.height);
+	}
 		break;
 	}
 	return GF_OK;
 }
+
+
+
 
 void *SDL_NewVideo()
 {
@@ -629,7 +720,6 @@ void *SDL_NewVideo()
 
 	ctx = malloc(sizeof(SDLVidCtx));
 	memset(ctx, 0, sizeof(SDLVidCtx));
-	ctx->surfaces = gf_list_new();
 	ctx->sdl_th = gf_th_new();
 	ctx->evt_mx = gf_mx_new();
 	
@@ -637,10 +727,17 @@ void *SDL_NewVideo()
 	driv->Setup = SDLVid_Setup;
 	driv->Shutdown = SDLVid_Shutdown;
 	driv->SetFullScreen = SDLVid_SetFullScreen;
-	driv->FlushVideo = SDLVid_FlushVideo;
+	driv->Flush = SDLVid_FlushVideo;
 	driv->ProcessEvent = SDLVid_ProcessEvent;
-	driv->bHas3DSupport = 1;
-	SDL_SetupVideo2D(driv);
+	driv->hw_caps |= GF_VIDEO_HW_HAS_OPENGL;
+
+	/*no YUV hardware blitting in SDL (only overlays)*/
+
+	/*NO BLIT in SDL (we rely on GPAC to do it by soft)*/
+	driv->Blit = NULL;
+	driv->LockBackBuffer = SDL_LockBackBuffer;
+	driv->LockOSContext = NULL;
+
 	return driv;
 }
 
@@ -648,8 +745,6 @@ void SDL_DeleteVideo(void *ifce)
 {
 	GF_VideoOutput *dr = (GF_VideoOutput *)ifce;
 	SDLVID();
-
-	gf_list_del(ctx->surfaces);
 	gf_th_del(ctx->sdl_th);
 	gf_mx_del(ctx->evt_mx);
 	free(ctx);

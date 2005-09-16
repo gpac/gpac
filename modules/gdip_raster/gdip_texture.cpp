@@ -24,8 +24,6 @@
 
 
 #include "gdip_priv.h"
-#include <gpac/yuv.h>
-
 
 #define COL_565(c) ( ( ( (c>>16) & 248) << 8) + ( ( (c>>8) & 252) << 3)  + ( (c&0xFF) >> 3) )
 #define COL_555(c) ((( (c>>16) & 248)<<7) + (((c>>8) & 248)<<2)  + ((c&0xFF)>>3))
@@ -444,32 +442,37 @@ void gf_init_driver_texture(GF_Raster2D *driver)
 
 void gf_convert_texture(struct _stencil *sten)
 {
-	unsigned char *y, *u, *v, *a;
 	u32 BPP, format;
+	GF_VideoSurface src, dst;
 
 	if (sten->orig_format == GF_PIXEL_YV12) {
 		BPP = 3;
+		dst.pixel_format = GF_PIXEL_BGR_24;
+		format = PixelFormat24bppRGB;
 	} else {
 		BPP = 4;
+		dst.pixel_format = GF_PIXEL_ARGB;
+		format = PixelFormat32bppARGB;
 	}
 	if (BPP*sten->width*sten->height > sten->conv_size) {
 		if (sten->conv_buf) free(sten->conv_buf);
 		sten->conv_size = BPP*sten->width*sten->height;
 		sten->conv_buf = (unsigned char *) malloc(sizeof(unsigned char)*sten->conv_size);
 	}
-	y = sten->orig_buf;
-	u = y + sten->orig_stride*sten->height;
-	v = y + 5 * sten->orig_stride*sten->height / 4;
 
-	if (BPP==4) {
-		a = y + 3 * sten->orig_stride*sten->height / 2;
-		gf_yuva_to_rgb_32(sten->conv_buf, 4*sten->width, y, u, v, a, sten->orig_stride, sten->orig_stride/2, sten->width, sten->height);
-		format = PixelFormat32bppARGB;
-	} else {
-		/*convert into BGR for scan0 bug...*/
-		gf_yuv_to_bgr_24(sten->conv_buf, 3*sten->width, y, u, v, sten->orig_stride, sten->orig_stride/2, sten->width, sten->height);
-		format = PixelFormat24bppRGB;
-	}
+	src.height = sten->height;
+	src.width = sten->width;
+	src.pitch = sten->orig_stride;
+	src.pixel_format = sten->orig_format;
+	src.video_buffer = sten->orig_buf;
+
+	dst.width = sten->width;
+	dst.height = sten->height;
+	dst.pitch = BPP*sten->width;
+	dst.video_buffer = sten->conv_buf;
+
+	gf_stretch_bits(&dst, &src, NULL, NULL, 0, 0xFF, 0, NULL, NULL);
+
 	if (sten->pBitmap) GdipDisposeImage(sten->pBitmap);
 	GdipCreateBitmapFromScan0(sten->width, sten->height, BPP*sten->width, format, sten->conv_buf, &sten->pBitmap);
 	sten->is_converted = 1;

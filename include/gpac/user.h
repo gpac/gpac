@@ -75,18 +75,20 @@ enum {
 	GF_EVT_SIZE,		
 	GF_EVT_SHOWHIDE,	/*window show/hide (minimized or other). This is also sent to the user to signal focus switch in fullscreen*/
 	GF_EVT_SET_CURSOR,	/*set mouse cursor*/
-	GF_EVT_SET_STYLE,	/*set window style*/
 	GF_EVT_SET_CAPTION,	/*set window caption*/
 	GF_EVT_REFRESH, /*window needs repaint (whenever needed, eg restore, hide->show, background refresh, paint)*/
 	GF_EVT_QUIT,	/*window is being closed*/
 	/*video hw setup message:
-		when sent from gpac to plugin, indicates that the plugin should resetup hardware context due to a window resize
-		when sent from plugin to gpac, indicates that hardware resources must be resetup before next render step (this is mainly
-		due to discard all openGL textures and cached objects. 
-	This is done in two steps because depending on windowing systems it could be possible to resize a window without
-	destroying the GL context.
+		- when sent from gpac to plugin, indicates that the plugin should re-setup hardware context due to a window resize:
+			* for 2D output, this means resizing the backbuffer if needed (depending on HW constraints)
+			* for 3D output, this means re-setup of OpenGL context (depending on HW constraints). Depending on windowing systems 
+			and implementations, it could be possible to resize a window without destroying the GL context.
+
+		- when sent from plugin to gpac, indicates that hardware resources must be resetup before next render step (this is mainly
+		due to discard all openGL textures and cached objects)
 	*/
 	GF_EVT_VIDEO_SETUP,
+
 	/*terminal events*/
 	GF_EVT_CONNECT,	/*signal URL is connected*/
 	GF_EVT_DURATION,	/*signal duration of presentation*/
@@ -223,15 +225,6 @@ typedef struct
 /*event proc return value: ignored*/
 typedef struct
 {
-	/*GF_EVT_SET_STYLE*/
-	u8 type;
-	/*window style flags - NOT USED YET*/
-	u32 window_style;
-} GF_EventStyle;
-
-/*event proc return value: ignored*/
-typedef struct
-{
 	/*GF_EVT_SET_CAPTION*/
 	u8 type;
 	/*window style flags - NOT USED YET*/
@@ -332,7 +325,6 @@ typedef union
 	GF_EventProgress progress;
 	GF_EventConnect connect;
 	GF_EventCaption caption;
-	GF_EventStyle style;
 	GF_EventCursor cursor;
 	GF_EventAuthorize auth;
 } GF_Event;
@@ -380,26 +372,6 @@ typedef struct
 			_user->EventProc(_user->opaque, &evt);	\
 		}	\
 	}
-
-
-
-typedef struct
-{
-	u32 width, height, pitch;
-	u32 pixel_format;
-	/*pointer to video memory (top, left)*/
-	unsigned char *video_buffer;
-	/*os specific handler if needed*/
-	void *os_handle;
-} GF_VideoSurface;
-
-
-/*window for blitting - all coords are x, y at top-left, x+w, y+h at bottom-right */
-typedef struct
-{
-	u32 x, y;
-	u32 w, h;
-} GF_Window;
 
 
 #ifdef __cplusplus

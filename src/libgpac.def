@@ -195,13 +195,6 @@ EXPORTS
 	gf_mx2d_apply_coords
 	gf_mx2d_apply_point
 	gf_mx2d_apply_rect
-	gf_cmx_init
-	gf_cmx_set
-	gf_cmx_set_all
-	gf_cmx_copy
-	gf_cmx_multiply
-	gf_cmx_apply
-	gf_cmx_apply_fixed
 	gf_vec_len
 	gf_vec_lensq
 	gf_vec_dot
@@ -257,6 +250,17 @@ EXPORTS
 	gf_ray_hit_triangle
 	gf_ray_hit_triangle_backcull
 
+;color.h exports
+	gf_stretch_bits
+	gf_cmx_init
+	gf_cmx_set
+	gf_cmx_set_all
+	gf_cmx_copy
+	gf_cmx_multiply
+	gf_cmx_apply
+	gf_cmx_apply_fixed
+
+
 ;path2d.h exports
 	gf_path_new
 	gf_path_del
@@ -286,15 +290,6 @@ EXPORTS
 	gf_polygone2d_get_convexity
 	gf_path_get_outline
 	gf_path_point_over
-
-;yuv.h exports
-	gf_yuv_to_rgb_555
-	gf_yuv_to_rgb_565
-	gf_yuv_to_bgr_24
-	gf_yuv_to_rgb_24
-	gf_yuv_to_rgb_32
-	gf_yuva_to_rgb_32
-	gf_yuv_to_rgb_24_flip
 
 ;mpeg4_odf.h exports
 	gf_odf_slc_set_pref

@@ -587,8 +587,8 @@ void gf_mx2d_add_skew_x(GF_Matrix2D *_this, Fixed angle)
 	GF_Matrix2D tmp;
 	if (!_this) return;
 	gf_mx2d_init(tmp);
-	tmp.m[1] = 0;
-	tmp.m[3] = gf_tan(angle);
+	tmp.m[1] = gf_tan(angle);
+	tmp.m[3] = 0;
 	gf_mx2d_add_matrix(_this, &tmp);
 }
 
@@ -597,8 +597,8 @@ void gf_mx2d_add_skew_y(GF_Matrix2D *_this, Fixed angle)
 	GF_Matrix2D tmp;
 	if (!_this) return;
 	gf_mx2d_init(tmp);
-	tmp.m[1] = gf_tan(angle);
-	tmp.m[3] = 0;
+	tmp.m[1] = 0;
+	tmp.m[3] = gf_tan(angle);
 	gf_mx2d_add_matrix(_this, &tmp);
 }
 
@@ -664,123 +664,6 @@ void gf_mx2d_apply_rect(GF_Matrix2D *_this, GF_Rect *rc)
 	rc->height = rc->y - rc->height;
 	assert(rc->height>=0);
 	assert(rc->width>=0);
-}
-
-
-/*
-	COLOR MATRIX TOOLS
- */
-
-void gf_cmx_init(GF_ColorMatrix *_this)
-{
-	if (!_this) return;
-	memset(_this->m, 0, sizeof(Fixed)*20);
-	_this->m[0] = _this->m[6] = _this->m[12] = _this->m[18] = FIX_ONE;
-	_this->identity = 1;
-}
-
-
-static void gf_cmx_identity(GF_ColorMatrix *_this)
-{
-	GF_ColorMatrix mat;
-	gf_cmx_init(&mat);
-	_this->identity = memcmp(_this->m, mat.m, sizeof(Fixed)*20) ? 0 : 1;
-}
-
-void gf_cmx_set_all(GF_ColorMatrix *_this, Fixed *coefs)
-{
-	if (!_this || !coefs) return;
-}
-
-void gf_cmx_set(GF_ColorMatrix *_this, 
-				 Fixed c1, Fixed c2, Fixed c3, Fixed c4, Fixed c5,
-				 Fixed c6, Fixed c7, Fixed c8, Fixed c9, Fixed c10,
-				 Fixed c11, Fixed c12, Fixed c13, Fixed c14, Fixed c15,
-				 Fixed c16, Fixed c17, Fixed c18, Fixed c19, Fixed c20)
-{
-	if (!_this) return;
-	_this->m[0] = c1; _this->m[1] = c2; _this->m[2] = c3; _this->m[3] = c4; _this->m[4] = c5;
-	_this->m[5] = c6; _this->m[6] = c7; _this->m[7] = c8; _this->m[8] = c9; _this->m[9] = c10;
-	_this->m[10] = c11; _this->m[11] = c12; _this->m[12] = c13; _this->m[13] = c14; _this->m[14] = c15;
-	_this->m[15] = c16; _this->m[16] = c17; _this->m[17] = c18; _this->m[18] = c19; _this->m[19] = c20;
-	gf_cmx_identity(_this);
-}
-
-void gf_cmx_copy(GF_ColorMatrix *_this, GF_ColorMatrix *from)
-{
-	if (!_this || !from) return;
-	memcpy(_this->m, from->m, sizeof(Fixed)*20);
-	gf_cmx_identity(_this);
-}
-
-
-void gf_cmx_multiply(GF_ColorMatrix *_this, GF_ColorMatrix *w)
-{
-	Fixed res[20];
-	if (!_this || !w || w->identity) return;
-	if (_this->identity) {
-		gf_cmx_copy(_this, w);
-		return;
-	}
-
-	res[0] = gf_mulfix(_this->m[0], w->m[0]) + gf_mulfix(_this->m[1], w->m[5]) + gf_mulfix(_this->m[2], w->m[10]) + gf_mulfix(_this->m[3], w->m[15]);
-	res[1] = gf_mulfix(_this->m[0], w->m[1]) + gf_mulfix(_this->m[1], w->m[6]) + gf_mulfix(_this->m[2], w->m[11]) + gf_mulfix(_this->m[3], w->m[16]);
-	res[2] = gf_mulfix(_this->m[0], w->m[2]) + gf_mulfix(_this->m[1], w->m[7]) + gf_mulfix(_this->m[2], w->m[12]) + gf_mulfix(_this->m[3], w->m[17]);
-	res[3] = gf_mulfix(_this->m[0], w->m[3]) + gf_mulfix(_this->m[1], w->m[8]) + gf_mulfix(_this->m[2], w->m[13]) + gf_mulfix(_this->m[3], w->m[18]);
-	res[4] = gf_mulfix(_this->m[0], w->m[4]) + gf_mulfix(_this->m[1], w->m[9]) + gf_mulfix(_this->m[2], w->m[14]) + gf_mulfix(_this->m[3], w->m[19]) + _this->m[4];
-	
-	res[5] = gf_mulfix(_this->m[5], w->m[0]) + gf_mulfix(_this->m[6], w->m[5]) + gf_mulfix(_this->m[7], w->m[10]) + gf_mulfix(_this->m[8], w->m[15]);
-	res[6] = gf_mulfix(_this->m[5], w->m[1]) + gf_mulfix(_this->m[6], w->m[6]) + gf_mulfix(_this->m[7], w->m[11]) + gf_mulfix(_this->m[8], w->m[16]);
-	res[7] = gf_mulfix(_this->m[5], w->m[2]) + gf_mulfix(_this->m[6], w->m[7]) + gf_mulfix(_this->m[7], w->m[12]) + gf_mulfix(_this->m[8], w->m[17]);
-	res[8] = gf_mulfix(_this->m[5], w->m[3]) + gf_mulfix(_this->m[6], w->m[8]) + gf_mulfix(_this->m[7], w->m[13]) + gf_mulfix(_this->m[8], w->m[18]);
-	res[9] = gf_mulfix(_this->m[5], w->m[4]) + gf_mulfix(_this->m[6], w->m[9]) + gf_mulfix(_this->m[7], w->m[14]) + gf_mulfix(_this->m[8], w->m[19]) + _this->m[9];
-	
-	res[10] = gf_mulfix(_this->m[10], w->m[0]) + gf_mulfix(_this->m[11], w->m[5]) + gf_mulfix(_this->m[12], w->m[10]) + gf_mulfix(_this->m[13], w->m[15]);
-	res[11] = gf_mulfix(_this->m[10], w->m[1]) + gf_mulfix(_this->m[11], w->m[6]) + gf_mulfix(_this->m[12], w->m[11]) + gf_mulfix(_this->m[13], w->m[16]);
-	res[12] = gf_mulfix(_this->m[10], w->m[2]) + gf_mulfix(_this->m[11], w->m[7]) + gf_mulfix(_this->m[12], w->m[12]) + gf_mulfix(_this->m[13], w->m[17]);
-	res[13] = gf_mulfix(_this->m[10], w->m[3]) + gf_mulfix(_this->m[11], w->m[8]) + gf_mulfix(_this->m[12], w->m[13]) + gf_mulfix(_this->m[13], w->m[18]);
-	res[14] = gf_mulfix(_this->m[10], w->m[4]) + gf_mulfix(_this->m[11], w->m[9]) + gf_mulfix(_this->m[12], w->m[14]) + gf_mulfix(_this->m[13], w->m[19]) + _this->m[14];
-	
-	res[15] = gf_mulfix(_this->m[15], w->m[0]) + gf_mulfix(_this->m[16], w->m[5]) + gf_mulfix(_this->m[17], w->m[10]) + gf_mulfix(_this->m[18], w->m[15]);
-	res[16] = gf_mulfix(_this->m[15], w->m[1]) + gf_mulfix(_this->m[16], w->m[6]) + gf_mulfix(_this->m[17], w->m[11]) + gf_mulfix(_this->m[18], w->m[16]);
-	res[17] = gf_mulfix(_this->m[15], w->m[2]) + gf_mulfix(_this->m[16], w->m[7]) + gf_mulfix(_this->m[17], w->m[12]) + gf_mulfix(_this->m[18], w->m[17]);
-	res[18] = gf_mulfix(_this->m[15], w->m[3]) + gf_mulfix(_this->m[16], w->m[8]) + gf_mulfix(_this->m[17], w->m[13]) + gf_mulfix(_this->m[18], w->m[18]);
-	res[19] = gf_mulfix(_this->m[15], w->m[4]) + gf_mulfix(_this->m[16], w->m[9]) + gf_mulfix(_this->m[17], w->m[14]) + gf_mulfix(_this->m[18], w->m[19]) + _this->m[19];
-	memcpy(_this->m, res, sizeof(Fixed)*20);
-	gf_cmx_identity(_this);
-}
-
-#define CLIP_COMP(val)	{ if (val<0) { val=0; } else if (val>FIX_ONE) { val=FIX_ONE;} }
-
-
-GF_Color gf_cmx_apply(GF_ColorMatrix *_this, GF_Color col)
-{
-	Fixed _a, _r, _g, _b, a, r, g, b;
-	if (!_this || _this->identity) return col;
-
-	a = INT2FIX(col>>24); a /= 255;
-	r = INT2FIX((col>>16)&0xFF); r /= 255;
-	g = INT2FIX((col>>8)&0xFF); g /= 255;
-	b = INT2FIX((col)&0xFF); b /= 255;
-	_r = gf_mulfix(r, _this->m[0]) + gf_mulfix(g, _this->m[1]) + gf_mulfix(b, _this->m[2]) + gf_mulfix(a, _this->m[3]) + _this->m[4];
-	_g = gf_mulfix(r, _this->m[5]) + gf_mulfix(g, _this->m[6]) + gf_mulfix(b, _this->m[7]) + gf_mulfix(a, _this->m[8]) + _this->m[9];
-	_b = gf_mulfix(r, _this->m[10]) + gf_mulfix(g, _this->m[11]) + gf_mulfix(b, _this->m[12]) + gf_mulfix(a, _this->m[13]) + _this->m[14];
-	_a = gf_mulfix(r, _this->m[15]) + gf_mulfix(g, _this->m[16]) + gf_mulfix(b, _this->m[17]) + gf_mulfix(a, _this->m[18]) + _this->m[19];
-	CLIP_COMP(_a);
-	CLIP_COMP(_r);
-	CLIP_COMP(_g);
-	CLIP_COMP(_b);
-	return GF_COL_ARGB(FIX2INT(_a*255),FIX2INT(_r*255),FIX2INT(_g*255),FIX2INT(_b*255));
-}
-
-void gf_cmx_apply_fixed(GF_ColorMatrix *_this, Fixed *a, Fixed *r, Fixed *g, Fixed *b)
-{
-	u32 col = GF_COL_ARGB_FIXED(*a, *r, *g, *b);
-	col = gf_cmx_apply(_this, col);
-	*a = INT2FIX(GF_COL_A(col)) / 255;
-	*r = INT2FIX(GF_COL_R(col)) / 255;
-	*g = INT2FIX(GF_COL_G(col)) / 255;
-	*b = INT2FIX(GF_COL_B(col)) / 255;
 }
 
 /*

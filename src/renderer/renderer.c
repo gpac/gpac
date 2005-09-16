@@ -60,6 +60,7 @@ static GF_Err gf_sr_set_output_size(GF_Renderer *sr, u32 Width, u32 Height)
 static void gf_sr_set_fullscreen(GF_Renderer *sr)
 {
 	GF_Err e;
+	if (!sr->video_out->SetFullScreen) return;
 
 	/*move to FS*/
 	sr->fullscreen = !sr->fullscreen;
@@ -67,7 +68,7 @@ static void gf_sr_set_fullscreen(GF_Renderer *sr)
 	if (e) {
 		GF_USER_MESSAGE(sr->user, "VideoRenderer", "Cannot switch to fullscreen", e);
 		sr->fullscreen = 0;
-		sr->video_out->SetFullScreen(sr->video_out, 0, &sr->width, &sr->height);
+		e = sr->video_out->SetFullScreen(sr->video_out, 0, &sr->width, &sr->height);
 	}
 	e = sr->visual_renderer->RecomputeAR(sr->visual_renderer);
 	/*force signaling graphics reset*/

@@ -95,8 +95,6 @@ typedef struct
 
 	/*backbuffer size before entering fullscreen mode (used for restore) */
 	u32 store_width, store_height;
-	/*display size */
-	u32 display_width, display_height;
 
 	u32 w_width, w_height;
 	u32 depth, bpp, pixel_format;

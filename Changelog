@@ -1,4 +1,16 @@
-Latest CVS Changes 31/08/05
+Latest CVS Changes 16/09/05
+  - simplified 2D blitter for non DirectX output: no more in-middle surface used, direct stretch, blit and yuv conversion to back buffer
+  - added software and hardware support for MaterialKey in 2D renderer
+  - added all project files for evc4
+  - added support for OpenGL-ES in 3D renderer, in DX and in GAPI plugins 
+      * tested with Hybrid Graphics, Vincent3D. Suggested library is Hybrid implementation
+      * Klimt could compile but no decent results
+      * Result only tested on PocketPC with Win PPC2003
+  - added support for GDI drawing on WinCE to avoid weird menu behaviour in windowed mode
+  - added support for OpenGL drawing on WinCE to avoid weird menu behaviour in windowed mode
+  - added osmophone to gpac/applications, demo player for Smartphone devices (tested on SPV C500)
+  - fixed redraw bug in 2D renderer for simple video drawing (background was always repaint regardless of video transparency)
+  - added LASeR XML to SVG loader
   - fixed UTF8 vs Win-CP text handling (BT and XMT parsers, subs->bifs and subs->ttxt converters)
   - improved SRT -> 3GPP convertion - now accepts any number of <b>, <i>, <u> tags at random places. Also cleaned up TTXT->SRT conversion.
   - fixed bug in unknown stsd boxes handling

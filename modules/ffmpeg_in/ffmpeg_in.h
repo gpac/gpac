@@ -35,16 +35,12 @@
 #include <gpac/constants.h>
 #include <gpac/thread.h>
 
-#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__MINGW32__)
+#if defined(WIN32) && !defined(__MINGW32__)
 
 #define EMULATE_INTTYPES
 #define EMULATE_FAST_INT
 #ifndef inline
 #define inline __inline
-#endif
-
-#ifdef _WIN32_WCE
-#define CONFIG_ALIGN
 #endif
 
 #ifndef __MINGW32__

@@ -82,11 +82,13 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_COMMAND(ID_VIEW_AR_169, OnViewAr169)
 	ON_COMMAND(ID_NAV_NONE, OnNavNone)
 	ON_COMMAND(ID_NAV_SLIDE, OnNavSlide)
-	ON_COMMAND(ID_NAVE_RESET, OnNaveReset)
+	ON_COMMAND(ID_NAV_RESET, OnNaveReset)
+	ON_COMMAND_RANGE(ID_NAV_NONE, ID_NAV_EXAMINE, OnSetNavigation)
 	ON_WM_KEYDOWN()
 	ON_WM_KEYUP()
 	ON_COMMAND(ID_VIEW_TIMING, OnViewTiming)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_TIMING, OnUpdateViewTiming)
+	ON_WM_INITMENUPOPUP()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -96,7 +98,6 @@ END_MESSAGE_MAP()
 CMainFrame::CMainFrame()
 {
 	GXOpenInput();
-	m_is_stoped = 0;
 	m_view_timing = 0;
 }
 
@@ -120,15 +121,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;
 	}
 	m_wndView.ShowWindow(SW_HIDE);
-
-	if (!m_wndDumb.Create(NULL, NULL, AFX_WS_DEFAULT_VIEW | WS_BORDER,
-		CRect(0, 0, 0, 0), this, AFX_IDW_PANE_FIRST, NULL))
-	{
-		TRACE0("Failed to create dumb window\n");
-		return -1;
-	}
-	m_wndDumb.SetWindowPos(this, 0, 0, app->m_screen_width, app->m_screen_height-app->m_menu_height, 0L);
-	m_wndDumb.ShowWindow(SW_SHOW);
 
 	if (!m_progBar.Create(IDD_CONTROL , this) ) {
 		TRACE0("Failed to create status bar\n");
@@ -176,7 +168,7 @@ void CMainFrame::SetPauseButton(Bool force_play_button)
 	memset(&tb, 0, sizeof(tb));
     tb.idCommand = ID_FILE_PAUSE; tb.fsStyle = TBSTYLE_BUTTON;
 	
-	if (force_play_button || m_is_stoped || gf_term_get_option(GetApp()->m_term, GF_OPT_PLAY_STATE)==GF_STATE_PAUSED) {
+	if (force_play_button || GetApp()->m_stoped || gf_term_get_option(GetApp()->m_term, GF_OPT_PLAY_STATE)==GF_STATE_PAUSED) {
 		tb.iBitmap = 4;
 	} else {
 		tb.iBitmap = 1;
@@ -241,11 +233,11 @@ void CMainFrame::UpdateTime()
 	u32 now;
 
 	COsmo4 *app = GetApp();
-	if (!app->m_open || m_is_stoped) return;
+	if (!app->m_open || app->m_stoped) return;
 	now = gf_term_get_time_in_ms(app->m_term);
 	if (!now) return;
 
-	if (app->m_can_seek && (now>=app->max_duration + 100)) {
+	if (app->m_can_seek && (now>=app->m_duration + 100)) {
 		if (gf_term_get_option(app->m_term, GF_OPT_IS_FINISHED)) {
 			if (app->m_Loop && m_full_screen) {
 				gf_term_play_from_time(app->m_term, 0);
@@ -269,7 +261,7 @@ void CMainFrame::CloseURL()
 	gf_term_disconnect(app->m_term);
 	app->m_open = 0;
 	app->m_can_seek = 0;
-	app->max_duration = (u32) -1;
+	app->m_duration = (u32) -1;
 	m_progBar.m_prev_time = 0;
 	m_progBar.SetPosition(0);
 }
@@ -299,9 +291,7 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
 		y = app->m_menu_height;
 		m_progBar.SetWindowPos(this, 0, 0, app->m_screen_width, app->m_menu_height, 0L);
 		m_progBar.ShowWindow(SW_SHOWNORMAL);
-		m_wndDumb.SetWindowPos(this, 0, app->m_menu_height, disp_w, disp_h, 0L);
 	} else {
-		m_wndDumb.SetWindowPos(this, 0, 0, disp_w, disp_h, 0L);
 		m_progBar.ShowWindow(SW_HIDE);
 	}
 
@@ -309,11 +299,8 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
 		SetTimer(PROGRESS_TIMER, PROGRESS_REFRESH_MS, ProgressTimer);
 
 	if (!app->m_scene_width || !app->m_scene_height) {
-		if (m_view_timing) {
-			m_wndView.SetWindowPos(this, 0, app->m_menu_height, disp_w, disp_h, SWP_SHOWWINDOW);
-		} else {
-			m_wndView.SetWindowPos(this, 0, 0, disp_w, disp_h, SWP_SHOWWINDOW);
-		}
+		m_wndView.SetWindowPos(this, 0, y, disp_w, disp_h, SWP_SHOWWINDOW);
+		gf_term_set_size(app->m_term, disp_w, disp_h);
 		return;
 	}
 
@@ -326,51 +313,41 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
 		c_w = disp_w;
 		c_h = disp_h;
 	}
-
 	m_wndView.SetWindowPos(this, x, y, c_w, c_h, SWP_SHOWWINDOW);
-	gf_term_set_size(GetApp()->m_term, c_w, c_h);
+	gf_term_set_size(app->m_term, c_w, c_h);
 }
 
-void CMainFrame::UpdateFullScreenDisplay()
-{
-	COsmo4 *app = GetApp();
-	u32 disp_w, disp_h, y;
-	disp_w = app->m_screen_width;
-	disp_h = app->m_screen_height;
-
-	if (m_full_screen) {
-		m_progBar.ShowWindow(SW_HIDE);
-		m_wndCommandBar.ShowWindow(SW_HIDE);
-		m_wndView.SetForegroundWindow();
-		SHFullScreen(m_wndView /*::GetForegroundWindow()*/, SHFS_HIDESTARTICON | SHFS_HIDETASKBAR | SHFS_HIDESIPBUTTON);
-		//m_wndDumb.SetWindowPos(this, 0, 0, disp_w, app->m_menu_height+disp_h, 0L);
-		//m_wndDumb.UpdateWindow();
-	} else {
-		disp_h -= app->m_menu_height;
-		y = 0;
-		if (m_view_timing) {
-			disp_h -= app->m_menu_height;
-			y = app->m_menu_height;
-		}
-		m_progBar.ShowWindow(SW_SHOWNORMAL);
-		m_wndCommandBar.ShowWindow(SW_SHOWNORMAL);
-		m_wndView.SetForegroundWindow();
-		SHFullScreen(m_wndView /*::GetForegroundWindow()*/, SHFS_HIDESTARTICON | SHFS_HIDETASKBAR | SHFS_SHOWSIPBUTTON);
-		//m_wndDumb.SetWindowPos(this, 0, y, disp_w, disp_h, 0L);
-		//m_wndDumb.UpdateWindow();
-		//gf_term_refresh(app->m_term);
-	}
-}
 
 void CMainFrame::OnViewFullscreen() 
 {
-	COsmo4 *gpac = GetApp();
-	if (!gpac->m_open) return;
+	COsmo4 *app = GetApp();
+	if (!app->m_open) return;
+	u32 disp_w = app->m_screen_width;
+	u32 disp_h = app->m_screen_height;
 	
-	m_full_screen = !m_full_screen;
-	UpdateFullScreenDisplay();
-	gf_term_set_option(gpac->m_term, GF_OPT_FULLSCREEN, m_full_screen);
+	Bool is_full_screen = !m_full_screen;
+
+	/*prevent resize messages*/
+	m_full_screen = 1;
+
+	HWND hWnd = GetSafeHwnd();
+	::SetForegroundWindow(hWnd);
+	::CommandBar_Show(m_wndCommandBar.GetSafeHwnd(), is_full_screen ? FALSE : TRUE);
+	SHFullScreen(hWnd, SHFS_HIDESTARTICON | SHFS_HIDETASKBAR | SHFS_HIDESIPBUTTON);
+
+	if (is_full_screen) {
+		::MoveWindow(m_hWnd, 0, 0, disp_w, disp_h, 0);
+		m_wndView.GetWindowRect(&m_view_rc);
+		m_wndView.SetWindowPos(this, 0, 0, disp_w, disp_h, SWP_NOZORDER);
+		gf_term_set_option(app->m_term, GF_OPT_FULLSCREEN, is_full_screen);
+		m_full_screen = 1;
+	} else {
+		gf_term_set_option(app->m_term, GF_OPT_FULLSCREEN, is_full_screen);
+		m_full_screen = 0;
+		OnSetSize(0,0);
+	}
 }
+
 
 void CMainFrame::OnUpdateViewFullscreen(CCmdUI* pCmdUI) 
 {
@@ -380,9 +357,9 @@ void CMainFrame::OnUpdateViewFullscreen(CCmdUI* pCmdUI)
 LONG CMainFrame::OnSetSize(WPARAM wParam, LPARAM lParam)
 {
 	RECT rc;
+	if (m_full_screen) return 0;
 	GetWindowRect(&rc);
 	SetWindowPos(NULL, 0, 0, rc.right-rc.left, rc.bottom-rc.top, SWP_NOZORDER | SWP_NOMOVE);
-	//GetApp()->m_url_changed = 0;
 	return 1;	
 }
 
@@ -392,8 +369,14 @@ LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 	CloseURL();
 	char filename[5000];
 	CE_WideToChar((LPTSTR) (LPCTSTR) app->m_filename, filename);
-	m_is_stoped = 0;
-	gf_term_connect(app->m_term, filename);
+	app->m_stoped = 0;
+	
+	if (app->m_reconnect_time) {
+		gf_term_connect_from_time(app->m_term, filename, app->m_reconnect_time);
+		app->m_reconnect_time = 0;
+	} else {
+		gf_term_connect(app->m_term, filename);
+	}
 	app->SetBacklightState(1);
 	return 1;	
 }
@@ -442,10 +425,10 @@ LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 void CMainFrame::OnFilePause()
 {
 	COsmo4 *app = GetApp();
-	if (m_is_stoped) {
+	if (app->m_stoped) {
 		char filename[5000];
 		CE_WideToChar((LPTSTR) (LPCTSTR) app->m_filename, filename);
-		m_is_stoped = 0;
+		app->m_stoped = 0;
 		gf_term_connect(app->m_term, filename);
 		app->SetBacklightState(1);
 
@@ -459,14 +442,15 @@ void CMainFrame::OnFilePause()
 }
 void CMainFrame::OnUpdateFilePause(CCmdUI* pCmdUI)
 {
-	pCmdUI->Enable(GetApp()->m_open ? TRUE : FALSE);
+	COsmo4 *app = GetApp();
+	pCmdUI->Enable((app->m_open || app->m_stoped) ? TRUE : FALSE);
 }
 void CMainFrame::OnFileStop()
 {
 	COsmo4 *app = GetApp();
 	if (!app->m_open) return;
 	if (m_full_screen) OnViewFullscreen();
-	m_is_stoped = 1;
+	app->m_stoped = 1;
 	if (m_view_timing) KillTimer(PROGRESS_TIMER);
 	gf_term_disconnect(app->m_term);
 	m_progBar.SetPosition(0);
@@ -476,7 +460,7 @@ void CMainFrame::OnFileStop()
 
 void CMainFrame::OnUpdateFileStop(CCmdUI* pCmdUI)
 {
-	pCmdUI->Enable(GetApp()->m_open ? TRUE : FALSE);
+	pCmdUI->Enable( GetApp()->m_open  ? TRUE : FALSE);
 }
 
 void CMainFrame::OnFileStep()
@@ -572,4 +556,49 @@ void CMainFrame::OnViewTiming()
 void CMainFrame::OnUpdateViewTiming(CCmdUI* pCmdUI) 
 {
 	pCmdUI->SetCheck(m_view_timing ? TRUE : FALSE);
+}
+
+void CMainFrame::OnSetNavigation(UINT nID) 
+{
+	gf_term_set_option(GetApp()->m_term, GF_OPT_NAVIGATION, nID - ID_NAV_NONE);
+}
+
+
+void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu) 
+{
+	COsmo4 *app = GetApp();
+	CFrameWnd::OnInitMenuPopup(pPopupMenu, nIndex, bSysMenu);
+
+	u32 opt = gf_term_get_option(GetApp()->m_term, GF_OPT_ASPECT_RATIO);	
+	CheckMenuItem(pPopupMenu->m_hMenu, ID_VIEW_AR_ORIG, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_KEEP) ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(pPopupMenu->m_hMenu, ID_VIEW_AR_FILL, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_FILL_SCREEN) ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(pPopupMenu->m_hMenu, ID_VIEW_AR_43, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_4_3) ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(pPopupMenu->m_hMenu, ID_VIEW_AR_169, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_16_9) ? MF_CHECKED : MF_UNCHECKED);
+	
+	CheckMenuItem(pPopupMenu->m_hMenu, ID_VIEW_FIT, MF_BYCOMMAND| app->m_fit_screen ? MF_CHECKED : MF_UNCHECKED);
+
+	u32 type;
+	if (!app->m_open) type = 0;
+	else type = gf_term_get_option(app->m_term, GF_OPT_NAVIGATION_TYPE);
+
+	EnableMenuItem(pPopupMenu->m_hMenu, ID_NAV_NONE, MF_BYCOMMAND | (!type ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem(pPopupMenu->m_hMenu, ID_NAV_SLIDE, MF_BYCOMMAND | (!type ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem(pPopupMenu->m_hMenu, ID_NAV_RESET, MF_BYCOMMAND | (!type ? MF_GRAYED : MF_ENABLED) );
+
+	EnableMenuItem(pPopupMenu->m_hMenu, ID_NAV_WALK, MF_BYCOMMAND | ( (type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem(pPopupMenu->m_hMenu, ID_NAV_FLY, MF_BYCOMMAND | ((type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem(pPopupMenu->m_hMenu, ID_NAV_EXAMINE, MF_BYCOMMAND | ((type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem(pPopupMenu->m_hMenu, ID_COLLIDE_OFF, MF_BYCOMMAND | ((type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem(pPopupMenu->m_hMenu, ID_COLLIDE_REG, MF_BYCOMMAND | ((type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem(pPopupMenu->m_hMenu, ID_COLLIDE_DISP, MF_BYCOMMAND | ((type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem(pPopupMenu->m_hMenu, ID_NAV_GRAVITY, MF_BYCOMMAND | ((type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
+
+	if (type) {
+		u32 mode = gf_term_get_option(app->m_term, GF_OPT_NAVIGATION);
+		CheckMenuItem(pPopupMenu->m_hMenu, ID_NAV_NONE, MF_BYCOMMAND | ( (mode==GF_NAVIGATE_NONE) ? MF_CHECKED : MF_UNCHECKED) );
+		CheckMenuItem(pPopupMenu->m_hMenu, ID_NAV_SLIDE, MF_BYCOMMAND | ( (mode==GF_NAVIGATE_SLIDE) ? MF_CHECKED : MF_UNCHECKED) );
+		CheckMenuItem(pPopupMenu->m_hMenu, ID_NAV_WALK, MF_BYCOMMAND | ( (mode==GF_NAVIGATE_WALK) ? MF_CHECKED : MF_UNCHECKED) );
+		CheckMenuItem(pPopupMenu->m_hMenu, ID_NAV_FLY, MF_BYCOMMAND | ((mode==GF_NAVIGATE_FLY) ? MF_CHECKED : MF_UNCHECKED) );
+		CheckMenuItem(pPopupMenu->m_hMenu, ID_NAV_EXAMINE, MF_BYCOMMAND | ((mode==GF_NAVIGATE_EXAMINE) ? MF_CHECKED : MF_UNCHECKED) );
+	}
 }

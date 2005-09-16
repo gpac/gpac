@@ -105,11 +105,11 @@ void ProgressBar::SetPosition(u32 now)
 	if (m_range_invalidated) {
 		if (app->m_can_seek) {
 			m_Slider.SetRangeMin(0);
-			m_Slider.SetRangeMax(app->max_duration);
+			m_Slider.SetRangeMax(app->m_duration);
 			m_Slider.ShowWindow(SW_SHOWNORMAL);
 			m_Slider.EnableWindow(TRUE);
 		} else {
-			m_Slider.ShowWindow(SW_HIDE);
+			m_Slider.ShowWindow(SW_SHOWNORMAL);
 			m_Slider.EnableWindow(FALSE);
 			
 		}

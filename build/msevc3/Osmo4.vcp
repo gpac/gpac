@@ -120,7 +120,9 @@ DEP_CPP_MAINF=\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
-	{$(INCLUDE)}"gx.h"\
+	
+NODEP_CPP_MAINF=\
+	".\x.h"\
 	
 # End Source File
 # Begin Source File
@@ -165,7 +167,9 @@ DEP_CPP_OPTIO=\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
-	{$(INCLUDE)}"gx.h"\
+	
+NODEP_CPP_OPTIO=\
+	".\x.h"\
 	
 # End Source File
 # Begin Source File
@@ -189,7 +193,9 @@ DEP_CPP_OSMO4=\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
-	{$(INCLUDE)}"gx.h"\
+	
+NODEP_CPP_OSMO4=\
+	".\x.h"\
 	
 # End Source File
 # Begin Source File

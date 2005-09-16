@@ -392,9 +392,6 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 		if (!redraw_all && ctx->redraw_flags) {
 			ra_union_rect(&surf->to_redraw, ctx->clip);
 			CHECK_MAX_NODE
-
-			/*if clipper contained in rect redraw all*/
-			if (gf_irect_inside(ctx->clip, surf->top_clipper)) redraw_all = 1;
 		}
 		/*otherwise try to remove any sensor hidden below*/
 		if (!ctx->transparent) remove_hidden_sensors(surf, num_to_draw, ctx);
@@ -403,8 +400,6 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	if (use_direct_render) goto exit;
 
 	/*garbage collection*/
-	/*little opt: if the number of empty nodes equals the number of registered contexts, redraw all*/
-	if (num_empty && (num_empty == surf->num_contexts)) redraw_all = 1;
 
 	/*clear all remaining bounds since last frames (the ones that moved or that are not drawn this frame)*/
 	count = gf_list_count(surf->prev_nodes_drawn);
@@ -431,11 +426,11 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 
 	CHECK_MAX_NODE
 
-	if (!redraw_all) {
-		ra_refresh(&surf->to_redraw);
-	} else {
+	if (redraw_all) {
 		ra_clear(&surf->to_redraw);
 		ra_add(&surf->to_redraw, surf->surf_rect);
+	} else {
+		ra_refresh(&surf->to_redraw);
 	}
 	/*mark opaque areas to speed up*/
 	mark_opaque_areas(surf, num_to_draw, &surf->to_redraw);
@@ -443,7 +438,7 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	/*nothing to redraw*/
 	if (ra_is_empty(&surf->to_redraw) ) goto exit;
 	has_changed = 1;
-	
+
 	/*redraw everything*/
 	if (redraw_all) {
 		if (bck && bck->isBound) {

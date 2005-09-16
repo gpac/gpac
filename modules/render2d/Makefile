@@ -11,7 +11,7 @@ endif
 
 
 #common obj
-OBJS= background2d.o copy_pixels.o drawable.o form.o geometry_stacks.o grouping.o grouping_stacks.o ifs2d.o ils2d.o layout.o path_layout.o render2d.o \
+OBJS= background2d.o drawable.o form.o geometry_stacks.o grouping.o grouping_stacks.o ifs2d.o ils2d.o layout.o path_layout.o render2d.o \
   render2d_nodes.o sensor_stacks.o sound.o text.o texture_stacks.o viewport.o visualsurface2d.o visualsurface2d_draw.o \
   ./svg/render_svg_nodes.o ./svg/render_svg_text.o ./svg/svg_animation.o ./svg/svg_media.o ./smil/smil_animation.o
 

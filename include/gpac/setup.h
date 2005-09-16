@@ -107,15 +107,8 @@ typedef unsigned int size_t;
 #define getenv(a) 0L
 #endif
 
-#ifndef strupr
-char * my_str_upr(char *str);
-#define strupr my_str_upr
-#endif
-
-#ifndef strlwr
-char * my_str_lwr(char *str);
-#define strlwr my_str_lwr
-#endif
+#define strupr _strupr
+#define strlwr _strlwr
 
 
 

@@ -41,6 +41,10 @@
 #include <vfw.h>
 #include <ddraw.h>
 
+#ifdef GPAC_USE_OGL_ES
+#include "GLES/egl.h"
+#endif
+
 /*
 		DirectDraw video output
 */
@@ -58,7 +62,6 @@ typedef struct
     LPDIRECTDRAWSURFACE7 pSurface;
 #endif
 	u32 width, height, format, pitch;
-	u32 id;
 } DDSurface;
 
 typedef struct
@@ -77,8 +80,10 @@ typedef struct
     LPDIRECTDRAWSURFACE7 pBack;
 #endif
 	Bool ddraw_init;
-	/*surfaces*/
-	GF_List *surfaces;
+	Bool yuv_init;
+	Bool fullscreen;
+	Bool systems_memory;
+
 
 	u32 width, height;
 	u32 fs_width, fs_height;
@@ -87,26 +92,33 @@ typedef struct
 
 	u32 pixelFormat;
 	u32 video_bpp;
-	Bool fullscreen;
 
-	/*fastest YUV for card if any*/
-	u32 yuv_format;
-	Bool yuv_init;
+	HDC lock_hdc;
 
+	/*HW surfaces for blitting+stretch*/
+	DDSurface rgb_pool, yuv_pool;
+	
 	/*if we own the window*/
 	GF_Thread *th;
 	u32 th_state;
 	Bool owns_hwnd;
 	u32 off_w, off_h, prev_styles;
 	LONG last_mouse_pos;
-
 	/*cursors*/
 	HCURSOR curs_normal, curs_hand, curs_collide;
 	u32 cursor_type;
 
 	/*gl*/
+#ifdef GPAC_USE_OGL_ES
+	NativeDisplayType gl_HDC;
+    EGLDisplay egldpy;
+    EGLSurface surface;
+    EGLConfig eglconfig;
+    EGLContext eglctx;
+#else
 	HDC gl_HDC;
 	HGLRC gl_HRC;
+#endif
 	Bool is_3D_out;
 
 	DWORD orig_wnd_proc;
@@ -124,7 +136,11 @@ GF_Err GetDisplayMode(DDContext *dd);
 void DD_SetupDDraw(GF_VideoOutput *driv);
 GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height);
 void DD_InitYUV(GF_VideoOutput *dr);
-GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height);
+
+GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height);
+
+
+void dx_copy_pixels(GF_VideoSurface *dst_s, GF_VideoSurface *src_s, GF_Window *src_wnd);
 
 #define MAKERECT(rc, dest)	{ rc.left = dest->x; rc.top = dest->y; rc.right = rc.left + dest->w; rc.bottom = rc.top + dest->h;	}
 

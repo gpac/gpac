@@ -361,8 +361,11 @@ static void RenderBitmap(GF_Node *node, void *rs)
 	} else {
 		M_Appearance *app = (M_Appearance *)ctx->appear;
 		if ( app->material && (gf_node_get_tag((GF_Node *)app->material)==TAG_MPEG4_MaterialKey) ) {
-			if (((M_MaterialKey*)app->material)->isKeyed) ctx->transparent = 1;
-		} else if (!eff->color_mat.identity) ctx->transparent = 1;
+			if (((M_MaterialKey*)app->material)->isKeyed && ((M_MaterialKey*)app->material)->transparency)
+				ctx->transparent = 1;
+		} 
+		else if (!eff->color_mat.identity || (GF_COL_A(ctx->aspect.fill_color) < 0xFF))
+			ctx->transparent = 1;
 	}
 
 	/*bounds are stored when building graph*/	
@@ -372,8 +375,10 @@ static void RenderBitmap(GF_Node *node, void *rs)
 static void DrawBitmap(DrawableContext *ctx)
 {
 	u8 alpha;
+	u32 keyColor;
+	GF_ColorMatrix *cmat;
 	Render2D *sr;
-	Bool use_hw, has_scale;
+	Bool use_blit, has_scale, has_key;
 	M_Bitmap *bmp = (M_Bitmap *) ctx->node->owner;
 	BitmapStack *st = (BitmapStack *) gf_node_get_private(ctx->node->owner);
 
@@ -386,30 +391,39 @@ static void DrawBitmap(DrawableContext *ctx)
 	if (bmp->scale.x>0 && (bmp->scale.x!=FIX_ONE) ) has_scale = 1;
 	if (bmp->scale.y>0 && (bmp->scale.y!=FIX_ONE) ) has_scale = 1;
 
-	use_hw = 1;
+	use_blit = 1;
 	alpha = GF_COL_A(ctx->aspect.fill_color);
 
-	/*check if driver can handle alpha blit*/
-	if (alpha!=255) {
-		use_hw = sr->compositor->video_out->bHasAlpha;
-		if (has_scale) use_hw = sr->compositor->video_out->bHasAlphaStretch;
-	}
-	/*for MatteTexture*/
-	if (!ctx->cmat.identity || ctx->h_texture->has_cmat) use_hw = 0;
+	cmat = NULL;
+	if (!ctx->cmat.identity) cmat = &ctx->cmat;
+	//else if (ctx->h_texture->has_cmat) cmat = NULL;
 
-	/*to do - materialKey*/
+	/*materialKey*/
+	has_key = 0;
+	if (ctx->appear) {
+		M_Appearance *app = (M_Appearance *)ctx->appear;
+		if ( app->material && (gf_node_get_tag((GF_Node *)app->material)==TAG_MPEG4_MaterialKey) ) {
+			if (((M_MaterialKey*)app->material)->isKeyed && ((M_MaterialKey*)app->material)->transparency) {
+				SFColor col = ((M_MaterialKey*)app->material)->keyColor;
+				has_key = 1;
+				keyColor = GF_COL_ARGB_FIXED(
+								FIX_ONE - ((M_MaterialKey*)app->material)->transparency,
+								col.red, col.green, col.blue);
+			}
+		}
+	}
 
 	/*this is not a native texture, use graphics*/
 	if (!ctx->h_texture->data) {
-		use_hw = 0;
+		use_blit = 0;
 	} else {
-		if (!ctx->surface->SupportsFormat || !ctx->surface->DrawBitmap ) use_hw = 0;
+		if (!ctx->surface->SupportsFormat || !ctx->surface->DrawBitmap ) use_blit = 0;
 		/*format not supported directly, try with brush*/
-		else if (!ctx->surface->SupportsFormat(ctx->surface, ctx->h_texture->pixelformat) ) use_hw = 0;
+		else if (!ctx->surface->SupportsFormat(ctx->surface, ctx->h_texture->pixelformat) ) use_blit = 0;
 	}
 
 	/*no HW, fall back to the graphics driver*/
-	if (!use_hw) {
+	if (!use_blit) {
 		drawable_reset_path(st->graph);
 		gf_path_add_rect_center(st->graph->path, 0, 0, ctx->original.width, ctx->original.height);
 		ctx->no_antialias = 1;
@@ -419,7 +433,7 @@ static void DrawBitmap(DrawableContext *ctx)
 
 	/*direct rendering, render without clippers */
 	if (ctx->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
-		ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &ctx->clip, &ctx->unclip);
+		ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &ctx->clip, &ctx->unclip, alpha, has_key ? &keyColor : NULL, cmat);
 	}
 	/*render bitmap for all dirty rects*/
 	else {
@@ -431,11 +445,10 @@ static void DrawBitmap(DrawableContext *ctx)
 			clip = ctx->clip;
 			gf_irect_intersect(&clip, &ctx->surface->to_redraw.list[i]);
 			if (clip.width && clip.height) {
-				ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &clip, &ctx->unclip);
+				ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &clip, &ctx->unclip, alpha, has_key ? &keyColor : NULL, cmat);
 			}
 		}
 	}
-
 }
 
 static Bool Bitmap_PointOver(DrawableContext *ctx, Fixed x, Fixed y, Bool check_outline)

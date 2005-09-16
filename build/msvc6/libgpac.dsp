@@ -97,6 +97,10 @@ SOURCE=..\..\src\utils\bitstream.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\utils\color.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\utils\configfile.c
 # End Source File
 # Begin Source File
@@ -162,10 +166,6 @@ SOURCE=..\..\src\utils\utf.c
 # Begin Source File
 
 SOURCE=..\..\src\utils\xml_parser.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\utils\yuv_to_rgb.c
 # End Source File
 # End Group
 # Begin Group "odf"
@@ -862,6 +862,10 @@ SOURCE=..\..\include\gpac\bitstream.h
 # Begin Source File
 
 SOURCE=..\..\include\gpac\modules\codec.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\color.h
 # End Source File
 # Begin Source File
 

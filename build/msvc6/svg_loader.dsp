@@ -89,6 +89,10 @@ LINK32=link.exe
 # Name "svg_loader - Win32 Debug"
 # Begin Source File
 
+SOURCE=..\..\modules\svg_loader\lsr_parser.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\modules\svg_loader\svg_loader.c
 # End Source File
 # Begin Source File

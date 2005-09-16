@@ -20,7 +20,7 @@ LDFLAGS+=-lGL
 endif
 
 #common obj
-OBJS=x11_out.o x11_softstretch.o
+OBJS=x11_out.o
 
 SRCS := $(OBJS:.o=.c) 
 

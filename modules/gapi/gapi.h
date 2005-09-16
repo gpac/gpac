@@ -31,45 +31,59 @@
 /*driver interface*/
 #include <gpac/modules/video_out.h>
 
+#ifdef GPAC_USE_OGL_ES
+#include "GLES/egl.h"
+#endif
+
+/*driver interface*/
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct
 {
-	u32 width, height, pitch, pixel_format;
-	unsigned char *buffer;
-	u32 ID;
-} GAPISurface;
-
-typedef struct
-{
 	HWND hWnd;
 	GF_Mutex *mx;
-	struct GXDisplayProperties gx;
-	Bool gapi_open;
-	GF_List *surfaces;
-	
+
 	GXKeyList keys;
 
 	u32 screen_w, screen_h;
 	u32 fs_w, fs_h;
 	/*store w and h for fullscreen*/
-	u32 disp_w, disp_h;
-
+	u32 backup_w, backup_h;
+	s32 x_pitch, y_pitch;
+	Bool is_landscape;
 	Bool fullscreen;
-	Bool is_init;
+	Bool force_gx;
+	Bool gx_mode;
 
 	/*main surface info*/
 	unsigned char *backbuffer;
 	u32 bb_size, bb_width, bb_height, bb_pitch;
 	u32 pixel_format;
-	u32 BPP, bitsPP;
+	u32 BPP, bits_per_pixel;
 
 	GF_Window dst_blt;
 	DWORD ThreadID;
 	HANDLE hThread;
 	Bool owns_hwnd;
+
+	Bool erase_dest;
+	u32 off_x, off_y;
+
+#ifdef GPAC_USE_OGL_ES
+	Bool is_3D;
+	GF_GLConfig gl_cfg;
+    EGLDisplay egldpy;
+    EGLSurface surface;
+    EGLConfig eglconfig;
+    EGLContext eglctx;
+	HBITMAP bitmap;
+    DWORD * bits;
+	RECT rc_bck;
+#endif
+
 } GAPIPriv;
 
 

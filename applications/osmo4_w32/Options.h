@@ -477,6 +477,7 @@ public:
 	//{{AFX_DATA(COptVideo)
 	enum { IDD = IDD_OPT_VIDEO };
 	CButton	m_SwitchRes;
+	CButton	m_UseHWMemory;
 	CComboBox	m_Videos;
 	//}}AFX_DATA
 

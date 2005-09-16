@@ -11,7 +11,7 @@ endif
 
 
 #common obj
-OBJS=list.o base_encoding.o bitstream.o configfile.o downloader.o error.o math.o path2d.o path2d_stroker.o module.o token.o url.o utf.o xml_parser.o yuv_to_rgb.o
+OBJS=list.o base_encoding.o bitstream.o color.o configfile.o downloader.o error.o math.o path2d.o path2d_stroker.o module.o token.o url.o utf.o xml_parser.o
 
 
 ifeq ($(HAS_OPENSSL), yes)

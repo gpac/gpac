@@ -53,6 +53,7 @@
 #define IDC_BIFS_RATE                   1018
 #define IDC_DEC_THREAD                  1019
 #define IDC_DIRECTRENDER                1020
+#define IDC_HWMEMORY                    1021
 #define IDC_BIFSDROP                    1023
 #define IDC_SPIN_AUDIO                  1024
 #define IDC_EDIT_AUDIO                  1025

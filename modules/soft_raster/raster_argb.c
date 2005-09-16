@@ -178,6 +178,7 @@ void evg_argb_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 
 GF_Err evg_surface_clear_argb(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 {
+	u32 *data;
 	u32 x, y, w, h, st, sx, sy;
 	EVGSurface *_this = (EVGSurface *)surf;
 	st = _this->stride;
@@ -186,9 +187,9 @@ GF_Err evg_surface_clear_argb(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 	w = rc.width;
 	sx = rc.x;
 	sy = rc.y;
-	
+
 	for (y = 0; y < h; y++) {
-		u32 *data = (u32 *) (_this ->pixels + (sy+y)* st + 4*sx);
+		data = (u32 *) (_this ->pixels + (sy+y)* st + 4*sx);
 		for (x = 0; x < w; x++) {
 			*data++ = col;
 		}

@@ -56,13 +56,12 @@ public:
 	GF_User m_user;
 	CString m_filename;
 
-	u32 max_duration;
+	u32 m_duration;
 	CString m_navigate_url;
-	Bool m_Loop, m_fit_screen, m_can_seek, m_open, m_disable_backlight;
+	Bool m_Loop, m_fit_screen, m_can_seek, m_open, m_disable_backlight, m_stoped;
 	void Pause();
 
-	u32 m_scene_width, m_scene_height;
-
+	u32 m_scene_width, m_scene_height, m_reconnect_time;
 	u32 m_screen_width, m_screen_height, m_menu_height;
 	/*task bar on/off*/
 	void ShowTaskBar(Bool showIt, Bool pause_only = 0);
@@ -78,6 +77,8 @@ private:
 
 	/*power management*/
 	u32 m_prev_batt_bl, m_prev_ac_bl;
+
+	void ReloadTerminal();
 
 // Overrides
 	// ClassWizard generated virtual function overrides

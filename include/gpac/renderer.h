@@ -32,8 +32,10 @@ extern "C" {
 
 /*include scene graph API*/
 #include <gpac/scenegraph.h>
-/*frame buffer definition, GF_User and GF_Terminal */
+/*GF_User and GF_Terminal */
 #include <gpac/user.h>
+/*frame buffer definition*/
+#include <gpac/color.h>
 
 typedef struct __tag_base_renderer GF_Renderer;
 

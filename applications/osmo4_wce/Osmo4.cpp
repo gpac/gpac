@@ -61,16 +61,18 @@ Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
 		pFrame->PostMessage(WM_CONSOLEMSG, 0, 0);
 		break;
 	case GF_EVT_SIZE:
-		app->m_open = 1;
 		app->m_scene_width = event->size.width;
 		app->m_scene_height = event->size.height;
 		pFrame->PostMessage(WM_SETSIZE, event->size.width, event->size.height);
 		break;
+	case GF_EVT_CONNECT:
+		app->m_open = event->connect.is_connected;
+		break;
 	case GF_EVT_DURATION:
 		dur = (u32) (1000 * event->duration.duration);
 		if (dur<2000) dur = 0;
-		app->max_duration = dur;
-		app->m_can_seek = event->duration.can_seek;
+		app->m_duration = dur;
+		app->m_can_seek = event->duration.can_seek && dur;
 		pFrame->m_progBar.m_range_invalidated = 1;
 		/*by default, don't display timing if not seekable and vice-versa*/
 		if (app->m_can_seek != pFrame->m_view_timing) {
@@ -105,21 +107,21 @@ Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
 			pFrame->PostMessage(WM_COMMAND, ID_FILE_PAUSE);
 			break;
 		case GF_VK_LEFT:
-			if (app->max_duration>=2000) {
-				s32 res = gf_term_get_time_in_ms(app->m_term) - 5*app->max_duration/100;
+			if (app->m_duration>=2000) {
+				s32 res = gf_term_get_time_in_ms(app->m_term) - 5*app->m_duration/100;
 				if (res<0) res=0;
 				gf_term_play_from_time(app->m_term, res);
 			}
 			break;
 		case GF_VK_RIGHT:
-			if (app->max_duration>=2000) {
-				u32 res = gf_term_get_time_in_ms(app->m_term) + 5*app->max_duration/100;
-				if (res>=app->max_duration) res = 0;
+			if (app->m_duration>=2000) {
+				u32 res = gf_term_get_time_in_ms(app->m_term) + 5*app->m_duration/100;
+				if (res>=app->m_duration) res = 0;
 				gf_term_play_from_time(app->m_term, res);
 			}
 			break;
 		case GF_VK_UP:
-			if (app->max_duration>=2000) pFrame->PostMessage(WM_COMMAND, ID_FILE_STEP);	
+			if (app->m_duration>=2000) pFrame->PostMessage(WM_COMMAND, ID_FILE_STEP);	
 			break;
 		case GF_VK_DOWN:
 			gf_term_refresh(app->m_term);
@@ -282,11 +284,12 @@ BOOL COsmo4::InitInstance()
 		m_pMainWnd->PostMessage(WM_QUIT);
 	}
 
+	m_stoped = 0;
 	m_open = 0;
 	m_can_seek = 0;
 	m_DoResume = 0;
 	SetOptions();
-	pFrame->SendMessage(WM_SETSIZE, 0, 0);
+	//pFrame->SendMessage(WM_SETSIZE, 0, 0);
 	ShowTaskBar(0);
 
 	CCommandLineInfo cmdInfo;
@@ -295,8 +298,9 @@ BOOL COsmo4::InitInstance()
 	if (! cmdInfo.m_strFileName.IsEmpty()) {
 		m_filename = cmdInfo.m_strFileName;
 		m_pMainWnd->PostMessage(WM_OPENURL);
+	} else {
+		m_pMainWnd->InvalidateRect(NULL);
 	}
-
 	return TRUE;
 }
 
@@ -384,7 +388,7 @@ int COsmo4::ExitInstance()
 	gf_term_del(m_term);
 	gf_modules_del(m_user.modules);
 	gf_cfg_del(m_user.config);
-	SetBacklightState(0);
+	ShowTaskBar(1);
 	return CWinApp::ExitInstance();
 }
 
@@ -415,14 +419,33 @@ void COsmo4::Pause()
 	((CMainFrame*)m_pMainWnd)->SetPauseButton();
 }
 
+
+
+void COsmo4::ReloadTerminal()
+{
+	Bool reconnect = m_open;
+	m_reconnect_time = 0;
+	if (m_can_seek) m_reconnect_time = gf_term_get_time_in_ms(m_term);
+
+	gf_term_del(m_term);
+	m_term = gf_term_new(&m_user);
+	if (!m_term) {
+		MessageBox(NULL, _T("Fatal Error !!"), _T("Couldn't change renderer"), MB_OK);
+		m_pMainWnd->PostMessage(WM_DESTROY);
+		return;
+	}
+	if (reconnect) m_pMainWnd->PostMessage(WM_OPENURL);
+}
+
 void COsmo4::OnConfigure()
 {
 	COptions dlg;
 	
 	ShowTaskBar(1);
 	dlg.DoModal();
-	
 	ShowTaskBar(0);
+
+	if (dlg.m_bNeedsReload) ReloadTerminal();
 }
 
 void COsmo4::ShowTaskBar(Bool showIt, Bool pause_only)
@@ -434,10 +457,16 @@ void COsmo4::ShowTaskBar(Bool showIt, Bool pause_only)
 			gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
 		}
 		gf_term_set_option(m_term, GF_OPT_FREEZE_DISPLAY, 1);
-		if (!pause_only) SHFullScreen(GetForegroundWindow(), SHFS_HIDESTARTICON | SHFS_SHOWTASKBAR);
+		if (!pause_only) {
+			SHFullScreen(GetForegroundWindow(), SHFS_HIDESTARTICON | SHFS_SHOWTASKBAR| SHFS_SHOWSIPBUTTON);
+			::ShowWindow(::FindWindow(_T("HHTaskbar"),NULL), SW_SHOWNA);
+		}
 		SetBacklightState(0);
 	} else {
-		if (!pause_only) SHFullScreen(GetForegroundWindow(), SHFS_HIDESTARTICON | SHFS_HIDETASKBAR);
+		if (!pause_only) {
+			SHFullScreen(GetForegroundWindow(), SHFS_HIDESTARTICON | SHFS_HIDETASKBAR| SHFS_HIDESIPBUTTON);
+			::ShowWindow(::FindWindow(_T("HHTaskbar"),NULL), SW_HIDE);
+		}
 		gf_term_set_option(m_term, GF_OPT_FREEZE_DISPLAY, 0);
 		gf_term_refresh(m_term);
 		if (m_DoResume) {
@@ -456,6 +485,8 @@ CString COsmo4::GetFileFilter()
 	CString sFiles;
 	CString sExts;
 	CString supportedFiles;
+
+	return CString("All Files |*.*|");
 
 	supportedFiles = "All Known Files|*.m3u;*.pls";
 

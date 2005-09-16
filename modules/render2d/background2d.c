@@ -283,7 +283,7 @@ static void DrawBackground(DrawableContext *ctx)
 
 			/*direct rendering, render without clippers */
 			if (ctx->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
-				ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &ctx->clip, &ctx->unclip);
+				ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &ctx->clip, &ctx->unclip, 0xFF, NULL, NULL);
 			}
 			/*render bitmap for all dirty rects*/
 			else {
@@ -295,7 +295,7 @@ static void DrawBackground(DrawableContext *ctx)
 					clip = ctx->clip;
 					gf_irect_intersect(&clip, &ctx->surface->to_redraw.list[i]);
 					if (clip.width && clip.height) {
-						ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &clip, &ctx->unclip);
+						ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &clip, &ctx->unclip, 0xFF, NULL, NULL);
 					}
 				}
 			}

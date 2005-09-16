@@ -25,13 +25,16 @@
 
 #include <windows.h>
 #include <aygshell.h>
+#include <wingdi.h>
 #include <gx.h>
 
 #include "gapi.h"
-#include "ColorTools.h"
+
+#define PRINT(__str) OutputDebugString(_T(__str))
 
 #define GAPICTX(dr)	GAPIPriv *gctx = (GAPIPriv *) dr->opaque;
 
+static GF_Err GAPI_InitSurface(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoHeight);
 
 static GF_VideoOutput *the_video_driver = NULL;
 
@@ -46,7 +49,7 @@ static void GAPI_GetCoordinates(DWORD lParam, GF_Event *evt)
 		pt.x = evt->mouse.x;
 		pt.y = evt->mouse.y;
 		ClientToScreen(ctx->hWnd, &pt);
-		if (ctx->gx.ffFormat & kfLandscape) {
+		if (ctx->is_landscape) {
 			evt->mouse.x = ctx->fs_w - pt.y;
 			evt->mouse.y = pt.x;
 		} else {
@@ -83,8 +86,7 @@ static u32 GAPI_TranslateActionKey(u32 VirtKey)
 	case VK_ESCAPE: return GF_VK_ESCAPE;
 	case VK_SHIFT: return GF_VK_SHIFT;
 	case VK_CONTROL: return GF_VK_CONTROL;
-	case VK_MENU: 
-		return GF_VK_MENU;
+	case VK_MENU: return GF_VK_MENU;
 	default: return 0;
 	}
 }
@@ -93,24 +95,15 @@ u32 GX_TRANSLATE_KEY(u32 vk)
 {
 	GAPIPriv *ctx = (GAPIPriv *)the_video_driver->opaque;
 	short res = (LOWORD(vk) != 0x5b) ? LOWORD(vk) : vk;
-	if (res==ctx->keys.vkLeft) 
-		return GF_VK_LEFT;
-	else if (res==ctx->keys.vkRight)
-		return GF_VK_RIGHT;
-	else if (res==ctx->keys.vkDown) 
-		return GF_VK_DOWN;
-	else if (res==ctx->keys.vkUp) 
-		return GF_VK_UP;
-	else if (res==ctx->keys.vkStart) 
-		return GF_VK_RETURN;
-	else if (res==ctx->keys.vkA) 
-		return GF_VK_CONTROL;
-	else if (res==ctx->keys.vkB) 
-		return GF_VK_SHIFT;
-	else if (res==ctx->keys.vkC)
-		return GF_VK_MENU;
-	else
-		return 0;
+	if (res==ctx->keys.vkLeft) return GF_VK_LEFT;
+	else if (res==ctx->keys.vkRight) return GF_VK_RIGHT;
+	else if (res==ctx->keys.vkDown) return GF_VK_DOWN;
+	else if (res==ctx->keys.vkUp) return GF_VK_UP;
+	else if (res==ctx->keys.vkStart) return GF_VK_RETURN;
+	else if (res==ctx->keys.vkA) return GF_VK_CONTROL;
+	else if (res==ctx->keys.vkB) return GF_VK_SHIFT;
+	else if (res==ctx->keys.vkC) return GF_VK_MENU;
+	else return 0;
 }
 
 LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
@@ -118,7 +111,7 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	GF_Event evt;
 	switch (msg) {
 	case WM_SIZE:
-	{
+	if (0) {
 		GAPIPriv *ctx = (GAPIPriv *)the_video_driver->opaque;
 		evt.type = GF_EVT_SIZE;
 		evt.size.width = LOWORD(lParam);
@@ -127,23 +120,32 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	}
 		break;
 	case WM_CLOSE:
-	{
 		evt.type = GF_EVT_QUIT;
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
-	}
 		return 1;
 	case WM_DESTROY:
 		PostQuitMessage (0);
 		break;
 
 	case WM_ERASEBKGND:
+		evt.type = GF_EVT_REFRESH;
+		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+		break;
 	case WM_PAINT:
 	{
-		GAPIPriv *ctx = (GAPIPriv *)the_video_driver->opaque;
-		evt.type = GF_EVT_REFRESH;
-		if (ctx->backbuffer) the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+		PAINTSTRUCT ps;
+		HDC dc, hdcBitmap, old;
+		GAPIPriv *gctx = (GAPIPriv *)the_video_driver->opaque;
+		if (gctx->gx_mode) break;
+		dc = BeginPaint(gctx->hWnd, &ps);
+		hdcBitmap = CreateCompatibleDC((HDC)dc);
+		old = (HDC) SelectObject(hdcBitmap, gctx->bitmap);
+		BitBlt((HDC)dc, gctx->dst_blt.x, gctx->dst_blt.y, gctx->bb_width, gctx->bb_height, hdcBitmap, 0, 0, SRCCOPY);
+		SelectObject(hdcBitmap, old);
+		EndPaint(gctx->hWnd, &ps);
 	}
 		break;
+
 
 	case WM_MOUSEMOVE:
 		GAPI_GetCoordinates(lParam, &evt);
@@ -175,7 +177,6 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		break;
 	case WM_KEYDOWN:
 	case WM_KEYUP:
-	{
 		/*emulate button actions as vk codes*/
 		if ((evt.key.vk_code = GX_TRANSLATE_KEY(wParam)) != 0) {
 			evt.key.virtual_code = wParam;
@@ -197,7 +198,6 @@ send_key:
 			evt.type = (msg==WM_KEYDOWN) ? GF_EVT_KEYDOWN : GF_EVT_KEYUP;
 			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		}
-	}
 		break;
 	case WM_CHAR:
 		evt.type = GF_EVT_CHAR;
@@ -218,10 +218,10 @@ void GAPI_WindowThread(void *par)
 	wc.lpfnWndProc = GAPI_WindowProc;
 	wc.hCursor = LoadCursor (NULL, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)GetStockObject (BLACK_BRUSH);
-	wc.lpszClassName = _T("GPAC DirectDraw Output");
+	wc.lpszClassName = _T("GPAC GAPI Output");
 	RegisterClass (&wc);
 	
-	ctx->hWnd = CreateWindow(_T("GPAC DirectDraw Output"), NULL, WS_POPUP, 0, 0, 120, 100, NULL, NULL, wc.hInstance, NULL);
+	ctx->hWnd = CreateWindow(_T("GPAC GAPI Output"), NULL, WS_POPUP, 0, 0, 120, 100, NULL, NULL, wc.hInstance, NULL);
 	if (ctx->hWnd == NULL) {
 		ctx->ThreadID = 0;
 		ExitThread(1);
@@ -261,7 +261,7 @@ void GAPI_ShutdownWindow(GF_VideoOutput *dr)
 	if (ctx->owns_hwnd) {
 		PostMessage(ctx->hWnd, WM_DESTROY, 0, 0);
 		while (ctx->ThreadID) gf_sleep(10);
-		UnregisterClass(_T("GPAC DirectDraw Output"), GetModuleHandle(_T("dx_hw.dll")));
+		UnregisterClass(_T("GPAC GAPI Output"), GetModuleHandle(_T("gapi.dll")));
 		CloseHandle(ctx->hThread);
 		ctx->hThread = NULL;
 	}
@@ -272,129 +272,209 @@ void GAPI_ShutdownWindow(GF_VideoOutput *dr)
 
 GF_Err GAPI_Clear(GF_VideoOutput *dr, u32 color)
 {
-	s32 i, j;
-	u32 r, g, b;
-	RECT rc;
-	char *ptr;
-	u16 col;
 	GAPICTX(dr);
-
-	if (!gctx || !gctx->is_init) return GF_IO_ERR;
-	if (!gctx->fullscreen) return GF_OK;
-
-	gf_mx_p(gctx->mx);
-	col = 0;
-	switch (gctx->pixel_format) {
-	case GF_PIXEL_RGB_555:
-		col = GF_COL_TO_555(color);
-		break;
-	case GF_PIXEL_RGB_565:
-		col = GF_COL_TO_565(color);
-		break;
-	}
-
-	rc.top = rc.left = 0;
-	rc.right = gctx->gx.cxWidth;
-	rc.bottom = gctx->gx.cyHeight;
-
-	ptr = (char *) GXBeginDraw();
-	if (!ptr) {
-		gf_mx_v(gctx->mx);
-		return GF_IO_ERR;
-	}
-	r = (col>>16);
-	g = (col>>8);
-	b = (col)&0xFF;
-
-	if (gctx->BPP==3) {
-		for (i=rc.top; i<rc.bottom; i++) {
-			char *_ptr =  ptr + rc.left * gctx->gx.cbxPitch + i*gctx->gx.cbyPitch;
-			for (j=rc.left; j<rc.right; j++) {
-				_ptr[0] = r;
-				_ptr[1] = g;
-				_ptr[2] = b;
-				_ptr += gctx->gx.cbxPitch;
-			}
-		}
-	} else {
-		for (i=rc.top; i<rc.bottom; i++) {
-			char *_ptr =  ptr + rc.left * gctx->gx.cbxPitch + i*gctx->gx.cbyPitch;
-			for (j=rc.left; j<rc.right; j++) {
-				* ((unsigned short *)_ptr) = col;
-				_ptr += gctx->gx.cbxPitch;
-			}
-		}
-	}
-	GXEndDraw();
-
-	gf_mx_v(gctx->mx);
+	gctx->erase_dest = 1;
 	return GF_OK;
 }
 
-
-static GF_Err GAPI_InitSurface(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoHeight)
+static void createPixmap(GAPIPriv *ctx, HDC dc, Bool for_gl)
 {
-	GAPICTX(dr);
+    const size_t    bmiSize = sizeof(BITMAPINFO) + 256U*sizeof(RGBQUAD);
+    BITMAPINFO*     bmi;
+    DWORD*          p;
+    bmi = (BITMAPINFO*)malloc(bmiSize);
+    memset(bmi, 0, bmiSize);
 
-	if (!gctx || !VideoWidth || !VideoHeight) return GF_BAD_PARAM;
+    bmi->bmiHeader.biSize           = sizeof(BITMAPINFOHEADER);
+    bmi->bmiHeader.biWidth          = ctx->bb_width;
+    bmi->bmiHeader.biHeight         = -1 * (s32) ctx->bb_height;	/*top-down image*/
+    bmi->bmiHeader.biPlanes         = (short)1;
+    bmi->bmiHeader.biBitCount       = (unsigned int) ctx->bits_per_pixel;
+    bmi->bmiHeader.biCompression    = BI_BITFIELDS;
+    bmi->bmiHeader.biClrUsed        = 3;
 
-	gf_mx_p(gctx->mx);
-
-	gctx->gx = GXGetDisplayProperties();
-
-	if (gctx->gx.ffFormat & kfDirect555) {
-		gctx->pixel_format = GF_PIXEL_RGB_555;
-		gctx->BPP = 2;
-		gctx->bitsPP = 15;
-	} 
-	else if (gctx->gx.ffFormat & kfDirect565) {
-		gctx->pixel_format = GF_PIXEL_RGB_565;
-		gctx->BPP = 2;
-		gctx->bitsPP = 16;
+    p = (DWORD*)bmi->bmiColors;
+	switch (ctx->pixel_format) {
+	case GF_PIXEL_RGB_555:
+		p[0] = 0x00007c00; p[1] = 0x000003e0; p[2] = 0x0000001f;
+		break;
+	case GF_PIXEL_RGB_565:
+		p[0] = 0x0000f800; p[1] = 0x000007e0; p[2] = 0x0000001f;
+		break;
+	case GF_PIXEL_RGB_24:
+		p[0] = 0x00ff0000; p[1] = 0x0000ff00; p[2] = 0x000000ff;
+		break;
 	}
-	else if (gctx->gx.ffFormat & kfDirect888) {
-		gctx->pixel_format = GF_PIXEL_RGB_24;
-		gctx->BPP = 3;
-		gctx->bitsPP = 24;
+		p[0] = 0x0000f800; p[1] = 0x000007e0; p[2] = 0x0000001f;
+	if (for_gl) {
+		ctx->bitmap = CreateDIBSection(dc, bmi, DIB_RGB_COLORS, (void **) &ctx->bits, NULL, 0);
 	} else {
-		gf_mx_v(gctx->mx);
-		return GF_NOT_SUPPORTED;
+		ctx->bitmap = CreateDIBSection(dc, bmi, DIB_RGB_COLORS, (void **) &ctx->backbuffer, NULL, 0);
 	}
-	gctx->screen_w = gctx->gx.cxWidth;
-	gctx->screen_h = gctx->gx.cyHeight;
+	free(bmi);
+}
 
-	if (gctx->backbuffer) free(gctx->backbuffer);
-	gctx->bb_size = VideoWidth * VideoHeight * gctx->BPP;
-	gctx->backbuffer = (unsigned char *) malloc(sizeof(unsigned char) * gctx->bb_size);
-	gctx->bb_width = VideoWidth;
-	gctx->bb_height = VideoHeight;
-	gctx->bb_pitch = VideoWidth * gctx->BPP;
-	gctx->is_init = 1;
 
-	GAPI_Clear(dr, 0);
-	gf_mx_v(gctx->mx);
+#ifdef GPAC_USE_OGL_ES
+
+void GAPI_ReleaseOGL_ES(GAPIPriv *ctx)
+{
+	if (ctx->egldpy) {
+		if (ctx->eglctx) eglDestroyContext(ctx->egldpy, ctx->eglctx);
+		if (ctx->surface ) eglDestroySurface(ctx->egldpy, ctx->surface);
+		if (ctx->egldpy) eglTerminate(ctx->egldpy);
+		ctx->egldpy = 0;
+	}
+    if (ctx->bitmap) DeleteObject(ctx->bitmap);
+	ctx->bitmap = NULL;
+}
+
+GF_Err GAPI_SetupOGL_ES(GF_VideoOutput *dr) 
+{
+	EGLint n, maj, min;
+	GF_Event evt;
+	HDC dc;
+	GAPICTX(dr)
+	static int atts[15];
+	atts[0] = EGL_RED_SIZE; atts[1] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
+	atts[2] = EGL_GREEN_SIZE; atts[3] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : (gctx->pixel_format==GF_PIXEL_RGB_565) ? 6 : 5;
+	atts[4]  = EGL_BLUE_SIZE; atts[5] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
+	atts[6] = EGL_ALPHA_SIZE; atts[7] = EGL_DONT_CARE;
+	atts[8]  = EGL_DEPTH_SIZE; atts[9] = 32;
+	atts[10] = EGL_STENCIL_SIZE; atts[11] = EGL_DONT_CARE;
+	atts[12]  = EGL_SURFACE_TYPE; atts[13] = EGL_PIXMAP_BIT;
+	atts[14]  = EGL_NONE;
+
+	/*whenever window is resized we must reinit OGL-ES*/
+	GAPI_ReleaseOGL_ES(gctx);
+
+	if (!gctx->fullscreen) {
+		RECT rc;
+		::GetClientRect(gctx->hWnd, &rc);
+		gctx->bb_width = rc.right-rc.left;
+		gctx->bb_height = rc.bottom-rc.top;
+		dc = GetDC(gctx->hWnd);
+		createPixmap(gctx, dc, 1);
+		ReleaseDC(gctx->hWnd, dc);
+	}
+
+	gctx->egldpy = eglGetDisplay(/*gctx->dpy*/EGL_DEFAULT_DISPLAY);
+	if (!eglInitialize(gctx->egldpy, &maj, &min)) {
+		gctx->egldpy = NULL;
+		return GF_IO_ERR;
+	}
+
+	eglGetConfigs(gctx->egldpy, NULL, 0, &n);
+	if (!eglChooseConfig(gctx->egldpy, atts, &gctx->eglconfig, 1, &n)) {
+		return GF_IO_ERR;
+	}
+	if (gctx->fullscreen) {
+		gctx->surface = eglCreateWindowSurface(gctx->egldpy, gctx->eglconfig, gctx->hWnd, 0);
+	} else {
+		gctx->surface = eglCreatePixmapSurface(gctx->egldpy, gctx->eglconfig, gctx->bitmap, 0);
+	}
+
+	if (!gctx->surface) {
+		return GF_IO_ERR; 
+	}
+	gctx->eglctx = eglCreateContext(gctx->egldpy, gctx->eglconfig, NULL, NULL);
+	if (!gctx->eglctx) {
+		eglDestroySurface(gctx->egldpy, gctx->surface);
+		gctx->surface = 0L;
+		return GF_IO_ERR; 
+	}
+    if (!eglMakeCurrent(gctx->egldpy, gctx->surface, gctx->surface, gctx->eglctx)) {
+		eglDestroyContext(gctx->egldpy, gctx->eglctx);
+		gctx->eglctx = 0L;
+		eglDestroySurface(gctx->egldpy, gctx->surface);
+		gctx->surface = 0L;
+		return GF_IO_ERR;
+	}
+	evt.type = GF_EVT_VIDEO_SETUP;
+	dr->on_event(dr->evt_cbk_hdl, &evt);	
 	return GF_OK;
+}
+#endif
+
+
+void GAPI_ReleaseObjects(GAPIPriv *ctx)
+{
+#ifdef GPAC_USE_OGL_ES
+	if (ctx->is_3D) GAPI_ReleaseOGL_ES(ctx);
+	else
+#endif
+    if (ctx->bitmap) DeleteObject(ctx->bitmap);
+	else if (ctx->backbuffer) free(ctx->backbuffer);
+	ctx->backbuffer = NULL;
+	ctx->bitmap = NULL;
 }
 
 GF_Err GAPI_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool noover, GF_GLConfig *cfg)
 {
+	struct GXDisplayProperties gx = GXGetDisplayProperties();
 	RECT rc;
 	GAPICTX(dr);
 	gctx->hWnd = (HWND) os_handle;
 	
-	if (cfg) return GF_NOT_SUPPORTED;
+	/*get keys in both 2D and 3D modes*/
+	gctx->keys = GXGetDefaultKeys(GX_NORMALKEYS);
+
+#if 0
+	/*FIXME - not supported in rasterizer*/
+	 if (gx.ffFormat & kfDirect444) {
+		gctx->pixel_format = GF_PIXEL_RGB_444;
+		gctx->BPP = 2;
+		gctx->bitsPP = 12;
+	} 
+	else 
+#endif
+	if (gx.ffFormat & kfDirect555) {
+		gctx->pixel_format = GF_PIXEL_RGB_555;
+		gctx->BPP = 2;
+		gctx->bits_per_pixel = 15;
+	} 
+	else if (gx.ffFormat & kfDirect565) {
+		gctx->pixel_format = GF_PIXEL_RGB_565;
+		gctx->BPP = 2;
+		gctx->bits_per_pixel = 16;
+	}
+	else if (gx.ffFormat & kfDirect888) {
+		gctx->pixel_format = GF_PIXEL_RGB_24;
+		gctx->BPP = 3;
+		gctx->bits_per_pixel = 24;
+	} else {
+		return GF_NOT_SUPPORTED;
+	}
+	dr->max_screen_width = gctx->screen_w = gx.cxWidth;
+	dr->max_screen_height = gctx->screen_h = gx.cyHeight;
+	gctx->is_landscape = (gx.ffFormat & kfLandscape) ? 1 : 0;
+	gctx->x_pitch = gx.cbxPitch;
+	gctx->y_pitch = gx.cbyPitch;
+
+	if (cfg) {
+#ifdef GPAC_USE_OGL_ES
+		gctx->gl_cfg = *cfg;
+		gctx->is_3D = 1;
+#else
+		return GF_NOT_SUPPORTED;
+#endif
+	}
+
 	GAPI_SetupWindow(dr);
-	if (!gctx->hWnd || !GXOpenDisplay(gctx->hWnd, 0L)) {
+	if (!gctx->hWnd) return GF_IO_ERR;
+#ifdef GPAC_USE_OGL_ES
+	if (gctx->is_3D) return GF_OK;
+#endif
+	
+	/*setup GX*/
+	if (!GXOpenDisplay(gctx->hWnd, 0L)) {
 		MessageBox(NULL, _T("Cannot open display"), _T("GAPI Error"), MB_OK);
 		return GF_IO_ERR;
 	}
-
-	gctx->gapi_open = 1;
     GetClientRect(gctx->hWnd, &rc);
-	gctx->disp_w = rc.right - rc.left;
-	gctx->disp_h = rc.bottom - rc.top;
-	gctx->keys = GXGetDefaultKeys(GX_NORMALKEYS);
-	return GAPI_InitSurface(dr, gctx->disp_w, gctx->disp_h);
+	gctx->backup_w = rc.right - rc.left;
+	gctx->backup_h = rc.bottom - rc.top;
+	return GAPI_InitSurface(dr, gctx->backup_w, gctx->backup_h);
 }
 
 static void GAPI_Shutdown(GF_VideoOutput *dr)
@@ -402,24 +482,10 @@ static void GAPI_Shutdown(GF_VideoOutput *dr)
 	GAPICTX(dr);
 
 	gf_mx_p(gctx->mx);
+	GAPI_ReleaseObjects(gctx);
 
-	if (gctx->backbuffer) free(gctx->backbuffer);
-	gctx->backbuffer = NULL;
-
-	while (gf_list_count(gctx->surfaces)) {
-		GAPISurface *ptr = (GAPISurface *) gf_list_get(gctx->surfaces, 0);
-		gf_list_rem(gctx->surfaces, 0);
-		free(ptr->buffer);
-		free(ptr);
-	}
-
-	if (gctx->gapi_open) {
-		GXCloseDisplay();
-		gctx->gapi_open = 0;
-	}
-
+	GXCloseDisplay();
 	GAPI_ShutdownWindow(dr);
-
 	gf_mx_v(gctx->mx);
 }
 
@@ -428,12 +494,18 @@ static GF_Err GAPI_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u3
 	GF_Err e;
 	GAPICTX(dr);
 
-	if (!gctx || !gctx->is_init) return GF_BAD_PARAM;
+	if (!gctx) return GF_BAD_PARAM;
 	if (bOn == gctx->fullscreen) return GF_OK;
 
-	GAPI_Clear(dr, 0);
+#ifdef GPAC_USE_OGL_ES
+	if (gctx->is_3D) {
+		gctx->fullscreen = bOn;
+		return GAPI_SetupOGL_ES(dr);
+	}
+#endif
 
 	gf_mx_p(gctx->mx);
+	GAPI_ReleaseObjects(gctx);
 	GXCloseDisplay();
 	e = GF_OK;
 	if (bOn) {
@@ -450,11 +522,12 @@ static GF_Err GAPI_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u3
 	}
 
 	if (!e) {
+		gctx->is_landscape = gctx->fullscreen;
 		if (gctx->fullscreen) {
-			gctx->disp_w = gctx->bb_width;
-			gctx->disp_h = gctx->bb_height;
+			gctx->backup_w = *outWidth;
+			gctx->backup_h = *outHeight;
 
-			if (gctx->gx.ffFormat & kfLandscape) {
+			if (gctx->is_landscape) {
 				gctx->fs_w = gctx->screen_h;
 				gctx->fs_h = gctx->screen_w;
 			} else {
@@ -464,26 +537,51 @@ static GF_Err GAPI_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u3
 			*outWidth = gctx->fs_w;
 			*outHeight = gctx->fs_h;
 		} else {
-			*outWidth = gctx->disp_w;
-			*outHeight = gctx->disp_h;
+			*outWidth = gctx->backup_w;
+			*outHeight = gctx->backup_h;
 		}
 		e = GAPI_InitSurface(dr, *outWidth, *outHeight); 
 	}
-	GAPI_Clear(dr, 0);
 	gf_mx_v(gctx->mx);
 
 	return e;
 }
 
-
-
-static GF_Err GAPI_FlushVideo(GF_VideoOutput *dr, GF_Window *dest)
+GF_Err GAPI_ClearFS(GAPIPriv *gctx, unsigned char *ptr, s32 x_pitch, s32 y_pitch)
 {
+	s32 i, j;
+	gf_mx_p(gctx->mx);
+	if (gctx->BPP==3) {
+		for (i=0; i< (s32)gctx->fs_h; i++) {
+			unsigned char *_ptr =  ptr + i*y_pitch;
+			for (j=0; j<(s32)gctx->fs_w; j++) { 
+				_ptr[0] = _ptr[1] = _ptr[2] = 0;
+				_ptr += x_pitch;
+			}
+		}
+	} else {
+		for (i=0; i<(s32)gctx->fs_h; i++) {
+			unsigned char *_ptr = ptr + i*y_pitch;
+			for (j=0; j<(s32)gctx->fs_w; j++) {
+				* ((unsigned short *)_ptr) = 0;
+				_ptr += x_pitch;
+			}
+		}
+	}
+	gf_mx_v(gctx->mx);
+	return GF_OK;
+}
+
+
+static GF_Err GAPI_FlipBackBuffer(GF_VideoOutput *dr)
+{
+	GF_VideoSurface src, dst;
 	unsigned char *ptr;
 	GAPICTX(dr);
+	s32 pitch_y = gctx->y_pitch;
+	s32 pitch_x = gctx->x_pitch;
+	if (!gctx || !gctx->gx_mode) return GF_BAD_PARAM;
 
-	if (!gctx || !gctx->is_init) return GF_BAD_PARAM;
-	if (dest && (!dest->w || !dest->h)) return GF_OK;
 	gf_mx_p(gctx->mx);
 
 	/*get a pointer to video memory*/
@@ -493,258 +591,118 @@ static GF_Err GAPI_FlushVideo(GF_VideoOutput *dr, GF_Window *dest)
 		return GF_IO_ERR;
 	}
 	
+	src.video_buffer = gctx->backbuffer;
+	src.width = gctx->bb_width;
+	src.height = gctx->bb_height;
+	src.pitch = gctx->bb_pitch;
+	src.pixel_format = gctx->pixel_format;
+	src.is_hardware_memory = 0;
+
+	dst.width = gctx->dst_blt.w;
+	dst.height = gctx->dst_blt.h;
+	dst.pixel_format = gctx->pixel_format;
+	dst.is_hardware_memory = 1;
+
+
 	if (gctx->fullscreen) {
-		gctx->dst_blt.x = dest->x;
-		gctx->dst_blt.y = dest->y;
-		gctx->dst_blt.w = dest->w;
-		gctx->dst_blt.h = dest->h;
-
-		if (gctx->gx.ffFormat & kfLandscape) {
-			ptr += gctx->gx.cbxPitch * dest->y - dest->x * gctx->gx.cbyPitch;
-
-			StretchBits(ptr, gctx->bitsPP, gctx->dst_blt.w, gctx->dst_blt.h, - gctx->gx.cbyPitch, gctx->gx.cbxPitch,
-					/*src*/
-					gctx->backbuffer, gctx->bitsPP, gctx->bb_width, gctx->bb_height, gctx->bb_pitch);
-		} else {
-			ptr += gctx->gx.cbxPitch * dest->x + dest->y * gctx->gx.cbyPitch;
-
-			StretchBits(ptr, gctx->bitsPP, gctx->dst_blt.w, gctx->dst_blt.h, gctx->gx.cbxPitch, gctx->gx.cbyPitch,
-					/*src*/
-					gctx->backbuffer, gctx->bitsPP, gctx->bb_width, gctx->bb_height, gctx->bb_pitch);
+		if (gctx->is_landscape) {
+			if (gctx->y_pitch>0) {
+				pitch_x = -gctx->y_pitch;
+				/*start of frame-buffer is top-left corner*/
+				if (gctx->x_pitch>0) {
+					ptr += gctx->screen_h * gctx->y_pitch;
+					pitch_y = gctx->x_pitch;
+				} 
+				/*start of frame-buffer is top-right corner*/
+				else {
+					ptr += gctx->screen_h * gctx->y_pitch + gctx->screen_w * gctx->x_pitch;
+					pitch_y = -gctx->x_pitch;
+				}
+			} else {
+				pitch_x = gctx->y_pitch;
+				/*start of frame-buffer is bottom-left corner*/
+				if (gctx->x_pitch>0) {
+					pitch_y = gctx->x_pitch;
+				} 
+				/*start of frame-buffer is bottom-right corner*/
+				else {
+					ptr += gctx->screen_w * gctx->x_pitch;
+					pitch_y = gctx->x_pitch;
+				}
+			}
+		}
+		if (gctx->erase_dest) {
+			gctx->erase_dest = 0;
+			GAPI_ClearFS(gctx, ptr, pitch_x, pitch_y);
 		}
 	} else {
-		RECT rc;
-		GetWindowRect(gctx->hWnd, &rc);
-		gctx->dst_blt.x = rc.left;
-		gctx->dst_blt.y = rc.top;
-		gctx->dst_blt.w = rc.right - rc.left;
-		gctx->dst_blt.h = rc.bottom - rc.top;
-
-		gctx->dst_blt.x += dest->x;
-		gctx->dst_blt.y += dest->y;
-		gctx->dst_blt.w = dest->w;
-		gctx->dst_blt.h = dest->h;
-
-		ptr += gctx->gx.cbxPitch * gctx->dst_blt.x + gctx->dst_blt.y * gctx->gx.cbyPitch;
-
-		StretchBits(ptr, 
-			gctx->bitsPP, gctx->dst_blt.w, gctx->dst_blt.h, gctx->gx.cbxPitch, gctx->gx.cbyPitch, 
-			/*src & src bpp*/
-			gctx->backbuffer, gctx->bitsPP, gctx->bb_width, gctx->bb_height, gctx->bb_pitch);
+		gctx->dst_blt.x += gctx->off_x;
+		gctx->dst_blt.y += gctx->off_y;
 	}
+
+	ptr += gctx->dst_blt.x * pitch_x + pitch_y * gctx->dst_blt.y;
+	dst.video_buffer = ptr;
+	dst.pitch = pitch_y;
+		
+	gf_stretch_bits(&dst, &src, NULL, NULL, pitch_x, 0xFF, 0, NULL, NULL);
 
 	GXEndDraw();
 	gf_mx_v(gctx->mx);
 	return GF_OK;
 }
 
-static GF_Err GAPI_LockSurface(GF_VideoOutput *dr, u32 surface_id, GF_VideoSurface *vi)
+
+
+static GF_Err GAPI_Flush(GF_VideoOutput *dr, GF_Window *dest)
 {
-	u32 i;
-	GAPICTX(dr);
-
-	if (!surface_id) {
-		vi->width = gctx->bb_width;
-		vi->height = gctx->bb_height;
-		vi->pitch = gctx->bb_pitch;
-		vi->pixel_format = gctx->pixel_format;
-		vi->os_handle = NULL;
-		vi->video_buffer = gctx->backbuffer;
-		return GF_OK;
-	}
-	/*check surfaces*/
-	for (i=0; i<gf_list_count(gctx->surfaces); i++) {
-		GAPISurface *ptr = (GAPISurface *) gf_list_get(gctx->surfaces, i);
-		if (ptr->ID == surface_id) {
-			vi->width = ptr->width;
-			vi->height = ptr->height;
-			vi->pitch = ptr->pitch;
-			vi->pixel_format = ptr->pixel_format;
-			vi->os_handle = NULL;
-			vi->video_buffer = ptr->buffer;
-			return GF_OK;
-		}
-	}
-	return GF_BAD_PARAM;
-}
-
-static GF_Err GAPI_UnlockSurface(GF_VideoOutput *dr, u32 surface_id)
-{
-	/*no special things to do on unlock*/
-	return GF_OK;
-}
-
-static GF_Err GAPI_GetPixelFormat(GF_VideoOutput *dr, u32 surfaceID, u32 *pixel_format)
-{
-	u32 i;
-	GAPICTX(dr);
-
-	if (!surfaceID) {
-		*pixel_format = gctx->pixel_format;
-		return GF_OK;
-	}
-	/*check surfaces*/
-	for (i=0; i<gf_list_count(gctx->surfaces); i++) {
-		GAPISurface *ptr = (GAPISurface *) gf_list_get(gctx->surfaces, i);
-		if (ptr->ID == surfaceID) {
-			*pixel_format = ptr->pixel_format;
-			return GF_OK;
-		}
-	}
-	return GF_BAD_PARAM;
-}
-
-static GF_Err GAPI_Blit(GF_VideoOutput *dr, u32 src_id, u32 dst_id, GF_Window *src, GF_Window *dst)
-{
-	GF_VideoSurface vs;
 	GF_Err e;
-	void *pdst, *psrc;
+	GAPICTX(dr);
+
+	if (!gctx) return GF_BAD_PARAM;
+
+	gf_mx_p(gctx->mx);
 	
-	GAPICTX(dr);
-
-	/*NOT SUPPORTED*/
-	if (dst_id) return GF_BAD_PARAM;
-
-	e = GAPI_LockSurface(dr, src_id, &vs);
-	if (e) return e;
-
-	switch (vs.pixel_format) {
-	case GF_PIXEL_RGB_555:
-		pdst = gctx->backbuffer + dst->y * gctx->bb_pitch + dst->x * gctx->BPP;
-		psrc = vs.video_buffer + src->y * vs.pitch + src->x * 2;
-		StretchBits(pdst, gctx->bitsPP, dst->w, dst->h, gctx->BPP, gctx->bb_pitch, 
-					psrc, 15, src->w, src->h, vs.pitch);
-		break;
-	case GF_PIXEL_RGB_565:
-		pdst = gctx->backbuffer + dst->y * gctx->bb_pitch + dst->x * gctx->BPP;
-		psrc = vs.video_buffer + src->y * vs.pitch + src->x * 2;
-		StretchBits(pdst, gctx->bitsPP, dst->w, dst->h, gctx->BPP, gctx->bb_pitch, 
-					psrc, 16, src->w, src->h, vs.pitch);
-		break;
-	case GF_PIXEL_RGB_24:
-		pdst = gctx->backbuffer + dst->y * gctx->bb_pitch + dst->x * gctx->BPP;
-		psrc = vs.video_buffer + src->y * vs.pitch + src->x * 3;
-		StretchBits(pdst, gctx->bitsPP, dst->w, dst->h, gctx->BPP, gctx->bb_pitch, 
-					psrc, 24, src->w, src->h, vs.pitch);
-		break;
-	case GF_PIXEL_RGB_32:
-		pdst = gctx->backbuffer + dst->y * gctx->bb_pitch + dst->x * gctx->BPP;
-		psrc = vs.video_buffer + src->y * vs.pitch + src->x * 4;
-		StretchBits(pdst, gctx->bitsPP, dst->w, dst->h, gctx->BPP, gctx->bb_pitch, 
-					psrc, 32, src->w, src->h, vs.pitch);
-		break;
+#ifdef GPAC_USE_OGL_ES
+	if (gctx->is_3D) {
+		if (gctx->fullscreen && gctx->surface && gctx->egldpy) {
+			if (gctx->erase_dest) {
+				InvalidateRect(gctx->hWnd, NULL, TRUE);
+				gctx->erase_dest = 0;
+			}
+			eglSwapBuffers(gctx->egldpy, gctx->surface);
+		} else {
+		    InvalidateRect(gctx->hWnd, NULL, gctx->erase_dest);
+			gctx->erase_dest = 0;
+		}
+		gf_mx_v(gctx->mx);
+		return GF_OK;
 	}
-	return GF_OK;
-}
-
-static GF_Err GAPI_CreateSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 pixel_format, u32 *surfaceID)
-{
-	u32 size;
-	GAPISurface *surf;
-	GAPICTX(dr);
-
-	switch (pixel_format) {
-	case GF_PIXEL_RGB_555:
-	case GF_PIXEL_RGB_565:
-	case GF_PIXEL_RGB_24:
-	case GF_PIXEL_RGB_32:
-		break;
-	default:
-		return GF_NOT_SUPPORTED;
-	}
-	
-	surf = (GAPISurface *) malloc(sizeof(GAPISurface));
-	surf->width = width;
-	surf->height = height;
-	surf->ID = (u32) surf;
-	surf->pixel_format = pixel_format;
-
-	size = width * height;
-	switch (pixel_format) {
-	case GF_PIXEL_RGB_555:
-		size *= 2;
-		surf->pitch = width * 2;
-		break;
-	case GF_PIXEL_RGB_565:
-		size *= 2;
-		surf->pitch = width * 2;
-		break;
-	case GF_PIXEL_RGB_24:
-		size *= 3;
-		surf->pitch = width * 3;
-		break;
-	case GF_PIXEL_RGB_32:
-		size *= 4;
-		surf->pitch = width * 4;
-		break;
-	}
-	surf->buffer = (unsigned char *)malloc(sizeof(unsigned char) * size);
-	gf_list_add(gctx->surfaces, surf);
-
-	*surfaceID = surf->ID;
-
-	return GF_OK;
-}
-
-
-/*deletes video surface by id*/
-static GF_Err GAPI_DeleteSurface(GF_VideoOutput *dr, u32 surfaceID)
-{
-	u32 i;
-	GAPICTX(dr);
-	if (!surfaceID) return GF_BAD_PARAM;
-
-	/*check surfaces*/
-	for (i=0; i<gf_list_count(gctx->surfaces); i++) {
-		GAPISurface *ptr = (GAPISurface *) gf_list_get(gctx->surfaces, i);
-		if (ptr->ID == surfaceID) {
-			if (ptr->buffer) free(ptr->buffer);
-			free(ptr);
-			gf_list_rem(gctx->surfaces, i);
-			return GF_OK;
+#endif
+	e = GF_OK;
+	if (gctx->backbuffer) {
+		if (dest) {
+			gctx->dst_blt = *dest;
+		} else {
+			assert(0);
+			gctx->dst_blt.x = gctx->dst_blt.y = 0;
+			gctx->dst_blt.w = gctx->bb_width;
+			gctx->dst_blt.h = gctx->bb_height;
+		}
+		if (gctx->gx_mode) {
+			if (!gctx->fullscreen && gctx->erase_dest) {
+				InvalidateRect(gctx->hWnd, NULL, TRUE);
+				gctx->erase_dest = 0;
+			}
+			e = GAPI_FlipBackBuffer(dr);
+		} else {
+			InvalidateRect(gctx->hWnd, NULL, gctx->erase_dest);
+			gctx->erase_dest = 0;
 		}
 	}
-	return GF_BAD_PARAM;
+	gf_mx_v(gctx->mx);
+	return e;
 }
 
-
-Bool GAPI_IsSurfaceValid(GF_VideoOutput *dr, u32 surface_id)
-{
-	u32 i;
-	GAPICTX(dr);
-	if (!surface_id) {
-		if (!gctx->is_init) return 0;
-		return 1;
-	}
-	/*check surfaces*/
-	for (i=0; i<gf_list_count(gctx->surfaces); i++) {
-		GAPISurface *ptr = (GAPISurface *) gf_list_get(gctx->surfaces, i);
-		if (ptr->ID == surface_id) return 1;
-	}
-	return 0;
-}
-
-static GF_Err GAPI_ResizeSurface(GF_VideoOutput *dr, u32 surface_id, u32 width, u32 height)
-{
-	u32 i;
-	GAPICTX(dr);
-	if (!surface_id) return GAPI_InitSurface(dr, width, height); 
-
-	/*check surfaces*/
-	for (i=0; i<gf_list_count(gctx->surfaces); i++) {
-		GAPISurface *ptr = (GAPISurface *) gf_list_get(gctx->surfaces, i);
-		if (ptr->ID == surface_id) {
-			if ( (ptr->height>=height) && (ptr->width>=width)) return GF_OK;
-			if (ptr->buffer) free(ptr->buffer);
-			ptr->pitch = ptr->pitch * width / ptr->width;
-			ptr->width = width;
-			ptr->height = height;
-			ptr->buffer = (unsigned char *) malloc(sizeof(unsigned char) * ptr->height * ptr->pitch);
-			return GF_OK;
-		}
-	}
-	return GF_BAD_PARAM;
-}
 
 static GF_Err GAPI_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 {
@@ -755,25 +713,62 @@ static GF_Err GAPI_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		if (gctx->hWnd) ShowWindow(gctx->hWnd, evt->show.show_type ? SW_SHOW : SW_HIDE);
 		break;
 	case GF_EVT_SIZE:
-		//SetWindowPos(gctx->hWnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE);
-	/*we should actually never see a windowsize event*/
 	case GF_EVT_VIDEO_SETUP:
-		if (gctx->gx.ffFormat & kfLandscape) {
-			if ((gctx->disp_w < gctx->screen_h) && (gctx->disp_h < gctx->screen_w)) {
-				gctx->disp_w = evt->size.width;
-				gctx->disp_h = evt->size.height;
-			} else {
-				return GF_BAD_PARAM;
-			}
-		} else {
-			if ((gctx->disp_w < gctx->screen_w) && (gctx->disp_h < gctx->screen_h)) {
-				gctx->disp_w = evt->size.width;
-				gctx->disp_h = evt->size.height;
-			} else {
-				return GF_BAD_PARAM;
-			}
-		}
-		break;
+#ifdef GPAC_USE_OGL_ES
+		if (gctx->is_3D) return GAPI_SetupOGL_ES(the_video_driver);
+#endif
+		return GAPI_InitSurface(dr, evt->size.width, evt->size.height);
+	}
+	return GF_OK;
+}
+
+
+static GF_Err GAPI_InitSurface(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoHeight)
+{
+	GAPICTX(dr);
+
+	if (!gctx || !VideoWidth || !VideoHeight) return GF_BAD_PARAM;
+
+	gf_mx_p(gctx->mx);
+
+	GAPI_ReleaseObjects(gctx);
+
+	gctx->bb_size = VideoWidth * VideoHeight * gctx->BPP;
+	gctx->bb_width = VideoWidth;
+	gctx->bb_height = VideoHeight;
+	gctx->bb_pitch = VideoWidth * gctx->BPP;
+
+	if (gctx->force_gx || gctx->fullscreen) {
+		gctx->backbuffer = (unsigned char *) malloc(sizeof(unsigned char) * gctx->bb_size);
+		gctx->gx_mode = 1;
+	} else {
+		HDC dc = GetDC(gctx->hWnd);
+		createPixmap(gctx, dc, 0);
+		::ReleaseDC(gctx->hWnd, dc);
+		gctx->gx_mode = 0;
+		RECT rc;
+		GetWindowRect(gctx->hWnd, &rc);
+		gctx->off_x = rc.left;
+		gctx->off_y = rc.top;
+	}
+	gctx->erase_dest = 1;
+
+
+	gf_mx_v(gctx->mx);
+	return GF_OK;
+}
+static GF_Err GAPI_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool do_lock)
+{
+	GAPICTX(dr);
+
+	if (do_lock) {
+		if (!vi) return GF_BAD_PARAM;
+		vi->width = gctx->bb_width;
+		vi->height = gctx->bb_height;
+		vi->pitch = gctx->bb_pitch;
+		vi->pixel_format = gctx->pixel_format;
+		vi->video_buffer = gctx->backbuffer;
+		vi->is_hardware_memory = 0;
 	}
 	return GF_OK;
 }
@@ -789,28 +784,22 @@ static void *NewGAPIVideoOutput()
 	priv = (GAPIPriv *) malloc(sizeof(GAPIPriv));
 	memset(priv, 0, sizeof(GAPIPriv));
 	priv->mx = gf_mx_new();
-	priv->surfaces = gf_list_new();
 	driv->opaque = priv;
+	priv->force_gx = 0;
 
 	/*alpha and keying to do*/
-	driv->bHasAlpha = 0;
-	driv->bHasKeying = 0;
-	driv->bHasYUV = 0;
+	driv->hw_caps = GF_VIDEO_HW_CAN_ROTATE;
+#ifdef GPAC_USE_OGL_ES
+	driv->hw_caps = GF_VIDEO_HW_HAS_OPENGL;
+#endif
 
-	driv->Blit = GAPI_Blit;
-	driv->Clear = GAPI_Clear;
-	driv->CreateSurface = GAPI_CreateSurface;
-	driv->DeleteSurface = GAPI_DeleteSurface;
-	driv->FlushVideo = GAPI_FlushVideo;
-	driv->GetPixelFormat = GAPI_GetPixelFormat;
-	driv->LockSurface = GAPI_LockSurface;
-	driv->IsSurfaceValid = GAPI_IsSurfaceValid;
-	driv->SetFullScreen = GAPI_SetFullScreen;
 	driv->Setup = GAPI_Setup;
 	driv->Shutdown = GAPI_Shutdown;
-	driv->UnlockSurface = GAPI_UnlockSurface;
-	driv->ResizeSurface	= GAPI_ResizeSurface;
+	driv->Flush = GAPI_Flush;
 	driv->ProcessEvent = GAPI_ProcessEvent;
+	driv->Blit = NULL;
+	driv->LockBackBuffer = GAPI_LockBackBuffer;
+	driv->SetFullScreen = GAPI_SetFullScreen;
 	return (void *)driv;
 }
 
@@ -820,7 +809,6 @@ static void DeleteVideoOutput(void *ifce)
 	GAPICTX(driv);
 	GAPI_Shutdown(driv);
 	gf_mx_del(gctx->mx);
-	gf_list_del(gctx->surfaces);
 	free(gctx);
 	free(driv);
 }

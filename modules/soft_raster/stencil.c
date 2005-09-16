@@ -24,8 +24,6 @@
 
 #include "rast_soft.h"
 
-#include <gpac/yuv.h>
-
 EVGStencil *evg_solid_brush();
 EVGStencil *evg_gf_sr_texture_brush();
 EVGStencil *evg_linear_gradient_brush();
@@ -721,7 +719,7 @@ GF_Err evg_stencil_set_gf_sr_texture_alpha(GF_STENCIL st, u8 alpha)
 /*internal*/
 void evg_set_texture_active(EVGStencil *st)
 {
-	unsigned char *y, *u, *v, *a;
+	GF_VideoSurface src, dst;
 	EVG_Texture *_this = (EVG_Texture *)st;
 	if (_this->is_converted) return;
 
@@ -729,26 +727,31 @@ void evg_set_texture_active(EVGStencil *st)
 
 	if (_this->orig_format == GF_PIXEL_YV12) {
 		_this->Bpp = 3;
+		_this->pixel_format = GF_PIXEL_RGB_24;
 	} else {
 		_this->Bpp = 4;
+		_this->pixel_format = GF_PIXEL_ARGB;
 	}
 	if (_this->Bpp * _this->width * _this->height > _this->conv_size) {
 		if (_this->conv_buf) free(_this->conv_buf);
 		_this->conv_size = _this->Bpp * _this->width * _this->height;
 		_this->conv_buf = (unsigned char *) malloc(sizeof(unsigned char)*_this->conv_size);
 	}
-	y = _this->orig_buf;
-	u = y + _this->orig_stride*_this->height;
-	v = y + 5 * _this->orig_stride*_this->height / 4;
 
-	if (_this->Bpp==4) {
-		a = y + 3 * _this->orig_stride*_this->height / 2;
-		gf_yuva_to_rgb_32(_this->conv_buf, 4*_this->width, y, u, v, a, _this->orig_stride, _this->orig_stride/2, _this->width, _this->height);
-		_this->pixel_format = GF_PIXEL_ARGB;
-	} else {
-		gf_yuv_to_rgb_24(_this->conv_buf, 3*_this->width, y, u, v, _this->orig_stride, _this->orig_stride/2, _this->width, _this->height);
-		_this->pixel_format = GF_PIXEL_BGR_24;
-	}
+	src.height = _this->height;
+	src.width = _this->width;
+	src.pitch = _this->orig_stride;
+	src.pixel_format = _this->orig_format;
+	src.video_buffer = _this->orig_buf;
+
+	dst.width = _this->width;
+	dst.height = _this->height;
+	dst.pitch = _this->Bpp * _this->width;
+	dst.pixel_format = _this->pixel_format;
+	dst.video_buffer = _this->conv_buf;
+
+	gf_stretch_bits(&dst, &src, NULL, NULL, 0, 0xFF, 0, NULL, NULL);
+
 	_this->is_converted = 1;
 	_this->pixels = (char *) _this->conv_buf;
 	_this->stride = _this->Bpp * _this->width;

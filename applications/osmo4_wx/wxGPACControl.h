@@ -102,7 +102,7 @@ private:
 	wxComboBox *m_wire, *m_normals;
 	/*video*/
 	wxComboBox *m_video;
-	wxCheckBox *m_switchres;
+	wxCheckBox *m_switchres, *m_usehwmem;
 	/*audio*/
 	wxSpinCtrl *m_nbbuf, *m_buflen;
 	wxComboBox *m_audio;

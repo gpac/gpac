@@ -2487,8 +2487,10 @@ GF_Err gf_import_h263(GF_MediaImporter *import)
 	}
 	trackID = 0;
 	e = GF_OK;
-	if (import->esd) trackID = import->esd->ESID;
-
+	if (import->esd) {
+		trackID = import->esd->ESID;
+		if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig*) gf_odf_desc_new(GF_ODF_SLC_TAG);
+	}
 	track = gf_isom_new_track(import->dest, trackID, GF_ISOM_MEDIA_VISUAL, timescale);
 	if (!track) {
 		e = gf_isom_last_error(import->dest);

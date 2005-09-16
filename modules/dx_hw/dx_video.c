@@ -55,13 +55,10 @@ void DestroyObjects(DDContext *dd)
 {
 	RestoreWindow(dd);
 
-	/*remove all surfaces*/
-	while (gf_list_count(dd->surfaces)) {
-		DDSurface *pS = gf_list_get(dd->surfaces, 0);
-		gf_list_rem(dd->surfaces, 0);
-		SAFE_DD_RELEASE(pS->pSurface);
-		free(pS);
-	}
+	SAFE_DD_RELEASE(dd->rgb_pool.pSurface);
+	memset(&dd->rgb_pool, 0, sizeof(DDSurface));
+	SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
+	memset(&dd->yuv_pool, 0, sizeof(DDSurface));
 
 	SAFE_DD_RELEASE(dd->pPrimary);
 	SAFE_DD_RELEASE(dd->pBack);
@@ -69,6 +66,18 @@ void DestroyObjects(DDContext *dd)
 	dd->ddraw_init = 0;
 
 	/*delete openGL context*/
+#ifdef GPAC_USE_OGL_ES
+	if (dd->eglctx) eglDestroyContext(dd->egldpy, dd->eglctx);
+	dd->eglctx = NULL;
+	if (dd->surface) eglDestroySurface(dd->egldpy, dd->surface);
+	dd->surface = NULL;
+	if (dd->gl_HDC) {
+		if (dd->egldpy) eglTerminate(dd->egldpy);
+		ReleaseDC(dd->cur_hwnd, (HDC) dd->gl_HDC);
+		dd->gl_HDC = 0L;
+		dd->egldpy = NULL;
+	}
+#else
 	if (dd->gl_HRC) {
 		wglMakeCurrent(dd->gl_HDC, NULL);
 		wglDeleteContext(dd->gl_HRC);
@@ -78,14 +87,50 @@ void DestroyObjects(DDContext *dd)
 		ReleaseDC(dd->cur_hwnd, dd->gl_HDC);
 		dd->gl_HDC = NULL;
 	}
+#endif
 }
 
 GF_Err DD_SetupOpenGL(GF_VideoOutput *dr) 
 {
-    PIXELFORMATDESCRIPTOR pfd; 
 	GF_Event evt;
-    s32 pixelformat; 
 	DDCONTEXT
+
+#ifdef GPAC_USE_OGL_ES
+	EGLint major, minor;
+	EGLint n;
+	EGLConfig configs[1];
+	static int egl_atts[] = {EGL_RED_SIZE, 5, EGL_GREEN_SIZE, 5, EGL_BLUE_SIZE, 5, 
+				/*alpha for compositeTexture*/
+				EGL_ALPHA_SIZE,     1,
+                EGL_DEPTH_SIZE,     16,
+                EGL_STENCIL_SIZE,   EGL_DONT_CARE,
+                EGL_NONE};
+
+	/*already setup*/
+	DestroyObjects(dd);
+	dd->gl_HDC = (NativeDisplayType) GetDC(dd->cur_hwnd);
+	dd->egldpy = eglGetDisplay(/*dd->gl_HDC*/ EGL_DEFAULT_DISPLAY);
+	if (!eglInitialize(dd->egldpy, &major, &minor)) return GF_IO_ERR;
+	if (!eglChooseConfig(dd->egldpy, egl_atts, configs, 1, &n)) return GF_IO_ERR;
+	dd->eglconfig = configs[0];
+	dd->surface = eglCreateWindowSurface(dd->egldpy, dd->eglconfig, dd->cur_hwnd, 0);
+	if (!dd->surface) return GF_IO_ERR; 
+	dd->eglctx = eglCreateContext(dd->egldpy, dd->eglconfig, NULL, NULL);
+	if (!dd->eglctx) {
+		eglDestroySurface(dd->egldpy, dd->surface);
+		dd->surface = 0L;
+		return GF_IO_ERR; 
+	}
+    if (!eglMakeCurrent(dd->egldpy, dd->surface, dd->surface, dd->eglctx)) {
+		eglDestroyContext(dd->egldpy, dd->eglctx);
+		dd->eglctx = 0L;
+		eglDestroySurface(dd->egldpy, dd->surface);
+		dd->surface = 0L;
+		return GF_IO_ERR;
+	}
+#else
+    PIXELFORMATDESCRIPTOR pfd; 
+    s32 pixelformat; 
 
 	/*already setup*/
 	if (dd->gl_HRC) return GF_OK;
@@ -100,12 +145,15 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
     pfd.dwLayerMask = PFD_MAIN_PLANE;
     pfd.iPixelType = PFD_TYPE_RGBA;
     pfd.cColorBits = pfd.cDepthBits = 16;
+	/*we need alpha support for composite textures...*/
+	pfd.cAlphaBits = 8;
     if ( (pixelformat = ChoosePixelFormat(dd->gl_HDC, &pfd)) == FALSE ) return GF_IO_ERR; 
     if (SetPixelFormat(dd->gl_HDC, pixelformat, &pfd) == FALSE) 
 		return GF_IO_ERR; 
 	dd->gl_HRC = wglCreateContext(dd->gl_HDC);
 	if (!dd->gl_HRC) return GF_IO_ERR;
 	if (!wglMakeCurrent(dd->gl_HDC, dd->gl_HRC)) return GF_IO_ERR;
+#endif
 	evt.type = GF_EVT_VIDEO_SETUP;
 	dr->on_event(dr->evt_cbk_hdl, &evt);	
 	return GF_OK;
@@ -228,7 +276,7 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 
 
 
-static GF_Err DD_FlushVideo(GF_VideoOutput *dr, GF_Window *dest)
+static GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 {
 	RECT rc;
 	HRESULT hr;
@@ -236,7 +284,11 @@ static GF_Err DD_FlushVideo(GF_VideoOutput *dr, GF_Window *dest)
 
 	if (!dd) return GF_BAD_PARAM;
 	if (dd->is_3D_out) {
+#ifdef GPAC_USE_OGL_ES
+		if (dd->surface) eglSwapBuffers(dd->egldpy, dd->surface);
+#else
 		SwapBuffers(dd->gl_HDC);
+#endif
 		return GF_OK;
 	}
 	if (!dd->ddraw_init) return GF_BAD_PARAM;
@@ -329,14 +381,16 @@ static void *NewDXVideoOutput()
 
 	pCtx = malloc(sizeof(DDContext));
 	memset(pCtx, 0, sizeof(DDContext));
-	pCtx->surfaces = gf_list_new();
 	driv->opaque = pCtx;
-	driv->FlushVideo = DD_FlushVideo;
-	driv->SetFullScreen = DD_SetFullScreen;
+	driv->Flush = DD_Flush;
 	driv->Setup  = DD_Setup;
 	driv->Shutdown = DD_Shutdown;
+	driv->SetFullScreen = DD_SetFullScreen;
 	driv->ProcessEvent = DD_ProcessEvent;
-	driv->bHas3DSupport = 1;
+
+    driv->max_screen_width = GetSystemMetrics(SM_CXSCREEN);
+    driv->max_screen_height = GetSystemMetrics(SM_CYSCREEN);
+	driv->hw_caps = GF_VIDEO_HW_HAS_OPENGL;
 
 	DD_SetupDDraw(driv);
 
@@ -347,8 +401,6 @@ static void DeleteVideoOutput(void *ifce)
 {
 	GF_VideoOutput *driv = (GF_VideoOutput *) ifce;
 	DDContext *dd = (DDContext *)driv->opaque;
-
-	gf_list_del(dd->surfaces);
 	free(dd);
 	free(driv);
 }

@@ -40,6 +40,8 @@ extern "C" {
 
 /*include event system*/
 #include <gpac/user.h>
+/*include framebuffer definition*/
+#include <gpac/color.h>
 
 /*
 		Video hardware output module
@@ -51,19 +53,30 @@ typedef struct
 	Bool double_buffered;
 } GF_GLConfig;
 
+enum
+{
+	/*HW supports YUV->backbuffer blitting*/
+	GF_VIDEO_HW_HAS_YUV = (1<<1),
+	/*HW supports keying*/
+	GF_VIDEO_HW_HAS_COLOR_KEY = (1<<2),
+	/*HW supports OpenGL rendering. Whether this is OpenGL or OpenGL-ES depends on compilation settings and cannot be 
+	changed at runtime*/
+	GF_VIDEO_HW_HAS_OPENGL = (1<<4),
+	/*HW supports 90 degres rotation of display (Mobile Phones & PDAs)*/
+	GF_VIDEO_HW_CAN_ROTATE = (1<<5),
+};
+
 /*interface name and version for video output*/
-#define GF_VIDEO_OUTPUT_INTERFACE	GF_FOUR_CHAR_INT('G','V','O',0x02) 
+#define GF_VIDEO_OUTPUT_INTERFACE	GF_FOUR_CHAR_INT('G','V','O',0x03) 
 
 /*
 			video output interface
 
 	the video output may run in 2 modes: 2D and 3D.
 
-	** the 2D video output works by creating surfaces on the video mem board - the app refers to the surfaces 
-	by their IDs, and access them through the GF_VideoSurface handler. 
-	Surface index 0 is reserved for the main video memory (if double (or n) buffering is performed by the driver 
-	the surface 0 is the backbuffer (or current flip buffer) )
-	Overlay surfaces are not supported yet due to lack of time and also no profile for simple AV in MPEG4
+	** the 2D video output works by accessing a backbuffer surface on the video mem board - 
+	the app accesses to the surface through the GF_VideoSurface handler. 
+	The module may support HW blitting of RGB or YUV data to backbuffer.
 
 	** the 3D video output only handles window management and openGL contexts setup.
 	The context shall be setup in Resize and SetFullScreen calls which are always happening in the main 
@@ -86,20 +99,23 @@ typedef struct _video_out
 	/*shutdown system */
 	void (*Shutdown) (struct _video_out *vout);
 
-	/*set full screen - screen resolution shall be reported in screen_width and screen_height when turning 
-	on FS, otherwise retored window size shall be reported - the screen mode to select shall be the smallest 
-	one bigger than current output size - the driver may destroy all extra surfaces created when 
-	switching to fullscreen*/
-	GF_Err (*SetFullScreen) (struct _video_out *vout, Bool bFullScreenOn, u32 *screen_width, u32 *screen_height);
-
 	/*flush video: the video shall be presented to screen 
 	the destination area to update is in client display coordinates (0,0) being top-left, (w,h) bottom-right
-	it shall be ugnored when using 3D output (buffer flip only)*/
-	GF_Err (*FlushVideo) (struct _video_out *vout, GF_Window *dest);
+	Note: dest is always NULL in 3D mode (buffer flip only)*/
+	GF_Err (*Flush) (struct _video_out *vout, GF_Window *dest);
+
+	GF_Err (*SetFullScreen) (struct _video_out *vout, Bool fs_on, u32 *new_disp_width, u32 *new_disp_height);
 
 	/*window events sent to output:
-	GF_EVT_SET_CURSOR, GF_EVT_SET_STYLE, GF_EVT_SET_CAPTION, GF_EVT_SHOWHIDE, GF_EVT_SIZE for inital window resize
-	and GF_EVT_VIDEO_SETUP for all HW related setup
+	GF_EVT_SET_CURSOR: sets cursor
+	GF_EVT_SET_CAPTION: sets caption
+	GF_EVT_SHOWHIDE: show/hide output window for self-managed output
+	GF_EVT_SIZE:  inital window resize upon scene load
+	GF_EVT_VIDEO_SETUP: all HW related setup:
+		* for 2D output, this means resizing the backbuffer if needed (depending on HW constraints)
+		* for 3D output, this means re-setup of OpenGL context (depending on HW constraints). Depending on windowing systems 
+			and implementations, it could be possible to resize a window without destroying the GL context.
+	
 	This function is also called with a NULL event at the begining of each rendering cycle, in order to allow event 
 	handling for modules uncapable of safe multithreading (eg X11)
 	*/
@@ -109,57 +125,35 @@ typedef struct _video_out
 	void *evt_cbk_hdl;
 	void (*on_event)(void *hdl, GF_Event *event);
 
-	/*driver private*/
-	void *opaque;
-
-	Bool bHas3DSupport;
 	/*
 			All the following are 2D specific and are NEVER called in 3D mode
 	*/
-	/*clears screen with specified color*/
-	GF_Err (*Clear) (struct _video_out *vout, u32 color);
-	/*creates a offscreen video surface and setup surface id - pixel format MUST be respected except for YUV
-	formats, where the hardware is free to choose the fastest format for blit*/
-	GF_Err (*CreateSurface) (struct _video_out *vout, u32 width, u32 height, u32 pixel_format, u32 *surfaceID);
-	/*deletes video surface by id*/
-	GF_Err (*DeleteSurface) (struct _video_out *vout, u32 surface_id);
-	/*lock video mem*/
-	GF_Err (*LockSurface)(struct _video_out *vout, u32 surface_id, GF_VideoSurface *video_info);
-	/*unlock video mem*/
-	GF_Err (*UnlockSurface)(struct _video_out *vout, u32 surface_id);
-	/*checks if the surface is valid - this is used to discard surfaces when changing video mode (fullscreen)*/
-	Bool (*IsSurfaceValid) (struct _video_out *vout, u32 surface_id);
-	/*resize surface - this may also be called on surfaceID=0 (eg, backbuffer)*/
-	GF_Err (*ResizeSurface) (struct _video_out *vout, u32 surface_id, u32 width, u32 height);
+	/*locks backbuffer video memory
+	do_lock: specifies whether backbuffer shall be locked or released
+	*/
+	GF_Err (*LockBackBuffer)(struct _video_out *vout, GF_VideoSurface *video_info, Bool do_lock);
 
-	/*lock video mem through OS context (HDC, ...)*/
-	void *(*GetContext)(struct _video_out *vout, u32 surface_id);
-	/*unlock video mem through OS context (HDC, ...)*/
-	void (*ReleaseContext)(struct _video_out *vout, u32 surface_id, void *context);
+	/*lock video mem through OS context (only HDC for Win32 at the moment)
+	do_lock: specifies whether OS context shall be locked or released*/
+	void *(*LockOSContext)(struct _video_out *vout, Bool do_lock);
 
-	/*blit operations - windows are provided in surface coordinate*/
+	/*blit surface src to backbuffer - if a window is not specified, the full surface is used
+	the blitter MUST support stretching and RGB24 sources. Support for YUV is indicated in the hw caps
+	of the driver. If none is supported, just set this function to NULL and let gpac performs software blitting.
+	Whenever this function fails, the blit will be performed in software mode*/
+	GF_Err (*Blit)(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 *src_rgb_key);
 
-	/*blit surface src to surface dest - if a window is not specified, the full surface is used _ can be NULL*/
-	GF_Err (*Blit)(struct _video_out *vout, u32 src_id, u32 dst_id, GF_Window *src, GF_Window *dst);
-	/*blit surface src to surface dest with keying for src surface - if a window is not specified, the full surface is used - can be NULL*/
-	GF_Err (*BlitKey)(struct _video_out *vout, u32 color_key, u32 src_id, u32 dst_id, GF_Window *src, GF_Window *dst);
-	/*blit surface src to surface dest with alpha - if a window is not specified, the full surface is used - can be NULL*/
-	GF_Err (*BlitAlpha)(struct _video_out *vout, u32 alpha, u32 src_id, u32 dst_id, GF_Window *src, GF_Window *dst);
+	/*set of above HW flags*/
+	u32 hw_caps;
+	/*main pixel format of video board (informative only)*/
+	u32 pixel_format;
+	/*yuv pixel format if HW YUV blitting is supported (informative only) */
+	u32 yuv_pixel_format;
+	/*maximum resolution of the screen*/
+	u32 max_screen_width, max_screen_height;
 
-	/*returns pixel format of the surface - if surfaceID is 0, the main video memory format is requested*/
-	GF_Err (*GetPixelFormat) (struct _video_out *vout, u32 surfaceID, u32 *pixel_format);
-
-	/*set to true if hardware supports color keying*/
-	Bool bHasKeying;
-	/*set to true if hardware supports color keying with stretching*/
-	Bool bHasKeyingStretch;
-	/*set to true if hardware supports texture blending*/
-	Bool bHasAlpha;
-	/*set to true if hardware supports texture blending with stretching*/
-	Bool bHasAlphaStretch;
-	/*set to true if YV12 input can be blited - this may be changed dynamically whenever a YUV surface is 
-	resized or card main format changes*/
-	Bool bHasYUV;
+	/*driver private*/
+	void *opaque;
 } GF_VideoOutput;
 
 

@@ -1,0 +1,281 @@
+//Microsoft eMbedded Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "newres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON                ICON    DISCARDABLE     "Osmo4.ico"
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""newres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Data
+//
+
+IDM_MAIN_MENU SHMENUBAR DISCARDABLE 
+BEGIN
+    IDM_MAIN_MENU, 2,
+    I_IMAGENONE, ID_MENU_FILE, TBSTATE_ENABLED, 
+    TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_FILE, 0, 0,
+    I_IMAGENONE, IDM_MENU_VIEW, TBSTATE_ENABLED, 
+    TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_VIEW, 0, 1,
+END
+
+IDR_ABOUT_MENU SHMENUBAR DISCARDABLE 
+BEGIN
+    IDR_ABOUT_MENU, 1,
+    I_IMAGENONE, IDM_ABOUT_OK, TBSTATE_ENABLED, TBSTYLE_AUTOSIZE, IDS_CAP_OK, 
+    0, NOMENU,
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menubar
+//
+
+IDM_MAIN_MENU MENU DISCARDABLE 
+BEGIN
+    POPUP "File"
+    BEGIN
+        MENUITEM "Open",                        IDM_FILE_OPEN
+        MENUITEM "Open URL",                    IDM_FILE_OPEN_URL
+        POPUP "Recent"
+        BEGIN
+            MENUITEM "FILE 1",                      IDM_OPEN_FILE1
+            MENUITEM "FILE 2",                      IDM_OPEN_FILE2
+            MENUITEM "FILE 3",                      IDM_OPEN_FILE3
+            MENUITEM "FILE 4",                      IDM_OPEN_FILE4
+            MENUITEM "FILE 5",                      IDM_OPEN_FILE5
+            MENUITEM "FILE 6",                      IDM_OPEN_FILE6
+            MENUITEM "FILE 7",                      IDM_OPEN_FILE7
+            MENUITEM "FILE 8 ",                     IDM_OPEN_FILE8
+            MENUITEM "FILE 9",                      IDM_OPEN_FILE9
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "Exit",                        IDM_ITEM_QUIT
+    END
+    POPUP "View"
+    BEGIN
+        MENUITEM "Fullscreen",                  IDM_VIEW_FS
+        MENUITEM "Status",                      IDM_VIEW_STATUS
+        MENUITEM SEPARATOR
+        MENUITEM "About",                       IDM_VIEW_ABOUT
+    END
+END
+
+IDR_ABOUT_MENU MENU DISCARDABLE 
+BEGIN
+    MENUITEM "OK",                          IDM_ABOUT_OK
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_CLASSNAME           "Osmophone"
+    IDS_WINDOWNAME          "Osmo4"
+    IDS_APPNAME             "Osmophone.exe"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_CAP_QUIT            "Exit"
+    IDS_CAP_FILE            "File"
+    IDS_CAP_EXIT            "View"
+    IDS_CAP_VIEW            "View"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_CAP_OK              "OK"
+END
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// French (France) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_FRA)
+#ifdef _WIN32
+LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Data
+//
+
+IDR_MENU_OPEN SHMENUBAR DISCARDABLE 
+BEGIN
+    IDR_MENU_OPEN, 2,
+    I_IMAGENONE, ID_SELECT, TBSTATE_ENABLED, 
+    TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_SELECT, 0, 0,
+    I_IMAGENONE, ID_VIEW, TBSTATE_ENABLED, 
+    TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_VIEW, 0, 1,
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menubar
+//
+
+IDR_MENU_OPEN MENU DISCARDABLE 
+BEGIN
+    POPUP "Select"
+    BEGIN
+        MENUITEM "Add To Playlist",             IDM_OF_PL_ADD
+        MENUITEM "Remove from Playlist",        IDM_OF_PL_REM
+    END
+    POPUP "View"
+    BEGIN
+        MENUITEM "All Unknown Files",           IDM_OF_VIEW_ALL
+        MENUITEM SEPARATOR
+        MENUITEM "Playlist",                    IDM_OF_PLAYLIST
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_APPABOUT, DIALOG
+    BEGIN
+        LEFTMARGIN, 1
+        RIGHTMARGIN, 93
+        BOTTOMMARGIN, 71
+    END
+
+    IDD_FILEDIALOG, DIALOG
+    BEGIN
+        RIGHTMARGIN, 103
+        BOTTOMMARGIN, 85
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_APPABOUT DIALOG DISCARDABLE  0, 0, 94, 74
+STYLE DS_SETFOREGROUND | WS_POPUP | WS_CAPTION
+CAPTION "About Osmophone"
+FONT 8, "System"
+BEGIN
+    ICON            IDI_ICON,IDC_STATIC,6,4,21,20
+    LTEXT           "Osmo4/GPAC\nversion 0.4.1",IDC_STATIC,33,6,46,17
+    CTEXT           "Copyright (c) 2005 ENST\nAll Rights Reserved\n\nLicensed under LGPL",
+                    IDC_STATIC,2,28,87,39
+END
+
+IDD_FILEDIALOG DIALOG DISCARDABLE  0, 0, 104, 86
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Select File"
+FONT 8, "System"
+BEGIN
+    EDITTEXT        IDC_DIRNAME,1,3,100,12,ES_AUTOHSCROLL | ES_READONLY
+    LISTBOX         IDC_FILELIST,1,18,102,65,LBS_NOINTEGRALHEIGHT | 
+                    WS_VSCROLL | WS_TABSTOP
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_CAP_VIEW            "View"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_CAP_OK              "OK"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_CAP_SELECT          "Select"
+END
+
+#endif    // French (France) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

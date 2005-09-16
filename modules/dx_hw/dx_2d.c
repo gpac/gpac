@@ -28,30 +28,24 @@
 #define DDCONTEXT	DDContext *dd = (DDContext *)dr->opaque;
 #define DDBACK		DDSurface *pBack = (DDSurface *) gf_list_get(dd->surfaces, 0);
 
-
-
-static GF_Err DD_Clear(GF_VideoOutput *dr, u32 color);
-static void DD_InitYUV(GF_VideoOutput *dr);
-
-static Bool surface_valid(DDContext *dd, DDSurface *ds, Bool remove)
+static GF_Err DD_Clear(GF_VideoOutput *dr)
 {
-	s32 i = gf_list_find(dd->surfaces, ds);
-	if (i<0) return 0;
-	if (remove) gf_list_rem(dd->surfaces, (u32) i);
-	return 1;
-}
-
-
-static GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height)
-{
+	HRESULT hr = S_OK;
+	DDBLTFX ddbltfx;
 	DDCONTEXT;
 
-	if (dd->is_3D_out) return GF_BAD_PARAM;
+	if (!dd->pPrimary) return GF_OK;
 
-	if (!dd->ddraw_init) 
-		return InitDirectDraw(dr, width, height);
-	else
-		return CreateBackBuffer(dr, width, height);
+	ZeroMemory( &ddbltfx, sizeof(ddbltfx) );
+	ddbltfx.dwSize = sizeof(ddbltfx);
+	ddbltfx.dwFillColor = 0;
+
+#ifdef USE_DX_3
+	hr = IDirectDrawSurface_Blt(dd->pPrimary, NULL, NULL, NULL, DDBLT_COLORFILL, &ddbltfx );
+#else
+	hr = IDirectDrawSurface7_Blt(dd->pPrimary, NULL, NULL, NULL, DDBLT_COLORFILL, &ddbltfx );
+#endif
+	return FAILED(hr) ? GF_IO_ERR : GF_OK;
 }
 
 
@@ -90,6 +84,7 @@ static GF_Err DD_ClearBackBuffer(GF_VideoOutput *dr, u32 color)
 GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height)
 {
 	HRESULT hr;
+	const char *opt; 
 #ifdef USE_DX_3
     DDSURFACEDESC ddsd;
 #else
@@ -98,6 +93,9 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height)
 
 	DDCONTEXT;
 
+
+	if (dd->pBack && !dd->fullscreen && (dd->width == Width) && (dd->height == Height) ) return GF_OK;
+
 	if (dd->pBack) 	SAFE_DD_RELEASE(dd->pBack);
 
 	/*create backbuffer*/
@@ -105,6 +103,15 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height)
 	ddsd.dwSize = sizeof(ddsd);
 	ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;    
 	ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
+
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseHardwareMemory");
+	if (opt && !strcmp(opt, "yes")) {
+		dd->systems_memory = 0;
+	} else {
+		ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+		dd->systems_memory = 1;
+	}
+
 	ddsd.dwWidth = Width;
 	ddsd.dwHeight = Height;
 
@@ -124,11 +131,10 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height)
 		dd->fs_store_width = Width;
 		dd->fs_store_height = Height;
 	}
-	DD_Clear(dr, 0xFF000000);
+	DD_Clear(dr);
 	DD_ClearBackBuffer(dr, 0xFF000000);
 
 	if (!dd->yuv_init) DD_InitYUV(dr);
-	dr->bHasYUV = 1;
 	return GF_OK;
 }
 
@@ -257,225 +263,112 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 	return CreateBackBuffer(dr, Width, Height);
 }
 
-static GF_Err DD_LockSurface(GF_VideoOutput *dr, u32 surface_id, GF_VideoSurface *vi)
+static GF_Err DD_LockSurface(DDContext *dd, GF_VideoSurface *vi, void *surface)
 {
     HRESULT hr;
-	DDSurface *ds;
 #ifdef USE_DX_3
-	LPDIRECTDRAWSURFACE surf;
 	DDSURFACEDESC desc;
 #else
-	LPDIRECTDRAWSURFACE7 surf;
 	DDSURFACEDESC2 desc;
 #endif
-	DDCONTEXT;
 	
-	if (!dd || !vi) return GF_BAD_PARAM;
-
-	if (surface_id) {
-		ds = (DDSurface *) surface_id;
-		if (!surface_valid(dd, ds, 0)) return GF_BAD_PARAM;
-		surf = ds->pSurface;
-		vi->pixel_format = ds->format;
-		vi->os_handle = NULL;
-	} else {
-		surf = dd->pBack;
-		vi->pixel_format = dd->pixelFormat;
-		vi->os_handle = dd->cur_hwnd;
-	}
-
-	if (!surf) return GF_BAD_PARAM;
+	if (!dd || !vi || !surface) return GF_BAD_PARAM;
 
 #ifdef USE_DX_3
 	ZeroMemory(&desc, sizeof(DDSURFACEDESC));
 	desc.dwSize = sizeof(DDSURFACEDESC);
-	if (FAILED(hr = IDirectDrawSurface_Lock(surf, NULL, &desc, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WRITEONLY | DDLOCK_WAIT, NULL))) {
+	if (FAILED(hr = IDirectDrawSurface_Lock( (LPDIRECTDRAWSURFACE)surface, NULL, &desc, DDLOCK_SURFACEMEMORYPTR | /*DDLOCK_WRITEONLY | */ DDLOCK_WAIT, NULL))) {
 		return GF_IO_ERR;
 	}	
 #else
 	ZeroMemory(&desc, sizeof(DDSURFACEDESC2));
 	desc.dwSize = sizeof(DDSURFACEDESC2);
-	if (FAILED(hr = IDirectDrawSurface7_Lock(surf, NULL, &desc, DDLOCK_SURFACEMEMORYPTR | DDLOCK_WRITEONLY | DDLOCK_WAIT, NULL))) {
+	if (FAILED(hr = IDirectDrawSurface7_Lock( (LPDIRECTDRAWSURFACE7) surface, NULL, &desc, DDLOCK_SURFACEMEMORYPTR | /*DDLOCK_WRITEONLY | */ DDLOCK_WAIT, NULL))) {
 		return GF_IO_ERR;
 	}	
 #endif
-
 	vi->video_buffer = desc.lpSurface;
 	vi->width = desc.dwWidth;
 	vi->height = desc.dwHeight;
 	vi->pitch = desc.lPitch;
+	vi->is_hardware_memory = !dd->systems_memory;
 	return GF_OK;
 }
 
-static GF_Err DD_UnlockSurface(GF_VideoOutput *dr, u32 surface_id)
+static GF_Err DD_UnlockSurface(DDContext *dd, void *surface)
 {
     HRESULT hr;
-	DDSurface *ds;
-#ifdef USE_DX_3
-	LPDIRECTDRAWSURFACE surf;
-#else
-	LPDIRECTDRAWSURFACE7 surf;
-#endif
-	DDCONTEXT;
-
 	if (!dd || !dd->ddraw_init) return GF_IO_ERR;
-
-	if (surface_id) {
-		ds = (DDSurface *) surface_id;
-		if (!surface_valid(dd, ds, 0)) return GF_BAD_PARAM;
-		surf = ds->pSurface;
-	} else {
-		surf = dd->pBack;
-	}
 #ifdef USE_DX_3
-	hr = IDirectDrawSurface_Unlock(surf, NULL);
+	hr = IDirectDrawSurface_Unlock( (LPDIRECTDRAWSURFACE)surface, NULL);
 #else
-	hr = IDirectDrawSurface7_Unlock(surf, NULL);
+	hr = IDirectDrawSurface7_Unlock((LPDIRECTDRAWSURFACE7)surface, NULL);
 #endif
 	return FAILED(hr) ? GF_IO_ERR : GF_OK;
 }
 
-static GF_Err DD_Clear(GF_VideoOutput *dr, u32 color)
+
+static GF_Err DD_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool do_lock)
 {
-	HRESULT hr = S_OK;
-	DDBLTFX ddbltfx;
 	DDCONTEXT;
 
-	if (!dd->pPrimary) return GF_OK;
-
-	ZeroMemory( &ddbltfx, sizeof(ddbltfx) );
-	ddbltfx.dwSize = sizeof(ddbltfx);
-	switch (dd->pixelFormat) {
-	case GF_PIXEL_RGB_565:
-		ddbltfx.dwFillColor = GF_COL_TO_565(color);
-		break;
-	case GF_PIXEL_RGB_555:
-		ddbltfx.dwFillColor = GF_COL_TO_555(color);
-		break;
-	default:
-		ddbltfx.dwFillColor = color;
-		break;
+	if (do_lock) {
+		vi->pixel_format = dd->pixelFormat;
+		return DD_LockSurface(dd, vi, dd->pBack);
 	}
-
-#ifdef USE_DX_3
-	hr = IDirectDrawSurface_Blt(dd->pPrimary, NULL, NULL, NULL, DDBLT_COLORFILL, &ddbltfx );
-#else
-	hr = IDirectDrawSurface7_Blt(dd->pPrimary, NULL, NULL, NULL, DDBLT_COLORFILL, &ddbltfx );
-#endif
-	return FAILED(hr) ? GF_IO_ERR : GF_OK;
+	else return DD_UnlockSurface(dd, dd->pBack);
 }
 
-static void *DD_GetContext(GF_VideoOutput *dr, u32 surface_id)
+static void *LockOSContext(GF_VideoOutput *dr, Bool do_lock)
 {
-	DDSurface *ds;
-#ifdef USE_DX_3
-	LPDIRECTDRAWSURFACE surf;
-#else
-	LPDIRECTDRAWSURFACE7 surf;
-#endif
-	HDC hDC;
 	DDCONTEXT;
 
-	if (surface_id) {
-		ds = (DDSurface *) surface_id;
-		if (!surface_valid(dd, ds, 0)) return NULL;
-		surf = ds->pSurface;
-	} else {
-		surf = dd->pBack;
+	if (do_lock) {
+		if (!dd->lock_hdc && ! IDirectDrawSurface_IsLost(dd->pBack)) {
+			if (FAILED(IDirectDrawSurface_GetDC(dd->pBack, &dd->lock_hdc)) ) 
+				dd->lock_hdc = NULL;
+		} 
+	} else if (dd->lock_hdc) {
+		IDirectDrawSurface_ReleaseDC(dd->pBack, dd->lock_hdc);
+		dd->lock_hdc = NULL;
 	}
-	if (! IDirectDrawSurface_IsLost(surf)) {
-		if (FAILED(IDirectDrawSurface_GetDC(surf, &hDC)) ) return NULL;
-		return hDC;
-	} 
-	return NULL;
-}
-
-static void DD_ReleaseContext(GF_VideoOutput *dr, u32 surface_id, void *context)
-{
-	DDSurface *ds;
-#ifdef USE_DX_3
-	LPDIRECTDRAWSURFACE surf;
-#else
-	LPDIRECTDRAWSURFACE7 surf;
-#endif
-	HDC hDC;
-	DDCONTEXT;
-
-	if (surface_id) {
-		ds = (DDSurface *) surface_id;
-		if (!surface_valid(dd, ds, 0)) return;
-		surf = ds->pSurface;
-	} else {
-		surf = dd->pBack;
-	}
-	hDC = (HDC) context;
-	IDirectDrawSurface_ReleaseDC(surf, hDC);
+	return (void *)dd->lock_hdc ;
 }
 
 
-static GF_Err DD_GetPixelFormat(GF_VideoOutput *dr, u32 surfaceID, u32 *pixel_format)
-{
-	DDSurface *ds;
-	DDCONTEXT;
-	if (!surfaceID) {
-		*pixel_format = dd->pixelFormat;
-		return GF_OK;
-	}
-	ds = (DDSurface *) surfaceID;
-	if (!surface_valid(dd, ds, 0)) return GF_BAD_PARAM;
-	*pixel_format = ds->format;
-	return GF_OK;
-
-}
-
-static GF_Err DD_Blit(GF_VideoOutput *dr, u32 src_id, u32 dst_id, GF_Window *src, GF_Window *dst)
+static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 *key)
 {
 	HRESULT hr;
-	u32 dst_w, dst_h, src_w, src_h;
-	DDSurface *ds;
-#ifdef USE_DX_3
-	LPDIRECTDRAWSURFACE s_src, s_dst;
-#else
-	LPDIRECTDRAWSURFACE7 s_src, s_dst;
-#endif
+	u32 dst_w, dst_h, src_w, src_h, flags;
 	RECT r_dst, r_src;
-	DDCONTEXT;
 
-	if (src_id==dst_id) return GF_BAD_PARAM;
-	if (src_id) {
-		ds = (DDSurface *) src_id;
-		if (!surface_valid(dd, ds, 0)) return GF_BAD_PARAM;
-		s_src = ds->pSurface;
-		src_w = src ? src->w : ds->width;
-		src_h = src ? src->h : ds->height;
-	} else {
-		src_w = src ? src->w : dd->width;
-		src_h = src ? src->h : dd->height;
-		s_src = dd->pBack;
-	}
-	if (dst_id) {
-		ds = (DDSurface *) dst_id;
-		if (!surface_valid(dd, ds, 0)) return GF_BAD_PARAM;
-		s_dst = ds->pSurface;
-		dst_w = dst ? dst->w : ds->width;
-		dst_h = dst ? dst->h : ds->height;
-	} else {
-		dst_w = dst ? dst->w : dd->width;
-		dst_h = dst ? dst->h : dd->height;
-		s_dst = dd->pBack;
-	}
+	src_w = src_wnd ? src_wnd->w : src->width;
+	src_h = src_wnd ? src_wnd->h : src->height;
+	dst_w = dst_wnd ? dst_wnd->w : dd->width;
+	dst_h = dst_wnd ? dst_wnd->h : dd->height;
 	
-	if (src != NULL) MAKERECT(r_src, src);
-	if (dst != NULL) MAKERECT(r_dst, dst);
+	if (src_wnd != NULL) MAKERECT(r_src, src_wnd);
+	if (dst_wnd != NULL) MAKERECT(r_dst, dst_wnd);
 
+	if (key) {
+		DDCOLORKEY ck;
+		ck.dwColorSpaceHighValue = ck.dwColorSpaceLowValue = *key;
+		hr = IDirectDrawSurface_SetColorKey(src->pSurface, DDCKEY_SRCBLT, &ck);
+		if (FAILED(hr)) return GF_IO_ERR;
+	}
 
 	if ((dst_w==src_w) && (dst_h==src_h)) {
-		hr = IDirectDrawSurface_BltFast(s_dst, dst ? r_dst.left : 0, dst ? r_dst.top : 0, s_src, src ? &r_src : NULL, DDBLTFAST_WAIT);
+		flags = DDBLTFAST_WAIT;
+		if (key) flags |= DDBLTFAST_SRCCOLORKEY;
+		hr = IDirectDrawSurface_BltFast(dd->pBack, dst_wnd ? r_dst.left : 0, dst_wnd ? r_dst.top : 0, src->pSurface, src_wnd ? &r_src : NULL, flags);
 	} else {
-		hr = IDirectDrawSurface_Blt(s_dst, dst ? &r_dst : NULL, s_src, src ? &r_src : NULL, DDBLT_WAIT, NULL);
+		flags = DDBLT_WAIT;
+		if (key) flags |= DDBLT_KEYSRC;
+		hr = IDirectDrawSurface_Blt(dd->pBack, dst_wnd ? &r_dst : NULL, src->pSurface, src_wnd ? &r_src : NULL, flags, NULL);
 	}
 	return FAILED(hr) ? GF_IO_ERR : GF_OK;
 }
+
 
 
 static Bool pixelformat_yuv(u32 pixel_format)
@@ -497,6 +390,7 @@ static Bool pixelformat_yuv(u32 pixel_format)
 		return 0;
 	}
 }
+
 
 static u32 get_win_4CC(u32 pixel_format)
 {
@@ -528,23 +422,28 @@ static u32 get_win_4CC(u32 pixel_format)
 	}
 }
 
-static GF_Err DD_CreateSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 pixel_format, u32 *surfaceID)
+static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 pixel_format)
 {
-	DDSurface *ds;
 #ifdef USE_DX_3
-	LPDIRECTDRAWSURFACE pSurf;
 	DDSURFACEDESC ddsd;
 #else
-	LPDIRECTDRAWSURFACE7 pSurf;
 	DDSURFACEDESC2 ddsd;
 #endif
 	HRESULT hr;
 	DDCONTEXT;
 
 	/*yuv format*/
-	*surfaceID = 0xFFFFFFFF;
 	if (pixelformat_yuv(pixel_format)) {
-		if (dd->yuv_format) {
+		if (dr->yuv_pixel_format) {
+			/*don't recreate a surface if not needed*/
+			if (dd->yuv_pool.pSurface && (dd->yuv_pool.width >= width) && (dd->yuv_pool.height >= height) ) return &dd->yuv_pool;
+
+			width = MAX(dd->yuv_pool.width, width);
+			height = MAX(dd->yuv_pool.height, height);
+
+			SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
+			memset(&dd->yuv_pool, 0, sizeof(DDSurface));
+
 			memset (&ddsd, 0, sizeof(ddsd));
 			ddsd.dwSize = sizeof(ddsd);
 			ddsd.ddpfPixelFormat.dwSize = sizeof(ddsd.ddpfPixelFormat);
@@ -553,32 +452,29 @@ static GF_Err DD_CreateSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 pi
 			ddsd.ddpfPixelFormat.dwFlags = DDPF_FOURCC;
 			ddsd.dwWidth = width;
 			ddsd.dwHeight = height;
-			ddsd.ddpfPixelFormat.dwFourCC = get_win_4CC(dd->yuv_format);
+			ddsd.ddpfPixelFormat.dwFourCC = get_win_4CC(dr->yuv_pixel_format);
 
-			/*if we fail to create the YUV assume the driver cannot work in YUV*/
-			dr->bHasYUV = 0;
 #ifdef USE_DX_3
-			if( FAILED( hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &pSurf, NULL ) ) )
-				return GF_IO_ERR;
+			if( FAILED( hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &dd->yuv_pool.pSurface, NULL ) ) )
+				return NULL;
 #else
-			if( FAILED( hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &pSurf, NULL ) ) )
-				return GF_IO_ERR;
+			if( FAILED( hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &dd->yuv_pool.pSurface, NULL ) ) )
+				return NULL;
 #endif
-			dr->bHasYUV = 1;
-			ds = malloc(sizeof(DDSurface));
-			ds->format = dd->yuv_format;
-			ds->width = width;
-			ds->height = height;
-			ds->pitch = 0;
-			ds->pSurface = pSurf;
-			ds->id = (u32) ds;
-			*surfaceID = ds->id;
-			gf_list_add(dd->surfaces, ds);
-			return GF_OK;
+			dd->yuv_pool.format = dr->yuv_pixel_format;
+			dd->yuv_pool.width = width;
+			dd->yuv_pool.height = height;
+			return &dd->yuv_pool;
 		}
 	}
 
-	/*rgb format - we have to use the main card format otherwise bliting to the main surface will fail...*/
+	/*don't recreate a surface if not needed*/
+	if ((dd->rgb_pool.width >= width) && (dd->rgb_pool.height >= height) ) return &dd->rgb_pool;
+	width = MAX(dd->rgb_pool.width, width);
+	height = MAX(dd->rgb_pool.height, height);
+	SAFE_DD_RELEASE(dd->rgb_pool.pSurface);
+	memset(&dd->rgb_pool, 0, sizeof(DDSurface));
+
 	memset (&ddsd, 0, sizeof(ddsd));
 	ddsd.dwSize = sizeof(ddsd);
 	ddsd.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
@@ -587,120 +483,61 @@ static GF_Err DD_CreateSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 pi
 	ddsd.dwHeight = height;
 
 #ifdef USE_DX_3
-	if( FAILED( hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &pSurf, NULL ) ) )
-		return GF_IO_ERR;
+	if( FAILED( hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &dd->rgb_pool.pSurface, NULL ) ) )
+		return NULL;
 #else
-	if( FAILED( hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &pSurf, NULL ) ) )
-		return GF_IO_ERR;
+	if( FAILED( hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &dd->rgb_pool.pSurface, NULL ) ) )
+		return NULL;
 #endif
 
-	ds = malloc(sizeof(DDSurface));
-	ds->width = width;
-	ds->height = height;
-	ds->pitch = 0;
-	ds->pSurface = pSurf;
-	ds->id = (u32) ds;
-	*surfaceID = ds->id;
-	gf_list_add(dd->surfaces, ds);
-
-	ds->format = dd->pixelFormat;
-	
-	return GF_OK;
+	dd->rgb_pool.width = width;
+	dd->rgb_pool.height = height;
+	dd->rgb_pool.format = dd->pixelFormat;
+	return &dd->rgb_pool;
 }
 
-
-/*deletes video surface by id*/
-static GF_Err DD_DeleteSurface(GF_VideoOutput *dr, u32 surface_id)
+static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 *key)
 {
-	DDSurface *ds;
-	DDCONTEXT;
-	if (!surface_id) return GF_BAD_PARAM;
-	ds = (DDSurface *) surface_id;
-	if (!surface_valid(dd, ds, 1)) return GF_BAD_PARAM;
-	SAFE_DD_RELEASE(ds->pSurface);
-	free(ds);
-	return GF_OK;
-}
-
-Bool DD_IsSurfaceValid(GF_VideoOutput *dr, u32 surface_id)
-{
-	DDSurface *ds;
-	DDCONTEXT;
-	/*main is always valid*/
-	if (!surface_id) return 1;
-	ds = (DDSurface *) surface_id;
-	return surface_valid(dd, ds, 0);
-}
-
-
-static GF_Err DD_ResizeSurface(GF_VideoOutput *dr, u32 surface_id, u32 width, u32 height)
-{
-	DDSurface *ds;
-#ifdef USE_DX_3
-	DDSURFACEDESC ddsd;
-#else
-	DDSURFACEDESC2 ddsd;
-#endif
-	HRESULT hr;
+	GF_VideoSurface temp_surf;
+	GF_Err e;
+	GF_Window src_wnd_2;
+	u32 w, h;
+	DDSurface *pool;
 	DDCONTEXT;
 
-	if (!surface_id) DD_SetBackBufferSize(dr, width, height);
-
-	ds = (DDSurface *) surface_id;
-	if (!surface_valid(dd, ds, 0)) return GF_BAD_PARAM;
-	if ( (ds->height>=height) && (ds->width>=width)) return GF_OK;
-	width = MAX(ds->width, width);
-	height = MAX(ds->height, height);
-
-	SAFE_DD_RELEASE(ds->pSurface);
-
-	/*yuv format*/
-	if (pixelformat_yuv(ds->format)) {
-		memset (&ddsd, 0, sizeof(ddsd));
-		ddsd.dwSize = sizeof(ddsd);
-		ddsd.ddpfPixelFormat.dwSize = sizeof(ddsd.ddpfPixelFormat);
-		ddsd.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;
-		ddsd.ddsCaps.dwCaps = DDSCAPS_OVERLAY | DDSCAPS_VIDEOMEMORY;
-		ddsd.ddpfPixelFormat.dwFlags = DDPF_FOURCC;
-		ddsd.dwWidth = width;
-		ddsd.dwHeight = height;
-		ddsd.ddpfPixelFormat.dwFourCC = get_win_4CC(dd->yuv_format);
-
-#ifdef USE_DX_3
-		if( FAILED( hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &ds->pSurface, NULL ) ) )
-			return GF_IO_ERR;
-#else
-		if( FAILED( hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &ds->pSurface, NULL ) ) )
-			return GF_IO_ERR;
-#endif
-
-		ds->width = width;
-		ds->height = height;
-		return GF_OK;
+	if (src_wnd) {
+		w = src_wnd->w;
+		h = src_wnd->h;
+	} else {
+		w = video_src->width;
+		h = video_src->height;
 	}
+	/*get RGB or YUV pool surface*/
+	pool = DD_GetSurface(dr, w, h, key ? dd->pixelFormat : video_src->pixel_format);
+	if (!pool) return GF_IO_ERR;
 
+	temp_surf.pixel_format = pool->format;
+	e = DD_LockSurface(dd, &temp_surf, pool->pSurface);
+	if (e) return e;
 
-	/*rgb format*/
-	memset (&ddsd, 0, sizeof(ddsd));
-	ddsd.dwSize = sizeof(ddsd);
-	ddsd.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
-	ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
-	ddsd.dwWidth = width;
-	ddsd.dwHeight = height;
+	/*copy pixels to pool*/
+	dx_copy_pixels(&temp_surf, video_src, src_wnd);
 
-#ifdef USE_DX_3
-	if( FAILED( hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &ds->pSurface , NULL ) ) )
-		return GF_IO_ERR;
-#else
-	if( FAILED( hr = IDirectDraw7_CreateSurface(dd->pDD, &ddsd, &ds->pSurface , NULL ) ) )
-		return GF_IO_ERR;
-#endif
+	e = DD_UnlockSurface(dd, pool->pSurface);
+	if (e) return e;
 
-	ds->width = width;
-	ds->height = height;
-
-	return GF_OK;
+	src_wnd_2.x = src_wnd_2.y = 0;
+	if (src_wnd) {
+		src_wnd_2.w = src_wnd->w;
+		src_wnd_2.h = src_wnd->h;
+	} else {
+		src_wnd_2.w = video_src->width;
+		src_wnd_2.h = video_src->height;
+	}
+	/*and blit surface*/
+	return DD_BlitSurface(dd, pool, &src_wnd_2, dst_wnd, key);
 }
+
 
 
 static GFINLINE u32 is_yuv_supported(u32 win_4cc)
@@ -731,10 +568,11 @@ static GFINLINE Bool is_yuv_planar(u32 format)
 }
 
 #define YUV_NUM_TEST	20
+
 /*gets fastest YUV format for YUV to RGB blit from YUV overlay (support is quite random on most cards)*/
-static void DD_InitYUV(GF_VideoOutput *dr)
+void DD_InitYUV(GF_VideoOutput *dr)
 {
-	u32 w, h, j, i, num_yuv, surfaceID;
+	u32 w, h, j, i, num_yuv;
 	DWORD numCodes;
 	DWORD formats[30];
 	DWORD *codes;
@@ -766,28 +604,33 @@ static void DD_InitYUV(GF_VideoOutput *dr)
 	}
 	free(codes);
 	/*too bad*/
-	if (!num_yuv) return;
+	if (!num_yuv) {
+		dr->hw_caps &= ~GF_VIDEO_HW_HAS_YUV;
+		dr->yuv_pixel_format = 0;
+		return;
+	}
 
 	gf_sys_clock_start();
 
-	surfaceID = 0;
 	for (i=0; i<num_yuv; i++) {
 		/*check planar first*/
 		if (!checkPacked && !is_yuv_planar(formats[i])) goto go_on;
 		/*then check packed */
 		if (checkPacked && is_yuv_planar(formats[i])) goto go_on;
 
-		if (surfaceID) DD_DeleteSurface(dr, surfaceID);
-		surfaceID = 0;
+		if (dd->yuv_pool.pSurface) {
+			SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
+			memset(&dd->yuv_pool, 0, sizeof(DDSurface));
+		}
 
-		dd->yuv_format = formats[i];
-		if (DD_CreateSurface(dr, w, h, dd->yuv_format, &surfaceID) != GF_OK)
+		dr->yuv_pixel_format = formats[i];
+		if (DD_GetSurface(dr, w, h, dr->yuv_pixel_format) == NULL)
 			goto rem_fmt;
 
 		now = gf_sys_clock();
 		/*perform blank blit*/
 		for (j=0; j<YUV_NUM_TEST; j++) {
-			if (DD_Blit(dr, surfaceID, 0, NULL, NULL) != GF_OK)
+			if (DD_BlitSurface(dd, &dd->yuv_pool, NULL, NULL, NULL) != GF_OK)
 				goto rem_fmt;
 		}
 		now = gf_sys_clock() - now;
@@ -795,12 +638,12 @@ static void DD_InitYUV(GF_VideoOutput *dr)
 		if (!checkPacked) {
 			if (now<min_planar) {
 				min_planar = now;
-				best_planar = dd->yuv_format;
+				best_planar = dr->yuv_pixel_format;
 			}
 		} else {
 			if (now<min_packed) {
 				min_packed = now;
-				best_packed = dd->yuv_format;
+				best_packed = dr->yuv_pixel_format;
 			}
 		}
 
@@ -820,40 +663,39 @@ rem_fmt:
 	}
 	gf_sys_clock_stop();
 
-	if (surfaceID) DD_DeleteSurface(dr, surfaceID);
-
+	if (dd->yuv_pool.pSurface) {
+		SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
+		memset(&dd->yuv_pool, 0, sizeof(DDSurface));
+	}
+	/*too bad*/
+	if (!num_yuv) {
+		dr->hw_caps &= ~GF_VIDEO_HW_HAS_YUV;
+		dr->yuv_pixel_format = 0;
+		return;
+	}
 
 	if (best_planar && (min_planar < min_packed )) {
-		dd->yuv_format = best_planar;
+		dr->yuv_pixel_format = best_planar;
 	} else {
-		dd->yuv_format = best_packed;
-	}
+		dr->yuv_pixel_format = best_packed;
+	} 
+	dr->hw_caps |= GF_VIDEO_HW_HAS_YUV;
+}
+
+GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height)
+{
+	DDCONTEXT;
+	if (dd->is_3D_out) return GF_BAD_PARAM;
+	if (!dd->ddraw_init) return InitDirectDraw(dr, width, height);
+	return CreateBackBuffer(dr, width, height);
 }
 
 
 void DD_SetupDDraw(GF_VideoOutput *driv)
 {
-	/*alpha and keying to do*/
-	driv->bHasAlpha = 0;
-	driv->bHasKeying = 0;
-	driv->bHasYUV = 1;
-
+	driv->hw_caps |= GF_VIDEO_HW_HAS_COLOR_KEY;
 	driv->Blit = DD_Blit;
-	driv->Clear = DD_Clear;
-	driv->CreateSurface = DD_CreateSurface;
-	driv->DeleteSurface = DD_DeleteSurface;
-	driv->GetContext = DD_GetContext;
-	driv->GetPixelFormat = DD_GetPixelFormat;
-	driv->LockSurface = DD_LockSurface;
-	driv->ReleaseContext = DD_ReleaseContext;
-	driv->IsSurfaceValid = DD_IsSurfaceValid;
-	driv->UnlockSurface = DD_UnlockSurface;
-	driv->ResizeSurface	= DD_ResizeSurface;
-
-	/*to do*/
-	/*
-	driv->BlitKey = DD_BltKey;
-	driv->BlitAlpha = DD_BlitAlpha;
-	*/
+	driv->LockBackBuffer = DD_LockBackBuffer;
+	driv->LockOSContext = LockOSContext;
 }
 

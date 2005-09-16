@@ -38,7 +38,7 @@ void R2D_MapCoordsToAR(GF_VisualRenderer *vr, s32 inX, s32 inY, Fixed *x, Fixed 
 
 
 	/*revert to BIFS like*/
-	inX = inX - sr->compositor->width/2;
+	inX = inX - sr->compositor->width /2;
 	inY = sr->compositor->height/2 - inY;
 	*x = INT2FIX(inX);
 	*y = INT2FIX(inY);
@@ -440,10 +440,7 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	Render2D *sr = (Render2D *)vr->user_priv;
 	GF_Node *top_node = gf_sg_get_root_node(sr->compositor->scene);
 
-	if (!sr->compositor->scene || !top_node) {
-		sr->compositor->video_out->Clear(sr->compositor->video_out, sr->back_color);
-		return;
-	}
+	if (!sr->compositor->scene || !top_node) return;
 
 	memcpy(&static_eff, sr->top_effect, sizeof(RenderEffect2D));
 
@@ -494,7 +491,7 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	rc.y = sr->out_y; 
 	rc.w = sr->out_width;	
 	rc.h = sr->out_height;		
-	sr->compositor->video_out->FlushVideo(sr->compositor->video_out, &rc);
+	sr->compositor->video_out->Flush(sr->compositor->video_out, &rc);
 	sr->frame_num++;
 }
 
@@ -508,6 +505,7 @@ Bool R2D_IsPixelMetrics(GF_Node *n)
 static GF_Err R2D_RecomputeAR(GF_VisualRenderer *vr)
 {
 	Double ratio;
+	GF_Event evt;
 	Fixed scaleX, scaleY;
 	Render2D *sr = (Render2D *)vr->user_priv;
 	if (!sr->compositor->scene_height || !sr->compositor->scene_width) return GF_OK;
@@ -528,7 +526,10 @@ static GF_Err R2D_RecomputeAR(GF_VisualRenderer *vr)
 		sr->compositor->scene_height = sr->cur_height = sr->out_height;
 		R2D_SetScaling(sr, 1, 1);
 		/*and resize hardware surface*/
-		return sr->compositor->video_out->ResizeSurface(sr->compositor->video_out, 0, sr->cur_width, sr->cur_height);
+		evt.type = GF_EVT_VIDEO_SETUP;
+		evt.size.width = sr->cur_width;
+		evt.size.height = sr->cur_height;
+		return sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
 	}
 
 	switch (sr->compositor->aspect_ratio) {
@@ -565,8 +566,6 @@ static GF_Err R2D_RecomputeAR(GF_VisualRenderer *vr)
 	}
 	sr->out_x = (sr->compositor->width - sr->out_width) / 2;
 	sr->out_y = (sr->compositor->height - sr->out_height) / 2;
-	/*clear screen*/
-	sr->compositor->video_out->Clear(sr->compositor->video_out, sr->back_color);
 
 	if (!sr->scalable_zoom) {
 		sr->cur_width = sr->compositor->scene_width;
@@ -583,7 +582,10 @@ static GF_Err R2D_RecomputeAR(GF_VisualRenderer *vr)
 	R2D_SetScaling(sr, scaleX, scaleY);
 	gf_sr_invalidate(sr->compositor, NULL);
 	/*and resize hardware surface*/
-	return sr->compositor->video_out->ResizeSurface(sr->compositor->video_out, 0, sr->cur_width, sr->cur_height);
+	evt.type = GF_EVT_VIDEO_SETUP;
+	evt.size.width = sr->cur_width;
+	evt.size.height = sr->cur_height;
+	return sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
 }
 
 GF_Node *R2D_PickNode(GF_VisualRenderer *vr, s32 X, s32 Y)
@@ -614,23 +616,21 @@ GF_Err R2D_GetSurfaceAccess(VisualSurface2D *surf)
 	e = GF_IO_ERR;
 	
 	/*try from device*/
-	if (sr->compositor->r2d->surface_attach_to_device && sr->compositor->video_out->GetContext) {
-		sr->hardware_context = sr->compositor->video_out->GetContext(sr->compositor->video_out, 0);
+	if (sr->compositor->r2d->surface_attach_to_device && sr->compositor->video_out->LockOSContext) {
+		sr->hardware_context = sr->compositor->video_out->LockOSContext(sr->compositor->video_out, 1);
 		if (sr->hardware_context) {
 			e = sr->compositor->r2d->surface_attach_to_device(surf->the_surface, sr->hardware_context, sr->cur_width, sr->cur_height);
 			if (!e) {
 				surf->is_attached = 1;
 				return GF_OK;
 			}
-			sr->compositor->video_out->ReleaseContext(sr->compositor->video_out, 0, sr->hardware_context);
+			sr->compositor->video_out->LockOSContext(sr->compositor->video_out, 0);
 		}
 	}
 	
 	/*TODO - collect hw accelerated blit routines if any*/
 
-
-
-	if (sr->compositor->video_out->LockSurface(sr->compositor->video_out, 0, &sr->hw_surface)==GF_OK) {
+	if (sr->compositor->video_out->LockBackBuffer(sr->compositor->video_out, &sr->hw_surface, 1)==GF_OK) {
 		sr->locked = 1;
 		e = sr->compositor->r2d->surface_attach_to_buffer(surf->the_surface, sr->hw_surface.video_buffer, 
 							sr->hw_surface.width, 
@@ -641,7 +641,7 @@ GF_Err R2D_GetSurfaceAccess(VisualSurface2D *surf)
 			surf->is_attached = 1;
 			return GF_OK;
 		}
-		sr->compositor->video_out->UnlockSurface(sr->compositor->video_out, 0);
+		sr->compositor->video_out->LockBackBuffer(sr->compositor->video_out, NULL, 0);
 	}
 	sr->locked = 0;
 	surf->is_attached = 0;
@@ -656,10 +656,10 @@ void R2D_ReleaseSurfaceAccess(VisualSurface2D *surf)
 		surf->is_attached = 0;
 	}
 	if (sr->hardware_context) {
-		sr->compositor->video_out->ReleaseContext(sr->compositor->video_out, 0, sr->hardware_context);
+		sr->compositor->video_out->LockOSContext(sr->compositor->video_out, 0);
 		sr->hardware_context = NULL;
 	} else if (sr->locked) {
-		sr->compositor->video_out->UnlockSurface(sr->compositor->video_out, 0);
+		sr->compositor->video_out->LockBackBuffer(sr->compositor->video_out, NULL, 0);
 		sr->locked = 0;
 	}
 }
@@ -669,6 +669,10 @@ Bool R2D_SupportsFormat(VisualSurface2D *surf, u32 pixel_format)
 	switch (pixel_format) {
 	case GF_PIXEL_RGB_24:
 	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_RGB_555:
+	case GF_PIXEL_RGB_565:
+	case GF_PIXEL_ARGB:
+	case GF_PIXEL_RGBA:
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
@@ -679,14 +683,14 @@ Bool R2D_SupportsFormat(VisualSurface2D *surf, u32 pixel_format)
 	}
 }
 
-void R2D_DrawBitmap(VisualSurface2D *surf, struct _gf_sr_texture_handler *txh, GF_IRect *clip, GF_Rect *unclip)
+void R2D_DrawBitmap(VisualSurface2D *surf, struct _gf_sr_texture_handler *txh, GF_IRect *clip, GF_Rect *unclip, u8 alpha, u32 *col_key, GF_ColorMatrix *cmat)
 {
+	GF_VideoSurface video_src;
 	Fixed w_scale, h_scale, tmp;
-	GF_VideoSurface dest;
 	GF_Err e;
+	Bool use_soft_stretch;
 	GF_Window src_wnd, dst_wnd;
-	u32 start_x, start_y, format, cur_width, cur_height;
-	u32 *pool_id;
+	u32 start_x, start_y, cur_width, cur_height;
 	GF_IRect clipped_final = *clip;
 	GF_Rect final = *unclip;
 
@@ -790,82 +794,50 @@ void R2D_DrawBitmap(VisualSurface2D *surf, struct _gf_sr_texture_handler *txh, G
 	if (src_wnd.x + src_wnd.w>txh->width) src_wnd.w = txh->width - src_wnd.x;
 	if (src_wnd.y + src_wnd.h>txh->height) src_wnd.h = txh->height - src_wnd.y;
 
-	/*get the right surface and copy the part of the image on it*/
-	switch (txh->pixelformat) {
-	case GF_PIXEL_RGB_24:
-	case GF_PIXEL_BGR_24:
-		format = surf->pixel_format;
-		pool_id = &surf->render->pool_rgb;
-		break;
-	case GF_PIXEL_YV12:
-	case GF_PIXEL_IYUV:
-	case GF_PIXEL_I420:
-		/*we must use even coords rect for YUV src otherwise we'll introduce artefacts on U and V planes*/
-		if (src_wnd.x % 2) {
-			src_wnd.x -= 1;
-			src_wnd.w += 1;
+	use_soft_stretch = 1;
+	if (!cmat && (alpha==0xFF) && surf->render->compositor->video_out->Blit) {
+		u32 hw_caps = surf->render->compositor->video_out->hw_caps;
+		/*get the right surface and copy the part of the image on it*/
+		switch (txh->pixelformat) {
+		case GF_PIXEL_RGB_24:
+		case GF_PIXEL_BGR_24:
+			use_soft_stretch = 0;
+			break;
+		case GF_PIXEL_YV12:
+		case GF_PIXEL_IYUV:
+		case GF_PIXEL_I420:
+			if (surf->render->enable_yuv_hw && (hw_caps & GF_VIDEO_HW_HAS_YUV))
+				use_soft_stretch = 0;
+			break;
+		default:
+			break;
 		}
-		if (src_wnd.y % 2) {
-			src_wnd.y -= 1;
-			src_wnd.h += 1;
-		}
-		if (src_wnd.w % 2) src_wnd.w -= 1;
-		if (src_wnd.h % 2) src_wnd.h -= 1;
-		if (surf->render->compositor->video_out->bHasYUV && surf->render->enable_yuv_hw) {
-			format = GF_PIXEL_YV12;
-			pool_id = &surf->render->pool_yuv;
-		} else {
-			format = surf->pixel_format;
-			pool_id = &surf->render->pool_rgb;
-		}
-		break;
-	default:
-		return;
+		if (col_key && (GF_COL_A(*col_key) || !(hw_caps & GF_VIDEO_HW_HAS_COLOR_KEY))) use_soft_stretch = 1;
 	}
 
-	e = GF_OK;
-	if (! *pool_id || !surf->render->compositor->video_out->IsSurfaceValid(surf->render->compositor->video_out, *pool_id)) {
-		e = surf->render->compositor->video_out->CreateSurface(surf->render->compositor->video_out, src_wnd.w, src_wnd.h, format, pool_id);
-		if (!e && (pool_id == &surf->render->pool_yuv)) {
-			surf->render->compositor->video_out->GetPixelFormat(surf->render->compositor->video_out, *pool_id, &surf->render->current_yuv_format);
-		}
-
-		if ((e!=GF_OK) || !*pool_id) {
-			surf->render->current_yuv_format = 0;
-			/*otherwise try with soft YUV*/
-			pool_id = &surf->render->pool_rgb;
-			format = surf->pixel_format;
-			if (! *pool_id || !surf->render->compositor->video_out->IsSurfaceValid(surf->render->compositor->video_out, *pool_id) ) {
-				e = surf->render->compositor->video_out->CreateSurface(surf->render->compositor->video_out, src_wnd.w, src_wnd.h, format, pool_id);
-				if ((e!=GF_OK) || ! *pool_id) return;
-			} else {
-				 e = surf->render->compositor->video_out->ResizeSurface(surf->render->compositor->video_out, *pool_id, src_wnd.w, src_wnd.h);
-			}
-		}
-	} else {
-		e = surf->render->compositor->video_out->ResizeSurface(surf->render->compositor->video_out, *pool_id, src_wnd.w, src_wnd.h);
-	}
-	if (e) return;
-
-	/*lock*/
-	e = surf->render->compositor->video_out->LockSurface(surf->render->compositor->video_out, *pool_id, &dest);
-	if (e) return;
-	
-	
-	R2D_copyPixels(&dest, txh->data, txh->stride, txh->width, txh->height, txh->pixelformat, &src_wnd);
-
-	src_wnd.x = src_wnd.y = 0;
-
-	/*unlock*/
-	e = surf->render->compositor->video_out->UnlockSurface(surf->render->compositor->video_out, *pool_id);
-	if (e) return;
-
-	/*arg - most graphic cards can't perform bliting on locked surface - force unlock by releasing the hardware*/
+	/*most graphic cards can't perform bliting on locked surface - force unlock by releasing the hardware*/
 	VS2D_TerminateSurface(surf);
-	surf->render->compositor->video_out->Blit(surf->render->compositor->video_out, *pool_id, 0, &src_wnd, &dst_wnd);
-	VS2D_InitSurface(surf);
 
-	return;
+	video_src.height = txh->height;
+	video_src.width = txh->width;
+	video_src.pitch = txh->stride;
+	video_src.pixel_format = txh->pixelformat;
+	video_src.video_buffer = txh->data;
+	if (!use_soft_stretch) {
+		e = surf->render->compositor->video_out->Blit(surf->render->compositor->video_out, &video_src, &src_wnd, &dst_wnd, col_key);
+		/*HW pb, try soft*/
+		if (e) {
+			fprintf(stdout, "Error during hardware blit - trying with soft one\n");
+			use_soft_stretch = 1;
+		}
+	}
+	if (use_soft_stretch) {
+		GF_VideoSurface backbuffer;
+		e = surf->render->compositor->video_out->LockBackBuffer(surf->render->compositor->video_out, &backbuffer, 1);
+		gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, 0, alpha, 0, col_key, cmat);
+		e = surf->render->compositor->video_out->LockBackBuffer(surf->render->compositor->video_out, &backbuffer, 0);
+	}
+	VS2D_InitSurface(surf);
 }
 
 GF_Err R2D_LoadRenderer(GF_VisualRenderer *vr, GF_Renderer *compositor)
@@ -896,7 +868,6 @@ GF_Err R2D_LoadRenderer(GF_VisualRenderer *vr, GF_Renderer *compositor)
 	sr->surface->DrawBitmap = R2D_DrawBitmap;
 	sr->surface->SupportsFormat = R2D_SupportsFormat;
 	sr->surface->render = sr;
-	sr->surface->pixel_format = 0;
 	gf_list_add(sr->surfaces_2D, sr->surface);
 
 	sr->zoom = sr->scale_x = sr->scale_y = FIX_ONE;
@@ -947,7 +918,7 @@ void R2D_ReleaseTexture(GF_TextureHandler *hdl)
 GF_Err R2D_SetTextureData(GF_TextureHandler *hdl)
 {
 	Render2D *sr = (Render2D *) hdl->compositor->visual_renderer->user_priv;
-	return hdl->compositor->r2d->stencil_set_texture(hdl->hwtx, hdl->data, hdl->width, hdl->height, hdl->stride, hdl->pixelformat, sr->surface->pixel_format, 0);
+	return hdl->compositor->r2d->stencil_set_texture(hdl->hwtx, hdl->data, hdl->width, hdl->height, hdl->stride, hdl->pixelformat, sr->compositor->video_out->pixel_format, 0);
 }
 
 /*no module used HW for texturing for now*/
@@ -958,11 +929,6 @@ void R2D_TextureHWReset(GF_TextureHandler *hdl)
 
 void R2D_GraphicsReset(GF_VisualRenderer *vr)
 {
-	Render2D *sr = (Render2D *)vr->user_priv;
-	sr->compositor->video_out->GetPixelFormat(sr->compositor->video_out, 0, &sr->surface->pixel_format);
-	sr->compositor->video_out->DeleteSurface(sr->compositor->video_out, sr->pool_rgb);
-	sr->compositor->video_out->DeleteSurface(sr->compositor->video_out, sr->pool_yuv);
-	sr->pool_yuv = sr->pool_rgb = 0;
 }
 
 void R2D_ReloadConfig(GF_VisualRenderer *vr)
@@ -1012,7 +978,6 @@ GF_Err R2D_SetOption(GF_VisualRenderer *vr, u32 option, u32 value)
 		return GF_OK;
 	case GF_OPT_YUV_HARDWARE:
 		sr->enable_yuv_hw = value;
-		if (!value) sr->current_yuv_format = 0;
 		return GF_OK;
 	case GF_OPT_RELOAD_CONFIG: R2D_ReloadConfig(vr); return GF_OK;
 	case GF_OPT_ORIGINAL_VIEW: 
@@ -1040,7 +1005,7 @@ u32 R2D_GetOption(GF_VisualRenderer *vr, u32 option)
 	switch (option) {
 	case GF_OPT_SCALABLE_ZOOM: return sr->scalable_zoom;
 	case GF_OPT_YUV_HARDWARE: return sr->enable_yuv_hw;
-	case GF_OPT_YUV_FORMAT: return sr->enable_yuv_hw ? sr->current_yuv_format : 0;
+	case GF_OPT_YUV_FORMAT: return sr->enable_yuv_hw ? sr->compositor->video_out->yuv_pixel_format : 0;
 	case GF_OPT_NAVIGATION_TYPE: return GF_NAVIGATE_TYPE_2D;
 	case GF_OPT_NAVIGATION: return sr->navigate_mode;
 	case GF_OPT_HEADLIGHT: return 0;
@@ -1089,13 +1054,13 @@ void R2D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_root, void *rs)
 GF_Err R2D_GetScreenBuffer(GF_VisualRenderer *vr, GF_VideoSurface *framebuffer)
 {
 	Render2D *sr = (Render2D *)vr->user_priv;
-	return sr->compositor->video_out->LockSurface(sr->compositor->video_out, 0, framebuffer);
+	return sr->compositor->video_out->LockBackBuffer(sr->compositor->video_out, framebuffer, 1);
 }
 
 GF_Err R2D_ReleaseScreenBuffer(GF_VisualRenderer *vr, GF_VideoSurface *framebuffer)
 {
 	Render2D *sr = (Render2D *)vr->user_priv;
-	return sr->compositor->video_out->UnlockSurface(sr->compositor->video_out, 0);
+	return sr->compositor->video_out->LockBackBuffer(sr->compositor->video_out, NULL, 0);
 }
 
 

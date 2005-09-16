@@ -1411,7 +1411,7 @@ Bool gf_sg_vrml_field_equal(void *dest, void *orig, u32 field_type)
 SFColorRGBA gf_sg_sfcolor_to_rgba(SFColor val)
 {
 	SFColorRGBA res;
-	res.alpha = 1;
+	res.alpha = FIX_ONE;
 	res.red = val.red;
 	res.green = val.green;
 	res.blue = val.blue;

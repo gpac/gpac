@@ -245,7 +245,7 @@ typedef struct _visual_surface_2D
 	void (*ReleaseSurfaceAccess)(struct _visual_surface_2D *);
 
 	/*draws specified texture as flat bitmap*/
-	void (*DrawBitmap)(struct _visual_surface_2D *, struct _gf_sr_texture_handler *, GF_IRect *clip, GF_Rect *unclip);
+	void (*DrawBitmap)(struct _visual_surface_2D *, struct _gf_sr_texture_handler *, GF_IRect *clip, GF_Rect *unclip, u8 alpha, u32 *col_key, GF_ColorMatrix *cmat);
 	Bool (*SupportsFormat)(struct _visual_surface_2D *surf, u32 pixel_format);
 
 	/*composite texture renderer if any*/
@@ -254,8 +254,6 @@ typedef struct _visual_surface_2D
 	GF_SURFACE the_surface;
 	GF_STENCIL the_brush;
 	GF_STENCIL the_pen;
-
-	u32 pixel_format;
 } VisualSurface2D;
 /*constructor/destructor*/
 VisualSurface2D *NewVisualSurface2D();

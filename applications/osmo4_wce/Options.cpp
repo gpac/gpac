@@ -27,6 +27,8 @@ COptions::COptions(CWnd* pParent /*=NULL*/)
 {
 	//{{AFX_DATA_INIT(COptions)
 	//}}AFX_DATA_INIT
+
+	m_bNeedsReload = 0;
 }
 
 
@@ -58,10 +60,11 @@ void COptions::OnSelchangeCombosel()
 	case 1: m_systems.ShowWindow(SW_SHOW); break;
 	case 2: m_decoder.ShowWindow(SW_SHOW); break;
 	case 3: m_render.ShowWindow(SW_SHOW); break;
-	case 4: m_audio.ShowWindow(SW_SHOW); break;
-	case 5: m_font.ShowWindow(SW_SHOW); break;
-	case 6: m_http.ShowWindow(SW_SHOW); break;
-	case 7: m_stream.ShowWindow(SW_SHOW); break;
+	case 4: m_render3D.ShowWindow(SW_SHOW); break;
+	case 5: m_audio.ShowWindow(SW_SHOW); break;
+	case 6: m_font.ShowWindow(SW_SHOW); break;
+	case 7: m_http.ShowWindow(SW_SHOW); break;
+	case 8: m_stream.ShowWindow(SW_SHOW); break;
 	}
 }
 
@@ -70,6 +73,7 @@ void COptions::HideAll()
 	m_general.ShowWindow(SW_HIDE);
 	m_systems.ShowWindow(SW_HIDE);
 	m_render.ShowWindow(SW_HIDE);
+	m_render3D.ShowWindow(SW_HIDE);
 	m_audio.ShowWindow(SW_HIDE);
 	m_http.ShowWindow(SW_HIDE);
 	m_font.ShowWindow(SW_HIDE);
@@ -85,6 +89,7 @@ BOOL COptions::OnInitDialog()
 	m_systems.Create(IDD_OPT_SYSTEMS, this);
 	m_decoder.Create(IDD_OPT_DECODER, this);
 	m_render.Create(IDD_OPT_RENDER, this);
+	m_render3D.Create(IDD_OPT_RENDER3D, this);
 	m_audio.Create(IDD_OPT_AUDIO, this);
 	m_http.Create(IDD_OPT_HTTP, this);
 	m_font.Create(IDD_OPT_FONT, this);
@@ -94,6 +99,7 @@ BOOL COptions::OnInitDialog()
 	m_Selection.AddString(_T("MPEG-4 Systems"));
 	m_Selection.AddString(_T("Decoders"));
 	m_Selection.AddString(_T("Rendering"));
+	m_Selection.AddString(_T("3D Rendering"));
 	m_Selection.AddString(_T("Audio"));
 	m_Selection.AddString(_T("Text"));
 	m_Selection.AddString(_T("Download"));
@@ -111,6 +117,7 @@ void COptions::OnSaveopt()
 	m_general.SaveOptions();
 	m_systems.SaveOptions();
 	m_render.SaveOptions();
+	m_render3D.SaveOptions();
 	m_audio.SaveOptions();
 	m_http.SaveOptions();
 	m_font.SaveOptions();
@@ -119,6 +126,7 @@ void COptions::OnSaveopt()
 
 	COsmo4 *gpac = GetApp();
 	gf_term_set_option(gpac->m_term, GF_OPT_RELOAD_CONFIG, 1);
+	m_bNeedsReload = m_render3D.m_bNeedsReload;
 }
 
 void COptions::OnOK() 
@@ -746,6 +754,102 @@ void COptRender::SaveOptions()
 }
 
 
+
+
+COptRender3D::COptRender3D(CWnd* pParent /*=NULL*/)
+	: CDialog(COptRender3D::IDD, pParent)
+{
+	//{{AFX_DATA_INIT(COptRender)
+	//}}AFX_DATA_INIT
+}
+
+
+void COptRender3D::DoDataExchange(CDataExchange* pDX)
+{
+	CDialog::DoDataExchange(pDX);
+	//{{AFX_DATA_MAP(COptRender)
+	DDX_Control(pDX, IDC_WIRE_MODE, m_WireMode);
+	DDX_Control(pDX, IDC_DRAW_NORMALS, m_DrawNormals);
+	DDX_Control(pDX, IDC_USE_3D_REN, m_Use3DRender);
+	DDX_Control(pDX, IDC_NO_BACKCULL, m_NoBackFace);
+	DDX_Control(pDX, IDC_EMULATE_POW2, m_EmulatePOW2);
+	//}}AFX_DATA_MAP
+}
+
+
+BEGIN_MESSAGE_MAP(COptRender3D, CDialog)
+	//{{AFX_MSG_MAP(COptRender3D)
+	//}}AFX_MSG_MAP
+END_MESSAGE_MAP()
+
+BOOL COptRender3D::OnInitDialog() 
+{
+	CDialog::OnInitDialog();
+	
+	COsmo4 *gpac = GetApp();
+	const char *sOpt;
+
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "RendererName");
+	m_Use3DRender.SetCheck( (sOpt && strstr(sOpt, "3D")) ? 1 : 0);
+
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "DisableBackFaceCulling");
+	m_NoBackFace.SetCheck( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "EmulatePOW2");
+	m_EmulatePOW2.SetCheck( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+
+	m_WireMode.ResetContent();
+	m_WireMode.AddString(_T("Solid Draw"));
+	m_WireMode.AddString(_T("Wireframe"));
+	m_WireMode.AddString(_T("Both"));
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "Wireframe");
+	if (sOpt && !stricmp(sOpt, "WireOnly")) m_WireMode.SetCurSel(1);
+	else if (sOpt && !stricmp(sOpt, "WireOnSolid")) m_WireMode.SetCurSel(2);
+	else m_WireMode.SetCurSel(0);
+
+
+	m_DrawNormals.ResetContent();
+	m_DrawNormals.AddString(_T("Never"));
+	m_DrawNormals.AddString(_T("Per Face"));
+	m_DrawNormals.AddString(_T("Per Vertex"));
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "DrawNormals");
+	if (sOpt && !stricmp(sOpt, "PerFace")) m_DrawNormals.SetCurSel(1);
+	else if (sOpt && !stricmp(sOpt, "PerVertex")) m_DrawNormals.SetCurSel(2);
+	else m_DrawNormals.SetCurSel(0);
+
+
+	m_bNeedsReload = 0;
+
+	return TRUE;  
+}
+
+
+void COptRender3D::SaveOptions()
+{
+	COsmo4 *gpac = GetApp();
+
+	u32 sel = m_DrawNormals.GetCurSel();
+	gf_cfg_set_key(gpac->m_user.config, "Render3D", "DrawNormals", (sel==2) ? "PerVertex" : (sel==1) ? "PerFace" : "Never");
+	
+	sel = m_WireMode.GetCurSel();
+	gf_cfg_set_key(gpac->m_user.config, "Render3D", "Wireframe", (sel==2) ? "WireOnSolid" : (sel==1) ? "WireOnly" : "WireNone");
+
+	gf_cfg_set_key(gpac->m_user.config, "Render3D", "DisableBackFaceCulling", m_NoBackFace.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Render3D", "EmulatePOW2", m_EmulatePOW2.GetCheck() ? "yes" : "no");
+
+	m_bNeedsReload = 0;
+	const char *opt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "RendererName");
+	if (!opt || strstr(opt, "2D")) {
+		if (!m_Use3DRender.GetCheck()) return;
+		gf_cfg_set_key(gpac->m_user.config, "Rendering", "RendererName", "GPAC 3D Renderer");
+		m_bNeedsReload = 1;
+	} else if (! m_Use3DRender.GetCheck()) {
+		gf_cfg_set_key(gpac->m_user.config, "Rendering", "RendererName", "GPAC 2D Renderer");
+		m_bNeedsReload = 1;
+	}
+}
+
+
 COptStream::COptStream(CWnd* pParent /*=NULL*/)
 	: CDialog(COptStream::IDD, pParent)
 {
@@ -1152,7 +1256,7 @@ void COptSystems::SaveOptions()
 	gf_cfg_set_key(gpac->m_user.config, "Systems", "ThreadingPolicy", (sel==0) ? "Single" : ( (sel==1) ? "Multi" : "Free"));
 
 	/*reset duration flag*/
-	gpac->max_duration = (u32) -1;
+	gpac->m_duration = (u32) -1;
 	gf_cfg_set_key(gpac->m_user.config, "Systems", "ForceSingleClock", m_ForceDuration.GetCheck() ? "yes" : "no");
 	gf_cfg_set_key(gpac->m_user.config, "Systems", "AlwaysDrawBIFS", m_BifsAlwaysDrawn.GetCheck() ? "yes" : "no");
 

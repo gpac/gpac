@@ -112,6 +112,8 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 	if (SearchH == INVALID_HANDLE_VALUE) return 0;
 	while (SearchH != INVALID_HANDLE_VALUE) {
 	
+//#if IM_PARANOIAC
+#if 1
 		/*Load the current file*/
 		sprintf(file, "%s%c", pm->dir, GF_PATH_SEPARATOR);
 
@@ -144,14 +146,18 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 			goto next;
 		}
 
+		FreeLibrary(ModuleLib);
 		wcscpy(w_file, FindData.cFileName);
 		if (wcsstr(w_file, _T(".")) ) {
 			while (w_file[wcslen(w_file)-1] != '.') w_file[wcslen(w_file)-1] = 0;
 			w_file[wcslen(w_file)-1] = 0;
 		}
 		CE_WideToChar(w_file, file);
+#else
+		if (wcsncmp(FindData.cFileName, _T("gm_"), 3)) goto next;
+		CE_WideToChar(FindData.cFileName, file);
+#endif
 
-		FreeLibrary(ModuleLib);
 		GF_SAFEALLOC(inst, sizeof(ModuleInstance));
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;

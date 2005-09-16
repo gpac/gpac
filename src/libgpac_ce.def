@@ -200,67 +200,62 @@ EXPORTS
 	gf_mx2d_apply_coords
 	gf_mx2d_apply_point
 	gf_mx2d_apply_rect
-	gf_cmx_init
-	gf_cmx_set
-	gf_cmx_set_all
-	gf_cmx_copy
-	gf_cmx_multiply
-	gf_cmx_apply
-	gf_cmx_apply_fixed
-;	gf_vec_len
-;	gf_vec_lensq
-;	gf_vec_dot
-;	gf_vec_norm
-;	gf_vec_scale
-;	gf_vec_cross
-;	gf_quat_to_rotation
-;	gf_quat_from_matrix
-;	gf_quat_from_rotation
-;	gf_quat_get_inv
-;	gf_quat_multiply
-;	gf_quat_rotate
-;	gf_quat_from_axis_cos
-;	gf_quat_slerp
-;	gf_bbox_refresh
-;	gf_bbox_from_rect
-;	gf_rect_from_bbox
-;	gf_bbox_grow_point
-;	gf_bbox_union
-;	gf_bbox_equal
-;	gf_bbox_point_inside
-;	gf_bbox_get_vertices
-;	gf_mx_from_mx2d
-;	gf_mx_equal
-;	gf_mx_add_translation
-;	gf_mx_add_scale
-;	gf_mx_add_rotation
-;	gf_mx_add_matrix
-;	gf_mx_inverse
-;	gf_mx_apply_vec
-;	gf_mx_apply_rect
-;	gf_mx_ortho
-;	gf_mx_perspective
-;	gf_mx_lookat
-;	gf_mx_apply_bbox
-;	gf_mx_add_matrix_4x4
-;	gf_mx_inverse_4x4
-;	gf_mx_apply_vec_4x4
-;	gf_mx_decompose
-;	gf_mx_rotate_vector
-;	gf_mx_rotation_matrix_from_vectors
-;	gf_mx2d_from_mx
-;	gf_mx_apply_plane
-;	gf_plane_get_distance
-;	gf_plane_intersect_line
-;	gf_closest_point_to_line
-;	gf_plane_get_p_vertex_idx
-;	gf_bbox_plane_relation
-;	gf_mx_apply_ray
-;	gf_ray
-;	gf_ray_hit_box
-;	gf_ray_hit_sphere
-;	gf_ray_hit_triangle
-;	gf_ray_hit_triangle_backcull
+
+;exported for 3D tools
+	gf_vec_len
+	gf_vec_lensq
+	gf_vec_dot
+	gf_vec_norm
+	gf_vec_scale
+	gf_vec_cross
+	gf_quat_to_rotation
+	gf_quat_from_matrix
+	gf_quat_from_rotation
+	gf_quat_get_inv
+	gf_quat_multiply
+	gf_quat_rotate
+	gf_quat_from_axis_cos
+	gf_quat_slerp
+	gf_bbox_refresh
+	gf_bbox_from_rect
+	gf_rect_from_bbox
+	gf_bbox_grow_point
+	gf_bbox_union
+	gf_bbox_equal
+	gf_bbox_point_inside
+	gf_bbox_get_vertices
+	gf_mx_from_mx2d
+	gf_mx_equal
+	gf_mx_add_translation
+	gf_mx_add_scale
+	gf_mx_add_rotation
+	gf_mx_add_matrix
+	gf_mx_inverse
+	gf_mx_apply_vec
+	gf_mx_apply_rect
+	gf_mx_ortho
+	gf_mx_perspective
+	gf_mx_lookat
+	gf_mx_apply_bbox
+	gf_mx_add_matrix_4x4
+	gf_mx_inverse_4x4
+	gf_mx_apply_vec_4x4
+	gf_mx_decompose
+	gf_mx_rotate_vector
+	gf_mx_rotation_matrix_from_vectors
+	gf_mx2d_from_mx
+	gf_mx_apply_plane
+	gf_plane_get_distance
+	gf_plane_intersect_line
+	gf_closest_point_to_line
+	gf_plane_get_p_vertex_idx
+	gf_bbox_plane_relation
+	gf_mx_apply_ray
+	gf_ray
+	gf_ray_hit_box
+	gf_ray_hit_sphere
+	gf_ray_hit_triangle
+	gf_ray_hit_triangle_backcull
 
 ;path2d.h exports
 	gf_path_new
@@ -293,13 +288,14 @@ EXPORTS
 	gf_path_point_over
 
 ;yuv.h exports
-	gf_yuv_to_rgb_555
-	gf_yuv_to_rgb_565
-	gf_yuv_to_bgr_24
-	gf_yuv_to_rgb_24
-	gf_yuv_to_rgb_32
-	gf_yuva_to_rgb_32
-	gf_yuv_to_rgb_24_flip
+	gf_cmx_init
+	gf_cmx_set
+	gf_cmx_set_all
+	gf_cmx_copy
+	gf_cmx_multiply
+	gf_cmx_apply
+	gf_cmx_apply_fixed
+	gf_stretch_bits
 
 ;mpeg4_odf.h exports
 	gf_odf_slc_set_pref
@@ -351,13 +347,13 @@ EXPORTS
 	gf_oci_codec_encode
 	gf_oci_codec_decode
 	gf_oci_codec_get_event
-	gf_odf_dump_au
-	gf_odf_dump_com
-	gf_odf_dump_desc
-	gf_odf_dump_com_list
-	gf_oci_dump_event
-	gf_oci_dump_au
-	gf_sl_packetize
+;	gf_odf_dump_au
+;	gf_odf_dump_com
+;	gf_odf_dump_desc
+;	gf_odf_dump_com_list
+;	gf_oci_dump_event
+;	gf_oci_dump_au
+;	gf_sl_packetize
 	gf_sl_depacketize
 	gf_odf_avc_cfg_new
 	gf_odf_avc_cfg_del
@@ -441,11 +437,11 @@ EXPORTS
 	gf_isom_sdp_get
 	gf_isom_sdp_track_get
 	gf_isom_set_default_sync_track
-	gf_isom_dump
-	gf_isom_dump_hint_sample
+;	gf_isom_dump
+;	gf_isom_dump_hint_sample
 	gf_isom_3gp_config_get
 	gf_isom_text_set_streaming_mode
-	gf_isom_text_dump
+;	gf_isom_text_dump
 	gf_isom_get_track_layout_info
 	gf_isom_get_pl_indication
 	gf_isom_is_media_encrypted
@@ -815,15 +811,15 @@ EXPORTS
 	gf_bifs_decode_command_list
 	gf_bifs_decoder_get_active_stream
 	gf_bifs_decoder_get_config
-	gf_bifs_encoder_new
-	gf_bifs_encoder_del
-	gf_bifs_encoder_new_stream
-	gf_bifs_encode_au
-	gf_bifs_encoder_get_config
-	gf_bifs_encoder_get_version
-	gf_bifs_encoder_get_rap
-	gf_bifs_encoder_set_trace
-	gf_bifs_get_aq_info
+;	gf_bifs_encoder_new
+;	gf_bifs_encoder_del
+;	gf_bifs_encoder_new_stream
+;	gf_bifs_encode_au
+;	gf_bifs_encoder_get_config
+;	gf_bifs_encoder_get_version
+;	gf_bifs_encoder_get_rap
+;	gf_bifs_encoder_set_trace
+;	gf_bifs_get_aq_info
 
 
 ;scenegraph.h and scenegraph_vrml.h exports
@@ -979,7 +975,7 @@ EXPORTS
 	gf_term_get_download_info
 	gf_term_get_channel_net_info
 	gf_term_get_world_info
-	gf_term_dump_scene
+;	gf_term_dump_scene
 	gf_term_refresh
 	gf_term_set_size
 	gf_term_user_input
@@ -1075,4 +1071,7 @@ EXPORTS
 	SVG_NewNode
 	SVG_DeleteTransformList
 	SVG_DeletePaint
+	SVG_DeleteCoordinates
+	SVG_DeletePath
+	SVG_DeletePoints
 	SVG_GetElementName

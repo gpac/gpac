@@ -1,5 +1,5 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Developer Studio generated include file.
+// Microsoft eMbedded Visual C++ generated include file.
 // Used by Osmo4.rc
 //
 #define IDD_ABOUTBOX                    100
@@ -26,6 +26,7 @@
 #define IDD_OPT_STREAM                  140
 #define IDD_OPT_DECODER                 141
 #define IDR_MENU                        141
+#define IDD_OPT_RENDER3D                142
 #define IDC_FILELIST                    1000
 #define IDC_BROWSE                      1001
 #define IDC_SEEK                        1002
@@ -85,6 +86,11 @@
 #define IDC_TIME                        1049
 #define IDC_ABT_TEXT                    1050
 #define IDC_USE_TEXTURE                 1052
+#define IDC_USE_3D_REN                  1053
+#define IDC_NO_BACKCULL                 1054
+#define IDC_EMULATE_POW2                1056
+#define IDC_WIRE_MODE                   1057
+#define IDC_DRAW_NORMALS                1059
 #define IDS_CAP_FILE                    32772
 #define ID_FILE_RESTART                 32773
 #define ID_FPS_DISP                     32774
@@ -92,26 +98,54 @@
 #define ID_VIEW_CONTROL                 32776
 #define ID_FILE_PAUSE                   32777
 #define ID_FILE_STEP                    32778
-#define ID_FILE_STOP                    32782
-#define ID_VIEW_FULLSCREEN              32783
-#define ID_FILE                         32784
-#define ID_MENUITEM32789                32789
-#define IDS_CAP_MENUITEM32790           32791
-#define ID_VIEW                         32792
-#define IDS_CAP_VIEW                    32794
-#define ID_OPEN_FILE                    32795
-#define ID_OPEN_URL                     32796
-#define ID_SHORTCUTS                    32798
-#define ID_VIEW_FIT                     32799
-#define ID_VIEW_AR_ORIG                 32801
-#define ID_VIEW_AR_FILL                 32802
-#define ID_VIEW_AR_43                   32803
-#define ID_VIEW_AR_169                  32804
-#define ID_BUTTON32805                  32805
+#define ID_FILE_STOP                    32779
+#define ID_VIEW_FULLSCREEN              32780
+#define ID_FILE                         32781
+#define ID_MENUITEM32789                32782
+#define IDS_CAP_MENUITEM32790           32783
+#define ID_VIEW                         32784
+#define IDS_CAP_VIEW                    32785
+#define ID_OPEN_FILE                    32786
+#define ID_OPEN_URL                     32787
+#define ID_SHORTCUTS                    32788
+#define ID_VIEW_FIT                     32789
 #define ID_NAV_NONE                     32806
 #define ID_NAV_SLIDE                    32807
-#define ID_NAVE_RESET                   32808
-#define ID_VIEW_TIMING                  32809
+#define ID_NAV_RESET                    32808
+#define ID_NAV_WALK                     32810
+#define ID_NAV_FLY                      32811
+#define ID_NAV_EXAMINE                  32812
+#define ID_NAV_GRAVITY                  32813
+#define ID_COLLIDE_OFF                  32815
+#define ID_COLLIDE_REG                  32816
+#define ID_COLLIDE_DISP                 32817
+#define ID_VIEWPORT_EMPTY               32818
+#define ID_NAV_HEADLIGHT                32819
+#define ID_VP_0                         32820
+#define ID_VP_1                         32821
+#define ID_VP_2                         32822
+#define ID_VP_3                         32823
+#define ID_VP_4                         32824
+#define ID_VP_5                         32825
+#define ID_VP_6                         32826
+#define ID_VP_7                         32827
+#define ID_VP_8                         32828
+#define ID_VP_9                         32829
+#define ID_VP_10                        32830
+#define ID_VP_11                        32831
+#define ID_VP_12                        32832
+#define ID_VP_13                        32833
+#define ID_VP_14                        32834
+#define ID_VP_15                        32835
+#define ID_VP_16                        32836
+#define ID_VP_17                        32837
+#define ID_VP_18                        32838
+#define ID_VP_19                        32839
+#define ID_VIEW_AR_ORIG                 32890
+#define ID_VIEW_AR_FILL                 32891
+#define ID_VIEW_AR_43                   32892
+#define ID_VIEW_AR_169                  32893
+#define ID_VIEW_TIMING                  32894
 #define IDS_NEW                         65000
 #define IDS_FILE                        65001
 #define IDS_MHELP                       65002
@@ -125,9 +159,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        142
-#define _APS_NEXT_COMMAND_VALUE         32810
-#define _APS_NEXT_CONTROL_VALUE         1053
+#define _APS_NEXT_RESOURCE_VALUE        143
+#define _APS_NEXT_COMMAND_VALUE         32820
+#define _APS_NEXT_CONTROL_VALUE         1058
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
