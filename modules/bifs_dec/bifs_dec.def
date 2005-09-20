@@ -1,4 +1,4 @@
-LIBRARY     bifs_dec.dll
+LIBRARY     gm_bifs_dec.dll
 
 EXPORTS
 	QueryInterface

@@ -15,7 +15,7 @@ OBJS= odf_dec.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=odf_dec.$(DYN_LIB_SUFFIX)
+LIB=gm_odf_dec.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols odf_dec.def 
 endif

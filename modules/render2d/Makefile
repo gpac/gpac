@@ -25,7 +25,7 @@ endif
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=render2d.$(DYN_LIB_SUFFIX)
+LIB=gm_render2d.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols render2d.def 
 endif

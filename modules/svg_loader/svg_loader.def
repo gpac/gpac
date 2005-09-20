@@ -1,4 +1,4 @@
-LIBRARY     svg_loader.dll
+LIBRARY     gm_svg_loader.dll
 
 EXPORTS
 	QueryInterface

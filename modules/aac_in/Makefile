@@ -28,7 +28,7 @@ endif
 EXTRALIBS+= -lfaad
 endif
 
-LIB=aac_in.$(DYN_LIB_SUFFIX)
+LIB=gm_aac_in.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols aac_in.def 
 endif

@@ -30,7 +30,7 @@ endif
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=mp3_in.$(DYN_LIB_SUFFIX)
+LIB=gm_mp3_in.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols mp3_in.def 
 endif

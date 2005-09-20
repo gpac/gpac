@@ -69,7 +69,7 @@ GF_Err gf_sm_load_init_QT(GF_SceneLoader *load)
 
 	if (!load->ctx) return GF_NOT_SUPPORTED;
 
-	src = gf_isom_open(load->fileName, GF_ISOM_OPEN_READ);
+	src = gf_isom_open(load->fileName, GF_ISOM_OPEN_READ, NULL);
 	if (!src) return gf_qt_report(load, GF_URL_ERROR, "Opening file %s failed", load->fileName);
 
 	w = h = tk = 0;

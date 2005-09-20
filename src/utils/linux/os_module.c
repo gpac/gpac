@@ -81,17 +81,19 @@ void gf_modules_unload_library(ModuleInstance *inst)
 /*refresh modules - note we don't check for deleted modules but since we've open them the OS should forbid delete*/
 u32 gf_modules_refresh(GF_ModuleManager *pm)
 {
+#if CHECK_MODULE
 	QueryInterface query_func;
 	LoadInterface load_func;
 	ShutdownInterface del_func;
+	s32 _flags;
+	void *ModuleLib;
+#endif
 	ModuleInstance *inst;
 	unsigned char file[GF_MAX_PATH];
 
 	DIR *the_dir;
 	struct dirent* the_file;
-	s32 _flags;
 	struct stat st;
-	void *ModuleLib;
 	
 	if (!pm) return 0;
 
@@ -111,6 +113,8 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		/*filter directories*/
 		if (stat(file, &st ) != 0) goto next;
 		if ( (st.st_mode & S_IFMT) == S_IFDIR) goto next;
+
+#if CHECK_MODULE
 
 #ifdef RTLD_GLOBAL
 		_flags =RTLD_LAZY | RTLD_GLOBAL;
@@ -135,7 +139,9 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 			goto next;
 		}
 		dlclose(ModuleLib);
-
+#else
+		if (strncmp(the_file->d_name, "gm_", 3)) goto next;
+#endif
 		GF_SAFEALLOC(inst, sizeof(ModuleInstance));
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;

@@ -35,11 +35,11 @@
 #ifndef GPAC_READ_ONLY
 void convert_file_info(char *inName, u32 trackID);
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample);
-GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start);
+GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start, const char *tmpdir);
 GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir);
 
 GF_Err EncodeFile(char *in, GF_ISOFile *mp4, char *logFile, char *mediaSource, u32 flags, u32 rap_freq);
-GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext);
+GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir);
 #endif
 
 /*in filedump.c*/
@@ -1359,7 +1359,7 @@ int main(int argc, char **argv)
 
 	if ((dump_ttxt || dump_srt) && !trackID) {
 		GF_MediaImporter import;
-		file = gf_isom_open("ttxt_convert", GF_ISOM_OPEN_WRITE);
+		file = gf_isom_open("ttxt_convert", GF_ISOM_OPEN_WRITE, NULL);
 		memset(&import, 0, sizeof(GF_MediaImporter));
 		import.dest = file;
 		import.in_name = inName;
@@ -1399,12 +1399,11 @@ int main(int argc, char **argv)
 		}
 
 		open_edit = 1;
-		file = gf_isom_open(inName, open_mode);
+		file = gf_isom_open(inName, open_mode, tmpdir);
 		if (!file) {
 			fprintf(stdout, "Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) );
 			return 1;
 		}
-		if (tmpdir) gf_isom_set_temp_dir(file, tmpdir);
 		for (i=0; i<nb_add; i++) {
 			e = import_file(file, szTracksToAdd[i], import_flags, import_fps, agg_samples);
 			if (e) {
@@ -1434,12 +1433,11 @@ int main(int argc, char **argv)
 			}
 
 			open_edit = 1;
-			file = gf_isom_open(inName, open_mode);
+			file = gf_isom_open(inName, open_mode, tmpdir);
 			if (!file) {
 				fprintf(stdout, "Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) );
 				return 1;
 			}
-			if (tmpdir) gf_isom_set_temp_dir(file, tmpdir);
 		}
 		for (i=0; i<nb_cat; i++) {
 			e = cat_isomedia_file(file, szFilesToCat[i], import_flags, import_fps, agg_samples, tmpdir);
@@ -1461,7 +1459,7 @@ int main(int argc, char **argv)
 			fprintf(stdout, "chunk encoding syntax: [-outctx outDump] -inctx inScene auFile\n");
 			return 1;
 		}
-		e = EncodeFileChunk(inName, outName ? outName : inName, input_ctx, output_ctx);
+		e = EncodeFileChunk(inName, outName ? outName : inName, input_ctx, output_ctx, tmpdir);
 		if (e) fprintf(stdout, "Error encoding chunk file %s\n", gf_error_to_string(e));
 		return e ? 1 : 0;
 	}
@@ -1483,7 +1481,7 @@ int main(int argc, char **argv)
 			outfile[strlen(outfile)-1] = 0;
 		}
 		strcat(outfile, ".mp4");
-		file = gf_isom_open(outfile, GF_ISOM_WRITE_EDIT);
+		file = gf_isom_open(outfile, GF_ISOM_WRITE_EDIT, tmpdir);
 		e = EncodeFile(inName, file, do_log ? logfile : NULL, mediaSource ? mediaSource : outfile, encode_flags, rap_freq);
 		if (e) goto err_exit;
 #else
@@ -1499,10 +1497,10 @@ int main(int argc, char **argv)
 		}
 		switch (get_file_type_by_ext(inName)) {
 		case 1:
-			file = gf_isom_open(inName, (u8) (open_edit ? GF_ISOM_OPEN_EDIT : ( (dump_isom>0) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ));
+			file = gf_isom_open(inName, (u8) (open_edit ? GF_ISOM_OPEN_EDIT : ( (dump_isom>0) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ), tmpdir);
 			if (!file) {
 				if (open_edit) {
-					file = gf_isom_open(inName, GF_ISOM_WRITE_EDIT);
+					file = gf_isom_open(inName, GF_ISOM_WRITE_EDIT, tmpdir);
 					if (!outName && file) outName = inName;
 				}
 
@@ -1526,7 +1524,7 @@ int main(int argc, char **argv)
 			} else
 #endif
 			if (open_edit) {
-				file = gf_isom_open(inName, GF_ISOM_WRITE_EDIT);
+				file = gf_isom_open(inName, GF_ISOM_WRITE_EDIT, tmpdir);
 				if (!outName && file) outName = inName;
 			} else if (!file_exists) {
 				fprintf(stdout, "Error creating file %s: %s\n", inName, gf_error_to_string(GF_URL_ERROR));
@@ -1585,7 +1583,7 @@ int main(int argc, char **argv)
 	if ((dump_ttxt || dump_srt) && trackID) dump_timed_text_track(file, trackID, dump_std ? NULL : outfile, 0, dump_srt);
 	
 	if (split_duration || split_size) {
-		split_isomedia_file(file, split_duration, split_size, inName, InterleavingTime, split_start);
+		split_isomedia_file(file, split_duration, split_size, inName, InterleavingTime, split_start, tmpdir);
 		/*never save file when splitting is desired*/
 		open_edit = 0;
 	}

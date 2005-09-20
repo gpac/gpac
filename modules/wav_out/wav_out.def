@@ -1,4 +1,4 @@
-LIBRARY     wav_out.dll
+LIBRARY     gm_wav_out.dll
 
 EXPORTS
 	QueryInterface

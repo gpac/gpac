@@ -3560,7 +3560,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	/*try with MP4*/
 	if (gf_isom_probe_file(importer->in_name)) {
 		GF_Err res;
-		importer->orig = gf_isom_open(importer->in_name, GF_ISOM_OPEN_READ);
+		importer->orig = gf_isom_open(importer->in_name, GF_ISOM_OPEN_READ, NULL);
 		if (!importer->orig) return gf_isom_last_error(NULL);
 		res = gf_import_isomedia(importer);
 		gf_isom_delete(importer->orig);

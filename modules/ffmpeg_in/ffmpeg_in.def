@@ -1,4 +1,4 @@
-LIBRARY     ffmpeg_in.dll
+LIBRARY     gm_ffmpeg_in.dll
 
 EXPORTS
 	QueryInterface

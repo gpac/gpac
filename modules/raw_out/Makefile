@@ -15,7 +15,7 @@ OBJS= raw_video.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=raw_out.$(DYN_LIB_SUFFIX)
+LIB=gm_raw_out.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols raw_out.def 
 endif

@@ -1060,8 +1060,7 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 			Bool lock_ok = gf_mx_try_lock(sr->mx);
 			sr->new_width = event->size.width;
 			sr->new_height = event->size.height;
-			sr->msg_type |= GF_SR_CFG_SET_SIZE /*| GF_SR_CFG_WINDOWSIZE_NOTIF*/;
-			//if (!sr->user->os_window_handler) sr->msg_type |= GF_SR_CFG_WINDOWSIZE_NOTIF;
+			sr->msg_type |= GF_SR_CFG_SET_SIZE;
 			if (lock_ok) gf_sr_lock(sr, 0);
 		}
 		break;

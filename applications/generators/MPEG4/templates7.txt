@@ -81,23 +81,81 @@
 #
 
 
-PROTO DepthImageV2 [ #%NDT=SFWorldNode,SF3DNode,SFDepthImageNode %COD=N
-field		SFDepthTextureNode	diTexture	NULL
-field		SFFloat		farPlane	100		#%b=[0,+I]
-field		SFVec2f		fieldOfView	0.75 0.75	#%b=[0,3.1415927]
-field		SFFloat		nearPlane	10	 	#%b=[0,+I]
-field		SFRotation	orientation	0 0 1 0
-field		SFBool		orthographic	TRUE		
-field		SFVec3f		position	0 0 10		#%b=[-I,+I]
-field 		SFVec2f 	splatMinMax 	0.115 0.975 	#%b=[-I,+I]
+PROTO AdvancedAudioBuffer [ #%NDT=SFWorldNode,SFAudioNode %COD=N
+eventIn       MFAudioNode addChildren
+eventIn       MFAudioNode removeChildren
+exposedField  MFAudioNode children					    []
+exposedField  SFBool      loop					 FALSE
+exposedField  SFFloat     pitch                                1.0                 #%b=[0,+I]      #%q=0   #%a=7
+exposedField  SFTime      startTime                              0                 #%b=[0,+I]      #%q=0
+exposedField  SFTime      stopTime                               0                 #%b=[0,+I]      #%q=0
+exposedField  SFTime      startLoadTime                          0                 #%b=[0,+I]      #%q=0
+exposedField  SFTime      stopLoadTime                           0                 #%b=[0,+I]      #%q=0
+exposedField  SFInt32     loadMode                               0                 #%b=[0,4]       #%q=13 3
+exposedField  SFInt32     numAccumulatedBlocks                   0                 #%b=[0,65535]   #%q=13 16
+exposedField  SFInt32     deleteBlock                            0                 #%b=[-65536, 0] #%q=13 17
+exposedField  SFInt32     playBlock                              0                 #%b=[-65536, 0] #%q=13 17
+exposedField  SFFloat     length                               0.0                 #%b=[0,+I]      #%q=0
+field         SFInt32     numChan                                1                 #%b=[0,255]     #%q=13 8
+field         MFInt32     phaseGroup                             []                #%b=[0,255]     #%q=13 8
+eventOut      SFTime      duration_changed
+eventOut      SFBool      isActive
 ]{}
 
 
-PROTO MorphShape[ #%NDT=SFWorldNode, SF3DNode,SF2DNode, %COD=N
-exposedField	SFInt32 				morphID  0
-exposedField	SFShapeNode 		baseShape NULL
-exposedField	MFGeometryNode 	targetShapes []
-exposedField	MFFloat 				weights []
+PROTO AudioChannelConfig [ #%NDT=SFWorldNode,SFAudioNode %COD=N
+eventIn       MFAudioNode addChildren
+eventIn       MFAudioNode removeChildren
+exposedField  MFAudioNode children                               []
+exposedField  SFInt32     generalChannelFormat                   0                 #%b=[0,4]     #%q=13 3
+exposedField  SFInt32     fixedPreset                            0                 #%b=[0,15]    #%q=13 4
+exposedField  SFInt32     fixedPresetSubset                      0                 
+exposedField  SFInt32     fixedPresetAddInf                      0                 #%b=[0,2]     #%q=13 3
+exposedField  MFInt32     channelCoordinateSystems               []                #%b=[0,6]     #%q=13 3
+exposedField  MFFloat     channelSoundLocation                   []                #%b=[-I,+I]
+exposedField  MFInt32     channelDirectionalPattern              []                #%b=[0,2]     #%q=13 3
+exposedField  MFVec3f     channelDirection                       []					
+exposedField  SFInt32     ambResolution2D                        1				   #%b=[0,127]   #%q=13 7	
+exposedField  SFInt32     ambResolution3D                        0				   #%b=[0,15]    #%q=13 4
+exposedField  SFInt32     ambEncodingConvention                  0				   #%b=[0,5]     #%q=13 3
+exposedField  SFFloat     ambNfcReferenceDistance                1.5			   #%b=[0,+I]     
+exposedField  SFFloat     ambSoundSpeed                          340.0			   #%b=[0,+I]
+exposedField  SFInt32     ambArrangementRule                     0                 #%b=[0,7]     #%q=13 3
+exposedField  SFInt32     ambRecombinationPreset				 0				   #%b=[0,15]	 #%q=13 4
+exposedField  MFInt32     ambComponentIndex                      []				   #%b=[0,255]	 #%q=13 8	
+exposedField  MFFloat     ambBackwardMatrix                      []				   #%b=[-I,+I]
+exposedField  MFInt32     ambSoundfieldResolution                []				   #%b=[0,127]	 #%q=13 7
+field         SFInt32     numChannel                             0                 #%b=[0,255]   #%q=13 8
+]{}
+
+PROTO DepthImageV2 [ #%NDT=SFWorldNode,SF3DNode,SFDepthImageNode %COD=N
+field		SFDepthTextureNode	diTexture	NULL
+exposedField		SFFloat		farPlane	100		#%b=[0,+I]
+exposedField		SFVec2f		fieldOfView	0.75 0.75	#%b=[0,3.1415927]
+exposedField		SFFloat		nearPlane	10	 	#%b=[0,+I]
+exposedField		SFRotation	orientation	0 0 1 0
+exposedField		SFBool		orthographic	TRUE		
+exposedField		SFVec3f		position	0 0 10		#%b=[-I,+I]
+field 	SFVec2f 	splatMinMax 	0.115 0.975 	#%b=[-I,+I]
+]{}
+
+
+PROTO MorphShape [ #%NDT=SFWorldNode,SF3DNode,SF2DNode, %COD=N
+	exposedField SF3DNode 	baseShape	NULL
+	exposedField SFInt32 	morphID	0 			#%b=[0, 1023] #%q=13 7
+	exposedField MF3DNode 	targetShapes [ ]
+	exposedField MFFloat 	weights [ ]
+]{}
+
+PROTO MultiTexture [ #%NDT=SFWorldNode,SFTextureNode %COD=N
+  exposedField SFFloat			alpha            	1     	#%b=[0,1]
+  exposedField SFColor 			color            	1 1 1 	#%b=[0,1] 
+  exposedField MFInt32			function         	[]
+  exposedField MFInt32			mode             	[]
+  exposedField MFInt32			source           	[]
+  exposedField MFTextureNode		texture          	[]    	
+  exposedField MFVec3f  		cameraVector		[] 
+  exposedField SFBool			transparent      	FALSE
 ]{}
 
 PROTO PointTextureV2 [ #%NDT=SFWorldNode,SFDepthTextureNode %COD=N
@@ -112,6 +170,19 @@ field		SFInt32		width		256		#%b=[1,+I]
 ]{}
 
 
+PROTO SBVCAnimationV2 [ #%NDT=SFWorldNode,SF3DNode,SF2DNode %COD=N
+ 	exposedField 	MFInt32 	activeUrlIndex[]   
+ 	exposedField	SFBool 	loop 			FALSE 
+ 	exposedField 	SFFloat speed			1.0 #%b=(-I,+I) #%q=0 #%a=7
+ 	exposedField 	SFTime 	startTime 		0 #%b=(-I,+I)
+ 	exposedField 	SFTime 	stopTime 		0 #%b=(-I,+I)
+	exposedField 	SFFloat transitionTime		0 #%b=[0,+I) #%q=0 #%a=7
+	exposedField	MFURL 	url 			[ ]
+	exposedField 	MF3DNode 	virtualCharacters 	[ ]
+ 	eventOut 	SFTime 	duration_changed	
+ 	eventOut 	SFBool 	isActive	
+]{}
+	
 PROTO SimpleTextureV2 [ #%NDT=SFWorldNode,SFDepthTextureNode %COD=N
 field 		SFTextureNode	depth	        NULL
 field 		SFTextureNode 	normal		NULL
@@ -120,7 +191,45 @@ field 		SFTextureNode 	splatV 		NULL
 field		SFTextureNode	texture		NULL
 ]{}
 
+PROTO SurroundingSound [ #%NDT=SFWorldNode,SF3DNode %COD=N
+exposedField    SFAudioNode     source                           NULL
+exposedField    SFFloat         intensity                        1.0               #%b=[0,1]     #%q=0   #%a=7
+exposedField    SFFloat         distance                         0.0               #%b=[0,+I]    #%q=0
+exposedField    SFVec3f         location                         0.0 0.0 0.0       #%b=[-I,+I]   #%q=1   #%a=1
+exposedField    SFFloat         distortionFactor                 0.0               #%b=[-I,+I]
+exposedField    SFRotation      orientation                      0.0 0.0 1.0 0.0   #%b=[-I,+I]   #%q=10  #%a=10
+exposedField    SFBool          isTransformable                  TRUE
+]{}
 
 
+PROTO Transform3DAudio [ #%NDT=SFWorldNode,SF2DNode,SF3DNode %COD=N
+eventIn         MF3DNode        addChildren
+eventIn         MF3DNode        removeChildren
+exposedField    MF3DNode        children                         []
+exposedField    SFFloat         thirdCenterCoordinate            0.0               #%b=[-I,+I]   #%q=0   #%a=7
+exposedField    SFVec3f         rotationVector                   0.0 0.0 1.0       #%b=[-PI,PI]  #%q=7   #%a=11
+exposedField    SFFloat         thirdScaleCoordinate             0.0               #%b=[0,+I]    #%q=0   #%a=7
+exposedField    SFVec3f         scaleOrientationVector           0.0 0.0 1.0       #%b=[-1,1]    #%q=7   #%a=11
+exposedField    SFFloat         thirdTranslationCoordinate       0.0               #%b=[-I,+I]   #%q=0   #%a=7
+exposedField    SFRotation      coordinateTransform              1.0 0.0 0.0 -PI/2 #%b=[-PI,PI]  #%q=10 
+]{}
 
+
+PROTO WideSound [ #%NDT=SFWorldNode,SF3DNode %COD=N
+exposedField    SFAudioNode                source                NULL
+exposedField    SFFloat                    intensity             1                 #%b=[0,1]     #%q=0   #%a=7
+exposedField    SFVec3f                    location              0.0 0.0 0.0       #%b=[-I,+I]   #%q=1   #%a=1
+exposedField    SFBool                     spatialize            TRUE
+exposedField    SFPerceptualParameterNode  perceptualParameters  NULL
+exposedField    SFBool                     roomEffect            FALSE
+exposedField    SFInt32                    shape                 0                 #%b=[0,4]     #%q=13 4
+exposedField    MFFloat                    size                  0.0               #%b=[-I,+I]
+exposedField    SFVec3f                    direction             0.0 1.0 0.0       #%b=[-I,+I]   #%q=9   #%a=9
+exposedField    SFFloat                    density               0.5               #%b=[0,+I]
+exposedField    SFInt32                    diffuseSelect         1                 #%b=[0,+I]    #%q=0
+exposedField    SFFloat                    decorrStrength        1.0               #%b=[0,1]
+field           SFFloat                    speedOfSound          340.0             #%b=[0,+I]     #%q=1
+field           SFFloat                    distance              1000.0            #%b=[0,+I]    #%q=0
+field           SFBool                     useAirabs             FALSE
+]{}
 

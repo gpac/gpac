@@ -1,4 +1,4 @@
-LIBRARY     ogg_xiph.dll
+LIBRARY     gm_ogg_xiph.dll
 
 EXPORTS
 	QueryInterface

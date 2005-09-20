@@ -564,7 +564,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	TrackFragmenter *tf;
 
 	//create output file
-	output = gf_isom_open(output_file, GF_ISOM_OPEN_WRITE);
+	output = gf_isom_open(output_file, GF_ISOM_OPEN_WRITE, NULL);
 	if (!output) return gf_isom_last_error(NULL);
 
 	nb_samp = 0;

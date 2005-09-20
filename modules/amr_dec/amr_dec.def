@@ -1,4 +1,4 @@
-LIBRARY     amr_dec.dll
+LIBRARY     gm_amr_dec.dll
 
 EXPORTS
 	QueryInterface

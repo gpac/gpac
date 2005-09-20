@@ -1,4 +1,4 @@
-LIBRARY     dx_hw.dll
+LIBRARY     gm_dx_hw.dll
 
 EXPORTS
 	QueryInterface

@@ -581,7 +581,7 @@ int main (int argc, char **argv)
 		PrintUsage();
 		return 0;
 	}
-	file = gf_isom_open(inName, GF_ISOM_OPEN_READ);
+	file = gf_isom_open(inName, GF_ISOM_OPEN_READ, NULL);
 	if (!file) {
 		printf("Error opening file: %s\n", gf_error_to_string(gf_isom_last_error(NULL)));
 		return 0;

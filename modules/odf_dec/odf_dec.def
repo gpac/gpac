@@ -1,4 +1,4 @@
-LIBRARY     odf_dec.dll
+LIBRARY     gm_odf_dec.dll
 
 EXPORTS
 	QueryInterface

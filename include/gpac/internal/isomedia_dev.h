@@ -1682,7 +1682,7 @@ GF_TrackBox *gf_isom_get_track(GF_MovieBox *moov, u32 trackNumber);
 GF_TrackBox *gf_isom_get_track_from_id(GF_MovieBox *moov, u32 trackID);
 u32 gf_isom_get_tracknum_from_id(GF_MovieBox *moov, u32 trackID);
 /*open a movie*/
-GF_ISOFile *gf_isom_open_file(const char *fileName, u8 OpenMode);
+GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tmp_dir);
 /*close and delete a movie*/
 void gf_isom_delete_movie(GF_ISOFile *mov);
 /*StreamDescription reconstruction Functions*/
@@ -1739,7 +1739,7 @@ GF_Err gf_isom_rewrite_text_sample(GF_ISOSample *samp, u32 sampleDescriptionInde
 
 GF_Err FlushCaptureMode(GF_ISOFile *movie);
 GF_Err CanAccessMovie(GF_ISOFile *movie, u32 Mode);
-GF_ISOFile *MovieCreate(const char *fileName, u8 OpenMode);
+GF_ISOFile *gf_isom_create_movie(const char *fileName, u32 OpenMode, const char *tmp_dir);
 void gf_isom_insert_moov(GF_ISOFile *file);
 
 GF_Err WriteToFile(GF_ISOFile *movie, void (*progress)(void *cbk, u32 done, u32 total), void *cbck);

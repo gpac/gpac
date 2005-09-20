@@ -1,4 +1,4 @@
-LIBRARY     ctx_load.dll
+LIBRARY     gm_ctx_load.dll
 
 EXPORTS
 	QueryInterface

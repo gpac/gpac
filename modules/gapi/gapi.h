@@ -72,6 +72,8 @@ typedef struct
 	Bool erase_dest;
 	u32 off_x, off_y;
 
+	HBITMAP bitmap;
+    DWORD * bits;
 #ifdef GPAC_USE_OGL_ES
 	Bool is_3D;
 	GF_GLConfig gl_cfg;
@@ -79,9 +81,6 @@ typedef struct
     EGLSurface surface;
     EGLConfig eglconfig;
     EGLContext eglctx;
-	HBITMAP bitmap;
-    DWORD * bits;
-	RECT rc_bck;
 #endif
 
 } GAPIPriv;

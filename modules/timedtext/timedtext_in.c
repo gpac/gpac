@@ -95,7 +95,7 @@ GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 	} else {
 		sprintf(szFILE, "%d_temp_mp4", (u32) tti);
 	}
-	tti->mp4 = gf_isom_open(szFILE, GF_ISOM_OPEN_WRITE);
+	tti->mp4 = gf_isom_open(szFILE, GF_ISOM_OPEN_WRITE, NULL);
 	if (!tti->mp4) return gf_isom_last_error(NULL);
 
 	tti->szFile = strdup(szFILE);

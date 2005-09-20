@@ -87,20 +87,23 @@ void gf_modules_unload_library(ModuleInstance *inst)
 /*refresh modules - note we don't check for deleted modules but since we've open them the OS should forbid delete*/
 u32 gf_modules_refresh(GF_ModuleManager *pm)
 {
+#if CHECK_MODULE
 	QueryInterface query_func;
 	LoadInterface load_func;
 	ShutdownInterface del_func;
+	HMODULE ModuleLib;
+	unsigned short w_file[GF_MAX_PATH];
+#endif
+	
 	ModuleInstance *inst;
 
 	unsigned short w_path[GF_MAX_PATH];
-	unsigned short w_file[GF_MAX_PATH];
 
 	unsigned char path[GF_MAX_PATH];
 	unsigned char file[GF_MAX_PATH];
 
 	WIN32_FIND_DATA FindData;
 	HANDLE SearchH;
-	HMODULE ModuleLib;
 	
 	if (!pm) return 0;
 
@@ -112,8 +115,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 	if (SearchH == INVALID_HANDLE_VALUE) return 0;
 	while (SearchH != INVALID_HANDLE_VALUE) {
 	
-//#if IM_PARANOIAC
-#if 1
+#if CHECK_MODULE
 		/*Load the current file*/
 		sprintf(file, "%s%c", pm->dir, GF_PATH_SEPARATOR);
 

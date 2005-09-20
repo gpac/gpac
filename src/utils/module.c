@@ -90,20 +90,24 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	if (!inst) return NULL;
 	if (!gf_modules_load_library(inst)) return NULL;
 
-	if (! inst->query_func(InterfaceFamily) ) return NULL;
+	if (! inst->query_func(InterfaceFamily) ) goto err_exit;
 
 	ifce = (GF_BaseInterface *) inst->load_func(InterfaceFamily);
-	if (!ifce) return NULL;
-
 	/*sanity check*/
+	if (!ifce) goto err_exit;
+
 	if (!ifce->module_name || (ifce->InterfaceType != InterfaceFamily)) {
 		inst->destroy_func(ifce);
-		return NULL;
+		goto err_exit;
 	}
 	gf_list_add(inst->interfaces, ifce);
 	/*keep track of parent*/
 	ifce->HPLUG = inst;
 	return ifce;
+
+err_exit:
+	gf_modules_unload_library(inst);
+	return NULL;
 }
 
 

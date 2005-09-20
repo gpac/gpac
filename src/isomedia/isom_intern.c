@@ -264,7 +264,7 @@ GF_ISOFile *gf_isom_new_movie()
 }
 
 //Create and parse the movie for READ - EDIT only
-GF_ISOFile *gf_isom_open_file(const char *fileName, u8 OpenMode)
+GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tmp_dir)
 {
 	GF_Err e;
 	u64 bytes;
@@ -324,7 +324,7 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, u8 OpenMode)
 			return NULL;
 		}
 		//and create a temp fileName for the edit
-		e = gf_isom_datamap_new("mp4_tmp_edit", NULL, GF_ISOM_DATA_MAP_WRITE, & mov->editFileMap);
+		e = gf_isom_datamap_new("mp4_tmp_edit", tmp_dir, GF_ISOM_DATA_MAP_WRITE, & mov->editFileMap);
 		if (e) {
 			gf_isom_set_last_error(NULL, e);
 			gf_isom_delete_movie(mov);
@@ -355,11 +355,6 @@ u64 gf_isom_get_mp4time()
 	ret = calctime;
 	return ret;
 }
-
-#ifndef GPAC_READ_ONLY
-
-
-#endif
 
 void gf_isom_delete_movie(GF_ISOFile *mov)
 {
@@ -620,7 +615,7 @@ void gf_isom_insert_moov(GF_ISOFile *file)
 }
 
 //Create the movie for WRITE only
-GF_ISOFile *MovieCreate(const char *fileName, u8 OpenMode)
+GF_ISOFile *gf_isom_create_movie(const char *fileName, u32 OpenMode, const char *tmp_dir)
 {
 	GF_Err e;
 	GF_Box *moov_New();
@@ -650,7 +645,7 @@ GF_ISOFile *MovieCreate(const char *fileName, u8 OpenMode)
 		//we are in EDIT mode but we are creating the file -> temp file
 		mov->finalName = (char*)malloc(strlen(fileName) + 1);
 		strcpy(mov->finalName, fileName);
-		e = gf_isom_datamap_new("mp4_tmp_edit", NULL, GF_ISOM_DATA_MAP_WRITE, & mov->editFileMap);
+		e = gf_isom_datamap_new("mp4_tmp_edit", tmp_dir, GF_ISOM_DATA_MAP_WRITE, & mov->editFileMap);
 		if (e) {
 			gf_isom_set_last_error(NULL, e);
 			gf_isom_delete_movie(mov);

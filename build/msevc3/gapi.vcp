@@ -59,7 +59,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 gx.lib commctrl.lib coredll.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /nodefaultlib:"$(CENoDefaultLib)" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
-# ADD LINK32 gx.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /out:"../../bin/arm_ppc02_rel/gapi.dll" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
+# ADD LINK32 gx.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /out:"../../bin/arm_ppc02_rel/gm_gapi.dll" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
 
 !ELSEIF  "$(CFG)" == "gapi - Win32 (WCE ARM) Debug"
 
@@ -90,7 +90,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 gx.lib commctrl.lib coredll.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /debug /nodefaultlib:"$(CENoDefaultLib)" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
-# ADD LINK32 gx.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /debug /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc02_deb/gapi.dll" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
+# ADD LINK32 gx.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /debug /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc02_deb/gm_gapi.dll" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
 # SUBTRACT LINK32 /pdb:none
 
 !ENDIF 
@@ -106,6 +106,8 @@ DEP_CPP_COLOR=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_COLOR=\
 	"..\..\modules\gapi\ColorTools.h"\
 	
 # End Source File
@@ -127,10 +129,10 @@ DEP_CPP_GAPI_=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
-	"..\..\modules\gapi\ColorTools.h"\
 	"..\..\modules\gapi\gapi.h"\
 	
 NODEP_CPP_GAPI_=\
+	"..\..\modules\gapi\ColorTools.h"\
 	".\ipapi.h"\
 	".\x.h"\
 	".\ygshell.h"\

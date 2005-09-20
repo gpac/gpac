@@ -15,7 +15,7 @@ OBJS= dummy_in.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=dummy_in.$(DYN_LIB_SUFFIX)
+LIB=gm_dummy_in.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols dummy_in.def 
 endif

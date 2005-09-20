@@ -1,4 +1,4 @@
-LIBRARY     isom_in.dll
+LIBRARY     gm_isom_in.dll
 
 EXPORTS
 	QueryInterface

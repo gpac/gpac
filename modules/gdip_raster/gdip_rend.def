@@ -1,4 +1,4 @@
-LIBRARY     gdip_raster.dll
+LIBRARY     gm_gdip_raster.dll
 
 EXPORTS
 	QueryInterface

@@ -15,7 +15,7 @@ OBJS= ctx_load.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=ctx_load.$(DYN_LIB_SUFFIX)
+LIB=gm_ctx_load.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols ctx_load.def 
 endif

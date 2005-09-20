@@ -15,7 +15,7 @@ OBJS= bifs_dec.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=bifs_dec.$(DYN_LIB_SUFFIX)
+LIB=gm_bifs_dec.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols bifs_dec.def 
 endif

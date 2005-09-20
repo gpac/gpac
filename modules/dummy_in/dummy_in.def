@@ -1,4 +1,4 @@
-LIBRARY     dummy_in.dll
+LIBRARY     gm_dummy_in.dll
 
 EXPORTS
 	QueryInterface

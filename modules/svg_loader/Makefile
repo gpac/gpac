@@ -22,7 +22,7 @@ CFLAGS+= -I../../extra_lib/include/zlib
 LOCAL_LIB+=-L../../extra_lib/lib/gcc
 endif
 
-LIB=svg_loader.$(DYN_LIB_SUFFIX)
+LIB=gm_svg_loader.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols svg_loader.def 
 endif

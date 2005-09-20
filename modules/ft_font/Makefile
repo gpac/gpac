@@ -15,7 +15,7 @@ OBJS= ft_font.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=ft_font.$(DYN_LIB_SUFFIX)
+LIB=gm_ft_font.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols ft_font.def 
 endif

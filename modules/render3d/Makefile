@@ -19,7 +19,7 @@ LINKFLAGS=-L../../bin/gcc -lgpac
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=render3d.$(DYN_LIB_SUFFIX)
+LIB=gm_render3d.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols render3d.def 
 else

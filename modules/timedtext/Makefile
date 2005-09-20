@@ -15,7 +15,7 @@ OBJS=timedtext_dec.o timedtext_in.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=timedtext.$(DYN_LIB_SUFFIX)
+LIB=gm_timedtext.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols timedtext.def 
 endif

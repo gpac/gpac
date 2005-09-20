@@ -24,7 +24,7 @@ OBJS=x11_out.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=x11_out.$(DYN_LIB_SUFFIX)
+LIB=gm_x11_out.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols  
 endif

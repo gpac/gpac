@@ -1,4 +1,4 @@
-LIBRARY     timedtext.dll
+LIBRARY     gm_timedtext.dll
 
 EXPORTS
 	QueryInterface

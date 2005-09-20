@@ -1,4 +1,4 @@
-LIBRARY     gapi.dll
+LIBRARY     gm_gapi.dll
 
 EXPORTS
 	QueryInterface

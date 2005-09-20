@@ -54,7 +54,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /machine:I386
-# ADD LINK32 libfaad.lib /nologo /dll /machine:I386 /out:"../../bin/w32_rel/aac_in.dll" /libpath:"../../extra_lib/lib/w32_rel"
+# ADD LINK32 libfaad.lib /nologo /dll /machine:I386 /out:"../../bin/w32_rel/gm_aac_in.dll" /libpath:"../../extra_lib/lib/w32_rel"
 
 !ELSEIF  "$(CFG)" == "aac_in - Win32 Debug"
 
@@ -81,7 +81,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /dll /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 libfaad.lib /nologo /dll /debug /machine:I386 /out:"../../bin/w32_deb/aac_in.dll" /pdbtype:sept /libpath:"../../extra_lib/lib/w32_deb"
+# ADD LINK32 libfaad.lib /nologo /dll /debug /machine:I386 /out:"../../bin/w32_deb/gm_aac_in.dll" /pdbtype:sept /libpath:"../../extra_lib/lib/w32_deb"
 
 !ENDIF 
 

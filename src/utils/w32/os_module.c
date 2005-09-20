@@ -69,16 +69,18 @@ void gf_modules_unload_library(ModuleInstance *inst)
 /*refresh modules - note we don't check for deleted modules but since we've open them the OS should forbid delete*/
 u32 gf_modules_refresh(GF_ModuleManager *pm)
 {
+#if CHECK_MODULE
 	QueryInterface query_func;
 	LoadInterface load_func;
 	ShutdownInterface del_func;
+	HMODULE ModuleLib;
+#endif
 	ModuleInstance *inst;
 	unsigned char path[GF_MAX_PATH];
 	unsigned char file[GF_MAX_PATH];
 
 	WIN32_FIND_DATA FindData;
 	HANDLE SearchH;
-	HMODULE ModuleLib;
 	
 	if (!pm) return 0;
 
@@ -86,11 +88,10 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 	SearchH= FindFirstFile(path, &FindData);
 	if (SearchH == INVALID_HANDLE_VALUE) return 0;
 	while (SearchH != INVALID_HANDLE_VALUE) {
-	
-		if (!strstr(FindData.cFileName, ".dll")) goto next;
-		if (!strcmp(FindData.cFileName, "nposmozilla.dll")) goto next;
 
-		/*Load the current file*/
+		if (!strstr(FindData.cFileName, ".dll")) goto next;
+#if CHECK_MODULE
+		if (!strcmp(FindData.cFileName, "nposmozilla.dll")) goto next;
 		sprintf(file, "%s%c%s", pm->dir, GF_PATH_SEPARATOR, FindData.cFileName);
 
 		ModuleLib = LoadLibrary(file);
@@ -113,8 +114,11 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 			FreeLibrary(ModuleLib);
 			goto next;
 		}
-
 		FreeLibrary(ModuleLib);
+#else
+		if (strncmp(FindData.cFileName, "gm_", 3)) goto next;
+		strcpy(file, FindData.cFileName);
+#endif
 
 		GF_SAFEALLOC(inst, sizeof(ModuleInstance));
 		inst->interfaces = gf_list_new();

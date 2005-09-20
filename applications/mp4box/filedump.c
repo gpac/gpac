@@ -52,7 +52,7 @@ void dump_file_text(char *file, char *inName, u32 dump_mode)
 	load.swf_flatten_limit = swf_flatten_angle;
 
 	if (get_file_type_by_ext(file) == 1) {
-		load.isom = gf_isom_open(file, GF_ISOM_OPEN_READ);
+		load.isom = gf_isom_open(file, GF_ISOM_OPEN_READ, NULL);
 		if (!load.isom) {
 			fprintf(stdout, "Cannot open file: %s\n", gf_error_to_string(gf_isom_last_error(NULL)));
 			gf_sm_del(ctx);
@@ -218,7 +218,7 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 	load.ctx = ctx;
 
 	if (get_file_type_by_ext(file) == 1) {
-		load.isom = gf_isom_open(file, GF_ISOM_OPEN_READ);
+		load.isom = gf_isom_open(file, GF_ISOM_OPEN_READ, NULL);
 		if (!load.isom) {
 			fprintf(stdout, "Cannot open file: %s\n", gf_error_to_string(gf_isom_last_error(NULL)));
 			gf_sm_del(ctx);

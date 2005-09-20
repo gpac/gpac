@@ -19,7 +19,7 @@ OBJS= oss.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=oss_audio.$(DYN_LIB_SUFFIX)
+LIB=gm_oss_audio.$(DYN_LIB_SUFFIX)
 
 all: $(LIB)
 

@@ -105,7 +105,7 @@ void isor_on_data(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 			return;
 		}
 		e = GF_OK;
-		read->mov = gf_isom_open(local_name, GF_ISOM_OPEN_READ);
+		read->mov = gf_isom_open(local_name, GF_ISOM_OPEN_READ, NULL);
 		if (!read->mov) e = gf_isom_last_error(NULL);
 		else read->time_scale = gf_isom_get_timescale(read->mov);
 		gf_term_on_connect(read->service, NULL, GF_OK);
@@ -185,7 +185,7 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 	}
 
 	if (isor_is_local(szURL)) {
-		if (!read->mov) read->mov = gf_isom_open(szURL, GF_ISOM_OPEN_READ);
+		if (!read->mov) read->mov = gf_isom_open(szURL, GF_ISOM_OPEN_READ, NULL);
 		if (!read->mov) {
 			gf_term_on_connect(serv, NULL, gf_isom_last_error(NULL));
 			return GF_OK;

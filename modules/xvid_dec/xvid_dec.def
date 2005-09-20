@@ -1,4 +1,4 @@
-LIBRARY     xvid_dec.dll
+LIBRARY     gm_xvid_dec.dll
 
 EXPORTS
 	QueryInterface

@@ -272,7 +272,7 @@ u32 DD_WindowThread(void *par)
 	HINSTANCE hInst;
 	DDContext *ctx = (DDContext *)the_video_driver->opaque;
 
-	hInst = GetModuleHandle("dx_hw.dll");
+	hInst = GetModuleHandle("gm_dx_hw.dll");
 	memset(&wc, 0, sizeof(WNDCLASS));
 	wc.style = CS_BYTEALIGNWINDOW;
 	wc.hInstance = hInst;
@@ -357,7 +357,7 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 	}
 	PostMessage(ctx->fs_hwnd, WM_DESTROY, 0, 0);
 	while (ctx->th_state!=2) gf_sleep(10);
-	UnregisterClass("GPAC DirectDraw Output", GetModuleHandle("dx_hw.dll"));
+	UnregisterClass("GPAC DirectDraw Output", GetModuleHandle("gm_dx_hw.dll"));
 	gf_th_del(ctx->th);
 	ctx->th = NULL;
 	ctx->os_hwnd = NULL;

@@ -88,7 +88,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 commctrl.lib coredll.lib /nologo /base:"0x00010000" /stack:0x10000,0x1000 /entry:"WinMainCRTStartup" /debug /nodefaultlib:"$(CENoDefaultLib)" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
-# ADD LINK32 zlib.lib js.lib winsock.lib /nologo /base:"0x00010000" /stack:0x10000,0x1000 /entry:"WinMainCRTStartup" /debug /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc03_deb/osmophone.exe" /libpath:"../../extra_lib/lib/arm_ppc03_deb" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
+# ADD LINK32 aygshell.lib commctrl.lib gx.lib /nologo /base:"0x00010000" /stack:0x10000,0x1000 /entry:"WinMainCRTStartup" /debug /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc03_deb/osmophone.exe" /libpath:"../../extra_lib/lib/arm_ppc03_deb" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
 
 !ENDIF 
 
@@ -114,10 +114,8 @@ DEP_CPP_MAIN_=\
 	{$(INCLUDE)}"aygshell.h"\
 	{$(INCLUDE)}"gx.h"\
 	{$(INCLUDE)}"sipapi.h"\
+	{$(INCLUDE)}"vibrate.h"\
 	{$(INCLUDE)}"winuserm.h"\
-	
-NODEP_CPP_MAIN_=\
-	"C:\Program Files\Windows CE Tools\wce420\POCKET PC 2003\Include\ARMV4\vibrate.h"\
 	
 # End Source File
 # Begin Source File
@@ -128,10 +126,8 @@ DEP_CPP_OPENF=\
 	"..\..\include\gpac\tools.h"\
 	{$(INCLUDE)}"aygshell.h"\
 	{$(INCLUDE)}"sipapi.h"\
+	{$(INCLUDE)}"vibrate.h"\
 	{$(INCLUDE)}"winuserm.h"\
-	
-NODEP_CPP_OPENF=\
-	"C:\Program Files\Windows CE Tools\wce420\POCKET PC 2003\Include\ARMV4\vibrate.h"\
 	
 # End Source File
 # Begin Source File

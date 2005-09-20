@@ -15,7 +15,7 @@ OBJS= load.o read.o read_ch.o cache.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=isom_in.$(DYN_LIB_SUFFIX)
+LIB=gm_isom_in.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols isom_in.def 
 endif

@@ -1,4 +1,6 @@
-Latest CVS Changes 16/09/05
+Latest CVS Changes 20/09/05
+  - changed module naming - all modules are now prefixed with "gm_", and module is loaded/unloaded at run-time
+  - changed isomedia file open API for better support of temporary directories
   - simplified 2D blitter for non DirectX output: no more in-middle surface used, direct stretch, blit and yuv conversion to back buffer
   - added software and hardware support for MaterialKey in 2D renderer
   - added all project files for evc4

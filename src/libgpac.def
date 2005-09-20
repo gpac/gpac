@@ -458,7 +458,6 @@ EXPORTS
 	gf_isom_next_hint_packet
 
 ;NON-READ-ONLY exports
-	gf_isom_set_temp_dir
 	gf_isom_set_timescale
 	gf_isom_new_track
 	gf_isom_remove_track

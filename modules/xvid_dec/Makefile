@@ -21,7 +21,7 @@ EXTRALIBS+= -lxvidcore
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=xvid_dec.$(DYN_LIB_SUFFIX)
+LIB=gm_xvid_dec.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols xvid_dec.def 
 endif

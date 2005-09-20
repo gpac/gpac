@@ -240,7 +240,7 @@ typedef struct
 	u32 stop_state;
 } TKInfo;
 
-GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time)
+GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, const char *tmpdir)
 {
 	u32 i, count, nb_tk, needs_rap_sync, cur_file, conv_type, nb_tk_done, nb_samp, nb_done, di;
 	Double max_dur, cur_file_time;
@@ -434,7 +434,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		} else {
 			sprintf(szFile, "%s_%03d%s", szName, cur_file+1, ext);
 		}
-		dest = gf_isom_open(szFile, GF_ISOM_WRITE_EDIT);
+		dest = gf_isom_open(szFile, GF_ISOM_WRITE_EDIT, tmpdir);
 		/*clone all tracks*/
 		for (i=0; i<nb_tk; i++) {
 			tki = &tks[i];
@@ -741,12 +741,11 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 
 	e = GF_OK;
 	if (!gf_isom_probe_file(fileName)) {
-		orig = gf_isom_open("temp", GF_ISOM_WRITE_EDIT);
-		if (tmp_dir) gf_isom_set_temp_dir(orig, tmp_dir);
+		orig = gf_isom_open("temp", GF_ISOM_WRITE_EDIT, tmp_dir);
 		e = import_file(orig, fileName, import_flags, force_fps, frames_per_sample);
 		if (e) return e;
 	} else {
-		orig = gf_isom_open(fileName, GF_ISOM_OPEN_READ);
+		orig = gf_isom_open(fileName, GF_ISOM_OPEN_READ, NULL);
 	}
 
 	nb_samp = 0;
@@ -1215,7 +1214,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
                    can be NULL, without .bt
  * @logFile: can be NULL
  */
-GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext) 
+GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir) 
 {
 	GF_Err e;
 	GF_SceneGraph *sg;
@@ -1285,7 +1284,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 		if (do_enc) {
 			GF_ISOFile *mp4;
 			strcat(szF, ".mp4");
-			mp4 = gf_isom_open(szF, GF_ISOM_WRITE_EDIT);
+			mp4 = gf_isom_open(szF, GF_ISOM_WRITE_EDIT, tmpdir);
 			e = gf_sm_encode_to_file(ctx, mp4, NULL, NULL, 0, 0);
 			if (e) gf_isom_delete(mp4);
 			else gf_isom_close(mp4);

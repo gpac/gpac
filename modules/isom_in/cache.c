@@ -53,7 +53,7 @@ static GF_Err ISOW_Open(GF_StreamingCache *mc, GF_ClientService *serv, const cha
 	}
 	
 	/*create a new movie in write mode (eg no editing)*/
-	cache->mov = gf_isom_open(szPath, GF_ISOM_OPEN_WRITE);
+	cache->mov = gf_isom_open(szPath, GF_ISOM_OPEN_WRITE, NULL);
 	if (!cache->mov) return gf_isom_last_error(NULL);
 	cache->service = serv;
 	return GF_OK;

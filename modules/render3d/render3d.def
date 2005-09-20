@@ -1,4 +1,4 @@
-LIBRARY     render3d.dll
+LIBRARY     gm_render3d.dll
 
 EXPORTS
 	QueryInterface

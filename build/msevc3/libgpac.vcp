@@ -110,6 +110,20 @@ DEP_CPP_BITST=\
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\utils\color.c
+DEP_CPP_COLOR=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\utils\configfile.c
 DEP_CPP_CONFI=\
 	"..\..\include\gpac\config.h"\
@@ -278,11 +292,6 @@ DEP_CPP_XML_P=\
 # Begin Source File
 
 SOURCE=..\..\src\utils\yuv_to_rgb.c
-DEP_CPP_YUV_T=\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\yuv.h"\
-	
 # End Source File
 # End Group
 # Begin Group "odf"
@@ -297,6 +306,7 @@ DEP_CPP_DESC_=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -312,6 +322,7 @@ DEP_CPP_DESCR=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -324,6 +335,7 @@ DEP_CPP_IPMPX=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -336,6 +348,7 @@ DEP_CPP_IPMPX_=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -348,6 +361,7 @@ DEP_CPP_IPMPX_P=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -360,6 +374,7 @@ DEP_CPP_OCI_C=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -372,6 +387,7 @@ DEP_CPP_ODF_C=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\utf.h"\
 	
@@ -385,6 +401,7 @@ DEP_CPP_ODF_CO=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -397,6 +414,7 @@ DEP_CPP_ODF_COM=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -417,6 +435,7 @@ DEP_CPP_ODF_D=\
 	"..\..\include\gpac\media_tools.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -433,6 +452,7 @@ DEP_CPP_ODF_P=\
 	"..\..\include\gpac\media_tools.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\token.h"\
 	"..\..\include\gpac\tools.h"\
 	
@@ -446,6 +466,7 @@ DEP_CPP_QOS_C=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -458,6 +479,7 @@ DEP_CPP_SLC_C=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -479,6 +501,7 @@ DEP_CPP_ARITH=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\bifs\quant.h"\
@@ -498,6 +521,7 @@ DEP_CPP_BIFS_=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	
@@ -548,6 +572,7 @@ DEP_CPP_COM_D=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\bifs\quant.h"\
@@ -581,6 +606,7 @@ DEP_CPP_COM_E=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\bifs\quant.h"\
@@ -614,6 +640,7 @@ DEP_CPP_CONDI=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	
@@ -646,6 +673,7 @@ DEP_CPP_FIELD=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\bifs\quant.h"\
@@ -680,6 +708,7 @@ DEP_CPP_FIELD_=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\bifs\quant.h"\
@@ -713,6 +742,7 @@ DEP_CPP_MEMOR=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\bifs\quant.h"\
@@ -736,6 +766,7 @@ DEP_CPP_PREDI=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\bifs\quant.h"\
@@ -759,6 +790,7 @@ DEP_CPP_QUANT=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\bifs\quant.h"\
@@ -782,6 +814,7 @@ DEP_CPP_SCRIP=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\bifs\script.h"\
@@ -811,6 +844,7 @@ DEP_CPP_SCRIPT=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\bifs\script.h"\
@@ -834,6 +868,7 @@ DEP_CPP_UNQUA=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\bifs\quant.h"\
@@ -854,6 +889,7 @@ DEP_CPP_AVC_E=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -867,6 +903,7 @@ DEP_CPP_BOX_C=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -880,6 +917,7 @@ DEP_CPP_BOX_CO=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -893,6 +931,7 @@ DEP_CPP_BOX_COD=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -906,6 +945,7 @@ DEP_CPP_BOX_CODE=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -919,6 +959,7 @@ DEP_CPP_BOX_D=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\utf.h"\
 	
@@ -933,6 +974,7 @@ DEP_CPP_BOX_F=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -947,6 +989,7 @@ DEP_CPP_DATA_=\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -960,6 +1003,7 @@ DEP_CPP_HINT_=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -973,6 +1017,7 @@ DEP_CPP_HINTI=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -986,6 +1031,7 @@ DEP_CPP_ISMA_=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1000,6 +1046,7 @@ DEP_CPP_ISOM_=\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1013,6 +1060,7 @@ DEP_CPP_ISOM_R=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1026,6 +1074,7 @@ DEP_CPP_ISOM_S=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1039,6 +1088,7 @@ DEP_CPP_ISOM_W=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1056,6 +1106,7 @@ DEP_CPP_MEDIA=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1069,6 +1120,7 @@ DEP_CPP_MEDIA_=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1082,6 +1134,7 @@ DEP_CPP_META_=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1095,6 +1148,7 @@ DEP_CPP_MOVIE=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1108,6 +1162,7 @@ DEP_CPP_SAMPL=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1121,6 +1176,7 @@ DEP_CPP_STBL_=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1134,6 +1190,7 @@ DEP_CPP_STBL_W=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1147,6 +1204,7 @@ DEP_CPP_TRACK=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1161,6 +1219,7 @@ DEP_CPP_TX3G_=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1180,9 +1239,9 @@ DEP_CPP_RTCP_=\
 	"..\..\include\gpac\ietf.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	
@@ -1195,9 +1254,9 @@ DEP_CPP_RTP_C=\
 	"..\..\include\gpac\ietf.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	
@@ -1211,9 +1270,9 @@ DEP_CPP_RTP_P=\
 	"..\..\include\gpac\ietf.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	
@@ -1227,9 +1286,9 @@ DEP_CPP_RTP_PC=\
 	"..\..\include\gpac\ietf.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	
@@ -1243,9 +1302,9 @@ DEP_CPP_RTP_PCK=\
 	"..\..\include\gpac\ietf.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	
@@ -1259,9 +1318,9 @@ DEP_CPP_RTP_PCK_=\
 	"..\..\include\gpac\ietf.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	
@@ -1274,9 +1333,9 @@ DEP_CPP_RTSP_=\
 	"..\..\include\gpac\ietf.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\token.h"\
 	"..\..\include\gpac\tools.h"\
@@ -1290,9 +1349,9 @@ DEP_CPP_RTSP_C=\
 	"..\..\include\gpac\ietf.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\token.h"\
 	"..\..\include\gpac\tools.h"\
@@ -1306,9 +1365,9 @@ DEP_CPP_RTSP_R=\
 	"..\..\include\gpac\ietf.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\token.h"\
 	"..\..\include\gpac\tools.h"\
@@ -1323,9 +1382,9 @@ DEP_CPP_RTSP_S=\
 	"..\..\include\gpac\ietf.h"\
 	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	
@@ -1337,9 +1396,9 @@ DEP_CPP_SDP_C=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\ietf.h"\
 	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\token.h"\
 	"..\..\include\gpac\tools.h"\
 	
@@ -1373,11 +1432,11 @@ DEP_CPP_BASE_S=\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
-	"..\..\src\LASeR\m4_laser_dev.h"\
 	
 NODEP_CPP_BASE_S=\
 	"..\..\extra_lib\include\js\jsstddef.h"\
 	"..\..\extra_lib\include\js\platform.h"\
+	"..\..\src\LASeR\m4_laser_dev.h"\
 	
 # End Source File
 # Begin Source File
@@ -1795,6 +1854,7 @@ DEP_CPP_AV_PA=\
 	"..\..\include\gpac\media_tools.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1836,6 +1896,7 @@ DEP_CPP_ISMAC=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\xml.h"\
 	
@@ -1859,6 +1920,7 @@ DEP_CPP_ISOM_H=\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1874,6 +1936,7 @@ DEP_CPP_ISOM_T=\
 	"..\..\include\gpac\media_tools.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1896,6 +1959,7 @@ DEP_CPP_MEDIA_E=\
 	"..\..\include\gpac\media_tools.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -1914,6 +1978,7 @@ DEP_CPP_MEDIA_I=\
 	"..\..\include\gpac\media_tools.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\src\media_tools\mpeg2_ps.h"\
 	
@@ -1952,6 +2017,7 @@ DEP_CPP_TEXT_=\
 	"..\..\include\gpac\media_tools.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\utf.h"\
 	"..\..\include\gpac\xml.h"\
@@ -1978,6 +2044,7 @@ DEP_CPP_ENCOD=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -2009,6 +2076,7 @@ DEP_CPP_ENCODE=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_ENCODE=\
@@ -2046,6 +2114,7 @@ DEP_CPP_LOADE=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\utf.h"\
@@ -2071,6 +2140,7 @@ DEP_CPP_LOADER=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -2092,6 +2162,7 @@ DEP_CPP_LOADER_=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -2125,6 +2196,7 @@ DEP_CPP_LOADER_X=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\utf.h"\
@@ -2163,6 +2235,7 @@ DEP_CPP_SCENE=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\utf.h"\
@@ -2201,6 +2274,7 @@ DEP_CPP_SCENE_=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_SCENE_=\
@@ -2232,6 +2306,7 @@ DEP_CPP_SCENE_S=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_SCENE_S=\
@@ -2249,6 +2324,7 @@ SOURCE=..\..\src\scene_manager\swf_parse.c
 DEP_CPP_SWF_P=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\swf_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -2260,6 +2336,7 @@ DEP_CPP_SWF_P=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
 # End Source File
@@ -2268,6 +2345,7 @@ DEP_CPP_SWF_P=\
 SOURCE=..\..\src\scene_manager\swf_shape.c
 DEP_CPP_SWF_S=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\swf_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -2279,6 +2357,7 @@ DEP_CPP_SWF_S=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\utf.h"\
 	
@@ -2302,6 +2381,7 @@ DEP_CPP_TEXT_T=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\utf.h"\
 	"..\..\include\gpac\xml.h"\
@@ -2469,6 +2549,7 @@ DEP_CPP_CHANN=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\ismacryp.h"\
 	"..\..\include\gpac\isomedia.h"\
 	"..\..\include\gpac\list.h"\
@@ -2478,10 +2559,10 @@ DEP_CPP_CHANN=\
 	"..\..\include\gpac\modules\codec.h"\
 	"..\..\include\gpac\modules\service.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
-	"..\..\include\gpac\nodes_mpeg4.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -2497,6 +2578,7 @@ DEP_CPP_CLOCK=\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mediaobject.h"\
@@ -2504,11 +2586,10 @@ DEP_CPP_CLOCK=\
 	"..\..\include\gpac\modules\codec.h"\
 	"..\..\include\gpac\modules\service.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
-	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -2524,6 +2605,7 @@ DEP_CPP_DECOD=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mediaobject.h"\
@@ -2532,10 +2614,10 @@ DEP_CPP_DECOD=\
 	"..\..\include\gpac\modules\service.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -2547,45 +2629,15 @@ DEP_CPP_DECOD=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\include\gpac\internal\terminal_dev.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\src\terminal\term_node_init.c
-DEP_CPP_ESM_N=\
-	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\crypt.h"\
-	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\mediaobject.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\codec.h"\
-	"..\..\include\gpac\modules\service.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
-	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_x3d.h"\
-	"..\..\include\gpac\renderer.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\terminal.h"\
-	"..\..\include\gpac\thread.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\user.h"\
-	"..\..\src\terminal\input_sensor.h"\
-	
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\src\terminal\inline.c
 DEP_CPP_INLIN=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mediaobject.h"\
@@ -2598,6 +2650,7 @@ DEP_CPP_INLIN=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -2610,10 +2663,12 @@ DEP_CPP_INLIN=\
 SOURCE=..\..\src\terminal\input_sensor.c
 DEP_CPP_INPUT=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mediaobject.h"\
@@ -2627,6 +2682,7 @@ DEP_CPP_INPUT=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -2648,6 +2704,7 @@ DEP_CPP_MEDIA_C=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mediaobject.h"\
@@ -2659,6 +2716,7 @@ DEP_CPP_MEDIA_C=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -2675,9 +2733,12 @@ SOURCE=..\..\src\terminal\media_control.h
 SOURCE=..\..\src\terminal\media_manager.c
 DEP_CPP_MEDIA_M=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mediaobject.h"\
@@ -2685,11 +2746,11 @@ DEP_CPP_MEDIA_M=\
 	"..\..\include\gpac\modules\codec.h"\
 	"..\..\include\gpac\modules\service.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
-	"..\..\include\gpac\nodes_mpeg4.h"\
 	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -2706,6 +2767,7 @@ DEP_CPP_MEDIA_ME=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mediaobject.h"\
@@ -2717,6 +2779,7 @@ DEP_CPP_MEDIA_ME=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -2738,6 +2801,7 @@ DEP_CPP_MEDIA_O=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mediaobject.h"\
@@ -2753,6 +2817,7 @@ DEP_CPP_MEDIA_O=\
 	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -2770,6 +2835,7 @@ DEP_CPP_MEDIA_S=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mediaobject.h"\
@@ -2781,6 +2847,7 @@ DEP_CPP_MEDIA_S=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -2796,6 +2863,7 @@ DEP_CPP_NETWO=\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mediaobject.h"\
@@ -2804,10 +2872,10 @@ DEP_CPP_NETWO=\
 	"..\..\include\gpac\modules\service.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
-	"..\..\include\gpac\nodes_mpeg4.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -2823,6 +2891,7 @@ DEP_CPP_OBJEC=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
@@ -2836,6 +2905,8 @@ DEP_CPP_OBJEC=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\term_info.h"\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -2852,6 +2923,7 @@ DEP_CPP_OBJECT=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mediaobject.h"\
@@ -2863,6 +2935,7 @@ DEP_CPP_OBJECT=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
@@ -2874,13 +2947,15 @@ DEP_CPP_OBJECT=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\terminal\terminal.c
-DEP_CPP_TERMI=\
+SOURCE=..\..\src\terminal\term_node_init.c
+DEP_CPP_TERM_=\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mediaobject.h"\
@@ -2889,16 +2964,52 @@ DEP_CPP_TERMI=\
 	"..\..\include\gpac\modules\service.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\renderer.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\terminal.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\src\terminal\input_sensor.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\terminal\terminal.c
+DEP_CPP_TERMI=\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
 	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\internal\terminal_dev.h
 # End Source File
 # End Group
 # Begin Group "renderer"
@@ -2908,7 +3019,7 @@ DEP_CPP_TERMI=\
 
 SOURCE=..\..\src\renderer\audio_input.c
 DEP_CPP_AUDIO=\
-	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\renderer_dev.h"\
@@ -2920,13 +3031,11 @@ DEP_CPP_AUDIO=\
 	"..\..\include\gpac\modules\font.h"\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
@@ -2936,7 +3045,7 @@ DEP_CPP_AUDIO=\
 
 SOURCE=..\..\src\renderer\audio_mixer.c
 DEP_CPP_AUDIO_=\
-	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\renderer_dev.h"\
@@ -2948,13 +3057,11 @@ DEP_CPP_AUDIO_=\
 	"..\..\include\gpac\modules\font.h"\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
@@ -2964,7 +3071,7 @@ DEP_CPP_AUDIO_=\
 
 SOURCE=..\..\src\renderer\audio_render.c
 DEP_CPP_AUDIO_R=\
-	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\renderer_dev.h"\
@@ -2976,13 +3083,11 @@ DEP_CPP_AUDIO_R=\
 	"..\..\include\gpac\modules\font.h"\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
@@ -2992,7 +3097,7 @@ DEP_CPP_AUDIO_R=\
 
 SOURCE=..\..\src\renderer\audio_stacks.c
 DEP_CPP_AUDIO_S=\
-	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\renderer_dev.h"\
@@ -3004,7 +3109,6 @@ DEP_CPP_AUDIO_S=\
 	"..\..\include\gpac\modules\font.h"\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
@@ -3012,7 +3116,6 @@ DEP_CPP_AUDIO_S=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
@@ -3023,7 +3126,7 @@ DEP_CPP_AUDIO_S=\
 
 SOURCE=..\..\src\renderer\base_textures.c
 DEP_CPP_BASE_T=\
-	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\renderer_dev.h"\
@@ -3035,7 +3138,6 @@ DEP_CPP_BASE_T=\
 	"..\..\include\gpac\modules\font.h"\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
@@ -3043,7 +3145,6 @@ DEP_CPP_BASE_T=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
@@ -3054,7 +3155,7 @@ DEP_CPP_BASE_T=\
 
 SOURCE=..\..\src\renderer\common_stacks.c
 DEP_CPP_COMMO=\
-	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\renderer_dev.h"\
@@ -3066,7 +3167,6 @@ DEP_CPP_COMMO=\
 	"..\..\include\gpac\modules\font.h"\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
 	"..\..\include\gpac\path2d.h"\
@@ -3074,7 +3174,6 @@ DEP_CPP_COMMO=\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
@@ -3089,7 +3188,7 @@ SOURCE=..\..\src\renderer\common_stacks.h
 
 SOURCE=..\..\src\renderer\renderer.c
 DEP_CPP_RENDE=\
-	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\renderer_dev.h"\
@@ -3101,7 +3200,6 @@ DEP_CPP_RENDE=\
 	"..\..\include\gpac\modules\font.h"\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\renderer.h"\
@@ -3122,7 +3220,7 @@ SOURCE=..\..\include\gpac\internal\renderer_dev.h
 
 SOURCE=..\..\src\renderer\texturing.c
 DEP_CPP_TEXTU=\
-	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\renderer_dev.h"\
@@ -3134,7 +3232,6 @@ DEP_CPP_TEXTU=\
 	"..\..\include\gpac\modules\font.h"\
 	"..\..\include\gpac\modules\raster2d.h"\
 	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\renderer.h"\
@@ -3142,7 +3239,6 @@ DEP_CPP_TEXTU=\
 	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\

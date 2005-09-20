@@ -270,8 +270,10 @@ GF_Err gf_isom_last_error(GF_ISOFile *the_file);
 /*returns 1 if target file is an IsoMedia file, 0 otherwise*/
 Bool gf_isom_probe_file(const char *fileName);
 
-/*Opens an isoMedia File.*/
-GF_ISOFile *gf_isom_open(const char *fileName, u8 OpenMode);
+/*Opens an isoMedia File.
+tmp_dir: for the 2 edit modes only, specifies a location for temp file. If NULL, the librairy will use the default
+OS temporary file management schemes.*/
+GF_ISOFile *gf_isom_open(const char *fileName, u32 OpenMode, const char *tmp_dir);
 
 /*close the file, write it if new/edited*/
 GF_Err gf_isom_close(GF_ISOFile *the_file);
@@ -669,12 +671,6 @@ u32 gf_isom_guess_specification(GF_ISOFile *file);
 /********************************************************************
 				EDITING/WRITING API FUNCTIONS
 ********************************************************************/
-
-/*specifies directory for temporary file creation (Edit modes only). This MUST be called before
-any sample is added/updated in the file. If not called, temporary files location is OS-dependent through 
-stdio tmpfile()*/
-GF_Err gf_isom_set_temp_dir(GF_ISOFile *the_file, const char *tmpdir);
-
 
 /*set the timescale of the movie*/
 GF_Err gf_isom_set_timescale(GF_ISOFile *the_file, u32 timeScale);

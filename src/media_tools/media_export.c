@@ -1179,7 +1179,7 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 			fclose(t);
 		}
 	}
-	outfile = gf_isom_open(szName, mode);
+	outfile = gf_isom_open(szName, mode, NULL);
 
 	if (mode == GF_ISOM_WRITE_EDIT) {
 		gf_isom_set_pl_indication(outfile, GF_ISOM_PL_AUDIO, 0xFF);

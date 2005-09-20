@@ -1,4 +1,4 @@
-LIBRARY     sdl_out.dll
+LIBRARY     gm_sdl_out.dll
 
 EXPORTS
 	QueryInterface

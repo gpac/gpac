@@ -28,7 +28,7 @@ endif
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=ffmpeg_in.$(DYN_LIB_SUFFIX)
+LIB=gm_ffmpeg_in.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols ffmpeg_in.def 
 endif

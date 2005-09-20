@@ -188,7 +188,7 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 			memset(&import, 0, sizeof(GF_MediaImporter));
 			import.dest = mp4;
 			import.trackID = src->ESID;
-			import.orig = gf_isom_open(mediaSource, GF_ISOM_OPEN_READ);
+			import.orig = gf_isom_open(mediaSource, GF_ISOM_OPEN_READ, NULL);
 			if (import.orig) {
 				e = gf_media_import(&import);
 				gf_isom_delete(import.orig);

@@ -32,7 +32,7 @@ endif
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=amr_float_dec.$(DYN_LIB_SUFFIX)
+LIB=gm_amr_float_dec.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols amr_float_dec.def 
 endif

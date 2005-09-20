@@ -1,4 +1,4 @@
-LIBRARY     amr_float_dec.dll
+LIBRARY     gm_amr_float_dec.dll
 
 EXPORTS
 	QueryInterface

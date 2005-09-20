@@ -592,7 +592,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		return 0;
 	}
 
-	user.config = gf_cfg_new("\\Storage Card\\Osmo4\\", "GPAC.cfg");
+	user.config = gf_cfg_new("\\Storage\\Program Files\\Osmo4\\", "GPAC.cfg");
 	str = gf_cfg_get_key(user.config, "General", "ModulesDirectory");
 
 	user.modules = gf_modules_new((const unsigned char *) str, user.config);

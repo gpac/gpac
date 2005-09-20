@@ -16,7 +16,7 @@ OBJS= rtp_in.o rtp_payloads.o rtp_session.o rtp_signaling.o rtp_stream.o sdp_fet
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=rtp_in.$(DYN_LIB_SUFFIX)
+LIB=gm_rtp_in.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols rtp_in.def 
 endif

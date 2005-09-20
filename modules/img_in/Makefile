@@ -61,7 +61,7 @@ endif
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=img_in.$(DYN_LIB_SUFFIX)
+LIB=gm_img_in.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LINKLIBS+=-lwinmm
 LDFLAGS+=-export-symbols img_in.def 

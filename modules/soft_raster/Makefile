@@ -20,7 +20,7 @@ OBJS= ftgrays.o raster_load.o raster_565.o raster_argb.o raster_rgb.o stencil.o 
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=soft_raster.$(DYN_LIB_SUFFIX)
+LIB=gm_soft_raster.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols rast_soft.def 
 endif

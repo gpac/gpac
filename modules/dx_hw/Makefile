@@ -19,7 +19,7 @@ OBJS=dx_audio.o dx_video.o dx_window.o dx_2d.o copy_pixels.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=dx_hw.$(DYN_LIB_SUFFIX)
+LIB=gm_dx_hw.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-export-symbols dx_hw.def
 endif

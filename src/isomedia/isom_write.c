@@ -2861,19 +2861,6 @@ GF_Err gf_isom_load_movie_config(GF_ISOFile *movie)
 	return found_cfg ? GF_OK : GF_NOT_SUPPORTED;
 }
 
-GF_Err gf_isom_set_temp_dir(GF_ISOFile *movie, const char *tmpdir)
-{
-	GF_Err e;
-	if (!movie) return GF_BAD_PARAM;
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
-	if (e) return e;
-	if (!movie->editFileMap || gf_bs_get_position(movie->editFileMap->bs)) return GF_BAD_PARAM;
-
-	gf_isom_datamap_del(movie->editFileMap);
-	movie->editFileMap = NULL;
-	return gf_isom_datamap_new("mp4_tmp_edit", tmpdir, GF_ISOM_DATA_MAP_WRITE, & movie->editFileMap);
-}
-
 GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 newTS)
 {
 	Double scale;
