@@ -138,6 +138,7 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	/*SVG part*/
 	case TAG_SVG_svg:		SVG_Init_svg(sr, node); break;
 	case TAG_SVG_g:			SVG_Init_g(sr, node); break;
+	case TAG_SVG_switch:	SVG_Init_switch(sr, node); break;
 	case TAG_SVG_rect:		SVG_Init_rect(sr, node); break;
 	case TAG_SVG_circle:	SVG_Init_circle(sr, node); break;
 	case TAG_SVG_ellipse:	SVG_Init_ellipse(sr, node); break;

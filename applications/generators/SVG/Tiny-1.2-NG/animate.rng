@@ -13,7 +13,7 @@
          >
 
 
-  <define name='svg.G.group' combine='choice'>
+  <define name='svg.GCommon.group' combine='choice'>
     <ref name='svg.Animate.group'/>
   </define>
 
@@ -39,7 +39,7 @@
   <define name='svg.AnimateTimingNoMinMax.attr' combine='interleave'>
     <ref name='svg.AnimateTimingNoFillNoMinMax.attr'/>
     <optional>
-      <attribute name='fill' a:defaultValue='remove' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='fill' a:defaultValue='remove' svg:animatable='false' svg:inheritable='false'>
         <choice>
           <value>remove</value>
           <value>freeze</value>
@@ -49,7 +49,7 @@
   </define>
 
   <define name='svg.AnimateTimingNoFillNoMinMax.attr' combine='interleave'>
-    <optional><attribute name='begin' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <ref name='svg.AnimateBegin.attr'/>
     <optional><attribute name='dur' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
     <optional><attribute name='end' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
     <optional><attribute name='repeatCount' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
@@ -65,6 +65,50 @@
     </optional>
   </define>
 
+  <define name='svg.AnimateBegin.attr' combine='interleave'>
+    <optional><attribute name='begin' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+  </define>
+
+  <define name='svg.AnimateSync.attr' combine='interleave'>
+    <optional>
+      <attribute name='syncBehavior' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value>canSlip</value>
+          <value>locked</value>
+          <value>independent</value>
+          <value>default</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='syncBehaviorDefault' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value>canSlip</value>
+          <value>locked</value>
+          <value>independent</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='syncTolerance' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <ref name='Clock.datatype'/>
+          <value>default</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='syncToleranceDefault' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <ref name='Clock.datatype'/>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+
 
   <!--
     Common Attributes
@@ -74,12 +118,28 @@
   </define>
 
   <define name='svg.AnimateAttributeCommon.attr'>
-    <attribute name='attributeName'  svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    <optional>
+      <attribute name='attributeName'  svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name='attributeType' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value>XML</value>
+          <value>CSS</value>
+          <value>auto</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.AnimateToCommon.attr' combine='interleave'>
+    <optional><attribute name='to' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
   </define>
 
   <define name='svg.AnimateValueCommon.attr'>
+    <ref name='svg.AnimateToCommon.attr'/>
     <optional>
-      <attribute name='calcMode' a:defaultValue='linear' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='calcMode' svg:animatable='false' svg:inheritable='false'>
         <choice>
           <value>discrete</value>
           <value>linear</value>
@@ -92,7 +152,6 @@
     <optional><attribute name='keyTimes' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
     <optional><attribute name='keySplines' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
     <optional><attribute name='from' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
-    <optional><attribute name='to' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
     <optional><attribute name='by' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
   </define>
 
@@ -110,6 +169,20 @@
         <choice>
           <value>none</value>
           <value>sum</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.AnimateTypeCommon.attr'>
+    <optional>
+      <attribute name='type' a:defaultValue='translate' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <value>translate</value>
+          <value>scale</value>
+          <value>rotate</value>
+          <value>skewX</value>
+          <value>skewY</value>
         </choice>
       </attribute>
     </optional>
@@ -136,14 +209,12 @@
   </define>
 
   <define name='animate.AT' combine='interleave'>
-    <interleave>
-      <ref name='svg.Core.attr'/>
-      <ref name='svg.AnimateCommon.attr'/>
-      <ref name='svg.AnimateAttributeCommon.attr'/>
-      <ref name='svg.AnimateTiming.attr'/>
-      <ref name='svg.AnimateValueCommon.attr'/>
-      <ref name='svg.AnimateAdditionCommon.attr'/>
-    </interleave>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.AnimateCommon.attr'/>
+    <ref name='svg.AnimateAttributeCommon.attr'/>
+    <ref name='svg.AnimateTiming.attr'/>
+    <ref name='svg.AnimateValueCommon.attr'/>
+    <ref name='svg.AnimateAdditionCommon.attr'/>
   </define>
 
 
@@ -156,16 +227,11 @@
   </define>
 
   <define name='set.AT' combine='interleave'>
-    <interleave>
-      <ref name='svg.Core.attr'/>
-      <ref name='svg.AnimateCommon.attr'/>
-      <ref name='svg.AnimateAttributeCommon.attr'/>
-      <ref name='svg.AnimateTiming.attr'/>
-      <ref name='svg.AnimateValueCommon.attr'/>
-      <optional>
-        <attribute name='to' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-      </optional>
-    </interleave>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.AnimateCommon.attr'/>
+    <ref name='svg.AnimateAttributeCommon.attr'/>
+    <ref name='svg.AnimateTiming.attr'/>
+    <ref name='svg.AnimateToCommon.attr'/>
   </define>
 
 
@@ -178,14 +244,12 @@
   </define>
 
   <define name='animateColor.AT' combine='interleave'>
-    <interleave>
-      <ref name='svg.Core.attr'/>
-      <ref name='svg.AnimateCommon.attr'/>
-      <ref name='svg.AnimateAttributeCommon.attr'/>
-      <ref name='svg.AnimateTiming.attr'/>
-      <ref name='svg.AnimateValueCommon.attr'/>
-      <ref name='svg.AnimateAdditionCommon.attr'/>
-    </interleave>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.AnimateCommon.attr'/>
+    <ref name='svg.AnimateAttributeCommon.attr'/>
+    <ref name='svg.AnimateTiming.attr'/>
+    <ref name='svg.AnimateValueCommon.attr'/>
+    <ref name='svg.AnimateAdditionCommon.attr'/>
   </define>
 
 
@@ -198,25 +262,13 @@
   </define>
 
   <define name='animateTransform.AT' combine='interleave'>
-    <interleave>
-      <ref name='svg.Core.attr'/>
-      <ref name='svg.AnimateCommon.attr'/>
-      <ref name='svg.AnimateAttributeCommon.attr'/>
-      <ref name='svg.AnimateTiming.attr'/>
-      <ref name='svg.AnimateValueCommon.attr'/>
-      <ref name='svg.AnimateAdditionCommon.attr'/>
-      <optional>
-        <attribute name='type' a:defaultValue='translate' svg:animatable='false' svg:inheritable='false'>
-          <choice>
-            <value>translate</value>
-            <value>scale</value>
-            <value>rotate</value>
-            <value>skewX</value>
-            <value>skewY</value>
-          </choice>
-        </attribute>
-      </optional>
-    </interleave>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.AnimateCommon.attr'/>
+    <ref name='svg.AnimateAttributeCommon.attr'/>
+    <ref name='svg.AnimateTiming.attr'/>
+    <ref name='svg.AnimateValueCommon.attr'/>
+    <ref name='svg.AnimateAdditionCommon.attr'/>
+    <ref name='svg.AnimateTypeCommon.attr'/>
   </define>
 
 
@@ -237,43 +289,16 @@
   </define>
 
   <define name='animateMotion.AT' combine='interleave'>
-    <interleave>
-      <ref name='svg.Core.attr'/>
-      <ref name='svg.AnimateCommon.attr'/>
-      <ref name='svg.AnimateTiming.attr'/>
-      <ref name='svg.AnimateAdditionCommon.attr'/>
-      <optional>
-        <attribute name='type' a:defaultValue='translate' svg:animatable='false' svg:inheritable='false'>
-          <choice>
-            <value>translate</value>
-            <value>scale</value>
-            <value>rotate</value>
-            <value>skewX</value>
-            <value>skewY</value>
-          </choice>
-        </attribute>
-      </optional>
-      <optional>
-        <attribute name='calcMode' a:defaultValue='paced' svg:animatable='false' svg:inheritable='false'>
-          <choice>
-            <value>discrete</value>
-            <value>linear</value>
-            <value>paced</value>
-            <value>spline</value>
-          </choice>
-        </attribute>
-      </optional>
-      <optional><attribute name='values' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
-      <optional><attribute name='keyTimes' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
-      <optional><attribute name='keySplines' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
-      <optional><attribute name='from' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
-      <optional><attribute name='to' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
-      <optional><attribute name='by' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
-      <optional><attribute name='path' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
-      <optional><attribute name='keyPoints' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
-      <optional><attribute name='rotate' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
-      <optional><attribute name='origin' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
-    </interleave>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.AnimateCommon.attr'/>
+    <ref name='svg.AnimateTiming.attr'/>
+    <ref name='svg.AnimateAdditionCommon.attr'/>
+    <ref name='svg.AnimateValueCommon.attr'/>
+    <ref name='svg.AnimateTypeCommon.attr'/>
+    <optional><attribute name='path' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <optional><attribute name='keyPoints' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <optional><attribute name='rotate' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
+    <optional><attribute name='origin' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
   </define>
 
 
@@ -287,10 +312,8 @@
   </define>
 
   <define name='mpath.AT' combine='interleave'>
-    <interleave>
-      <ref name='svg.Core.attr'/>
-      <ref name='svg.XLinkRequired.attr'/>
-    </interleave>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.XLinkRequired.attr'/>
   </define>
 
 </grammar>

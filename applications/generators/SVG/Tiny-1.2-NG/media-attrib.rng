@@ -12,9 +12,16 @@
          >
 
   <define name='svg.Properties.attr' combine='interleave'>
+    <ref name='svg.Media.attr'/>
+  </define>
+
+  <define name='svg.Media.attr' combine='interleave'>
     <optional>
       <attribute name='audio-level' svg:animatable='true' svg:inheritable='false'>
-        <data type='float'/>
+        <choice>
+          <value>inherit</value>
+          <ref name='Number.datatype'/>
+        </choice>
       </attribute>
     </optional>
   </define>

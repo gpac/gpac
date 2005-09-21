@@ -15,7 +15,7 @@
         <namespace ns='http://www.w3.org/1999/xlink' match='attributes'>
           <attach/>
         </namespace>
-        <namespace ns='http://www.w3.org/2001/xml-events' match='attributes'>
+        <namespace ns='http://www.w3.org/2001/xml-events' match='elements attributes'>
           <attach/>
         </namespace>
         <anyNamespace match='elements attributes'>

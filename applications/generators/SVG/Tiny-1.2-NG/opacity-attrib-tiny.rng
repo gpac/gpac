@@ -14,12 +14,29 @@
   <define name='svg.Properties.attr' combine='interleave'>
     <optional>
       <attribute name='fill-opacity' svg:animatable='true' svg:inheritable='true'>
-        <ref name='OpacityValue.datatype'/>
+        <choice>
+          <value>inherit</value>
+          <ref name='Number.datatype'/>
+        </choice>
       </attribute>
     </optional>
     <optional>
       <attribute name='stroke-opacity' svg:animatable='true' svg:inheritable='true'>
-        <ref name='OpacityValue.datatype'/>
+        <choice>
+          <value>inherit</value>
+          <ref name='Number.datatype'/>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.Opacity.attr' combine='interleave'>
+    <optional>
+      <attribute name='opacity' svg:animatable='true' svg:inheritable='false'>
+        <choice>
+          <value>inherit</value>
+          <ref name='Number.datatype'/>
+        </choice>
       </attribute>
     </optional>
   </define>

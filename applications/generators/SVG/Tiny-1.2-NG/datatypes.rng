@@ -18,14 +18,6 @@
     </choice>
   </define>
 
-  <define name='ClipFillRule.datatype'>
-    <choice>
-      <value>nonzero</value>
-      <value>evenodd</value>
-      <value>inherit</value>
-    </choice>
-  </define>
-
   <define name='ContentType.datatype'>
     <data type='string'/>
   </define>
@@ -38,27 +30,27 @@
     <data type='string'/>
   </define>
 
+  <define name='Clock.datatype'>
+    <data type='string'/>
+  </define>
+
   <define name='Color.datatype'>
     <data type='string'/>
   </define>
 
-  <define name='Integer.datatype'>
+  <define name='SVGColor.datatype'>
     <data type='string'/>
   </define>
 
-  <define name='LanguageCode.datatype'>
+  <define name='LanguageID.datatype'>
     <data type='language'/>
   </define>
 
-  <define name='LanguageCodes.datatype'>
+  <define name='LanguageIDs.datatype'>
     <data type='string'/>
   </define>
 
   <define name='Length.datatype'>
-    <data type='string'/>
-  </define>
-
-  <define name='Lengths.datatype'>
     <data type='string'/>
   </define>
 
@@ -70,37 +62,7 @@
     <data type='string'/>
   </define>
 
-  <define name='NumberOrPercentage.datatype'>
-    <data type='string'/>
-  </define>
-
-
-  <define name='OpacityValue.datatype'>
-    <data type='string'/>
-  </define>
-
   <define name='PathData.datatype'>
-    <data type='string'/>
-  </define>
-
-  <define name='PreserveAspectRatioSpec.datatype'>
-    <data type='string'>
-      <!--
-      <param name='pattern'>\s*(none|xMidYMid)\s*(meet)?\s*</param>
-      -->
-      <param name='pattern'>\s*(none|xMinYMin|xMidYMin|xMaxYMin|xMinYMid|xMidYMid|xMaxYMid|xMinYMax|xMidYMax|xMaxYMax)\s*(meet|slice)?\s*</param>
-    </data>
-  </define>
-
-  <define name='Script.datatype'>
-    <data type='string'/>
-  </define>
-
-  <define name='SVGColor.datatype'>
-    <data type='string'/>
-  </define>
-
-  <define name='Text.datatype'>
     <data type='string'/>
   </define>
 
@@ -112,53 +74,49 @@
     <data type='anyURI'/>
   </define>
 
-  <define name='ViewBoxSpec.datatype'>
-    <data type='string'/>
-  </define>
-
   <define name='Paint.datatype'                 ><data type='string'/></define>
-  <define name='StrokeDashArrayValue.datatype'  ><data type='string'/></define>
-  <define name='StrokeDashOffsetValue.datatype' ><data type='string'/></define>
-  <define name='StrokeMiterLimitValue.datatype' ><data type='string'/></define>
-  <define name='StrokeWidthValue.datatype'      ><data type='string'/></define>
 
-  <define name='GradientOffset.datatype'>
-    <ref name='Number.datatype'/>
-  </define>
-
-  <define name='ExtensionList.datatype'>
+  <define name='ListOfIRI.datatype'>
     <data type='string'/>
   </define>
-  <define name='FeatureList.datatype'>
-    <data type='string'/>
-  </define>
+
   <define name='FormatList.datatype'>
     <data type='string'/>
   </define>
+
   <define name='FontList.datatype'>
     <data type='string'/>
-  </define>
-  <define name='LinkTarget.datatype'>
-    <data type='NMTOKEN'/>
   </define>
 
   <define name='Focus.datatype'>
     <choice>
       <value>auto</value>
-      <data type='IDREF'/>
+      <value>self</value>
+      <data type='string'/>
     </choice>
   </define>
 
-  <define name='FontFamilyValue.datatype'>
+  <define name='FontFamily.datatype'>
     <data type='string'/>
   </define>
 
-  <define name='FontSizeValue.datatype'>
+  <define name='FontSize.datatype'>
     <data type='string'/>
   </define>
 
   <define name='Points.datatype'>
     <data type='string'/>
+  </define>
+
+  <define name='ID.datatype'>
+    <data type='ID'/>
+  </define>
+
+  <define name='XSLT-QName.datatype'>
+    <choice>
+      <data type='NCName'/>
+      <data type='QName'/>
+    </choice>
   </define>
 
 </grammar>

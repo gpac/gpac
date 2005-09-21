@@ -43,10 +43,17 @@ enum {
 };
 
 typedef struct {
-	SMIL_BeginOrEndValue begin;
-	SMIL_BeginOrEndValue end;
+	SMIL_Time begin;
+	SMIL_Time end;
 	Bool is_valid;
 	u32 allocation_cycle;
+
+	/* negative values mean indefinite */
+	Double simple_duration, active_duration;
+	Bool is_active_duration_clamped_to_min;
+
+	u32 nb_iterations;
+
 } SMIL_Interval;
 
 typedef struct _smil_anim_stack
@@ -60,14 +67,9 @@ typedef struct _smil_anim_stack
 
 	SMIL_Interval currentInterval;
 
-	/* to be replaced with interval */
-//	Double begin, end;
-
-	/* negative values mean indefinite */
-	Double simple_duration, active_duration;
-	Bool is_active_duration_clamped_to_min;
-
-	u32 nb_iterations;
+	s32 previous_key_index;
+	Fixed previous_coef;
+	Bool target_value_changed;
 
 	/* stores the DOM value */
 	void *base_value;
@@ -91,32 +93,32 @@ typedef struct _smil_anim_stack
 	/* attributes to control the timing of the animation 
 	       SVG.AnimationTiming.attrib
 	*/
-	SMIL_BeginOrEndValues *begins; 
-	SMIL_MinMaxDurRepeatDurValue *dur; 
-	SMIL_BeginOrEndValues *ends; 
-	SMIL_RestartValue *restart; 
-	SMIL_RepeatCountValue *repeatCount; 
-	SMIL_MinMaxDurRepeatDurValue *repeatDur; 
-	SMIL_FillValue *fill; 
-	SMIL_MinMaxDurRepeatDurValue *min; 
-	SMIL_MinMaxDurRepeatDurValue *max; 
+	SMIL_Times *begins; 
+	SMIL_Duration *dur; 
+	SMIL_Times *ends; 
+	SMIL_Restart *restart; 
+	SMIL_RepeatCount *repeatCount; 
+	SMIL_Duration *repeatDur; 
+	SMIL_Fill *fill; 
+	SMIL_Duration *min; 
+	SMIL_Duration *max; 
 	/* attributes that define animation values over time 
 	       SVG.AnimationValue.attrib
 	*/
-	SMIL_CalcModeValue *calcMode; 
+	SMIL_CalcMode *calcMode; 
 	SMIL_AnimateValues *values; 
-	SMIL_KeyTimesValues *keyTimes;
+	SMIL_KeyTimes *keyTimes;
 	u32 last_keytime_index;
-	SMIL_KeySplinesValues *keySplines; 
-	SMIL_KeyPointsValues *keyPoints; 
+	SMIL_KeySplines *keySplines; 
+	SMIL_KeyPoints *keyPoints; 
 	SMIL_AnimateValue *from; 
 	SMIL_AnimateValue *to; 
 	SMIL_AnimateValue *by; 
 	/* attributes to control whether animations are additive 
 	       SVG.AnimationAddition.attrib
 	*/
-	SMIL_AdditiveValue *additive; 
-	SMIL_AccumulateValue *accumulate; 
+	SMIL_Additive *additive; 
+	SMIL_Accumulate *accumulate; 
 
 	/* additional attributes for animateMotion*/
 	/* */
@@ -143,6 +145,9 @@ typedef struct _smil_anim_stack
 	   The target type depends on the animation.
 	   The value type MUST BE the same as the target type. */
 	void (*Assign)(void *target, void *value);
+
+	/* returns 1 if different, a and b must be non NULL and of same type */
+	u32 (*Compare)(void *a, void *b);
 
 	/* Linearly interpolates a value from value1 to value2 using the given coef
 	   The target type depends on the animation.

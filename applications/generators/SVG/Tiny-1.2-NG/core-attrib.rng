@@ -14,7 +14,7 @@
   <define name='svg.CoreCommon.attr' combine='interleave'>
     <optional>
       <attribute name='id' svg:animatable='false' svg:inheritable='false'>
-        <data type='ID'/>
+        <ref name='ID.datatype'/>
       </attribute>
     </optional>
     <optional>
@@ -24,7 +24,7 @@
     </optional>
     <optional>
       <attribute name='xml:id' svg:animatable='false' svg:inheritable='false'>
-        <data type='ID'/>
+        <ref name='ID.datatype'/>
       </attribute>
     </optional>
     <optional>
@@ -35,7 +35,7 @@
     <optional>
       <attribute name='xml:lang' svg:animatable='false' svg:inheritable='false'>
         <choice>
-          <ref name='LanguageCode.datatype'/>
+          <ref name='LanguageID.datatype'/>
           <empty/>
         </choice>
       </attribute>

@@ -27,6 +27,7 @@
   <include href='paint-attrib-tiny.rng'/>
   <include href='vectoreffects-attrib-tiny.rng'/>
   <include href='viewport-attrib-tiny.rng'/>
+  <include href='contenttype-attrib.rng'/>
 
   <!-- ... element definitions .................................... -->
   <include href='structure-tiny.rng'/>
@@ -48,5 +49,6 @@
   <include href='font-tiny.rng'/>
   <include href='gradient-tiny.rng'/>
   <include href='text-tiny.rng'/>
+  <include href='xml-events.rng'/>
 
 </grammar>

@@ -12,7 +12,7 @@
          datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
          >
 
-  <define name='svg.G.group' combine='choice'>
+  <define name='svg.GCommon.group' combine='choice'>
     <ref name='prefetch'/>
   </define>
 
@@ -25,29 +25,30 @@
   </define>
 
   <define name='prefetch.AT' combine='interleave'>
-    <interleave>
-      <ref name='svg.Core.attr'/>
-      <ref name='svg.XLinkRequired.attr'/>
-      <optional>
-        <attribute name='mediaSize' svg:animatable='false' svg:inheritable='false'>
-          <ref name='NumberOrPercentage.datatype'/>
-        </attribute>
-      </optional>
-      <optional>
-        <attribute name='mediaTime' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-      </optional>
-      <optional>
-        <attribute name='mediaCharacterEncoding' svg:animatable='false' svg:inheritable='false'/>
-      </optional>
-      <optional>
-        <attribute name='mediaContentEncodings' svg:animatable='false' svg:inheritable='false'/>
-      </optional>
-      <optional>
-        <attribute name='bandwidth' svg:animatable='false' svg:inheritable='false'>
-          <ref name='NumberOrPercentage.datatype'/>
-        </attribute>
-      </optional>
-    </interleave>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.XLinkRequired.attr'/>
+    <optional>
+      <attribute name='mediaSize' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Number.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='mediaTime' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name='mediaCharacterEncoding' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name='mediaContentEncodings' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+    <optional>
+      <attribute name='bandwidth' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <ref name='Number.datatype'/>
+          <value>auto</value>
+        </choice>
+      </attribute>
+    </optional>
   </define>
 
   <define name='prefetch.CM'>

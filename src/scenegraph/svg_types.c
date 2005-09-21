@@ -31,16 +31,16 @@
 void SVG_DeletePath(SVG_PathData *d) 
 {
 	u32 i;
-	for (i = 0; i < gf_list_count(d->path_commands); i++) {
-		u8 *command = gf_list_get(d->path_commands, i);
+	for (i = 0; i < gf_list_count(d->commands); i++) {
+		u8 *command = gf_list_get(d->commands, i);
 		free(command);
 	}
-	gf_list_del(d->path_commands);
-	for (i = 0; i < gf_list_count(d->path_points); i++) {
-		SVG_Point *pt = gf_list_get(d->path_points, i);
+	gf_list_del(d->commands);
+	for (i = 0; i < gf_list_count(d->points); i++) {
+		SVG_Point *pt = gf_list_get(d->points, i);
 		free(pt);
 	}
-	gf_list_del(d->path_points);
+	gf_list_del(d->points);
 }
 
 void SVG_DeleteTransformList(GF_List *tr)
@@ -53,11 +53,11 @@ void SVG_DeleteTransformList(GF_List *tr)
 	gf_list_del(tr);
 }
 
-void SVG_DeleteBeginOrEnd(GF_List *list)
+void SMIL_DeleteTimes(GF_List *list)
 {
 	u32 i;
 	for (i = 0; i < gf_list_count(list); i++) {
-		SMIL_BeginOrEndValue *v=gf_list_get(list, i);
+		SMIL_Time *v=gf_list_get(list, i);
 		free(v);
 	}
 	gf_list_del(list);
@@ -87,6 +87,7 @@ void SVG_DeletePaint(SVG_Paint *paint)
 {
 	if (!paint) return;
 	free(paint->color);
+	free(paint);
 }
 
 void SVG_DeleteOneAnimValue(u8 anim_datatype, void *anim_value)
@@ -95,14 +96,13 @@ void SVG_DeleteOneAnimValue(u8 anim_datatype, void *anim_value)
 	case SVG_Paint_datatype:
 		SVG_DeletePaint((SVG_Paint *)anim_value);
 		break;
-	case SVG_StrokeWidthValue_datatype:
+	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
-		break;
-	case SVG_VisibilityValue_datatype:
-		break;
-	case SVG_DisplayValue_datatype:
-		break;
+	case SVG_Visibility_datatype:
+	case SVG_Display_datatype:
+	default:
+		free(anim_value);
 	} 
 }
 
@@ -113,7 +113,6 @@ void SMIL_DeleteAnimateValues(SMIL_AnimateValues *anim_values)
 	for (i = 0; i < count; i++) {
 		void *value = gf_list_get(anim_values->values, i);
 		SVG_DeleteOneAnimValue(anim_values->datatype, value);
-		free(value);
 	}
 	gf_list_del(anim_values->values);
 	anim_values->values = NULL;
@@ -122,7 +121,6 @@ void SMIL_DeleteAnimateValues(SMIL_AnimateValues *anim_values)
 void SMIL_DeleteAnimateValue(SMIL_AnimateValue *anim_value)
 {
 	SVG_DeleteOneAnimValue(anim_value->datatype, anim_value->value);
-	free(anim_value->value);
 	anim_value->value = NULL;
 }
 

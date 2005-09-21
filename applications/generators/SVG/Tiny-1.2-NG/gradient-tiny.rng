@@ -16,17 +16,23 @@
   <define name='svg.Properties.attr' combine='interleave'>
     <optional>
       <attribute name='stop-color' svg:animatable='true' svg:inheritable='explicit'>
-        <ref name='SVGColor.datatype'/>
+        <choice>
+          <value>inherit</value>
+          <ref name='SVGColor.datatype'/>
+        </choice>
       </attribute>
     </optional>
     <optional>
       <attribute name='stop-opacity' svg:animatable='true' svg:inheritable='explicit'>
-        <ref name='OpacityValue.datatype'/>
+        <choice>
+          <value>inherit</value>
+          <ref name='Number.datatype'/>
+        </choice>
       </attribute>
     </optional>
   </define>
 
-  <define name='svg.G.group' combine='choice'>
+  <define name='svg.GCommon.group' combine='choice'>
     <choice>
       <ref name='linearGradient'/>
       <ref name='radialGradient'/>
@@ -36,18 +42,16 @@
 
   <!-- ... *Gradient .............................................. -->
   <define name='svg.GradientCommon.attr' combine='interleave'>
-    <interleave>
-      <ref name='svg.Properties.attr'/>
-      <ref name='svg.Core.attr'/>
-      <optional>
-        <attribute name='gradientUnits' svg:animatable='true' svg:inheritable='false'>
-          <choice>
-            <value>userSpaceOnUse</value>
-            <value>objectBoundingBox</value>
-          </choice>
-        </attribute>
-      </optional>
-    </interleave>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.Core.attr'/>
+    <optional>
+      <attribute name='gradientUnits' svg:animatable='true' svg:inheritable='false'>
+        <choice>
+          <value>userSpaceOnUse</value>
+          <value>objectBoundingBox</value>
+        </choice>
+      </attribute>
+    </optional>
   </define>
 
   <define name='GradientCommon.CM'>
@@ -55,6 +59,7 @@
       <choice>
         <ref name='svg.Desc.group'/>
         <ref name='svg.Animate.group'/>
+        <ref name='svg.Discard.group'/>
         <ref name='stop'/>
       </choice>
     </zeroOrMore>
@@ -70,30 +75,9 @@
   </define>
 
   <define name='linearGradient.AT' combine='interleave'>
-    <interleave>
-      <ref name='svg.Properties.attr'/>
-      <ref name='svg.Core.attr'/>
-      <optional>
-        <attribute name='x1' svg:animatable='true' svg:inheritable='false'>
-          <ref name='Coordinate.datatype'/>
-        </attribute>
-      </optional>
-      <optional>
-        <attribute name='y1' svg:animatable='true' svg:inheritable='false'>
-          <ref name='Coordinate.datatype'/>
-        </attribute>
-      </optional>
-      <optional>
-        <attribute name='x2' svg:animatable='true' svg:inheritable='false'>
-          <ref name='Coordinate.datatype'/>
-        </attribute>
-      </optional>
-      <optional>
-        <attribute name='y2' svg:animatable='true' svg:inheritable='false'>
-          <ref name='Coordinate.datatype'/>
-        </attribute>
-      </optional>
-    </interleave>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.X12Y12.attr'/>
   </define>
 
 
@@ -106,25 +90,10 @@
   </define>
 
   <define name='radialGradient.AT' combine='interleave'>
-    <interleave>
-      <ref name='svg.Properties.attr'/>
-      <ref name='svg.Core.attr'/>
-      <optional>
-        <attribute name='cx' svg:animatable='true' svg:inheritable='false'>
-          <ref name='Coordinate.datatype'/>
-        </attribute>
-      </optional>
-      <optional>
-        <attribute name='cy' svg:animatable='true' svg:inheritable='false'>
-          <ref name='Coordinate.datatype'/>
-        </attribute>
-      </optional>
-      <optional>
-        <attribute name='r' svg:animatable='true' svg:inheritable='false'>
-          <ref name='Length.datatype'/>
-        </attribute>
-      </optional>
-    </interleave>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.CxCy.attr'/>
+    <ref name='svg.R.attr'/>
   </define>
 
 
@@ -146,13 +115,13 @@
   </define>
 
   <define name='stop.AT' combine='interleave'>
-    <interleave>
-      <ref name='svg.Properties.attr'/>
-      <ref name='svg.Core.attr'/>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.Core.attr'/>
+    <optional>
       <attribute name='offset' svg:animatable='true' svg:inheritable='false'>
-        <ref name='GradientOffset.datatype'/>
+        <ref name='Number.datatype'/>
       </attribute>
-    </interleave>
+    </optional>
   </define>
 
 </grammar>

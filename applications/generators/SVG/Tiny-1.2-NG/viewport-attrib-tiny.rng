@@ -13,20 +13,19 @@
 
   <define name='svg.Properties.attr' combine='interleave'>
     <optional>
-      <attribute name='overflow' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='viewport-fill' svg:animatable='true' svg:inheritable='false'>
         <choice>
-          <value>visible</value>
+          <value>inherit</value>
+          <ref name='Paint.datatype'/>
         </choice>
       </attribute>
     </optional>
     <optional>
-      <attribute name='viewport-fill' a:defaultValue='none' svg:animatable='true' svg:inheritable='false'>
-        <ref name='Paint.datatype'/>
-      </attribute>
-    </optional>
-    <optional>
       <attribute name='viewport-fill-opacity' svg:animatable='true' svg:inheritable='false'>
-        <ref name='OpacityValue.datatype'/>
+        <choice>
+          <value>inherit</value>
+          <ref name='Number.datatype'/>
+        </choice>
       </attribute>
     </optional>
   </define>

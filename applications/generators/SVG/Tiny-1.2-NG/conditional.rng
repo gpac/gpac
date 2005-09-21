@@ -25,12 +25,12 @@
   <define name='svg.Conditional.attr' combine='interleave'>
     <optional>
       <attribute name='requiredFeatures' svg:animatable='false' svg:inheritable='false'>
-        <ref name='FeatureList.datatype'/>
+        <ref name='ListOfIRI.datatype'/>
       </attribute>
     </optional>
     <optional>
       <attribute name='requiredExtensions' svg:animatable='false' svg:inheritable='false'>
-        <ref name='ExtensionList.datatype'/>
+        <ref name='ListOfIRI.datatype'/>
       </attribute>
     </optional>
     <optional>
@@ -45,7 +45,7 @@
     </optional>
     <optional>
       <attribute name='systemLanguage' svg:animatable='false' svg:inheritable='false'>
-        <ref name='LanguageCodes.datatype'/>
+        <ref name='LanguageIDs.datatype'/>
       </attribute>
     </optional>
   </define>
@@ -53,13 +53,11 @@
 
   <!-- ... switch's attributes .................................... -->
   <define name='switch.AT' combine='interleave'>
-    <interleave>
-      <ref name='svg.Core.attr'/>
-      <ref name='svg.Conditional.attr'/>
-      <ref name='svg.Properties.attr'/>
-      <ref name='svg.External.attr'/>
-      <ref name='svg.Transform.attr'/>
-    </interleave>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.External.attr'/>
+    <ref name='svg.Transform.attr'/>
   </define>
 
 </grammar>

@@ -851,14 +851,14 @@ DrawableContext *LASeR_drawable_init_context(Drawable *node, RenderEffect2D *eff
 static void setup_SVG_drawable_context(DrawableContext *ctx, SVGStylingProperties props)
 {
 	ctx->aspect.fill_alpha = 255;
-	ctx->aspect.filled = (props.fill->paintType != SVG_PAINTTYPE_NONE);
-	if (props.fill->color->colorType == SVG_COLORTYPE_CURRENTCOLOR) {
+	ctx->aspect.filled = (props.fill->type != SVG_PAINT_NONE);
+	if (props.fill->color->type == SVG_COLOR_CURRENTCOLOR) {
 		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(props.fill_opacity->value, props.color->red, props.color->green, props.color->blue);
 	} else {
 		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(props.fill_opacity->value, props.fill->color->red, props.fill->color->green, props.fill->color->blue);
 	}
-	ctx->aspect.has_line = (props.stroke->paintType != SVG_PAINTTYPE_NONE);
-	if (props.stroke->color->colorType == SVG_COLORTYPE_CURRENTCOLOR) {
+	ctx->aspect.has_line = (props.stroke->type != SVG_PAINT_NONE);
+	if (props.stroke->color->type == SVG_COLOR_CURRENTCOLOR) {
 		ctx->aspect.line_color = GF_COL_ARGB_FIXED(props.stroke_opacity->value, props.color->red, props.color->green, props.color->blue);
 	} else {
 		ctx->aspect.line_color = GF_COL_ARGB_FIXED(props.stroke_opacity->value, props.stroke->color->red, props.stroke->color->green, props.stroke->color->blue);

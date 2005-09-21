@@ -29,6 +29,7 @@
       <attribute name='line-increment' svg:animatable='true' svg:inheritable='true'>
         <choice>
           <value>auto</value>
+          <value>inherit</value>
           <ref name='Number.datatype'/>
         </choice>
       </attribute>
@@ -36,7 +37,7 @@
   </define>
 
 
-  <define name='svg.G.group' combine='choice'>
+  <define name='svg.GCommon.group' combine='choice'>
     <choice>
       <ref name='textArea'/>
     </choice>
@@ -49,13 +50,13 @@
     -->
   <define name='svg.TextCommon-noA.group' combine='choice'>
     <choice>
-      <ref name='tBreak'/>
+      <ref name='tbreak'/>
     </choice>
   </define>
 
   <define name='svg.TextCommon.group' combine='choice'>
     <choice>
-      <ref name='tBreak'/>
+      <ref name='tbreak'/>
     </choice>
   </define>
 
@@ -69,39 +70,48 @@
   </define>
 
   <define name='textArea.AT' combine='interleave'>
-    <interleave>
-      <ref name='svg.Properties.attr'/>
-      <ref name='svg.Core.attr'/>
-      <ref name='svg.Conditional.attr'/>
-      <ref name='svg.Focus.attr'/>
-      <ref name='svg.Transform.attr'/>
-      <ref name='svg.XYWH.attr'/>
-      <optional>
-        <attribute name='rotate' svg:animatable='true' svg:inheritable='false'>
-          <ref name='Numbers.datatype'/>
-        </attribute>
-      </optional>
-      <optional>
-        <attribute name='editable' a:defaultValue='false' svg:animatable='true' svg:inheritable='false'>
-          <ref name='Boolean.datatype'/>
-        </attribute>
-      </optional>
-    </interleave>
+    <ref name='svg.Properties.attr'/>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.Focus.attr'/>
+    <ref name='svg.Transform.attr'/>
+    <ref name='svg.XY.attr'/>
+    <ref name='svg.Editable.attr'/>
+    <optional>
+      <attribute name='width' svg:animatable='true' svg:inheritable='false'>
+        <choice>
+          <ref name='Length.datatype'/>
+          <value>auto</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='height' svg:animatable='true' svg:inheritable='false'>
+      <choice>
+        <ref name='Length.datatype'/>
+        <value>auto</value>
+      </choice>
+      </attribute>
+    </optional>
   </define>
 
 
-  <!-- ... tBreak ................................................. -->
-  <define name='tBreak'>
-    <element name='tBreak'>
-      <ref name='tBreak.AT'/>
+  <!-- ... tbreak ................................................. -->
+  <define name='tbreak'>
+    <element name='tbreak'>
+      <ref name='tbreak.AT'/>
       <empty/>
     </element>
   </define>
 
-  <define name='tBreak.AT' combine='interleave'>
-    <interleave>
-      <ref name='svg.Core.attr'/>
-    </interleave>
+  <define name='tbreak.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
   </define>
 
 </grammar>
+
+
+
+
+
+

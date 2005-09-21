@@ -13,8 +13,10 @@
          >
 
 
-  <define name='svg.G.group' combine='choice'>
-    <ref name='animation'/>
+  <define name='svg.GCommon.group' combine='choice'>
+    <choice>
+      <ref name='animation'/>
+    </choice>
   </define>
 
 
@@ -27,28 +29,28 @@
   </define>
 
   <define name='animation.AT' combine='interleave'>
-    <interleave>
-      <ref name='svg.Core.attr'/>
-      <ref name='svg.Media.attr'/>
-      <ref name='svg.Conditional.attr'/>
-      <ref name='svg.XLinkEmbed.attr'/>
-      <ref name='svg.Focus.attr'/>
-      <ref name='svg.AnimateTimingNoMinMax.attr'/>
-      <ref name='svg.XYWH.attr'/>
-      <optional>
-        <attribute name='preserveAspectRatio' a:defaultValue='xMidYMid meet' svg:animatable='true' svg:inheritable='false'>
-          <ref name='PreserveAspectRatioSpec.datatype'/>
-        </attribute>
-      </optional>
-    </interleave>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Media.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.External.attr'/>
+    <ref name='svg.XLinkEmbed.attr'/>
+    <ref name='svg.Focus.attr'/>
+    <ref name='svg.AnimateTimingNoMinMax.attr'/>
+    <ref name='svg.AnimateSync.attr'/>
+    <ref name='svg.XYWH.attr'/>
+    <ref name='svg.PAR.attr'/>
+    <ref name='svg.Transform.attr'/>
   </define>
 
   <define name='animation.CM'>
-    <choice>
-      <ref name='svg.Desc.group'/>
-      <ref name='svg.Animate.group'/>
-      <ref name='svg.Handler.group'/>
-    </choice>
+    <zeroOrMore>
+      <choice>
+        <ref name='svg.Desc.group'/>
+        <ref name='svg.Animate.group'/>
+        <ref name='svg.Discard.group'/>
+        <ref name='svg.Handler.group'/>
+      </choice>
+    </zeroOrMore>
   </define>
 
 </grammar>

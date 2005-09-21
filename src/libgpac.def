@@ -1069,4 +1069,5 @@ EXPORTS
 	SVG_DeleteCoordinates
 	SVG_DeletePath
 	SVG_DeletePoints
+	SMIL_DeleteTimes
 	SVG_GetElementName

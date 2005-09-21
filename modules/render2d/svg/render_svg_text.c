@@ -49,7 +49,10 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 	SVGApplyProperties(eff->svg_props, text->properties);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
-		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) return;
+		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
+		memcpy(eff->svg_props, &backup_props, styling_size);
+		return;
+	}
 
 	gf_mx2d_copy(backup_matrix, eff->transform);
 
@@ -82,13 +85,13 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 			wcText[len] = 0;
 
 			switch(*eff->svg_props->font_style) {
-			case SVGFontStyle_normal:
+			case SVG_FONTSTYLE_NORMAL:
 				sprintf(styles, "%s", "PLAIN");
 				break;
-			case SVGFontStyle_italic:
+			case SVG_FONTSTYLE_ITALIC:
 				sprintf(styles, "%s", "ITALIC");
 				break;
-			case SVGFontStyle_oblique:
+			case SVG_FONTSTYLE_OBLIQUE:
 				sprintf(styles, "%s", "ITALIC");
 				break;
 			}
@@ -123,6 +126,7 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 			ft_dr->add_text_to_path(ft_dr, cs->path, 0, wcText, start_x + x, start_y + y, FIX_ONE, FIX_ONE, ascent, &rc);
 			free(wcText);
 		}
+		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
 	ctx = SVG_drawable_init_context(cs, eff);

@@ -233,65 +233,101 @@ void setAttributeType(SVGProperty *att)
 			strcpy(att->implementation_name, "class_attribute");
 			strcpy(att->impl_type, "SVG_String");
 		} else if (!strcmp(att->svg_name, "visibility")) {
-			strcpy(att->impl_type, "SVG_VisibilityValue");
-		} else if (!strcmp(att->svg_name, "color")) {
-			strcpy(att->impl_type, "SVG_Color");
+			strcpy(att->impl_type, "SVG_Visibility");
 		} else if (!strcmp(att->svg_name, "display")) {
-			strcpy(att->impl_type, "SVG_DisplayValue");
+			strcpy(att->impl_type, "SVG_Display");
 		} else if (!strcmp(att->svg_name, "stroke-linecap")) {
-			strcpy(att->impl_type, "SVG_StrokeLineCapValue");
+			strcpy(att->impl_type, "SVG_StrokeLineCap");
+		} else if (!strcmp(att->svg_name, "stroke-dasharray")) {
+			strcpy(att->impl_type, "SVG_StrokeDashArray");
 		} else if (!strcmp(att->svg_name, "stroke-linejoin")) {
-			strcpy(att->impl_type, "SVG_StrokeLineJoinValue");
+			strcpy(att->impl_type, "SVG_StrokeLineJoin");
 		} else if (!strcmp(att->svg_name, "font-style")) {
-			strcpy(att->impl_type, "SVG_FontStyleValue");
+			strcpy(att->impl_type, "SVG_FontStyle");
+		} else if (!strcmp(att->svg_name, "font-weight")) {
+			strcpy(att->impl_type, "SVG_FontWeight");
 		} else if (!strcmp(att->svg_name, "text-anchor")) {
-			strcpy(att->impl_type, "SVG_TextAnchorValue");
+			strcpy(att->impl_type, "SVG_TextAnchor");
 		} else if (!strcmp(att->svg_name, "fill") && att->attr_or_prop == 1) {
-			strcpy(att->impl_type, "SMIL_FillValue");
+			strcpy(att->impl_type, "SMIL_Fill");
+		} else if (!strcmp(att->svg_name, "fill-rule")) {
+			strcpy(att->impl_type, "SVG_FillRule");
+		} else if (!strcmp(att->svg_name, "font-family")) {
+			strcpy(att->impl_type, "SVG_FontFamily");
+		} else if (!strcmp(att->svg_name, "stroke-miterlimit")) {
+			strcpy(att->impl_type, "SVG_StrokeMiterLimit");
+		} else if (!strcmp(att->svg_name, "stroke-width")) {
+			strcpy(att->impl_type, "SVG_StrokeWidth");
 		} else if (!strcmp(att->svg_name, "calcMode")) {
-			strcpy(att->impl_type, "SMIL_CalcModeValue");
+			strcpy(att->impl_type, "SMIL_CalcMode");
 		} else if (!strcmp(att->svg_name, "values")) {
 			strcpy(att->impl_type, "SMIL_AnimateValues");
 		} else if (!strcmp(att->svg_name, "keyTimes")) {
-			strcpy(att->impl_type, "SMIL_KeyTimesValues");
+			strcpy(att->impl_type, "SMIL_KeyTimes");
 		} else if (!strcmp(att->svg_name, "keySplines")) {
-			strcpy(att->impl_type, "SMIL_KeySplinesValues");
+			strcpy(att->impl_type, "SMIL_KeySplines");
 		} else if (!strcmp(att->svg_name, "keyPoints")) {
-			strcpy(att->impl_type, "SMIL_KeyPointsValues");
+			strcpy(att->impl_type, "SMIL_KeyPoints");
 		} else if (!strcmp(att->svg_name, "from") || !strcmp(att->svg_name, "to") || !strcmp(att->svg_name, "by")) {
 			strcpy(att->impl_type, "SMIL_AnimateValue");
 		} else if (!strcmp(att->svg_name, "additive")) {
-			strcpy(att->impl_type, "SMIL_AdditiveValue");
+			strcpy(att->impl_type, "SMIL_Additive");
 		} else if (!strcmp(att->svg_name, "accumulate")) {
-			strcpy(att->impl_type, "SMIL_AccumulateValue");
+			strcpy(att->impl_type, "SMIL_Accumulate");
 		} else if (!strcmp(att->svg_name, "begin") ||
 				   !strcmp(att->svg_name, "end")
 				  ) {
-			strcpy(att->impl_type, "SMIL_BeginOrEndValues");
+			strcpy(att->impl_type, "SMIL_Times");
 		} else if (!strcmp(att->svg_name, "min") ||
 				   !strcmp(att->svg_name, "max") ||
 				   !strcmp(att->svg_name, "dur") ||
 				   !strcmp(att->svg_name, "repeatDur")
 				  ) {
-			strcpy(att->impl_type, "SMIL_MinMaxDurRepeatDurValue");
+			strcpy(att->impl_type, "SMIL_Duration");
 		} else if (!strcmp(att->svg_name, "repeat")) {
-			strcpy(att->impl_type, "SMIL_RepeatValue");
+			strcpy(att->impl_type, "SMIL_Repeat");
 		} else if (!strcmp(att->svg_name, "restart")) {
-			strcpy(att->impl_type, "SMIL_RestartValue");
+			strcpy(att->impl_type, "SMIL_Restart");
 		} else if (!strcmp(att->svg_name, "repeatCount")) {
-			strcpy(att->impl_type, "SMIL_RepeatCountValue");
+			strcpy(att->impl_type, "SMIL_RepeatCount");
 		} else if (!strcmp(att->svg_name, "attributeName")) {
 			strcpy(att->impl_type, "SMIL_AttributeName");
 		} else if (!strcmp(att->svg_name, "type")) {
-			strcpy(att->impl_type, "SVG_AnimateTransformTypeValue");
+			strcpy(att->impl_type, "SVG_TransformType");
 		} else if (!strcmp(att->svg_name, "font-size")) {
-			strcpy(att->impl_type, "SVG_FontSizeValue");
+			strcpy(att->impl_type, "SVG_FontSize");
+		} else if (!strcmp(att->svg_name, "viewBox")) {
+			strcpy(att->impl_type, "SVG_ViewBox");
+		} else if (!strcmp(att->svg_name, "preserveAspectRatio")) {
+			strcpy(att->impl_type, "SVG_PreserveAspectRatio");
+		} else if (!strcmp(att->svg_name, "zoomAndPan")) {
+			strcpy(att->impl_type, "SVG_ZoomAndPan");
+		} else if (!strcmp(att->svg_name, "path")) {
+			strcpy(att->impl_type, "SVG_PathData");
 		} else {
 			strcpy(att->impl_type, "SVG_String");
-			//fprintf(stdout, "Warning: using SVG_String_datatype for attribute %s.\n", att->svg_name);
+			fprintf(stdout, "Warning: using type SVG_String for attribute %s.\n", att->svg_name);
 		}
 	} else {
-		if (strstr(att->svg_type, "datatype")) {
+		if (!strcmp(att->svg_name, "fill-opacity")) {
+			strcpy(att->impl_type, "SVG_Opacity");
+		} else if (!strcmp(att->svg_name, "opacity")) {
+			strcpy(att->impl_type, "SVG_Opacity");
+		} else if (!strcmp(att->svg_name, "solid-opacity")) {
+			strcpy(att->impl_type, "SVG_Opacity");
+		} else if (!strcmp(att->svg_name, "stop-opacity")) {
+			strcpy(att->impl_type, "SVG_Opacity");
+		} else if (!strcmp(att->svg_name, "stroke-opacity")) {
+			strcpy(att->impl_type, "SVG_Opacity");
+		} else if (!strcmp(att->svg_name, "viewport-fill-opacity")) {
+			strcpy(att->impl_type, "SVG_Opacity");
+		} else if (!strcmp(att->svg_name, "audio-level")) {
+			strcpy(att->impl_type, "SVG_AudioLevel");
+		} else if (!strcmp(att->svg_name, "stroke-dashoffset")) {
+			strcpy(att->impl_type, "SVG_StrokeDashOffset");
+		} else if (!strcmp(att->svg_name, "color")) {
+			strcpy(att->impl_type, "SVG_Color");
+		} else if (strstr(att->svg_type, "datatype")) {
 			char *tmp;
 			sprintf(att->impl_type, "SVG_%s", att->svg_type);
 			tmp = att->impl_type;
@@ -412,7 +448,6 @@ void getAttributes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, xmlNodePtr elemen
 	xmlNodeSetPtr attribute_refNodes, attributeNodes;
 	int k;
 	u32 j;
-	s32 i;
 
 	indent++;
 
@@ -637,6 +672,8 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 				fprintf(output, "\tSVG_DeleteCoordinates(p->%s);\n", att->implementation_name);
 			} else if (!strcmp("SVG_Points", att->impl_type)) {
 				fprintf(output, "\tSVG_DeletePoints(p->%s);\n", att->implementation_name);
+			} else if (!strcmp("SVG_PathData", att->impl_type) && !strcmp(svg_elt->svg_name, "animateMotion")) {
+				fprintf(output, "\tSVG_DeletePath(&(p->path));\n");
 			} else if (!strcmp("SVG_PathData", att->impl_type)) {
 				fprintf(output, "\tSVG_DeletePath(&(p->d));\n");
 			} else if (!strcmp("SMIL_AnimateValue", att->impl_type)) {
@@ -655,12 +692,12 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 				fprintf(output, "\tfree(p->stop_color.color);\n");
 			} else if (!strcmp(att->svg_name, "transform")) {
 				fprintf(output, "\tSVG_DeleteTransformList(p->transform);\n");
-			} else if (!strcmp("SMIL_BeginOrEndValues", att->impl_type)) {
-				fprintf(output, "\tSVG_DeleteBeginOrEnd(p->%s);\n", att->implementation_name);
+			} else if (!strcmp("SMIL_Times", att->impl_type)) {
+				fprintf(output, "\tSMIL_DeleteTimes(p->%s);\n", att->implementation_name);
 			} else if (!strcmp(att->svg_name, "textContent")) {
 				fprintf(output, "\tfree(p->textContent);\n");				
 			} else if (!strcmp(att->svg_name, "font-family")) {
-				fprintf(output, "\tfree(p->font_family.value.string);\n");
+				fprintf(output, "\tfree(p->font_family.value);\n");
 			} else if (!strcmp(att->svg_name, "xlink:href")) {
 				fprintf(output, "\tfree(p->xlink_href.iri);\n");
 			}
@@ -697,65 +734,66 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 
 			/* default values should be handled more properly, generically */
 			if (!att->attr_or_prop && !strcmp(att->implementation_name, "fill")) {
-				fprintf(output, "\tp->fill.paintType = SVG_PAINTTYPE_INHERIT;\n");
+				fprintf(output, "\tp->fill.type = SVG_PAINT_INHERIT;\n");
 				fprintf(output, "\tGF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));\n");
 			} else if (!strcmp(att->svg_name, "color")) {
-				fprintf(output, "\tp->color.colorType = SVG_COLORTYPE_INHERIT;\n");
+				fprintf(output, "\tp->color.type = SVG_COLOR_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "fill-rule")) {
-				fprintf(output, "\tp->fill_rule = SVGFillRule_inherit;\n");
+				fprintf(output, "\tp->fill_rule = SVG_FILLRULE_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "fill-opacity")) {
-				fprintf(output, "\tp->fill_opacity.type = SVGFLOAT_INHERIT;\n");
+				fprintf(output, "\tp->fill_opacity.type = SVG_FLOAT_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "stroke")) {
-				fprintf(output, "\tp->stroke.paintType = SVG_PAINTTYPE_INHERIT;\n");
+				fprintf(output, "\tp->stroke.type = SVG_PAINT_INHERIT;\n");
 				fprintf(output, "\tGF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));\n");
 			} else if (!strcmp(att->svg_name, "viewport-fill")) {
-				fprintf(output, "\tp->viewport_fill.paintType = SVG_PAINTTYPE_INHERIT;\n");
+				fprintf(output, "\tp->viewport_fill.type = SVG_PAINT_INHERIT;\n");
 				fprintf(output, "\tGF_SAFEALLOC(p->viewport_fill.color, sizeof(SVG_Color));\n");
 			} else if (!strcmp(att->svg_name, "stop-color")) {
-				fprintf(output, "\tp->stop_color.paintType = SVG_PAINTTYPE_INHERIT;\n");
+				fprintf(output, "\tp->stop_color.type = SVG_PAINT_INHERIT;\n");
 				fprintf(output, "\tGF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));\n");
 			} else if (!strcmp(att->svg_name, "stroke-opacity")) {
-				fprintf(output, "\tp->stroke_opacity.type = SVGFLOAT_INHERIT;\n");
+				fprintf(output, "\tp->stroke_opacity.type = SVG_FLOAT_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "stroke-width")) {
-				fprintf(output, "\tp->stroke_width.unitType = SVG_LENGTHTYPE_INHERIT;\n");
+				fprintf(output, "\tp->stroke_width.type = SVG_LENGTH_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "stroke-linejoin")) {
-				fprintf(output, "\tp->stroke_linejoin = SVGStrokeLineJoin_inherit;\n");
+				fprintf(output, "\tp->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "stroke-linecap")) {
-				fprintf(output, "\tp->stroke_linecap = SVGStrokeLineCap_inherit;\n");
+				fprintf(output, "\tp->stroke_linecap = SVG_STROKELINECAP_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "stroke-miterlimit")) {
-				fprintf(output, "\tp->stroke_miterlimit.type = SVGFLOAT_INHERIT;\n");
+				fprintf(output, "\tp->stroke_miterlimit.type = SVG_FLOAT_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "stroke-dasharray")) {
 				fprintf(output, "\tp->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "stroke-dashoffset")) {
-				fprintf(output, "\tp->stroke_dashoffset.type = SVGFLOAT_INHERIT;\n");
-			} else if (!strcmp(att->svg_name, "stroke-linecap")) {
-				fprintf(output, "\tp->stroke_linecap = SVGStrokeLineCap_inherit;\n");
+				fprintf(output, "\tp->stroke_dashoffset.type = SVG_FLOAT_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "font-size")) {
-				fprintf(output, "\tp->font_size.type = SVGFLOAT_INHERIT;\n");
+				fprintf(output, "\tp->font_size.type = SVG_FLOAT_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "text-anchor")) {
 				fprintf(output, "\tp->text_anchor = SVG_TEXTANCHOR_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "min")) {
-				fprintf(output, "\tp->min.type = SMILMinMaxDurRepeatDur_value;\n");
+				fprintf(output, "\tp->min.type = SMIL_DURATION_VALUE;\n");
 			} else if (!strcmp(att->svg_name, "repeatCount")) {
 				fprintf(output, "\tp->repeatCount = FIX_ONE;\n");
 			} else if (!strcmp(att->svg_name, "repeatDur")) {
 				fprintf(output, "\tp->repeatDur.clock_value = -1.;\n");
 			} else if (!strcmp(att->svg_name, "calcMode") && !strcmp(svg_elt->svg_name, "animateMotion")) {
-				fprintf(output, "\tp->calcMode = SMILCalcMode_paced;\n");
+				fprintf(output, "\tp->calcMode = SMIL_CALCMODE_PACED;\n");
 			} else 
 				/* Inialization of complex types */
 			if ( !strcmp("SVG_TransformList", att->impl_type) ||
 						!strcmp("SVG_Points", att->impl_type) || 
 						!strcmp("SVG_Coordinates", att->impl_type) ||
-						!strcmp("SMIL_KeyTimesValues", att->impl_type) ||
-						!strcmp("SMIL_KeyPointsValues", att->impl_type) ||
-						!strcmp("SMIL_KeySplinesValues", att->impl_type) ||			
-						!strcmp("SMIL_BeginOrEndValues", att->impl_type) 
+						!strcmp("SMIL_KeyTimes", att->impl_type) ||
+						!strcmp("SMIL_KeyPoints", att->impl_type) ||
+						!strcmp("SMIL_KeySplines", att->impl_type) ||			
+						!strcmp("SMIL_Times", att->impl_type) 
 					  ) {
 				fprintf(output, "\tp->%s = gf_list_new();\n", att->implementation_name);
+			} else if (!strcmp("SVG_PathData", att->impl_type) && !strcmp(svg_elt->svg_name, "animateMotion")) {
+				fprintf(output, "\tp->path.commands = gf_list_new();\n");
+				fprintf(output, "\tp->path.points = gf_list_new();\n");
 			} else if (!strcmp("SVG_PathData", att->impl_type)) {
-				fprintf(output, "\tp->d.path_commands = gf_list_new();\n");
-				fprintf(output, "\tp->d.path_points = gf_list_new();\n");
+				fprintf(output, "\tp->d.commands = gf_list_new();\n");
+				fprintf(output, "\tp->d.points = gf_list_new();\n");
 			} else if (!strcmp("SMIL_AnimateValues", att->impl_type)) {
 				fprintf(output, "\tp->%s.values = gf_list_new();\n",att->implementation_name);
 			}

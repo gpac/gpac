@@ -1143,7 +1143,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	GF_VisualRenderer *rend = (GF_VisualRenderer *)ifce;
 	if (rend->InterfaceType != GF_RENDERER_INTERFACE) return;
-	assert(rend->user_priv==NULL);
+	if (rend->user_priv) R2D_UnloadRenderer(rend);
 	free(rend);
 }
 

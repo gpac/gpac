@@ -12,7 +12,7 @@
          datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
          >
 
-  <define name='svg.G.group' combine='choice'>
+  <define name='svg.GCommon.group' combine='choice'>
     <ref name='video'/>
   </define>
 
@@ -25,71 +25,34 @@
   </define>
 
   <define name='video.AT' combine='interleave'>
-    <interleave>
-      <ref name='svg.Core.attr'/>
-      <ref name='svg.Media.attr'/>
-      <ref name='svg.XLinkEmbed.attr'/>
-      <ref name='svg.Conditional.attr'/>
-      <ref name='svg.External.attr'/>
-      <ref name='svg.AnimateTimingNoFillNoMinMax.attr'/>
-      <ref name='svg.Focus.attr'/>
-      <ref name='svg.Transform.attr'/>
-      <ref name='svg.XYWH.attr'/>
-      <optional>
-        <attribute name='preserveAspectRatio' a:defaultValue='xMidYMid meet' svg:animatable='yes' svg:inheritable='false'>
-          <ref name='PreserveAspectRatioSpec.datatype'/>
-        </attribute>
-      </optional>
-      <optional>
-        <attribute name='transformBehavior' a:defaultValue='geometric' svg:animatable='no' svg:inheritable='false'>
-          <choice>
-            <value>geometric</value>
-            <value>pinned</value>
-          </choice>
-        </attribute>
-      </optional>
-      <optional>
-        <attribute name='overlay' a:defaultValue='none' svg:animatable='no' svg:inheritable='false'>
-          <choice>
-            <value>none</value>
-            <value>top</value>
-          </choice>
-        </attribute>
-      </optional>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.Media.attr'/>
+    <ref name='svg.XLinkEmbed.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.External.attr'/>
+    <ref name='svg.AnimateTimingNoFillNoMinMax.attr'/>
+    <ref name='svg.AnimateSync.attr'/>
+    <ref name='svg.Focus.attr'/>
+    <ref name='svg.Transform.attr'/>
+    <ref name='svg.XYWH.attr'/>
+    <ref name='svg.PAR.attr'/>
+    <ref name='svg.ContentType.attr'/>
     <optional>
-      <attribute name='display' svg:animatable='true' svg:inheritable='explicit'>
+      <attribute name='transformBehavior' a:defaultValue='geometric' svg:animatable='no' svg:inheritable='false'>
         <choice>
-          <value>inline</value>
-          <value>block</value>
-          <value>list-item</value>
-          <value>run-in</value>
-          <value>compact</value>
-          <value>marker</value>
-          <value>table</value>
-          <value>inline-table</value>
-          <value>table-row-group</value>
-          <value>table-header-group</value>
-          <value>table-footer-group</value>
-          <value>table-row</value>
-          <value>table-column-group</value>
-          <value>table-column</value>
-          <value>table-cell</value>
-          <value>table-caption</value>
-          <value>none</value>
-          <value>inherit</value>
+          <value>geometric</value>
+          <value>pinned</value>
         </choice>
       </attribute>
     </optional>
     <optional>
-      <attribute name='visibility' svg:animatable='true' svg:inheritable='true'>
+      <attribute name='overlay' a:defaultValue='none' svg:animatable='no' svg:inheritable='false'>
         <choice>
-          <value>visible</value>
-          <value>hidden</value>
-          <value>inherit</value>
+          <value>none</value>
+          <value>top</value>
         </choice>
       </attribute>
-    </optional>      
-    </interleave>
+    </optional>
   </define>
 
   <define name='video.CM'>
@@ -98,6 +61,7 @@
         <ref name='svg.Desc.group'/>
         <ref name='svg.Animate.group'/>
         <ref name='svg.Handler.group'/>
+        <ref name='svg.Discard.group'/>
       </choice>
     </zeroOrMore>
   </define>

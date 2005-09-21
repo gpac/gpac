@@ -50,6 +50,7 @@ void SVGApplyProperties(SVGStylingProperties *render_svg_props, SVGStylingProper
 /* Basic shapes rendering functions */
 void SVG_Init_svg(Render2D *sr, GF_Node *node);
 void SVG_Init_g(Render2D *sr, GF_Node *node);
+void SVG_Init_switch(Render2D *sr, GF_Node *node);
 void SVG_Init_rect(Render2D *sr, GF_Node *node);
 void SVG_Init_circle(Render2D *sr, GF_Node *node);
 void SVG_Init_ellipse(Render2D *sr, GF_Node *node);

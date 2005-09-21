@@ -17,6 +17,7 @@
         <choice>
           <value>default</value>
           <value>non-scaling-stroke</value>
+          <value>inherit</value>
         </choice>
       </attribute>
     </optional>

@@ -21,7 +21,7 @@
 
   <define name='svg.XLinkBase.attr' combine='interleave'>
     <optional>
-      <attribute name='xlink:type' a:defaultValue='simple' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='xlink:type' svg:animatable='true' svg:inheritable='false'>
         <value>simple</value>
       </attribute>
     </optional>
@@ -36,51 +36,65 @@
       </attribute>
     </optional>
     <optional>
-      <attribute name='xlink:title' svg:animatable='false' svg:inheritable='false'/>
+      <attribute name='xlink:title' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+    </optional>
+  </define>
+
+  <!-- @@ 
+    This used to be required for real, but all attributes became optional.
+    Some simplifications to the rest of the schema may have thus become
+    possible.
+    -->
+  <define name='svg.XLinkHrefRequired.attr' combine='interleave'>
+    <optional>
+      <attribute name='xlink:href' svg:animatable='true' svg:inheritable='false'>
+        <ref name='IRI.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.XLinkBaseRequired.attr' combine='interleave'>
+    <ref name='svg.XLinkBase.attr'/>
+    <ref name='svg.XLinkHrefRequired.attr'/>
+  </define>
+
+
+  <define name='svg.XLinkActuateOnLoad.attr' combine='interleave'>
+    <optional>
+      <attribute name='xlink:actuate' svg:animatable='false' svg:inheritable='false'>
+        <value>onLoad</value>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.XLinkShowOther.attr' combine='interleave'>
+    <optional>
+      <attribute name='xlink:show' svg:animatable='false' svg:inheritable='false'>
+        <value>other</value>
+      </attribute>
     </optional>
   </define>
 
 
   <define name='svg.XLinkEmbed.attr' combine='interleave'>
-    <attribute name='xlink:href' svg:animatable='false' svg:inheritable='false'>
-      <ref name='IRI.datatype'/>
-    </attribute>
     <optional>
-      <attribute name='xlink:show' a:defaultValue='embed' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='xlink:show' svg:animatable='false' svg:inheritable='false'>
         <value>embed</value>
       </attribute>
     </optional>
-    <optional>
-      <attribute name='xlink:actuate' a:defaultValue='onLoad' svg:animatable='false' svg:inheritable='false'>
-        <value>onLoad</value>
-      </attribute>
-    </optional>
-    <ref name='svg.XLinkBase.attr'/>
+    <ref name='svg.XLinkActuateOnLoad.attr'/>
+    <ref name='svg.XLinkBaseRequired.attr'/>
   </define>
 
 
   <define name='svg.XLinkRequired.attr' combine='interleave'>
-    <attribute name='xlink:href' svg:animatable='false' svg:inheritable='false'>
-      <ref name='IRI.datatype'/>
-    </attribute>
-    <optional>
-      <attribute name='xlink:show' a:defaultValue='other' svg:animatable='false' svg:inheritable='false'>
-        <value>other</value>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='xlink:actuate' a:defaultValue='onLoad' svg:animatable='false' svg:inheritable='false'>
-        <value>onLoad</value>
-      </attribute>
-    </optional>
-    <ref name='svg.XLinkBase.attr'/>
+    <ref name='svg.XLinkShowOther.attr'/>
+    <ref name='svg.XLinkActuateOnLoad.attr'/>
+    <ref name='svg.XLinkBaseRequired.attr'/>
   </define>
 
 
   <define name='svg.XLinkReplace.attr' combine='interleave'>
-    <attribute name='xlink:href' svg:animatable='false' svg:inheritable='false'>
-      <ref name='IRI.datatype'/>
-    </attribute>
     <optional>
       <attribute name='xlink:show' a:defaultValue='replace' svg:animatable='false' svg:inheritable='false'>
         <choice>
@@ -90,29 +104,19 @@
       </attribute>
     </optional>
     <optional>
-      <attribute name='xlink:actuate' a:defaultValue='onRequest' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='xlink:actuate' svg:animatable='false' svg:inheritable='false'>
         <value>onRequest</value>
       </attribute>
     </optional>
-    <ref name='svg.XLinkBase.attr'/>
+    <ref name='svg.XLinkBaseRequired.attr'/>
   </define>
 
   <define name='svg.XLink.attr' combine='interleave'>
     <optional>
-      <attribute name='xlink:href' svg:animatable='false' svg:inheritable='false'>
-        <ref name='IRI.datatype'/>
-      </attribute>
+      <ref name='svg.XLinkHrefRequired.attr'/>
     </optional>
-    <optional>
-      <attribute name='xlink:show' a:defaultValue='other' svg:animatable='false' svg:inheritable='false'>
-        <value>other</value>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='xlink:actuate' a:defaultValue='onLoad' svg:animatable='false' svg:inheritable='false'>
-        <value>onLoad</value>
-      </attribute>
-    </optional>
+    <ref name='svg.XLinkShowOther.attr'/>
+    <ref name='svg.XLinkActuateOnLoad.attr'/>
     <ref name='svg.XLinkBase.attr'/>
   </define>
 

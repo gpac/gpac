@@ -25,6 +25,7 @@
 
 #include "standalone2drender.h"
 #include <gpac/options.h>
+#include <gpac/color.h>
 #include "render2d.h"
 #include "stacks2d.h"
 #include "visualsurface2d.h"
@@ -37,7 +38,7 @@ GF_VisualRenderer *NewVisualRenderer();
 GF_Err R2D_GetSurfaceAccess(VisualSurface2D *surf);
 void R2D_ReleaseSurfaceAccess(VisualSurface2D *surf);
 Bool R2D_SupportsFormat(VisualSurface2D *surf, u32 pixel_format);
-void R2D_DrawBitmap(VisualSurface2D *surf, struct _gf_sr_texture_handler *txh, GF_IRect *clip, GF_Rect *unclip);
+void R2D_DrawBitmap(VisualSurface2D *surf, struct _gf_sr_texture_handler *txh, GF_IRect *clip, GF_Rect *unclip, u8 alpha, u32 *col_key, GF_ColorMatrix *cmat);
 GF_FontRaster *FT_Load();
 void FT_Delete(GF_FontRaster *);
 
@@ -95,7 +96,6 @@ static GF_Err SA2DR_LoadRenderer(GF_VisualRenderer *vr, GF_Renderer *compositor)
 	sr->surface->DrawBitmap = R2D_DrawBitmap;
 	sr->surface->SupportsFormat = R2D_SupportsFormat;
 	sr->surface->render = sr;
-	sr->surface->pixel_format = 0;
 	gf_list_add(sr->surfaces_2D, sr->surface);
 
 	sr->zoom = sr->scale_x = sr->scale_y = 1.0;

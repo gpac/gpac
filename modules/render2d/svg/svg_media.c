@@ -128,26 +128,27 @@ static void SVG_Draw_bitmap(DrawableContext *ctx)
 
 static void SVG_Render_bitmap(GF_Node *node, void *rs)
 {
+	SVGStylingProperties backup_props;
+	u32 styling_size = sizeof(SVGStylingProperties);
 	GF_Matrix2D backup_matrix;
 	SVG_Transform *tr;
 	DrawableContext *ctx;
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
+	memcpy(&backup_props, eff->svg_props, styling_size);
 	switch(gf_node_get_tag(node)) {
 	case TAG_SVG_image:
-		{
-			SVGimageElement *image = (SVGimageElement *)node;
-			if (image->display == SVG_DISPLAY_NONE ||
-				image->visibility == SVG_VISIBILITY_HIDDEN) return;
-		}
+		SVGApplyProperties(eff->svg_props, ((SVGimageElement *)node)->properties);
 		break;
 	case TAG_SVG_video:
-		{
-			SVGvideoElement *video = (SVGvideoElement *)node;
-			if (video->display == SVG_DISPLAY_NONE ||
-				video->visibility == SVG_VISIBILITY_HIDDEN) return;
-		}
+		SVGApplyProperties(eff->svg_props, ((SVGvideoElement *)node)->properties);
 		break;
+	}
+
+	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
+		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
+		memcpy(eff->svg_props, &backup_props, styling_size);
+		return;
 	}
 
 	/*we never cache anything with bitmap...*/
@@ -198,6 +199,8 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	ctx->no_antialias = 1;
 
 	ctx->transparent = 0;
+	if (ctx->transform.m[1] || ctx->transform.m[3]) ctx->transparent = 1;
+
 	/*if clipper then transparent*/
 
 	if (ctx->h_texture->transparent) {
@@ -208,6 +211,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	/*bounds are stored when building graph*/	
 	drawable_finalize_render(ctx, eff);
 	gf_mx2d_copy(eff->transform, backup_matrix);  
+	memcpy(eff->svg_props, &backup_props, styling_size);
 }
 
 static Bool SVG_PointOver_bitmap(DrawableContext *ctx, Fixed x, Fixed y, Bool check_outline)

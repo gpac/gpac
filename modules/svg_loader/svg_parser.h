@@ -94,6 +94,10 @@ struct _svg_parser
 	/* Unresolved begin/end value */
 	GF_List *unresolved_timing_elements;
 
+	GF_List *unresolved_hrefs;
+
+	GF_List *defered_animation_elements;
+
 	GF_List *ided_nodes;
 	u32 max_node_id;
 

@@ -12,7 +12,7 @@
          datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
          >
 
-  <define name='svg.G.group' combine='choice'>
+  <define name='svg.GCommon.group' combine='choice'>
     <ref name='audio'/>
   </define>
 
@@ -25,14 +25,14 @@
   </define>
 
   <define name='audio.AT' combine='interleave'>
-    <interleave>
-      <ref name='svg.Core.attr'/>
-      <ref name='svg.XLinkEmbed.attr'/>
-      <ref name='svg.Conditional.attr'/>
-      <ref name='svg.External.attr'/>
-      <ref name='svg.AnimateTimingNoFillNoMinMax.attr'/>
-      <ref name='svg.Media.attr'/>
-    </interleave>
+    <ref name='svg.Core.attr'/>
+    <ref name='svg.XLinkEmbed.attr'/>
+    <ref name='svg.Conditional.attr'/>
+    <ref name='svg.External.attr'/>
+    <ref name='svg.AnimateTimingNoFillNoMinMax.attr'/>
+    <ref name='svg.AnimateSync.attr'/>
+    <ref name='svg.Media.attr'/>
+    <ref name='svg.ContentType.attr'/>
   </define>
 
   <define name='audio.CM'>
@@ -41,8 +41,10 @@
         <ref name='svg.Desc.group'/>
         <ref name='svg.Animate.group'/>
         <ref name='svg.Handler.group'/>
+        <ref name='svg.Discard.group'/>
       </choice>
     </zeroOrMore>
   </define>
 
 </grammar>
+
