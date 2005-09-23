@@ -76,7 +76,8 @@ struct __gf_download_session
 
 	FILE *cache;
 	char *cache_name;
-	u32 cache_size;
+	/*cache size if existing*/
+	u32 cache_start_size;
 
 	GF_Socket *sock;
 	u32 num_retry, status;
@@ -244,24 +245,24 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	strcat(cache_name, tmp);
 
 	/*first try, check cached file*/
-	if (!sess->cache_size) {
+	if (!sess->cache_start_size) {
 		/*if file present figure out how much of the file is downloaded - we assume 2^31 byte file max*/
 		FILE *the_cache = fopen(cache_name, "rb");
 		if (the_cache) {
 			fseek(the_cache, 0, SEEK_END);
-			sess->cache_size = ftell(the_cache);
+			sess->cache_start_size = ftell(the_cache);
 			fclose(the_cache);
 		}
 	}
 	/*second try, disable cached file*/
 	else {
-		sess->cache_size = 0;
+		sess->cache_start_size = 0;
 	}
 	sess->cache_name = strdup(cache_name);
 
 	/*are we using existing cached files ?*/
 	opt = gf_cfg_get_key(sess->dm->cfg, "Downloader", "RestartFiles");
-	if (opt && !stricmp(opt, "yes")) sess->cache_size = 0;
+	if (opt && !stricmp(opt, "yes")) sess->cache_start_size = 0;
 }
 
 static void gf_dm_disconnect(GF_DownloadSession *sess)
@@ -742,7 +743,7 @@ static GFINLINE void gf_dm_data_recieved(GF_DownloadSession *sess, char *data, u
 	if (!runtime) {
 		sess->bytes_per_sec = 0;
 	} else {
-		sess->bytes_per_sec = (1000 * (sess->bytes_done - sess->cache_size)) / runtime;
+		sess->bytes_per_sec = (1000 * (sess->bytes_done - sess->cache_start_size)) / runtime;
 	}
 }
 
@@ -796,9 +797,7 @@ GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, cons
 const char *gf_dm_sess_get_cache_name(GF_DownloadSession * sess)
 {
 	if (!sess) return NULL;
-	if (sess->cache) return sess->cache_name;
-	else if (sess->total_size==sess->cache_size) return sess->cache_name;
-	return NULL;
+	return sess->cache_name;
 }
 
 void gf_dm_sess_abort(GF_DownloadSession * sess)
@@ -876,7 +875,7 @@ void http_do_requests(GF_DownloadSession *sess)
 
 		/*setup file range*/
 		strcpy(range_buf, "");
-		if (sess->cache_size) sprintf(range_buf, "Range: bytes=%d-\r\n", sess->cache_size);
+		if (sess->cache_start_size) sprintf(range_buf, "Range: bytes=%d-\r\n", sess->cache_start_size);
 		
 
 		/*MIX2005 KMS project*/
@@ -973,7 +972,7 @@ void http_do_requests(GF_DownloadSession *sess)
 			e = GF_REMOTE_SERVICE_ERROR;
 			goto exit;
 		}
-		sHTTP[BodyStart] = 0;
+		sHTTP[BodyStart-1] = 0;
 
 		LinePos = gf_token_get_line(sHTTP, 0, bytesRead, buf, 1024);
 		Pos = gf_token_get(buf, 0, " \t\r\n", comp, 400);
@@ -1049,12 +1048,12 @@ void http_do_requests(GF_DownloadSession *sess)
 		}
 		if (no_range) first_byte = 0;
 
-		if (sess->cache_size) {
-			if (total_size && (sess->cache_size >= total_size) ) {
+		if (sess->cache_start_size) {
+			if (total_size && (sess->cache_start_size >= total_size) ) {
 				rsp_code = 200;
 				ContentLength = total_size;
 			}
-			if (ContentLength && (sess->cache_size == ContentLength) ) rsp_code = 200;
+			if (ContentLength && (sess->cache_start_size == ContentLength) ) rsp_code = 200;
 		}	
 
 		switch (rsp_code) {
@@ -1090,7 +1089,7 @@ void http_do_requests(GF_DownloadSession *sess)
 		case 404:
 		case 416:
 			/*try without cache (some servers screw up when content-length is specified)*/
-			if (sess->cache_size) {
+			if (sess->cache_start_size) {
 				gf_dm_disconnect(sess);
 				sess->status = GF_DOWNLOAD_STATE_SETUP;
 				return;
@@ -1125,9 +1124,9 @@ void http_do_requests(GF_DownloadSession *sess)
 
 
 		/*done*/
-		if (sess->cache_size 
-			&& ( (total_size && sess->cache_size >= total_size) || (sess->cache_size == ContentLength)) ) {
-			sess->total_size = sess->bytes_done = sess->cache_size;
+		if (sess->cache_start_size 
+			&& ( (total_size && sess->cache_start_size >= total_size) || (sess->cache_start_size == ContentLength)) ) {
+			sess->total_size = sess->bytes_done = sess->cache_start_size;
 			/*disconnect*/
 			gf_dm_disconnect(sess);
 			BodyStart = bytesRead;
@@ -1138,8 +1137,8 @@ void http_do_requests(GF_DownloadSession *sess)
 			sess->status = GF_DOWNLOAD_STATE_RUNNING;
 		}
 		/*no range header, Accep-Ranges deny or dumb server : restart*/
-		else if (!range || !first_byte || (first_byte != sess->cache_size) ) {
-			sess->cache_size = sess->bytes_done = 0;
+		else if (!range || !first_byte || (first_byte != sess->cache_start_size) ) {
+			sess->cache_start_size = sess->bytes_done = 0;
 			sess->total_size = ContentLength;
 			if (! (sess->flags & GF_DOWNLOAD_SESSION_NOT_CACHED) ) {
 				sess->cache = fopen(sess->cache_name, "wb");
@@ -1152,7 +1151,7 @@ void http_do_requests(GF_DownloadSession *sess)
 		}
 		/*resume*/
 		else {
-			sess->total_size = ContentLength + sess->cache_size;
+			sess->total_size = ContentLength + sess->cache_start_size;
 			if (! (sess->flags & GF_DOWNLOAD_SESSION_NOT_CACHED) ) {
 				sess->cache = fopen(sess->cache_name, "ab");
 				if (!sess->cache) {
@@ -1161,11 +1160,12 @@ void http_do_requests(GF_DownloadSession *sess)
 				}
 			}
 			sess->status = GF_DOWNLOAD_STATE_RUNNING;
-			sess->bytes_done = sess->cache_size;
+			sess->bytes_done = sess->cache_start_size;
 		}
 
 		sess->start_time = gf_sys_clock();
 		
+
 		//we may have existing data in this buffer ...
 		if (!e && (BodyStart < (u32) bytesRead)) {
 			gf_dm_data_recieved(sess, sHTTP + BodyStart, bytesRead - BodyStart);
@@ -1182,7 +1182,7 @@ exit:
 			gf_dm_disconnect(sess);
 			sess->status = GF_DOWNLOAD_STATE_UNAVAILABLE;
 			sess->last_error = e;
-			sess->OnDataRcv(sess, NULL, 0, sess->status, e);
+			sess->OnDataRcv(sess->usr_cbk, NULL, 0, sess->status, e);
 		}
 		return;
 	}

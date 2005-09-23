@@ -1410,47 +1410,6 @@ void wxOsmo4Frame::OnAbout(wxCommandEvent & WXUNUSED(event))
 	dlg.ShowModal();
 }
 
-Bool is_supported_file(GF_Config *cfg, const char *fileName, Bool disable_no_ext)
-{
-	char szExt[20], *ext, mimes[1000];
-	u32 keyCount, i;
-
-	ext = strrchr(fileName, '/');
-	if (ext) {
-		ext = strchr(fileName, '.');
-		/*fixme - a proper browser should check mime & co here*/
-		if (!ext) return strstr(fileName, "http://") ? 0 : 1;
-	}
-
-	ext = strrchr(fileName, '.');
-	/*this may be anything so let's try*/
-	if (!ext) return !disable_no_ext;
-
-	strcpy(szExt, ext+1);
-	ext =strrchr(szExt, '#');
-	if (ext) ext[0] = 0;
-	strlwr(szExt);
-
-	keyCount = gf_cfg_get_key_count(cfg, "MimeTypes");
-	for (i=0; i<keyCount; i++) {
-		char *sKey;
-		const char *opt;
-		sKey = (char *) gf_cfg_get_key_name(cfg, "MimeTypes", i);
-		if (!sKey) continue;
-		opt = gf_cfg_get_key(cfg, "MimeTypes", sKey);
-		strcpy(mimes, opt+1);
-		sKey = strchr(mimes, '"');
-		if (!sKey) continue;
-		sKey[0] = 0;
-		sKey = mimes;
-		while (sKey) {
-			if (!strnicmp(sKey, szExt, strlen(szExt))) return 1;
-			sKey = strchr(sKey, ' ');
-			if (sKey) sKey+=1;
-		}
-	}
-	return 0;
-}
 
 void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 {
@@ -1460,7 +1419,7 @@ void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 
 	switch (event.gpac_evt.type) {
 	case GF_EVT_NAVIGATE:
-		if (is_supported_file(m_user.config, event.to_url.mb_str(wxConvUTF8), 0)) {
+		if (gf_term_is_supported_url(m_term, event.to_url.mb_str(wxConvUTF8), 1, 0)) {
 			char *str = gf_url_concatenate(m_pPlayList->GetURL().mb_str(wxConvUTF8), event.to_url.mb_str(wxConvUTF8));
 			if (str) {
 				m_pPlayList->Truncate();

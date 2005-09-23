@@ -351,7 +351,7 @@ Bool Osmozilla_EventProc(void *priv, GF_Event *evt)
 		break;
 	case GF_EVT_VKEYDOWN:
 		if ((evt->key.key_states & GF_KM_ALT)) {
-    } else {
+	    } else {
 			switch (evt->key.vk_code) {
 			case GF_VK_HOME:
 				gf_term_set_option(gpac->m_term, GF_OPT_NAVIGATION_TYPE, 1);

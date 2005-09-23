@@ -509,19 +509,22 @@ restart:
 		/*check over bounds*/
 		if (! gf_point_in_rect(si->ctx->clip, x, y)) continue;
 
-		/*check over covering node*/
-#if 0
-		for (k=gf_list_count(si->nodes_on_top); k>0; k--) {
-			ctx = gf_list_get(si->nodes_on_top, k-1);
-			if (! gf_point_in_rect(ctx->clip, x, y) ) continue;
-			if (! ctx->node->IsPointOver(ctx, x, y, 0) ) continue;
+		/*check over covering node for non-SVG*/
+		if (surf->render->main_surface_setup==1) {
+			for (k=gf_list_count(si->nodes_on_top); k>0; k--) {
+				ctx = gf_list_get(si->nodes_on_top, k-1);
+				if (! gf_point_in_rect(ctx->clip, x, y) ) continue;
+				if (! ctx->node->IsPointOver(ctx, x, y, 0) ) continue;
 
-			/*we're over another node*/
-			if (!gf_list_count(ctx->sensors)) return NULL;
-			if (i) i--;
-			goto restart;
+				/*we're over another node*/
+				if (!gf_list_count(ctx->sensors)) return NULL;
+				if (i) i--;
+				goto restart;
+			}
 		}
-#endif
+		/*SVG like, depends on sensitivity of node*/
+		/* else { } */
+
 		/*check over shape*/
 		if (! si->ctx->node->IsPointOver(si->ctx, x, y, 0) ) continue;
 

@@ -61,9 +61,9 @@ END
 // Data
 //
 
-IDM_MAIN_MENU SHMENUBAR DISCARDABLE 
+IDM_MAIN_MENU1 SHMENUBAR DISCARDABLE 
 BEGIN
-    IDM_MAIN_MENU, 2,
+    IDM_MAIN_MENU1, 2,
     I_IMAGENONE, ID_MENU_FILE, TBSTATE_ENABLED, 
     TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_FILE, 0, 0,
     I_IMAGENONE, IDM_MENU_VIEW, TBSTATE_ENABLED, 
@@ -77,13 +77,22 @@ BEGIN
     0, NOMENU,
 END
 
+IDM_MAIN_MENU2 SHMENUBAR DISCARDABLE 
+BEGIN
+    IDM_MAIN_MENU2, 2,
+    I_IMAGENONE, ID_OPTION, TBSTATE_ENABLED, 
+    TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_OPTION, 0, 0,
+    I_IMAGENONE, ID_MENUITEM40071, TBSTATE_ENABLED, 
+    TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_MENUITEM40072, 0, 1,
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Menubar
 //
 
-IDM_MAIN_MENU MENU DISCARDABLE 
+IDM_MAIN_MENU1 MENU DISCARDABLE 
 BEGIN
     POPUP "File"
     BEGIN
@@ -106,16 +115,57 @@ BEGIN
     END
     POPUP "View"
     BEGIN
-        MENUITEM "Fullscreen",                  IDM_VIEW_FS
-        MENUITEM "Status",                      IDM_VIEW_STATUS
+        POPUP "Navigate"
+        BEGIN
+            MENUITEM "Reset",                       IDM_NAV_RESET
+            MENUITEM SEPARATOR
+            MENUITEM "None",                        IDM_NAV_NONE
+            MENUITEM "Slide",                       IDM_NAV_SLIDE
+            MENUITEM "Walk",                        IDM_NAV_WALK
+            MENUITEM "Fly",                         IDM_NAV_FLY
+            MENUITEM "Examine",                     IDM_NAV_EXAMINE
+            MENUITEM SEPARATOR
+            MENUITEM "Headlight",                   IDM_NAV_HEADLIGHT
+            MENUITEM "Gravity",                     IDM_NAV_GRAVITY
+            POPUP "Collision"
+            BEGIN
+                MENUITEM "Disabled",                    IDM_NAV_COL_NONE
+                MENUITEM "Regular",                     IDM_NAV_COL_REG
+                MENUITEM "Displacement",                IDM_NAV_COL_DISP
+            END
+        END
         MENUITEM SEPARATOR
-        MENUITEM "About",                       IDM_VIEW_ABOUT
+        MENUITEM "Fullscreen",                  IDM_VIEW_FS
+        POPUP "Aspect Ratio"
+        BEGIN
+            MENUITEM "Keep Original",               IDM_VIEW_AR_NONE
+            MENUITEM "Fill Screen",                 IDM_VIEW_AR_FILL
+            MENUITEM "Ratio 4/3",                   IDM_VIEW_AR_4_3
+            MENUITEM "Ratio 16/9",                  IDM_VIEW_AR_16_9
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "Next",                        IDM_MENU_SWITCH
     END
 END
 
 IDR_ABOUT_MENU MENU DISCARDABLE 
 BEGIN
     MENUITEM "OK",                          IDM_ABOUT_OK
+END
+
+IDM_MAIN_MENU2 MENU DISCARDABLE 
+BEGIN
+    POPUP "Options"
+    BEGIN
+        MENUITEM "3D Mode",                     IDM_VIEW_3DREND
+        MENUITEM "Status Bar",                  IDM_VIEW_STATUS
+        MENUITEM SEPARATOR
+        MENUITEM "Previous",                    IDM_MENU_SWITCH
+    END
+    POPUP "?"
+    BEGIN
+        MENUITEM "About",                       IDM_VIEW_ABOUT
+    END
 END
 
 
@@ -144,6 +194,17 @@ BEGIN
     IDS_CAP_OK              "OK"
 END
 
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_CAP_NAVIGATE        "Navigate"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_CAP_OPTION          "Options"
+    IDS_CAP_MENUITEM40072   "?"
+END
+
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -165,7 +226,7 @@ LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
 IDR_MENU_OPEN SHMENUBAR DISCARDABLE 
 BEGIN
     IDR_MENU_OPEN, 2,
-    I_IMAGENONE, ID_SELECT, TBSTATE_ENABLED, 
+    I_IMAGENONE, IDM_SELECT, TBSTATE_ENABLED, 
     TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_SELECT, 0, 0,
     I_IMAGENONE, ID_VIEW, TBSTATE_ENABLED, 
     TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_VIEW, 0, 1,

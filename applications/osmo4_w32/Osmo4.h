@@ -36,7 +36,6 @@ enum {
 	WM_NEWINSTANCE,
 };
 
-Bool is_supported_file(GF_Config *cfg, const char *fileName, Bool disable_no_ext);
 const char *static_gpac_get_url();
 
 class WinGPAC : public CWinApp

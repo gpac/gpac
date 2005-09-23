@@ -90,7 +90,8 @@ private:
 	RECT m_view_rc;
 
 public:
-	CChildView m_wndView;
+	/*m_dumbWnd is used to clean the screen...*/
+	CChildView m_wndView, m_dumbWnd;
 	void UpdateTime();
 
 // Generated message map functions

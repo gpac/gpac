@@ -30,6 +30,9 @@
 
 #include "gapi.h"
 
+static Bool is_landscape = 0;
+
+
 #define PRINT(__str) OutputDebugString(_T(__str))
 
 #define GAPICTX(dr)	GAPIPriv *gctx = (GAPIPriv *) dr->opaque;
@@ -49,7 +52,7 @@ static void GAPI_GetCoordinates(DWORD lParam, GF_Event *evt)
 		pt.x = evt->mouse.x;
 		pt.y = evt->mouse.y;
 		ClientToScreen(ctx->hWnd, &pt);
-		if (ctx->is_landscape) {
+		if (is_landscape) {
 			evt->mouse.x = ctx->fs_w - pt.y;
 			evt->mouse.y = pt.x;
 		} else {
@@ -66,10 +69,10 @@ static u32 GAPI_TranslateActionKey(u32 VirtKey)
 	case VK_END: return GF_VK_END;
 	case VK_NEXT: return GF_VK_PRIOR;
 	case VK_PRIOR: return GF_VK_NEXT;
-	case VK_UP: return GF_VK_UP;
-	case VK_DOWN: return GF_VK_DOWN;
-	case VK_LEFT: return GF_VK_LEFT;
-	case VK_RIGHT: return GF_VK_RIGHT;
+	case VK_UP: return is_landscape ? GF_VK_RIGHT : GF_VK_UP;
+	case VK_DOWN: return is_landscape ? GF_VK_LEFT : GF_VK_DOWN;
+	case VK_LEFT: return is_landscape ? GF_VK_UP : GF_VK_LEFT;
+	case VK_RIGHT: return is_landscape ? GF_VK_DOWN : GF_VK_RIGHT;
 	case VK_F1: return GF_VK_F1;
 	case VK_F2: return GF_VK_F2;
 	case VK_F3: return GF_VK_F3;
@@ -95,10 +98,11 @@ u32 GX_TRANSLATE_KEY(u32 vk)
 {
 	GAPIPriv *ctx = (GAPIPriv *)the_video_driver->opaque;
 	short res = (LOWORD(vk) != 0x5b) ? LOWORD(vk) : vk;
-	if (res==ctx->keys.vkLeft) return GF_VK_LEFT;
-	else if (res==ctx->keys.vkRight) return GF_VK_RIGHT;
-	else if (res==ctx->keys.vkDown) return GF_VK_DOWN;
-	else if (res==ctx->keys.vkUp) return GF_VK_UP;
+
+	if (res==ctx->keys.vkLeft) return is_landscape ? GF_VK_UP : GF_VK_LEFT;
+	else if (res==ctx->keys.vkRight) return is_landscape ? GF_VK_DOWN : GF_VK_RIGHT;
+	else if (res==ctx->keys.vkDown) return is_landscape ? GF_VK_LEFT : GF_VK_DOWN;
+	else if (res==ctx->keys.vkUp) return is_landscape ? GF_VK_RIGHT : GF_VK_UP;
 	else if (res==ctx->keys.vkStart) return GF_VK_RETURN;
 	else if (res==ctx->keys.vkA) return GF_VK_CONTROL;
 	else if (res==ctx->keys.vkB) return GF_VK_SHIFT;
@@ -128,8 +132,8 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		break;
 
 	case WM_ERASEBKGND:
-		evt.type = GF_EVT_REFRESH;
-		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+//		evt.type = GF_EVT_REFRESH;
+//		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		break;
 	case WM_PAINT:
 	{
@@ -338,12 +342,13 @@ GF_Err GAPI_SetupOGL_ES(GF_VideoOutput *dr)
 	static int atts[15];
 	atts[0] = EGL_RED_SIZE; atts[1] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
 	atts[2] = EGL_GREEN_SIZE; atts[3] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : (gctx->pixel_format==GF_PIXEL_RGB_565) ? 6 : 5;
-	atts[4]  = EGL_BLUE_SIZE; atts[5] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
+	atts[4] = EGL_BLUE_SIZE; atts[5] = (gctx->pixel_format==GF_PIXEL_RGB_24) ? 8 : 5;
+	/*no supported...*/
 	atts[6] = EGL_ALPHA_SIZE; atts[7] = EGL_DONT_CARE;
-	atts[8]  = EGL_DEPTH_SIZE; atts[9] = 32;
+	atts[8] = EGL_DEPTH_SIZE; atts[9] = 32;
 	atts[10] = EGL_STENCIL_SIZE; atts[11] = EGL_DONT_CARE;
-	atts[12]  = EGL_SURFACE_TYPE; atts[13] = EGL_PIXMAP_BIT;
-	atts[14]  = EGL_NONE;
+	atts[12] = EGL_SURFACE_TYPE; atts[13] = EGL_PIXMAP_BIT;
+	atts[14] = EGL_NONE;
 
 	/*whenever window is resized we must reinit OGL-ES*/
 	GAPI_ReleaseOGL_ES(gctx);
@@ -447,7 +452,7 @@ GF_Err GAPI_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no
 	}
 	dr->max_screen_width = gctx->screen_w = gx.cxWidth;
 	dr->max_screen_height = gctx->screen_h = gx.cyHeight;
-	gctx->is_landscape = (gx.ffFormat & kfLandscape) ? 1 : 0;
+	is_landscape = (gx.ffFormat & kfLandscape) ? 1 : 0;
 	gctx->x_pitch = gx.cbxPitch;
 	gctx->y_pitch = gx.cbyPitch;
 
@@ -521,13 +526,17 @@ static GF_Err GAPI_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u3
 		gctx->fullscreen = 0;
 	}
 
+	is_landscape = 0;
 	if (!e) {
-		gctx->is_landscape = gctx->fullscreen;
 		if (gctx->fullscreen) {
 			gctx->backup_w = *outWidth;
 			gctx->backup_h = *outHeight;
 
-			if (gctx->is_landscape) {
+			if ((gctx->bb_width > gctx->bb_height) && (gctx->screen_w > gctx->screen_h)) is_landscape = 0;
+			else if ((gctx->bb_width < gctx->bb_height) && (gctx->screen_w < gctx->screen_h)) is_landscape = 0;
+			else is_landscape = 1;
+
+			if (is_landscape) {
 				gctx->fs_w = gctx->screen_h;
 				gctx->fs_h = gctx->screen_w;
 			} else {
@@ -605,7 +614,7 @@ static GF_Err GAPI_FlipBackBuffer(GF_VideoOutput *dr)
 
 
 	if (gctx->fullscreen) {
-		if (gctx->is_landscape) {
+		if (is_landscape) {
 			if (gctx->y_pitch>0) {
 				pitch_x = -gctx->y_pitch;
 				/*start of frame-buffer is top-left corner*/

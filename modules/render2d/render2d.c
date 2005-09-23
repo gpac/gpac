@@ -111,8 +111,10 @@ void R2D_SceneReset(GF_VisualRenderer *vr)
 	sr->compositor->reset_graphics = 1;
 	sr->trans_x = sr->trans_y = 0;
 	sr->zoom = FIX_ONE;
-	sr->main_surface_setup = 0;
 	R2D_SetScaling(sr, sr->scale_x, sr->scale_y);
+	/*force resetup of main surface in case we're switching coord system*/
+	sr->main_surface_setup = 0;
+	VS2D_ResetGraphics(sr->surface);
 }
 
 GF_Rect R2D_ClipperToPixelMetrics(RenderEffect2D *eff, SFVec2f size)
@@ -414,6 +416,7 @@ no_sensor:
 		case GF_VK_LEFT: key_inv = -1;
 		case GF_VK_RIGHT:
 			sr->trans_x += key_inv*key_trans;
+			R2D_SetZoom(sr, sr->zoom);
 			break;
 		case GF_VK_DOWN: key_inv = -1;
 		case GF_VK_UP:
@@ -424,6 +427,7 @@ no_sensor:
 				R2D_SetZoom(sr, new_zoom);
 			} else {
 				sr->trans_y += key_inv*key_trans;
+				R2D_SetZoom(sr, sr->zoom);
 			}
 			break;
 		}
@@ -462,6 +466,7 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 			if ((node_tag>=GF_NODE_RANGE_FIRST_SVG) && (node_tag<=GF_NODE_RANGE_LAST_SVG)) {
 				sr->surface->default_back_color = 0xFFFFFFFF;
 				sr->surface->center_coords = 0;
+				sr->main_surface_setup = 2;
 			}
 		}
 #endif

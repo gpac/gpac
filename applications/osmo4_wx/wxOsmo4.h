@@ -194,8 +194,6 @@ DEFINE_EVENT_TYPE(GPAC_EVENT)
 
 #define EVT_GPACEVENT(func) DECLARE_EVENT_TABLE_ENTRY(GPAC_EVENT, -1, -1, (wxObjectEventFunction) (wxEventFunction) (GPACEventFunction) & func, (wxObject*) NULL),
 
-Bool is_supported_file(GF_Config *cfg, const char *fileName, Bool disable_no_ext);
-
 class OpenURLDlg : public wxDialog {
 public:
     OpenURLDlg(wxWindow *parent, GF_Config *cfg);

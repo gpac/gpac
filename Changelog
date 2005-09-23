@@ -1,4 +1,9 @@
-Latest CVS Changes 20/09/05
+Latest CVS Changes 23/09/05
+  - updated makefiles for compilation under GPE (doc still to come)
+  - fixed bugs related to cache in file downloader
+  - made FreeType plugin log unknown fonts in general cfg file to speed up font selection.
+  - fixed display bug when switching between MPEG-4 and SVG scenes
+  - fixed absolute URLs handling on WinCE devices
   - changed module naming - all modules are now prefixed with "gm_", and module is loaded/unloaded at run-time
   - changed isomedia file open API for better support of temporary directories
   - simplified 2D blitter for non DirectX output: no more in-middle surface used, direct stretch, blit and yuv conversion to back buffer

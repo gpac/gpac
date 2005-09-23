@@ -474,7 +474,7 @@ static Bool pl_enum_dir_item(void *cbck, char *item_name, char *item_path)
 	WinGPAC *gpac = GetApp();
 	Playlist *_this = (Playlist *)cbck;
 
-	if (is_supported_file(gpac->m_user.config, item_name, 1)) {
+	if (gf_term_is_supported_url(gpac->m_term, item_name, 0, 1)) {
 		_this->QueueURL(item_path);
 	}
 	return 0;

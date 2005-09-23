@@ -44,7 +44,7 @@ static u32 URL_GetProtocolType(const char *pathName)
 	char *begin;
 	if (!pathName) return GF_URL_TYPE_ANY;
 
-	if ((pathName[0] == '/') 
+	if ((pathName[0] == '/') || (pathName[0] == '\\') 
 		|| (pathName[1] == ':') 
 		|| ((pathName[0] == ':') && (pathName[1] == ':'))
 		) return GF_URL_TYPE_FILE;

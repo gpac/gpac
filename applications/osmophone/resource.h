@@ -12,12 +12,14 @@
 #define IDI_ICON                        101
 #define IDM_MENU                        102
 #define IDM_MAIN_MENU                   102
+#define IDM_MAIN_MENU1                  102
 #define IDD_ABOUTBOX                    103
 #define IDD_APPABOUT                    104
 #define IDD_OPENFILE                    105
 #define IDD_FILEDIALOG                  105
 #define IDR_MENU_OPEN                   106
 #define IDR_ABOUT_MENU                  107
+#define IDM_MAIN_MENU2                  108
 #define IDM_MAIN_MENUITEM1              401
 #define IDM_MAIN_MENUITEM2              402
 #define IDS_MAIN_MENUITEM1              410
@@ -73,13 +75,37 @@
 #define IDM_VIEW_ABOUT                  40054
 #define IDM_ABOUT_OK                    40055
 #define IDM_VIEW_STATUS                 40057
+#define IDM_VIEW_3DREND                 40058
+#define ID_NAVIGATE                     40059
+#define IDS_CAP_NAVIGATE                40061
+#define IDM_NAV_NONE                    40062
+#define IDM_NAV_SLIDE                   40063
+#define IDM_SELECT                      40064
+#define IDM_NAV_RESET                   40065
+#define IDM_MENU_SWITCH                 40066
+#define ID_OPTION                       40067
+#define IDS_CAP_OPTION                  40069
+#define ID_MENUITEM40071                40071
+#define IDS_CAP_MENUITEM40072           40073
+#define IDM_NAV_WALK                    40074
+#define IDM_NAV_FLY                     40075
+#define IDM_NAV_EXAMINE                 40076
+#define IDM_NAV_HEADLIGHT               40077
+#define IDM_NAV_GRAVITY                 40078
+#define IDM_NAV_COL_NONE                40079
+#define IDM_NAV_COL_REG                 40080
+#define IDM_NAV_COL_DISP                40081
+#define IDM_VIEW_AR_NONE                40082
+#define IDM_VIEW_AR_FILL                40083
+#define IDM_VIEW_AR_4_3                 40084
+#define IDM_VIEW_AR_16_9                40085
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        108
-#define _APS_NEXT_COMMAND_VALUE         40058
+#define _APS_NEXT_RESOURCE_VALUE        109
+#define _APS_NEXT_COMMAND_VALUE         40086
 #define _APS_NEXT_CONTROL_VALUE         1004
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

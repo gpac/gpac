@@ -311,7 +311,7 @@ static Bool pl_enum_dir_item(void *cbck, char *item_name, char *item_path)
 {
 	wxPlaylist *_this = (wxPlaylist *)cbck;
 
-	if (is_supported_file(_this->m_pApp->m_user.config, item_name, 1)) {
+	if (gf_term_is_supported_url(_this->m_pApp->m_term, item_name, 0, 1)) {
 		PLEntry *ple = new PLEntry(wxString(item_path, wxConvUTF8) );
 		gf_list_add(_this->m_entries, ple);
 	}

@@ -127,51 +127,6 @@ Bool UserPassDialog::GetPassword(const char *site_url, char *user, char *passwor
 	return 1;
 }
 
-Bool is_supported_file(GF_Config *cfg, const char *fileName, Bool disable_no_ext)
-{
-	char szExt[20], *ext, mimes[1000];
-	u32 keyCount, i;
-
-	ext = strrchr(fileName, '/');
-	if (ext) {
-		ext = strchr(fileName, '.');
-		/*fixme - a proper browser should check mime & co here*/
-		if (!ext) return strstr(fileName, "http://") ? 0 : 1;
-	}
-	
-	ext = strrchr(fileName, '.');
-	/*this may be anything so let's try*/
-	if (!ext) {
-		return !disable_no_ext;
-	}
-
-	strcpy(szExt, ext+1);
-	ext =strrchr(szExt, '#');
-	if (ext) ext[0] = 0;
-	strlwr(szExt);
-
-	keyCount = gf_cfg_get_key_count(cfg, "MimeTypes");
-	for (i=0; i<keyCount; i++) {
-		const char *sKey;
-		char *ext;
-		sKey = (char *) gf_cfg_get_key_name(cfg, "MimeTypes", i);
-		if (!sKey) continue;
-		sKey = gf_cfg_get_key(cfg, "MimeTypes", sKey);
-		strcpy(mimes, sKey+1);
-		ext = strchr(mimes, '"');
-		if (!ext) continue;
-		ext[0] = 0;
-		ext = mimes;
-		while (ext) {
-			if (!strnicmp(ext, szExt, strlen(szExt))) return 1;
-			ext = strchr(ext, ' ');
-			if (ext) ext+=1;
-		}
-	}
-//	if (!strstr(fileName, "http://")) return 1;
-	/*looks like a regular web link_*/
-	return 0;
-}
 
 static log_msg(char *msg)
 {
@@ -318,7 +273,6 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		break;
 	case GF_EVT_NAVIGATE:
 		/*fixme - a proper browser would require checking mime type & co*/
-		//if (!is_supported_file(gpac->m_user.config, evt->navigate.to_url, 0)) return 0;
 		/*store URL since it may be destroyed, and post message*/
 		gpac->m_navigate_url = evt->navigate.to_url;
 		pFrame->PostMessage(WM_NAVIGATE, NULL, NULL);

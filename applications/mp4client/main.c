@@ -180,38 +180,6 @@ static void PrintTime(u32 time)
 	fprintf(stdout, "%02d:%02d:%02d.%02d", h, m, s, ms);
 }
 
-static Bool is_supported_file(const char *fileName)
-{
-	char szExt[20], *ext;
-	u32 keyCount, i;
-
-	ext = strrchr(fileName, '/');
-	if (ext) {
-		ext = strchr(fileName, '.');
-		/*fixme - a proper browser should check mime & co here*/
-		if (!ext) return strstr(fileName, "http://") ? 0 : 1;
-	}
-
-	ext = strrchr(fileName, '.');
-	/*this may be anything so let's try*/
-	if (!ext) return 1;
-
-	strcpy(szExt, ext+1);
-	ext =strrchr(szExt, '#');
-	if (ext) ext[0] = 0;
-	strlwr(szExt);
-
-	keyCount = gf_cfg_get_key_count(cfg_file, "MimeTypes");
-	for (i=0; i<keyCount; i++) {
-		const char *sKey;
-		sKey = gf_cfg_get_key_name(cfg_file, "MimeTypes", i);
-		if (!sKey) continue;
-		sKey = gf_cfg_get_key(cfg_file, "MimeTypes", sKey);
-		if (strstr(sKey, szExt)) return 1;
-	}
-	return 0;
-}
-
 
 Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
@@ -333,13 +301,13 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		Run = 0;
 		break;
 	case GF_EVT_NAVIGATE:
-		if (is_supported_file(evt->navigate.to_url)) {
+		if (gf_term_is_supported_url(term, evt->navigate.to_url, 1, 0)) {
 			/*eek that's ugly but I don't want to write an event queue for that*/
 			strcpy(the_next_url, evt->navigate.to_url);
 			NavigateTo = 1;
 			return 1;
 		} else {
-			fprintf(stdout, "Navigation other than MPEG-4 not supported\nGo to URL: %s\n", evt->navigate.to_url);
+			fprintf(stdout, "Navigation destination not supported\nGo to URL: %s\n", evt->navigate.to_url);
 		}
 		break;
 	case GF_EVT_AUTHORIZATION:

@@ -5,6 +5,7 @@
 #include "Osmo4.h"
 
 #include <gpac/options.h>
+#include <gpac/network.h>
 
 #include "MainFrm.h"
 #include <gx.h>
@@ -121,6 +122,16 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;
 	}
 	m_wndView.ShowWindow(SW_HIDE);
+
+	
+	if (!m_dumbWnd.Create(NULL, NULL, AFX_WS_DEFAULT_VIEW | WS_BORDER,
+		CRect(0, 0, 0, 0), this, AFX_IDW_PANE_FIRST, NULL))
+	{
+		TRACE0("Failed to create dumb window\n");
+		return -1;
+	}
+	m_dumbWnd.SetWindowPos(this, 0, 0, app->m_screen_width, app->m_screen_height-app->m_menu_height, 0L);
+	m_dumbWnd.ShowWindow(SW_HIDE);
 
 	if (!m_progBar.Create(IDD_CONTROL , this) ) {
 		TRACE0("Failed to create status bar\n");
@@ -294,6 +305,8 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
 	} else {
 		m_progBar.ShowWindow(SW_HIDE);
 	}
+	m_dumbWnd.SetWindowPos(this, 0, y, disp_w, disp_h, 0L);
+	m_dumbWnd.ShowWindow(SW_SHOW);
 
 	if (m_view_timing)
 		SetTimer(PROGRESS_TIMER, PROGRESS_REFRESH_MS, ProgressTimer);
@@ -313,7 +326,7 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
 		c_w = disp_w;
 		c_h = disp_h;
 	}
-	m_wndView.SetWindowPos(this, x, y, c_w, c_h, SWP_SHOWWINDOW);
+	m_wndView.SetWindowPos(this, x, y, c_w, c_h, SWP_SHOWWINDOW | SWP_NOZORDER);
 	gf_term_set_size(app->m_term, c_w, c_h);
 }
 
@@ -336,6 +349,8 @@ void CMainFrame::OnViewFullscreen()
 	SHFullScreen(hWnd, SHFS_HIDESTARTICON | SHFS_HIDETASKBAR | SHFS_HIDESIPBUTTON);
 
 	if (is_full_screen) {
+		m_dumbWnd.ShowWindow(SW_HIDE);
+
 		::MoveWindow(m_hWnd, 0, 0, disp_w, disp_h, 0);
 		m_wndView.GetWindowRect(&m_view_rc);
 		m_wndView.SetWindowPos(this, 0, 0, disp_w, disp_h, SWP_NOZORDER);
@@ -345,6 +360,9 @@ void CMainFrame::OnViewFullscreen()
 		gf_term_set_option(app->m_term, GF_OPT_FULLSCREEN, is_full_screen);
 		m_full_screen = 0;
 		OnSetSize(0,0);
+		m_dumbWnd.ShowWindow(SW_SHOW);
+		gf_term_refresh(app->m_term);
+
 	}
 }
 
@@ -381,28 +399,24 @@ LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 	return 1;	
 }
 
+
+
+
 LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 {
 	COsmo4 *app = GetApp();
 	char to_url[MAX_PATH];
 	CE_WideToChar((LPTSTR) (LPCTSTR) app->m_navigate_url, to_url);
 
-	if (strstr(to_url, ".mp4")) {
-		char _str[MAX_PATH];
-		if (!strstr(to_url, "://") && !strstr(to_url, "/") && !strstr(to_url, "\\") ) {
-			CString _last = app->m_filename;
-			int res = _last.ReverseFind('\\');
-			_last.SetAt(res+1, 0);
-
-			CE_WideToChar((LPTSTR) (LPCTSTR) _last, _str);
-			strcat(_str, to_url);
-		} else {
-			strcpy(_str, to_url);
-		}
-		console_message = (LPCSTR) _str;
-		console_err = GF_OK;
-		PostMessage(WM_CONSOLEMSG);
-		app->m_filename = _str;
+	if (gf_term_is_supported_url(app->m_term, to_url, 1, 0)) {
+		char fileName[MAX_PATH];
+		TCHAR w_to_url[MAX_PATH];
+		CE_WideToChar((LPTSTR) (LPCTSTR) app->m_filename, fileName);
+		char *str = gf_url_concatenate(fileName, to_url);
+		if (!str) str = strdup(to_url);
+		CE_CharToWide(str, w_to_url);
+		free(str);
+		app->m_filename = w_to_url;
 		Open(0, 0);
 	} else {
 		SHELLEXECUTEINFO info;

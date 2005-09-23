@@ -77,6 +77,9 @@ GF_Err gf_term_add_object(GF_Terminal *term, const char *url, Bool auto_play);
 GF_Err gf_term_set_option(GF_Terminal *term, u32 opt_type, u32 opt_value);
 u32 gf_term_get_option(GF_Terminal *term, u32 opt_type);
 
+/*checks if given URL is understood by client.
+if use_parent_url is set, relative URLs are solved against the current presentation URL*/
+Bool gf_term_is_supported_url(GF_Terminal *term, const char *fileName, Bool use_parent_url, Bool no_mime_check);
 
 
 /*refresh window info when window moved (redraws offscrenn to screen without rendering) */

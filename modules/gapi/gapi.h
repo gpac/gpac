@@ -53,7 +53,6 @@ typedef struct
 	/*store w and h for fullscreen*/
 	u32 backup_w, backup_h;
 	s32 x_pitch, y_pitch;
-	Bool is_landscape;
 	Bool fullscreen;
 	Bool force_gx;
 	Bool gx_mode;

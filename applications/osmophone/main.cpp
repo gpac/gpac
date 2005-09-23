@@ -25,6 +25,8 @@
 /*includes both terminal and od browser*/
 #include <gpac/terminal.h>
 #include <gpac/options.h>
+/*for initial setup*/
+#include <gpac/modules/service.h>
 
 #include <windows.h>
 #include <commdlg.h>
@@ -42,10 +44,12 @@
 Bool gf_file_dialog(HINSTANCE inst, HWND parent, char *url, const char *ext_list);
 void set_backlight_state(Bool disable);
 void refresh_recent_files();
+void do_layout(Bool notif_size);
 
 static HWND g_hwnd = NULL;
 static HWND g_hwnd_disp = NULL;
-static HWND g_hwnd_mb = NULL;
+static HWND g_hwnd_menu1 = NULL;
+static HWND g_hwnd_menu2 = NULL;
 static HWND g_hwnd_status = NULL;
 static HINSTANCE g_hinst = NULL;
 
@@ -72,6 +76,9 @@ static Bool reset_status = 1;
 static u32 last_state_time = 0;
 static Bool loop = 0;
 static Bool full_screen = 0;
+static Bool use_3D_renderer = 0;
+static Bool ctrl_mod_down = 0;
+static Bool menu_switched = 0;
 
 void set_status(char *state)
 {
@@ -113,6 +120,33 @@ void update_state_info()
 	SendMessage(g_hwnd_status, WM_SETTEXT, 0, (LPARAM) wstate);
 }
 
+
+static u32 prev_pos = 0;
+void cbk_on_progress(void *_title, u32 done, u32 total)
+{
+	char szMsg[1024];
+	u32 pos = (u32) ((u64) done * 100)/total;
+	if (pos<prev_pos) prev_pos = 0;
+	if (pos!=prev_pos) {
+		prev_pos = pos;
+		sprintf(szMsg, "%s: (%02d/100)", _title ? (char *)_title : "", pos);
+		set_status(szMsg);
+	}
+}
+
+void set_full_screen()
+{
+	full_screen = !full_screen;
+	if (full_screen) {
+		do_layout(0);
+		gf_term_set_option(term, GF_OPT_FULLSCREEN, full_screen);
+	} else {
+		gf_term_set_option(term, GF_OPT_FULLSCREEN, full_screen);
+		do_layout(1);
+	}
+}
+
+
 Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
 	switch (evt->type) {
@@ -138,13 +172,12 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		if (evt->progress.progress_type==0) szTitle = "Buffer ";
 		else if (evt->progress.progress_type==1) szTitle = "Download ";
 		else if (evt->progress.progress_type==2) szTitle = "Import ";
-		gf_cbk_on_progress(szTitle, evt->progress.done, evt->progress.total);
+		cbk_on_progress(szTitle, evt->progress.done, evt->progress.total);
 	}
 		break;
 	
 	case GF_EVT_SIZE:
-		MoveWindow(g_hwnd, 0, caption_h, disp_w, disp_h, FALSE);
-		if (term) gf_term_set_size(term, disp_w, disp_h);
+		do_layout(1);
 		break;
 	case GF_EVT_CONNECT:
 		if (evt->connect.is_connected) {
@@ -158,6 +191,23 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 		break;
 	case GF_EVT_QUIT:
+		break;
+	case GF_EVT_VKEYDOWN:
+		switch (evt->key.vk_code) {
+		case GF_VK_RETURN:
+			if (full_screen) set_full_screen();
+			break;
+		}
+		break;
+	case GF_EVT_KEYDOWN:
+		switch (evt->key.virtual_code) {
+		case '1':
+			ctrl_mod_down = !ctrl_mod_down;
+			evt->key.vk_code = GF_VK_CONTROL;
+			evt->type = ctrl_mod_down ? GF_EVT_VKEYDOWN : GF_EVT_VKEYUP;
+			gf_term_user_input(term, evt);
+			break;
+		}
 		break;
 	}
 	return 0;
@@ -186,18 +236,20 @@ Bool LoadTerminal()
 	return 1;
 }
 
-void do_layout()
+void do_layout(Bool notif_size)
 {
 	u32 w, h;
 	if (full_screen) {
 		w = screen_w;
 		h = screen_h;
 		::ShowWindow(g_hwnd_status, SW_HIDE);
-		::ShowWindow(g_hwnd_mb, SW_HIDE);
+		::ShowWindow(g_hwnd_menu1, SW_HIDE);
+		::ShowWindow(g_hwnd_menu2, SW_HIDE);
 		::MoveWindow(g_hwnd, 0, 0, screen_w, screen_h, 1);
 		::MoveWindow(g_hwnd_disp, 0, 0, screen_w, screen_h, 1);
 	} else {
-		::ShowWindow(g_hwnd_mb, SW_SHOW);
+		::ShowWindow(g_hwnd_menu1, menu_switched ? SW_HIDE : SW_SHOW);
+		::ShowWindow(g_hwnd_menu2, menu_switched ? SW_SHOW : SW_HIDE);
 		if (show_status) {
 			::MoveWindow(g_hwnd, 0, caption_h, disp_w, disp_h, 1);
 			::ShowWindow(g_hwnd_status, SW_SHOW);
@@ -213,7 +265,7 @@ void do_layout()
 			h = disp_h;
 		}
 	}
-	if (term) gf_term_set_size(term, w, h);
+	if (notif_size && term) gf_term_set_size(term, w, h);
 }
 
 void HandleInputMessages(UINT msg, WPARAM wParam, LPARAM lParam)
@@ -302,7 +354,7 @@ void refresh_recent_files()
 {
 	u32 count = gf_cfg_get_key_count(user.config, "RecentFiles");
 
-    HMENU hMenu = (HMENU)SendMessage(g_hwnd_mb, SHCMBM_GETSUBMENU, 0, ID_MENU_FILE);
+    HMENU hMenu = (HMENU)SendMessage(g_hwnd_menu1, SHCMBM_GETSUBMENU, 0, ID_MENU_FILE);
 	/*pos is hardcoded*/
 	hMenu = GetSubMenu(hMenu, 2);
 
@@ -397,11 +449,27 @@ BOOL CALLBACK AboutDialogProc(const HWND hWnd, const UINT Msg, const WPARAM wPar
 void view_about(HWND hwnd)
 {
 	freeze_display(1);
-	::ShowWindow(g_hwnd_mb, SW_HIDE);
+//	::ShowWindow(g_hwnd_mb, SW_HIDE);
 	int iResult = DialogBox(g_hinst, MAKEINTRESOURCE(IDD_APPABOUT), hwnd,(DLGPROC)AboutDialogProc);
-	::ShowWindow(g_hwnd_mb, SW_SHOW);
+//	::ShowWindow(g_hwnd_mb, SW_SHOW);
 	freeze_display(0);
 }
+
+void reload_terminal()
+{
+	HCURSOR hcur = SetCursor(LoadCursor(NULL, IDC_WAIT));
+	gf_term_del(term);
+	term = gf_term_new(&user);
+	if (!term) {
+		MessageBox(NULL, _T("Fatal Error !!"), _T("Couldn't change renderer"), MB_OK);
+		PostQuitMessage(0);
+	} else {
+		const char *str = gf_cfg_get_key(user.config, "Rendering", "RendererName");
+		use_3D_renderer = (str && strstr(str, "3D")) ? 1 : 0;
+	}
+	SetCursor(hcur);
+}
+
 
 BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 {
@@ -413,12 +481,45 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 		view_about(hwnd);
 		break;
 	case IDM_VIEW_FS:
-		full_screen = !full_screen;
-		do_layout();
+		set_full_screen();
 		break;
 	case IDM_VIEW_STATUS:
 		show_status = !show_status;
-		do_layout();
+		do_layout(1);
+		break;
+	case IDM_VIEW_3DREND:
+		use_3D_renderer = !use_3D_renderer;
+		gf_cfg_set_key(user.config, "Rendering", "RendererName", use_3D_renderer ? "GPAC 3D Renderer" : "GPAC 2D Renderer");
+		reload_terminal();
+		break;
+	case IDM_NAV_RESET:
+		gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 0);
+		break;
+	case IDM_NAV_NONE:
+		gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_NONE);
+		break;
+	case IDM_NAV_SLIDE:
+		gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_SLIDE);
+		break;
+
+
+	case IDM_VIEW_AR_NONE:
+		gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP);
+		break;
+	case IDM_VIEW_AR_FILL:
+		gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_FILL_SCREEN);
+		break;
+	case IDM_VIEW_AR_4_3:
+		gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_4_3);
+		break;
+	case IDM_VIEW_AR_16_9:
+		gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_16_9);
+		break;
+
+
+	case IDM_MENU_SWITCH:
+		menu_switched = !menu_switched;
+		do_layout(0);
 		break;
 
 	case IDM_OPEN_FILE1: 
@@ -443,11 +544,18 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 
 static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 {
-	if (show_status) {
-		CheckMenuItem((HMENU)wParam, IDM_VIEW_STATUS, MF_BYCOMMAND|MF_CHECKED);
-	} else {
-		CheckMenuItem((HMENU)wParam, IDM_VIEW_STATUS, MF_BYCOMMAND|MF_UNCHECKED);
+	if (menu_switched) {
+		CheckMenuItem((HMENU)wParam, IDM_VIEW_STATUS, MF_BYCOMMAND| (show_status ? MF_CHECKED : MF_UNCHECKED) );
+		CheckMenuItem((HMENU)wParam, IDM_VIEW_3DREND, MF_BYCOMMAND| (use_3D_renderer ? MF_CHECKED : MF_UNCHECKED) );
+	    return TRUE;
 	}
+
+	u32 opt = gf_term_get_option(term, GF_OPT_ASPECT_RATIO);	
+	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_NONE, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_KEEP) ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_FILL, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_FILL_SCREEN) ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_4_3, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_4_3) ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_16_9, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_16_9) ? MF_CHECKED : MF_UNCHECKED);
+
     return TRUE;
 }
 
@@ -463,15 +571,20 @@ BOOL CALLBACK MainWndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		memset(&mbi, 0, sizeof(SHMENUBARINFO));
 		mbi.cbSize = sizeof(SHMENUBARINFO);
 		mbi.hwndParent = hwnd;
-		mbi.nToolBarId = IDM_MAIN_MENU;
 		mbi.hInstRes = g_hinst;
 		mbi.nBmpId = 0;
 		mbi.cBmpImages = 0;	
+		
+		mbi.nToolBarId = IDM_MAIN_MENU1;
 		SHCreateMenuBar(&mbi);
-		g_hwnd_mb = mbi.hwndMB;
+		g_hwnd_menu1 = mbi.hwndMB;
+
+		mbi.nToolBarId = IDM_MAIN_MENU2;
+		SHCreateMenuBar(&mbi);
+		g_hwnd_menu2 = mbi.hwndMB;
 
 		g_hwnd_status = CreateWindow(TEXT("STATIC"), TEXT("Status"), WS_CHILD|WS_VISIBLE|SS_LEFT, 0, 0, disp_w, caption_h-1, hwnd, NULL, g_hinst, NULL);
-		do_layout();
+		do_layout(1);
 	}
 		break;
 		
@@ -479,28 +592,33 @@ BOOL CALLBACK MainWndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		if (HandleCommand(hwnd, wParam, lParam))
 			return DefWindowProc(hwnd, msg, wParam, lParam);
 		break;
-
 	case WM_TIMER:
 		update_state_info();
 		break;
-		
 	case WM_HOTKEY:
 		break;
-		
+	case WM_SYSKEYDOWN:
+	case WM_SYSKEYUP:
+	case WM_KEYDOWN:
+	case WM_KEYUP:
+	case WM_CHAR:
+	case WM_MOUSEMOVE:
+	case WM_LBUTTONDOWN:
+	case WM_LBUTTONDBLCLK:
+	case WM_LBUTTONUP:
+		::SendMessage(g_hwnd_disp, msg, wParam, lParam);
+		return 0;
     case WM_INITMENUPOPUP:
         OnMenuPopup(hwnd, wParam);
         break;
-
 	case WM_CLOSE:
 		DestroyWindow(hwnd);
 		break;
     case WM_SETFOCUS:
 		freeze_display(0);
-		set_status("WM_SETFOCUS");
 		break;
     case WM_KILLFOCUS:
 		freeze_display(1);
-		set_status("WM_KILLFOCUS");
 		break;
     case WM_ACTIVATE:
         if (WA_INACTIVE != LOWORD(wParam)) {
@@ -509,20 +627,16 @@ BOOL CALLBACK MainWndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		} else {
 			freeze_display(1);
 		}
-		set_status("WM_ACTIVATE");
         break;
-
 	case WM_LOADTERM:
 		if (!LoadTerminal()) {
 			MessageBox(hwnd, L"Cannot load GPAC", L"Error", MB_OK);
 			PostQuitMessage(0);
 		}
 		break;
-
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
-		
 	default:
 		return DefWindowProc(hwnd, msg, wParam, lParam);
 	}
@@ -553,16 +667,65 @@ BOOL InitInstance (int CmdShow)
 	
 	if (!g_hwnd) return FALSE;
 
+	ShowWindow(g_hwnd, CmdShow);
 	::SetTimer(g_hwnd, STATE_TIMER_ID, STATE_TIMER_DUR, NULL);
 
 	refresh_recent_files();
 	set_status("Loading Terminal");
-	do_layout();
+	do_layout(1);
 
 	PostMessage(g_hwnd, WM_LOADTERM, 0, 0);
 	set_status("Ready");
 	return TRUE;
 }
+
+Bool initial_setup(const char *szExePath)
+{
+	char szPath[GF_MAX_PATH];
+	TCHAR wzPath[GF_MAX_PATH];
+	strcpy(szPath, szExePath);
+	strcat(szPath, "GPAC.cfg");
+	FILE *f = fopen(szPath, "wt");
+	if (!f) return 0;
+	fclose(f);
+
+	user.config = gf_cfg_new(szExePath, "GPAC.cfg");
+	
+	gf_cfg_set_key(user.config, "General", "ModulesDirectory", szExePath);
+
+	strcpy(szPath, szExePath);
+	strcat(szPath, "cache");
+	CE_CharToWide(szPath, wzPath);
+	CreateDirectory(wzPath, NULL);
+	gf_cfg_set_key(user.config, "General", "CacheDirectory", szPath);
+
+	/*base rendering options*/
+	gf_cfg_set_key(user.config, "Rendering", "RendererName", "GPAC 2D Renderer");
+	gf_cfg_set_key(user.config, "Rendering", "Raster2D", "GPAC 2D Raster");
+	/*enable UDP traffic autodetect*/
+	gf_cfg_set_key(user.config, "Network", "AutoReconfigUDP", "yes");
+	gf_cfg_set_key(user.config, "Network", "UDPTimeout", "10000");
+	gf_cfg_set_key(user.config, "Network", "BufferLength", "3000");
+
+
+	gf_cfg_set_key(user.config, "Audio", "ForceConfig", "yes");
+	gf_cfg_set_key(user.config, "Audio", "NumBuffers", "2");
+	gf_cfg_set_key(user.config, "Audio", "TotalDuration", "200");
+
+	gf_cfg_set_key(user.config, "Video", "DriverName", "GAPI Video Output");
+
+	/*FIXME - is this true on all WinCE systems??*/
+	gf_cfg_set_key(user.config, "FontEngine", "FontDirectory", "\\Windows");
+
+	/*save*/
+	gf_cfg_del(user.config);
+	user.config = gf_cfg_new(szExePath, "GPAC.cfg");
+	if (!user.config) return 0;
+	MessageBox(NULL, _T("Thank you for installing GPAC"), _T("Initial setup done"), MB_OK);
+	return 1;
+}
+
+
 
 int WINAPI WinMain(HINSTANCE hInstance, 
 				   HINSTANCE hPrevInstance, 
@@ -570,11 +733,19 @@ int WINAPI WinMain(HINSTANCE hInstance,
 				   int nShowCmd 
 ) {
 	MSG 	msg;
+	TCHAR wzExePath[GF_MAX_PATH];
+	char szExePath[GF_MAX_PATH];
 	HWND 	hwndOld = NULL;	
 	const char *str;
+	Bool initial_launch = 0;
 	
 	memset(&user, 0, sizeof(GF_User));
 	term = NULL;
+
+	GetModuleFileName(NULL, wzExePath, GF_MAX_PATH);
+	CE_WideToChar(wzExePath, szExePath);
+	char *sep = strrchr(szExePath, '\\');
+	sep[1] = 0;
 
 	g_hinst = hInstance;
 	
@@ -592,8 +763,21 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		return 0;
 	}
 
-	user.config = gf_cfg_new("\\Storage\\Program Files\\Osmo4\\", "GPAC.cfg");
+	user.config = gf_cfg_new(szExePath, "GPAC.cfg");
+	if (!user.config) {
+		initial_setup(szExePath);
+		initial_launch = 1;
+	}
+	if (!user.config) {
+		MessageBox(NULL, _T("Couldn't locate GPAC config file"), _T("Fatal Error"), MB_OK);
+		return 0;
+	}
 	str = gf_cfg_get_key(user.config, "General", "ModulesDirectory");
+	if (!str) {
+		gf_cfg_del(user.config);
+		MessageBox(NULL, _T("Couldn't locate GPAC plugins"), _T("Fatal Error"), MB_OK);
+		return 0;
+	}
 
 	user.modules = gf_modules_new((const unsigned char *) str, user.config);
 	if (!gf_modules_get_count(user.modules)) {
@@ -603,10 +787,28 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		memset(&user, 0, sizeof(GF_User));
 		return 0;
 	}
+
+		/*first launch, register all files ext*/
+	if (initial_launch) {
+		u32 i;
+		for (i=0; i<gf_modules_get_count(user.modules); i++) {
+			GF_InputService *ifce = (GF_InputService *) gf_modules_load_interface(user.modules, i, GF_NET_CLIENT_INTERFACE);
+			if (!ifce) continue;
+			if (ifce) {
+				ifce->CanHandleURL(ifce, "test.test");
+				gf_modules_close_interface((GF_BaseInterface *)ifce);
+			}
+		}
+	}
+
 	str = gf_cfg_get_key(user.config, "General", "Loop");
 	loop = (str && !stricmp(str, "yes")) ? 1 : 0;
 
+	str = gf_cfg_get_key(user.config, "Rendering", "RendererName");
+	use_3D_renderer = (str && strstr(str, "3D")) ? 1 : 0;
+
 	if (InitInstance(nShowCmd)) {
+		SetForegroundWindow(g_hwnd);
 		while (GetMessage(&msg, NULL, 0,0) == TRUE) {
 			TranslateMessage (&msg);
 			DispatchMessage (&msg);

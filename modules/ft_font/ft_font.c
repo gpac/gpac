@@ -252,9 +252,7 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 
 	/*first look in loaded fonts*/
 	ftpriv->active_face = ft_font_in_cache(ftpriv, fontName, styles);
-	if (ftpriv->active_face) {
-		return GF_OK;
-	}
+	if (ftpriv->active_face) return GF_OK;
 
 	ftpriv->tmp_font_name = fontName;
 	ftpriv->tmp_font_style = styles;
@@ -277,6 +275,12 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 		}
 		opt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", fname);
 		if (opt) {
+			Bool no_check = 0;
+			if (!stricmp(opt, "SERIF")) { fontName = ftpriv->font_serif; no_check =  1; }
+			else if (!stricmp(opt, "SANS")) { fontName = ftpriv->font_sans; no_check =  1; }
+			if (!stricmp(opt, "TYPEWRITTER")) { fontName = ftpriv->font_fixed; no_check =  1; }
+			if (no_check) return ft_set_font(dr, fontName, styles);
+
 			strcpy(file_path, ftpriv->font_dir);
 			strcat(file_path, opt);
 			if (ft_enum_fonts(dr, (char *)opt, file_path)) return GF_OK;
@@ -305,7 +309,7 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 			gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed", NULL);
 			strcpy(ftpriv->font_fixed, "");
 		}
-		e = ft_set_font(dr, NULL, styles);
+		e = ft_set_font(dr, "SERIF", styles);
 		if ((e!=GF_OK) && styles) e = ft_set_font(dr, fontName, NULL);
 		if (e!=GF_OK) return e;
 
@@ -322,6 +326,8 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 			gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed", ftpriv->active_face->family_name);
 			strcpy(ftpriv->font_fixed, ftpriv->active_face->family_name);
 		}
+		/*font not on system...*/
+		gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", fontName, "SERIF");
 
 		return GF_OK;
 	}

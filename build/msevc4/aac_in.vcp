@@ -124,18 +124,6 @@ SOURCE=..\..\modules\aac_in\aac_in.def
 # Begin Source File
 
 SOURCE=..\..\modules\aac_in\faad_dec.c
-DEP_CPP_FAAD_=\
-	"..\..\extra_lib\include\faad\faad.h"\
-	"..\..\extra_lib\include\faad\neaacdec.h"\
-	"..\..\include\gpac\avparse.h"\
-	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\codec.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\tools.h"\
-	
 # End Source File
 # End Target
 # End Project

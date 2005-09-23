@@ -980,6 +980,7 @@ EXPORTS
 	gf_term_string_input
 	gf_term_connect_from_time
 	gf_term_add_object
+	gf_term_is_supported_url
 	gf_term_attach_service
 
 ;renderer.h exports

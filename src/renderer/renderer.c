@@ -503,10 +503,16 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 			width = sr->scene_width;
 			height = sr->scene_height;
 
-			/*only notify user if we are attached to a window*/
-			if (sr->user->os_window_handler) sr->override_size_flags &= ~2;
-			/*signal size changed even when attached to window to avoid resize message discarding on Win32*/
-			gf_sr_set_size(sr,width, height);
+			if (!sr->user->os_window_handler) {
+				/*only notify user if we are attached to a window*/
+				do_notif = 0;
+				if (sr->video_out->max_screen_width && (width > sr->video_out->max_screen_width))
+					width = sr->video_out->max_screen_width;
+				if (sr->video_out->max_screen_height && (height > sr->video_out->max_screen_height))
+					height = sr->video_out->max_screen_height;
+
+				gf_sr_set_size(sr,width, height);
+			}
 		}
 	}
 
@@ -831,7 +837,7 @@ void gf_sr_unregister_time_node(GF_Renderer *sr, GF_TimeNode *tn)
 }
 
 
-static void SR_UserInputIntern(GF_Renderer *sr, GF_Event *event, Bool forward_user)
+static void SR_UserInputIntern(GF_Renderer *sr, GF_Event *event)
 {
 	GF_UserEvent *ev;
 
@@ -871,11 +877,6 @@ static void SR_UserInputIntern(GF_Renderer *sr, GF_Event *event, Bool forward_us
 		gf_mx_v(sr->ev_mx);
 		break;
 	}
-}
-
-void gf_sr_user_input(GF_Renderer *sr, GF_Event *event)
-{
-	SR_UserInputIntern(sr, event, 0);
 }
 
 
@@ -1078,7 +1079,7 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 			if (event->key.vk_code<=GF_VK_RIGHT) gf_term_keyboard_input(sr->term, 0, 0, event->key.vk_code, 0, s, c, m);
 			else gf_term_keyboard_input(sr->term, event->key.virtual_code, 0, 0, 0, s, c, m);
 		}		
-		SR_UserInputIntern(sr, event, 1);
+		SR_UserInputIntern(sr, event);
 		break;
 
 	case GF_EVT_VKEYUP:
@@ -1095,7 +1096,7 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 			if (event->key.vk_code<=GF_VK_RIGHT) gf_term_keyboard_input(sr->term, 0, 0, 0, event->key.vk_code, s, c, m);
 			else gf_term_keyboard_input(sr->term, 0, event->key.virtual_code, 0, 0, s, c, m);
 		}
-		SR_UserInputIntern(sr, event, 1);
+		SR_UserInputIntern(sr, event);
 		break;
 
 	/*for key sensor*/
@@ -1103,20 +1104,20 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 		event->key.key_states = sr->key_states;
 		if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) )
 			gf_term_keyboard_input(sr->term, event->key.virtual_code, 0, 0, 0, 0, 0, 0);
-		SR_UserInputIntern(sr, event, 1);
+		SR_UserInputIntern(sr, event);
 		break;
 
 	case GF_EVT_KEYUP:
 		event->key.key_states = sr->key_states;
 		if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) )
 			gf_term_keyboard_input(sr->term, 0, event->key.virtual_code, 0, 0, 0, 0, 0);
-		SR_UserInputIntern(sr, event, 1);
+		SR_UserInputIntern(sr, event);
 		break;
 
 	case GF_EVT_CHAR:
 		if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) )
 			gf_term_string_input(sr->term , event->character.unicode_char);
-		SR_UserInputIntern(sr, event, 1);
+		SR_UserInputIntern(sr, event);
 		break;
 	/*switch fullscreen off!!!*/
 	case GF_EVT_SHOWHIDE:
@@ -1132,7 +1133,7 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 	case GF_EVT_MOUSEWHEEL:
 	case GF_EVT_LEFTUP:
 		event->mouse.key_states = sr->key_states;
-		SR_UserInputIntern(sr, event, 1);
+		SR_UserInputIntern(sr, event);
 		break;
 
 	/*when we process events we don't forward them to the user*/
@@ -1140,6 +1141,12 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 		GF_USER_SENDEVENT(sr->user, event);
 		break;
 	}
+}
+
+
+void gf_sr_user_input(GF_Renderer *sr, GF_Event *event)
+{
+	gf_sr_on_event(sr, event);
 }
 
 void gf_sr_register_extra_graph(GF_Renderer *sr, GF_SceneGraph *extra_scene, Bool do_remove)

@@ -208,7 +208,7 @@ BOOL COsmo4::InitInstance()
 			gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) config_path);
 
 			sOpt = gf_cfg_get_key(m_user.config, "Rendering", "Raster2D");
-			if (!sOpt) gf_cfg_set_key(m_user.config, "Rendering", "Raster2D", "soft_rend");
+			if (!sOpt) gf_cfg_set_key(m_user.config, "Rendering", "Raster2D", "GPAC 2D Raster");
 
 			sOpt = gf_cfg_get_key(m_user.config, "General", "CacheDirectory");
 			if (!sOpt) {

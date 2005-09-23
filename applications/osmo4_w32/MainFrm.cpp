@@ -731,7 +731,7 @@ LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 {
 	WinGPAC *gpac = GetApp();
 
-	if (is_supported_file(gpac->m_user.config, gpac->m_navigate_url, 0)) {
+	if (gf_term_is_supported_url(gpac->m_term, gpac->m_navigate_url, 1, 0)) {
 		char *str = gf_url_concatenate(m_pPlayList->GetURL(), gpac->m_navigate_url);
 		if (str) {
 			m_pPlayList->Truncate();

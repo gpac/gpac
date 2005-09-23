@@ -86,10 +86,13 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 			/*destroy service only if attached*/
 			if (root) {
 				gf_term_lock_net(term, 1);
+				service->ifce->CloseService(service->ifce);
 				root->net_service = NULL;
-				gf_list_del_item(term->net_services, service);
-				/*and queue for destroy*/
-				gf_list_add(term->net_services_to_remove, service);
+				/*depends on module: some module could forget to call gf_term_on_disconnect */
+				if ( gf_list_del_item(term->net_services, service) >= 0) {
+					/*and queue for destroy*/
+					gf_list_add(term->net_services_to_remove, service);
+				}
 				gf_term_lock_net(term, 0);
 				if (!root->parentscene) {
 					GF_Event evt;
@@ -179,9 +182,10 @@ static void term_on_disconnect(void *user_priv, GF_ClientService *service, LPNET
 	if (!netch) {
 		gf_term_lock_net(term, 1);
 		/*unregister from valid services*/
-		gf_list_del_item(term->net_services, service);
-		/*and queue for destroy*/
-		gf_list_add(term->net_services_to_remove, service);
+		if (gf_list_del_item(term->net_services, service)>=0) {
+			/*and queue for destroy*/
+			gf_list_add(term->net_services_to_remove, service);
+		}
 		gf_term_lock_net(term, 0);
 		return;
 	}
@@ -323,24 +327,24 @@ static Bool check_extension(char *szExtList, char *szExt)
 	return 0;
 }
 
-GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *owner, const char *url, GF_ClientService *parent_service, GF_Err *ret_code)
+
+static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char *url, const char *parent_url, Bool no_mime_check, char **out_url, GF_Err *ret_code)
 {
-	GF_ClientService *serv;
 	u32 i;
 	GF_Err e;
 	char *sURL, *ext, *mime_type;
 	char szExt[50];
 	GF_InputService *ifce;
 
+	*out_url = NULL;
 	if (!url) {
 		(*ret_code) = GF_URL_ERROR;
 		return NULL;
 	}
 
 	sURL = NULL;
-	if (parent_service && parent_service->url) {
-		sURL = gf_url_concatenate(parent_service->url, url);
-	}
+	if (parent_url) sURL = gf_url_concatenate(parent_url, url);
+
 	/*path absolute*/
 	if (!sURL) {
 		char *tmp = (char *) url;
@@ -349,12 +353,16 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 		sURL = strdup(tmp);
 	}
 
-	/*fetch a mime type if any. If error don't even attempt to open the service*/
-	mime_type = NM_GetMimeType(term, sURL, &e);
-	if (e) {
-		free(sURL);
-		(*ret_code) = e;
-		return NULL;
+	if (no_mime_check) {
+		mime_type = NULL;
+	} else {
+		/*fetch a mime type if any. If error don't even attempt to open the service*/
+		mime_type = NM_GetMimeType(term, sURL, &e);
+		if (e) {
+			free(sURL);
+			(*ret_code) = e;
+			return NULL;
+		}
 	}
 	
 	if (mime_type && (!stricmp(mime_type, "text/plain") || !stricmp(mime_type, "video/quicktime")) ) {
@@ -438,6 +446,17 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 		(*ret_code) = GF_NOT_SUPPORTED;
 		return NULL;
 	}
+	*out_url = sURL;
+	return ifce;
+}
+
+GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *owner, const char *url, GF_ClientService *parent_service, GF_Err *ret_code)
+{
+	char *sURL;
+	GF_ClientService *serv;
+	GF_InputService *ifce = gf_term_can_handle_service(term, url, parent_service ? parent_service->url : NULL, 0, &sURL, ret_code);
+	if (!ifce) return NULL;
+
 	serv = malloc(sizeof(GF_ClientService));
 	memset(serv, 0, sizeof(GF_ClientService));
 	serv->term = term;
@@ -450,6 +469,22 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 
 	return serv;
 }
+
+Bool gf_term_is_supported_url(GF_Terminal *term, const char *fileName, Bool use_parent_url, Bool no_mime_check)
+{
+	GF_InputService *ifce;
+	GF_Err e;
+	char *sURL;
+	char *parent_url = NULL;
+	if (use_parent_url && term->root_scene) parent_url = term->root_scene->root_od->net_service->url;
+
+	ifce = gf_term_can_handle_service(term, fileName, parent_url, no_mime_check, &sURL, &e);
+	if (!ifce) return 0;
+	gf_modules_close_interface((GF_BaseInterface *) ifce);
+	free(sURL);
+	return 1;
+}
+
 
 Bool gf_term_service_can_handle_url(GF_ClientService *ns, char *url)
 {

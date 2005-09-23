@@ -106,7 +106,10 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	return ifce;
 
 err_exit:
+	/*this slows down loading of GPAC on CE-based devices*/
+#ifndef _WIN32_WCE
 	gf_modules_unload_library(inst);
+#endif
 	return NULL;
 }
 
