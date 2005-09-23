@@ -14,6 +14,10 @@ else
 CFLAGS+=-DOSS_FIX_INC
 endif
 
+ifeq ($(TARGET_ARCH_ARMV4L), yes)
+CFLAGS+=-DFORCE_SR_LIMIT
+endif
+
 #common obj
 OBJS= oss.o
 

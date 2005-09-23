@@ -157,16 +157,26 @@ static u32 OSS_GetAudioDelay(GF_AudioOutput*dr)
  */
 static u32 OSS_QueryOutputSampleRate(GF_AudioOutput*dr, u32 desired_sr, u32 NbChannels, u32 nbBitsPerSample)
 {
+#ifdef FORCE_SR_LIMIT
+  if (!(desired_sr % 11025)) return desired_sr;
+  if (desired_sr<22050) return 22050;
+  return 44100;
+#else
+  return desired_sr;
+#endif
+
+#if 0
+	/* reset and reopen audio-device */
 	int i;
 	OSSCTX();
-	return desired_sr;
-	/* reset and reopen audio-device */
 	ioctl(ctx->audio_dev,SNDCTL_DSP_RESET);
 	close(ctx->audio_dev);
 	ctx->audio_dev=open(OSS_AUDIO_DEVICE,O_WRONLY);
 	i=desired_sr;
 	if(ioctl(ctx->audio_dev, SNDCTL_DSP_SPEED,&i)==-1) return 44100;
+	fprintf(stdout, "OSS uses samplerate %d for desired sr %d\n", i, desired_sr);
 	return i;
+#endif
 }
 
 void *NewOSSRender()

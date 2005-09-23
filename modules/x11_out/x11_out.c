@@ -494,6 +494,7 @@ GF_Err X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn, u32 * scr
 	if (bFullScreenOn) {
 		xWindow->store_width = *screen_width;
 		xWindow->store_height = *screen_height;
+
 		xWindow->w_width = vout->max_screen_width;
 		xWindow->w_height = vout->max_screen_height;
 
@@ -693,6 +694,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		xWindow->videoaccesstype = VIDEO_XI_SHMPIXMAP;
 	    } else {
 	      xWindow->videoaccesstype = VIDEO_XI_SHMSTD;
+	      fprintf(stdout, "\nUsing X11 Hardware Blit\n");
 	    }
 	  }
 	}
@@ -764,8 +766,12 @@ GF_Err X11_Setup(struct _video_out *vout, void *os_handle, void *os_display, u32
 	/*OSMOZILLA HACK*/
 	if (os_display) xWindow->no_select_input = 1;
 	if (cfg) {
-	  xWindow->is_3D_out = 1;
+#ifdef GPAC_HAS_OPENGL
+		xWindow->is_3D_out = 1;
 	  xWindow->gl_cfg = *cfg;
+#else
+	  return GF_NOT_SUPPORTED;
+#endif
 	} else {
 	  xWindow->is_3D_out = 0;
 	}
