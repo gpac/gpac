@@ -353,11 +353,13 @@ static GF_Err ft_get_font_metrics(GF_FontRaster *dr, Fixed *ascent, Fixed *desce
 /*small hack on charmap selection: by default use UNICODE, otherwise use first available charmap*/
 static void ft_set_charmap(FT_Face face)
 {
-	if (FT_Select_Charmap(face, FT_ENCODING_UNICODE) != 0) {
-		FT_CharMap *cur = face->charmaps;
-		assert(cur);
-		face->charmap = cur[0];
-	}
+#ifdef FT_ENCODING_UNICODE
+  if (FT_Select_Charmap(face, FT_ENCODING_UNICODE) == 0) return;
+#endif
+  FT_CharMap *cur = face->charmaps;
+  assert(cur);
+  face->charmap = cur[0];
+  
 }
 
 static GF_Err ft_get_text_size(GF_FontRaster *dr, const unsigned short *string, Fixed *width, Fixed *height)
@@ -541,12 +543,14 @@ static GF_Err ft_add_text_to_path(GF_FontRaster *dr, GF_Path *path, Bool flipTex
 		FT_Load_Glyph(ftpriv->active_face, glyph_idx, FT_LOAD_NO_SCALE | FT_LOAD_NO_BITMAP);
 
 		FT_Get_Glyph(ftpriv->active_face->glyph, (FT_Glyph*)&outline);
+#ifdef FT_GLYPH_FORMAT_OUTLINE
 		/*oops not vectorial...*/
 		if (outline->root.format != FT_GLYPH_FORMAT_OUTLINE) {
 			outl.pos_x += def_inc_x;
 			FT_Done_Glyph((FT_Glyph) outline);
 			continue;
 		}
+#endif
 
 		/*freeType is marvelous and gives back the right advance on space char !!!*/
 	    FT_Outline_Decompose(&outline->outline, &ft_outl_funcs, &outl);

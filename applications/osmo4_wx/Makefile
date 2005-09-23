@@ -32,7 +32,7 @@ SRCS := $(OBJS:.o=.cpp)
 all: $(PROG)
 
 Osmo4$(EXE): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(WX_LFLAGS)
+	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(WX_LFLAGS) -lz
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) $(INSTALL_FLAGS) $(WX_CFLAGS) -c -o $@ $< 

@@ -138,7 +138,7 @@ static const Fixed gf_trig_arctan_table[24] =
 };
 
 /* the Cordic shrink factor, multiplied by 2^32 */
-#define GF_TRIG_SCALE    1166391785UL  /* 0x4585BA38UL */
+#define GF_TRIG_SCALE    1166391785  /* 0x4585BA38UL */
 
 #define GF_ANGLE_PI		(180<<16)
 #define GF_ANGLE_PI2	(90<<16)
@@ -155,7 +155,11 @@ static Fixed gf_trig_downscale(Fixed  val)
 	s64 v;
 	s   = val;
 	val = ( val >= 0 ) ? val : -val;
-	v   = ( val * (s64)GF_TRIG_SCALE ) + 0x100000000UL;
+#ifdef _MSC_VER
+	v = ( val * (s64)GF_TRIG_SCALE ) + 0x100000000;
+#else
+	v = ( val * (s64)GF_TRIG_SCALE ) + 0x100000000ULL;
+#endif
 	val = (Fixed)( v >> 32 );
 	return ( s >= 0 ) ? val : -val;
 }

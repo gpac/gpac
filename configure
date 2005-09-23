@@ -2,62 +2,6 @@
 # GPAC MPEG-4 SDK configure script (c) 2003-2005 Jean Le Feuvre
 #		inspired from ffmpeg configure by Fabrice Bellard (c) 2000-2002
 
-#Configure Usage
-if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
-cat << EOF
-
-Usage: configure [options]
-Options: [defaults in brackets after descriptions]
-
-EOF
-echo "GPAC configuration options:"
-echo "  --help                   print this message"
-echo "  --prefix=PREFIX          install in PREFIX [$prefix]"
-echo "  --mandir=DIR             man documentation in DIR [PREFIX/man]"
-echo ""
-echo "  --source-path=PATH       path of source code [$source_path]"
-echo "  --cross-prefix=PREFIX    use PREFIX for compile tools [$cross_prefix]"
-echo "  --cc=CC                  use C compiler CC [$cc]"
-echo "  --make=MAKE              use specified make [$make]"
-echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS [$CFLAGS]"
-echo "  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS [$LDFLAGS]"
-echo "  --extra-libs=ELIBS       add ELIBS [$ELIBS]"
-echo "  --cpu=CPU                force cpu to CPU  [$cpu]"
-echo "  --sdl-cfg=SDL_PATH       specify path to sdl-config for local install [$sdl_path]"
-echo "  --enable-sdl-static      use static SDL linking [default=no]"
-echo "  --dxsdk-path=DX_PATH     specify directX SDK for MinGW [$dxsdk_path]"
-echo "  --mozdir=MOZ_PATH        specify mozilla main directory path for system install"
-echo ""
-echo "  --enable-amr-nb-fixed    enable AMR NB fixed-point decoder"
-echo "  --enable-amr-nb          enable AMR NB library"
-echo "  --enable-amr-wb          enable AMR WB library"
-echo "  --enable-amr             enable both AMR NB and WB libraries"
-echo "  --enable-debug           produce debug version"
-echo "  --disable-fragments      disable movie fragments in ISO media support"
-echo "  --disable-opt            disable GCC optimizations"
-echo "  --disable-oss-audio      disable OSS audio"
-echo "  --disable-x11-shm        disable X11 shared memory support"
-echo "  --disable-fragments      disable movie fragments in ISO media support"
-echo "  --enable-readonly        force ISO media to be read-only"
-echo "  --disable-svg            disable SVG support"
-echo "  --enable-fixed-point     force ISO media to be read-only"
-echo "  --disable-opengl         disable OpenGL support"
-echo "  --disable-ssl            disable OpenSSL support"
-echo ""
-echo "Extra libraries configuration. You can turn a libray off or force using the local version in gpac/extra_lib/"
-echo "  --use-js=OPT             force SpiderMonkey ECMAScript off/local"
-echo "  --use-ft=OPT             force FreeType OPT=[no,local]"
-echo "  --use-jpeg=OPT           force JPEG OPT=[no,local]"
-echo "  --use-png=OPT            force PNG OPT=[no,local]"
-echo "  --use-faad=OPT           force FAAD OPT=[no,local]"
-echo "  --use-mad=OPT            force MAD OPT=[no,local]"
-echo "  --use-xvid=OPT           force XVID OPT=[no,local]"
-echo "  --use-ffmpeg=OPT         force FFMPEG OPT=[no,local]"
-echo ""
-echo "NOTE: The object files are build at the place where configure is launched"
-exit 1
-fi
-
 # set temporary file name
 if test ! -z "$TMPDIR" ; then
     TMPDIR1="${TMPDIR}"
@@ -132,11 +76,94 @@ extralibs="-lm"
 bigendian="no"
 SHFLAGS=-shared
 need_inet_aton="no"
-LDFLAGS=-Wl,--warn-common
+LDFLAGS="$LDFLAGS -Wl,--warn-common"
 #avoid the strict aliasing warnings...
 CFLAGS="-fno-strict-aliasing"
 GPAC_SH_FLAGS=-lpthread
 DYN_LIB_SUFFIX="so"
+X11_LIB_PATH="/usr/X11R6/lib"
+
+#Configure Usage
+if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
+cat << EOF
+
+Usage: configure [options]
+Options: [defaults in brackets after descriptions]
+
+EOF
+echo "GPAC configuration options:"
+echo "  --help                   print this message"
+echo "  --prefix=PREFIX          install in PREFIX [$prefix]"
+echo "  --mandir=DIR             man documentation in DIR [PREFIX/man]"
+echo ""
+echo "  --source-path=PATH       path of source code [$source_path]"
+echo "  --cross-prefix=PREFIX    use PREFIX for compile tools [$cross_prefix]"
+echo "  --cc=CC                  use C compiler CC [$cc]"
+echo "  --make=MAKE              use specified make [$make]"
+echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS [$CFLAGS]"
+echo "  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS [$LDFLAGS]"
+echo "  --extra-libs=ELIBS       add ELIBS [$ELIBS]"
+echo "  --cpu=CPU                force cpu to CPU  [$cpu]"
+echo "  --sdl-cfg=SDL_PATH       specify path to sdl-config for local install [$sdl_path]"
+echo "  --enable-sdl-static      use static SDL linking [default=no]"
+echo "  --X11-libs=X11_LIB_PATH  specify path for X11 libraries [$X11_LIB_PATH]"
+echo "  --dxsdk-path=DX_PATH     specify directX SDK for MinGW [$dxsdk_path]"
+echo "  --mozdir=MOZ_PATH        specify mozilla main directory path for system install"
+echo ""
+echo "  --enable-debug           produce debug version"
+echo "  --disable-fragments      disable movie fragments in ISO media support"
+echo "  --disable-opt            disable GCC optimizations"
+echo "  --disable-oss-audio      disable OSS audio"
+echo "  --disable-x11-shm        disable X11 shared memory support"
+echo "  --disable-fragments      disable movie fragments in ISO media support"
+echo "  --enable-readonly        force ISO media to be read-only"
+echo "  --disable-svg            disable SVG support"
+echo "  --enable-fixed-point     force ISO media to be read-only"
+echo "  --disable-opengl         disable OpenGL support"
+echo "  --disable-ssl            disable OpenSSL support"
+echo "  --enable-amr-nb-fixed    enable AMR NB fixed-point decoder"
+echo "  --enable-amr-nb          enable AMR NB library"
+echo "  --enable-amr-wb          enable AMR WB library"
+echo "  --enable-amr             enable both AMR NB and WB libraries"
+echo ""
+echo "Extra libraries configuration. You can turn a libray off or force using the local version in gpac/extra_lib/"
+echo "  --use-js=OPT             force SpiderMonkey ECMAScript off/local"
+echo "  --use-ft=OPT             force FreeType OPT=[no,local]"
+echo "  --use-jpeg=OPT           force JPEG OPT=[no,local]"
+echo "  --use-png=OPT            force PNG OPT=[no,local]"
+echo "  --use-faad=OPT           force FAAD OPT=[no,local]"
+echo "  --use-mad=OPT            force MAD OPT=[no,local]"
+echo "  --use-xvid=OPT           force XVID OPT=[no,local]"
+echo "  --use-ffmpeg=OPT         force FFMPEG OPT=[no,local]"
+echo ""
+echo "NOTE: The object files are build at the place where configure is launched"
+exit 1
+fi
+
+for opt do
+  case "$opt" in
+  --prefix=*) prefix=`echo $opt | cut -d '=' -f 2`
+  ;;
+  --mandir=*) mandir=`echo $opt | cut -d '=' -f 2`
+  ;;
+  --source-path=*) source_path=`echo $opt | cut -d '=' -f 2`
+  ;;
+  --cross-prefix=*) cross_prefix=`echo $opt | cut -d '=' -f 2`
+  ;;
+  --cc=*) cc=`echo $opt | cut -d '=' -f 2`
+  ;;
+  --make=*) make=`echo $opt | cut -d '=' -f 2`
+  ;;
+  --extra-cflags=*) CFLAGS="$CFLAGS ${opt#--extra-cflags=}"
+  ;;
+  --extra-ldflags=*) LDFLAGS="$LDFLAGS ${opt#--extra-ldflags=}"
+  ;;
+  --extra-libs=*) extralibs=${opt#--extra-libs=}
+  ;;
+  --cpu=*) cpu=`echo $opt | cut -d '=' -f 2`
+  ;;
+  esac
+done
 
 case "$cpu" in
   i386|i486|i586|i686|i86pc|BePC)
@@ -430,7 +457,7 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC -lpng 2> /dev/null  ; then
+if $cc -o $TMPO $TMPC -lpng -lz 2> /dev/null  ; then
 has_png="system"
 elif test "$alt_macosx_dir" != "" ; then
  if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lpng 2> /dev/null ; then
@@ -568,7 +595,7 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC -logg 2> /dev/null  ; then
+if $cc -o $TMPO $TMPC 2> /dev/null  ; then
 has_oss_audio="SYS"
 else
 cat > $TMPC << EOF
@@ -578,7 +605,7 @@ cat > $TMPC << EOF
 #include <soundcard.h>
 int main( void ) { return 0; }
 EOF
-if $cc -o $TMPO $TMPC -logg 2> /dev/null  ; then
+if $cc -o $TMPO $TMPC 2> /dev/null  ; then
 has_oss_audio="YES"
 fi
 fi
@@ -599,29 +626,11 @@ fi
 
 for opt do
   case "$opt" in
-  --prefix=*) prefix=`echo $opt | cut -d '=' -f 2`
-  ;;
-  --mandir=*) mandir=`echo $opt | cut -d '=' -f 2`
-  ;;
-  --source-path=*) source_path=`echo $opt | cut -d '=' -f 2`
-  ;;
-  --cross-prefix=*) cross_prefix=`echo $opt | cut -d '=' -f 2`
-  ;;
-  --cc=*) cc=`echo $opt | cut -d '=' -f 2`
-  ;;
-  --make=*) make=`echo $opt | cut -d '=' -f 2`
-  ;;
-  --extra-cflags=*) CFLAGS="$CFLAGS ${opt#--extra-cflags=}"
-  ;;
-  --extra-ldflags=*) LDFLAGS="$LDFLAGS ${opt#--extra-ldflags=}"
-  ;;
-  --extra-libs=*) extralibs=${opt#--extra-libs=}
-  ;;
-  --cpu=*) cpu=`echo $opt | cut -d '=' -f 2`
-  ;;
   --sdl-cfg=*) sdl_path=`echo $opt | cut -d '=' -f 2`; sdl_local="yes"
   ;;
   --enable-sdl-static=*) sdl_static="yes"
+  ;;
+  --X11-libs=*) X11_LIB_PATH=`echo $opt | cut -d '=' -f 2`
   ;;
   --dxsdk-path=*) dxsdk_path=`echo $opt | cut -d '=' -f 2`
   ;;
@@ -739,11 +748,27 @@ fi
 #look for wxWidgets support
 has_wx="no"
 wx_too_old="no"
+
+wx_version=`wx-config --version | sed 's/[^0-9]//g'`
+
+if test "$wx_version" -lt 250 ; then
+wx_too_old="yes"
+has_wx="yes"
+else
+if test "$wx_version" -lt 260 ; then
+has_wx="yes"
+wx_cflags=`wx-config --cppflags`
+wx_lflags=`wx-config --libs=core`
+else
+has_wx="yes"
 wx_cflags=`wx-config --cppflags core, base`
 wx_lflags=`wx-config --libs core, base`
+fi
 
 if test "$darwin" = "yes" ; then
 wx_lflags="-Wl,-bind_at_load $wx_lflags -lstdc++" #10.4 needs it, not sure about 10.3
+fi
+
 fi
 
 cat > $TMPCPP << EOF
@@ -833,6 +858,10 @@ if test x"$mandir" = x""; then
 mandir="${prefix}/man"
 fi
 
+if test "$cpu" = "armv4l"; then
+X11_LIB_PATH=""
+fi
+
 version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h |
  cut -d '"' -f 2`
 echo ""
@@ -864,7 +893,7 @@ echo "OSS Audio: no"
 else
 echo "OSS Audio: yes"
 fi
-echo "X11 Shared Memory support: $has_x11_shm"
+echo "X11 Shared Memory support: $has_x11_shm (path: $X11_LIB_PATH)"
 fi
 
 echo "SDL Support: $has_sdl"
@@ -884,7 +913,7 @@ echo "OpenSSL support: $has_ssl"
 if test "$win32" = "yes" ; then
 echo "DirectX Support: $has_mingw_directx"
 fi
-echo "wxWidgets support: $has_wx"
+echo "wxWidgets support: $has_wx (version $wx_version)"
 
 echo ""
 echo "** Extra Libraries used **"
@@ -1066,6 +1095,9 @@ fi
 if test "$has_x11_shm" = "yes"; then
 echo "USE_X11_SHM=$has_x11_shm" >> config.mak
 fi
+
+echo "X11_LIB_PATH=$X11_LIB_PATH" >> config.mak
+
 
 #overwrite fixed-point in math.h
 if test "$use_fixed_point" = "yes"; then

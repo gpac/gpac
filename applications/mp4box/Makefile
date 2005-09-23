@@ -27,7 +27,7 @@ else
 EXT=
 PROG=MP4Box
 #LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS) -lz
-LINKFLAGS+=-lgpac
+LINKFLAGS+=-lgpac -lz
 endif
 
 

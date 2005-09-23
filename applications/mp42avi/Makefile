@@ -26,7 +26,7 @@ SRCS := $(OBJS:.o=.c)
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac
+	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac -lz
 
 
 %.o: %.c

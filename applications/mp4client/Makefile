@@ -31,7 +31,7 @@ SRCS := $(OBJS:.o=.c)
 all: $(PROG)
 
 MP4Client$(EXE): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac
+	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac -lz
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(INSTALL_FLAGS) -c -o $@ $< 
