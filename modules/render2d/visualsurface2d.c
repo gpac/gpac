@@ -463,7 +463,7 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 		}
 	}
 
-/*	
+/*
 	fprintf(stdout, "%d nodes to redraw (%d total) - %d dirty rects\n", num_to_draw, surf->num_contexts, surf->to_redraw.count);
 	fprintf(stdout, "DR: X:%d Y:%d W:%d H:%d\n", surf->to_redraw.list[0].x, surf->to_redraw.list[0].y, surf->to_redraw.list[0].width, surf->to_redraw.list[0].height);
 */
@@ -510,6 +510,7 @@ restart:
 		if (! gf_point_in_rect(si->ctx->clip, x, y)) continue;
 
 		/*check over covering node*/
+#if 0
 		for (k=gf_list_count(si->nodes_on_top); k>0; k--) {
 			ctx = gf_list_get(si->nodes_on_top, k-1);
 			if (! gf_point_in_rect(ctx->clip, x, y) ) continue;
@@ -520,6 +521,7 @@ restart:
 			if (i) i--;
 			goto restart;
 		}
+#endif
 		/*check over shape*/
 		if (! si->ctx->node->IsPointOver(si->ctx, x, y, 0) ) continue;
 

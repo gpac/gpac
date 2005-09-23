@@ -32,19 +32,21 @@ static Fixed SVG_Interpolate(Fixed keyValue1, Fixed keyValue2, Fixed fraction)
 
 static void SVG_InvalidateAndDirtyAppearance(SMIL_AnimationStack *stack)
 {
+//	fprintf(stdout, "Invalidating Appearance\n");
 	gf_node_dirty_set(stack->target_element, GF_SG_SVG_APPEARANCE_DIRTY, 0);
 	gf_sr_invalidate(stack->compositor, NULL);
 }
 
 static void SVG_InvalidateAndDirtyGeometry(SMIL_AnimationStack *stack)
 {
+	fprintf(stdout, "Invalidating Geometry\n");
 	gf_node_dirty_set(stack->target_element, GF_SG_SVG_GEOMETRY_DIRTY, 0);
 	gf_sr_invalidate(stack->compositor, NULL);
 }
 
 static void SVG_InvalidateAndDirtyAll(SMIL_AnimationStack *stack)
 {
-//	fprintf(stdout, "invalidating node\n");
+	fprintf(stdout, "Invalidating Appearance and Geometry\n");
 	/* TODO: determine if appaearance or geometry have been modified */
 	gf_node_dirty_set(stack->target_element, GF_SG_SVG_APPEARANCE_DIRTY, 0);
 	gf_node_dirty_set(stack->target_element, GF_SG_SVG_GEOMETRY_DIRTY, 0);
@@ -53,6 +55,7 @@ static void SVG_InvalidateAndDirtyAll(SMIL_AnimationStack *stack)
 
 static void SVG_InvalidateNodeOnly(SMIL_AnimationStack *stack)
 {
+//	fprintf(stdout, "Invalidating Node\n");
 	gf_sr_invalidate(stack->compositor, NULL);
 }
 
@@ -1181,9 +1184,29 @@ static void SVG_Init_SMILAnimationStackAPI(SMIL_AnimationStack *stack)
 	/* The following are keyword animations */
 	case SVG_TextAnchor_datatype:
 	case SVG_FontStyle_datatype:
+		stack->InitStackValues = SVG_InitStackValuesKeyword;
+		stack->DeleteStackValues = SVG_DeleteStackValuesKeyword;
+		stack->Set = SVG_SetKeyword;
+		stack->Assign = SVG_SetKeyword;
+		stack->Interpolate = SVG_InterpolateKeyword;
+		stack->ApplyAdditive = SVG_ApplyAdditiveKeyword;
+		stack->ApplyAccumulate = SVG_ApplyAccumulateKeyword;
+		stack->Compare = SVG_CompareKeyword;
+		stack->Invalidate = SVG_InvalidateAndDirtyAll;
+		break;
 	case SVG_FillRule_datatype:
 	case SVG_StrokeLineCap_datatype:
 	case SVG_StrokeLineJoin_datatype:
+		stack->InitStackValues = SVG_InitStackValuesKeyword;
+		stack->DeleteStackValues = SVG_DeleteStackValuesKeyword;
+		stack->Set = SVG_SetKeyword;
+		stack->Assign = SVG_SetKeyword;
+		stack->Interpolate = SVG_InterpolateKeyword;
+		stack->ApplyAdditive = SVG_ApplyAdditiveKeyword;
+		stack->ApplyAccumulate = SVG_ApplyAccumulateKeyword;
+		stack->Compare = SVG_CompareKeyword;
+		stack->Invalidate = SVG_InvalidateAndDirtyAppearance;
+		break;
 	case SVG_Display_datatype:
 	case SVG_Visibility_datatype:
 		stack->InitStackValues = SVG_InitStackValuesKeyword;
@@ -1193,8 +1216,8 @@ static void SVG_Init_SMILAnimationStackAPI(SMIL_AnimationStack *stack)
 		stack->Interpolate = SVG_InterpolateKeyword;
 		stack->ApplyAdditive = SVG_ApplyAdditiveKeyword;
 		stack->ApplyAccumulate = SVG_ApplyAccumulateKeyword;
-		stack->Invalidate = SVG_InvalidateAndDirtyAll;
 		stack->Compare = SVG_CompareKeyword;
+		stack->Invalidate = SVG_InvalidateNodeOnly;
 		break;
 	case SVG_Motion_datatype:
 		stack->InitStackValues = SVG_InitStackValuesTransform;

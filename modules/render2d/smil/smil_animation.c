@@ -90,11 +90,16 @@ static void SMIL_calcActiveDur(SMIL_AnimationStack *stack)
 		/* we can ignore repeatCount to compute active_duration */
 
 		/* Step 2: determine the active duration */
-		if (stack->repeatDur->type != SMIL_DURATION_VALUE) {
+		if (stack->repeatDur->type == SMIL_DURATION_UNSPECIFIED) {
 			/* active_duration stays indefinite */
 			stack->currentInterval.active_duration = -1;
 		} else {
-			stack->currentInterval.active_duration = stack->repeatDur->clock_value;
+			if (stack->repeatDur->type != SMIL_DURATION_VALUE) {
+				/* active_duration stays indefinite */
+				stack->currentInterval.active_duration = -1;
+			} else {
+				stack->currentInterval.active_duration = stack->repeatDur->clock_value;
+			}
 		}
 	} else {
 		/* simple_duration is defined */
@@ -110,12 +115,17 @@ static void SMIL_calcActiveDur(SMIL_AnimationStack *stack)
 				*(stack->repeatCount) = FLT2FIX(stack->repeatDur->clock_value/stack->currentInterval.simple_duration);
 			}
 		} else {
-			if (stack->repeatDur->type != SMIL_DURATION_VALUE) {
+			if (stack->repeatDur->type == SMIL_DURATION_UNSPECIFIED) {
 				/* use repeatCount only to determine the active duration */
 				stack->currentInterval.active_duration = FIX2FLT(*stack->repeatCount) * stack->currentInterval.simple_duration;
 			} else {
-				/* use repeatCount and repeatDur to determine the active duration */
-				stack->currentInterval.active_duration = MIN(stack->repeatDur->clock_value, FIX2FLT(*stack->repeatCount) * stack->currentInterval.simple_duration);
+				if (stack->repeatDur->type != SMIL_DURATION_VALUE) {
+					/* indefinite or media means indefinite */
+					stack->currentInterval.active_duration = -1;
+				} else {
+					/* use repeatCount and repeatDur to determine the active duration */
+					stack->currentInterval.active_duration = MIN(stack->repeatDur->clock_value, FIX2FLT(*stack->repeatCount) * stack->currentInterval.simple_duration);
+				}
 			}
 		}
 	}
@@ -167,9 +177,9 @@ static void SMIL_findInterval(SMIL_AnimationStack *stack, Bool first, Double sce
 	SMIL_Time tmpBegin, tmpEnd;
 	SMIL_Time beginAfter;
 
-	memset(&tmpBegin, 0, sizeof(SMIL_Times));
-	memset(&tmpEnd, 0, sizeof(SMIL_Times));
-	memset(&beginAfter, 0, sizeof(SMIL_Times));
+	memset(&tmpBegin, 0, sizeof(SMIL_Time));
+	memset(&tmpEnd, 0, sizeof(SMIL_Time));
+	memset(&beginAfter, 0, sizeof(SMIL_Time));
 
 	if (!first) {
 		/* we already had an animation running, now we look for the next one */

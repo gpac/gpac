@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Target_Dir ""
 MTL=midl.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "../../include" /I "../../extra_lib/include/freetype" /I "../../modules/m4_rend" /I "../../modules/render2d" /I "../../modules/ft_font" /I "../../modules/raw_out" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_STANDALONE_RENDER_2D" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "../../include" /I "../../extra_lib/include/freetype" /I "../../modules/m4_rend" /I "../../modules/render2d" /I "../../modules/ft_font" /I "../../modules/raw_out" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_STANDALONE_RENDER_2D" /D "DANAE" /FR /YX /FD /c
 # ADD BASE RSC /l 0x40c /d "NDEBUG"
 # ADD RSC /l 0x40c /d "NDEBUG"
 BSC32=bscmake.exe
@@ -66,7 +66,7 @@ LIB32=link.exe -lib
 # PROP Target_Dir ""
 MTL=midl.exe
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "../../include" /I "../../extra_lib/include/freetype" /I "../../modules/m4_rend" /I "../../modules/render2d" /I "../../modules/ft_font" /I "../../modules/raw_out" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_STANDALONE_RENDER_2D" /D "DANAE" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "../../include" /I "../../extra_lib/include/freetype" /I "../../modules/m4_rend" /I "../../modules/render2d" /I "../../modules/ft_font" /I "../../modules/raw_out" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_STANDALONE_RENDER_2D" /D "DANAE" /FR /YX /FD /GZ /c
 # ADD BASE RSC /l 0x40c /d "_DEBUG"
 # ADD RSC /l 0x40c /d "_DEBUG"
 BSC32=bscmake.exe
@@ -88,10 +88,6 @@ LIB32=link.exe -lib
 # Begin Source File
 
 SOURCE=..\..\modules\render2d\background2d.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\render2d\copy_pixels.c
 # End Source File
 # Begin Source File
 
@@ -260,10 +256,6 @@ SOURCE=..\..\modules\render2d\stacks2d.h
 # Begin Source File
 
 SOURCE=..\..\applications\standalone2drender\standalone2drender.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\standalone2drender.h
 # End Source File
 # Begin Source File
 

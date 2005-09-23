@@ -962,6 +962,7 @@ static void SVG_Render_a(GF_Node *node, void *rs)
 		st->enabled = 1;
 	}
 	
+//	gf_node_render_children(node, eff);
 	/*note we don't clear dirty flag, this is done in traversing*/
 	group2d_traverse((GroupingNode2D*)st, a->children, eff);
 

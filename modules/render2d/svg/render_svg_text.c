@@ -62,7 +62,7 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 		gf_mx2d_add_matrix(&eff->transform, &backup_matrix);
 	}
 
-	if (gf_node_dirty_get(node)) {
+	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		Fixed lw, lh, start_x, start_y;
 		unsigned short wcTemp[5000];
 		char styles[1000];
@@ -75,6 +75,7 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 		GF_Rect rc;
 		u32 len;
 
+		fprintf(stdout, "Rebuilding text\n");
 		drawable_reset_path(cs);
 		if (str) {
 			len = gf_utf8_mbstowcs(wcTemp, 5000, (const char **) &str);

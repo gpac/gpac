@@ -134,6 +134,7 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 
 GF_Err gf_sr_render_frame(GF_Renderer *sr)
 {	
+
 	gf_sr_reconfig_task(sr);
 	/*render*/
 	gf_sr_simulation_tick(sr);

@@ -774,7 +774,7 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			} else if (!strcmp(att->svg_name, "repeatCount")) {
 				fprintf(output, "\tp->repeatCount = FIX_ONE;\n");
 			} else if (!strcmp(att->svg_name, "repeatDur")) {
-				fprintf(output, "\tp->repeatDur.clock_value = -1.;\n");
+				fprintf(output, "\tp->repeatDur.type = SMIL_DURATION_UNSPECIFIED;\n");
 			} else if (!strcmp(att->svg_name, "calcMode") && !strcmp(svg_elt->svg_name, "animateMotion")) {
 				fprintf(output, "\tp->calcMode = SMIL_CALCMODE_PACED;\n");
 			} else 

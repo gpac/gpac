@@ -236,9 +236,9 @@ GF_Config *loadconfigfile()
 
 #ifdef WIN32
 #ifdef _DEBUG
-	strcpy(szPath, "d:\\CVS\\gpac\\bin\\w32_deb\\");
+	strcpy(szPath, "C:\\Users\\Cyril\\sourceforge\\gpac\\bin\\w32_deb\\");
 #else
-	strcpy(szPath, "d:\\CVS\\gpac\\bin\\w32_rel\\");
+	strcpy(szPath, "C:\\Users\\Cyril\\sourceforge\\gpac\\bin\\w32_rel\\");
 #endif
 	cfg = gf_cfg_new(szPath, "GPAC.cfg");
 	if (cfg) goto success;
@@ -279,7 +279,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	u16 es_id;
 	Bool first_dump, needs_raw;
 	u32 i, j, di, count, timescale, frameNum;
-	Float duration, cur_time;
+	u32 duration, cur_time;
 	GF_VideoSurface fb;
 	GF_Err e;
 	char old_driv[1024];
@@ -425,7 +425,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 
 	cur_time = 0;
 
-	duration = 1 / fps;
+	duration = (u32)(timescale / fps);
 	if (reset_fps) fps = 0;
 
 	frameNum = 1;
@@ -449,16 +449,14 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 		}
 
 		if (fps) {
-			Float bifs_time = (Float) b2v.cts;
-			bifs_time /= timescale;
-			if (cur_time > bifs_time) continue;
+			if (cur_time > b2v.cts) continue;
 
 			while (1) {
-				printf("dumped frame time %g (frame %d - sample %d)\r", cur_time, frameNum, j+1);
+				printf("dumped frame time %f (frame %d - sample %d)\r", ((Float)cur_time)/timescale, frameNum, j+1);
 				dump_frame(b2v, conv_buf, config_path, dump_type, avi_out, frameNum);
 				frameNum++;
 				cur_time += duration;
-				if (cur_time > bifs_time) break;
+				if (cur_time > b2v.cts) break;
 			}
 		} else {
 			dump_frame(b2v, conv_buf, config_path, dump_type, avi_out, (frameID>=0) ? frameID : frameNum);

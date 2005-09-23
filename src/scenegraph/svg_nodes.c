@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed Sep 21 12:57:49 2005
+	DO NOT MOFIFY - File generated on GMT Fri Sep 23 05:57:01 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -670,7 +670,7 @@ void *SVG_New_animate()
 	p->begin = gf_list_new();
 	p->end = gf_list_new();
 	p->repeatCount = FIX_ONE;
-	p->repeatDur.clock_value = -1.;
+	p->repeatDur.type = SMIL_DURATION_UNSPECIFIED;
 	p->min.type = SMIL_DURATION_VALUE;
 	p->values.values = gf_list_new();
 	p->keyTimes = gf_list_new();
@@ -885,7 +885,7 @@ void *SVG_New_animateColor()
 	p->begin = gf_list_new();
 	p->end = gf_list_new();
 	p->repeatCount = FIX_ONE;
-	p->repeatDur.clock_value = -1.;
+	p->repeatDur.type = SMIL_DURATION_UNSPECIFIED;
 	p->min.type = SMIL_DURATION_VALUE;
 	p->values.values = gf_list_new();
 	p->keyTimes = gf_list_new();
@@ -1116,7 +1116,7 @@ void *SVG_New_animateMotion()
 	p->begin = gf_list_new();
 	p->end = gf_list_new();
 	p->repeatCount = FIX_ONE;
-	p->repeatDur.clock_value = -1.;
+	p->repeatDur.type = SMIL_DURATION_UNSPECIFIED;
 	p->min.type = SMIL_DURATION_VALUE;
 	p->calcMode = SMIL_CALCMODE_PACED;
 	p->values.values = gf_list_new();
@@ -1340,7 +1340,7 @@ void *SVG_New_animateTransform()
 	p->begin = gf_list_new();
 	p->end = gf_list_new();
 	p->repeatCount = FIX_ONE;
-	p->repeatDur.clock_value = -1.;
+	p->repeatDur.type = SMIL_DURATION_UNSPECIFIED;
 	p->min.type = SMIL_DURATION_VALUE;
 	p->values.values = gf_list_new();
 	p->keyTimes = gf_list_new();
@@ -1622,7 +1622,7 @@ void *SVG_New_animation()
 	p->begin = gf_list_new();
 	p->end = gf_list_new();
 	p->repeatCount = FIX_ONE;
-	p->repeatDur.clock_value = -1.;
+	p->repeatDur.type = SMIL_DURATION_UNSPECIFIED;
 	p->transform = gf_list_new();
 	return p;
 }
@@ -1815,7 +1815,7 @@ void *SVG_New_audio()
 	p->begin = gf_list_new();
 	p->end = gf_list_new();
 	p->repeatCount = FIX_ONE;
-	p->repeatDur.clock_value = -1.;
+	p->repeatDur.type = SMIL_DURATION_UNSPECIFIED;
 	return p;
 }
 
@@ -8493,7 +8493,7 @@ void *SVG_New_set()
 	p->begin = gf_list_new();
 	p->end = gf_list_new();
 	p->repeatCount = FIX_ONE;
-	p->repeatDur.clock_value = -1.;
+	p->repeatDur.type = SMIL_DURATION_UNSPECIFIED;
 	p->min.type = SMIL_DURATION_VALUE;
 	return p;
 }

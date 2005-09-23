@@ -42,15 +42,12 @@
 #include <gpac/modules/audio_out.h>
 
 
-#if 0
-#ifndef DANAE
-#define DANAE
-
+#ifdef DANAE
 void *getDanaeMediaOjbectFromUrl(void *session, char *url, int dmo_type);
 void releaseDanaeMediaObject(void *dmo);
 void loadDanaeUrl(void *session, char *url);
 #endif
-#endif
+
 
 /*FPS computed on this number of frame*/
 #define GF_SR_FPS_COMPUTE_SIZE	30
