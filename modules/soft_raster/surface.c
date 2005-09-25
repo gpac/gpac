@@ -41,7 +41,7 @@ GF_SURFACE evg_surface_new(GF_Raster2D *_dr, Bool center_coords)
 	GF_SAFEALLOC(_this, sizeof(EVGSurface));
 	if (_this) {
 		_this->center_coords = center_coords;
-		_this->gf_sr_texture_filter = GF_TEXTURE_FILTER_DEFAULT;
+		_this->texture_filter = GF_TEXTURE_FILTER_DEFAULT;
 		_this->ftparams.source = &_this->ftoutline;
 		_this->ftparams.user = _this;
 		evg_raster_new(_this->ftrast_mem, &_this->ftraster);
@@ -253,16 +253,16 @@ GF_Err evg_surface_set_raster_level(GF_SURFACE _this, GF_RasterLevel RasterSetti
 	switch (RasterSetting) {
 	case GF_RASTER_HIGH_QUALITY:
 		surf->AALevel = 1;/*don't draw pixels with 0 alpha...*/
-		surf->gf_sr_texture_filter = GF_TEXTURE_FILTER_HIGH_QUALITY;
+		surf->texture_filter = GF_TEXTURE_FILTER_HIGH_QUALITY;
 		break;
 	case GF_RASTER_MID:
 		surf->AALevel = 90;
-		surf->gf_sr_texture_filter = GF_TEXTURE_FILTER_HIGH_QUALITY;
+		surf->texture_filter = GF_TEXTURE_FILTER_HIGH_QUALITY;
 		break;
 	case GF_RASTER_HIGH_SPEED:
 	default:
 		surf->AALevel = 180;
-		surf->gf_sr_texture_filter = GF_TEXTURE_FILTER_HIGH_SPEED;
+		surf->texture_filter = GF_TEXTURE_FILTER_HIGH_SPEED;
 		break;
 	}
 	return GF_OK;
@@ -569,7 +569,7 @@ GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 			evg_bmp_init(sten);
 			if (((EVG_Texture *)sten)->filter == GF_TEXTURE_FILTER_DEFAULT) {
 				restore_filter = 1;
-				((EVG_Texture *)sten)->filter = surf->gf_sr_texture_filter;
+				((EVG_Texture *)sten)->filter = surf->texture_filter;
 			}
 
 			break;

@@ -665,9 +665,9 @@ void gf_term_play_from_time(GF_Terminal *term, u32 from_time)
 }
 
 
-void gf_term_user_input(GF_Terminal * term, GF_Event *evt)
+void gf_term_user_event(GF_Terminal * term, GF_Event *evt)
 {
-	if (term) gf_sr_user_input(term->renderer, evt);
+	if (term) gf_sr_user_event(term->renderer, evt);
 }
 
 

@@ -276,7 +276,6 @@ void SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		if (ctx->os_handle) flags &= ~SDL_RESIZABLE;
 		ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
 		assert(ctx->screen);
-		if (!ctx->os_handle) SDLVid_SetCaption();
 	}
 	gf_mx_v(ctx->evt_mx);
 }
@@ -328,6 +327,9 @@ u32 SDLVid_EventProc(void *par)
     dr->max_screen_height = GetSystemMetrics(SM_CYSCREEN);
 #endif
     
+
+	if (!ctx->os_handle) SDLVid_SetCaption();
+
 	while (ctx->sdl_th_state==1) {
 		/*after much testing: we must ensure nothing is using the event queue when resizing window.
 		-- under X, it throws Xlib "unexpected async reply" under linux, therefore we don't wait events,

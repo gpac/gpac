@@ -343,6 +343,73 @@ u32 gf_get_bit_size(u32 MaxVal);
 void gf_cbk_on_progress(void *title, u32 done, u32 total);
 
 
+
+
+/*!\brief run-time system info object
+ *
+ *The Run-Time Info object is used to get CPU and memory occupation of the calling process. 
+ *All time values are expressed in milliseconds (1/1000000 sec). Accuracy is not guaranteed.
+*/
+typedef struct
+{
+	/*!start of the sampling period*/
+	u64 sampling_instant;
+	/*!duration of the sampling period*/
+	u64 sampling_period_duration;
+	/*!total amount of time (User+kernel) spent in CPU for all processes as evaluated at the end of the sampling period*/
+	u64 total_cpu_time;
+	/*!total amount of time (User+kernel) spent in CPU for the calling process as evaluated at the end of the sampling period*/
+	u64 process_cpu_time;
+	/*!amount of time (User+kernel) spent in CPU for all processes during the sampling period*/
+	u64 total_cpu_time_diff;
+	/*!total amount of time (User+kernel) spent in CPU for the calling process during the sampling period*/
+	u64 process_cpu_time_diff;
+	/*!total amount of idle time during the sampling period.*/
+	u64 cpu_idle_time;
+	/*!percentage of CPU usage (from 0 to 100) during the sampling period.*/
+	u32 cpu_usage;
+	/*!calling process ID*/
+	u32 pid;
+	/*!calling process thread count*/
+	u32 thread_count;
+	/*!size of calling process allocated heaps*/
+	u64 process_memory;
+	/*!total physical memory in system*/
+	u64 physical_memory;
+	/*!available physical memory in system*/
+	u64 physical_memory_avail;
+} GF_SystemRTInfo;
+
+/*!
+ * Selection flags for run-time info retrieval
+ *	\hideinitializer
+ */
+typedef enum
+{
+	/*!Indicates all processes' times must be fetched. If not set, only the current process times will be retrieved, and the
+	thread count and total times won't be available*/
+	GF_RTI_ALL_PROCESSES_TIMES = 1,
+	/*!Indicates the process allocated heap size must be fetch. If not set, only the system physical memory is fetched. 
+	Fetching the entire ocess  allocated memory can have a large impact on performances*/
+	GF_RTI_PROCESS_MEMORY = 1<<1,
+	/*!Indicates that only system memory should be fetched. When set, all refreshing info is ignored*/
+	GF_RTI_SYSTEM_MEMORY_ONLY = 1<<2,
+};
+
+/*!
+ *	\brief Gets Run-Time info
+ *
+ *	Gets CPU and memory usage info for the calling thread and the system. Information gathering
+ *is controled through timeout values.
+ *	\param refresh_time_ms refresh time period in milliseconds. If the last sampling was done less than this period ago, the function aborts.
+ *	\param rti holder to the run-time info structure to update.
+ *	\param flags specify which info is to be retrieved.
+ *	\return 1 if @rti has been updated, 0 otherwise.
+ *	\note You should not try to use a too small refresh time. The function will abort for a refresh time less than 100 ms. Typical values are 500 ms or one second.
+ */
+Bool gf_get_sys_rt_info(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
+
+
 /*! @} */
 
 #ifdef __cplusplus

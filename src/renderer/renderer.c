@@ -1123,6 +1123,10 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 	case GF_EVT_SHOWHIDE:
 		gf_sr_set_option(sr, GF_OPT_FULLSCREEN, 0);
 		break;
+	/*switch fullscreen off!!!*/
+	case GF_EVT_SET_CAPTION:
+		sr->video_out->ProcessEvent(sr->video_out, event);
+		break;
 
 	case GF_EVT_MOUSEMOVE:
 	case GF_EVT_LEFTDOWN:
@@ -1144,7 +1148,7 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 }
 
 
-void gf_sr_user_input(GF_Renderer *sr, GF_Event *event)
+void gf_sr_user_event(GF_Renderer *sr, GF_Event *event)
 {
 	gf_sr_on_event(sr, event);
 }

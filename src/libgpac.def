@@ -4,7 +4,7 @@ LIBRARY     libgpac.dll
 ;by different scene decoders (SVG, X3D, etc) are identified
 
 EXPORTS
-;core.h exports
+;tools.h exports
 	gf_sleep
 	gf_4cc_to_str
 	gf_error_to_string
@@ -13,6 +13,7 @@ EXPORTS
 	gf_get_user_name
 	gf_enum_directory
 	gf_cbk_on_progress
+	gf_get_sys_rt_info
 
 ;array.h exports
 	gf_list_new
@@ -974,7 +975,7 @@ EXPORTS
 	gf_term_dump_scene
 	gf_term_refresh
 	gf_term_set_size
-	gf_term_user_input
+	gf_term_user_event
 	gf_term_mouse_input
 	gf_term_keyboard_input
 	gf_term_string_input
@@ -993,7 +994,7 @@ EXPORTS
 	gf_sr_invalidate
 	gf_sr_get_clock
 	gf_sr_lock
-	gf_sr_user_input
+	gf_sr_user_event
 	gf_sr_map_point
 	gf_sr_refresh
 	gf_sr_set_option

@@ -33,6 +33,9 @@
 #ifndef WIN32
 #include <pwd.h>
 #include <unistd.h>
+#else
+/*for GetModuleFileName*/
+#include <windows.h>
 #endif
 
 /*local prototypes*/
@@ -40,13 +43,14 @@ void PrintWorldInfo(GF_Terminal *term);
 void ViewOD(GF_Terminal *term, u32 OD_ID);
 void PrintODList(GF_Terminal *term);
 void ViewODs(GF_Terminal *term, Bool show_timing);
-void PrintGPACConfig(GF_Terminal *term, GF_Config *cfg_file);
+void PrintGPACConfig();
 /*console handling*/
 Bool has_input();
 u8 get_a_char();
 void set_echo_off(Bool echo_off);
 
 static Bool is_connected = 0;
+static Bool display_rti = 0;
 static Bool Run;
 static u32 Duration;
 static Bool CanSeek = 0;
@@ -93,6 +97,7 @@ void PrintHelp()
 		"\n"
 		"\tl: list available modules\n"
 		"\tc: prints some GPAC configuration info\n"
+		"\tR: toggles run-time info display on/off\n"
 		"\tq: exit the application\n"
 		"\th: print this message\n"
 		"\nStartup Options:\n"
@@ -180,6 +185,42 @@ static void PrintTime(u32 time)
 	fprintf(stdout, "%02d:%02d:%02d.%02d", h, m, s, ms);
 }
 
+static u64 memory_at_gpac_startup = 0;
+
+static void UpdateRTInfo()
+{
+	GF_Event evt;
+	GF_SystemRTInfo rti;
+	char szMsg[1024];
+
+	/*refresh every second*/
+	if (!display_rti || !gf_get_sys_rt_info(1000, &rti, 0 /*GF_RTI_ALL_PROCESSES_TIMES | GF_RTI_PROCESS_MEMORY*/) || !rti.sampling_period_duration) return;
+	if (!rti.process_memory) rti.process_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
+
+	sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
+		gf_term_get_framerate(term, 0),
+		rti.cpu_usage, (u32) (100*rti.process_cpu_time_diff / (rti.total_cpu_time_diff + rti.cpu_idle_time) ), 
+		rti.process_memory / 1024);
+
+	evt.type = GF_EVT_SET_CAPTION;
+	evt.caption.caption = szMsg;
+	gf_term_user_event(term, &evt);
+}
+
+static void ResetCaption()
+{
+	GF_Event event;
+	if (display_rti) return;
+	event.type = GF_EVT_SET_CAPTION;
+	if (is_connected) {
+		char *str = strrchr(the_url, '\\');
+		if (!str) str = strrchr(the_url, '/');
+		event.caption.caption = str ? str+1 : the_url;
+	} else {
+		event.caption.caption = "GPAC MP4Client";
+	}
+	gf_term_user_event(term, &event);
+}
 
 Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
@@ -296,6 +337,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			is_connected = 0;
 			Duration = 0;
 		}
+		ResetCaption();
 		break;
 	case GF_EVT_QUIT:
 		Run = 0;
@@ -333,11 +375,11 @@ GF_Config *loadconfigfile()
 	char szPath[GF_MAX_PATH];
 
 #ifdef WIN32
-#ifdef _DEBUG
-	strcpy(szPath, "d:\\cvs\\gpac\\bin\\w32_deb\\");
-#else
-	strcpy(szPath, "d:\\cvs\\gpac\\bin\\w32_rel\\");
-#endif
+	char *sep;
+	GetModuleFileNameA(NULL, szPath, GF_MAX_PATH);
+	sep = strrchr(szPath, '\\');
+	if (sep) sep[1] = 0;
+
 	cfg = gf_cfg_new(szPath, "GPAC.cfg");
 	if (cfg) goto success;
 	strcpy(szPath, ".");
@@ -425,6 +467,7 @@ int main (int argc, char **argv)
 	const char *str;
 	u32 i, url_arg;
 	GF_User user;
+	GF_SystemRTInfo rti;
 
 	/*by default use current dir*/
 	strcpy(the_url, ".");
@@ -432,6 +475,10 @@ int main (int argc, char **argv)
 	url_arg = (argc == 2) ? 1 : 0;
 
 	memset(&user, 0, sizeof(GF_User));
+
+	gf_get_sys_rt_info(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
+	memory_at_gpac_startup = rti.physical_memory_avail;
+
 
 	cfg_file = loadconfigfile();
 	if (argc >= 2) {
@@ -517,6 +564,7 @@ int main (int argc, char **argv)
 
 		/*we don't want getchar to block*/
 		if (!has_input()) {
+			UpdateRTInfo();
 			gf_sleep(10);
 			continue;
 		}
@@ -637,7 +685,7 @@ int main (int argc, char **argv)
 			break;
 
 		case 'c':
-			PrintGPACConfig(term, cfg_file);
+			PrintGPACConfig();
 			break;
 		case '2':
 		case '3':
@@ -692,6 +740,11 @@ int main (int argc, char **argv)
 				fprintf(stdout, "Streaming Cache not running\n");
 			}
 			break;
+		case 'R':
+			display_rti = !display_rti;
+			ResetCaption();
+			break;
+
 		case 'h':
 			PrintHelp();
 			break;
@@ -1121,40 +1174,37 @@ void ViewODs(GF_Terminal *term, Bool show_timing)
 }
 
 
-void PrintGPACConfig(GF_Terminal *term, GF_Config *cfg_file)
+void PrintGPACConfig()
 {
-	const char *str;
-	fprintf(stdout, "\n\n*** GPAC Configuration ***\n\n");
-	/*I've only put there important options when debugging...*/
-	fprintf(stdout, "Video Output: %s\n", gf_cfg_get_key(cfg_file, "Video", "DriverName"));
-	str = gf_cfg_get_key(cfg_file, "Audio", "DriverName"); fprintf(stdout, "Audio Output: %s\n", str ? str : "None");
-	str = gf_cfg_get_key(cfg_file, "Audio", "NoResync"); fprintf(stdout, "Audio Resync disabled: %s\n", str ? str : "no");
-	str = gf_cfg_get_key(cfg_file, "FontEngine", "DriverName"); fprintf(stdout, "Font engine: %s\n", str ? str : "None");
-	fprintf(stdout, "JavaScript %s\n", gf_term_get_option(term, GF_OPT_HAS_JAVASCRIPT) ? "Enabled" : "Disabled");
-	str = gf_cfg_get_key(cfg_file, "Systems", "ForceSingleClock"); fprintf(stdout, "Single timeline forced: %s\n", str ? str : "no");
-	str = gf_cfg_get_key(cfg_file, "Systems", "NoVisualThread"); 
-	if (str && !stricmp(str, "yes")) fprintf(stdout, "Visual Rendering done through media scheduler thread\n");
-	else fprintf(stdout, "Visual Renderer self-threaded\n");
+	u32 i, j, cfg_count, key_count;
+	char szName[200];
+	char *secName = NULL;
 
-	str = gf_cfg_get_key(cfg_file, "Rendering", "RendererName"); fprintf(stdout, "Using Renderer: %s\n", str);
-	str = gf_cfg_get_key(cfg_file, "Rendering", "Raster2D"); fprintf(stdout, "2D Rasterizer: %s\n", str ? str : "None");
-	if (strstr(str, "3D")) {
-		str = gf_cfg_get_key(cfg_file, "Render3D", "RasterOutlines"); fprintf(stdout, "Using Raster Outlines: %s\n", str ? str : "no");
-		str = gf_cfg_get_key(cfg_file, "Render3D", "EmulatePOW2"); fprintf(stdout, "Power-of-2 texture emulation: %s\n", str ? str : "no");
-	} else {
-		str = gf_cfg_get_key(cfg_file, "Render2D", "DirectRendering"); fprintf(stdout, "Direct Rendering Mode: %s\n", str ? str : "no");
+	fprintf(stdout, "Enter section name (\"*\" for complete dump):\n");
+	scanf("%s", szName);
+	if (strcmp(szName, "*")) secName = szName;
+
+	fprintf(stdout, "\n\n*** GPAC Configuration ***\n\n");
+
+	cfg_count = gf_cfg_get_section_count(cfg_file);
+	for (i=0; i<cfg_count; i++) {
+		const char *sec = gf_cfg_get_section_name(cfg_file, i);
+		if (secName) {
+			if (stricmp(sec, secName)) continue;
+		} else {
+			if (!stricmp(sec, "General")) continue;
+			if (!stricmp(sec, "MimeTypes")) continue;
+			if (!stricmp(sec, "RecentFiles")) continue;
+		}
+		fprintf(stdout, "[%s]\n", sec);
+		key_count = gf_cfg_get_key_count(cfg_file, sec);
+		for (j=0; j<key_count; j++) {
+			const char *key = gf_cfg_get_key_name(cfg_file, sec, j);
+			const char *val = gf_cfg_get_key(cfg_file, sec, key);
+			fprintf(stdout, "%s=%s\n", key, val);
+		}
+		fprintf(stdout, "\n");
 	}
-	str = gf_cfg_get_key(cfg_file, "Rendering", "FrameRate"); fprintf(stdout, "Target Frame Rate: %s\n", str ? str : "30.0");
-	str = gf_cfg_get_key(cfg_file, "Rendering", "AntiAlias"); fprintf(stdout, "Anti-Aliasing level: %s\n", str ? str : "None");
-	str = gf_cfg_get_key(cfg_file, "FontEngine", "TextureTextMode"); fprintf(stdout, "Text Texturing: %s\n", str ? str : "no");
-	str = gf_cfg_get_key(cfg_file, "Network", "BufferLength"); fprintf(stdout, "Network Buffering: %s ms - ", str ? str : "no");
-	str = gf_cfg_get_key(cfg_file, "Network", "RebufferLength"); 
-	if (!str || !atoi(str)) {
-		fprintf(stdout, "Rebuffering Disabled\n");
-	} else {
-		fprintf(stdout, "Rebuffering below %s ms\n", str);
-	}
-	str = gf_cfg_get_key(cfg_file, "Network", "UDPNotAvailable"); if (str && !stricmp(str, "yes")) fprintf(stdout, "UDP Traffic not available\n");
 }
 
 /*seems OK under mingw also*/

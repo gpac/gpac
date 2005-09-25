@@ -289,10 +289,6 @@ DEP_CPP_XML_P=\
 	"..\..\include\gpac\xml.h"\
 	
 # End Source File
-# Begin Source File
-
-SOURCE=..\..\src\utils\yuv_to_rgb.c
-# End Source File
 # End Group
 # Begin Group "odf"
 

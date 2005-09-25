@@ -289,4 +289,3 @@ Bool gf_sema_wait_for(GF_Semaphore *sm, u32 TimeOut)
 	if (WaitForSingleObject(sm->hSemaphore, TimeOut) == WAIT_TIMEOUT) return 0;
 	return 1;
 }
-

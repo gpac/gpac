@@ -450,6 +450,7 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 	case GF_EVT_SET_CURSOR:
 		break;
 	case GF_EVT_SET_CAPTION:
+		if (!xWindow->par_wnd) XStoreName (xWindow->display, xWindow->wnd, evt->caption.caption);
 		break;
 	case GF_EVT_SHOWHIDE:
 		break;

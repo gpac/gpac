@@ -205,7 +205,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			ctrl_mod_down = !ctrl_mod_down;
 			evt->key.vk_code = GF_VK_CONTROL;
 			evt->type = ctrl_mod_down ? GF_EVT_VKEYDOWN : GF_EVT_VKEYUP;
-			gf_term_user_input(term, evt);
+			gf_term_user_event(term, evt);
 			break;
 		}
 		break;

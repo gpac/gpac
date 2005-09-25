@@ -255,3 +255,13 @@ FILE *gf_f64_open(const char *file_name, const char *mode)
 #endif
 }
 
+
+
+#include <sys/times.h>
+
+Bool gf_get_sys_rt_info(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
+{
+
+	return 0;
+}
+

@@ -94,7 +94,7 @@ GF_Err gf_term_set_size(GF_Terminal *term, u32 NewWidth, u32 NewHeight);
 
 /*post user interaction to terminal*/
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
-void gf_term_user_input(GF_Terminal *term, GF_Event *event);
+void gf_term_user_event(GF_Terminal *term, GF_Event *event);
 
 /*post extended user mouse interaction to terminal 
 	X and Y are point coordinates in the display expressed in 2D coord system top-left (0,0), Y increasing towards bottom

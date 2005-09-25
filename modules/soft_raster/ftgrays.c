@@ -78,32 +78,6 @@
 #define ErrRaster_Invalid_Mode     -2
 #define ErrRaster_Invalid_Outline  -1
 
-
-  /* This macro is used to indicate that a function parameter is unused. */
-  /* Its purpose is simply to reduce compiler warnings.  Note also that  */
-  /* simply defining it as `(void)x' doesn't avoid warnings with certain */
-  /* ANSI compilers (e.g. LCC).                                          */
-#define FT_UNUSED( x )  (x) = (x)
-
-  /* Disable the tracing mechanism for simplicity -- developers can      */
-  /* activate it easily by redefining these two macros.                  */
-#ifndef FT_ERROR
-#define FT_ERROR( x )  do ; while ( 0 )     /* nothing */
-#endif
-
-#ifndef FT_TRACE
-#define FT_TRACE( x )  do ; while ( 0 )     /* nothing */
-#endif
-
-
-#ifndef FT_MEM_SET
-#define FT_MEM_SET( d, s, c )  ft_memset( d, s, c )
-#endif
-
-#ifndef FT_MEM_ZERO
-#define FT_MEM_ZERO( dest, count )  FT_MEM_SET( dest, 0, count )
-#endif
-
   /* define this to dump debugging information */
 #define xxxDEBUG_GRAYS
 
@@ -133,7 +107,7 @@
   /* increases the number of cells available in the render pool but slows  */
   /* down the rendering a bit.  It is useful if you have a really tiny     */
   /* render pool.                                                          */
-#undef GRAYS_COMPACT
+#define GRAYS_COMPACT
 
   /*************************************************************************/
   /*                                                                       */
@@ -987,6 +961,8 @@ typedef struct
                                     *(a) = *(b); \
                                     *(b) = temp; \
                                   } while ( 0 )
+
+/*only used if debug grays...*/
 #define DEBUG_SORT
 #define QUICK_SORT
 
@@ -1028,10 +1004,7 @@ typedef struct
     }
   }
 
-#endif /* SHELL_SORT */
-
-
-#ifdef QUICK_SORT
+#else	/* SHELL_SORT */
 
   /* This is a non-recursive quicksort that directly process our cells     */
   /* array.  It should be faster than calling the stdlib qsort(), and we   */

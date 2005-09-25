@@ -26,13 +26,12 @@
 #include <gpac/tools.h>
 
 #include <winsock.h>
+#include <tlhelp32.h>
 
 void gf_sleep(u32 millisecs)
 {
 	Sleep(millisecs);
 }
-
-#define TIME_WRAP		(~(DWORD)0)
 
 static u32 clock_init = 0;
 
@@ -41,37 +40,47 @@ static LARGE_INTEGER init_counter;
 
 
 static u32 (*CE_GetSysClock)();
+static u64 (*CE_GetSysClock_NS)();
 
-u32 gf_sys_clock()
-{
-	return CE_GetSysClock();
-}
+u32 gf_sys_clock() { return CE_GetSysClock(); }
+u64 gf_sys_clock_ns() { return CE_GetSysClock_NS(); }
 
 u32 CE_GetSysClockHIGHRES()
 {
 	LARGE_INTEGER now;
-	u64 res;
 	QueryPerformanceCounter(&now);
-
 	now.QuadPart -= init_counter.QuadPart;
-	res = now.QuadPart * 1000 / frequency.QuadPart;
-	return (u32) res;
+	return (u32) (now.QuadPart * 1000 / frequency.QuadPart);
+}
+
+u64 CE_GetSysClockHIGHRES_NS()
+{
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
+	now.QuadPart -= init_counter.QuadPart;
+	return (now.QuadPart * 1000000 / frequency.QuadPart);
 }
 
 u32 CE_GetSysClockNORMAL()
 {
 	return GetTickCount();
 }
+u64 CE_GetSysClockNORMAL_NS()
+{
+	return GetTickCount()*1000;
+}
 
 
 void gf_sys_clock_start()
 {
 	if (!clock_init) {
-		if (QueryPerformanceFrequency(&frequency) && 0) {
+		if (QueryPerformanceFrequency(&frequency) ) {
 			QueryPerformanceCounter(&init_counter);
 			CE_GetSysClock = CE_GetSysClockHIGHRES;
+			CE_GetSysClock_NS = CE_GetSysClockHIGHRES_NS;
 		} else {
 			CE_GetSysClock = CE_GetSysClockNORMAL;
+			CE_GetSysClock_NS = CE_GetSysClockNORMAL_NS;
 		}
 	}
 	clock_init += 1;
@@ -240,4 +249,122 @@ u64 gf_f64_seek(FILE *f, s64 pos, s32 whence)
 FILE *gf_f64_open(const char *file_name, const char *mode)
 {
 	return fopen(file_name, mode);
+}
+
+
+
+
+static u64 last_update_time = 0;
+static u64 last_total_cpu_time = 0;
+static u64 last_process_cpu_time = 0;
+static u32 pid = 0;
+
+u64 gf_sys_clock_ns();
+
+#ifndef GetCurrentPermissions
+DWORD GetCurrentPermissions();
+#endif
+#ifndef SetProcPermissions
+void SetProcPermissions(DWORD );
+#endif
+
+/*CPU and Memory Usage*/
+Bool gf_get_sys_rt_info(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
+{
+	THREADENTRY32 tentry;
+	MEMORYSTATUS ms;
+	u32 thread_count;
+	u64 creation, exit, kernel, user, total_cpu_time, process_cpu_time, entry_time;
+	u32 proc_heap_size;
+	HEAPLIST32 hlentry;
+	HEAPENTRY32 hentry;
+	HANDLE hSnapShot;
+	DWORD orig_perm;	
+
+	if (!rti) return 0;
+
+	thread_count = 0;
+	proc_heap_size = 0;
+
+	memset(rti, 0, sizeof(GF_SystemRTInfo));
+	rti->sampling_instant = last_update_time;
+
+	if ((flags & GF_RTI_SYSTEM_MEMORY_ONLY) || !clock_init) goto default_vals;
+
+	entry_time = gf_sys_clock_ns();
+	if (last_update_time && (entry_time - last_update_time < refresh_time_ms*1000)) goto default_vals;
+
+	if (!pid) pid = GetCurrentProcessId();
+
+	total_cpu_time = process_cpu_time = 0;
+
+	/*get a snapshot of all running threads*/
+	orig_perm = GetCurrentPermissions();
+	SetProcPermissions(0xFFFFFFFF);
+	hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0); 
+	if (!hSnapShot) return 0;
+	tentry.dwSize = sizeof(THREADENTRY32); 
+
+	/*note we always act as if GF_RTI_ALL_PROCESSES_TIMES flag is set, since there is no other way
+	to enumerate threads from a process, and GetProcessTimes doesn't exist on CE*/
+	if (Thread32First(hSnapShot, &tentry)) {
+		do {
+			/*get thread times*/
+			if (GetThreadTimes( (HANDLE) tentry.th32ThreadID, (FILETIME *) &creation, (FILETIME *) &exit, (FILETIME *) &kernel, (FILETIME *) &user)) {
+				total_cpu_time += user + kernel;
+				if (tentry.th32OwnerProcessID==pid) {
+					process_cpu_time += user + kernel;
+					thread_count ++;
+				}
+			}
+		} while (Thread32Next(hSnapShot, &tentry));
+	}
+	CloseToolhelp32Snapshot(hSnapShot); 
+
+	if (flags & GF_RTI_PROCESS_MEMORY) {
+		hlentry.dwSize = sizeof(HEAPLIST32); 
+		hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPHEAPLIST, pid); 
+		if (hSnapShot && Heap32ListFirst(hSnapShot, &hlentry)) {
+			do {
+				hentry.dwSize = sizeof(hentry);
+				if (Heap32First(hSnapShot, &hentry, hlentry.th32ProcessID, hlentry.th32HeapID)) {
+					do {
+						proc_heap_size += hentry.dwBlockSize;
+					} while (Heap32Next(hSnapShot, &hentry));
+				}
+			} while (Heap32ListNext(hSnapShot, &hlentry));
+		}
+		CloseToolhelp32Snapshot(hSnapShot); 
+	}
+	SetProcPermissions(orig_perm);
+
+	if (last_update_time) {
+		/*times are expressed in 100nanosecons unit*/
+		rti->sampling_period_duration = entry_time - last_update_time;
+
+		rti->total_cpu_time_diff = (total_cpu_time - last_total_cpu_time);
+		/*we're not that accurate....*/
+		if (rti->total_cpu_time_diff > rti->sampling_period_duration) 
+			rti->sampling_period_duration = rti->total_cpu_time_diff;
+	
+		rti->process_cpu_time_diff = process_cpu_time - last_process_cpu_time;
+
+		/*rough values*/
+		rti->cpu_idle_time = rti->sampling_period_duration - rti->total_cpu_time_diff;
+		rti->cpu_usage = (u32) (100 * rti->total_cpu_time_diff / rti->sampling_period_duration);
+	}
+	last_total_cpu_time = total_cpu_time;
+	last_process_cpu_time = process_cpu_time;
+	last_update_time = entry_time;
+	
+default_vals:
+	rti->total_cpu_time = last_total_cpu_time;
+	rti->process_cpu_time = last_process_cpu_time;
+	rti->process_memory = proc_heap_size;
+	rti->thread_count = thread_count;
+	rti->pid = pid;
+	GlobalMemoryStatus(&ms);
+	rti->physical_memory = ms.dwTotalPhys;
+	rti->physical_memory_avail = ms.dwAvailPhys;
+	return 1;
 }

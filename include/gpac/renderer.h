@@ -74,7 +74,7 @@ void gf_sr_lock(GF_Renderer *sr, Bool doLock);
 void gf_sr_lock_audio(GF_Renderer *sr, Bool doLock);
 
 /*notify user input - only GF_EventMouse and GF_EventKey are checked, depending on the renderer used...*/
-void gf_sr_user_input(GF_Renderer *sr, GF_Event *event);
+void gf_sr_user_event(GF_Renderer *sr, GF_Event *event);
 
 /*maps screen coordinates to bifs 2D coordinates for the current zoom/pan settings
 X and Y are point coordinates in the display expressed in BIFS-like fashion (0,0) at center of 

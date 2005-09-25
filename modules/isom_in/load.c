@@ -159,9 +159,12 @@ Bool QueryInterface(u32 InterfaceType)
 
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
-	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)isor_client_load();
+	if (InterfaceType == GF_NET_CLIENT_INTERFACE) 
+		return (GF_BaseInterface *)isor_client_load();
+
 #ifndef GPAC_READ_ONLY
-	if (InterfaceType == GF_STREAMING_MEDIA_CACHE) return (GF_BaseInterface *)isow_load_cache();
+	if (InterfaceType == GF_STREAMING_MEDIA_CACHE) 
+		return (GF_BaseInterface *)isow_load_cache();
 #endif
 	return NULL;
 }

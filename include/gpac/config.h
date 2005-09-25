@@ -100,7 +100,7 @@ u32 gf_cfg_get_section_count(GF_Config *cfgFile);
  *
  *Gets a section name based on its index
  *\param cfgFile the target configuration file
- *\param secIndex 0based index of the section to query
+ *\param secIndex 0-based index of the section to query
  *\return the section name if found, NULL otherwise
  */
 const char *gf_cfg_get_section_name(GF_Config *cfgFile, u32 secIndex);

@@ -50,7 +50,7 @@ typedef struct _evg_base_stencil
 
 
 /*16 k of pool buffer for FreeType raster - min is 4k*/
-#define EVG_FT_POOL_SIZE		16318
+#define EVG_FT_POOL_SIZE		32768/*16318*/
 
 
 /*FreeType redefined*/
@@ -119,7 +119,7 @@ struct _evg_surface
 	/*aliasing flag (on/off only)*/
 	u8 AALevel;
 	/*default texture filter level*/
-	u32 gf_sr_texture_filter;
+	u32 texture_filter;
 
 	u32 useClipper;
 	GF_IRect clipper;
