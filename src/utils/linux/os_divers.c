@@ -36,9 +36,6 @@
 
 #define SLEEP_ABS_SELECT		1
 
-void gf_sys_clock_start() {}
-
-void gf_sys_clock_stop() {}
 
 u32 gf_sys_clock()
 {
@@ -46,6 +43,14 @@ u32 gf_sys_clock()
 	gettimeofday(&now, NULL);
 	return ( (now.tv_sec)*1000 + (now.tv_usec) / 1000);
 }
+
+u64 gf_sys_clock_ns()
+{
+	struct timeval now;
+	gettimeofday(&now, NULL);
+	return ( (now.tv_sec)*1000000 + now.tv_usec);
+}
+
 
 void gf_sleep(u32 ms)
 {
@@ -256,12 +261,142 @@ FILE *gf_f64_open(const char *file_name, const char *mode)
 }
 
 
-
+#include <unistd.h>
 #include <sys/times.h>
+#include <sys/resource.h>
 
-Bool gf_get_sys_rt_info(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
+static Bool sys_init = 0;
+static FILE *proc_f = NULL;
+static GF_SystemRTInfo the_rti;
+static u64 clock_res = 0;
+static u32 last_update_time = 0;
+static u64 last_cpu_u_k_time = 0;
+static u64 last_cpu_idle_time = 0;
+static u64 last_process_u_k_time = 0;
+
+void gf_sys_init() 
 {
+  if (!sys_init) {
+    proc_f = fopen("/proc/stat", "r");
 
-	return 0;
+    last_process_u_k_time = 0;
+    last_cpu_u_k_time = last_cpu_idle_time = 0;
+    last_update_time = 0;
+    memset(&the_rti, 0, sizeof(GF_SystemRTInfo));
+    the_rti.pid = getpid();
+    clock_res = CLOCKS_PER_SEC;
+  }
+  sys_init++;
+}
+
+void gf_sys_close() 
+{
+  if (sys_init) {
+    sys_init--;
+    if (sys_init) return;
+    if (proc_f) fclose(proc_f);
+  }
+}
+
+
+Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
+{
+  u32 entry_time;
+  u64 process_u_k_time;
+  u32 u_k_time, idle_time;
+  struct rusage proctime;
+
+  assert(sys_init);
+
+  entry_time = gf_sys_clock();
+  if (last_update_time && (entry_time - last_update_time < refresh_time_ms)) {
+    memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
+    return 0;
+  }
+
+  u_k_time = idle_time = 0;
+  if (proc_f) {
+    char line[128];
+    u32 k_time, nice_time, u_time;
+    rewind(proc_f);
+    fflush(proc_f);
+    if (fgets(line, 128, proc_f) == NULL) {
+      fclose(proc_f);
+      proc_f = NULL;
+      return 0;
+    } else if (sscanf(line, "cpu  %u %u %u %u\n", &u_time, &k_time, &nice_time, &idle_time) != 4) {
+      fclose(proc_f);
+      proc_f = NULL;
+      return 0;
+    } else {
+      u_k_time = u_time + k_time + nice_time;
+   }
+  } else {
+    /*FIXME*/
+  }
+
+  /*FIXME and complete me - times() nor getrusage() seem to work properly on linux*/
+#if 0
+  getrusage(RUSAGE_SELF, &proctime);
+  process_u_k_time = proctime.ru_utime.tv_sec + proctime.ru_utime.tv_usec/1000;
+  process_u_k_time += proctime.ru_stime.tv_sec + proctime.ru_stime.tv_usec/1000;
+  getrusage(RUSAGE_CHILDREN, &proctime);
+  process_u_k_time += proctime.ru_utime.tv_sec + proctime.ru_utime.tv_usec/1000;
+  process_u_k_time += proctime.ru_stime.tv_sec + proctime.ru_stime.tv_usec/1000;
+
+  {
+    struct tms vals;
+    int status;
+    wait(&status);
+    times(&vals);
+    process_u_k_time = vals.tms_utime + vals.tms_stime;
+    process_u_k_time += vals.tms_cutime + vals.tms_cstime;
+    fprintf(stdout, "times get %d %d - %d %d\n", vals.tms_utime , vals.tms_stime, vals.tms_cutime , vals.tms_cstime);
+  }
+#else
+  process_u_k_time = 0;
+#endif
+
+  the_rti.sampling_instant = last_update_time;
+  
+  if (last_update_time) {
+    the_rti.sampling_period_duration = (entry_time - last_update_time);
+    the_rti.process_cpu_time_diff = process_u_k_time - last_process_u_k_time;
+
+    /*oops, we have no choice but to assume 100% cpu usage during this period*/
+    if (!u_k_time) {
+      the_rti.total_cpu_time_diff = the_rti.sampling_period_duration;
+      u_k_time = last_cpu_u_k_time + the_rti.sampling_period_duration;
+      the_rti.cpu_idle_time = 0;
+      the_rti.cpu_usage = 100;
+    } else {
+      u64 samp_sys_time;
+      /**/
+      the_rti.total_cpu_time_diff = (u_k_time - last_cpu_u_k_time)*10;
+
+      /*we're not that accurate....*/
+      if (the_rti.total_cpu_time_diff > the_rti.sampling_period_duration)
+      	the_rti.sampling_period_duration = the_rti.total_cpu_time_diff;
+
+   
+      if (!idle_time) idle_time = (the_rti.sampling_period_duration - the_rti.total_cpu_time_diff)/10;
+      samp_sys_time = u_k_time - last_cpu_u_k_time;
+      the_rti.cpu_idle_time = idle_time - last_cpu_idle_time;
+      the_rti.cpu_usage = (u32) ( 100 * samp_sys_time / (the_rti.cpu_idle_time + samp_sys_time ) );
+      the_rti.cpu_idle_time *= 10;
+    }
+    if (!the_rti.process_cpu_time_diff) the_rti.process_cpu_time_diff = the_rti.total_cpu_time_diff;
+  }
+  last_process_u_k_time = process_u_k_time;
+  last_cpu_idle_time = idle_time;
+  last_cpu_u_k_time = u_k_time;
+  last_update_time = entry_time;
+  
+  /*  GlobalMemoryStatus(&ms);
+  the_rti.physical_memory = ms.dwTotalPhys;
+  the_rti.physical_memory_avail = ms.dwAvailPhys;
+  */
+  memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
+  return 1;
 }
 
