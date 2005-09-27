@@ -111,6 +111,9 @@ BEGIN
             MENUITEM "FILE 9",                      IDM_OPEN_FILE9
         END
         MENUITEM SEPARATOR
+        MENUITEM "Pause",                       IDM_FILE_PAUSE
+        MENUITEM "Reload",                      IDM_FILE_RELOAD
+        MENUITEM SEPARATOR
         MENUITEM "Exit",                        IDM_ITEM_QUIT
     END
     POPUP "View"
@@ -144,7 +147,7 @@ BEGIN
             MENUITEM "Ratio 16/9",                  IDM_VIEW_AR_16_9
         END
         MENUITEM SEPARATOR
-        MENUITEM "Next",                        IDM_MENU_SWITCH
+        MENUITEM "Options",                     IDM_MENU_SWITCH
     END
 END
 
@@ -158,9 +161,12 @@ BEGIN
     POPUP "Options"
     BEGIN
         MENUITEM "3D Mode",                     IDM_VIEW_3DREND
-        MENUITEM "Status Bar",                  IDM_VIEW_STATUS
+        MENUITEM "15.0 FPS",                    IDM_VIEW_LOW_RATE
         MENUITEM SEPARATOR
-        MENUITEM "Previous",                    IDM_MENU_SWITCH
+        MENUITEM "Status Bar",                  IDM_VIEW_STATUS
+        MENUITEM "CPU usage",                   IDM_VIEW_CPU
+        MENUITEM SEPARATOR
+        MENUITEM "Close",                       IDM_MENU_SWITCH
     END
     POPUP "?"
     BEGIN
@@ -226,9 +232,9 @@ LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
 IDR_MENU_OPEN SHMENUBAR DISCARDABLE 
 BEGIN
     IDR_MENU_OPEN, 2,
-    I_IMAGENONE, IDM_SELECT, TBSTATE_ENABLED, 
-    TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_SELECT, 0, 0,
-    I_IMAGENONE, ID_VIEW, TBSTATE_ENABLED, 
+    I_IMAGENONE, IDM_OF_PL_ACT, TBSTATE_ENABLED, TBSTYLE_AUTOSIZE, 
+    IDS_CAP_ADD, 0, NOMENU,
+    I_IMAGENONE, ID_OF_VIEW, TBSTATE_ENABLED, 
     TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_VIEW, 0, 1,
 END
 
@@ -240,16 +246,15 @@ END
 
 IDR_MENU_OPEN MENU DISCARDABLE 
 BEGIN
-    POPUP "Select"
-    BEGIN
-        MENUITEM "Add To Playlist",             IDM_OF_PL_ADD
-        MENUITEM "Remove from Playlist",        IDM_OF_PL_REM
-    END
+    MENUITEM "Add",                         IDM_OF_PL_ACT
     POPUP "View"
     BEGIN
         MENUITEM "All Unknown Files",           IDM_OF_VIEW_ALL
+        MENUITEM "Move Up",                     IDM_OF_PL_UP
+        MENUITEM "Move Down",                   IDM_OF_PL_DOWN
+        MENUITEM "Clear",                       IDM_OF_PL_CLEAR
         MENUITEM SEPARATOR
-        MENUITEM "Playlist",                    IDM_OF_PLAYLIST
+        MENUITEM "Playlist Mode",               IDM_OF_PLAYLIST
     END
 END
 
@@ -312,6 +317,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
+    IDS_CAP_FILE            "+"
     IDS_CAP_VIEW            "View"
 END
 
@@ -322,7 +328,13 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_CAP_SELECT          "Select"
+    IDS_CAP_SELECT          "File"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_CAP_MENUITEM40092   "Add"
+    IDS_CAP_ADD             "Add"
 END
 
 #endif    // French (France) resources

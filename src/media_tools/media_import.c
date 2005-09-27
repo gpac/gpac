@@ -1332,7 +1332,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 {
 	GF_Err e;
 	u64 offset;
-	u32 track, di, trackID, track_in, i, num_samples, sampDTS, mtype, stype, w, h, duration, sr, ch;
+	u32 track, di, trackID, track_in, i, num_samples, sampDTS, mtype, stype, w, h, duration, sr, sbr_sr, ch;
 	u8 bps;
 	char lang[4];
 	const char *url, *urn;
@@ -1390,13 +1390,14 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	else if (mtype==GF_ISOM_MEDIA_AUDIO) {
 		u8 PL = iod ? iod->audio_profileAndLevel : 0xFE;
 		bps = 16;
-		sr = ch = 0;
+		sr = ch = sbr_sr = 0;
 		sbr = 0;
 		gf_isom_get_audio_info(import->orig, track_in, 1, &sr, &ch, &bps);
 		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==0x40)) {
 			GF_M4ADecSpecInfo dsi;
 			gf_m4a_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
-			sr = dsi.has_sbr ? dsi.sbr_sr : dsi.base_sr;
+			sr = dsi.base_sr;
+			if (dsi.has_sbr) sbr_sr = dsi.sbr_sr;
 			ch = dsi.nb_chan;
 			PL = dsi.audioPL;
 			sbr = dsi.has_sbr;
@@ -1440,7 +1441,11 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	case GF_ISOM_MEDIA_AUDIO:
 	{
 		gf_isom_set_audio_info(import->dest, track, di, sr, (ch>1) ? 2 : 1, bps);
-		gf_import_message(import, GF_OK, "IsoMedia import - track ID %d - Audio (SR %d - %d channels)%s", trackID, sr, ch, sbr ? " - SBR AAC" : "");
+		if (sbr) {
+			gf_import_message(import, GF_OK, "IsoMedia import - track ID %d - HE-AAC (SR %d - SBR-SR %d - %d channels)", trackID, sr, sbr_sr, ch);
+		} else {
+			gf_import_message(import, GF_OK, "IsoMedia import - track ID %d - Audio (SR %d - %d channels)", trackID, sr, ch);
+		}
 	}
 		break;
 	default:
@@ -1952,8 +1957,8 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 	u32 track, trackID, di, max_size, duration, sample_rate, block_size, i;
 	GF_ISOSample *samp;
 	char magic[20];
-	Bool delete_esd;
-	u32 media_size, media_done, offset, mtype, oti;
+	Bool delete_esd, update_gpp_cfg;
+	u32 media_size, media_done, offset, mtype, oti, nb_frames;
 	GF_3GPConfig gpp_cfg;
 	FILE *mdia;
 
@@ -1968,6 +1973,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 	mdia = fopen(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
 	
+	update_gpp_cfg = 0;
 	oti = mtype = 0;
 	sample_rate = 8000;
 	block_size = 160;
@@ -1976,6 +1982,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		gf_import_message(import, GF_OK, "Importing AMR Audio");
 		fseek(mdia, 6, SEEK_SET);
 		mtype = GF_ISOM_SUBTYPE_3GP_AMR;
+		update_gpp_cfg = 1;
 	}
 	else if (!strnicmp(magic, "#!EVRC\n", 7)) {
 		gf_import_message(import, GF_OK, "Importing EVRC Audio");
@@ -1999,6 +2006,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		mtype = GF_ISOM_SUBTYPE_3GP_AMR_WB;
 		sample_rate = 16000;
 		block_size = 320;
+		update_gpp_cfg = 1;
 	}
 	else if (!strnicmp(magic, "#!AMR-WB_MC1.0\n", 15)) {
 		fclose(mdia);
@@ -2025,7 +2033,13 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 
 	memset(&gpp_cfg, 0, sizeof(GF_3GPConfig));
 	gpp_cfg.type = mtype;
-	gpp_cfg.frames_per_sample = 1;
+	gpp_cfg.frames_per_sample = import->frames_per_sample;
+	if (!gpp_cfg.frames_per_sample) gpp_cfg.frames_per_sample  = 1;
+	else if (gpp_cfg.frames_per_sample >15) gpp_cfg.frames_per_sample = 15;
+	
+	if (import->flags & GF_IMPORT_USE_DATAREF) gpp_cfg.frames_per_sample  = 1;
+
+
 	if (oti && (import->flags & GF_IMPORT_FORCE_MPEG4)) {
 		if (!import->esd) {
 			delete_esd = 1;
@@ -2036,7 +2050,6 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		import->esd->decoderConfig->objectTypeIndication = oti;
 		e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
 		if (e) goto exit;
-		gpp_cfg.frames_per_sample = 1;
 	} else {
 		import->flags &= ~GF_IMPORT_FORCE_MPEG4;
 		gpp_cfg.vendor = GF_FOUR_CHAR_INT('G', 'P', 'A', 'C');
@@ -2057,6 +2070,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 	fseek(mdia, offset, SEEK_SET);
 
 	media_done = 0;
+	nb_frames = 0;
 
 	while (!feof(mdia)) {
 		u8 ft, toc;
@@ -2067,6 +2081,8 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		case GF_ISOM_SUBTYPE_3GP_AMR:
 		case GF_ISOM_SUBTYPE_3GP_AMR_WB:
 			ft = (toc >> 3) & 0x0F;
+			/*update mode set (same mechanism for both AMR and AMR-WB*/
+			gpp_cfg.AMR_mode_set |= (1<<ft);
 			if (gpp_cfg.type==GF_ISOM_SUBTYPE_3GP_AMR_WB) {
 				samp->dataLength = GF_AMR_WB_FRAME_SIZE[ft];
 			} else {
@@ -2091,12 +2107,21 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 			fread( samp->data + 1, samp->dataLength, 1, mdia);
 		
 		samp->dataLength += 1;
+		/*if last frame is "no data", abort - this happens in many files with constant mode (ie constant files), where
+		adding this last frame will result in a non-compact version of the stsz table, hence a bigger file*/
+		if ((samp->dataLength==1) && feof(mdia))
+			break;
+
 
 		if (import->flags & GF_IMPORT_USE_DATAREF) {
 			gf_isom_add_sample_reference(import->dest, track, di, samp, offset);
-		} else {
+		} else if (!nb_frames) {
 			gf_isom_add_sample(import->dest, track, di, samp);
+		} else {
+			gf_isom_append_sample_data(import->dest, track, samp->data, samp->dataLength);
 		}
+		nb_frames++;
+		if (nb_frames==gpp_cfg.frames_per_sample) nb_frames=0;
 
 		samp->DTS += block_size;
 		media_done += samp->dataLength;
@@ -2105,7 +2130,11 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
 	gf_isom_sample_del(&samp);	
+	gf_isom_refresh_size_info(import->dest, track);
+
 	if (import->flags & GF_IMPORT_FORCE_MPEG4) MP4T_RecomputeBitRate(import->dest, track);
+
+	if (update_gpp_cfg) gf_isom_3gp_config_update(import->dest, track, &gpp_cfg, 1);
 
 exit:
 	if (delete_esd) {
@@ -2503,8 +2532,9 @@ GF_Err gf_import_h263(GF_MediaImporter *import)
 	memset(&gpp_cfg, 0, sizeof(GF_3GPConfig));
 	gpp_cfg.type = GF_ISOM_SUBTYPE_3GP_H263;
 	gpp_cfg.vendor = GF_FOUR_CHAR_INT('G','P','A','C');
-	gpp_cfg.H263_level = 1;
-	gpp_cfg.H263_level = 1;
+	/*FIXME - we need more in-depth parsing of the bitstream to detect P3@L10 (streaming wireless)*/
+	gpp_cfg.H263_profile = 0;
+	gpp_cfg.H263_level = 10;
 	e = gf_isom_3gp_config_new(import->dest, track, &gpp_cfg, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
 	if (e) goto exit;
 	gf_isom_set_visual_info(import->dest, track, di, w, h);

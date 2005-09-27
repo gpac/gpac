@@ -270,8 +270,11 @@ void gf_term_on_node_modified(void *_is, GF_Node *node);
 
 enum
 {
+	/*threading up to decoder*/
 	GF_TERM_THREAD_FREE,
+	/*single thread for all decoders*/
 	GF_TERM_THREAD_SINGLE,
+	/*all media (image, video, audio) decoders are threaded*/
 	GF_TERM_THREAD_MULTI,
 };
 

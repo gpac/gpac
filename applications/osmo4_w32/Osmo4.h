@@ -32,7 +32,6 @@ enum {
 	WM_OPENURL,
 	WM_RESTARTURL,
 	WM_CONSOLEMSG,
-	WM_SETTIMING,
 	WM_NEWINSTANCE,
 };
 
@@ -51,8 +50,7 @@ public:
 	Bool can_seek;
 	u32 orig_width,orig_height, m_reconnect_time; 
 
-	u32 current_time_ms, m_prev_time;
-	Double current_FPS;
+	Bool show_rti;
 
 	CString m_navigate_url;
 	void Pause();

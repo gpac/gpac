@@ -291,20 +291,44 @@ void gf_delete_file(char *fileName);
  */
 FILE *gf_temp_file_new();
 
+
+/*formats progress to stdout, title IS a string, but declared as void * to avoid GCC warnings!! */
 /*!
- *	\brief System clock setup
+ *	\brief Progress formatting
  *
- *	Inits the system clock. The framework works with a clock resolution of 1 millisecond.
- *	\note This can be called several times but only the first call will result in clock setup.
+ *	Formats a progress bar to standard output
+ *	\param title title string of the progress, or NULL for no progress
+ *	\param done Current amount performed of the action.
+ *	\param total Total amount of the action.
+ *	\note "title" is declared as void * to avoid GCC warnings when used as a callback.
  */
-void gf_sys_clock_start();
+void gf_cbk_on_progress(void *title, u32 done, u32 total);
+
 /*!
- *	\brief System clock closing
+ *\addtogroup cpu_grp CPU tools
+ *\ingroup utils_grp
+ *\brief CPU and system time functions
  *
- *	Closes the system clock and any associated ressources.
- *	\note This can be called several times but the clock will be closed when no more users are counted.
+ *This section documents CPU management and time functionalities in GPAC.
+  *	@{
  */
-void gf_sys_clock_stop();
+
+
+/*!
+ *	\brief System setup
+ *
+ *	Inits the system high-resolution clock if any, and CPU usage manager. It is strongly recommended to call this 
+ * function before calling any other GPAC functions, since on some systems (like winCE) it may result in a better memory usage estimation.
+ *	\note This can be called several times but only the first call will result in system setup. 
+ */
+void gf_sys_init();
+/*!
+ *	\brief System closing
+ *
+ *	Closes the system high-resolution clock and any CPU associated ressources.
+ *	\note This can be called several times but the system will be closed when no more users are counted.
+ */
+void gf_sys_close();
 /*!
  *	\brief System clock query
  *
@@ -320,28 +344,6 @@ u32 gf_sys_clock();
  *	\param ms Amount of time to sleep in milliseconds.
  */
 void gf_sleep(u32 ms);
-
-/*!
- *	\brief Field bit-size 
- *
- *	Gets the number of bits needed to represent the value.
- *	\param MaxVal Maximum value to be represented.
- *	\return number of bits required to represent the value.
- */
-u32 gf_get_bit_size(u32 MaxVal);
-
-/*formats progress to stdout, title IS a string, but declared as void * to avoid GCC warnings!! */
-/*!
- *	\brief Progress formatting
- *
- *	Formats a progress bar to standard output
- *	\param title title string of the progress, or NULL for no progress
- *	\param done Current amount performed of the action.
- *	\param total Total amount of the action.
- *	\note "title" is declared as void * to avoid GCC warnings when used as a callback.
- */
-void gf_cbk_on_progress(void *title, u32 done, u32 total);
-
 
 
 
@@ -407,7 +409,9 @@ typedef enum
  *	\return 1 if @rti has been updated, 0 otherwise.
  *	\note You should not try to use a too small refresh time. The function will abort for a refresh time less than 100 ms. Typical values are 500 ms or one second.
  */
-Bool gf_get_sys_rt_info(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
+Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
+
+/*! @} */
 
 
 /*! @} */

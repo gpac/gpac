@@ -222,6 +222,15 @@ typedef Float Fixed;
 Fixed gf_angle_diff(Fixed a, Fixed b);
 
 /*!
+ *	\brief Field bit-size 
+ *
+ *	Gets the number of bits needed to represent the value.
+ *	\param MaxVal Maximum value to be represented.
+ *	\return number of bits required to represent the value.
+ */
+u32 gf_get_bit_size(u32 MaxVal);
+
+/*!
  *\addtogroup math2d_grp math2d
  *\ingroup math_grp
  *\brief 2D Mathematics functions

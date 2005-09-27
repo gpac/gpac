@@ -61,7 +61,7 @@ void OpenDlg::OnOK()
 	CE_WideToChar((unsigned short *) (LPCTSTR) URL, szUrl);
 
 	gf_cfg_set_key(app->m_user.config, "RecentFiles", szUrl, NULL);
-	gf_cfg_insert_key(app->m_user.config, "RecentFiles", szUrl, "");
+	gf_cfg_insert_key(app->m_user.config, "RecentFiles", szUrl, "", 0);
 	/*remove last entry if needed*/
 	nb_entries = gf_cfg_get_key_count(app->m_user.config, "RecentFiles");
 	if (nb_entries>20) {

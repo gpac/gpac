@@ -350,14 +350,14 @@ static void DumpBin128(FILE *trace, char *name, char *data, u32 indent, Bool XMT
 }
 
 
-GF_Err DumpDescList(GF_List *list, FILE *trace, u32 indent, char *ListName, Bool XMTDump)
+GF_Err DumpDescList(GF_List *list, FILE *trace, u32 indent, char *ListName, Bool XMTDump, Bool no_skip_empty)
 {
 	u32 i, count;
 	GF_Descriptor *desc;
 	char ind_buf[OD_MAX_TREE];
 	if (!list) return GF_OK;
 	count = gf_list_count(list);
-	if (!count) return GF_OK;
+	if (!no_skip_empty && !count) return GF_OK;
 	StartElement(trace, ListName, indent, XMTDump, 1);
 	indent++;
 	OD_FORMAT_INDENT(ind_buf, indent);
@@ -443,12 +443,12 @@ GF_Err gf_odf_dump_iod(GF_InitialObjectDescriptor *iod, FILE *trace, u32 indent,
 		indent++;
 	}
 	//ESDescr
-	DumpDescList(iod->ESDescriptors, trace, indent, "esDescr", XMTDump);
-	DumpDescList(iod->OCIDescriptors, trace, indent, "ociDescr", XMTDump);
+	DumpDescList(iod->ESDescriptors, trace, indent, "esDescr", XMTDump, 0);
+	DumpDescList(iod->OCIDescriptors, trace, indent, "ociDescr", XMTDump, 0);
 	DumpDescListFilter(iod->IPMP_Descriptors, trace, indent, "ipmpDescrPtr", XMTDump, GF_ODF_IPMP_PTR_TAG);
 	DumpDescListFilter(iod->IPMP_Descriptors, trace, indent, "ipmpDescr", XMTDump, GF_ODF_IPMP_TAG);
 
-	DumpDescList(iod->extensionDescriptors, trace, indent, "extDescr", XMTDump);
+	DumpDescList(iod->extensionDescriptors, trace, indent, "extDescr", XMTDump, 0);
 
 	if (iod->IPMPToolList) {
 		StartElement(trace, "toolListDescr" , indent, XMTDump, 0);
@@ -523,8 +523,8 @@ GF_Err gf_odf_dump_esd(GF_ESD *esd, FILE *trace, u32 indent, Bool XMTDump)
 		EndElement(trace, "ipiPtr" , indent, XMTDump, 0);
 	}
 
-	DumpDescList(esd->IPIDataSet, trace, indent, "ipIDS", XMTDump);
-	DumpDescList(esd->IPMPDescriptorPointers, trace, indent, "ipmpDescrPtr", XMTDump);
+	DumpDescList(esd->IPIDataSet, trace, indent, "ipIDS", XMTDump, 0);
+	DumpDescList(esd->IPMPDescriptorPointers, trace, indent, "ipmpDescrPtr", XMTDump, 0);
 
 	if (esd->qos) {
 		StartElement(trace, "qosDescr" , indent, XMTDump, 0);
@@ -553,7 +553,7 @@ GF_Err gf_odf_dump_esd(GF_ESD *esd, FILE *trace, u32 indent, Bool XMTDump)
 		mi = NULL;
 	}
 
-	DumpDescList(esd->extensionDescriptors, trace, indent, "extDescr", XMTDump);
+	DumpDescList(esd->extensionDescriptors, trace, indent, "extDescr", XMTDump, 0);
 
 	if (mi) {
 		gf_list_insert(esd->extensionDescriptors, mi, i);
@@ -916,7 +916,7 @@ GF_Err gf_odf_dump_dcd(GF_DecoderConfig *dcd, FILE *trace, u32 indent, Bool XMTD
 			EndElement(trace, "decSpecificInfo" , indent, XMTDump, 0);
 		}
 	}
-	DumpDescList(dcd->profileLevelIndicationIndexDescriptor, trace, indent, "profileLevelIndicationIndexDescr", XMTDump);
+	DumpDescList(dcd->profileLevelIndicationIndexDescriptor, trace, indent, "profileLevelIndicationIndexDescr", XMTDump, 0);
 	indent--;
 	EndDescDump(trace, "DecoderConfigDescriptor", indent, XMTDump);
 
@@ -1282,15 +1282,15 @@ GF_Err gf_odf_dump_isom_iod(GF_IsomInitialObjectDescriptor *iod, FILE *trace, u3
 	}
 	//ESDescr
 	if (gf_list_count(iod->ES_ID_IncDescriptors)) {
-		DumpDescList(iod->ES_ID_IncDescriptors, trace, indent, "esDescrInc", XMTDump);
+		DumpDescList(iod->ES_ID_IncDescriptors, trace, indent, "esDescrInc", XMTDump, 0);
 	} else {
-		DumpDescList(iod->ES_ID_RefDescriptors, trace, indent, "esDescrRef", XMTDump);
+		DumpDescList(iod->ES_ID_RefDescriptors, trace, indent, "esDescrRef", XMTDump, 0);
 	}
-	DumpDescList(iod->OCIDescriptors, trace, indent, "ociDescr", XMTDump);
+	DumpDescList(iod->OCIDescriptors, trace, indent, "ociDescr", XMTDump, 0);
 	DumpDescListFilter(iod->IPMP_Descriptors, trace, indent, "ipmpDescrPtr", XMTDump, GF_ODF_IPMP_PTR_TAG);
 	DumpDescListFilter(iod->IPMP_Descriptors, trace, indent, "ipmpDescr", XMTDump, GF_ODF_IPMP_TAG);
 
-	DumpDescList(iod->extensionDescriptors, trace, indent, "extDescr", XMTDump);
+	DumpDescList(iod->extensionDescriptors, trace, indent, "extDescr", XMTDump, 0);
 
 	if (iod->IPMPToolList) {
 		StartElement(trace, "toolListDescr" , indent, XMTDump, 0);
@@ -1332,12 +1332,12 @@ GF_Err gf_odf_dump_od(GF_ObjectDescriptor *od, FILE *trace, u32 indent, Bool XMT
 		indent++;
 	}
 	//ESDescr
-	DumpDescList(od->ESDescriptors, trace, indent, "esDescr", XMTDump);
-	DumpDescList(od->OCIDescriptors, trace, indent, "ociDescr", XMTDump);
+	DumpDescList(od->ESDescriptors, trace, indent, "esDescr", XMTDump, 0);
+	DumpDescList(od->OCIDescriptors, trace, indent, "ociDescr", XMTDump, 0);
 	DumpDescListFilter(od->IPMP_Descriptors, trace, indent, "ipmpDescrPtr", XMTDump, GF_ODF_IPMP_PTR_TAG);
 	DumpDescListFilter(od->IPMP_Descriptors, trace, indent, "ipmpDescr", XMTDump, GF_ODF_IPMP_TAG);
 
-	DumpDescList(od->extensionDescriptors, trace, indent, "extDescr", XMTDump);
+	DumpDescList(od->extensionDescriptors, trace, indent, "extDescr", XMTDump, 0);
 	
 	if (XMTDump) {
 		indent--;
@@ -1374,14 +1374,14 @@ GF_Err gf_odf_dump_isom_od(GF_IsomObjectDescriptor *od, FILE *trace, u32 indent,
 	}
 	//ESDescr
 	if (gf_list_count(od->ES_ID_IncDescriptors)) {
-		DumpDescList(od->ES_ID_IncDescriptors, trace, indent, "esDescrInc", XMTDump);
+		DumpDescList(od->ES_ID_IncDescriptors, trace, indent, "esDescrInc", XMTDump, 0);
 	} else {
-		DumpDescList(od->ES_ID_RefDescriptors, trace, indent, "esDescrRef", XMTDump);
+		DumpDescList(od->ES_ID_RefDescriptors, trace, indent, "esDescrRef", XMTDump, 0);
 	}
-	DumpDescList(od->OCIDescriptors, trace, indent, "ociDescr", XMTDump);
+	DumpDescList(od->OCIDescriptors, trace, indent, "ociDescr", XMTDump, 0);
 	DumpDescListFilter(od->IPMP_Descriptors, trace, indent, "ipmpDescrPtr", XMTDump, GF_ODF_IPMP_PTR_TAG);
 	DumpDescListFilter(od->IPMP_Descriptors, trace, indent, "ipmpDescr", XMTDump, GF_ODF_IPMP_TAG);
-	DumpDescList(od->extensionDescriptors, trace, indent, "extDescr", XMTDump);
+	DumpDescList(od->extensionDescriptors, trace, indent, "extDescr", XMTDump, 0);
 	
 	if (XMTDump) {
 		indent--;
@@ -1650,7 +1650,7 @@ GF_Err gf_odf_dump_ipmp_tool_list(GF_IPMP_ToolList *tl, FILE *trace, u32 indent,
 	StartDescDump(trace, "IPMP_ToolListDescriptor", indent, XMTDump);
 	EndAttributes(trace, indent, XMTDump);
 	indent++;
-	DumpDescList(tl->ipmp_tools, trace, indent, "ipmpTool", XMTDump);
+	DumpDescList(tl->ipmp_tools, trace, indent, "ipmpTool", XMTDump, 0);
 	indent--;
 	EndDescDump(trace, "IPMP_ToolListDescriptor", indent, XMTDump);
 	return GF_OK;
@@ -1680,11 +1680,11 @@ GF_Err gf_odf_dump_od_update(GF_ODUpdate *com, FILE *trace, u32 indent, Bool XMT
 		StartDescDump(trace, "ObjectDescriptorUpdate", indent, XMTDump);
 		EndAttributes(trace, indent, XMTDump);
 		indent++;
-		DumpDescList(com->objectDescriptors, trace, indent+1, "OD", XMTDump);
+		DumpDescList(com->objectDescriptors, trace, indent+1, "OD", XMTDump, 0);
 		indent--;
 		EndDescDump(trace, "ObjectDescriptorUpdate", indent, XMTDump);
 	} else {
-		DumpDescList(com->objectDescriptors, trace, indent, "UPDATE OD", XMTDump);
+		DumpDescList(com->objectDescriptors, trace, indent, "UPDATE OD", XMTDump, 1);
 	}
 	return GF_OK;
 }
@@ -1730,7 +1730,7 @@ GF_Err gf_odf_dump_esd_update(GF_ESDUpdate *com, FILE *trace, u32 indent, Bool X
 		fprintf(trace, "%sUPDATE ESD in %d\n", ind_buf, com->ODID);
 	}
 	indent++;
-	DumpDescList(com->ESDescriptors, trace, indent+1, "esDescr", XMTDump);
+	DumpDescList(com->ESDescriptors, trace, indent+1, "esDescr", XMTDump, 1);
 	indent--;
 	if (XMTDump) {
 		EndDescDump(trace, "ES_DescriptorUpdate", indent, XMTDump);
@@ -1776,11 +1776,11 @@ GF_Err gf_odf_dump_ipmp_update(GF_IPMPUpdate *com, FILE *trace, u32 indent, Bool
 		StartDescDump(trace, "IPMP_DescriptorUpdate", indent, XMTDump);
 		EndAttributes(trace, indent, XMTDump);
 		indent++;
-		DumpDescList(com->IPMPDescList, trace, indent+1, "ipmpDesc", XMTDump);
+		DumpDescList(com->IPMPDescList, trace, indent+1, "ipmpDesc", XMTDump, 0);
 		indent--;
 		EndDescDump(trace, "IPMP_DescriptorUpdate", indent, XMTDump);
 	} else {
-		DumpDescList(com->IPMPDescList, trace, indent, "UPDATE IPMPD", XMTDump);
+		DumpDescList(com->IPMPDescList, trace, indent, "UPDATE IPMPD", XMTDump, 1);
 	}
 	return GF_OK;
 }

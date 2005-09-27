@@ -47,7 +47,7 @@ void UpdateLastFiles(GF_Config *cfg, const char *URL)
 {
 	u32 nb_entries;
 	gf_cfg_set_key(cfg, "RecentFiles", URL, NULL);
-	gf_cfg_insert_key(cfg, "RecentFiles", URL, "");
+	gf_cfg_insert_key(cfg, "RecentFiles", URL, "", 0);
 	/*remove last entry if needed*/
 	nb_entries = gf_cfg_get_key_count(cfg, "RecentFiles");
 	if (nb_entries>MAX_LAST_FILES) {

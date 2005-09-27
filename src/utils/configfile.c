@@ -304,7 +304,7 @@ const char *gf_cfg_get_key_name(GF_Config *iniFile, const char *secName, u32 key
 	return NULL;
 }
 
-GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue)
+GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue, u32 index)
 {
 	u32 i;
 	IniSection *sec;
@@ -329,7 +329,7 @@ GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *ke
 	key = malloc(sizeof(IniKey));
 	strcpy(key->name, keyName);
 	strcpy(key->value, keyValue);
-	gf_list_insert(sec->keys, key, 0);
+	gf_list_insert(sec->keys, key, index);
 	iniFile->hasChanged = 1;
 	return GF_OK;
 }

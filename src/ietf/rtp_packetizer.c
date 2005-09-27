@@ -24,6 +24,7 @@
 
 #include <gpac/internal/ietf_dev.h>
 #include <gpac/constants.h>
+#include <gpac/math.h>
 
 void InitSL_RTP(GF_SLConfig *slc);
 

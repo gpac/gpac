@@ -99,13 +99,24 @@
 #define IDM_VIEW_AR_FILL                40083
 #define IDM_VIEW_AR_4_3                 40084
 #define IDM_VIEW_AR_16_9                40085
+#define IDM_OF_PL_UP                    40088
+#define IDM_OF_PL_DOWN                  40089
+#define ID_OF_VIEW                      40090
+#define IDM_OF_PL_ACT                   40091
+#define IDS_CAP_MENUITEM40092           40093
+#define IDS_CAP_ADD                     40095
+#define IDM_OF_PL_CLEAR                 40096
+#define IDM_FILE_RELOAD                 40097
+#define IDM_VIEW_CPU                    40098
+#define IDM_FILE_PAUSE                  40099
+#define IDM_VIEW_LOW_RATE               40100
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        109
-#define _APS_NEXT_COMMAND_VALUE         40086
+#define _APS_NEXT_RESOURCE_VALUE        111
+#define _APS_NEXT_COMMAND_VALUE         40101
 #define _APS_NEXT_CONTROL_VALUE         1004
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

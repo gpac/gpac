@@ -610,8 +610,6 @@ void DD_InitYUV(GF_VideoOutput *dr)
 		return;
 	}
 
-	gf_sys_clock_start();
-
 	for (i=0; i<num_yuv; i++) {
 		/*check planar first*/
 		if (!checkPacked && !is_yuv_planar(formats[i])) goto go_on;
@@ -661,7 +659,6 @@ rem_fmt:
 		i--;
 		num_yuv--;
 	}
-	gf_sys_clock_stop();
 
 	if (dd->yuv_pool.pSurface) {
 		SAFE_DD_RELEASE(dd->yuv_pool.pSurface);

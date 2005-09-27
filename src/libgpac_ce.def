@@ -11,6 +11,10 @@ EXPORTS
 
 ;tools.h exports
 	gf_sleep
+	gf_sys_init
+	gf_sys_close
+	gf_sys_clock
+	gf_sys_get_rti
 	gf_4cc_to_str
 	gf_error_to_string
 	gf_rand_init
@@ -20,7 +24,6 @@ EXPORTS
 	gf_get_user_name
 	gf_enum_directory
 	gf_cbk_on_progress
-	gf_get_sys_rt_info
 
 ;array.h exports
 	gf_list_new
@@ -71,9 +74,6 @@ EXPORTS
 	gf_bs_get_refreshed_size
 	gf_temp_file_new
 	gf_delete_file
-	gf_sys_clock_start
-	gf_sys_clock_stop
-	gf_sys_clock
 
 ;thread.h exports
 	gf_th_new
@@ -986,6 +986,8 @@ EXPORTS
 	gf_term_add_object
 	gf_term_is_supported_url
 	gf_term_attach_service
+	gf_term_set_simulation_frame_rate
+	gf_term_get_simulation_frame_rate
 
 ;renderer.h exports
 	gf_sr_new

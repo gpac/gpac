@@ -148,12 +148,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 			}
 			//clean a bit
 			gf_odf_com_del((GF_ODCom **)&odU);
-			//if no desc in the command, remove it
-			if (gf_list_count(odU2->objectDescriptors)) {
-				gf_odf_codec_add_com(ODencode, (GF_ODCom *)odU2);
-			} else {
-				gf_odf_com_del((GF_ODCom **)&odU2);
-			}
+			gf_odf_codec_add_com(ODencode, (GF_ODCom *)odU2);
 			break;
 
 		case GF_ODF_ESD_UPDATE_TAG:
@@ -170,12 +165,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 				gf_list_add(esdU2->ESDescriptors, esd);
 			}
 			gf_odf_com_del((GF_ODCom **)&esdU);
-			//if our command is not empty, add it. Otherwise delete it...
-			if (gf_list_count(esdU2->ESDescriptors)) {
-				gf_odf_codec_add_com(ODencode, (GF_ODCom *)esdU2);
-			} else {
-				gf_odf_com_del((GF_ODCom **)&esdU2);
-			}
+			gf_odf_codec_add_com(ODencode, (GF_ODCom *)esdU2);
 			break;
 
 		//brand new case: the ESRemove follows the same principle according to the spec...
@@ -208,12 +198,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 				esdR2->ES_ID = (unsigned short*)realloc(esdR2->ES_ID, sizeof(u32) * esdR2->NbESDs);
 			}
 			gf_odf_com_del((GF_ODCom **)&esdR);
-			//if empty, remove it otherwise add it
-			if (skipped == esdR2->NbESDs) {
-				gf_odf_com_del((GF_ODCom **)&esdR2);
-			} else {
-				gf_odf_codec_add_com(ODencode, (GF_ODCom *)esdR2);
-			}
+			gf_odf_codec_add_com(ODencode, (GF_ODCom *)esdR2);
 			break;
 
 		default:

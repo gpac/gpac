@@ -181,7 +181,10 @@ static GF_Err BM_ParseGlobalQuantizer(GF_BifsDecoder *codec, GF_BitStream *bs, G
 	/*register global QP*/
 	codec->GlobalQP = codec->ActiveQP = (M_QuantizationParameter *) node;
 	codec->GlobalQP->isLocal = 0;
-	if (node) gf_node_register(node, NULL);
+	if (node) {
+		/*register TWICE: once for the command, and for the codec*/
+		node->sgprivate->num_instances = 2;
+	}
 	com = gf_sg_command_new(codec->current_graph, GF_SG_GLOBAL_QUANTIZER);
 	inf = gf_sg_command_field_new(com);
 	inf->new_node = node;

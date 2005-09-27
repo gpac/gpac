@@ -81,6 +81,11 @@ u32 gf_term_get_option(GF_Terminal *term, u32 opt_type);
 if use_parent_url is set, relative URLs are solved against the current presentation URL*/
 Bool gf_term_is_supported_url(GF_Terminal *term, const char *fileName, Bool use_parent_url, Bool no_mime_check);
 
+/*sets simulation frame rate*/
+GF_Err gf_term_set_simulation_frame_rate(GF_Terminal * term, Double frame_rate);
+/*gets simulation frame rate*/
+Double gf_term_get_simulation_frame_rate(GF_Terminal *term);
+
 
 /*refresh window info when window moved (redraws offscrenn to screen without rendering) */
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/

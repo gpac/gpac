@@ -136,7 +136,6 @@ GF_AudioRenderer *gf_sr_ar_load(GF_User *user)
 		ar->audio_out->SetPan(ar->audio_out, ar->pan);
 	}
 
-	gf_sys_clock_start();
 	/*init renderer timer*/
 	ar->startTime = gf_sys_clock();
 	return ar;
@@ -167,9 +166,6 @@ void gf_sr_ar_del(GF_AudioRenderer *ar)
 
 	gf_mixer_del(ar->mixer);
 	free(ar);
-
-	/*shutdown OS timer system*/
-	gf_sys_clock_stop();
 }
 
 

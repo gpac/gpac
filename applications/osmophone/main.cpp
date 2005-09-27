@@ -41,7 +41,7 @@
 #define STATE_TIMER_DUR		1000
 
 
-Bool gf_file_dialog(HINSTANCE inst, HWND parent, char *url, const char *ext_list);
+Bool gf_file_dialog(HINSTANCE inst, HWND parent, char *url, const char *ext_list, GF_Config *cfg);
 void set_backlight_state(Bool disable);
 void refresh_recent_files();
 void do_layout(Bool notif_size);
@@ -54,11 +54,12 @@ static HWND g_hwnd_status = NULL;
 static HINSTANCE g_hinst = NULL;
 
 static Bool is_connected = 0;
+static Bool navigation_on = 0;
 
 static u32 Duration;
 static Bool CanSeek = 0;
 static u32 Volume=100;
-static char the_url[GF_MAX_PATH];
+static char the_url[GF_MAX_PATH] = "";
 static Bool NavigateTo = 0;
 static char the_next_url[GF_MAX_PATH];
 static GF_Terminal *term;
@@ -78,7 +79,9 @@ static Bool loop = 0;
 static Bool full_screen = 0;
 static Bool use_3D_renderer = 0;
 static Bool ctrl_mod_down = 0;
+static Bool view_cpu = 0;
 static Bool menu_switched = 0;
+static Bool use_low_fps = 0;
 
 void set_status(char *state)
 {
@@ -104,11 +107,9 @@ void update_state_info()
 		else return;
 	}
 	if (!term) return;
-	if (!is_connected) {
-		if (reset_status) {
-			SendMessage(g_hwnd_status, WM_SETTEXT, 0, (LPARAM) TEXT("Ready") );
-			reset_status = 0;
-		}
+	if (!is_connected && reset_status) {
+		SendMessage(g_hwnd_status, WM_SETTEXT, 0, (LPARAM) TEXT("Ready") );
+		reset_status = 0;
 		return;
 	}
 
@@ -116,7 +117,13 @@ void update_state_info()
 	time = gf_term_get_time_in_ms(term) / 1000;
 	m = time/60;
 	s = time - m*60;
-	wsprintf(wstate, TEXT("Time: %02d:%02d - FPS %02.2f"), m, s, FPS);
+	if (view_cpu) {
+		GF_SystemRTInfo rti;
+		if (!gf_sys_get_rti(STATE_TIMER_DUR, &rti, 0)) return;
+		wsprintf(wstate, TEXT("T %02d:%02d : FPS %02.2f : CPU %02d"), m, s, FPS, rti.cpu_usage);
+	} else {
+		wsprintf(wstate, TEXT("T %02d:%02d : FPS %02.2f"), m, s, FPS);
+	}
 	SendMessage(g_hwnd_status, WM_SETTEXT, 0, (LPARAM) wstate);
 }
 
@@ -184,8 +191,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			is_connected = 1;
 			if (!backlight_off) set_backlight_state(1);
 			refresh_recent_files();
-
+			navigation_on = (gf_term_get_option(term, GF_OPT_NAVIGATION)==GF_NAVIGATE_NONE) ? 0 : 1;
 		} else {
+			navigation_on = 0;
 			is_connected = 0;
 			Duration = 0;
 		}
@@ -268,12 +276,6 @@ void do_layout(Bool notif_size)
 	if (notif_size && term) gf_term_set_size(term, w, h);
 }
 
-void HandleInputMessages(UINT msg, WPARAM wParam, LPARAM lParam)
-{
-	
-}
-
-
 void set_backlight_state(Bool disable) 
 {
 	HKEY hKey = 0;
@@ -343,7 +345,7 @@ void freeze_display(Bool do_freeze)
 void do_open_file()
 {
 	gf_cfg_set_key(user.config, "RecentFiles", the_url, NULL);
-	gf_cfg_insert_key(user.config, "RecentFiles", the_url, "");
+	gf_cfg_insert_key(user.config, "RecentFiles", the_url, "", 0);
 	u32 count = gf_cfg_get_key_count(user.config, "RecentFiles");
 	if (count > 10) gf_cfg_set_key(user.config, "RecentFiles", gf_cfg_get_key_name(user.config, "RecentFiles", count-1), NULL);
 
@@ -374,6 +376,36 @@ void refresh_recent_files()
 	}
 }
 
+void switch_playlist(Bool play_prev)
+{
+	char szPLE[20];
+	u32 idx = 0;
+	u32 count;
+	const char *ple = gf_cfg_get_key(user.config, "General", "PLEntry");
+	if (ple) idx = atoi(ple);
+	
+	count = gf_cfg_get_key_count(user.config, "Playlist");
+	if (!count) return;
+	/*not the first launch*/
+	if (strlen(the_url)) {
+		if (!idx && play_prev) return;
+		if (play_prev) idx--;
+		else idx++;
+		if (idx>=count) return;
+	} else {
+		if (idx>=count) idx=0;
+	}
+
+	ple = gf_cfg_get_key_name(user.config, "Playlist", idx);
+	if (!ple) return;
+
+	sprintf(szPLE, "%d", idx);
+	gf_cfg_set_key(user.config, "General", "PLEntry", szPLE);
+
+	strcpy(the_url, ple);
+	do_open_file();
+}
+
 void open_file(HWND hwnd)
 {
 	Bool res;
@@ -394,7 +426,7 @@ void open_file(HWND hwnd)
 		strcat(ext_list, szKeyList);
 		strcat(ext_list, " ");
 	}
-	res = gf_file_dialog(g_hinst, hwnd, the_url, ext_list);
+	res = gf_file_dialog(g_hinst, hwnd, the_url, ext_list, user.config);
 
 	freeze_display(0);
 
@@ -470,12 +502,38 @@ void reload_terminal()
 	SetCursor(hcur);
 }
 
+void pause_file()
+{
+	if (!is_connected) return;
+	TBBUTTONINFO tbbi; 
+	tbbi.cbSize = sizeof(tbbi); 
+	tbbi.dwMask = TBIF_TEXT; 
+
+	if (gf_term_get_option(term, GF_OPT_PLAY_STATE)==GF_STATE_PLAYING) {
+		gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
+		tbbi.pszText = _T("Play"); 
+	} else {
+		gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
+		tbbi.pszText = _T("Pause"); 
+	}
+	SendMessage(g_hwnd_menu1, TB_SETBUTTONINFO, IDM_FILE_PAUSE, (LPARAM)&tbbi); 
+
+}
 
 BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 {
 	switch (LOWORD(wParam)) {
 	case IDM_FILE_OPEN:
 		open_file(hwnd);
+		break;
+	case IDM_FILE_RELOAD:
+		/*doesn't work with SVG files yet...*/
+		//gf_term_play_from_time(term, 0);
+		gf_term_disconnect(term);
+		gf_term_connect(term, the_url);
+		break;
+	case IDM_FILE_PAUSE:
+		pause_file();
 		break;
 	case IDM_VIEW_ABOUT:
 		view_about(hwnd);
@@ -486,6 +544,9 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	case IDM_VIEW_STATUS:
 		show_status = !show_status;
 		do_layout(1);
+		break;
+	case IDM_VIEW_CPU:
+		view_cpu = !view_cpu;
 		break;
 	case IDM_VIEW_3DREND:
 		use_3D_renderer = !use_3D_renderer;
@@ -501,7 +562,30 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	case IDM_NAV_SLIDE:
 		gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_SLIDE);
 		break;
-
+	case IDM_NAV_WALK:
+		gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_WALK);
+		break;
+	case IDM_NAV_FLY:
+		gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_FLY);
+		break;
+	case IDM_NAV_EXAMINE:
+		gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_EXAMINE);
+		break;
+	case IDM_NAV_HEADLIGHT:
+		gf_term_set_option(term, GF_OPT_HEADLIGHT, !gf_term_get_option(term, GF_OPT_HEADLIGHT) );
+		break;
+	case IDM_NAV_COL_NONE:
+		gf_term_set_option(term, GF_OPT_COLLISION, GF_COLLISION_NONE);
+		break;
+	case IDM_NAV_COL_REG:
+		gf_term_set_option(term, GF_OPT_COLLISION, GF_COLLISION_NORMAL);
+		break;
+	case IDM_NAV_COL_DISP:
+		gf_term_set_option(term, GF_OPT_COLLISION, GF_COLLISION_DISPLACEMENT);
+		break;
+	case IDM_NAV_GRAVITY:
+		gf_term_set_option(term, GF_OPT_GRAVITY, !gf_term_get_option(term, GF_OPT_GRAVITY));
+		break;
 
 	case IDM_VIEW_AR_NONE:
 		gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP);
@@ -516,6 +600,10 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 		gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_16_9);
 		break;
 
+	case IDM_VIEW_LOW_RATE:
+		use_low_fps = !use_low_fps;
+		gf_term_set_simulation_frame_rate(term, use_low_fps ? 15.0 : 30.0);
+		break;
 
 	case IDM_MENU_SWITCH:
 		menu_switched = !menu_switched;
@@ -547,6 +635,9 @@ static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 	if (menu_switched) {
 		CheckMenuItem((HMENU)wParam, IDM_VIEW_STATUS, MF_BYCOMMAND| (show_status ? MF_CHECKED : MF_UNCHECKED) );
 		CheckMenuItem((HMENU)wParam, IDM_VIEW_3DREND, MF_BYCOMMAND| (use_3D_renderer ? MF_CHECKED : MF_UNCHECKED) );
+		EnableMenuItem((HMENU)wParam, IDM_VIEW_CPU, MF_BYCOMMAND| (show_status ? MF_ENABLED : MF_GRAYED) );
+		if (show_status) CheckMenuItem((HMENU)wParam, IDM_VIEW_CPU, MF_BYCOMMAND| (view_cpu ? MF_CHECKED : MF_UNCHECKED) );
+		CheckMenuItem((HMENU)wParam, IDM_VIEW_LOW_RATE, MF_BYCOMMAND| (use_low_fps ? MF_CHECKED : MF_UNCHECKED) );
 	    return TRUE;
 	}
 
@@ -556,14 +647,51 @@ static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_4_3, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_4_3) ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_16_9, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_16_9) ? MF_CHECKED : MF_UNCHECKED);
 
+	EnableMenuItem((HMENU)wParam, IDM_FILE_RELOAD, MF_BYCOMMAND| (is_connected ? MF_ENABLED : MF_GRAYED) );
+	EnableMenuItem((HMENU)wParam, IDM_FILE_PAUSE, MF_BYCOMMAND| (is_connected ? MF_ENABLED : MF_GRAYED) );
+
+	u32 type;
+	if (!is_connected) type = 0;
+	else type = gf_term_get_option(term, GF_OPT_NAVIGATION_TYPE);
+	navigation_on = type ? 1 : 0;
+
+	EnableMenuItem((HMENU)wParam, IDM_NAV_NONE, MF_BYCOMMAND | (!type ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem((HMENU)wParam, IDM_NAV_SLIDE, MF_BYCOMMAND | (!type ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem((HMENU)wParam, IDM_NAV_RESET, MF_BYCOMMAND | (!type ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem((HMENU)wParam, IDM_NAV_WALK, MF_BYCOMMAND | ( (type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem((HMENU)wParam, IDM_NAV_FLY, MF_BYCOMMAND | ((type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem((HMENU)wParam, IDM_NAV_EXAMINE, MF_BYCOMMAND | ((type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem((HMENU)wParam, IDM_NAV_COL_NONE, MF_BYCOMMAND | ((type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem((HMENU)wParam, IDM_NAV_COL_REG, MF_BYCOMMAND | ((type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem((HMENU)wParam, IDM_NAV_COL_DISP, MF_BYCOMMAND | ((type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem((HMENU)wParam, IDM_NAV_GRAVITY, MF_BYCOMMAND | ((type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
+	EnableMenuItem((HMENU)wParam, IDM_NAV_HEADLIGHT, MF_BYCOMMAND | ( (type!=GF_NAVIGATE_TYPE_3D) ? MF_GRAYED : MF_ENABLED) );
+
+	if (type) {
+		u32 mode = gf_term_get_option(term, GF_OPT_NAVIGATION);
+		navigation_on = (mode==GF_NAVIGATE_NONE) ? 0 : 1;
+		CheckMenuItem((HMENU)wParam, IDM_NAV_NONE, MF_BYCOMMAND | ( (mode==GF_NAVIGATE_NONE) ? MF_CHECKED : MF_UNCHECKED) );
+		CheckMenuItem((HMENU)wParam, IDM_NAV_SLIDE, MF_BYCOMMAND | ( (mode==GF_NAVIGATE_SLIDE) ? MF_CHECKED : MF_UNCHECKED) );
+		CheckMenuItem((HMENU)wParam, IDM_NAV_WALK, MF_BYCOMMAND | ( (mode==GF_NAVIGATE_WALK) ? MF_CHECKED : MF_UNCHECKED) );
+		CheckMenuItem((HMENU)wParam, IDM_NAV_FLY, MF_BYCOMMAND | ((mode==GF_NAVIGATE_FLY) ? MF_CHECKED : MF_UNCHECKED) );
+		CheckMenuItem((HMENU)wParam, IDM_NAV_EXAMINE, MF_BYCOMMAND | ((mode==GF_NAVIGATE_EXAMINE) ? MF_CHECKED : MF_UNCHECKED) );
+
+		if (type==GF_NAVIGATE_TYPE_3D) {
+			CheckMenuItem((HMENU)wParam, IDM_NAV_HEADLIGHT, MF_BYCOMMAND | ( gf_term_get_option(term, GF_OPT_HEADLIGHT) ? MF_CHECKED : MF_UNCHECKED) );
+			CheckMenuItem((HMENU)wParam, IDM_NAV_GRAVITY, MF_BYCOMMAND | ( gf_term_get_option(term, GF_OPT_GRAVITY) ? MF_CHECKED : MF_UNCHECKED) );
+			type = gf_term_get_option(term, GF_OPT_COLLISION);
+			CheckMenuItem((HMENU)wParam, IDM_NAV_COL_NONE, MF_BYCOMMAND | ( (type==GF_COLLISION_NONE) ? MF_CHECKED : MF_UNCHECKED) );
+			CheckMenuItem((HMENU)wParam, IDM_NAV_COL_REG, MF_BYCOMMAND | ( (type==GF_COLLISION_NORMAL) ? MF_CHECKED : MF_UNCHECKED) );
+			CheckMenuItem((HMENU)wParam, IDM_NAV_COL_DISP, MF_BYCOMMAND | ( (type==GF_COLLISION_DISPLACEMENT) ? MF_CHECKED : MF_UNCHECKED) );
+		}
+	}
+
     return TRUE;
 }
 
 
 BOOL CALLBACK MainWndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	HandleInputMessages(msg, wParam, lParam);
-
 	switch (msg) {
 	case WM_CREATE:
 	{
@@ -597,9 +725,14 @@ BOOL CALLBACK MainWndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_HOTKEY:
 		break;
+	case WM_KEYDOWN:
+		if (!navigation_on) {
+			if (wParam==VK_LEFT) { switch_playlist(1); break; }
+			else if (wParam==VK_RIGHT) { switch_playlist(0); break; }
+		}
+		/*fall through*/
 	case WM_SYSKEYDOWN:
 	case WM_SYSKEYUP:
-	case WM_KEYDOWN:
 	case WM_KEYUP:
 	case WM_CHAR:
 	case WM_MOUSEMOVE:
@@ -735,6 +868,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	MSG 	msg;
 	TCHAR wzExePath[GF_MAX_PATH];
 	char szExePath[GF_MAX_PATH];
+
 	HWND 	hwndOld = NULL;	
 	const char *str;
 	Bool initial_launch = 0;
@@ -779,12 +913,15 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		return 0;
 	}
 
+	gf_sys_init();
+
 	user.modules = gf_modules_new((const unsigned char *) str, user.config);
 	if (!gf_modules_get_count(user.modules)) {
 		MessageBox(GetForegroundWindow(), _T("No modules found"), _T("GPAC Init Error"), MB_OK);
 		gf_modules_del(user.modules);
 		gf_cfg_del(user.config);
 		memset(&user, 0, sizeof(GF_User));
+		gf_sys_close();
 		return 0;
 	}
 
@@ -821,5 +958,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	if (user.config) gf_cfg_del(user.config);
 
 	if (backlight_off) set_backlight_state(0);
+
+	gf_sys_close();
 	return 0;
 }

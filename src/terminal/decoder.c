@@ -518,7 +518,7 @@ static GF_Err ResizeCompositionBuffer(GF_Codec *dec, u32 NewSize)
 		if (unit_count<2) unit_count = 2;
 		while (unit_size*unit_count*1000 < dec->bytes_per_sec*audio_buf_len) unit_count++;
 		CB_Reinit(dec->CB, unit_size, unit_count);
-		dec->CB->Min = unit_size/3;
+		dec->CB->Min = unit_count/3;
 		if (!dec->CB->Min) dec->CB->Min = 1;
 	}
 	if ((dec->type==GF_STREAM_VISUAL) && dec->odm->parentscene->is_dynamic_scene) {

@@ -312,6 +312,8 @@ BOOL WinGPAC::InitInstance()
 {
 	CCommandLineInfo cmdInfo;
 
+	gf_sys_init();
+
 	m_term = NULL;
 	memset(&m_user, 0, sizeof(GF_User));
 
@@ -388,7 +390,6 @@ BOOL WinGPAC::InitInstance()
 			return FALSE;
 		}
 	}
-
 
 	// Standard initialization
 #ifdef _AFXDLL
@@ -481,7 +482,6 @@ BOOL WinGPAC::InitInstance()
 	m_user.EventProc = Osmo4_EventProc;
 
 	m_reset = 0;
-	m_prev_time = 0;
 	orig_width = 320;
 	orig_height = 240;
 
@@ -532,6 +532,7 @@ int WinGPAC::ExitInstance()
 	if (m_term) gf_term_del(m_term);
 	if (m_user.modules) gf_modules_del(m_user.modules);
 	if (m_user.config) gf_cfg_del(m_user.config);
+	gf_sys_close();
 	/*last instance*/
 	if (m_hMutex) {
 		CloseHandle(m_hMutex);

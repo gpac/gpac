@@ -105,18 +105,16 @@ static void mp4_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
 
 GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 {
-	u32 i, j, di, nbBifs, nb_samp, samp_done;
-	GF_StreamContext *sc, *base_bifs;
+	u32 i, j, di, nbBifs, nb_samp, samp_done, init_offset;
+	GF_StreamContext *sc;
 	GF_ESD *esd;
 	GF_ODCodec *oddec;
 	GF_BifsDecoder *bdec;
 	GF_Err e;
 
 	if (!load || !load->isom) return GF_BAD_PARAM;
-	base_bifs = gf_list_get(load->ctx->streams, 0);
-	/*no scene info*/
-	if (!base_bifs) return GF_OK;
-	nbBifs = 1;
+
+	nbBifs = 0;
 	e = GF_OK;
 	bdec = gf_bifs_decoder_new(load->scene_graph, 1);
 	oddec = gf_odf_codec_new();
@@ -150,17 +148,12 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 		esd = gf_isom_get_esd(load->isom, i+1, 1);
 		if (!esd) continue;
 
-		if (base_bifs->ESID!=esd->ESID) {
-			sc = gf_sm_stream_new(load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
-			sc->streamType = esd->decoderConfig->streamType;
-			sc->ESID = esd->ESID;
-			sc->objectType = esd->decoderConfig->objectTypeIndication;
-			sc->timeScale = gf_isom_get_media_timescale(load->isom, i+1);
-			j=0;
-		} else {
-			j=1;
-			sc = base_bifs;
-		}
+		sc = gf_sm_stream_new(load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
+		sc->streamType = esd->decoderConfig->streamType;
+		sc->ESID = esd->ESID;
+		sc->objectType = esd->decoderConfig->objectTypeIndication;
+		sc->timeScale = gf_isom_get_media_timescale(load->isom, i+1);
+
 		/*we still need to reconfig the BIFS*/
 		if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
 			if (!esd->dependsOnESID && nbBifs && !j) 
@@ -170,16 +163,26 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 			nbBifs++;
 		}
 
+		init_offset = 0;
 		/*dump all AUs*/
-		for (; j<gf_isom_get_sample_count(load->isom, i+1); j++) {
+		for (j=0; j<gf_isom_get_sample_count(load->isom, i+1); j++) {
 			GF_AUContext *au;
 			GF_ISOSample *samp = gf_isom_get_sample(load->isom, i+1, j+1, &di);
 			if (!samp) {
 				mp4_report(load, gf_isom_last_error(load->isom), "Unable to fetch sample %d from track ID %d - aborting track import", j+1, gf_isom_get_track_id(load->isom, i+1));
 				break;
-//				e = gf_isom_last_error(load->isom);
-//				goto exit;
 			}
+			/*check if track has initial offset*/
+			if (!j && gf_isom_get_edit_segment_count(load->isom, i+1)) {
+				u64 EditTime, dur, mtime;
+				u8 mode;
+				gf_isom_get_edit_segment(load->isom, i+1, 1, &EditTime, &dur, &mtime, &mode);
+				if (mode==GF_ISOM_EDIT_EMPTY) {
+					init_offset = (u32) (dur * sc->timeScale / gf_isom_get_timescale(load->isom) );
+				}
+			}
+			samp->DTS += init_offset;
+
 			au = gf_sm_stream_au_new(sc, samp->DTS, ((Double)samp->DTS) / sc->timeScale, samp->IsRAP);
 
 			if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
@@ -217,12 +220,9 @@ exit:
 
 GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load)
 {
-	u32 i, track, di, timeScale;
-	GF_StreamContext *sc;
+	u32 i, track;
+	GF_BIFSConfig bc;
 	GF_ESD *esd;
-	GF_AUContext *au;
-	GF_ISOSample *samp;
-	GF_BifsDecoder *bdec;
 	GF_Err e;
 	if (!load->isom) return GF_BAD_PARAM;
 
@@ -266,48 +266,21 @@ GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load)
 	}
 	if (!esd) return GF_OK;
 
-	bdec = gf_bifs_decoder_new(load->scene_graph, 1);
 	track = i+1;
 
-	sc = gf_sm_stream_new(load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
-	sc->streamType = esd->decoderConfig->streamType;
-	sc->ESID = esd->ESID;
-	sc->objectType = esd->decoderConfig->objectTypeIndication;
-	sc->timeScale = gf_isom_get_media_timescale(load->isom, track);
-	e = gf_bifs_decoder_configure_stream(bdec, esd->ESID, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, esd->decoderConfig->objectTypeIndication);
-	if (e) goto exit;
-	timeScale = gf_isom_get_media_timescale(load->isom, track);
-	/*get first AU*/
-	samp = gf_isom_get_sample(load->isom, track, 1, &di);
-	if (!samp) {
-		e = gf_isom_last_error(load->isom);
-		goto exit;
+	/*update size & pixel metrics info*/
+	gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication, &bc);
+	if (bc.isCommandStream && bc.pixelWidth && bc.pixelHeight) {
+		load->ctx->scene_width = bc.pixelWidth;
+		load->ctx->scene_height = bc.pixelHeight;
+		load->ctx->is_pixel_metrics = bc.pixelMetrics;
 	}
-	au = gf_sm_stream_au_new(sc, samp->DTS, ((Double)samp->DTS) / timeScale, samp->IsRAP);
-	e = gf_bifs_decode_command_list(bdec, esd->ESID, samp->data, samp->dataLength, au->commands);
-	if (!e) {
-		for (i=0; i<gf_list_count(au->commands); i++) {
-			GF_Command *com = gf_list_get(au->commands, i);
-			if (com->tag == GF_SG_SCENE_REPLACE) {
-				GF_BIFSConfig bc;
-				/*also update size & pixel metrics info*/
-				gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication, &bc);
-				if (bc.isCommandStream && bc.pixelWidth && bc.pixelHeight) {
-					load->ctx->scene_width = bc.pixelWidth;
-					load->ctx->scene_height = bc.pixelHeight;
-					load->ctx->is_pixel_metrics = bc.pixelMetrics;
-				}
-			}
-		}
-	}
-	gf_isom_sample_del(&samp);
+
 	gf_odf_desc_del((GF_Descriptor *) esd);
 	esd = NULL;
 
-exit:
-	gf_bifs_decoder_del(bdec);
-	if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
-	return e;
+	/*note we don't load the first BIFS AU to avoid storing the BIFS decoder, needed to properly handle quantization*/
+	return GF_OK;
 }
 
 void gf_sm_load_done_MP4(GF_SceneLoader *load)

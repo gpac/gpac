@@ -68,7 +68,6 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_MESSAGE(WM_SETSIZE,OnSetSize)
 	ON_MESSAGE(WM_NAVIGATE,OnNavigate)
 	ON_MESSAGE(WM_OPENURL, Open)
-	ON_MESSAGE(WM_SETTIMING, SetTiming)
 	ON_MESSAGE(WM_NEWINSTANCE, NewInstanceOpened)
 	
 	ON_WM_LBUTTONDOWN()
@@ -163,6 +162,7 @@ CMainFrame::CMainFrame()
 	m_num_chapters = 0;
 	m_chapters_start = NULL;
 	m_last_prog = -1;
+	m_timer_on = 0;
 }
 
 CMainFrame::~CMainFrame()
@@ -175,10 +175,44 @@ CMainFrame::~CMainFrame()
 }
 
 
-static UINT indicators[] =
+
+
+#define RTI_TIMER	22
+#define RTI_REFRESH_MS		1000
+
+void CALLBACK EXPORT RTInfoTimer(HWND , UINT , UINT nID , DWORD )
+{
+	GF_SystemRTInfo rti;
+	if (nID != RTI_TIMER) return;
+	WinGPAC *app = GetApp();
+	CMainFrame *pFrame = (CMainFrame *) app->m_pMainWnd;
+	/*shutdown*/
+	if (!pFrame) return;
+
+	if (gf_sys_get_rti(RTI_REFRESH_MS, &rti, 0) && rti.sampling_period_duration) {
+		char szMsg[100];
+		if (/*app->show_rti && */ !pFrame->m_timer_on) {
+			sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
+						gf_term_get_framerate(app->m_term, 0), 
+						rti.cpu_usage, 
+						(u32) (100*rti.process_cpu_time_diff / (rti.total_cpu_time_diff + rti.cpu_idle_time) ), 
+						rti.process_memory/1024);
+			pFrame->m_wndStatusBar.SetPaneText(1, szMsg);
+		}
+
+		u32 ms = gf_term_get_time_in_ms(app->m_term);
+		u32 h = ms / 1000 / 3600;
+		u32 m = ms / 1000 / 60 - h*60;
+		u32 s = ms / 1000 - h*3600 - m*60;
+		
+		sprintf(szMsg, "%02d:%02d.%02d", h, m, s);
+		pFrame->m_wndStatusBar.SetPaneText(0, szMsg);
+	}
+}
+
+static UINT status_indics[] =
 {
 	ID_TIMER,
-	ID_FPS,
 	ID_SEPARATOR,           // status line indicator
 };
 
@@ -256,8 +290,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	ctrl.SetButtonInfo(ID_NAV_NEXT, &bi);
 
 	if (!m_wndStatusBar.Create(this) ||
-		!m_wndStatusBar.SetIndicators(indicators,
-		  sizeof(indicators)/sizeof(UINT)))
+		!m_wndStatusBar.SetIndicators(status_indics,
+		  sizeof(status_indics)/sizeof(UINT)))
 	{
 		TRACE0("Failed to create status bar\n");
 		return -1;      // fail to create
@@ -271,11 +305,12 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;      // fail to create
 	}
 
-	m_wndStatusBar.SetPaneInfo(0, ID_TIMER, SBPS_NORMAL, 60);
-	m_wndStatusBar.SetPaneInfo(1, ID_FPS, SBPS_NORMAL, 60);
-	m_wndStatusBar.SetPaneInfo(2, ID_SEPARATOR, SBPS_STRETCH, 0);
+	m_wndStatusBar.SetPaneInfo(0, ID_TIMER, SBPS_NORMAL, 80);
+	m_wndStatusBar.SetPaneInfo(1, ID_SEPARATOR, SBPS_STRETCH, 0);
 	SetIcon(AfxGetApp()->LoadIcon(IDR_MAINFRAME), TRUE);
 	SetIcon(AfxGetApp()->LoadIcon(IDR_MAINFRAME), FALSE);
+
+	SetTimer(RTI_TIMER, RTI_REFRESH_MS, RTInfoTimer);
 	return 0;
 }
 
@@ -447,13 +482,6 @@ void CALLBACK EXPORT ProgressTimer(HWND , UINT , UINT nID , DWORD )
 				pFrame->m_Sliders.m_PosSlider.SetPos(now);
 		}
 	}
-
-	if (!app->m_prev_time || (app->m_prev_time + 500 <= now)) {
-		app->current_FPS = gf_term_get_framerate(app->m_term, 0);
-		app->current_time_ms = now;
-		pFrame->PostMessage(WM_SETTIMING, 0, 0);
-	}
-
 }
 
 void CMainFrame::SetProgTimer(Bool bOn) 
@@ -463,6 +491,7 @@ void CMainFrame::SetProgTimer(Bool bOn)
 	else
 		KillTimer(PROGRESS_TIMER);
 }
+
 
 LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 {
@@ -546,25 +575,6 @@ void CMainFrame::OnDropFiles(HDROP hDropInfo)
 	m_pPlayList->PlayNext();
 }
 
-LONG CMainFrame::SetTiming(WPARAM wParam, LPARAM lParam)
-{
-	char sTime[75];
-	WinGPAC *gpac = GetApp();
-	u32 ms = gpac->current_time_ms;
-	u32 h = ms / 1000 / 3600;
-	u32 m = ms / 1000 / 60 - h*60;
-	u32 s = ms / 1000 - h*3600 - m*60;
-	
-	sprintf(sTime, "%02d:%02d.%02d", h, m, s);
-	m_wndStatusBar.SetPaneText(0, sTime);
-	
-	sprintf(sTime, "FPS %.1f", gpac->current_FPS);
-	m_wndStatusBar.SetPaneText(1, sTime);
-	return 1;
-}
-
-
-
 void CALLBACK EXPORT ConsoleTimer(HWND , UINT , UINT , DWORD )
 {
 	CMainFrame *pFrame = (CMainFrame *) GetApp()->m_pMainWnd;
@@ -572,7 +582,7 @@ void CALLBACK EXPORT ConsoleTimer(HWND , UINT , UINT , DWORD )
 	pFrame->m_wndStatusBar.GetStatusBarCtrl().SetIcon(2, NULL);
 	pFrame->KillTimer(pFrame->m_timer_on);
 	pFrame->m_timer_on = 0;
-	pFrame->m_wndStatusBar.SetPaneText(2, "Ready");
+	pFrame->m_wndStatusBar.SetPaneText(1, "Ready");
 }
 
 #define CONSOLE_DISPLAY_TIME	1000
@@ -583,12 +593,12 @@ LONG CMainFrame::OnConsoleMessage(WPARAM wParam, LPARAM lParam)
 	
 	if (console_err>=0) {
 		m_wndStatusBar.GetStatusBarCtrl().SetIcon(2, m_icomessage);
-		m_wndStatusBar.SetPaneText(2, console_message);
+		m_wndStatusBar.SetPaneText(1, console_message);
 	} else {
 		char msg[5000];
 		m_wndStatusBar.GetStatusBarCtrl().SetIcon(2, m_icoerror);
 		sprintf(msg, "%s (%s)", console_message, console_service);
-		m_wndStatusBar.SetPaneText(2, msg);
+		m_wndStatusBar.SetPaneText(1, msg);
 	}
 	m_timer_on = SetTimer(10, CONSOLE_DISPLAY_TIME, ConsoleTimer);
 	return 0;

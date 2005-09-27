@@ -129,7 +129,7 @@ void UpdateLastFiles(GF_Config *cfg, const char *URL)
 {
 	u32 nb_entries;
 	gf_cfg_set_key(cfg, "RecentFiles", URL, NULL);
-	gf_cfg_insert_key(cfg, "RecentFiles", URL, "");
+	gf_cfg_insert_key(cfg, "RecentFiles", URL, "", 0);
 	/*remove last entry if needed*/
 	nb_entries = gf_cfg_get_key_count(cfg, "RecentFiles");
 	if (nb_entries>MAX_LAST_FILES) {
@@ -644,6 +644,7 @@ wxDEFAULT_FRAME_STYLE
 	m_num_chapters = 0;
 	m_chapters_start = NULL;
 
+	gf_sys_init();
 
 	myDropfiles *droptarget = new myDropfiles();
 	droptarget->m_pMain = this;
@@ -886,13 +887,16 @@ wxOsmo4Frame::~wxOsmo4Frame()
 {
 	vp_list = NULL;
 	sel_menu = NULL;
-	//m_pToolBar->RemoveTool(FILE_PREV);
-	//m_pToolBar->RemoveTool(FILE_NEXT);
 
-	if (m_chapters_start) free(m_chapters_start);
 	if (m_user.modules) gf_modules_del(m_user.modules);
 	if (m_user.config) gf_cfg_del(m_user.config);
+	gf_sys_close();
+
+	if (m_chapters_start) free(m_chapters_start);
 	if (m_pView) delete m_pView;
+
+	//m_pToolBar->RemoveTool(FILE_PREV);
+	//m_pToolBar->RemoveTool(FILE_NEXT);
 
 	delete m_pPrevBut;
 	delete m_pNextBut;

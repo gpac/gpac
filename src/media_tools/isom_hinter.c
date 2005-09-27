@@ -26,6 +26,7 @@
 #include <gpac/base_coding.h>
 #include <gpac/mpeg4_odf.h>
 #include <gpac/constants.h>
+#include <gpac/math.h>
 #include <gpac/ietf.h>
 
 #ifndef GPAC_READ_ONLY

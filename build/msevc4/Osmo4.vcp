@@ -112,6 +112,7 @@ DEP_CPP_MAINF=\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\terminal.h"\

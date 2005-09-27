@@ -137,7 +137,6 @@ protected:
 	afx_msg LONG OnSetSize(WPARAM wParam, LPARAM lParam);
 	afx_msg LONG OnNavigate(WPARAM wParam, LPARAM lParam);
 	afx_msg LONG Open(WPARAM wParam, LPARAM lParam);
-	afx_msg LONG SetTiming(WPARAM wParam, LPARAM lParam);
 	afx_msg LONG NewInstanceOpened(WPARAM wParam, LPARAM lParam);
 
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);

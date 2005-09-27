@@ -631,7 +631,6 @@ GF_InputService *RTP_Load()
 	priv->mx = gf_mx_new();
 	priv->th = gf_th_new();
 	
-	gf_sys_clock_start();
 	return plug;
 }
 
@@ -673,8 +672,6 @@ void RTP_Delete(GF_BaseInterface *bi)
 	gf_mx_del(priv->mx);
 	free(priv);
 	free(bi);
-
-	gf_sys_clock_stop();
 }
 
 Bool QueryInterface(u32 InterfaceType) 

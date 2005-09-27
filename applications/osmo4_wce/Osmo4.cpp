@@ -158,6 +158,9 @@ BOOL COsmo4::InitInstance()
 		AfxMessageBox(IDP_SOCKETS_INIT_FAILED);
 		return FALSE;
 	}
+
+	gf_sys_init();
+	
 	SetRegistryKey(_T("GPAC"));
 
 	m_prev_batt_bl = m_prev_ac_bl = 0;
@@ -389,6 +392,7 @@ int COsmo4::ExitInstance()
 	gf_modules_del(m_user.modules);
 	gf_cfg_del(m_user.config);
 	ShowTaskBar(1);
+	gf_sys_close();
 	return CWinApp::ExitInstance();
 }
 

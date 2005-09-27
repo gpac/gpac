@@ -206,7 +206,8 @@ GF_Terminal *gf_term_new(GF_User *user)
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_Terminal));
 
-	gf_sys_clock_start();
+	/*just for safety*/
+	gf_sys_init();
 
 	tmp->user = user;
 	tmp->js_ifce.callback = tmp;
@@ -297,7 +298,7 @@ GF_Err gf_term_del(GF_Terminal * term)
 	gf_list_del(term->od_pending);
 	if (term->downloader) gf_dm_del(term->downloader);
 	gf_mx_del(term->net_mx);
-	gf_sys_clock_stop();
+	gf_sys_close();
 	free(term);
 	return e;
 }
@@ -433,6 +434,20 @@ GF_Err gf_term_set_option(GF_Terminal * term, u32 type, u32 value)
 	default:
 		return gf_sr_set_option(term->renderer, type, value);
 	}
+}
+
+GF_Err gf_term_set_simulation_frame_rate(GF_Terminal * term, Double frame_rate)
+{
+	if (!term) return GF_BAD_PARAM;
+	term->system_fps = frame_rate;
+	term->half_frame_duration = (u32) (500.0 / term->system_fps);
+	gf_sr_set_fps(term->renderer, term->system_fps);
+	return GF_OK;
+}
+
+Double gf_term_get_simulation_frame_rate(GF_Terminal *term)
+{
+	return term ? term->system_fps : 0.0;
 }
 
 

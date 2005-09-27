@@ -96,7 +96,7 @@ static void VR_write_yv12_to_yuv(GF_VideoSurface *vs,  unsigned char *src, u32 s
 
 	if (is_planar_yuv(vs->pixel_format)) {
 		/*complete source copy*/
-		if ( (vs->pitch == src_stride) && (src_wnd->w == src_width) && (src_wnd->h == src_height)) {
+		if ( (vs->pitch == (s32) src_stride) && (src_wnd->w == src_width) && (src_wnd->h == src_height)) {
 			assert(!src_wnd->x);
 			assert(!src_wnd->y);
 			memcpy(vs->video_buffer, pY, sizeof(unsigned char)*src_width*src_height);

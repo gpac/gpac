@@ -109,12 +109,11 @@ void gf_mm_add_codec(GF_MediaManager *mgr, GF_Codec *codec)
 	cd = mm_get_codec(mgr->unthreaded_codecs, codec);
 	if (cd) goto exit;
 
-	cd = malloc(sizeof(CodecEntry));
+	GF_SAFEALLOC(cd, sizeof(CodecEntry));
 	cd->dec = codec;
 	cd->th = gf_th_new();
 	cd->mx = gf_mx_new();
 	cd->mm = mgr;
-	cd->is_running = 0;
 	cd->thread_exit = 1;
 
 	cap.CapCode = GF_CODEC_WANTS_THREAD;
@@ -124,14 +123,14 @@ void gf_mm_add_codec(GF_MediaManager *mgr, GF_Codec *codec)
 
 	switch (mgr->threading_mode) {
 	case GF_TERM_THREAD_MULTI:
-		cd->is_threaded = 1;
-		break;
-	case GF_TERM_THREAD_SINGLE:
-		cd->is_threaded = 0;
+		if ((codec->type==0x04) || (codec->type==0x05)) cd->is_threaded = 1;
 		break;
 	case GF_TERM_THREAD_FREE:
 	default:
 		cd->is_threaded = cd->dec_wants_threading;
+		break;
+	/*all codecs in MM thread*/
+	case GF_TERM_THREAD_SINGLE: 
 		break;
 	}
 	
@@ -355,7 +354,7 @@ u32 RunSingleDec(void *ptr)
 
 		/*no priority boost this way for systems codecs, priority is dynamically set by not releasing the 
 		graph when late and moving on*/
-		if (!ce->dec->CB || (ce->dec->CB->UnitCount >= ce->dec->CB->Min)) 
+		if (!ce->dec->CB || (ce->dec->CB->UnitCount == ce->dec->CB->Capacity)) 
 			ce->dec->PriorityBoost = 0;
 
 		/*while on don't sleep*/

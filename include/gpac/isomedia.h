@@ -722,6 +722,10 @@ GF_Err gf_isom_set_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 re
 GF_Err gf_isom_remove_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 ReferenceIndex);
 
 
+/*Update the sample size table - this is needed when using @gf_isom_append_sample_data in case the resulting samples
+are of same sizes (typically in 3GP speech tracks)*/
+GF_Err gf_isom_refresh_size_info(GF_ISOFile *file, u32 trackNumber);
+
 /*Update Sample functions*/
 
 /*update a given sample of the media.

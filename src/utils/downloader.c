@@ -409,7 +409,10 @@ static u32 gf_dm_session_thread(void *par)
 	sess->flags &= ~GF_DOWNLOAD_SESSION_THREAD_DEAD;
 	while (1) {
 		gf_mx_p(sess->mx);
-		if (sess->status >= GF_DOWNLOAD_STATE_DISCONNECTED) break;
+		if (sess->status >= GF_DOWNLOAD_STATE_DISCONNECTED) {
+			gf_mx_v(sess->mx);
+			break;
+		}
 
 		if (sess->status < GF_DOWNLOAD_STATE_CONNECTED) {
 			gf_dm_connect(sess);

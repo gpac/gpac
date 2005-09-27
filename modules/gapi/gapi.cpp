@@ -291,7 +291,7 @@ static void createPixmap(GAPIPriv *ctx, HDC dc, Bool for_gl)
 
     bmi->bmiHeader.biSize           = sizeof(BITMAPINFOHEADER);
     bmi->bmiHeader.biWidth          = ctx->bb_width;
-    bmi->bmiHeader.biHeight         = -1 * (s32) ctx->bb_height;	/*top-down image*/
+    bmi->bmiHeader.biHeight         = -1 *  (s32) ctx->bb_height;	/*top-down image*/
     bmi->bmiHeader.biPlanes         = (short)1;
     bmi->bmiHeader.biBitCount       = (unsigned int) ctx->bits_per_pixel;
     bmi->bmiHeader.biCompression    = BI_BITFIELDS;
@@ -309,11 +309,12 @@ static void createPixmap(GAPIPriv *ctx, HDC dc, Bool for_gl)
 		p[0] = 0x00ff0000; p[1] = 0x0000ff00; p[2] = 0x000000ff;
 		break;
 	}
-		p[0] = 0x0000f800; p[1] = 0x000007e0; p[2] = 0x0000001f;
 	if (for_gl) {
 		ctx->bitmap = CreateDIBSection(dc, bmi, DIB_RGB_COLORS, (void **) &ctx->bits, NULL, 0);
 	} else {
 		ctx->bitmap = CreateDIBSection(dc, bmi, DIB_RGB_COLORS, (void **) &ctx->backbuffer, NULL, 0);
+		/*watchout - win32 always create DWORD align memory, so align our pitch*/
+		while ((ctx->bb_pitch % 4) != 0) ctx->bb_pitch ++;
 	}
 	free(bmi);
 }
@@ -757,11 +758,11 @@ static GF_Err GAPI_InitBackBuffer(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoH
 		createPixmap(gctx, dc, 0);
 		::ReleaseDC(gctx->hWnd, dc);
 		gctx->gx_mode = 0;
-		RECT rc;
-		GetWindowRect(gctx->hWnd, &rc);
-		gctx->off_x = rc.left;
-		gctx->off_y = rc.top;
 	}
+	RECT rc;
+	GetWindowRect(gctx->hWnd, &rc);
+	gctx->off_x = rc.left;
+	gctx->off_y = rc.top;
 	gctx->erase_dest = 1;
 
 

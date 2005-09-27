@@ -25,7 +25,6 @@
 /*includes both terminal and od browser*/
 #include <gpac/terminal.h>
 #include <gpac/term_info.h>
-//#include <gpac/renderer.h>
 #include <gpac/constants.h>
 #include <gpac/options.h>
 #include <gpac/modules/service.h>
@@ -194,7 +193,7 @@ static void UpdateRTInfo()
 	char szMsg[1024];
 
 	/*refresh every second*/
-	if (!display_rti || !gf_get_sys_rt_info(1000, &rti, 0 /*GF_RTI_ALL_PROCESSES_TIMES | GF_RTI_PROCESS_MEMORY*/) || !rti.sampling_period_duration) return;
+	if (!display_rti || !gf_sys_get_rti(1000, &rti, 0 /*GF_RTI_ALL_PROCESSES_TIMES | GF_RTI_PROCESS_MEMORY*/) || !rti.sampling_period_duration) return;
 	if (!rti.process_memory) rti.process_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
 
 	sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
@@ -476,9 +475,6 @@ int main (int argc, char **argv)
 
 	memset(&user, 0, sizeof(GF_User));
 
-	gf_get_sys_rt_info(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
-	memory_at_gpac_startup = rti.physical_memory_avail;
-
 
 	cfg_file = loadconfigfile();
 	if (argc >= 2) {
@@ -501,6 +497,10 @@ int main (int argc, char **argv)
 		fprintf(stdout, "Error: Configuration File \"GPAC.cfg\" not found\n");
 		return 1;
 	}
+	gf_sys_init();
+	
+	gf_sys_get_rti(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
+	memory_at_gpac_startup = rti.physical_memory_avail;
 
 	Run = 1;
 	
@@ -513,7 +513,8 @@ int main (int argc, char **argv)
 		fprintf(stdout, "Error: no modules found in %s - exiting\n", str);
 		gf_modules_del(user.modules);
 		gf_cfg_del(cfg_file);
-		return 0;
+		gf_sys_close();
+		return 1;
 	}
 	fprintf(stdout, "OK (%d found in %s)\n", i, str);
 
@@ -529,6 +530,7 @@ int main (int argc, char **argv)
 		list_modules(user.modules);
 		gf_modules_del(user.modules);
 		gf_cfg_del(cfg_file);
+		gf_sys_close();
 		return 1;
 	}
 	fprintf(stdout, "OK\n");
@@ -565,7 +567,7 @@ int main (int argc, char **argv)
 		/*we don't want getchar to block*/
 		if (!has_input()) {
 			UpdateRTInfo();
-			gf_sleep(10);
+			gf_sleep(500);
 			continue;
 		}
 		c = get_a_char();
@@ -759,6 +761,7 @@ exit:
 	fprintf(stdout, "Unloading modules...\n");
 	gf_modules_del(user.modules);
 	gf_cfg_del(cfg_file);
+	gf_sys_close();
 	fprintf(stdout, "goodbye\n");
 	return 0;
 }

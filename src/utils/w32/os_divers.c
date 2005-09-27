@@ -36,79 +36,6 @@ void gf_sleep(u32 ms)
 	Sleep(ms);
 }
 
-static u32 clock_init = 0;
-
-static void close_rti();
-
-static LARGE_INTEGER frequency = {0, 0};
-static LARGE_INTEGER init_counter = {0, 0};
-
-static u32 (*W32_GetSysClock)();
-static u64 (*W32_GetSysClockHigh)();
-
-u64 W32_GetSysClockHIGHRES_NS()
-{
-	LARGE_INTEGER now;
-	QueryPerformanceCounter(&now);
-	now.QuadPart -= init_counter.QuadPart;
-	return now.QuadPart * 1000000 / frequency.QuadPart;
-}
-
-u32 W32_GetSysClockHIGHRES()
-{
-	LARGE_INTEGER now;
-	QueryPerformanceCounter(&now);
-	now.QuadPart -= init_counter.QuadPart;
-	return (u32) (now.QuadPart * 1000 / frequency.QuadPart);
-}
-
-u32 W32_GetSysClockNORMAL()
-{
-	return timeGetTime();
-}
-
-u64 W32_GetSysClockNORMAL_NS()
-{
-	return timeGetTime() * 1000;
-}
-
-void gf_sys_clock_start()
-{
-	if (!clock_init) {
-		if (QueryPerformanceFrequency(&frequency)) {
-			QueryPerformanceCounter(&init_counter);
-			W32_GetSysClock = W32_GetSysClockHIGHRES;
-			W32_GetSysClockHigh = W32_GetSysClockHIGHRES_NS;
-		} else {
-			timeBeginPeriod(1);
-			W32_GetSysClock = W32_GetSysClockNORMAL;
-			W32_GetSysClockHigh = W32_GetSysClockNORMAL_NS;
-		}
-	}
-	clock_init += 1;
-}
-
-void gf_sys_clock_stop()
-{
-	if (clock_init > 0) {
-		clock_init --;
-		if (!clock_init) {
-			if (!frequency.QuadPart) timeEndPeriod(1);
-			close_rti();
-		}
-	}
-}
-
-u32 gf_sys_clock()
-{
-	return W32_GetSysClock();
-}
-
-u64 gf_sys_clock_ns()
-{
-	return W32_GetSysClockHigh();
-}
-
 void gf_delete_file(char *fileName)
 {
 	DeleteFile(fileName);
@@ -241,25 +168,21 @@ FILE *gf_f64_open(const char *file_name, const char *mode)
 
 
 
+static HINSTANCE psapi_hinst = NULL;
+
 typedef BOOL(WINAPI* NTGetSystemTimes)(VOID *,VOID *,VOID *);
 NTGetSystemTimes MyGetSystemTimes = NULL;
-
 typedef BOOL(WINAPI* NTGetProcessMemoryInfo)(HANDLE,VOID *,DWORD);
 NTGetProcessMemoryInfo MyGetProcessMemoryInfo = NULL;
-
 typedef int(WINAPI* NTQuerySystemInfo)(ULONG,PVOID,ULONG,PULONG);
 NTQuerySystemInfo MyQuerySystemInfo = NULL;
 
 static u64 last_update_time = 0;
-static u64 last_total_cpu_time = 0;
-static u64 last_process_cpu_time = 0;
+static u64 last_process_k_u_time = 0;
 static u64 last_proc_idle_time = 0;
 static u64 last_proc_k_u_time = 0;
-static u32 pid = 0;
 
-static Bool rti_init = 0;
-static HINSTANCE psapi_hinst = NULL;
-
+GF_SystemRTInfo the_rti;
 
 #ifndef PROCESS_MEMORY_COUNTERS
 typedef struct _PROCESS_MEMORY_COUNTERS 
@@ -288,38 +211,117 @@ typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION
 } SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION;
 #endif
 
+static u32 (*W32_GetSysClock)();
+static u64 (*W32_GetSysClockHigh)();
+
+u32 gf_sys_clock()
+{
+	return W32_GetSysClock();
+}
+
+u64 gf_sys_clock_ns()
+{
+	return W32_GetSysClockHigh();
+}
+
+static u32 sys_init = 0;
+static LARGE_INTEGER frequency = {0, 0};
+static LARGE_INTEGER init_counter = {0, 0};
+
+u64 W32_GetSysClockHIGHRES_NS()
+{
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
+	now.QuadPart -= init_counter.QuadPart;
+	return now.QuadPart * 1000000 / frequency.QuadPart;
+}
+
+u32 W32_GetSysClockHIGHRES()
+{
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
+	now.QuadPart -= init_counter.QuadPart;
+	return (u32) (now.QuadPart * 1000 / frequency.QuadPart);
+}
+
+u32 W32_GetSysClockNORMAL() { return timeGetTime(); }
+
+u64 W32_GetSysClockNORMAL_NS() { return timeGetTime() * 1000; }
+
+void gf_sys_init()
+{
+	if (!sys_init) {
+		/*clock setup*/
+		if (QueryPerformanceFrequency(&frequency)) {
+			QueryPerformanceCounter(&init_counter);
+			W32_GetSysClock = W32_GetSysClockHIGHRES;
+			W32_GetSysClockHigh = W32_GetSysClockHIGHRES_NS;
+		} else {
+			timeBeginPeriod(1);
+			W32_GetSysClock = W32_GetSysClockNORMAL;
+			W32_GetSysClockHigh = W32_GetSysClockNORMAL_NS;
+		}
+		/*cpu usage tools are buried in win32 dlls...*/
+		MyGetSystemTimes = (NTGetSystemTimes) GetProcAddress(GetModuleHandle("kernel32.dll"), "GetSystemTimes");
+		if (!MyGetSystemTimes) 
+			MyQuerySystemInfo = (NTQuerySystemInfo) GetProcAddress(GetModuleHandle("ntdll.dll"), "NtQuerySystemInformation");
+		psapi_hinst = LoadLibrary("psapi.dll");
+		MyGetProcessMemoryInfo = (NTGetProcessMemoryInfo) GetProcAddress(psapi_hinst, "GetProcessMemoryInfo");
+		last_update_time = last_process_k_u_time = last_proc_idle_time = last_proc_k_u_time = 0;
+
+		memset(&the_rti, 0, sizeof(GF_SystemRTInfo));
+		the_rti.pid = GetCurrentProcessId();
+	}
+	sys_init += 1;
+}
+
+void gf_sys_close()
+{
+	if (sys_init > 0) {
+		sys_init --;
+		if (sys_init) return;
+		if (!frequency.QuadPart) timeEndPeriod(1);
+		
+		MyGetSystemTimes = NULL;
+		MyGetProcessMemoryInfo = NULL;
+		MyQuerySystemInfo = NULL;
+		/*prevent any call*/
+		last_update_time = (u64) -1;
+		if (psapi_hinst) FreeLibrary(psapi_hinst);
+		psapi_hinst = NULL;
+	}
+}
+
 /*CPU and Memory Usage*/
-Bool gf_get_sys_rt_info(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
+Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 {
 	MEMORYSTATUS ms;
-	u64 creation, exit, kernel, user, total_cpu_time, process_cpu_time, entry_time, proc_idle_time, proc_k_u_time;
-	u32 process_mem_size, nb_threads;
+	u64 creation, exit, kernel, user, process_k_u_time, entry_time, proc_idle_time, proc_k_u_time;
+	u32 nb_threads;
 	HANDLE hSnapShot;
+
+	assert(sys_init);
 
 	if (!rti) return 0;
 
-	proc_idle_time = proc_k_u_time = total_cpu_time = process_cpu_time = 0;
+	proc_idle_time = proc_k_u_time = process_k_u_time = 0;
 	nb_threads = 0;
-	process_mem_size = 0;
-
-	memset(rti, 0, sizeof(GF_SystemRTInfo));
-	rti->sampling_instant = last_update_time;
-
-	if (!pid) pid = GetCurrentProcessId();
-
-	if ((flags & GF_RTI_SYSTEM_MEMORY_ONLY) || !clock_init) goto default_vals;
 
 	entry_time = gf_sys_clock_ns();
-	if (last_update_time && (entry_time - last_update_time < refresh_time_ms*1000)) goto default_vals;
-	
-	
-	if (!rti_init) {
-		MyGetSystemTimes = (NTGetSystemTimes) GetProcAddress(GetModuleHandle("kernel32.dll"), "GetSystemTimes");
-		MyQuerySystemInfo = (NTQuerySystemInfo) GetProcAddress(GetModuleHandle("ntdll.dll"), "NtQuerySystemInformation");
-		psapi_hinst = LoadLibrary("psapi.dll");
-		MyGetProcessMemoryInfo = (NTGetProcessMemoryInfo) GetProcAddress(psapi_hinst, "GetProcessMemoryInfo");
-		rti_init = 1;
+	if (last_update_time && (entry_time - last_update_time < refresh_time_ms*1000)) {
+		memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
+		return 0;
 	}
+
+	if (flags & GF_RTI_SYSTEM_MEMORY_ONLY) {
+		memset(rti, 0, sizeof(GF_SystemRTInfo));
+		rti->sampling_instant = last_update_time;
+		GlobalMemoryStatus(&ms);
+		rti->physical_memory = ms.dwTotalPhys;
+		rti->physical_memory_avail = ms.dwAvailPhys;
+		return 1;
+	}
+
 	/*XP-SP1 and Win2003 servers only have GetSystemTimes support. This will give a better estimation
 	of CPU usage since we can take into account the idle time*/
 	if (MyGetSystemTimes) {
@@ -352,9 +354,9 @@ Bool gf_get_sys_rt_info(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 				if (pentry.th32ProcessID) procH = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pentry.th32ProcessID);
 				if (procH && GetProcessTimes(procH, (FILETIME *) &creation, (FILETIME *) &exit, (FILETIME *) &kernel, (FILETIME *) &user) ) {
 					user += kernel;
-					total_cpu_time += user;
-					if (pentry.th32ProcessID==pid) {
-						process_cpu_time = user;
+					proc_k_u_time += user;
+					if (pentry.th32ProcessID==the_rti.pid) {
+						process_k_u_time = user;
 						nb_threads = pentry.cntThreads;
 					}
 				}
@@ -362,50 +364,41 @@ Bool gf_get_sys_rt_info(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 			} while (Process32Next(hSnapShot, &pentry));
 		}
 		CloseHandle(hSnapShot); 
-		total_cpu_time /= 10;
+		proc_k_u_time /= 10;
 	} 
-	/*update total procs times if not done*/
-	if (!total_cpu_time && proc_k_u_time) total_cpu_time = proc_k_u_time - proc_idle_time;
 
-	if (!process_cpu_time) {
-		HANDLE procH = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
+
+	if (!process_k_u_time) {
+		HANDLE procH = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, the_rti.pid);
 		if (procH && GetProcessTimes(procH, (FILETIME *) &creation, (FILETIME *) &exit, (FILETIME *) &kernel, (FILETIME *) &user) ) {
-			process_cpu_time = user + kernel;
+			process_k_u_time = user + kernel;
 		}
 		if (procH) CloseHandle(procH);
+		if (!process_k_u_time) return 0;
 	}
-	process_cpu_time /= 10;
+	process_k_u_time /= 10;
 
 	/*this won't cost a lot*/
 	if (MyGetProcessMemoryInfo) {
 		PROCESS_MEMORY_COUNTERS pmc;
-		HANDLE procH = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
+		HANDLE procH = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, the_rti.pid);
 		MyGetProcessMemoryInfo(procH, &pmc, sizeof (pmc));
-		process_mem_size = pmc.WorkingSetSize;
+		the_rti.process_memory = pmc.WorkingSetSize;
 		if (procH) CloseHandle(procH);
 	}
-	else if (1) {
-		u32 i;
-		DWORD ret;
-		HANDLE ph[2048];
-		ret = GetProcessHeaps(2048, ph);
-		if (ret<2048) {
-			for (i=0; i<ret; i++) process_mem_size += HeapSize(ph[i], 0, NULL);
-		}
-	}
-
 	/*THIS IS VERY HEAVY (eats up mem and time) - only perform if requested*/
 	else if (flags & GF_RTI_PROCESS_MEMORY) {
 		HEAPLIST32 hlentry;
 		HEAPENTRY32 hentry;
+		the_rti.process_memory = 0;
 		hlentry.dwSize = sizeof(HEAPLIST32); 
-		hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPHEAPLIST, pid); 
+		hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPHEAPLIST, the_rti.pid); 
 		if (hSnapShot && Heap32ListFirst(hSnapShot, &hlentry)) {
 			do {
 				hentry.dwSize = sizeof(hentry);
 				if (Heap32First(&hentry, hlentry.th32ProcessID, hlentry.th32HeapID)) {
 					do {
-						process_mem_size += hentry.dwBlockSize;
+						the_rti.process_memory += hentry.dwBlockSize;
 					} while (Heap32Next(&hentry));
 				}
 			} while (Heap32ListNext(hSnapShot, &hlentry));
@@ -413,55 +406,43 @@ Bool gf_get_sys_rt_info(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		CloseHandle(hSnapShot); 
 	}
 
-	if (last_update_time) {
-		rti->sampling_period_duration = entry_time - last_update_time;
+	the_rti.sampling_instant = last_update_time;
 
-		rti->total_cpu_time_diff = (total_cpu_time - last_total_cpu_time);
-		/*we're not that accurate....*/
-		if (rti->total_cpu_time_diff > rti->sampling_period_duration) 
-			rti->sampling_period_duration = rti->total_cpu_time_diff;
-		
-		rti->process_cpu_time_diff = process_cpu_time - last_process_cpu_time;
-		if (proc_k_u_time) {
-			u64 samp_sys_time = proc_k_u_time - last_proc_k_u_time;
-			rti->cpu_idle_time = proc_idle_time - last_proc_idle_time;
-            rti->cpu_usage = (u32) ( (samp_sys_time - rti->cpu_idle_time) / (samp_sys_time / 100) );
+	if (last_update_time) {
+		the_rti.sampling_period_duration = entry_time - last_update_time;
+
+		the_rti.process_cpu_time_diff = process_k_u_time - last_process_k_u_time;
+
+		/*oops, we have no choice but to assume 100% cpu usage during this period*/
+		if (!proc_k_u_time) {
+			the_rti.total_cpu_time_diff = the_rti.sampling_period_duration;
+			proc_k_u_time = last_proc_k_u_time + the_rti.sampling_period_duration;
+			the_rti.cpu_idle_time = 0;
+			the_rti.cpu_usage = 100;
 		} else {
-			/*rough values*/
-			rti->cpu_idle_time = rti->sampling_period_duration - rti->total_cpu_time_diff;
-			rti->cpu_usage = (u32) (rti->total_cpu_time_diff * 100 / rti->sampling_period_duration);
+			u64 samp_sys_time;
+			the_rti.total_cpu_time_diff = (proc_k_u_time - last_proc_k_u_time);
+
+			/*we're not that accurate....*/
+			if (the_rti.total_cpu_time_diff > the_rti.sampling_period_duration) 
+				the_rti.sampling_period_duration = the_rti.total_cpu_time_diff;
+			
+			if (!proc_idle_time) proc_idle_time = the_rti.sampling_period_duration - the_rti.total_cpu_time_diff; 
+
+			samp_sys_time = proc_k_u_time - last_proc_k_u_time;
+			the_rti.cpu_idle_time = proc_idle_time - last_proc_idle_time;
+            the_rti.cpu_usage = (u32) ( (samp_sys_time - the_rti.cpu_idle_time) / (samp_sys_time / 100) );
 		}
 	}
-
-	last_total_cpu_time = total_cpu_time;
-	last_process_cpu_time = process_cpu_time;
-	last_update_time = entry_time;
+	last_process_k_u_time = process_k_u_time;
 	last_proc_idle_time = proc_idle_time;
 	last_proc_k_u_time = proc_k_u_time;
+	last_update_time = entry_time;
 
-default_vals:
-	rti->total_cpu_time = last_total_cpu_time;
-	rti->process_cpu_time = last_process_cpu_time;
-	rti->process_memory = process_mem_size;
-	rti->thread_count = nb_threads;
-	rti->pid = pid;
 	GlobalMemoryStatus(&ms);
-	rti->physical_memory = ms.dwTotalPhys;
-	rti->physical_memory_avail = ms.dwAvailPhys;
+	the_rti.physical_memory = ms.dwTotalPhys;
+	the_rti.physical_memory_avail = ms.dwAvailPhys;
 
+	memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
 	return 1;
-}
-
-static void close_rti()
-{
-	MyGetSystemTimes = NULL;
-	MyGetProcessMemoryInfo = NULL;
-	MyQuerySystemInfo = NULL;
-	last_update_time = last_total_cpu_time = last_process_cpu_time = last_proc_idle_time = last_proc_k_u_time = 0;
-	pid = 0;
-	if (psapi_hinst) {
-		FreeLibrary(psapi_hinst);
-		psapi_hinst = NULL;
-	}
-	rti_init = 0;
 }
