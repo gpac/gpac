@@ -386,7 +386,7 @@ typedef struct
  * Selection flags for run-time info retrieval
  *	\hideinitializer
  */
-typedef enum
+enum
 {
 	/*!Indicates all processes' times must be fetched. If not set, only the current process times will be retrieved, and the
 	thread count and total times won't be available*/
