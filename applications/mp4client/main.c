@@ -197,9 +197,7 @@ static void UpdateRTInfo()
 	if (!rti.process_memory) rti.process_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
 
 	sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
-		gf_term_get_framerate(term, 0),
-		rti.cpu_usage, (u32) (100*rti.process_cpu_time_diff / (rti.total_cpu_time_diff + rti.cpu_idle_time) ), 
-		rti.process_memory / 1024);
+		gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, rti.process_memory / 1024);
 
 	evt.type = GF_EVT_SET_CAPTION;
 	evt.caption.caption = szMsg;
@@ -567,7 +565,7 @@ int main (int argc, char **argv)
 		/*we don't want getchar to block*/
 		if (!has_input()) {
 			UpdateRTInfo();
-			gf_sleep(500);
+			gf_sleep(250);
 			continue;
 		}
 		c = get_a_char();

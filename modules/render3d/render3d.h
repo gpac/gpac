@@ -105,6 +105,7 @@ typedef struct _render3d
 	/*sensitive node storage*/
 	Bool is_grabbed;
 	GF_List *sensors, *prev_sensors;
+	GF_Node *picked;
 	RayHitInfo hit_info;
 	/*distance from ray origin used to discards further hits - FIXME: may not properly work with transparent layer3D*/
 	Fixed sq_dist;

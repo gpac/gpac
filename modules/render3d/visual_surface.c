@@ -457,7 +457,7 @@ static GFINLINE Bool VS_setup_material(RenderEffect3D *eff)
 
 	__mat = ((M_Appearance *)eff->appear)->material;
 	if (!__mat) {
-		/*use material2D to disable lighting*/
+		/*use material2D to disable lighting (cf VRML specs)*/
 		VS3D_SetMaterial2D(eff->surface, def, FIX_ONE);
 		return 1;
 	} 
@@ -1279,6 +1279,7 @@ Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_UserEvent *ev,
 	if (!sr->is_grabbed) sr->hs_grab = NULL;
 
 	sr->sq_dist = 0;
+	sr->picked = NULL;
 	gf_list_reset(sr->sensors);
 
 	if (!node_list) {
@@ -1471,6 +1472,7 @@ void drawable_do_pick(GF_Node *n, RenderEffect3D *eff)
 	} else {
 		sr->hit_info.appear = NULL;
 	}
+	sr->picked = n;
 #if DEBUG_PICKING
 	fprintf(stdout, "node %s (def %s) is under mouse - hit %g %g %g\n", gf_node_get_class_name(n), gf_node_get_name(n),
 			FIX2FLT(world_pt.x), FIX2FLT(world_pt.y), FIX2FLT(world_pt.z));

@@ -412,7 +412,7 @@ u32 gf_isom_new_track(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScal
 	isHint = 0;
 	//we're creating a hint track... it's the same, but mode HAS TO BE EDIT
 	if (MediaType == GF_ISOM_MEDIA_HINT) {
-		if (movie->openMode != GF_ISOM_OPEN_EDIT) return 0;
+//		if (movie->openMode != GF_ISOM_OPEN_EDIT) return 0;
 		isHint = 1;
 	}
 

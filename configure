@@ -374,8 +374,12 @@ has_js="local"
 fi
 fi
 fi
+#end JS test
+
 
 #look for freetype support
+if test "`which freetype-config`" != ""; then
+
 ft_cflags="`freetype-config --cflags`"
 ft_lflags="`freetype-config --libs`"
 
@@ -396,6 +400,11 @@ if $cc -o $TMPO $TMPC $ft_cflags $ft_lflags 2> /dev/null  ; then
 has_ft="local"
 fi
 fi
+
+fi
+#end freetype test
+
+
 
 #look for OpenGL support
 cat > $TMPC << EOF
@@ -715,12 +724,6 @@ fi
 
 
 #look for SDL support
-cat > $TMPC << EOF
-#include <SDL.h>
-#undef main
-int main( void ) { return SDL_Init (SDL_INIT_VIDEO); }
-EOF
-
 sdl_too_old=no
 has_sdl=no
 sdl_config="sdl-config"
@@ -728,6 +731,14 @@ if test "$sdl_local" = "yes"; then
 sdl_config="$sdl_path/sdl-config"
 sdl_static="yes"
 fi
+
+if test "`which $sdl_config`" != ""; then
+
+cat > $TMPC << EOF
+#include <SDL.h>
+#undef main
+int main( void ) { return SDL_Init (SDL_INIT_VIDEO); }
+EOF
 
 if test "$sdl_static" = "yes"; then
 sdl_lib_flags=`$sdl_config --static-libs`
@@ -745,9 +756,14 @@ has_sdl=yes
 fi
 fi
 
+fi
+#end SDL check
+
 #look for wxWidgets support
 has_wx="no"
 wx_too_old="no"
+
+if test "`which wx-config`" != "" ; then
 
 wx_version=`wx-config --version | sed 's/[^0-9]//g'`
 
@@ -785,9 +801,15 @@ has_wx="yes"
 fi
 fi
 
+fi
+#end wx test
+
 #look for libxml2 support
 has_xml2="no"
 xml2_too_old="no"
+
+if test "`which xml2-config`" != "" ; then
+
 xml2_cflags=`xml2-config --cflags`
 xml2_lflags=`xml2-config --libs`
 
@@ -809,6 +831,11 @@ else
 has_xml2="yes"
 fi
 fi
+
+fi
+#end xml2 tes
+
+
 
 # Checking for CFLAGS
 if test -z "$CFLAGS"; then
@@ -900,9 +927,6 @@ echo "SDL Support: $has_sdl"
 if test "$sdl_too_old" = "yes" ; then
 echo "SDL Version too old - please upgrade for SDL support"
 fi
-if test "$wx_too_old" = "yes" ; then
-echo "wxWidgets Version too old - please upgrade to 2.6.0 for wxWidgets support"
-fi
 echo "libXML2: $has_xml2"
 if test "$xml2_too_old" = "yes" ; then
 echo "XML2 Version too old - please upgrade for libXML2 support (SVG parser)"
@@ -913,7 +937,17 @@ echo "OpenSSL support: $has_ssl"
 if test "$win32" = "yes" ; then
 echo "DirectX Support: $has_mingw_directx"
 fi
-echo "wxWidgets support: $has_wx (version $wx_version)"
+
+if test "$wx_too_old" = "yes" ; then
+has_wx="no"
+echo "wxWidgets Version too old - please upgrade to 2.6.0 for wxWidgets support"
+fi
+if test "$has_wx" = "yes" ; then
+echo "wxWidgets support: Version $wx_version"
+else
+echo "wxWidgets support: no"
+fi
+
 
 echo ""
 echo "** Extra Libraries used **"

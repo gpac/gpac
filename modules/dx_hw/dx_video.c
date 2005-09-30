@@ -144,7 +144,8 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
     pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
     pfd.dwLayerMask = PFD_MAIN_PLANE;
     pfd.iPixelType = PFD_TYPE_RGBA;
-    pfd.cColorBits = pfd.cDepthBits = 16;
+    pfd.cColorBits = 32;
+	pfd.cDepthBits = 32;
 	/*we need alpha support for composite textures...*/
 	pfd.cAlphaBits = 8;
     if ( (pixelformat = ChoosePixelFormat(dd->gl_HDC, &pfd)) == FALSE ) return GF_IO_ERR; 

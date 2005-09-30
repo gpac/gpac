@@ -86,6 +86,8 @@ BEGIN
             MENUITEM "Ratio 16/9",                  ID_AR_169
         END
         MENUITEM SEPARATOR
+        MENUITEM "Resource Usage",              IDD_VIEW_CPU
+        MENUITEM SEPARATOR
         MENUITEM "&Options",                    IDD_CONFIGURE
     END
     POPUP "Play"

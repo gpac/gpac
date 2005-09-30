@@ -104,6 +104,7 @@ public:
 	Bool m_bFirstStreamQuery;
 	/*filter progress events to avoid killing importers with status bar text display...*/
 	s32 m_last_prog;
+	Bool m_show_rti;
 
 public:
 	void SetFullscreen();
@@ -124,6 +125,7 @@ private:
 
 	Double *m_chapters_start;
 	u32 m_num_chapters;
+
 
 // Generated message map functions
 protected:
@@ -201,6 +203,9 @@ protected:
 	afx_msg void OnUpdatePlaylistLoop(CCmdUI* pCmdUI);
 	afx_msg void OnAddSubtitle();
 	afx_msg void OnFileExit();
+	afx_msg void OnViewCPU();
+	afx_msg void OnUpdateViewCPU(CCmdUI* pCmdUI);
+
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

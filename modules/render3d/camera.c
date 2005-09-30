@@ -362,6 +362,12 @@ Bool camera_animate(GF_Camera *cam)
 				cam->trans.x = cam->trans.y = cam->rot.x = cam->rot.y = 0;
 				cam->flags |= CAM_IS_DIRTY;
 			}
+			if (cam->flags & CF_STORE_VP) {
+				cam->flags &= ~CF_STORE_VP;
+				cam->vp_position = cam->position;
+				cam->vp_fov = cam->fieldOfView;
+				cam->vp_orientation = camera_get_orientation(cam->position, cam->target, cam->up);
+			}
 			return 1;
 		} else {
 			frac = FLT2FIX( ((Float) now) / cam->anim_len);

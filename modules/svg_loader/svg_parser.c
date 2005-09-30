@@ -1905,6 +1905,7 @@ void svg_parse_one_style(SVGParser *parser, SVGElement *elt, char *one_style)
 
 	while (*one_style == ' ') one_style++;
 	c = strchr(one_style, ':');
+	if (!c) return;
 	attributeNameLen = (c - one_style);
 	attributeName = malloc(attributeNameLen+1);
 	memcpy(attributeName, one_style, attributeNameLen);

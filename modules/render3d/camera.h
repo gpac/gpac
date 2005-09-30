@@ -81,6 +81,8 @@ enum
 	CF_DO_GRAVITY = (1<<1),
 	/*gravity detected*/
 	CF_GRAVITY = (1<<2),
+	/*viewpoint is stored at end of animation*/
+	CF_STORE_VP = (1<<3),
 };
 
 typedef struct 
@@ -170,6 +172,8 @@ Bool camera_animate(GF_Camera *cam);
 void camera_stop_anim(GF_Camera *cam);
 /*start jump mode*/
 void camera_jump(GF_Camera *cam);
+
+void camera_set_vectors(GF_Camera *cam, SFVec3f pos, SFRotation ori, Fixed fov);
 
 SFRotation camera_get_orientation(SFVec3f pos, SFVec3f target, SFVec3f up);
 SFVec3f camera_get_pos_dir(GF_Camera *cam);

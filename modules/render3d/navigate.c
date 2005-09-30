@@ -169,6 +169,58 @@ void view_zoom(Render3D *sr, GF_Camera *cam, Fixed z)
 	camera_changed(sr, cam);
 }
 
+void R3D_FitScene(Render3D *sr)
+{
+	RenderEffect3D eff;
+	SFVec3f pos, diff;
+	Fixed dist, d;
+	GF_Camera *cam;
+	GF_Node *top;
+
+	if (gf_list_count(sr->surface->back_stack)) return;
+	if (gf_list_count(sr->surface->view_stack)) return;
+
+	gf_mx_p(sr->compositor->mx);
+	top = gf_sg_get_root_node(sr->compositor->scene);
+	if (!top) {
+		gf_mx_v(sr->compositor->mx);
+		return;
+	}
+	memset(&eff, 0, sizeof(RenderEffect3D));
+	eff.traversing_mode = TRAVERSE_GET_BOUNDS;
+	gf_node_render(top, &eff);
+	if (!eff.bbox.is_set) {
+		gf_mx_v(sr->compositor->mx);
+		return;
+	}
+
+	cam = &sr->surface->camera;
+
+	/*fit is based on bounding sphere*/
+	dist = gf_divfix(eff.bbox.radius, gf_sin(cam->fieldOfView/2) );
+	gf_vec_diff(diff, cam->center, eff.bbox.center);
+	/*do not update if camera is outside the scene bounding sphere and dist is too close*/
+	if (gf_vec_len(diff) > eff.bbox.radius + cam->radius) {
+		gf_vec_diff(diff, cam->vp_position, eff.bbox.center);
+		d = gf_vec_len(diff);
+		if (d<dist) {
+			gf_mx_v(sr->compositor->mx);
+			return;
+		}
+	}
+		
+	diff = gf_vec_scale(camera_get_pos_dir(cam), dist);
+	gf_vec_add(pos, eff.bbox.center, diff);
+	diff = cam->position;
+	camera_set_vectors(cam, pos, cam->vp_orientation, cam->fieldOfView);
+	cam->position = diff;
+	camera_move_to(cam, pos, cam->target, cam->up);
+	cam->examine_center = eff.bbox.center;
+	cam->flags |= CF_STORE_VP;
+	camera_changed(sr, cam);
+	gf_mx_v(sr->compositor->mx);
+}
+
 static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
 {
 	Fixed x, y, trans_scale;
@@ -220,6 +272,16 @@ static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
 		sr->grab_x = x;
 		sr->grab_y = y;
 		sr->nav_is_grabbed = 1;
+
+		/*change vp and examine center to current location*/
+		if ((keys & GF_KM_CTRL) && sr->sq_dist) {
+			cam->vp_position = cam->position;
+			cam->vp_orientation = camera_get_orientation(cam->position, cam->target, cam->up);
+			cam->vp_fov = cam->fieldOfView;
+			cam->examine_center = sr->hit_info.world_point;
+			camera_changed(sr, cam);
+			return 1;
+		}
 		break;
 	case GF_EVT_RIGHTDOWN:
 		if (sr->nav_is_grabbed && (cam->navigate_mode==GF_NAVIGATE_WALK)) {
@@ -227,6 +289,7 @@ static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
 			gf_sr_invalidate(sr->compositor, NULL);
 			return 1;
 		}
+		else if (keys & GF_KM_CTRL) R3D_FitScene(sr);
 		break;
 
 	/* note: shortcuts are mostly the same as blaxxun contact, I don't feel like remembering 2 sets...*/

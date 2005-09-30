@@ -1875,10 +1875,16 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 	case GF_STREAM_MPEGJ:
 		mtype = GF_ISOM_MEDIA_MPEGJ;
 		break;
-	/*note we cannot import OD, OCR and interaction streams from NHNT*/
-	default:
+	/*note we cannot import OD from NHNT*/
+	case GF_STREAM_OD:
 		e = GF_NOT_SUPPORTED;
 		goto exit;
+	case GF_STREAM_INTERACT:
+		mtype = GF_ISOM_MEDIA_BIFS;
+		break;
+	default:
+		mtype = GF_ISOM_MEDIA_ESM;
+		break;
 	}
 	track = gf_isom_new_track(import->dest, import->esd->ESID, mtype, import->esd->slConfig->timestampResolution);
 	if (!track) {
@@ -1893,7 +1899,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 
 	if (w && h) gf_isom_set_visual_info(import->dest, track, di, w, h);
 
-	gf_import_message(import, GF_OK, "NHNT import - Stream Type %s - ObjectTypeIndication %d", gf_odf_stream_type_name(import->esd->decoderConfig->streamType), import->esd->decoderConfig->objectTypeIndication);
+	gf_import_message(import, GF_OK, "NHNT import - Stream Type %s - ObjectTypeIndication 0x%02x", gf_odf_stream_type_name(import->esd->decoderConfig->streamType), import->esd->decoderConfig->objectTypeIndication);
 
 	duration = (u32) ( ((Double) import->duration)/ 1000 * import->esd->slConfig->timestampResolution);
 
@@ -3534,59 +3540,133 @@ exit:
 	return e;
 }
 
+GF_Err gf_import_raw_unit(GF_MediaImporter *import)
+{
+	GF_Err e;
+	GF_ISOSample *samp;
+	u32 mtype, track, di, timescale;
+	FILE *src;
+
+	if (import->flags & GF_IMPORT_PROBE_ONLY) {
+		import->flags |= GF_IMPORT_USE_DATAREF;
+		return GF_OK;
+	}
+
+	if (!import->esd || !import->esd->decoderConfig) {
+		return gf_import_message(import, GF_BAD_PARAM, "Raw stream needs ESD and DecoderConfig for import");
+	}
+
+	src = fopen(import->in_name, "rb");
+	if (!src) return gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", import->in_name);
+
+	switch (import->esd->decoderConfig->streamType) {
+	case GF_STREAM_SCENE: mtype = GF_ISOM_MEDIA_BIFS; break;
+	case GF_STREAM_VISUAL: mtype = GF_ISOM_MEDIA_VISUAL; break;
+	case GF_STREAM_AUDIO: mtype = GF_ISOM_MEDIA_AUDIO; break;
+	case GF_STREAM_TEXT: mtype = GF_ISOM_MEDIA_TEXT; break;
+	case GF_STREAM_MPEG7: mtype = GF_ISOM_MEDIA_MPEG7; break;
+	case GF_STREAM_IPMP: mtype = GF_ISOM_MEDIA_IPMP; break;
+	case GF_STREAM_OCI: mtype = GF_ISOM_MEDIA_OCI; break;
+	case GF_STREAM_MPEGJ: mtype = GF_ISOM_MEDIA_MPEGJ; break;
+	case GF_STREAM_INTERACT: mtype = GF_STREAM_SCENE; break;
+	/*not sure about this one...*/
+	case GF_STREAM_IPMP_TOOL: mtype = GF_ISOM_MEDIA_IPMP; break;
+	/*not sure about this one...*/
+	case GF_STREAM_FONT: mtype = GF_ISOM_MEDIA_MPEGJ; break;
+	default: mtype = GF_ISOM_MEDIA_ESM;
+	}
+	timescale = import->esd->slConfig ? import->esd->slConfig->timestampResolution : 1000;
+	track = gf_isom_new_track(import->dest, import->esd->ESID, mtype, timescale);
+	if (!track) {
+		e = gf_isom_last_error(import->dest);
+		goto exit;
+	}
+	gf_isom_set_track_enabled(import->dest, track, 1);
+	if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
+	import->final_trackID = import->esd->ESID;
+	e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
+	if (e) goto exit;
+
+	gf_import_message(import, GF_OK, "Raw Access Unit import (StreamType %s)", gf_odf_stream_type_name(import->esd->decoderConfig->streamType));
+
+	samp = gf_isom_sample_new();
+	fseek(src, 0, SEEK_END);
+	samp->dataLength = ftell(src);
+	fseek(src, 0, SEEK_SET);
+	samp->IsRAP = 1;
+	samp->data = malloc(sizeof(char)*samp->dataLength);
+	fread(samp->data, samp->dataLength, 1, src);
+	e = gf_isom_add_sample(import->dest, track, di, samp);
+	gf_isom_sample_del(&samp);
+	MP4T_RecomputeBitRate(import->dest, track);
+exit:
+	fclose(src);
+	return e;
+}
+
 GF_Err gf_media_import(GF_MediaImporter *importer)
 {
 	GF_Err gf_import_timed_text(GF_MediaImporter *import);
 	GF_Err e;
 	char *ext;
+	char *fmt = "";
 	if (!importer || (!importer->dest && (importer->flags!=GF_IMPORT_PROBE_ONLY)) || (!importer->in_name && !importer->orig) ) return GF_BAD_PARAM;
 
 	if (importer->orig) return gf_import_isomedia(importer);
 
 	ext = strrchr(importer->in_name, '.');
+	
+	if (importer->streamFormat) fmt = importer->streamFormat;
 
-	if (!strnicmp(ext, ".avi", 4)) {
+	if (!strnicmp(ext, ".avi", 4) || !stricmp(fmt, "AVI") ) {
 		e = gf_import_avi_video(importer);
 		if (e) return e;
 		return gf_import_avi_audio(importer);
 	}
-	else if (!strnicmp(ext, ".ogg", 4)) {
+	else if (!strnicmp(ext, ".ogg", 4) || !stricmp(fmt, "OGG")) {
 		e = gf_import_ogg_video(importer);
 		if (e) return e;
 		return gf_import_ogg_audio(importer);
 	}
 	else if (!strnicmp(ext, ".mpg", 4) || !strnicmp(ext, ".mpeg", 5) 
 		|| !strnicmp(ext, ".vob", 4) || !strnicmp(ext, ".vcd", 4) || !strnicmp(ext, ".svcd", 5)
+		|| !stricmp(fmt, "MPEG1") || !stricmp(fmt, "MPEG-PS")  || !stricmp(fmt, "MPEG2-PS") 
 		) {
 		e = gf_import_mpeg_ps_video(importer);
 		if (e) return e;
 		return gf_import_mpeg_ps_audio(importer);
 	}
 
-	else if (!strnicmp(ext, ".mp3", 4)) 
+	else if (!strnicmp(ext, ".mp3", 4) || !stricmp(fmt, "MP3") || !stricmp(fmt, "MPEG-AUDIO") ) 
 		return gf_import_mp3(importer);
-	else if (!strnicmp(ext, ".media", 5) || !strnicmp(ext, ".info", 5) || !strnicmp(ext, ".nhnt", 5)) {
+	else if (!strnicmp(ext, ".media", 5) || !strnicmp(ext, ".info", 5) || !strnicmp(ext, ".nhnt", 5) || !stricmp(fmt, "NHNT") ) {
 		return gf_import_nhnt(importer);
 	}
-	else if (!strnicmp(ext, ".jpg", 4) || !strnicmp(ext, ".jpeg", 5) || !strnicmp(ext, ".png", 4)) 
+	else if (!strnicmp(ext, ".jpg", 4) || !strnicmp(ext, ".jpeg", 5) || !strnicmp(ext, ".png", 4) || !stricmp(fmt, "JPEG") || !stricmp(fmt, "PNG") ) 
 		return gf_import_still_image(importer);
-	else if (!strnicmp(ext, ".aac", 4)) 
+	else if (!strnicmp(ext, ".aac", 4) || !stricmp(fmt, "AAC") || !stricmp(fmt, "MPEG4-AUDIO") ) 
 		return gf_import_aac_adts(importer);
-	else if (!strnicmp(ext, ".amr", 4) || !strnicmp(ext, ".awb", 4) || !strnicmp(ext, ".smv", 4) || !strnicmp(ext, ".evc", 4)) 
+	else if (!strnicmp(ext, ".amr", 4) || !strnicmp(ext, ".awb", 4) || !strnicmp(ext, ".smv", 4) || !strnicmp(ext, ".evc", 4)
+		|| !stricmp(fmt, "AMR") || !stricmp(fmt, "EVRC") || !stricmp(fmt, "SMV") ) 
 		return gf_import_amr_evrc_smv(importer);
-	else if (!strnicmp(ext, ".qcp", 4)) 
+	else if (!strnicmp(ext, ".qcp", 4) || !stricmp(fmt, "QCELP") ) 
 		return gf_import_qcp(importer);
-	else if (!strnicmp(ext, ".cmp", 4) || !strnicmp(ext, ".m4v", 4)) 
+	else if (!strnicmp(ext, ".cmp", 4) || !strnicmp(ext, ".m4v", 4) || !stricmp(fmt, "CMP") || !stricmp(fmt, "MPEG4-Video") ) 
 		return gf_import_cmp(importer);
-	else if (!strnicmp(ext, ".263", 4) || !strnicmp(ext, ".h263", 5)) 
+	else if (!strnicmp(ext, ".263", 4) || !strnicmp(ext, ".h263", 5) || !stricmp(fmt, "H263") ) 
 		return gf_import_h263(importer);
 	else if (!strnicmp(ext, ".h264", 5) || !strnicmp(ext, ".264", 4)
-		|| !strnicmp(ext, ".h26L", 5) || !strnicmp(ext, ".26l", 4)) 
+		|| !strnicmp(ext, ".h26L", 5) || !strnicmp(ext, ".26l", 4)
+		|| !stricmp(fmt, "AVC") || !stricmp(fmt, "H264") ) 
 		return gf_import_h264(importer);
 
-	else if (!strnicmp(ext, ".srt", 4) || !strnicmp(ext, ".sub", 4) || !strnicmp(ext, ".ttxt", 5) ) 
+	else if (!strnicmp(ext, ".srt", 4) || !strnicmp(ext, ".sub", 4) || !strnicmp(ext, ".ttxt", 5) 
+		|| !stricmp(fmt, "SRT") || !stricmp(fmt, "SUB") || !stricmp(fmt, "TEXT") ) 
 		return gf_import_timed_text(importer);
 
+	if (!stricmp(fmt, "RAW")) {
+		return gf_import_raw_unit(importer);
+	}
 	/*try with MP4*/
 	if (gf_isom_probe_file(importer->in_name)) {
 		GF_Err res;

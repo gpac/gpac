@@ -50,8 +50,6 @@ public:
 	Bool can_seek;
 	u32 orig_width,orig_height, m_reconnect_time; 
 
-	Bool show_rti;
-
 	CString m_navigate_url;
 	void Pause();
 	void PlayFromTime(u32 time);

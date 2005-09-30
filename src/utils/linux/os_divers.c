@@ -371,7 +371,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
       the_rti.cpu_usage = 100;
     } else {
       u64 samp_sys_time;
-      /**/
+      /*move to ms (/proc/stat gives times in 100 ms unit*/
       the_rti.total_cpu_time_diff = (u_k_time - last_cpu_u_k_time)*10;
 
       /*we're not that accurate....*/
@@ -383,6 +383,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
       samp_sys_time = u_k_time - last_cpu_u_k_time;
       the_rti.cpu_idle_time = idle_time - last_cpu_idle_time;
       the_rti.cpu_usage = (u32) ( 100 * samp_sys_time / (the_rti.cpu_idle_time + samp_sys_time ) );
+      /*move to ms (/proc/stat gives times in 100 ms unit*/
       the_rti.cpu_idle_time *= 10;
     }
     if (!the_rti.process_cpu_time_diff) the_rti.process_cpu_time_diff = the_rti.total_cpu_time_diff;

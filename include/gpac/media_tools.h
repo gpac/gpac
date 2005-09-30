@@ -115,6 +115,8 @@ typedef struct __track_import
 	Double video_fps;
 	/*optional ESD*/
 	GF_ESD *esd;
+	/*optional format indication for media source (used in IM1)*/
+	char *streamFormat;
 	/*frame per sample cumulation (3GP media only) - MAX 15, ignored in data ref*/
 	u32 frames_per_sample;
 	/*track ID of imported media in destination file*/

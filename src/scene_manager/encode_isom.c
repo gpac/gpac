@@ -236,6 +236,7 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 		}
 	}
 
+	import.streamFormat = mux->streamFormat;
 	import.dest = mp4;
 	import.esd = src;
 	import.duration = mux->duration;

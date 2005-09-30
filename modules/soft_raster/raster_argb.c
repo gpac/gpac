@@ -247,7 +247,7 @@ GFINLINE void overmask_rgb32_const_run(u32 src, u32 *dst, u32 count)
 void evg_rgb32_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
 	u32 col = surf->fill_col;
-	u32 a, fin, col_no_a, col2;
+	u32 fin, col_no_a, col2, spana;
 	u32 *dst = (u32 *) (surf->pixels + y * surf->stride);
 	s32 i;
 	u32 x, len;
@@ -256,13 +256,13 @@ void evg_rgb32_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	col_no_a = col & 0x00FFFFFF;
 	col2 = (0xFF<<24) | col_no_a;
 	for (i=0; i<count; i++) {
-		if (spans[i].coverage<aa_lev) continue;
+		spana = spans[i].coverage;
+		if (spana<aa_lev) continue;
 		x = spans[i].x;
 		len = spans[i].len;
-	
-		if (spans[i].coverage != 0xFF) {
-			a = mul255(0xFF, spans[i].coverage);
-			fin = (a<<24) | col_no_a;
+
+		if (spana != 0xFF) {
+			fin = (spana<<24) | col_no_a;
 			overmask_rgb32_const_run(fin, &dst[x], len);
 		} else {
 			while (len--) {

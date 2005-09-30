@@ -219,7 +219,7 @@ static void DumpDate(FILE *trace, char *name, char *data, u32 indent, Bool XMTDu
 
 void gf_ipmpx_dump_ByteArray(GF_IPMPX_ByteArray *_p, char *attName, FILE *trace, u32 indent, Bool XMTDump)
 {
-	if (_p->data) {
+	if (_p && _p->data) {
 		if (XMTDump) {
 			StartElement(trace, attName ? attName : "ByteArray", indent, XMTDump);
 			indent++;

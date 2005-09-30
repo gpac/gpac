@@ -109,22 +109,28 @@ void mesh_update_bounds(GF_Mesh *mesh)
 
 void mesh_clone(GF_Mesh *dest, GF_Mesh *orig)
 {
-	if (dest->vertices) free(dest->vertices);
-	if (dest->indices) free(dest->indices);
-
-	dest->v_alloc = orig->v_alloc;
+	if (dest->v_alloc<orig->v_alloc) {
+		dest->v_alloc = orig->v_alloc;
+		dest->vertices = realloc(dest->vertices, sizeof(GF_Vertex)*dest->v_alloc);
+	}
 	dest->v_count = orig->v_count;
-	dest->vertices = malloc(sizeof(GF_Vertex)*dest->v_alloc);
 	memcpy(dest->vertices, orig->vertices, sizeof(GF_Vertex)*dest->v_count);
 
-	dest->i_alloc = orig->i_alloc;
+	if (dest->i_alloc < orig->i_alloc) {
+		dest->i_alloc = orig->i_alloc;
+		dest->indices = realloc(dest->indices, sizeof(IDX_TYPE)*dest->i_alloc);
+	}
 	dest->i_count = orig->i_count;
-	dest->indices = malloc(sizeof(IDX_TYPE)*dest->i_alloc);
 	memcpy(dest->indices, orig->indices, sizeof(IDX_TYPE)*dest->i_count);
 
 	dest->mesh_type = orig->mesh_type;
 	dest->flags = orig->flags;
 	dest->bounds = orig->bounds;
+	/*and reset AABB*/
+	if (dest->aabb_root) del_aabb_node(dest->aabb_root);
+	dest->aabb_root = NULL;
+	if (dest->aabb_indices) free(dest->aabb_indices);
+	dest->aabb_indices = NULL;
 }
 
 
@@ -1470,6 +1476,8 @@ typedef struct
 	} \
 
 
+#define NEAR_ZERO(__x) (ABS(__x)<=FIX_EPSILON) 
+
 static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thespine, Fixed creaseAngle, Fixed min_cx, Fixed min_cy, Fixed width_cx, Fixed width_cy, Bool begin_cap, Bool end_cap, MFRotation *spine_ori, MFVec2f *spine_scale, Bool tx_along_spine)
 {
 	GF_Mesh **faces;
@@ -1529,7 +1537,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 	}
 
 	pt_count = pts_per_cross * thespine->count;
-	smooth_normals = (creaseAngle > GF_EPSILON_FLOAT) ? 1 : 0;
+	smooth_normals = NEAR_ZERO(creaseAngle) ? 0 : 1;
 
 	faces = malloc(sizeof(GF_Mesh *)*face_count);
 	for (i=0; i<face_count; i++) faces[i] = new_mesh();
@@ -1609,12 +1617,14 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 			Fixed cos_a, sin_a, sin_g, cos_g;
 
 			gf_vec_norm(&spine_vec);
-			if (spine_vec.x != 0) {
-				alpha = gf_asin(spine_vec.x);
+			if (! NEAR_ZERO(spine_vec.x) ) {
+				if (spine_vec.x >= FIX_ONE-FIX_EPSILON) alpha = GF_PI2;
+				else if (spine_vec.x <= -FIX_ONE+FIX_EPSILON) alpha = -GF_PI2;
+				else alpha = gf_asin(spine_vec.x);
 				cos_a = gf_cos(alpha);
 				sin_a = spine_vec.x;
 				sin_g = 0;
-				if (cos_a == 0) gamma = 0;
+				if (NEAR_ZERO(cos_a)) gamma = 0;
 				else {
 					Fixed __abs;
 					gamma = gf_acos(gf_divfix(spine_vec.y, cos_a));
@@ -1623,7 +1633,12 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 					if (ABS(__abs) > ABS(sin_g) ) gamma *= -1;
 				}
 				cos_g = gf_cos(gamma);
-				sin_g = gf_sin(gamma);
+				if (NEAR_ZERO(cos_g)) {
+					cos_g = 0;
+					sin_g = 1;
+				} else {
+					sin_g = gf_sin(gamma);
+				}
 				SCPi[0].yaxis.y = gf_mulfix(cos_a, sin_g);
 				SCPi[0].yaxis.z = gf_mulfix(cos_a, cos_g);
 				SCPi[0].yaxis.x = sin_a;
@@ -1631,12 +1646,14 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 				SCPi[0].zaxis.z = -gf_mulfix(sin_a, cos_g);
 				SCPi[0].zaxis.x = cos_a;
 			}
-			if (spine_vec.z != 0) {
-				alpha = gf_asin(spine_vec.z);
+			if (! NEAR_ZERO(spine_vec.z) ) {
+				if (spine_vec.z >= FIX_ONE-FIX_EPSILON) alpha = GF_PI2;
+				else if (spine_vec.z <= -FIX_ONE+FIX_EPSILON) alpha = -GF_PI2;
+				else alpha = gf_asin(spine_vec.z);
 				cos_a = gf_cos(alpha);
 				sin_a = spine_vec.z;
 				sin_g = 0;
-				if (cos_a == 0) gamma = 0;
+				if (NEAR_ZERO(cos_a) ) gamma = 0;
 				else {
 					Fixed __abs;
 					gamma = gf_acos(gf_divfix(spine_vec.y, cos_a));

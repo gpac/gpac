@@ -49,8 +49,8 @@ typedef struct _evg_base_stencil
 } EVGStencil;
 
 
-/*16 k of pool buffer for FreeType raster - min is 4k*/
-#define EVG_FT_POOL_SIZE		32768/*16318*/
+/*128 k of pool buffer for FreeType raster*/
+#define EVG_FT_POOL_SIZE		131072/*262144*/
 
 
 /*FreeType redefined*/

@@ -350,29 +350,31 @@ void gf_sleep(u32 ms);
 /*!\brief run-time system info object
  *
  *The Run-Time Info object is used to get CPU and memory occupation of the calling process. 
- *All time values are expressed in milliseconds (1/1000000 sec). Accuracy is not guaranteed.
+ *All time values are expressed in milliseconds (accuracy is not guaranteed).
 */
 typedef struct
 {
 	/*!start of the sampling period*/
-	u64 sampling_instant;
+	u32 sampling_instant;
 	/*!duration of the sampling period*/
-	u64 sampling_period_duration;
+	u32 sampling_period_duration;
 	/*!total amount of time (User+kernel) spent in CPU for all processes as evaluated at the end of the sampling period*/
-	u64 total_cpu_time;
+	u32 total_cpu_time;
 	/*!total amount of time (User+kernel) spent in CPU for the calling process as evaluated at the end of the sampling period*/
-	u64 process_cpu_time;
+	u32 process_cpu_time;
 	/*!amount of time (User+kernel) spent in CPU for all processes during the sampling period*/
-	u64 total_cpu_time_diff;
+	u32 total_cpu_time_diff;
 	/*!total amount of time (User+kernel) spent in CPU for the calling process during the sampling period*/
-	u64 process_cpu_time_diff;
+	u32 process_cpu_time_diff;
 	/*!total amount of idle time during the sampling period.*/
-	u64 cpu_idle_time;
-	/*!percentage of CPU usage (from 0 to 100) during the sampling period.*/
-	u32 cpu_usage;
+	u32 cpu_idle_time;
+	/*!percentage (from 0 to 100) of CPU usage during the sampling period.*/
+	u32 total_cpu_usage;
+	/*!percentage (from 0 to 100) of the CPU usage by the calling process during the sampling period.*/
+	u32 process_cpu_usage;
 	/*!calling process ID*/
 	u32 pid;
-	/*!calling process thread count*/
+	/*!calling process thread count if known*/
 	u32 thread_count;
 	/*!size of calling process allocated heaps*/
 	u64 process_memory;
@@ -401,13 +403,13 @@ enum
 /*!
  *	\brief Gets Run-Time info
  *
- *	Gets CPU and memory usage info for the calling thread and the system. Information gathering
- *is controled through timeout values.
+ *	Gets CPU and memory usage info for the calling process and the system. Information gathering
+ * is controled through timeout values.
  *	\param refresh_time_ms refresh time period in milliseconds. If the last sampling was done less than this period ago, the function aborts.
  *	\param rti holder to the run-time info structure to update.
  *	\param flags specify which info is to be retrieved.
  *	\return 1 if @rti has been updated, 0 otherwise.
- *	\note You should not try to use a too small refresh time. The function will abort for a refresh time less than 100 ms. Typical values are 500 ms or one second.
+ *	\note You should not try to use a too small refresh time. Typical values are 500 ms or one second.
  */
 Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
 

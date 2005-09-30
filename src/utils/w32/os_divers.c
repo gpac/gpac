@@ -177,7 +177,7 @@ NTGetProcessMemoryInfo MyGetProcessMemoryInfo = NULL;
 typedef int(WINAPI* NTQuerySystemInfo)(ULONG,PVOID,ULONG,PULONG);
 NTQuerySystemInfo MyQuerySystemInfo = NULL;
 
-static u64 last_update_time = 0;
+static u32 last_update_time = 0;
 static u64 last_process_k_u_time = 0;
 static u64 last_proc_idle_time = 0;
 static u64 last_proc_k_u_time = 0;
@@ -212,29 +212,14 @@ typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION
 #endif
 
 static u32 (*W32_GetSysClock)();
-static u64 (*W32_GetSysClockHigh)();
 
 u32 gf_sys_clock()
 {
 	return W32_GetSysClock();
 }
 
-u64 gf_sys_clock_ns()
-{
-	return W32_GetSysClockHigh();
-}
-
 static u32 sys_init = 0;
-static LARGE_INTEGER frequency = {0, 0};
-static LARGE_INTEGER init_counter = {0, 0};
-
-u64 W32_GetSysClockHIGHRES_NS()
-{
-	LARGE_INTEGER now;
-	QueryPerformanceCounter(&now);
-	now.QuadPart -= init_counter.QuadPart;
-	return now.QuadPart * 1000000 / frequency.QuadPart;
-}
+static LARGE_INTEGER frequency , init_counter;
 
 u32 W32_GetSysClockHIGHRES()
 {
@@ -246,20 +231,17 @@ u32 W32_GetSysClockHIGHRES()
 
 u32 W32_GetSysClockNORMAL() { return timeGetTime(); }
 
-u64 W32_GetSysClockNORMAL_NS() { return timeGetTime() * 1000; }
-
 void gf_sys_init()
 {
 	if (!sys_init) {
+		frequency.QuadPart = 0;
 		/*clock setup*/
 		if (QueryPerformanceFrequency(&frequency)) {
 			QueryPerformanceCounter(&init_counter);
 			W32_GetSysClock = W32_GetSysClockHIGHRES;
-			W32_GetSysClockHigh = W32_GetSysClockHIGHRES_NS;
 		} else {
 			timeBeginPeriod(1);
 			W32_GetSysClock = W32_GetSysClockNORMAL;
-			W32_GetSysClockHigh = W32_GetSysClockNORMAL_NS;
 		}
 		/*cpu usage tools are buried in win32 dlls...*/
 		MyGetSystemTimes = (NTGetSystemTimes) GetProcAddress(GetModuleHandle("kernel32.dll"), "GetSystemTimes");
@@ -267,7 +249,8 @@ void gf_sys_init()
 			MyQuerySystemInfo = (NTQuerySystemInfo) GetProcAddress(GetModuleHandle("ntdll.dll"), "NtQuerySystemInformation");
 		psapi_hinst = LoadLibrary("psapi.dll");
 		MyGetProcessMemoryInfo = (NTGetProcessMemoryInfo) GetProcAddress(psapi_hinst, "GetProcessMemoryInfo");
-		last_update_time = last_process_k_u_time = last_proc_idle_time = last_proc_k_u_time = 0;
+		last_process_k_u_time = last_proc_idle_time = last_proc_k_u_time = 0;
+		last_update_time = 0;
 
 		memset(&the_rti, 0, sizeof(GF_SystemRTInfo));
 		the_rti.pid = GetCurrentProcessId();
@@ -286,7 +269,7 @@ void gf_sys_close()
 		MyGetProcessMemoryInfo = NULL;
 		MyQuerySystemInfo = NULL;
 		/*prevent any call*/
-		last_update_time = (u64) -1;
+		last_update_time = 0xFFFFFFFF;
 		if (psapi_hinst) FreeLibrary(psapi_hinst);
 		psapi_hinst = NULL;
 	}
@@ -296,8 +279,8 @@ void gf_sys_close()
 Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 {
 	MEMORYSTATUS ms;
-	u64 creation, exit, kernel, user, process_k_u_time, entry_time, proc_idle_time, proc_k_u_time;
-	u32 nb_threads;
+	u64 creation, exit, kernel, user, process_k_u_time, proc_idle_time, proc_k_u_time;
+	u32 nb_threads, entry_time;
 	HANDLE hSnapShot;
 
 	assert(sys_init);
@@ -307,8 +290,8 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	proc_idle_time = proc_k_u_time = process_k_u_time = 0;
 	nb_threads = 0;
 
-	entry_time = gf_sys_clock_ns();
-	if (last_update_time && (entry_time - last_update_time < refresh_time_ms*1000)) {
+	entry_time = gf_sys_clock();
+	if (last_update_time && (entry_time - last_update_time < refresh_time_ms)) {
 		memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
 		return 0;
 	}
@@ -411,27 +394,32 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	if (last_update_time) {
 		the_rti.sampling_period_duration = entry_time - last_update_time;
 
-		the_rti.process_cpu_time_diff = process_k_u_time - last_process_k_u_time;
+		the_rti.process_cpu_time_diff = (u32) ((process_k_u_time - last_process_k_u_time)/1000);
 
 		/*oops, we have no choice but to assume 100% cpu usage during this period*/
 		if (!proc_k_u_time) {
 			the_rti.total_cpu_time_diff = the_rti.sampling_period_duration;
 			proc_k_u_time = last_proc_k_u_time + the_rti.sampling_period_duration;
 			the_rti.cpu_idle_time = 0;
-			the_rti.cpu_usage = 100;
+			the_rti.total_cpu_usage = 100;
+			the_rti.process_cpu_usage = (u32) (100*the_rti.process_cpu_time_diff / the_rti.sampling_period_duration );
 		} else {
-			u64 samp_sys_time;
-			the_rti.total_cpu_time_diff = (proc_k_u_time - last_proc_k_u_time);
+			u64 samp_sys_time, idle;
+			the_rti.total_cpu_time_diff = (u32) ((proc_k_u_time - last_proc_k_u_time)/1000);
 
 			/*we're not that accurate....*/
-			if (the_rti.total_cpu_time_diff > the_rti.sampling_period_duration) 
+			if (the_rti.total_cpu_time_diff > the_rti.sampling_period_duration) {
 				the_rti.sampling_period_duration = the_rti.total_cpu_time_diff;
+			}
 			
-			if (!proc_idle_time) proc_idle_time = the_rti.sampling_period_duration - the_rti.total_cpu_time_diff; 
+			if (!proc_idle_time) 
+				proc_idle_time = last_proc_idle_time + (the_rti.sampling_period_duration - the_rti.total_cpu_time_diff); 
 
 			samp_sys_time = proc_k_u_time - last_proc_k_u_time;
-			the_rti.cpu_idle_time = proc_idle_time - last_proc_idle_time;
-            the_rti.cpu_usage = (u32) ( (samp_sys_time - the_rti.cpu_idle_time) / (samp_sys_time / 100) );
+			idle = proc_idle_time - last_proc_idle_time;
+            the_rti.total_cpu_usage = (u32) ( (samp_sys_time - idle) / (samp_sys_time / 100) );
+			the_rti.cpu_idle_time = (u32) (idle/1000);
+			the_rti.process_cpu_usage = (u32) (100*the_rti.process_cpu_time_diff / (samp_sys_time/1000));
 		}
 	}
 	last_process_k_u_time = process_k_u_time;

@@ -141,6 +141,9 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_NAVIGATE_VR, OnUpdateNavigate)
 	ON_UPDATE_COMMAND_UI(ID_NAVIGATE_GAME, OnUpdateNavigate)
 	ON_COMMAND(ID_FILE_EXIT, OnFileExit)
+	ON_COMMAND(IDD_VIEW_CPU, OnViewCPU)
+	ON_UPDATE_COMMAND_UI(IDD_VIEW_CPU, OnUpdateViewCPU)
+	
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -163,6 +166,7 @@ CMainFrame::CMainFrame()
 	m_chapters_start = NULL;
 	m_last_prog = -1;
 	m_timer_on = 0;
+	m_show_rti = 0;
 }
 
 CMainFrame::~CMainFrame()
@@ -182,6 +186,7 @@ CMainFrame::~CMainFrame()
 
 void CALLBACK EXPORT RTInfoTimer(HWND , UINT , UINT nID , DWORD )
 {
+	char szMsg[100];
 	GF_SystemRTInfo rti;
 	if (nID != RTI_TIMER) return;
 	WinGPAC *app = GetApp();
@@ -189,25 +194,23 @@ void CALLBACK EXPORT RTInfoTimer(HWND , UINT , UINT nID , DWORD )
 	/*shutdown*/
 	if (!pFrame) return;
 
-	if (gf_sys_get_rti(RTI_REFRESH_MS, &rti, 0) && rti.sampling_period_duration) {
-		char szMsg[100];
-		if (/*app->show_rti && */ !pFrame->m_timer_on) {
+	if (pFrame->m_show_rti && !pFrame->m_timer_on) {
+		if (!gf_sys_get_rti(RTI_REFRESH_MS, &rti, 0)) return;
+
+		if (pFrame->m_show_rti && !pFrame->m_timer_on) {
 			sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
-						gf_term_get_framerate(app->m_term, 0), 
-						rti.cpu_usage, 
-						(u32) (100*rti.process_cpu_time_diff / (rti.total_cpu_time_diff + rti.cpu_idle_time) ), 
-						rti.process_memory/1024);
+						gf_term_get_framerate(app->m_term, 0), rti.total_cpu_usage, rti.process_cpu_usage, rti.process_memory/1024);
 			pFrame->m_wndStatusBar.SetPaneText(1, szMsg);
 		}
-
-		u32 ms = gf_term_get_time_in_ms(app->m_term);
-		u32 h = ms / 1000 / 3600;
-		u32 m = ms / 1000 / 60 - h*60;
-		u32 s = ms / 1000 - h*3600 - m*60;
-		
-		sprintf(szMsg, "%02d:%02d.%02d", h, m, s);
-		pFrame->m_wndStatusBar.SetPaneText(0, szMsg);
 	}
+
+	u32 ms = gf_term_get_time_in_ms(app->m_term);
+	u32 h = ms / 1000 / 3600;
+	u32 m = ms / 1000 / 60 - h*60;
+	u32 s = ms / 1000 - h*3600 - m*60;
+	
+	sprintf(szMsg, "%02d:%02d.%02d", h, m, s);
+	pFrame->m_wndStatusBar.SetPaneText(0, szMsg);
 }
 
 static UINT status_indics[] =
@@ -305,7 +308,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;      // fail to create
 	}
 
-	m_wndStatusBar.SetPaneInfo(0, ID_TIMER, SBPS_NORMAL, 80);
+	m_wndStatusBar.SetPaneInfo(0, ID_TIMER, SBPS_NORMAL, 60);
 	m_wndStatusBar.SetPaneInfo(1, ID_SEPARATOR, SBPS_STRETCH, 0);
 	SetIcon(AfxGetApp()->LoadIcon(IDR_MAINFRAME), TRUE);
 	SetIcon(AfxGetApp()->LoadIcon(IDR_MAINFRAME), FALSE);
@@ -1395,3 +1398,14 @@ void CMainFrame::BuildChapterList(Bool reset_only)
 		m_num_chapters++;
 	}
 }
+
+void CMainFrame::OnViewCPU()
+{
+	m_show_rti = !m_show_rti;
+}
+
+void CMainFrame::OnUpdateViewCPU(CCmdUI* pCmdUI) 
+{
+	pCmdUI->SetCheck(m_show_rti);
+}
+

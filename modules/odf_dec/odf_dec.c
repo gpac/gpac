@@ -241,7 +241,7 @@ static GF_Err ODF_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 			e = GF_OK;
 		}
 #else
-			e = GF_NOT_SUPPORTED;
+			e = GF_OK;
 #endif
 			break;
 		case GF_ODF_IPMP_REMOVE_TAG:

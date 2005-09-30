@@ -62,8 +62,8 @@ long _ftol2( double dblSource ) { return _ftol( dblSource ); }
 #endif
 #endif
 
-/* uncomment this line if you don't want the GPAC cache mechanism */
-//#undef USE_GPAC_CACHE_MECHANISM
+/* comment this line if you don't want the GPAC cache mechanism */
+#define USE_GPAC_CACHE_MECHANISM
 
 GF_Err SVGParser_ParseLASeR(SVGParser *parser);
 

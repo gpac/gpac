@@ -70,23 +70,44 @@ static unsigned char index_64[128] = {
 
 #define char64(c)  ((c > 127) ? 0xff : index_64[(c)])
 
-u32 gf_base64_decode(unsigned char *in, u32 inSize, unsigned char *out, u32 outSize)
+/*denoise input*/
+u32 load_block(unsigned char *in, u32 size, u32 pos, unsigned char *out) 
+{ 
+	u32 i, len; 
+	u8 c;
+	len = i = 0;
+	while ((len<4) && ((pos+i)<size)) {
+		c = in[pos+i];
+		if ( ((c>='A') && (c<='Z'))
+		|| ((c>='a') && (c<='z'))
+		|| ((c>='0') && (c<='9'))
+		|| (c=='=') || (c=='+') || (c=='/')
+		) {
+			out[len] = c;
+			len++;
+		}
+		i++;
+	}
+	while (len<4) { out[len] = 0xFF; len++; }
+	return pos+i;
+}
+u32 gf_base64_decode(unsigned char *in_buf, u32 inSize, unsigned char *out, u32 outSize)
 {
 	u32 i = 0, j = 0, padding;
-	unsigned char	c[4];
+	unsigned char c[4], in[4];
 
 	if (outSize < (inSize * 3 / 4)) return 0;
-	if ((inSize % 4) != 0) return 0;
 
 	while ((i + 3) < inSize) {
 		padding = 0;
-		c[0] = char64(in[i]); 
+		i = load_block(in_buf, inSize, i, in);
+		c[0] = char64(in[0]); 
 		padding += (c[0] == 0xff);
-		c[1] = char64(in[i+1]);
+		c[1] = char64(in[1]);
 		padding += (c[1] == 0xff);
-		c[2] = char64(in[i+2]);
+		c[2] = char64(in[2]);
 		padding += (c[2] == 0xff);
-		c[3] = char64(in[i+3]); 
+		c[3] = char64(in[3]); 
 		padding += (c[3] == 0xff);
 		if (padding == 2) {
 			out[j++] = (c[0] << 2) | ((c[1] & 0x30) >> 4);
@@ -100,7 +121,7 @@ u32 gf_base64_decode(unsigned char *in, u32 inSize, unsigned char *out, u32 outS
 			out[j++] = ((c[1] & 0x0f) << 4) | ((c[2] & 0x3c) >> 2);
 			out[j++] = ((c[2] & 0x03) << 6) | (c[3] & 0x3f);
 		}
-		i += 4;
+		//i += 4;
 	}
 	return j;
 }

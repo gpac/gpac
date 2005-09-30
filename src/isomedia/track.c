@@ -296,6 +296,7 @@ Bool Track_IsMPEG4Stream(u32 HandlerType)
 	case GF_ISOM_MEDIA_OCI:
 	case GF_ISOM_MEDIA_IPMP:
 	case GF_ISOM_MEDIA_MPEGJ:
+	case GF_ISOM_MEDIA_ESM:
 		return 1;
 	/*Timedtext is NOT an MPEG-4 stream*/
 	default:
@@ -774,13 +775,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			//type cast possible now
 			entry = (GF_MPEGSampleEntryBox*) entry_a;
 			break;
-		case GF_ISOM_MEDIA_OD:
-		case GF_ISOM_MEDIA_OCR:
-		case GF_ISOM_MEDIA_BIFS:
-		case GF_ISOM_MEDIA_MPEG7:
-		case GF_ISOM_MEDIA_OCI:
-		case GF_ISOM_MEDIA_IPMP:
-		case GF_ISOM_MEDIA_MPEGJ:
+		default:
 			entry = (GF_MPEGSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4S);
 			entry->esd = (GF_ESDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_ESDS);
 			entry->esd->desc = esd;

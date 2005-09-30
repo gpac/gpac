@@ -142,17 +142,23 @@ enum {
 /*Generic Media Types (YOU HAVE TO USE ONE OF THESE TYPES FOR COMPLIANT ISO MEDIA FILES)*/
 enum
 {
-	GF_ISOM_MEDIA_OD			= GF_FOUR_CHAR_INT( 'o', 'd', 's', 'm' ),
-	GF_ISOM_MEDIA_OCR			= GF_FOUR_CHAR_INT( 'c', 'r', 's', 'm' ),
-	GF_ISOM_MEDIA_BIFS		= GF_FOUR_CHAR_INT( 's', 'd', 's', 'm' ),
-	GF_ISOM_MEDIA_VISUAL		= GF_FOUR_CHAR_INT( 'v', 'i', 'd', 'e' ),
+	/*base media types*/
+	GF_ISOM_MEDIA_VISUAL	= GF_FOUR_CHAR_INT( 'v', 'i', 'd', 'e' ),
 	GF_ISOM_MEDIA_AUDIO		= GF_FOUR_CHAR_INT( 's', 'o', 'u', 'n' ),
+	GF_ISOM_MEDIA_HINT		= GF_FOUR_CHAR_INT( 'h', 'i', 'n', 't' ),
+	GF_ISOM_MEDIA_TEXT		= GF_FOUR_CHAR_INT( 't', 'e', 'x', 't' ),
+
+	/*MPEG-4 media types*/
+	GF_ISOM_MEDIA_OD		= GF_FOUR_CHAR_INT( 'o', 'd', 's', 'm' ),
+	GF_ISOM_MEDIA_OCR		= GF_FOUR_CHAR_INT( 'c', 'r', 's', 'm' ),
+	GF_ISOM_MEDIA_BIFS		= GF_FOUR_CHAR_INT( 's', 'd', 's', 'm' ),
 	GF_ISOM_MEDIA_MPEG7		= GF_FOUR_CHAR_INT( 'm', '7', 's', 'm' ),
-	GF_ISOM_MEDIA_OCI			= GF_FOUR_CHAR_INT( 'o', 'c', 's', 'm' ),
+	GF_ISOM_MEDIA_OCI		= GF_FOUR_CHAR_INT( 'o', 'c', 's', 'm' ),
 	GF_ISOM_MEDIA_IPMP		= GF_FOUR_CHAR_INT( 'i', 'p', 's', 'm' ),
 	GF_ISOM_MEDIA_MPEGJ		= GF_FOUR_CHAR_INT( 'm', 'j', 's', 'm' ),
-	GF_ISOM_MEDIA_TEXT	= GF_FOUR_CHAR_INT( 't', 'e', 'x', 't' ),
-	GF_ISOM_MEDIA_HINT		= GF_FOUR_CHAR_INT( 'h', 'i', 'n', 't' ),
+	/*GPAC-defined, for any track using MPEG-4 systems signaling but with undefined streaml types*/
+	GF_ISOM_MEDIA_ESM		= GF_FOUR_CHAR_INT( 'g', 'e', 's', 'm' ),
+
 	GF_ISOM_MEDIA_FLASH		= GF_FOUR_CHAR_INT( 'f', 'l', 's', 'h' )
 };
 

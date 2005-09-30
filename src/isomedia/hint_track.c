@@ -100,10 +100,11 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, u32 HintType
 	default:
 		return GF_NOT_SUPPORTED;
 	}
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak) return gf_isom_last_error(movie);
-	if (movie->openMode != GF_ISOM_OPEN_EDIT) return GF_ISOM_INVALID_MODE;
 
 	//check we have a hint ...
 	if ( !IsHintTrack(trak)) {
@@ -170,8 +171,10 @@ GF_Err gf_isom_new_hint_description(GF_ISOFile *the_file, u32 trackNumber, s32 H
 	GF_TrackBox *trak;
 	GF_HintSampleEntryBox *hdesc;
 	GF_RelyHintBox *relyA;
-
 	GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a);
+
+	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	*HintDescriptionIndex = 0;

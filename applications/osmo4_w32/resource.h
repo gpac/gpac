@@ -262,6 +262,7 @@
 #define ID_SELOBJ_9                     1349
 #define ID_SETCHAP_FIRST                2000
 #define ID_SETCHAP_LAST                 2200
+#define IDD_VIEW_CPU                    32960
 
 // Next default values for new objects
 // 
@@ -269,7 +270,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        189
-#define _APS_NEXT_COMMAND_VALUE         32960
+#define _APS_NEXT_COMMAND_VALUE         32961
 #define _APS_NEXT_CONTROL_VALUE         1128
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

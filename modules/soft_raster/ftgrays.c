@@ -83,9 +83,10 @@
 
 
 #define GPAC_FIX_BITS		16
-
   /* must be at least 6 bits! */
 #define PIXEL_BITS  8
+
+#define PIXEL_BITS_DIFF 8	/*GPAC_FIX_BITS - PIXEL_BITS*/
 
 #define ONE_PIXEL       ( 1L << PIXEL_BITS )
 #define PIXEL_MASK      ( -1L << PIXEL_BITS )
@@ -99,15 +100,15 @@
 #define UPSCALE( x )    ( (x) << ( PIXEL_BITS - GPAC_FIX_BITS ) )
 #define DOWNSCALE( x )  ( (x) >> ( PIXEL_BITS - GPAC_FIX_BITS ) )
 #else
-#define UPSCALE( x )    ( (x) >> ( GPAC_FIX_BITS - PIXEL_BITS ) )
-#define DOWNSCALE( x )  ( (x) << ( GPAC_FIX_BITS - PIXEL_BITS ) )
+#define UPSCALE( x )    ( (x) >> ( PIXEL_BITS_DIFF) )
+#define DOWNSCALE( x )  ( (x) << ( PIXEL_BITS_DIFF) )
 #endif
 
   /* Define this if you want to use a more compact storage scheme.  This   */
   /* increases the number of cells available in the render pool but slows  */
   /* down the rendering a bit.  It is useful if you have a really tiny     */
   /* render pool.                                                          */
-#define GRAYS_COMPACT
+#define xxxxGRAYS_COMPACT
 
   /*************************************************************************/
   /*                                                                       */
@@ -169,31 +170,6 @@
 
 #endif /* GRAYS_COMPACT */
 
-
-
-	
-typedef int (*EVG_Outline_MoveToFunc)(EVG_Vector*  to, void* user );
-#define EVG_Outline_MoveTo_Func  EVG_Outline_MoveToFunc
-
-typedef int (*EVG_Outline_LineToFunc)(EVG_Vector*  to, void*       user );
-#define  EVG_Outline_LineTo_Func  EVG_Outline_LineToFunc
-
-typedef int (*EVG_Outline_ConicToFunc)(EVG_Vector*  control, EVG_Vector*  to, void*       user );
-#define  EVG_Outline_ConicTo_Func  EVG_Outline_ConicToFunc
-
-typedef int (*EVG_Outline_CubicToFunc)(EVG_Vector*  control1, EVG_Vector*  control2, EVG_Vector*  to, void*       user );
-#define  EVG_Outline_CubicTo_Func  EVG_Outline_CubicToFunc
-
-
-typedef struct
-{
-	EVG_Outline_MoveToFunc   move_to;
-	EVG_Outline_LineToFunc   line_to;
-	EVG_Outline_ConicToFunc  conic_to;
-	EVG_Outline_CubicToFunc  cubic_to;
-	s32 shift;
-	s32 delta;
-} EVG_Outline_Funcs;
 
   typedef struct  TRaster_
   {
@@ -302,7 +278,7 @@ typedef struct
   /*                                                                       */
   /* Record the current cell in the table.                                 */
   /*                                                                       */
-  static void
+  static GFINLINE void
   gray_record_cell( TRaster *raster )
   {
     PCell  cell;
@@ -326,7 +302,7 @@ typedef struct
   /*                                                                       */
   /* Set the current cell to a new position.                               */
   /*                                                                       */
-  static void
+  static GFINLINE void
   gray_set_cell( TRaster *raster, TCoord  ex,
                           TCoord  ey )
   {
@@ -383,7 +359,7 @@ typedef struct
   /*                                                                       */
   /* Start a new contour at a given cell.                                  */
   /*                                                                       */
-  static void
+  static GFINLINE void
   gray_start_cell( TRaster *raster,  TCoord  ex,
                              TCoord  ey )
   {
@@ -512,7 +488,7 @@ typedef struct
   /*                                                                       */
   /* Render a given line as a series of scanlines.                         */
   /*                                                                       */
-  static void
+  static GFINLINE void
   gray_render_line( TRaster *raster, TPos  to_x,
                              TPos  to_y )
   {
@@ -667,7 +643,7 @@ typedef struct
   }
 
 
-  static void
+  static GFINLINE void
   gray_split_conic( EVG_Vector*  base )
   {
     TPos  a, b;
@@ -687,7 +663,7 @@ typedef struct
   }
 
 
-  static void
+  static GFINLINE void
   gray_render_conic( TRaster *raster, EVG_Vector*  control,
                               EVG_Vector*  to )
   {
@@ -794,7 +770,7 @@ typedef struct
   }
 
 
-  static void
+  static GFINLINE void
   gray_split_cubic( EVG_Vector*  base )
   {
     TPos  a, b, c, d;
@@ -822,7 +798,7 @@ typedef struct
   }
 
 
-  static void
+  static GFINLINE void
   gray_render_cubic( TRaster *raster, EVG_Vector*  control1,
                               EVG_Vector*  control2,
                               EVG_Vector*  to )
@@ -955,12 +931,11 @@ typedef struct
 
 #endif /* 1 */
 
-#define SWAP_CELLS( a, b, temp )  do             \
-                                  {              \
+#define SWAP_CELLS( a, b, temp )  {              \
                                     temp = *(a); \
                                     *(a) = *(b); \
                                     *(b) = temp; \
-                                  } while ( 0 )
+                                  }
 
 /*only used if debug grays...*/
 #define DEBUG_SORT
@@ -976,7 +951,7 @@ typedef struct
   {
     PCell  i, j, limit = cells + count;
     TCell  temp;
-    int    gap;
+    register int    gap;
 
 
     /* compute initial gap */
@@ -1054,8 +1029,8 @@ typedef struct
 
         for (;;)
         {
-          do i++; while ( LESS_THAN( i, base ) );
-          do j--; while ( LESS_THAN( base, j ) );
+			do i++; while ( LESS_THAN( i, base ) );
+			do j--; while ( LESS_THAN( base, j ) );
 
           if ( i > j )
             break;
@@ -1133,7 +1108,7 @@ typedef struct
 #endif /* DEBUG_GRAYS */
 
 
-  static int
+  static GFINLINE int
   gray_move_to( EVG_Vector*  to,
                 EVG_Raster   raster )
   {
@@ -1155,26 +1130,7 @@ typedef struct
   }
 
 
-  static int
-  gray_line_to( EVG_Vector*  to,
-                EVG_Raster   raster )
-  {
-    gray_render_line(raster, UPSCALE( to->x ), UPSCALE( to->y ) );
-    return 0;
-  }
-
-
-  static int
-  gray_conic_to( EVG_Vector*  control,
-                 EVG_Vector*  to,
-                 EVG_Raster   raster )
-  {
-    gray_render_conic(raster, control, to);
-    return 0;
-  }
-
-
-  static int
+  static GFINLINE int
   gray_cubic_to( EVG_Vector*  control1,
                  EVG_Vector*  control2,
                  EVG_Vector*  to,
@@ -1225,7 +1181,6 @@ typedef struct
     int        count;
     int        coverage;
 
-
     /* compute the coverage line's coverage, depending on the    */
     /* outline fill rule                                         */
     /*                                                           */
@@ -1269,7 +1224,7 @@ typedef struct
 
       if ( raster->span_y != y || count >= FT_MAX_GRAY_SPANS )
       {
-        if ( raster->render_span && count > 0 )
+//        if (count )
           raster->render_span( raster->span_y, count, raster->gray_spans,
                            raster->render_span_data );
         /* raster->render_span( span->y, raster->gray_spans, count ); */
@@ -1378,7 +1333,7 @@ typedef struct
         break;
     }
 
-    if ( raster->render_span && raster->num_gray_spans > 0 )
+//    if (raster->num_gray_spans)
       raster->render_span( raster->span_y, raster->num_gray_spans,
                        raster->gray_spans, raster->render_span_data );
 
@@ -1436,17 +1391,8 @@ typedef struct
   /*    Error code.  0 means sucess.                                       */
   /*                                                                       */
   static
-  int  EVG_Outline_Decompose( EVG_Outline*              outline,
-                             const EVG_Outline_Funcs*  func_interface,
-                             void*                    user )
+  int  EVG_Outline_Decompose( EVG_Outline *outline, void *user )
   {
-#undef SCALED
-#if 0
-#define SCALED( x )  ( ( (x) << shift ) - delta )
-#else
-#define SCALED( x )  (x)
-#endif
-
     EVG_Vector   v_last;
     EVG_Vector   v_control;
     EVG_Vector   v_start;
@@ -1459,11 +1405,6 @@ typedef struct
     int   first;     /* index of first point in contour */
     int   error;
     char  tag;       /* current point's state           */
-
-#if 0
-    int   shift = func_interface->shift;
-    TPos  delta = func_interface->delta;
-#endif
 
 
     first = 0;
@@ -1478,9 +1419,6 @@ typedef struct
 
       v_start = outline->points[first];
       v_last  = outline->points[last];
-
-      v_start.x = SCALED( v_start.x ); v_start.y = SCALED( v_start.y );
-      v_last.x  = SCALED( v_last.x );  v_last.y  = SCALED( v_last.y );
 
       v_control = v_start;
 
@@ -1516,7 +1454,7 @@ typedef struct
         tags--;
       }
 
-      error = func_interface->move_to( &v_start, user );
+      error = gray_move_to( &v_start, user );
       if ( error )
         goto Exit;
 
@@ -1531,27 +1469,18 @@ typedef struct
         case GF_PATH_CURVE_ON:  /* emit a single line_to */
         case GF_PATH_CLOSE:  /* emit a single line_to */
           {
-            EVG_Vector  vec;
 
-
-            vec.x = SCALED( point->x );
-            vec.y = SCALED( point->y );
-
-            error = func_interface->line_to( &vec, user );
-            if ( error )
-              goto Exit;
+		    gray_render_line(user, UPSCALE(point->x), UPSCALE( point->y));
             continue;
           }
 
         case GF_PATH_CURVE_CONIC:  /* consume conic arcs */
           {
-            v_control.x = SCALED( point->x );
-            v_control.y = SCALED( point->y );
+            v_control = *point;
 
           Do_Conic:
             if ( point < limit )
             {
-              EVG_Vector  vec;
               EVG_Vector  v_middle;
 
 
@@ -1559,32 +1488,26 @@ typedef struct
               tags++;
               tag = tags[0];
 
-              vec.x = SCALED( point->x );
-              vec.y = SCALED( point->y );
 
               if ( tag & GF_PATH_CURVE_ON )
               {
-                error = func_interface->conic_to( &v_control, &vec, user );
-                if ( error )
-                  goto Exit;
+			    gray_render_conic(user, &v_control, point);
                 continue;
               }
 
               if ( tag != GF_PATH_CURVE_CONIC )
                 goto Invalid_Outline;
 
-              v_middle.x = ( v_control.x + vec.x ) / 2;
-              v_middle.y = ( v_control.y + vec.y ) / 2;
+              v_middle.x = ( v_control.x + point->x ) / 2;
+              v_middle.y = ( v_control.y + point->y ) / 2;
 
-              error = func_interface->conic_to( &v_control, &v_middle, user );
-              if ( error )
-                goto Exit;
+              gray_render_conic(user, &v_control, &v_middle);
 
-              v_control = vec;
+              v_control = *point;
               goto Do_Conic;
             }
 
-            error = func_interface->conic_to( &v_control, &v_start, user );
+            gray_render_conic(user, &v_control, &v_start);
             goto Close;
           }
 
@@ -1600,31 +1523,23 @@ typedef struct
             point += 2;
             tags  += 2;
 
-            vec1.x = SCALED( point[-2].x ); vec1.y = SCALED( point[-2].y );
-            vec2.x = SCALED( point[-1].x ); vec2.y = SCALED( point[-1].y );
+            vec1 = point[-2];
+            vec2 = point[-1];
 
             if ( point <= limit )
             {
-              EVG_Vector  vec;
-
-
-              vec.x = SCALED( point->x );
-              vec.y = SCALED( point->y );
-
-              error = func_interface->cubic_to( &vec1, &vec2, &vec, user );
-              if ( error )
-                goto Exit;
+			
+              gray_render_cubic(user, &vec1, &vec2, point);
               continue;
             }
-
-            error = func_interface->cubic_to( &vec1, &vec2, &v_start, user );
+            gray_render_cubic(user, &vec1, &vec2, &v_start);
             goto Close;
           }
         }
       }
 
       /* close the contour with a line segment */
-      error = func_interface->line_to( &v_start, user );
+	  gray_render_line(user, UPSCALE(v_start.x), UPSCALE( v_start.y));
 
    Close:
       if ( error )
@@ -1652,22 +1567,11 @@ typedef struct
   static int
   gray_convert_glyph_inner( TRaster *raster )
   {
-    static
-    const EVG_Outline_Funcs  func_interface =
-    {
-      (EVG_Outline_MoveTo_Func) gray_move_to,
-      (EVG_Outline_LineTo_Func) gray_line_to,
-      (EVG_Outline_ConicTo_Func)gray_conic_to,
-      (EVG_Outline_CubicTo_Func)gray_cubic_to,
-      0,
-      0
-    };
-
     volatile int  error = 0;
 
     if ( ft_setjmp( raster->jump_buffer ) == 0 )
     {
-      error = EVG_Outline_Decompose( &raster->outline, &func_interface, &(*raster) );
+      error = EVG_Outline_Decompose( &raster->outline, raster);
       gray_record_cell( raster );
     }
     else
@@ -1746,8 +1650,8 @@ static int gray_convert_glyph( TRaster *raster )
 			raster->max_ey    = band->max;
 
 			error = gray_convert_glyph_inner( raster );
-			
-			if ( !error ) {
+#if 1			
+			if (!error ) {
 #ifdef SHELL_SORT
 				gray_shell_sort( raster->cells, raster->num_cells );
 #else
@@ -1765,6 +1669,7 @@ static int gray_convert_glyph( TRaster *raster )
 			}
 			else if ( error != ErrRaster_MemoryOverflow )
 				return 1;
+#endif
 			
 			/* render pool overflow, we will reduce the render band by half */
 			bottom = band->min;
@@ -1797,6 +1702,9 @@ static int gray_convert_glyph( TRaster *raster )
 	return 0;
 }
 
+static void evg_span_null(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
+{
+}
 
 int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 {
@@ -1816,7 +1724,7 @@ int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 	raster->outline   = *outline;
 	raster->num_cells = 0;
 	raster->invalid   = 1;
-	raster->render_span      = (EVG_Raster_Span_Func)params->gray_spans;
+	raster->render_span  = (EVG_Raster_Span_Func) params->gray_spans;
 	raster->render_span_data = params->user;
 	return gray_convert_glyph(raster);
 }

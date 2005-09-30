@@ -222,7 +222,8 @@ void grouping_traverse(GroupingNode *group, RenderEffect3D *eff, u32 *positions)
 				if (eff->trav_flags & TF_DONT_CULL) {
 					group->dont_cull = 1;
 					eff->trav_flags &= ~TF_DONT_CULL;
-				} else if (eff->bbox.is_set) {
+				} 
+				if (eff->bbox.is_set) {
 					gf_bbox_union(&group->bbox, &eff->bbox);
 				}
 				eff->bbox.is_set = 0;

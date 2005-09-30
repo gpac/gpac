@@ -200,7 +200,7 @@ FILE *gf_f64_open(const char *file_name, const char *mode)
 
 
 static u32 sys_init = 0;
-static u64 last_update_time = 0;
+static u32 last_update_time = 0;
 static u64 last_total_k_u_time = 0;
 static u64 last_process_k_u_time = 0;
 static u32 mem_usage_at_startup = 0;
@@ -209,10 +209,8 @@ GF_SystemRTInfo the_rti;
 static LARGE_INTEGER frequency;
 static LARGE_INTEGER init_counter;
 static u32 (*CE_GetSysClock)();
-static u64 (*CE_GetSysClock_NS)();
 
 u32 gf_sys_clock() { return CE_GetSysClock(); }
-u64 gf_sys_clock_ns() { return CE_GetSysClock_NS(); }
 
 u32 CE_GetSysClockHIGHRES()
 {
@@ -222,16 +220,7 @@ u32 CE_GetSysClockHIGHRES()
 	return (u32) (now.QuadPart * 1000 / frequency.QuadPart);
 }
 
-u64 CE_GetSysClockHIGHRES_NS()
-{
-	LARGE_INTEGER now;
-	QueryPerformanceCounter(&now);
-	now.QuadPart -= init_counter.QuadPart;
-	return (now.QuadPart * 1000000 / frequency.QuadPart);
-}
-
 u32 CE_GetSysClockNORMAL() { return GetTickCount(); }
-u64 CE_GetSysClockNORMAL_NS() { return GetTickCount()*1000; }
 
 
 void gf_sys_init()
@@ -241,15 +230,13 @@ void gf_sys_init()
 		if (QueryPerformanceFrequency(&frequency) ) {
 			QueryPerformanceCounter(&init_counter);
 			CE_GetSysClock = CE_GetSysClockHIGHRES;
-			CE_GetSysClock_NS = CE_GetSysClockHIGHRES_NS;
 		} else {
 			CE_GetSysClock = CE_GetSysClockNORMAL;
-			CE_GetSysClock_NS = CE_GetSysClockNORMAL_NS;
 		}
-		last_update_time = last_total_k_u_time = last_process_k_u_time = 0;
+		last_total_k_u_time = last_process_k_u_time = 0;
+		last_update_time = 0;
 		memset(&the_rti, 0, sizeof(GF_SystemRTInfo));
 		the_rti.pid = GetCurrentProcessId();
-	
 		GlobalMemoryStatus(&ms);
 		mem_usage_at_startup = ms.dwAvailPhys;
 	}
@@ -261,7 +248,7 @@ void gf_sys_close()
 	if (sys_init>0) {
 		sys_init--;
 		if (sys_init) return;
-		last_update_time = (u64) -1;
+		last_update_time = 0xFFFFFFFF;
 	}
 }
 
@@ -278,17 +265,16 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 {
 	THREADENTRY32 tentry;
 	MEMORYSTATUS ms;
-	u64 creation, exit, kernel, user, total_cpu_time, process_cpu_time, entry_time;
-	HEAPLIST32 hlentry;
-	HEAPENTRY32 hentry;
+	u64 creation, exit, kernel, user, total_cpu_time, process_cpu_time;
+	u32 entry_time;
 	HANDLE hSnapShot;
 	DWORD orig_perm;	
 
 	if (!rti) return 0;
 
 	memset(rti, 0, sizeof(GF_SystemRTInfo));
-	entry_time = gf_sys_clock_ns();
-	if (last_update_time && (entry_time - last_update_time < refresh_time_ms*1000)) {
+	entry_time = gf_sys_clock();
+	if (last_update_time && (entry_time - last_update_time < refresh_time_ms)) {
 		memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
 		return 0;
 	}
@@ -328,6 +314,8 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	CloseToolhelp32Snapshot(hSnapShot); 
 
 	if (flags & GF_RTI_PROCESS_MEMORY) {
+		HEAPLIST32 hlentry;
+		HEAPENTRY32 hentry;
 		the_rti.process_memory = 0;
 		hlentry.dwSize = sizeof(HEAPLIST32); 
 		hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPHEAPLIST, the_rti.pid); 
@@ -350,16 +338,17 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	the_rti.sampling_instant = last_update_time;
 	if (last_update_time) {
 		the_rti.sampling_period_duration = entry_time - last_update_time;
-		the_rti.process_cpu_time_diff = process_cpu_time - last_process_k_u_time;
+		the_rti.process_cpu_time_diff = (u32) ((process_cpu_time - last_process_k_u_time)/1000);
 
-		the_rti.total_cpu_time_diff = (total_cpu_time - last_total_k_u_time);
+		the_rti.total_cpu_time_diff = (u32) ((total_cpu_time - last_total_k_u_time)/1000);
 		/*we're not that accurate....*/
 		if (the_rti.total_cpu_time_diff > the_rti.sampling_period_duration) 
 			the_rti.sampling_period_duration = the_rti.total_cpu_time_diff;
 	
 		/*rough values*/
 		the_rti.cpu_idle_time = the_rti.sampling_period_duration - the_rti.total_cpu_time_diff;
-		the_rti.cpu_usage = (u32) (100 * the_rti.total_cpu_time_diff / the_rti.sampling_period_duration);
+		the_rti.total_cpu_usage = (u32) (100 * the_rti.total_cpu_time_diff / the_rti.sampling_period_duration);
+		the_rti.process_cpu_usage = (u32) (100*the_rti.process_cpu_time_diff / (the_rti.total_cpu_time_diff + the_rti.cpu_idle_time) );
 	}
 	last_total_k_u_time = total_cpu_time;
 	last_process_k_u_time = process_cpu_time;
@@ -368,6 +357,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	GlobalMemoryStatus(&ms);
 	the_rti.physical_memory = ms.dwTotalPhys;
 	the_rti.physical_memory_avail = ms.dwAvailPhys;
+	if (!the_rti.process_memory) the_rti.process_memory = mem_usage_at_startup - ms.dwAvailPhys;
 	memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
 	return 1;
 }
