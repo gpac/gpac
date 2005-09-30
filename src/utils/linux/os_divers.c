@@ -266,25 +266,21 @@ FILE *gf_f64_open(const char *file_name, const char *mode)
 #include <sys/resource.h>
 
 static Bool sys_init = 0;
-static FILE *proc_f = NULL;
 static GF_SystemRTInfo the_rti;
-static u64 clock_res = 0;
 static u32 last_update_time = 0;
 static u64 last_cpu_u_k_time = 0;
 static u64 last_cpu_idle_time = 0;
 static u64 last_process_u_k_time = 0;
+static u64 mem_at_startup = 0;
 
 void gf_sys_init() 
 {
   if (!sys_init) {
-    proc_f = fopen("/proc/stat", "r");
-
     last_process_u_k_time = 0;
     last_cpu_u_k_time = last_cpu_idle_time = 0;
     last_update_time = 0;
     memset(&the_rti, 0, sizeof(GF_SystemRTInfo));
     the_rti.pid = getpid();
-    clock_res = CLOCKS_PER_SEC;
   }
   sys_init++;
 }
@@ -294,7 +290,6 @@ void gf_sys_close()
   if (sys_init) {
     sys_init--;
     if (sys_init) return;
-    if (proc_f) fclose(proc_f);
   }
 }
 
@@ -304,7 +299,8 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
   u32 entry_time;
   u64 process_u_k_time;
   u32 u_k_time, idle_time;
-  struct rusage proctime;
+  char szProc[100], line[2048];
+  FILE *f;
 
   assert(sys_init);
 
@@ -315,60 +311,107 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
   }
 
   u_k_time = idle_time = 0;
-  if (proc_f) {
-    char line[128];
+  f = fopen("/proc/stat", "r");
+  if (f) {
     u32 k_time, nice_time, u_time;
-    rewind(proc_f);
-    fflush(proc_f);
-    if (fgets(line, 128, proc_f) == NULL) {
-      fclose(proc_f);
-      proc_f = NULL;
-      return 0;
-    } else if (sscanf(line, "cpu  %u %u %u %u\n", &u_time, &k_time, &nice_time, &idle_time) != 4) {
-      fclose(proc_f);
-      proc_f = NULL;
-      return 0;
-    } else {
-      u_k_time = u_time + k_time + nice_time;
-   }
-  } else {
-    /*FIXME*/
+    if (fgets(line, 128, f) != NULL) {
+      if (sscanf(line, "cpu  %u %u %u %u\n", &u_time, &k_time, &nice_time, &idle_time) == 4) {
+	u_k_time = u_time + k_time + nice_time;
+      }
+    }
+    fclose(f);
   }
 
-  /*FIXME and complete me - times() nor getrusage() seem to work properly on linux*/
-#if 0
-  getrusage(RUSAGE_SELF, &proctime);
-  process_u_k_time = proctime.ru_utime.tv_sec + proctime.ru_utime.tv_usec/1000;
-  process_u_k_time += proctime.ru_stime.tv_sec + proctime.ru_stime.tv_usec/1000;
-  getrusage(RUSAGE_CHILDREN, &proctime);
-  process_u_k_time += proctime.ru_utime.tv_sec + proctime.ru_utime.tv_usec/1000;
-  process_u_k_time += proctime.ru_stime.tv_sec + proctime.ru_stime.tv_usec/1000;
-
-  {
-    struct tms vals;
-    int status;
-    wait(&status);
-    times(&vals);
-    process_u_k_time = vals.tms_utime + vals.tms_stime;
-    process_u_k_time += vals.tms_cutime + vals.tms_cstime;
-    fprintf(stdout, "times get %d %d - %d %d\n", vals.tms_utime , vals.tms_stime, vals.tms_cutime , vals.tms_cstime);
-  }
-#else
   process_u_k_time = 0;
+  the_rti.process_memory = 0;
+
+  /*FIXME? under LinuxThreads this will only fetch stats for the calling thread, we would have to enumerate /proc to get
+   the complete CPU usage of all therads of the process...*/
+#if 0
+  sprintf(szProc, "/proc/%d/stat", the_rti.pid);
+  f = fopen(szProc, "r");
+  if (f) {
+    fflush(f);
+    if (fgets(line, 2048, f) != NULL) {
+      char state;
+      char *start;
+      long cutime, cstime, priority, nice, itrealvalue, rss;
+      int exit_signal, processor;
+      unsigned long flags, minflt, cminflt, majflt, cmajflt, utime, stime,starttime, vsize, rlim, startcode, endcode, startstack, kstkesp, kstkeip, signal, blocked, sigignore, sigcatch, wchan, nswap, cnswap, rem;
+      int ppid, pgrp ,session, tty_nr, tty_pgrp, res;
+      start = strchr(line, ')');
+      if (start) start += 2;
+      else {
+	start = strchr(line, ' ');
+	start++;
+      }
+      res = sscanf(start,"%c %d %d %d %d %d %lu %lu %lu %lu \
+%lu %lu %lu %ld %ld %ld %ld %ld %ld %lu \
+%lu %ld %lu %lu %lu %lu %lu %lu %lu %lu \
+%lu %lu %lu %lu %lu %d %d",
+		   &state, &ppid, &pgrp, &session, &tty_nr, &tty_pgrp, &flags, &minflt, &cminflt, &majflt,
+		   &cmajflt, &utime, &stime, &cutime, &cstime, &priority, &nice, &itrealvalue, &rem, &starttime,
+		   &vsize, &rss, &rlim, &startcode, &endcode, &startstack, &kstkesp, &kstkeip, &signal, &blocked,
+		   &sigignore, &sigcatch, &wchan, &nswap, &cnswap, &exit_signal, &processor);
+ 
+      if (res) process_u_k_time = (u64) (cutime + cstime);
+      else fprintf(stdout, "parse error\n");
+    } else {
+      fprintf(stdout, "error reading pid/stat\n");
+    }
+    fclose(f);
+  } else {
+    fprintf(stdout, "cannot open %s\n", szProc);
+  }
+  sprintf(szProc, "/proc/%d/status", the_rti.pid);
+  f = fopen(szProc, "r");
+  if (f) {
+    while (fgets(line, 1024, f) != NULL) {
+      if (!strnicmp(line, "VmSize:", 7)) {
+	sscanf(line, "VmSize: %lld kB",  &the_rti.process_memory);
+	the_rti.process_memory *= 1024;
+      }
+    }
+    fclose(f);
+  } else {
+    fprintf(stdout, "cannot open %s\n", szProc);
+  }
 #endif
+
+
+  the_rti.physical_memory = the_rti.physical_memory_avail = 0;
+  f = fopen("/proc/meminfo", "r");
+  if (f) {
+    while (fgets(line, 1024, f) != NULL) {
+      if (!strnicmp(line, "MemTotal:", 9)) {
+	sscanf(line, "MemTotal: %lld kB",  &the_rti.physical_memory);
+	the_rti.physical_memory *= 1024;
+      }else if (!strnicmp(line, "MemFree:", 8)) {
+	sscanf(line, "MemFree: %lld kB",  &the_rti.physical_memory_avail);
+	the_rti.physical_memory_avail *= 1024;
+	break;
+      }
+    }
+    fclose(f);
+  } else {
+    fprintf(stdout, "cannot open /proc/meminfo\n");
+  }
+
 
   the_rti.sampling_instant = last_update_time;
   
   if (last_update_time) {
     the_rti.sampling_period_duration = (entry_time - last_update_time);
-    the_rti.process_cpu_time_diff = process_u_k_time - last_process_u_k_time;
+    the_rti.process_cpu_time_diff = (process_u_k_time - last_process_u_k_time) * 10;
 
     /*oops, we have no choice but to assume 100% cpu usage during this period*/
     if (!u_k_time) {
       the_rti.total_cpu_time_diff = the_rti.sampling_period_duration;
       u_k_time = last_cpu_u_k_time + the_rti.sampling_period_duration;
       the_rti.cpu_idle_time = 0;
-      the_rti.cpu_usage = 100;
+      the_rti.total_cpu_usage = 100;
+      if (!the_rti.process_cpu_time_diff) the_rti.process_cpu_time_diff = the_rti.total_cpu_time_diff;
+      the_rti.process_cpu_usage = (u32) ( 100 *  the_rti.process_cpu_time_diff / the_rti.sampling_period_duration);
     } else {
       u64 samp_sys_time;
       /*move to ms (/proc/stat gives times in 100 ms unit*/
@@ -382,21 +425,21 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
       if (!idle_time) idle_time = (the_rti.sampling_period_duration - the_rti.total_cpu_time_diff)/10;
       samp_sys_time = u_k_time - last_cpu_u_k_time;
       the_rti.cpu_idle_time = idle_time - last_cpu_idle_time;
-      the_rti.cpu_usage = (u32) ( 100 * samp_sys_time / (the_rti.cpu_idle_time + samp_sys_time ) );
+      the_rti.total_cpu_usage = (u32) ( 100 * samp_sys_time / (the_rti.cpu_idle_time + samp_sys_time ) );
       /*move to ms (/proc/stat gives times in 100 ms unit*/
       the_rti.cpu_idle_time *= 10;
+      if (!the_rti.process_cpu_time_diff) the_rti.process_cpu_time_diff = the_rti.total_cpu_time_diff;
+      the_rti.process_cpu_usage = (u32) ( 100 *  the_rti.process_cpu_time_diff / (the_rti.cpu_idle_time + 10*samp_sys_time ) );
     }
-    if (!the_rti.process_cpu_time_diff) the_rti.process_cpu_time_diff = the_rti.total_cpu_time_diff;
+  } else {
+    mem_at_startup = the_rti.physical_memory_avail;
   }
+  the_rti.process_memory = mem_at_startup - the_rti.physical_memory_avail;
+
   last_process_u_k_time = process_u_k_time;
   last_cpu_idle_time = idle_time;
   last_cpu_u_k_time = u_k_time;
   last_update_time = entry_time;
-  
-  /*  GlobalMemoryStatus(&ms);
-  the_rti.physical_memory = ms.dwTotalPhys;
-  the_rti.physical_memory_avail = ms.dwAvailPhys;
-  */
   memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
   return 1;
 }
