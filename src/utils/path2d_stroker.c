@@ -1607,6 +1607,10 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 	stroker.miter_limit = pen.miterLimit;
 	stroker.radius = pen.width/2;
 
+	/*security: some SVG paths use a single MoveTo for points drawing but the stroker needs at least 2 points*/
+	if (path->n_points==1) 
+		gf_path_add_line_to(path, path->points[0].x, path->points[0].y);
+
 	scaled = NULL;
 	/*if not centered, simply scale path...*/
 	if (pen.align) {
