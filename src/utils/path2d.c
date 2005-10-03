@@ -763,8 +763,20 @@ GF_Path *gf_path_flatten(GF_Path *gp)
 		}
 	}
 	if (gp->flags & GF_PATH_FILL_ZERO_NONZERO) ngp->flags |= GF_PATH_FILL_ZERO_NONZERO;
-	ngp->flags |= GF_PATH_BBOX_DIRTY;
+	ngp->flags |= (GF_PATH_BBOX_DIRTY | GF_PATH_FLATTENED);
 	return ngp;
+}
+
+GF_Path *gf_path_do_flatten(GF_Path *gp)
+{
+	GF_Path *res;
+	if (gp->flags & GF_PATH_FLATTENED) return gp;
+	res = gf_path_flatten(gp);
+	free(gp->contours);
+	free(gp->points);
+	memcpy(gp, res, sizeof(GF_Path));
+	free(res);
+	return gp;
 }
 
 
