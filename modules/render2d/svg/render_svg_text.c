@@ -142,7 +142,7 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 
 void SVG_Init_text(Render2D *sr, GF_Node *node)
 {
-	BaseDrawStack2D(sr, node);
+	drawable_stack_new(sr, node);
 	gf_node_set_render_function(node, SVG_Render_text);
 }
 

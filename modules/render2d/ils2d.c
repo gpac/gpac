@@ -250,7 +250,7 @@ static void ILS2D_SetCoordIndex(GF_Node *node)
 void R2D_InitILS2D(Render2D *sr, GF_Node *node)
 {
 	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)node;
-	Drawable * stack = BaseDrawStack2D(sr, node);
+	Drawable * stack = drawable_stack_new(sr, node);
 	/*override draw*/
 	stack->Draw = ILS2D_Draw;
 	gf_node_set_render_function(node, RenderILS2D);

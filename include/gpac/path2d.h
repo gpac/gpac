@@ -77,7 +77,8 @@ GF_Err gf_path_add_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed fa_x, Fix
 GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_angle, u32 close_type);
 GF_Err gf_path_get_control_bounds(GF_Path *gp, GF_Rect *rc);
 GF_Err gf_path_get_bounds(GF_Path *gp, GF_Rect *rc);
-GF_Path *gf_path_flatten(GF_Path *gp);
+void gf_path_flatten(GF_Path *gp);
+GF_Path *gf_path_get_flatten(GF_Path *gp);
 Bool gf_path_point_over(GF_Path *gp, Fixed x, Fixed y);
 
 typedef struct _path_iterator GF_PathIterator;

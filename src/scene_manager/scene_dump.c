@@ -2160,7 +2160,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 			break;
 		case GF_SG_ROUTE_INSERT:
 			e = DumpRouteInsert(sdump, com, has_scene_replace);
-			remain--;
+			if (remain) remain--;
 			break;
 		/*delete commands*/
 		case GF_SG_NODE_DELETE:

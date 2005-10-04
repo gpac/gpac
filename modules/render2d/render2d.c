@@ -74,6 +74,7 @@ static void R2D_SetZoom(Render2D *sr, Fixed zoom)
 	gf_mx2d_add_scale(&sr->top_effect->transform, sr->zoom, sr->zoom);
 	gf_mx2d_add_translation(&sr->top_effect->transform, sr->trans_x, sr->trans_y);
 	sr->compositor->draw_next_frame = 1;
+	sr->top_effect->invalidate_all = 1;
 	gf_sr_lock(sr->compositor, 0);
 }
 
@@ -1008,6 +1009,7 @@ u32 R2D_GetOption(GF_VisualRenderer *vr, u32 option)
 {
 	Render2D *sr = (Render2D *)vr->user_priv;
 	switch (option) {
+	case GF_OPT_DIRECT_RENDER: return (sr->top_effect->trav_flags & TF_RENDER_DIRECT) ? 1 : 0;
 	case GF_OPT_SCALABLE_ZOOM: return sr->scalable_zoom;
 	case GF_OPT_YUV_HARDWARE: return sr->enable_yuv_hw;
 	case GF_OPT_YUV_FORMAT: return sr->enable_yuv_hw ? sr->compositor->video_out->yuv_pixel_format : 0;

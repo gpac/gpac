@@ -707,7 +707,7 @@ subdivide:
 	return gf_subdivide_cubic(gp, x_m, y_m, xb1, yb1, xb2, yb2, x3, y3, fineness);
 }
 
-GF_Path *gf_path_flatten(GF_Path *gp)
+GF_Path *gf_path_get_flatten(GF_Path *gp)
 {
 	GF_Path *ngp;
 	Fixed fineness;
@@ -767,16 +767,17 @@ GF_Path *gf_path_flatten(GF_Path *gp)
 	return ngp;
 }
 
-GF_Path *gf_path_do_flatten(GF_Path *gp)
+void gf_path_flatten(GF_Path *gp)
 {
 	GF_Path *res;
-	if (gp->flags & GF_PATH_FLATTENED) return gp;
-	res = gf_path_flatten(gp);
-	free(gp->contours);
-	free(gp->points);
+	if (gp->flags & GF_PATH_FLATTENED) return;
+	if (!gp->n_points) return;
+	res = gf_path_get_flatten(gp);
+	if (gp->contours) free(gp->contours);
+	if (gp->points) free(gp->points);
+	if (gp->tags) free(gp->tags);
 	memcpy(gp, res, sizeof(GF_Path));
 	free(res);
-	return gp;
 }
 
 
@@ -937,7 +938,7 @@ GF_PathIterator *gf_path_iterator_new(GF_Path *gp)
 
 	GF_SAFEALLOC(it, sizeof(GF_PathIterator));
 	if (!it) return NULL;
-	flat = gf_path_flatten(gp);
+	flat = gf_path_get_flatten(gp);
 	if (!flat) {
 		free(it);
 		return NULL;

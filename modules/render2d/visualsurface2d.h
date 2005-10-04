@@ -225,7 +225,6 @@ typedef struct _visual_surface_2D
 	GF_List *prev_nodes_drawn;
 	/*currently active sensors*/
 	GF_List *sensors;	
-	Bool last_was_direct_render;
 	Bool last_had_back;
 	/*black for BIFS, white for SVG/LASeR/etc*/
 	u32 default_back_color;
@@ -271,6 +270,8 @@ void VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff);
 /*terminates rendering cycle - called at each cycle end regardless of rendering mode
 if rendering is indirect, actual drawing is performed here. Returns 1 if the surface has been modified*/
 Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff);
+/*register context sensors for later picking*/
+void VS2D_RegisterSensor(VisualSurface2D *surf, DrawableContext *ctx);
 
 
 /*locates drawable context under the given point - also locate context in composite textures*/

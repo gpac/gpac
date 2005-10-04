@@ -648,14 +648,10 @@ void mesh_from_path_intern(GF_Mesh *mesh, GF_Path *path, Bool make_ccw)
 {
 	u32 i, nbPts;
 	Fixed w, h;
-	Bool do_delete = 0;
 	GF_Rect bounds;
 	Bool isCW = 0;
 
-	if (!(path->flags & GF_PATH_FLATTENED)) {
-		path = gf_path_flatten(path);
-		do_delete = 1;
-	}
+	gf_path_flatten(path);
 	gf_path_get_bounds(path, &bounds);
 
 	mesh_reset(mesh);
@@ -664,7 +660,6 @@ void mesh_from_path_intern(GF_Mesh *mesh, GF_Path *path, Bool make_ccw)
 		switch (type) {
 		/*degenrated polygon - skip*/
 		case GF_POLYGON_CONVEX_LINE:
-			if (do_delete) gf_path_del(path);
 			return;
 		case GF_POLYGON_CONVEX_CW:
 			isCW = make_ccw;
@@ -695,7 +690,6 @@ void mesh_from_path_intern(GF_Mesh *mesh, GF_Path *path, Bool make_ccw)
 			mesh->bounds.min_edge.x = bounds.x; mesh->bounds.min_edge.y = bounds.y-bounds.height; mesh->bounds.min_edge.z = 0;
 			mesh->bounds.max_edge.x = bounds.x+bounds.width; mesh->bounds.max_edge.y = bounds.y; mesh->bounds.max_edge.z = 0;
 			gf_bbox_refresh(&mesh->bounds);
-			if (do_delete) gf_path_del(path);
 			return;
 		default:
 			break;
@@ -705,7 +699,6 @@ void mesh_from_path_intern(GF_Mesh *mesh, GF_Path *path, Bool make_ccw)
 #ifndef GPAC_USE_OGL_ES
 	TesselatePath(mesh, path, 0);
 #endif
-	if (do_delete) gf_path_del(path);
 }
 
 void mesh_from_path(GF_Mesh *mesh, GF_Path *path)
@@ -717,16 +710,12 @@ void mesh_from_path(GF_Mesh *mesh, GF_Path *path)
 void mesh_get_outline(GF_Mesh *mesh, GF_Path *path)
 {
 	u32 i, j, cur, nb_pts;
-	Bool do_delete = 0;
 	mesh_reset(mesh);
 
 	mesh->mesh_type = MESH_LINESET;
 	mesh->flags |= (MESH_IS_2D | MESH_NO_TEXTURE);
 
-	if (!(path->flags & GF_PATH_FLATTENED)) {
-		path = gf_path_flatten(path);
-		do_delete = 1;
-	}
+	gf_path_flatten(path);
 
 	cur = 0;
 	for (i=0; i<path->n_contours; i++) {
@@ -739,7 +728,6 @@ void mesh_get_outline(GF_Mesh *mesh, GF_Path *path)
 		cur += nb_pts;
 	}
 	mesh_update_bounds(mesh);
-	if (do_delete) gf_path_del(path);
 }
 
 #define COL_TO_RGBA(res, col) { res.red = col.red; res.green = col.green; res.blue = col.blue; res.alpha = FIX_ONE; }
@@ -1487,7 +1475,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 	GF_Matrix mx;
 	SCP *SCPs, SCPbegin, SCPend;
 	SCPInfo *SCPi;
-	Bool smooth_normals, spine_closed, check_first_spine_vec, do_close, do_delete;
+	Bool smooth_normals, spine_closed, check_first_spine_vec, do_close;
 	u32 i, j, k, nb_scp, nb_spine, face_count, pt_count, faces_per_cross, begin_face, end_face, face_spines, pts_per_cross, cur_pts_in_cross,cur, nb_pts;
 	SFVec3f *spine, v1, v2, n, spine_vec;
 	Fixed cross_len, spine_len, cur_cross, cur_spine;
@@ -1502,11 +1490,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 	if (gf_vec_equal(thespine->vals[0], thespine->vals[thespine->count-1])) spine_closed = 1;
 	if (spine_closed && (thespine->count==2)) return;
 
-	do_delete = 0;
-	if (!(path->flags & GF_PATH_FLATTENED)) {
-		path = gf_path_flatten(path);
-		do_delete = 1;
-	}
+	gf_path_flatten(path);
 
 	pts_per_cross = 0;
 	cross_len = 0;
@@ -2039,8 +2023,6 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 	else 
 		mesh->flags &= ~MESH_IS_SOLID;
 */
-
-	if (do_delete) gf_path_del(path);
 }
 
 void mesh_extrude_path_ext(GF_Mesh *mesh, GF_Path *path, MFVec3f *thespine, Fixed creaseAngle, Fixed min_cx, Fixed min_cy, Fixed width_cx, Fixed width_cy, Bool begin_cap, Bool end_cap, MFRotation *spine_ori, MFVec2f *spine_scale, Bool tx_along_spine)

@@ -415,7 +415,7 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 	s32 cx;
 	u32 x0, y0, pix, replace_col;
 	Bool has_alpha, has_replace_cmat, has_cmat;
-	Fixed x, y;
+	Fixed x, y, _fd;
 	u32 *data = surf->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
 
@@ -423,10 +423,8 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 	x = INT2FIX(_x);
 	y = INT2FIX(_y);
 	gf_mx2d_apply_coords(&_this->smat, &x, &y);
-
-	/* and move in absolute coords*/
-	while (x<0) x += INT2FIX(_this->width);
-	while (y<0) y += INT2FIX(_this->height);
+	_fd = INT2FIX(_this->width); while (x<0) x += _fd;
+	_fd = INT2FIX(_this->height); while (y<0) y += _fd;
 
 	y0 = (s32) FIX2INT(y);
 	has_alpha = (_this->alpha != 255) ? 1 : 0;
@@ -435,22 +433,20 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 	replace_col = _this->replace_col;
 
 	while (count) {
-		if (_this->inc_y) {
-			x0 = FIX2INT(gf_floor(x));
-			x0 = (x0) % _this->width;
-			y0 = FIX2INT(gf_floor(y));
-			y0 = (y0) % _this->height;
-			y += _this->inc_y;
-		} else {
-			x0 = FIX2INT(x);
-			x0 = (x0) % _this->width;
-		}
+		x0 = FIX2INT(x);
+		x0 = (x0) % _this->width;
 		x += _this->inc_x;
+		
+		y0 = FIX2INT(y);
+		y0 = (y0) % _this->height;
+		y += _this->inc_y;
+
 		pix = _this->tx_get_pixel(_this->pixels + _this->stride*y0 + _this->Bpp*x0);
 
 	
-		/*bilinear filtering*/
-		if (0 && _this->filter==GF_TEXTURE_FILTER_HIGH_QUALITY) {
+		/*bilinear filtering - disabled (too slow and not precise enough)*/
+#if 0
+		if (_this->filter==GF_TEXTURE_FILTER_HIGH_QUALITY) {
 			u32 p00, p01, p10, p11, x1, y1;
 			u8 tx, ty;
 
@@ -461,13 +457,14 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 			p10 = _this->tx_get_pixel(_this->pixels + _this->stride*y1 + _this->Bpp*x0);
 			p11 = _this->tx_get_pixel(_this->pixels + _this->stride*y1 + _this->Bpp*x1);
 
-			tx = FIX2INT(gf_floor(gf_muldiv(x, 255, _this->width)) );
-			ty = FIX2INT(gf_floor(gf_muldiv(y, 255, _this->height)) );
+			tx = FIX2INT(gf_muldiv(x, 255, _this->width) );
+			ty = FIX2INT(gf_muldiv(y, 255, _this->height) );
 
 			p00 = EVG_LERP(p00, p01, tx);
 			p10 = EVG_LERP(p10, p11, tx);
 			pix = EVG_LERP(p00, p10, ty);
 		}
+#endif
 
 		if (has_alpha) {
 			cx = ((GF_COL_A(pix) + 1) * _this->alpha) >> 8;

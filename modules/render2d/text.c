@@ -202,7 +202,7 @@ static void DestroyText(GF_Node *node)
 {
 	TextStack2D *stack = (TextStack2D *) gf_node_get_private(node);
 	TextStack2D_clean_paths(stack);
-	DeleteDrawableNode(stack->graph);
+	drawable_del(stack->graph);
 	gf_list_del(stack->text_lines);
 	free(stack);
 }
@@ -897,7 +897,7 @@ static void Text_Render(GF_Node *n, void *rs)
 void R2D_InitText(Render2D *sr, GF_Node *node)
 {
 	TextStack2D *stack = malloc(sizeof(TextStack2D));
-	stack->graph = NewDrawableNode();
+	stack->graph = drawable_new();
 	/*override all funct*/
 	stack->graph->Draw = Text2D_Draw;
 	stack->graph->IsPointOver = Text2D_PointOver;

@@ -118,12 +118,19 @@ GF_Node *gf_bt_new_node(GF_BTParser *parser, u32 tag)
 
 void gf_bt_check_line(GF_BTParser *parser)
 {
-	while (
-		(parser->line_buffer[parser->line_pos]==' ') 
-		|| (parser->line_buffer[parser->line_pos]=='\t') 
-		|| (parser->line_buffer[parser->line_pos]=='\n') 
-		|| (parser->line_buffer[parser->line_pos]=='\r') 
-		) parser->line_pos++;
+	while (1) {
+		switch (parser->line_buffer[parser->line_pos]) {
+		case ' ':
+		case '\t':
+		case '\n':
+		case '\r':
+			parser->line_pos++;
+			continue;
+		default:
+			break;
+		}
+		break;
+	}
 
 	if (parser->line_buffer[parser->line_pos]=='#') parser->line_size = parser->line_pos;
 	else if ((parser->line_buffer[parser->line_pos]=='/') && (parser->line_buffer[parser->line_pos+1]=='/') ) parser->line_size = parser->line_pos;
@@ -229,12 +236,14 @@ next_line:
 		}
 
 
-		while (
-			(parser->line_buffer[strlen(parser->line_buffer)-1]=='\n')
-			|| (parser->line_buffer[strlen(parser->line_buffer)-1]=='\r')
-			|| (parser->line_buffer[strlen(parser->line_buffer)-1]=='\t')
-			)
-			parser->line_buffer[strlen(parser->line_buffer)-1] = 0;
+		while (1) {
+			char c;
+			u32 len = strlen(parser->line_buffer);
+			if (!len) break;
+			c = parser->line_buffer[len-1];
+			if (!strchr("\n\r\t", c)) break;
+			parser->line_buffer[len-1] = 0;
+		}
 
 		
 		parser->line_size = strlen(parser->line_buffer);
@@ -300,11 +309,12 @@ Bool gf_bt_check_code(GF_BTParser *parser, char code)
 char *gf_bt_get_next(GF_BTParser *parser, Bool point_break)
 {
 	u32 has_quote;
+	Bool go = 1;
 	s32 i;
 	gf_bt_check_line(parser);
 	i=0;
 	has_quote = 0;
-	while (1) {
+	while (go) {
 		if (parser->line_buffer[parser->line_pos + i] == '\"') {
 			if (!has_quote) has_quote = 1;
 			else has_quote = 0;
@@ -314,15 +324,22 @@ char *gf_bt_get_next(GF_BTParser *parser, Bool point_break)
 			continue;
 		}
 		if (!has_quote) {
-			if (!parser->line_buffer[parser->line_pos + i]) break;
-			else if (parser->line_buffer[parser->line_pos + i] == ' ') break;
-			else if (parser->line_buffer[parser->line_pos + i] == '\t') break;
-			else if (parser->line_buffer[parser->line_pos + i] == '{') break;
-			else if (parser->line_buffer[parser->line_pos + i] == '}') break;
-			else if (parser->line_buffer[parser->line_pos + i] == ']') break;
-			else if (parser->line_buffer[parser->line_pos + i] == '[') break;
-			else if (parser->line_buffer[parser->line_pos + i] == ',') break;
-			else if (point_break && parser->line_buffer[parser->line_pos + i] == '.') break;
+			switch (parser->line_buffer[parser->line_pos + i]) {
+			case 0:
+			case ' ':
+			case '\t':
+			case '{':
+			case '}':
+			case ']':
+			case '[':
+			case ',':
+				go = 0;
+				break;
+			case '.':
+				if (point_break) go = 0;
+				break;
+			}
+			if (!go) break;
 		}		
 		parser->cur_buffer[i] = parser->line_buffer[parser->line_pos + i];
 		i++;
@@ -405,60 +422,36 @@ Bool gf_bt_check_externproto_field(GF_BTParser *parser, char *str)
 
 GF_Err gf_bt_parse_float(GF_BTParser *parser, const char *name, Fixed *val)
 {
-	u32 i;
+	Float f;
 	char *str = gf_bt_get_next(parser, 0);
-
 	if (!str) return parser->last_error = GF_IO_ERR;
 	if (gf_bt_check_externproto_field(parser, str)) return GF_OK;
-
-
-	for (i=0; i<strlen(str); i++) {
-		if (!isdigit(str[i]) && (str[i] != '.') && (str[i] != 'E') && (str[i] != 'e') && (str[i] != '-') && (str[i] != '+')) {
-			return gf_bt_report(parser, GF_BAD_PARAM, "%s: Number expected", name);
-		}
-	}
-	if (!i) {
+	if (sscanf(str, "%g", &f) != 1) {
 		return gf_bt_report(parser, GF_BAD_PARAM, "%s: Number expected", name);
 	}
-	*val = FLT2FIX(atof(str));
+	*val = FLT2FIX(f);
 	return GF_OK;
 }
 GF_Err gf_bt_parse_double(GF_BTParser *parser, const char *name, SFDouble *val)
 {
-	u32 i;
 	char *str = gf_bt_get_next(parser, 0);
 	if (!str) return parser->last_error = GF_IO_ERR;
 	if (gf_bt_check_externproto_field(parser, str)) return GF_OK;
-
-	for (i=0; i<strlen(str); i++) {
-		if (!isdigit(str[i]) && (str[i] != '.') && (str[i] != 'E') && (str[i] != 'e') && (str[i] != '-') && (str[i] != '+')) {
-			return gf_bt_report(parser, GF_BAD_PARAM, "%s: Number expected", name);
-		}
-	}
-	if (!i) {
+	if (sscanf(str, "%f", val) != 1) {
 		return gf_bt_report(parser, GF_BAD_PARAM, "%s: Number expected", name);
 	}
-	*val = atof(str);
 	return GF_OK;
 }
 GF_Err gf_bt_parse_int(GF_BTParser *parser, const char *name, SFInt32 *val)
 {
-	u32 i;
 	char *str = gf_bt_get_next(parser, 0);
 	if (!str) return parser->last_error = GF_IO_ERR;
 	if (gf_bt_check_externproto_field(parser, str)) return GF_OK;
 	/*URL ODID*/
 	if (!strnicmp(str, "od:", 3)) str += 3;
-
-	for (i=0; i<strlen(str); i++) {
-		if (!isdigit(str[i]) && (str[i] != 'E') && (str[i] != 'e') && (str[i] != '-')) {
-			return gf_bt_report(parser, GF_BAD_PARAM, "%s: Number expected", name);
-		}
-	}
-	if (!i) {
+	if (sscanf(str, "%d", val) != 1) {
 		return gf_bt_report(parser, GF_BAD_PARAM, "%s: Number expected", name);
 	}
-	*val = atoi(str);
 	return GF_OK;
 }
 GF_Err gf_bt_parse_bool(GF_BTParser *parser, const char *name, SFBool *val)
@@ -480,27 +473,24 @@ GF_Err gf_bt_parse_bool(GF_BTParser *parser, const char *name, SFBool *val)
 
 GF_Err gf_bt_parse_color(GF_BTParser *parser, const char *name, SFColor *col)
 {
-	u32 i;
-	u32 val;
+	Float f;
 	char *str = gf_bt_get_next(parser, 0);
 	if (!str) return parser->last_error = GF_IO_ERR;
 	if (gf_bt_check_externproto_field(parser, str)) return GF_OK;
 
 	/*HTML code*/
 	if (str[0]=='$') {
+		u32 val;
 		sscanf(str, "%x", &val);
 		col->red = INT2FIX((val>>16) & 0xFF) / 255;
 		col->green = INT2FIX((val>>8) & 0xFF) / 255;
 		col->blue = INT2FIX(val & 0xFF) / 255;
 		return parser->last_error;
 	} 
-
-	for (i=0; i<strlen(str); i++) {
-		if (!isdigit(str[i]) && (str[i] != '.') && (str[i] != 'E') && (str[i] != 'e') && (str[i] != '-') && (str[i] != '+')) {
-			return gf_bt_report(parser, GF_BAD_PARAM, "%s: Number expected", name);
-		}
+	if (sscanf(str, "%f", &f) != 1) {
+		return gf_bt_report(parser, GF_BAD_PARAM, "%s: Number expected", name);
 	}
-	col->red = FLT2FIX(atof(str));
+	col->red = FLT2FIX(f);
 	/*many VRML files use ',' separator*/
 	gf_bt_check_code(parser, ',');
 	gf_bt_parse_float(parser, name, & col->green);
@@ -511,14 +501,14 @@ GF_Err gf_bt_parse_color(GF_BTParser *parser, const char *name, SFColor *col)
 
 GF_Err gf_bt_parse_colorRGBA(GF_BTParser *parser, const char *name, SFColorRGBA *col)
 {
-	u32 i;
-	u32 val;
+	Float f;
 	char *str = gf_bt_get_next(parser, 0);
 	if (!str) return parser->last_error = GF_IO_ERR;
 	if (gf_bt_check_externproto_field(parser, str)) return GF_OK;
 
 	/*HTML code*/
 	if (str[0]=='$') {
+		u32 val;
 		sscanf(str, "%x", &val);
 		col->red = INT2FIX((val>>24) & 0xFF) / 255;
 		col->green = INT2FIX((val>>16) & 0xFF) / 255;
@@ -526,15 +516,15 @@ GF_Err gf_bt_parse_colorRGBA(GF_BTParser *parser, const char *name, SFColorRGBA 
 		col->alpha = INT2FIX(val & 0xFF) / 255;
 		return parser->last_error;
 	} 
-
-	for (i=0; i<strlen(str); i++) {
-		if (!isdigit(str[i]) && (str[i] != '.') && (str[i] != 'E') && (str[i] != 'e') && (str[i] != '-') && (str[i] != '+')) {
-			return gf_bt_report(parser, GF_BAD_PARAM, "%s: Number expected", name);
-		}
+	if (sscanf(str, "%f", &f) != 1) {
+		return gf_bt_report(parser, GF_BAD_PARAM, "%s: Number expected", name);
 	}
-	col->red = FLT2FIX(atof(str));
+	col->red = FLT2FIX(f);
+	gf_bt_check_code(parser, ',');
 	gf_bt_parse_float(parser, name, & col->green);
+	gf_bt_check_code(parser, ',');
 	gf_bt_parse_float(parser, name, & col->blue);
+	gf_bt_check_code(parser, ',');
 	gf_bt_parse_float(parser, name, & col->alpha);
 	return parser->last_error;
 }
@@ -2741,18 +2731,10 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com)
 			if (str[0] == 'D') {
 				parser->au_time += atoi(&str[1]);
 			} else {
-				u32 i;
-				for (i=0; i<strlen(str); i++) {
-					if (!isdigit(str[i]) && (str[i] != 'E') && (str[i] != 'e') && (str[i] != '-')) {
-						gf_bt_report(parser, GF_BAD_PARAM, "Number expected got %s", str);
-						break;
-					}
-				}
-				if (!i) {
+				if (sscanf(str, "%d", &parser->au_time) != 1) {
 					gf_bt_report(parser, GF_BAD_PARAM, "Number expected got %s", str);
 					break;
 				}
-				parser->au_time = atoi(str);
 			}
 			if (parser->last_error) break;
 			/*reset all contexts*/
@@ -2836,7 +2818,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com)
 			|| !strcmp(str, "GLOBALQP") || !strcmp(str, "MULTIPLEREPLACE") || !strcmp(str, "MULTIPLEINDREPLACE") || !strcmp(str, "XDELETE") || !strcmp(str, "DELETEPROTO") || !strcmp(str, "INSERTPROTO") ) {
 
 			if (!parser->stream_id) parser->stream_id = parser->base_bifs_id;
-			if (!parser->stream_id || (parser->od_es && (parser->stream_id==parser->od_es->ESID)) ) parser->stream_id = parser->base_bifs_id;
+			if (!parser->stream_id || (parser->bifs_es && (parser->stream_id==parser->bifs_es->ESID)) ) parser->stream_id = parser->base_bifs_id;
 
 			if (parser->bifs_es->ESID != parser->stream_id) {
 				GF_StreamContext *prev = parser->bifs_es;
@@ -2874,7 +2856,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com)
 		/*if in command, check command end*/
 		else {
 			/*check command end*/
-			if (in_com && gf_bt_check_code(parser, '}')) in_com = 0;
+			if (/*in_com && */gf_bt_check_code(parser, '}')) in_com = 0;
 			else if (strlen(str)) {
 				gf_bt_report(parser, GF_BAD_PARAM, "%s: Unknown top-level element", str);
 			}

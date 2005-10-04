@@ -72,7 +72,7 @@ static void RenderCircle(GF_Node *node, void *rs)
 
 void R2D_InitCircle(Render2D *sr, GF_Node *node)
 {
-	BaseDrawStack2D(sr, node);
+	drawable_stack_new(sr, node);
 	gf_node_set_render_function(node, RenderCircle);
 }
 
@@ -97,7 +97,7 @@ static void RenderEllipse(GF_Node *node, void *rs)
 
 void R2D_InitEllipse(Render2D  *sr, GF_Node *node)
 {
-	BaseDrawStack2D(sr, node);
+	drawable_stack_new(sr, node);
 	gf_node_set_render_function(node, RenderEllipse);
 }
 
@@ -138,7 +138,7 @@ static void RenderRectangle(GF_Node *node, void *reff)
 
 void R2D_InitRectangle(Render2D  *sr, GF_Node *node)
 {
-	BaseDrawStack2D(sr, node);
+	drawable_stack_new(sr, node);
 	gf_node_set_render_function(node, RenderRectangle);
 }
 
@@ -282,7 +282,7 @@ static void RenderCurve2D(GF_Node *node, void *rs)
 
 void R2D_InitCurve2D(Render2D  *sr, GF_Node *node)
 {
-	BaseDrawStack2D(sr, node);
+	drawable_stack_new(sr, node);
 	gf_node_set_render_function(node, RenderCurve2D);
 }
 
@@ -297,7 +297,7 @@ static void DestroyBitmap(GF_Node *n)
 {
 	BitmapStack *st = (BitmapStack *)gf_node_get_private(n);
 
-	DeleteDrawableNode(st->graph);
+	drawable_del(st->graph);
 
 	/*destroy hw surface if any*/
 
@@ -459,7 +459,7 @@ static Bool Bitmap_PointOver(DrawableContext *ctx, Fixed x, Fixed y, Bool check_
 void R2D_InitBitmap(Render2D  *sr, GF_Node *node)
 {
 	BitmapStack *st = malloc(sizeof(BitmapStack));
-	st->graph = NewDrawableNode();
+	st->graph = drawable_new();
 
 	gf_sr_traversable_setup(st->graph, node, sr->compositor);
 	st->graph->Draw = DrawBitmap;
@@ -554,7 +554,7 @@ static void PointSet2D_Draw(DrawableContext *ctx)
 
 void R2D_InitPointSet2D(Render2D  *sr, GF_Node *node)
 {
-	Drawable *stack = BaseDrawStack2D(sr, node);
+	Drawable *stack = drawable_stack_new(sr, node);
 	/*override draw*/
 	stack->Draw = PointSet2D_Draw;
 	gf_node_set_render_function(node, RenderPointSet2D);

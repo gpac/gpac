@@ -43,10 +43,7 @@
 
 
 
-#define col_clip(a) (a<0 ? 0 : (a>255 ? 255 : a) )
-
-#define GF_COL_565(r, g, b) (u16) (((r & 248)<<8) + ((g & 252)<<3)  + (b>>3))
-#define GF_COL_555(r, g, b) (u16) (((r & 248)<<7) + ((g & 248)<<2)  + (b>>3))
+#define col_clip(a) MAX(0, MIN(255, a))
 
 static s32 RGB_Y[256];
 static s32 B_U[256];
@@ -80,8 +77,6 @@ static void gf_yuv_load_lines(unsigned char *dst, s32 dststride, unsigned char *
 	u32 x, hw;
 	unsigned char *dst2 = dst + dststride;
 	unsigned char *y_src2 = y_src + y_stride;
-
-	yuv2rgb_init();
 
 	hw = width / 2;
 	for (x = 0; x < hw; x++) {
@@ -642,6 +637,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
+		yuv2rgb_init();
 		yuv_type = 1;
 		break;
 	case GF_PIXEL_YUVA:

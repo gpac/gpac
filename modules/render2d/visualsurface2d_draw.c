@@ -111,10 +111,8 @@ static void VS2D_DoFill(VisualSurface2D *surf, DrawableContext *ctx, GF_STENCIL 
 
 	/*background rendering - direct rendering: use ctx clip*/
 	if (ctx->is_background || (surf->render->top_effect->trav_flags & TF_RENDER_DIRECT)) {
-		clip = ctx->clip;
-		gf_irect_intersect(&clip, &surf->top_clipper);
-		if (clip.width && clip.height) {
-			r2d->surface_set_clipper(surf->the_surface, &clip);
+		if (ctx->clip.width && ctx->clip.height) {
+			r2d->surface_set_clipper(surf->the_surface, &ctx->clip);
 			r2d->surface_fill(surf->the_surface, stencil);
 		}
 	} 
@@ -129,6 +127,8 @@ static void VS2D_DoFill(VisualSurface2D *surf, DrawableContext *ctx, GF_STENCIL 
 			if (clip.width && clip.height) {
 				r2d->surface_set_clipper(surf->the_surface, &clip);
 				r2d->surface_fill(surf->the_surface, stencil);
+//			} else {
+//				fprintf(stdout, "node outside clipper\n");
 			}
 		}
 	}

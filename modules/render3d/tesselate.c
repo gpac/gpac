@@ -116,7 +116,6 @@ void TesselatePath(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 {
 	u32 i, j, cur, nb_pts;
 	u32 *idx;
-	Bool do_delete;
 	Fixed w, h, min_y;
 	GF_Rect rc;
 	GLdouble vertex[3];
@@ -148,11 +147,7 @@ void TesselatePath(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 
     gluTessBeginPolygon(tess->tess_obj, tess);
 
-	do_delete = 0;
-	if (!(path->flags & GF_PATH_FLATTENED)) {
-		do_delete = 1;
-		path = gf_path_flatten(path);
-	}
+	gf_path_flatten(path);
 	gf_path_get_bounds(path, &rc);
 
 	w = rc.width;
@@ -202,7 +197,6 @@ void TesselatePath(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 	mesh->bounds.max_edge.y = rc.y;
 	mesh->bounds.min_edge.z = mesh->bounds.max_edge.z = 0;
 	gf_bbox_refresh(&mesh->bounds);
-	if (do_delete) gf_path_del(path);
 }
 
 #else

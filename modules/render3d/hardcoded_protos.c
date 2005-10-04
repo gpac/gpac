@@ -225,9 +225,9 @@ static void RenderPlanarExtrusion(GF_Node *node, void *rs)
 		if (!geo || !spine) return;
 
 		mesh_reset(st->mesh);
-		spine = gf_path_flatten(spine);
+		gf_path_flatten(spine);
 		gf_path_get_bounds(spine, &bounds);
-		geo = gf_path_flatten(geo);
+		gf_path_flatten(geo);
 		gf_path_get_bounds(geo, &bounds);
 
 		cur = 0;
@@ -321,8 +321,6 @@ static void RenderPlanarExtrusion(GF_Node *node, void *rs)
 		}
 		mesh_update_bounds(st->mesh);
 		gf_mesh_build_aabbtree(st->mesh);
-		gf_path_del(spine);
-		gf_path_del(geo);
 	}
 
 	if (!eff->traversing_mode) {

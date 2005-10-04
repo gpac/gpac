@@ -44,8 +44,7 @@ GF_SURFACE evg_surface_new(GF_Raster2D *_dr, Bool center_coords)
 		_this->texture_filter = GF_TEXTURE_FILTER_DEFAULT;
 		_this->ftparams.source = &_this->ftoutline;
 		_this->ftparams.user = _this;
-		evg_raster_new(_this->ftrast_mem, &_this->ftraster);
-		evg_raster_reset(_this->ftraster, _this->raster_pool, EVG_FT_POOL_SIZE);
+		_this->raster = evg_raster_new();
 	}
 	return _this;
 }
@@ -58,7 +57,7 @@ void evg_surface_delete(GF_SURFACE _this)
 	if (surf->tags) free(surf->tags);
 	if (surf->points) free(surf->points);
 	if (surf->stencil_pix_run) free(surf->stencil_pix_run);
-	evg_raster_done(surf->ftraster);
+	evg_raster_del(surf->raster);
 	free(surf);
 }
 
@@ -462,12 +461,13 @@ GF_Err evg_surface_set_path(GF_SURFACE _this, GF_Path *gp)
 	EVGSurface *surf = (EVGSurface *)_this;
 
 	if (!surf) return GF_BAD_PARAM;
-	if (!gp) {
+	if (!gp || !gp->n_points) {
 		surf->ftoutline.n_points = 0;
 		surf->ftoutline.n_contours = 0;
 		return GF_OK;
 	}
 
+	gf_path_flatten(gp);
 	n=0;
 
 	if (gp->n_points > 32767) return GF_OUT_OF_MEM;
@@ -615,7 +615,7 @@ GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 	}
 
 	/*and call the raster*/
-	evg_raster_render(surf->ftraster, &surf->ftparams);
+	evg_raster_render(surf->raster, &surf->ftparams);
 
 	/*restore stencil matrix*/
 	if (sten->type != GF_STENCIL_SOLID) {

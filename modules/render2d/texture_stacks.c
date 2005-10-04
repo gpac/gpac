@@ -81,7 +81,6 @@ static void UpdateComposite2D(GF_TextureHandler *txh)
 {
 	GF_Err e;
 	u32 count;
-	Bool changed;
 	u32 i;
 	SensorHandler *hsens;
 	GF_Node *child;
@@ -117,8 +116,6 @@ static void UpdateComposite2D(GF_TextureHandler *txh)
 
 	if (st->surf->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
 		eff->trav_flags = TF_RENDER_DIRECT;
-	} else {
-		eff->trav_flags = 0;
 	}
 
 
@@ -169,8 +166,7 @@ static void UpdateComposite2D(GF_TextureHandler *txh)
 	gf_node_render_children(st->txh.owner, eff);
 
 	/*finalize draw*/
-	changed = VS2D_TerminateDraw(st->surf, eff);
-
+	txh->needs_refresh = VS2D_TerminateDraw(st->surf, eff);
 	st->txh.transparent = st->surf->last_had_back ? 0 : 1;
 /*
 	st->txh.active_window.x = 0;
@@ -195,18 +191,15 @@ static void UpdateComposite2D(GF_TextureHandler *txh)
 				st->txh.active_window.y = (st->height - size.y) / 2;
 */
 				/*FIXME - we need tracking of VP changes*/
-				changed = 1;
+				txh->needs_refresh = 1;
 			}
 		}
 	} 
 
-	if (changed) {
-		txh->needs_refresh = 1;
-		if (r2d->stencil_gf_sr_texture_modified) r2d->stencil_gf_sr_texture_modified(st->txh.hwtx); 
-		gf_sr_invalidate(st->txh.compositor, NULL);
-	} else {
-		txh->needs_refresh = 0;
-	}
+	if (txh->needs_refresh && r2d->stencil_gf_sr_texture_modified) r2d->stencil_gf_sr_texture_modified(st->txh.hwtx); 
+	/*always invalidate to make sure the frame counter is incremented, otherwise we will
+	break bounds tracking*/
+	gf_sr_invalidate(st->txh.compositor, NULL);
 	effect_delete(eff);
 }
 

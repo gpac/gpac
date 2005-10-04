@@ -332,7 +332,7 @@ static void SVG_Render_g(GF_Node *node, void *rs)
 
 void SVG_Init_g(Render2D *sr, GF_Node *node)
 {
-	BaseDrawStack2D(sr, node);
+	drawable_stack_new(sr, node);
 	gf_node_set_render_function(node, SVG_Render_g);
 }
 
@@ -369,7 +369,7 @@ static void SVG_Render_switch(GF_Node *node, void *rs)
 
 void SVG_Init_switch(Render2D *sr, GF_Node *node)
 {
-	BaseDrawStack2D(sr, node);
+	drawable_stack_new(sr, node);
 	gf_node_set_render_function(node, SVG_Render_switch);
 }
 
@@ -451,7 +451,7 @@ static void SVG_Render_rect(GF_Node *node, void *rs)
 
 void SVG_Init_rect(Render2D *sr, GF_Node *node)
 {
-	BaseDrawStack2D(sr, node);
+	drawable_stack_new(sr, node);
 	gf_node_set_render_function(node, SVG_Render_rect);
 }
 
@@ -502,7 +502,7 @@ static void SVG_Render_circle(GF_Node *node, void *rs)
 
 void SVG_Init_circle(Render2D *sr, GF_Node *node)
 {
-	BaseDrawStack2D(sr, node);
+	drawable_stack_new(sr, node);
 	gf_node_set_render_function(node, SVG_Render_circle);
 }
 
@@ -553,7 +553,7 @@ static void SVG_Render_ellipse(GF_Node *node, void *rs)
 
 void SVG_Init_ellipse(Render2D *sr, GF_Node *node)
 {
-	BaseDrawStack2D(sr, node);
+	drawable_stack_new(sr, node);
 	gf_node_set_render_function(node, SVG_Render_ellipse);
 }
 
@@ -605,7 +605,7 @@ static void SVG_Render_line(GF_Node *node, void *rs)
 
 void SVG_Init_line(Render2D *sr, GF_Node *node)
 {
-	BaseDrawStack2D(sr, node);
+	drawable_stack_new(sr, node);
 	gf_node_set_render_function(node, SVG_Render_line);
 }
 
@@ -668,7 +668,7 @@ static void SVG_Render_polyline(GF_Node *node, void *rs)
 
 void SVG_Init_polyline(Render2D *sr, GF_Node *node)
 {
-	BaseDrawStack2D(sr, node);
+	drawable_stack_new(sr, node);
 	gf_node_set_render_function(node, SVG_Render_polyline);
 }
 
@@ -732,7 +732,7 @@ static void SVG_Render_polygon(GF_Node *node, void *rs)
 
 void SVG_Init_polygon(Render2D *sr, GF_Node *node)
 {
-	BaseDrawStack2D(sr, node);
+	drawable_stack_new(sr, node);
 	gf_node_set_render_function(node, SVG_Render_polygon);
 }
 
@@ -851,7 +851,7 @@ static void SVG_Render_path(GF_Node *node, void *rs)
 
 void SVG_Init_path(Render2D *sr, GF_Node *node)
 {
-	BaseDrawStack2D(sr, node);
+	drawable_stack_new(sr, node);
 	gf_node_set_render_function(node, SVG_Render_path);
 }
 
@@ -905,7 +905,7 @@ static void SVG_Render_use(GF_Node *node, void *rs)
 
 void SVG_Init_use(Render2D *sr, GF_Node *node)
 {
-	BaseDrawStack2D(sr, node);
+	drawable_stack_new(sr, node);
 	gf_node_set_render_function(node, SVG_Render_use);
 }
 

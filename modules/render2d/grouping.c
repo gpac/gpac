@@ -233,11 +233,7 @@ void child2d_render_done(ChildGroup2D *cg, RenderEffect2D *eff, GF_Rect *par_cli
 		gf_mx2d_apply_rect_int(&loc_mx, &ctx->clip);
 		gf_irect_intersect(&ctx->clip, &clipper);
 
-		if (eff->parent) {
-			group2d_add_to_context_list(eff->parent, ctx);
-		} else if (eff->trav_flags & TF_RENDER_DIRECT) {
-			ctx->node->Draw(ctx);
-		}
+		drawable_finalize_end(ctx, eff);
 	}
 }
 void child2d_render_done_complex(ChildGroup2D *cg, RenderEffect2D *eff, GF_Matrix2D *mat)
@@ -265,11 +261,7 @@ void child2d_render_done_complex(ChildGroup2D *cg, RenderEffect2D *eff, GF_Matri
 		ctx->unclip_pix = gf_rect_pixelize(&ctx->unclip);
 		gf_mx2d_apply_rect_int(&ctx->transform, &ctx->clip);
 
-		if (eff->parent) {
-			group2d_add_to_context_list(eff->parent, ctx);
-		} else if (eff->trav_flags & TF_RENDER_DIRECT) {
-			ctx->node->Draw(ctx);
-		}
+		drawable_finalize_end(ctx, eff);
 	}
 }
 

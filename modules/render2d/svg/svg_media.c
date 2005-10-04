@@ -253,7 +253,7 @@ static void SVG_Destroy_image(GF_Node *node)
 	gf_sr_texture_destroy(&st->txh);
 	gf_sg_mfurl_del(st->txurl);
 
-	DeleteDrawableNode(st->graph);
+	drawable_del(st->graph);
 	free(st);
 }
 
@@ -261,7 +261,7 @@ void SVG_Init_image(Render2D *sr, GF_Node *node)
 {
 	SVG_image_stack *st;
 	GF_SAFEALLOC(st, sizeof(SVG_image_stack))
-	st->graph = NewDrawableNode();
+	st->graph = drawable_new();
 
 	gf_sr_traversable_setup(st->graph, node, sr->compositor);
 	st->graph->Draw = SVG_Draw_bitmap;
@@ -408,7 +408,7 @@ static void SVG_Destroy_video(GF_Node *node)
 	gf_sg_mfurl_del(st->txurl);
 
 	if (st->time_handle.is_registered) gf_sr_unregister_time_node(st->txh.compositor, &st->time_handle);
-	DeleteDrawableNode(st->graph);
+	drawable_del(st->graph);
 	free(st);
 }
 
@@ -416,7 +416,7 @@ void SVG_Init_video(Render2D *sr, GF_Node *node)
 {
 	SVG_video_stack *st;
 	GF_SAFEALLOC(st, sizeof(SVG_video_stack))
-	st->graph = NewDrawableNode();
+	st->graph = drawable_new();
 
 	gf_sr_traversable_setup(st->graph, node, sr->compositor);
 	st->graph->Draw = SVG_Draw_bitmap;

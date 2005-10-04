@@ -284,6 +284,7 @@ EXPORTS
 	gf_path_get_control_bounds
 	gf_path_get_bounds
 	gf_path_flatten
+	gf_path_get_flatten
 	gf_path_iterator_new
 	gf_path_iterator_del
 	gf_path_iterator_get_length
@@ -291,7 +292,6 @@ EXPORTS
 	gf_polygone2d_get_convexity
 	gf_path_get_outline
 	gf_path_point_over
-	gf_path_do_flatten
 
 ;mpeg4_odf.h exports
 	gf_odf_slc_set_pref

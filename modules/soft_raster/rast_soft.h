@@ -49,10 +49,6 @@ typedef struct _evg_base_stencil
 } EVGStencil;
 
 
-/*128 k of pool buffer for FreeType raster*/
-#define EVG_FT_POOL_SIZE		131072/*262144*/
-
-
 /*FreeType redefined*/
 typedef struct
 {
@@ -98,11 +94,9 @@ typedef struct EVG_Raster_Params_
 } EVG_Raster_Params;
 
 
-int evg_raster_new(void *memory, EVG_Raster *out_new_raster);
-void evg_raster_done(EVG_Raster raster);
-void evg_raster_reset(EVG_Raster raster, const char *pool_base, long pool_size);
+EVG_Raster evg_raster_new();
+void evg_raster_del(EVG_Raster raster);
 int evg_raster_render(EVG_Raster raster, EVG_Raster_Params *params);
-
 
 /*the surface object - currently only ARGB/RGB32, RGB/BGR and RGB555/RGB565 supported*/
 struct _evg_surface
@@ -154,9 +148,7 @@ struct _evg_surface
 	s16 *contours;
 
 	/*FreeType raster and pool size*/
-	char raster_pool[EVG_FT_POOL_SIZE];
-	void *ftrast_mem;
-	EVG_Raster ftraster;
+	EVG_Raster raster;
 };
 
 /*solid color brush*/

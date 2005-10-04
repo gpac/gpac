@@ -308,7 +308,8 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			break;
 		case 'R':
 		case 'r':
-			gf_term_set_option(term, GF_OPT_FORCE_REDRAW, 1);
+//			gf_term_set_option(term, GF_OPT_FORCE_REDRAW, 1);
+			gf_term_set_option(term, GF_OPT_DIRECT_RENDER, !gf_term_get_option(term, GF_OPT_DIRECT_RENDER) );
 			break;
 		case '4': gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_4_3); break;
 		case '5': gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_16_9); break;

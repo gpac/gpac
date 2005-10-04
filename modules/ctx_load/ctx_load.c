@@ -279,21 +279,21 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 		}
 
 		/*and figure out duration of root scene, and take care of XMT timing*/
-		max_dur = 0;
-		for (i=0; i<gf_list_count(priv->ctx->streams); i++) {
-			sc = gf_list_get(priv->ctx->streams, i);
-			/*all streams in root OD are handled with ESID 0 to differentiate with any animation streams*/
-			if (CTXLoad_StreamInRootOD(priv->ctx->root_od, sc->ESID)) sc->ESID = 0;
-			if (!sc->timeScale) sc->timeScale = 1000;
-
-			au = NULL;
-			for (j = 0; j<gf_list_count(sc->AUs); j++) {
-				au = gf_list_get(sc->AUs, j);
-				if (!au->timing) au->timing = (u32) (sc->timeScale*au->timing_sec);
-			}
-			if (au && !sc->ESID && (au->timing>max_dur)) max_dur = au->timing * 1000 / sc->timeScale;
-		}
 		if (priv->load_flags==2) {
+			max_dur = 0;
+			for (i=0; i<gf_list_count(priv->ctx->streams); i++) {
+				sc = gf_list_get(priv->ctx->streams, i);
+				/*all streams in root OD are handled with ESID 0 to differentiate with any animation streams*/
+				if (CTXLoad_StreamInRootOD(priv->ctx->root_od, sc->ESID)) sc->ESID = 0;
+				if (!sc->timeScale) sc->timeScale = 1000;
+
+				au = NULL;
+				for (j = 0; j<gf_list_count(sc->AUs); j++) {
+					au = gf_list_get(sc->AUs, j);
+					if (!au->timing) au->timing = (u32) (sc->timeScale*au->timing_sec);
+				}
+				if (au && !sc->ESID && (au->timing>max_dur)) max_dur = au->timing * 1000 / sc->timeScale;
+			}
 			if (max_dur) {
 				priv->inline_scene->root_od->duration = max_dur;
 				gf_is_set_duration(priv->inline_scene);

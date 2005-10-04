@@ -136,6 +136,7 @@ void VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	GF_Rect rc;
 	DrawableContext *ctx;
 	M_Background2D *bck;
+	Bool direct_render;
 	surf->num_contexts = 0;
 	eff->surface = surf;
 	eff->draw_background = 0;
@@ -166,19 +167,33 @@ void VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	}
 
 	surf->top_clipper = gf_rect_pixelize(&rc);
+	/*if we're requested to invalidate everything, switch to direct render*/
+	if (eff->invalidate_all) {
+		eff->trav_flags |= TF_RENDER_DIRECT;
+		direct_render = 2;
+	} else {
+		direct_render = (eff->trav_flags & TF_RENDER_DIRECT) ? 1 : 0;
+	}
 
-	/*reset prev nodes*/
+	/*reset sensors*/
+	VS2D_ResetSensors(surf);
+
+	/*reset prev nodes if any (previous render was indirect)*/
 	count = gf_list_count(surf->prev_nodes_drawn);
 	for (i=0; i<count; i++) {
 		Drawable *dr = gf_list_get(surf->prev_nodes_drawn, i);
-		if (surf->last_was_direct_render != (Bool) (eff->trav_flags & TF_RENDER_DIRECT) )
-			drawable_reset_previous_bounds(dr);
-		
-		drawable_flush_bounds(dr, surf->render->frame_num);
+		if (direct_render) {
+			/*direct rendering mode, remove all bounds info and unreg node */
+			drawable_reset_bounds(dr);
+			gf_list_rem(surf->prev_nodes_drawn, i);
+			i--;
+			count--;
+			drawable_unregister_from_surface(dr, surf);
+		} else {
+			drawable_flush_bounds(dr, surf->render->frame_num);
+		}
 	}
-	surf->last_was_direct_render = (Bool) (eff->trav_flags & TF_RENDER_DIRECT);
-	
-	if (!surf->last_was_direct_render) return;
+	if (!direct_render) return;
 
 	/*direct mode, draw background*/
 	bck = NULL;
@@ -195,7 +210,7 @@ void VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	}
 }
 
-static void register_sensor(VisualSurface2D *surf, DrawableContext *ctx)
+void VS2D_RegisterSensor(VisualSurface2D *surf, DrawableContext *ctx)
 {
 	u32 i, len;
 	SensorInfo *si;
@@ -228,10 +243,10 @@ register_sensor:
 	gf_list_add(surf->sensors, si);
 }
 
+#if 0
 static void remove_hidden_sensors(VisualSurface2D *surf, u32 nodes_to_draw, DrawableContext *under_ctx)
 {
 	u32 i, k;
-	return;
 
 	for (i=0; i<nodes_to_draw - 1; i++) {
 		if (! gf_irect_inside(under_ctx->clip, surf->contexts[surf->nodes_to_draw[i]]->clip) ) continue;
@@ -248,6 +263,8 @@ static void remove_hidden_sensors(VisualSurface2D *surf, u32 nodes_to_draw, Draw
 		}
 	}
 }
+#endif
+
 
 #define CHECK_UNCHANGED		0
 
@@ -312,7 +329,7 @@ to redraw exceeds the possible number of squares on the surface, the entire area
 dirty rects algo when a lot of small shapes are moving*/
 #define MIN_BBOX_SIZE	16
 
-#if 1
+#if 0
 #define CHECK_MAX_NODE	if (surf->to_redraw.count > max_nodes_allowed) redraw_all = 1;
 #else
 #define CHECK_MAX_NODE
@@ -321,22 +338,20 @@ dirty rects algo when a lot of small shapes are moving*/
 
 Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 {
-	u32 j, k, i, num_to_draw, num_empty, count, max_nodes_allowed;
+	u32 j, k, i, num_to_draw, count, max_nodes_allowed;
 	GF_IRect refreshRect;
-	Bool redraw_all, is_empty;
+	Bool redraw_all;
 	M_Background2D *bck;
 	DrawableContext *bck_ctx;
 	DrawableContext *ctx;
-	Bool use_direct_render = 0;
 	Bool has_changed = 0;
 
 	/*in direct mode the surface is always redrawn*/
 	if (eff->trav_flags & TF_RENDER_DIRECT) {
-		has_changed = 1;
-		use_direct_render = 1;
+		VS2D_TerminateSurface(surf);
+		return 1;
 	}
 
-	VS2D_ResetSensors(surf);
 	num_to_draw = 0;
 	
 	/*if the aspect ratio has changed redraw everything*/
@@ -346,45 +361,28 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	bck = NULL;
 	bck_ctx = NULL;
 
-	if (! use_direct_render) {
-		bck = NULL;
-		if (gf_list_count(surf->back_stack)) bck = gf_list_get(surf->back_stack, 0);
-		if (bck) {
-			if (!bck->isBound) redraw_all = 1;
-			surf->last_had_back = 1;
-			bck_ctx = b2D_GetContext(bck, surf->back_stack);
-			if (bck_ctx->redraw_flags) redraw_all = 1;
-		} else if (surf->last_had_back) {
-			surf->last_had_back = 0;
-			redraw_all = 1;
-		}
+	bck = NULL;
+	if (gf_list_count(surf->back_stack)) bck = gf_list_get(surf->back_stack, 0);
+	if (bck) {
+		if (!bck->isBound) redraw_all = 1;
+		surf->last_had_back = 1;
+		bck_ctx = b2D_GetContext(bck, surf->back_stack);
+		if (bck_ctx->redraw_flags) redraw_all = 1;
+	} else if (surf->last_had_back) {
 		surf->last_had_back = 0;
+		redraw_all = 1;
 	}
-
+	surf->last_had_back = 0;
+	
 	max_nodes_allowed = (u32) ((surf->top_clipper.width / MIN_BBOX_SIZE) * (surf->top_clipper.height / MIN_BBOX_SIZE));
-	num_empty = 0;
 	count = surf->num_contexts;
 	for (i=0; i<count; i++) {
 		ctx = surf->contexts[i];
-		gf_irect_intersect(&ctx->clip, &surf->top_clipper);
-		is_empty = gf_rect_is_empty(ctx->clip);
+		if (!ctx->clip.width || !ctx->clip.height) continue;
 
-		/*store bounds even in direct render*/
-		if (!is_empty) {
-			drawable_store_bounds(ctx);
-			register_sensor(surf, ctx);
-		} else if (!use_direct_render) {
-			num_empty++;
-			continue;
-		}
 		//register node to draw
 		surf->nodes_to_draw[num_to_draw] = i;
 		num_to_draw++;
-
-		if (use_direct_render) {
-			drawable_reset_previous_bounds(ctx->node);
-			continue;
-		}
 
 		drawctx_update_info(ctx);
 
@@ -394,10 +392,8 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 			CHECK_MAX_NODE
 		}
 		/*otherwise try to remove any sensor hidden below*/
-		if (!ctx->transparent) remove_hidden_sensors(surf, num_to_draw, ctx);
+		//if (!ctx->transparent) remove_hidden_sensors(surf, num_to_draw, ctx);
 	}
-
-	if (use_direct_render) goto exit;
 
 	/*garbage collection*/
 
@@ -418,10 +414,7 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 			j--;
 			count--;
 			drawable_unregister_from_surface(n, surf);
-
-/*			drawable_reset_path(n);
-			gf_node_dirty_set(n->owner, 0);
-*/		}
+		}
 	}
 
 	CHECK_MAX_NODE
@@ -463,14 +456,16 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 		}
 	}
 
-/*
-	fprintf(stdout, "%d nodes to redraw (%d total) - %d dirty rects\n", num_to_draw, surf->num_contexts, surf->to_redraw.count);
+/*	fprintf(stdout, "%d nodes to redraw (%d total) - %d dirty rects\n", num_to_draw, surf->num_contexts, surf->to_redraw.count);
 	fprintf(stdout, "DR: X:%d Y:%d W:%d H:%d\n", surf->to_redraw.list[0].x, surf->to_redraw.list[0].y, surf->to_redraw.list[0].width, surf->to_redraw.list[0].height);
 */
 	for (j = 0; j < num_to_draw; j++) {
 		ctx = surf->contexts[surf->nodes_to_draw[j]];
-		surf->draw_node_index = j+1;
-		ctx->node->Draw(ctx);
+		if ((surf->to_redraw.count==1) && ! gf_irect_overlaps(ctx->clip, surf->to_redraw.list[0])) {
+		} else {
+			surf->draw_node_index = j+1;
+			ctx->node->Draw(ctx);
+		}
 		drawable_register_on_surface(ctx->node, surf);
 	}
 

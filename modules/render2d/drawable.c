@@ -51,14 +51,13 @@ static Bool check_bounds_size(Drawable *node)
 
 static void bounds_remove_prev_item(Drawable *node, u32 pos)
 {
-	u32 i;
-	BoundsInfo *bi;
-	bi = node->previous_bounds[pos];
-	for (i=pos; i<node->previous_count - 1; i++) 
-		node->previous_bounds[i] = node->previous_bounds[i+1];
-
+	BoundsInfo *bi = node->previous_bounds[pos];
+	u32 count = node->previous_count - pos - 1;
+	if (count) {
+		memmove(&node->previous_bounds[pos], &node->previous_bounds[pos+1], sizeof(BoundsInfo *)*count);
+		node->previous_bounds[node->previous_count-1] = bi;
+	}
 	node->previous_count--; 
-	node->previous_bounds[node->previous_count] = bi;
 }
 
 
@@ -93,7 +92,7 @@ void drawctx_store_original_bounds(struct _drawable_context *ctx)
 	gf_path_get_bounds(ctx->node->path, &ctx->original);
 }
 
-Drawable *NewDrawableNode()
+Drawable *drawable_new()
 {
 	Drawable *tmp;
 	GF_SAFEALLOC(tmp, sizeof(Drawable))
@@ -124,7 +123,7 @@ void drawable_reset_bounds(Drawable *dr)
 	dr->bounds_size = 0;
 }
 
-void DeleteDrawableNode(Drawable *dr)
+void drawable_del(Drawable *dr)
 {
 	u32 i;
 
@@ -170,12 +169,12 @@ void DeleteDrawableNode(Drawable *dr)
 static void DestroyDrawableNode(GF_Node *node)
 {
 	Drawable *ptr = gf_node_get_private(node);
-	DeleteDrawableNode(ptr);
+	drawable_del(ptr);
 }
 
-Drawable *BaseDrawStack2D(Render2D *sr, GF_Node *node)
+Drawable *drawable_stack_new(Render2D *sr, GF_Node *node)
 {
-	Drawable *stack = NewDrawableNode();
+	Drawable *stack = drawable_new();
 	gf_sr_traversable_setup(stack, node, sr->compositor);
 	gf_node_set_private(node, stack);
 	gf_node_set_predestroy_function(node, DestroyDrawableNode);
@@ -413,6 +412,7 @@ check_default:
 		return;
 	}
 	ctx->aspect.has_line = 1;
+	if (m->lineProps && gf_node_dirty_get(m->lineProps)) ctx->redraw_flags |= CTX_APP_DIRTY;
 
 	if (LP) {
 		ctx->aspect.pen_props.dash = LP->lineStyle;
@@ -422,7 +422,7 @@ check_default:
 		return;
 	} 
 
-	ctx->aspect.pen_props.dash = LP ? LP->lineStyle : XLP->lineStyle;
+	ctx->aspect.pen_props.dash = XLP->lineStyle;
 	ctx->aspect.line_color = GF_COL_ARGB_FIXED(FIX_ONE-XLP->transparency, XLP->lineColor.red, XLP->lineColor.green, XLP->lineColor.blue);
 	ctx->aspect.pen_props.width = XLP->width;
 	ctx->aspect.line_color = gf_cmx_apply(&ctx->cmat, ctx->aspect.line_color);
@@ -535,6 +535,21 @@ DrawableContext *drawable_init_context(Drawable *node, RenderEffect2D *eff)
 	return ctx;
 }
 
+void drawable_finalize_end(struct _drawable_context *ctx, RenderEffect2D *eff)
+{
+	if (eff->parent) {
+		group2d_add_to_context_list(eff->parent, ctx);
+	} else {
+		/*setup clipper and register bounds & sensors*/
+		gf_irect_intersect(&ctx->clip, &eff->surface->top_clipper);
+		if (gf_rect_is_empty(ctx->clip) ) return;
+		VS2D_RegisterSensor(eff->surface, ctx);
+	
+		if (eff->trav_flags & TF_RENDER_DIRECT) ctx->node->Draw(ctx);
+		else drawable_store_bounds(ctx);
+	}
+}
+
 void drawable_finalize_render(struct _drawable_context *ctx, RenderEffect2D *eff)
 {
 	Fixed pw;
@@ -556,19 +571,17 @@ void drawable_finalize_render(struct _drawable_context *ctx, RenderEffect2D *eff
 			ctx->aspect.line_scale = FIX_ONE;
 		}
 		
-		if (ctx->aspect.pen_props.align!=GF_PATH_LINE_INSIDE) {
-			/*get strike info & outline for exact bounds compute. If failure use default offset*/
-			si = drawctx_get_strikeinfo(ctx, ctx->node->path);
-			if (si && si->outline) {
-				gf_path_get_bounds(si->outline, &ctx->unclip);
-				gf_mx2d_apply_rect(&eff->transform, &ctx->unclip);
-			} else {
-				pw = gf_mulfix(ctx->aspect.pen_props.width, ctx->aspect.line_scale);
-				ctx->unclip.x -= pw/2;
-				ctx->unclip.y += pw/2;
-				ctx->unclip.width += pw;
-				ctx->unclip.height += pw;
-			}
+		/*get strike info & outline for exact bounds compute. If failure use default offset*/
+		si = drawctx_get_strikeinfo(ctx, ctx->node->path);
+		if (si && si->outline) {
+			gf_path_get_bounds(si->outline, &ctx->unclip);
+			gf_mx2d_apply_rect(&eff->transform, &ctx->unclip);
+		} else {
+			pw = gf_mulfix(ctx->aspect.pen_props.width, ctx->aspect.line_scale);
+			ctx->unclip.x -= pw/2;
+			ctx->unclip.y += pw/2;
+			ctx->unclip.width += pw;
+			ctx->unclip.height += pw;
 		}
 	}
 
@@ -584,11 +597,7 @@ void drawable_finalize_render(struct _drawable_context *ctx, RenderEffect2D *eff
 	ctx->clip = gf_rect_pixelize(&ctx->unclip);
 	ctx->unclip_pix = ctx->clip;
 
-	if (eff->parent) {
-		group2d_add_to_context_list(eff->parent, ctx);
-	} else if (eff->trav_flags & TF_RENDER_DIRECT) {
-		ctx->node->Draw(ctx);
-	}
+	drawable_finalize_end(ctx, eff);
 }
 
 

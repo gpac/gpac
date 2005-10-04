@@ -102,8 +102,8 @@ typedef struct _drawable
 } Drawable;
 
 /*construction destruction*/
-Drawable *NewDrawableNode();
-void DeleteDrawableNode(Drawable *);
+Drawable *drawable_new();
+void drawable_del(Drawable *);
 /*store ctx bounds in current bounds*/
 void drawable_store_bounds(struct _drawable_context *ctx);
 
@@ -132,12 +132,17 @@ decide whether drawing is needed or not based on rendering settings and parent n
 at the end of each render of drawable nodes
 */
 void drawable_finalize_render(struct _drawable_context *ctx, RenderEffect2D *effects);
+/*performs final task common to drawable_finalize_render and layout node rendering (cf grouping.c)*/
+void drawable_finalize_end(struct _drawable_context *ctx, RenderEffect2D *eff);
 
 /*base constructor for geometry objects that work without overloading the drawable stuff*/
-Drawable *BaseDrawStack2D(Render2D *sr, GF_Node *node);
+Drawable *drawable_stack_new(Render2D *sr, GF_Node *node);
 /*reset all paths (main path and any outline) of the stack*/
 void drawable_reset_path(Drawable *st);
 
+/*reset bounds array (current and previous) - used when turning direct rendering on, to 
+release some memory*/
+void drawable_reset_bounds(Drawable *dr);
 
 
 typedef struct
@@ -223,7 +228,6 @@ DrawableContext *drawable_init_context(Drawable *node, RenderEffect2D *effects);
 /*store untransformed bounds for this context - provides bounds storing for basic nodes 
 otherwise complex nodes shall store their bounds manually, and always before calling drawable_finalize_render*/
 void drawctx_store_original_bounds(DrawableContext *ctx);
-
 
 
 /*stored at compositor level and in each drawable node*/

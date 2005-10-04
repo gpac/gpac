@@ -58,7 +58,7 @@ static void DestroyBackground2D(GF_Node *node)
 	
 	ptr = (Background2DStack *) gf_node_get_private(node);
 
-	DeleteDrawableNode(ptr->node);
+	drawable_del(ptr->node);
 
 
 	while (gf_list_count(ptr->surfaces_links)) {
@@ -324,7 +324,7 @@ void R2D_InitBackground2D(Render2D *sr, GF_Node *node)
 	ptr->surfaces_links = gf_list_new();
 	ptr->first_render = 1;
 	/*setup rendering object for background*/
-	ptr->node = BaseDrawStack2D(sr, node);
+	ptr->node = drawable_stack_new(sr, node);
 	ptr->node->IsPointOver = b2D_point_over;
 	ptr->node->Draw = DrawBackground;
 	((M_Background2D *)node)->on_set_bind = b2D_set_bind;

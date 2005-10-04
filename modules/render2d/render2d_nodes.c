@@ -183,6 +183,11 @@ Bool R2D_NodeChanged(GF_VisualRenderer *vr, GF_Node *byObj)
 		gf_sr_invalidate(sr->compositor, NULL);
 	}
 		return 1;
+	case TAG_MPEG4_LineProperties:
+	case TAG_MPEG4_XLineProperties:
+		gf_node_dirty_set(byObj, GF_SG_NODE_DIRTY , 0);
+		gf_sr_invalidate(sr->compositor, NULL);
+		return 1;
 
 #ifdef GPAC_USE_LASeR
 	case TAG_LASeRAnimateTransform: LASeR_AnimateTransformModified(byObj); return 1;

@@ -1640,7 +1640,7 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 	dashed = NULL;
 	if (pen.dash) {
 		GF_Path *flat;
-		flat = gf_path_flatten(path);
+		flat = gf_path_get_flatten(path);
 		if (!flat) return NULL;
 		dashed = gf_path_dash(flat, &pen);
 		gf_path_del(flat);

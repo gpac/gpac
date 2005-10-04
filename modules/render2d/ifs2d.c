@@ -278,7 +278,7 @@ static void IFS2D_SetCoordIndex(GF_Node *node)
 void R2D_InitIFS2D(Render2D *sr, GF_Node *node)
 {
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
-	Drawable * stack = BaseDrawStack2D(sr, node);
+	Drawable * stack = drawable_stack_new(sr, node);
 	/*override draw*/
 	stack->Draw = IFS2D_Draw;
 	gf_node_set_render_function(node, RenderIFS2D);
