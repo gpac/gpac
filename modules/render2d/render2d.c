@@ -445,9 +445,7 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	Render2D *sr = (Render2D *)vr->user_priv;
 	GF_Node *top_node = gf_sg_get_root_node(sr->compositor->scene);
 
-	if (!sr->compositor->scene || !top_node) return;
-
-	memcpy(&static_eff, sr->top_effect, sizeof(RenderEffect2D));
+	if (!top_node) return;
 
 	if (!sr->main_surface_setup) {
 		sr->main_surface_setup = 1;
@@ -471,13 +469,14 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 			}
 		}
 #endif
+		sr->top_effect->is_pixel_metrics = gf_sg_use_pixel_metrics(sr->compositor->scene);
+		sr->top_effect->min_hsize = INT2FIX(MIN(sr->compositor->scene_width, sr->compositor->scene_height)) / 2;
 	}
+
+	memcpy(&static_eff, sr->top_effect, sizeof(RenderEffect2D));
 
 	sr->surface->width = sr->cur_width;
 	sr->surface->height = sr->cur_height;
-
-	sr->top_effect->is_pixel_metrics = gf_sg_use_pixel_metrics(sr->compositor->scene);
-	sr->top_effect->min_hsize = INT2FIX(MIN(sr->compositor->scene_width, sr->compositor->scene_height)) / 2;
 
 	VS2D_InitDraw(sr->surface, sr->top_effect);
 	gf_node_render(top_node, sr->top_effect);
