@@ -702,7 +702,7 @@ post_active:
 
 	if (stack->status == SMIL_STATUS_DONE) {
 		s32 item;
-		if (item = gf_list_find(stack->compositor->svg_animated_attributes, stack->targetAttribute) > 0) {
+		if (item = gf_list_find(stack->compositor->svg_animated_attributes, stack->targetAttribute) >= 0) {
 			/* Unregister the animation in the renderer */
 			gf_list_rem(stack->compositor->svg_animated_attributes, item);
 		}
@@ -721,6 +721,10 @@ post_active:
 				goto waiting_to_begin;
 			}
 		}
+		/*FIXME - when an animation is known to be done (that is, cannot be re-started without external events), 
+		these two lines should be called*/
+//		gf_sr_unregister_time_node(stack->compositor, &stack->time_handle);
+//		gf_sr_invalidate(stack->compositor, NULL);
 	}
 }
 
