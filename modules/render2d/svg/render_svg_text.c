@@ -131,11 +131,10 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 		cs->node_changed = 1;
 	}
 	ctx = SVG_drawable_init_context(cs, eff);
-	if (!ctx) return;
-			
-	drawctx_store_original_bounds(ctx);
-	drawable_finalize_render(ctx, eff);
-
+	if (ctx) {
+		drawctx_store_original_bounds(ctx);
+		drawable_finalize_render(ctx, eff);
+	}
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, styling_size);
 }

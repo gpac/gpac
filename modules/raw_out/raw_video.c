@@ -127,7 +127,7 @@ GF_VideoOutput *NewRawVideoOutput()
 	return (void *)driv;
 }
 
-static void DeleteVideoOutput(void *ifce)
+void DeleteVideoOutput(void *ifce)
 {
 	RawContext *rc;
 	GF_VideoOutput *driv = (GF_VideoOutput *) ifce;

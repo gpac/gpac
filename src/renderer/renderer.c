@@ -43,7 +43,7 @@
 void gf_sr_simulation_tick(GF_Renderer *sr);
 
 
-static GF_Err gf_sr_set_output_size(GF_Renderer *sr, u32 Width, u32 Height)
+GF_Err gf_sr_set_output_size(GF_Renderer *sr, u32 Width, u32 Height)
 {
 	GF_Err e;
 

@@ -412,6 +412,8 @@ static void SVG_Render_rect(GF_Node *node, void *rs)
 		Fixed y = rect->y.number;
 		Fixed width = rect->width.number;
 		Fixed height = rect->height.number;
+
+		//fprintf(stdout, "Rebuilding rect %8x\n",rect);
 		drawable_reset_path(cs);
 		if (rx || ry) {
 			if (rx >= width/2) rx = width/2;
@@ -439,10 +441,10 @@ static void SVG_Render_rect(GF_Node *node, void *rs)
 		cs->node_changed = 1;
 	}
 	ctx = SVG_drawable_init_context(cs, eff);
-	if (!ctx) return;
-			
-	drawctx_store_original_bounds(ctx);
-	drawable_finalize_render(ctx, eff);
+	if (ctx) {
+		drawctx_store_original_bounds(ctx);
+		drawable_finalize_render(ctx, eff);
+	}
 	/* end of 3) */
 
 	gf_mx2d_copy(eff->transform, backup_matrix);  
@@ -491,11 +493,10 @@ static void SVG_Render_circle(GF_Node *node, void *rs)
 		cs->node_changed = 1;
 	}
 	ctx = SVG_drawable_init_context(cs, eff);
-	if (!ctx) return;
-			
-	drawctx_store_original_bounds(ctx);
-	drawable_finalize_render(ctx, eff);
-
+	if (ctx) {
+		drawctx_store_original_bounds(ctx);
+		drawable_finalize_render(ctx, eff);
+	}
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, styling_size);
 }
@@ -542,11 +543,10 @@ static void SVG_Render_ellipse(GF_Node *node, void *rs)
 		cs->node_changed = 1;
 	}
 	ctx = SVG_drawable_init_context(cs, eff);
-	if (!ctx) return;
-			
-	drawctx_store_original_bounds(ctx);
-	drawable_finalize_render(ctx, eff);
-
+	if (ctx) {
+		drawctx_store_original_bounds(ctx);
+		drawable_finalize_render(ctx, eff);
+	}
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, styling_size);
 }
@@ -594,11 +594,10 @@ static void SVG_Render_line(GF_Node *node, void *rs)
 		cs->node_changed = 1;
 	}
 	ctx = SVG_drawable_init_context(cs, eff);
-	if (!ctx) return;
-			
-	drawctx_store_original_bounds(ctx);
-	drawable_finalize_render(ctx, eff);
-
+	if (ctx) {
+		drawctx_store_original_bounds(ctx);
+		drawable_finalize_render(ctx, eff);
+	}
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, styling_size);
 }
@@ -657,11 +656,10 @@ static void SVG_Render_polyline(GF_Node *node, void *rs)
 		cs->node_changed = 1;
 	}
 	ctx = SVG_drawable_init_context(cs, eff);
-	if (!ctx) return;
-			
-	drawctx_store_original_bounds(ctx);
-	drawable_finalize_render(ctx, eff);
-
+	if (ctx) {
+		drawctx_store_original_bounds(ctx);
+		drawable_finalize_render(ctx, eff);
+	}
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, styling_size);
 }
@@ -721,11 +719,10 @@ static void SVG_Render_polygon(GF_Node *node, void *rs)
 		cs->node_changed = 1;
 	}
 	ctx = SVG_drawable_init_context(cs, eff);
-	if (!ctx) return;
-			
-	drawctx_store_original_bounds(ctx);
-	drawable_finalize_render(ctx, eff);
-
+	if (ctx) {
+		drawctx_store_original_bounds(ctx);
+		drawable_finalize_render(ctx, eff);
+	}
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, styling_size);
 }
@@ -768,6 +765,8 @@ static void SVG_Render_path(GF_Node *node, void *rs)
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		u32 i, j;
 		SVG_Point orig, ct_orig, ct_end, end, *tmp;
+		
+		//fprintf(stdout, "Rebuilding path %8x\n", path);	
 		drawable_reset_path(cs);
 
 		if (*(eff->svg_props->fill_rule)==GF_PATH_FILL_ZERO_NONZERO) cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
@@ -840,10 +839,10 @@ static void SVG_Render_path(GF_Node *node, void *rs)
 		cs->node_changed = 1;
 	}
 	ctx = SVG_drawable_init_context(cs, eff);
-	if (!ctx) return;
-			
-	drawctx_store_original_bounds(ctx);
-	drawable_finalize_render(ctx, eff);
+	if (ctx) {
+		drawctx_store_original_bounds(ctx);
+		drawable_finalize_render(ctx, eff);
+	}
 
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, styling_size);
@@ -894,11 +893,10 @@ static void SVG_Render_use(GF_Node *node, void *rs)
 
 	gf_node_render((GF_Node *)use->xlink_href.target_element, eff);
 	ctx = SVG_drawable_init_context(cs, eff);
-	if (!ctx) return;
-			
-	drawctx_store_original_bounds(ctx);
-	drawable_finalize_render(ctx, eff);
-
+	if (ctx) {
+		drawctx_store_original_bounds(ctx);
+		drawable_finalize_render(ctx, eff);
+	}
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, styling_size);
 }
@@ -951,6 +949,7 @@ static void SVG_Render_a(GF_Node *node, void *rs)
 		return;
 	}
 
+	gf_mx2d_copy(backup_matrix, eff->transform);
 	tr = gf_list_get(a->transform, 0);
 	if (tr) {
 		gf_mx2d_copy(eff->transform, tr->matrix);

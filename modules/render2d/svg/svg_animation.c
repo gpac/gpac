@@ -32,21 +32,21 @@ static Fixed SVG_Interpolate(Fixed keyValue1, Fixed keyValue2, Fixed fraction)
 
 static void SVG_InvalidateAndDirtyAppearance(SMIL_AnimationStack *stack)
 {
-//	fprintf(stdout, "Invalidating Appearance\n");
+	//fprintf(stdout, "Invalidating Appearance\n");
 	gf_node_dirty_set(stack->target_element, GF_SG_SVG_APPEARANCE_DIRTY, 0);
 	gf_sr_invalidate(stack->compositor, NULL);
 }
 
 static void SVG_InvalidateAndDirtyGeometry(SMIL_AnimationStack *stack)
 {
-	fprintf(stdout, "Invalidating Geometry\n");
+	//fprintf(stdout, "Invalidating Geometry\n");
 	gf_node_dirty_set(stack->target_element, GF_SG_SVG_GEOMETRY_DIRTY, 0);
 	gf_sr_invalidate(stack->compositor, NULL);
 }
 
 static void SVG_InvalidateAndDirtyAll(SMIL_AnimationStack *stack)
 {
-	fprintf(stdout, "Invalidating Appearance and Geometry\n");
+	//fprintf(stdout, "Invalidating Appearance and Geometry\n");
 	/* TODO: determine if appaearance or geometry have been modified */
 	gf_node_dirty_set(stack->target_element, GF_SG_SVG_APPEARANCE_DIRTY, 0);
 	gf_node_dirty_set(stack->target_element, GF_SG_SVG_GEOMETRY_DIRTY, 0);
@@ -55,7 +55,7 @@ static void SVG_InvalidateAndDirtyAll(SMIL_AnimationStack *stack)
 
 static void SVG_InvalidateNodeOnly(SMIL_AnimationStack *stack)
 {
-//	fprintf(stdout, "Invalidating Node\n");
+	//fprintf(stdout, "Invalidating Node %8x\n", stack);
 	gf_sr_invalidate(stack->compositor, NULL);
 }
 
@@ -161,7 +161,8 @@ static void SVG_SetPaint(SVG_Paint *a, SVG_Paint *b)
 static u32 SVG_ComparePaint(SVG_Paint *a, SVG_Paint *b)
 {
 	if (a->type != b->type) return 1;
-	if (strcmp(a->uri, b->uri)) return 1;
+	if ((!a->uri && b->uri) || (a->uri && !b->uri)) return 1;
+	if (a->uri && strcmp(a->uri, b->uri)) return 1;
 	return SVG_CompareColor(a->color, b->color);
 }
 
@@ -331,7 +332,7 @@ static void SVG_DeleteStackValuesIFloat(SMIL_AnimationStack *stack)
 /* Transform functions */
 static void printMatrix(const char *s, SVG_Matrix *target)
 {
-	fprintf(stdout, "%s %.2f,%.2f,%.2f,%.2f,%.2f,%.2f\n", s, target->m[0], target->m[1], target->m[2], target->m[3], target->m[4], target->m[5]);
+	//fprintf(stdout, "%s %.2f,%.2f,%.2f,%.2f,%.2f,%.2f\n", s, target->m[0], target->m[1], target->m[2], target->m[3], target->m[4], target->m[5]);
 }
 
 static void SVG_SetTranslation(SVG_Matrix *a, SVG_Point *b)
@@ -721,7 +722,13 @@ static void SVG_AddIRI(SVG_IRI *a, SVG_Rect *b, SVG_IRI *c)
 static u32 SVG_CompareIRI(SVG_IRI *a, SVG_IRI *b)
 {
 	if (a->type != b->type) return 1;
-	if (a->target_element != b->target_element) return 1;
+	if (a->target_element || b->target_element) {
+		if (a->target_element != b->target_element) return 1;
+		return 0;
+	}
+	if (a->iri || b->iri) {
+		return (a->iri != b->iri);
+	}
 	return strcmp(a->iri, b->iri);
 }
 
@@ -941,6 +948,7 @@ static void SVG_AddFontFamily(SVG_FontFamily *a, SVG_FontFamily *b, SVG_FontFami
 static u32 SVG_CompareFontFamily(SVG_FontFamily *a, SVG_FontFamily *b)
 {
 	if (a->type != b->type) return 1;
+	if (!a->value || !b->value) return (a->value != b->value);
 	return strcmp(a->value, b->value);
 }
 
@@ -1101,8 +1109,24 @@ static void SVG_DeleteStack(SMIL_AnimationStack *stack)
 	stack->DeleteStackValues(stack);
 }
 
+static void SVG_NoAnimationFunction()
+{
+}
+
 static void SVG_Init_SMILAnimationStackAPI(SMIL_AnimationStack *stack)
 {
+	if (!stack->dur) { /* this is a discard */
+		stack->InitStackValues = SVG_NoAnimationFunction;
+		stack->DeleteStackValues = SVG_NoAnimationFunction;
+		stack->Set = SVG_NoAnimationFunction;
+		stack->Assign = SVG_NoAnimationFunction;
+		stack->Interpolate = SVG_NoAnimationFunction;
+		stack->ApplyAdditive = SVG_NoAnimationFunction;
+		stack->ApplyAccumulate = SVG_NoAnimationFunction;
+		stack->Invalidate = SVG_NoAnimationFunction;
+		stack->Compare = SVG_NoAnimationFunction;
+		return;
+	}
 	switch(stack->targetAttributeType)
 	{
 	case SVG_Color_datatype:
@@ -1344,6 +1368,17 @@ static void SVG_Init_SMILAnimationStackAPI(SMIL_AnimationStack *stack)
 		break;
 	default:
 		fprintf(stderr, "Animation type not supported %d\n", stack->targetAttributeType);
+		stack->InitStackValues = SVG_NoAnimationFunction;
+		stack->DeleteStackValues = SVG_NoAnimationFunction;
+		stack->Set = SVG_NoAnimationFunction;
+		stack->Assign = SVG_NoAnimationFunction;
+		stack->Interpolate = SVG_NoAnimationFunction;
+		stack->ApplyAdditive = SVG_NoAnimationFunction;
+		stack->ApplyAccumulate = SVG_NoAnimationFunction;
+		stack->Invalidate = SVG_NoAnimationFunction;
+		stack->Compare = SVG_NoAnimationFunction;
+		stack->DeleteStackValues = SVG_NoAnimationFunction;
+		return;
 	}
 	stack->DeleteStack = SVG_DeleteStack;
 	stack->previous_key_index = -1;

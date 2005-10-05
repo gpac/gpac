@@ -1431,7 +1431,9 @@ void svg_parse_iri(SVGParser *parser, SVG_IRI *iri, char *attribute_content)
 		GF_SAFEALLOC(data, strlen(attribute_content)*2)
 		if (!strcmp(encoding, "base64")) {
 			/* decoding is done in place */
-			data_size = gf_base64_decode(encoding_end+1, strlen(encoding_end+1), data, strlen(attribute_content)*2);
+			u32 input_len = strlen(encoding_end+1);
+			u32 output_len = strlen(attribute_content)*2;
+			data_size = gf_base64_decode(encoding_end+1, input_len, data, output_len);
 		} else {
 			// TODO: Handle other encoding schemes
 		}
@@ -2250,6 +2252,8 @@ static GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 		svg_parse_defered_animation_elements(parser, de->elt, de->node, de->parent);
 		free(de);
 	}
+
+	xmlFreeDoc(doc);
 	return GF_OK;
 }
 

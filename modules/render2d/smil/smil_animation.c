@@ -203,7 +203,7 @@ static void SMIL_findInterval(SMIL_AnimationStack *stack, Bool first, Double sce
 			interval->begin.type = tmpBegin.type;
 			interval->begin.clock = tmpBegin.clock;
 		}
-		if (gf_list_count(*stack->ends) == 0) {
+		if (!stack->ends || gf_list_count(*stack->ends) == 0) {
 			SMIL_calcActiveDur(stack);
 			tmpEnd.type = interval->end.type;
 			tmpEnd.clock = interval->end.clock;
@@ -504,8 +504,10 @@ void SMIL_AnimSet(SMIL_AnimationStack *stack, Double sceneTime)
 	if (stack->to) {
 		/* the animation element has no 'from' attribute */
 		/* This is a 'set' element */
-		stack->Set(stack->tmp_value, stack->to->value);
-		stack->target_value_changed = 1;
+		if (stack->Compare(stack->tmp_value, stack->to->value)) {
+			stack->Set(stack->tmp_value, stack->to->value);
+			stack->target_value_changed = 1;
+		}
 	} else {
 		/* the animation element has no 'to' attributes*/
 		/* this is SVG discard element */
@@ -661,12 +663,15 @@ post_active:
 			gf_list_rem(stack->compositor->svg_animated_attributes, item);
 		}
 
-		if (stack->Set) {
+		if (stack->Set && stack->fill) {
 			if (*stack->fill == SMIL_FILL_FREEZE) {
 				//fprintf(stdout, "setting final animation value\n");
 				void * last = SMIL_GetLastSpecifiedValue(stack);
 				if (last) {
-					stack->Set(stack->tmp_value, last);
+					if (stack->Compare(stack->tmp_value, last)) {
+						stack->Set(stack->tmp_value, last);
+						stack->target_value_changed = 1;
+					}
 					stack->currentInterval.nb_iterations--;
 					SMIL_ApplyAccumulate(stack);
 					SMIL_ApplyAdditive(stack);
@@ -676,8 +681,11 @@ post_active:
 					}
 				}
 			} else {
-				//fprintf(stdout, "resetting to initial animation value\n");
-				stack->Assign(stack->targetAttribute, stack->base_value);
+				if (stack->Compare(stack->targetAttribute, stack->base_value)) {
+					//fprintf(stdout, "resetting to initial animation value\n");
+					stack->Assign(stack->targetAttribute, stack->base_value);
+					stack->Invalidate(stack);
+				}
 			}
 		}
 
