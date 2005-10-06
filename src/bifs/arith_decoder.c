@@ -129,7 +129,7 @@ void UpdateAAModel(GF_AAModel *model, s32 symbol)
 }
 
 
-void BS_BitRewind(GF_BitStream *bs, u64 nbBits);
+void gf_bs_rewind_bits(GF_BitStream *bs, u64 nbBits);
 
 GF_AADecoder *gp_bifs_aa_dec_new(GF_BitStream *bs)
 {
@@ -179,7 +179,7 @@ void gp_bifs_aa_dec_resync(GF_AADecoder *dec)
 	rewind = dec->read_bits - 1 - (dec->used_bits+1);
 	/*magic number from IM1 (spec is wrong there)*/
 	rewind = 14;
-	if (dec->skip_bits < rewind) BS_BitRewind(dec->bs, rewind - dec->skip_bits);
+	if (dec->skip_bits < rewind) gf_bs_rewind_bits(dec->bs, rewind - dec->skip_bits);
 	
 	dec->needs_flush = 0;
 	dec->code_value = 0;
@@ -204,7 +204,7 @@ void gp_bifs_aa_dec_flush(GF_AADecoder *dec)
 void gp_bifs_aa_dec_resync_bit(GF_AADecoder *dec)
 {
 	if (dec->needs_flush && (dec->skip_bits < 16)) 
-		BS_BitRewind(dec->bs, 16 - dec->skip_bits);
+		gf_bs_rewind_bits(dec->bs, 16 - dec->skip_bits);
 
 	dec->needs_flush = 0;
 }

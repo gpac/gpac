@@ -129,7 +129,7 @@ wxPlaylist::wxPlaylist(wxWindow *parent)
 	m_cur_entry = -1;
 	m_all_dead_entries = -1;
 
-	SetSize(200, 300);
+	SetSize(220, 380);
 	Centre();
 }
 

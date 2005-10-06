@@ -8,7 +8,6 @@
 #define IDD_CONTROL                     132
 #define IDI_PLAY                        141
 #define IDI_STOP                        142
-#define IDD_OPENFILE                    142
 #define IDI_PAUSE                       143
 #define IDI_MESSAGE                     144
 #define IDI_ERR                         145
@@ -31,10 +30,16 @@
 #define IDD_NAVBAR                      176
 #define IDD_PLAYLIST                    177
 #define IDR_PLAYLIST                    178
-#define IDD_OPT_MCACHE                  178
 #define IDD_OPT_FILETYPES               179
 #define IDR_MENUPL                      182
 #define IDD_PASSWD                      188
+
+#define IDC_FILES_MIMES                 1000
+#define IDC_FILES_PLUG                  1001
+#define ID_AUDIO_VOL                    1002
+#define IDC_TXT_SITE                    1003
+#define IDC_EDIT_USER                   1004
+#define IDC_EDIT_PASSWORD               1005
 #define IDC_PLAY                        1006
 #define IDC_STOP                        1007
 #define IDC_COMBOURL                    1008
@@ -45,15 +50,13 @@
 #define IDC_LANG                        1013
 #define IDC_LOOP                        1014
 #define IDC_AUTOSTART                   1015
-#define IDC_STOPATEND                   1015
-#define IDC_LOOKFORSUB                  1015
 #define IDC_FILEASSOC                   1016
-#define IDC_SINGLE_INSTANCE             1016
 #define IDC_NO_CONSOLE                  1017
 #define IDC_BIFS_RATE                   1018
 #define IDC_DEC_THREAD                  1019
 #define IDC_DIRECTRENDER                1020
 #define IDC_HWMEMORY                    1021
+#define IDC_DRAW_NORMALS                1122
 #define IDC_BIFSDROP                    1023
 #define IDC_SPIN_AUDIO                  1024
 #define IDC_EDIT_AUDIO                  1025
@@ -61,28 +64,29 @@
 #define IDC_SPIN_FPS                    1027
 #define IDC_AUDIO_FPS                   1028
 #define IDC_AUDIO_MULTICH               1029
+#define IDD_VIEW_CPU                    1030
 #define IDC_GD_LIST                     1031
 #define IDC_FAST_RENDER                 1032
 #define IDC_FORCE_DURATION              1033
-#define IDC_VIDEO_LIST                  1033
-#define IDC_FORCE_SIZE                  1033
 #define IDC_YUV                         1034
-#define IDC_USE_RENDER3D                1034
 #define IDC_AUDIO_RESYNC                1035
-#define IDC_DRAW_BOUNDS                 1035
 #define IDC_AUDIO_NOTIFS                1036
+#define IDC_STOPATEND                   1037
 #define IDC_CLEAN_CACHE                 1038
 #define IDC_RESTART_CACHE               1039
 #define IDC_NOTIFY_PROG                 1040
-#define IDC_REORDER                     1040
 #define IDC_BROWSE_CACHE                1041
+#define IDC_LOOKFORSUB                  1042
+#define IDD_OPT_MCACHE                  1043
 #define IDC_DRIVER_LIST                 1044
 #define IDC_AA_LIST                     1045
 #define IDC_ZOOM_SCALABLE               1046
+#define IDD_OPENFILE                    1047
+#define IDC_SINGLE_INSTANCE             1048
+#define IDC_VIDEO_LIST                  1049
 #define IDC_FONT_LIST                   1050
 #define IDC_BROWSE_FONT                 1051
 #define IDC_USE_FONT                    1052
-#define IDC_TEXTURE_MODE                1052
 #define IDC_SAVEOPT                     1053
 #define IDC_PORT                        1054
 #define IDC_RTSP                        1055
@@ -91,17 +95,23 @@
 #define IDC_REBUFFER_LEN                1058
 #define IDC_REBUFFER                    1059
 #define IDC_ODTREE                      1060
+#define IDC_VIEWSG                      1061
+#define IDC_FORCE_SIZE                  1062
+#define IDC_USE_RENDER3D                1063
 #define IDC_ODINFO                      1064
 #define IDC_WORLD                       1065
 #define IDC_GOGPAC                      1066
-#define IDC_VIEWSG                      1066
 #define IDC_GOOSMO4                     1067
 #define IDC_DUMP_XMT                    1068
 #define IDC_OBJECT_TIME                 1069
 #define IDC_FORMAT_YUV                  1070
+#define IDC_DRAW_BOUNDS                 1071
+#define IDC_REORDER                     1072
+#define IDC_TEXTURE_MODE                1073
 #define IDC_SWITCH_RES                  1074
 #define IDC_AUDEC_LIST                  1075
 #define IDC_VIDEC_LIST                  1076
+#define IDC_ASSOCIATE                   1077
 #define IDC_RASTER_OUTLINE              1078
 #define IDC_EMUL_POW2                   1079
 #define IDC_DISABLE_POLY_AA             1080
@@ -110,11 +120,12 @@
 #define IDC_WIRE_BOTH                   1083
 #define IDC_DISABLE_TX_RECT             1084
 #define IDC_BITMAP_USE_PIXEL            1085
-#define IDC_SELECT                      1085
 #define IDC_TEXTURE_TEXT                1086
-#define IDC_NO_BACKCULL                 1086
-#define IDC_SLIDER                      1088
+#define IDC_SLIDER                      1087
 #define ID_SLIDER                       1088
+#define IDC_SELECT                      1089
+#define IDC_NO_BACKCULL                 1090
+#define IDC_FILES_EXT                   1091
 #define IDC_VIEWSEL                     1094
 #define IDC_ADDRESS                     1096
 #define IDC_DUMTXT                      1097
@@ -128,24 +139,16 @@
 #define ID_PLAYLIST_LOOP                1116
 #define ID_FILEOPEN                     1117
 #define ID_VIEW_CONTROL                 1118
-#define IDC_ASSOCIATE                   1118
 #define ID_VIEW_ORIGINAL                1119
-#define IDC_FILES_EXT                   1119
 #define ID_VIEW_FULLSCREEN              1120
-#define IDC_FILES_MIMES                 1120
 #define ID_AR_KEEP                      1121
-#define IDC_FILES_PLUG                  1121
 #define ID_AR_FILL                      1122
 #define ID_AR_43                        1123
 #define ID_AR_169                       1124
-#define ID_AUDIO_VOL                    1124
 #define ID_SHORTCUTS                    1125
-#define IDC_TXT_SITE                    1125
 #define ID_FILE_RESTART                 1126
-#define IDC_EDIT_USER                   1126
 #define ID_OPT_QUALITY                  1127
-#define IDC_EDIT_PASSWORD               1127
-#define IDC_DRAW_NORMALS                1127
+
 #define ID_FILE_PROP                    1128
 #define ID_FILE_STEP                    1129
 #define IDD_CONFIGURE                   1130
@@ -260,9 +263,12 @@
 #define ID_SELOBJ_7                     1347
 #define ID_SELOBJ_8                     1348
 #define ID_SELOBJ_9                     1349
+
+
+
 #define ID_SETCHAP_FIRST                2000
 #define ID_SETCHAP_LAST                 2200
-#define IDD_VIEW_CPU                    32960
+
 
 // Next default values for new objects
 // 

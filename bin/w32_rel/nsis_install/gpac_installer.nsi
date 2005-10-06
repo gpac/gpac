@@ -63,7 +63,7 @@ lbl_add:
    File ".\Gdiplus.dll"
 
 lbl_xp:
-   File "..\gdip_raster.dll"
+   File "..\gm_gdip_raster.dll"
 
 lbl_done:
 FunctionEnd
@@ -81,11 +81,11 @@ Section "Osmo4/GPAC Player"
   File "..\Osmo4.exe"
   File "..\Osmo4.ico"
   File "..\libgpac.dll"
-  File "..\dummy_in.dll"
-  File "..\dx_hw.dll"
+  File "..\gm_dummy_in.dll"
+  File "..\gm_dx_hw.dll"
   File "..\js32.dll"
-  File "..\render2d.dll"
-  File "..\render3d.dll"
+  File "..\gm_render2d.dll"
+  File "..\gm_render3d.dll"
 
   ;create default cache
   SetOutPath $INSTDIR\cache
@@ -107,60 +107,60 @@ SubSection "GPAC Plugins"
 ;
 Section "MPEG-4 Systems Decoders"
   SectionIn 1 2
-  File "..\bifs_dec.dll"
-  File "..\odf_dec.dll"
+  File "..\gm_bifs_dec.dll"
+  File "..\gm_odf_dec.dll"
 SectionEnd
 
 Section "VRML/X3D/MPEG-4 Text/SWF Loader"
   SectionIn 1 2
-  File "..\ctx_load.dll"
+  File "..\gm_ctx_load.dll"
 SectionEnd
 
 Section "Image Package (PNG, JPEG, BMP)"
   SectionIn 1 2
-  File "..\img_in.dll"
+  File "..\gm_img_in.dll"
 SectionEnd
 
 Section "AAC Audio support (FAAD decoder, AAC files and Radios)"
   SectionIn 1 2
-  File "..\aac_in.dll"
+  File "..\gm_aac_in.dll"
 SectionEnd
 
 Section "MP3 Audio support (MAD decoder, MP3 files and Radios)"
   SectionIn 1 2
-  File "..\mp3_in.dll"
+  File "..\gm_mp3_in.dll"
 SectionEnd
 
 Section "FFMPEG Reader and Decoder"
   SectionIn 1 2
-  File "..\ffmpeg_in.dll"
+  File "..\gm_ffmpeg_in.dll"
   File "..\avcodec.dll"
   File "..\avformat.dll"
 SectionEnd
 
 Section "XviD Video Decoder"
   SectionIn 1 2
-  File "..\xvid_dec.dll"
+  File "..\gm_xvid_dec.dll"
 SectionEnd
 
 Section "3GPP AMR NB & WB Speech Decoder"
   SectionIn 1 2
-  File "..\amr_float_dec.dll"
+  File "..\gm_amr_float_dec.dll"
 SectionEnd
 
 Section "Subtitle & TimedText Support"
   SectionIn 1 2
-  File "..\timedtext.dll"
+  File "..\gm_timedtext.dll"
 SectionEnd
 
 Section "MP4 and 3GPP File Reader"
   SectionIn 1 2
-  File "..\isom_in.dll"
+  File "..\gm_isom_in.dll"
 SectionEnd
 
 Section "Real-Time Streaming (RTP/RTSP/RTP) Support"
   SectionIn 1 2
-  File "..\rtp_in.dll"
+  File "..\gm_rtp_in.dll"
 SectionEnd
 
 Section "GDI+ Rasterizer"
@@ -170,17 +170,17 @@ SectionEnd
 
 Section "GPAC 2D Rasterizer"
   SectionIn 1 2
-  File "..\soft_raster.dll"
+  File "..\gm_soft_raster.dll"
 SectionEnd
 
 Section "FreeType Font Outliner"
   SectionIn 1 2
-  File "..\ft_font.dll"
+  File "..\gm_ft_font.dll"
 SectionEnd
 
 Section "Windows MME Audio Output"
   SectionIn 1 2
-  File "..\wav_out.dll"
+  File "..\gm_wav_out.dll"
 SectionEnd
 
 
@@ -189,17 +189,17 @@ SectionEnd
 ;
 Section "3GPP AMR Fixed-point Speech Decoder"
   SectionIn 2
-  File "..\amr_dec.dll"
+  File "..\gm_amr_dec.dll"
 SectionEnd
 
 Section "Xiph Ogg Reader - Vorbis and Theora Decoders"
   SectionIn 2
-  File "..\ogg_xiph.dll"
+  File "..\gm_ogg_xiph.dll"
 SectionEnd
 
 Section "SVG Loader"
   SectionIn 2
-  File "..\svg_loader.dll"
+  File "..\gm_svg_loader.dll"
   File ".\libxml2.dll"
   File ".\zlib1.dll"
   File ".\iconv.dll"

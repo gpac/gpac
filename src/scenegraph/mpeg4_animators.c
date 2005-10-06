@@ -196,7 +196,7 @@ static SFVec3f anurbs_get_vec3f(anim_nurbs *nurbs, s32 span, SFVec3f *pts)
 	}
 	if (nurbs->nweights>0) {
 		if (w) {
-			w = gf_divfix(FIX_ONE, w);
+			w = gf_invfix(w);
 			res = gf_vec_scale(res, w);
 		}
 	}
@@ -224,7 +224,7 @@ static SFVec2f anurbs_get_vec2f(anim_nurbs *nurbs, s32 span, SFVec2f *pts)
 	}
 	if (nurbs->nweights>0) {
 		if (w) {
-			w = gf_divfix(FIX_ONE, w);
+			w = gf_invfix(w);
 			res.x = gf_mulfix(res.x, w);
 			res.y = gf_mulfix(res.y, w);
 		}

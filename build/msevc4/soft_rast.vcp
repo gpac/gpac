@@ -105,6 +105,7 @@ LINK32=link.exe
 
 SOURCE=..\..\modules\soft_raster\ftgrays.c
 DEP_CPP_FTGRA=\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\math.h"\
@@ -124,6 +125,7 @@ SOURCE=..\..\modules\soft_raster\rast_soft.def
 
 SOURCE=..\..\modules\soft_raster\raster_565.c
 DEP_CPP_RASTE=\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\math.h"\
@@ -139,6 +141,7 @@ DEP_CPP_RASTE=\
 
 SOURCE=..\..\modules\soft_raster\raster_argb.c
 DEP_CPP_RASTER=\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\math.h"\
@@ -154,6 +157,7 @@ DEP_CPP_RASTER=\
 
 SOURCE=..\..\modules\soft_raster\raster_load.c
 DEP_CPP_RASTER_=\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\math.h"\
@@ -169,6 +173,7 @@ DEP_CPP_RASTER_=\
 
 SOURCE=..\..\modules\soft_raster\raster_rgb.c
 DEP_CPP_RASTER_R=\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\math.h"\
@@ -184,6 +189,7 @@ DEP_CPP_RASTER_R=\
 
 SOURCE=..\..\modules\soft_raster\stencil.c
 DEP_CPP_STENC=\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\math.h"\
@@ -194,14 +200,12 @@ DEP_CPP_STENC=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\soft_raster\rast_soft.h"\
 	
-NODEP_CPP_STENC=\
-	"..\..\include\gpac\yuv.h"\
-	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\modules\soft_raster\surface.c
 DEP_CPP_SURFA=\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\math.h"\

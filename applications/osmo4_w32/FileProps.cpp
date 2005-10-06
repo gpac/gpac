@@ -385,7 +385,7 @@ void CFileProps::OnViewsg()
 	if (e) {
 		MessageBox(gf_error_to_string(e), "Error while dumping");
 	} else {
-		ShellExecute(NULL, "edit", szOutFile, NULL, NULL, SW_SHOWNORMAL);
+		ShellExecute(NULL, "open", szOutFile, NULL, NULL, SW_SHOWNORMAL);
 	}
 }
 

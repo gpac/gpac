@@ -28,6 +28,38 @@
 #include <gpac/bifs.h>
 #include <gpac/internal/scenegraph_dev.h>
 
+
+
+static Bool gf_node_in_table_by_tag(u32 tag, u32 NDTType)
+{
+	if (!tag) return 0;
+	if (tag==TAG_ProtoNode) return 1;
+	else if (tag<=GF_NODE_RANGE_LAST_MPEG4) {
+		u32 i;
+		u32 gf_bifs_get_node_type(u32 NDT_Tag, u32 NodeTag, u32 Version);
+
+		for (i=0;i<GF_BIFS_LAST_VERSION; i++) {
+			if (gf_bifs_get_node_type(NDTType, tag, i+1)) return 1;
+		}
+		return 0;
+	} else if (tag<=GF_NODE_RANGE_LAST_X3D) {
+		Bool X3D_IsNodeInTable(u32 NDT_Tag, u32 NodeTag);
+		return X3D_IsNodeInTable(NDTType, tag);
+	}
+	return 0;
+}
+
+Bool gf_node_in_table(GF_Node *node, u32 NDTType)
+{
+	u32 tag = node ? node->sgprivate->tag : 0;
+	if (tag==TAG_ProtoNode) {
+		tag = gf_sg_proto_get_render_tag(((GF_ProtoInstance *)node)->proto_interface);
+		if (tag==TAG_UndefinedNode) return 1;
+	}
+	return gf_node_in_table_by_tag(tag, NDTType);
+}
+
+
 GF_SceneManager *gf_sm_new(GF_SceneGraph *graph)
 {
 	GF_SceneManager *tmp;

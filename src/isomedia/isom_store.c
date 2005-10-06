@@ -450,13 +450,13 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 					it_size += entry->extent_length;
 					if (maxExtendSize<entry->extent_length) maxExtendSize = entry->extent_length;
 
+					/*Reading from the input file*/
 					if (!Emulation) {
 						char cache_data[4096];
 						u64 remain = entry->extent_length;
+						gf_bs_seek(file->movieFileMap->bs, entry->original_extent_offset + iloc->original_base_offset);
 						while (remain) {
 							u32 size_cache = (remain>4096) ? 4096 : (u32) remain;
-							/*Reading from the input file*/
-							gf_bs_seek(file->movieFileMap->bs, entry->original_extent_offset + iloc->original_base_offset);
 							gf_bs_read_data(file->movieFileMap->bs, cache_data, size_cache);
 							/*Writing to the output file*/
 							gf_bs_write_data(bs, cache_data, size_cache);

@@ -103,6 +103,8 @@ typedef s32 Fixed;
 #define GF_PI		205887
 #define GF_2PI		411774
 
+/*!\return 1/a, expressed as fixed number*/
+Fixed gf_invfix(Fixed a);
 /*!\return a*b, expressed as fixed number*/
 Fixed gf_mulfix(Fixed a, Fixed b);
 /*!\return a*b/c, expressed as fixed number*/
@@ -147,6 +149,8 @@ typedef Float Fixed;
 #define GF_PI		3.1415926535898f
 #define GF_2PI		6.2831853071796f
 
+/*!\hideinitializer 1/_a, expressed as fixed number*/
+#define gf_invfix(_a)	(FIX_ONE/(_a))
 /*!\hideinitializer _a*_b, expressed as fixed number*/
 #define gf_mulfix(_a, _b)		((_a)*(_b))
 /*!\hideinitializer _a*_b/_c, expressed as fixed number*/

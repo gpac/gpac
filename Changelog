@@ -1,4 +1,15 @@
-Latest CVS Changes 23/09/05
+Latest CVS Changes 06/10/05
+  - fixed bug in meta items storage (existing items were corrupted on file rewrite)
+  - fixed splitx option to support end times larger than file duration
+  - clean-up of 2D direct rendering mode: 
+      * no more bounds tracking for less memory usage
+      * automatically mode switch to direct rendering when using slide navigation (pan&zoom)
+  - clean-up of soft raster: 
+      * removed all bezier curbs handling, let gpac core handle those
+      * paths are now always flatten to reduce rastering times
+      * misc optimizations of scanline converter (no more Y-sorting, only X-sorting used)
+  - fixed globalQP context loading issues
+  - minor speed improvement of BT/WRL loader
   - updated makefiles for compilation under GPE (doc still to come)
   - fixed bugs related to cache in file downloader
   - made FreeType plugin log unknown fonts in general cfg file to speed up font selection.
@@ -14,7 +25,7 @@ Latest CVS Changes 23/09/05
       * Klimt could compile but no decent results
       * Result only tested on PocketPC with Win PPC2003
   - added support for GDI drawing on WinCE to avoid weird menu behaviour in windowed mode
-  - added support for OpenGL drawing on WinCE to avoid weird menu behaviour in windowed mode
+  - added support for OpenGL drawing on WinCE
   - added osmophone to gpac/applications, demo player for Smartphone devices (tested on SPV C500)
   - fixed redraw bug in 2D renderer for simple video drawing (background was always repaint regardless of video transparency)
   - added LASeR XML to SVG loader

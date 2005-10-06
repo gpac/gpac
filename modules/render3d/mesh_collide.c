@@ -164,7 +164,7 @@ static void mesh_subdivide_aabbtree(GF_Mesh *mesh, AABBNode *node)
 			means.y += tri_get_center(mesh, idx, 1);
 			means.z += tri_get_center(mesh, idx, 2);
 		}
-		means = gf_vec_scale(means, gf_divfix(FIX_ONE, node->nb_idx));
+		means = gf_vec_scale(means, gf_invfix(node->nb_idx));
 
 		vars.x = vars.y = vars.z = 0;
 		for (i=0; i<node->nb_idx; i++) {
@@ -176,7 +176,7 @@ static void mesh_subdivide_aabbtree(GF_Mesh *mesh, AABBNode *node)
 			vars.y += gf_mulfix(cy - means.y, cy - means.y);
 			vars.z += gf_mulfix(cz - means.z, cz - means.z);
 		}
-		vars = gf_vec_scale(vars, gf_divfix(FIX_ONE, (node->nb_idx-1)) );
+		vars = gf_vec_scale(vars, gf_invfix(node->nb_idx-1) );
 		axis = gf_vec_main_axis(vars);
 		num_pos = aabb_split(mesh, node, axis);
 	}

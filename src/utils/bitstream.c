@@ -614,7 +614,7 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes)
 }
 
 /*Only valid for READ MEMORY*/
-void BS_BitRewind(GF_BitStream *bs, u64 nbBits)
+void gf_bs_rewind_bits(GF_BitStream *bs, u64 nbBits)
 {
 	u64 nbBytes;
 	if (bs->bsmode != GF_BITSTREAM_READ) return;

@@ -834,9 +834,9 @@ int main(int argc, char **argv)
 
 	nb_add = nb_cat = nb_track_act = nb_sdp_ex = max_ptime = raw_sample_num = nb_meta_act = rtp_rate = major_brand = nb_alt_brand_add = nb_alt_brand_rem = 0;
 	e = GF_OK;
-	split_duration = 0.0f;
-	split_start = -1.0f;
-	InterleavingTime = 0.5f;
+	split_duration = 0.0;
+	split_start = -1.0;
+	InterleavingTime = 0.5;
 	import_fps = 0;
 	import_flags = 0;
 	rap_freq = encode_flags = split_size = 0;
@@ -1210,7 +1210,8 @@ int main(int argc, char **argv)
 			open_edit = 1;
 			nb_track_act++;
 			i++;
-		}		else if (!stricmp(arg, "-split")) { CHECK_NEXT_ARG split_duration = (Float) atof(argv[i+1]); i++; split_size = 0; }
+		}
+		else if (!stricmp(arg, "-split")) { CHECK_NEXT_ARG split_duration = atof(argv[i+1]); i++; split_size = 0; }
 		else if (!stricmp(arg, "-splits")) { CHECK_NEXT_ARG split_size = atoi(argv[i+1]); i++; split_duration = 0; }
 		else if (!stricmp(arg, "-splitx")) { 
 			CHECK_NEXT_ARG 

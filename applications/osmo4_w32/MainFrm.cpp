@@ -437,7 +437,15 @@ LONG CMainFrame::OnSetSize(WPARAM wParam, LPARAM lParam)
 	m_wndStatusBar.GetClientRect(&rc2);
 	winRect.bottom += rc2.bottom;
 
-	SetWindowPos(NULL, 0, 0, winRect.right, winRect.bottom, SWP_NOZORDER | SWP_NOMOVE | SWP_SHOWWINDOW);
+	GetWindowRect(&rc2);
+	rc2.bottom -= rc2.top;
+	rc2.right -= rc2.left;
+	if ((rc2.right != winRect.right) || (rc2.bottom != winRect.bottom)) {
+		SetWindowPos(NULL, 0, 0, winRect.right, winRect.bottom, SWP_NOZORDER | SWP_NOMOVE | SWP_SHOWWINDOW);
+	} else {
+		/*just resize term*/
+		gf_term_set_size(GetApp()->m_term, width, height);
+	}
 	return 0;
 }
 

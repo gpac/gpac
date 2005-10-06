@@ -450,7 +450,7 @@ static void RenderFog(GF_Node *node, void *rs)
 	gf_vec_diff(end, end, start);
 	vrange = gf_vec_len(end);
 
-	density = gf_divfix(FIX_ONE, vrange);
+	density = gf_invfix(vrange);
 	VS3D_SetFog(eff->surface, fog->fogType.buffer, fog->color, density, vrange);
 }
 

@@ -200,7 +200,7 @@ void child2d_render_done(ChildGroup2D *cg, RenderEffect2D *eff, GF_Rect *par_cli
 	gf_mx2d_init(mat);
 	gf_mx2d_add_translation(&mat, cg->final.x - cg->original.x, cg->final.y - cg->original.y);
 
-	inv_min_hsize = gf_divfix(FIX_ONE, eff->min_hsize);
+	inv_min_hsize = gf_invfix(eff->min_hsize);
 
 	count = gf_list_count(cg->contexts);
 	for (i=0; i<count; i++) {

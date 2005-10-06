@@ -158,7 +158,7 @@ Bool VS_GetAspect2D(RenderEffect3D *eff, Aspect2D *asp)
 	if (eff->is_pixel_metrics) 
 		asp->pen_props.width = FIX_ONE;
 	else
-		asp->pen_props.width = gf_divfix(FIX_ONE, 2*eff->min_hsize);
+		asp->pen_props.width = gf_invfix(2*eff->min_hsize);
 
 	asp->line_color = asp->fill_color;
 	asp->pen_props.cap = GF_LINE_CAP_FLAT;

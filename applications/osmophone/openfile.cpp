@@ -5,7 +5,6 @@
 #include "resource.h"
 
 static HINSTANCE g_hInst = NULL;
-static HMENU g_hMenuFile;
 static HMENU g_hMenuView;
 static HWND g_hWndMenuBar;
 static HWND hDirTxt;
@@ -277,8 +276,6 @@ BOOL InitFileDialog(const HWND hWnd)
 
     hDirTxt = GetDlgItem(hWnd, IDC_DIRNAME);
     hList = GetDlgItem(hWnd, IDC_FILELIST);
-
-    g_hMenuFile = (HMENU)SendMessage(g_hWndMenuBar, SHCMBM_GETMENU, 0, IDM_OF_PL_ACT);
     g_hMenuView = (HMENU)SendMessage(g_hWndMenuBar, SHCMBM_GETSUBMENU, 0, ID_OF_VIEW);
 
 	RECT rc;

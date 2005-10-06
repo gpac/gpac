@@ -649,7 +649,7 @@ void R3D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_root, void *rs)
 	if (!use_pm) {
 		gf_mx_add_scale(&mx, eff->min_hsize, eff->min_hsize, eff->min_hsize);
 	} else {
-		Fixed inv_scale = gf_divfix(FIX_ONE, eff->min_hsize);
+		Fixed inv_scale = gf_invfix(eff->min_hsize);
 		gf_mx_add_scale(&mx, inv_scale, inv_scale, inv_scale);
 	}
 	eff->has_scale = 1;

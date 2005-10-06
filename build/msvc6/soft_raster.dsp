@@ -92,6 +92,13 @@ LINK32=link.exe
 # Begin Source File
 
 SOURCE=..\..\modules\soft_raster\ftgrays.c
+
+!IF  "$(CFG)" == "soft_raster - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "soft_raster - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 

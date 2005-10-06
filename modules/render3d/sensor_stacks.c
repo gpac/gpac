@@ -830,7 +830,7 @@ static void OnSphereSensor(SensorHandler *sh, Bool is_over, u32 eventType, RayHi
 		gf_mx_apply_vec(&hit_info->local_to_world, &st->center);
 		st->radius = gf_vec_len(hit_info->local_point);
 		if (!st->radius) st->radius = FIX_ONE;
-		st->grab_vec = gf_vec_scale(hit_info->local_point, gf_divfix(FIX_ONE, st->radius));
+		st->grab_vec = gf_vec_scale(hit_info->local_point, gf_invfix(st->radius));
 
 		sphere->isActive = 1;
 		gf_node_event_out_str(sh->owner, "isActive");
@@ -855,7 +855,7 @@ static void OnSphereSensor(SensorHandler *sh, Bool is_over, u32 eventType, RayHi
 			}
 		}
 
-		vec = gf_vec_scale(hit_info->local_point, gf_divfix(FIX_ONE, st->radius));
+		vec = gf_vec_scale(hit_info->local_point, gf_invfix(st->radius));
 		axis = gf_vec_cross(st->grab_vec, vec);
 		cl = gf_vec_len(axis);
 

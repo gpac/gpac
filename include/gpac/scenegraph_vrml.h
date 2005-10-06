@@ -760,8 +760,6 @@ void gf_node_event_out_str(GF_Node *node, const char *eventName);
 u32 gf_node_mpeg4_type_by_class_name(const char *node_name);
 u32 gf_node_x3d_type_by_class_name(const char *node_name);
 
-Bool gf_node_in_table(GF_Node *node, u32 NDTType);
-
 #ifdef __cplusplus
 }
 #endif

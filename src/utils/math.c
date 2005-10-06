@@ -32,98 +32,6 @@
 
 #ifdef GPAC_FIXED_POINT
 
-Fixed gf_divfix(Fixed a, Fixed b)
-{
-	s32 s;
-	u32 q;
-
-    s = 1;
-    if ( a < 0 ) { a = -a; s = -1; }
-    if ( b < 0 ) { b = -b; s = -s; }
-
-    if ( b == 0 )
-		/* check for division by 0 */
-		q = 0x7FFFFFFFL;
-    else
-		/* compute result directly */
-		q = (u32)( ( ( (s64)a << 16 ) + ( b >> 1 ) ) / b );
-    return ( s < 0 ? -(s32)q : (s32)q );
-}
-
-Fixed gf_mulfix(Fixed a, Fixed b)
-{
-	Fixed  s;
-	u32 ua, ub;
-	if ( !a || (b == 0x10000L)) return a;
-	if (!b) return 0;
-
-	s  = a; a = ABS(a);
-	s ^= b; b = ABS(b);
-
-	ua = (u32)a;
-	ub = (u32)b;
-
-	if ((ua <= 2048) && (ub <= 1048576L)) {
-		ua = ( ua * ub + 0x8000L ) >> 16;
-	} else {
-		u32 al = ua & 0xFFFFL;
-		ua = ( ua >> 16 ) * ub +  al * ( ub >> 16 ) + ( ( al * ( ub & 0xFFFFL ) + 0x8000L ) >> 16 );
-	}
-	if (ua & 0x80000000) s=-s;
-	return ( s < 0 ? -(Fixed)(s32)ua : (Fixed)ua );
-}
-
-Fixed gf_muldiv(Fixed a, Fixed b, Fixed c)
-{
-    s32 s, d;
-	if (!b || !a) return 0;
-    s = 1;
-    if ( a < 0 ) { a = -a; s = -1; }
-    if ( b < 0 ) { b = -b; s = -s; }
-    if ( c < 0 ) { c = -c; s = -s; }
-
-    d = (s32)( c > 0 ? ( (s64)a * b + ( c >> 1 ) ) / c : 0x7FFFFFFFL);
-    return (Fixed) (( s > 0 ) ? d : -d);
-}
-
-Fixed gf_sqrt(Fixed x)
-{
-	u32 root, rem_hi, rem_lo, test_div;
-	s32 count;
-	root = 0;
-	if ( x > 0 ) {
-		rem_hi = 0;
-		rem_lo = x;
-		count  = 24;
-		do {
-			rem_hi   = ( rem_hi << 2 ) | ( rem_lo >> 30 );
-			rem_lo <<= 2;
-			root   <<= 1;
-			test_div = ( root << 1 ) + 1;
-
-			if ( rem_hi >= test_div ) {
-				rem_hi -= test_div;
-				root   += 1;
-			}
-		} while ( --count );
-	}
-
-	return (Fixed) root;
-}
-
-Fixed gf_ceil(Fixed a)
-{
-	return (a >= 0) ? (a + 0xFFFFL) & ~0xFFFFL : -((-a + 0xFFFFL) & ~0xFFFFL);
-}
-
-Fixed gf_floor(Fixed a)
-{
-    return (a >= 0) ? (a & ~0xFFFFL) : -((-a) & ~0xFFFFL);
-}
-
-
-
-
 /* the following is 0.2715717684432231 * 2^30 */
 #define GF_TRIG_COSCALE  0x11616E8EUL
 
@@ -148,23 +56,7 @@ static const Fixed gf_trig_arctan_table[24] =
 #define GF_PAD_ROUND( x, n )  GF_PAD_FLOOR( (x) + ((n)/2), n )
 #define GF_PAD_CEIL( x, n )   GF_PAD_FLOOR( (x) + ((n)-1), n )
 
-/* multiply a given value by the CORDIC shrink factor */
-static Fixed gf_trig_downscale(Fixed  val)
-{
-	Fixed  s;
-	s64 v;
-	s   = val;
-	val = ( val >= 0 ) ? val : -val;
-#ifdef _MSC_VER
-	v = ( val * (s64)GF_TRIG_SCALE ) + 0x100000000;
-#else
-	v = ( val * (s64)GF_TRIG_SCALE ) + 0x100000000ULL;
-#endif
-	val = (Fixed)( v >> 32 );
-	return ( s >= 0 ) ? val : -val;
-}
-
-static s32 gf_trig_prenorm(GF_Point2D *vec)
+static GFINLINE s32 gf_trig_prenorm(GF_Point2D *vec)
 {
 	Fixed  x, y, z;
 	s32 shift;
@@ -198,66 +90,7 @@ static s32 gf_trig_prenorm(GF_Point2D *vec)
 #define ANGLE_RAD_TO_DEG(_th) ((s32) ( (((s64)_th)*5729582)/100000))
 #define ANGLE_DEG_TO_RAD(_th) ((s32) ( (((s64)_th)*100000)/5729582))
 
-static void gf_trig_pseudo_rotate(GF_Point2D*  vec, Fixed theta)
-{
-    s32 i;
-    Fixed x, y, xtemp;
-    const Fixed  *arctanptr;
-
-	/*trig funcs are in degrees*/
-	theta = ANGLE_RAD_TO_DEG(theta);
-
-    x = vec->x;
-    y = vec->y;
-
-    /* Get angle between -90 and 90 degrees */
-    while ( theta <= -GF_ANGLE_PI2 ) {
-		x = -x;
-		y = -y;
-		theta += GF_ANGLE_PI;
-    }
-
-    while ( theta > GF_ANGLE_PI2 ) {
-		x = -x;
-		y = -y;
-		theta -= GF_ANGLE_PI;
-    }
-
-    /* Initial pseudorotation, with left shift */
-    arctanptr = gf_trig_arctan_table;
-    if ( theta < 0 ) {
-		xtemp  = x + ( y << 1 );
-		y      = y - ( x << 1 );
-		x      = xtemp;
-		theta += *arctanptr++;
-    } else {
-		xtemp  = x - ( y << 1 );
-		y      = y + ( x << 1 );
-		x      = xtemp;
-		theta -= *arctanptr++;
-    }
-    /* Subsequent pseudorotations, with right shifts */
-    i = 0;
-    do {
-		if ( theta < 0 ) {
-			xtemp  = x + ( y >> i );
-			y      = y - ( x >> i );
-			x      = xtemp;
-			theta += *arctanptr++;
-		} else {
-			xtemp  = x - ( y >> i );
-			y      = y + ( x >> i );
-			x      = xtemp;
-			theta -= *arctanptr++;
-		}
-    } while ( ++i < GF_TRIG_MAX_ITERS );
-
-    vec->x = x;
-    vec->y = y;
-}
-
-
-static void gf_trig_pseudo_polarize(GF_Point2D *vec)
+static GFINLINE void gf_trig_pseudo_polarize(GF_Point2D *vec)
 {
 	Fixed         theta;
 	Fixed         yi, i;
@@ -322,30 +155,6 @@ static void gf_trig_pseudo_polarize(GF_Point2D *vec)
 	vec->y = ANGLE_DEG_TO_RAD(theta);
 }
 
-Fixed gf_cos(Fixed angle)
-{
-	GF_Point2D v;
-	v.x = GF_TRIG_COSCALE >> 2;
-	v.y = 0;
-	gf_trig_pseudo_rotate( &v, angle );
-	return v.x / ( 1 << 12 );
-}
-
-Fixed gf_sin(Fixed angle)
-{
-	return gf_cos( GF_PI2 - angle );
-}
-
-
-Fixed gf_tan(Fixed angle)
-{
-	GF_Point2D v;
-    v.x = GF_TRIG_COSCALE >> 2;
-    v.y = 0;
-    gf_trig_pseudo_rotate( &v, angle );
-    return gf_divfix( v.y, v.x );
-}
-
 Fixed gf_atan2(Fixed dy, Fixed dx)
 {
 	GF_Point2D v;
@@ -357,18 +166,262 @@ Fixed gf_atan2(Fixed dy, Fixed dx)
 	return v.y;
 }
 
-/*FIXME*/
-Fixed gf_acos(Fixed angle)
+/*define one of these to enable IntelGPP support and link to gpp_WMMX40_d.lib (debug) or gpp_WMMX40_r.lib (release)
+this is not configured by default for lack of real perf increase.*/
+#if defined(GPAC_USE_IGPP_HP) || defined(GPAC_USE_IGPP)
+
+#include <gpp.h>
+
+Fixed gf_invfix(Fixed a)
 {
-	return FLT2FIX( (Float) acos(FIX2FLT(angle)));
+	Fixed res;
+	if (!a) return (s32)0x7FFFFFFFL;
+	gppInv_16_32s(a, &res);
+	return res;
+}
+Fixed gf_divfix(Fixed a, Fixed b)
+{
+	Fixed res;
+	if (!a) return 0;
+    else if (!b) return (a<0) ? -(s32)0x7FFFFFFFL : (s32)0x7FFFFFFFL;
+	else if (a==FIX_ONE) gppInv_16_32s(b, &res);
+	else gppDiv_16_32s(a, b, &res);
+	return res;
 }
 
-/*FIXME*/
-Fixed gf_asin(Fixed angle)
+Fixed gf_mulfix(Fixed a, Fixed b)
 {
-	return FLT2FIX( (Float) asin(FIX2FLT(angle)));
+	Fixed  res;
+	if (!a || !b) return 0;
+	else if (b == FIX_ONE) return a;
+	else gppMul_16_32s(a, b, &res);
+	return res;
 }
 
+Fixed gf_sqrt(Fixed x)
+{
+	Fixed res;
+#ifdef GPAC_USE_IGPP_HP
+	gppSqrtHP_16_32s(x, &res);
+#else
+	gppSqrtLP_16_32s(x, &res);
+#endif
+	return res;
+}
+
+Fixed gf_cos(Fixed angle)
+{
+	Fixed res;
+#ifdef GPAC_USE_IGPP_HP
+	gppCosHP_16_32s(angle, &res);
+#else
+	gppCosLP_16_32s(angle, &res);
+#endif
+	return res;
+}
+
+Fixed gf_sin(Fixed angle)
+{
+	Fixed res;
+#ifdef GPAC_USE_IGPP_HP
+	gppSinHP_16_32s (angle, &res);
+#else
+	gppSinLP_16_32s (angle, &res);
+#endif
+	return res;
+}
+
+
+Fixed gf_tan(Fixed angle)
+{
+	Fixed cosa, sina;
+#ifdef GPAC_USE_IGPP_HP
+	gppSinCosHP_16_32s(angle, &sina, &cosa);
+#else
+	gppSinCosLP_16_32s(angle, &sina, &cosa);
+#endif
+	if (!cosa) return (sina<0) ? -GF_PI2 : GF_PI2;
+	return gf_divfix(sina, cosa);
+}
+
+GF_Point2D gf_v2d_from_polar(Fixed length, Fixed angle)
+{
+	GF_Point2D vec;
+	Fixed cosa, sina;
+#ifdef GPAC_USE_IGPP_HP
+	gppSinCosHP_16_32s(angle, &sina, &cosa);
+#else
+	gppSinCosLP_16_32s(angle, &sina, &cosa);
+#endif
+    vec.x = gf_mulfix(length, cosa);
+    vec.y = gf_mulfix(length, sina);
+	return vec;
+}
+
+Fixed gf_v2d_len(GF_Point2D *vec)
+{
+	Fixed a, b, res;
+	if (!vec->x) return ABS(vec->y);
+	if (!vec->y) return ABS(vec->x);
+	gppSquare_16_32s(vec->x, &a);
+	gppSquare_16_32s(vec->y, &b);
+#ifdef GPAC_USE_IGPP_HP
+	gppSqrtHP_16_32s(a+b, &res);
+#else
+	gppSqrtLP_16_32s(a+b, &res);
+#endif
+	return res;
+}
+
+#else
+
+Fixed gf_invfix(Fixed a)
+{
+	if (!a) return (s32)0x7FFFFFFFL;
+	return gf_divfix(FIX_ONE, a);
+}
+
+Fixed gf_divfix(Fixed a, Fixed b)
+{
+	s32 s;
+	u32 q;
+
+    s = 1;
+    if ( a < 0 ) { a = -a; s = -1; }
+    if ( b < 0 ) { b = -b; s = -s; }
+
+    if ( b == 0 )
+		/* check for division by 0 */
+		q = 0x7FFFFFFFL;
+    else
+		/* compute result directly */
+		q = (u32)( ( ( (s64)a << 16 ) + ( b >> 1 ) ) / b );
+    return ( s < 0 ? -(s32)q : (s32)q );
+}
+
+Fixed gf_mulfix(Fixed a, Fixed b)
+{
+	Fixed  s;
+	u32 ua, ub;
+	if ( !a || (b == 0x10000L)) return a;
+	if (!b) return 0;
+
+	s  = a; a = ABS(a);
+	s ^= b; b = ABS(b);
+
+	ua = (u32)a;
+	ub = (u32)b;
+
+	if ((ua <= 2048) && (ub <= 1048576L)) {
+		ua = ( ua * ub + 0x8000L ) >> 16;
+	} else {
+		u32 al = ua & 0xFFFFL;
+		ua = ( ua >> 16 ) * ub +  al * ( ub >> 16 ) + ( ( al * ( ub & 0xFFFFL ) + 0x8000L ) >> 16 );
+	}
+	if (ua & 0x80000000) s=-s;
+	return ( s < 0 ? -(Fixed)(s32)ua : (Fixed)ua );
+}
+
+
+Fixed gf_sqrt(Fixed x)
+{
+	u32 root, rem_hi, rem_lo, test_div;
+	s32 count;
+	root = 0;
+	if ( x > 0 ) {
+		rem_hi = 0;
+		rem_lo = x;
+		count  = 24;
+		do {
+			rem_hi   = ( rem_hi << 2 ) | ( rem_lo >> 30 );
+			rem_lo <<= 2;
+			root   <<= 1;
+			test_div = ( root << 1 ) + 1;
+
+			if ( rem_hi >= test_div ) {
+				rem_hi -= test_div;
+				root   += 1;
+			}
+		} while ( --count );
+	}
+
+	return (Fixed) root;
+}
+
+
+/* multiply a given value by the CORDIC shrink factor */
+static Fixed gf_trig_downscale(Fixed  val)
+{
+	Fixed  s;
+	s64 v;
+	s   = val;
+	val = ( val >= 0 ) ? val : -val;
+#ifdef _MSC_VER
+	v = ( val * (s64)GF_TRIG_SCALE ) + 0x100000000;
+#else
+	v = ( val * (s64)GF_TRIG_SCALE ) + 0x100000000ULL;
+#endif
+	val = (Fixed)( v >> 32 );
+	return ( s >= 0 ) ? val : -val;
+}
+
+static void gf_trig_pseudo_rotate(GF_Point2D*  vec, Fixed theta)
+{
+    s32 i;
+    Fixed x, y, xtemp;
+    const Fixed  *arctanptr;
+
+	/*trig funcs are in degrees*/
+	theta = ANGLE_RAD_TO_DEG(theta);
+
+    x = vec->x;
+    y = vec->y;
+
+    /* Get angle between -90 and 90 degrees */
+    while ( theta <= -GF_ANGLE_PI2 ) {
+		x = -x;
+		y = -y;
+		theta += GF_ANGLE_PI;
+    }
+
+    while ( theta > GF_ANGLE_PI2 ) {
+		x = -x;
+		y = -y;
+		theta -= GF_ANGLE_PI;
+    }
+
+    /* Initial pseudorotation, with left shift */
+    arctanptr = gf_trig_arctan_table;
+    if ( theta < 0 ) {
+		xtemp  = x + ( y << 1 );
+		y      = y - ( x << 1 );
+		x      = xtemp;
+		theta += *arctanptr++;
+    } else {
+		xtemp  = x - ( y << 1 );
+		y      = y + ( x << 1 );
+		x      = xtemp;
+		theta -= *arctanptr++;
+    }
+    /* Subsequent pseudorotations, with right shifts */
+    i = 0;
+    do {
+		if ( theta < 0 ) {
+			xtemp  = x + ( y >> i );
+			y      = y - ( x >> i );
+			x      = xtemp;
+			theta += *arctanptr++;
+		} else {
+			xtemp  = x - ( y >> i );
+			y      = y + ( x >> i );
+			x      = xtemp;
+			theta -= *arctanptr++;
+		}
+    } while ( ++i < GF_TRIG_MAX_ITERS );
+
+    vec->x = x;
+    vec->y = y;
+}
 
 /* these macros return 0 for positive numbers, and -1 for negative ones */
 #define GF_SIGN_LONG( x )   ( (x) >> ( 32 - 1 ) )
@@ -450,6 +503,68 @@ GF_Point2D gf_v2d_from_polar(Fixed length, Fixed angle)
     gf_v2d_rotate(&vec, angle);
 	return vec;
 }
+
+Fixed gf_cos(Fixed angle)
+{
+	GF_Point2D v;
+	v.x = GF_TRIG_COSCALE >> 2;
+	v.y = 0;
+	gf_trig_pseudo_rotate( &v, angle );
+	return v.x / ( 1 << 12 );
+}
+Fixed gf_sin(Fixed angle)
+{
+	return gf_cos( GF_PI2 - angle );
+}
+Fixed gf_tan(Fixed angle)
+{
+	GF_Point2D v;
+    v.x = GF_TRIG_COSCALE >> 2;
+    v.y = 0;
+    gf_trig_pseudo_rotate( &v, angle );
+    return gf_divfix( v.y, v.x );
+}
+
+#endif
+
+/*common parts*/
+Fixed gf_muldiv(Fixed a, Fixed b, Fixed c)
+{
+    s32 s, d;
+	if (!b || !a) return 0;
+    s = 1;
+    if ( a < 0 ) { a = -a; s = -1; }
+    if ( b < 0 ) { b = -b; s = -s; }
+    if ( c < 0 ) { c = -c; s = -s; }
+
+    d = (s32)( c > 0 ? ( (s64)a * b + ( c >> 1 ) ) / c : 0x7FFFFFFFL);
+    return (Fixed) (( s > 0 ) ? d : -d);
+}
+
+
+Fixed gf_ceil(Fixed a)
+{
+	return (a >= 0) ? (a + 0xFFFFL) & ~0xFFFFL : -((-a + 0xFFFFL) & ~0xFFFFL);
+}
+
+Fixed gf_floor(Fixed a)
+{
+    return (a >= 0) ? (a & ~0xFFFFL) : -((-a) & ~0xFFFFL);
+}
+
+
+/*FIXME*/
+Fixed gf_acos(Fixed angle)
+{
+	return FLT2FIX( (Float) acos(FIX2FLT(angle)));
+}
+
+/*FIXME*/
+Fixed gf_asin(Fixed angle)
+{
+	return FLT2FIX( (Float) asin(FIX2FLT(angle)));
+}
+
 
 #else
 
@@ -730,7 +845,13 @@ Bool gf_rect_equal(GF_Rect rc1, GF_Rect rc2)
 
 Fixed gf_vec_len(GF_Vec v)
 {
-#if 1
+	/*commented out atm - weird results (not enough precision?)...*/
+//#if defined(GPAC_USE_IGPP_HP) || defined (GPAC_USE_IGPP)
+#if 0
+	Fixed res;
+	gppVec3DLength_16_32s((GPP_VEC3D *) &v, &res);
+	return res;
+#else
 	/*high-magnitude vector, use low precision on frac part to avoid overflow*/
 	if (VEC_HIGH_MAG(v)) {
 		v.x>>=8;
@@ -742,17 +863,18 @@ Fixed gf_vec_len(GF_Vec v)
 	else {
 		return gf_sqrt( gf_mulfix(v.x, v.x) + gf_mulfix(v.y, v.y) + gf_mulfix(v.z, v.z) );
 	}
-#else
-	Float x, y, z;
-	x = FIX2FLT(v.x);
-	y = FIX2FLT(v.y);
-	z = FIX2FLT(v.z);
-	return FLT2FIX(sqrt(x*x + y*y + z*z));
 #endif
 }
 
 Fixed gf_vec_lensq(GF_Vec v)
 {
+	/*commented out atm - weird results (not enough precision?)...*/
+//#if defined(GPAC_USE_IGPP_HP) || defined (GPAC_USE_IGPP)
+#if 0
+	Fixed res;
+	gppVec3DLengthSq_16_32s((GPP_VEC3D *) &v, &res);
+	return res;
+#else
 	/*high-magnitude vector, use low precision on frac part to avoid overflow*/
 	if (VEC_HIGH_MAG(v)) {
 		v.x>>=8;
@@ -762,11 +884,18 @@ Fixed gf_vec_lensq(GF_Vec v)
 	} else {
 		return gf_mulfix(v.x, v.x) + gf_mulfix(v.y, v.y) + gf_mulfix(v.z, v.z);
 	}
+#endif
 }
 
 Fixed gf_vec_dot(GF_Vec v1, GF_Vec v2)
 {
-#if 1
+	/*commented out atm - weird results (not enough precision?)...*/
+//#if defined(GPAC_USE_IGPP_HP) || defined (GPAC_USE_IGPP)
+#if 0
+	Fixed res;
+	gppVec3DDot_16_32s((GPP_VEC3D *) &v1, (GPP_VEC3D *) &v2, &res);
+	return res;
+#else
 	/*both high-magnitude vectors, use low precision on frac part to avoid overflow
 	if only one is, the dot product should still be in proper range*/
 	if (VEC_HIGH_MAG(v1) && VEC_HIGH_MAG(v2)) {
@@ -776,24 +905,21 @@ Fixed gf_vec_dot(GF_Vec v1, GF_Vec v2)
 	} else {
 		return gf_mulfix(v1.x, v2.x) + gf_mulfix(v1.y, v2.y) + gf_mulfix(v1.z, v2.z);
 	}
-#else
-	Float v1x, v1y, v1z, v2x, v2y, v2z;
-	v1x = FIX2FLT(v1.x);
-	v1y = FIX2FLT(v1.y);
-	v1z = FIX2FLT(v1.z);
-	v2x = FIX2FLT(v2.x);
-	v2y = FIX2FLT(v2.y);
-	v2z = FIX2FLT(v2.z);
-	return FLT2FIX(v1x*v2x + v1y*v2y + v1z*v2z);
 #endif
 }
 
 void gf_vec_norm(GF_Vec *v)
 {
+	/*commented out atm - weird results (not enough precision?)...*/
+//#if defined(GPAC_USE_IGPP_HP) || defined (GPAC_USE_IGPP)
+#if 0
+	gppVec3DNormalize_16_32s((GPP_VEC3D *) &v);
+#else
 	Fixed __res = gf_vec_len(*v);
 	v->x = gf_divfix(v->x, __res); 
 	v->y = gf_divfix(v->y, __res);
 	v->z = gf_divfix(v->z, __res);
+#endif
 }
 
 GF_Vec gf_vec_scale(GF_Vec v, Fixed f)
@@ -808,7 +934,11 @@ GF_Vec gf_vec_scale(GF_Vec v, Fixed f)
 GF_Vec gf_vec_cross(GF_Vec v1, GF_Vec v2)
 {
 	GF_Vec res;
-#if 1
+	/*commented out atm - weird results (not enough precision?)...*/
+//#if defined(GPAC_USE_IGPP_HP) || defined (GPAC_USE_IGPP)
+#if 0
+	gppVec3DCross_16_32s((GPP_VEC3D *) &v1, (GPP_VEC3D *) &v2, (GPP_VEC3D *) &res);
+#else
 	/*both high-magnitude vectors, use low precision on frac part to avoid overflow
 	if only one is, the cross product should still be in proper range*/
 	if (VEC_HIGH_MAG(v1) && VEC_HIGH_MAG(v2)) {
@@ -825,17 +955,6 @@ GF_Vec gf_vec_cross(GF_Vec v1, GF_Vec v2)
 		res.y = gf_mulfix(v2.x, v1.z) - gf_mulfix(v1.x, v2.z);
 		res.z = gf_mulfix(v1.x, v2.y) - gf_mulfix(v2.x, v1.y);
 	}
-#else
-	Float v1x, v1y, v1z, v2x, v2y, v2z;
-	v1x = FIX2FLT(v1.x);
-	v1y = FIX2FLT(v1.y);
-	v1z = FIX2FLT(v1.z);
-	v2x = FIX2FLT(v2.x);
-	v2y = FIX2FLT(v2.y);
-	v2z = FIX2FLT(v2.z);
-	res.x = FLT2FIX( v1y*v2z - v2y*v1z);
-	res.y = FLT2FIX( v2x*v1z - v1x*v2z);
-	res.z = FLT2FIX( v1x*v2y - v2x*v1y);
 #endif
 	return res;
 }
@@ -1355,14 +1474,14 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 	/* last check */
 	if (r3[3]==0) return 0;
 
-	s = gf_divfix(FIX_ONE, r3[3]);		/* now back substitute row 3 */
+	s = gf_invfix(r3[3]);		/* now back substitute row 3 */
 	r3[4] = gf_mulfix(r3[4], s);
 	r3[5] = gf_mulfix(r3[5], s);
 	r3[6] = gf_mulfix(r3[6], s);
 	r3[7] = gf_mulfix(r3[7], s);
 	
 	m2 = r2[3];			/* now back substitute row 2 */
-	s = gf_divfix(FIX_ONE, r2[2]);
+	s = gf_invfix(r2[2]);
 	r2[4] = gf_mulfix(s, r2[4] - gf_mulfix(r3[4], m2));
 	r2[5] = gf_mulfix(s, r2[5] - gf_mulfix(r3[5], m2));
 	r2[6] = gf_mulfix(s, r2[6] - gf_mulfix(r3[6], m2));
@@ -1373,7 +1492,7 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 	r0[4] -= gf_mulfix(r3[4], m0); r0[5] -= gf_mulfix(r3[5], m0); r0[6] -= gf_mulfix(r3[6], m0); r0[7] -= gf_mulfix(r3[7], m0);
 
 	m1 = r1[2];			/* now back substitute row 1 */
-	s = gf_divfix(FIX_ONE, r1[1]);
+	s = gf_invfix(r1[1]);
 	r1[4] = gf_mulfix(s, r1[4] - gf_mulfix(r2[4], m1));
 	r1[5] = gf_mulfix(s, r1[5] - gf_mulfix(r2[5], m1));
 	r1[6] = gf_mulfix(s, r1[6] - gf_mulfix(r2[6], m1));
@@ -1382,7 +1501,7 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 	r0[4] -= gf_mulfix(r2[4], m0); r0[5] -= gf_mulfix(r2[5], m0); r0[6] -= gf_mulfix(r2[6], m0); r0[7] -= gf_mulfix(r2[7], m0);
 
 	m0 = r0[1];			/* now back substitute row 0 */
-	s = gf_divfix(FIX_ONE, r0[0]);
+	s = gf_invfix(r0[0]);
 	r0[4] = gf_mulfix(s, r0[4] - gf_mulfix(r1[4], m0));
 	r0[5] = gf_mulfix(s, r0[5] - gf_mulfix(r1[5], m0)); 
 	r0[6] = gf_mulfix(s, r0[6] - gf_mulfix(r1[6], m0));
@@ -1656,7 +1775,7 @@ GF_Vec4 gf_quat_from_matrix(GF_Matrix *mx)
     if (diagonal > 0) {
         s = gf_sqrt(diagonal + FIX_ONE);
         res.q = s / 2;
-        s = gf_divfix(FIX_ONE/2, s);
+        s = gf_invfix(2*s);
         res.x = gf_mulfix(mx->m[6] - mx->m[9], s);
         res.y = gf_mulfix(mx->m[8] - mx->m[2], s);
         res.z = gf_mulfix(mx->m[1] - mx->m[4], s);
@@ -1671,7 +1790,7 @@ GF_Vec4 gf_quat_from_matrix(GF_Matrix *mx)
         k = next[j];
         s = gf_sqrt(FIX_ONE + mx->m[4*i + i] - (mx->m[4*j+j] + mx->m[4*k+k]) );
         q[i] = s / 2;
-        if (s != 0) { s = gf_divfix(FIX_ONE/2, s); }
+        if (s != 0) { s = gf_invfix(2*s); }
         q[3] = gf_mulfix(mx->m[4*j+k] - mx->m[4*k+j], s);
         q[j] = gf_mulfix(mx->m[4*i+j] + mx->m[4*j+i], s);
         q[k] = gf_mulfix(mx->m[4*i+k] + mx->m[4*k+i], s);

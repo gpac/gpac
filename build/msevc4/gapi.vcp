@@ -116,13 +116,11 @@ DEP_CPP_GAPI_=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
 	"..\..\modules\gapi\gapi.h"\
-	
-NODEP_CPP_GAPI_=\
-	".\inuserm.h"\
-	".\ipapi.h"\
-	".\x.h"\
-	".\ygshell.h"\
-	"C:\Program Files\Windows CE Tools\wce420\POCKET PC 2003\Include\ARMV4\vibrate.h"\
+	{$(INCLUDE)}"aygshell.h"\
+	{$(INCLUDE)}"gx.h"\
+	{$(INCLUDE)}"sipapi.h"\
+	{$(INCLUDE)}"vibrate.h"\
+	{$(INCLUDE)}"winuserm.h"\
 	
 # End Source File
 # Begin Source File

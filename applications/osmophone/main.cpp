@@ -120,7 +120,7 @@ void update_state_info()
 	if (view_cpu) {
 		GF_SystemRTInfo rti;
 		if (!gf_sys_get_rti(STATE_TIMER_DUR, &rti, 0)) return;
-		wsprintf(wstate, TEXT("T %02d:%02d : FPS %02.2f : CPU %02d"), m, s, FPS, rti.cpu_usage);
+		wsprintf(wstate, TEXT("T %02d:%02d : FPS %02.2f : CPU %02d"), m, s, FPS, rti.total_cpu_usage);
 	} else {
 		wsprintf(wstate, TEXT("T %02d:%02d : FPS %02.2f"), m, s, FPS);
 	}
@@ -511,7 +511,7 @@ void pause_file()
 
 	if (gf_term_get_option(term, GF_OPT_PLAY_STATE)==GF_STATE_PLAYING) {
 		gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
-		tbbi.pszText = _T("Play"); 
+		tbbi.pszText = _T("Resume"); 
 	} else {
 		gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
 		tbbi.pszText = _T("Pause"); 
@@ -604,6 +604,14 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 		use_low_fps = !use_low_fps;
 		gf_term_set_simulation_frame_rate(term, use_low_fps ? 15.0 : 30.0);
 		break;
+	case IDM_VIEW_DIRECT:
+	{
+		Bool drend = gf_term_get_option(term, GF_OPT_DIRECT_RENDER) ? 0 : 1;
+		gf_term_set_option(term, GF_OPT_DIRECT_RENDER, drend);
+		gf_cfg_set_key(user.config, "Render2D", "DirectRender", drend ? "yes" : "no");
+	}
+		break;
+
 
 	case IDM_MENU_SWITCH:
 		menu_switched = !menu_switched;
@@ -638,7 +646,10 @@ static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 		EnableMenuItem((HMENU)wParam, IDM_VIEW_CPU, MF_BYCOMMAND| (show_status ? MF_ENABLED : MF_GRAYED) );
 		if (show_status) CheckMenuItem((HMENU)wParam, IDM_VIEW_CPU, MF_BYCOMMAND| (view_cpu ? MF_CHECKED : MF_UNCHECKED) );
 		CheckMenuItem((HMENU)wParam, IDM_VIEW_LOW_RATE, MF_BYCOMMAND| (use_low_fps ? MF_CHECKED : MF_UNCHECKED) );
-	    return TRUE;
+
+		EnableMenuItem((HMENU)wParam, IDM_VIEW_DIRECT, MF_BYCOMMAND| (!use_3D_renderer ? MF_ENABLED : MF_GRAYED) );
+		CheckMenuItem((HMENU)wParam, IDM_VIEW_DIRECT, MF_BYCOMMAND| (!use_3D_renderer && gf_term_get_option(term, GF_OPT_DIRECT_RENDER) ? MF_CHECKED : MF_UNCHECKED) );
+		return TRUE;
 	}
 
 	u32 opt = gf_term_get_option(term, GF_OPT_ASPECT_RATIO);	

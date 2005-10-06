@@ -256,7 +256,7 @@ GF_Err evg_stencil_set_linear_gradient(GF_STENCIL st, Fixed start_x, Fixed start
 	s.x = end_x - start_x;
 	s.y = end_y - start_y;
 	f = gf_v2d_len(&s);
-	if (f) f = gf_divfix(FIX_ONE, f);
+	if (f) f = gf_invfix(f);
 
 	gf_mx2d_init(mtx);
 	mtx.m[2] = - _this->start.x;
@@ -339,7 +339,7 @@ void evg_radial_init(EVG_RadialGradient *_this)
 
 	_this->rad = FIX_ONE - gf_mulfix(_this->d_f.x, _this->d_f.x) - gf_mulfix(_this->d_f.y, _this->d_f.y);
 	if (_this->rad) {
-		_this->rad = gf_divfix(FIX_ONE, _this->rad);
+		_this->rad = gf_invfix(_this->rad);
 	} else {
 		_this->rad = EVGGRADIENTBUFFERSIZE;
 	}

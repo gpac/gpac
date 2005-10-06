@@ -343,9 +343,9 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, Bool xml_dump, Bool
 	if (ext) {
 		strcpy(szExt, ext);
 		strlwr(szExt);
-		if (!strcmp(szExt, ".wrl")) mode = xml_dump ? GF_SM_DUMP_VRML : GF_SM_DUMP_X3D_XML;
-		else if(!strncmp(szExt, ".x3d", 4) || !strncmp(szExt, ".x3dv", 5) ) mode = xml_dump ? GF_SM_DUMP_X3D_VRML : GF_SM_DUMP_X3D_XML;
-		else if(!strncmp(szExt, ".bt", 3) || !strncmp(szExt, ".xmt", 4) || !strncmp(szExt, ".mp4", 4) ) mode = xml_dump ? GF_SM_DUMP_BT : GF_SM_DUMP_XMTA;
+		if (!strcmp(szExt, ".wrl")) mode = xml_dump ? GF_SM_DUMP_X3D_XML : GF_SM_DUMP_VRML;
+		else if(!strncmp(szExt, ".x3d", 4) || !strncmp(szExt, ".x3dv", 5) ) mode = xml_dump ? GF_SM_DUMP_X3D_XML : GF_SM_DUMP_X3D_VRML;
+		else if(!strncmp(szExt, ".bt", 3) || !strncmp(szExt, ".xmt", 4) || !strncmp(szExt, ".mp4", 4) ) mode = xml_dump ? GF_SM_DUMP_XMTA : GF_SM_DUMP_BT;
 	}
 
 	dumper = gf_sm_dumper_new(sg, rad_name, ' ', mode);

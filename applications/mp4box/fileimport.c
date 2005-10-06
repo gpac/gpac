@@ -350,12 +350,12 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		return GF_NOT_SUPPORTED;
 	}
 	if (chunk_start>=max_dur) {
-		fprintf(stdout, "Input file shorter than split start offset\n");
+		fprintf(stdout, "Input file (%f) shorter than requested split start offset (%f)\n", max_dur, chunk_start);
 		free(tks);
 		return GF_NOT_SUPPORTED;
 	}
 	if (max_dur<=split_dur) {
-		fprintf(stdout, "Input file shorter than split duration\n");
+		fprintf(stdout, "Input file (%f) shorter than requested split duration (%f)\n", max_dur, split_dur);
 		free(tks);
 		return GF_NOT_SUPPORTED;
 	}
@@ -593,7 +593,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		}
 
 		/*don't split if eq to copy...*/
-		if (is_last && !cur_file) {
+		if (is_last && !cur_file && !chunk_start) {
 			fprintf(stdout, "Cannot split file (Not enough sync samples, duration too large or size too big)\n");
 			goto err_exit;
 		}

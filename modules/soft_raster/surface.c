@@ -454,7 +454,7 @@ static Bool setup_ft_callbacks(EVGSurface *surf)
 
 GF_Err evg_surface_set_path(GF_SURFACE _this, GF_Path *gp)
 {
-	u32 n, i;
+	u32 i;
 	GF_Err e;
 	Bool is_identity;
 	GF_Point2D pt;
@@ -468,10 +468,6 @@ GF_Err evg_surface_set_path(GF_SURFACE _this, GF_Path *gp)
 	}
 
 	gf_path_flatten(gp);
-	n=0;
-
-	if (gp->n_points > 32767) return GF_OUT_OF_MEM;
-
 	surf->ftoutline.n_points = gp->n_points;
 	surf->ftoutline.n_contours = gp->n_contours;
 
@@ -483,8 +479,6 @@ GF_Err evg_surface_set_path(GF_SURFACE _this, GF_Path *gp)
 	surf->ftoutline.points = surf->points;
 	surf->ftoutline.tags = surf->tags;
 	surf->ftoutline.contours = surf->contours;
-
-	n = 0;
 
 	for (i=0; i<gp->n_contours; i++) surf->contours[i] = gp->contours[i];
 
@@ -592,7 +586,7 @@ GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 			gf_mx2d_add_matrix(&sten->smat, &mat);
 			gf_mx2d_inverse(&sten->smat);
 			gf_mx2d_add_translation(&sten->smat, -rad->center.x, -rad->center.y);
-			gf_mx2d_add_scale(&sten->smat, gf_divfix(FIX_ONE, rad->radius.x), gf_divfix(FIX_ONE, rad->radius.y));
+			gf_mx2d_add_scale(&sten->smat, gf_divfix(FIX_ONE, rad->radius.x), gf_invfix(rad->radius.y));
 			rad->d_f.x = gf_divfix(rad->focus.x - rad->center.x, rad->radius.x);
 			rad->d_f.y = gf_divfix(rad->focus.y - rad->center.y, rad->radius.y);
 			/*init*/

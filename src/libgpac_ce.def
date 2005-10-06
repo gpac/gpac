@@ -168,6 +168,7 @@ EXPORTS
 	gf_dm_sess_last_error
 
 ;math.h exports
+	gf_invfix
 	gf_mulfix
 	gf_muldiv
 	gf_divfix
