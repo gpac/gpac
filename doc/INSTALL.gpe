@@ -1,14 +1,25 @@
-Installation instructions for GPAC 0.4.1 on GCC-powered platforms
+Installation instructions for GPAC 0.4.1 on Familiar+GPE platforms
 last modified: October 2005
 
 0 Foreword
+  This file is about installing the GPAC framework on an arm device running Linux familiar (cf http://www.handhelds.org)
+
+	Compilation has only been tested for familiar+GPE platforms ( http://gpe.handhelds.org). 
+	The GPE version enables GPAC to use X11 video output directly, including shared memory extensions.
+
 	The output directory for all plugins and applications is gpac/bin/gcc 
 
 	As of 0.2.2, GPAC cannot be compiled without ZLIB. You'd better make sure it is installed on your system (zlib is provided in gpac_extra_libs package)
+
+  To install the arm cross-compilation environement on your linux system, refer to:
+    * http://www.handhelds.org
+    * we're currently using the following tool-chain for Familiar+GPE compil http://www.roebling.de/embedded.html, with X11 and GTK+ support, 
+    already compiled.
+    
+  Do not forget to update your environment variables according to your toolchain.
 	
 I Extra lib installation
 	It is recommended to download and compile all extra libs needed by gpac not installed on your system.
-
 
 II GPAC compilation
 	
@@ -22,42 +33,32 @@ II GPAC compilation
 
 	II.2 wxWidgets Support
 		GPAC comes with a GUI player called Osmo4. To compile this player you will need wxWidgets 2.6.0 (2.5.2 should work) installed on your system. 
-		Both unicode and ANSI versions of wxWidgets should be supported.
-		If you don't use wxWidgets, you can always use GPAC command-line player MP4Client.
+		NOTE: Osmo4+wxWidgets is quite slow on familiar+GPE, and is therefore not recommended at the time being.
+		You can always use GPAC command-line player MP4Client.
 
 	II.3 libxml2 Support
 		GPAC can be used to play very simple SVG files. The SVG plugin however relies on libxml2 for SVG parsing. If this library is not installed on the system, SVG support will be disabled. 
 		If you have libxml2 but it is not installed on your system, you will have to modify gpac/configure or gpac/modules/svg_loader/Makefile scripts to compile by hand. 
-		MINGW users: libXML2 is quite impossible to compile under MinGW, you'll usuall get plenty of errors and only a partial compil. Sorry about that.
 
-	II.4 MinGW DirectX support
-		When building GPAC under MinGW, it is also possible to compile the DirectX plugin. You will need the MinGW versions of DX libs
-		(available at http://alleg.sourceforge.net/files/). Get dx70_mgw or dx80_mgw (dx8 is provided in gpac_extra_libs package)
-		copy the archive content in your MSys tree (for ex, /usr/local/DirectX) and configure gpac with the option --dxsdk-path=/usr/local/DirectX
-		** you must keep include and lib folders under the same directory for the configure script to detect DirectX **
-	
+	II.4 OpenGL ES support
+	  OpenGL ES is not yes supported on Familiar-GPE
+
 	II.5 Building GPAC
-		go to root of gpac distribution
-		./configure (--help for options) - you may need to "chmod +x" this file...
+		go to root of gpac distribution. Note: you may need to "chmod +x" the configure file.
+		(./configure --help for options)
+		./configure --prefix=/usr/local/arm/3.3.2 --cpu=armv4l --enable-fixed-point
+		  Note: this assume the cross-compilation tool-chain is located in /usr/local/arm/3.3.2
+		  Note: you may also specify any other option supported by configure. It is not recommended to use the floating-point version of GPAC for ARM-based architectures.
 		make
 
-		any fixes to configure are welcome :)
-
 	II.6 Installing GPAC
-		get root
-		type "make install" in gpac/
-		
-		This will install MP4Client, Osmo4 if configured, MP42AVI, MP4Box and all plugins as well as GPAC documentation man: MP4Box(1), MP4Client(1), MP42AVI(1) and GPAC(1).
-		type "make uninstall" to remove gpac from your system
-
-	II.7 Installing GPAC SDK
-		get root
-		type "make install-lib" in gpac/
-
-		This will install gpac base headers (<gpac/*.h>), gpac development headers (<gpac/internal/*.h> and libgpac_static - the static version of libgpac shared library.
-		type "make uninstall-lib" to remove gpac from your system
-		There is no documentation regarding headers/SDK for now, you will have to rely on function descriptions in each header.
-				
+	  copy all files to your device, possibly creating a dedicated directory for modules
+	  edit or create ~/.gpacrc to have at least the following lines:
+	    [General]
+	    ModulesDirectory=AbsolutePathToTheModules
+	    
+	  For more information on GPAC configuration file, cf man GPAC of gpac/doc/configuration.html
+  	  				
 III Running GPAC
 	
 	III.1 MP4Client
@@ -83,32 +84,19 @@ III Running GPAC
 		
 		*If you don't see any output window, check the config file doesn't use raw_out.so as a video renderer (or simply remove raw_out.so if	you don't plan to use MP42AVI).
 		
-		MINGW USERS: there are known and terrible bugs with MSys rxvt stdio buffering, do NOT use it to run MP4Client unless you want to understand
-		these bugs. Use w32 CMD.exe instead. Other GPAC apps are no pb for MSys rxvt.
-
 	III.2 Osmo4
 		Osmo4 is the GUI frontend to GPAC. If you have installed Osmo4 on your system, the first launch of the player should ask you to locate a 
 		directory with TrueType fonts and a cache directory for internet downloads if no configuration file is found.
 
 	III.3 MP4Box
 		MP4Box is a tool to encode, decode and manipulate MPEG-4 systems data. It does not need a configuration file.
-		Help for MP4Box is available on GPAC web site, with man MP4Box (except on MinGW) and with 'MP4Box -h'
+		Help for MP4Box is available on GPAC web site, with man MP4Box and with 'MP4Box -h'
 		
 	III.4 MP42AVI
 		MP42AVI is a tool used to decode a pure MPEG-4 BIFS presentation (only vector graphics, no audio, no image, no video) and output the result
 		as an uncompressed AVI file or a (sequence of) BMP/RAW files. Like MP4Client it needs a configuration file to work. Like MP4Client you can pass 
 		the config file as a parameter (-cfg) or modify the hardcoded paths in Applications/MP42AVI/main.c.
 		Note: MP42AVI uses the renderer indicated in the config file (default being 2D renderer).
-
-	III.5 Osmozilla
-		Osmozilla is GPAC plugin for Mozilla-based browsers. It is by default installed to the user mozilla directory ~/.mozilla 
-		To install the plugin on the system
-		* get root
-		* ./configure --mozdir=/path/to/mozilla
-		    for example --mozdir=/usr/lib/mozilla-firefox
-		* make -C applications/osmozilla install
-		
-		* OR you may copy by hand bin/gcc/nposmozilla.so to /usr/lib/moz**/plugins and bin/gcc/nposmozilla.xpt to /usr/lib/moz**/components
 
 IV Configuration
 	

@@ -32,5 +32,6 @@ Detailed instruction for WinCE eVC Compilation are available in gpac/doc/INSTALL
 
 Detailed instruction for GCC Compilation are available in gpac/doc/INSTALL.gcc
 
+Detailed instruction for GCC cross-compilation for familiar+GPE systems are available in gpac/doc/INSTALL.gpe
 	
 	
