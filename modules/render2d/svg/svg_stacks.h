@@ -73,7 +73,6 @@ void SVG_Init_animateColor(Render2D *sr, GF_Node *node);
 void SVG_Init_discard(Render2D *sr, GF_Node *node);
 
 /* Interactive functions */
-SensorHandler *SVG_GetHandler_a(GF_Node *n);
 void SVG_Init_a(Render2D *se, GF_Node *node);
 
 /* Media rendering functions */
@@ -110,6 +109,37 @@ typedef struct
 #endif
 } SVG_audio_stack;
 void SVG_Init_audio(Render2D *se, GF_Node *node);
+
+
+
+typedef struct 
+{
+	u8 state;
+	SensorHandler hdl;
+} SVG_SensorInfo;
+
+typedef struct 
+{
+	GF_Renderer *compositor;
+	SVG_SensorInfo si;
+	SVGStylingProperties svgp;
+} SVG_Stack_svg;
+
+typedef struct 
+{
+	GF_Renderer *compositor;
+	SVG_SensorInfo si;
+} SVG_Stack_g;
+
+
+typedef struct 
+{
+	Drawable *draw;
+	SVG_SensorInfo si;
+} SVG_Drawable;
+
+void SVG_InitDrawable(Render2D *sr, GF_Node *node);
+Drawable *SVG_GetDrawable(GF_Node *node);
 
 #endif
 

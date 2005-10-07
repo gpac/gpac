@@ -1023,9 +1023,9 @@ GF_Route *SD_GetISedField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo *fi
 		if (!r->IS_route) continue;
 		if ((r->ToNode==node) && (r->ToFieldIndex==field->fieldIndex)) return r;
 	}
-	if (!node || !node->sgprivate->routes) return NULL;
-	for (i=0; i<gf_list_count(node->sgprivate->routes); i++) {
-		GF_Route *r = gf_list_get(node->sgprivate->routes, i);
+	if (!node || !node->sgprivate->events) return NULL;
+	for (i=0; i<gf_list_count(node->sgprivate->events); i++) {
+		GF_Route *r = gf_list_get(node->sgprivate->events, i);
 		if (!r->IS_route) continue;
 		if (r->FromFieldIndex == field->fieldIndex) return r;
 	}

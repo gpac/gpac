@@ -37,7 +37,7 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 	GF_Matrix2D backup_matrix;
 	SVG_Transform *tr;
 	DrawableContext *ctx;
-	Drawable *cs = gf_node_get_private(node);
+	Drawable *cs = SVG_GetDrawable(node);
 	RenderEffect2D *eff = rs;
 	SVGtextElement *text = (SVGtextElement *)node;
 	GF_FontRaster *ft_dr = eff->surface->render->compositor->font_engine;
@@ -141,7 +141,7 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 
 void SVG_Init_text(Render2D *sr, GF_Node *node)
 {
-	drawable_stack_new(sr, node);
+	SVG_InitDrawable(sr, node);
 	gf_node_set_render_function(node, SVG_Render_text);
 }
 

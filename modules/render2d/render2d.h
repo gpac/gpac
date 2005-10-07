@@ -94,8 +94,9 @@ typedef struct _sensorhandler
 {
 	/*sensor enabled or not ?*/
 	Bool (*IsEnabled)(struct _sensorhandler *sh);
-	/*user input on sensor*/
-	void (*OnUserEvent)(struct _sensorhandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_matrix);
+	/*user input on sensor. If return value is non-0, any sensors present above(before in VRML)
+	the called sensor won't be called*/
+	Bool (*OnUserEvent)(struct _sensorhandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_matrix);
 	/*set the node pointer here*/
 	GF_Node *owner;
 	/*private to compositor for deactivating sensors*/
@@ -170,6 +171,8 @@ void effect_reset(RenderEffect2D *eff);
 void effect_delete(RenderEffect2D *eff);
 
 void effect_add_sensor(RenderEffect2D *eff, SensorHandler *ptr, GF_Matrix2D *mat);
+/*destroy last entry in sensitive list*/
+void effect_pop_sensor(RenderEffect2D *eff);
 void effect_reset_sensors(RenderEffect2D *eff);
 
 void R2D_RegisterSurface(Render2D *sr, struct _visual_surface_2D *);

@@ -881,18 +881,11 @@ void gf_node_free(GF_Node *node)
 {
 	if (!node) return;
 
-	if (node->sgprivate->routes) {
-		assert(gf_list_count(node->sgprivate->routes)==0);
-/*
-		while (gf_list_count(node->sgprivate->routes)) {
-			GF_Route *r = gf_list_get(node->sgprivate->routes, 0);
-			gf_list_rem(node->sgprivate->routes, 0);
-			r->FromNode = NULL;
-		}
-*/
-
-		gf_list_del(node->sgprivate->routes);
-		node->sgprivate->routes = NULL;
+	if (node->sgprivate->events) {
+		/*true for VRML-based graphs, not true for SVG yet*/
+		//assert(gf_list_count(node->sgprivate->events)==0);
+		gf_list_del(node->sgprivate->events);
+		node->sgprivate->events = NULL;
 	}
 	if (node->sgprivate->PreDestroyNode) node->sgprivate->PreDestroyNode(node);
 #ifdef GF_ARRAY_PARENT_NODES
@@ -1161,5 +1154,32 @@ u32 gf_node_get_active(GF_Node*p)
 #else
 	return 1;
 #endif
+}
+
+
+
+GF_Err gf_node_listener_add(GF_Node *node, GF_Node *listener)
+{
+	if (!node || !listener) return GF_BAD_PARAM;
+	if (!node->sgprivate->events) node->sgprivate->events = gf_list_new();
+	return gf_list_add(node->sgprivate->events, listener);
+}
+
+GF_Err gf_node_listener_del(GF_Node *node, GF_Node *listener)
+{
+	if (!node || !node->sgprivate->events || !listener) return GF_BAD_PARAM;
+	return (gf_list_del_item(node->sgprivate->events, listener)<0) ? GF_BAD_PARAM : GF_OK;
+}
+
+u32 gf_node_listener_count(GF_Node *node)
+{
+	if (!node || !node->sgprivate->events) return 0;
+	return gf_list_count(node->sgprivate->events);
+}
+
+GF_Node *gf_node_listener_get(GF_Node *node, u32 i)
+{
+	if (!node || !node->sgprivate->events) return 0;
+	return gf_list_get(node->sgprivate->events, i);
 }
 

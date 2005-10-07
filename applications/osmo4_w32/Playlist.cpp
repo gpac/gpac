@@ -15,9 +15,16 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // Playlist dialog
 
-PLEntry::PLEntry(CString url)
+PLEntry::PLEntry(CString url, char *path)
 {
-	m_url = strdup(url);
+	if (!path || strrchr(url, '\\')) {
+		m_url = strdup(url);
+	} else {
+		char szPath[MAX_PATH];
+		strcpy(szPath, path);
+		strcat(szPath, url);
+		m_url = strdup(szPath);
+	}
 	char *str = strrchr(url, '\\');
 	if (!str) str = strrchr(url, '/');
 	if (str && strlen(str+1)) {
@@ -606,8 +613,14 @@ void Playlist::OpenPlayList(CString fileName)
 	FILE *pl;
 	PLEntry *ple;
 	Bool load_m3u, go;
-	char szLine[GF_MAX_PATH];
+	char szLine[GF_MAX_PATH], *sep;
+	char szPath[GF_MAX_PATH];
 	
+	strcpy(szPath, fileName);
+	sep = strrchr(szPath, '\\');
+	if (sep) sep[1] = 0;
+	else szPath[0] = 0;
+
 	pl = fopen(fileName, "rt");
 	if (!pl) return;
 	ple = NULL;
@@ -631,13 +644,13 @@ void Playlist::OpenPlayList(CString fileName)
 		if (!stricmp(szLine, "[playlist]")) {
 			load_m3u = 0;
 		} else if (load_m3u) {
-			ple = new PLEntry(szLine);
+			ple = new PLEntry(szLine, szPath);
 			gf_list_add(m_entries, ple);
 		} else if (!strnicmp(szLine, "file", 4)) {
 			char *st = strchr(szLine, '=');
 			if (!st) ple = NULL;
 			else {
-				ple = new PLEntry(st + 1);
+				ple = new PLEntry(st + 1, szPath);
 				gf_list_add(m_entries, ple);
 			}
 		} else if (ple && !strnicmp(szLine, "Length", 6)) {

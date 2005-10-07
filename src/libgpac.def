@@ -951,6 +951,12 @@ EXPORTS
 	gf_sg_mfurl_del
 	gf_sg_sfcolor_to_rgba
 
+	gf_node_listener_add
+	gf_node_listener_del
+	gf_node_listener_count
+	gf_node_listener_get
+
+
 ;terminal.h exports
 	gf_term_new
 	gf_term_del

@@ -815,8 +815,8 @@ GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node 
 		r->FromNode = node;
 		r->ToFieldIndex = protoFieldIndex;
 		r->ToNode = NULL;
-		if (!node->sgprivate->routes) node->sgprivate->routes = gf_list_new();
-		gf_list_add(node->sgprivate->routes, r);
+		if (!node->sgprivate->events) node->sgprivate->events = gf_list_new();
+		gf_list_add(node->sgprivate->events, r);
 	} else {
 		switch (field.eventType) {
 		case GF_SG_EVENT_FIELD:
@@ -832,7 +832,7 @@ GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node 
 			r->FromNode = node;
 			r->ToFieldIndex = protoFieldIndex;
 			r->ToNode = NULL;
-			if (!node->sgprivate->routes) node->sgprivate->routes = gf_list_new();
+			if (!node->sgprivate->events) node->sgprivate->events = gf_list_new();
 			break;
 		default:
 			free(r);
@@ -874,8 +874,8 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 		r->FromNode = node;
 		r->ToFieldIndex = protoFieldIndex;
 		r->ToNode = protoinst;
-		if (!node->sgprivate->routes) node->sgprivate->routes = gf_list_new();
-		gf_list_add(node->sgprivate->routes, r);
+		if (!node->sgprivate->events) node->sgprivate->events = gf_list_new();
+		gf_list_add(node->sgprivate->events, r);
 	} else {
 		switch (field.eventType) {
 		case GF_SG_EVENT_FIELD:
@@ -891,8 +891,8 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 			r->FromNode = node;
 			r->ToFieldIndex = protoFieldIndex;
 			r->ToNode = protoinst;
-			if (!node->sgprivate->routes) node->sgprivate->routes = gf_list_new();
-			gf_list_add(node->sgprivate->routes, r);
+			if (!node->sgprivate->events) node->sgprivate->events = gf_list_new();
+			gf_list_add(node->sgprivate->events, r);
 			break;
 		default:
 			free(r);
@@ -996,9 +996,9 @@ void gf_sg_proto_check_field_change(GF_Node *node, u32 fieldIndex)
 	GF_Route *r;
 	if (!node) return;
 
-	if ((node->sgprivate->tag == TAG_ProtoNode) && node->sgprivate->routes){
-		for (i=0; i<gf_list_count(node->sgprivate->routes); i++) {
-			r = gf_list_get(node->sgprivate->routes, i);
+	if ((node->sgprivate->tag == TAG_ProtoNode) && node->sgprivate->events){
+		for (i=0; i<gf_list_count(node->sgprivate->events); i++) {
+			r = gf_list_get(node->sgprivate->events, i);
 			if (!r->IS_route) continue;
 			/*eventIn or exposedField*/
 			if ((r->FromNode == node) && (r->FromFieldIndex == fieldIndex) ) {
@@ -1015,11 +1015,11 @@ void gf_sg_proto_check_field_change(GF_Node *node, u32 fieldIndex)
 	}
 	/*the node has to belong to a proto graph*/
 	if (! node->sgprivate->scenegraph->pOwningProto) return;
-	if (!node->sgprivate->routes) return;
+	if (!node->sgprivate->events) return;
 
-	/*search for IS routes in the node and activate them. Field can also be an eventOut !!*/
-	for (i=0; i<gf_list_count(node->sgprivate->routes); i++) {
-		r = gf_list_get(node->sgprivate->routes, i);
+	/*search for IS routes_events in the node and activate them. Field can also be an eventOut !!*/
+	for (i=0; i<gf_list_count(node->sgprivate->events); i++) {
+		r = gf_list_get(node->sgprivate->events, i);
 		if (!r->IS_route) continue;
 		/*activate eventOuts*/
 		if ((r->FromNode == node) && (r->FromFieldIndex == fieldIndex)) {

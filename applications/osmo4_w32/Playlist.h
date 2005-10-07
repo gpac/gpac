@@ -11,7 +11,7 @@
 class PLEntry 
 {
 public:
-	PLEntry(CString url);
+	PLEntry(CString url, char *path = NULL);
 	~PLEntry();
 
 	char *m_url;

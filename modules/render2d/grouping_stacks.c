@@ -312,13 +312,13 @@ static Bool anchor_is_enabled(SensorHandler *sh)
 	return st->enabled;
 }
 
-static void OnAnchor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_matrix)
+static Bool OnAnchor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_matrix)
 {
 	u32 i;
 	AnchorStack *st;
 	GF_Event evt;
 	M_Anchor *an;
-	if (ev->event_type != GF_EVT_LEFTUP) return;
+	if (ev->event_type != GF_EVT_LEFTUP) return 0;
 	st = (AnchorStack *) gf_node_get_private(sh->owner);
 	an = (M_Anchor *) sh->owner;
 
@@ -353,6 +353,7 @@ static void OnAnchor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_mat
 
 		i++;
 	}
+	return 0;
 }
 
 static void on_activate_anchor(GF_Node *node)
@@ -363,6 +364,7 @@ static void on_activate_anchor(GF_Node *node)
 
 	ev.event_type = GF_EVT_LEFTUP;
 	OnAnchor(&st->hdl, &ev, NULL);
+	return;
 }
 
 SensorHandler *r2d_anchor_get_handler(GF_Node *n)

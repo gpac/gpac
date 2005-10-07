@@ -45,8 +45,8 @@ GF_Route *gf_sg_route_new(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField, G
 	//remember the name of the event out
 	gf_node_get_field(fromNode, fromField, &info);
 	r->fromFieldName = info.name;
-	if (!fromNode->sgprivate->routes) fromNode->sgprivate->routes = gf_list_new();
-	gf_list_add(fromNode->sgprivate->routes, r);
+	if (!fromNode->sgprivate->events) fromNode->sgprivate->events = gf_list_new();
+	gf_list_add(fromNode->sgprivate->events, r);
 
 	gf_list_add(sg->Routes, r);
 	return r;
@@ -62,11 +62,11 @@ void gf_sg_route_del(GF_Route *r)
 	/*remove declared routes*/
 	ind = gf_list_del_item(r->graph->Routes, r);
 	/*remove route from node*/
-	if (r->FromNode && r->FromNode->sgprivate->routes) {
-		gf_list_del_item(r->FromNode->sgprivate->routes, r);
-		if (!gf_list_count(r->FromNode->sgprivate->routes)) {
-			gf_list_del(r->FromNode->sgprivate->routes);
-			r->FromNode->sgprivate->routes = NULL;
+	if (r->FromNode && r->FromNode->sgprivate->events) {
+		gf_list_del_item(r->FromNode->sgprivate->events, r);
+		if (!gf_list_count(r->FromNode->sgprivate->events)) {
+			gf_list_del(r->FromNode->sgprivate->events);
+			r->FromNode->sgprivate->events = NULL;
 		}
 	}
 	r->is_setup = 0;
@@ -241,11 +241,11 @@ void gf_node_event_out(GF_Node *node, u32 FieldIndex)
 	
 	//this is not an ISed
 	if (!node->sgprivate->NodeID && !node->sgprivate->scenegraph->pOwningProto) return;
-	if (!node->sgprivate->routes) return;
+	if (!node->sgprivate->events) return;
 	
 	//search for routes to activate in the order they where declared
-	for (i=0; i<gf_list_count(node->sgprivate->routes); i++) {
-		r = gf_list_get(node->sgprivate->routes, i);
+	for (i=0; i<gf_list_count(node->sgprivate->events); i++) {
+		r = gf_list_get(node->sgprivate->events, i);
 		if (r->FromNode != node) continue;
 		if (r->FromFieldIndex != FieldIndex) continue;
 
@@ -266,14 +266,14 @@ void gf_node_event_out_str(GF_Node *node, const char *eventName)
 	GF_Route *r;
 
 	/*node is being deleted ignore event*/
-	if (!node->sgprivate->routes) return;
+	if (!node->sgprivate->events) return;
 
 	//this is not an ISed
 	if (!node->sgprivate->NodeID && !node->sgprivate->scenegraph->pOwningProto) return;
 	
 	//search for routes to activate in the order they where declared
-	for (i=0; i<gf_list_count(node->sgprivate->routes); i++) {
-		r = gf_list_get(node->sgprivate->routes, i);
+	for (i=0; i<gf_list_count(node->sgprivate->events); i++) {
+		r = gf_list_get(node->sgprivate->events, i);
 		if (stricmp(r->fromFieldName, eventName)) continue;
 
 		//no postpone

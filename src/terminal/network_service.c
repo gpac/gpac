@@ -175,7 +175,7 @@ static void term_on_disconnect(void *user_priv, GF_ClientService *service, LPNET
 	/*may be null upon destroy*/
 	root = service->owner;
 	if (root && (root->net_service != service)) {
-		gf_term_message(term, service->url, "Incompatible module type", GF_SERVICE_ERROR);
+		if (root->net_service) gf_term_message(term, service->url, "Incompatible module type", GF_SERVICE_ERROR);
 		return;
 	}
 	/*this is service disconnect*/

@@ -260,7 +260,7 @@ static JSBool deleteRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsva
 	n2 = * ((GF_Node **)ptr->field.far_ptr);
 		
 	if (!n1 || !n2) return JS_FALSE;
-	if (!n1->sgprivate->routes) return JS_TRUE;
+	if (!n1->sgprivate->events) return JS_TRUE;
 
 	f1 = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
 	f2 = JS_GetStringBytes(JSVAL_TO_STRING(argv[3]));
@@ -281,8 +281,8 @@ static JSBool deleteRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsva
 		f_id2 = info.fieldIndex;
 	}
 
-	for (i=0; i<gf_list_count(n1->sgprivate->routes); i++) {
-		r = gf_list_get(n1->sgprivate->routes, i);
+	for (i=0; i<gf_list_count(n1->sgprivate->events); i++) {
+		r = gf_list_get(n1->sgprivate->events, i);
 		if (r->FromFieldIndex != f_id1) continue;
 		if (r->ToNode != n2) continue;
 		if (r->ToFieldIndex != f_id2) continue;

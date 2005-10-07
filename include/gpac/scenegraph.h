@@ -306,6 +306,16 @@ void gf_sg_set_max_render_cycle(GF_SceneGraph *sg, u16 max_cycle);
 /*returns TRUE if this node is traversed for the first time in a cyclic subtree*/
 Bool gf_sg_is_first_render_cycle(GF_Node *n);
 
+/*listener are simply nodes added to the node events list. 
+THIS SHALL NOT BE USED WITH VRML-BASED GRAPHS: either one uses listeners or one uses routes
+the listener node is NOT registered, it is the user responsability to delete it from its parent
+*/
+GF_Err gf_node_listener_add(GF_Node *node, GF_Node *listener);
+GF_Err gf_node_listener_del(GF_Node *node, GF_Node *listener);
+u32 gf_node_listener_count(GF_Node *node);
+GF_Node *gf_node_listener_get(GF_Node *node, u32 i);
+
+
 #ifdef __cplusplus
 }
 #endif

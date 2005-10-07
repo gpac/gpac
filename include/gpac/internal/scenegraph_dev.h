@@ -94,8 +94,10 @@ typedef struct _nodepriv
 #else
 	GF_NodeList *parents;
 #endif
-	/*routes on eventOut, ISed routes, ... - THIS IS DYNAMICALLY CREATED*/
-	GF_List *routes;
+	/*routes on eventOut, ISed routes, ... for VRML-based scene graphs
+	event listeners for all others
+	THIS IS DYNAMICALLY CREATED*/
+	GF_List *events;
 
 #ifdef GF_CYCLIC_RENDER_ON
 	u32 render_pass;
@@ -182,9 +184,12 @@ struct __tag_scene_graph
 void gf_sg_parent_setup(GF_Node *pNode);
 void gf_sg_parent_reset(GF_Node *pNode);
 
-
 struct _route
 {
+	u8 is_setup;
+	/*set to true for proto IS fields*/
+	u8 IS_route;
+
 	u32 ID;
 	char *name;
 	
@@ -203,12 +208,7 @@ struct _route
 	/*scope of this route*/
 	GF_SceneGraph *graph;
 
-
-	/*set to true for proto IS fields*/
-	Bool IS_route;
-
 	u32 lastActivateTime;
-	Bool is_setup;
 };
 
 void gf_sg_route_unqueue(GF_SceneGraph *sg, GF_Route *r);

@@ -122,13 +122,6 @@ void group2d_traverse(GroupingNode2D *group, GF_List *children, RenderEffect2D *
 			hsens = r2d_anchor_get_handler(group->owner);
 			if (hsens) gf_list_add(group->sensors, hsens);
 		}
-#ifndef GPAC_DISABLE_SVG
-		else if (gf_node_get_tag(group->owner)==TAG_SVG_a) {
-			SensorHandler *SVG_GetHandler_a(GF_Node *n);
-			hsens = SVG_GetHandler_a(group->owner);
-			if (hsens) gf_list_add(group->sensors, hsens);
-		}
-#endif
 		for (i=0; i<count; i++) {
 			child = gf_list_get(children, i);
 			if (!child || !is_sensor_node(child) ) continue;

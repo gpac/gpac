@@ -175,6 +175,15 @@ void effect_add_sensor(RenderEffect2D *eff, SensorHandler *ptr, GF_Matrix2D *mat
 	}
 	gf_list_add(eff->sensors, ctx);
 }
+void effect_pop_sensor(RenderEffect2D *eff)
+{
+	SensorContext *ctx;
+	u32 last = gf_list_count(eff->sensors);
+	if (!last) return;
+	ctx = gf_list_get(eff->sensors, last-1);
+	gf_list_rem(eff->sensors, last-1);
+	free(ctx);
+}
 
 void effect_reset_sensors(RenderEffect2D *eff)
 {
@@ -234,11 +243,7 @@ SensorHandler *get_sensor_handler(GF_Node *n)
 	case TAG_MPEG4_TouchSensor: hs = r2d_touch_sensor_get_handler(n); break;
 	case TAG_MPEG4_PlaneSensor2D: hs = r2d_ps2D_get_handler(n); break;
 	case TAG_MPEG4_ProximitySensor2D: hs = r2d_prox2D_get_handler(n); break;
-#ifndef GPAC_DISABLE_SVG
-	case TAG_SVG_a: hs = SVG_GetHandler_a(n); break;
-#endif
-	default:
-		return NULL;
+	default: return NULL;
 	}
 	if (hs && hs->IsEnabled(hs)) return hs;
 	return NULL;
@@ -255,8 +260,7 @@ void R2D_RegisterSensor(GF_Renderer *compositor, SensorHandler *sh)
 }
 
 void R2D_UnregisterSensor(GF_Renderer *compositor, SensorHandler *sh)
-{
-	Render2D *sr = (Render2D *)compositor->visual_renderer->user_priv;
+{	Render2D *sr = (Render2D *)compositor->visual_renderer->user_priv;
 	gf_list_del_item(sr->sensors, sh);
 }
 
@@ -320,6 +324,7 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 #ifndef GPAC_DISABLE_SVG
 		case TAG_SVG_a: type = GF_CURSOR_ANCHOR; break;
 #endif
+		default: type = GF_CURSOR_TOUCH; break;
 		}
 		if (type != GF_CURSOR_NORMAL) {
 			if (sr->last_sensor != type) {
@@ -355,7 +360,8 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 		for (i=gf_list_count(ctx->sensors); i>0; i--) {
 			SensorContext *sc = gf_list_get(ctx->sensors, i-1);
 			sc->h_node->skip_second_pass = 0;
-			sc->h_node->OnUserEvent(sc->h_node, ev, &sc->matrix);
+			if (sc->h_node->OnUserEvent(sc->h_node, ev, &sc->matrix)) 
+				break;
 		}
 		return 1;
 	}

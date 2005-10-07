@@ -63,14 +63,14 @@ static Fixed ds_point_to_angle(DiscSensorStack *st, M_DiscSensor *ds, Fixed X, F
 	return result;
 }
 
-static void OnDiscSensor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_matrix)
+static Bool OnDiscSensor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_matrix)
 {
 	Fixed X, Y;
 	M_DiscSensor *ds = (M_DiscSensor *)sh->owner;
 	DiscSensorStack *stack = (DiscSensorStack *) gf_node_get_private(sh->owner);
 	Render2D *sr = (Render2D *)stack->compositor->visual_renderer->user_priv;
 	
-	if (! ds->enabled) return;
+	if (! ds->enabled) return 0;
 	
 	if (ev->context == NULL) {
 		if (stack->last_not_over) {
@@ -85,10 +85,10 @@ static void OnDiscSensor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor
 			}
 			if (!stack->mouse_down)
 				R2D_UnregisterSensor(stack->compositor, &stack->hdl);
-			return;
+			return 0;
 		}
 		stack->last_not_over = 1;
-		return;
+		return 0;
 	}
 
 	stack->last_not_over = 0;
@@ -131,6 +131,7 @@ static void OnDiscSensor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor
 	   	ds->trackPoint_changed.y = Y;
 		gf_node_event_out_str(sh->owner, "trackPoint_changed");
 	}
+	return 0;
 }
 
 SensorHandler *r2d_ds_get_handler(GF_Node *n)
@@ -201,7 +202,7 @@ static SFVec2f get_translation(PS2DStack *stack, M_PlaneSensor2D *ps, Fixed X, F
 	return res;
 }
 
-static void OnPlaneSensor2D(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_matrix)
+static Bool OnPlaneSensor2D(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_matrix)
 {
 	Fixed X, Y;
 	GF_Matrix2D inv;
@@ -209,7 +210,7 @@ static void OnPlaneSensor2D(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sen
 	PS2DStack *stack = (PS2DStack *) gf_node_get_private(sh->owner);
 	Render2D *sr = (Render2D *)stack->compositor->visual_renderer->user_priv;
 	
-	if (!ps->enabled) return;
+	if (!ps->enabled) return 0;
 
 	// this function is called when the mouse is not on a object
 	if (ev->context == NULL) {
@@ -227,10 +228,10 @@ static void OnPlaneSensor2D(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sen
 				R2D_UnregisterSensor(stack->compositor, &stack->hdl);
 			}
 
-			return;
+			return 0;
 		}
 		stack->last_not_over = 1;
-		return;
+		return 0;
 	}
 
 
@@ -265,7 +266,7 @@ static void OnPlaneSensor2D(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sen
 			gf_node_event_out_str(sh->owner, "offset");
 		}
 
-		return;
+		return 0;
 	}
 
 	if ( (ev->event_type == GF_EVT_MOUSEMOVE) && stack->mouse_down) {
@@ -277,7 +278,7 @@ static void OnPlaneSensor2D(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sen
 		ps->translation_changed = get_translation(stack, ps, X, Y, &inv);
 		gf_node_event_out_str(sh->owner, "translation_changed");
 	}
-	return;
+	return 0;
 }
 
 SensorHandler *r2d_ps2D_get_handler(GF_Node *n)
@@ -330,14 +331,14 @@ static Bool prox2D_is_in_sensor(Prox2DStack *st, M_ProximitySensor2D *ps, Fixed 
 	return 1;
 }
 
-static void OnProximitySensor2D(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_matrix)
+static Bool OnProximitySensor2D(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_matrix)
 {
 	Fixed X, Y;
 	GF_Matrix2D mat;
 	M_ProximitySensor2D *ps = (M_ProximitySensor2D *)sh->owner;
 	Prox2DStack *stack = (Prox2DStack *) gf_node_get_private(sh->owner);
 	
-	if (! ps->enabled) return;
+	if (! ps->enabled) return 0;
 	
 	if (ev->context) {
 		X = ev->x;
@@ -364,7 +365,7 @@ static void OnProximitySensor2D(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D 
 				gf_node_event_out_str(sh->owner, "enterTime");
 				R2D_RegisterSensor(stack->compositor, &stack->hdl);
 			}
-			return;
+			return 0;
 		}
 	}
 	if (stack->in_area) {
@@ -376,10 +377,11 @@ static void OnProximitySensor2D(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D 
 			ps->isActive = 0;
 			gf_node_event_out_str(sh->owner, "isActive");
 			R2D_UnregisterSensor(stack->compositor, &stack->hdl);
-			return;
+			return 0;
 		}
 		stack->has_left = 1;
 	}
+	return 0;
 }
 
 SensorHandler *r2d_prox2D_get_handler(GF_Node *n)
@@ -421,14 +423,14 @@ static Bool ts_is_enabled(SensorHandler *sh)
 	return ((M_TouchSensor *) sh->owner)->enabled;
 }
 
-static void OnTouchSensor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_matrix)
+static Bool OnTouchSensor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_matrix)
 {
 	Fixed X, Y;
 	GF_Matrix2D inv;
 	M_TouchSensor *ts = (M_TouchSensor *)sh->owner;
 	TouchSensorStack *stack = (TouchSensorStack *) gf_node_get_private(sh->owner);
 
-	if (! ts->enabled) return;
+	if (! ts->enabled) return 0;
 
 	if (ev->context == NULL) {
 		if (ts->isOver) {
@@ -451,7 +453,7 @@ static void OnTouchSensor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *senso
 			stack->mouse_down = 0;
 			R2D_UnregisterSensor(stack->compositor, &stack->hdl);
 		}
-		return;
+		return 0;
 	}
 	if ((ev->event_type == GF_EVT_MOUSEMOVE) && !ts->isOver) {
 		ts->isOver = 1;
@@ -482,6 +484,7 @@ static void OnTouchSensor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *senso
 	ts->hitPoint_changed.y = Y;
 	ts->hitPoint_changed.z = 0;
 	gf_node_event_out_str(sh->owner, "hitPoint_changed");
+	return 0;
 }
 
 SensorHandler *r2d_touch_sensor_get_handler(GF_Node *n)

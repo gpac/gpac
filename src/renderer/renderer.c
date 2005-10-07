@@ -494,6 +494,17 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 		/*get pixel size if any*/
 		gf_sg_get_scene_size_info(sr->scene, &width, &height);
 		sr->has_size_info = (width && height) ? 1 : 0;
+#ifndef GPAC_DISABLE_SVG
+		/*hack for SVG where size is set in %*/
+		if (!sr->has_size_info) {
+			u32 tag = gf_node_get_tag(gf_sg_get_root_node(sr->scene));
+			if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+				sr->has_size_info = 1;
+//				width = sr->width;
+//				height = sr->height;
+			}
+		}
+#endif
 		/*set scene size only if different, otherwise keep scaling/FS*/
 		if ( !width || (sr->scene_width!=width) || !height || (sr->scene_height!=height)) {
 			do_notif = (width && height) ? 1 : 0;
