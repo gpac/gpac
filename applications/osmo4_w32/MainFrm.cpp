@@ -141,8 +141,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_NAVIGATE_VR, OnUpdateNavigate)
 	ON_UPDATE_COMMAND_UI(ID_NAVIGATE_GAME, OnUpdateNavigate)
 	ON_COMMAND(ID_FILE_EXIT, OnFileExit)
-	ON_COMMAND(IDD_VIEW_CPU, OnViewCPU)
-	ON_UPDATE_COMMAND_UI(IDD_VIEW_CPU, OnUpdateViewCPU)
+	ON_COMMAND(ID_VIEW_CPU, OnViewCPU)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_CPU, OnUpdateViewCPU)
 	
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
@@ -1414,6 +1414,7 @@ void CMainFrame::OnViewCPU()
 
 void CMainFrame::OnUpdateViewCPU(CCmdUI* pCmdUI) 
 {
+	pCmdUI->Enable(TRUE);
 	pCmdUI->SetCheck(m_show_rti);
 }
 

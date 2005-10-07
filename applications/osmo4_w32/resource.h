@@ -64,7 +64,6 @@
 #define IDC_SPIN_FPS                    1027
 #define IDC_AUDIO_FPS                   1028
 #define IDC_AUDIO_MULTICH               1029
-#define IDD_VIEW_CPU                    1030
 #define IDC_GD_LIST                     1031
 #define IDC_FAST_RENDER                 1032
 #define IDC_FORCE_DURATION              1033
@@ -148,7 +147,6 @@
 #define ID_SHORTCUTS                    1125
 #define ID_FILE_RESTART                 1126
 #define ID_OPT_QUALITY                  1127
-
 #define ID_FILE_PROP                    1128
 #define ID_FILE_STEP                    1129
 #define IDD_CONFIGURE                   1130
@@ -213,6 +211,8 @@
 #define ID_AUDIO_EMPTY                  1198
 #define ID_VIDEO_EMPTY                  1199
 #define ID_SUBS_EMPTY                   1200
+#define ID_VIEW_CPU						1201
+
 #define ID_VP_0                         1300
 #define ID_VP_1                         1301
 #define ID_VP_2                         1302
