@@ -1638,6 +1638,8 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 
 	/*if dashing, first flatten path then dash all segments*/
 	dashed = NULL;
+	/*security, seen in some SVG files*/
+	if (pen.dash_set && (pen.dash_set->num_dash==1) && (pen.dash_set->dashes[0]==0)) pen.dash = 0;
 	if (pen.dash) {
 		GF_Path *flat;
 		flat = gf_path_get_flatten(path);
