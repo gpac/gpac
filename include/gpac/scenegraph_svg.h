@@ -147,10 +147,11 @@ typedef Double SVG_Clock;
 typedef GF_FieldInfo SMIL_AttributeName;
 
 enum {
-	SMIL_TIME_CLOCK			= 0,
-	SMIL_TIME_WALLCLOCK		= 1,
-	SMIL_TIME_EVENT			= 2,
-	SMIL_TIME_INDEFINITE	= 3
+	SMIL_TIME_UNSPECIFIED   = 0,
+	SMIL_TIME_CLOCK			= 1,
+	SMIL_TIME_WALLCLOCK		= 2,
+	SMIL_TIME_EVENT			= 3,
+	SMIL_TIME_INDEFINITE	= 4
 };
 
 enum {
@@ -195,7 +196,7 @@ typedef GF_List * SMIL_Times;
 enum {
 	SMIL_DURATION_UNSPECIFIED = 0,
 	SMIL_DURATION_INDEFINITE  = 1,
-	SMIL_DURATION_VALUE		  = 2,
+	SMIL_DURATION_DEFINED	  = 2,
 	SMIL_DURATION_MEDIA		  = 3
 };
 typedef struct {
@@ -217,7 +218,15 @@ enum {
 };
 typedef u8 SMIL_Fill;
 
-typedef Fixed SMIL_RepeatCount;
+enum {
+	SMIL_REPEATCOUNT_UNSPECIFIED = 0,
+	SMIL_REPEATCOUNT_INDEFINITE  = 1,
+	SMIL_REPEATCOUNT_DEFINED	 = 2
+};
+typedef struct {
+	u8 type;
+	Fixed count;
+} SMIL_RepeatCount;
 
 /* TODO: replace SMIL_AnimateValue type by void*, because datatype is useless */
 typedef struct {

@@ -75,7 +75,7 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 		GF_Rect rc;
 		u32 len;
 
-		fprintf(stdout, "Rebuilding text\n");
+//		fprintf(stdout, "Rebuilding text\n");
 		drawable_reset_path(cs);
 		if (str) {
 			len = gf_utf8_mbstowcs(wcTemp, 5000, (const char **) &str);

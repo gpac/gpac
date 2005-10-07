@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Sep 23 05:57:01 2005
+	DO NOT MOFIFY - File generated on GMT Fri Oct 07 08:46:55 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -669,9 +669,8 @@ void *SVG_New_animate()
 #endif
 	p->begin = gf_list_new();
 	p->end = gf_list_new();
-	p->repeatCount = FIX_ONE;
 	p->repeatDur.type = SMIL_DURATION_UNSPECIFIED;
-	p->min.type = SMIL_DURATION_VALUE;
+	p->min.type = SMIL_DURATION_DEFINED;
 	p->values.values = gf_list_new();
 	p->keyTimes = gf_list_new();
 	p->keySplines = gf_list_new();
@@ -884,9 +883,8 @@ void *SVG_New_animateColor()
 #endif
 	p->begin = gf_list_new();
 	p->end = gf_list_new();
-	p->repeatCount = FIX_ONE;
 	p->repeatDur.type = SMIL_DURATION_UNSPECIFIED;
-	p->min.type = SMIL_DURATION_VALUE;
+	p->min.type = SMIL_DURATION_DEFINED;
 	p->values.values = gf_list_new();
 	p->keyTimes = gf_list_new();
 	p->keySplines = gf_list_new();
@@ -1115,9 +1113,8 @@ void *SVG_New_animateMotion()
 #endif
 	p->begin = gf_list_new();
 	p->end = gf_list_new();
-	p->repeatCount = FIX_ONE;
 	p->repeatDur.type = SMIL_DURATION_UNSPECIFIED;
-	p->min.type = SMIL_DURATION_VALUE;
+	p->min.type = SMIL_DURATION_DEFINED;
 	p->calcMode = SMIL_CALCMODE_PACED;
 	p->values.values = gf_list_new();
 	p->keyTimes = gf_list_new();
@@ -1339,9 +1336,8 @@ void *SVG_New_animateTransform()
 #endif
 	p->begin = gf_list_new();
 	p->end = gf_list_new();
-	p->repeatCount = FIX_ONE;
 	p->repeatDur.type = SMIL_DURATION_UNSPECIFIED;
-	p->min.type = SMIL_DURATION_VALUE;
+	p->min.type = SMIL_DURATION_DEFINED;
 	p->values.values = gf_list_new();
 	p->keyTimes = gf_list_new();
 	p->keySplines = gf_list_new();
@@ -1621,7 +1617,6 @@ void *SVG_New_animation()
 #endif
 	p->begin = gf_list_new();
 	p->end = gf_list_new();
-	p->repeatCount = FIX_ONE;
 	p->repeatDur.type = SMIL_DURATION_UNSPECIFIED;
 	p->transform = gf_list_new();
 	return p;
@@ -1814,7 +1809,6 @@ void *SVG_New_audio()
 #endif
 	p->begin = gf_list_new();
 	p->end = gf_list_new();
-	p->repeatCount = FIX_ONE;
 	p->repeatDur.type = SMIL_DURATION_UNSPECIFIED;
 	return p;
 }
@@ -8492,9 +8486,8 @@ void *SVG_New_set()
 #endif
 	p->begin = gf_list_new();
 	p->end = gf_list_new();
-	p->repeatCount = FIX_ONE;
 	p->repeatDur.type = SMIL_DURATION_UNSPECIFIED;
-	p->min.type = SMIL_DURATION_VALUE;
+	p->min.type = SMIL_DURATION_DEFINED;
 	return p;
 }
 

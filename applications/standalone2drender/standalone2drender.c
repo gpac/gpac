@@ -123,6 +123,7 @@ GF_Renderer *SR_NewStandaloneRenderer()
 	GF_SAFEALLOC(tmp->user, sizeof(GF_User))
 
 	tmp->visual_renderer = NewVisualRenderer();
+	tmp->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
 
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.double_buffered = 1;

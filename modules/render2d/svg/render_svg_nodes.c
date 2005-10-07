@@ -1010,7 +1010,8 @@ static void SVG_OnUserEvent_a(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *s
 			GF_SAFEALLOC(begin, sizeof(SMIL_Time));
 			begin->type = SMIL_TIME_CLOCK;
 			begin->clock = gf_node_get_scene_time((GF_Node *)set);
-			gf_list_insert(set->begin, begin, 0);
+			gf_list_add(set->begin, begin);
+			SMIL_Modified_Animation((GF_Node *)a->xlink_href.target_element);
 		}
 	}
 }

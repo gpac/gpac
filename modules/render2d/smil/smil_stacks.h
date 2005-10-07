@@ -43,16 +43,14 @@ enum {
 };
 
 typedef struct {
-	SMIL_Time begin;
-	SMIL_Time end;
-	Bool is_valid;
-	u32 allocation_cycle;
+	u32 activation_cycle;
+	u32 nb_iterations;
 
 	/* negative values mean indefinite */
-	Double simple_duration, active_duration;
-	Bool is_active_duration_clamped_to_min;
-
-	u32 nb_iterations;
+	Double begin, 
+		   end,
+		   simple_duration, 
+		   active_duration;
 
 } SMIL_Interval;
 
@@ -61,11 +59,16 @@ typedef struct _smil_anim_stack
 	GF_TimeNode time_handle;
 	GF_Renderer *compositor;
 
+	Bool is_registered_in_cycle;
+
 	/* SMIL element life-cycle status */
 	u8 status;
 	u32 cycle_number;
 
-	SMIL_Interval currentInterval;
+	/* List of possible intervals for activation of the animation */
+	GF_List *intervals;
+	s32	current_interval_index;
+	SMIL_Interval *current_interval;
 
 	s32 previous_key_index;
 	Fixed previous_coef;

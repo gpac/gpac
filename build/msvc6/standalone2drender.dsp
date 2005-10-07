@@ -40,6 +40,8 @@ RSC=rc.exe
 # PROP Output_Dir "obj/sar2d_rel"
 # PROP Intermediate_Dir "obj/sar2d_rel"
 # PROP Target_Dir ""
+LINK32=link.exe -lib
+F90=df.exe
 MTL=midl.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
 # ADD CPP /nologo /MD /W3 /GX /O2 /I "../../include" /I "../../extra_lib/include/freetype" /I "../../modules/m4_rend" /I "../../modules/render2d" /I "../../modules/ft_font" /I "../../modules/raw_out" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_STANDALONE_RENDER_2D" /D "DANAE" /FR /YX /FD /c
@@ -64,6 +66,8 @@ LIB32=link.exe -lib
 # PROP Output_Dir "obj/sar2d_deb"
 # PROP Intermediate_Dir "obj/sar2d_deb"
 # PROP Target_Dir ""
+LINK32=link.exe -lib
+F90=df.exe
 MTL=midl.exe
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
 # ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "../../include" /I "../../extra_lib/include/freetype" /I "../../modules/m4_rend" /I "../../modules/render2d" /I "../../modules/ft_font" /I "../../modules/raw_out" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_STANDALONE_RENDER_2D" /D "DANAE" /FR /YX /FD /GZ /c
@@ -156,6 +160,15 @@ SOURCE=..\..\modules\raw_out\raw_video.c
 # Begin Source File
 
 SOURCE=..\..\modules\render2d\render2d.c
+
+!IF  "$(CFG)" == "standalone2drender - Win32 Release"
+
+# ADD CPP /FAcs
+
+!ELSEIF  "$(CFG)" == "standalone2drender - Win32 Debug"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
@@ -252,10 +265,6 @@ SOURCE=..\..\modules\render2d\smil\smil_stacks.h
 # Begin Source File
 
 SOURCE=..\..\modules\render2d\stacks2d.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\applications\standalone2drender\standalone2drender.h
 # End Source File
 # Begin Source File
 

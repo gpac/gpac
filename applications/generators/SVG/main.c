@@ -770,9 +770,7 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			} else if (!strcmp(att->svg_name, "text-anchor")) {
 				fprintf(output, "\tp->text_anchor = SVG_TEXTANCHOR_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "min")) {
-				fprintf(output, "\tp->min.type = SMIL_DURATION_VALUE;\n");
-			} else if (!strcmp(att->svg_name, "repeatCount")) {
-				fprintf(output, "\tp->repeatCount = FIX_ONE;\n");
+				fprintf(output, "\tp->min.type = SMIL_DURATION_DEFINED;\n");
 			} else if (!strcmp(att->svg_name, "repeatDur")) {
 				fprintf(output, "\tp->repeatDur.type = SMIL_DURATION_UNSPECIFIED;\n");
 			} else if (!strcmp(att->svg_name, "calcMode") && !strcmp(svg_elt->svg_name, "animateMotion")) {
