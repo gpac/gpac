@@ -27,6 +27,7 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/internal/avilib.h>
 #include <gpac/internal/ogg.h>
+#include <gpac/xml.h>
 #include <gpac/constants.h>
 
 #ifndef GPAC_READ_ONLY
@@ -44,8 +45,8 @@ GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...)
 		import->import_message(import, e, szMsg);
 	} else {
 		vfprintf(stdout,format,args);
+		if (e) fprintf(stderr, " (%s)", gf_error_to_string(e));
 		fprintf(stdout, "\n");
-		if (e) fprintf(stderr, " Error: %s", gf_error_to_string(e));
 	}
 	va_end(args);
 	return e;
@@ -1955,6 +1956,293 @@ exit:
 	return e;
 }
 
+/*FIXME - need LARGE FILE support in NHNT - add a new version*/
+GF_Err gf_import_nhml(GF_MediaImporter *import)
+{
+	GF_Err e;
+	XMLParser parser;
+	Bool destroy_esd;
+	u32 track, tkID, di, mtype, max_size, duration, count, streamType, oti, timescale, specInfoSize;
+	GF_ISOSample *samp;
+	s64 media_size, media_done, offset;
+	FILE *nhml, *mdia, *info;
+	char *str;
+	char *ext, szName[1000], szMedia[1000], szMediaTemp[1000], szInfo[1000], *specInfo;
+	GF_GenericSampleDescription sdesc;
+
+	if (import->flags & GF_IMPORT_PROBE_ONLY) {
+		import->nb_tracks = 1;
+		import->tk_info[0].track_num = 1;
+		import->tk_info[0].type = 0;
+		import->tk_info[0].flags = GF_IMPORT_USE_DATAREF;
+		return GF_OK;
+	}
+
+	strcpy(szName, import->in_name);
+	ext = strrchr(szName, '.');
+	if (ext) ext[0] = 0;
+
+	strcpy(szMedia, szName);
+	strcat(szMedia, ".nhml");
+	nhml = fopen(szMedia, "rt");
+	if (!nhml) return gf_import_message(import, GF_URL_ERROR, "Cannot find NHML file %s", szMedia);
+
+	strcpy(szMedia, szName);
+	strcat(szMedia, ".media");
+
+	e = xml_init_parser(&parser, import->in_name);
+	if (e) return gf_import_message(import, e, "Cannot open file %s", import->in_name);
+	str = xml_get_element(&parser);
+
+	if (!str || stricmp(str, "NHNTStream")) { 
+		e = gf_import_message(import, GF_BAD_PARAM, "Error parsing NHML file - \"NHNTStream\" expected (line %d)", parser.line);
+		goto exit; 
+	}
+	strcpy(szInfo, szName);
+	strcat(szInfo, ".info");
+	
+	memset(&sdesc, 0, sizeof(GF_GenericSampleDescription));
+	tkID = mtype = streamType = oti = timescale = 0;
+	while (xml_has_attributes(&parser)) {
+		str = xml_get_attribute(&parser);
+		if (!strcmp(str, "streamType")) streamType = atoi(parser.value_buffer);
+		else if (!strcmp(str, "mediaType") && (strlen(parser.value_buffer)==4)) {
+			mtype = GF_FOUR_CHAR_INT(parser.value_buffer[0], parser.value_buffer[1], parser.value_buffer[2], parser.value_buffer[3]);
+		}
+		else if (!strcmp(str, "mediaSubType") && (strlen(parser.value_buffer)==4)) {
+			sdesc.codec_tag = GF_FOUR_CHAR_INT(parser.value_buffer[0], parser.value_buffer[1], parser.value_buffer[2], parser.value_buffer[3]);
+		}
+		else if (!strcmp(str, "objectTypeIndication")) oti = atoi(parser.value_buffer);
+		else if (!strcmp(str, "timeScale")) timescale = atoi(parser.value_buffer);
+		else if (!strcmp(str, "width")) sdesc.width = atoi(parser.value_buffer);
+		else if (!strcmp(str, "height")) sdesc.height = atoi(parser.value_buffer);
+		else if (!strcmp(str, "sampleRate")) sdesc.samplerate = atoi(parser.value_buffer);
+		else if (!strcmp(str, "numChannels")) sdesc.nb_channels = atoi(parser.value_buffer);
+		else if (!strcmp(str, "baseMediaFile")) strcpy(szMedia, parser.value_buffer);
+		else if (!strcmp(str, "specificInfoFile")) strcpy(szInfo, parser.value_buffer);
+		else if (!strcmp(str, "trackID")) tkID = atoi(parser.value_buffer);
+		/*unknow desc related*/
+		else if (!strcmp(str, "compressorName")) strcpy(sdesc.compressor_name, parser.value_buffer);
+		else if (!strcmp(str, "codecVersion")) sdesc.version = atoi(parser.value_buffer);
+		else if (!strcmp(str, "codecRevision")) sdesc.revision = atoi(parser.value_buffer);
+		else if (!strcmp(str, "codecVendor") && (strlen(parser.value_buffer)==4)) {
+			sdesc.vendor_code = GF_FOUR_CHAR_INT(parser.value_buffer[0], parser.value_buffer[1], parser.value_buffer[2], parser.value_buffer[3]);
+		}
+		else if (!strcmp(str, "temporalQuality")) sdesc.temporal_quality = atoi(parser.value_buffer);
+		else if (!strcmp(str, "spatialQuality")) sdesc.spacial_quality = atoi(parser.value_buffer);
+		else if (!strcmp(str, "horizontalResolution")) sdesc.h_res = atoi(parser.value_buffer);
+		else if (!strcmp(str, "verticalResolution")) sdesc.v_res = atoi(parser.value_buffer);
+		else if (!strcmp(str, "bitDepth")) sdesc.depth = atoi(parser.value_buffer);
+		else if (!strcmp(str, "bitsPerSample")) sdesc.bits_per_sample = atoi(parser.value_buffer);
+	}
+	if (sdesc.samplerate && !timescale) timescale = sdesc.samplerate;
+	if (!sdesc.bits_per_sample) sdesc.bits_per_sample = 16;
+
+	mdia = gf_f64_open(szMedia, "rb");
+
+	specInfo = NULL;
+	specInfoSize = 0;
+	e = GF_OK;
+	destroy_esd = 0;
+	if (!streamType && !mtype && !sdesc.codec_tag) {
+		e = gf_import_message(import, GF_NOT_SUPPORTED, "Error parsing NHML file - StreamType or MediaType not specified");
+		goto exit; 
+	}
+
+	info = fopen(szInfo, "rb");
+	if (info) {
+		fseek(info, 0, SEEK_END);
+		specInfoSize = (u32) ftell(info);
+		specInfo = malloc(sizeof(char) * specInfoSize);
+		fseek(info, 0, SEEK_SET);
+		fread(specInfo, specInfoSize, 1, info);
+		fclose(info);
+	}
+	
+
+	if (streamType)  {
+		if (!import->esd) {
+			import->esd = gf_odf_desc_esd_new(2);
+			destroy_esd = 1;
+			import->esd->ESID = tkID;
+		}
+		/*update stream type/oti*/
+		if (!import->esd->decoderConfig) import->esd->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
+		if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
+		import->esd->decoderConfig->streamType = streamType;
+		import->esd->decoderConfig->objectTypeIndication = oti;
+
+		if (import->esd->decoderConfig->decoderSpecificInfo) gf_odf_desc_del((GF_Descriptor *) import->esd->decoderConfig->decoderSpecificInfo);
+		import->esd->decoderConfig->decoderSpecificInfo = NULL;
+
+		import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
+		import->esd->decoderConfig->decoderSpecificInfo->dataLength = specInfoSize;
+		import->esd->decoderConfig->decoderSpecificInfo->data = specInfo;
+		specInfo = NULL;
+		specInfoSize = 0;
+		import->esd->slConfig->timestampResolution = timescale;
+	
+	
+		switch (import->esd->decoderConfig->streamType) {
+		case GF_STREAM_SCENE: mtype = GF_ISOM_MEDIA_BIFS; break;
+	/* WARNING: Code added for Bandwidth estimation in DANAE */
+		case 32:
+	/**/
+		case GF_STREAM_VISUAL:
+			mtype = GF_ISOM_MEDIA_VISUAL;
+			if (import->esd->decoderConfig->objectTypeIndication==0x20) {
+				GF_M4VDecSpecInfo dsi;
+				if (!import->esd->decoderConfig->decoderSpecificInfo) {
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					goto exit;
+				}
+				e = gf_m4v_get_config(import->esd->decoderConfig->decoderSpecificInfo->data, import->esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
+				sdesc.width = dsi.width;
+				sdesc.height = dsi.height;
+				if (e) goto exit;
+			}
+			break;
+		case GF_STREAM_AUDIO: 
+			mtype = GF_ISOM_MEDIA_AUDIO; 
+			if (!sdesc.samplerate) sdesc.samplerate = 44100;
+			if (!sdesc.nb_channels) sdesc.nb_channels = 2;
+			break;
+		case GF_STREAM_MPEG7: mtype = GF_ISOM_MEDIA_MPEG7; break;
+		case GF_STREAM_IPMP: mtype = GF_ISOM_MEDIA_IPMP; break;
+		case GF_STREAM_OCI: mtype = GF_ISOM_MEDIA_OCI; break;
+		case GF_STREAM_MPEGJ: mtype = GF_ISOM_MEDIA_MPEGJ; break;
+		/*note we cannot import OD from NHNT*/
+		case GF_STREAM_OD: e = GF_NOT_SUPPORTED; goto exit;
+		case GF_STREAM_INTERACT: mtype = GF_ISOM_MEDIA_BIFS; break;
+		default: mtype = GF_ISOM_MEDIA_ESM; break;
+		}
+
+		track = gf_isom_new_track(import->dest, import->esd->ESID, mtype, timescale);
+		if (!track) { e = gf_isom_last_error(import->dest); goto exit; }
+		e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? szMedia : NULL, NULL, &di);
+		if (e) goto exit;
+
+		gf_import_message(import, GF_OK, "NHML import - Stream Type %s - ObjectTypeIndication 0x%02x", gf_odf_stream_type_name(import->esd->decoderConfig->streamType), import->esd->decoderConfig->objectTypeIndication);
+
+	} else {
+		char szT[5];
+		sdesc.extension_buf = specInfo;
+		sdesc.extension_buf_size = specInfoSize;
+		if (!sdesc.vendor_code) sdesc.vendor_code = GF_FOUR_CHAR_INT('G', 'P', 'A', 'C');
+
+		track = gf_isom_new_track(import->dest, tkID, mtype, timescale);
+		if (!track) { e = gf_isom_last_error(import->dest); goto exit; }
+
+		e = gf_isom_new_generic_sample_description(import->dest, track, (import->flags & GF_IMPORT_USE_DATAREF) ? szMedia : NULL, NULL, &sdesc, &di);
+		if (e) goto exit;
+
+		strcpy(szT, gf_4cc_to_str(mtype));
+		gf_import_message(import, GF_OK, "NHML import - MediaType \"%s\" - SubType \"%s\"", szT, gf_4cc_to_str(sdesc.codec_tag));
+	}
+
+	gf_isom_set_track_enabled(import->dest, track, 1);
+	import->final_trackID = gf_isom_get_track_id(import->dest, track);
+	if (import->esd && !import->esd->ESID) import->esd->ESID = import->final_trackID;
+	
+	if (sdesc.width && sdesc.height) gf_isom_set_visual_info(import->dest, track, di, sdesc.width, sdesc.height);
+	else if (sdesc.samplerate && sdesc.nb_channels) gf_isom_set_audio_info(import->dest, track, di, sdesc.samplerate, sdesc.nb_channels, (u8) sdesc.bits_per_sample);
+
+	duration = (u32) ( ((Double) import->duration)/ 1000 * timescale);
+
+	samp = gf_isom_sample_new();
+	samp->data = malloc(sizeof(char) * 1024);
+	max_size = 1024;
+	count = 0;
+	media_size = 0;
+	if (mdia) {
+		fseek(mdia, 0, SEEK_END);
+		media_size = ftell(mdia);
+		fseek(mdia, 0, SEEK_SET);
+	}
+	media_done = 0;
+
+	samp->IsRAP = 1;
+	while (!xml_element_done(&parser, "NHNTStream") && !parser.done) {
+		str = xml_get_element(&parser);
+		if (!str) { e = GF_IO_ERR; goto exit; }
+		if (stricmp(str, "NHNTSample")) {
+			xml_skip_element(&parser, str);
+			continue;
+		}
+		strcpy(szMediaTemp, "");
+		/*by default handle all samples as contigous*/
+		offset = media_done;
+		while (xml_has_attributes(&parser)) {
+			str = xml_get_attribute(&parser);
+			if (!strcmp(str, "DTS")) {
+				u32 h, m, s, ms;
+				if (sscanf(parser.value_buffer, "%d:%d:%d.%d", &h, &m, &s, &ms) == 4) {
+					samp->DTS = (u32) ( (Double) ( ((h*3600 + m*60 + s)*1000 + ms) / 1000.0) * timescale );
+				} else {
+					samp->DTS = atoi(parser.value_buffer);
+				}
+			}
+			else if (!strcmp(str, "CTSOffset")) samp->CTS_Offset = atoi(parser.value_buffer);
+			else if (!strcmp(str, "isRAP")) samp->IsRAP = !stricmp(parser.value_buffer, "yes") ? 1 : 0;
+			else if (!strcmp(str, "isSyncShadow")) samp->IsRAP = !stricmp(parser.value_buffer, "yes") ? 2 : 0;
+			else if (!strcmp(str, "mediaOffset")) offset = (s64) atof(parser.value_buffer) ;
+			else if (!strcmp(str, "dataLength")) samp->dataLength = atoi(parser.value_buffer);
+			else if (!strcmp(str, "mediaFile")) strcpy(szMediaTemp, parser.value_buffer);
+		}
+		xml_element_done(&parser, "NHNTSample");
+
+		if (!count && samp->DTS) samp->DTS = 0;
+		count++;
+
+		if (import->flags & GF_IMPORT_USE_DATAREF) {
+			e = gf_isom_add_sample_reference(import->dest, track, di, samp, offset);
+		} else {
+			Bool close = 0;
+			FILE *f = mdia;
+			if (strlen(szMediaTemp)) {
+				f = gf_f64_open(szMediaTemp, "rb");
+				close = 1;
+			}
+			if (!f) {
+				e = gf_import_message(import, GF_BAD_PARAM, "NHML import failure: file %s not found", close ? szMediaTemp : szMedia);
+				goto exit;
+			}
+
+			if (samp->dataLength>max_size) {
+				samp->data = realloc(samp->data, sizeof(char) * samp->dataLength);
+				max_size = samp->dataLength;
+			}
+			gf_f64_seek(f, offset, SEEK_SET);
+			fread( samp->data, samp->dataLength, 1, f); 
+			if (samp->IsRAP==2) {
+				e = gf_isom_add_sample_shadow(import->dest, track, samp);
+			} else {
+				e = gf_isom_add_sample(import->dest, track, di, samp);
+			}
+			if (close) fclose(f);
+		}
+		if (e) goto exit;
+		samp->IsRAP = 0;
+		media_done += samp->dataLength;
+		gf_import_progress(import, (u32) media_done, (u32) (media_size ? media_size : media_done+1) );
+		if (duration && (samp->DTS > duration)) break;
+		if (import->flags & GF_IMPORT_DO_ABORT) break;
+	}
+	if (media_done!=media_size) gf_import_progress(import, (u32) media_size, (u32) media_size);
+	gf_isom_sample_del(&samp);	
+	MP4T_RecomputeBitRate(import->dest, track);
+
+exit:
+	fclose(nhml);
+	if (mdia) fclose(mdia);
+	if (import->esd && destroy_esd) {
+		gf_odf_desc_del((GF_Descriptor *) import->esd);
+		import->esd = NULL;
+	}
+	xml_reset_parser(&parser);
+	if (specInfo) free(specInfo);
+	return e;
+}
 
 
 GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
@@ -3639,9 +3927,10 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 	else if (!strnicmp(ext, ".mp3", 4) || !stricmp(fmt, "MP3") || !stricmp(fmt, "MPEG-AUDIO") ) 
 		return gf_import_mp3(importer);
-	else if (!strnicmp(ext, ".media", 5) || !strnicmp(ext, ".info", 5) || !strnicmp(ext, ".nhnt", 5) || !stricmp(fmt, "NHNT") ) {
+	else if (!strnicmp(ext, ".media", 5) || !strnicmp(ext, ".info", 5) || !strnicmp(ext, ".nhnt", 5) || !stricmp(fmt, "NHNT") )
 		return gf_import_nhnt(importer);
-	}
+	else if (!strnicmp(ext, ".nhml", 5) || !stricmp(fmt, "NHML") )
+		return gf_import_nhml(importer);
 	else if (!strnicmp(ext, ".jpg", 4) || !strnicmp(ext, ".jpeg", 5) || !strnicmp(ext, ".png", 4) || !stricmp(fmt, "JPEG") || !stricmp(fmt, "PNG") ) 
 		return gf_import_still_image(importer);
 	else if (!strnicmp(ext, ".aac", 4) || !stricmp(fmt, "AAC") || !stricmp(fmt, "MPEG4-AUDIO") ) 

@@ -2339,7 +2339,7 @@ exit:
 }
 
 
-GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber, u32 entry_type, bin128 entry_UUID, char *URLname, char *URNname, GF_GenericSampleDescription *udesc, u32 *outDescriptionIndex)
+GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber, char *URLname, char *URNname, GF_GenericSampleDescription *udesc, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -2365,17 +2365,17 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 	}
 	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-	if (trak->Media->handler->type==GF_ISOM_MEDIA_VISUAL) {
+	if (trak->Media->handler->handlerType==GF_ISOM_MEDIA_VISUAL) {
 		GF_GenericVisualSampleEntryBox *entry;
 		//create a new entry
 		entry = (GF_GenericVisualSampleEntryBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRV);
 		if (!entry) return GF_OUT_OF_MEM;
 
-		if (!entry_type) {
+		if (!udesc->codec_tag) {
 			entry->EntryType = GF_ISOM_BOX_TYPE_UUID;
-			memcpy(entry->uuid, entry_UUID, sizeof(bin128));
+			memcpy(entry->uuid, udesc->UUID, sizeof(bin128));
 		} else {
-			entry->EntryType = entry_type;
+			entry->EntryType = udesc->codec_tag;
 		}
 		entry->dataReferenceIndex = dataRefIndex;
 		entry->vendor = udesc->vendor_code;
@@ -2385,12 +2385,12 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		entry->spacial_quality = udesc->spacial_quality;
 		entry->Width = udesc->width;
 		entry->Height = udesc->height;
-		entry->bit_depth = udesc->bitsPerSample;
-		strcpy(entry->compressor_name, udesc->szCompressorName);
+		strcpy(entry->compressor_name, udesc->compressor_name);
 		entry->color_table_index = -1;
 		entry->frames_per_sample = 1;
-		entry->horiz_res = udesc->h_res;
-		entry->vert_res = udesc->v_res;
+		entry->horiz_res = udesc->h_res ? udesc->h_res : 0x00480000;
+		entry->vert_res = udesc->v_res ? udesc->v_res : 0x00480000;
+		entry->bit_depth = udesc->depth ? udesc->depth : 0x18;
 		if (udesc->extension_buf && udesc->extension_buf_size) {
 			entry->data = malloc(sizeof(unsigned char) * udesc->extension_buf_size);
 			if (!entry->data) {
@@ -2402,26 +2402,26 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		}
 		e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->boxList, entry);
 	}
-	else if (trak->Media->handler->type==GF_ISOM_MEDIA_AUDIO) {
+	else if (trak->Media->handler->handlerType==GF_ISOM_MEDIA_AUDIO) {
 		GF_GenericAudioSampleEntryBox *gena;
 		//create a new entry
 		gena = (GF_GenericAudioSampleEntryBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRA);
 		if (!gena) return GF_OUT_OF_MEM;
 
-		if (!entry_type) {
+		if (!udesc->codec_tag) {
 			gena->EntryType = GF_ISOM_BOX_TYPE_UUID;
-			memcpy(gena->uuid, entry_UUID, sizeof(bin128));
+			memcpy(gena->uuid, udesc->UUID, sizeof(bin128));
 		} else {
-			gena->EntryType = entry_type;
+			gena->EntryType = udesc->codec_tag;
 		}
 		gena->dataReferenceIndex = dataRefIndex;
 		gena->vendor = udesc->vendor_code;
 		gena->version = udesc->version;
 		gena->revision = udesc->revision;
-		gena->bitspersample = udesc->bitsPerSample;
-		gena->channel_count = udesc->NumChannels;
-		gena->samplerate_hi = udesc->SampleRate>>16;
-		gena->samplerate_lo = udesc->SampleRate & 0xFF;
+		gena->bitspersample = udesc->bits_per_sample ? udesc->bits_per_sample : 16;
+		gena->channel_count = udesc->nb_channels ? udesc->nb_channels : 2;
+		gena->samplerate_hi = udesc->samplerate>>16;
+		gena->samplerate_lo = udesc->samplerate & 0xFF;
 
 		if (udesc->extension_buf && udesc->extension_buf_size) {
 			gena->data = malloc(sizeof(unsigned char) * udesc->extension_buf_size);
@@ -2440,11 +2440,11 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		genm = (GF_GenericSampleEntryBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRM);
 		if (!genm) return GF_OUT_OF_MEM;
 
-		if (!entry_type) {
+		if (!udesc->codec_tag) {
 			genm->EntryType = GF_ISOM_BOX_TYPE_UUID;
-			memcpy(genm->uuid, entry_UUID, sizeof(bin128));
+			memcpy(genm->uuid, udesc->UUID, sizeof(bin128));
 		} else {
-			genm->EntryType = entry_type;
+			genm->EntryType = udesc->codec_tag;
 		}
 		genm->dataReferenceIndex = dataRefIndex;
 		if (udesc->extension_buf && udesc->extension_buf_size) {
@@ -2486,12 +2486,12 @@ GF_Err gf_isom_change_generic_sample_description(GF_ISOFile *movie, u32 trackNum
 		entry->spacial_quality = udesc->spacial_quality;
 		entry->Width = udesc->width;
 		entry->Height = udesc->height;
-		entry->bit_depth = udesc->bitsPerSample;
-		strcpy(entry->compressor_name, udesc->szCompressorName);
+		strcpy(entry->compressor_name, udesc->compressor_name);
 		entry->color_table_index = -1;
 		entry->frames_per_sample = 1;
-		entry->horiz_res = udesc->h_res;
-		entry->vert_res = udesc->v_res;
+		entry->horiz_res = udesc->h_res ? udesc->h_res : 0x00480000;
+		entry->vert_res = udesc->v_res ? udesc->v_res : 0x00480000;
+		entry->bit_depth = udesc->depth ? udesc->depth : 0x18;
 		if (entry->data) free(entry->data);
 		entry->data = NULL;
 		entry->data_size = 0;
@@ -2510,10 +2510,10 @@ GF_Err gf_isom_change_generic_sample_description(GF_ISOFile *movie, u32 trackNum
 		gena->vendor = udesc->vendor_code;
 		gena->version = udesc->version;
 		gena->revision = udesc->revision;
-		gena->bitspersample = udesc->bitsPerSample;
-		gena->channel_count = udesc->NumChannels;
-		gena->samplerate_hi = udesc->SampleRate>>16;
-		gena->samplerate_lo = udesc->SampleRate & 0xFF;
+		gena->bitspersample = udesc->bits_per_sample ? udesc->bits_per_sample : 16;
+		gena->channel_count = udesc->nb_channels ? udesc->nb_channels : 2;
+		gena->samplerate_hi = udesc->samplerate>>16;
+		gena->samplerate_lo = udesc->samplerate & 0xFF;
 		if (gena->data) free(gena->data);
 		gena->data = NULL;
 		gena->data_size = 0;

@@ -140,11 +140,11 @@ GF_Err gf_media_import(GF_MediaImporter *importer);
 
 enum
 {
-	/*track dumper types areformatted as flags for conveniency for 
+	/*track dumper types are formatted as flags for conveniency for 
 	authoring tools, but never used as a OR'ed set*/
-	/*native format (JPG, PNG, MP3, raw aac or raw cmp) if supported*/
+	/*native format (JPG, PNG, MP3, etc) if supported*/
 	GF_EXPORT_NATIVE = 1,
-	/*raw samples (all except OD)*/
+	/*raw samples (including hint tracks for rtp)*/
 	GF_EXPORT_RAW_SAMPLES = (1<<1),
 	/*NHNT format (any MPEG-4 media)*/
 	GF_EXPORT_NHNT = (1<<2),
@@ -154,12 +154,16 @@ enum
 	GF_EXPORT_MP4 = (1<<4),
 	/*AVI->RAW to dump video (trackID=1) or audio (trackID>=2)*/
 	GF_EXPORT_AVI_NATIVE = (1<<5),
+	/*NHML format (any media)*/
+	GF_EXPORT_NHML = (1<<6),
 
 	/*following ones are real flags*/
-	/*used bfor MP4 extraction, indicates track should be added to dest file if any*/
+	/*used for MP4 extraction, indicates track should be added to dest file if any*/
 	GF_EXPORT_MERGE_TRACKS = (1<<10),
 	/*indicates QCP file format possible as well as native (EVRC and SMV audio only)*/
 	GF_EXPORT_USE_QCP = (1<<11),
+	/*indicates full NHML dump*/
+	GF_EXPORT_NHML_FULL = (1<<11),
 	/*ony probes extraction format*/
 	GF_EXPORT_PROBE_ONLY = (1<<30),
 	/*when set by user during export, will abort*/

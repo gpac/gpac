@@ -125,12 +125,13 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &ivar, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num);
 		if (ch->sample) ch->sample_time = ch->sample->DTS;
 	} else {
+fetch_next:
 		ch->sample = gf_isom_get_sample(ch->owner->mov, ch->track, ch->sample_num, &ivar);
 		/*if sync shadow skip*/
 		if (ch->sample && (ch->sample->IsRAP==2)) {
 			gf_isom_sample_del(&ch->sample);
 			ch->sample_num++;
-			ch->sample = gf_isom_get_sample(ch->owner->mov, ch->track, ch->sample_num, &ivar);
+			goto fetch_next;
 		}
 	}
 	if (!ch->sample) {

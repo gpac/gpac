@@ -949,9 +949,9 @@ GF_ESD *gp_media_map_esd(GF_ISOFile *mp4, u32 track)
 	udesc = gf_isom_get_generic_sample_description(mp4, track, 1);
 	if (type==GF_ISOM_MEDIA_AUDIO) {
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-		gf_bs_write_u16(bs, udesc->SampleRate);
-		gf_bs_write_u8(bs, udesc->NumChannels);
-		gf_bs_write_u8(bs, udesc->bitsPerSample);
+		gf_bs_write_u16(bs, udesc->samplerate);
+		gf_bs_write_u8(bs, udesc->nb_channels);
+		gf_bs_write_u8(bs, udesc->bits_per_sample);
 		gf_bs_write_u8(bs, 0);
 	} else {
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;

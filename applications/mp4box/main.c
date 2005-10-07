@@ -280,6 +280,8 @@ void PrintExtractUsage()
 			" -raws TrackID:       extract each track sample to a file\n" 
 			"                       * Note: \"TrackID:N\" extracts Nth sample\n"
 			" -nhnt TrackID:       extracts track in nhnt format\n" 
+			" -nhml TrackID:       extracts track in nhml format (XML nhnt).\n" 
+			"                       * Note: \"-nhml +TrackID\" for full dump\n"
 			" -single TrackID:     extracts track to a new mp4 file\n"
 			" -avi TrackID:        extracts visual track to an avi file\n"
 			" -qcp TrackID:        same as \'-raw\' but defaults to QCP file for EVRC/SMV\n" 
@@ -916,6 +918,17 @@ int main(int argc, char **argv)
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_NHNT;
 			trackID = atoi(argv[i+1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-nhml")) {
+			CHECK_NEXT_ARG
+			track_dump_type = GF_EXPORT_NHML;
+			if (argv[i+1][0]=='+') {
+				track_dump_type |= GF_EXPORT_NHML_FULL;
+				trackID = atoi(argv[i+1] + 1);
+			} else {
+				trackID = atoi(argv[i+1]);
+			}
 			i++;
 		}
 		else if (!stricmp(arg, "-avi")) {

@@ -1717,7 +1717,7 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 		udesc->height = entry->Height;
 		udesc->h_res = entry->horiz_res;
 		udesc->v_res = entry->vert_res;
-		strcpy(udesc->szCompressorName, entry->compressor_name);
+		strcpy(udesc->compressor_name, entry->compressor_name);
 		udesc->depth = entry->bit_depth;
 		udesc->color_table_index = entry->color_table_index;
 		if (entry->data_size) {
@@ -1738,9 +1738,9 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 		udesc->version = gena->version;
 		udesc->revision = gena->revision;
 		udesc->vendor_code = gena->vendor;
-		udesc->SampleRate = gena->samplerate_hi;
-		udesc->bitsPerSample = gena->bitspersample;
-		udesc->NumChannels = gena->channel_count;
+		udesc->samplerate = gena->samplerate_hi;
+		udesc->bits_per_sample = gena->bitspersample;
+		udesc->nb_channels = gena->channel_count;
 		if (gena->data_size) {
 			udesc->extension_buf_size = gena->data_size;
 			udesc->extension_buf = malloc(sizeof(char) * gena->data_size);

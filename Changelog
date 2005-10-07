@@ -1,4 +1,5 @@
-Latest CVS Changes 06/10/05
+Latest CVS Changes 07/10/05
+  - added NHML import/export. NHML is an XML representation of the NHNT file, with add-ons and a more flexible way of integrating media. Doc to come on web site
   - fixed bug in meta items storage (existing items were corrupted on file rewrite)
   - fixed splitx option to support end times larger than file duration
   - clean-up of 2D direct rendering mode: 

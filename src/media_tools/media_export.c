@@ -338,10 +338,10 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		strcat(szEXT, gf_4cc_to_str(m_stype));
 		udesc = gf_isom_get_generic_sample_description(dumper->file, track, 1);
 		switch (m_type) {
-		case GF_ISOM_MEDIA_VISUAL: gf_export_message(dumper, GF_OK, "Extracting \'%s\' Video - Compressor %s", szEXT, udesc ? udesc->szCompressorName : "Unknown"); break;
-		case GF_ISOM_MEDIA_AUDIO: gf_export_message(dumper, GF_OK, "Extracting \'%s\' Audio - Compressor %s", szEXT, udesc ? udesc->szCompressorName : "Unknown"); break;
+		case GF_ISOM_MEDIA_VISUAL: gf_export_message(dumper, GF_OK, "Extracting \'%s\' Video - Compressor %s", szEXT, udesc ? udesc->compressor_name: "Unknown"); break;
+		case GF_ISOM_MEDIA_AUDIO: gf_export_message(dumper, GF_OK, "Extracting \'%s\' Audio - Compressor %s", szEXT, udesc ? udesc->compressor_name : "Unknown"); break;
 		default:
-			gf_export_message(dumper, GF_OK, "Extracting \'%s\' Track (type '%s') - Compressor %s sample%s", szEXT, gf_4cc_to_str(m_type), udesc ? udesc->szCompressorName : "Unknown", szNum);
+			gf_export_message(dumper, GF_OK, "Extracting \'%s\' Track (type '%s') - Compressor %s sample%s", szEXT, gf_4cc_to_str(m_type), udesc ? udesc->compressor_name : "Unknown", szNum);
 			break;
 		}
 		if (udesc) free(udesc);
@@ -568,10 +568,10 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				dsi_size = udesc->extension_buf_size;
 			}
 			switch (m_type) {
-			case GF_ISOM_MEDIA_VISUAL: gf_export_message(dumper, GF_OK, "Extracting \'%s\' Video - Compressor %s", szEXT, udesc ? udesc->szCompressorName : "Unknown"); break;
-			case GF_ISOM_MEDIA_AUDIO: gf_export_message(dumper, GF_OK, "Extracting \'%s\' Audio - Compressor %s", szEXT, udesc ? udesc->szCompressorName : "Unknown"); break;
+			case GF_ISOM_MEDIA_VISUAL: gf_export_message(dumper, GF_OK, "Extracting \'%s\' Video - Compressor %s", szEXT, udesc ? udesc->compressor_name : "Unknown"); break;
+			case GF_ISOM_MEDIA_AUDIO: gf_export_message(dumper, GF_OK, "Extracting \'%s\' Audio - Compressor %s", szEXT, udesc ? udesc->compressor_name : "Unknown"); break;
 			default:
-				gf_export_message(dumper, GF_OK, "Extracting \'%s\' Track (type '%s') - Compressor %s", szEXT, gf_4cc_to_str(m_type), udesc ? udesc->szCompressorName : "Unknown");
+				gf_export_message(dumper, GF_OK, "Extracting \'%s\' Track (type '%s') - Compressor %s", szEXT, gf_4cc_to_str(m_type), udesc ? udesc->compressor_name : "Unknown");
 				break;
 			}
 			if (udesc) free(udesc);
@@ -1304,6 +1304,118 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 	return GF_OK;
 }
 
+GF_Err gf_media_export_nhml(GF_MediaExporter *dumper)
+{
+	GF_ESD *esd;
+	char szName[1000], szMedia[1000];
+	FILE *med, *inf, *nhml;
+	Bool full_dump;
+	u32 track, i, di, count, pos;
+
+	track = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
+	if (!track) return gf_export_message(dumper, GF_BAD_PARAM, "Invalid track ID %d", dumper->trackID);
+
+	if (dumper->flags & GF_EXPORT_PROBE_ONLY) {
+		dumper->flags |= GF_EXPORT_NHML_FULL;
+		return GF_OK;
+	}
+	esd = gf_isom_get_esd(dumper->file, track, 1);
+	full_dump = (dumper->flags & GF_EXPORT_NHML_FULL) ? 1 : 0;
+
+	sprintf(szMedia, "%s.media", dumper->out_name);
+	med = gf_f64_open(szMedia, "wb");
+	if (!med) {
+		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
+		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szMedia);
+	}
+
+	sprintf(szName, "%s.nhml", dumper->out_name);
+	nhml = fopen(szName, "wt");
+	if (!nhml) {
+		fclose(med);
+		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
+		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
+	}
+
+	/*write header*/
+	fprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
+	fprintf(nhml, "<NHNTStream version=\"1.0\" timeScale=\"%d\" ", gf_isom_get_media_timescale(dumper->file, track) );
+	if (esd) {
+		fprintf(nhml, "streamType=\"%d\" objectTypeIndication=\"%d\" ", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
+		if (esd->decoderConfig->decoderSpecificInfo  && esd->decoderConfig->decoderSpecificInfo->data) {
+			sprintf(szName, "%s.info", dumper->out_name);
+			inf = fopen(szName, "wb");
+			if (inf) fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, inf);
+			fclose(inf);
+			fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
+		}
+		gf_odf_desc_del((GF_Descriptor *) esd);
+
+		if (gf_isom_get_media_type(dumper->file, track)==GF_ISOM_MEDIA_VISUAL) {
+			u32 w, h;
+			gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
+			fprintf(nhml, "width=\"%d\" height=\"%d\" ", w, h);
+		}
+		else if (gf_isom_get_media_type(dumper->file, track)==GF_ISOM_MEDIA_AUDIO) {
+			u32 sr, nb_ch;
+			u8 bps;
+			gf_isom_get_audio_info(dumper->file, track, 1, &sr, &nb_ch, &bps);
+			fprintf(nhml, "sampleRate=\"%d\" numChannels=\"%d\" ", sr, nb_ch);
+		}
+
+	} else {
+		GF_GenericSampleDescription *sdesc = gf_isom_get_generic_sample_description(dumper->file, track, 1);
+		u32 mtype = gf_isom_get_media_type(dumper->file, track);
+		fprintf(nhml, "mediaType=\"%s\" mediaSubType=\"%s\" ", gf_4cc_to_str(mtype), gf_4cc_to_str(sdesc->codec_tag));
+		if (mtype==GF_ISOM_MEDIA_VISUAL) {
+			fprintf(nhml, "codecVendor=\"%s\" codecVersion=\"%d\" codecRevision=\"%d\" ", gf_4cc_to_str(sdesc->vendor_code), sdesc->version, sdesc->revision);
+			fprintf(nhml, "width=\"%d\" height=\"%d\" compressorName=\"%s\" temporalQuality=\"%d\" spatialQuality=\"%d\" horizontalResolution=\"%d\" verticalResolution=\"%d\" bitDepth=\"%d\" ",
+				sdesc->width, sdesc->height, sdesc->compressor_name, sdesc->temporal_quality, sdesc->spacial_quality, sdesc->h_res, sdesc->v_res, sdesc->depth);
+		} else if (mtype==GF_ISOM_MEDIA_AUDIO) {
+			fprintf(nhml, "codecVendor=\"%s\" codecVersion=\"%d\" codecRevision=\"%d\" ", gf_4cc_to_str(sdesc->vendor_code), sdesc->version, sdesc->revision);
+			fprintf(nhml, "sampleRate=\"%d\" numChannels=\"%d\" bitsPerSample=\"%d\" ", sdesc->samplerate, sdesc->nb_channels, sdesc->bits_per_sample);
+		}
+		if (sdesc->extension_buf) {
+			sprintf(szName, "%s.info", dumper->out_name);
+			inf = fopen(szName, "wb");
+			if (inf) fwrite(sdesc->extension_buf, sdesc->extension_buf_size, 1, inf);
+			fclose(inf);
+			fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
+			free(sdesc->extension_buf);
+		}
+		free(sdesc);
+	}
+
+	fprintf(nhml, "baseMediaFile=\"%s\" ", szMedia);
+	fprintf(nhml, ">\n");
+
+
+	pos = 0;
+	count = gf_isom_get_sample_count(dumper->file, track);
+	for (i=0; i<count; i++) {
+		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, i+1, &di);
+		if (!samp) break;
+		fwrite(samp->data, samp->dataLength, 1, med);
+
+		fprintf(nhml, "<NHNTSample DTS=\"%d\" dataLength=\"%d\" ", samp->DTS, samp->dataLength);
+		if (full_dump || samp->CTS_Offset) fprintf(nhml, "CTSOffset=\"%d\" ", samp->CTS_Offset);
+		if (samp->IsRAP==1) fprintf(nhml, "isRAP=\"yes\" ");
+		else if (samp->IsRAP==2) fprintf(nhml, "isSyncShadow=\"yes\" ");
+		else if (full_dump) fprintf(nhml, "isRAP=\"no\" ");
+
+		if (full_dump) fprintf(nhml, "mediaOffset=\"%d\" ", pos);
+		fprintf(nhml, "/>\n");
+
+		pos += samp->dataLength;
+		gf_isom_sample_del(&samp);
+		dump_progress(dumper, i+1, count);
+		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
+	}
+	fprintf(nhml, "</NHNTStream>\n");
+	fclose(med);
+	fclose(nhml);
+	return GF_OK;
+}
 
 GF_Err gf_media_export(GF_MediaExporter *dumper)
 {
@@ -1316,6 +1428,7 @@ GF_Err gf_media_export(GF_MediaExporter *dumper)
 	else if (dumper->flags & GF_EXPORT_AVI) return gf_media_export_avi(dumper);
 	else if (dumper->flags & GF_EXPORT_MP4) return gf_media_export_isom(dumper);
 	else if (dumper->flags & GF_EXPORT_AVI_NATIVE) return gf_media_export_avi_track(dumper);
+	else if (dumper->flags & GF_EXPORT_NHML) return gf_media_export_nhml(dumper);
 	else return GF_BAD_PARAM;
 }
 

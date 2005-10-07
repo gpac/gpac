@@ -768,7 +768,6 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 
 	gf_isom_get_audio_info(file, trackNum, 1, &sr, &nb_ch, &bps);
 	
-	msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
 	if ((msub_type==GF_ISOM_SUBTYPE_MPEG4) || (msub_type==GF_ISOM_SUBTYPE_MPEG4_CRYP) || (msub_type==GF_ISOM_SUBTYPE_AVC_H264))  {
 		esd = gf_isom_get_esd(file, trackNum, 1);
 		if (!esd) {
@@ -964,13 +963,13 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(file, trackNum, 1);
 		if (udesc) {
 			if (mtype==GF_ISOM_MEDIA_VISUAL) {
-				fprintf(stdout, "Visual Track - Compressor \"%s\" - Resolution %d x %d\n", udesc->szCompressorName, udesc->width, udesc->height);
+				fprintf(stdout, "Visual Track - Compressor \"%s\" - Resolution %d x %d\n", udesc->compressor_name, udesc->width, udesc->height);
 			} else if (mtype==GF_ISOM_MEDIA_AUDIO) {
-				fprintf(stdout, "Audio Track - Compressor \"%s\" - Sample Rate %d - %d channel(s)\n", udesc->szCompressorName, udesc->SampleRate, udesc->NumChannels);
+				fprintf(stdout, "Audio Track - Sample Rate %d - %d channel(s)\n", udesc->samplerate, udesc->nb_channels);
 			} else {
-				fprintf(stdout, "Unknown media type - Compressor \"%s\"\n", udesc->szCompressorName);
+				fprintf(stdout, "Unknown media type\n");
 			}
-			fprintf(stdout, "\tVendor code %x - Version %d - revision %d\n", udesc->vendor_code, udesc->version, udesc->revision);
+			fprintf(stdout, "\tVendor code \"%s\" - Version %d - revision %d\n", gf_4cc_to_str(udesc->vendor_code), udesc->version, udesc->revision);
 			if (udesc->extension_buf) {
 				fprintf(stdout, "\tCodec configuration data size: %d bytes\n", udesc->extension_buf_size);
 				free(udesc->extension_buf);

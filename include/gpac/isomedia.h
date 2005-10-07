@@ -607,9 +607,9 @@ GF_Err gf_isom_get_media_language(GF_ISOFile *the_file, u32 trackNumber, char *t
 /*Unknown sample description*/
 typedef struct
 {
-	/*codec tag is the containing box's tag*/
+	/*codec tag is the containing box's tag, 0 if UUID is used*/
 	u32 codec_tag;
-	/*if any, otherwise 0*/
+	/*entry UUID if no tag is used*/
 	bin128 UUID;
 
 	u16 version;
@@ -623,12 +623,12 @@ typedef struct
 	u32 h_res, v_res;
 	u16 depth;
 	u16 color_table_index;
-	char szCompressorName[33];
+	char compressor_name[33];
 
 	/*audio codecs only*/
-	u16 NumChannels;
-	u16 bitsPerSample;
-	u32 SampleRate;
+	u32 samplerate;
+	u16 nb_channels;
+	u16 bits_per_sample;
 
 	/*if present*/
 	unsigned char *extension_buf;
@@ -939,11 +939,8 @@ GF_Err gf_isom_add_desc_to_description(GF_ISOFile *the_file, u32 trackNumber, u3
 /*Create a new unknown StreamDescription in the file. The URL and URN are used to 
 describe external media, this will creat a data reference for the media
 use this to store media not currently supported by the ISO media format
-NOTE: you shall not include ISO media box header info in this buffer
-if you wish to use UUID (recommended) specify an entry type of 0
-otherwise uuid is ignored and entryType shall be a 4CC integer
 */
-GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *the_file, u32 trackNumber, u32 entry_type, bin128 entry_UUID, char *URLname, char *URNname, GF_GenericSampleDescription *udesc, u32 *outDescriptionIndex);
+GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *the_file, u32 trackNumber, char *URLname, char *URNname, GF_GenericSampleDescription *udesc, u32 *outDescriptionIndex);
 
 /*change the data field of an unknown sample description*/
 GF_Err gf_isom_change_generic_sample_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_GenericSampleDescription *udesc);
