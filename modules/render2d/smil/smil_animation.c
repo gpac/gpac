@@ -147,7 +147,7 @@ static void SMIL_initIntervalList(SMIL_AnimationStack *stack)
 			}
 		} 
 	} else {
-		GF_SAFEALLOC(interval, sizeof(interval));
+		GF_SAFEALLOC(interval, sizeof(SMIL_Interval));
 		gf_list_add(stack->intervals, interval);
 		interval->begin = 0;
 		/* trying to find a matching end */
@@ -481,7 +481,7 @@ void SMIL_Update_Animation(GF_TimeNode *timenode)
 		stack->InitStackValues(stack);
 		SMIL_initIntervalList(stack);
 		stack->current_interval = NULL;
-		interval_index = SMIL_findIntervalIndex(stack, sceneTime);
+		interval_index = SMIL_findIntervalIndex(stack, GF_MAX_DOUBLE);
 		if (interval_index >= 0) {
 			stack->status = SMIL_STATUS_WAITING_TO_BEGIN;
 			stack->current_interval_index = interval_index;
