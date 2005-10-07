@@ -437,7 +437,7 @@ GF_Err gf_bt_parse_double(GF_BTParser *parser, const char *name, SFDouble *val)
 	char *str = gf_bt_get_next(parser, 0);
 	if (!str) return parser->last_error = GF_IO_ERR;
 	if (gf_bt_check_externproto_field(parser, str)) return GF_OK;
-	if (sscanf(str, "%f", val) != 1) {
+	if (sscanf(str, "%lf", val) != 1) {
 		return gf_bt_report(parser, GF_BAD_PARAM, "%s: Number expected", name);
 	}
 	return GF_OK;

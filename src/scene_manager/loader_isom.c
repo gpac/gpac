@@ -156,7 +156,7 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 
 		/*we still need to reconfig the BIFS*/
 		if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
-			if (!esd->dependsOnESID && nbBifs && !j) 
+			if (!esd->dependsOnESID && nbBifs && !i) 
 				mp4_report(load, GF_OK, "Warning: several BIFS namespaces used or improper BIFS dependencies in file - import may be incorrect");
 			e = gf_bifs_decoder_configure_stream(bdec, esd->ESID, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, esd->decoderConfig->objectTypeIndication);
 			if (e) goto exit;

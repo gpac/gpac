@@ -1368,6 +1368,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		/*there may be other things to import...*/
 	}
 	sbr = 0;
+	sbr_sr = 0;
 	iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(import->orig);
 	if (iod && (iod->tag != GF_ODF_IOD_TAG)) {
 		gf_odf_desc_del((GF_Descriptor *) iod);
@@ -1993,6 +1994,9 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 	e = xml_init_parser(&parser, import->in_name);
 	if (e) return gf_import_message(import, e, "Cannot open file %s", import->in_name);
 	str = xml_get_element(&parser);
+	mdia = NULL;
+	destroy_esd = 0;
+	specInfo = NULL;
 
 	if (!str || stricmp(str, "NHNTStream")) { 
 		e = gf_import_message(import, GF_BAD_PARAM, "Error parsing NHML file - \"NHNTStream\" expected (line %d)", parser.line);
@@ -2040,10 +2044,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 
 	mdia = gf_f64_open(szMedia, "rb");
 
-	specInfo = NULL;
 	specInfoSize = 0;
-	e = GF_OK;
-	destroy_esd = 0;
 	if (!streamType && !mtype && !sdesc.codec_tag) {
 		e = gf_import_message(import, GF_NOT_SUPPORTED, "Error parsing NHML file - StreamType or MediaType not specified");
 		goto exit; 
