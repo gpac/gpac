@@ -899,57 +899,64 @@ static void SVG_Render_path(GF_Node *node, void *rs)
 			switch (*command) {
 			case 0: /* Move To */
 				tmp = gf_list_get(path->d.points, j);
-				memcpy(&orig, tmp, sizeof(SVG_Point));
+				orig = *tmp;
 				gf_path_add_move_to(cs->path, orig.x, orig.y);
 				j++;
+				/*provision for nextCurveTo when no curve is specified:
+					"If there is no previous command or if the previous command was not an C, c, S or s, 
+					assume the first control point is coincident with the current point.
+				*/
+				ct_orig = orig;
 				break;
 			case 1: /* Line To */
 				tmp = gf_list_get(path->d.points, j);
-				memcpy(&end, tmp, sizeof(SVG_Point));
+				end = *tmp;
 				gf_path_add_line_to(cs->path, end.x, end.y);
-				memcpy(&orig, &end, sizeof(SVG_Point));
 				j++;
+				orig = end;
+				/*cf above*/
+				ct_orig = orig;
 				break;
 			case 2: /* Curve To */
 				tmp = gf_list_get(path->d.points, j);
-				memcpy(&ct_orig, tmp, sizeof(SVG_Point));
+				ct_orig = *tmp;
 				tmp = gf_list_get(path->d.points, j+1);
-				memcpy(&ct_end, tmp, sizeof(SVG_Point));
+				ct_end = *tmp;
 				tmp = gf_list_get(path->d.points, j+2);
-				memcpy(&end, tmp, sizeof(SVG_Point));				 
+				end = *tmp;
 				gf_path_add_cubic_to(cs->path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
-				memcpy(&ct_orig, &ct_end, sizeof(SVG_Point));				 
-				memcpy(&orig, &end, sizeof(SVG_Point));				 
+				ct_orig = ct_end;
+				orig = end;
 				j+=3;
 				break;
 			case 3: /* Next Curve To */
 				ct_orig.x = 2*orig.x - ct_orig.x;
 				ct_orig.y = 2*orig.y - ct_orig.y;
 				tmp = gf_list_get(path->d.points, j);
-				memcpy(&ct_end, tmp, sizeof(SVG_Point));
+				ct_end = *tmp;
 				tmp = gf_list_get(path->d.points, j+1);
-				memcpy(&end, tmp, sizeof(SVG_Point));
+				end = *tmp;
 				gf_path_add_cubic_to(cs->path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
-				memcpy(&ct_orig, &ct_end, sizeof(SVG_Point));				 
-				memcpy(&orig, &end, sizeof(SVG_Point));				 
+				ct_orig = ct_end;
+				orig = end;
 				j+=2;
 				break;
 			case 4: /* Quadratic Curve To */
 				tmp = gf_list_get(path->d.points, j);
-				memcpy(&ct_orig, tmp, sizeof(SVG_Point));
+				ct_orig = *tmp;
 				tmp = gf_list_get(path->d.points, j+1);
-				memcpy(&end, tmp, sizeof(SVG_Point));
+				end = *tmp;
 				gf_path_add_quadratic_to(cs->path, ct_orig.x, ct_orig.y, end.x, end.y);			
-				memcpy(&orig, &end, sizeof(SVG_Point));				 
+				orig = end;
 				j+=2;
 				break;
 			case 5: /* Next Quadratic Curve To */
 				ct_orig.x = 2*orig.x - ct_orig.x;
 				ct_orig.y = 2*orig.y - ct_orig.y;
 				tmp = gf_list_get(path->d.points, j);
-				memcpy(&end, tmp, sizeof(SVG_Point));
+				end = *tmp;
 				gf_path_add_quadratic_to(cs->path, ct_orig.x, ct_orig.y, end.x, end.y);
-				memcpy(&orig, &end, sizeof(SVG_Point));				 
+				orig = end;
 				j++;
 				break;
 			case 6: /* Close */
