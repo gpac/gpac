@@ -23,7 +23,6 @@
  *
  */
 
-
 #include "svg_parser.h"
 
 #ifndef GPAC_DISABLE_SVG
@@ -40,16 +39,18 @@ typedef struct {
 	SVGElement *parent;
 } defered_element;
 
-Bool SVG_hasBeenIDed(SVGParser *parser, xmlChar *node_name);
-u32 svg_get_node_id(SVGParser *parser, xmlChar *nodename);
+Bool		svg_has_been_IDed(SVGParser *parser, xmlChar *node_name);
+u32			svg_get_node_id(SVGParser *parser, xmlChar *nodename);
 SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *parent);
+void		svg_parse_element_id(SVGParser *parser, SVGElement *elt, char *nodename);
 
-#define  MAXCHARS		100
+void		svg_convert_length_unit_to_user_unit(SVGParser *parser, SVG_Length *length);
+void		svg_parse_attribute(SVGParser *parser, GF_FieldInfo *info, SVGElement *n, xmlChar *attribute_content, u8 anim_value_type, u8 transform_anim_datatype);
+void		svg_parse_style(SVGParser *parser, SVGElement *elt, char *style);
 
-void svg_convert_length_unit_to_user_unit(SVGParser *parser, SVG_Length *length);
-void svg_parse_attribute(SVGParser *parser, GF_FieldInfo *info, SVGElement *n, xmlChar *attribute_content, u8 anim_value_type, u8 transform_anim_datatype);
-void svg_parse_style(SVGParser *parser, SVGElement *elt, char *style);
+static void svg_init_root_element(SVGParser *parser, SVGsvgElement *root_svg);
 
+/*SAX related functions */
 typedef enum {
 	UNDEF		= 0, 
 	STARTSVG	= 1, 
@@ -68,22 +69,6 @@ typedef struct  parserState {
 	GF_List			*	svg_node_stack; // to know the current parent of following nodes 
 	xmlSAXHandlerPtr	sax; // sax handler used by libxml
 } GP_ParserState;
-
-static void svg_init_root_element(SVGParser *parser, SVGsvgElement *root_svg)
-{
-	svg_convert_length_unit_to_user_unit(parser, &(root_svg->width));
-	svg_convert_length_unit_to_user_unit(parser, &(root_svg->height));
-	if (root_svg->width.type != SVG_LENGTH_PERCENTAGE) {
-		parser->svg_w = FIX2INT(root_svg->width.number);
-		parser->svg_h = FIX2INT(root_svg->height.number);
-		gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
-	} else {
-		/* if unit for width & height is in percentage, then the only meaningful value for 
-		width and height is 100 %. In this case, we don't specify a value. It will be assigned by the renderer */
-		parser->svg_w = parser->svg_h = 0;
-	}
-	gf_sg_set_root_node(parser->graph, (GF_Node *)root_svg);
-}
 
 void svg_start_document(void *user_data)
 {
@@ -130,26 +115,6 @@ void svg_characters(void *user_data, const xmlChar *ch, s32 len)
 	}
 }
 
-void svg_parse_element_id(SVGParser *parser, 
-						  SVGElement *elt,
-						  char *nodename)
-{
-	u32 id = 0;
-	SVGElement *unided_elt;
-
-	unided_elt = (SVGElement *)gf_sg_find_node_by_name(parser->graph, nodename);
-	if (unided_elt) {
-		id = gf_node_get_id((GF_Node *)unided_elt);
-		if (SVG_hasBeenIDed(parser, nodename)) unided_elt = NULL;
-	} else {
-		id = svg_get_node_id(parser, nodename);
-	}
-	gf_node_set_id((GF_Node *)elt, id, nodename);
-	if (unided_elt) gf_node_replace((GF_Node *)unided_elt, (GF_Node *)elt, 0);
-
-	gf_list_add(parser->ided_nodes, elt);
-}
-				
 SVGElement *svg_create_node(GP_ParserState	*ps, const xmlChar *name, const xmlChar **attrs, SVGElement *parent)
 {
 	u32 tag;
@@ -289,9 +254,28 @@ void svg_end_element(void *user_data, const xmlChar *name)
 		break;
 	}
 }
+/* end of SAX related functions */
 
 /* Generic Scene Graph handling functions for ID */
-Bool SVG_hasBeenIDed(SVGParser *parser, xmlChar *node_name)
+void svg_parse_element_id(SVGParser *parser, SVGElement *elt, char *nodename)
+{
+	u32 id = 0;
+	SVGElement *unided_elt;
+
+	unided_elt = (SVGElement *)gf_sg_find_node_by_name(parser->graph, nodename);
+	if (unided_elt) {
+		id = gf_node_get_id((GF_Node *)unided_elt);
+		if (svg_has_been_IDed(parser, nodename)) unided_elt = NULL;
+	} else {
+		id = svg_get_node_id(parser, nodename);
+	}
+	gf_node_set_id((GF_Node *)elt, id, nodename);
+	if (unided_elt) gf_node_replace((GF_Node *)unided_elt, (GF_Node *)elt, 0);
+
+	gf_list_add(parser->ided_nodes, elt);
+}
+				
+Bool svg_has_been_IDed(SVGParser *parser, xmlChar *node_name)
 {
 	u32 i, count;
 	count = gf_list_count(parser->ided_nodes);
@@ -684,7 +668,7 @@ u32 svg_get_animation_event_by_name(char *name)
 	  events, 
 	  clock value.
  */
-void svg_parse_begin_or_end(SVGParser *parser, SVGElement *e, char *d, SMIL_Time *v) 
+void smil_parse_time(SVGParser *parser, SVGElement *e, char *d, SMIL_Time *v) 
 {
 	u32 len;
 	char *tmp;
@@ -1404,7 +1388,7 @@ void smil_parse_attributename(SVGParser *parser, SVGElement *n, GF_FieldInfo *at
 	}
 }
 
-void smil_parse_begin_or_end_list(SVGParser *parser, SVGElement *e, GF_List *values, char *begin_or_end_list)
+void smil_parse_time_list(SVGParser *parser, SVGElement *e, GF_List *values, char *begin_or_end_list)
 {
 	SMIL_Time *value;
 	char value_string[500];
@@ -1421,7 +1405,7 @@ void smil_parse_begin_or_end_list(SVGParser *parser, SVGElement *e, GF_List *val
 		value_string[len] = 0;
 
 		GF_SAFEALLOC(value, sizeof(SMIL_Time))
-		svg_parse_begin_or_end(parser, e, value_string, value);
+		smil_parse_time(parser, e, value_string, value);
  		gf_list_add(values, value);
 
 		str = tmp + 1;
@@ -1434,7 +1418,7 @@ void smil_parse_begin_or_end_list(SVGParser *parser, SVGElement *e, GF_List *val
 	value_string[len] = 0;
 
 	GF_SAFEALLOC(value, sizeof(SMIL_Time))
-	svg_parse_begin_or_end(parser, e, value_string, value);
+	smil_parse_time(parser, e, value_string, value);
  	gf_list_add(values, value);
 
 	/* sorting timing values */
@@ -2051,7 +2035,7 @@ void svg_parse_attribute(SVGParser *parser, GF_FieldInfo *info, SVGElement *n, x
 		smil_parse_attributename(parser, n, (GF_FieldInfo *)info->far_ptr, attribute_content);
 		break;
 	case SMIL_Times_datatype:
-		smil_parse_begin_or_end_list(parser, n, *(GF_List **)info->far_ptr, attribute_content);
+		smil_parse_time_list(parser, n, *(GF_List **)info->far_ptr, attribute_content);
 		break;
 	case SMIL_Duration_datatype:
 		smil_parse_min_max_dur_repeatdur(parser, (SMIL_Duration *)info->far_ptr, attribute_content);
@@ -2449,6 +2433,21 @@ SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *pa
 	return elt;
 }
 
+static void svg_init_root_element(SVGParser *parser, SVGsvgElement *root_svg)
+{
+	svg_convert_length_unit_to_user_unit(parser, &(root_svg->width));
+	svg_convert_length_unit_to_user_unit(parser, &(root_svg->height));
+	if (root_svg->width.type != SVG_LENGTH_PERCENTAGE) {
+		parser->svg_w = FIX2INT(root_svg->width.number);
+		parser->svg_h = FIX2INT(root_svg->height.number);
+		gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
+	} else {
+		/* if unit for width & height is in percentage, then the only meaningful value for 
+		width and height is 100 %. In this case, we don't specify a value. It will be assigned by the renderer */
+		parser->svg_w = parser->svg_h = 0;
+	}
+	gf_sg_set_root_node(parser->graph, (GF_Node *)root_svg);
+}
 
 /* Constructors and Desctructos of the SVG Parser */
 SVGParser *NewSVGParser()
@@ -2530,6 +2529,8 @@ static GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 	xmlFreeDoc(doc);
 	return GF_OK;
 }
+
+#define  MAXCHARS		100
 
 static GF_Err SVGParser_ParseProgressiveDoc(SVGParser *parser)
 {
