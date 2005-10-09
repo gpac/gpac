@@ -1,7 +1,7 @@
 /*
  *					GPAC Multimedia Framework
  *
- *			Authors: Cyril Concolato - Jean le Feuvre
+ *			Authors: Cyril Concolato - Jean le Feuvre - Jean-Claude Moissinac
  *				Copyright (c) 2005-200X ENST
  *					All rights reserved
  *
@@ -40,7 +40,255 @@ typedef struct {
 	SVGElement *parent;
 } defered_element;
 
+Bool SVG_hasBeenIDed(SVGParser *parser, xmlChar *node_name);
+u32 svg_get_node_id(SVGParser *parser, xmlChar *nodename);
 SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *parent);
+
+#define  MAXCHARS		100
+
+void svg_convert_length_unit_to_user_unit(SVGParser *parser, SVG_Length *length);
+void svg_parse_attribute(SVGParser *parser, GF_FieldInfo *info, SVGElement *n, xmlChar *attribute_content, u8 anim_value_type, u8 transform_anim_datatype);
+void svg_parse_style(SVGParser *parser, SVGElement *elt, char *style);
+
+typedef enum {
+	UNDEF		= 0, 
+	STARTSVG	= 1, 
+	SVGCONTENT	= 2, 
+	UNKNOWN		= 3, 
+	FINISHSVG	= 4, 
+	ERROR		= 5
+} SVGParserStatesEnum;
+
+typedef struct  parserState {
+    s32					return_val;
+    SVGParserStatesEnum	state;
+    SVGParserStatesEnum	prev_state;
+	s32					unknown_depth;
+	SVGParser		*	parser; // initial full doc parser structure
+	GF_List			*	svg_node_stack; // to know the current parent of following nodes 
+	xmlSAXHandlerPtr	sax; // sax handler used by libxml
+} GP_ParserState;
+
+static void svg_init_root_element(SVGParser *parser, SVGsvgElement *root_svg)
+{
+	svg_convert_length_unit_to_user_unit(parser, &(root_svg->width));
+	svg_convert_length_unit_to_user_unit(parser, &(root_svg->height));
+	if (root_svg->width.type != SVG_LENGTH_PERCENTAGE) {
+		parser->svg_w = FIX2INT(root_svg->width.number);
+		parser->svg_h = FIX2INT(root_svg->height.number);
+		gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
+	} else {
+		/* if unit for width & height is in percentage, then the only meaningful value for 
+		width and height is 100 %. In this case, we don't specify a value. It will be assigned by the renderer */
+		parser->svg_w = parser->svg_h = 0;
+	}
+	gf_sg_set_root_node(parser->graph, (GF_Node *)root_svg);
+}
+
+void svg_start_document(void *user_data)
+{
+	GP_ParserState	*ps = (GP_ParserState *)user_data;
+	ps->state = STARTSVG;
+	ps->unknown_depth = 0;
+}
+
+void svg_end_document(void *user_data)
+{
+	GP_ParserState	*ps = (GP_ParserState *)user_data;
+	ps->state = FINISHSVG;
+}
+
+xmlEntityPtr svg_get_entity(void * user_data, const xmlChar *name)
+{
+	GP_ParserState	*ps = (GP_ParserState *)user_data;
+	return xmlGetPredefinedEntity(name);
+}
+
+Bool is_svg_text_element(SVGElement *elt)
+{
+	u32 tag = elt->sgprivate->tag;
+	return ((tag==TAG_SVG_text)||(tag==TAG_SVG_textArea)||(tag==TAG_SVG_tspan));
+}
+
+void svg_characters(void *user_data, const xmlChar *ch, s32 len)
+{
+	GP_ParserState	*ps = (GP_ParserState *)user_data;
+	SVGElement *elt = (SVGElement *)gf_list_get(ps->svg_node_stack,gf_list_count(ps->svg_node_stack)-1);
+	if (is_svg_text_element(elt))
+	{
+		// TODO verify if the libxml SAX parser gives a brute force string
+		// or a cleaned string
+		SVGtextElement *text = (SVGtextElement *)elt;
+		//if (text->xml_space.string && !strcmp(text->xml_space.string, "preserve")) {
+		//	text->textContent = strdup(ch);
+		//} else 
+		{
+			text->textContent = (char *)malloc(len+1);
+			strncpy(text->textContent, ch, len); // TODO vérifier ce qui se passe en fct du jeu de char
+			text->textContent[len]=0;
+		}
+	}
+}
+
+void svg_parse_element_id(SVGParser *parser, 
+						  SVGElement *elt,
+						  char *nodename)
+{
+	u32 id = 0;
+	SVGElement *unided_elt;
+
+	unided_elt = (SVGElement *)gf_sg_find_node_by_name(parser->graph, nodename);
+	if (unided_elt) {
+		id = gf_node_get_id((GF_Node *)unided_elt);
+		if (SVG_hasBeenIDed(parser, nodename)) unided_elt = NULL;
+	} else {
+		id = svg_get_node_id(parser, nodename);
+	}
+	gf_node_set_id((GF_Node *)elt, id, nodename);
+	if (unided_elt) gf_node_replace((GF_Node *)unided_elt, (GF_Node *)elt, 0);
+
+	gf_list_add(parser->ided_nodes, elt);
+}
+				
+SVGElement *svg_create_node(GP_ParserState	*ps, const xmlChar *name, const xmlChar **attrs, SVGElement *parent)
+{
+	u32 tag;
+	u8 anim_datatype = 0;
+	u8 anim_transform_type = 0;
+	SVGElement *elt;
+	s32 attribute_index = 0;
+
+	/* Translates the node type (called name) from a String into a unique numeric identifier in GPAC */
+	tag = SVG_GetTagByName(name);
+	if (tag == TAG_UndefinedNode) {
+		ps->parser->last_error = GF_SG_UNKNOWN_NODE;
+		return NULL;
+	}
+
+	/* Creates a node in the current scene graph */
+	elt = SVG_NewNode(ps->parser->graph, tag);
+	if (!elt) {
+		ps->parser->last_error = GF_SG_UNKNOWN_NODE;
+		return NULL;
+	}
+	gf_node_register((GF_Node *)elt, (GF_Node *)parent);
+	if (parent && elt) gf_list_add(parent->children, elt);
+
+	/* Parsing the style attribute */
+	attribute_index=0;
+	if (attrs)
+	while (attrs[attribute_index]!=NULL) {
+		if (stricmp(attrs[attribute_index],"style")==0) {
+			svg_parse_style(ps->parser, elt, (xmlChar *)attrs[attribute_index+1]);
+			break;
+		}
+		attribute_index+=2;
+	}
+
+	/* Parsing all the other attributes, with a special case of id */
+	attribute_index=0;
+	if (attrs)
+	while (attrs[attribute_index]) {
+		if (!stricmp(attrs[attribute_index], "id")) {
+			svg_parse_element_id(ps->parser, elt, (xmlChar *)attrs[attribute_index+1]);
+		} else if (!stricmp(attrs[attribute_index], "attributeName")) {
+			/* already dealt with above */
+		} else if (!stricmp(attrs[attribute_index], "type")) {
+			if (tag == TAG_SVG_animateTransform) {
+			/* already dealt with above */
+			} else {
+				GF_FieldInfo info;
+				if (!gf_node_get_field_by_name((GF_Node *)elt, "type", &info)) {
+					svg_parse_attribute(ps->parser, &info, elt, (xmlChar *)attrs[attribute_index+1], anim_datatype, anim_transform_type);
+				}
+			}
+		} else if (!stricmp(attrs[attribute_index], "href")) {
+			if (tag == TAG_SVG_set ||
+					tag == TAG_SVG_animate ||
+					tag == TAG_SVG_animateColor ||
+					tag == TAG_SVG_animateTransform ||
+					tag == TAG_SVG_animateMotion || 
+					tag == TAG_SVG_discard) {
+			/* already dealt with above */
+			} else {
+				GF_FieldInfo info;
+				if (!gf_node_get_field_by_name((GF_Node *)elt, "xlink:href", &info)) {
+					svg_parse_attribute(ps->parser, &info, elt, (xmlChar *)attrs[attribute_index+1], anim_datatype, anim_transform_type);
+				}
+			}
+		} else {
+			GF_FieldInfo info;
+			if (!gf_node_get_field_by_name((GF_Node *)elt, (char *)attrs[attribute_index], &info)) {
+				svg_parse_attribute(ps->parser, &info, elt, (xmlChar *)attrs[attribute_index+1], anim_datatype, anim_transform_type);
+			}
+		}
+		attribute_index+=2;
+	}
+	/* We need to init the node at the end of the parsing, after parsing all attributes */
+	if (elt) gf_node_init((GF_Node *)elt);
+	return elt;
+}
+
+void svg_start_element(void *user_data, const xmlChar *name, const xmlChar **attrs)
+{
+	GP_ParserState	*ps = (GP_ParserState *)user_data;
+	SVGElement *elt;
+
+	switch(ps->state) {
+	case STARTSVG:
+		if (!stricmp((char *)name, "svg")) {
+			elt = svg_create_node(ps, name, attrs, NULL);
+			if (!elt) {
+				ps->parser->last_error = GF_SG_UNKNOWN_NODE;
+				ps->state = ERROR;
+				return;
+			} else {
+				svg_init_root_element(ps->parser, (SVGsvgElement *)elt);
+			}
+			ps->svg_node_stack = gf_list_new();
+			if (!ps->svg_node_stack) {
+				ps->state = ERROR;
+				return;
+			}
+			gf_list_add(ps->svg_node_stack, elt);
+			ps->state = SVGCONTENT;
+		} else {
+			ps->prev_state = STARTSVG;
+			ps->unknown_depth++;
+			ps->state = UNKNOWN;
+		}
+		break;
+	case SVGCONTENT:
+		elt = svg_create_node(ps, name, attrs, 
+							  (SVGElement *)gf_list_get(ps->svg_node_stack,gf_list_count(ps->svg_node_stack)-1));
+		if (elt) 
+			gf_list_add(ps->svg_node_stack, elt);
+		else {
+			ps->prev_state = SVGCONTENT;
+			ps->unknown_depth++;
+			ps->state = UNKNOWN;
+		}
+		break;
+	case UNKNOWN:
+		ps->unknown_depth++;
+		break;
+	}
+}
+void svg_end_element(void *user_data, const xmlChar *name)
+{
+	GP_ParserState	*ps = (GP_ParserState *)user_data;
+	switch(ps->state) {
+	case STARTSVG:
+		break;
+	case SVGCONTENT:
+		gf_list_rem(ps->svg_node_stack,gf_list_count(ps->svg_node_stack)-1);
+		break;
+	case UNKNOWN:
+		ps->unknown_depth--;
+		if (ps->unknown_depth==0) ps->state = ps->prev_state;
+		break;
+	}
+}
 
 /* Generic Scene Graph handling functions for ID */
 Bool SVG_hasBeenIDed(SVGParser *parser, xmlChar *node_name)
@@ -280,8 +528,7 @@ void svg_parse_color(SVGParser *parser, const char *name, SVG_Color *col, xmlCha
 		if (strstr(str, "%")) is_percentage = 1;
 		str = strstr(str, "(");
 		str++;
-		sscanf(str, "%f", &_val); 
-		col->red = FLT2FIX(_val);
+		sscanf(str, "%f", &_val); col->red = FLT2FIX(_val);
 		str = strstr(str, ",");
 		str++;
 		sscanf(str, "%f", &_val); col->green = FLT2FIX(_val);
@@ -1947,32 +2194,12 @@ void svg_parse_style(SVGParser *parser, SVGElement *elt, char *style)
 
 }
 
-void svg_parse_element_id(SVGParser *parser, 
-						  SVGElement *elt,
-						  char *nodename)
-{
-	u32 id = 0;
-	SVGElement *unided_elt;
-
-	unided_elt = (SVGElement *)gf_sg_find_node_by_name(parser->graph, nodename);
-	if (unided_elt) {
-		id = gf_node_get_id((GF_Node *)unided_elt);
-		if (SVG_hasBeenIDed(parser, nodename)) unided_elt = NULL;
-	} else {
-		id = svg_get_node_id(parser, nodename);
-	}
-	gf_node_set_id((GF_Node *)elt, id, nodename);
-	if (unided_elt) gf_node_replace((GF_Node *)unided_elt, (GF_Node *)elt, 0);
-
-	gf_list_add(parser->ided_nodes, elt);
-}
-				
 /* Parses all the attributes of an element except id */		  
-void svg_parse_attributes(SVGParser *parser, 
-						  xmlNodePtr node,
-						  SVGElement *elt,
-						  u8 anim_value_type,
-						  u8 anim_transform_type)
+void svg_parse_attributes_from_node(SVGParser *parser, 
+									xmlNodePtr node,
+									SVGElement *elt,
+									u8 anim_value_type,
+									u8 anim_transform_type)
 {
 	xmlAttrPtr attributes;
 	char *style;
@@ -2066,9 +2293,7 @@ void svg_parse_attributes(SVGParser *parser,
 	}
 }
 
-void svg_parse_element_inside(SVGParser *parser, 
-							  xmlNodePtr node, 
-							  SVGElement *elt)
+void svg_parse_children_elements(SVGParser *parser, xmlNodePtr node, SVGElement *elt)
 {
 	xmlNodePtr children;
 	u32 tag;
@@ -2160,9 +2385,9 @@ void svg_parse_defered_animation_elements(SVGParser *parser, SVGElement *elt, xm
 		}
 	}
 
-	svg_parse_attributes(parser, node, elt, anim_value_type, anim_transform_type);
+	svg_parse_attributes_from_node(parser, node, elt, anim_value_type, anim_transform_type);
 
-	svg_parse_element_inside(parser, node, elt);
+	svg_parse_children_elements(parser, node, elt);
 	/* We need to init the node at the end of the parsing, after parsing all attributes */
 	if (elt) gf_node_init((GF_Node *)elt);
 }
@@ -2214,9 +2439,9 @@ SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *pa
 		return elt;
 	}
 
-	svg_parse_attributes(parser, node, elt, 0, 0);
+	svg_parse_attributes_from_node(parser, node, elt, 0, 0);
 
-	svg_parse_element_inside(parser, node, elt);
+	svg_parse_children_elements(parser, node, elt);
 	/* We need to init the node at the end of the parsing, after parsing all attributes */
 	if (elt) gf_node_init((GF_Node *)elt);
 	return elt;
@@ -2252,9 +2477,6 @@ static GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 		xmllib_is_init=1;
 	}
 
-	/* determine document wallclock begin time (cf SMIL spec)*/
-	//gf_utc_time_since_1970(&(parser->begin_sec), &(parser->begin_ms));
-
 	doc = xmlParseFile(parser->fileName);
 	if (doc == NULL) return GF_BAD_PARAM;
 	root = xmlDocGetRootElement(doc);
@@ -2272,21 +2494,7 @@ static GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 	parser->defered_animation_elements = gf_list_new();
 
 	n = svg_parse_element(parser, root, NULL);
-	if (n) {
-		SVGsvgElement *root_svg = (SVGsvgElement *)n;
-		svg_convert_length_unit_to_user_unit(parser, &(root_svg->width));
-		svg_convert_length_unit_to_user_unit(parser, &(root_svg->height));
-		if (root_svg->width.type != SVG_LENGTH_PERCENTAGE) {
-			parser->svg_w = FIX2INT(root_svg->width.number);
-			parser->svg_h = FIX2INT(root_svg->height.number);
-			gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
-		} else {
-			/* if unit for width & height is in percentage, then the only meaningful value for 
-			width and height is 100 %. In this case, we don't specify a value. It will be assigned by the renderer */
-			parser->svg_w = parser->svg_h = 0;
-		}
-		gf_sg_set_root_node(parser->graph, (GF_Node *)n);
-	}
+	if (n) svg_init_root_element(parser, (SVGsvgElement *)n);
 
 	/* Resolve time elements */
 	while (gf_list_count(parser->unresolved_timing_elements) > 0) {
@@ -2321,129 +2529,98 @@ static GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 	return GF_OK;
 }
 
-
-GF_Err SVGParser_ParseFragmentedDoc(SVGParser *parser)
+static GF_Err SVGParser_ParseProgressiveDoc(SVGParser *parser)
 {
-	xmlDocPtr doc = NULL;
-	xmlNodePtr root = NULL;
-	FILE *input;
-	SVGElement *n;
-	SVGElement *parent;
-	char szTmpFile[GF_MAX_PATH];
-	char b[0xFFF0];
-	u32 ret;
-	u8 fin = 0;
-	u8 intern_segment = 0;
-	FILE *tmp;
-		
-	if (!parser->fileName) return GF_BAD_PARAM;
-	input = fopen(parser->fileName, "rt");
-	if (!input) return GF_EOS;
+	xmlDocPtr doc		= NULL;
+	xmlNodePtr root		= NULL;
+    xmlSAXHandlerPtr	sax;
+	xmlParserCtxtPtr	ctxt;
+    char				inputbuffer[MAXCHARS];
+    s32					res;
+	GP_ParserState		svg_parser_state;
+	FILE				*desc;
 
-	memset(b, 0, 0xFFF0);
+	if (!parser->fileName) return GF_BAD_PARAM;
 
 	/* XML Related code */
-	
-	xmlInitParser();
-	LIBXML_TEST_VERSION
-
-	sprintf(szTmpFile, "%s%creconstruct.svgm", parser->temp_dir, GF_PATH_SEPARATOR);
-
-	/*check we begin with <g> or <svg>*/
-	ret = fread(b, 1, 0xFFF0, input);
-	if (strncmp(b, "<g", 2)) {
-		intern_segment = 0;
-		tmp = fopen(szTmpFile, "wt");	  
-	} else {
-		//ici, le début du fichier est <g...
-		//d plus, si ce segment est la fin du fchier,il faut le détecter
-		//on va d'ailleurs initialiser un booléen (intern_segment)pour que ce soit pris en compte		
-		intern_segment = 1;
-		tmp = fopen(szTmpFile,"wt");	  
-		fwrite("<g xmlns:xlink=\"toto\">", 1, strlen("<g xmlns:xlink=\"toto\">"), tmp);
-	}
-#if 0
-	/*move to end*/
-	fseek(input, 50, SEEK_END);
-	fread(b, 1, 50, input);
-	fseek(input, 0, SEEK_SET);
-#endif
-
-
-	if (ret == 0xFFF0){
-		fwrite(b, 1, ret, tmp);
-		while ((ret = fread(b, 1, 0xFFF0, input)) == 0xFFF0) {
-			fwrite(b, 1, ret, tmp);
-		}
+	if (!xmllib_is_init) {
+		xmlInitParser();
+		LIBXML_TEST_VERSION
+		xmllib_is_init=1;
 	}
 
-	if (!((b[ret-8] == '<') && (b[ret-7] == '/') && (b[ret-6] == 's') && (b[ret-5] == 'v') && (b[ret-4] == 'g') && (b[ret-3] == '>'))) {
-		//pas </svg> à la fin
-		if (!(intern_segment)) {
-		//intern_segment == 0
-		//svg au début, pas à la fin
-			strcat (b, "</svg>"); 
-			fwrite(b, 1, ret+6, tmp);
-		} else {
-			strcat (b, "</g>"); 
-			fwrite(b, 1, ret+4, tmp);
-		}
-	}else{
-	//svg à la fin
-		fin = 1;
-		if (intern_segment){
-			//intern_segment == 1
-			//</svg> à la fin, mais g au début... on retire svg
-			fwrite(b, 1, ret-7, tmp);
-			fwrite("/g>", 1, 3, tmp); 
-		}else{
-			//intern_segment == 0
-			//</svg> à la fin
-			fwrite(b, 1, ret, tmp);
-		}
-	}
-	fclose(tmp);
+    desc = fopen(parser->fileName, "rb");
+    if (desc == NULL) return GF_IO_ERR;
+
+	svg_parser_state.state	= UNDEF;
+	svg_parser_state.parser = parser;
+    /*
+     * Read a few first byte to check the input used for the
+     * encoding detection at the parser level.
+     */
+    res = fread(inputbuffer, 1, 4, desc);
+    if (res <= 0)  return GF_IO_ERR; /* TODO verify cleanup: fclose... */
+
+	sax = (xmlSAXHandlerPtr)calloc(1, sizeof(xmlSAXHandler));
+	sax->startDocument	= svg_start_document;
+	sax->endDocument	= svg_end_document;
+	sax->characters		= svg_characters;
+	sax->endElement		= svg_end_element;
+	sax->startElement	= svg_start_element;
+	sax->getEntity		= svg_get_entity;
 	
-	doc = xmlParseFile(szTmpFile);
-	
-	if (doc == NULL) return GF_BAD_PARAM;
-	
-	root = xmlDocGetRootElement(doc);
-	
-	if (stricmp(root->name, "svg")){
-		parent = (SVGElement *) gf_sg_get_root_node(parser->graph);
-	}else{
-		parent = NULL;
-	}
-	/*fin d tests*/
-	
+	svg_parser_state.sax = sax;
+
 	/* Scene Graph related code */
 	parser->ided_nodes = gf_list_new();
-	
-	n = svg_parse_element(parser, root, parent);
-	if (parent != NULL) {
-		gf_list_add(parent->children, n);
-	}
-	if (parent == NULL) {
-		SVGsvgElement *root_svg = (SVGsvgElement *)n;
-		svg_convert_length_unit_to_user_unit(parser, &(root_svg->width));
-		svg_convert_length_unit_to_user_unit(parser, &(root_svg->height));
-		parser->svg_w = FIX2INT(root_svg->width.number);
-		parser->svg_h = FIX2INT(root_svg->height.number);
-		gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
-		gf_sg_set_root_node(parser->graph, (GF_Node *)n);
-	} 
-	
-	if (fin) return GF_EOS;
+
+	/* List of elements to be after parsing but before rendering */
+	parser->unresolved_timing_elements = gf_list_new();
+
+	/*
+     * Create a progressive parsing context, the 2 first arguments
+     * are not used since we want to build a tree and not use a SAX
+     * parsing interface. We also pass the first bytes of the document
+     * to allow encoding detection when creating the parser but this
+     * is optional.
+     */
+    ctxt = xmlCreatePushParserCtxt(sax, &svg_parser_state,
+                                   inputbuffer, res, parser->fileName);
+    if (ctxt == NULL)  return GF_IO_ERR; /* TODO setup a better error value and verify cleanup: fclose... */
+
+    /*
+     * loop on the input getting the document data, 
+	 * must be replaced by a more realistic access to data
+     */
+    while ((res = fread(inputbuffer, 1, MAXCHARS, desc)) > 0) {
+        xmlParseChunk(ctxt, inputbuffer, res, 0);
+    }
+
+    /*
+     * there is no more input, indicate the parsing is finished.
+     */
+    xmlParseChunk(ctxt, inputbuffer, 0, 1);
+
+    /*
+     * destroy the parser context.
+     */
+    xmlFreeParserCtxt(ctxt);
+
+	fclose(desc);
+
+    /*
+     * Cleanup function for the XML library.
+     */
+    xmlCleanupParser();
+		
 	return GF_OK;
 }
 
-
 GF_Err SVGParser_Parse(SVGParser *parser)
 {
-	if (parser->oti == 2) return SVGParser_ParseFullDoc(parser);
-	else if (parser->oti == 3) return SVGParser_ParseFragmentedDoc(parser);
-	else if (parser->oti == 4) return SVGParser_ParseLASeR(parser);
+	if (parser->oti == 3)		return SVGParser_ParseFullDoc(parser);
+	else if (parser->oti == 2)	return SVGParser_ParseProgressiveDoc(parser);
+	else if (parser->oti == 4)	return SVGParser_ParseLASeR(parser);
 	return GF_BAD_PARAM;
 }
 
