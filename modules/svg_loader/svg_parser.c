@@ -2183,12 +2183,14 @@ void svg_parse_style(SVGParser *parser, SVGElement *elt, char *style)
 			char *value_string;
 			u32 single_value_len = 0;
 			single_value_len = i - (psemi+1);
-			GF_SAFEALLOC(value_string, single_value_len+1);
-			memcpy(value_string, str + (psemi+1), single_value_len);
-			value_string[single_value_len] = 0;
-			psemi = i;
-			svg_parse_one_style(parser, elt, value_string);
-			free(value_string);
+			if (single_value_len) {
+				GF_SAFEALLOC(value_string, single_value_len+1);
+				memcpy(value_string, str + (psemi+1), single_value_len);
+				value_string[single_value_len] = 0;
+				psemi = i;
+				svg_parse_one_style(parser, elt, value_string);
+				free(value_string);
+			}
 		}
 	}
 
