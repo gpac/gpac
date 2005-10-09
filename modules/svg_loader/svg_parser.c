@@ -971,7 +971,8 @@ void svg_convert_length_unit_to_user_unit(SVGParser *parser, SVG_Length *length)
 void svg_parse_length(SVGParser *parser, SVG_Length *length, char *value_string)
 {
 	Float _val;
-	if (strstr(value_string, "%")) length->type = SVG_LENGTH_PERCENTAGE;
+	if (!strcmp(value_string, "inherit")) length->type = SVG_LENGTH_INHERIT;
+	else if (strstr(value_string, "%")) length->type = SVG_LENGTH_PERCENTAGE;
 	else if (strstr(value_string, "em")) length->type = SVG_LENGTH_EMS;
 	else if (strstr(value_string, "ex")) length->type = SVG_LENGTH_EXS;
 	else if (strstr(value_string, "px")) length->type = SVG_LENGTH_PX;
