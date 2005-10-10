@@ -2479,7 +2479,7 @@ void SVGParser_Terminate(SVGParser *parser)
 	gf_list_del(parser->unresolved_hrefs);
 	gf_list_del(parser->defered_animation_elements);
 	if (parser->fileName) free(parser->fileName);
-	if (parser->szOriginalRad) free(parser->szOriginalRad);
+//	if (parser->temp_dir) free(parser->temp_dir);
 	free(parser);
 }
 

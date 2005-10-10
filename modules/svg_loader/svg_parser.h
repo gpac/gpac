@@ -75,7 +75,8 @@ long _ftol2( double dblSource ) { return _ftol( dblSource ); }
 enum {
 	SVGLOADER_OTI_FULL_SVG		  = 2,
 	SVGLOADER_OTI_PROGRESSIVE_SVG = 3,
-	SVGLOADER_OTI_FULL_LASERML	  = 4
+	SVGLOADER_OTI_FULL_LASERML	  = 4,
+	SVGLOADER_OTI_STREAMING_SVG	  = 5
 };
 
 struct _svg_parser
@@ -96,11 +97,7 @@ struct _svg_parser
 	GF_Err last_error;
 
 	char *fileName;
-
-	/*svg fragments stuff*/
 	char *temp_dir;
-	char *szOriginalRad;
-	u32 seg_idx;
 
 	/* Unresolved begin/end value */
 	GF_List *unresolved_timing_elements;

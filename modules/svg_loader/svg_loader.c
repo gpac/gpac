@@ -45,6 +45,8 @@ static GF_Err LSR_ProcessDocument(GF_SceneDecoder *plug, unsigned char *inBuffer
 	return e;
 }
 
+/* Only in case of reading from file (cached or not) of an XML file (i.e. not AU framed)
+   The buffer is empty but the filename has been given in a previous step: SVG_AttachStream */
 static GF_Err SVG_ProcessDocument(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
@@ -73,6 +75,13 @@ static GF_Err SVG_ProcessDocument(GF_SceneDecoder *plug, unsigned char *inBuffer
 	return GF_EOS;
 }
 
+/* Only in case of streaming or reading from MP4 file or framed container
+   The buffer contains the actual piece of SVG to read */
+static GF_Err SVG_ProcessAU(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
+								u16 ES_ID, u32 stream_time, u32 mmlevel)
+{
+
+}
 
 static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
@@ -82,6 +91,8 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 		return SVG_ProcessDocument(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
 	if (parser->oti == SVGLOADER_OTI_PROGRESSIVE_SVG) 
 		return SVG_ProcessDocument(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
+	if (parser->oti == SVGLOADER_OTI_STREAMING_SVG) 
+		return SVG_ProcessAU(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
 	if (parser->oti==SVGLOADER_OTI_FULL_LASERML) 
 		return LSR_ProcessDocument(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
 	return GF_BAD_PARAM;
@@ -113,10 +124,10 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 	SVGParser *parser = plug->privateStack;
 	if (Upstream) return GF_NOT_SUPPORTED;
 
-	/*main dummy stream we need a dsi*/
-	if (!decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
+	/* decSpecInfo is not null only when reading from an SVG file (local or distant, cached or not) */
+	if (!decSpecInfo && objectTypeIndication != SVGLOADER_OTI_STREAMING_SVG) return GF_NON_COMPLIANT_BITSTREAM;
+	else parser->fileName = strdup(decSpecInfo);
 
-	parser->fileName = strdup(decSpecInfo);
 	parser->oti = objectTypeIndication;
 
 	return GF_OK;
@@ -132,6 +143,7 @@ const char *SVG_GetName(struct _basedecoder *plug)
 	SVGParser *parser = plug->privateStack;
 	if (parser->oti==SVGLOADER_OTI_FULL_SVG) return "GPAC SVG Parser";
 	if (parser->oti==SVGLOADER_OTI_PROGRESSIVE_SVG) return "GPAC SVG Progressive Parser";
+	if (parser->oti==SVGLOADER_OTI_STREAMING_SVG) return "GPAC Streaming SVG Parser";
 	if (parser->oti==SVGLOADER_OTI_FULL_LASERML) return "GPAC LASeRML Parser";
 	return "INTERNAL ERROR";
 }
@@ -141,6 +153,7 @@ Bool SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, u
 	if (StreamType!=GF_STREAM_PRIVATE_SCENE) return 0;
 	if (ObjectType==SVGLOADER_OTI_FULL_SVG) return 1;
 	if (ObjectType==SVGLOADER_OTI_PROGRESSIVE_SVG) return 1;
+	if (ObjectType==SVGLOADER_OTI_STREAMING_SVG) return 1;
 	if (ObjectType==SVGLOADER_OTI_FULL_LASERML) return 1;
 	return 0;
 }

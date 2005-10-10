@@ -109,13 +109,15 @@ void DC_OnData(void *cbk, char *data, u32 data_size, u32 status, GF_Err e)
 	/*wait to get the whole file*/
 	if (e == GF_OK) {
 		if (!read->supports_progressive_loading) return;
-		else {
-			if (!read->is_service_connected) {
-				gf_term_on_connect(read->service, NULL, e);
-				read->is_service_connected = 1;
-			}
-			return;
+		else if (status!=GF_DOWNLOAD_STATE_RUNNING) return;
+		if (!read->is_service_connected) {
+			szCache = gf_dm_sess_get_cache_name(read->dnload);
+			if (!szCache) e = GF_IO_ERR;
+			else strcpy(read->szCache, szCache);
+			gf_term_on_connect(read->service, NULL, e);
+			read->is_service_connected = 1;
 		}
+		return;
 	} else if (e==GF_EOS) {
 		szCache = gf_dm_sess_get_cache_name(read->dnload);
 		if (!szCache) e = GF_IO_ERR;
