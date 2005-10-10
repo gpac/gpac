@@ -78,8 +78,6 @@ enum {
 	SVGLOADER_OTI_FULL_LASERML	  = 4
 };
 
-GF_Err SVGParser_ParseLASeR(SVGParser *parser);
-
 struct _svg_parser
 {
 	/* 
