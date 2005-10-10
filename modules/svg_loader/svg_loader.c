@@ -29,6 +29,39 @@
 
 #ifndef GPAC_DISABLE_SVG
 
+<<<<<<< svg_loader.c
+/*************************************************************************
+ *																	 	 *
+ * Functions implementing <TODO comment> *
+ *																		 *
+ *************************************************************************/
+static GF_Err SVG_ProcessProgressiveDocument(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
+								u16 ES_ID, u32 stream_time, u32 mmlevel)
+{
+	GF_Err e = GF_OK;
+	SVGParser *parser = plug->privateStack;
+
+	if (parser->status == 0) {
+		parser->status = 1;
+		e = SVGParser_Parse(parser);
+		if (!e) {
+			gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
+			/*attach graph to renderer*/
+			gf_is_attach_to_renderer(parser->inline_scene);
+		} else {
+			parser->status = 0;
+			return e;
+		}
+	}
+	return GF_EOS;
+}
+
+/*************************************************************************
+ *																	 	 *
+ * Functions implementing the Basic Decoder and Scene Decoder interfaces *
+ *																		 *
+ *************************************************************************/
+=======
 static GF_Err LSR_ProcessDocument(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
@@ -47,6 +80,7 @@ static GF_Err LSR_ProcessDocument(GF_SceneDecoder *plug, unsigned char *inBuffer
 
 /* Only in case of reading from file (cached or not) of an XML file (i.e. not AU framed)
    The buffer is empty but the filename has been given in a previous step: SVG_AttachStream */
+>>>>>>> 1.6
 static GF_Err SVG_ProcessDocument(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
