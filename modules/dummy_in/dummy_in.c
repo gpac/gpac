@@ -45,6 +45,8 @@ typedef struct
 
 	/*file downloader*/
 	GF_DownloadSession * dnload;
+
+	Bool supports_progressive_loading;
 } DCReader;
 
 DummyChannel *DC_GetChannel(DCReader *read, LPNETCHANNEL ch)
@@ -104,8 +106,13 @@ void DC_OnData(void *cbk, char *data, u32 data_size, u32 status, GF_Err e)
 	gf_term_download_update_stats(read->dnload);
 
 	/*wait to get the whole file*/
-	if (e == GF_OK) return;
-	else if (e==GF_EOS) {
+	if (e == GF_OK) {
+		if (!read->supports_progressive_loading) return;
+		else {
+			gf_term_on_connect(read->service, NULL, e);
+			return;
+		}
+	} else if (e==GF_EOS) {
 		szCache = gf_dm_sess_get_cache_name(read->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
@@ -114,7 +121,7 @@ void DC_OnData(void *cbk, char *data, u32 data_size, u32 status, GF_Err e)
 		}
 	}
 	/*OK confirm*/
-	gf_term_on_connect(read->service, NULL, e);
+	if (!read->supports_progressive_loading) gf_term_on_connect(read->service, NULL, e);
 }
 
 void DC_DownloadFile(GF_InputService *plug, char *url)
@@ -171,9 +178,10 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 			) 
 			read->oti = 0x01;
 
-		else if (!stricmp(ext, "svg") || !stricmp(ext, "svgz")) read->oti = 0x02;
-		/*fragmented svg files - experimental*/
-		else if (!stricmp(ext, "svgm")) read->oti = 0x03;
+		else if (!stricmp(ext, "svg") || !stricmp(ext, "svgz")) {
+			read->oti = 0x03;
+			read->supports_progressive_loading = 1;
+		}
 		/*XML LASeR*/
 		else if (!stricmp(ext, "xsr")) read->oti = 0x04;
 	}
