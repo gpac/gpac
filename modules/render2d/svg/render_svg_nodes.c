@@ -236,7 +236,7 @@ void SVGApplyProperties(SVGStylingProperties *render_svg_props, SVGStylingProper
 		render_svg_props->stroke_opacity = current_svg_props.stroke_opacity;
 	}
 	if (current_svg_props.stroke_width && current_svg_props.stroke_width->type != SVG_LENGTH_INHERIT) {
-		render_svg_props->stroke_width->number = current_svg_props.stroke_width->number;
+		render_svg_props->stroke_width = current_svg_props.stroke_width;
 	}
 	if (current_svg_props.stroke_miterlimit && current_svg_props.stroke_miterlimit->type != SVG_FLOAT_INHERIT) {
 		render_svg_props->stroke_miterlimit = current_svg_props.stroke_miterlimit;

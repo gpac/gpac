@@ -2564,7 +2564,7 @@ static GF_Err SVGParser_ParseProgressiveDoc(SVGParser *parser)
     res = fread(inputbuffer, 1, 4, desc);
     if (res <= 0)  return GF_IO_ERR; /* TODO verify cleanup: fclose... */
 
-	sax = (xmlSAXHandlerPtr)calloc(1, sizeof(xmlSAXHandler));
+	GF_SAFEALLOC(sax, sizeof(xmlSAXHandler))
 	sax->startDocument	= svg_start_document;
 	sax->endDocument	= svg_end_document;
 	sax->characters		= svg_characters;

@@ -1109,22 +1109,28 @@ static void SVG_DeleteStack(SMIL_AnimationStack *stack)
 	stack->DeleteStackValues(stack);
 }
 
-static void SVG_NoAnimationFunction()
-{
-}
+static void SVG_NoInitStackValues(void *stack) {}
+static void SVG_NoDeleteStackValues(void *stack) {}
+static void SVG_NoSet(void *target, void *value) {}
+static void SVG_NoAssign(void *target, void *value) {}
+static u32  SVG_NoCompare(void *a, void *b) { return 0; }
+static void SVG_NoInterpolate(Fixed interpolation_coefficient, void *value1, void *value2, void *target) {}
+static void SVG_NoApplyAdditive(void *current_value, void *toApply, void *target) {}
+static void SVG_NoApplyAccumulate(u32 nb_iterations, void *current, void *last, void *accumulated) {}
+static void SVG_NoInvalidate(void *stack){}
 
 static void SVG_Init_SMILAnimationStackAPI(SMIL_AnimationStack *stack)
 {
 	if (!stack->dur) { /* this is a discard */
-		stack->InitStackValues = SVG_NoAnimationFunction;
-		stack->DeleteStackValues = SVG_NoAnimationFunction;
-		stack->Set = SVG_NoAnimationFunction;
-		stack->Assign = SVG_NoAnimationFunction;
-		stack->Interpolate = SVG_NoAnimationFunction;
-		stack->ApplyAdditive = SVG_NoAnimationFunction;
-		stack->ApplyAccumulate = SVG_NoAnimationFunction;
-		stack->Invalidate = SVG_NoAnimationFunction;
-		stack->Compare = SVG_NoAnimationFunction;
+		stack->InitStackValues = SVG_NoInitStackValues;
+		stack->DeleteStackValues = SVG_NoDeleteStackValues;
+		stack->Set = SVG_NoSet;
+		stack->Assign = SVG_NoAssign;
+		stack->Interpolate = SVG_NoInterpolate;
+		stack->ApplyAdditive = SVG_NoApplyAdditive;
+		stack->ApplyAccumulate = SVG_NoApplyAccumulate;
+		stack->Invalidate = SVG_NoInvalidate;
+		stack->Compare = SVG_NoCompare;
 		return;
 	}
 	switch(stack->targetAttributeType)
@@ -1368,28 +1374,24 @@ static void SVG_Init_SMILAnimationStackAPI(SMIL_AnimationStack *stack)
 		break;
 	default:
 		fprintf(stderr, "Animation type not supported %d\n", stack->targetAttributeType);
-		stack->InitStackValues = SVG_NoAnimationFunction;
-		stack->DeleteStackValues = SVG_NoAnimationFunction;
-		stack->Set = SVG_NoAnimationFunction;
-		stack->Assign = SVG_NoAnimationFunction;
-		stack->Interpolate = SVG_NoAnimationFunction;
-		stack->ApplyAdditive = SVG_NoAnimationFunction;
-		stack->ApplyAccumulate = SVG_NoAnimationFunction;
-		stack->Invalidate = SVG_NoAnimationFunction;
-		stack->Compare = SVG_NoAnimationFunction;
-		stack->DeleteStackValues = SVG_NoAnimationFunction;
-		return;
+		stack->InitStackValues = SVG_NoInitStackValues;
+		stack->DeleteStackValues = SVG_NoDeleteStackValues;
+		stack->Set = SVG_NoSet;
+		stack->Assign = SVG_NoAssign;
+		stack->Interpolate = SVG_NoInterpolate;
+		stack->ApplyAdditive = SVG_NoApplyAdditive;
+		stack->ApplyAccumulate = SVG_NoApplyAccumulate;
+		stack->Invalidate = SVG_NoInvalidate;
+		stack->Compare = SVG_NoCompare;
 	}
 	stack->DeleteStack = SVG_DeleteStack;
 	stack->previous_key_index = -1;
 }
 
-
-
 /* Initialisation functions for all animation elements in SVG */
-
 void SVG_Init_set(Render2D *sr, GF_Node *node)
 {
+	GF_FieldInfo info;
 	SVGsetElement *set = (SVGsetElement *)node;
 	SMIL_AnimationStack *stack;
 	
@@ -1400,6 +1402,17 @@ void SVG_Init_set(Render2D *sr, GF_Node *node)
 	stack->target_element = (GF_Node*)set->xlink_href.target_element;
 	stack->targetAttributeType = set->attributeName.fieldType; 
 	stack->targetAttribute = set->attributeName.far_ptr; 
+	if (stack->targetAttributeType == SVG_TransformList_datatype && 
+		!gf_node_get_field_by_name(stack->target_element, "transform", &info)) {
+		GF_List *trlist = *(SVG_TransformList *)info.far_ptr;
+		SVG_Transform *tr = gf_list_get(trlist, 0);
+		if (!tr) {
+			GF_SAFEALLOC(tr, sizeof(SVG_Transform));
+			gf_mx2d_init(tr->matrix);
+			gf_list_add(trlist, tr);
+		}
+		stack->targetAttribute = &(tr->matrix);
+	}
 
 	stack->begins = &(set->begin); 
 	stack->dur = &(set->dur); 
@@ -1419,6 +1432,7 @@ void SVG_Init_set(Render2D *sr, GF_Node *node)
 
 void SVG_Init_animate(Render2D *sr, GF_Node *node)
 {
+	GF_FieldInfo info;
 	SVGanimateElement *animate = (SVGanimateElement *)node;
 	SMIL_AnimationStack *stack;
 	
@@ -1429,6 +1443,17 @@ void SVG_Init_animate(Render2D *sr, GF_Node *node)
 	stack->target_element = (GF_Node*)animate->xlink_href.target_element;
 	stack->targetAttributeType = animate->attributeName.fieldType; 
 	stack->targetAttribute = animate->attributeName.far_ptr; 
+	if (stack->targetAttributeType == SVG_TransformList_datatype && 
+		!gf_node_get_field_by_name(stack->target_element, "transform", &info)) {
+		GF_List *trlist = *(SVG_TransformList *)info.far_ptr;
+		SVG_Transform *tr = gf_list_get(trlist, 0);
+		if (!tr) {
+			GF_SAFEALLOC(tr, sizeof(SVG_Transform));
+			gf_mx2d_init(tr->matrix);
+			gf_list_add(trlist, tr);
+		}
+		stack->targetAttribute = &(tr->matrix);
+	}
 
 	stack->begins = &(animate->begin); 
 	stack->dur = &(animate->dur); 

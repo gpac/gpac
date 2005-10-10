@@ -102,7 +102,10 @@ static void SMIL_calcActiveDur(SMIL_AnimationStack *stack, SMIL_Interval *interv
 	if (interval->end < 0) {
 		/* interval->active_duration stays as is */
 	} else {
-		interval->active_duration = MIN(interval->active_duration, interval->end - interval->begin);
+		if (interval->active_duration >= 0)
+			interval->active_duration = MIN(interval->active_duration, interval->end - interval->begin);
+		else 
+			interval->active_duration = interval->end - interval->begin;
 	}
 }
 
@@ -125,13 +128,15 @@ static void SMIL_initIntervalList(SMIL_AnimationStack *stack)
 				gf_list_add(stack->intervals, interval);
 				interval->begin = begin->clock;
 				/* trying to find a matching end */
-				if (end_count > 0) {
+				if (end_count > i) {
 					for (j = 0; j < end_count; j++) {
 						end = gf_list_get(*stack->ends, j);
-						if ((end->type == SMIL_TIME_CLOCK || end->type == SMIL_TIME_WALLCLOCK)
-							&& end->clock >= interval->begin) {
-							interval->end = end->clock;
-							break;
+						if (end->type == SMIL_TIME_CLOCK || 
+							end->type == SMIL_TIME_WALLCLOCK) {
+							if( end->clock >= interval->begin) {
+								interval->end = end->clock;
+								break;
+							}
 						} else {
 							/* an unresolved or indefinite value is always good */
 							interval->end = -1;
@@ -154,10 +159,11 @@ static void SMIL_initIntervalList(SMIL_AnimationStack *stack)
 		if (end_count > 0) {
 			for (j = 0; j < end_count; j++) {
 				end = gf_list_get(*stack->ends, j);
-				if ((end->type == SMIL_TIME_CLOCK || end->type == SMIL_TIME_WALLCLOCK)
-					&& end->clock >= interval->begin) {
-					interval->end = end->clock;
-					break;
+				if (end->type == SMIL_TIME_CLOCK || end->type == SMIL_TIME_WALLCLOCK) {
+					if (end->clock >= interval->begin) {
+						interval->end = end->clock;
+						break;
+					}
 				} else {
 					/* an unresolved or indefinite value is always good */
 					interval->end = -1;
