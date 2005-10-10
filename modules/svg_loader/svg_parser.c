@@ -39,11 +39,11 @@ typedef struct {
 	SVGElement *parent;
 } defered_element;
 
-Bool		svg_has_been_IDed(SVGParser *parser, xmlChar *node_name);
-u32			svg_get_node_id(SVGParser *parser, xmlChar *nodename);
+Bool		svg_has_been_IDed	(SVGParser *parser, xmlChar *node_name);
+u32			svg_get_node_id		(SVGParser *parser, xmlChar *nodename);
 void		svg_parse_element_id(SVGParser *parser, SVGElement *elt, char *nodename);
 
-void		svg_parse_attribute	(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info, xmlChar *attribute_content, u8 anim_value_type, u8 transform_anim_datatype);
+void		svg_parse_attribute	(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info, xmlChar *attribute_content, u8 anim_value_type, u8 anim_transform_type);
 void		svg_parse_style		(SVGParser *parser, SVGElement *elt, char *style);
 
 void		svg_parse_attributes_from_node		(SVGParser *parser, xmlNodePtr node, SVGElement *elt, u8 anim_value_type, u8 anim_transform_type);

@@ -2086,9 +2086,6 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 	
 		switch (import->esd->decoderConfig->streamType) {
 		case GF_STREAM_SCENE: mtype = GF_ISOM_MEDIA_BIFS; break;
-	/* WARNING: Code added for Bandwidth estimation in DANAE */
-		case 32:
-	/**/
 		case GF_STREAM_VISUAL:
 			mtype = GF_ISOM_MEDIA_VISUAL;
 			if (import->esd->decoderConfig->objectTypeIndication==0x20) {

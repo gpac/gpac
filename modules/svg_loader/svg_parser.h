@@ -31,12 +31,18 @@
 extern "C" {
 #endif
 
+#include <gpac/tools.h>
 
 typedef struct _svg_parser SVGParser;
 
 SVGParser *NewSVGParser();
+
 void SVGParser_Init(SVGParser *parser, char *filename, void *graph);
-int SVGParser_Parse(SVGParser *parser);
+
+GF_Err SVGParser_ParseLASeR(SVGParser *parser);
+GF_Err SVGParser_ParseFullDoc(SVGParser *parser);
+GF_Err SVGParser_ParseProgressiveDoc(SVGParser *parser);
+
 void SVGParser_Terminate(SVGParser *parser);
 
 
@@ -64,6 +70,13 @@ long _ftol2( double dblSource ) { return _ftol( dblSource ); }
 
 /* comment this line if you don't want the GPAC cache mechanism */
 #define USE_GPAC_CACHE_MECHANISM
+
+
+enum {
+	SVGLOADER_OTI_FULL_SVG		  = 2,
+	SVGLOADER_OTI_PROGRESSIVE_SVG = 3,
+	SVGLOADER_OTI_FULL_LASERML	  = 4
+};
 
 GF_Err SVGParser_ParseLASeR(SVGParser *parser);
 
