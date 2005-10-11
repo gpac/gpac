@@ -54,14 +54,47 @@ void SVG_SetMFURLFromURI(MFURL *mfurl, char *uri)
 static void SVG_BuildGraph_image(SVG_image_stack *st, DrawableContext *ctx);
 static void SVG_BuildGraph_video(SVG_video_stack *st, DrawableContext *ctx);
 
+static void SVG_ComputeAR(Fixed objw, Fixed objh, Fixed viewportw, Fixed viewporth,
+						  SVG_PreserveAspectRatio *par, GF_Matrix2D *par_mat)
+{
+	gf_mx2d_init(*par_mat);
+	if (par->meetOrSlice == SVG_MEETORSLICE_MEET) {
+		switch(par->align) {
+			case SVG_PRESERVEASPECTRATIO_NONE:
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMINYMIN:
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMIDYMIN:
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMAXYMIN:
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMINYMID:
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMIDYMID:
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMAXYMID:
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMINYMAX:
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMIDYMAX:
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMAXYMAX:
+				break;
+		}
+	} else {
+	}
+}
+
 static void SVG_Draw_bitmap(DrawableContext *ctx)
 {
 	u8 alpha;
 	Render2D *sr;
 	Bool use_hw, has_scale;
+	SVG_PreserveAspectRatio *par = NULL;
+	GF_Matrix2D par_mat;
+	u32 texture_w, texture_h;
 
 	sr = ctx->surface->render;
-
 
 	has_scale = 0;
 	use_hw = 1;
@@ -69,6 +102,15 @@ static void SVG_Draw_bitmap(DrawableContext *ctx)
 
 	/* no rotation allowed, remove skew components */
 	if (ctx->transform.m[1] || ctx->transform.m[3]) use_hw = 0;
+
+	switch (gf_node_get_tag(ctx->node->owner) ) {
+	case TAG_SVG_image:
+		par = &(((SVGimageElement *)ctx->node->owner)->preserveAspectRatio);
+		break;
+	case TAG_SVG_video:
+		par = &(((SVGvideoElement *)ctx->node->owner)->preserveAspectRatio);
+		break;
+	}
 
 	/*check if driver can handle alpha blit*/
 	if (alpha!=255) use_hw = 0;

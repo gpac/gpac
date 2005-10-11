@@ -851,33 +851,92 @@ static void SVG_DeleteStackValuesPoints(SMIL_AnimationStack *stack)
 /* end of SVG Coordinates animation functions */
 
 /* SVG Coordinates functions */
-static void SVG_SetCoords(GF_List *a, GF_List *b)
+static void SVG_SetCoords(SVG_Coordinates *a, SVG_Coordinates *b)
+{
+	u32 i, count;
+
+	for (i = 0; i < gf_list_count(*a); i++) {
+		SVG_Coordinate *c = gf_list_get(*a, i);
+		free(c);
+	}
+	gf_list_reset(*a);
+	
+	count = gf_list_count(*b);
+	for (i = 0; i < count; i ++) {
+		SVG_Coordinate *cb = gf_list_get(*b, i);
+		SVG_Coordinate *ca;
+		GF_SAFEALLOC(ca, sizeof(SVG_Point))
+		*ca = *cb;
+		gf_list_add(*a, ca);
+	}
+}
+
+static void SVG_AddCoords(SVG_Coordinates *a, SVG_Coordinates *b, SVG_Coordinates *c)
 {
 }
 
-static void SVG_AddCoords(GF_List *a, SVG_Rect *b, GF_List *c)
+static u32 SVG_CompareCoords(SVG_Coordinates *a, SVG_Coordinates *b)
 {
-}
+	u32 i, count;
 
-static u32 SVG_CompareCoords(GF_List *a, GF_List *b)
-{
+	count= gf_list_count(*a);
+	if (count != gf_list_count(*b)) return 1;
+
+	for (i = 0; i < count; i++) {
+		SVG_Coordinate *ca = gf_list_get(*a, i);
+		SVG_Coordinate *cb = gf_list_get(*b, i);
+		if ((ca->number != cb->number) || (ca->type != cb->type)) return 1; 
+	}
 	return 0;
 }
 
-static void SVG_ApplyAccumulateCoords(u32 nb_iterations, GF_List *current, GF_List *last, GF_List*accumulated)
+static void SVG_ApplyAccumulateCoords(u32 nb_iterations, SVG_Coordinates *current, SVG_Coordinates  *last, SVG_Coordinates *accumulated)
 {
 }
 
-static void SVG_InterpolateCoords(Fixed interpolation_coefficient, GF_List *value1, GF_List *value2, GF_List *target)
+static void SVG_InterpolateCoords(Fixed interpolation_coefficient, SVG_Coordinates *value1, SVG_Coordinates *value2, SVG_Coordinates *target)
 {
+	u32 i, count;
+
+	for (i = 0; i < gf_list_count(*target); i++) {
+		SVG_Coordinate *c = gf_list_get(*target, i);
+		free(c);
+	}
+	gf_list_reset(*target);
+	
+	count = gf_list_count(*value1);
+	for (i = 0; i < count; i ++) {
+		SVG_Coordinate *c3;
+		SVG_Coordinate *c1 = gf_list_get(*value1, i);
+		SVG_Coordinate *c2 = gf_list_get(*value2, i);
+		GF_SAFEALLOC(c3, sizeof(SVG_Coordinate))
+		c3->type = c1->type;
+		c3->number = SVG_Interpolate(c1->number, c2->number, interpolation_coefficient);
+		gf_list_add(*target, c3);
+	}
 }
 
 static void SVG_InitStackValuesCoords(SMIL_AnimationStack *stack)
 {
+	u32 i, count;
+	SVG_Coordinate *c, *nc;
+	GF_SAFEALLOC(stack->base_value, sizeof(SVG_Coordinates));
+	*(SVG_Coordinates*)stack->base_value = gf_list_new();
+	count = gf_list_count(*(SVG_Coordinates*)stack->targetAttribute);
+	for (i = 0; i < count; i ++) {
+		c = gf_list_get(*(SVG_Coordinates *)stack->targetAttribute, i);
+		nc = malloc(sizeof(SVG_Coordinate));
+		*nc = *c;
+		gf_list_add(*(SVG_Coordinates *)stack->base_value, nc);
+	}
+	GF_SAFEALLOC(stack->tmp_value, sizeof(SVG_Coordinates));
+	*(SVG_Coordinates*)stack->tmp_value = gf_list_new();
 }
 
 static void SVG_DeleteStackValuesCoords(SMIL_AnimationStack *stack)
 {
+	SVG_DeleteCoordinates(*(SVG_Coordinates *)stack->base_value);
+	SVG_DeleteCoordinates(*(SVG_Coordinates *)stack->tmp_value);
 }
 /* end of SVG Coordinates animation functions */
 

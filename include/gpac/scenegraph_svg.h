@@ -130,7 +130,6 @@ typedef DOM_String SVG_Number;
 typedef DOM_String SVG_Numbers;
 typedef DOM_String SVG_NumberOrPercentage;
 typedef DOM_String SVG_LinkTarget;
-typedef DOM_String SVG_PreserveAspectRatioSpec;
 typedef DOM_String SVG_FeatureList;
 typedef DOM_String SVG_ExtensionList;
 typedef DOM_String SVG_FormatList;
@@ -304,7 +303,6 @@ typedef struct {
 	Fixed x, y;
 } SVG_Point;
 typedef GF_List * SVG_Points;
-typedef GF_List * SVG_Coordinates;
 
 typedef struct {
 	Fixed x, y, angle;
@@ -412,6 +410,7 @@ typedef struct {
 } SVG_Length, 
   SVG_Coordinate, 
   SVG_StrokeWidth;
+typedef GF_List * SVG_Coordinates;
 
 typedef GF_Matrix2D SVG_Matrix;
 
@@ -624,27 +623,26 @@ enum {
 
 enum {
 	// Alignment Types
-	SVG_PRESERVEASPECTRATIO_UNKNOWN = 0,
 	SVG_PRESERVEASPECTRATIO_NONE = 1,
 	SVG_PRESERVEASPECTRATIO_XMINYMIN = 2,
 	SVG_PRESERVEASPECTRATIO_XMIDYMIN = 3,
 	SVG_PRESERVEASPECTRATIO_XMAXYMIN = 4,
 	SVG_PRESERVEASPECTRATIO_XMINYMID = 5,
-	SVG_PRESERVEASPECTRATIO_XMIDYMID = 6,
-	SVG_PRESERVEASPECTRATIO_XMAXYMID = 7,
-	SVG_PRESERVEASPECTRATIO_XMINYMAX = 8,
-	SVG_PRESERVEASPECTRATIO_XMIDYMAX = 9,
-	SVG_PRESERVEASPECTRATIO_XMAXYMAX = 10,
+	SVG_PRESERVEASPECTRATIO_XMIDYMID = 0, //default
+	SVG_PRESERVEASPECTRATIO_XMAXYMID = 6,
+	SVG_PRESERVEASPECTRATIO_XMINYMAX = 7,
+	SVG_PRESERVEASPECTRATIO_XMIDYMAX = 8,
+	SVG_PRESERVEASPECTRATIO_XMAXYMAX = 9
 };
 
 enum {
 	// Meet_or_slice Types
-	SVG_MEETORSLICE_UNKNOWN = 0,
-	SVG_MEETORSLICE_MEET = 1,
-	SVG_MEETORSLICE_SLICE = 2
+	SVG_MEETORSLICE_MEET  = 0,
+	SVG_MEETORSLICE_SLICE = 1
 };
 
 typedef struct {
+	Bool defer;
 	u8 align;
 	u8 meetOrSlice;
 } SVG_PreserveAspectRatio; 

@@ -63,17 +63,20 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 	}
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
+		unsigned short *wcText;
+		Fixed ascent, descent, font_height;
+		GF_Rect rc;
+		u32 len;
 		Fixed lw, lh, start_x, start_y;
 		unsigned short wcTemp[5000];
 		char styles[1000];
 		char *str = text->textContent;
 		/* todo : place each character one by one */
-		Fixed x = (gf_list_count(text->x) ? *(Fixed *)gf_list_get(text->x, 0) : 0);
-		Fixed y = (gf_list_count(text->y) ? *(Fixed *)gf_list_get(text->y, 0) : 0);
-		unsigned short *wcText;
-		Fixed ascent, descent, font_height;
-		GF_Rect rc;
-		u32 len;
+		SVG_Coordinate *xc = (gf_list_count(text->x) ? gf_list_get(text->x, 0) : NULL);
+		SVG_Coordinate *yc = (gf_list_count(text->y) ? gf_list_get(text->y, 0) : NULL);
+		Fixed x, y;
+		if (xc) x = xc->number; else x = 0;
+		if (yc) y = yc->number; else y = 0;
 
 //		fprintf(stdout, "Rebuilding text\n");
 		drawable_reset_path(cs);
