@@ -188,8 +188,8 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 			read->oti = 0x01;
 
 		else if (!stricmp(ext, "svg") || !stricmp(ext, "svgz")) {
-			read->oti = 0x03;
-			read->supports_progressive_loading = 1;
+			read->oti = 0x02;
+			read->supports_progressive_loading = 0;
 		}
 		/*XML LASeR*/
 		else if (!stricmp(ext, "xsr")) read->oti = 0x04;

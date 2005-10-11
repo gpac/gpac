@@ -7,14 +7,13 @@
 <!-- version=The version number of the product being tested                               -->
 <!-- platform=The platform(s) that the product is tested on                               -->
 <!-- date=The date of the submission in the form year/month/day, eg. 2002/08/30           -->
-<svg-status-query company="GPAC Project"
-		date="2005/10/11"
 <!-- 
     # of tests:      179 (empty: 12, others: 167)
     # of OK:          98 (empty: 12, others:  86)
     # of PARTIAL:                             42
     # of FAIL:                                39 (text: 14, fonts: 13, others: 12)
 -->		
+<svg-status-query company="GPAC Project" date="2005/10/11"
 		product="Osmo4 using GPAC 2D Raster"
 		version="0.4.1-DEV Debug"
 		platform="Win32, WinCE, Linux"
@@ -127,26 +126,26 @@
 	<test name="painting-fill-04-t" revision="1.7" status="OK" comment=""/>
 	<test name="painting-fill-05-t" revision="1.1" status="OK" comment=""/>
 	<test name="painting-stroke-01-t" revision="1.9" status="OK" comment=""/>
-	<test name="painting-stroke-02-t" revision="1.9" status="PARTIAL" comment="stroke line join round is not round"/>
+	<test name="painting-stroke-02-t" revision="1.9" status="OK" comment=""/>
 	<test name="painting-stroke-03-t" revision="1.9" status="OK" comment=""/>
 	<test name="painting-stroke-04-t" revision="1.9" status="OK" comment=""/>
-	<test name="painting-stroke-05-t" revision="1.6" status="PARTIAL" comment="Very thin stroke is not displayed"/>
+	<test name="painting-stroke-05-t" revision="1.6" status="PARTIAL" comment="Very thin stroke is not displayed due to alpha blending limitation (8 bits -> min alpha is 0.004"/>
 	<test name="painting-stroke-06-t" revision="1.1" status="OK" comment=""/>
 	<test name="painting-stroke-07-t" revision="1.1" status="OK" comment=""/>
 	<test name="painting-stroke-08-t" revision="1.1" status="OK" comment=""/>
-	<test name="paths-data-01-t" revision="1.6" status="PARTIAL" comment="Line M,C,Z not drawn"/>
+	<test name="paths-data-01-t" revision="1.6" status="OK" comment=""/>
 	<test name="paths-data-02-t" revision="1.6" status="OK" comment=""/>
 	<test name="paths-data-04-t" revision="1.7" status="OK" comment=""/>
 	<test name="paths-data-05-t" revision="1.8" status="OK" comment=""/>
 	<test name="paths-data-06-t" revision="1.7" status="OK" comment=""/>
 	<test name="paths-data-07-t" revision="1.8" status="OK" comment=""/>
 	<test name="paths-data-08-t" revision="1.9" status="OK" comment=""/>
-	<test name="paths-data-09-t" revision="1.9" status="FAIL" comment=""/>
+	<test name="paths-data-09-t" revision="1.9" status="OK" comment=""/>
 	<test name="paths-data-10-t" revision="1.9" status="PARTIAL" comment="Problem with Bevel"/>
 	<test name="paths-data-11-t" revision="1.5" status="OK" comment="empty"/>
-	<test name="paths-data-12-t" revision="1.1" status="PARTIAL" comment="One of the two shapes is drawn correctly"/>
+	<test name="paths-data-12-t" revision="1.1" status="OK" comment=""/>
 	<test name="paths-data-13-t" revision="1.1" status="OK" comment=""/>
-	<test name="paths-data-14-t" revision="1.1" status="PARTIAL" comment="The stroken triangle is correct"/>
+	<test name="paths-data-14-t" revision="1.1" status="OK" comment=""/>
 	<test name="paths-data-15-t" revision="1.1" status="OK" comment=""/>
 	<test name="paths-dist-01-t" revision="1.4" status="OK" comment="empty"/>
 	<test name="render-elems-01-t" revision="1.7" status="OK" comment=""/>
@@ -159,13 +158,13 @@
 	<test name="shapes-circle-01-t" revision="1.7" status="OK" comment=""/>
 	<test name="shapes-circle-02-t" revision="1.1" status="OK" comment=""/>
 	<test name="shapes-ellipse-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="shapes-ellipse-02-t" revision="1.1" status="PARTIAL" comment="Degenerated ellipses are not displayed as a line"/>
-	<test name="shapes-intro-01-t" revision="1.7" status="PARTIAL" comment="Degenerated shapes are not displayed as lines, but as points"/>
+	<test name="shapes-ellipse-02-t" revision="1.1" status="OK" comment=""/>
+	<test name="shapes-intro-01-t" revision="1.7" status="OK" comment=""/>
 	<test name="shapes-line-01-t" revision="1.7" status="OK" comment=""/>
 	<test name="shapes-polygon-01-t" revision="1.7" status="OK" comment=""/>
 	<test name="shapes-polyline-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="shapes-rect-01-t" revision="1.7" status="PARTIAL" comment="Stroken rounded rect has a problem"/>
-	<test name="shapes-rect-02-t" revision="1.2" status="PARTIAL" comment="Degenerated rectangle are shown as points"/>
+	<test name="shapes-rect-01-t" revision="1.7" status="OK" comment=""/>
+	<test name="shapes-rect-02-t" revision="1.2" status="OK" comment=""/>
 	<test name="struct-cond-01-t" revision="1.6" status="PARTIAL" comment="required* attributes are not yet supported."/>
 	<test name="struct-cond-02-t" revision="1.8" status="PARTIAL" comment="Switch does not do selection yet."/>
 	<test name="struct-cond-03-t" revision="1.6" status="PARTIAL" comment="Switch does not do selection yet."/>

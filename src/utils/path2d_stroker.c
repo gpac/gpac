@@ -470,6 +470,7 @@ typedef struct  FT_StrokerRec_
 	Fixed miter_limit;
 	Fixed radius;
 	Bool              valid;
+	Bool              closing;
 	FT_StrokeBorderRec   borders[2];
 } FT_StrokerRec, FT_Stroker;
 
@@ -593,7 +594,7 @@ static s32 ft_stroker_inside(FT_Stroker *stroker, s32 side)
 		delta = gf_v2d_from_polar(stroker->radius, stroker->angle_out + rotate );
 		delta.x += stroker->center.x;
 		delta.y += stroker->center.y;
-		border->movable = 0;
+		if (!stroker->closing) border->movable = 0;
 	} else {
 		length = gf_divfix( stroker->radius, thcos );
 		delta = gf_v2d_from_polar(length, phi + rotate );
@@ -717,15 +718,13 @@ static s32 ft_stroker_process_corner(FT_Stroker *stroker )
 
     /* when we turn to the right, the inside side is 0 */
     inside_side = 0;
-
     /* otherwise, the inside side is 1 */
-    if ( turn < 0 )
+    if (turn < 0 )
 		inside_side = 1;
 
     /* process the inside side */
-    error = ft_stroker_inside( stroker, inside_side );
-    if ( error )
-		goto Exit;
+	error = ft_stroker_inside( stroker, inside_side );
+	if ( error ) goto Exit;
 
     /* process the outside side */
     error = ft_stroker_outside( stroker, 1 - inside_side );
@@ -779,6 +778,7 @@ static s32 FT_Stroker_LineTo( FT_Stroker *stroker, GF_Point2D*  to )
 
     delta.x = to->x - stroker->center.x;
     delta.y = to->y - stroker->center.y;
+	if (!delta.x && !delta.y) return 0;
 
     angle = gf_atan2( delta.y, delta.x);
     delta = gf_v2d_from_polar(stroker->radius, angle + GF_PI2 );
@@ -1075,47 +1075,8 @@ static s32 FT_Stroker_EndSubPath( FT_Stroker *stroker, Bool do_close)
     s32  error  = 0;
 	FT_StrokeBorder  right = stroker->borders;
 	if (do_close) {
-		//error = FT_Stroker_LineTo( stroker, &stroker->subpath_start );
-		//error = ft_stroker_process_corner(stroker);
-		stroker->angle_out = stroker->subpath_angle;
-		ft_stroker_process_corner(stroker);
-		ft_stroke_border_close( &stroker->borders[0]);
-		ft_stroke_border_close( &stroker->borders[1]);
-
-	} else {
-		/* All right, this is an opened path, we need to add a cap between */
-		/* right & left, add the reverse of left, then add a final cap     */
-		/* between left & right.                                           */
-		error = ft_stroker_cap( stroker, stroker->angle_in, 0 );
-		if ( error ) goto Exit;
-
-		/* add reversed points from "left" to "right" */
-		error = ft_stroker_add_reverse_left( stroker, 1 );
-		if ( error ) goto Exit;
-
-		/* now add the final cap */
-		stroker->center = stroker->subpath_start;
-		error = ft_stroker_cap( stroker,
-			stroker->subpath_angle + GF_PI, 0 );
-		if ( error )
-			goto Exit;
-
-		/* Now end the right subpath accordingly.  The left one is */
-		/* rewind and doesn't need further processing.             */
-		ft_stroke_border_close( right );
-	}
-#if 0
-
-    } else {
 		Fixed turn;
 		s32 inside_side;
-		/* close the path if needed */
-		if ( stroker->center.x != stroker->subpath_start.x ||
-			stroker->center.y != stroker->subpath_start.y ) {
-			error = FT_Stroker_LineTo( stroker, &stroker->subpath_start );
-			if ( error )
-				goto Exit;
-		}
 
 		/* process the corner */
 		stroker->angle_out = stroker->subpath_angle;
@@ -1141,11 +1102,32 @@ static s32 FT_Stroker_EndSubPath( FT_Stroker *stroker, Bool do_close)
 				goto Exit;
 		}
 
+		ft_stroker_add_reverse_left(stroker, 0);
 		/* then end our two subpaths */
 		ft_stroke_border_close( stroker->borders + 0 );
 		ft_stroke_border_close( stroker->borders + 1 );
-    }
-#endif
+	} else {
+		/* All right, this is an opened path, we need to add a cap between */
+		/* right & left, add the reverse of left, then add a final cap     */
+		/* between left & right.                                           */
+		error = ft_stroker_cap( stroker, stroker->angle_in, 0 );
+		if ( error ) goto Exit;
+
+		/* add reversed points from "left" to "right" */
+		error = ft_stroker_add_reverse_left( stroker, 1 );
+		if ( error ) goto Exit;
+
+		/* now add the final cap */
+		stroker->center = stroker->subpath_start;
+		error = ft_stroker_cap( stroker,
+			stroker->subpath_angle + GF_PI, 0 );
+		if ( error )
+			goto Exit;
+
+		/* Now end the right subpath accordingly.  The left one is */
+		/* rewind and doesn't need further processing.             */
+		ft_stroke_border_close( right );
+	}
 
 Exit:
 	return error;
@@ -1613,6 +1595,8 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 	if (path->n_points==1) 
 		gf_path_add_line_to(path, path->points[0].x, path->points[0].y);
 
+	gf_path_flatten(path);
+
 	scaled = NULL;
 	/*if not centered, simply scale path...*/
 	if (pen.align) {
@@ -1664,6 +1648,7 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 				outline->points = malloc(sizeof(GF_Point2D)*nb_pt);
 				outline->tags = malloc(sizeof(u8)*nb_pt);
 				outline->contours = malloc(sizeof(u32)*nb_cnt);
+				outline->n_alloc_points = nb_pt;
 				sborder = &stroker.borders[0];
 				if (sborder->valid ) ft_stroke_border_export(sborder, outline);
 				sborder = &stroker.borders[1];
@@ -1678,7 +1663,10 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 				}
 			}
 			outline->flags |= GF_PATH_BBOX_DIRTY;
-			if (path->flags & GF_PATH_FLATTENED) outline->flags |= GF_PATH_FLATTENED;
+
+			/*our caps are cubic bezier!!*/
+			if ( (path->flags & GF_PATH_FLATTENED) && (pen.cap!=GF_LINE_CAP_ROUND) && (pen.join!=GF_LINE_JOIN_ROUND) )
+				outline->flags |= GF_PATH_FLATTENED;
 		}
 	}
 
@@ -1689,8 +1677,6 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 	
 	if (dashed) gf_path_del(dashed);
 	if (scaled) gf_path_del(scaled);
-	/*our caps are cubic bezier!!*/
-	if (pen.cap==GF_LINE_CAP_ROUND) outline->flags &= ~GF_PATH_FLATTENED;
 
 	return outline;
 }

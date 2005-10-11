@@ -911,6 +911,7 @@ static void SVG_Render_path(GF_Node *node, void *rs)
 			case 1: /* Line To */
 				tmp = gf_list_get(path->d.points, j);
 				end = *tmp;
+
 				gf_path_add_line_to(cs->path, end.x, end.y);
 				j++;
 				orig = end;

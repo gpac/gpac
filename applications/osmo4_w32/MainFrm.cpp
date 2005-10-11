@@ -182,7 +182,7 @@ CMainFrame::~CMainFrame()
 
 
 #define RTI_TIMER	22
-#define RTI_REFRESH_MS		1000
+#define RTI_REFRESH_MS		500
 
 void CALLBACK EXPORT RTInfoTimer(HWND , UINT , UINT nID , DWORD )
 {

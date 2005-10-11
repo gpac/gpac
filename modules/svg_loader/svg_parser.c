@@ -851,7 +851,7 @@ void svg_parse_path(SVGParser *parser, SVG_PathData *d_attribute, xmlChar *attri
 next_command:
 			switch (c) {
 			case 'm':
-				if (first_command) c = 'M'; 
+				if (first_command) cur_pt.x = cur_pt.y = 0;
 			case 'M':
 			case 'L':
 			case 'l':
