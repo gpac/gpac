@@ -104,7 +104,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 		esd = (GF_ESD *)com.cache_esd.esd;
 		switch (esd->decoderConfig->streamType) {
 		case GF_STREAM_OD: mtype = GF_ISOM_MEDIA_OD; break;
-		case GF_STREAM_SCENE: mtype = GF_ISOM_MEDIA_BIFS; break;
+		case GF_STREAM_SCENE: mtype = GF_ISOM_MEDIA_SCENE; break;
 		case GF_STREAM_VISUAL: mtype = GF_ISOM_MEDIA_VISUAL; break;
 		case GF_STREAM_AUDIO: mtype = GF_ISOM_MEDIA_AUDIO; break;
 		case GF_STREAM_MPEG7: mtype = GF_ISOM_MEDIA_MPEG7; break;

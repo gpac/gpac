@@ -1106,7 +1106,7 @@ GF_Err gf_isom_set_visual_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDes
 		return GF_OK;
 	/*check BIFS*/
 	default:
-		if (trak->Media->handler->handlerType==GF_ISOM_MEDIA_BIFS) {
+		if (trak->Media->handler->handlerType==GF_ISOM_MEDIA_SCENE) {
 			trak->Header->width = Width<<16;
 			trak->Header->height = Height<<16;
 			return GF_OK;

@@ -1270,7 +1270,7 @@ static void SVG_Init_SMILAnimationStackAPI(SMIL_AnimationStack *stack)
 		stack->Interpolate = SVG_InterpolateIFloat;
 		stack->ApplyAdditive = SVG_AddIFloat;
 		stack->ApplyAccumulate = SVG_ApplyAccumulateIFloat;
-		stack->Invalidate = SVG_InvalidateAndDirtyAppearance;
+		stack->Invalidate = SVG_InvalidateAndDirtyAll;
 		stack->Compare = SVG_CompareIFloat;
 		break;
 	case SVG_FontSize_datatype:
@@ -1292,7 +1292,7 @@ static void SVG_Init_SMILAnimationStackAPI(SMIL_AnimationStack *stack)
 		stack->Interpolate = SVG_InterpolateDashArray;
 		stack->ApplyAdditive = SVG_AddDashArray;
 		stack->ApplyAccumulate = SVG_ApplyAccumulateDashArray;
-		stack->Invalidate = SVG_InvalidateAndDirtyAppearance;
+		stack->Invalidate = SVG_InvalidateAndDirtyAll;
 		stack->Compare = SVG_CompareDashArray;
 		break;
 	case SVG_ViewBox_datatype:

@@ -1840,7 +1840,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 	w = h = 0;
 	switch (import->esd->decoderConfig->streamType) {
 	case GF_STREAM_SCENE:
-		mtype = GF_ISOM_MEDIA_BIFS;
+		mtype = GF_ISOM_MEDIA_SCENE;
 		/*we don't know PLs from NHNT...*/
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_SCENE, 0xFE);
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_GRAPHICS, 0xFE);
@@ -1882,7 +1882,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 		e = GF_NOT_SUPPORTED;
 		goto exit;
 	case GF_STREAM_INTERACT:
-		mtype = GF_ISOM_MEDIA_BIFS;
+		mtype = GF_ISOM_MEDIA_SCENE;
 		break;
 	default:
 		mtype = GF_ISOM_MEDIA_ESM;
@@ -2085,7 +2085,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 	
 	
 		switch (import->esd->decoderConfig->streamType) {
-		case GF_STREAM_SCENE: mtype = GF_ISOM_MEDIA_BIFS; break;
+		case GF_STREAM_SCENE: mtype = GF_ISOM_MEDIA_SCENE; break;
 		case GF_STREAM_VISUAL:
 			mtype = GF_ISOM_MEDIA_VISUAL;
 			if (import->esd->decoderConfig->objectTypeIndication==0x20) {
@@ -2111,7 +2111,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 		case GF_STREAM_MPEGJ: mtype = GF_ISOM_MEDIA_MPEGJ; break;
 		/*note we cannot import OD from NHNT*/
 		case GF_STREAM_OD: e = GF_NOT_SUPPORTED; goto exit;
-		case GF_STREAM_INTERACT: mtype = GF_ISOM_MEDIA_BIFS; break;
+		case GF_STREAM_INTERACT: mtype = GF_ISOM_MEDIA_SCENE; break;
 		default: mtype = GF_ISOM_MEDIA_ESM; break;
 		}
 
@@ -3846,7 +3846,7 @@ GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 	if (!src) return gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", import->in_name);
 
 	switch (import->esd->decoderConfig->streamType) {
-	case GF_STREAM_SCENE: mtype = GF_ISOM_MEDIA_BIFS; break;
+	case GF_STREAM_SCENE: mtype = GF_ISOM_MEDIA_SCENE; break;
 	case GF_STREAM_VISUAL: mtype = GF_ISOM_MEDIA_VISUAL; break;
 	case GF_STREAM_AUDIO: mtype = GF_ISOM_MEDIA_AUDIO; break;
 	case GF_STREAM_TEXT: mtype = GF_ISOM_MEDIA_TEXT; break;

@@ -118,7 +118,7 @@ static void gf_text_get_video_size(GF_ISOFile *dest, u32 *width, u32 *height)
 	(*width) = (*height) = 0;
 	for (i=0; i<gf_isom_get_track_count(dest); i++) {
 		switch (gf_isom_get_media_type(dest, i+1)) {
-		case GF_ISOM_MEDIA_BIFS:
+		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_VISUAL:
 			gf_isom_get_visual_info(dest, i+1, 1, &w, &h);
 			if (w > (*width)) (*width) = w;

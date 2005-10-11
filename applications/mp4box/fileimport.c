@@ -70,7 +70,7 @@ void convert_file_info(char *inName, u32 trackID)
 		case GF_ISOM_MEDIA_VISUAL: fprintf(stdout, "Video\n"); break;
 		case GF_ISOM_MEDIA_AUDIO: fprintf(stdout, "Audio\n"); break;
 		case GF_ISOM_MEDIA_TEXT: fprintf(stdout, "Text\n"); break;
-		case GF_ISOM_MEDIA_BIFS: fprintf(stdout, "BIFS\n"); break;
+		case GF_ISOM_MEDIA_SCENE: fprintf(stdout, "Scene\n"); break;
 		default: fprintf(stdout, "Other (4CC: %s)\n", gf_4cc_to_str(import.tk_info[i].type)); break;
 		}
 		if (!trackID) continue;
@@ -300,7 +300,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			}
 			continue;
 		case GF_ISOM_MEDIA_HINT:
-		case GF_ISOM_MEDIA_BIFS:
+		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_OCR:
 		case GF_ISOM_MEDIA_OD:
 		case GF_ISOM_MEDIA_OCI:
@@ -762,7 +762,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				break;
 			}
 		case GF_ISOM_MEDIA_HINT:
-		case GF_ISOM_MEDIA_BIFS:
+		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_OCR:
 		case GF_ISOM_MEDIA_OD:
 		case GF_ISOM_MEDIA_OCI:
@@ -802,7 +802,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		case GF_ISOM_MEDIA_VISUAL:
 			break;
 		case GF_ISOM_MEDIA_HINT:
-		case GF_ISOM_MEDIA_BIFS:
+		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_OCR:
 		case GF_ISOM_MEDIA_OD:
 		case GF_ISOM_MEDIA_OCI:
@@ -1163,7 +1163,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		if (!esd->slConfig) esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 		if (sc->timeScale) esd->slConfig->timestampResolution = sc->timeScale;
 		if (!esd->slConfig->timestampResolution) esd->slConfig->timestampResolution = 1000;
-//		track = gf_isom_new_track(dest, sc->ESID, GF_ISOM_MEDIA_BIFS, esd->slConfig->timestampResolution );
+//		track = gf_isom_new_track(dest, sc->ESID, GF_ISOM_MEDIA_SCENE, esd->slConfig->timestampResolution );
 //		gf_isom_set_track_enabled(dest, track, 1);
 //		if (!sc->ESID) sc->ESID = gf_isom_get_track_id(dest, track);
 		esd->ESID = sc->ESID;

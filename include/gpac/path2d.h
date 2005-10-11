@@ -206,6 +206,8 @@ typedef enum
 	GF_DASH_STYLE_DASH_DASH_DOT,
 	GF_DASH_STYLE_DASH_DOT_DOT,
 	GF_DASH_STYLE_CUSTOM,
+	/*same as GF_DASH_STYLE_CUSTOM, but lengths are given in same unit as pen width rather than percentage of width*/
+	GF_DASH_STYLE_CUSTOM_ABS,
 } GF_DashStyle;
 
 

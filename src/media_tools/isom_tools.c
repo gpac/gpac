@@ -304,7 +304,7 @@ GF_Err gp_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	gf_isom_set_track_group(mp4file, odT, 1);
 
 	/*create the BIFS track*/
-	bifsT = gf_isom_new_track(mp4file, bifsID, GF_ISOM_MEDIA_BIFS, gf_isom_get_timescale(mp4file));
+	bifsT = gf_isom_new_track(mp4file, bifsID, GF_ISOM_MEDIA_SCENE, gf_isom_get_timescale(mp4file));
 	if (!bifsT) return gf_isom_last_error(mp4file);
 
 	_esd = gf_odf_desc_esd_new(SLPredef_MP4);

@@ -655,12 +655,15 @@ StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *path)
 		if (si->outline) gf_path_del(si->outline);
 		/*apply scale whether scalable or not (if not scalable, scale is still needed for scalable zoom)*/
 		ctx->aspect.pen_props.width = gf_mulfix(ctx->aspect.pen_props.width, ctx->aspect.line_scale);
-		ctx->aspect.pen_props.dash_offset = gf_mulfix(ctx->aspect.pen_props.dash_offset, ctx->aspect.pen_props.width);
+		if (ctx->aspect.pen_props.dash != GF_DASH_STYLE_CUSTOM_ABS) 
+			ctx->aspect.pen_props.dash_offset = gf_mulfix(ctx->aspect.pen_props.dash_offset, ctx->aspect.pen_props.width);
+		
 		if (ctx->aspect.pen_props.dash_set) {
 			for(i=0; i<ctx->aspect.pen_props.dash_set->num_dash; i++) {
 				ctx->aspect.pen_props.dash_set->dashes[i] = gf_mulfix(ctx->aspect.pen_props.dash_set->dashes[i], ctx->aspect.line_scale);
 			}
 		}
+
 		if (path) {
 			si->outline = gf_path_get_outline(path, ctx->aspect.pen_props);
 			si->original = path;
@@ -873,7 +876,7 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGStylingPropertie
 		ctx->aspect.line_color = GF_COL_ARGB_FIXED(props.stroke_opacity->value, props.stroke->color->red, props.stroke->color->green, props.stroke->color->blue);
 	}
 	if (props.stroke_dasharray->type != SVG_STROKEDASHARRAY_NONE) {
-		ctx->aspect.pen_props.dash = GF_DASH_STYLE_CUSTOM;
+		ctx->aspect.pen_props.dash = GF_DASH_STYLE_CUSTOM_ABS;
 		ctx->aspect.pen_props.dash_offset = props.stroke_dashoffset->value;
 		ctx->aspect.pen_props.dash_set = (GF_DashSettings *) &(props.stroke_dasharray->array);
 	}
@@ -881,6 +884,7 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGStylingPropertie
 	ctx->aspect.pen_props.cap = *props.stroke_linecap;
 	ctx->aspect.pen_props.join = *props.stroke_linejoin;
 	ctx->aspect.pen_props.width = (ctx->aspect.has_line?props.stroke_width->number:0);
+	ctx->aspect.pen_props.miterLimit = props.stroke_miterlimit->value;
 }
 
 DrawableContext *SVG_drawable_init_context(Drawable *node, RenderEffect2D *eff)

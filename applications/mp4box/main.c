@@ -463,7 +463,7 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 	/*first make sure we use a systems track as base OCR*/
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
 		res = gf_isom_get_media_type(file, i+1);
-		if ((res==GF_ISOM_MEDIA_BIFS) || (res==GF_ISOM_MEDIA_OD)) {
+		if ((res==GF_ISOM_MEDIA_SCENE) || (res==GF_ISOM_MEDIA_OD)) {
 			if (gf_isom_is_track_in_root_od(file, i+1)) {
 				gf_isom_set_default_sync_track(file, i+1);
 				break;
@@ -639,7 +639,7 @@ void remove_systems_tracks(GF_ISOFile *file)
 			break;
 		/*only remove real systems tracks (eg, delaing with scene description & presentation)
 		but keep meta & all unknown tracks*/
-		case GF_ISOM_MEDIA_BIFS:
+		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_OD:
 		case GF_ISOM_MEDIA_OCR:
 		case GF_ISOM_MEDIA_MPEGJ:

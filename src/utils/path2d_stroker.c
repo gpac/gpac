@@ -1392,10 +1392,12 @@ static Fixed gf_path_get_dash(GF_PenSettings *pen, u32 dash_slot, u32 *next_slot
 		*next_slot = (dash_slot + 1) % 6;
 		return ret * pen->width;
 	case GF_DASH_STYLE_CUSTOM:
+	case GF_DASH_STYLE_CUSTOM_ABS:
 		if (!pen->dash_set || !pen->dash_set->num_dash) return 0;
 		if (dash_slot>=pen->dash_set->num_dash) dash_slot = 0;
 		ret = pen->dash_set->dashes[dash_slot];
 		*next_slot = (1 + dash_slot) % pen->dash_set->num_dash;
+		if (pen->dash==GF_DASH_STYLE_CUSTOM_ABS) return ret;
 		/*custom dashes are of type Fixed !!*/
 		return gf_mulfix(ret, pen->width);
 

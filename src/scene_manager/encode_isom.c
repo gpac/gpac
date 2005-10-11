@@ -97,7 +97,7 @@ static GF_Err gf_sm_import_ui_stream(GF_ISOFile *mp4, GF_ESD *src)
 		return GF_ODF_INVALID_DESCRIPTOR;
 	}
 	/*what's the media type for input sensor ??*/
-	len = gf_isom_new_track(mp4, src->ESID, GF_ISOM_MEDIA_BIFS, 1000);
+	len = gf_isom_new_track(mp4, src->ESID, GF_ISOM_MEDIA_SCENE, 1000);
 	if (!len) return gf_isom_last_error(mp4);
 	gf_isom_set_track_enabled(mp4, len, 1);
 	if (!src->ESID) src->ESID = gf_isom_get_track_id(mp4, len);
@@ -144,7 +144,7 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 			break;
 		case GF_STREAM_INTERACT:
 		case GF_STREAM_SCENE:
-			mtype = GF_ISOM_MEDIA_BIFS;
+			mtype = GF_ISOM_MEDIA_SCENE;
 			break;
 		case GF_STREAM_TEXT:
 			mtype = GF_ISOM_MEDIA_TEXT;
@@ -489,7 +489,7 @@ static GF_Err gf_sm_encode_bifs(GF_SceneManager *ctx, GF_ISOFile *mp4, char *log
 		if (!esd->slConfig) esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 		if (sc->timeScale) esd->slConfig->timestampResolution = sc->timeScale;
 		if (!esd->slConfig->timestampResolution) esd->slConfig->timestampResolution = 1000;
-		track = gf_isom_new_track(mp4, sc->ESID, GF_ISOM_MEDIA_BIFS, esd->slConfig->timestampResolution);
+		track = gf_isom_new_track(mp4, sc->ESID, GF_ISOM_MEDIA_SCENE, esd->slConfig->timestampResolution);
 		if (!track) {
 			e = gf_isom_last_error(mp4);
 			goto exit;

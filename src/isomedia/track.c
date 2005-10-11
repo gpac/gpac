@@ -291,7 +291,7 @@ Bool Track_IsMPEG4Stream(u32 HandlerType)
 	case GF_ISOM_MEDIA_AUDIO:
 	case GF_ISOM_MEDIA_OD:
 	case GF_ISOM_MEDIA_OCR:
-	case GF_ISOM_MEDIA_BIFS:
+	case GF_ISOM_MEDIA_SCENE:
 	case GF_ISOM_MEDIA_MPEG7:
 	case GF_ISOM_MEDIA_OCI:
 	case GF_ISOM_MEDIA_IPMP:
@@ -523,7 +523,7 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
 		str = "GPAC MPEG-4 OCR Handler";
 		break;
-	case GF_ISOM_MEDIA_BIFS:
+	case GF_ISOM_MEDIA_SCENE:
 		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
 		str = "GPAC MPEG-4 BIFS Handler";
 		break;

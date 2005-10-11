@@ -728,7 +728,7 @@ static void gf_hinter_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_n
 	m_h = h;
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
 		switch (gf_isom_get_media_type(file, i+1)) {
-		case GF_ISOM_MEDIA_BIFS:
+		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_VISUAL:
 			gf_isom_get_track_layout_info(file, i+1, &w, &h, &tx, &ty, &l);
 			if (w>m_w) m_w = w;
@@ -926,7 +926,7 @@ Bool gf_hinter_can_embbed_data(char *data, u32 data_size, u32 streamType)
 
 GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 {
-	u32 i, bifsT, odT, descIndex, size, size64;
+	u32 i, sceneT, odT, descIndex, size, size64;
 	GF_InitialObjectDescriptor *iod;
 	GF_SLConfig slc;
 	GF_ESD *esd;
@@ -948,15 +948,15 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 
 	if (IOD_Profile == GF_SDP_IOD_NONE) return GF_OK;
 
-	odT = bifsT = 0;
+	odT = sceneT = 0;
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
 		if (!gf_isom_is_track_in_root_od(file, i+1)) continue;
 		switch (gf_isom_get_media_type(file,i+1)) {
 		case GF_ISOM_MEDIA_OD:
 			odT = i+1;
 			break;
-		case GF_ISOM_MEDIA_BIFS:
-			bifsT = i+1;
+		case GF_ISOM_MEDIA_SCENE:
+			sceneT = i+1;
 			break;
 		}
 	}
@@ -967,7 +967,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 	}
 
 	/*if we want ISMA like iods, we need at least BIFS */
-	if ( (IOD_Profile == GF_SDP_IOD_ISMA) && !bifsT ) return GF_BAD_PARAM;
+	if ( (IOD_Profile == GF_SDP_IOD_ISMA) && !sceneT ) return GF_BAD_PARAM;
 
 	/*do NOT change PLs, we assume they are correct*/
 	iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(file);
@@ -1022,17 +1022,17 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 			gf_list_add(iod->ESDescriptors, esd);
 		}
 
-		esd = gf_isom_get_esd(file, bifsT, 1);
-		if (gf_isom_get_sample_count(file, bifsT)==1) {
-			samp = gf_isom_get_sample(file, bifsT, 1, &descIndex);
+		esd = gf_isom_get_esd(file, sceneT, 1);
+		if (gf_isom_get_sample_count(file, sceneT)==1) {
+			samp = gf_isom_get_sample(file, sceneT, 1, &descIndex);
 			if (gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_SCENE)) {
 
-				slc.timeScale = slc.timestampResolution = gf_isom_get_media_timescale(file, bifsT);	
+				slc.timeScale = slc.timestampResolution = gf_isom_get_media_timescale(file, sceneT);	
 				slc.OCRResolution = 1000;
 				slc.startCTS = samp->DTS+samp->CTS_Offset;
 				slc.startDTS = samp->DTS;
 				//set the SL for future extraction
-				gf_isom_set_extraction_slc(file, bifsT, 1, &slc);
+				gf_isom_set_extraction_slc(file, sceneT, 1, &slc);
 				//encode in Base64 the sample
 				size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);
 				buf64[size64] = 0;

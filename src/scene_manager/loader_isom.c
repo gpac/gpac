@@ -124,7 +124,7 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 	for (i=0; i<gf_isom_get_track_count(load->isom); i++) {
 		u32 type = gf_isom_get_media_type(load->isom, i+1);
 		switch (type) {
-		case GF_ISOM_MEDIA_BIFS:
+		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_OD:
 			nb_samp += gf_isom_get_sample_count(load->isom, i+1);
 			break;
@@ -138,7 +138,7 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 	for (i=0; i<gf_isom_get_track_count(load->isom); i++) {
 		u32 type = gf_isom_get_media_type(load->isom, i+1);
 		switch (type) {
-		case GF_ISOM_MEDIA_BIFS:
+		case GF_ISOM_MEDIA_SCENE:
 			break;
 		case GF_ISOM_MEDIA_OD:
 			break;
@@ -147,6 +147,10 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 		}
 		esd = gf_isom_get_esd(load->isom, i+1, 1);
 		if (!esd) continue;
+		/*only support for BIFS atm*/
+		if ((esd->decoderConfig->streamType==0x04) && (esd->decoderConfig->objectTypeIndication>2)) {
+			gf_odf_desc_del((GF_Descriptor *)esd);
+		}
 
 		sc = gf_sm_stream_new(load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 		sc->streamType = esd->decoderConfig->streamType;
@@ -157,7 +161,7 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 		/*we still need to reconfig the BIFS*/
 		if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
 			if (!esd->dependsOnESID && nbBifs && !i) 
-				mp4_report(load, GF_OK, "Warning: several BIFS namespaces used or improper BIFS dependencies in file - import may be incorrect");
+				mp4_report(load, GF_OK, "Warning: several scene namespaces used or improper scene dependencies in file - import may be incorrect");
 			e = gf_bifs_decoder_configure_stream(bdec, esd->ESID, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, esd->decoderConfig->objectTypeIndication);
 			if (e) goto exit;
 			nbBifs++;
@@ -245,7 +249,7 @@ GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load)
 	/*get root BIFS stream*/
 	for (i=0; i<gf_isom_get_track_count(load->isom); i++) {
 		u32 type = gf_isom_get_media_type(load->isom, i+1);
-		if (type != GF_ISOM_MEDIA_BIFS) continue;
+		if (type != GF_ISOM_MEDIA_SCENE) continue;
 		if (! gf_isom_is_track_in_root_od(load->isom, i+1) ) continue;
 		esd = gf_isom_get_esd(load->isom, i+1, 1);
 

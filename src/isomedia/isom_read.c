@@ -1795,7 +1795,7 @@ GF_Err gf_isom_get_visual_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDes
 		*Height = ((GF_VisualSampleEntryBox*)entry)->Height;
 		return GF_OK;
 	default:
-		if (trak->Media->handler->handlerType==GF_ISOM_MEDIA_BIFS) {
+		if (trak->Media->handler->handlerType==GF_ISOM_MEDIA_SCENE) {
 			*Width = trak->Header->width>>16;
 			*Height = trak->Header->height>>16;
 			return GF_OK;
@@ -1909,16 +1909,16 @@ void gf_isom_set_default_sync_track(GF_ISOFile *movie, u32 trackNumber)
 
 Bool gf_isom_is_single_av(GF_ISOFile *file)
 {
-	u32 count, i, nb_any, nb_a, nb_v, nb_bifs, nb_od, nb_text;
-	nb_a = nb_v = nb_any = nb_bifs = nb_od = nb_text = 0;
+	u32 count, i, nb_any, nb_a, nb_v, nb_scene, nb_od, nb_text;
+	nb_a = nb_v = nb_any = nb_scene = nb_od = nb_text = 0;
 
 	if (!file->moov) return 0;
 	count = gf_isom_get_track_count(file);
 	for (i=0; i<count; i++) {
 		u32 mtype = gf_isom_get_media_type(file, i+1);
-		if (mtype==GF_ISOM_MEDIA_BIFS) {
+		if (mtype==GF_ISOM_MEDIA_SCENE) {
 			if (gf_isom_get_sample_count(file, i+1)>1) nb_any++;
-			else nb_bifs++;
+			else nb_scene++;
 		} else if (mtype==GF_ISOM_MEDIA_OD) {
 			if (gf_isom_get_sample_count(file, i+1)>1) nb_any++;
 			else nb_od++;
@@ -1933,16 +1933,16 @@ Bool gf_isom_is_single_av(GF_ISOFile *file)
 		else nb_any++;
 	}
 	if (nb_any) return 0;
-	if ((nb_bifs<=1) && (nb_od<=1) && (nb_a<=1) && (nb_v<=1) && (nb_text<=1) ) return 1;
+	if ((nb_scene<=1) && (nb_od<=1) && (nb_a<=1) && (nb_v<=1) && (nb_text<=1) ) return 1;
 	return 0;
 }
 
 
 u32 gf_isom_guess_specification(GF_ISOFile *file)
 {
-	u32 count, i, nb_any, nb_m4s, nb_a, nb_v, nb_bifs, nb_od, nb_mp3, nb_aac, nb_m4v, nb_avc, nb_amr, nb_h263, nb_qcelp, nb_evrc, nb_smv, nb_text;
+	u32 count, i, nb_any, nb_m4s, nb_a, nb_v, nb_scene, nb_od, nb_mp3, nb_aac, nb_m4v, nb_avc, nb_amr, nb_h263, nb_qcelp, nb_evrc, nb_smv, nb_text;
 
-	nb_m4s = nb_a = nb_v = nb_any = nb_bifs = nb_od = nb_mp3 = nb_aac = nb_m4v = nb_avc = nb_amr = nb_h263 = nb_qcelp = nb_evrc = nb_smv = nb_text = 0;
+	nb_m4s = nb_a = nb_v = nb_any = nb_scene = nb_od = nb_mp3 = nb_aac = nb_m4v = nb_avc = nb_amr = nb_h263 = nb_qcelp = nb_evrc = nb_smv = nb_text = 0;
 
 	if (!file->moov) {
 		if (!file->meta || !file->meta->handler) return 0;
@@ -1954,8 +1954,8 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 		u32 mtype = gf_isom_get_media_type(file, i+1);
 		u32 mstype = gf_isom_get_media_subtype(file, i+1, 1);
 
-		if (mtype==GF_ISOM_MEDIA_BIFS) {
-			nb_bifs++;
+		if (mtype==GF_ISOM_MEDIA_SCENE) {
+			nb_scene++;
 			/*forces non-isma*/
 			if (gf_isom_get_sample_count(file, i+1)>1) nb_m4s++;
 		} else if (mtype==GF_ISOM_MEDIA_OD) {
@@ -2014,7 +2014,7 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 	if (nb_any) return GF_ISOM_BRAND_ISOM;
 	if (nb_qcelp || nb_evrc || nb_smv) {
 		/*non std mix of streams*/
-		if (nb_m4s || nb_avc || nb_bifs || nb_od || nb_mp3 || nb_a || nb_v) return GF_ISOM_BRAND_ISOM;
+		if (nb_m4s || nb_avc || nb_scene || nb_od || nb_mp3 || nb_a || nb_v) return GF_ISOM_BRAND_ISOM;
 		return GF_ISOM_BRAND_3G2A;
 	}
 	/*other a/v/s streams*/
@@ -2025,17 +2025,17 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 	
 	/*avc file: whatever has AVC and no systems*/
 	if (nb_avc) {
-		if (!nb_bifs && !nb_od) return GF_ISOM_BRAND_AVC1;
+		if (!nb_scene && !nb_od) return GF_ISOM_BRAND_AVC1;
 		return GF_ISOM_BRAND_MP42;
 	}
 	/*MP3: ISMA and MPEG4*/
 	if (nb_mp3) {
-		if (!nb_text && (nb_v<=1) && (nb_a<=1) && (nb_bifs==1) && (nb_od==1))
+		if (!nb_text && (nb_v<=1) && (nb_a<=1) && (nb_scene==1) && (nb_od==1))
 			return GF_FOUR_CHAR_INT('I', 'S', 'M', 'A');
 		return GF_ISOM_BRAND_MP42;
 	}
 	/*MP4*/
-	if (nb_bifs || nb_od) {
+	if (nb_scene || nb_od) {
 		/*issue with AMR and H263 which don't have MPEG mapping: non compliant file*/
 		if (nb_amr || nb_h263) return GF_ISOM_BRAND_ISOM;
 		return GF_ISOM_BRAND_MP42;

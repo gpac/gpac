@@ -151,7 +151,7 @@ enum
 	/*MPEG-4 media types*/
 	GF_ISOM_MEDIA_OD		= GF_FOUR_CHAR_INT( 'o', 'd', 's', 'm' ),
 	GF_ISOM_MEDIA_OCR		= GF_FOUR_CHAR_INT( 'c', 'r', 's', 'm' ),
-	GF_ISOM_MEDIA_BIFS		= GF_FOUR_CHAR_INT( 's', 'd', 's', 'm' ),
+	GF_ISOM_MEDIA_SCENE		= GF_FOUR_CHAR_INT( 's', 'd', 's', 'm' ),
 	GF_ISOM_MEDIA_MPEG7		= GF_FOUR_CHAR_INT( 'm', '7', 's', 'm' ),
 	GF_ISOM_MEDIA_OCI		= GF_FOUR_CHAR_INT( 'o', 'c', 's', 'm' ),
 	GF_ISOM_MEDIA_IPMP		= GF_FOUR_CHAR_INT( 'i', 'p', 's', 'm' ),
