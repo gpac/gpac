@@ -300,6 +300,7 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 		esd = gf_list_get(iod->ESDescriptors, 0);
 		switch (esd->decoderConfig->streamType) {
 		case GF_STREAM_SCENE:
+		case GF_STREAM_PRIVATE_SCENE:
 			break;
 		case GF_STREAM_VISUAL:
 			if (expect_type!=GF_MEDIA_OBJECT_VIDEO) {

@@ -39,12 +39,21 @@ SVGParser *NewSVGParser();
 
 void SVGParser_Init(SVGParser *parser, char *filename, void *graph);
 
+/* DOM Reading from file */
 GF_Err SVGParser_ParseLASeR(SVGParser *parser);
 GF_Err SVGParser_ParseFullDoc(SVGParser *parser);
-GF_Err SVGParser_ParseProgressiveDoc(SVGParser *parser);
+
+/* Progressive SAX reading from File */
+/* size of a chunk of file read at each cycle */
+#define  SAX_MAX_CHARS		150
+GF_Err SVGParser_InitProgressiveFileChunk(SVGParser *parser);
+GF_Err SVGParser_ParseProgressiveFileChunk(SVGParser *parser);
+
+/* Progressive SAX reading from Buffer */
+GF_Err SVGParser_ParseMemoryFirstChunk(SVGParser *parser, unsigned char *inBuffer, u32 inBufferLength);
+GF_Err SVGParser_ParseMemoryNextChunk(SVGParser *parser, unsigned char *inBuffer, u32 inBufferLength);
 
 void SVGParser_Terminate(SVGParser *parser);
-
 
 #ifndef GPAC_DISABLE_SVG
 
@@ -76,55 +85,97 @@ enum {
 	SVGLOADER_OTI_FULL_SVG		  = 2,
 	SVGLOADER_OTI_PROGRESSIVE_SVG = 3,
 	SVGLOADER_OTI_FULL_LASERML	  = 4,
-	SVGLOADER_OTI_STREAMING_SVG	  = 5
+	SVGLOADER_OTI_STREAMING_SVG	  = 10
 };
+
+typedef enum {
+	UNDEF		= 0, 
+	STARTSVG	= 1, 
+	SVGCONTENT	= 2, 
+	UNKNOWN		= 3, 
+	FINISHSVG	= 4, 
+	ERROR		= 5
+} SVGParserSaxStatesEnum;
+
 
 struct _svg_parser
 {
-	/* 
-		Only needed in Process data to attach graph to renderer 
-	*/
+	/* Only needed in Process data to attach graph to renderer */
 	void *inline_scene;
 
 	/* This graph is the same as the one in inline_scene, this pointer is just for ease 
 	   and to separate as much as possible the SVG Parser from the GF_InlineScene structure */
 	GF_SceneGraph *graph;
 
-	/* 0 = not initialized, 1 = initialized*/
-	u8 status;
+	/* Warning: interpretation of status is different 
+	   depending on the type of parser (sax/dom/streaming, LASeR/SVG)
+	   SAX SVG uses the following:
+	   0 = not initialized, 
+	   1 = initialized,
+	   2 = SVG start tag parsed,
+	   3 = running ...
+	   4 = error */
+	u8 loader_status;
+
+	/* determines if the parser is from XML file (SAX or DOM) or from Access Unit, 
+	   and if it's SVG or LASeR */
 	u8 oti;
 
 	GF_Err last_error;
 
+	/* File name in case of a parser reading from an XML file (LASeR or SVG, Progressive or not)
+	   it is not used if content is AU framed */
 	char *fileName;
-	char *temp_dir;
 
 	/* Unresolved begin/end value */
 	GF_List *unresolved_timing_elements;
 
+	/* Unresolved href value */
 	GF_List *unresolved_hrefs;
 
+	/* Animations that could not be parsed because the target was not resolved */
 	GF_List *defered_animation_elements;
 
+	/* List of nodes with an ID */
 	GF_List *ided_nodes;
+	/* Numerical ID of the latest node with XML ID */
 	u32 max_node_id;
 
+	/* width and height of the scene */
 	u32 svg_w, svg_h;
-
-	/* Document wallclock begin UTC since 1970 */
-	u32 begin_sec, begin_ms;
 
 #ifdef USE_GPAC_CACHE_MECHANISM
 	/* to handle 'data:' urls */
 	u32 cacheID;
-	/* store the scene decoder to get the module manager for cache objects */
-	GF_SceneDecoder *sdec;
+	char *temp_dir;
 #endif
 
-	/*sceneUpdate node for LASeR parsing*/
+	/* LASeR parsing structures */
 	xmlNodePtr sU;
 	Bool needs_attachement;
 	u32 stream_time;
+
+	/* SAX related structures */
+
+	/* number of bytes read in the file in case of progressive loading from an SVG file
+	   it is unused in the case of SVG content stored in AU */
+	u32 nb_bytes_read;
+
+	FILE *sax_file;
+	/* Libxml structures */
+	xmlSAXHandlerPtr	sax_handler; 
+	xmlParserCtxtPtr	sax_ctx;
+
+    SVGParserSaxStatesEnum	sax_state;
+    SVGParserSaxStatesEnum	prev_sax_state;
+
+	s32					unknown_depth;
+
+	/* to know the current parent of following nodes  */
+	GF_List			*	svg_node_stack; 
+	
+	/* list of ENTITY declarations */
+	GF_List			*	entities; 
 };
 
 #endif /*GPAC_DISABLE_SVG*/

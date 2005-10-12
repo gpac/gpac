@@ -188,8 +188,9 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 			read->oti = 0x01;
 
 		else if (!stricmp(ext, "svg") || !stricmp(ext, "svgz")) {
-			read->oti = 0x02;
-			read->supports_progressive_loading = 0;
+			/* Change the oti from 0x02 to 0x03 to enable SVG SAX parsing */
+			read->oti = 0x03;
+			if (read->oti == 0x03) read->supports_progressive_loading = 1;
 		}
 		/*XML LASeR*/
 		else if (!stricmp(ext, "xsr")) read->oti = 0x04;
@@ -266,7 +267,8 @@ GF_Err DC_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	switch (com->command_type) {
 	case GF_NET_CHAN_SET_PULL: return GF_OK;
 	case GF_NET_CHAN_INTERACTIVE: return GF_OK;
-	case GF_NET_CHAN_SET_PADDING: return GF_NOT_SUPPORTED;
+	/*since data is file-based, no padding is needed (decoder plugin will handle it itself)*/
+	case GF_NET_CHAN_SET_PADDING: return GF_OK;
 	case GF_NET_CHAN_BUFFER:
 		com->buffer.max = com->buffer.min = 0;
 		return GF_OK;

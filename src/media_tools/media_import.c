@@ -1962,14 +1962,15 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 {
 	GF_Err e;
 	XMLParser parser;
-	Bool destroy_esd;
-	u32 track, tkID, di, mtype, max_size, duration, count, streamType, oti, timescale, specInfoSize;
+	Bool destroy_esd, inRootOD;
+	u32 track, tkID, di, mtype, max_size, duration, count, streamType, oti, timescale, specInfoSize, dts_inc;
 	GF_ISOSample *samp;
 	s64 media_size, media_done, offset;
 	FILE *nhml, *mdia, *info;
 	char *str;
 	char *ext, szName[1000], szMedia[1000], szMediaTemp[1000], szInfo[1000], *specInfo;
 	GF_GenericSampleDescription sdesc;
+	
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->nb_tracks = 1;
@@ -1996,6 +1997,8 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 	str = xml_get_element(&parser);
 	mdia = NULL;
 	destroy_esd = 0;
+	dts_inc = 0;
+	inRootOD = 0;
 	specInfo = NULL;
 
 	if (!str || stricmp(str, "NHNTStream")) { 
@@ -2025,6 +2028,8 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 		else if (!strcmp(str, "baseMediaFile")) strcpy(szMedia, parser.value_buffer);
 		else if (!strcmp(str, "specificInfoFile")) strcpy(szInfo, parser.value_buffer);
 		else if (!strcmp(str, "trackID")) tkID = atoi(parser.value_buffer);
+		else if (!strcmp(str, "inRootOD")) inRootOD = !strcmp(parser.value_buffer, "yes");
+		else if (!strcmp(str, "DTS_increment")) dts_inc = atoi(parser.value_buffer);
 		/*unknow desc related*/
 		else if (!strcmp(str, "compressorName")) strcpy(sdesc.compressor_name, parser.value_buffer);
 		else if (!strcmp(str, "codecVersion")) sdesc.version = atoi(parser.value_buffer);
@@ -2221,6 +2226,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 		}
 		if (e) goto exit;
 		samp->IsRAP = 0;
+		samp->DTS += dts_inc;
 		media_done += samp->dataLength;
 		gf_import_progress(import, (u32) media_done, (u32) (media_size ? media_size : media_done+1) );
 		if (duration && (samp->DTS > duration)) break;
@@ -2229,6 +2235,8 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 	if (media_done!=media_size) gf_import_progress(import, (u32) media_size, (u32) media_size);
 	gf_isom_sample_del(&samp);	
 	MP4T_RecomputeBitRate(import->dest, track);
+
+	if (inRootOD) gf_isom_add_track_to_root_od(import->dest, track);
 
 exit:
 	fclose(nhml);

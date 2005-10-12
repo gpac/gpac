@@ -623,7 +623,11 @@ static void check_media_profile(GF_ISOFile *file, u32 track)
 
 void remove_systems_tracks(GF_ISOFile *file)
 {
-	u32 i;
+	u32 i, count;
+
+	count = gf_isom_get_track_count(file);
+	if (count==1) return;
+
 	/*force PL rewrite*/
 	gf_isom_set_pl_indication(file, GF_ISOM_PL_VISUAL, 0);
 	gf_isom_set_pl_indication(file, GF_ISOM_PL_AUDIO, 0);

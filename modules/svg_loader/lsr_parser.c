@@ -191,10 +191,10 @@ GF_Err SVGParser_ParseLASeR(SVGParser *parser)
 		xmllib_is_init=1;
 	}
 
-	if (!parser->status) {
+	if (!parser->loader_status) {
 		xmlDocPtr doc = NULL;
 		xmlNodePtr root = NULL;
-		parser->status = 2;
+		parser->loader_status = 2;
 		doc = xmlParseFile(parser->fileName);
 		if (doc == NULL) return GF_BAD_PARAM;
 		root = xmlDocGetRootElement(doc);
@@ -206,11 +206,11 @@ GF_Err SVGParser_ParseLASeR(SVGParser *parser)
 		parser->sU = lsr_toElement(parser->sU->next);
 
 		/*OK*/
-		parser->status = 1;
+		parser->loader_status = 1;
 
 		/* Scene Graph related code */
 		parser->ided_nodes = gf_list_new();
-	} else if (parser->status == 2) return GF_EOS;
+	} else if (parser->loader_status == 2) return GF_EOS;
 
 	if (!parser->sU || strcmp(parser->sU->name, "sceneUnit")) return GF_EOS;
 

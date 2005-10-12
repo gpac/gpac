@@ -1294,7 +1294,7 @@ static void SVG_Init_SMILAnimationStackAPI(SMIL_AnimationStack *stack)
 		stack->ApplyAdditive = SVG_ApplyAdditiveKeyword;
 		stack->ApplyAccumulate = SVG_ApplyAccumulateKeyword;
 		stack->Compare = SVG_CompareKeyword;
-		stack->Invalidate = SVG_InvalidateAndDirtyAppearance;
+		stack->Invalidate = SVG_InvalidateAndDirtyAll;
 		break;
 	case SVG_Display_datatype:
 	case SVG_Visibility_datatype:

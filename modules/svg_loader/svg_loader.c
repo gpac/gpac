@@ -31,32 +31,6 @@
 
 /*************************************************************************
  *																	 	 *
- * Functions implementing <TODO comment> *
- *																		 *
- *************************************************************************/
-static GF_Err SVG_ProcessProgressiveDocument(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
-								u16 ES_ID, u32 stream_time, u32 mmlevel)
-{
-	GF_Err e = GF_OK;
-	SVGParser *parser = plug->privateStack;
-
-	if (parser->status == 0) {
-		parser->status = 1;
-		e = SVGParser_Parse(parser);
-		if (!e) {
-			gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
-			/*attach graph to renderer*/
-			gf_is_attach_to_renderer(parser->inline_scene);
-		} else {
-			parser->status = 0;
-			return e;
-		}
-	}
-	return GF_EOS;
-}
-
-/*************************************************************************
- *																	 	 *
  * Functions implementing the Basic Decoder and Scene Decoder interfaces *
  *																		 *
  *************************************************************************/
@@ -79,32 +53,55 @@ static GF_Err LSR_ProcessDocument(GF_SceneDecoder *plug, unsigned char *inBuffer
 
 /* Only in case of reading from file (cached or not) of an XML file (i.e. not AU framed)
    The buffer is empty but the filename has been given in a previous step: SVG_AttachStream */
-static GF_Err SVG_ProcessDocument(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
+static GF_Err SVG_ProcessProgressiveDocument(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
 	SVGParser *parser = plug->privateStack;
 
-	if (parser->status == 0) {
-		parser->status = 1;
-		if (parser->oti == SVGLOADER_OTI_FULL_SVG) 
-			e = SVGParser_ParseFullDoc(parser);
-		if (parser->oti == SVGLOADER_OTI_PROGRESSIVE_SVG) 
-			e = SVGParser_ParseProgressiveDoc(parser);
-		
+	if (parser->loader_status == 4) return GF_BAD_PARAM;
+
+	if (parser->loader_status == 0) {
+		e = SVGParser_InitProgressiveFileChunk(parser);
+		if (e) {
+			parser->loader_status = 4;
+			return e;
+		} 
+		parser->loader_status = 1;
+	}
+
+	e = SVGParser_ParseProgressiveFileChunk(parser);
+	if (parser->loader_status == 2) 
+	{ /* the SVG root element has been encountered */
+		gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
+		/*attach graph to renderer*/
+		gf_is_attach_to_renderer(parser->inline_scene);
+		parser->loader_status = 3;
+	}
+	return e;
+}
+
+/* Only in case of reading from file (cached or not) of an XML file (i.e. not AU framed)
+   The buffer is empty but the filename has been given in a previous step: SVG_AttachStream */
+static GF_Err SVG_ProcessFullDocument(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
+								u16 ES_ID, u32 stream_time, u32 mmlevel)
+{
+	GF_Err e = GF_EOS;
+	SVGParser *parser = plug->privateStack;
+
+	if (parser->loader_status == 0) {
+		parser->loader_status = 1;
+		e = SVGParser_ParseFullDoc(parser);
+
 		if (!e) {
 			gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
 			/*attach graph to renderer*/
 			gf_is_attach_to_renderer(parser->inline_scene);
 		} else {
-			parser->status = 0;
-			return e;
+			parser->loader_status = 0;
 		}
-	} else {
-		if (parser->oti == SVGLOADER_OTI_PROGRESSIVE_SVG) 
-			e = SVGParser_ParseProgressiveDoc(parser);
-	}
-	return GF_EOS;
+	} 
+	return e;
 }
 
 /* Only in case of streaming or reading from MP4 file or framed container
@@ -112,22 +109,42 @@ static GF_Err SVG_ProcessDocument(GF_SceneDecoder *plug, unsigned char *inBuffer
 static GF_Err SVG_ProcessAU(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
+	GF_Err e = GF_OK;
+	SVGParser *parser = plug->privateStack;
 
+	if (parser->loader_status == 0) {
+		parser->loader_status = 1;
+		e = SVGParser_ParseMemoryFirstChunk(parser, inBuffer, inBufferLength);
+		
+		if (!e) {
+			gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
+			/*attach graph to renderer*/
+			gf_is_attach_to_renderer(parser->inline_scene);
+		} else {
+			parser->loader_status = 0;
+		}
+	} else {
+		e = SVGParser_ParseMemoryNextChunk(parser, inBuffer, inBufferLength);
+	}
+	return e;
 }
 
 static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	SVGParser *parser = plug->privateStack;
-	if (parser->oti == SVGLOADER_OTI_FULL_SVG) 
-		return SVG_ProcessDocument(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
-	if (parser->oti == SVGLOADER_OTI_PROGRESSIVE_SVG) 
-		return SVG_ProcessDocument(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
-	if (parser->oti == SVGLOADER_OTI_STREAMING_SVG) 
+	switch(parser->oti) {
+	case SVGLOADER_OTI_FULL_SVG:
+		return SVG_ProcessFullDocument(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
+	case SVGLOADER_OTI_PROGRESSIVE_SVG:
+		return SVG_ProcessProgressiveDocument(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
+	case SVGLOADER_OTI_STREAMING_SVG:
 		return SVG_ProcessAU(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
-	if (parser->oti==SVGLOADER_OTI_FULL_LASERML) 
+	case SVGLOADER_OTI_FULL_LASERML:
 		return LSR_ProcessDocument(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
-	return GF_BAD_PARAM;
+	default:
+		return GF_BAD_PARAM;
+	}
 }
 
 static GF_Err SVG_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_scene_decoder)
@@ -182,17 +199,27 @@ const char *SVG_GetName(struct _basedecoder *plug)
 
 Bool SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
-	if (StreamType!=GF_STREAM_PRIVATE_SCENE) return 0;
-	if (ObjectType==SVGLOADER_OTI_FULL_SVG) return 1;
-	if (ObjectType==SVGLOADER_OTI_PROGRESSIVE_SVG) return 1;
-	if (ObjectType==SVGLOADER_OTI_STREAMING_SVG) return 1;
-	if (ObjectType==SVGLOADER_OTI_FULL_LASERML) return 1;
+	if (StreamType==GF_STREAM_PRIVATE_SCENE) {
+		if (ObjectType==SVGLOADER_OTI_FULL_SVG) return 1;
+		if (ObjectType==SVGLOADER_OTI_PROGRESSIVE_SVG) return 1;
+		if (ObjectType==SVGLOADER_OTI_FULL_LASERML) return 1;
+		return 0;
+	} else if (StreamType==GF_STREAM_SCENE) {
+		if (ObjectType==SVGLOADER_OTI_STREAMING_SVG) return 1;
+		return 0;
+	}
 	return 0;
 }
 
 static GF_Err SVG_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *cap)
 {
+	SVGParser *parser = plug->privateStack;
 	cap->cap.valueInt = 0;
+	if (cap->CapCode==GF_CODEC_PADDING_BYTES) {
+		/* Adding one byte of padding for \r\n problems*/
+		cap->cap.valueInt = 1;
+		return GF_OK;
+	}
 	return GF_NOT_SUPPORTED;
 }
 
@@ -214,9 +241,6 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	parser = NewSVGParser();
 
 	sdec->privateStack = parser;
-#ifdef USE_GPAC_CACHE_MECHANISM
-	parser->sdec = sdec;
-#endif
 	sdec->AttachStream = SVG_AttachStream;
 	sdec->CanHandleStream = SVG_CanHandleStream;
 	sdec->DetachStream = SVG_DetachStream;
