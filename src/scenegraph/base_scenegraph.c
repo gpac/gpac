@@ -435,13 +435,14 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 
 	/*if def, remove from sg def table*/
 	if (pNode->sgprivate->NodeID) {
-		if (!SG_SearchForNodeIndex(pSG, pNode, &node_ind)) {
-			assert(0);
+		if (SG_SearchForNodeIndex(pSG, pNode, &node_ind)) {
+			assert (pNode == pSG->node_registry[node_ind]);
+			j = pSG->node_reg_size - node_ind - 1;
+			if (j) memmove( & pSG->node_registry[node_ind], & pSG->node_registry[node_ind+1], j * sizeof(GF_Node *));
+			pSG->node_reg_size -= 1;
+		} else {
+			return GF_OK;
 		}
-		assert (pNode == pSG->node_registry[node_ind]);
-		j = pSG->node_reg_size - node_ind - 1;
-		if (j) memmove( & pSG->node_registry[node_ind], & pSG->node_registry[node_ind+1], j * sizeof(GF_Node *));
-		pSG->node_reg_size -= 1;
 	}
 
 	/*check all routes from or to this node and destroy them - cf spec*/
@@ -567,6 +568,7 @@ exit:
 static void ReplaceIRINode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool updateOrderedGroup)
 {
 	u32 i;
+	GF_List *container;
 	GF_FieldInfo field;
 
 	/*browse all fields*/
@@ -574,14 +576,53 @@ static void ReplaceIRINode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool
 		gf_node_get_field(FromNode, i, &field);
 		if (field.fieldType == SVG_IRI_datatype) {
 			SVG_IRI *iri = (SVG_IRI *)field.far_ptr;
-			if ((iri->type==SVG_IRI_ELEMENTID) && (gf_node_get_id((GF_Node *)iri->target_element)==NodeID)) {
-				iri->target_element = NULL;
+			if (iri->target && 
+				(gf_node_get_id((GF_Node *)iri->target)==NodeID)) {
+				iri->target = NULL;
 				/*for now disabled but...*/
 				//if (newNode) iri->target_element = newNode;
-				break;
+				goto exit;
+			}
+		} else if (field.fieldType == SMIL_AnimateValue_datatype) {
+			SMIL_AnimateValue *anim_value = (SMIL_AnimateValue *)field.far_ptr;
+			if (anim_value->datatype == SVG_IRI_datatype) {
+				SVG_IRI *iri = (SVG_IRI *)anim_value->value;
+				if (iri->target && 
+					(gf_node_get_id((GF_Node *)iri->target)==NodeID)) {
+					iri->target = NULL;
+					/*for now disabled but...*/
+					//if (newNode) iri->target_element = newNode;
+					goto exit;
+				}
+			}
+		} else if (field.fieldType == SMIL_AnimateValues_datatype) {
+			SMIL_AnimateValues *anim_values = (SMIL_AnimateValues *)field.far_ptr;
+			if (anim_values->datatype == SVG_IRI_datatype) {
+				u32 k;
+				for ( k = 0; k < gf_list_count(anim_values->values); k++) {
+					SVG_IRI *iri = gf_list_get(anim_values->values, k);
+					if (iri->target && 
+						(gf_node_get_id((GF_Node *)iri->target)==NodeID)) {
+						iri->target = NULL;
+						/*for now disabled but...*/
+						//if (newNode) iri->target_element = newNode;
+						goto exit;
+					}
+				}
 			}
 		}
 	}
+	container = ((SVGElement *)FromNode)->children;
+	for (i=0; i<gf_list_count(container); i++) {
+		GF_Node *p = gf_list_get(container, i);
+		/*replace nodes different from newNode but with same ID*/
+		if (/* (newNode == p) || */ (gf_node_get_id(p) != NodeID)) continue;
+		gf_list_rem(container, i);
+		//if (newNode) gf_list_insert(container, newNode, i);
+		break;
+	}
+
+exit:
 	/*since we don't filter parent nodes this is called once per USE, not per container, so return if found*/
 	gf_node_changed(FromNode, &field);
 }

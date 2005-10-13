@@ -90,11 +90,22 @@ void SVG_DeletePaint(SVG_Paint *paint)
 	free(paint);
 }
 
+void SVG_ResetIRI(SVG_IRI *iri) 
+{
+	if (!iri) return;
+	if (iri->iri) free(iri->iri);
+	if (iri->target) gf_node_unregister((GF_Node *)iri->target, (GF_Node *)iri->iri_owner);
+}
+
 void SVG_DeleteOneAnimValue(u8 anim_datatype, void *anim_value)
 {
 	switch (anim_datatype) {
 	case SVG_Paint_datatype:
 		SVG_DeletePaint((SVG_Paint *)anim_value);
+		break;
+	case SVG_IRI_datatype:
+		SVG_ResetIRI((SVG_IRI *)anim_value);
+		free(anim_value);
 		break;
 	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:

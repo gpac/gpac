@@ -699,7 +699,7 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			} else if (!strcmp(att->svg_name, "font-family")) {
 				fprintf(output, "\tfree(p->font_family.value);\n");
 			} else if (!strcmp(att->svg_name, "xlink:href")) {
-				fprintf(output, "\tfree(p->xlink_href.iri);\n");
+				fprintf(output, "\SVG_ResetIRI(&(p->xlink_href));\n");
 			}
 		}
 	}

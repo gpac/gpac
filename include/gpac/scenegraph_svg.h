@@ -274,7 +274,8 @@ enum {
 typedef struct {
 	u8 type;
 	u8 *iri;
-	struct _svg_element *target_element;
+	struct _svg_element *target;
+	struct _svg_element *iri_owner;
 } SVG_IRI;
 
 enum {
@@ -722,6 +723,7 @@ void SVG_DeleteTransformList	(GF_List *tr);
 void SMIL_DeleteTimes			(GF_List *list);
 void SVG_DeletePoints			(GF_List *list);
 void SVG_DeleteCoordinates		(GF_List *list);
+void SVG_ResetIRI				(SVG_IRI*iri);
 
 #ifdef __cplusplus
 }

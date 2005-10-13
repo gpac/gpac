@@ -1019,7 +1019,8 @@ static void SVG_Render_use(GF_Node *node, void *rs)
 	gf_mx2d_copy(eff->transform, translate);
 	gf_mx2d_add_matrix(&eff->transform, &tmp);
 
-	gf_node_render((GF_Node *)use->xlink_href.target_element, eff);
+	if (use->xlink_href.target)
+		gf_node_render((GF_Node *)use->xlink_href.target, eff);
 
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, styling_size);
@@ -1091,20 +1092,20 @@ static Bool SVG_OnUserEvent_a(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *s
 #endif
 		}
 	} else {
-		u32 tag = gf_node_get_tag((GF_Node *)a->xlink_href.target_element);
+		u32 tag = gf_node_get_tag((GF_Node *)a->xlink_href.target);
 		if (tag == TAG_SVG_set ||
 			tag == TAG_SVG_animate ||
 			tag == TAG_SVG_animateColor ||
 			tag == TAG_SVG_animateTransform ||
 			tag == TAG_SVG_animateMotion || 
 			tag == TAG_SVG_discard) {
-			SVGsetElement *set = (SVGsetElement *)a->xlink_href.target_element;
+			SVGsetElement *set = (SVGsetElement *)a->xlink_href.target;
 			SMIL_Time *begin;
 			GF_SAFEALLOC(begin, sizeof(SMIL_Time));
 			begin->type = SMIL_TIME_CLOCK;
 			begin->clock = gf_node_get_scene_time((GF_Node *)set);
 			gf_list_add(set->begin, begin);
-			SMIL_Modified_Animation((GF_Node *)a->xlink_href.target_element);
+			SMIL_Modified_Animation((GF_Node *)a->xlink_href.target);
 		}
 	}
 	return 0;

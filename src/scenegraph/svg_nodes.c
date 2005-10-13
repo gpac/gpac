@@ -40,7 +40,7 @@ static void SVG_a_Del(GF_Node *node)
 	SVGaElement *p = (SVGaElement *)node;
 	free(p->textContent);
 	SVG_DeleteTransformList(p->transform);
-	free(p->xlink_href.iri);
+	SVG_ResetIRI(&p->xlink_href);
 	free(p->fill.color);
 	free(p->stroke.color);
 	free(p->stroke_dasharray.array.vals);
@@ -467,7 +467,7 @@ static void SVG_animate_Del(GF_Node *node)
 {
 	SVGanimateElement *p = (SVGanimateElement *)node;
 	free(p->textContent);
-	free(p->xlink_href.iri);
+	SVG_ResetIRI(&p->xlink_href);
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
 	SMIL_DeleteAnimateValue(&(p->to));
@@ -681,7 +681,7 @@ static void SVG_animateColor_Del(GF_Node *node)
 {
 	SVGanimateColorElement *p = (SVGanimateColorElement *)node;
 	free(p->textContent);
-	free(p->xlink_href.iri);
+	SVG_ResetIRI(&p->xlink_href);
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
 	SMIL_DeleteAnimateValue(&(p->to));
@@ -895,7 +895,7 @@ static void SVG_animateMotion_Del(GF_Node *node)
 {
 	SVGanimateMotionElement *p = (SVGanimateMotionElement *)node;
 	free(p->textContent);
-	free(p->xlink_href.iri);
+	SVG_ResetIRI(&p->xlink_href);
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
 	SMIL_DeleteAnimateValue(&(p->to));
@@ -1129,7 +1129,7 @@ static void SVG_animateTransform_Del(GF_Node *node)
 {
 	SVGanimateTransformElement *p = (SVGanimateTransformElement *)node;
 	free(p->textContent);
-	free(p->xlink_href.iri);
+	SVG_ResetIRI(&p->xlink_href);
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
 	SMIL_DeleteAnimateValue(&(p->to));
@@ -1348,7 +1348,7 @@ static void SVG_animation_Del(GF_Node *node)
 {
 	SVGanimationElement *p = (SVGanimationElement *)node;
 	free(p->textContent);
-	free(p->xlink_href.iri);
+	SVG_ResetIRI(&p->xlink_href);
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
 	SVG_DeleteTransformList(p->transform);
@@ -1626,7 +1626,7 @@ static void SVG_audio_Del(GF_Node *node)
 {
 	SVGaudioElement *p = (SVGaudioElement *)node;
 	free(p->textContent);
-	free(p->xlink_href.iri);
+	SVG_ResetIRI(&p->xlink_href);
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
 	gf_sg_parent_reset((GF_Node *) p);
@@ -2574,7 +2574,7 @@ static void SVG_discard_Del(GF_Node *node)
 {
 	SVGdiscardElement *p = (SVGdiscardElement *)node;
 	free(p->textContent);
-	free(p->xlink_href.iri);
+	SVG_ResetIRI(&p->xlink_href);
 	SMIL_DeleteTimes(p->begin);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
@@ -3513,7 +3513,7 @@ static void SVG_font_face_uri_Del(GF_Node *node)
 {
 	SVGfont_face_uriElement *p = (SVGfont_face_uriElement *)node;
 	free(p->textContent);
-	free(p->xlink_href.iri);
+	SVG_ResetIRI(&p->xlink_href);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -3614,7 +3614,7 @@ static void SVG_foreignObject_Del(GF_Node *node)
 {
 	SVGforeignObjectElement *p = (SVGforeignObjectElement *)node;
 	free(p->textContent);
-	free(p->xlink_href.iri);
+	SVG_ResetIRI(&p->xlink_href);
 	SVG_DeleteTransformList(p->transform);
 	free(p->fill.color);
 	free(p->stroke.color);
@@ -4712,7 +4712,7 @@ static void SVG_image_Del(GF_Node *node)
 {
 	SVGimageElement *p = (SVGimageElement *)node;
 	free(p->textContent);
-	free(p->xlink_href.iri);
+	SVG_ResetIRI(&p->xlink_href);
 	SVG_DeleteTransformList(p->transform);
 	free(p->fill.color);
 	free(p->stroke.color);
@@ -6130,7 +6130,7 @@ static void SVG_mpath_Del(GF_Node *node)
 {
 	SVGmpathElement *p = (SVGmpathElement *)node;
 	free(p->textContent);
-	free(p->xlink_href.iri);
+	SVG_ResetIRI(&p->xlink_href);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -7404,7 +7404,7 @@ static void SVG_prefetch_Del(GF_Node *node)
 {
 	SVGprefetchElement *p = (SVGprefetchElement *)node;
 	free(p->textContent);
-	free(p->xlink_href.iri);
+	SVG_ResetIRI(&p->xlink_href);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -8327,7 +8327,7 @@ static void SVG_set_Del(GF_Node *node)
 {
 	SVGsetElement *p = (SVGsetElement *)node;
 	free(p->textContent);
-	free(p->xlink_href.iri);
+	SVG_ResetIRI(&p->xlink_href);
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
 	SMIL_DeleteAnimateValue(&(p->to));
@@ -11171,7 +11171,7 @@ static void SVG_use_Del(GF_Node *node)
 	SVGuseElement *p = (SVGuseElement *)node;
 	free(p->textContent);
 	SVG_DeleteTransformList(p->transform);
-	free(p->xlink_href.iri);
+	SVG_ResetIRI(&p->xlink_href);
 	free(p->fill.color);
 	free(p->stroke.color);
 	free(p->stroke_dasharray.array.vals);

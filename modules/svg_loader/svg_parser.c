@@ -39,6 +39,11 @@ typedef struct {
 	SVGElement *parent;
 } defered_element;
 
+typedef struct {
+	SVG_IRI *iri;
+	SVGElement *elt;
+} href_instance;
+
 Bool		svg_has_been_IDed	(SVGParser *parser, xmlChar *node_name);
 u32			svg_get_node_id		(SVGParser *parser, xmlChar *nodename);
 void		svg_parse_element_id(SVGParser *parser, SVGElement *elt, char *nodename);
@@ -1393,7 +1398,7 @@ void smil_parse_attributename(SVGParser *parser, SVGElement *n, GF_FieldInfo *at
 	GF_FieldInfo targetAttribute;
 
 	if (!gf_node_get_field_by_name((GF_Node *)n, "xlink:href", &xlink_href)) {
-		targetElement = ((SVG_IRI *)xlink_href.far_ptr)->target_element;
+		targetElement = ((SVG_IRI *)xlink_href.far_ptr)->target;
 
 		if (!targetElement) {
 			fprintf(stderr, "Warning: element only forward references supported.\n");
@@ -1643,7 +1648,7 @@ void svg_parse_transformlist(SVGParser *parser, GF_List *list, char *value_strin
 	gf_list_add(list, tr);
 }
 
-void svg_parse_iri(SVGParser *parser, SVG_IRI *iri, char *attribute_content)
+void svg_parse_iri(SVGParser *parser, SVGElement *elt, SVG_IRI *iri, char *attribute_content)
 {
 	if (strstr(attribute_content, "data:")) {
 #ifdef USE_GPAC_CACHE_MECHANISM
@@ -1732,10 +1737,18 @@ void svg_parse_iri(SVGParser *parser, SVG_IRI *iri, char *attribute_content)
 		/* TODO: Handle xpointer(id()) syntax */
 		if (attribute_content[0] == '#') {
 			iri->type = SVG_IRI_ELEMENTID;
-			iri->target_element = (SVGElement *)gf_sg_find_node_by_name(parser->graph, &(attribute_content[1]));
-			if (!iri->target_element) {
+			iri->target = (SVGElement *)gf_sg_find_node_by_name(parser->graph, &(attribute_content[1]));
+			iri->iri_owner = elt;
+			if (!iri->target) {
+				href_instance *hi = malloc(sizeof(href_instance));
+				hi->elt = elt;
+				hi->iri = iri;
 				iri->iri = strdup(attribute_content);
-				gf_list_add(parser->unresolved_hrefs, iri);
+				gf_list_add(parser->unresolved_hrefs, hi);
+			} else {
+				/* reference is resolved we can register it 
+				   the target_element is referenced by the current element */
+				gf_node_register((GF_Node *)iri->target, (GF_Node *)elt);
 			}
 		} else {
 			iri->type = SVG_IRI_IRI;
@@ -1815,7 +1828,7 @@ void svg_parse_animatetransform_type(SVGParser *parser, SVG_TransformType *anim_
 /* Parse a single animated value 
    TODO: handle more datatypes
 */
-void *svg_parse_one_anim_value(SVGParser *parser, const char *attribute_name, u8 anim_value_type, char *single_value_string, u8 transform_anim_datatype)
+void *svg_parse_one_anim_value(SVGParser *parser, SVGElement *elt, const char *attribute_name, u8 anim_value_type, char *single_value_string, u8 transform_anim_datatype)
 {
 	switch (anim_value_type) {
 	case SVG_StrokeDashArray_datatype:
@@ -1988,7 +2001,7 @@ void *svg_parse_one_anim_value(SVGParser *parser, const char *attribute_name, u8
 		{
 			SVG_IRI *iri;
 			GF_SAFEALLOC(iri, sizeof(SVG_IRI))
-			svg_parse_iri(parser, iri, single_value_string);
+			svg_parse_iri(parser, elt, iri, single_value_string);
 			return iri;
 		}
 		break;
@@ -2065,7 +2078,7 @@ void *svg_parse_one_anim_value(SVGParser *parser, const char *attribute_name, u8
 	return NULL;
 }
 
-void svg_parse_anim_values(SVGParser *parser, const char *attribute_name, SMIL_AnimateValues *anim_values, u8 anim_value_type, char *anim_values_string, u8 transform_anim_datatype)
+void svg_parse_anim_values(SVGParser *parser, SVGElement *elt, const char *attribute_name, SMIL_AnimateValues *anim_values, u8 anim_value_type, char *anim_values_string, u8 transform_anim_datatype)
 {
 	u32 len, i = 0;
 	char *str;
@@ -2085,7 +2098,7 @@ void svg_parse_anim_values(SVGParser *parser, const char *attribute_name, SMIL_A
 			memcpy(value_string, str + (psemi+1), single_value_len);
 			value_string[single_value_len] = 0;
 			psemi = i;
-			single_value = svg_parse_one_anim_value(parser, attribute_name, anim_values->datatype, value_string, transform_anim_datatype);
+			single_value = svg_parse_one_anim_value(parser, elt, attribute_name, anim_values->datatype, value_string, transform_anim_datatype);
 			if (single_value) gf_list_add(anim_values->values, single_value);
 			free(value_string);
 		}
@@ -2105,17 +2118,17 @@ void svg_parse_attribute(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info,
 		{
 			SMIL_AnimateValue *anim_value = (SMIL_AnimateValue *)info->far_ptr;
 			anim_value->datatype = anim_value_type;
-			anim_value->value = svg_parse_one_anim_value(parser, info->name, anim_value->datatype, attribute_content, transform_anim_datatype);
+			anim_value->value = svg_parse_one_anim_value(parser, elt, info->name, anim_value->datatype, attribute_content, transform_anim_datatype);
 		}
 		break;
 	case SMIL_AnimateValues_datatype:
-		svg_parse_anim_values(parser, info->name, (SMIL_AnimateValues *)info->far_ptr, anim_value_type, attribute_content, transform_anim_datatype);
+		svg_parse_anim_values(parser, elt, info->name, (SMIL_AnimateValues *)info->far_ptr, anim_value_type, attribute_content, transform_anim_datatype);
 		break;
 	case SVG_TransformType_datatype:
 		/* not parsed here */ 
 		break;
 	case SVG_IRI_datatype:
-		svg_parse_iri(parser, (SVG_IRI*)info->far_ptr, attribute_content);
+		svg_parse_iri(parser, elt, (SVG_IRI*)info->far_ptr, attribute_content);
 		break;
 	case SMIL_AttributeName_datatype:
 		/* Should be called after xlink:href of the animation element has been resolved
@@ -2358,8 +2371,8 @@ void svg_parse_attributes_from_node(SVGParser *parser,
 					gf_node_register((GF_Node *)handler, (GF_Node *)elt);
 					gf_list_add(elt->children, handler);
 					listener->event = strdup((char *) attributes->name+2);
-					listener->handler.target_element = (SVGElement *) handler;
-					listener->target.target_element = elt;
+					listener->handler.target = (SVGElement *) handler;
+					listener->target.target = elt;
 					handler->textContent = strdup(attributes->children->content);
 
 					gf_node_listener_add((GF_Node *) elt, (GF_Node *) listener);
@@ -2423,7 +2436,10 @@ void svg_parse_defered_animation_elements(SVGParser *parser, xmlNodePtr node, SV
 		} else {
 			/* default is the parent element */
 			((SVG_IRI *)xlink_href.far_ptr)->type = SVG_IRI_ELEMENTID;
-			((SVG_IRI *)xlink_href.far_ptr)->target_element = parent;
+			((SVG_IRI *)xlink_href.far_ptr)->target = parent;
+			((SVG_IRI *)xlink_href.far_ptr)->iri_owner = elt;
+			/* Warning !!! here the reference is the parent !!!! */
+			gf_node_register((GF_Node *)parent, (GF_Node *)elt);
 		}
 	}
 
@@ -2460,7 +2476,8 @@ void svg_parse_defered_animation_elements(SVGParser *parser, xmlNodePtr node, SV
 				fprintf(stdout, "Warning: attributeName attribute not found.\n");
 			}
 		} else {
-			fprintf(stdout, "Warning: target attribute not specified.\n");
+			if (tag != TAG_SVG_discard)
+				fprintf(stdout, "Warning: target attribute not specified.\n");
 		}
 	}
 
@@ -2708,12 +2725,14 @@ GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 
 	/* Resolve hrefs */
 	while (gf_list_count(parser->unresolved_hrefs) > 0) {
-		SVG_IRI *iri = gf_list_get(parser->unresolved_hrefs, 0);
+		href_instance *hi = gf_list_get(parser->unresolved_hrefs, 0);
+		SVG_IRI *iri = hi->iri;
 		gf_list_rem(parser->unresolved_hrefs, 0);
-		iri->target_element = (SVGElement *)gf_sg_find_node_by_name(parser->graph, &(iri->iri[1]));
-		if (iri->target_element) {
-			free(iri->iri);
-			iri->iri = NULL;
+		iri->target = (SVGElement *)gf_sg_find_node_by_name(parser->graph, &(iri->iri[1]));
+		if (iri->target) {
+			/*free(iri->iri);
+			iri->iri = NULL;*/
+			gf_node_register((GF_Node *)iri->target, (GF_Node *)hi->elt);
 		}
 	}
 

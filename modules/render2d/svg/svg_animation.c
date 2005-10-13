@@ -69,7 +69,7 @@ static void SVG_ClampColor(SVG_Color *a)
 }
 
 /* c = a + b */
-static void SVG_AddColor(SVG_Color *a, SVG_Color *b, SVG_Color *c)
+static void SVG_AddColor(SMIL_AnimationStack *stack, SVG_Color *a, SVG_Color *b, SVG_Color *c)
 {
 	c->red   = a->red   + b->red;
 	c->green = a->green + b->green;
@@ -86,14 +86,14 @@ static void SVG_MulColor(SVG_Color *a, Fixed k, SVG_Color *c)
 }
 
 /* a = b */
-static void SVG_SetColor(SVG_Color *a, SVG_Color *b)
+static void SVG_SetColor(SMIL_AnimationStack *stack, SVG_Color *a, SVG_Color *b)
 {
 	a->red   = b->red;
 	a->green = b->green;
 	a->blue  = b->blue;
 }
 
-static u32 SVG_CompareColor(SVG_Color *a, SVG_Color *b)
+static u32 SVG_CompareColor(SMIL_AnimationStack *stack, SVG_Color *a, SVG_Color *b)
 {
 	if (a->type != b->type) return 1;
 	if (a->red != b->red) return 1;
@@ -102,19 +102,20 @@ static u32 SVG_CompareColor(SVG_Color *a, SVG_Color *b)
 	return 0;
 }
 
-static void SVG_ApplyAccumulateColor(u32 nb_iterations, 
+static void SVG_ApplyAccumulateColor(SMIL_AnimationStack *stack, 
+									 u32 nb_iterations, 
 									 SVG_Color *current,
 									 SVG_Color *last,
 									 SVG_Color *accumulated)
 {
 	SVG_Color tmp;
 	SVG_MulColor(last, INT2FIX(nb_iterations), &tmp);
-	SVG_AddColor(current, &tmp, &tmp);
+	SVG_AddColor(stack, current, &tmp, &tmp);
 	SVG_ClampColor(&tmp);
-	SVG_SetColor(accumulated, &tmp);
+	SVG_SetColor(stack, accumulated, &tmp);
 }
 
-static void SVG_InterpolateColor(Fixed interpolation_coefficient, SVG_Color *value1, SVG_Color *value2, SVG_Color *target)
+static void SVG_InterpolateColor(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, SVG_Color *value1, SVG_Color *value2, SVG_Color *target)
 {
 	target->type = value1->type;
 	target->red = SVG_Interpolate(value1->red, value2->red, interpolation_coefficient);
@@ -137,9 +138,9 @@ static void SVG_DeleteStackValuesColor(SMIL_AnimationStack *stack)
 /* end of color */
 
 /* Paint functions */
-static void SVG_AddPaint(SVG_Paint *a, SVG_Paint *b, SVG_Paint *c)
+static void SVG_AddPaint(SMIL_AnimationStack *stack, SVG_Paint *a, SVG_Paint *b, SVG_Paint *c)
 {
-	SVG_AddColor(a->color, b->color, c->color);
+	SVG_AddColor(stack, a->color, b->color, c->color);
 	/* TODO: fix me */
 	c->type = a->type;
 }
@@ -152,33 +153,34 @@ static void SVG_MulPaint(SVG_Paint *a, Fixed k, SVG_Paint *c)
 }
 
 /* a = b */
-static void SVG_SetPaint(SVG_Paint *a, SVG_Paint *b)
+static void SVG_SetPaint(SMIL_AnimationStack *stack, SVG_Paint *a, SVG_Paint *b)
 {
-	SVG_SetColor(a->color, b->color);
+	SVG_SetColor(stack, a->color, b->color);
 	a->type = b->type;
 }
 
-static u32 SVG_ComparePaint(SVG_Paint *a, SVG_Paint *b)
+static u32 SVG_ComparePaint(SMIL_AnimationStack *stack, SVG_Paint *a, SVG_Paint *b)
 {
 	if (a->type != b->type) return 1;
 	if ((!a->uri && b->uri) || (a->uri && !b->uri)) return 1;
 	if (a->uri && strcmp(a->uri, b->uri)) return 1;
-	return SVG_CompareColor(a->color, b->color);
+	return SVG_CompareColor(stack, a->color, b->color);
 }
 
-static void SVG_ApplyAccumulatePaint(u32 nb_iterations, 
+static void SVG_ApplyAccumulatePaint(SMIL_AnimationStack *stack, 
+									 u32 nb_iterations, 
 									 SVG_Paint *current,
 									 SVG_Paint *last,
 									 SVG_Paint *accumulated)
 {
-	SVG_ApplyAccumulateColor(nb_iterations, current->color, last->color, accumulated->color);
+	SVG_ApplyAccumulateColor(stack, nb_iterations, current->color, last->color, accumulated->color);
 	/* TODO: fix me */
 	accumulated->type = current->type;
 }
 
-static void SVG_InterpolatePaint(Fixed interpolation_coefficient, SVG_Paint *value1, SVG_Paint *value2, SVG_Paint *target)
+static void SVG_InterpolatePaint(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, SVG_Paint *value1, SVG_Paint *value2, SVG_Paint *target)
 {
-	SVG_InterpolateColor(interpolation_coefficient, value1->color, value2->color, target->color);
+	SVG_InterpolateColor(stack, interpolation_coefficient, value1->color, value2->color, target->color);
 	/* TODO: fix me */
 	target->type = value1->type;
 }
@@ -203,19 +205,19 @@ static void SVG_DeleteStackValuesPaint(SMIL_AnimationStack *stack)
 /* end of Paint functions */
 
 /* Motion functions */
-static void SVG_ApplyAccumulateMotion(u32 nb_iterations, SVG_Matrix *current, SVG_Point *last, SVG_Matrix *accumulated)
+static void SVG_ApplyAccumulateMotion(SMIL_AnimationStack *stack, u32 nb_iterations, SVG_Matrix *current, SVG_Point *last, SVG_Matrix *accumulated)
 {
 	accumulated->m[2] = current->m[2] + nb_iterations*last->x;
 	accumulated->m[5] = current->m[5] + nb_iterations*last->y;
 }
 
-static void SVG_InterpolateMotion(Fixed interpolation_coefficient, SVG_Point *value1, SVG_Point *value2, SVG_Matrix *target)
+static void SVG_InterpolateMotion(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, SVG_Point *value1, SVG_Point *value2, SVG_Matrix *target)
 {
 	target->m[2] = SVG_Interpolate(value1->x, value2->x, interpolation_coefficient);
 	target->m[5] = SVG_Interpolate(value1->y, value2->y, interpolation_coefficient);
 }
 
-static void SVG_SetMotion(SVG_Matrix *a, SVG_Point *b)
+static void SVG_SetMotion(SMIL_AnimationStack *stack, SVG_Matrix *a, SVG_Point *b)
 {
 	a->m[2] = b->x;
 	a->m[5] = b->y;
@@ -228,7 +230,7 @@ static void SVG_SetMotion(SVG_Matrix *a, SVG_Point *b)
 /* Motion functions end */
 
 /* SVG_Length functions */
-static void SVG_SetLength(SVG_Length *a, SVG_Length *b)
+static void SVG_SetLength(SMIL_AnimationStack *stack, SVG_Length *a, SVG_Length *b)
 {
 	a->number = b->number;
 }
@@ -238,25 +240,25 @@ static void SVG_MulLength(SVG_Length *a, Fixed k, SVG_Length *c)
 	c->number = a->number * k;
 }
 
-static void SVG_AddLength(SVG_Length *a, SVG_Length *b, SVG_Length *c) 
+static void SVG_AddLength(SMIL_AnimationStack *stack, SVG_Length *a, SVG_Length *b, SVG_Length *c) 
 {
 	c->number = a->number + b->number;
 }
 
-static u32 SVG_CompareLength(SVG_Length *a, SVG_Length *b)
+static u32 SVG_CompareLength(SMIL_AnimationStack *stack, SVG_Length *a, SVG_Length *b)
 {
 	if (a->type != b->type) return 1;
 	return (a->number != b->number);
 }
 
-static void SVG_ApplyAccumulateLength(u32 nb_iterations, SVG_Length *current, SVG_Length *last, SVG_Length *accumulated)
+static void SVG_ApplyAccumulateLength(SMIL_AnimationStack *stack, u32 nb_iterations, SVG_Length *current, SVG_Length *last, SVG_Length *accumulated)
 {
 	SVG_Length tmp;
 	SVG_MulLength(last, INT2FIX(nb_iterations), &tmp);
-	SVG_AddLength(current, &tmp, accumulated);
+	SVG_AddLength(stack, current, &tmp, accumulated);
 }
 
-static void SVG_InterpolateLength(Fixed interpolation_coefficient, SVG_Length *value1, SVG_Length *value2, SVG_Length *target)
+static void SVG_InterpolateLength(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, SVG_Length *value1, SVG_Length *value2, SVG_Length *target)
 {
 	target->type = value1->type;
 	target->number = SVG_Interpolate(value1->number, value2->number, interpolation_coefficient);
@@ -278,7 +280,7 @@ static void SVG_DeleteStackValuesLength(SMIL_AnimationStack *stack)
 /* end of Length functions */
 
 /* Inheritable float functions */
-static void SVG_SetIFloat(SVGInheritableFloat *a, SVGInheritableFloat *b)
+static void SVG_SetIFloat(SMIL_AnimationStack *stack, SVGInheritableFloat *a, SVGInheritableFloat *b)
 {
 	a->type = b->type;
 	a->value = b->value;
@@ -290,26 +292,26 @@ static void SVG_MulIFloat(SVGInheritableFloat *a, Fixed k, SVGInheritableFloat *
 	c->value = a->value * k;
 }
 
-static void SVG_AddIFloat(SVGInheritableFloat *a, SVGInheritableFloat *b, SVGInheritableFloat *c)
+static void SVG_AddIFloat(SMIL_AnimationStack *stack, SVGInheritableFloat *a, SVGInheritableFloat *b, SVGInheritableFloat *c)
 {
 	c->type = a->type;
 	c->value = a->value + b->value;
 }
 
-static u32 SVG_CompareIFloat(SVGInheritableFloat *a, SVGInheritableFloat *b)
+static u32 SVG_CompareIFloat(SMIL_AnimationStack *stack, SVGInheritableFloat *a, SVGInheritableFloat *b)
 {
 	if(a->type != b->type) return 1;
 	return (a->value != b->value);
 }
 
-static void SVG_ApplyAccumulateIFloat(u32 nb_iterations, SVGInheritableFloat *current, SVGInheritableFloat *last, SVGInheritableFloat *accumulated)
+static void SVG_ApplyAccumulateIFloat(SMIL_AnimationStack *stack, u32 nb_iterations, SVGInheritableFloat *current, SVGInheritableFloat *last, SVGInheritableFloat *accumulated)
 {
 	SVGInheritableFloat tmp;
 	SVG_MulIFloat(last, INT2FIX(nb_iterations), &tmp);
-	SVG_AddIFloat(current, &tmp, accumulated);
+	SVG_AddIFloat(stack, current, &tmp, accumulated);
 }
 
-static void SVG_InterpolateIFloat(Fixed interpolation_coefficient, SVGInheritableFloat *value1, SVGInheritableFloat *value2, SVGInheritableFloat *target)
+static void SVG_InterpolateIFloat(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, SVGInheritableFloat *value1, SVGInheritableFloat *value2, SVGInheritableFloat *target)
 {
 	target->type = value1->type;
 	target->value = SVG_Interpolate(value1->value, value2->value, interpolation_coefficient);
@@ -335,14 +337,14 @@ static void printMatrix(const char *s, SVG_Matrix *target)
 	//fprintf(stdout, "%s %.2f,%.2f,%.2f,%.2f,%.2f,%.2f\n", s, target->m[0], target->m[1], target->m[2], target->m[3], target->m[4], target->m[5]);
 }
 
-static void SVG_SetTranslation(SVG_Matrix *a, SVG_Point *b)
+static void SVG_SetTranslation(SMIL_AnimationStack *stack, SVG_Matrix *a, SVG_Point *b)
 {
 	gf_mx2d_init(*a);
 	gf_mx2d_add_translation(a, b->x, b->y);
 //	printMatrix("\nSet Translation", a);
 }
 
-static void SVG_ApplyAccumulateTranslation(u32 nb_iterations, SVG_Matrix *current, SVG_Point *last, SVG_Matrix *accumulated)
+static void SVG_ApplyAccumulateTranslation(SMIL_AnimationStack *stack, u32 nb_iterations, SVG_Matrix *current, SVG_Point *last, SVG_Matrix *accumulated)
 {
 	SVG_Matrix tmp;
 	gf_mx2d_init(tmp);
@@ -354,7 +356,7 @@ static void SVG_ApplyAccumulateTranslation(u32 nb_iterations, SVG_Matrix *curren
 	gf_mx2d_copy(*accumulated, tmp);
 }
 
-static void SVG_InterpolateTranslation(Fixed interpolation_coefficient, SVG_Point *value1, SVG_Point *value2, SVG_Matrix *target)
+static void SVG_InterpolateTranslation(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, SVG_Point *value1, SVG_Point *value2, SVG_Matrix *target)
 {
 	gf_mx2d_init(*target);
 	target->m[2] = SVG_Interpolate(value1->x, value2->x, interpolation_coefficient); 
@@ -362,14 +364,14 @@ static void SVG_InterpolateTranslation(Fixed interpolation_coefficient, SVG_Poin
 //	printMatrix("\nInterpolate Translation", target);
 }
 
-static void SVG_SetScale(SVG_Matrix *a, SVG_Point *b)
+static void SVG_SetScale(SMIL_AnimationStack *stack, SVG_Matrix *a, SVG_Point *b)
 {
 	gf_mx2d_init(*a);
 	gf_mx2d_add_scale(a, b->x, b->y);
 //	printMatrix("\nSet Scale\n", a);
 }
 
-static void SVG_ApplyAccumulateScale(u32 nb_iterations, SVG_Matrix *current, SVG_Point *last, SVG_Matrix *accumulated)
+static void SVG_ApplyAccumulateScale(SMIL_AnimationStack *stack, u32 nb_iterations, SVG_Matrix *current, SVG_Point *last, SVG_Matrix *accumulated)
 {
 	SVG_Matrix tmp;
 	gf_mx2d_init(tmp);
@@ -381,7 +383,7 @@ static void SVG_ApplyAccumulateScale(u32 nb_iterations, SVG_Matrix *current, SVG
 	gf_mx2d_copy(*accumulated, tmp);
 }
 
-static void SVG_InterpolateScale(Fixed interpolation_coefficient, SVG_Point *value1, SVG_Point *value2, SVG_Matrix *target)
+static void SVG_InterpolateScale(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, SVG_Point *value1, SVG_Point *value2, SVG_Matrix *target)
 {
 	gf_mx2d_init(*target);
 	target->m[0] = SVG_Interpolate(value1->x, value2->x, interpolation_coefficient); 
@@ -389,14 +391,14 @@ static void SVG_InterpolateScale(Fixed interpolation_coefficient, SVG_Point *val
 //	printMatrix("\nInterpolate Scale\n", target);
 }
 
-static void SVG_SetRotate(SVG_Matrix *a, SVG_Point_Angle *b)
+static void SVG_SetRotate(SMIL_AnimationStack *stack, SVG_Matrix *a, SVG_Point_Angle *b)
 {
 	gf_mx2d_init(*a);
 	gf_mx2d_add_rotation(a, b->x, b->y, b->angle);
 //	printMatrix("\nSet Rotate\n", a);
 }
 
-static void SVG_ApplyAccumulateRotate(u32 nb_iterations, SVG_Matrix *current, SVG_Point_Angle *last, SVG_Matrix *accumulated)
+static void SVG_ApplyAccumulateRotate(SMIL_AnimationStack *stack, u32 nb_iterations, SVG_Matrix *current, SVG_Point_Angle *last, SVG_Matrix *accumulated)
 {
 	SVG_Matrix tmp;
 	gf_mx2d_init(tmp);
@@ -406,7 +408,7 @@ static void SVG_ApplyAccumulateRotate(u32 nb_iterations, SVG_Matrix *current, SV
 	gf_mx2d_copy(*accumulated, tmp);
 }
 
-static void SVG_InterpolateRotate(Fixed interpolation_coefficient, SVG_Point_Angle *value1, SVG_Point_Angle *value2, SVG_Matrix *target)
+static void SVG_InterpolateRotate(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, SVG_Point_Angle *value1, SVG_Point_Angle *value2, SVG_Matrix *target)
 {
 	gf_mx2d_init(*target);
 	gf_mx2d_add_rotation(target, 
@@ -416,14 +418,14 @@ static void SVG_InterpolateRotate(Fixed interpolation_coefficient, SVG_Point_Ang
 //	printMatrix("\nInterpolate Rotate", target);
 }
 
-static void SVG_SetSkewX(SVG_Matrix *a, Fixed *b)
+static void SVG_SetSkewX(SMIL_AnimationStack *stack, SVG_Matrix *a, Fixed *b)
 {
 	gf_mx2d_init(*a);
 	gf_mx2d_add_skew_x(a, *b);
 //	printMatrix("\nSet Skew X\n", a);
 }
 
-static void SVG_ApplyAccumulateSkewX(u32 nb_iterations, SVG_Matrix *current, Fixed *last, SVG_Matrix *accumulated)
+static void SVG_ApplyAccumulateSkewX(SMIL_AnimationStack *stack, u32 nb_iterations, SVG_Matrix *current, Fixed *last, SVG_Matrix *accumulated)
 {
 	SVG_Matrix tmp;
 	gf_mx2d_init(tmp);
@@ -434,7 +436,7 @@ static void SVG_ApplyAccumulateSkewX(u32 nb_iterations, SVG_Matrix *current, Fix
 //	printMatrix("\nAccumulate Skew X\n", a);
 }
 
-static void SVG_InterpolateSkewX(Fixed interpolation_coefficient, Fixed *value1, Fixed *value2, SVG_Matrix *target)
+static void SVG_InterpolateSkewX(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, Fixed *value1, Fixed *value2, SVG_Matrix *target)
 {
 	gf_mx2d_init(*target);
 	gf_mx2d_add_skew_x(target, 
@@ -442,14 +444,14 @@ static void SVG_InterpolateSkewX(Fixed interpolation_coefficient, Fixed *value1,
 //	printMatrix("\nInterpolate Skew X\n", a);
 }
 
-static void SVG_SetSkewY(SVG_Matrix *a, Fixed *b)
+static void SVG_SetSkewY(SMIL_AnimationStack *stack, SVG_Matrix *a, Fixed *b)
 {
 	gf_mx2d_init(*a);
 	gf_mx2d_add_skew_y(a, *b);
 //	printMatrix("\nSet Skew Y\n", a);
 }
 
-static void SVG_ApplyAccumulateSkewY(u32 nb_iterations, SVG_Matrix *current, Fixed *last, SVG_Matrix *accumulated)
+static void SVG_ApplyAccumulateSkewY(SMIL_AnimationStack *stack, u32 nb_iterations, SVG_Matrix *current, Fixed *last, SVG_Matrix *accumulated)
 {
 	SVG_Matrix tmp;
 	gf_mx2d_init(tmp);
@@ -460,7 +462,7 @@ static void SVG_ApplyAccumulateSkewY(u32 nb_iterations, SVG_Matrix *current, Fix
 //	printMatrix("\nAccumulate Skew Y\n", a);
 }
 
-static void SVG_InterpolateSkewY(Fixed interpolation_coefficient, Fixed *value1, Fixed *value2, SVG_Matrix *target)
+static void SVG_InterpolateSkewY(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, Fixed *value1, Fixed *value2, SVG_Matrix *target)
 {
 	gf_mx2d_init(*target);
 	gf_mx2d_add_skew_y(target, 
@@ -468,7 +470,7 @@ static void SVG_InterpolateSkewY(Fixed interpolation_coefficient, Fixed *value1,
 //	printMatrix("\nInterpolate Skew Y\n", a);
 }
 
-static void SVG_InterpolateTransform(Fixed interpolation_coefficient, SVG_Matrix *value1, SVG_Matrix *value2, SVG_Matrix *target)
+static void SVG_InterpolateTransform(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, SVG_Matrix *value1, SVG_Matrix *value2, SVG_Matrix *target)
 {
 	target->m[0] = SVG_Interpolate(value1->m[0], value2->m[0], interpolation_coefficient);
 	target->m[1] = SVG_Interpolate(value1->m[1], value2->m[1], interpolation_coefficient);
@@ -479,13 +481,13 @@ static void SVG_InterpolateTransform(Fixed interpolation_coefficient, SVG_Matrix
 //	printMatrix("\nInterpolate Transform", a);
 }
 
-static void SVG_ApplyAccumulateTransform(u32 nb_iterations, SVG_Matrix *current, SVG_Matrix *last, SVG_Matrix *accumulated)
+static void SVG_ApplyAccumulateTransform(SMIL_AnimationStack *stack, u32 nb_iterations, SVG_Matrix *current, SVG_Matrix *last, SVG_Matrix *accumulated)
 {
 	fprintf(stdout, "Warning: accumulation of matrix is not implemented\n");
 //	printMatrix("\nAccumulate Transform", a);
 }
 
-static void SVG_ApplyAdditiveTransform(SVG_Matrix *underlying_value, SVG_Matrix *toApply, SVG_Matrix *target)
+static void SVG_ApplyAdditiveTransform(SMIL_AnimationStack *stack, SVG_Matrix *underlying_value, SVG_Matrix *toApply, SVG_Matrix *target)
 {
 	SVG_Matrix tmp;
 //	printMatrix("\nAdditive Transform \nunderlying value", underlying_value);
@@ -496,13 +498,13 @@ static void SVG_ApplyAdditiveTransform(SVG_Matrix *underlying_value, SVG_Matrix 
 //	printMatrix("result", target);
 }
 
-static void SVG_SetTransform(SVG_Matrix *a, SVG_Matrix *b)
+static void SVG_SetTransform(SMIL_AnimationStack *stack, SVG_Matrix *a, SVG_Matrix *b)
 {
 	gf_mx2d_copy(*a, *b);
 //	printMatrix("\nAssign", a);
 }
 
-static u32 SVG_CompareTransform(SVG_Matrix *a, SVG_Matrix *b)
+static u32 SVG_CompareTransform(SMIL_AnimationStack *stack, SVG_Matrix *a, SVG_Matrix *b)
 {
 	if (a->m[0] != b->m[0]) return 1;
 	if (a->m[1] != b->m[1]) return 1;
@@ -531,26 +533,26 @@ static void SVG_DeleteStackValuesTransform(SMIL_AnimationStack *stack)
 /* end of Transform functions */
 
 /* keyword functions */
-static void SVG_SetKeyword(u8 *a, u8 *b)
+static void SVG_SetKeyword(SMIL_AnimationStack *stack, u8 *a, u8 *b)
 {
 	*a = *b;
 }
 
-static u32 SVG_CompareKeyword(u8 *a, u8 *b)
+static u32 SVG_CompareKeyword(SMIL_AnimationStack *stack, u8 *a, u8 *b)
 {
 	return (*a != *b);
 }
 
-static void SVG_ApplyAdditiveKeyword(u8 *a, u8* b, u8 *c)
+static void SVG_ApplyAdditiveKeyword(SMIL_AnimationStack *stack, u8 *a, u8* b, u8 *c)
 {
 	/* Nothing to be done */
 }
-static void SVG_ApplyAccumulateKeyword(u32 nb_iterations, u8 *current, u8 *last, u8 *accumulated)
+static void SVG_ApplyAccumulateKeyword(SMIL_AnimationStack *stack, u32 nb_iterations, u8 *current, u8 *last, u8 *accumulated)
 {
 	/* Nothing to be done */
 }
 
-static void SVG_InterpolateKeyword(Fixed interpolation_coefficient, u8 *value1, u8 *value2, u8 *target) 
+static void SVG_InterpolateKeyword(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, u8 *value1, u8 *value2, u8 *target) 
 {
 	if (interpolation_coefficient < INT2FIX(0.5)) 
 		*target = *value1;
@@ -573,7 +575,7 @@ static void SVG_DeleteStackValuesKeyword(SMIL_AnimationStack *stack)
 /* end of keyword functions */
 
 /* Dash Array animation functions */
-static void SVG_SetDashArray(SVG_StrokeDashArray *a, SVG_StrokeDashArray *b)
+static void SVG_SetDashArray(SMIL_AnimationStack *stack, SVG_StrokeDashArray *a, SVG_StrokeDashArray *b)
 {
 	a->type = b->type;
 	if (a->array.vals) free(a->array.vals);
@@ -587,12 +589,12 @@ static void SVG_MulDashArray(SVG_StrokeDashArray *a, Fixed k, SVG_StrokeDashArra
 	/* TODO */
 }
 
-static void SVG_AddDashArray(SVG_StrokeDashArray *a, SVG_StrokeDashArray *b, SVG_StrokeDashArray *c)
+static void SVG_AddDashArray(SMIL_AnimationStack *stack, SVG_StrokeDashArray *a, SVG_StrokeDashArray *b, SVG_StrokeDashArray *c)
 {
 	/* TODO */
 }
 
-static void SVG_ApplyAccumulateDashArray(u32 nb_iterations, 
+static void SVG_ApplyAccumulateDashArray(SMIL_AnimationStack *stack, u32 nb_iterations, 
 										 SVG_StrokeDashArray *current, 
 										 SVG_StrokeDashArray *last, 
 										 SVG_StrokeDashArray *accumulated)
@@ -600,7 +602,7 @@ static void SVG_ApplyAccumulateDashArray(u32 nb_iterations,
 	/* TODO */
 }
 
-static void SVG_InterpolateDashArray(Fixed interpolation_coefficient, 
+static void SVG_InterpolateDashArray(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, 
 									 SVG_StrokeDashArray *value1, 
 									 SVG_StrokeDashArray *value2, 
 									 SVG_StrokeDashArray *target)
@@ -617,7 +619,7 @@ static void SVG_InterpolateDashArray(Fixed interpolation_coefficient,
 	}
 }
 
-static u32 SVG_CompareDashArray(SVG_StrokeDashArray *a, 
+static u32 SVG_CompareDashArray(SMIL_AnimationStack *stack, SVG_StrokeDashArray *a, 
 								SVG_StrokeDashArray *b)
 {
 	if (a->type != b->type) return 1;
@@ -644,7 +646,7 @@ static void SVG_DeleteStackValuesDashArray(SMIL_AnimationStack *stack)
 /* end of Dash Array animation functions */
 
 /* SVG Rect animation functions */
-static void SVG_SetRect(SVG_Rect *a, SVG_Rect *b)
+static void SVG_SetRect(SMIL_AnimationStack *stack, SVG_Rect *a, SVG_Rect *b)
 {
 	memcpy(a, b, sizeof(SVG_Rect));
 }
@@ -657,7 +659,7 @@ static void SVG_MulRect(SVG_Rect *a, Fixed k, SVG_Rect *c)
 	c->height = a->height * k;
 }
 
-static void SVG_AddRect(SVG_Rect *a, SVG_Rect *b, SVG_Rect *c)
+static void SVG_AddRect(SMIL_AnimationStack *stack, SVG_Rect *a, SVG_Rect *b, SVG_Rect *c)
 {
 	c->x = a->x + b->x;
 	c->y = a->y + b->y;
@@ -665,7 +667,7 @@ static void SVG_AddRect(SVG_Rect *a, SVG_Rect *b, SVG_Rect *c)
 	c->height= a->height + b->height;
 }
 
-static u32 SVG_CompareRect(SVG_Rect *a, SVG_Rect *b)
+static u32 SVG_CompareRect(SMIL_AnimationStack *stack, SVG_Rect *a, SVG_Rect *b)
 {
 	if (a->x != b->x) return 1;
 	if (a->y != b->y) return 1;
@@ -674,7 +676,7 @@ static u32 SVG_CompareRect(SVG_Rect *a, SVG_Rect *b)
 	return 0;
 }
 
-static void SVG_ApplyAccumulateRect(u32 nb_iterations, SVG_Rect *current, SVG_Rect *last, SVG_Rect*accumulated)
+static void SVG_ApplyAccumulateRect(SMIL_AnimationStack *stack, u32 nb_iterations, SVG_Rect *current, SVG_Rect *last, SVG_Rect*accumulated)
 {
 	accumulated->x = current->x + nb_iterations*last->x;
 	accumulated->y = current->y + nb_iterations*last->y;
@@ -682,7 +684,7 @@ static void SVG_ApplyAccumulateRect(u32 nb_iterations, SVG_Rect *current, SVG_Re
 	accumulated->height= current->height + nb_iterations*last->height;
 }
 
-static void SVG_InterpolateRect(Fixed interpolation_coefficient, SVG_Rect *value1, SVG_Rect *value2, SVG_Rect *target)
+static void SVG_InterpolateRect(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, SVG_Rect *value1, SVG_Rect *value2, SVG_Rect *target)
 {
 	target->x = SVG_Interpolate(value1->x, value2->x, interpolation_coefficient);
 	target->y = SVG_Interpolate(value1->y, value2->y, interpolation_coefficient);
@@ -706,42 +708,55 @@ static void SVG_DeleteStackValuesRect(SMIL_AnimationStack *stack)
 /* end of SVG Rect animation functions */
 
 /* SVG IRI animation functions */
-static void SVG_SetIRI(SVG_IRI *a, SVG_IRI *b)
+static void SVG_SetIRI(SMIL_AnimationStack *stack, SVG_IRI *a, SVG_IRI *b)
 {
-	memcpy(a, b, sizeof(SVG_IRI));
+	*a = *b;
+}
+
+static void SVG_AssignIRI(SMIL_AnimationStack *stack, SVG_IRI *a, SVG_IRI *b)
+{
+	a->type = b->type;
+	if (a->iri) free(a->iri);
+	if (b->iri) a->iri = strdup(b->iri);
+	if (!a->iri_owner) a->iri_owner = (SVGElement *)stack->target_element;
+	if (a->target) gf_node_unregister((GF_Node *)a->target, (GF_Node *)stack->target_element);
+	a->target = b->target;
+	// Owner does not change but the iri may not have been parsed so the owner is not set
+	if (a->target) gf_node_register((GF_Node *)a->target, (GF_Node *)a->iri_owner);
 }
 
 static void SVG_MulIRI(SVG_IRI *a, Fixed k, SVG_IRI *c)
 {
 }
 
-static void SVG_AddIRI(SVG_IRI *a, SVG_Rect *b, SVG_IRI *c)
+static void SVG_AddIRI(SMIL_AnimationStack *stack, SVG_IRI *a, SVG_Rect *b, SVG_IRI *c)
 {
 }
 
-static u32 SVG_CompareIRI(SVG_IRI *a, SVG_IRI *b)
+static u32 SVG_CompareIRI(SMIL_AnimationStack *stack, SVG_IRI *a, SVG_IRI *b)
 {
 	if (a->type != b->type) return 1;
-	if (a->target_element || b->target_element) {
-		if (a->target_element != b->target_element) return 1;
+	if (a->target || b->target) {
+		if (a->target != b->target) return 1;
 		return 0;
 	}
 	if (a->iri || b->iri) {
 		return (a->iri != b->iri);
 	}
+	if (!a->iri && !b->iri) return 0;
 	return strcmp(a->iri, b->iri);
 }
 
-static void SVG_ApplyAccumulateIRI(u32 nb_iterations, SVG_IRI *current, SVG_IRI *last, SVG_IRI*accumulated)
+static void SVG_ApplyAccumulateIRI(SMIL_AnimationStack *stack, u32 nb_iterations, SVG_IRI *current, SVG_IRI *last, SVG_IRI*accumulated)
 {
 }
 
-static void SVG_InterpolateIRI(Fixed interpolation_coefficient, SVG_IRI *value1, SVG_IRI *value2, SVG_IRI *target)
+static void SVG_InterpolateIRI(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, SVG_IRI *value1, SVG_IRI *value2, SVG_IRI *target)
 {
 	if (interpolation_coefficient < INT2FIX(0.5)) 
-		SVG_SetIRI(target,value1);
+		SVG_SetIRI(stack, target,value1);
 	else 
-		SVG_SetIRI(target,value2);
+		SVG_SetIRI(stack, target,value2);
 }
 
 static void SVG_InitStackValuesIRI(SMIL_AnimationStack *stack)
@@ -759,7 +774,7 @@ static void SVG_DeleteStackValuesIRI(SMIL_AnimationStack *stack)
 /* end of SVG IRI animation functions */
 
 /* SVG Points functions */
-static void SVG_SetPoints(SVG_Points *a, SVG_Points *b)
+static void SVG_SetPoints(SMIL_AnimationStack *stack, SVG_Points *a, SVG_Points *b)
 {
 	u32 i, count;
 
@@ -780,11 +795,11 @@ static void SVG_SetPoints(SVG_Points *a, SVG_Points *b)
 	}
 }
 
-static void SVG_AddPoints(SVG_Points *a, SVG_Points *b, SVG_Points *c)
+static void SVG_AddPoints(SMIL_AnimationStack *stack, SVG_Points *a, SVG_Points *b, SVG_Points *c)
 {
 }
 
-static u32 SVG_ComparePoints(SVG_Points *a, SVG_Points *b)
+static u32 SVG_ComparePoints(SMIL_AnimationStack *stack, SVG_Points *a, SVG_Points *b)
 {
 	u32 i, count;
 
@@ -799,11 +814,11 @@ static u32 SVG_ComparePoints(SVG_Points *a, SVG_Points *b)
 	return 0;
 }
 
-static void SVG_ApplyAccumulatePoints(u32 nb_iterations, SVG_Points *current, SVG_Points *last, SVG_Points *accumulated)
+static void SVG_ApplyAccumulatePoints(SMIL_AnimationStack *stack, u32 nb_iterations, SVG_Points *current, SVG_Points *last, SVG_Points *accumulated)
 {
 }
 
-static void SVG_InterpolatePoints(Fixed interpolation_coefficient, SVG_Points *value1, SVG_Points *value2, SVG_Points *target)
+static void SVG_InterpolatePoints(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, SVG_Points *value1, SVG_Points *value2, SVG_Points *target)
 {
 	u32 i, count;
 
@@ -851,7 +866,7 @@ static void SVG_DeleteStackValuesPoints(SMIL_AnimationStack *stack)
 /* end of SVG Coordinates animation functions */
 
 /* SVG Coordinates functions */
-static void SVG_SetCoords(SVG_Coordinates *a, SVG_Coordinates *b)
+static void SVG_SetCoords(SMIL_AnimationStack *stack, SVG_Coordinates *a, SVG_Coordinates *b)
 {
 	u32 i, count;
 
@@ -871,11 +886,11 @@ static void SVG_SetCoords(SVG_Coordinates *a, SVG_Coordinates *b)
 	}
 }
 
-static void SVG_AddCoords(SVG_Coordinates *a, SVG_Coordinates *b, SVG_Coordinates *c)
+static void SVG_AddCoords(SMIL_AnimationStack *stack, SVG_Coordinates *a, SVG_Coordinates *b, SVG_Coordinates *c)
 {
 }
 
-static u32 SVG_CompareCoords(SVG_Coordinates *a, SVG_Coordinates *b)
+static u32 SVG_CompareCoords(SMIL_AnimationStack *stack, SVG_Coordinates *a, SVG_Coordinates *b)
 {
 	u32 i, count;
 
@@ -890,11 +905,11 @@ static u32 SVG_CompareCoords(SVG_Coordinates *a, SVG_Coordinates *b)
 	return 0;
 }
 
-static void SVG_ApplyAccumulateCoords(u32 nb_iterations, SVG_Coordinates *current, SVG_Coordinates  *last, SVG_Coordinates *accumulated)
+static void SVG_ApplyAccumulateCoords(SMIL_AnimationStack *stack, u32 nb_iterations, SVG_Coordinates *current, SVG_Coordinates  *last, SVG_Coordinates *accumulated)
 {
 }
 
-static void SVG_InterpolateCoords(Fixed interpolation_coefficient, SVG_Coordinates *value1, SVG_Coordinates *value2, SVG_Coordinates *target)
+static void SVG_InterpolateCoords(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, SVG_Coordinates *value1, SVG_Coordinates *value2, SVG_Coordinates *target)
 {
 	u32 i, count;
 
@@ -941,7 +956,7 @@ static void SVG_DeleteStackValuesCoords(SMIL_AnimationStack *stack)
 /* end of SVG Coordinates animation functions */
 
 /* SVG String functions */
-static void SVG_SetString(SVG_String *a, SVG_String *b)
+static void SVG_SetString(SMIL_AnimationStack *stack, SVG_String *a, SVG_String *b)
 {
 	if (*a) free(*a);
 	*a = strdup(*b);
@@ -951,25 +966,25 @@ static void SVG_MulString(SVG_String *a, Fixed k, SVG_String *c)
 {
 }
 
-static void SVG_AddString(SVG_String *a, SVG_Rect *b, SVG_String *c)
+static void SVG_AddString(SMIL_AnimationStack *stack, SVG_String *a, SVG_Rect *b, SVG_String *c)
 {
 }
 
-static u32 SVG_CompareString(SVG_String *a, SVG_String *b)
+static u32 SVG_CompareString(SMIL_AnimationStack *stack, SVG_String *a, SVG_String *b)
 {
 	return strcmp(*a, *b);
 }
 
-static void SVG_ApplyAccumulateString(u32 nb_iterations, SVG_String *current, SVG_String *last, SVG_String*accumulated)
+static void SVG_ApplyAccumulateString(SMIL_AnimationStack *stack, u32 nb_iterations, SVG_String *current, SVG_String *last, SVG_String*accumulated)
 {
 }
 
-static void SVG_InterpolateString(Fixed interpolation_coefficient, SVG_String *value1, SVG_String *value2, SVG_String *target)
+static void SVG_InterpolateString(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, SVG_String *value1, SVG_String *value2, SVG_String *target)
 {
 	if (interpolation_coefficient < INT2FIX(0.5)) 
-		SVG_SetString(target,value1);
+		SVG_SetString(stack, target,value1);
 	else 
-		SVG_SetString(target,value2);
+		SVG_SetString(stack, target,value2);
 }
 
 static void SVG_InitStackValuesString(SMIL_AnimationStack *stack)
@@ -989,7 +1004,7 @@ static void SVG_DeleteStackValuesString(SMIL_AnimationStack *stack)
 /* end of SVG String animation functions */
 
 /* SVG Font Family functions */
-static void SVG_SetFontFamily(SVG_FontFamily *a, SVG_FontFamily *b)
+static void SVG_SetFontFamily(SMIL_AnimationStack *stack, SVG_FontFamily *a, SVG_FontFamily *b)
 {
 	a->type = b->type;
 	if (a->value) free(a->value);
@@ -1000,27 +1015,27 @@ static void SVG_MulFontFamily(SVG_FontFamily *a, Fixed k, SVG_FontFamily *c)
 {
 }
 
-static void SVG_AddFontFamily(SVG_FontFamily *a, SVG_FontFamily *b, SVG_FontFamily *c)
+static void SVG_AddFontFamily(SMIL_AnimationStack *stack, SVG_FontFamily *a, SVG_FontFamily *b, SVG_FontFamily *c)
 {
 }
 
-static u32 SVG_CompareFontFamily(SVG_FontFamily *a, SVG_FontFamily *b)
+static u32 SVG_CompareFontFamily(SMIL_AnimationStack *stack, SVG_FontFamily *a, SVG_FontFamily *b)
 {
 	if (a->type != b->type) return 1;
 	if (!a->value || !b->value) return (a->value != b->value);
 	return strcmp(a->value, b->value);
 }
 
-static void SVG_ApplyAccumulateFontFamily(u32 nb_iterations, SVG_FontFamily *current, SVG_FontFamily *last, SVG_FontFamily*accumulated)
+static void SVG_ApplyAccumulateFontFamily(SMIL_AnimationStack *stack, u32 nb_iterations, SVG_FontFamily *current, SVG_FontFamily *last, SVG_FontFamily*accumulated)
 {
 }
 
-static void SVG_InterpolateFontFamily(Fixed interpolation_coefficient, SVG_FontFamily *value1, SVG_FontFamily *value2, SVG_FontFamily *target)
+static void SVG_InterpolateFontFamily(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, SVG_FontFamily *value1, SVG_FontFamily *value2, SVG_FontFamily *target)
 {
 	if (interpolation_coefficient < INT2FIX(0.5)) 
-		SVG_SetFontFamily(target,value1);
+		SVG_SetFontFamily(stack, target,value1);
 	else 
-		SVG_SetFontFamily(target,value2);
+		SVG_SetFontFamily(stack, target,value2);
 }
 
 static void SVG_InitStackValuesFontFamily(SMIL_AnimationStack *stack)
@@ -1041,7 +1056,7 @@ static void SVG_DeleteStackValuesFontFamily(SMIL_AnimationStack *stack)
 /* end of SVG String animation functions */
 
 /* Dash Path functions */
-static void SVG_SetPath(SVG_PathData *a, SVG_PathData *b)
+static void SVG_SetPath(SMIL_AnimationStack *stack, SVG_PathData *a, SVG_PathData *b)
 {
 	u32 i, count;
 
@@ -1078,12 +1093,12 @@ static void SVG_MulPath(SVG_PathData *a, Fixed k, SVG_PathData *c)
 	/* TODO */
 }
 
-static void SVG_AddPath(SVG_PathData *a, SVG_PathData *b, SVG_PathData *c)
+static void SVG_AddPath(SMIL_AnimationStack *stack, SVG_PathData *a, SVG_PathData *b, SVG_PathData *c)
 {
 	/* TODO */
 }
 
-static u32 SVG_ComparePath(SVG_PathData *a, SVG_PathData *b)
+static u32 SVG_ComparePath(SMIL_AnimationStack *stack, SVG_PathData *a, SVG_PathData *b)
 {
 	u32 i, ccount, pcount;
 
@@ -1106,12 +1121,12 @@ static u32 SVG_ComparePath(SVG_PathData *a, SVG_PathData *b)
 	return 0;
 }
 
-static void SVG_ApplyAccumulatePath(u32 nb_iterations, SVG_PathData *current, SVG_PathData *last, SVG_PathData*accumulated)
+static void SVG_ApplyAccumulatePath(SMIL_AnimationStack *stack, u32 nb_iterations, SVG_PathData *current, SVG_PathData *last, SVG_PathData*accumulated)
 {
 	/* TODO */
 }
 
-static void SVG_InterpolatePath(Fixed interpolation_coefficient, SVG_PathData *value1, SVG_PathData *value2, SVG_PathData *target)
+static void SVG_InterpolatePath(SMIL_AnimationStack *stack, Fixed interpolation_coefficient, SVG_PathData *value1, SVG_PathData *value2, SVG_PathData *target)
 {
 	u32 i, count;
 
@@ -1170,16 +1185,18 @@ static void SVG_DeleteStack(SMIL_AnimationStack *stack)
 
 static void SVG_NoInitStackValues(void *stack) {}
 static void SVG_NoDeleteStackValues(void *stack) {}
-static void SVG_NoSet(void *target, void *value) {}
-static void SVG_NoAssign(void *target, void *value) {}
-static u32  SVG_NoCompare(void *a, void *b) { return 0; }
-static void SVG_NoInterpolate(Fixed interpolation_coefficient, void *value1, void *value2, void *target) {}
-static void SVG_NoApplyAdditive(void *current_value, void *toApply, void *target) {}
-static void SVG_NoApplyAccumulate(u32 nb_iterations, void *current, void *last, void *accumulated) {}
+static void SVG_NoSet(void *stack, void *target, void *value) {}
+static void SVG_NoAssign(void *stack, void *target, void *value) {}
+static u32  SVG_NoCompare(void *stack, void *a, void *b) { return 0; }
+static void SVG_NoInterpolate(void *stack, Fixed interpolation_coefficient, void *value1, void *value2, void *target) {}
+static void SVG_NoApplyAdditive(void *stack, void *current_value, void *toApply, void *target) {}
+static void SVG_NoApplyAccumulate(void *stack, u32 nb_iterations, void *current, void *last, void *accumulated) {}
 static void SVG_NoInvalidate(void *stack){}
 
 static void SVG_Init_SMILAnimationStackAPI(SMIL_AnimationStack *stack)
 {
+	stack->DeleteStack = SVG_DeleteStack;
+	stack->previous_key_index = -1;
 	if (!stack->dur) { /* this is a discard */
 		stack->InitStackValues = SVG_NoInitStackValues;
 		stack->DeleteStackValues = SVG_NoDeleteStackValues;
@@ -1369,7 +1386,7 @@ static void SVG_Init_SMILAnimationStackAPI(SMIL_AnimationStack *stack)
 		stack->InitStackValues = SVG_InitStackValuesIRI;
 		stack->DeleteStackValues = SVG_DeleteStackValuesIRI;
 		stack->Set = SVG_SetIRI;
-		stack->Assign = SVG_SetIRI;
+		stack->Assign = SVG_AssignIRI;
 		stack->Interpolate = SVG_InterpolateIRI;
 		stack->ApplyAdditive = SVG_AddIRI;
 		stack->ApplyAccumulate = SVG_ApplyAccumulateIRI;
@@ -1443,8 +1460,6 @@ static void SVG_Init_SMILAnimationStackAPI(SMIL_AnimationStack *stack)
 		stack->Invalidate = SVG_NoInvalidate;
 		stack->Compare = SVG_NoCompare;
 	}
-	stack->DeleteStack = SVG_DeleteStack;
-	stack->previous_key_index = -1;
 }
 
 /* Initialisation functions for all animation elements in SVG */
@@ -1454,11 +1469,11 @@ void SVG_Init_set(Render2D *sr, GF_Node *node)
 	SVGsetElement *set = (SVGsetElement *)node;
 	SMIL_AnimationStack *stack;
 	
-	if (!(GF_Node*)set->xlink_href.target_element) return;
+	if (!(GF_Node*)set->xlink_href.target) return;
 
 	stack = SMIL_Init_AnimationStack(sr, node);
 	
-	stack->target_element = (GF_Node*)set->xlink_href.target_element;
+	stack->target_element = (GF_Node*)set->xlink_href.target;
 	stack->targetAttributeType = set->attributeName.fieldType; 
 	stack->targetAttribute = set->attributeName.far_ptr; 
 	if (stack->targetAttributeType == SVG_TransformList_datatype && 
@@ -1495,11 +1510,11 @@ void SVG_Init_animate(Render2D *sr, GF_Node *node)
 	SVGanimateElement *animate = (SVGanimateElement *)node;
 	SMIL_AnimationStack *stack;
 	
-	if (!(GF_Node*)animate->xlink_href.target_element) return;
+	if (!(GF_Node*)animate->xlink_href.target) return;
 
 	stack = SMIL_Init_AnimationStack(sr, node);
 	
-	stack->target_element = (GF_Node*)animate->xlink_href.target_element;
+	stack->target_element = (GF_Node*)animate->xlink_href.target;
 	stack->targetAttributeType = animate->attributeName.fieldType; 
 	stack->targetAttribute = animate->attributeName.far_ptr; 
 	if (stack->targetAttributeType == SVG_TransformList_datatype && 
@@ -1543,12 +1558,12 @@ void SVG_Init_animateColor(Render2D *sr, GF_Node *node)
 	SVGanimateColorElement *ac = (SVGanimateColorElement *)node;
 	SMIL_AnimationStack *stack;
 
-	if (!(GF_Node*)ac->xlink_href.target_element) return;
+	if (!(GF_Node*)ac->xlink_href.target) return;
 
 	
 	stack = SMIL_Init_AnimationStack(sr, node);
 	
-	stack->target_element = (GF_Node*)ac->xlink_href.target_element;
+	stack->target_element = (GF_Node*)ac->xlink_href.target;
 	stack->targetAttributeType = ac->attributeName.fieldType; 
 	stack->targetAttribute = ac->attributeName.far_ptr; 
 
@@ -1582,11 +1597,11 @@ void SVG_Init_animateTransform(Render2D *sr, GF_Node *node)
 	SVGanimateTransformElement *at = (SVGanimateTransformElement *)node;
 	SMIL_AnimationStack *stack;
 	
-	if (!(GF_Node*)at->xlink_href.target_element) return;
+	if (!(GF_Node*)at->xlink_href.target) return;
 
 	stack = SMIL_Init_AnimationStack(sr, node);
 	
-	stack->target_element = (GF_Node*)at->xlink_href.target_element;
+	stack->target_element = (GF_Node*)at->xlink_href.target;
 	stack->targetAttributeType = at->attributeName.fieldType; 
 	if (!gf_node_get_field_by_name(stack->target_element, "transform", &info)) {
 		GF_List *trlist = *(SVG_TransformList *)info.far_ptr;
@@ -1632,12 +1647,12 @@ void SVG_Init_animateMotion(Render2D *sr, GF_Node *node)
 	SVGanimateMotionElement *am = (SVGanimateMotionElement *)node;
 	SMIL_AnimationStack *stack;
 
-	if (!(GF_Node*)am->xlink_href.target_element) return;
+	if (!(GF_Node*)am->xlink_href.target) return;
 
 	
 	stack = SMIL_Init_AnimationStack(sr, node);
 	
-	stack->target_element = (GF_Node*)am->xlink_href.target_element;
+	stack->target_element = (GF_Node*)am->xlink_href.target;
 	stack->targetAttributeType = SVG_Motion_datatype; 
 	if (!gf_node_get_field_by_name(stack->target_element, "transform", &info)) {
 		GF_List *trlist = *(SVG_TransformList *)info.far_ptr;
@@ -1682,12 +1697,12 @@ void SVG_Init_discard(Render2D *sr, GF_Node *node)
 	SVGdiscardElement *d = (SVGdiscardElement *)node;
 	SMIL_AnimationStack *stack;
 
-	if (!(GF_Node*)d->xlink_href.target_element) return;
+	if (!(GF_Node*)d->xlink_href.target) return;
 
 	
 	stack = SMIL_Init_AnimationStack(sr, node);
 	
-	stack->target_element = (GF_Node*)d->xlink_href.target_element;
+	stack->target_element = (GF_Node*)d->xlink_href.target;
 
 	stack->begins = &(d->begin); 
 	/* 'from', 'to', 'by', 'values', 'keyTimes', 'keySplines', ... are NULL */

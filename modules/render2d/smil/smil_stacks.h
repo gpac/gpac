@@ -142,29 +142,29 @@ typedef struct _smil_anim_stack
 	/* Sets the target using the given value
 	   The target type depends on the animation.
 	   The value type depends on the animation and is not necessarily the same as the target type. */
-	void (*Set)(void *target, void *value);
+	void (*Set)(struct _smil_anim_stack *stack, void *target, void *value);
 
 	/* Sets the target using the given value
 	   The target type depends on the animation.
 	   The value type MUST BE the same as the target type. */
-	void (*Assign)(void *target, void *value);
+	void (*Assign)(struct _smil_anim_stack *stack, void *target, void *value);
 
 	/* returns 1 if different, a and b must be non NULL and of same type */
-	u32 (*Compare)(void *a, void *b);
+	u32 (*Compare)(struct _smil_anim_stack *stack, void *a, void *b);
 
 	/* Linearly interpolates a value from value1 to value2 using the given coef
 	   The target type depends on the animation.
 	   The value1 and value2 type depends on the animation and are not necessarily the same as the target type. */
-	void (*Interpolate)(Fixed interpolation_coefficient, void *value1, void *value2, void *target);
+	void (*Interpolate)(struct _smil_anim_stack *stack, Fixed interpolation_coefficient, void *value1, void *value2, void *target);
 
 	/* Current value can be either the dom or the tmp value depending on the value of additive
 	   all parameters are of same type */
-	void (*ApplyAdditive)(void *current_value, void *toApply, void *target);
+	void (*ApplyAdditive)(struct _smil_anim_stack *stack, void *current_value, void *toApply, void *target);
 	/* current is the temporary value, 
 	   last is the last specified in the animation 
 	   accumulated is the result
 	   current and accumulated are of the same type. last may not be of the same type */
-	void (*ApplyAccumulate)(u32 nb_iterations, void *current, void *last, void *accumulated);
+	void (*ApplyAccumulate)(struct _smil_anim_stack *stack, u32 nb_iterations, void *current, void *last, void *accumulated);
 
 	void (*Invalidate)(struct _smil_anim_stack *stack);
 
