@@ -83,7 +83,12 @@ enum
 	*\n\note
 	*this streamtype (MPEG-4 user-private) is reserved for streams only used to create a scene decoder handling the service 
 	*by itself, as is the case of the BT/VRML reader and can be used by many other things.\n
-	*The decoderSpecificInfo carried is simply the local filename of the service (remote files are first entirelly fetched).
+	*The decoderSpecificInfo carried is as follows:
+	 \code 
+		u32 file_size:	total file size 
+		char file_name[dsi_size - sizeof(u32)]: local file name. 
+		\n\note: Remote files are first entirelly fetched, except for SVG content to enable progressive loading.
+	 \endcode 
 	*The inBufferLength param for decoders using these streams is the stream clock in ms (no input data is given).\n
 	*There is a dummy module available generating this stream and taking care of proper clock init in case of seeking.\n
 	*This is a reentrant streamtype: if any media object with this streamtype also exist in the scene, they will be 
@@ -94,7 +99,7 @@ enum
 	*0x00	-	 Forbidden\n
 	*0x01	-	 VRML/BT/XMT/SWF loader (similar to MP4Box context loading)\n
 	*0x02	-	 SVG loader\n
-	*0x03	-	 SVG-M loader (experimental fragmenting of SVG cartoons over RTP)\n
+	*0x03	-	 LASeR XML loader (no progressive loading yet)\n
 	*/
 	GF_STREAM_PRIVATE_SCENE	= 0x20,
 };

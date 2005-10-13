@@ -34,7 +34,8 @@ typedef struct
 	GF_InlineScene *inline_scene;
 	GF_Terminal *app;
 	GF_SceneManager *ctx;
-	char *fileName;
+	char *file_name;
+	u32 file_size;
 	u32 load_flags;
 	u32 nb_streams;
 	u32 base_stream_id;
@@ -133,6 +134,17 @@ static GF_Err CTXLoad_ReleaseScene(GF_SceneDecoder *plug)
 	return GF_OK;
 }
 
+static Bool CTXLoad_CheckDownload(CTXLoadPriv *priv)
+{
+	u32 size;
+	FILE *f = fopen(priv->file_name, "rt");
+	fseek(f, 0, SEEK_END);
+	size = ftell(f);
+	fclose(f);
+	if (size==priv->file_size) return 1;
+	return 0;
+}
+
 static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug, 
 									 u16 ES_ID, 
 									 unsigned char *decSpecInfo, 
@@ -141,6 +153,7 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug,
 									 u32 objectTypeIndication, 
 									 Bool Upstream)
 {
+	GF_BitStream *bs;
 	CTXLoadPriv *priv = plug->privateStack;
 	if (Upstream) return GF_NOT_SUPPORTED;
 
@@ -158,8 +171,11 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug,
 	}
 	/*main dummy stream we need a dsi*/
 	if (!decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
-
-	priv->fileName = strdup(decSpecInfo);
+	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
+	priv->file_size = gf_bs_read_u32(bs);
+	gf_bs_del(bs);
+	GF_SAFEALLOC(priv->file_name, sizeof(char)*(1 + decSpecInfoSize - sizeof(u32)) );
+	memcpy(priv->file_name, decSpecInfo + sizeof(u32), decSpecInfoSize - sizeof(u32) );
 	priv->nb_streams = 1;
 	priv->load_flags = 0;
 	priv->base_stream_id = ES_ID;
@@ -243,13 +259,16 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 	if (priv->load_flags != 2) {
 		/*load first frame only*/
 		if (!priv->load_flags) {
+			/*we need the whole file*/
+			if (! CTXLoad_CheckDownload(priv)) return GF_OK;
+
 			priv->load_flags = 1;
 			priv->ctx = gf_sm_new(priv->inline_scene->graph);
 			memset(&priv->load, 0, sizeof(GF_SceneLoader));
 			priv->load.ctx = priv->ctx;
 			priv->load.cbk = priv;
 			priv->load.scene_graph = priv->inline_scene->graph;
-			priv->load.fileName = priv->fileName;
+			priv->load.fileName = priv->file_name;
 			priv->load.OnMessage = CTXLoad_OnMessage;
 			priv->load.OnProgress = CTXLoad_OnProgress;
 			priv->load.flags = GF_SM_LOAD_FOR_PLAYBACK;
@@ -534,7 +553,7 @@ Bool CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectTyp
 void DeleteContextLoader(GF_BaseDecoder *plug)
 {
 	CTXLoadPriv *priv = plug->privateStack;
-	if (priv->fileName) free(priv->fileName);
+	if (priv->file_name) free(priv->file_name);
 	assert(!priv->ctx);
 	gf_list_del(priv->files_to_delete);
 	free(priv);

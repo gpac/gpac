@@ -889,6 +889,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID)
 			fprintf(stdout, "Media Codec: %s\n", odi.codec_name);
 			break;
 		case GF_STREAM_SCENE:
+		case GF_STREAM_PRIVATE_SCENE:
 			if (odi.width && odi.height) {
 				fprintf(stdout, "Scene Description - Width %d - Height %d\n", odi.width, odi.height);
 			} else {

@@ -182,7 +182,6 @@ GF_Err SVGParser_ParseLASeR(SVGParser *parser)
 	u32 scene_time;
 	xmlNodePtr com;
 	xmlAttrPtr attributes;
-	if (!parser->fileName) return GF_BAD_PARAM;
 
 	/* XML Related code */
 	if (!xmllib_is_init) {
@@ -194,8 +193,11 @@ GF_Err SVGParser_ParseLASeR(SVGParser *parser)
 	if (!parser->loader_status) {
 		xmlDocPtr doc = NULL;
 		xmlNodePtr root = NULL;
+		/*need full doc*/
+		if (!SVG_CheckDownload(parser)) return GF_OK;
+
 		parser->loader_status = 2;
-		doc = xmlParseFile(parser->fileName);
+		doc = xmlParseFile(parser->file_name);
 		if (doc == NULL) return GF_BAD_PARAM;
 		root = xmlDocGetRootElement(doc);
 		if (strcmp(root->name, "SAFSession")) return GF_BAD_PARAM;

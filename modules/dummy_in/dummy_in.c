@@ -26,6 +26,7 @@
 #include <gpac/modules/service.h>
 /*for GF_STREAM_PRIVATE_SCENE definition*/
 #include <gpac/constants.h>
+#include <gpac/download.h>
 
 typedef struct
 {
@@ -188,9 +189,8 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 			read->oti = 0x01;
 
 		else if (!stricmp(ext, "svg") || !stricmp(ext, "svgz")) {
-			/* Change the oti from 0x02 to 0x03 to enable SVG SAX parsing */
-			read->oti = 0x03;
-			if (read->oti == 0x03) read->supports_progressive_loading = 1;
+			read->oti = 0x02;
+			read->supports_progressive_loading = 1;
 		}
 		/*XML LASeR*/
 		else if (!stricmp(ext, "xsr")) read->oti = 0x04;
@@ -227,7 +227,10 @@ GF_Err DC_CloseService(GF_InputService *plug)
 /*Dummy input just send a file name, no multitrack to handle so we don't need to check sub_url nor expected type*/
 static GF_Descriptor *DC_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
+	u32 size;
+	char *uri;
 	GF_ESD *esd;
+	GF_BitStream *bs;
 	DCReader *read = (DCReader *) plug->priv;
 	GF_InitialObjectDescriptor *iod = (GF_InitialObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
 	iod->scene_profileAndLevel = 1;
@@ -244,12 +247,21 @@ static GF_Descriptor *DC_GetServiceDesc(GF_InputService *plug, u32 expect_type, 
 	esd->decoderConfig->streamType = GF_STREAM_PRIVATE_SCENE;
 	esd->decoderConfig->objectTypeIndication = read->oti;
 	if (read->dnload) {
-		esd->decoderConfig->decoderSpecificInfo->dataLength = strlen(read->szCache) + 1;
-		esd->decoderConfig->decoderSpecificInfo->data = strdup(read->szCache);
+		gf_dm_sess_get_stats(read->dnload, NULL, NULL, &size, NULL, NULL, NULL);
+		uri = read->szCache;
 	} else {
-		esd->decoderConfig->decoderSpecificInfo->dataLength = strlen(read->szURL) + 1;
-		esd->decoderConfig->decoderSpecificInfo->data = strdup(read->szURL);
+		FILE *f = fopen(read->szURL, "rt");
+		fseek(f, 0, SEEK_END);
+		size = ftell(f);
+		fclose(f);
+		uri = read->szURL;
 	}
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_bs_write_u32(bs, size);
+	gf_bs_write_data(bs, uri, strlen(uri));
+	gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+	gf_bs_del(bs);
+
 	gf_list_add(iod->ESDescriptors, esd);
 	return (GF_Descriptor *)iod;
 }

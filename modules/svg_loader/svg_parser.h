@@ -55,6 +55,9 @@ GF_Err SVGParser_ParseMemoryNextChunk(SVGParser *parser, unsigned char *inBuffer
 
 void SVGParser_Terminate(SVGParser *parser);
 
+/*returns true if download is complete*/
+Bool SVG_CheckDownload(SVGParser *parser);
+
 #ifndef GPAC_DISABLE_SVG
 
 #include <gpac/scenegraph_svg.h>
@@ -82,10 +85,18 @@ long _ftol2( double dblSource ) { return _ftol( dblSource ); }
 
 
 enum {
-	SVGLOADER_OTI_FULL_SVG		  = 2,
-	SVGLOADER_OTI_PROGRESSIVE_SVG = 3,
-	SVGLOADER_OTI_FULL_LASERML	  = 4,
+	/*defined by dummy_in plugin*/
+	SVGLOADER_OTI_SVG = 2,
+	/*defined by dummy_in plugin*/
+	SVGLOADER_OTI_LASERML = 3,
+	/*defined by ourselves - streamType 3 (scene description) for SVG streaming*/
 	SVGLOADER_OTI_STREAMING_SVG	  = 10
+};
+
+enum {
+	SVG_LOAD_DOM = 0, 
+	SVG_LOAD_SAX = 1,
+	SVG_LOAD_SAX_PROGRESSIVE = 2
 };
 
 typedef enum {
@@ -125,7 +136,9 @@ struct _svg_parser
 
 	/* File name in case of a parser reading from an XML file (LASeR or SVG, Progressive or not)
 	   it is not used if content is AU framed */
-	char *fileName;
+	char *file_name;
+	/*total file size as given by cache*/
+	u32 file_size;
 
 	/* Unresolved begin/end value */
 	GF_List *unresolved_timing_elements;
@@ -176,6 +189,13 @@ struct _svg_parser
 	
 	/* list of ENTITY declarations */
 	GF_List			*	entities; 
+
+	u32 load_type;
+	/*progressive loading control:
+	loads chunks by chunks (SAX), trying to spend less ms than specified in parsing at each run.
+	a typical value for the refresh period is the frame simulation duration
+	*/
+	u32 sax_max_duration;
 };
 
 #endif /*GPAC_DISABLE_SVG*/

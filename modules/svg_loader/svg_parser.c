@@ -253,6 +253,8 @@ void svg_end_element(void *user_data, const xmlChar *name)
 		if (parser->unknown_depth==0) parser->sax_state = parser->prev_sax_state;
 		break;
 	}
+	/*JLF: there's a pb with endDocument, I force it here*/
+	if (!stricmp(name, "svg")) parser->sax_state = FINISHSVG;
 }
 /* end of SAX related functions */
 
@@ -1663,7 +1665,7 @@ void svg_parse_iri(SVGParser *parser, SVG_IRI *iri, char *attribute_content)
 			} else {
 				strcpy(cache_name, cache_dir);
 			}
-			strcpy(tmp, parser->fileName);
+			strcpy(tmp, parser->file_name);
 			last_sep = 0;
 			for (i=0; i<strlen(tmp); i++) {
 				if (tmp[i] == GF_PATH_SEPARATOR) tmp[i] = '_';
@@ -2637,7 +2639,7 @@ void SVGParser_Terminate(SVGParser *parser)
 {
     /* there is no more input, indicate the parsing is finished.
 	   Is this needed ?
-		if (xmlParseChunk(ctxt, inputbuffer, 0, 1);
+		xmlParseChunk(ctxt, inputbuffer, 0, 1);
      */
 
     /* destroy the SAX parser context and file. */
@@ -2651,7 +2653,7 @@ void SVGParser_Terminate(SVGParser *parser)
 	gf_list_del(parser->unresolved_timing_elements);
 	gf_list_del(parser->unresolved_hrefs);
 	gf_list_del(parser->defered_animation_elements);
-	if (parser->fileName) free(parser->fileName);
+	if (parser->file_name) free(parser->file_name);
 	free(parser);
 }
 
@@ -2677,8 +2679,6 @@ GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 	xmlNodePtr root = NULL;
 	SVGElement *n;
 
-	if (!parser->fileName) return GF_BAD_PARAM;
-
 	/* XML Related code */
 	if (!xmllib_is_init) {
 		xmlInitParser();
@@ -2686,7 +2686,7 @@ GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 		xmllib_is_init=1;
 	}
 
-	doc = xmlParseFile(parser->fileName);
+	doc = xmlParseFile(parser->file_name);
 	if (doc == NULL) return GF_BAD_PARAM;
 	root = xmlDocGetRootElement(doc);
 
@@ -2745,8 +2745,6 @@ GF_Err SVGParser_InitProgressiveFileChunk(SVGParser *parser)
     char inputbuffer[SAX_MAX_CHARS];
     s32	len;
 
-	if (!parser->fileName) return GF_BAD_PARAM;
-
 	/* XML Related code */
 	if (!xmllib_is_init) {
 		xmlInitParser();
@@ -2754,7 +2752,7 @@ GF_Err SVGParser_InitProgressiveFileChunk(SVGParser *parser)
 		xmllib_is_init=1;
 	}
 
-    parser->sax_file = fopen(parser->fileName, "rb");
+    parser->sax_file = fopen(parser->file_name, "rb");
     if (parser->sax_file == NULL) return GF_IO_ERR;
 
 	parser->sax_state	= UNDEF;
@@ -2783,24 +2781,30 @@ GF_Err SVGParser_InitProgressiveFileChunk(SVGParser *parser)
 
 GF_Err SVGParser_ParseProgressiveFileChunk(SVGParser *parser)
 {
+	u32 read_bytes, entry_time, diff;
     char inputbuffer[SAX_MAX_CHARS];
-	u32 read_bytes, i;
 
 	if (!parser->sax_ctx) return GF_OK;
 
-//	for (i=0; i<10; i++) {
+	entry_time = gf_sys_clock();
+
 	fseek(parser->sax_file, parser->nb_bytes_read, SEEK_SET);
-	read_bytes = fread(inputbuffer, 1, SAX_MAX_CHARS, parser->sax_file);
+	while (1) {
+		read_bytes = fread(inputbuffer, 1, SAX_MAX_CHARS, parser->sax_file);
 
-    if (read_bytes > 0) {
-        xmlParseChunk(parser->sax_ctx, inputbuffer, read_bytes, 0);
-		parser->nb_bytes_read += read_bytes;
-    }
-	
-	if (parser->sax_state == FINISHSVG) return GF_EOS;
-	if (parser->sax_state == ERROR) return GF_IO_ERR;
+		if (read_bytes > 0) {
+			xmlParseChunk(parser->sax_ctx, inputbuffer, read_bytes, 0);
+			parser->nb_bytes_read += read_bytes;
+		}
+		
+		if (parser->sax_state == FINISHSVG) return GF_EOS;
+		if (parser->sax_state == ERROR) return GF_IO_ERR;
 
-//	}
+		if (parser->load_type == SVG_LOAD_SAX_PROGRESSIVE) {
+			diff = gf_sys_clock() - entry_time;
+			if (diff > parser->sax_max_duration) return GF_OK;
+		}
+	}
 	return GF_OK;
 }
 

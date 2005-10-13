@@ -90,6 +90,9 @@ static GF_Err SVG_ProcessFullDocument(GF_SceneDecoder *plug, unsigned char *inBu
 	SVGParser *parser = plug->privateStack;
 
 	if (parser->loader_status == 0) {
+		/*needs full doc for DOM parsing*/
+		if (!SVG_CheckDownload(parser)) return GF_OK;
+
 		parser->loader_status = 1;
 		e = SVGParser_ParseFullDoc(parser);
 
@@ -133,14 +136,19 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	SVGParser *parser = plug->privateStack;
-	switch(parser->oti) {
-	case SVGLOADER_OTI_FULL_SVG:
-		return SVG_ProcessFullDocument(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
-	case SVGLOADER_OTI_PROGRESSIVE_SVG:
-		return SVG_ProcessProgressiveDocument(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
+	switch (parser->oti) {
+	case SVGLOADER_OTI_SVG:
+		/*DOM parsing*/
+		if (parser->load_type==SVG_LOAD_DOM) {
+			return SVG_ProcessFullDocument(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
+		}
+		/*SAX parsing*/
+		else {
+			return SVG_ProcessProgressiveDocument(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
+		}
 	case SVGLOADER_OTI_STREAMING_SVG:
 		return SVG_ProcessAU(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
-	case SVGLOADER_OTI_FULL_LASERML:
+	case SVGLOADER_OTI_LASERML:
 		return LSR_ProcessDocument(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
 	default:
 		return GF_BAD_PARAM;
@@ -161,6 +169,16 @@ static GF_Err SVG_ReleaseScene(GF_SceneDecoder *plug)
 	return GF_OK;
 }
 
+Bool SVG_CheckDownload(SVGParser *parser)
+{
+	u32 size;
+	FILE *f = fopen(parser->file_name, "rt");
+	fseek(f, 0, SEEK_END);
+	size = ftell(f);
+	fclose(f);
+	if (size==parser->file_size) return 1;
+	return 0;
+}
 
 static GF_Err SVG_AttachStream(GF_BaseDecoder *plug, 
 									 u16 ES_ID, 
@@ -170,15 +188,39 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 									 u32 objectTypeIndication, 
 									 Bool Upstream)
 {
+	const char *sOpt;
+	GF_BitStream *bs;
 	SVGParser *parser = plug->privateStack;
 	if (Upstream) return GF_NOT_SUPPORTED;
 
 	/* decSpecInfo is not null only when reading from an SVG file (local or distant, cached or not) */
-	if (!decSpecInfo && objectTypeIndication != SVGLOADER_OTI_STREAMING_SVG) return GF_NON_COMPLIANT_BITSTREAM;
-	else parser->fileName = strdup(decSpecInfo);
-
+	if (objectTypeIndication == SVGLOADER_OTI_STREAMING_SVG) {
+		/*no decSpecInfo defined for streaming svg yet*/
+	} else {
+		if (!decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
+		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
+		parser->file_size = gf_bs_read_u32(bs);
+		gf_bs_del(bs);
+		GF_SAFEALLOC(parser->file_name, sizeof(char)*(1 + decSpecInfoSize - sizeof(u32)) );
+		memcpy(parser->file_name, decSpecInfo + sizeof(u32), decSpecInfoSize - sizeof(u32) );
+	}
 	parser->oti = objectTypeIndication;
 
+	parser->sax_max_duration = 30;
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SVGLoader", "SAXMaxDuration");
+	if (sOpt) parser->sax_max_duration = atoi(sOpt);
+
+	parser->load_type = SVG_LOAD_DOM;
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SVGLoader", "LoadType");
+	if (sOpt && !strcmp(sOpt, "DOM") ) parser->load_type = SVG_LOAD_DOM;
+	else if (sOpt && !strcmp(sOpt, "SAX") ) parser->load_type = SVG_LOAD_SAX;
+	else if (sOpt && !strcmp(sOpt, "SAX Progressive") ) parser->load_type = SVG_LOAD_SAX_PROGRESSIVE;
+
+	/*if DOM parsing is requested and file size is not available, the server didn't send
+	a proper content length, force SAX parsing*/
+	if (!parser->file_size && (parser->load_type==SVG_LOAD_DOM)) {
+		parser->load_type = SVG_LOAD_SAX;
+	}
 	return GF_OK;
 }
 
@@ -190,19 +232,17 @@ static GF_Err SVG_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 const char *SVG_GetName(struct _basedecoder *plug)
 {
 	SVGParser *parser = plug->privateStack;
-	if (parser->oti==SVGLOADER_OTI_FULL_SVG) return "GPAC SVG Parser";
-	if (parser->oti==SVGLOADER_OTI_PROGRESSIVE_SVG) return "GPAC SVG Progressive Parser";
+	if (parser->oti==SVGLOADER_OTI_SVG) return (parser->load_type==SVG_LOAD_DOM) ? "GPAC SVG DOM Parser" : (parser->load_type==SVG_LOAD_SAX) ? "GPAC SVG SAX Parser" : "GPAC SVG Progressive Parser";
 	if (parser->oti==SVGLOADER_OTI_STREAMING_SVG) return "GPAC Streaming SVG Parser";
-	if (parser->oti==SVGLOADER_OTI_FULL_LASERML) return "GPAC LASeRML Parser";
+	if (parser->oti==SVGLOADER_OTI_LASERML) return "GPAC LASeRML Parser";
 	return "INTERNAL ERROR";
 }
 
 Bool SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
 	if (StreamType==GF_STREAM_PRIVATE_SCENE) {
-		if (ObjectType==SVGLOADER_OTI_FULL_SVG) return 1;
-		if (ObjectType==SVGLOADER_OTI_PROGRESSIVE_SVG) return 1;
-		if (ObjectType==SVGLOADER_OTI_FULL_LASERML) return 1;
+		if (ObjectType==SVGLOADER_OTI_SVG) return 1;
+		if (ObjectType==SVGLOADER_OTI_LASERML) return 1;
 		return 0;
 	} else if (StreamType==GF_STREAM_SCENE) {
 		if (ObjectType==SVGLOADER_OTI_STREAMING_SVG) return 1;
