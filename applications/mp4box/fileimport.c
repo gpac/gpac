@@ -753,30 +753,25 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	for (i=0; i<nb_tracks; i++) {
 		u32 mtype = gf_isom_get_media_type(orig, i+1);
 		switch (mtype) {
+		case GF_ISOM_MEDIA_HINT:
+		case GF_ISOM_MEDIA_OD:
+		case GF_ISOM_MEDIA_FLASH:
+			fprintf(stdout, "WARNING: Track ID %d (type %s) not handled by concatenation - removing from destination\n", gf_isom_get_track_id(orig, i+1), gf_4cc_to_str(mtype));
+			continue;
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_TEXT:
 		case GF_ISOM_MEDIA_VISUAL:
-			/*only cat self-contained files*/
-			if (gf_isom_is_self_contained(orig, i+1, 1)) {
-				nb_samp+= gf_isom_get_sample_count(orig, i+1);
-				break;
-			}
-		case GF_ISOM_MEDIA_HINT:
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_OCR:
-		case GF_ISOM_MEDIA_OD:
 		case GF_ISOM_MEDIA_OCI:
 		case GF_ISOM_MEDIA_IPMP:
 		case GF_ISOM_MEDIA_MPEGJ:
 		case GF_ISOM_MEDIA_MPEG7:
-		case GF_ISOM_MEDIA_FLASH:
-			fprintf(stdout, "WARNING: Track ID %d (type %s) not handled by concatenation - removing from destination\n", gf_isom_get_track_id(orig, i+1), gf_4cc_to_str(mtype));
-			continue;
 		default:
-			/*for all other track types, only split if more than one sample*/
-			if (gf_isom_get_sample_count(dest, i+1)==1) {
-				fprintf(stdout, "WARNING: Track ID %d (type %s) not handled by concatenation - removing from destination\n", gf_isom_get_track_id(orig, i+1), gf_4cc_to_str(mtype));
-				continue;
+			/*only cat self-contained files*/
+			if (gf_isom_is_self_contained(orig, i+1, 1)) {
+				nb_samp+= gf_isom_get_sample_count(orig, i+1);
+				break;
 			}
 			break;
 		}
@@ -796,24 +791,22 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		Bool use_ts_dur = 1;
 		mtype = gf_isom_get_media_type(orig, i+1);
 		switch (mtype) {
+		case GF_ISOM_MEDIA_HINT:
+		case GF_ISOM_MEDIA_OD:
+		case GF_ISOM_MEDIA_FLASH:
+			continue;
 		case GF_ISOM_MEDIA_TEXT:
 			use_ts_dur = 0;
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_VISUAL:
-			break;
-		case GF_ISOM_MEDIA_HINT:
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_OCR:
-		case GF_ISOM_MEDIA_OD:
 		case GF_ISOM_MEDIA_OCI:
 		case GF_ISOM_MEDIA_IPMP:
 		case GF_ISOM_MEDIA_MPEGJ:
 		case GF_ISOM_MEDIA_MPEG7:
-		case GF_ISOM_MEDIA_FLASH:
-			continue;
 		default:
-			/*for all other track types, only split if more than one sample*/
-			if (gf_isom_get_sample_count(dest, i+1)==1) continue;
+			if (!gf_isom_is_self_contained(orig, i+1, 1)) continue;
 			use_ts_dur = 0;
 			break;
 		}

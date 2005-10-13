@@ -87,7 +87,8 @@ enum
 	 \code 
 		u32 file_size:	total file size 
 		char file_name[dsi_size - sizeof(u32)]: local file name. 
-		\n\note: Remote files are first entirelly fetched, except for SVG content to enable progressive loading.
+		\n\note: File may be a cache file, it is the decoder responsability to check if the file is completely
+		downloaded before parsing if needed.
 	 \endcode 
 	*The inBufferLength param for decoders using these streams is the stream clock in ms (no input data is given).\n
 	*There is a dummy module available generating this stream and taking care of proper clock init in case of seeking.\n
@@ -99,7 +100,7 @@ enum
 	*0x00	-	 Forbidden\n
 	*0x01	-	 VRML/BT/XMT/SWF loader (similar to MP4Box context loading)\n
 	*0x02	-	 SVG loader\n
-	*0x03	-	 LASeR XML loader (no progressive loading yet)\n
+	*0x03	-	 LASeR XML loader\n
 	*/
 	GF_STREAM_PRIVATE_SCENE	= 0x20,
 };

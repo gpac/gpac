@@ -988,8 +988,6 @@ static void SVG_Render_use(GF_Node *node, void *rs)
 {
 	GF_Matrix2D backup_matrix;
 	SVG_Transform *tr;
-	DrawableContext *ctx;
-	Drawable *cs = SVG_GetDrawable(node);
 	RenderEffect2D *eff = rs;
 	SVGuseElement *use = (SVGuseElement *)node;
   	GF_Matrix2D tmp, translate;
@@ -1022,18 +1020,14 @@ static void SVG_Render_use(GF_Node *node, void *rs)
 	gf_mx2d_add_matrix(&eff->transform, &tmp);
 
 	gf_node_render((GF_Node *)use->xlink_href.target_element, eff);
-	ctx = SVG_drawable_init_context(cs, eff);
-	if (ctx) {
-		drawctx_store_original_bounds(ctx);
-		drawable_finalize_render(ctx, eff);
-	}
+
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, styling_size);
 }
 
 void SVG_Init_use(Render2D *sr, GF_Node *node)
 {
-	SVG_InitDrawable(sr, node);
+//	SVG_InitDrawable(sr, node);
 	gf_node_set_render_function(node, SVG_Render_use);
 }
 

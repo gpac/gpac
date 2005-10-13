@@ -327,7 +327,22 @@ specifies the base name for recorded files. If not present in configuration file
 .B KeepExistingFiles (value: yes no)
 specifies if cached files with same name should be kept or not. If not, an integer number is added to the cached file name, the higest number for the latest file.
 .TP
-
+.
+.SH SECTION "SVGLoader"
+The "SVGLoader" section holds all configuration options for the SVG file loader. This is a plugin configuration section. The following options are defined:
+.TP
+.SH LoadType (value: string)
+specifies XML parsing mode used by the loader. Supported modes are:
+.br
+DOM: DOM parsing is used (document will first be completely downloaded).
+.br
+SAX: SAX parsing is used.
+.br
+SAX Progressive: SAX parsing is used with progressive loading of the document.
+.TP
+.B SAXMaxDuration (value positive integer)
+specifies the maximum amount of time the SAX parser should spent loading a portion of the document. Only used in SAX Progressive mode.
+.
 .SH SECTION "XviD"
 The "XviD" section holds all configuration options for the XviD codec. This is a plugin configuration section. The following options are defined:
 .TP

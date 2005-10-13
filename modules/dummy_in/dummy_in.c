@@ -40,14 +40,11 @@ typedef struct
 	/*the service we're responsible for*/
 	GF_ClientService *service;
 	char szURL[2048];
-	char szCache[2048];
 	u32 oti;
 	GF_List *channels;
 
 	/*file downloader*/
 	GF_DownloadSession * dnload;
-
-	Bool supports_progressive_loading;
 	Bool is_service_connected;
 } DCReader;
 
@@ -101,34 +98,20 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 
 void DC_OnData(void *cbk, char *data, u32 data_size, u32 status, GF_Err e)
 {
-	const char *szCache;
 	DCReader *read = (DCReader *) cbk;
 
 	/*handle service message*/
 	gf_term_download_update_stats(read->dnload);
 
-	/*wait to get the whole file*/
 	if (e == GF_OK) {
-		if (!read->supports_progressive_loading) return;
-		else if (status!=GF_DOWNLOAD_STATE_RUNNING) return;
-		if (!read->is_service_connected) {
-			szCache = gf_dm_sess_get_cache_name(read->dnload);
-			if (!szCache) e = GF_IO_ERR;
-			else strcpy(read->szCache, szCache);
-			gf_term_on_connect(read->service, NULL, e);
-			read->is_service_connected = 1;
-		}
-		return;
+		/*wait to be running*/
+		if (status!=GF_DOWNLOAD_STATE_RUNNING) return;
 	} else if (e==GF_EOS) {
-		szCache = gf_dm_sess_get_cache_name(read->dnload);
-		if (!szCache) e = GF_IO_ERR;
-		else {
-			e = GF_OK;
-			strcpy(read->szCache, szCache);
-		}
+		e = GF_OK;
 	}
 	/*OK confirm*/
 	if (!read->is_service_connected) {
+		if (!gf_dm_sess_get_cache_name(read->dnload)) e = GF_IO_ERR;
 		gf_term_on_connect(read->service, NULL, e);
 		read->is_service_connected = 1;
 	}
@@ -190,7 +173,6 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 
 		else if (!stricmp(ext, "svg") || !stricmp(ext, "svgz")) {
 			read->oti = 0x02;
-			read->supports_progressive_loading = 1;
 		}
 		/*XML LASeR*/
 		else if (!stricmp(ext, "xsr")) read->oti = 0x04;
@@ -247,8 +229,8 @@ static GF_Descriptor *DC_GetServiceDesc(GF_InputService *plug, u32 expect_type, 
 	esd->decoderConfig->streamType = GF_STREAM_PRIVATE_SCENE;
 	esd->decoderConfig->objectTypeIndication = read->oti;
 	if (read->dnload) {
+		uri = (char *) gf_dm_sess_get_cache_name(read->dnload);
 		gf_dm_sess_get_stats(read->dnload, NULL, NULL, &size, NULL, NULL, NULL);
-		uri = read->szCache;
 	} else {
 		FILE *f = fopen(read->szURL, "rt");
 		fseek(f, 0, SEEK_END);

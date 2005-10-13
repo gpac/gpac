@@ -1,4 +1,7 @@
-Latest CVS Changes 07/10/05
+Latest CVS Changes 13/10/05
+  - support for SVG SAX parsing & progressive loading, cf configuration.html or man gpac for more info 
+  - fixed bevel stroking bug and many SVG rendering ones
+  - fixed bug in MP4Box track concatenation of MPEG-4 user streams
   - added NHML import/export. NHML is an XML representation of the NHNT file, with add-ons and a more flexible way of integrating media. Doc to come on web site
   - fixed bug in meta items storage (existing items were corrupted on file rewrite)
   - fixed splitx option to support end times larger than file duration

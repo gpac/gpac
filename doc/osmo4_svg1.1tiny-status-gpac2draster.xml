@@ -84,7 +84,7 @@
 	<test name="animate-elem-70-t" revision="1.3" status="OK" comment=""/>
 	<test name="animate-elem-77-t" revision="1.4" status="PARTIAL" comment="text not displayed"/>
 	<test name="animate-elem-78-t" revision="1.5" status="PARTIAL" comment="Animation of color, stroke ..."/>
-	<test name="animate-elem-80-t" revision="1.4" status="FAIL" comment="Crahs"/>
+	<test name="animate-elem-80-t" revision="1.4" status="OK" comment=""/>
 	<test name="animate-elem-81-t" revision="1.3" status="OK" comment=""/>
 	<test name="animate-elem-82-t" revision="1.3" status="PARTIAL" comment="paced translation"/>
 	<test name="animate-elem-83-t" revision="1.4" status="PARTIAL" comment="to animation is not supported"/>
@@ -141,7 +141,7 @@
 	<test name="paths-data-07-t" revision="1.8" status="OK" comment=""/>
 	<test name="paths-data-08-t" revision="1.9" status="OK" comment=""/>
 	<test name="paths-data-09-t" revision="1.9" status="OK" comment=""/>
-	<test name="paths-data-10-t" revision="1.9" status="PARTIAL" comment="Problem with Bevel"/>
+	<test name="paths-data-10-t" revision="1.9" status="OK" comment=""/>
 	<test name="paths-data-11-t" revision="1.5" status="OK" comment="empty"/>
 	<test name="paths-data-12-t" revision="1.1" status="OK" comment=""/>
 	<test name="paths-data-13-t" revision="1.1" status="OK" comment=""/>

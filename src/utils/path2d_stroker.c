@@ -197,9 +197,8 @@ static s32 ft_stroke_border_grow(FT_StrokeBorder  border, u32 new_points)
 
 static void ft_stroke_border_close( FT_StrokeBorder  border )
 {
-	if (!border->num_points) return;
-	assert( border->start >= 0 );
 	/* don't record empty paths! */
+	if ((border->start <0) || !border->num_points ) return;
 	if ( border->num_points > (u32)border->start ) {
 		border->tags[border->start] |= FT_STROKE_TAG_BEGIN;
 		border->tags[border->num_points - 1] |= FT_STROKE_TAG_END;
@@ -614,6 +613,16 @@ static s32 ft_stroker_outside( FT_Stroker *stroker, s32 side )
 	Fixed rotate;
 	if ( stroker->line_join == GF_LINE_JOIN_ROUND ) {
 		error = ft_stroker_arcto( stroker, side );
+	} else if (stroker->line_join == GF_LINE_JOIN_BEVEL) {
+		GF_Point2D  delta;
+		rotate = FT_SIDE_TO_ROTATE( side );
+		delta = gf_v2d_from_polar(stroker->radius, stroker->angle_out + rotate );
+		delta.x += stroker->center.x;
+		delta.y += stroker->center.y;
+		/*prevent moving current point*/
+		border->movable = 0;
+		/*and add un-movable end point*/
+		error = ft_stroke_border_lineto( border, &delta, 0);
 	} else {
 		/* this is a mitered or beveled corner */
 		Fixed  sigma, radius = stroker->radius;
@@ -768,7 +777,7 @@ Exit:
 }
 
 
-static s32 FT_Stroker_LineTo( FT_Stroker *stroker, GF_Point2D*  to )
+static s32 FT_Stroker_LineTo( FT_Stroker *stroker, GF_Point2D*  to, Bool is_last)
 {
 	s32 error = 0;
 	FT_StrokeBorder  border;
@@ -778,7 +787,7 @@ static s32 FT_Stroker_LineTo( FT_Stroker *stroker, GF_Point2D*  to )
 
     delta.x = to->x - stroker->center.x;
     delta.y = to->y - stroker->center.y;
-	if (!delta.x && !delta.y) return 0;
+	if (!is_last && !delta.x && !delta.y) return 0;
 
     angle = gf_atan2( delta.y, delta.x);
     delta = gf_v2d_from_polar(stroker->radius, angle + GF_PI2 );
@@ -1231,7 +1240,7 @@ static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 			  vec.x = point->x;
 			  vec.y = point->y;
 
-			  error = FT_Stroker_LineTo( stroker, &vec );
+			  error = FT_Stroker_LineTo( stroker, &vec, (point == limit) ? 1 : 0 );
 			  if ( error )
 				  goto Exit;
 			  continue;

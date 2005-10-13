@@ -42,6 +42,7 @@
 <B><U><A HREF="#Streaming">Streaming</A></U></B>
 <B><U><A HREF="#MimeTypes">MimeTypes</A></U></B>
 <B><U><A HREF="#StreamingCache">StreamingCache</A></U></B>
+<B><U><A HREF="#SVGLoader">SVGLoader</A></U></B>
 <B><U><A HREF="#WviD">XviD</A></U></B>
 <B><U><A HREF="#FFMPEG">FFMPEG</A></U></B>
 
@@ -427,6 +428,23 @@ If not specified, the default cache directory (cf <A HREF="#General">General</A>
 <BR>
 <B>KeepExistingFiles</B> [value: <I>"yes" "no"</I>]<BR>
 <DD>Specifies if cached files with same name should be kept or not. If not, an integer number is added to the cached file name, the higest number for the latest file.<BR>
+	
+</P>
+
+<BR>
+<P ALIGN="LEFT">
+<B><U><A NAME="SVGLoader">Section "SVGLoader"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<BR><BR>
+<DD>The "SVGLoader" section of the config file holds all configuration options for the SVG file loader.<BR>
+<BR>
+<B>LoadType</B> [value: <I>"DOM" "SAX" "SAX Progressive"</I>]<BR>
+<DD>Specifies XML parsing mode used by the loader.<BR>
+<DD><I>"DOM"</I>: DOM parsing is used (document will first be completely downloaded).<BR>
+<DD><I>"SAX"</I>: SAX parsing is used.<BR>
+<DD><I>"SAX Progressive"</I>: SAX parsing is used with progressive loading of the document.<BR>
+<BR>
+<B>SAXMaxDuration</B> [value <I>positive integer</I>]<BR>
+<DD>Specifies the maximum amount of time the SAX parser should spent loading a portion of the document. Only used in <I>SAX Progressive</I> mode<BR>
 	
 </P>
 
