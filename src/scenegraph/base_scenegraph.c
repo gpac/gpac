@@ -627,7 +627,11 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 		Bool do_break = node->sgprivate->parents->next ? 0 : 1;
 		par = node->sgprivate->parents->node;
 
-		ReplaceDEFNode(par, node->sgprivate->NodeID, new_node, updateOrderedGroup);
+		if (type) {
+			ReplaceIRINode(par, node->sgprivate->NodeID, new_node, updateOrderedGroup);
+		} else {
+			ReplaceDEFNode(par, node->sgprivate->NodeID, new_node, updateOrderedGroup);
+		}
 		if (new_node) gf_node_register(new_node, par);
 		gf_node_unregister(node, par);
 		if (do_break) break;
