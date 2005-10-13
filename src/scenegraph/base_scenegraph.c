@@ -562,10 +562,34 @@ exit:
 	gf_node_changed(FromNode, &field);
 }
 
+
+/*replace or remove node instance in the given node (eg in all IRI)*/
+static void ReplaceIRINode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool updateOrderedGroup)
+{
+	u32 i;
+	GF_FieldInfo field;
+
+	/*browse all fields*/
+	for (i=0; i<gf_node_get_field_count(FromNode); i++) {
+		gf_node_get_field(FromNode, i, &field);
+		if (field.fieldType == SVG_IRI_datatype) {
+			SVG_IRI *iri = (SVG_IRI *)field.far_ptr;
+			if ((iri->type==SVG_IRI_ELEMENTID) && (gf_node_get_id((GF_Node *)iri->target_element)==NodeID)) {
+				iri->target_element = NULL;
+				/*for now disabled but...*/
+				//if (newNode) iri->target_element = newNode;
+				break;
+			}
+		}
+	}
+	/*since we don't filter parent nodes this is called once per USE, not per container, so return if found*/
+	gf_node_changed(FromNode, &field);
+}
+
 /*get all parents of the node and replace, the instance of the node and finally destroy the node*/
 GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup)
 {
-	u32 i;
+	u32 i, type;
 	Bool replace_root;
 	GF_Node *par;
 	GF_SceneGraph *pSG = node->sgprivate->scenegraph;
@@ -575,13 +599,21 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 	if (!SG_SearchForNodeIndex(pSG, node, &i)) return GF_BAD_PARAM;
 	assert(node == pSG->node_registry[i]);
 
+	type = node->sgprivate->tag;
+	if ((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) type = 1;
+	else type = 0;
+
 	/*first check if this is the root node*/
 	replace_root = (node->sgprivate->scenegraph->RootNode == node) ? 1 : 0;
 
 #ifdef GF_ARRAY_PARENT_NODES
 	while ( (i = gf_list_count(node->sgprivate->parentNodes)) ) {
 		par = gf_list_get(node->sgprivate->parentNodes, 0);
-		ReplaceDEFNode(par, node->sgprivate->NodeID, new_node, updateOrderedGroup);
+		if (type) {
+			ReplaceIRINode(par, node->sgprivate->NodeID, new_node, updateOrderedGroup);
+		} else {
+			ReplaceDEFNode(par, node->sgprivate->NodeID, new_node, updateOrderedGroup);
+		}
 				
 		/*adds the parent to the new node*/
 		if (new_node) gf_node_register(new_node, par);
