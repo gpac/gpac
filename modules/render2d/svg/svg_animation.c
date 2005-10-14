@@ -1474,8 +1474,8 @@ void SVG_Init_set(Render2D *sr, GF_Node *node)
 	stack = SMIL_Init_AnimationStack(sr, node);
 	
 	stack->target_element = (GF_Node*)set->xlink_href.target;
-	stack->targetAttributeType = set->attributeName.fieldType; 
-	stack->targetAttribute = set->attributeName.far_ptr; 
+	stack->targetAttributeType = set->attributeName.type; 
+	stack->targetAttribute = set->attributeName.field_ptr; 
 	if (stack->targetAttributeType == SVG_TransformList_datatype && 
 		!gf_node_get_field_by_name(stack->target_element, "transform", &info)) {
 		GF_List *trlist = *(SVG_TransformList *)info.far_ptr;
@@ -1515,8 +1515,8 @@ void SVG_Init_animate(Render2D *sr, GF_Node *node)
 	stack = SMIL_Init_AnimationStack(sr, node);
 	
 	stack->target_element = (GF_Node*)animate->xlink_href.target;
-	stack->targetAttributeType = animate->attributeName.fieldType; 
-	stack->targetAttribute = animate->attributeName.far_ptr; 
+	stack->targetAttributeType = animate->attributeName.type; 
+	stack->targetAttribute = animate->attributeName.field_ptr; 
 	if (stack->targetAttributeType == SVG_TransformList_datatype && 
 		!gf_node_get_field_by_name(stack->target_element, "transform", &info)) {
 		GF_List *trlist = *(SVG_TransformList *)info.far_ptr;
@@ -1564,8 +1564,8 @@ void SVG_Init_animateColor(Render2D *sr, GF_Node *node)
 	stack = SMIL_Init_AnimationStack(sr, node);
 	
 	stack->target_element = (GF_Node*)ac->xlink_href.target;
-	stack->targetAttributeType = ac->attributeName.fieldType; 
-	stack->targetAttribute = ac->attributeName.far_ptr; 
+	stack->targetAttributeType = ac->attributeName.type; 
+	stack->targetAttribute = ac->attributeName.field_ptr; 
 
 	stack->begins = &(ac->begin); 
 	stack->dur = &(ac->dur); 
@@ -1602,7 +1602,7 @@ void SVG_Init_animateTransform(Render2D *sr, GF_Node *node)
 	stack = SMIL_Init_AnimationStack(sr, node);
 	
 	stack->target_element = (GF_Node*)at->xlink_href.target;
-	stack->targetAttributeType = at->attributeName.fieldType; 
+	stack->targetAttributeType = at->attributeName.type; 
 	if (!gf_node_get_field_by_name(stack->target_element, "transform", &info)) {
 		GF_List *trlist = *(SVG_TransformList *)info.far_ptr;
 		SVG_Transform *tr = gf_list_get(trlist, 0);

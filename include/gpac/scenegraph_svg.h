@@ -143,7 +143,10 @@ typedef GF_List * SVG_ListOfIRI;
 typedef Double SVG_Clock;
 
 /* SMIL Anim types */
-typedef GF_FieldInfo SMIL_AttributeName;
+typedef struct {
+	u32 type;
+	void *field_ptr;
+} SMIL_AttributeName;
 
 enum {
 	SMIL_TIME_UNSPECIFIED   = 0,

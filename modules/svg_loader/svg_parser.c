@@ -34,9 +34,27 @@
 Bool xmllib_is_init = 0;
 
 typedef struct {
+	/* node is used in DOM parsing */
 	xmlNode *node;
-	SVGElement *elt;
+
+	/* Animation element being defered */
+	SVGElement *animation_elt;
+	/* Parent of the animation element */
 	SVGElement *parent;
+
+	/* id of the target element */
+	char *		target_id;
+
+	/* target element in case of local defered element */
+	SVGElement *target;
+
+	/* attributes which cannot be parsed until the type of the target attribute is known */
+	char *attributeName;
+	char *type; /* only for animateTransform */
+	char *to;
+	char *from;
+	char *by;
+	char *values;
 } defered_element;
 
 typedef struct {
@@ -62,6 +80,34 @@ void		svg_convert_length_unit_to_user_unit(SVGParser *parser, SVG_Length *length
 /*SAX related functions */
 SVGElement *svg_create_node						(SVGParser *parser, const xmlChar *name, const xmlChar **attrs, SVGElement *parent);
 
+defered_element *list_dichotomic_search(GF_List *ptr, const char *search_id, s32 *index)
+{
+	s32 tst_value;
+	s32 first = 0;
+	s32 last = gf_list_count(ptr)-1;
+	s32 current = -1;
+	defered_element *de = NULL;
+	Bool	found = 0;
+
+	/* dichotomic search in the sorted list of defered elements */
+	while (first<=last)
+	{
+		current = (first+last)/2;
+		de = (defered_element *)gf_list_get(ptr, current);
+		tst_value = strcmp(search_id, &(de->target_id[1]));
+		if (tst_value==0) {
+			found = 1;
+			break;
+		}
+		else if (tst_value>0)
+			first = current +1;
+		else
+			last = current -1;
+	}
+	if (index)
+		*index=current; /* index where the item could be inserted if necessary */
+	return (found?de:NULL);
+}
 
 void svg_entity_decl(void *user_data,
 				const xmlChar *name,
@@ -122,6 +168,16 @@ Bool is_svg_text_element(SVGElement *elt)
 {
 	u32 tag = elt->sgprivate->tag;
 	return ((tag==TAG_SVG_text)||(tag==TAG_SVG_textArea)||(tag==TAG_SVG_tspan));
+}
+
+Bool is_svg_animation_element(u32 tag)
+{
+	return (tag == TAG_SVG_set ||
+			tag == TAG_SVG_animate ||
+			tag == TAG_SVG_animateColor ||
+			tag == TAG_SVG_animateTransform ||
+			tag == TAG_SVG_animateMotion || 
+			tag == TAG_SVG_discard)?1:0;
 }
 
 void svg_characters(void *user_data, const xmlChar *ch, s32 len)
@@ -332,7 +388,7 @@ u32 svg_get_node_id(SVGParser *parser, xmlChar *nodename)
 	}
 
 /* parses an color from a named color HTML or CSS 2 */
-void svg_parse_named_color(SVGParser *parser, const char *name, SVG_Color *col, xmlChar *attribute_content)
+void svg_parse_named_color(SVGParser *parser, SVG_Color *col, xmlChar *attribute_content)
 {
 	COLOR_CONVERT("aliceblue",240, 248, 255)
 	COLOR_CONVERT("antiquewhite",250, 235, 215)
@@ -489,7 +545,7 @@ void svg_parse_named_color(SVGParser *parser, const char *name, SVG_Color *col, 
    TODO: 
 	transform the xmlChar into char and duplicate the input, instead of modifying it
 */
-void svg_parse_color(SVGParser *parser, const char *name, SVG_Color *col, xmlChar *attribute_content)
+void svg_parse_color(SVGParser *parser, SVG_Color *col, xmlChar *attribute_content)
 {
 	char *str = attribute_content;
 	while (str[strlen(attribute_content)-1] == ' ') str[strlen(attribute_content)-1] = 0;
@@ -537,7 +593,7 @@ void svg_parse_color(SVGParser *parser, const char *name, SVG_Color *col, xmlCha
 		}
 	} else if ((str[0] >= 'a' && str[0] <= 'z')
 		|| (str[0] >= 'A' && str[0] <= 'Z')) {
-		svg_parse_named_color(parser, name, col, str);
+		svg_parse_named_color(parser, col, str);
 	} else {
 		Float _r, _g, _b;
 		sscanf(str, "%f %f %f", &_r, &_g, &_b);
@@ -1152,7 +1208,7 @@ next_command:
 }
 
 /* Parses a paint attribute: none, inherit or color */
-void svg_parse_paint(SVGParser *parser, const char * name, SVG_Paint *paint, char *attribute_content)
+void svg_parse_paint(SVGParser *parser, SVG_Paint *paint, char *attribute_content)
 {
 	if (!strcmp(attribute_content, "none")) {
 		paint->type = SVG_PAINT_NONE;
@@ -1160,7 +1216,7 @@ void svg_parse_paint(SVGParser *parser, const char * name, SVG_Paint *paint, cha
 		paint->type = SVG_PAINT_INHERIT;
 	} else if (1) {
 		paint->type = SVG_PAINT_COLOR;
-		svg_parse_color(parser, name, paint->color, attribute_content);
+		svg_parse_color(parser, paint->color, attribute_content);
 	} else {
 		paint->type = SVG_PAINT_URI;
 	}
@@ -1390,25 +1446,28 @@ void svg_parse_boolean(SVGParser *parser, SVG_Boolean *value, char *value_string
 
 /* Should be called after xlink:href of the animation element has been resolved
    see svg_parse_element */
-void smil_parse_attributename(SVGParser *parser, SVGElement *n, GF_FieldInfo *attributeName, char *value_string)
+void smil_parse_attributename(SVGParser *parser, SVGElement *animation_element, char *value_string)
 {
 	GF_FieldInfo xlink_href;
+	GF_FieldInfo attribute_name;
 	SVGElement *targetElement = NULL;
-
 	GF_FieldInfo targetAttribute;
 
-	if (!gf_node_get_field_by_name((GF_Node *)n, "xlink:href", &xlink_href)) {
-		targetElement = ((SVG_IRI *)xlink_href.far_ptr)->target;
+	gf_node_get_field_by_name((GF_Node *)animation_element, "xlink:href", &xlink_href);
+	gf_node_get_field_by_name((GF_Node *)animation_element, "attributeName", &attribute_name);
 
-		if (!targetElement) {
-			fprintf(stderr, "Warning: element only forward references supported.\n");
-			return;
-		}
-		if (!gf_node_get_field_by_name((GF_Node *)targetElement, value_string, &targetAttribute))
-			memcpy(attributeName, &targetAttribute, sizeof(GF_FieldInfo));
-		else 
-			fprintf(stderr, "Error: Attribute %s does not belong to target element %s of type %s.\n", value_string, gf_node_get_name((GF_Node *)targetElement), SVG_GetElementName(gf_node_get_tag((GF_Node *)targetElement)));
+	targetElement = ((SVG_IRI *)xlink_href.far_ptr)->target;
+
+	if (!targetElement) {
+		fprintf(stderr, "Warning: element only forward references supported.\n");
+		return;
 	}
+	if (!gf_node_get_field_by_name((GF_Node *)targetElement, value_string, &targetAttribute)) {
+		SMIL_AttributeName *attributename_value = (SMIL_AttributeName *)attribute_name.far_ptr;
+		attributename_value->type = targetAttribute.fieldType;
+		attributename_value->field_ptr = targetAttribute.far_ptr;
+	} else 
+		fprintf(stderr, "Error: Attribute %s does not belong to target element %s of type %s.\n", value_string, gf_node_get_name((GF_Node *)targetElement), SVG_GetElementName(gf_node_get_tag((GF_Node *)targetElement)));
 }
 
 void smil_parse_time_list(SVGParser *parser, SVGElement *e, GF_List *values, char *begin_or_end_list)
@@ -1828,7 +1887,7 @@ void svg_parse_animatetransform_type(SVGParser *parser, SVG_TransformType *anim_
 /* Parse a single animated value 
    TODO: handle more datatypes
 */
-void *svg_parse_one_anim_value(SVGParser *parser, SVGElement *elt, const char *attribute_name, u8 anim_value_type, char *single_value_string, u8 transform_anim_datatype)
+void *svg_parse_one_anim_value(SVGParser *parser, SVGElement *elt, u8 anim_value_type, char *single_value_string, u8 transform_anim_datatype)
 {
 	switch (anim_value_type) {
 	case SVG_StrokeDashArray_datatype:
@@ -1844,7 +1903,7 @@ void *svg_parse_one_anim_value(SVGParser *parser, SVGElement *elt, const char *a
 			SVG_Paint *paint;				
 			GF_SAFEALLOC(paint, sizeof(SVG_Paint));
 			GF_SAFEALLOC(paint->color, sizeof(SVG_Color));
-			svg_parse_paint(parser, attribute_name, paint, single_value_string);
+			svg_parse_paint(parser, paint, single_value_string);
 			return paint;
 		}
 		break;
@@ -2009,7 +2068,7 @@ void *svg_parse_one_anim_value(SVGParser *parser, SVGElement *elt, const char *a
 		{
 			SVG_Color *color;
 			GF_SAFEALLOC(color, sizeof(SVG_Color))
-			svg_parse_color(parser, attribute_name, color, single_value_string);
+			svg_parse_color(parser, color, single_value_string);
 			return color;
 		}
 		break;
@@ -2078,7 +2137,7 @@ void *svg_parse_one_anim_value(SVGParser *parser, SVGElement *elt, const char *a
 	return NULL;
 }
 
-void svg_parse_anim_values(SVGParser *parser, SVGElement *elt, const char *attribute_name, SMIL_AnimateValues *anim_values, u8 anim_value_type, char *anim_values_string, u8 transform_anim_datatype)
+void svg_parse_anim_values(SVGParser *parser, SVGElement *elt, SMIL_AnimateValues *anim_values, u8 anim_value_type, char *anim_values_string, u8 transform_anim_datatype)
 {
 	u32 len, i = 0;
 	char *str;
@@ -2098,7 +2157,7 @@ void svg_parse_anim_values(SVGParser *parser, SVGElement *elt, const char *attri
 			memcpy(value_string, str + (psemi+1), single_value_len);
 			value_string[single_value_len] = 0;
 			psemi = i;
-			single_value = svg_parse_one_anim_value(parser, elt, attribute_name, anim_values->datatype, value_string, transform_anim_datatype);
+			single_value = svg_parse_one_anim_value(parser, elt, anim_values->datatype, value_string, transform_anim_datatype);
 			if (single_value) gf_list_add(anim_values->values, single_value);
 			free(value_string);
 		}
@@ -2118,11 +2177,11 @@ void svg_parse_attribute(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info,
 		{
 			SMIL_AnimateValue *anim_value = (SMIL_AnimateValue *)info->far_ptr;
 			anim_value->datatype = anim_value_type;
-			anim_value->value = svg_parse_one_anim_value(parser, elt, info->name, anim_value->datatype, attribute_content, transform_anim_datatype);
+			anim_value->value = svg_parse_one_anim_value(parser, elt, anim_value->datatype, attribute_content, transform_anim_datatype);
 		}
 		break;
 	case SMIL_AnimateValues_datatype:
-		svg_parse_anim_values(parser, elt, info->name, (SMIL_AnimateValues *)info->far_ptr, anim_value_type, attribute_content, transform_anim_datatype);
+		svg_parse_anim_values(parser, elt, (SMIL_AnimateValues *)info->far_ptr, anim_value_type, attribute_content, transform_anim_datatype);
 		break;
 	case SVG_TransformType_datatype:
 		/* not parsed here */ 
@@ -2131,9 +2190,7 @@ void svg_parse_attribute(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info,
 		svg_parse_iri(parser, elt, (SVG_IRI*)info->far_ptr, attribute_content);
 		break;
 	case SMIL_AttributeName_datatype:
-		/* Should be called after xlink:href of the animation element has been resolved
-		   see svg_parse_element */
-		smil_parse_attributename(parser, elt, (GF_FieldInfo *)info->far_ptr, attribute_content);
+		/* Should be not called here but directly */
 		break;
 	case SMIL_Times_datatype:
 		smil_parse_time_list(parser, elt, *(GF_List **)info->far_ptr, attribute_content);
@@ -2180,10 +2237,10 @@ void svg_parse_attribute(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info,
 		svg_parse_boolean(parser, (SVG_Boolean *)info->far_ptr, attribute_content);
 	    break;
 	case SVG_Color_datatype:
-		svg_parse_color(parser, info->name, (SVG_Color *)info->far_ptr, attribute_content);
+		svg_parse_color(parser, (SVG_Color *)info->far_ptr, attribute_content);
 	    break;
 	case SVG_Paint_datatype:
-		svg_parse_paint(parser, info->name, info->far_ptr, attribute_content);
+		svg_parse_paint(parser, (SVG_Paint *)info->far_ptr, attribute_content);
 		break;
 	case SVG_FillRule_datatype:
 		svg_parse_clipfillrule(parser, (SVG_FillRule *)info->far_ptr, attribute_content);
@@ -2470,8 +2527,8 @@ void svg_parse_defered_animation_elements(SVGParser *parser, xmlNodePtr node, SV
 		if ((attributeName = xmlGetProp(node, "attributeName"))) {
 			GF_FieldInfo attributeName_info;
 			if (!gf_node_get_field_by_name((GF_Node *)elt, "attributeName", &attributeName_info)) {
-				svg_parse_attribute(parser, elt, &attributeName_info, attributeName, 0, 0);
-				anim_value_type = ((GF_FieldInfo *)attributeName_info.far_ptr)->fieldType;
+				smil_parse_attributename(parser, elt, attributeName);
+				anim_value_type = ((SMIL_AttributeName *)attributeName_info.far_ptr)->type;
 			} else {
 				fprintf(stdout, "Warning: attributeName attribute not found.\n");
 			}
@@ -2529,7 +2586,7 @@ SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *pa
 		tag == TAG_SVG_discard) {
 		defered_element *de = malloc(sizeof(defered_element));
 		de->node = node;
-		de->elt = elt;
+		de->animation_elt = elt;
 		de->parent = parent;
 		gf_list_add(parser->defered_animation_elements, de);
 		return elt;
@@ -2543,13 +2600,87 @@ SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *pa
 	return elt;
 }
 
+void svg_parse_defered_animation(SVGParser *parser, SVGElement *animation_elt, defered_element local_de)
+{
+	GF_FieldInfo info;
+	u32 anim_value_type = 0, anim_transform_type = 0;
+
+	GF_FieldInfo xlink_href_info;
+	gf_node_get_field_by_name((GF_Node *)animation_elt, "xlink:href", &xlink_href_info);
+	if (local_de.target_id) 
+		svg_parse_iri(parser, animation_elt, (SVG_IRI *)xlink_href_info.far_ptr, local_de.target_id);
+	else {
+		/* default is the parent element */
+		((SVG_IRI *)xlink_href_info.far_ptr)->type = SVG_IRI_ELEMENTID;
+		((SVG_IRI *)xlink_href_info.far_ptr)->target = local_de.parent;
+		((SVG_IRI *)xlink_href_info.far_ptr)->iri_owner = local_de.animation_elt;
+		/* Warning !!! here the reference is the parent !!!! */
+		gf_node_register((GF_Node *)local_de.parent, (GF_Node *)local_de.animation_elt);
+	}
+
+	if (local_de.attributeName) {
+		/* get the type of the target attribute to determine type of the from/to/by ... */
+		smil_parse_attributename(parser, animation_elt, local_de.attributeName);
+		gf_node_get_field_by_name((GF_Node *)animation_elt, "attributeName", &info);
+		anim_value_type = ((SMIL_AttributeName *)info.far_ptr)->type;
+	} else {
+		if (gf_node_get_tag((GF_Node *)animation_elt) == TAG_SVG_animateMotion) {
+			anim_value_type = SVG_Motion_datatype;
+		} else {
+			fprintf(stdout, "Error: no attributeName specified.\n");
+		}
+	}
+
+	if (gf_node_get_tag((GF_Node *)animation_elt) == TAG_SVG_animateTransform && local_de.type) {
+		/* determine the transform_type in case of animateTransform attribute */
+		GF_FieldInfo type_info;
+		gf_node_get_field_by_name((GF_Node *)animation_elt, "type", &type_info);
+		svg_parse_animatetransform_type(parser, (SVG_TransformType*)type_info.far_ptr, local_de.type);
+		anim_value_type = SVG_TransformList_datatype;
+		anim_transform_type = *(SVG_TransformType*)type_info.far_ptr;
+	} 
+
+	/* Parsing of to / from / by / values */
+	if (local_de.to) {
+		SMIL_AnimateValue *to;
+		gf_node_get_field_by_name((GF_Node *)animation_elt, "to", &info);
+		to = (SMIL_AnimateValue *)info.far_ptr;
+		to->datatype = anim_value_type;
+		to->value = svg_parse_one_anim_value(parser, animation_elt, anim_value_type, local_de.to, anim_transform_type);
+	} 
+	if (local_de.from) {
+		SMIL_AnimateValue *from;
+		gf_node_get_field_by_name((GF_Node *)animation_elt, "from", &info);
+		from = (SMIL_AnimateValue *)info.far_ptr;
+		from->datatype = anim_value_type;
+		from->value = svg_parse_one_anim_value(parser, animation_elt, anim_value_type, local_de.from, anim_transform_type);
+	} 
+	if (local_de.by) {
+		SMIL_AnimateValue *by;
+		gf_node_get_field_by_name((GF_Node *)animation_elt, "by", &info);
+		by = (SMIL_AnimateValue *)info.far_ptr;
+		by->datatype = anim_value_type;
+		by->value = svg_parse_one_anim_value(parser, animation_elt, anim_value_type, local_de.by, anim_transform_type);
+	} 
+	if (local_de.values) {
+		gf_node_get_field_by_name((GF_Node *)animation_elt, "values", &info);
+		svg_parse_anim_values(parser, animation_elt, (SMIL_AnimateValues *)info.far_ptr, anim_value_type, local_de.values, anim_transform_type);
+	} 
+}
+
 SVGElement *svg_create_node(SVGParser *parser, const xmlChar *name, const xmlChar **attrs, SVGElement *parent)
 {
-	u32 tag;
-	u8 anim_datatype = 0;
-	u8 anim_transform_type = 0;
+	u32			tag;
 	SVGElement *elt;
-	s32 attribute_index = 0;
+	s32			attribute_index = 0;
+	Bool		ided = 0;
+
+	/* animation element to be defered after the target element is resolved */
+	defered_element *de = NULL;
+
+	/* variable required for parsing of animation attributes in a certain order 
+	   if the target is already resolved */
+	defered_element local_de;
 
 	/* Translates the node type (called name) from a String into a unique numeric identifier in GPAC */
 	tag = SVG_GetTagByName(name);
@@ -2584,47 +2715,163 @@ SVGElement *svg_create_node(SVGParser *parser, const xmlChar *name, const xmlCha
 		attribute_index+=2;
 	}
 
+	/* For animation elements, we try to resolve the target element;
+	if we are able to determine the target,
+	then we have to determine the target field using 'attributeName' attribute,
+	and based on this attribute we can know how to parse the animation values 
+	(anim_value_type, anim_transform_type) 
+	if are not able to determine the target, we put the element in a list for future processing
+	(each time a new id is defined, we try to resolve the defered elements)
+	*/
+	if (is_svg_animation_element(tag)) {
+		/* Parsing the xlink:href attribute */
+		Bool xlink_href_found = 0;
+		attribute_index=0;
+		memset(&local_de, 0, sizeof(defered_element));
+		local_de.parent = parent;
+		if (attrs)
+		while (attrs[attribute_index]!=NULL)
+		{
+			if (stricmp(attrs[attribute_index],"xlink:href")==0) {
+				GF_Node *node;
+				xlink_href_found = 1;
+				/* check if the target is known */
+				node = gf_sg_find_node_by_name(parser->graph, (char *)&(attrs[attribute_index+1][1]));
+				if (node) { 
+					/* target found; we can resolve all the attributes */
+					local_de.target = (SVGElement *)node;
+				} else /* target unresolved */
+				{
+					s32	position;
+
+					GF_SAFEALLOC(de,sizeof(defered_element))
+
+					// de->node = node; we need to save some attributes for future parsing
+					// and not parse these attributes below
+					de->target_id = strdup(attrs[attribute_index+1]);
+					de->animation_elt = elt;
+					de->parent = parent;
+					/* this list must be sorted on target_id key */
+					list_dichotomic_search(parser->defered_animation_elements, &(de->target_id[1]), &position);
+					if (position <= 0) gf_list_add(parser->defered_animation_elements, de);
+					else gf_list_insert(parser->defered_animation_elements, de, position);
+				}
+				break;
+			} 
+			attribute_index+=2;
+		}
+		if (!xlink_href_found) {
+			local_de.target = parent;			
+		}
+	}
+	
 	/* Parsing all the other attributes, with a special case of id */
 	attribute_index=0;
 	if (attrs)
 	while (attrs[attribute_index]) {
 		if (!stricmp(attrs[attribute_index], "id")) {
 			svg_parse_element_id(parser, elt, (xmlChar *)attrs[attribute_index+1]);
+			ided = 1;
 		} else if (!stricmp(attrs[attribute_index], "attributeName")) {
-			/* already dealt with above */
+			if (de) de->attributeName = strdup(attrs[attribute_index+1]);
+			else local_de.attributeName = strdup(attrs[attribute_index+1]);
+		} else if (!stricmp(attrs[attribute_index], "to")) {
+			if (de) de->to = strdup(attrs[attribute_index+1]);
+			else local_de.to = strdup(attrs[attribute_index+1]);
+		} else if (!stricmp(attrs[attribute_index], "from")) {
+			if (de) de->from = strdup(attrs[attribute_index+1]);
+			else local_de.from = strdup(attrs[attribute_index+1]);
+		} else if (!stricmp(attrs[attribute_index], "by")) {
+			if (de) de->by = strdup(attrs[attribute_index+1]);
+			else local_de.by = strdup(attrs[attribute_index+1]);
+		} else if (!stricmp(attrs[attribute_index], "values")) {
+			if (de) de->values = strdup(attrs[attribute_index+1]);
+			else local_de.values = strdup(attrs[attribute_index+1]);
 		} else if (!stricmp(attrs[attribute_index], "type")) {
 			if (tag == TAG_SVG_animateTransform) {
-			/* already dealt with above */
+				if (de) de->type = strdup(attrs[attribute_index+1]);
+				else local_de.type = strdup(attrs[attribute_index+1]);
 			} else {
 				GF_FieldInfo info;
 				if (!gf_node_get_field_by_name((GF_Node *)elt, "type", &info)) {
-					svg_parse_attribute(parser, elt, &info, (xmlChar *)attrs[attribute_index+1], anim_datatype, anim_transform_type);
+					svg_parse_attribute(parser, elt, &info, (xmlChar *)attrs[attribute_index+1], 0, 0);
 				}
 			}
-		} else if (!stricmp(attrs[attribute_index], "href")) {
-			if (tag == TAG_SVG_set ||
-					tag == TAG_SVG_animate ||
-					tag == TAG_SVG_animateColor ||
-					tag == TAG_SVG_animateTransform ||
-					tag == TAG_SVG_animateMotion || 
-					tag == TAG_SVG_discard) {
-			/* already dealt with above */
+		} else if (!stricmp(attrs[attribute_index], "xlink:href")) {
+			if (is_svg_animation_element(tag)) {
+				/* already dealt with above */
 			} else {
 				GF_FieldInfo info;
 				if (!gf_node_get_field_by_name((GF_Node *)elt, "xlink:href", &info)) {
-					svg_parse_attribute(parser, elt, &info, (xmlChar *)attrs[attribute_index+1], anim_datatype, anim_transform_type);
+					svg_parse_attribute(parser, elt, &info, (xmlChar *)attrs[attribute_index+1], 0, 0);
 				}
 			}
 		} else {
 			GF_FieldInfo info;
 			if (!gf_node_get_field_by_name((GF_Node *)elt, (char *)attrs[attribute_index], &info)) {
-				svg_parse_attribute(parser, elt, &info, (xmlChar *)attrs[attribute_index+1], anim_datatype, anim_transform_type);
+				svg_parse_attribute(parser, elt, &info, (xmlChar *)attrs[attribute_index+1], 0, 0);
+			}
+			/*SVG 1.1 events: create a listener and a handler on the fly, register them with current node
+			and add listener struct*/
+			else if (!strcmp((char *)attrs[attribute_index], "onfocusin") 
+					|| !strcmp((char *)attrs[attribute_index], "onfocusout")
+					|| !strcmp((char *)attrs[attribute_index], "onactivate")
+					|| !strcmp((char *)attrs[attribute_index], "onclick")
+					|| !strcmp((char *)attrs[attribute_index], "onmousedown")
+					|| !strcmp((char *)attrs[attribute_index], "onmouseup")
+					|| !strcmp((char *)attrs[attribute_index], "onmouseover")
+					|| !strcmp((char *)attrs[attribute_index], "onmousemove")
+					|| !strcmp((char *)attrs[attribute_index], "onmouseout")
+					|| !strcmp((char *)attrs[attribute_index], "onload")
+					|| !strcmp((char *)attrs[attribute_index], "onunload")
+					|| !strcmp((char *)attrs[attribute_index], "onabort")
+					|| !strcmp((char *)attrs[attribute_index], "onerror")
+					|| !strcmp((char *)attrs[attribute_index], "onresize")
+					|| !strcmp((char *)attrs[attribute_index], "onscroll")
+					|| !strcmp((char *)attrs[attribute_index], "onzoom")
+					|| !strcmp((char *)attrs[attribute_index], "onbegin")
+					|| !strcmp((char *)attrs[attribute_index], "onend")
+					|| !strcmp((char *)attrs[attribute_index], "onrepeat")
+					|| !strcmp((char *)attrs[attribute_index], "onload") 
+			) {
+				SVGlistenerElement *listener;
+				SVGhandlerElement *handler;
+				u32 evtType = svg_get_animation_event_by_name((char *) (char *)attrs[attribute_index] + 2);
+				listener = (SVGlistenerElement *) SVG_NewNode(parser->graph, TAG_SVG_listener);
+				handler = (SVGhandlerElement *) SVG_NewNode(parser->graph, TAG_SVG_handler);
+				gf_node_register((GF_Node *)listener, (GF_Node *)elt);
+				gf_list_add(elt->children, listener);
+				gf_node_register((GF_Node *)handler, (GF_Node *)elt);
+				gf_list_add(elt->children, handler);
+				listener->event = strdup((char *) (char *)attrs[attribute_index]+2);
+				listener->handler.target = (SVGElement *) handler;
+				listener->target.target = elt;
+				handler->textContent = strdup((char *)attrs[attribute_index]);
+
+				gf_node_listener_add((GF_Node *) elt, (GF_Node *) listener);
+			} else {
+				fprintf(stdout, "SVG Warning: Unknown attribute %s\n", (char *)attrs[attribute_index]);
 			}
 		}
 		attribute_index+=2;
 	}
+
+	if (!de && is_svg_animation_element(tag)) svg_parse_defered_animation(parser, elt, local_de);
+
+	/* if the new element has an id, we try to resolve defered references */
+	if (ided) {
+		defered_element *previous_de;
+		const char *new_id = gf_node_get_name((GF_Node *)elt);
+		/* dichotomic search in the sorted list of defered elements */
+		previous_de = list_dichotomic_search(parser->defered_animation_elements, new_id, NULL);
+		if (previous_de) { /* defered element 'previous_de' can be resolved by the new elt */
+			svg_parse_defered_animation(parser, previous_de->animation_elt, *previous_de);
+			gf_node_init((GF_Node *)previous_de->animation_elt);
+		}
+	}
+
 	/* We need to init the node at the end of the parsing, after parsing all attributes */
-	if (elt) gf_node_init((GF_Node *)elt);
+	if (!de && elt) gf_node_init((GF_Node *)elt);
 	return elt;
 }
 
@@ -2739,7 +2986,7 @@ GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 	while (gf_list_count(parser->defered_animation_elements)) {
 		defered_element *de = gf_list_get(parser->defered_animation_elements, 0);
 		gf_list_rem(parser->defered_animation_elements, 0);
-		svg_parse_defered_animation_elements(parser, de->node, de->elt, de->parent);
+		svg_parse_defered_animation_elements(parser, de->node, de->animation_elt, de->parent);
 		free(de);
 	}
 
