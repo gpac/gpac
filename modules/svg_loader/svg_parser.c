@@ -267,6 +267,7 @@ void svg_start_element(void *user_data, const xmlChar *name, const xmlChar **att
 		break;
 	}
 }
+
 void svg_end_element(void *user_data, const xmlChar *name)
 {
 	SVGParser	*parser = (SVGParser *)user_data;
@@ -287,7 +288,7 @@ void svg_end_element(void *user_data, const xmlChar *name)
 /* end of SAX related functions */
 
 /* Generic Scene Graph handling functions for ID */
-void svg_parse_dom_element_id(SVGParser *parser, SVGElement *elt, char *nodename)
+void svg_parse_element_id(SVGParser *parser, SVGElement *elt, char *nodename)
 {
 	u32 id = 0;
 	SVGElement *unided_elt;
@@ -394,7 +395,7 @@ static void svg_parse_dom_attributes(SVGParser *parser,
 	while (attributes) {
 		if (attributes->type == XML_ATTRIBUTE_NODE) {
 			if (!stricmp(attributes->name, "id")) {
-				/* should have been done in svg_parse_dom_element_id */
+				/* should have been done in svg_parse_element_id */
 			} else if (!stricmp(attributes->name, "attributeName")) {
 				/* we don't parse the animation element attributes here */
 			} else if (!stricmp(attributes->name, "type")) {
@@ -601,7 +602,7 @@ SVGElement *svg_parse_dom_element(SVGParser *parser, xmlNodePtr node, SVGElement
 	}
 	gf_node_register((GF_Node *)elt, (GF_Node *)parent);
 
-	if (id = xmlGetProp(node, "id")) svg_parse_dom_element_id(parser, elt, id);
+	if (id = xmlGetProp(node, "id")) svg_parse_element_id(parser, elt, id);
 
 	/* For animation elements, we defer parsing until the all the node are parsed,
 	   then we first need to resolve the target element, 
@@ -802,7 +803,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 	if (attrs)
 	while (attrs[attribute_index]) {
 		if (!stricmp(attrs[attribute_index], "id")) {
-			svg_parse_dom_element_id(parser, elt, (xmlChar *)attrs[attribute_index+1]);
+			svg_parse_element_id(parser, elt, (xmlChar *)attrs[attribute_index+1]);
 			ided = 1;
 		} else if (!stricmp(attrs[attribute_index], "attributeName")) {
 			if (de) de->attributeName = strdup(attrs[attribute_index+1]);

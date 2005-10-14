@@ -238,16 +238,16 @@ u32			svg_get_node_id		(SVGParser *parser, xmlChar *nodename);
 void		svg_parse_element_id(SVGParser *parser, SVGElement *elt, char *nodename);
 
 void  svg_convert_length_unit_to_user_unit(SVGParser *parser, SVG_Length *length);
-void  svg_parse_attribute				(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_anim_datatype);
 
 /* DOM related functions */
-void		svg_parse_attributes_from_node		(SVGParser *parser, xmlNodePtr node, SVGElement *elt, u8 anim_value_type, u8 anim_transform_type);
-void		svg_parse_children_elements			(SVGParser *parser, xmlNodePtr node, SVGElement *elt);
-void		svg_parse_defered_animation_elements(SVGParser *parser, xmlNodePtr node, SVGElement *elt, SVGElement *parent);
-SVGElement *svg_parse_element					(SVGParser *parser, xmlNodePtr node, SVGElement *parent);
+void		svg_parse_dom_attributes		(SVGParser *parser, xmlNodePtr node, SVGElement *elt, u8 anim_value_type, u8 anim_transform_type);
+void		svg_parse_dom_children          (SVGParser *parser, xmlNodePtr node, SVGElement *elt);
+void		svg_parse_dom_defered_animation (SVGParser *parser, xmlNodePtr node, SVGElement *animation_elt, SVGElement *parent);
+SVGElement *svg_parse_dom_element			(SVGParser *parser, xmlNodePtr node, SVGElement *parent);
 
 /*SAX related functions */
-SVGElement *svg_create_node						(SVGParser *parser, const xmlChar *name, const xmlChar **attrs, SVGElement *parent);
+void		svg_parse_sax_defered_animation	(SVGParser *parser, SVGElement *animation_elt, defered_element local_de);
+SVGElement *svg_parse_sax_element			(SVGParser *parser, const xmlChar *name, const xmlChar **attrs, SVGElement *parent);
 
 #endif /*GPAC_DISABLE_SVG*/
 
