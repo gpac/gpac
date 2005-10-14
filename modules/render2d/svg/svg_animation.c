@@ -1230,7 +1230,7 @@ static void SVG_Init_SMILAnimationStackAPI(SMIL_AnimationStack *stack)
 		stack->Interpolate = SVG_InterpolatePaint;
 		stack->ApplyAdditive = SVG_AddPaint;
 		stack->ApplyAccumulate = SVG_ApplyAccumulatePaint;
-		stack->Invalidate = SVG_InvalidateAndDirtyAppearance;
+		stack->Invalidate = SVG_InvalidateAndDirtyAll;
 		stack->Compare = SVG_ComparePaint;
 		break;
 	case SVG_StrokeWidth_datatype:

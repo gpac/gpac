@@ -375,7 +375,7 @@ u32 svg_get_animation_event_by_name(char *name)
 
 /* DOM Related functions */
 /* Parses all the attributes of an element except id */		  
-static void svg_parse_dom_attributes(SVGParser *parser, 
+void svg_parse_dom_attributes(SVGParser *parser, 
 									xmlNodePtr node,
 									SVGElement *elt,
 									u8 anim_value_type,
@@ -473,7 +473,7 @@ static void svg_parse_dom_attributes(SVGParser *parser,
 	}
 }
 
-static void svg_parse_dom_children(SVGParser *parser, xmlNodePtr node, SVGElement *elt)
+void svg_parse_dom_children(SVGParser *parser, xmlNodePtr node, SVGElement *elt)
 {
 	xmlNodePtr children;
 	u32 tag;
@@ -507,7 +507,7 @@ static void svg_parse_dom_children(SVGParser *parser, xmlNodePtr node, SVGElemen
 	}
 }
 
-static void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVGElement *elt, SVGElement *parent)
+void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVGElement *elt, SVGElement *parent)
 {
 	GF_FieldInfo xlink_href;
 	u8 anim_value_type = 0;
@@ -773,6 +773,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 				if (node) { 
 					/* target found; we can resolve all the attributes */
 					local_de.target = (SVGElement *)node;
+					local_de.target_id = strdup(attrs[attribute_index+1]);
 				} else /* target unresolved */
 				{
 					s32	position;
@@ -925,7 +926,8 @@ void SVGParser_Terminate(SVGParser *parser)
      */
 
     /* destroy the SAX parser context and file. */
-    if (parser->sax_ctx) xmlFreeParserCtxt(parser->sax_ctx);
+    if (parser->sax_handler) free(parser->sax_handler);
+	if (parser->sax_ctx) xmlFreeParserCtxt(parser->sax_ctx);
 	if (parser->sax_file) fclose(parser->sax_file);
 
 	if (xmllib_is_init) xmlCleanupParser();
