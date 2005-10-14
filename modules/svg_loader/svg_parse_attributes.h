@@ -74,6 +74,8 @@ void  smil_parse_accumulate				(SVGParser *parser, SMIL_Accumulate *value,			cha
 void  smil_parse_time					(SVGParser *parser, SVGElement *e, SMIL_Time *t,	char *value_string);
 void  smil_parse_attributename			(SVGParser *parser, SVGElement *e,					char *value_string);
 void  smil_parse_time_list				(SVGParser *parser, SVGElement *e, GF_List *values, char *value_string);
+
+void  svg_parse_attribute				(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_anim_datatype);
 		
 #ifdef __cplusplus
 }

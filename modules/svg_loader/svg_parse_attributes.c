@@ -1063,8 +1063,7 @@ void svg_parse_boolean(SVGParser *parser, SVG_Boolean *value, char *value_string
 		*value = 0;
 }
 
-/* Should be called after xlink:href of the animation element has been resolved
-   see svg_parse_element */
+/* Should be called after xlink:href of the animation element has been resolved */
 void smil_parse_attributename(SVGParser *parser, SVGElement *animation_element, char *value_string)
 {
 	GF_FieldInfo xlink_href;

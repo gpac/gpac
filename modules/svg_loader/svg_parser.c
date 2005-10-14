@@ -229,7 +229,7 @@ void svg_start_element(void *user_data, const xmlChar *name, const xmlChar **att
 	switch(parser->sax_state) {
 	case STARTSVG:
 		if (!stricmp((char *)name, "svg")) {
-			elt = svg_create_node(parser, name, attrs, NULL);
+			elt = svg_parse_sax_element(parser, name, attrs, NULL);
 			if (!elt) {
 				parser->last_error = GF_SG_UNKNOWN_NODE;
 				parser->sax_state = ERROR;
@@ -252,7 +252,7 @@ void svg_start_element(void *user_data, const xmlChar *name, const xmlChar **att
 		}
 		break;
 	case SVGCONTENT:
-		elt = svg_create_node(parser, name, attrs, 
+		elt = svg_parse_sax_element(parser, name, attrs, 
 							  (SVGElement *)gf_list_get(parser->svg_node_stack,gf_list_count(parser->svg_node_stack)-1));
 		if (elt) 
 			gf_list_add(parser->svg_node_stack, elt);
@@ -287,7 +287,7 @@ void svg_end_element(void *user_data, const xmlChar *name)
 /* end of SAX related functions */
 
 /* Generic Scene Graph handling functions for ID */
-void svg_parse_element_id(SVGParser *parser, SVGElement *elt, char *nodename)
+void svg_parse_dom_element_id(SVGParser *parser, SVGElement *elt, char *nodename)
 {
 	u32 id = 0;
 	SVGElement *unided_elt;
@@ -374,7 +374,7 @@ u32 svg_get_animation_event_by_name(char *name)
 
 /* DOM Related functions */
 /* Parses all the attributes of an element except id */		  
-static void svg_parse_attributes_from_node(SVGParser *parser, 
+static void svg_parse_dom_attributes(SVGParser *parser, 
 									xmlNodePtr node,
 									SVGElement *elt,
 									u8 anim_value_type,
@@ -394,7 +394,7 @@ static void svg_parse_attributes_from_node(SVGParser *parser,
 	while (attributes) {
 		if (attributes->type == XML_ATTRIBUTE_NODE) {
 			if (!stricmp(attributes->name, "id")) {
-				/* should have been done in svg_parse_element_id */
+				/* should have been done in svg_parse_dom_element_id */
 			} else if (!stricmp(attributes->name, "attributeName")) {
 				/* we don't parse the animation element attributes here */
 			} else if (!stricmp(attributes->name, "type")) {
@@ -472,7 +472,7 @@ static void svg_parse_attributes_from_node(SVGParser *parser,
 	}
 }
 
-static void svg_parse_children_elements(SVGParser *parser, xmlNodePtr node, SVGElement *elt)
+static void svg_parse_dom_children(SVGParser *parser, xmlNodePtr node, SVGElement *elt)
 {
 	xmlNodePtr children;
 	u32 tag;
@@ -484,7 +484,7 @@ static void svg_parse_children_elements(SVGParser *parser, xmlNodePtr node, SVGE
 	while(children) {
 		SVGElement *child;
 		if (children->type == XML_ELEMENT_NODE) {
-			child = svg_parse_element(parser, children, elt);
+			child = svg_parse_dom_element(parser, children, elt);
 			if (child) gf_list_add(elt->children, child);
 		} else if (children->type == XML_TEXT_NODE && tag == TAG_SVG_text) {
 			SVGtextElement *text = (SVGtextElement *)elt;
@@ -506,7 +506,7 @@ static void svg_parse_children_elements(SVGParser *parser, xmlNodePtr node, SVGE
 	}
 }
 
-static void svg_parse_defered_animation_elements(SVGParser *parser, xmlNodePtr node, SVGElement *elt, SVGElement *parent)
+static void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVGElement *elt, SVGElement *parent)
 {
 	GF_FieldInfo xlink_href;
 	u8 anim_value_type = 0;
@@ -568,9 +568,9 @@ static void svg_parse_defered_animation_elements(SVGParser *parser, xmlNodePtr n
 		}
 	}
 
-	svg_parse_attributes_from_node(parser, node, elt, anim_value_type, anim_transform_type);
+	svg_parse_dom_attributes(parser, node, elt, anim_value_type, anim_transform_type);
 
-	svg_parse_children_elements(parser, node, elt);
+	svg_parse_dom_children(parser, node, elt);
 	/* We need to init the node at the end of the parsing, after parsing all attributes */
 	if (elt) gf_node_init((GF_Node *)elt);
 }
@@ -580,7 +580,7 @@ static void svg_parse_defered_animation_elements(SVGParser *parser, xmlNodePtr n
 	TODO: handle xml:id attribute 
 	TODO: find a way to handle mixed content
 */
-SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *parent)
+SVGElement *svg_parse_dom_element(SVGParser *parser, xmlNodePtr node, SVGElement *parent)
 {
 	u32 tag;
 	SVGElement *elt;
@@ -601,7 +601,7 @@ SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *pa
 	}
 	gf_node_register((GF_Node *)elt, (GF_Node *)parent);
 
-	if (id = xmlGetProp(node, "id")) svg_parse_element_id(parser, elt, id);
+	if (id = xmlGetProp(node, "id")) svg_parse_dom_element_id(parser, elt, id);
 
 	/* For animation elements, we defer parsing until the all the node are parsed,
 	   then we first need to resolve the target element, 
@@ -622,9 +622,9 @@ SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *pa
 		return elt;
 	}
 
-	svg_parse_attributes_from_node(parser, node, elt, 0, 0);
+	svg_parse_dom_attributes(parser, node, elt, 0, 0);
 
-	svg_parse_children_elements(parser, node, elt);
+	svg_parse_dom_children(parser, node, elt);
 	/* We need to init the node at the end of the parsing, after parsing all attributes */
 	if (elt) gf_node_init((GF_Node *)elt);
 	return elt;
@@ -632,7 +632,7 @@ SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *pa
 /* DOM end */
 
 /* SAX functions */
-void svg_parse_defered_animation(SVGParser *parser, SVGElement *animation_elt, defered_element local_de)
+void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_elt, defered_element local_de)
 {
 	GF_FieldInfo info;
 	u32 anim_value_type = 0, anim_transform_type = 0;
@@ -700,7 +700,7 @@ void svg_parse_defered_animation(SVGParser *parser, SVGElement *animation_elt, d
 	} 
 }
 
-SVGElement *svg_create_node(SVGParser *parser, const xmlChar *name, const xmlChar **attrs, SVGElement *parent)
+SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const xmlChar **attrs, SVGElement *parent)
 {
 	u32			tag;
 	SVGElement *elt;
@@ -802,7 +802,7 @@ SVGElement *svg_create_node(SVGParser *parser, const xmlChar *name, const xmlCha
 	if (attrs)
 	while (attrs[attribute_index]) {
 		if (!stricmp(attrs[attribute_index], "id")) {
-			svg_parse_element_id(parser, elt, (xmlChar *)attrs[attribute_index+1]);
+			svg_parse_dom_element_id(parser, elt, (xmlChar *)attrs[attribute_index+1]);
 			ided = 1;
 		} else if (!stricmp(attrs[attribute_index], "attributeName")) {
 			if (de) de->attributeName = strdup(attrs[attribute_index+1]);
@@ -888,7 +888,7 @@ SVGElement *svg_create_node(SVGParser *parser, const xmlChar *name, const xmlCha
 		attribute_index+=2;
 	}
 
-	if (!de && is_svg_animation_element(tag)) svg_parse_defered_animation(parser, elt, local_de);
+	if (!de && is_svg_animation_element(tag)) svg_parse_sax_defered_animation(parser, elt, local_de);
 
 	/* if the new element has an id, we try to resolve defered references */
 	if (ided) {
@@ -897,7 +897,7 @@ SVGElement *svg_create_node(SVGParser *parser, const xmlChar *name, const xmlCha
 		/* dichotomic search in the sorted list of defered elements */
 		previous_de = list_dichotomic_search(parser->defered_animation_elements, new_id, NULL);
 		if (previous_de) { /* defered element 'previous_de' can be resolved by the new elt */
-			svg_parse_defered_animation(parser, previous_de->animation_elt, *previous_de);
+			svg_parse_sax_defered_animation(parser, previous_de->animation_elt, *previous_de);
 			gf_node_init((GF_Node *)previous_de->animation_elt);
 		}
 	}
@@ -973,7 +973,7 @@ GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 
 	SVGParser_InitAllParsers(parser);
 
-	n = svg_parse_element(parser, root, NULL);
+	n = svg_parse_dom_element(parser, root, NULL);
 	if (n) svg_init_root_element(parser, (SVGsvgElement *)n);
 
 	/* Resolve time elements */
@@ -1003,7 +1003,7 @@ GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 	while (gf_list_count(parser->defered_animation_elements)) {
 		defered_element *de = gf_list_get(parser->defered_animation_elements, 0);
 		gf_list_rem(parser->defered_animation_elements, 0);
-		svg_parse_defered_animation_elements(parser, de->node, de->animation_elt, de->parent);
+		svg_parse_dom_defered_animations(parser, de->node, de->animation_elt, de->parent);
 		free(de);
 	}
 

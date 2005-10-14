@@ -25,6 +25,7 @@
 
 
 #include "svg_parser.h"
+#include "svg_parse_attributes.h"
 
 #ifndef GPAC_DISABLE_SVG
 
@@ -47,7 +48,7 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 	if (!com) return GF_OK;
 
 	if (!strcmp(com->name, "NewScene")) {
-		SVGElement *n = svg_parse_element(parser, lsr_toElement(com->children), NULL);
+		SVGElement *n = svg_parse_dom_element(parser, lsr_toElement(com->children), NULL);
 		if (n) {
 			SVGsvgElement *root_svg = (SVGsvgElement *)n;
 			svg_convert_length_unit_to_user_unit(parser, &(root_svg->width));
@@ -81,7 +82,7 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 		if (!at_node) return GF_SG_UNKNOWN_NODE;
 
 		if (!strcmp(at_att, "children")) {
-			SVGElement *n = svg_parse_element(parser, lsr_toElement(com->children), at_node);
+			SVGElement *n = svg_parse_dom_element(parser, lsr_toElement(com->children), at_node);
 			if (n) {
 				if (pos == -1) gf_list_add(at_node->children, n);
 				else gf_list_insert(at_node->children, n, (u32) pos);
@@ -117,7 +118,7 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 
 		if (!at_att) {
 			GF_Node *old;
-			SVGElement *n = svg_parse_element(parser, lsr_toElement(com->children), at_node);
+			SVGElement *n = svg_parse_dom_element(parser, lsr_toElement(com->children), at_node);
 			if (pos<0) pos = gf_list_count(at_node->children) - 1;
 			old = gf_list_get(at_node->children, pos);
 			gf_list_rem(at_node->children, pos);
