@@ -71,7 +71,7 @@ BSC32=bscmake.exe
 # PROP Platform_ID "{8A9A2F80-6887-11D3-842E-005004848CBA}"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Zi /Od /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /YX /M$(CECrtMTDebug) /c
-# ADD CPP /nologo /W3 /Zi /Od /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /D "GPAC_HAS_SPIDERMONKEY" /D "GPAC_USE_IGPP" /M$(CECrtMTDebug) /c
+# ADD CPP /nologo /W3 /Zi /Od /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /D "GPAC_HAS_SPIDERMONKEY" /M$(CECrtMTDebug) /c
 # SUBTRACT CPP /YX
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
@@ -1885,6 +1885,8 @@ DEP_CPP_MEDIA_E=\
 
 SOURCE=..\..\src\media_tools\media_import.c
 DEP_CPP_MEDIA_I=\
+	"..\..\extra_lib\include\zlib\zconf.h"\
+	"..\..\extra_lib\include\zlib\zlib.h"\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
@@ -1898,6 +1900,7 @@ DEP_CPP_MEDIA_I=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\xml.h"\
 	"..\..\src\media_tools\mpeg2_ps.h"\
 	
 # End Source File

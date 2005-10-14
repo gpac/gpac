@@ -26,7 +26,7 @@
 #define IDD_OPT_STREAM                  140
 #define IDR_MENU                        141
 #define IDD_OPT_RENDER3D                142
-#define IDD_OPT_DECODER                 142
+#define IDD_OPT_DECODER                 143
 #define IDC_FILELIST                    1000
 #define IDC_BROWSE                      1001
 #define IDC_SEEK                        1002
