@@ -581,7 +581,7 @@ static void ReplaceIRINode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool
 				iri->target = NULL;
 				/*for now disabled but...*/
 				//if (newNode) iri->target_element = newNode;
-				goto exit;
+				return;
 			}
 		} else if (field.fieldType == SMIL_AnimateValue_datatype) {
 			SMIL_AnimateValue *anim_value = (SMIL_AnimateValue *)field.far_ptr;
@@ -592,7 +592,7 @@ static void ReplaceIRINode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool
 					iri->target = NULL;
 					/*for now disabled but...*/
 					//if (newNode) iri->target_element = newNode;
-					goto exit;
+					return;
 				}
 			}
 		} else if (field.fieldType == SMIL_AnimateValues_datatype) {
@@ -606,7 +606,7 @@ static void ReplaceIRINode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool
 						iri->target = NULL;
 						/*for now disabled but...*/
 						//if (newNode) iri->target_element = newNode;
-						goto exit;
+						return;
 					}
 				}
 			}
@@ -621,10 +621,6 @@ static void ReplaceIRINode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool
 		//if (newNode) gf_list_insert(container, newNode, i);
 		break;
 	}
-
-exit:
-	/*since we don't filter parent nodes this is called once per USE, not per container, so return if found*/
-	gf_node_changed(FromNode, &field);
 }
 
 /*get all parents of the node and replace, the instance of the node and finally destroy the node*/
