@@ -30,11 +30,6 @@
 
 extern Bool xmllib_is_init;
 
-
-SVGElement *svg_parse_element(SVGParser *parser, xmlNodePtr node, SVGElement *parent);
-void svg_convert_length_unit_to_user_unit(SVGParser *parser, SVG_Length *length);
-void svg_parse_attribute(SVGParser *parser, GF_FieldInfo *info, SVGElement *n, xmlChar *attribute_content, u8 anim_datatype, u8 *transform_anim_datatype);
-
 static xmlNodePtr lsr_toElement(xmlNodePtr ptr)
 {
 	while (ptr) {
@@ -131,11 +126,10 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 			gf_node_dirty_set((GF_Node *) at_node, GF_SG_CHILD_DIRTY, 0);
 		} else {
 			if (!gf_node_get_field_by_name((GF_Node *)at_node, at_att, &info)) {
-				u8 anim_transform_type;
 				if (pos>=0) 
 					fprintf(stdout, "WARNING: point replace not supported\n");
 				else
-					svg_parse_attribute(parser, &info, at_node, value, 0, &anim_transform_type);
+					svg_parse_attribute(parser, at_node, &info, value, 0, 0);
 
 				gf_node_dirty_set((GF_Node *) at_node, GF_SG_SVG_GEOMETRY_DIRTY|GF_SG_SVG_APPEARANCE_DIRTY, 0);
 			}

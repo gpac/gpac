@@ -33,6 +33,8 @@ extern "C" {
 
 #include <gpac/tools.h>
 
+#define MAX_URI_LENGTH		4096
+
 typedef struct _svg_parser SVGParser;
 
 SVGParser *NewSVGParser();
@@ -198,8 +200,56 @@ struct _svg_parser
 	u32 sax_max_duration;
 };
 
-#endif /*GPAC_DISABLE_SVG*/
 
+typedef struct {
+	/* node is used in DOM parsing */
+	xmlNode *node;
+
+	/* Animation element being defered */
+	SVGElement *animation_elt;
+	/* Parent of the animation element */
+	SVGElement *parent;
+
+	/* id of the target element */
+	char *		target_id;
+
+	/* target element in case of local defered element */
+	SVGElement *target;
+
+	/* attributes which cannot be parsed until the type of the target attribute is known */
+	char *attributeName;
+	char *type; /* only for animateTransform */
+	char *to;
+	char *from;
+	char *by;
+	char *values;
+} defered_element;
+
+typedef struct {
+	SVG_IRI *iri;
+	SVGElement *elt;
+} href_instance;
+
+/* Generic functions */
+u32			svg_get_animation_event_by_name(char *name);
+
+Bool		svg_has_been_IDed	(SVGParser *parser, xmlChar *node_name);
+u32			svg_get_node_id		(SVGParser *parser, xmlChar *nodename);
+void		svg_parse_element_id(SVGParser *parser, SVGElement *elt, char *nodename);
+
+void  svg_convert_length_unit_to_user_unit(SVGParser *parser, SVG_Length *length);
+void  svg_parse_attribute				(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_anim_datatype);
+
+/* DOM related functions */
+void		svg_parse_attributes_from_node		(SVGParser *parser, xmlNodePtr node, SVGElement *elt, u8 anim_value_type, u8 anim_transform_type);
+void		svg_parse_children_elements			(SVGParser *parser, xmlNodePtr node, SVGElement *elt);
+void		svg_parse_defered_animation_elements(SVGParser *parser, xmlNodePtr node, SVGElement *elt, SVGElement *parent);
+SVGElement *svg_parse_element					(SVGParser *parser, xmlNodePtr node, SVGElement *parent);
+
+/*SAX related functions */
+SVGElement *svg_create_node						(SVGParser *parser, const xmlChar *name, const xmlChar **attrs, SVGElement *parent);
+
+#endif /*GPAC_DISABLE_SVG*/
 
 #ifdef __cplusplus
 }

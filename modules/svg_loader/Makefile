@@ -10,7 +10,7 @@ LDFLAGS+=-g
 endif
 
 #common obj
-OBJS= svg_loader.o svg_parser.o lsr_parser.o
+OBJS= svg_loader.o svg_parser.o lsr_parser.o svg_parse_attributes.o
 
 SRCS := $(OBJS:.o=.c) 
 
