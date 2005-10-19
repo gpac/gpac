@@ -875,7 +875,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 
 				gf_node_listener_add((GF_Node *) elt, (GF_Node *) listener);
 			} else {
-				fprintf(stdout, "SVG Warning: Unknown attribute %s\n", (char *)attrs[attribute_index]);
+				fprintf(stdout, "SVG Warning: Unknown attribute %s on element %s\n", (char *)attrs[attribute_index], gf_node_get_class_name((GF_Node *)elt));
 			}
 		}
 		attribute_index+=2;
