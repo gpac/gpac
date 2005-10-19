@@ -1830,6 +1830,13 @@ void svg_parse_transformtype(SVGParser *parser, SVGElement *elt, void *transform
 	}	
 }
 
+void svg_parse_motionvalue(SVGParser *parser, SVG_Point *p, char *value_string)
+{
+	u32 i = 0;
+	i+=svg_parse_float(&(value_string[i]), &(p->x), 0);
+	i+=svg_parse_float(&(value_string[i]), &(p->y), 0);
+}
+
 /* Parse an SVG attribute */
 void svg_parse_attribute(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type)
 {
@@ -1944,6 +1951,9 @@ void svg_parse_attribute(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info,
 		break;
 	case SVG_PreserveAspectRatio_datatype:
 		svg_parse_preserveaspectratio(parser, (SVG_PreserveAspectRatio *)info->far_ptr, attribute_content);
+		break;
+	case SVG_Motion_datatype:
+		svg_parse_motionvalue(parser, (SVG_Point *)info->far_ptr, attribute_content);
 		break;
 	default:
 		fprintf(stdout, "Warning: skipping unsupported attribute %s\n", info->name);
