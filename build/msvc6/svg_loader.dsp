@@ -101,6 +101,14 @@ SOURCE=..\..\modules\svg_loader\svg_loader.def
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\modules\svg_loader\svg_parse_attributes.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\svg_loader\svg_parse_attributes.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\modules\svg_loader\svg_parser.c
 # End Source File
 # Begin Source File
