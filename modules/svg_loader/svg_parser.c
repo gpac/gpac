@@ -489,7 +489,7 @@ void svg_parse_dom_children(SVGParser *parser, xmlNodePtr node, SVGElement *elt)
 			if (child) gf_list_add(elt->children, child);
 		} else if (children->type == XML_TEXT_NODE && tag == TAG_SVG_text) {
 			SVGtextElement *text = (SVGtextElement *)elt;
-			if (text->xml_space && !strcmp(text->xml_space, "preserve")) {
+			if (text->xml_space && text->xml_space == XML_SPACE_PRESERVE) {
 				text->textContent = strdup(children->content);
 			} else {
 				char *tmp = children->content;

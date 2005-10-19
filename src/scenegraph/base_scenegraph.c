@@ -37,6 +37,7 @@
 
 
 static void ReplaceDEFNode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool updateOrderedGroup);
+static void ReplaceIRINode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool updateOrderedGroup);
 
 
 #define DEFAULT_MAX_CYCLIC_RENDER	30
@@ -185,7 +186,7 @@ void SG_GraphRemoved(GF_Node *node, GF_SceneGraph *sg)
 
 void gf_sg_reset(GF_SceneGraph *sg)
 {
-	u32 i;
+	u32 i, type;
 	if (!sg) return;
 
 	/*inlined graph, remove any of this graph nodes from the parent graph*/
@@ -209,28 +210,44 @@ void gf_sg_reset(GF_SceneGraph *sg)
 
 	}
 
+
 	/*WATCHOUT: we may have cyclic dependencies due to
 	1- a node referencing itself (forbidden in VRML)
 	2- nodes refered to in commands of conditionals children of this node (MPEG-4 is mute about that)
 	*/
 	for (i=0; i<sg->node_reg_size; i++) {
 		GF_Node *node = sg->node_registry[i];
+
 		/*first replace all instances in parents by NULL WITHOUT UNREGISTERING (to avoid destroying the node).
 		This will take care of nodes referencing themselves*/
 #ifdef GF_ARRAY_PARENT_NODES
 		u32 j;
+		type = node->sgprivate->tag;
+		if ((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) type = 1;
+		else type = 0;
 		for (j=0; j<gf_list_count(node->sgprivate->parentNodes); j++) {
 			GF_Node *par = gf_list_get(node->sgprivate->parentNodes, j);
-			ReplaceDEFNode(par, node->sgprivate->NodeID, NULL, 0);
+			if (type) {
+				ReplaceIRINode(par, node->sgprivate->NodeID, NULL, 0);
+			} else {
+				ReplaceDEFNode(par, node->sgprivate->NodeID, NULL, 0);
+			}
 		}
 		/*then we remove the node from the registry and destroy it. This will take 
 		care of conditional case as we perform special checking when destroying commands*/
 		gf_list_reset(node->sgprivate->parentNodes);
 #else
 		GF_NodeList *nlist = node->sgprivate->parents;
+		type = node->sgprivate->tag;
+		if ((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) type = 1;
+		else type = 0;
 		while (nlist) {
 			GF_NodeList *next = nlist->next;
-			ReplaceDEFNode(nlist->node, node->sgprivate->NodeID, NULL, 0);
+			if (type) {
+				ReplaceIRINode(nlist->node, node->sgprivate->NodeID, NULL, 0);
+			} else {
+				ReplaceDEFNode(nlist->node, node->sgprivate->NodeID, NULL, 0);
+			}
 			free(nlist);
 			nlist = next;
 		}

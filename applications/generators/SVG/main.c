@@ -304,6 +304,46 @@ void setAttributeType(SVGProperty *att)
 			strcpy(att->impl_type, "SVG_ZoomAndPan");
 		} else if (!strcmp(att->svg_name, "path")) {
 			strcpy(att->impl_type, "SVG_PathData");
+		} else if (!strcmp(att->svg_name, "image-rendering")) {
+			strcpy(att->impl_type, "SVG_RenderingHint");
+		} else if (!strcmp(att->svg_name, "color-rendering")) {
+			strcpy(att->impl_type, "SVG_RenderingHint");
+		} else if (!strcmp(att->svg_name, "text-rendering")) {
+			strcpy(att->impl_type, "SVG_RenderingHint");
+		} else if (!strcmp(att->svg_name, "shape-rendering")) {
+			strcpy(att->impl_type, "SVG_RenderingHint");
+		} else if (!strcmp(att->svg_name, "pointer-events")) {
+			strcpy(att->impl_type, "SVG_PointerEvents");
+		} else if (!strcmp(att->svg_name, "vector-effect")) {
+			strcpy(att->impl_type, "SVG_VectorEffect");
+		} else if (!strcmp(att->svg_name, "vector-effect")) {
+			strcpy(att->impl_type, "SVG_VectorEffect");
+		} else if (!strcmp(att->svg_name, "display-align")) {
+			strcpy(att->impl_type, "SVG_DisplayAlign");
+		} else if (!strcmp(att->svg_name, "propagate")) {
+			strcpy(att->impl_type, "XMLEV_Propagate");
+		} else if (!strcmp(att->svg_name, "defaultAction")) {
+			strcpy(att->impl_type, "XMLEV_DefaultAction");
+		} else if (!strcmp(att->svg_name, "phase")) {
+			strcpy(att->impl_type, "XMLEV_Phase");
+		} else if (!strcmp(att->svg_name, "syncBehavior")) {
+			strcpy(att->impl_type, "SMIL_SyncBehavior");
+		} else if (!strcmp(att->svg_name, "syncBehaviorDefault")) {
+			strcpy(att->impl_type, "SMIL_SyncBehavior");
+		} else if (!strcmp(att->svg_name, "attributeType")) {
+			strcpy(att->impl_type, "SMIL_AttributeType");
+		} else if (!strcmp(att->svg_name, "playbackOrder")) {
+			strcpy(att->impl_type, "SVG_PlaybackOrder");
+		} else if (!strcmp(att->svg_name, "timelineBegin")) {
+			strcpy(att->impl_type, "SVG_TimelineBegin");
+		} else if (!strcmp(att->svg_name, "xml:space")) {
+			strcpy(att->impl_type, "XML_Space");
+		} else if (!strcmp(att->svg_name, "snapshotTime")) {
+			strcpy(att->impl_type, "SVG_Clock");
+		} else if (!strcmp(att->svg_name, "version")) {
+			strcpy(att->impl_type, "SVG_String");
+		} else if (!strcmp(att->svg_name, "baseProfile")) {
+			strcpy(att->impl_type, "SVG_String");
 		} else {
 			strcpy(att->impl_type, "SVG_String");
 			fprintf(stdout, "Warning: using type SVG_String for attribute %s.\n", att->svg_name);
@@ -327,6 +367,12 @@ void setAttributeType(SVGProperty *att)
 			strcpy(att->impl_type, "SVG_StrokeDashOffset");
 		} else if (!strcmp(att->svg_name, "color")) {
 			strcpy(att->impl_type, "SVG_Color");
+		} else if (!strcmp(att->svg_name, "syncTolerance")) {
+			strcpy(att->impl_type, "SMIL_SyncTolerance");
+		} else if (!strcmp(att->svg_name, "syncToleranceDefault")) {
+			strcpy(att->impl_type, "SMIL_SyncTolerance");
+		} else if (!strcmp(att->svg_name, "line-increment")) {
+			strcpy(att->impl_type, "SVG_LineIncrement");
 		} else if (strstr(att->svg_type, "datatype")) {
 			char *tmp;
 			sprintf(att->impl_type, "SVG_%s", att->svg_type);
@@ -699,7 +745,7 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			} else if (!strcmp(att->svg_name, "font-family")) {
 				fprintf(output, "\tfree(p->font_family.value);\n");
 			} else if (!strcmp(att->svg_name, "xlink:href")) {
-				fprintf(output, "\SVG_ResetIRI(&(p->xlink_href));\n");
+				fprintf(output, "\tSVG_ResetIRI(&(p->xlink_href));\n");
 			}
 		}
 	}

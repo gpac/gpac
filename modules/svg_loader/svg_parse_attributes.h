@@ -58,7 +58,6 @@ void  svg_parse_floats					(SVGParser *parser, GF_List *values,			char *attribut
 void  svg_parse_transformlist			(SVGParser *parser, GF_List *values,			char *attribute_content);
 void  svg_parse_iri						(SVGParser *parser, SVGElement *e, SVG_IRI *i,	char *attribute_content);
 
-void *svg_parse_one_anim_value			(SVGParser *parser, SVGElement *elt, char *single_value_string, u8 anim_value_type, u8 transform_anim_datatype);
 void  svg_parse_anim_values				(SVGParser *parser, SVGElement *elt, SMIL_AnimateValues *anim_values, char *anim_values_string, u8 anim_value_type, u8 transform_anim_datatype);
 
 void  svg_parse_one_style				(SVGParser *parser, SVGElement *elt, char *one_style);
@@ -76,6 +75,10 @@ void  smil_parse_attributename			(SVGParser *parser, SVGElement *e,					char *va
 void  smil_parse_time_list				(SVGParser *parser, SVGElement *e, GF_List *values, char *value_string);
 
 void  svg_parse_attribute				(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_anim_datatype);
+
+/* Allocates the memory for a particular attribute type (possibly transform type) 
+   and returns a pointer to the memory slot */
+void *svg_create_value_from_attributetype(u8 attribute_type, u8 transform_type);
 		
 #ifdef __cplusplus
 }

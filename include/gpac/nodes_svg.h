@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Oct 07 08:46:55 2005
+	DO NOT MOFIFY - File generated on GMT Mon Oct 17 20:28:11 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -108,7 +108,7 @@ typedef struct _tagSVGaElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
 	SVG_FormatList requiredFormats; /* optional, animatable: no, inheritable: false */
@@ -137,10 +137,10 @@ typedef struct _tagSVGaElement
 	SVG_ID target; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -154,14 +154,14 @@ typedef struct _tagSVGaElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -183,7 +183,7 @@ typedef struct _tagSVGanimateElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_IRI xlink_href; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_show; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_actuate; /* optional, animatable: no, inheritable: false */
@@ -192,7 +192,7 @@ typedef struct _tagSVGanimateElement
 	SVG_IRI xlink_arcrole; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_title; /* optional, animatable: no, inheritable: false */
 	SMIL_AttributeName attributeName; /* optional, animatable: no, inheritable: false */
-	SVG_String attributeType; /* optional, animatable: no, inheritable: false */
+	SMIL_AttributeType attributeType; /* optional, animatable: no, inheritable: false */
 	SMIL_Times begin; /* optional, animatable: no, inheritable: false */
 	SMIL_Duration dur; /* optional, animatable: no, inheritable: false */
 	SMIL_Times end; /* optional, animatable: no, inheritable: false */
@@ -225,7 +225,7 @@ typedef struct _tagSVGanimateColorElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_IRI xlink_href; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_show; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_actuate; /* optional, animatable: no, inheritable: false */
@@ -234,7 +234,7 @@ typedef struct _tagSVGanimateColorElement
 	SVG_IRI xlink_arcrole; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_title; /* optional, animatable: no, inheritable: false */
 	SMIL_AttributeName attributeName; /* optional, animatable: no, inheritable: false */
-	SVG_String attributeType; /* optional, animatable: no, inheritable: false */
+	SMIL_AttributeType attributeType; /* optional, animatable: no, inheritable: false */
 	SMIL_Times begin; /* optional, animatable: no, inheritable: false */
 	SMIL_Duration dur; /* optional, animatable: no, inheritable: false */
 	SMIL_Times end; /* optional, animatable: no, inheritable: false */
@@ -267,7 +267,7 @@ typedef struct _tagSVGanimateMotionElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_IRI xlink_href; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_show; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_actuate; /* optional, animatable: no, inheritable: false */
@@ -312,7 +312,7 @@ typedef struct _tagSVGanimateTransformElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_IRI xlink_href; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_show; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_actuate; /* optional, animatable: no, inheritable: false */
@@ -321,7 +321,7 @@ typedef struct _tagSVGanimateTransformElement
 	SVG_IRI xlink_arcrole; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_title; /* optional, animatable: no, inheritable: false */
 	SMIL_AttributeName attributeName; /* optional, animatable: no, inheritable: false */
-	SVG_String attributeType; /* optional, animatable: no, inheritable: false */
+	SMIL_AttributeType attributeType; /* optional, animatable: no, inheritable: false */
 	SMIL_Times begin; /* optional, animatable: no, inheritable: false */
 	SMIL_Duration dur; /* optional, animatable: no, inheritable: false */
 	SMIL_Times end; /* optional, animatable: no, inheritable: false */
@@ -355,7 +355,7 @@ typedef struct _tagSVGanimationElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
 	SVG_FormatList requiredFormats; /* optional, animatable: no, inheritable: false */
@@ -387,10 +387,10 @@ typedef struct _tagSVGanimationElement
 	SMIL_Duration repeatDur; /* optional, animatable: no, inheritable: false */
 	SMIL_Restart restart; /* optional, animatable: no, inheritable: false */
 	SMIL_Fill fill; /* optional, animatable: no, inheritable: false */
-	SVG_String syncBehavior; /* optional, animatable: no, inheritable: false */
-	SVG_String syncBehaviorDefault; /* optional, animatable: no, inheritable: false */
-	SVG_Clock syncTolerance; /* optional, animatable: no, inheritable: false */
-	SVG_Clock syncToleranceDefault; /* optional, animatable: no, inheritable: false */
+	SMIL_SyncBehavior syncBehavior; /* optional, animatable: no, inheritable: false */
+	SMIL_SyncBehavior syncBehaviorDefault; /* optional, animatable: no, inheritable: false */
+	SMIL_SyncTolerance syncTolerance; /* optional, animatable: no, inheritable: false */
+	SMIL_SyncTolerance syncToleranceDefault; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate x; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate y; /* optional, animatable: no, inheritable: false */
 	SVG_Length width; /* optional, animatable: no, inheritable: false */
@@ -411,7 +411,7 @@ typedef struct _tagSVGaudioElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_actuate; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_type; /* optional, animatable: no, inheritable: false */
 	SVG_IRI xlink_role; /* optional, animatable: no, inheritable: false */
@@ -431,10 +431,10 @@ typedef struct _tagSVGaudioElement
 	SMIL_RepeatCount repeatCount; /* optional, animatable: no, inheritable: false */
 	SMIL_Duration repeatDur; /* optional, animatable: no, inheritable: false */
 	SMIL_Restart restart; /* optional, animatable: no, inheritable: false */
-	SVG_String syncBehavior; /* optional, animatable: no, inheritable: false */
-	SVG_String syncBehaviorDefault; /* optional, animatable: no, inheritable: false */
-	SVG_Clock syncTolerance; /* optional, animatable: no, inheritable: false */
-	SVG_Clock syncToleranceDefault; /* optional, animatable: no, inheritable: false */
+	SMIL_SyncBehavior syncBehavior; /* optional, animatable: no, inheritable: false */
+	SMIL_SyncBehavior syncBehaviorDefault; /* optional, animatable: no, inheritable: false */
+	SMIL_SyncTolerance syncTolerance; /* optional, animatable: no, inheritable: false */
+	SMIL_SyncTolerance syncToleranceDefault; /* optional, animatable: no, inheritable: false */
 	SVG_ContentType type; /* optional, animatable: no, inheritable: false */
 } SVGaudioElement;
 
@@ -450,7 +450,7 @@ typedef struct _tagSVGcircleElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
@@ -473,10 +473,10 @@ typedef struct _tagSVGcircleElement
 	SVG_Length r; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -490,14 +490,14 @@ typedef struct _tagSVGcircleElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -519,13 +519,13 @@ typedef struct _tagSVGdefsElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -539,14 +539,14 @@ typedef struct _tagSVGdefsElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -568,7 +568,7 @@ typedef struct _tagSVGdescElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 } SVGdescElement;
 
 
@@ -583,7 +583,7 @@ typedef struct _tagSVGdiscardElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_show; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_actuate; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_type; /* optional, animatable: no, inheritable: false */
@@ -606,7 +606,7 @@ typedef struct _tagSVGellipseElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
@@ -630,10 +630,10 @@ typedef struct _tagSVGellipseElement
 	SVG_Coordinate cy; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -647,14 +647,14 @@ typedef struct _tagSVGellipseElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -676,7 +676,7 @@ typedef struct _tagSVGfontElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_Boolean externalResourcesRequired; /* optional, animatable: no, inheritable: false */
 	SVG_Number horiz_adv_x; /* optional, animatable: no, inheritable: false */
 	SVG_Number horiz_origin_x; /* optional, animatable: no, inheritable: false */
@@ -694,7 +694,7 @@ typedef struct _tagSVGfont_faceElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_Boolean externalResourcesRequired; /* optional, animatable: no, inheritable: false */
 	SVG_FontFamily font_family; /* optional, animatable: no, inheritable: false */
 	SVG_FontStyle font_style; /* optional, animatable: no, inheritable: false */
@@ -739,7 +739,7 @@ typedef struct _tagSVGfont_face_nameElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_String name; /* optional, animatable: no, inheritable: false */
 } SVGfont_face_nameElement;
 
@@ -755,7 +755,7 @@ typedef struct _tagSVGfont_face_srcElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 } SVGfont_face_srcElement;
 
 
@@ -770,7 +770,7 @@ typedef struct _tagSVGfont_face_uriElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_show; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_actuate; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_type; /* optional, animatable: no, inheritable: false */
@@ -792,7 +792,7 @@ typedef struct _tagSVGforeignObjectElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
 	SVG_FormatList requiredFormats; /* optional, animatable: no, inheritable: false */
@@ -824,10 +824,10 @@ typedef struct _tagSVGforeignObjectElement
 	SVG_Length height; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -841,14 +841,14 @@ typedef struct _tagSVGforeignObjectElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -870,7 +870,7 @@ typedef struct _tagSVGgElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_Boolean externalResourcesRequired; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
@@ -891,10 +891,10 @@ typedef struct _tagSVGgElement
 	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -908,14 +908,14 @@ typedef struct _tagSVGgElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -937,7 +937,7 @@ typedef struct _tagSVGglyphElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_Number horiz_adv_x; /* optional, animatable: no, inheritable: false */
 	SVG_PathData d; /* optional, animatable: no, inheritable: false */
 	SVG_String unicode; /* optional, animatable: no, inheritable: false */
@@ -958,7 +958,7 @@ typedef struct _tagSVGhandlerElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_Boolean externalResourcesRequired; /* optional, animatable: no, inheritable: false */
 	SVG_ContentType type; /* optional, animatable: no, inheritable: false */
 	SVG_XSLT_QName ev_event; /* optional, animatable: no, inheritable: false */
@@ -976,7 +976,7 @@ typedef struct _tagSVGhkernElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_String u1; /* optional, animatable: no, inheritable: false */
 	SVG_String g1; /* optional, animatable: no, inheritable: false */
 	SVG_String u2; /* optional, animatable: no, inheritable: false */
@@ -996,7 +996,7 @@ typedef struct _tagSVGimageElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_actuate; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_type; /* optional, animatable: no, inheritable: false */
 	SVG_IRI xlink_role; /* optional, animatable: no, inheritable: false */
@@ -1031,10 +1031,10 @@ typedef struct _tagSVGimageElement
 	SVG_ContentType type; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -1048,14 +1048,14 @@ typedef struct _tagSVGimageElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -1077,7 +1077,7 @@ typedef struct _tagSVGlineElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
@@ -1101,10 +1101,10 @@ typedef struct _tagSVGlineElement
 	SVG_Coordinate y2; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -1118,14 +1118,14 @@ typedef struct _tagSVGlineElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -1147,17 +1147,17 @@ typedef struct _tagSVGlinearGradientElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate x1; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate y1; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate x2; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate y2; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -1171,14 +1171,14 @@ typedef struct _tagSVGlinearGradientElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -1200,11 +1200,11 @@ typedef struct _tagSVGlistenerElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_XSLT_QName event; /* optional, animatable: no, inheritable: false */
-	SVG_String phase; /* optional, animatable: no, inheritable: false */
-	SVG_String propagate; /* optional, animatable: no, inheritable: false */
-	SVG_String defaultAction; /* optional, animatable: no, inheritable: false */
+	XMLEV_Phase phase; /* optional, animatable: no, inheritable: false */
+	XMLEV_Propagate propagate; /* optional, animatable: no, inheritable: false */
+	XMLEV_DefaultAction defaultAction; /* optional, animatable: no, inheritable: false */
 	SVG_IRI observer; /* optional, animatable: no, inheritable: false */
 	SVG_IRI target; /* optional, animatable: no, inheritable: false */
 	SVG_IRI handler; /* optional, animatable: no, inheritable: false */
@@ -1222,7 +1222,7 @@ typedef struct _tagSVGmetadataElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 } SVGmetadataElement;
 
 
@@ -1237,7 +1237,7 @@ typedef struct _tagSVGmissing_glyphElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_Number horiz_adv_x; /* optional, animatable: no, inheritable: false */
 	SVG_PathData d; /* optional, animatable: no, inheritable: false */
 } SVGmissing_glyphElement;
@@ -1254,7 +1254,7 @@ typedef struct _tagSVGmpathElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_show; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_actuate; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_type; /* optional, animatable: no, inheritable: false */
@@ -1276,7 +1276,7 @@ typedef struct _tagSVGpathElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
@@ -1298,10 +1298,10 @@ typedef struct _tagSVGpathElement
 	SVG_Number pathLength; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -1315,14 +1315,14 @@ typedef struct _tagSVGpathElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -1344,7 +1344,7 @@ typedef struct _tagSVGpolygonElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
@@ -1365,10 +1365,10 @@ typedef struct _tagSVGpolygonElement
 	SVG_Points points; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -1382,14 +1382,14 @@ typedef struct _tagSVGpolygonElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -1411,7 +1411,7 @@ typedef struct _tagSVGpolylineElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
@@ -1432,10 +1432,10 @@ typedef struct _tagSVGpolylineElement
 	SVG_Points points; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -1449,14 +1449,14 @@ typedef struct _tagSVGpolylineElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -1478,7 +1478,7 @@ typedef struct _tagSVGprefetchElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_show; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_actuate; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_type; /* optional, animatable: no, inheritable: false */
@@ -1505,16 +1505,16 @@ typedef struct _tagSVGradialGradientElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate cx; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate cy; /* optional, animatable: no, inheritable: false */
 	SVG_Length r; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -1528,14 +1528,14 @@ typedef struct _tagSVGradialGradientElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -1557,7 +1557,7 @@ typedef struct _tagSVGrectElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
@@ -1583,10 +1583,10 @@ typedef struct _tagSVGrectElement
 	SVG_Length ry; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -1600,14 +1600,14 @@ typedef struct _tagSVGrectElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -1629,7 +1629,7 @@ typedef struct _tagSVGscriptElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_Boolean externalResourcesRequired; /* optional, animatable: no, inheritable: false */
 	SVG_ContentType type; /* optional, animatable: no, inheritable: false */
 } SVGscriptElement;
@@ -1646,7 +1646,7 @@ typedef struct _tagSVGsetElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_IRI xlink_href; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_show; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_actuate; /* optional, animatable: no, inheritable: false */
@@ -1655,7 +1655,7 @@ typedef struct _tagSVGsetElement
 	SVG_IRI xlink_arcrole; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_title; /* optional, animatable: no, inheritable: false */
 	SMIL_AttributeName attributeName; /* optional, animatable: no, inheritable: false */
-	SVG_String attributeType; /* optional, animatable: no, inheritable: false */
+	SMIL_AttributeType attributeType; /* optional, animatable: no, inheritable: false */
 	SMIL_Times begin; /* optional, animatable: no, inheritable: false */
 	SMIL_Duration dur; /* optional, animatable: no, inheritable: false */
 	SMIL_Times end; /* optional, animatable: no, inheritable: false */
@@ -1680,13 +1680,13 @@ typedef struct _tagSVGsolidColorElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -1700,14 +1700,14 @@ typedef struct _tagSVGsolidColorElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -1729,14 +1729,14 @@ typedef struct _tagSVGstopElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_Number offset; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -1750,14 +1750,14 @@ typedef struct _tagSVGstopElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -1786,16 +1786,16 @@ typedef struct _tagSVGsvgElement
 	SVG_Focus focusSouthWest; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusWest; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusNorthWest; /* optional, animatable: no, inheritable: false */
-	SVG_String syncBehavior; /* optional, animatable: no, inheritable: false */
-	SVG_String syncBehaviorDefault; /* optional, animatable: no, inheritable: false */
-	SVG_Clock syncTolerance; /* optional, animatable: no, inheritable: false */
-	SVG_Clock syncToleranceDefault; /* optional, animatable: no, inheritable: false */
+	SMIL_SyncBehavior syncBehavior; /* optional, animatable: no, inheritable: false */
+	SMIL_SyncBehavior syncBehaviorDefault; /* optional, animatable: no, inheritable: false */
+	SMIL_SyncTolerance syncTolerance; /* optional, animatable: no, inheritable: false */
+	SMIL_SyncTolerance syncToleranceDefault; /* optional, animatable: no, inheritable: false */
 	SVG_ID id; /* optional, animatable: no, inheritable: false */
 	SVG_String class_attribute; /* optional, animatable: no, inheritable: false */
 	SVG_ID xml_id; /* optional, animatable: no, inheritable: false */
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_Length width; /* optional, animatable: no, inheritable: false */
 	SVG_Length height; /* optional, animatable: no, inheritable: false */
 	SVG_PreserveAspectRatio preserveAspectRatio; /* optional, animatable: no, inheritable: false */
@@ -1804,15 +1804,15 @@ typedef struct _tagSVGsvgElement
 	SVG_String version; /* optional, animatable: no, inheritable: false */
 	SVG_String baseProfile; /* optional, animatable: no, inheritable: false */
 	SVG_ContentType contentScriptType; /* optional, animatable: no, inheritable: false */
-	SVG_String snapshotTime; /* optional, animatable: no, inheritable: false */
-	SVG_String timelineBegin; /* optional, animatable: no, inheritable: false */
-	SVG_String playbackOrder; /* optional, animatable: no, inheritable: false */
+	SVG_Clock snapshotTime; /* optional, animatable: no, inheritable: false */
+	SVG_TimelineBegin timelineBegin; /* optional, animatable: no, inheritable: false */
+	SVG_PlaybackOrder playbackOrder; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -1826,14 +1826,14 @@ typedef struct _tagSVGsvgElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -1855,7 +1855,7 @@ typedef struct _tagSVGswitchElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
 	SVG_FormatList requiredFormats; /* optional, animatable: no, inheritable: false */
@@ -1865,10 +1865,10 @@ typedef struct _tagSVGswitchElement
 	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -1882,14 +1882,14 @@ typedef struct _tagSVGswitchElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -1911,7 +1911,7 @@ typedef struct _tagSVGtbreakElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 } SVGtbreakElement;
 
 
@@ -1926,7 +1926,7 @@ typedef struct _tagSVGtextElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
 	SVG_FormatList requiredFormats; /* optional, animatable: no, inheritable: false */
@@ -1950,10 +1950,10 @@ typedef struct _tagSVGtextElement
 	SVG_Numbers rotate; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -1967,14 +1967,14 @@ typedef struct _tagSVGtextElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -1996,7 +1996,7 @@ typedef struct _tagSVGtextAreaElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
 	SVG_FormatList requiredFormats; /* optional, animatable: no, inheritable: false */
@@ -2021,10 +2021,10 @@ typedef struct _tagSVGtextAreaElement
 	SVG_Length height; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -2038,14 +2038,14 @@ typedef struct _tagSVGtextAreaElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -2067,7 +2067,7 @@ typedef struct _tagSVGtitleElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 } SVGtitleElement;
 
 
@@ -2082,7 +2082,7 @@ typedef struct _tagSVGtspanElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
 	SVG_FormatList requiredFormats; /* optional, animatable: no, inheritable: false */
@@ -2101,10 +2101,10 @@ typedef struct _tagSVGtspanElement
 	SVG_Focus focusNorthWest; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -2118,14 +2118,14 @@ typedef struct _tagSVGtspanElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -2147,7 +2147,7 @@ typedef struct _tagSVGuseElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
 	SVG_FormatList requiredFormats; /* optional, animatable: no, inheritable: false */
@@ -2177,10 +2177,10 @@ typedef struct _tagSVGuseElement
 	SVG_Coordinate y; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
-	SVG_String image_rendering; /* animatable: yes, inheritable: true */
-	SVG_String pointer_events; /* animatable: yes, inheritable: true */
-	SVG_String shape_rendering; /* animatable: yes, inheritable: true */
-	SVG_String text_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
+	SVG_PointerEvents pointer_events; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint shape_rendering; /* animatable: yes, inheritable: true */
+	SVG_RenderingHint text_rendering; /* animatable: yes, inheritable: true */
 	SVG_AudioLevel audio_level; /* animatable: yes, inheritable: false */
 	SVG_Opacity fill_opacity; /* animatable: yes, inheritable: true */
 	SVG_Opacity stroke_opacity; /* animatable: yes, inheritable: true */
@@ -2194,14 +2194,14 @@ typedef struct _tagSVGuseElement
 	SVG_StrokeMiterLimit stroke_miterlimit; /* animatable: yes, inheritable: true */
 	SVG_StrokeWidth stroke_width; /* animatable: yes, inheritable: true */
 	SVG_Color color; /* animatable: yes, inheritable: true */
-	SVG_String color_rendering; /* animatable: yes, inheritable: true */
-	SVG_String vector_effect; /* animatable: yes, inheritable: false */
+	SVG_RenderingHint color_rendering; /* animatable: yes, inheritable: true */
+	SVG_VectorEffect vector_effect; /* animatable: yes, inheritable: false */
 	SVG_Paint viewport_fill; /* animatable: yes, inheritable: false */
 	SVG_Opacity viewport_fill_opacity; /* animatable: yes, inheritable: false */
 	SVG_SVGColor solid_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity solid_opacity; /* animatable: yes, inheritable: false */
-	SVG_String display_align; /* animatable: yes, inheritable: true */
-	SVG_Number line_increment; /* animatable: yes, inheritable: true */
+	SVG_DisplayAlign display_align; /* animatable: yes, inheritable: true */
+	SVG_LineIncrement line_increment; /* animatable: yes, inheritable: true */
 	SVG_SVGColor stop_color; /* animatable: yes, inheritable: false */
 	SVG_Opacity stop_opacity; /* animatable: yes, inheritable: false */
 	SVG_FontFamily font_family; /* animatable: yes, inheritable: true */
@@ -2223,7 +2223,7 @@ typedef struct _tagSVGvideoElement
 	SVG_IRI xml_base; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
-	SVG_String xml_space; /* optional, animatable: no, inheritable: false */
+	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_actuate; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_type; /* optional, animatable: no, inheritable: false */
 	SVG_IRI xlink_role; /* optional, animatable: no, inheritable: false */
@@ -2243,10 +2243,10 @@ typedef struct _tagSVGvideoElement
 	SMIL_RepeatCount repeatCount; /* optional, animatable: no, inheritable: false */
 	SMIL_Duration repeatDur; /* optional, animatable: no, inheritable: false */
 	SMIL_Restart restart; /* optional, animatable: no, inheritable: false */
-	SVG_String syncBehavior; /* optional, animatable: no, inheritable: false */
-	SVG_String syncBehaviorDefault; /* optional, animatable: no, inheritable: false */
-	SVG_Clock syncTolerance; /* optional, animatable: no, inheritable: false */
-	SVG_Clock syncToleranceDefault; /* optional, animatable: no, inheritable: false */
+	SMIL_SyncBehavior syncBehavior; /* optional, animatable: no, inheritable: false */
+	SMIL_SyncBehavior syncBehaviorDefault; /* optional, animatable: no, inheritable: false */
+	SMIL_SyncTolerance syncTolerance; /* optional, animatable: no, inheritable: false */
+	SMIL_SyncTolerance syncToleranceDefault; /* optional, animatable: no, inheritable: false */
 	SVG_Boolean focusable; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusNext; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusPrev; /* optional, animatable: no, inheritable: false */

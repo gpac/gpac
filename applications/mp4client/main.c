@@ -466,6 +466,7 @@ int main (int argc, char **argv)
 	u32 i, url_arg;
 	GF_User user;
 	GF_SystemRTInfo rti;
+	FILE *playlist = NULL;
 
 	/*by default use current dir*/
 	strcpy(the_url, ".");
@@ -545,9 +546,23 @@ int main (int argc, char **argv)
 
 	/*connect if requested*/
 	if (url_arg) {
+		char *ext;
 		strcpy(the_url, argv[url_arg]);
-		fprintf(stdout, "Opening URL %s\n", the_url);
-		gf_term_connect(term, the_url);
+		ext = strrchr(the_url, '.');
+		if (!stricmp(ext, ".m3u")) {
+			fprintf(stdout, "Opening Playlist %s\n", the_url);
+			playlist = fopen(the_url, "rt");
+			if (playlist) {
+				fscanf(playlist, "%s", the_url);
+				fprintf(stdout, "Opening URL %s\n", the_url);
+				gf_term_connect(term, the_url);
+			} else {
+				fprintf(stdout, "Hit 'h' for help\n\n");
+			}
+		} else {
+			fprintf(stdout, "Opening URL %s\n", the_url);
+			gf_term_connect(term, the_url);
+		}
 	} else {
 		fprintf(stdout, "Hit 'h' for help\n\n");
 	}
@@ -580,6 +595,23 @@ int main (int argc, char **argv)
 			fprintf(stdout, "Enter the absolute URL\n");
 			scanf("%s", the_url);
 			gf_term_connect(term, the_url);
+			break;
+		case 'O':
+			gf_term_disconnect(term);
+			fprintf(stdout, "Enter the absolute URL to the playlist\n");
+			scanf("%s", the_url);
+			playlist = fopen(the_url, "rt");
+			if (playlist) {
+				fscanf(playlist, "%s", the_url);
+				gf_term_connect(term, the_url);
+			}
+			break;
+		case 'N':
+			if (playlist) {
+				gf_term_disconnect(term);
+				fscanf(playlist, "%s", the_url);
+				gf_term_connect(term, the_url);
+			}
 			break;
 		case 'r':
 			if (is_connected) {
@@ -755,6 +787,7 @@ int main (int argc, char **argv)
 	}
 
 	fprintf(stdout, "Deleting terminal...\n");
+	if (playlist) fclose(playlist);
 	gf_term_del(term);
 exit:
 	fprintf(stdout, "Unloading modules...\n");

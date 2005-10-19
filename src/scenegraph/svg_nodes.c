@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Oct 07 08:46:55 2005
+	DO NOT MOFIFY - File generated on GMT Mon Oct 17 20:28:11 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -40,7 +40,7 @@ static void SVG_a_Del(GF_Node *node)
 	SVGaElement *p = (SVGaElement *)node;
 	free(p->textContent);
 	SVG_DeleteTransformList(p->transform);
-	SVG_ResetIRI(&p->xlink_href);
+	SVG_ResetIRI(&(p->xlink_href));
 	free(p->fill.color);
 	free(p->stroke.color);
 	free(p->stroke_dasharray.array.vals);
@@ -86,7 +86,7 @@ static GF_Err SVG_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGaElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -231,22 +231,22 @@ static GF_Err SVG_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 35:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGaElement *)node)->image_rendering;
 			return GF_OK;
 		case 36:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGaElement *)node)->pointer_events;
 			return GF_OK;
 		case 37:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGaElement *)node)->shape_rendering;
 			return GF_OK;
 		case 38:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGaElement *)node)->text_rendering;
 			return GF_OK;
 		case 39:
@@ -316,12 +316,12 @@ static GF_Err SVG_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 52:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGaElement *)node)->color_rendering;
 			return GF_OK;
 		case 53:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGaElement *)node)->vector_effect;
 			return GF_OK;
 		case 54:
@@ -346,12 +346,12 @@ static GF_Err SVG_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 58:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGaElement *)node)->display_align;
 			return GF_OK;
 		case 59:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGaElement *)node)->line_increment;
 			return GF_OK;
 		case 60:
@@ -467,7 +467,7 @@ static void SVG_animate_Del(GF_Node *node)
 {
 	SVGanimateElement *p = (SVGanimateElement *)node;
 	free(p->textContent);
-	SVG_ResetIRI(&p->xlink_href);
+	SVG_ResetIRI(&(p->xlink_href));
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
 	SMIL_DeleteAnimateValue(&(p->to));
@@ -513,7 +513,7 @@ static GF_Err SVG_animate_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGanimateElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -558,7 +558,7 @@ static GF_Err SVG_animate_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 15:
 			info->name = "attributeType";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SMIL_AttributeType_datatype;
 			info->far_ptr = & ((SVGanimateElement *)node)->attributeType;
 			return GF_OK;
 		case 16:
@@ -681,7 +681,7 @@ static void SVG_animateColor_Del(GF_Node *node)
 {
 	SVGanimateColorElement *p = (SVGanimateColorElement *)node;
 	free(p->textContent);
-	SVG_ResetIRI(&p->xlink_href);
+	SVG_ResetIRI(&(p->xlink_href));
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
 	SMIL_DeleteAnimateValue(&(p->to));
@@ -727,7 +727,7 @@ static GF_Err SVG_animateColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGanimateColorElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -772,7 +772,7 @@ static GF_Err SVG_animateColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 15:
 			info->name = "attributeType";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SMIL_AttributeType_datatype;
 			info->far_ptr = & ((SVGanimateColorElement *)node)->attributeType;
 			return GF_OK;
 		case 16:
@@ -895,7 +895,7 @@ static void SVG_animateMotion_Del(GF_Node *node)
 {
 	SVGanimateMotionElement *p = (SVGanimateMotionElement *)node;
 	free(p->textContent);
-	SVG_ResetIRI(&p->xlink_href);
+	SVG_ResetIRI(&(p->xlink_href));
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
 	SMIL_DeleteAnimateValue(&(p->to));
@@ -942,7 +942,7 @@ static GF_Err SVG_animateMotion_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGanimateMotionElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -1129,7 +1129,7 @@ static void SVG_animateTransform_Del(GF_Node *node)
 {
 	SVGanimateTransformElement *p = (SVGanimateTransformElement *)node;
 	free(p->textContent);
-	SVG_ResetIRI(&p->xlink_href);
+	SVG_ResetIRI(&(p->xlink_href));
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
 	SMIL_DeleteAnimateValue(&(p->to));
@@ -1175,7 +1175,7 @@ static GF_Err SVG_animateTransform_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGanimateTransformElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -1220,7 +1220,7 @@ static GF_Err SVG_animateTransform_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 15:
 			info->name = "attributeType";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SMIL_AttributeType_datatype;
 			info->far_ptr = & ((SVGanimateTransformElement *)node)->attributeType;
 			return GF_OK;
 		case 16:
@@ -1348,7 +1348,7 @@ static void SVG_animation_Del(GF_Node *node)
 {
 	SVGanimationElement *p = (SVGanimationElement *)node;
 	free(p->textContent);
-	SVG_ResetIRI(&p->xlink_href);
+	SVG_ResetIRI(&(p->xlink_href));
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
 	SVG_DeleteTransformList(p->transform);
@@ -1391,7 +1391,7 @@ static GF_Err SVG_animation_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -1551,22 +1551,22 @@ static GF_Err SVG_animation_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "syncBehavior";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SMIL_SyncBehavior_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->syncBehavior;
 			return GF_OK;
 		case 39:
 			info->name = "syncBehaviorDefault";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SMIL_SyncBehavior_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->syncBehaviorDefault;
 			return GF_OK;
 		case 40:
 			info->name = "syncTolerance";
-			info->fieldType = SVG_Clock_datatype;
+			info->fieldType = SMIL_SyncTolerance_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->syncTolerance;
 			return GF_OK;
 		case 41:
 			info->name = "syncToleranceDefault";
-			info->fieldType = SVG_Clock_datatype;
+			info->fieldType = SMIL_SyncTolerance_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->syncToleranceDefault;
 			return GF_OK;
 		case 42:
@@ -1626,7 +1626,7 @@ static void SVG_audio_Del(GF_Node *node)
 {
 	SVGaudioElement *p = (SVGaudioElement *)node;
 	free(p->textContent);
-	SVG_ResetIRI(&p->xlink_href);
+	SVG_ResetIRI(&(p->xlink_href));
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
 	gf_sg_parent_reset((GF_Node *) p);
@@ -1668,7 +1668,7 @@ static GF_Err SVG_audio_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGaudioElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -1768,22 +1768,22 @@ static GF_Err SVG_audio_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "syncBehavior";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SMIL_SyncBehavior_datatype;
 			info->far_ptr = & ((SVGaudioElement *)node)->syncBehavior;
 			return GF_OK;
 		case 27:
 			info->name = "syncBehaviorDefault";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SMIL_SyncBehavior_datatype;
 			info->far_ptr = & ((SVGaudioElement *)node)->syncBehaviorDefault;
 			return GF_OK;
 		case 28:
 			info->name = "syncTolerance";
-			info->fieldType = SVG_Clock_datatype;
+			info->fieldType = SMIL_SyncTolerance_datatype;
 			info->far_ptr = & ((SVGaudioElement *)node)->syncTolerance;
 			return GF_OK;
 		case 29:
 			info->name = "syncToleranceDefault";
-			info->fieldType = SVG_Clock_datatype;
+			info->fieldType = SMIL_SyncTolerance_datatype;
 			info->far_ptr = & ((SVGaudioElement *)node)->syncToleranceDefault;
 			return GF_OK;
 		case 30:
@@ -1863,7 +1863,7 @@ static GF_Err SVG_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -1978,22 +1978,22 @@ static GF_Err SVG_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 29:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->image_rendering;
 			return GF_OK;
 		case 30:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->pointer_events;
 			return GF_OK;
 		case 31:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->shape_rendering;
 			return GF_OK;
 		case 32:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->text_rendering;
 			return GF_OK;
 		case 33:
@@ -2063,12 +2063,12 @@ static GF_Err SVG_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 46:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->color_rendering;
 			return GF_OK;
 		case 47:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->vector_effect;
 			return GF_OK;
 		case 48:
@@ -2093,12 +2093,12 @@ static GF_Err SVG_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 52:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->display_align;
 			return GF_OK;
 		case 53:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->line_increment;
 			return GF_OK;
 		case 54:
@@ -2259,7 +2259,7 @@ static GF_Err SVG_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGdefsElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -2274,22 +2274,22 @@ static GF_Err SVG_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 9:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGdefsElement *)node)->image_rendering;
 			return GF_OK;
 		case 10:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGdefsElement *)node)->pointer_events;
 			return GF_OK;
 		case 11:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGdefsElement *)node)->shape_rendering;
 			return GF_OK;
 		case 12:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGdefsElement *)node)->text_rendering;
 			return GF_OK;
 		case 13:
@@ -2359,12 +2359,12 @@ static GF_Err SVG_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGdefsElement *)node)->color_rendering;
 			return GF_OK;
 		case 27:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGdefsElement *)node)->vector_effect;
 			return GF_OK;
 		case 28:
@@ -2389,12 +2389,12 @@ static GF_Err SVG_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 32:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGdefsElement *)node)->display_align;
 			return GF_OK;
 		case 33:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGdefsElement *)node)->line_increment;
 			return GF_OK;
 		case 34:
@@ -2548,7 +2548,7 @@ static GF_Err SVG_desc_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGdescElement *)node)->xml_space;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
@@ -2574,7 +2574,7 @@ static void SVG_discard_Del(GF_Node *node)
 {
 	SVGdiscardElement *p = (SVGdiscardElement *)node;
 	free(p->textContent);
-	SVG_ResetIRI(&p->xlink_href);
+	SVG_ResetIRI(&(p->xlink_href));
 	SMIL_DeleteTimes(p->begin);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
@@ -2615,7 +2615,7 @@ static GF_Err SVG_discard_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGdiscardElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -2728,7 +2728,7 @@ static GF_Err SVG_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -2848,22 +2848,22 @@ static GF_Err SVG_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->image_rendering;
 			return GF_OK;
 		case 31:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->pointer_events;
 			return GF_OK;
 		case 32:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->shape_rendering;
 			return GF_OK;
 		case 33:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->text_rendering;
 			return GF_OK;
 		case 34:
@@ -2933,12 +2933,12 @@ static GF_Err SVG_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 47:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->color_rendering;
 			return GF_OK;
 		case 48:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->vector_effect;
 			return GF_OK;
 		case 49:
@@ -2963,12 +2963,12 @@ static GF_Err SVG_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 53:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->display_align;
 			return GF_OK;
 		case 54:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->line_increment;
 			return GF_OK;
 		case 55:
@@ -3123,7 +3123,7 @@ static GF_Err SVG_font_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGfontElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -3202,7 +3202,7 @@ static GF_Err SVG_font_face_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGfont_faceElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -3417,7 +3417,7 @@ static GF_Err SVG_font_face_name_get_attribute(GF_Node *node, GF_FieldInfo *info
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGfont_face_nameElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -3487,7 +3487,7 @@ static GF_Err SVG_font_face_src_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGfont_face_srcElement *)node)->xml_space;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
@@ -3513,7 +3513,7 @@ static void SVG_font_face_uri_Del(GF_Node *node)
 {
 	SVGfont_face_uriElement *p = (SVGfont_face_uriElement *)node;
 	free(p->textContent);
-	SVG_ResetIRI(&p->xlink_href);
+	SVG_ResetIRI(&(p->xlink_href));
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -3553,7 +3553,7 @@ static GF_Err SVG_font_face_uri_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGfont_face_uriElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -3614,7 +3614,7 @@ static void SVG_foreignObject_Del(GF_Node *node)
 {
 	SVGforeignObjectElement *p = (SVGforeignObjectElement *)node;
 	free(p->textContent);
-	SVG_ResetIRI(&p->xlink_href);
+	SVG_ResetIRI(&(p->xlink_href));
 	SVG_DeleteTransformList(p->transform);
 	free(p->fill.color);
 	free(p->stroke.color);
@@ -3661,7 +3661,7 @@ static GF_Err SVG_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -3821,22 +3821,22 @@ static GF_Err SVG_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->image_rendering;
 			return GF_OK;
 		case 39:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->pointer_events;
 			return GF_OK;
 		case 40:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->shape_rendering;
 			return GF_OK;
 		case 41:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->text_rendering;
 			return GF_OK;
 		case 42:
@@ -3906,12 +3906,12 @@ static GF_Err SVG_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 55:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->color_rendering;
 			return GF_OK;
 		case 56:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->vector_effect;
 			return GF_OK;
 		case 57:
@@ -3936,12 +3936,12 @@ static GF_Err SVG_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 61:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->display_align;
 			return GF_OK;
 		case 62:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->line_increment;
 			return GF_OK;
 		case 63:
@@ -4103,7 +4103,7 @@ static GF_Err SVG_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGgElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -4208,22 +4208,22 @@ static GF_Err SVG_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 27:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGgElement *)node)->image_rendering;
 			return GF_OK;
 		case 28:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGgElement *)node)->pointer_events;
 			return GF_OK;
 		case 29:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGgElement *)node)->shape_rendering;
 			return GF_OK;
 		case 30:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGgElement *)node)->text_rendering;
 			return GF_OK;
 		case 31:
@@ -4293,12 +4293,12 @@ static GF_Err SVG_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 44:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGgElement *)node)->color_rendering;
 			return GF_OK;
 		case 45:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGgElement *)node)->vector_effect;
 			return GF_OK;
 		case 46:
@@ -4323,12 +4323,12 @@ static GF_Err SVG_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 50:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGgElement *)node)->display_align;
 			return GF_OK;
 		case 51:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGgElement *)node)->line_increment;
 			return GF_OK;
 		case 52:
@@ -4484,7 +4484,7 @@ static GF_Err SVG_glyph_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGglyphElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -4581,7 +4581,7 @@ static GF_Err SVG_handler_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGhandlerElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -4661,7 +4661,7 @@ static GF_Err SVG_hkern_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGhkernElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -4712,7 +4712,7 @@ static void SVG_image_Del(GF_Node *node)
 {
 	SVGimageElement *p = (SVGimageElement *)node;
 	free(p->textContent);
-	SVG_ResetIRI(&p->xlink_href);
+	SVG_ResetIRI(&(p->xlink_href));
 	SVG_DeleteTransformList(p->transform);
 	free(p->fill.color);
 	free(p->stroke.color);
@@ -4759,7 +4759,7 @@ static GF_Err SVG_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -4934,22 +4934,22 @@ static GF_Err SVG_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 41:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->image_rendering;
 			return GF_OK;
 		case 42:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->pointer_events;
 			return GF_OK;
 		case 43:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->shape_rendering;
 			return GF_OK;
 		case 44:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->text_rendering;
 			return GF_OK;
 		case 45:
@@ -5019,12 +5019,12 @@ static GF_Err SVG_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 58:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->color_rendering;
 			return GF_OK;
 		case 59:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->vector_effect;
 			return GF_OK;
 		case 60:
@@ -5049,12 +5049,12 @@ static GF_Err SVG_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 64:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->display_align;
 			return GF_OK;
 		case 65:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->line_increment;
 			return GF_OK;
 		case 66:
@@ -5216,7 +5216,7 @@ static GF_Err SVG_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -5336,22 +5336,22 @@ static GF_Err SVG_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->image_rendering;
 			return GF_OK;
 		case 31:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->pointer_events;
 			return GF_OK;
 		case 32:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->shape_rendering;
 			return GF_OK;
 		case 33:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->text_rendering;
 			return GF_OK;
 		case 34:
@@ -5421,12 +5421,12 @@ static GF_Err SVG_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 47:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->color_rendering;
 			return GF_OK;
 		case 48:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->vector_effect;
 			return GF_OK;
 		case 49:
@@ -5451,12 +5451,12 @@ static GF_Err SVG_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 53:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->display_align;
 			return GF_OK;
 		case 54:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->line_increment;
 			return GF_OK;
 		case 55:
@@ -5617,7 +5617,7 @@ static GF_Err SVG_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *info
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -5652,22 +5652,22 @@ static GF_Err SVG_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *info
 			return GF_OK;
 		case 13:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->image_rendering;
 			return GF_OK;
 		case 14:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->pointer_events;
 			return GF_OK;
 		case 15:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->shape_rendering;
 			return GF_OK;
 		case 16:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->text_rendering;
 			return GF_OK;
 		case 17:
@@ -5737,12 +5737,12 @@ static GF_Err SVG_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *info
 			return GF_OK;
 		case 30:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->color_rendering;
 			return GF_OK;
 		case 31:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->vector_effect;
 			return GF_OK;
 		case 32:
@@ -5767,12 +5767,12 @@ static GF_Err SVG_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *info
 			return GF_OK;
 		case 36:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->display_align;
 			return GF_OK;
 		case 37:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->line_increment;
 			return GF_OK;
 		case 38:
@@ -5926,7 +5926,7 @@ static GF_Err SVG_listener_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGlistenerElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -5936,17 +5936,17 @@ static GF_Err SVG_listener_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 8:
 			info->name = "phase";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XMLEV_Phase_datatype;
 			info->far_ptr = & ((SVGlistenerElement *)node)->phase;
 			return GF_OK;
 		case 9:
 			info->name = "propagate";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XMLEV_Propagate_datatype;
 			info->far_ptr = & ((SVGlistenerElement *)node)->propagate;
 			return GF_OK;
 		case 10:
 			info->name = "defaultAction";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XMLEV_DefaultAction_datatype;
 			info->far_ptr = & ((SVGlistenerElement *)node)->defaultAction;
 			return GF_OK;
 		case 11:
@@ -6026,7 +6026,7 @@ static GF_Err SVG_metadata_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGmetadataElement *)node)->xml_space;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
@@ -6092,7 +6092,7 @@ static GF_Err SVG_missing_glyph_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGmissing_glyphElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -6130,7 +6130,7 @@ static void SVG_mpath_Del(GF_Node *node)
 {
 	SVGmpathElement *p = (SVGmpathElement *)node;
 	free(p->textContent);
-	SVG_ResetIRI(&p->xlink_href);
+	SVG_ResetIRI(&(p->xlink_href));
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -6170,7 +6170,7 @@ static GF_Err SVG_mpath_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGmpathElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -6278,7 +6278,7 @@ static GF_Err SVG_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGpathElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -6388,22 +6388,22 @@ static GF_Err SVG_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGpathElement *)node)->image_rendering;
 			return GF_OK;
 		case 29:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGpathElement *)node)->pointer_events;
 			return GF_OK;
 		case 30:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGpathElement *)node)->shape_rendering;
 			return GF_OK;
 		case 31:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGpathElement *)node)->text_rendering;
 			return GF_OK;
 		case 32:
@@ -6473,12 +6473,12 @@ static GF_Err SVG_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 45:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGpathElement *)node)->color_rendering;
 			return GF_OK;
 		case 46:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGpathElement *)node)->vector_effect;
 			return GF_OK;
 		case 47:
@@ -6503,12 +6503,12 @@ static GF_Err SVG_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 51:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGpathElement *)node)->display_align;
 			return GF_OK;
 		case 52:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGpathElement *)node)->line_increment;
 			return GF_OK;
 		case 53:
@@ -6673,7 +6673,7 @@ static GF_Err SVG_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGpolygonElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -6778,22 +6778,22 @@ static GF_Err SVG_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 27:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGpolygonElement *)node)->image_rendering;
 			return GF_OK;
 		case 28:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGpolygonElement *)node)->pointer_events;
 			return GF_OK;
 		case 29:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGpolygonElement *)node)->shape_rendering;
 			return GF_OK;
 		case 30:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGpolygonElement *)node)->text_rendering;
 			return GF_OK;
 		case 31:
@@ -6863,12 +6863,12 @@ static GF_Err SVG_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 44:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGpolygonElement *)node)->color_rendering;
 			return GF_OK;
 		case 45:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGpolygonElement *)node)->vector_effect;
 			return GF_OK;
 		case 46:
@@ -6893,12 +6893,12 @@ static GF_Err SVG_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 50:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGpolygonElement *)node)->display_align;
 			return GF_OK;
 		case 51:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGpolygonElement *)node)->line_increment;
 			return GF_OK;
 		case 52:
@@ -7062,7 +7062,7 @@ static GF_Err SVG_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGpolylineElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -7167,22 +7167,22 @@ static GF_Err SVG_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 27:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGpolylineElement *)node)->image_rendering;
 			return GF_OK;
 		case 28:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGpolylineElement *)node)->pointer_events;
 			return GF_OK;
 		case 29:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGpolylineElement *)node)->shape_rendering;
 			return GF_OK;
 		case 30:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGpolylineElement *)node)->text_rendering;
 			return GF_OK;
 		case 31:
@@ -7252,12 +7252,12 @@ static GF_Err SVG_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 44:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGpolylineElement *)node)->color_rendering;
 			return GF_OK;
 		case 45:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGpolylineElement *)node)->vector_effect;
 			return GF_OK;
 		case 46:
@@ -7282,12 +7282,12 @@ static GF_Err SVG_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 50:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGpolylineElement *)node)->display_align;
 			return GF_OK;
 		case 51:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGpolylineElement *)node)->line_increment;
 			return GF_OK;
 		case 52:
@@ -7404,7 +7404,7 @@ static void SVG_prefetch_Del(GF_Node *node)
 {
 	SVGprefetchElement *p = (SVGprefetchElement *)node;
 	free(p->textContent);
-	SVG_ResetIRI(&p->xlink_href);
+	SVG_ResetIRI(&(p->xlink_href));
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -7444,7 +7444,7 @@ static GF_Err SVG_prefetch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGprefetchElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -7575,7 +7575,7 @@ static GF_Err SVG_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *info
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -7605,22 +7605,22 @@ static GF_Err SVG_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *info
 			return GF_OK;
 		case 12:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->image_rendering;
 			return GF_OK;
 		case 13:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->pointer_events;
 			return GF_OK;
 		case 14:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->shape_rendering;
 			return GF_OK;
 		case 15:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->text_rendering;
 			return GF_OK;
 		case 16:
@@ -7690,12 +7690,12 @@ static GF_Err SVG_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *info
 			return GF_OK;
 		case 29:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->color_rendering;
 			return GF_OK;
 		case 30:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->vector_effect;
 			return GF_OK;
 		case 31:
@@ -7720,12 +7720,12 @@ static GF_Err SVG_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *info
 			return GF_OK;
 		case 35:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->display_align;
 			return GF_OK;
 		case 36:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->line_increment;
 			return GF_OK;
 		case 37:
@@ -7886,7 +7886,7 @@ static GF_Err SVG_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -8016,22 +8016,22 @@ static GF_Err SVG_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 32:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->image_rendering;
 			return GF_OK;
 		case 33:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->pointer_events;
 			return GF_OK;
 		case 34:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->shape_rendering;
 			return GF_OK;
 		case 35:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->text_rendering;
 			return GF_OK;
 		case 36:
@@ -8101,12 +8101,12 @@ static GF_Err SVG_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 49:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->color_rendering;
 			return GF_OK;
 		case 50:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->vector_effect;
 			return GF_OK;
 		case 51:
@@ -8131,12 +8131,12 @@ static GF_Err SVG_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 55:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->display_align;
 			return GF_OK;
 		case 56:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->line_increment;
 			return GF_OK;
 		case 57:
@@ -8291,7 +8291,7 @@ static GF_Err SVG_script_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGscriptElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -8327,7 +8327,7 @@ static void SVG_set_Del(GF_Node *node)
 {
 	SVGsetElement *p = (SVGsetElement *)node;
 	free(p->textContent);
-	SVG_ResetIRI(&p->xlink_href);
+	SVG_ResetIRI(&(p->xlink_href));
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
 	SMIL_DeleteAnimateValue(&(p->to));
@@ -8370,7 +8370,7 @@ static GF_Err SVG_set_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGsetElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -8415,7 +8415,7 @@ static GF_Err SVG_set_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 15:
 			info->name = "attributeType";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SMIL_AttributeType_datatype;
 			info->far_ptr = & ((SVGsetElement *)node)->attributeType;
 			return GF_OK;
 		case 16:
@@ -8540,7 +8540,7 @@ static GF_Err SVG_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGsolidColorElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -8555,22 +8555,22 @@ static GF_Err SVG_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 9:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGsolidColorElement *)node)->image_rendering;
 			return GF_OK;
 		case 10:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGsolidColorElement *)node)->pointer_events;
 			return GF_OK;
 		case 11:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGsolidColorElement *)node)->shape_rendering;
 			return GF_OK;
 		case 12:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGsolidColorElement *)node)->text_rendering;
 			return GF_OK;
 		case 13:
@@ -8640,12 +8640,12 @@ static GF_Err SVG_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGsolidColorElement *)node)->color_rendering;
 			return GF_OK;
 		case 27:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGsolidColorElement *)node)->vector_effect;
 			return GF_OK;
 		case 28:
@@ -8670,12 +8670,12 @@ static GF_Err SVG_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 32:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGsolidColorElement *)node)->display_align;
 			return GF_OK;
 		case 33:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGsolidColorElement *)node)->line_increment;
 			return GF_OK;
 		case 34:
@@ -8835,7 +8835,7 @@ static GF_Err SVG_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGstopElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -8855,22 +8855,22 @@ static GF_Err SVG_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 10:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGstopElement *)node)->image_rendering;
 			return GF_OK;
 		case 11:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGstopElement *)node)->pointer_events;
 			return GF_OK;
 		case 12:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGstopElement *)node)->shape_rendering;
 			return GF_OK;
 		case 13:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGstopElement *)node)->text_rendering;
 			return GF_OK;
 		case 14:
@@ -8940,12 +8940,12 @@ static GF_Err SVG_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 27:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGstopElement *)node)->color_rendering;
 			return GF_OK;
 		case 28:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGstopElement *)node)->vector_effect;
 			return GF_OK;
 		case 29:
@@ -8970,12 +8970,12 @@ static GF_Err SVG_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGstopElement *)node)->display_align;
 			return GF_OK;
 		case 34:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGstopElement *)node)->line_increment;
 			return GF_OK;
 		case 35:
@@ -9170,22 +9170,22 @@ static GF_Err SVG_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "syncBehavior";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SMIL_SyncBehavior_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->syncBehavior;
 			return GF_OK;
 		case 14:
 			info->name = "syncBehaviorDefault";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SMIL_SyncBehavior_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->syncBehaviorDefault;
 			return GF_OK;
 		case 15:
 			info->name = "syncTolerance";
-			info->fieldType = SVG_Clock_datatype;
+			info->fieldType = SMIL_SyncTolerance_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->syncTolerance;
 			return GF_OK;
 		case 16:
 			info->name = "syncToleranceDefault";
-			info->fieldType = SVG_Clock_datatype;
+			info->fieldType = SMIL_SyncTolerance_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->syncToleranceDefault;
 			return GF_OK;
 		case 17:
@@ -9215,7 +9215,7 @@ static GF_Err SVG_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 22:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->xml_space;
 			return GF_OK;
 		case 23:
@@ -9260,17 +9260,17 @@ static GF_Err SVG_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 31:
 			info->name = "snapshotTime";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_Clock_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->snapshotTime;
 			return GF_OK;
 		case 32:
 			info->name = "timelineBegin";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_TimelineBegin_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->timelineBegin;
 			return GF_OK;
 		case 33:
 			info->name = "playbackOrder";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PlaybackOrder_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->playbackOrder;
 			return GF_OK;
 		case 34:
@@ -9285,22 +9285,22 @@ static GF_Err SVG_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->image_rendering;
 			return GF_OK;
 		case 37:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->pointer_events;
 			return GF_OK;
 		case 38:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->shape_rendering;
 			return GF_OK;
 		case 39:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->text_rendering;
 			return GF_OK;
 		case 40:
@@ -9370,12 +9370,12 @@ static GF_Err SVG_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 53:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->color_rendering;
 			return GF_OK;
 		case 54:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->vector_effect;
 			return GF_OK;
 		case 55:
@@ -9400,12 +9400,12 @@ static GF_Err SVG_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 59:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->display_align;
 			return GF_OK;
 		case 60:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->line_increment;
 			return GF_OK;
 		case 61:
@@ -9566,7 +9566,7 @@ static GF_Err SVG_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGswitchElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -9616,22 +9616,22 @@ static GF_Err SVG_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 16:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGswitchElement *)node)->image_rendering;
 			return GF_OK;
 		case 17:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGswitchElement *)node)->pointer_events;
 			return GF_OK;
 		case 18:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGswitchElement *)node)->shape_rendering;
 			return GF_OK;
 		case 19:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGswitchElement *)node)->text_rendering;
 			return GF_OK;
 		case 20:
@@ -9701,12 +9701,12 @@ static GF_Err SVG_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGswitchElement *)node)->color_rendering;
 			return GF_OK;
 		case 34:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGswitchElement *)node)->vector_effect;
 			return GF_OK;
 		case 35:
@@ -9731,12 +9731,12 @@ static GF_Err SVG_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 39:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGswitchElement *)node)->display_align;
 			return GF_OK;
 		case 40:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGswitchElement *)node)->line_increment;
 			return GF_OK;
 		case 41:
@@ -9891,7 +9891,7 @@ static GF_Err SVG_tbreak_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGtbreakElement *)node)->xml_space;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
@@ -9965,7 +9965,7 @@ static GF_Err SVG_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -10085,22 +10085,22 @@ static GF_Err SVG_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->image_rendering;
 			return GF_OK;
 		case 31:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->pointer_events;
 			return GF_OK;
 		case 32:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->shape_rendering;
 			return GF_OK;
 		case 33:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->text_rendering;
 			return GF_OK;
 		case 34:
@@ -10170,12 +10170,12 @@ static GF_Err SVG_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 47:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->color_rendering;
 			return GF_OK;
 		case 48:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->vector_effect;
 			return GF_OK;
 		case 49:
@@ -10200,12 +10200,12 @@ static GF_Err SVG_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 53:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->display_align;
 			return GF_OK;
 		case 54:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->line_increment;
 			return GF_OK;
 		case 55:
@@ -10369,7 +10369,7 @@ static GF_Err SVG_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -10494,22 +10494,22 @@ static GF_Err SVG_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 31:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->image_rendering;
 			return GF_OK;
 		case 32:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->pointer_events;
 			return GF_OK;
 		case 33:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->shape_rendering;
 			return GF_OK;
 		case 34:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->text_rendering;
 			return GF_OK;
 		case 35:
@@ -10579,12 +10579,12 @@ static GF_Err SVG_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 48:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->color_rendering;
 			return GF_OK;
 		case 49:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->vector_effect;
 			return GF_OK;
 		case 50:
@@ -10609,12 +10609,12 @@ static GF_Err SVG_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 54:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->display_align;
 			return GF_OK;
 		case 55:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->line_increment;
 			return GF_OK;
 		case 56:
@@ -10769,7 +10769,7 @@ static GF_Err SVG_title_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGtitleElement *)node)->xml_space;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
@@ -10840,7 +10840,7 @@ static GF_Err SVG_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGtspanElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -10935,22 +10935,22 @@ static GF_Err SVG_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 25:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGtspanElement *)node)->image_rendering;
 			return GF_OK;
 		case 26:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGtspanElement *)node)->pointer_events;
 			return GF_OK;
 		case 27:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGtspanElement *)node)->shape_rendering;
 			return GF_OK;
 		case 28:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGtspanElement *)node)->text_rendering;
 			return GF_OK;
 		case 29:
@@ -11020,12 +11020,12 @@ static GF_Err SVG_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 42:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGtspanElement *)node)->color_rendering;
 			return GF_OK;
 		case 43:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGtspanElement *)node)->vector_effect;
 			return GF_OK;
 		case 44:
@@ -11050,12 +11050,12 @@ static GF_Err SVG_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 48:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGtspanElement *)node)->display_align;
 			return GF_OK;
 		case 49:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGtspanElement *)node)->line_increment;
 			return GF_OK;
 		case 50:
@@ -11171,7 +11171,7 @@ static void SVG_use_Del(GF_Node *node)
 	SVGuseElement *p = (SVGuseElement *)node;
 	free(p->textContent);
 	SVG_DeleteTransformList(p->transform);
-	SVG_ResetIRI(&p->xlink_href);
+	SVG_ResetIRI(&(p->xlink_href));
 	free(p->fill.color);
 	free(p->stroke.color);
 	free(p->stroke_dasharray.array.vals);
@@ -11217,7 +11217,7 @@ static GF_Err SVG_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGuseElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -11367,22 +11367,22 @@ static GF_Err SVG_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "image-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGuseElement *)node)->image_rendering;
 			return GF_OK;
 		case 37:
 			info->name = "pointer-events";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGuseElement *)node)->pointer_events;
 			return GF_OK;
 		case 38:
 			info->name = "shape-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGuseElement *)node)->shape_rendering;
 			return GF_OK;
 		case 39:
 			info->name = "text-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGuseElement *)node)->text_rendering;
 			return GF_OK;
 		case 40:
@@ -11452,12 +11452,12 @@ static GF_Err SVG_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 53:
 			info->name = "color-rendering";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGuseElement *)node)->color_rendering;
 			return GF_OK;
 		case 54:
 			info->name = "vector-effect";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGuseElement *)node)->vector_effect;
 			return GF_OK;
 		case 55:
@@ -11482,12 +11482,12 @@ static GF_Err SVG_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 59:
 			info->name = "display-align";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGuseElement *)node)->display_align;
 			return GF_OK;
 		case 60:
 			info->name = "line-increment";
-			info->fieldType = SVG_Number_datatype;
+			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGuseElement *)node)->line_increment;
 			return GF_OK;
 		case 61:
@@ -11641,7 +11641,7 @@ static GF_Err SVG_video_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 6:
 			info->name = "xml:space";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = XML_Space_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->xml_space;
 			return GF_OK;
 		case 7:
@@ -11741,22 +11741,22 @@ static GF_Err SVG_video_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "syncBehavior";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SMIL_SyncBehavior_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->syncBehavior;
 			return GF_OK;
 		case 27:
 			info->name = "syncBehaviorDefault";
-			info->fieldType = SVG_String_datatype;
+			info->fieldType = SMIL_SyncBehavior_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->syncBehaviorDefault;
 			return GF_OK;
 		case 28:
 			info->name = "syncTolerance";
-			info->fieldType = SVG_Clock_datatype;
+			info->fieldType = SMIL_SyncTolerance_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->syncTolerance;
 			return GF_OK;
 		case 29:
 			info->name = "syncToleranceDefault";
-			info->fieldType = SVG_Clock_datatype;
+			info->fieldType = SMIL_SyncTolerance_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->syncToleranceDefault;
 			return GF_OK;
 		case 30:

@@ -969,6 +969,145 @@ void svg_parse_display(SVGParser *parser, SVG_Display *value, char *value_string
 	} 
 }
 
+void svg_parse_displayalign(SVGParser *parser, SVG_DisplayAlign *value, char *value_string)
+{ 
+	if (!strcmp(value_string, "inherit")) {
+		*value = SVG_DISPLAYALIGN_INHERIT;
+	} else if (!strcmp(value_string, "auto")) {
+		*value = SVG_DISPLAYALIGN_AUTO;
+	} else if (!strcmp(value_string, "before")) {
+		*value = SVG_DISPLAYALIGN_BEFORE;
+	} else if (!strcmp(value_string, "center")) {
+		*value = SVG_DISPLAYALIGN_CENTER;
+	} else if (!strcmp(value_string, "after")) {
+		*value = SVG_DISPLAYALIGN_AFTER;
+	}
+}
+
+void svg_parse_pointerevents(SVGParser *parser, SVG_PointerEvents *value, char *value_string)
+{
+	if (!strcmp(value_string, "inherit")) {
+		*value = SVG_POINTEREVENTS_INHERIT;
+	} else if (!strcmp(value_string, "visiblePainted")) {
+		*value = SVG_POINTEREVENTS_VISIBLEPAINTED;
+	} else if (!strcmp(value_string, "visibleFill")) {
+		*value = SVG_POINTEREVENTS_VISIBLEFILL;
+	} else if (!strcmp(value_string, "visibleStroke")) {
+		*value = SVG_POINTEREVENTS_VISIBLESTROKE;
+	} else if (!strcmp(value_string, "visible")) {
+		*value = SVG_POINTEREVENTS_VISIBLE;
+	} else if (!strcmp(value_string, "painted")) {
+		*value = SVG_POINTEREVENTS_PAINTED;
+	} else if (!strcmp(value_string, "fill")) {
+		*value = SVG_POINTEREVENTS_FILL;
+	} else if (!strcmp(value_string, "stroke")) {
+		*value = SVG_POINTEREVENTS_STROKE;
+	} else if (!strcmp(value_string, "all")) {
+		*value = SVG_POINTEREVENTS_ALL;
+	} else if (!strcmp(value_string, "none")) {
+		*value = SVG_POINTEREVENTS_NONE;
+	}
+}
+
+void svg_parse_renderinghint(SVGParser *parser, SVG_RenderingHint *value, char *value_string)
+{
+	if (!strcmp(value_string, "inherit")) {
+		*value = SVG_RENDERINGHINT_INHERIT;
+	} else if (!strcmp(value_string, "auto")) {
+		*value = SVG_RENDERINGHINT_AUTO;
+	} else if (!strcmp(value_string, "optimizeQuality")) {
+		*value = SVG_RENDERINGHINT_OPTIMIZEQUALITY;
+	} else if (!strcmp(value_string, "optimizeSpeed")) {
+		*value = SVG_RENDERINGHINT_OPTIMIZESPEED;
+	} else if (!strcmp(value_string, "optimizeLegibility")) {
+		*value = SVG_RENDERINGHINT_OPTIMIZELEGIBILITY;
+	} else if (!strcmp(value_string, "crispEdges")) {
+		*value = SVG_RENDERINGHINT_CRISPEDGES;
+	} else if (!strcmp(value_string, "geometricPrecision")) {
+		*value = SVG_RENDERINGHINT_GEOMETRICPRECISION;
+	}
+}
+
+void svg_parse_vectoreffect(SVGParser *parser, SVG_VectorEffect *value, char *value_string)
+{
+	if (!strcmp(value_string, "inherit")) {
+		*value = SVG_VECTOREFFECT_INHERIT;
+	} else if (!strcmp(value_string, "none")) {
+		*value = SVG_VECTOREFFECT_NONE;
+	} else if (!strcmp(value_string, "non-scaling-stroke")) {
+		*value = SVG_VECTOREFFECT_NONSCALINGSTROKE;
+	}
+}
+
+void svg_parse_playbackorder(SVGParser *parser, SVG_VectorEffect *value, char *value_string)
+{
+	if (!strcmp(value_string, "forwardOnly")) {
+		*value = SVG_PLAYBACKORDER_FORWARDONLY;
+	} else if (!strcmp(value_string, "all")) {
+		*value = SVG_PLAYBACKORDER_ALL;
+	}
+}
+
+void svg_parse_timelinebegin(SVGParser *parser, SVG_TimelineBegin *value, char *value_string)
+{
+	if (!strcmp(value_string, "onStart")) {
+		*value = SVG_TIMELINEBEGIN_ONSTART;
+	} else if (!strcmp(value_string, "onLoad")) {
+		*value = SVG_TIMELINEBEGIN_ONLOAD;
+	}
+}
+
+void svg_parse_xmlspace(SVGParser *parser, XML_Space *value, char *value_string)
+{
+	if (!strcmp(value_string, "default")) {
+		*value = XML_SPACE_DEFAULT;
+	} else if (!strcmp(value_string, "preserve")) {
+		*value = XML_SPACE_PRESERVE;
+	}
+}
+
+void svg_parse_xmlev_propagate(SVGParser *parser, XMLEV_Propagate *value, char *value_string)
+{
+	if (!strcmp(value_string, "continue")) {
+		*value = XMLEVENT_PROPAGATE_CONTINUE;
+	} else if (!strcmp(value_string, "stop")) {
+		*value = XMLEVENT_PROPAGATE_STOP;
+	}
+}
+
+void svg_parse_xmlev_defaultAction(SVGParser *parser, XMLEV_DefaultAction *value, char *value_string)
+{
+	if (!strcmp(value_string, "cancel")) {
+		*value = XMLEVENT_DEFAULTACTION_CANCEL;
+	} else if (!strcmp(value_string, "perform")) {
+		*value = XMLEVENT_DEFAULTACTION_PERFORM;
+	}
+}
+
+void svg_parse_xmlev_phase(SVGParser *parser, XMLEV_Phase *value, char *value_string)
+{
+	if (!strcmp(value_string, "default")) {
+		*value = XMLEVENT_PHASE_DEFAULT;
+	} else if (!strcmp(value_string, "capture")) {
+		*value = XMLEVENT_PHASE_CAPTURE;
+	}
+}
+
+void svg_parse_overflow(SVGParser *parser, SVG_Overflow *value, char *value_string)
+{
+	if (!strcmp(value_string, "inherit")) {
+		*value = SVG_OVERFLOW_INHERIT;
+	} else if (!strcmp(value_string, "visible")) {
+		*value = SVG_OVERFLOW_VISIBLE;
+	} else if (!strcmp(value_string, "hidden")) {
+		*value = SVG_OVERFLOW_HIDDEN;
+	} else if (!strcmp(value_string, "scroll")) {
+		*value = SVG_OVERFLOW_SCROLL;
+	} else if (!strcmp(value_string, "auto")) {
+		*value = SVG_OVERFLOW_AUTO;
+	}
+}
+
 void svg_parse_textanchor(SVGParser *parser, SVG_TextAnchor *value, char *value_string)
 {
 	if (!strcmp(value_string, "inherit")) {
@@ -1039,6 +1178,50 @@ void svg_parse_fontstyle(SVGParser *parser, SVG_FontStyle *value, char *value_st
 		*value = SVG_FONTSTYLE_ITALIC;
 	} else if (!strcmp(value_string, "oblique")) {
 		*value = SVG_FONTSTYLE_OBLIQUE;
+	} 
+}
+
+void svg_parse_fontweight(SVGParser *parser, SVG_FontWeight *value, char *value_string)
+{
+	if (!strcmp(value_string, "inherit")) {
+		*value = SVG_FONTWEIGHT_INHERIT;
+	} else if (!strcmp(value_string, "normal")) {
+		*value = SVG_FONTWEIGHT_NORMAL;
+	} else if (!strcmp(value_string, "bold")) {
+		*value = SVG_FONTWEIGHT_BOLD;
+	} else if (!strcmp(value_string, "bolder")) {
+		*value = SVG_FONTWEIGHT_BOLDER;
+	} else if (!strcmp(value_string, "lighter")) {
+		*value = SVG_FONTWEIGHT_LIGHTER;
+	} else if (!strcmp(value_string, "100")) {
+		*value = SVG_FONTWEIGHT_100;
+	} else if (!strcmp(value_string, "200")) {
+		*value = SVG_FONTWEIGHT_200;
+	} else if (!strcmp(value_string, "300")) {
+		*value = SVG_FONTWEIGHT_300;
+	} else if (!strcmp(value_string, "400")) {
+		*value = SVG_FONTWEIGHT_400;
+	} else if (!strcmp(value_string, "500")) {
+		*value = SVG_FONTWEIGHT_500;
+	} else if (!strcmp(value_string, "600")) {
+		*value = SVG_FONTWEIGHT_600;
+	} else if (!strcmp(value_string, "700")) {
+		*value = SVG_FONTWEIGHT_700;
+	} else if (!strcmp(value_string, "800")) {
+		*value = SVG_FONTWEIGHT_800;
+	} else if (!strcmp(value_string, "900")) {
+		*value = SVG_FONTWEIGHT_900;
+	} 
+}
+
+void svg_parse_fontvariant(SVGParser *parser, SVG_FontVariant *value, char *value_string)
+{
+	if (!strcmp(value_string, "inherit")) {
+		*value = SVG_FONTVARIANT_INHERIT;
+	} else if (!strcmp(value_string, "normal")) {
+		*value = SVG_FONTVARIANT_NORMAL;
+	} else if (!strcmp(value_string, "small-caps")) {
+		*value = SVG_FONTVARIANT_SMALLCAPS;
 	} 
 }
 
@@ -1159,6 +1342,17 @@ void smil_parse_time_list(SVGParser *parser, SVGElement *e, GF_List *values, cha
 	}
 }
 
+void smil_parse_attributeType(SVGParser *parser, SMIL_AttributeType *value, char *value_string)
+{
+	if (!strcmp(value_string, "auto")) {
+		*value = SMIL_ATTRIBUTETYPE_AUTO;
+	} else if (!strcmp(value_string, "XML")) {
+		*value = SMIL_ATTRIBUTETYPE_XML;
+	} else if (!strcmp(value_string, "CSS")) {
+		*value = SMIL_ATTRIBUTETYPE_CSS;
+	}
+}
+
 void smil_parse_min_max_dur_repeatdur(SVGParser *parser, SMIL_Duration *value, char *value_string)
 {
 	if (!strcmp(value_string, "indefinite")) {
@@ -1234,6 +1428,33 @@ void smil_parse_accumulate(SVGParser *parser, SMIL_Accumulate *value, char *valu
 	} else if (!strcmp(value_string, "sum")) {
 		*value = SMIL_ACCUMULATE_SUM;
 	} 
+}
+
+void smil_parse_syncBehaviorOrDefault(SVGParser *parser, SMIL_SyncBehavior *value, char *value_string)
+{
+	if (!strcmp(value_string, "inherit")) {
+		*value = SMIL_SYNCBEHAVIOR_INHERIT;
+	} else if (!strcmp(value_string, "default")) {
+		*value = SMIL_SYNCBEHAVIOR_DEFAULT;
+	} else if (!strcmp(value_string, "locked")) {
+		*value = SMIL_SYNCBEHAVIOR_LOCKED;
+	} else if (!strcmp(value_string, "canSlip")) {
+		*value = SMIL_SYNCBEHAVIOR_CANSLIP;
+	} else if (!strcmp(value_string, "independent")) {
+		*value = SMIL_SYNCBEHAVIOR_INDEPENDENT;
+	} 
+}
+
+void smil_parse_syncToleranceOrDefault(SVGParser *parser, SMIL_SyncTolerance *value, char *value_string)
+{
+	if (!strcmp(value_string, "inherit")) {
+		value->type = SMIL_SYNCTOLERANCE_INHERIT;
+	} else if (!strcmp(value_string, "default")) {
+		value->type = SMIL_SYNCTOLERANCE_DEFAULT;
+	} else {
+		value->type = SMIL_SYNCBEHAVIOR_LOCKED;
+		svg_parse_clock_value(value_string, &(value->value));
+	}
 }
 
 void svg_parse_viewbox(SVGParser *parser, SVG_ViewBox *value, char *value_string)
@@ -1434,6 +1655,15 @@ void svg_parse_iri(SVGParser *parser, SVGElement *elt, SVG_IRI *iri, char *attri
 	}
 }
 
+void svg_parse_zoomandpan(SVGParser *parser, SVG_ZoomAndPan *value, char *value_string)
+{
+	if (!strcmp(value_string, "disable")) {
+		*value = SVG_ZOOMANDPAN_DISABLE;
+	} else if (!strcmp(value_string, "magnify")) {
+		*value = SVG_ZOOMANDPAN_MAGNIFY;
+	} 
+}
+
 void svg_parse_preserveaspectratio(SVGParser *parser, SVG_PreserveAspectRatio *par, char *attribute_content)
 {
 	char *content = attribute_content;
@@ -1502,266 +1732,26 @@ void svg_parse_animatetransform_type(SVGParser *parser, SVG_TransformType *anim_
 }
 /* end of Basic SVG datatype parsing functions */
 
-/* Parse a single animated value 
-   TODO: handle more datatypes
-*/
-void *svg_parse_one_anim_value(SVGParser *parser, SVGElement *elt, char *single_value_string, u8 anim_value_type, u8 transform_anim_datatype)
+void svg_parse_one_anim_value(SVGParser *parser, SVGElement *elt, SMIL_AnimateValue *anim_value, char *attribute_content, u8 anim_value_type, u8 transform_type)
 {
-	switch (anim_value_type) {
-	case SVG_StrokeDashArray_datatype:
-		{
-			SVG_StrokeDashArray *array;
-			GF_SAFEALLOC(array, sizeof(SVG_StrokeDashArray))
-			svg_parse_strokedasharray(parser, array, single_value_string);
-			return array;
-		}
-		break;
-	case SVG_Paint_datatype:
-		{
-			SVG_Paint *paint;				
-			GF_SAFEALLOC(paint, sizeof(SVG_Paint));
-			GF_SAFEALLOC(paint->color, sizeof(SVG_Color));
-			svg_parse_paint(parser, paint, single_value_string);
-			return paint;
-		}
-		break;
-	case SVG_StrokeWidth_datatype:
-	case SVG_Length_datatype:
-	case SVG_Coordinate_datatype:
-		{
-			SVG_Length *length;
-			GF_SAFEALLOC(length, sizeof(SVG_Length))
-			svg_parse_length(parser, length, single_value_string);
-			return length;
-		}
-		break;
-	case SVG_Visibility_datatype:
-		{
-			SVG_Visibility *visibility;
-			GF_SAFEALLOC(visibility, sizeof(u8))
-			svg_parse_visibility(parser, visibility, single_value_string);
-			return visibility;
-		}
-		break;
-	case SVG_Display_datatype:
-		{
-			SVG_Display *display;
-			GF_SAFEALLOC(display, sizeof(u8))
-			svg_parse_display(parser, display, single_value_string);
-			return display;
-		}
-		break;
-	case SVG_FillRule_datatype:
-		{
-			SVG_FillRule *clip_fill_rule;
-			GF_SAFEALLOC(clip_fill_rule, sizeof(u8))
-			svg_parse_clipfillrule(parser, clip_fill_rule, single_value_string);
-			return clip_fill_rule;
-		}
-		break;
-	case SVG_StrokeLineJoin_datatype:
-		{
-			SVG_StrokeLineJoin *linejoin;
-			GF_SAFEALLOC(linejoin, sizeof(u8))
-			svg_parse_strokelinejoin(parser, linejoin, single_value_string);
-			return linejoin;
-		}
-		break;
-	case SVG_StrokeLineCap_datatype:
-		{
-			SVG_StrokeLineCap *linecap;
-			GF_SAFEALLOC(linecap, sizeof(u8))
-			svg_parse_strokelinecap(parser, linecap, single_value_string);
-			return linecap;
-		}		
-		break;
-	case SVG_Opacity_datatype:
-		{
-			SVGInheritableFloat *p;
-			GF_SAFEALLOC(p, sizeof(SVGInheritableFloat));
-			svg_parse_inheritablefloat(parser, p, single_value_string, 1);
-			return p;
-		}
-		break;
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_FontSize_datatype:
-	case SVG_StrokeMiterLimit_datatype:
-		{
-			SVGInheritableFloat *p;
-			GF_SAFEALLOC(p, sizeof(SVGInheritableFloat));
-			svg_parse_inheritablefloat(parser, p, single_value_string, 0);
-			return p;
-		}
-		break;
-	case SVG_TransformList_datatype:
-		{
-			u32 i = 0;
-			switch(transform_anim_datatype) {
-			case SVG_TRANSFORM_TRANSLATE:
-				{
-					SVG_Point *p;
-					GF_SAFEALLOC(p, sizeof(SVG_Point));
-					i+=svg_parse_float(&(single_value_string[i]), &(p->x), 0);
-					if (single_value_string[i] == 0) {
-						p->y = 0;
-					} else {
-						i+=svg_parse_float(&(single_value_string[i]), &(p->y), 0);
-					}
-					return p;
-				}
-				break;
-			case SVG_TRANSFORM_SCALE:
-				{
-					SVG_Point *p;
-					GF_SAFEALLOC(p, sizeof(SVG_Point));
-					i+=svg_parse_float(&(single_value_string[i]), &(p->x), 0);
-					if (single_value_string[i] == 0) {
-						p->y = p->x;
-					} else {
-						i+=svg_parse_float(&(single_value_string[i]), &(p->y), 0);
-					}
-					return p;
-				}
-				break;
-			case SVG_TRANSFORM_ROTATE:
-				{
-					SVG_Point_Angle *p;
-					GF_SAFEALLOC(p, sizeof(SVG_Point_Angle));
-					i+=svg_parse_float(&(single_value_string[i]), &(p->angle), 1);
-					if (single_value_string[i] == 0) {
-						p->y = p->x = 0;
-					} else {
-						i+=svg_parse_float(&(single_value_string[i]), &(p->x), 0);
-						i+=svg_parse_float(&(single_value_string[i]), &(p->y), 0);
-					}					
-					return p;
-				}
-				break;
-			case SVG_TRANSFORM_SKEWX:
-			case SVG_TRANSFORM_SKEWY:
-				{
-					Fixed *p;
-					GF_SAFEALLOC(p, sizeof(Fixed));
-					i+=svg_parse_float(&(single_value_string[i]), p, 1);
-					return p;
-				}
-				break;
-			default:
-				{
-					SVG_Matrix *m;
-					GF_SAFEALLOC(m, sizeof(SVG_Matrix))
-					svg_parse_transform(parser, m, single_value_string);
-					return m;
-				}
-			}
-		}
-		break;
-	case SVG_Motion_datatype:
-		{
-			u32 i = 0;
-			SVG_Point *p;
-			GF_SAFEALLOC(p, sizeof(SVG_Point));
-			i+=svg_parse_float(&(single_value_string[i]), &(p->x), 0);
-			i+=svg_parse_float(&(single_value_string[i]), &(p->y), 0);
-			return p;
-		}
-		break;
-	case SVG_ViewBox_datatype:
-		{
-			SVG_ViewBox *viewbox;
-			GF_SAFEALLOC(viewbox, sizeof(SVG_ViewBox))
-			svg_parse_viewbox(parser, viewbox, single_value_string);
-			return viewbox;
-		}
-		break;
-	case SVG_IRI_datatype:
-		{
-			SVG_IRI *iri;
-			GF_SAFEALLOC(iri, sizeof(SVG_IRI))
-			svg_parse_iri(parser, elt, iri, single_value_string);
-			return iri;
-		}
-		break;
-	case SVG_Color_datatype:
-		{
-			SVG_Color *color;
-			GF_SAFEALLOC(color, sizeof(SVG_Color))
-			svg_parse_color(parser, color, single_value_string);
-			return color;
-		}
-		break;
-	case SVG_TextAnchor_datatype:
-		{
-			SVG_TextAnchor *anchor;
-			GF_SAFEALLOC(anchor, sizeof(SVG_TextAnchor))
-			svg_parse_textanchor(parser, anchor, single_value_string);
-			return anchor;
-		}
-		break;
-	case SVG_FontStyle_datatype:
-		{
-			SVG_FontStyle *fontstyle;
-			GF_SAFEALLOC(fontstyle, sizeof(SVG_FontStyle))
-			svg_parse_fontstyle(parser, fontstyle, single_value_string);
-			return fontstyle;
-		}
-		break;
-	case SVG_FontFamily_datatype:
-		{
-			SVG_FontFamily *fontfamily;
-			GF_SAFEALLOC(fontfamily, sizeof(SVG_FontFamily))
-			svg_parse_fontfamily(parser, fontfamily, single_value_string);
-			return fontfamily;
-		}
-		break;
-	case SVG_String_datatype:
-		{
-			SVG_String *string;
-			GF_SAFEALLOC(string, sizeof(SVG_String))
-			*string = strdup(single_value_string);
-			return string;
-		}
-		break;
-	case SVG_Points_datatype:
-		{
-			SVG_Points *points;
-			GF_SAFEALLOC(points, sizeof(SVG_Points))
-			*points = gf_list_new();
-			svg_parse_points(parser, *points, single_value_string);
-			return points;
-		}
-		break;
-	case SVG_Coordinates_datatype:
-		{
-			SVG_Coordinates *coords;
-			GF_SAFEALLOC(coords, sizeof(SVG_Coordinates))
-			*coords = gf_list_new();
-			svg_parse_coordinates(parser, *coords, single_value_string);
-			return coords;
-		}
-		break;
-	case SVG_PathData_datatype:
-		{
-			SVG_PathData *path = malloc(sizeof(SVG_PathData));
-			path->commands = gf_list_new();
-			path->points = gf_list_new();
-			svg_parse_path(parser, path, single_value_string);
-			return path;
-		}
-		break;
-	default:
-		fprintf(stdout, "Warning: Parsing of an animation type is not supported.\n");
-	} 
-	return NULL;
+	GF_FieldInfo info;
+	info.fieldType = anim_value_type;
+	info.name = "animation value";
+	info.far_ptr = svg_create_value_from_attributetype(anim_value_type, transform_type);
+	if (info.far_ptr) svg_parse_attribute(parser, elt, &info, attribute_content, anim_value_type, transform_type);
+	anim_value->value = info.far_ptr;
+	anim_value->datatype = anim_value_type;
 }
 
-void svg_parse_anim_values(SVGParser *parser, SVGElement *elt, SMIL_AnimateValues *anim_values, char *anim_values_string, u8 anim_value_type, u8 transform_anim_datatype)
+void svg_parse_anim_values(SVGParser *parser, SVGElement *elt, SMIL_AnimateValues *anim_values, char *anim_values_string, u8 anim_value_type, u8 transform_type)
 {
 	u32 len, i = 0;
 	char *str;
 	char *value_string;
-	void *single_value;
 	s32 psemi = -1;
+	GF_FieldInfo info;
+	info.fieldType = anim_value_type;
+	info.name = "animation values";
 
 	anim_values->datatype = anim_value_type;
 	
@@ -1775,34 +1765,83 @@ void svg_parse_anim_values(SVGParser *parser, SVGElement *elt, SMIL_AnimateValue
 			memcpy(value_string, str + (psemi+1), single_value_len);
 			value_string[single_value_len] = 0;
 			psemi = i;
-			single_value = svg_parse_one_anim_value(parser, elt, value_string, anim_values->datatype, transform_anim_datatype);
-			if (single_value) gf_list_add(anim_values->values, single_value);
+
+			info.far_ptr = svg_create_value_from_attributetype(anim_value_type, transform_type);
+			if (info.far_ptr) {
+				svg_parse_attribute(parser, elt, &info, value_string, anim_value_type, transform_type);
+				gf_list_add(anim_values->values, info.far_ptr);
+			}
+
 			free(value_string);
 		}
 	}
 }
 
-
-/* Parse an SVG attribute 
-   TODO: check that all datatypes are handled, at least Tiny ones
-*/
-void svg_parse_attribute(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_anim_datatype)
+void svg_parse_transformtype(SVGParser *parser, SVGElement *elt, void *transform, char *value_string, u8 transform_type) 
 {
-	switch (info->fieldType) {
-/* TODO:	case SVG_String_datatype: 
-		break; */
-	case SMIL_AnimateValue_datatype:
+	u32 i = 0;
+	switch(transform_type) {
+	case SVG_TRANSFORM_TRANSLATE:
 		{
-			SMIL_AnimateValue *anim_value = (SMIL_AnimateValue *)info->far_ptr;
-			anim_value->datatype = anim_value_type;
-			anim_value->value = svg_parse_one_anim_value(parser, elt, attribute_content, anim_value->datatype, transform_anim_datatype);
+			SVG_Point *p = (SVG_Point *)transform;
+			i+=svg_parse_float(&(value_string[i]), &(p->x), 0);
+			if (value_string[i] == 0) {
+				p->y = 0;
+			} else {
+				i+=svg_parse_float(&(value_string[i]), &(p->y), 0);
+			}
 		}
 		break;
+	case SVG_TRANSFORM_SCALE:
+		{
+			SVG_Point *p = (SVG_Point *)transform;;
+			i+=svg_parse_float(&(value_string[i]), &(p->x), 0);
+			if (value_string[i] == 0) {
+				p->y = p->x;
+			} else {
+				i+=svg_parse_float(&(value_string[i]), &(p->y), 0);
+			}
+		}
+		break;
+	case SVG_TRANSFORM_ROTATE:
+		{
+			SVG_Point_Angle *p = (SVG_Point_Angle *)transform;;
+			i+=svg_parse_float(&(value_string[i]), &(p->angle), 1);
+			if (value_string[i] == 0) {
+				p->y = p->x = 0;
+			} else {
+				i+=svg_parse_float(&(value_string[i]), &(p->x), 0);
+				i+=svg_parse_float(&(value_string[i]), &(p->y), 0);
+			}					
+		}
+		break;
+	case SVG_TRANSFORM_SKEWX:
+	case SVG_TRANSFORM_SKEWY:
+		{
+			Fixed *p = (Fixed *)transform;
+			i+=svg_parse_float(&(value_string[i]), p, 1);
+		}
+		break;
+	default:
+		{
+			SVG_Matrix *m = (SVG_Matrix *)transform;
+			svg_parse_transform(parser, m, value_string);
+		}
+	}	
+}
+
+/* Parse an SVG attribute */
+void svg_parse_attribute(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type)
+{
+	switch (info->fieldType) {
+	case SMIL_AnimateValue_datatype:
+		svg_parse_one_anim_value(parser, elt, (SMIL_AnimateValue *)info->far_ptr, attribute_content, anim_value_type, transform_type);
+		break;
 	case SMIL_AnimateValues_datatype:
-		svg_parse_anim_values(parser, elt, (SMIL_AnimateValues *)info->far_ptr, attribute_content, anim_value_type, transform_anim_datatype);
+		svg_parse_anim_values(parser, elt, (SMIL_AnimateValues *)info->far_ptr, attribute_content, anim_value_type, transform_type);
 		break;
 	case SVG_TransformType_datatype:
-		/* not parsed here */ 
+		svg_parse_transformtype(parser, elt, info->far_ptr, attribute_content, transform_type);
 		break;
 	case SVG_IRI_datatype:
 		svg_parse_iri(parser, elt, (SVG_IRI*)info->far_ptr, attribute_content);
@@ -1959,4 +1998,161 @@ void svg_parse_style(SVGParser *parser, SVGElement *elt, char *style)
 		}
 	}
 
+}
+
+void *svg_create_value_from_attributetype(u8 attribute_type, u8 transform_type)
+{
+	switch (attribute_type) {
+	case SVG_StrokeDashArray_datatype:
+		{
+			SVG_StrokeDashArray *array;
+			GF_SAFEALLOC(array, sizeof(SVG_StrokeDashArray))
+			return array;
+		}
+		break;
+	case SVG_Paint_datatype:
+		{
+			SVG_Paint *paint;				
+			GF_SAFEALLOC(paint, sizeof(SVG_Paint));
+			GF_SAFEALLOC(paint->color, sizeof(SVG_Color));
+			return paint;
+		}
+		break;
+	case SVG_StrokeWidth_datatype:
+	case SVG_Length_datatype:
+	case SVG_Coordinate_datatype:
+		{
+			SVG_Length *length;
+			GF_SAFEALLOC(length, sizeof(SVG_Length))
+			return length;
+		}
+		break;
+	case SVG_Visibility_datatype:
+	case SVG_Display_datatype:
+	case SVG_FillRule_datatype:
+	case SVG_StrokeLineJoin_datatype:
+	case SVG_StrokeLineCap_datatype:
+	case SVG_TextAnchor_datatype:
+	case SVG_FontStyle_datatype:
+		{
+			u8 *keyword;
+			GF_SAFEALLOC(keyword, sizeof(u8))
+			return keyword;
+		}
+		break;
+	case SVG_Opacity_datatype:
+	case SVG_StrokeDashOffset_datatype:
+	case SVG_FontSize_datatype:
+	case SVG_StrokeMiterLimit_datatype:
+		{
+			SVGInheritableFloat *p;
+			GF_SAFEALLOC(p, sizeof(SVGInheritableFloat));
+			return p;
+		}
+		break;
+	case SVG_TransformList_datatype:
+		{
+			switch(transform_type) {
+			case SVG_TRANSFORM_TRANSLATE:
+			case SVG_TRANSFORM_SCALE:
+				{
+					SVG_Point *p;
+					GF_SAFEALLOC(p, sizeof(SVG_Point));
+					return p;
+				}
+				break;
+			case SVG_TRANSFORM_ROTATE:
+				{
+					SVG_Point_Angle *p;
+					GF_SAFEALLOC(p, sizeof(SVG_Point_Angle));
+					return p;
+				}
+				break;
+			case SVG_TRANSFORM_SKEWX:
+			case SVG_TRANSFORM_SKEWY:
+				{
+					Fixed *p;
+					GF_SAFEALLOC(p, sizeof(Fixed));
+					return p;
+				}
+				break;
+			default:
+				{
+					SVG_Matrix *m;
+					GF_SAFEALLOC(m, sizeof(SVG_Matrix))
+					return m;
+				}
+			}
+		}
+		break;
+	case SVG_Motion_datatype:
+		{
+			SVG_Point *p;
+			GF_SAFEALLOC(p, sizeof(SVG_Point));
+			return p;
+		}
+		break;
+	case SVG_ViewBox_datatype:
+		{
+			SVG_ViewBox *viewbox;
+			GF_SAFEALLOC(viewbox, sizeof(SVG_ViewBox))
+			return viewbox;
+		}
+		break;
+	case SVG_IRI_datatype:
+		{
+			SVG_IRI *iri;
+			GF_SAFEALLOC(iri, sizeof(SVG_IRI))
+			return iri;
+		}
+		break;
+	case SVG_Color_datatype:
+		{
+			SVG_Color *color;
+			GF_SAFEALLOC(color, sizeof(SVG_Color))
+			return color;
+		}
+		break;
+	case SVG_FontFamily_datatype:
+		{
+			SVG_FontFamily *fontfamily;
+			GF_SAFEALLOC(fontfamily, sizeof(SVG_FontFamily))
+			return fontfamily;
+		}
+		break;
+	case SVG_String_datatype:
+		{
+			SVG_String *string;
+			GF_SAFEALLOC(string, sizeof(SVG_String))
+			return string;
+		}
+		break;
+	case SVG_Points_datatype:
+		{
+			SVG_Points *points;
+			GF_SAFEALLOC(points, sizeof(SVG_Points))
+			*points = gf_list_new();
+			return points;
+		}
+		break;
+	case SVG_Coordinates_datatype:
+		{
+			SVG_Coordinates *coords;
+			GF_SAFEALLOC(coords, sizeof(SVG_Coordinates))
+			*coords = gf_list_new();
+			return coords;
+		}
+		break;
+	case SVG_PathData_datatype:
+		{
+			SVG_PathData *path = malloc(sizeof(SVG_PathData));
+			path->commands = gf_list_new();
+			path->points = gf_list_new();
+			return path;
+		}
+		break;
+	default:
+		fprintf(stdout, "Error: Creation of value failed! type not supported: %d.\n", attribute_type);
+	} 
+	return NULL;
 }
