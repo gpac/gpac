@@ -471,6 +471,7 @@ void SMIL_InitAnimateFunction(SMIL_AnimationStack *stack)
 		stack->Animate = SMIL_AnimWithValues;
 	} else if (stack->path) {
 		fprintf(stderr,"Warning: Path animation not supported\n");
+		stack->Animate = NULL;
 		return;
 	} else { 
 		/* Use 'from'/'to'/'by'*/

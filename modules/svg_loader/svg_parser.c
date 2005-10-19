@@ -465,7 +465,7 @@ void svg_parse_dom_attributes(SVGParser *parser,
 
 					gf_node_listener_add((GF_Node *) elt, (GF_Node *) listener);
 				} else {
-					fprintf(stdout, "SVG Warning: Unknown attribute %s\n", attributes->name);
+					fprintf(stdout, "SVG Warning: Unknown attribute %s on element %s\n", attributes->name, gf_node_get_class_name((GF_Node *)elt));
 				}
 			}
 		} 
@@ -675,29 +675,20 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_el
 
 	/* Parsing of to / from / by / values */
 	if (local_de.to) {
-		SMIL_AnimateValue *to;
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "to", &info);
-		to = (SMIL_AnimateValue *)info.far_ptr;
-		to->datatype = anim_value_type;
-		to->value = svg_parse_one_anim_value(parser, animation_elt, local_de.to, anim_value_type, anim_transform_type);
+		svg_parse_attribute(parser, animation_elt, &info, local_de.to, anim_value_type, anim_transform_type);
 	} 
 	if (local_de.from) {
-		SMIL_AnimateValue *from;
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "from", &info);
-		from = (SMIL_AnimateValue *)info.far_ptr;
-		from->datatype = anim_value_type;
-		from->value = svg_parse_one_anim_value(parser, animation_elt, local_de.from, anim_value_type, anim_transform_type);
+		svg_parse_attribute(parser, animation_elt, &info, local_de.from, anim_value_type, anim_transform_type);
 	} 
 	if (local_de.by) {
-		SMIL_AnimateValue *by;
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "by", &info);
-		by = (SMIL_AnimateValue *)info.far_ptr;
-		by->datatype = anim_value_type;
-		by->value = svg_parse_one_anim_value(parser, animation_elt, local_de.by, anim_value_type, anim_transform_type);
+		svg_parse_attribute(parser, animation_elt, &info, local_de.by, anim_value_type, anim_transform_type);
 	} 
 	if (local_de.values) {
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "values", &info);
-		svg_parse_anim_values(parser, animation_elt, (SMIL_AnimateValues *)info.far_ptr, local_de.values, anim_value_type, anim_transform_type);
+		svg_parse_attribute(parser, animation_elt, &info, local_de.values, anim_value_type, anim_transform_type);
 	} 
 }
 

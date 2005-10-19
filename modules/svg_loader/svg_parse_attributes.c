@@ -1841,14 +1841,130 @@ void svg_parse_motionvalue(SVGParser *parser, SVG_Point *p, char *value_string)
 void svg_parse_attribute(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type)
 {
 	switch (info->fieldType) {
+	case SVG_Boolean_datatype:
+		svg_parse_boolean(parser, (SVG_Boolean *)info->far_ptr, attribute_content);
+	    break;
+	case SVG_Color_datatype:
+		svg_parse_color(parser, (SVG_Color *)info->far_ptr, attribute_content);
+	    break;
+	case SVG_Paint_datatype:
+		svg_parse_paint(parser, (SVG_Paint *)info->far_ptr, attribute_content);
+		break;
+
+/* beginning of keyword type parsing */
+	case SVG_FillRule_datatype:
+		svg_parse_clipfillrule(parser, (SVG_FillRule *)info->far_ptr, attribute_content);
+		break;
+	case SVG_StrokeLineJoin_datatype:
+		svg_parse_strokelinejoin(parser, (SVG_StrokeLineJoin *)info->far_ptr, attribute_content);
+		break;
+	case SVG_StrokeLineCap_datatype:
+		svg_parse_strokelinecap(parser, (SVG_StrokeLineCap *)info->far_ptr, attribute_content);
+		break;
+	case SVG_FontStyle_datatype:
+		svg_parse_fontstyle(parser, (SVG_FontStyle *)info->far_ptr, attribute_content);
+		break;
+	case SVG_FontWeight_datatype:
+		svg_parse_fontweight(parser, (SVG_FontWeight *)info->far_ptr, attribute_content);
+		break;
+	case SVG_FontVariant_datatype:
+		svg_parse_fontvariant(parser, (SVG_FontVariant *)info->far_ptr, attribute_content);
+		break;
+	case SVG_TextAnchor_datatype:
+		svg_parse_textanchor(parser, (SVG_TextAnchor *)info->far_ptr, attribute_content);
+		break;
+	case SVG_Display_datatype:
+		svg_parse_display(parser, (SVG_Display *)info->far_ptr, attribute_content);
+		break;
+	case SVG_Visibility_datatype:
+		svg_parse_visibility(parser, (SVG_Visibility *)info->far_ptr, attribute_content);
+		break;
+	case SVG_Overflow_datatype:
+		svg_parse_overflow(parser, (SVG_Overflow *)info->far_ptr, attribute_content);
+		break;
+	case SVG_ZoomAndPan_datatype:
+		svg_parse_zoomandpan(parser, (SVG_ZoomAndPan *)info->far_ptr, attribute_content);
+		break;
+	case SVG_DisplayAlign_datatype:
+		svg_parse_displayalign(parser, (SVG_DisplayAlign *)info->far_ptr, attribute_content);
+		break;
+	case SVG_PointerEvents_datatype:
+		svg_parse_pointerevents(parser, (SVG_PointerEvents *)info->far_ptr, attribute_content);
+		break;
+	case SVG_RenderingHint_datatype:
+		svg_parse_renderinghint(parser, (SVG_RenderingHint *)info->far_ptr, attribute_content);
+		break;
+	case SVG_VectorEffect_datatype:
+		svg_parse_vectoreffect(parser, (SVG_VectorEffect *)info->far_ptr, attribute_content);
+		break;
+	case SVG_PlaybackOrder_datatype:
+		svg_parse_playbackorder(parser, (SVG_PlaybackOrder *)info->far_ptr, attribute_content);
+		break;
+	case SVG_TimelineBegin_datatype:
+		svg_parse_timelinebegin(parser, (SVG_TimelineBegin *)info->far_ptr, attribute_content);
+		break;
+	case XML_Space_datatype:
+		svg_parse_xmlspace(parser, (XML_Space *)info->far_ptr, attribute_content);
+		break;
+	case XMLEV_Propagate_datatype:
+		svg_parse_xmlev_propagate(parser, (XMLEV_Propagate *)info->far_ptr, attribute_content);
+		break;
+	case XMLEV_DefaultAction_datatype:
+		svg_parse_xmlev_defaultAction(parser, (XMLEV_DefaultAction *)info->far_ptr, attribute_content);
+		break;
+	case XMLEV_Phase_datatype:
+		svg_parse_xmlev_phase(parser, (XMLEV_Phase *)info->far_ptr, attribute_content);
+		break;
+	case SMIL_SyncBehavior_datatype:
+		smil_parse_syncBehaviorOrDefault(parser, (SMIL_SyncBehavior *)info->far_ptr, attribute_content);
+		break;
+	case SMIL_SyncTolerance_datatype:
+		smil_parse_syncToleranceOrDefault(parser, (SMIL_SyncTolerance *)info->far_ptr, attribute_content);
+		break;
+	case SMIL_AttributeType_datatype:
+		smil_parse_attributeType(parser, (SMIL_AttributeType *)info->far_ptr, attribute_content);
+		break;	
+	case SMIL_CalcMode_datatype:
+		smil_parse_calcmode(parser, (SMIL_CalcMode *)info->far_ptr, attribute_content);
+		break;
+	case SMIL_Additive_datatype:
+		smil_parse_additive(parser, (SMIL_CalcMode *)info->far_ptr, attribute_content);
+		break;
+	case SMIL_Accumulate_datatype:
+		smil_parse_accumulate(parser, (SMIL_Accumulate *)info->far_ptr, attribute_content);
+		break;
+	case SMIL_Restart_datatype:
+		smil_parse_restart(parser, (SMIL_Restart *)info->far_ptr, attribute_content);
+		break;
+	case SMIL_Fill_datatype:
+		smil_parse_fill(parser, (SMIL_Fill *)info->far_ptr, attribute_content);
+		break;
+/* end of keyword type parsing */
+
+	/* inheritable floats */
+	case SVG_Opacity_datatype:
+		svg_parse_inheritablefloat(parser, (SVGInheritableFloat *)info->far_ptr, attribute_content, 1);
+		break;
+	case SVG_StrokeMiterLimit_datatype:
+	case SVG_FontSize_datatype:
+	case SVG_StrokeDashOffset_datatype:
+	case SVG_AudioLevel_datatype:
+	case SVG_LineIncrement_datatype:
+		svg_parse_inheritablefloat(parser, (SVGInheritableFloat *)info->far_ptr, attribute_content, 0);
+		break;
+
+	/* inheritable float and unit */
+	case SVG_StrokeWidth_datatype:
+	case SVG_Length_datatype:
+	case SVG_Coordinate_datatype:
+		svg_parse_length(parser, (SVG_Length *)info->far_ptr, attribute_content);
+		break;
+
 	case SMIL_AnimateValue_datatype:
 		svg_parse_one_anim_value(parser, elt, (SMIL_AnimateValue *)info->far_ptr, attribute_content, anim_value_type, transform_type);
 		break;
 	case SMIL_AnimateValues_datatype:
 		svg_parse_anim_values(parser, elt, (SMIL_AnimateValues *)info->far_ptr, attribute_content, anim_value_type, transform_type);
-		break;
-	case SVG_TransformType_datatype:
-		svg_parse_transformtype(parser, elt, info->far_ptr, attribute_content, transform_type);
 		break;
 	case SVG_IRI_datatype:
 		svg_parse_iri(parser, elt, (SVG_IRI*)info->far_ptr, attribute_content);
@@ -1865,21 +1981,7 @@ void svg_parse_attribute(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info,
 	case SMIL_RepeatCount_datatype:
 		smil_parse_repeatcount(parser, (SMIL_RepeatCount *)info->far_ptr, attribute_content);
 		break;
-	case SMIL_Fill_datatype:
-		smil_parse_fill(parser, (SMIL_Fill *)info->far_ptr, attribute_content);
-		break;
-	case SMIL_Restart_datatype:
-		smil_parse_restart(parser, (SMIL_Restart *)info->far_ptr, attribute_content);
-		break;
-	case SMIL_CalcMode_datatype:
-		smil_parse_calcmode(parser, (SMIL_CalcMode *)info->far_ptr, attribute_content);
-		break;
-	case SMIL_Additive_datatype:
-		smil_parse_additive(parser, (SMIL_CalcMode *)info->far_ptr, attribute_content);
-		break;
-	case SMIL_Accumulate_datatype:
-		smil_parse_accumulate(parser, (SMIL_Accumulate *)info->far_ptr, attribute_content);
-		break;
+
 	case SVG_PathData_datatype:
 		svg_parse_path(parser, (SVG_PathData *)info->far_ptr, attribute_content);
 		break;
@@ -1897,54 +1999,11 @@ void svg_parse_attribute(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info,
 	case SVG_ViewBox_datatype:
 		svg_parse_viewbox(parser, info->far_ptr, attribute_content);
 		break;
-	case SVG_Boolean_datatype:
-		svg_parse_boolean(parser, (SVG_Boolean *)info->far_ptr, attribute_content);
-	    break;
-	case SVG_Color_datatype:
-		svg_parse_color(parser, (SVG_Color *)info->far_ptr, attribute_content);
-	    break;
-	case SVG_Paint_datatype:
-		svg_parse_paint(parser, (SVG_Paint *)info->far_ptr, attribute_content);
-		break;
-	case SVG_FillRule_datatype:
-		svg_parse_clipfillrule(parser, (SVG_FillRule *)info->far_ptr, attribute_content);
-		break;
 	case SVG_StrokeDashArray_datatype:
 		svg_parse_strokedasharray(parser, (SVG_StrokeDashArray *)info->far_ptr, attribute_content);
 		break;
-	case SVG_StrokeLineJoin_datatype:
-		svg_parse_strokelinejoin(parser, (SVG_StrokeLineJoin *)info->far_ptr, attribute_content);
-		break;
-	case SVG_StrokeLineCap_datatype:
-		svg_parse_strokelinecap(parser, (SVG_StrokeLineCap *)info->far_ptr, attribute_content);
-		break;
 	case SVG_FontFamily_datatype:
 		svg_parse_fontfamily(parser, (SVG_FontFamily *)info->far_ptr, attribute_content);
-		break;
-	case SVG_FontStyle_datatype:
-		svg_parse_fontstyle(parser, (SVG_FontStyle *)info->far_ptr, attribute_content);
-		break;
-	case SVG_Opacity_datatype:
-		svg_parse_inheritablefloat(parser, (SVGInheritableFloat *)info->far_ptr, attribute_content, 1);
-		break;
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_FontSize_datatype:
-	case SVG_StrokeMiterLimit_datatype:
-		svg_parse_inheritablefloat(parser, (SVGInheritableFloat *)info->far_ptr, attribute_content, 0);
-		break;
-	case SVG_Visibility_datatype:
-		svg_parse_visibility(parser, (SVG_Visibility *)info->far_ptr, attribute_content);
-		break;
-	case SVG_Display_datatype:
-		svg_parse_display(parser, (SVG_Display *)info->far_ptr, attribute_content);
-		break;
-	case SVG_StrokeWidth_datatype:
-	case SVG_Length_datatype:
-	case SVG_Coordinate_datatype:
-		svg_parse_length(parser, (SVG_Length *)info->far_ptr, attribute_content);
-		break;
-	case SVG_TextAnchor_datatype:
-		svg_parse_textanchor(parser, (SVG_TextAnchor *)info->far_ptr, attribute_content);
 		break;
 	case SVG_TransformList_datatype:
 		svg_parse_transformlist(parser, *(GF_List **)info->far_ptr, attribute_content);
@@ -1952,8 +2011,21 @@ void svg_parse_attribute(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info,
 	case SVG_PreserveAspectRatio_datatype:
 		svg_parse_preserveaspectratio(parser, (SVG_PreserveAspectRatio *)info->far_ptr, attribute_content);
 		break;
+	case SVG_Number_datatype:
+		svg_parse_float(attribute_content, (SVG_Number *)info->far_ptr, 0);
+		break;
+
+	/* required for animateMotion */
 	case SVG_Motion_datatype:
 		svg_parse_motionvalue(parser, (SVG_Point *)info->far_ptr, attribute_content);
+		break;
+	/* required for animateTransform */
+	case SVG_TransformType_datatype:
+		svg_parse_transformtype(parser, elt, info->far_ptr, attribute_content, transform_type);
+		break;
+
+	case SVG_String_datatype:
+		*(SVG_String *)info->far_ptr = strdup(attribute_content);
 		break;
 	default:
 		fprintf(stdout, "Warning: skipping unsupported attribute %s\n", info->name);
@@ -2013,11 +2085,18 @@ void svg_parse_style(SVGParser *parser, SVGElement *elt, char *style)
 void *svg_create_value_from_attributetype(u8 attribute_type, u8 transform_type)
 {
 	switch (attribute_type) {
-	case SVG_StrokeDashArray_datatype:
+	case SVG_Boolean_datatype:
 		{
-			SVG_StrokeDashArray *array;
-			GF_SAFEALLOC(array, sizeof(SVG_StrokeDashArray))
-			return array;
+			SVG_Boolean *b;
+			GF_SAFEALLOC(b, sizeof(SVG_Boolean_datatype))
+			return b;
+		}
+		break;
+	case SVG_Color_datatype:
+		{
+			SVG_Color *color;
+			GF_SAFEALLOC(color, sizeof(SVG_Color))
+			return color;
 		}
 		break;
 	case SVG_Paint_datatype:
@@ -2028,6 +2107,59 @@ void *svg_create_value_from_attributetype(u8 attribute_type, u8 transform_type)
 			return paint;
 		}
 		break;
+	
+	/* keyword types */
+	case SVG_FillRule_datatype:
+	case SVG_StrokeLineJoin_datatype:
+	case SVG_StrokeLineCap_datatype:
+	case SVG_FontStyle_datatype:
+	case SVG_FontWeight_datatype:
+	case SVG_FontVariant_datatype:
+	case SVG_TextAnchor_datatype:
+	case SVG_Display_datatype:
+	case SVG_Visibility_datatype:
+	case SVG_Overflow_datatype:
+	case SVG_ZoomAndPan_datatype:
+	case SVG_DisplayAlign_datatype:
+	case SVG_PointerEvents_datatype:
+	case SVG_RenderingHint_datatype:
+	case SVG_VectorEffect_datatype:
+	case SVG_PlaybackOrder_datatype:
+	case SVG_TimelineBegin_datatype:
+	case XML_Space_datatype:
+	case XMLEV_Propagate_datatype:
+	case XMLEV_DefaultAction_datatype:
+	case XMLEV_Phase_datatype:
+	case SMIL_SyncBehavior_datatype:
+	case SMIL_SyncTolerance_datatype:
+	case SMIL_AttributeType_datatype:
+	case SMIL_CalcMode_datatype:
+	case SMIL_Additive_datatype:
+	case SMIL_Accumulate_datatype:
+	case SMIL_Restart_datatype:
+	case SMIL_Fill_datatype:
+		{
+			u8 *keyword;
+			GF_SAFEALLOC(keyword, sizeof(u8))
+			return keyword;
+		}
+		break;
+
+	/* inheritable floats */
+	case SVG_Opacity_datatype:
+	case SVG_StrokeMiterLimit_datatype:
+	case SVG_FontSize_datatype:
+	case SVG_StrokeDashOffset_datatype:
+	case SVG_AudioLevel_datatype:
+	case SVG_LineIncrement_datatype:
+		{
+			SVGInheritableFloat *p;
+			GF_SAFEALLOC(p, sizeof(SVGInheritableFloat));
+			return p;
+		}
+		break;
+
+	/* inheritable float and unit */
 	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
@@ -2036,30 +2168,16 @@ void *svg_create_value_from_attributetype(u8 attribute_type, u8 transform_type)
 			GF_SAFEALLOC(length, sizeof(SVG_Length))
 			return length;
 		}
-		break;
-	case SVG_Visibility_datatype:
-	case SVG_Display_datatype:
-	case SVG_FillRule_datatype:
-	case SVG_StrokeLineJoin_datatype:
-	case SVG_StrokeLineCap_datatype:
-	case SVG_TextAnchor_datatype:
-	case SVG_FontStyle_datatype:
+		break;	
+	
+	case SVG_StrokeDashArray_datatype:
 		{
-			u8 *keyword;
-			GF_SAFEALLOC(keyword, sizeof(u8))
-			return keyword;
+			SVG_StrokeDashArray *array;
+			GF_SAFEALLOC(array, sizeof(SVG_StrokeDashArray))
+			return array;
 		}
 		break;
-	case SVG_Opacity_datatype:
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_FontSize_datatype:
-	case SVG_StrokeMiterLimit_datatype:
-		{
-			SVGInheritableFloat *p;
-			GF_SAFEALLOC(p, sizeof(SVGInheritableFloat));
-			return p;
-		}
-		break;
+
 	case SVG_TransformList_datatype:
 		{
 			switch(transform_type) {
@@ -2114,13 +2232,6 @@ void *svg_create_value_from_attributetype(u8 attribute_type, u8 transform_type)
 			SVG_IRI *iri;
 			GF_SAFEALLOC(iri, sizeof(SVG_IRI))
 			return iri;
-		}
-		break;
-	case SVG_Color_datatype:
-		{
-			SVG_Color *color;
-			GF_SAFEALLOC(color, sizeof(SVG_Color))
-			return color;
 		}
 		break;
 	case SVG_FontFamily_datatype:

@@ -65,6 +65,8 @@ void PrintHelp()
 {
 	fprintf(stdout, "MP4Client command keys:\n"
 		"\to: connect to the specified URL\n"
+		"\tO: connect to the specified URL in playlist mode\n"
+		"\tN: switch to the next URL in the playlist\n"
 		"\tr: restart current presentation\n"
 		"\tp: play/pause the presentation\n"
 		"\ts: step one frame ahead\n"
@@ -603,6 +605,7 @@ int main (int argc, char **argv)
 			playlist = fopen(the_url, "rt");
 			if (playlist) {
 				fscanf(playlist, "%s", the_url);
+				fprintf(stdout, "Opening URL %s\n", the_url);
 				gf_term_connect(term, the_url);
 			}
 			break;
@@ -610,6 +613,7 @@ int main (int argc, char **argv)
 			if (playlist) {
 				gf_term_disconnect(term);
 				fscanf(playlist, "%s", the_url);
+				fprintf(stdout, "Opening URL %s\n", the_url);
 				gf_term_connect(term, the_url);
 			}
 			break;

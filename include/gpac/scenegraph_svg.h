@@ -42,8 +42,6 @@ enum {
 	SVG_Color_datatype						= 2,
 	SVG_Paint_datatype						= 3, SVG_SVGColor_datatype = SVG_Paint_datatype,
 
-	SVG_TextContent_datatype				= 4,
-
 	/* keyword enum types */
 	SVG_FillRule_datatype					= 5, SVG_Clip_datatype = SVG_FillRule_datatype,
 	SVG_StrokeLineJoin_datatype				= 6,
@@ -52,7 +50,6 @@ enum {
 	SVG_FontWeight_datatype					= 9,
 	SVG_FontVariant_datatype				= 10,
 	SVG_TextAnchor_datatype					= 11,
-	SVG_TransformType_datatype				= 12,
 	SVG_Display_datatype					= 13, 
 	SVG_Visibility_datatype					= 14,
 	SVG_Overflow_datatype					= 15,
@@ -130,7 +127,10 @@ enum {
 	SVG_XSLT_QName_datatype					= 72,
 	SVG_Clock_datatype						= 73,
 
-	SVG_Motion_datatype						= 74, /* type required for animateMotion */
+	SVG_Motion_datatype						= 74, /* required for animateMotion */
+	SVG_TransformType_datatype				= 12, /* required for animateTransform */
+
+	SVG_TextContent_datatype				= 4,
 
 	SVG_ContentType_datatype				= 75,
 	SVG_LinkTarget_datatype					= 76,
@@ -164,19 +164,19 @@ typedef u8 *SVG_TextContent;
 typedef DOM_String SVG_ContentType;
 typedef DOM_String SVG_LinkTarget;
 typedef DOM_String SVG_LanguageID;
-typedef DOM_String SVG_Number;
-typedef DOM_String SVG_Numbers;
-typedef DOM_String SVG_NumberOrPercentage;
 typedef DOM_String SVG_GradientOffset;
+
+typedef Fixed SVG_Number;
 
 typedef Double SVG_Clock;
 
-typedef GF_List		*SVG_FeatureList;
-typedef GF_List		*SVG_ExtensionList;
-typedef GF_List		*SVG_FormatList;
-typedef GF_List		*SVG_ListOfIRI;
-typedef GF_List		*SVG_LanguageIDs;
-typedef GF_List		*SVG_FontList;
+typedef GF_List *SVG_Numbers;
+typedef GF_List	*SVG_FeatureList;
+typedef GF_List	*SVG_ExtensionList;
+typedef GF_List	*SVG_FormatList;
+typedef GF_List	*SVG_ListOfIRI;
+typedef GF_List	*SVG_LanguageIDs;
+typedef GF_List	*SVG_FontList;
 
 /* SMIL Anim types */
 typedef struct {
@@ -450,7 +450,8 @@ typedef struct {
 	Fixed number;
 } SVG_Length, 
   SVG_Coordinate, 
-  SVG_StrokeWidth;
+  SVG_StrokeWidth,
+  SVG_NumberOrPercentage;
 typedef GF_List * SVG_Coordinates;
 
 typedef GF_Matrix2D SVG_Matrix;
@@ -859,7 +860,6 @@ SVGElement *SVG_NewNode				(GF_SceneGraph *inScene, u32 tag);
 
 /* deletion functions for SVG types */
 void SVG_DeletePaint			(SVG_Paint *paint);
-void SVG_DeleteOneAnimValue		(u8 anim_datatype, void *anim_value);
 void SMIL_DeleteAnimateValues	(SMIL_AnimateValues *anim_values);
 void SMIL_DeleteAnimateValue	(SMIL_AnimateValue *anim_value);
 void SVG_DeletePath				(SVG_PathData *);
