@@ -172,7 +172,6 @@ SOURCE=..\..\src\utils\math.c
 DEP_CPP_MATH_=\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\setup.h"\
-	{$(INCLUDE)}"gpp.h"\
 	
 # End Source File
 # Begin Source File

@@ -175,7 +175,7 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 			read->oti = 0x02;
 		}
 		/*XML LASeR*/
-		else if (!stricmp(ext, "xsr")) read->oti = 0x04;
+		else if (!stricmp(ext, "xsr")) read->oti = 0x03;
 	}
 
 	/*remote fetch*/

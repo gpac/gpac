@@ -111,13 +111,14 @@
 #define IDM_FILE_PAUSE                  40099
 #define IDM_VIEW_LOW_RATE               40100
 #define IDM_VIEW_DIRECT                 40101
+#define IDM_VIEW_SVG_LOAD               40102
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        111
-#define _APS_NEXT_COMMAND_VALUE         40102
+#define _APS_NEXT_COMMAND_VALUE         40103
 #define _APS_NEXT_CONTROL_VALUE         1004
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

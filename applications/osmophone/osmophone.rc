@@ -171,6 +171,8 @@ BEGIN
     END
     POPUP "?"
     BEGIN
+        MENUITEM "Progressive SVG ",            IDM_VIEW_SVG_LOAD
+        MENUITEM SEPARATOR
         MENUITEM "About",                       IDM_VIEW_ABOUT
     END
 END

@@ -53,7 +53,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /machine:I386
-# ADD LINK32 wxbase26.lib wxmsw26_core.lib wxmsw26_adv.lib ws2_32.lib shell32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib ole32.lib uuid.lib odbc32.lib odbccp32.lib comctl32.lib rpcrt4.lib winmm.lib /nologo /subsystem:windows /machine:I386 /out:"../../bin/w32_rel/V4Studio.exe"
+# ADD LINK32 wxbase25.lib wxmsw25_core.lib wxmsw25_adv.lib ws2_32.lib shell32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib ole32.lib uuid.lib odbc32.lib odbccp32.lib comctl32.lib rpcrt4.lib winmm.lib /nologo /subsystem:windows /machine:I386 /out:"../../bin/w32_rel/V4Studio.exe"
 
 !ELSEIF  "$(CFG)" == "V4Studio - Win32 Debug"
 
@@ -80,7 +80,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 /machine:IX86
-# ADD LINK32 wxbase26d.lib wxmsw26d_core.lib wxmsw26d_adv.lib comctl32.lib ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib rpcrt4.lib /nologo /subsystem:windows /debug /machine:I386 /out:"../../bin/w32_deb/V4Studio.exe" /pdbtype:sept
+# ADD LINK32 wxbase25d.lib wxmsw25d_core.lib wxmsw25d_adv.lib comctl32.lib ws2_32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib rpcrt4.lib /nologo /subsystem:windows /debug /machine:I386 /out:"../../bin/w32_deb/V4Studio.exe" /pdbtype:sept
 
 !ENDIF 
 
@@ -335,9 +335,9 @@ SOURCE=..\..\applications\v4studio\rc\V4Studio.rc
 
 !ELSEIF  "$(CFG)" == "V4Studio - Win32 Debug"
 
-# ADD BASE RSC /l 0x40c /i "\gpac2\applications\v4studio\rc" /i "\CVS\gpac\applications\v4studio\rc"
+# ADD BASE RSC /l 0x40c /i "\CVS\gpac\applications\v4studio\rc" /i "\gpac2\applications\v4studio\rc"
 # SUBTRACT BASE RSC /i "C:\Projets\wxWindows\include"
-# ADD RSC /l 0x40c /i "\gpac2\applications\v4studio\rc" /i "\CVS\gpac\applications\v4studio\rc"
+# ADD RSC /l 0x40c /i "\CVS\gpac\applications\v4studio\rc" /i "\gpac2\applications\v4studio\rc"
 # SUBTRACT RSC /i "C:\Projets\wxWindows\include"
 
 !ENDIF 

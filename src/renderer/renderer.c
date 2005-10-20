@@ -1161,7 +1161,14 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 
 void gf_sr_user_event(GF_Renderer *sr, GF_Event *event)
 {
-	gf_sr_on_event(sr, event);
+	switch (event->type) {
+	case GF_EVT_SHOWHIDE:
+	case GF_EVT_SET_CAPTION:
+		sr->video_out->ProcessEvent(sr->video_out, event);
+		break;
+	default:
+		gf_sr_on_event(sr, event);
+	}
 }
 
 void gf_sr_register_extra_graph(GF_Renderer *sr, GF_SceneGraph *extra_scene, Bool do_remove)

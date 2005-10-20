@@ -600,7 +600,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 
 
 		/*if not last chunk and longer duration adjust to previous RAP point*/
-		if ( (size_exceeded || !split_size_kb) && (file_split_dur>split_dur) ) {
+		if ( (size_exceeded || !split_size_kb) && (file_split_dur>split_dur) && !chunk_start) {
 			/*if larger than last RAP, rewind till it*/
 			if (last_rap_sample_time && (last_rap_sample_time<file_split_dur) ) {
 				file_split_dur = last_rap_sample_time;

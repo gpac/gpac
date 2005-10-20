@@ -125,10 +125,13 @@ DEP_CPP_LSR_P=\
 	"..\..\extra_lib\include\libxml\xmlversion.h"\
 	"..\..\extra_lib\include\libxml\xpath.h"\
 	"..\..\extra_lib\include\libxml\xpathInternals.h"\
+	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\codec.h"\
 	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -136,6 +139,7 @@ DEP_CPP_LSR_P=\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	"..\..\modules\svg_loader\svg_parse_attributes.h"\
 	"..\..\modules\svg_loader\svg_parser.h"\
 	
 # End Source File
@@ -200,7 +204,7 @@ SOURCE=..\..\modules\svg_loader\svg_loader.def
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\svg_loader\svg_parser.c
+SOURCE=..\..\modules\svg_loader\svg_parse_attributes.c
 DEP_CPP_SVG_P=\
 	"..\..\extra_lib\include\libxml\dict.h"\
 	"..\..\extra_lib\include\libxml\encoding.h"\
@@ -225,10 +229,14 @@ DEP_CPP_SVG_P=\
 	"..\..\extra_lib\include\libxml\xmlversion.h"\
 	"..\..\extra_lib\include\libxml\xpath.h"\
 	"..\..\extra_lib\include\libxml\xpathInternals.h"\
+	"..\..\include\gpac\base_coding.h"\
+	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\codec.h"\
 	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -236,6 +244,56 @@ DEP_CPP_SVG_P=\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+	"..\..\modules\svg_loader\svg_parse_attributes.h"\
+	"..\..\modules\svg_loader\svg_parser.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\svg_loader\svg_parse_attributes.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\svg_loader\svg_parser.c
+DEP_CPP_SVG_PA=\
+	"..\..\extra_lib\include\libxml\dict.h"\
+	"..\..\extra_lib\include\libxml\encoding.h"\
+	"..\..\extra_lib\include\libxml\entities.h"\
+	"..\..\extra_lib\include\libxml\globals.h"\
+	"..\..\extra_lib\include\libxml\hash.h"\
+	"..\..\extra_lib\include\libxml\list.h"\
+	"..\..\extra_lib\include\libxml\parser.h"\
+	"..\..\extra_lib\include\libxml\SAX.h"\
+	"..\..\extra_lib\include\libxml\SAX2.h"\
+	"..\..\extra_lib\include\libxml\threads.h"\
+	"..\..\extra_lib\include\libxml\tree.h"\
+	"..\..\extra_lib\include\libxml\valid.h"\
+	"..\..\extra_lib\include\libxml\xlink.h"\
+	"..\..\extra_lib\include\libxml\xmlautomata.h"\
+	"..\..\extra_lib\include\libxml\xmlerror.h"\
+	"..\..\extra_lib\include\libxml\xmlexports.h"\
+	"..\..\extra_lib\include\libxml\xmlIO.h"\
+	"..\..\extra_lib\include\libxml\xmlmemory.h"\
+	"..\..\extra_lib\include\libxml\xmlregexp.h"\
+	"..\..\extra_lib\include\libxml\xmlstring.h"\
+	"..\..\extra_lib\include\libxml\xmlversion.h"\
+	"..\..\extra_lib\include\libxml\xpath.h"\
+	"..\..\extra_lib\include\libxml\xpathInternals.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\nodes_svg.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\modules\svg_loader\svg_parse_attributes.h"\
 	"..\..\modules\svg_loader\svg_parser.h"\
 	
 # End Source File

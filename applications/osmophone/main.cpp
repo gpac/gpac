@@ -82,6 +82,7 @@ static Bool ctrl_mod_down = 0;
 static Bool view_cpu = 0;
 static Bool menu_switched = 0;
 static Bool use_low_fps = 0;
+static Bool use_svg_prog = 0;
 
 void set_status(char *state)
 {
@@ -275,6 +276,7 @@ void do_layout(Bool notif_size)
 	}
 	if (notif_size && term) gf_term_set_size(term, w, h);
 }
+
 
 void set_backlight_state(Bool disable) 
 {
@@ -520,6 +522,17 @@ void pause_file()
 
 }
 
+void set_svg_progressive()
+{
+	use_svg_prog = !use_svg_prog;
+	if (use_svg_prog) {
+		gf_cfg_set_key(user.config, "SVGLoader", "LoadType", "SAX Progressive");
+		gf_cfg_set_key(user.config, "SVGLoader", "SAXMaxDuration", "30");
+	} else {
+		gf_cfg_set_key(user.config, "SVGLoader", "LoadType", "DOM");
+	}
+}
+
 BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 {
 	switch (LOWORD(wParam)) {
@@ -631,6 +644,9 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 		load_recent_file(LOWORD(wParam) - IDM_OPEN_FILE1); 
 		break;
 
+	case IDM_VIEW_SVG_LOAD:
+		set_svg_progressive();
+		break;
 	case IDM_ITEM_QUIT:
 		DestroyWindow(hwnd);
 		return FALSE;
@@ -649,6 +665,8 @@ static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 
 		EnableMenuItem((HMENU)wParam, IDM_VIEW_DIRECT, MF_BYCOMMAND| (!use_3D_renderer ? MF_ENABLED : MF_GRAYED) );
 		CheckMenuItem((HMENU)wParam, IDM_VIEW_DIRECT, MF_BYCOMMAND| (!use_3D_renderer && gf_term_get_option(term, GF_OPT_DIRECT_RENDER) ? MF_CHECKED : MF_UNCHECKED) );
+
+		CheckMenuItem((HMENU)wParam, IDM_VIEW_SVG_LOAD, MF_BYCOMMAND| (use_svg_prog ? MF_CHECKED : MF_UNCHECKED) );
 		return TRUE;
 	}
 
@@ -954,6 +972,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	str = gf_cfg_get_key(user.config, "Rendering", "RendererName");
 	use_3D_renderer = (str && strstr(str, "3D")) ? 1 : 0;
+
+	str = gf_cfg_get_key(user.config, "SVGLoader", "LoadType");
+	use_svg_prog = (str && strstr(str, "SAX Progressive")) ? 1 : 0;
 
 	if (InitInstance(nShowCmd)) {
 		SetForegroundWindow(g_hwnd);
