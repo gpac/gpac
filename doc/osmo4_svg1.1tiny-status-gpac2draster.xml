@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="status2html.xslt"?>
 <!-- shortName=A unique abbreviation to be used for a file name for this file             -->
 <!--        and column header for the matrix.  MUST be a legal xml id prefix and fileName -->
 <!--       (shortName.xml) please make it 3-12 characters and do not use spaces.          -->
@@ -7,14 +8,8 @@
 <!-- version=The version number of the product being tested                               -->
 <!-- platform=The platform(s) that the product is tested on                               -->
 <!-- date=The date of the submission in the form year/month/day, eg. 2002/08/30           -->
-<!-- 
-    # of tests:      179 (empty: 12, others: 167)
-    # of OK:         107 (empty: 12, others:  95)
-    # of PARTIAL:                             45
-    # of FAIL:                                27 (text: 7, fonts: 13, animation on a path: 5, event: 2)
--->		
 <svg-status-query company="GPAC Project" date="2005/10/11"
-		product="Osmo4 using GPAC 2D Raster"
+		product="MP4Client + GPAC 2D Raster + LibXML SAX"
 		version="0.4.1-DEV Debug"
 		platform="Win32, WinCE, Linux"
 		shortName="Osmo4"
@@ -23,12 +18,12 @@
 <!--    status=must be one of 'OK', 'PARTIAL', or 'FAIL'                                -->
 <!--    comment=optional comment to publish with the result, like why you don't pass :) -->
 	<test name="animate-elem-02-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-03-t" revision="1.8" status="PARTIAL" comment="No animation of text size + refresh problem"/>
+	<test name="animate-elem-03-t" revision="1.8" status="PARTIAL" comment="Refresh problems"/>
 	<test name="animate-elem-04-t" revision="1.7" status="OK" comment=""/>
 	<test name="animate-elem-05-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-06-t" revision="1.9" status="FAIL" comment="path attribute on animateMotion element not supported"/>
-	<test name="animate-elem-07-t" revision="1.8" status="FAIL" comment="mpath element not supported"/>
-	<test name="animate-elem-08-t" revision="1.8" status="FAIL" comment="rotate not supported on animateMotion"/>
+	<test name="animate-elem-06-t" revision="1.9" status="PARTIAL" comment="path attribute on animateMotion element not supported"/>
+	<test name="animate-elem-07-t" revision="1.8" status="PARTIAL" comment="mpath element not supported"/>
+	<test name="animate-elem-08-t" revision="1.8" status="PARTIAL" comment="rotate not supported on animateMotion"/>
 	<test name="animate-elem-09-t" revision="1.8" status="OK" comment=""/>
 	<test name="animate-elem-10-t" revision="1.8" status="OK" comment=""/>
 	<test name="animate-elem-11-t" revision="1.9" status="PARTIAL" comment="paced keyword is not supported yet, linear used instead."/>
@@ -36,63 +31,63 @@
 	<test name="animate-elem-13-t" revision="1.8" status="PARTIAL" comment="from/by and by animations not supported."/>
 	<test name="animate-elem-14-t" revision="1.6" status="OK" comment=""/>
 	<test name="animate-elem-15-t" revision="1.5" status="PARTIAL" comment="paced keyword is not supported yet, linear used instead."/>
-	<test name="animate-elem-16-t" revision="1.5" status="OK" comment=""/>
 	<test name="animate-elem-17-t" revision="1.5" status="PARTIAL" comment="spline keyword is not supported yet, linear used instead."/>
 	<test name="animate-elem-19-t" revision="1.5" status="OK" comment=""/>
 	<test name="animate-elem-20-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-21-t" revision="1.7" status="FAIL" comment="No event supported"/>
+	<test name="animate-elem-21-t" revision="1.7" status="PARTIAL" comment="No event supported"/>
 	<test name="animate-elem-23-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-24-t" revision="1.7" status="FAIL" comment="SVG Fonts not supported, animateMotion and animateTransform combination not supported"/>
+	<test name="animate-elem-24-t" revision="1.7" status="PARTIAL" comment="SVG Fonts not supported, animateMotion and animateTransform combination not supported"/>
 	<test name="animate-elem-25-t" revision="1.7" status="OK" comment=""/>
 	<test name="animate-elem-26-t" revision="1.7" status="OK" comment=""/>
 	<test name="animate-elem-27-t" revision="1.7" status="OK" comment=""/>
 	<test name="animate-elem-28-t" revision="1.6" status="PARTIAL" comment="Refresh problem (except direct rendering)"/>
 	<test name="animate-elem-30-t" revision="1.5" status="PARTIAL" comment="animateMotion and path not supported"/>
 	<test name="animate-elem-31-t" revision="1.5" status="OK" comment=""/>
-	<test name="animate-elem-32-t" revision="1.14" status="OK" comment=""/>
+	<test name="animate-elem-32-t" revision="1.15" status="OK" comment=""/>
 	<test name="animate-elem-33-t" revision="1.7" status="PARTIAL" comment="keyPoints not supported in all cases."/>
 	<test name="animate-elem-34-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-35-t" revision="1.6" status="PARTIAL" comment="Dashing is incorrect."/>
-	<test name="animate-elem-36-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-37-t" revision="1.5" status="OK" comment=""/>
+	<test name="animate-elem-35-t" revision="1.6" status="PARTIAL" comment="Problems when several use elements don't have the same stroke properties (dashing ...)."/>
+	<test name="animate-elem-36-t" revision="1.8" status="PARTIAL" comment=""/>
+	<test name="animate-elem-37-t" revision="1.6" status="PARTIAL" comment=""/>
 	<test name="animate-elem-38-t" revision="1.5" status="OK" comment=""/>
-	<test name="animate-elem-39-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-40-t" revision="1.5" status="PARTIAL" comment="Multiple x/y values on text is not supported."/>
-	<test name="animate-elem-41-t" revision="1.6" status="PARTIAL" comment="Many inherit and animation problems"/>
+	<test name="animate-elem-39-t" revision="1.7" status="OK" comment=""/>
+	<test name="animate-elem-40-t" revision="1.6" status="PARTIAL" comment="Multiple x/y values on text is not supported."/>
+	<test name="animate-elem-41-t" revision="1.7" status="PARTIAL" comment="Many inherit and animation problems"/>
 	<test name="animate-elem-42-t" revision="1.3" status="OK" comment="empty"/>
 	<test name="animate-elem-43-t" revision="1.4" status="OK" comment="empty"/>
 	<test name="animate-elem-44-t" revision="1.5" status="PARTIAL" comment="Removal of carriage return in text is done but not of spaces"/>
 	<test name="animate-elem-45-t" revision="1.3" status="OK" comment="empty"/>
-	<test name="animate-elem-46-t" revision="1.6" status="PARTIAL" comment="animation of font-weight + text in g and a."/>
+	<test name="animate-elem-46-t" revision="1.7" status="PARTIAL" comment="animation of font-weight + text in g and a."/>
 	<test name="animate-elem-47-t" revision="1.3" status="OK" comment="empty"/>
 	<test name="animate-elem-48-t" revision="1.3" status="OK" comment="empty"/>
 	<test name="animate-elem-49-t" revision="1.3" status="OK" comment="empty"/>
 	<test name="animate-elem-50-t" revision="1.3" status="OK" comment="empty"/>
 	<test name="animate-elem-51-t" revision="1.3" status="OK" comment="empty"/>
-	<test name="animate-elem-52-t" revision="1.5" status="FAIL" comment="click not supported"/>
+	<test name="animate-elem-52-t" revision="1.5" status="PARTIAL" comment="click not supported"/>
 	<test name="animate-elem-53-t" revision="1.5" status="PARTIAL" comment="Problem with underlying value for second animation"/>
-	<test name="animate-elem-60-t" revision="1.3" status="PARTIAL" comment="No event base, sync base, repeat, accessKey and wallclock"/>
-	<test name="animate-elem-61-t" revision="1.3" status="PARTIAL" comment="No event base, sync base, repeat, accessKey"/>
-	<test name="animate-elem-62-t" revision="1.3" status="PARTIAL" comment="No event base, sync base, repeat, accessKey and wallclock"/>
-	<test name="animate-elem-63-t" revision="1.3" status="PARTIAL" comment="No event base, sync base, repeat, accessKey"/>
-	<test name="animate-elem-64-t" revision="1.3" status="OK" comment=""/>
-	<test name="animate-elem-65-t" revision="1.3" status="OK" comment=""/>
-	<test name="animate-elem-66-t" revision="1.3" status="OK" comment="min max"/>
-	<test name="animate-elem-67-t" revision="1.4" status="PARTIAL" comment="restart whenNotActive"/>
-	<test name="animate-elem-68-t" revision="1.4" status="OK" comment=""/>
-	<test name="animate-elem-69-t" revision="1.4" status="OK" comment=""/>
-	<test name="animate-elem-70-t" revision="1.3" status="OK" comment=""/>
-	<test name="animate-elem-77-t" revision="1.4" status="PARTIAL" comment="text not displayed"/>
-	<test name="animate-elem-78-t" revision="1.5" status="PARTIAL" comment="Animation of color, stroke ..."/>
-	<test name="animate-elem-80-t" revision="1.4" status="OK" comment=""/>
-	<test name="animate-elem-81-t" revision="1.3" status="OK" comment=""/>
-	<test name="animate-elem-82-t" revision="1.3" status="PARTIAL" comment="paced translation"/>
-	<test name="animate-elem-83-t" revision="1.4" status="PARTIAL" comment="to animation is not supported"/>
+	<test name="animate-elem-60-t" revision="1.4" status="PARTIAL" comment="No event base, sync base, repeat, accessKey and wallclock"/>
+	<test name="animate-elem-61-t" revision="1.4" status="PARTIAL" comment="No event base, sync base, repeat, accessKey"/>
+	<test name="animate-elem-62-t" revision="1.4" status="PARTIAL" comment="No event base, sync base, repeat, accessKey and wallclock"/>
+	<test name="animate-elem-63-t" revision="1.4" status="PARTIAL" comment="No event base, sync base, repeat, accessKey"/>
+	<test name="animate-elem-64-t" revision="1.4" status="OK" comment=""/>
+	<test name="animate-elem-65-t" revision="1.4" status="OK" comment=""/>
+	<test name="animate-elem-66-t" revision="1.4" status="OK" comment="min max"/>
+	<test name="animate-elem-67-t" revision="1.5" status="PARTIAL" comment="restart whenNotActive"/>
+	<test name="animate-elem-68-t" revision="1.5" status="OK" comment=""/>
+	<test name="animate-elem-69-t" revision="1.5" status="OK" comment=""/>
+	<test name="animate-elem-70-t" revision="1.4" status="OK" comment=""/>
+	<test name="animate-elem-77-t" revision="1.6" status="PARTIAL" comment="text not displayed"/>
+	<test name="animate-elem-78-t" revision="1.6" status="PARTIAL" comment="Animation of color, stroke ..."/>
+	<test name="animate-elem-80-t" revision="1.6" status="OK" comment=""/>
+	<test name="animate-elem-81-t" revision="1.4" status="OK" comment=""/>
+	<test name="animate-elem-82-t" revision="1.4" status="PARTIAL" comment="paced translation"/>
+	<test name="animate-elem-83-t" revision="1.5" status="PARTIAL" comment="to animation is not supported"/>
+	<test name="animate-elem-84-t" revision="1.3" status="" comment=""/>
 	<test name="color-prop-03-t" revision="1.5" status="OK" comment=""/>
-	<test name="color-prop-04-t" revision="1.2" status="OK" comment=""/>
+	<test name="color-prop-04-t" revision="1.3" status="OK" comment=""/>
 	<test name="color-prop-05-t" revision="1.1" status="OK" comment=""/>
-	<test name="coords-coord-01-t" revision="1.1" status="OK" comment=""/>
-	<test name="coords-coord-02-t" revision="1.1" status="OK" comment=""/>
+	<test name="coords-coord-01-t" revision="1.2" status="OK" comment=""/>
+	<test name="coords-coord-02-t" revision="1.2" status="OK" comment=""/>
 	<test name="coords-trans-02-t" revision="1.6" status="OK" comment=""/>
 	<test name="coords-trans-03-t" revision="1.6" status="OK" comment=""/>
 	<test name="coords-trans-04-t" revision="1.6" status="OK" comment=""/>
@@ -109,16 +104,19 @@
 	<test name="fonts-elem-01-t" revision="1.4" status="FAIL" comment=""/>
 	<test name="fonts-elem-02-t" revision="1.4" status="FAIL" comment=""/>
 	<test name="fonts-elem-05-t" revision="1.7" status="FAIL" comment=""/>
-	<test name="fonts-elem-06-t" revision="1.8" status="FAIL" comment=""/>
-	<test name="fonts-glyph-02-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="fonts-glyph-03-t" revision="1.7" status="FAIL" comment=""/>
-	<test name="fonts-glyph-04-t" revision="1.7" status="FAIL" comment=""/>
-	<test name="fonts-kern-01-t" revision="1.7" status="FAIL" comment=""/>
-	<test name="interact-zoom-01-t" revision="1.5" status="PARTIAL" comment="Graphics part is OK, disabling zoom is not supported."/>
+	<test name="fonts-elem-06-t" revision="1.9" status="FAIL" comment=""/>
+	<test name="fonts-glyph-02-t" revision="1.6" status="FAIL" comment=""/>
+	<test name="fonts-glyph-03-t" revision="1.8" status="FAIL" comment=""/>
+	<test name="fonts-glyph-04-t" revision="1.8" status="FAIL" comment=""/>
+	<test name="fonts-kern-01-t" revision="1.8" status="FAIL" comment=""/>
+	<test name="interact-zoom-01-t" revision="1.6" status="OK" comment=""/>
+	<tst name="interact-zoom-02-t" revision="1.1" status="OK" comment=""/>
+	<test name="interact-zoom-03-t" revision="1.1" status="OK" comment=""/>
 	<test name="linking-a-04-t" revision="1.9" status="OK" comment=""/>
-	<test name="linking-a-05-t" revision="1.6" status="OK" comment=""/>
+	<test name="linking-a-05-t" revision="1.7" status="OK" comment=""/>
 	<test name="linking-a-06-t" revision="1.4" status="OK" comment="empty"/>
-	<test name="linking-a-07-t" revision="1.8" status="OK" comment=""/>
+	<test name="linking-a-07-t" revision="1.9" status="OK" comment=""/>
+	<test name="linking-a-08-t" revision="1.1" status="OK" comment=""/>
 	<test name="linking-uri-03-t" revision="1.8" status="OK" comment=""/>
 	<test name="painting-fill-01-t" revision="1.5" status="OK" comment=""/>
 	<test name="painting-fill-02-t" revision="1.6" status="OK" comment=""/>
@@ -139,9 +137,9 @@
 	<test name="paths-data-05-t" revision="1.8" status="OK" comment=""/>
 	<test name="paths-data-06-t" revision="1.7" status="OK" comment=""/>
 	<test name="paths-data-07-t" revision="1.8" status="OK" comment=""/>
-	<test name="paths-data-08-t" revision="1.9" status="OK" comment=""/>
-	<test name="paths-data-09-t" revision="1.9" status="OK" comment=""/>
-	<test name="paths-data-10-t" revision="1.9" status="OK" comment=""/>
+	<test name="paths-data-08-t" revision="1.10" status="OK" comment=""/>
+	<test name="paths-data-09-t" revision="1.10" status="OK" comment=""/>
+	<test name="paths-data-10-t" revision="1.10" status="OK" comment=""/>
 	<test name="paths-data-11-t" revision="1.5" status="OK" comment="empty"/>
 	<test name="paths-data-12-t" revision="1.1" status="OK" comment=""/>
 	<test name="paths-data-13-t" revision="1.1" status="OK" comment=""/>
@@ -167,38 +165,37 @@
 	<test name="shapes-rect-02-t" revision="1.2" status="OK" comment=""/>
 	<test name="struct-cond-01-t" revision="1.6" status="PARTIAL" comment="required* attributes are not yet supported."/>
 	<test name="struct-cond-02-t" revision="1.8" status="PARTIAL" comment="Switch does not do selection yet."/>
-	<test name="struct-cond-03-t" revision="1.6" status="PARTIAL" comment="Switch does not do selection yet."/>
+	<test name="struct-cond-03-t" revision="1.7" status="PARTIAL" comment="Switch does not do selection yet."/>
 	<test name="struct-defs-01-t" revision="1.7" status="OK" comment=""/>
 	<test name="struct-frag-01-t" revision="1.3" status="OK" comment=""/>
-	<test name="struct-frag-02-t" revision="1.6" status="OK" comment=""/>
-	<test name="struct-frag-03-t" revision="1.6" status="PARTIAL" comment="preserveAspectRatio on the svg element not yet implemented."/>
+	<test name="struct-frag-02-t" revision="1.7" status="OK" comment=""/>
+	<test name="struct-frag-03-t" revision="1.7" status="PARTIAL" comment="preserveAspectRatio on the svg element not yet implemented."/>
 	<test name="struct-frag-04-t" revision="1.6" status="OK" comment=""/>
 	<test name="struct-frag-05-t" revision="1.11" status="OK" comment=""/>
-	<test name="struct-frag-06-t" revision="1.7" status="PARTIAL" comment="Shapes as entity not displayed"/>
+	<test name="struct-frag-06-t" revision="1.8" status="PARTIAL" comment="Shapes as entity not displayed"/>
 	<test name="struct-group-01-t" revision="1.4" status="OK" comment=""/>
 	<test name="struct-group-03-t" revision="1.5" status="OK" comment=""/>
 	<test name="struct-image-01-t" revision="1.8" status="OK" comment=""/>
 	<test name="struct-image-03-t" revision="1.6" status="OK" comment=""/>
 	<test name="struct-image-04-t" revision="1.4" status="OK" comment=""/>
-	<test name="struct-image-06-t" revision="1.8" status="PARTIAL" comment="preserveAspectRatio not supported on the image element"/>
-	<test name="struct-image-07-t" revision="1.6" status="PARTIAL" comment="xml:base not supported"/>
+	<test name="struct-image-06-t" revision="1.9" status="PARTIAL" comment="preserveAspectRatio not supported on the image element"/>
+	<test name="struct-image-07-t" revision="1.7" status="PARTIAL" comment="xml:base not supported"/>
 	<test name="struct-image-08-t" revision="1.6" status="OK" comment="empty"/>
-	<test name="struct-use-01-t" revision="1.11" status="PARTIAL" comment="Italic text not supported"/>
-	<test name="struct-use-02-t" revision="1.7" status="OK" comment=""/>
+	<test name="struct-use-01-t" revision="1.12" status="PARTIAL" comment="Italic text not supported"/>
+	<test name="struct-use-02-t" revision="1.8" status="OK" comment=""/>
 	<test name="struct-use-03-t" revision="1.6" status="OK" comment=""/>
 	<test name="styling-pres-01-t" revision="1.3" status="PARTIAL" comment="Does not go into error and displays a black rectangle"/>
 	<test name="text-align-07-t" revision="1.1" status="FAIL" comment=""/>
-	<test name="text-align-08-t" revision="1.1" status="PARTIAL" comment="No Japanese nor Chinese text."/>
-	<test name="text-fonts-01-t" revision="1.5" status="PARTIAL" comment="No Japanese nor Chinese text."/>
-	<test name="text-fonts-02-t" revision="1.7" status="PARTIAL" comment="font-weight not supported yet."/>
+	<test name="text-fonts-01-t" revision="1.5" status="FAIL" comment="No Japanese nor Chinese text."/>
+	<test name="text-fonts-02-t" revision="1.7" status="FAIL" comment="font-weight not supported yet."/>
 	<test name="text-fonts-03-t" revision="1.5" status="FAIL" comment=""/>
-	<test name="text-intro-01-t" revision="1.6" status="PARTIAL" comment="No Japanese nor Chinese text, hebrew and yiddish in bad order."/>
-	<test name="text-intro-04-t" revision="1.10" status="PARTIAL" comment="No ligature ..."/>
+	<test name="text-intro-01-t" revision="1.6" status="FAIL" comment="No Japanese nor Chinese text, hebrew and yiddish in bad order."/>
+	<test name="text-intro-04-t" revision="1.10" status="FAIL" comment="No ligature ..."/>
 	<test name="text-intro-05-t" revision="1.2" status="FAIL" comment="No SVG Font"/>
 	<test name="text-text-04-t" revision="1.11" status="FAIL" comment="No SVG Font"/>
 	<test name="text-text-05-t" revision="1.6" status="FAIL" comment="No SVG Font"/>
 	<test name="text-text-06-t" revision="1.7" status="FAIL" comment="No SVG Font"/>
 	<test name="text-text-07-t" revision="1.5" status="FAIL" comment="No SVG Font"/>
-	<test name="text-ws-01-t" revision="1.7" status="OK" comment=""/>
+	<test name="text-ws-01-t" revision="1.7" status="FAIL" comment=""/>
 	<test name="text-ws-02-t" revision="1.7" status="FAIL" comment="No whitespace preservation."/>
 </svg-status-query>

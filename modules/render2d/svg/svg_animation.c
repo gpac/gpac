@@ -1253,6 +1253,17 @@ static void SVG_Init_SMILAnimationStackAPI(SMIL_AnimationStack *stack)
 		stack->Invalidate = SVG_InvalidateNodeOnly;
 		stack->Assign = SVG_SetTransform;
 		stack->Compare = SVG_CompareTransform;
+		stack->Set = SVG_SetTransform;
+		stack->Interpolate = SVG_InterpolateTransform;
+		stack->ApplyAccumulate = SVG_ApplyAccumulateTransform;
+		break;
+	case SVG_TransformType_datatype:
+		stack->InitStackValues = SVG_InitStackValuesTransform;
+		stack->DeleteStackValues = SVG_DeleteStackValuesTransform;
+		stack->ApplyAdditive = SVG_ApplyAdditiveTransform;
+		stack->Invalidate = SVG_InvalidateNodeOnly;
+		stack->Assign = SVG_SetTransform;
+		stack->Compare = SVG_CompareTransform;
 		switch (stack->transformType) {
 		case SVG_TRANSFORM_TRANSLATE:
 			stack->Set = SVG_SetTranslation;
@@ -1283,7 +1294,6 @@ static void SVG_Init_SMILAnimationStackAPI(SMIL_AnimationStack *stack)
 			stack->Set = SVG_SetTransform;
 			stack->Interpolate = SVG_InterpolateTransform;
 			stack->ApplyAccumulate = SVG_ApplyAccumulateTransform;
-			/*TODO*/
 			break;
 		}
 		break;
@@ -1602,7 +1612,7 @@ void SVG_Init_animateTransform(Render2D *sr, GF_Node *node)
 	stack = SMIL_Init_AnimationStack(sr, node);
 	
 	stack->target_element = (GF_Node*)at->xlink_href.target;
-	stack->targetAttributeType = at->attributeName.type; 
+	stack->targetAttributeType = SVG_TransformType_datatype; 
 	if (!gf_node_get_field_by_name(stack->target_element, "transform", &info)) {
 		GF_List *trlist = *(SVG_TransformList *)info.far_ptr;
 		SVG_Transform *tr = gf_list_get(trlist, 0);
