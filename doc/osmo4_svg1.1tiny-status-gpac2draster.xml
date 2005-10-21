@@ -8,7 +8,7 @@
 <!-- version=The version number of the product being tested                               -->
 <!-- platform=The platform(s) that the product is tested on                               -->
 <!-- date=The date of the submission in the form year/month/day, eg. 2002/08/30           -->
-<svg-status-query company="GPAC Project" date="2005/10/11"
+<svg-status-query company="GPAC Project" date="2005/10/21"
 		product="MP4Client + GPAC 2D Raster + LibXML SAX"
 		version="0.4.1-DEV Debug"
 		platform="Win32, WinCE, Linux"
@@ -47,8 +47,8 @@
 	<test name="animate-elem-33-t" revision="1.7" status="PARTIAL" comment="keyPoints not supported in all cases."/>
 	<test name="animate-elem-34-t" revision="1.6" status="OK" comment=""/>
 	<test name="animate-elem-35-t" revision="1.6" status="PARTIAL" comment="Problems when several use elements don't have the same stroke properties (dashing ...)."/>
-	<test name="animate-elem-36-t" revision="1.8" status="PARTIAL" comment=""/>
-	<test name="animate-elem-37-t" revision="1.6" status="PARTIAL" comment=""/>
+	<test name="animate-elem-36-t" revision="1.8" status="OK" comment=""/>
+	<test name="animate-elem-37-t" revision="1.6" status="OK" comment=""/>
 	<test name="animate-elem-38-t" revision="1.5" status="OK" comment=""/>
 	<test name="animate-elem-39-t" revision="1.7" status="OK" comment=""/>
 	<test name="animate-elem-40-t" revision="1.6" status="PARTIAL" comment="Multiple x/y values on text is not supported."/>
