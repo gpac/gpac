@@ -344,6 +344,9 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 	gf_mx2d_copy(backup_matrix, eff->transform);
 	SVGSetViewport(eff, svg);
 
+	/*enable or disable navigation*/
+	eff->surface->render->navigation_disabled = (svg->zoomAndPan == SVG_ZOOMANDPAN_DISABLE) ? 1 : 0;
+
 	/* 3) */
 	svg_render_node_list(svg->children, eff);
 

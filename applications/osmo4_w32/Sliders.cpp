@@ -52,7 +52,7 @@ void Sliders::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 {
 	
 	WinGPAC *app = GetApp();
-	if (pScrollBar->GetDlgCtrlID() == IDC_SLIDER) {
+	if (pScrollBar->GetDlgCtrlID() == ID_SLIDER) {
 		switch (nSBCode) {
 		case TB_LINEUP:
 		case TB_LINEDOWN:

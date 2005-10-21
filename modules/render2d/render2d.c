@@ -369,7 +369,7 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 
 no_sensor:
 	/*no object, perform zoom & pan*/
-	if (!(sr->compositor->interaction_level & GF_INTERACT_NAVIGATION) || !sr->navigate_mode) return 0;
+	if (!(sr->compositor->interaction_level & GF_INTERACT_NAVIGATION) || !sr->navigate_mode || sr->navigation_disabled) return 0;
 
 	key_inv = 1;
 	key_trans = 2*FIX_ONE;
@@ -1018,7 +1018,7 @@ u32 R2D_GetOption(GF_VisualRenderer *vr, u32 option)
 	case GF_OPT_SCALABLE_ZOOM: return sr->scalable_zoom;
 	case GF_OPT_YUV_HARDWARE: return sr->enable_yuv_hw;
 	case GF_OPT_YUV_FORMAT: return sr->enable_yuv_hw ? sr->compositor->video_out->yuv_pixel_format : 0;
-	case GF_OPT_NAVIGATION_TYPE: return GF_NAVIGATE_TYPE_2D;
+	case GF_OPT_NAVIGATION_TYPE: return sr->navigation_disabled ? GF_NAVIGATE_TYPE_NONE : GF_NAVIGATE_TYPE_2D;
 	case GF_OPT_NAVIGATION: return sr->navigate_mode;
 	case GF_OPT_HEADLIGHT: return 0;
 	case GF_OPT_COLLISION: return GF_COLLISION_NONE;

@@ -35,9 +35,9 @@
 /*mouse hiding timeout in fullscreen, in milliseconds*/
 #define MOUSE_HIDE_TIMEOUT	1000
 
-void DD_SetCursor(GF_VideoOutput *dr, u32 cursor_type);
+static const GF_VideoOutput *the_video_output = NULL;
 
-static GF_VideoOutput *the_video_driver = NULL;
+void DD_SetCursor(GF_VideoOutput *dr, u32 cursor_type);
 
 static void DD_GetCoordinates(DWORD lParam, GF_Event *evt)
 {
@@ -80,41 +80,42 @@ static u32 DD_TranslateActionKey(u32 VirtKey)
 }
 
 
-static void mouse_move(DDContext *ctx)
+static void mouse_move(DDContext *ctx, GF_VideoOutput *vout)
 {
 	if (ctx->fullscreen) {
 		ctx->last_mouse_move = gf_sys_clock();
-		if (ctx->cursor_type==GF_CURSOR_HIDE) DD_SetCursor(the_video_driver, ctx->cursor_type_backup);
+		if (ctx->cursor_type==GF_CURSOR_HIDE) DD_SetCursor(vout, ctx->cursor_type_backup);
 	}
 }
 
-static void mouse_start_timer(DDContext *ctx, HWND hWnd)
+static void mouse_start_timer(DDContext *ctx, HWND hWnd, GF_VideoOutput *vout)
 {
 	if (ctx->fullscreen) {
 		if (!ctx->timer) ctx->timer = SetTimer(hWnd, 10, 1000, NULL);
-		mouse_move(ctx);
+		mouse_move(ctx, vout);
 	}
 }
 
-void grab_mouse(DDContext *ctx)
+void grab_mouse(DDContext *ctx, GF_VideoOutput *vout)
 {
-//	if (ctx->fullscreen) DD_SetCursor(the_video_driver, GF_CURSOR_NORMAL);
+//	if (ctx->fullscreen) DD_SetCursor(vout, GF_CURSOR_NORMAL);
 	SetCapture(ctx->cur_hwnd);
-	mouse_move(ctx);
+	mouse_move(ctx, vout);
 }
-void release_mouse(DDContext *ctx, HWND hWnd)
+void release_mouse(DDContext *ctx, HWND hWnd, GF_VideoOutput *vout)
 {
 	ReleaseCapture();
-	mouse_start_timer(ctx, hWnd);
+	mouse_start_timer(ctx, hWnd, vout);
 }
 
 LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 {
 	GF_Event evt;
 	DDContext *ctx;
+	GF_VideoOutput *vout = (GF_VideoOutput *) GetWindowLong(hWnd, GWL_USERDATA);
 
-	if (!the_video_driver) return DefWindowProc (hWnd, msg, wParam, lParam);
-	ctx = (DDContext *)the_video_driver->opaque;
+	if (!vout) return DefWindowProc (hWnd, msg, wParam, lParam);
+	ctx = (DDContext *)vout->opaque;
 
 	switch (msg) {
 	case WM_SIZE:
@@ -122,12 +123,12 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		evt.type = GF_EVT_SIZE;
 		evt.size.width = LOWORD(lParam);
 		evt.size.height = HIWORD(lParam);
-		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+		vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
 	case WM_CLOSE:
 		if (hWnd==ctx->os_hwnd) {
 			evt.type = GF_EVT_QUIT;
-			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+			vout->on_event(vout->evt_cbk_hdl, &evt);
 		}
 		return 1;
 	case WM_DESTROY:
@@ -136,12 +137,12 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	case WM_ACTIVATE:
 		if (ctx->fullscreen && (LOWORD(wParam)==WA_INACTIVE) && (hWnd==ctx->fs_hwnd)) {
 			evt.type = GF_EVT_SHOWHIDE;
-			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+			vout->on_event(vout->evt_cbk_hdl, &evt);
 		}
 		break;
 
 	case WM_SETCURSOR:
-		if (ctx->cur_hwnd==hWnd) DD_SetCursor(the_video_driver, ctx->cursor_type);
+		if (ctx->cur_hwnd==hWnd) DD_SetCursor(vout, ctx->cursor_type);
 		return 1;
 	case WM_ERASEBKGND:
 		//InvalidateRect(ctx->cur_hwnd, NULL, TRUE);
@@ -149,7 +150,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	case WM_PAINT:
 		if (ctx->cur_hwnd==hWnd) {
 			evt.type = GF_EVT_REFRESH;
-			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+			vout->on_event(vout->evt_cbk_hdl, &evt);
 		}
 		break;
 
@@ -157,11 +158,11 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		if (ctx->cur_hwnd!=hWnd) break;
 		if (ctx->last_mouse_pos != lParam) {
 			ctx->last_mouse_pos = lParam;
-			DD_SetCursor(the_video_driver, (ctx->cursor_type==GF_CURSOR_HIDE) ? ctx->cursor_type_backup : ctx->cursor_type);
+			DD_SetCursor(vout, (ctx->cursor_type==GF_CURSOR_HIDE) ? ctx->cursor_type_backup : ctx->cursor_type);
 			evt.type = GF_EVT_MOUSEMOVE;
 			DD_GetCoordinates(lParam, &evt);
-			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
-			mouse_start_timer(ctx, hWnd);
+			vout->on_event(vout->evt_cbk_hdl, &evt);
+			mouse_start_timer(ctx, hWnd, vout);
 		}
 		break;
 	case WM_TIMER:
@@ -169,7 +170,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 			if (ctx->fullscreen && (ctx->cursor_type!=GF_CURSOR_HIDE)) {
 				if (gf_sys_clock() > MOUSE_HIDE_TIMEOUT + ctx->last_mouse_move) {
 					ctx->cursor_type_backup = ctx->cursor_type;
-					DD_SetCursor(the_video_driver, GF_CURSOR_HIDE);
+					DD_SetCursor(vout, GF_CURSOR_HIDE);
 					KillTimer(hWnd, ctx->timer);
 					ctx->timer = 0;
 				}
@@ -178,53 +179,53 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		break;
 	case WM_LBUTTONDOWN:
 	case WM_LBUTTONDBLCLK:
-		grab_mouse(ctx);
+		grab_mouse(ctx, vout);
 		evt.type = GF_EVT_LEFTDOWN;
 		DD_GetCoordinates(lParam, &evt);
-		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+		vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
 	case WM_LBUTTONUP:
-		release_mouse(ctx, hWnd);
+		release_mouse(ctx, hWnd, vout);
 		evt.type = GF_EVT_LEFTUP;
 		DD_GetCoordinates(lParam, &evt);
-		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+		vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
 	case WM_RBUTTONDOWN:
 	case WM_RBUTTONDBLCLK:
-		grab_mouse(ctx);
+		grab_mouse(ctx, vout);
 		evt.type = GF_EVT_RIGHTDOWN;
 		DD_GetCoordinates(lParam, &evt);
-		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+		vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
 	case WM_RBUTTONUP:
-		release_mouse(ctx, hWnd);
+		release_mouse(ctx, hWnd, vout);
 		evt.type = GF_EVT_RIGHTUP;
 		DD_GetCoordinates(lParam, &evt);
-		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
-		mouse_start_timer(ctx, hWnd);
+		vout->on_event(vout->evt_cbk_hdl, &evt);
+		mouse_start_timer(ctx, hWnd, vout);
 		break;
 	case WM_MBUTTONDOWN:
 	case WM_MBUTTONDBLCLK:
-		grab_mouse(ctx);
+		grab_mouse(ctx, vout);
 		evt.type = GF_EVT_MIDDLEDOWN;
 		DD_GetCoordinates(lParam, &evt);
-		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+		vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
 	case WM_MBUTTONUP:
-		release_mouse(ctx, hWnd);
+		release_mouse(ctx, hWnd, vout);
 		evt.type = GF_EVT_MIDDLEUP;
 		DD_GetCoordinates(lParam, &evt);
-		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
-		mouse_start_timer(ctx, hWnd);
+		vout->on_event(vout->evt_cbk_hdl, &evt);
+		mouse_start_timer(ctx, hWnd, vout);
 		break;
 	case WM_MOUSEWHEEL: 
 		if (ctx->cur_hwnd==hWnd) {
-			DD_SetCursor(the_video_driver, (ctx->cursor_type==GF_CURSOR_HIDE) ? ctx->cursor_type_backup : ctx->cursor_type);
+			DD_SetCursor(vout, (ctx->cursor_type==GF_CURSOR_HIDE) ? ctx->cursor_type_backup : ctx->cursor_type);
 			evt.type = GF_EVT_MOUSEWHEEL;
 			DD_GetCoordinates(lParam, &evt);
 			evt.mouse.wheel_pos = FLT2FIX( ((Float) (s16) HIWORD(wParam)) / WHEEL_DELTA );
-			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
-			mouse_start_timer(ctx, hWnd);
+			vout->on_event(vout->evt_cbk_hdl, &evt);
+			mouse_start_timer(ctx, hWnd, vout);
 		}
 		return 1;
 
@@ -236,7 +237,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		if (evt.key.vk_code) {
 			evt.type = (msg==WM_SYSKEYDOWN) ? GF_EVT_VKEYDOWN : GF_EVT_VKEYUP;
 			if (evt.key.vk_code<=GF_VK_RIGHT) evt.key.virtual_code = 0;
-			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+			vout->on_event(vout->evt_cbk_hdl, &evt);
 		}
 		break;
 	case WM_KEYDOWN:
@@ -246,19 +247,19 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		if (evt.key.vk_code ) {
 			evt.type = (msg==WM_KEYDOWN) ? GF_EVT_VKEYDOWN : GF_EVT_VKEYUP;
 			if (evt.key.vk_code <=GF_VK_RIGHT) evt.key.virtual_code = 0;
-			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+			vout->on_event(vout->evt_cbk_hdl, &evt);
 			/*also send a normal key for non-key-sensors*/
 			if (evt.key.vk_code>GF_VK_RIGHT) goto send_key;
 		} else {
 send_key:
 			evt.type = (msg==WM_KEYDOWN) ? GF_EVT_KEYDOWN : GF_EVT_KEYUP;
-			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+			vout->on_event(vout->evt_cbk_hdl, &evt);
 		}
 		break;
 	case WM_CHAR:
 		evt.type = GF_EVT_CHAR;
 		evt.character.unicode_char = wParam;
-		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+		vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
 	}
 	return DefWindowProc (hWnd, msg, wParam, lParam);
@@ -270,7 +271,8 @@ u32 DD_WindowThread(void *par)
 	MSG msg;
 	WNDCLASS wc;
 	HINSTANCE hInst;
-	DDContext *ctx = (DDContext *)the_video_driver->opaque;
+	GF_VideoOutput *vout = par;
+	DDContext *ctx = (DDContext *)vout->opaque;
 
 	hInst = GetModuleHandle("gm_dx_hw.dll");
 	memset(&wc, 0, sizeof(WNDCLASS));
@@ -300,7 +302,7 @@ u32 DD_WindowThread(void *par)
 		ctx->off_h = rc.bottom - rc.top - 100;
 		ctx->owns_hwnd = 1;
 	}
-		
+
 	ctx->fs_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw FS Output", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 	if (!ctx->fs_hwnd) {
 		ctx->th_state = 2;
@@ -308,6 +310,9 @@ u32 DD_WindowThread(void *par)
 	}
 	ShowWindow(ctx->fs_hwnd, SW_HIDE);
 	ctx->th_state = 1;
+
+	SetWindowLong(ctx->os_hwnd, GWL_USERDATA, (LONG) vout);
+	SetWindowLong(ctx->fs_hwnd, GWL_USERDATA, (LONG) vout);
 
 	/*load cursors*/
 	ctx->curs_normal = LoadCursor(NULL, IDC_ARROW);
@@ -328,8 +333,6 @@ u32 DD_WindowThread(void *par)
 void DD_SetupWindow(GF_VideoOutput *dr)
 {
 	DDContext *ctx = (DDContext *)dr->opaque;
-	if (the_video_driver) return;
-	the_video_driver = dr;
 
 	if (ctx->os_hwnd) {
 		ctx->orig_wnd_proc = GetWindowLong(ctx->os_hwnd, GWL_WNDPROC);
@@ -342,6 +345,7 @@ void DD_SetupWindow(GF_VideoOutput *dr)
 	gf_th_run(ctx->th, DD_WindowThread, dr);
 	while (!ctx->th_state) gf_sleep(2);
 
+	if (!the_video_output) the_video_output = dr;
 }
 
 void DD_ShutdownWindow(GF_VideoOutput *dr)
@@ -362,7 +366,7 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 	ctx->th = NULL;
 	ctx->os_hwnd = NULL;
 	ctx->fs_hwnd = NULL;
-	the_video_driver = NULL;
+	the_video_output = NULL;
 }
 
 void DD_SetCursor(GF_VideoOutput *dr, u32 cursor_type)
@@ -397,8 +401,8 @@ void DD_SetCursor(GF_VideoOutput *dr, u32 cursor_type)
 
 HWND DD_GetGlobalHWND()
 {
-	if (!the_video_driver) return NULL;
-	return ((DDContext*)the_video_driver->opaque)->os_hwnd;
+	if (!the_video_output) return NULL;
+	return ((DDContext*)the_video_output->opaque)->os_hwnd;
 }
 
 
@@ -427,7 +431,7 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 		if (ctx->is_3D_out) {
 			ctx->width = evt->size.width;
 			ctx->height = evt->size.height;
-			return DD_SetupOpenGL(the_video_driver);
+			return DD_SetupOpenGL(dr);
 		}
 		return DD_SetBackBufferSize(dr, evt->size.width, evt->size.height);
 	}

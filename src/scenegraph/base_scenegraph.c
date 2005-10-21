@@ -590,9 +590,10 @@ static void ReplaceIRINode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool
 {
 	u32 i;
 	GF_List *container;
-	GF_FieldInfo field;
 
 #if 0
+	GF_FieldInfo field;
+
 	/*browse all fields*/
 	for (i=0; i<gf_node_get_field_count(FromNode); i++) {
 		gf_node_get_field(FromNode, i, &field);

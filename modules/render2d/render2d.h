@@ -75,6 +75,7 @@ typedef struct _render_2d
 	Fixed grab_x, grab_y;
 	Fixed zoom, trans_x, trans_y;
 	u32 navigate_mode;
+	Bool navigation_disabled;
 } Render2D;
 
 
