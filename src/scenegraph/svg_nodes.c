@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Mon Oct 17 20:28:11 2005
+	DO NOT MOFIFY - File generated on GMT Wed Oct 19 18:34:42 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -3163,6 +3163,8 @@ void *SVG_New_font()
 static void SVG_font_face_Del(GF_Node *node)
 {
 	SVGfont_faceElement *p = (SVGfont_faceElement *)node;
+	free(p->textContent);
+	free(p->font_family.value);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -11602,6 +11604,11 @@ void *SVG_New_use()
 static void SVG_video_Del(GF_Node *node)
 {
 	SVGvideoElement *p = (SVGvideoElement *)node;
+	free(p->textContent);
+	SVG_ResetIRI(&(p->xlink_href));
+	SMIL_DeleteTimes(p->begin);
+	SMIL_DeleteTimes(p->end);
+	SVG_DeleteTransformList(p->transform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }

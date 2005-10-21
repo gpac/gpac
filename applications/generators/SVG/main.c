@@ -702,51 +702,49 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 	
 	fprintf(output, "static void SVG_%s_Del(GF_Node *node)\n{\n", svg_elt->implementation_name);
 	fprintf(output, "\tSVG%sElement *p = (SVG%sElement *)node;\n", svg_elt->implementation_name, svg_elt->implementation_name);
-	if (strcmp(svg_elt->svg_name, "video") && strcmp(svg_elt->svg_name, "font-face")) {
-		for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
-			SVGAttribute *att = gf_list_get(svg_elt->attributes, i);
-			if (!strcmp("SMIL_KeyTimesValues", att->impl_type) ||
-				!strcmp("SMIL_KeyPointsValues", att->impl_type) ||
-				!strcmp("SMIL_KeySplinesValues", att->impl_type) 
-				) {
-				fprintf(output, "\tSVG_DeleteCoordinates(p->%s);\n", att->implementation_name);
-			} else if (!strcmp("SMIL_AnimateValues", att->impl_type)) {				
-				fprintf(output, "\tSMIL_DeleteAnimateValues(&(p->%s));\n", att->implementation_name);
-			} else if (!strcmp("SMIL_AnimateValue", att->impl_type)) {
-				fprintf(output, "\tSMIL_DeleteAnimateValue(&(p->%s));\n", att->implementation_name);
-			} else if (!strcmp("SVG_Coordinates", att->impl_type)) {
-				fprintf(output, "\tSVG_DeleteCoordinates(p->%s);\n", att->implementation_name);
-			} else if (!strcmp("SVG_Points", att->impl_type)) {
-				fprintf(output, "\tSVG_DeletePoints(p->%s);\n", att->implementation_name);
-			} else if (!strcmp("SVG_PathData", att->impl_type) && !strcmp(svg_elt->svg_name, "animateMotion")) {
-				fprintf(output, "\tSVG_DeletePath(&(p->path));\n");
-			} else if (!strcmp("SVG_PathData", att->impl_type)) {
-				fprintf(output, "\tSVG_DeletePath(&(p->d));\n");
-			} else if (!strcmp("SMIL_AnimateValue", att->impl_type)) {
-				fprintf(output, "\tfree(p->%s.value);\n",att->implementation_name);
-			} else if (!strcmp("SMIL_AnimateValues", att->impl_type)) {
-				fprintf(output, "\tDeleteChain(p->%s.values);\n",att->implementation_name);
-			} else if (!att->attr_or_prop && !strcmp(att->implementation_name, "fill")) {
-				fprintf(output, "\tfree(p->fill.color);\n");
-			} else if (!strcmp(att->svg_name, "stroke")) {
-				fprintf(output, "\tfree(p->stroke.color);\n");
-			} else if (!strcmp(att->svg_name, "viewport-fill")) {
-				fprintf(output, "\tfree(p->viewport_fill.color);\n");
-			} else if (!strcmp(att->svg_name, "stroke-dasharray")) {
-				fprintf(output, "\tfree(p->stroke_dasharray.array.vals);\n");
-			} else if (!strcmp(att->svg_name, "stop-color")) {
-				fprintf(output, "\tfree(p->stop_color.color);\n");
-			} else if (!strcmp(att->svg_name, "transform")) {
-				fprintf(output, "\tSVG_DeleteTransformList(p->transform);\n");
-			} else if (!strcmp("SMIL_Times", att->impl_type)) {
-				fprintf(output, "\tSMIL_DeleteTimes(p->%s);\n", att->implementation_name);
-			} else if (!strcmp(att->svg_name, "textContent")) {
-				fprintf(output, "\tfree(p->textContent);\n");				
-			} else if (!strcmp(att->svg_name, "font-family")) {
-				fprintf(output, "\tfree(p->font_family.value);\n");
-			} else if (!strcmp(att->svg_name, "xlink:href")) {
-				fprintf(output, "\tSVG_ResetIRI(&(p->xlink_href));\n");
-			}
+	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
+		SVGAttribute *att = gf_list_get(svg_elt->attributes, i);
+		if (!strcmp("SMIL_KeyTimesValues", att->impl_type) ||
+			!strcmp("SMIL_KeyPointsValues", att->impl_type) ||
+			!strcmp("SMIL_KeySplinesValues", att->impl_type) 
+			) {
+			fprintf(output, "\tSVG_DeleteCoordinates(p->%s);\n", att->implementation_name);
+		} else if (!strcmp("SMIL_AnimateValues", att->impl_type)) {				
+			fprintf(output, "\tSMIL_DeleteAnimateValues(&(p->%s));\n", att->implementation_name);
+		} else if (!strcmp("SMIL_AnimateValue", att->impl_type)) {
+			fprintf(output, "\tSMIL_DeleteAnimateValue(&(p->%s));\n", att->implementation_name);
+		} else if (!strcmp("SVG_Coordinates", att->impl_type)) {
+			fprintf(output, "\tSVG_DeleteCoordinates(p->%s);\n", att->implementation_name);
+		} else if (!strcmp("SVG_Points", att->impl_type)) {
+			fprintf(output, "\tSVG_DeletePoints(p->%s);\n", att->implementation_name);
+		} else if (!strcmp("SVG_PathData", att->impl_type) && !strcmp(svg_elt->svg_name, "animateMotion")) {
+			fprintf(output, "\tSVG_DeletePath(&(p->path));\n");
+		} else if (!strcmp("SVG_PathData", att->impl_type)) {
+			fprintf(output, "\tSVG_DeletePath(&(p->d));\n");
+		} else if (!strcmp("SMIL_AnimateValue", att->impl_type)) {
+			fprintf(output, "\tfree(p->%s.value);\n",att->implementation_name);
+		} else if (!strcmp("SMIL_AnimateValues", att->impl_type)) {
+			fprintf(output, "\tDeleteChain(p->%s.values);\n",att->implementation_name);
+		} else if (!att->attr_or_prop && !strcmp(att->implementation_name, "fill")) {
+			fprintf(output, "\tfree(p->fill.color);\n");
+		} else if (!strcmp(att->svg_name, "stroke")) {
+			fprintf(output, "\tfree(p->stroke.color);\n");
+		} else if (!strcmp(att->svg_name, "viewport-fill")) {
+			fprintf(output, "\tfree(p->viewport_fill.color);\n");
+		} else if (!strcmp(att->svg_name, "stroke-dasharray")) {
+			fprintf(output, "\tfree(p->stroke_dasharray.array.vals);\n");
+		} else if (!strcmp(att->svg_name, "stop-color")) {
+			fprintf(output, "\tfree(p->stop_color.color);\n");
+		} else if (!strcmp(att->svg_name, "transform")) {
+			fprintf(output, "\tSVG_DeleteTransformList(p->transform);\n");
+		} else if (!strcmp("SMIL_Times", att->impl_type)) {
+			fprintf(output, "\tSMIL_DeleteTimes(p->%s);\n", att->implementation_name);
+		} else if (!strcmp(att->svg_name, "textContent")) {
+			fprintf(output, "\tfree(p->textContent);\n");				
+		} else if (!strcmp(att->svg_name, "font-family")) {
+			fprintf(output, "\tfree(p->font_family.value);\n");
+		} else if (!strcmp(att->svg_name, "xlink:href")) {
+			fprintf(output, "\tSVG_ResetIRI(&(p->xlink_href));\n");
 		}
 	}
 	fprintf(output, "\tgf_sg_parent_reset((GF_Node *) p);\n");

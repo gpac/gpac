@@ -719,10 +719,10 @@ static void SVG_AssignIRI(SMIL_AnimationStack *stack, SVG_IRI *a, SVG_IRI *b)
 	if (a->iri) free(a->iri);
 	if (b->iri) a->iri = strdup(b->iri);
 	if (!a->iri_owner) a->iri_owner = (SVGElement *)stack->target_element;
-	if (a->target) gf_node_unregister((GF_Node *)a->target, (GF_Node *)stack->target_element);
+	//if (a->target) gf_node_unregister((GF_Node *)a->target, (GF_Node *)stack->target_element);
 	a->target = b->target;
 	// Owner does not change but the iri may not have been parsed so the owner is not set
-	if (a->target) gf_node_register((GF_Node *)a->target, (GF_Node *)a->iri_owner);
+	//if (a->target) gf_node_register((GF_Node *)a->target, (GF_Node *)a->iri_owner);
 }
 
 static void SVG_MulIRI(SVG_IRI *a, Fixed k, SVG_IRI *c)

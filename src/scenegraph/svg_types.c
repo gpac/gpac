@@ -94,7 +94,7 @@ void SVG_ResetIRI(SVG_IRI *iri)
 {
 	if (!iri) return;
 	if (iri->iri) free(iri->iri);
-	if (iri->target) gf_node_unregister((GF_Node *)iri->target, (GF_Node *)iri->iri_owner);
+	//if (iri->target) gf_node_unregister((GF_Node *)iri->target, (GF_Node *)iri->iri_owner);
 }
 
 void SVG_DeleteOneAnimValue(u8 anim_datatype, void *anim_value)

@@ -407,6 +407,8 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	u32 node_ind, j;
 	GF_SceneGraph *pSG;
 
+//	fprintf(stdout, "unregister %8x from %8x\n", pNode, parentNode);
+
 	if (!pNode) return GF_OK;
 	pSG = pNode->sgprivate->scenegraph;
 	/*if this is a proto its is registered in its parent graph, not the current*/
@@ -480,6 +482,8 @@ GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 {
 	GF_SceneGraph *pSG; 
 	
+//	fprintf(stdout, "register %8x in %8x\n", node, parentNode);
+
 	pSG = node->sgprivate->scenegraph;
 	/*if this is a proto register to the parent graph, not the current*/
 	if (node == (GF_Node*)pSG->pOwningProto) pSG = pSG->parent_scene;
@@ -588,6 +592,7 @@ static void ReplaceIRINode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool
 	GF_List *container;
 	GF_FieldInfo field;
 
+#if 0
 	/*browse all fields*/
 	for (i=0; i<gf_node_get_field_count(FromNode); i++) {
 		gf_node_get_field(FromNode, i, &field);
@@ -629,6 +634,8 @@ static void ReplaceIRINode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool
 			}
 		}
 	}
+#endif
+
 	container = ((SVGElement *)FromNode)->children;
 	for (i=0; i<gf_list_count(container); i++) {
 		GF_Node *p = gf_list_get(container, i);

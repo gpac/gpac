@@ -527,7 +527,7 @@ void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVGEle
 			((SVG_IRI *)xlink_href.far_ptr)->target = parent;
 			((SVG_IRI *)xlink_href.far_ptr)->iri_owner = elt;
 			/* Warning !!! here the reference is the parent !!!! */
-			gf_node_register((GF_Node *)parent, (GF_Node *)elt);
+			//gf_node_register((GF_Node *)parent, (GF_Node *)elt);
 		}
 	}
 
@@ -546,7 +546,7 @@ void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVGEle
 					   so we set the value of anim_transform_type to be able to parse 
 					   the animation values appropriately */
 					svg_parse_animatetransform_type(parser, (SVG_TransformType*)type_info.far_ptr, type);
-					anim_value_type = SVG_TransformList_datatype;
+					anim_value_type = SVG_TransformType_datatype;
 					anim_transform_type = *(SVG_TransformType*)type_info.far_ptr;
 				} else {
 					fprintf(stdout, "Warning: attributeName attribute not found.\n");
@@ -554,8 +554,7 @@ void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVGEle
 			} else {
 				fprintf(stdout, "Warning: type attribute not specified in animateTransform.\n");
 			} 
-		}
-		if ((attributeName = xmlGetProp(node, "attributeName"))) {
+		} else if ((attributeName = xmlGetProp(node, "attributeName"))) {
 			GF_FieldInfo attributeName_info;
 			if (!gf_node_get_field_by_name((GF_Node *)elt, "attributeName", &attributeName_info)) {
 				smil_parse_attributename(parser, elt, attributeName);
@@ -648,7 +647,7 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_el
 		((SVG_IRI *)xlink_href_info.far_ptr)->target = local_de.parent;
 		((SVG_IRI *)xlink_href_info.far_ptr)->iri_owner = local_de.animation_elt;
 		/* Warning !!! here the reference is the parent !!!! */
-		gf_node_register((GF_Node *)local_de.parent, (GF_Node *)local_de.animation_elt);
+		//gf_node_register((GF_Node *)local_de.parent, (GF_Node *)local_de.animation_elt);
 	}
 
 	if (local_de.attributeName) {
@@ -656,6 +655,7 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_el
 		smil_parse_attributename(parser, animation_elt, local_de.attributeName);
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "attributeName", &info);
 		anim_value_type = ((SMIL_AttributeName *)info.far_ptr)->type;
+		free(local_de.attributeName);
 	} else {
 		if (gf_node_get_tag((GF_Node *)animation_elt) == TAG_SVG_animateMotion) {
 			anim_value_type = SVG_Motion_datatype;
@@ -669,7 +669,7 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_el
 		GF_FieldInfo type_info;
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "type", &type_info);
 		svg_parse_animatetransform_type(parser, (SVG_TransformType*)type_info.far_ptr, local_de.type);
-		anim_value_type = SVG_TransformList_datatype;
+		anim_value_type = SVG_TransformType_datatype;
 		anim_transform_type = *(SVG_TransformType*)type_info.far_ptr;
 	} 
 
@@ -677,18 +677,22 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_el
 	if (local_de.to) {
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "to", &info);
 		svg_parse_attribute(parser, animation_elt, &info, local_de.to, anim_value_type, anim_transform_type);
+		free(local_de.to);
 	} 
 	if (local_de.from) {
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "from", &info);
 		svg_parse_attribute(parser, animation_elt, &info, local_de.from, anim_value_type, anim_transform_type);
+		free(local_de.from);
 	} 
 	if (local_de.by) {
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "by", &info);
 		svg_parse_attribute(parser, animation_elt, &info, local_de.by, anim_value_type, anim_transform_type);
+		free(local_de.by);
 	} 
 	if (local_de.values) {
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "values", &info);
 		svg_parse_attribute(parser, animation_elt, &info, local_de.values, anim_value_type, anim_transform_type);
+		free(local_de.values);
 	} 
 }
 
@@ -990,7 +994,7 @@ GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 		if (iri->target) {
 			/*free(iri->iri);
 			iri->iri = NULL;*/
-			gf_node_register((GF_Node *)iri->target, (GF_Node *)hi->elt);
+			//gf_node_register((GF_Node *)iri->target, (GF_Node *)hi->elt);
 		}
 	}
 

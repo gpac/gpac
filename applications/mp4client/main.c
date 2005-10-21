@@ -609,10 +609,24 @@ int main (int argc, char **argv)
 				gf_term_connect(term, the_url);
 			}
 			break;
+		case '\n':
 		case 'N':
 			if (playlist) {
 				gf_term_disconnect(term);
 				fscanf(playlist, "%s", the_url);
+				fprintf(stdout, "Opening URL %s\n", the_url);
+				gf_term_connect(term, the_url);
+			}
+			break;
+		case 'M':
+			if (playlist) {
+				u32 count;
+				gf_term_disconnect(term);
+				scanf("%d", &count);
+				while (count) {
+					fscanf(playlist, "%s", the_url);
+					count--;
+				}
 				fprintf(stdout, "Opening URL %s\n", the_url);
 				gf_term_connect(term, the_url);
 			}

@@ -1646,7 +1646,7 @@ void svg_parse_iri(SVGParser *parser, SVGElement *elt, SVG_IRI *iri, char *attri
 			} else {
 				/* reference is resolved we can register it 
 				   the target_element is referenced by the current element */
-				gf_node_register((GF_Node *)iri->target, (GF_Node *)elt);
+				//gf_node_register((GF_Node *)iri->target, (GF_Node *)elt);
 			}
 		} else {
 			iri->type = SVG_IRI_IRI;
@@ -2025,7 +2025,7 @@ void svg_parse_attribute(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info,
 		break;
 
 	case SVG_String_datatype:
-		*(SVG_String *)info->far_ptr = strdup(attribute_content);
+//		*(SVG_String *)info->far_ptr = strdup(attribute_content);
 		break;
 	default:
 		fprintf(stdout, "Warning: skipping unsupported attribute %s\n", info->name);
@@ -2180,6 +2180,13 @@ void *svg_create_value_from_attributetype(u8 attribute_type, u8 transform_type)
 
 	case SVG_TransformList_datatype:
 		{
+			SVG_Matrix *m;
+			GF_SAFEALLOC(m, sizeof(SVG_Matrix))
+			return m;
+		}
+		break;
+	case SVG_TransformType_datatype:
+		{
 			switch(transform_type) {
 			case SVG_TRANSFORM_TRANSLATE:
 			case SVG_TRANSFORM_SCALE:
@@ -2273,7 +2280,7 @@ void *svg_create_value_from_attributetype(u8 attribute_type, u8 transform_type)
 		}
 		break;
 	default:
-		fprintf(stdout, "Error: Creation of value failed! type not supported: %d.\n", attribute_type);
+		fprintf(stdout, "Error: Type not supported: %d.\n", attribute_type);
 	} 
 	return NULL;
 }
