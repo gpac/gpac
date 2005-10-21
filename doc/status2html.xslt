@@ -31,14 +31,17 @@
 						<tr>
 							<td class="OK">Number of tests with status = OK</td>
 							<td class="OK" align="right"><xsl:value-of select="count(//test[@status='OK'])"/></td>
+							<td class="OK" align="right"><xsl:value-of select="format-number(count(//test[@status='OK']) div count(//test), '.%')"/></td>
 						</tr>
 						<tr>
 							<td class="PARTIAL">Number of tests with status = PARTIAL</td>
 							<td class="PARTIAL" align="right"><xsl:value-of select="count(//test[@status='PARTIAL'])"/></td>
+							<td class="PARTIAL" align="right"><xsl:value-of select="format-number(count(//test[@status='PARTIAL']) div count(//test), '.%')"/></td>
 						</tr>
 						<tr>
 							<td class="FAIL">Number of tests with status = FAIL</td>
 							<td class="FAIL" align="right"><xsl:value-of select="count(//test[@status='FAIL'])"/></td>
+							<td class="FAIL" align="right"><xsl:value-of select="format-number(count(//test[@status='FAIL']) div count(//test), '.%')"/></td>
 						</tr>
 					</tbody>
 				</table>
