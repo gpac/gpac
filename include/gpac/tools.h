@@ -408,7 +408,7 @@ enum
  *	\param refresh_time_ms refresh time period in milliseconds. If the last sampling was done less than this period ago, the function aborts.
  *	\param rti holder to the run-time info structure to update.
  *	\param flags specify which info is to be retrieved.
- *	\return 1 if @rti has been updated, 0 otherwise.
+ *	\return 1 if info has been updated, 0 otherwise.
  *	\note You should not try to use a too small refresh time. Typical values are 500 ms or one second.
  */
 Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
