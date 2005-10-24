@@ -67,6 +67,8 @@ const char *gf_m4v_get_profile_name(u8 video_pl);
 GF_Err gf_m4v_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
 /*rewrites PL code in DSI*/
 void gf_m4v_rewrite_pl(unsigned char **io_dsi, u32 *io_dsi_len, u8 PL);
+/*rewrites PAR code in DSI. Negative values will remove the par*/
+GF_Err gf_m4v_rewrite_par(unsigned char **o_data, u32 *o_dataLen, s32 par_n, s32 par_d);
 
 /*MP3 tools*/
 u8 gf_mp3_num_channels(u32 hdr);
@@ -170,6 +172,7 @@ Bool gf_ac3_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC3Header *out_hdr)
 @width, height: image resolution - for jpeg max size if thumbnail included*/
 void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *width, u32 *height);
 
+GF_Err gf_avc_get_sps_info(u8 *sps, u32 sps_size, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
 #ifdef __cplusplus
 }

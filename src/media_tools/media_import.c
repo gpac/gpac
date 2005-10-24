@@ -3048,7 +3048,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 		} else {
 			switch (nal_type) {
 			case GF_AVC_NALU_SEQ_PARAM:
-				idx = AVC_ReadSeqInfo(bs, &avc);
+				idx = AVC_ReadSeqInfo(bs, &avc, NULL);
 				if (idx<0) {
 					e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing SeqInfo");
 					goto exit;
@@ -3981,6 +3981,42 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	return gf_import_message(importer, GF_NOT_SUPPORTED, "Unknown input file type");
 }
 
+GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
+{
+	u32 tk_w, tk_h, stype;
+	GF_Err e;
+
+	e = gf_isom_get_visual_info(file, track, 1, &tk_w, &tk_h);
+	if (e) return e;
+
+	stype = gf_isom_get_media_subtype(file, track, 1);
+	if (stype==GF_ISOM_SUBTYPE_AVC_H264) {
+		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
+		AVC_ChangePAR(avcc, ar_num, ar_den);
+		e = gf_isom_avc_config_update(file, track, 1, avcc);
+		gf_odf_avc_cfg_del(avcc);
+		if (e) return e;
+	} 
+	else if (stype==GF_ISOM_SUBTYPE_MPEG4) {
+		GF_ESD *esd = gf_isom_get_esd(file, track, 1);
+		if (!esd || !esd->decoderConfig || (esd->decoderConfig->streamType!=4) || (esd->decoderConfig->objectTypeIndication!=0x20)) {
+			if (esd)  gf_odf_desc_del((GF_Descriptor *) esd);
+			return GF_NOT_SUPPORTED;
+		}
+		e = gf_m4v_rewrite_par(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, ar_num, ar_den);
+		if (!e) e = gf_isom_change_mpeg4_description(file, track, 1, esd);
+		gf_odf_desc_del((GF_Descriptor *) esd);
+		if (e) return e;
+	} else {
+		return GF_BAD_PARAM;
+	}
+
+	if ((ar_den>=0) && (ar_num>=0)) {
+		if (ar_den) tk_w = tk_w * ar_num / ar_den;
+		else if (ar_num) tk_h = tk_h * ar_den / ar_num;
+	}
+	return gf_isom_set_track_layout_info(file, track, tk_w, tk_h, 0, 0, 0);
+}
 
 #endif
 

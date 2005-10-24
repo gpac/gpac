@@ -62,6 +62,7 @@ typedef struct
     s32 fixed_frame_rate_flag;
 
 	u32 width, height;
+	u32 par_num, par_den;
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 sent*/
 	u32 status;
 } AVC_SPS;
@@ -120,7 +121,7 @@ typedef struct
 } AVCState;
 
 /*return sps ID or -1 if error*/
-s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc);
+s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 *vui_flag_pos);
 /*return pps ID or -1 if error*/
 s32 AVC_ReadPictParamSet(GF_BitStream *bs, AVCState *avc);
 /*is slice a RAP*/
@@ -134,6 +135,7 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc);
 /*remove SEI messages not allowed in MP4*/
 u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc);
 
+GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d);
 
 
 typedef struct

@@ -800,14 +800,23 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						}
 					}
 				} else if (esd->decoderConfig->objectTypeIndication==0x21) {
+					GF_AVCConfig *avccfg;
+					GF_AVCConfigSlot *slc;
+					s32 par_n, par_d;
+
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 					if (full_dump) fprintf(stdout, "\t");
-					fprintf(stdout, "AVC/H264 Video - Visual Size %d x %d\n", w, h);
-					if (full_dump) {
-						GF_AVCConfig *avccfg = gf_isom_avc_config_get(file, trackNum, 1);
-						fprintf(stdout, "\tConfig Version %d Profile 0x%02x Level 0x%02x\n", avccfg->configurationVersion, avccfg->AVCProfileIndication, avccfg->AVCLevelIndication);
-						gf_odf_avc_cfg_del(avccfg);
+					fprintf(stdout, "AVC/H264 Video - Visual Size %d x %d - ", w, h);
+					avccfg = gf_isom_avc_config_get(file, trackNum, 1);
+					fprintf(stdout, "Version %d Profile 0x%02x Level 0x%02x\n", avccfg->configurationVersion, avccfg->AVCProfileIndication, avccfg->AVCLevelIndication);
+					slc = gf_list_get(avccfg->sequenceParameterSets, 0);
+					gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
+					if ((par_n>0) && (par_d>0)) {
+						u32 tw, th;
+						gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
+						fprintf(stdout, "Pixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", par_n, par_d, tw, th);
 					}
+					gf_odf_avc_cfg_del(avccfg);
 				} 
 				/*OGG media*/
 				else if (esd->decoderConfig->objectTypeIndication==GPAC_OGG_MEDIA_OTI) {

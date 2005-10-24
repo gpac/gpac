@@ -252,6 +252,10 @@ void CFileProps::SetGeneralInfo()
 			strcat(info, "Media Codec ");
 			strcat(info, odi.codec_name);
 			strcat(info, "\r\n");
+			if (odi.par) {
+				sprintf(buf, "Pixel Aspect Ratio: %d:%d\r\n", (odi.par>>16)&0xFF, (odi.par)&0xFF);
+				strcat(info, buf);
+			}
 			break;
 		case GF_STREAM_AUDIO:
 			sprintf(buf, "Audio Object: Sample Rate %d - %d channels\r\n", odi.sample_rate, odi.num_channels);

@@ -774,3 +774,7 @@ void gf_bs_write_u16_le(GF_BitStream *bs, u32 val)
 	gf_bs_write_int(bs, val>>8, 8);
 }
 
+u32 gf_bs_get_bit_offset(GF_BitStream *bs)
+{
+	return (u32) ( (bs->position - 1) * 8 + bs->nbBits);
+}

@@ -272,6 +272,9 @@ GF_Err gp_media_make_3gpp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const c
 only, since the OTI used when emulated is not standard...*/
 GF_ESD *gp_media_map_esd(GF_ISOFile *mp4, u32 track);
 
+/*changes pixel aspect ratio for visual tracks if supported. Negative values remove any PAR info*/
+GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den);
+
 
 #ifdef __cplusplus
 }

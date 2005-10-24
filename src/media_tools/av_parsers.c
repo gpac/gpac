@@ -295,6 +295,71 @@ GF_Err gf_m4v_parse_config(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
 	return GF_OK;
 }
 
+GF_Err gf_m4v_rewrite_par(unsigned char **o_data, u32 *o_dataLen, s32 par_n, s32 par_d)
+{
+	u32 start, end, size;
+	GF_BitStream *mod;
+	GF_M4VParser *m4v = gf_m4v_parser_new(*o_data, *o_dataLen);
+	Bool go = 1;
+	mod = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	end = start = 0;
+	while (go) {
+		u32 type = M4V_LoadObject(m4v);
+
+		end = (u32) gf_bs_get_position(m4v->bs) - 4;
+		size = end - start;
+		/*store previous object*/
+		if (size) {
+			if (size) gf_bs_write_data(mod, *o_data + start, size);
+			start = end;
+		}
+
+		switch (type) {
+		case VOL_START_CODE:
+			gf_bs_write_int(mod, 0, 8);
+			gf_bs_write_int(mod, 0, 8);
+			gf_bs_write_int(mod, 1, 8);
+			gf_bs_write_int(mod, VOL_START_CODE, 8);
+			gf_bs_write_int(mod, gf_bs_read_int(m4v->bs, 1), 1);
+			gf_bs_write_int(mod, gf_bs_read_int(m4v->bs, 8), 8);
+			start = gf_bs_read_int(m4v->bs, 1);
+			gf_bs_write_int(mod, start, 1);
+			if (start) {
+				gf_bs_write_int(mod, gf_bs_read_int(m4v->bs, 7), 7);
+			}
+			start = gf_bs_read_int(m4v->bs, 4);
+			if (start == 0xF) {
+				gf_bs_read_int(m4v->bs, 8);
+				gf_bs_read_int(m4v->bs, 8);
+			}
+			if ((par_n>=0) && (par_d>=0)) {
+				gf_bs_write_int(mod, 0xF, 4);
+				gf_bs_write_int(mod, par_n, 8);
+				gf_bs_write_int(mod, par_d, 8);
+			} else {
+				gf_bs_write_int(mod, 0x0, 4);
+			}
+		case -1:
+			go = 0;
+			break;
+		default:
+			break;
+		}
+	}
+	while (gf_bs_bits_available(m4v->bs)) {
+		u32 b = gf_bs_read_int(m4v->bs, 1);
+		gf_bs_write_int(mod, b, 1);
+	}
+	
+	gf_m4v_parser_del(m4v);
+	free(*o_data);
+	gf_bs_get_content(mod, o_data, o_dataLen);
+	gf_bs_del(mod);
+	return GF_OK;
+}
+
+
 GF_Err M4V_Reset(GF_M4VParser *m4v, u32 start)
 {
 	gf_bs_seek(m4v->bs, start);
@@ -962,12 +1027,22 @@ Bool AVC_SliceIsIDR(AVCState *avc)
   }
 }
 
+static const struct { u32 w, h; } avc_sar[14] =
+{
+    { 0,   0 }, { 1,   1 }, { 12, 11 }, { 10, 11 },
+    { 16, 11 }, { 40, 33 }, { 24, 11 }, { 20, 11 },
+    { 32, 11 }, { 80, 33 }, { 18, 11 }, { 15, 11 },
+    { 64, 33 }, { 160,99 },
+};
 
-s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc)
+s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 *vui_flag_pos)
 {
 	AVC_SPS *sps;
 	s32 mb_width, mb_height;
 	u32 sps_id, profile_idc, level_idc, pcomp, i, chroma_format_idc;
+
+	if (vui_flag_pos) *vui_flag_pos = 0;
+
 	profile_idc = gf_bs_read_int(bs, 8);
 	pcomp = gf_bs_read_int(bs, 8);
 	level_idc = gf_bs_read_int(bs, 8);
@@ -1042,14 +1117,23 @@ s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc)
         avc_get_ue(bs); /*crop_top*/
         avc_get_ue(bs); /*crop_bottom*/
     }
+
+	if (vui_flag_pos) {
+		u32 gf_bs_get_bit_offset(GF_BitStream *bs);
+		*vui_flag_pos = (u32) gf_bs_get_bit_offset(bs);
+	}
+
     /*vui_parameters_present_flag*/
     if (gf_bs_read_int(bs, 1)) {
 		/*aspect_ratio_info_present_flag*/
 		if (gf_bs_read_int(bs, 1)) {
 			s32 aspect_ratio_idc = gf_bs_read_int(bs, 8);
 			if (aspect_ratio_idc == 255) {
-				gf_bs_read_int(bs, 16); /*AR num*/
-				gf_bs_read_int(bs, 16); /*AR den*/
+				sps->par_num = gf_bs_read_int(bs, 16); /*AR num*/
+				sps->par_den = gf_bs_read_int(bs, 16); /*AR den*/
+			} else if (aspect_ratio_idc<14) {
+				sps->par_num = avc_sar[aspect_ratio_idc].w;
+				sps->par_den = avc_sar[aspect_ratio_idc].h;
 			}
 		}
 		if(gf_bs_read_int(bs, 1))       /* overscan_info_present_flag */
@@ -1466,6 +1550,109 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 	free(new_buffer);
 	/*if only hdr written ignore*/
 	return (written>1) ? written : 0;
+}
+
+u8 avc_get_sar_idx(u32 w, u32 h)
+{
+	u32 i;
+	for (i=0; i<14; i++) {
+		if ((avc_sar[i].w==w) && (avc_sar[i].h==h)) return i;
+	}
+	return 0xFF;
+}
+
+GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
+{
+	GF_BitStream *orig, *mod;
+	AVCState avc;
+	u32 i, bit_offset, flag;
+	s32 idx;
+	memset(&avc, 0, sizeof(AVCState));
+
+	for (i=0; i<gf_list_count(avcc->sequenceParameterSets); i++) {
+		GF_AVCConfigSlot *slc = gf_list_get(avcc->sequenceParameterSets, i);
+		orig = gf_bs_new(slc->data, slc->size, GF_BITSTREAM_READ);
+
+		idx = AVC_ReadSeqInfo(orig, &avc, &bit_offset);
+		if (idx<0) {
+			gf_bs_del(orig);
+			continue;
+		}
+		mod = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_seek(orig, 0);
+
+		/*copy over till vui flag*/
+		while (bit_offset) {
+			flag = gf_bs_read_int(orig, 1);
+			gf_bs_write_int(mod, flag, 1);
+			bit_offset--;
+		}
+		/*check VUI*/
+		flag = gf_bs_read_int(orig, 1);
+		gf_bs_write_int(mod, 1, 1);
+		if (flag) {
+			/*aspect_ratio_info_present_flag*/
+			if (gf_bs_read_int(orig, 1)) {
+				s32 aspect_ratio_idc = gf_bs_read_int(orig, 8);
+				if (aspect_ratio_idc == 255) {
+					gf_bs_read_int(orig, 16); /*AR num*/
+					gf_bs_read_int(orig, 16); /*AR den*/
+				}
+			}
+		}
+		if ((ar_d<0) || (ar_n<0)) {
+			/*no AR signaled*/
+			gf_bs_write_int(mod, 0, 1);
+		} else {
+			u32 sarx;
+			gf_bs_write_int(mod, 1, 1);
+			sarx = avc_get_sar_idx((u32) ar_n, (u32) ar_d);
+			gf_bs_write_int(mod, sarx, 8);
+			if (sarx==0xFF) {
+				gf_bs_write_int(mod, ar_n, 16);
+				gf_bs_write_int(mod, ar_d, 16);
+			}
+		}
+		/*finally copy over remaining*/
+		/*no VUI in input bitstream*/
+		if (!flag) {
+			gf_bs_write_int(mod, 0, 1);       /* overscan_info_present_flag */
+			gf_bs_write_int(mod, 0, 1);      /* video_signal_type_present_flag */
+			gf_bs_write_int(mod, 0, 1);      /* chroma_location_info_present_flag */
+			gf_bs_write_int(mod, 0, 1); /*timing_info_present_flag*/
+		} else {
+			while (gf_bs_bits_available(orig)) {
+				flag = gf_bs_read_int(orig, 1);
+				gf_bs_write_int(mod, flag, 1);
+			}
+		}
+		gf_bs_del(orig);
+		free(slc->data);
+		slc->data = NULL;
+		gf_bs_get_content(mod, &slc->data, &flag);
+		slc->size = flag;
+		gf_bs_del(mod);
+	}
+	return GF_OK;
+}
+
+GF_Err gf_avc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *width, u32 *height, s32 *par_n, s32 *par_d)
+{
+	GF_BitStream *bs;
+	AVCState avc;
+	s32 idx;
+	memset(&avc, 0, sizeof(AVCState));
+
+	bs = gf_bs_new(sps_data, sps_size, GF_BITSTREAM_READ);
+	idx = AVC_ReadSeqInfo(bs, &avc, NULL);
+	gf_bs_del(bs);
+	if (idx<0) return GF_NON_COMPLIANT_BITSTREAM;
+
+	if (width) *width = avc.sps[idx].width;
+	if (height) *height = avc.sps[idx].height;
+	if (par_n) *par_n = avc.sps[idx].par_num ? avc.sps[idx].par_num : -1;
+	if (par_d) *par_d = avc.sps[idx].par_den ? avc.sps[idx].par_den : -1;
+	return GF_OK;
 }
 
 #endif

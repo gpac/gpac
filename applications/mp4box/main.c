@@ -806,6 +806,7 @@ typedef struct
 	1: set track language
 	2: set track delay
 	3: set track KMS URI
+	4: set visual track PAR if possible
 	*/
 	u32 act_type;
 	/*track ID*/
@@ -813,6 +814,7 @@ typedef struct
 	char lang[4];
 	u32 delay_ms;
 	const char *kms;
+	s32 par_num, par_den;
 } TrackAction;
 
 int main(int argc, char **argv)
@@ -1110,6 +1112,31 @@ int main(int argc, char **argv)
 			nb_track_act++;
 			i++;
 		}
+		else if (!stricmp(arg, "-par")) {
+			char szTK[20], *ext;
+			CHECK_NEXT_ARG
+			if (nb_track_act>=MAX_CUMUL_OPS) {
+				fprintf(stdout, "Sorry - no more than %d track operations allowed\n", MAX_CUMUL_OPS);
+				return 1;
+			}
+			tracks[nb_track_act].act_type = 4;
+			strcpy(szTK, argv[i+1]);
+			ext = strchr(szTK, '=');
+			if (!ext) {
+				fprintf(stdout, "Bad format for track par - expecting ID=PAR_NUM:PAR_DEN got %s\n", argv[i+1]);
+				return 1;
+			}
+			if (!stricmp(ext+1, "none")) {
+				tracks[nb_track_act].par_num = tracks[nb_track_act].par_den = -1;
+			} else {
+				sscanf(ext+1, "%d:%d", &tracks[nb_track_act].par_num, &tracks[nb_track_act].par_den);
+			}
+			ext[0] = 0;
+			tracks[nb_track_act].trackID = atoi(szTK);
+			open_edit = 1;
+			nb_track_act++;
+			i++;
+		}
 		else if (!stricmp(arg, "-lang")) {
 			char szTK[20], *ext;
 			CHECK_NEXT_ARG
@@ -1145,7 +1172,7 @@ int main(int argc, char **argv)
 			strcpy(szTK, argv[i+1]);
 			ext = strchr(szTK, '=');
 			if (!ext) {
-				fprintf(stdout, "Bad format for track delay - expecting ID=LAN got %s\n", argv[i+1]);
+				fprintf(stdout, "Bad format for track delay - expecting ID=DLAY got %s\n", argv[i+1]);
 				return 1;
 			}
 			tracks[nb_track_act].act_type = 2;
@@ -1794,10 +1821,13 @@ int main(int argc, char **argv)
 				needSave = 1;
 			}
 			break;
+		case 4:
+			e = gf_media_change_par(file, track, tka->par_num, tka->par_den);
+			needSave = 1;
+			break;
 		}
 		if (e) goto err_exit;
 	}
-
 
 	if (Frag) {
 		if (!InterleavingTime) InterleavingTime = 0.5;

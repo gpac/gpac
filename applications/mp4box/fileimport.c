@@ -93,6 +93,7 @@ void convert_file_info(char *inName, u32 trackID)
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
 	u32 track_id, i, delay, timescale, track;
+	s32 par_d, par_n;
 	Bool do_audio, do_video, do_all;
 	char szLan[4];
 	GF_Err e;
@@ -110,6 +111,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 	szLan[0] = szLan[3] = 0;
 	delay = 0;
+	par_d = par_n = -1;
 	/*use ':' as separator, but beware DOS paths...*/
 	ext = strchr(szName, ':');
 	if (ext && ext[1]=='\\') ext = strchr(szName+2, ':');
@@ -129,6 +131,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "mpeg4")) import_flags |= GF_IMPORT_FORCE_MPEG4;
 		else if (!strnicmp(ext+1, "agg=", 4)) frames_per_sample = atoi(ext+5);
 		else if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32) (atof(ext+5) * 1000);
+		else if (!strnicmp(ext+1, "par=", 4)) {
+			if (ext2) ext2[0] = ':';
+			ext2 = strchr(ext2+1, ':');
+			if (ext2) ext2[0] = 0;
+			sscanf(ext+5, "%d:%d", &par_n, &par_d);
+		}
 
 		if (ext2) ext2[0] = ':';
 		ext2 = ext+1;
@@ -184,6 +192,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				gf_isom_append_edit_segment(import.dest, i+1, (timescale*delay)/1000, 0, GF_ISOM_EDIT_EMPTY);
 				gf_isom_append_edit_segment(import.dest, i+1, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
 			}
+			if ((par_n>=0) && (par_d>=0)) {
+				e = gf_media_change_par(import.dest, i+1, par_n, par_d);
+			}
 		}
 	} else {
 
@@ -214,6 +225,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				tk_dur = (u32) gf_isom_get_track_duration(import.dest, track);
 				gf_isom_append_edit_segment(import.dest, track, (timescale*delay)/1000, 0, GF_ISOM_EDIT_EMPTY);
 				gf_isom_append_edit_segment(import.dest, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
+			}
+			if ((import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL) && (par_n>=0) && (par_d>=0)) {
+				e = gf_media_change_par(import.dest, i+1, par_n, par_d);
 			}
 		}
 		if (track_id) fprintf(stdout, "WARNING: Track ID %d not found in file\n", track_id);
