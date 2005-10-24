@@ -205,14 +205,12 @@ void gp_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 
 		/*AAC LBR*/
 		if (maxSize < 63) {
-			builder->slMap.PL_ID = 14;
 			strcpy(builder->slMap.mode, "AAC-lbr");
 			builder->slMap.IndexLength = builder->slMap.IndexDeltaLength = 2;
 			builder->slMap.SizeLength = 6;
 		}
 		/*AAC HBR*/
 		else {
-			builder->slMap.PL_ID = 16;
 			strcpy(builder->slMap.mode, "AAC-hbr");
 			builder->slMap.IndexLength = builder->slMap.IndexDeltaLength = 3;
 			builder->slMap.SizeLength = 13;
@@ -220,7 +218,6 @@ void gp_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 		goto check_header;
 	}
 	if (!strnicmp(builder->slMap.mode, "CELP", 4)) {
-		builder->slMap.PL_ID = 14;
 		/*CELP-cbr*/
 		if (maxSize == avgSize) {
 			/*reset flags (interleaving forbidden)*/
