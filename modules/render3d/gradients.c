@@ -171,7 +171,7 @@ static void UpdateLinearGradient(GF_TextureHandler *txh)
 	end.x *= GRAD_TEXTURE_SIZE;
 	start.y *= GRAD_TEXTURE_SIZE;
 	end.y *= GRAD_TEXTURE_SIZE;
-	r2d->stencil_set_linear_gradient(stenc, start.x, start.y, end.x, end.y, 0xFFFF0000, 0xFFFF00FF);
+	r2d->stencil_set_linear_gradient(stenc, start.x, start.y, end.x, end.y);
 	const_a = (lg->opacity.count == 1) ? 1 : 0;
 	cols = malloc(sizeof(u32) * lg->key.count);
 	for (i=0; i<lg->key.count; i++) {

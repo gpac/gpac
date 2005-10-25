@@ -860,17 +860,39 @@ DrawableContext *LASeR_drawable_init_context(Drawable *node, RenderEffect2D *eff
 
 #ifndef GPAC_DISABLE_SVG
 
+static GF_TextureHandler *svg_get_texture_handle(GF_Node *node, DOM_String uri)
+{
+	GF_Node *target;
+	if (uri[0]=='#') target = gf_sg_find_node_by_name(gf_node_get_graph(node), uri+1);
+
+	if (!target) return NULL;
+	switch (gf_node_get_tag(target)) {
+	case TAG_SVG_linearGradient: 
+	case TAG_SVG_radialGradient: 
+		return svg_gradient_get_texture(target);
+	default: 
+		return NULL;
+	}
+}
+
 static void setup_SVG_drawable_context(DrawableContext *ctx, SVGStylingProperties props)
 {
 	ctx->aspect.fill_alpha = 255;
 	ctx->aspect.filled = (props.fill->type != SVG_PAINT_NONE);
-	if (props.fill->color->type == SVG_COLOR_CURRENTCOLOR) {
+	if (props.fill->type==SVG_PAINT_URI) {
+		ctx->h_texture = svg_get_texture_handle(ctx->node->owner, props.fill->uri);
+		ctx->aspect.filled = 0;
+	}
+	else if (props.fill->color->type == SVG_COLOR_CURRENTCOLOR) {
 		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(props.fill_opacity->value, props.color->red, props.color->green, props.color->blue);
 	} else {
 		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(props.fill_opacity->value, props.fill->color->red, props.fill->color->green, props.fill->color->blue);
 	}
 	ctx->aspect.has_line = (props.stroke->type != SVG_PAINT_NONE);
-	if (props.stroke->color->type == SVG_COLOR_CURRENTCOLOR) {
+	if (props.stroke->type==SVG_PAINT_URI) {
+		ctx->aspect.line_texture = svg_get_texture_handle(ctx->node->owner, props.stroke->uri);
+	}
+	else if (props.stroke->color->type == SVG_COLOR_CURRENTCOLOR) {
 		ctx->aspect.line_color = GF_COL_ARGB_FIXED(props.stroke_opacity->value, props.color->red, props.color->green, props.color->blue);
 	} else {
 		ctx->aspect.line_color = GF_COL_ARGB_FIXED(props.stroke_opacity->value, props.stroke->color->red, props.stroke->color->green, props.stroke->color->blue);

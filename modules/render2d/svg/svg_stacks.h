@@ -118,6 +118,9 @@ typedef struct
 	SensorHandler hdl;
 } SVG_SensorInfo;
 
+
+void SVG_setup_sensitive(GF_Node *node, SVG_SensorInfo *si);
+
 typedef struct 
 {
 	GF_Renderer *compositor;
@@ -140,6 +143,11 @@ typedef struct
 
 void SVG_InitDrawable(Render2D *sr, GF_Node *node);
 Drawable *SVG_GetDrawable(GF_Node *node);
+
+
+void SVG_Init_linearGradient(Render2D *sr, GF_Node *node);
+void SVG_Init_radialGradient(Render2D *sr, GF_Node *node);
+GF_TextureHandler *svg_gradient_get_texture(GF_Node *node);
 
 #endif
 

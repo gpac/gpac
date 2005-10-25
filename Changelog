@@ -1,4 +1,9 @@
-Latest CVS Changes 13/10/05
+Latest CVS Changes 25/10/05
+  - added PAR modification support to MP4Box (import time and file based)
+  - IsoMedia spliting more precise
+  - fixed bug in gradient raster (spread/pad/repeat modes were broken)
+  - added SVG Tiny gradients
+  - added SVG.preserveAspectRatio support
   - support for SVG SAX parsing & progressive loading, cf configuration.html or man gpac for more info 
   - fixed bevel stroking bug and many SVG rendering ones
   - fixed bug in MP4Box track concatenation of MPEG-4 user streams

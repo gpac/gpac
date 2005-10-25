@@ -2174,7 +2174,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 		}
 		strcpy(szMediaTemp, "");
 		/*by default handle all samples as contigous*/
-		offset = media_done;
+		offset = 0;
 		while (xml_has_attributes(&parser)) {
 			str = xml_get_attribute(&parser);
 			if (!strcmp(str, "DTS")) {
@@ -2198,6 +2198,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 		count++;
 
 		if (import->flags & GF_IMPORT_USE_DATAREF) {
+			if (offset) offset = media_done;
 			e = gf_isom_add_sample_reference(import->dest, track, di, samp, offset);
 		} else {
 			Bool close = 0;
@@ -2205,6 +2206,8 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 			if (strlen(szMediaTemp)) {
 				f = gf_f64_open(szMediaTemp, "rb");
 				close = 1;
+			} else {
+				if (offset) offset = media_done;
 			}
 			if (!f) {
 				e = gf_import_message(import, GF_BAD_PARAM, "NHML import failure: file %s not found", close ? szMediaTemp : szMedia);

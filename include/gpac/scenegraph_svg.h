@@ -138,6 +138,7 @@ enum {
 	SVG_Number_datatype						= 78,
 	SVG_Numbers_datatype					= 79,
 	SVG_NumberOrPercentage_datatype			= 80,
+	SVG_GradientUnit_datatype				= 81,
 };
 
 /* Reusing BIFS structure:
@@ -745,6 +746,13 @@ enum {
 	XML_SPACE_PRESERVE		= 1
 };
 typedef u8 XML_Space;
+
+
+typedef enum {
+	SVG_GRADIENTUNITS_OBJECT = 0,
+	SVG_GRADIENTUNITS_USER = 1
+} SVG_GradientUnit;
+
 
 /**************************************************
  *  SVG's styling properties (see 6.1 in REC 1.1) *

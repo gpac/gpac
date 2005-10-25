@@ -206,10 +206,23 @@ void gf_m4v_rewrite_pl(unsigned char **o_data, u32 *o_dataLen, u8 PL)
 	(*o_dataLen) = dataLen + 5;
 }
 
+static const struct { u32 w, h; } m4v_sar[6] = { { 0,   0 }, { 1,   1 }, { 12, 11 }, { 10, 11 }, { 16, 11 }, { 40, 33 } };
+
+static u8 m4v_get_sar_idx(u32 w, u32 h)
+{
+	u32 i;
+	for (i=0; i<6; i++) {
+		if ((m4v_sar[i].w==w) && (m4v_sar[i].h==h)) return i;
+	}
+	return 0xF;
+}
+
+
+
 GF_Err gf_m4v_parse_config(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
 {
 	s32 o_type;
-	u8 go, verid;
+	u8 go, verid, par;
 	s32 clock_rate;
 
 	if (!m4v || !dsi) return GF_BAD_PARAM;
@@ -233,9 +246,13 @@ GF_Err gf_m4v_parse_config(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
 				verid = gf_bs_read_int(m4v->bs, 4);
 				gf_bs_read_int(m4v->bs, 3);
 			}
-			if (gf_bs_read_int(m4v->bs, 4) == 0xF) {
+			par = gf_bs_read_int(m4v->bs, 4);
+			if (par == 0xF) {
 				dsi->par_num = gf_bs_read_int(m4v->bs, 8);
 				dsi->par_den = gf_bs_read_int(m4v->bs, 8);
+			} else if (par<6) {
+				dsi->par_num = m4v_sar[par].w;
+				dsi->par_den = m4v_sar[par].h;
 			}
 			if (gf_bs_read_int(m4v->bs, 1)) {
 				gf_bs_read_int(m4v->bs, 3);
@@ -334,9 +351,12 @@ GF_Err gf_m4v_rewrite_par(unsigned char **o_data, u32 *o_dataLen, s32 par_n, s32
 				gf_bs_read_int(m4v->bs, 8);
 			}
 			if ((par_n>=0) && (par_d>=0)) {
-				gf_bs_write_int(mod, 0xF, 4);
-				gf_bs_write_int(mod, par_n, 8);
-				gf_bs_write_int(mod, par_d, 8);
+				u8 par = m4v_get_sar_idx(par_n, par_d);
+				gf_bs_write_int(mod, par, 4);
+				if (par==0xF) {
+					gf_bs_write_int(mod, par_n, 8);
+					gf_bs_write_int(mod, par_d, 8);
+				}
 			} else {
 				gf_bs_write_int(mod, 0x0, 4);
 			}
@@ -1552,7 +1572,7 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 	return (written>1) ? written : 0;
 }
 
-u8 avc_get_sar_idx(u32 w, u32 h)
+static u8 avc_get_sar_idx(u32 w, u32 h)
 {
 	u32 i;
 	for (i=0; i<14; i++) {

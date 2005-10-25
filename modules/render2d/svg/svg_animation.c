@@ -48,8 +48,7 @@ static void SVG_InvalidateAndDirtyAll(SMIL_AnimationStack *stack)
 {
 	//fprintf(stdout, "Invalidating Appearance and Geometry\n");
 	/* TODO: determine if appaearance or geometry have been modified */
-	gf_node_dirty_set(stack->target_element, GF_SG_SVG_APPEARANCE_DIRTY, 0);
-	gf_node_dirty_set(stack->target_element, GF_SG_SVG_GEOMETRY_DIRTY, 0);
+	gf_node_dirty_set(stack->target_element, GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_SVG_APPEARANCE_DIRTY, 0);
 	gf_sr_invalidate(stack->compositor, NULL);
 }
 

@@ -280,24 +280,104 @@ static void SVGSetViewport(RenderEffect2D *eff, SVGsvgElement *svg)
 {
 	GF_Matrix2D mat, tmp;
 	Fixed real_width, real_height;
+	u32 scene_width, scene_height;
 
 	gf_mx2d_init(mat);
+	scene_width = eff->surface->render->compositor->scene_width;
+	scene_height = eff->surface->render->compositor->scene_height;
+
 	if (svg->width.type == SVG_LENGTH_NUMBER) 
-		real_width = INT2FIX(eff->surface->render->compositor->scene_width);
+		real_width = INT2FIX(scene_width);
 	else
 		/*u32 * fixed / u32*/
-		real_width = eff->surface->render->compositor->scene_width*svg->width.number/100;
+		real_width = scene_width*svg->width.number/100;
 
 	if (svg->height.type == SVG_LENGTH_NUMBER)
-		real_height = INT2FIX(eff->surface->render->compositor->scene_height);
+		real_height = INT2FIX(scene_height);
 	else 
-		real_height = eff->surface->render->compositor->scene_height*svg->height.number/100;
+		real_height = scene_height*svg->height.number/100;
+	
+	if (!real_width || !real_height) return;
+
 
 	if (svg->viewBox.width != 0 && svg->viewBox.height != 0) {
-		mat.m[0] = gf_divfix(real_width, svg->viewBox.width);
-		mat.m[4] = gf_divfix(real_height, svg->viewBox.height);
-		mat.m[2] = - gf_muldiv(svg->viewBox.x, real_width, svg->viewBox.width); 
-		mat.m[5] = - gf_muldiv(svg->viewBox.y, real_height, svg->viewBox.height); 
+		Fixed scale, vp_w, vp_h;
+		if (svg->preserveAspectRatio.meetOrSlice==SVG_MEETORSLICE_MEET) {
+			if (gf_divfix(real_width, svg->viewBox.width) > gf_divfix(real_height, svg->viewBox.height)) {
+				scale = gf_divfix(real_height, svg->viewBox.height);
+				vp_w = gf_mulfix(svg->viewBox.width, scale);
+				vp_h = real_height;
+			} else {
+				scale = gf_divfix(real_width, svg->viewBox.width);
+				vp_w = real_width;
+				vp_h = gf_mulfix(svg->viewBox.height, scale);
+			}
+		} else {
+			if (real_width<real_height) {
+				scale = gf_divfix(real_height, svg->viewBox.height);
+			} else {
+				scale = gf_divfix(real_width, svg->viewBox.width);
+			}
+			vp_w = real_width;
+			vp_h = real_height;
+		}
+		if (svg->preserveAspectRatio.align==SVG_PRESERVEASPECTRATIO_NONE) {
+			mat.m[0] = gf_divfix(real_width, svg->viewBox.width);
+			mat.m[4] = gf_divfix(real_height, svg->viewBox.height);
+			mat.m[2] = - gf_muldiv(svg->viewBox.x, real_width, svg->viewBox.width); 
+			mat.m[5] = - gf_muldiv(svg->viewBox.y, real_height, svg->viewBox.height); 
+		} else {
+			Fixed dx, dy;
+			mat.m[0] = mat.m[4] = scale;
+			mat.m[2] = - gf_mulfix(svg->viewBox.x, scale); 
+			mat.m[5] = - gf_mulfix(svg->viewBox.y, scale); 
+
+			dx = dy = 0;
+			switch (svg->preserveAspectRatio.align) {
+			case SVG_PRESERVEASPECTRATIO_XMINYMIN:
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMIDYMIN:
+				dx = ( INT2FIX(scene_width) - vp_w) / 2; 
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMAXYMIN:
+				dx = INT2FIX(scene_width) - vp_w; 
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMINYMID:
+				dy = ( INT2FIX(scene_height) - vp_h) / 2; 
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMIDYMID:
+				dx = ( INT2FIX(scene_width) - vp_w) / 2; 
+				dy = ( INT2FIX(scene_height) - vp_h) / 2; 
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMAXYMID:
+				dx = INT2FIX(scene_width) - vp_w; 
+				dy = ( INT2FIX(scene_height) - vp_h) / 2; 
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMINYMAX:
+				dy = INT2FIX(scene_height) - vp_h; 
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMIDYMAX:
+				dx = ( INT2FIX(scene_width) - vp_w) / 2; 
+				dy = INT2FIX(scene_height) - vp_h; 
+				break;
+			case SVG_PRESERVEASPECTRATIO_XMAXYMAX:
+				dx = INT2FIX(scene_width) - vp_w; 
+				dy = INT2FIX(scene_height) - vp_h; 
+				break;
+			}
+			mat.m[2] += dx;
+			mat.m[5] += dy;
+
+			/*we need a clipper*/
+			if (svg->preserveAspectRatio.meetOrSlice==SVG_MEETORSLICE_SLICE) {
+				GF_Rect rc;
+				rc.width = real_width;
+				rc.height = real_height;
+				rc.x = dx;
+				rc.y = dy + real_height;
+				eff->surface->top_clipper = gf_rect_pixelize(&rc);
+			}
+		}
 	}
 	gf_mx2d_copy(tmp, eff->transform);
 	gf_mx2d_copy(eff->transform, mat);
@@ -1128,5 +1208,170 @@ void SVG_Init_a(Render2D *sr, GF_Node *node)
 }
 
 /* end of Interactive SVG elements */
+
+
+/*SVG gradient common stuff*/
+typedef struct
+{
+	GF_TextureHandler txh;
+	u32 *cols;
+	Fixed *keys;
+	u32 nb_col;
+} SVG_GradientStack;
+
+static void SVG_DestroyGradient(GF_Node *node)
+{
+	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(node);
+	gf_sr_texture_destroy(&st->txh);
+	if (st->cols) free(st->cols);
+	if (st->keys) free(st->keys);
+	free(st);
+}
+
+static void SVG_UpdateGradient(SVG_GradientStack *st, GF_List *children)
+{
+	u32 i, count;
+	Fixed alpha, max_offset;
+
+	if (!gf_node_dirty_get(st->txh.owner)) return;
+	gf_node_dirty_clear(st->txh.owner, 0);
+
+	st->txh.needs_refresh = 1;
+	st->txh.transparent = 0;
+	count = gf_list_count(children);
+	st->nb_col = 0;
+	st->cols = realloc(st->cols, sizeof(u32)*count);
+	st->keys = realloc(st->keys, sizeof(Fixed)*count);
+
+	max_offset = 0;
+	for (i=0; i<count; i++) {
+		Fixed key;
+		SVGstopElement *gstop = (SVGstopElement *)gf_list_get(children, i);
+		if (gf_node_get_tag((GF_Node *)gstop) != TAG_SVG_stop) continue;
+
+		if (gstop->stop_opacity.type==SVG_FLOAT_VALUE) alpha = gstop->stop_opacity.value;
+		else alpha = FIX_ONE;
+		st->cols[st->nb_col] = GF_COL_ARGB_FIXED(alpha, gstop->stop_color.color->red, gstop->stop_color.color->green, gstop->stop_color.color->blue);
+		key = gstop->offset;
+		if (gstop->offset>FIX_ONE) key/=100; 
+		if (key>max_offset) max_offset=key;
+		else key = max_offset;
+		st->keys[st->nb_col] = key;
+
+		st->nb_col++;
+		if (alpha!=FIX_ONE) st->txh.transparent = 1;
+	}
+	st->txh.compositor->r2d->stencil_set_gradient_interpolation(st->txh.hwtx, st->keys, st->cols, st->nb_col);
+	st->txh.compositor->r2d->stencil_set_gradient_mode(st->txh.hwtx, /*lg->spreadMethod*/ GF_GRADIENT_MODE_PAD);
+}
+
+/* linear gradient */
+
+static void SVG_UpdateLinearGradient(GF_TextureHandler *txh)
+{
+	SVGlinearGradientElement *lg = (SVGlinearGradientElement *) txh->owner;
+	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(txh->owner);
+	if (!txh->hwtx) txh->hwtx = txh->compositor->r2d->stencil_new(txh->compositor->r2d, GF_STENCIL_LINEAR_GRADIENT);
+
+	SVG_UpdateGradient(st, lg->children);
+}
+
+static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
+{
+	SFVec2f start, end;
+	SVGlinearGradientElement *lg = (SVGlinearGradientElement *) txh->owner;
+
+	/*create gradient brush if needed*/
+	if (!txh->hwtx) return;
+
+	start.x = lg->x1.number;
+	if (lg->x1.type==SVG_LENGTH_PERCENTAGE) start.x /= 100;
+	start.y = lg->y1.number;
+	if (lg->y1.type==SVG_LENGTH_PERCENTAGE) start.y /= 100;
+	end.x = lg->x2.type ? lg->x2.number : FIX_ONE;
+	if (lg->x2.type==SVG_LENGTH_PERCENTAGE) end.x /= 100;
+	end.y = lg->y2.number;
+	if (lg->y2.type==SVG_LENGTH_PERCENTAGE) end.x /= 100;
+
+	/*gradientTransform???*/
+	gf_mx2d_init(*mat);
+
+	if (lg->gradientUnits==SVG_GRADIENTUNITS_OBJECT) {
+		/*move to local coord system - cf SVG spec*/
+		gf_mx2d_add_scale(mat, bounds->width, bounds->height);
+		gf_mx2d_add_translation(mat, bounds->x - 1, bounds->y  - bounds->height - 1);
+	}
+	txh->compositor->r2d->stencil_set_linear_gradient(txh->hwtx, start.x, start.y, end.x, end.y);
+}
+
+void SVG_Init_linearGradient(Render2D *sr, GF_Node *node)
+{
+	SVG_GradientStack *st = malloc(sizeof(SVG_GradientStack));
+	memset(st, 0, sizeof(SVG_GradientStack));
+
+	gf_sr_texture_setup(&st->txh, sr->compositor, node);
+	st->txh.update_texture_fcnt = SVG_UpdateLinearGradient;
+
+	st->txh.compute_gradient_matrix = SVG_LG_ComputeMatrix;
+	gf_node_set_private(node, st);
+	gf_node_set_predestroy_function(node, SVG_DestroyGradient);
+}
+
+/* radial gradient */
+
+static void SVG_UpdateRadialGradient(GF_TextureHandler *txh)
+{
+	SVGradialGradientElement *rg = (SVGradialGradientElement *) txh->owner;
+	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(txh->owner);
+	if (!txh->hwtx) txh->hwtx = txh->compositor->r2d->stencil_new(txh->compositor->r2d, GF_STENCIL_RADIAL_GRADIENT);
+	SVG_UpdateGradient(st, rg->children);
+}
+
+static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
+{
+	SFVec2f center, focal;
+	Fixed radius;
+	SVGradialGradientElement *rg = (SVGradialGradientElement *) txh->owner;
+
+	/*create gradient brush if needed*/
+	if (!txh->hwtx) return;
+
+	//GradientGetMatrix((GF_Node *) rg->transform, mat);
+	gf_mx2d_init(*mat);
+
+	radius = rg->r.type ? rg->r.number : FIX_ONE/2;
+	if (rg->r.type==SVG_LENGTH_PERCENTAGE) radius /= 100;
+	center.x = rg->cx.type ? rg->cx.number : FIX_ONE/2;
+	if (rg->cx.type==SVG_LENGTH_PERCENTAGE) center.x /= 100;
+	center.y = rg->cy.type ? rg->cy.number : FIX_ONE/2;
+	if (rg->cy.type==SVG_LENGTH_PERCENTAGE) center.y /= 100;
+
+	focal = center;
+
+	if (rg->gradientUnits==SVG_GRADIENTUNITS_OBJECT) {
+		/*move to local coord system - cf SVG spec*/
+		gf_mx2d_add_scale(mat, bounds->width, bounds->height);
+		gf_mx2d_add_translation(mat, bounds->x, bounds->y  - bounds->height);
+	}
+	txh->compositor->r2d->stencil_set_radial_gradient(txh->hwtx, center.x, center.y, focal.x, focal.y, radius, radius);
+}
+
+void SVG_Init_radialGradient(Render2D *sr, GF_Node *node)
+{
+	SVG_GradientStack *st = malloc(sizeof(SVG_GradientStack));
+	memset(st, 0, sizeof(SVG_GradientStack));
+
+	gf_sr_texture_setup(&st->txh, sr->compositor, node);
+	st->txh.update_texture_fcnt = SVG_UpdateRadialGradient;
+	st->txh.compute_gradient_matrix = SVG_RG_ComputeMatrix;
+	gf_node_set_private(node, st);
+	gf_node_set_predestroy_function(node, SVG_DestroyGradient);
+}
+
+GF_TextureHandler *svg_gradient_get_texture(GF_Node *node)
+{
+	SVG_GradientStack *st = (SVG_GradientStack*) gf_node_get_private(node);
+	return st->nb_col ? &st->txh : NULL;
+}
 
 #endif //GPAC_DISABLE_SVG

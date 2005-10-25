@@ -145,7 +145,7 @@
 	<test name="paths-data-13-t" revision="1.1" status="OK" comment=""/>
 	<test name="paths-data-14-t" revision="1.1" status="OK" comment=""/>
 	<test name="paths-data-15-t" revision="1.1" status="OK" comment=""/>
-	<test name="paths-dist-01-t" revision="1.4" status="OK" comment="empty"/>
+	<test name="paths-dist-01-t" revision="1.4" status="OK" comment="empty"/>		
 	<test name="render-elems-01-t" revision="1.7" status="OK" comment=""/>
 	<test name="render-elems-02-t" revision="1.7" status="OK" comment=""/>
 	<test name="render-elems-03-t" revision="1.7" status="PARTIAL" comment="Entity not supported"/>
@@ -169,7 +169,7 @@
 	<test name="struct-defs-01-t" revision="1.7" status="OK" comment=""/>
 	<test name="struct-frag-01-t" revision="1.3" status="OK" comment=""/>
 	<test name="struct-frag-02-t" revision="1.7" status="OK" comment=""/>
-	<test name="struct-frag-03-t" revision="1.7" status="PARTIAL" comment="preserveAspectRatio on the svg element not yet implemented."/>
+	<test name="struct-frag-03-t" revision="1.7" status="OK" comment=""/>
 	<test name="struct-frag-04-t" revision="1.6" status="OK" comment=""/>
 	<test name="struct-frag-05-t" revision="1.11" status="OK" comment=""/>
 	<test name="struct-frag-06-t" revision="1.8" status="PARTIAL" comment="Shapes as entity not displayed"/>
@@ -198,4 +198,24 @@
 	<test name="text-text-07-t" revision="1.5" status="FAIL" comment="No SVG Font"/>
 	<test name="text-ws-01-t" revision="1.7" status="FAIL" comment=""/>
 	<test name="text-ws-02-t" revision="1.7" status="FAIL" comment="No whitespace preservation."/>
+  
+  <!--	
+	<test name="pservers-grad-01-b" revision="1.4" status="Partial" comment="Gradient xlink:href not supported in Tiny"/>
+	<test name="pservers-grad-02-b" revision="1.4" status="Partial" comment="Gradient xlink:href not supported in Tiny"/>
+	<test name="pservers-grad-03-b" revision="1.4" status="Partial" comment="Pattern not supported"/>
+	<test name="pservers-grad-04-b" revision="1.4" status="OK" comment=""/>
+	<test name="pservers-grad-05-b" revision="1.4" status="OK" comment=""/>
+	<test name="pservers-grad-06-b" revision="1.4" status="Partial" comment="gradientTransform not supported in Tiny"/>
+	<test name="pservers-grad-07-b" revision="1.4" status="OK" comment=""/>
+	<test name="pservers-grad-08-b" revision="1.4" status="OK" comment=""/>
+	<test name="pservers-grad-09-b" revision="1.4" status="OK" comment=""/>
+	<test name="pservers-grad-10-b" revision="1.4" status="Partial" comment="spreadMethod not supported in Tiny"/>
+	<test name="pservers-grad-11-b" revision="1.4" status="OK" comment=""/>
+	<test name="pservers-grad-12-b" revision="1.4" status="Partial" comment="fx and fy not supported in Tiny"/>
+	<test name="pservers-grad-13-b" revision="1.4" status="Partial" comment="fx and fy not supported in Tiny"/>
+	<test name="pservers-grad-14-b" revision="1.4" status="Partial" comment="spreadMethod not supported in Tiny"/>
+	<test name="pservers-grad-15-b" revision="1.4" status="OK" comment=""/>
+	<test name="pservers-grad-16-b" revision="1.4" status="OK" comment=""/>
+	-->
+	
 </svg-status-query>

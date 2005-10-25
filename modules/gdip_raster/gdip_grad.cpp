@@ -99,7 +99,7 @@ GF_Err gf_set_gradient_mode(GF_STENCIL _this, GF_GradientMode mode)
 }
 
 static 
-GF_Err gf_set_linear_gradient (GF_STENCIL _this, Fixed start_x, Fixed start_y, Fixed end_x, Fixed end_y, GF_Color start_col, GF_Color end_col)
+GF_Err gf_set_linear_gradient (GF_STENCIL _this, Fixed start_x, Fixed start_y, Fixed end_x, Fixed end_y)
 {
 	GPSTEN();
 	CHECK_RET(GF_STENCIL_LINEAR_GRADIENT);
@@ -110,7 +110,7 @@ GF_Err gf_set_linear_gradient (GF_STENCIL _this, Fixed start_x, Fixed start_y, F
 	_sten->end.X = FIX2FLT(end_x);
 	_sten->end.Y = FIX2FLT(end_y);
 
-	GdipCreateLineBrush(&_sten->start, &_sten->end, start_col, end_col, WrapModeTile, &_sten->pLinear);
+	GdipCreateLineBrush(&_sten->start, &_sten->end, 0xFF000000, 0xFFFFFFFF, WrapModeTile, &_sten->pLinear);
 	if (!_sten->pLinearMat) GdipCreateMatrix(&_sten->pLinearMat);
 	GdipGetLineTransform(_sten->pLinear, _sten->pLinearMat);
 	_sten->needs_rebuild = 1;

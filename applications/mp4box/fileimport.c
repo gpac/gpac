@@ -111,7 +111,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 	szLan[0] = szLan[3] = 0;
 	delay = 0;
-	par_d = par_n = -1;
+	par_d = par_n = -2;
 	/*use ':' as separator, but beware DOS paths...*/
 	ext = strchr(szName, ':');
 	if (ext && ext[1]=='\\') ext = strchr(szName+2, ':');
@@ -132,10 +132,14 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!strnicmp(ext+1, "agg=", 4)) frames_per_sample = atoi(ext+5);
 		else if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32) (atof(ext+5) * 1000);
 		else if (!strnicmp(ext+1, "par=", 4)) {
-			if (ext2) ext2[0] = ':';
-			ext2 = strchr(ext2+1, ':');
-			if (ext2) ext2[0] = 0;
-			sscanf(ext+5, "%d:%d", &par_n, &par_d);
+			if (!stricmp(ext+5, "none")) {
+				par_n = par_d = -1;
+			} else {
+				if (ext2) ext2[0] = ':';
+				if (ext2) ext2 = strchr(ext2+1, ':');
+				if (ext2) ext2[0] = 0;
+				sscanf(ext+5, "%d:%d", &par_n, &par_d);
+			}
 		}
 
 		if (ext2) ext2[0] = ':';
@@ -226,7 +230,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				gf_isom_append_edit_segment(import.dest, track, (timescale*delay)/1000, 0, GF_ISOM_EDIT_EMPTY);
 				gf_isom_append_edit_segment(import.dest, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
 			}
-			if ((import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL) && (par_n>=0) && (par_d>=0)) {
+			if ((import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL) && (par_n>=-1) && (par_d>=-1)) {
 				e = gf_media_change_par(import.dest, i+1, par_n, par_d);
 			}
 		}

@@ -78,6 +78,7 @@
     <ref name='svg.Properties.attr'/>
     <ref name='svg.Core.attr'/>
     <ref name='svg.X12Y12.attr'/>
+    <ref name='svg.GradientCommon.attr'/>
   </define>
 
 
@@ -94,6 +95,7 @@
     <ref name='svg.Core.attr'/>
     <ref name='svg.CxCy.attr'/>
     <ref name='svg.R.attr'/>
+    <ref name='svg.GradientCommon.attr'/>
   </define>
 
 

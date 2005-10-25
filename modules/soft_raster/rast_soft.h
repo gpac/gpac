@@ -246,7 +246,7 @@ GF_STENCIL evg_stencil_new(GF_Raster2D *, GF_StencilType type);
 void evg_stencil_delete(GF_STENCIL st);
 GF_Err evg_stencil_set_matrix(GF_STENCIL st, GF_Matrix2D *mx);
 GF_Err evg_stencil_set_brush_color(GF_STENCIL st, GF_Color c);
-GF_Err evg_stencil_set_linear_gradient(GF_STENCIL st, Fixed start_x, Fixed start_y, Fixed end_x, Fixed end_y, GF_Color start_col, GF_Color end_col);
+GF_Err evg_stencil_set_linear_gradient(GF_STENCIL st, Fixed start_x, Fixed start_y, Fixed end_x, Fixed end_y);
 GF_Err evg_stencil_set_radial_gradient(GF_STENCIL st, Fixed cx, Fixed cy, Fixed fx, Fixed fy, Fixed x_radius, Fixed y_radius);
 GF_Err evg_stencil_set_gradient_interpolation(GF_STENCIL p, Fixed *pos, GF_Color *col, u32 count);
 GF_Err evg_stencil_set_gradient_mode(GF_STENCIL p, GF_GradientMode mode);

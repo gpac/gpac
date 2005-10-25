@@ -219,7 +219,7 @@ static void VS2D_DrawGradient(VisualSurface2D *surf, GF_Path *path, GF_TextureHa
 	GF_Raster2D *r2d = surf->render->compositor->r2d;
 
 	if (!txh) txh = ctx->h_texture;
-	rc = ctx->original;
+	gf_path_get_bounds(path, &rc);
 	if (!rc.width || !rc.height || !txh->hwtx) return;
 	txh->compute_gradient_matrix(txh, &rc, &g_mat);
 

@@ -183,6 +183,7 @@ static void ILS2D_Draw(DrawableContext *ctx)
 		r2d = ctx->surface->render->compositor->r2d;
 		/*use linear gradient*/
 		if (num_col==2) {
+			Fixed pos[2];
 			grad = r2d->stencil_new(r2d, GF_STENCIL_LINEAR_GRADIENT);
 			if (ils2D->colorIndex.count) {
 				col = color->color.vals[ils2D->colorIndex.vals[col_ind]];
@@ -200,7 +201,9 @@ static void ILS2D_Draw(DrawableContext *ctx)
 				col = color->color.vals[col_ind+1];
 				linear[1] = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
 			}
-			r2d->stencil_set_linear_gradient(grad, start.x, start.y, end.x, end.y, linear[0], linear[1]);
+			pos[0] = 0; pos[1] = FIX_ONE;
+			r2d->stencil_set_linear_gradient(grad, start.x, start.y, end.x, end.y);
+			r2d->stencil_set_gradient_interpolation(grad, pos, linear, 2);
 		} else {
 			grad = r2d->stencil_new(r2d, GF_STENCIL_VERTEX_GRADIENT);
 			if (grad) {

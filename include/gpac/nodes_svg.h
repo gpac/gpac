@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed Oct 19 18:34:42 2005
+	DO NOT MOFIFY - File generated on GMT Tue Oct 25 11:50:54 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -1152,6 +1152,7 @@ typedef struct _tagSVGlinearGradientElement
 	SVG_Coordinate y1; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate x2; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate y2; /* optional, animatable: no, inheritable: false */
+	SVG_GradientUnit gradientUnits; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
 	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
@@ -1509,6 +1510,7 @@ typedef struct _tagSVGradialGradientElement
 	SVG_Coordinate cx; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate cy; /* optional, animatable: no, inheritable: false */
 	SVG_Length r; /* optional, animatable: no, inheritable: false */
+	SVG_GradientUnit gradientUnits; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
 	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */

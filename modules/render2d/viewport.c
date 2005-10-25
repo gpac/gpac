@@ -228,7 +228,7 @@ void R2D_InitViewport(Render2D *sr, GF_Node *node)
 
 void vp_setup(GF_Node *n, RenderEffect2D *eff, GF_Rect *surf_clip)
 {
-	Fixed ar, sx, sy, w, h, tx, ty;
+	Fixed sx, sy, w, h, tx, ty;
 	GF_Matrix2D mat;
 	GF_Rect rc;
 	M_Viewport *vp = (M_Viewport *) n;
@@ -248,7 +248,6 @@ void vp_setup(GF_Node *n, RenderEffect2D *eff, GF_Rect *surf_clip)
 
 	w = surf_clip->width;
 	h = surf_clip->height;
-	ar = gf_divfix(h, w);
 	
 	surf_clip->width = rc.width;
 	surf_clip->height = rc.height;

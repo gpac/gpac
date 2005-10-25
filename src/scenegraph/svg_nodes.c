@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed Oct 19 18:34:42 2005
+	DO NOT MOFIFY - File generated on GMT Tue Oct 25 11:50:54 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -5643,171 +5643,176 @@ static GF_Err SVG_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *info
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->y2;
 			return GF_OK;
 		case 11:
+			info->name = "gradientUnits";
+			info->fieldType = SVG_GradientUnit_datatype;
+			info->far_ptr = & ((SVGlinearGradientElement *)node)->gradientUnits;
+			return GF_OK;
+		case 12:
 			info->name = "display";
 			info->fieldType = SVG_Display_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->display;
 			return GF_OK;
-		case 12:
+		case 13:
 			info->name = "visibility";
 			info->fieldType = SVG_Visibility_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->visibility;
 			return GF_OK;
-		case 13:
+		case 14:
 			info->name = "image-rendering";
 			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->image_rendering;
 			return GF_OK;
-		case 14:
+		case 15:
 			info->name = "pointer-events";
 			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->pointer_events;
 			return GF_OK;
-		case 15:
+		case 16:
 			info->name = "shape-rendering";
 			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->shape_rendering;
 			return GF_OK;
-		case 16:
+		case 17:
 			info->name = "text-rendering";
 			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->text_rendering;
 			return GF_OK;
-		case 17:
+		case 18:
 			info->name = "audio-level";
 			info->fieldType = SVG_AudioLevel_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->audio_level;
 			return GF_OK;
-		case 18:
+		case 19:
 			info->name = "fill-opacity";
 			info->fieldType = SVG_Opacity_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->fill_opacity;
 			return GF_OK;
-		case 19:
+		case 20:
 			info->name = "stroke-opacity";
 			info->fieldType = SVG_Opacity_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->stroke_opacity;
 			return GF_OK;
-		case 20:
+		case 21:
 			info->name = "fill";
 			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->fill;
 			return GF_OK;
-		case 21:
+		case 22:
 			info->name = "fill-rule";
 			info->fieldType = SVG_FillRule_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->fill_rule;
 			return GF_OK;
-		case 22:
+		case 23:
 			info->name = "stroke";
 			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->stroke;
 			return GF_OK;
-		case 23:
+		case 24:
 			info->name = "stroke-dasharray";
 			info->fieldType = SVG_StrokeDashArray_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->stroke_dasharray;
 			return GF_OK;
-		case 24:
+		case 25:
 			info->name = "stroke-dashoffset";
 			info->fieldType = SVG_StrokeDashOffset_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->stroke_dashoffset;
 			return GF_OK;
-		case 25:
+		case 26:
 			info->name = "stroke-linecap";
 			info->fieldType = SVG_StrokeLineCap_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->stroke_linecap;
 			return GF_OK;
-		case 26:
+		case 27:
 			info->name = "stroke-linejoin";
 			info->fieldType = SVG_StrokeLineJoin_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->stroke_linejoin;
 			return GF_OK;
-		case 27:
+		case 28:
 			info->name = "stroke-miterlimit";
 			info->fieldType = SVG_StrokeMiterLimit_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->stroke_miterlimit;
 			return GF_OK;
-		case 28:
+		case 29:
 			info->name = "stroke-width";
 			info->fieldType = SVG_StrokeWidth_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->stroke_width;
 			return GF_OK;
-		case 29:
+		case 30:
 			info->name = "color";
 			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->color;
 			return GF_OK;
-		case 30:
+		case 31:
 			info->name = "color-rendering";
 			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->color_rendering;
 			return GF_OK;
-		case 31:
+		case 32:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->vector_effect;
 			return GF_OK;
-		case 32:
+		case 33:
 			info->name = "viewport-fill";
 			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->viewport_fill;
 			return GF_OK;
-		case 33:
+		case 34:
 			info->name = "viewport-fill-opacity";
 			info->fieldType = SVG_Opacity_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->viewport_fill_opacity;
 			return GF_OK;
-		case 34:
+		case 35:
 			info->name = "solid-color";
 			info->fieldType = SVG_SVGColor_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->solid_color;
 			return GF_OK;
-		case 35:
+		case 36:
 			info->name = "solid-opacity";
 			info->fieldType = SVG_Opacity_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->solid_opacity;
 			return GF_OK;
-		case 36:
+		case 37:
 			info->name = "display-align";
 			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->display_align;
 			return GF_OK;
-		case 37:
+		case 38:
 			info->name = "line-increment";
 			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->line_increment;
 			return GF_OK;
-		case 38:
+		case 39:
 			info->name = "stop-color";
 			info->fieldType = SVG_SVGColor_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->stop_color;
 			return GF_OK;
-		case 39:
+		case 40:
 			info->name = "stop-opacity";
 			info->fieldType = SVG_Opacity_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->stop_opacity;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "font-family";
 			info->fieldType = SVG_FontFamily_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->font_family;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "font-size";
 			info->fieldType = SVG_FontSize_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->font_size;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "font-style";
 			info->fieldType = SVG_FontStyle_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->font_style;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "font-weight";
 			info->fieldType = SVG_FontWeight_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->font_weight;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->text_anchor;
@@ -7596,171 +7601,176 @@ static GF_Err SVG_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *info
 			info->far_ptr = & ((SVGradialGradientElement *)node)->r;
 			return GF_OK;
 		case 10:
+			info->name = "gradientUnits";
+			info->fieldType = SVG_GradientUnit_datatype;
+			info->far_ptr = & ((SVGradialGradientElement *)node)->gradientUnits;
+			return GF_OK;
+		case 11:
 			info->name = "display";
 			info->fieldType = SVG_Display_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->display;
 			return GF_OK;
-		case 11:
+		case 12:
 			info->name = "visibility";
 			info->fieldType = SVG_Visibility_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->visibility;
 			return GF_OK;
-		case 12:
+		case 13:
 			info->name = "image-rendering";
 			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->image_rendering;
 			return GF_OK;
-		case 13:
+		case 14:
 			info->name = "pointer-events";
 			info->fieldType = SVG_PointerEvents_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->pointer_events;
 			return GF_OK;
-		case 14:
+		case 15:
 			info->name = "shape-rendering";
 			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->shape_rendering;
 			return GF_OK;
-		case 15:
+		case 16:
 			info->name = "text-rendering";
 			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->text_rendering;
 			return GF_OK;
-		case 16:
+		case 17:
 			info->name = "audio-level";
 			info->fieldType = SVG_AudioLevel_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->audio_level;
 			return GF_OK;
-		case 17:
+		case 18:
 			info->name = "fill-opacity";
 			info->fieldType = SVG_Opacity_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->fill_opacity;
 			return GF_OK;
-		case 18:
+		case 19:
 			info->name = "stroke-opacity";
 			info->fieldType = SVG_Opacity_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->stroke_opacity;
 			return GF_OK;
-		case 19:
+		case 20:
 			info->name = "fill";
 			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->fill;
 			return GF_OK;
-		case 20:
+		case 21:
 			info->name = "fill-rule";
 			info->fieldType = SVG_FillRule_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->fill_rule;
 			return GF_OK;
-		case 21:
+		case 22:
 			info->name = "stroke";
 			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->stroke;
 			return GF_OK;
-		case 22:
+		case 23:
 			info->name = "stroke-dasharray";
 			info->fieldType = SVG_StrokeDashArray_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->stroke_dasharray;
 			return GF_OK;
-		case 23:
+		case 24:
 			info->name = "stroke-dashoffset";
 			info->fieldType = SVG_StrokeDashOffset_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->stroke_dashoffset;
 			return GF_OK;
-		case 24:
+		case 25:
 			info->name = "stroke-linecap";
 			info->fieldType = SVG_StrokeLineCap_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->stroke_linecap;
 			return GF_OK;
-		case 25:
+		case 26:
 			info->name = "stroke-linejoin";
 			info->fieldType = SVG_StrokeLineJoin_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->stroke_linejoin;
 			return GF_OK;
-		case 26:
+		case 27:
 			info->name = "stroke-miterlimit";
 			info->fieldType = SVG_StrokeMiterLimit_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->stroke_miterlimit;
 			return GF_OK;
-		case 27:
+		case 28:
 			info->name = "stroke-width";
 			info->fieldType = SVG_StrokeWidth_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->stroke_width;
 			return GF_OK;
-		case 28:
+		case 29:
 			info->name = "color";
 			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->color;
 			return GF_OK;
-		case 29:
+		case 30:
 			info->name = "color-rendering";
 			info->fieldType = SVG_RenderingHint_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->color_rendering;
 			return GF_OK;
-		case 30:
+		case 31:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->vector_effect;
 			return GF_OK;
-		case 31:
+		case 32:
 			info->name = "viewport-fill";
 			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->viewport_fill;
 			return GF_OK;
-		case 32:
+		case 33:
 			info->name = "viewport-fill-opacity";
 			info->fieldType = SVG_Opacity_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->viewport_fill_opacity;
 			return GF_OK;
-		case 33:
+		case 34:
 			info->name = "solid-color";
 			info->fieldType = SVG_SVGColor_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->solid_color;
 			return GF_OK;
-		case 34:
+		case 35:
 			info->name = "solid-opacity";
 			info->fieldType = SVG_Opacity_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->solid_opacity;
 			return GF_OK;
-		case 35:
+		case 36:
 			info->name = "display-align";
 			info->fieldType = SVG_DisplayAlign_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->display_align;
 			return GF_OK;
-		case 36:
+		case 37:
 			info->name = "line-increment";
 			info->fieldType = SVG_LineIncrement_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->line_increment;
 			return GF_OK;
-		case 37:
+		case 38:
 			info->name = "stop-color";
 			info->fieldType = SVG_SVGColor_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->stop_color;
 			return GF_OK;
-		case 38:
+		case 39:
 			info->name = "stop-opacity";
 			info->fieldType = SVG_Opacity_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->stop_opacity;
 			return GF_OK;
-		case 39:
+		case 40:
 			info->name = "font-family";
 			info->fieldType = SVG_FontFamily_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->font_family;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "font-size";
 			info->fieldType = SVG_FontSize_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->font_size;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "font-style";
 			info->fieldType = SVG_FontStyle_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->font_style;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "font-weight";
 			info->fieldType = SVG_FontWeight_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->font_weight;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->text_anchor;
@@ -12023,7 +12033,7 @@ u32 SVG_GetAttributeCount(GF_Node *node)
 		case TAG_SVG_hkern: return 12;
 		case TAG_SVG_image: return 73;
 		case TAG_SVG_line: return 62;
-		case TAG_SVG_linearGradient: return 45;
+		case TAG_SVG_linearGradient: return 46;
 		case TAG_SVG_listener: return 14;
 		case TAG_SVG_metadata: return 7;
 		case TAG_SVG_missing_glyph: return 9;
@@ -12032,7 +12042,7 @@ u32 SVG_GetAttributeCount(GF_Node *node)
 		case TAG_SVG_polygon: return 59;
 		case TAG_SVG_polyline: return 59;
 		case TAG_SVG_prefetch: return 19;
-		case TAG_SVG_radialGradient: return 44;
+		case TAG_SVG_radialGradient: return 45;
 		case TAG_SVG_rect: return 64;
 		case TAG_SVG_script: return 9;
 		case TAG_SVG_set: return 26;

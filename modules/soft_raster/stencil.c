@@ -92,13 +92,14 @@ static void gradient_update(EVG_BaseGradient *_this)
 static u32 gradient_get_color(EVG_BaseGradient *_this, s32 pos) 
 {
 	s32 max_pos = 1 << EVGGRADIENTBITS;
-	while (pos < 0) pos += max_pos;
 
 	switch (_this->mod) {
 	case GF_GRADIENT_MODE_SPREAD:
+		if (pos<0) pos = -pos;
 		return _this->pre[(pos & max_pos) ?  EVGGRADIENTMAXINTPOS - (pos % max_pos) :  pos % max_pos];
 
 	case GF_GRADIENT_MODE_REPEAT:
+		while (pos < 0) pos += max_pos;
 		return _this->pre[pos % max_pos];
 
 	case GF_GRADIENT_MODE_PAD:
@@ -241,7 +242,7 @@ static void lgb_fill_run(EVGStencil *p, EVGSurface *surf, s32 x, s32 y, u32 coun
 	}
 }
 
-GF_Err evg_stencil_set_linear_gradient(GF_STENCIL st, Fixed start_x, Fixed start_y, Fixed end_x, Fixed end_y, GF_Color start_col, GF_Color end_col)
+GF_Err evg_stencil_set_linear_gradient(GF_STENCIL st, Fixed start_x, Fixed start_y, Fixed end_x, Fixed end_y)
 {
 	GF_Matrix2D mtx;
 	GF_Point2D s;
@@ -270,14 +271,6 @@ GF_Err evg_stencil_set_linear_gradient(GF_STENCIL st, Fixed start_x, Fixed start
 	gf_mx2d_init(mtx);
 	gf_mx2d_add_scale(&mtx, f, f);
 	gf_mx2d_add_matrix(&_this->vecmat, &mtx);
-
-	_this->col[0] = start_col;
-	_this->col[1] = end_col;
-	_this->col[2] = 0;
-	_this->pos[0] = 0;
-	_this->pos[1] = 1;
-	_this->pos[2] = -1;
-	gradient_update((EVG_BaseGradient *) _this);
 	return GF_OK;
 }
 
@@ -292,7 +285,7 @@ EVGStencil *evg_linear_gradient_brush()
 	tmp->type = GF_STENCIL_LINEAR_GRADIENT;
 	for(i=0; i<EVGGRADIENTSLOTS; i++) tmp->pos[i]=-1;
 
-	evg_stencil_set_linear_gradient((EVGStencil *)tmp, 0, 0, FIX_ONE, 0, 0xFFFFFFFF, 0xFFFFFFFF);
+	evg_stencil_set_linear_gradient((EVGStencil *)tmp, 0, 0, FIX_ONE, 0);
 	return (EVGStencil *) tmp;
 }
 

@@ -342,6 +342,8 @@ void setAttributeType(SVGProperty *att)
 			strcpy(att->impl_type, "SVG_Clock");
 		} else if (!strcmp(att->svg_name, "version")) {
 			strcpy(att->impl_type, "SVG_String");
+		} else if (!strcmp(att->svg_name, "gradientUnits")) {
+			strcpy(att->impl_type, "SVG_GradientUnit");
 		} else if (!strcmp(att->svg_name, "baseProfile")) {
 			strcpy(att->impl_type, "SVG_String");
 		} else {
@@ -596,6 +598,8 @@ GF_List *getElements(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 			SVGElement *e = NewSVGElement();
 			e->svg_name = xmlStrdup(xmlGetProp(elementNode, "name"));
 			//fprintf(stdout, "\n\tElement %s\n", e->svg_name);
+			if (!strcmp(e->svg_name, "linearGradient"))
+				k = k;
 			svgNameToImplementationName(e->svg_name, e->implementation_name);
 			getAttributes(doc, xpathCtx, elementNode, e);
 			if (e->has_properties) {

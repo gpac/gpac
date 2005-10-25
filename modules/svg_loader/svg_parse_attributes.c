@@ -833,11 +833,13 @@ void svg_parse_paint(SVGParser *parser, SVG_Paint *paint, char *attribute_conten
 		paint->type = SVG_PAINT_NONE;
 	} else if (!strcmp(attribute_content, "inherit")) {
 		paint->type = SVG_PAINT_INHERIT;
-	} else if (1) {
+	} else if (!strnicmp(attribute_content, "url(", 4) ) {
+		paint->type = SVG_PAINT_URI;
+		paint->uri = strdup(attribute_content+4);
+		paint->uri[strlen(paint->uri)-1] = 0;
+	} else {
 		paint->type = SVG_PAINT_COLOR;
 		svg_parse_color(parser, paint->color, attribute_content);
-	} else {
-		paint->type = SVG_PAINT_URI;
 	}
 }
 
@@ -1938,6 +1940,10 @@ void svg_parse_attribute(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info,
 		break;
 	case SMIL_Fill_datatype:
 		smil_parse_fill(parser, (SMIL_Fill *)info->far_ptr, attribute_content);
+		break;
+
+	case SVG_GradientUnit_datatype:
+		*((SVG_GradientUnit *)info->far_ptr) = !stricmp(attribute_content, "userSpaceOnUse") ? SVG_GRADIENTUNITS_USER : SVG_GRADIENTUNITS_OBJECT;
 		break;
 /* end of keyword type parsing */
 

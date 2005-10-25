@@ -126,7 +126,7 @@ typedef void *GF_STENCIL;
 typedef void *GF_SURFACE;
 
 /*interface name and version for raster2D*/
-#define GF_RASTER_2D_INTERFACE		GF_FOUR_CHAR_INT('G','R','2', 0x01)
+#define GF_RASTER_2D_INTERFACE		GF_FOUR_CHAR_INT('G','R','2', 0x02)
 
 /*graphics driver*/
 typedef struct _raster2d_interface
@@ -146,7 +146,7 @@ typedef struct _raster2d_interface
 	this may be called before the gradient is setup*/
 	GF_Err (*stencil_set_gradient_mode) (GF_STENCIL _this, GF_GradientMode mode);
 	/*set linear gradient.  line is defined by start and end, and you can give interpolation colors at specified positions*/
-	GF_Err (*stencil_set_linear_gradient) (GF_STENCIL _this, Fixed start_x, Fixed start_y, Fixed end_x, Fixed end_y, GF_Color start_col, GF_Color end_col);
+	GF_Err (*stencil_set_linear_gradient) (GF_STENCIL _this, Fixed start_x, Fixed start_y, Fixed end_x, Fixed end_y);
 	/*radial gradient brush center point, focal point and radius - colors can only be set through set_interpolation */
 	GF_Err (*stencil_set_radial_gradient) (GF_STENCIL _this, Fixed cx, Fixed cy, Fixed fx, Fixed fy, Fixed x_radius, Fixed y_radius);
 	/*radial and linear gradient (not used with vertex) - set color interpolation at given points, 

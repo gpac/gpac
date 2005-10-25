@@ -365,7 +365,9 @@ static void DestroyLinearGradient(GF_Node *node)
 
 static void UpdateLinearGradient(GF_TextureHandler *txh)
 {
-	u32 i;
+	u32 i, *cols;
+	Fixed a;
+	Bool const_a;
 	M_LinearGradient *lg = (M_LinearGradient *) txh->owner;
 	GradientStack *st = (GradientStack *) gf_node_get_private(txh->owner);
 	if (!txh->hwtx) txh->hwtx = txh->compositor->r2d->stencil_new(txh->compositor->r2d, GF_STENCIL_LINEAR_GRADIENT);
@@ -376,20 +378,22 @@ static void UpdateLinearGradient(GF_TextureHandler *txh)
 	txh->needs_refresh = 1;
 
 	st->txh.transparent = 0;
-	for (i=0; i<lg->opacity.count; i++) {
-		if (lg->opacity.vals[i] != FIX_ONE) {
-			st->txh.transparent = 1;
-			break;
-		}
+	const_a = (lg->opacity.count == 1) ? 1 : 0;
+	cols = malloc(sizeof(u32) * lg->key.count);
+	for (i=0; i<lg->key.count; i++) {
+		a = (const_a ? lg->opacity.vals[0] : lg->opacity.vals[i]);
+		cols[i] = GF_COL_ARGB_FIXED(a, lg->keyValue.vals[i].red, lg->keyValue.vals[i].green, lg->keyValue.vals[i].blue);
+		if (a != FIX_ONE) txh->transparent = 1;
 	}
+	txh->compositor->r2d->stencil_set_gradient_interpolation(txh->hwtx, lg->key.vals, cols, lg->key.count);
+	free(cols);
+	txh->compositor->r2d->stencil_set_gradient_mode(txh->hwtx, lg->spreadMethod);
+
 }
 
 static void LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2D *mat)
 {
 	SFVec2f start, end;
-	u32 i, *cols;
-	Fixed a;
-	Bool const_a;
 	M_LinearGradient *lg = (M_LinearGradient *) txh->owner;
 
 	if (lg->key.count<2) return;
@@ -418,19 +422,7 @@ static void LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2
 	/*translate to the center of the bounds*/
 	gf_mx2d_add_translation(mat, bounds->x, bounds->y - bounds->height);
 
-
-	txh->compositor->r2d->stencil_set_linear_gradient(txh->hwtx, start.x, start.y, end.x, end.y, 0xFFFF0000, 0xFFFF00FF);
-	
-	const_a = (lg->opacity.count == 1) ? 1 : 0;
-	cols = malloc(sizeof(u32) * lg->key.count);
-	for (i=0; i<lg->key.count; i++) {
-		a = (const_a ? lg->opacity.vals[0] : lg->opacity.vals[i]);
-		cols[i] = GF_COL_ARGB_FIXED(a, lg->keyValue.vals[i].red, lg->keyValue.vals[i].green, lg->keyValue.vals[i].blue);
-	}
-	txh->compositor->r2d->stencil_set_gradient_interpolation(txh->hwtx, lg->key.vals, cols, lg->key.count);
-	free(cols);
-	txh->compositor->r2d->stencil_set_gradient_mode(txh->hwtx, lg->spreadMethod);
-
+	txh->compositor->r2d->stencil_set_linear_gradient(txh->hwtx, start.x, start.y, end.x, end.y);
 }
 
 void R2D_InitLinearGradient(Render2D *sr, GF_Node *node)

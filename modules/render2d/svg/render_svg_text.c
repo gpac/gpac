@@ -30,6 +30,14 @@
 #include <gpac/utf.h>
 #include "../visualsurface2d.h"
 
+typedef struct 
+{
+	Drawable *draw;
+	SVG_SensorInfo si;
+	Fixed prev_size;
+	u32 prev_flags;
+} SVG_TextStack;
+
 /* TODO: implement all the missing features: horizontal/vertical, ltr/rtl, tspan, tref ... */
 
 static void SVG_Render_text(GF_Node *node, void *rs)
@@ -37,7 +45,8 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 	GF_Matrix2D backup_matrix;
 	SVG_Transform *tr;
 	DrawableContext *ctx;
-	Drawable *cs = SVG_GetDrawable(node);
+	SVG_TextStack *st = gf_node_get_private(node);
+	Drawable *cs = st->draw;
 	RenderEffect2D *eff = rs;
 	SVGtextElement *text = (SVGtextElement *)node;
 	GF_FontRaster *ft_dr = eff->surface->render->compositor->font_engine;
@@ -62,7 +71,10 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 		gf_mx2d_add_matrix(&eff->transform, &backup_matrix);
 	}
 
-	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
+
+	if ( (st->prev_size != eff->svg_props->font_size->value) || (st->prev_flags != *eff->svg_props->font_style)
+		|| (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) 
+	) {
 		unsigned short *wcText;
 		Fixed ascent, descent, font_height;
 		GF_Rect rc;
@@ -132,6 +144,8 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 		}
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
+		st->prev_size = eff->svg_props->font_size->value;
+		st->prev_flags = *eff->svg_props->font_style;
 	}
 	ctx = SVG_drawable_init_context(cs, eff);
 	if (ctx) {
@@ -142,9 +156,23 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 	memcpy(eff->svg_props, &backup_props, styling_size);
 }
 
+void SVG_DestroyText(GF_Node *node)
+{
+	SVG_TextStack *stack = (SVG_TextStack *) gf_node_get_private(node);
+	R2D_UnregisterSensor(stack->draw->compositor, &stack->si.hdl);
+	drawable_del(stack->draw);
+	free(stack);
+}
+
 void SVG_Init_text(Render2D *sr, GF_Node *node)
 {
-	SVG_InitDrawable(sr, node);
+	SVG_TextStack *stack;
+	GF_SAFEALLOC(stack, sizeof(SVG_TextStack));
+	stack->draw = drawable_new();
+	gf_sr_traversable_setup(stack->draw, node, sr->compositor);
+	gf_node_set_private(node, stack);
+	gf_node_set_predestroy_function(node, SVG_DestroyText);
+	SVG_setup_sensitive(node, &stack->si);
 	gf_node_set_render_function(node, SVG_Render_text);
 }
 
