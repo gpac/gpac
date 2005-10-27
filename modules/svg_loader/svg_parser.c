@@ -137,7 +137,12 @@ Bool is_svg_text_element(SVGElement *elt)
 	return ((tag==TAG_SVG_text)||(tag==TAG_SVG_textArea)||(tag==TAG_SVG_tspan));
 }
 
-Bool is_svg_animation_element(u32 tag)
+Bool is_svg_anchor_tag(u32 tag)
+{
+	return (tag == TAG_SVG_a);
+}
+
+Bool is_svg_animation_tag(u32 tag)
 {
 	return (tag == TAG_SVG_set ||
 			tag == TAG_SVG_animate ||
@@ -632,6 +637,39 @@ SVGElement *svg_parse_dom_element(SVGParser *parser, xmlNodePtr node, SVGElement
 /* DOM end */
 
 /* SAX functions */
+void svg_parse_sax_defered_anchor(SVGParser *parser, SVGElement *anchor_elt, defered_element local_de)
+{
+	GF_FieldInfo info;
+	u32 anim_value_type = 0, anim_transform_type = 0;
+
+	GF_FieldInfo xlink_href_info;
+	gf_node_get_field_by_name((GF_Node *)anchor_elt, "xlink:href", &xlink_href_info);
+	if (local_de.target_id) 
+		svg_parse_iri(parser, anchor_elt, (SVG_IRI *)xlink_href_info.far_ptr, local_de.target_id);
+	else {
+		/* default is the parent element */
+		((SVG_IRI *)xlink_href_info.far_ptr)->type = SVG_IRI_ELEMENTID;
+		((SVG_IRI *)xlink_href_info.far_ptr)->target = local_de.parent;
+		((SVG_IRI *)xlink_href_info.far_ptr)->iri_owner = local_de.animation_elt;
+		/* Warning !!! here the reference is the parent !!!! */
+		//gf_node_register((GF_Node *)local_de.parent, (GF_Node *)local_de.animation_elt);
+	}
+
+	if (local_de.attributeName) {
+		/* get the type of the target attribute to determine type of the from/to/by ... */
+		smil_parse_attributename(parser, anchor_elt, local_de.attributeName);
+		gf_node_get_field_by_name((GF_Node *)anchor_elt, "attributeName", &info);
+		anim_value_type = ((SMIL_AttributeName *)info.far_ptr)->type;
+		free(local_de.attributeName);
+	} else {
+		if (gf_node_get_tag((GF_Node *)anchor_elt) == TAG_SVG_animateMotion) {
+			anim_value_type = SVG_Motion_datatype;
+		} else {
+			fprintf(stdout, "Error: no attributeName specified.\n");
+		}
+	}
+}
+
 void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_elt, defered_element local_de)
 {
 	GF_FieldInfo info;
@@ -751,7 +789,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 	if are not able to determine the target, we put the element in a list for future processing
 	(each time a new id is defined, we try to resolve the defered elements)
 	*/
-	if (is_svg_animation_element(tag)) {
+	if (is_svg_animation_tag(tag)) {
 		/* Parsing the xlink:href attribute */
 		Bool xlink_href_found = 0;
 		attribute_index=0;
@@ -785,6 +823,31 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 					if (position <= 0) gf_list_add(parser->defered_animation_elements, de);
 					else gf_list_insert(parser->defered_animation_elements, de, position);
 				}
+				break;
+			} 
+			attribute_index+=2;
+		}
+		if (!xlink_href_found) {
+			local_de.target = parent;			
+		}
+	}
+	/* For anchor elements, we try to resolve the target element;
+	if are not able to determine the target, we put the element in a list for future processing
+	(each time a new id is defined, we try to resolve the defered elements)
+	*/
+	if (is_svg_anchor_tag(tag)) {
+		/* Parsing the xlink:href attribute */
+		Bool xlink_href_found = 0;
+		attribute_index=0;
+		memset(&local_de, 0, sizeof(defered_element));
+		local_de.parent = parent;
+		if (attrs)
+		while (attrs[attribute_index]!=NULL)
+		{
+			if (stricmp(attrs[attribute_index],"xlink:href")==0) {
+				GF_FieldInfo xlink_href_info;
+				gf_node_get_field_by_name((GF_Node *)elt, "xlink:href", &xlink_href_info);
+				svg_parse_iri(parser, elt, (SVG_IRI *)xlink_href_info.far_ptr, attrs[attribute_index+1]);
 				break;
 			} 
 			attribute_index+=2;
@@ -827,7 +890,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 				}
 			}
 		} else if (!stricmp(attrs[attribute_index], "xlink:href")) {
-			if (is_svg_animation_element(tag)) {
+			if (is_svg_animation_tag(tag)) {
 				/* already dealt with above */
 			} else {
 				GF_FieldInfo info;
@@ -885,18 +948,38 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 		attribute_index+=2;
 	}
 
-	if (!de && is_svg_animation_element(tag)) svg_parse_sax_defered_animation(parser, elt, local_de);
+	if (!de && is_svg_animation_tag(tag)) svg_parse_sax_defered_animation(parser, elt, local_de);
 
 	/* if the new element has an id, we try to resolve defered references */
 	if (ided) {
 		defered_element *previous_de;
 		const char *new_id = gf_node_get_name((GF_Node *)elt);
-		/* dichotomic search in the sorted list of defered elements */
+		/* dichotomic search in the sorted list of defered animation elements */
 		previous_de = list_dichotomic_search(parser->defered_animation_elements, new_id, NULL);
 		if (previous_de) { /* defered element 'previous_de' can be resolved by the new elt */
 			svg_parse_sax_defered_animation(parser, previous_de->animation_elt, *previous_de);
 			gf_node_init((GF_Node *)previous_de->animation_elt);
 		}
+		
+		/* defered references for anchor */
+		{
+			u32 i;
+			u32 count = gf_list_count(parser->unresolved_hrefs);
+			for (i=0; i<count; i++)
+			{
+				href_instance *hi = gf_list_get(parser->unresolved_hrefs, i);
+				if (hi)
+				{
+					SVG_IRI *iri = hi->iri;
+					iri->target = (SVGElement *)gf_sg_find_node_by_name(parser->graph, &(iri->iri[1]));
+					if (iri->target) {
+						gf_node_init((GF_Node *)hi->elt);
+						gf_list_rem(parser->unresolved_hrefs, i);
+					}
+				}
+			}
+		}
+		
 	}
 
 	/* We need to init the node at the end of the parsing, after parsing all attributes */
