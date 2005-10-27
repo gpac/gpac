@@ -1047,10 +1047,16 @@ static void SVG_InitStackValuesFontFamily(SMIL_AnimationStack *stack)
 
 static void SVG_DeleteStackValuesFontFamily(SMIL_AnimationStack *stack)
 {
-	if (((SVG_FontFamily *)stack->base_value)->value) free(((SVG_FontFamily *)stack->base_value)->value);
-	free(stack->base_value);
-	if (((SVG_FontFamily *)stack->tmp_value)->value) free(((SVG_FontFamily *)stack->tmp_value)->value);
-	free(stack->tmp_value);
+	if (stack->base_value) /* JCM : must do a better job if there is a failure in the stack structure */
+	{
+		if (((SVG_FontFamily *)stack->base_value)->value) free(((SVG_FontFamily *)stack->base_value)->value);
+		free(stack->base_value);
+	}
+	if (stack->tmp_value)  /* JCM : must do a better job if there is a failure in the stack structure */
+	{
+		if (((SVG_FontFamily *)stack->tmp_value)->value) free(((SVG_FontFamily *)stack->tmp_value)->value);
+		free(stack->tmp_value);
+	}
 }
 /* end of SVG String animation functions */
 
