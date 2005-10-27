@@ -594,7 +594,7 @@ void svg_parse_path(SVGParser *parser, SVG_PathData *d_attribute, char *attribut
 		SVG_Point *pt, pt0, cur_pt;
 		u8 *command;
 		u32 i, k;
-		char c, prev_c;
+		char c, prev_c = 'M';
 		i = 0;
 		cur_pt.x = cur_pt.y = 0;
 		pt0_inited = 0;
@@ -886,7 +886,7 @@ void svg_convert_length_unit_to_user_unit(SVGParser *parser, SVG_Length *length)
 u32 svg_parse_length(SVGParser *parser, SVG_Length *length, char *value_string)
 {
 	char *unit = NULL;
-	u32 len;
+	u32 len = 0;
 	if (!strcmp(value_string, "inherit")) {
 		length->type = SVG_LENGTH_INHERIT;
 		return 7;
