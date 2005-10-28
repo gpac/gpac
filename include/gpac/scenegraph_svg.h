@@ -158,7 +158,8 @@ typedef DOM_String SVG_String;
 
 typedef DOM_String SVG_Focus;
 typedef DOM_String SVG_ID;
-typedef DOM_String SVG_XSLT_QName;
+/*DOM event type*/
+typedef u32 SVG_XSLT_QName;
 
 typedef u8 *SVG_TextContent;
 
@@ -193,26 +194,6 @@ enum {
 	SMIL_TIME_INDEFINITE	= 4
 };
 
-enum {
-	unknown				= 0, 
-	begin				= 1,
-	end					= 2,
-	repeat				= 3,
-	focusin				= 4,
-	focusout			= 5, 
-	activate			= 6, 
-	click				= 7, 
-	mouseup				= 8, 
-	mousedown			= 9, 
-	mouseover			=10, 
-	mouseout			=11, 
-	mousemove			=12, 
-	load				=13, 
-	resize				=14, 
-	scroll				=15, 
-	zoom				=16,
-	key					=17
-};
 
 typedef struct {
 	/* Type of timing value*/
@@ -876,6 +857,84 @@ void SMIL_DeleteTimes			(GF_List *list);
 void SVG_DeletePoints			(GF_List *list);
 void SVG_DeleteCoordinates		(GF_List *list);
 void SVG_ResetIRI				(SVG_IRI*iri);
+
+
+/* basic DOM event handling*/
+
+enum {
+	SVG_DOM_EVT_UNKNOWN,
+	/*DOM UIEvents*/
+	SVG_DOM_EVT_FOCUSIN,
+	SVG_DOM_EVT_FOCUSOUT, 
+	SVG_DOM_EVT_ACTIVATE, 
+	/*DOM MouseEvents*/
+	SVG_DOM_EVT_CLICK, 
+	SVG_DOM_EVT_MOUSEUP, 
+	SVG_DOM_EVT_MOUSEDOWN, 
+	SVG_DOM_EVT_MOUSEOVER, 
+	SVG_DOM_EVT_MOUSEOUT, 
+	SVG_DOM_EVT_MOUSEMOVE, 
+	/*SVG (HTML) Events*/
+	SVG_DOM_EVT_LOAD, 
+	SVG_DOM_EVT_UNLOAD,
+	SVG_DOM_EVT_ABORT, 
+	SVG_DOM_EVT_ERROR, 
+	SVG_DOM_EVT_RESIZE, 
+	SVG_DOM_EVT_SCROLL, 
+	SVG_DOM_EVT_ZOOM,
+	SVG_DOM_EVT_BEGIN,
+	SVG_DOM_EVT_END,
+	SVG_DOM_EVT_REPEAT,
+	
+	/*NON-DOM2 EVENTS*/
+	SVG_DOM_EVT_KEYUP,
+	SVG_DOM_EVT_KEYDOWN,
+	SVG_DOM_EVT_KEYPRESS,
+
+	/*DOM MutationEvents - NOT SUPPORTED YET*/
+	SVG_DOM_EVT_TREE_MODIFIED,
+	SVG_DOM_EVT_NODE_INSERTED,
+	SVG_DOM_EVT_NODE_REMOVED,
+	SVG_DOM_EVT_NODE_INSERTED_DOC,
+	SVG_DOM_EVT_NODE_REMOVED_DOC,
+	SVG_DOM_EVT_ATTR_MODIFIED,
+	SVG_DOM_EVT_CHAR_DATA_MODIFIED,
+};
+
+typedef struct
+{
+	/*event type*/
+	u32 type;
+	/*event phase type, READ-ONLY
+	0: at target, 1: bubbling, 2: capturing , 3: canceled
+	*/
+	u8 event_phase;
+	u8 bubbles;
+	u8 cancelable;
+	GF_Node *target;
+	GF_Node *currentTarget;
+	Double timestamp;
+	/*UIEvent extension. For mouse extensions, stores button type*/
+	u32 detail;
+	/*MouseEvent extension*/
+	s32 screenX, screenY;
+	s32 clientX, clientY;
+	Bool ctrl_key, shift_key, alt_key, meta_key;
+	GF_Node *relatedTarget;
+
+} GF_DOM_Event;
+
+Bool gf_sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event);
+
+/*listener are simply nodes added to the node events list. 
+THIS SHALL NOT BE USED WITH VRML-BASED GRAPHS: either one uses listeners or one uses routes
+the listener node is NOT registered, it is the user responsability to delete it from its parent
+@listener is a listenerElement (XML event)
+*/
+GF_Err gf_node_listener_add(GF_Node *node, GF_Node *listener);
+GF_Err gf_node_listener_del(GF_Node *node, GF_Node *listener);
+u32 gf_node_listener_count(GF_Node *node);
+GF_Node *gf_node_listener_get(GF_Node *node, u32 i);
 
 #ifdef __cplusplus
 }

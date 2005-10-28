@@ -32,14 +32,13 @@
 #include "svg/svg_stacks.h"
 #endif
 
-void R2D_MapCoordsToAR(GF_VisualRenderer *vr, s32 inX, s32 inY, Fixed *x, Fixed *y)
+void R2D_MapCoordsToAR(Render2D *sr, s32 inX, s32 inY, Fixed *x, Fixed *y)
 {
-	Render2D *sr = (Render2D*)vr->user_priv;
-
-
-	/*revert to BIFS like*/
-	inX = inX - sr->compositor->width /2;
-	inY = sr->compositor->height/2 - inY;
+	if (sr->surface->center_coords) {
+		/*revert to BIFS like*/
+		inX = inX - sr->compositor->width /2;
+		inY = sr->compositor->height/2 - inY;
+	}
 	*x = INT2FIX(inX);
 	*y = INT2FIX(inY);
 
@@ -267,6 +266,82 @@ void R2D_UnregisterSensor(GF_Renderer *compositor, SensorHandler *sh)
 
 #define R2DSETCURSOR(t) { GF_Event evt; evt.type = GF_EVT_SET_CURSOR; evt.cursor.cursor_type = (t); sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt); }
 
+#ifndef GPAC_DISABLE_SVG
+
+Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fixed Y)
+{
+	Bool ret = 0;
+	Render2D *sr = (Render2D *)vr->user_priv;
+
+	/*all mouse events*/
+	if (event->event_type<=GF_EVT_RIGHTUP) {
+		DrawableContext *ctx = VS2D_PickContext(sr->surface, X, Y);
+		if (ctx) {
+			GF_DOM_Event evt;
+			memset(&evt, 0, sizeof(GF_DOM_Event));
+			evt.clientX = evt.screenX = FIX2INT(X);
+			evt.clientY = evt.screenY = FIX2INT(Y);
+			evt.bubbles = 1;
+			evt.cancelable = 1;
+			evt.ctrl_key = (sr->compositor->key_states & GF_KM_CTRL) ? 1 : 0;
+			evt.shift_key = (sr->compositor->key_states & GF_KM_SHIFT) ? 1 : 0;
+			evt.alt_key = (sr->compositor->key_states & GF_KM_ALT) ? 1 : 0;
+
+			switch (event->event_type) {
+			case GF_EVT_MOUSEMOVE:
+				evt.cancelable = 0;
+				if (sr->grab_node != ctx->node) {
+					/*mouse out*/
+					if (sr->grab_node) {
+						evt.relatedTarget = ctx->node->owner;
+						evt.type = SVG_DOM_EVT_MOUSEOUT;
+						ret += gf_sg_fire_dom_event(sr->grab_node->owner, &evt);
+						/*prepare mouseOver*/
+						evt.relatedTarget = sr->grab_node->owner;
+					}
+					/*mouse over*/
+					evt.type = SVG_DOM_EVT_MOUSEOVER;
+					ret += gf_sg_fire_dom_event(ctx->node->owner, &evt);
+
+					sr->grab_ctx = ctx;
+					sr->grab_node = ctx->node;
+				} else {
+					evt.type = SVG_DOM_EVT_MOUSEMOVE;
+					ret += gf_sg_fire_dom_event(ctx->node->owner, &evt);
+				}
+				break;
+			case GF_EVT_LEFTDOWN:
+			case GF_EVT_MIDDLEDOWN:
+			case GF_EVT_RIGHTDOWN:
+				if ((sr->last_click_x!=evt.screenX) || (sr->last_click_y!=evt.screenY)) sr->num_clicks = 0;
+				evt.type = SVG_DOM_EVT_MOUSEDOWN;
+				evt.detail = (event->event_type - GF_EVT_LEFTDOWN)/2;
+				ret += gf_sg_fire_dom_event(ctx->node->owner, &evt);
+				sr->last_click_x = evt.screenX;
+				sr->last_click_y = evt.screenY;
+				break;
+			case GF_EVT_LEFTUP:
+			case GF_EVT_MIDDLEUP:
+			case GF_EVT_RIGHTUP:
+				evt.type = SVG_DOM_EVT_MOUSEUP;
+				evt.detail = (event->event_type - GF_EVT_LEFTUP)/2;
+				ret += gf_sg_fire_dom_event(ctx->node->owner, &evt);
+				if ((sr->last_click_x==evt.screenX) || (sr->last_click_y==evt.screenY)) {
+					sr->num_clicks ++;
+					evt.type = SVG_DOM_EVT_CLICK;
+					evt.detail = sr->num_clicks;
+					ret += gf_sg_fire_dom_event(ctx->node->owner, &evt);
+				}
+				break;
+			}
+		}
+	}
+	return ret;
+}
+
+#endif
+
+
 Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 {
 	u32 i, type, count;
@@ -282,9 +357,17 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	evt.x = 0;
 	evt.y = 0;
 	ev = &evt;
+	if (event->event_type<=GF_EVT_MOUSEWHEEL) R2D_MapCoordsToAR(sr, event->mouse.x, event->mouse.y, &evt.x, &evt.y);
 
-	if (event->event_type<=GF_EVT_MOUSEWHEEL) R2D_MapCoordsToAR(vr, event->mouse.x, event->mouse.y, &evt.x, &evt.y);
-	if (event->event_type>GF_EVT_LEFTUP) goto no_sensor;
+#ifndef GPAC_DISABLE_SVG
+	/*DOM-style events*/
+	if (sr->use_dom_events) {
+		if (R2D_ExecuteDOMEvent(vr, event, evt.x, evt.y)) return 1;
+		goto browser_event;
+	}
+#endif
+	
+	if (event->event_type>GF_EVT_LEFTUP) goto browser_event;
 	
 	if (sr->is_tracking) {
 		/*in case a node is inserted at the depth level of a node previously tracked (rrrhhhaaaa...) */
@@ -295,7 +378,7 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	}
 	
 	if (!sr->is_tracking) {
-		ctx = VS2D_FindNode(sr->surface, ev->x, ev->y);
+		ctx = VS2D_PickSensitiveNode(sr->surface, ev->x, ev->y);
 		sr->grab_ctx = ctx;
 		if (ctx) sr->grab_node = ctx->node;
 	} else {
@@ -367,7 +450,7 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	}
 
 
-no_sensor:
+browser_event:
 	/*no object, perform zoom & pan*/
 	if (!(sr->compositor->interaction_level & GF_INTERACT_NAVIGATION) || !sr->navigate_mode || sr->navigation_disabled) return 0;
 
@@ -454,6 +537,7 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	if (!top_node) return;
 
 	if (!sr->main_surface_setup) {
+		sr->use_dom_events = 0;
 		sr->main_surface_setup = 1;
 		sr->surface->center_coords = 1;
 		sr->surface->default_back_color = 0xFF000000;
@@ -472,6 +556,7 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 				sr->surface->default_back_color = 0xFFFFFFFF;
 				sr->surface->center_coords = 0;
 				sr->main_surface_setup = 2;
+				sr->use_dom_events = 1;
 			}
 		}
 #endif
@@ -609,7 +694,7 @@ GF_Node *R2D_PickNode(GF_VisualRenderer *vr, s32 X, s32 Y)
 	/*lock to prevent any change while picking*/
 	gf_sr_lock(sr->compositor, 1);
 	if (sr->compositor->scene) {
-		R2D_MapCoordsToAR(vr, X, Y, &x, &y);
+		R2D_MapCoordsToAR(sr, X, Y, &x, &y);
 		res = VS2D_PickNode(sr->surface, x, y);
 	}
 	gf_sr_lock(sr->compositor, 0);

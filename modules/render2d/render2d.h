@@ -76,6 +76,11 @@ typedef struct _render_2d
 	Fixed zoom, trans_x, trans_y;
 	u32 navigate_mode;
 	Bool navigation_disabled;
+	Bool use_dom_events;
+#ifndef GPAC_DISABLE_SVG
+	s32 last_click_x, last_click_y;
+	u32 num_clicks;
+#endif
 } Render2D;
 
 
@@ -164,6 +169,8 @@ typedef struct _render2d_effect
 	/* Styling Property and others for SVG context */
 #ifndef GPAC_DISABLE_SVG
 	SVGStylingProperties *svg_props;
+	/*current number of listeners in the tree*/
+	u32 nb_listeners;
 #endif
 
 } RenderEffect2D;

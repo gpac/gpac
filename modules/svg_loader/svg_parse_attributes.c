@@ -2033,6 +2033,9 @@ void svg_parse_attribute(SVGParser *parser, SVGElement *elt, GF_FieldInfo *info,
 	case SVG_String_datatype:
 //		*(SVG_String *)info->far_ptr = strdup(attribute_content);
 		break;
+	case SVG_ContentType_datatype:
+		*(SVG_String *)info->far_ptr = strdup(attribute_content);
+		break;
 	default:
 		fprintf(stdout, "Warning: skipping unsupported attribute %s\n", info->name);
 		parser->last_error = GF_OK;

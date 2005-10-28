@@ -256,7 +256,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	memcpy(eff->svg_props, &backup_props, styling_size);
 }
 
-static Bool SVG_PointOver_bitmap(DrawableContext *ctx, Fixed x, Fixed y, Bool check_outline)
+static Bool SVG_PointOver_bitmap(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
 {
 	return 1;
 }

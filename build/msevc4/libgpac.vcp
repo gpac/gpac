@@ -1511,6 +1511,36 @@ NODEP_CPP_SVG_N=\
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\scenegraph\svg_smjs.c
+DEP_CPP_SVG_S=\
+	"..\..\extra_lib\include\js\jsapi.h"\
+	"..\..\extra_lib\include\js\jsautocfg.h"\
+	"..\..\extra_lib\include\js\jscompat.h"\
+	"..\..\extra_lib\include\js\jscpucfg.h"\
+	"..\..\extra_lib\include\js\jslong.h"\
+	"..\..\extra_lib\include\js\jsosdep.h"\
+	"..\..\extra_lib\include\js\jsotypes.h"\
+	"..\..\extra_lib\include\js\jspubtd.h"\
+	"..\..\extra_lib\include\js\jstypes.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\nodes_svg.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_SVG_S=\
+	"..\..\extra_lib\include\js\jsstddef.h"\
+	"..\..\extra_lib\include\js\platform.h"\
+	
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\scenegraph\svg_tools.c
 DEP_CPP_SVG_T=\
 	"..\..\extra_lib\include\js\jsapi.h"\
@@ -1526,6 +1556,7 @@ DEP_CPP_SVG_T=\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -1693,12 +1724,16 @@ DEP_CPP_VRML_SM=\
 	"..\..\extra_lib\include\js\jsotypes.h"\
 	"..\..\extra_lib\include\js\jspubtd.h"\
 	"..\..\extra_lib\include\js\jstypes.h"\
+	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\

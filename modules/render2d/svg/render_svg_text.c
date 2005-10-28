@@ -33,7 +33,6 @@
 typedef struct 
 {
 	Drawable *draw;
-	SVG_SensorInfo si;
 	Fixed prev_size;
 	u32 prev_flags;
 } SVG_TextStack;
@@ -159,7 +158,6 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 void SVG_DestroyText(GF_Node *node)
 {
 	SVG_TextStack *stack = (SVG_TextStack *) gf_node_get_private(node);
-	R2D_UnregisterSensor(stack->draw->compositor, &stack->si.hdl);
 	drawable_del(stack->draw);
 	free(stack);
 }
@@ -172,7 +170,6 @@ void SVG_Init_text(Render2D *sr, GF_Node *node)
 	gf_sr_traversable_setup(stack->draw, node, sr->compositor);
 	gf_node_set_private(node, stack);
 	gf_node_set_predestroy_function(node, SVG_DestroyText);
-	SVG_setup_sensitive(node, &stack->si);
 	gf_node_set_render_function(node, SVG_Render_text);
 }
 

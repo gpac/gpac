@@ -478,7 +478,7 @@ exit:
 	return has_changed;
 }
 
-DrawableContext *VS2D_FindNode(VisualSurface2D *surf, Fixed X, Fixed Y)
+DrawableContext *VS2D_PickSensitiveNode(VisualSurface2D *surf, Fixed X, Fixed Y)
 {
 	u32 i, k, count;
 	Fixed x, y;
@@ -541,6 +541,21 @@ restart:
 	return NULL;
 }
 
+DrawableContext *VS2D_PickContext(VisualSurface2D *surf, Fixed x, Fixed y)
+{
+	u32 i;
+	i = surf->num_contexts;
+	for (; i > 0; i--) {
+		DrawableContext *ctx = surf->contexts[i-1];
+		/*check over bounds*/
+		if (!ctx->node || ! gf_point_in_rect(ctx->clip, x, y)) continue;
+		/*check over shape*/
+		if (!ctx->node->IsPointOver(ctx, x, y, 2) ) continue;
+
+		return ctx;
+    }
+	return NULL;
+}
 
 /* this is to use carefully: picks a node based on the PREVIOUS frame state (no traversing)*/
 GF_Node *VS2D_PickNode(VisualSurface2D *surf, Fixed x, Fixed y)
@@ -575,4 +590,5 @@ GF_Node *VS2D_PickNode(VisualSurface2D *surf, Fixed x, Fixed y)
     }
 	return back;
 }
+
 

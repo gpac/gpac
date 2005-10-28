@@ -217,7 +217,7 @@ u32 CE_GetSysClockHIGHRES()
 	LARGE_INTEGER now;
 	QueryPerformanceCounter(&now);
 	now.QuadPart -= init_counter.QuadPart;
-	return (u32) (now.QuadPart * 1000 / frequency.QuadPart);
+	return (u32) ((now.QuadPart * 1000) / frequency.QuadPart);
 }
 
 u32 CE_GetSysClockNORMAL() { return GetTickCount(); }

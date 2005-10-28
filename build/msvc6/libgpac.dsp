@@ -493,6 +493,10 @@ SOURCE=..\..\src\scenegraph\svg_nodes.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\scenegraph\svg_smjs.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\scenegraph\svg_tools.c
 # End Source File
 # Begin Source File

@@ -358,24 +358,29 @@ u32 svg_get_node_id(SVGParser *parser, xmlChar *nodename)
 */
 u32 svg_get_animation_event_by_name(char *name)
 {
-	if (!strcmp(name, "begin"))		return 1;
-	if (!strcmp(name, "end"))		return 2;
-	if (!strncmp(name, "repeat", 6))	return 3;
-	if (!strcmp(name, "focusin"))	return 4;
-	if (!strcmp(name, "focusout"))	return 5;
-	if (!strcmp(name, "activate"))	return 6;
-	if (!strcmp(name, "click"))		return 7;
-	if (!strcmp(name, "mouseup"))	return 8;
-	if (!strcmp(name, "mousedown")) return 9;
-	if (!strcmp(name, "mouseover")) return 10;
-	if (!strcmp(name, "mouseout"))	return 11;
-	if (!strcmp(name, "mousemove")) return 12;
-	if (!strcmp(name, "load"))		return 13;
-	if (!strcmp(name, "resize"))	return 14;
-	if (!strcmp(name, "scroll"))	return 15;
-	if (!strcmp(name, "zoom"))		return 16;
-	if (!strcmp(name, "key"))		return 17;
-	return 0;
+	if (!strcmp(name, "focusin"))	return SVG_DOM_EVT_FOCUSIN;
+	if (!strcmp(name, "focusout"))	return SVG_DOM_EVT_FOCUSOUT;
+	if (!strcmp(name, "activate"))	return SVG_DOM_EVT_ACTIVATE;
+	if (!strcmp(name, "click"))		return SVG_DOM_EVT_CLICK;
+	if (!strcmp(name, "mouseup"))	return SVG_DOM_EVT_MOUSEUP;
+	if (!strcmp(name, "mousedown")) return SVG_DOM_EVT_MOUSEDOWN;
+	if (!strcmp(name, "mouseover")) return SVG_DOM_EVT_MOUSEOVER;
+	if (!strcmp(name, "mouseout"))	return SVG_DOM_EVT_MOUSEOUT;
+	if (!strcmp(name, "mousemove")) return SVG_DOM_EVT_MOUSEMOVE;
+	if (!strcmp(name, "load"))		return SVG_DOM_EVT_LOAD;
+	if (!strcmp(name, "unload"))	return SVG_DOM_EVT_UNLOAD;
+	if (!strcmp(name, "error"))		return SVG_DOM_EVT_ERROR;
+	if (!strcmp(name, "resize"))	return SVG_DOM_EVT_RESIZE;
+	if (!strcmp(name, "scroll"))	return SVG_DOM_EVT_SCROLL;
+	if (!strcmp(name, "zoom"))		return SVG_DOM_EVT_ZOOM;
+	if (!strcmp(name, "error"))		return SVG_DOM_EVT_ERROR;
+	if (!strcmp(name, "begin"))		return SVG_DOM_EVT_BEGIN;
+	if (!strcmp(name, "end"))		return SVG_DOM_EVT_END;
+	if (!strncmp(name, "repeat", 6))	return SVG_DOM_EVT_REPEAT;
+	if (!strcmp(name, "keyup"))		return SVG_DOM_EVT_KEYUP;
+	if (!strcmp(name, "keydown"))	return SVG_DOM_EVT_KEYDOWN;
+	if (!strcmp(name, "keypress"))	return SVG_DOM_EVT_KEYPRESS;
+	return SVG_DOM_EVT_UNKNOWN;
 }
 
 /* DOM Related functions */
@@ -427,50 +432,32 @@ void svg_parse_dom_attributes(SVGParser *parser,
 					}
 				}
 			} else {
+				u32 evtType;
 				GF_FieldInfo info;
 				if (!gf_node_get_field_by_name((GF_Node *)elt, (char *)attributes->name, &info)) {
 					svg_parse_attribute(parser, elt, &info, attributes->children->content, anim_value_type, anim_transform_type);
-				}
-				/*SVG 1.1 events: create a listener and a handler on the fly, register them with current node
-				and add listener struct*/
-				else if (!strcmp(attributes->name, "onfocusin") 
-						|| !strcmp(attributes->name, "onfocusout")
-						|| !strcmp(attributes->name, "onactivate")
-						|| !strcmp(attributes->name, "onclick")
-						|| !strcmp(attributes->name, "onmousedown")
-						|| !strcmp(attributes->name, "onmouseup")
-						|| !strcmp(attributes->name, "onmouseover")
-						|| !strcmp(attributes->name, "onmousemove")
-						|| !strcmp(attributes->name, "onmouseout")
-						|| !strcmp(attributes->name, "onload")
-						|| !strcmp(attributes->name, "onunload")
-						|| !strcmp(attributes->name, "onabort")
-						|| !strcmp(attributes->name, "onerror")
-						|| !strcmp(attributes->name, "onresize")
-						|| !strcmp(attributes->name, "onscroll")
-						|| !strcmp(attributes->name, "onzoom")
-						|| !strcmp(attributes->name, "onbegin")
-						|| !strcmp(attributes->name, "onend")
-						|| !strcmp(attributes->name, "onrepeat")
-						|| !strcmp(attributes->name, "onload") 
-				) {
-					SVGlistenerElement *listener;
-					SVGhandlerElement *handler;
-					u32 evtType = svg_get_animation_event_by_name((char *) attributes->name + 2);
-					listener = (SVGlistenerElement *) SVG_NewNode(parser->graph, TAG_SVG_listener);
-					handler = (SVGhandlerElement *) SVG_NewNode(parser->graph, TAG_SVG_handler);
-					gf_node_register((GF_Node *)listener, (GF_Node *)elt);
-					gf_list_add(elt->children, listener);
-					gf_node_register((GF_Node *)handler, (GF_Node *)elt);
-					gf_list_add(elt->children, handler);
-					listener->event = strdup((char *) attributes->name+2);
-					listener->handler.target = (SVGElement *) handler;
-					listener->target.target = elt;
-					handler->textContent = strdup(attributes->children->content);
-
-					gf_node_listener_add((GF_Node *) elt, (GF_Node *) listener);
 				} else {
-					fprintf(stdout, "SVG Warning: Unknown attribute %s on element %s\n", attributes->name, gf_node_get_class_name((GF_Node *)elt));
+					evtType = svg_get_animation_event_by_name((char *) attributes->name + 2);
+					/*SVG 1.1 events: create a listener and a handler on the fly, register them with current node
+					and add listener struct*/
+					if (evtType != SVG_DOM_EVT_UNKNOWN) {
+						SVGlistenerElement *listener;
+						SVGhandlerElement *handler;
+						listener = (SVGlistenerElement *) SVG_NewNode(parser->graph, TAG_SVG_listener);
+						handler = (SVGhandlerElement *) SVG_NewNode(parser->graph, TAG_SVG_handler);
+						gf_node_register((GF_Node *)listener, (GF_Node *)elt);
+						gf_list_add(elt->children, listener);
+						gf_node_register((GF_Node *)handler, (GF_Node *)elt);
+						gf_list_add(elt->children, handler);
+						handler->ev_event = listener->event = evtType;
+						listener->handler.target = (SVGElement *) handler;
+						listener->target.target = elt;
+						handler->textContent = strdup(attributes->children->content);
+						gf_node_listener_add((GF_Node *) elt, (GF_Node *) listener);
+						gf_node_init((GF_Node *)handler);
+					} else {
+						fprintf(stdout, "SVG Warning: Unknown attribute %s on element %s\n", attributes->name, gf_node_get_class_name((GF_Node *)elt));
+					}
 				}
 			}
 		} 
@@ -492,7 +479,7 @@ void svg_parse_dom_children(SVGParser *parser, xmlNodePtr node, SVGElement *elt)
 		if (children->type == XML_ELEMENT_NODE) {
 			child = svg_parse_dom_element(parser, children, elt);
 			if (child) gf_list_add(elt->children, child);
-		} else if (children->type == XML_TEXT_NODE && tag == TAG_SVG_text) {
+		} else if ((children->type == XML_TEXT_NODE) && (tag == TAG_SVG_text)) {
 			SVGtextElement *text = (SVGtextElement *)elt;
 			if (text->xml_space && text->xml_space == XML_SPACE_PRESERVE) {
 				text->textContent = strdup(children->content);
@@ -507,6 +494,9 @@ void svg_parse_dom_children(SVGParser *parser, xmlNodePtr node, SVGElement *elt)
 				tmp++;
 				*tmp = 0;
 			}
+		} else if ((children->type == XML_CDATA_SECTION_NODE) && (tag == TAG_SVG_script)) {
+			SVGscriptElement *script = (SVGscriptElement *)elt;
+			script->textContent = strdup(children->content);
 		}
 		children = children->next;
 	}
@@ -902,47 +892,26 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 			GF_FieldInfo info;
 			if (!gf_node_get_field_by_name((GF_Node *)elt, (char *)attrs[attribute_index], &info)) {
 				svg_parse_attribute(parser, elt, &info, (xmlChar *)attrs[attribute_index+1], 0, 0);
-			}
-			/*SVG 1.1 events: create a listener and a handler on the fly, register them with current node
-			and add listener struct*/
-			else if (!strcmp((char *)attrs[attribute_index], "onfocusin") 
-					|| !strcmp((char *)attrs[attribute_index], "onfocusout")
-					|| !strcmp((char *)attrs[attribute_index], "onactivate")
-					|| !strcmp((char *)attrs[attribute_index], "onclick")
-					|| !strcmp((char *)attrs[attribute_index], "onmousedown")
-					|| !strcmp((char *)attrs[attribute_index], "onmouseup")
-					|| !strcmp((char *)attrs[attribute_index], "onmouseover")
-					|| !strcmp((char *)attrs[attribute_index], "onmousemove")
-					|| !strcmp((char *)attrs[attribute_index], "onmouseout")
-					|| !strcmp((char *)attrs[attribute_index], "onload")
-					|| !strcmp((char *)attrs[attribute_index], "onunload")
-					|| !strcmp((char *)attrs[attribute_index], "onabort")
-					|| !strcmp((char *)attrs[attribute_index], "onerror")
-					|| !strcmp((char *)attrs[attribute_index], "onresize")
-					|| !strcmp((char *)attrs[attribute_index], "onscroll")
-					|| !strcmp((char *)attrs[attribute_index], "onzoom")
-					|| !strcmp((char *)attrs[attribute_index], "onbegin")
-					|| !strcmp((char *)attrs[attribute_index], "onend")
-					|| !strcmp((char *)attrs[attribute_index], "onrepeat")
-					|| !strcmp((char *)attrs[attribute_index], "onload") 
-			) {
-				SVGlistenerElement *listener;
-				SVGhandlerElement *handler;
-				u32 evtType = svg_get_animation_event_by_name((char *) (char *)attrs[attribute_index] + 2);
-				listener = (SVGlistenerElement *) SVG_NewNode(parser->graph, TAG_SVG_listener);
-				handler = (SVGhandlerElement *) SVG_NewNode(parser->graph, TAG_SVG_handler);
-				gf_node_register((GF_Node *)listener, (GF_Node *)elt);
-				gf_list_add(elt->children, listener);
-				gf_node_register((GF_Node *)handler, (GF_Node *)elt);
-				gf_list_add(elt->children, handler);
-				listener->event = strdup((char *) (char *)attrs[attribute_index]+2);
-				listener->handler.target = (SVGElement *) handler;
-				listener->target.target = elt;
-				handler->textContent = strdup((char *)attrs[attribute_index]);
-
-				gf_node_listener_add((GF_Node *) elt, (GF_Node *) listener);
 			} else {
-				fprintf(stdout, "SVG Warning: Unknown attribute %s on element %s\n", (char *)attrs[attribute_index], gf_node_get_class_name((GF_Node *)elt));
+				u32 evtType = svg_get_animation_event_by_name((char *) (char *)attrs[attribute_index] + 2);
+				if (evtType != SVG_DOM_EVT_UNKNOWN) {
+					SVGlistenerElement *listener;
+					SVGhandlerElement *handler;
+					listener = (SVGlistenerElement *) SVG_NewNode(parser->graph, TAG_SVG_listener);
+					handler = (SVGhandlerElement *) SVG_NewNode(parser->graph, TAG_SVG_handler);
+					gf_node_register((GF_Node *)listener, (GF_Node *)elt);
+					gf_list_add(elt->children, listener);
+					gf_node_register((GF_Node *)handler, (GF_Node *)elt);
+					gf_list_add(elt->children, handler);
+					handler->ev_event = listener->event = evtType;
+					listener->handler.target = (SVGElement *) handler;
+					listener->target.target = elt;
+					handler->textContent = strdup((char *)attrs[attribute_index]);
+
+					gf_node_listener_add((GF_Node *) elt, (GF_Node *) listener);
+				} else {
+					fprintf(stdout, "SVG Warning: Unknown attribute %s on element %s\n", (char *)attrs[attribute_index], gf_node_get_class_name((GF_Node *)elt));
+				}
 			}
 		}
 		attribute_index+=2;

@@ -451,7 +451,7 @@ static void DrawBitmap(DrawableContext *ctx)
 	}
 }
 
-static Bool Bitmap_PointOver(DrawableContext *ctx, Fixed x, Fixed y, Bool check_outline)
+static Bool Bitmap_PointOver(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
 {
 	return 1;
 }

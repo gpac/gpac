@@ -237,7 +237,7 @@ static void b2D_set_bind(GF_Node *node)
 	gf_sr_invalidate(bcks->compositor, NULL);
 }
 
-static Bool b2D_point_over(struct _drawable_context *ctx, Fixed x, Fixed y, Bool check_outline) { return 0; }
+static Bool b2D_point_over(struct _drawable_context *ctx, Fixed x, Fixed y, u32 check_type) { return 0; }
 
 
 DrawableContext *b2D_GetContext(M_Background2D *n, GF_List *from_stack)

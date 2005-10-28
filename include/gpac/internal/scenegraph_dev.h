@@ -170,7 +170,7 @@ struct __tag_scene_graph
 	/*application interface for javascript*/
 	GF_JSInterface *js_ifce;
 	/*script loader*/
-	void (*gf_sg_script_load)(GF_Node *node);
+	void (*script_load)(GF_Node *node);
 
 	u32 max_defined_route_id;
 
@@ -179,7 +179,6 @@ struct __tag_scene_graph
 	u32 max_cyclic_render;
 #endif
 };
-
 
 void gf_sg_parent_setup(GF_Node *pNode);
 void gf_sg_parent_reset(GF_Node *pNode);
@@ -264,6 +263,7 @@ void gf_sg_sfurl_del(SFURL url);
 Bool gf_sg_vrml_node_init(GF_Node *node);
 Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field);
 
+Bool gf_sg_svg_node_init(GF_Node *node);
 
 //
 //		MF Fields tools
@@ -508,6 +508,10 @@ struct _scriptfield
 
 
 #ifdef GPAC_HAS_SPIDERMONKEY
+
+JSContext *gf_sg_ecmascript_new();
+void gf_sg_ecmascript_del(JSContext *);
+
 void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script);
 JSBool gf_sg_script_eventout_set_prop(JSContext *c, JSObject *obj, jsval id, jsval *val);
 
@@ -529,6 +533,12 @@ typedef struct
 void gf_sg_script_to_node_field(JSContext *c, jsval v, GF_FieldInfo *field, GF_Node *owner, GF_JSField *parent);
 jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_Node *parent);
 
+
+
+
+#ifndef GPAC_DISABLE_SVG
+void JSScript_LoadSVG(GF_Node *node);
+#endif
 
 #endif
 

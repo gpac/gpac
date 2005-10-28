@@ -76,7 +76,7 @@ GF_SceneGraph *gf_sg_new_subscene(GF_SceneGraph *scene)
 	tmp->SceneCallback = scene->SceneCallback;
 	tmp->GetExternProtoLib = scene->GetExternProtoLib;
 	tmp->js_ifce = scene->js_ifce;
-	tmp->gf_sg_script_load = scene->gf_sg_script_load;
+	tmp->script_load = scene->script_load;
 
 #ifdef GF_CYCLIC_RENDER_ON
 	tmp->max_cyclic_render = scene->max_cyclic_render;
@@ -1015,6 +1015,7 @@ GF_Node *gf_node_get_parent(GF_Node *node, u32 idx)
 	return gf_list_get(node->sgprivate->parentNodes, idx);
 #else
 	GF_NodeList *nlist = node->sgprivate->parents;
+	if (!nlist) return NULL;
 	while (idx) { nlist = nlist->next; idx--;}
 	return nlist->node;
 #endif
@@ -1114,6 +1115,7 @@ void gf_node_init(GF_Node *node)
 
 	/*internal nodes*/
 	if (gf_sg_vrml_node_init(node)) return;
+	if (gf_sg_svg_node_init(node)) return;
 	/*user defined init*/
 	if (pSG->UserNodeInit) pSG->UserNodeInit(pSG->NodeInitCallback, node);
 }
@@ -1252,32 +1254,5 @@ u32 gf_node_get_active(GF_Node*p)
 #else
 	return 1;
 #endif
-}
-
-
-
-GF_Err gf_node_listener_add(GF_Node *node, GF_Node *listener)
-{
-	if (!node || !listener) return GF_BAD_PARAM;
-	if (!node->sgprivate->events) node->sgprivate->events = gf_list_new();
-	return gf_list_add(node->sgprivate->events, listener);
-}
-
-GF_Err gf_node_listener_del(GF_Node *node, GF_Node *listener)
-{
-	if (!node || !node->sgprivate->events || !listener) return GF_BAD_PARAM;
-	return (gf_list_del_item(node->sgprivate->events, listener)<0) ? GF_BAD_PARAM : GF_OK;
-}
-
-u32 gf_node_listener_count(GF_Node *node)
-{
-	if (!node || !node->sgprivate->events) return 0;
-	return gf_list_count(node->sgprivate->events);
-}
-
-GF_Node *gf_node_listener_get(GF_Node *node, u32 i)
-{
-	if (!node || !node->sgprivate->events) return 0;
-	return gf_list_get(node->sgprivate->events, i);
 }
 

@@ -274,8 +274,12 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff);
 void VS2D_RegisterSensor(VisualSurface2D *surf, DrawableContext *ctx);
 
 
-/*locates drawable context under the given point - also locate context in composite textures*/
-DrawableContext *VS2D_FindNode(VisualSurface2D *surf, Fixed x, Fixed y);
+/*locates drawable context under the given point for VRML-based scene (that is for nodes with sensors attached)
+Note: this also locate context in composite textures
+*/
+DrawableContext *VS2D_PickSensitiveNode(VisualSurface2D *surf, Fixed X, Fixed Y);
+/*same as above but doesn't check for any sensor & co*/
+DrawableContext *VS2D_PickContext(VisualSurface2D *surf, Fixed x, Fixed y);
 
 /*clear given rect or all surface if no rect specified - clear color depends on surface type - 0 for composite
 surfaces, renderer clear color otherwise

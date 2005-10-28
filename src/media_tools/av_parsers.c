@@ -1059,8 +1059,8 @@ s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 *vui_flag_pos)
 {
 	AVC_SPS *sps;
 	s32 mb_width, mb_height;
-	u32 sps_id, profile_idc, level_idc, pcomp, i, chroma_format_idc;
-
+	u32 sps_id, profile_idc, level_idc, pcomp, i, chroma_format_idc, cl, cr, ct, cb;
+	
 	if (vui_flag_pos) *vui_flag_pos = 0;
 
 	profile_idc = gf_bs_read_int(bs, 8);
@@ -1131,12 +1131,20 @@ s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 *vui_flag_pos)
 	/*mb_adaptive_frame_field_flag*/
 	if (!sps->frame_mbs_only_flag) gf_bs_read_int(bs, 1);
     gf_bs_read_int(bs, 1); /*direct_8x8_inference_flag*/
+	cl = cr = ct = cb = 0;
     if (gf_bs_read_int(bs, 1)) /*crop*/ {
-        avc_get_ue(bs); /*crop_left*/
-        avc_get_ue(bs); /*crop_right*/
-        avc_get_ue(bs); /*crop_top*/
-        avc_get_ue(bs); /*crop_bottom*/
+        cl = avc_get_ue(bs); /*crop_left*/
+        cr = avc_get_ue(bs); /*crop_right*/
+        ct = avc_get_ue(bs); /*crop_top*/
+        cb = avc_get_ue(bs); /*crop_bottom*/
     }
+    sps->width = 16*mb_width - 2*(cl + cr);
+    if (sps->frame_mbs_only_flag)
+        sps->height= 16*mb_height - 2*(ct + cb);
+    else
+        sps->height= 16*mb_height - 4*(ct + cb); //FIXME recheck
+
+
 
 	if (vui_flag_pos) {
 		u32 gf_bs_get_bit_offset(GF_BitStream *bs);
@@ -1592,7 +1600,8 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 	for (i=0; i<gf_list_count(avcc->sequenceParameterSets); i++) {
 		GF_AVCConfigSlot *slc = gf_list_get(avcc->sequenceParameterSets, i);
 		orig = gf_bs_new(slc->data, slc->size, GF_BITSTREAM_READ);
-
+		/*skip NALU type*/
+		gf_bs_read_int(orig, 8);
 		idx = AVC_ReadSeqInfo(orig, &avc, &bit_offset);
 		if (idx<0) {
 			gf_bs_del(orig);
@@ -1633,18 +1642,22 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 				gf_bs_write_int(mod, ar_d, 16);
 			}
 		}
-		/*finally copy over remaining*/
-		/*no VUI in input bitstream*/
+		/*no VUI in input bitstream, set all vui flags to 0*/
 		if (!flag) {
-			gf_bs_write_int(mod, 0, 1);       /* overscan_info_present_flag */
-			gf_bs_write_int(mod, 0, 1);      /* video_signal_type_present_flag */
-			gf_bs_write_int(mod, 0, 1);      /* chroma_location_info_present_flag */
-			gf_bs_write_int(mod, 0, 1); /*timing_info_present_flag*/
-		} else {
-			while (gf_bs_bits_available(orig)) {
-				flag = gf_bs_read_int(orig, 1);
-				gf_bs_write_int(mod, flag, 1);
-			}
+			gf_bs_write_int(mod, 0, 1);     /*overscan_info_present_flag */
+			gf_bs_write_int(mod, 0, 1);     /*video_signal_type_present_flag */
+			gf_bs_write_int(mod, 0, 1);     /*chroma_location_info_present_flag */
+			gf_bs_write_int(mod, 0, 1);		/*timing_info_present_flag*/
+			gf_bs_write_int(mod, 0, 1);		/*nal_hrd_parameters_present*/
+			gf_bs_write_int(mod, 0, 1);		/*vcl_hrd_parameters_present*/
+			gf_bs_write_int(mod, 0, 1);		/*pic_struct_present*/
+			gf_bs_write_int(mod, 0, 1);		/*bitstream_restriction*/
+		}
+
+		/*finally copy over remaining*/
+		while (gf_bs_bits_available(orig)) {
+			flag = gf_bs_read_int(orig, 1);
+			gf_bs_write_int(mod, flag, 1);
 		}
 		gf_bs_del(orig);
 		free(slc->data);
@@ -1664,6 +1677,8 @@ GF_Err gf_avc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *width, u32 *height, 
 	memset(&avc, 0, sizeof(AVCState));
 
 	bs = gf_bs_new(sps_data, sps_size, GF_BITSTREAM_READ);
+	/*skip NALU type*/
+	gf_bs_read_int(bs, 8);
 	idx = AVC_ReadSeqInfo(bs, &avc, NULL);
 	gf_bs_del(bs);
 	if (idx<0) return GF_NON_COMPLIANT_BITSTREAM;

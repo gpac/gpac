@@ -287,7 +287,7 @@ DrawableContext *CT2D_FindNode(GF_TextureHandler *txh, DrawableContext *ctx, Fix
 	x -= width / 2;
 	y -= height / 2;
 
-	return VS2D_FindNode(st->surf, x, y);
+	return VS2D_PickSensitiveNode(st->surf, x, y);
 }
 
 

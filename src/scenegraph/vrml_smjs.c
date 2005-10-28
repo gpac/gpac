@@ -30,6 +30,25 @@
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
+#ifndef GPAC_DISABLE_SVG
+/*SVG tags for script handling*/
+#include <gpac/nodes_svg.h>
+#endif
+
+#define GF_SETUP_JS(the_class, cname, flag, addp, delp, getp, setp, enump, resp, conv, fin)	\
+	memset(&the_class, 0, sizeof(the_class));	\
+	the_class.name = cname;	\
+	the_class.flags = flag;	\
+	the_class.addProperty = addp;	\
+	the_class.delProperty = delp;	\
+	the_class.getProperty = getp;	\
+	the_class.setProperty = setp;	\
+	the_class.enumerate = enump;	\
+	the_class.resolve = resp;		\
+	the_class.convert = conv;		\
+	the_class.finalize = fin;	
+
+
 static JSClass globalClass;
 static JSClass browserClass;
 static JSClass SFNodeClass;
@@ -2152,19 +2171,6 @@ static JSBool MFColorConstructor(JSContext *c, JSObject *obj, uintN argc, jsval 
 }
 
 
-
-#define GF_SETUP_JS(vrmlclass, cname, flag, addp, delp, getp, setp, enump, resp, conv, fin)	\
-	vrmlclass.name = cname;	\
-	vrmlclass.flags = flag;	\
-	vrmlclass.addProperty = addp;	\
-	vrmlclass.delProperty = delp;	\
-	vrmlclass.getProperty = getp;	\
-	vrmlclass.setProperty = setp;	\
-	vrmlclass.enumerate = enump;	\
-	vrmlclass.resolve = resp;		\
-	vrmlclass.convert = conv;		\
-	vrmlclass.finalize = fin;	
-
 void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 {
 
@@ -2927,13 +2933,6 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 }
 
 
-
-/*all spidermonkey specific stuff*/
-static JSRuntime *js_runtime = 0;
-static u32 nb_inst = 0;
-const long MAX_HEAP_BYTES = 4L * 1024L * 1024L;
-const long STACK_CHUNK_BYTES = 4024L;
-
 static void JS_PreDestroy(GF_Node *node)
 {
 	jsval fval, rval;
@@ -2944,14 +2943,9 @@ static void JS_PreDestroy(GF_Node *node)
 		if (! JSVAL_IS_VOID(fval))
 			JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
 
-	JS_DestroyContext(priv->js_ctx);
-	nb_inst --;
-	if (nb_inst == 0) {
-		JS_DestroyRuntime(js_runtime);
-		JS_ShutDown();
-		js_runtime = 0;
-	}
 	if (priv->obj_bank) gf_list_del(priv->obj_bank);
+	gf_sg_ecmascript_del(priv->js_ctx);
+	priv->js_ctx = NULL;
 }
 
 static void JS_InitScriptFields(GF_ScriptPriv *priv, GF_Node *sc)
@@ -3112,7 +3106,7 @@ void JSScriptFromFile(GF_Node *node)
 	ifce->GetScriptFile(ifce->callback, node->sgprivate->scenegraph, script->url.vals[0].script_text, JSFileFetched, node);
 }
 
-static void JSScript_Load(GF_Node *node)
+static void JSScript_LoadVRML(GF_Node *node)
 {
 	char *str;
 	JSBool ret;
@@ -3138,14 +3132,9 @@ static void JSScript_Load(GF_Node *node)
 	}
 	local_script = str ? 1 : 0;
 
-	/*JS load*/
-	if (!js_runtime) {
-		js_runtime = JS_NewRuntime(MAX_HEAP_BYTES);
-		assert(js_runtime);
-	}
-	priv->js_ctx = JS_NewContext(js_runtime, STACK_CHUNK_BYTES);
-	assert(priv->js_ctx);
-	nb_inst++;
+	priv->js_ctx = gf_sg_ecmascript_new();
+	if (!priv->js_ctx) return;
+
 	JS_SetContextPrivate(priv->js_ctx, node);
 	gf_sg_script_init_sm_api(priv, node);
 
@@ -3171,6 +3160,51 @@ static void JSScript_Load(GF_Node *node)
 	JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
 }
 
+static void JSScript_Load(GF_Node *node)
+{
+	switch (node->sgprivate->tag) {
+	case TAG_MPEG4_Script:
+	case TAG_X3D_Script:
+		JSScript_LoadVRML(node);
+		break;
+#ifndef GPAC_DISABLE_SVG
+	case TAG_SVG_script:
+		JSScript_LoadSVG(node);
+		break;
+#endif
+	default:
+		break;
+	}
+}
+
+
+static JSRuntime *js_runtime = 0;
+static u32 nb_inst = 0;
+const long MAX_HEAP_BYTES = 4L * 1024L * 1024L;
+const long STACK_CHUNK_BYTES = 4024L;
+
+JSContext *gf_sg_ecmascript_new()
+{
+	JSContext *js_ctx = NULL;
+	if (!js_runtime) {
+		js_runtime = JS_NewRuntime(MAX_HEAP_BYTES);
+		if (!js_runtime) return NULL;
+	}
+	nb_inst++;
+	return JS_NewContext(js_runtime, STACK_CHUNK_BYTES);
+}
+
+void gf_sg_ecmascript_del(JSContext *ctx)
+{
+	JS_DestroyContext(ctx);
+	nb_inst --;
+	if (nb_inst == 0) {
+		JS_DestroyRuntime(js_runtime);
+		JS_ShutDown();
+		js_runtime = 0;
+	}
+}
+
 #endif
 
 
@@ -3181,7 +3215,7 @@ void gf_sg_set_javascript_api(GF_SceneGraph *scene, GF_JSInterface *ifce)
 	scene->js_ifce = ifce;
 
 #ifdef GPAC_HAS_SPIDERMONKEY
-	scene->gf_sg_script_load = JSScript_Load;
+	scene->script_load = JSScript_Load;
 #endif
 
 }

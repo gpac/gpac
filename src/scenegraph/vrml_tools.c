@@ -261,7 +261,7 @@ GF_Err gf_node_remove_child(GF_Node *parent, GF_Node *toremove_child)
 
 void gf_sg_script_load(GF_Node *n)
 {
-	if (n && n->sgprivate->scenegraph->gf_sg_script_load) n->sgprivate->scenegraph->gf_sg_script_load(n);
+	if (n && n->sgprivate->scenegraph->script_load) n->sgprivate->scenegraph->script_load(n);
 }
 
 GF_Proto *gf_sg_find_proto(GF_SceneGraph *sg, u32 ProtoID, char *name)

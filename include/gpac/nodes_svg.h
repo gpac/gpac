@@ -962,6 +962,8 @@ typedef struct _tagSVGhandlerElement
 	SVG_Boolean externalResourcesRequired; /* optional, animatable: no, inheritable: false */
 	SVG_ContentType type; /* optional, animatable: no, inheritable: false */
 	SVG_XSLT_QName ev_event; /* optional, animatable: no, inheritable: false */
+
+	void (*handle_event)(struct _tagSVGhandlerElement *, GF_DOM_Event *evt);
 } SVGhandlerElement;
 
 

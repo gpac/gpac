@@ -68,9 +68,12 @@ typedef struct _drawable
 	/*actual drawing of the node */
 	void (*Draw)(struct _drawable_context *ctx);
 	/*returns TRUE if point is over node - by default use drawable path
-	if check_outline is set, the test is be performed on the vectorial outline, not the path itself (authoring only)
+	check_type: 
+		0: check point is over path, regardless of visual settings
+		1: check point is over path and outline, regardless of visual settings
+		2: check point is over path and/or outline, with respect to visual settings
 	*/
-	Bool (*IsPointOver)(struct _drawable_context *ctx, Fixed x, Fixed y, Bool check_outline);
+	Bool (*IsPointOver)(struct _drawable_context *ctx, Fixed x, Fixed y, u32 check_type);
 
 	/*
 			common data for all	drawable nodes
@@ -214,6 +217,8 @@ typedef struct _drawable_context
 	Bool no_antialias;
 	/*only used by text when splitting strings into chars / substrings*/
 	s32 sub_path_index;
+	/*for SVG & co: number of listeners from doc root to current element*/
+	u32 num_listeners;
 } DrawableContext;	
 
 DrawableContext *NewDrawableContext();

@@ -506,7 +506,7 @@ redecode:
 			return GF_BUFFER_TOO_SMALL;
 		}
 		/*check PAR in case on-the-fly change*/
-		if (!ffd->no_par_update) {
+		if (!ffd->no_par_update && ffd->ctx->sample_aspect_ratio.num && ffd->ctx->sample_aspect_ratio.den) {
 			outsize = (ffd->ctx->sample_aspect_ratio.num<<16) | ffd->ctx->sample_aspect_ratio.den;
 			if (outsize!=ffd->previous_par) {
 				ffd->previous_par=outsize;

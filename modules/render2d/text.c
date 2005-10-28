@@ -817,15 +817,15 @@ void Text2D_Draw(DrawableContext *ctx)
 	}
 }
 
-Bool Text2D_PointOver(DrawableContext *ctx, Fixed x, Fixed y, Bool check_outline)
+Bool Text2D_PointOver(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
 {
 	GF_Matrix2D inv;
 	u32 i;
 	TextLineEntry2D *tl;
 	TextStack2D *st;
+
 	/*this is not documented anywhere but it speeds things up*/
-	if (!check_outline) return 1;
-	
+	if (!check_type || ctx->aspect.filled) return 1;
 	
 	st = (TextStack2D *) gf_node_get_private((GF_Node *) ctx->node->owner);
 	

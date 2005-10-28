@@ -69,20 +69,24 @@ static void drawable_draw(DrawableContext *ctx)
 }
 
 /*default point_over routine*/
-static Bool drawable_point_over(DrawableContext *ctx, Fixed x, Fixed y, Bool check_outline)
+static Bool drawable_point_over(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
 {
+	Bool do_check = 0;
 	GF_Matrix2D inv;
 	StrikeInfo2D *si;
 	if (!ctx || !ctx->node->path) return 0;
+
 	assert(ctx->surface);
 	gf_mx2d_copy(inv, ctx->transform);
 	gf_mx2d_inverse(&inv);
 	gf_mx2d_apply_coords(&inv, &x, &y);
-	if (gf_path_point_over(ctx->node->path, x, y)) return 1;
-	if (!check_outline) return 0;
+	if (ctx->aspect.filled || ctx->h_texture || (check_type<2) )
+		if (gf_path_point_over(ctx->node->path, x, y)) return 1;
 
-	si = drawctx_get_strikeinfo(ctx, NULL);
-	if (si && si->outline && gf_path_point_over(si->outline, x, y)) return 1;
+	if (ctx->aspect.pen_props.width || ctx->aspect.line_texture || check_type) {
+		si = drawctx_get_strikeinfo(ctx, NULL);
+		if (si && si->outline && gf_path_point_over(si->outline, x, y)) return 1;
+	}
 	return 0;
 }
 
@@ -963,7 +967,7 @@ DrawableContext *SVG_drawable_init_context(Drawable *node, RenderEffect2D *eff)
 		VS2D_RemoveLastContext(eff->surface);
 		return NULL;
 	}
-
+	ctx->num_listeners = eff->nb_listeners;
 	return ctx;
 }
 
