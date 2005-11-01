@@ -82,7 +82,11 @@ void gf_term_on_node_init(void *_is, GF_Node *node)
 void gf_term_on_node_modified(void *_is, GF_Node *node)
 {
 	GF_InlineScene *is = (GF_InlineScene *)_is;
-	if (!node || !is) return;
+	if (!is) return;
+	if (!node) {
+		gf_sr_invalidate(is->root_od->term->renderer, NULL); 
+		return;
+	}
 	
 	switch (gf_node_get_tag(node)) {
 	case TAG_MPEG4_Inline: 
