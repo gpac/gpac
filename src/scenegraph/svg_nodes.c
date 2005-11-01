@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Tue Oct 25 11:50:54 2005
+	DO NOT MOFIFY - File generated on GMT Sat Oct 29 10:27:35 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -1629,6 +1629,7 @@ static void SVG_audio_Del(GF_Node *node)
 	SVG_ResetIRI(&(p->xlink_href));
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
+	if (p->type) free(p->type);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -4544,6 +4545,7 @@ static void SVG_handler_Del(GF_Node *node)
 {
 	SVGhandlerElement *p = (SVGhandlerElement *)node;
 	free(p->textContent);
+	if (p->type) free(p->type);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -4716,6 +4718,7 @@ static void SVG_image_Del(GF_Node *node)
 	free(p->textContent);
 	SVG_ResetIRI(&(p->xlink_href));
 	SVG_DeleteTransformList(p->transform);
+	if (p->type) free(p->type);
 	free(p->fill.color);
 	free(p->stroke.color);
 	free(p->stroke_dasharray.array.vals);
@@ -8264,6 +8267,7 @@ static void SVG_script_Del(GF_Node *node)
 {
 	SVGscriptElement *p = (SVGscriptElement *)node;
 	free(p->textContent);
+	if (p->type) free(p->type);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -9102,6 +9106,7 @@ static void SVG_svg_Del(GF_Node *node)
 {
 	SVGsvgElement *p = (SVGsvgElement *)node;
 	free(p->textContent);
+	if (p->contentScriptType) free(p->contentScriptType);
 	free(p->fill.color);
 	free(p->stroke.color);
 	free(p->stroke_dasharray.array.vals);
@@ -11619,6 +11624,7 @@ static void SVG_video_Del(GF_Node *node)
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
 	SVG_DeleteTransformList(p->transform);
+	if (p->type) free(p->type);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }

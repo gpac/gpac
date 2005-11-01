@@ -178,6 +178,10 @@ struct __tag_scene_graph
 	/*max number of render() for cyclic graphs*/
 	u32 max_cyclic_render;
 #endif
+
+#if defined(GPAC_HAS_SPIDERMONKEY) && !defined(GPAC_DISABLE_SVG)
+	struct __tag_svg_script_ctx *svg_js;
+#endif
 };
 
 void gf_sg_parent_setup(GF_Node *pNode);
@@ -537,7 +541,27 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 
 
 #ifndef GPAC_DISABLE_SVG
+#include <gpac/scenegraph_svg.h>
 void JSScript_LoadSVG(GF_Node *node);
+
+typedef struct __tag_svg_script_ctx 
+{
+	Bool (*script_execute)(struct __tag_scene_graph *sg, char *utf8_script, GF_DOM_Event *event);
+	void (*on_node_destroy)(struct __tag_scene_graph *sg, GF_Node *n);
+
+	JSContext *js_ctx;
+	u32 nb_scripts;
+
+	/*node bank*/
+	GF_List *node_bank;
+	/*global object*/
+	JSObject *global;
+	/*event object*/
+	JSObject *event;
+	/*document object*/
+	JSObject *document;
+} GF_SVGJS;
+
 #endif
 
 #endif

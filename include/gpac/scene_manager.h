@@ -240,7 +240,7 @@ enum
 	/*automatic selection of MPEG4 vs X3D, text mode*/
 	GF_SM_DUMP_AUTO_TXT,
 	/*automatic selection of MPEG4 vs X3D, xml mode*/
-	GF_SM_DUMP_AUTO_XML
+	GF_SM_DUMP_AUTO_XML,
 };
 
 /*dumps scene context to BT or XMT

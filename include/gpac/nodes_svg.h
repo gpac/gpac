@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Tue Oct 25 11:50:54 2005
+	DO NOT MOFIFY - File generated on GMT Sat Oct 29 10:27:35 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -962,8 +962,7 @@ typedef struct _tagSVGhandlerElement
 	SVG_Boolean externalResourcesRequired; /* optional, animatable: no, inheritable: false */
 	SVG_ContentType type; /* optional, animatable: no, inheritable: false */
 	SVG_XSLT_QName ev_event; /* optional, animatable: no, inheritable: false */
-
-	void (*handle_event)(struct _tagSVGhandlerElement *, GF_DOM_Event *evt);
+	void (*handle_event)(struct _tagSVGhandlerElement *hdl, GF_DOM_Event *event);
 } SVGhandlerElement;
 
 

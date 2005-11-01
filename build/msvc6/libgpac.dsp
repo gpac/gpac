@@ -489,6 +489,10 @@ SOURCE=..\..\include\gpac\internal\scenegraph_dev.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\scenegraph\svg_attributes.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\scenegraph\svg_nodes.c
 # End Source File
 # Begin Source File

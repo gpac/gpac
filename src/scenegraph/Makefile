@@ -16,7 +16,7 @@ OBJS=base_scenegraph.o mpeg4_animators.o commands.o mpeg4_nodes.o mpeg4_valuator
 ifeq ($(DISABLE_SVG), yes)
 CFLAGS+=-DGPAC_DISABLE_SVG
 else
-OBJS+=svg_nodes.o svg_tools.o svg_types.o svg_smjs.o
+OBJS+=svg_attributes.o svg_nodes.o svg_tools.o svg_types.o svg_smjs.o
 endif
 
 ifeq ($(CONFIG_JS), no)

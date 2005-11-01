@@ -374,7 +374,7 @@ typedef struct
  *
  *Copies the matrix _from to the matrix _obj
 */
-#define gf_mx2d_copy(_obj, from) memcpy((_obj).m, (from).m, sizeof(Fixed)*6);
+#define gf_mx2d_copy(_obj, from) memcpy((_obj).m, (from).m, sizeof(Fixed)*6)
 /*!\brief matrix identity testing
  *\hideinitializer
  *
@@ -389,6 +389,15 @@ typedef struct
  *\param from transformation matrix to add
 */
 void gf_mx2d_add_matrix(GF_Matrix2D *_this, GF_Matrix2D *from);
+
+/*!\brief 2D matrix pre-multiplication
+ *
+ *Multiplies two 2D matrices _this*from
+ *\param _this matrix being transformed. Once the function is called, _this contains the result matrix
+ *\param from transformation matrix to add
+*/
+void gf_mx2d_pre_multiply(GF_Matrix2D *_this, GF_Matrix2D *from);
+
 /*!\brief matrix translating
  *
  *Translates a 2D matrix

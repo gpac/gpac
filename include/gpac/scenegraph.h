@@ -307,6 +307,104 @@ void gf_sg_set_max_render_cycle(GF_SceneGraph *sg, u16 max_cycle);
 Bool gf_sg_is_first_render_cycle(GF_Node *n);
 
 
+enum
+{
+	GF_SG_FOCUS_AUTO = 1,
+	GF_SG_FOCUS_NEXT,
+	GF_SG_FOCUS_PREV,
+	GF_SG_FOCUS_NORTH,
+	GF_SG_FOCUS_NORTH_EAST,
+	GF_SG_FOCUS_EAST,
+	GF_SG_FOCUS_SOUTH_EAST,
+	GF_SG_FOCUS_SOUTH,
+	GF_SG_FOCUS_SOUTH_WEST,
+	GF_SG_FOCUS_WEST,
+	GF_SG_FOCUS_NORTH_WEST
+};
+
+typedef union
+{
+	u32 opt;
+	Fixed val;
+	GF_Point2D pt;
+	GF_Rect rc;
+	Double time;
+	GF_BBox bbox;
+	GF_Matrix mx;
+	const char *url;
+	GF_Node *focused;
+} GF_JSAPIParam;
+
+enum
+{
+	/*!get scene URI.*/
+	GF_JSAPI_OP_GET_SCENE_URI,
+	/*!get current user agent scale.*/
+	GF_JSAPI_OP_GET_SCALE,
+	/*!set current user agent scale.*/
+	GF_JSAPI_OP_SET_SCALE,
+	/*!get current user agent rotation.*/
+	GF_JSAPI_OP_GET_ROTATION,
+	/*!set current user agent rotation.*/
+	GF_JSAPI_OP_SET_ROTATION,
+	/*!get current user agent translation.*/
+	GF_JSAPI_OP_GET_TRANSLATE,
+	/*!set current user agent translation.*/
+	GF_JSAPI_OP_SET_TRANSLATE,
+	/*!get node time.*/
+	GF_JSAPI_OP_GET_TIME,
+	/*!set node time.*/
+	GF_JSAPI_OP_SET_TIME,
+	/*!get current viewport.*/
+	GF_JSAPI_OP_GET_VIEWPORT,
+	/*!get object bounding box in object local coord system.*/
+	GF_JSAPI_OP_GET_LOCAL_BBOX,
+	/*!get object bounding box in world (screen) coord system.*/
+	GF_JSAPI_OP_GET_SCREEN_BBOX,
+	/*!get transform matrix at object.*/
+	GF_JSAPI_OP_GET_TRANSFORM,
+	/*!move focus according to opt value.*/
+	GF_JSAPI_OP_MOVE_FOCUS,
+	/*!set focus to given node.*/
+	GF_JSAPI_OP_GET_FOCUS,
+	/*!set focus to given node.*/
+	GF_JSAPI_OP_SET_FOCUS,
+};
+
+/*JavaScript interface with user*/
+typedef struct
+{
+	/*user defined callback*/
+	void *callback;
+
+	/*file loading callback*/
+	Bool (*GetScriptFile)(void *callback, GF_SceneGraph *parent_graph, const char *url, void (*OnDone)(void *cbck, Bool success, const char *file_cached), void *cbk);
+
+	/*signals message or error*/
+	void (*ScriptMessage)(void *callback, GF_Err e, const char *msg);
+	/*ask the app to load a URL*/
+	Bool (*LoadURL)(void *callback, const char *url, const char **params, u32 nb_params);
+
+	/*
+	interface to various get/set options:
+		type: operand type, one of the above
+		node: target node, scene root node or NULL
+		param: i/o param, depending on operand type
+	*/
+	Bool (*ScriptAction)(void *callback, u32 type, GF_Node *node, GF_JSAPIParam *param);
+
+} GF_JSInterface;
+
+/*assign API to scene graph - by default, sub-graphs inherits the API if set*/
+void gf_sg_set_javascript_api(GF_SceneGraph *scene, GF_JSInterface *ifce);
+
+/*load script into engine - this should be called only for script in main scene, loading of scripts
+in protos is done internally when instanciating the proto*/
+void gf_sg_script_load(GF_Node *script);
+
+/*returns true if current lib has javascript support*/
+Bool gf_sg_has_scripting();
+
 #ifdef __cplusplus
 }
 #endif

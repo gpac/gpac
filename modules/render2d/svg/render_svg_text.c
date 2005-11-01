@@ -65,10 +65,7 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 	gf_mx2d_copy(backup_matrix, eff->transform);
 
 	tr = gf_list_get(text->transform, 0);
-	if (tr) {
-		gf_mx2d_copy(eff->transform, tr->matrix);
-		gf_mx2d_add_matrix(&eff->transform, &backup_matrix);
-	}
+	if (tr) gf_mx2d_pre_multiply(&eff->transform, &tr->matrix);
 
 
 	if ( (st->prev_size != eff->svg_props->font_size->value) || (st->prev_flags != *eff->svg_props->font_style)

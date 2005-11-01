@@ -37,7 +37,7 @@
 
 
 static void ReplaceDEFNode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool updateOrderedGroup);
-static void ReplaceIRINode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool updateOrderedGroup);
+static void ReplaceIRINode(GF_Node *FromNode, GF_Node *oldNode, GF_Node *newNode, Bool updateOrderedGroup);
 
 
 #define DEFAULT_MAX_CYCLIC_RENDER	30
@@ -244,7 +244,7 @@ void gf_sg_reset(GF_SceneGraph *sg)
 		while (nlist) {
 			GF_NodeList *next = nlist->next;
 			if (type) {
-				ReplaceIRINode(nlist->node, node->sgprivate->NodeID, NULL, 0);
+				ReplaceIRINode(nlist->node, node, NULL, 0);
 			} else {
 				ReplaceDEFNode(nlist->node, node->sgprivate->NodeID, NULL, 0);
 			}
@@ -472,6 +472,10 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 			j--;
 		}
 	}
+#if defined(GPAC_HAS_SPIDERMONKEY) && !defined(GPAC_DISABLE_SVG)
+	/*for svg scripts*/
+	if (pSG->svg_js) pSG->svg_js->on_node_destroy(pSG, pNode);
+#endif
 
 	/*delete the node*/
 	gf_node_del(pNode);
@@ -586,7 +590,7 @@ exit:
 
 
 /*replace or remove node instance in the given node (eg in all IRI)*/
-static void ReplaceIRINode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool updateOrderedGroup)
+static void ReplaceIRINode(GF_Node *FromNode, GF_Node *old_node, GF_Node *newNode, Bool updateOrderedGroup)
 {
 	u32 i;
 	GF_List *container;
@@ -640,8 +644,7 @@ static void ReplaceIRINode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool
 	container = ((SVGElement *)FromNode)->children;
 	for (i=0; i<gf_list_count(container); i++) {
 		GF_Node *p = gf_list_get(container, i);
-		/*replace nodes different from newNode but with same ID*/
-		if (/* (newNode == p) || */ (gf_node_get_id(p) != NodeID)) continue;
+		if (old_node!=p) continue;
 		gf_list_rem(container, i);
 		//if (newNode) gf_list_insert(container, newNode, i);
 		break;
@@ -651,15 +654,15 @@ static void ReplaceIRINode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool
 /*get all parents of the node and replace, the instance of the node and finally destroy the node*/
 GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup)
 {
-	u32 i, type;
+	u32 type;
 	Bool replace_root;
 	GF_Node *par;
 	GF_SceneGraph *pSG = node->sgprivate->scenegraph;
 
 	/*if this is a proto its is registered in its parent graph, not the current*/
 	if (node == (GF_Node*)pSG->pOwningProto) pSG = pSG->parent_scene;
-	if (!SG_SearchForNodeIndex(pSG, node, &i)) return GF_BAD_PARAM;
-	assert(node == pSG->node_registry[i]);
+//	if (!SG_SearchForNodeIndex(pSG, node, &i)) return GF_BAD_PARAM;
+//	assert(node == pSG->node_registry[i]);
 
 	type = node->sgprivate->tag;
 	if ((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) type = 1;
@@ -669,10 +672,10 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 	replace_root = (node->sgprivate->scenegraph->RootNode == node) ? 1 : 0;
 
 #ifdef GF_ARRAY_PARENT_NODES
-	while ( (i = gf_list_count(node->sgprivate->parentNodes)) ) {
+	while ( (u32 i = gf_list_count(node->sgprivate->parentNodes)) ) {
 		par = gf_list_get(node->sgprivate->parentNodes, 0);
 		if (type) {
-			ReplaceIRINode(par, node->sgprivate->NodeID, new_node, updateOrderedGroup);
+			ReplaceIRINode(par, node, new_node, updateOrderedGroup);
 		} else {
 			ReplaceDEFNode(par, node->sgprivate->NodeID, new_node, updateOrderedGroup);
 		}
@@ -690,7 +693,7 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 		par = node->sgprivate->parents->node;
 
 		if (type) {
-			ReplaceIRINode(par, node->sgprivate->NodeID, new_node, updateOrderedGroup);
+			ReplaceIRINode(par, node, new_node, updateOrderedGroup);
 		} else {
 			ReplaceDEFNode(par, node->sgprivate->NodeID, new_node, updateOrderedGroup);
 		}

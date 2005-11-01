@@ -266,6 +266,7 @@ typedef struct
 	u32 event_type;
 	GF_EventMouse mouse;
 	GF_EventKey key;
+	GF_EventChar character;
 } GF_UserEvent;
 
 /*
@@ -321,6 +322,8 @@ struct visual_render_module
 	/*set viewpoints/viewports for main scene given its name - idx is 1-based, or 0 to retrieve by viewpoint name
 	if only one viewpoint is present in the scene, this will bind/unbind it*/
 	GF_Err (*SetViewpoint)(GF_VisualRenderer *vr, u32 viewpoint_idx, const char *viewpoint_name);
+	/*execut action as defined in gpac/scenegraph.h */
+	Bool (*ScriptAction)(GF_VisualRenderer *vr, u32 type, GF_Node *n, GF_JSAPIParam *param);
 
 	/*natural texture handling (image & video)*/
 

@@ -53,6 +53,7 @@ typedef struct _render_2d
 	struct _drawable_context *grab_ctx;
 	struct _drawable *grab_node;
 	u32 last_sensor;
+	GF_Node *focus_node;
 
 	/*top level effect for zoom/pan*/
 	struct _render2d_effect *top_effect;
@@ -70,6 +71,8 @@ typedef struct _render_2d
 	u32 out_width, out_height, out_x, out_y, cur_width, cur_height;
 	/*scale factor (scaleble zoom only)*/
 	Fixed scale_x, scale_y;
+	/*rotation angle*/
+	Fixed rotation;
 
 	Bool grabbed;
 	Fixed grab_x, grab_y;
@@ -128,7 +131,9 @@ typedef struct
 enum
 {
 	/*when set objects are drawn as soon as traversed, at each frame*/
-	TF_RENDER_DIRECT	= (1<<2),
+	TF_RENDER_DIRECT		= (1<<2),
+	/*when set, render pass only gets bounds and transform matrix*/
+	TF_RENDER_GET_BOUNDS	= (1<<3),
 };
 
 /*the traversing context: set_up at top-level and passed through SFNode_Render*/
@@ -146,7 +151,8 @@ typedef struct _render2d_effect
 	/*current background and viewport stacks*/
 	GF_List *back_stack, *view_stack;
 
-	/*current transformation from top-level*/
+	/*current transformation from top-level. If TF_RENDER_GET_BOUNDS is set, this shall be updated
+	to the matrix at current level*/
 	GF_Matrix2D transform;
 	/*current color transformation from top-level*/
 	GF_ColorMatrix color_mat;
@@ -169,8 +175,10 @@ typedef struct _render2d_effect
 	/* Styling Property and others for SVG context */
 #ifndef GPAC_DISABLE_SVG
 	SVGStylingProperties *svg_props;
-	/*current number of listeners in the tree*/
+	/*number of listeners in the current tree branch*/
 	u32 nb_listeners;
+	GF_Rect bounds;
+	GF_Node *for_node;
 #endif
 
 } RenderEffect2D;

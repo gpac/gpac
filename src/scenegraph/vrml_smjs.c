@@ -155,8 +155,7 @@ static GFINLINE GF_ScriptPriv *JS_GetScriptStack(JSContext *c)
 static void script_error(JSContext *c, const char *msg, JSErrorReport *jserr)
 {
 	GF_JSInterface *ifce = JS_GetInterface(c);
-	if (ifce)
-		ifce->Error(ifce->callback, msg);
+	if (ifce) ifce->ScriptMessage(ifce->callback, GF_SCRIPT_ERROR, msg);
 }
 
 static JSBool JSPrint(JSContext *c, JSObject *p, uintN argc, jsval *argv, jsval *rval)
@@ -173,7 +172,7 @@ static JSBool JSPrint(JSContext *c, JSObject *p, uintN argc, jsval *argv, jsval 
 		if (i) strcat(buf, " ");
 		strcat(buf, JS_GetStringBytes(str));
 	}
-	ifce->Print(ifce->callback, buf);
+	ifce->ScriptMessage(ifce->callback, GF_SCRIPT_INFO, buf);
 	return JS_TRUE;
 }
 
@@ -204,12 +203,15 @@ static JSBool getCurrentFrameRate(JSContext *c, JSObject*o, uintN n, jsval *v, j
 }
 static JSBool getWorldURL(JSContext*c, JSObject*obj, uintN n, jsval *v, jsval *rval)
 {
-	const char *name;
+	GF_JSAPIParam par;
 	GF_JSInterface *ifce = JS_GetInterface(c);
-	if (!ifce) return JS_FALSE;
-	name = ifce->GetOption(ifce->callback, "WorldURL");
-	*rval = STRING_TO_JSVAL(JS_InternString( c, name ));
-	return JS_TRUE;
+	GF_Node *node = JS_GetContextPrivate(c);
+	if (!ifce || !ifce->ScriptAction) return JS_FALSE;
+	if (ifce->ScriptAction(ifce->callback, GF_JSAPI_OP_GET_SCENE_URI, node->sgprivate->scenegraph->RootNode, &par)) {
+		*rval = STRING_TO_JSVAL(JS_InternString( c, par.url));
+		return JS_TRUE;
+	}
+	return JS_FALSE;
 }
 static JSBool replaceWorld(JSContext*c, JSObject*o, uintN n, jsval *v, jsval *rv)
 {
@@ -356,10 +358,7 @@ static JSBool setDescription(JSContext*c, JSObject*o, uintN n, jsval *v, jsval *
 void js_on_message(void *cbk, char *msg, GF_Err e)
 {
 	GF_JSInterface *ifce = (GF_JSInterface *) cbk;
-	if (e)
-		ifce->Error(ifce->callback, msg);
-	else
-		ifce->Print(ifce->callback, msg);
+	ifce->ScriptMessage(ifce->callback, e, msg);
 }
 
 static JSBool createVrmlFromString(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsval *rval)

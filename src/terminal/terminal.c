@@ -25,7 +25,7 @@
 
 
 #include <gpac/internal/terminal_dev.h>
-#include <gpac/renderer.h>
+#include <gpac/internal/renderer_dev.h>
 #include <gpac/constants.h>
 #include <gpac/options.h>
 
@@ -94,21 +94,22 @@ Bool OnJSGetScriptFile(void *opaque, GF_SceneGraph *parent_graph, const char *ur
 	return 1;
 }
 
-const char *OnJSGetOption(void *opaque, char *option)
+Bool OnJSAction(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam *param)
 {
 	GF_Terminal *term = (GF_Terminal *) opaque;
-	if (!stricmp(option, "WorldURL")) return term->root_scene->root_od->net_service->url;
-	return NULL;
+	if (type==GF_JSAPI_OP_GET_SCENE_URI) {
+		GF_InlineScene *is = gf_sg_get_private(gf_node_get_graph(n));
+		param->url = is->root_od->net_service->url;
+		return 1;
+	}
+	if (term->renderer->visual_renderer->ScriptAction)
+		return term->renderer->visual_renderer->ScriptAction(term->renderer->visual_renderer, type, n, param);
+	return 0;
 }
-void OnJSError(void *opaque, const char *msg)
+void OnJSMessage(void *opaque, GF_Err e, const char *msg)
 {
 	GF_Terminal *term = (GF_Terminal *) opaque;
-	gf_term_message(term, term->root_scene->root_od->net_service->url, msg, GF_SCRIPT_ERROR);
-}
-void OnJSPrint(void *opaque, const char *msg)
-{
-	GF_Terminal *term = (GF_Terminal *) opaque;
-	gf_term_message(term, term->root_scene->root_od->net_service->url, msg, GF_SCRIPT_INFO);
+	gf_term_message(term, term->root_scene->root_od->net_service->url, msg, e);
 }
 
 Bool OnJSLoadURL(void *opaque, const char *url, const char **params, u32 nb_params)
@@ -211,9 +212,8 @@ GF_Terminal *gf_term_new(GF_User *user)
 
 	tmp->user = user;
 	tmp->js_ifce.callback = tmp;
-	tmp->js_ifce.Error = OnJSError;
-	tmp->js_ifce.Print = OnJSPrint;
-	tmp->js_ifce.GetOption = OnJSGetOption;
+	tmp->js_ifce.ScriptMessage = OnJSMessage;
+	tmp->js_ifce.ScriptAction = OnJSAction;
 	tmp->js_ifce.GetScriptFile = OnJSGetScriptFile;
 	tmp->js_ifce.LoadURL = OnJSLoadURL;
 

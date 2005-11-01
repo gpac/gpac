@@ -191,6 +191,7 @@ EXPORTS
 	gf_rect_equal
 	gf_rect_pixelize
 	gf_mx2d_add_matrix
+	gf_mx2d_pre_multiply
 	gf_mx2d_add_translation
 	gf_mx2d_add_rotation
 	gf_mx2d_add_scale

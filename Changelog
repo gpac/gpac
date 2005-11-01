@@ -1,4 +1,7 @@
-Latest CVS Changes 25/10/05
+Latest CVS Changes 01/11/05
+  - added support for SVG scripting (ecmascript through SpiderMonkey) - most of microDOM is supported, except presentation traits.
+  - added support for SVG events (DOM)
+  - added support for SVG scene dumping
   - added PAR modification support to MP4Box (import time and file based)
   - IsoMedia spliting more precise
   - fixed bug in gradient raster (spread/pad/repeat modes were broken)

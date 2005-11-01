@@ -640,6 +640,27 @@ void gf_mx2d_add_matrix(GF_Matrix2D *_this, GF_Matrix2D *from)
 	_this->m[5] = gf_mulfix(from->m[3], bck.m[2]) + gf_mulfix(from->m[4], bck.m[5]) + from->m[5];
 }
 
+
+void gf_mx2d_pre_multiply(GF_Matrix2D *_this, GF_Matrix2D *with)
+{
+	GF_Matrix2D bck;
+	if (!_this || !with) return;
+
+	if (gf_mx2d_is_identity(*with)) return;
+	else if (gf_mx2d_is_identity(*_this)) {
+		gf_mx2d_copy(*_this, *with);
+		return;
+	}
+	gf_mx2d_copy(bck, *_this);
+	_this->m[0] = gf_mulfix(bck.m[0], with->m[0]) + gf_mulfix(bck.m[1], with->m[3]);
+	_this->m[1] = gf_mulfix(bck.m[0], with->m[1]) + gf_mulfix(bck.m[1], with->m[4]);
+	_this->m[2] = gf_mulfix(bck.m[0], with->m[2]) + gf_mulfix(bck.m[1], with->m[5]) + bck.m[2];
+	_this->m[3] = gf_mulfix(bck.m[3], with->m[0]) + gf_mulfix(bck.m[4], with->m[3]);
+	_this->m[4] = gf_mulfix(bck.m[3], with->m[1]) + gf_mulfix(bck.m[4], with->m[4]);
+	_this->m[5] = gf_mulfix(bck.m[3], with->m[2]) + gf_mulfix(bck.m[4], with->m[5]) + bck.m[5];
+}
+
+
 void gf_mx2d_add_translation(GF_Matrix2D *_this, Fixed cx, Fixed cy)
 {
 	GF_Matrix2D tmp;

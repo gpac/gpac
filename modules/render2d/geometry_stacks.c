@@ -378,7 +378,7 @@ static void DrawBitmap(DrawableContext *ctx)
 	u32 keyColor;
 	GF_ColorMatrix *cmat;
 	Render2D *sr;
-	Bool use_blit, has_scale, has_key;
+	Bool use_blit, has_key;
 	M_Bitmap *bmp = (M_Bitmap *) ctx->node->owner;
 	BitmapStack *st = (BitmapStack *) gf_node_get_private(ctx->node->owner);
 
@@ -386,10 +386,6 @@ static void DrawBitmap(DrawableContext *ctx)
 	sr = ctx->surface->render;
 	/*bitmaps are NEVER rotated (forbidden in spec). In case a rotation was done we still display (reset the skew components)*/
 	ctx->transform.m[1] = ctx->transform.m[3] = 0;
-
-	has_scale = 0;
-	if (bmp->scale.x>0 && (bmp->scale.x!=FIX_ONE) ) has_scale = 1;
-	if (bmp->scale.y>0 && (bmp->scale.y!=FIX_ONE) ) has_scale = 1;
 
 	use_blit = 1;
 	alpha = GF_COL_A(ctx->aspect.fill_color);

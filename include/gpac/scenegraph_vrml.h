@@ -568,42 +568,9 @@ GF_ScriptField *gf_sg_script_field_new(GF_Node *script, u32 eventType, u32 field
 /*retrieves field info, usefull to get the field index*/
 GF_Err gf_sg_script_field_get_info(GF_ScriptField *field, GF_FieldInfo *info);
 
-
-/*JavaScript interface with user*/
-typedef struct
-{
-	/*user defined callback*/
-	void *callback;
-
-	/*file loading callback*/
-	Bool (*GetScriptFile)(void *callback, GF_SceneGraph *parent_graph, const char *url, void (*OnDone)(void *cbck, Bool success, const char *file_cached), void *cbk);
-
-	/*gets option - values for optName:
-	"WorldURL" -> returns worldURL
-	*/
-	const char *(*GetOption)(void *callback, char *optName);
-	/*not supported yet*/
-	Bool (*SetOption)(void *callback, char *optName, char *optValue);
-	/*signals error*/
-	void (*Error)(void *callback, const char *msg);
-	/*signals message*/
-	void (*Print)(void *callback, const char *msg);
-	/*ask the app to load a URL*/
-	Bool (*LoadURL)(void *callback, const char *url, const char **params, u32 nb_params);
-} GF_JSInterface;
-
-/*assign API to scene graph - by default, sub-graphs inherits the API if set*/
-void gf_sg_set_javascript_api(GF_SceneGraph *scene, GF_JSInterface *ifce);
-
-/*load script into engine - this should be called only for script in main scene, loading of scripts
-in protos is done internally when instanciating the proto*/
-void gf_sg_script_load(GF_Node *script);
-
 /*activate eventIn for script node - needed for BIFS field replace*/
 void gf_sg_script_event_in(GF_Node *node, GF_FieldInfo *in_field);
 
-/*returns true if current lib has javascript support*/
-Bool gf_sg_has_scripting();
 
 /*
 			BIFS command tools

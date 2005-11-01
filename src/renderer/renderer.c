@@ -852,7 +852,7 @@ static void SR_UserInputIntern(GF_Renderer *sr, GF_Event *event)
 {
 	GF_UserEvent *ev;
 
-	if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) && (event->type!=GF_EVT_VKEYDOWN) && (event->type!=GF_EVT_VKEYUP))
+	if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) && (event->type<=GF_EVT_MOUSEWHEEL))
 		gf_term_mouse_input(sr->term, &event->mouse);
 
 	if (!sr->interaction_level || (sr->interaction_level==GF_INTERACT_INPUT_SENSOR) ) {
@@ -880,6 +880,8 @@ static void SR_UserInputIntern(GF_Renderer *sr, GF_Event *event)
 		ev->event_type = event->type;
 		if (event->type<=GF_EVT_MOUSEWHEEL) {
 			ev->mouse = event->mouse;
+		} else if (event->type==GF_EVT_CHAR) {
+			ev->character = event->character;
 		} else {
 			ev->key = event->key;
 		}

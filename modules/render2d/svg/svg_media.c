@@ -1,7 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Cyril Concolato 2004
+ *			Authors: Cyril Concolato - Jean le Feuvre
+ *				Copyright (c) 2005-200X ENST
  *					All rights reserved
  *
  *  This file is part of GPAC / SVG Rendering sub-project
@@ -47,13 +48,6 @@ void SVG_SetMFURLFromURI(MFURL *mfurl, char *uri)
 	sfurl->url = strdup(uri);
 }
 
-/****************************************/
-/* Generic rendering for bitmaps        */
-/* used for SVG image and video element */
-/****************************************/
-static void SVG_BuildGraph_image(SVG_image_stack *st, DrawableContext *ctx);
-static void SVG_BuildGraph_video(SVG_video_stack *st, DrawableContext *ctx);
-
 static void SVG_ComputeAR(Fixed objw, Fixed objh, Fixed viewportw, Fixed viewporth,
 						  SVG_PreserveAspectRatio *par, GF_Matrix2D *par_mat)
 {
@@ -87,70 +81,38 @@ static void SVG_ComputeAR(Fixed objw, Fixed objh, Fixed viewportw, Fixed viewpor
 
 static void SVG_Draw_bitmap(DrawableContext *ctx)
 {
+	GF_ColorMatrix *cmat;
 	u8 alpha;
 	Render2D *sr;
-	Bool use_hw, has_scale;
+	Bool use_blit;
 	SVG_PreserveAspectRatio *par = NULL;
-	GF_Matrix2D par_mat;
-	u32 texture_w, texture_h;
-
 	sr = ctx->surface->render;
 
-	has_scale = 0;
-	use_hw = 1;
+	use_blit = 1;
 	alpha = GF_COL_A(ctx->aspect.fill_color);
 
-	/* no rotation allowed, remove skew components */
-	if (ctx->transform.m[1] || ctx->transform.m[3]) use_hw = 0;
-
-	switch (gf_node_get_tag(ctx->node->owner) ) {
-	case TAG_SVG_image:
-		par = &(((SVGimageElement *)ctx->node->owner)->preserveAspectRatio);
-		break;
-	case TAG_SVG_video:
-		par = &(((SVGvideoElement *)ctx->node->owner)->preserveAspectRatio);
-		break;
-	}
-
-	/*check if driver can handle alpha blit*/
-	if (alpha!=255) use_hw = 0;
+	cmat = NULL;
+	if (!ctx->cmat.identity) cmat = &ctx->cmat;
+	//else if (ctx->h_texture->has_cmat) cmat = NULL;
 
 	/*this is not a native texture, use graphics*/
 	if (!ctx->h_texture->data) {
-		use_hw = 0;
+		use_blit = 0;
 	} else {
-		if (!ctx->surface->SupportsFormat || !ctx->surface->DrawBitmap ) use_hw = 0;
+		if (!ctx->surface->SupportsFormat || !ctx->surface->DrawBitmap ) use_blit = 0;
 		/*format not supported directly, try with brush*/
-		else if (!ctx->surface->SupportsFormat(ctx->surface, ctx->h_texture->pixelformat) ) use_hw = 0;
+		else if (!ctx->surface->SupportsFormat(ctx->surface, ctx->h_texture->pixelformat) ) use_blit = 0;
 	}
 
 	/*no HW, fall back to the graphics driver*/
-	if (!use_hw) {
-		switch (gf_node_get_tag(ctx->node->owner) ) {
-		case TAG_SVG_image:
-			{
-				SVG_image_stack *st = (SVG_image_stack *) gf_node_get_private(ctx->node->owner);
-//				SVG_BuildGraph_image(st, ctx);
-				ctx->no_antialias = 1;
-				VS2D_TexturePath(ctx->surface, st->graph->path, ctx);
-				return;
-			}
-			break;
-		case TAG_SVG_video:
-			{
-				SVG_video_stack *st = (SVG_video_stack *) gf_node_get_private(ctx->node->owner);
-//				SVG_BuildGraph_video(st, ctx);
-				ctx->no_antialias = 1;
-				VS2D_TexturePath(ctx->surface, st->graph->path, ctx);
-				return;
-			}
-			break;
-		}
+	if (!use_blit) {
+		VS2D_TexturePath(ctx->surface, ctx->node->path, ctx);
+		return;
 	}
 
 	/*direct rendering, render without clippers */
 	if (ctx->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
-		ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &ctx->clip, &ctx->unclip, 0xFF, NULL, NULL);
+		ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &ctx->clip, &ctx->unclip, alpha, NULL, cmat);
 	}
 	/*render bitmap for all dirty rects*/
 	else {
@@ -162,98 +124,104 @@ static void SVG_Draw_bitmap(DrawableContext *ctx)
 			clip = ctx->clip;
 			gf_irect_intersect(&clip, &ctx->surface->to_redraw.list[i]);
 			if (clip.width && clip.height) {
-				ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &clip, &ctx->unclip, 0xFF, NULL, NULL);
+				ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &clip, &ctx->unclip, alpha, NULL, cmat);
 			}
 		}
 	}
 }
 
+static void SVG_BuildGraph_image(SVG_image_stack *st)
+{
+	GF_Rect rc, new_rc;
+	SVGimageElement *img = (SVGimageElement *)st->graph->owner;
+	gf_path_get_bounds(st->graph->path, &rc);
+	drawable_reset_path(st->graph);
+	gf_path_add_rect_center(st->graph->path, img->x.number+img->width.number/2, img->y.number+img->height.number/2, img->width.number, img->height.number);
+	gf_path_get_bounds(st->graph->path, &new_rc);
+	/*change in visual aspect*/
+	if (!gf_rect_equal(rc, new_rc)) st->graph->node_changed = 1;
+	gf_node_dirty_clear(st->graph->owner, 0);
+}
+
+
+static void SVG_BuildGraph_video(SVG_video_stack *st)
+{
+	GF_Rect rc, new_rc;
+	SVGvideoElement *video = (SVGvideoElement *)st->graph->owner;
+	gf_path_get_bounds(st->graph->path, &rc);
+	drawable_reset_path(st->graph);
+	gf_path_add_rect_center(st->graph->path, video->x.number+video->width.number/2, video->y.number+video->height.number/2, video->width.number, video->height.number);
+	gf_path_get_bounds(st->graph->path, &new_rc);
+	/*change in visual aspect*/
+	if (!gf_rect_equal(rc, new_rc)) st->graph->node_changed = 1;
+	gf_node_dirty_clear(st->graph->owner, 0);
+}
+
 static void SVG_Render_bitmap(GF_Node *node, void *rs)
 {
+	/*video stack is just an extension of image stack, type-casting is OK*/
+	SVG_image_stack *st = (SVG_image_stack*)gf_node_get_private(node);
+	RenderEffect2D *eff = (RenderEffect2D *)rs;
 	SVGStylingProperties backup_props;
-	u32 styling_size = sizeof(SVGStylingProperties);
 	GF_Matrix2D backup_matrix;
 	SVG_Transform *tr;
 	DrawableContext *ctx;
-	RenderEffect2D *eff = (RenderEffect2D *)rs;
 
-	memcpy(&backup_props, eff->svg_props, styling_size);
-	switch(gf_node_get_tag(node)) {
-	case TAG_SVG_image:
-		SVGApplyProperties(eff->svg_props, ((SVGimageElement *)node)->properties);
-		break;
-	case TAG_SVG_video:
-		SVGApplyProperties(eff->svg_props, ((SVGvideoElement *)node)->properties);
-		break;
+	memcpy(&backup_props, eff->svg_props, sizeof(SVGStylingProperties));
+	SVGApplyProperties(eff->svg_props, ((SVGvideoElement *)node)->properties);
+
+	if (gf_node_get_tag(node)==TAG_SVG_image) {
+		SVG_BuildGraph_image(gf_node_get_private(node));
+		tr = gf_list_get( ((SVGimageElement *)node)->transform, 0);
+	} else {
+		SVG_BuildGraph_video(gf_node_get_private(node));
+		tr = gf_list_get( ((SVGvideoElement *)node)->transform, 0);
+	}
+	/*FIXME: setup aspect ratio*/
+
+	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+		if (tr) gf_mx2d_pre_multiply(&eff->transform, &tr->matrix);
+		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
+			gf_path_get_bounds(st->graph->path, &eff->bounds);
+		}
+		memcpy(eff->svg_props, &backup_props, sizeof(SVGStylingProperties));
+		return;
 	}
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
-		memcpy(eff->svg_props, &backup_props, styling_size);
+		memcpy(eff->svg_props, &backup_props, sizeof(SVGStylingProperties));
 		return;
 	}
 
-	/*we never cache anything with bitmap...*/
-	gf_node_dirty_clear(node, 0);
-
 	gf_mx2d_copy(backup_matrix, eff->transform);
+	if (tr) gf_mx2d_pre_multiply(&eff->transform, &tr->matrix);
 
-	switch(gf_node_get_tag(node)) {
-	case TAG_SVG_image:
-		{
-			SVG_image_stack *st = (SVG_image_stack *)gf_node_get_private(node);
-			SVGimageElement *image = (SVGimageElement *)node;
-			tr = gf_list_get(image->transform, 0);
-			if (tr) {
-				gf_mx2d_copy(eff->transform, tr->matrix);
-				gf_mx2d_add_matrix(&eff->transform, &backup_matrix);
-			}
+	ctx = SVG_drawable_init_context(st->graph, eff);
+	if (!ctx || !ctx->h_texture ) return;
+	/*store bounds*/
+	gf_path_get_bounds(ctx->node->path, &ctx->original);
 
-			ctx = SVG_drawable_init_context(st->graph, eff);
-			if (!ctx || !ctx->h_texture ) return;
-			/*always build the path*/
-			SVG_BuildGraph_image(st, ctx);
-		}
-		break;
-	case TAG_SVG_video:
-		{
-			SVG_video_stack *st = (SVG_video_stack *)gf_node_get_private(node);
-			SVGvideoElement *video = (SVGvideoElement *)node;
-			tr = gf_list_get(video->transform, 0);
-			if (tr) {
-				gf_mx2d_copy(eff->transform, tr->matrix);
-				gf_mx2d_add_matrix(&eff->transform, &backup_matrix);
-			}
-
-			ctx = SVG_drawable_init_context(st->graph, eff);
-			if (!ctx || !ctx->h_texture ) return;
-			/*always build the path*/
-			SVG_BuildGraph_video(st, ctx);
-		}
-		break;
-	}
 	/*even if set this is not true*/
 	ctx->aspect.has_line = 0;
 	/*this is to make sure we don't fill the path if the texture is transparent*/
 	ctx->aspect.filled = 0;
 	ctx->aspect.pen_props.width = 0;
-
 	ctx->no_antialias = 1;
 
+	/*if rotation, transparent*/
 	ctx->transparent = 0;
-	if (ctx->transform.m[1] || ctx->transform.m[3]) ctx->transparent = 1;
-
-	/*if clipper then transparent*/
-
-	if (ctx->h_texture->transparent) {
+	if (ctx->transform.m[1] || ctx->transform.m[3]) {
 		ctx->transparent = 1;
+		ctx->no_antialias = 0;
 	}
-	/*global transparency is checked independently*/
+	else if (ctx->h_texture->transparent) 
+		ctx->transparent = 1;
 
 	/*bounds are stored when building graph*/	
 	drawable_finalize_render(ctx, eff);
 	gf_mx2d_copy(eff->transform, backup_matrix);  
-	memcpy(eff->svg_props, &backup_props, styling_size);
+	memcpy(eff->svg_props, &backup_props, sizeof(SVGStylingProperties));
 }
 
 static Bool SVG_PointOver_bitmap(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
@@ -278,14 +246,6 @@ static void SVG_Update_image(GF_TextureHandler *txh)
 	gf_sr_texture_update_frame(txh, 0);
 	/*URL is present but not opened - redraw till fetch*/
 	if (txh->stream && !txh->hwtx) gf_sr_invalidate(txh->compositor, NULL);
-}
-
-static void SVG_BuildGraph_image(SVG_image_stack *st, DrawableContext *ctx)
-{
-	SVGimageElement *img = (SVGimageElement *)st->graph->owner;
-	drawable_reset_path(st->graph);
-	gf_path_add_rect_center(st->graph->path, img->x.number+img->width.number/2, img->y.number+img->height.number/2, img->width.number, img->height.number);
-	gf_path_get_bounds(st->graph->path, &ctx->original);
 }
 
 static void SVG_Destroy_image(GF_Node *node)
@@ -433,14 +393,6 @@ static void SVG_UpdateTime_video(GF_TimeNode *st)
 	*/
 
 	if (!stack->isActive) SVG_Activate_video(stack, video);
-}
-
-static void SVG_BuildGraph_video(SVG_video_stack *st, DrawableContext *ctx)
-{
-	SVGvideoElement *video = (SVGvideoElement *)st->graph->owner;
-	drawable_reset_path(st->graph);
-	gf_path_add_rect_center(st->graph->path, video->x.number+video->width.number/2, video->y.number+video->height.number/2, video->width.number, video->height.number);
-	gf_path_get_bounds(st->graph->path, &ctx->original);
 }
 
 static void SVG_Destroy_video(GF_Node *node)

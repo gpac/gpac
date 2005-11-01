@@ -56,12 +56,20 @@ void R2D_MapCoordsToAR(Render2D *sr, s32 inX, s32 inY, Fixed *x, Fixed *y)
 	}
 }
 
-static void R2D_SetZoom(Render2D *sr, Fixed zoom) 
+static void R2D_SetUserTransform(Render2D *sr, Fixed zoom, Fixed tx, Fixed ty) 
 {
 	Fixed ratio;
-
+	Fixed old_tx, old_ty, old_z;
+	
 	gf_sr_lock(sr->compositor, 1);
+	old_tx = tx;
+	old_ty = ty;
+	old_z = sr->zoom;
+
 	if (zoom <= 0) zoom = FIX_ONE/1000;
+	sr->trans_x = tx;
+	sr->trans_y = ty;
+
 	if (zoom != sr->zoom) {
 		ratio = gf_divfix(zoom, sr->zoom);
 		sr->trans_x = gf_mulfix(sr->trans_x, ratio);
@@ -72,8 +80,36 @@ static void R2D_SetZoom(Render2D *sr, Fixed zoom)
 	gf_mx2d_add_scale(&sr->top_effect->transform, sr->scale_x, sr->scale_y);
 	gf_mx2d_add_scale(&sr->top_effect->transform, sr->zoom, sr->zoom);
 	gf_mx2d_add_translation(&sr->top_effect->transform, sr->trans_x, sr->trans_y);
+	if (sr->rotation) gf_mx2d_add_rotation(&sr->top_effect->transform, 0, 0, sr->rotation);
 	sr->compositor->draw_next_frame = 1;
 	sr->top_effect->invalidate_all = 1;
+
+#ifndef GPAC_DISABLE_SVG
+	if (sr->use_dom_events) {
+		GF_DOM_Event evt;
+		memset(&evt, 0, sizeof(GF_DOM_Event));
+		evt.prev_scale = sr->scale_x*old_z;
+		evt.new_scale = sr->scale_x*sr->zoom;
+
+		if (evt.prev_scale == evt.new_scale) {
+			/*cannot get params for scroll events*/
+			evt.type = SVG_DOM_EVT_SCROLL;
+			gf_sg_fire_dom_event(gf_sg_get_root_node(sr->compositor->scene), &evt);
+		} else {
+			evt.screen_rect.x = INT2FIX(sr->out_x);
+			evt.screen_rect.y = INT2FIX(sr->out_y);
+			evt.screen_rect.width = INT2FIX(sr->out_width);
+			evt.screen_rect.height = INT2FIX(sr->out_height);
+			evt.prev_translate.x = old_tx;
+			evt.prev_translate.y = old_ty;
+			evt.new_translate.x = sr->trans_x;
+			evt.new_translate.y = sr->trans_y;
+			evt.type = SVG_DOM_EVT_ZOOM;
+			gf_sg_fire_dom_event(gf_sg_get_root_node(sr->compositor->scene), &evt);
+		}
+	}
+#endif
+
 	gf_sr_lock(sr->compositor, 0);
 }
 
@@ -81,7 +117,7 @@ void R2D_SetScaling(Render2D *sr, Fixed scaleX, Fixed scaleY)
 {
 	sr->scale_x = scaleX;
 	sr->scale_y = scaleY;
-	R2D_SetZoom(sr, sr->zoom);
+	R2D_SetUserTransform(sr, sr->zoom, sr->trans_x, sr->trans_y);
 }
 
 void R2D_ResetSurfaces(Render2D *sr)
@@ -111,6 +147,9 @@ void R2D_SceneReset(GF_VisualRenderer *vr)
 	sr->compositor->reset_graphics = 1;
 	sr->trans_x = sr->trans_y = 0;
 	sr->zoom = FIX_ONE;
+	sr->grab_node = NULL;
+	sr->grab_ctx = NULL;
+	sr->focus_node = NULL;
 	R2D_SetScaling(sr, sr->scale_x, sr->scale_y);
 	/*force resetup of main surface in case we're switching coord system*/
 	sr->main_surface_setup = 0;
@@ -270,14 +309,17 @@ void R2D_UnregisterSensor(GF_Renderer *compositor, SensorHandler *sh)
 
 Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fixed Y)
 {
+	GF_DOM_Event evt;
+	u32 cursor_type;
 	Bool ret = 0;
 	Render2D *sr = (Render2D *)vr->user_priv;
 
+	cursor_type = GF_CURSOR_NORMAL;
 	/*all mouse events*/
 	if (event->event_type<=GF_EVT_RIGHTUP) {
 		DrawableContext *ctx = VS2D_PickContext(sr->surface, X, Y);
 		if (ctx) {
-			GF_DOM_Event evt;
+			cursor_type = sr->last_sensor;
 			memset(&evt, 0, sizeof(GF_DOM_Event));
 			evt.clientX = evt.screenX = FIX2INT(X);
 			evt.clientY = evt.screenY = FIX2INT(Y);
@@ -305,6 +347,7 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 
 					sr->grab_ctx = ctx;
 					sr->grab_node = ctx->node;
+					sr->focus_node = ctx->node->owner;
 				} else {
 					evt.type = SVG_DOM_EVT_MOUSEMOVE;
 					ret += gf_sg_fire_dom_event(ctx->node->owner, &evt);
@@ -334,7 +377,25 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 				}
 				break;
 			}
+			cursor_type = evt.has_ui_events ? GF_CURSOR_TOUCH : GF_CURSOR_NORMAL;
 		}
+		if (sr->last_sensor != cursor_type) {
+			R2DSETCURSOR(cursor_type);
+			sr->last_sensor = cursor_type;
+		}
+	}
+	else if ((event->event_type>=GF_EVT_CHAR) && (event->event_type<=GF_EVT_KEYUP)) {
+		memset(&evt, 0, sizeof(GF_DOM_Event));
+		evt.bubbles = 1;
+		evt.cancelable = 1;
+		if (event->event_type==GF_EVT_CHAR) {
+			evt.type = SVG_DOM_EVT_KEYPRESS;
+			evt.detail = event->character.unicode_char;
+		} else {
+			evt.type = ((event->event_type==GF_EVT_VKEYDOWN) || (event->event_type==GF_EVT_KEYDOWN)) ? SVG_DOM_EVT_KEYDOWN : SVG_DOM_EVT_KEYUP;
+			evt.detail = event->key.virtual_code;
+		}
+		ret += gf_sg_fire_dom_event(sr->focus_node, &evt);
 	}
 	return ret;
 }
@@ -362,7 +423,10 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 #ifndef GPAC_DISABLE_SVG
 	/*DOM-style events*/
 	if (sr->use_dom_events) {
-		if (R2D_ExecuteDOMEvent(vr, event, evt.x, evt.y)) return 1;
+		if (R2D_ExecuteDOMEvent(vr, event, evt.x, evt.y)) {
+			sr->grabbed = 0;
+			return 1;
+		}
 		goto browser_event;
 	}
 #endif
@@ -464,7 +528,6 @@ browser_event:
 		sr->grab_y = ev->y;
 		sr->grabbed = 1;
 		break;
-		break;
 	case GF_EVT_LEFTUP:
 		sr->grabbed = 0;
 		break;
@@ -482,13 +545,11 @@ browser_event:
 				Fixed new_zoom = sr->zoom;
 				if (new_zoom > FIX_ONE) new_zoom += dy/10;
 				else new_zoom += dy/40;
-				R2D_SetZoom(sr, new_zoom);
+				R2D_SetUserTransform(sr, new_zoom, sr->trans_x, sr->trans_y);
 			}
 			/*set pan*/
 			else {
-				sr->trans_x += dx;
-				sr->trans_y += dy;
-				R2D_SetZoom(sr, sr->zoom);
+				R2D_SetUserTransform(sr, sr->zoom, sr->trans_x+dx, sr->trans_y+dy);
 			}
 			sr->grab_x = ev->x;
 			sr->grab_y = ev->y;
@@ -497,16 +558,12 @@ browser_event:
 	case GF_EVT_VKEYDOWN:
 		switch (event->key.vk_code) {
 		case GF_VK_HOME:
-			if (!sr->grabbed) {
-				sr->zoom = FIX_ONE;
-				sr->trans_x = sr->trans_y = 0;
-				R2D_SetZoom(sr, sr->zoom);
-			}
+			if (!sr->grabbed) R2D_SetUserTransform(sr, FIX_ONE, 0, 0);
 			break;
 		case GF_VK_LEFT: key_inv = -1;
 		case GF_VK_RIGHT:
 			sr->trans_x += key_inv*key_trans;
-			R2D_SetZoom(sr, sr->zoom);
+			R2D_SetUserTransform(sr, sr->zoom, sr->trans_x + key_inv*key_trans, sr->trans_y);
 			break;
 		case GF_VK_DOWN: key_inv = -1;
 		case GF_VK_UP:
@@ -514,10 +571,9 @@ browser_event:
 				Fixed new_zoom = sr->zoom;
 				if (new_zoom > FIX_ONE) new_zoom += key_inv*FIX_ONE/10;
 				else new_zoom += key_inv*FIX_ONE/20;
-				R2D_SetZoom(sr, new_zoom);
+				R2D_SetUserTransform(sr, new_zoom, sr->trans_x, sr->trans_y);
 			} else {
-				sr->trans_y += key_inv*key_trans;
-				R2D_SetZoom(sr, sr->zoom);
+				R2D_SetUserTransform(sr, sr->zoom, sr->trans_x, sr->trans_y + key_inv*key_trans);
 			}
 			break;
 		}
@@ -562,6 +618,8 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 #endif
 		sr->top_effect->is_pixel_metrics = gf_sg_use_pixel_metrics(sr->compositor->scene);
 		sr->top_effect->min_hsize = INT2FIX(MIN(sr->compositor->scene_width, sr->compositor->scene_height)) / 2;
+
+		sr->focus_node = top_node;
 	}
 
 	memcpy(&static_eff, sr->top_effect, sizeof(RenderEffect2D));
@@ -1077,12 +1135,10 @@ GF_Err R2D_SetOption(GF_VisualRenderer *vr, u32 option, u32 value)
 		return GF_OK;
 	case GF_OPT_RELOAD_CONFIG: R2D_ReloadConfig(vr); return GF_OK;
 	case GF_OPT_ORIGINAL_VIEW: 
-		sr->trans_x = sr->trans_y = 0;
-		R2D_SetZoom(sr, FIX_ONE);
+		R2D_SetUserTransform(sr, FIX_ONE, sr->trans_x, sr->trans_y );
 		return GF_OK;
 	case GF_OPT_NAVIGATION_TYPE: 
-		sr->trans_x = sr->trans_y = 0;
-		R2D_SetZoom(sr, FIX_ONE);
+		R2D_SetUserTransform(sr, FIX_ONE, sr->trans_x, sr->trans_y );
 		return GF_OK;
 	case GF_OPT_NAVIGATION:
 		if ((value!=GF_NAVIGATE_NONE) && (value!=GF_NAVIGATE_SLIDE)) return GF_NOT_SUPPORTED;
@@ -1160,6 +1216,51 @@ GF_Err R2D_ReleaseScreenBuffer(GF_VisualRenderer *vr, GF_VideoSurface *framebuff
 	return sr->compositor->video_out->LockBackBuffer(sr->compositor->video_out, NULL, 0);
 }
 
+static Bool R2D_ScriptAction(GF_VisualRenderer *vr, u32 type, GF_Node *n, GF_JSAPIParam *param)
+{
+	Render2D *sr = (Render2D *)vr->user_priv;
+	
+	switch (type) {
+	case GF_JSAPI_OP_GET_SCALE: param->val = sr->zoom; return 1;
+	case GF_JSAPI_OP_SET_SCALE: R2D_SetUserTransform(sr, param->val, sr->trans_x, sr->trans_y); return 1;
+	case GF_JSAPI_OP_GET_ROTATION: param->val = gf_divfix(180*sr->rotation, GF_PI); return 1;
+	case GF_JSAPI_OP_SET_ROTATION: sr->rotation = gf_mulfix(GF_PI, param->val/180); R2D_SetUserTransform(sr, sr->zoom, sr->trans_x, sr->trans_y); return 1;
+	case GF_JSAPI_OP_GET_TRANSLATE: param->pt.x = sr->trans_x; param->pt.y = sr->trans_y; return 1;
+	case GF_JSAPI_OP_SET_TRANSLATE: R2D_SetUserTransform(sr, sr->zoom, param->pt.x, param->pt.y); return 1;
+	/*FIXME - better SMIL timelines support*/
+	case GF_JSAPI_OP_GET_TIME: param->time = gf_node_get_scene_time(n); return 1;
+	case GF_JSAPI_OP_SET_TIME: /*seek_to(param->time);*/ return 0;
+	/*FIXME - this will not work for inline docs, we will have to store the clipper at the <svg> level*/
+	case GF_JSAPI_OP_GET_VIEWPORT: 
+		param->rc = gf_rect_ft(&sr->surface->top_clipper); 
+		if (!sr->surface->center_coords) param->rc.y = param->rc.height - param->rc.y;
+		return 1;
+	case GF_JSAPI_OP_SET_FOCUS: sr->focus_node = param->focused; return 1;
+	case GF_JSAPI_OP_GET_FOCUS: param->focused = sr->focus_node; return 1;
+
+	/*same routine: traverse tree from root to target, collecting both bounds and transform matrix*/
+	case GF_JSAPI_OP_GET_LOCAL_BBOX:
+	case GF_JSAPI_OP_GET_SCREEN_BBOX:
+	case GF_JSAPI_OP_GET_TRANSFORM:
+	{
+		RenderEffect2D eff;
+		memset(&eff, 0, sizeof(eff));
+		eff.trav_flags = TF_RENDER_GET_BOUNDS;
+		eff.surface = sr->surface;
+		eff.for_node = n;
+		gf_mx2d_init(eff.transform);
+		gf_node_render(gf_sg_get_root_node(sr->compositor->scene), &eff);
+		if (type==GF_JSAPI_OP_GET_LOCAL_BBOX) gf_bbox_from_rect(&param->bbox, &eff.bounds);
+		else if (type==GF_JSAPI_OP_GET_TRANSFORM) gf_mx_from_mx2d(&param->mx, &eff.transform);
+		else {
+			gf_mx2d_apply_rect(&eff.transform, &eff.bounds);
+			gf_bbox_from_rect(&param->bbox, &eff.bounds);
+		}
+	}
+		return 1;
+	}
+	return 0;
+}
 
 GF_Err R2D_GetViewport(GF_VisualRenderer *vr, u32 viewpoint_idx, const char **outName, Bool *is_bound);
 GF_Err R2D_SetViewport(GF_VisualRenderer *vr, u32 viewpoint_idx, const char *viewpoint_name);
@@ -1191,6 +1292,7 @@ GF_VisualRenderer *NewVisualRenderer()
 	sr->ReleaseScreenBuffer = R2D_ReleaseScreenBuffer;
 	sr->GetViewpoint = R2D_GetViewport;
 	sr->SetViewpoint = R2D_SetViewport;
+	sr->ScriptAction = R2D_ScriptAction;
 
 	sr->user_priv = NULL;
 	return sr;
@@ -1229,6 +1331,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	sr->ReleaseScreenBuffer = R2D_ReleaseScreenBuffer;
 	sr->GetViewpoint = R2D_GetViewport;
 	sr->SetViewpoint = R2D_SetViewport;
+	sr->ScriptAction = R2D_ScriptAction;
 
 	sr->user_priv = NULL;
 	return (GF_BaseInterface *)sr;

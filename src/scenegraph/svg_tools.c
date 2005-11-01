@@ -65,14 +65,11 @@ GF_Node *gf_node_listener_get(GF_Node *node, u32 i)
 	return gf_list_get(node->sgprivate->events, i);
 }
 
-#ifdef GPAC_HAS_SPIDERMONKEY
-Bool svg_script_execute(char *utf8_script, GF_DOM_Event *event);
-#endif
-
 void gf_sg_handle_dom_event(SVGhandlerElement *hdl, GF_DOM_Event *event)
 {
 #ifdef GPAC_HAS_SPIDERMONKEY
-	if (svg_script_execute(hdl->textContent, event)) return;
+	if (hdl->sgprivate->scenegraph->svg_js) 
+		if (hdl->sgprivate->scenegraph->svg_js->script_execute(hdl->sgprivate->scenegraph, hdl->textContent, event)) return;
 #endif
 	/*no clue what this is*/
 	fprintf(stdout, "SVG: Unknown handler\n");
@@ -92,16 +89,29 @@ static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 
 	if (node->sgprivate->events) {
 		u32 i, count;
-		event->currentTarget = node;
 		count = gf_list_count(node->sgprivate->events);
 		for (i=0; i<count; i++) {
 			SVGlistenerElement *listen = gf_list_get(node->sgprivate->events, i);
+			if (listen->event<=SVG_DOM_EVT_MOUSEMOVE) event->has_ui_events=1;
 			if (listen->event != event->type) continue;
+			event->currentTarget = node;
 			/*process event*/
 			svg_process_event(listen, event);
+			
+			/*load event cannot bubble and can only be called once (on load :) ), remove it
+			to release some resources*/
+			if (event->type==SVG_DOM_EVT_LOAD) {
+				gf_list_rem(node->sgprivate->events, i);
+				count--;
+				i--;
+				gf_node_replace((GF_Node *) listen->handler.target, NULL, 0);
+				gf_node_replace((GF_Node *) listen, NULL, 0);
+			}
 			/*canceled*/
-			if (event->event_phase==3) return 0;
+			if (event->event_phase==4) return 0;
 		}
+		/*propagation stoped*/
+		if (event->event_phase>=3) return 0;
 	}
 	return 1;
 }
@@ -138,10 +148,10 @@ Bool gf_sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 			GF_Node *n = gf_list_get(parents, i);
 			sg_fire_dom_event(n, event);
 			/*event has been canceled*/
-			if (event->event_phase==3) break;
+			if (event->event_phase==4) break;
 		}
 		gf_list_del(parents);
-		if (event->event_phase==3) return 1;
+		if (event->event_phase>=3) return 1;
 	}
 	/*target + bubbling phase*/
 	event->event_phase = 0;
@@ -155,6 +165,11 @@ Bool gf_sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 
 Bool gf_sg_svg_node_init(GF_Node *node)
 {
+	GF_DOM_Event evt;
+	memset(&evt, 0, sizeof(GF_DOM_Event));
+	evt.type = SVG_DOM_EVT_LOAD;
+	gf_sg_fire_dom_event(node, &evt);
+
 	if ((node->sgprivate->tag==TAG_SVG_script) && node->sgprivate->scenegraph->script_load) {
 		node->sgprivate->scenegraph->script_load(node);
 		return 1;

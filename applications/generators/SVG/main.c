@@ -697,6 +697,10 @@ void generateNode(FILE *output, SVGElement* svg_elt)
 	fprintf(output, "\tCHILDREN\n");
 	fprintf(output, "\tBASE_SVG_ELEMENT\n");
 	generateAttributes(output, svg_elt->attributes);
+	/*special case for handler node*/
+	if (!strcmp(svg_elt->implementation_name, "handler")) {
+		fprintf(output, "\tvoid (*handle_event)(struct _tagSVGhandlerElement *hdl, GF_DOM_Event *event);\n");
+	}
 	fprintf(output, "} SVG%sElement;\n\n\n", svg_elt->implementation_name);
 }
 
@@ -749,6 +753,8 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			fprintf(output, "\tfree(p->font_family.value);\n");
 		} else if (!strcmp(att->svg_name, "xlink:href")) {
 			fprintf(output, "\tSVG_ResetIRI(&(p->xlink_href));\n");
+		} else if (!strcmp("SVG_ContentType", att->impl_type)) {
+			fprintf(output, "\tif (p->%s) free(p->%s);\n", att->implementation_name, att->implementation_name);
 		}
 	}
 	fprintf(output, "\tgf_sg_parent_reset((GF_Node *) p);\n");

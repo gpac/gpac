@@ -40,10 +40,12 @@ enum {
 	SVG_Boolean_datatype					= 1,
 	
 	SVG_Color_datatype						= 2,
-	SVG_Paint_datatype						= 3, SVG_SVGColor_datatype = SVG_Paint_datatype,
+	SVG_Paint_datatype						= 3,
+	SVG_SVGColor_datatype = SVG_Paint_datatype,
 
 	/* keyword enum types */
-	SVG_FillRule_datatype					= 5, SVG_Clip_datatype = SVG_FillRule_datatype,
+	SVG_FillRule_datatype					= 5,
+	SVG_Clip_datatype = SVG_FillRule_datatype,
 	SVG_StrokeLineJoin_datatype				= 6,
 	SVG_StrokeLineCap_datatype				= 7,
 	SVG_FontStyle_datatype					= 8,
@@ -859,14 +861,11 @@ void SVG_DeleteCoordinates		(GF_List *list);
 void SVG_ResetIRI				(SVG_IRI*iri);
 
 
-/* basic DOM event handling*/
+/* basic DOM event handling
+DO NOT CHANGE THEIR POSITION IN THE LIST, USED TO SPEED UP USER INPUT EVENTS
+*/
 
 enum {
-	SVG_DOM_EVT_UNKNOWN,
-	/*DOM UIEvents*/
-	SVG_DOM_EVT_FOCUSIN,
-	SVG_DOM_EVT_FOCUSOUT, 
-	SVG_DOM_EVT_ACTIVATE, 
 	/*DOM MouseEvents*/
 	SVG_DOM_EVT_CLICK, 
 	SVG_DOM_EVT_MOUSEUP, 
@@ -874,6 +873,14 @@ enum {
 	SVG_DOM_EVT_MOUSEOVER, 
 	SVG_DOM_EVT_MOUSEOUT, 
 	SVG_DOM_EVT_MOUSEMOVE, 
+	/*KEY EVENTS*/
+	SVG_DOM_EVT_KEYUP,
+	SVG_DOM_EVT_KEYDOWN,
+	SVG_DOM_EVT_KEYPRESS,
+	/*DOM UIEvents*/
+	SVG_DOM_EVT_FOCUSIN,
+	SVG_DOM_EVT_FOCUSOUT, 
+	SVG_DOM_EVT_ACTIVATE, 
 	/*SVG (HTML) Events*/
 	SVG_DOM_EVT_LOAD, 
 	SVG_DOM_EVT_UNLOAD,
@@ -886,11 +893,6 @@ enum {
 	SVG_DOM_EVT_END,
 	SVG_DOM_EVT_REPEAT,
 	
-	/*NON-DOM2 EVENTS*/
-	SVG_DOM_EVT_KEYUP,
-	SVG_DOM_EVT_KEYDOWN,
-	SVG_DOM_EVT_KEYPRESS,
-
 	/*DOM MutationEvents - NOT SUPPORTED YET*/
 	SVG_DOM_EVT_TREE_MODIFIED,
 	SVG_DOM_EVT_NODE_INSERTED,
@@ -899,7 +901,13 @@ enum {
 	SVG_DOM_EVT_NODE_REMOVED_DOC,
 	SVG_DOM_EVT_ATTR_MODIFIED,
 	SVG_DOM_EVT_CHAR_DATA_MODIFIED,
+
+	SVG_DOM_EVT_UNKNOWN,
 };
+
+u32 svg_dom_event_by_name(const char *name);
+const char *gf_dom_event_name(u32 type);
+
 
 typedef struct
 {
@@ -911,17 +919,22 @@ typedef struct
 	u8 event_phase;
 	u8 bubbles;
 	u8 cancelable;
+	/*output only - indicates UI events (mouse) have been detected*/
+	u8 has_ui_events;
 	GF_Node *target;
 	GF_Node *currentTarget;
 	Double timestamp;
-	/*UIEvent extension. For mouse extensions, stores button type*/
+	/*UIEvent extension. For mouse extensions, stores button type. For key event, the key code*/
 	u32 detail;
 	/*MouseEvent extension*/
 	s32 screenX, screenY;
 	s32 clientX, clientY;
 	Bool ctrl_key, shift_key, alt_key, meta_key;
 	GF_Node *relatedTarget;
-
+	/*Zoom event*/
+	GF_Rect screen_rect;
+	GF_Point2D prev_translate, new_translate;
+	Fixed prev_scale, new_scale;
 } GF_DOM_Event;
 
 Bool gf_sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event);
