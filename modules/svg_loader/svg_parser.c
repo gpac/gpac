@@ -160,22 +160,29 @@ void svg_characters(void *user_data, const xmlChar *ch, s32 len)
 
 	if (is_svg_text_element(elt))
 	{
-		// TODO verify if the libxml SAX parser gives a brute force string
-		// or a cleaned string
 		SVGtextElement *text = (SVGtextElement *)elt;
-		//if (text->xml_space.string && !strcmp(text->xml_space.string, "preserve")) {
-		//	text->textContent = strdup(ch);
-		//} else 
+		char *tmp = (char *)ch;
+		/* suppress begining spaces */
+		if ((!text->xml_space)||(text->xml_space != XML_SPACE_PRESERVE)) {
+			u32 i = 0;
+			while ((*tmp == ' ' || *tmp=='\n')&& (len>0)) { tmp++; len--; }
+		}
+		if (text->textContent)
 		{
-			if (text->textContent)
-			{
-				baselen = strlen(text->textContent);
-				text->textContent = (char *)realloc(text->textContent,baselen+len+1);
-			}
-			else
-				text->textContent = (char *)malloc(len+1);
-			strncpy(&text->textContent[baselen], ch, len); // TODO vérifier ce qui se passe en fct du jeu de char
-			text->textContent[baselen+len]=0;
+			baselen = strlen(text->textContent);
+			text->textContent = (char *)realloc(text->textContent,baselen+len+1);
+		}
+		else
+			text->textContent = (char *)malloc(len+1);
+		strncpy(&text->textContent[baselen], tmp, len); // TODO verify how to manage text coding type
+		text->textContent[baselen+len]=0;
+
+		/* suppress ending spaces */
+		if ((!text->xml_space)||(text->xml_space != XML_SPACE_PRESERVE)) {
+			tmp = &(text->textContent[baselen+len - 1]);
+			while (*tmp == ' ' || *tmp=='\n') tmp--;
+			tmp++;
+			*tmp = 0;
 		}
 	}
 }
