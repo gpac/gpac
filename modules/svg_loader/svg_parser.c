@@ -156,6 +156,8 @@ void svg_characters(void *user_data, const xmlChar *ch, s32 len)
 {
 	SVGParser	*parser = (SVGParser *)user_data;
 	SVGElement *elt = (SVGElement *)gf_list_get(parser->svg_node_stack,gf_list_count(parser->svg_node_stack)-1);
+	s32		baselen = 0;
+
 	if (is_svg_text_element(elt))
 	{
 		// TODO verify if the libxml SAX parser gives a brute force string
@@ -165,9 +167,15 @@ void svg_characters(void *user_data, const xmlChar *ch, s32 len)
 		//	text->textContent = strdup(ch);
 		//} else 
 		{
-			text->textContent = (char *)malloc(len+1);
-			strncpy(text->textContent, ch, len); // TODO vérifier ce qui se passe en fct du jeu de char
-			text->textContent[len]=0;
+			if (text->textContent)
+			{
+				baselen = strlen(text->textContent);
+				text->textContent = (char *)realloc(text->textContent,baselen+len+1);
+			}
+			else
+				text->textContent = (char *)malloc(len+1);
+			strncpy(&text->textContent[baselen], ch, len); // TODO vérifier ce qui se passe en fct du jeu de char
+			text->textContent[baselen+len]=0;
 		}
 	}
 }
