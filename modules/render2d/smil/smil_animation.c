@@ -295,7 +295,7 @@ void SMIL_AnimWithValues(SMIL_AnimationStack *stack, Double sceneTime)
 
 	if (stack->keyTimes && gf_list_count(*(stack->keyTimes))) {
 		u32 keyTimeIndex;
-		Fixed keyTimeBefore, keyTimeAfter; 
+		Fixed keyTimeBefore, keyTimeAfter=0; 
 		u32 keyTimesCount = gf_list_count(*(stack->keyTimes));
 		for (keyTimeIndex=stack->last_keytime_index;keyTimeIndex<keyTimesCount;keyTimeIndex++) {
 			Fixed *t = gf_list_get(*(stack->keyTimes), keyTimeIndex);
