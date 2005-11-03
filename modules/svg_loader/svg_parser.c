@@ -284,10 +284,14 @@ void svg_start_element(void *user_data, const xmlChar *name, const xmlChar **att
 void svg_end_element(void *user_data, const xmlChar *name)
 {
 	SVGParser	*parser = (SVGParser *)user_data;
+	SVGElement *node;
 	switch(parser->sax_state) {
 	case STARTSVG:
 		break;
 	case SVGCONTENT:
+		node = (SVGElement *)gf_list_get(parser->svg_node_stack,gf_list_count(parser->svg_node_stack)-1);
+		if (is_svg_text_element(node))
+			 gf_node_init((GF_Node *)node);
 		gf_list_rem(parser->svg_node_stack,gf_list_count(parser->svg_node_stack)-1);
 		break;
 	case UNKNOWN:
@@ -960,7 +964,9 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 	}
 
 	/* We need to init the node at the end of the parsing, after parsing all attributes */
-	if (!de && elt) gf_node_init((GF_Node *)elt);
+	/* text nodes must be initialized at the end of the <text> element */
+	if (!de && elt && !is_svg_text_element(elt)) 
+		gf_node_init((GF_Node *)elt);
 	return elt;
 }
 /* SAX end */
