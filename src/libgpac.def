@@ -1084,3 +1084,4 @@ EXPORTS
 	gf_node_listener_count
 	gf_node_listener_get
 	gf_sg_fire_dom_event
+	gf_sg_dom_create_listener

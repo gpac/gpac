@@ -201,12 +201,20 @@ typedef struct {
 	/* Type of timing value*/
 	u8 type;
 	/* in case of syncbase, event, repeat value: this is the pointer to the source of the event */
-	void *element; 
+	GF_Node *element; 
+	/* parent animation*/
+	GF_Node *owner_animation; 
 	/* id of the element before resolution of the pointer to the element */
 	char *element_id; 
 
 	/* the animation event, the type of syncbase, ... */
 	u8 event;
+	/*
+	0: this SMIL time is static
+	1: this SMIL time is the prototype of a dynamic SMIL time (triggered by mouse event, access key)
+	2: this SMIL time is a resolved value of a proto SMIL time, result of element.event and should be deleted whenever 
+	appropriate*/
+	u8 dynamic_type;
 	/* either keyCode when event is accessKey or repeatCount when event is repeat */
 	u32 parameter; 
 
@@ -948,6 +956,10 @@ GF_Err gf_node_listener_add(GF_Node *node, GF_Node *listener);
 GF_Err gf_node_listener_del(GF_Node *node, GF_Node *listener);
 u32 gf_node_listener_count(GF_Node *node);
 GF_Node *gf_node_listener_get(GF_Node *node, u32 i);
+
+/*creates a default listener/handler for the given event on the given node, and return the 
+handler element to allow for handler function override*/
+struct _tagSVGhandlerElement *gf_sg_dom_create_listener(GF_Node *node, u32 eventType);
 
 #ifdef __cplusplus
 }

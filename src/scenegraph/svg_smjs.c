@@ -211,6 +211,13 @@ static JSObject *svg_elt_construct(JSContext *c, GF_Node *n)
 }
 
 
+/*TODO - try to be more precise...*/
+static JSBool dom_imp_has_feature(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	*rval = JS_TRUE;
+	return JS_TRUE;
+}
+
 static JSPropertySpec globalClassProps[] = {
 	{"connected",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	{"parent",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
@@ -220,6 +227,8 @@ static JSFunctionSpec globalClassFuncs[] = {
 	{"createConnection", svg_connection_create, 0},
 	{"gotoLocation", svg_nav_to_location, 1},
     {"alert",           svg_echo,          0},
+	/*technically, this is part of Implementation interface, not global, but let's try not to complicat things too much*/
+	{"hasFeature", dom_imp_has_feature, 2},
 	{0}
 };
 
@@ -337,7 +346,6 @@ static JSBool udom_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 }
 
 
-
 /*svgDocument object*/
 static JSBool doc_element_op_forbidden(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {	
@@ -407,10 +415,12 @@ static JSPropertySpec docClassProps[] = {
 	{"parentNode",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	{"ownerDocument",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	{"textContent",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+	/*DOM implementation*/
+	{"implementation",	5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	/*document interface*/
-	{"documentElement", 5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+	{"documentElement", 6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	/*svgDocument interface*/
-	{"global",			6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+	{"global",			7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	{0}
 };
 
@@ -445,12 +455,14 @@ static JSBool svg_doc_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *
 		/*textContent - TODO*/
 		case 4: 
 			return JS_TRUE;
+		/*dom implementation object is handled through our global object*/
+		case 5: *vp = OBJECT_TO_JSVAL(sg->svg_js->global); return JS_TRUE;
 		/*documentElement*/
-		case 5: 
+		case 6: 
 			if (sg->RootNode) *vp = OBJECT_TO_JSVAL(svg_elt_construct(c, sg->RootNode) );
 			return JS_TRUE;
 		/*global*/
-		case 6: 
+		case 7: 
 			*vp = OBJECT_TO_JSVAL(get_svg_js(c)->global);
 			return JS_TRUE;
 		default: 
@@ -493,7 +505,7 @@ static void svg_elt_finalize(JSContext *c, JSObject *obj)
 	assert(i>=0);
 	/*node is not inserted in graph, destroy it*/
 	if (!n->sgprivate->num_instances) {
-		gf_node_register(n, NULL);
+		n->sgprivate->num_instances = 1;
 		gf_node_unregister(n, NULL);
 	}
 }
@@ -572,6 +584,12 @@ static JSBool svg_elt_remove(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	}
 	svg_node_changed(par, NULL);
 	return JS_TRUE;
+}
+
+/*TODO*/
+static svg_elt_clone(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	return JS_FALSE;
 }
 
 static JSBool svg_elt_get_attr(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -1694,6 +1712,7 @@ static JSFunctionSpec svgClassFuncs[] = {
 	{"appendChild", svg_elt_append, 1},
 	{"insertBefore", svg_elt_insert, 2},
 	{"removeChild", svg_elt_remove, 1},
+	{"cloneNode", svg_elt_clone, 1},
 	/*element interface*/
 	{"getAttributeNS", svg_elt_get_attr, 2},
 	{"setAttributeNS", svg_elt_set_attr, 3},
@@ -1756,7 +1775,7 @@ static JSPropertySpec eventProps[] = {
 	{"type",			0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	{"target",			1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	{"currentTarget",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"eventPhase",		3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+	{"namespaceURI",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	{"bubbles",			4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	{"cancelable",		5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	{"detail",			6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
@@ -1803,15 +1822,19 @@ static JSBool event_prevent_default(JSContext *c, JSObject *obj, uintN argc, jsv
 	evt->event_phase = 4;
 	return JS_TRUE;
 }
-static JSBool event_init(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool event_is_default_prevented(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	return JS_FALSE;
+	GF_DOM_Event *evt = JS_GetPrivate(c, obj);
+	if (!evt) return JS_FALSE;
+	*rval = (evt->event_phase == 4) ? JS_TRUE : JS_FALSE;
+	return JS_TRUE;
 }
 
 static JSFunctionSpec eventFuncs[] = {
 	{"stopPropagation", event_stop_propagation, 0},
 	{"preventDefault", event_prevent_default, 0},
-	{"initEvent", event_init, 3},
+	{"isDefaultPrevented", event_is_default_prevented, 0},
+	/*TODO - all event initXXX methods*/
 	{0},
 };
 
@@ -1830,9 +1853,7 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 		case 1: *vp = OBJECT_TO_JSVAL(svg_elt_construct(c, evt->target) ); return JS_TRUE;
 		/*currentTarget*/
 		case 2: *vp = OBJECT_TO_JSVAL(svg_elt_construct(c, evt->currentTarget) ); return JS_TRUE;
-		/*relatedTarget*/
-		case 12: *vp = OBJECT_TO_JSVAL(svg_elt_construct(c, evt->relatedTarget) ); return JS_TRUE;
-		/*eventPhase*/
+		/*namespaceURI*/
 		case 3: return JS_FALSE;
 		/*bubbles*/
 		case 4: *vp = evt->bubbles ? JS_TRUE : JS_FALSE; return JS_TRUE;
@@ -1848,6 +1869,8 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 		case 10: *vp = INT_TO_JSVAL(evt->clientY); return JS_TRUE;
 		/*button*/
 		case 11: *vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
+		/*relatedTarget*/
+		case 12: *vp = OBJECT_TO_JSVAL(svg_elt_construct(c, evt->relatedTarget) ); return JS_TRUE;
 		/*keyIndentifier, keyChar, charCode: wrap up to same value*/
 		case 14: *vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
 
@@ -1909,6 +1932,10 @@ static JSPropertySpec originalEventProps[] = {
 	{0}
 };
 
+static JSBool svg_connection_set_encoding(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	return JS_FALSE;
+}
 static JSBool svg_connection_create(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	return JS_FALSE;
@@ -1936,6 +1963,7 @@ static JSFunctionSpec connectionFuncs[] = {
 	{"addEventListenerNS", udom_add_listener, 3},
 	{"removeEventListenerNS", udom_remove_listener, 3},
 	/*connection interface*/
+	{"setEncoding", svg_connection_set_encoding, 1},
 	{"connect", svg_connection_connect, 1},
 	{"send", svg_connection_send, 1},
 	{"close", svg_connection_close, 0},
@@ -2514,7 +2542,7 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	JS_SetErrorReporter(scene->svg_js->js_ctx, svg_script_error);
 
 	/*init global object*/
-	uDOM_SETUP_CLASS(globalClass, "global", 0, global_getProperty, JS_PropertyStub, JS_FinalizeStub);
+	uDOM_SETUP_CLASS(globalClass, "Global", 0, global_getProperty, JS_PropertyStub, JS_FinalizeStub);
 	scene->svg_js->global = JS_NewObject(scene->svg_js->js_ctx, &globalClass, 0, 0 );
 	JS_InitStandardClasses(scene->svg_js->js_ctx, scene->svg_js->global);
 	JS_DefineFunctions(scene->svg_js->js_ctx, scene->svg_js->global, globalClassFuncs);

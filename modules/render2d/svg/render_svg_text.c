@@ -152,6 +152,15 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 	memcpy(eff->svg_props, &backup_props, styling_size);
 }
 
+Bool SVG_text_PointOver(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
+{
+	/*this is not documented anywhere but it speeds things up*/
+	if (!check_type || ctx->aspect.filled) return 1;
+	/*FIXME*/
+	return 1;
+}
+
+
 void SVG_DestroyText(GF_Node *node)
 {
 	SVG_TextStack *stack = (SVG_TextStack *) gf_node_get_private(node);
@@ -164,6 +173,7 @@ void SVG_Init_text(Render2D *sr, GF_Node *node)
 	SVG_TextStack *stack;
 	GF_SAFEALLOC(stack, sizeof(SVG_TextStack));
 	stack->draw = drawable_new();
+	stack->draw->IsPointOver = SVG_text_PointOver;
 	gf_sr_traversable_setup(stack->draw, node, sr->compositor);
 	gf_node_set_private(node, stack);
 	gf_node_set_predestroy_function(node, SVG_DestroyText);

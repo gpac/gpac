@@ -56,7 +56,7 @@ void R2D_MapCoordsToAR(Render2D *sr, s32 inX, s32 inY, Fixed *x, Fixed *y)
 	}
 }
 
-static void R2D_SetUserTransform(Render2D *sr, Fixed zoom, Fixed tx, Fixed ty) 
+static void R2D_SetUserTransform(Render2D *sr, Fixed zoom, Fixed tx, Fixed ty, Bool is_resize) 
 {
 	Fixed ratio;
 	Fixed old_tx, old_ty, old_z;
@@ -77,8 +77,8 @@ static void R2D_SetUserTransform(Render2D *sr, Fixed zoom, Fixed tx, Fixed ty)
 		sr->zoom = zoom;
 	}
 	gf_mx2d_init(sr->top_effect->transform);
-	gf_mx2d_add_scale(&sr->top_effect->transform, sr->scale_x, sr->scale_y);
-	gf_mx2d_add_scale(&sr->top_effect->transform, sr->zoom, sr->zoom);
+	gf_mx2d_add_scale(&sr->top_effect->transform, sr->zoom*sr->scale_x, sr->zoom*sr->scale_y);
+//	gf_mx2d_add_scale(&sr->top_effect->transform, sr->zoom, sr->zoom);
 	gf_mx2d_add_translation(&sr->top_effect->transform, sr->trans_x, sr->trans_y);
 	if (sr->rotation) gf_mx2d_add_rotation(&sr->top_effect->transform, 0, 0, sr->rotation);
 	sr->compositor->draw_next_frame = 1;
@@ -91,10 +91,11 @@ static void R2D_SetUserTransform(Render2D *sr, Fixed zoom, Fixed tx, Fixed ty)
 		evt.prev_scale = sr->scale_x*old_z;
 		evt.new_scale = sr->scale_x*sr->zoom;
 
-		if (evt.prev_scale == evt.new_scale) {
+		if (is_resize) {
+			evt.type = SVG_DOM_EVT_RESIZE;
+		} else if (evt.prev_scale == evt.new_scale) {
 			/*cannot get params for scroll events*/
 			evt.type = SVG_DOM_EVT_SCROLL;
-			gf_sg_fire_dom_event(gf_sg_get_root_node(sr->compositor->scene), &evt);
 		} else {
 			evt.screen_rect.x = INT2FIX(sr->out_x);
 			evt.screen_rect.y = INT2FIX(sr->out_y);
@@ -105,8 +106,8 @@ static void R2D_SetUserTransform(Render2D *sr, Fixed zoom, Fixed tx, Fixed ty)
 			evt.new_translate.x = sr->trans_x;
 			evt.new_translate.y = sr->trans_y;
 			evt.type = SVG_DOM_EVT_ZOOM;
-			gf_sg_fire_dom_event(gf_sg_get_root_node(sr->compositor->scene), &evt);
 		}
+		gf_sg_fire_dom_event(gf_sg_get_root_node(sr->compositor->scene), &evt);
 	}
 #endif
 
@@ -117,7 +118,7 @@ void R2D_SetScaling(Render2D *sr, Fixed scaleX, Fixed scaleY)
 {
 	sr->scale_x = scaleX;
 	sr->scale_y = scaleY;
-	R2D_SetUserTransform(sr, sr->zoom, sr->trans_x, sr->trans_y);
+	R2D_SetUserTransform(sr, sr->zoom, sr->trans_x, sr->trans_y, 1);
 }
 
 void R2D_ResetSurfaces(Render2D *sr)
@@ -386,6 +387,9 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 	}
 	else if ((event->event_type>=GF_EVT_CHAR) && (event->event_type<=GF_EVT_KEYUP)) {
 		memset(&evt, 0, sizeof(GF_DOM_Event));
+		evt.ctrl_key = (sr->compositor->key_states & GF_KM_CTRL) ? 1 : 0;
+		evt.shift_key = (sr->compositor->key_states & GF_KM_SHIFT) ? 1 : 0;
+		evt.alt_key = (sr->compositor->key_states & GF_KM_ALT) ? 1 : 0;
 		evt.bubbles = 1;
 		evt.cancelable = 1;
 		if (event->event_type==GF_EVT_CHAR) {
@@ -545,11 +549,11 @@ browser_event:
 				Fixed new_zoom = sr->zoom;
 				if (new_zoom > FIX_ONE) new_zoom += dy/10;
 				else new_zoom += dy/40;
-				R2D_SetUserTransform(sr, new_zoom, sr->trans_x, sr->trans_y);
+				R2D_SetUserTransform(sr, new_zoom, sr->trans_x, sr->trans_y, 0);
 			}
 			/*set pan*/
 			else {
-				R2D_SetUserTransform(sr, sr->zoom, sr->trans_x+dx, sr->trans_y+dy);
+				R2D_SetUserTransform(sr, sr->zoom, sr->trans_x+dx, sr->trans_y+dy, 0);
 			}
 			sr->grab_x = ev->x;
 			sr->grab_y = ev->y;
@@ -558,12 +562,12 @@ browser_event:
 	case GF_EVT_VKEYDOWN:
 		switch (event->key.vk_code) {
 		case GF_VK_HOME:
-			if (!sr->grabbed) R2D_SetUserTransform(sr, FIX_ONE, 0, 0);
+			if (!sr->grabbed) R2D_SetUserTransform(sr, FIX_ONE, 0, 0, 0);
 			break;
 		case GF_VK_LEFT: key_inv = -1;
 		case GF_VK_RIGHT:
 			sr->trans_x += key_inv*key_trans;
-			R2D_SetUserTransform(sr, sr->zoom, sr->trans_x + key_inv*key_trans, sr->trans_y);
+			R2D_SetUserTransform(sr, sr->zoom, sr->trans_x + key_inv*key_trans, sr->trans_y, 0);
 			break;
 		case GF_VK_DOWN: key_inv = -1;
 		case GF_VK_UP:
@@ -571,9 +575,9 @@ browser_event:
 				Fixed new_zoom = sr->zoom;
 				if (new_zoom > FIX_ONE) new_zoom += key_inv*FIX_ONE/10;
 				else new_zoom += key_inv*FIX_ONE/20;
-				R2D_SetUserTransform(sr, new_zoom, sr->trans_x, sr->trans_y);
+				R2D_SetUserTransform(sr, new_zoom, sr->trans_x, sr->trans_y, 0);
 			} else {
-				R2D_SetUserTransform(sr, sr->zoom, sr->trans_x, sr->trans_y + key_inv*key_trans);
+				R2D_SetUserTransform(sr, sr->zoom, sr->trans_x, sr->trans_y + key_inv*key_trans, 0);
 			}
 			break;
 		}
@@ -1135,10 +1139,10 @@ GF_Err R2D_SetOption(GF_VisualRenderer *vr, u32 option, u32 value)
 		return GF_OK;
 	case GF_OPT_RELOAD_CONFIG: R2D_ReloadConfig(vr); return GF_OK;
 	case GF_OPT_ORIGINAL_VIEW: 
-		R2D_SetUserTransform(sr, FIX_ONE, sr->trans_x, sr->trans_y );
+		R2D_SetUserTransform(sr, FIX_ONE, 0, 0, 1);
 		return GF_OK;
 	case GF_OPT_NAVIGATION_TYPE: 
-		R2D_SetUserTransform(sr, FIX_ONE, sr->trans_x, sr->trans_y );
+		R2D_SetUserTransform(sr, FIX_ONE, 0, 0, 1);
 		return GF_OK;
 	case GF_OPT_NAVIGATION:
 		if ((value!=GF_NAVIGATE_NONE) && (value!=GF_NAVIGATE_SLIDE)) return GF_NOT_SUPPORTED;
@@ -1222,11 +1226,11 @@ static Bool R2D_ScriptAction(GF_VisualRenderer *vr, u32 type, GF_Node *n, GF_JSA
 	
 	switch (type) {
 	case GF_JSAPI_OP_GET_SCALE: param->val = sr->zoom; return 1;
-	case GF_JSAPI_OP_SET_SCALE: R2D_SetUserTransform(sr, param->val, sr->trans_x, sr->trans_y); return 1;
+	case GF_JSAPI_OP_SET_SCALE: R2D_SetUserTransform(sr, param->val, sr->trans_x, sr->trans_y, 0); return 1;
 	case GF_JSAPI_OP_GET_ROTATION: param->val = gf_divfix(180*sr->rotation, GF_PI); return 1;
-	case GF_JSAPI_OP_SET_ROTATION: sr->rotation = gf_mulfix(GF_PI, param->val/180); R2D_SetUserTransform(sr, sr->zoom, sr->trans_x, sr->trans_y); return 1;
+	case GF_JSAPI_OP_SET_ROTATION: sr->rotation = gf_mulfix(GF_PI, param->val/180); R2D_SetUserTransform(sr, sr->zoom, sr->trans_x, sr->trans_y, 0); return 1;
 	case GF_JSAPI_OP_GET_TRANSLATE: param->pt.x = sr->trans_x; param->pt.y = sr->trans_y; return 1;
-	case GF_JSAPI_OP_SET_TRANSLATE: R2D_SetUserTransform(sr, sr->zoom, param->pt.x, param->pt.y); return 1;
+	case GF_JSAPI_OP_SET_TRANSLATE: R2D_SetUserTransform(sr, sr->zoom, param->pt.x, param->pt.y, 0); return 1;
 	/*FIXME - better SMIL timelines support*/
 	case GF_JSAPI_OP_GET_TIME: param->time = gf_node_get_scene_time(n); return 1;
 	case GF_JSAPI_OP_SET_TIME: /*seek_to(param->time);*/ return 0;

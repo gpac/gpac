@@ -973,6 +973,7 @@ static Bool SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 			GF_SAFEALLOC(begin, sizeof(SMIL_Time));
 			begin->type = SMIL_TIME_CLOCK;
 			begin->clock = gf_node_get_scene_time((GF_Node *)set);
+			/* TODO insert the sorted value */
 			gf_list_add(set->begin, begin);
 			SMIL_Modified_Animation((GF_Node *)a->xlink_href.target);
 		}
@@ -982,21 +983,17 @@ static Bool SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 
 void SVG_Init_a(Render2D *sr, GF_Node *node)
 {
-	SVGlistenerElement *listener;
 	SVGhandlerElement *handler;
 	gf_node_set_render_function(node, SVG_Render_a);
 
-	/*emulate a listener for onClick event*/
-	listener = (SVGlistenerElement *) SVG_NewNode(gf_node_get_graph(node), TAG_SVG_listener);
-	handler = (SVGhandlerElement *) SVG_NewNode(gf_node_get_graph(node), TAG_SVG_handler);
-	gf_node_register((GF_Node *)listener, (GF_Node *)node);
-	gf_list_add( ((GF_ParentNode *)node)->children, listener);
-	gf_node_register((GF_Node *)handler, (GF_Node *)node);
-	gf_list_add(((GF_ParentNode *)node)->children, handler);
-	handler->ev_event = listener->event = SVG_DOM_EVT_CLICK;
-	listener->handler.target = (SVGElement *) handler;
-	listener->target.target = (SVGElement *)node;
-	gf_node_listener_add((GF_Node *) node, (GF_Node *) listener);
+	/*listener for onClick event*/
+	handler = gf_sg_dom_create_listener(node, SVG_DOM_EVT_CLICK);
+	/*and overwrite handler*/
+	handler->handle_event = SVG_a_HandleEvent;
+	gf_node_set_private((GF_Node *)handler, sr->compositor);
+
+	/*listener for activate event*/
+	handler = gf_sg_dom_create_listener(node, SVG_DOM_EVT_ACTIVATE);
 	/*and overwrite handler*/
 	handler->handle_event = SVG_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);

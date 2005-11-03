@@ -408,19 +408,22 @@ void smil_parse_time(SVGParser *parser, SVGElement *e, SMIL_Time *v, char *d)
 	/* AccessKey Values */
 	else if ((tmp = strstr(d, "accessKey("))) {
 		v->type = SMIL_TIME_EVENT;
-		v->event = 17;
-		tmp+=10;
-		v->parameter = *tmp;
+		sscanf(tmp, "accessKey(%c)", &v->parameter);
 		tmp = strchr(d, ')');
 		tmp++;
 		while (*tmp == ' ') tmp++;
 		if (*tmp != 0) svg_parse_clock_value(tmp, &(v->clock));
+		v->event = SVG_DOM_EVT_KEYPRESS;
+		v->element = parser->graph->RootNode;
+		v->owner_animation = e;
 		return;
 	} 
 
 	else {
 		char token[500];
 		v->type = SMIL_TIME_EVENT;
+		v->owner_animation = e;
+
 		if ((tmp = strchr(d, '+')) || (tmp = strchr(d, '-'))) {
 			len = tmp - d;
 			while (d[len-1] == ' ' && len > 0) len--;

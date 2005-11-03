@@ -163,6 +163,107 @@ Bool gf_sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 	return event->currentTarget ? 1 : 0;
 }
 
+SVGhandlerElement *gf_sg_dom_create_listener(GF_Node *node, u32 eventType)
+{
+	SVGlistenerElement *listener;
+	SVGhandlerElement *handler;
+
+	/*emulate a listener for onClick event*/
+	listener = (SVGlistenerElement *) SVG_NewNode(node->sgprivate->scenegraph, TAG_SVG_listener);
+	handler = (SVGhandlerElement *) SVG_NewNode(node->sgprivate->scenegraph, TAG_SVG_handler);
+	gf_node_register((GF_Node *)listener, node);
+	gf_list_add( ((GF_ParentNode *)node)->children, listener);
+	gf_node_register((GF_Node *)handler, node);
+	gf_list_add(((GF_ParentNode *)node)->children, handler);
+	handler->ev_event = listener->event = eventType;
+	listener->handler.target = (SVGElement *) handler;
+	listener->target.target = (SVGElement *)node;
+	gf_node_listener_add((GF_Node *) node, (GF_Node *) listener);
+	/*set default handler*/
+	handler->handle_event = gf_sg_handle_dom_event;
+	return handler;
+}
+
+
+static void gf_smil_handle_event(GF_Node *anim, GF_List *l, GF_DOM_Event *evt)
+{
+	SMIL_Time *resolved, *proto;
+	u32 i, count = gf_list_count(l);
+	proto = NULL;
+	for (i=0; i<count; i++) {
+		proto = gf_list_get(l, i);
+		/*remove*/
+		if (proto->dynamic_type == 2) {
+			free(proto);
+			gf_list_rem(l, i);
+			i--;
+			count--;
+		} else if ((proto->dynamic_type==1) && (proto->event==evt->type)) {
+			if ((evt->type!=SVG_DOM_EVT_KEYPRESS) || !proto->parameter)
+				break;
+			else if (proto->parameter==evt->detail)
+				break;
+		}
+		proto = NULL;
+	}
+	if (!proto) return;
+	/*solve*/
+	GF_SAFEALLOC(resolved, sizeof(SMIL_Time));
+	resolved->type = SMIL_TIME_CLOCK;
+	resolved->clock = gf_node_get_scene_time(evt->target) + proto->clock;
+	resolved->dynamic_type=2;
+	for (i=0; i<count; i++) {
+		proto = gf_list_get(l, i);
+		if (proto->dynamic_type) continue;
+		if (proto->clock > resolved->clock) break;
+	}
+	gf_list_insert(l, resolved, i);
+	gf_node_changed(anim, NULL);
+}
+
+static void gf_smil_handle_event_begin(SVGhandlerElement *hdl, GF_DOM_Event *evt)
+{
+	GF_FieldInfo info;
+	GF_Node *anim = gf_node_get_private((GF_Node *)hdl);
+	gf_node_get_field_by_name(anim, "begin", &info);
+	gf_smil_handle_event(anim, *(GF_List **)info.far_ptr, evt);
+}
+
+static void gf_smil_handle_event_end(SVGhandlerElement *hdl, GF_DOM_Event *evt)
+{
+	GF_FieldInfo info;
+	GF_Node *anim = gf_node_get_private((GF_Node *)hdl);
+	gf_node_get_field_by_name(anim, "end", &info);
+	gf_smil_handle_event(anim, *(GF_List **)info.far_ptr, evt);
+}
+
+static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
+{
+	SVGhandlerElement *hdl;
+	u32 i, count;
+	count = gf_list_count(l);
+	for (i=0; i<count; i++) {
+		SMIL_Time *t = gf_list_get(l, i);
+		if (!t->element) continue;
+		/*already setup*/
+		if (t->dynamic_type) continue;
+		hdl = gf_sg_dom_create_listener(t->element, t->event);
+		hdl->handle_event = is_begin ? gf_smil_handle_event_begin : gf_smil_handle_event_end;
+		gf_node_set_private((GF_Node *)hdl, node);
+		t->element = NULL;
+		t->dynamic_type = 1;
+	}
+}
+
+static void gf_smil_setup_events(GF_Node *node)
+{
+	GF_FieldInfo info;
+	if (gf_node_get_field_by_name(node, "begin", &info) != GF_OK) return;
+	gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 1);
+	if (gf_node_get_field_by_name(node, "end", &info) != GF_OK) return;
+	gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 0);
+}
+
 Bool gf_sg_svg_node_init(GF_Node *node)
 {
 	GF_DOM_Event evt;
@@ -170,14 +271,27 @@ Bool gf_sg_svg_node_init(GF_Node *node)
 	evt.type = SVG_DOM_EVT_LOAD;
 	gf_sg_fire_dom_event(node, &evt);
 
-	if ((node->sgprivate->tag==TAG_SVG_script) && node->sgprivate->scenegraph->script_load) {
-		node->sgprivate->scenegraph->script_load(node);
+	switch (node->sgprivate->tag) {
+	case TAG_SVG_script:
+		if (node->sgprivate->scenegraph->script_load) 
+			node->sgprivate->scenegraph->script_load(node);
 		return 1;
-	}
-	else if (node->sgprivate->tag==TAG_SVG_handler) {
+	case TAG_SVG_handler:
 		if (node->sgprivate->scenegraph->js_ifce)
 			((SVGhandlerElement *)node)->handle_event = gf_sg_handle_dom_event;
 		return 1;
+	case TAG_SVG_animateMotion:
+	case TAG_SVG_set: 
+	case TAG_SVG_animate: 
+	case TAG_SVG_animateColor: 
+	case TAG_SVG_animateTransform: 
+	case TAG_SVG_audio: 
+	case TAG_SVG_video: 
+		gf_smil_setup_events(node);
+		/*we may get called several times depending on xlink:href resoling for events*/
+		return (node->sgprivate->privateStack || node->sgprivate->RenderNode) ? 1 : 0;
+	default:
+		return 0;
 	}
 	return 0;
 }

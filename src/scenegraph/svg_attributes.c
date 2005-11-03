@@ -504,7 +504,7 @@ void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 		if (!strchr(token, '.')) {
 			/* animation event name only */
 			v->event = svg_dom_event_by_name(token);
-			v->element = e;
+			v->element = (GF_Node *)e;
 		} else {
 			u32 i;
 			for (i = 0; i < len; i++) {
