@@ -685,7 +685,8 @@ u32 get_file_type_by_ext(char *inName)
 	if (strstr(lowername, ".mp4") || strstr(lowername, ".3gp") || strstr(lowername, ".mov") || strstr(lowername, ".3g2")) type = 1;
 	else if (strstr(lowername, ".bt") || strstr(lowername, ".wrl") || strstr(lowername, ".x3dv")) type = 2;
 	else if (strstr(lowername, ".xmt") || strstr(lowername, ".x3d")) type = 3;
-	else if (strstr(lowername, ".swf")) type = 4;
+	else if (strstr(lowername, ".svg")) type = 4;
+	else if (strstr(lowername, ".swf")) type = 5;
 	else type = 0;
 
 	/*try open file in read mode*/

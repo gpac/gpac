@@ -136,6 +136,15 @@ void *gf_list_get(GF_List *ptr, u32 itemNumber)
 	return (void *) entry->data;
 }
 
+void *gf_list_last(GF_List *ptr)
+{
+	ItemSlot *entry;
+	if (!ptr) || !ptr->entryCount) return NULL;
+	entry = ptr->head;
+	while (entry->next) entry = entry->next;
+	return entry->data;
+}
+
 GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 {
 	ItemSlot *tmp, *tmp2;
@@ -181,6 +190,10 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 	ptr->foundEntryNumber = 0;
 
 	return GF_OK;
+}
+GF_Err gf_list_rem_last(GF_List *ptr)
+{
+	return gf_list_rem(ptr, ptr->entryCount-1);
 }
 
 GF_Err gf_list_insert(GF_List *ptr, void *item, u32 position)
@@ -321,6 +334,12 @@ void *gf_list_get(GF_List *ptr, u32 itemNumber)
 	return (void *) entry->data;
 }
 
+void *gf_list_last(GF_List *ptr)
+{
+	if(!ptr || !ptr->tail) return NULL;
+	return ptr->tail->data;
+}
+
 GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 {
 	ItemSlot *tmp;
@@ -378,6 +397,10 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 	free(tmp);
 	ptr->entryCount--;
 	return GF_OK;
+}
+GF_Err gf_list_rem_last(GF_List *ptr)
+{
+	return gf_list_rem(ptr, ptr->entryCount-1);
 }
 
 GF_Err gf_list_insert(GF_List *ptr, void *item, u32 position)
@@ -476,6 +499,12 @@ void *gf_list_get(GF_List *ptr, u32 itemNumber)
 	if(!ptr || (itemNumber >= ptr->entryCount)) return NULL;
 	return ptr->slots[itemNumber];
 }
+void *gf_list_last(GF_List *ptr)
+{
+	if(!ptr || !ptr->entryCount) return NULL;
+	return ptr->slots[ptr->entryCount-1];
+}
+
 
 /*WARNING: itemNumber is from 0 to entryCount - 1*/
 GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
@@ -485,6 +514,14 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 	i = ptr->entryCount - itemNumber - 1;
 	if (i) memmove(&ptr->slots[itemNumber], & ptr->slots[itemNumber +1], sizeof(void *)*i);
 	ptr->slots[ptr->entryCount-1] = NULL;
+	ptr->entryCount -= 1;
+	ptr->slots = realloc(ptr->slots, sizeof(void*)*ptr->entryCount);
+	return GF_OK;
+}
+
+GF_Err gf_list_rem_last(GF_List *ptr)
+{
+	if ( !ptr || !ptr->slots || !ptr->entryCount) return GF_BAD_PARAM;
 	ptr->entryCount -= 1;
 	ptr->slots = realloc(ptr->slots, sizeof(void*)*ptr->entryCount);
 	return GF_OK;
@@ -582,6 +619,12 @@ void *gf_list_get(GF_List *ptr, u32 itemNumber)
 	return ptr->slots[itemNumber];
 }
 
+void *gf_list_last(GF_List *ptr)
+{
+	if(!ptr || !ptr->entryCount) return NULL;
+	return ptr->slots[ptr->entryCount-1];
+}
+
 
 /*WARNING: itemNumber is from 0 to entryCount - 1*/
 GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
@@ -595,6 +638,14 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 	return GF_OK;
 }
 
+GF_Err gf_list_rem_last(GF_List *ptr)
+{
+	u32 i;
+	if ( !ptr || !ptr->slots || !ptr->entryCount) return GF_BAD_PARAM;
+	ptr->slots[ptr->entryCount-1] = NULL;
+	ptr->entryCount -= 1;
+	return GF_OK;
+}
 
 /*WARNING: position is from 0 to entryCount - 1*/
 GF_Err gf_list_insert(GF_List *ptr, void *item, u32 position)

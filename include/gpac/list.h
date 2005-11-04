@@ -130,6 +130,21 @@ s32 gf_list_del_item(GF_List *ptr, void *item);
  *	\note It is the caller responsability to destroy the content of the list if needed
  */
 void gf_list_reset(GF_List *ptr);
+/*!
+ *	\brief gets last item
+ *
+ *	Gets last item o fthe list 
+ *	\param ptr target list object
+ */
+void *gf_list_last(GF_List *ptr);
+/*!
+ *	\brief removes last item
+ *
+ *	Removes the last item of the list
+ *	\param ptr target list object
+ *	\note It is the caller responsability to destroy the content of the list if needed
+ */
+GF_Err gf_list_rem_last(GF_List *ptr);
 
 
 /*! @} */

@@ -30,11 +30,19 @@ extern "C" {
 #endif
 
 #include <gpac/tools.h>
+#include <gpac/list.h>
 
 /*since 0.2.2, we use zlib for xmt/x3d reading to handle gz files*/
 #include <zlib.h>
 
 #define XML_LINE_SIZE	8000
+
+typedef struct
+{
+	char *name;
+	char *name_space;
+	char *value;
+} XML_SAXAttribute;
 
 typedef struct 
 {
@@ -45,7 +53,7 @@ typedef struct
 	/*current line parsed (mainly used for error reports)*/
 	u32 line;
 	/*0: UTF-8, 1: UTF-16 BE, 2: UTF-16 LE. String input is always converted back to utf8*/
-	u32 unicode_type;
+	s32 unicode_type;
 	/*line buffer - needs refinement, cannot handle attribute values with size over XMT_LINE_SIZE (except string
 	where space is used as a line-break...)*/
 	char line_buffer[XML_LINE_SIZE];
@@ -66,6 +74,19 @@ typedef struct
 	/*if set notifies current progress*/
 	void (*OnProgress)(void *cbck, u32 done, u32 tot);
 	void *cbk;
+
+	/*SAX callbacks*/
+	void (*sax_xml_node_start)(void *sax_cbck, const char *node_name, const char *name_space);
+	void (*sax_xml_node_end)(void *sax_cbck, const char *node_name, const char *name_space);
+	void (*sax_xml_attributes_parsed)(void *sax_cbck, GF_List *attributes);
+	void *sax_cbck;
+
+	u32 sax_state;
+	u32 init_state;
+	GF_List *attributes;
+	GF_List *nodes;
+	GF_List *entities;
+	char att_sep;
 } XMLParser;
 
 /*inits parser with given local file (handles gzip) - checks UTF8/16*/

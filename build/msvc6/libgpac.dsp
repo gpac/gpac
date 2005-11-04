@@ -621,6 +621,10 @@ SOURCE=..\..\src\scene_manager\loader_qt.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\scene_manager\loader_svg.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\scene_manager\loader_xmta.c
 # End Source File
 # Begin Source File

@@ -250,6 +250,11 @@ GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load);
 void gf_sm_load_done_MP4(GF_SceneLoader *load);
 GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load);
 
+GF_Err gf_sm_load_init_SVG(GF_SceneLoader *load);
+GF_Err gf_sm_load_done_SVG(GF_SceneLoader *load);
+GF_Err gf_sm_load_run_SVG(GF_SceneLoader *load);
+
+
 #ifndef GPAC_READ_ONLY
 
 GF_Err gf_sm_load_init_SWF(GF_SceneLoader *load);
@@ -346,6 +351,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 			else if (strstr(szExt, "x3d")) load->type = GF_SM_LOAD_X3D;
 			else if (strstr(szExt, "swf")) load->type = GF_SM_LOAD_SWF;
 			else if (strstr(szExt, "mov")) load->type = GF_SM_LOAD_QT;
+			else if (strstr(szExt, "svg")) load->type = GF_SM_LOAD_SVG;
 		}
 	}
 	if (!load->type) return GF_NOT_SUPPORTED;
@@ -360,6 +366,10 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
 		return gf_sm_load_init_XMT(load);
+#ifndef GPAC_DISABLE_SVG
+	case GF_SM_LOAD_SVG:
+		return gf_sm_load_init_SVG(load);
+#endif
 #ifndef GPAC_READ_ONLY
 	case GF_SM_LOAD_SWF: 
 		return gf_sm_load_init_SWF(load);
@@ -384,6 +394,11 @@ void gf_sm_load_done(GF_SceneLoader *load)
 	case GF_SM_LOAD_X3D:
 		gf_sm_load_done_XMT(load); 
 		break;
+#ifndef GPAC_DISABLE_SVG
+	case GF_SM_LOAD_SVG:
+		gf_sm_load_done_SVG(load);
+		break;
+#endif
 #ifndef GPAC_READ_ONLY
 	case GF_SM_LOAD_SWF: 
 		gf_sm_load_done_SWF(load); 
@@ -408,6 +423,11 @@ GF_Err gf_sm_load_run(GF_SceneLoader *load)
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
 		return gf_sm_load_run_XMT(load);
+#ifndef GPAC_DISABLE_SVG
+	case GF_SM_LOAD_SVG:
+		return gf_sm_load_run_SVG(load);
+#endif
+
 #ifndef GPAC_READ_ONLY
 	case GF_SM_LOAD_SWF:
 		return gf_sm_load_run_SWF(load);
