@@ -460,8 +460,19 @@ void svg_parse_dom_attributes(SVGParser *parser,
 					/*SVG 1.1 events: create a listener and a handler on the fly, register them with current node
 					and add listener struct*/
 					if (evtType != SVG_DOM_EVT_UNKNOWN) {
-						SVGhandlerElement *handler = (SVGhandlerElement *) gf_sg_dom_create_listener((GF_Node *)elt, evtType);
+						SVGlistenerElement *listener;
+						SVGhandlerElement *handler;
+						listener = (SVGlistenerElement *) SVG_NewNode(parser->graph, TAG_SVG_listener);
+						handler = (SVGhandlerElement *) SVG_NewNode(parser->graph, TAG_SVG_handler);
+						gf_node_register((GF_Node *)listener, (GF_Node *)elt);
+						gf_list_add(elt->children, listener);
+						gf_node_register((GF_Node *)handler, (GF_Node *)elt);
+						gf_list_add(elt->children, handler);
+						handler->ev_event = listener->event = evtType;
+						listener->handler.target = (SVGElement *) handler;
+						listener->target.target = elt;
 						handler->textContent = strdup(attributes->children->content);
+						gf_node_listener_add((GF_Node *) elt, (GF_Node *) listener);
 						gf_node_init((GF_Node *)handler);
 					} else {
 						fprintf(stdout, "SVG Warning: Unknown attribute %s on element %s\n", attributes->name, gf_node_get_class_name((GF_Node *)elt));
@@ -901,10 +912,25 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 			if (!gf_node_get_field_by_name((GF_Node *)elt, (char *)attrs[attribute_index], &info)) {
 				svg_parse_attribute(parser, elt, &info, (xmlChar *)attrs[attribute_index+1], 0, 0);
 			} else {
+				/*SVG 1.1 events: create a listener and a handler on the fly, register them with current node
+				and add listener struct*/
 				u32 evtType = svg_get_animation_event_by_name((char *) (char *)attrs[attribute_index] + 2);
 				if (evtType != SVG_DOM_EVT_UNKNOWN) {
-					SVGhandlerElement *handler = (SVGhandlerElement *) gf_sg_dom_create_listener((GF_Node *)elt, evtType);
-					handler->textContent = strdup((char *)attrs[attribute_index]);
+					SVGlistenerElement *listener;
+					SVGhandlerElement *handler;
+					listener = (SVGlistenerElement *) SVG_NewNode(parser->graph, TAG_SVG_listener);
+					handler = (SVGhandlerElement *) SVG_NewNode(parser->graph, TAG_SVG_handler);
+					gf_node_register((GF_Node *)listener, (GF_Node *)elt);
+					gf_list_add(elt->children, listener);
+					gf_node_register((GF_Node *)handler, (GF_Node *)elt);
+					gf_list_add(elt->children, handler);
+					handler->ev_event = listener->event = evtType;
+					listener->handler.target = (SVGElement *) handler;
+					listener->target.target = elt;
+					handler->textContent = strdup((char *)attrs[attribute_index+1]);
+
+					gf_node_listener_add((GF_Node *) elt, (GF_Node *) listener);
+					gf_node_init((GF_Node *)handler);
 				} else {
 					fprintf(stdout, "SVG Warning: Unknown attribute %s on element %s\n", (char *)attrs[attribute_index], gf_node_get_class_name((GF_Node *)elt));
 				}
@@ -1024,6 +1050,17 @@ GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 	n = svg_parse_dom_element(parser, root, NULL);
 	if (n) svg_init_root_element(parser, (SVGsvgElement *)n);
 
+	/* Resolve time elements */
+	while (gf_list_count(parser->unresolved_timing_elements) > 0) {
+		SMIL_Time *v = gf_list_get(parser->unresolved_timing_elements, 0);
+		gf_list_rem(parser->unresolved_timing_elements, 0);
+		v->element = gf_sg_find_node_by_name(parser->graph, v->element_id);
+		if (v->element) {
+			free(v->element_id);
+			v->element_id = NULL;
+		}
+	}
+
 	/* Resolve hrefs */
 	while (gf_list_count(parser->unresolved_hrefs) > 0) {
 		href_instance *hi = gf_list_get(parser->unresolved_hrefs, 0);
@@ -1042,18 +1079,6 @@ GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 		gf_list_rem(parser->defered_animation_elements, 0);
 		svg_parse_dom_defered_animations(parser, de->node, de->animation_elt, de->parent);
 		free(de);
-	}
-
-	/* Resolve time elements */
-	while (gf_list_count(parser->unresolved_timing_elements) > 0) {
-		SMIL_Time *v = gf_list_get(parser->unresolved_timing_elements, 0);
-		gf_list_rem(parser->unresolved_timing_elements, 0);
-		v->element = gf_sg_find_node_by_name(parser->graph, v->element_id);
-		if (v->element) {
-			free(v->element_id);
-			v->element_id = NULL;
-			gf_node_init(v->owner_animation);
-		}
 	}
 
 	xmlFreeDoc(doc);
