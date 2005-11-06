@@ -586,7 +586,13 @@ void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVGEle
 
 	svg_parse_dom_children(parser, node, elt);
 	/* We need to init the node at the end of the parsing, after parsing all attributes */
-	if (elt) gf_node_init((GF_Node *)elt);
+	if (elt) {
+		GF_DOM_Event evt;
+		gf_node_init((GF_Node *)elt);
+		memset(&evt, 0, sizeof(GF_DOM_Event));
+		evt.type = SVG_DOM_EVT_LOAD;
+		gf_sg_fire_dom_event(node, &evt);
+	}
 }
 
 
@@ -640,7 +646,13 @@ SVGElement *svg_parse_dom_element(SVGParser *parser, xmlNodePtr node, SVGElement
 
 	svg_parse_dom_children(parser, node, elt);
 	/* We need to init the node at the end of the parsing, after parsing all attributes */
-	if (elt) gf_node_init((GF_Node *)elt);
+	if (elt) {
+		GF_DOM_Event evt;
+		gf_node_init((GF_Node *)elt);
+		memset(&evt, 0, sizeof(GF_DOM_Event));
+		evt.type = SVG_DOM_EVT_LOAD;
+		gf_sg_fire_dom_event(node, &evt);
+	}
 	return elt;
 }
 /* DOM end */
@@ -949,7 +961,6 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 		previous_de = list_dichotomic_search(parser->defered_animation_elements, new_id, NULL);
 		if (previous_de) { /* defered element 'previous_de' can be resolved by the new elt */
 			svg_parse_sax_defered_animation(parser, previous_de->animation_elt, *previous_de);
-			gf_node_init((GF_Node *)previous_de->animation_elt);
 		}
 		
 		/* defered references for anchor */

@@ -867,7 +867,8 @@ void SMIL_DeleteTimes			(GF_List *list);
 void SVG_DeletePoints			(GF_List *list);
 void SVG_DeleteCoordinates		(GF_List *list);
 void SVG_ResetIRI				(SVG_IRI*iri);
-
+/*for keyTimes, keyPoints and keySplines*/
+void SMIL_DeleteKeyTypes(GF_List *l);
 
 /* basic DOM event handling
 DO NOT CHANGE THEIR POSITION IN THE LIST, USED TO SPEED UP USER INPUT EVENTS

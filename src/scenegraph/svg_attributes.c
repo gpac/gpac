@@ -510,11 +510,9 @@ void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 			for (i = 0; i < len; i++) {
 				if (token[i] == '\\' && (i+1 < len) && token[i+1] == '.') i++;
 				else if (token[i] == '.') {
-					/* 0 -> i: element_name
-					   i -> len - 1: animation event name */
-					GF_SAFEALLOC(v->element_id, i+1);
-					memcpy(v->element_id, token, i);
-//					gf_list_add(parser->unresolved_timing_elements, v);
+					token[i] = 0;
+					v->element_id = strdup(token);
+					token[i] = '.';
 					v->event = svg_dom_event_by_name(token+i+1);
 				}
 			}
@@ -1620,111 +1618,15 @@ void svg_parse_transformlist(GF_List *list, char *value_string)
 
 void svg_parse_iri(SVGElement *elt, SVG_IRI *iri, char *attribute_content)
 {
-	if (strstr(attribute_content, "data:")) {
-#ifdef USE_GPAC_CACHE_MECHANISM
-		char cache_name[MAX_URI_LENGTH];
-		char mimeType[100], file_extension[4] = "";
-		char encoding[100];
-		char *mimeType_end = NULL, *encoding_end = NULL;
-		char *data;
-		u32 data_size;
-		char tmp[MAX_URI_LENGTH];
-
-		{ // initializes the path of the file to be cached
-			u32 i, last_sep;
-			const char *cache_dir = parser->temp_dir;
-			if (!cache_dir || !strlen(cache_dir) ) return;
-
-			if (cache_dir[strlen(cache_dir)-1] != GF_PATH_SEPARATOR) {
-				sprintf(cache_name, "%s%c", cache_dir, GF_PATH_SEPARATOR);
-			} else {
-				strcpy(cache_name, cache_dir);
-			}
-			strcpy(tmp, parser->file_name);
-			last_sep = 0;
-			for (i=0; i<strlen(tmp); i++) {
-				if (tmp[i] == GF_PATH_SEPARATOR) tmp[i] = '_';
-				else if (tmp[i] == '.') {
-					tmp[i] = '_';
-					last_sep = i;
-				} else if (tmp[i] == ':') {
-					tmp[i] = '_';
-					last_sep = i;
-				}
-			}
-			if (last_sep) tmp[last_sep] = '.';
-			strcat(cache_name, tmp);
-		}
-
-		mimeType_end = strchr(attribute_content+5, ';');
-		if (mimeType_end) {
-			memcpy(&mimeType, &(attribute_content[5]), (mimeType_end - attribute_content) - 5);
-			mimeType[(mimeType_end - attribute_content) - 5] = 0;
-		}
-		encoding_end = strchr(mimeType_end, ',');
-		if (encoding_end) {
-			memcpy(&encoding, mimeType_end+1, (encoding_end - mimeType_end)-1);
-			encoding[(encoding_end - mimeType_end)-1] = 0;
-		}
-
-		GF_SAFEALLOC(data, strlen(attribute_content)*2)
-		if (!strcmp(encoding, "base64")) {
-			/* decoding is done in place */
-			u32 input_len = strlen(encoding_end+1);
-			u32 output_len = strlen(attribute_content)*2;
-			data_size = gf_base64_decode(encoding_end+1, input_len, data, output_len);
-		} else {
-			// TODO: Handle other encoding schemes
-		}
-
-		/* determine the name of the file based on the mime type 
-		   TODO: handle other mime types */
-		if (!strcmp(mimeType,"image/jpeg") || !strcmp(mimeType, "image/jpg") ) {
-			strcpy(file_extension,"jpg");
-		} else if (!strcmp(mimeType,"image/png")) {
-			strcpy(file_extension,"png");
-		}
-		if (file_extension[0]) {
-			FILE *cache_image;
-			if (parser->cacheID<10) {
-				sprintf(tmp, "image0%i.%s", parser->cacheID, file_extension);
-			} else {
-				sprintf(tmp, "image%2i.%s", parser->cacheID, file_extension);
-			}
-			parser->cacheID++;
-			strcat(cache_name, tmp);
-			cache_image = fopen(cache_name, "wb");
-			fwrite(data, data_size, 1, cache_image);
-			fclose(cache_image);
-		} 
-		free(data);
-
-		/* Changes the type of the URI and point it to the cache file */
-		iri->type = SVG_IRI_IRI;
-		iri->iri = strdup(cache_name);
-#endif
+	/* TODO: Handle xpointer(id()) syntax */
+	if (attribute_content[0] == '#') {
+		iri->type = SVG_IRI_ELEMENTID;
+		iri->target = (SVGElement *)gf_sg_find_node_by_name(elt->sgprivate->scenegraph, &(attribute_content[1]));
+		iri->iri_owner = elt;
+		/*unresolved tagrgets are currently handled at parser level, could be done at scenegraph level...*/
 	} else {
-		/* TODO: Handle xpointer(id()) syntax */
-		if (attribute_content[0] == '#') {
-			iri->type = SVG_IRI_ELEMENTID;
-			iri->target = (SVGElement *)gf_sg_find_node_by_name(elt->sgprivate->scenegraph, &(attribute_content[1]));
-			iri->iri_owner = elt;
-			if (!iri->target) {
-/*				href_instance *hi = malloc(sizeof(href_instance));
-				hi->elt = elt;
-				hi->iri = iri;
-				iri->iri = strdup(attribute_content);
-				gf_list_add(parser->unresolved_hrefs, hi);
-*/
-			} else {
-				/* reference is resolved we can register it 
-				   the target_element is referenced by the current element */
-				//gf_node_register((GF_Node *)iri->target, (GF_Node *)elt);
-			}
-		} else {
-			iri->type = SVG_IRI_IRI;
-			iri->iri = strdup(attribute_content);
-		}
+		iri->type = SVG_IRI_IRI;
+		iri->iri = strdup(attribute_content);
 	}
 }
 

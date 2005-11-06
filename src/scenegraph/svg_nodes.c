@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Cyril Concolato 2004-2005
- *					All rights reserved
+ *			Authors: Cyril Concolato - Jean Le Feuvre
+ *    Copyright (c)2004-200X ENST - All rights reserved
  *
  *  This file is part of GPAC / SVG Scene Graph sub-project
  *
@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Sat Oct 29 10:27:35 2005
+	DO NOT MOFIFY - File generated on GMT Sun Nov 06 09:12:30 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -472,6 +472,8 @@ static void SVG_animate_Del(GF_Node *node)
 	SMIL_DeleteTimes(p->end);
 	SMIL_DeleteAnimateValue(&(p->to));
 	SMIL_DeleteAnimateValues(&(p->values));
+	SMIL_DeleteKeyTypes(p->keyTimes);
+	SMIL_DeleteKeyTypes(p->keySplines);
 	SMIL_DeleteAnimateValue(&(p->from));
 	SMIL_DeleteAnimateValue(&(p->by));
 	gf_sg_parent_reset((GF_Node *) p);
@@ -686,6 +688,8 @@ static void SVG_animateColor_Del(GF_Node *node)
 	SMIL_DeleteTimes(p->end);
 	SMIL_DeleteAnimateValue(&(p->to));
 	SMIL_DeleteAnimateValues(&(p->values));
+	SMIL_DeleteKeyTypes(p->keyTimes);
+	SMIL_DeleteKeyTypes(p->keySplines);
 	SMIL_DeleteAnimateValue(&(p->from));
 	SMIL_DeleteAnimateValue(&(p->by));
 	gf_sg_parent_reset((GF_Node *) p);
@@ -900,9 +904,12 @@ static void SVG_animateMotion_Del(GF_Node *node)
 	SMIL_DeleteTimes(p->end);
 	SMIL_DeleteAnimateValue(&(p->to));
 	SMIL_DeleteAnimateValues(&(p->values));
+	SMIL_DeleteKeyTypes(p->keyTimes);
+	SMIL_DeleteKeyTypes(p->keySplines);
 	SMIL_DeleteAnimateValue(&(p->from));
 	SMIL_DeleteAnimateValue(&(p->by));
 	SVG_DeletePath(&(p->path));
+	SMIL_DeleteKeyTypes(p->keyPoints);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -1134,6 +1141,8 @@ static void SVG_animateTransform_Del(GF_Node *node)
 	SMIL_DeleteTimes(p->end);
 	SMIL_DeleteAnimateValue(&(p->to));
 	SMIL_DeleteAnimateValues(&(p->values));
+	SMIL_DeleteKeyTypes(p->keyTimes);
+	SMIL_DeleteKeyTypes(p->keySplines);
 	SMIL_DeleteAnimateValue(&(p->from));
 	SMIL_DeleteAnimateValue(&(p->by));
 	gf_sg_parent_reset((GF_Node *) p);

@@ -135,4 +135,15 @@ void SMIL_DeleteAnimateValue(SMIL_AnimateValue *anim_value)
 	anim_value->value = NULL;
 }
 
+
+void SMIL_DeleteKeyTypes(GF_List *l)
+{
+	while (gf_list_count(l)) {
+		Fixed *t = gf_list_get(l, 0);
+		gf_list_rem(l, 0);
+		free(t);
+	}
+	gf_list_del(l);
+}
+
 #endif /*GPAC_DISABLE_SVG*/

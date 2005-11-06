@@ -272,6 +272,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 			priv->load.OnMessage = CTXLoad_OnMessage;
 			priv->load.OnProgress = CTXLoad_OnProgress;
 			priv->load.flags = GF_SM_LOAD_FOR_PLAYBACK;
+			priv->load.localPath = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
 			priv->load.swf_import_flags = GF_SM_SWF_STATIC_DICT | GF_SM_SWF_QUAD_CURVE | GF_SM_SWF_SCALABLE_LINE;
 			e = gf_sm_load_init(&priv->load);
 			if (!e) {
@@ -316,6 +317,9 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 			if (max_dur) {
 				priv->inline_scene->root_od->duration = max_dur;
 				gf_is_set_duration(priv->inline_scene);
+			}
+			if (!gf_list_count(priv->ctx->streams)) {
+				gf_is_attach_to_renderer(priv->inline_scene);
 			}
 		}
 	}
@@ -539,6 +543,7 @@ const char *CTXLoad_GetName(struct _basedecoder *plug)
 	case GF_SM_LOAD_XMTA: return "XMT-A Parser";
 	case GF_SM_LOAD_X3D: return "X3D (XML Syntax) Parser";
 	case GF_SM_LOAD_SWF: return "Flash (SWF) Emulator";
+	case GF_SM_LOAD_SVG: return "SVG Loader";
 	case GF_SM_LOAD_MP4: return "MP4 Memory Loader";
 	default: return "Undetermined";
 	}
@@ -547,6 +552,8 @@ const char *CTXLoad_GetName(struct _basedecoder *plug)
 Bool CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
 	if ((StreamType==GF_STREAM_PRIVATE_SCENE) && (ObjectType==1)) return 1;
+	/*SVG*/
+	if ((StreamType==GF_STREAM_PRIVATE_SCENE) && (ObjectType==2)) return 1;
 	return 0;
 }
 

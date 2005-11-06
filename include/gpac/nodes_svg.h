@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Cyril Concolato 2004-2005
- *					All rights reserved
+ *			Authors: Cyril Concolato - Jean Le Feuvre
+ *    Copyright (c)2004-200X ENST - All rights reserved
  *
  *  This file is part of GPAC / SVG Scene Graph sub-project
  *
@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Sat Oct 29 10:27:35 2005
+	DO NOT MOFIFY - File generated on GMT Sun Nov 06 09:12:30 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */

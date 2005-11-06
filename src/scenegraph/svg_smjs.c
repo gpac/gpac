@@ -515,7 +515,14 @@ static void svg_elt_add(JSContext *c, GF_Node *par, GF_Node *n, s32 pos)
 	Bool do_init = n->sgprivate->num_instances ? 0 : 1;
 	gf_list_insert( ((GF_ParentNode *)par)->children, n, (u32) pos);
 	gf_node_register(n, par);
-	if (do_init && !n->sgprivate->PreDestroyNode && !n->sgprivate->RenderNode) gf_node_init(n);
+	if (do_init && !n->sgprivate->PreDestroyNode && !n->sgprivate->RenderNode) {
+		GF_DOM_Event evt;
+		gf_node_init(n);
+
+		memset(&evt, 0, sizeof(GF_DOM_Event));
+		evt.type = SVG_DOM_EVT_LOAD;
+		gf_sg_fire_dom_event(n, &evt);
+	}
 	svg_node_changed(par, NULL);
 }
 
@@ -2668,8 +2675,10 @@ void JSScript_LoadSVG(GF_Node *node)
 		svg_init_js_api(node->sgprivate->scenegraph);
 	}
 	svg_js = node->sgprivate->scenegraph->svg_js;
-	svg_js->nb_scripts++;
-	node->sgprivate->PreDestroyNode = svg_script_predestroy;
+	if (!node->sgprivate->PreDestroyNode ) {
+		svg_js->nb_scripts++;
+		node->sgprivate->PreDestroyNode = svg_script_predestroy;
+	}
 
 	ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, script->textContent, strlen(script->textContent), 0, 0, &rval);
 	if (ret==JS_FALSE) {

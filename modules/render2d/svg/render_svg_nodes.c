@@ -255,26 +255,32 @@ void SVGApplyProperties(SVGStylingProperties *render_svg_props, SVGStylingProper
 /* Set the viewport of the renderer based on the element that contains a viewport 
    TODO: change the SVGsvgElement into an element that has a viewport (more generic)
 */
-static void SVGSetViewport(RenderEffect2D *eff, SVGsvgElement *svg) 
+static void SVGSetViewport(RenderEffect2D *eff, SVGsvgElement *svg, Bool is_root) 
 {
 	GF_Matrix2D mat;
 	Fixed real_width, real_height;
-	u32 scene_width, scene_height;
 
 	gf_mx2d_init(mat);
-	scene_width = eff->surface->render->compositor->scene_width;
-	scene_height = eff->surface->render->compositor->scene_height;
 
-	if (svg->width.type == SVG_LENGTH_NUMBER) 
-		real_width = INT2FIX(scene_width);
-	else
-		/*u32 * fixed / u32*/
-		real_width = scene_width*svg->width.number/100;
+	if (is_root) {
+		u32 scene_width = eff->surface->render->compositor->scene_width;
+		u32 scene_height = eff->surface->render->compositor->scene_height;
 
-	if (svg->height.type == SVG_LENGTH_NUMBER)
-		real_height = INT2FIX(scene_height);
-	else 
-		real_height = scene_height*svg->height.number/100;
+		if (svg->width.type == SVG_LENGTH_NUMBER) 
+			real_width = INT2FIX(scene_width);
+		else
+			/*u32 * fixed / u32*/
+			real_width = scene_width*svg->width.number/100;
+
+		if (svg->height.type == SVG_LENGTH_NUMBER)
+			real_height = INT2FIX(scene_height);
+		else 
+			real_height = scene_height*svg->height.number/100;
+	} else {
+		real_width = real_height = 0;
+		if (svg->width.type == SVG_LENGTH_NUMBER) real_width = svg->width.number;
+		if (svg->height.type == SVG_LENGTH_NUMBER) real_height = svg->height.number;
+	}
 	
 	if (!real_width || !real_height) return;
 
@@ -292,13 +298,15 @@ static void SVGSetViewport(RenderEffect2D *eff, SVGsvgElement *svg)
 				vp_h = gf_mulfix(svg->viewBox.height, scale);
 			}
 		} else {
-			if (real_width<real_height) {
+			if (gf_divfix(real_width, svg->viewBox.width) < gf_divfix(real_height, svg->viewBox.height)) {
 				scale = gf_divfix(real_height, svg->viewBox.height);
+				vp_w = gf_mulfix(svg->viewBox.width, scale);
+				vp_h = real_height;
 			} else {
 				scale = gf_divfix(real_width, svg->viewBox.width);
+				vp_w = real_width;
+				vp_h = gf_mulfix(svg->viewBox.height, scale);
 			}
-			vp_w = real_width;
-			vp_h = real_height;
 		}
 		if (svg->preserveAspectRatio.align==SVG_PRESERVEASPECTRATIO_NONE) {
 			mat.m[0] = gf_divfix(real_width, svg->viewBox.width);
@@ -316,44 +324,49 @@ static void SVGSetViewport(RenderEffect2D *eff, SVGsvgElement *svg)
 			case SVG_PRESERVEASPECTRATIO_XMINYMIN:
 				break;
 			case SVG_PRESERVEASPECTRATIO_XMIDYMIN:
-				dx = ( INT2FIX(scene_width) - vp_w) / 2; 
+				dx = ( real_width - vp_w) / 2; 
 				break;
 			case SVG_PRESERVEASPECTRATIO_XMAXYMIN:
-				dx = INT2FIX(scene_width) - vp_w; 
+				dx = real_width - vp_w; 
 				break;
 			case SVG_PRESERVEASPECTRATIO_XMINYMID:
-				dy = ( INT2FIX(scene_height) - vp_h) / 2; 
+				dy = ( real_height - vp_h) / 2; 
 				break;
 			case SVG_PRESERVEASPECTRATIO_XMIDYMID:
-				dx = ( INT2FIX(scene_width) - vp_w) / 2; 
-				dy = ( INT2FIX(scene_height) - vp_h) / 2; 
+				dx = ( real_width  - vp_w) / 2; 
+				dy = ( real_height - vp_h) / 2; 
 				break;
 			case SVG_PRESERVEASPECTRATIO_XMAXYMID:
-				dx = INT2FIX(scene_width) - vp_w; 
-				dy = ( INT2FIX(scene_height) - vp_h) / 2; 
+				dx = real_width  - vp_w; 
+				dy = ( real_height - vp_h) / 2; 
 				break;
 			case SVG_PRESERVEASPECTRATIO_XMINYMAX:
-				dy = INT2FIX(scene_height) - vp_h; 
+				dy = real_height - vp_h; 
 				break;
 			case SVG_PRESERVEASPECTRATIO_XMIDYMAX:
-				dx = ( INT2FIX(scene_width) - vp_w) / 2; 
-				dy = INT2FIX(scene_height) - vp_h; 
+				dx = (real_width - vp_w) / 2; 
+				dy = real_height - vp_h; 
 				break;
 			case SVG_PRESERVEASPECTRATIO_XMAXYMAX:
-				dx = INT2FIX(scene_width) - vp_w; 
-				dy = INT2FIX(scene_height) - vp_h; 
+				dx = real_width  - vp_w; 
+				dy = real_height - vp_h; 
 				break;
 			}
 			mat.m[2] += dx;
 			mat.m[5] += dy;
-
 			/*we need a clipper*/
 			if (svg->preserveAspectRatio.meetOrSlice==SVG_MEETORSLICE_SLICE) {
 				GF_Rect rc;
 				rc.width = real_width;
 				rc.height = real_height;
-				rc.x = dx;
-				rc.y = dy + real_height;
+				if (!is_root) {
+					rc.x = 0;
+					rc.y = real_height;
+					gf_mx2d_apply_rect(&eff->transform, &rc);
+				} else {
+					rc.x = dx;
+					rc.y = dy + real_height;
+				}
 				eff->surface->top_clipper = gf_rect_pixelize(&rc);
 			}
 		}
@@ -373,6 +386,8 @@ static void SVGSetViewport(RenderEffect2D *eff, SVGsvgElement *svg)
 static void SVG_Render_svg(GF_Node *node, void *rs)
 {
 	GF_Matrix2D backup_matrix;
+	GF_IRect top_clip;
+	Bool is_root_svg = 0;
 	SVGStylingProperties backup_props;
 	u32 styling_size = sizeof(SVGStylingProperties);
 	SVGsvgElement *svg = (SVGsvgElement *)node;
@@ -382,6 +397,7 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 		before 1), initializes the styling properties and the geometric transformation */
 	if (!eff->svg_props) {
 		eff->svg_props = (SVGStylingProperties *) gf_node_get_private(node);
+		is_root_svg = 1;
 		/*To allow pan navigation*/
 		//eff->transform.m[5] *= -1;
 	}
@@ -397,8 +413,9 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 	}
 
 	/* 2) */
+	top_clip = eff->surface->top_clipper;
 	gf_mx2d_copy(backup_matrix, eff->transform);
-	SVGSetViewport(eff, svg);
+	SVGSetViewport(eff, svg, is_root_svg);
 
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
 		svg_get_nodes_bounds(node, svg->children, eff);
@@ -417,6 +434,7 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 
 	/* 5) */
 	memcpy(eff->svg_props, &backup_props, styling_size);
+	eff->surface->top_clipper = top_clip;
 }
 
 void SVG_Destroy_svg(GF_Node *node)

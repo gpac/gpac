@@ -37,13 +37,6 @@ extern "C" {
 
 #define XML_LINE_SIZE	8000
 
-typedef struct
-{
-	char *name;
-	char *name_space;
-	char *value;
-} XML_SAXAttribute;
-
 typedef struct 
 {
 	/*gz input file*/
@@ -63,7 +56,7 @@ typedef struct
 	char *value_buffer;
 	u32 att_buf_size;
 	/*line size and current position*/
-	s32 line_size, current_pos;
+	u32 line_size, current_pos;
 	/*absolute line start position in file (needed for hard seeking in xmt-a)*/
 	s32 line_start_pos;
 	/*text parsing mode (text with markers), avoids getting rid of \n & co*/
@@ -74,19 +67,6 @@ typedef struct
 	/*if set notifies current progress*/
 	void (*OnProgress)(void *cbck, u32 done, u32 tot);
 	void *cbk;
-
-	/*SAX callbacks*/
-	void (*sax_xml_node_start)(void *sax_cbck, const char *node_name, const char *name_space);
-	void (*sax_xml_node_end)(void *sax_cbck, const char *node_name, const char *name_space);
-	void (*sax_xml_attributes_parsed)(void *sax_cbck, GF_List *attributes);
-	void *sax_cbck;
-
-	u32 sax_state;
-	u32 init_state;
-	GF_List *attributes;
-	GF_List *nodes;
-	GF_List *entities;
-	char att_sep;
 } XMLParser;
 
 /*inits parser with given local file (handles gzip) - checks UTF8/16*/
@@ -119,6 +99,50 @@ Text data is stored in attribute value buffer*/
 Bool xml_load_text(XMLParser *parser);
 /*fetches CSS-attribute {name : Val} in the same way as attribute (eg returns Name and stores Val in attribute value buffer)*/
 char *xml_get_css(XMLParser *parser);
+
+
+/*
+	SAX XML Parser
+*/
+typedef struct
+{
+	/*name or namespace:name*/
+	char *name;
+	/*value*/
+	char *value;
+} GF_SAXAttribute;
+
+typedef struct _tag_sax_parser GF_SAXParser;
+typedef	void (*gf_xml_sax_node_start)(void *sax_cbck, const char *node_name, const char *name_space, GF_List *attributes);
+typedef	void (*gf_xml_sax_node_end)(void *sax_cbck, const char *node_name, const char *name_space);
+typedef	void (*gf_xml_sax_text_content)(void *sax_cbck, const char *content, Bool is_cdata);
+
+/*creates new sax parser - all callbacks are optionals*/
+GF_SAXParser *gf_xml_sax_new(gf_xml_sax_node_start on_node_start, 
+							 gf_xml_sax_node_end on_node_end,
+							 gf_xml_sax_text_content on_text_content,
+							 void *cbck);
+
+/*destroys sax parser */
+void gf_xml_sax_del(GF_SAXParser *parser);
+/*inits parser with BOM. BOM must be 4 char string with 0 terminaison. If BOM is NULL, parsing will
+assume UTF-8 compatible coding*/
+GF_Err gf_xml_sax_init(GF_SAXParser *parser, char *BOM);
+/*parses input string data. string data MUST be terminated by the 0 character (eg 2 0s for UTF-16)*/
+GF_Err gf_xml_sax_parse(GF_SAXParser *parser, void *string_bytes);
+/*suspends/resume sax parsing. 
+	When resuming on file, the function will run until suspended/end of file/error
+	When resuming on steram, the function will simply return
+*/
+GF_Err gf_xml_sax_suspend(GF_SAXParser *parser, Bool do_suspend);
+/*parses file (potentially gzipped). OnProgress is optional, used to get progress callback*/
+GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, void (*OnProgress)(void *cbck, u32 done, u32 tot));
+/*get current line number*/
+u32 gf_xml_sax_get_line(GF_SAXParser *parser);
+/*get file size - may be inaccurate if gzipped (only compressed file size is known)*/
+u32 gf_xml_sax_get_file_size(GF_SAXParser *parser);
+/*get current file position*/
+u32 gf_xml_sax_get_file_pos(GF_SAXParser *parser);
 
 #ifdef __cplusplus
 }

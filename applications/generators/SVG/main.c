@@ -43,7 +43,7 @@
 #define RNGA_PREFIX "rnga"
 #define SVGA_PREFIX "svg"
 
-#define COPYRIGHT "/*\n *			GPAC - Multimedia Framework C SDK\n *\n *			Copyright (c) Cyril Concolato 2004-2005\n *					All rights reserved\n *\n *  This file is part of GPAC / SVG Scene Graph sub-project\n *\n *  GPAC is free software; you can redistribute it and/or modify\n *  it under the terms of the GNU Lesser General Public License as published by\n *  the Free Software Foundation; either version 2, or (at your option)\n *  any later version.\n *\n *  GPAC is distributed in the hope that it will be useful,\n *  but WITHOUT ANY WARRANTY; without even the implied warranty of\n *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n *  GNU Lesser General Public License for more details.	\n *\n *  You should have received a copy of the GNU Lesser General Public\n *  License along with this library; see the file COPYING.  If not, write to\n *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.\n *\n */\n"
+#define COPYRIGHT "/*\n *			GPAC - Multimedia Framework C SDK\n *\n *			Authors: Cyril Concolato - Jean Le Feuvre\n *    Copyright (c)2004-200X ENST - All rights reserved\n *\n *  This file is part of GPAC / SVG Scene Graph sub-project\n *\n *  GPAC is free software; you can redistribute it and/or modify\n *  it under the terms of the GNU Lesser General Public License as published by\n *  the Free Software Foundation; either version 2, or (at your option)\n *  any later version.\n *\n *  GPAC is distributed in the hope that it will be useful,\n *  but WITHOUT ANY WARRANTY; without even the implied warranty of\n *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n *  GNU Lesser General Public License for more details.	\n *\n *  You should have received a copy of the GNU Lesser General Public\n *  License along with this library; see the file COPYING.  If not, write to\n *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.\n *\n */\n"
 
 static GF_List *styling_SVGProperty_names;
 
@@ -721,6 +721,14 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			fprintf(output, "\tSMIL_DeleteAnimateValues(&(p->%s));\n", att->implementation_name);
 		} else if (!strcmp("SMIL_AnimateValue", att->impl_type)) {
 			fprintf(output, "\tSMIL_DeleteAnimateValue(&(p->%s));\n", att->implementation_name);
+		} else if (!strcmp("SMIL_AnimateValue", att->impl_type)) {
+			fprintf(output, "\tfree(p->%s.value);\n",att->implementation_name);
+		} else if (!strcmp("SMIL_AnimateValues", att->impl_type)) {
+			fprintf(output, "\tDeleteChain(p->%s.values);\n",att->implementation_name);
+		} else if (!strcmp("SMIL_Times", att->impl_type)) {
+			fprintf(output, "\tSMIL_DeleteTimes(p->%s);\n", att->implementation_name);
+		} else if (!strcmp("SMIL_KeyTimes", att->impl_type) || !strcmp("SMIL_KeyPoints", att->impl_type) || !strcmp("SMIL_KeySplines", att->impl_type) ) {
+			fprintf(output, "\tSMIL_DeleteKeyTypes(p->%s);\n", att->implementation_name);
 		} else if (!strcmp("SVG_Coordinates", att->impl_type)) {
 			fprintf(output, "\tSVG_DeleteCoordinates(p->%s);\n", att->implementation_name);
 		} else if (!strcmp("SVG_Points", att->impl_type)) {
@@ -729,10 +737,6 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			fprintf(output, "\tSVG_DeletePath(&(p->path));\n");
 		} else if (!strcmp("SVG_PathData", att->impl_type)) {
 			fprintf(output, "\tSVG_DeletePath(&(p->d));\n");
-		} else if (!strcmp("SMIL_AnimateValue", att->impl_type)) {
-			fprintf(output, "\tfree(p->%s.value);\n",att->implementation_name);
-		} else if (!strcmp("SMIL_AnimateValues", att->impl_type)) {
-			fprintf(output, "\tDeleteChain(p->%s.values);\n",att->implementation_name);
 		} else if (!att->attr_or_prop && !strcmp(att->implementation_name, "fill")) {
 			fprintf(output, "\tfree(p->fill.color);\n");
 		} else if (!strcmp(att->svg_name, "stroke")) {
@@ -745,8 +749,6 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			fprintf(output, "\tfree(p->stop_color.color);\n");
 		} else if (!strcmp(att->svg_name, "transform")) {
 			fprintf(output, "\tSVG_DeleteTransformList(p->transform);\n");
-		} else if (!strcmp("SMIL_Times", att->impl_type)) {
-			fprintf(output, "\tSMIL_DeleteTimes(p->%s);\n", att->implementation_name);
 		} else if (!strcmp(att->svg_name, "textContent")) {
 			fprintf(output, "\tfree(p->textContent);\n");				
 		} else if (!strcmp(att->svg_name, "font-family")) {

@@ -237,17 +237,20 @@ static void gf_smil_handle_event_end(SVGhandlerElement *hdl, GF_DOM_Event *evt)
 	gf_smil_handle_event(anim, *(GF_List **)info.far_ptr, evt);
 }
 
-static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
+static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin, SVG_IRI *target)
 {
 	SVGhandlerElement *hdl;
 	u32 i, count;
 	count = gf_list_count(l);
 	for (i=0; i<count; i++) {
+		GF_Node *to;
 		SMIL_Time *t = gf_list_get(l, i);
 		if (!t->element) continue;
 		/*already setup*/
 		if (t->dynamic_type) continue;
-		hdl = gf_sg_dom_create_listener(t->element, t->event);
+		to = t->element;
+		if (target && target->target) to = (GF_Node *)target->target;
+		hdl = gf_sg_dom_create_listener(to, t->event);
 		hdl->handle_event = is_begin ? gf_smil_handle_event_begin : gf_smil_handle_event_end;
 		gf_node_set_private((GF_Node *)hdl, node);
 		t->element = NULL;
@@ -257,20 +260,16 @@ static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
 
 static void gf_smil_setup_events(GF_Node *node)
 {
-	GF_FieldInfo info;
+	GF_FieldInfo info, iri_info;
+	if (gf_node_get_field_by_name(node, "xlink:href", &iri_info) != GF_OK) return;
 	if (gf_node_get_field_by_name(node, "begin", &info) != GF_OK) return;
-	gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 1);
+	gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 1, iri_info.far_ptr);
 	if (gf_node_get_field_by_name(node, "end", &info) != GF_OK) return;
-	gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 0);
+	gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 0, iri_info.far_ptr);
 }
 
 Bool gf_sg_svg_node_init(GF_Node *node)
 {
-	GF_DOM_Event evt;
-	memset(&evt, 0, sizeof(GF_DOM_Event));
-	evt.type = SVG_DOM_EVT_LOAD;
-	gf_sg_fire_dom_event(node, &evt);
-
 	switch (node->sgprivate->tag) {
 	case TAG_SVG_script:
 		if (node->sgprivate->scenegraph->script_load) 
