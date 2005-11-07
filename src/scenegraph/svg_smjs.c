@@ -1342,11 +1342,11 @@ static JSBool svg_get_bbox(JSContext *c, JSObject *obj, uintN argc, jsval *argv,
 		JSObject *rO = JS_NewObject(c, &rectClass, 0, 0);
 		rectCI *rc = malloc(sizeof(rectCI));
 		rc->sg = NULL;
-		rc->x = par.bbox.min_edge.x;
+		rc->x = FIX2FLT(par.bbox.min_edge.x);
 		/*BBox is in 3D coord system style*/
-		rc->y = par.bbox.min_edge.y;
-		rc->w = par.bbox.max_edge.x - par.bbox.min_edge.x;
-		rc->h = par.bbox.max_edge.y - par.bbox.min_edge.y;
+		rc->y = FIX2FLT(par.bbox.min_edge.y);
+		rc->w = FIX2FLT(par.bbox.max_edge.x - par.bbox.min_edge.x);
+		rc->h = FIX2FLT(par.bbox.max_edge.y - par.bbox.min_edge.y);
 		JS_SetPrivate(c, rO, rc);
 		*rval = OBJECT_TO_JSVAL(rO);
 		return JS_TRUE;

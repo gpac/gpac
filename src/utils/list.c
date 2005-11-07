@@ -139,7 +139,7 @@ void *gf_list_get(GF_List *ptr, u32 itemNumber)
 void *gf_list_last(GF_List *ptr)
 {
 	ItemSlot *entry;
-	if (!ptr) || !ptr->entryCount) return NULL;
+	if (!ptr || !ptr->entryCount) return NULL;
 	entry = ptr->head;
 	while (entry->next) entry = entry->next;
 	return entry->data;

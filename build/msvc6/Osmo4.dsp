@@ -177,6 +177,9 @@ SOURCE=..\..\applications\osmo4_w32\Sliders.h
 SOURCE=..\..\applications\osmo4_w32\StdAfx.h
 # End Source File
 # End Group
+# Begin Group "res"
+
+# PROP Default_Filter ""
 # Begin Source File
 
 SOURCE=..\..\applications\osmo4_w32\res\error.ico
@@ -209,5 +212,6 @@ SOURCE=..\..\applications\osmo4_w32\res\playlist.bmp
 
 SOURCE=..\..\applications\osmo4_w32\res\stop.ico
 # End Source File
+# End Group
 # End Target
 # End Project

@@ -1549,6 +1549,10 @@ SOURCE=..\..\include\gpac\internal\scenegraph_dev.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\scenegraph\svg_attributes.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\scenegraph\svg_nodes.c
 DEP_CPP_SVG_N=\
 	"..\..\extra_lib\include\js\jsapi.h"\
@@ -1576,6 +1580,10 @@ NODEP_CPP_SVG_N=\
 	"..\..\extra_lib\include\js\jsstddef.h"\
 	"..\..\extra_lib\include\js\platform.h"\
 	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\scenegraph\svg_smjs.c
 # End Source File
 # Begin Source File
 
@@ -2161,6 +2169,10 @@ DEP_CPP_LOADER_=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\scene_manager\loader_svg.c
 # End Source File
 # Begin Source File
 

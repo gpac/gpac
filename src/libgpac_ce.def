@@ -778,6 +778,7 @@ EXPORTS
 	gf_sm_load_init
 	gf_sm_load_done
 	gf_sm_load_run
+	gf_sm_load_string
 	gf_sm_import_bifs_subtitle
 ;	gf_sm_dump
 ;	gf_sm_encode_to_file
@@ -1087,5 +1088,5 @@ EXPORTS
 	gf_node_listener_count
 	gf_node_listener_get
 	gf_sg_fire_dom_event
-
+	gf_sg_dom_create_listener
 
