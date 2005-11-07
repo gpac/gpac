@@ -73,11 +73,11 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 		/*full doc parsing*/
 		if (!svgin->sax_max_duration && svgin->file_size) {
 			/*init step*/
-			if (svgin->loader.fileName) {
+			if (!svgin->loader.fileName) {
+				svgin->loader.fileName = svgin->file_name;
 				/*not done yet*/
 				if (!svg_check_download(svgin)) return GF_OK;
 				e = gf_sm_load_init(&svgin->loader);
-				svgin->loader.fileName = NULL;
 				gf_is_attach_to_renderer(svgin->inline_scene);
 				return e;
 			} else {
@@ -95,6 +95,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 				if (!svgin->src) return GF_URL_ERROR;
 				svgin->file_pos = 0;
 				do_attach = 1;
+				svgin->loader.fileName = svgin->file_name;
 			}
 			entry_time = gf_sys_clock();
 			fseek(svgin->src, svgin->file_pos, SEEK_SET);
@@ -164,8 +165,6 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 		gf_bs_del(bs);
 		GF_SAFEALLOC(svgin->file_name, sizeof(char)*(1 + decSpecInfoSize - sizeof(u32)) );
 		memcpy(svgin->file_name, decSpecInfo + sizeof(u32), decSpecInfoSize - sizeof(u32) );
-
-		svgin->loader.fileName = svgin->file_name;
 	}
 	svgin->oti = objectTypeIndication;
 	if (!DependsOnES_ID) svgin->base_es_id = ES_ID;

@@ -105,6 +105,7 @@ void PrintGeneralUsage()
 			" -lang [tkID=]LAN:    sets track language. LAN is the ISO 639-2 code (eng, und)\n"
 			" -delay tkID=TIME:    sets track start delay in ms.\n"
 			" -par tkID=PAR:       sets visual track pixel aspect ratio (PAR=N:D or \"none\")\n"
+			" -name tkID=NAME:     sets track handler name\n"
 			" -split time_sec      splits in files of time_sec max duration\n"
 			"                       * Note: this removes all MPEG-4 Systems media\n"
 			" -splits filesize     splits in files of max filesize kB.\n"
@@ -162,6 +163,7 @@ void PrintImportUsage()
 			" \":lang=LAN\":         sets imported media language code\n"
 			" \":delay=delay_ms\":   sets imported media initial delay in ms\n"
 			" \":par=PAR\":          sets visual pixel aspect ratio (PAR=Num:Den)\n"
+			" \":name=NAME\":        sets track handler name\n"
 			"\n"
 			" -add file:           add file tracks to (new) output file\n"
 			" -cat file:           concatenates file samples to (new) output file\n"
@@ -810,6 +812,7 @@ typedef struct
 	2: set track delay
 	3: set track KMS URI
 	4: set visual track PAR if possible
+	5: set track handler name
 	*/
 	u32 act_type;
 	/*track ID*/
@@ -817,6 +820,7 @@ typedef struct
 	char lang[4];
 	u32 delay_ms;
 	const char *kms;
+	const char *hdl_name;
 	s32 par_num, par_den;
 } TrackAction;
 
@@ -1182,6 +1186,28 @@ int main(int argc, char **argv)
 			tracks[nb_track_act].delay_ms = atoi(ext+1);
 			ext[0] = 0;
 			tracks[nb_track_act].trackID = atoi(szTK);
+			open_edit = 1;
+			nb_track_act++;
+			i++;
+		}
+		else if (!stricmp(arg, "-name")) {
+			char szTK[20], *ext;
+			CHECK_NEXT_ARG
+			if (nb_track_act>=MAX_CUMUL_OPS) {
+				fprintf(stdout, "Sorry - no more than %d track operations allowed\n", MAX_CUMUL_OPS);
+				return 1;
+			}
+			strcpy(szTK, argv[i+1]);
+			ext = strchr(szTK, '=');
+			if (!ext) {
+				fprintf(stdout, "Bad format for track delay - expecting ID=DLAY got %s\n", argv[i+1]);
+				return 1;
+			}
+			tracks[nb_track_act].act_type = 5;
+			tracks[nb_track_act].hdl_name = ext+1;
+			ext[0] = 0;
+			tracks[nb_track_act].trackID = atoi(szTK);
+			ext[0] = '=';
 			open_edit = 1;
 			nb_track_act++;
 			i++;
@@ -1826,6 +1852,10 @@ int main(int argc, char **argv)
 			break;
 		case 4:
 			e = gf_media_change_par(file, track, tka->par_num, tka->par_den);
+			needSave = 1;
+			break;
+		case 5:
+			e = gf_isom_set_handler_name(file, track, tka->hdl_name);
 			needSave = 1;
 			break;
 		}

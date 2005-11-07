@@ -3195,9 +3195,8 @@ u32 gf_isom_get_track_priority_in_group(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak) return GF_BAD_PARAM;
+	if (!trak) return 0;
 	return trak->Media->information->sampleTable->trackPriority;
-	return GF_OK;
 }
 
 
@@ -3208,6 +3207,48 @@ GF_Err gf_isom_make_interleave(GF_ISOFile *file, Double TimeInSec)
 	e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_INTERLEAVED);
 	if (e) return e;
 	return gf_isom_set_interleave_time(file, (u32) (TimeInSec * gf_isom_get_timescale(file)));
+}
+
+GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const char *nameUTF8)
+{
+	GF_TrackBox *trak;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	if (trak->Media->handler->nameUTF8) free(trak->Media->handler->nameUTF8);
+
+
+	if (nameUTF8) {
+		u32 i, j, len;
+		u8 szOrig[1024], szLine[1024];
+		strcpy(szOrig, nameUTF8);
+		j=0;
+		len = strlen(szOrig);
+		for (i=0; i<len; i++) {
+			if (szOrig[i] & 0x80) {
+				/*non UTF8 (likely some win-CP)*/
+				if ( (szOrig[i+1] & 0xc0) != 0x80) {
+					szLine[j] = 0xc0 | ( (szOrig[i] >> 6) & 0x3 );
+					j++;
+					szOrig[i] &= 0xbf;
+				}
+				/*we only handle UTF8 chars on 2 bytes (eg first byte is 0b110xxxxx)*/
+				else if ( (szOrig[i] & 0xe0) == 0xc0) {
+					szLine[j] = szOrig[i];
+					i++;
+					j++;
+				}
+			}
+			szLine[j] = szOrig[i];
+			j++;
+		}
+		szLine[j] = 0;
+		trak->Media->handler->nameUTF8 = strdup(szLine);
+		trak->Media->handler->nameLength = strlen(szLine);
+	} else {
+		trak->Media->handler->nameUTF8 = NULL;
+		trak->Media->handler->nameLength = 0;
+	}
+	return GF_OK;
 }
 
 #endif	//GPAC_READ_ONLY

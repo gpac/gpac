@@ -765,6 +765,12 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	msub_type = gf_isom_get_mpeg4_subtype(file, trackNum, 1);
 	if (!msub_type) msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
 	fprintf(stdout, "Sub Type \"%s\" - %d samples\n", gf_4cc_to_str(msub_type), gf_isom_get_sample_count(file, trackNum));
+	
+	if (full_dump) {
+		char *handler_name;
+		gf_isom_get_handler_name(file, trackNum, &handler_name);
+		fprintf(stdout, "Handler name: %s\n", handler_name);
+	}
 
 	gf_isom_get_audio_info(file, trackNum, 1, &sr, &nb_ch, &bps);
 	

@@ -20,7 +20,7 @@ LicenseData "..\..\..\COPYING"
 DirText "This will install the GPAC Framework on your computer. Choose a directory"
 
 InstType Normal
-InstType "Full (With SVG and misc plugins)"
+InstType "Full (With LibXML+SVG and misc plugins)"
 
 
 ComponentText "This will install the GPAC Framework on your computer. Select which optional things you want installed."
@@ -163,6 +163,11 @@ Section "Real-Time Streaming (RTP/RTSP/RTP) Support"
   File "..\gm_rtp_in.dll"
 SectionEnd
 
+Section "Progressive SVG Support"
+  SectionIn 1 2
+  File "..\gm_svg_in.dll"
+SectionEnd
+
 Section "GDI+ Rasterizer"
   SectionIn 1 2
   call InsertGDIPLUS
@@ -183,7 +188,6 @@ Section "Windows MME Audio Output"
   File "..\gm_wav_out.dll"
 SectionEnd
 
-
 ;
 ;	Full install mode
 ;
@@ -197,7 +201,7 @@ Section "Xiph Ogg Reader - Vorbis and Theora Decoders"
   File "..\gm_ogg_xiph.dll"
 SectionEnd
 
-Section "SVG Loader"
+Section "SVG LibXML Loader"
   SectionIn 2
   File "..\gm_svg_loader.dll"
   File ".\libxml2.dll"

@@ -430,7 +430,15 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 							szFile[data_size] = GF_PATH_SEPARATOR;
 							szFile[data_size+1] = 0;
 						}
-						strcat(szFile, parser->load->fileName);
+						if (parser->load->fileName) {
+							sep = strrchr(parser->load->fileName, GF_PATH_SEPARATOR);
+#ifdef WIN32
+							if (!sep) sep = strrchr(parser->load->fileName, '/');
+#endif
+							if (!sep) sep = (char *) parser->load->fileName;
+							else sep += 1;
+							strcat(szFile, sep);
+						}
 						sep = strrchr(szFile, '.');
 						if (sep) sep[0] = 0;
 						sprintf(buf, "_img_%08X", (u32) iri);

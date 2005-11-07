@@ -126,6 +126,7 @@ void R2D_ResetSurfaces(Render2D *sr)
 	u32 i;
 	for (i=0; i<gf_list_count(sr->surfaces_2D); i++) {
 		VisualSurface2D *surf = gf_list_get(sr->surfaces_2D, i);
+		surf->num_contexts = 0;
 		while (gf_list_count(surf->prev_nodes_drawn)) gf_list_rem(surf->prev_nodes_drawn, 0);
 		surf->to_redraw.count = 0;
 		VS2D_ResetSensors(surf);

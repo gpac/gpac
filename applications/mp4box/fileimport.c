@@ -98,7 +98,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	char szLan[4];
 	GF_Err e;
 	GF_MediaImporter import;
-	char *ext, szName[1000];
+	char *ext, szName[1000], *handler_name;
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
 
@@ -116,6 +116,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	ext = strchr(szName, ':');
 	if (ext && ext[1]=='\\') ext = strchr(szName+2, ':');
 
+	handler_name = NULL;
 	while (ext) {
 		char *ext2 = strchr(ext+1, ':');
 		if (ext2) ext2[0] = 0;
@@ -140,6 +141,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				if (ext2) ext2[0] = 0;
 				sscanf(ext+5, "%d:%d", &par_n, &par_d);
 			}
+		}
+		else if (!strnicmp(ext+1, "name=", 5)) {
+			handler_name = strdup(ext+6);
 		}
 
 		if (ext2) ext2[0] = ':';
@@ -172,7 +176,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	import.in_name = szName;
 	import.flags = GF_IMPORT_PROBE_ONLY;
 	e = gf_media_import(&import);
-	if (e) return e;
+	if (e) goto exit;
 
 	import.dest = dest;
 	import.video_fps = force_fps;
@@ -199,6 +203,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if ((par_n>=0) && (par_d>=0)) {
 				e = gf_media_change_par(import.dest, i+1, par_n, par_d);
 			}
+			if (handler_name) gf_isom_set_handler_name(import.dest, i+1, handler_name);
 		}
 	} else {
 
@@ -218,7 +223,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				e = gf_media_import(&import);
 			}
 			else continue;
-			if (e) return e;
+			if (e) goto exit;
 
 			timescale = gf_isom_get_timescale(dest);
 			track = gf_isom_get_track_by_id(import.dest, import.final_trackID);
@@ -231,13 +236,17 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				gf_isom_append_edit_segment(import.dest, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
 			}
 			if ((import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL) && (par_n>=-1) && (par_d>=-1)) {
-				e = gf_media_change_par(import.dest, i+1, par_n, par_d);
+				e = gf_media_change_par(import.dest, track, par_n, par_d);
 			}
+			if (handler_name) gf_isom_set_handler_name(import.dest, track, handler_name);
 		}
 		if (track_id) fprintf(stdout, "WARNING: Track ID %d not found in file\n", track_id);
 		else if (do_video) fprintf(stdout, "WARNING: Video track not found\n");
 		else if (do_audio) fprintf(stdout, "WARNING: Audio track not found\n");
 	}
+
+exit:
+	if (handler_name) free(handler_name);
 	return e;
 }
 

@@ -491,6 +491,7 @@ EXPORTS
 	gf_isom_remove_edit_segments
 	gf_isom_remove_edit_segment
 	gf_isom_set_media_language
+	gf_isom_set_handler_name
 	gf_isom_add_user_data
 	gf_isom_remove_user_data
 	gf_isom_remove_user_data_item
