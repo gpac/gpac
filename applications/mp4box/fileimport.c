@@ -1030,7 +1030,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, char *logFile, char *mediaSource, u
 	/*since we're encoding we must get MPEG4 nodes only*/
 	load.flags = GF_SM_LOAD_MPEG4_STRICT;
 	e = gf_sm_load_init(&load);
-	if (e) {
+	if (e<0) {
 		fprintf(stdout, "Cannot load context - %s\n", gf_error_to_string(e));
 		goto err_exit;
 	}

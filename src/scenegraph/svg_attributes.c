@@ -424,7 +424,8 @@ void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 {
 	u32 len;
 	char *tmp;
-	
+	v->owner_animation = (GF_Node *)e;
+
 	/* Offset Values */
 	if ((d[0] >= '0' && d[0] <= '9') || d[0] == '+' || d[0] == '-'){
 		v->type = SMIL_TIME_CLOCK;
@@ -478,7 +479,8 @@ void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 	/* AccessKey Values */
 	else if ((tmp = strstr(d, "accessKey("))) {
 		v->type = SMIL_TIME_EVENT;
-		v->event = 17;
+		v->event = SVG_DOM_EVT_KEYPRESS;
+		v->element = e->sgprivate->scenegraph->RootNode;
 		tmp+=10;
 		v->parameter = *tmp;
 		tmp = strchr(d, ')');

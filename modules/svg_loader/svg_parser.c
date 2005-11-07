@@ -651,7 +651,7 @@ SVGElement *svg_parse_dom_element(SVGParser *parser, xmlNodePtr node, SVGElement
 		gf_node_init((GF_Node *)elt);
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.type = SVG_DOM_EVT_LOAD;
-		gf_sg_fire_dom_event(node, &evt);
+		gf_sg_fire_dom_event(elt, &evt);
 	}
 	return elt;
 }

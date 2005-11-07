@@ -260,7 +260,7 @@ GF_Err gf_beng_encode_from_string(GF_BifsEngine *codec, char *auString, GF_Err (
 	codec->load.flags = GF_SM_LOAD_MPEG4_STRICT | GF_SM_LOAD_CONTEXT_READY;
 	codec->load.type = GF_SM_LOAD_BT;
 
-	e = gf_sm_load_from_string(&codec->load, auString);
+	e = gf_sm_load_string(&codec->load, auString);
 	if (e) goto exit;
 
 	e = gf_sm_live_encode_bifs_au(codec, codec->currentAUCount, AUCallback); 

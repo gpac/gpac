@@ -757,12 +757,17 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 		u8 c = parser->line_buffer[parser->current_pos+i];
 		if (strchr(skip_chars, c)) {
 			if (c=='\n') parser->line++;
-			parser->current_pos++;
-			continue;
+			if ((parser->sax_state==SAX_STATE_ATT_NAME) || !parser->att_sep) {
+				parser->current_pos++;
+				continue;
+			} else {
+				c=' ';
+			}
 		}
 		if (parser->sax_state==SAX_STATE_ATT_NAME) {
 			if ( (c=='/') || ((parser->init_state==1) && (c=='?')) ) {
-				if ((parser->sax_state != SAX_STATE_ATT_NAME) || (parser->current_pos+i+1 == parser->line_size)) {
+				if (parser->current_pos+i+1 == parser->line_size) return 1;
+				if (parser->sax_state != SAX_STATE_ATT_NAME) {
 					parser->sax_state = SAX_STATE_SYNTAX_ERROR;
 					return 1;
 				}
@@ -843,6 +848,13 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 					}
 					parser->current_pos+=i+1;
 					xml_sax_swap(parser);
+
+					/*"style" always at the begining of the attributes*/
+					if (!strcmp(att->name, "style")) {
+						gf_list_rem_last(parser->attributes);
+						gf_list_insert(parser->attributes, att, 0);
+					}
+
 					parser->sax_state = SAX_STATE_ATT_NAME;
 					/*solve XML built-in entities*/
 					if (strchr(att->value, '&') && strchr(att->value, ';')) {
@@ -1245,8 +1257,11 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 		if (parser->file_pos > parser->file_size) parser->file_size = parser->file_pos + 1;
 		if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
 	}
-	if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_size, parser->file_size);
-	return e<0 ? e : GF_OK;
+	if (gzeof(parser->gz_in)) {
+		e = GF_EOS;
+		if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_size, parser->file_size);
+	}
+	return e;
 }
 
 GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, void (*OnProgress)(void *cbck, u32 done, u32 tot))
@@ -1268,9 +1283,6 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, void (*
 	gzInput = gzopen(fileName, "rb");
 	if (!gzInput) return GF_IO_ERR;
 	parser->gz_in = gzInput;
-
-	parser->unicode_type = -1;
-	parser->line = 0;
 	/*init SAX parser (unicode setup)*/
 	gzgets(gzInput, szLine, 4);
 	szLine[4] = 0;

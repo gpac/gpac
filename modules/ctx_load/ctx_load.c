@@ -553,7 +553,7 @@ Bool CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectTyp
 {
 	if ((StreamType==GF_STREAM_PRIVATE_SCENE) && (ObjectType==1)) return 1;
 	/*SVG*/
-	if ((StreamType==GF_STREAM_PRIVATE_SCENE) && (ObjectType==2)) return 1;
+	//if ((StreamType==GF_STREAM_PRIVATE_SCENE) && (ObjectType==2)) return 1;
 	return 0;
 }
 

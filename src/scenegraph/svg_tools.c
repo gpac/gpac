@@ -237,7 +237,7 @@ static void gf_smil_handle_event_end(SVGhandlerElement *hdl, GF_DOM_Event *evt)
 	gf_smil_handle_event(anim, *(GF_List **)info.far_ptr, evt);
 }
 
-static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin, SVG_IRI *target)
+static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin, SVG_IRI *iri)
 {
 	SVGhandlerElement *hdl;
 	u32 i, count;
@@ -245,11 +245,16 @@ static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin, S
 	for (i=0; i<count; i++) {
 		GF_Node *to;
 		SMIL_Time *t = gf_list_get(l, i);
-		if (!t->element) continue;
+		if (t->type != SMIL_TIME_EVENT) continue;
 		/*already setup*/
 		if (t->dynamic_type) continue;
+		/*not resolved yet*/
+		if (!t->element && t->element_id) continue;
 		to = t->element;
-		if (target && target->target) to = (GF_Node *)target->target;
+		if (!to) {
+			if ((iri->type==SVG_IRI_ELEMENTID) && !iri->target) continue;
+			to = (GF_Node *)iri->target;
+		}
 		hdl = gf_sg_dom_create_listener(to, t->event);
 		hdl->handle_event = is_begin ? gf_smil_handle_event_begin : gf_smil_handle_event_end;
 		gf_node_set_private((GF_Node *)hdl, node);

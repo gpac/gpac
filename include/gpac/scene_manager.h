@@ -222,7 +222,7 @@ void gf_sm_load_done(GF_SceneLoader *load);
 /*parses memory scene (any textural format) into the context
 !! THE LOADER TYPE MUST BE ASSIGNED (BT/WRL/XMT/X3D only !!
 */
-GF_Err gf_sm_load_from_string(GF_SceneLoader *load, char *str);
+GF_Err gf_sm_load_string(GF_SceneLoader *load, char *str);
 
 
 /*scene dump mode*/
