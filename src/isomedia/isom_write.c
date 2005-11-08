@@ -3243,10 +3243,8 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 		}
 		szLine[j] = 0;
 		trak->Media->handler->nameUTF8 = strdup(szLine);
-		trak->Media->handler->nameLength = strlen(szLine);
 	} else {
 		trak->Media->handler->nameUTF8 = NULL;
-		trak->Media->handler->nameLength = 0;
 	}
 	return GF_OK;
 }

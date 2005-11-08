@@ -1423,11 +1423,19 @@ GF_Err hdlr_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->handlerType = gf_bs_read_u32(bs);
 	gf_bs_read_data(bs, ptr->reserved2, 12);
 	ptr->size -= 20;
-	ptr->nameLength = (u32) (ptr->size);
-	ptr->nameUTF8 = (char*)malloc(ptr->nameLength+1);
-	if (ptr->nameUTF8 == NULL) return GF_OUT_OF_MEM;
-	gf_bs_read_data(bs, (unsigned char*)ptr->nameUTF8, ptr->nameLength);
-	ptr->nameUTF8[ptr->nameLength]=0;
+	if (ptr->size) {
+		ptr->nameUTF8 = (char*)malloc((u32) ptr->size);
+		if (ptr->nameUTF8 == NULL) return GF_OUT_OF_MEM;
+		gf_bs_read_data(bs, (unsigned char*)ptr->nameUTF8, (u32) ptr->size);
+		/*safety check in case the string is not null-terminated*/
+		if (ptr->nameUTF8[ptr->size-1]) {
+			char *str = (char*)malloc((u32) ptr->size + 1);
+			memcpy(str, ptr->nameUTF8, (u32) ptr->size);
+			str[ptr->size] = 0;
+			free(ptr->nameUTF8);
+			ptr->nameUTF8 = str;
+		}
+	}
 	return GF_OK;
 }
 
@@ -1436,7 +1444,6 @@ GF_Box *hdlr_New()
 	GF_HandlerBox *tmp = (GF_HandlerBox *) malloc(sizeof(GF_HandlerBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_HandlerBox));
-
 	gf_isom_full_box_init((GF_Box *)tmp);
 	tmp->type = GF_ISOM_BOX_TYPE_HDLR;
 	return (GF_Box *)tmp;
@@ -1455,7 +1462,9 @@ GF_Err hdlr_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, ptr->reserved1);
 	gf_bs_write_u32(bs, ptr->handlerType);
 	gf_bs_write_data(bs, ptr->reserved2, 12);
-	gf_bs_write_data(bs, (unsigned char*)ptr->nameUTF8, ptr->nameLength);
+	if (ptr->nameUTF8) gf_bs_write_data(bs, (unsigned char*)ptr->nameUTF8, strlen(ptr->nameUTF8));
+	/*NULL-terminated string is written*/
+	gf_bs_write_u8(bs, 0);
 	return GF_OK;
 }
 
@@ -1465,7 +1474,8 @@ GF_Err hdlr_Size(GF_Box *s)
 	GF_HandlerBox *ptr = (GF_HandlerBox *)s;
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
-	ptr->size += 20 + ptr->nameLength;
+	ptr->size += 20 + 1;
+	if (ptr->nameUTF8) ptr->size += strlen(ptr->nameUTF8);
 	return GF_OK;
 }
 

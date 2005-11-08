@@ -282,7 +282,6 @@ GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u3
 	if (meta->handler->nameUTF8) free(meta->handler->nameUTF8);
 	meta->handler->handlerType = metaType;
 	sprintf(szName, "GPAC %s Handler", gf_4cc_to_str(metaType));
-	meta->handler->nameLength = strlen(szName) + 1;
 	meta->handler->nameUTF8 = strdup(szName);
 	return GF_OK;
 }

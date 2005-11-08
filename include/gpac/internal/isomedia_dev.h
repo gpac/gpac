@@ -405,7 +405,6 @@ typedef struct
 	u32 reserved1;
 	u32 handlerType;
 	u8 reserved2[12];
-	u32 nameLength;
 	char *nameUTF8;
 } GF_HandlerBox;
 
