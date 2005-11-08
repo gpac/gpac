@@ -279,6 +279,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	GF_REGISTER_MODULE_INTERFACE(sdec, GF_SCENE_DECODER_INTERFACE, "GPAC SVG Parser", "gpac distribution");
 
 	parser = NewSVGParser();
+	parser->gpac_module = sdec;
 
 	sdec->privateStack = parser;
 	sdec->AttachStream = SVG_AttachStream;

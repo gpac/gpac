@@ -375,6 +375,8 @@ void setAttributeType(SVGProperty *att)
 			strcpy(att->impl_type, "SMIL_SyncTolerance");
 		} else if (!strcmp(att->svg_name, "line-increment")) {
 			strcpy(att->impl_type, "SVG_LineIncrement");
+		} else if (!strcmp(att->svg_name, "transform")) {
+			strcpy(att->impl_type, "SVG_Matrix");
 		} else if (strstr(att->svg_type, "datatype")) {
 			char *tmp;
 			sprintf(att->impl_type, "SVG_%s", att->svg_type);
@@ -747,6 +749,8 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			fprintf(output, "\tfree(p->stroke_dasharray.array.vals);\n");
 		} else if (!strcmp(att->svg_name, "stop-color")) {
 			fprintf(output, "\tfree(p->stop_color.color);\n");
+		} else if (!strcmp("SMIL_Times", att->impl_type)) {
+			fprintf(output, "\tSMIL_DeleteTimes(p->%s);\n", att->implementation_name);
 		} else if (!strcmp(att->svg_name, "transform")) {
 			fprintf(output, "\tSVG_DeleteTransformList(p->transform);\n");
 		} else if (!strcmp(att->svg_name, "textContent")) {
@@ -794,10 +798,12 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 				fprintf(output, "\tGF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));\n");
 			} else if (!strcmp(att->svg_name, "color")) {
 				fprintf(output, "\tp->color.type = SVG_COLOR_INHERIT;\n");
+			} else if (!strcmp(att->svg_name, "transform")) {
+				fprintf(output, "\tgf_mx2d_init(p->transform);\n");
 			} else if (!strcmp(att->svg_name, "fill-rule")) {
 				fprintf(output, "\tp->fill_rule = SVG_FILLRULE_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "fill-opacity")) {
-				fprintf(output, "\tp->fill_opacity.type = SVG_FLOAT_INHERIT;\n");
+				fprintf(output, "\tp->fill_opacity.type = SVG_NUMBER_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "stroke")) {
 				fprintf(output, "\tp->stroke.type = SVG_PAINT_INHERIT;\n");
 				fprintf(output, "\tGF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));\n");
@@ -808,21 +814,21 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 				fprintf(output, "\tp->stop_color.type = SVG_PAINT_INHERIT;\n");
 				fprintf(output, "\tGF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));\n");
 			} else if (!strcmp(att->svg_name, "stroke-opacity")) {
-				fprintf(output, "\tp->stroke_opacity.type = SVG_FLOAT_INHERIT;\n");
+				fprintf(output, "\tp->stroke_opacity.type = SVG_NUMBER_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "stroke-width")) {
-				fprintf(output, "\tp->stroke_width.type = SVG_LENGTH_INHERIT;\n");
+				fprintf(output, "\tp->stroke_width.type = SVG_NUMBER_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "stroke-linejoin")) {
 				fprintf(output, "\tp->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "stroke-linecap")) {
 				fprintf(output, "\tp->stroke_linecap = SVG_STROKELINECAP_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "stroke-miterlimit")) {
-				fprintf(output, "\tp->stroke_miterlimit.type = SVG_FLOAT_INHERIT;\n");
+				fprintf(output, "\tp->stroke_miterlimit.type = SVG_NUMBER_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "stroke-dasharray")) {
 				fprintf(output, "\tp->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "stroke-dashoffset")) {
-				fprintf(output, "\tp->stroke_dashoffset.type = SVG_FLOAT_INHERIT;\n");
+				fprintf(output, "\tp->stroke_dashoffset.type = SVG_NUMBER_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "font-size")) {
-				fprintf(output, "\tp->font_size.type = SVG_FLOAT_INHERIT;\n");
+				fprintf(output, "\tp->font_size.type = SVG_NUMBER_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "text-anchor")) {
 				fprintf(output, "\tp->text_anchor = SVG_TEXTANCHOR_INHERIT;\n");
 			} else if (!strcmp(att->svg_name, "min")) {

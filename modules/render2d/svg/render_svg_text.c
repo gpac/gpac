@@ -42,7 +42,6 @@ typedef struct
 static void SVG_Render_text(GF_Node *node, void *rs)
 {
 	GF_Matrix2D backup_matrix;
-	SVG_Transform *tr;
 	DrawableContext *ctx;
 	SVG_TextStack *st = gf_node_get_private(node);
 	Drawable *cs = st->draw;
@@ -64,8 +63,7 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 
 	gf_mx2d_copy(backup_matrix, eff->transform);
 
-	tr = gf_list_get(text->transform, 0);
-	if (tr) gf_mx2d_pre_multiply(&eff->transform, &tr->matrix);
+	gf_mx2d_pre_multiply(&eff->transform, &text->transform);
 
 
 	if ( (st->prev_size != eff->svg_props->font_size->value) || (st->prev_flags != *eff->svg_props->font_style)
@@ -83,8 +81,8 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 		SVG_Coordinate *xc = (gf_list_count(text->x) ? gf_list_get(text->x, 0) : NULL);
 		SVG_Coordinate *yc = (gf_list_count(text->y) ? gf_list_get(text->y, 0) : NULL);
 		Fixed x, y;
-		if (xc) x = xc->number; else x = 0;
-		if (yc) y = yc->number; else y = 0;
+		if (xc) x = xc->value; else x = 0;
+		if (yc) y = yc->value; else y = 0;
 
 //		fprintf(stdout, "Rebuilding text\n");
 		drawable_reset_path(cs);

@@ -99,7 +99,7 @@ static void SVGInitProperties(SVGStylingProperties *svg_props)
 	*svg_props->fill_rule = SVG_FILLRULE_NONZERO;
 
 	GF_SAFEALLOC(svg_props->fill_opacity, sizeof(SVG_Opacity));
-	svg_props->fill_opacity->type = SVG_FLOAT_VALUE;
+	svg_props->fill_opacity->type = SVG_NUMBER_VALUE;
 	svg_props->fill_opacity->value = FIX_ONE;
 	
 	GF_SAFEALLOC(svg_props->stroke, sizeof(SVG_Paint));
@@ -108,12 +108,12 @@ static void SVGInitProperties(SVGStylingProperties *svg_props)
 	svg_props->stroke->color->type = SVG_COLOR_RGBCOLOR;
 
 	GF_SAFEALLOC(svg_props->stroke_opacity, sizeof(SVG_Opacity));
-	svg_props->stroke_opacity->type = SVG_FLOAT_VALUE;
+	svg_props->stroke_opacity->type = SVG_NUMBER_VALUE;
 	svg_props->stroke_opacity->value = FIX_ONE;
 
 	GF_SAFEALLOC(svg_props->stroke_width, sizeof(SVG_StrokeWidth));
-	svg_props->stroke_width->type = SVG_LENGTH_NUMBER;
-	svg_props->stroke_width->number = FIX_ONE;
+	svg_props->stroke_width->type = SVG_NUMBER_VALUE;
+	svg_props->stroke_width->value = FIX_ONE;
 
 	GF_SAFEALLOC(svg_props->stroke_linecap, sizeof(SVG_StrokeLineCap));
 	*(svg_props->stroke_linecap) = SVG_STROKELINECAP_BUTT;
@@ -121,11 +121,11 @@ static void SVGInitProperties(SVGStylingProperties *svg_props)
 	*(svg_props->stroke_linejoin) = SVG_STROKELINEJOIN_MITER;
 
 	GF_SAFEALLOC(svg_props->stroke_miterlimit, sizeof(SVG_StrokeMiterLimit));
-	svg_props->stroke_miterlimit->type = SVG_FLOAT_VALUE;
+	svg_props->stroke_miterlimit->type = SVG_NUMBER_VALUE;
 	svg_props->stroke_miterlimit->value = 4*FIX_ONE;
 
 	GF_SAFEALLOC(svg_props->stroke_dashoffset , sizeof(SVG_StrokeDashOffset));
-	svg_props->stroke_dashoffset->type = SVG_FLOAT_VALUE;
+	svg_props->stroke_dashoffset->type = SVG_NUMBER_VALUE;
 	svg_props->stroke_dashoffset->value = 0;
 
 	GF_SAFEALLOC(svg_props->stroke_dasharray, sizeof(SVG_StrokeDashArray));
@@ -136,7 +136,7 @@ static void SVGInitProperties(SVGStylingProperties *svg_props)
 	svg_props->font_family->value = strdup("Arial");
 
 	GF_SAFEALLOC(svg_props->font_size, sizeof(SVG_FontSize));
-	svg_props->font_size->type = SVG_FLOAT_VALUE;
+	svg_props->font_size->type = SVG_NUMBER_VALUE;
 	svg_props->font_size->value = 12*FIX_ONE;
 
 	GF_SAFEALLOC(svg_props->font_style, sizeof(SVG_FontStyle));
@@ -205,19 +205,19 @@ void SVGApplyProperties(SVGStylingProperties *render_svg_props, SVGStylingProper
 	if (current_svg_props.fill_rule && *current_svg_props.fill_rule != SVG_FILLRULE_INHERIT) {
 		render_svg_props->fill_rule = current_svg_props.fill_rule;
 	}
-	if (current_svg_props.fill_opacity && current_svg_props.fill_opacity->type != SVG_FLOAT_INHERIT) {
+	if (current_svg_props.fill_opacity && current_svg_props.fill_opacity->type != SVG_NUMBER_INHERIT) {
 		render_svg_props->fill_opacity = current_svg_props.fill_opacity;
 	}
 	if (current_svg_props.stroke && current_svg_props.stroke->type != SVG_PAINT_INHERIT) {
 		render_svg_props->stroke = current_svg_props.stroke;
 	}
-	if (current_svg_props.stroke_opacity && current_svg_props.stroke_opacity->type != SVG_FLOAT_INHERIT) {
+	if (current_svg_props.stroke_opacity && current_svg_props.stroke_opacity->type != SVG_NUMBER_INHERIT) {
 		render_svg_props->stroke_opacity = current_svg_props.stroke_opacity;
 	}
-	if (current_svg_props.stroke_width && current_svg_props.stroke_width->type != SVG_LENGTH_INHERIT) {
+	if (current_svg_props.stroke_width && current_svg_props.stroke_width->type != SVG_NUMBER_INHERIT) {
 		render_svg_props->stroke_width = current_svg_props.stroke_width;
 	}
-	if (current_svg_props.stroke_miterlimit && current_svg_props.stroke_miterlimit->type != SVG_FLOAT_INHERIT) {
+	if (current_svg_props.stroke_miterlimit && current_svg_props.stroke_miterlimit->type != SVG_NUMBER_INHERIT) {
 		render_svg_props->stroke_miterlimit = current_svg_props.stroke_miterlimit;
 	}
 	if (current_svg_props.stroke_linecap && *current_svg_props.stroke_linecap != SVG_STROKELINECAP_INHERIT) {
@@ -226,7 +226,7 @@ void SVGApplyProperties(SVGStylingProperties *render_svg_props, SVGStylingProper
 	if (current_svg_props.stroke_linejoin && *current_svg_props.stroke_linejoin != SVG_STROKELINEJOIN_INHERIT) {
 		render_svg_props->stroke_linejoin = current_svg_props.stroke_linejoin;
 	}
-	if (current_svg_props.stroke_dashoffset && current_svg_props.stroke_dashoffset->value != SVG_FLOAT_INHERIT) {
+	if (current_svg_props.stroke_dashoffset && current_svg_props.stroke_dashoffset->value != SVG_NUMBER_INHERIT) {
 		render_svg_props->stroke_dashoffset = current_svg_props.stroke_dashoffset;
 	}
 	if (current_svg_props.stroke_dasharray && current_svg_props.stroke_dasharray->type != SVG_STROKEDASHARRAY_INHERIT) {
@@ -235,7 +235,7 @@ void SVGApplyProperties(SVGStylingProperties *render_svg_props, SVGStylingProper
 	if (current_svg_props.font_family && current_svg_props.font_family->type != SVG_FONTFAMILY_INHERIT) {
 		render_svg_props->font_family = current_svg_props.font_family;
 	}
-	if (current_svg_props.font_size && current_svg_props.font_size->type != SVG_FLOAT_INHERIT) {
+	if (current_svg_props.font_size && current_svg_props.font_size->type != SVG_NUMBER_INHERIT) {
 		render_svg_props->font_size = current_svg_props.font_size;
 	}
 	if (current_svg_props.font_style && *current_svg_props.font_style != SVG_FONTSTYLE_INHERIT) {
@@ -266,20 +266,20 @@ static void SVGSetViewport(RenderEffect2D *eff, SVGsvgElement *svg, Bool is_root
 		u32 scene_width = eff->surface->render->compositor->scene_width;
 		u32 scene_height = eff->surface->render->compositor->scene_height;
 
-		if (svg->width.type == SVG_LENGTH_NUMBER) 
+		if (svg->width.type == SVG_NUMBER_VALUE) 
 			real_width = INT2FIX(scene_width);
 		else
 			/*u32 * fixed / u32*/
 			real_width = scene_width*svg->width.number/100;
 
-		if (svg->height.type == SVG_LENGTH_NUMBER)
+		if (svg->height.type == SVG_NUMBER_VALUE)
 			real_height = INT2FIX(scene_height);
 		else 
 			real_height = scene_height*svg->height.number/100;
 	} else {
 		real_width = real_height = 0;
-		if (svg->width.type == SVG_LENGTH_NUMBER) real_width = svg->width.number;
-		if (svg->height.type == SVG_LENGTH_NUMBER) real_height = svg->height.number;
+		if (svg->width.type == SVG_NUMBER_VALUE) real_width = svg->width.number;
+		if (svg->height.type == SVG_NUMBER_VALUE) real_height = svg->height.number;
 	}
 	
 	if (!real_width || !real_height) return;
@@ -459,7 +459,6 @@ void SVG_Init_svg(Render2D *sr, GF_Node *node)
 static void SVG_Render_g(GF_Node *node, void *rs)
 {
 	GF_Matrix2D backup_matrix;
-	SVG_Transform *tr;
 	SVGStylingProperties backup_props;
 	u32 styling_size = sizeof(SVGStylingProperties);
 
@@ -472,19 +471,17 @@ static void SVG_Render_g(GF_Node *node, void *rs)
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
 		memcpy(eff->svg_props, &backup_props, styling_size);
 		return;
-	}
-
-	tr = gf_list_get(g->transform, 0);
+	}	
 	
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
-		if (tr) gf_mx2d_pre_multiply(&eff->transform, &tr->matrix);
+		gf_mx2d_pre_multiply(&eff->transform, &g->transform);
 		svg_get_nodes_bounds(node, g->children, eff);
 		memcpy(eff->svg_props, &backup_props, styling_size);
 		return;
 	}
 
 	gf_mx2d_copy(backup_matrix, eff->transform);
-	if (tr) gf_mx2d_pre_multiply(&eff->transform, &tr->matrix);
+	gf_mx2d_pre_multiply(&eff->transform, &g->transform);
 	svg_render_node_list(g->children, eff);
 
 	gf_mx2d_copy(eff->transform, backup_matrix);  
@@ -500,7 +497,6 @@ void SVG_Init_g(Render2D *sr, GF_Node *node)
 static void SVG_Render_switch(GF_Node *node, void *rs)
 {
 	GF_Matrix2D backup_matrix;
-	SVG_Transform *tr;
 	SVGStylingProperties backup_props;
 	u32 styling_size = sizeof(SVGStylingProperties);
 
@@ -514,16 +510,16 @@ static void SVG_Render_switch(GF_Node *node, void *rs)
 		memcpy(eff->svg_props, &backup_props, styling_size);
 		return;
 	}
-	tr = gf_list_get(s->transform, 0);
+	
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
-		if (tr) gf_mx2d_pre_multiply(&eff->transform, &tr->matrix);
+		gf_mx2d_pre_multiply(&eff->transform, &s->transform);
 		svg_get_nodes_bounds(node, s->children, eff);
 		memcpy(eff->svg_props, &backup_props, styling_size);
 		return;
 	}
 
 	gf_mx2d_copy(backup_matrix, eff->transform);
-	if (tr) gf_mx2d_pre_multiply(&eff->transform, &tr->matrix);
+	gf_mx2d_pre_multiply(&eff->transform, &s->transform);
 	svg_render_node_list(s->children, eff);
 
 	gf_mx2d_copy(eff->transform, backup_matrix);  
@@ -536,19 +532,17 @@ void SVG_Init_switch(Render2D *sr, GF_Node *node)
 }
 
 
-static void SVG_DrawablePostRender(Drawable *cs, SVGStylingProperties *props, GF_List *transforms, RenderEffect2D *eff)
+static void SVG_DrawablePostRender(Drawable *cs, SVGStylingProperties *props, SVG_Matrix m, RenderEffect2D *eff)
 {
 	GF_Matrix2D backup_matrix;
-	SVG_Transform *tr;
 	DrawableContext *ctx;
 	SVGStylingProperties backup_props;
 
 	memcpy(&backup_props, eff->svg_props, sizeof(SVGStylingProperties));
 	SVGApplyProperties(eff->svg_props, *props);
 
-	tr = gf_list_get(transforms, 0);
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
-		if (tr) gf_mx2d_pre_multiply(&eff->transform, &tr->matrix);
+		gf_mx2d_pre_multiply(&eff->transform, &m);
 		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) gf_path_get_bounds(cs->path, &eff->bounds);
 		memcpy(eff->svg_props, &backup_props, sizeof(SVGStylingProperties));
 		return;
@@ -561,7 +555,7 @@ static void SVG_DrawablePostRender(Drawable *cs, SVGStylingProperties *props, GF
 	}
 
 	gf_mx2d_copy(backup_matrix, eff->transform);
-	if (tr) gf_mx2d_pre_multiply(&eff->transform, &tr->matrix);
+	gf_mx2d_pre_multiply(&eff->transform, &m);
 
 
 	ctx = SVG_drawable_init_context(cs, eff);
@@ -585,12 +579,12 @@ static void SVG_Render_rect(GF_Node *node, void *rs)
 	   Recreates the path (i.e the shape) only if the node is dirty 
 	   (has changed compared to the previous rendering phase) */
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
-		Fixed rx = rect->rx.number;
-		Fixed ry = rect->ry.number;
-		Fixed x = rect->x.number;
-		Fixed y = rect->y.number;
-		Fixed width = rect->width.number;
-		Fixed height = rect->height.number;
+		Fixed rx = rect->rx.value;
+		Fixed ry = rect->ry.value;
+		Fixed x = rect->x.value;
+		Fixed y = rect->y.value;
+		Fixed width = rect->width.value;
+		Fixed height = rect->height.value;
 
 		//fprintf(stdout, "Rebuilding rect %8x\n",rect);
 		drawable_reset_path(cs);
@@ -635,9 +629,9 @@ static void SVG_Render_circle(GF_Node *node, void *rs)
 	SVGcircleElement *circle = (SVGcircleElement *)node;
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
-		Fixed r = 2*circle->r.number;
+		Fixed r = 2*circle->r.value;
 		drawable_reset_path(cs);
-		gf_path_add_ellipse(cs->path, circle->cx.number, circle->cy.number, r, r);
+		gf_path_add_ellipse(cs->path, circle->cx.value, circle->cy.value, r, r);
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
@@ -658,7 +652,7 @@ static void SVG_Render_ellipse(GF_Node *node, void *rs)
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		drawable_reset_path(cs);
-		gf_path_add_ellipse(cs->path, ellipse->cx.number, ellipse->cy.number, 2*ellipse->rx.number, 2*ellipse->ry.number);
+		gf_path_add_ellipse(cs->path, ellipse->cx.value, ellipse->cy.value, 2*ellipse->rx.value, 2*ellipse->ry.value);
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
@@ -678,8 +672,8 @@ static void SVG_Render_line(GF_Node *node, void *rs)
 	SVGlineElement *line = (SVGlineElement *)node;
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		drawable_reset_path(cs);
-		gf_path_add_move_to(cs->path, line->x1.number, line->y1.number);
-		gf_path_add_line_to(cs->path, line->x2.number, line->y2.number);
+		gf_path_add_move_to(cs->path, line->x1.value, line->y1.value);
+		gf_path_add_line_to(cs->path, line->x2.value, line->y2.value);
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
@@ -861,7 +855,6 @@ void SVG_Init_path(Render2D *sr, GF_Node *node)
 static void SVG_Render_use(GF_Node *node, void *rs)
 {
 	GF_Matrix2D backup_matrix;
-	SVG_Transform *tr;
 	RenderEffect2D *eff = rs;
 	SVGuseElement *use = (SVGuseElement *)node;
   	GF_Matrix2D translate;
@@ -872,13 +865,12 @@ static void SVG_Render_use(GF_Node *node, void *rs)
 	SVGApplyProperties(eff->svg_props, use->properties);
 
 
-	tr = gf_list_get(use->transform, 0);
 	gf_mx2d_init(translate);
-	translate.m[2] = use->x.number;
-	translate.m[5] = use->y.number;
+	translate.m[2] = use->x.value;
+	translate.m[5] = use->y.value;
 
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
-		if (tr) gf_mx2d_pre_multiply(&eff->transform, &tr->matrix);
+		gf_mx2d_pre_multiply(&eff->transform, &use->transform);
 
 		if ( use->xlink_href.target && (*(eff->svg_props->display) != SVG_DISPLAY_NONE)) {
 			gf_node_render((GF_Node *)use->xlink_href.target, eff);
@@ -897,7 +889,7 @@ static void SVG_Render_use(GF_Node *node, void *rs)
 
 	gf_mx2d_copy(backup_matrix, eff->transform);
 
-	if (tr) gf_mx2d_pre_multiply(&eff->transform, &tr->matrix);
+	gf_mx2d_pre_multiply(&eff->transform, &use->transform);
 	gf_mx2d_pre_multiply(&eff->transform, &translate);
 
 	gf_node_render((GF_Node *)use->xlink_href.target, eff);
@@ -917,7 +909,6 @@ void SVG_Init_use(Render2D *sr, GF_Node *node)
 static void SVG_Render_a(GF_Node *node, void *rs)
 {
 	GF_Matrix2D backup_matrix;
-	SVG_Transform *tr;
 	SVGStylingProperties backup_props;
 	u32 styling_size = sizeof(SVGStylingProperties);
 	SVGaElement *a = (SVGaElement *) node;
@@ -926,11 +917,9 @@ static void SVG_Render_a(GF_Node *node, void *rs)
 	memcpy(&backup_props, eff->svg_props, styling_size);
 	SVGApplyProperties(eff->svg_props, a->properties);
 
-
-	tr = gf_list_get(a->transform, 0);
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
 		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
-			if (tr) gf_mx2d_pre_multiply(&eff->transform, &tr->matrix);
+			gf_mx2d_pre_multiply(&eff->transform, &a->transform);
 			svg_get_nodes_bounds(node, a->children, eff);
 		}
 		memcpy(eff->svg_props, &backup_props, styling_size);
@@ -944,7 +933,7 @@ static void SVG_Render_a(GF_Node *node, void *rs)
 	}
 
 	gf_mx2d_copy(backup_matrix, eff->transform);
-	if (tr) gf_mx2d_pre_multiply(&eff->transform, &tr->matrix);
+	gf_mx2d_pre_multiply(&eff->transform, &a->transform);
 
 	svg_render_node_list(a->children, eff);
 
@@ -1059,11 +1048,11 @@ static void SVG_UpdateGradient(SVG_GradientStack *st, GF_List *children)
 		SVGstopElement *gstop = (SVGstopElement *)gf_list_get(children, i);
 		if (gf_node_get_tag((GF_Node *)gstop) != TAG_SVG_stop) continue;
 
-		if (gstop->stop_opacity.type==SVG_FLOAT_VALUE) alpha = gstop->stop_opacity.value;
+		if (gstop->stop_opacity.type==SVG_NUMBER_VALUE) alpha = gstop->stop_opacity.value;
 		else alpha = FIX_ONE;
 		st->cols[st->nb_col] = GF_COL_ARGB_FIXED(alpha, gstop->stop_color.color->red, gstop->stop_color.color->green, gstop->stop_color.color->blue);
-		key = gstop->offset;
-		if (gstop->offset>FIX_ONE) key/=100; 
+		key = gstop->offset.value;
+		if (gstop->offset.value>FIX_ONE) key/=100; 
 		if (key>max_offset) max_offset=key;
 		else key = max_offset;
 		st->keys[st->nb_col] = key;
@@ -1094,14 +1083,14 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	/*create gradient brush if needed*/
 	if (!txh->hwtx) return;
 
-	start.x = lg->x1.number;
-	if (lg->x1.type==SVG_LENGTH_PERCENTAGE) start.x /= 100;
-	start.y = lg->y1.number;
-	if (lg->y1.type==SVG_LENGTH_PERCENTAGE) start.y /= 100;
-	end.x = lg->x2.type ? lg->x2.number : FIX_ONE;
-	if (lg->x2.type==SVG_LENGTH_PERCENTAGE) end.x /= 100;
-	end.y = lg->y2.number;
-	if (lg->y2.type==SVG_LENGTH_PERCENTAGE) end.x /= 100;
+	start.x = lg->x1.value;
+	if (lg->x1.type==SVG_NUMBER_PERCENTAGE) start.x /= 100;
+	start.y = lg->y1.value;
+	if (lg->y1.type==SVG_NUMBER_PERCENTAGE) start.y /= 100;
+	end.x = lg->x2.type ? lg->x2.value : FIX_ONE;
+	if (lg->x2.type==SVG_NUMBER_PERCENTAGE) end.x /= 100;
+	end.y = lg->y2.value;
+	if (lg->y2.type==SVG_NUMBER_PERCENTAGE) end.x /= 100;
 
 	/*gradientTransform???*/
 	gf_mx2d_init(*mat);
@@ -1149,12 +1138,12 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	//GradientGetMatrix((GF_Node *) rg->transform, mat);
 	gf_mx2d_init(*mat);
 
-	radius = rg->r.type ? rg->r.number : FIX_ONE/2;
-	if (rg->r.type==SVG_LENGTH_PERCENTAGE) radius /= 100;
-	center.x = rg->cx.type ? rg->cx.number : FIX_ONE/2;
-	if (rg->cx.type==SVG_LENGTH_PERCENTAGE) center.x /= 100;
-	center.y = rg->cy.type ? rg->cy.number : FIX_ONE/2;
-	if (rg->cy.type==SVG_LENGTH_PERCENTAGE) center.y /= 100;
+	radius = rg->r.type ? rg->r.value : FIX_ONE/2;
+	if (rg->r.type==SVG_NUMBER_PERCENTAGE) radius /= 100;
+	center.x = rg->cx.type ? rg->cx.value : FIX_ONE/2;
+	if (rg->cx.type==SVG_NUMBER_PERCENTAGE) center.x /= 100;
+	center.y = rg->cy.type ? rg->cy.value : FIX_ONE/2;
+	if (rg->cy.type==SVG_NUMBER_PERCENTAGE) center.y /= 100;
 
 	focal = center;
 

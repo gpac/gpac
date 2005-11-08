@@ -909,7 +909,7 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGStylingPropertie
 	ctx->aspect.is_scalable = 1;
 	ctx->aspect.pen_props.cap = *props.stroke_linecap;
 	ctx->aspect.pen_props.join = *props.stroke_linejoin;
-	ctx->aspect.pen_props.width = (ctx->aspect.has_line?props.stroke_width->number:0);
+	ctx->aspect.pen_props.width = (ctx->aspect.has_line?props.stroke_width->value:0);
 	ctx->aspect.pen_props.miterLimit = props.stroke_miterlimit->value;
 }
 

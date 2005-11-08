@@ -113,6 +113,9 @@ typedef enum {
 
 struct _svg_parser
 {
+	/* Pointer to the module using this parser */
+	void *gpac_module;
+
 	/* Only needed in Process data to attach graph to renderer */
 	void *inline_scene;
 
@@ -236,8 +239,6 @@ u32			svg_get_animation_event_by_name(char *name);
 Bool		svg_has_been_IDed	(SVGParser *parser, xmlChar *node_name);
 u32			svg_get_node_id		(SVGParser *parser, xmlChar *nodename);
 void		svg_parse_element_id(SVGParser *parser, SVGElement *elt, char *nodename);
-
-void  svg_convert_length_unit_to_user_unit(SVGParser *parser, SVG_Length *length);
 
 /* DOM related functions */
 void		svg_parse_dom_attributes		(SVGParser *parser, xmlNodePtr node, SVGElement *elt, u8 anim_value_type, u8 anim_transform_type);

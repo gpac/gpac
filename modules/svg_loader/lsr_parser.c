@@ -25,7 +25,6 @@
 
 
 #include "svg_parser.h"
-#include "svg_parse_attributes.h"
 
 #ifndef GPAC_DISABLE_SVG
 
@@ -53,8 +52,8 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 			SVGsvgElement *root_svg = (SVGsvgElement *)n;
 			svg_convert_length_unit_to_user_unit(parser, &(root_svg->width));
 			svg_convert_length_unit_to_user_unit(parser, &(root_svg->height));
-			parser->svg_w = FIX2INT(root_svg->width.number);
-			parser->svg_h = FIX2INT(root_svg->height.number);
+			parser->svg_w = FIX2INT(root_svg->width.value);
+			parser->svg_h = FIX2INT(root_svg->height.value);
 			gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
 			gf_sg_set_root_node(parser->graph, (GF_Node *)n);
 			parser->needs_attachement = 1;
@@ -130,7 +129,7 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 				if (pos>=0) 
 					fprintf(stdout, "WARNING: point replace not supported\n");
 				else
-					svg_parse_attribute(parser, at_node, &info, value, 0, 0);
+					svg_parse_attribute(at_node, &info, value, 0, 0);
 
 				gf_node_dirty_set((GF_Node *) at_node, GF_SG_SVG_GEOMETRY_DIRTY|GF_SG_SVG_APPEARANCE_DIRTY, 0);
 			}

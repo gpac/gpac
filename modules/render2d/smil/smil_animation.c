@@ -109,7 +109,7 @@ static void SMIL_calcActiveDur(SMIL_AnimationStack *stack, SMIL_Interval *interv
 	}
 }
 
-/* assumes that the list of begin values is sorted */
+/* assumes that the list of time values is sorted */
 static void SMIL_initIntervalList(SMIL_AnimationStack *stack)
 {
 	u32 i, j, begin_count, end_count;
@@ -206,63 +206,71 @@ static s32 SMIL_findIntervalIndex(SMIL_AnimationStack *stack, Double sceneTime)
 }
 
 /* beginning of animation functions */
-void *SMIL_GetLastSpecifiedValue(SMIL_AnimationStack *stack)
+void SMIL_GetLastSpecifiedValue(SMIL_AnimationStack *stack, GF_FieldInfo *last)
 {
 	void *value = NULL;
 	if (stack->values && gf_list_count(stack->values->values)) {
 		/* Ignore from/to/by*/
-		u32 nbValues = gf_list_count(stack->values->values);
-		value = gf_list_get(stack->values->values, nbValues - 1);
+		last->fieldType = stack->values->type;
+		last->eventType = stack->values->transform_type;
+		last->far_ptr = gf_list_get(stack->values->values, gf_list_count(stack->values->values) - 1);
 	} else if (stack->path) {
 		fprintf(stderr, "Error: Cannot compute last specified value for path animation\n");
 	} else { 
 		/* Use 'from'/'to'/'by'*/
-		if (stack->to && stack->to->datatype != 0) {
-			value = stack->to->value;
+		if (stack->to && stack->to->type != 0) {
+			last->fieldType = stack->to->type;
+			last->eventType = stack->to->transform_type;
+			last->far_ptr = stack->to->value;
 		} else {
 			/* TODO: no 'values', no 'to' ? */
 			fprintf(stderr, "Error: Cannot compute last specified value on 'to'-less animation\n");
 		}
 	}
-	return value;
 }
 
 static void SMIL_ApplyAccumulate(SMIL_AnimationStack *stack)
 {
+	GF_FieldInfo last;
 	if (stack->accumulate 
 		&& *stack->accumulate == SMIL_ACCUMULATE_SUM
 		&& stack->current_interval->nb_iterations > 0) {
-		void *last_specified_value = SMIL_GetLastSpecifiedValue(stack);
-		if (last_specified_value)
-			stack->ApplyAccumulate(stack, stack->current_interval->nb_iterations, stack->tmp_value, last_specified_value, stack->tmp_value);
+		SMIL_GetLastSpecifiedValue(stack, &last);
+		if (last.far_ptr) stack->ApplyAccumulate(stack, stack->current_interval->nb_iterations, stack->tmp_value, last, stack->tmp_value);
 	}
 }
 
 static void SMIL_ApplyAdditive(SMIL_AnimationStack *stack)
 {
+	GF_FieldInfo info;
+	info.far_ptr = stack->target_attribute.field_ptr;
+	info.fieldType = stack->target_attribute.type;
+	info.eventType = stack->target_attribute.transform_type;
 	if (stack->additive && *stack->additive == SMIL_ADDITIVE_SUM) {
 		Bool attribute_already_animated = 0;
 		u32 i, count;
 		count = gf_list_count(stack->compositor->svg_animated_attributes);
 		for (i = 0; i < count; i++) {
 			void *anAttr = gf_list_get(stack->compositor->svg_animated_attributes, i);
-			if (anAttr == stack->targetAttribute) {
+			if (anAttr == stack->target_attribute.field_ptr) {
 				attribute_already_animated = 1;
 				break;
 			}
 		}
 		if (!attribute_already_animated) { /* first animation in this rendering cycle, use DOM value as underlying value */
-			stack->ApplyAdditive(stack, stack->base_value, stack->tmp_value, stack->targetAttribute);
+			stack->ApplyAdditive(stack, stack->base_value, stack->tmp_value, info);
 		} else { /* this is not the first animation, we should sum using the presentation value as underlying value */
-			stack->ApplyAdditive(stack, stack->targetAttribute, stack->tmp_value, stack->targetAttribute);
+			stack->ApplyAdditive(stack, info, stack->tmp_value, info);
 		}
 	} else { // SMILAdditiveValue_replace
-		stack->Assign(stack, stack->targetAttribute, stack->tmp_value);
+		stack->Assign(stack, info, stack->tmp_value);
 	}
 }
 
 void SMIL_AnimWithValues(SMIL_AnimationStack *stack, Double sceneTime) 
 {
+	GF_FieldInfo target = stack->tmp_value;
+	GF_FieldInfo value_info, value_info_next;
 	u32 keyValueIndex;
 	u32 nbValues;
 	Double activeTime;
@@ -270,12 +278,16 @@ void SMIL_AnimWithValues(SMIL_AnimationStack *stack, Double sceneTime)
 	Fixed normalizedSimpleTime;
 	Fixed interval_duration;
 	Fixed interpolation_coefficient;
-	void *target = stack->tmp_value;
+
+	value_info.fieldType = stack->values->type;
+	value_info.eventType = stack->values->transform_type;
+	value_info_next = value_info;
 
 	nbValues = gf_list_count(stack->values->values);
 	if (nbValues == 1) {
 		if (stack->previous_key_index != 0) {
-			stack->Set(stack, target, gf_list_get(stack->values->values, 0));
+			value_info.far_ptr = gf_list_get(stack->values->values, 0);
+			stack->Set(stack, target, value_info);
 			stack->previous_key_index = 0;
 			stack->target_value_changed = 1;
 		}
@@ -338,7 +350,8 @@ void SMIL_AnimWithValues(SMIL_AnimationStack *stack, Double sceneTime)
 
 	switch (*stack->calcMode) {
 	case SMIL_CALCMODE_DISCRETE:
-		stack->Set(stack, target, gf_list_get(stack->values->values, keyValueIndex));
+		value_info.far_ptr = gf_list_get(stack->values->values, keyValueIndex);
+		stack->Set(stack, target, value_info);
 		break;
 	case SMIL_CALCMODE_PACED:
 		/* TODO: at the moment assume it is linear */
@@ -347,12 +360,12 @@ void SMIL_AnimWithValues(SMIL_AnimationStack *stack, Double sceneTime)
 	case SMIL_CALCMODE_LINEAR:
 		stack->previous_coef = interpolation_coefficient;
 		if (keyValueIndex == nbValues - 1) {
-			stack->Set(stack, target, gf_list_get(stack->values->values, nbValues - 1));
+			value_info.far_ptr = gf_list_get(stack->values->values, nbValues - 1);
+			stack->Set(stack, target, value_info);
 		} else {
-			stack->Interpolate(stack, interpolation_coefficient,
-							   gf_list_get(stack->values->values, keyValueIndex),
-							   gf_list_get(stack->values->values, keyValueIndex+1),
-							   target);
+			value_info.far_ptr = gf_list_get(stack->values->values, keyValueIndex);
+			value_info_next.far_ptr = gf_list_get(stack->values->values, keyValueIndex+1);
+			stack->Interpolate(stack, interpolation_coefficient, value_info, value_info_next, target);
 		}
 		break;
 	}
@@ -360,8 +373,8 @@ void SMIL_AnimWithValues(SMIL_AnimationStack *stack, Double sceneTime)
 
 void SMIL_AnimWithFromToBy(SMIL_AnimationStack *stack, Double sceneTime) 
 {
-	void *target = stack->tmp_value;
-	void *fromValue;
+	GF_FieldInfo target = stack->tmp_value;
+	GF_FieldInfo from_info, to_info, by_info;
 
 	Double activeTime;
 	Double simpleTime;
@@ -382,17 +395,21 @@ void SMIL_AnimWithFromToBy(SMIL_AnimationStack *stack, Double sceneTime)
 
 	stack->previous_coef = interpolation_coefficient;
 
-	if (stack->from->datatype != 0) {
-		fromValue = stack->from->value;
+	if (stack->from->type != 0) {
+		from_info.far_ptr = stack->from->value;
+		from_info.fieldType = stack->from->type;
+		from_info.eventType = stack->from->transform_type;
 	} else {
 		/* Warning: animation without from uses the underlying value:
 			either DOM value or presentation value: TO FIX*/
-		fromValue = stack->base_value;
+		from_info = stack->base_value;
 	}
 
 	/* if to is specified, ignore 'by' */
-	if (stack->to->datatype != 0) {
-		void *toValue = stack->to->value;
+	if (stack->to->type != 0) {
+		to_info.far_ptr = stack->to->value;
+		to_info.fieldType = stack->to->type;
+		to_info.eventType = stack->to->transform_type;
 
 		switch (*stack->calcMode) {
 		case SMIL_CALCMODE_DISCRETE:
@@ -400,7 +417,7 @@ void SMIL_AnimWithFromToBy(SMIL_AnimationStack *stack, Double sceneTime)
 				/* before half of the duration stay at 'from' and then switch to 'to' */
 				s32 useFrom = (simpleTime<=stack->current_interval->simple_duration/2);
 				if (useFrom == stack->previous_key_index) return;
-				stack->Set(stack, target, (useFrom?fromValue:toValue));
+				stack->Set(stack, target, (useFrom?from_info:to_info));
 				stack->previous_key_index = useFrom;
 			}
 			break;
@@ -409,8 +426,8 @@ void SMIL_AnimWithFromToBy(SMIL_AnimationStack *stack, Double sceneTime)
 		case SMIL_CALCMODE_LINEAR:
 			stack->Interpolate(stack, 
 							   interpolation_coefficient,
-					           fromValue, 
-							   toValue,
+					           from_info, 
+							   to_info,
 							   target);
 			break;
 		}
@@ -418,10 +435,10 @@ void SMIL_AnimWithFromToBy(SMIL_AnimationStack *stack, Double sceneTime)
 	} else {
 		/* animation without to */
 		/* use by : this may be supported only with attributes supporting addition*/
-		if (stack->from->datatype != 0) {
+		if (stack->from->type != 0) {
 			/* from-by animation */
 		} else {
-			if (stack->by->datatype != 0) {
+			if (stack->by->type != 0) {
 				/* by animation */
 				/* warning: additional constraints */
 				/* TODO: */
@@ -435,11 +452,15 @@ void SMIL_AnimWithFromToBy(SMIL_AnimationStack *stack, Double sceneTime)
 
 void SMIL_AnimSet(SMIL_AnimationStack *stack, Double sceneTime) 
 {
+	GF_FieldInfo to_info;
 	if (stack->to) {
 		/* the animation element has no 'from' attribute */
 		/* This is a 'set' element */
-		if (stack->Compare(stack, stack->tmp_value, stack->to->value)) {
-			stack->Set(stack, stack->tmp_value, stack->to->value);
+		to_info.fieldType = stack->to->type;
+		to_info.eventType = stack->to->transform_type;
+		to_info.far_ptr = stack->to->value;
+		if (stack->Compare(stack, stack->tmp_value, to_info)) {
+			stack->Set(stack, stack->tmp_value, to_info);
 			stack->target_value_changed = 1;
 		}
 	} else {
@@ -495,7 +516,6 @@ void SMIL_Update_Animation(GF_TimeNode *timenode)
 
 	if (stack->status == SMIL_STATUS_STARTUP) {
 		s32 interval_index;
-		stack->InitStackValues(stack);
 		SMIL_initIntervalList(stack);
 		stack->current_interval = NULL;
 		interval_index = SMIL_findIntervalIndex(stack, GF_MAX_DOUBLE);
@@ -555,14 +575,14 @@ waiting_to_begin:
 		}
 
 		/* Register the animation in the renderer */
-		gf_list_add(stack->compositor->svg_animated_attributes, stack->targetAttribute);
+		gf_list_add(stack->compositor->svg_animated_attributes, stack->target_attribute.field_ptr);
 		stack->is_registered_in_cycle = 1;
 	}
 
 post_active:
 	if (stack->status == SMIL_STATUS_POST_ACTIVE) {
 		s32 item;
-		if (stack->is_registered_in_cycle && (item = gf_list_find(stack->compositor->svg_animated_attributes, stack->targetAttribute)) > 0) {
+		if (stack->is_registered_in_cycle && (item = gf_list_find(stack->compositor->svg_animated_attributes, stack->target_attribute.field_ptr)) > 0) {
 			/* Unregister the animation in the renderer */
 			gf_list_rem(stack->compositor->svg_animated_attributes, item);
 		}
@@ -570,8 +590,9 @@ post_active:
 		if (stack->Set && stack->fill) {
 			if (stack->fill && *stack->fill == SMIL_FILL_FREEZE) {
 				//fprintf(stdout, "setting final animation value\n");
-				void * last = SMIL_GetLastSpecifiedValue(stack);
-				if (last) {
+				GF_FieldInfo info;
+				SMIL_GetLastSpecifiedValue(stack, &info);
+				if (info.far_ptr) {
 					stack->current_interval->nb_iterations--;
 					SMIL_ApplyAccumulate(stack);
 					SMIL_ApplyAdditive(stack);
@@ -581,16 +602,20 @@ post_active:
 					}
 				}
 			} else {
-				if (stack->Compare(stack, stack->targetAttribute, stack->base_value)) {
+				GF_FieldInfo info;
+				info.far_ptr = stack->target_attribute.field_ptr;
+				info.eventType = stack->target_attribute.transform_type;
+				info.fieldType = stack->target_attribute.type;
+				if (stack->Compare(stack, info, stack->base_value)) {
 					//fprintf(stdout, "resetting to initial animation value\n");
-					stack->Assign(stack, stack->targetAttribute, stack->base_value);
+					stack->Assign(stack, info, stack->base_value);
 					stack->Invalidate(stack);
 				}
 			}
 		}
 
 		/* Register the animation in the renderer */
-		gf_list_add(stack->compositor->svg_animated_attributes, stack->targetAttribute);
+		gf_list_add(stack->compositor->svg_animated_attributes, stack->target_attribute.field_ptr);
 		stack->is_registered_in_cycle = 1;
 
 		stack->status = SMIL_STATUS_DONE;
@@ -603,7 +628,7 @@ post_active:
 
 	if (stack->status == SMIL_STATUS_DONE) {
 		s32 item;
-		if (stack->is_registered_in_cycle && (item = gf_list_find(stack->compositor->svg_animated_attributes, stack->targetAttribute)) >= 0) {
+		if (stack->is_registered_in_cycle && (item = gf_list_find(stack->compositor->svg_animated_attributes, stack->target_attribute.field_ptr)) >= 0) {
 			/* Unregister the animation in the renderer */
 			gf_list_rem(stack->compositor->svg_animated_attributes, item);
 		}

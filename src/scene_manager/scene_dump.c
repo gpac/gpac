@@ -2328,7 +2328,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n)
 		}
 		/*don't dump default fields*/
 		gf_node_get_field(proto, i, &pf);
-		if (svg_attribute_equals(&info, &pf)) continue;
+		if (svg_attributes_equal(&info, &pf)) continue;
 
 		svg_dump_attribute(svg, &info, attValue);
 		if (strlen(attValue)) fprintf(sdump->trace, "%s=\"%s\" ", info.name, attValue);

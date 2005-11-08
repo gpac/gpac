@@ -846,25 +846,17 @@ static JSBool udom_get_float_trait(JSContext *c, JSObject *obj, uintN argc, jsva
 	case SVG_StrokeDashOffset_datatype:
 	case SVG_AudioLevel_datatype:
 	case SVG_LineIncrement_datatype:
-	{
-		SVGInheritableFloat *ft = (SVGInheritableFloat *)info.far_ptr;
-		if (ft->type==SVG_FLOAT_INHERIT) return JS_FALSE;
-		*rval = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(ft->value) ) );
-		return JS_TRUE;
-	}
-	/* inheritable float and unit */
 	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 	{
-		SVG_Length *l = (SVG_Length *)info.far_ptr;
-		if (l->type==SVG_LENGTH_INHERIT) return JS_FALSE;
-		*rval = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(l->number) ) );
+		SVG_Number *l = (SVG_Number *)info.far_ptr;
+		if (l->type==SVG_NUMBER_UNKNOWN || 
+			l->type==SVG_NUMBER_AUTO || 
+			l->type==SVG_NUMBER_INHERIT) return JS_FALSE;
+		*rval = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(l->value) ) );
 		return JS_TRUE;
 	}
-	case SVG_Number_datatype:
-		*rval = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(* (SVG_Number *)info.far_ptr ) ) );
-		return JS_TRUE;
 	default:
 		return JS_FALSE;
 	}
@@ -886,12 +878,11 @@ static JSBool udom_get_matrix_trait(JSContext *c, JSObject *obj, uintN argc, jsv
 	*rval = JSVAL_VOID;
 	if (gf_node_get_field_by_name(n, szName, &info) != GF_OK) return JS_FALSE;
 
-	if (info.fieldType==SVG_TransformList_datatype) {
-		SVG_Transform *tr = gf_list_get( *((SVG_TransformList*)info.far_ptr), 0);
+	if (info.fieldType==SVG_Matrix_datatype) {
 		GF_Matrix2D *mx = malloc(sizeof(GF_Matrix2D));
 		mO = JS_NewObject(c, &matrixClass, 0, 0);
 		gf_mx2d_init(*mx);
-		if (tr) gf_mx2d_copy(*mx, tr->matrix);
+		gf_mx2d_copy(*mx, *(SVG_Matrix*)info.far_ptr);
 
 		JS_SetPrivate(c, mO, mx);
 		*rval = OBJECT_TO_JSVAL(mO);
@@ -1132,25 +1123,15 @@ static JSBool udom_set_float_trait(JSContext *c, JSObject *obj, uintN argc, jsva
 	case SVG_StrokeDashOffset_datatype:
 	case SVG_AudioLevel_datatype:
 	case SVG_LineIncrement_datatype:
-	{
-		SVGInheritableFloat *ft = (SVGInheritableFloat *)info.far_ptr;
-		ft->type=SVG_FLOAT_VALUE;
-		ft->value = FLT2FIX(d);
-		break;
-	}
-	/* inheritable float and unit */
 	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 	{
-		SVG_Length *l = (SVG_Length *)info.far_ptr;
-		l->type=SVG_LENGTH_NUMBER;
-		l->number = FLT2FIX(d);
+		SVG_Number *l = (SVG_Number *)info.far_ptr;
+		l->type=SVG_NUMBER_VALUE;
+		l->value = FLT2FIX(d);
 		break;
 	}
-	case SVG_Number_datatype:
-		* (SVG_Number *)info.far_ptr = FLT2FIX(d);
-		break;
 	default:
 		return JS_FALSE;
 	}
@@ -1179,13 +1160,8 @@ static JSBool udom_set_matrix_trait(JSContext *c, JSObject *obj, uintN argc, jsv
 
 	if (gf_node_get_field_by_name(n, szName, &info) != GF_OK) return JS_FALSE;
 
-	if (info.fieldType==SVG_TransformList_datatype) {
-		SVG_Transform *orig = gf_list_get( *((SVG_TransformList*)info.far_ptr), 0);
-		if (!orig) {
-			GF_SAFEALLOC(orig, sizeof(SVG_Transform));
-			gf_list_add( *((SVG_TransformList*)info.far_ptr), orig);
-		}
-		gf_mx2d_copy(orig->matrix, *mx);
+	if (info.fieldType==SVG_Matrix_datatype) {
+		gf_mx2d_copy(*(SVG_Matrix*)info.far_ptr, *mx);
 		svg_node_changed(n, NULL);
 		return JS_TRUE;
 	}

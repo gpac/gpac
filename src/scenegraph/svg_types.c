@@ -123,7 +123,7 @@ void SMIL_DeleteAnimateValues(SMIL_AnimateValues *anim_values)
 	count = gf_list_count(anim_values->values);
 	for (i = 0; i < count; i++) {
 		void *value = gf_list_get(anim_values->values, i);
-		SVG_DeleteOneAnimValue(anim_values->datatype, value);
+		SVG_DeleteOneAnimValue(anim_values->type, value);
 	}
 	gf_list_del(anim_values->values);
 	anim_values->values = NULL;
@@ -131,7 +131,7 @@ void SMIL_DeleteAnimateValues(SMIL_AnimateValues *anim_values)
 
 void SMIL_DeleteAnimateValue(SMIL_AnimateValue *anim_value)
 {
-	SVG_DeleteOneAnimValue(anim_value->datatype, anim_value->value);
+	SVG_DeleteOneAnimValue(anim_value->type, anim_value->value);
 	anim_value->value = NULL;
 }
 

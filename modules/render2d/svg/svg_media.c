@@ -136,7 +136,7 @@ static void SVG_BuildGraph_image(SVG_image_stack *st)
 	SVGimageElement *img = (SVGimageElement *)st->graph->owner;
 	gf_path_get_bounds(st->graph->path, &rc);
 	drawable_reset_path(st->graph);
-	gf_path_add_rect_center(st->graph->path, img->x.number+img->width.number/2, img->y.number+img->height.number/2, img->width.number, img->height.number);
+	gf_path_add_rect_center(st->graph->path, img->x.value+img->width.value/2, img->y.value+img->height.value/2, img->width.value, img->height.value);
 	gf_path_get_bounds(st->graph->path, &new_rc);
 	/*change in visual aspect*/
 	if (!gf_rect_equal(rc, new_rc)) st->graph->node_changed = 1;
@@ -150,7 +150,7 @@ static void SVG_BuildGraph_video(SVG_video_stack *st)
 	SVGvideoElement *video = (SVGvideoElement *)st->graph->owner;
 	gf_path_get_bounds(st->graph->path, &rc);
 	drawable_reset_path(st->graph);
-	gf_path_add_rect_center(st->graph->path, video->x.number+video->width.number/2, video->y.number+video->height.number/2, video->width.number, video->height.number);
+	gf_path_add_rect_center(st->graph->path, video->x.value+video->width.value/2, video->y.value+video->height.value/2, video->width.value, video->height.value);
 	gf_path_get_bounds(st->graph->path, &new_rc);
 	/*change in visual aspect*/
 	if (!gf_rect_equal(rc, new_rc)) st->graph->node_changed = 1;
@@ -164,7 +164,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
 	SVGStylingProperties backup_props;
 	GF_Matrix2D backup_matrix;
-	SVG_Transform *tr;
+	SVG_Matrix *m;
 	DrawableContext *ctx;
 
 	memcpy(&backup_props, eff->svg_props, sizeof(SVGStylingProperties));
@@ -172,15 +172,15 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 
 	if (gf_node_get_tag(node)==TAG_SVG_image) {
 		SVG_BuildGraph_image(gf_node_get_private(node));
-		tr = gf_list_get( ((SVGimageElement *)node)->transform, 0);
+		m = &((SVGimageElement *)node)->transform;
 	} else {
 		SVG_BuildGraph_video(gf_node_get_private(node));
-		tr = gf_list_get( ((SVGvideoElement *)node)->transform, 0);
+		m = &((SVGvideoElement *)node)->transform;
 	}
 	/*FIXME: setup aspect ratio*/
 
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
-		if (tr) gf_mx2d_pre_multiply(&eff->transform, &tr->matrix);
+		gf_mx2d_pre_multiply(&eff->transform, m);
 		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
 			gf_path_get_bounds(st->graph->path, &eff->bounds);
 		}
@@ -195,7 +195,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	}
 
 	gf_mx2d_copy(backup_matrix, eff->transform);
-	if (tr) gf_mx2d_pre_multiply(&eff->transform, &tr->matrix);
+	gf_mx2d_pre_multiply(&eff->transform, m);
 
 	ctx = SVG_drawable_init_context(st->graph, eff);
 	if (!ctx || !ctx->h_texture ) return;

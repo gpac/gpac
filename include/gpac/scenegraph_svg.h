@@ -52,6 +52,7 @@ enum {
 	SVG_FontWeight_datatype					= 9,
 	SVG_FontVariant_datatype				= 10,
 	SVG_TextAnchor_datatype					= 11,
+	SVG_TransformType_datatype				= 12, 
 	SVG_Display_datatype					= 13, 
 	SVG_Visibility_datatype					= 14,
 	SVG_Overflow_datatype					= 15,
@@ -75,21 +76,19 @@ enum {
 	SMIL_Restart_datatype					= 33,
 	SMIL_Fill_datatype						= 34,	
 
-	/* inheritable floats */
+	/* SVG Number */
 	SVG_Opacity_datatype					= 35,
 	SVG_StrokeMiterLimit_datatype			= 36,
 	SVG_FontSize_datatype					= 37,
 	SVG_StrokeDashOffset_datatype			= 38,
 	SVG_AudioLevel_datatype					= 39,
 	SVG_LineIncrement_datatype				= 40,
-
-	/* inheritable float and unit */
 	SVG_StrokeWidth_datatype				= 41,
 	SVG_Length_datatype						= 42,
 	SVG_Coordinate_datatype					= 43,
 
 	/* List of */
-	SVG_TransformList_datatype				= 44,
+	SVG_Matrix_datatype						= 44,
 	SVG_Points_datatype						= 45,
 	SVG_Coordinates_datatype				= 46,
 	SVG_FeatureList_datatype				= 47,
@@ -130,7 +129,6 @@ enum {
 	SVG_Clock_datatype						= 73,
 
 	SVG_Motion_datatype						= 74, /* required for animateMotion */
-	SVG_TransformType_datatype				= 12, /* required for animateTransform */
 
 	SVG_TextContent_datatype				= 4,
 
@@ -157,20 +155,18 @@ typedef GF_FieldInfo SVGAttributeInfo;
 /* Definition of SVG base data types */
 typedef u8 *DOM_String;
 typedef DOM_String SVG_String;
+typedef DOM_String SVG_ContentType;
+typedef DOM_String SVG_LanguageID;
+typedef DOM_String SVG_TextContent;
 
+/* types not yet handled properly, i.e. for the moment using strings */
 typedef DOM_String SVG_Focus;
 typedef DOM_String SVG_ID;
-/*DOM event type*/
-typedef u32 SVG_XSLT_QName;
-
-typedef u8 *SVG_TextContent;
-
-typedef DOM_String SVG_ContentType;
 typedef DOM_String SVG_LinkTarget;
-typedef DOM_String SVG_LanguageID;
 typedef DOM_String SVG_GradientOffset;
 
-typedef Fixed SVG_Number;
+/*DOM event type*/
+typedef u32 SVG_XSLT_QName;
 
 typedef Double SVG_Clock;
 
@@ -185,6 +181,9 @@ typedef GF_List	*SVG_FontList;
 /* SMIL Anim types */
 typedef struct {
 	u32 type;
+	/* used in case type is SVG_Matrix_datatype */
+	u32 transform_type;
+
 	void *field_ptr;
 } SMIL_AttributeName;
 
@@ -259,12 +258,14 @@ typedef struct {
 } SMIL_RepeatCount;
 
 typedef struct {
-	u8 datatype;
+	u8 type;
+	u8 transform_type;
 	void *value;
 } SMIL_AnimateValue;
 
 typedef struct {
-	u8 datatype;
+	u8 type;
+	u8 transform_type;
 	GF_List *values;
 } SMIL_AnimateValues;
 
@@ -393,10 +394,10 @@ typedef struct {
 } SVG_Color;
 
 enum {
-	SVG_PAINT_NONE = 0,
-	SVG_PAINT_COLOR = 2,
-	SVG_PAINT_URI = 3,
-	SVG_PAINT_INHERIT = 4
+	SVG_PAINT_NONE		= 0,
+	SVG_PAINT_COLOR		= 1,
+	SVG_PAINT_URI		= 2,
+	SVG_PAINT_INHERIT	= 3
 };
 
 typedef struct {
@@ -406,65 +407,51 @@ typedef struct {
 } SVG_Paint, SVG_SVGColor;
 
 enum {
-	SVG_FLOAT_INHERIT = 0,
-	SVG_FLOAT_AUTO	  = 1,
-	SVG_FLOAT_VALUE	  = 2
+	SVG_NUMBER_UNKNOWN		= 0,
+	SVG_NUMBER_VALUE		= 1,
+	SVG_NUMBER_PERCENTAGE	= 2,
+	SVG_NUMBER_EMS			= 3,
+	SVG_NUMBER_EXS			= 4,
+	SVG_NUMBER_PX			= 5,
+	SVG_NUMBER_CM			= 6,
+	SVG_NUMBER_MM			= 7,
+	SVG_NUMBER_IN			= 8,
+	SVG_NUMBER_PT			= 9,
+	SVG_NUMBER_PC			= 10,
+	SVG_NUMBER_INHERIT		= 11,
+	SVG_NUMBER_AUTO			= 12
 };
 
 typedef struct {
 	u8 type;
 	Fixed value;
-} SVGInheritableFloat, 
+} SVG_Number, 
   SVG_Opacity, 
   SVG_StrokeMiterLimit, 
   SVG_FontSize, 
   SVG_StrokeDashOffset,
   SVG_AudioLevel,
-  SVG_LineIncrement;
-
-enum {
-	SVG_LENGTH_UNKNOWN = 0,
-	SVG_LENGTH_NUMBER = 1,
-	SVG_LENGTH_PERCENTAGE = 2,
-	SVG_LENGTH_EMS = 3,
-	SVG_LENGTH_EXS = 4,
-	SVG_LENGTH_PX = 5,
-	SVG_LENGTH_CM = 6,
-	SVG_LENGTH_MM = 7,
-	SVG_LENGTH_IN = 8,
-	SVG_LENGTH_PT = 9,
-	SVG_LENGTH_PC = 10,
-	SVG_LENGTH_INHERIT = 11
-};
-
-typedef struct {
-	u8 type;
-	Fixed number;
-} SVG_Length, 
+  SVG_LineIncrement,
+  SVG_Length, 
   SVG_Coordinate, 
   SVG_StrokeWidth,
   SVG_NumberOrPercentage;
+
 typedef GF_List * SVG_Coordinates;
 
 typedef GF_Matrix2D SVG_Matrix;
 
 enum {
-	SVG_TRANSFORM_MATRIX = 0,
+	SVG_TRANSFORM_MATRIX	= 0,
 	SVG_TRANSFORM_TRANSLATE = 1,
-	SVG_TRANSFORM_SCALE = 2,
-	SVG_TRANSFORM_ROTATE = 3,
-	SVG_TRANSFORM_SKEWX = 4,
-	SVG_TRANSFORM_SKEWY = 5,
-	SVG_TRANSFORM_UNKNOWN = 6
+	SVG_TRANSFORM_SCALE		= 2,
+	SVG_TRANSFORM_ROTATE	= 3,
+	SVG_TRANSFORM_SKEWX		= 4,
+	SVG_TRANSFORM_SKEWY		= 5,
+	SVG_TRANSFORM_UNKNOWN	= 6
 };
 
 typedef u8 SVG_TransformType; 
-typedef struct {
-	SVG_TransformType type;
-	SVG_Matrix matrix;
-	Fixed angle;
-} SVG_Transform;
-
 typedef GF_List * SVG_TransformList;
 
 enum {
@@ -957,6 +944,9 @@ GF_Err gf_node_listener_add(GF_Node *node, GF_Node *listener);
 GF_Err gf_node_listener_del(GF_Node *node, GF_Node *listener);
 u32 gf_node_listener_count(GF_Node *node);
 GF_Node *gf_node_listener_get(GF_Node *node, u32 i);
+
+void *svg_create_value_from_attributetype(u8 attribute_type, u8 transform_type);
+GF_Err svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type);
 
 /*creates a default listener/handler for the given event on the given node, and return the 
 handler element to allow for handler function override*/

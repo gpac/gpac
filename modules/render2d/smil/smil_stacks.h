@@ -75,10 +75,10 @@ typedef struct _smil_anim_stack
 	Bool target_value_changed;
 
 	/* stores the DOM value */
-	void *base_value;
+	GF_FieldInfo base_value;
 
 	/* stores the intermediate value during computation*/
-	void *tmp_value;
+	GF_FieldInfo tmp_value;
 
 	/* animation attributes of the timenode */
 	
@@ -87,11 +87,8 @@ typedef struct _smil_anim_stack
 	*/
 	GF_Node *target_element;
 	
-	/* type of the target attribute or property and pointer to*/
-	u32 targetAttributeType;
-	void *targetAttribute;
-	/* type of animation if the target attribute is of type SVG_TransformList */
-	u8 transformType;
+	/* the target attribute or property */
+	SMIL_AttributeName target_attribute;
 	
 	/* attributes to control the timing of the animation 
 	       SVG.AnimationTiming.attrib
@@ -135,36 +132,32 @@ typedef struct _smil_anim_stack
 
 	void (*Animate)(struct _smil_anim_stack *stack, Double sceneTime);
 
-	/* Saves the DOM value and allocates a temporary value in the stack */
-	void (*InitStackValues)(struct _smil_anim_stack *stack);
-	void (*DeleteStackValues)(struct _smil_anim_stack *stack);
-
 	/* Sets the target using the given value
 	   The target type depends on the animation.
 	   The value type depends on the animation and is not necessarily the same as the target type. */
-	void (*Set)(struct _smil_anim_stack *stack, void *target, void *value);
+	void (*Set)(struct _smil_anim_stack *stack, GF_FieldInfo target, GF_FieldInfo value);
 
 	/* Sets the target using the given value
 	   The target type depends on the animation.
 	   The value type MUST BE the same as the target type. */
-	void (*Assign)(struct _smil_anim_stack *stack, void *target, void *value);
+	void (*Assign)(struct _smil_anim_stack *stack, GF_FieldInfo target, GF_FieldInfo value);
 
 	/* returns 1 if different, a and b must be non NULL and of same type */
-	u32 (*Compare)(struct _smil_anim_stack *stack, void *a, void *b);
+	u32 (*Compare)(struct _smil_anim_stack *stack, GF_FieldInfo a, GF_FieldInfo b);
 
 	/* Linearly interpolates a value from value1 to value2 using the given coef
 	   The target type depends on the animation.
 	   The value1 and value2 type depends on the animation and are not necessarily the same as the target type. */
-	void (*Interpolate)(struct _smil_anim_stack *stack, Fixed interpolation_coefficient, void *value1, void *value2, void *target);
+	void (*Interpolate)(struct _smil_anim_stack *stack, Fixed interpolation_coefficient, GF_FieldInfo value1, GF_FieldInfo value2, GF_FieldInfo target);
 
 	/* Current value can be either the dom or the tmp value depending on the value of additive
 	   all parameters are of same type */
-	void (*ApplyAdditive)(struct _smil_anim_stack *stack, void *current_value, void *toApply, void *target);
+	void (*ApplyAdditive)(struct _smil_anim_stack *stack, GF_FieldInfo current_value, GF_FieldInfo toApply, GF_FieldInfo target);
 	/* current is the temporary value, 
 	   last is the last specified in the animation 
 	   accumulated is the result
 	   current and accumulated are of the same type. last may not be of the same type */
-	void (*ApplyAccumulate)(struct _smil_anim_stack *stack, u32 nb_iterations, void *current, void *last, void *accumulated);
+	void (*ApplyAccumulate)(struct _smil_anim_stack *stack, u32 nb_iterations, GF_FieldInfo current, GF_FieldInfo last, GF_FieldInfo accumulated);
 
 	void (*Invalidate)(struct _smil_anim_stack *stack);
 
