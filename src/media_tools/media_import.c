@@ -1337,7 +1337,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	u8 bps;
 	char lang[4];
 	const char *url, *urn;
-	Bool sbr;
+	Bool sbr, is_clone;
 	GF_ISOSample *samp;
 	GF_ESD *origin_esd;
 	GF_InitialObjectDescriptor *iod;
@@ -1408,41 +1408,51 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	}
 	gf_odf_desc_del((GF_Descriptor *) iod);
 	
-	track = gf_isom_new_track(import->dest, import->esd ? import->esd->ESID : 0, gf_isom_get_media_type(import->orig, track_in), gf_isom_get_media_timescale(import->orig, track_in));
-	if (!track) {
-		e = gf_isom_last_error(import->dest);
-		goto exit;
-	}
-	gf_isom_set_track_enabled(import->dest, track, 1);
-	if (import->esd && !import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
-	import->final_trackID = gf_isom_get_track_id(import->dest, track);
-
-	/*setup data ref*/
-	urn = url = NULL;
-	if (import->flags & GF_IMPORT_USE_DATAREF) {
-		url = gf_isom_get_filename(import->orig);
-		if (!gf_isom_is_self_contained(import->orig, track_in, 1)) {
-			e = gf_isom_get_data_reference(import->orig, track_in, 1, &url, &urn);
-			if (e) goto exit;
-		}
-	}
 	/*check if MPEG-4 or not*/
+	is_clone = 0;
 	stype = gf_isom_get_media_subtype(import->orig, track_in, 1);
 	if ((stype==GF_ISOM_SUBTYPE_MPEG4) || (stype==GF_ISOM_SUBTYPE_MPEG4_CRYP)) {
+		track = gf_isom_new_track(import->dest, import->esd ? import->esd->ESID : 0, gf_isom_get_media_type(import->orig, track_in), gf_isom_get_media_timescale(import->orig, track_in));
+		if (!track) {
+			e = gf_isom_last_error(import->dest);
+			goto exit;
+		}
+		gf_isom_set_track_enabled(import->dest, track, 1);
+		if (import->esd && !import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
+		import->final_trackID = gf_isom_get_track_id(import->dest, track);
+
+		/*setup data ref*/
+		urn = url = NULL;
+		if (import->flags & GF_IMPORT_USE_DATAREF) {
+			url = gf_isom_get_filename(import->orig);
+			if (!gf_isom_is_self_contained(import->orig, track_in, 1)) {
+				e = gf_isom_get_data_reference(import->orig, track_in, 1, &url, &urn);
+				if (e) goto exit;
+			}
+		}
 		e = gf_isom_new_mpeg4_description(import->dest, track, origin_esd, (char *) url, (char *) urn, &di);
+		if (e) goto exit;
+		/*copy over language*/
+		lang[3] = 0;
+		gf_isom_get_media_language(import->orig, track_in, lang);
+		gf_isom_set_media_language(import->dest, track, lang);
+
 	} else {
-		e = gf_isom_clone_sample_description(import->dest, track, import->orig, track_in, 1, (char *) url, (char *) urn, &di);
+		e = gf_isom_clone_track(import->orig, track_in, import->dest, (import->flags & GF_IMPORT_USE_DATAREF), &track);
+		is_clone = 1;
+		di = 1;
+		if (e) goto exit;
 	}
 
 	if (e) goto exit;
 	switch (mtype) {
 	case GF_ISOM_MEDIA_VISUAL:
-		gf_isom_set_visual_info(import->dest, track, di, w, h);
+		if (!is_clone) gf_isom_set_visual_info(import->dest, track, di, w, h);
 		gf_import_message(import, GF_OK, "IsoMedia import - track ID %d - Video (size %d x %d)", trackID, w, h);
 		break;
 	case GF_ISOM_MEDIA_AUDIO:
 	{
-		gf_isom_set_audio_info(import->dest, track, di, sr, (ch>1) ? 2 : 1, bps);
+		if (!is_clone) gf_isom_set_audio_info(import->dest, track, di, sr, (ch>1) ? 2 : 1, bps);
 		if (sbr) {
 			gf_import_message(import, GF_OK, "IsoMedia import - track ID %d - HE-AAC (SR %d - SBR-SR %d - %d channels)", trackID, sr, sbr_sr, ch);
 		} else {
@@ -1452,16 +1462,13 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		break;
 	default:
 	{
-		gf_import_message(import, GF_OK, "IsoMedia import - track ID %d - media type %s sub-type %s", trackID, 
-			gf_4cc_to_str(mtype),
-			gf_4cc_to_str(gf_isom_get_media_subtype(import->orig, track_in, di)));
+		char szT[5];
+		strcpy(szT, gf_4cc_to_str(mtype));
+		gf_import_message(import, GF_OK, "IsoMedia import - track ID %d - media type \"%s:%s\"", 
+			trackID, szT, gf_4cc_to_str(gf_isom_get_media_subtype(import->orig, track_in, di)));
 	}
 		break;
 	}
-	/*copy over language*/
-	lang[3] = 0;
-	gf_isom_get_media_language(import->orig, track_in, lang);
-	gf_isom_set_media_language(import->dest, track, lang);
 
 	duration = (u32) (((Double)import->duration * gf_isom_get_media_timescale(import->orig, track_in)) / 1000);
 

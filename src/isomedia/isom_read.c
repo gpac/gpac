@@ -1785,7 +1785,6 @@ GF_Err gf_isom_get_visual_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDes
 	//valid for MPEG visual, JPG and 3GPP H263
 	switch (entry->type) {
 	case GF_ISOM_BOX_TYPE_ENCV:
-		if (entry->protection_info && (entry->protection_info->original_format->data_format!= GF_ISOM_BOX_TYPE_MP4V)) return GF_ISOM_INVALID_MEDIA;
 	case GF_ISOM_BOX_TYPE_MP4V:
 	case GF_ISOM_SUBTYPE_3GP_H263:
 	case GF_ISOM_BOX_TYPE_AVC1:
