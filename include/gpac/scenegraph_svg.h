@@ -947,6 +947,11 @@ GF_Node *gf_node_listener_get(GF_Node *node, u32 i);
 
 void *svg_create_value_from_attributetype(u8 attribute_type, u8 transform_type);
 GF_Err svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type);
+void smil_parse_attributename(SVGElement *animation_element, char *value_string);
+void svg_parse_style(SVGElement *elt, char *style);
+Bool svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2);
+GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue);
+Bool svg_store_embedded_data(SVG_IRI *iri, const char *iri_data, const char *cache_dir, const char *base_filename);
 
 /*creates a default listener/handler for the given event on the given node, and return the 
 handler element to allow for handler function override*/

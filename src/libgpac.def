@@ -1094,7 +1094,7 @@ EXPORTS
 	svg_parse_attribute
 	svg_convert_length_unit_to_user_unit
 	svg_parse_style
-	smil_parse_attributename
-	svg_parse_animatetransform_type
 	svg_parse_iri
 	gf_sg_dom_create_listener
+	svg_store_embedded_data
+	smil_parse_attributename

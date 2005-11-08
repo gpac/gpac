@@ -270,16 +270,16 @@ static void SVGSetViewport(RenderEffect2D *eff, SVGsvgElement *svg, Bool is_root
 			real_width = INT2FIX(scene_width);
 		else
 			/*u32 * fixed / u32*/
-			real_width = scene_width*svg->width.number/100;
+			real_width = scene_width*svg->width.value/100;
 
 		if (svg->height.type == SVG_NUMBER_VALUE)
 			real_height = INT2FIX(scene_height);
 		else 
-			real_height = scene_height*svg->height.number/100;
+			real_height = scene_height*svg->height.value/100;
 	} else {
 		real_width = real_height = 0;
-		if (svg->width.type == SVG_NUMBER_VALUE) real_width = svg->width.number;
-		if (svg->height.type == SVG_NUMBER_VALUE) real_height = svg->height.number;
+		if (svg->width.type == SVG_NUMBER_VALUE) real_width = svg->width.value;
+		if (svg->height.type == SVG_NUMBER_VALUE) real_height = svg->height.value;
 	}
 	
 	if (!real_width || !real_height) return;

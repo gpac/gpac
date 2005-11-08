@@ -31,9 +31,6 @@
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
-GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue);
-GF_Err svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type);
-
 #define uDOM_SETUP_CLASS(the_class, cname, flag, getp, setp, fin)	\
 	memset(&the_class, 0, sizeof(the_class));	\
 	the_class.name = cname;	\

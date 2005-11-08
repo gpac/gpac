@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Sun Nov 06 09:12:30 2005
+	DO NOT MOFIFY - File generated on GMT Tue Nov 08 12:53:41 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -126,7 +126,7 @@ typedef struct _tagSVGaElement
 	SVG_Focus focusSouthWest; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusWest; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusNorthWest; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_type; /* optional, animatable: no, inheritable: false */
 	SVG_IRI xlink_role; /* optional, animatable: no, inheritable: false */
 	SVG_IRI xlink_arcrole; /* optional, animatable: no, inheritable: false */
@@ -396,7 +396,7 @@ typedef struct _tagSVGanimationElement
 	SVG_Length width; /* optional, animatable: no, inheritable: false */
 	SVG_Length height; /* optional, animatable: no, inheritable: false */
 	SVG_PreserveAspectRatio preserveAspectRatio; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 } SVGanimationElement;
 
 
@@ -451,7 +451,7 @@ typedef struct _tagSVGcircleElement
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
 	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
 	SVG_FormatList requiredFormats; /* optional, animatable: no, inheritable: false */
@@ -607,7 +607,7 @@ typedef struct _tagSVGellipseElement
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
 	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
 	SVG_FormatList requiredFormats; /* optional, animatable: no, inheritable: false */
@@ -817,7 +817,7 @@ typedef struct _tagSVGforeignObjectElement
 	SVG_Focus focusWest; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusNorthWest; /* optional, animatable: no, inheritable: false */
 	SVG_Boolean externalResourcesRequired; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate x; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate y; /* optional, animatable: no, inheritable: false */
 	SVG_Length width; /* optional, animatable: no, inheritable: false */
@@ -888,7 +888,7 @@ typedef struct _tagSVGgElement
 	SVG_Focus focusSouthWest; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusWest; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusNorthWest; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
 	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
@@ -1022,7 +1022,7 @@ typedef struct _tagSVGimageElement
 	SVG_Focus focusSouthWest; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusWest; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusNorthWest; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 	SVG_Opacity opacity; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate x; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate y; /* optional, animatable: no, inheritable: false */
@@ -1079,7 +1079,7 @@ typedef struct _tagSVGlineElement
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
 	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
 	SVG_FormatList requiredFormats; /* optional, animatable: no, inheritable: false */
@@ -1279,7 +1279,7 @@ typedef struct _tagSVGpathElement
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
 	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
 	SVG_FormatList requiredFormats; /* optional, animatable: no, inheritable: false */
@@ -1347,7 +1347,7 @@ typedef struct _tagSVGpolygonElement
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
 	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
 	SVG_FormatList requiredFormats; /* optional, animatable: no, inheritable: false */
@@ -1414,7 +1414,7 @@ typedef struct _tagSVGpolylineElement
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
 	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
 	SVG_FormatList requiredFormats; /* optional, animatable: no, inheritable: false */
@@ -1561,7 +1561,7 @@ typedef struct _tagSVGrectElement
 	SVG_LanguageID xml_lang; /* optional, animatable: no, inheritable: false */
 	SVG_TextContent textContent; /* optional, animatable: no, inheritable: false */
 	XML_Space xml_space; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredFeatures; /* optional, animatable: no, inheritable: false */
 	SVG_ListOfIRI requiredExtensions; /* optional, animatable: no, inheritable: false */
 	SVG_FormatList requiredFormats; /* optional, animatable: no, inheritable: false */
@@ -1865,7 +1865,7 @@ typedef struct _tagSVGswitchElement
 	SVG_FontList requiredFonts; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageIDs systemLanguage; /* optional, animatable: no, inheritable: false */
 	SVG_Boolean externalResourcesRequired; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 	SVG_Display display; /* animatable: yes, inheritable: false */
 	SVG_Visibility visibility; /* animatable: yes, inheritable: true */
 	SVG_RenderingHint image_rendering; /* animatable: yes, inheritable: true */
@@ -1947,7 +1947,7 @@ typedef struct _tagSVGtextElement
 	SVG_Focus focusSouthWest; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusWest; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusNorthWest; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinates x; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinates y; /* optional, animatable: no, inheritable: false */
 	SVG_Numbers rotate; /* optional, animatable: no, inheritable: false */
@@ -2016,7 +2016,7 @@ typedef struct _tagSVGtextAreaElement
 	SVG_Focus focusSouthWest; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusWest; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusNorthWest; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate x; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate y; /* optional, animatable: no, inheritable: false */
 	SVG_Boolean editable; /* optional, animatable: no, inheritable: false */
@@ -2156,7 +2156,7 @@ typedef struct _tagSVGuseElement
 	SVG_FormatList requiredFormats; /* optional, animatable: no, inheritable: false */
 	SVG_FontList requiredFonts; /* optional, animatable: no, inheritable: false */
 	SVG_LanguageIDs systemLanguage; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_actuate; /* optional, animatable: no, inheritable: false */
 	SVG_String xlink_type; /* optional, animatable: no, inheritable: false */
 	SVG_IRI xlink_role; /* optional, animatable: no, inheritable: false */
@@ -2261,7 +2261,7 @@ typedef struct _tagSVGvideoElement
 	SVG_Focus focusSouthWest; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusWest; /* optional, animatable: no, inheritable: false */
 	SVG_Focus focusNorthWest; /* optional, animatable: no, inheritable: false */
-	SVG_TransformList transform; /* optional, animatable: no, inheritable: false */
+	SVG_Matrix transform; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate x; /* optional, animatable: no, inheritable: false */
 	SVG_Coordinate y; /* optional, animatable: no, inheritable: false */
 	SVG_Length width; /* optional, animatable: no, inheritable: false */

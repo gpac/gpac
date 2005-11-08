@@ -34,17 +34,15 @@ Bool xmllib_is_init = 0;
 
 static void svg_init_root_element(SVGParser *parser, SVGsvgElement *root_svg)
 {
-	svg_convert_length_unit_to_user_unit(&(root_svg->width));
-	svg_convert_length_unit_to_user_unit(&(root_svg->height));
-	if (root_svg->width.type != SVG_NUMBER_PERCENTAGE) {
+	if (root_svg->width.type == SVG_NUMBER_VALUE) {
 		parser->svg_w = FIX2INT(root_svg->width.value);
 		parser->svg_h = FIX2INT(root_svg->height.value);
-		gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
 	} else {
 		/* if unit for width & height is in percentage, then the only meaningful value for 
 		width and height is 100 %. In this case, we don't specify a value. It will be assigned by the renderer */
 		parser->svg_w = parser->svg_h = 0;
 	}
+	gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
 	gf_sg_set_root_node(parser->graph, (GF_Node *)root_svg);
 }
 
@@ -444,11 +442,13 @@ void svg_parse_dom_attributes(SVGParser *parser,
 						tag == TAG_SVG_animateTransform ||
 						tag == TAG_SVG_animateMotion || 
 						tag == TAG_SVG_discard) {
-				/* we don't parse the animation element attributes here */
+					/* we don't parse the animation element attributes here */
 				} else {
 					GF_FieldInfo info;
 					if (!gf_node_get_field_by_name((GF_Node *)elt, "xlink:href", &info)) {
-						svg_parse_attribute(elt, &info, attributes->children->content, 0, 0);
+						if (!svg_store_embedded_data(info.far_ptr, attributes->children->content, parser->temp_dir, parser->file_name)) {
+							svg_parse_attribute(elt, &info, attributes->children->content, 0, 0);
+						}
 					}
 				}
 			} else {
@@ -560,7 +560,7 @@ void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVGEle
 					/* parsing the type attribute of the animateTransform node,
 					   so we set the value of anim_transform_type to be able to parse 
 					   the animation values appropriately */
-					svg_parse_animatetransform_type((SVG_TransformType*)type_info.far_ptr, type);
+					svg_parse_attribute(elt, &type_info, type, 0, 0);
 					anim_value_type		= SVG_Matrix_datatype;
 					anim_transform_type = *(SVG_TransformType*)type_info.far_ptr;
 				} else {
@@ -592,7 +592,7 @@ void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVGEle
 		gf_node_init((GF_Node *)elt);
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.type = SVG_DOM_EVT_LOAD;
-		gf_sg_fire_dom_event(node, &evt);
+		gf_sg_fire_dom_event((GF_Node*)elt, &evt);
 	}
 }
 
@@ -652,7 +652,7 @@ SVGElement *svg_parse_dom_element(SVGParser *parser, xmlNodePtr node, SVGElement
 		gf_node_init((GF_Node *)elt);
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.type = SVG_DOM_EVT_LOAD;
-		gf_sg_fire_dom_event(elt, &evt);
+		gf_sg_fire_dom_event((GF_Node *)elt, &evt);
 	}
 	return elt;
 }
@@ -667,7 +667,7 @@ void svg_parse_sax_defered_anchor(SVGParser *parser, SVGElement *anchor_elt, def
 	GF_FieldInfo xlink_href_info;
 	gf_node_get_field_by_name((GF_Node *)anchor_elt, "xlink:href", &xlink_href_info);
 	if (local_de.target_id) 
-		svg_parse_iri(anchor_elt, (SVG_IRI *)xlink_href_info.far_ptr, local_de.target_id);
+		svg_parse_attribute(anchor_elt, &xlink_href_info, local_de.target_id, 0, 0);
 	else {
 		/* default is the parent element */
 		((SVG_IRI *)xlink_href_info.far_ptr)->type = SVG_IRI_ELEMENTID;
@@ -700,7 +700,7 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_el
 	GF_FieldInfo xlink_href_info;
 	gf_node_get_field_by_name((GF_Node *)animation_elt, "xlink:href", &xlink_href_info);
 	if (local_de.target_id) 
-		svg_parse_iri(parser, animation_elt, (SVG_IRI *)xlink_href_info.far_ptr, local_de.target_id);
+		svg_parse_attribute(animation_elt, &xlink_href_info, local_de.target_id, 0, 0);
 	else {
 		/* default is the parent element */
 		((SVG_IRI *)xlink_href_info.far_ptr)->type = SVG_IRI_ELEMENTID;
@@ -712,8 +712,8 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_el
 
 	if (local_de.attributeName) {
 		/* get the type of the target attribute to determine type of the from/to/by ... */
-		smil_parse_attributename(parser, animation_elt, local_de.attributeName);
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "attributeName", &info);
+		svg_parse_attribute(animation_elt, &info, local_de.attributeName, 0, 0);
 		anim_value_type = ((SMIL_AttributeName *)info.far_ptr)->type;
 		free(local_de.attributeName);
 	} else {
@@ -728,7 +728,7 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_el
 		/* determine the transform_type in case of animateTransform attribute */
 		GF_FieldInfo type_info;
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "type", &type_info);
-		svg_parse_animatetransform_type(parser, (SVG_TransformType*)type_info.far_ptr, local_de.type);
+		svg_parse_attribute(animation_elt, &type_info, local_de.type, 0, 0);
 		anim_value_type = SVG_Matrix_datatype;
 		anim_transform_type = *(SVG_TransformType*)type_info.far_ptr;
 	} 
@@ -795,7 +795,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 			xmlChar *style= svg_expand_entities(parser, (xmlChar *)attrs[attribute_index+1]);
 			if (style)
 			{
-				svg_parse_style(parser, elt, style);
+				svg_parse_style(elt, style);
 				free(style);
 			}
 			break;
@@ -869,7 +869,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 			if (stricmp(attrs[attribute_index],"xlink:href")==0) {
 				GF_FieldInfo xlink_href_info;
 				gf_node_get_field_by_name((GF_Node *)elt, "xlink:href", &xlink_href_info);
-				svg_parse_iri(parser, elt, (SVG_IRI *)xlink_href_info.far_ptr, (char *)attrs[attribute_index+1]);
+				svg_parse_attribute(elt, &xlink_href_info, (char *)attrs[attribute_index+1], 0, 0);
 				break;
 			} 
 			attribute_index+=2;

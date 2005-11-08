@@ -751,8 +751,6 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			fprintf(output, "\tfree(p->stop_color.color);\n");
 		} else if (!strcmp("SMIL_Times", att->impl_type)) {
 			fprintf(output, "\tSMIL_DeleteTimes(p->%s);\n", att->implementation_name);
-		} else if (!strcmp(att->svg_name, "transform")) {
-			fprintf(output, "\tSVG_DeleteTransformList(p->transform);\n");
 		} else if (!strcmp(att->svg_name, "textContent")) {
 			fprintf(output, "\tfree(p->textContent);\n");				
 		} else if (!strcmp(att->svg_name, "font-family")) {

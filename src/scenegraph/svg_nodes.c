@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Sun Nov 06 09:12:30 2005
+	DO NOT MOFIFY - File generated on GMT Tue Nov 08 12:53:42 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -39,7 +39,6 @@ static void SVG_a_Del(GF_Node *node)
 {
 	SVGaElement *p = (SVGaElement *)node;
 	free(p->textContent);
-	SVG_DeleteTransformList(p->transform);
 	SVG_ResetIRI(&(p->xlink_href));
 	free(p->fill.color);
 	free(p->stroke.color);
@@ -176,7 +175,7 @@ static GF_Err SVG_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 24:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGaElement *)node)->transform;
 			return GF_OK;
 		case 25:
@@ -405,7 +404,7 @@ void *SVG_New_a()
 	((GF_Node *p)->sgprivate->node_del = SVG_a_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_a_get_attribute;
 #endif
-	p->transform = gf_list_new();
+	gf_mx2d_init(p->transform);
 	p->properties.display = &(p->display);
 	p->properties.visibility = &(p->visibility);
 	p->properties.image_rendering = &(p->image_rendering);
@@ -413,9 +412,9 @@ void *SVG_New_a()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -427,15 +426,15 @@ void *SVG_New_a()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -454,7 +453,7 @@ void *SVG_New_a()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -1360,7 +1359,6 @@ static void SVG_animation_Del(GF_Node *node)
 	SVG_ResetIRI(&(p->xlink_href));
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
-	SVG_DeleteTransformList(p->transform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -1605,7 +1603,7 @@ static GF_Err SVG_animation_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 47:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->transform;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
@@ -1627,7 +1625,7 @@ void *SVG_New_animation()
 	p->begin = gf_list_new();
 	p->end = gf_list_new();
 	p->repeatDur.type = SMIL_DURATION_UNSPECIFIED;
-	p->transform = gf_list_new();
+	gf_mx2d_init(p->transform);
 	return p;
 }
 
@@ -1827,7 +1825,6 @@ static void SVG_circle_Del(GF_Node *node)
 {
 	SVGcircleElement *p = (SVGcircleElement *)node;
 	free(p->textContent);
-	SVG_DeleteTransformList(p->transform);
 	free(p->fill.color);
 	free(p->stroke.color);
 	free(p->stroke_dasharray.array.vals);
@@ -1878,7 +1875,7 @@ static GF_Err SVG_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->transform;
 			return GF_OK;
 		case 8:
@@ -2162,7 +2159,7 @@ void *SVG_New_circle()
 	((GF_Node *p)->sgprivate->node_del = SVG_circle_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_circle_get_attribute;
 #endif
-	p->transform = gf_list_new();
+	gf_mx2d_init(p->transform);
 	p->properties.display = &(p->display);
 	p->properties.visibility = &(p->visibility);
 	p->properties.image_rendering = &(p->image_rendering);
@@ -2170,9 +2167,9 @@ void *SVG_New_circle()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -2184,15 +2181,15 @@ void *SVG_New_circle()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -2211,7 +2208,7 @@ void *SVG_New_circle()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -2465,9 +2462,9 @@ void *SVG_New_defs()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -2479,15 +2476,15 @@ void *SVG_New_defs()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -2506,7 +2503,7 @@ void *SVG_New_defs()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -2692,7 +2689,6 @@ static void SVG_ellipse_Del(GF_Node *node)
 {
 	SVGellipseElement *p = (SVGellipseElement *)node;
 	free(p->textContent);
-	SVG_DeleteTransformList(p->transform);
 	free(p->fill.color);
 	free(p->stroke.color);
 	free(p->stroke_dasharray.array.vals);
@@ -2743,7 +2739,7 @@ static GF_Err SVG_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->transform;
 			return GF_OK;
 		case 8:
@@ -3032,7 +3028,7 @@ void *SVG_New_ellipse()
 	((GF_Node *p)->sgprivate->node_del = SVG_ellipse_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_ellipse_get_attribute;
 #endif
-	p->transform = gf_list_new();
+	gf_mx2d_init(p->transform);
 	p->properties.display = &(p->display);
 	p->properties.visibility = &(p->visibility);
 	p->properties.image_rendering = &(p->image_rendering);
@@ -3040,9 +3036,9 @@ void *SVG_New_ellipse()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -3054,15 +3050,15 @@ void *SVG_New_ellipse()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -3081,7 +3077,7 @@ void *SVG_New_ellipse()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -3627,7 +3623,6 @@ static void SVG_foreignObject_Del(GF_Node *node)
 	SVGforeignObjectElement *p = (SVGforeignObjectElement *)node;
 	free(p->textContent);
 	SVG_ResetIRI(&(p->xlink_href));
-	SVG_DeleteTransformList(p->transform);
 	free(p->fill.color);
 	free(p->stroke.color);
 	free(p->stroke_dasharray.array.vals);
@@ -3798,7 +3793,7 @@ static GF_Err SVG_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 31:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->transform;
 			return GF_OK;
 		case 32:
@@ -4007,7 +4002,7 @@ void *SVG_New_foreignObject()
 	((GF_Node *p)->sgprivate->node_del = SVG_foreignObject_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_foreignObject_get_attribute;
 #endif
-	p->transform = gf_list_new();
+	gf_mx2d_init(p->transform);
 	p->properties.display = &(p->display);
 	p->properties.visibility = &(p->visibility);
 	p->properties.image_rendering = &(p->image_rendering);
@@ -4015,9 +4010,9 @@ void *SVG_New_foreignObject()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -4029,15 +4024,15 @@ void *SVG_New_foreignObject()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -4056,7 +4051,7 @@ void *SVG_New_foreignObject()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -4069,7 +4064,6 @@ static void SVG_g_Del(GF_Node *node)
 {
 	SVGgElement *p = (SVGgElement *)node;
 	free(p->textContent);
-	SVG_DeleteTransformList(p->transform);
 	free(p->fill.color);
 	free(p->stroke.color);
 	free(p->stroke_dasharray.array.vals);
@@ -4205,7 +4199,7 @@ static GF_Err SVG_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 24:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGgElement *)node)->transform;
 			return GF_OK;
 		case 25:
@@ -4394,7 +4388,7 @@ void *SVG_New_g()
 	((GF_Node *p)->sgprivate->node_del = SVG_g_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_g_get_attribute;
 #endif
-	p->transform = gf_list_new();
+	gf_mx2d_init(p->transform);
 	p->properties.display = &(p->display);
 	p->properties.visibility = &(p->visibility);
 	p->properties.image_rendering = &(p->image_rendering);
@@ -4402,9 +4396,9 @@ void *SVG_New_g()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -4416,15 +4410,15 @@ void *SVG_New_g()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -4443,7 +4437,7 @@ void *SVG_New_g()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -4726,7 +4720,6 @@ static void SVG_image_Del(GF_Node *node)
 	SVGimageElement *p = (SVGimageElement *)node;
 	free(p->textContent);
 	SVG_ResetIRI(&(p->xlink_href));
-	SVG_DeleteTransformList(p->transform);
 	if (p->type) free(p->type);
 	free(p->fill.color);
 	free(p->stroke.color);
@@ -4898,7 +4891,7 @@ static GF_Err SVG_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 31:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->transform;
 			return GF_OK;
 		case 32:
@@ -5122,7 +5115,7 @@ void *SVG_New_image()
 	((GF_Node *p)->sgprivate->node_del = SVG_image_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_image_get_attribute;
 #endif
-	p->transform = gf_list_new();
+	gf_mx2d_init(p->transform);
 	p->properties.display = &(p->display);
 	p->properties.visibility = &(p->visibility);
 	p->properties.image_rendering = &(p->image_rendering);
@@ -5130,9 +5123,9 @@ void *SVG_New_image()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -5144,15 +5137,15 @@ void *SVG_New_image()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -5171,7 +5164,7 @@ void *SVG_New_image()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -5184,7 +5177,6 @@ static void SVG_line_Del(GF_Node *node)
 {
 	SVGlineElement *p = (SVGlineElement *)node;
 	free(p->textContent);
-	SVG_DeleteTransformList(p->transform);
 	free(p->fill.color);
 	free(p->stroke.color);
 	free(p->stroke_dasharray.array.vals);
@@ -5235,7 +5227,7 @@ static GF_Err SVG_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->transform;
 			return GF_OK;
 		case 8:
@@ -5524,7 +5516,7 @@ void *SVG_New_line()
 	((GF_Node *p)->sgprivate->node_del = SVG_line_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_line_get_attribute;
 #endif
-	p->transform = gf_list_new();
+	gf_mx2d_init(p->transform);
 	p->properties.display = &(p->display);
 	p->properties.visibility = &(p->visibility);
 	p->properties.image_rendering = &(p->image_rendering);
@@ -5532,9 +5524,9 @@ void *SVG_New_line()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -5546,15 +5538,15 @@ void *SVG_New_line()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -5573,7 +5565,7 @@ void *SVG_New_line()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -5852,9 +5844,9 @@ void *SVG_New_linearGradient()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -5866,15 +5858,15 @@ void *SVG_New_linearGradient()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -5893,7 +5885,7 @@ void *SVG_New_linearGradient()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -6250,7 +6242,6 @@ static void SVG_path_Del(GF_Node *node)
 {
 	SVGpathElement *p = (SVGpathElement *)node;
 	free(p->textContent);
-	SVG_DeleteTransformList(p->transform);
 	SVG_DeletePath(&(p->d));
 	free(p->fill.color);
 	free(p->stroke.color);
@@ -6302,7 +6293,7 @@ static GF_Err SVG_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGpathElement *)node)->transform;
 			return GF_OK;
 		case 8:
@@ -6581,7 +6572,7 @@ void *SVG_New_path()
 	((GF_Node *p)->sgprivate->node_del = SVG_path_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_path_get_attribute;
 #endif
-	p->transform = gf_list_new();
+	gf_mx2d_init(p->transform);
 	p->d.commands = gf_list_new();
 	p->d.points = gf_list_new();
 	p->properties.display = &(p->display);
@@ -6591,9 +6582,9 @@ void *SVG_New_path()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -6605,15 +6596,15 @@ void *SVG_New_path()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -6632,7 +6623,7 @@ void *SVG_New_path()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -6645,7 +6636,6 @@ static void SVG_polygon_Del(GF_Node *node)
 {
 	SVGpolygonElement *p = (SVGpolygonElement *)node;
 	free(p->textContent);
-	SVG_DeleteTransformList(p->transform);
 	SVG_DeletePoints(p->points);
 	free(p->fill.color);
 	free(p->stroke.color);
@@ -6697,7 +6687,7 @@ static GF_Err SVG_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGpolygonElement *)node)->transform;
 			return GF_OK;
 		case 8:
@@ -6971,7 +6961,7 @@ void *SVG_New_polygon()
 	((GF_Node *p)->sgprivate->node_del = SVG_polygon_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_polygon_get_attribute;
 #endif
-	p->transform = gf_list_new();
+	gf_mx2d_init(p->transform);
 	p->points = gf_list_new();
 	p->properties.display = &(p->display);
 	p->properties.visibility = &(p->visibility);
@@ -6980,9 +6970,9 @@ void *SVG_New_polygon()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -6994,15 +6984,15 @@ void *SVG_New_polygon()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -7021,7 +7011,7 @@ void *SVG_New_polygon()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -7034,7 +7024,6 @@ static void SVG_polyline_Del(GF_Node *node)
 {
 	SVGpolylineElement *p = (SVGpolylineElement *)node;
 	free(p->textContent);
-	SVG_DeleteTransformList(p->transform);
 	SVG_DeletePoints(p->points);
 	free(p->fill.color);
 	free(p->stroke.color);
@@ -7086,7 +7075,7 @@ static GF_Err SVG_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGpolylineElement *)node)->transform;
 			return GF_OK;
 		case 8:
@@ -7360,7 +7349,7 @@ void *SVG_New_polyline()
 	((GF_Node *p)->sgprivate->node_del = SVG_polyline_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_polyline_get_attribute;
 #endif
-	p->transform = gf_list_new();
+	gf_mx2d_init(p->transform);
 	p->points = gf_list_new();
 	p->properties.display = &(p->display);
 	p->properties.visibility = &(p->visibility);
@@ -7369,9 +7358,9 @@ void *SVG_New_polyline()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -7383,15 +7372,15 @@ void *SVG_New_polyline()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -7410,7 +7399,7 @@ void *SVG_New_polyline()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -7810,9 +7799,9 @@ void *SVG_New_radialGradient()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -7824,15 +7813,15 @@ void *SVG_New_radialGradient()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -7851,7 +7840,7 @@ void *SVG_New_radialGradient()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -7864,7 +7853,6 @@ static void SVG_rect_Del(GF_Node *node)
 {
 	SVGrectElement *p = (SVGrectElement *)node;
 	free(p->textContent);
-	SVG_DeleteTransformList(p->transform);
 	free(p->fill.color);
 	free(p->stroke.color);
 	free(p->stroke_dasharray.array.vals);
@@ -7915,7 +7903,7 @@ static GF_Err SVG_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->transform;
 			return GF_OK;
 		case 8:
@@ -8214,7 +8202,7 @@ void *SVG_New_rect()
 	((GF_Node *p)->sgprivate->node_del = SVG_rect_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_rect_get_attribute;
 #endif
-	p->transform = gf_list_new();
+	gf_mx2d_init(p->transform);
 	p->properties.display = &(p->display);
 	p->properties.visibility = &(p->visibility);
 	p->properties.image_rendering = &(p->image_rendering);
@@ -8222,9 +8210,9 @@ void *SVG_New_rect()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -8236,15 +8224,15 @@ void *SVG_New_rect()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -8263,7 +8251,7 @@ void *SVG_New_rect()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -8761,9 +8749,9 @@ void *SVG_New_solidColor()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -8775,15 +8763,15 @@ void *SVG_New_solidColor()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -8802,7 +8790,7 @@ void *SVG_New_solidColor()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -9061,9 +9049,9 @@ void *SVG_New_stop()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -9075,15 +9063,15 @@ void *SVG_New_stop()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -9102,7 +9090,7 @@ void *SVG_New_stop()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -9492,9 +9480,9 @@ void *SVG_New_svg()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -9506,15 +9494,15 @@ void *SVG_New_svg()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -9533,7 +9521,7 @@ void *SVG_New_svg()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -9546,7 +9534,6 @@ static void SVG_switch_Del(GF_Node *node)
 {
 	SVGswitchElement *p = (SVGswitchElement *)node;
 	free(p->textContent);
-	SVG_DeleteTransformList(p->transform);
 	free(p->fill.color);
 	free(p->stroke.color);
 	free(p->stroke_dasharray.array.vals);
@@ -9627,7 +9614,7 @@ static GF_Err SVG_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGswitchElement *)node)->transform;
 			return GF_OK;
 		case 14:
@@ -9816,7 +9803,7 @@ void *SVG_New_switch()
 	((GF_Node *p)->sgprivate->node_del = SVG_switch_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_switch_get_attribute;
 #endif
-	p->transform = gf_list_new();
+	gf_mx2d_init(p->transform);
 	p->properties.display = &(p->display);
 	p->properties.visibility = &(p->visibility);
 	p->properties.image_rendering = &(p->image_rendering);
@@ -9824,9 +9811,9 @@ void *SVG_New_switch()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -9838,15 +9825,15 @@ void *SVG_New_switch()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -9865,7 +9852,7 @@ void *SVG_New_switch()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -9943,7 +9930,6 @@ static void SVG_text_Del(GF_Node *node)
 {
 	SVGtextElement *p = (SVGtextElement *)node;
 	free(p->textContent);
-	SVG_DeleteTransformList(p->transform);
 	SVG_DeleteCoordinates(p->x);
 	SVG_DeleteCoordinates(p->y);
 	free(p->fill.color);
@@ -10081,7 +10067,7 @@ static GF_Err SVG_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 24:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->transform;
 			return GF_OK;
 		case 25:
@@ -10285,7 +10271,7 @@ void *SVG_New_text()
 	((GF_Node *p)->sgprivate->node_del = SVG_text_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_text_get_attribute;
 #endif
-	p->transform = gf_list_new();
+	gf_mx2d_init(p->transform);
 	p->x = gf_list_new();
 	p->y = gf_list_new();
 	p->properties.display = &(p->display);
@@ -10295,9 +10281,9 @@ void *SVG_New_text()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -10309,15 +10295,15 @@ void *SVG_New_text()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -10336,7 +10322,7 @@ void *SVG_New_text()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -10349,7 +10335,6 @@ static void SVG_textArea_Del(GF_Node *node)
 {
 	SVGtextAreaElement *p = (SVGtextAreaElement *)node;
 	free(p->textContent);
-	SVG_DeleteTransformList(p->transform);
 	free(p->fill.color);
 	free(p->stroke.color);
 	free(p->stroke_dasharray.array.vals);
@@ -10480,7 +10465,7 @@ static GF_Err SVG_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 23:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->transform;
 			return GF_OK;
 		case 24:
@@ -10694,7 +10679,7 @@ void *SVG_New_textArea()
 	((GF_Node *p)->sgprivate->node_del = SVG_textArea_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_textArea_get_attribute;
 #endif
-	p->transform = gf_list_new();
+	gf_mx2d_init(p->transform);
 	p->properties.display = &(p->display);
 	p->properties.visibility = &(p->visibility);
 	p->properties.image_rendering = &(p->image_rendering);
@@ -10702,9 +10687,9 @@ void *SVG_New_textArea()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -10716,15 +10701,15 @@ void *SVG_New_textArea()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -10743,7 +10728,7 @@ void *SVG_New_textArea()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -11142,9 +11127,9 @@ void *SVG_New_tspan()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -11156,15 +11141,15 @@ void *SVG_New_tspan()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -11183,7 +11168,7 @@ void *SVG_New_tspan()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -11196,7 +11181,6 @@ static void SVG_use_Del(GF_Node *node)
 {
 	SVGuseElement *p = (SVGuseElement *)node;
 	free(p->textContent);
-	SVG_DeleteTransformList(p->transform);
 	SVG_ResetIRI(&(p->xlink_href));
 	free(p->fill.color);
 	free(p->stroke.color);
@@ -11273,7 +11257,7 @@ static GF_Err SVG_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 12:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGuseElement *)node)->transform;
 			return GF_OK;
 		case 13:
@@ -11567,7 +11551,7 @@ void *SVG_New_use()
 	((GF_Node *p)->sgprivate->node_del = SVG_use_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_use_get_attribute;
 #endif
-	p->transform = gf_list_new();
+	gf_mx2d_init(p->transform);
 	p->properties.display = &(p->display);
 	p->properties.visibility = &(p->visibility);
 	p->properties.image_rendering = &(p->image_rendering);
@@ -11575,9 +11559,9 @@ void *SVG_New_use()
 	p->properties.shape_rendering = &(p->shape_rendering);
 	p->properties.text_rendering = &(p->text_rendering);
 	p->properties.audio_level = &(p->audio_level);
-	p->fill_opacity.type = SVG_FLOAT_INHERIT;
+	p->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.fill_opacity = &(p->fill_opacity);
-	p->stroke_opacity.type = SVG_FLOAT_INHERIT;
+	p->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_opacity = &(p->stroke_opacity);
 	p->fill.type = SVG_PAINT_INHERIT;
 	GF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));
@@ -11589,15 +11573,15 @@ void *SVG_New_use()
 	p->properties.stroke = &(p->stroke);
 	p->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
 	p->properties.stroke_dasharray = &(p->stroke_dasharray);
-	p->stroke_dashoffset.type = SVG_FLOAT_INHERIT;
+	p->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_dashoffset = &(p->stroke_dashoffset);
 	p->stroke_linecap = SVG_STROKELINECAP_INHERIT;
 	p->properties.stroke_linecap = &(p->stroke_linecap);
 	p->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
 	p->properties.stroke_linejoin = &(p->stroke_linejoin);
-	p->stroke_miterlimit.type = SVG_FLOAT_INHERIT;
+	p->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_miterlimit = &(p->stroke_miterlimit);
-	p->stroke_width.type = SVG_LENGTH_INHERIT;
+	p->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties.stroke_width = &(p->stroke_width);
 	p->color.type = SVG_COLOR_INHERIT;
 	p->properties.color = &(p->color);
@@ -11616,7 +11600,7 @@ void *SVG_New_use()
 	p->properties.stop_color = &(p->stop_color);
 	p->properties.stop_opacity = &(p->stop_opacity);
 	p->properties.font_family = &(p->font_family);
-	p->font_size.type = SVG_FLOAT_INHERIT;
+	p->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties.font_size = &(p->font_size);
 	p->properties.font_style = &(p->font_style);
 	p->properties.font_weight = &(p->font_weight);
@@ -11632,7 +11616,6 @@ static void SVG_video_Del(GF_Node *node)
 	SVG_ResetIRI(&(p->xlink_href));
 	SMIL_DeleteTimes(p->begin);
 	SMIL_DeleteTimes(p->end);
-	SVG_DeleteTransformList(p->transform);
 	if (p->type) free(p->type);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
@@ -11848,7 +11831,7 @@ static GF_Err SVG_video_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 41:
 			info->name = "transform";
-			info->fieldType = SVG_TransformList_datatype;
+			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->transform;
 			return GF_OK;
 		case 42:

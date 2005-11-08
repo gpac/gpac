@@ -300,6 +300,65 @@ Bool gf_sg_svg_node_init(GF_Node *node)
 	return 0;
 }
 
+#include <gpac/base_coding.h>
+Bool svg_store_embedded_data(SVG_IRI *iri, const char *iri_data, const char *cache_dir, const char *base_filename)
+{
+	char szFile[GF_MAX_PATH], *sep, buf[20], *data;
+	u32 data_size;
+
+	if (!cache_dir || !base_filename || !iri || !!strncmp(iri_data, "data:", 5)) return 0;
+
+	/*handle "data:" scheme when cache is specified*/
+	strcpy(szFile, cache_dir);
+	data_size = strlen(szFile);
+	if (szFile[data_size-1] != GF_PATH_SEPARATOR) {
+		szFile[data_size] = GF_PATH_SEPARATOR;
+		szFile[data_size+1] = 0;
+	}
+	if (base_filename) {
+		sep = strrchr(base_filename, GF_PATH_SEPARATOR);
+#ifdef WIN32
+		if (!sep) sep = strrchr(base_filename, '/');
+#endif
+		if (!sep) sep = (char *) base_filename;
+		else sep += 1;
+		strcat(szFile, sep);
+	}
+	sep = strrchr(szFile, '.');
+	if (sep) sep[0] = 0;
+	sprintf(buf, "_img_%08X", (u32) iri);
+	strcat(szFile, buf);
+	/*get mime type*/
+	sep = (char *)iri_data + 5;
+	if (!strncmp(sep, "image/jpg", 9) || !strncmp(sep, "image/jpeg", 10)) strcat(szFile, ".jpg");
+	else if (!strncmp(sep, "image/png", 9)) strcat(szFile, ".png");
+
+	data = NULL;
+	sep = strchr(iri_data, ';');
+	if (!strncmp(sep, ";base64,", 8)) {
+		sep += 8;
+		data_size = 2*strlen(sep);
+		data = malloc(sizeof(char)*data_size);
+		data_size = gf_base64_decode(sep, strlen(sep), data, data_size);
+	}
+	else if (!strncmp(sep, ";base16,", 8)) {
+		data_size = 2*strlen(sep);
+		data = malloc(sizeof(char)*data_size);
+		sep += 8;
+		data_size = gf_base16_decode(sep, strlen(sep), data, data_size);
+	}
+	iri->type = SVG_IRI_IRI;
+	if (data) {
+		FILE *f = fopen(szFile, "wb");
+		fwrite(data, data_size, 1, f);
+		fclose(f);
+		if (iri->iri) free(iri->iri);
+		iri->iri = strdup(szFile);
+		free(data);
+	} 
+	return 1;
+}
+
 #else
 /*these ones are only needed for W32 libgpac_dll build in order not to modify export def file*/
 u32 SVG_GetTagByName(const char *element_name)

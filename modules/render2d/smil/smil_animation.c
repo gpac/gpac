@@ -342,7 +342,7 @@ void SMIL_AnimWithValues(SMIL_AnimationStack *stack, Double sceneTime)
 //		fprintf(stdout, "Using Key Points: key Value Index %d, coeff: %.2f\n", keyValueIndex, interpolation_coefficient);
 	}
 
-	if (stack->previous_key_index == keyValueIndex &&
+	if (stack->previous_key_index == (s32)keyValueIndex &&
 		stack->previous_coef == interpolation_coefficient) return;
 
 	stack->previous_key_index = keyValueIndex;

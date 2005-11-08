@@ -50,10 +50,10 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 		SVGElement *n = svg_parse_dom_element(parser, lsr_toElement(com->children), NULL);
 		if (n) {
 			SVGsvgElement *root_svg = (SVGsvgElement *)n;
-			svg_convert_length_unit_to_user_unit(parser, &(root_svg->width));
-			svg_convert_length_unit_to_user_unit(parser, &(root_svg->height));
-			parser->svg_w = FIX2INT(root_svg->width.value);
-			parser->svg_h = FIX2INT(root_svg->height.value);
+			if (root_svg->width.type == SVG_NUMBER_VALUE) {
+				parser->svg_w = FIX2INT(root_svg->width.value);
+				parser->svg_h = FIX2INT(root_svg->height.value);
+			}
 			gf_sg_set_scene_size_info(parser->graph, parser->svg_w, parser->svg_h, 1);
 			gf_sg_set_root_node(parser->graph, (GF_Node *)n);
 			parser->needs_attachement = 1;
