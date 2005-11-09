@@ -43,13 +43,6 @@ const char *gf_4cc_to_str(u32 type)
 	return (const char *) ptr;
 }
 
-u32 gf_get_bit_size(u32 MaxVal)
-{
-	u32 k=0;
-	while ((s32) MaxVal > ((1<<k)-1) ) k+=1;
-	return k;
-}
-
 
 static const char *szProg[] = 
 {

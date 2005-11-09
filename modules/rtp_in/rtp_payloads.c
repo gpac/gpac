@@ -33,6 +33,12 @@ u32 payt_get_type(RTPClient *rtp, GF_RTPMap *map, GF_SDPMedia *media)
 	if (!stricmp(map->payload_name, "MP4V-ES") ) return GP_RTP_PAYT_MPEG4;
 	else if (!stricmp(map->payload_name, "mpeg4-generic")) return GP_RTP_PAYT_MPEG4;
 	else if (!stricmp(map->payload_name, "enc-mpeg4-generic")) return GP_RTP_PAYT_MPEG4;
+	/*optibase mm400 card hack*/
+	else if (!stricmp(map->payload_name, "enc-generic-mp4") ) {
+		free(map->payload_name);
+		map->payload_name = strdup("enc-mpeg4-generic");
+		return GP_RTP_PAYT_MPEG4;
+	}
 
 	/*LATM: only without multiplexing (not tested but should be straight AUs)*/
 	else if (!stricmp(map->payload_name, "MP4A-LATM")) {

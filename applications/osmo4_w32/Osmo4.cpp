@@ -197,6 +197,10 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 			}
 		}
 		break;
+	case GF_EVT_NAVIGATE_INFO:
+		pFrame->console_message = evt->navigate.to_url;
+		gpac->m_pMainWnd->PostMessage(WM_CONSOLEMSG, 1000, 0);
+		break;
 
 	case GF_EVT_SIZE:
 		gpac->orig_width = evt->size.width;

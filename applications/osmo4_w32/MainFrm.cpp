@@ -611,7 +611,7 @@ LONG CMainFrame::OnConsoleMessage(WPARAM wParam, LPARAM lParam)
 		sprintf(msg, "%s (%s)", console_message, console_service);
 		m_wndStatusBar.SetPaneText(1, msg);
 	}
-	m_timer_on = SetTimer(10, CONSOLE_DISPLAY_TIME, ConsoleTimer);
+	m_timer_on = SetTimer(10, wParam ? wParam : CONSOLE_DISPLAY_TIME, ConsoleTimer);
 	return 0;
 }
 

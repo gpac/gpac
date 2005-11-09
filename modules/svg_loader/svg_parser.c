@@ -679,7 +679,7 @@ void svg_parse_sax_defered_anchor(SVGParser *parser, SVGElement *anchor_elt, def
 
 	if (local_de.attributeName) {
 		/* get the type of the target attribute to determine type of the from/to/by ... */
-		smil_parse_attributename(parser, anchor_elt, local_de.attributeName);
+		smil_parse_attributename(anchor_elt, local_de.attributeName);
 		gf_node_get_field_by_name((GF_Node *)anchor_elt, "attributeName", &info);
 		anim_value_type = ((SMIL_AttributeName *)info.far_ptr)->type;
 		free(local_de.attributeName);

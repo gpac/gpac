@@ -730,6 +730,7 @@ EXPORTS
 	gf_media_export
 	gf_media_fragment_file
 	gf_media_import_chapters
+	gf_media_change_par
 
 ;parsers_av.h exports
 	gf_m4v_parser_new
@@ -757,6 +758,7 @@ EXPORTS
 	gf_vorbis_parse_header
 	gf_vorbis_check_frame
 	gf_img_parse
+	gf_avc_get_sps_info
 
 ;ismacryp.h exports
 	gf_ismacryp_crypt_file

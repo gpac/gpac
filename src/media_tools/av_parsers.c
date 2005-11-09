@@ -1662,7 +1662,7 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 		gf_bs_del(orig);
 		free(slc->data);
 		slc->data = NULL;
-		gf_bs_get_content(mod, &slc->data, &flag);
+		gf_bs_get_content(mod, (unsigned char **) &slc->data, &flag);
 		slc->size = flag;
 		gf_bs_del(mod);
 	}

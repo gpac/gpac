@@ -86,8 +86,9 @@ static GF_Err svg_report(GF_SVGParser *parser, GF_Err e, char *format, ...)
 	if (e) parser->last_error = e;
 	return e;
 }
-static void svg_progress(GF_SVGParser *parser, u32 done, u32 total)
+static void svg_progress(void *cbk, u32 done, u32 total)
 {
+	GF_SVGParser *parser = cbk;
 	parser->load->OnProgress(parser->load->cbk, done, total);
 }
 
@@ -117,16 +118,6 @@ static void svg_delete_defered_anim(DeferedAnimation *anim, GF_SVGParser *parser
 	free(anim);
 }
 
-static Bool is_svg_text_element(SVGElement *elt)
-{
-	u32 tag = elt->sgprivate->tag;
-	return ((tag==TAG_SVG_text)||(tag==TAG_SVG_textArea)||(tag==TAG_SVG_tspan));
-}
-
-static Bool is_svg_anchor_tag(u32 tag)
-{
-	return (tag == TAG_SVG_a);
-}
 static Bool is_svg_animation_tag(u32 tag)
 {
 	return (tag == TAG_SVG_set ||
@@ -169,7 +160,7 @@ static void svg_parse_element_id(GF_SVGParser *parser, SVGElement *elt, char *no
 	}
 }
 
-static Bool svg_resolve_smil_times(GF_SVGParser *parser, GF_List *smil_times, const char *node_name)
+static Bool svg_resolve_smil_times(GF_SceneGraph *sg, SVGElement *anim_target, GF_List *smil_times, const char *node_name)
 {
 	u32 i, done, count = gf_list_count(smil_times);
 	done = 0;
@@ -180,13 +171,14 @@ static Bool svg_resolve_smil_times(GF_SVGParser *parser, GF_List *smil_times, co
 			done++;
 			continue;
 		}
-		/*event target is anim target, already knwon*/
 		if (!t->element_id) {
+			/*event target is anim target*/
+			if (!t->element) t->element = (GF_Node *)anim_target;
 			done++;
 			continue;
 		}
 		if (node_name && strcmp(node_name, t->element_id)) continue;
-		t->element = gf_sg_find_node_by_name(parser->load->scene_graph, t->element_id);
+		t->element = gf_sg_find_node_by_name(sg, t->element_id);
 		if (t->element) {
 			free(t->element_id);
 			t->element_id = NULL;
@@ -276,14 +268,14 @@ static Bool svg_parse_animation(GF_SVGParser *parser, DeferedAnimation *anim, co
 
 	if (anim->resolve_stage == 1) {
 		gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "begin", &info);
-		if (svg_resolve_smil_times(parser, * (GF_List **) info.far_ptr, nodeID)) {
+		if (svg_resolve_smil_times(parser->load->scene_graph, anim->target, * (GF_List **) info.far_ptr, nodeID)) {
 			anim->resolve_stage = 2;
 		} else {
 			return 0;
 		}
 	}
 	gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "end", &info);
-	if (!svg_resolve_smil_times(parser, * (GF_List **) info.far_ptr, nodeID)) return 0;
+	if (!svg_resolve_smil_times(parser->load->scene_graph, anim->target, * (GF_List **) info.far_ptr, nodeID)) return 0;
 	/*OK init the anim*/
 	gf_node_init((GF_Node *)anim->animation_elt);
 	return 1;
@@ -350,6 +342,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 		GF_SAFEALLOC(anim, sizeof(DeferedAnimation));
 		/*default anim target is parent node*/
 		anim->animation_elt = elt;
+		anim->target = parent;
 	}
 
 	/*parse all att*/
@@ -421,7 +414,6 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 	}
 
 	if (anim) {
-		if (!anim->target && !anim->target_id) anim->target = parent;
 		if (svg_parse_animation(parser, anim, NULL)) {
 			svg_delete_defered_anim(anim, NULL);
 		} else {
@@ -566,7 +558,7 @@ GF_Err gf_sm_load_init_SVG(GF_SceneLoader *load)
 
 	if (!load->fileName) return GF_BAD_PARAM;
 	parser = svg_new_parser(load);
-	e = gf_xml_sax_parse_file(parser->sax_parser, load->fileName, parser->load->OnProgress ? svg_progress : NULL);
+	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, parser->load->OnProgress ? svg_progress : NULL);
 	if (e<0) svg_report(parser, e, "Unable to open file %s", load->fileName);
 	return e;
 }

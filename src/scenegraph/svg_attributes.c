@@ -446,14 +446,14 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 
 		v->type = SMIL_TIME_WALLCLOCK;
 		tmp += 10;
-		if (tmp1 = strchr(tmp, 'T')) {
+		if ((tmp1 = strchr(tmp, 'T')) ) {
 			/* From tmp to wallStartTime, we parse a date */
 			sscanf(tmp, "%d-%d-%dT", &year, &month, &day);
 			tmp1++;
 			tmp = tmp1;
 		} 	
-		if (tmp1 = strchr(tmp, ':')) {
-			if (tmp2 = strchr(tmp1, ':')) {
+		if ((tmp1 = strchr(tmp, ':')) ) {
+			if ((tmp2 = strchr(tmp1, ':')) ) {
 				/* HHMMSS */
 				sscanf(tmp, "%d:%d:%f", &hours, &minutes, &seconds);		
 			} else {
@@ -464,9 +464,9 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 		if (strchr(tmp, 'Z')) {
 			return;
 		} else {
-			if (tmp1 = strchr(tmp, '+')) {
+			if ( (tmp1 = strchr(tmp, '+')) ) {
 				sscanf(tmp1, "%d:%d", &nhours, &nminutes);		
-			} else if (tmp1 = strchr(tmp, '-')) {
+			} else if ( (tmp1 = strchr(tmp, '-')) ) {
 				sscanf(tmp1, "%d:%d", &nhours, &nminutes);		
 			}
 		}
@@ -503,7 +503,6 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 		if (!strchr(token, '.')) {
 			/* animation event name only */
 			v->event = svg_dom_event_by_name(token);
-			v->element = (GF_Node *)e;
 		} else {
 			u32 i;
 			for (i = 0; i < len; i++) {
@@ -960,23 +959,23 @@ static u32 svg_parse_number(SVG_Number *number, char *value_string, Bool clamp0t
 	} else if (!strcmp(value_string, "auto")) {
 		number->type = SVG_NUMBER_AUTO;
 		return 4;
-	} else if (unit = strstr(value_string, "%")) {
+	} else if ((unit = strstr(value_string, "%"))) {
 		number->type = SVG_NUMBER_PERCENTAGE;
-	} else if (unit = strstr(value_string, "em")) {
+	} else if ((unit = strstr(value_string, "em"))) {
 		number->type = SVG_NUMBER_EMS;
-	} else if (unit = strstr(value_string, "ex")) {
+	} else if ((unit = strstr(value_string, "ex"))) {
 		number->type = SVG_NUMBER_EXS;
-	} else if (unit = strstr(value_string, "px")) {
+	} else if ((unit = strstr(value_string, "px"))) {
 		number->type = SVG_NUMBER_PX;
-	} else if (unit = strstr(value_string, "cm")) {
+	} else if ((unit = strstr(value_string, "cm"))) {
 		number->type = SVG_NUMBER_CM;
-	} else if (unit = strstr(value_string, "mm")) {
+	} else if ((unit = strstr(value_string, "mm"))) {
 		number->type = SVG_NUMBER_MM;
-	} else if (unit = strstr(value_string, "in")) {
+	} else if ((unit = strstr(value_string, "in"))) {
 		number->type = SVG_NUMBER_IN;
-	} else if (unit = strstr(value_string, "pt")) {
+	} else if ((unit = strstr(value_string, "pt"))) {
 		number->type = SVG_NUMBER_PT;
-	} else if (unit = strstr(value_string, "pc")) {
+	} else if ((unit = strstr(value_string, "pc"))) {
 		number->type = SVG_NUMBER_PC;
 	} else {
 		number->type = SVG_NUMBER_VALUE;
@@ -1341,7 +1340,7 @@ static void smil_parse_time_list(SVGElement *e, GF_List *values, char *begin_or_
 	/* get rid of leading spaces */
 	while (*str == ' ') str++;
 
-	while (tmp = strchr(str, ';')) {
+	while ((tmp = strchr(str, ';'))) {
 		len = tmp-str;
 		memcpy(value_string, str, len);
 		while (value_string[len - 1] == ' ' && len > 0) len--;
@@ -2600,7 +2599,7 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 	case SVG_FontFamily_datatype:
 	{
 		SVG_FontFamily *f = (SVG_FontFamily *)info->far_ptr;
-		strcpy(attValue, (f->type==SVG_FONTFAMILY_INHERIT) ? "inherit" : f->value);
+		strcpy(attValue, (f->type==SVG_FONTFAMILY_INHERIT) ? "inherit" : (const char *) f->value);
 	}
 		break;
 	case SVG_PreserveAspectRatio_datatype:
@@ -2680,7 +2679,7 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 			sprintf(attValue, "translate(%g %g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]) );
 			if ((matrix->m[0]!=FIX_ONE) || (matrix->m[4]!=FIX_ONE)) {
 				char szT[1024];
-				sprintf(szT, " scale(%g %g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(matrix->m[0]), FIX2FLT(matrix->m[4]) );
+				sprintf(szT, " scale(%g %g)", FIX2FLT(matrix->m[0]), FIX2FLT(matrix->m[4]) );
 				strcat(attValue, szT);
 			}
 		} else if (matrix->m[1] == - matrix->m[3]) {
@@ -3322,7 +3321,7 @@ GF_Err svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 				/* a and b are matrices but b is not */
 				GF_Matrix2D tmp;
 				if ((alpha != FIX_ONE) && (beta != FIX_ONE)) {
-					fprintf(stdout, "SVG: Warning, matrix operations not supported\n", a->name);
+					fprintf(stdout, "SVG: Warning, matrix operations not supported\n");
 					return GF_NOT_SUPPORTED;
 				}
 				gf_mx2d_init(tmp);

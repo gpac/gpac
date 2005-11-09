@@ -342,6 +342,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVT_QUIT:
 		Run = 0;
 		break;
+	case GF_EVT_NAVIGATE_INFO:
+		fprintf(stdout, "Go to URL: \"%s\"\r", evt->navigate.to_url);
+		break;
 	case GF_EVT_NAVIGATE:
 		if (gf_term_is_supported_url(term, evt->navigate.to_url, 1, 0)) {
 			/*eek that's ugly but I don't want to write an event queue for that*/

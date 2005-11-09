@@ -127,7 +127,7 @@ GF_SAXParser *gf_xml_sax_new(gf_xml_sax_node_start on_node_start,
 void gf_xml_sax_del(GF_SAXParser *parser);
 /*inits parser with BOM. BOM must be 4 char string with 0 terminaison. If BOM is NULL, parsing will
 assume UTF-8 compatible coding*/
-GF_Err gf_xml_sax_init(GF_SAXParser *parser, char *BOM);
+GF_Err gf_xml_sax_init(GF_SAXParser *parser, unsigned char *BOM);
 /*parses input string data. string data MUST be terminated by the 0 character (eg 2 0s for UTF-16)*/
 GF_Err gf_xml_sax_parse(GF_SAXParser *parser, void *string_bytes);
 /*suspends/resume sax parsing. 

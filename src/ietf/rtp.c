@@ -136,7 +136,10 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 
 	//create sockets for RTP/AVP profile only
 	if (ch->net_info.Profile && 
-		( !stricmp(ch->net_info.Profile, GF_RTSP_PROFILE_RTP_AVP) || !stricmp(ch->net_info.Profile, "RTP/AVP/UDP"))
+		( !stricmp(ch->net_info.Profile, GF_RTSP_PROFILE_RTP_AVP) 
+		|| !stricmp(ch->net_info.Profile, "RTP/AVP/UDP")
+		|| !stricmp(ch->net_info.Profile, "RTP/SAVP")
+		)
 		) {
 		//destination MUST be specified for unicast
 		if (IsSource && ch->net_info.IsUnicast && !ch->net_info.destination) return GF_BAD_PARAM;

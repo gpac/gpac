@@ -30,6 +30,13 @@
 
 #include <gpac/math.h>
 
+u32 gf_get_bit_size(u32 MaxVal)
+{
+	u32 k=0;
+	while ((s32) MaxVal > ((1<<k)-1) ) k+=1;
+	return k;
+}
+
 #ifdef GPAC_FIXED_POINT
 
 /* the following is 0.2715717684432231 * 2^30 */

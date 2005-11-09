@@ -379,6 +379,7 @@ mul255(s32 a, s32 b)
 	return ((a+1) * b) >> 8;
 }
 
+#if 0
 /*thx to charcoal for the bilinear filter*/
 static u32 EVG_LERP(u32 c0, u32 c1, u8 t)
 {
@@ -401,7 +402,7 @@ static u32 EVG_LERP(u32 c0, u32 c1, u8 t)
 	b2 = b0 + mul255(t, (b1 - b0));
 	return (a2<<24) | (r2<<16) | (g2<<8) | b2;
 }
-
+#endif
 
 static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 count) 
 {

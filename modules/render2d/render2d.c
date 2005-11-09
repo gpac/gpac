@@ -393,7 +393,10 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 		evt.alt_key = (sr->compositor->key_states & GF_KM_ALT) ? 1 : 0;
 		evt.bubbles = 1;
 		evt.cancelable = 1;
-		if (event->event_type==GF_EVT_CHAR) {
+		if ((event->event_type==GF_EVT_VKEYDOWN) && (event->key.vk_code==GF_VK_RETURN)) {
+			evt.type = SVG_DOM_EVT_ACTIVATE;
+		}
+		else if (event->event_type==GF_EVT_CHAR) {
 			evt.type = SVG_DOM_EVT_KEYPRESS;
 			evt.detail = event->character.unicode_char;
 		} else {

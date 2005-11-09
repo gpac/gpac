@@ -75,13 +75,13 @@ static void RenderAnchor(GF_Node *node, void *rs)
 
 static void OnAnchor(SensorHandler *sh, Bool is_over, u32 eventType, RayHitInfo *hit_info)
 {
+	GF_Event evt;
 	MFURL *url;
 	AnchorStack *st = (AnchorStack *) gf_node_get_private(sh->owner);
 
 	if (eventType==GF_EVT_LEFTDOWN) st->active = 1;
 	else if (st->active && (eventType==GF_EVT_LEFTUP) ) {
 		u32 i;
-		GF_Event evt;
 		if (gf_node_get_tag(sh->owner)==TAG_MPEG4_Anchor) {
 			url = & ((M_Anchor *)sh->owner)->url;
 			evt.navigate.param_count = ((M_Anchor *)sh->owner)->parameter.count;
@@ -113,6 +113,19 @@ static void OnAnchor(SensorHandler *sh, Bool is_over, u32 eventType, RayHitInfo 
 					break;
 			}
 			i++;
+		}
+	} else if (eventType==GF_EVT_MOUSEMOVE) {
+		if (st->compositor->user->EventProc) {
+			evt.type = GF_EVT_NAVIGATE_INFO;
+			if (gf_node_get_tag(sh->owner)==TAG_MPEG4_Anchor) {
+				evt.navigate.to_url = ((M_Anchor *)sh->owner)->description.buffer;
+				url = & ((M_Anchor *)sh->owner)->url;
+			} else {
+				evt.navigate.to_url = ((X_Anchor *)sh->owner)->description.buffer;
+				url = & ((X_Anchor *)sh->owner)->url;
+			}
+			if (!evt.navigate.to_url || !strlen(evt.navigate.to_url)) evt.navigate.to_url = url->vals[0].url;
+			st->compositor->user->EventProc(st->compositor->user->opaque, &evt);
 		}
 	}
 }

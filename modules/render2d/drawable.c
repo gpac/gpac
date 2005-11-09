@@ -71,7 +71,6 @@ static void drawable_draw(DrawableContext *ctx)
 /*default point_over routine*/
 static Bool drawable_point_over(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
 {
-	Bool do_check = 0;
 	GF_Matrix2D inv;
 	StrikeInfo2D *si;
 	if (!ctx || !ctx->node->path) return 0;

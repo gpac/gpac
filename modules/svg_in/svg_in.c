@@ -255,7 +255,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	SVGIn *svgin = (SVGIn *) sdec->privateStack;
 	if (sdec->InterfaceType != GF_SCENE_DECODER_INTERFACE) return;
 
-	//SVGParser_Terminate(parser);
+	free(svgin);
 	free(sdec);
 }
 

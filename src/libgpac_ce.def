@@ -1088,5 +1088,15 @@ EXPORTS
 	gf_node_listener_count
 	gf_node_listener_get
 	gf_sg_fire_dom_event
+	svg_attributes_add
+	svg_attributes_interpolate
+	svg_attributes_copy
+	svg_attributes_muladd
+	svg_create_value_from_attributetype
+	svg_parse_attribute
+	svg_convert_length_unit_to_user_unit
+	svg_parse_style
+	svg_parse_iri
 	gf_sg_dom_create_listener
-
+	svg_store_embedded_data
+	smil_parse_attributename

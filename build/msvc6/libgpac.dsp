@@ -1036,5 +1036,9 @@ SOURCE=..\..\include\gpac\xml.h
 SOURCE=..\..\include\gpac\yuv.h
 # End Source File
 # End Group
+# Begin Source File
+
+SOURCE=..\..\src\lsr_enc.c
+# End Source File
 # End Target
 # End Project

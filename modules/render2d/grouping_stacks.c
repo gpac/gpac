@@ -315,12 +315,21 @@ static Bool anchor_is_enabled(SensorHandler *sh)
 static Bool OnAnchor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_matrix)
 {
 	u32 i;
-	AnchorStack *st;
 	GF_Event evt;
-	M_Anchor *an;
+	AnchorStack *st = (AnchorStack *) gf_node_get_private(sh->owner);
+	M_Anchor *an = (M_Anchor *) sh->owner;
+
+	if (ev->event_type == GF_EVT_MOUSEMOVE) {
+		if (st->compositor->user->EventProc) {
+			evt.type = GF_EVT_NAVIGATE_INFO;
+			evt.navigate.to_url = an->description.buffer;
+			if (!evt.navigate.to_url || !strlen(evt.navigate.to_url)) evt.navigate.to_url = an->url.vals[0].url;
+			st->compositor->user->EventProc(st->compositor->user->opaque, &evt);
+		}
+		return 0;
+	}
+
 	if (ev->event_type != GF_EVT_LEFTUP) return 0;
-	st = (AnchorStack *) gf_node_get_private(sh->owner);
-	an = (M_Anchor *) sh->owner;
 
 	evt.type = GF_EVT_NAVIGATE;
 	evt.navigate.param_count = an->parameter.count;

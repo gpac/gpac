@@ -47,7 +47,7 @@ void SVG_SetMFURLFromURI(MFURL *mfurl, char *uri)
 	sfurl->OD_ID = 0;
 	sfurl->url = strdup(uri);
 }
-
+#if 0
 static void SVG_ComputeAR(Fixed objw, Fixed objh, Fixed viewportw, Fixed viewporth,
 						  SVG_PreserveAspectRatio *par, GF_Matrix2D *par_mat)
 {
@@ -78,14 +78,13 @@ static void SVG_ComputeAR(Fixed objw, Fixed objh, Fixed viewportw, Fixed viewpor
 	} else {
 	}
 }
-
+#endif
 static void SVG_Draw_bitmap(DrawableContext *ctx)
 {
 	GF_ColorMatrix *cmat;
 	u8 alpha;
 	Render2D *sr;
 	Bool use_blit;
-	SVG_PreserveAspectRatio *par = NULL;
 	sr = ctx->surface->render;
 
 	use_blit = 1;

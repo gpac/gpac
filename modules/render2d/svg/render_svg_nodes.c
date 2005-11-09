@@ -34,7 +34,6 @@
 */
 void svg_render_node(GF_Node *node, RenderEffect2D *eff)
 {
-	Bool has_listener = gf_node_listener_count(node);
 	if (gf_node_listener_count(node)) {
 		eff->nb_listeners++;
 		gf_node_render(node, eff);
@@ -557,6 +556,8 @@ static void SVG_DrawablePostRender(Drawable *cs, SVGStylingProperties *props, SV
 	gf_mx2d_copy(backup_matrix, eff->transform);
 	gf_mx2d_pre_multiply(&eff->transform, &m);
 
+	if (*(eff->svg_props->fill_rule)==SVG_FILLRULE_NONZERO) cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
+	else cs->path->flags &= ~GF_PATH_FILL_ZERO_NONZERO;
 
 	ctx = SVG_drawable_init_context(cs, eff);
 	if (ctx) {
@@ -766,8 +767,6 @@ static void SVG_Render_path(GF_Node *node, void *rs)
 		//fprintf(stdout, "Rebuilding path %8x\n", path);	
 		drawable_reset_path(cs);
 
-		if (*(eff->svg_props->fill_rule)==GF_PATH_FILL_ZERO_NONZERO) cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
-
 		/* TODO: update for elliptical arcs */		
 		for (i=0, j=0; i<gf_list_count(path->d.commands); i++) {
 			u8 *command = gf_list_get(path->d.commands, i);
@@ -941,23 +940,32 @@ static void SVG_Render_a(GF_Node *node, void *rs)
 	memcpy(eff->svg_props, &backup_props, styling_size);
 }
 
-static Bool SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
+static void SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 {
 	GF_Renderer *compositor;
 	GF_Event evt;
 	SVGaElement *a;
 
 	assert(gf_node_get_tag(event->currentTarget)==TAG_SVG_a);
-	assert(event->type==SVG_DOM_EVT_CLICK);
 
 	a = (SVGaElement *) event->currentTarget;
 	compositor = gf_node_get_private((GF_Node *)handler);
 
 #ifndef DANAE
-	if (!compositor->user->EventProc) return 0;
+	if (!compositor->user->EventProc) return;
 #endif
+
+#ifndef DANAE
+	if (event->type==SVG_DOM_EVT_MOUSEOVER) {
+		evt.type = GF_EVT_NAVIGATE_INFO;
+		evt.navigate.to_url = a->xlink_href.iri;
+		if (a->xlink_title) evt.navigate.to_url = a->xlink_title;
+		compositor->user->EventProc(compositor->user->opaque, &evt);
+		return;
+	}
+#endif
+
 	evt.type = GF_EVT_NAVIGATE;
-	
 	if (a->xlink_href.type == SVG_IRI_IRI) {
 		evt.navigate.to_url = a->xlink_href.iri;
 		if (evt.navigate.to_url) {
@@ -985,7 +993,7 @@ static Bool SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 			SMIL_Modified_Animation((GF_Node *)a->xlink_href.target);
 		}
 	}
-	return 0;
+	return;
 }
 
 void SVG_Init_a(Render2D *sr, GF_Node *node)
@@ -1004,6 +1012,14 @@ void SVG_Init_a(Render2D *sr, GF_Node *node)
 	/*and overwrite handler*/
 	handler->handle_event = SVG_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
+
+#ifndef DANAE
+	/*listener for mouseover event*/
+	handler = gf_sg_dom_create_listener(node, SVG_DOM_EVT_MOUSEOVER);
+	/*and overwrite handler*/
+	handler->handle_event = SVG_a_HandleEvent;
+	gf_node_set_private((GF_Node *)handler, sr->compositor);
+#endif
 }
 
 /* end of Interactive SVG elements */

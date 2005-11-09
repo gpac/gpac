@@ -767,7 +767,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	fprintf(stdout, "Sub Type \"%s\" - %d samples\n", gf_4cc_to_str(msub_type), gf_isom_get_sample_count(file, trackNum));
 	
 	if (full_dump) {
-		char *handler_name;
+		const char *handler_name;
 		gf_isom_get_handler_name(file, trackNum, &handler_name);
 		fprintf(stdout, "Handler name: %s\n", handler_name);
 	}

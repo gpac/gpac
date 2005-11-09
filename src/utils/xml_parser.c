@@ -997,7 +997,6 @@ static void xml_sax_parse_entity(GF_SAXParser *parser)
 
 static void xml_sax_cdata(GF_SAXParser *parser)
 {
-	u32 i=0;
 	char *cd_end = strstr(parser->line_buffer + parser->current_pos, "]]>");
 	if (!cd_end) {
 		xml_sax_store_text(parser, parser->line_size - parser->current_pos);
@@ -1187,7 +1186,7 @@ GF_Err gf_xml_sax_parse(GF_SAXParser *parser, void *string)
 }
 
 
-GF_Err gf_xml_sax_init(GF_SAXParser *parser, char *BOM)
+GF_Err gf_xml_sax_init(GF_SAXParser *parser, unsigned char *BOM)
 {
 	u32 offset;
 	if (!BOM) parser->unicode_type = 0;

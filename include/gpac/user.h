@@ -94,6 +94,7 @@ enum {
 	GF_EVT_DURATION,	/*signal duration of presentation*/
 	GF_EVT_AUTHORIZATION,	/*indicates a user and pass is queried*/
 	GF_EVT_NAVIGATE, /*indicates the user app should load or jump to the given URL.*/
+	GF_EVT_NAVIGATE_INFO, /*indicates the link or its description under the mouse pointer*/
 	GF_EVT_MESSAGE, /*message from the MPEG-4 terminal*/
 	GF_EVT_PROGRESS, /*progress message from the MPEG-4 terminal*/
 	GF_EVT_VIEWPOINTS,	/*indicates viewpoint list has changed - no struct associated*/
@@ -248,11 +249,11 @@ YOU SHALL NOT DIRECTLY OPEN THE NEW URL IN THE EVENT PROC, THIS WOULD DEADLOCK T
 */
 typedef struct
 {
-	/*GF_EVT_NAVIGATE*/
+	/*GF_EVT_NAVIGATE and GF_EVT_NAVIGATE_INFO*/
 	u8 type;
 	/*new url to open / data to handle*/
 	const char *to_url;
-	/*parameters (cf vrml spec:) )*/
+	/*parameters (cf vrml spec) - UNUSED for GF_EVT_NAVIGATE_INFO*/
 	u32 param_count;
 	const char **parameters;
 } GF_EventNavigate;

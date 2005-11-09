@@ -188,37 +188,40 @@ SVGhandlerElement *gf_sg_dom_create_listener(GF_Node *node, u32 eventType)
 static void gf_smil_handle_event(GF_Node *anim, GF_List *l, GF_DOM_Event *evt)
 {
 	SMIL_Time *resolved, *proto;
-	u32 i, count = gf_list_count(l);
-	proto = NULL;
+	u32 found = 0;
+	u32 i, j, count = gf_list_count(l);
+
+	/*remove all previously instantiated times?? TODO move this chack to SMIL anim module*/
 	for (i=0; i<count; i++) {
 		proto = gf_list_get(l, i);
-		/*remove*/
 		if (proto->dynamic_type == 2) {
 			free(proto);
 			gf_list_rem(l, i);
 			i--;
 			count--;
-		} else if ((proto->dynamic_type==1) && (proto->event==evt->type)) {
-			if ((evt->type!=SVG_DOM_EVT_KEYPRESS) || !proto->parameter)
-				break;
-			else if (proto->parameter==evt->detail)
-				break;
 		}
-		proto = NULL;
 	}
-	if (!proto) return;
-	/*solve*/
-	GF_SAFEALLOC(resolved, sizeof(SMIL_Time));
-	resolved->type = SMIL_TIME_CLOCK;
-	resolved->clock = gf_node_get_scene_time(evt->target) + proto->clock;
-	resolved->dynamic_type=2;
 	for (i=0; i<count; i++) {
 		proto = gf_list_get(l, i);
-		if (proto->dynamic_type) continue;
-		if (proto->clock > resolved->clock) break;
+		if (proto->dynamic_type!=1) continue;
+		if (proto->event!=evt->type) continue;
+		if ((evt->type!=SVG_DOM_EVT_KEYPRESS) || (proto->parameter==evt->detail)) {
+			/*solve*/
+			GF_SAFEALLOC(resolved, sizeof(SMIL_Time));
+			resolved->type = SMIL_TIME_CLOCK;
+			resolved->clock = gf_node_get_scene_time(evt->target) + proto->clock;
+			resolved->dynamic_type=2;
+			for (j=0; j<count; j++) {
+				proto = gf_list_get(l, j);
+				if (proto->dynamic_type==1) continue;
+				if (proto->clock > resolved->clock) break;
+			}
+			gf_list_insert(l, resolved, j);
+			count++;
+			found++;
+		}
 	}
-	gf_list_insert(l, resolved, i);
-	gf_node_changed(anim, NULL);
+	if (found) gf_node_changed(anim, NULL);
 }
 
 static void gf_smil_handle_event_begin(SVGhandlerElement *hdl, GF_DOM_Event *evt)
@@ -237,25 +240,19 @@ static void gf_smil_handle_event_end(SVGhandlerElement *hdl, GF_DOM_Event *evt)
 	gf_smil_handle_event(anim, *(GF_List **)info.far_ptr, evt);
 }
 
-static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin, SVG_IRI *iri)
+static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
 {
 	SVGhandlerElement *hdl;
 	u32 i, count;
 	count = gf_list_count(l);
 	for (i=0; i<count; i++) {
-		GF_Node *to;
 		SMIL_Time *t = gf_list_get(l, i);
 		if (t->type != SMIL_TIME_EVENT) continue;
 		/*already setup*/
 		if (t->dynamic_type) continue;
 		/*not resolved yet*/
 		if (!t->element && t->element_id) continue;
-		to = t->element;
-		if (!to) {
-			if ((iri->type==SVG_IRI_ELEMENTID) && !iri->target) continue;
-			to = (GF_Node *)iri->target;
-		}
-		hdl = gf_sg_dom_create_listener(to, t->event);
+		hdl = gf_sg_dom_create_listener(t->element, t->event);
 		hdl->handle_event = is_begin ? gf_smil_handle_event_begin : gf_smil_handle_event_end;
 		gf_node_set_private((GF_Node *)hdl, node);
 		t->element = NULL;
@@ -265,12 +262,11 @@ static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin, S
 
 static void gf_smil_setup_events(GF_Node *node)
 {
-	GF_FieldInfo info, iri_info;
-	if (gf_node_get_field_by_name(node, "xlink:href", &iri_info) != GF_OK) return;
+	GF_FieldInfo info;
 	if (gf_node_get_field_by_name(node, "begin", &info) != GF_OK) return;
-	gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 1, iri_info.far_ptr);
+	gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 1);
 	if (gf_node_get_field_by_name(node, "end", &info) != GF_OK) return;
-	gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 0, iri_info.far_ptr);
+	gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 0);
 }
 
 Bool gf_sg_svg_node_init(GF_Node *node)

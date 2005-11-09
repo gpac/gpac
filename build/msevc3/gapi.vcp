@@ -101,24 +101,9 @@ LINK32=link.exe
 # Name "gapi - Win32 (WCE ARM) Debug"
 # Begin Source File
 
-SOURCE=..\..\modules\gapi\ColorTools.c
-DEP_CPP_COLOR=\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\tools.h"\
-	
-NODEP_CPP_COLOR=\
-	"..\..\modules\gapi\ColorTools.h"\
-	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\gapi\ColorTools.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\modules\gapi\gapi.cpp
 DEP_CPP_GAPI_=\
+	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\list.h"\
@@ -130,12 +115,12 @@ DEP_CPP_GAPI_=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
 	"..\..\modules\gapi\gapi.h"\
+	{$(INCLUDE)}"aygshell.h"\
+	{$(INCLUDE)}"gx.h"\
+	{$(INCLUDE)}"sipapi.h"\
 	
 NODEP_CPP_GAPI_=\
-	"..\..\modules\gapi\ColorTools.h"\
-	".\ipapi.h"\
-	".\x.h"\
-	".\ygshell.h"\
+	"..\..\modules\gapi\GLES\egl.h"\
 	
 # End Source File
 # Begin Source File

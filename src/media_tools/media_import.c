@@ -4013,7 +4013,7 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 			if (esd)  gf_odf_desc_del((GF_Descriptor *) esd);
 			return GF_NOT_SUPPORTED;
 		}
-		e = gf_m4v_rewrite_par(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, ar_num, ar_den);
+		e = gf_m4v_rewrite_par((unsigned char **) &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, ar_num, ar_den);
 		if (!e) e = gf_isom_change_mpeg4_description(file, track, 1, esd);
 		gf_odf_desc_del((GF_Descriptor *) esd);
 		if (e) return e;

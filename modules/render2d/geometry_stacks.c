@@ -379,7 +379,6 @@ static void DrawBitmap(DrawableContext *ctx)
 	GF_ColorMatrix *cmat;
 	Render2D *sr;
 	Bool use_blit, has_key;
-	M_Bitmap *bmp = (M_Bitmap *) ctx->node->owner;
 	BitmapStack *st = (BitmapStack *) gf_node_get_private(ctx->node->owner);
 
 

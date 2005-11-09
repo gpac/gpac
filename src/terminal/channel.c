@@ -1055,11 +1055,36 @@ void gf_es_config_ismacryp(GF_Channel *ch, GF_NetComISMACryp *isma_cryp)
 		goto exit;
 	}
 	/*fetch keys*/
+
+	/*base64 inband encoding*/
 	if (!strnicmp(isma_cryp->kms_uri, "(key)", 5)) {
 		char data[100];
 		gf_base64_decode((unsigned char *) isma_cryp->kms_uri+5, strlen(isma_cryp->kms_uri)-5, data, 100);
 		memcpy(ch->key, data, sizeof(char)*16);
 		memcpy(ch->salt, data+16, sizeof(char)*8);
+	}
+	/*hexadecimal inband encoding*/
+	if (!strnicmp(isma_cryp->kms_uri, "(key-hexa)", 10)) {
+		u32 v;
+		char szT[3], *k;
+		u32 i;
+		szT[2] = 0;
+		if (strlen(isma_cryp->kms_uri) < 10+32+16) {
+			gf_term_message(ch->odm->term, ch->service->url, "ISMACryp: Unable to fetch hexadecimal keys", GF_BAD_PARAM);
+			goto exit;
+		}
+		k = (char *)isma_cryp->kms_uri + 10;
+		for (i=0; i<16; i++) { 
+			szT[0] = k[2*i]; szT[1] = k[2*i + 1];
+			sscanf(szT, "%X", &v); 
+			ch->key[i] = v;
+		}
+		k = (char *)isma_cryp->kms_uri + 10 + 32;
+		for (i=0; i<8; i++) { 
+			szT[0] = k[2*i]; szT[1] = k[2*i + 1];
+			sscanf(szT, "%X", &v); 
+			ch->salt[i] = v;
+		}
 	}
 	/*MPEG4-IP KMS*/
 	else if (!stricmp(isma_cryp->kms_uri, "AudioKey") || !stricmp(isma_cryp->kms_uri, "VideoKey")) {
