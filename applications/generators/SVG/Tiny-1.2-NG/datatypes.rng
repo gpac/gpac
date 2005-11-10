@@ -18,6 +18,10 @@
     </choice>
   </define>
 
+  <define name='XML-Name.datatype'>
+    <data type='Name'/>
+  </define>
+
   <define name='ContentType.datatype'>
     <data type='string'/>
   </define>
@@ -30,7 +34,7 @@
     <data type='string'/>
   </define>
 
-  <define name='Clock.datatype'>
+  <define name='Clock-value.datatype'>
     <data type='string'/>
   </define>
 
@@ -96,11 +100,11 @@
     </choice>
   </define>
 
-  <define name='FontFamily.datatype'>
+  <define name='FontFamilyValue.datatype'>
     <data type='string'/>
   </define>
 
-  <define name='FontSize.datatype'>
+  <define name='FontSizeValue.datatype'>
     <data type='string'/>
   </define>
 

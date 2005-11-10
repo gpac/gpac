@@ -71,6 +71,7 @@
 
   <define name='textArea.AT' combine='interleave'>
     <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
     <ref name='svg.Core.attr'/>
     <ref name='svg.Conditional.attr'/>
     <ref name='svg.Focus.attr'/>

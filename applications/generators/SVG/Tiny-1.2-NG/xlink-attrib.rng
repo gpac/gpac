@@ -96,7 +96,7 @@
 
   <define name='svg.XLinkReplace.attr' combine='interleave'>
     <optional>
-      <attribute name='xlink:show' a:defaultValue='replace' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='xlink:show' svg:animatable='false' svg:inheritable='false'>
         <choice>
           <value>new</value>
           <value>replace</value>

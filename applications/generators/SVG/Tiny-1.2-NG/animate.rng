@@ -27,6 +27,7 @@
       <ref name='animateColor'/>
       <ref name='animateTransform'/>
       <ref name='animateMotion'/>
+      <ref name='svg.Discard.group'/>
     </choice>
   </define>
 
@@ -39,7 +40,7 @@
   <define name='svg.AnimateTimingNoMinMax.attr' combine='interleave'>
     <ref name='svg.AnimateTimingNoFillNoMinMax.attr'/>
     <optional>
-      <attribute name='fill' a:defaultValue='remove' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='fill' svg:animatable='false' svg:inheritable='false'>
         <choice>
           <value>remove</value>
           <value>freeze</value>
@@ -55,7 +56,7 @@
     <optional><attribute name='repeatCount' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
     <optional><attribute name='repeatDur' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
     <optional>
-      <attribute name='restart' a:defaultValue='always' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='restart' svg:animatable='false' svg:inheritable='false'>
         <choice>
           <value>always</value>
           <value>never</value>
@@ -81,6 +82,22 @@
       </attribute>
     </optional>
     <optional>
+      <attribute name='syncTolerance' svg:animatable='false' svg:inheritable='false'>
+        <choice>
+          <ref name='Clock-value.datatype'/>
+          <value>default</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='syncMaster' svg:animatable='false' svg:inheritable='false'>
+        <ref name='Boolean.datatype'/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.AnimateSyncDefault.attr' combine='interleave'>
+    <optional>
       <attribute name='syncBehaviorDefault' svg:animatable='false' svg:inheritable='false'>
         <choice>
           <value>canSlip</value>
@@ -91,17 +108,9 @@
       </attribute>
     </optional>
     <optional>
-      <attribute name='syncTolerance' svg:animatable='false' svg:inheritable='false'>
-        <choice>
-          <ref name='Clock.datatype'/>
-          <value>default</value>
-        </choice>
-      </attribute>
-    </optional>
-    <optional>
       <attribute name='syncToleranceDefault' svg:animatable='false' svg:inheritable='false'>
         <choice>
-          <ref name='Clock.datatype'/>
+          <ref name='Clock-value.datatype'/>
           <value>inherit</value>
         </choice>
       </attribute>
@@ -157,7 +166,7 @@
 
   <define name='svg.AnimateAdditionCommon.attr'>
     <optional>
-      <attribute name='additive' a:defaultValue='replace' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='additive' svg:animatable='false' svg:inheritable='false'>
         <choice>
           <value>replace</value>
           <value>sum</value>
@@ -165,7 +174,7 @@
       </attribute>
     </optional>
     <optional>
-      <attribute name='accumulate' a:defaultValue='none' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='accumulate' svg:animatable='false' svg:inheritable='false'>
         <choice>
           <value>none</value>
           <value>sum</value>
@@ -176,7 +185,7 @@
 
   <define name='svg.AnimateTypeCommon.attr'>
     <optional>
-      <attribute name='type' a:defaultValue='translate' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='type' svg:animatable='false' svg:inheritable='false'>
         <choice>
           <value>translate</value>
           <value>scale</value>
@@ -294,7 +303,6 @@
     <ref name='svg.AnimateTiming.attr'/>
     <ref name='svg.AnimateAdditionCommon.attr'/>
     <ref name='svg.AnimateValueCommon.attr'/>
-    <ref name='svg.AnimateTypeCommon.attr'/>
     <optional><attribute name='path' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
     <optional><attribute name='keyPoints' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
     <optional><attribute name='rotate' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>

@@ -26,6 +26,7 @@
 
   <define name='video.AT' combine='interleave'>
     <ref name='svg.Core.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
     <ref name='svg.Media.attr'/>
     <ref name='svg.XLinkEmbed.attr'/>
     <ref name='svg.Conditional.attr'/>
@@ -37,16 +38,20 @@
     <ref name='svg.XYWH.attr'/>
     <ref name='svg.PAR.attr'/>
     <ref name='svg.ContentType.attr'/>
+    <ref name='svg.InitialVisibility.attr'/>
     <optional>
-      <attribute name='transformBehavior' a:defaultValue='geometric' svg:animatable='no' svg:inheritable='false'>
+      <attribute name='transformBehavior' svg:animatable='no' svg:inheritable='false'>
         <choice>
           <value>geometric</value>
           <value>pinned</value>
+          <value>pinned90</value>
+          <value>pinned180</value>
+          <value>pinned270</value>
         </choice>
       </attribute>
     </optional>
     <optional>
-      <attribute name='overlay' a:defaultValue='none' svg:animatable='no' svg:inheritable='false'>
+      <attribute name='overlay' svg:animatable='no' svg:inheritable='false'>
         <choice>
           <value>none</value>
           <value>top</value>

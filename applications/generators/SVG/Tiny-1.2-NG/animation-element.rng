@@ -30,6 +30,7 @@
 
   <define name='animation.AT' combine='interleave'>
     <ref name='svg.Core.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
     <ref name='svg.Media.attr'/>
     <ref name='svg.Conditional.attr'/>
     <ref name='svg.External.attr'/>
@@ -40,6 +41,7 @@
     <ref name='svg.XYWH.attr'/>
     <ref name='svg.PAR.attr'/>
     <ref name='svg.Transform.attr'/>
+    <ref name='svg.InitialVisibility.attr'/>
   </define>
 
   <define name='animation.CM'>

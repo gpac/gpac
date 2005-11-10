@@ -26,7 +26,8 @@
 
   <define name='image.AT' combine='interleave'>
     <ref name='svg.Core.attr'/>
-    <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
+    <ref name='svg.Media.attr'/>
     <ref name='svg.XLinkEmbed.attr'/>
     <ref name='svg.Conditional.attr'/>
     <ref name='svg.External.attr'/>

@@ -30,6 +30,7 @@
 
   <!-- ... attribute groups ....................................... -->
   <define name='svg.Properties.attr'                 ><empty/></define>
+  <define name='svg.FocusHighlight.attr'             ><empty/></define>
   <define name='svg.Conditional.attr'                ><empty/></define>
   <define name='svg.Core.attr'                       ><empty/></define>
   <define name='svg.CorePreserve.attr'               ><empty/></define>
@@ -45,9 +46,11 @@
   <define name='svg.XLinkReplace.attr'               ><empty/></define>
   <define name='svg.AnimateTiming.attr'              ><empty/></define>
   <define name='svg.AnimateSync.attr'                ><empty/></define>
+  <define name='svg.AnimateSyncDefault.attr'         ><empty/></define>
   <define name='svg.AnimateBegin.attr'               ><empty/></define>
   <define name='svg.AnimateTimingNoMinMax.attr'      ><empty/></define>
   <define name='svg.AnimateTimingNoFillNoMinMax.attr'><empty/></define>
+  <define name='svg.InitialVisibility.attr'			 ><empty/></define>
   <define name='svg.PAR.attr'                        ><empty/></define>
   <define name='svg.CxCy.attr'                       ><empty/></define>
   <define name='svg.D.attr'                          ><empty/></define>

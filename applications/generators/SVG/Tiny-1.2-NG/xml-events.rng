@@ -30,7 +30,7 @@
     <ref name='svg.Core.attr'/>
     <optional>
       <attribute name='event' svg:animatable='false' svg:inheritable='false'>
-        <ref name='XSLT-QName.datatype'/>
+        <ref name='XML-Name.datatype'/>
       </attribute>
     </optional>
     <optional>
@@ -50,7 +50,7 @@
       </attribute>
     </optional>
     <optional>
-      <attribute name='defaultAction' a:defaultValue='perform' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='defaultAction' svg:animatable='false' svg:inheritable='false'>
         <choice>
           <value>perform</value>
           <value>cancel</value>

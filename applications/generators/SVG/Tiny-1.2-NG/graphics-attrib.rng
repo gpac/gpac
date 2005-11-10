@@ -11,7 +11,7 @@
          datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
          >
 
-  <define name='svg.Properties.attr' combine='interleave'>
+  <define name='svg.Media.attr' combine='interleave'>
     <optional>
       <attribute name='display' svg:animatable='true' svg:inheritable='explicit'>
         <choice>
@@ -90,6 +90,17 @@
           <value>optimizeLegibility</value>
           <value>geometricPrecision</value>
           <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name='svg.InitialVisibility.attr' combine='interleave'>
+    <optional>
+      <attribute name='initialVisibility' svg:animatable='no' svg:inheritable='false'>
+        <choice>
+          <value>whenStarted</value>
+          <value>always</value>
         </choice>
       </attribute>
     </optional>

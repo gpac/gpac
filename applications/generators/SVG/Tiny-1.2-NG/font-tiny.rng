@@ -81,8 +81,6 @@
     </optional>
     <optional><attribute name='font-weight' svg:animatable='false' svg:inheritable='false'><text/></attribute>
     </optional>
-    <optional><attribute name='font-size' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
     <optional><attribute name='font-variant' svg:animatable='false' svg:inheritable='false'><text/></attribute>
     </optional>
     <optional><attribute name='font-stretch' svg:animatable='false' svg:inheritable='false'><text/></attribute>

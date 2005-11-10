@@ -13,7 +13,7 @@
 
   <define name='svg.Focus.attr' combine='interleave'>
     <optional>
-      <attribute name='focusable' a:defaultValue='auto' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='focusable' svg:animatable='true' svg:inheritable='false'>
         <choice>
           <value>auto</value>
           <ref name='Boolean.datatype'/>
@@ -21,56 +21,66 @@
       </attribute>
     </optional>
     <optional>
-      <attribute name='focusNext' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='nav-next' svg:animatable='true' svg:inheritable='false'>
         <ref name='Focus.datatype'/>
       </attribute>
     </optional>
     <optional>
-      <attribute name='focusPrev' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='nav-prev' svg:animatable='true' svg:inheritable='false'>
         <ref name='Focus.datatype'/>
       </attribute>
     </optional>
     <optional>
-      <attribute name='focusNorth' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='nav-up' svg:animatable='true' svg:inheritable='false'>
         <ref name='Focus.datatype'/>
       </attribute>
     </optional>
     <optional>
-      <attribute name='focusNorthEast' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='nav-up-right' svg:animatable='true' svg:inheritable='false'>
         <ref name='Focus.datatype'/>
       </attribute>
     </optional>
     <optional>
-      <attribute name='focusEast' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='nav-right' svg:animatable='true' svg:inheritable='false'>
         <ref name='Focus.datatype'/>
       </attribute>
     </optional>
     <optional>
-      <attribute name='focusSouthEast' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='nav-down-right' svg:animatable='true' svg:inheritable='false'>
         <ref name='Focus.datatype'/>
       </attribute>
     </optional>
     <optional>
-      <attribute name='focusSouth' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='nav-down' svg:animatable='true' svg:inheritable='false'>
         <ref name='Focus.datatype'/>
       </attribute>
     </optional>
     <optional>
-      <attribute name='focusSouthWest' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='nav-down-left' svg:animatable='true' svg:inheritable='false'>
         <ref name='Focus.datatype'/>
       </attribute>
     </optional>
     <optional>
-      <attribute name='focusWest' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='nav-left' svg:animatable='true' svg:inheritable='false'>
         <ref name='Focus.datatype'/>
       </attribute>
     </optional>
     <optional>
-      <attribute name='focusNorthWest' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='nav-up-left' svg:animatable='true' svg:inheritable='false'>
         <ref name='Focus.datatype'/>
       </attribute>
     </optional>
   </define>
 
+  <define name='svg.FocusHighlight.attr' combine='interleave'>
+    <optional>
+      <attribute name='focusHighlight' svg:animatable='true' svg:inheritable='false'>
+        <choice>
+          <value>auto</value>
+          <value>none</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
 
 </grammar>

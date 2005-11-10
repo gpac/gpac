@@ -66,7 +66,7 @@
 
   <define name='svg.PAR.attr' combine='interleave'>
     <optional>
-      <attribute name='preserveAspectRatio' a:defaultValue='xMidYMid meet' svg:animatable='true' svg:inheritable='false'>
+      <attribute name='preserveAspectRatio' svg:animatable='true' svg:inheritable='false'>
         <data type='string'>
           <param name='pattern'>\s*(none|xMidYMid)\s*(meet)?\s*</param>
         </data>
@@ -84,9 +84,10 @@
 
   <define name='svg.AT' combine='interleave'>
     <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
     <ref name='svg.External.attr'/>
     <ref name='svg.Focus.attr'/>
-    <ref name='svg.AnimateSync.attr'/>
+    <ref name='svg.AnimateSyncDefault.attr'/>
     <ref name='svg.Core.attr'/>
     <ref name='svg.WH.attr'/>
     <ref name='svg.PAR.attr'/>
@@ -96,7 +97,7 @@
       </attribute>
     </optional>
     <optional>
-      <attribute name='zoomAndPan' a:defaultValue='magnify' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='zoomAndPan' svg:animatable='false' svg:inheritable='false'>
         <choice>
           <value>disable</value>
           <value>magnify</value>
@@ -104,7 +105,7 @@
       </attribute>
     </optional>
     <optional>
-      <attribute name='version' a:defaultValue='1.1' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='version' svg:animatable='false' svg:inheritable='false'>
         <choice>
           <value type='string'>1.0</value>
           <value type='string'>1.1</value>
@@ -113,7 +114,7 @@
       </attribute>
     </optional>
     <optional>
-      <attribute name='baseProfile' a:defaultValue='none' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='baseProfile' svg:animatable='false' svg:inheritable='false'>
         <choice>
           <value type='string'>none</value>
           <value type='string'>tiny</value>
@@ -123,15 +124,20 @@
       </attribute>
     </optional>
     <optional>
-      <attribute name='contentScriptType' a:defaultValue='application/ecmascript' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='contentScriptType' svg:animatable='false' svg:inheritable='false'>
         <ref name='ContentType.datatype'/>
       </attribute>
     </optional>
     <optional>
-      <attribute name='snapshotTime' svg:animatable='false' svg:inheritable='false'><text/></attribute>
+      <attribute name='snapshotTime' svg:animatable='false' svg:inheritable='false'>
+				<choice>
+					<value type='string'>none</value>
+          <ref name='Clock-value.datatype'/>
+				</choice>
+			</attribute>
     </optional>
     <optional>
-      <attribute name='timelineBegin' a:defaultValue='onLoad' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='timelineBegin' svg:animatable='false' svg:inheritable='false'>
         <choice>
           <value type='string'>onLoad</value>
           <value type='string'>onStart</value>
@@ -139,7 +145,7 @@
       </attribute>
     </optional>
     <optional>
-      <attribute name='playbackOrder' a:defaultValue='all' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='playbackOrder' svg:animatable='false' svg:inheritable='false'>
         <choice>
           <value type='string'>all</value>
           <value type='string'>forwardOnly</value>
@@ -160,6 +166,7 @@
 
   <define name='g.AT' combine='interleave'>
     <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
     <ref name='svg.Core.attr'/>
     <ref name='svg.External.attr'/>
     <ref name='svg.Conditional.attr'/>
@@ -226,6 +233,7 @@
 
   <define name='use.AT' combine='interleave'>
     <ref name='svg.Properties.attr'/>
+    <ref name='svg.FocusHighlight.attr'/>
     <ref name='svg.Core.attr'/>
     <ref name='svg.Conditional.attr'/>
     <ref name='svg.Transform.attr'/>

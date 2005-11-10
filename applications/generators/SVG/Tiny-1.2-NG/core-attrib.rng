@@ -58,7 +58,7 @@
   <define name='svg.CorePreserve.attr' combine='interleave'>
     <ref name='svg.CoreCommon.attr'/>
     <optional>
-      <attribute name='xml:space' a:defaultValue='preserve' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='xml:space' svg:animatable='false' svg:inheritable='false'>
         <value>preserve</value>
       </attribute>
     </optional>

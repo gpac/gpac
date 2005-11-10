@@ -11,7 +11,7 @@
          datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'
          >
 
-  <define name='svg.Properties.attr' combine='interleave'>
+  <define name='svg.Media.attr' combine='interleave'>
     <optional>
       <attribute name='viewport-fill' svg:animatable='true' svg:inheritable='false'>
         <choice>
