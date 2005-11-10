@@ -34,7 +34,7 @@
     <data type='string'/>
   </define>
 
-  <define name='Clock-value.datatype'>
+  <define name='Clock.datatype'>
     <data type='string'/>
   </define>
 
