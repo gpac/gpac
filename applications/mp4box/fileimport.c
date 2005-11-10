@@ -1012,7 +1012,7 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Do
 		strcpy(cat_enum.szOpt, sep);
 		sep[0] = 0;
 	}
-	return gf_enum_directory(cat_enum.szPath, 0, cat_enumerate, &cat_enum);
+	return gf_enum_directory(cat_enum.szPath, 0, cat_enumerate, &cat_enum, NULL);
 }
 
 

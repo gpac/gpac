@@ -164,12 +164,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		break;
 	case GF_EVT_MESSAGE:
 	{
-		const char *servName;
-		if (!evt->message.service || !strcmp(evt->message.service, the_url)) {
-			servName = "main service";
-		} else {
-			servName = evt->message.service;
-		}
 		if (!evt->message.message) return 0;
 		set_status((char *) evt->message.message);
 	}
@@ -529,6 +523,7 @@ void set_svg_progressive()
 		gf_cfg_set_key(user.config, "SVGLoader", "LoadType", "SAX Progressive");
 		gf_cfg_set_key(user.config, "SVGLoader", "SAXMaxDuration", "30");
 	} else {
+		gf_cfg_set_key(user.config, "SVGLoader", "SAXMaxDuration", "0");
 		gf_cfg_set_key(user.config, "SVGLoader", "LoadType", "DOM");
 	}
 }

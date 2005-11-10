@@ -159,7 +159,7 @@ void gf_get_user_name(char *buf, u32 buf_size)
 
 
 /*enumerate directories*/
-GF_Err gf_enum_directory(const char *dir, Bool enum_directory, Bool (*enum_dir_item)(void *cbck, char *item_name, char *item_path), void *cbck)
+GF_Err gf_enum_directory(const char *dir, Bool enum_directory, Bool (*enum_dir_item)(void *cbck, char *item_name, char *item_path), void *cbck, const char *filter)
 {
 	unsigned char ext[2];
 	unsigned char path[GF_MAX_PATH];
@@ -188,6 +188,14 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, Bool (*enum_dir_i
 		if (!strcmp(the_file->d_name, "..")) goto next;
 		if (the_file->d_name[0] == '.') goto next;
 
+		if (filter) {
+			char ext[30];
+			char *sep = strrchr(the_file->d_name[0], '.');
+			if (!sep) goto next;
+			strcpy(ext, sep+1);
+			strlwr(ext);
+			if (!strstr(filter, sep+1)) goto next;
+		}
 		strcpy(filepath, path);
 		strcat(filepath, the_file->d_name);
 

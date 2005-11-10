@@ -77,7 +77,7 @@ static void R2D_SetUserTransform(Render2D *sr, Fixed zoom, Fixed tx, Fixed ty, B
 		sr->zoom = zoom;
 	}
 	gf_mx2d_init(sr->top_effect->transform);
-	gf_mx2d_add_scale(&sr->top_effect->transform, sr->zoom*sr->scale_x, sr->zoom*sr->scale_y);
+	gf_mx2d_add_scale(&sr->top_effect->transform, gf_mulfix(sr->zoom,sr->scale_x), gf_mulfix(sr->zoom,sr->scale_y));
 //	gf_mx2d_add_scale(&sr->top_effect->transform, sr->zoom, sr->zoom);
 	gf_mx2d_add_translation(&sr->top_effect->transform, sr->trans_x, sr->trans_y);
 	if (sr->rotation) gf_mx2d_add_rotation(&sr->top_effect->transform, 0, 0, sr->rotation);
@@ -686,7 +686,7 @@ static GF_Err R2D_RecomputeAR(GF_VisualRenderer *vr)
 	if (!sr->compositor->has_size_info && !(sr->compositor->override_size_flags & 2) ) {
 		sr->compositor->scene_width = sr->cur_width = sr->out_width;
 		sr->compositor->scene_height = sr->cur_height = sr->out_height;
-		R2D_SetScaling(sr, 1, 1);
+		R2D_SetScaling(sr, FIX_ONE, FIX_ONE);
 		/*and resize hardware surface*/
 		evt.type = GF_EVT_VIDEO_SETUP;
 		evt.size.width = sr->cur_width;

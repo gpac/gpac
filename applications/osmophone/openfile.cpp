@@ -94,9 +94,9 @@ void set_directory(TCHAR *dir)
 	}
 
 	/*enum directories*/
-	gf_enum_directory((const char *) current_dir, 1, enum_dirs, NULL);
+	gf_enum_directory((const char *) current_dir, 1, enum_dirs, NULL, NULL);
 	/*enum files*/
-	gf_enum_directory((char *) current_dir, 0, enum_files, NULL);
+	gf_enum_directory((char *) current_dir, 0, enum_files, NULL, NULL);
     SendMessage(hList, LB_SETCURSEL, 0, 0);
 	SetFocus(hList);
 }
@@ -213,7 +213,7 @@ void process_list_change(HWND hWnd, Bool add_to_pl)
 				wcscat(wdir, sTxt+2);
 				wcscat(wdir, _T("\\"));
 				CE_WideToChar(wdir, (char *) dir);
-				gf_enum_directory(dir, 0, add_files, NULL);
+				gf_enum_directory(dir, 0, add_files, NULL, NULL);
 			} else {
 				wcscat(w_current_dir, sTxt+2);
 				wcscat(w_current_dir, _T("\\"));

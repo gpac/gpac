@@ -709,6 +709,19 @@ static void xml_sax_node_end(GF_SAXParser *parser, Bool had_children)
 	if (!parser->init_state && !gf_list_count(parser->nodes)) parser->sax_state = SAX_STATE_DONE;
 }
 
+static void xml_sax_reset_attributes(GF_SAXParser *parser)
+{
+	/*destroy attributes*/
+	while (1) {
+		GF_SAXAttribute * att = gf_list_last(parser->attributes);
+		if (!att) break;
+		gf_list_rem_last(parser->attributes);
+		if (att->name) free(att->name);
+		if (att->value) free(att->value);
+		free(att);
+	}
+}
+
 static void xml_sax_node_start(GF_SAXParser *parser)
 {
 	char *sep;
@@ -728,15 +741,7 @@ static void xml_sax_node_start(GF_SAXParser *parser)
 			parser->sax_node_start(parser->sax_cbck, name, NULL, parser->attributes);
 		}
 	}
-	/*destroy attributes*/
-	while (1) {
-		GF_SAXAttribute * att = gf_list_last(parser->attributes);
-		if (!att) break;
-		gf_list_rem_last(parser->attributes);
-		if (att->name) free(att->name);
-		if (att->value) free(att->value);
-		free(att);
-	}
+	xml_sax_reset_attributes(parser);
 }
 
 
@@ -778,6 +783,8 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 					if (!parser->init_state) {
 						xml_sax_node_start(parser);
 						xml_sax_node_end(parser, 0);
+					} else {
+						xml_sax_reset_attributes(parser);
 					}
 					return 0;
 				}
@@ -866,14 +873,17 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 					}
 					return 0;
 				}
-			} else {
-				if (!att) att = gf_list_last(parser->attributes);
-				if (!att || !parser->att_sep) {
+			} else if (parser->att_sep) {
+				//if (!att) att = gf_list_last(parser->attributes);
+				assert(att);
+				if (!att) {
 					parser->sax_state = SAX_STATE_SYNTAX_ERROR;
 					return 1;
 				}
 				szVal[i] = c;
 				i++;
+			} else {
+				parser->current_pos++;
 			}
 		} else {
 			i++;
@@ -1115,7 +1125,10 @@ restart:
 		}
 	}
 exit:
-	if (is_text && i) xml_sax_store_text(parser, i);
+	if (is_text) {
+		if (i) xml_sax_store_text(parser, i);
+		xml_sax_flush_text(parser);
+	}
 	xml_sax_swap(parser);
 	return GF_OK;
 }

@@ -456,13 +456,14 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 		}
 	}
 
-/*	fprintf(stdout, "%d nodes to redraw (%d total) - %d dirty rects\n", num_to_draw, surf->num_contexts, surf->to_redraw.count);
+/*
+	fprintf(stdout, "%d nodes to redraw (%d total) - %d dirty rects\n", num_to_draw, surf->num_contexts, surf->to_redraw.count);
 	fprintf(stdout, "DR: X:%d Y:%d W:%d H:%d\n", surf->to_redraw.list[0].x, surf->to_redraw.list[0].y, surf->to_redraw.list[0].width, surf->to_redraw.list[0].height);
 */
+	refreshRect = surf->to_redraw.list[0];
 	for (j = 0; j < num_to_draw; j++) {
 		ctx = surf->contexts[surf->nodes_to_draw[j]];
-		if ((surf->to_redraw.count==1) && ! gf_irect_overlaps(ctx->clip, surf->to_redraw.list[0])) {
-		} else {
+		if ((surf->to_redraw.count>1) || gf_irect_overlaps(ctx->clip, refreshRect)) {
 			surf->draw_node_index = j+1;
 			ctx->node->Draw(ctx);
 		}

@@ -2214,7 +2214,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 				f = gf_f64_open(szMediaTemp, "rb");
 				close = 1;
 			} else {
-				if (offset) offset = media_done;
+				if (!offset) offset = media_done;
 			}
 			if (!f) {
 				e = gf_import_message(import, GF_BAD_PARAM, "NHML import failure: file %s not found", close ? szMediaTemp : szMedia);

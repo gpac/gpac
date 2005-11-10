@@ -31,6 +31,8 @@ EXPORTS
 	gf_list_find
 	gf_list_del_item
 	gf_list_reset
+	gf_list_last
+	gf_list_rem_last
 
 ;bitstream.h exports
 	gf_bs_new
@@ -166,6 +168,7 @@ EXPORTS
 ;	gf_mulfix
 ;	gf_muldiv
 ;	gf_divfix
+;	gf_invfix
 ;	gf_cos
 ;	gf_sin
 ;	gf_tan
@@ -1100,3 +1103,6 @@ EXPORTS
 	gf_sg_dom_create_listener
 	svg_store_embedded_data
 	smil_parse_attributename
+	svg_dom_event_by_name
+	gf_dom_event_name
+

@@ -96,7 +96,7 @@ void gf_get_user_name(char *buf, u32 buf_size)
 
 
 /*enumerate directories*/
-GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item enum_dir_fct, void *cbck)
+GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item enum_dir_fct, void *cbck, const char *filter)
 {
 	unsigned char path[GF_MAX_PATH], item_path[GF_MAX_PATH];
 	WIN32_FIND_DATA FindData;
@@ -120,6 +120,14 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 
 		if (!enum_directory && (FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) goto next;
 		if (enum_directory && !(FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) goto next;
+		if (filter) {
+			char ext[30];
+			char *sep = strrchr(FindData.cFileName, '.');
+			if (!sep) goto next;
+			strcpy(ext, sep+1);
+			strlwr(ext);
+			if (!strstr(filter, sep+1)) goto next;
+		}
 
 		strcpy(item_path, path);
 		strcat(item_path, FindData.cFileName);

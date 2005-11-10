@@ -27,6 +27,9 @@
 #include <gpac/terminal.h>
 #include <gpac/options.h>
 
+#ifndef GPAC_DISABLE_SVG
+#include <gpac/nodes_svg.h>
+#endif
 
 /*macro for size event format/send*/
 #define GF_USER_SETSIZE(_user, _w, _h)	\
@@ -328,7 +331,11 @@ GF_Renderer *gf_sr_new(GF_User *user, Bool self_threaded, Bool no_audio, GF_Term
 	if (!tmp) return NULL;
 	tmp->term = term;
 
-	if (!no_audio) tmp->audio_renderer = gf_sr_ar_load(user);	
+	/**/
+	if (!no_audio) {
+		tmp->audio_renderer = gf_sr_ar_load(user);	
+		if (!tmp->audio_renderer) GF_USER_MESSAGE(user, "", "NO AUDIO RENDERER", GF_OK);
+	}
 
 	gf_mx_p(tmp->mx);
 
@@ -497,11 +504,17 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 #ifndef GPAC_DISABLE_SVG
 		/*hack for SVG where size is set in %*/
 		if (!sr->has_size_info) {
-			u32 tag = gf_node_get_tag(gf_sg_get_root_node(sr->scene));
+			GF_Node *root = gf_sg_get_root_node(sr->scene);
+			u32 tag = gf_node_get_tag(root);
 			if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+				SVG_Length l;
 				sr->has_size_info = 1;
-//				width = sr->width;
-//				height = sr->height;
+				l = ((SVGsvgElement*)root)->width;
+				svg_convert_length_unit_to_user_unit(&l);
+				width = FIX2INT(l.value);
+				l = ((SVGsvgElement*)root)->height;
+				svg_convert_length_unit_to_user_unit(&l);
+				height = FIX2INT(l.value);
 			}
 		}
 #endif

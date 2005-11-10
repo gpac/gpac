@@ -236,6 +236,66 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libgpac_dll
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name aac_in
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name amr_dec
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name bifs_dec
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ctx_load
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name dummy_in
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ffmpeg_in
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ft_font
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name gapi
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name img_in
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name isom_in
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name mp3_in
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name odf_dec
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name render2d
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name render3d
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name rtp_in
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name soft_rast
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name svg_in
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name timedtext
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name wav_out
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name xvid_dec
+    End Project Dependency
 }}}
 
 ###############################################################################

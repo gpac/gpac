@@ -60,7 +60,6 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 		memcpy(eff->svg_props, &backup_props, styling_size);
 		return;
 	}
-
 	gf_mx2d_copy(backup_matrix, eff->transform);
 
 	gf_mx2d_pre_multiply(&eff->transform, &text->transform);
@@ -107,6 +106,7 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 			}
 			if (ft_dr->set_font(ft_dr, eff->svg_props->font_family->value, styles) != GF_OK) {
 				if (ft_dr->set_font(ft_dr, NULL, styles) != GF_OK) {
+					free(wcText);
 					return;
 				}
 			}

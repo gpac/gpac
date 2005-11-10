@@ -1289,16 +1289,8 @@ void CMainFrame::AddSubtitle(const char *fileName, Bool auto_play)
 
 static Bool subs_enum_dir_item(void *cbck, char *item_name, char *item_path)
 {
-	char *ext;
-	WinGPAC *app = GetApp();
 	CMainFrame *_this = (CMainFrame *)cbck;
-
-	ext = strrchr(item_name, '.');
-	if (!ext) return 0;
-	ext += 1;
-	if (!stricmp(ext, "srt") || !stricmp(ext, "ttxt")) 
-		_this->AddSubtitle(item_path, 0);
-
+	_this->AddSubtitle(item_path, 0);
 	return 0;
 }
 
@@ -1311,7 +1303,7 @@ void CMainFrame::LookForSubtitles()
 	if (!sep) ::GetCurrentDirectory(GF_MAX_PATH, dir);
 	else sep[0] = 0;
 
-	gf_enum_directory(dir, 0, subs_enum_dir_item, this);
+	gf_enum_directory(dir, 0, subs_enum_dir_item, this, "ttxt;srt");
 }
 
 void CMainFrame::OnCacheEnable()

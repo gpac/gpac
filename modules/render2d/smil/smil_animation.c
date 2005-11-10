@@ -327,10 +327,10 @@ void SMIL_AnimWithValues(SMIL_AnimationStack *stack, Double sceneTime)
 	} else {
 		if (*stack->calcMode == SMIL_CALCMODE_DISCRETE) {
 			interval_duration = FLT2FIX(stack->current_interval->simple_duration) / nbValues;
-			keyValueIndex = (u32)floor(normalizedSimpleTime*nbValues);			
+			keyValueIndex = FIX2INT( gf_floor(normalizedSimpleTime*nbValues) );			
 		} else {
 			interval_duration = FLT2FIX(stack->current_interval->simple_duration) / (nbValues-1);
-			keyValueIndex = (u32)floor(normalizedSimpleTime*(nbValues-1));			
+			keyValueIndex = FIX2INT( gf_floor(normalizedSimpleTime*(nbValues-1)) );			
 		}
 		interpolation_coefficient = gf_divfix(FLT2FIX(simpleTime) - keyValueIndex*interval_duration, interval_duration);
 //		fprintf(stdout, "Not Using Key Times: key value index %d, interval duration %.2f, coeff: %.2f\n", keyValueIndex, interval_duration, interpolation_coefficient);

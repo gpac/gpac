@@ -1387,6 +1387,8 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper)
 	}
 
 	fprintf(nhml, "baseMediaFile=\"%s\" ", szMedia);
+	if (gf_isom_is_track_in_root_od(dumper->file, track)) fprintf(nhml, "inRootOD=\"yes\" ");
+	fprintf(nhml, "trackID=\"%d\" ", dumper->trackID);
 	fprintf(nhml, ">\n");
 
 

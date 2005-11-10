@@ -272,8 +272,10 @@ typedef Bool (*gf_enum_dir_item)(void *cbck, char *item_name, char *item_path);
  *	\param enum_directory If set, only directories will be enumerated, otherwise only files are.
  *	\param enum_dir \ref gf_enum_dir_item callback function for enumeration. 
  *	\param cbck Opaque user data passed to callback function.
+ *	\param filter optional filter for file extensions. If a file extension without the dot '.' character is not found in the
+ *	filter the file will be skipped.
 */
-GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item enum_dir, void *cbck);
+GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item enum_dir, void *cbck, const char *filter);
 
 
 /*!

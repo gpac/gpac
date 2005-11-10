@@ -135,10 +135,11 @@ void CE_CharToWide(char *str, unsigned short *w_str)
 
 
 /*enumerate directories*/
-GF_Err gf_enum_directory(const char *dir, Bool enum_directory, Bool (*enum_dir_item)(void *cbck, char *item_name, char *item_path), void *cbck)
+GF_Err gf_enum_directory(const char *dir, Bool enum_directory, Bool (*enum_dir_item)(void *cbck, char *item_name, char *item_path), void *cbck, const char *filter)
 {
 	unsigned char _path[GF_MAX_PATH];
 	unsigned short path[GF_MAX_PATH];
+	unsigned short w_filter[GF_MAX_PATH];
 	unsigned char file[GF_MAX_PATH], filepath[GF_MAX_PATH];
 	WIN32_FIND_DATA FindData;
 	HANDLE SearchH;
@@ -150,8 +151,9 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, Bool (*enum_dir_i
 		sprintf(_path, "%s%c*", dir, GF_PATH_SEPARATOR);
 	}
 	CE_CharToWide(_path, path);
+	CE_WideToChar(w_filter, (char *)filter);
 
-	SearchH= FindFirstFile(path, &FindData);
+	SearchH = FindFirstFile(path, &FindData);
 	if (SearchH == INVALID_HANDLE_VALUE) return GF_IO_ERR;
 
 	_path[strlen(_path)-1] = 0;
@@ -162,6 +164,14 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, Bool (*enum_dir_i
 
 		if (!enum_directory && (FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) goto next;
 		if (enum_directory && !(FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) goto next;
+		if (filter) {
+			short ext[30];
+			short *sep = wcsrchr(FindData.cFileName, (wchar_t) '.');
+			if (!sep) goto next;
+			wcscpy(ext, sep+1);
+			wcslwr(ext);
+			if (!wcsstr(w_filter, ext)) goto next;
+		}
 
 		CE_WideToChar(FindData.cFileName, file);
 		strcpy(filepath, _path);

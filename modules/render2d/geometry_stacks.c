@@ -118,7 +118,10 @@ static void RenderRectangle(GF_Node *node, void *reff)
 	
 	ctx->transparent = 0;
 	/*if not filled, transparent*/
-	if (!ctx->aspect.filled) {
+	if (!ctx->aspect.filled && !ctx->h_texture) {
+		ctx->transparent = 1;
+	} 
+	else if (ctx->h_texture && ctx->h_texture->transparent) {
 		ctx->transparent = 1;
 	} 
 	/*if alpha, transparent*/

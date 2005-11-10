@@ -489,8 +489,8 @@ static Bool pl_enum_dir_item(void *cbck, char *item_name, char *item_path)
 
 static Bool pl_enum_dir_dirs(void *cbck, char *item_name, char *item_path)
 {
-	gf_enum_directory(item_path, 0, pl_enum_dir_item, cbck);
-	gf_enum_directory(item_path, 1, pl_enum_dir_dirs, cbck);
+	gf_enum_directory(item_path, 0, pl_enum_dir_item, cbck, NULL);
+	gf_enum_directory(item_path, 1, pl_enum_dir_dirs, cbck, NULL);
 	return 0;
 }
 
@@ -521,8 +521,8 @@ void Playlist::AddDir(Bool do_recurse)
 	if (!res) return;
 	strcpy(szCacheDir, dir);
 
-	gf_enum_directory(dir, 0, pl_enum_dir_item, this);
-	if (do_recurse) gf_enum_directory(dir, 1, pl_enum_dir_dirs, this);
+	gf_enum_directory(dir, 0, pl_enum_dir_item, this, NULL);
+	if (do_recurse) gf_enum_directory(dir, 1, pl_enum_dir_dirs, this, NULL);
 	m_all_dead_entries=-1;
 	RefreshList();
 }

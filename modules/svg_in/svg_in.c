@@ -50,6 +50,7 @@ typedef struct
 	u16 base_es_id;
 	u32 file_pos;
 	FILE *src;
+	Bool attached;
 } SVGIn;
 
 static Bool svg_check_download(SVGIn *svgin)
@@ -62,6 +63,26 @@ static Bool svg_check_download(SVGIn *svgin)
 	if (size==svgin->file_size) return 1;
 	return 0;
 }
+
+static void SVG_OnMessage(void *cbk, char *szMsg, GF_Err e)
+{
+	SVGIn *svgin = (SVGIn*)cbk;
+	gf_term_message(svgin->inline_scene->root_od->term, svgin->inline_scene->root_od->net_service->url, szMsg, e);
+}
+
+static void SVG_OnProgress(void *cbk, u32 done, u32 tot)
+{
+	GF_Event evt;
+	SVGIn *svgin = (SVGIn*)cbk;
+	evt.type = GF_EVT_PROGRESS;
+	evt.progress.progress_type = 2;
+	evt.progress.done = done;
+	evt.progress.total = tot;
+	evt.progress.service = svgin->inline_scene->root_od->net_service->url;
+	GF_USER_SENDEVENT(svgin->inline_scene->root_od->term->user, &evt);
+}
+
+#define SVG_PROGRESSIVE_BUFFER_SIZE		4096
 
 static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
@@ -78,53 +99,59 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 				/*not done yet*/
 				if (!svg_check_download(svgin)) return GF_OK;
 				e = gf_sm_load_init(&svgin->loader);
-				gf_is_attach_to_renderer(svgin->inline_scene);
-				return e;
 			} else {
 				/*should not be needed since SVG parser loads the entire file for now*/
-				return gf_sm_load_run(&svgin->loader);
+				e = gf_sm_load_run(&svgin->loader);
 			}
 		}
 		/*chunk parsing*/
 		else {
 			u32 entry_time;
-			Bool do_attach = 0;
-			char file_buf[1025];
+			char file_buf[SVG_PROGRESSIVE_BUFFER_SIZE+1];
 			if (!svgin->src) {
 				svgin->src = fopen(svgin->file_name, "rb");
 				if (!svgin->src) return GF_URL_ERROR;
 				svgin->file_pos = 0;
-				do_attach = 1;
 				svgin->loader.fileName = svgin->file_name;
 			}
+			e = GF_OK;
 			entry_time = gf_sys_clock();
 			fseek(svgin->src, svgin->file_pos, SEEK_SET);
 			while (1) {
 				u32 diff, nb_read;
-				nb_read = fread(file_buf, 1, 1024, svgin->src);
+				nb_read = fread(file_buf, 1, SVG_PROGRESSIVE_BUFFER_SIZE, svgin->src);
 				file_buf[nb_read] = 0;
-				if (!nb_read) return GF_OK;
+				if (!nb_read) {
+					if (svgin->file_pos==svgin->file_size) {
+						e = GF_EOS;
+						SVG_OnProgress(svgin, svgin->file_pos, svgin->file_size);
+					}
+					break;
+				}
 
 				e = gf_sm_load_string(&svgin->loader, file_buf);
 				svgin->file_pos += nb_read;
-
-				if (do_attach && (gf_sg_get_root_node(svgin->loader.scene_graph) != NULL))
-					gf_is_attach_to_renderer(svgin->inline_scene);
-
-				if (e) return e;
+				if (e) break;
 				diff = gf_sys_clock() - entry_time;
-				if (diff > svgin->sax_max_duration) return GF_OK;
+				SVG_OnProgress(svgin, svgin->file_pos, svgin->file_size);
+				if (diff > svgin->sax_max_duration) break;
 			}
-			return GF_OK;
 		}
-		return GF_OK;
+		break;
 	case SVG_IN_OTI_STREAMING_SVG:
-		return gf_sm_load_string(&svgin->loader, inBuffer);
-	case SVG_IN_OTI_LASERML:
-	default:
-		return GF_BAD_PARAM;
+		e = gf_sm_load_string(&svgin->loader, inBuffer);
+		break;
+	case SVG_IN_OTI_LASERML: return GF_NOT_SUPPORTED;
+	default: return GF_BAD_PARAM;
 	}
+	if (!svgin->attached && (gf_sg_get_root_node(svgin->loader.scene_graph)!=NULL) ) {
+		gf_is_attach_to_renderer(svgin->inline_scene);
+		svgin->attached = 1;
+	}
+	return e;
 }
+
+
 
 static GF_Err SVG_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_scene_decoder)
 {
@@ -134,6 +161,9 @@ static GF_Err SVG_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool
 	svgin->loader.scene_graph = scene->graph;
 	svgin->loader.localPath = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
 	svgin->loader.type = GF_SM_LOAD_SVG;
+	svgin->loader.OnMessage = SVG_OnMessage;
+	svgin->loader.OnProgress = SVG_OnProgress;
+	svgin->loader.cbk = svgin;
 	return GF_OK;
 }
 
