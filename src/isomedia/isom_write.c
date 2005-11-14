@@ -2209,7 +2209,6 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	/*get orig sample desc and clone it*/
 	trak = gf_isom_get_track_from_file(orig_file, orig_track);
 	if (!trak || !trak->Media) return GF_BAD_PARAM;
-	if (gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList)>1) return GF_NOT_SUPPORTED;
 
 	stbl = trak->Media->information->sampleTable;
 	stbl_temp = (GF_SampleTableBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STBL);

@@ -2269,10 +2269,7 @@ static char *ttd_format_time(u64 ts, u32 timescale, char *szDur, Bool is_srt)
 
 static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dump, void (*OnProgress)(void *cbj, u32 done, u32 total), void *cbk)
 {
-	u32 i, j, count, di, len;
-	u32 tx, ty, nb_descs;
-	u32 shift_offset[20];
-	u32 so_count;
+	u32 i, j, count, di, len, nb_descs, shift_offset[20], so_count;
 	Bool has_scroll;
 	char szDur[100];
 
@@ -2282,10 +2279,8 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	fprintf(dump, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
 	fprintf(dump, "<!-- GPAC 3GPP Text Stream -->\n");
 
-	tx = trak->Header->matrix[6]; tx >>= 16;
-	ty = trak->Header->matrix[7]; ty >>= 16;
 	fprintf(dump, "<TextStream version=\"1.0\">\n");
-	fprintf(dump, "<TextStreamHeader width=\"%d\" height=\"%d\" layer=\"%d\" translation_x=\"%d\" translation_y=\"%d\">\n", trak->Header->width / 65536, trak->Header->height / 65536, trak->Header->layer, tx, ty);
+	fprintf(dump, "<TextStreamHeader width=\"%d\" height=\"%d\" layer=\"%d\" translation_x=\"%d\" translation_y=\"%d\">\n", trak->Header->width >> 16 , trak->Header->height >> 16, trak->Header->layer, trak->Header->matrix[6] >> 16, trak->Header->matrix[7] >> 16);
 
 	nb_descs = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
 	for (i=0; i<nb_descs; i++) {

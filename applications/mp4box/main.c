@@ -118,6 +118,7 @@ void PrintFormats()
 {
 	fprintf(stdout, "Suppported raw formats and file extensions:\n"
 			" NHNT                 .media .nhnt .info\n"
+			" NHML                 .nhml (opt: .media .info)\n"
 			" MPEG Audio           .mp3\n"
 			" ADTS-AAC             .aac\n"
 			" MPEG-4 Visual        .cmp .m4v\n"

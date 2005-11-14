@@ -114,21 +114,24 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 
 static void gf_text_get_video_size(GF_ISOFile *dest, u32 *width, u32 *height)
 {
-	u32 w, h, i;
-	(*width) = (*height) = 0;
+	u32 w, h, f_w, f_h, i;
+
+	f_w = f_h = 0;
 	for (i=0; i<gf_isom_get_track_count(dest); i++) {
 		switch (gf_isom_get_media_type(dest, i+1)) {
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_VISUAL:
 			gf_isom_get_visual_info(dest, i+1, 1, &w, &h);
-			if (w > (*width)) (*width) = w;
-			if (h > (*height)) (*height) = h;
+			if (w > f_w) f_w = w;
+			if (h > f_h) f_h = h;
 			gf_isom_get_track_layout_info(dest, i+1, &w, &h, NULL, NULL, NULL);
-			if (w > (*width)) (*width) = w;
-			if (h > (*height)) (*height) = h;
+			if (w > f_w) f_w = w;
+			if (h > f_h) f_h = h;
 			break;
 		}
 	}
+	(*width) = f_w ? f_w : TTXT_DEFAULT_WIDTH;
+	(*height) = f_h ? f_h : TTXT_DEFAULT_HEIGHT;
 }
 
 
@@ -297,8 +300,6 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		u32 w, h;
 		GF_TextSampleDescriptor *sd;
 		gf_text_get_video_size(import->dest, &w, &h);
-		if (!w) w = TTXT_DEFAULT_WIDTH;
-		if (!h) h = TTXT_DEFAULT_HEIGHT;
 
 		/*have to work with default - use max size (if only one video, this means the text region is the
 		entire display, and with bottom alignment things should be fine...*/
@@ -645,8 +646,6 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		u32 w, h;
 		GF_TextSampleDescriptor *sd;
 		gf_text_get_video_size(import->dest, &w, &h);
-		if (!w) w = TTXT_DEFAULT_WIDTH;
-		if (!h) h = TTXT_DEFAULT_HEIGHT;
 
 		/*have to work with default - use max size (if only one video, this means the text region is the
 		entire display, and with bottom alignment things should be fine...*/

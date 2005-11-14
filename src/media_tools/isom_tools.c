@@ -388,7 +388,7 @@ GF_Err gp_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 
 GF_Err gp_media_make_3gpp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk)
 {
-	u32 Tracks, i, mType, nb_vid, nb_aud, nb_txt, nb_non_mp4;
+	u32 Tracks, i, mType, nb_vid, nb_avc, nb_aud, nb_txt, nb_non_mp4;
 	Bool is_3g2 = 0;
 
 	switch (gf_isom_get_mode(mp4file)) {
@@ -401,7 +401,7 @@ GF_Err gp_media_make_3gpp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const c
 	}
 
 	Tracks = gf_isom_get_track_count(mp4file);
-	nb_vid = nb_aud = nb_txt = nb_non_mp4 = 0;
+	nb_vid = nb_aud = nb_txt = nb_avc = nb_non_mp4 = 0;
 
 	for (i=0; i<Tracks; i++) {
 		gf_isom_remove_track_from_root_od(mp4file, i+1);
@@ -422,6 +422,7 @@ GF_Err gp_media_make_3gpp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const c
 				break;
 			case GF_ISOM_SUBTYPE_AVC_H264:
 				nb_vid++;
+				nb_avc++;
 				break;
 			case GF_ISOM_SUBTYPE_MPEG4:
 				{
@@ -522,16 +523,21 @@ remove_track:
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, 1);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GG6, 0);
 			log_message(LogMsg, cbk, "Setting major brand to 3GPP V6 file");
+		} else if (nb_avc) {
+			gf_isom_set_brand_info(mp4file, GF_ISOM_BRAND_3GP6, 0/*1024*/);
+			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_AVC1, 1);
+			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, 0);
+			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, 0);
 		} else {
-			gf_isom_set_brand_info(mp4file, GF_ISOM_BRAND_3GP5, 0/*1024*/);
-			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP6, 0);
+			gf_isom_set_brand_info(mp4file, nb_avc ? GF_ISOM_BRAND_3GP6 : GF_ISOM_BRAND_3GP5, 0/*1024*/);
+			gf_isom_modify_alternate_brand(mp4file, nb_avc ? GF_ISOM_BRAND_3GP5 : GF_ISOM_BRAND_3GP6, 0);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, 1);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GG6, 0);
 			log_message(LogMsg, cbk, "Setting major brand to 3GPP V5 file");
 		}
 	}
 	/*add/remove MP4 brands and add isom*/
-	gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_MP41, (u8) ((is_3g2||nb_non_mp4) ? 0 : 1));
+	gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_MP41, (u8) ((nb_avc||is_3g2||nb_non_mp4) ? 0 : 1));
 	gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_MP42, (u8) (nb_non_mp4 ? 0 : 1));
 	gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_ISOM, 1);
 	return GF_OK;

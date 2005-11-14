@@ -1876,8 +1876,8 @@ GF_Err gf_isom_get_track_layout_info(GF_ISOFile *movie, u32 trackNumber, u32 *wi
 	if (width) *width = tk->Header->width>>16;
 	if (height) *height = tk->Header->height>>16;
 	if (layer) *layer = tk->Header->layer;
-	if (translation_x) *translation_x = tk->Header->matrix[6];
-	if (translation_y) *translation_y = tk->Header->matrix[7];
+	if (translation_x) *translation_x = tk->Header->matrix[6] >> 16;
+	if (translation_y) *translation_y = tk->Header->matrix[7] >> 16;
 	return GF_OK;
 }
 

@@ -891,6 +891,17 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		ts_scale = (Float) gf_isom_get_media_timescale(dest, dst_tk);
 		ts_scale /= gf_isom_get_media_timescale(orig, i+1);
 
+		if (gf_isom_get_edit_segment_count(orig, i+1)) { 
+			u64 editTime, segmentDuration, mediaTime;
+			u8 editMode;
+			gf_isom_get_edit_segment(orig, i+1, 1, &editTime, &segmentDuration, &mediaTime, &editMode);
+			if (editMode == GF_ISOM_EDIT_EMPTY) {
+				Double offset = (Double) (s64)segmentDuration * gf_isom_get_media_timescale(orig, i+1);
+				offset /= gf_isom_get_timescale(orig);
+				insert_dts += (u32) (offset*ts_scale);
+			}
+		}
+
 		last_DTS = 0;
 		count = gf_isom_get_sample_count(orig, i+1);
 		for (j=0; j<count; j++) {

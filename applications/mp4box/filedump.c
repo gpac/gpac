@@ -974,7 +974,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		s16 l;
 		s32 tx, ty;
 		gf_isom_get_track_layout_info(file, trackNum, &w, &h, &tx, &ty, &l);
-		fprintf(stdout, "3GPP/MPEG-4 Timed Text - Size %d x %d - Translation X=%d Y=%d - Layer %d\n", w>>16, h>>16, tx>>16, ty>>16, l);
+		fprintf(stdout, "3GPP/MPEG-4 Timed Text - Size %d x %d - Translation X=%d Y=%d - Layer %d\n", w, h, tx, ty, l);
 	} else {
 		GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(file, trackNum, 1);
 		if (udesc) {

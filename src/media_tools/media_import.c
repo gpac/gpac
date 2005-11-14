@@ -1419,8 +1419,6 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		}
 		gf_isom_set_track_enabled(import->dest, track, 1);
 		if (import->esd && !import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
-		import->final_trackID = gf_isom_get_track_id(import->dest, track);
-
 		/*setup data ref*/
 		urn = url = NULL;
 		if (import->flags & GF_IMPORT_USE_DATAREF) {
@@ -1443,8 +1441,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		di = 1;
 		if (e) goto exit;
 	}
-
 	if (e) goto exit;
+	import->final_trackID = gf_isom_get_track_id(import->dest, track);
+
 	switch (mtype) {
 	case GF_ISOM_MEDIA_VISUAL:
 		if (!is_clone) gf_isom_set_visual_info(import->dest, track, di, w, h);
@@ -1480,10 +1479,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 				e = gf_isom_last_error(import->orig);
 				goto exit;
 			}
-			e = gf_isom_add_sample_reference(import->dest, track, 1, samp, offset);
+			e = gf_isom_add_sample_reference(import->dest, track, di, samp, offset);
 		} else {
 			samp = gf_isom_get_sample(import->orig, track_in, i+1, &di);
-			e = gf_isom_add_sample(import->dest, track, 1, samp);
+			e = gf_isom_add_sample(import->dest, track, di, samp);
 		}
 		sampDTS = samp->DTS;
 		gf_isom_sample_del(&samp);

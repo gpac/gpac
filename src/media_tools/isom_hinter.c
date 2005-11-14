@@ -722,7 +722,7 @@ static void gf_hinter_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_n
 	s16 l;
 	sprintf(sdpLine, "a=fmtp:%d sver=60; ", builder->PayloadType);
 	gf_isom_get_track_layout_info(file, track, &w, &h, &tx, &ty, &l);
-	sprintf(buffer, "width=%d; height=%d; tx=%d; ty=%d; layer=%d; ", w>>16, h>>16, tx>>16, ty>>16, l);
+	sprintf(buffer, "width=%d; height=%d; tx=%d; ty=%d; layer=%d; ", w, h, tx, ty, l);
 	strcat(sdpLine, buffer);
 	m_w = w;
 	m_h = h;
@@ -738,7 +738,7 @@ static void gf_hinter_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_n
 			break;
 		}
 	}
-	sprintf(buffer, "max-w=%d; max-h=%d", m_w>>16, m_h>>16);
+	sprintf(buffer, "max-w=%d; max-h=%d", m_w, m_h);
 	strcat(sdpLine, buffer);
 
 	strcat(sdpLine, "; tx3g=");

@@ -1,4 +1,7 @@
-Latest CVS Changes 08/11/05
+Latest CVS Changes 14/11/05
+  - added support for delayed concatenation (-cat file.mp4:delay=2000 test.mp4)
+  - fixed 3GP brand when using AVC (3GP6 shall be used)
+  - fixed misc issues with text import/info display on track sizes and 3GP text track importing.
   - added SAX support in gpac XML parser to avoid dependency on libxml when unneeded
   - added new svg_in module using gpac sax parser (supports progressive loading too)
   - added "-name" option to MP4Box (track import and general cmd line opt) for setting the track handler name
