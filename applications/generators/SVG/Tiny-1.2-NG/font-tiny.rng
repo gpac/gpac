@@ -335,6 +335,7 @@
   <define name='font-face-uri.AT' combine='interleave'>
     <ref name='svg.Core.attr'/>
     <ref name='svg.XLinkRequired.attr'/>
+    <ref name='svg.External.attr'/>
   </define>
 
   <define name='font-face-uri.CM'>

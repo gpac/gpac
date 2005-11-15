@@ -132,7 +132,7 @@
       <attribute name='snapshotTime' svg:animatable='false' svg:inheritable='false'>
 				<choice>
 					<value type='string'>none</value>
-          <ref name='Clock.datatype'/>
+          <ref name='Clock-value.datatype'/>
 				</choice>
 			</attribute>
     </optional>

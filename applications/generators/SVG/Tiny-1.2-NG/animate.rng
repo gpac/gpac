@@ -84,7 +84,7 @@
     <optional>
       <attribute name='syncTolerance' svg:animatable='false' svg:inheritable='false'>
         <choice>
-          <ref name='Clock.datatype'/>
+          <ref name='Clock-value.datatype'/>
           <value>default</value>
         </choice>
       </attribute>
@@ -110,7 +110,7 @@
     <optional>
       <attribute name='syncToleranceDefault' svg:animatable='false' svg:inheritable='false'>
         <choice>
-          <ref name='Clock.datatype'/>
+          <ref name='Clock-value.datatype'/>
           <value>inherit</value>
         </choice>
       </attribute>

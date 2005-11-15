@@ -31,7 +31,7 @@
     <ref name='svg.XLinkEmbed.attr'/>
     <ref name='svg.Conditional.attr'/>
     <ref name='svg.External.attr'/>
-    <ref name='svg.AnimateTimingNoFillNoMinMax.attr'/>
+    <ref name='svg.AnimateTiming.attr'/>
     <ref name='svg.AnimateSync.attr'/>
     <ref name='svg.Focus.attr'/>
     <ref name='svg.Transform.attr'/>

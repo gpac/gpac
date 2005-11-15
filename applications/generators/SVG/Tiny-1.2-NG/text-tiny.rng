@@ -18,7 +18,7 @@
       <attribute name='font-family' svg:animatable='true' svg:inheritable='true'>
         <choice>
           <value>inherit</value>
-          <ref name='FontFamily.datatype'/>
+          <ref name='FontFamilyValue.datatype'/>
         </choice>
       </attribute>
     </optional>
@@ -26,7 +26,7 @@
       <attribute name='font-size' svg:animatable='true' svg:inheritable='true'>
         <choice>
           <value>inherit</value>
-          <ref name='FontSize.datatype'/>
+          <ref name='FontSizeValue.datatype'/>
         </choice>
       </attribute>
     </optional>

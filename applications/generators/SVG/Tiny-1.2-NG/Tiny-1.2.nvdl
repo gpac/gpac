@@ -9,7 +9,7 @@
         <namespace ns='' match='attributes'>
           <attach/>
         </namespace>
-        <namespace ns='http://www.w3.org/1998/xml' match='attributes'>
+        <namespace ns='http://www.w3.org/XML/1998/namespace' match='attributes'>
           <attach/>
         </namespace>
         <namespace ns='http://www.w3.org/1999/xlink' match='attributes'>
