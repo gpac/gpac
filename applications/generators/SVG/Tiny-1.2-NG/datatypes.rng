@@ -34,7 +34,7 @@
     <data type='string'/>
   </define>
 
-  <define name='Clock-value.datatype'>
+  <define name='Clock.datatype'>
     <data type='string'/>
   </define>
 
@@ -100,11 +100,11 @@
     </choice>
   </define>
 
-  <define name='FontFamilyValue.datatype'>
+  <define name='FontFamily.datatype'>
     <data type='string'/>
   </define>
 
-  <define name='FontSizeValue.datatype'>
+  <define name='FontSize.datatype'>
     <data type='string'/>
   </define>
 
