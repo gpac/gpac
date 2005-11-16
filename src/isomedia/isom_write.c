@@ -1170,8 +1170,7 @@ GF_Err gf_isom_set_storage_mode(GF_ISOFile *movie, u8 storageMode)
 	case GF_ISOM_STORE_FLAT:
 	case GF_ISOM_STORE_STREAMABLE:
 	case GF_ISOM_STORE_INTERLEAVED:
-		movie->storageMode = storageMode;
-		return GF_OK;
+	case GF_ISOM_STORE_DRIFT_INTERLEAVED:
 	case GF_ISOM_STORE_TIGHT:
 		movie->storageMode = storageMode;
 		return GF_OK;

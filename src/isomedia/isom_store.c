@@ -26,7 +26,7 @@
 
 #ifndef GPAC_READ_ONLY
 
-#define MP4_CPRT_NOTICE "IsoMedia File Produced with GPAC"
+#define GPAC_ISOM_CPRT_NOTICE "IsoMedia File Produced with GPAC "GPAC_VERSION
 
 static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 {
@@ -38,10 +38,10 @@ static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 		if (a->type == GF_ISOM_BOX_TYPE_FREE) {
 			_free = (GF_FreeSpaceBox *)a;
 			if (_free->dataSize) {
-				if (!strcmp(_free->data, MP4_CPRT_NOTICE)) return GF_OK;
+				if (!strcmp(_free->data, GPAC_ISOM_CPRT_NOTICE)) return GF_OK;
 				if (strstr(_free->data, "File Produced with GPAC")) {
 					free(_free->data);
-					_free->data = strdup(MP4_CPRT_NOTICE);
+					_free->data = strdup(GPAC_ISOM_CPRT_NOTICE);
 					_free->dataSize = strlen(_free->data);
 					return GF_OK;
 				}
@@ -51,10 +51,9 @@ static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 	a = gf_isom_box_new(GF_ISOM_BOX_TYPE_FREE);
 	if (!a) return GF_OUT_OF_MEM;
 	_free = (GF_FreeSpaceBox *)a;
-	_free->dataSize = strlen(MP4_CPRT_NOTICE) + 1;
-	_free->data = malloc(_free->dataSize);
+	_free->dataSize = strlen(GPAC_ISOM_CPRT_NOTICE) + 1;
+	_free->data = strdup(GPAC_ISOM_CPRT_NOTICE);
 	if (!_free->data) return GF_OUT_OF_MEM;
-	strcpy(_free->data, MP4_CPRT_NOTICE);
 	return gf_list_add(movie->TopBoxes, _free);
 }
 
@@ -890,7 +889,7 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 }
 
 
-GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation, u32 StartOffset)
+GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation, u32 StartOffset, Bool drift_inter)
 {
 	u32 i, tracksDone;
 	TrackWriter *tmp, *curWriter;
@@ -948,6 +947,10 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 
 		//proceed a group
 		while (writeGroup) {
+			/*the DTS for the end of this chunk*/
+			u32 chunkMaxDTS = 0;
+			/*the timescale DTS for the end of this chunk*/
+			u32 chunkMaxScale = 0;
 			curWriter = NULL;
 			for (i=0 ; i < count; i++) {
 				tmp = (TrackWriter*)gf_list_get(writers, i);
@@ -970,8 +973,11 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 					//OK, get the current sample in this track
 					stbl_GetSampleDTS(tmp->mdia->information->sampleTable->TimeToSample, tmp->sampleNumber, &DTS);
 
-					//can this samle fit in our chunk ?
-					if ( ( (DTS - tmp->DTSprev) + tmp->chunkDur) *  movie->moov->mvhd->timeScale > movie->interleavingTime * tmp->timeScale) {
+					//can this sample fit in our chunk ?
+					if ( ( (DTS - tmp->DTSprev) + tmp->chunkDur) *  movie->moov->mvhd->timeScale > movie->interleavingTime * tmp->timeScale
+						/*try to keep chunk synchronized within the group*/
+						|| (drift_inter && chunkMaxDTS && ( ((u64)tmp->DTSprev*chunkMaxScale) > ((u64)chunkMaxDTS*tmp->timeScale)) ) 
+						) {
 						//in case the sample is longer than InterleaveTime
 						if (!tmp->chunkDur) {
 							forceNewChunk = 1;
@@ -1028,6 +1034,11 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 						curWriter->sampleNumber ++;
 					}
 				}
+				/*record chunk end-time & track timescale for drift-controled interleaving*/
+				if (drift_inter && !chunkMaxDTS && curWriter) {
+					chunkMaxDTS = curWriter->DTSprev;
+					chunkMaxScale = curWriter->timeScale;
+				}
 			}
 			//no sample found, we're done with this group
 			if (!curWriter) {
@@ -1045,7 +1056,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 }
 
 
-GF_Err WriteInterleaved(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
+static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_inter)
 {
 	GF_Err e;
 	u32 i;
@@ -1072,7 +1083,7 @@ GF_Err WriteInterleaved(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 		if (e) goto exit;
 	}
 
-	e = DoInterleave(mw, writers, bs, 1, (u32) gf_bs_get_position(bs));
+	e = DoInterleave(mw, writers, bs, 1, (u32) gf_bs_get_position(bs), drift_inter);
 	if (e) goto exit;
 
 	firstSize = GetMoovAndMetaSize(movie, writers);
@@ -1104,7 +1115,7 @@ GF_Err WriteInterleaved(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 
 	//we don't need the offset as we are writing...
 	ResetWriters(writers);
-	e = DoInterleave(mw, writers, bs, 0, 0);
+	e = DoInterleave(mw, writers, bs, 0, 0, drift_inter);
 	if (e) goto exit;
 
 	//then the rest
@@ -1166,7 +1177,10 @@ GF_Err WriteToFile(GF_ISOFile *movie, void (*progress)(void *cbk, u32 done, u32 
 		switch (movie->storageMode) {
 		case GF_ISOM_STORE_TIGHT:
 		case GF_ISOM_STORE_INTERLEAVED:
-			e = WriteInterleaved(&mw, 0, bs);
+			e = WriteInterleaved(&mw, bs, 0);
+			break;
+		case GF_ISOM_STORE_DRIFT_INTERLEAVED:
+			e = WriteInterleaved(&mw, bs, 1);
 			break;
 		case GF_ISOM_STORE_STREAMABLE:
 			e = WriteFlat(&mw, 1, bs);

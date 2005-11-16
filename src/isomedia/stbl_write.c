@@ -176,7 +176,7 @@ GF_Err AddCompositionOffset(GF_CompositionOffsetBox *ctts, u32 offset)
 GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 CTSoffset)
 {
 	GF_DttsEntry *ent;
-	u32 i, j, sampNum, *CTSs, *newCTSs;
+	u32 i, j, count, sampNum, *CTSs, *newCTSs;
 
 	GF_CompositionOffsetBox *ctts = stbl->CompositionOffset;
 
@@ -187,6 +187,15 @@ GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 CTSoffset)
 		ent->sampleCount = 1;
 		ent->decodingOffset = CTSoffset;
 		return gf_list_add(ctts->entryList, ent);
+	}
+	/*move to last entry*/
+	if (!ctts->w_currentEntry) {
+		ctts->w_LastSampleNumber = 0;
+		count = gf_list_count(ctts->entryList);
+		for (i=0; i<count; i++) {
+			ctts->w_currentEntry = gf_list_get(ctts->entryList, i);
+			ctts->w_LastSampleNumber += ctts->w_currentEntry->sampleCount;
+		}
 	}
 
 	//check if we're working in order...

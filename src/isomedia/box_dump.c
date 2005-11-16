@@ -2246,7 +2246,7 @@ static void gpp_dump_style_nobox(FILE * trace, GF_StyleRecord *rec, u32 *shift_o
 		if (rec->style_flags & 2) fprintf(trace, "Italic ");
 		if (rec->style_flags & 4) fprintf(trace, "Underlined ");
 	}
-	fprintf(trace, "\" fontSize=\"%d\" ", rec->font_size);
+	fprintf(trace, "\" fontID=\"%d\" fontSize=\"%d\" ", rec->fontID, rec->font_size);
 	gpp_dump_rgba(trace, "color", rec->text_color);
 	fprintf(trace, "/>\n");
 }

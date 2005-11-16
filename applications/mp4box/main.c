@@ -79,7 +79,11 @@ void PrintGeneralUsage()
 	fprintf(stdout, "General Options:\n"
 			" -inter time_in_ms    interleaves file data (track chunks of time_in_ms)\n"
 			"                       * Note 1: Interleaving is 0.5s by default\n"
-			"                       * Note 2: a value of 0 disables interleaving\n"
+			"                       * Note 2: Performs drift checking accross tracks\n"
+			"                       * Note 3: a value of 0 disables interleaving\n"
+			" -old-inter time      same as -inter but doesn't perform drift checking\n"
+			" -tight:              performs tight interleaving (sample based) of the file\n"
+			"                       * Note: reduces disk seek but increases file size\n"
 			" -flat                stores file with all media data first, non-interleaved\n"
 			" -frag time_in_ms     fragments file (track fragments of time_in_ms)\n"
 			"                       * Note: Always disables interleaving\n"
@@ -251,8 +255,6 @@ void PrintHintUsage()
 			" -mtu size:           specifies MTU size in bytes. Default size is 1500\n"
 			" -copy:               copies media data to hint track rather than reference\n"
 			"                       * Note: speeds up server but takes much more space\n"
-			" -tight:              performs tight interleaving (sample based) of hinted file\n"
-			"                       * Note: reduces server disk seek but increases file size\n"
 			" -multi [maxptime]:   enables frame concatenation in RTP packets if possible\n"
 			"        maxptime:     max packet duration in ms (optional, default 100ms)\n"
 			" -rate ck_rate:       specifies rtp rate in Hz when no default for payload\n"
@@ -837,8 +839,7 @@ int main(int argc, char **argv)
 	char *szTracksToAdd[MAX_CUMUL_OPS];
 	TrackAction tracks[MAX_CUMUL_OPS];
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
-
-	u32 i, MTUSize, stat_level, hint_flags, encode_flags, rap_freq, MakeISMA, Make3GP, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem;
+	u32 i, MTUSize, stat_level, hint_flags, encode_flags, rap_freq, MakeISMA, Make3GP, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file;
@@ -858,7 +859,7 @@ int main(int argc, char **argv)
 	import_flags = 0;
 	rap_freq = encode_flags = split_size = 0;
 	MTUSize = 1500;
-	HintCopy = FullInter = HintInter = encode = do_log = 0;
+	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = 0;
 	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = 0;
 	x3d_info = MakeISMA = Make3GP = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = 0;
 	track_dump_type = 0;
@@ -1013,11 +1014,12 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-tmp")) { CHECK_NEXT_ARG tmpdir = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-cprt")) { CHECK_NEXT_ARG cprt = argv[i+1]; i++; open_edit = 1; }
 		else if (!stricmp(arg, "-chap")) { CHECK_NEXT_ARG chap_file = argv[i+1]; i++; open_edit = 1; }
-		else if (!stricmp(arg, "-inter")) {
+		else if (!stricmp(arg, "-inter") || !stricmp(arg, "-old-inter")) {
 			CHECK_NEXT_ARG
 			InterleavingTime = ( (Float) atof(argv[i+1]) ) / 1000;
 			open_edit = 1;
 			needSave = 1;
+			if (!stricmp(arg, "-old-inter")) old_interleave = 1;
 			i++;
 		} else if (!stricmp(arg, "-frag")) {
 			CHECK_NEXT_ARG
@@ -1889,7 +1891,7 @@ int main(int argc, char **argv)
 	}
 
 	/*full interleave (sample-based) if just hinted*/
-	if (HintIt && FullInter) {
+	if (FullInter) {
 		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_TIGHT);
 	} else if (!InterleavingTime) {
 		e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_STREAMABLE);
@@ -1899,6 +1901,7 @@ int main(int argc, char **argv)
 		needSave = 1;
 	} else {
 		e = gf_isom_make_interleave(file, InterleavingTime);
+		if (!e && !old_interleave) e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_DRIFT_INTERLEAVED);
 	}
 	if (e) goto err_exit;
 
@@ -1958,7 +1961,7 @@ int main(int argc, char **argv)
 		}
 		if (HintIt && FullInter) fprintf(stdout, "Hinted file - Full Interleaving\n");
 		else if (do_flat || !InterleavingTime) fprintf(stdout, "Flat storage\n");
-		else fprintf(stdout, "%.3f secs Interleaving\n", InterleavingTime);
+		else fprintf(stdout, "%.3f secs Interleaving%s\n", InterleavingTime, old_interleave ? " - no drift control" : "");
 		e = gf_isom_close_progress(file, gf_cbk_on_progress, "Writing");
 		if (e) goto err_exit;
 		if (!outName && !encode && !force_new) {

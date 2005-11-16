@@ -107,6 +107,8 @@ enum
 	GF_ISOM_STORE_STREAMABLE,
 	/*INTERLEAVED: Same as STREAMABLE, plus the media data is mixed by chunk  of fixed duration*/
 	GF_ISOM_STORE_INTERLEAVED,
+	/*INTERLEAVED +DRIFT: Same as INTERLEAVED, and adds time drift control to avoid creating too long chunks*/
+	GF_ISOM_STORE_DRIFT_INTERLEAVED,
 	/*tightly interleaves samples based on their DTS, therefore allowing better placement of samples in the file.
 	This is used for both http interleaving and Hinting optimizations*/
 	GF_ISOM_STORE_TIGHT

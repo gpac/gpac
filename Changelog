@@ -1,4 +1,8 @@
-Latest CVS Changes 14/11/05
+Latest CVS Changes 16/11/05
+  - added patch for drift-controled interleaving (interleaves while trying to keep chunk synchronized). This is now the storage mode of MP4Box, old interleaving is possible with -old-inter option.
+  - added support for tight interleaving without hinting in MP4Box.
+  - fixed ttxt extraction (fontID was missing in styles)
+  - fixed MP4Box -add file1 -cat file2 use case (broken CTTS compute)
   - added support for delayed concatenation (-cat file.mp4:delay=2000 test.mp4)
   - fixed 3GP brand when using AVC (3GP6 shall be used)
   - fixed misc issues with text import/info display on track sizes and 3GP text track importing.
