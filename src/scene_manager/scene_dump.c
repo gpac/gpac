@@ -36,10 +36,6 @@
 /*for QP types*/
 #include "../bifs/quant.h"
 
-#ifdef GPAC_USE_LASeR
-#include <../LASeR/m4_laser_dev.h>
-#endif
-
 struct _scenedump
 {
 	/*the scene we're dumping - set at each SceneReplace or mannually*/

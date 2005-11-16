@@ -2269,7 +2269,7 @@ static char *ttd_format_time(u64 ts, u32 timescale, char *szDur, Bool is_srt)
 
 static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dump, void (*OnProgress)(void *cbj, u32 done, u32 total), void *cbk)
 {
-	u32 i, j, count, di, len, nb_descs, shift_offset[20], so_count;
+	u32 i, j, count, di, len, nb_descs, shift_offset[20], so_count, last_DTS;
 	Bool has_scroll;
 	char szDur[100];
 
@@ -2344,6 +2344,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	}
 	fprintf(dump, "</TextStreamHeader>\n");
 
+	last_DTS = 0;
 	count = gf_isom_get_sample_count(the_file, track);
 	for (i=0; i<count; i++) {
 		GF_BitStream *bs;
@@ -2361,8 +2362,10 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		so_count = 0;
 		if (!txt->len) {
 			fprintf(dump, " text=\"\"");
-		}else {
+			last_DTS = (u32) trak->Media->mediaHeader->duration;
+		} else {
 			s16 utf16Line[10000];
+			last_DTS = s->DTS;
 			/*UTF16*/
 			if ((txt->len>2) && ((unsigned char) txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) txt->text[1] == (unsigned char) 0xFF)) {
 				/*copy 2 more chars because the lib always add 2 '0' at the end for UTF16 end of string*/
@@ -2473,6 +2476,10 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		gf_isom_delete_text_sample(txt);
 		if (OnProgress) OnProgress(cbk, i, count);
 	}
+	if (last_DTS < trak->Media->mediaHeader->duration) {
+		fprintf(dump, "<TextSample sampleTime=\"%s\" text=\"\" />\n", ttd_format_time(trak->Media->mediaHeader->duration, trak->Media->mediaHeader->timeScale, szDur, 0));
+	}
+
 	fprintf(dump, "</TextStream>\n");
 	if (count && OnProgress) OnProgress(cbk, count, count);
 	return GF_OK;

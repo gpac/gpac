@@ -33,8 +33,6 @@ extern "C" {
 #include <gpac/list.h>
 #include <gpac/math.h>
 
-//#define GPAC_USE_LASeR
-
 /*
 	TAG definitions are static, in order to be able to mix nodes from different standard
 	in a single scenegraph. These TAGs are only used internally (they do not match any
@@ -404,6 +402,143 @@ void gf_sg_script_load(GF_Node *script);
 
 /*returns true if current lib has javascript support*/
 Bool gf_sg_has_scripting();
+
+
+
+/*
+			scene graph command tools used for BIFS and LASeR
+		These are used to store updates in memory without applying changes to the graph, 
+	for dumpers, encoders ... 
+		The commands can then be applied through this lib
+*/
+
+/*
+		Currently defined possible modifications
+*/
+enum
+{
+	/*BIFS commands*/
+	GF_SG_SCENE_REPLACE = 0,
+	GF_SG_NODE_REPLACE,
+	GF_SG_FIELD_REPLACE, 
+	GF_SG_INDEXED_REPLACE,
+	GF_SG_ROUTE_REPLACE,
+	GF_SG_NODE_DELETE,
+	GF_SG_INDEXED_DELETE,
+	GF_SG_ROUTE_DELETE,
+	GF_SG_NODE_INSERT,
+	GF_SG_INDEXED_INSERT,
+	GF_SG_ROUTE_INSERT,
+	/*extended updates (BIFS-only)*/
+	GF_SG_PROTO_INSERT,
+	GF_SG_PROTO_DELETE,
+	GF_SG_PROTO_DELETE_ALL,
+	GF_SG_MULTIPLE_REPLACE,
+	GF_SG_MULTIPLE_INDEXED_REPLACE,
+	GF_SG_GLOBAL_QUANTIZER,
+	/*same as NodeDelete, and also updates OrderedGroup.order when deleting a child*/
+	GF_SG_NODE_DELETE_EX,
+
+	GF_SG_LAST_BIFS_COMMAND,
+
+
+	/*LASER commands*/
+	GF_SG_LSR_NEW_SCENE,
+	GF_SG_LSR_ADD,
+	GF_SG_LSR_CLEAN,
+	GF_SG_LSR_REPLACE,
+	GF_SG_LSR_DELETE,
+	GF_SG_LSR_INSERT,
+	GF_SG_LSR_RESTORE,
+	GF_SG_LSR_SAVE,
+	GF_SG_LSR_SEND_EVENT,
+
+	GF_SG_UNDEFINED
+};
+
+
+/*
+				single command wrapper
+
+  NOTE: In order to maintain node registry, the nodes replaced/inserted MUST be registered with 
+  their parents even when the command is never applied. Registering shall be performed 
+  with gf_node_register (see below).
+  If you fail to do so, a node may be destroyed when destroying a command while still used
+  in another command or in the graph - this will just crash.
+*/
+
+/*structure used to store field info, pos and static pointers to GF_Node/MFNode in commands*/
+typedef struct
+{
+	u32 fieldIndex;
+	/*field type*/
+	u32 fieldType;
+	/*field pointer for multiple replace/multiple indexed replace - if multiple indexed replace, must be the SF field being changed*/
+	void *field_ptr;
+	/*replace/insert/delete pos - -1 is append except in multiple indexed replace*/
+	s32 pos;
+
+	/*Whenever field pointer is of type GF_Node, store the node here and set the far pointer to this address.*/
+	GF_Node *new_node;
+	/*Whenever field pointer is of type MFNode, store the node list here and set the far pointer to this address.*/
+	GF_List *node_list;
+} GF_CommandField;
+
+typedef struct
+{
+	GF_SceneGraph *in_scene;
+	u32 tag;
+
+	/*node the command applies to - may be NULL*/
+	GF_Node *node;
+
+	/*list of GF_CommandField for all field commands replace/ index insert / index replace / index delete / MultipleReplace / MultipleIndexedreplace 
+	the content is destroyed when deleting the command*/
+	GF_List *command_fields;
+
+	/*may be NULL, and may be present with any command inserting a node*/
+	GF_List *scripts_to_load;
+	/*for authoring purposes - must be cleaned by user*/
+	Bool unresolved;
+	char *unres_name;
+	
+	/*scene replace command: 
+		root node is stored in com->node
+		protos are stored in com->new_proto_list
+		routes are stored as RouteInsert in the same frame
+		BIFS only
+	*/
+	Bool use_names;
+
+	/*route insert, replace and delete - BIFS only*/
+	u32 RouteID;
+	char *def_name;
+	u32 fromNodeID, fromFieldIndex;
+	u32 toNodeID, toFieldIndex;
+
+	/*proto list to insert - BIFS only*/
+	GF_List *new_proto_list;
+	/*proto ID list to delete - BIFS only*/
+	u32 *del_proto_list;
+	u32 del_proto_list_size;
+} GF_Command;
+
+
+/*creates command - graph only needed for SceneReplace*/
+GF_Command *gf_sg_command_new(GF_SceneGraph *in_scene, u32 tag);
+/*deletes command*/
+void gf_sg_command_del(GF_Command *com);
+/*apply command to graph - the command content is kept unchanged for authoring purposes - THIS NEEDS TESTING AND FIXING
+@time_offset: offset for time fields if desired*/
+GF_Err gf_sg_command_apply(GF_SceneGraph *inScene, GF_Command *com, Double time_offset);
+/*apply list if command to graph - the command content is kept unchanged for authoring purposes
+@time_offset: offset for time fields if desired*/
+GF_Err gf_sg_command_apply_list(GF_SceneGraph *graph, GF_List *comList, Double time_offset);
+/*returns new commandFieldInfo structure and registers it with command*/
+GF_CommandField *gf_sg_command_field_new(GF_Command *com);
+/*clones the command in another graph - needed for uncompressed conditional in protos*/
+GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph);
+
 
 #ifdef __cplusplus
 }

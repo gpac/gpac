@@ -196,7 +196,7 @@ static GF_Err gf_sm_live_encode_bifs_au(GF_BifsEngine *codec, u32 currentAUCount
 	return e;
 }
 
-GF_Err gf_beng_aggregate_context(GF_BifsEngine *codec, void *extension)
+GF_Err gf_beng_aggregate_context(GF_BifsEngine *codec)
 {
 	GF_Err	e;
 
@@ -206,7 +206,7 @@ GF_Err gf_beng_aggregate_context(GF_BifsEngine *codec, void *extension)
 	return GF_OK;
 }
 
-GF_Err gf_beng_save_context(GF_BifsEngine *codec, char *  ctxFileName, void * extension)
+GF_Err gf_beng_save_context(GF_BifsEngine *codec, char *  ctxFileName)
 {
 	u32	d_mode, do_enc;
 	char szF[GF_MAX_PATH], *ext;
@@ -236,7 +236,7 @@ GF_Err gf_beng_save_context(GF_BifsEngine *codec, char *  ctxFileName, void * ex
 	return e;
 }
 
-GF_Err gf_beng_encode_from_string(GF_BifsEngine *codec, char *auString, GF_Err (*AUCallback)(void *, char *, u32 , u32 ), void *extension)
+GF_Err gf_beng_encode_from_string(GF_BifsEngine *codec, char *auString, GF_Err (*AUCallback)(void *, char *, u32 , u32 ))
 {
 	GF_StreamContext *sc;
 	u32 i, count;
@@ -268,7 +268,7 @@ exit:
 	return e;
 }
 
-GF_Err gf_beng_encode_from_file(GF_BifsEngine *codec, char *auFile, GF_Err (*AUCallback)(void *, char *, u32 , u32 ), void *extension)
+GF_Err gf_beng_encode_from_file(GF_BifsEngine *codec, char *auFile, GF_Err (*AUCallback)(void *, char *, u32 , u32 ))
 {
 	GF_Err e;
 	GF_StreamContext *sc;
@@ -305,7 +305,7 @@ exit:
 	return e;
 }
 
-GF_Err gf_beng_encode_context(GF_BifsEngine *codec, GF_Err (*AUCallback)(void *, char *, u32 , u32 ), void *extension)
+GF_Err gf_beng_encode_context(GF_BifsEngine *codec, GF_Err (*AUCallback)(void *, char *, u32 , u32 ))
 {
 	return gf_sm_live_encode_bifs_au(codec, 0, AUCallback);
 } 
@@ -325,10 +325,13 @@ void gf_beng_get_stream_config(GF_BifsEngine *codec, char **config, u32 *config_
 }
 
 
-GF_BifsEngine *gf_beng_init(void *calling_object, char * inputContext, void * extension)
+GF_BifsEngine *gf_beng_init(void *calling_object, char * inputContext)
 {
 	GF_BifsEngine *codec;
+	FILE *test;
 	GF_Err e = GF_OK;
+
+	if (!inputContext) return NULL;
 
 	GF_SAFEALLOC(codec, sizeof(GF_BifsEngine))
 	if (!codec) return NULL;
@@ -339,14 +342,28 @@ GF_BifsEngine *gf_beng_init(void *calling_object, char * inputContext, void * ex
 	codec->sg = gf_sg_new();
 	codec->ctx = gf_sm_new(codec->sg);
 	memset(&(codec->load), 0, sizeof(GF_SceneLoader));
-	codec->load.fileName = inputContext;
 	codec->load.ctx = codec->ctx;
 	/*since we're encoding in BIFS we must get MPEG-4 nodes only*/
 	codec->load.flags = GF_SM_LOAD_MPEG4_STRICT;
-	
-	e = gf_sm_load_init(&(codec->load));
-	if (!e) e = gf_sm_load_run(&(codec->load));
-	gf_sm_load_done(&(codec->load));
+
+	test = fopen(inputContext, "rb");
+	if (test) {
+		fclose(test);
+		codec->load.fileName = inputContext;
+		e = gf_sm_load_init(&(codec->load));
+		if (!e) e = gf_sm_load_run(&(codec->load));
+		gf_sm_load_done(&(codec->load));
+	} else {
+		if (inputContext[0] == '<') {
+			if (strstr(inputContext, "<svg ")) codec->load.type = GF_SM_LOAD_SVG;
+			else if (strstr(inputContext, "<saf ")) codec->load.type = GF_SM_LOAD_XSR;
+			else if (strstr(inputContext, "XMT-A") || strstr(inputContext, "X3D")) codec->load.type = GF_SM_LOAD_XMTA;
+		} else {
+			codec->load.type = GF_SM_LOAD_BT;
+		}
+		e = gf_sm_load_string(&codec->load, inputContext);
+	}
+
 	if (e) {
 		fprintf(stderr, "Cannot load context from %s: error %s\n", inputContext, gf_error_to_string(e));
 		goto exit;

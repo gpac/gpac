@@ -3008,6 +3008,21 @@ GF_Err gf_odf_del_bifs_cfg(GF_BIFSConfig *desc)
 	return GF_OK;
 }
 
+GF_Descriptor *gf_odf_new_laser_cfg()
+{
+	GF_LASERConfig *newDesc = (GF_LASERConfig *) malloc(sizeof(GF_LASERConfig));
+	if (!newDesc) return NULL;
+	memset(newDesc, 0, sizeof(GF_LASERConfig));
+	newDesc->tag = GF_ODF_LASER_CFG_TAG;
+	return (GF_Descriptor *) newDesc;
+}
+
+GF_Err gf_odf_del_laser_cfg(GF_LASERConfig *desc)
+{
+	free(desc);
+	return GF_OK;
+}
+
 GF_Descriptor *gf_odf_new_ui_cfg()
 {
 	GF_UIConfig *newDesc = (GF_UIConfig *) malloc(sizeof(GF_UIConfig));

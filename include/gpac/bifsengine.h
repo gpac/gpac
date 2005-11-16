@@ -40,11 +40,11 @@ typedef struct __tag_bifs_engine GF_BifsEngine;
 /**
  * @calling_object is the calling object on which call back will be called
  * @inputContext is the name of a scene file (bt, xmt or mp4) to initialize the coding context
- * @extension for future extensions, NULL for now
+ * or a text string (BT or XML) in UTF-8 format
  *
  * must be called only one time (by process calling the DLL) before other calls
  */
-GF_BifsEngine *gf_beng_init(void *calling_object, char *inputContext, void *extension);
+GF_BifsEngine *gf_beng_init(void *calling_object, char *inputContext);
 
 
 /**
@@ -62,48 +62,43 @@ void gf_beng_get_stream_config(GF_BifsEngine *beng, char **config, u32 *config_l
  *
  * @beng, pointer to the GF_BifsEngine returned by BENC_Init
  * @AUCallback, pointer on a callback function to get the result of the coding the AU using the current context
- * @extension for future extensions, NULL for now
  *
  */
-GF_Err gf_beng_encode_context(GF_BifsEngine *beng, GF_Err (*AUCallback)(void *, char *data, u32 size, u32 ts), void *extension);
+GF_Err gf_beng_encode_context(GF_BifsEngine *beng, GF_Err (*AUCallback)(void *, char *data, u32 size, u32 ts));
 
 /**
  * @beng, pointer to the GF_BifsEngine returned by BENC_Init
  * @auFile, name of a file containing a description for an access unit (BT or XMT)
  * @AUCallback, pointer on a callback function to get the result of the coding the AU using the current context
- * @extension for future extensions, NULL for now
  *
  */
-GF_Err gf_beng_encode_from_file(GF_BifsEngine *beng, char *auFile, GF_Err (*AUCallback)(void *, char *data, u32 size, u32 ts), void *extension);
+GF_Err gf_beng_encode_from_file(GF_BifsEngine *beng, char *auFile, GF_Err (*AUCallback)(void *, char *data, u32 size, u32 ts));
 
 /**
  * @beng, pointer to the GF_BifsEngine returned by BENC_Init
  * @auString, a char string to encode (must one or several complete nodes in BT
  * @AUCallback, pointer on a callback function to get the result of the coding the AU using the current context
- * @extension for future extensions, NULL for now
  *
  */
-GF_Err gf_beng_encode_from_string(GF_BifsEngine *beng, char *auString, GF_Err (*AUCallback)(void *, char *data, u32 size, u32 ts), void *extension);
+GF_Err gf_beng_encode_from_string(GF_BifsEngine *beng, char *auString, GF_Err (*AUCallback)(void *, char *data, u32 size, u32 ts));
 
 /**
  * @beng, pointer to the GF_BifsEngine returned by BENC_Init
  * @ctxFileName, name of the file to save the current state of the BIFS scene to
- * @extension for future extensions, NULL for now
  *
  * save the current context of the beng.
  * if you want to save an aggregate context, use BENC_AggregateCurrentContext before
  *
  */
-GF_Err gf_beng_save_context(GF_BifsEngine *beng, char *ctxFileName, void *extension);
+GF_Err gf_beng_save_context(GF_BifsEngine *beng, char *ctxFileName);
 
 /**
  * @beng, pointer to the GF_BifsEngine returned by BENC_Init
- * @extension for future extensions, NULL for now
  *
  * aggregates the current context of the beng, creates a scene replace
  *
  */
-GF_Err gf_beng_aggregate_context(GF_BifsEngine *beng, void *extension);
+GF_Err gf_beng_aggregate_context(GF_BifsEngine *beng);
 
 /**
  * @beng, pointer to the GF_BifsEngine returned by BENC_Init

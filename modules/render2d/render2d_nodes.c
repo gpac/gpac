@@ -26,10 +26,6 @@
 
 #include "stacks2d.h"
 
-#ifdef GPAC_USE_LASeR
-#include "LASeR/laser_stacks.h"
-#endif
-
 #ifndef GPAC_DISABLE_SVG
 #include "svg/svg_stacks.h"
 #endif
@@ -112,28 +108,7 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_MPEG4_PathLayout: R2D_InitPathLayout(sr, node); break;
 
 	case TAG_ProtoNode: R2D_InitHardcodedProto(sr, node); break;
-
-#ifdef GPAC_USE_LASeR
-	/*LASeR part*/
-	case TAG_LASeRTransform: LASeR_InitTransform(sr, node); break;
-	case TAG_LASeRShape: LASeR_InitShape(sr, node); break;
-	case TAG_LASeRUse: LASeR_InitUse(sr, node); break;
-	case TAG_LASeRText: LASeR_InitText(sr, node); break;
-	case TAG_LASeRBackground: LASeR_InitBackground(sr, node); break;
-	case TAG_LASeRVideo: LASeR_InitVideo(sr, node); break;
-	case TAG_LASeRAudio: LASeR_InitAudio(sr, node); break;
-	case TAG_LASeRBitmap: LASeR_InitBitmap(sr, node); break;
-	case TAG_LASeRAnimateTransform: LASeR_InitAnimateTransform(sr, node); break;
-	case TAG_LASeRAnimateColor: LASeR_InitAnimateColor(sr, node); break;
-	case TAG_LASeRAnimateActivate: LASeR_InitAnimateActivate(sr, node); break;
-/*	case TAG_LASeRAction: LASeR_InitAction(sr, node); break;
-	case LASeRConditional: LASeR_InitConditional(sr, node); break;
-	case TAG_LASeRTextInput: LASeR_InitTextInput(sr, node); break;
-	case TAG_LASeRCursor: LASeR_InitCursor(sr, node); break;
-*/
-
-#endif
-	
+		
 #ifndef GPAC_DISABLE_SVG
 	/*SVG part*/
 	case TAG_SVG_svg:		SVG_Init_svg(sr, node); break;
@@ -191,12 +166,6 @@ Bool R2D_NodeChanged(GF_VisualRenderer *vr, GF_Node *byObj)
 		gf_node_dirty_set(byObj, GF_SG_NODE_DIRTY , 0);
 		gf_sr_invalidate(sr->compositor, NULL);
 		return 1;
-
-#ifdef GPAC_USE_LASeR
-	case TAG_LASeRAnimateTransform: LASeR_AnimateTransformModified(byObj); return 1;
-	case TAG_LASeRAnimateColor: LASeR_AnimateColorModified(byObj); return 1;
-	case TAG_LASeRAnimateActivate: LASeR_AnimateActivateModified(byObj); return 1;
-#endif
 		
 #ifndef GPAC_DISABLE_SVG
 	case TAG_SVG_animateMotion:

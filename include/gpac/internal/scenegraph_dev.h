@@ -52,11 +52,7 @@ typedef struct _nodepriv
 	u32 tag;
 	/*node ID or 0*/
 	u32 NodeID;
-
 	u16 is_dirty;
-#ifdef GPAC_USE_LASeR
-	u16 active;
-#endif
 
 #ifdef GF_NODE_USE_POINTERS
 	const char *name;

@@ -30,12 +30,6 @@
 /*X3D tags (for internal nodes)*/
 #include <gpac/nodes_x3d.h>
 
-
-#ifdef GPAC_USE_LASeR
-#include "../LASeR/m4_laser_dev.h"
-#endif
-
-
 static void ReplaceDEFNode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool updateOrderedGroup);
 static void ReplaceIRINode(GF_Node *FromNode, GF_Node *oldNode, GF_Node *newNode, Bool updateOrderedGroup);
 
@@ -1135,16 +1129,6 @@ void gf_node_changed(GF_Node *node, GF_FieldInfo *field)
 	/*internal nodes*/
 	if (gf_sg_vrml_node_changed(node, field)) return;
 
-	/*THIS IS BAD, LASeR MUST BE REWRITTEN TO USE FIELD TYPES for SF/MF Nodes*/
-#ifdef GPAC_USE_LASeR
-	switch (node->sgprivate->tag) {
-	case TAG_LASeRTransform:
-	case TAG_LASeRUse:
-		node->sgprivate->is_dirty |= GF_SG_CHILD_DIRTY;
-		break;
-	}
-#endif
-
 	/*force child dirty tag*/
 	if (field && ((field->fieldType==GF_SG_VRML_SFNODE) || (field->fieldType==GF_SG_VRML_MFNODE))) node->sgprivate->is_dirty |= GF_SG_CHILD_DIRTY;
 	if (sg->NodeModified) sg->NodeModified(sg->ModifCallback, node);
@@ -1163,9 +1147,6 @@ void gf_node_del(GF_Node *node)
 #ifndef GPAC_DISABLE_SVG
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) SVGElement_Del((SVGElement *) node);
 #endif
-#ifdef GPAC_USE_LASeR
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_LASER) LASeRNode_Del(node);
-#endif
 	else gf_node_free(node);
 #endif
 }
@@ -1177,9 +1158,6 @@ u32 gf_node_get_field_count(GF_Node *node)
 	/*for both MPEG4 & X3D*/
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_ALL);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return SVG_GetAttributeCount(node);
-#ifdef GPAC_USE_LASeR
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_LASER) return LASeRNode_GetFieldCount(node, 0);
-#endif
 	return 0;
 }
 
@@ -1196,9 +1174,6 @@ const char *gf_node_get_class_name(GF_Node *node)
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_class_name(node->sgprivate->tag);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_class_name(node->sgprivate->tag);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return SVG_GetElementName(node->sgprivate->tag);
-#ifdef GPAC_USE_LASeR
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_LASER) return LASeR_GetNodeName(node->sgprivate->tag);
-#endif
 	else return "UnsupportedNode";
 #endif
 }
@@ -1214,9 +1189,6 @@ GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
 	else if (tag <= GF_NODE_RANGE_LAST_X3D) node = gf_sg_x3d_node_new(tag);
 #ifndef GPAC_DISABLE_SVG
 	else if (tag <= GF_NODE_RANGE_LAST_SVG) node = (GF_Node *) SVG_CreateNode(tag);
-#endif
-#ifdef GPAC_USE_LASeR
-	else if (tag <= GF_NODE_RANGE_LAST_LASER) node = LASeR_CreateNode(tag);
 #endif
 	else node = NULL;
 
@@ -1248,14 +1220,3 @@ GF_Err gf_node_get_field(GF_Node *node, u32 FieldIndex, GF_FieldInfo *info)
 #endif
 	return GF_NOT_SUPPORTED;
 }
-
-/*LASeR specifc, to clean up!!*/
-u32 gf_node_get_active(GF_Node*p)
-{
-#ifdef GPAC_USE_LASeR
-	return p->sgprivate->active;
-#else
-	return 1;
-#endif
-}
-

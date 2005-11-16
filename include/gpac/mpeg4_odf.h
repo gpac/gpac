@@ -98,6 +98,8 @@ enum
 	/*internal descriptor for TextConfig description*/
 	GF_ODF_TEXT_CFG_TAG		= GF_ODF_USER_BEGIN_TAG + 3,
 	GF_ODF_TX3G_TAG			= GF_ODF_USER_BEGIN_TAG + 4,
+	/*internal descriptor for LASeR config input description*/
+	GF_ODF_LASER_CFG_TAG	= GF_ODF_USER_BEGIN_TAG + 5,
 
 
 	GF_ODF_USER_END_TAG		= 0xFE,
@@ -496,6 +498,22 @@ typedef struct
 	char *ui_data;
 	u32 ui_data_length;
 } GF_UIConfig;
+
+/*LASERConfig - parsing only, STORED IN ESD:DCD:DSI*/
+typedef struct __tag_laser_config
+{
+	BASE_DESCRIPTOR
+	u8 profile;
+	u8 level;
+	u8 coord_bits;
+	s8 resolution;
+	u8 colorComponentBits;
+	u8 scale_bits;
+	u8 append;
+	u8 has_string_ids;
+	u8 fullRequestHost;
+	u16 time_resolution;
+} GF_LASERConfig;
 
 
 /***************************************

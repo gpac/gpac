@@ -1128,7 +1128,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 					while (xml_has_attributes(&parser)) {
 						str = xml_get_attribute(&parser);
 						if (!strcmp(str, "fromChar")) start = atoi(parser.value_buffer);
-						else if (!strcmp(str, "toChar")) end = 1 + atoi(parser.value_buffer);
+						else if (!strcmp(str, "toChar")) end = atoi(parser.value_buffer);
 					}
 					xml_skip_element(&parser, "Highlight");
 					gf_isom_text_add_highlight(samp, start, end);
@@ -1139,7 +1139,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 					while (xml_has_attributes(&parser)) {
 						str = xml_get_attribute(&parser);
 						if (!strcmp(str, "fromChar")) start = atoi(parser.value_buffer);
-						else if (!strcmp(str, "toChar")) end = 1 + atoi(parser.value_buffer);
+						else if (!strcmp(str, "toChar")) end = atoi(parser.value_buffer);
 					}
 					xml_skip_element(&parser, "Blinking");
 					gf_isom_text_add_blink(samp, start, end);
@@ -1152,7 +1152,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 					while (xml_has_attributes(&parser)) {
 						str = xml_get_attribute(&parser);
 						if (!strcmp(str, "fromChar")) start = atoi(parser.value_buffer);
-						else if (!strcmp(str, "toChar")) end = 1 + atoi(parser.value_buffer);
+						else if (!strcmp(str, "toChar")) end = atoi(parser.value_buffer);
 						else if (!strcmp(str, "URL")) url = strdup(parser.value_buffer);
 						else if (!strcmp(str, "URLToolTip")) url_tt = strdup(parser.value_buffer);
 					}
@@ -1179,7 +1179,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 							while (xml_has_attributes(&parser)) {
 								str = xml_get_attribute(&parser);
 								if (!strcmp(str, "fromChar")) start = atoi(parser.value_buffer);
-								else if (!strcmp(str, "toChar")) end = 1 + atoi(parser.value_buffer);
+								else if (!strcmp(str, "toChar")) end = atoi(parser.value_buffer);
 								else if (!strcmp(str, "endTime")) endTime = (u32) (1000*atof(parser.value_buffer));
 							}
 							xml_skip_element(&parser, "KaraokeRange");
@@ -1218,7 +1218,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 			xml_skip_element(&parser, str);
 		}
 	}
-	gf_isom_set_last_sample_duration(import->dest, track, 0);
+//	gf_isom_set_last_sample_duration(import->dest, track, 0);
 	gf_import_progress(import, nb_samples, nb_samples);
 
 exit:

@@ -115,13 +115,7 @@ static void gf_sm_delete_stream(GF_StreamContext *sc)
 				gf_odf_com_del((GF_ODCom**) & comptr);
 				break;
 			case GF_STREAM_SCENE:
-			{
-				if (sc->objectType == 0x09) { // LASeR
-					assert(0);
-				} else {
-					gf_sg_command_del((GF_Command *)comptr);
-				}
-			}
+				gf_sg_command_del((GF_Command *)comptr);
 				break;
 			}
 		}
@@ -290,6 +284,7 @@ static GF_Err gf_sm_load_init_from_string(GF_SceneLoader *load, char *str)
 		return gf_sm_load_init_XMTString(load, str);
 #ifndef GPAC_DISABLE_SVG
 	case GF_SM_LOAD_SVG: 
+	case GF_SM_LOAD_XSR: 
 		return gf_sm_load_init_SVGString(load, str);
 #endif
 	case GF_SM_LOAD_SWF: 
@@ -316,7 +311,9 @@ static void gf_sm_load_done_string(GF_SceneLoader *load)
 		break;
 #ifndef GPAC_DISABLE_SVG
 	/*we do not reset it here to enable SAX parsing*/
-	case GF_SM_LOAD_SVG: break;
+	case GF_SM_LOAD_SVG:
+	case GF_SM_LOAD_XSR:
+		break;
 #endif
 	default: 
 		break;
@@ -363,6 +360,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 			else if (strstr(szExt, "swf")) load->type = GF_SM_LOAD_SWF;
 			else if (strstr(szExt, "mov")) load->type = GF_SM_LOAD_QT;
 			else if (strstr(szExt, "svg")) load->type = GF_SM_LOAD_SVG;
+			else if (strstr(szExt, "xsr")) load->type = GF_SM_LOAD_XSR;
 		}
 	}
 	if (!load->type) return GF_NOT_SUPPORTED;
@@ -379,6 +377,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 		return gf_sm_load_init_XMT(load);
 #ifndef GPAC_DISABLE_SVG
 	case GF_SM_LOAD_SVG:
+	case GF_SM_LOAD_XSR:
 		return gf_sm_load_init_SVG(load);
 #endif
 #ifndef GPAC_READ_ONLY
@@ -407,6 +406,7 @@ void gf_sm_load_done(GF_SceneLoader *load)
 		break;
 #ifndef GPAC_DISABLE_SVG
 	case GF_SM_LOAD_SVG:
+	case GF_SM_LOAD_XSR:
 		gf_sm_load_done_SVG(load);
 		break;
 #endif
@@ -436,6 +436,7 @@ GF_Err gf_sm_load_run(GF_SceneLoader *load)
 		return gf_sm_load_run_XMT(load);
 #ifndef GPAC_DISABLE_SVG
 	case GF_SM_LOAD_SVG:
+	case GF_SM_LOAD_XSR:
 		return gf_sm_load_run_SVG(load);
 #endif
 

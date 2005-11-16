@@ -35,8 +35,8 @@ GF_Command *gf_sg_command_new(GF_SceneGraph *graph, u32 tag)
 	if (!ptr) return NULL;
 	ptr->tag = tag;
 	ptr->in_scene = graph;
-	ptr->new_proto_list = gf_list_new();
 	ptr->command_fields = gf_list_new();
+	if (tag < GF_SG_LAST_BIFS_COMMAND) ptr->new_proto_list = gf_list_new();
 	return ptr;
 }
 static void SG_CheckNodeUnregister(GF_Command *com)
@@ -59,23 +59,26 @@ void gf_sg_command_del(GF_Command *com)
 	u32 i;
 	if (!com) return;
 
-	while (gf_list_count(com->command_fields)) {
-		GF_CommandField *inf = gf_list_get(com->command_fields, 0);
-		gf_list_rem(com->command_fields, 0);
+	if (com->tag < GF_SG_LAST_BIFS_COMMAND) {
+		while (gf_list_count(com->command_fields)) {
+			GF_CommandField *inf = gf_list_get(com->command_fields, 0);
+			gf_list_rem(com->command_fields, 0);
 
-		switch (inf->fieldType) {
-		case GF_SG_VRML_SFNODE:
-			if (inf->field_ptr && *(GF_Node **) inf->field_ptr) gf_node_unregister(*(GF_Node **) inf->field_ptr, com->node);
-			break;
-		case GF_SG_VRML_MFNODE:
-			gf_node_unregister_children(com->node, *(GF_List**) inf->field_ptr);
-			gf_list_del(*(GF_List**) inf->field_ptr);
-			break;
-		default:
-			gf_sg_vrml_field_pointer_del(inf->field_ptr, inf->fieldType);
-			break;
+			switch (inf->fieldType) {
+			case GF_SG_VRML_SFNODE:
+				if (inf->field_ptr && *(GF_Node **) inf->field_ptr) gf_node_unregister(*(GF_Node **) inf->field_ptr, com->node);
+				break;
+			case GF_SG_VRML_MFNODE:
+				gf_node_unregister_children(com->node, *(GF_List**) inf->field_ptr);
+				gf_list_del(*(GF_List**) inf->field_ptr);
+				break;
+			default:
+				gf_sg_vrml_field_pointer_del(inf->field_ptr, inf->fieldType);
+				break;
+			}
+			free(inf);
 		}
-		free(inf);
+	} else {
 	}
 	gf_list_del(com->command_fields);
 

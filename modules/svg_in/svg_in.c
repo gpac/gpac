@@ -164,6 +164,7 @@ static GF_Err SVG_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool
 	svgin->loader.OnMessage = SVG_OnMessage;
 	svgin->loader.OnProgress = SVG_OnProgress;
 	svgin->loader.cbk = svgin;
+	svgin->loader.flags = GF_SM_LOAD_FOR_PLAYBACK;
 	return GF_OK;
 }
 

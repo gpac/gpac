@@ -606,13 +606,6 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 		sr->surface->center_coords = 1;
 		sr->surface->default_back_color = 0xFF000000;
 
-#ifdef GPAC_USE_LASeR
-		{
-			u32 node_tag = gf_node_get_tag(top_node);
-			if ((node_tag>=GF_NODE_RANGE_FIRST_LASER) && (node_tag<=GF_NODE_RANGE_LAST_LASER))
-				sr->surface->default_back_color = 0xFFFFFFFF;
-		}
-#endif
 #ifndef GPAC_DISABLE_SVG
 		{
 			u32 node_tag = gf_node_get_tag(top_node);

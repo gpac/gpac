@@ -122,6 +122,8 @@ GF_Descriptor *gf_odf_create_descriptor(u8 tag)
 		return gf_odf_new_text_cfg();
 	case GF_ODF_TX3G_TAG:
 		return gf_odf_new_tx3g();
+	case GF_ODF_LASER_CFG_TAG:
+		return gf_odf_new_laser_cfg();
 
 	//default. The DecSpecInfo is handled as default
 	//the appropriate decoder (audio, video, bifs...) has to decode the DecSpecInfo alone !
@@ -234,6 +236,8 @@ GF_Err gf_odf_delete_descriptor(GF_Descriptor *desc)
 		return gf_odf_del_text_cfg((GF_TextConfig *)desc);
 	case GF_ODF_TX3G_TAG:
 		return gf_odf_del_tx3g((GF_TextSampleDescriptor*)desc);
+	case GF_ODF_LASER_CFG_TAG:
+		return gf_odf_del_laser_cfg((GF_LASERConfig *)desc);
 
 	default:
 		return gf_odf_del_default((GF_DefaultDescriptor *)desc);

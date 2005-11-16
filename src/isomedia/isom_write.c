@@ -805,21 +805,23 @@ GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u32 
 	if (!ent) return GF_BAD_PARAM;
 
 	mdur -= ent->sampleDelta;
-	mdur += duration;
-	//we only have one sample
-	if (ent->sampleCount == 1) {
-		ent->sampleDelta = duration;
-	} else {
-		if (ent->sampleDelta == duration) return GF_OK;
-		ent->sampleCount -= 1;
-		ent = (GF_SttsEntry*)malloc(sizeof(GF_SttsEntry));
-		ent->sampleCount = 1;
-		ent->sampleDelta = duration;
-		//add this entry
-		gf_list_add(trak->Media->information->sampleTable->TimeToSample->entryList, ent);
-		//and update the write cache
-		trak->Media->information->sampleTable->TimeToSample->w_currentEntry = ent;
-		trak->Media->information->sampleTable->TimeToSample->w_currentSampleNum = trak->Media->information->sampleTable->SampleSize->sampleCount;
+	if (duration) {
+		mdur += duration;
+		//we only have one sample
+		if (ent->sampleCount == 1) {
+			ent->sampleDelta = duration;
+		} else {
+			if (ent->sampleDelta == duration) return GF_OK;
+			ent->sampleCount -= 1;
+			ent = (GF_SttsEntry*)malloc(sizeof(GF_SttsEntry));
+			ent->sampleCount = 1;
+			ent->sampleDelta = duration;
+			//add this entry
+			gf_list_add(trak->Media->information->sampleTable->TimeToSample->entryList, ent);
+			//and update the write cache
+			trak->Media->information->sampleTable->TimeToSample->w_currentEntry = ent;
+			trak->Media->information->sampleTable->TimeToSample->w_currentSampleNum = trak->Media->information->sampleTable->SampleSize->sampleCount;
+		}
 	}
 	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 	trak->Media->mediaHeader->duration = mdur;
