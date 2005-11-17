@@ -40,12 +40,20 @@ typedef struct __tag_bifs_engine GF_BifsEngine;
 /**
  * @calling_object is the calling object on which call back will be called
  * @inputContext is the name of a scene file (bt, xmt or mp4) to initialize the coding context
- * or a text string (BT or XML) in UTF-8 format
  *
  * must be called only one time (by process calling the DLL) before other calls
  */
 GF_BifsEngine *gf_beng_init(void *calling_object, char *inputContext);
 
+/**
+ * @calling_object is the calling object on which call back will be called
+ * @inputContext is an UTF-8 scene description (with or without IOD) in BT or XMT-A format
+ * @width, @height: width and height of scene if no IOD is given in the context.
+ * @usePixelMetrics: metrics system used in the scene, if no IOD is given in the context.
+ *
+ * must be called only one time (by process calling the DLL) before other calls
+ */
+GF_BifsEngine *gf_beng_init_from_string(void *calling_object, char *inputContext, u32 width, u32 height, Bool usePixelMetrics);
 
 /**
  * @beng, pointer to the GF_BifsEngine returned by BENC_Init

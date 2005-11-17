@@ -831,7 +831,6 @@ EXPORTS
 	gf_node_set_id
 	gf_node_get_name
 	gf_node_get_id
-	gf_node_get_active
 	gf_node_get_private
 	gf_node_set_private
 	gf_node_set_render_function

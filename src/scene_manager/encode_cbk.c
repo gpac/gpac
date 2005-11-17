@@ -82,6 +82,7 @@ static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
 		if (codec->sc->streamType == GF_STREAM_SCENE) break;
 	}
 	if (!codec->sc) return GF_NOT_SUPPORTED;
+	if (!codec->sc->ESID) codec->sc->ESID = 1;
 
 	codec->bifsenc = gf_bifs_encoder_new(codec->ctx->scene_graph);
 
@@ -122,6 +123,10 @@ static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
 	if (!esd->decoderConfig->decoderSpecificInfo) {
 		memset(&bcfg, 0, sizeof(GF_BIFSConfig));
 		bcfg.tag = GF_ODF_BIFS_CFG_TAG;
+		bcfg.isCommandStream = 1;
+		bcfg.pixelMetrics = codec->ctx->is_pixel_metrics;
+		bcfg.pixelWidth = codec->ctx->scene_width;
+		bcfg.pixelHeight = codec->ctx->scene_height;
 	}
 	/*regular retrieve from ctx*/
 	else if (esd->decoderConfig->decoderSpecificInfo->tag == GF_ODF_BIFS_CFG_TAG) {
@@ -328,7 +333,6 @@ void gf_beng_get_stream_config(GF_BifsEngine *codec, char **config, u32 *config_
 GF_BifsEngine *gf_beng_init(void *calling_object, char * inputContext)
 {
 	GF_BifsEngine *codec;
-	FILE *test;
 	GF_Err e = GF_OK;
 
 	if (!inputContext) return NULL;
@@ -346,28 +350,66 @@ GF_BifsEngine *gf_beng_init(void *calling_object, char * inputContext)
 	/*since we're encoding in BIFS we must get MPEG-4 nodes only*/
 	codec->load.flags = GF_SM_LOAD_MPEG4_STRICT;
 
-	test = fopen(inputContext, "rb");
-	if (test) {
-		fclose(test);
-		codec->load.fileName = inputContext;
-		e = gf_sm_load_init(&(codec->load));
-		if (!e) e = gf_sm_load_run(&(codec->load));
-		gf_sm_load_done(&(codec->load));
-	} else {
-		if (inputContext[0] == '<') {
-			if (strstr(inputContext, "<svg ")) codec->load.type = GF_SM_LOAD_SVG;
-			else if (strstr(inputContext, "<saf ")) codec->load.type = GF_SM_LOAD_XSR;
-			else if (strstr(inputContext, "XMT-A") || strstr(inputContext, "X3D")) codec->load.type = GF_SM_LOAD_XMTA;
-		} else {
-			codec->load.type = GF_SM_LOAD_BT;
-		}
-		e = gf_sm_load_string(&codec->load, inputContext);
-	}
+	codec->load.fileName = inputContext;
+	e = gf_sm_load_init(&(codec->load));
+	if (!e) e = gf_sm_load_run(&(codec->load));
+	gf_sm_load_done(&(codec->load));
 
 	if (e) {
 		fprintf(stderr, "Cannot load context from %s: error %s\n", inputContext, gf_error_to_string(e));
 		goto exit;
 	}
+	e = gf_sm_live_setup(codec);
+	if (e!=GF_OK) {
+		fprintf(stderr, "Cannot init BIFS encoder for context: error %s\n", gf_error_to_string(e));
+		goto exit;
+	}
+	return codec;
+
+exit:
+	gf_beng_terminate(codec);
+	return NULL;
+}
+
+GF_BifsEngine *gf_beng_init_from_string(void *calling_object, char * inputContext, u32 width, u32 height, Bool usePixelMetrics)
+{
+	GF_BifsEngine *codec;
+	GF_Err e = GF_OK;
+
+	if (!inputContext) return NULL;
+
+	GF_SAFEALLOC(codec, sizeof(GF_BifsEngine))
+	if (!codec) return NULL;
+
+	codec->calling_object = calling_object;
+
+	/*Step 1: create context and load input*/
+	codec->sg = gf_sg_new();
+	codec->ctx = gf_sm_new(codec->sg);
+	memset(&(codec->load), 0, sizeof(GF_SceneLoader));
+	codec->load.ctx = codec->ctx;
+	/*since we're encoding in BIFS we must get MPEG-4 nodes only*/
+	codec->load.flags = GF_SM_LOAD_MPEG4_STRICT;
+
+	if (inputContext[0] == '<') {
+		if (strstr(inputContext, "<svg ")) codec->load.type = GF_SM_LOAD_SVG;
+		else if (strstr(inputContext, "<saf ")) codec->load.type = GF_SM_LOAD_XSR;
+		else if (strstr(inputContext, "XMT-A") || strstr(inputContext, "X3D")) codec->load.type = GF_SM_LOAD_XMTA;
+	} else {
+		codec->load.type = GF_SM_LOAD_BT;
+	}
+	e = gf_sm_load_string(&codec->load, inputContext);
+
+	if (e) {
+		fprintf(stderr, "Cannot load context from %s: error %s\n", inputContext, gf_error_to_string(e));
+		goto exit;
+	}
+	if (!codec->ctx->root_od) {
+		codec->ctx->is_pixel_metrics = usePixelMetrics;
+		codec->ctx->scene_width = width;
+		codec->ctx->scene_height = height;
+	}
+
 	e = gf_sm_live_setup(codec);
 	if (e!=GF_OK) {
 		fprintf(stderr, "Cannot init BIFS encoder for context: error %s\n", gf_error_to_string(e));

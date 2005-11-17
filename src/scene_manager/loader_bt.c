@@ -3031,6 +3031,21 @@ GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str, void
 	return parser.top_nodes;
 }
 
+
+
+GF_Err gf_sm_load_done_BTString(GF_SceneLoader *load)
+{
+	GF_BTParser *parser = (GF_BTParser *)load->loader_priv;
+	if (!parser) return GF_OK;
+	gf_list_del(parser->unresolved_routes);
+	gf_list_del(parser->inserted_routes);
+	gf_list_del(parser->undef_nodes);
+	gf_list_del(parser->def_nodes);
+	free(parser);
+	load->loader_priv = NULL;
+	return GF_OK;
+}
+
 GF_Err gf_sm_load_init_BTString(GF_SceneLoader *load, char *str)
 {
 	GF_Err e;
@@ -3098,19 +3113,6 @@ GF_Err gf_sm_load_init_BTString(GF_SceneLoader *load, char *str)
 	com = gf_sg_command_new(parser->load->scene_graph, GF_SG_SCENE_REPLACE);
 	gf_list_add(parser->bifs_au->commands, com);
 	e = gf_bt_loader_run_intern(parser, com);
-	if (e) gf_sm_load_done_BT(load);
+	if (e) gf_sm_load_done_BTString(load);
 	return e;
-}
-
-GF_Err gf_sm_load_done_BTString(GF_SceneLoader *load)
-{
-	GF_BTParser *parser = (GF_BTParser *)load->loader_priv;
-	if (!parser) return GF_OK;
-	gf_list_del(parser->unresolved_routes);
-	gf_list_del(parser->inserted_routes);
-	gf_list_del(parser->undef_nodes);
-	gf_list_del(parser->def_nodes);
-	free(parser);
-	load->loader_priv = NULL;
-	return GF_OK;
 }
