@@ -72,6 +72,9 @@ u32 gf_odf_get_field_type(GF_Descriptor *desc, char *fieldName)
 	case GF_ODF_IPMP_TOOL_TAG:
 		if (!stricmp(fieldName, "toolParamDesc")) return GF_ODF_FT_IPMPX;
 		return 0;
+	case GF_ODF_BIFS_CFG_TAG:
+		if (!stricmp(fieldName, "elementaryMask")) return GF_ODF_FT_OD_LIST;
+		return 0;
 	}
 	return 0;
 }
@@ -112,6 +115,7 @@ u32 gf_odf_get_tag_by_name(char *descName)
 	if (!stricmp(descName, "MuxInfo")) return GF_ODF_MUXINFO_TAG;
 	if (!stricmp(descName, "StreamSource")) return GF_ODF_MUXINFO_TAG;
 	if (!stricmp(descName, "BIFSConfig") || !stricmp(descName, "BIFSv2Config")) return GF_ODF_BIFS_CFG_TAG;
+	if (!stricmp(descName, "ElementaryMask")) return GF_ODF_ELEM_MASK_TAG;
 	if (!stricmp(descName, "TextConfig")) return GF_ODF_TEXT_CFG_TAG;
 	if (!stricmp(descName, "TextSampleDescriptor")) return GF_ODF_TX3G_TAG;
 	if (!stricmp(descName, "UIConfig")) return GF_ODF_UI_CFG_TAG;
@@ -352,6 +356,17 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "durationFlag")) ret = 1;
 	}	
 		break;
+	case GF_ODF_ELEM_MASK_TAG:
+	{
+		GF_ElementaryMask* em = (GF_ElementaryMask*)desc;
+		if (!stricmp(fieldName, "atNode")) {
+			ret += sscanf(val, "%hd", &em->node_id);
+			if (!ret || !em->node_id) em->node_name = strdup(val);
+			ret = 1;
+		}
+		else if (!stricmp(fieldName, "numDynFields")) ret = 1;
+	}
+		break;
 	case GF_ODF_BIFS_CFG_TAG:
 	{
 		s32 notused;
@@ -361,12 +376,13 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "nodeIDbits")) ret += sscanf(val, "%hd", &bcd->nodeIDbits);
 		else if (!stricmp(fieldName, "routeIDbits")) ret += sscanf(val, "%hd", &bcd->routeIDbits);
 		else if (!stricmp(fieldName, "protoIDbits")) ret += sscanf(val, "%hd", &bcd->protoIDbits);
-		else if (!stricmp(fieldName, "isCommandStream")) GET_BOOL(bcd->isCommandStream)
+		else if (!stricmp(fieldName, "isCommandStream")) { /*GET_BOOL(bcd->isCommandStream)*/ ret = 1; }
 		else if (!stricmp(fieldName, "pixelMetric") || !stricmp(fieldName, "pixelMetrics")) GET_BOOL(bcd->pixelMetrics)
 		else if (!stricmp(fieldName, "pixelWidth")) ret += sscanf(val, "%hd", &bcd->pixelWidth);
 		else if (!stricmp(fieldName, "pixelHeight")) ret += sscanf(val, "%hd", &bcd->pixelHeight);
 		else if (!stricmp(fieldName, "use3DMeshCoding")) GET_BOOL(notused)
 		else if (!stricmp(fieldName, "usePredictiveMFField")) GET_BOOL(notused)
+		else if (!stricmp(fieldName, "randomAccess")) GET_BOOL(bcd->randomAccess);
 	}
 		break;
 	case GF_ODF_MUXINFO_TAG:

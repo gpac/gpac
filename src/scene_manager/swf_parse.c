@@ -1650,7 +1650,6 @@ GF_Err swf_init_od(SWFReader *read)
 		read->load->ctx->root_od->objectDescriptorID = 1;
 		gf_odf_desc_del((GF_Descriptor *) esd->decoderConfig->decoderSpecificInfo);
 		bc = (GF_BIFSConfig *) gf_odf_desc_new(GF_ODF_BIFS_CFG_TAG);
-		bc->isCommandStream = 1;
 		bc->pixelMetrics = 1;
 		bc->pixelWidth = (u16) read->width;
 		bc->pixelHeight = (u16) read->height;

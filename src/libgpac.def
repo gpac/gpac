@@ -799,6 +799,7 @@ EXPORTS
 
 ;bifsengine exports
 	gf_beng_init
+	gf_beng_init_from_string
 	gf_beng_get_stream_config
 	gf_beng_encode_context
 	gf_beng_encode_from_file
@@ -834,7 +835,6 @@ EXPORTS
 	gf_node_set_id
 	gf_node_get_name
 	gf_node_get_id
-	gf_node_get_active
 	gf_node_get_private
 	gf_node_set_private
 	gf_node_set_render_function

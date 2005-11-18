@@ -2402,10 +2402,19 @@ GF_Descriptor *gf_bt_parse_descriptor(GF_BTParser *parser, char *name)
 	if (!gf_bt_check_code(parser, '{')) return desc;
 
 	while (1) {
+		Bool is_anim_mask = 0;
 		/*done*/
 		if (gf_bt_check_code(parser, '}')) break;
 		str = gf_bt_get_next(parser, 0);
 		strcpy(field, str);
+
+		if ((tag==GF_ODF_BIFS_CFG_TAG) && !strcmp(field, "animationMask")) {
+			gf_bt_get_next(parser, 0);
+			if (gf_bt_check_code(parser, '{')) is_anim_mask = 1;
+			str = gf_bt_get_next(parser, 0);
+			strcpy(field, str);
+		}
+
 		type = gf_odf_get_field_type(desc, str);
 		switch (type) {
 		/*IPMPX list*/
@@ -2467,6 +2476,8 @@ GF_Descriptor *gf_bt_parse_descriptor(GF_BTParser *parser, char *name)
 					gf_bt_add_desc(parser, desc, subdesc, field);
 				}
 			}
+			if (is_anim_mask) 
+				gf_bt_check_code(parser, '}');
 			break;
 		/*single descriptor*/
 		case GF_ODF_FT_OD:
@@ -2501,7 +2512,6 @@ GF_Descriptor *gf_bt_parse_descriptor(GF_BTParser *parser, char *name)
 		}
 
 		/*for bt->xmt*/
-		if (!bcfg->isCommandStream) bcfg->isCommandStream = 1;
 		if (!bcfg->version) bcfg->version = 1;
 	}
 	else if (desc->tag==GF_ODF_ESD_TAG) {

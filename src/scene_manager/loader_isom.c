@@ -225,7 +225,7 @@ exit:
 GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load)
 {
 	u32 i, track;
-	GF_BIFSConfig bc;
+	GF_BIFSConfig *bc;
 	GF_ESD *esd;
 	GF_Err e;
 	if (!load->isom) return GF_BAD_PARAM;
@@ -273,13 +273,13 @@ GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load)
 	track = i+1;
 
 	/*update size & pixel metrics info*/
-	gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication, &bc);
-	if (bc.isCommandStream && bc.pixelWidth && bc.pixelHeight) {
-		load->ctx->scene_width = bc.pixelWidth;
-		load->ctx->scene_height = bc.pixelHeight;
-		load->ctx->is_pixel_metrics = bc.pixelMetrics;
+	bc = gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication);
+	if (!bc->elementaryMasks && bc->pixelWidth && bc->pixelHeight) {
+		load->ctx->scene_width = bc->pixelWidth;
+		load->ctx->scene_height = bc->pixelHeight;
+		load->ctx->is_pixel_metrics = bc->pixelMetrics;
 	}
-
+	gf_odf_desc_del((GF_Descriptor *) bc);
 	gf_odf_desc_del((GF_Descriptor *) esd);
 	esd = NULL;
 

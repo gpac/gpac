@@ -2993,6 +2993,22 @@ GF_Err gf_odf_write_muxinfo(GF_BitStream *bs, GF_MuxInfo *mi)
 	return GF_OK;
 }
 
+GF_Descriptor *gf_odf_New_ElemMask()
+{
+	GF_ElementaryMask *newDesc = (GF_ElementaryMask*) malloc (sizeof(GF_ElementaryMask));
+	if (!newDesc) return NULL;
+	memset(newDesc, 0, sizeof(GF_ElementaryMask));
+	newDesc->tag = GF_ODF_ELEM_MASK_TAG;
+	return (GF_Descriptor *) newDesc;
+}
+
+GF_Err gf_odf_del_ElemMask(GF_ElementaryMask *desc)
+{
+	if (desc->node_name) free(desc->node_name);
+	free(desc);
+	return GF_OK;
+}
+
 GF_Descriptor *gf_odf_new_bifs_cfg()
 {
 	GF_BIFSConfig *newDesc = (GF_BIFSConfig *) malloc(sizeof(GF_BIFSConfig));
@@ -3004,6 +3020,15 @@ GF_Descriptor *gf_odf_new_bifs_cfg()
 
 GF_Err gf_odf_del_bifs_cfg(GF_BIFSConfig *desc)
 {
+	if (desc->elementaryMasks) {
+		u32 i, count = gf_list_count(desc->elementaryMasks);
+		for (i=0; i<count; i++) {
+			GF_ElementaryMask *tmp = gf_list_get(desc->elementaryMasks, i);
+			if (tmp->node_name) free(tmp->node_name);
+			free(tmp);
+		}
+		gf_list_del(desc->elementaryMasks);
+	}
 	free(desc);
 	return GF_OK;
 }

@@ -821,7 +821,7 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, 
 
 //	gf_mx_p(codec->mx);
 	codec->info = gf_bifs_dec_get_stream(codec, ESID);
-	if (!codec->info || !codec->info->config.IsCommandStream) {
+	if (!codec->info || codec->info->config.elementaryMasks) {
 //		gf_mx_v(codec->mx);
 		return GF_BAD_PARAM;
 	}

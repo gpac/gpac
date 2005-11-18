@@ -26,9 +26,10 @@
 #include <gpac/internal/bifs_dev.h>
 #include <gpac/mpeg4_odf.h>
 
-GF_Err ParseConfig(GF_BitStream *bs, BIFSStreamInfo *info, u32 version)
+
+static GF_Err ParseConfig(GF_BitStream *bs, BIFSStreamInfo *info, u32 version)
 {
-	Bool hasSize;
+	Bool hasSize, cmd_stream;
 
 	if (version==2) {
 		info->config.Use3DMeshCoding = gf_bs_read_int(bs, 1);
@@ -39,9 +40,9 @@ GF_Err ParseConfig(GF_BitStream *bs, BIFSStreamInfo *info, u32 version)
 	if (version==2) {
 		info->config.ProtoIDBits = gf_bs_read_int(bs, 5);
 	}
-	info->config.IsCommandStream = gf_bs_read_int(bs, 1);
+	cmd_stream = gf_bs_read_int(bs, 1);
 
-	if (info->config.IsCommandStream) {
+	if (cmd_stream) {
 		info->config.PixelMetrics = gf_bs_read_int(bs, 1);
 		hasSize = gf_bs_read_int(bs, 1);
 		if (hasSize) {
@@ -53,10 +54,29 @@ GF_Err ParseConfig(GF_BitStream *bs, BIFSStreamInfo *info, u32 version)
 		if (gf_bs_get_size(bs) != gf_bs_get_position(bs)) return GF_ODF_INVALID_DESCRIPTOR;
 		return GF_OK;
 	} else {
-		return GF_NOT_SUPPORTED;
+		info->config.BAnimRAP = gf_bs_read_int(bs, 1);
+		info->config.elementaryMasks = gf_list_new();
+		while (1) {
+			u32 node_id = gf_bs_read_int(bs, info->config.NodeIDBits);
+			/*this assumes only FDP, BDP and IFS2D (no elem mask)*/
+			if (gf_bs_read_int(bs, 1) == 0) break;
+		}
+		gf_bs_align(bs);
+		if (gf_bs_get_size(bs) != gf_bs_get_position(bs))  return GF_NOT_SUPPORTED;
+		return GF_OK;
 	}
 }
 
+static bifs_info_del(BIFSStreamInfo *info)
+{
+	while (1) {
+		BIFSElementaryMask *em = gf_list_last(info->config.elementaryMasks);
+		if (!em) break;
+		gf_list_rem_last(info->config.elementaryMasks);
+		free(em);
+	}
+	free(info);
+}
 
 GF_BifsDecoder *gf_bifs_decoder_new(GF_SceneGraph *scenegraph, Bool command_dec)
 {
@@ -109,13 +129,13 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 	bs = gf_bs_new(DecoderSpecificInfo, DecoderSpecificInfoLength, GF_BITSTREAM_READ);
 	pInfo = malloc(sizeof(BIFSStreamInfo));
 	memset(pInfo, 0, sizeof(BIFSStreamInfo));
+	pInfo->config.elementaryMasks = gf_list_new();
 	pInfo->ESID = ESID;
 
 	pInfo->config.version = objectTypeIndication;
 	/*parse config with indicated oti*/
 	e = ParseConfig(bs, pInfo, (u32) objectTypeIndication);
 	if (e) {
-		memset(pInfo, 0, sizeof(BIFSStreamInfo));
 		pInfo->ESID = ESID;
 		/*some content indicates a wrong OTI, so try to parse with v1 or v2*/
 		gf_bs_seek(bs, 0);
@@ -153,7 +173,7 @@ GF_Err gf_bifs_decoder_get_config(GF_BifsDecoder *codec, u16 ESID, GF_BIFSConfig
 	info = gf_bifs_dec_get_stream(codec, ESID);
 	if (!info) return GF_BAD_PARAM;
 	memset(cfg, 0, sizeof(GF_BIFSConfig));
-	cfg->isCommandStream = info->config.IsCommandStream;
+	cfg->tag = GF_ODF_BIFS_CFG_TAG;
 	cfg->nodeIDbits = info->config.NodeIDBits;
 	cfg->pixelHeight = info->config.Height;
 	cfg->pixelMetrics = info->config.PixelMetrics;
@@ -194,7 +214,7 @@ void gf_bifs_decoder_del(GF_BifsDecoder *codec)
 	/*destroy all config*/
 	while (gf_list_count(codec->streamInfo)) {
 		BIFSStreamInfo *p = gf_list_get(codec->streamInfo, 0);
-		free(p);
+		bifs_info_del(p);
 		gf_list_rem(codec->streamInfo, 0);
 	}
 	gf_list_del(codec->streamInfo);
@@ -233,10 +253,10 @@ GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_l
 	bs = gf_bs_new(data, data_length, GF_BITSTREAM_READ);
 	gf_bs_set_eos_callback(bs, BD_EndOfStream, codec);
 
-	if (codec->info->config.IsCommandStream) {
-		e = gf_bifs_dec_command(codec, bs);
-	} else {
+	if (codec->info->config.elementaryMasks) {
 		e = GF_NOT_SUPPORTED;
+	} else {
+		e = gf_bifs_dec_command(codec, bs);
 	}
 	gf_bs_del(bs);
 	/*reset current config*/
@@ -311,7 +331,7 @@ void gf_bifs_encoder_del(GF_BifsEncoder *codec)
 	/*destroy all config*/
 	while (gf_list_count(codec->streamInfo)) {
 		BIFSStreamInfo *p = gf_list_get(codec->streamInfo, 0);
-		free(p);
+		bifs_info_del(p);
 		gf_list_rem(codec->streamInfo, 0);
 	}
 	gf_list_del(codec->streamInfo);
@@ -322,6 +342,7 @@ void gf_bifs_encoder_del(GF_BifsEncoder *codec)
 
 GF_Err gf_bifs_encoder_new_stream(GF_BifsEncoder *codec, u16 ESID, GF_BIFSConfig *cfg, Bool encodeNames, Bool has_predictive)
 {
+	u32 i, count; 
 	BIFSStreamInfo *pInfo;
 	
 	gf_mx_p(codec->mx);
@@ -336,13 +357,27 @@ GF_Err gf_bifs_encoder_new_stream(GF_BifsEncoder *codec, u16 ESID, GF_BIFSConfig
 	pInfo->UseName = encodeNames;
 	pInfo->config.Height = cfg->pixelHeight;
 	pInfo->config.Width = cfg->pixelWidth;
-	pInfo->config.IsCommandStream = cfg->isCommandStream;
 	pInfo->config.NodeIDBits = cfg->nodeIDbits;
 	pInfo->config.RouteIDBits = cfg->routeIDbits;
 	pInfo->config.ProtoIDBits = cfg->protoIDbits;
 	pInfo->config.PixelMetrics = cfg->pixelMetrics;
 	pInfo->config.version = (has_predictive || cfg->protoIDbits) ? 2 : 1;
 	pInfo->config.UsePredictiveMFField = has_predictive;
+
+	if (cfg->elementaryMasks) {
+		pInfo->config.elementaryMasks = gf_list_new();
+		count = gf_list_count(cfg->elementaryMasks);
+		for (i=0; i<count; i++) {
+			BIFSElementaryMask *bem;
+			GF_ElementaryMask *em = gf_list_get(cfg->elementaryMasks, i);
+			GF_SAFEALLOC(bem, sizeof(BIFSElementaryMask));
+			if (em->node_id) bem->node = gf_sg_find_node(codec->scene_graph, em->node_id);
+			else if (em->node_name) bem->node = gf_sg_find_node_by_name(codec->scene_graph, em->node_name);
+			bem->node_id = em->node_id;
+			gf_list_add(pInfo->config.elementaryMasks, bem);
+		}
+	}
+	
 	gf_list_add(codec->streamInfo, pInfo);
 	gf_mx_v(codec->mx);
 	return GF_OK;
@@ -364,10 +399,10 @@ GF_Err gf_bifs_encode_au(GF_BifsEncoder *codec, u16 ESID, GF_List *command_list,
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
-	if (codec->info->config.IsCommandStream) {
-		e = gf_bifs_enc_commands(codec, command_list, bs);
-	} else {
+	if (codec->info->config.elementaryMasks) {
 		e = GF_NOT_SUPPORTED;
+	} else {
+		e = gf_bifs_enc_commands(codec, command_list, bs);
 	}
 	gf_bs_align(bs);
 	gf_bs_get_content(bs, (unsigned char **) out_data, out_data_length);
@@ -390,7 +425,7 @@ GF_Err gf_bifs_encoder_get_config(GF_BifsEncoder *codec, u16 ESID, char **out_da
 	}
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	
+
 	if (codec->info->config.version==2) {
 		gf_bs_write_int(bs, codec->info->config.Use3DMeshCoding ? 1 : 0, 1);
 		gf_bs_write_int(bs, codec->info->config.UsePredictiveMFField ? 1 : 0, 1);
@@ -400,9 +435,19 @@ GF_Err gf_bifs_encoder_get_config(GF_BifsEncoder *codec, u16 ESID, char **out_da
 	if (codec->info->config.version==2) {
 		gf_bs_write_int(bs, codec->info->config.ProtoIDBits, 5);
 	}
-	gf_bs_write_int(bs, codec->info->config.IsCommandStream ? 1 : 0, 1);
-
-	if (codec->info->config.IsCommandStream) {
+	if (codec->info->config.elementaryMasks) {
+		u32 i, count;
+		gf_bs_write_int(bs, 0, 1);
+		gf_bs_write_int(bs, codec->info->config.BAnimRAP, 1);
+		count = gf_list_count(codec->info->config.elementaryMasks);
+		for (i=0; i<count; i++) {
+			BIFSElementaryMask *em = gf_list_get(codec->info->config.elementaryMasks, i);
+			if (em->node) gf_bs_write_int(bs, gf_node_get_id(em->node), codec->info->config.NodeIDBits);
+			else  gf_bs_write_int(bs, em->node_id, codec->info->config.NodeIDBits);
+			gf_bs_write_int(bs, (i+1==count) ? 0 : 1, 1);
+		}
+	} else {
+		gf_bs_write_int(bs, 1, 1);
 		gf_bs_write_int(bs, codec->info->config.PixelMetrics ? 1 : 0, 1);
 		if (codec->info->config.Width || codec->info->config.Height) {
 			gf_bs_write_int(bs, 1, 1);

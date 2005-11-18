@@ -98,8 +98,9 @@ enum
 	/*internal descriptor for TextConfig description*/
 	GF_ODF_TEXT_CFG_TAG		= GF_ODF_USER_BEGIN_TAG + 3,
 	GF_ODF_TX3G_TAG			= GF_ODF_USER_BEGIN_TAG + 4,
+	GF_ODF_ELEM_MASK_TAG	= GF_ODF_USER_BEGIN_TAG + 5,
 	/*internal descriptor for LASeR config input description*/
-	GF_ODF_LASER_CFG_TAG	= GF_ODF_USER_BEGIN_TAG + 5,
+	GF_ODF_LASER_CFG_TAG	= GF_ODF_USER_BEGIN_TAG + 6,
 
 
 	GF_ODF_USER_END_TAG		= 0xFE,
@@ -339,6 +340,13 @@ typedef struct
 } GF_IPMP_Tool;
 
 
+/* Elementary Mask of Bifs Config - parsing only */
+typedef struct {
+	BASE_DESCRIPTOR
+	u32 node_id;			// referenced nodeID
+	char *node_name;		// referenced node name
+} GF_ElementaryMask;
+
 /*BIFSConfig - parsing only, STORED IN ESD:DCD:DSI*/
 typedef struct __tag_bifs_config
 {
@@ -347,9 +355,11 @@ typedef struct __tag_bifs_config
 	u16 nodeIDbits;
 	u16 routeIDbits;
 	u16 protoIDbits;
-	Bool isCommandStream;
 	Bool pixelMetrics;
 	u16 pixelWidth, pixelHeight;
+	/*BIFS-Anim stuff*/
+	Bool randomAccess;
+	GF_List *elementaryMasks;
 } GF_BIFSConfig;
 
 /*flags for style*/
@@ -505,14 +515,20 @@ typedef struct __tag_laser_config
 	BASE_DESCRIPTOR
 	u8 profile;
 	u8 level;
-	u8 coord_bits;
-	s8 resolution;
-	u8 colorComponentBits;
-	u8 scale_bits;
-	u8 append;
-	u8 has_string_ids;
+	u8 encoding;
+	u8 pointsCodec;
+	u8 pathComponents;
 	u8 fullRequestHost;
 	u16 time_resolution;
+	u8 colorComponentBits;
+	s8 resolution;
+	u8 scale_bits;
+	u8 coord_bits;
+	u8 append;
+	u8 has_string_ids;
+	u8 has_private_data;
+	u8 hasExtendedAttributes;
+	u8 extensionIDBits;
 } GF_LASERConfig;
 
 
@@ -996,14 +1012,13 @@ GF_Err gf_odf_desc_list_del(GF_List *descList);
 const char *gf_odf_stream_type_name(u32 streamType);
 u32 gf_odf_stream_type_by_name(const char *streamType);
 
-
-/*sepcial function for authoring - convert DSI to BIFSConfig*/
-GF_Err gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti, GF_BIFSConfig *cfg);
-
+/*special function for authoring - convert DSI to BIFSConfig*/
+GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti);
+/*special function for authoring - convert DSI to LASERConfig*/
+GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg);
 /*sepcial function for authoring - convert DSI to TextConfig*/
 GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *cfg);
-
-/*sepcial function for authoring - convert DSI to UIConfig*/
+/*special function for authoring - convert DSI to UIConfig*/
 GF_Err gf_odf_get_ui_config(GF_DefaultDescriptor *dsi, GF_UIConfig *cfg);
 /*converts UIConfig to dsi - does not destroy input descr but does create output one*/
 GF_Err gf_odf_encode_ui_config(GF_UIConfig *cfg, GF_DefaultDescriptor **out_dsi);

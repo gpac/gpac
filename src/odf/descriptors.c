@@ -307,16 +307,16 @@ u32 gf_odf_stream_type_by_name(const char *streamType)
 
 
 /*special authoring functions*/
-GF_Err gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti, GF_BIFSConfig *cfg)
+GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti)
 {
-	Bool hasSize;
+	Bool hasSize, cmd_stream;
 	GF_Err e;
 	GF_BitStream *bs;
-	if (!dsi || !dsi->data || !dsi->dataLength || !cfg) return GF_BAD_PARAM;
+	GF_BIFSConfig *cfg;
+	if (!dsi || !dsi->data || !dsi->dataLength ) return NULL;
 	bs = gf_bs_new(dsi->data, dsi->dataLength, GF_BITSTREAM_READ);
-	memset(cfg, 0, sizeof(GF_BIFSConfig));
-	cfg->tag = GF_ODF_BIFS_CFG_TAG;	
 	
+	cfg = (GF_BIFSConfig *) gf_odf_desc_new(GF_ODF_BIFS_CFG_TAG);	
 	e = GF_OK;
 	if (oti==2) {
 		/*3D Mesh Coding*/
@@ -328,9 +328,18 @@ GF_Err gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti, GF_BIFSConfig *
 	cfg->routeIDbits = gf_bs_read_int(bs, 5);
 	if (oti==2) cfg->protoIDbits = gf_bs_read_int(bs, 5);
 	
-	cfg->isCommandStream = gf_bs_read_int(bs, 1);
-	if (!cfg->isCommandStream) {
-		e = GF_NOT_SUPPORTED;
+	cmd_stream = gf_bs_read_int(bs, 1);
+	if (!cmd_stream) {
+		cfg->elementaryMasks = gf_list_new();
+		while (1) {
+			GF_ElementaryMask* em = (GF_ElementaryMask* ) gf_odf_New_ElemMask();
+			em->node_id = gf_bs_read_int(bs, cfg->nodeIDbits);
+			gf_list_add(cfg->elementaryMasks, em);
+			/*this assumes only FDP, BDP and IFS2D (no elem mask)*/
+			if (gf_bs_read_int(bs, 1) == 0) break;
+		}
+		gf_bs_align(bs);
+		if (gf_bs_get_size(bs) != gf_bs_get_position(bs))  e = GF_NOT_SUPPORTED;
 	} else {
 		cfg->pixelMetrics = gf_bs_read_int(bs, 1);
 		hasSize = gf_bs_read_int(bs, 1);
@@ -342,7 +351,36 @@ GF_Err gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti, GF_BIFSConfig *
 		if (gf_bs_get_size(bs) != gf_bs_get_position(bs))  e = GF_ODF_INVALID_DESCRIPTOR;
 	}
 	gf_bs_del(bs);
-	return e;
+	return cfg;
+}
+
+/*special function for authoring - convert DSI to LASERConfig*/
+GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg)
+{
+	GF_BitStream *bs;
+	if (!dsi || !dsi->data || !dsi->dataLength || !cfg) return GF_BAD_PARAM;
+	bs = gf_bs_new(dsi->data, dsi->dataLength, GF_BITSTREAM_READ);
+	memset(cfg, 0, sizeof(GF_LASERConfig));
+	cfg->tag = GF_ODF_LASER_CFG_TAG;
+	cfg->profile = gf_bs_read_int(bs, 8);
+	cfg->level = gf_bs_read_int(bs, 8);
+	cfg->encoding = gf_bs_read_int(bs, 2);	
+	cfg->pointsCodec = gf_bs_read_int(bs, 2);	
+	cfg->pathComponents = gf_bs_read_int(bs, 8);	
+	cfg->fullRequestHost = gf_bs_read_int(bs, 1);	
+	if (gf_bs_read_int(bs, 1)) cfg->time_resolution = gf_bs_read_int(bs, 16);
+	else cfg->time_resolution = 1000;
+	cfg->colorComponentBits = 1 + gf_bs_read_int(bs, 4);
+	cfg->resolution = gf_bs_read_int(bs, 4);
+	cfg->scale_bits = gf_bs_read_int(bs, 4);
+	cfg->coord_bits = gf_bs_read_int(bs, 5);
+	cfg->append = gf_bs_read_int(bs, 1);
+	cfg->has_string_ids = gf_bs_read_int(bs, 1);
+	cfg->has_private_data = gf_bs_read_int(bs, 1);
+	cfg->hasExtendedAttributes = gf_bs_read_int(bs, 1);
+	cfg->extensionIDBits = gf_bs_read_int(bs, 4);
+	gf_bs_del(bs);
+	return GF_OK;
 }
 
 GF_Err gf_odf_get_ui_config(GF_DefaultDescriptor *dsi, GF_UIConfig *cfg)

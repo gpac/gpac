@@ -94,6 +94,7 @@ GF_Descriptor *gf_odf_new_mediatime();
 GF_Descriptor *gf_odf_new_ipmp_tool_list();
 GF_Descriptor *gf_odf_new_ipmp_tool();
 GF_Descriptor *gf_odf_new_muxinfo();
+GF_Descriptor *gf_odf_New_ElemMask();
 GF_Descriptor *gf_odf_new_bifs_cfg();
 GF_Descriptor *gf_odf_new_ui_cfg();
 GF_Descriptor *gf_odf_new_laser_cfg();

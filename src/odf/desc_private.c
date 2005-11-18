@@ -122,6 +122,8 @@ GF_Descriptor *gf_odf_create_descriptor(u8 tag)
 		return gf_odf_new_text_cfg();
 	case GF_ODF_TX3G_TAG:
 		return gf_odf_new_tx3g();
+	case GF_ODF_ELEM_MASK_TAG:
+		return gf_odf_New_ElemMask();
 	case GF_ODF_LASER_CFG_TAG:
 		return gf_odf_new_laser_cfg();
 

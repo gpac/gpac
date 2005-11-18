@@ -1624,7 +1624,6 @@ GF_Descriptor *xmt_parse_descriptor(XMTParser *parser, char *name, GF_Descriptor
 		}
 		/*special cases in BIFS config*/
 		else if (!strcmp(str, "commandStream")) {
-			((GF_BIFSConfig *)desc)->isCommandStream = 1;
 			xmt_parse_descriptor(parser, "commandStream", desc);
 		}
 		/*special cases OD URL*/
@@ -1645,7 +1644,6 @@ GF_Descriptor *xmt_parse_descriptor(XMTParser *parser, char *name, GF_Descriptor
 		parser->load->ctx->scene_height = parser->bifs_h = bcfg->pixelHeight;
 		parser->load->ctx->is_pixel_metrics = bcfg->pixelMetrics;
 		/*for xmt->bt*/
-		if (!bcfg->isCommandStream) bcfg->isCommandStream = 1;
 		if (!bcfg->version) bcfg->version = 1;
 	}
 	else if (desc->tag==GF_ODF_ESD_TAG) {

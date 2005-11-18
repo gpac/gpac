@@ -58,8 +58,8 @@ static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
 	GF_InitialObjectDescriptor *iod;
 	u32	i, j, count, nbb;
 	GF_ESD *esd;
-	Bool is_in_iod, delete_desc, encode_names;
-	GF_BIFSConfig bcfg;
+	Bool is_in_iod, delete_desc, encode_names, delete_bcfg;
+	GF_BIFSConfig *bcfg;
 
 	e = GF_OK;
 
@@ -119,42 +119,45 @@ static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
 		esd->decoderConfig->streamType = GF_STREAM_SCENE;
 	}
 
+	delete_bcfg = 0;
+
 	/*should NOT happen (means inputctx is not properly setup)*/
 	if (!esd->decoderConfig->decoderSpecificInfo) {
-		memset(&bcfg, 0, sizeof(GF_BIFSConfig));
-		bcfg.tag = GF_ODF_BIFS_CFG_TAG;
-		bcfg.isCommandStream = 1;
-		bcfg.pixelMetrics = codec->ctx->is_pixel_metrics;
-		bcfg.pixelWidth = codec->ctx->scene_width;
-		bcfg.pixelHeight = codec->ctx->scene_height;
+		bcfg = (GF_BIFSConfig*)gf_odf_desc_new(GF_ODF_BIFS_CFG_TAG);
+		bcfg->pixelMetrics = codec->ctx->is_pixel_metrics;
+		bcfg->pixelWidth = codec->ctx->scene_width;
+		bcfg->pixelHeight = codec->ctx->scene_height;
+		delete_bcfg = 1;
 	}
 	/*regular retrieve from ctx*/
 	else if (esd->decoderConfig->decoderSpecificInfo->tag == GF_ODF_BIFS_CFG_TAG) {
-		memcpy(&bcfg, (GF_BIFSConfig *)esd->decoderConfig->decoderSpecificInfo, sizeof(GF_BIFSConfig));
+		bcfg = (GF_BIFSConfig *)esd->decoderConfig->decoderSpecificInfo;
 	}
 	/*should not happen either (unless loading from MP4 in which case BIFSc is not decoded)*/
 	else {
-		gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication, &bcfg);
+		bcfg = gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication);
+		delete_bcfg = 1;
 	}
 	/*NO CHANGE TO BIFSC otherwise the generated update will not match the input context, UNLESS NO NbBits
 	were specified*/
 	nbb = gf_get_bit_size(codec->ctx->max_node_id);
-	if (!bcfg.nodeIDbits) bcfg.nodeIDbits = nbb;
-	else if (bcfg.nodeIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.NodeIDBits TOO SMALL\n");
+	if (!bcfg->nodeIDbits) bcfg->nodeIDbits = nbb;
+	else if (bcfg->nodeIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.NodeIDBits TOO SMALL\n");
 
 	nbb = gf_get_bit_size(codec->ctx->max_route_id);
-	if (!bcfg.routeIDbits) bcfg.routeIDbits = nbb;
-	else if (bcfg.routeIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.RouteIDBits TOO SMALL\n");
+	if (!bcfg->routeIDbits) bcfg->routeIDbits = nbb;
+	else if (bcfg->routeIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.RouteIDBits TOO SMALL\n");
 
 	nbb = gf_get_bit_size(codec->ctx->max_proto_id);
-	if (!bcfg.protoIDbits) bcfg.protoIDbits=nbb;
-	else if (bcfg.protoIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.ProtoIDBits TOO SMALL\n");
+	if (!bcfg->protoIDbits) bcfg->protoIDbits=nbb;
+	else if (bcfg->protoIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.ProtoIDBits TOO SMALL\n");
 
 	/*this is the real pb, not stored in cfg or file level, set at EACH replaceScene*/
 	encode_names = 0;
 
 	/* The BIFS Config that is passed here should be the BIFSConfig from the IOD */
-	gf_bifs_encoder_new_stream(codec->bifsenc, codec->sc->ESID, &bcfg, encode_names, 0);
+	gf_bifs_encoder_new_stream(codec->bifsenc, codec->sc->ESID, bcfg, encode_names, 0);
+	if (delete_bcfg) gf_odf_desc_del((GF_Descriptor *)bcfg);
 
 	if (!esd->slConfig) esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 	if (codec->sc->timeScale) esd->slConfig->timestampResolution = codec->sc->timeScale;

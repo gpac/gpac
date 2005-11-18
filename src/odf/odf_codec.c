@@ -380,6 +380,13 @@ GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc)
 		if (newDesc->tag!=GF_ODF_IPMP_TOOL_TAG) return GF_BAD_PARAM;
 		return gf_list_add(((GF_IPMP_ToolList *)parentDesc)->ipmp_tools, newDesc);
 
+	case GF_ODF_BIFS_CFG_TAG:
+	{
+		GF_BIFSConfig *cfg = (GF_BIFSConfig *)parentDesc;
+		if (newDesc->tag!=GF_ODF_ELEM_MASK_TAG) return GF_BAD_PARAM;
+		if (!cfg->elementaryMasks) cfg->elementaryMasks = gf_list_new();
+		return gf_list_add(cfg->elementaryMasks, newDesc);
+	}
 	default:
 		return GF_ODF_FORBIDDEN_DESCRIPTOR;
 	}

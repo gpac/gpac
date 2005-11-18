@@ -32,12 +32,19 @@
 #include <gpac/bifs.h>
 #include <gpac/thread.h>
 
+typedef struct {
+	/*node this mask is for*/
+	GF_Node *node;
+	/*in case node is not defined yet*/
+	u32 node_id;
+	/*the rest is not needed at the current time, we only support simple sugnaling for FDP, BDP and IFS2D
+	which are using pre-defs masks*/
+} BIFSElementaryMask;
+
 typedef struct
 {
 	/*v1 or v2*/
 	u8 version;
-	/*if false this is a BIFS-ANIM stream*/
-	Bool IsCommandStream;
 	/*BIFS config - common fields*/
 	u16 NodeIDBits;
 	u16 RouteIDBits;
@@ -48,8 +55,8 @@ typedef struct
 	/*BIFS-Anim - not supported */
 	/*if 1 the BIFS_Anim codec is reset at each intra frame*/
 	Bool BAnimRAP;
-	/*will be specified once we have BIFS anim*/
-	void *AnimMask;
+	/*list of elementary masks for BIFS anim*/
+	GF_List *elementaryMasks;
 
 	/*BIFS v2 add-on*/
 	Bool Use3DMeshCoding;

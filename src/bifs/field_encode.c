@@ -327,7 +327,7 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 	GF_Err e;
 	s32 *enc_fields;
 	u32 numBitsALL, numBitsDEF, allInd, count, i, nbBitsProto, nbFinal;
-	Bool use_list;
+	Bool use_list, nodeIsFDP = 0;
 	GF_FieldInfo field, clone_field;
 
 
@@ -400,9 +400,19 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 	}
 	if (clone) gf_node_unregister(clone, NULL);
 
-	/*number of bits in mask node is count*1, in list node is 1+nbFinal*(1+numBitsDEF) */
 	use_list = 1;
-	if (count < 1+nbFinal*(1+numBitsDEF)) use_list = 0;
+	/* patch for FDP node : */
+	/* cannot use default field sorting due to spec "mistake", so use list to imply inversion between field 2 and field 3 of FDP*/
+	if (node->sgprivate->tag == TAG_MPEG4_FDP) {
+		s32 s4SwapValue = enc_fields[2];
+		enc_fields[2] = enc_fields[3];
+		enc_fields[3] = s4SwapValue;
+		nodeIsFDP = 1;
+		use_list = 1;
+	}
+	/*number of bits in mask node is count*1, in list node is 1+nbFinal*(1+numBitsDEF) */
+	else if (count < 1+nbFinal*(1+numBitsDEF)) 
+		use_list = 0;
 
 	GF_BE_WRITE_INT(codec, bs, use_list ? 0 : 1, 1, "isMask", NULL);
 
@@ -445,9 +455,10 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 		/*not ISed field*/
 		if (codec->encoding_proto) GF_BE_WRITE_INT(codec, bs, 0, 1, "isedField", NULL);
 		if (use_list) {
-			if (codec->encoding_proto) {
+			if (codec->encoding_proto || nodeIsFDP) {
 				u32 ind;
-				/*we're in ALL mode and we need DEF mode*/
+				/*for proto, we're in ALL mode and we need DEF mode*/
+				/*for FDP, encoding requires to get def id from all id as fields 2 and 3 are reversed*/
 				gf_bifs_field_index_by_mode(node, allInd, GF_SG_FIELD_CODING_DEF, &ind);
 				GF_BE_WRITE_INT(codec, bs, ind, numBitsDEF, "field", (char*)field.name);
 			} else {

@@ -573,6 +573,7 @@ GF_Err gf_odf_dump_esd(GF_ESD *esd, FILE *trace, u32 indent, Bool XMTDump)
 
 GF_Err gf_odf_dump_bifs_cfg(GF_BIFSConfig *dsi, FILE *trace, u32 indent, Bool XMTDump)
 {
+	u32 i, count;
 	StartDescDump(trace, (dsi->version==1) ? "BIFSConfig" : "BIFSv2Config", indent, XMTDump);
 	indent++;
 	
@@ -583,18 +584,35 @@ GF_Err gf_odf_dump_bifs_cfg(GF_BIFSConfig *dsi, FILE *trace, u32 indent, Bool XM
 	DumpInt(trace, "nodeIDbits", dsi->nodeIDbits, indent, XMTDump);
 	DumpInt(trace, "routeIDbits", dsi->routeIDbits, indent, XMTDump);
 	if (dsi->version==2) DumpInt(trace, "protoIDbits", dsi->protoIDbits, indent, XMTDump);
-	if (!dsi->isCommandStream) {
+
+	count = gf_list_count(dsi->elementaryMasks);
+	if (count) {
 		EndAttributes(trace, indent, XMTDump);
+
+		/*TODO check XMT-A syntax for anim mask*/
+		StartDescDump(trace, "AnimationMask" , indent, XMTDump);
+		DumpBool(trace, "randomAccess", dsi->randomAccess, indent, XMTDump);
+		EndAttributes(trace, indent, XMTDump);
+		for (i=0; i<count; i++) {
+			GF_ElementaryMask *em = gf_list_get(dsi->elementaryMasks, i);
+			StartDescDump(trace, "ElementaryMask" , indent, XMTDump);
+			if (em->node_id) DumpInt(trace, "atNode", em->node_id, indent, XMTDump);
+			else if (em->node_name) DumpString(trace, "atNode", em->node_name, indent, XMTDump);
+			EndAttributes(trace, indent, XMTDump);
+			if (XMTDump) EndDescDump(trace, "ElementaryMask", indent, 1);
+			else EndDescDump(trace, "ElementaryMask", indent, 0);
+		}
+		EndDescDump(trace, "AnimationMask", indent, XMTDump);
 		indent--;
 		EndDescDump(trace, (dsi->version==1) ? "BIFSConfig" : "BIFSv2Config", indent, XMTDump);
-		return GF_NOT_SUPPORTED;
+		return GF_OK;
 	}
 	if (XMTDump) {
 		EndAttributes(trace, indent, XMTDump);
 		indent++;
 		StartDescDump(trace, "commandStream" , indent, XMTDump);
 		DumpBool(trace, "pixelMetric", dsi->pixelMetrics, indent, XMTDump);
-		if (XMTDump) EndAttributes(trace, indent, XMTDump);
+		EndAttributes(trace, indent, XMTDump);
 	} else {
 		DumpBool(trace, "isCommandStream", 1, indent, XMTDump);
 		DumpBool(trace, "pixelMetric", dsi->pixelMetrics, indent, XMTDump);

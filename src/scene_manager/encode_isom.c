@@ -27,7 +27,7 @@
 #include <gpac/media_tools.h>
 #include <gpac/bifs.h>
 #ifndef GPAC_DISABLE_SVG
-#include <gpac/laser.h>
+//#include <gpac/laser.h>
 #endif
 #include <gpac/internal/scenegraph_dev.h>
 
@@ -378,7 +378,7 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, char *lo
 	GF_StreamContext *sc;
 	GF_ESD *esd;
 	GF_BifsEncoder *bifs_enc;
-	GF_LASeRCodec *lsr_enc;
+	//GF_LASeRCodec *lsr_enc;
 
 	rap_inband = rap_shadow = 0;
 	if (rap_freq) {
@@ -415,7 +415,7 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, char *lo
 		if (logs) gf_bifs_encoder_set_trace(bifs_enc, logs);
 	}
 	
-	lsr_enc = NULL;
+//	lsr_enc = NULL;
 	if (scene_type==1) {
 //		lsr_enc = gf_laser_encoder_new(ctx->scene_graph);
 //		if (logs) gf_laser_encoder_set_trace(lsr_enc, logs);
@@ -526,41 +526,42 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, char *lo
 
 		/*BIFS setup*/
 		if (!scene_type) {
-			GF_BIFSConfig bcfg;
+			GF_BIFSConfig *bcfg;
+			Bool delete_bcfg = 0;
 
 			if (!esd->decoderConfig->decoderSpecificInfo) {
-				memset(&bcfg, 0, sizeof(GF_BIFSConfig));
-				bcfg.tag = GF_ODF_BIFS_CFG_TAG;
+				bcfg = (GF_BIFSConfig*)gf_odf_desc_new(GF_ODF_BIFS_CFG_TAG);
+				delete_bcfg = 1;
 			} else if (esd->decoderConfig->decoderSpecificInfo->tag == GF_ODF_BIFS_CFG_TAG) {
-				memcpy(&bcfg, (GF_BIFSConfig *)esd->decoderConfig->decoderSpecificInfo, sizeof(GF_BIFSConfig));
+				bcfg = (GF_BIFSConfig *)esd->decoderConfig->decoderSpecificInfo;
 			} else {
-				gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication, &bcfg);
+				bcfg = gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication);
+				delete_bcfg = 1;
 			}
+			/*update NodeIDbits and co*/
+			/*nodeID bits shall include NULL node*/
+			if (!bcfg->nodeIDbits || (bcfg->nodeIDbits<gf_get_bit_size(ctx->max_node_id)) )
+				bcfg->nodeIDbits = gf_get_bit_size(ctx->max_node_id);
+
+			if (!bcfg->routeIDbits || (bcfg->routeIDbits != gf_get_bit_size(ctx->max_route_id)) )
+				bcfg->routeIDbits = gf_get_bit_size(ctx->max_route_id);
+
+			if (!bcfg->protoIDbits || (bcfg->protoIDbits != gf_get_bit_size(ctx->max_proto_id)) )
+				bcfg->protoIDbits = gf_get_bit_size(ctx->max_proto_id);
+
+			if (!bcfg->elementaryMasks) {
+				bcfg->pixelMetrics = ctx->is_pixel_metrics;
+				bcfg->pixelWidth = ctx->scene_width;
+				bcfg->pixelHeight = ctx->scene_height;
+			}
+
+			/*this is for safety, otherwise some players may not understand NULL node*/
+			if (!bcfg->nodeIDbits) bcfg->nodeIDbits = 1;
+			gf_bifs_encoder_new_stream(bifs_enc, sc->ESID, bcfg, (flags & GF_SM_ENCODE_USE_NAMES) ? 1 : 0, 0);
+			if (delete_bcfg) gf_odf_desc_del((GF_Descriptor *)bcfg);
 			/*create final BIFS config*/
 			if (esd->decoderConfig->decoderSpecificInfo) gf_odf_desc_del((GF_Descriptor *) esd->decoderConfig->decoderSpecificInfo);
 			esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-
-			/*update NodeIDbits and co*/
-			/*nodeID bits shall include NULL node*/
-			if (!bcfg.nodeIDbits || (bcfg.nodeIDbits<gf_get_bit_size(ctx->max_node_id)) )
-				bcfg.nodeIDbits = gf_get_bit_size(ctx->max_node_id);
-
-			if (!bcfg.routeIDbits || (bcfg.routeIDbits != gf_get_bit_size(ctx->max_route_id)) )
-				bcfg.routeIDbits = gf_get_bit_size(ctx->max_route_id);
-
-			if (!bcfg.protoIDbits || (bcfg.protoIDbits != gf_get_bit_size(ctx->max_proto_id)) )
-				bcfg.protoIDbits = gf_get_bit_size(ctx->max_proto_id);
-
-			bcfg.isCommandStream = 1;
-			bcfg.pixelMetrics = ctx->is_pixel_metrics;
-			bcfg.pixelWidth = ctx->scene_width;
-			bcfg.pixelHeight = ctx->scene_height;
-
-			/*this is for safety, otherwise some players may not understand NULL node*/
-			if (!bcfg.nodeIDbits) bcfg.nodeIDbits = 1;
-			gf_bifs_encoder_new_stream(bifs_enc, sc->ESID, &bcfg, (flags & GF_SM_ENCODE_USE_NAMES) ? 1 : 0, 0);
-
-			/*get final BIFS config*/
 			gf_bifs_encoder_get_config(bifs_enc, sc->ESID, &data, &data_len);
 			esd->decoderConfig->decoderSpecificInfo->data = data;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = data_len;

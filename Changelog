@@ -1,4 +1,5 @@
 Latest CVS Changes 16/11/05
+  - added patch from FT R&D for simple anim mask encoding needed for FAP/BAP streams on FDT/BDP nodes.
   - added patch for drift-controled interleaving (interleaves while trying to keep chunk synchronized). This is now the storage mode of MP4Box, old interleaving is possible with -old-inter option.
   - added support for tight interleaving without hinting in MP4Box.
   - fixed ttxt extraction (fontID was missing in styles)
