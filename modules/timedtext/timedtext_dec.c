@@ -85,7 +85,7 @@ typedef struct
 	GF_Route *time_route;
 	GF_List *blink_nodes;
 	u32 scroll_type, scroll_mode;
-	Fixed scroll_time;
+	Fixed scroll_time, scroll_delay;
 	Bool is_active;
 } TTDPriv;
 
@@ -386,11 +386,10 @@ static void ttd_set_scroll_fraction(GF_Node *node)
 {
 	Fixed frac;
 	TTDPriv *priv = (TTDPriv *)gf_node_get_private(node);
-	
 	frac = priv->process_scroll->set_fraction;
 	if (frac==FIX_ONE) priv->is_active = 0;
 	if (!priv->tr_scroll) return;
-
+	
 	switch (priv->scroll_type - 1) {
 	case GF_TXT_SCROLL_CREDITS:
 	case GF_TXT_SCROLL_DOWN:
@@ -417,6 +416,10 @@ static void ttd_set_scroll_fraction(GF_Node *node)
 	case GF_TXT_SCROLL_RIGHT:
 		priv->tr_scroll->translation.y = 0;
 		if (priv->scroll_mode & GF_TXT_SCROLL_IN) {
+			if (! (priv->scroll_mode & GF_TXT_SCROLL_OUT)) {
+				if (frac<priv->scroll_delay) return;
+				frac-=priv->scroll_delay;
+			}
 			if (frac>priv->scroll_time) {
 				priv->scroll_mode &= ~GF_TXT_SCROLL_IN;
 				priv->tr_scroll->translation.x = 0;
@@ -728,6 +731,16 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	TTDTextChunk *tc;
 	GF_TextSampleDescriptor *td = NULL;
 	
+	/*stop timer sensor*/
+	if (gf_list_count(priv->blink_nodes)) {
+		priv->ts_blink->stopTime = gf_node_get_scene_time((GF_Node *) priv->ts_blink);
+		gf_node_changed((GF_Node *) priv->ts_blink, NULL);
+	}	
+	priv->ts_scroll->stopTime = gf_node_get_scene_time((GF_Node *) priv->ts_scroll);
+	gf_node_changed((GF_Node *) priv->ts_scroll, NULL);
+	/*flush routes to avoid getting the set_fraction of the scroll sensor deactivation*/
+	gf_sg_activate_routes(priv->inlineScene->graph);
+
 	TTD_ResetDisplay(priv);
 	if (!sdi || !txt || !txt->len) return;
 
@@ -737,7 +750,8 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 		td = NULL;
 	}
 	if (!td) return;
-		
+
+	
 	vertical = (td->displayFlags & GF_TXT_VERTICAL) ? 1 : 0;
 
 	/*set back color*/
@@ -826,15 +840,15 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 		gf_node_register((GF_Node *) form, (GF_Node *) priv->tr_scroll);
 		priv->tr_scroll->translation.x = priv->tr_scroll->translation.y = (priv->scroll_mode & GF_TXT_SCROLL_IN) ? -INT2FIX(1000) : 0;
 		priv->scroll_time = FIX_ONE/2;
+		priv->scroll_delay = 0;
 
-/*
 		if (txt->scroll_delay) {
-			priv->scroll_offset = (Float) txt->scroll_delay->scroll_delay;
-			priv->scroll_offset/=sample_duration;
-			if (priv->scroll_offset>1) priv->scroll_offset = 0;
+			priv->scroll_delay = gf_divfix(INT2FIX(txt->scroll_delay->scroll_delay), INT2FIX(sample_duration));
+			if (priv->scroll_delay>FIX_ONE) priv->scroll_delay = FIX_ONE;
+			priv->scroll_time = (FIX_ONE - priv->scroll_delay);
+			if ((priv->scroll_mode & GF_TXT_SCROLL_IN) && (priv->scroll_mode & GF_TXT_SCROLL_OUT)) priv->scroll_time /= 2;
 		}
-*/
-		if ((priv->scroll_mode & GF_TXT_SCROLL_IN) && (priv->scroll_mode & GF_TXT_SCROLL_OUT)) priv->scroll_time /= 2;
+
 	} else {
 		gf_list_add(priv->dlist->children, form);
 		gf_node_register((GF_Node *) form, (GF_Node *) priv->dlist);
@@ -1000,10 +1014,6 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	gf_node_changed((GF_Node *)form, NULL);
 	gf_node_changed((GF_Node *) priv->dlist, NULL);
 
-	/*stop timer sensor*/
-	priv->ts_blink->stopTime = gf_node_get_scene_time((GF_Node *) priv->ts_blink);
-	gf_node_changed((GF_Node *) priv->ts_blink, NULL);
-
 	if (gf_list_count(priv->blink_nodes)) {
 		/*restart time sensor*/
 		priv->ts_blink->startTime = gf_node_get_scene_time((GF_Node *) priv->ts_blink);
@@ -1011,10 +1021,9 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	}
 
 	priv->is_active = 1;
-	priv->ts_scroll->stopTime = gf_node_get_scene_time((GF_Node *) priv->ts_scroll);
-	gf_node_changed((GF_Node *) priv->ts_scroll, NULL);
 	/*scroll timer also acts as AU timer*/
 	priv->ts_scroll->startTime = gf_node_get_scene_time((GF_Node *) priv->ts_scroll);
+	priv->ts_scroll->stopTime = priv->ts_scroll->startTime - 1.0;
 	priv->ts_scroll->cycleInterval = sample_duration;
 	priv->ts_scroll->cycleInterval /= priv->cfg->timescale;
 	priv->ts_scroll->cycleInterval -= 0.1;
