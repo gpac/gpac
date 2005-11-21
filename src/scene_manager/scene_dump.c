@@ -27,6 +27,7 @@
 #include <gpac/utf.h>
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_x3d.h>
+#include <gpac/nodes_svg.h>
 
 #ifndef GPAC_READ_ONLY
 
@@ -48,7 +49,7 @@ struct _scenedump
 	u32 dump_mode;
 	u16 CurrentESID;
 	u8 ind_char;
-	Bool XMLDump, X3DDump;
+	Bool XMLDump, X3DDump, LSRDump;
 
 	GF_List *dump_nodes;
 
@@ -64,6 +65,7 @@ struct _scenedump
 
 GF_Err DumpRoute(GF_SceneDumper *sdump, GF_Route *r, u32 dump_type);
 void DumpNode(GF_SceneDumper *sdump, GF_Node *node, Bool in_list, char *fieldContainer);
+void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n);
 
 GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 indent, Bool skip_first_replace);
 
@@ -77,10 +79,12 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *rad_name, char inde
 	/*store original*/
 	tmp->dump_mode = dump_mode;
 
-	if (graph->RootNode && (graph->RootNode->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG) && (graph->RootNode->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) ) {
+	if ((graph->RootNode && (graph->RootNode->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG) && (graph->RootNode->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) )
+	|| (dump_mode==GF_SM_DUMP_LASER)) {
 		tmp->XMLDump = 1;
+		if (dump_mode==GF_SM_DUMP_LASER) tmp->LSRDump = 1;
 		if (rad_name) {
-			strcat(rad_name, ".svg");
+			strcat(rad_name, tmp->LSRDump ? ".xsr" : ".svg");
 			tmp->trace = fopen(rad_name, "wt");
 			if (!tmp->trace) {
 				free(tmp);
@@ -154,6 +158,28 @@ void gf_sm_dumper_del(GF_SceneDumper *sdump)
 
 void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 {
+	if (sdump->LSRDump) {
+		fprintf(sdump->trace, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+		fprintf(sdump->trace, "<saf:SAFSession xmlns:saf=\"urn:mpeg:mpeg4:SAF:2005\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:lsr=\"urn:mpeg:mpeg4:LASeR:2005\" xmlns=\"http://www.w3.org/2000/svg\">\n");
+		if (root_od) {
+			GF_ObjectDescriptor *iod = (GF_ObjectDescriptor *)root_od;
+			u32 i, count;
+			fprintf(sdump->trace, "<saf:sceneHeader>\n");
+			count = gf_list_count(iod->ESDescriptors);
+			for (i=0; i<count; i++) {
+				GF_LASERConfig lsrcfg;
+				GF_ESD *esd = gf_list_get(iod->ESDescriptors, i);
+				if (esd->decoderConfig->streamType != GF_STREAM_SCENE) continue;
+				if (esd->decoderConfig->objectTypeIndication != 0x09) continue;
+				if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) continue;
+				gf_odf_get_laser_config(esd->decoderConfig->decoderSpecificInfo, &lsrcfg);
+				gf_odf_dump_desc(&lsrcfg, sdump->trace, 1, 1);
+			}
+			fprintf(sdump->trace, "</saf:sceneHeader>\n");
+		}
+		return;
+	}
+
 	if (!sdump->X3DDump) {
 		/*setup XMT*/
 		if (sdump->XMLDump) {
@@ -188,6 +214,10 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 
 void SD_FinalizeDump(GF_SceneDumper *sdump)
 {
+	if (sdump->LSRDump) {
+		fprintf(sdump->trace, "<saf:endOfSAFSession/>\n</saf:SAFSession>\n");
+		return;
+	}
 	if (!sdump->XMLDump) return;
 
 	if (!sdump->X3DDump) {
@@ -2126,6 +2156,45 @@ GF_Err DumpProtoInsert(GF_SceneDumper *sdump, GF_Command *com)
 	return GF_OK;
 }
 
+GF_Err DumpLSRNewScene(GF_SceneDumper *sdump, GF_Command *com)
+{
+	fprintf(sdump->trace, "<lsr:NewScene>\n");
+	SD_DumpSVGElement(sdump, com->node);
+	fprintf(sdump->trace, "</lsr:NewScene>\n");
+	return GF_OK;
+}
+GF_Err DumpLSRAdd(GF_SceneDumper *sdump, GF_Command *com)
+{
+	return GF_OK;
+}
+GF_Err DumpLSRClean(GF_SceneDumper *sdump, GF_Command *com)
+{
+	return GF_OK;
+}
+GF_Err DumpLSRReplace(GF_SceneDumper *sdump, GF_Command *com)
+{
+	return GF_OK;
+}
+GF_Err DumpLSRDelete(GF_SceneDumper *sdump, GF_Command *com)
+{
+	return GF_OK;
+}
+GF_Err DumpLSRInsert(GF_SceneDumper *sdump, GF_Command *com)
+{
+	return GF_OK;
+}
+GF_Err DumpLSRRestore(GF_SceneDumper *sdump, GF_Command *com)
+{
+	return GF_OK;
+}
+GF_Err DumpLSRSave(GF_SceneDumper *sdump, GF_Command *com)
+{
+	return GF_OK;
+}
+GF_Err DumpLSRSendEvent(GF_SceneDumper *sdump, GF_Command *com)
+{
+	return GF_OK;
+}
 
 GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 indent, Bool skip_first_replace)
 {
@@ -2162,39 +2231,21 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 		}
 		switch (com->tag) {
 		/*insert commands*/
-		case GF_SG_NODE_INSERT:
-			e = DumpNodeInsert(sdump, com);
-			break;
-		case GF_SG_INDEXED_INSERT:
-			e = DumpIndexInsert(sdump, com);
-			break;
+		case GF_SG_NODE_INSERT: e = DumpNodeInsert(sdump, com); break;
+		case GF_SG_INDEXED_INSERT: e = DumpIndexInsert(sdump, com); break;
 		case GF_SG_ROUTE_INSERT:
 			e = DumpRouteInsert(sdump, com, has_scene_replace);
 			if (remain) remain--;
 			break;
 		/*delete commands*/
-		case GF_SG_NODE_DELETE:
-			e = DumpNodeDelete(sdump, com);
-			break;
-		case GF_SG_INDEXED_DELETE:
-			e = DumpIndexDelete(sdump, com);
-			break;
-		case GF_SG_ROUTE_DELETE:
-			e = DumpRouteDelete(sdump, com);
-			break;
+		case GF_SG_NODE_DELETE: e = DumpNodeDelete(sdump, com); break;
+		case GF_SG_INDEXED_DELETE: e = DumpIndexDelete(sdump, com); break;
+		case GF_SG_ROUTE_DELETE: e = DumpRouteDelete(sdump, com); break;
 		/*replace commands*/
-		case GF_SG_NODE_REPLACE:
-			e = DumpNodeReplace(sdump, com);
-			break;
-		case GF_SG_FIELD_REPLACE:
-			e = DumpFieldReplace(sdump, com);
-			break;
-		case GF_SG_INDEXED_REPLACE:
-			e = DumpIndexReplace(sdump, com);
-			break;
-		case GF_SG_ROUTE_REPLACE:
-			e = DumpRouteReplace(sdump, com);
-			break;
+		case GF_SG_NODE_REPLACE: e = DumpNodeReplace(sdump, com); break;
+		case GF_SG_FIELD_REPLACE: e = DumpFieldReplace(sdump, com); break;
+		case GF_SG_INDEXED_REPLACE: e = DumpIndexReplace(sdump, com); break;
+		case GF_SG_ROUTE_REPLACE: e = DumpRouteReplace(sdump, com); break;
 		case GF_SG_SCENE_REPLACE:
 			/*we don't support replace scene in conditional*/
 			assert(!sdump->current_com_list);
@@ -2205,9 +2256,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 			remain = count - i - 1;
 			break;
 		/*extended commands*/
-		case GF_SG_PROTO_INSERT:
-			e = DumpProtoInsert(sdump, com);
-			break;
+		case GF_SG_PROTO_INSERT: e = DumpProtoInsert(sdump, com); break;
 		case GF_SG_PROTO_DELETE_ALL:
 			DUMP_IND(sdump);
 			if (sdump->XMLDump) {
@@ -2238,18 +2287,21 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 			e = GF_OK;
 		}
 			break;
-		case GF_SG_GLOBAL_QUANTIZER:
-			e = DumpGlobalQP(sdump, com);
-			break;
-		case GF_SG_MULTIPLE_REPLACE:
-			e = DumpMultipleReplace(sdump, com);
-			break;
-		case GF_SG_MULTIPLE_INDEXED_REPLACE:
-			e = DumpMultipleIndexedReplace(sdump, com);
-			break;
-		case GF_SG_NODE_DELETE_EX:
-			e = DumpNodeDelete(sdump, com);
-			break;
+		case GF_SG_GLOBAL_QUANTIZER: e = DumpGlobalQP(sdump, com); break;
+		case GF_SG_MULTIPLE_REPLACE: e = DumpMultipleReplace(sdump, com); break;
+		case GF_SG_MULTIPLE_INDEXED_REPLACE: e = DumpMultipleIndexedReplace(sdump, com); break;
+		case GF_SG_NODE_DELETE_EX: e = DumpNodeDelete(sdump, com); break;
+
+		/*laser commands*/
+		case GF_SG_LSR_NEW_SCENE: e = DumpLSRNewScene(sdump, com); break;
+		case GF_SG_LSR_ADD: e = DumpLSRAdd(sdump, com); break;
+		case GF_SG_LSR_CLEAN: e = DumpLSRClean(sdump, com); break;
+		case GF_SG_LSR_REPLACE: e = DumpLSRReplace(sdump, com); break;
+		case GF_SG_LSR_DELETE: e = DumpLSRDelete(sdump, com); break;
+		case GF_SG_LSR_INSERT: e = DumpLSRInsert(sdump, com); break;
+		case GF_SG_LSR_RESTORE: e = DumpLSRRestore(sdump, com); break;
+		case GF_SG_LSR_SAVE: e = DumpLSRSave(sdump, com); break;
+		case GF_SG_LSR_SEND_EVENT: e = DumpLSRSendEvent(sdump, com); break;
 		}
 		if (e) break;
 
@@ -2282,7 +2334,6 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 	return e;
 }
 
-#include <gpac/nodes_svg.h>
 void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n)
 {
 	char attValue[4096];
@@ -2440,7 +2491,7 @@ GF_Err gf_sm_dump_graph(GF_SceneDumper *sdump, Bool skip_proto, Bool skip_routes
 
 
 
-static void ReorderAUContext(GF_List *sample_list, GF_AUContext *au)
+static void ReorderAUContext(GF_List *sample_list, GF_AUContext *au, Bool lsr_dump)
 {
 	u32 i;
 	Bool has_base;
@@ -2468,6 +2519,8 @@ static void ReorderAUContext(GF_List *sample_list, GF_AUContext *au)
 			(ptr->timing_sec > au->timing_sec) 
 			/*set bifs first for first AU*/
 			|| (!has_base && (ptr->timing_sec == au->timing_sec) && (ptr->owner->streamType < au->owner->streamType) )
+			/*set OD first for laser*/
+			|| (lsr_dump && (au->owner->streamType==GF_STREAM_OD))
 		) {
 			gf_list_insert(sample_list, au, i);
 			return;
@@ -2484,14 +2537,16 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 	GF_Err e;
 	GF_List *sample_list;
 	Bool first_par;
-	u32 i, j, indent, num_bifs, num_od, first_bifs, num_tracks;
+	u32 i, j, indent, num_scene, num_od, first_bifs, num_tracks;
 	Double time;
 	GF_SceneDumper *dumper;
 
 	sample_list = gf_list_new();
 
-	num_bifs = num_od = 0;
+	num_scene = num_od = 0;
 	num_tracks = 0;
+	indent = 0;
+	dumper = gf_sm_dumper_new(ctx->scene_graph, rad_name, ' ', dump_mode);
 
 	/*configure all systems streams we're dumping*/
 	for (i=0; i<gf_list_count(ctx->streams); i++) {
@@ -2499,7 +2554,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 
 		switch (sc->streamType) {
 		case GF_STREAM_SCENE:
-			num_bifs ++;
+			num_scene ++;
 			num_tracks ++;
 			break;
 		case GF_STREAM_OD:
@@ -2512,18 +2567,15 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 		
 		for (j=0; j<gf_list_count(sc->AUs); j++) {
 			GF_AUContext *au = gf_list_get(sc->AUs, j);
-			ReorderAUContext(sample_list, au);
+			ReorderAUContext(sample_list, au, dumper->LSRDump);
 		}
 	}
-
-	num_bifs = (num_bifs>1) ? 1 : 0;
+	num_scene = (num_scene>1) ? 1 : 0;
 	num_od = (num_od>1) ? 1 : 0;
 
-	indent = 0;
-	dumper = gf_sm_dumper_new(ctx->scene_graph, rad_name, ' ', dump_mode);
 	SD_SetupDump(dumper, (GF_Descriptor *) ctx->root_od);
 
-	time = 0;
+	time = dumper->LSRDump ? -1 : 0;
 	first_par = 0;
 	first_bifs = 1;
 
@@ -2533,10 +2585,10 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 
 		if (!dumper->XMLDump) {
 		
-			if (!first_bifs || (au->owner->streamType != GF_STREAM_SCENE) ) {
+			if (!num_scene || (au->owner->streamType != GF_STREAM_SCENE) ) {
 				if (au->is_rap) fprintf(dumper->trace, "RAP ");
 				fprintf(dumper->trace, "AT %d ", au->timing);
-				if ( (au->owner->streamType==GF_STREAM_OD && num_od) || (au->owner->streamType==GF_STREAM_SCENE && num_bifs)) {
+				if ( (au->owner->streamType==GF_STREAM_OD && num_od) || (au->owner->streamType==GF_STREAM_SCENE && num_scene)) {
 					fprintf(dumper->trace, "IN %d ", au->owner->ESID);
 				} 
 				fprintf(dumper->trace, "{\n");
@@ -2559,9 +2611,19 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 				indent--;
 				fprintf(dumper->trace, "}\n\n");
 			}
-		} else {
-			if (!time && !num_bifs && first_bifs) {
-			} else if (num_bifs || num_od) {
+		} 
+		else {
+			if (dumper->LSRDump) {
+				if (time != au->timing_sec) {
+					if (time > -1) fprintf(dumper->trace, "</saf:sceneUnit>\n");
+					time = au->timing_sec;
+					fprintf(dumper->trace, "<saf:sceneUnit", au->timing);
+					if (time) fprintf(dumper->trace, " time=\"%d\"", au->timing);
+					if (au->is_rap) fprintf(dumper->trace, " rap=\"true\"");
+					fprintf(dumper->trace, ">\n");
+				}
+			} else if (!time && !num_scene && first_bifs) {
+			} else if (num_scene || num_od) {
 				if (!first_par) {
 					first_par = 1;
 					indent += 1;

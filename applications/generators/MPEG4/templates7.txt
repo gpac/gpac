@@ -130,12 +130,12 @@ field         SFInt32     numChannel                             0              
 
 PROTO DepthImageV2 [ #%NDT=SFWorldNode,SF3DNode,SFDepthImageNode %COD=N
 field		SFDepthTextureNode	diTexture	NULL
-exposedField		SFFloat		farPlane	100		#%b=[0,+I]
-exposedField		SFVec2f		fieldOfView	0.75 0.75	#%b=[0,3.1415927]
-exposedField		SFFloat		nearPlane	10	 	#%b=[0,+I]
-exposedField		SFRotation	orientation	0 0 1 0
-exposedField		SFBool		orthographic	TRUE		
-exposedField		SFVec3f		position	0 0 10		#%b=[-I,+I]
+field		SFFloat		farPlane	100		#%b=[0,+I]
+field		SFVec2f		fieldOfView	0.75 0.75	#%b=[0,3.1415927]
+field		SFFloat		nearPlane	10	 	#%b=[0,+I]
+field		SFRotation	orientation	0 0 1 0
+field		SFBool		orthographic	TRUE		
+field		SFVec3f		position	0 0 10		#%b=[-I,+I]
 field 	SFVec2f 	splatMinMax 	0.115 0.975 	#%b=[-I,+I]
 ]{}
 
@@ -171,7 +171,7 @@ field		SFInt32		width		256		#%b=[1,+I]
 
 
 PROTO SBVCAnimationV2 [ #%NDT=SFWorldNode,SF3DNode,SF2DNode %COD=N
- 	exposedField 	MFInt32 	activeUrlIndex[]   
+ 	exposedField 	MFInt32 	activeUrlIndex  []   
  	exposedField	SFBool 	loop 			FALSE 
  	exposedField 	SFFloat speed			1.0 #%b=(-I,+I) #%q=0 #%a=7
  	exposedField 	SFTime 	startTime 		0 #%b=(-I,+I)
@@ -207,11 +207,11 @@ eventIn         MF3DNode        addChildren
 eventIn         MF3DNode        removeChildren
 exposedField    MF3DNode        children                         []
 exposedField    SFFloat         thirdCenterCoordinate            0.0               #%b=[-I,+I]   #%q=0   #%a=7
-exposedField    SFVec3f         rotationVector                   0.0 0.0 1.0       #%b=[-PI,PI]  #%q=7   #%a=11
+exposedField    SFVec3f         rotationVector                   0.0 0.0 1.0       #%b=[-3.14159265,3.14159265]  #%q=7   #%a=11
 exposedField    SFFloat         thirdScaleCoordinate             0.0               #%b=[0,+I]    #%q=0   #%a=7
 exposedField    SFVec3f         scaleOrientationVector           0.0 0.0 1.0       #%b=[-1,1]    #%q=7   #%a=11
 exposedField    SFFloat         thirdTranslationCoordinate       0.0               #%b=[-I,+I]   #%q=0   #%a=7
-exposedField    SFRotation      coordinateTransform              1.0 0.0 0.0 -PI/2 #%b=[-PI,PI]  #%q=10 
+exposedField    SFRotation      coordinateTransform              1.0 0.0 0.0 -1.5707963 #%b=[-3.14159265,3.14159265]  #%q=10 
 ]{}
 
 

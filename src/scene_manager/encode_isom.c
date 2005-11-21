@@ -27,7 +27,7 @@
 #include <gpac/media_tools.h>
 #include <gpac/bifs.h>
 #ifndef GPAC_DISABLE_SVG
-//#include <gpac/laser.h>
+#include <gpac/laser.h>
 #endif
 #include <gpac/internal/scenegraph_dev.h>
 
@@ -378,7 +378,7 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, char *lo
 	GF_StreamContext *sc;
 	GF_ESD *esd;
 	GF_BifsEncoder *bifs_enc;
-	//GF_LASeRCodec *lsr_enc;
+	GF_LASeRCodec *lsr_enc;
 
 	rap_inband = rap_shadow = 0;
 	if (rap_freq) {
@@ -415,10 +415,10 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, char *lo
 		if (logs) gf_bifs_encoder_set_trace(bifs_enc, logs);
 	}
 	
-//	lsr_enc = NULL;
+	lsr_enc = NULL;
 	if (scene_type==1) {
-//		lsr_enc = gf_laser_encoder_new(ctx->scene_graph);
-//		if (logs) gf_laser_encoder_set_trace(lsr_enc, logs);
+		lsr_enc = gf_laser_encoder_new(ctx->scene_graph);
+		if (logs) gf_laser_set_trace(lsr_enc, logs);
 	}
 
 	delete_desc = 0;
@@ -490,10 +490,12 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, char *lo
 			}
 		}
 		if (!au && !esd->URLString) {
+			/*if not in IOD, the stream will be imported when encoding the OD stream*/
+			if (!is_in_iod) continue;
 			e = gf_sm_import_stream(ctx, mp4, esd, NULL);
 			if (e) goto exit;
 			gf_sm_finalize_mux(mp4, esd, 0);
-			if (is_in_iod) gf_isom_add_track_to_root_od(mp4, gf_isom_get_track_by_id(mp4, esd->ESID));
+			gf_isom_add_track_to_root_od(mp4, gf_isom_get_track_by_id(mp4, esd->ESID));
 			continue;
 		}
 
@@ -585,9 +587,9 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, char *lo
 
 			/*this is for safety, otherwise some players may not understand NULL node*/
 			if (flags & GF_SM_ENCODE_USE_NAMES) lsrcfg.has_string_ids = 1;
-//			gf_laser_encoder_new_stream(lsr_enc, sc->ESID, &lsrcfg);
+			gf_laser_encoder_new_stream(lsr_enc, sc->ESID, &lsrcfg);
 			/*get final config*/
-//			gf_laser_encoder_get_config(lsr_enc, sc->ESID, &data, &data_len);
+			gf_laser_encoder_get_config(lsr_enc, sc->ESID, &data, &data_len);
 
 			esd->decoderConfig->decoderSpecificInfo->data = data;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = data_len;
@@ -631,9 +633,13 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, char *lo
 				if (samp->DTS - last_rap < rap_delay) {
 					if (bifs_enc)
 						e = gf_bifs_encode_au(bifs_enc, sc->ESID, au->commands, &samp->data, &samp->dataLength);
+					else if (lsr_enc)
+						e = gf_laser_encode_au(lsr_enc, sc->ESID, au->commands, 0, &samp->data, &samp->dataLength);
 				} else {
 					if (bifs_enc)
 						e = gf_bifs_encoder_get_rap(bifs_enc, &samp->data, &samp->dataLength);
+					else if (lsr_enc)
+						e = gf_laser_encoder_get_rap(lsr_enc, &samp->data, &samp->dataLength);
 
 					samp->IsRAP = 1;
 					last_rap = samp->DTS;
@@ -641,6 +647,8 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, char *lo
 			} else {
 				if (bifs_enc)
 					e = gf_bifs_encode_au(bifs_enc, sc->ESID, au->commands, &samp->data, &samp->dataLength);
+				else if (lsr_enc)
+					e = gf_laser_encode_au(lsr_enc, sc->ESID, au->commands, 0, &samp->data, &samp->dataLength);
 			}
 			/*if no commands don't add the AU*/
 			if (!e && samp->dataLength) e = gf_isom_add_sample(mp4, track, di, samp);
@@ -706,6 +714,7 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, char *lo
 
 exit:
 	if (bifs_enc) gf_bifs_encoder_del(bifs_enc);
+	else if (lsr_enc) gf_laser_encoder_del(lsr_enc);
 	if (logFile) fclose(logs);
 	if (esd && delete_desc) gf_odf_desc_del((GF_Descriptor *) esd);
 	return e;

@@ -239,6 +239,8 @@ enum
 	GF_SM_DUMP_X3D_VRML,
 	/*X3D XML*/
 	GF_SM_DUMP_X3D_XML,
+	/*LASeR XML*/
+	GF_SM_DUMP_LASER,
 	/*automatic selection of MPEG4 vs X3D, text mode*/
 	GF_SM_DUMP_AUTO_TXT,
 	/*automatic selection of MPEG4 vs X3D, xml mode*/

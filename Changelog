@@ -1,4 +1,6 @@
-Latest CVS Changes 16/11/05
+Latest CVS Changes 21/11/05
+  - initial commit of laser (encoder, decoder and decoder module). Far from behing complete or usable at this time, binary syntax not 100% safe ...
+  - fixed v5 and v7 MPEG-4 node templates
   - added patch from FT R&D for simple anim mask encoding needed for FAP/BAP streams on FDT/BDP nodes.
   - added patch for drift-controled interleaving (interleaves while trying to keep chunk synchronized). This is now the storage mode of MP4Box, old interleaving is possible with -old-inter option.
   - added support for tight interleaving without hinting in MP4Box.

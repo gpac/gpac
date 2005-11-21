@@ -928,7 +928,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 		/*fire initialization event*/
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.type = SVG_DOM_EVT_LOAD;
-		gf_sg_fire_dom_event(elt, &evt);
+		gf_sg_fire_dom_event((GF_Node *) elt, &evt);
 	}
 	return elt;
 }

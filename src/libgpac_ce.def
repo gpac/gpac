@@ -813,8 +813,6 @@ EXPORTS
 	gf_bifs_decoder_remove_stream
 	gf_bifs_decode_au
 	gf_bifs_decode_command_list
-	gf_bifs_decoder_get_active_stream
-	gf_bifs_decoder_get_config
 ;	gf_bifs_encoder_new
 ;	gf_bifs_encoder_del
 ;	gf_bifs_encoder_new_stream
@@ -1062,13 +1060,21 @@ EXPORTS
 	gf_mo_set_speed
 
 
-;LASeR exports - could be removed and put into plugin but we may have an encoder one day just like BIFS
-;	LASeR_NewDecoder
-;	LASeR_DeleteDecoder
-;	LASeR_SetClock
-;	LASeR_ConfigureStream
-;	LASeR_ParseSceneUnit
-;	LASeR_ParseSceneHeader
+;laser.h exports
+	gf_laser_decoder_new
+	gf_laser_decoder_del
+	gf_laser_decoder_set_clock
+	gf_laser_decoder_configure_stream
+	gf_laser_decoder_remove_stream
+	gf_laser_decode_au
+	gf_laser_decode_command_list
+;	gf_laser_encoder_new
+;	gf_laser_encoder_del
+;	gf_laser_encoder_new_stream
+;	gf_laser_encode_au
+;	gf_laser_encoder_get_config
+;	gf_laser_encoder_get_rap
+;	gf_laser_set_trace
 
 ;SVG exports
 	SVG_GetAttributeInfo

@@ -360,7 +360,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 	{
 		GF_ElementaryMask* em = (GF_ElementaryMask*)desc;
 		if (!stricmp(fieldName, "atNode")) {
-			ret += sscanf(val, "%hd", &em->node_id);
+			GET_U32(em->node_id);
 			if (!ret || !em->node_id) em->node_name = strdup(val);
 			ret = 1;
 		}

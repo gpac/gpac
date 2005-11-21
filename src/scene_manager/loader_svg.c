@@ -485,6 +485,7 @@ static GF_ESD *lsr_parse_header(GF_SVGParser *parser, const char *name, const ch
 		esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) lsrc;
 		esd->decoderConfig->streamType = GF_STREAM_SCENE;
 		esd->decoderConfig->objectTypeIndication = 0x09;
+		esd->slConfig->timestampResolution = lsrc->time_resolution ? lsrc->time_resolution : 1000;
 		return esd;
 	}
 	return NULL;
@@ -525,6 +526,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			parser->laser_es = gf_sm_stream_new(parser->load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 			if (!parser->load->ctx->root_od) parser->load->ctx->root_od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
 			gf_list_add(parser->load->ctx->root_od->ESDescriptors, esd);
+			parser->laser_es->timeScale = esd->slConfig->timestampResolution;
 			return;
 		}
 		if (!strcmp(name, "mediaUnit") || !strcmp(name, "imageUnit")) {

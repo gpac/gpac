@@ -130,7 +130,7 @@ BitWrapper
 #CoordinateInterpolator4D 
 DepthImage
 FFD
-XXImplicit 
+Implicit 
 XXLFM_Appearance
 XXLFM_BlendList 
 XXLFM_FrameList 
@@ -152,7 +152,7 @@ PointTexture
 #PositionAnimator2D 
 #PositionInterpolator4D 
 ProceduralTexture 
-XXQuadric 
+Quadric 
 SBBone 
 SBMuscle 
 SBSegment 
@@ -161,7 +161,7 @@ SBSkinnedModel
 SBVCAnimation 
 #ScalarAnimator 
 SimpleTexture 
-XXSolidRep 
+SolidRep 
 SubdivisionSurface 
 SubdivSurfaceSector 
 WaveletSubdivisionSurface 

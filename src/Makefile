@@ -1,9 +1,9 @@
 include ../config.mak
 
-outlibs=libgpac_bifs.a libgpac_terminal.a libgpac_ietf.a libgpac_isom.a libgpac_odf.a libgpac_scenegraph.a libgpac_scene_manager.a libgpac_media.a libgpac_utils.a libgpac_render.a libgpac_mcrypt.a
+outlibs=libgpac_bifs.a libgpac_terminal.a libgpac_ietf.a libgpac_isom.a libgpac_odf.a libgpac_scenegraph.a libgpac_scene_manager.a libgpac_media.a libgpac_utils.a libgpac_render.a libgpac_mcrypt.a libgpac_laser.a
 
 #all OS and lib independent
-GPACLIB_DIRS=utils odf ietf isomedia mcrypt media_tools bifs terminal renderer scenegraph scene_manager
+GPACLIB_DIRS=utils odf ietf isomedia mcrypt media_tools bifs terminal renderer scenegraph scene_manager laser
 
 ifeq ($(CONFIG_JS),no)
 else

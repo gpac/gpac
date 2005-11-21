@@ -706,7 +706,7 @@ clock_setup:
 		else {
 			if (! odm->subscene->scene_codec) {
 				odm->subscene->scene_codec = gf_codec_new(odm, esd, odm->Scene_PL, &e);
-				gf_mm_add_codec(odm->term->mediaman, odm->subscene->scene_codec);
+				if (!e) gf_mm_add_codec(odm->term->mediaman, odm->subscene->scene_codec);
 			}
 			dec = odm->subscene->scene_codec;
 		}

@@ -509,12 +509,21 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 			if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
 				SVG_Length l;
 				sr->has_size_info = 1;
+				sr->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
 				l = ((SVGsvgElement*)root)->width;
-				svg_convert_length_unit_to_user_unit(&l);
-				width = FIX2INT(l.value);
+				if (l.type!=SVG_NUMBER_PERCENTAGE) {
+					svg_convert_length_unit_to_user_unit(&l);
+					width = FIX2INT(l.value);
+				} else {
+					width = FIX2INT(gf_muldiv(sr->width, l.value, 100) );
+				}
 				l = ((SVGsvgElement*)root)->height;
-				svg_convert_length_unit_to_user_unit(&l);
-				height = FIX2INT(l.value);
+				if (l.type!=SVG_NUMBER_PERCENTAGE) {
+					svg_convert_length_unit_to_user_unit(&l);
+					height = FIX2INT(l.value);
+				} else {
+					height = FIX2INT(gf_muldiv(sr->height, l.value, 100) );
+				}
 			}
 		}
 #endif

@@ -25,6 +25,10 @@
 #include <gpac/scene_manager.h>
 #include <gpac/constants.h>
 #include <gpac/bifs.h>
+#ifndef GPAC_DISABLE_SVG
+#include <gpac/laser.h>
+#endif
+
 
 
 #ifndef GPAC_READ_ONLY
@@ -105,19 +109,25 @@ static void mp4_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
 
 GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 {
-	u32 i, j, di, nbBifs, nb_samp, samp_done, init_offset;
+	GF_Err e;
+	u32 i, j, di, nbBifs, nbLaser, nb_samp, samp_done, init_offset;
 	GF_StreamContext *sc;
 	GF_ESD *esd;
-	GF_ODCodec *oddec;
-	GF_BifsDecoder *bdec;
-	GF_Err e;
+	GF_ODCodec *od_dec;
+	GF_BifsDecoder *bifs_dec;
+#ifndef GPAC_DISABLE_SVG
+	GF_LASeRCodec *lsr_dec;
+#endif
 
 	if (!load || !load->isom) return GF_BAD_PARAM;
 
-	nbBifs = 0;
+	nbBifs = nbLaser = 0;
 	e = GF_OK;
-	bdec = gf_bifs_decoder_new(load->scene_graph, 1);
-	oddec = gf_odf_codec_new();
+	bifs_dec = gf_bifs_decoder_new(load->scene_graph, 1);
+	od_dec = gf_odf_codec_new();
+#ifndef GPAC_DISABLE_SVG
+	lsr_dec = gf_laser_decoder_new(load->scene_graph);
+#endif
 	esd = NULL;
 	/*load each stream*/
 	nb_samp = 0;
@@ -160,11 +170,24 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 
 		/*we still need to reconfig the BIFS*/
 		if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
-			if (!esd->dependsOnESID && nbBifs && !i) 
-				mp4_report(load, GF_OK, "Warning: several scene namespaces used or improper scene dependencies in file - import may be incorrect");
-			e = gf_bifs_decoder_configure_stream(bdec, esd->ESID, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, esd->decoderConfig->objectTypeIndication);
-			if (e) goto exit;
-			nbBifs++;
+			/*BIFS*/
+			if (esd->decoderConfig->objectTypeIndication<=2) {
+				if (!esd->dependsOnESID && nbBifs && !i) 
+					mp4_report(load, GF_OK, "Warning: several scene namespaces used or improper scene dependencies in file - import may be incorrect");
+				e = gf_bifs_decoder_configure_stream(bifs_dec, esd->ESID, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, esd->decoderConfig->objectTypeIndication);
+				if (e) goto exit;
+				nbBifs++;
+			}
+#ifndef GPAC_DISABLE_SVG
+			/*LASER*/
+			else if (esd->decoderConfig->objectTypeIndication==0x09) {
+				if (!esd->dependsOnESID && nbBifs && !i) 
+					mp4_report(load, GF_OK, "Warning: several scene namespaces used or improper scene dependencies in file - import may be incorrect");
+				e = gf_laser_decoder_configure_stream(lsr_dec, esd->ESID, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+				if (e) goto exit;
+				nbLaser++;
+			}
+#endif
 		}
 
 		init_offset = 0;
@@ -190,13 +213,18 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 			au = gf_sm_stream_au_new(sc, samp->DTS, ((Double)samp->DTS) / sc->timeScale, samp->IsRAP);
 
 			if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
-				e = gf_bifs_decode_command_list(bdec, esd->ESID, samp->data, samp->dataLength, au->commands);
+				if (esd->decoderConfig->objectTypeIndication<=2) 
+					e = gf_bifs_decode_command_list(bifs_dec, esd->ESID, samp->data, samp->dataLength, au->commands);
+#ifndef GPAC_DISABLE_SVG
+				else if (esd->decoderConfig->objectTypeIndication==0x09) 
+					e = gf_laser_decode_command_list(lsr_dec, esd->ESID, samp->data, samp->dataLength, au->commands);
+#endif
 			} else {
-				e = gf_odf_codec_set_au(oddec, samp->data, samp->dataLength);
-				if (!e) e = gf_odf_codec_decode(oddec);
+				e = gf_odf_codec_set_au(od_dec, samp->data, samp->dataLength);
+				if (!e) e = gf_odf_codec_decode(od_dec);
 				if (!e) {
 					while (1) {
-						GF_ODCom *odc = gf_odf_codec_get_com(oddec);
+						GF_ODCom *odc = gf_odf_codec_get_com(od_dec);
 						if (!odc) break;
 						/*update ESDs if any*/
 						UpdateODCommand(load->isom, odc);
@@ -216,8 +244,11 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 	gf_isom_text_set_streaming_mode(load->isom, 0);
 
 exit:
-	gf_bifs_decoder_del(bdec);
-	gf_odf_codec_del(oddec);
+	gf_bifs_decoder_del(bifs_dec);
+	gf_odf_codec_del(od_dec);
+#ifndef GPAC_DISABLE_SVG
+	gf_laser_decoder_del(lsr_dec);
+#endif
 	if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 	return e;
 }
@@ -246,7 +277,7 @@ GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load)
 	
 	esd = NULL;
 
-	/*get root BIFS stream*/
+	/*get root scene stream*/
 	for (i=0; i<gf_isom_get_track_count(load->isom); i++) {
 		u32 type = gf_isom_get_media_type(load->isom, i+1);
 		if (type != GF_ISOM_MEDIA_SCENE) continue;
@@ -272,18 +303,24 @@ GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load)
 
 	track = i+1;
 
-	/*update size & pixel metrics info*/
-	bc = gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication);
-	if (!bc->elementaryMasks && bc->pixelWidth && bc->pixelHeight) {
-		load->ctx->scene_width = bc->pixelWidth;
-		load->ctx->scene_height = bc->pixelHeight;
-		load->ctx->is_pixel_metrics = bc->pixelMetrics;
+	/*BIFS: update size & pixel metrics info*/
+	if (esd->decoderConfig->objectTypeIndication<=2) {
+		bc = gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication);
+		if (!bc->elementaryMasks && bc->pixelWidth && bc->pixelHeight) {
+			load->ctx->scene_width = bc->pixelWidth;
+			load->ctx->scene_height = bc->pixelHeight;
+			load->ctx->is_pixel_metrics = bc->pixelMetrics;
+		}
+		gf_odf_desc_del((GF_Descriptor *) bc);
+		/*note we don't load the first BIFS AU to avoid storing the BIFS decoder, needed to properly handle quantization*/
 	}
-	gf_odf_desc_del((GF_Descriptor *) bc);
+	/*LASeR*/
+	else if (esd->decoderConfig->objectTypeIndication==0x09) {
+		load->ctx->is_pixel_metrics = 1;
+	}
 	gf_odf_desc_del((GF_Descriptor *) esd);
 	esd = NULL;
 
-	/*note we don't load the first BIFS AU to avoid storing the BIFS decoder, needed to properly handle quantization*/
 	return GF_OK;
 }
 

@@ -165,6 +165,8 @@ GF_Err gf_odf_dump_desc(void *ptr, FILE *trace, u32 indent, Bool XMTDump)
 		return gf_odf_dump_muxinfo((GF_MuxInfo *)desc, trace, indent, XMTDump);
 	case GF_ODF_BIFS_CFG_TAG:
 		return gf_odf_dump_bifs_cfg((GF_BIFSConfig *)desc, trace, indent, XMTDump);
+	case GF_ODF_LASER_CFG_TAG:
+		return gf_odf_dump_laser_cfg((GF_LASERConfig *)desc, trace, indent, XMTDump);
 	case GF_ODF_UI_CFG_TAG:
 		return gf_odf_dump_ui_cfg((GF_UIConfig *)desc, trace, indent, XMTDump);
 	case GF_ODF_IPMP_TL_TAG:
@@ -703,6 +705,27 @@ GF_Err DumpRawBIFSConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Boo
 	gf_bs_del(bs);
 	return GF_OK;
 }
+
+GF_Err gf_odf_dump_laser_cfg(GF_LASERConfig *dsi, FILE *trace, u32 indent, Bool XMTDump)
+{
+	fprintf(trace, "<lsr:LASeRHeader profile=\"%s\" pointsCodec=\"%s\" encoding=\"%s\"", 
+		dsi->profile ? "mini" : "full",
+		dsi->pointsCodec ? "Unknown" : "ExpGolombPointsCodec",
+		dsi->encoding ? "Unknown" : "SimpleEncoding");
+
+	if (dsi->colorComponentBits) fprintf(trace, " colorComponentBits=\"%d\"", dsi->colorComponentBits);
+	if (dsi->append) fprintf(trace, " append=\"true\"");
+	if (dsi->coord_bits) fprintf(trace, " coordBits=\"%d\"", dsi->coord_bits);
+	if (dsi->fullRequestHost) fprintf(trace, " useFullRequestHost=\"true\"");
+	if (dsi->has_string_ids) fprintf(trace, " hasStringIDs=\"true\"");
+	if (dsi->pathComponents) fprintf(trace, " pathComponents=\"%d\"", dsi->pathComponents);
+	if (dsi->time_resolution && (dsi->time_resolution!=1000) ) fprintf(trace, " timeResolution=\"%d\"", dsi->time_resolution);
+	if (dsi->resolution) fprintf(trace, " resolution=\"%d\"", dsi->resolution);
+	if (dsi->scale_bits) fprintf(trace, " scaleBits_minus_coordBits=\"%d\"", dsi->scale_bits);
+	fprintf(trace, "/>\n");
+	return GF_OK;
+}
+
 
 
 GF_Err gf_odf_dump_txtcfg(GF_TextConfig *desc, FILE *trace, u32 indent, Bool XMTDump)

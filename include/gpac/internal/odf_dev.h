@@ -336,6 +336,7 @@ GF_Err gf_odf_dump_segment(GF_Segment *sd, FILE *trace, u32 indent, Bool XMTDump
 GF_Err gf_odf_dump_mediatime(GF_MediaTime *mt, FILE *trace, u32 indent, Bool XMTDump);
 GF_Err gf_odf_dump_muxinfo(GF_MuxInfo *mi, FILE *trace, u32 indent, Bool XMTDump);
 GF_Err gf_odf_dump_bifs_cfg(GF_BIFSConfig *dsi, FILE *trace, u32 indent, Bool XMTDump);
+GF_Err gf_odf_dump_laser_cfg(GF_LASERConfig *dsi, FILE *trace, u32 indent, Bool XMTDump);
 GF_Err gf_odf_dump_ui_cfg(GF_UIConfig *dsi, FILE *trace, u32 indent, Bool XMTDump);
 GF_Err gf_odf_dump_txtcfg(GF_TextConfig *desc, FILE *trace, u32 indent, Bool XMTDump);
 GF_Err gf_odf_dump_ipmp_tool_list(GF_IPMP_ToolList *tl, FILE *trace, u32 indent, Bool XMTDump);

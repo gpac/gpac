@@ -844,6 +844,22 @@ SOURCE=..\..\include\gpac\internal\renderer_dev.h
 SOURCE=..\..\src\renderer\texturing.c
 # End Source File
 # End Group
+# Begin Group "laser"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=..\..\include\gpac\internal\laser_dev.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\laser\lsr_dec.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\laser\lsr_enc.c
+# End Source File
+# End Group
 # Begin Group "include"
 
 # PROP Default_Filter ""
@@ -910,6 +926,10 @@ SOURCE=..\..\include\gpac\ismacryp.h
 # Begin Source File
 
 SOURCE=..\..\include\gpac\isomedia.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\laser.h
 # End Source File
 # Begin Source File
 

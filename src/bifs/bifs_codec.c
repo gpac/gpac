@@ -166,24 +166,6 @@ void gf_bifs_decoder_ignore_size_info(GF_BifsDecoder *codec)
 	if (codec) codec->ignore_size = 1;
 }
 
-GF_Err gf_bifs_decoder_get_config(GF_BifsDecoder *codec, u16 ESID, GF_BIFSConfig *cfg)
-{
-	BIFSStreamInfo *info;
-	if (!codec || !ESID || !cfg) return GF_BAD_PARAM;
-	info = gf_bifs_dec_get_stream(codec, ESID);
-	if (!info) return GF_BAD_PARAM;
-	memset(cfg, 0, sizeof(GF_BIFSConfig));
-	cfg->tag = GF_ODF_BIFS_CFG_TAG;
-	cfg->nodeIDbits = info->config.NodeIDBits;
-	cfg->pixelHeight = info->config.Height;
-	cfg->pixelMetrics = info->config.PixelMetrics;
-	cfg->pixelWidth = info->config.Width;
-	cfg->protoIDbits = info->config.ProtoIDBits;
-	cfg->routeIDbits = info->config.RouteIDBits;
-	cfg->version = info->config.version;
-	return GF_OK;
-}
-
 
 GF_Err gf_bifs_decoder_remove_stream(GF_BifsDecoder *codec, u16 ESID)
 {
@@ -280,12 +262,6 @@ void gf_bifs_decoder_set_clock(GF_BifsDecoder *codec, Double (*GetSceneTime)(voi
 {
 	codec->GetSceneTime = GetSceneTime;
 	codec->st_cbk = st_cbk;
-}
-
-u16 gf_bifs_decoder_get_active_stream(GF_BifsDecoder *codec)
-{
-	if (!codec || !codec->info) return 0;
-	return codec->info->ESID;
 }
 
 GF_Node *gf_bifs_enc_find_node(GF_BifsEncoder *codec, u32 nodeID)

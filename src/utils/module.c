@@ -90,7 +90,7 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	if (!inst) return NULL;
 	if (!gf_modules_load_library(inst)) return NULL;
 
-	if (! inst->query_func(InterfaceFamily) ) goto err_exit;
+	if (!inst->query_func || !inst->query_func(InterfaceFamily) ) goto err_exit;
 
 	ifce = (GF_BaseInterface *) inst->load_func(InterfaceFamily);
 	/*sanity check*/

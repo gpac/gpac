@@ -307,6 +307,7 @@ void PrintDumpUsage()
 			" -wrl:                scene VRML format - removes unknown VRML nodes\n" 
 			" -x3d:                scene to X3D/XML format - removes unknown X3D nodes\n" 
 			" -x3dv:               scene to X3D/VRML format - removes unknown X3D nodes\n" 
+			" -lsr:                scene to LASeR format\n" 
 			" -diso:               scene IsoMedia file boxes in XML output\n"
 			" -drtp:               rtp hint samples structure to XML output\n"
 			" -dts:                prints sample timing to text output\n"
@@ -963,6 +964,7 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-wrl")) dump_mode = 3;
 		else if (!stricmp(arg, "-x3dv")) dump_mode = 4;
 		else if (!stricmp(arg, "-x3d")) dump_mode = 5;
+		else if (!stricmp(arg, "-lsr")) dump_mode = 6;
 		else if (!stricmp(arg, "-stat")) stat_level = 1;
 		else if (!stricmp(arg, "-stats")) stat_level = 2;
 		else if (!stricmp(arg, "-statx")) stat_level = 3;

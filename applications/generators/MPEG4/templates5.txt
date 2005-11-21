@@ -109,12 +109,12 @@ eventOut     MFVec4f value_changed
 
 PROTO DepthImage [ #%NDT=SFWorldNode,SF3DNode,SFDepthImageNode %COD=N
 field		SFDepthTextureNode		diTexture	NULL
-exposedField		SFFloat		farPlane	100		#%b=[0,+I]
-exposedField		SFVec2f		fieldOfView	0.785398 0.785398	#%b=[0,3.1415927]
-exposedField		SFFloat		nearPlane	10	 #%b=[0,+I]
-exposedField		SFRotation	orientation	0 0 1 0
-exposedField		SFBool		orthographic	TRUE		
-exposedField		SFVec3f		position	0 0 10	#%b=[-I,+I]
+field		SFFloat		farPlane	100		#%b=[0,+I]
+field		SFVec2f		fieldOfView	0.785398 0.785398	#%b=[0,3.1415927]
+field		SFFloat		nearPlane	10	 #%b=[0,+I]
+field		SFRotation	orientation	0 0 1 0
+field		SFBool		orthographic	TRUE		
+field		SFVec3f		position	0 0 10	#%b=[-I,+I]
 ]{}
 
 PROTO FFD [ #%NDT=SFWorldNode,SF3DNode %COD=N
@@ -135,7 +135,7 @@ field		SFInt32	 wOrder		2  #%b=[2,33]  #%q=13 5
 
 PROTO Implicit [ #%NDT=SFWorldNode,SFGeometryNode %COD=N
 exposedField 	SFVec3f	bboxSize	2 2 2	#%b=[0,+I] #%q=11  #%a=11
-exposedField	MFFloat	c		[]	#%b=[-I,+I] #%a=7
+exposedField	MFFloat	c		[]	#%b=[-I,+I] #%q=0  #%a=7
 exposedField	MFInt32	densities	[]	#%b=[0,+I]
 exposedField 	SFBool	dual		FALSE
 exposedField 	SFBool	solid		FALSE

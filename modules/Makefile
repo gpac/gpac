@@ -1,7 +1,7 @@
 include ../config.mak
 
 #all OS and lib independent
-PLUGDIRS=aac_in bifs_dec ctx_load dummy_in soft_raster mp3_in isom_in odf_dec rtp_in raw_out render2d timedtext img_in svg_in
+PLUGDIRS=aac_in bifs_dec ctx_load dummy_in soft_raster mp3_in isom_in odf_dec rtp_in raw_out render2d timedtext img_in svg_in laser_dec
 
 ifeq ($(CONFIG_FT), no)
 else

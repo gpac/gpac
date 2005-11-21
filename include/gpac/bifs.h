@@ -63,13 +63,6 @@ GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_l
 */
 GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_length, GF_List *com_list);
 
-/*returns active stream - to use only in NodeInit callback (when an AU is being decoded)*/
-u16 gf_bifs_decoder_get_active_stream(GF_BifsDecoder *codec);
-
-
-/*retrieves uncompressed BIFS config)*/
-GF_Err gf_bifs_decoder_get_config(GF_BifsDecoder *codec, u16 ESID, GF_BIFSConfig *cfg);
-
 
 /*BIFS encoding*/
 typedef struct __tag_bifs_enc GF_BifsEncoder;

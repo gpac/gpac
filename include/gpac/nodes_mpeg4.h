@@ -24,9 +24,9 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Sun Jul 24 17:07:41 2005
+	DO NOT MOFIFY - File generated on GMT Mon Nov 21 16:56:09 2005
 
-	BY MPEG4Gen for GPAC Version 0.4.0
+	BY MPEG4Gen for GPAC Version 0.4.1-DEV
 */
 
 #ifndef _nodes_mpeg4_H
@@ -165,7 +165,7 @@ enum {
 	TAG_MPEG4_CoordinateInterpolator4D,
 	TAG_MPEG4_DepthImage,
 	TAG_MPEG4_FFD,
-	TAG_MPEG4_XXImplicit,
+	TAG_MPEG4_Implicit,
 	TAG_MPEG4_XXLFM_Appearance,
 	TAG_MPEG4_XXLFM_BlendList,
 	TAG_MPEG4_XXLFM_FrameList,
@@ -187,7 +187,7 @@ enum {
 	TAG_MPEG4_PositionAnimator2D,
 	TAG_MPEG4_PositionInterpolator4D,
 	TAG_MPEG4_ProceduralTexture,
-	TAG_MPEG4_XXQuadric,
+	TAG_MPEG4_Quadric,
 	TAG_MPEG4_SBBone,
 	TAG_MPEG4_SBMuscle,
 	TAG_MPEG4_SBSegment,
@@ -196,7 +196,7 @@ enum {
 	TAG_MPEG4_SBVCAnimation,
 	TAG_MPEG4_ScalarAnimator,
 	TAG_MPEG4_SimpleTexture,
-	TAG_MPEG4_XXSolidRep,
+	TAG_MPEG4_SolidRep,
 	TAG_MPEG4_SubdivisionSurface,
 	TAG_MPEG4_SubdivSurfaceSector,
 	TAG_MPEG4_WaveletSubdivisionSurface,

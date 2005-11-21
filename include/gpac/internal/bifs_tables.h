@@ -24,9 +24,9 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Sun Jul 24 17:07:41 2005
+	DO NOT MOFIFY - File generated on GMT Mon Nov 21 16:56:09 2005
 
-	BY MPEG4Gen for GPAC Version 0.4.0
+	BY MPEG4Gen for GPAC Version 0.4.1-DEV
 */
 
 #ifndef _NDT_H
@@ -429,7 +429,7 @@ u32 NDT_V4_GetNodeType(u32 NDT_Tag, u32 NodeTag);
 #define SFWorldNode_V5_Count	39
 
 static const u32 SFWorldNode_V5_TypeToTag[39] = {
- TAG_MPEG4_BitWrapper, TAG_MPEG4_CoordinateInterpolator4D, TAG_MPEG4_DepthImage, TAG_MPEG4_FFD, TAG_MPEG4_XXImplicit, TAG_MPEG4_XXLFM_Appearance, TAG_MPEG4_XXLFM_BlendList, TAG_MPEG4_XXLFM_FrameList, TAG_MPEG4_XXLFM_LightMap, TAG_MPEG4_XXLFM_SurfaceMapList, TAG_MPEG4_XXLFM_ViewMapList, TAG_MPEG4_MeshGrid, TAG_MPEG4_NonLinearDeformer, TAG_MPEG4_NurbsCurve, TAG_MPEG4_NurbsCurve2D, TAG_MPEG4_NurbsSurface, TAG_MPEG4_OctreeImage, TAG_MPEG4_XXParticles, TAG_MPEG4_XXParticleInitBox, TAG_MPEG4_XXPlanarObstacle, TAG_MPEG4_XXPointAttractor, TAG_MPEG4_PointTexture, TAG_MPEG4_PositionAnimator, TAG_MPEG4_PositionAnimator2D, TAG_MPEG4_PositionInterpolator4D, TAG_MPEG4_ProceduralTexture, TAG_MPEG4_XXQuadric, TAG_MPEG4_SBBone, TAG_MPEG4_SBMuscle, TAG_MPEG4_SBSegment, TAG_MPEG4_SBSite, TAG_MPEG4_SBSkinnedModel, TAG_MPEG4_SBVCAnimation, TAG_MPEG4_ScalarAnimator, TAG_MPEG4_SimpleTexture, TAG_MPEG4_XXSolidRep, TAG_MPEG4_SubdivisionSurface, TAG_MPEG4_SubdivSurfaceSector, TAG_MPEG4_WaveletSubdivisionSurface
+ TAG_MPEG4_BitWrapper, TAG_MPEG4_CoordinateInterpolator4D, TAG_MPEG4_DepthImage, TAG_MPEG4_FFD, TAG_MPEG4_Implicit, TAG_MPEG4_XXLFM_Appearance, TAG_MPEG4_XXLFM_BlendList, TAG_MPEG4_XXLFM_FrameList, TAG_MPEG4_XXLFM_LightMap, TAG_MPEG4_XXLFM_SurfaceMapList, TAG_MPEG4_XXLFM_ViewMapList, TAG_MPEG4_MeshGrid, TAG_MPEG4_NonLinearDeformer, TAG_MPEG4_NurbsCurve, TAG_MPEG4_NurbsCurve2D, TAG_MPEG4_NurbsSurface, TAG_MPEG4_OctreeImage, TAG_MPEG4_XXParticles, TAG_MPEG4_XXParticleInitBox, TAG_MPEG4_XXPlanarObstacle, TAG_MPEG4_XXPointAttractor, TAG_MPEG4_PointTexture, TAG_MPEG4_PositionAnimator, TAG_MPEG4_PositionAnimator2D, TAG_MPEG4_PositionInterpolator4D, TAG_MPEG4_ProceduralTexture, TAG_MPEG4_Quadric, TAG_MPEG4_SBBone, TAG_MPEG4_SBMuscle, TAG_MPEG4_SBSegment, TAG_MPEG4_SBSite, TAG_MPEG4_SBSkinnedModel, TAG_MPEG4_SBVCAnimation, TAG_MPEG4_ScalarAnimator, TAG_MPEG4_SimpleTexture, TAG_MPEG4_SolidRep, TAG_MPEG4_SubdivisionSurface, TAG_MPEG4_SubdivSurfaceSector, TAG_MPEG4_WaveletSubdivisionSurface
 };
 
 #define SF3DNode_V5_NUMBITS		5
@@ -457,7 +457,7 @@ static const u32 SFAppearanceNode_V5_TypeToTag[1] = {
 #define SFGeometryNode_V5_Count	10
 
 static const u32 SFGeometryNode_V5_TypeToTag[10] = {
- TAG_MPEG4_BitWrapper, TAG_MPEG4_XXImplicit, TAG_MPEG4_MeshGrid, TAG_MPEG4_NonLinearDeformer, TAG_MPEG4_NurbsCurve, TAG_MPEG4_NurbsCurve2D, TAG_MPEG4_NurbsSurface, TAG_MPEG4_XXQuadric, TAG_MPEG4_XXSolidRep, TAG_MPEG4_SubdivisionSurface
+ TAG_MPEG4_BitWrapper, TAG_MPEG4_Implicit, TAG_MPEG4_MeshGrid, TAG_MPEG4_NonLinearDeformer, TAG_MPEG4_NurbsCurve, TAG_MPEG4_NurbsCurve2D, TAG_MPEG4_NurbsSurface, TAG_MPEG4_Quadric, TAG_MPEG4_SolidRep, TAG_MPEG4_SubdivisionSurface
 };
 
 #define SFTextureNode_V5_NUMBITS		1
