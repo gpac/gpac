@@ -129,7 +129,6 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 	bs = gf_bs_new(DecoderSpecificInfo, DecoderSpecificInfoLength, GF_BITSTREAM_READ);
 	pInfo = malloc(sizeof(BIFSStreamInfo));
 	memset(pInfo, 0, sizeof(BIFSStreamInfo));
-	pInfo->config.elementaryMasks = gf_list_new();
 	pInfo->ESID = ESID;
 
 	pInfo->config.version = objectTypeIndication;

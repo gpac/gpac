@@ -2810,6 +2810,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com)
 		}
 		/*OD commands*/
 		else if (!strcmp(str, "UPDATE") || !strcmp(str, "REMOVE")) {
+			Bool is_base_stream = parser->stream_id ? 0 : 1;
 			if (!parser->stream_id || parser->stream_id==parser->bifs_es->ESID) parser->stream_id = parser->base_od_id;
 
 			if (parser->od_es && (parser->od_es->ESID != parser->stream_id)) {
@@ -2821,11 +2822,13 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com)
 			if (!parser->od_es) parser->od_es = gf_sm_stream_new(parser->load->ctx, (u16) parser->stream_id, GF_STREAM_OD, 0);
 			if (!parser->od_au) parser->od_au = gf_sm_stream_au_new(parser->od_es, parser->au_time, 0, parser->au_is_rap);
 			gf_bt_parse_od_command(parser, str);
+			if (is_base_stream) parser->stream_id= 0;
 		}
 		/*BIFS commands*/
 		else if (!strcmp(str, "REPLACE") || !strcmp(str, "INSERT") || !strcmp(str, "APPEND") || !strcmp(str, "DELETE")
 			/*BIFS extended commands*/
 			|| !strcmp(str, "GLOBALQP") || !strcmp(str, "MULTIPLEREPLACE") || !strcmp(str, "MULTIPLEINDREPLACE") || !strcmp(str, "XDELETE") || !strcmp(str, "DELETEPROTO") || !strcmp(str, "INSERTPROTO") ) {
+			Bool is_base_stream = parser->stream_id ? 0 : 1;
 
 			if (!parser->stream_id) parser->stream_id = parser->base_bifs_id;
 			if (!parser->stream_id || (parser->bifs_es && (parser->stream_id==parser->bifs_es->ESID)) ) parser->stream_id = parser->base_bifs_id;
@@ -2841,6 +2844,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com)
 			}
 			if (!parser->bifs_au) parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, parser->au_time, 0, parser->au_is_rap);
 			gf_bt_parse_bifs_command(parser, str, parser->bifs_au->commands);
+			if (is_base_stream) parser->stream_id= 0;
 		}
 		/*implicit BIFS command on SFTopNodes only*/
 		else if (!strcmp(str, "OrderedGroup") 

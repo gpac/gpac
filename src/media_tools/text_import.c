@@ -921,7 +921,8 @@ static void xml_import_progress(void *import, u32 cur_samp, u32 count)
 static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 {
 	GF_Err e;
-	u32 track, ID, nb_samples, nb_descs;
+	Bool last_sample_empty;
+	u32 track, ID, nb_samples, nb_descs, last_sample_duration;
 	XMLParser parser;
 	char *str;
 
@@ -962,6 +963,8 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 	parser.OnProgress = xml_import_progress;
 	parser.cbk = import;
 
+	last_sample_empty = 0;
+	last_sample_duration = 0;
 	nb_descs = 0;
 	nb_samples = 0;
 	while (!xml_element_done(&parser, "TextStream") && !parser.done) {
@@ -1086,6 +1089,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 			samp = gf_isom_new_text_sample();
 			ts = 0;
 			descIndex = 1;
+			last_sample_empty = 0;
 
 			while (xml_has_attributes(&parser)) {
 				str = xml_get_attribute(&parser);
@@ -1104,6 +1108,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 					len = strlen(str);
 					gf_isom_text_add_text(samp, str, len);
 					free(str);
+					last_sample_empty = len ? 0 : 1;
 				}
 				else if (!strcmp(str, "scrollDelay")) gf_isom_text_set_scroll_delay(samp, (u32) (1000*atoi(parser.value_buffer)));
 				else if (!strcmp(str, "highlightColor")) gf_isom_text_set_highlight_color_argb(samp, ttxt_get_color(import, &parser));
@@ -1205,7 +1210,11 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 			s = gf_isom_text_to_sample(samp);
 			gf_isom_delete_text_sample(samp);
 			s->DTS = ts;
-
+			if (last_sample_empty) {
+				last_sample_duration = s->DTS - last_sample_duration;
+			} else {
+				last_sample_duration = s->DTS;
+			}
 
 			gf_isom_add_sample(import->dest, track, descIndex, s);
 			gf_isom_sample_del(&s);
@@ -1218,7 +1227,10 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 			xml_skip_element(&parser, str);
 		}
 	}
-//	gf_isom_set_last_sample_duration(import->dest, track, 0);
+	if (last_sample_empty) {
+		gf_isom_remove_sample(import->dest, track, nb_samples);
+		gf_isom_set_last_sample_duration(import->dest, track, last_sample_duration);
+	}
 	gf_import_progress(import, nb_samples, nb_samples);
 
 exit:

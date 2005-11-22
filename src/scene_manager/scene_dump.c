@@ -2585,7 +2585,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 
 		if (!dumper->XMLDump) {
 		
-			if (!num_scene || (au->owner->streamType != GF_STREAM_SCENE) ) {
+			if (!first_bifs || (au->owner->streamType != GF_STREAM_SCENE) ) {
 				if (au->is_rap) fprintf(dumper->trace, "RAP ");
 				fprintf(dumper->trace, "AT %d ", au->timing);
 				if ( (au->owner->streamType==GF_STREAM_OD && num_od) || (au->owner->streamType==GF_STREAM_SCENE && num_scene)) {

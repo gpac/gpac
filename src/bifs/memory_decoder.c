@@ -819,12 +819,10 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, 
 
 	if (!codec || !data || !codec->dec_memory_mode || !com_list) return GF_BAD_PARAM;
 
-//	gf_mx_p(codec->mx);
 	codec->info = gf_bifs_dec_get_stream(codec, ESID);
-	if (!codec->info || codec->info->config.elementaryMasks) {
-//		gf_mx_v(codec->mx);
-		return GF_BAD_PARAM;
-	}
+	if (!codec->info) return GF_BAD_PARAM;
+	if (codec->info->config.elementaryMasks ) return GF_NOT_SUPPORTED;
+
 	/*root parse (not conditionals)*/
 	assert(codec->scenegraph);
 	/*setup current scene graph*/

@@ -157,10 +157,6 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 		}
 		esd = gf_isom_get_esd(load->isom, i+1, 1);
 		if (!esd) continue;
-		/*only support for BIFS atm*/
-		if ((esd->decoderConfig->streamType==0x04) && (esd->decoderConfig->objectTypeIndication>2)) {
-			gf_odf_desc_del((GF_Descriptor *)esd);
-		}
 
 		sc = gf_sm_stream_new(load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 		sc->streamType = esd->decoderConfig->streamType;

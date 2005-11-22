@@ -899,6 +899,20 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					break;
 				}
 			}
+			else if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
+				if (esd->decoderConfig->objectTypeIndication<=6) {
+					GF_BIFSConfig *b_cfg = gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication);
+					fprintf(stdout, "BIFS Scene description - %s stream\n", b_cfg->elementaryMasks ? "Animation" : "Command"); 
+					if (full_dump && !b_cfg->elementaryMasks) {
+						fprintf(stdout, "\tWidth %d Height %d Pixel Metrics %s\n", b_cfg->pixelWidth, b_cfg->pixelHeight, b_cfg->pixelMetrics ? "yes" : "no"); 
+					}
+					gf_odf_desc_del((GF_Descriptor *)b_cfg);
+				} else if (esd->decoderConfig->objectTypeIndication==0x09) {
+					GF_LASERConfig l_cfg;
+					gf_odf_get_laser_config(esd->decoderConfig->decoderSpecificInfo, &l_cfg);
+					fprintf(stdout, "LASER Stream - %s\n", l_cfg.append ? "Scene Segment" : "Full Scene"); 
+				}
+			}
 
 			/*sync is only valid if we open all tracks to take care of default MP4 sync..*/
 			if (!full_dump) {
