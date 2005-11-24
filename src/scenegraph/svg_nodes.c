@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Thu Nov 24 10:35:20 2005
+	DO NOT MOFIFY - File generated on GMT Thu Nov 24 12:35:59 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -2485,6 +2485,7 @@ void *gf_svg_new_desc()
 	((GF_Node *p)->sgprivate->node_del = SVG_desc_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_desc_get_attribute;
 #endif
+	gf_svg_init_core((SVGElement *)p);
 	return p;
 }
 
@@ -5701,6 +5702,7 @@ void *gf_svg_new_metadata()
 	((GF_Node *p)->sgprivate->node_del = SVG_metadata_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_metadata_get_attribute;
 #endif
+	gf_svg_init_core((SVGElement *)p);
 	return p;
 }
 
@@ -10237,6 +10239,7 @@ void *gf_svg_new_title()
 	((GF_Node *p)->sgprivate->node_del = SVG_title_Del;
 	((GF_Node *p)->sgprivate->get_field = SVG_title_get_attribute;
 #endif
+	gf_svg_init_core((SVGElement *)p);
 	return p;
 }
 

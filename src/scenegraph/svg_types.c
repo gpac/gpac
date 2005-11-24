@@ -230,6 +230,7 @@ void gf_svg_delete_core(XMLCoreAttributes *p)
 
 void gf_svg_delete_properties(SVGProperties *p) 
 {
+	free(p->color.color);
 	free(p->fill.color);
 	free(p->stroke.color);
 	free(p->solid_color.color);

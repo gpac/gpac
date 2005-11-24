@@ -1144,9 +1144,7 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 	fprintf(output, "\t((GF_Node *p)->sgprivate->get_field = SVG_%s_get_attribute;\n", svg_elt->implementation_name);
 	fprintf(output, "#endif\n");
 
-	if (svg_elt->has_svg_generic || svg_elt->has_xml_generic) {
-		fprintf(output, "\tgf_svg_init_core((SVGElement *)p);\n");		
-	} 
+	fprintf(output, "\tgf_svg_init_core((SVGElement *)p);\n");		
 	if (svg_elt->has_properties) {
 		fprintf(output, "\tgf_svg_init_properties((SVGElement *)p);\n");		
 	} 
