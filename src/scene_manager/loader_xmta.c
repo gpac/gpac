@@ -2364,13 +2364,26 @@ void xmt_parse_command(XMTParser *parser, char *name, GF_List *com_list)
 				field->field_ptr = &field->new_node;
 				break;
 			case GF_SG_FIELD_REPLACE:
-				assert(field && (field->fieldType == GF_SG_VRML_SFNODE));
-				if (!strcmp(str, "NULL")) {
-					field->new_node = NULL;
+				assert(field);
+				if (field->fieldType == GF_SG_VRML_SFNODE) {
+					if (!strcmp(str, "NULL")) {
+						field->new_node = NULL;
+					} else {
+						field->new_node = xmt_parse_node(parser, str, com->node, NULL);
+					}
+					field->field_ptr = &field->new_node;
+				} else if (field->fieldType == GF_SG_VRML_MFNODE) {
+					if (!field->node_list) {
+						field->node_list = gf_list_new();
+						field->field_ptr = &field->node_list;
+					}
+					if (strcmp(str, "NULL")) {
+						GF_Node *n = xmt_parse_node(parser, str, com->node, NULL);
+						gf_list_add(field->node_list, n);
+					}
 				} else {
-					field->new_node = xmt_parse_node(parser, str, com->node, NULL);
+					assert(0);
 				}
-				field->field_ptr = &field->new_node;
 				break;
 			case GF_SG_NODE_INSERT:
 				field = gf_sg_command_field_new(com);
@@ -2548,7 +2561,10 @@ err:
 		else if (parser->bifs_es && parser->bifs_es->ESID==parser->stream_id) parser->stream_id = parser->base_od_id;
 
 		if (!parser->od_es) parser->od_es = gf_sm_stream_new(parser->load->ctx, (u16) parser->stream_id, GF_STREAM_OD, 0);
-		if (!parser->od_au) parser->od_au = gf_sm_stream_au_new(parser->od_es, 0, parser->au_time, parser->au_is_rap);
+		if (!parser->od_au) {
+			parser->od_au = gf_sm_stream_au_new(parser->od_es, 0, parser->au_time, parser->au_is_rap);
+			if (gf_list_count(parser->od_es->AUs)==1) parser->od_au->is_rap = 1;
+		}
 
 		if (!strcmp(comName, "ObjectDescriptorUpdate") ) {
 			GF_ODUpdate *odU;
@@ -3126,7 +3142,6 @@ GF_Err gf_sm_load_init_XMT(GF_SceneLoader *load)
 
 		/*parse all commands*/
 		parser->au_time = 0;
-		parser->au_is_rap = 1;
 		parser->stream_id = 0;
 		e = gf_sm_load_run_XMT_Intern(load, 1);
 		is_done = parser->xml_parser.done;

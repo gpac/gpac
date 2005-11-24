@@ -1109,12 +1109,14 @@ void gf_node_init(GF_Node *node)
 {
 	GF_SceneGraph *pSG = node->sgprivate->scenegraph;
 	assert(pSG);
+	/*no user-defined init, consider the scenegraph is only used for parsing/encoding/decoding*/
+	if (!pSG->UserNodeInit) return;
 
 	/*internal nodes*/
 	if (gf_sg_vrml_node_init(node)) return;
 	if (gf_sg_svg_node_init(node)) return;
 	/*user defined init*/
-	if (pSG->UserNodeInit) pSG->UserNodeInit(pSG->NodeInitCallback, node);
+	pSG->UserNodeInit(pSG->NodeInitCallback, node);
 }
 
 

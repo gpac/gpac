@@ -76,7 +76,6 @@ void gf_svg_delete_coordinates(GF_List *list)
 void gf_svg_delete_paint(SVG_Paint *paint) 
 {
 	if (!paint) return;
-	free(paint->color);
 	free(paint);
 }
 
@@ -87,7 +86,7 @@ void gf_svg_reset_iri(SVG_IRI *iri)
 	//if (iri->target) gf_node_unregister((GF_Node *)iri->target, (GF_Node *)iri->iri_owner);
 }
 
-void gf_svg_delete_attribute_value(u8 type, void *value)
+void gf_svg_delete_attribute_value(u32 type, void *value)
 {
 	switch (type) {
 	case SVG_Paint_datatype:
@@ -151,20 +150,15 @@ void gf_svg_init_properties(SVGElement *p)
 {
 	GF_SAFEALLOC(p->properties, sizeof(SVGProperties))
 	p->properties->fill.type = SVG_PAINT_INHERIT;
-	GF_SAFEALLOC(p->properties->fill.color, sizeof(SVG_Color));
 	
 	p->properties->color.type = SVG_PAINT_COLOR;
-	GF_SAFEALLOC(p->properties->color.color, sizeof(SVG_Color));
-	p->properties->color.color->type = SVG_COLOR_INHERIT;
+	p->properties->color.color.type = SVG_COLOR_INHERIT;
 
 	p->properties->fill_rule = SVG_FILLRULE_INHERIT;
 	p->properties->fill_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties->stroke.type = SVG_PAINT_INHERIT;
-	GF_SAFEALLOC(p->properties->stroke.color, sizeof(SVG_Color));
 	p->properties->viewport_fill.type = SVG_PAINT_INHERIT;
-	GF_SAFEALLOC(p->properties->viewport_fill.color, sizeof(SVG_Color));
 	p->properties->stop_color.type = SVG_PAINT_INHERIT;
-	GF_SAFEALLOC(p->properties->stop_color.color, sizeof(SVG_Color));
 	p->properties->stroke_opacity.type = SVG_NUMBER_INHERIT;
 	p->properties->stroke_width.type = SVG_NUMBER_INHERIT;
 	p->properties->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
@@ -230,12 +224,6 @@ void gf_svg_delete_core(XMLCoreAttributes *p)
 
 void gf_svg_delete_properties(SVGProperties *p) 
 {
-	free(p->color.color);
-	free(p->fill.color);
-	free(p->stroke.color);
-	free(p->solid_color.color);
-	free(p->stop_color.color);
-	free(p->viewport_fill.color);
 	free(p->font_family.value);
 	free(p->stroke_dasharray.array.vals);
 	free(p);

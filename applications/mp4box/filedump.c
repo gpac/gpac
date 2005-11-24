@@ -33,7 +33,7 @@ extern u32 swf_flags;
 extern Float swf_flatten_angle;
 extern u32 get_file_type_by_ext(char *inName);
 
-void dump_file_text(char *file, char *inName, u32 dump_mode)
+void dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 {
 	GF_Err e;
 	GF_SceneManager *ctx;
@@ -60,6 +60,7 @@ void dump_file_text(char *file, char *inName, u32 dump_mode)
 			return;
 		}
 	}
+	if (do_log) load.flags = GF_SM_LOAD_DUMP_BINARY;
 	e = gf_sm_load_init(&load);
 	if (!e) e = gf_sm_load_run(&load);
 	gf_sm_load_done(&load);

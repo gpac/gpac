@@ -906,6 +906,8 @@ GF_List *getElements(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 	return elements;
 }
 
+#define LOCAL_SVG_NODES
+
 /*type: 0: header, 1: source*/
 static FILE *BeginFile(u32 type)
 {
@@ -914,11 +916,19 @@ static FILE *BeginFile(u32 type)
 	char sPath[GF_MAX_PATH];
 
 	if (!type) {
+#ifdef LOCAL_SVG_NODES
+		sprintf(sPath, "nodes_svg.h", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+#else
 		sprintf(sPath, "..%c..%c..%c..%cinclude%cgpac%cnodes_svg.h", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-//		sprintf(sPath, "nodes_svg.h", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-	} else {
+#endif
+	} else if (type==1) {
+#ifdef LOCAL_SVG_NODES
+		sprintf(sPath, "svg_nodes.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+#else
 		sprintf(sPath, "..%c..%c..%c..%csrc%cscenegraph%csvg_nodes.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-//		sprintf(sPath, "svg_nodes.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+#endif
+	} else {
+		sprintf(sPath, "..%c..%c..%c..%csrc%claser%clsr_tables.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 	}
 	
 	f = fopen(sPath, "wt");
@@ -943,6 +953,8 @@ static void EndFile(FILE *f, u32 type)
 	if (!type) {
 		fprintf(f, "#ifdef __cplusplus\n}\n#endif\n\n");
 		fprintf(f, "\n\n#endif\t\t/*_GF_SVG_NODES_H*/\n\n");
+	} else {
+		fprintf(f, "\n");
 	}
 	fclose(f);
 }
@@ -1398,6 +1410,152 @@ void replaceIncludes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 	xmlXPathFreeObject(xpathObj);
 }
 
+
+static s32 get_lsr_anim_type(const char *name)
+{
+	/*attributes*/
+	if (!strcmp(name, "choice")) return 1;
+	else if (!strcmp(name, "cx")) return 4;
+	else if (!strcmp(name, "cy")) return 5;
+	else if (!strcmp(name, "d")) return 6;
+	else if (!strcmp(name, "editable")) return 26;
+	else if (!strcmp(name, "gradientUnits")) return 9;
+	else if (!strcmp(name, "height")) return 27;
+	else if (!strcmp(name, "pathLength")) return 31;
+	else if (!strcmp(name, "points")) return 33;
+	else if (!strcmp(name, "preserveAspectRatio")) return 34;
+	else if (!strcmp(name, "r")) return 35;
+	else if (!strcmp(name, "rotate")) return 36;
+	else if (!strcmp(name, "rx")) return 37;
+	else if (!strcmp(name, "ry")) return 38;
+	else if (!strcmp(name, "size")) return 40;
+	else if (!strcmp(name, "target")) return 53;
+	else if (!strcmp(name, "transform")) return 55;
+	else if (!strcmp(name, "type")) return 56;
+	else if (!strcmp(name, "viewBox")) return 58;
+	else if (!strcmp(name, "width")) return 62;
+	else if (!strcmp(name, "x")) return 63;
+	else if (!strcmp(name, "x1")) return 64;
+	else if (!strcmp(name, "x2")) return 65;
+	else if (!strcmp(name, "xlink:href")) return 66;
+	else if (!strcmp(name, "y")) return 67;
+	else if (!strcmp(name, "y1")) return 68;
+	else if (!strcmp(name, "y2")) return 69;
+	/*properties*/
+	else if (!strcmp(name, "audio-level")) return 0;
+	else if (!strcmp(name, "color")) return 2;
+	else if (!strcmp(name, "color-rendering")) return 3;
+	else if (!strcmp(name, "display")) return 7;
+	else if (!strcmp(name, "display-align")) return 8;
+	else if (!strcmp(name, "fill")) return 10;
+	else if (!strcmp(name, "fill-opacity")) return 11;
+	else if (!strcmp(name, "fill-rule")) return 12;
+	else if (!strcmp(name, "font-family")) return 22;
+	else if (!strcmp(name, "font-size")) return 23;
+	else if (!strcmp(name, "font-style")) return 24;
+	else if (!strcmp(name, "font-weight")) return 25;
+	else if (!strcmp(name, "image-rendering")) return 28;
+	else if (!strcmp(name, "line-increment")) return 29;
+	else if (!strcmp(name, "opacity")) return 30;
+	else if (!strcmp(name, "pointer-events")) return 32;
+	else if (!strcmp(name, "shape-rendering")) return 39;
+	else if (!strcmp(name, "solid-color")) return 41;
+	else if (!strcmp(name, "solid-opacity")) return 42;
+	else if (!strcmp(name, "stop-color")) return 43;
+	else if (!strcmp(name, "stop-opacity")) return 44;
+	else if (!strcmp(name, "stroke")) return 45;
+	else if (!strcmp(name, "stroke-dasharray")) return 46;
+	else if (!strcmp(name, "stroke-dashoffset")) return 47;
+	else if (!strcmp(name, "stroke-linecap")) return 48;
+	else if (!strcmp(name, "stroke-linejoin")) return 49;
+	else if (!strcmp(name, "stroke-miterlimit")) return 50;
+	else if (!strcmp(name, "stroke-opacity")) return 51;
+	else if (!strcmp(name, "stroke-width")) return 52;
+	else if (!strcmp(name, "text-anchor")) return 54;
+	else if (!strcmp(name, "vector-effect")) return 57;
+	else if (!strcmp(name, "viewport-fill")) return 59;
+	else if (!strcmp(name, "viewport-fill-opacity")) return 60;
+	else if (!strcmp(name, "visibility")) return 61;
+	/*focus stuff*/			
+	else if (!strcmp(name, "focusEast")) return 13;
+	else if (!strcmp(name, "focusNorth")) return 14;
+	else if (!strcmp(name, "focusNorthEast")) return 15;
+	else if (!strcmp(name, "focusNorthWest")) return 16;
+	else if (!strcmp(name, "focusSouth")) return 17;
+	else if (!strcmp(name, "focusSouthEast")) return 18;
+	else if (!strcmp(name, "focusSouthWest")) return 19;
+	else if (!strcmp(name, "focusWest")) return 20;
+	else if (!strcmp(name, "focusable")) return 21;
+	else return -1;
+}
+
+void generateGenericAnim(FILE *output, SVGElement *elt, u32 index)
+{
+	int k;
+	for (k=0; k < generic_attributes[index].array_length; k++) {
+		char *att_name = generic_attributes[index].array[k];
+		SVGAttribute *a = findAttribute(elt, att_name);
+		if (a) {
+			s32 type = get_lsr_anim_type(att_name);
+			fprintf(output, ", %d", type);
+		}
+	}
+}
+
+static void generate_laser_tables(GF_List *svg_elements)
+{
+	FILE *output;
+	u32 i;
+
+	output = BeginFile(2);
+	fprintf(output, "\n#include <gpac/nodes_svg.h>\n\n");
+
+	for (i=0; i<gf_list_count(svg_elements); i++) {
+		u32 j, fcount;
+		SVGElement *elt = (SVGElement *)gf_list_get(svg_elements, i);
+		fprintf(output, "static const s32 %s_field_to_anim_type[] = {\n", elt->implementation_name);
+		fcount = gf_list_count(elt->attributes);
+
+		/*core info: id, xml:id, class, xml:lang, xml:base, xml:space, externalResourcesRequired*/
+		fprintf(output, "-1, -1, -1, -1, -1, -1, -1");
+
+		if (elt->has_properties) 
+			generateGenericAnim(output, elt, 1);
+		if (elt->has_focus) 
+			generateGenericAnim(output, elt, 2);
+		if (elt->has_xlink) 
+			generateGenericAnim(output, elt, 3);
+		if (elt->has_timing) 
+			generateGenericAnim(output, elt, 4);
+		if (elt->has_sync) 
+			generateGenericAnim(output, elt, 5);
+		if (elt->has_animation) 
+			generateGenericAnim(output, elt, 6);
+		if (elt->has_conditional) 
+			generateGenericAnim(output, elt, 7);
+		if (elt->has_transform) 
+			fprintf(output, ", 55");
+		if (elt->has_xy) 
+			fprintf(output, ", 63, 67");
+
+		for (j=0; j<fcount; j++) {
+			SVGAttribute *att = gf_list_get(elt->attributes, j);
+			fprintf(output, ", %d", get_lsr_anim_type(att->svg_name));
+		}
+		fprintf(output, "\n};\n\n");
+	}
+
+	fprintf(output, "s32 gf_lsr_field_to_anim_type(GF_Node *n, u32 fieldIndex)\n{\n\tif(!n) return -2;\n\tswitch (gf_node_get_tag(n)) {\n");
+	for (i=0; i<gf_list_count(svg_elements); i++) {
+		u32 fcount;
+		SVGElement *elt = (SVGElement *)gf_list_get(svg_elements, i);
+		fprintf(output, "\tcase TAG_SVG_%s:\n", elt->implementation_name);
+		fcount = gf_list_count(elt->attributes);
+		fprintf(output, "\t\treturn %s_field_to_anim_type[fieldIndex];\n", elt->implementation_name);
+	}
+	fprintf(output, "\tdefault:\n\t\treturn -2;\n\t}\n}\n\n");
+}
+
 int main(int argc, char **argv)
 {
 	FILE *output;
@@ -1553,6 +1711,8 @@ int main(int argc, char **argv)
 
 		fprintf(output, "#endif /*GPAC_DISABLE_SVG*/\n\n");
 		EndFile(output, 1); 
+
+		generate_laser_tables(svg_elements);
 	}
 
 	xmlXPathFreeContext(xpathCtx); 

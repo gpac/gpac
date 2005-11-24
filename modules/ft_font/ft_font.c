@@ -268,7 +268,6 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 			if (ft_enum_fonts(dr, (char *)opt, file_path)) return GF_OK;
 		}
 	}
-	return GF_NOT_SUPPORTED;
 
 	/*not found, browse all fonts*/
 	ftpriv->register_font = 1;

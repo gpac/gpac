@@ -410,7 +410,7 @@ enum {
 
 typedef struct {
 	u8 type;
-	SVG_Color *color;
+	SVG_Color color;
 	DOM_String uri;
 } SVG_Paint, SVG_SVGColor;
 
@@ -1159,7 +1159,7 @@ GF_Err gf_node_animation_del(GF_Node *node);
 u32 gf_node_animation_count(GF_Node *node);
 void *gf_node_animation_get(GF_Node *node, u32 i);
 
-void *svg_create_value_from_attributetype(u8 attribute_type, u8 transform_type);
+void *svg_create_value_from_attributetype(u32 attribute_type, u8 transform_type);
 GF_Err svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type);
 void smil_parse_attributename(SVGElement *animation_element, char *value_string);
 void svg_parse_style(SVGElement *elt, char *style);
@@ -1188,7 +1188,7 @@ void gf_svg_attributes_copy_computed_value(GF_FieldInfo *out, GF_FieldInfo *in, 
 void gf_svg_attributes_smart_copy(GF_FieldInfo *out, GF_FieldInfo *in, GF_FieldInfo *prop, GF_FieldInfo *current_color);
 void gf_svg_attributes_pointer_update(GF_FieldInfo *a, GF_FieldInfo *prop, GF_FieldInfo *current_color);
 
-void gf_svg_delete_attribute_value(u8 type, void *value);
+void gf_svg_delete_attribute_value(u32 type, void *value);
 
 /*creates a default listener/handler for the given event on the given node, and return the 
 handler element to allow for handler function override*/

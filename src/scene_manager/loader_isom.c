@@ -110,6 +110,7 @@ static void mp4_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
 GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 {
 	GF_Err e;
+	FILE *logs;
 	u32 i, j, di, nbBifs, nbLaser, nb_samp, samp_done, init_offset;
 	GF_StreamContext *sc;
 	GF_ESD *esd;
@@ -125,8 +126,18 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 	e = GF_OK;
 	bifs_dec = gf_bifs_decoder_new(load->scene_graph, 1);
 	od_dec = gf_odf_codec_new();
+	logs = NULL;
 #ifndef GPAC_DISABLE_SVG
 	lsr_dec = gf_laser_decoder_new(load->scene_graph);
+	if (load->flags & GF_SM_LOAD_DUMP_BINARY) {
+		char szLogs[1024], *sep;
+		strcpy(szLogs, load->fileName);
+		sep = strrchr(szLogs, '.');
+		if (sep) sep[0] = 0;
+		strcat(szLogs, "_dec_logs.txt");
+		logs = fopen(szLogs, "wt");
+		gf_laser_set_trace(lsr_dec, logs);
+	}
 #endif
 	esd = NULL;
 	/*load each stream*/
@@ -246,6 +257,7 @@ exit:
 	gf_laser_decoder_del(lsr_dec);
 #endif
 	if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
+	if (logs) fclose(logs);
 	return e;
 }
 

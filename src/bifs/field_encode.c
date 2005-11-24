@@ -202,7 +202,7 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	if (field->fieldType != GF_SG_VRML_MFNODE) {
 		nbF = ((GenMFField *)field->far_ptr)->count;
 		list = NULL;
-	} else {
+	} else if (field->far_ptr) {
 		list = *((GF_List **)field->far_ptr);
 		nbF = gf_list_count(list);
 	}

@@ -830,7 +830,7 @@ static void SVG_UpdateGradient(SVG_GradientStack *st, GF_List *children)
 
 		if (gstop->properties->stop_opacity.type==SVG_NUMBER_VALUE) alpha = gstop->properties->stop_opacity.value;
 		else alpha = FIX_ONE;
-		st->cols[st->nb_col] = GF_COL_ARGB_FIXED(alpha, gstop->properties->stop_color.color->red, gstop->properties->stop_color.color->green, gstop->properties->stop_color.color->blue);
+		st->cols[st->nb_col] = GF_COL_ARGB_FIXED(alpha, gstop->properties->stop_color.color.red, gstop->properties->stop_color.color.green, gstop->properties->stop_color.color.blue);
 		key = gstop->offset.value;
 		if (gstop->offset.value>FIX_ONE) key/=100; 
 		if (key>max_offset) max_offset=key;

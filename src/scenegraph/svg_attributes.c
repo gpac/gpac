@@ -905,7 +905,7 @@ static void svg_parse_paint(SVG_Paint *paint, char *attribute_content)
 		paint->uri[strlen(paint->uri)-1] = 0;
 	} else {
 		paint->type = SVG_PAINT_COLOR;
-		svg_parse_color(paint->color, attribute_content);
+		svg_parse_color(&paint->color, attribute_content);
 	}
 }
 
@@ -2094,7 +2094,7 @@ void svg_parse_style(SVGElement *elt, char *style)
 
 }
 
-void *svg_create_value_from_attributetype(u8 attribute_type, u8 transform_type)
+void *svg_create_value_from_attributetype(u32 attribute_type, u8 transform_type)
 {
 	switch (attribute_type) {
 	case SVG_Boolean_datatype:
@@ -2115,7 +2115,6 @@ void *svg_create_value_from_attributetype(u8 attribute_type, u8 transform_type)
 		{
 			SVG_Paint *paint;				
 			GF_SAFEALLOC(paint, sizeof(SVG_Paint));
-			GF_SAFEALLOC(paint->color, sizeof(SVG_Color));
 			return paint;
 		}
 		break;
@@ -2361,7 +2360,7 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 		if (paint->type == SVG_PAINT_NONE) strcpy(attValue, "none");
 		else if (paint->type == SVG_PAINT_INHERIT) strcpy(attValue, "inherit");
 		else if (paint->type == SVG_PAINT_URI) sprintf(attValue, "url(%s)", paint->uri);
-		else svg_dump_color(paint->color, attValue);
+		else svg_dump_color(&paint->color, attValue);
 	}
 		break;
 
@@ -2786,13 +2785,141 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 	}
 		break;
 
-	case SVG_TransformType_datatype:
-	case SMIL_AnimateValue_datatype:
-	case SMIL_AnimateValues_datatype:
 	case SMIL_AttributeName_datatype:
+	{
+		GF_Node *t;
+		u32 i, count;
+		SMIL_AttributeName *att_name = (SMIL_AttributeName *) info->far_ptr;
+		if (!elt->xlink) break;
+		t = (GF_Node *) elt->xlink->href.target;
+		if (!t) break;
+		count = gf_node_get_field_count(t);
+		for (i=0; i<count; i++) {
+			GF_FieldInfo fi;
+			gf_node_get_field(t, i, &fi);
+			if (fi.far_ptr == att_name->field_ptr) {
+				sprintf(attValue, fi.name);
+				return GF_OK;
+			}
+		}
+	}
+		break;
 	case SMIL_Times_datatype:
+	{
+		u32 i, count;
+		GF_List *l = *(GF_List **) info->far_ptr;
+		count = gf_list_count(l);
+		for (i=0; i<count; i++) {
+			char szBuf[1000];
+			SMIL_Time *t = gf_list_get(l, i);
+			if (i) strcat(attValue, ";");
+			if (t->type == SMIL_TIME_CLOCK) {
+				sprintf(szBuf, "%gs", t->clock);
+				strcat(attValue, szBuf);
+			} else if (t->type==SMIL_TIME_INDEFINITE) {
+				strcat(attValue, "indefinite");
+			} else if (t->type==SMIL_TIME_WALLCLOCK) {
+				u32 h, m, s;
+				/*TODO - day month and year*/
+				h = (u32) t->clock * 3600;
+				m = (u32) (t->clock * 60 - 60*h);
+				s = (u32) (t->clock - 3600*h - 60*m);
+				sprintf(szBuf, "wallclock(%d:%d:%d)", h, m, s);
+				strcat(attValue, szBuf);
+			}
+			else if ((t->dynamic_type==1) && (t->type==SMIL_TIME_EVENT)) {
+				if (t->event == SVG_DOM_EVT_KEYPRESS) {
+					/*TODO UTF support*/
+					szBuf[0] = t->parameter;
+					szBuf[1] = ')';
+					szBuf[2] = 0;
+					strcat(attValue, "accessKey(");
+					strcat(attValue, szBuf);
+				} else {
+					if (t->element_id) {
+						strcat(attValue, t->element_id);
+						strcat(attValue, ".");
+					} else if (t->element) {
+						strcat(attValue, gf_node_get_name(t->element));
+						strcat(attValue, ".");
+					}
+					strcat(attValue, gf_dom_event_name(t->event));
+				}
+				if (t->clock) {
+					sprintf(szBuf, "%gs", t->clock);
+					strcat(attValue, "+");
+					strcat(attValue, szBuf);
+				}
+			}
+		}
+	}
+		break;
 	case SMIL_Duration_datatype:
+	{
+		SMIL_Duration *dur = (SMIL_Duration *)info->far_ptr;
+		if (dur->type == SMIL_DURATION_INDEFINITE) strcpy(attValue, "indefinite");
+		else if (dur->type == SMIL_DURATION_MEDIA) strcpy(attValue, "media");
+		else if (dur->type == SMIL_DURATION_DEFINED) sprintf(attValue, "%gs", dur->clock_value);
+		else fprintf(stdout, "Warning: smil duration not assigned\n");
+	}
+		break;
 	case SMIL_RepeatCount_datatype:
+	{
+		SMIL_RepeatCount *rep = (SMIL_RepeatCount *)info->far_ptr;
+		if (rep->type == SMIL_REPEATCOUNT_INDEFINITE) strcpy(attValue, "indefinite");
+		else if (rep->type == SMIL_REPEATCOUNT_DEFINED) sprintf(attValue, "%g", FIX2FLT(rep->count) );
+		else fprintf(stdout, "Warning: smil repeat count not assigned\n");
+	}
+		break;
+	case SVG_TransformType_datatype:
+	{
+		SVG_TransformType tr = *(SVG_TransformType *)info->far_ptr;
+		if (tr == SVG_TRANSFORM_MATRIX) strcpy(attValue, "matrix");
+		else if (tr == SVG_TRANSFORM_SCALE) strcpy(attValue, "scale");
+		else if (tr == SVG_TRANSFORM_ROTATE) strcpy(attValue, "rotate");
+		else if (tr == SVG_TRANSFORM_TRANSLATE) strcpy(attValue, "translate");
+		else if (tr == SVG_TRANSFORM_SKEWX) strcpy(attValue, "skewX");
+		else if (tr == SVG_TRANSFORM_SKEWY) strcpy(attValue, "skewY");
+	}
+		break;
+
+	case SMIL_AnimateValue_datatype:
+	{
+		u32 i, count;
+		GF_Node *n = (GF_Node *) elt->xlink->href.target;
+		SMIL_AnimateValue*av = (SMIL_AnimateValue*)info->far_ptr;
+		count = gf_node_get_field_count(n);
+		for (i=0; i<count; i++) {
+			GF_FieldInfo fi;
+			gf_node_get_field(n, i, &fi);
+			if (fi.far_ptr == av->value) {
+				strcpy(attValue, fi.name);
+				break;
+			}
+		}
+	}
+		break;
+	case SMIL_AnimateValues_datatype:
+	{
+		GF_FieldInfo a_fi;
+		u32 i, count;
+		SMIL_AnimateValues *av = (SMIL_AnimateValues*)info->far_ptr;
+		if (av->type) {
+			count = gf_list_count(av->values);
+			a_fi.fieldIndex = 0;
+			a_fi.fieldType = av->type;
+			a_fi.name = info->name;
+			for (i=0; i<count; i++) {
+				char szBuf[1024];
+				a_fi.far_ptr = gf_list_get(av->values, i);
+				svg_dump_attribute(elt, &a_fi, szBuf);
+				if (i) strcat(attValue, ";");
+				strcat(attValue, szBuf);
+			}
+		}
+	}
+		break;
+
 	default:
 		fprintf(stdout, "SVG: Warning, dumping for field %s not supported\n", info->name);
 		break;
@@ -2815,9 +2942,20 @@ static Bool svg_numbers_equal(SVG_Length *l1, SVG_Length *l2)
 }
 static Bool svg_iris_equal(SVG_IRI*iri1, SVG_IRI*iri2)
 {
-	if (iri1->type!=iri2->type) return 0;
-	if ((iri1->type == SVG_IRI_ELEMENTID) && (iri1->target==iri2->target)) return 1;
+	u32 type1, type2;
+	type1 = iri1->type;
+	type2 = iri2->type;
+	/*ignore undef hrefs, these are internall ones*/
+	if ((iri1->type == SVG_IRI_ELEMENTID) && iri1->target) {
+		if (!gf_node_get_id((GF_Node *)iri1->target)) type1 = 0;
+	}
+	if ((iri2->type == SVG_IRI_ELEMENTID) && iri2->target) {
+		if (!gf_node_get_id((GF_Node *)iri2->target)) type2 = 0;
+	}
+	if (type1 != type2) return 0;
+	if ((type1  == SVG_IRI_ELEMENTID) && (iri1->target == iri2->target) ) return 1;
 	if (iri1->iri && iri2->iri && !strcmp(iri1->iri, iri2->iri)) return 1;
+	if (!iri1->iri && !iri2->iri) return 1;
 	return 0;
 }
 static Bool svg_matrices_equal(SVG_Matrix *m1, SVG_Matrix *m2)
@@ -2873,7 +3011,8 @@ Bool svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	case SVG_VectorEffect_datatype:
 	case SVG_PlaybackOrder_datatype:
 	case SVG_TimelineBegin_datatype:
-
+	case SVG_FocusHighlight_datatype:
+	case SVG_TransformType_datatype:
 		return (v1==v2) ? 1 : 0;
 	case SVG_Color_datatype:
 		return svg_colors_equal((SVG_Color *)f1->far_ptr, (SVG_Color *)f2->far_ptr);
@@ -2883,7 +3022,7 @@ Bool svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		SVG_Paint *p1 = (SVG_Paint *)f1->far_ptr;
 		SVG_Paint *p2 = (SVG_Paint *)f2->far_ptr;
 		if (p1->type != p2->type) return 0;
-		if (p1->type==SVG_PAINT_COLOR) return svg_colors_equal(p1->color, p2->color);
+		if (p1->type==SVG_PAINT_COLOR) return svg_colors_equal(&p1->color, &p2->color);
 		else if (p1->type==SVG_PAINT_URI) return (p1->uri && p2->uri && !strcmp(p1->uri, p2->uri)) ? 1 : 0;
 		return 1;
 	}
@@ -2898,6 +3037,7 @@ Bool svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
+	case SVG_Rotate_datatype:
 		return svg_numbers_equal((SVG_Length *)f1->far_ptr, (SVG_Length *)f2->far_ptr);
 	case SVG_IRI_datatype:
 		return svg_iris_equal((SVG_IRI*)f1->far_ptr, (SVG_IRI*)f2->far_ptr);
@@ -3021,16 +3161,9 @@ Bool svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	{
 		char *str1 = *(SVG_String *)f1->far_ptr;
 		char *str2 = *(SVG_String *)f2->far_ptr;
+		if (!str1 && !str2) return 1;
 		return (str1 && str2 && !strcmp(str1, str2)) ? 1 : 0;
 	}
-	case SVG_TransformType_datatype:
-	case SMIL_AnimateValue_datatype:
-	case SMIL_AnimateValues_datatype:
-	case SMIL_AttributeName_datatype:
-	case SMIL_Times_datatype:
-	case SMIL_Duration_datatype:
-	case SMIL_RepeatCount_datatype:
-		return 0;
 
 	/*not sure what we'll put in requiredFormats*/
 	case SVG_FormatList_datatype:
@@ -3062,6 +3195,69 @@ Bool svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 			if (!svg_numbers_equal(p1, p2)) return 0;
 		}
 		return 1;
+	}
+	case SMIL_Times_datatype:
+	{
+		GF_List *l1 = *(GF_List **) f1->far_ptr;
+		GF_List *l2 = *(GF_List **) f2->far_ptr;
+		u32 i = 0;
+		u32 count = gf_list_count(l1);
+		if (gf_list_count(l2) != count) return 0;
+		for (i=0; i<count; i++) {
+			SMIL_Time *p1 = gf_list_get(l1, i);
+			SMIL_Time *p2 = gf_list_get(l2, i);
+			if (p1->type != p2->type) return 0;
+			if (p1->clock != p2->clock) return 0;
+			if (p1->type==SMIL_TIME_EVENT) {
+				if (p1->event != p2->event) return 0;
+				if (p1->parameter != p2->parameter) return 0;
+			}
+		}
+		return 1;
+	}
+	case SMIL_Duration_datatype:
+	{
+		SMIL_Duration *d1 = (SMIL_Duration *)f1->far_ptr;
+		SMIL_Duration *d2 = (SMIL_Duration *)f2->far_ptr;
+		if (d1->type != d2->type) return 0;
+		if (d1->clock_value != d2->clock_value) return 0;
+		return 1;
+	}
+	case SMIL_RepeatCount_datatype:
+	{
+		SMIL_RepeatCount *d1 = (SMIL_RepeatCount *)f1->far_ptr;
+		SMIL_RepeatCount *d2 = (SMIL_RepeatCount *)f2->far_ptr;
+		if (d1->type != d2->type) return 0;
+		if (d1->count != d2->count) return 0;
+		return 1;
+	}
+
+	case SMIL_AttributeName_datatype:
+	{
+		SMIL_AttributeName *att1 = (SMIL_AttributeName *) f1->far_ptr;
+		SMIL_AttributeName *att2 = (SMIL_AttributeName *) f2->far_ptr;
+		/*TODO check me...*/
+		if (att2->field_ptr == att1->field_ptr) return 1;
+		return 0;
+	}
+
+	case SMIL_AnimateValue_datatype:
+	{
+		SMIL_AnimateValue *av1 = (SMIL_AnimateValue*)f1->far_ptr;
+		SMIL_AnimateValue *av2 = (SMIL_AnimateValue*)f2->far_ptr;
+		if (av1->value != av2->value) return 0;
+		return 1;
+	}
+		break;
+
+	case SMIL_AnimateValues_datatype:
+	{
+		u32 count;
+		SMIL_AnimateValues *av1 = (SMIL_AnimateValues*)f1->far_ptr;
+		SMIL_AnimateValues *av2 = (SMIL_AnimateValues*)f2->far_ptr;
+		if (av1->type != av2->type) return 0;
+		if ( (count = gf_list_count(av1->values) ) != gf_list_count(av1->values)) return 0;
+		return count ? 0 : 1;
 	}
 	default:
 		fprintf(stdout, "SVG: Warning, comparaison for field %s not supported\n", f1->name);
@@ -3346,9 +3542,8 @@ GF_Err svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 				fprintf(stdout, "SVG: Warning, only color paints are additive\n");
 				return GF_BAD_PARAM;
 			}
-			if (!pa->color || !pb->color || !pc->color) return GF_BAD_PARAM;
 			pc->type = SVG_PAINT_COLOR;
-			return svg_color_muladd(alpha, pa->color, beta, pb->color, pc->color, clamp);
+			return svg_color_muladd(alpha, &pa->color, beta, &pb->color, &pc->color, clamp);
 		}
 
 	case SVG_Number_datatype:
@@ -3524,7 +3719,7 @@ GF_Err svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 			if (pb->type == SVG_PAINT_URI) {
 				strcpy(pa->uri, pb->uri);
 			} else {
-				*pa->color = *pb->color;
+				pa->color = pb->color;
 			}
 			return GF_OK;
 		}
@@ -3877,8 +4072,8 @@ Bool gf_svg_is_current_color(GF_FieldInfo *a)
 		return (((SVG_Color *)a->far_ptr)->type == SVG_COLOR_CURRENTCOLOR);
 		break;
 	case SVG_Paint_datatype:
-		if ((((SVG_Paint *)a->far_ptr)->type == SVG_PAINT_COLOR) && ((SVG_Paint *)a->far_ptr)->color) {
-			return (((SVG_Paint *)a->far_ptr)->color->type == SVG_COLOR_CURRENTCOLOR);
+		if ( ((SVG_Paint *)a->far_ptr)->type == SVG_PAINT_COLOR) {
+			return (((SVG_Paint *)a->far_ptr)->color.type == SVG_COLOR_CURRENTCOLOR);
 		} else {
 			return 0;
 		}

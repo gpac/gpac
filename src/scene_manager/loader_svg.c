@@ -248,6 +248,9 @@ static Bool svg_parse_animation(GF_SceneGraph *sg, DeferedAnimation *anim, const
 			if (gf_node_get_field_by_name((GF_Node *)anim->target, anim->attributeName, &info) == GF_OK) {
 				attname_value->type = info.fieldType;
 				attname_value->field_ptr = info.far_ptr;
+				/*TODO find a way to get rid of this*/
+				attname_value->name = anim->attributeName;
+				anim->attributeName = NULL;
 			} else {
 				return 1;
 			}
@@ -421,6 +424,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 					}
 				}
 			}
+		} else if (!strnicmp(att->name, "xmlns", 5)) {
 		} else {
 			GF_FieldInfo info;
 			u32 evtType = svg_dom_event_by_name(att->name + 2);

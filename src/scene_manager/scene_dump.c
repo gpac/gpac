@@ -2339,7 +2339,6 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n)
 	char attValue[4096];
 	const char *defName;
 	u32 i, count;
-	SVG_TextContent *text;
 	Bool is_cdata = 0;
 	GF_Node *proto;
 	SVGElement *svg = (SVGElement *)n;
@@ -2361,17 +2360,18 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n)
 	proto = (GF_Node *) gf_svg_new_node(sdump->sg, n->sgprivate->tag);
 	gf_node_register(proto, NULL);
 
-	text = NULL;
 	count = gf_node_get_field_count(n);
 	for (i=0; i<count; i++) {
 		gf_node_get_field(n, i, &info);
 		if (info.fieldType==SVG_TextContent_datatype) {
-			text = info.far_ptr;
-			if (! *text) text = NULL;
 			continue;
 		} else if (info.fieldType==SVG_ContentType_datatype) {
 			char *type = *(u8 **)info.far_ptr;
 			if (type && strstr(type, "text/")) is_cdata = 1;
+		}
+		if (info.fieldType==SVG_IRI_datatype) {
+			SVG_IRI *xlink = (SVG_IRI *)info.far_ptr;
+			if ((xlink->type==SVG_IRI_ELEMENTID) && !xlink->target) continue;
 		}
 		/*don't dump default fields*/
 		gf_node_get_field(proto, i, &pf);
@@ -2396,14 +2396,14 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n)
 	}
 
 	count = gf_list_count(svg->children);
-	if (!count && !text) {
+	if (!count && !svg->textContent) {
 		fprintf(sdump->trace, "/>\n");
 		return;
 	}
 	fprintf(sdump->trace, ">\n");
-	if (text) {
+	if (svg->textContent) {
 		if (is_cdata) fprintf(sdump->trace, "<![CDATA[\n");
-		fprintf(sdump->trace, "%s\n", *text);
+		fprintf(sdump->trace, "%s\n", svg->textContent);
 		if (is_cdata) fprintf(sdump->trace, "]]>\n");
 	}
 

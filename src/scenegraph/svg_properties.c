@@ -35,11 +35,10 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 
 	GF_SAFEALLOC(svg_props->fill, sizeof(SVG_Paint));
 	svg_props->fill->type = SVG_PAINT_COLOR;
-	GF_SAFEALLOC(svg_props->fill->color, sizeof(SVG_Color));
-	svg_props->fill->color->type = SVG_COLOR_RGBCOLOR;
-	svg_props->fill->color->red = 0;
-	svg_props->fill->color->green = 0;
-	svg_props->fill->color->blue = 0;
+	svg_props->fill->color.type = SVG_COLOR_RGBCOLOR;
+	svg_props->fill->color.red = 0;
+	svg_props->fill->color.green = 0;
+	svg_props->fill->color.blue = 0;
 
 	GF_SAFEALLOC(svg_props->fill_rule, sizeof(SVG_FillRule));
 	*svg_props->fill_rule = SVG_FILLRULE_NONZERO;
@@ -50,8 +49,7 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 	
 	GF_SAFEALLOC(svg_props->stroke, sizeof(SVG_Paint));
 	svg_props->stroke->type = SVG_PAINT_NONE;
-	GF_SAFEALLOC(svg_props->stroke->color, sizeof(SVG_Color));
-	svg_props->stroke->color->type = SVG_COLOR_RGBCOLOR;
+	svg_props->stroke->color.type = SVG_COLOR_RGBCOLOR;
 
 	GF_SAFEALLOC(svg_props->stroke_opacity, sizeof(SVG_Opacity));
 	svg_props->stroke_opacity->type = SVG_NUMBER_VALUE;
@@ -90,8 +88,7 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 
 	GF_SAFEALLOC(svg_props->color, sizeof(SVG_Paint));
 	svg_props->color->type = SVG_PAINT_COLOR;
-	GF_SAFEALLOC(svg_props->color->color, sizeof(SVG_Color));
-	svg_props->color->color->type = SVG_COLOR_RGBCOLOR;
+	svg_props->color->color.type = SVG_COLOR_RGBCOLOR;
 	/* svg_props->color->red, green, blue set to zero, so initial value for color property is black */
 
 	GF_SAFEALLOC(svg_props->text_anchor, sizeof(SVG_TextAnchor));
@@ -144,7 +141,7 @@ void gf_svg_properties_apply(SVGPropertiesPointers *render_svg_props, SVGPropert
 {
 	if (!render_svg_props) return;
 
-	if (current_svg_props->color.color->type != SVG_COLOR_INHERIT) {
+	if (current_svg_props->color.color.type != SVG_COLOR_INHERIT) {
 		render_svg_props->color = &current_svg_props->color;
 	}
 	if (current_svg_props->fill.type != SVG_PAINT_INHERIT) {

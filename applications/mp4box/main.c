@@ -43,7 +43,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 #endif
 
 /*in filedump.c*/
-void dump_file_text(char *file, char *inName, u32 dump_mode);
+void dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log);
 void dump_scene_stats(char *file, char *inName, u32 stat_level);
 void PrintNode(const char *name, Bool x3d_node);
 void PrintBuiltInNodes(Bool x3d_node);
@@ -1649,7 +1649,7 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	if (dump_mode) dump_file_text(inName, dump_std ? NULL : outfile, dump_mode-1);
+	if (dump_mode) dump_file_text(inName, dump_std ? NULL : outfile, dump_mode-1, do_log);
 	if (stat_level) dump_scene_stats(inName, dump_std ? NULL : outfile, stat_level);
 	if (!HintIt && print_sdp) DumpSDP(file, dump_std ? NULL : outfile);
 	if (print_info) {

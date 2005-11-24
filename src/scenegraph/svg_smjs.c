@@ -975,12 +975,12 @@ static JSBool udom_get_rgb_color_trait(JSContext *c, JSObject *obj, uintN argc, 
 	case SVG_Paint_datatype:
 	{
 		SVG_Paint *paint = (SVG_Paint *)info.far_ptr;
-		if ((paint->type==SVG_PAINT_COLOR) && paint->color) {
+		if (paint->type==SVG_PAINT_COLOR) {
 			newObj = JS_NewObject(c, &rgbClass, 0, 0);
 			GF_SAFEALLOC(rgb, sizeof(rgbCI));
-			rgb->r = (u8) (255*FIX2FLT(paint->color->red) );
-			rgb->g = (u8) (255*FIX2FLT(paint->color->green) );
-			rgb->b = (u8) (255*FIX2FLT(paint->color->blue) );
+			rgb->r = (u8) (255*FIX2FLT(paint->color.red) );
+			rgb->g = (u8) (255*FIX2FLT(paint->color.green) );
+			rgb->b = (u8) (255*FIX2FLT(paint->color.blue) );
 			JS_SetPrivate(c, newObj, rgb);
 			*rval = OBJECT_TO_JSVAL(newObj);
 			return JS_TRUE;
@@ -1290,10 +1290,10 @@ static JSBool udom_set_rgb_color_trait(JSContext *c, JSObject *obj, uintN argc, 
 	{
 		SVG_Paint *paint = (SVG_Paint *)info.far_ptr;
 		paint->type = SVG_PAINT_COLOR;
-		if (!paint->color) paint->color = malloc(sizeof(SVG_Color));
-		paint->color->red = FLT2FIX(rgb->r / 255.0f);
-		paint->color->green = FLT2FIX(rgb->g / 255.0f);
-		paint->color->blue = FLT2FIX(rgb->b / 255.0f);
+		paint->color.type = SVG_COLOR_RGBCOLOR;
+		paint->color.red = FLT2FIX(rgb->r / 255.0f);
+		paint->color.green = FLT2FIX(rgb->g / 255.0f);
+		paint->color.blue = FLT2FIX(rgb->b / 255.0f);
 		svg_node_changed(n, &info);
 		return JS_TRUE;
 	}

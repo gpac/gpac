@@ -218,6 +218,11 @@ void CFileProps::SetGeneralInfo()
 	strcpy(info, "");
 	if (!odm || gf_term_get_object_info(gpac->m_term, odm, &odi) != GF_OK) return;
 
+	if (!odi.od) {
+		strcat(info, odi.service_url);
+		m_ODInfo.SetWindowText(info);
+		return;
+	}
 	sprintf(buf, "%sObject Descriptor ID %d\r\n", (odi.has_profiles) ? "Initial " : "", odi.od->objectDescriptorID);
 	strcat(info, buf);
 	if (odi.duration) {
@@ -404,6 +409,7 @@ void CFileProps::SetDecoderInfo()
 	m_ODInfo.SetWindowText("");
 
 	if (!current_odm || gf_term_get_object_info(gpac->m_term, current_odm, &odi)) return;
+	if (!odi.od) return;
 
 	strcat(info, "Status: ");
 	switch (odi.status) {
@@ -477,6 +483,7 @@ void CFileProps::SetStreamsInfo()
 	m_ODInfo.SetWindowText("");
 
 	if (!odm || gf_term_get_object_info(gpac->m_term, odm, &odi) != GF_OK) return;
+	if (!odi.od) return;
 
 
 	if (odi.has_profiles) {
@@ -647,6 +654,7 @@ void CFileProps::SetNetworkInfo()
 	m_ODInfo.SetWindowText("");
 
 	if (!odm || gf_term_get_object_info(gpac->m_term, odm, &odi) != GF_OK) return;
+	if (!odi.od) return;
 
 	if (odi.owns_service) {
 		const char *url, *path;

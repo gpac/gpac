@@ -871,6 +871,10 @@ SOURCE=..\..\src\laser\lsr_dec.c
 
 SOURCE=..\..\src\laser\lsr_enc.c
 # End Source File
+# Begin Source File
+
+SOURCE=..\..\src\laser\lsr_tables.c
+# End Source File
 # End Group
 # Begin Group "include"
 

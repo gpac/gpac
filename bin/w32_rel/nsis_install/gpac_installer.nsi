@@ -111,6 +111,11 @@ Section "MPEG-4 Systems Decoders"
   File "..\gm_odf_dec.dll"
 SectionEnd
 
+Section "LASeR Decoder"
+  SectionIn 1 2
+  File "..\gm_laser_dec.dll"
+SectionEnd
+
 Section "VRML/X3D/MPEG-4 Text/SWF Loader"
   SectionIn 1 2
   File "..\gm_ctx_load.dll"

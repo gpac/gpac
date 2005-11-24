@@ -161,6 +161,8 @@ enum
 	this is used when performing diff encoding (eg the file to load only has updates).
 	When set, gf_sm_load_init will NOT attempt to parse first frame*/
 	GF_SM_LOAD_CONTEXT_READY = 4,
+	/*indicates binary reading should be dumped (LSR only)*/
+	GF_SM_LOAD_DUMP_BINARY = 8,
 };
 
 /*loader type, usually detected based on file ext*/

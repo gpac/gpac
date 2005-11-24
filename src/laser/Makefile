@@ -11,7 +11,7 @@ endif
 
 
 #common obj
-OBJS=lsr_enc.o lsr_dec.o
+OBJS=lsr_enc.o lsr_dec.o lsr_tables.o
 
 
 SRCS := $(OBJS:.o=.c) 

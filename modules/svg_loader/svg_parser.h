@@ -233,9 +233,6 @@ typedef struct {
 	SVGElement *elt;
 } href_instance;
 
-/* Generic functions */
-u32			svg_get_animation_event_by_name(char *name);
-
 Bool		svg_has_been_IDed	(SVGParser *parser, xmlChar *node_name);
 u32			svg_get_node_id		(SVGParser *parser, xmlChar *nodename);
 void		svg_parse_element_id(SVGParser *parser, SVGElement *elt, char *nodename);
