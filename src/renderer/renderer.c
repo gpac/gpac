@@ -504,25 +504,25 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 #ifndef GPAC_DISABLE_SVG
 		/*hack for SVG where size is set in %*/
 		if (!sr->has_size_info) {
-			GF_Node *root = gf_sg_get_root_node(sr->scene);
-			u32 tag = gf_node_get_tag(root);
+			SVGsvgElement *root = (SVGsvgElement *) gf_sg_get_root_node(sr->scene);
+			u32 tag = gf_node_get_tag((GF_Node*)root);
 			if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
 				SVG_Length l;
 				sr->has_size_info = 1;
 				sr->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
-				l = ((SVGsvgElement*)root)->width;
+				l = root->width;
 				if (l.type!=SVG_NUMBER_PERCENTAGE) {
 					svg_convert_length_unit_to_user_unit(&l);
 					width = FIX2INT(l.value);
 				} else {
-					width = FIX2INT(gf_muldiv(sr->width, l.value, 100) );
+					width = FIX2INT(root->viewBox.width);
 				}
 				l = ((SVGsvgElement*)root)->height;
 				if (l.type!=SVG_NUMBER_PERCENTAGE) {
 					svg_convert_length_unit_to_user_unit(&l);
 					height = FIX2INT(l.value);
 				} else {
-					height = FIX2INT(gf_muldiv(sr->height, l.value, 100) );
+					height = FIX2INT(root->viewBox.height);
 				}
 			}
 		}
