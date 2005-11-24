@@ -34,8 +34,7 @@
 /* Reusing generic 2D stacks for rendering */
 #include "../stacks2d.h"
 
-/* Importing SMIL stacks for animation */
-#include "../smil/smil_stacks.h"
+void SVG_Render_base(GF_Node *node, RenderEffect2D *eff, SVGPropertiesPointers *backup_props);
 
 /* Creates a rendering context and Translates the SVG Styling properties into a context
    that the renderer can understand */
@@ -45,7 +44,7 @@ DrawableContext *SVG_drawable_init_context(Drawable *node, RenderEffect2D *eff);
    of the current SVG element (current_svg_props). Only the properties in current_svg_props 
    with a value different than inherit are updated.
    This function implements inheritance. */
-void SVGApplyProperties(SVGStylingProperties *render_svg_props, SVGStylingProperties current_svg_props);
+void SVGApplyProperties(SVGPropertiesPointers *render_svg_props, SVGProperties *current_svg_props);
 
 /* Basic shapes rendering functions */
 void SVG_Init_svg(Render2D *sr, GF_Node *node);
@@ -63,14 +62,6 @@ void SVG_Init_use(Render2D *se, GF_Node *node);
 
 /* Text rendering functions */
 void SVG_Init_text(Render2D *sr, GF_Node *node);
-
-/* SVG Specific Animation functions */
-void SVG_Init_set(Render2D *sr, GF_Node *node);
-void SVG_Init_animate(Render2D *sr, GF_Node *node);
-void SVG_Init_animateTransform(Render2D *sr, GF_Node *node);
-void SVG_Init_animateMotion(Render2D *sr, GF_Node *node);
-void SVG_Init_animateColor(Render2D *sr, GF_Node *node);
-void SVG_Init_discard(Render2D *sr, GF_Node *node);
 
 /* Interactive functions */
 void SVG_Init_a(Render2D *se, GF_Node *node);
@@ -110,8 +101,6 @@ typedef struct
 } SVG_audio_stack;
 void SVG_Init_audio(Render2D *se, GF_Node *node);
 
-
-
 typedef struct 
 {
 	u8 state;
@@ -122,7 +111,6 @@ typedef struct
 void SVG_Init_linearGradient(Render2D *sr, GF_Node *node);
 void SVG_Init_radialGradient(Render2D *sr, GF_Node *node);
 GF_TextureHandler *svg_gradient_get_texture(GF_Node *node);
-
 #endif
 
 #endif

@@ -1145,7 +1145,7 @@ void gf_node_del(GF_Node *node)
 	else if (node->sgprivate->tag<=GF_NODE_RANGE_LAST_MPEG4) gf_sg_mpeg4_node_del(node);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) gf_sg_x3d_node_del(node);
 #ifndef GPAC_DISABLE_SVG
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) SVGElement_Del((SVGElement *) node);
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) gf_svg_element_del((SVGElement *) node);
 #endif
 	else gf_node_free(node);
 #endif
@@ -1157,7 +1157,10 @@ u32 gf_node_get_field_count(GF_Node *node)
 	if (node->sgprivate->tag <= TAG_UndefinedNode) return 0;
 	/*for both MPEG4 & X3D*/
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_ALL);
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return SVG_GetAttributeCount(node);
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_attribute_count(node);
+#ifdef GPAC_USE_LASeR
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_LASER) return LASeRNode_GetFieldCount(node, 0);
+#endif
 	return 0;
 }
 
@@ -1173,7 +1176,10 @@ const char *gf_node_get_class_name(GF_Node *node)
 	else if (node->sgprivate->tag==TAG_ProtoNode) return ((GF_ProtoInstance*)node)->proto_name;
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_class_name(node->sgprivate->tag);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_class_name(node->sgprivate->tag);
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return SVG_GetElementName(node->sgprivate->tag);
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_element_name(node->sgprivate->tag);
+#ifdef GPAC_USE_LASeR
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_LASER) return LASeR_GetNodeName(node->sgprivate->tag);
+#endif
 	else return "UnsupportedNode";
 #endif
 }
@@ -1188,7 +1194,7 @@ GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
 	else if (tag <= GF_NODE_RANGE_LAST_MPEG4) node = gf_sg_mpeg4_node_new(tag);
 	else if (tag <= GF_NODE_RANGE_LAST_X3D) node = gf_sg_x3d_node_new(tag);
 #ifndef GPAC_DISABLE_SVG
-	else if (tag <= GF_NODE_RANGE_LAST_SVG) node = (GF_Node *) SVG_CreateNode(tag);
+	else if (tag <= GF_NODE_RANGE_LAST_SVG) node = (GF_Node *) gf_svg_create_node(tag);
 #endif
 	else node = NULL;
 
@@ -1215,7 +1221,7 @@ GF_Err gf_node_get_field(GF_Node *node, u32 FieldIndex, GF_FieldInfo *info)
 		return gf_sg_script_get_field(node, info);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_field(node, info);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_field(node, info);
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return SVG_GetAttributeInfo(node, info);
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_attribute_info(node, info);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_LASER) return GF_NOT_SUPPORTED;
 #endif
 	return GF_NOT_SUPPORTED;

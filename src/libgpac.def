@@ -1081,17 +1081,15 @@ EXPORTS
 	gf_laser_set_trace
 
 ;SVG exports
-	SVG_GetAttributeInfo
-	SVG_GetAttributeCount
-	SVG_GetTagByName
-	SVG_NewNode
-	SVG_DeleteTransformList
-	SVG_DeletePaint
-	SVG_DeleteCoordinates
-	SVG_DeletePath
-	SVG_DeletePoints
-	SMIL_DeleteTimes
-	SVG_GetElementName
+	gf_svg_get_attribute_info
+	gf_svg_get_attribute_count
+	gf_svg_get_tag_by_name
+	gf_svg_new_node
+	gf_svg_get_element_name
+	gf_node_animation_add
+	gf_node_animation_del
+	gf_node_animation_count
+	gf_node_animation_get
 	gf_node_listener_add
 	gf_node_listener_del
 	gf_node_listener_count
@@ -1109,6 +1107,14 @@ EXPORTS
 	gf_sg_dom_create_listener
 	svg_store_embedded_data
 	smil_parse_attributename
+	gf_smil_anim_init_node
+	gf_svg_is_property_inherited
+	gf_svg_is_current_color
+	gf_svg_attributes_copy_computed_value
+	gf_smil_timing_notify_time
+	gf_svg_properties_init_pointers
+	gf_svg_properties_reset_pointers
+	gf_svg_properties_apply
+	gf_path_init_from_svg
 	svg_dom_event_by_name
 	gf_dom_event_name
-

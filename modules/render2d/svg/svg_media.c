@@ -161,13 +161,12 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	/*video stack is just an extension of image stack, type-casting is OK*/
 	SVG_image_stack *st = (SVG_image_stack*)gf_node_get_private(node);
 	RenderEffect2D *eff = (RenderEffect2D *)rs;
-	SVGStylingProperties backup_props;
+	SVGPropertiesPointers backup_props;
 	GF_Matrix2D backup_matrix;
 	SVG_Matrix *m;
 	DrawableContext *ctx;
 
-	memcpy(&backup_props, eff->svg_props, sizeof(SVGStylingProperties));
-	SVGApplyProperties(eff->svg_props, ((SVGvideoElement *)node)->properties);
+	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
 
 	if (gf_node_get_tag(node)==TAG_SVG_image) {
 		SVG_BuildGraph_image(gf_node_get_private(node));
@@ -183,13 +182,13 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
 			gf_path_get_bounds(st->graph->path, &eff->bounds);
 		}
-		memcpy(eff->svg_props, &backup_props, sizeof(SVGStylingProperties));
+		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 		return;
 	}
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
-		memcpy(eff->svg_props, &backup_props, sizeof(SVGStylingProperties));
+		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 		return;
 	}
 
@@ -220,7 +219,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	/*bounds are stored when building graph*/	
 	drawable_finalize_render(ctx, eff);
 	gf_mx2d_copy(eff->transform, backup_matrix);  
-	memcpy(eff->svg_props, &backup_props, sizeof(SVGStylingProperties));
+	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 }
 
 static Bool SVG_PointOver_bitmap(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
@@ -273,7 +272,7 @@ void SVG_Init_image(Render2D *sr, GF_Node *node)
 	st->txh.flags = 0;
 
 	/* builds the MFURL to be used by the texture */
-	SVG_SetMFURLFromURI(&(st->txurl), ((SVGimageElement*)node)->xlink_href.iri);
+	SVG_SetMFURLFromURI(&(st->txurl), ((SVGimageElement*)node)->xlink->href.iri);
 
 	gf_node_set_private(node, st);
 	gf_node_set_render_function(node, SVG_Render_bitmap);
@@ -423,7 +422,7 @@ void SVG_Init_video(Render2D *sr, GF_Node *node)
 	st->fetch_first_frame = 1;
 	
 	/* create an MFURL from the SVG iri */
-	SVG_SetMFURLFromURI(&(st->txurl), ((SVGvideoElement *)node)->xlink_href.iri);
+	SVG_SetMFURLFromURI(&(st->txurl), ((SVGvideoElement *)node)->xlink->href.iri);
 
 	gf_sr_register_time_node(st->txh.compositor, &st->time_handle);	
 	
@@ -541,7 +540,7 @@ void SVG_Init_audio(Render2D *sr, GF_Node *node)
 	st->time_handle.obj = node;
 
 	/* creates an MFURL from the URI of the SVG element */
-	SVG_SetMFURLFromURI(&(st->aurl), ((SVGaudioElement *)node)->xlink_href.iri);
+	SVG_SetMFURLFromURI(&(st->aurl), ((SVGaudioElement *)node)->xlink->href.iri);
 
 	gf_node_set_private(node, st);
 	gf_node_set_render_function(node, SVG_Render_audio);

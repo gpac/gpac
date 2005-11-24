@@ -67,7 +67,7 @@ LIB32=link.exe -lib
 # PROP Target_Dir ""
 MTL=midl.exe
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_HAS_SPIDERMONKEY" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_HAS_SPIDERMONKEY" /FR /FD /GZ /c
 # SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x40c /d "_DEBUG"
 # ADD RSC /l 0x40c /d "_DEBUG"
@@ -489,11 +489,23 @@ SOURCE=..\..\include\gpac\internal\scenegraph_dev.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\scenegraph\smil_anim.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\scenegraph\smil_timing.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\scenegraph\svg_attributes.c
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\src\scenegraph\svg_nodes.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\scenegraph\svg_properties.c
 # End Source File
 # Begin Source File
 

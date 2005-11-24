@@ -132,13 +132,6 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_SVG_linearGradient:			SVG_Init_linearGradient(sr, node); break;
 	case TAG_SVG_radialGradient:			SVG_Init_radialGradient(sr, node); break;
 
-	case TAG_SVG_set:				SVG_Init_set(sr, node); break;
-	case TAG_SVG_animateMotion:		SVG_Init_animateMotion(sr, node); break;
-	case TAG_SVG_animate:			SVG_Init_animate(sr, node); break;
-	case TAG_SVG_animateColor:		SVG_Init_animateColor(sr, node); break;
-	case TAG_SVG_animateTransform:	SVG_Init_animateTransform(sr, node); break; 
-	case TAG_SVG_discard:			SVG_Init_discard(sr, node); break; 
-
 #endif
 	default: break;
 	}
@@ -173,7 +166,8 @@ Bool R2D_NodeChanged(GF_VisualRenderer *vr, GF_Node *byObj)
 	case TAG_SVG_animate: 
 	case TAG_SVG_animateColor: 
 	case TAG_SVG_animateTransform: 
-		SMIL_Modified_Animation(byObj); return 1;
+		//SMIL_Modified_Animation(byObj); return 1;
+		return 0;
 	case TAG_SVG_a:
 	{
 		/*mark node as dirty - since a acts as a sensor, mark it as dirty as a parent node*/

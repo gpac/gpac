@@ -101,27 +101,11 @@ SOURCE=..\..\modules\render2d\svg\render_svg_text.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\render2d\svg\svg_animation.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\modules\render2d\svg\svg_media.c
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\modules\render2d\svg\svg_stacks.h
-# End Source File
-# End Group
-# Begin Group "smil"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=..\..\modules\render2d\smil\smil_animation.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\render2d\smil\smil_stacks.h
 # End Source File
 # End Group
 # Begin Source File

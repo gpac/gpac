@@ -28,13 +28,13 @@
 #ifndef GPAC_DISABLE_SVG
 #include "svg_stacks.h"
 
-
 /*
 	This is the generic routine for child traversing - note we are not duplicating the effect
 */
 void svg_render_node(GF_Node *node, RenderEffect2D *eff)
 {
-	if (gf_node_listener_count(node)) {
+	Bool has_listener = gf_node_listener_count(node);
+	if (has_listener) {
 		eff->nb_listeners++;
 		gf_node_render(node, eff);
 		eff->nb_listeners--;
@@ -77,178 +77,6 @@ void svg_get_nodes_bounds(GF_Node *self, GF_List *children, RenderEffect2D *eff)
 	}
 	gf_mx2d_copy(eff->transform, cur_mx);
 	eff->bounds = rc;
-}
-
-/* Sets all SVG Properties to their initial value 
-   The properties are then updated when going down the tree
-   TODO: Check that all properties are there */
-static void SVGInitProperties(SVGStylingProperties *svg_props) 
-{
-	if (!svg_props) return;
-
-	GF_SAFEALLOC(svg_props->fill, sizeof(SVG_Paint));
-	svg_props->fill->type = SVG_PAINT_COLOR;
-	GF_SAFEALLOC(svg_props->fill->color, sizeof(SVG_Color));
-	svg_props->fill->color->type = SVG_COLOR_RGBCOLOR;
-	svg_props->fill->color->red = 0;
-	svg_props->fill->color->green = 0;
-	svg_props->fill->color->blue = 0;
-
-	GF_SAFEALLOC(svg_props->fill_rule, sizeof(SVG_FillRule));
-	*svg_props->fill_rule = SVG_FILLRULE_NONZERO;
-
-	GF_SAFEALLOC(svg_props->fill_opacity, sizeof(SVG_Opacity));
-	svg_props->fill_opacity->type = SVG_NUMBER_VALUE;
-	svg_props->fill_opacity->value = FIX_ONE;
-	
-	GF_SAFEALLOC(svg_props->stroke, sizeof(SVG_Paint));
-	svg_props->stroke->type = SVG_PAINT_NONE;
-	GF_SAFEALLOC(svg_props->stroke->color, sizeof(SVG_Color));
-	svg_props->stroke->color->type = SVG_COLOR_RGBCOLOR;
-
-	GF_SAFEALLOC(svg_props->stroke_opacity, sizeof(SVG_Opacity));
-	svg_props->stroke_opacity->type = SVG_NUMBER_VALUE;
-	svg_props->stroke_opacity->value = FIX_ONE;
-
-	GF_SAFEALLOC(svg_props->stroke_width, sizeof(SVG_StrokeWidth));
-	svg_props->stroke_width->type = SVG_NUMBER_VALUE;
-	svg_props->stroke_width->value = FIX_ONE;
-
-	GF_SAFEALLOC(svg_props->stroke_linecap, sizeof(SVG_StrokeLineCap));
-	*(svg_props->stroke_linecap) = SVG_STROKELINECAP_BUTT;
-	GF_SAFEALLOC(svg_props->stroke_linejoin, sizeof(SVG_StrokeLineJoin));
-	*(svg_props->stroke_linejoin) = SVG_STROKELINEJOIN_MITER;
-
-	GF_SAFEALLOC(svg_props->stroke_miterlimit, sizeof(SVG_StrokeMiterLimit));
-	svg_props->stroke_miterlimit->type = SVG_NUMBER_VALUE;
-	svg_props->stroke_miterlimit->value = 4*FIX_ONE;
-
-	GF_SAFEALLOC(svg_props->stroke_dashoffset , sizeof(SVG_StrokeDashOffset));
-	svg_props->stroke_dashoffset->type = SVG_NUMBER_VALUE;
-	svg_props->stroke_dashoffset->value = 0;
-
-	GF_SAFEALLOC(svg_props->stroke_dasharray, sizeof(SVG_StrokeDashArray));
-	svg_props->stroke_dasharray->type = SVG_STROKEDASHARRAY_NONE;
-
-	GF_SAFEALLOC(svg_props->font_family, sizeof(SVG_FontFamily));
-	svg_props->font_family->type = SVG_FONTFAMILY_VALUE;
-	svg_props->font_family->value = strdup("Arial");
-
-	GF_SAFEALLOC(svg_props->font_size, sizeof(SVG_FontSize));
-	svg_props->font_size->type = SVG_NUMBER_VALUE;
-	svg_props->font_size->value = 12*FIX_ONE;
-
-	GF_SAFEALLOC(svg_props->font_style, sizeof(SVG_FontStyle));
-	*(svg_props->font_style) = SVG_FONTSTYLE_NORMAL;
-
-	GF_SAFEALLOC(svg_props->color, sizeof(SVG_Color));
-	svg_props->color->type = SVG_COLOR_RGBCOLOR;
-	/* svg_props->color->red, green, blue set to zero, so initial value for color property is black */
-
-	GF_SAFEALLOC(svg_props->text_anchor, sizeof(SVG_TextAnchor));
-	*svg_props->text_anchor = SVG_TEXTANCHOR_START;
-
-	GF_SAFEALLOC(svg_props->visibility, sizeof(SVG_Visibility));
-	*svg_props->visibility = SVG_VISIBILITY_VISIBLE;
-
-	GF_SAFEALLOC(svg_props->display, sizeof(SVG_Display));
-	*svg_props->display = SVG_DISPLAY_INLINE;
-
-}
-
-static void SVGResetProperties(SVGStylingProperties *svg_props)
-{
-	if (!svg_props) return;
-	SVG_DeletePaint(svg_props->fill);
-	if(svg_props->fill_rule) free(svg_props->fill_rule);
-	if(svg_props->fill_opacity) free(svg_props->fill_opacity);
-	SVG_DeletePaint(svg_props->stroke);
-	if(svg_props->stroke_opacity) free(svg_props->stroke_opacity);
-	if(svg_props->stroke_width) free(svg_props->stroke_width);
-	if(svg_props->stroke_linecap) free(svg_props->stroke_linecap);
-	if(svg_props->stroke_linejoin) free(svg_props->stroke_linejoin);
-	if(svg_props->stroke_miterlimit) free(svg_props->stroke_miterlimit);
-	if(svg_props->stroke_dashoffset) free(svg_props->stroke_dashoffset);
-	if(svg_props->stroke_dasharray) {
-		if (svg_props->stroke_dasharray->array.count) free(svg_props->stroke_dasharray->array.vals);
-		free(svg_props->stroke_dasharray);
-	}
-	if(svg_props->font_family) {
-		if (svg_props->font_family->value) free(svg_props->font_family->value);
-		free(svg_props->font_family);
-	}
-	if(svg_props->font_size) free(svg_props->font_size);
-	if(svg_props->font_style) free(svg_props->font_style);
-	if(svg_props->color) free(svg_props->color);
-	if(svg_props->text_anchor) free(svg_props->text_anchor);
-	if(svg_props->visibility) free(svg_props->visibility);
-	if(svg_props->display) free(svg_props->display);
-	memset(svg_props, 0, sizeof(SVGStylingProperties));
-}
-
-/* Updates the SVG Styling Properties of the renderer (render_svg_props) with the properties
-   of the current SVG element (current_svg_props). Only the properties in current_svg_props 
-   with a value different than inherit are updated.
-   This function implements inheritance. 
-   TODO: Check if all properties are implemented */
-void SVGApplyProperties(SVGStylingProperties *render_svg_props, SVGStylingProperties current_svg_props)
-{
-	if (!render_svg_props) return;
-
-	if (current_svg_props.color && current_svg_props.color->type != SVG_COLOR_INHERIT) {
-		render_svg_props->color = current_svg_props.color;
-	}
-	if (current_svg_props.fill && current_svg_props.fill->type != SVG_PAINT_INHERIT) {
-		render_svg_props->fill = current_svg_props.fill;
-	}
-	if (current_svg_props.fill_rule && *current_svg_props.fill_rule != SVG_FILLRULE_INHERIT) {
-		render_svg_props->fill_rule = current_svg_props.fill_rule;
-	}
-	if (current_svg_props.fill_opacity && current_svg_props.fill_opacity->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->fill_opacity = current_svg_props.fill_opacity;
-	}
-	if (current_svg_props.stroke && current_svg_props.stroke->type != SVG_PAINT_INHERIT) {
-		render_svg_props->stroke = current_svg_props.stroke;
-	}
-	if (current_svg_props.stroke_opacity && current_svg_props.stroke_opacity->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->stroke_opacity = current_svg_props.stroke_opacity;
-	}
-	if (current_svg_props.stroke_width && current_svg_props.stroke_width->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->stroke_width = current_svg_props.stroke_width;
-	}
-	if (current_svg_props.stroke_miterlimit && current_svg_props.stroke_miterlimit->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->stroke_miterlimit = current_svg_props.stroke_miterlimit;
-	}
-	if (current_svg_props.stroke_linecap && *current_svg_props.stroke_linecap != SVG_STROKELINECAP_INHERIT) {
-		render_svg_props->stroke_linecap = current_svg_props.stroke_linecap;
-	}
-	if (current_svg_props.stroke_linejoin && *current_svg_props.stroke_linejoin != SVG_STROKELINEJOIN_INHERIT) {
-		render_svg_props->stroke_linejoin = current_svg_props.stroke_linejoin;
-	}
-	if (current_svg_props.stroke_dashoffset && current_svg_props.stroke_dashoffset->value != SVG_NUMBER_INHERIT) {
-		render_svg_props->stroke_dashoffset = current_svg_props.stroke_dashoffset;
-	}
-	if (current_svg_props.stroke_dasharray && current_svg_props.stroke_dasharray->type != SVG_STROKEDASHARRAY_INHERIT) {
-		render_svg_props->stroke_dasharray = current_svg_props.stroke_dasharray;
-	}
-	if (current_svg_props.font_family && current_svg_props.font_family->type != SVG_FONTFAMILY_INHERIT) {
-		render_svg_props->font_family = current_svg_props.font_family;
-	}
-	if (current_svg_props.font_size && current_svg_props.font_size->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->font_size = current_svg_props.font_size;
-	}
-	if (current_svg_props.font_style && *current_svg_props.font_style != SVG_FONTSTYLE_INHERIT) {
-		render_svg_props->font_style = current_svg_props.font_style;
-	}
-	if (current_svg_props.text_anchor && *current_svg_props.text_anchor != SVG_TEXTANCHOR_INHERIT) {
-		render_svg_props->text_anchor = current_svg_props.text_anchor;
-	}
-	if (current_svg_props.visibility && *current_svg_props.visibility != SVG_VISIBILITY_INHERIT) {
-		render_svg_props->visibility = current_svg_props.visibility;
-	}
-	if (current_svg_props.display && *current_svg_props.display != SVG_DISPLAY_INHERIT) {
-		render_svg_props->display = current_svg_props.display;
-	}
 }
 
 /* Set the viewport of the renderer based on the element that contains a viewport 
@@ -387,23 +215,21 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 	GF_Matrix2D backup_matrix;
 	GF_IRect top_clip;
 	Bool is_root_svg = 0;
-	SVGStylingProperties backup_props;
-	u32 styling_size = sizeof(SVGStylingProperties);
+	SVGPropertiesPointers backup_props;
+	u32 styling_size = sizeof(SVGPropertiesPointers);
 	SVGsvgElement *svg = (SVGsvgElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
 	/* Exception for the SVG top node:
 		before 1), initializes the styling properties and the geometric transformation */
 	if (!eff->svg_props) {
-		eff->svg_props = (SVGStylingProperties *) gf_node_get_private(node);
+		eff->svg_props = (SVGPropertiesPointers *) gf_node_get_private(node);
 		is_root_svg = 1;
 		/*To allow pan navigation*/
 		//eff->transform.m[5] *= -1;
 	}
 
-	/* 1) */
-	memcpy(&backup_props, eff->svg_props, styling_size);
-	SVGApplyProperties(eff->svg_props, svg->properties);	
+	SVG_Render_base(node, rs, &backup_props);
 
 	/* 0) */
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
@@ -438,17 +264,17 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 
 void SVG_Destroy_svg(GF_Node *node)
 {
-	SVGStylingProperties *svgp = (SVGStylingProperties *) gf_node_get_private(node);
-	SVGResetProperties(svgp);
+	SVGPropertiesPointers *svgp = (SVGPropertiesPointers *) gf_node_get_private(node);
+	gf_svg_properties_reset_pointers(svgp);
 	free(svgp);
 }
 
 void SVG_Init_svg(Render2D *sr, GF_Node *node)
 {
-	SVGStylingProperties *svgp;
+	SVGPropertiesPointers *svgp;
 
-	GF_SAFEALLOC(svgp, sizeof(SVGStylingProperties));
-	SVGInitProperties(svgp);
+	GF_SAFEALLOC(svgp, sizeof(SVGPropertiesPointers));
+	gf_svg_properties_init_pointers(svgp);
 	gf_node_set_private(node, svgp);
 
 	gf_node_set_render_function(node, SVG_Render_svg);
@@ -458,14 +284,14 @@ void SVG_Init_svg(Render2D *sr, GF_Node *node)
 static void SVG_Render_g(GF_Node *node, void *rs)
 {
 	GF_Matrix2D backup_matrix;
-	SVGStylingProperties backup_props;
-	u32 styling_size = sizeof(SVGStylingProperties);
+	SVGPropertiesPointers backup_props;
+	u32 styling_size = sizeof(SVGPropertiesPointers);
 
 	SVGgElement *g = (SVGgElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
-	memcpy(&backup_props, eff->svg_props, styling_size);
-	SVGApplyProperties(eff->svg_props, g->properties);
+
+	SVG_Render_base(node, rs, &backup_props);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
 		memcpy(eff->svg_props, &backup_props, styling_size);
@@ -496,14 +322,13 @@ void SVG_Init_g(Render2D *sr, GF_Node *node)
 static void SVG_Render_switch(GF_Node *node, void *rs)
 {
 	GF_Matrix2D backup_matrix;
-	SVGStylingProperties backup_props;
-	u32 styling_size = sizeof(SVGStylingProperties);
+	SVGPropertiesPointers backup_props;
+	u32 styling_size = sizeof(SVGPropertiesPointers);
 
 	SVGswitchElement *s = (SVGswitchElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
-	memcpy(&backup_props, eff->svg_props, styling_size);
-	SVGApplyProperties(eff->svg_props, s->properties);
+	SVG_Render_base(node, rs, &backup_props);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
 		memcpy(eff->svg_props, &backup_props, styling_size);
@@ -531,25 +356,22 @@ void SVG_Init_switch(Render2D *sr, GF_Node *node)
 }
 
 
-static void SVG_DrawablePostRender(Drawable *cs, SVGStylingProperties *props, SVG_Matrix m, RenderEffect2D *eff)
+static void SVG_DrawablePostRender(Drawable *cs, SVGPropertiesPointers *backup_props, 
+								   SVGTransformableElement *elt, RenderEffect2D *eff)
 {
 	GF_Matrix2D backup_matrix;
 	DrawableContext *ctx;
-	SVGStylingProperties backup_props;
-
-	memcpy(&backup_props, eff->svg_props, sizeof(SVGStylingProperties));
-	SVGApplyProperties(eff->svg_props, *props);
 
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
-		gf_mx2d_pre_multiply(&eff->transform, &m);
+		gf_mx2d_pre_multiply(&eff->transform, &elt->transform);
 		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) gf_path_get_bounds(cs->path, &eff->bounds);
-		memcpy(eff->svg_props, &backup_props, sizeof(SVGStylingProperties));
+		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 		return;
 	}
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
-		memcpy(eff->svg_props, &backup_props, sizeof(SVGStylingProperties));
+		memcpy(eff->svg_props, backup_props, sizeof(SVGPropertiesPointers));
 		return;
 	}
 
@@ -567,15 +389,17 @@ static void SVG_DrawablePostRender(Drawable *cs, SVGStylingProperties *props, SV
 	/* end of 3) */
 
 	gf_mx2d_copy(eff->transform, backup_matrix);  
-	memcpy(eff->svg_props, &backup_props, sizeof(SVGStylingProperties));
+	memcpy(eff->svg_props, backup_props, sizeof(SVGPropertiesPointers));
 }
 
 static void SVG_Render_rect(GF_Node *node, void *rs)
 {
+	SVGPropertiesPointers backup_props;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
-	RenderEffect2D *eff = rs;
 	SVGrectElement *rect = (SVGrectElement *)node;
-  
+
+	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
+	
 	/* 3) for a leaf node
 	   Recreates the path (i.e the shape) only if the node is dirty 
 	   (has changed compared to the previous rendering phase) */
@@ -614,7 +438,7 @@ static void SVG_Render_rect(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &rect->properties, rect->transform, eff);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)rect, (RenderEffect2D *)rs);
 }
 
 void SVG_Init_rect(Render2D *sr, GF_Node *node)
@@ -625,9 +449,11 @@ void SVG_Init_rect(Render2D *sr, GF_Node *node)
 
 static void SVG_Render_circle(GF_Node *node, void *rs)
 {
-	Drawable *cs = (Drawable *)gf_node_get_private(node);
-	RenderEffect2D *eff = rs;
 	SVGcircleElement *circle = (SVGcircleElement *)node;
+	SVGPropertiesPointers backup_props;
+	Drawable *cs = (Drawable *)gf_node_get_private(node);
+
+	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		Fixed r = 2*circle->r.value;
@@ -636,7 +462,7 @@ static void SVG_Render_circle(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &circle->properties, circle->transform, eff);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)circle, (RenderEffect2D *)rs);
 }
 
 void SVG_Init_circle(Render2D *sr, GF_Node *node)
@@ -647,9 +473,11 @@ void SVG_Init_circle(Render2D *sr, GF_Node *node)
 
 static void SVG_Render_ellipse(GF_Node *node, void *rs)
 {
-	Drawable *cs = (Drawable *)gf_node_get_private(node);
-	RenderEffect2D *eff = rs;
 	SVGellipseElement *ellipse = (SVGellipseElement *)node;
+	SVGPropertiesPointers backup_props;
+	Drawable *cs = (Drawable *)gf_node_get_private(node);
+
+	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		drawable_reset_path(cs);
@@ -657,7 +485,7 @@ static void SVG_Render_ellipse(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &ellipse->properties, ellipse->transform, eff);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)ellipse, (RenderEffect2D *)rs);
 }
 
 void SVG_Init_ellipse(Render2D *sr, GF_Node *node)
@@ -668,9 +496,12 @@ void SVG_Init_ellipse(Render2D *sr, GF_Node *node)
 
 static void SVG_Render_line(GF_Node *node, void *rs)
 {
-	Drawable *cs = (Drawable *)gf_node_get_private(node);
-	RenderEffect2D *eff = rs;
 	SVGlineElement *line = (SVGlineElement *)node;
+	SVGPropertiesPointers backup_props;
+	Drawable *cs = (Drawable *)gf_node_get_private(node);
+
+	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
+
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		drawable_reset_path(cs);
 		gf_path_add_move_to(cs->path, line->x1.value, line->y1.value);
@@ -678,7 +509,7 @@ static void SVG_Render_line(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &line->properties, line->transform, eff);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)line, (RenderEffect2D *)rs);
 }
 
 void SVG_Init_line(Render2D *sr, GF_Node *node)
@@ -689,9 +520,11 @@ void SVG_Init_line(Render2D *sr, GF_Node *node)
 
 static void SVG_Render_polyline(GF_Node *node, void *rs)
 {
-	Drawable *cs = (Drawable *)gf_node_get_private(node);
-	RenderEffect2D *eff = rs;
 	SVGpolylineElement *polyline = (SVGpolylineElement *)node;
+	SVGPropertiesPointers backup_props;
+	Drawable *cs = (Drawable *)gf_node_get_private(node);
+
+	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		u32 i;
@@ -711,7 +544,7 @@ static void SVG_Render_polyline(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &polyline->properties, polyline->transform, eff);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)polyline, (RenderEffect2D *)rs);
 }
 
 void SVG_Init_polyline(Render2D *sr, GF_Node *node)
@@ -722,9 +555,11 @@ void SVG_Init_polyline(Render2D *sr, GF_Node *node)
 
 static void SVG_Render_polygon(GF_Node *node, void *rs)
 {
-	Drawable *cs = (Drawable *)gf_node_get_private(node);
-	RenderEffect2D *eff = rs;
 	SVGpolygonElement *polygon = (SVGpolygonElement *)node;
+	SVGPropertiesPointers backup_props;
+	Drawable *cs = (Drawable *)gf_node_get_private(node);
+
+	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		u32 i;
@@ -745,7 +580,7 @@ static void SVG_Render_polygon(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &polygon->properties, polygon->transform, eff);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)polygon, (RenderEffect2D *)rs);
 }
 
 void SVG_Init_polygon(Render2D *sr, GF_Node *node)
@@ -756,93 +591,24 @@ void SVG_Init_polygon(Render2D *sr, GF_Node *node)
 
 static void SVG_Render_path(GF_Node *node, void *rs)
 {
+	SVGpathElement *path = (SVGpathElement *)node;
+	SVGPropertiesPointers backup_props;
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
 	RenderEffect2D *eff = rs;
-	SVGpathElement *path = (SVGpathElement *)node;
+
+	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
-		u32 i, j;
-		SVG_Point orig, ct_orig, ct_end, end, *tmp;
 		
 		//fprintf(stdout, "Rebuilding path %8x\n", path);	
 		drawable_reset_path(cs);
+		if (*(eff->svg_props->fill_rule)==GF_PATH_FILL_ZERO_NONZERO) cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
+		gf_path_init_from_svg(cs->path, path->d.commands, path->d.points);
 
-		/* TODO: update for elliptical arcs */		
-		for (i=0, j=0; i<gf_list_count(path->d.commands); i++) {
-			u8 *command = gf_list_get(path->d.commands, i);
-			switch (*command) {
-			case 0: /* Move To */
-				tmp = gf_list_get(path->d.points, j);
-				orig = *tmp;
-				gf_path_add_move_to(cs->path, orig.x, orig.y);
-				j++;
-				/*provision for nextCurveTo when no curve is specified:
-					"If there is no previous command or if the previous command was not an C, c, S or s, 
-					assume the first control point is coincident with the current point.
-				*/
-				ct_orig = orig;
-				break;
-			case 1: /* Line To */
-				tmp = gf_list_get(path->d.points, j);
-				end = *tmp;
-
-				gf_path_add_line_to(cs->path, end.x, end.y);
-				j++;
-				orig = end;
-				/*cf above*/
-				ct_orig = orig;
-				break;
-			case 2: /* Curve To */
-				tmp = gf_list_get(path->d.points, j);
-				ct_orig = *tmp;
-				tmp = gf_list_get(path->d.points, j+1);
-				ct_end = *tmp;
-				tmp = gf_list_get(path->d.points, j+2);
-				end = *tmp;
-				gf_path_add_cubic_to(cs->path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
-				ct_orig = ct_end;
-				orig = end;
-				j+=3;
-				break;
-			case 3: /* Next Curve To */
-				ct_orig.x = 2*orig.x - ct_orig.x;
-				ct_orig.y = 2*orig.y - ct_orig.y;
-				tmp = gf_list_get(path->d.points, j);
-				ct_end = *tmp;
-				tmp = gf_list_get(path->d.points, j+1);
-				end = *tmp;
-				gf_path_add_cubic_to(cs->path, ct_orig.x, ct_orig.y, ct_end.x, ct_end.y, end.x, end.y);
-				ct_orig = ct_end;
-				orig = end;
-				j+=2;
-				break;
-			case 4: /* Quadratic Curve To */
-				tmp = gf_list_get(path->d.points, j);
-				ct_orig = *tmp;
-				tmp = gf_list_get(path->d.points, j+1);
-				end = *tmp;
-				gf_path_add_quadratic_to(cs->path, ct_orig.x, ct_orig.y, end.x, end.y);			
-				orig = end;
-				j+=2;
-				break;
-			case 5: /* Next Quadratic Curve To */
-				ct_orig.x = 2*orig.x - ct_orig.x;
-				ct_orig.y = 2*orig.y - ct_orig.y;
-				tmp = gf_list_get(path->d.points, j);
-				end = *tmp;
-				gf_path_add_quadratic_to(cs->path, ct_orig.x, ct_orig.y, end.x, end.y);
-				orig = end;
-				j++;
-				break;
-			case 6: /* Close */
-				gf_path_close(cs->path);
-				break;
-			}
-		}
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &path->properties, path->transform, eff);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)path, eff);
 }
 
 void SVG_Init_path(Render2D *sr, GF_Node *node)
@@ -854,15 +620,14 @@ void SVG_Init_path(Render2D *sr, GF_Node *node)
 static void SVG_Render_use(GF_Node *node, void *rs)
 {
 	GF_Matrix2D backup_matrix;
-	RenderEffect2D *eff = rs;
 	SVGuseElement *use = (SVGuseElement *)node;
   	GF_Matrix2D translate;
-	SVGStylingProperties backup_props;
+	SVGPropertiesPointers backup_props;
+	Drawable *cs = (Drawable *)gf_node_get_private(node);
+	RenderEffect2D *eff = rs;
 
-	if (!use->xlink_href.target) return;
-	memcpy(&backup_props, eff->svg_props, sizeof(SVGStylingProperties));
-	SVGApplyProperties(eff->svg_props, use->properties);
-
+	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
+	if (!use->xlink->href.target) return;
 
 	gf_mx2d_init(translate);
 	translate.m[2] = use->x.value;
@@ -871,18 +636,18 @@ static void SVG_Render_use(GF_Node *node, void *rs)
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
 		gf_mx2d_pre_multiply(&eff->transform, &use->transform);
 
-		if ( use->xlink_href.target && (*(eff->svg_props->display) != SVG_DISPLAY_NONE)) {
-			gf_node_render((GF_Node *)use->xlink_href.target, eff);
+		if ( use->xlink->href.target && (*(eff->svg_props->display) != SVG_DISPLAY_NONE)) {
+			gf_node_render((GF_Node *)use->xlink->href.target, eff);
 			gf_mx2d_apply_rect(&translate, &eff->bounds);
 		}
-		memcpy(eff->svg_props, &backup_props, sizeof(SVGStylingProperties));
+		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 		return;
 	}
 
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
-		memcpy(eff->svg_props, &backup_props, sizeof(SVGStylingProperties));
+		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 		return;
 	}
 
@@ -891,10 +656,10 @@ static void SVG_Render_use(GF_Node *node, void *rs)
 	gf_mx2d_pre_multiply(&eff->transform, &use->transform);
 	gf_mx2d_pre_multiply(&eff->transform, &translate);
 
-	gf_node_render((GF_Node *)use->xlink_href.target, eff);
+	gf_node_render((GF_Node *)use->xlink->href.target, eff);
 
 	gf_mx2d_copy(eff->transform, backup_matrix);  
-	memcpy(eff->svg_props, &backup_props, sizeof(SVGStylingProperties));
+	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 }
 
 void SVG_Init_use(Render2D *sr, GF_Node *node)
@@ -908,13 +673,11 @@ void SVG_Init_use(Render2D *sr, GF_Node *node)
 static void SVG_Render_a(GF_Node *node, void *rs)
 {
 	GF_Matrix2D backup_matrix;
-	SVGStylingProperties backup_props;
-	u32 styling_size = sizeof(SVGStylingProperties);
+	SVGPropertiesPointers backup_props;
+	u32 styling_size = sizeof(SVGPropertiesPointers);
 	SVGaElement *a = (SVGaElement *) node;
 	RenderEffect2D *eff = rs;
-
-	memcpy(&backup_props, eff->svg_props, styling_size);
-	SVGApplyProperties(eff->svg_props, a->properties);
+	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
 
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
 		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
@@ -966,31 +729,32 @@ static void SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 #endif
 
 	evt.type = GF_EVT_NAVIGATE;
-	if (a->xlink_href.type == SVG_IRI_IRI) {
-		evt.navigate.to_url = a->xlink_href.iri;
+	
+	if (a->xlink->href.type == SVG_IRI_IRI) {
+		evt.navigate.to_url = a->xlink->href.iri;
 		if (evt.navigate.to_url) {
 #ifdef DANAE
-			loadDanaeUrl(compositor->danae_session, a->xlink_href.iri);
+			loadDanaeUrl(compositor->danae_session, a->xlink->href.iri);
 #else
 			compositor->user->EventProc(compositor->user->opaque, &evt);
 #endif
 		}
 	} else {
-		u32 tag = gf_node_get_tag((GF_Node *)a->xlink_href.target);
+		u32 tag = gf_node_get_tag((GF_Node *)a->xlink->href.target);
 		if (tag == TAG_SVG_set ||
 			tag == TAG_SVG_animate ||
 			tag == TAG_SVG_animateColor ||
 			tag == TAG_SVG_animateTransform ||
 			tag == TAG_SVG_animateMotion || 
 			tag == TAG_SVG_discard) {
-			SVGsetElement *set = (SVGsetElement *)a->xlink_href.target;
+			SVGsetElement *set = (SVGsetElement *)a->xlink->href.target;
 			SMIL_Time *begin;
 			GF_SAFEALLOC(begin, sizeof(SMIL_Time));
 			begin->type = SMIL_TIME_CLOCK;
 			begin->clock = gf_node_get_scene_time((GF_Node *)set);
 			/* TODO insert the sorted value */
-			gf_list_add(set->begin, begin);
-			SMIL_Modified_Animation((GF_Node *)a->xlink_href.target);
+			gf_list_add(set->timing->begin, begin);
+			//SMIL_Modified_Animation((GF_Node *)a->xlink->href.target);
 		}
 	}
 	return;
@@ -1064,9 +828,9 @@ static void SVG_UpdateGradient(SVG_GradientStack *st, GF_List *children)
 		SVGstopElement *gstop = (SVGstopElement *)gf_list_get(children, i);
 		if (gf_node_get_tag((GF_Node *)gstop) != TAG_SVG_stop) continue;
 
-		if (gstop->stop_opacity.type==SVG_NUMBER_VALUE) alpha = gstop->stop_opacity.value;
+		if (gstop->properties->stop_opacity.type==SVG_NUMBER_VALUE) alpha = gstop->properties->stop_opacity.value;
 		else alpha = FIX_ONE;
-		st->cols[st->nb_col] = GF_COL_ARGB_FIXED(alpha, gstop->stop_color.color->red, gstop->stop_color.color->green, gstop->stop_color.color->blue);
+		st->cols[st->nb_col] = GF_COL_ARGB_FIXED(alpha, gstop->properties->stop_color.color->red, gstop->properties->stop_color.color->green, gstop->properties->stop_color.color->blue);
 		key = gstop->offset.value;
 		if (gstop->offset.value>FIX_ONE) key/=100; 
 		if (key>max_offset) max_offset=key;
@@ -1188,5 +952,56 @@ GF_TextureHandler *svg_gradient_get_texture(GF_Node *node)
 	SVG_GradientStack *st = (SVG_GradientStack*) gf_node_get_private(node);
 	return st->nb_col ? &st->txh : NULL;
 }
+
+void SVG_Render_base(GF_Node *node, RenderEffect2D *eff, SVGPropertiesPointers *backup_props)
+{
+	u32 i,j;
+	SVGElement *e = (SVGElement *)node;
+	Drawable *cs = (Drawable *)gf_node_get_private(node);
+	u32 count_all, count;
+
+	/* Apply inheritance */	
+	memcpy(backup_props, eff->svg_props, sizeof(SVGPropertiesPointers));
+	gf_svg_properties_apply(eff->svg_props, e->properties);
+
+	count_all = gf_node_animation_count(node);
+	/* Loop 1: For all animated attributes (target_attribute) */
+	for (i = 0; i < count_all; i++) {
+		GF_FieldInfo underlying_value;
+		SMIL_AttributeAnimations *aa = gf_node_animation_get(node, i);		
+		count = gf_list_count(aa->anims);
+		if (!count) continue;
+
+		/* initializing the type of the underlying value */
+		underlying_value.fieldType = aa->saved_dom_value.fieldType;		
+		/* the pointer contains the result of the previous animation cycle,
+		   it needs to be reset */
+		underlying_value.far_ptr = aa->presentation_value.far_ptr;
+		
+		/* The resetting is done either based on the inherited value or based on the (saved) DOM value 
+		   or in special cases on the inherited color value */
+		gf_svg_attributes_copy_computed_value(&underlying_value, &aa->saved_dom_value, eff->svg_props);
+
+		/* we also need a special handling of current color if used in animation values */
+		aa->current_color_value.fieldType = SVG_Paint_datatype;
+		aa->current_color_value.far_ptr   = eff->svg_props->color;
+
+		/* Loop 2: For all animations (anim) */
+		for (j = 0; j < count; j++) {
+			SMIL_Anim_RTI *rai = gf_list_get(aa->anims, j);			
+			gf_smil_timing_notify_time(rai->anim_elt->timing->runtime, gf_node_get_scene_time(node));
+		}
+		/* end of Loop 2 */
+		gf_node_dirty_set(node, GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_SVG_APPEARANCE_DIRTY, 0);
+		gf_sr_invalidate(eff->surface->render->compositor, NULL);
+
+	}
+	/* end of Loop 1 */
+}
+
+
+
+
+
 
 #endif //GPAC_DISABLE_SVG

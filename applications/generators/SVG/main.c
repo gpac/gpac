@@ -45,56 +45,173 @@
 
 #define COPYRIGHT "/*\n *			GPAC - Multimedia Framework C SDK\n *\n *			Authors: Cyril Concolato - Jean Le Feuvre\n *    Copyright (c)2004-200X ENST - All rights reserved\n *\n *  This file is part of GPAC / SVG Scene Graph sub-project\n *\n *  GPAC is free software; you can redistribute it and/or modify\n *  it under the terms of the GNU Lesser General Public License as published by\n *  the Free Software Foundation; either version 2, or (at your option)\n *  any later version.\n *\n *  GPAC is distributed in the hope that it will be useful,\n *  but WITHOUT ANY WARRANTY; without even the implied warranty of\n *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n *  GNU Lesser General Public License for more details.	\n *\n *  You should have received a copy of the GNU Lesser General Public\n *  License along with this library; see the file COPYING.  If not, write to\n *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.\n *\n */\n"
 
-static GF_List *styling_SVGProperty_names;
+static GF_List *globalAttrGrp;
 
-static s32 indent = -1;
+/* SVG Generic */
+static char *core[] = { "id", "class", "xml:id", "xml:base", "xml:lang", "xml:space", "externalResourceRequired" };
 
-#define ATTR_BASE	Bool attr_or_prop; \
-	xmlChar *svg_name; \
-	char implementation_name[50];\
-	xmlChar *svg_type; \
-	char impl_type[50]; \
-	u8 animatable; \
-	u8 inheritable; 
+/* Properties Generic */
+static char *properties[] = {
+   /* media only*/
+  "audio-level", "display", "image-rendering", "pointer-events", "shape-rendering", "text-rendering", 
+  "viewport-fill", "viewport-fill-opacity", "visibility", 
+  /* others */
+  "color", "color-rendering", "display-align", "fill", "fill-opacity", "fill-rule", 
+  "font-family", "font-size", "font-style", "font-weight", "line-increment", 
+  "solid-color", "solid-opacity", "stop-color", "stop-opacity", 
+  "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", 
+   "stroke-opacity", "stroke-width", "text-anchor", "vector-effect", "opacity"
+};
+
+/* Focus */
+static char *focus[] = { 
+  "focusHighlight", "focusable", "nav-down", "nav-down-left", "nav-down-right", 
+  "nav-left", "nav-next", "nav-prev", "nav-right", "nav-up", "nav-up-left", "nav-up-right"
+};
+
+/* Xlink */
+static char *xlink[] = {
+	"xlink:href", "xlink:show", "xlink:title", "xlink:actuate", "xlink:role", "xlink:arcrole", "xlink:type"
+};
+
+/* Timing */
+static char *timing[] = {
+	"begin", "end", "dur", "repeatCount", "repeatDur", "restart", "min", "max", "fill"
+};
+
+/* Sync */
+static char *sync[] = {
+	"syncBehavior", "syncBehaviorDefault", "syncTolerance", "syncToleranceDefault", "syncMaster"
+};
+
+/* Animation */
+static char *anim[] = {
+	"attributeName", "attributeType", "to", "from", "by", "values",
+	"type", "calcMode", "keySplines", "keyTimes", "accumulate", "additive"
+};
+
+/* Conditional Processing */
+static char *conditional[] = {
+	"requiredExtensions", "requiredFeatures", "requiredFonts", "requiredFormats", "systemLanguage"
+};
 
 typedef struct {
-	ATTR_BASE
-} SVGProperty;
+	int names_length; 
+	char **names; // names of all the RNG definition to map
+	int array_length;
+	char **array; // mapping of constructs to the RNG definition
+} _atts;
 
-typedef struct {
-	ATTR_BASE
-	Bool optional;
-	xmlChar *default_value;
-} SVGAttribute;
+static char *svg_xml_generic_names[] = 
+{ 
+	"svg.Core.attr", 
+	"svg.CorePreserve.attr", 
+	"svg.External.attr" 
+};
+
+static char *properties_generic_names[] = 
+{ 
+	"svg.Properties.attr", 
+	"svg.Media.attr",
+	"svg.Opacity.attr" 
+};
+
+static char *focus_generic_names[] = { 
+	"svg.FocusHighlight.attr", 
+	"svg.Focus.attr"
+};
+
+static char *xlink_generic_names[] = { 
+	"svg.AnimateCommon.attr", 
+	"svg.XlinkEmbed.attr",
+	"svg.XLinkRequired.attr", 
+	"svg.XLinkReplace.attr", 
+	"svg.ContentType.attr"
+};
+
+static char *timing_generic_names[] = { 
+	"svg.AnimateTiming.attr", 
+	"svg.AnimateTimingNoMinMax.attr", 
+	"svg.AnimateBegin.attr",
+	"svg.AnimateTimingNoFillNoMinMax.attr" 
+};
+
+static char *sync_generic_names[] = { 
+	"svg.AnimateSync.attr",
+	"svg.AnimateSyncDefault.attr"
+};
+
+static char *animate_generic_names[] = { 
+	"svg.AnimateAttributeCommon.attr",
+	"svg.AnimateToCommon.attr",
+	"svg.AnimateValueCommon.attr",
+	"svg.AnimateAdditionCommon.attr", 
+	"svg.AnimateTypeCommon.attr"
+};
+
+static char *conditional_generic_names[] = { "svg.Conditional.attr" };
+
+static _atts generic_attributes[] = {
+	{ 2, svg_xml_generic_names,		7, core },
+	{ 3, properties_generic_names, 35, properties },
+	{ 2, focus_generic_names,	   12, focus },
+	{ 5, xlink_generic_names,		7, xlink },
+	{ 4, timing_generic_names,		9, timing },
+	{ 2, sync_generic_names,		5, sync },
+	{ 5, animate_generic_names,	   12, anim },
+	{ 1, conditional_generic_names,	5, conditional}
+};
+
+/* 
+	type declarations 
+*/
 
 typedef struct
 {
 	xmlChar *svg_name;
 	char implementation_name[50];
+
+	Bool has_svg_generic;
+	Bool has_xml_generic;
+	Bool has_media_properties;
 	Bool has_properties;
+	Bool has_focus;
+	Bool has_xlink;
+	Bool has_timing;
+	Bool has_sync;
+	Bool has_animation;
+	Bool has_conditional;
+	Bool has_transform;
+	Bool has_xy;
+
 	GF_List *attributes;
+	GF_List *generic_attributes;
+
+	u32 nb_atts;
 } SVGElement;
 
-SVGProperty *NewSVGProperty()
-{
-	SVGProperty *p;
-	GF_SAFEALLOC(p, sizeof(SVGProperty))
-	return p;
-}
+typedef struct {
+	xmlChar *svg_name; 
+	char implementation_name[50];
+	xmlChar *svg_type; 
+	char impl_type[50]; 
+	u8 animatable; 
+	u8 inheritable; 
+	Bool optional;
+	xmlChar *default_value;
+} SVGAttribute;
 
-void deleteSVGProperty(SVGProperty **p)
-{
-	xmlFree((*p)->svg_name);
-	xmlFree((*p)->svg_type);
-	free(*p);
-	*p = NULL;
-}
+typedef struct {
+	char *name;
+	char imp_name[50];
+	GF_List *attrs;
+	GF_List *attrgrps;
+} SVGAttrGrp;
 
 SVGAttribute *NewSVGAttribute()
 {
 	SVGAttribute *att;
 	GF_SAFEALLOC(att, sizeof(SVGAttribute))
-	att->attr_or_prop = 1;
 	return att;
 }
 
@@ -106,12 +223,22 @@ void deleteSVGAttribute(SVGAttribute **p)
 	*p = NULL;
 }
 
+SVGAttrGrp *NewAttrGrp()
+{
+	SVGAttrGrp *tmp;
+	GF_SAFEALLOC(tmp, sizeof(SVGAttrGrp))
+	tmp->attrs = gf_list_new();
+	tmp->attrgrps = gf_list_new();
+	return tmp;
+}
+
 SVGElement *NewSVGElement() 
 {
 	SVGElement *elt;
 	GF_SAFEALLOC(elt, sizeof(SVGElement));
 	if (elt) {
 		elt->attributes = gf_list_new();
+		elt->generic_attributes = gf_list_new();
 	}
 	return elt;
 }
@@ -129,6 +256,75 @@ void deleteSVGElement(SVGElement **p)
 	*p = NULL;
 }
 
+static GF_List *sortElements(GF_List *elements)
+{
+	u32 i, j;
+	GF_List *sorted_elements = gf_list_new();
+
+	for (i = 0; i< gf_list_count(elements); i++) {
+		u8 is_added = 0;
+		SVGElement *elt = gf_list_get(elements, i);
+		for (j = 0; j < gf_list_count(sorted_elements); j++) {
+			SVGElement *selt = gf_list_get(sorted_elements, j);
+			if (strcmp(elt->svg_name, selt->svg_name) < 0) {
+				gf_list_insert(sorted_elements, elt, j);
+				is_added = 1;
+				break;
+			}
+		}
+		if (!is_added) gf_list_add(sorted_elements, elt);
+	}
+
+	gf_list_del(elements);
+	return sorted_elements;
+}
+
+static GF_List *sortAttrGrp(GF_List *attgrps)
+{
+	u32 i, j;
+	GF_List *sorted_attgrps = gf_list_new();
+
+	for (i = 0; i< gf_list_count(attgrps); i++) {
+		u8 is_added = 0;
+		SVGAttrGrp *grp = gf_list_get(attgrps, i);
+		for (j = 0; j < gf_list_count(sorted_attgrps); j++) {
+			SVGAttrGrp *sgrp = gf_list_get(sorted_attgrps, j);
+			if (strcmp(grp->name, sgrp->name) < 0) {
+				gf_list_insert(sorted_attgrps, grp, j);
+				is_added = 1;
+				break;
+			}
+		}
+		if (!is_added) gf_list_add(sorted_attgrps, grp);
+	}
+
+	gf_list_del(attgrps);
+	return sorted_attgrps;
+}
+
+static GF_List *sortAttr(GF_List *atts)
+{
+	u32 i, j;
+	GF_List *sorted_atts = gf_list_new();
+
+	for (i = 0; i< gf_list_count(atts); i++) {
+		u8 is_added = 0;
+		SVGAttribute *att = gf_list_get(atts, i);
+		for (j = 0; j < gf_list_count(sorted_atts); j++) {
+			SVGAttribute *satt = gf_list_get(sorted_atts, j);
+			if (strcmp(att->svg_name, satt->svg_name) < 0) {
+				gf_list_insert(sorted_atts, att, j);
+				is_added = 1;
+				break;
+			}
+		}
+		if (!is_added) gf_list_add(sorted_atts, att);
+	}
+
+	gf_list_del(atts);
+	return sorted_atts;
+}
+
 void svgNameToImplementationName(xmlChar *svg_name, char implementation_name[50]) {
 	char *tmp;
 	strcpy(implementation_name, svg_name);
@@ -140,32 +336,145 @@ void svgNameToImplementationName(xmlChar *svg_name, char implementation_name[50]
 	while ( (tmp = strchr(tmp, ':')) ) { *tmp='_'; tmp++; }
 }
 
-void replaceIncludes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
+static Bool isGenericAttributesGroup(char *name) 
 {
-	int k;
-	xmlNodeSetPtr nodes;
-	xmlXPathObjectPtr xpathObj; 
-
-    /* Get all the RNG elements */
-    xpathObj = xmlXPathEvalExpression("//rng:include", xpathCtx);
-    if(xpathObj == NULL || xpathObj->type != XPATH_NODESET) return;
-	
-	nodes = xpathObj->nodesetval;	
-		
-	for (k = 0; k < nodes->nodeNr; k++)	{
-		xmlNodePtr node = nodes->nodeTab[k];
-		if (node->type == XML_ELEMENT_NODE) {
-			xmlChar *href;
-			xmlDocPtr sub_doc;
-
-			href = xmlGetNoNsProp(node, "href");
-			sub_doc = xmlParseFile(href);
-			xmlReplaceNode(nodes->nodeTab[k], xmlDocGetRootElement(sub_doc));
-		}
+	if (!strcmp(name, "svg.Core.attr") ||
+		!strcmp(name, "svg.CorePreserve.attr") ||
+		!strcmp(name, "svg.External.attr") ||
+		!strcmp(name, "svg.Properties.attr") ||
+		!strcmp(name, "svg.Media.attr") ||
+		!strcmp(name, "svg.Opacity.attr") ||
+		!strcmp(name, "svg.FocusHighlight.attr") || 
+		!strcmp(name, "svg.Focus.attr") ||
+		!strcmp(name, "svg.AnimateCommon.attr") ||
+		!strcmp(name, "svg.XLinkEmbed.attr") ||
+		!strcmp(name, "svg.XLinkRequired.attr") ||
+		!strcmp(name, "svg.XLinkReplace.attr") ||
+		!strcmp(name, "svg.ContentType.attr") ||
+		!strcmp(name, "svg.AnimateTiming.attr") ||
+		!strcmp(name, "svg.AnimateTimingNoMinMax.attr") ||
+		!strcmp(name, "svg.AnimateBegin.attr") || 
+		!strcmp(name, "svg.AnimateTimingNoFillNoMinMax.attr") ||
+		!strcmp(name, "svg.AnimateSync.attr") ||
+		!strcmp(name, "svg.AnimateSyncDefault.attr") ||
+		!strcmp(name, "svg.AnimateAttributeCommon.attr") ||
+		!strcmp(name, "svg.AnimateToCommon.attr") ||
+		!strcmp(name, "svg.AnimateValueCommon.attr") ||
+		!strcmp(name, "svg.AnimateAdditionCommon.attr") ||
+		!strcmp(name, "svg.AnimateTypeCommon.attr") ||
+		!strcmp(name, "svg.Conditional.attr") ||
+//		!strcmp(name, "svg.XY.attr") ||
+		!strcmp(name, "svg.Transform.attr")) {
+		return 1;
+	} else {
+		return 0;
 	}
-	xmlXPathFreeObject(xpathObj);
 }
 
+static Bool setGenericAttributesFlags(char *name, SVGElement *e) 
+{
+	Bool ret = 1;
+	if (!strcmp(name, "svg.Core.attr") ||
+		!strcmp(name, "svg.CorePreserve.attr") ||
+		!strcmp(name, "svg.External.attr")) {
+		e->has_svg_generic = 1; 
+		e->has_xml_generic = 1;
+	} else if (!strcmp(name, "svg.Properties.attr")) {
+		e->has_properties = 1;
+	} else if (!strcmp(name, "svg.Media.attr")) {
+		e->has_properties = 1;
+	} else if (!strcmp(name, "svg.Opacity.attr")) {
+		e->has_properties = 1;
+	} else if (!strcmp(name, "svg.FocusHighlight.attr") || 
+		       !strcmp(name, "svg.Focus.attr")) {
+		e->has_focus = 1;
+	} else if (!strcmp(name, "svg.AnimateCommon.attr") ||
+			   !strcmp(name, "svg.XLinkEmbed.attr") ||
+			   !strcmp(name, "svg.XLinkRequired.attr") ||
+			   !strcmp(name, "svg.XLinkReplace.attr") ||
+			   !strcmp(name, "svg.ContentType.attr")) {
+		e->has_xlink = 1;
+	} else if (!strcmp(name, "svg.AnimateTiming.attr") ||
+			   !strcmp(name, "svg.AnimateTimingNoMinMax.attr") ||
+			   !strcmp(name, "svg.AnimateBegin.attr") || 
+			   !strcmp(name, "svg.AnimateTimingNoFillNoMinMax.attr")) {
+		e->has_timing = 1;
+	} else if (!strcmp(name, "svg.AnimateSync.attr") ||
+		       !strcmp(name, "svg.AnimateSyncDefault.attr")) {
+		e->has_sync= 1;
+	} else if (!strcmp(name, "svg.AnimateAttributeCommon.attr") ||
+			   !strcmp(name, "svg.AnimateToCommon.attr") ||
+			   !strcmp(name, "svg.AnimateValueCommon.attr") ||
+			   !strcmp(name, "svg.AnimateAdditionCommon.attr") ||
+			   !strcmp(name, "svg.AnimateTypeCommon.attr")) {
+		e->has_animation = 1;
+	} else if (!strcmp(name, "svg.Conditional.attr")) {
+		e->has_conditional = 1;
+	} else if (!strcmp(name, "svg.Transform.attr")) {
+		e->has_transform = 1;
+	} else if (!strcmp(name, "svg.XY.attr")) {
+		e->has_xy = 1;
+	} else {
+		ret = 0;
+	}
+	return ret;
+}
+
+static void flattenAttributeGroup(SVGAttrGrp attgrp, SVGElement *e, GF_List *atts,  Bool all);
+
+static void flattenAttributeGroups(GF_List *attrgrps, SVGElement *e, GF_List *atts, Bool all) 
+{
+	u32 i;
+	for (i = 0; i < gf_list_count(attrgrps); i ++) {
+		SVGAttrGrp *ag = gf_list_get(attrgrps, i);
+		flattenAttributeGroup(*ag, e, atts, all);
+	} 
+}
+
+static void flattenAttributeGroup(SVGAttrGrp attgrp, SVGElement *e, GF_List *atts, Bool all) 
+{
+	u32 i;
+
+	if (isGenericAttributesGroup(attgrp.name) && !all) {
+		setGenericAttributesFlags(attgrp.name, e);
+		flattenAttributeGroups(attgrp.attrgrps, e, atts, 1);
+		for (i = 0; i < gf_list_count(attgrp.attrs); i++) {
+			gf_list_add(e->generic_attributes, gf_list_get(attgrp.attrs, i));
+		}
+	} else {
+		flattenAttributeGroups(attgrp.attrgrps, e, atts, all);
+		for (i = 0; i < gf_list_count(attgrp.attrs); i++) {
+			gf_list_add(atts, gf_list_get(attgrp.attrs, i));
+		}
+	}
+}
+
+static SVGAttribute *findAttribute(SVGElement *e, char *name) 
+{
+	u32 i;
+	for (i = 0; i < gf_list_count(e->attributes); i++) {
+		SVGAttribute *a = gf_list_get(e->attributes, i);
+		if (!strcmp(a->svg_name, name)) return a;
+	}
+	for (i = 0; i < gf_list_count(e->generic_attributes); i++) {
+		SVGAttribute *a = gf_list_get(e->generic_attributes, i);
+		if (!strcmp(a->svg_name, name)) return a;
+	}
+	return NULL;
+}
+
+static u32 countAttributesAllInGroup(SVGAttrGrp *ag)
+{
+	u32 i, ret = 0;
+	for (i = 0; i < gf_list_count(ag->attrgrps); i ++) {
+		SVGAttrGrp *agtmp = gf_list_get(ag->attrgrps, i);
+		ret += countAttributesAllInGroup(agtmp);
+	} 
+	ret += gf_list_count(ag->attrs);
+	return ret;
+}
+
+/* XML related functions */
 xmlNodeSetPtr findNodes( xmlXPathContextPtr ctxt, xmlChar * path ) 
 {
     xmlXPathObjectPtr res = NULL;
@@ -224,13 +533,16 @@ xmlNodeSetPtr findNodes( xmlXPathContextPtr ctxt, xmlChar * path )
 		return NULL;
 }
 
-void setAttributeType(SVGProperty *att) 
+
+/* definition of GPAC groups of SVG attributes */
+
+void setAttributeType(SVGAttribute *att) 
 {
 	if (!att->svg_type) {
 		if (!strcmp(att->svg_name, "textContent")) {
 			strcpy(att->impl_type, "SVG_TextContent");
 		} else if (!strcmp(att->svg_name, "class")) {
-			strcpy(att->implementation_name, "class_attribute");
+			strcpy(att->implementation_name, "_class");
 			strcpy(att->impl_type, "SVG_String");
 		} else if (!strcmp(att->svg_name, "visibility")) {
 			strcpy(att->impl_type, "SVG_Visibility");
@@ -248,7 +560,7 @@ void setAttributeType(SVGProperty *att)
 			strcpy(att->impl_type, "SVG_FontWeight");
 		} else if (!strcmp(att->svg_name, "text-anchor")) {
 			strcpy(att->impl_type, "SVG_TextAnchor");
-		} else if (!strcmp(att->svg_name, "fill") && att->attr_or_prop == 1) {
+		} else if (!strcmp(att->svg_name, "fill")) {
 			strcpy(att->impl_type, "SMIL_Fill");
 		} else if (!strcmp(att->svg_name, "fill-rule")) {
 			strcpy(att->impl_type, "SVG_FillRule");
@@ -346,6 +658,18 @@ void setAttributeType(SVGProperty *att)
 			strcpy(att->impl_type, "SVG_GradientUnit");
 		} else if (!strcmp(att->svg_name, "baseProfile")) {
 			strcpy(att->impl_type, "SVG_String");
+		} else if (!strcmp(att->svg_name, "focusHighlight")) {
+			strcpy(att->impl_type, "SVG_FocusHighlight");
+		} else if (!strcmp(att->svg_name, "initialVisibility")) {
+			strcpy(att->impl_type, "SVG_InitialVisibility");
+		} else if (!strcmp(att->svg_name, "overlay")) {
+			strcpy(att->impl_type, "SVG_Overlay");
+		} else if (!strcmp(att->svg_name, "transformBehavior")) {
+			strcpy(att->impl_type, "SVG_TransformBehavior");
+		} else if (!strcmp(att->svg_name, "rotate")) {
+			strcpy(att->impl_type, "SVG_Rotate");
+		} else if (!strcmp(att->svg_name, "font-variant")) {
+			strcpy(att->impl_type, "SVG_FontVariant");
 		} else {
 			strcpy(att->impl_type, "SVG_String");
 			fprintf(stdout, "Warning: using type SVG_String for attribute %s.\n", att->svg_name);
@@ -368,7 +692,7 @@ void setAttributeType(SVGProperty *att)
 		} else if (!strcmp(att->svg_name, "stroke-dashoffset")) {
 			strcpy(att->impl_type, "SVG_StrokeDashOffset");
 		} else if (!strcmp(att->svg_name, "color")) {
-			strcpy(att->impl_type, "SVG_Color");
+			strcpy(att->impl_type, "SVG_Paint");
 		} else if (!strcmp(att->svg_name, "syncTolerance")) {
 			strcpy(att->impl_type, "SMIL_SyncTolerance");
 		} else if (!strcmp(att->svg_name, "syncToleranceDefault")) {
@@ -393,7 +717,7 @@ void setAttributeType(SVGProperty *att)
 	}
 }
 
-void getAttributeType(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, xmlNodePtr attributeNode, SVGProperty *a) 
+void getAttributeType(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, xmlNodePtr attributeNode, SVGAttribute *a) 
 {
 
 	xmlNodeSetPtr refNodes;
@@ -408,130 +732,14 @@ void getAttributeType(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, xmlNodePtr att
 		//a->svg_type = xmlStrdup("N_ref_type");
 	}
 }
-GF_List *getProperties(xmlDocPtr xc, xmlXPathContextPtr xpathCtx)
+
+void getRealAttributes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, xmlNodePtr newCtxNode, GF_List *attributes)
 {
-	GF_List *properties = gf_list_new();
-
-	xmlNodeSetPtr props = findNodes(xpathCtx, "//rng:define[@name=\"svg.Properties.attr\" and @combine=\"interleave\"]");
-	int i,j,k;
-	u32 j1;
-
-	for (k = 0; k < props->nodeNr; k++)	{
-		xmlNodePtr prop = props->nodeTab[k];
-		if (prop->type == XML_ELEMENT_NODE) {
-			xmlNodeSetPtr refs;
-			xmlNodeSetPtr attrs;
-			xpathCtx->node = prop;
-
-			/* resolve references */
-			refs = findNodes(xpathCtx, "./rng:ref");
-			for (i = 0; i < refs->nodeNr; i++)	{
-				xmlNodePtr r = refs->nodeTab[i];
-				xmlChar *ref_name = xmlGetProp(r, "name");
-				xmlChar *expr = xmlStrdup("//rng:define[@name=\"");
-				xmlNodeSetPtr df;
-				expr = xmlStrcat(expr, ref_name);
-				expr = xmlStrcat(expr, "\" and @combine=\"interleave\"]/node()");
-				xpathCtx->node = prop->doc->children;
-				df = findNodes(xpathCtx, expr);
-				xmlReplaceNode(r, NULL);
-				if (df) {
-					for (j = 0; j < df->nodeNr; j++)	{
-						xmlNodePtr dfn = df->nodeTab[j];
-						if (dfn->type == XML_ELEMENT_NODE) {
-							xmlAddChild(prop, dfn);
-						}
-					}
-				}
-			}
-			
-			xpathCtx->node = prop;
-			attrs = findNodes(xpathCtx, "./*/rng:attribute");
-			for (i=0; i<attrs->nodeNr; i++) {
-				xmlNodePtr attr = attrs->nodeTab[i];
-				xmlChar *attr_name = xmlGetProp(attr, "name");
-				SVGProperty *aProp;
-				Bool found = 0;
-				for (j1=0;j1<gf_list_count(properties); j1++) {
-					SVGProperty *p = gf_list_get(properties, j1);
-					if (p->svg_name && !strcmp(p->svg_name, attr_name)) {
-						//fprintf(stdout, "Found a duplicate SVGProperty declaration for %s\n", attr_name);
-						found = 1;
-						break;
-					}
-				}
-				if (found) continue;
-				aProp = malloc(sizeof(SVGProperty));
-				memset(aProp, 0, sizeof(SVGProperty));
-				aProp->svg_name = strdup(attr_name);
-				svgNameToImplementationName(aProp->svg_name, aProp->implementation_name);
-				aProp->animatable = !xmlStrcasecmp(xmlGetNsProp(attr, "animatable", SVGA_NS), "true");
-				aProp->inheritable = !xmlStrcasecmp(xmlGetNsProp(attr, "inheritable", SVGA_NS), "true");
-				getAttributeType(xc, xpathCtx, attr, aProp);
-				setAttributeType(aProp);
-				gf_list_add(properties, aProp);
-			}
-		}
-	}
-	return properties;
-}
-
-/*
-void getAllAttributes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, xmlNodePtr elementNode)
-{
-	int k;
 	xmlNodeSetPtr attributeNodes;
-	xpathCtx->node = elementNode;
-	attributeNodes = findNodes(xpathCtx, "//rng:attribute[not(ancestor::rng:define[@name=\"svg.Properties.attr\"])]");
-	for (k = 0; k < attributeNodes->nodeNr; k++)	{
-		xmlNodePtr attributeNode = attributeNodes->nodeTab[k];
-		xmlChar *name = xmlGetProp(attributeNode, "name");
-		//fprintf(stdout, "%s\n", name);
-	}
-
-}
-*/
-
-
-void getAttributes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, xmlNodePtr elementNode, SVGElement *e)
-{
-	xmlNodeSetPtr attribute_refNodes, attributeNodes;
 	int k;
 	u32 j;
 
-	indent++;
-
-	xpathCtx->node = elementNode;
-	attribute_refNodes = findNodes(xpathCtx, ".//rng:ref");
-	for (k = 0; k < attribute_refNodes->nodeNr; k++)	{
-		xmlNodePtr attribute_refNode = attribute_refNodes->nodeTab[k];
-		if (attribute_refNode->type == XML_ELEMENT_NODE) {
-			xmlChar *ref_name = xmlGetProp(attribute_refNode, "name");
-//			for (i = 0; i < indent; i++) fprintf(stdout, "  ");
-//			fprintf(stdout, "ref %s found\n", ref_name);
-			if (xmlStrstr(ref_name, "AT") || xmlStrstr(ref_name, "attr")) {
-				if (xmlStrEqual(ref_name, "svg.Properties.attr")) {
-					e->has_properties = 1;
-				} else if (xmlStrEqual(ref_name, "svg.Media.attr")) {
-					//fprintf(stdout, "ref %s is a media attr\n", ref_name);
-				} else {
-					xmlNodeSetPtr refNodes;
-					xmlChar *expr = xmlStrdup("//rng:define[@name=\"");
-					expr = xmlStrcat(expr, ref_name);
-					expr = xmlStrcat(expr, "\" and not(rng:empty) and not(rng:notAllowed)]");
-					refNodes = findNodes(xpathCtx, expr);
-					if (refNodes->nodeNr > 0) {
-						xmlNodePtr ref = refNodes->nodeTab[0];
-						getAttributes(doc, xpathCtx, ref, e);
-					} else {
-						//fprintf(stdout, "Warning: no matching ref %s\n", ref_name);
-					}
-				}
-			}
-		}
-	}
-
-	xpathCtx->node = elementNode;
+	xpathCtx->node = newCtxNode;
 	attributeNodes = findNodes(xpathCtx, ".//rng:attribute");
 	for (k = 0; k < attributeNodes->nodeNr; k++)	{
 		Bool already_exists = 0;
@@ -541,10 +749,10 @@ void getAttributes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, xmlNodePtr elemen
 			a->svg_name = xmlGetProp(attributeNode, "name");
 			a->optional = xmlStrEqual(attributeNode->parent->name, "optional");
 			svgNameToImplementationName(a->svg_name, a->implementation_name);
-			getAttributeType(doc, xpathCtx, attributeNode, (SVGProperty*)a);
-			setAttributeType((SVGProperty*)a);
-			for (j=0;j<gf_list_count(e->attributes); j++) {
-				SVGAttribute *ta = gf_list_get(e->attributes, j);
+			getAttributeType(doc, xpathCtx, attributeNode, a);
+			setAttributeType(a);
+			for (j=0;j<gf_list_count(attributes); j++) {
+				SVGAttribute *ta = gf_list_get(attributes, j);
 				if (xmlStrEqual(ta->svg_name, a->svg_name)) {
 					already_exists = 1;
 					break;
@@ -554,65 +762,135 @@ void getAttributes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, xmlNodePtr elemen
 				deleteSVGAttribute(&a);
 			} else {
 				//fprintf(stdout, "Adding attribute %s to element %s\n",a->svg_name, e->svg_name);
-				gf_list_add(e->attributes, a);
+				gf_list_add(attributes, a);
 			}
 		}
 	}
-
-	xpathCtx->node = elementNode;
-	attributeNodes = findNodes(xpathCtx, "//rng:text[not(ancestor::rng:attribute)]");
-	if (attributeNodes->nodeNr) {
-		Bool already_exists = 0;
-		SVGAttribute *a = NewSVGAttribute();
-		a->svg_name = xmlStrdup("textContent");
-		a->optional = 1;
-		svgNameToImplementationName(a->svg_name, a->implementation_name);
-		setAttributeType((SVGProperty*)a);
-		for (j=0;j<gf_list_count(e->attributes); j++) {
-			SVGAttribute *ta = gf_list_get(e->attributes, j);
-			if (xmlStrEqual(ta->svg_name, a->svg_name)) {
-				already_exists = 1;
-				break;
-			}
-		}
-		if (already_exists) {
-			deleteSVGAttribute(&a);
-		} else {
-			//fprintf(stdout, "Adding attribute %s to element %s\n",a->svg_name, e->svg_name);
-			gf_list_add(e->attributes, a);
-		}
-		//fprintf(stdout, "Element %s can contain %d text.\n", e->svg_name, attributeNodes->nodeNr);
-	}
-
-	indent--;
-
 }
 
+SVGAttrGrp *getOneGlobalAttrGrp(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, xmlChar *name) 
+{
+	SVGAttrGrp *attgrp = NULL;
+	xmlNodeSetPtr attrGrpDefNodes;
+	xmlChar *expr;
+	u32 j;
+	int i, l;
+
+	/* attributes group already resolved */
+	for (j = 0; j < gf_list_count(globalAttrGrp); j++) {
+		SVGAttrGrp *attgrp = gf_list_get(globalAttrGrp, j);
+		if (!strcmp(attgrp->name, name)) {
+			return attgrp;
+		}
+	}
+
+	/* new attributes group */
+	expr = xmlStrdup("//rng:define[@name=\"");
+	expr = xmlStrcat(expr, name);
+	expr = xmlStrcat(expr, "\" and not(rng:empty) and not(rng:notAllowed)]");
+	attrGrpDefNodes = findNodes(xpathCtx, expr);
+	if (!attrGrpDefNodes->nodeNr) {
+		fprintf(stdout, "Warning: found 0 non-empty or allowed definition for the Group of Attributes: %s\n", name);
+		return NULL;
+	}
+	attgrp = NewAttrGrp();				
+	attgrp->name = strdup(name);
+	svgNameToImplementationName(attgrp->name, attgrp->imp_name);
+	gf_list_add(globalAttrGrp, attgrp);
+
+	for (i = 0; i < attrGrpDefNodes->nodeNr; i++) {
+		xmlNodePtr attrGrp = attrGrpDefNodes->nodeTab[i];
+		getRealAttributes(doc, xpathCtx, attrGrp, attgrp->attrs);
+
+		{
+			xmlNodeSetPtr refNodes;
+			xpathCtx->node = attrGrp;
+			refNodes = findNodes(xpathCtx, ".//rng:ref");
+			for (l = 0; l < refNodes->nodeNr; l++) {
+				xmlNodePtr ref = refNodes->nodeTab[l];
+				xmlChar *rname = xmlGetProp(ref, "name");
+				if (xmlStrstr(rname, ".attr")) {
+					SVGAttrGrp *g2 = getOneGlobalAttrGrp(doc, xpathCtx, rname);
+					if (g2) {
+						gf_list_add(attgrp->attrgrps, g2);
+					}
+				}
+			}
+		}
+	}
+	return attgrp;
+}
+
+void getAllGlobalAttrGrp(xmlDocPtr doc, xmlXPathContextPtr xpathCtx) 
+{
+	xmlNodeSetPtr elementNodes = findNodes(xpathCtx, "//rng:define");
+	int k;
+	for (k = 0; k < elementNodes->nodeNr; k++)	{
+		xmlNodePtr elementNode = elementNodes->nodeTab[k];
+		if (elementNode->type == XML_ELEMENT_NODE) {
+			xmlChar *name = NULL;
+			name = xmlGetProp(elementNode, "name");
+			if (xmlStrstr(name, ".attr")) {
+				getOneGlobalAttrGrp(doc, xpathCtx, name);
+			}
+		}
+	}
+}
 
 GF_List *getElements(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 {
+	xmlChar *expr;
 	GF_List *elements = gf_list_new();
-	xmlNodeSetPtr elementNodes = findNodes(xpathCtx, "//rng:element");
-	int k;
+	xmlNodeSetPtr ATNodes;
+	xmlNodeSetPtr refNodes, elementNodes = findNodes(xpathCtx, "//rng:element");
+	int k, j;
+	u32 i;
+
 	for (k = 0; k < elementNodes->nodeNr; k++)	{
 		xmlNodePtr elementNode = elementNodes->nodeTab[k];
 		if (elementNode->type == XML_ELEMENT_NODE) {
 			SVGElement *e = NewSVGElement();
 			e->svg_name = xmlStrdup(xmlGetProp(elementNode, "name"));
 			//fprintf(stdout, "\n\tElement %s\n", e->svg_name);
-			if (!strcmp(e->svg_name, "linearGradient"))
-				k = k;
+			
 			svgNameToImplementationName(e->svg_name, e->implementation_name);
-			getAttributes(doc, xpathCtx, elementNode, e);
-			if (e->has_properties) {
-				u32 i;
-				for (i=0;i<gf_list_count(styling_SVGProperty_names); i++) {
-					SVGProperty *p = gf_list_get(styling_SVGProperty_names, i);
-					gf_list_add(e->attributes, p);
+		
+			/* getting the <define name="element.AT"/> */
+			expr = xmlStrdup("//rng:define[@name=\"");
+			if (!xmlStrcmp(e->svg_name, "polygon") || !xmlStrcmp(e->svg_name, "polyline")) {
+				expr = xmlStrcat(expr, "polyCommon");
+			} else
+				expr = xmlStrcat(expr, e->svg_name);
+			expr = xmlStrcat(expr, ".AT\"]");
+			ATNodes = findNodes(xpathCtx, expr);
+			if (ATNodes->nodeNr) {
+				/* dealing with attributes defined directly here */
+				getRealAttributes(doc, xpathCtx, ATNodes->nodeTab[0], e->attributes);
+
+				/* dealing with attributes defined in groups of attributes */
+				xpathCtx->node = ATNodes->nodeTab[0];
+				refNodes = findNodes(xpathCtx, ".//rng:ref");
+				for (j = 0; j <refNodes->nodeNr; j++) {
+					xmlNodePtr refNode = refNodes->nodeTab[j];
+					char *name = xmlGetProp(refNode, "name");
+					for (i = 0; i < gf_list_count(globalAttrGrp); i++) {						
+						SVGAttrGrp *a = gf_list_get(globalAttrGrp, i);
+						if (!strcmp(a->name, name)) {
+							if (isGenericAttributesGroup(a->name)) {
+								setGenericAttributesFlags(a->name, e);
+								flattenAttributeGroup(*a, e, e->generic_attributes, 1);
+							} else {
+								flattenAttributeGroup(*a, e, e->attributes, 0);
+							}
+							break;
+						}
+					}
 				}
 			}
+
+			/* checking if this element is already present in the list of possible elements 
+			   and if not, adding it */
 			{
-				u32 i;
 				Bool found = 0;
 				for (i=0;i<gf_list_count(elements); i++) {
 					SVGElement *etmp = gf_list_get(elements, i);
@@ -669,36 +947,36 @@ static void EndFile(FILE *f, u32 type)
 	fclose(f);
 }
 
-void generateProperties(FILE *output) 
-{
-	u32 i;
-	for (i = 0; i<gf_list_count(styling_SVGProperty_names); i++) {
-		SVGProperty *att = (SVGProperty *)gf_list_get(styling_SVGProperty_names, i);
-		fprintf(output, "\t%s %s; /* animatable: %s, inheritable: %s */\n", att->impl_type, att->implementation_name, (att->animatable?"yes":"no"), (att->inheritable?(att->inheritable>1?"explicit":"true"):"false"));
-	}
-}
-
-void generateAttributes(FILE *output, GF_List *attributes) 
+void generateAttributes(FILE *output, GF_List *attributes, Bool inDefine) 
 {
 	u32 i;
 	for (i = 0; i<gf_list_count(attributes); i++) {
 		SVGAttribute *att = (SVGAttribute *)gf_list_get(attributes, i);
-		if (!att->attr_or_prop) {
-			SVGProperty *p=(SVGProperty *)att;
-			fprintf(output, "\t%s %s; /* animatable: %s, inheritable: %s */\n", p->impl_type, p->implementation_name, (p->animatable?"yes":"no"), (p->inheritable?(p->inheritable>1?"explicit":"true"):"false"));
-		} else {
-			fprintf(output, "\t%s %s; /* %s, animatable: %s, inheritable: %s */\n", att->impl_type, att->implementation_name, (att->optional?"optional":"required"), (att->animatable?"yes":"no"), (att->inheritable?(att->inheritable>1?"explicit":"true"):"false"));
-		}
+		if (inDefine) 
+			if (i == gf_list_count(attributes) -1) 
+				fprintf(output, "\t%s %s;\n", att->impl_type, att->implementation_name);
+			else 
+				fprintf(output, "\t%s %s; \\\n", att->impl_type, att->implementation_name);
+		else 
+			fprintf(output, "\t%s %s;\n", att->impl_type, att->implementation_name);
 	}
 }
 
 void generateNode(FILE *output, SVGElement* svg_elt) 
 {
 	fprintf(output, "typedef struct _tagSVG%sElement\n{\n", svg_elt->implementation_name);
-	fprintf(output, "\tBASE_NODE\n");
-	fprintf(output, "\tCHILDREN\n");
 	fprintf(output, "\tBASE_SVG_ELEMENT\n");
-	generateAttributes(output, svg_elt->attributes);
+
+	if (svg_elt->has_transform) {
+		fprintf(output, "\tSVG_Matrix transform;\n");
+	}
+
+	if (svg_elt->has_xy) {
+		fprintf(output, "\tSVG_Point xy;\n");
+	}
+
+	generateAttributes(output, svg_elt->attributes, 0);
+
 	/*special case for handler node*/
 	if (!strcmp(svg_elt->implementation_name, "handler")) {
 		fprintf(output, "\tvoid (*handle_event)(struct _tagSVGhandlerElement *hdl, GF_DOM_Event *event);\n");
@@ -706,78 +984,159 @@ void generateNode(FILE *output, SVGElement* svg_elt)
 	fprintf(output, "} SVG%sElement;\n\n\n", svg_elt->implementation_name);
 }
 
-void generateNodeImpl(FILE *output, SVGElement* svg_elt) 
+void generateAttributeInfo(FILE *output, char * elt_imp_name, SVGAttribute *att, u32 i)
 {
-	u32 i;
-	
-	fprintf(output, "static void SVG_%s_Del(GF_Node *node)\n{\n", svg_elt->implementation_name);
-	fprintf(output, "\tSVG%sElement *p = (SVG%sElement *)node;\n", svg_elt->implementation_name, svg_elt->implementation_name);
-	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
-		SVGAttribute *att = gf_list_get(svg_elt->attributes, i);
-		if (!strcmp("SMIL_KeyTimesValues", att->impl_type) ||
-			!strcmp("SMIL_KeyPointsValues", att->impl_type) ||
-			!strcmp("SMIL_KeySplinesValues", att->impl_type) 
-			) {
-			fprintf(output, "\tSVG_DeleteCoordinates(p->%s);\n", att->implementation_name);
-		} else if (!strcmp("SMIL_AnimateValues", att->impl_type)) {				
-			fprintf(output, "\tSMIL_DeleteAnimateValues(&(p->%s));\n", att->implementation_name);
-		} else if (!strcmp("SMIL_AnimateValue", att->impl_type)) {
-			fprintf(output, "\tSMIL_DeleteAnimateValue(&(p->%s));\n", att->implementation_name);
-		} else if (!strcmp("SMIL_AnimateValue", att->impl_type)) {
-			fprintf(output, "\tfree(p->%s.value);\n",att->implementation_name);
-		} else if (!strcmp("SMIL_AnimateValues", att->impl_type)) {
-			fprintf(output, "\tDeleteChain(p->%s.values);\n",att->implementation_name);
-		} else if (!strcmp("SMIL_Times", att->impl_type)) {
-			fprintf(output, "\tSMIL_DeleteTimes(p->%s);\n", att->implementation_name);
-		} else if (!strcmp("SMIL_KeyTimes", att->impl_type) || !strcmp("SMIL_KeyPoints", att->impl_type) || !strcmp("SMIL_KeySplines", att->impl_type) ) {
-			fprintf(output, "\tSMIL_DeleteKeyTypes(p->%s);\n", att->implementation_name);
-		} else if (!strcmp("SVG_Coordinates", att->impl_type)) {
-			fprintf(output, "\tSVG_DeleteCoordinates(p->%s);\n", att->implementation_name);
-		} else if (!strcmp("SVG_Points", att->impl_type)) {
-			fprintf(output, "\tSVG_DeletePoints(p->%s);\n", att->implementation_name);
-		} else if (!strcmp("SVG_PathData", att->impl_type) && !strcmp(svg_elt->svg_name, "animateMotion")) {
-			fprintf(output, "\tSVG_DeletePath(&(p->path));\n");
-		} else if (!strcmp("SVG_PathData", att->impl_type)) {
-			fprintf(output, "\tSVG_DeletePath(&(p->d));\n");
-		} else if (!att->attr_or_prop && !strcmp(att->implementation_name, "fill")) {
-			fprintf(output, "\tfree(p->fill.color);\n");
-		} else if (!strcmp(att->svg_name, "stroke")) {
-			fprintf(output, "\tfree(p->stroke.color);\n");
-		} else if (!strcmp(att->svg_name, "viewport-fill")) {
-			fprintf(output, "\tfree(p->viewport_fill.color);\n");
-		} else if (!strcmp(att->svg_name, "stroke-dasharray")) {
-			fprintf(output, "\tfree(p->stroke_dasharray.array.vals);\n");
-		} else if (!strcmp(att->svg_name, "stop-color")) {
-			fprintf(output, "\tfree(p->stop_color.color);\n");
-		} else if (!strcmp("SMIL_Times", att->impl_type)) {
-			fprintf(output, "\tSMIL_DeleteTimes(p->%s);\n", att->implementation_name);
-		} else if (!strcmp(att->svg_name, "textContent")) {
-			fprintf(output, "\tfree(p->textContent);\n");				
-		} else if (!strcmp(att->svg_name, "font-family")) {
-			fprintf(output, "\tfree(p->font_family.value);\n");
-		} else if (!strcmp(att->svg_name, "xlink:href")) {
-			fprintf(output, "\tSVG_ResetIRI(&(p->xlink_href));\n");
-		} else if (!strcmp("SVG_ContentType", att->impl_type)) {
-			fprintf(output, "\tif (p->%s) free(p->%s);\n", att->implementation_name, att->implementation_name);
+	fprintf(output, "\t\tcase %d:\n", i);
+	fprintf(output, "\t\t\tinfo->name = \"%s\";\n", att->svg_name);
+	fprintf(output, "\t\t\tinfo->fieldType = %s_datatype;\n", att->impl_type);
+	fprintf(output, "\t\t\tinfo->far_ptr = & ((SVG%sElement *)node)->%s;\n", elt_imp_name, att->implementation_name);
+	fprintf(output, "\t\t\treturn GF_OK;\n");
+}
+
+void generateAttributeInfo2(FILE *output, char *pointer, char *name, char *type, u32 i)
+{
+	fprintf(output, "\t\tcase %d:\n", i);
+	fprintf(output, "\t\t\tinfo->name = \"%s\";\n", name);
+	fprintf(output, "\t\t\tinfo->fieldType = %s_datatype;\n", type);
+	fprintf(output, "\t\t\tinfo->far_ptr = &%s;\n", pointer);
+	fprintf(output, "\t\t\treturn GF_OK;\n");
+}
+
+u32 generateAttributesGroupInfo(FILE *output, char * elt_imp_name, SVGAttrGrp *attgrp, u32 i)
+{
+	u32 att_index = i;
+	u32 k;
+	for (k=0; k<gf_list_count(attgrp->attrgrps); k++) {
+		SVGAttrGrp *ag = gf_list_get(attgrp->attrgrps, k);
+		att_index = generateAttributesGroupInfo(output, elt_imp_name, ag, att_index);
+	}
+	for (k=0; k<gf_list_count(attgrp->attrs); k++) {
+		SVGAttribute *at = gf_list_get(attgrp->attrs, k);
+		generateAttributeInfo(output, elt_imp_name, at, att_index++);
+	}
+	return att_index;
+}
+
+u32 generateCoreInfo(FILE *output, SVGElement *elt, u32 start)
+{
+	u32 i = start;
+
+	fprintf(output, "\t\tcase %d:\n", i);
+	fprintf(output, "\t\t\tinfo->name = \"id\";\n");
+	fprintf(output, "\t\t\tinfo->fieldType = SVG_ID_datatype;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = &node->sgprivate->NodeName;\n");
+	fprintf(output, "\t\t\treturn GF_OK;\n");
+	i++;
+
+	fprintf(output, "\t\tcase %d:\n", i);
+	fprintf(output, "\t\t\tinfo->name = \"xml:id\";\n");
+	fprintf(output, "\t\t\tinfo->fieldType = SVG_ID_datatype;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = &node->sgprivate->NodeName;\n");
+	fprintf(output, "\t\t\treturn GF_OK;\n");
+	i++;
+
+	fprintf(output, "\t\tcase %d:\n", i);
+	fprintf(output, "\t\t\tinfo->name = \"class\";\n");
+	fprintf(output, "\t\t\tinfo->fieldType = SVG_String_datatype;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = &((SVGElement *)node)->core->_class;\n");
+	fprintf(output, "\t\t\treturn GF_OK;\n");
+	i++;
+
+	fprintf(output, "\t\tcase %d:\n", i);
+	fprintf(output, "\t\t\tinfo->name = \"xml:lang\";\n");
+	fprintf(output, "\t\t\tinfo->fieldType = SVG_LanguageID_datatype;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = &((SVGElement *)node)->core->lang;\n");
+	fprintf(output, "\t\t\treturn GF_OK;\n");
+	i++;
+
+	fprintf(output, "\t\tcase %d:\n", i);
+	fprintf(output, "\t\t\tinfo->name = \"xml:base\";\n");
+	fprintf(output, "\t\t\tinfo->fieldType = SVG_String_datatype;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = &((SVGElement *)node)->core->base;\n");
+	fprintf(output, "\t\t\treturn GF_OK;\n");
+	i++;
+
+	fprintf(output, "\t\tcase %d:\n", i);
+	fprintf(output, "\t\t\tinfo->name = \"xml:space\";\n");
+	fprintf(output, "\t\t\tinfo->fieldType = XML_Space_datatype;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = &((SVGElement *)node)->core->space;\n");
+	fprintf(output, "\t\t\treturn GF_OK;\n");
+	i++;
+
+	fprintf(output, "\t\tcase %d:\n", i);
+	fprintf(output, "\t\t\tinfo->name = \"externalResourcesRequired\";\n");
+	fprintf(output, "\t\t\tinfo->fieldType = SVG_Boolean_datatype;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = &((SVGElement *)node)->core->eRR;\n");
+	fprintf(output, "\t\t\treturn GF_OK;\n");
+	i++;
+
+	return i;
+}
+
+u32 generateTransformInfo(FILE *output, SVGElement *elt, u32 start)
+{
+	u32 i = start;
+
+	fprintf(output, "\t\tcase %d:\n", i);
+	fprintf(output, "\t\t\tinfo->name = \"transform\";\n");
+	fprintf(output, "\t\t\tinfo->fieldType = SVG_Matrix_datatype;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = &((SVGTransformableElement *)node)->transform;\n");
+	fprintf(output, "\t\t\treturn GF_OK;\n");
+	i++;
+	return i;
+}
+
+u32 generateXYInfo(FILE *output, SVGElement *elt, u32 start)
+{
+	u32 i = start;
+
+	fprintf(output, "\t\tcase %d:\n", i);
+	fprintf(output, "\t\t\tinfo->name = \"x\";\n");
+	fprintf(output, "\t\t\tinfo->fieldType = SVG_Coordinate_datatype;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = &((SVGTransformableElement *)node)->xy.x;\n");
+	fprintf(output, "\t\t\treturn GF_OK;\n");
+	i++;
+
+	fprintf(output, "\t\tcase %d:\n", i);
+	fprintf(output, "\t\t\tinfo->name = \"y\";\n");
+	fprintf(output, "\t\t\tinfo->fieldType = SVG_Coordinate_datatype;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = &((SVGTransformableElement *)node)->xy.y;\n");
+	fprintf(output, "\t\t\treturn GF_OK;\n");
+	i++;
+	return i;
+}
+
+u32 generateGenericInfo(FILE *output, SVGElement *elt, u32 index, char *pointer_root, u32 start)
+{
+	u32 i = start;
+	int k;
+	for (k=0; k < generic_attributes[index].array_length; k++) {
+		char *att_name = generic_attributes[index].array[k];
+		SVGAttribute *a = findAttribute(elt, att_name);
+		if (a) {
+			char pointer[500];
+			if (strstr(att_name, "xlink:")) {
+				sprintf(pointer, "%s%s", pointer_root, att_name+6);
+			} else if (strstr(att_name, "xml:")) {
+				sprintf(pointer, "%s%s", pointer_root, att_name+4);
+			} else {
+				char imp_name[50];
+				svgNameToImplementationName(att_name, imp_name);
+				sprintf(pointer, "%s%s", pointer_root, imp_name);
+			}
+			generateAttributeInfo2(output, pointer, a->svg_name, a->impl_type, i);
+			i++;
 		}
 	}
-	fprintf(output, "\tgf_sg_parent_reset((GF_Node *) p);\n");
-	fprintf(output, "\tgf_node_free((GF_Node *)p);\n");
-	fprintf(output, "}\n\n");
-	
-	fprintf(output, "static GF_Err SVG_%s_get_attribute(GF_Node *node, GF_FieldInfo *info)\n{\n", svg_elt->implementation_name);
-	fprintf(output, "\tswitch (info->fieldIndex) {\n");
-	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
-		SVGAttribute *att = gf_list_get(svg_elt->attributes, i);
-		fprintf(output, "\t\tcase %d:\n", i);
-		fprintf(output, "\t\t\tinfo->name = \"%s\";\n", att->svg_name);
-		fprintf(output, "\t\t\tinfo->fieldType = %s_datatype;\n", att->impl_type);
-		fprintf(output, "\t\t\tinfo->far_ptr = & ((SVG%sElement *)node)->%s;\n", svg_elt->implementation_name, att->implementation_name);
-		fprintf(output, "\t\t\treturn GF_OK;\n");
-	}
-	fprintf(output, "\t\tdefault: return GF_BAD_PARAM;\n\t}\n}\n\n");
+	return i;
+}
 
-	fprintf(output, "void *SVG_New_%s()\n{\n\tSVG%sElement *p;\n", svg_elt->implementation_name,svg_elt->implementation_name);
+void generateNodeImpl(FILE *output, SVGElement* svg_elt) 
+{
+	u32 i;	
+
+	/* Constructor */
+	fprintf(output, "void *gf_svg_new_%s()\n{\n\tSVG%sElement *p;\n", svg_elt->implementation_name,svg_elt->implementation_name);
 	fprintf(output, "\tGF_SAFEALLOC(p, sizeof(SVG%sElement));\n\tif (!p) return NULL;\n\tgf_node_setup((GF_Node *)p, TAG_SVG_%s);\n\tgf_sg_parent_setup((GF_Node *) p);\n",svg_elt->implementation_name,svg_elt->implementation_name);
 	fprintf(output, "#ifdef GF_NODE_USE_POINTERS\n");
 	fprintf(output, "\t((GF_Node *p)->sgprivate->name = \"%s\";\n", svg_elt->implementation_name);
@@ -785,88 +1144,108 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 	fprintf(output, "\t((GF_Node *p)->sgprivate->get_field = SVG_%s_get_attribute;\n", svg_elt->implementation_name);
 	fprintf(output, "#endif\n");
 
-	if (strcmp(svg_elt->svg_name, "video") && strcmp(svg_elt->svg_name, "font-face")) {
-		for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
-			u32 j;
-			SVGAttribute *att = gf_list_get(svg_elt->attributes, i);
+	if (svg_elt->has_svg_generic || svg_elt->has_xml_generic) {
+		fprintf(output, "\tgf_svg_init_core((SVGElement *)p);\n");		
+	} 
+	if (svg_elt->has_properties) {
+		fprintf(output, "\tgf_svg_init_properties((SVGElement *)p);\n");		
+	} 
+	if (svg_elt->has_focus) {
+		fprintf(output, "\tgf_svg_init_focus((SVGElement *)p);\n");		
+	} 
+	if (svg_elt->has_xlink) {
+		fprintf(output, "\tgf_svg_init_xlink((SVGElement *)p);\n");		
+	} 
+	if (svg_elt->has_timing) {
+		fprintf(output, "\tgf_svg_init_timing((SVGElement *)p);\n");		
+	} 
+	if (svg_elt->has_sync) {
+		fprintf(output, "\tgf_svg_init_sync((SVGElement *)p);\n");		
+	}
+	if (svg_elt->has_animation){
+		fprintf(output, "\tgf_svg_init_anim((SVGElement *)p);\n");		
+	} 
+	if (svg_elt->has_conditional) {
+		fprintf(output, "\tgf_svg_init_conditional((SVGElement *)p);\n");		
+	} 
 
-			/* default values should be handled more properly, generically */
-			if (!att->attr_or_prop && !strcmp(att->implementation_name, "fill")) {
-				fprintf(output, "\tp->fill.type = SVG_PAINT_INHERIT;\n");
-				fprintf(output, "\tGF_SAFEALLOC(p->fill.color, sizeof(SVG_Color));\n");
-			} else if (!strcmp(att->svg_name, "color")) {
-				fprintf(output, "\tp->color.type = SVG_COLOR_INHERIT;\n");
-			} else if (!strcmp(att->svg_name, "transform")) {
-				fprintf(output, "\tgf_mx2d_init(p->transform);\n");
-			} else if (!strcmp(att->svg_name, "fill-rule")) {
-				fprintf(output, "\tp->fill_rule = SVG_FILLRULE_INHERIT;\n");
-			} else if (!strcmp(att->svg_name, "fill-opacity")) {
-				fprintf(output, "\tp->fill_opacity.type = SVG_NUMBER_INHERIT;\n");
-			} else if (!strcmp(att->svg_name, "stroke")) {
-				fprintf(output, "\tp->stroke.type = SVG_PAINT_INHERIT;\n");
-				fprintf(output, "\tGF_SAFEALLOC(p->stroke.color, sizeof(SVG_Color));\n");
-			} else if (!strcmp(att->svg_name, "viewport-fill")) {
-				fprintf(output, "\tp->viewport_fill.type = SVG_PAINT_INHERIT;\n");
-				fprintf(output, "\tGF_SAFEALLOC(p->viewport_fill.color, sizeof(SVG_Color));\n");
-			} else if (!strcmp(att->svg_name, "stop-color")) {
-				fprintf(output, "\tp->stop_color.type = SVG_PAINT_INHERIT;\n");
-				fprintf(output, "\tGF_SAFEALLOC(p->stop_color.color, sizeof(SVG_Color));\n");
-			} else if (!strcmp(att->svg_name, "stroke-opacity")) {
-				fprintf(output, "\tp->stroke_opacity.type = SVG_NUMBER_INHERIT;\n");
-			} else if (!strcmp(att->svg_name, "stroke-width")) {
-				fprintf(output, "\tp->stroke_width.type = SVG_NUMBER_INHERIT;\n");
-			} else if (!strcmp(att->svg_name, "stroke-linejoin")) {
-				fprintf(output, "\tp->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;\n");
-			} else if (!strcmp(att->svg_name, "stroke-linecap")) {
-				fprintf(output, "\tp->stroke_linecap = SVG_STROKELINECAP_INHERIT;\n");
-			} else if (!strcmp(att->svg_name, "stroke-miterlimit")) {
-				fprintf(output, "\tp->stroke_miterlimit.type = SVG_NUMBER_INHERIT;\n");
-			} else if (!strcmp(att->svg_name, "stroke-dasharray")) {
-				fprintf(output, "\tp->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;\n");
-			} else if (!strcmp(att->svg_name, "stroke-dashoffset")) {
-				fprintf(output, "\tp->stroke_dashoffset.type = SVG_NUMBER_INHERIT;\n");
-			} else if (!strcmp(att->svg_name, "font-size")) {
-				fprintf(output, "\tp->font_size.type = SVG_NUMBER_INHERIT;\n");
-			} else if (!strcmp(att->svg_name, "text-anchor")) {
-				fprintf(output, "\tp->text_anchor = SVG_TEXTANCHOR_INHERIT;\n");
-			} else if (!strcmp(att->svg_name, "min")) {
-				fprintf(output, "\tp->min.type = SMIL_DURATION_DEFINED;\n");
-			} else if (!strcmp(att->svg_name, "repeatDur")) {
-				fprintf(output, "\tp->repeatDur.type = SMIL_DURATION_UNSPECIFIED;\n");
-			} else if (!strcmp(att->svg_name, "calcMode") && !strcmp(svg_elt->svg_name, "animateMotion")) {
-				fprintf(output, "\tp->calcMode = SMIL_CALCMODE_PACED;\n");
-			} else 
-				/* Inialization of complex types */
-			if ( !strcmp("SVG_TransformList", att->impl_type) ||
-						!strcmp("SVG_Points", att->impl_type) || 
-						!strcmp("SVG_Coordinates", att->impl_type) ||
-						!strcmp("SMIL_KeyTimes", att->impl_type) ||
-						!strcmp("SMIL_KeyPoints", att->impl_type) ||
-						!strcmp("SMIL_KeySplines", att->impl_type) ||			
-						!strcmp("SMIL_Times", att->impl_type) 
-					  ) {
-				fprintf(output, "\tp->%s = gf_list_new();\n", att->implementation_name);
-			} else if (!strcmp("SVG_PathData", att->impl_type) && !strcmp(svg_elt->svg_name, "animateMotion")) {
-				fprintf(output, "\tp->path.commands = gf_list_new();\n");
-				fprintf(output, "\tp->path.points = gf_list_new();\n");
-			} else if (!strcmp("SVG_PathData", att->impl_type)) {
-				fprintf(output, "\tp->d.commands = gf_list_new();\n");
-				fprintf(output, "\tp->d.points = gf_list_new();\n");
-			} else if (!strcmp("SMIL_AnimateValues", att->impl_type)) {
-				fprintf(output, "\tp->%s.values = gf_list_new();\n",att->implementation_name);
-			}
+	if (svg_elt->has_transform) {
+		fprintf(output, "\tgf_mx2d_init(p->transform);\n");
+	} 
 
-			for (j = 0; j < gf_list_count(styling_SVGProperty_names); j++) {
-				SVGProperty *prop = gf_list_get(styling_SVGProperty_names, j);
-				if (prop == (SVGProperty*)att) {
-				//if (!strcmp(prop->, att->svg_name) && strcmp("freeze", att->implementation_name)) {
-					fprintf(output, "\tp->properties.%s = &(p->%s);\n", att->implementation_name, att->implementation_name);
-					break;
-				}
+	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
+		SVGAttribute *att = gf_list_get(svg_elt->attributes, i);
+		/* Initialization of complex types */
+		if ( !strcmp("SVG_Points", att->impl_type) || 
+			 !strcmp("SVG_Coordinates", att->impl_type) ||
+			 !strcmp("SMIL_KeyPoints", att->impl_type)) {
+			fprintf(output, "\tp->%s = gf_list_new();\n", att->implementation_name);
+		} else if (!strcmp("SVG_PathData", att->impl_type) && !strcmp(svg_elt->svg_name, "animateMotion")) {
+			fprintf(output, "\tp->path.commands = gf_list_new();\n");
+			fprintf(output, "\tp->path.points = gf_list_new();\n");
+		} else if (!strcmp("SVG_PathData", att->impl_type)) {
+			fprintf(output, "\tp->d.commands = gf_list_new();\n");
+			fprintf(output, "\tp->d.points = gf_list_new();\n");
+		} 
+	}
+	fprintf(output, "\treturn p;\n}\n\n");
+
+	/* Destructor */
+	fprintf(output, "static void gf_svg_%s_del(GF_Node *node)\n{\n", svg_elt->implementation_name);
+	fprintf(output, "\tSVG%sElement *p = (SVG%sElement *)node;\n", svg_elt->implementation_name, svg_elt->implementation_name);
+
+	fprintf(output, "\tgf_svg_reset_base_element((SVGElement *)p);\n");
+	
+	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
+		SVGAttribute *att = gf_list_get(svg_elt->attributes, i);
+		if (!strcmp("SMIL_KeyPoints", att->impl_type)) {
+			fprintf(output, "\tgf_smil_delete_key_types(p->%s);\n", att->implementation_name);
+		} else if (!strcmp("SVG_Coordinates", att->impl_type)) {
+			fprintf(output, "\tgf_svg_delete_coordinates(p->%s);\n", att->implementation_name);
+		} else if (!strcmp("SVG_Points", att->impl_type)) {
+			fprintf(output, "\tgf_svg_delete_points(p->%s);\n", att->implementation_name);
+		} else if (!strcmp("SVG_PathData", att->impl_type)) {
+			if (!strcmp(svg_elt->svg_name, "animateMotion")) {
+				fprintf(output, "\tgf_svg_reset_path(p->path);\n");
+			} else {
+				fprintf(output, "\tgf_svg_reset_path(p->d);\n");
 			}
 		}
 	}
-	fprintf(output, "\treturn p;\n}\n\n");
+	fprintf(output, "\tgf_sg_parent_reset((GF_Node *) p);\n");
+	fprintf(output, "\tgf_node_free((GF_Node *)p);\n");
+	fprintf(output, "}\n\n");
+	
+	/* Attribute Access */
+	fprintf(output, "static GF_Err gf_svg_%s_get_attribute(GF_Node *node, GF_FieldInfo *info)\n{\n", svg_elt->implementation_name);
+	fprintf(output, "\tswitch (info->fieldIndex) {\n");
+	svg_elt->nb_atts = 0;
+	svg_elt->nb_atts = generateCoreInfo(output, svg_elt, svg_elt->nb_atts);
+
+	if (svg_elt->has_properties) 
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 1, "((SVGElement *)node)->properties->", svg_elt->nb_atts);
+	if (svg_elt->has_focus) 
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 2, "((SVGElement *)node)->focus->", svg_elt->nb_atts);
+	if (svg_elt->has_xlink) 
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 3, "((SVGElement *)node)->xlink->", svg_elt->nb_atts);
+	if (svg_elt->has_timing) 
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 4, "((SVGElement *)node)->timing->", svg_elt->nb_atts);
+	if (svg_elt->has_sync) 
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 5, "((SVGElement *)node)->sync->", svg_elt->nb_atts);
+	if (svg_elt->has_animation) 
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 6, "((SVGElement *)node)->anim->", svg_elt->nb_atts);
+	if (svg_elt->has_conditional) 
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 7, "((SVGElement *)node)->conditional->", svg_elt->nb_atts);
+	if (svg_elt->has_transform) 
+		svg_elt->nb_atts = generateTransformInfo(output, svg_elt, svg_elt->nb_atts);
+	if (svg_elt->has_xy) 
+		svg_elt->nb_atts = generateXYInfo(output, svg_elt, svg_elt->nb_atts);
+
+	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
+		SVGAttribute *att = gf_list_get(svg_elt->attributes, i);
+		generateAttributeInfo(output, svg_elt->implementation_name, att, svg_elt->nb_atts++);
+	}
+	fprintf(output, "\t\tdefault: return GF_BAD_PARAM;\n\t}\n}\n\n");
 
 }
 
@@ -902,29 +1281,6 @@ static void EndHtml(FILE *f)
 	fprintf(f, "</body>\n");
 	fprintf(f, "</html>\n");
 	fclose(f);
-}
-
-static GF_List *sortElements(GF_List *elements)
-{
-	u32 i, j;
-	GF_List *sorted_elements = gf_list_new();
-
-	for (i = 0; i< gf_list_count(elements); i++) {
-		u8 is_added = 0;
-		SVGElement *elt = gf_list_get(elements, i);
-		for (j = 0; j < gf_list_count(sorted_elements); j++) {
-			SVGElement *selt = gf_list_get(sorted_elements, j);
-			if (strcmp(elt->svg_name, selt->svg_name) < 0) {
-				gf_list_insert(sorted_elements, elt, j);
-				is_added = 1;
-				break;
-			}
-		}
-		if (!is_added) gf_list_add(sorted_elements, elt);
-	}
-
-	gf_list_del(elements);
-	return sorted_elements;
 }
 
 /* Generates an HTML table */
@@ -1003,12 +1359,7 @@ void generate_table(GF_List *elements)
 			SVGAttribute *att = gf_list_get(elt->attributes, j);
 			if (!strcmp(att->svg_name, "textContent")) continue;
 			fprintf(f, "<tr>\n");
-			if (!att->attr_or_prop) {
-				SVGProperty *p=(SVGProperty *)att;
-				fprintf(f, "<td class='property-name'>%s</td>\n",p->svg_name);
-			} else {
-				fprintf(f, "<td class='attribute-name'>%s</td>\n",att->svg_name);
-			}
+			fprintf(f, "<td class='attribute-name'>%s</td>\n",att->svg_name);
 			fprintf(f, "<td class='not-supported'></td>\n");
 			fprintf(f, "<td class='attribute-observation'>&nbsp;</td>\n");
 			fprintf(f, "<td class='attribute-example'>%d - &nbsp;</td>\n",++nbExamples);
@@ -1021,6 +1372,32 @@ void generate_table(GF_List *elements)
 
 	EndHtml(f);
 	gf_list_del(elements);
+}
+
+void replaceIncludes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
+{
+	int k;
+	xmlNodeSetPtr nodes;
+	xmlXPathObjectPtr xpathObj; 
+
+    /* Get all the RNG elements */
+    xpathObj = xmlXPathEvalExpression("//rng:include", xpathCtx);
+    if(xpathObj == NULL || xpathObj->type != XPATH_NODESET) return;
+	
+	nodes = xpathObj->nodesetval;	
+		
+	for (k = 0; k < nodes->nodeNr; k++)	{
+		xmlNodePtr node = nodes->nodeTab[k];
+		if (node->type == XML_ELEMENT_NODE) {
+			xmlChar *href;
+			xmlDocPtr sub_doc;
+
+			href = xmlGetNoNsProp(node, "href");
+			sub_doc = xmlParseFile(href);
+			xmlReplaceNode(nodes->nodeTab[k], xmlDocGetRootElement(sub_doc));
+		}
+	}
+	xmlXPathFreeObject(xpathObj);
 }
 
 int main(int argc, char **argv)
@@ -1051,12 +1428,12 @@ int main(int argc, char **argv)
 	xmlXPathRegisterNs(xpathCtx, SVGA_PREFIX, SVGA_NS);
 
 	replaceIncludes(doc, xpathCtx);
-	
-	styling_SVGProperty_names = getProperties(doc, xpathCtx);
 	xmlSaveFile("completerng_props.xml", doc);
+	
+	globalAttrGrp = gf_list_new();
+	getAllGlobalAttrGrp(doc, xpathCtx);
 
 	svg_elements = getElements(doc, xpathCtx);
-
 	svg_elements = sortElements(svg_elements);
 
 	if (argv[2] && !strcmp(argv[2], "-html")) {
@@ -1076,6 +1453,30 @@ int main(int argc, char **argv)
 				fprintf(output, ",\n\tTAG_SVG_%s", elt->implementation_name);
 		}
 		fprintf(output, ",\n\t/*undefined elements (when parsing) use this tag*/\n\tTAG_SVG_UndefinedElement\n};\n\n");
+
+		/*
+		fprintf(output, "/******************************************\n");
+ 		fprintf(output, "*   SVG Attributes Groups definitions     *\n");
+ 		fprintf(output, "*******************************************\n");
+		for (i=0; i<gf_list_count(globalAttrGrp); i++) {
+			SVGAttrGrp *attgrp = gf_list_get(globalAttrGrp, i);
+			fprintf(output, "/* %d attributes *\n", attgrp->nb_attrs);
+			fprintf(output, "#define %s \\\n", strupr(attgrp->imp_name));
+			for (j = 0; j<gf_list_count(attgrp->attrgrps); j++) {
+				SVGAttrGrp *a = gf_list_get(attgrp->attrgrps, j);
+				fprintf(output, "\t%s ", strupr(a->imp_name));
+				if (j != gf_list_count(attgrp->attrgrps) - 1) 
+					fprintf(output, "\\\n");
+				else if (gf_list_count(attgrp->attrs))
+					fprintf(output, "\\\n");
+				else 
+					fprintf(output, "\n");
+			}
+			attgrp->attrs = sortAttr(attgrp->attrs);
+			generateAttributes(output, attgrp->attrs, 1);
+			fprintf(output, "\n");
+		}*/
+
 		fprintf(output, "/******************************************\n");
  		fprintf(output, "*   SVG Elements structure definitions    *\n");
  		fprintf(output, "*******************************************/\n");
@@ -1097,46 +1498,46 @@ int main(int argc, char **argv)
 			generateNodeImpl(output, elt);
 		}
 
-		/* SVGElement *SVG_CreateNode(u32 ElementTag)*/
-		fprintf(output, "SVGElement *SVG_CreateNode(u32 ElementTag)\n");
+		/* SVGElement *gf_svg_create_node(u32 ElementTag)*/
+		fprintf(output, "SVGElement *gf_svg_create_node(u32 ElementTag)\n");
 		fprintf(output, "{\n");
 		fprintf(output, "\tswitch (ElementTag) {\n");
 		for (i=0; i<gf_list_count(svg_elements); i++) {
 			SVGElement *elt = (SVGElement *)gf_list_get(svg_elements, i);
-			fprintf(output, "\t\tcase TAG_SVG_%s: return SVG_New_%s();\n",elt->implementation_name,elt->implementation_name);
+			fprintf(output, "\t\tcase TAG_SVG_%s: return gf_svg_new_%s();\n",elt->implementation_name,elt->implementation_name);
 		}
 		fprintf(output, "\t\tdefault: return NULL;\n\t}\n}\n\n");
 		
-		/* void SVGElement_Del(SVGElement *elt) */
-		fprintf(output, "void SVGElement_Del(SVGElement *elt)\n{\n");
+		/* void gf_svg_element_del(SVGElement *elt) */
+		fprintf(output, "void gf_svg_element_del(SVGElement *elt)\n{\n");
 		fprintf(output, "\tGF_Node *node = (GF_Node *)elt;\n");
 		fprintf(output, "\tswitch (node->sgprivate->tag) {\n");
 		for (i=0; i<gf_list_count(svg_elements); i++) {
 			SVGElement *elt = (SVGElement *)gf_list_get(svg_elements, i);
-			fprintf(output, "\t\tcase TAG_SVG_%s: SVG_%s_Del(node); return;\n", elt->implementation_name, elt->implementation_name);
+			fprintf(output, "\t\tcase TAG_SVG_%s: gf_svg_%s_del(node); return;\n", elt->implementation_name, elt->implementation_name);
 		}
 		fprintf(output, "\t\tdefault: return;\n\t}\n}\n\n");
 
-		/* u32 SVG_GetAttributeCount(SVGElement *elt) */
-		fprintf(output, "u32 SVG_GetAttributeCount(GF_Node *node)\n{\n");
+		/* u32 gf_svg_get_attribute_count(SVGElement *elt) */
+		fprintf(output, "u32 gf_svg_get_attribute_count(GF_Node *node)\n{\n");
 		fprintf(output, "\tswitch (node->sgprivate->tag) {\n");
 		for (i=0; i<gf_list_count(svg_elements); i++) {
 			SVGElement *elt = (SVGElement *)gf_list_get(svg_elements, i);
-			fprintf(output, "\t\tcase TAG_SVG_%s: return %i;\n", elt->implementation_name, gf_list_count(elt->attributes));
+			fprintf(output, "\t\tcase TAG_SVG_%s: return %i;\n", elt->implementation_name, elt->nb_atts);
 		}
 		fprintf(output, "\t\tdefault: return 0;\n\t}\n}\n\n");
 		
-		/* GF_Err SVG_GetAttributeInfo(GF_Node *node, GF_FieldInfo *info) */
-		fprintf(output, "GF_Err SVG_GetAttributeInfo(GF_Node *node, GF_FieldInfo *info)\n{\n");
+		/* GF_Err gf_svg_get_attribute_info(GF_Node *node, GF_FieldInfo *info) */
+		fprintf(output, "GF_Err gf_svg_get_attribute_info(GF_Node *node, GF_FieldInfo *info)\n{\n");
 		fprintf(output, "\tswitch (node->sgprivate->tag) {\n");
 		for (i=0; i<gf_list_count(svg_elements); i++) {
 			SVGElement *elt = (SVGElement *)gf_list_get(svg_elements, i);
-			fprintf(output, "\t\tcase TAG_SVG_%s: return SVG_%s_get_attribute(node, info);\n", elt->implementation_name, elt->implementation_name);
+			fprintf(output, "\t\tcase TAG_SVG_%s: return gf_svg_%s_get_attribute(node, info);\n", elt->implementation_name, elt->implementation_name);
 		}
 		fprintf(output, "\t\tdefault: return GF_BAD_PARAM;\n\t}\n}\n\n");
 
-		/* u32 SVG_GetTagByName(const char *element_name) */
-		fprintf(output, "u32 SVG_GetTagByName(const char *element_name)\n{\n\tif (!element_name) return TAG_UndefinedNode;\n");
+		/* u32 gf_svg_get_tag_by_name(const char *element_name) */
+		fprintf(output, "u32 gf_svg_get_tag_by_name(const char *element_name)\n{\n\tif (!element_name) return TAG_UndefinedNode;\n");
 		for (i=0; i<gf_list_count(svg_elements); i++) {
 			SVGElement *elt = (SVGElement *)gf_list_get(svg_elements, i);
 			fprintf(output, "\tif (!stricmp(element_name, \"%s\")) return TAG_SVG_%s;\n", elt->svg_name, elt->implementation_name);
@@ -1144,8 +1545,8 @@ int main(int argc, char **argv)
 		fprintf(output, "\treturn TAG_UndefinedNode;\n}\n\n");
 
 
-		/* const char *SVG_GetElementName(u32 tag) */
-		fprintf(output, "const char *SVG_GetElementName(u32 tag)\n{\n\tswitch(tag) {\n");
+		/* const char *gf_svg_get_element_name(u32 tag) */
+		fprintf(output, "const char *gf_svg_get_element_name(u32 tag)\n{\n\tswitch(tag) {\n");
 		for (i=0; i<gf_list_count(svg_elements); i++) {
 			SVGElement *elt = (SVGElement *)gf_list_get(svg_elements, i);
 			fprintf(output, "\tcase TAG_SVG_%s: return \"%s\";\n", elt->implementation_name, elt->svg_name);

@@ -959,7 +959,10 @@ static u32 svg_parse_number(SVG_Number *number, char *value_string, Bool clamp0t
 	} else if (!strcmp(value_string, "auto")) {
 		number->type = SVG_NUMBER_AUTO;
 		return 4;
-	} else if ((unit = strstr(value_string, "%"))) {
+	} else if (!strcmp(value_string, "auto-reverse")) {
+		number->type = SVG_NUMBER_AUTO_REVERSE;
+		return 12;
+	} else if (unit = strstr(value_string, "%")) {
 		number->type = SVG_NUMBER_PERCENTAGE;
 	} else if ((unit = strstr(value_string, "em"))) {
 		number->type = SVG_NUMBER_EMS;
@@ -1324,10 +1327,11 @@ void smil_parse_attributename(SVGElement *animation_element, char *value_string)
 	}
 	if (!gf_node_get_field_by_name((GF_Node *)targetElement, value_string, &targetAttribute)) {
 		SMIL_AttributeName *attributename_value = (SMIL_AttributeName *)attribute_name.far_ptr;
+		attributename_value->name = strdup(value_string);
 		attributename_value->type = targetAttribute.fieldType;
 		attributename_value->field_ptr = targetAttribute.far_ptr;
 	} else 
-		fprintf(stderr, "Error: Attribute %s does not belong to target element %s of type %s.\n", value_string, gf_node_get_name((GF_Node *)targetElement), SVG_GetElementName(gf_node_get_tag((GF_Node *)targetElement)));
+		fprintf(stderr, "Error: Attribute %s does not belong to target element %s of type %s.\n", value_string, gf_node_get_name((GF_Node *)targetElement), gf_svg_get_element_name(gf_node_get_tag((GF_Node *)targetElement)));
 }
 
 static void smil_parse_time_list(SVGElement *e, GF_List *values, char *begin_or_end_list)
@@ -1692,6 +1696,48 @@ static void svg_parse_animatetransform_type(SVG_TransformType *anim_transform_ty
 		*anim_transform_type = SVG_TRANSFORM_SKEWY;
 	}
 }
+
+static void svg_parse_focushighlight(SVG_FocusHighlight *fh, char *attribute_content)
+{
+	if (!strcmp(attribute_content, "auto")) {
+		*fh = SVG_FOCUSHIGHLIGHT_AUTO;
+	} else if (!strcmp(attribute_content, "none")) {
+		*fh = SVG_FOCUSHIGHLIGHT_NONE;
+	}
+}
+
+static void svg_parse_initialvisibility(SVG_InitialVisibility *iv, char *attribute_content)
+{
+	if (!strcmp(attribute_content, "whenStarted")) {
+		*iv = SVG_INITIALVISIBILTY_WHENSTARTED;
+	} else if (!strcmp(attribute_content, "always")) {
+		*iv = SVG_INITIALVISIBILTY_ALWAYS;
+	}
+}
+
+static void svg_parse_overlay(SVG_Overlay *o, char *attribute_content)
+{
+	if (!strcmp(attribute_content, "none")) {
+		*o = SVG_OVERLAY_NONE;
+	} else if (!strcmp(attribute_content, "top")) {
+		*o = SVG_OVERLAY_TOP;
+	}
+}
+
+static void svg_parse_transformbehavior(SVG_TransformBehavior *tb, char *attribute_content)
+{
+	if (!strcmp(attribute_content, "geometric")) {
+		*tb = SVG_TRANSFORMBEHAVIOR_GEOMETRIC;
+	} else if (!strcmp(attribute_content, "pinned")) {
+		*tb = SVG_TRANSFORMBEHAVIOR_PINNED;
+	} else if (!strcmp(attribute_content, "pinned90")) {
+		*tb = SVG_TRANSFORMBEHAVIOR_PINNED90;
+	} else if (!strcmp(attribute_content, "pinned180")) {
+		*tb = SVG_TRANSFORMBEHAVIOR_PINNED180;
+	} else if (!strcmp(attribute_content, "pinned270")) {
+		*tb = SVG_TRANSFORMBEHAVIOR_PINNED270;
+	}
+}
 /* end of Basic SVG datatype parsing functions */
 
 void svg_parse_one_anim_value(SVGElement *elt, SMIL_AnimateValue *anim_value, char *attribute_content, u8 anim_value_type, u8 transform_type)
@@ -1893,13 +1939,24 @@ GF_Err svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_
 	case SMIL_Fill_datatype:
 		smil_parse_fill((SMIL_Fill *)info->far_ptr, attribute_content);
 		break;
-
 	case SVG_GradientUnit_datatype:
 		*((SVG_GradientUnit *)info->far_ptr) = !stricmp(attribute_content, "userSpaceOnUse") ? SVG_GRADIENTUNITS_USER : SVG_GRADIENTUNITS_OBJECT;
 		break;
+	case SVG_FocusHighlight_datatype:
+		svg_parse_focushighlight(info->far_ptr, attribute_content);
+		break;
+	case SVG_InitialVisibility_datatype:
+		svg_parse_initialvisibility(info->far_ptr, attribute_content);
+		break;
+	case SVG_Overlay_datatype:
+		svg_parse_overlay(info->far_ptr, attribute_content);
+		break;
+	case SVG_TransformBehavior_datatype:
+		svg_parse_transformbehavior(info->far_ptr, attribute_content);
+		break;
 /* end of keyword type parsing */
 
-	/* inheritable floats */
+	/* keyword | floats */
 	case SVG_Opacity_datatype:
 	case SVG_AudioLevel_datatype:
 		svg_parse_number(info->far_ptr, attribute_content, 1);
@@ -1912,6 +1969,7 @@ GF_Err svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_
 	case SVG_FontSize_datatype:
 	case SVG_StrokeDashOffset_datatype:
 	case SVG_LineIncrement_datatype:
+	case SVG_Rotate_datatype:
 		svg_parse_number(info->far_ptr, attribute_content, 0);
 		break;
 
@@ -2006,7 +2064,7 @@ void svg_parse_one_style(SVGElement *elt, char *one_style)
 		svg_parse_attribute(elt, &info, c, 0, 0);
 	} else {
 #ifndef _WIN32_WCE
-		fprintf(stderr, "Error: Attribute %s does not belong to element %s.\n", attributeName, SVG_GetElementName(gf_node_get_tag((GF_Node*)elt)));
+		fprintf(stderr, "Error: Attribute %s does not belong to element %s.\n", attributeName, gf_svg_get_element_name(gf_node_get_tag((GF_Node*)elt)));
 #endif
 	}
 }
@@ -2093,6 +2151,11 @@ void *svg_create_value_from_attributetype(u8 attribute_type, u8 transform_type)
 	case SMIL_Restart_datatype:
 	case SMIL_Fill_datatype:
 	case SVG_TransformType_datatype:
+	case SVG_FocusHighlight_datatype:
+	case SVG_InitialVisibility_datatype:
+	case SVG_GradientUnit_datatype:
+	case SVG_Overlay_datatype:
+	case SVG_TransformBehavior_datatype:
 		{
 			u8 *keyword;
 			GF_SAFEALLOC(keyword, sizeof(u8))
@@ -2110,6 +2173,7 @@ void *svg_create_value_from_attributetype(u8 attribute_type, u8 transform_type)
 	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
+	case SVG_Rotate_datatype:
 		{
 			SVG_Number *number;
 			GF_SAFEALLOC(number, sizeof(SVG_Number))
@@ -2155,6 +2219,7 @@ void *svg_create_value_from_attributetype(u8 attribute_type, u8 transform_type)
 				{
 					SVG_Matrix *m;
 					GF_SAFEALLOC(m, sizeof(SVG_Matrix))
+					gf_mx2d_init(*m);
 					return m;
 				}
 			}
@@ -2252,6 +2317,8 @@ static void svg_dump_color(SVG_Color *col, char *attValue)
 static void svg_dump_number(SVG_Number *l, char *attValue)
 {
 	if (l->type==SVG_NUMBER_INHERIT) strcpy(attValue, "inherit");
+	else if (l->type == SVG_NUMBER_AUTO) strcpy(attValue, "auto");
+	else if (l->type == SVG_NUMBER_AUTO_REVERSE) strcpy(attValue, "auto-reverse");
 	else {
 		sprintf(attValue, "%g", l->value);
 		if (l->type == SVG_NUMBER_PERCENTAGE) strcat(attValue, "%");
@@ -2493,6 +2560,25 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 		if (intVal==SVG_GRADIENTUNITS_USER) strcpy(attValue, "userSpaceOnUse");
 		else if (intVal==SVG_GRADIENTUNITS_OBJECT) strcpy(attValue, "objectBoundingBox");
 		break;
+	case SVG_InitialVisibility_datatype:
+		if (intVal==SVG_INITIALVISIBILTY_WHENSTARTED) strcpy(attValue, "whenStarted");
+		else if (intVal==SVG_INITIALVISIBILTY_ALWAYS) strcpy(attValue, "always");
+		break;
+	case SVG_FocusHighlight_datatype:
+		if (intVal==SVG_FOCUSHIGHLIGHT_AUTO) strcpy(attValue, "auto");
+		else if (intVal==SVG_FOCUSHIGHLIGHT_NONE) strcpy(attValue, "none");
+		break;
+	case SVG_Overlay_datatype:
+		if (intVal==SVG_OVERLAY_NONE) strcpy(attValue, "none");
+		else if (intVal==SVG_OVERLAY_TOP) strcpy(attValue, "top");
+		break;
+	case SVG_TransformBehavior_datatype:
+		if (intVal==SVG_TRANSFORMBEHAVIOR_GEOMETRIC) strcpy(attValue, "geometric");
+		else if (intVal==SVG_TRANSFORMBEHAVIOR_PINNED) strcpy(attValue, "pinned");
+		else if (intVal==SVG_TRANSFORMBEHAVIOR_PINNED90) strcpy(attValue, "pinned90");
+		else if (intVal==SVG_TRANSFORMBEHAVIOR_PINNED180) strcpy(attValue, "pinned180");
+		else if (intVal==SVG_TRANSFORMBEHAVIOR_PINNED270) strcpy(attValue, "pinned270");
+		break;
 /* end of keyword type parsing */
 
 	/* inheritable floats */
@@ -2505,6 +2591,7 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
+	case SVG_Rotate_datatype:
 		svg_dump_number((SVG_Number *)info->far_ptr, attValue);
 		break;
 
@@ -3242,7 +3329,8 @@ GF_Err svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 	if (!a->far_ptr || !b->far_ptr || !c->far_ptr) return GF_BAD_PARAM;
 
 	c->fieldType = a->fieldType;
-	
+	c->eventType = a->eventType;
+
 	switch (a->fieldType) {
 
 	/* Numeric types */
@@ -3610,6 +3698,7 @@ GF_Err svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldInfo
 	if (!a->far_ptr || !b->far_ptr || !c->far_ptr) return GF_BAD_PARAM;
 
 	c->fieldType = a->fieldType;
+	c->eventType = a->eventType;
 	
 	switch (a->fieldType) {
 
@@ -3711,4 +3800,123 @@ GF_Err svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldInfo
 	}
 	return GF_OK;
 
+}
+
+Bool gf_svg_is_property_inherited(GF_FieldInfo *a)
+{
+	switch (a->fieldType) {
+	case SVG_Color_datatype:
+		return (((SVG_Color *)a->far_ptr)->type == SVG_COLOR_INHERIT);
+		break;
+	case SVG_Paint_datatype:
+		return (((SVG_Paint *)a->far_ptr)->type == SVG_PAINT_INHERIT);
+		break;
+	case SVG_Opacity_datatype:
+	case SVG_AudioLevel_datatype:
+	case SVG_FontSize_datatype:
+	case SVG_StrokeDashOffset_datatype:
+	case SVG_StrokeMiterLimit_datatype:
+	case SVG_LineIncrement_datatype:
+	case SVG_StrokeWidth_datatype:
+		return (((SVG_Number *)a->far_ptr)->type == SVG_NUMBER_INHERIT);
+		break;
+	case SVG_RenderingHint_datatype:
+		return (*((SVG_RenderingHint *)a->far_ptr) == SVG_RENDERINGHINT_INHERIT);
+		break;
+	case SVG_Display_datatype:
+		return (*((SVG_Display *)a->far_ptr) == SVG_DISPLAY_INHERIT);
+		break;
+	case SVG_DisplayAlign_datatype:
+		return (*((SVG_DisplayAlign *)a->far_ptr) == SVG_DISPLAYALIGN_INHERIT);
+		break;
+	case SVG_FillRule_datatype:
+		return (*((SVG_FillRule *)a->far_ptr) == SVG_FILLRULE_INHERIT);
+		break;
+	case SVG_FontFamily_datatype:
+		return (((SVG_FontFamily *)a->far_ptr)->type == SVG_FONTFAMILY_INHERIT);
+		break;
+	case SVG_FontStyle_datatype:
+		return (*((SVG_FontStyle *)a->far_ptr) == SVG_FONTSTYLE_INHERIT);
+		break;
+	case SVG_FontWeight_datatype:
+		return (*((SVG_FontWeight *)a->far_ptr) == SVG_FONTWEIGHT_INHERIT);
+		break;
+	case SVG_PointerEvents_datatype:
+		return (*((SVG_PointerEvents *)a->far_ptr) == SVG_POINTEREVENTS_INHERIT);
+		break;
+	case SVG_StrokeDashArray_datatype:
+		return (((SVG_StrokeDashArray *)a->far_ptr)->type == SVG_STROKEDASHARRAY_INHERIT);
+		break;
+	case SVG_StrokeLineCap_datatype:
+		return (*((SVG_StrokeLineCap *)a->far_ptr) == SVG_STROKELINECAP_INHERIT);
+		break;
+	case SVG_StrokeLineJoin_datatype:
+		return (*((SVG_StrokeLineJoin *)a->far_ptr) == SVG_STROKELINEJOIN_INHERIT);
+		break;
+	case SVG_TextAnchor_datatype:
+		return (*((SVG_TextAnchor *)a->far_ptr) == SVG_TEXTANCHOR_INHERIT);
+		break;
+	case SVG_VectorEffect_datatype:
+		return (*((SVG_VectorEffect *)a->far_ptr) == SVG_VECTOREFFECT_INHERIT);
+		break;
+	case SVG_Visibility_datatype:
+		return (*((SVG_Visibility *)a->far_ptr) == SVG_VISIBILITY_INHERIT);
+		break;
+	case SVG_Overflow_datatype:
+		return (*((SVG_Overflow *)a->far_ptr) == SVG_OVERFLOW_INHERIT);
+		break;
+	default:
+		return 0;
+	}
+}
+
+Bool gf_svg_is_current_color(GF_FieldInfo *a)
+{
+	switch (a->fieldType) {
+	case SVG_Color_datatype:
+		return (((SVG_Color *)a->far_ptr)->type == SVG_COLOR_CURRENTCOLOR);
+		break;
+	case SVG_Paint_datatype:
+		if ((((SVG_Paint *)a->far_ptr)->type == SVG_PAINT_COLOR) && ((SVG_Paint *)a->far_ptr)->color) {
+			return (((SVG_Paint *)a->far_ptr)->color->type == SVG_COLOR_CURRENTCOLOR);
+		} else {
+			return 0;
+		}
+		break;
+	}
+	return 0;
+}
+
+void gf_svg_attributes_pointer_update(GF_FieldInfo *in, GF_FieldInfo *prop, GF_FieldInfo *current_color)
+{
+	if ((in->fieldType == SVG_Paint_datatype) && gf_svg_is_current_color(in)) {
+		*in = *current_color;
+	} else if (in->fieldType == 0 || gf_svg_is_property_inherited(in)) {
+		*in = *prop;
+	}
+}
+
+void gf_svg_attributes_smart_copy(GF_FieldInfo *out, GF_FieldInfo *in, GF_FieldInfo *prop, GF_FieldInfo *current_color)
+{
+	if (gf_svg_is_property_inherited(in)) {
+		svg_attributes_copy(out, prop, 0);
+	} else if (gf_svg_is_current_color(in)) {
+		svg_attributes_copy(out, current_color, 0);
+	} else {
+		svg_attributes_copy(out, in, 0);
+	}
+}
+
+void gf_svg_attributes_copy_computed_value(GF_FieldInfo *out, GF_FieldInfo *in, SVGPropertiesPointers *inherited_props)
+{
+	GF_FieldInfo prop, current_color;
+
+	prop.fieldType = in->fieldType;
+	prop.eventType = in->eventType;
+	prop.far_ptr = gf_svg_get_property_pointer_by_name(inherited_props, in->name);
+
+	current_color.fieldType = SVG_PAINT_COLOR;
+	current_color.far_ptr = inherited_props->color;
+
+	gf_svg_attributes_smart_copy(out, in, &prop, &current_color);
 }

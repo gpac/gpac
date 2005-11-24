@@ -273,8 +273,8 @@ static JSBool udom_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *
 	if (evtType==SVG_DOM_EVT_UNKNOWN) return JS_FALSE;
 
 	/*emulate a listener for onClick event*/
-	listener = (SVGlistenerElement *) SVG_NewNode(node->sgprivate->scenegraph, TAG_SVG_listener);
-	handler = (SVGhandlerElement *) SVG_NewNode(node->sgprivate->scenegraph, TAG_SVG_handler);
+	listener = (SVGlistenerElement *) gf_svg_new_node(node->sgprivate->scenegraph, TAG_SVG_listener);
+	handler = (SVGhandlerElement *) gf_svg_new_node(node->sgprivate->scenegraph, TAG_SVG_handler);
 	gf_node_register((GF_Node *)listener, node);
 	gf_list_add( ((GF_ParentNode *)node)->children, listener);
 	gf_node_register((GF_Node *)handler, node);
@@ -364,9 +364,9 @@ static JSBool doc_create_element(JSContext *c, JSObject *obj, uintN argc, jsval 
 	inNS = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 	eltName = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
 
-	tag = SVG_GetTagByName(eltName);
+	tag = gf_svg_get_tag_by_name(eltName);
 	if (!tag) return JS_FALSE;
-	n = (GF_Node *) SVG_NewNode(sg, tag);
+	n = (GF_Node *) gf_svg_new_node(sg, tag);
 	*rval = OBJECT_TO_JSVAL(svg_elt_construct(c, n));
 	return JS_TRUE;
 }
@@ -2630,7 +2630,7 @@ void JSScript_LoadSVG(GF_Node *node)
 	JSBool ret;
 	jsval rval;
 	SVGscriptElement *script = (SVGscriptElement *)node;
-	if (!script->type || strcmp(script->type, "text/ecmascript") || !script->textContent) return;
+	if (!script->xlink->type || strcmp(script->xlink->type, "text/ecmascript") || !script->textContent) return;
 
 	if (!node->sgprivate->scenegraph->svg_js) {
 		GF_SVGJS *svg_js;

@@ -27,15 +27,41 @@
 
 #include <gpac/nodes_svg.h>
 
-SVGElement *SVG_NewNode(GF_SceneGraph *inScene, u32 tag)
+SVGElement *gf_svg_new_node(GF_SceneGraph *inScene, u32 tag)
 {
 	SVGElement *node;
 	if (!inScene) return NULL;
-	node = SVG_CreateNode(tag);
+	node = gf_svg_create_node(tag);
 	if (node) {
 		node->sgprivate->scenegraph = inScene;
 	}
 	return (SVGElement *)node;
+}
+
+GF_Err gf_node_animation_add(GF_Node *node, void *animation)
+{
+	if (!node || !animation) return GF_BAD_PARAM;
+	if (!node->sgprivate->animations) node->sgprivate->animations = gf_list_new();
+	return gf_list_add(node->sgprivate->animations, animation);
+}
+
+GF_Err gf_node_animation_del(GF_Node *node)
+{
+	if (!node || !node->sgprivate->animations) return GF_BAD_PARAM;
+	gf_list_del(node->sgprivate->animations);
+	return GF_OK;
+}
+
+u32 gf_node_animation_count(GF_Node *node)
+{
+	if (!node || !node->sgprivate->animations) return 0;
+	return gf_list_count(node->sgprivate->animations);
+}
+
+void *gf_node_animation_get(GF_Node *node, u32 i)
+{
+	if (!node || !node->sgprivate->animations) return 0;
+	return gf_list_get(node->sgprivate->animations, i);
 }
 
 GF_Err gf_node_listener_add(GF_Node *node, GF_Node *listener)
@@ -169,8 +195,8 @@ SVGhandlerElement *gf_sg_dom_create_listener(GF_Node *node, u32 eventType)
 	SVGhandlerElement *handler;
 
 	/*emulate a listener for onClick event*/
-	listener = (SVGlistenerElement *) SVG_NewNode(node->sgprivate->scenegraph, TAG_SVG_listener);
-	handler = (SVGhandlerElement *) SVG_NewNode(node->sgprivate->scenegraph, TAG_SVG_handler);
+	listener = (SVGlistenerElement *) gf_svg_new_node(node->sgprivate->scenegraph, TAG_SVG_listener);
+	handler = (SVGhandlerElement *) gf_svg_new_node(node->sgprivate->scenegraph, TAG_SVG_handler);
 	gf_node_register((GF_Node *)listener, node);
 	gf_list_add( ((GF_ParentNode *)node)->children, listener);
 	gf_node_register((GF_Node *)handler, node);
@@ -285,6 +311,7 @@ Bool gf_sg_svg_node_init(GF_Node *node)
 	case TAG_SVG_animate: 
 	case TAG_SVG_animateColor: 
 	case TAG_SVG_animateTransform: 
+		gf_smil_anim_init_node(node);
 	case TAG_SVG_audio: 
 	case TAG_SVG_video: 
 		gf_smil_setup_events(node);
@@ -357,28 +384,28 @@ Bool svg_store_embedded_data(SVG_IRI *iri, const char *iri_data, const char *cac
 
 #else
 /*these ones are only needed for W32 libgpac_dll build in order not to modify export def file*/
-u32 SVG_GetTagByName(const char *element_name)
+u32 gf_svg_get_tag_by_name(const char *element_name)
 {
 	return 0;
 }
-u32 SVG_GetAttributeCount(GF_Node *n)
+u32 gf_svg_get_attribute_count(GF_Node *n)
 {
 	return 0;
 }
-GF_Err SVG_GetAttributeInfo(GF_Node *node, GF_FieldInfo *info)
+GF_Err gf_svg_get_attribute_info(GF_Node *node, GF_FieldInfo *info)
 {
 	return GF_NOT_SUPPORTED;
 }
 
-GF_Node *SVG_NewNode(GF_SceneGraph *inScene, u32 tag)
+GF_Node *gf_svg_new_node(GF_SceneGraph *inScene, u32 tag)
 {
 	return NULL;
 }
-GF_Node *SVG_CreateNode(GF_SceneGraph *inScene, u32 tag)
+GF_Node *gf_svg_create_node(GF_SceneGraph *inScene, u32 tag)
 {
 	return NULL;
 }
-const char *SVG_GetElementName(u32 tag)
+const char *gf_svg_get_element_name(u32 tag)
 {
 	return "Unsupported";
 }

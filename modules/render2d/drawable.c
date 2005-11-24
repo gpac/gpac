@@ -765,7 +765,7 @@ static GF_TextureHandler *svg_get_texture_handle(GF_Node *node, DOM_String uri)
 	}
 }
 
-static void setup_SVG_drawable_context(DrawableContext *ctx, SVGStylingProperties props)
+static void setup_SVG_drawable_context(DrawableContext *ctx, SVGPropertiesPointers props)
 {
 	ctx->aspect.fill_alpha = 255;
 	ctx->aspect.filled = (props.fill->type != SVG_PAINT_NONE);
@@ -774,7 +774,7 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGStylingPropertie
 		ctx->aspect.filled = 0;
 	}
 	else if (props.fill->color->type == SVG_COLOR_CURRENTCOLOR) {
-		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(props.fill_opacity->value, props.color->red, props.color->green, props.color->blue);
+		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(props.fill_opacity->value, props.color->color->red, props.color->color->green, props.color->color->blue);
 	} else {
 		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(props.fill_opacity->value, props.fill->color->red, props.fill->color->green, props.fill->color->blue);
 	}
@@ -783,7 +783,7 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGStylingPropertie
 		ctx->aspect.line_texture = svg_get_texture_handle(ctx->node->owner, props.stroke->uri);
 	}
 	else if (props.stroke->color->type == SVG_COLOR_CURRENTCOLOR) {
-		ctx->aspect.line_color = GF_COL_ARGB_FIXED(props.stroke_opacity->value, props.color->red, props.color->green, props.color->blue);
+		ctx->aspect.line_color = GF_COL_ARGB_FIXED(props.stroke_opacity->value, props.color->color->red, props.color->color->green, props.color->color->blue);
 	} else {
 		ctx->aspect.line_color = GF_COL_ARGB_FIXED(props.stroke_opacity->value, props.stroke->color->red, props.stroke->color->green, props.stroke->color->blue);
 	}

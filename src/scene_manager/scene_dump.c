@@ -2358,7 +2358,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n)
 	fprintf(sdump->trace, "<%s ", gf_node_get_class_name(n));
 	if (defName) fprintf(sdump->trace, "id=\"%s\" ", defName);
 
-	proto = (GF_Node *) SVG_NewNode(sdump->sg, n->sgprivate->tag);
+	proto = (GF_Node *) gf_svg_new_node(sdump->sg, n->sgprivate->tag);
 	gf_node_register(proto, NULL);
 
 	text = NULL;

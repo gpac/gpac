@@ -49,15 +49,13 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 	SVGtextElement *text = (SVGtextElement *)node;
 	GF_FontRaster *ft_dr = eff->surface->render->compositor->font_engine;
   
-	SVGStylingProperties backup_props;
-	u32 styling_size = sizeof(SVGStylingProperties);
+	SVGPropertiesPointers backup_props;
 
-	memcpy(&backup_props, eff->svg_props, styling_size);
-	SVGApplyProperties(eff->svg_props, text->properties);
+	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
-		memcpy(eff->svg_props, &backup_props, styling_size);
+		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 		return;
 	}
 	gf_mx2d_copy(backup_matrix, eff->transform);
@@ -147,7 +145,7 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 		drawable_finalize_render(ctx, eff);
 	}
 	gf_mx2d_copy(eff->transform, backup_matrix);  
-	memcpy(eff->svg_props, &backup_props, styling_size);
+	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 }
 
 Bool SVG_text_PointOver(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)

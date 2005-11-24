@@ -162,7 +162,7 @@ void svg_characters(void *user_data, const xmlChar *ch, s32 len)
 		SVGtextElement *text = (SVGtextElement *)elt;
 		char *tmp = (char *)ch;
 		/* suppress begining spaces */
-		if ((!text->xml_space)||(text->xml_space != XML_SPACE_PRESERVE)) {
+		if ((!text->core->space)||(text->core->space != XML_SPACE_PRESERVE)) {
 			u32 i = 0;
 			while ((*tmp == ' ' || *tmp=='\n')&& (len>0)) { tmp++; len--; }
 		}
@@ -177,7 +177,7 @@ void svg_characters(void *user_data, const xmlChar *ch, s32 len)
 		text->textContent[baselen+len]=0;
 
 		/* suppress ending spaces */
-		if ((!text->xml_space)||(text->xml_space != XML_SPACE_PRESERVE)) {
+		if ((!text->core->space)||(text->core->space != XML_SPACE_PRESERVE)) {
 			tmp = &(text->textContent[baselen+len - 1]);
 			while (*tmp == ' ' || *tmp=='\n') tmp--;
 			tmp++;
@@ -428,7 +428,27 @@ void svg_parse_dom_attributes(SVGParser *parser,
 				} else if (!gf_node_get_field_by_name((GF_Node *)elt, (char *)attributes->name, &info)) {
 					svg_parse_attribute(elt, &info, attributes->children->content, anim_value_type, anim_transform_type);
 				} else {
-					fprintf(stdout, "SVG Warning: Unknown attribute %s on element %s\n", attributes->name, gf_node_get_class_name((GF_Node *)elt));
+					evtType = svg_get_animation_event_by_name((char *) attributes->name + 2);
+					/*SVG 1.1 events: create a listener and a handler on the fly, register them with current node
+					and add listener struct*/
+					if (evtType != SVG_DOM_EVT_UNKNOWN) {
+						SVGlistenerElement *listener;
+						SVGhandlerElement *handler;
+						listener = (SVGlistenerElement *) gf_svg_new_node(parser->graph, TAG_SVG_listener);
+						handler = (SVGhandlerElement *) gf_svg_new_node(parser->graph, TAG_SVG_handler);
+						gf_node_register((GF_Node *)listener, (GF_Node *)elt);
+						gf_list_add(elt->children, listener);
+						gf_node_register((GF_Node *)handler, (GF_Node *)elt);
+						gf_list_add(elt->children, handler);
+						handler->ev_event = listener->event = evtType;
+						listener->handler.target = (SVGElement *) handler;
+						listener->target.target = elt;
+						handler->textContent = strdup(attributes->children->content);
+						gf_node_listener_add((GF_Node *) elt, (GF_Node *) listener);
+						gf_node_init((GF_Node *)handler);
+					} else {
+						fprintf(stdout, "SVG Warning: Unknown attribute %s on element %s\n", attributes->name, gf_node_get_class_name((GF_Node *)elt));
+					}
 				}
 			}
 		} 
@@ -452,7 +472,7 @@ void svg_parse_dom_children(SVGParser *parser, xmlNodePtr node, SVGElement *elt)
 			if (child) gf_list_add(elt->children, child);
 		} else if ((children->type == XML_TEXT_NODE) && (tag == TAG_SVG_text)) {
 			SVGtextElement *text = (SVGtextElement *)elt;
-			if (text->xml_space && text->xml_space == XML_SPACE_PRESERVE) {
+			if (text->core->space && text->core->space == XML_SPACE_PRESERVE) {
 				text->textContent = strdup(children->content);
 			} else {
 				char *tmp = children->content;
@@ -515,7 +535,7 @@ void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVGEle
 					anim_value_type		= SVG_Matrix_datatype;
 					anim_transform_type = *(SVG_TransformType*)type_info.far_ptr;
 				} else {
-					fprintf(stdout, "Warning: attributeName attribute not found.\n");
+					fprintf(stdout, "Warning: type attribute not found.\n");
 				}
 			} else {
 				fprintf(stdout, "Warning: type attribute not specified in animateTransform.\n");
@@ -559,14 +579,14 @@ SVGElement *svg_parse_dom_element(SVGParser *parser, xmlNodePtr node, SVGElement
 	char *id = NULL;
 
 	/* Translates the node type (called name) from a String into a unique numeric identifier in GPAC */
-	tag = SVG_GetTagByName(node->name);
+	tag = gf_svg_get_tag_by_name(node->name);
 	if (tag == TAG_UndefinedNode) {
 		parser->last_error = GF_SG_UNKNOWN_NODE;
 		return NULL;
 	}
 
 	/* Creates a node in the current scene graph */
-	elt = SVG_NewNode(parser->graph, tag);
+	elt = gf_svg_new_node(parser->graph, tag);
 	if (!elt) {
 		parser->last_error = GF_SG_UNKNOWN_NODE;
 		return NULL;
@@ -722,14 +742,14 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 	defered_element local_de;
 
 	/* Translates the node type (called name) from a String into a unique numeric identifier in GPAC */
-	tag = SVG_GetTagByName(name);
+	tag = gf_svg_get_tag_by_name(name);
 	if (tag == TAG_UndefinedNode) {
 		parser->last_error = GF_SG_UNKNOWN_NODE;
 		return NULL;
 	}
 
 	/* Creates a node in the current scene graph */
-	elt = SVG_NewNode(parser->graph, tag);
+	elt = gf_svg_new_node(parser->graph, tag);
 	if (!elt) {
 		parser->last_error = GF_SG_UNKNOWN_NODE;
 		return NULL;
@@ -881,7 +901,28 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 			} else if (!gf_node_get_field_by_name((GF_Node *)elt, (char *)attrs[attribute_index], &info)) {
 				svg_parse_attribute(elt, &info, (xmlChar *)attrs[attribute_index+1], 0, 0);
 			} else {
-				fprintf(stdout, "SVG Warning: Unknown attribute %s on element %s\n", (char *)attrs[attribute_index], gf_node_get_class_name((GF_Node *)elt));
+				/*SVG 1.1 events: create a listener and a handler on the fly, register them with current node
+				and add listener struct*/
+				u32 evtType = svg_get_animation_event_by_name((char *) (char *)attrs[attribute_index] + 2);
+				if (evtType != SVG_DOM_EVT_UNKNOWN) {
+					SVGlistenerElement *listener;
+					SVGhandlerElement *handler;
+					listener = (SVGlistenerElement *) gf_svg_new_node(parser->graph, TAG_SVG_listener);
+					handler = (SVGhandlerElement *) gf_svg_new_node(parser->graph, TAG_SVG_handler);
+					gf_node_register((GF_Node *)listener, (GF_Node *)elt);
+					gf_list_add(elt->children, listener);
+					gf_node_register((GF_Node *)handler, (GF_Node *)elt);
+					gf_list_add(elt->children, handler);
+					handler->ev_event = listener->event = evtType;
+					listener->handler.target = (SVGElement *) handler;
+					listener->target.target = elt;
+					handler->textContent = strdup((char *)attrs[attribute_index+1]);
+
+					gf_node_listener_add((GF_Node *) elt, (GF_Node *) listener);
+					gf_node_init((GF_Node *)handler);
+				} else {
+					fprintf(stdout, "SVG Warning: Unknown attribute %s on element %s\n", (char *)attrs[attribute_index], gf_node_get_class_name((GF_Node *)elt));
+				}
 			}
 		}
 		attribute_index+=2;

@@ -174,7 +174,7 @@ typedef struct _render2d_effect
 
 	/* Styling Property and others for SVG context */
 #ifndef GPAC_DISABLE_SVG
-	SVGStylingProperties *svg_props;
+	SVGPropertiesPointers *svg_props;
 	/*number of listeners in the current tree branch*/
 	u32 nb_listeners;
 	GF_Rect bounds;

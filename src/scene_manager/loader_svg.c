@@ -349,14 +349,14 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 	DeferedAnimation *anim = NULL;
 
 	/* Translates the node type (called name) from a String into a unique numeric identifier in GPAC */
-	tag = SVG_GetTagByName(name);
+	tag = gf_svg_get_tag_by_name(name);
 	if (tag == TAG_UndefinedNode) {
 		parser->last_error = GF_SG_UNKNOWN_NODE;
 		return NULL;
 	}
 
 	/* Creates a node in the current scene graph */
-	elt = SVG_NewNode(parser->load->scene_graph, tag);
+	elt = gf_svg_new_node(parser->load->scene_graph, tag);
 	if (!elt) {
 		parser->last_error = GF_SG_UNKNOWN_NODE;
 		return NULL;
@@ -599,7 +599,7 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 		}
 	}
 	/*only remove created nodes ... */
-	if (SVG_GetTagByName(name) != TAG_UndefinedNode) {
+	if (gf_svg_get_tag_by_name(node_name) != TAG_UndefinedNode) {
 		const char *name;
 		/*check node name...*/
 		name = gf_node_get_class_name(node);
@@ -626,7 +626,7 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 	buf = text_content;
 	len = strlen(buf);
 
-	if (!node->xml_space || (node->xml_space != XML_SPACE_PRESERVE)) {
+	if (!node->core->space || (node->core->space != XML_SPACE_PRESERVE)) {
 		Bool go = 1;;
 		while (go) {
 			switch (buf[0]) {

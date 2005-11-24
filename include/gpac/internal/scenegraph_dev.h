@@ -95,6 +95,9 @@ typedef struct _nodepriv
 	THIS IS DYNAMICALLY CREATED*/
 	GF_List *events;
 
+	/* SVG animations are registered in the target node */
+	GF_List *animations;
+
 #ifdef GF_CYCLIC_RENDER_ON
 	u32 render_pass;
 #endif
@@ -561,6 +564,5 @@ typedef struct __tag_svg_script_ctx
 #endif
 
 #endif
-
 
 #endif	/*_GF_SCENEGRAPH_DEV_H_*/
