@@ -599,7 +599,7 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 		}
 	}
 	/*only remove created nodes ... */
-	if (gf_svg_get_tag_by_name(node_name) != TAG_UndefinedNode) {
+	if (gf_svg_get_tag_by_name(name) != TAG_UndefinedNode) {
 		const char *name;
 		/*check node name...*/
 		name = gf_node_get_class_name(node);

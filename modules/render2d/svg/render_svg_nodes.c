@@ -376,7 +376,7 @@ static void SVG_DrawablePostRender(Drawable *cs, SVGPropertiesPointers *backup_p
 	}
 
 	gf_mx2d_copy(backup_matrix, eff->transform);
-	gf_mx2d_pre_multiply(&eff->transform, &m);
+	gf_mx2d_pre_multiply(&eff->transform, &elt->transform);
 
 	if (*(eff->svg_props->fill_rule)==SVG_FILLRULE_NONZERO) cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
 	else cs->path->flags &= ~GF_PATH_FILL_ZERO_NONZERO;
@@ -721,8 +721,8 @@ static void SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 #ifndef DANAE
 	if (event->type==SVG_DOM_EVT_MOUSEOVER) {
 		evt.type = GF_EVT_NAVIGATE_INFO;
-		evt.navigate.to_url = a->xlink_href.iri;
-		if (a->xlink_title) evt.navigate.to_url = a->xlink_title;
+		evt.navigate.to_url = a->xlink->href.iri;
+		if (a->xlink->title) evt.navigate.to_url = a->xlink->title;
 		compositor->user->EventProc(compositor->user->opaque, &evt);
 		return;
 	}
