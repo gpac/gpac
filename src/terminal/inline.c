@@ -1358,7 +1358,7 @@ Bool gf_is_process_anchor(GF_Node *caller, GF_Event *evt)
 	term = is->root_od->term;
 
 	/*if main scene forward to user. If no params or first one not "self" forward to user*/
-	if ((term->root_scene==is) || !evt->navigate.parameters || !evt->navigate.param_count || stricmp(evt->navigate.parameters[0], "self") || stricmp(evt->navigate.parameters[0], "_self")) {
+	if ((term->root_scene==is) || !evt->navigate.parameters || !evt->navigate.param_count || (stricmp(evt->navigate.parameters[0], "self") && stricmp(evt->navigate.parameters[0], "_self"))) {
 		if (term->user->EventProc) return term->user->EventProc(term->user->opaque, evt);
 		return 1;
 	}
