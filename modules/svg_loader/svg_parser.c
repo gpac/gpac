@@ -612,7 +612,6 @@ SVGElement *svg_parse_dom_element(SVGParser *parser, xmlNodePtr node, SVGElement
 /* SAX functions */
 void svg_parse_sax_defered_anchor(SVGParser *parser, SVGElement *anchor_elt, defered_element local_de)
 {
-	GF_FieldInfo info;
 	u32 anim_value_type = 0, anim_transform_type = 0;
 
 	GF_FieldInfo xlink_href_info;
@@ -626,20 +625,6 @@ void svg_parse_sax_defered_anchor(SVGParser *parser, SVGElement *anchor_elt, def
 		((SVG_IRI *)xlink_href_info.far_ptr)->iri_owner = local_de.animation_elt;
 		/* Warning !!! here the reference is the parent !!!! */
 		//gf_node_register((GF_Node *)local_de.parent, (GF_Node *)local_de.animation_elt);
-	}
-
-	if (local_de.attributeName) {
-		/* get the type of the target attribute to determine type of the from/to/by ... */
-		smil_parse_attributename(anchor_elt, local_de.attributeName);
-		gf_node_get_field_by_name((GF_Node *)anchor_elt, "attributeName", &info);
-		anim_value_type = ((SMIL_AttributeName *)info.far_ptr)->type;
-		free(local_de.attributeName);
-	} else {
-		if (gf_node_get_tag((GF_Node *)anchor_elt) == TAG_SVG_animateMotion) {
-			anim_value_type = SVG_Motion_datatype;
-		} else {
-			fprintf(stdout, "Error: no attributeName specified.\n");
-		}
 	}
 }
 
@@ -663,8 +648,8 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_el
 
 	if (local_de.attributeName) {
 		/* get the type of the target attribute to determine type of the from/to/by ... */
+		smil_parse_attributename(animation_elt, local_de.attributeName);
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "attributeName", &info);
-		svg_parse_attribute(animation_elt, &info, local_de.attributeName, 0, 0);
 		anim_value_type = ((SMIL_AttributeName *)info.far_ptr)->type;
 		free(local_de.attributeName);
 	} else {
