@@ -87,6 +87,7 @@ s32 gf_lsr_field_to_anim_type(GF_Node *n, u32 fieldIndex);
 #define RARE_FILL_OPACITY		6
 #define RARE_FILL_RULE			7
 #define RARE_IMAGE_RENDERING	8
+#define RARE_LINE_INCREMENT		9
 #define RARE_POINTER_EVENTS		10
 #define RARE_SHAPE_RENDERING	11
 #define RARE_SOLID_COLOR		12

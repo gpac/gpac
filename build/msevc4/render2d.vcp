@@ -98,7 +98,7 @@ LINK32=link.exe
 
 # Name "render2d - Win32 (WCE ARMV4) Release"
 # Name "render2d - Win32 (WCE ARMV4) Debug"
-# Begin Group "SVG"
+# Begin Group "svg"
 
 # PROP Default_Filter ""
 # Begin Source File
@@ -131,7 +131,6 @@ DEP_CPP_RENDE=\
 	"..\..\modules\render2d\drawable.h"\
 	"..\..\modules\render2d\grouping.h"\
 	"..\..\modules\render2d\render2d.h"\
-	"..\..\modules\render2d\smil\smil_stacks.h"\
 	"..\..\modules\render2d\stacks2d.h"\
 	"..\..\modules\render2d\svg\svg_stacks.h"\
 	"..\..\modules\render2d\visualsurface2d.h"\
@@ -168,45 +167,9 @@ DEP_CPP_RENDER=\
 	"..\..\modules\render2d\drawable.h"\
 	"..\..\modules\render2d\grouping.h"\
 	"..\..\modules\render2d\render2d.h"\
-	"..\..\modules\render2d\smil\smil_stacks.h"\
 	"..\..\modules\render2d\stacks2d.h"\
 	"..\..\modules\render2d\svg\svg_stacks.h"\
 	"..\..\modules\render2d\visualsurface2d.h"\
-	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\render2d\svg\svg_animation.c
-DEP_CPP_SVG_A=\
-	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\internal\renderer_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\mediaobject.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\audio_out.h"\
-	"..\..\include\gpac\modules\font.h"\
-	"..\..\include\gpac\modules\raster2d.h"\
-	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\nodes_svg.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\renderer.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\thread.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\user.h"\
-	"..\..\modules\render2d\drawable.h"\
-	"..\..\modules\render2d\grouping.h"\
-	"..\..\modules\render2d\render2d.h"\
-	"..\..\modules\render2d\smil\smil_stacks.h"\
-	"..\..\modules\render2d\stacks2d.h"\
-	"..\..\modules\render2d\svg\svg_stacks.h"\
 	
 # End Source File
 # Begin Source File
@@ -240,7 +203,6 @@ DEP_CPP_SVG_M=\
 	"..\..\modules\render2d\drawable.h"\
 	"..\..\modules\render2d\grouping.h"\
 	"..\..\modules\render2d\render2d.h"\
-	"..\..\modules\render2d\smil\smil_stacks.h"\
 	"..\..\modules\render2d\stacks2d.h"\
 	"..\..\modules\render2d\svg\svg_stacks.h"\
 	"..\..\modules\render2d\visualsurface2d.h"\
@@ -249,47 +211,6 @@ DEP_CPP_SVG_M=\
 # Begin Source File
 
 SOURCE=..\..\modules\render2d\svg\svg_stacks.h
-# End Source File
-# End Group
-# Begin Group "SMIL"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=..\..\modules\render2d\smil\smil_animation.c
-DEP_CPP_SMIL_=\
-	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\internal\renderer_dev.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\math.h"\
-	"..\..\include\gpac\mediaobject.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\audio_out.h"\
-	"..\..\include\gpac\modules\font.h"\
-	"..\..\include\gpac\modules\raster2d.h"\
-	"..\..\include\gpac\modules\video_out.h"\
-	"..\..\include\gpac\nodes_mpeg4.h"\
-	"..\..\include\gpac\path2d.h"\
-	"..\..\include\gpac\renderer.h"\
-	"..\..\include\gpac\scenegraph.h"\
-	"..\..\include\gpac\scenegraph_svg.h"\
-	"..\..\include\gpac\scenegraph_vrml.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\thread.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\include\gpac\user.h"\
-	"..\..\modules\render2d\drawable.h"\
-	"..\..\modules\render2d\grouping.h"\
-	"..\..\modules\render2d\render2d.h"\
-	"..\..\modules\render2d\smil\smil_stacks.h"\
-	"..\..\modules\render2d\stacks2d.h"\
-	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\render2d\smil\smil_stacks.h
 # End Source File
 # End Group
 # Begin Source File
@@ -355,7 +276,6 @@ DEP_CPP_DRAWA=\
 	"..\..\modules\render2d\drawable.h"\
 	"..\..\modules\render2d\grouping.h"\
 	"..\..\modules\render2d\render2d.h"\
-	"..\..\modules\render2d\smil\smil_stacks.h"\
 	"..\..\modules\render2d\stacks2d.h"\
 	"..\..\modules\render2d\svg\svg_stacks.h"\
 	"..\..\modules\render2d\visualsurface2d.h"\
@@ -461,7 +381,6 @@ DEP_CPP_GROUP=\
 	"..\..\modules\render2d\drawable.h"\
 	"..\..\modules\render2d\grouping.h"\
 	"..\..\modules\render2d\render2d.h"\
-	"..\..\modules\render2d\smil\smil_stacks.h"\
 	"..\..\modules\render2d\stacks2d.h"\
 	"..\..\modules\render2d\svg\svg_stacks.h"\
 	"..\..\modules\render2d\visualsurface2d.h"\
@@ -676,7 +595,6 @@ DEP_CPP_RENDER2=\
 	"..\..\modules\render2d\drawable.h"\
 	"..\..\modules\render2d\grouping.h"\
 	"..\..\modules\render2d\render2d.h"\
-	"..\..\modules\render2d\smil\smil_stacks.h"\
 	"..\..\modules\render2d\stacks2d.h"\
 	"..\..\modules\render2d\svg\svg_stacks.h"\
 	"..\..\modules\render2d\visualsurface2d.h"\
@@ -720,12 +638,8 @@ DEP_CPP_RENDER2D=\
 	"..\..\modules\render2d\drawable.h"\
 	"..\..\modules\render2d\grouping.h"\
 	"..\..\modules\render2d\render2d.h"\
-	"..\..\modules\render2d\smil\smil_stacks.h"\
 	"..\..\modules\render2d\stacks2d.h"\
 	"..\..\modules\render2d\svg\svg_stacks.h"\
-	
-NODEP_CPP_RENDER2D=\
-	"..\..\modules\render2d\LASeR\laser_stacks.h"\
 	
 # End Source File
 # Begin Source File

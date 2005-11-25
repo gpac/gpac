@@ -1,0 +1,147 @@
+# Microsoft eMbedded Visual Tools Project File - Name="laser_dec" - Package Owner=<4>
+# Microsoft eMbedded Visual Tools Generated Build File, Format Version 6.02
+# ** DO NOT EDIT **
+
+# TARGTYPE "Win32 (WCE ARM) Dynamic-Link Library" 0x8502
+
+CFG=laser_dec - Win32 (WCE ARM) Release
+!MESSAGE This is not a valid makefile. To build this project using NMAKE,
+!MESSAGE use the Export Makefile command and run
+!MESSAGE 
+!MESSAGE NMAKE /f "laser_dec.vcn".
+!MESSAGE 
+!MESSAGE You can specify a configuration when running NMAKE
+!MESSAGE by defining the macro CFG on the command line. For example:
+!MESSAGE 
+!MESSAGE NMAKE /f "laser_dec.vcn" CFG="laser_dec - Win32 (WCE ARM) Release"
+!MESSAGE 
+!MESSAGE Possible choices for configuration are:
+!MESSAGE 
+!MESSAGE "laser_dec - Win32 (WCE ARM) Release" (based on "Win32 (WCE ARM) Dynamic-Link Library")
+!MESSAGE "laser_dec - Win32 (WCE ARM) Debug" (based on "Win32 (WCE ARM) Dynamic-Link Library")
+!MESSAGE 
+
+# Begin Project
+# PROP AllowPerConfigDependencies 0
+# PROP Scc_ProjName ""
+# PROP Scc_LocalPath ""
+# PROP ATL_Project 2
+CPP=clarm.exe
+MTL=midl.exe
+RSC=rc.exe
+
+!IF  "$(CFG)" == "laser_dec - Win32 (WCE ARM) Release"
+
+# PROP BASE Use_MFC 0
+# PROP BASE Use_Debug_Libraries 0
+# PROP BASE Output_Dir "ARMRel"
+# PROP BASE Intermediate_Dir "ARMRel"
+# PROP BASE CPU_ID "{D6518FFC-710F-11D3-99F2-00105A0DF099}"
+# PROP BASE Platform_ID "{8A9A2F80-6887-11D3-842E-005004848CBA}"
+# PROP BASE Target_Dir ""
+# PROP Use_MFC 0
+# PROP Use_Debug_Libraries 0
+# PROP Output_Dir "obj/laser_dec_rel"
+# PROP Intermediate_Dir "obj/laser_dec_rel"
+# PROP CPU_ID "{D6518FFC-710F-11D3-99F2-00105A0DF099}"
+# PROP Platform_ID "{8A9A2F80-6887-11D3-842E-005004848CBA}"
+# PROP Ignore_Export_Lib 0
+# PROP Target_Dir ""
+# ADD BASE RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "UNICODE" /d "_UNICODE" /d "NDEBUG" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /r
+# ADD RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "UNICODE" /d "_UNICODE" /d "NDEBUG" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /r
+# ADD BASE CPP /nologo /W3 /GX- /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_USRDLL" /D "LASER_DEC_EXPORTS" /YX /Oxs /M$(CECrtMT)  /c
+# ADD CPP /nologo /W3 /GX- /I "../../include" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_USRDLL" /YX /Oxs /M$(CECrtMT)  /c
+# ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
+# ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
+BSC32=bscmake.exe
+# ADD BASE BSC32 /nologo
+# ADD BSC32 /nologo
+LINK32=link.exe
+# ADD BASE LINK32 commctrl.lib coredll.lib   /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /nodefaultlib:"$(CENoDefaultLib)" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
+# ADD LINK32 commctrl.lib coredll.lib   /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc02_rel/gm_laser_dec.dll" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
+
+!ELSEIF  "$(CFG)" == "laser_dec - Win32 (WCE ARM) Debug"
+
+# PROP BASE Use_MFC 0
+# PROP BASE Use_Debug_Libraries 1
+# PROP BASE Output_Dir "ARMDbg"
+# PROP BASE Intermediate_Dir "ARMDbg"
+# PROP BASE CPU_ID "{D6518FFC-710F-11D3-99F2-00105A0DF099}"
+# PROP BASE Platform_ID "{8A9A2F80-6887-11D3-842E-005004848CBA}"
+# PROP BASE Target_Dir ""
+# PROP Use_MFC 0
+# PROP Use_Debug_Libraries 1
+# PROP Output_Dir "obj/laser_dec_deb"
+# PROP Intermediate_Dir "obj/laser_dec_deb"
+# PROP CPU_ID "{D6518FFC-710F-11D3-99F2-00105A0DF099}"
+# PROP Platform_ID "{8A9A2F80-6887-11D3-842E-005004848CBA}"
+# PROP Ignore_Export_Lib 0
+# PROP Target_Dir ""
+# ADD BASE RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "UNICODE" /d "_UNICODE" /d "DEBUG" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /r
+# ADD RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "UNICODE" /d "_UNICODE" /d "DEBUG" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /r
+# ADD BASE CPP /nologo /W3 /GX- /Zi /Od /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_USRDLL" /D "LASER_DEC_EXPORTS" /YX /M$(CECrtMTDebug)  /c
+# ADD CPP /nologo /W3 /GX- /Zi /Od /I "../../include" /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_USRDLL" /YX /M$(CECrtMTDebug)  /c
+# ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
+# ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
+BSC32=bscmake.exe
+# ADD BASE BSC32 /nologo
+# ADD BSC32 /nologo
+LINK32=link.exe
+# ADD BASE LINK32 commctrl.lib coredll.lib   /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /debug /nodefaultlib:"$(CENoDefaultLib)" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
+# ADD LINK32 commctrl.lib coredll.lib   /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /debug /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc02_deb/gm_laser_dec.dll" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
+
+!ENDIF 
+
+# Begin Target
+
+# Name "laser_dec - Win32 (WCE ARM) Release"
+# Name "laser_dec - Win32 (WCE ARM) Debug"
+# Begin Group "Source Files"
+
+# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
+# Begin Source File
+
+SOURCE=..\..\modules\laser_dec\laser_dec.c
+DEP_CPP_LASER=\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
+	"..\..\include\gpac\laser.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\nodes_svg.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\terminal.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\laser_dec\laser_dec.def
+# End Source File
+# End Group
+# Begin Group "Header Files"
+
+# PROP Default_Filter "h;hpp;hxx;hm;inl"
+# End Group
+# Begin Group "Resource Files"
+
+# PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
+# End Group
+# End Target
+# End Project
