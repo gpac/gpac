@@ -1817,9 +1817,9 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 	strcpy(szNhnt, szName);
 	strcat(szNhnt, ".info");
 	info = fopen(szNhnt, "rb");
-	if (import->esd->decoderConfig->decoderSpecificInfo) gf_odf_desc_del((GF_Descriptor *) import->esd->decoderConfig->decoderSpecificInfo);
-	import->esd->decoderConfig->decoderSpecificInfo = NULL;
 	if (info) {
+		if (import->esd->decoderConfig->decoderSpecificInfo) gf_odf_desc_del((GF_Descriptor *) import->esd->decoderConfig->decoderSpecificInfo);
+		import->esd->decoderConfig->decoderSpecificInfo = NULL;
 		import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 		fseek(info, 0, SEEK_END);
 		import->esd->decoderConfig->decoderSpecificInfo->dataLength = (u32) ftell(info);
@@ -1828,6 +1828,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 		fread(import->esd->decoderConfig->decoderSpecificInfo->data, import->esd->decoderConfig->decoderSpecificInfo->dataLength, 1, info);
 		fclose(info);
 	}
+	/*keep parsed dsi (if any) if no .info file exists*/
 
 	bs = gf_bs_from_file(nhnt, GF_BITSTREAM_READ);
 	if ((gf_bs_read_u8(bs)!='N') || (gf_bs_read_u8(bs) != 'H') || (gf_bs_read_u8(bs) != 'n')|| (gf_bs_read_u8(bs) != 't')) {

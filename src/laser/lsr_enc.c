@@ -212,7 +212,24 @@ static void lsr_write_vluimsbf5(GF_LASeRCodec *lsr, u32 val, const char *name)
 	lsr_enc_log_bits(lsr, val, nb_tot, name);
 }
 
-static void lsr_write_extension_class(GF_LASeRCodec *lsr, char *data, u32 len, const char *name)
+static void lsr_write_vluimsbf8(GF_LASeRCodec *lsr, u32 val, const char *name)
+{
+	u32 nb_words;
+	u32 nb_tot, nb_bits = val ? gf_get_bit_size(val) : 1;
+	nb_words = nb_bits / 7;
+	if (nb_bits%7) nb_words++;
+	assert(nb_words * 7 >= nb_bits);
+	nb_bits = nb_words * 7;
+	nb_tot = nb_words+nb_bits;
+	while (nb_words) {
+		nb_words--;
+		gf_bs_write_int(lsr->bs, nb_words ? 1 : 0, 1);
+	}
+	gf_bs_write_int(lsr->bs, val, nb_bits);
+	lsr_enc_log_bits(lsr, val, nb_tot, name);
+}
+
+static void lsr_write_extension(GF_LASeRCodec *lsr, char *data, u32 len, const char *name)
 {
 	if (!len) len = strlen(name);
 	lsr_write_vluimsbf5(lsr, len, name);
@@ -366,9 +383,9 @@ static void lsr_write_byte_align_string(GF_LASeRCodec *lsr, char *str, const cha
 {
 	u32 len = strlen(str);
 	gf_bs_align(lsr->bs);
-	gf_bs_write_u8(lsr->bs, len);
+	lsr_write_vluimsbf8(lsr, len, "len");
 	gf_bs_write_data(lsr->bs, str, len);
-	lsr_enc_log_bits(lsr, 0, 8+8*len, name);
+	lsr_enc_log_bits(lsr, 0, 8*len, name);
 }
 static void lsr_write_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, const char *name)
 {
@@ -499,10 +516,15 @@ static void lsr_write_matrix(GF_LASeRCodec *lsr, GF_Matrix2D *mx)
 	u32 res;
 	if (!mx->m[0] && !mx->m[1] && !mx->m[3] && !mx->m[4]) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "isNotMatrix");
-		GF_LSR_WRITE_INT(lsr, 1, 1, "isRef");
-		GF_LSR_WRITE_INT(lsr, 1, 1, "hasXY");
-		lsr_write_fixed_16_8(lsr, mx->m[2], "valueX");
-		lsr_write_fixed_16_8(lsr, mx->m[5], "valueY");
+		if (1) {
+			GF_LSR_WRITE_INT(lsr, 1, 1, "isRef");
+			GF_LSR_WRITE_INT(lsr, 1, 1, "hasXY");
+			lsr_write_fixed_16_8(lsr, mx->m[2], "valueX");
+			lsr_write_fixed_16_8(lsr, mx->m[5], "valueY");
+		} else {
+			GF_LSR_WRITE_INT(lsr, 0, 1, "isRef");
+			lsr_write_extension(lsr, NULL, 0, "ext");
+		}
 	} else {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "isNotMatrix");
 		lsr->coord_bits += lsr->scale_bits;
@@ -525,17 +547,17 @@ static void lsr_write_matrix(GF_LASeRCodec *lsr, GF_Matrix2D *mx)
 		} else {
 			GF_LSR_WRITE_INT(lsr, 0, 1, "xy_yx_present");
 		}
-		/*TODO double-check spec here...*/
+		lsr->coord_bits -= lsr->scale_bits;
+
 		if (mx->m[2] || mx->m[5]) {
 			GF_LSR_WRITE_INT(lsr, 1, 1, "xz_yz_present");
-			res = lsr_translate_scale(lsr, mx->m[2]);
+			res = lsr_translate_coords(lsr, mx->m[2]);
 			GF_LSR_WRITE_INT(lsr, res, lsr->coord_bits, "xz");
-			res = lsr_translate_scale(lsr, mx->m[5]);
+			res = lsr_translate_coords(lsr, mx->m[5]);
 			GF_LSR_WRITE_INT(lsr, res, lsr->coord_bits, "yz");
 		} else {
 			GF_LSR_WRITE_INT(lsr, 0, 1, "xz_yz_present");
 		}
-		lsr->coord_bits -= lsr->scale_bits;
 	}
 }
 
@@ -753,7 +775,7 @@ static void lsr_write_rare_full(GF_LASeRCodec *lsr, GF_Node *n, GF_Node *default
 			}
 		}
 			break;
-		case RARE_FONT_SIZE: lsr_write_fixed_16_8(lsr, ((SVG_FontSize *)fi->far_ptr)->value, "fontSize"); break;
+		case RARE_FONT_SIZE: lsr_write_fixed_16_8i(lsr, fi->far_ptr, "fontSize"); break;
 		/*TODO not specified in spec !!*/
 		case RARE_FONT_STYLE: GF_LSR_WRITE_INT(lsr, *((SVG_FontStyle *)fi->far_ptr), 5, "fontStyle"); break;
 		/*TODO not specified in spec !!*/
@@ -901,7 +923,6 @@ static void lsr_write_single_time(GF_LASeRCodec *lsr, SMIL_Time *v, const char *
 	if (v->type==SMIL_TIME_CLOCK) {
 		s32 now = (s32) (v->clock * lsr->time_resolution);
 		GF_LSR_WRITE_INT(lsr, 0, 1, "choice");
-		/*TODO - SPEC IS UNCLEAR HERE*/
 		GF_LSR_WRITE_INT(lsr, (now<0) ? 1 : 0, 1, "sign");
 		if (now<0) now = -now;
 		lsr_write_vluimsbf5(lsr, now, "value");
@@ -917,11 +938,8 @@ static void lsr_write_duration(GF_LASeRCodec *lsr, SMIL_Duration *smil, const ch
 	if (!smil->type) return;
 
 	if (smil->type==SMIL_DURATION_DEFINED) {
-		s32 now = (s32) (smil->clock_value * lsr->time_resolution);
+		u32 now = (u32) (smil->clock_value * lsr->time_resolution);
 		GF_LSR_WRITE_INT(lsr, 0, 1, "choice");
-		/*TODO - SPEC IS UNCLEAR HERE*/
-		GF_LSR_WRITE_INT(lsr, (now<0) ? 1 : 0, 1, "sign");
-		if (now<0) now = -now;
 		lsr_write_vluimsbf5(lsr, now, "value");
 	} else {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "choice");
@@ -945,11 +963,24 @@ static void lsr_write_anim_repeat(GF_LASeRCodec *lsr, SMIL_RepeatCount *repeat, 
 	if (!repeat->type) return;
 	if (repeat->type==SMIL_REPEATCOUNT_DEFINED) {
 		GF_LSR_WRITE_INT(lsr, 0, 1, name);
-		/*TODO - SPEC IS WRONG HERE*/
-		lsr_write_vluimsbf5(lsr, FIX2INT(repeat->count), name);
+		lsr_write_fixed_16_8(lsr, repeat->count, name);
 	} else {
-		/*enumeration indefinite{0}*/
 		GF_LSR_WRITE_INT(lsr, 1, 1, name);
+		/*enumeration indefinite{0}*/
+	}
+}
+static void lsr_write_repeat_duration(GF_LASeRCodec *lsr, SMIL_Duration *smil, const char *name)
+{
+	GF_LSR_WRITE_INT(lsr, smil->type ? 1 : 0, 1, "has__5_dur");
+	if (!smil->type) return;
+
+	if (smil->type==SMIL_DURATION_DEFINED) {
+		u32 now = (u32) (smil->clock_value * lsr->time_resolution);
+		GF_LSR_WRITE_INT(lsr, 0, 1, "choice");
+		lsr_write_vluimsbf5(lsr, now, "value");
+	} else {
+		GF_LSR_WRITE_INT(lsr, 1, 1, "choice");
+		/*enumeration indefinite{0}*/
 	}
 }
 static void lsr_write_anim_restart(GF_LASeRCodec *lsr, u8 animRestart, const char *name)
@@ -1026,6 +1057,7 @@ u32 svg_type_to_lsr_anim(u32 svg_type)
 
 static void lsr_write_an_anim_value(GF_LASeRCodec *lsr, void *val, u32 svg_type, const char *name)
 {
+	/*TODO spec is wrong here*/
 	GF_LSR_WRITE_INT(lsr, 0, 1, "escapeFlag");
     if (0) GF_LSR_WRITE_INT(lsr, 0, 2, "escapeEnum");
 
@@ -1041,12 +1073,16 @@ static void lsr_write_an_anim_value(GF_LASeRCodec *lsr, void *val, u32 svg_type,
     case 5: lsr_write_color_class(lsr, val, name); break;
     case 6: lsr_write_vluimsbf5(lsr, (u32) *(u8 *) val, name); break;
     case 10: lsr_write_vluimsbf5(lsr, *(u32 *) val, name); break;
-#if TODO_LASER_EXTENSIONS	
-    case 11: // font
-        vluimsbf5 j;
-        value = fontTable[j];
+    case 11: 
+	{
+		s32 idx = lsr_get_font_index(lsr, val);
+		if (idx<0) {
+			fprintf(stdout, "WARNING: corrupted font table while encoding anim value\n");
+			idx=0;
+		}
+		lsr_write_vluimsbf5(lsr, idx, name);
+	}
         break;
-#endif
     case 7:
 	{
 		GF_List *l = *(GF_List **)val;
@@ -1074,7 +1110,7 @@ static void lsr_write_an_anim_value(GF_LASeRCodec *lsr, void *val, u32 svg_type,
 		lsr_write_fixed_16_8(lsr, ((SVG_Point *)val)->y, "val");
         break;
     default:
-		lsr_write_extension_class(lsr, NULL, 0, name);
+		lsr_write_extension(lsr, NULL, 0, name);
         break;
     }
 }
@@ -1170,7 +1206,7 @@ static void lsr_write_point_sequence(GF_LASeRCodec *lsr, GF_List *pts, const cha
 	u32 i, count = gf_list_count(pts);
 	lsr_write_vluimsbf5(lsr, count, "nbPoints");
 	if (!count) return;
-	/*TODO laser point encoding*/
+	/*TODO golomb coding*/
 	GF_LSR_WRITE_INT(lsr, 0, 1, "flag");
     if (1) {
         if (count < 3) {
@@ -1227,7 +1263,6 @@ static void lsr_write_point_sequence(GF_LASeRCodec *lsr, GF_List *pts, const cha
 			}
         }
 	}
-	/*TODO golomb coding*/
 }
 static void lsr_write_path_type(GF_LASeRCodec *lsr, SVG_PathData *path, const char *name)
 {
@@ -1285,7 +1320,6 @@ static void lsr_write_coordinate(GF_LASeRCodec *lsr, Fixed val, Bool skipable, c
 		GF_LSR_WRITE_INT(lsr, res, lsr->coord_bits, name);
 	}
 }
-/*TODO: temp type, not in BC-SDL yet*/
 static void lsr_write_coord_list(GF_LASeRCodec *lsr, GF_List *coords, const char *name)
 {
 	u32 i, count = gf_list_count(coords);
@@ -1405,10 +1439,8 @@ static void lsr_write_a(GF_LASeRCodec *lsr, SVGaElement *a)
 	/*TODO double-check */
 	if (a->target) lsr_write_byte_align_string(lsr, a->target, "target");
 	lsr_write_href(lsr, & a->xlink->href);
-
 	lsr_write_any_attribute(lsr, (GF_Node *) a, clone);
 	lsr_write_group_content(lsr, (SVGElement *) a);
-	/*and destroy proto*/
 	gf_node_unregister((GF_Node *)clone, NULL);
 }
 
@@ -1428,16 +1460,16 @@ static void lsr_write_animate(GF_LASeRCodec *lsr, SVGanimateElement *animate, SV
 	lsr_write_fraction_12(lsr, animate->anim->keySplines, "_4_keySplines");
 	lsr_write_fraction_12(lsr, animate->anim->keyTimes, "_4_keyTimes");
 	lsr_write_anim_values(lsr, &animate->anim->values, "_4_values");
-	lsr_write_animatable(lsr, &animate->anim->attributeName, animate->xlink->href.target, "_5_attributeName");
 	lsr_write_time(lsr, animate->timing->begin, "_5_begin");
 	lsr_write_duration(lsr, &animate->timing->dur, "_5_dur");
 	/*TODO lsr:enabled not present in our code*/
 	GF_LSR_WRITE_INT(lsr, 1/*animate->enabled*/, 1, "enabled");
 	lsr_write_anim_fill(lsr, animate->timing->fill, "_5_fill");
 	lsr_write_anim_repeat(lsr, &animate->timing->repeatCount, "repeatCount");
-	lsr_write_duration(lsr, &animate->timing->repeatDur, "_5_repeatDur");
+	lsr_write_repeat_duration(lsr, &animate->timing->repeatDur, "_5_repeatDur");
 	lsr_write_anim_restart(lsr, animate->timing->restart, "_5_restart");
 	lsr_write_anim_value(lsr, &animate->anim->to, "_5_to");
+	lsr_write_animatable(lsr, &animate->anim->attributeName, animate->xlink->href.target, "_5_attributeName");
 	lsr_write_href_anim(lsr, & animate->xlink->href, parent);
 
 	lsr_write_any_attribute(lsr, (GF_Node *) animate, clone);
@@ -1463,14 +1495,13 @@ static void lsr_write_animateMotion(GF_LASeRCodec *lsr, SVGanimateMotionElement 
 	lsr_write_fraction_12(lsr, elt->anim->keySplines, "_4_keySplines");
 	lsr_write_fraction_12(lsr, elt->anim->keyTimes, "_4_keyTimes");
 	lsr_write_anim_values(lsr, &elt->anim->values, "_4_values");
-//	lsr_write_animatable(lsr, &elt->anim->attributeName, (SVGElement *)elt, "_5_attributeName");
 	lsr_write_time(lsr, elt->timing->begin, "_5_begin");
 	lsr_write_duration(lsr, &elt->timing->dur, "_5_dur");
 	/*TODO lsr:enabled not present in our code*/
 	GF_LSR_WRITE_INT(lsr, 1/*elt->enabled*/, 1, "enabled");
 	lsr_write_anim_fill(lsr, elt->timing->fill, "_5_fill");
 	lsr_write_anim_repeat(lsr, &elt->timing->repeatCount, "_5_repeatCount");
-	lsr_write_duration(lsr, &elt->timing->repeatDur, "_5_repeatDur");
+	lsr_write_repeat_duration(lsr, &elt->timing->repeatDur, "_5_repeatDur");
 	lsr_write_anim_restart(lsr, elt->timing->restart, "_5_restart");
 	lsr_write_anim_value(lsr, &elt->anim->to, "_5_to");
 
@@ -1506,16 +1537,16 @@ static void lsr_write_animateTransform(GF_LASeRCodec *lsr, SVGanimateTransformEl
 	lsr_write_fraction_12(lsr, elt->anim->keySplines, "_4_keySplines");
 	lsr_write_fraction_12(lsr, elt->anim->keyTimes, "_4_keyTimes");
 	lsr_write_anim_values(lsr, &elt->anim->values, "_4_values");
-	lsr_write_animatable(lsr, &elt->anim->attributeName, elt->xlink->href.target, "_5_attributeName");
 	lsr_write_time(lsr, elt->timing->begin, "_5_begin");
 	lsr_write_duration(lsr, &elt->timing->dur, "_5_dur");
 	/*TODO lsr:enabled not present in our code*/
 	GF_LSR_WRITE_INT(lsr, 1/*elt->enabled*/, 1, "enabled");
 	lsr_write_anim_fill(lsr, elt->timing->fill, "_5_fill");
 	lsr_write_anim_repeat(lsr, &elt->timing->repeatCount, "_5_repeatCount");
-	lsr_write_duration(lsr, &elt->timing->repeatDur, "_5_repeatDur");
+	lsr_write_repeat_duration(lsr, &elt->timing->repeatDur, "_5_repeatDur");
 	lsr_write_anim_restart(lsr, elt->timing->restart, "_5_restart");
 	lsr_write_anim_value(lsr, &elt->anim->to, "_5_to");
+	lsr_write_animatable(lsr, &elt->anim->attributeName, elt->xlink->href.target, "_5_attributeName");
 
 	/*enumeration rotate{0} scale{1} skewX{2} skewY{3} translate{4}*/
 	switch (elt->anim->type) {
@@ -1545,7 +1576,7 @@ static void lsr_write_audio(GF_LASeRCodec *lsr, SVGaudioElement *elt)
 	lsr_write_duration(lsr, &elt->timing->dur, "_5_dur");
 	GF_LSR_WRITE_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
 	lsr_write_anim_repeat(lsr, &elt->timing->repeatCount, "_5_repeatCount");
-	lsr_write_duration(lsr, &elt->timing->repeatDur, "_5_repeatDur");
+	lsr_write_repeat_duration(lsr, &elt->timing->repeatDur, "_5_repeatDur");
 	lsr_write_sync_behavior(lsr, elt->sync->syncBehavior, "syncBehavior");
 	lsr_write_sync_tolerance(lsr, &elt->sync->syncTolerance, "syncBehavior");
 	lsr_write_content_type(lsr, elt->xlink->type, "type");
@@ -1656,6 +1687,7 @@ static void lsr_write_foreignObject(GF_LASeRCodec *lsr, SVGforeignObjectElement 
 	lsr_write_coordinate(lsr, elt->x.value, 1, "x");
 	lsr_write_coordinate(lsr, elt->y.value, 1, "y");
 
+	lsr_write_any_attribute(lsr, (GF_Node *) elt, clone);
 /*	TODO
 	bit(1) opt_group;
 	if(opt_group) {
@@ -1678,7 +1710,7 @@ static void lsr_write_g(GF_LASeRCodec *lsr, SVGgElement *elt)
 	lsr_write_rare_full(lsr, (GF_Node *) elt, (GF_Node *) clone, &elt->transform);
 	lsr_write_fill(lsr, (SVGElement*)elt, clone);
 	lsr_write_stroke(lsr, (SVGElement*)elt, clone);
-	/*TODO choice only ibn LASeR, not in SVG*/
+	/*TODO choice only in LASeR, not in SVG*/
 	GF_LSR_WRITE_INT(lsr, 0, 1, "choice");
 /*
 class choiceClass {
@@ -1890,16 +1922,16 @@ static void lsr_write_set(GF_LASeRCodec *lsr, SVGsetElement *elt, SVGElement *pa
 	lsr_write_string_attribute(lsr, elt->core->_class, "class");
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
-	lsr_write_animatable(lsr, &elt->anim->attributeName, elt->xlink->href.target, "_5_attributeName");
 	lsr_write_time(lsr, elt->timing->begin, "_5_begin");
 	lsr_write_duration(lsr, &elt->timing->dur, "_5_dur");
 	/*TODO lsr:enabled not present in our code*/
 	GF_LSR_WRITE_INT(lsr, 1/*elt->enabled*/, 1, "enabled");
 	lsr_write_anim_fill(lsr, elt->timing->fill, "_5_fill");
 	lsr_write_anim_repeat(lsr, &elt->timing->repeatCount, "_5_repeatCount");
-	lsr_write_duration(lsr, &elt->timing->repeatDur, "_5_repeatDur");
+	lsr_write_repeat_duration(lsr, &elt->timing->repeatDur, "_5_repeatDur");
 	lsr_write_anim_restart(lsr, elt->timing->restart, "_5_restart");
 	lsr_write_anim_value(lsr, &elt->anim->to, "_5_to");
+	lsr_write_animatable(lsr, &elt->anim->attributeName, elt->xlink->href.target, "_5_attributeName");
 	lsr_write_href_anim(lsr, &elt->xlink->href, parent);
 	lsr_write_any_attribute(lsr, (GF_Node *) elt, clone);
 	lsr_write_group_content(lsr, (SVGElement *) elt);
@@ -2079,16 +2111,16 @@ static void lsr_write_video(GF_LASeRCodec *lsr, SVGvideoElement *elt)
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_string_attribute(lsr, elt->core->_class, "class");
 	lsr_write_id(lsr, (GF_Node *) elt);
-	/*no transform here*/
+	/*no transform here (transformBehavior instead)*/
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
 	lsr_write_time(lsr, elt->timing->begin, "_5_begin");
-	//lsr_write_duration(lsr, &elt->timing->dur, "_5_dur");
+	lsr_write_duration(lsr, &elt->timing->dur, "_5_dur");
 	GF_LSR_WRITE_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
 	lsr_write_coordinate(lsr, elt->height.value, 1, "height");
 	/*TODO*/
 	GF_LSR_WRITE_INT(lsr, 0, 1, "hasOverlay");
 	lsr_write_anim_repeat(lsr, &elt->timing->repeatCount, "_5_repeatCount");
-	lsr_write_duration(lsr, &elt->timing->repeatDur, "_5_repeatDur");
+	lsr_write_repeat_duration(lsr, &elt->timing->repeatDur, "_5_repeatDur");
 	lsr_write_sync_behavior(lsr, elt->sync->syncBehavior, "syncBehavior");
 	lsr_write_sync_tolerance(lsr, &elt->sync->syncTolerance, "syncBehavior");
 	lsr_write_transform_behavior(lsr, 0, "transformBehavior");
@@ -2133,7 +2165,6 @@ static void lsr_write_listener(GF_LASeRCodec *lsr, SVGlistenerElement *elt)
 	} else {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "hasHandler");
 	}
-	/*TODO double check spec here*/
 	if (elt->observer.target) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "hasObserver");
 		lsr_write_codec_IDREF(lsr, &elt->observer, "observer");
@@ -2147,7 +2178,6 @@ static void lsr_write_listener(GF_LASeRCodec *lsr, SVGlistenerElement *elt)
 	} else {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "hasPropagate");
 	}
-	/*TODO double check spec here*/
 	if (elt->target.target) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "hasTarget");
 		lsr_write_codec_IDREF(lsr, &elt->target, "target");
@@ -2223,10 +2253,6 @@ static void lsr_write_content_model_2(GF_LASeRCodec *lsr, SVGElement *parent, vo
 	case TAG_SVG_privateElement: 
 		GF_LSR_WRITE_INT(lsr, 48, 6, "ch4"); 
 		lsr_write_privateElement(lsr, node); 
-		break;
-	case TAG_SVG_textContent:
-		GF_LSR_WRITE_INT(lsr, 49, 6, "ch4"); 
-		lsr_write_byte_align_string();
 		break;
 	case TAG_SVG_extendElement: 
 		GF_LSR_WRITE_INT(lsr, 50, 6, "ch4"); 
@@ -2316,6 +2342,9 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGs
 			return GF_BAD_PARAM;
 		}
 	}
+	GF_LSR_WRITE_INT(lsr, 0, 1, "opt_group");
+	if (0) lsr_write_extension(lsr, NULL, 0, "ext");
+
 	return GF_OK;
 }
 
@@ -2413,7 +2442,7 @@ static GF_Err lsr_write_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list, Bool r
 		GF_LSR_WRITE_INT(lsr, reset_encoding_context ? 1 : 0, 1, "resetEncodingContext");
 	}
 	GF_LSR_WRITE_INT(lsr, 0, 1, "opt_group");
-	/*if (opt_group)  codec_extension ext; */
+	if (0) lsr_write_extension(lsr, NULL, 0, "ext");
 
 	/*codecInitialisations*/
 
