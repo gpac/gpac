@@ -2336,7 +2336,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 
 void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n)
 {
-	char attValue[4096];
+	char attValue[81920];
 	const char *defName;
 	u32 i, count;
 	Bool is_cdata = 0;
@@ -2355,7 +2355,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n)
 	}
 	DUMP_IND(sdump);
 	fprintf(sdump->trace, "<%s ", gf_node_get_class_name(n));
-	if (defName) fprintf(sdump->trace, "id=\"%s\" ", defName);
+//	if (defName) fprintf(sdump->trace, "id=\"%s\" ", defName);
 
 	proto = (GF_Node *) gf_svg_new_node(sdump->sg, n->sgprivate->tag);
 	gf_node_register(proto, NULL);

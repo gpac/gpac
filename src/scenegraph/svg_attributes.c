@@ -668,7 +668,7 @@ static void svg_parse_path(SVG_PathData *d_attribute, char *attribute_content)
 		while(1) {
 			while ( (d[i]==' ') || (d[i] =='\t') ) i++;			
 			c = d[i];
-			if (c == 0) break;
+			if (c == SVG_PATHCOMMAND_M) break;
 next_command:
 			switch (c) {
 			case 'm':
@@ -679,10 +679,10 @@ next_command:
 				i++;
 				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
-				if (c == 'M' || c == 'm') *command = 0;
+				if (c == 'M' || c == 'm') *command = SVG_PATHCOMMAND_M;
 				if (c == 'L' || c == 'l') {
 					*command = 1;
-					subpath_closed = 0;	
+					subpath_closed = SVG_PATHCOMMAND_L;	
 				}
 				
 				GF_SAFEALLOC(pt, sizeof(SVG_Point))
@@ -715,7 +715,7 @@ next_command:
 				i++;				
 				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
-				*command = 1;
+				*command = SVG_PATHCOMMAND_L;
 				subpath_closed = 0;
 
 				GF_SAFEALLOC(pt, sizeof(SVG_Point))
@@ -733,7 +733,7 @@ next_command:
 				i++;				
 				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
-				*command = 1;
+				*command = SVG_PATHCOMMAND_L;
 				subpath_closed = 0;
 
 				GF_SAFEALLOC(pt, sizeof(SVG_Point))
@@ -751,7 +751,7 @@ next_command:
 				i++;				
 				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
-				*command = 2;
+				*command = SVG_PATHCOMMAND_C;
 				subpath_closed = 0;
 				
 				for (k=0; k<3; k++) {
@@ -773,7 +773,7 @@ next_command:
 				i++;				
 				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
-				*command = 3;
+				*command = SVG_PATHCOMMAND_S;
 				subpath_closed = 0;
 				
 				for (k=0; k<2; k++) {
@@ -795,7 +795,7 @@ next_command:
 				i++;				
 				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
-				*command = 4;
+				*command = SVG_PATHCOMMAND_Q;
 				subpath_closed = 0;
 				
 				for (k=0; k<2; k++) {
@@ -817,7 +817,7 @@ next_command:
 				i++;				
 				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
-				*command = 5;
+				*command = SVG_PATHCOMMAND_T;
 				subpath_closed = 0;
 				
 				GF_SAFEALLOC(pt, sizeof(SVG_Point))
@@ -839,7 +839,7 @@ next_command:
 					i++;				
 					GF_SAFEALLOC(command, sizeof(u8))
 					gf_list_add(d_commands, command);
-					*command = 7;
+					*command = SVG_PATHCOMMAND_A;
 					subpath_closed = 0;
 	
 					GF_SAFEALLOC(pt, sizeof(SVG_Point))
@@ -869,7 +869,7 @@ next_command:
 				i++;				
 				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
-				*command = 6;
+				*command = SVG_PATHCOMMAND_Z;
 				subpath_closed = 1;
 				prev_c = c;
 				break;
@@ -2339,9 +2339,90 @@ static void svg_dump_iri(SVG_IRI*iri, char *attValue)
 	else strcpy(attValue, "");
 }
 
+static void svg_dump_point(SVG_Point *pt, char *attValue)
+{
+	sprintf(attValue, "%f %f ", pt->x, pt->y);
+}
+
+static void svg_dump_path(SVG_PathData *path, char *attValue)
+{
+	char szT[1000];
+	u32 i, pt_i, count;
+	count = gf_list_count(path->commands);
+	pt_i = 0;
+	strcpy(attValue, "");
+	for (i = 0; i < count; i++) {
+		u8 command = *(u8 *)gf_list_get(path->commands, i);
+		switch(command) {
+		case SVG_PATHCOMMAND_M:
+			strcat(attValue, "M");			
+			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			strcat(attValue, szT);
+			pt_i++;
+			break;
+		case SVG_PATHCOMMAND_L:
+			strcat(attValue, "L");
+			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			strcat(attValue, szT);
+			pt_i++;
+			break;
+		case SVG_PATHCOMMAND_C:
+			strcat(attValue, "C");
+			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			strcat(attValue, szT);
+			pt_i++;
+			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			strcat(attValue, szT);
+			pt_i++;
+			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			strcat(attValue, szT);
+			pt_i++;
+			break;
+		case SVG_PATHCOMMAND_S:
+			strcat(attValue, "S");
+			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			strcat(attValue, szT);
+			pt_i++;
+			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			strcat(attValue, szT);
+			pt_i++;
+			break;
+		case SVG_PATHCOMMAND_Q:
+			strcat(attValue, "Q");
+			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			strcat(attValue, szT);
+			pt_i++;
+			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			strcat(attValue, szT);
+			pt_i++;
+			break;
+		case SVG_PATHCOMMAND_T:
+			strcat(attValue, "T");
+			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			strcat(attValue, szT);
+			pt_i++;
+			break;
+		case SVG_PATHCOMMAND_A:
+			strcat(attValue, "A");
+			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			strcat(attValue, szT);
+			pt_i++;
+			strcat(attValue, "0 0 0 ");
+			svg_dump_point(gf_list_get(path->points, pt_i), szT);
+			strcat(attValue, szT);
+			pt_i++;
+			break;
+		case SVG_PATHCOMMAND_Z:
+			strcat(attValue, "Z");
+			break;
+		}
+	}
+}
+
+
 GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 {
-	u32 intVal = *(u32 *)info->far_ptr;
+	u8 intVal = *(u8 *)info->far_ptr;
 	strcpy(attValue, "");
 
 	switch (info->fieldType) {
@@ -2614,7 +2695,7 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 		break;
 
 	case SVG_PathData_datatype:
-		//svg_parse_path((SVG_PathData *)info->far_ptr, attribute_content);
+		svg_dump_path((SVG_PathData *)info->far_ptr, attValue);
 		break;
 	case SVG_Points_datatype:
 	{
@@ -2885,18 +2966,15 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 
 	case SMIL_AnimateValue_datatype:
 	{
-		u32 i, count;
+		GF_FieldInfo a_fi;
 		GF_Node *n = (GF_Node *) elt->xlink->href.target;
 		SMIL_AnimateValue*av = (SMIL_AnimateValue*)info->far_ptr;
-		count = gf_node_get_field_count(n);
-		for (i=0; i<count; i++) {
-			GF_FieldInfo fi;
-			gf_node_get_field(n, i, &fi);
-			if (fi.far_ptr == av->value) {
-				strcpy(attValue, fi.name);
-				break;
-			}
-		}
+		a_fi.fieldIndex = 0;
+		a_fi.fieldType = av->type;
+		a_fi.eventType = av->transform_type;
+		a_fi.name = info->name;
+		a_fi.far_ptr = av->value;
+		svg_dump_attribute(elt, &a_fi, attValue);
 	}
 		break;
 	case SMIL_AnimateValues_datatype:
@@ -2908,6 +2986,7 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 			count = gf_list_count(av->values);
 			a_fi.fieldIndex = 0;
 			a_fi.fieldType = av->type;
+			a_fi.eventType = av->transform_type;
 			a_fi.name = info->name;
 			for (i=0; i<count; i++) {
 				char szBuf[1024];

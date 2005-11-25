@@ -128,6 +128,7 @@ static GF_Err SVG_ProcessAU(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 
 		}
 	} else {
 		e = SVGParser_ParseMemoryNextChunk(parser, inBuffer, inBufferLength);
+		if (e == GF_EOS) return GF_OK;
 	}
 	return e;
 }

@@ -334,6 +334,17 @@ enum {
 }; 
 typedef u8 SVG_FontStyle;
 
+enum {
+	SVG_PATHCOMMAND_M = 0,
+	SVG_PATHCOMMAND_L = 1,
+	SVG_PATHCOMMAND_C = 2,
+	SVG_PATHCOMMAND_S = 3,
+	SVG_PATHCOMMAND_Q = 4,
+	SVG_PATHCOMMAND_T = 5,
+	SVG_PATHCOMMAND_A = 7,
+	SVG_PATHCOMMAND_Z = 6
+};
+
 typedef struct {
 	GF_List *commands;
 	GF_List *points;
