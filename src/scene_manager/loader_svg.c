@@ -624,7 +624,7 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 	const char *buf;
 	u32 len;
 	GF_SVGParser *parser = sax_cbck;
-	SVGtitleElement *node = gf_list_last(parser->nodes);
+	SVGElement *node = gf_list_last(parser->nodes);
 	if (!node) return;
 
 	buf = text_content;
@@ -681,7 +681,12 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 		gf_node_init((GF_Node *)node);
 		return;
 	}
-
+	default:
+		if (node->textContent) free(node->textContent);
+		node->textContent = (char *)malloc(sizeof(char)*(len+1));
+		strncpy(node->textContent, buf, len);
+		node->textContent[len] = 0;
+		break;
 	}
 }
 

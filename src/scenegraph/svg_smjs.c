@@ -1513,9 +1513,12 @@ static JSBool svg_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 			return JS_TRUE;
 		/*textContent*/
 		case 4: 
-			/*type-cast to any SVG node, all common attribs are in common*/
-			s = JS_NewStringCopyZ(c, ((SVGtitleElement *)n)->textContent);
-			*vp = STRING_TO_JSVAL( s );
+			if (n->textContent) {
+				s = JS_NewStringCopyZ(c, n->textContent);
+				*vp = STRING_TO_JSVAL( s );
+			} else {
+				*vp = JSVAL_VOID;
+			}
 			return JS_TRUE;
 		/*isPaused*/
 		case 5: 
@@ -1621,8 +1624,8 @@ static JSBool svg_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		/*textContent*/
 		case 4:
 			if (!JSVAL_IS_STRING(*vp)) return JS_FALSE;
-			if ( ((SVGtitleElement*)n)->textContent) free( ((SVGtitleElement*)n)->textContent);
-			((SVGtitleElement*)n)->textContent = strdup(JS_GetStringBytes(JSVAL_TO_STRING(*vp)));
+			if (n->textContent) free(n->textContent);
+			n->textContent = strdup(JS_GetStringBytes(JSVAL_TO_STRING(*vp)));
 			svg_node_changed((GF_Node *) n, NULL);
 			return JS_TRUE;
 		/*id*/

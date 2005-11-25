@@ -234,7 +234,7 @@ const char *SVG_GetName(struct _basedecoder *plug)
 {
 	SVGParser *parser = plug->privateStack;
 	if (parser->oti==SVGLOADER_OTI_SVG) return (parser->load_type==SVG_LOAD_DOM) ? "GPAC SVG DOM Parser" : (parser->load_type==SVG_LOAD_SAX) ? "GPAC SVG SAX Parser" : "GPAC SVG Progressive Parser";
-	if (parser->oti==SVGLOADER_OTI_STREAMING_SVG) return "GPAC Streaming SVG Parser";
+	if (parser->oti==SVGLOADER_OTI_STREAMING_SVG) return "GPAC Streaming SVG + libXML Parser";
 	if (parser->oti==SVGLOADER_OTI_LASERML) return "GPAC LASeRML Parser";
 	return "INTERNAL ERROR";
 }

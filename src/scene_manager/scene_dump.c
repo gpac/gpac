@@ -65,7 +65,7 @@ struct _scenedump
 
 GF_Err DumpRoute(GF_SceneDumper *sdump, GF_Route *r, u32 dump_type);
 void DumpNode(GF_SceneDumper *sdump, GF_Node *node, Bool in_list, char *fieldContainer);
-void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n);
+void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool is_root);
 
 GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 indent, Bool skip_first_replace);
 
@@ -73,14 +73,13 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *rad_name, char inde
 {
 	GF_SceneDumper *tmp;
 	if (!graph) return NULL;
-	tmp = malloc(sizeof(GF_SceneDumper));
-	memset(tmp, 0, sizeof(GF_SceneDumper));
+	GF_SAFEALLOC(tmp, sizeof(GF_SceneDumper));
 
 	/*store original*/
 	tmp->dump_mode = dump_mode;
 
 	if ((graph->RootNode && (graph->RootNode->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG) && (graph->RootNode->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) )
-	|| (dump_mode==GF_SM_DUMP_LASER)) {
+	|| (dump_mode==GF_SM_DUMP_LASER) || (dump_mode==GF_SM_DUMP_SVG)) {
 		tmp->XMLDump = 1;
 		if (dump_mode==GF_SM_DUMP_LASER) tmp->LSRDump = 1;
 		if (rad_name) {
@@ -110,8 +109,6 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *rad_name, char inde
 			}
 		}
 
-		tmp->XMLDump = 0;
-		tmp->X3DDump = 0;
 		if (rad_name) {
 			switch (dump_mode) {
 			case GF_SM_DUMP_X3D_XML: strcat(rad_name, ".x3d"); tmp->XMLDump = 1; tmp->X3DDump = 1; break;
@@ -158,8 +155,16 @@ void gf_sm_dumper_del(GF_SceneDumper *sdump)
 
 void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 {
-	if (sdump->LSRDump) {
+	if (sdump->XMLDump) {
 		fprintf(sdump->trace, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+		fprintf(sdump->trace, "<!-- %s Scene Dump - GPAC version " GPAC_VERSION " -->\n", 
+			(sdump->dump_mode==GF_SM_DUMP_SVG) ? "SVG" : 
+			(sdump->dump_mode==GF_SM_DUMP_LASER) ? "LASeR" : 
+			sdump->X3DDump ? "X3D" : "XMT-A"
+		);
+	}
+	if (sdump->dump_mode==GF_SM_DUMP_SVG) return;
+	if (sdump->LSRDump) {
 		fprintf(sdump->trace, "<saf:SAFSession xmlns:saf=\"urn:mpeg:mpeg4:SAF:2005\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:lsr=\"urn:mpeg:mpeg4:LASeR:2005\" xmlns=\"http://www.w3.org/2000/svg\">\n");
 		if (root_od) {
 			GF_ObjectDescriptor *iod = (GF_ObjectDescriptor *)root_od;
@@ -183,7 +188,6 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 	if (!sdump->X3DDump) {
 		/*setup XMT*/
 		if (sdump->XMLDump) {
-			fprintf(sdump->trace, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
 			fprintf(sdump->trace, "<XMT-A xmlns=\"urn:mpeg:mpeg4:xmta:schema:2002\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"urn:mpeg:mpeg4:xmta:schema:2002 xmt-a.xsd\">\n");
 			fprintf(sdump->trace, " <Header>\n");
 			if (root_od) gf_odf_dump_desc(root_od, sdump->trace, 1, 1);
@@ -200,7 +204,6 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 		}
 	} else {
 		if (sdump->XMLDump) {
-			fprintf(sdump->trace, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
 			fprintf(sdump->trace, "<!DOCTYPE X3D PUBLIC \"ISO//Web3D//DTD X3D 3.0//EN\" \"http://www.web3d.org/specifications/x3d-3.0.dtd\">\n");
 			fprintf(sdump->trace, "<X3D xmlns:xsd=\"http://www.w3.org/2001/XMLSchema-instance\" xsd:noNamespaceSchemaLocation=\"http://www.web3d.org/specifications/x3d-3.0.xsd\" version=\"3.0\">\n");
 			fprintf(sdump->trace, "<head>\n");
@@ -214,6 +217,8 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 
 void SD_FinalizeDump(GF_SceneDumper *sdump)
 {
+	if (sdump->dump_mode==GF_SM_DUMP_SVG) return;
+
 	if (sdump->LSRDump) {
 		fprintf(sdump->trace, "<saf:endOfSAFSession/>\n</saf:SAFSession>\n");
 		return;
@@ -256,7 +261,7 @@ GF_Node *SD_FindNode(GF_SceneDumper *sdump, u32 ID)
 }
 
 #define DUMP_IND(sdump)	\
-	if (sdump->trace && !sdump->XMLDump) {		\
+	if (sdump->trace) {		\
 		u32 z;	\
 		for (z=0; z<sdump->indent; z++) fprintf(sdump->trace, "%c", sdump->ind_char);	\
 	}
@@ -2159,7 +2164,7 @@ GF_Err DumpProtoInsert(GF_SceneDumper *sdump, GF_Command *com)
 GF_Err DumpLSRNewScene(GF_SceneDumper *sdump, GF_Command *com)
 {
 	fprintf(sdump->trace, "<lsr:NewScene>\n");
-	SD_DumpSVGElement(sdump, com->node);
+	SD_DumpSVGElement(sdump, com->node, NULL, 0);
 	fprintf(sdump->trace, "</lsr:NewScene>\n");
 	return GF_OK;
 }
@@ -2334,28 +2339,33 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 	return e;
 }
 
-void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n)
+void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool is_root)
 {
 	char attValue[81920];
-	const char *defName;
-	u32 i, count;
+	u32 i, count, nID;
 	Bool is_cdata = 0;
 	GF_Node *proto;
 	SVGElement *svg = (SVGElement *)n;
 	GF_FieldInfo info, pf;
 	if (!n) return;
 
-	defName = gf_node_get_name(n);
-
+	nID = n->sgprivate->NodeID;
 	/*remove undef listener/handlers*/
-	if (!defName) {
+	if (!nID) {
 		u32 tag = n->sgprivate->tag;
 		if (tag==TAG_SVG_listener) return;
 		if (tag==TAG_SVG_handler) return;
 	}
 	DUMP_IND(sdump);
 	fprintf(sdump->trace, "<%s ", gf_node_get_class_name(n));
-//	if (defName) fprintf(sdump->trace, "id=\"%s\" ", defName);
+
+	if (is_root) 
+		fprintf(sdump->trace, "xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" ");
+	
+	if (nID) {
+		if (n->sgprivate->NodeName) fprintf(sdump->trace, "id=\"%s\" ", n->sgprivate->NodeName);
+		else fprintf(sdump->trace, "id=\"N%d\" ", n->sgprivate->NodeID - 1);
+	}
 
 	proto = (GF_Node *) gf_svg_new_node(sdump->sg, n->sgprivate->tag);
 	gf_node_register(proto, NULL);
@@ -2363,7 +2373,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n)
 	count = gf_node_get_field_count(n);
 	for (i=0; i<count; i++) {
 		gf_node_get_field(n, i, &info);
-		if (info.fieldType==SVG_TextContent_datatype) {
+		if ((info.fieldType==SVG_TextContent_datatype) || (info.fieldType==SVG_ID_datatype) ) {
 			continue;
 		} else if (info.fieldType==SVG_ContentType_datatype) {
 			char *type = *(u8 **)info.far_ptr;
@@ -2371,7 +2381,10 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n)
 		}
 		if (info.fieldType==SVG_IRI_datatype) {
 			SVG_IRI *xlink = (SVG_IRI *)info.far_ptr;
-			if ((xlink->type==SVG_IRI_ELEMENTID) && !xlink->target) continue;
+			if (xlink->type==SVG_IRI_ELEMENTID) {
+				if (!xlink->target || !gf_node_get_id((GF_Node*)xlink->target) ) continue;
+				if (parent && (parent == (GF_Node *) xlink->target)) continue;
+			}
 		}
 		/*don't dump default fields*/
 		gf_node_get_field(proto, i, &pf);
@@ -2410,7 +2423,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n)
 	sdump->indent++;
 	for (i=0; i<count; i++) {
 		GF_Node *c = gf_list_get(svg->children, i);
-		SD_DumpSVGElement(sdump, c);
+		SD_DumpSVGElement(sdump, c, n, 0);
 	}
 	sdump->indent--;
 	DUMP_IND(sdump);
@@ -2478,9 +2491,9 @@ GF_Err gf_sm_dump_graph(GF_SceneDumper *sdump, Bool skip_proto, Bool skip_routes
 	}
 #ifndef GPAC_DISABLE_SVG
 	else if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
-		fprintf(sdump->trace, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-		sdump->XMLDump = 0;	/*force indent*/
-		SD_DumpSVGElement(sdump, sdump->sg->RootNode);
+		sdump->dump_mode = GF_SM_DUMP_SVG;
+		SD_SetupDump(sdump, NULL);
+		SD_DumpSVGElement(sdump, sdump->sg->RootNode, NULL, 1);
 		return GF_OK;
 	}
 #endif
@@ -2547,7 +2560,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 	num_tracks = 0;
 	indent = 0;
 	dumper = gf_sm_dumper_new(ctx->scene_graph, rad_name, ' ', dump_mode);
-
+	e = GF_OK;
 	/*configure all systems streams we're dumping*/
 	for (i=0; i<gf_list_count(ctx->streams); i++) {
 		GF_StreamContext *sc = gf_list_get(ctx->streams, i);
@@ -2558,6 +2571,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 			num_tracks ++;
 			break;
 		case GF_STREAM_OD:
+			if (dumper->dump_mode==GF_SM_DUMP_SVG) continue;
 			num_od ++;
 			num_tracks ++;
 			break;
@@ -2568,12 +2582,26 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 		for (j=0; j<gf_list_count(sc->AUs); j++) {
 			GF_AUContext *au = gf_list_get(sc->AUs, j);
 			ReorderAUContext(sample_list, au, dumper->LSRDump);
+			if (dumper->dump_mode==GF_SM_DUMP_SVG) break;
 		}
+		if (dumper->dump_mode==GF_SM_DUMP_SVG) break;
 	}
 	num_scene = (num_scene>1) ? 1 : 0;
 	num_od = (num_od>1) ? 1 : 0;
 
 	SD_SetupDump(dumper, (GF_Descriptor *) ctx->root_od);
+
+	if (dumper->dump_mode==GF_SM_DUMP_SVG) {
+		GF_AUContext *au = gf_list_get(sample_list, 0);
+		GF_Command *com = NULL;
+		if (au) com = gf_list_get(au->commands, 0);
+		if (!com || (com->tag!=GF_SG_LSR_NEW_SCENE) || !com->node) {
+			e = GF_NOT_SUPPORTED;
+		} else {
+			SD_DumpSVGElement(dumper, com->node, NULL, 1);
+		}
+		goto exit;
+	}
 
 	time = dumper->LSRDump ? -1 : 0;
 	first_par = 0;
@@ -2661,10 +2689,11 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 		fprintf(stdout, "Warning: MPEG-4 Commands found, not supported in %s - skipping\n", dumper->X3DDump ? "X3D" : "VRML");
 	}
 
+exit:
 	SD_FinalizeDump(dumper);
 	gf_sm_dumper_del(dumper);
 	gf_list_del(sample_list);
-	return GF_OK;
+	return e;
 }
 
 #endif

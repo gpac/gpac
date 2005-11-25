@@ -959,12 +959,13 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-nodes")) { PrintBuiltInNodes(0); return (0); }
 		else if (!stricmp(arg, "-xnodes")) { PrintBuiltInNodes(1); return (0); } 
 		else if (!stricmp(arg, "-std")) dump_std = 1;
-		else if (!stricmp(arg, "-bt")) dump_mode = 1;
-		else if (!stricmp(arg, "-xmt")) dump_mode = 2;
-		else if (!stricmp(arg, "-wrl")) dump_mode = 3;
-		else if (!stricmp(arg, "-x3dv")) dump_mode = 4;
-		else if (!stricmp(arg, "-x3d")) dump_mode = 5;
-		else if (!stricmp(arg, "-lsr")) dump_mode = 6;
+		else if (!stricmp(arg, "-bt")) dump_mode = 1 + GF_SM_DUMP_BT;
+		else if (!stricmp(arg, "-xmt")) dump_mode = 1 + GF_SM_DUMP_XMTA;
+		else if (!stricmp(arg, "-wrl")) dump_mode = 1 + GF_SM_DUMP_VRML;
+		else if (!stricmp(arg, "-x3dv")) dump_mode = 1 + GF_SM_DUMP_X3D_VRML;
+		else if (!stricmp(arg, "-x3d")) dump_mode = 1 + GF_SM_DUMP_X3D_XML;
+		else if (!stricmp(arg, "-lsr")) dump_mode = 1 + GF_SM_DUMP_LASER;
+		else if (!stricmp(arg, "-svg")) dump_mode = 1 + GF_SM_DUMP_SVG;
 		else if (!stricmp(arg, "-stat")) stat_level = 1;
 		else if (!stricmp(arg, "-stats")) stat_level = 2;
 		else if (!stricmp(arg, "-statx")) stat_level = 3;

@@ -2341,7 +2341,7 @@ static void svg_dump_iri(SVG_IRI*iri, char *attValue)
 
 static void svg_dump_point(SVG_Point *pt, char *attValue)
 {
-	sprintf(attValue, "%f %f ", pt->x, pt->y);
+	sprintf(attValue, "%g %g ", FIX2FLT(pt->x), FIX2FLT(pt->y) );
 }
 
 static void svg_dump_path(SVG_PathData *path, char *attValue)
@@ -2672,6 +2672,7 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 	case SVG_Rotate_datatype:
+	case SVG_Number_datatype:
 		svg_dump_number((SVG_Number *)info->far_ptr, attValue);
 		break;
 
@@ -2843,10 +2844,10 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 		SVG_Matrix *matrix = (SVG_Matrix *)info->far_ptr;
 		/*try to do a simple decomposition...*/
 		if (!matrix->m[1] && !matrix->m[3]) {
-			sprintf(attValue, "translate(%g %g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]) );
+			sprintf(attValue, "translate(%g,%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]) );
 			if ((matrix->m[0]!=FIX_ONE) || (matrix->m[4]!=FIX_ONE)) {
 				char szT[1024];
-				sprintf(szT, " scale(%g %g)", FIX2FLT(matrix->m[0]), FIX2FLT(matrix->m[4]) );
+				sprintf(szT, " scale(%g,%g)", FIX2FLT(matrix->m[0]), FIX2FLT(matrix->m[4]) );
 				strcat(attValue, szT);
 			}
 		} else if (matrix->m[1] == - matrix->m[3]) {
@@ -2857,7 +2858,7 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 				sx = gf_divfix(matrix->m[0], cos_a);
 				sy = gf_divfix(matrix->m[4], cos_a);
 				angle = gf_divfix(180*angle, GF_PI);
-				sprintf(attValue, "translate(%g %g) scale(%g %g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(sx), FIX2FLT(sy), FIX2FLT(angle) );
+				sprintf(attValue, "translate(%g,%g) scale(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(sx), FIX2FLT(sy), FIX2FLT(angle) );
 			}
 		} 
 		/*default*/
@@ -3032,7 +3033,7 @@ static Bool svg_iris_equal(SVG_IRI*iri1, SVG_IRI*iri2)
 		if (!gf_node_get_id((GF_Node *)iri2->target)) type2 = 0;
 	}
 	if (type1 != type2) return 0;
-	if ((type1  == SVG_IRI_ELEMENTID) && (iri1->target == iri2->target) ) return 1;
+	if ((type1 == SVG_IRI_ELEMENTID) && (iri1->target == iri2->target) ) return 1;
 	if (iri1->iri && iri2->iri && !strcmp(iri1->iri, iri2->iri)) return 1;
 	if (!iri1->iri && !iri2->iri) return 1;
 	return 0;
@@ -3117,7 +3118,8 @@ Bool svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 	case SVG_Rotate_datatype:
-		return svg_numbers_equal((SVG_Length *)f1->far_ptr, (SVG_Length *)f2->far_ptr);
+	case SVG_Number_datatype:
+		return svg_numbers_equal((SVG_Number *)f1->far_ptr, (SVG_Number *)f2->far_ptr);
 	case SVG_IRI_datatype:
 		return svg_iris_equal((SVG_IRI*)f1->far_ptr, (SVG_IRI*)f2->far_ptr);
 	case SVG_ListOfIRI_datatype:

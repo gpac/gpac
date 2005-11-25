@@ -243,6 +243,8 @@ enum
 	GF_SM_DUMP_X3D_XML,
 	/*LASeR XML*/
 	GF_SM_DUMP_LASER,
+	/*SVG dump (only dumps svg root of the first LASeR unit*/
+	GF_SM_DUMP_SVG,
 	/*automatic selection of MPEG4 vs X3D, text mode*/
 	GF_SM_DUMP_AUTO_TXT,
 	/*automatic selection of MPEG4 vs X3D, xml mode*/

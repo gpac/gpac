@@ -631,7 +631,7 @@ void svg_parse_sax_defered_anchor(SVGParser *parser, SVGElement *anchor_elt, def
 void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_elt, defered_element local_de)
 {
 	GF_FieldInfo info;
-	u32 anim_value_type = 0, anim_transform_type = 0;
+	u8 anim_value_type = 0, anim_transform_type = 0;
 
 	GF_FieldInfo xlink_href_info;
 	gf_node_get_field_by_name((GF_Node *)animation_elt, "xlink:href", &xlink_href_info);
