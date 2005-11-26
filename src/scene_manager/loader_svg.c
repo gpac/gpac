@@ -495,6 +495,44 @@ static GF_ESD *lsr_parse_header(GF_SVGParser *parser, const char *name, const ch
 	return NULL;
 }
 
+static GF_Err lsr_parse_command(GF_SVGParser *parser, GF_List *attr)
+{
+	char *atNode = NULL;
+	char *atAtt = NULL;
+	GF_CommandField *field;
+	s32 index = -1;
+	u32 i, count = gf_list_count(attr);
+	switch (parser->command->tag) {
+	case GF_SG_LSR_NEW_SCENE:
+		return GF_OK;
+	case GF_SG_LSR_DELETE:
+		for (i=0; i<count; i++) {
+			GF_SAXAttribute *att = gf_list_get(attr, i);
+			if (!strcmp(att->name, "ref")) atNode = att->value;
+			else if (!strcmp(att->name, "attributeName")) atAtt = att->value;
+			else if (!strcmp(att->name, "index")) index = atoi(att->value);
+		}
+		if (!atNode) return svg_report(parser, GF_BAD_PARAM, "Missing node ref for command");
+		parser->command->node = gf_sg_find_node_by_name(parser->load->scene_graph, atNode);
+		if (!parser->command->node) return svg_report(parser, GF_BAD_PARAM, "Cannot find node node ref %s for command", atNode);
+		if (atAtt) {
+			GF_FieldInfo info;
+			if (gf_node_get_field_by_name(parser->command->node, atAtt, &info) != GF_OK)
+				return svg_report(parser, GF_BAD_PARAM, "Attribute %s does not belong to node %s", atAtt, atNode);
+
+			field = gf_sg_command_field_new(parser->command);
+			field->pos = index;
+			field->fieldIndex = info.fieldIndex;
+			field->fieldType = info.fieldType;
+		}
+		gf_node_register(parser->command->node, NULL);
+		return GF_OK;
+	default:
+		return GF_OK;
+	}
+}
+
+
 static u32 lsr_get_command_by_name(const char *name)
 {
 	if (!strcmp(name, "NewScene")) return GF_SG_LSR_NEW_SCENE;
@@ -564,11 +602,16 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			parser->laser_au = gf_sm_stream_au_new(parser->laser_es, time, 0, rap);
 			return;			
 		}
+		if (!parser->laser_au) {
+			svg_report(parser, GF_BAD_PARAM, "LASeR Scene unit not defined for command %s", name);
+			return;
+		}
 		/*command parsing*/
 		com_type = lsr_get_command_by_name(name);
 		if (com_type != GF_SG_UNDEFINED) {
-			parser->command = gf_sg_command_new(parser->load->scene_graph, GF_SG_LSR_NEW_SCENE);
+			parser->command = gf_sg_command_new(parser->load->scene_graph, com_type);
 			gf_list_add(parser->laser_au->commands, parser->command);
+			lsr_parse_command(parser, attributes);
 			return;
 		}
 	}
@@ -714,6 +757,10 @@ GF_Err gf_sm_load_init_SVG(GF_SceneLoader *load)
 
 	if (!load->fileName) return GF_BAD_PARAM;
 	parser = svg_new_parser(load);
+
+	if (load->OnMessage) load->OnMessage(load->cbk, (load->type==GF_SM_LOAD_XSR) ? "MPEG-4 (LASER) Scene Parsing" : "SVG Scene Parsing", GF_OK);
+	else fprintf(stdout, (load->type==GF_SM_LOAD_XSR) ? "MPEG-4 (LASER) Scene Parsing\n" : "SVG Scene Parsing\n");
+
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, parser->load->OnProgress ? svg_progress : NULL);
 	if (e<0) svg_report(parser, e, "Unable to open file %s", load->fileName);
 	return e;

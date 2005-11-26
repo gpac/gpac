@@ -167,9 +167,9 @@ void VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	}
 
 	surf->top_clipper = gf_rect_pixelize(&rc);
-	/*if we're requested to invalidate everything, switch to direct render*/
+	/*if we're requested to invalidate everything, switch to direct render but still request bounds storage*/
 	if (eff->invalidate_all) {
-		eff->trav_flags |= TF_RENDER_DIRECT;
+		eff->trav_flags |= TF_RENDER_DIRECT | TF_RENDER_STORE_BOUNDS;
 		direct_render = 2;
 	} else {
 		direct_render = (eff->trav_flags & TF_RENDER_DIRECT) ? 1 : 0;

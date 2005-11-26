@@ -548,7 +548,11 @@ void drawable_finalize_end(struct _drawable_context *ctx, RenderEffect2D *eff)
 		if (gf_rect_is_empty(ctx->clip) ) return;
 		VS2D_RegisterSensor(eff->surface, ctx);
 	
-		if (eff->trav_flags & TF_RENDER_DIRECT) ctx->node->Draw(ctx);
+		if (eff->trav_flags & TF_RENDER_DIRECT) {
+			if (eff->trav_flags & TF_RENDER_STORE_BOUNDS)
+				drawable_store_bounds(ctx);
+			ctx->node->Draw(ctx);
+		}
 		else drawable_store_bounds(ctx);
 	}
 }

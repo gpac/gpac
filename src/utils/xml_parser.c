@@ -916,7 +916,15 @@ static void xml_sax_store_text(GF_SAXParser *parser, u32 txt_len)
 	strncpy(parser->value_buffer+len, txt, txt_len);
 	parser->value_buffer[txt_len+len] = 0;
 	parser->current_pos += txt_len;
+	txt = parser->value_buffer+len;
+	while (txt) {
+		txt = strchr(txt, '\n');
+		if (!txt) break;
+		parser->line++;
+		txt += 1;
+	}
 }
+
 static void xml_sax_flush_text(GF_SAXParser *parser)
 {
 	if (parser->value_buffer) {
@@ -1034,6 +1042,7 @@ static GF_Err xml_sax_parse(GF_SAXParser *parser, Bool force_parse)
 {
 	u32 i;
 	Bool is_text, is_end;
+	u8 c;
 	char *elt;
 
 	parser->line_size = strlen(parser->buffer);
@@ -1051,13 +1060,14 @@ restart:
 		case SAX_STATE_ELEMENT:
 			elt = NULL;
 			i=0;
-			while (parser->buffer[parser->current_pos+i] !='<') {
-				if ((parser->init_state==2) && (parser->buffer[parser->current_pos+i] ==']')) {
+			while ((c = parser->buffer[parser->current_pos+i]) !='<') {
+				if ((parser->init_state==2) && (c ==']')) {
 					parser->sax_state = SAX_STATE_ATT_NAME;
 					parser->current_pos+=i+1;
 					goto restart;
 				}
 				i++;
+				if (!is_text && (c=='\n')) parser->line++;
 				if (parser->current_pos+i==parser->line_size) goto exit;
 			}
 			if (is_text && i) {
@@ -1071,7 +1081,10 @@ restart:
 			while (1) {
 				char c = parser->buffer[parser->current_pos+1+i];
 				if (!c) goto exit;
-				if (strchr(" \n\t\r>=", c)) break;
+				if (strchr(" \n\t\r>=", c)) {
+					if (c=='\n') parser->line++;
+					break;
+				}
 				if (c=='/') is_end = 1;
 				parser->node_name[i] = c;
 				i++;
@@ -1363,6 +1376,6 @@ GF_Err gf_xml_sax_suspend(GF_SAXParser *parser, Bool do_suspend)
 	return GF_OK;
 }
 
-u32 gf_xml_sax_get_line(GF_SAXParser *parser) { return parser->line; }
+u32 gf_xml_sax_get_line(GF_SAXParser *parser) { return parser->line + 1 ; }
 u32 gf_xml_sax_get_file_size(GF_SAXParser *parser) { return parser->gz_in ? parser->file_size : 0; }
 u32 gf_xml_sax_get_file_pos(GF_SAXParser *parser) { return parser->gz_in ? parser->file_pos : 0; }

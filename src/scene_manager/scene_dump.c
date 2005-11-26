@@ -2413,11 +2413,13 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 		fprintf(sdump->trace, "/>\n");
 		return;
 	}
-	fprintf(sdump->trace, ">\n");
+	fprintf(sdump->trace, ">");
 	if (svg->textContent) {
 		if (is_cdata) fprintf(sdump->trace, "<![CDATA[\n");
-		fprintf(sdump->trace, "%s\n", svg->textContent);
+		fprintf(sdump->trace, "%s", svg->textContent);
 		if (is_cdata) fprintf(sdump->trace, "]]>\n");
+	} else {
+		fprintf(sdump->trace, "\n");
 	}
 
 	sdump->indent++;
@@ -2643,7 +2645,6 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 		else {
 			if (dumper->LSRDump) {
 				if (time != au->timing_sec) {
-					if (time > -1) fprintf(dumper->trace, "</saf:sceneUnit>\n");
 					time = au->timing_sec;
 					fprintf(dumper->trace, "<saf:sceneUnit", au->timing);
 					if (time) fprintf(dumper->trace, " time=\"%d\"", au->timing);
@@ -2680,6 +2681,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 			}
 			time = au->timing_sec;
 		}
+		if (dumper->LSRDump) fprintf(dumper->trace, "</saf:sceneUnit>\n");
 		if (dumper->X3DDump || (dumper->dump_mode==GF_SM_DUMP_VRML)) break;
 	}
 	/*close command*/

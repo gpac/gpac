@@ -134,6 +134,8 @@ enum
 	TF_RENDER_DIRECT		= (1<<2),
 	/*when set, render pass only gets bounds and transform matrix*/
 	TF_RENDER_GET_BOUNDS	= (1<<3),
+	/*forces bound storing in direct rendering*/
+	TF_RENDER_STORE_BOUNDS	= (1<<4),
 };
 
 /*the traversing context: set_up at top-level and passed through SFNode_Render*/

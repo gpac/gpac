@@ -68,9 +68,20 @@ struct __tag_laser_codec
 	GF_List *font_table;
 	u32 fontIndexBits;
 
+	u32 privateData_id_index, privateTag_index;
+
 	/*decoder only*/
 	Double (*GetSceneTime)(void *cbk);
 	void *cbk;
+
+	/*sameElement coding*/
+	SVGgElement *prev_g;
+	SVGlineElement *prev_line;
+	SVGpathElement *prev_path;
+	SVGpolygonElement *prev_polygon;
+	SVGrectElement *prev_rect;
+	SVGtextElement *prev_text;
+	SVGuseElement *prev_use;
 };
 
 /*returns laser anim coding type based on field index, -1 if field cannot be animated*/

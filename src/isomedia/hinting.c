@@ -819,7 +819,7 @@ static GF_Err gf_isom_load_next_hint_sample(GF_ISOFile *the_file, u32 trackNumbe
 	GF_ISOSample *samp;
 
 	if (!entry->cur_sample) return GF_BAD_PARAM;
-	if (entry->cur_sample==trak->Media->information->sampleTable->SampleSize->sampleCount) return GF_EOS;
+	if (entry->cur_sample>trak->Media->information->sampleTable->SampleSize->sampleCount) return GF_EOS;
 
 	samp = gf_isom_get_sample(the_file, trackNumber, entry->cur_sample, &descIdx);
 	if (!samp) return GF_IO_ERR;
