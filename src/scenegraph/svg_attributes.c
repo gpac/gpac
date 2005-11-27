@@ -3714,6 +3714,26 @@ GF_Err svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 			}
 			return GF_OK;
 		}
+	case SVG_String_datatype:
+	{
+		u32 len;
+		char *res;
+		SVG_String *s_a = a->far_ptr;
+		SVG_String *s_b = b->far_ptr;
+		u32 len_a = strlen(*s_a);
+		u32 len_b = strlen(*s_b);
+		len_a = FIX2INT(alpha * len_a);
+		len_b = FIX2INT(beta * len_b);
+		len = len_a + len_b + 1;
+		res = malloc(sizeof(char) * len);
+		memcpy(res, *s_a, len_a);
+		memcpy(res+len_a, *s_b, len_b);
+		res[len-1] = 0;
+		s_a = c->far_ptr;
+		if (*s_a) free(*s_a);
+		*s_a = res;
+	}
+		break;
 
 	/* Keyword types */
 	case SVG_Boolean_datatype:
@@ -3751,7 +3771,6 @@ GF_Err svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 	case SVG_TransformType_datatype:
 
 	/* Unsupported types */
-	case SVG_String_datatype:
 	case SVG_ContentType_datatype:
 	case SVG_LanguageID_datatype:
 	case SVG_FontFamily_datatype:

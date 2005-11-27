@@ -497,8 +497,14 @@ static GF_ESD *lsr_parse_header(GF_SVGParser *parser, const char *name, const ch
 
 static GF_Err lsr_parse_command(GF_SVGParser *parser, GF_List *attr)
 {
+	GF_FieldInfo info;
+	GF_Node *opNode;
+	Bool is_replace = 0;
 	char *atNode = NULL;
 	char *atAtt = NULL;
+	char *atOperandNode = NULL;
+	char *atOperandAtt = NULL;
+	char *atValue = NULL;
 	GF_CommandField *field;
 	s32 index = -1;
 	u32 i, count = gf_list_count(attr);
@@ -516,7 +522,6 @@ static GF_Err lsr_parse_command(GF_SVGParser *parser, GF_List *attr)
 		parser->command->node = gf_sg_find_node_by_name(parser->load->scene_graph, atNode);
 		if (!parser->command->node) return svg_report(parser, GF_BAD_PARAM, "Cannot find node node ref %s for command", atNode);
 		if (atAtt) {
-			GF_FieldInfo info;
 			if (gf_node_get_field_by_name(parser->command->node, atAtt, &info) != GF_OK)
 				return svg_report(parser, GF_BAD_PARAM, "Attribute %s does not belong to node %s", atAtt, atNode);
 
@@ -524,6 +529,69 @@ static GF_Err lsr_parse_command(GF_SVGParser *parser, GF_List *attr)
 			field->pos = index;
 			field->fieldIndex = info.fieldIndex;
 			field->fieldType = info.fieldType;
+		}
+		gf_node_register(parser->command->node, NULL);
+		return GF_OK;
+	case GF_SG_LSR_REPLACE:
+		is_replace = 1;
+	case GF_SG_LSR_ADD:
+		for (i=0; i<count; i++) {
+			GF_SAXAttribute *att = gf_list_get(attr, i);
+			if (!strcmp(att->name, "ref")) atNode = att->value;
+			else if (!strcmp(att->name, "operandElementId")) atOperandNode = att->value;
+			else if (!strcmp(att->name, "operandAttributeName")) atOperandAtt = att->value;
+			else if (!strcmp(att->name, "value")) atValue = att->value;
+			else if (!strcmp(att->name, "attributeName")) atAtt = att->value;
+			/*replace only*/
+			else if (!strcmp(att->name, "index")) index = atoi(att->value);
+		}
+		if (!atNode) return svg_report(parser, GF_BAD_PARAM, "Missing node ref for command");
+		parser->command->node = gf_sg_find_node_by_name(parser->load->scene_graph, atNode);
+		if (!parser->command->node) return svg_report(parser, GF_BAD_PARAM, "Cannot find node node ref %s for command", atNode);
+		/*child or node replacement*/
+		if (is_replace && !atAtt) {
+			field = gf_sg_command_field_new(parser->command);
+			field->pos = index;
+			gf_node_register(parser->command->node, NULL);
+			return GF_OK;
+		}
+		if (!atAtt) return svg_report(parser, GF_BAD_PARAM, "Missing attribute name for command");
+		if (!strcmp(atAtt, "textContent")) {
+			field = gf_sg_command_field_new(parser->command);
+			field->pos = -1;
+			field->fieldIndex = (u32) -1;
+			field->fieldType = SVG_String_datatype;
+			gf_node_register(parser->command->node, NULL);
+			if (atValue) {
+				field->field_ptr = svg_create_value_from_attributetype(field->fieldType, 0);
+				*(SVG_String *)field->field_ptr = strdup(atValue);
+			}
+			return GF_OK;
+		}
+		if (gf_node_get_field_by_name(parser->command->node, atAtt, &info) != GF_OK)
+			return svg_report(parser, GF_BAD_PARAM, "Attribute %s does not belong to node %s", atAtt, atNode);
+
+		opNode = NULL;
+		if (atOperandNode) {
+			opNode = gf_sg_find_node_by_name(parser->load->scene_graph, atOperandNode);
+			if (!opNode) return svg_report(parser, GF_BAD_PARAM, "Cannot find operand element %s for command", atOperandNode);
+		}
+		if (!atValue && (!atOperandNode || !atOperandAtt) ) return svg_report(parser, GF_BAD_PARAM, "Missing attribute value for command");
+		field = gf_sg_command_field_new(parser->command);
+		field->pos = index;
+		field->fieldIndex = info.fieldIndex;
+		field->fieldType = info.fieldType;
+		if (atValue) {
+			GF_FieldInfo nf;
+			nf.fieldType = info.fieldType;
+			field->field_ptr = nf.far_ptr = svg_create_value_from_attributetype(field->fieldType, 0);
+			svg_parse_attribute((SVGElement *)parser->command->node, &nf, atValue, (u8) info.fieldType, 0);
+		} else if (opNode) {
+			GF_FieldInfo op_field;
+			if (gf_node_get_field_by_name(opNode, atOperandAtt, &op_field) != GF_OK)
+				return svg_report(parser, GF_BAD_PARAM, "Attribute %s does not belong to node %s", atOperandAtt, atOperandNode);
+			parser->command->fromNodeID = opNode->sgprivate->NodeID;
+			parser->command->fromFieldIndex = op_field.fieldIndex;
 		}
 		gf_node_register(parser->command->node, NULL);
 		return GF_OK;
@@ -609,22 +677,39 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		/*command parsing*/
 		com_type = lsr_get_command_by_name(name);
 		if (com_type != GF_SG_UNDEFINED) {
+			GF_Err e;
 			parser->command = gf_sg_command_new(parser->load->scene_graph, com_type);
 			gf_list_add(parser->laser_au->commands, parser->command);
-			lsr_parse_command(parser, attributes);
+			e = lsr_parse_command(parser, attributes);
+			if (e!= GF_OK) parser->command->node = NULL;
 			return;
 		}
 	}
 
 	if (parser->has_root) {
-		assert(parent);
+		assert(parent || parser->command);
 	}
 	elt = svg_parse_element(parser, name, name_space, attributes, parent);
 	if (!elt) return;
+	gf_list_add(parser->nodes, elt);
+
 	if (!strcmp(name, "svg") && !parser->has_root) 
 		svg_init_root_element(parser, (SVGsvgElement *)elt);
-	
-	gf_list_add(parser->nodes, elt);
+	else if (!parent && parser->has_root) {
+		GF_CommandField *field = gf_list_get(parser->command->command_fields, 0);
+		if (field->new_node) {
+			field->node_list = gf_list_new();
+			field->field_ptr = &field->node_list;
+			gf_list_add(field->node_list, field->new_node);
+			field->new_node = NULL;
+			gf_list_add(field->node_list, elt);
+		} else if (field->node_list) {
+			gf_list_add(field->node_list, elt);
+		} else if (!field->new_node) {
+			field->new_node = (GF_Node*)elt;
+			field->field_ptr = &field->new_node;
+		}
+	}
 }
 
 static void svg_node_end(void *sax_cbck, const char *name, const char *name_space)
@@ -667,13 +752,18 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 	const char *buf;
 	u32 len;
 	GF_SVGParser *parser = sax_cbck;
+	SVGElement *node_core;
 	SVGElement *node = gf_list_last(parser->nodes);
-	if (!node) return;
+	if (!node && !parser->command) return;
 
 	buf = text_content;
 	len = strlen(buf);
 
-	if (!node->core->space || (node->core->space != XML_SPACE_PRESERVE)) {
+	node_core = node;
+	if (!node) node_core = (SVGElement *)parser->command->node;
+	if (!node_core) return;
+
+	if (!node_core->core->space || (node_core->core->space != XML_SPACE_PRESERVE)) {
 		Bool go = 1;;
 		while (go) {
 			switch (buf[0]) {
@@ -701,6 +791,26 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 		}
 	}
 	if (!len) return;
+	if (!node) {
+		char *str;
+		GF_CommandField *field = gf_list_get(parser->command->command_fields, 0);
+		if (!field) {
+			field = gf_sg_command_field_new(parser->command);
+			field->pos = -1;
+			field->fieldIndex = (u32) -1;
+			field->fieldType = SVG_String_datatype;
+		} 
+		if (field->fieldType != SVG_String_datatype) return;
+		if (!field->field_ptr) 
+			field->field_ptr = svg_create_value_from_attributetype(field->fieldType, 0);
+		if (*(SVG_String *)field->field_ptr) free(*(SVG_String *)field->field_ptr);
+
+		str = (char *)malloc(sizeof(char)*(len+1));
+		strncpy(str, buf, len);
+		str[len] = 0;
+		*(SVG_String *)field->field_ptr = str;
+		return;
+	}
 
 	switch (gf_node_get_tag((GF_Node *)node)) {
 	case TAG_SVG_text:
@@ -762,8 +872,8 @@ GF_Err gf_sm_load_init_SVG(GF_SceneLoader *load)
 	else fprintf(stdout, (load->type==GF_SM_LOAD_XSR) ? "MPEG-4 (LASER) Scene Parsing\n" : "SVG Scene Parsing\n");
 
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, parser->load->OnProgress ? svg_progress : NULL);
-	if (e<0) svg_report(parser, e, "Unable to open file %s", load->fileName);
-	return e;
+	if (e<0) return svg_report(parser, e, "Unable to open file %s", load->fileName);
+	return parser->last_error;
 }
 
 GF_Err gf_sm_load_init_SVGString(GF_SceneLoader *load, char *str_data)

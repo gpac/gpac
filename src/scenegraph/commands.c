@@ -81,6 +81,19 @@ void gf_sg_command_del(GF_Command *com)
 			free(inf);
 		}
 	} else {
+		while (gf_list_count(com->command_fields)) {
+			GF_CommandField *inf = gf_list_get(com->command_fields, 0);
+			gf_list_rem(com->command_fields, 0);
+
+			if (inf->new_node) gf_node_unregister(inf->new_node, com->node);
+			else if (inf->node_list) {
+				gf_node_unregister_children(com->node, inf->node_list);
+				gf_list_del(inf->node_list);
+			} else if (inf->field_ptr) {
+				gf_svg_delete_attribute_value(inf->fieldType, inf->field_ptr);
+			}
+			free(inf);
+		}
 	}
 	gf_list_del(com->command_fields);
 

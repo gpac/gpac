@@ -1051,6 +1051,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, char *logFile, char *mediaSource, u
 	load.flags = GF_SM_LOAD_MPEG4_STRICT;
 	e = gf_sm_load_init(&load);
 	if (e<0) {
+		gf_sm_load_done(&load);
 		fprintf(stdout, "Cannot load context - %s\n", gf_error_to_string(e));
 		goto err_exit;
 	}

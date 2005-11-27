@@ -398,6 +398,35 @@ void DumpBool(GF_SceneDumper *sdump, char *name, u32 value)
 	EndAttribute(sdump);
 }
 
+void DumpUTFString(GF_SceneDumper *sdump, char *str)
+{
+	u32 len, i;
+	short *uniLine;
+	len = strlen(str);
+	uniLine = malloc(sizeof(short) * len);
+	len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
+	if (len != (size_t) (-1)) {
+		for (i=0; i<len; i++) {
+			if (uniLine[i] == (u16) '\"') fprintf(sdump->trace, "\\");
+			switch (uniLine[i]) {
+			case '\'': fprintf(sdump->trace, "&apos;"); break;
+			case '\"': fprintf(sdump->trace, "&quot;"); break;
+			case '&': fprintf(sdump->trace, "&amp;"); break;
+			case '>': fprintf(sdump->trace, "&gt;"); break;
+			case '<': fprintf(sdump->trace, "&lt;"); break;
+			default:
+			  if (uniLine[i]<128) {
+				fprintf(sdump->trace, "%c", (u8) uniLine[i]);
+			  } else {
+				fprintf(sdump->trace, "&#%d;", uniLine[i]);
+			  }
+			  break;
+			}
+		}
+	}
+	free(uniLine);
+}
+
 
 void DumpSFField(GF_SceneDumper *sdump, u32 type, void *ptr, Bool is_mf)
 {
@@ -486,9 +515,7 @@ void DumpSFField(GF_SceneDumper *sdump, u32 type, void *ptr, Bool is_mf)
 
 	case GF_SG_VRML_SFSTRING:
 	{
-		u32 i, len;
 		char *str;
-		short *uniLine;
 		if (sdump->XMLDump) {
 			if (is_mf) fprintf(sdump->trace, sdump->X3DDump ? "\"" : "&quot;");
 		} else {
@@ -496,36 +523,12 @@ void DumpSFField(GF_SceneDumper *sdump, u32 type, void *ptr, Bool is_mf)
 		}
 		/*dump in unicode*/
 		str = ((SFString *)ptr)->buffer;
-		if (str) {
-			len = strlen(str);
-			if (len) {
-			  if (sdump->XMLDump) {
-				uniLine = malloc(sizeof(short) * len);
-				len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
-				if (len != (size_t) (-1)) {
-					for (i=0; i<len; i++) {
-						if (uniLine[i] == (u16) '\"') fprintf(sdump->trace, "\\");
-						switch (uniLine[i]) {
-						case '\'': fprintf(sdump->trace, "&apos;"); break;
-						case '\"': fprintf(sdump->trace, "&quot;"); break;
-						case '&': fprintf(sdump->trace, "&amp;"); break;
-						case '>': fprintf(sdump->trace, "&gt;"); break;
-						case '<': fprintf(sdump->trace, "&lt;"); break;
-						default:
-						  if (uniLine[i]<128) {
-						    fprintf(sdump->trace, "%c", (u8) uniLine[i]);
-						  } else {
-						    fprintf(sdump->trace, "&#%d;", uniLine[i]);
-						  }
-						  break;
-						}
-					}
-				}
-				free(uniLine);
-			  } else {
-			    fprintf(sdump->trace, "%s", str);
-			  }
-			}
+		if (str && str[0]) {
+		  if (sdump->XMLDump) {
+			  DumpUTFString(sdump, str);
+		  } else {
+			fprintf(sdump->trace, "%s", str);
+		  }
 		}
 
 		if (sdump->XMLDump) {
@@ -2161,6 +2164,14 @@ GF_Err DumpProtoInsert(GF_SceneDumper *sdump, GF_Command *com)
 	return GF_OK;
 }
 
+
+static char *lsr_format_node_id(GF_Node *n, char *str)
+{
+	if (n->sgprivate->NodeName) sprintf(str, "%s", n->sgprivate->NodeName);
+	else sprintf(str, "N%d", n->sgprivate->NodeID - 1);
+	return str;
+}
+
 GF_Err DumpLSRNewScene(GF_SceneDumper *sdump, GF_Command *com)
 {
 	fprintf(sdump->trace, "<lsr:NewScene>\n");
@@ -2168,20 +2179,68 @@ GF_Err DumpLSRNewScene(GF_SceneDumper *sdump, GF_Command *com)
 	fprintf(sdump->trace, "</lsr:NewScene>\n");
 	return GF_OK;
 }
-GF_Err DumpLSRAdd(GF_SceneDumper *sdump, GF_Command *com)
+GF_Err DumpLSRAddReplace(GF_SceneDumper *sdump, GF_Command *com, Bool is_replace)
 {
+	char szAtt[80000];
+	GF_CommandField *f;
+	fprintf(sdump->trace, "<lsr:%s ref=\"%s\" ", is_replace ? "Replace" : "Add", lsr_format_node_id(com->node, szAtt));
+	f = gf_list_get(com->command_fields, 0);
+	if (f && (f->pos>=0) ) fprintf(sdump->trace, "index=\"%d\" ", f->pos);
+	if (f) {
+		GF_FieldInfo info;
+		if (!f->new_node && !f->node_list) {
+			if ((f->fieldIndex==(u32)-1) && (f->fieldType==SVG_String_datatype)) {
+				fprintf(sdump->trace, "attributeName=\"textContent\" ");
+				fprintf(sdump->trace, "value=\"");
+				DumpUTFString(sdump, *(SVG_String*)f->field_ptr);
+				fprintf(sdump->trace, "\" ");
+			} else {
+				gf_node_get_field(com->node, f->fieldIndex, &info);
+				fprintf(sdump->trace, "attributeName=\"%s\" ", info.name);
+				if (f->field_ptr) {
+					info.far_ptr = f->field_ptr;
+					svg_dump_attribute((SVGElement *)com->node, &info, szAtt);
+					fprintf(sdump->trace, "value=\"%s\" ", szAtt);
+				}
+			}
+			if (com->fromNodeID) {
+				GF_FieldInfo op_info;
+				GF_Node *op = gf_sg_find_node(sdump->sg, com->fromNodeID);
+				fprintf(sdump->trace, "operandElementId=\"%s\" ", lsr_format_node_id(op, szAtt));
+				gf_node_get_field(op, com->fromFieldIndex, &op_info);
+				fprintf(sdump->trace, "operandAttributeName=\"%s\" ", op_info.name);
+			}
+		}
+	}
+	if (!f->new_node && !f->node_list) {
+		fprintf(sdump->trace, "/>\n");
+		return GF_OK;
+	}
+	fprintf(sdump->trace, ">\n");
+	sdump->indent++;
+	if (f->new_node) {
+		SD_DumpSVGElement(sdump, f->new_node, com->node, 0);
+	} else if (f->node_list) {
+		u32 i, count = gf_list_count(f->node_list);
+		for (i=0; i<count; i++) 
+			SD_DumpSVGElement(sdump, gf_list_get(f->node_list, i), com->node, 0);
+	}
+	fprintf(sdump->trace, "</lsr:Replace>\n");
+	sdump->indent--;
 	return GF_OK;
 }
 GF_Err DumpLSRClean(GF_SceneDumper *sdump, GF_Command *com)
 {
 	return GF_OK;
 }
-GF_Err DumpLSRReplace(GF_SceneDumper *sdump, GF_Command *com)
-{
-	return GF_OK;
-}
 GF_Err DumpLSRDelete(GF_SceneDumper *sdump, GF_Command *com)
 {
+	char szID[1024];
+	GF_CommandField *f;
+	fprintf(sdump->trace, "<lsr:Delete ref=\"%s\" ", lsr_format_node_id(com->node, szID));
+	f = gf_list_get(com->command_fields, 0);
+	if (f && (f->pos>=0) ) fprintf(sdump->trace, "index=\"%d\" ", f->pos);
+	fprintf(sdump->trace, "/>\n");
 	return GF_OK;
 }
 GF_Err DumpLSRInsert(GF_SceneDumper *sdump, GF_Command *com)
@@ -2299,9 +2358,9 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 
 		/*laser commands*/
 		case GF_SG_LSR_NEW_SCENE: e = DumpLSRNewScene(sdump, com); break;
-		case GF_SG_LSR_ADD: e = DumpLSRAdd(sdump, com); break;
+		case GF_SG_LSR_ADD: e = DumpLSRAddReplace(sdump, com, 0); break;
 		case GF_SG_LSR_CLEAN: e = DumpLSRClean(sdump, com); break;
-		case GF_SG_LSR_REPLACE: e = DumpLSRReplace(sdump, com); break;
+		case GF_SG_LSR_REPLACE: e = DumpLSRAddReplace(sdump, com, 1); break;
 		case GF_SG_LSR_DELETE: e = DumpLSRDelete(sdump, com); break;
 		case GF_SG_LSR_INSERT: e = DumpLSRInsert(sdump, com); break;
 		case GF_SG_LSR_RESTORE: e = DumpLSRRestore(sdump, com); break;
@@ -2339,7 +2398,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 	return e;
 }
 
-void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool is_root)
+static void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool is_root)
 {
 	char attValue[81920];
 	u32 i, count, nID;
@@ -2362,10 +2421,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 	if (is_root) 
 		fprintf(sdump->trace, "xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" ");
 	
-	if (nID) {
-		if (n->sgprivate->NodeName) fprintf(sdump->trace, "id=\"%s\" ", n->sgprivate->NodeName);
-		else fprintf(sdump->trace, "id=\"N%d\" ", n->sgprivate->NodeID - 1);
-	}
+	if (nID) fprintf(sdump->trace, "id=\"%s\" ", lsr_format_node_id(n, attValue));
 
 	proto = (GF_Node *) gf_svg_new_node(sdump->sg, n->sgprivate->tag);
 	gf_node_register(proto, NULL);
@@ -2646,7 +2702,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 			if (dumper->LSRDump) {
 				if (time != au->timing_sec) {
 					time = au->timing_sec;
-					fprintf(dumper->trace, "<saf:sceneUnit", au->timing);
+					fprintf(dumper->trace, "<saf:sceneUnit");
 					if (time) fprintf(dumper->trace, " time=\"%d\"", au->timing);
 					if (au->is_rap) fprintf(dumper->trace, " rap=\"true\"");
 					fprintf(dumper->trace, ">\n");

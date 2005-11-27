@@ -640,7 +640,7 @@ static void ReplaceIRINode(GF_Node *FromNode, GF_Node *old_node, GF_Node *newNod
 		GF_Node *p = gf_list_get(container, i);
 		if (old_node!=p) continue;
 		gf_list_rem(container, i);
-		//if (newNode) gf_list_insert(container, newNode, i);
+		if (newNode) gf_list_insert(container, newNode, i);
 		break;
 	}
 }

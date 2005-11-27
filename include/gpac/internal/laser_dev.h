@@ -87,6 +87,8 @@ struct __tag_laser_codec
 /*returns laser anim coding type based on field index, -1 if field cannot be animated*/
 s32 gf_lsr_field_to_anim_type(GF_Node *n, u32 fieldIndex);
 
+/*returns laser attributeName coding type based on field index, -1 if field cannot be animated*/
+s32 gf_lsr_field_to_attrib_type(GF_Node *n, u32 fieldIndex);
 
 
 /*start of RARE properties*/

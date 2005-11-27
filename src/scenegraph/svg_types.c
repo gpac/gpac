@@ -96,6 +96,10 @@ void gf_svg_delete_attribute_value(u32 type, void *value)
 		gf_svg_reset_iri((SVG_IRI *)value);
 		free(value);
 		break;
+	case SVG_String_datatype:
+		if (*(SVG_String *)value) free(*(SVG_String *)value);
+		free(value);
+		break;
 	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
