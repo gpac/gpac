@@ -266,15 +266,28 @@ enum
 	GF_SM_ENCODE_RAP_INBAND = 2,
 };
 
+typedef struct
+{
+	/*encoding flags*/
+	u32 flags;
+	/*delay between 2 RAP in ms. If 0 RAPs are not forced - BIFS and LASeR only for now*/
+	u32 rap_freq;
+	/*encoding log or NULL*/
+	char *logFile;
+	/*if set, any unknown stream in the scene will be looked for in @mediaSource (MP4 only)*/
+	char *mediaSource;
+	/*LASeR */
+	/*resolution*/
+	s32 resolution;
+	/*coordBits, scaleBits*/
+	u32 coord_bits, scale_bits;
+} GF_SMEncodeOptions;
+
 /*
 encodes scene context into @mp4.
 if @log is set, generates BIFS encoder log file
-if @mediaSource is set, any unknown stream in the scene will be looked for in @mediaSource (MP4 only)
-@flags: encoding flags
-@rap_freq: delay between 2 RAP in ms. If 0 RAPs are not forced - BIFS only
 */
-GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, char *logFile, char *mediaSource, u32 flags, u32 rap_freq);
-
+GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOptions *opt);
 
 /*Dumping tools*/
 typedef struct _scenedump GF_SceneDumper;

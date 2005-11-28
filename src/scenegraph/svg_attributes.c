@@ -2334,7 +2334,12 @@ static void svg_dump_number(SVG_Number *l, char *attValue)
 
 static void svg_dump_iri(SVG_IRI*iri, char *attValue)
 {
-	if (iri->type == SVG_IRI_ELEMENTID) sprintf(attValue, "#%s", gf_node_get_name((GF_Node *)iri->target));
+	if (iri->type == SVG_IRI_ELEMENTID) {
+		const char *name;
+		name = gf_node_get_name((GF_Node *)iri->target);
+		if (name) sprintf(attValue, "#%s", gf_node_get_name((GF_Node *)iri->target));
+		else  sprintf(attValue, "#N%d", gf_node_get_id((GF_Node *)iri->target) - 1);
+	}
 	else if ((iri->type == SVG_IRI_IRI) && iri->iri) strcpy(attValue, iri->iri);
 	else strcpy(attValue, "");
 }
@@ -2842,6 +2847,7 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 	case SVG_Matrix_datatype:
 	{
 		SVG_Matrix *matrix = (SVG_Matrix *)info->far_ptr;
+#if 0
 		/*try to do a simple decomposition...*/
 		if (!matrix->m[1] && !matrix->m[3]) {
 			sprintf(attValue, "translate(%g,%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]) );
@@ -2863,6 +2869,7 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 		} 
 		/*default*/
 		if (!strlen(attValue))
+#endif
 			sprintf(attValue, "matrix(%g %g %g %g %g %g)", FIX2FLT(matrix->m[0]), FIX2FLT(matrix->m[3]), FIX2FLT(matrix->m[1]), FIX2FLT(matrix->m[4]), FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]) );
 	}
 		break;

@@ -116,6 +116,7 @@ GF_Err gf_laser_decoder_configure_stream(GF_LASeRCodec *codec, u16 ESID, char *d
 	info->cfg.colorComponentBits = gf_bs_read_int(bs, 4);
 	info->cfg.colorComponentBits += 1;
 	info->cfg.resolution = gf_bs_read_int(bs, 4);
+	if (info->cfg.resolution>7) info->cfg.resolution -= 16;
 	info->cfg.scale_bits = gf_bs_read_int(bs, 4);
 	info->cfg.coord_bits = gf_bs_read_int(bs, 5);
 	info->cfg.append = gf_bs_read_int(bs, 1);
@@ -159,7 +160,6 @@ GF_Err gf_laser_decode_au(GF_LASeRCodec *codec, u16 ESID, char *data, u32 data_l
 		codec->res_factor = INT2FIX(1<<codec->info->cfg.resolution);
 	else 
 		codec->res_factor = gf_divfix(FIX_ONE, INT2FIX(1 << (-codec->info->cfg.resolution)) );
-
 
 	codec->bs = gf_bs_new(data, data_len, GF_BITSTREAM_READ);
 	e = lsr_decode_laser_unit(codec, NULL);
@@ -332,7 +332,7 @@ static void lsr_read_extend_class(GF_LASeRCodec *lsr, char **out_data, u32 *out_
 static void lsr_read_codec_IDREF(GF_LASeRCodec *lsr, SVG_IRI *href, const char *name)
 {
 	GF_Node *n;
-	u32 nID = lsr_read_vluimsbf5(lsr, name);
+	u32 nID = 1+lsr_read_vluimsbf5(lsr, name);
 	n = gf_sg_find_node(lsr->sg, nID);
 	if (!n) {
 		fprintf(stdout, "ERROR: undefined node\n");
@@ -344,7 +344,7 @@ static void lsr_read_codec_IDREF_URI(GF_LASeRCodec *lsr, unsigned char **out_uri
 {
 	char szN[100];
 	GF_Node *n;
-	u32 nID = lsr_read_vluimsbf5(lsr, name);
+	u32 nID = 1+lsr_read_vluimsbf5(lsr, name);
 	n = gf_sg_find_node(lsr->sg, nID);
 	if (!n) {
 		fprintf(stdout, "ERROR: undefined node\n");
@@ -561,7 +561,7 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 	if (!val) return;
 	
 	name = NULL;
-    id = lsr_read_vluimsbf5(lsr, "ID");
+    id = 1+lsr_read_vluimsbf5(lsr, "ID");
     if (lsr->info->cfg.has_string_ids) lsr_read_byte_align_string(lsr, &name, "stringId");
 	gf_node_set_id(n, id, name);
 
@@ -588,9 +588,9 @@ static Fixed lsr_translate_scale(GF_LASeRCodec *lsr, u32 val)
 {
 	if (val >> (lsr->coord_bits-1) ) {
 		s32 neg = (s32) val - (1<<lsr->coord_bits);
-		return gf_divfix(INT2FIX(neg), lsr->res_factor) / 256;
+		return INT2FIX(neg) / 256;
 	} else {
-		return gf_divfix(INT2FIX(val), lsr->res_factor) / 256;
+		return INT2FIX(val) / 256;
 	}
 }
 static void lsr_read_matrix(GF_LASeRCodec *lsr, GF_Matrix2D *mx)
@@ -1366,7 +1366,7 @@ static void lsr_read_value_with_units(GF_LASeRCodec *lsr, SVG_Number *n, const c
 	case 4: n->type = SVG_NUMBER_PT; break;
 	case 5: n->type = SVG_NUMBER_PC; break;
 	case 6: n->type = SVG_NUMBER_PERCENTAGE; break;
-	default:  n->type = 0; break;
+	default:  n->type = SVG_NUMBER_VALUE; break;
 	}
 }
 
@@ -1802,7 +1802,7 @@ static GF_Node *lsr_read_path(GF_LASeRCodec *lsr, u32 same_type)
 
 	if (same_type) {
 		if (lsr->prev_path) {
-			lsr_restore_base(lsr, (SVGElement *)elt, (SVGElement *)lsr->prev_path, 1, 0);
+			lsr_restore_base(lsr, (SVGElement *)elt, (SVGElement *)lsr->prev_path, (same_type==2) ? 1 : 0, 0);
 			gf_mx2d_copy(elt->transform, lsr->prev_path->transform);
 		}
 		lsr_read_id(lsr, (GF_Node *) elt);

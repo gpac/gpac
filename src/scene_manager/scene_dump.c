@@ -2653,7 +2653,9 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 		GF_AUContext *au = gf_list_get(sample_list, 0);
 		GF_Command *com = NULL;
 		if (au) com = gf_list_get(au->commands, 0);
-		if (!com || (com->tag!=GF_SG_LSR_NEW_SCENE) || !com->node) {
+		if (!au) {
+			SD_DumpSVGElement(dumper, dumper->sg->RootNode, NULL, 1);
+		} else if (!com || (com->tag!=GF_SG_LSR_NEW_SCENE) || !com->node) {
 			e = GF_NOT_SUPPORTED;
 		} else {
 			SD_DumpSVGElement(dumper, com->node, NULL, 1);

@@ -235,7 +235,7 @@ GF_Err gf_beng_save_context(GF_BifsEngine *codec, char *  ctxFileName)
 		GF_ISOFile *mp4;
 		strcat(szF, ".mp4");
 		mp4 = gf_isom_open(szF, GF_ISOM_OPEN_WRITE, NULL);
-		e = gf_sm_encode_to_file(codec->ctx, mp4, NULL, NULL, 0, 0);
+		e = gf_sm_encode_to_file(codec->ctx, mp4, NULL);
 		if (e) gf_isom_delete(mp4);
 		else gf_isom_close(mp4);
 	} else {

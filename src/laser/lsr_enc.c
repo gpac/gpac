@@ -103,6 +103,8 @@ GF_Err gf_laser_encoder_new_stream(GF_LASeRCodec *codec, u16 ESID, GF_LASERConfi
 	if (!pInfo->cfg.time_resolution) pInfo->cfg.time_resolution = 1000;
 	if (!pInfo->cfg.colorComponentBits) pInfo->cfg.colorComponentBits = 8;
 	if (!pInfo->cfg.coord_bits) pInfo->cfg.coord_bits = 12;
+	if (pInfo->cfg.resolution<-8) pInfo->cfg.resolution=-8;
+	else if (pInfo->cfg.resolution>7) pInfo->cfg.resolution=7;
 
 	gf_list_add(codec->streamInfo, pInfo);
 	return GF_OK;
@@ -131,7 +133,10 @@ GF_Err gf_laser_encoder_get_config(GF_LASeRCodec *codec, u16 ESID, char **out_da
 	}
 	gf_bs_write_int(bs, codec->info->cfg.colorComponentBits - 1, 4);
 	gf_bs_write_int(bs, codec->info->cfg.resolution, 4);
-	gf_bs_write_int(bs, codec->info->cfg.scale_bits, 4);
+	if (codec->info->cfg.scale_bits<0) 
+		gf_bs_write_int(bs, 16 + codec->info->cfg.scale_bits, 4);
+	else
+		gf_bs_write_int(bs, codec->info->cfg.scale_bits, 4);
 	gf_bs_write_int(bs, codec->info->cfg.coord_bits, 5);
 	gf_bs_write_int(bs, codec->info->cfg.append ? 1 : 0, 1);
 	gf_bs_write_int(bs, codec->info->cfg.has_string_ids ? 1 : 0, 1);
@@ -158,9 +163,9 @@ GF_Err gf_laser_encode_au(GF_LASeRCodec *codec, u16 ESID, GF_List *command_list,
 	codec->time_resolution = codec->info->cfg.time_resolution;
 	codec->color_scale = (1<<codec->info->cfg.colorComponentBits) - 1;
 	if (codec->info->cfg.resolution>=0)
-		codec->res_factor = INT2FIX(1<<codec->info->cfg.resolution);
+		codec->res_factor = gf_divfix(FIX_ONE, INT2FIX(1<<codec->info->cfg.resolution) );
 	else 
-		codec->res_factor = gf_divfix(FIX_ONE, INT2FIX(1 << (-codec->info->cfg.resolution)) );
+		codec->res_factor = INT2FIX(1 << (-codec->info->cfg.resolution));
 
 	codec->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	e = lsr_write_laser_unit(codec, command_list, reset_context);
@@ -182,9 +187,9 @@ GF_Err gf_laser_encoder_get_rap(GF_LASeRCodec *codec, char **out_data, u32 *out_
 	codec->time_resolution = codec->info->cfg.time_resolution;
 	codec->color_scale = (1<<codec->info->cfg.colorComponentBits) - 1;
 	if (codec->info->cfg.resolution>=0)
-		codec->res_factor = INT2FIX(1<<codec->info->cfg.resolution);
+		codec->res_factor = gf_divfix(FIX_ONE, INT2FIX(1<<codec->info->cfg.resolution) );
 	else 
-		codec->res_factor = gf_divfix(FIX_ONE, INT2FIX(1 << (-codec->info->cfg.resolution)) );
+		codec->res_factor = INT2FIX(1 << (-codec->info->cfg.resolution));
 
 	codec->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	e = lsr_write_laser_unit(codec, NULL, 0);
@@ -481,7 +486,7 @@ static void lsr_write_id(GF_LASeRCodec *lsr, GF_Node *n)
 	u32 id = gf_node_get_id(n);
 	if (id) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "has__0_id");
-	    lsr_write_vluimsbf5(lsr, id, "ID");
+	    lsr_write_vluimsbf5(lsr, id-1, "ID");
 	    if (lsr->info->cfg.has_string_ids) lsr_write_byte_align_string(lsr, (char *) gf_node_get_name(n), "stringId");
 		GF_LSR_WRITE_INT(lsr, 0, 1, "reserved");
 #if TODO_LASER_EXTENSIONS	
@@ -497,12 +502,14 @@ static void lsr_write_id(GF_LASeRCodec *lsr, GF_Node *n)
 
 static u32 lsr_translate_coords(GF_LASeRCodec *lsr, Fixed x, u32 nb_bits)
 {
-	u32 res;
-	Fixed r = gf_divfix(x, lsr->res_factor);
-	if (r>=0) return FIX2INT(r);
-	r += INT2FIX(1<<nb_bits);
-	if (r<0) fprintf(stdout, "nb_bits %d not high enough to encode negative number %g!\n", nb_bits, FIX2FLT(x));
-	res = FIX2INT(r);
+	s32 res;
+	res = FIX2INT( gf_divfix(x, lsr->res_factor) );
+	if (res>=0) {
+		if (res & (1<<(nb_bits-1)) ) fprintf(stdout, "nb_bits %d not large enough to encode positive number %g!\n", nb_bits, FIX2FLT(x));
+		return (u32) res;
+	}
+	res += (1<<nb_bits);
+	if (res<0) fprintf(stdout, "nb_bits %d not large enough to encode negative number %g!\n", nb_bits, FIX2FLT(x));
 	assert( res & (1<<(nb_bits-1)) );
 	return res;
 }
@@ -2295,7 +2302,7 @@ static void lsr_write_use(GF_LASeRCodec *lsr, SVGuseElement *elt, Bool ommit_tag
 
 	if (!ommit_tag && lsr_elt_has_same_base(lsr, (SVGElement *)elt, (SVGElement *)lsr->prev_use, 0) 
 		&& lsr_elt_has_same_fill(lsr, (SVGElement *)elt, (SVGElement *)lsr->prev_use) 
-		&& lsr_transform_equal(&elt->transform, &lsr->prev_text->transform) 
+		&& lsr_transform_equal(&elt->transform, &lsr->prev_use->transform) 
 		&& (elt->core->eRR == lsr->prev_use->core->eRR)
 		&& lsr_number_equal(&elt->x, &lsr->prev_use->x)
 		&& lsr_number_equal(&elt->y, &lsr->prev_use->y)
@@ -2490,7 +2497,7 @@ static void lsr_write_content_model_2(GF_LASeRCodec *lsr, SVGElement *parent, vo
 		/*hack for encoding - needs cleaning*/
 		fprintf(stdout, "Warning: node %s not part of LASeR, skipping\n", gf_node_get_class_name(node));
 		GF_LSR_WRITE_INT(lsr, 49, 6, "ch4"); 
-		lsr_write_byte_align_string(lsr, "", "hack");
+		lsr_write_byte_align_string(lsr, "", "textContent");
 		break;
 	}
 }

@@ -365,11 +365,11 @@ static GF_ESD *gf_sm_locate_esd(GF_SceneManager *ctx, u16 ES_ID)
 	return NULL;
 }
 
-static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, char *logFile, u32 flags, u32 rap_freq, u32 scene_type)
+static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, u32 scene_type)
 {
 	char *data;
 	Bool is_in_iod, delete_desc, first_scene_id, rap_inband, rap_shadow;
-	u32 i, j, di, dur, rate, time_slice, init_offset, data_len, count, track, last_rap, rap_delay;
+	u32 i, j, di, dur, rate, time_slice, init_offset, data_len, count, track, last_rap, rap_delay, flags;
 	GF_Err e;
 	FILE *logs;
 	GF_InitialObjectDescriptor *iod;
@@ -381,8 +381,8 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, char *lo
 	GF_LASeRCodec *lsr_enc;
 
 	rap_inband = rap_shadow = 0;
-	if (rap_freq) {
-		if (flags & GF_SM_ENCODE_RAP_INBAND) {
+	if (opts && opts->rap_freq) {
+		if (opts->flags & GF_SM_ENCODE_RAP_INBAND) {
 			rap_inband = 1;
 		} else {
 			rap_shadow = 1;
@@ -405,8 +405,9 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, char *lo
 
 	sc = NULL;
 	logs = NULL;
-	if (logFile) logs = fopen(logFile, "wt");
+	if (opts && opts->logFile) logs = fopen(opts->logFile, "wt");
 
+	flags = opts ? opts->flags : 0;
 	delete_desc = 0;
 	first_scene_id = 0;
 	esd = NULL;
@@ -598,6 +599,11 @@ force_svg_to_laser:
 
 			/*this is for safety, otherwise some players may not understand NULL node*/
 			if (flags & GF_SM_ENCODE_USE_NAMES) lsrcfg.has_string_ids = 1;
+			if (opts) {
+				lsrcfg.resolution = opts->resolution;
+				lsrcfg.coord_bits = opts->coord_bits;
+				lsrcfg.scale_bits = opts->scale_bits;
+			}
 			gf_laser_encoder_new_stream(lsr_enc, esd->ESID , &lsrcfg);
 			/*get final config*/
 			gf_laser_encoder_get_config(lsr_enc, esd->ESID, &data, &data_len);
@@ -634,7 +640,8 @@ force_svg_to_laser:
 		esd->decoderConfig->maxBitrate = rate = time_slice = 0;
 
 		last_rap = 0;
-		rap_delay = rap_freq * esd->slConfig->timestampResolution / 1000;
+		rap_delay = 0;
+		if (opts) rap_delay = opts->rap_freq * esd->slConfig->timestampResolution / 1000;
 
 		init_offset = 0;
 		for (j=0; j<gf_list_count(sc->AUs); j++) {
@@ -738,7 +745,7 @@ force_svg_to_laser:
 exit:
 	if (bifs_enc) gf_bifs_encoder_del(bifs_enc);
 	else if (lsr_enc) gf_laser_encoder_del(lsr_enc);
-	if (logFile) fclose(logs);
+	if (logs) fclose(logs);
 	if (esd && delete_desc) gf_odf_desc_del((GF_Descriptor *) esd);
 	return e;
 }
@@ -947,7 +954,7 @@ err_exit:
 	return e;
 }
 
-GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, char *logFile, char *mediaSource, u32 flags, u32 rap_freq)
+GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOptions *opts)
 {
 	u32 i, count;
 	GF_Descriptor *desc;
@@ -961,13 +968,13 @@ GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, char *logFile
 
 
 	/*encode BIFS*/
-	e = gf_sm_encode_scene(ctx, mp4, logFile, flags, rap_freq, 0);
+	e = gf_sm_encode_scene(ctx, mp4, opts, 0);
 	if (e) return e;
 	/*encode LASeR*/
-	e = gf_sm_encode_scene(ctx, mp4, logFile, flags, rap_freq, 1);
+	e = gf_sm_encode_scene(ctx, mp4, opts, 1);
 	if (e) return e;
 	/*then encode OD to setup all streams*/
-	e = gf_sm_encode_od(ctx, mp4, mediaSource);
+	e = gf_sm_encode_od(ctx, mp4, opts ? opts->mediaSource : NULL);
 	if (e) return e;
 
 	/*store iod*/

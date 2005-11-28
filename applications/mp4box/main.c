@@ -38,7 +38,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start, const char *tmpdir);
 GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir);
 
-GF_Err EncodeFile(char *in, GF_ISOFile *mp4, char *logFile, char *mediaSource, u32 flags, u32 rap_freq);
+GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts);
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir);
 #endif
 
@@ -60,6 +60,7 @@ void DumpMovieInfo(GF_ISOFile *file);
 /*some global vars for swf import :(*/
 u32 swf_flags = 0;
 Float swf_flatten_angle = 0;
+s32 laser_resolution = 0;
 
 
 void PrintVersion()
@@ -209,6 +210,11 @@ void PrintEncodeUsage()
 			"                       * Note: input file must be a commands-only file\n"
 			" -outctx:             specifies storage of updated context (MP4/BT/XMT)\n"
 			"\n"
+			"LASeR Encoding options\n"
+			" -resolution res:     resolution factor (-8 to 7)\n"
+			"                       all floats are multiplied by 2^(-res)\n"
+			" -coord-bits bits:    bits used for encoding coordinates (default 12)\n"
+			" -scale-bits bits:    extra bits used for encoding scales (default 0)\n"
 			);
 }
 
@@ -833,6 +839,7 @@ int main(int argc, char **argv)
 {
 	char outfile[5000];
 	GF_Err e;
+	GF_SMEncodeOptions opts;
 	Double InterleavingTime, split_duration, split_start, import_fps;
 	SDPLine sdp_lines[MAX_CUMUL_OPS];
 	MetaAction metas[MAX_CUMUL_OPS];
@@ -840,7 +847,7 @@ int main(int argc, char **argv)
 	char *szTracksToAdd[MAX_CUMUL_OPS];
 	TrackAction tracks[MAX_CUMUL_OPS];
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
-	u32 i, MTUSize, stat_level, hint_flags, encode_flags, rap_freq, MakeISMA, Make3GP, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave;
+	u32 i, MTUSize, stat_level, hint_flags, MakeISMA, Make3GP, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file;
@@ -858,7 +865,7 @@ int main(int argc, char **argv)
 	InterleavingTime = 0.5;
 	import_fps = 0;
 	import_flags = 0;
-	rap_freq = encode_flags = split_size = 0;
+	split_size = 0;
 	MTUSize = 1500;
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = 0;
 	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = 0;
@@ -866,6 +873,7 @@ int main(int argc, char **argv)
 	track_dump_type = 0;
 	ismaCrypt = 0;
 	file = NULL;
+	memset(&opts, 0, sizeof(opts));
 	
 	trackID = stat_level = hint_flags = 0;
 	info_track_id = 0;
@@ -1230,18 +1238,34 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-ms")) { CHECK_NEXT_ARG mediaSource = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-mp4")) { encode = 1; open_edit = 1; }
 		else if (!stricmp(arg, "-log")) do_log = 1; 
-		else if (!stricmp(arg, "-def")) encode_flags |= GF_SM_ENCODE_USE_NAMES;
+		else if (!stricmp(arg, "-def")) opts.flags |= GF_SM_ENCODE_USE_NAMES;
 		else if (!stricmp(arg, "-sync")) {
 			CHECK_NEXT_ARG
-			encode_flags |= GF_SM_ENCODE_RAP_INBAND;
-			rap_freq = atoi(argv[i+1]);
+			opts.flags |= GF_SM_ENCODE_RAP_INBAND;
+			opts.rap_freq = atoi(argv[i+1]);
 			i++;
 		} else if (!stricmp(arg, "-shadow")) {
 			CHECK_NEXT_ARG
-			if (encode_flags & GF_SM_ENCODE_RAP_INBAND) encode_flags ^= GF_SM_ENCODE_RAP_INBAND;
-			rap_freq = atoi(argv[i+1]);
+			if (opts.flags & GF_SM_ENCODE_RAP_INBAND) opts.flags ^= GF_SM_ENCODE_RAP_INBAND;
+			opts.rap_freq = atoi(argv[i+1]);
 			i++;
 		} 
+		/*LASeR options*/
+		else if (!stricmp(arg, "-resolution")) {
+			CHECK_NEXT_ARG
+			opts.resolution = atoi(argv[i+1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-coord-bits")) {
+			CHECK_NEXT_ARG
+			opts.coord_bits = atoi(argv[i+1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-scale-bits")) {
+			CHECK_NEXT_ARG
+			opts.scale_bits = atoi(argv[i+1]);
+			i++;
+		}
 		/*chunk encoding*/
 		else if (!stricmp(arg, "-outctx")) { CHECK_NEXT_ARG output_ctx = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-inctx")) {
@@ -1563,7 +1587,9 @@ int main(int argc, char **argv)
 		}
 		strcat(outfile, ".mp4");
 		file = gf_isom_open(outfile, GF_ISOM_WRITE_EDIT, tmpdir);
-		e = EncodeFile(inName, file, do_log ? logfile : NULL, mediaSource ? mediaSource : outfile, encode_flags, rap_freq);
+		opts.logFile = do_log ? logfile : NULL;
+		opts.mediaSource = mediaSource ? mediaSource : outfile;
+		e = EncodeFile(inName, file, &opts);
 		if (e) goto err_exit;
 #else
 		fprintf(stdout, "Cannot encode file - read-only release\n");

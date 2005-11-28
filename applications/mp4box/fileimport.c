@@ -1031,7 +1031,7 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Do
 		MPEG-4 encoding
 */
 
-GF_Err EncodeFile(char *in, GF_ISOFile *mp4, char *logFile, char *mediaSource, u32 flags, u32 rap_freq) 
+GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts) 
 {
 	GF_Err e;
 	GF_SceneLoader load;
@@ -1062,7 +1062,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, char *logFile, char *mediaSource, u
 		fprintf(stdout, "Error loading file %s\n", gf_error_to_string(e));
 		goto err_exit;
 	} else {
-		e = gf_sm_encode_to_file(ctx, mp4, logFile, mediaSource, flags, rap_freq);
+		e = gf_sm_encode_to_file(ctx, mp4, opts);
 	}
 
 	gf_isom_set_brand_info(mp4, GF_ISOM_BRAND_MP42, 1);
@@ -1324,7 +1324,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 			GF_ISOFile *mp4;
 			strcat(szF, ".mp4");
 			mp4 = gf_isom_open(szF, GF_ISOM_WRITE_EDIT, tmpdir);
-			e = gf_sm_encode_to_file(ctx, mp4, NULL, NULL, 0, 0);
+			e = gf_sm_encode_to_file(ctx, mp4, NULL);
 			if (e) gf_isom_delete(mp4);
 			else gf_isom_close(mp4);
 		}

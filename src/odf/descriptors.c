@@ -372,6 +372,7 @@ GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg)
 	else cfg->time_resolution = 1000;
 	cfg->colorComponentBits = 1 + gf_bs_read_int(bs, 4);
 	cfg->resolution = gf_bs_read_int(bs, 4);
+	if (cfg->resolution>7) cfg->resolution -= 16;
 	cfg->scale_bits = gf_bs_read_int(bs, 4);
 	cfg->coord_bits = gf_bs_read_int(bs, 5);
 	cfg->append = gf_bs_read_int(bs, 1);

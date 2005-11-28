@@ -826,7 +826,7 @@ GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 		|| !stricmp(comp, "RMP4") /*Sigma - not tested*/
 		) {
 			sprintf(szOutFile, "%s.cmp", dumper->out_name);
-		} else if (!stricmp(comp, "VSSH")) {
+		} else if (!stricmp(comp, "VSSH") || strstr(comp, "264")) {
 			sprintf(szOutFile, "%s.h264", dumper->out_name);
 		} else {
 			sprintf(szOutFile, "%s.%s", dumper->out_name, comp);
@@ -1207,7 +1207,7 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 {
 	GF_ESD *esd;
 	GF_ISOSample *samp;
-	char szName[1000];
+	char szName[1000], *v4CC;
 	avi_t *avi_out;
 	char dumdata[1];
 	u32 track, i, di, count, w, h, frame_d;
@@ -1235,10 +1235,6 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 		gf_odf_desc_del((GF_Descriptor *)esd);
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
-	/*ignore visual size info, get it from dsi*/
-	gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
-	w = dsi.width;
-	h = dsi.height;
 
 	/*compute FPS - note we assume constant frame rate without droped frames...*/
 	count = gf_isom_get_sample_count(dumper->file, track);
@@ -1249,33 +1245,44 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 	gf_isom_sample_del(&samp);
 
 	frame_d = 0;
-	if (gf_isom_has_time_offset(dumper->file, track)) {
-		u32 DTS, max_CTSO;
-		DTS = max_CTSO = 0;
-		for (i=0; i<count; i++) {
-			samp = gf_isom_get_sample_info(dumper->file, track, i+1, NULL, NULL);
-			if (!samp) break;
-			if (samp->CTS_Offset>max_CTSO) max_CTSO = samp->CTS_Offset;
-			DTS = samp->DTS;
-			gf_isom_sample_del(&samp);
-		}
-		DTS /= (count-1);
-		frame_d = max_CTSO / DTS;
-		frame_d -= 1;
-		/*dummy delay frame for xvid unpacked bitstreams*/
-		dumdata[0] = 127;
-	}
-
 	/*AVC*/
 	if (esd->decoderConfig->objectTypeIndication==0x21) {
-		AVI_set_video(avi_out, w, h, FPS, "VSSH");
+		gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
+		v4CC = "h264";
 	} 
 	/*MPEG4*/
 	else {
-		AVI_set_video(avi_out, w, h, FPS, "XVID");
+		/*ignore visual size info, get it from dsi*/
+		gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
+		w = dsi.width;
+		h = dsi.height;
+
+		v4CC = "XVID";
+
+		/*compute VfW delay*/
+		if (gf_isom_has_time_offset(dumper->file, track)) {
+			u32 DTS, max_CTSO;
+			DTS = max_CTSO = 0;
+			for (i=0; i<count; i++) {
+				samp = gf_isom_get_sample_info(dumper->file, track, i+1, NULL, NULL);
+				if (!samp) break;
+				if (samp->CTS_Offset>max_CTSO) max_CTSO = samp->CTS_Offset;
+				DTS = samp->DTS;
+				gf_isom_sample_del(&samp);
+			}
+			DTS /= (count-1);
+			frame_d = max_CTSO / DTS;
+			frame_d -= 1;
+			/*dummy delay frame for xvid unpacked bitstreams*/
+			dumdata[0] = 127;
+		}
 	}
-	gf_export_message(dumper, GF_OK, "Creating AVI file %d x %d @ %.2f FPS - 4CC \"XVID\"", w, h, FPS);
+
+	gf_export_message(dumper, GF_OK, "Creating AVI file %d x %d @ %.2f FPS - 4CC \"%s\"", w, h, FPS,v4CC);
 	if (frame_d) gf_export_message(dumper, GF_OK, "B-Frames detected - using unpacked bitstream with max B-VOP delta %d", frame_d);
+
+	AVI_set_video(avi_out, w, h, FPS, v4CC);
+
 
 	for (i=0; i<count; i++) {
 		samp = gf_isom_get_sample(dumper->file, track, i+1, &di);

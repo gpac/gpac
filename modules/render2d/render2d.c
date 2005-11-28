@@ -544,7 +544,7 @@ browser_event:
 			Fixed dx, dy;
 			dx = ev->x - sr->grab_x;
 			dy = ev->y - sr->grab_y;
-			if (! gf_sg_use_pixel_metrics(sr->compositor->scene)) {
+			if (! sr->top_effect->is_pixel_metrics) {
 				dx /= sr->cur_width;
 				dy /= sr->cur_height;
 			}
@@ -606,6 +606,9 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 		sr->surface->center_coords = 1;
 		sr->surface->default_back_color = 0xFF000000;
 
+		sr->top_effect->is_pixel_metrics = gf_sg_use_pixel_metrics(sr->compositor->scene);
+		sr->top_effect->min_hsize = INT2FIX(MIN(sr->compositor->scene_width, sr->compositor->scene_height)) / 2;
+
 #ifndef GPAC_DISABLE_SVG
 		{
 			u32 node_tag = gf_node_get_tag(top_node);
@@ -614,11 +617,10 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 				sr->surface->center_coords = 0;
 				sr->main_surface_setup = 2;
 				sr->use_dom_events = 1;
+				sr->top_effect->is_pixel_metrics = 1;
 			}
 		}
 #endif
-		sr->top_effect->is_pixel_metrics = gf_sg_use_pixel_metrics(sr->compositor->scene);
-		sr->top_effect->min_hsize = INT2FIX(MIN(sr->compositor->scene_width, sr->compositor->scene_height)) / 2;
 
 		sr->focus_node = top_node;
 	}
