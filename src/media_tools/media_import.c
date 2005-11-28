@@ -1966,6 +1966,170 @@ exit:
 	return e;
 }
 
+GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, u32 track, u32 di, GF_ISOSample *samp, 
+								 char *xml_file, char *xmlFrom, char *xmlTo)
+{
+	XMLParser xml_sample_parser;
+	char *str, *xml_sample_att;
+	char *elt_name;
+	GF_Err e;
+	GF_List *elt_stack;
+	u32 prev_end_pos, prev_start_pos, sample_start_pos, sample_end_pos;
+	Bool isFromAStart, isToAStart, foundFrom, foundTo;
+	char *tmp;
+	FILE *f;		
+
+	foundFrom = 0;
+	foundTo = 0;
+	sample_start_pos = 0;
+	sample_end_pos = 0;
+	prev_end_pos = 0;
+	prev_start_pos = 0;
+
+	if (!xml_file || !xmlFrom || !xmlTo) return GF_BAD_PARAM;
+
+	f = gf_f64_open(xml_file, "rb");
+	if (!f) {
+		e = gf_import_message(import, GF_BAD_PARAM, "NHML import failure: file %s not found", xml_file);
+		goto exit;
+	}
+
+	if (strstr(xmlFrom, ".start")) isFromAStart = 1;
+	else isFromAStart = 0;
+	tmp = strchr(xmlFrom, '.');
+	*tmp = 0;
+
+	if (strstr(xmlTo, ".start")) isToAStart = 1;
+	else isToAStart = 0;
+	tmp = strchr(xmlTo, '.');
+	*tmp = 0;
+
+	elt_stack = gf_list_new();
+
+	e = xml_init_parser(&xml_sample_parser, xml_file);
+	if (e) goto exit;
+
+	if (strcmp(xmlFrom, "doc")) {
+		while (1) {
+			str = xml_get_element(&xml_sample_parser);
+			if (str == NULL) {
+				char *last_name = gf_list_last(elt_stack);
+				if (xml_element_done(&xml_sample_parser, last_name)) {
+					gf_list_rem_last(elt_stack);
+					if (!strcmp(last_name, "svg")) e = GF_IO_ERR;
+					free(last_name);
+					if (e) goto exit;
+					prev_end_pos = xml_sample_parser.file_pos;
+				}
+			} else {
+				prev_start_pos = prev_end_pos;
+				elt_name = strdup(str);
+				gf_list_add(elt_stack, elt_name);
+				while (xml_has_attributes(&xml_sample_parser)) {
+					xml_sample_att = xml_get_attribute(&xml_sample_parser);
+					if (xml_sample_att == NULL) break;
+					if (!strcmp(xml_sample_att, "id")) {						
+						if (!strcmp(xml_sample_parser.value_buffer, xmlFrom)) {							
+							xml_skip_attributes(&xml_sample_parser);
+							foundFrom = 1;
+							break;
+						}
+					}
+				}
+				if (foundFrom) {
+					if(isFromAStart) {
+						sample_start_pos = prev_start_pos;
+					} else {
+						while (!xml_element_done(&xml_sample_parser, elt_name)) {
+							char *tmp = xml_get_element(&xml_sample_parser);
+							xml_skip_element(&xml_sample_parser, tmp);
+						}
+						sample_start_pos = xml_sample_parser.file_pos;
+					}
+					break;
+				}
+			}				
+		}
+	} else {
+		sample_start_pos = 0; // beginning of the document
+	}
+	if (strcmp(xmlTo, "doc")) {
+		if (!isToAStart) {
+			if (!strcmp(xml_sample_parser.value_buffer, xmlTo)) {
+				foundTo = 1;
+				while (!xml_element_done(&xml_sample_parser, elt_name)) {
+					char *tmp = xml_get_element(&xml_sample_parser);
+					xml_skip_element(&xml_sample_parser, tmp);
+				}
+				sample_end_pos = xml_sample_parser.file_pos;
+			}
+		}
+		while (!foundTo) {
+			str = xml_get_element(&xml_sample_parser);
+			if (str == NULL) {
+				char *last_name = gf_list_last(elt_stack);
+				if (xml_element_done(&xml_sample_parser, last_name)) {
+					gf_list_rem_last(elt_stack);
+					if (!strcmp(last_name, "svg")) e = GF_IO_ERR;
+					free(last_name);
+					if (e) goto exit;
+					prev_end_pos = xml_sample_parser.file_pos;
+				}
+			} else {
+				prev_start_pos = prev_end_pos;
+				elt_name = strdup(str);
+				gf_list_add(elt_stack, elt_name);
+				while (xml_has_attributes(&xml_sample_parser)) {
+					xml_sample_att = xml_get_attribute(&xml_sample_parser);
+					if (xml_sample_att == NULL) break;
+					if (!strcmp(xml_sample_att, "id")) {						
+						if (!strcmp(xml_sample_parser.value_buffer, xmlTo)) {
+							xml_skip_attributes(&xml_sample_parser);
+							foundTo = 1;
+						}
+					}
+					if (foundTo) {
+						if (isToAStart) {
+							sample_end_pos = prev_start_pos;
+						} else {
+							while (!xml_element_done(&xml_sample_parser, elt_name)) {
+								char *tmp = xml_get_element(&xml_sample_parser);
+								xml_skip_element(&xml_sample_parser, tmp);
+							}
+							sample_end_pos = xml_sample_parser.file_pos;
+						}
+						break;
+					}
+				}
+			}				
+		}
+	} else {
+		sample_end_pos = xml_sample_parser.file_size;
+	}
+exit:
+	if ((sample_start_pos || sample_end_pos) && (sample_start_pos < sample_end_pos)) {
+		if ((sample_end_pos - sample_start_pos)>samp->dataLength) {
+			samp->dataLength = sample_end_pos - sample_start_pos;
+			samp->data = realloc(samp->data, sizeof(char) * samp->dataLength);
+		} else {
+			samp->dataLength = sample_end_pos - sample_start_pos;
+		}
+		gf_f64_seek(f, sample_start_pos, SEEK_SET);
+		fread(samp->data, samp->dataLength, 1, f); 
+		if (samp->IsRAP==2) {
+			e = gf_isom_add_sample_shadow(import->dest, track, samp);
+		} else {
+			e = gf_isom_add_sample(import->dest, track, di, samp);
+		}
+	} else {
+		e = GF_IO_ERR;
+	}
+	if (f) fclose(f);
+	gf_list_del(elt_stack);
+	xml_reset_parser(&xml_sample_parser);
+	return e;
+}
+
 /*FIXME - need LARGE FILE support in NHNT - add a new version*/
 GF_Err gf_import_nhml(GF_MediaImporter *import)
 {
@@ -1977,7 +2141,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 	s64 media_size, media_done, offset;
 	FILE *nhml, *mdia, *info;
 	char *str;
-	char *ext, szName[1000], szMedia[1000], szMediaTemp[1000], szInfo[1000], *specInfo;
+	char *ext, szName[1000], szMedia[1000], szMediaTemp[1000], szInfo[1000], szXmlFrom[1000], szXmlTo[1000], *specInfo;
 	GF_GenericSampleDescription sdesc;
 	
 
@@ -2182,6 +2346,9 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 			continue;
 		}
 		strcpy(szMediaTemp, "");
+		strcpy(szXmlFrom, "");
+		strcpy(szXmlTo, "");
+
 		/*by default handle all samples as contigous*/
 		offset = 0;
 		while (xml_has_attributes(&parser)) {
@@ -2200,6 +2367,8 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 			else if (!strcmp(str, "mediaOffset")) offset = (s64) atof(parser.value_buffer) ;
 			else if (!strcmp(str, "dataLength")) samp->dataLength = atoi(parser.value_buffer);
 			else if (!strcmp(str, "mediaFile")) strcpy(szMediaTemp, parser.value_buffer);
+			else if (!strcmp(str, "xmlFrom")) strcpy(szXmlFrom, parser.value_buffer);
+			else if (!strcmp(str, "xmlTo")) strcpy(szXmlTo, parser.value_buffer);
 		}
 		xml_element_done(&parser, "NHNTSample");
 
@@ -2209,7 +2378,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 		if (import->flags & GF_IMPORT_USE_DATAREF) {
 			if (offset) offset = media_done;
 			e = gf_isom_add_sample_reference(import->dest, track, di, samp, offset);
-		} else {
+		} else if (!strlen(szXmlFrom) || !strlen(szXmlTo)) {
 			Bool close = 0;
 			FILE *f = mdia;
 			if (strlen(szMediaTemp)) {
@@ -2235,6 +2404,12 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 				e = gf_isom_add_sample(import->dest, track, di, samp);
 			}
 			if (close) fclose(f);
+		} else {
+			char *xml_file;
+			if (strlen(szMediaTemp)) xml_file = szMediaTemp;
+			else xml_file = szMedia;
+			samp->dataLength = max_size;
+			gf_import_sample_from_xml(import, track, di, samp, xml_file, szXmlFrom, szXmlTo);
 		}
 		if (e) goto exit;
 		samp->IsRAP = 0;

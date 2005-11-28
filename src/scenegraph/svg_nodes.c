@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Thu Nov 24 12:35:59 2005
+	DO NOT MOFIFY - File generated on GMT Mon Nov 28 14:45:43 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -2148,86 +2148,16 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 59:
-			info->name = "id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGcircleElement *)node)->id;
-			return GF_OK;
-		case 60:
-			info->name = "class";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = & ((SVGcircleElement *)node)->_class;
-			return GF_OK;
-		case 61:
-			info->name = "xml:id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGcircleElement *)node)->xml_id;
-			return GF_OK;
-		case 62:
-			info->name = "xml:base";
-			info->fieldType = SVG_IRI_datatype;
-			info->far_ptr = & ((SVGcircleElement *)node)->xml_base;
-			return GF_OK;
-		case 63:
-			info->name = "xml:lang";
-			info->fieldType = SVG_LanguageID_datatype;
-			info->far_ptr = & ((SVGcircleElement *)node)->xml_lang;
-			return GF_OK;
-		case 64:
-			info->name = "display";
-			info->fieldType = SVG_Display_datatype;
-			info->far_ptr = & ((SVGcircleElement *)node)->display;
-			return GF_OK;
-		case 65:
-			info->name = "visibility";
-			info->fieldType = SVG_Visibility_datatype;
-			info->far_ptr = & ((SVGcircleElement *)node)->visibility;
-			return GF_OK;
-		case 66:
-			info->name = "image-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGcircleElement *)node)->image_rendering;
-			return GF_OK;
-		case 67:
-			info->name = "pointer-events";
-			info->fieldType = SVG_PointerEvents_datatype;
-			info->far_ptr = & ((SVGcircleElement *)node)->pointer_events;
-			return GF_OK;
-		case 68:
-			info->name = "shape-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGcircleElement *)node)->shape_rendering;
-			return GF_OK;
-		case 69:
-			info->name = "text-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGcircleElement *)node)->text_rendering;
-			return GF_OK;
-		case 70:
-			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
-			info->far_ptr = & ((SVGcircleElement *)node)->audio_level;
-			return GF_OK;
-		case 71:
-			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
-			info->far_ptr = & ((SVGcircleElement *)node)->viewport_fill;
-			return GF_OK;
-		case 72:
-			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
-			info->far_ptr = & ((SVGcircleElement *)node)->viewport_fill_opacity;
-			return GF_OK;
-		case 73:
 			info->name = "cx";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->cx;
 			return GF_OK;
-		case 74:
+		case 60:
 			info->name = "cy";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->cy;
 			return GF_OK;
-		case 75:
+		case 61:
 			info->name = "r";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->r;
@@ -2974,91 +2904,21 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 59:
-			info->name = "id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGellipseElement *)node)->id;
-			return GF_OK;
-		case 60:
-			info->name = "class";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = & ((SVGellipseElement *)node)->_class;
-			return GF_OK;
-		case 61:
-			info->name = "xml:id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGellipseElement *)node)->xml_id;
-			return GF_OK;
-		case 62:
-			info->name = "xml:base";
-			info->fieldType = SVG_IRI_datatype;
-			info->far_ptr = & ((SVGellipseElement *)node)->xml_base;
-			return GF_OK;
-		case 63:
-			info->name = "xml:lang";
-			info->fieldType = SVG_LanguageID_datatype;
-			info->far_ptr = & ((SVGellipseElement *)node)->xml_lang;
-			return GF_OK;
-		case 64:
-			info->name = "display";
-			info->fieldType = SVG_Display_datatype;
-			info->far_ptr = & ((SVGellipseElement *)node)->display;
-			return GF_OK;
-		case 65:
-			info->name = "visibility";
-			info->fieldType = SVG_Visibility_datatype;
-			info->far_ptr = & ((SVGellipseElement *)node)->visibility;
-			return GF_OK;
-		case 66:
-			info->name = "image-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGellipseElement *)node)->image_rendering;
-			return GF_OK;
-		case 67:
-			info->name = "pointer-events";
-			info->fieldType = SVG_PointerEvents_datatype;
-			info->far_ptr = & ((SVGellipseElement *)node)->pointer_events;
-			return GF_OK;
-		case 68:
-			info->name = "shape-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGellipseElement *)node)->shape_rendering;
-			return GF_OK;
-		case 69:
-			info->name = "text-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGellipseElement *)node)->text_rendering;
-			return GF_OK;
-		case 70:
-			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
-			info->far_ptr = & ((SVGellipseElement *)node)->audio_level;
-			return GF_OK;
-		case 71:
-			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
-			info->far_ptr = & ((SVGellipseElement *)node)->viewport_fill;
-			return GF_OK;
-		case 72:
-			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
-			info->far_ptr = & ((SVGellipseElement *)node)->viewport_fill_opacity;
-			return GF_OK;
-		case 73:
 			info->name = "rx";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->rx;
 			return GF_OK;
-		case 74:
+		case 60:
 			info->name = "ry";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->ry;
 			return GF_OK;
-		case 75:
+		case 61:
 			info->name = "cx";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->cx;
 			return GF_OK;
-		case 76:
+		case 62:
 			info->name = "cy";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->cy;
@@ -5164,91 +5024,21 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 59:
-			info->name = "id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGlineElement *)node)->id;
-			return GF_OK;
-		case 60:
-			info->name = "class";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = & ((SVGlineElement *)node)->_class;
-			return GF_OK;
-		case 61:
-			info->name = "xml:id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGlineElement *)node)->xml_id;
-			return GF_OK;
-		case 62:
-			info->name = "xml:base";
-			info->fieldType = SVG_IRI_datatype;
-			info->far_ptr = & ((SVGlineElement *)node)->xml_base;
-			return GF_OK;
-		case 63:
-			info->name = "xml:lang";
-			info->fieldType = SVG_LanguageID_datatype;
-			info->far_ptr = & ((SVGlineElement *)node)->xml_lang;
-			return GF_OK;
-		case 64:
-			info->name = "display";
-			info->fieldType = SVG_Display_datatype;
-			info->far_ptr = & ((SVGlineElement *)node)->display;
-			return GF_OK;
-		case 65:
-			info->name = "visibility";
-			info->fieldType = SVG_Visibility_datatype;
-			info->far_ptr = & ((SVGlineElement *)node)->visibility;
-			return GF_OK;
-		case 66:
-			info->name = "image-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGlineElement *)node)->image_rendering;
-			return GF_OK;
-		case 67:
-			info->name = "pointer-events";
-			info->fieldType = SVG_PointerEvents_datatype;
-			info->far_ptr = & ((SVGlineElement *)node)->pointer_events;
-			return GF_OK;
-		case 68:
-			info->name = "shape-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGlineElement *)node)->shape_rendering;
-			return GF_OK;
-		case 69:
-			info->name = "text-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGlineElement *)node)->text_rendering;
-			return GF_OK;
-		case 70:
-			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
-			info->far_ptr = & ((SVGlineElement *)node)->audio_level;
-			return GF_OK;
-		case 71:
-			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
-			info->far_ptr = & ((SVGlineElement *)node)->viewport_fill;
-			return GF_OK;
-		case 72:
-			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
-			info->far_ptr = & ((SVGlineElement *)node)->viewport_fill_opacity;
-			return GF_OK;
-		case 73:
 			info->name = "x1";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->x1;
 			return GF_OK;
-		case 74:
+		case 60:
 			info->name = "y1";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->y1;
 			return GF_OK;
-		case 75:
+		case 61:
 			info->name = "x2";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->x2;
 			return GF_OK;
-		case 76:
+		case 62:
 			info->name = "y2";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->y2;
@@ -5491,96 +5281,26 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
 		case 41:
-			info->name = "display";
-			info->fieldType = SVG_Display_datatype;
-			info->far_ptr = & ((SVGlinearGradientElement *)node)->display;
-			return GF_OK;
-		case 42:
-			info->name = "visibility";
-			info->fieldType = SVG_Visibility_datatype;
-			info->far_ptr = & ((SVGlinearGradientElement *)node)->visibility;
-			return GF_OK;
-		case 43:
-			info->name = "image-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGlinearGradientElement *)node)->image_rendering;
-			return GF_OK;
-		case 44:
-			info->name = "pointer-events";
-			info->fieldType = SVG_PointerEvents_datatype;
-			info->far_ptr = & ((SVGlinearGradientElement *)node)->pointer_events;
-			return GF_OK;
-		case 45:
-			info->name = "shape-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGlinearGradientElement *)node)->shape_rendering;
-			return GF_OK;
-		case 46:
-			info->name = "text-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGlinearGradientElement *)node)->text_rendering;
-			return GF_OK;
-		case 47:
-			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
-			info->far_ptr = & ((SVGlinearGradientElement *)node)->audio_level;
-			return GF_OK;
-		case 48:
-			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
-			info->far_ptr = & ((SVGlinearGradientElement *)node)->viewport_fill;
-			return GF_OK;
-		case 49:
-			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
-			info->far_ptr = & ((SVGlinearGradientElement *)node)->viewport_fill_opacity;
-			return GF_OK;
-		case 50:
-			info->name = "id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGlinearGradientElement *)node)->id;
-			return GF_OK;
-		case 51:
-			info->name = "class";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = & ((SVGlinearGradientElement *)node)->_class;
-			return GF_OK;
-		case 52:
-			info->name = "xml:id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGlinearGradientElement *)node)->xml_id;
-			return GF_OK;
-		case 53:
-			info->name = "xml:base";
-			info->fieldType = SVG_IRI_datatype;
-			info->far_ptr = & ((SVGlinearGradientElement *)node)->xml_base;
-			return GF_OK;
-		case 54:
-			info->name = "xml:lang";
-			info->fieldType = SVG_LanguageID_datatype;
-			info->far_ptr = & ((SVGlinearGradientElement *)node)->xml_lang;
-			return GF_OK;
-		case 55:
 			info->name = "gradientUnits";
 			info->fieldType = SVG_GradientUnit_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->gradientUnits;
 			return GF_OK;
-		case 56:
+		case 42:
 			info->name = "x1";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->x1;
 			return GF_OK;
-		case 57:
+		case 43:
 			info->name = "y1";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->y1;
 			return GF_OK;
-		case 58:
+		case 44:
 			info->name = "x2";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->x2;
 			return GF_OK;
-		case 59:
+		case 45:
 			info->name = "y2";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->y2;
@@ -6272,76 +5992,6 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = & ((SVGpathElement *)node)->pathLength;
 			return GF_OK;
 		case 60:
-			info->name = "id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGpathElement *)node)->id;
-			return GF_OK;
-		case 61:
-			info->name = "class";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = & ((SVGpathElement *)node)->_class;
-			return GF_OK;
-		case 62:
-			info->name = "xml:id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGpathElement *)node)->xml_id;
-			return GF_OK;
-		case 63:
-			info->name = "xml:base";
-			info->fieldType = SVG_IRI_datatype;
-			info->far_ptr = & ((SVGpathElement *)node)->xml_base;
-			return GF_OK;
-		case 64:
-			info->name = "xml:lang";
-			info->fieldType = SVG_LanguageID_datatype;
-			info->far_ptr = & ((SVGpathElement *)node)->xml_lang;
-			return GF_OK;
-		case 65:
-			info->name = "display";
-			info->fieldType = SVG_Display_datatype;
-			info->far_ptr = & ((SVGpathElement *)node)->display;
-			return GF_OK;
-		case 66:
-			info->name = "visibility";
-			info->fieldType = SVG_Visibility_datatype;
-			info->far_ptr = & ((SVGpathElement *)node)->visibility;
-			return GF_OK;
-		case 67:
-			info->name = "image-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGpathElement *)node)->image_rendering;
-			return GF_OK;
-		case 68:
-			info->name = "pointer-events";
-			info->fieldType = SVG_PointerEvents_datatype;
-			info->far_ptr = & ((SVGpathElement *)node)->pointer_events;
-			return GF_OK;
-		case 69:
-			info->name = "shape-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGpathElement *)node)->shape_rendering;
-			return GF_OK;
-		case 70:
-			info->name = "text-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGpathElement *)node)->text_rendering;
-			return GF_OK;
-		case 71:
-			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
-			info->far_ptr = & ((SVGpathElement *)node)->audio_level;
-			return GF_OK;
-		case 72:
-			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
-			info->far_ptr = & ((SVGpathElement *)node)->viewport_fill;
-			return GF_OK;
-		case 73:
-			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
-			info->far_ptr = & ((SVGpathElement *)node)->viewport_fill_opacity;
-			return GF_OK;
-		case 74:
 			info->name = "d";
 			info->fieldType = SVG_PathData_datatype;
 			info->far_ptr = & ((SVGpathElement *)node)->d;
@@ -6683,76 +6333,6 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->fieldType = SVG_Points_datatype;
 			info->far_ptr = & ((SVGpolygonElement *)node)->points;
 			return GF_OK;
-		case 60:
-			info->name = "id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGpolygonElement *)node)->id;
-			return GF_OK;
-		case 61:
-			info->name = "class";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = & ((SVGpolygonElement *)node)->_class;
-			return GF_OK;
-		case 62:
-			info->name = "xml:id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGpolygonElement *)node)->xml_id;
-			return GF_OK;
-		case 63:
-			info->name = "xml:base";
-			info->fieldType = SVG_IRI_datatype;
-			info->far_ptr = & ((SVGpolygonElement *)node)->xml_base;
-			return GF_OK;
-		case 64:
-			info->name = "xml:lang";
-			info->fieldType = SVG_LanguageID_datatype;
-			info->far_ptr = & ((SVGpolygonElement *)node)->xml_lang;
-			return GF_OK;
-		case 65:
-			info->name = "display";
-			info->fieldType = SVG_Display_datatype;
-			info->far_ptr = & ((SVGpolygonElement *)node)->display;
-			return GF_OK;
-		case 66:
-			info->name = "visibility";
-			info->fieldType = SVG_Visibility_datatype;
-			info->far_ptr = & ((SVGpolygonElement *)node)->visibility;
-			return GF_OK;
-		case 67:
-			info->name = "image-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGpolygonElement *)node)->image_rendering;
-			return GF_OK;
-		case 68:
-			info->name = "pointer-events";
-			info->fieldType = SVG_PointerEvents_datatype;
-			info->far_ptr = & ((SVGpolygonElement *)node)->pointer_events;
-			return GF_OK;
-		case 69:
-			info->name = "shape-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGpolygonElement *)node)->shape_rendering;
-			return GF_OK;
-		case 70:
-			info->name = "text-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGpolygonElement *)node)->text_rendering;
-			return GF_OK;
-		case 71:
-			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
-			info->far_ptr = & ((SVGpolygonElement *)node)->audio_level;
-			return GF_OK;
-		case 72:
-			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
-			info->far_ptr = & ((SVGpolygonElement *)node)->viewport_fill;
-			return GF_OK;
-		case 73:
-			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
-			info->far_ptr = & ((SVGpolygonElement *)node)->viewport_fill_opacity;
-			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
 }
@@ -7089,76 +6669,6 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->name = "points";
 			info->fieldType = SVG_Points_datatype;
 			info->far_ptr = & ((SVGpolylineElement *)node)->points;
-			return GF_OK;
-		case 60:
-			info->name = "id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGpolylineElement *)node)->id;
-			return GF_OK;
-		case 61:
-			info->name = "class";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = & ((SVGpolylineElement *)node)->_class;
-			return GF_OK;
-		case 62:
-			info->name = "xml:id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGpolylineElement *)node)->xml_id;
-			return GF_OK;
-		case 63:
-			info->name = "xml:base";
-			info->fieldType = SVG_IRI_datatype;
-			info->far_ptr = & ((SVGpolylineElement *)node)->xml_base;
-			return GF_OK;
-		case 64:
-			info->name = "xml:lang";
-			info->fieldType = SVG_LanguageID_datatype;
-			info->far_ptr = & ((SVGpolylineElement *)node)->xml_lang;
-			return GF_OK;
-		case 65:
-			info->name = "display";
-			info->fieldType = SVG_Display_datatype;
-			info->far_ptr = & ((SVGpolylineElement *)node)->display;
-			return GF_OK;
-		case 66:
-			info->name = "visibility";
-			info->fieldType = SVG_Visibility_datatype;
-			info->far_ptr = & ((SVGpolylineElement *)node)->visibility;
-			return GF_OK;
-		case 67:
-			info->name = "image-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGpolylineElement *)node)->image_rendering;
-			return GF_OK;
-		case 68:
-			info->name = "pointer-events";
-			info->fieldType = SVG_PointerEvents_datatype;
-			info->far_ptr = & ((SVGpolylineElement *)node)->pointer_events;
-			return GF_OK;
-		case 69:
-			info->name = "shape-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGpolylineElement *)node)->shape_rendering;
-			return GF_OK;
-		case 70:
-			info->name = "text-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGpolylineElement *)node)->text_rendering;
-			return GF_OK;
-		case 71:
-			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
-			info->far_ptr = & ((SVGpolylineElement *)node)->audio_level;
-			return GF_OK;
-		case 72:
-			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
-			info->far_ptr = & ((SVGpolylineElement *)node)->viewport_fill;
-			return GF_OK;
-		case 73:
-			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
-			info->far_ptr = & ((SVGpolylineElement *)node)->viewport_fill_opacity;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
@@ -7525,91 +7035,21 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
 		case 41:
-			info->name = "display";
-			info->fieldType = SVG_Display_datatype;
-			info->far_ptr = & ((SVGradialGradientElement *)node)->display;
-			return GF_OK;
-		case 42:
-			info->name = "visibility";
-			info->fieldType = SVG_Visibility_datatype;
-			info->far_ptr = & ((SVGradialGradientElement *)node)->visibility;
-			return GF_OK;
-		case 43:
-			info->name = "image-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGradialGradientElement *)node)->image_rendering;
-			return GF_OK;
-		case 44:
-			info->name = "pointer-events";
-			info->fieldType = SVG_PointerEvents_datatype;
-			info->far_ptr = & ((SVGradialGradientElement *)node)->pointer_events;
-			return GF_OK;
-		case 45:
-			info->name = "shape-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGradialGradientElement *)node)->shape_rendering;
-			return GF_OK;
-		case 46:
-			info->name = "text-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGradialGradientElement *)node)->text_rendering;
-			return GF_OK;
-		case 47:
-			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
-			info->far_ptr = & ((SVGradialGradientElement *)node)->audio_level;
-			return GF_OK;
-		case 48:
-			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
-			info->far_ptr = & ((SVGradialGradientElement *)node)->viewport_fill;
-			return GF_OK;
-		case 49:
-			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
-			info->far_ptr = & ((SVGradialGradientElement *)node)->viewport_fill_opacity;
-			return GF_OK;
-		case 50:
-			info->name = "id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGradialGradientElement *)node)->id;
-			return GF_OK;
-		case 51:
-			info->name = "class";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = & ((SVGradialGradientElement *)node)->_class;
-			return GF_OK;
-		case 52:
-			info->name = "xml:id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGradialGradientElement *)node)->xml_id;
-			return GF_OK;
-		case 53:
-			info->name = "xml:base";
-			info->fieldType = SVG_IRI_datatype;
-			info->far_ptr = & ((SVGradialGradientElement *)node)->xml_base;
-			return GF_OK;
-		case 54:
-			info->name = "xml:lang";
-			info->fieldType = SVG_LanguageID_datatype;
-			info->far_ptr = & ((SVGradialGradientElement *)node)->xml_lang;
-			return GF_OK;
-		case 55:
 			info->name = "gradientUnits";
 			info->fieldType = SVG_GradientUnit_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->gradientUnits;
 			return GF_OK;
-		case 56:
+		case 42:
 			info->name = "cx";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->cx;
 			return GF_OK;
-		case 57:
+		case 43:
 			info->name = "cy";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->cy;
 			return GF_OK;
-		case 58:
+		case 44:
 			info->name = "r";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->r;
@@ -7945,101 +7385,31 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 59:
-			info->name = "id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGrectElement *)node)->id;
-			return GF_OK;
-		case 60:
-			info->name = "class";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = & ((SVGrectElement *)node)->_class;
-			return GF_OK;
-		case 61:
-			info->name = "xml:id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = & ((SVGrectElement *)node)->xml_id;
-			return GF_OK;
-		case 62:
-			info->name = "xml:base";
-			info->fieldType = SVG_IRI_datatype;
-			info->far_ptr = & ((SVGrectElement *)node)->xml_base;
-			return GF_OK;
-		case 63:
-			info->name = "xml:lang";
-			info->fieldType = SVG_LanguageID_datatype;
-			info->far_ptr = & ((SVGrectElement *)node)->xml_lang;
-			return GF_OK;
-		case 64:
-			info->name = "display";
-			info->fieldType = SVG_Display_datatype;
-			info->far_ptr = & ((SVGrectElement *)node)->display;
-			return GF_OK;
-		case 65:
-			info->name = "visibility";
-			info->fieldType = SVG_Visibility_datatype;
-			info->far_ptr = & ((SVGrectElement *)node)->visibility;
-			return GF_OK;
-		case 66:
-			info->name = "image-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGrectElement *)node)->image_rendering;
-			return GF_OK;
-		case 67:
-			info->name = "pointer-events";
-			info->fieldType = SVG_PointerEvents_datatype;
-			info->far_ptr = & ((SVGrectElement *)node)->pointer_events;
-			return GF_OK;
-		case 68:
-			info->name = "shape-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGrectElement *)node)->shape_rendering;
-			return GF_OK;
-		case 69:
-			info->name = "text-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = & ((SVGrectElement *)node)->text_rendering;
-			return GF_OK;
-		case 70:
-			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
-			info->far_ptr = & ((SVGrectElement *)node)->audio_level;
-			return GF_OK;
-		case 71:
-			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
-			info->far_ptr = & ((SVGrectElement *)node)->viewport_fill;
-			return GF_OK;
-		case 72:
-			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
-			info->far_ptr = & ((SVGrectElement *)node)->viewport_fill_opacity;
-			return GF_OK;
-		case 73:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->x;
 			return GF_OK;
-		case 74:
+		case 60:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->y;
 			return GF_OK;
-		case 75:
+		case 61:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->width;
 			return GF_OK;
-		case 76:
+		case 62:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->height;
 			return GF_OK;
-		case 77:
+		case 63:
 			info->name = "rx";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->rx;
 			return GF_OK;
-		case 78:
+		case 64:
 			info->name = "ry";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->ry;
@@ -11462,11 +10832,11 @@ u32 gf_svg_get_attribute_count(GF_Node *node)
 		case TAG_SVG_animateTransform: return 35;
 		case TAG_SVG_animation: return 60;
 		case TAG_SVG_audio: return 41;
-		case TAG_SVG_circle: return 76;
+		case TAG_SVG_circle: return 62;
 		case TAG_SVG_defs: return 41;
 		case TAG_SVG_desc: return 7;
 		case TAG_SVG_discard: return 15;
-		case TAG_SVG_ellipse: return 77;
+		case TAG_SVG_ellipse: return 63;
 		case TAG_SVG_font: return 9;
 		case TAG_SVG_font_face: return 35;
 		case TAG_SVG_font_face_name: return 8;
@@ -11478,18 +10848,18 @@ u32 gf_svg_get_attribute_count(GF_Node *node)
 		case TAG_SVG_handler: return 8;
 		case TAG_SVG_hkern: return 12;
 		case TAG_SVG_image: return 47;
-		case TAG_SVG_line: return 77;
-		case TAG_SVG_linearGradient: return 60;
+		case TAG_SVG_line: return 63;
+		case TAG_SVG_linearGradient: return 46;
 		case TAG_SVG_listener: return 14;
 		case TAG_SVG_metadata: return 7;
 		case TAG_SVG_missing_glyph: return 9;
 		case TAG_SVG_mpath: return 14;
-		case TAG_SVG_path: return 75;
-		case TAG_SVG_polygon: return 74;
-		case TAG_SVG_polyline: return 74;
+		case TAG_SVG_path: return 61;
+		case TAG_SVG_polygon: return 60;
+		case TAG_SVG_polyline: return 60;
 		case TAG_SVG_prefetch: return 19;
-		case TAG_SVG_radialGradient: return 59;
-		case TAG_SVG_rect: return 79;
+		case TAG_SVG_radialGradient: return 45;
+		case TAG_SVG_rect: return 65;
 		case TAG_SVG_script: return 7;
 		case TAG_SVG_set: return 26;
 		case TAG_SVG_solidColor: return 41;
@@ -11672,4 +11042,5 @@ const char *gf_svg_get_element_name(u32 tag)
 }
 
 #endif /*GPAC_DISABLE_SVG*/
+
 

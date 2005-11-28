@@ -420,31 +420,34 @@ static Bool setGenericAttributesFlags(char *name, SVGElement *e)
 	return ret;
 }
 
-static void flattenAttributeGroup(SVGAttrGrp attgrp, SVGElement *e, GF_List *atts,  Bool all);
+static void flattenAttributeGroup(SVGAttrGrp attgrp, SVGElement *e, Bool all);
 
-static void flattenAttributeGroups(GF_List *attrgrps, SVGElement *e, GF_List *atts, Bool all) 
+static void flattenAttributeGroups(GF_List *attrgrps, SVGElement *e, Bool all) 
 {
 	u32 i;
 	for (i = 0; i < gf_list_count(attrgrps); i ++) {
 		SVGAttrGrp *ag = gf_list_get(attrgrps, i);
-		flattenAttributeGroup(*ag, e, atts, all);
+		flattenAttributeGroup(*ag, e, all);
 	} 
 }
 
-static void flattenAttributeGroup(SVGAttrGrp attgrp, SVGElement *e, GF_List *atts, Bool all) 
+static void flattenAttributeGroup(SVGAttrGrp attgrp, SVGElement *e, Bool all) 
 {
 	u32 i;
 
 	if (isGenericAttributesGroup(attgrp.name) && !all) {
 		setGenericAttributesFlags(attgrp.name, e);
-		flattenAttributeGroups(attgrp.attrgrps, e, atts, 1);
+		flattenAttributeGroups(attgrp.attrgrps, e, 1);
 		for (i = 0; i < gf_list_count(attgrp.attrs); i++) {
 			gf_list_add(e->generic_attributes, gf_list_get(attgrp.attrs, i));
 		}
 	} else {
-		flattenAttributeGroups(attgrp.attrgrps, e, atts, all);
+		flattenAttributeGroups(attgrp.attrgrps, e, all);
 		for (i = 0; i < gf_list_count(attgrp.attrs); i++) {
-			gf_list_add(atts, gf_list_get(attgrp.attrs, i));
+			if (all) 
+				gf_list_add(e->generic_attributes, gf_list_get(attgrp.attrs, i));
+			else 
+				gf_list_add(e->attributes, gf_list_get(attgrp.attrs, i));
 		}
 	}
 }
@@ -878,9 +881,9 @@ GF_List *getElements(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 						if (!strcmp(a->name, name)) {
 							if (isGenericAttributesGroup(a->name)) {
 								setGenericAttributesFlags(a->name, e);
-								flattenAttributeGroup(*a, e, e->generic_attributes, 1);
+								flattenAttributeGroup(*a, e, 1);
 							} else {
-								flattenAttributeGroup(*a, e, e->attributes, 0);
+								flattenAttributeGroup(*a, e, 0);
 							}
 							break;
 						}
@@ -906,7 +909,7 @@ GF_List *getElements(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 	return elements;
 }
 
-#define LOCAL_SVG_NODES
+#undef LOCAL_SVG_NODES
 
 /*type: 0: header, 1: source*/
 static FILE *BeginFile(u32 type)

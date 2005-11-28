@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Thu Nov 24 12:35:59 2005
+	DO NOT MOFIFY - File generated on GMT Mon Nov 28 14:45:43 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -156,20 +156,6 @@ typedef struct _tagSVGcircleElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
-	SVG_ID id;
-	SVG_String _class;
-	SVG_ID xml_id;
-	SVG_IRI xml_base;
-	SVG_LanguageID xml_lang;
-	SVG_Display display;
-	SVG_Visibility visibility;
-	SVG_RenderingHint image_rendering;
-	SVG_PointerEvents pointer_events;
-	SVG_RenderingHint shape_rendering;
-	SVG_RenderingHint text_rendering;
-	SVG_AudioLevel audio_level;
-	SVG_Paint viewport_fill;
-	SVG_Opacity viewport_fill_opacity;
 	SVG_Coordinate cx;
 	SVG_Coordinate cy;
 	SVG_Length r;
@@ -198,20 +184,6 @@ typedef struct _tagSVGellipseElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
-	SVG_ID id;
-	SVG_String _class;
-	SVG_ID xml_id;
-	SVG_IRI xml_base;
-	SVG_LanguageID xml_lang;
-	SVG_Display display;
-	SVG_Visibility visibility;
-	SVG_RenderingHint image_rendering;
-	SVG_PointerEvents pointer_events;
-	SVG_RenderingHint shape_rendering;
-	SVG_RenderingHint text_rendering;
-	SVG_AudioLevel audio_level;
-	SVG_Paint viewport_fill;
-	SVG_Opacity viewport_fill_opacity;
 	SVG_Length rx;
 	SVG_Length ry;
 	SVG_Coordinate cx;
@@ -345,20 +317,6 @@ typedef struct _tagSVGlineElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
-	SVG_ID id;
-	SVG_String _class;
-	SVG_ID xml_id;
-	SVG_IRI xml_base;
-	SVG_LanguageID xml_lang;
-	SVG_Display display;
-	SVG_Visibility visibility;
-	SVG_RenderingHint image_rendering;
-	SVG_PointerEvents pointer_events;
-	SVG_RenderingHint shape_rendering;
-	SVG_RenderingHint text_rendering;
-	SVG_AudioLevel audio_level;
-	SVG_Paint viewport_fill;
-	SVG_Opacity viewport_fill_opacity;
 	SVG_Coordinate x1;
 	SVG_Coordinate y1;
 	SVG_Coordinate x2;
@@ -369,20 +327,6 @@ typedef struct _tagSVGlineElement
 typedef struct _tagSVGlinearGradientElement
 {
 	BASE_SVG_ELEMENT
-	SVG_Display display;
-	SVG_Visibility visibility;
-	SVG_RenderingHint image_rendering;
-	SVG_PointerEvents pointer_events;
-	SVG_RenderingHint shape_rendering;
-	SVG_RenderingHint text_rendering;
-	SVG_AudioLevel audio_level;
-	SVG_Paint viewport_fill;
-	SVG_Opacity viewport_fill_opacity;
-	SVG_ID id;
-	SVG_String _class;
-	SVG_ID xml_id;
-	SVG_IRI xml_base;
-	SVG_LanguageID xml_lang;
 	SVG_GradientUnit gradientUnits;
 	SVG_Coordinate x1;
 	SVG_Coordinate y1;
@@ -429,20 +373,6 @@ typedef struct _tagSVGpathElement
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
 	SVG_Number pathLength;
-	SVG_ID id;
-	SVG_String _class;
-	SVG_ID xml_id;
-	SVG_IRI xml_base;
-	SVG_LanguageID xml_lang;
-	SVG_Display display;
-	SVG_Visibility visibility;
-	SVG_RenderingHint image_rendering;
-	SVG_PointerEvents pointer_events;
-	SVG_RenderingHint shape_rendering;
-	SVG_RenderingHint text_rendering;
-	SVG_AudioLevel audio_level;
-	SVG_Paint viewport_fill;
-	SVG_Opacity viewport_fill_opacity;
 	SVG_PathData d;
 } SVGpathElement;
 
@@ -452,20 +382,6 @@ typedef struct _tagSVGpolygonElement
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
 	SVG_Points points;
-	SVG_ID id;
-	SVG_String _class;
-	SVG_ID xml_id;
-	SVG_IRI xml_base;
-	SVG_LanguageID xml_lang;
-	SVG_Display display;
-	SVG_Visibility visibility;
-	SVG_RenderingHint image_rendering;
-	SVG_PointerEvents pointer_events;
-	SVG_RenderingHint shape_rendering;
-	SVG_RenderingHint text_rendering;
-	SVG_AudioLevel audio_level;
-	SVG_Paint viewport_fill;
-	SVG_Opacity viewport_fill_opacity;
 } SVGpolygonElement;
 
 
@@ -474,20 +390,6 @@ typedef struct _tagSVGpolylineElement
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
 	SVG_Points points;
-	SVG_ID id;
-	SVG_String _class;
-	SVG_ID xml_id;
-	SVG_IRI xml_base;
-	SVG_LanguageID xml_lang;
-	SVG_Display display;
-	SVG_Visibility visibility;
-	SVG_RenderingHint image_rendering;
-	SVG_PointerEvents pointer_events;
-	SVG_RenderingHint shape_rendering;
-	SVG_RenderingHint text_rendering;
-	SVG_AudioLevel audio_level;
-	SVG_Paint viewport_fill;
-	SVG_Opacity viewport_fill_opacity;
 } SVGpolylineElement;
 
 
@@ -505,20 +407,6 @@ typedef struct _tagSVGprefetchElement
 typedef struct _tagSVGradialGradientElement
 {
 	BASE_SVG_ELEMENT
-	SVG_Display display;
-	SVG_Visibility visibility;
-	SVG_RenderingHint image_rendering;
-	SVG_PointerEvents pointer_events;
-	SVG_RenderingHint shape_rendering;
-	SVG_RenderingHint text_rendering;
-	SVG_AudioLevel audio_level;
-	SVG_Paint viewport_fill;
-	SVG_Opacity viewport_fill_opacity;
-	SVG_ID id;
-	SVG_String _class;
-	SVG_ID xml_id;
-	SVG_IRI xml_base;
-	SVG_LanguageID xml_lang;
 	SVG_GradientUnit gradientUnits;
 	SVG_Coordinate cx;
 	SVG_Coordinate cy;
@@ -530,20 +418,6 @@ typedef struct _tagSVGrectElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
-	SVG_ID id;
-	SVG_String _class;
-	SVG_ID xml_id;
-	SVG_IRI xml_base;
-	SVG_LanguageID xml_lang;
-	SVG_Display display;
-	SVG_Visibility visibility;
-	SVG_RenderingHint image_rendering;
-	SVG_PointerEvents pointer_events;
-	SVG_RenderingHint shape_rendering;
-	SVG_RenderingHint text_rendering;
-	SVG_AudioLevel audio_level;
-	SVG_Paint viewport_fill;
-	SVG_Opacity viewport_fill_opacity;
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Length width;
