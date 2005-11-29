@@ -39,8 +39,6 @@ typedef struct _svg_parser SVGParser;
 
 SVGParser *NewSVGParser();
 
-void SVGParser_Init(SVGParser *parser, char *filename, void *graph);
-
 /* DOM Reading from file */
 GF_Err SVGParser_ParseLASeR(SVGParser *parser);
 GF_Err SVGParser_ParseFullDoc(SVGParser *parser);

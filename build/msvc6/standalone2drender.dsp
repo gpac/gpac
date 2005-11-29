@@ -40,9 +40,9 @@ RSC=rc.exe
 # PROP Output_Dir "obj/sar2d_rel"
 # PROP Intermediate_Dir "obj/sar2d_rel"
 # PROP Target_Dir ""
-LINK32=link.exe -lib
 F90=df.exe
 MTL=midl.exe
+LINK32=link.exe -lib
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
 # ADD CPP /nologo /MD /W3 /GX /O2 /I "../../include" /I "../../extra_lib/include/freetype" /I "../../modules/m4_rend" /I "../../modules/render2d" /I "../../modules/ft_font" /I "../../modules/raw_out" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_STANDALONE_RENDER_2D" /D "DANAE" /FR /YX /FD /c
 # ADD BASE RSC /l 0x40c /d "NDEBUG"
@@ -66,9 +66,9 @@ LIB32=link.exe -lib
 # PROP Output_Dir "obj/sar2d_deb"
 # PROP Intermediate_Dir "obj/sar2d_deb"
 # PROP Target_Dir ""
-LINK32=link.exe -lib
 F90=df.exe
 MTL=midl.exe
+LINK32=link.exe -lib
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
 # ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "../../include" /I "../../extra_lib/include/freetype" /I "../../modules/m4_rend" /I "../../modules/render2d" /I "../../modules/ft_font" /I "../../modules/raw_out" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_STANDALONE_RENDER_2D" /D "DANAE" /FR /YX /FD /GZ /c
 # ADD BASE RSC /l 0x40c /d "_DEBUG"
@@ -188,10 +188,6 @@ SOURCE=..\..\modules\render2d\sensor_stacks.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\render2d\smil\smil_animation.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\modules\render2d\sound.c
 # End Source File
 # Begin Source File
@@ -205,10 +201,6 @@ SOURCE=..\..\modules\soft_raster\stencil.c
 # Begin Source File
 
 SOURCE=..\..\modules\soft_raster\surface.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\render2d\svg\svg_animation.c
 # End Source File
 # Begin Source File
 
@@ -252,15 +244,7 @@ SOURCE=..\..\modules\soft_raster\rast_soft.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\raw_out\raw_out.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\modules\render2d\render2d.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\render2d\smil\smil_stacks.h
 # End Source File
 # Begin Source File
 

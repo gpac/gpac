@@ -1143,4 +1143,54 @@ GF_Err SVGParser_ParseMemoryNextChunk(SVGParser *parser, unsigned char *inBuffer
 	if (parser->sax_state == ERROR) return GF_IO_ERR;
 	return GF_OK;
 }
+
+/* The rest of the file is required for DANAE but not used in GPAC */
+struct danae_parser {
+	u32 type; // 0 = SVG, 1 = LSR
+	void *parser;
+};
+void *DANAE_NewSVGParser(char *filename, void *scene_graph)
+{
+	struct danae_parser *dp;
+	char *ext;
+	if (!filename || !scene_graph) return NULL;
+	if ((ext = strrchr(filename, '.')) == NULL) return NULL;
+
+	dp = malloc(sizeof(struct danae_parser));
+	if (!strcmp(ext, ".svg")) {
+		dp->type = 0;
+		dp->parser = NewSVGParser();
+		((SVGParser *)dp->parser)->oti = SVGLOADER_OTI_SVG;
+		((SVGParser *)dp->parser)->file_name = strdup(filename);
+		((SVGParser *)dp->parser)->graph = scene_graph;
+	} else if (!strcmp(ext, ".xsr")) {
+		dp->type = 0;
+		dp->parser = NewSVGParser();
+		((SVGParser *)dp->parser)->oti = SVGLOADER_OTI_LASERML;
+		((SVGParser *)dp->parser)->file_name = strdup(filename);
+		((SVGParser *)dp->parser)->graph = scene_graph;
+	} else if (!strcmp(ext, ".lsr")) {
+		dp->type = 1;
+	}
+
+	return dp;
+}
+
+void DANAE_SVGParser_Parse(void *p)
+{
+	struct danae_parser *dp = (struct danae_parser *)p;
+	if (!dp->type) {
+		if (((SVGParser *)dp->parser)->oti == SVGLOADER_OTI_SVG) {
+			SVGParser_ParseFullDoc(dp->parser);
+		} else if (((SVGParser *)dp->parser)->oti == SVGLOADER_OTI_LASERML) {
+			SVGParser_ParseLASeR(dp->parser);
+		}
+	} 
+}
+
+void DANAE_SVGParser_Terminate(void *p)
+{
+
+}
+
 #endif
