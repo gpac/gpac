@@ -139,9 +139,51 @@ static void RenderRectangle(GF_Node *node, void *reff)
 	drawable_finalize_render(ctx, eff);
 }
 
+void R2D_DrawRectangle(DrawableContext *ctx)
+{
+	if (ctx->transform.m[1] || ctx->transform.m[3]) {
+		VS2D_TexturePath(ctx->surface, ctx->node->path, ctx);
+		VS2D_DrawPath(ctx->surface, ctx->node->path, ctx, NULL, NULL);
+	} else {
+		GF_Rect unclip;
+		GF_IRect clip, unclip_pix;
+		u8 alpha = GF_COL_A(ctx->aspect.fill_color);
+		GF_ColorMatrix *cmat = NULL;
+		if (!ctx->cmat.identity) cmat = &ctx->cmat;
+
+		/*get image size WITHOUT line size*/
+		unclip = ctx->original;
+		gf_mx2d_apply_rect(&ctx->transform, &unclip);
+		unclip_pix = clip = gf_rect_pixelize(&unclip);
+		gf_irect_intersect(&clip, &ctx->surface->top_clipper);
+
+		/*direct rendering, render without clippers */
+		if (ctx->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
+			ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &clip, &unclip, alpha, NULL, cmat);
+		}
+		/*render bitmap for all dirty rects*/
+		else {
+			u32 i;
+			GF_IRect a_clip;
+			for (i=0; i<ctx->surface->to_redraw.count; i++) {
+				/*there's an opaque region above, don't draw*/
+				if (ctx->surface->draw_node_index<ctx->surface->to_redraw.opaque_node_index[i]) continue;
+				a_clip = clip;
+				gf_irect_intersect(&a_clip, &ctx->surface->to_redraw.list[i]);
+				if (a_clip.width && a_clip.height) {
+					ctx->surface->DrawBitmap(ctx->surface, ctx->h_texture, &a_clip, &unclip, alpha, NULL, cmat);
+				}
+			}
+		}
+		ctx->path_filled = 1;
+		VS2D_DrawPath(ctx->surface, ctx->node->path, ctx, NULL, NULL);
+	}
+}
+
 void R2D_InitRectangle(Render2D  *sr, GF_Node *node)
 {
-	drawable_stack_new(sr, node);
+	Drawable *d = drawable_stack_new(sr, node);
+	d->Draw = R2D_DrawRectangle;
 	gf_node_set_render_function(node, RenderRectangle);
 }
 

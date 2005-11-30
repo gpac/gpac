@@ -510,6 +510,7 @@ void gf_load_texture(struct _stencil *sten)
 
 	_cmat.m[3][3] *= ((REAL) sten->alpha) /255.0f;
 	GdipSetImageAttributesColorMatrix(attr, ColorAdjustTypeDefault, TRUE, &_cmat, NULL, ColorMatrixFlagsDefault);
+	if (sten->pTexture) GdipDeleteBrush(sten->pTexture);
 	GdipCreateTextureIAI(sten->pBitmap, attr, 0, 0, sten->width, sten->height, &sten->pTexture);
 
 	/*wrap mode is actually ignored in constructor...*/

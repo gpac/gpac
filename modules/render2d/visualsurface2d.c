@@ -233,7 +233,7 @@ void VS2D_RegisterSensor(VisualSurface2D *surf, DrawableContext *ctx)
 		drawctx_reset_sensors(ctx);
 	}
 	/*check for composite texture*/
-	if (!ctx->h_texture) return;
+	if (!ctx->h_texture || !(ctx->h_texture->flags & GF_SR_TEXTURE_COMPOSITE) ) return;
 
 	
 register_sensor:
@@ -528,12 +528,12 @@ restart:
 		if (gf_list_count(si->ctx->sensors)) return si->ctx;
 
 		/*check for composite texture*/
-		if (si->ctx->h_texture && gf_node_get_tag(si->ctx->h_texture->owner)==TAG_MPEG4_CompositeTexture2D) {
+		if (si->ctx->h_texture && (si->ctx->h_texture->flags & GF_SR_TEXTURE_COMPOSITE) ) {
 			return CT2D_FindNode(si->ctx->h_texture, si->ctx, x, y);
 		}
 /*this is correct but VRML/MPEG-4 forbids picking on lines*/
 #if 0
-		else if (si->ctx->aspect.line_texture && gf_node_get_tag(si->ctx->aspect.line_texture->owner)==TAG_MPEG4_CompositeTexture2D) {
+		else if (si->ctx->aspect.line_texture && (si->ctx->aspect.line_texture->flags & GF_SR_TEXTURE_COMPOSITE) ) {
 			return CT2D_FindNode(si->ctx->aspect.line_texture, si->ctx, x, y);
 		}
 #endif
@@ -581,7 +581,7 @@ GF_Node *VS2D_PickNode(VisualSurface2D *surf, Fixed x, Fixed y)
 		/*check for composite texture*/
 		if (!ctx->h_texture && !ctx->aspect.line_texture) return ctx->node->owner;
 
-		if (ctx->h_texture && (gf_node_get_tag(ctx->h_texture->owner)==TAG_MPEG4_CompositeTexture2D)) {
+		if (ctx->h_texture && (ctx->h_texture->flags & GF_SR_TEXTURE_COMPOSITE)) {
 			return CT2D_PickNode(ctx->h_texture, ctx, x, y);
 		}
 		else if (ctx->aspect.line_texture && (gf_node_get_tag(ctx->aspect.line_texture->owner)==TAG_MPEG4_CompositeTexture2D)) {

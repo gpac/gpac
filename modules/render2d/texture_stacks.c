@@ -223,7 +223,10 @@ void R2D_InitCompositeTexture2D(Render2D *sr, GF_Node *node)
 	memset(st, 0, sizeof(Composite2DStack));
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = UpdateComposite2D;
-	
+
+	st->txh.flags = GF_SR_TEXTURE_COMPOSITE;
+	//st->txh.flags |= GF_SR_TEXTURE_REPEAT_S | GF_SR_TEXTURE_REPEAT_T;
+
 	/*create composite surface*/
 	st->surf = NewVisualSurface2D();
 	st->surf->composite = st;

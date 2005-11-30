@@ -1223,7 +1223,7 @@ s32 AVC_ReadPictParamSet(GF_BitStream *bs, AVCState *avc)
     /*pps->deblocking_filter_parameters_present = */gf_bs_read_int(bs, 1);
     /*pps->constrained_intra_pred = */gf_bs_read_int(bs, 1);
     pps->redundant_pic_cnt_present = gf_bs_read_int(bs, 1);
-    return 0;
+    return pps_id;
 }
 
 static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, AVCSliceInfo *si) 

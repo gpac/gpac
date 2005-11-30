@@ -128,6 +128,13 @@ typedef struct
 	GF_Matrix2D matrix;
 } SensorContext;
 
+/*extra texture flags*/
+enum
+{
+	/*set to signal texture is a composite one*/
+	GF_SR_TEXTURE_COMPOSITE = (1<<2),
+};
+
 enum
 {
 	/*when set objects are drawn as soon as traversed, at each frame*/
@@ -137,6 +144,7 @@ enum
 	/*forces bound storing in direct rendering*/
 	TF_RENDER_STORE_BOUNDS	= (1<<4),
 };
+
 
 /*the traversing context: set_up at top-level and passed through SFNode_Render*/
 typedef struct _render2d_effect

@@ -604,7 +604,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	u32 dst_bpp, dst_w_size;
 	s32 pos_y, inc_y, inc_x, prev_row, x_off;
 	u32 src_w, src_h, dst_w, dst_h;
-	s8 *src_bits = NULL, *dst_bits = NULL, *dst_bits_prev = NULL;
+	s8 *src_bits = NULL, *dst_bits = NULL, *dst_bits_prev = NULL, *dst_temp_bits = NULL;
 	copy_row_proto copy_row = NULL;
 	load_line_proto load_line = NULL;
 
@@ -712,6 +712,12 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 
 	dst_w_size = dst_bpp*dst_w;
 
+	/*small opt here: if we need to fetch data from destination, and if destination is 
+	hardware memory, we work on a copy of the destination line*/
+	if (has_alpha && dst->is_hardware_memory)
+		dst_temp_bits = malloc(sizeof(char) * dst_bpp * dst_w);
+
+
 	/*for 2 and 4 bytes colors, precompute pitch for u16 and u32 type casting*/
 	if ((dst_bpp==2) || (dst_bpp==4) ) dst_x_pitch /= (s32) dst_bpp;
 
@@ -774,7 +780,16 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 					}
 				}
 			}
-			copy_row(rows, src_w, dst_bits, dst_w, inc_x, dst_x_pitch, alpha);
+			if (dst_temp_bits) {
+				/*load from video memory*/
+				memcpy(dst_temp_bits, dst_bits, dst_w_size);
+				/*merge*/
+				copy_row(rows, src_w, dst_temp_bits, dst_w, inc_x, dst_x_pitch, alpha);
+				/*copy to video memory*/
+				memcpy(dst_bits, dst_temp_bits, dst_w_size);
+			} else {
+				copy_row(rows, src_w, dst_bits, dst_w, inc_x, dst_x_pitch, alpha);
+			}
 		}
 		/*do NOT use memcpy if the target buffer is not in systems memory*/
 		else if (has_alpha || dst->is_hardware_memory) {
@@ -790,6 +805,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		dst_bits += dst->pitch;
 		dst_h--;
 	}
+	if (dst_temp_bits) free(dst_temp_bits);
 	free(tmp);
 	return GF_OK;
 }
