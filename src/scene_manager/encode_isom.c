@@ -658,14 +658,19 @@ force_svg_to_laser:
 
 			/*inband RAP insertion*/
 			if (rap_inband) {
-				/*apply commands*/
-				e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
 				if (samp->DTS - last_rap < rap_delay) {
+					/*first encode command*/
 					if (bifs_enc)
 						e = gf_bifs_encode_au(bifs_enc, sc->ESID, au->commands, &samp->data, &samp->dataLength);
 					else if (lsr_enc)
 						e = gf_laser_encode_au(lsr_enc, sc->ESID, au->commands, 0, &samp->data, &samp->dataLength);
+
+					/*and apply commands*/
+					e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
 				} else {
+					/*first apply commands*/
+					e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
+					/*then get RAP*/
 					if (bifs_enc)
 						e = gf_bifs_encoder_get_rap(bifs_enc, &samp->data, &samp->dataLength);
 					else if (lsr_enc)

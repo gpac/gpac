@@ -827,10 +827,10 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		case GF_ISOM_MEDIA_FLASH:
 			continue;
 		case GF_ISOM_MEDIA_TEXT:
+		case GF_ISOM_MEDIA_SCENE:
 			use_ts_dur = 0;
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_VISUAL:
-		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_OCR:
 		case GF_ISOM_MEDIA_OCI:
 		case GF_ISOM_MEDIA_IPMP:
@@ -838,7 +838,6 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		case GF_ISOM_MEDIA_MPEG7:
 		default:
 			if (!gf_isom_is_self_contained(orig, i+1, 1)) continue;
-			use_ts_dur = 0;
 			break;
 		}
 		dst_tk = 0;
@@ -925,6 +924,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			gf_cbk_on_progress("Appending", nb_done, nb_samp);
 			nb_done++;
 		}
+		/*scene description and text: compute last sample duration based on original media duration*/
 		if (!use_ts_dur) {
 			insert_dts = (u32) gf_isom_get_media_duration(orig, i+1);
 			insert_dts -= last_DTS;

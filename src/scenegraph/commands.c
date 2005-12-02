@@ -244,7 +244,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				/*we must remove the node before in case the new node uses the same ID (not forbidden) and this
 				command removes the last instance of the node with the same ID*/
 				gf_node_replace_child(com->node, *((GF_List**) field.far_ptr), inf->pos, inf->new_node);
-				if (inf->new_node) gf_node_register(inf->new_node, com->node);
+				if (inf->new_node) gf_node_register(inf->new_node, NULL);
 			}
 			/*erase the field item*/
 			else {
@@ -328,8 +328,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 
 		e = gf_node_insert_child(com->node, inf->new_node, inf->pos);
 		if (!e) gf_node_register(inf->new_node, com->node);
-		/*notify (children is the 3rd field, so 2 0-based)*/
-		if (!e) gf_node_event_out(com->node, 2);
+		if (!e) gf_node_event_out(com->node, inf->fieldIndex);
 		break;
 	}
 	case GF_SG_ROUTE_INSERT:
@@ -413,6 +412,87 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	/*only used by BIFS*/
 	case GF_SG_GLOBAL_QUANTIZER:
 		return GF_OK;
+
+#ifndef GPAC_DISABLE_SVG
+	/*laser commands*/
+	case GF_SG_LSR_NEW_SCENE:
+		/*DO NOT TOUCH node registry*/
+
+		/*assign new root (no need to register/unregister)*/
+		graph->RootNode = com->node;
+		com->node = NULL;
+		break;
+	case GF_SG_LSR_DELETE:
+		if (!com->node) return GF_NON_COMPLIANT_BITSTREAM;
+		if (!gf_list_count(com->command_fields)) {
+			gf_node_replace(com->node, NULL, (com->tag==GF_SG_NODE_DELETE_EX) ? 1 : 0);
+			return GF_OK;
+		}
+		inf = gf_list_get(com->command_fields, 0);
+		e = gf_node_replace_child(com->node, ((SVGElement *)com->node)->children, inf->pos, NULL);
+		break;
+	case GF_SG_LSR_INSERT:
+		inf = gf_list_get(com->command_fields, 0);
+		if (!com->node || !inf) return GF_NON_COMPLIANT_BITSTREAM;
+		if (inf->new_node) {
+			e = gf_list_insert(((SVGElement *)com->node)->children, inf->new_node, inf->pos);
+			if (!e) {
+				gf_node_register(inf->new_node, com->node);
+				gf_node_event_out(com->node, inf->fieldIndex);
+			}
+		} else {
+			/*NOT SUPPORTED*/
+			fprintf(stdout, "LASER VALUE INSERTION NOT SUPPORTED\n");
+		}
+		break;
+	case GF_SG_LSR_ADD:
+	case GF_SG_LSR_REPLACE:
+		inf = gf_list_get(com->command_fields, 0);
+		if (!com->node || !inf) return GF_NON_COMPLIANT_BITSTREAM;
+		if (inf->new_node) {
+			if (inf->pos<0) {
+				e = gf_node_replace(com->node, inf->new_node, 0);
+				if (inf->new_node) gf_node_register(inf->new_node, NULL);
+			} else {
+				gf_node_replace_child(com->node, ((SVGElement *)com->node)->children, inf->pos, inf->new_node);
+				if (inf->new_node) gf_node_register(inf->new_node, com->node);
+			}
+			/*signal node modif*/
+			gf_node_changed(com->node, NULL);
+			return e;
+		} else if (inf->node_list) {
+			u32 i, count;
+			GF_List *container = ((SVGElement *)com->node)->children;
+			gf_node_unregister_children(com->node, container);
+			count = gf_list_count(inf->node_list);
+			for (i=0; i<count; i++) {
+				node = gf_list_get(inf->node_list, i);
+				gf_list_add(container, node);
+				gf_node_register(node, com->node);
+			}
+			/*signal node modif*/
+			gf_node_changed(com->node, NULL);
+			return GF_OK;
+		}
+		/*attribute modif*/
+		else if (inf->field_ptr) {
+			GF_FieldInfo a, b;
+			gf_node_get_field(com->node, inf->fieldIndex, &a);
+			b = a;
+			b.far_ptr = inf->field_ptr;
+			if (com->tag == GF_SG_LSR_REPLACE) {
+				svg_attributes_copy(&a, &b, 0);
+			} else {
+				svg_attributes_add(&a, &b, &a, 0);
+			}
+			/*signal node modif*/
+			gf_node_changed(com->node, &a);
+		} else {
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		break;
+#endif
+
 	default:
 		return GF_NOT_SUPPORTED;
 	}

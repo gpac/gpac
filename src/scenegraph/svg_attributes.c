@@ -1611,9 +1611,9 @@ void svg_parse_iri(SVGElement *elt, SVG_IRI *iri, char *attribute_content)
 {
 	/* TODO: Handle xpointer(id()) syntax */
 	if (attribute_content[0] == '#') {
-		iri->type = SVG_IRI_ELEMENTID;
-		iri->target = (SVGElement *)gf_sg_find_node_by_name(elt->sgprivate->scenegraph, &(attribute_content[1]));
-		iri->iri_owner = elt;
+		elt->xlink->href.type = SVG_IRI_ELEMENTID;
+		elt->xlink->href.target = (SVGElement *)gf_sg_find_node_by_name(elt->sgprivate->scenegraph, attribute_content + 1);
+		gf_svg_register_iri(elt->sgprivate->scenegraph, &elt->xlink->href);
 		/*unresolved tagrgets are currently handled at parser level, could be done at scenegraph level...*/
 	} else {
 		iri->type = SVG_IRI_IRI;
@@ -3958,8 +3958,12 @@ GF_Err svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 	case SVG_IRI_datatype:
 		((SVG_IRI *)a->far_ptr)->type = ((SVG_IRI *)b->far_ptr)->type;
 		((SVG_IRI *)a->far_ptr)->iri = strdup(((SVG_IRI *)b->far_ptr)->iri);
-		((SVG_IRI *)a->far_ptr)->target = ((SVG_IRI *)b->far_ptr)->target;
-		((SVG_IRI *)a->far_ptr)->iri_owner = ((SVG_IRI *)b->far_ptr)->iri_owner;
+		if (((SVG_IRI *)a->far_ptr)->type == SVG_IRI_ELEMENTID) {
+			GF_Node *n = (GF_Node *) ((SVG_IRI *)b->far_ptr)->target;
+			((SVG_IRI *)a->far_ptr)->target = ((SVG_IRI *)b->far_ptr)->target;
+			/*TODO Check if assigning IRI from # scenegraph can happen*/
+			gf_svg_register_iri(gf_node_get_graph(n), a->far_ptr);
+		}
 		return GF_OK;
 	
 	/* Unsupported types */

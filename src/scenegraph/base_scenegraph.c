@@ -31,7 +31,7 @@
 #include <gpac/nodes_x3d.h>
 
 static void ReplaceDEFNode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool updateOrderedGroup);
-static void ReplaceIRINode(GF_Node *FromNode, GF_Node *oldNode, GF_Node *newNode, Bool updateOrderedGroup);
+static void ReplaceIRINode(GF_Node *FromNode, GF_Node *oldNode, GF_Node *newNode);
 
 
 #define DEFAULT_MAX_CYCLIC_RENDER	30
@@ -54,6 +54,9 @@ GF_SceneGraph *gf_sg_new()
 	tmp->Routes = gf_list_new();
 	tmp->routes_to_activate = gf_list_new();
 	tmp->routes_to_destroy = gf_list_new();
+#ifndef GPAC_DISABLE_SVG
+	tmp->xlink_hrefs = gf_list_new();
+#endif
 	return tmp;
 }
 
@@ -124,6 +127,9 @@ void gf_sg_del(GF_SceneGraph *sg)
 
 	gf_sg_reset(sg);
 
+#ifndef GPAC_DISABLE_SVG
+	gf_list_del(sg->xlink_hrefs);
+#endif
 	gf_list_del(sg->Routes);
 	gf_list_del(sg->protos);
 	gf_list_del(sg->unregistered_protos);
@@ -222,7 +228,7 @@ void gf_sg_reset(GF_SceneGraph *sg)
 		for (j=0; j<gf_list_count(node->sgprivate->parentNodes); j++) {
 			GF_Node *par = gf_list_get(node->sgprivate->parentNodes, j);
 			if (type) {
-				ReplaceIRINode(par, node->sgprivate->NodeID, NULL, 0);
+				ReplaceIRINode(par, node->sgprivate->NodeID, NULL);
 			} else {
 				ReplaceDEFNode(par, node->sgprivate->NodeID, NULL, 0);
 			}
@@ -238,7 +244,7 @@ void gf_sg_reset(GF_SceneGraph *sg)
 		while (nlist) {
 			GF_NodeList *next = nlist->next;
 			if (type) {
-				ReplaceIRINode(nlist->node, node, NULL, 0);
+				ReplaceIRINode(nlist->node, node, NULL);
 			} else {
 				ReplaceDEFNode(nlist->node, node->sgprivate->NodeID, NULL, 0);
 			}
@@ -264,6 +270,9 @@ void gf_sg_reset(GF_SceneGraph *sg)
 		/*this will unregister the proto from the graph, so don't delete the chain entry*/
 		gf_sg_proto_del(p);
 	}
+#ifndef GPAC_DISABLE_SVG
+	assert(gf_list_count(sg->xlink_hrefs) == 0);
+#endif
 
 	/*last destroy all routes*/
 	gf_sg_destroy_routes(sg);
@@ -582,61 +591,34 @@ exit:
 	gf_node_changed(FromNode, &field);
 }
 
+#ifndef GPAC_DISABLE_SVG
+
+static void Replace_IRI(GF_SceneGraph *sg, GF_Node *old_node, GF_Node *newNode)
+{
+	u32 i, count;
+	count = gf_list_count(sg->xlink_hrefs);
+	for (i=0; i<count; i++) {
+		SVG_IRI *iri = gf_list_get(sg->xlink_hrefs, i);
+		if (iri->target == (SVGElement *)old_node) {
+			iri->target = (SVGElement *)newNode;
+			if (!newNode) {
+				gf_list_rem(sg->xlink_hrefs, i);
+				i--;
+				count--;
+			}
+		} 
+	}
+}
 
 /*replace or remove node instance in the given node (eg in all IRI)*/
-static void ReplaceIRINode(GF_Node *FromNode, GF_Node *old_node, GF_Node *newNode, Bool updateOrderedGroup)
+static void ReplaceIRINode(GF_Node *FromNode, GF_Node *old_node, GF_Node *newNode)
 {
-	u32 i;
+	u32 i, count;
 	GF_List *container;
 
-#if 0
-	GF_FieldInfo field;
-
-	/*browse all fields*/
-	for (i=0; i<gf_node_get_field_count(FromNode); i++) {
-		gf_node_get_field(FromNode, i, &field);
-		if (field.fieldType == SVG_IRI_datatype) {
-			SVG_IRI *iri = (SVG_IRI *)field.far_ptr;
-			if (iri->target && 
-				(gf_node_get_id((GF_Node *)iri->target)==NodeID)) {
-				iri->target = NULL;
-				/*for now disabled but...*/
-				//if (newNode) iri->target_element = newNode;
-				return;
-			}
-		} else if (field.fieldType == SMIL_AnimateValue_datatype) {
-			SMIL_AnimateValue *anim_value = (SMIL_AnimateValue *)field.far_ptr;
-			if (anim_value->datatype == SVG_IRI_datatype) {
-				SVG_IRI *iri = (SVG_IRI *)anim_value->value;
-				if (iri->target && 
-					(gf_node_get_id((GF_Node *)iri->target)==NodeID)) {
-					iri->target = NULL;
-					/*for now disabled but...*/
-					//if (newNode) iri->target_element = newNode;
-					return;
-				}
-			}
-		} else if (field.fieldType == SMIL_AnimateValues_datatype) {
-			SMIL_AnimateValues *anim_values = (SMIL_AnimateValues *)field.far_ptr;
-			if (anim_values->datatype == SVG_IRI_datatype) {
-				u32 k;
-				for ( k = 0; k < gf_list_count(anim_values->values); k++) {
-					SVG_IRI *iri = gf_list_get(anim_values->values, k);
-					if (iri->target && 
-						(gf_node_get_id((GF_Node *)iri->target)==NodeID)) {
-						iri->target = NULL;
-						/*for now disabled but...*/
-						//if (newNode) iri->target_element = newNode;
-						return;
-					}
-				}
-			}
-		}
-	}
-#endif
-
 	container = ((SVGElement *)FromNode)->children;
-	for (i=0; i<gf_list_count(container); i++) {
+	count = gf_list_count(container);
+	for (i=0; i<count; i++) {
 		GF_Node *p = gf_list_get(container, i);
 		if (old_node!=p) continue;
 		gf_list_rem(container, i);
@@ -644,6 +626,7 @@ static void ReplaceIRINode(GF_Node *FromNode, GF_Node *old_node, GF_Node *newNod
 		break;
 	}
 }
+#endif
 
 /*get all parents of the node and replace, the instance of the node and finally destroy the node*/
 GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup)
@@ -659,8 +642,10 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 //	assert(node == pSG->node_registry[i]);
 
 	type = node->sgprivate->tag;
-	if ((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) type = 1;
-	else type = 0;
+	if ((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) {
+		type = 1;
+		Replace_IRI(pSG, node, new_node);
+	} else type = 0;
 
 	/*first check if this is the root node*/
 	replace_root = (node->sgprivate->scenegraph->RootNode == node) ? 1 : 0;
@@ -687,7 +672,7 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 		par = node->sgprivate->parents->node;
 
 		if (type) {
-			ReplaceIRINode(par, node, new_node, updateOrderedGroup);
+			ReplaceIRINode(par, node, new_node);
 		} else {
 			ReplaceDEFNode(par, node->sgprivate->NodeID, new_node, updateOrderedGroup);
 		}

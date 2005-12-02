@@ -162,18 +162,27 @@ static char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32
 		j=0;
 		len = strlen(szLine);
 		for (i=0; i<len; i++) {
-			if (szLine[i] & 0x80) {
+			if (!unicode_type && (szLine[i] & 0x80)) {
 				/*non UTF8 (likely some win-CP)*/
-				if ( (szLine[i+1] & 0xc0) != 0x80) {
+				if ((szLine[i+1] & 0xc0) != 0x80) {
 					szLineConv[j] = 0xc0 | ( (szLine[i] >> 6) & 0x3 );
 					j++;
 					szLine[i] &= 0xbf;
 				}
-				/*we only handle UTF8 chars on 2 bytes (eg first byte is 0b110xxxxx)*/
+				/*UTF8 2 bytes char*/
 				else if ( (szLine[i] & 0xe0) == 0xc0) {
-					szLineConv[j] = szLine[i];
-					i++;
-					j++;
+					szLineConv[j] = szLine[i]; i++; j++;
+				} 
+				/*UTF8 3 bytes char*/
+				else if ( (szLine[i] & 0xf0) == 0xe0) {
+					szLineConv[j] = szLine[i]; i++; j++;
+					szLineConv[j] = szLine[i]; i++; j++; 
+				} 
+				/*UTF8 4 bytes char*/
+				else if ( (szLine[i] & 0xf8) == 0xf0) {
+					szLineConv[j] = szLine[i]; i++; j++;
+					szLineConv[j] = szLine[i]; i++; j++; 
+					szLineConv[j] = szLine[i]; i++; j++; 
 				}
 			}
 			szLineConv[j] = szLine[i];
@@ -437,6 +446,10 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 
 			ptr = (char *) szLine;
 			len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
+			if (len == (u32) -1) {
+				e = gf_import_message(import, GF_CORRUPTED_DATA, "Invalid UTF data (line %d)", curLine);
+				goto exit;
+			}
 			char_line = 0;
 			i=j=0;
 			rem_styles = 0;

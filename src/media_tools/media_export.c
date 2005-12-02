@@ -1245,7 +1245,7 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 	gf_isom_sample_del(&samp);
 
 	frame_d = 0;
-	/*AVC*/
+	/*AVC - FIXME dump format is probably wrong...*/
 	if (esd->decoderConfig->objectTypeIndication==0x21) {
 		gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
 		v4CC = "h264";
@@ -1288,7 +1288,8 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 		samp = gf_isom_get_sample(dumper->file, track, i+1, &di);
 		if (!samp) break;
 
-		if (!i) {
+		/*add DSI before each I-frame in MPEG-4 SP*/
+		if (samp->IsRAP && (esd->decoderConfig->objectTypeIndication==0x20)) {
 			char *data = malloc(sizeof(char) * (samp->dataLength + esd->decoderConfig->decoderSpecificInfo->dataLength));
 			memcpy(data, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 			memcpy(data + esd->decoderConfig->decoderSpecificInfo->dataLength, samp->data, samp->dataLength);

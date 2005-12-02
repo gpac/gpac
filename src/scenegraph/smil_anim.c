@@ -541,6 +541,7 @@ void gf_smil_anim_init_node(GF_Node *node)
 			if (n) {
 				anim_elt->xlink->href.type = SVG_IRI_ELEMENTID;
 				anim_elt->xlink->href.target = (SVGElement *)n;
+				gf_svg_register_iri(node->sgprivate->scenegraph, &anim_elt->xlink->href);
 			} else {
 				return;
 			}

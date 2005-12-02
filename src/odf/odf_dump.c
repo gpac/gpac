@@ -973,7 +973,7 @@ GF_Err gf_odf_dump_slc(GF_SLConfig *sl, FILE *trace, u32 indent, Bool XMTDump)
 
 	if (sl->predefined) {
 		StartSubElement(trace, "predefined" , indent, XMTDump);
-		DumpInt(trace, "value", sl->predefined, indent, XMTDump);
+		DumpInt(trace, XMTDump ? "value" : "predefined", sl->predefined, indent, XMTDump);
 		EndSubElement(trace, indent, XMTDump);
 	}
 	if (XMTDump) StartSubElement(trace, "custom" , indent, XMTDump);

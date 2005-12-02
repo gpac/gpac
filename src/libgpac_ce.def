@@ -1116,3 +1116,4 @@ EXPORTS
 	gf_path_init_from_svg
 	svg_dom_event_by_name
 	gf_dom_event_name
+	gf_svg_register_iri

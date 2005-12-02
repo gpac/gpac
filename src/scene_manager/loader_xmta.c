@@ -2348,7 +2348,7 @@ void xmt_parse_command(XMTParser *parser, char *name, GF_List *com_list)
 				if (!strcmp(str, "NULL")) {
 					field->new_node = NULL;
 				} else {
-					field->new_node = xmt_parse_node(parser, str, com->node, NULL);
+					field->new_node = xmt_parse_node(parser, str, NULL, NULL);
 				}
 				field->field_ptr = &field->new_node;
 				break;
@@ -2359,7 +2359,7 @@ void xmt_parse_command(XMTParser *parser, char *name, GF_List *com_list)
 				if (!strcmp(str, "NULL")) {
 					field->new_node = NULL;
 				} else {
-					field->new_node = xmt_parse_node(parser, str, com->node, NULL);
+					field->new_node = xmt_parse_node(parser, str, NULL, NULL);
 				}
 				field->field_ptr = &field->new_node;
 				break;
@@ -2369,7 +2369,7 @@ void xmt_parse_command(XMTParser *parser, char *name, GF_List *com_list)
 					if (!strcmp(str, "NULL")) {
 						field->new_node = NULL;
 					} else {
-						field->new_node = xmt_parse_node(parser, str, com->node, NULL);
+						field->new_node = xmt_parse_node(parser, str, NULL, NULL);
 					}
 					field->field_ptr = &field->new_node;
 				} else if (field->fieldType == GF_SG_VRML_MFNODE) {
@@ -2378,7 +2378,7 @@ void xmt_parse_command(XMTParser *parser, char *name, GF_List *com_list)
 						field->field_ptr = &field->node_list;
 					}
 					if (strcmp(str, "NULL")) {
-						GF_Node *n = xmt_parse_node(parser, str, com->node, NULL);
+						GF_Node *n = xmt_parse_node(parser, str, NULL, NULL);
 						gf_list_add(field->node_list, n);
 					}
 				} else {
@@ -2393,7 +2393,7 @@ void xmt_parse_command(XMTParser *parser, char *name, GF_List *com_list)
 				if (!strcmp(str, "NULL")) {
 					field->new_node = NULL;
 				} else {
-					field->new_node = xmt_parse_node(parser, str, com->node, NULL);
+					field->new_node = xmt_parse_node(parser, str, NULL, NULL);
 				}
 				field->field_ptr = &field->new_node;
 				field->pos = pos;
@@ -2410,7 +2410,7 @@ void xmt_parse_command(XMTParser *parser, char *name, GF_List *com_list)
 				if (!strcmp(str, "NULL")) {
 					field->new_node = NULL;
 				} else {
-					field->new_node = xmt_parse_node(parser, str, com->node, NULL);
+					field->new_node = xmt_parse_node(parser, str, NULL, NULL);
 				}
 				field->field_ptr = &field->new_node;
 				field->fieldType = GF_SG_VRML_SFNODE;
@@ -2459,14 +2459,14 @@ void xmt_parse_command(XMTParser *parser, char *name, GF_List *com_list)
 						field->fieldIndex = inf.fieldIndex;
 						field->fieldType = inf.fieldType;
 						if (inf.fieldType == GF_SG_VRML_SFNODE) {
-							field->new_node = xmt_parse_node(parser, NULL, com->node, NULL);
+							field->new_node = xmt_parse_node(parser, NULL, NULL, NULL);
 							field->field_ptr = &field->new_node;
 							xml_element_done(&parser->xml_parser, szName);
 						} else {
 							field->node_list = gf_list_new();
 							field->field_ptr = &field->node_list;
 							while (!xml_element_done(&parser->xml_parser, szName)) {
-								GF_Node *n = xmt_parse_node(parser, NULL, com->node, NULL);
+								GF_Node *n = xmt_parse_node(parser, NULL, NULL, NULL);
 								if (n) gf_list_add(field->node_list, n);
 							}
 						}
@@ -2517,7 +2517,7 @@ void xmt_parse_command(XMTParser *parser, char *name, GF_List *com_list)
 						field->pos = pos;
 						field->fieldIndex = inf.fieldIndex;
 						field->fieldType = GF_SG_VRML_SFNODE;
-						field->new_node = xmt_parse_node(parser, NULL, com->node, NULL);
+						field->new_node = xmt_parse_node(parser, NULL, NULL, NULL);
 						field->field_ptr = &field->new_node;
 						xml_element_done(&parser->xml_parser, szName);
 					}

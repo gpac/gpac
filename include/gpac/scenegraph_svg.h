@@ -313,7 +313,6 @@ typedef struct {
 	u8 type;
 	u8 *iri;
 	struct _svg_element *target;
-	struct _svg_element *iri_owner;
 } SVG_IRI;
 
 enum {
@@ -1058,7 +1057,7 @@ void gf_svg_init_core			(SVGElement *p);
 
 /* reset functions for SVG types */
 void gf_svg_reset_path			(SVG_PathData path);
-void gf_svg_reset_iri			(SVG_IRI*iri);
+void gf_svg_reset_iri			(SVGElement *p, SVG_IRI*iri);
 
 /* delete functions for SVG types */
 void gf_svg_delete_paint		(SVG_Paint *paint);
@@ -1311,6 +1310,7 @@ void gf_smil_anim_delete_runtime_info(SMIL_Anim_RTI *rai);
 
 void gf_path_init_from_svg(GF_Path *path, GF_List *commands, GF_List *points);
 
+void gf_svg_register_iri(GF_SceneGraph *sg, SVG_IRI *iri);
 
 #ifdef __cplusplus
 }

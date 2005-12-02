@@ -945,7 +945,7 @@ GF_Err BD_DecSceneReplace(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *pro
 	GF_Node *root;
 
 	/*Reset the existing scene / scene graph, protos and route lists*/
-	gf_sg_reset(codec->current_graph);
+	if (!proto_list) gf_sg_reset(codec->current_graph);
 
 	/*reserved*/
 	i = gf_bs_read_int(bs, 6);

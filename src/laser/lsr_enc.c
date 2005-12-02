@@ -2000,6 +2000,7 @@ static void lsr_write_polygon(GF_LASeRCodec *lsr, SVGpolygonElement *elt, Bool i
 		lsr_write_id(lsr, (GF_Node *) elt);
 		if (same_type==2) lsr_write_fill(lsr, (SVGElement *) elt, clone);
 		else if (same_type==3) lsr_write_stroke(lsr, (SVGElement *) elt, clone);
+		lsr_write_point_sequence(lsr, elt->points, "points");
 	} else {
 		/*polygon/polyline*/
 		if (!ommit_tag) GF_LSR_WRITE_INT(lsr, is_polyline ? 20 : 19, 6, "ch4"); 
@@ -2435,6 +2436,7 @@ static void lsr_write_listener(GF_LASeRCodec *lsr, SVGlistenerElement *elt)
 static void lsr_write_content_model_2(GF_LASeRCodec *lsr, SVGElement *parent, void *node)
 {
 	u32 tag = gf_node_get_tag(node);
+
 	switch(tag) {
 	case TAG_SVG_a: GF_LSR_WRITE_INT(lsr, 0, 6, "ch4"); lsr_write_a(lsr, node); break;
 	case TAG_SVG_animate: GF_LSR_WRITE_INT(lsr, 1, 6, "ch4"); lsr_write_animate(lsr, node, parent); break;
@@ -2546,7 +2548,7 @@ static void lsr_write_content_model_36(GF_LASeRCodec *lsr, SVGElement *parent, v
 	case TAG_SVG_text: GF_LSR_WRITE_INT(lsr, 28, 6, "ch6"); lsr_write_text(lsr, node, 1); break;
 	case TAG_SVG_title: GF_LSR_WRITE_INT(lsr, 29, 6, "ch6"); lsr_write_data(lsr, node); break;
 	case TAG_SVG_tspan: GF_LSR_WRITE_INT(lsr, 30, 6, "ch6"); lsr_write_tspan(lsr, node); break;
-	case TAG_SVG_use: GF_LSR_WRITE_INT(lsr, 31, 6, "ch6"); lsr_write_use(lsr, node, 0); break;
+	case TAG_SVG_use: GF_LSR_WRITE_INT(lsr, 31, 6, "ch6"); lsr_write_use(lsr, node, 1); break;
 	case TAG_SVG_video: GF_LSR_WRITE_INT(lsr, 32, 6, "ch6"); lsr_write_video(lsr, node); break;
 	case TAG_SVG_listener: GF_LSR_WRITE_INT(lsr, 33, 6, "ch6"); lsr_write_listener(lsr, node); break;
 	}
@@ -2572,7 +2574,9 @@ static void lsr_write_group_content(GF_LASeRCodec *lsr, SVGElement *elt, Bool sk
 		count--;
 	}
 	for (i=0; i<count; i++) {
-		lsr_write_content_model_2(lsr, elt, gf_list_get(elt->children, i));
+		void *n = gf_list_get(elt->children, i);
+		lsr_write_content_model_2(lsr, elt, n);
+		if (lsr->trace) fprintf(lsr->trace, "//end %s\n", gf_node_get_class_name(n));
 	}
 }
 
@@ -2726,6 +2730,79 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVGElement *elt, u32 fiel
 	}
 }
 
+static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
+{
+	GF_CommandField *field;
+	u8 type = 0;
+	if (com->tag==GF_SG_LSR_REPLACE) type = 5;
+	else if (com->tag==GF_SG_LSR_ADD) type = 0;
+	else if (com->tag==GF_SG_LSR_INSERT) type = 3;
+	else return GF_BAD_PARAM;
+
+	GF_LSR_WRITE_INT(lsr, type, 4, "ch4");
+	field = gf_list_get(com->command_fields, 0);
+	if (field && !field->new_node && !field->node_list) {
+		u8 attType;
+		/*textContent cannot be used directly*/
+		if ((field->fieldIndex==(u32)-1) && (field->fieldType==SVG_String_datatype)) {
+			attType = 102;
+		} else {
+			attType = gf_lsr_field_to_attrib_type(com->node, field->fieldIndex);
+		}
+		GF_LSR_WRITE_INT(lsr, 1, 1, "has_attributeName");
+		GF_LSR_WRITE_INT(lsr, attType, 8, "attributeName");
+	} else {
+		GF_LSR_WRITE_INT(lsr, 0, 1, "has_attributeName");
+	}
+	/*if not add*/
+	if (type) {
+		if (!field || field->pos<0) {
+			GF_LSR_WRITE_INT(lsr, 0, 1, "has_index");
+		} else {
+			GF_LSR_WRITE_INT(lsr, 1, 1, "has_index");
+			lsr_write_vluimsbf5(lsr, (u32) field->pos, "index");
+		}
+	}
+	if (type!=3) {
+		if (com->fromNodeID) {
+			GF_Node *opNode;
+			u8 opAttType;
+			opNode = gf_sg_find_node(lsr->sg, com->fromNodeID);
+			opAttType = gf_lsr_field_to_attrib_type(opNode, com->fromFieldIndex);
+			GF_LSR_WRITE_INT(lsr, 1, 1, "has_operandAttribute");
+			GF_LSR_WRITE_INT(lsr, opAttType, 8, "operandAttribute");
+			GF_LSR_WRITE_INT(lsr, 1, 1, "has_operandElementId");
+			lsr_write_vluimsbf5(lsr, com->fromNodeID-1, "operandElementId");
+		} else {
+			GF_LSR_WRITE_INT(lsr, 0, 1, "has_operandAttribute");
+			GF_LSR_WRITE_INT(lsr, 0, 1, "has_operandElementId");
+		}
+	}
+	GF_LSR_WRITE_INT(lsr, 1, 1, "hasID");
+	lsr_write_codec_IDREF_Node(lsr, com->node, "ref");
+	if (field && !field->node_list && !com->fromNodeID) {
+		GF_LSR_WRITE_INT(lsr, 1, 1, "has_value");
+		lsr_write_update_value(lsr, (SVGElement *)com->node, field->fieldType, field->field_ptr, field->new_node, (field->pos>=0) ? 1 : 0);
+	} else {
+		GF_LSR_WRITE_INT(lsr, 0, 1, "has_value");
+	}
+	lsr_write_any_attribute(lsr, NULL, NULL);
+	/*if not add*/
+	if (type) {
+		if (field && field->node_list && !com->fromNodeID) {
+			u32 i, count = gf_list_count(field->node_list);
+			GF_LSR_WRITE_INT(lsr, 1, 1, "opt_group");
+			lsr_write_vluimsbf5(lsr, count, "count");
+			for (i=0; i<count; i++) {
+				lsr_write_content_model_36(lsr, (SVGElement *) com->node, gf_list_get(field->node_list, i));
+			}
+		} else {
+			GF_LSR_WRITE_INT(lsr, 0, 1, "opt_group");
+		}
+	}
+	return GF_OK;
+}
+
 static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGscriptElement *script)
 {
 	GF_CommandField *field;
@@ -2759,65 +2836,9 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGs
 			lsr_write_svg(lsr, (SVGsvgElement *) com->node);
 			break;
 		case GF_SG_LSR_REPLACE:
-			is_replace = 1;
 		case GF_SG_LSR_ADD:
-			GF_LSR_WRITE_INT(lsr, is_replace ? 5 : 0, 4, "ch4");
-			field = gf_list_get(com->command_fields, 0);
-			if (field && !field->new_node && !field->node_list) {
-				u8 attType;
-				/*textContent cannot be used directly*/
-				if ((field->fieldIndex==(u32)-1) && (field->fieldType==SVG_String_datatype)) {
-					attType = 102;
-				} else {
-					attType = gf_lsr_field_to_attrib_type(com->node, field->fieldIndex);
-				}
-				GF_LSR_WRITE_INT(lsr, 1, 1, "has_attributeName");
-				GF_LSR_WRITE_INT(lsr, attType, 8, "attributeName");
-			} else {
-				GF_LSR_WRITE_INT(lsr, 0, 1, "has_attributeName");
-			}
-			if (is_replace) {
-				if (!field || field->pos<0) {
-					GF_LSR_WRITE_INT(lsr, 0, 1, "has_index");
-				} else {
-					GF_LSR_WRITE_INT(lsr, 1, 1, "has_index");
-					lsr_write_vluimsbf5(lsr, (u32) field->pos, "index");
-				}
-			}
-			if (com->fromNodeID) {
-				GF_Node *opNode;
-				u8 opAttType;
-				opNode = gf_sg_find_node(lsr->sg, com->fromNodeID);
-				opAttType = gf_lsr_field_to_attrib_type(opNode, com->fromFieldIndex);
-				GF_LSR_WRITE_INT(lsr, 1, 1, "has_operandAttribute");
-				GF_LSR_WRITE_INT(lsr, opAttType, 8, "operandAttribute");
-				GF_LSR_WRITE_INT(lsr, 1, 1, "has_operandElementId");
-				lsr_write_vluimsbf5(lsr, com->fromNodeID-1, "operandElementId");
-			} else {
-				GF_LSR_WRITE_INT(lsr, 0, 1, "has_operandAttribute");
-				GF_LSR_WRITE_INT(lsr, 0, 1, "has_operandElementId");
-			}
-			GF_LSR_WRITE_INT(lsr, 1, 1, "hasID");
-			lsr_write_codec_IDREF_Node(lsr, com->node, "ref");
-			if (field && !field->node_list && !com->fromNodeID) {
-				GF_LSR_WRITE_INT(lsr, 1, 1, "has_value");
-				lsr_write_update_value(lsr, (SVGElement *)com->node, field->fieldType, field->field_ptr, field->new_node, (field->pos>=0) ? 1 : 0);
-			} else {
-				GF_LSR_WRITE_INT(lsr, 0, 1, "has_value");
-			}
-			lsr_write_any_attribute(lsr, NULL, NULL);
-			if (is_replace) {
-				if (field && field->node_list && !com->fromNodeID) {
-					u32 i, count = gf_list_count(field->node_list);
-					GF_LSR_WRITE_INT(lsr, 1, 1, "opt_group");
-					lsr_write_vluimsbf5(lsr, count, "count");
-					for (i=0; i<count; i++) {
-						lsr_write_content_model_36(lsr, (SVGElement *) com->node, gf_list_get(field->node_list, i));
-					}
-				} else {
-					GF_LSR_WRITE_INT(lsr, 0, 1, "opt_group");
-				}
-			}
+		case GF_SG_LSR_INSERT:
+			lsr_write_add_replace_insert(lsr, com);
 			break;
 		case GF_SG_LSR_CLEAN:
 			break;
@@ -2832,8 +2853,6 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGs
 			}
 			lsr_write_codec_IDREF_Node(lsr, com->node, "ref");
 			lsr_write_any_attribute(lsr, NULL, NULL);
-			break;
-		case GF_SG_LSR_INSERT:
 			break;
 		case GF_SG_LSR_RESTORE:
 			break;

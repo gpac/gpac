@@ -1,4 +1,11 @@
-Latest CVS Changes 21/11/05
+Latest CVS Changes 02/12/05
+  - fixed bugs in BIFS RAP generation (BT and XMT-A loaders) 
+  - added LASeR RAP generation
+  - fixed support for node insert and delete in laser
+  - fixed AVC import bug with multiple PPSs per stream
+  - changed MPEG-4 SP -> AVI to add VOSH before each I-frame
+  - fixed stts bug in file concatenation (first inserted sample had a wrong duration)
+  - added partial support for lon UTF-8 sequences (only 2 bytes UTF8 cjaracters were supported)
   - initial commit of laser (encoder, decoder and decoder module). Far from behing complete or usable at this time, binary syntax not 100% safe ...
   - fixed v5 and v7 MPEG-4 node templates
   - added patch from FT R&D for simple anim mask encoding needed for FAP/BAP streams on FDT/BDP nodes.

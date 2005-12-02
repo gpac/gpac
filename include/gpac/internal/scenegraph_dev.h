@@ -178,8 +178,11 @@ struct __tag_scene_graph
 	u32 max_cyclic_render;
 #endif
 
-#if defined(GPAC_HAS_SPIDERMONKEY) && !defined(GPAC_DISABLE_SVG)
+#ifndef GPAC_DISABLE_SVG
+	GF_List *xlink_hrefs;
+#ifdef GPAC_HAS_SPIDERMONKEY
 	struct __tag_svg_script_ctx *svg_js;
+#endif
 #endif
 };
 

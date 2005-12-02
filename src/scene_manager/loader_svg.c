@@ -219,7 +219,6 @@ static Bool svg_resolve_smil_times(GF_SceneGraph *sg, SVGElement *anim_target, G
 
 static Bool svg_parse_animation(GF_SceneGraph *sg, DeferedAnimation *anim, const char *nodeID)
 {
-	SVG_IRI *iri;
 	GF_FieldInfo info;
 	u32 tag;
 	u8 anim_value_type = 0, anim_transform_type = 0;
@@ -228,14 +227,10 @@ static Bool svg_parse_animation(GF_SceneGraph *sg, DeferedAnimation *anim, const
 	if (!anim->target) return 0;
 
 	if (anim->resolve_stage==0) {
-
 		/*setup IRI ptr*/
-		if (gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "xlink:href", &info) != GF_OK)  return 1;
-
-		iri = info.far_ptr;
-		iri->iri_owner = anim->animation_elt;
-		iri->target = anim->target;
-		iri->type = SVG_IRI_ELEMENTID;
+		anim->animation_elt->xlink->href.type = SVG_IRI_ELEMENTID;
+		anim->animation_elt->xlink->href.target = anim->target;
+		gf_svg_register_iri(sg, &anim->animation_elt->xlink->href);
 
 		tag = gf_node_get_tag((GF_Node *)anim->animation_elt);
 
@@ -314,10 +309,14 @@ static void svg_resolved_refs(GF_SceneGraph *sg, GF_List *defered_animations, GF
 	if (defered_hrefs) {
 		count = gf_list_count(defered_hrefs);
 		for (i=0; i<count; i++) {
+			GF_Node *targ;
 			SVG_IRI *iri = gf_list_get(defered_hrefs, i);
 			if (nodeID && !strcmp(iri->iri + 1, nodeID)) continue;
-			iri->target = (SVGElement *)gf_sg_find_node_by_name(sg, iri->iri + 1);
-			if (iri->target) {
+			targ = gf_sg_find_node_by_name(sg, iri->iri + 1);
+			if (targ) {
+				iri->type = SVG_IRI_ELEMENTID;
+				iri->target = (SVGElement *) targ;
+				gf_svg_register_iri(sg, iri);
 				free(iri->iri);
 				iri->iri = NULL;
 				gf_list_rem(defered_hrefs, i);
@@ -521,20 +520,21 @@ static GF_Err lsr_parse_command(GF_SVGParser *parser, GF_List *attr)
 		if (!atNode) return svg_report(parser, GF_BAD_PARAM, "Missing node ref for command");
 		parser->command->node = gf_sg_find_node_by_name(parser->load->scene_graph, atNode);
 		if (!parser->command->node) return svg_report(parser, GF_BAD_PARAM, "Cannot find node node ref %s for command", atNode);
-		if (atAtt) {
-			if (gf_node_get_field_by_name(parser->command->node, atAtt, &info) != GF_OK)
+		if (atAtt || (index>=0) ) {
+			if (atAtt && gf_node_get_field_by_name(parser->command->node, atAtt, &info) != GF_OK)
 				return svg_report(parser, GF_BAD_PARAM, "Attribute %s does not belong to node %s", atAtt, atNode);
 
 			field = gf_sg_command_field_new(parser->command);
 			field->pos = index;
-			field->fieldIndex = info.fieldIndex;
-			field->fieldType = info.fieldType;
+			field->fieldIndex = atAtt ? info.fieldIndex : 0;
+			field->fieldType = atAtt ? info.fieldType : 0;
 		}
 		gf_node_register(parser->command->node, NULL);
 		return GF_OK;
 	case GF_SG_LSR_REPLACE:
 		is_replace = 1;
 	case GF_SG_LSR_ADD:
+	case GF_SG_LSR_INSERT:
 		for (i=0; i<count; i++) {
 			GF_SAXAttribute *att = gf_list_get(attr, i);
 			if (!strcmp(att->name, "ref")) atNode = att->value;
@@ -549,7 +549,7 @@ static GF_Err lsr_parse_command(GF_SVGParser *parser, GF_List *attr)
 		parser->command->node = gf_sg_find_node_by_name(parser->load->scene_graph, atNode);
 		if (!parser->command->node) return svg_report(parser, GF_BAD_PARAM, "Cannot find node node ref %s for command", atNode);
 		/*child or node replacement*/
-		if (is_replace && !atAtt) {
+		if ( (is_replace || (parser->command->tag==GF_SG_LSR_INSERT)) && (!atAtt || !strcmp(atAtt, "children")) ) {
 			field = gf_sg_command_field_new(parser->command);
 			field->pos = index;
 			gf_node_register(parser->command->node, NULL);

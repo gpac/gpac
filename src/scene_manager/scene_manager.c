@@ -102,14 +102,13 @@ GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamTyp
 
 static void gf_sm_delete_stream(GF_StreamContext *sc)
 {
-	u32 count, count2;
-	while ( (count = gf_list_count(sc->AUs)) ) {
-		GF_AUContext *au = gf_list_get(sc->AUs, count-1);
-		gf_list_rem(sc->AUs, count-1);
+	while (gf_list_count(sc->AUs)) {
+		GF_AUContext *au = gf_list_last(sc->AUs);
+		gf_list_rem_last(sc->AUs);
 
-		while ( (count2 = gf_list_count(au->commands)) ) {
-			void *comptr = gf_list_get(au->commands, count2 - 1);
-			gf_list_rem(au->commands, count2 - 1);
+		while (gf_list_count(au->commands)) {
+			void *comptr = gf_list_last(au->commands);
+			gf_list_rem_last(au->commands);
 			switch (sc->streamType) {
 			case GF_STREAM_OD:
 				gf_odf_com_del((GF_ODCom**) & comptr);

@@ -79,11 +79,11 @@ void gf_svg_delete_paint(SVG_Paint *paint)
 	free(paint);
 }
 
-void gf_svg_reset_iri(SVG_IRI *iri) 
+void gf_svg_reset_iri(SVGElement *p, SVG_IRI *iri) 
 {
 	if (!iri) return;
 	if (iri->iri) free(iri->iri);
-	//if (iri->target) gf_node_unregister((GF_Node *)iri->target, (GF_Node *)iri->iri_owner);
+	if (p) gf_list_del_item(p->sgprivate->scenegraph->xlink_hrefs, iri);
 }
 
 void gf_svg_delete_attribute_value(u32 type, void *value)
@@ -93,7 +93,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value)
 		gf_svg_delete_paint((SVG_Paint *)value);
 		break;
 	case SVG_IRI_datatype:
-		gf_svg_reset_iri((SVG_IRI *)value);
+		gf_svg_reset_iri(NULL, (SVG_IRI *)value);
 		free(value);
 		break;
 	case SVG_String_datatype:
@@ -218,9 +218,9 @@ void gf_svg_init_conditional(SVGElement *p)
 	p->conditional->systemLanguage = gf_list_new();
 }
 
-void gf_svg_delete_core(XMLCoreAttributes *p) 
+void gf_svg_delete_core(SVGElement *elt, XMLCoreAttributes *p) 
 {
-	gf_svg_reset_iri(&(p->base));
+	gf_svg_reset_iri(elt, &p->base);
 	if (p->lang) free(p->lang);
 	if (p->_class) free(p->_class);
 	free(p);
@@ -253,13 +253,13 @@ void gf_svg_delete_focus(SVGFocusAttributes *p)
 	free(p);		
 }
 
-void gf_svg_delete_xlink(XLinkAttributes *p)
+void gf_svg_delete_xlink(SVGElement *elt, XLinkAttributes *p)
 {
-	gf_svg_reset_iri(&(p->href));
+	gf_svg_reset_iri(elt, &p->href);
 	if (p->type) free(p->type);
 	if (p->title) free(p->title);
-	gf_svg_reset_iri(&(p->arcrole));
-	gf_svg_reset_iri(&(p->role));
+	gf_svg_reset_iri(elt, &p->arcrole);
+	gf_svg_reset_iri(elt, &p->role);
 	if (p->show) free(p->show);
 	if (p->actuate) free(p->actuate);
 	free(p);		
@@ -302,14 +302,14 @@ void gf_svg_delete_conditional(SVGConditionalAttributes *p)
 void gf_svg_reset_base_element(SVGElement *p)
 {
 	if (p->textContent) free(p->textContent);
-	if (p->core)		gf_svg_delete_core(p->core);
+	if (p->core)		gf_svg_delete_core(p, p->core);
 	if (p->properties)	gf_svg_delete_properties(p->properties);
 	if (p->focus)		gf_svg_delete_focus(p->focus);
 	if (p->conditional) gf_svg_delete_conditional(p->conditional);
 	if (p->anim)		gf_svg_delete_anim(p->anim);
 	if (p->sync)		gf_svg_delete_sync(p->sync);
 	if (p->timing)		gf_svg_delete_timing(p->timing);
-	if (p->xlink)		gf_svg_delete_xlink(p->xlink);
+	if (p->xlink)		gf_svg_delete_xlink(p, p->xlink);
 }
 
 void *gf_svg_get_property_pointer_by_name(SVGPropertiesPointers *p, const char *name)

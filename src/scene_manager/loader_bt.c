@@ -1829,7 +1829,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 			com = gf_sg_command_new(parser->load->scene_graph, GF_SG_NODE_REPLACE);
 			bd_set_com_node(com, n);
 			inf = gf_sg_command_field_new(com);
-			inf->new_node = gf_bt_sf_node(parser, NULL, n, NULL);
+			inf->new_node = gf_bt_sf_node(parser, NULL, NULL, NULL);
 			inf->fieldType = GF_SG_VRML_SFNODE;
 			inf->field_ptr = &inf->new_node;
 			gf_list_add(cmdList, com);
@@ -1853,7 +1853,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 
 			switch (info.fieldType) {
 			case GF_SG_VRML_SFNODE:
-				inf->new_node = gf_bt_sf_node(parser, NULL, n, NULL);
+				inf->new_node = gf_bt_sf_node(parser, NULL, NULL, NULL);
 				inf->field_ptr = &inf->new_node;
 				if (!gf_bt_check_ndt(parser, &info, inf->new_node, n)) goto err;
 				break;
@@ -1862,7 +1862,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 				inf->node_list = gf_list_new();
 				inf->field_ptr = &inf->node_list;
 				while (!gf_bt_check_code(parser, ']')) {
-					newnode = gf_bt_sf_node(parser, NULL, n, NULL);
+					newnode = gf_bt_sf_node(parser, NULL, NULL, NULL);
 					if (!newnode) goto err;
 					if (parser->last_error!=GF_OK) goto err;
 					if (!gf_bt_check_ndt(parser, &info, newnode, n)) goto err;
@@ -1898,7 +1898,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 		inf->fieldType = gf_sg_vrml_get_sf_type(info.fieldType);
 		switch (info.fieldType) {
 		case GF_SG_VRML_MFNODE:
-			inf->new_node = gf_bt_sf_node(parser, NULL, n, NULL);
+			inf->new_node = gf_bt_sf_node(parser, NULL, NULL, NULL);
 			inf->field_ptr = &inf->new_node;
  			break;
 		default:
@@ -1958,7 +1958,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 			bd_set_com_node(com, n);
 			inf = gf_sg_command_field_new(com);
 			inf->pos = pos;
-			inf->new_node = gf_bt_sf_node(parser, NULL, n, NULL);
+			inf->new_node = gf_bt_sf_node(parser, NULL, NULL, NULL);
 			inf->fieldType = GF_SG_VRML_SFNODE;
 			inf->field_ptr = &inf->new_node;
 			if (parser->last_error) goto err;
@@ -1978,7 +1978,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 		inf->fieldType = gf_sg_vrml_get_sf_type(info.fieldType);
 		switch (info.fieldType) {
 		case GF_SG_VRML_MFNODE:
-			inf->new_node = gf_bt_sf_node(parser, NULL, n, NULL);
+			inf->new_node = gf_bt_sf_node(parser, NULL, NULL, NULL);
 			inf->field_ptr = &inf->new_node;
 			break;
 		default:
@@ -2082,7 +2082,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 
 			switch (info.fieldType) {
 			case GF_SG_VRML_SFNODE:
-				inf->new_node = gf_bt_sf_node(parser, NULL, n, NULL);
+				inf->new_node = gf_bt_sf_node(parser, NULL, NULL, NULL);
 				if (parser->last_error) goto err;
 				if (!gf_bt_check_ndt(parser, &info, inf->new_node, n)) goto err;
 				inf->field_ptr = &inf->new_node;
@@ -2095,7 +2095,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 				inf->node_list = gf_list_new();
 				info.far_ptr = inf->field_ptr = &inf->node_list;
 				while (!gf_bt_check_code(parser, ']')) {
-					newnode = gf_bt_sf_node(parser, NULL, n, NULL);
+					newnode = gf_bt_sf_node(parser, NULL, NULL, NULL);
 					if (parser->last_error!=GF_OK) goto err;
 					if (!gf_bt_check_ndt(parser, &info, newnode, n)) goto err;
 					gf_list_add(inf->node_list, newnode);
@@ -2157,7 +2157,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 			inf->pos = pos;
 			if (inf->fieldType==GF_SG_VRML_SFNODE) {
 				info.far_ptr = inf->field_ptr = &inf->new_node;
-				inf->new_node = gf_bt_sf_node(parser, NULL, n, NULL);
+				inf->new_node = gf_bt_sf_node(parser, NULL, NULL, NULL);
 				if (parser->last_error) goto err;
 				if (!gf_bt_check_ndt(parser, &info, inf->new_node, n)) goto err;
 				inf->field_ptr = &inf->new_node;

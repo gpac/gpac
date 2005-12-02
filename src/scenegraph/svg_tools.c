@@ -382,6 +382,13 @@ Bool svg_store_embedded_data(SVG_IRI *iri, const char *iri_data, const char *cac
 	return 1;
 }
 
+void gf_svg_register_iri(GF_SceneGraph *sg, SVG_IRI *target)
+{
+	if (gf_list_find(sg->xlink_hrefs, target)<0) {
+		gf_list_add(sg->xlink_hrefs, target);
+	}
+}
+
 #else
 /*these ones are only needed for W32 libgpac_dll build in order not to modify export def file*/
 u32 gf_svg_get_tag_by_name(const char *element_name)
