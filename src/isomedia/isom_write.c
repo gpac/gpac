@@ -3215,9 +3215,31 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 	if (trak->Media->handler->nameUTF8) free(trak->Media->handler->nameUTF8);
+	trak->Media->handler->nameUTF8 = NULL;
 
+	if (!nameUTF8) return GF_OK;
 
-	if (nameUTF8) {
+	if (!strnicmp(nameUTF8, "file://", 7)) {
+		char BOM[4];
+		FILE *f = fopen(nameUTF8+7, "rb");
+		u32 size;
+		if (!f) return GF_URL_ERROR;
+		fseek(f, 0, SEEK_END);
+		size = ftell(f);
+		fseek(f, 0, SEEK_SET);
+		fread(BOM, 1, 3, f);
+		/*skip BOM if any*/
+		if ((BOM[0]==0xEF) && (BOM[1]==0xBB) && (BOM[2]==0xBF)) size -= 3;
+		else if ((BOM[0]==0xEF) || (BOM[0]==0xFF)) {
+			fclose(f);
+			return GF_BAD_PARAM;
+		}
+		else fseek(f, 0, SEEK_SET);
+		trak->Media->handler->nameUTF8 = malloc(sizeof(char)*(size+1));
+		fread(trak->Media->handler->nameUTF8, 1, size, f);
+		trak->Media->handler->nameUTF8[size] = 0;
+		fclose(f);
+	} else {
 		u32 i, j, len;
 		u8 szOrig[1024], szLine[1024];
 		strcpy(szOrig, nameUTF8);
@@ -3231,11 +3253,20 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 					j++;
 					szOrig[i] &= 0xbf;
 				}
-				/*we only handle UTF8 chars on 2 bytes (eg first byte is 0b110xxxxx)*/
+				/*UTF8 2 bytes char */
 				else if ( (szOrig[i] & 0xe0) == 0xc0) {
-					szLine[j] = szOrig[i];
-					i++;
-					j++;
+					szLine[j] = szOrig[i]; i++; j++;
+				}
+				/*UTF8 3 bytes char */
+				else if ( (szOrig[i] & 0xf0) == 0xe0) {
+					szLine[j] = szOrig[i]; i++; j++;
+					szLine[j] = szOrig[i]; i++; j++;
+				}
+				/*UTF8 4 bytes char */
+				else if ( (szOrig[i] & 0xf8) == 0xf0) {
+					szLine[j] = szOrig[i]; i++; j++;
+					szLine[j] = szOrig[i]; i++; j++;
+					szLine[j] = szOrig[i]; i++; j++;
 				}
 			}
 			szLine[j] = szOrig[i];
@@ -3243,8 +3274,6 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 		}
 		szLine[j] = 0;
 		trak->Media->handler->nameUTF8 = strdup(szLine);
-	} else {
-		trak->Media->handler->nameUTF8 = NULL;
 	}
 	return GF_OK;
 }

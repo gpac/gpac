@@ -728,7 +728,8 @@ GF_Err gf_isom_set_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 re
 /*removes a track reference*/
 GF_Err gf_isom_remove_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 ReferenceIndex);
 
-/*sets track handler name*/
+/*sets track handler name. name is either NULL (reset), a UTF-8 formatted string or a UTF8 file 
+resource in the form "file://path/to/file_utf8" */
 GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const char *nameUTF8);
 
 /*Update the sample size table - this is needed when using @gf_isom_append_sample_data in case the resulting samples

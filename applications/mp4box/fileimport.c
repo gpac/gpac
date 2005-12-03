@@ -119,7 +119,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	handler_name = NULL;
 	while (ext) {
 		char *ext2 = strchr(ext+1, ':');
+		if (ext2 && !strncmp(ext2, "://", 3)) ext2 = strchr(ext2+1, ':');
+		if (ext2 && !strncmp(ext2, ":\\", 2)) ext2 = strchr(ext2+1, ':');
 		if (ext2) ext2[0] = 0;
+
 		/*all extensions for track-based importing*/
 		if (!strnicmp(ext+1, "lang=", 5)) strncpy(szLan, ext+6, 3);
 		else if (!strnicmp(ext+1, "delay=", 6)) delay = atoi(ext+7);

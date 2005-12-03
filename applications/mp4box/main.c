@@ -111,6 +111,7 @@ void PrintGeneralUsage()
 			" -delay tkID=TIME:    sets track start delay in ms.\n"
 			" -par tkID=PAR:       sets visual track pixel aspect ratio (PAR=N:D or \"none\")\n"
 			" -name tkID=NAME:     sets track handler name\n"
+			"                       * NAME can indicate a UTF-8 file (\"file://file name\"\n"
 			" -split time_sec      splits in files of time_sec max duration\n"
 			"                       * Note: this removes all MPEG-4 Systems media\n"
 			" -splits filesize     splits in files of max filesize kB.\n"
@@ -1206,7 +1207,7 @@ int main(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-name")) {
-			char szTK[20], *ext;
+			char szTK[GF_MAX_PATH], *ext;
 			CHECK_NEXT_ARG
 			if (nb_track_act>=MAX_CUMUL_OPS) {
 				fprintf(stdout, "Sorry - no more than %d track operations allowed\n", MAX_CUMUL_OPS);

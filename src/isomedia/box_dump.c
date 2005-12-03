@@ -597,13 +597,8 @@ GF_Err dpin_dump(GF_Box *a, FILE * trace)
 
 GF_Err hdlr_dump(GF_Box *a, FILE * trace)
 {
-	u32 i, len;
 	GF_HandlerBox *p = (GF_HandlerBox *)a;
-	fprintf(trace, "<HandlerBox Type=\"%s\" Name=\"", gf_4cc_to_str(p->handlerType));
-	/*just print alphanum symbols, many files to have non-printable XML characters here*/
-	len = strlen(p->nameUTF8);
-	for (i=0; i<len; i++) fprintf(trace, "%c", (p->nameUTF8[i]&0x80) ? '?' : p->nameUTF8[i]);
-	fprintf(trace, "\">\n");
+	fprintf(trace, "<HandlerBox Type=\"%s\" Name=\"%s\">\n", gf_4cc_to_str(p->handlerType), p->nameUTF8);
 	DumpBox(a, trace);
 	gb_full_box_dump(a, trace);
 	fprintf(trace, "</HandlerBox>\n");
