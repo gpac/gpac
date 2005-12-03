@@ -141,7 +141,7 @@ static void RenderRectangle(GF_Node *node, void *reff)
 
 void R2D_DrawRectangle(DrawableContext *ctx)
 {
-	if (ctx->transform.m[1] || ctx->transform.m[3]) {
+	if (!ctx->h_texture || ctx->transform.m[1] || ctx->transform.m[3]) {
 		VS2D_TexturePath(ctx->surface, ctx->node->path, ctx);
 		VS2D_DrawPath(ctx->surface, ctx->node->path, ctx, NULL, NULL);
 	} else {

@@ -839,15 +839,17 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 		gf_list_add(priv->tr_scroll->children, form);
 		gf_node_register((GF_Node *) form, (GF_Node *) priv->tr_scroll);
 		priv->tr_scroll->translation.x = priv->tr_scroll->translation.y = (priv->scroll_mode & GF_TXT_SCROLL_IN) ? -INT2FIX(1000) : 0;
-		priv->scroll_time = FIX_ONE/2;
+		/*if no delay, text is in motion for the duration of the sample*/
+		priv->scroll_time = FIX_ONE;
 		priv->scroll_delay = 0;
 
 		if (txt->scroll_delay) {
 			priv->scroll_delay = gf_divfix(INT2FIX(txt->scroll_delay->scroll_delay), INT2FIX(sample_duration));
 			if (priv->scroll_delay>FIX_ONE) priv->scroll_delay = FIX_ONE;
 			priv->scroll_time = (FIX_ONE - priv->scroll_delay);
-			if ((priv->scroll_mode & GF_TXT_SCROLL_IN) && (priv->scroll_mode & GF_TXT_SCROLL_OUT)) priv->scroll_time /= 2;
 		}
+		/*if both scroll (in and out), use same scroll duration for both*/
+		if ((priv->scroll_mode & GF_TXT_SCROLL_IN) && (priv->scroll_mode & GF_TXT_SCROLL_OUT)) priv->scroll_time /= 2;
 
 	} else {
 		gf_list_add(priv->dlist->children, form);
