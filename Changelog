@@ -1,4 +1,5 @@
-Latest CVS Changes 02/12/05
+Latest CVS Changes 03/12/05
+  - fixed handling of 64-bit timing in GPAC (clients and MP4Box). Impacts on a few APIs (libisomedia, scene manager and terminal).
   - fixed bugs in BIFS RAP generation (BT and XMT-A loaders) 
   - added LASeR RAP generation
   - fixed support for node insert and delete in laser
