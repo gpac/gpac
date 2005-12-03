@@ -394,7 +394,7 @@ Bool gf_mo_get_loop(GF_MediaObject *mo, Bool in_loop)
 Double gf_mo_get_duration(GF_MediaObject *mo)
 {
 	if (!mo || !mo->odm) return -1.0;
-	return ((Double)mo->odm->duration)/1000.0;
+	return ((Double) (s64)mo->odm->duration)/1000.0;
 }
 
 Bool gf_mo_should_deactivate(GF_MediaObject *mo)
@@ -425,7 +425,7 @@ Bool gf_mo_is_muted(GF_MediaObject *mo)
 Bool gf_mo_is_done(GF_MediaObject *mo)
 {
 	GF_Codec *codec;
-	u32 dur;
+	u64 dur;
 	if (!mo || !mo->odm) return 0;
 
 	/*for natural media use composition buffer*/

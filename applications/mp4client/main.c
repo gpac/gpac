@@ -51,7 +51,7 @@ void set_echo_off(Bool echo_off);
 static Bool is_connected = 0;
 static Bool display_rti = 0;
 static Bool Run;
-static u32 Duration;
+static u64 Duration;
 static Bool CanSeek = 0;
 static u32 Volume=100;
 static char the_url[GF_MAX_PATH];
@@ -176,13 +176,13 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	return gf_cfg_new(file_path, file_name);
 }
 
-static void PrintTime(u32 time)
+static void PrintTime(u64 time)
 {
 	u32 ms, h, m, s;
-	h = time / 1000 / 3600;
-	m = time / 1000 / 60 - h*60;
-	s = time / 1000 - h*3600 - m*60;
-	ms = time - (h*3600 + m*60 + s) * 1000;
+	h = (u32) (time / 1000 / 3600);
+	m = (u32) (time / 1000 / 60 - h*60);
+	s = (u32) (time / 1000 - h*3600 - m*60);
+	ms = (u32) (time - (h*3600 + m*60 + s) * 1000);
 	fprintf(stdout, "%02d:%02d:%02d.%02d", h, m, s, ms);
 }
 
@@ -225,7 +225,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
 	switch (evt->type) {
 	case GF_EVT_DURATION:
-		Duration = (u32) (evt->duration.duration*1000);
+		Duration = (u64) (evt->duration.duration*1000);
 		CanSeek = evt->duration.can_seek;
 		break;
 	case GF_EVT_MESSAGE:
@@ -258,9 +258,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			switch (evt->key.vk_code) {
 			case GF_VK_LEFT:
 				if (Duration>=2000) {
-					s32 res = gf_term_get_time_in_ms(term) - 5*Duration/100;
+					s64 res = gf_term_get_time_in_ms(term) - 5*Duration/100;
 					if (res<0) res=0;
-					fprintf(stdout, "seeking to %.2f %% (", 100*(Float)res / Duration);
+					fprintf(stdout, "seeking to %.2f %% (", 100.0*(s64)res / (s64)Duration);
 					PrintTime(res);
 					fprintf(stdout, ")\n");
 					gf_term_play_from_time(term, res);
@@ -268,9 +268,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 				break;
 			case GF_VK_RIGHT:
 				if (Duration>=2000) {
-					u32 res = gf_term_get_time_in_ms(term) + 5*Duration/100;
+					u64 res = gf_term_get_time_in_ms(term) + 5*Duration/100;
 					if (res>=Duration) res = 0;
-					fprintf(stdout, "seeking to %.2f %% (", 100*(Float)res / Duration);
+					fprintf(stdout, "seeking to %.2f %% (", 100.0*(s64)res / (s64)Duration);
 					PrintTime(res);
 					fprintf(stdout, ")\n");
 					gf_term_play_from_time(term, res);
@@ -665,12 +665,13 @@ int main (int argc, char **argv)
 				s32 seekTo;
 				fprintf(stdout, "Duration: ");
 				PrintTime(Duration);
-				res = gf_term_get_time_in_ms(term) * 100;
-				res /= Duration;
+				res = gf_term_get_time_in_ms(term);
+				res *= 100; res /= (s64)Duration;
 				fprintf(stdout, " (current %.2f %%)\nEnter Seek percentage:\n", res);
 				if (scanf("%d", &seekTo) == 1) { 
 					if (seekTo > 100) seekTo = 100;
-					gf_term_play_from_time(term, seekTo*Duration/100);
+					res = (Double)(s64)Duration; res /= 100; res *= seekTo;
+					gf_term_play_from_time(term, (u64) res);
 				}
 			}
 			break;

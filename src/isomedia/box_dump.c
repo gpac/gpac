@@ -2264,7 +2264,8 @@ static char *ttd_format_time(u64 ts, u32 timescale, char *szDur, Bool is_srt)
 
 static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dump, void (*OnProgress)(void *cbj, u32 done, u32 total), void *cbk)
 {
-	u32 i, j, count, di, len, nb_descs, shift_offset[20], so_count, last_DTS;
+	u32 i, j, count, di, len, nb_descs, shift_offset[20], so_count;
+	u64 last_DTS;
 	Bool has_scroll;
 	char szDur[100];
 
@@ -2482,7 +2483,8 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 
 static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump, void (*OnProgress)(void *cbj, u32 done, u32 total), void *cbk)
 {
-	u32 i, j, k, count, di, len, ts, start, end, cur_frame;
+	u32 i, j, k, count, di, len, ts, cur_frame;
+	u64 start, end;
 	GF_TextSampleEntryBox *txtd;
 	GF_BitStream *bs;
 	char szDur[100];
@@ -2491,7 +2493,8 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	if (!trak || (trak->Media->handler->handlerType != GF_ISOM_MEDIA_TEXT)) return GF_BAD_PARAM;
 
 	ts = trak->Media->mediaHeader->timeScale;
-	cur_frame = start = end = 0;
+	cur_frame = 0;
+	start = end = 0;
 
 	count = gf_isom_get_sample_count(the_file, track);
 	for (i=0; i<count; i++) {

@@ -312,7 +312,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 					au = gf_list_get(sc->AUs, j);
 					if (!au->timing) au->timing = (u32) (sc->timeScale*au->timing_sec);
 				}
-				if (au && !sc->ESID && (au->timing>max_dur)) max_dur = au->timing * 1000 / sc->timeScale;
+				if (au && !sc->ESID && (au->timing>max_dur)) max_dur = (u32) (au->timing * 1000 / sc->timeScale);
 			}
 			if (max_dur) {
 				priv->inline_scene->root_od->duration = max_dur;
@@ -351,7 +351,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 		/*we're in the right stream, apply update*/
 		for (j=0; j<gf_list_count(sc->AUs); j++) {
 			GF_AUContext *au = gf_list_get(sc->AUs, j);
-			u32 au_time = au->timing*1000/sc->timeScale;
+			u32 au_time = (u32) (au->timing*1000/sc->timeScale);
 			if (au_time + 1 <= sc->last_au_time) {
 				/*remove first replace command*/
 				if (!sc->ESID && (sc->streamType==GF_STREAM_SCENE)) {

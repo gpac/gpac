@@ -313,6 +313,10 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 	GF_EditListBox *elst;
 	GF_Err e;
 
+	//the total duration is the media duration: adjust it in case...
+	e = Media_SetDuration(trak);
+	if (e) return e;
+
 	//if we have an edit list, the duration is the sum of all the editList 
 	//entries' duration (always expressed in MovieTimeScale)
 	if (trak->editBox && trak->editBox->editList) {
@@ -323,9 +327,6 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 			trackDuration += ent->segmentDuration;
 		}
 	} else {
-		//the total duration is the media duration: adjust it in case...
-		e = Media_SetDuration(trak);
-		if (e) return e;
 		//assert the timeScales are non-NULL
 		if (!trak->moov->mvhd->timeScale && !trak->Media->mediaHeader->timeScale) return GF_ISOM_INVALID_FILE;
 		trackDuration = (trak->Media->mediaHeader->duration * trak->moov->mvhd->timeScale) / trak->Media->mediaHeader->timeScale;

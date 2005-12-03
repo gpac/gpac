@@ -188,6 +188,7 @@ void PrintImportUsage()
 			" -fps FPS:            forces frame rate for video and SUB subtitles import\n"
 			"                       * For raw H263 import, default FPS is 15\n"
 			"                       * For all other imports, default FPS is 25\n"
+			"                      -- THIS IS IGNORED FOR IsoMedia IMPORT --\n"
 			" -mpeg4:              forces MPEG-4 sample descriptions when possible (3GPP2)\n"
 			" -agg N:              aggregates N audio frames in 1 sample (3GP media only)\n"
 			"                       * Note: Maximum value is 15 - Disabled by default\n"
@@ -1863,9 +1864,9 @@ int main(int argc, char **argv)
 			break;
 		case 2:
 			if (tka->delay_ms) {
-				u32 tk_dur;
+				u64 tk_dur;
 				gf_isom_remove_edit_segments(file, track);
-				tk_dur = (u32) gf_isom_get_track_duration(file, track);
+				tk_dur = gf_isom_get_track_duration(file, track);
 				gf_isom_append_edit_segment(file, track, (timescale*tka->delay_ms)/1000, 0, GF_ISOM_EDIT_EMPTY);
 				gf_isom_append_edit_segment(file, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
 				needSave = 1;

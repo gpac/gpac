@@ -1054,12 +1054,12 @@ void gf_odm_play(GF_ObjectManager *odm)
 		}
 		/*user-defined seek on top scene*/
 		else if (odm->term->root_scene->root_od==odm) {
-			com.play.start_range = odm->term->restart_time;
+			com.play.start_range = (Double) (s64) odm->term->restart_time;
 			com.play.start_range /= 1000.0;
 		}
 		/*full object playback*/
 		if (com.play.end_range<=0) {
-			odm->range_end = odm->duration;
+			odm->range_end = (u32) odm->duration;
 		} else {
 			/*segment playback - since our timing is in ms whereas segment ranges are double precision, 
 			make sure we have a LARGER range in ms, otherwise media sensors won't deactivate properly*/
@@ -1186,7 +1186,7 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *on_channel)
 	}
 }
 
-void gf_odm_set_duration(GF_ObjectManager *odm, GF_Channel *ch, u32 stream_duration)
+void gf_odm_set_duration(GF_ObjectManager *odm, GF_Channel *ch, u64 stream_duration)
 {
 	if (odm->codec) {
 		if (ch->esd->decoderConfig->streamType == odm->codec->type)
@@ -1499,7 +1499,7 @@ Bool gf_odm_check_segment_switch(GF_ObjectManager *odm)
 	if (!odm->codec || ((odm->codec->type!=GF_STREAM_VISUAL) && (odm->codec->type!=GF_STREAM_AUDIO))) {
 		GF_Clock *ck = gf_odm_get_media_clock(odm);
 		u32 now = gf_clock_time(ck);
-		u32 dur = odm->subscene ? odm->subscene->duration : odm->duration;
+		u64 dur = odm->subscene ? odm->subscene->duration : odm->duration;
 		cur = gf_list_get(ctrl->seg, ctrl->current_seg);
 		if (odm->subscene && odm->subscene->needs_restart) return 0;
 		if (cur) dur = (u32) ((cur->Duration+cur->startTime)*1000);

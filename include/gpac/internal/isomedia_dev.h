@@ -510,12 +510,12 @@ typedef struct
 	/*cache for WRITE*/
 	GF_SttsEntry *w_currentEntry;
 	u32 w_currentSampleNum;
-	u32 w_LastDTS;
+	u64 w_LastDTS;
 #endif
 	/*cache for READ*/
 	u32 r_FirstSampleInEntry;
 	u32 r_currentEntryIndex;
-	u32 r_CurrentDTS;
+	u64 r_CurrentDTS;
 } GF_TimeToSampleBox;
 
 typedef struct
@@ -1699,7 +1699,7 @@ Bool IsMP4Description(u32 entryType);
 /*Find a reference of a given type*/
 GF_Err Track_FindRef(GF_TrackBox *trak, u32 ReferenceType, GF_TrackReferenceTypeBox **dpnd);
 /*Time and sample*/
-GF_Err GetMediaTime(GF_TrackBox *trak, u32 movieTime, u64 *MediaTime, s64 *SegmentStartTime, s64 *MediaOffset, u8 *useEdit);
+GF_Err GetMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *MediaTime, s64 *SegmentStartTime, s64 *MediaOffset, u8 *useEdit);
 GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp, u32 *sampleDescriptionIndex, Bool no_data, u64 *out_offset);
 GF_Err Media_CheckDataEntry(GF_MediaBox *mdia, u32 dataEntryIndex);
 GF_Err Media_FindSyncSample(GF_SampleTableBox *stbl, u32 searchFromTime, u32 *sampleNumber, u8 mode);
@@ -1712,11 +1712,11 @@ if the entry is not found, return the closest sampleNumber in prevSampleNumber a
 if the DTS required is after all DTSs in the list, set prevSampleNumber and SampleNumber to 0
 useCTS specifies that we're looking for a composition time
 */
-GF_Err findEntryForTime(GF_SampleTableBox *stbl, u32 DTS, u8 useCTS, u32 *sampleNumber, u32 *prevSampleNumber);
+GF_Err findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sampleNumber, u32 *prevSampleNumber);
 /*Reading of the sample tables*/
 GF_Err stbl_GetSampleSize(GF_SampleSizeBox *stsz, u32 SampleNumber, u32 *Size);
 GF_Err stbl_GetSampleCTS(GF_CompositionOffsetBox *ctts, u32 SampleNumber, u32 *CTSoffset);
-GF_Err stbl_GetSampleDTS(GF_TimeToSampleBox *stts, u32 SampleNumber, u32 *DTS);
+GF_Err stbl_GetSampleDTS(GF_TimeToSampleBox *stts, u32 SampleNumber, u64 *DTS);
 /*find a RAP or set the prev / next RAPs if vars are passed*/
 GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 *IsRAP, u32 *prevRAP, u32 *nextRAP);
 GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offset, u32 *chunkNumber, u32 *descIndex, u8 *isEdited);
@@ -1753,7 +1753,7 @@ GF_Err Media_CreateDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNna
 GF_Err Media_UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sample, Bool data_only);
 GF_Err Media_UpdateSampleReference(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sample, u64 data_offset);
 /*addition in the sample tables*/
-GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u32 DTS, u32 *sampleNumber, u32 LastAUDefDuration);
+GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 LastAUDefDuration);
 GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 CTSoffset);
 GF_Err stbl_AddSize(GF_SampleSizeBox *stsz, u32 sampleNumber, u32 size);
 GF_Err stbl_AddRAP(GF_SyncSampleBox *stss, u32 sampleNumber);
@@ -1776,7 +1776,7 @@ GF_Err stbl_SampleSizeAppend(GF_SampleSizeBox *stsz, u32 data_size);
 /*writing of the final chunk info in edit mode*/
 GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 StreamDescIndex, GF_SampleToChunkBox *the_stsc, GF_Box **the_stco, u64 data_offset, u8 forceNewChunk);
 /*EDIT LIST functions*/
-GF_EdtsEntry *CreateEditEntry(u32 EditDuration, u32 MediaTime, u8 EditMode);
+GF_EdtsEntry *CreateEditEntry(u64 EditDuration, u64 MediaTime, u8 EditMode);
 
 /*REMOVE functions*/
 GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDuration);
@@ -1787,6 +1787,9 @@ GF_Err stbl_RemoveRAP(GF_SampleTableBox *stbl, u32 sampleNumber);
 GF_Err stbl_RemoveShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber);
 GF_Err stbl_RemovePaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber);
 GF_Err stbl_RemoveSampleFragments(GF_SampleTableBox *stbl, u32 sampleNumber);
+
+GF_Err GetNextMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime);
+GF_Err GetPrevMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime);
 
 #ifndef	GF_ISOM_NO_FRAGMENTS
 GF_Err StoreFragment(GF_ISOFile *movie);
@@ -1886,7 +1889,7 @@ typedef struct __tag_hint_sample
 	char *AdditionalData;
 	u32 dataLength;
 	/*used internally for hinting*/
-	u32 TransmissionTime;
+	u64 TransmissionTime;
 	/*for read only, used to store samples fetched while building packets*/
 	GF_List *sample_cache;
 } GF_HintSample;

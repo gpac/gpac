@@ -1288,7 +1288,7 @@ GF_Err swf_place_obj(SWFReader *read, u32 revision)
 		gf_node_register(com->node, NULL);
 		f = gf_sg_command_field_new(com);
 		f->field_ptr = gf_sg_vrml_field_pointer_new(GF_SG_VRML_SFTIME);
-		*(SFTime *)f->field_ptr = ((Double)read->bifs_au->timing) / read->bifs_es->timeScale;
+		*(SFTime *)f->field_ptr = ((Double) (s64) read->bifs_au->timing) / read->bifs_es->timeScale;
 		f->fieldType = GF_SG_VRML_SFTIME;
 		f->fieldIndex = 2;	/*startTime index*/
 		gf_list_add(read->bifs_au->commands, com);
@@ -2050,7 +2050,7 @@ GF_Err swf_start_sound(SWFReader *read)
 		f->fieldType = GF_SG_VRML_SFTIME;
 		f->fieldIndex = info.fieldIndex;
 		/*replace by "now"*/
-		*(SFTime *)f->field_ptr = ((Double)read->bifs_au->timing) / read->bifs_es->timeScale;
+		*(SFTime *)f->field_ptr = ((Double)(s64) read->bifs_au->timing) / read->bifs_es->timeScale;
 		*(SFTime *)f->field_ptr = 0;
 		gf_list_add(read->bifs_au->commands, com);
 	}
@@ -2064,7 +2064,7 @@ GF_Err swf_start_sound(SWFReader *read)
 	f->fieldType = GF_SG_VRML_SFTIME;
 	f->fieldIndex = info.fieldIndex;
 	/*replace by "now"*/
-	*(SFTime *)f->field_ptr = ((Double)read->bifs_au->timing) / read->bifs_es->timeScale;
+	*(SFTime *)f->field_ptr = ((Double)(s64) read->bifs_au->timing) / read->bifs_es->timeScale;
 	*(SFTime *)f->field_ptr = 0;
 	gf_list_add(read->bifs_au->commands, com);
 

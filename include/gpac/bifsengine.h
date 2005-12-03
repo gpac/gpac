@@ -72,7 +72,7 @@ void gf_beng_get_stream_config(GF_BifsEngine *beng, char **config, u32 *config_l
  * @AUCallback, pointer on a callback function to get the result of the coding the AU using the current context
  *
  */
-GF_Err gf_beng_encode_context(GF_BifsEngine *beng, GF_Err (*AUCallback)(void *, char *data, u32 size, u32 ts));
+GF_Err gf_beng_encode_context(GF_BifsEngine *beng, GF_Err (*AUCallback)(void *, char *data, u32 size, u64 ts));
 
 /**
  * @beng, pointer to the GF_BifsEngine returned by BENC_Init
@@ -80,7 +80,7 @@ GF_Err gf_beng_encode_context(GF_BifsEngine *beng, GF_Err (*AUCallback)(void *, 
  * @AUCallback, pointer on a callback function to get the result of the coding the AU using the current context
  *
  */
-GF_Err gf_beng_encode_from_file(GF_BifsEngine *beng, char *auFile, GF_Err (*AUCallback)(void *, char *data, u32 size, u32 ts));
+GF_Err gf_beng_encode_from_file(GF_BifsEngine *beng, char *auFile, GF_Err (*AUCallback)(void *, char *data, u32 size, u64 ts));
 
 /**
  * @beng, pointer to the GF_BifsEngine returned by BENC_Init
@@ -88,7 +88,7 @@ GF_Err gf_beng_encode_from_file(GF_BifsEngine *beng, char *auFile, GF_Err (*AUCa
  * @AUCallback, pointer on a callback function to get the result of the coding the AU using the current context
  *
  */
-GF_Err gf_beng_encode_from_string(GF_BifsEngine *beng, char *auString, GF_Err (*AUCallback)(void *, char *data, u32 size, u32 ts));
+GF_Err gf_beng_encode_from_string(GF_BifsEngine *beng, char *auString, GF_Err (*AUCallback)(void *, char *data, u32 size, u64 ts));
 
 /**
  * @beng, pointer to the GF_BifsEngine returned by BENC_Init

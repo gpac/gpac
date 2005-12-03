@@ -64,7 +64,8 @@ void gf_import_progress(GF_MediaImporter *import, u32 cur_samp, u32 count)
 
 static void MP4T_RecomputeBitRate(GF_ISOFile *file, u32 track)
 {
-	u32 i, count, timescale, time_wnd, rate;
+	u32 i, count, timescale;
+	u64 time_wnd, rate, max_rate, avg_rate;
 	Double br;
 	GF_ESD *esd;
 
@@ -73,7 +74,7 @@ static void MP4T_RecomputeBitRate(GF_ISOFile *file, u32 track)
 
 	esd->decoderConfig->avgBitrate = 0;
 	esd->decoderConfig->maxBitrate = 0;
-	rate = time_wnd = 0;
+	rate = max_rate = avg_rate = time_wnd = 0;
 
 	timescale = gf_isom_get_media_timescale(file, track);
 	count = gf_isom_get_sample_count(file, track);
@@ -83,10 +84,10 @@ static void MP4T_RecomputeBitRate(GF_ISOFile *file, u32 track)
 		if (samp->dataLength>esd->decoderConfig->bufferSizeDB) esd->decoderConfig->bufferSizeDB = samp->dataLength;
 
 		if (esd->decoderConfig->bufferSizeDB < samp->dataLength) esd->decoderConfig->bufferSizeDB = samp->dataLength;
-		esd->decoderConfig->avgBitrate += samp->dataLength;
+		avg_rate += samp->dataLength;
 		rate += samp->dataLength;
 		if (samp->DTS > time_wnd + timescale) {
-			if (rate > esd->decoderConfig->maxBitrate) esd->decoderConfig->maxBitrate = rate;
+			if (rate > max_rate) max_rate = rate;
 			time_wnd = samp->DTS;
 			rate = 0;
 		}
@@ -96,10 +97,10 @@ static void MP4T_RecomputeBitRate(GF_ISOFile *file, u32 track)
 	
 	br = (Double) (s64) gf_isom_get_media_duration(file, track);
 	br /= timescale;
-	esd->decoderConfig->avgBitrate = (u32) (esd->decoderConfig->avgBitrate / br);
+	esd->decoderConfig->avgBitrate = (u32) ((Double) (s64)avg_rate / br);
 	/*move to bps*/
 	esd->decoderConfig->avgBitrate *= 8;
-	esd->decoderConfig->maxBitrate *= 8;
+	esd->decoderConfig->maxBitrate = (u32) (max_rate*8);
 
 	gf_isom_change_mpeg4_description(file, track, 1, esd);
 	gf_odf_desc_del((GF_Descriptor *)esd);
@@ -1332,8 +1333,8 @@ exit:
 GF_Err gf_import_isomedia(GF_MediaImporter *import)
 {
 	GF_Err e;
-	u64 offset;
-	u32 track, di, trackID, track_in, i, num_samples, sampDTS, mtype, stype, w, h, duration, sr, sbr_sr, ch;
+	u64 offset, sampDTS;
+	u32 track, di, trackID, track_in, i, num_samples, mtype, stype, w, h, duration, sr, sbr_sr, ch;
 	u8 bps;
 	char lang[4];
 	const char *url, *urn;
@@ -1930,7 +1931,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 		offset = gf_bs_read_u32(bs);
 		samp->CTS_Offset = gf_bs_read_u32(bs);
 		samp->DTS = gf_bs_read_u32(bs);
-		samp->CTS_Offset -= samp->DTS;
+		samp->CTS_Offset -= (u32) samp->DTS;
 		if (!count && samp->DTS) samp->DTS = 0;
 		count++;
 
@@ -2356,7 +2357,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 			if (!strcmp(str, "DTS")) {
 				u32 h, m, s, ms;
 				if (sscanf(parser.value_buffer, "%d:%d:%d.%d", &h, &m, &s, &ms) == 4) {
-					samp->DTS = (u32) ( (Double) ( ((h*3600 + m*60 + s)*1000 + ms) / 1000.0) * timescale );
+					samp->DTS = (u64) ( (Double) ( ((h*3600 + m*60 + s)*1000 + ms) / 1000.0) * timescale );
 				} else {
 					samp->DTS = atoi(parser.value_buffer);
 				}
@@ -3457,7 +3458,8 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 
 	/*recompute all CTS offsets*/
 	if (has_cts_offset) {
-		u32 i, last_dts, max_cts, last_cts_samp;
+		u32 i, last_cts_samp;
+		u64 last_dts, max_cts;
 		if (!poc_diff) poc_diff = 1;
 		/*no b-frame references, no need to cope with negative poc*/
 		if (!max_total_delay) {
@@ -3477,7 +3479,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 			if (samp->IsRAP /*&& !samp->CTS_Offset*/) last_dts = samp->DTS;
 
 			/*CTS offset is frame POC (refers to last IDR)*/
-			samp->CTS_Offset = (min_poc + (s32) samp->CTS_Offset) * dts_inc/poc_diff + max_total_delay*dts_inc + last_dts - samp->DTS;
+			samp->CTS_Offset = (min_poc + (s32) samp->CTS_Offset) * dts_inc/poc_diff + (u32) (last_dts + max_total_delay*dts_inc - samp->DTS);
 
 			if (max_cts < samp->DTS + samp->CTS_Offset) {
 				max_cts = samp->DTS + samp->CTS_Offset;
@@ -3495,7 +3497,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 						GF_ISOSample *bsamp = gf_isom_get_sample_info(import->dest, track, k+1, NULL, NULL);
 						if (asamp->CTS_Offset+asamp->DTS==bsamp->CTS_Offset+bsamp->DTS) {
 							max_cts += dts_inc;
-							bsamp->CTS_Offset = max_cts - bsamp->DTS;
+							bsamp->CTS_Offset = (u32) (max_cts - bsamp->DTS);
 							gf_isom_modify_cts_offset(import->dest, track, k+1, bsamp->CTS_Offset);
 						}
 						gf_isom_sample_del(&bsamp);

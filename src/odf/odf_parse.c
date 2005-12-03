@@ -347,11 +347,11 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "compositionUnitDuration")) ret += sscanf(val, "%hd", &slc->CUDuration);
 		else if (!stricmp(fieldName, "startDecodingTimeStamp")) {
 			ret += sscanf(val, "%d", &ts);
-			slc->startDTS = (u32) ts;
+			slc->startDTS = ts;
 		}
 		else if (!stricmp(fieldName, "startCompositionTimeStamp")) {
 			ret += sscanf(val, "%d", &ts);
-			slc->startCTS = (u32) ts;
+			slc->startCTS = ts;
 		}
 		else if (!stricmp(fieldName, "durationFlag")) ret = 1;
 	}	

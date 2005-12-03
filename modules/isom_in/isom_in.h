@@ -66,7 +66,7 @@ typedef struct
 	u32 track;
 	LPNETCHANNEL channel;
 	ISOMReader *owner;
-	u32 duration;
+	u64 duration;
 
 
 	/*current sample*/
@@ -78,7 +78,7 @@ typedef struct
 
 	Bool has_edit_list;
 	u32 sample_num;
-	u32 sample_time;
+	u64 sample_time;
 	u32 start, end;
 	Double speed;
 
@@ -92,7 +92,8 @@ typedef struct
 	/*cache stuff*/
 	u64 cache_seed_ts;
 	Bool is_video;
-	u32 frame_cts_offset, prev_dts, max_cts;
+	u32 frame_cts_offset;
+	u64 prev_dts, max_cts;
 	GF_ISOSample *cache_sample;
 } ISOMChannel;
 void isor_reset_reader(ISOMChannel *ch);

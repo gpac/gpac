@@ -99,7 +99,7 @@ typedef struct
 	GF_ISOFile *file;
 
 	u32 track;
-	u32 duration, cts;
+	u64 duration, cts;
 } BIFSVID;
 
 void node_init(void *cbk, GF_Node *node)
@@ -125,8 +125,8 @@ Double get_scene_time(void *cbk)
 {
 	Double res;
 	BIFSVID *b2v = cbk;
-	res = b2v->cts;
-	res /= b2v->duration;
+	res = (Double) (s64) b2v->cts;
+	res /= (Double) (s64) b2v->duration;
 	return res;
 }
 
@@ -272,7 +272,7 @@ GF_Config *loadconfigfile()
 }
 
 
-void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, char *rad_name, u32 dump_type, char *out_dir, Float fps, s32 frameID, s32 dump_time)
+void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, char *rad_name, u32 dump_type, char *out_dir, Double fps, s32 frameID, s32 dump_time)
 {
 	GF_User user;
 	BIFSVID b2v;
@@ -379,7 +379,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 		goto err_exit;
 	}
 
-	b2v.duration = (u32) gf_isom_get_media_duration(file, i+1);
+	b2v.duration = gf_isom_get_media_duration(file, i+1);
 	timescale = gf_isom_get_media_timescale(file, i+1);
 	es_id = (u16) gf_isom_get_track_id(file, i+1);
 	e = gf_bifs_decoder_configure_stream(b2v.bifs, es_id, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, esd->decoderConfig->objectTypeIndication);
@@ -397,7 +397,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	reset_fps = 0;
 	if (!fps) { 
 		fps = (Float) (count * timescale);
-		fps /= b2v.duration;
+		fps /= (Double) (s64) b2v.duration;
 		printf("Estimated BIFS FrameRate %g\n", fps);
 		reset_fps = 1;
 	}
@@ -484,7 +484,7 @@ err_exit:
 
 int main (int argc, char **argv)
 {
-	Float fps_dump;
+	Double fps_dump;
 	u32 i;
 	char rad[500];
 	s32 frameID, h, m, s, f;
@@ -563,7 +563,7 @@ int main (int argc, char **argv)
 			dump_out = argv[i+1];
 			i++;
 		} else if (!stricmp(arg, "-fps")) {
-			sscanf(argv[i+1], "%f", &fps_dump);
+			fps_dump = atof(argv[i+1]);
 			i++;
 		} else if (!stricmp(arg, "-copy")) {
 			copy = 1;

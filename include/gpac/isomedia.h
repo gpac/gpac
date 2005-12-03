@@ -47,7 +47,7 @@ typedef struct
 	/*data with padding if requested*/
 	char *data;
 	/*decoding time*/
-	u32 DTS;
+	u64 DTS;
 	/*relative offset for composition if needed*/
 	u32 CTS_Offset;
 	/*Random Access Point flag - 1 is regular RAP (read/write) , 2 is SyncShadow (read mode only)*/
@@ -440,7 +440,7 @@ retrieved (faster)
 GF_ISOSample *gf_isom_get_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *StreamDescriptionIndex, u64 *data_offset);
 
 /*retrieves given sample DTS*/
-u32 gf_isom_get_sample_dts(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber);
+u64 gf_isom_get_sample_dts(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber);
 
 /*returns sample duration in media timeScale*/
 u32 gf_isom_get_sample_duration(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber);
@@ -451,7 +451,7 @@ this index allows to retrieve the stream description if needed (2 media in 1 tra
 return GF_EOS if the desired time exceeds the media duration
 WARNING: the sample may not be sync even though the sync was requested (depends on the media and the editList)
 the SampleNum is optional. If non-NULL, will contain the sampleNumber*/
-GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, u32 desiredTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *SampleNum);
+GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, u64 desiredTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *SampleNum);
 
 
 /*Track Edition functions*/
@@ -473,8 +473,7 @@ on the track time-line. The sample TSs (DTS / CTS offset) are expressed in MEDIA
 
 sampleNumber is optional and gives the number of the sample in the media
 */
-GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, u32 movieTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *sampleNumber);
-
+GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, u64 movieTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *sampleNumber);
 
 /*get the number of edited segment*/
 u32 gf_isom_get_edit_segment_count(GF_ISOFile *the_file, u32 trackNumber);
@@ -800,12 +799,12 @@ If a segment with EditTime already exists, IT IS ERASED
 if there is a segment before this new one, its duration is adjust to match EditTime of
 the new segment
 WARNING: The first segment always have an EditTime of 0. You should insert an empty or dwelled segment first.*/
-GF_Err gf_isom_set_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u32 EditTime, u32 EditDuration, u32 MediaTime, u8 EditMode);
+GF_Err gf_isom_set_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u64 EditTime, u64 EditDuration, u64 MediaTime, u8 EditMode);
 
 /*same as above except only modifies duartion type and mediaType*/
-GF_Err gf_isom_modify_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u32 seg_index, u32 EditDuration, u32 MediaTime, u8 EditMode);
+GF_Err gf_isom_modify_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u32 seg_index, u64 EditDuration, u64 MediaTime, u8 EditMode);
 /*same as above except only appends new segment*/
-GF_Err gf_isom_append_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u32 EditDuration, u32 MediaTime, u8 EditMode);
+GF_Err gf_isom_append_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u64 EditDuration, u64 MediaTime, u8 EditMode);
 
 /*remove the edit segments for the whole track*/
 GF_Err gf_isom_remove_edit_segments(GF_ISOFile *the_file, u32 trackNumber);

@@ -227,8 +227,9 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	GF_StyleRecord rec;
 	GF_TextSample * samp;
 	GF_ISOSample *s;
-	u32 sh, sm, ss, sms, eh, em, es, ems, start, end, prev_end, txt_line, char_len, char_line, nb_samp, j, duration, file_size, rem_styles;
+	u32 sh, sm, ss, sms, eh, em, es, ems, txt_line, char_len, char_line, nb_samp, j, duration, file_size, rem_styles;
 	Bool set_start_char, set_end_char, first_samp;
+	u64 start, end, prev_end;
 	u32 state, curLine, line, len, ID, OCR_ES_ID;
 	s32 unicode_type;
 	char szLine[2048], szText[2048], *ptr;
@@ -347,7 +348,8 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	duration = (u32) (((Double) import->duration)*timescale/1000.0);
 
 	e = GF_OK;
-	state = end = prev_end = 0;
+	state = 0;
+	end = prev_end = 0;
 	curLine = 0;
 	txt_line = 0;
 	set_start_char = set_end_char = 0;
@@ -372,7 +374,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 					GF_TextSample * empty_samp = gf_isom_new_text_sample();
 					s = gf_isom_text_to_sample(empty_samp);
 					gf_isom_delete_text_sample(empty_samp);
-					s->DTS = (u32) (scale*prev_end);
+					s->DTS = (u64) (scale*(s64)prev_end);
 					s->IsRAP = 1;
 					gf_isom_add_sample(import->dest, track, 1, s);
 					gf_isom_sample_del(&s);
@@ -380,7 +382,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 				}
 
 				s = gf_isom_text_to_sample(samp);
-				s->DTS = (u32) (scale*start);
+				s->DTS = (u64) (scale*(s64) start);
 				s->IsRAP = 1;
 				gf_isom_add_sample(import->dest, track, 1, s);
 				gf_isom_sample_del(&s);
@@ -553,7 +555,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	if (end) {
 		gf_isom_text_reset(samp);
 		s = gf_isom_text_to_sample(samp);
-		s->DTS = (u32) (scale*end);
+		s->DTS = (u64) (scale*(s64)end);
 		s->IsRAP = 1;
 		gf_isom_add_sample(import->dest, track, 1, s);
 		gf_isom_sample_del(&s);
@@ -765,7 +767,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		if (prev_end) {
 			GF_TextSample * empty_samp = gf_isom_new_text_sample();
 			s = gf_isom_text_to_sample(empty_samp);
-			s->DTS = (u32) (FPS*prev_end);
+			s->DTS = (u64) (FPS*(s64)prev_end);
 			gf_isom_add_sample(import->dest, track, 1, s);
 			gf_isom_sample_del(&s);
 			nb_samp++;
@@ -773,7 +775,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		}
 
 		s = gf_isom_text_to_sample(samp);
-		s->DTS = (u32) (FPS*start);
+		s->DTS = (u64) (FPS*(s64)start);
 		gf_isom_add_sample(import->dest, track, 1, s);
 		gf_isom_sample_del(&s);
 		nb_samp++;
@@ -786,7 +788,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 	if (end) {
 		gf_isom_text_reset(samp);
 		s = gf_isom_text_to_sample(samp);
-		s->DTS = (u32) (FPS*end);
+		s->DTS = (u64)(FPS*(s64)end);
 		gf_isom_add_sample(import->dest, track, 1, s);
 		gf_isom_sample_del(&s);
 		nb_samp++;
@@ -935,7 +937,8 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 {
 	GF_Err e;
 	Bool last_sample_empty;
-	u32 track, ID, nb_samples, nb_descs, last_sample_duration;
+	u32 track, ID, nb_samples, nb_descs;
+	u64 last_sample_duration;
 	XMLParser parser;
 	char *str;
 
@@ -1242,7 +1245,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 	}
 	if (last_sample_empty) {
 		gf_isom_remove_sample(import->dest, track, nb_samples);
-		gf_isom_set_last_sample_duration(import->dest, track, last_sample_duration);
+		gf_isom_set_last_sample_duration(import->dest, track, (u32) last_sample_duration);
 	}
 	gf_import_progress(import, nb_samples, nb_samples);
 
@@ -1301,7 +1304,8 @@ typedef struct
 static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 {
 	GF_Err e;
-	u32 track, ID, nb_samples, nb_descs, timescale, DTS, w, h;
+	u32 track, ID, nb_samples, nb_descs, timescale, w, h;
+	u64 DTS;
 	s32 tx, ty, layer;
 	GF_StyleRecord styles[50];
 	Marker marks[50];

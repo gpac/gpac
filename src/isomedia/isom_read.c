@@ -58,12 +58,8 @@ u8 gf_isom_get_mode(GF_ISOFile *the_file)
 //creates a new empty sample
 GF_ISOSample *gf_isom_sample_new()
 {
-	GF_ISOSample *tmp = (GF_ISOSample *) malloc(sizeof(GF_ISOSample));
-	if (!tmp) return NULL;
-	tmp->CTS_Offset = tmp->DTS = 0;
-	tmp->dataLength = 0;
-	tmp->IsRAP = 0;
-	tmp->data = NULL;
+	GF_ISOSample *tmp;
+	GF_SAFEALLOC(tmp, sizeof(GF_ISOSample));
 	return tmp;
 }
 
@@ -981,18 +977,18 @@ GF_ISOSample *gf_isom_get_sample(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 
 u32 gf_isom_get_sample_duration(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber)
 {
-	u32 dur;
-	u32 dts;
+	u64 dur;
+	u64 dts;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !sampleNumber) return 0;
 
 	stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, sampleNumber, &dur);
 	if (sampleNumber == trak->Media->information->sampleTable->SampleSize->sampleCount) {
-		return (u32) trak->Media->mediaHeader->duration - dur;
+		return (u32) (trak->Media->mediaHeader->duration - dur);
 	} 
 	
 	stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, sampleNumber+1, &dts);
-	return (dts - dur);
+	return (u32) (dts - dur);
 }
 
 //same as gf_isom_get_sample but doesn't fetch media data
@@ -1017,9 +1013,9 @@ GF_ISOSample *gf_isom_get_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32
 }
 
 //same as gf_isom_get_sample but doesn't fetch media data
-u32 gf_isom_get_sample_dts(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber)
+u64 gf_isom_get_sample_dts(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber)
 {
-	u32 dts;
+	u64 dts;
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return 0;
@@ -1044,7 +1040,7 @@ Bool gf_isom_is_self_contained(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 //this index allows to retrieve the stream description if needed (2 media in 1 track)
 //return NULL if error
 //WARNING: the sample may not be sync even though the sync was requested (depends on the media)
-GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, u32 desiredTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *SampleNum)
+GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, u64 desiredTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *SampleNum)
 {
 	GF_Err e;
 	u32 sampleNumber, prevSampleNumber, syncNum, shadowSync;
@@ -1182,7 +1178,7 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 	return GF_OK;
 }
 
-GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, u32 movieTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *sampleNumber)
+GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, u64 movieTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *sampleNumber)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -1190,8 +1186,6 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	s64 segStartTime, mediaOffset;
 	u32 sampNum;
 	u8 useEdit;
-	GF_Err GetNextMediaTime(GF_TrackBox *trak, u32 movieTime, u64 *OutMovieTime);
-	GF_Err GetPrevMediaTime(GF_TrackBox *trak, u32 movieTime, u64 *OutMovieTime);
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
@@ -1251,7 +1245,7 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	}
 
 	//OK, we have a sample so fetch it
-	e = gf_isom_get_sample_for_media_time(the_file, trackNumber, (u32) mediaTime, StreamDescriptionIndex, SearchMode, sample, &sampNum);
+	e = gf_isom_get_sample_for_media_time(the_file, trackNumber, mediaTime, StreamDescriptionIndex, SearchMode, sample, &sampNum);
 	if (e) return e;
 
 	//OK, now the trick: we have to rebuild the time stamps, according 
@@ -1261,10 +1255,10 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 		u64 _ts = segStartTime;
 		_ts *= trak->Media->mediaHeader->timeScale;
 		_ts /= trak->moov->mvhd->timeScale;
-		(*sample)->DTS += (u32) _ts;
-		/*watchout, the sample fetched mAY be before the first sample in the edit list (when seeking)*/
-		if ( (*sample)->DTS > mediaOffset) {
-			(*sample)->DTS -= (u32) mediaOffset;
+		(*sample)->DTS += _ts;
+		/*watchout, the sample fetched may be before the first sample in the edit list (when seeking)*/
+		if ( (*sample)->DTS > (u64) mediaOffset) {
+			(*sample)->DTS -= (u64) mediaOffset;
 		} else {
 			(*sample)->DTS = 0;
 		}

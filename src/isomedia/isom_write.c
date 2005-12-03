@@ -614,9 +614,6 @@ GF_Err gf_isom_add_sample(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescript
 	//add the media data
 	e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, sample->data, sample->dataLength);
 	if (e) return e;
-	//OK, update duration
-	e = Media_SetDuration(trak);
-	if (e) return e;
 	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 	return SetTrackDuration(trak);
 }
@@ -1183,7 +1180,7 @@ GF_Err gf_isom_set_storage_mode(GF_ISOFile *movie, u8 storageMode)
 //update or insert a new edit segment in the track time line. Edits are used to modify
 //the media normal timing. EditTime and EditDuration are expressed in Movie TimeScale
 //If a segment with EditTime already exists, IT IS ERASED
-GF_Err gf_isom_set_edit_segment(GF_ISOFile *movie, u32 trackNumber, u32 EditTime, u32 EditDuration, u32 MediaTime, u8 EditMode)
+GF_Err gf_isom_set_edit_segment(GF_ISOFile *movie, u32 trackNumber, u64 EditTime, u64 EditDuration, u64 MediaTime, u8 EditMode)
 {
 	GF_TrackBox *trak;
 	GF_EditBox *edts;
@@ -1324,7 +1321,7 @@ GF_Err gf_isom_remove_edit_segment(GF_ISOFile *movie, u32 trackNumber, u32 seg_i
 }
 
 
-GF_Err gf_isom_append_edit_segment(GF_ISOFile *movie, u32 trackNumber, u32 EditDuration, u32 MediaTime, u8 EditMode)
+GF_Err gf_isom_append_edit_segment(GF_ISOFile *movie, u32 trackNumber, u64 EditDuration, u64 MediaTime, u8 EditMode)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -1367,7 +1364,7 @@ GF_Err gf_isom_append_edit_segment(GF_ISOFile *movie, u32 trackNumber, u32 EditD
 	return SetTrackDuration(trak);
 }
 
-GF_Err gf_isom_modify_edit_segment(GF_ISOFile *movie, u32 trackNumber, u32 seg_index, u32 EditDuration, u32 MediaTime, u8 EditMode)
+GF_Err gf_isom_modify_edit_segment(GF_ISOFile *movie, u32 trackNumber, u32 seg_index, u64 EditDuration, u64 MediaTime, u8 EditMode)
 {
 	GF_Err e;
 	GF_TrackBox *trak;

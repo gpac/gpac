@@ -999,8 +999,9 @@ GF_Err gf_media_export_nhnt(GF_MediaExporter *dumper)
 			gf_bs_write_int(bs, samp->IsRAP ? 0 : 1, 2);
 		}
 		gf_bs_write_u32(bs, pos);
-		gf_bs_write_u32(bs, samp->DTS + samp->CTS_Offset);
-		gf_bs_write_u32(bs, samp->DTS);
+		/*TODO support for large files*/
+		gf_bs_write_u32(bs, (u32) (samp->DTS + samp->CTS_Offset) );
+		gf_bs_write_u32(bs, (u32) samp->DTS);
 
 		pos += samp->dataLength;
 		gf_isom_sample_del(&samp);
@@ -1017,7 +1018,8 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 {
 	GF_ESD *esd;
 	GF_InitialObjectDescriptor *iod;
-	u32 TrackID, newTk, descIndex, i, ts, rate, dur, pos, di, count, msubtype;
+	u32 TrackID, newTk, descIndex, i, ts, rate, pos, di, count, msubtype;
+	u64 dur;
 	GF_ISOSample *samp;
 
 	if (!inTrackNum) {
@@ -1094,10 +1096,10 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 	/*likely 3gp or any non-MPEG-4 isomedia file*/
 	else if (!esd) return gf_isom_remove_root_od(outfile);
 
-	dur = (u32) gf_isom_get_media_duration(outfile, newTk);
+	dur = gf_isom_get_media_duration(outfile, newTk);
 	if (!dur) dur = ts;
 	esd->decoderConfig->maxBitrate *= 8;
-	esd->decoderConfig->avgBitrate *= 8 * ts / dur;
+	esd->decoderConfig->avgBitrate = (u32) (esd->decoderConfig->avgBitrate * 8 * ts / dur);
 	gf_isom_change_mpeg4_description(outfile, newTk, 1, esd);
 
 
@@ -1241,7 +1243,7 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 	FPS = gf_isom_get_media_timescale(dumper->file, track);
 	FPS *= (count-1);
 	samp = gf_isom_get_sample(dumper->file, track, count, &di);
-	FPS /= samp->DTS;
+	FPS /= (s64) samp->DTS;
 	gf_isom_sample_del(&samp);
 
 	frame_d = 0;
@@ -1261,7 +1263,8 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 
 		/*compute VfW delay*/
 		if (gf_isom_has_time_offset(dumper->file, track)) {
-			u32 DTS, max_CTSO;
+			u32 max_CTSO;
+			u64 DTS;
 			DTS = max_CTSO = 0;
 			for (i=0; i<count; i++) {
 				samp = gf_isom_get_sample_info(dumper->file, track, i+1, NULL, NULL);
@@ -1271,7 +1274,7 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 				gf_isom_sample_del(&samp);
 			}
 			DTS /= (count-1);
-			frame_d = max_CTSO / DTS;
+			frame_d = max_CTSO / (u32) DTS;
 			frame_d -= 1;
 			/*dummy delay frame for xvid unpacked bitstreams*/
 			dumdata[0] = 127;

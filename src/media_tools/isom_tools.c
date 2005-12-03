@@ -669,7 +669,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 
 				next = gf_isom_get_sample(input, tf->OriginalTrack, tf->SampleNum + 2, &j);
 				if (next) {
-					defaultDuration = next->DTS - sample->DTS;
+					defaultDuration = (u32) (next->DTS - sample->DTS);
 				} else {
 					defaultDuration = tf->DefaultDuration;
 				}

@@ -482,7 +482,7 @@ static void IS_CheckMediaRestart(GF_InlineScene *is)
 		GF_Clock *ck = gf_odm_get_media_clock(is->root_od);
 		if (ck->has_seen_eos) {
 			u32 now = gf_clock_time(ck);
-			u32 dur = is->duration;
+			u64 dur = is->duration;
 			if (is->root_od->media_ctrl->current_seg) {
 				/*only process when all segments are played*/
 				if (gf_list_count(is->root_od->media_ctrl->seg) <= is->root_od->media_ctrl->current_seg) {
@@ -751,7 +751,8 @@ void gf_is_restart(GF_InlineScene *is)
 void gf_is_set_duration(GF_InlineScene *is)
 {
 	Double dur;
-	u32 i, max_dur;
+	u32 i;
+	u64 max_dur;
 	GF_ObjectManager *odm;
 	GF_Clock *ck;
 
@@ -769,7 +770,7 @@ void gf_is_set_duration(GF_InlineScene *is)
 	if (is->duration == max_dur) return;
 
 	is->duration = max_dur;
-	dur = is->duration;
+	dur = (Double) (s64) is->duration;
 	dur /= 1000;
 	
 	for (i = 0; i < gf_list_count(is->root_od->ms_stack); i++) {
@@ -1290,7 +1291,7 @@ void gf_is_force_scene_size(GF_InlineScene *is, u32 width, u32 height)
 	IS_UpdateVideoPos(is);
 }
 
-void gf_is_restart_dynamic(GF_InlineScene *is, u32 from_time)
+void gf_is_restart_dynamic(GF_InlineScene *is, u64 from_time)
 {
 	u32 i;
 	GF_List *to_restart;
@@ -1310,13 +1311,13 @@ void gf_is_restart_dynamic(GF_InlineScene *is, u32 from_time)
 	}
 	if (is->root_od->media_ctrl) {
 		Double start, end;
-		start = from_time; start /= 1000;
+		start = (Double) (s64) from_time; start /= 1000;
 		end = -1;
 		MC_GetRange(is->root_od->media_ctrl, &start, &end);
 		if (start>=0) from_time = (u32) (start*1000.0);
 	}
 	
-	gf_clock_set_time(ck, from_time);
+	gf_clock_set_time(ck, (u32) from_time);
 
 	for (i=0; i<gf_list_count(to_restart); i++) {
 		GF_ObjectManager *odm = gf_list_get(to_restart, i);

@@ -30,10 +30,10 @@
 //we could return an error if a sample with the same DTS already exists
 //but this is not true for QT or MJ2K, only for MP4...
 //we assume the authoring tool tries to create a compliant MP4 file.
-GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u32 DTS, u32 *sampleNumber, u32 LastAUDefDuration)
+GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 LastAUDefDuration)
 {
-	u32 i, j, sampNum, curDTS;
-	u32 *DTSs, *newDTSs;
+	u32 i, j, sampNum;
+	u64 *DTSs, *newDTSs, curDTS;
 	GF_SttsEntry *ent;
 
 	GF_TimeToSampleBox *stts = stbl->TimeToSample;
@@ -67,7 +67,7 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u32 DTS, u32 *sampleNumber, u32 Last
 		//we need to split the entry
 		if (stts->w_currentEntry->sampleCount == 1) {
 			//use this one and adjust...
-			stts->w_currentEntry->sampleDelta = DTS - stts->w_LastDTS;
+			stts->w_currentEntry->sampleDelta = (u32) (DTS - stts->w_LastDTS);
 			stts->w_currentEntry->sampleCount ++;
 			stts->w_currentSampleNum ++;
 			stts->w_LastDTS = DTS;
@@ -78,7 +78,7 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u32 DTS, u32 *sampleNumber, u32 Last
 		stts->w_currentEntry->sampleCount --;
 		ent = (GF_SttsEntry*)malloc(sizeof(GF_SttsEntry));
 		ent->sampleCount = 2;
-		ent->sampleDelta = DTS - stts->w_LastDTS;
+		ent->sampleDelta = (u32) (DTS - stts->w_LastDTS);
 		stts->w_LastDTS = DTS;
 		stts->w_currentSampleNum ++;
 		(*sampleNumber) = stts->w_currentSampleNum;
@@ -88,7 +88,7 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u32 DTS, u32 *sampleNumber, u32 Last
 
 
 	//unpack the DTSs...
-	DTSs = (u32*)malloc(sizeof(u32) * stbl->SampleSize->sampleCount);
+	DTSs = (u64*)malloc(sizeof(u64) * stbl->SampleSize->sampleCount);
 	curDTS = 0;
 	sampNum = 0;
 	ent = NULL;
@@ -108,7 +108,7 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u32 DTS, u32 *sampleNumber, u32 Last
 	}
 
 	//create the new DTSs
-	newDTSs = (u32*)malloc(sizeof(u32) * (stbl->SampleSize->sampleCount + 1));
+	newDTSs = (u64*)malloc(sizeof(u64) * (stbl->SampleSize->sampleCount + 1));
 	i = 0;
 	while (i < stbl->SampleSize->sampleCount) {
 		if (DTSs[i] > DTS) break;
@@ -126,7 +126,7 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u32 DTS, u32 *sampleNumber, u32 Last
 	//rewrite the table
 	ent = (GF_SttsEntry*)malloc(sizeof(GF_SttsEntry));
 	ent->sampleCount = 0;
-	ent->sampleDelta = newDTSs[1];
+	ent->sampleDelta = (u32) newDTSs[1];
 	i = 0;
 	while (1) {
 		if (i == stbl->SampleSize->sampleCount) {
@@ -141,7 +141,7 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u32 DTS, u32 *sampleNumber, u32 Last
 			gf_list_add(stts->entryList, ent);
 			ent = (GF_SttsEntry*)malloc(sizeof(GF_SttsEntry));
 			ent->sampleCount = 1;
-			ent->sampleDelta = newDTSs[i+1] - newDTSs[i];
+			ent->sampleDelta = (u32) (newDTSs[i+1] - newDTSs[i]);
 		}
 		i++;
 	}
@@ -810,8 +810,8 @@ GF_Err stbl_SetSyncShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber, u32 syncSamp
 //always called before removing the sample from SampleSize
 GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDuration)
 {
-	u32 *DTSs;
-	u32 i, j, k, curDTS, sampNum;
+	u64 *DTSs, curDTS;
+	u32 i, j, k, sampNum;
 	GF_SttsEntry *ent;
 	GF_TimeToSampleBox *stts;
 
@@ -823,11 +823,12 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 			gf_list_rem(stts->entryList, 0);
 		}
 		//update the reading cache
-		stts->r_FirstSampleInEntry = stts->r_CurrentDTS = stts->r_currentEntryIndex = 0;
+		stts->r_FirstSampleInEntry = stts->r_currentEntryIndex = 0;
+		stts->r_CurrentDTS = 0;
 		return GF_OK;
 	}
 	//unpack the DTSs...
-	DTSs = (u32*)malloc(sizeof(u32) * (stbl->SampleSize->sampleCount - 1));
+	DTSs = (u64*)malloc(sizeof(u64) * (stbl->SampleSize->sampleCount - 1));
 	curDTS = 0;
 	sampNum = 0;
 	ent = NULL;
@@ -858,7 +859,7 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 	if (stbl->SampleSize->sampleCount == 2) {
 		ent->sampleDelta = LastAUDefDuration;
 	} else {
-		ent->sampleDelta = DTSs[1];
+		ent->sampleDelta = (u32) DTSs[1];
 		DTSs[0] = 0;
 	}
 	i = 0;
@@ -873,7 +874,7 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 		} else {
 			ent = (GF_SttsEntry*)malloc(sizeof(GF_SttsEntry));
 			ent->sampleCount = 1;
-			ent->sampleDelta = DTSs[i+1] - DTSs[i];
+			ent->sampleDelta = (u32) (DTSs[i+1] - DTSs[i]);
 			gf_list_add(stts->entryList, ent);
 		}
 		i++;
@@ -884,7 +885,8 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 	stts->w_currentEntry = ent;
 	stts->w_currentSampleNum = stbl->SampleSize->sampleCount - 1;
 	//reset read the cache to the begining
-	stts->r_FirstSampleInEntry = stts->r_CurrentDTS = stts->r_currentEntryIndex = 0;
+	stts->r_FirstSampleInEntry = stts->r_currentEntryIndex = 0;
+	stts->r_CurrentDTS = 0;
 	return GF_OK;
 }
 

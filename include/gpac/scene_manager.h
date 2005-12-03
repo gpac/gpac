@@ -46,7 +46,7 @@ Bool gf_node_in_table(GF_Node *node, u32 NDTType);
 typedef struct
 {	
 	/*AU timing in TimeStampResolution*/
-	u32 timing;
+	u64 timing;
 	/*timing in sec - used if timing isn't set*/
 	Double timing_sec;
 	/*random access indication - may be overriden by encoder*/
@@ -70,7 +70,7 @@ typedef struct _stream_context
 	GF_List *AUs;
 
 	/*last stream AU time, when playing the context directly*/
-	u32 last_au_time;
+	u64 last_au_time;
 } GF_StreamContext;
 
 /*generic presentation context*/
@@ -107,7 +107,7 @@ GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamTyp
 /*removes and destroy stream context from presentation context*/
 void gf_sm_stream_del(GF_SceneManager *ctx, GF_StreamContext *sc);
 /*create a new AU context in the given stream context*/
-GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u32 timing, Double time_ms, Bool isRap);
+GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double time_ms, Bool isRap);
 
 
 /*applies all commands in all streams (only BIFS for now): the context manager will only have one command per

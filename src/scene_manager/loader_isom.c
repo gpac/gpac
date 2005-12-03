@@ -217,7 +217,7 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 			}
 			samp->DTS += init_offset;
 
-			au = gf_sm_stream_au_new(sc, samp->DTS, ((Double)samp->DTS) / sc->timeScale, samp->IsRAP);
+			au = gf_sm_stream_au_new(sc, samp->DTS, ((Double)(s64) samp->DTS) / sc->timeScale, samp->IsRAP);
 
 			if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
 				if (esd->decoderConfig->objectTypeIndication<=2) 

@@ -25,9 +25,10 @@
 #include <gpac/internal/isomedia_dev.h>
 
 //Get the sample number
-GF_Err findEntryForTime(GF_SampleTableBox *stbl, u32 DTS, u8 useCTS, u32 *sampleNumber, u32 *prevSampleNumber)
+GF_Err findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sampleNumber, u32 *prevSampleNumber)
 {
-	u32 i, j, curDTS, curSampNum, CTSOffset;
+	u32 i, j, curSampNum, CTSOffset;
+	u64 curDTS;
 	GF_SttsEntry *ent;
 	(*sampleNumber) = 0;
 	(*prevSampleNumber) = 0;
@@ -167,7 +168,7 @@ GF_Err stbl_GetSampleCTS(GF_CompositionOffsetBox *ctts, u32 SampleNumber, u32 *C
 }
 
 //Get the DTS of a sample
-GF_Err stbl_GetSampleDTS(GF_TimeToSampleBox *stts, u32 SampleNumber, u32 *DTS)
+GF_Err stbl_GetSampleDTS(GF_TimeToSampleBox *stts, u32 SampleNumber, u64 *DTS)
 {
 	u32 i, j, count;
 	GF_SttsEntry *ent;
@@ -211,7 +212,7 @@ GF_Err stbl_GetSampleDTS(GF_TimeToSampleBox *stts, u32 SampleNumber, u32 *DTS)
 	return GF_OK;
 
 found:
-	(*DTS) = stts->r_CurrentDTS + j * ent->sampleDelta;
+	(*DTS) = stts->r_CurrentDTS + j * (u64) ent->sampleDelta;
 
 	if (stts->r_FirstSampleInEntry == 1)
 		stts->r_FirstSampleInEntry = 1;

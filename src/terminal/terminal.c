@@ -311,7 +311,7 @@ void gf_term_message(GF_Terminal *term, const char *service, const char *message
 }
 
 
-void gf_term_connect_from_time(GF_Terminal * term, const char *URL, u32 startTime)
+void gf_term_connect_from_time(GF_Terminal * term, const char *URL, u64 startTime)
 {
 	GF_InlineScene *is;
 	GF_ObjectManager *odm;
@@ -647,7 +647,7 @@ GF_Err gf_term_connect_remote_channel(GF_Terminal *term, GF_Channel *ch, char *U
 	return GF_OK;
 }
 
-void gf_term_play_from_time(GF_Terminal *term, u32 from_time)
+void gf_term_play_from_time(GF_Terminal *term, u64 from_time)
 {
 	if (!term || !term->root_scene) return;
 	if (term->root_scene->root_od->no_time_ctrl) return;
@@ -736,12 +736,19 @@ GF_Err gf_term_add_object(GF_Terminal *term, const char *url, Bool auto_play)
 	mfurl.vals = &sfurl;
 	/*only text tracks are supported for now...*/
 	mo = gf_is_get_media_object(term->root_scene, &mfurl, GF_MEDIA_OBJECT_TEXT);
-	/*check if we must deactivate it*/
-	if (mo && mo->odm) {
-		if (mo->num_open && !auto_play) {
-			gf_is_select_object(term->root_scene, mo->odm);
+	if (mo) {
+		/*check if we must deactivate it*/
+		if (mo->odm) {
+			if (mo->num_open && !auto_play) {
+				gf_is_select_object(term->root_scene, mo->odm);
+			} else {
+				mo->odm->OD_PL = auto_play ? 1 : 0;
+			}
 		} else {
-			mo->odm->OD_PL = auto_play ? 1 : 0;
+			gf_list_del_item(term->root_scene->media_objects, mo);
+			gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
+			free(mo);
+			mo = NULL;
 		}
 	}
 	return mo ? GF_OK : GF_NOT_SUPPORTED;

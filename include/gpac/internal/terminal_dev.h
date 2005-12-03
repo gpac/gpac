@@ -121,7 +121,7 @@ struct _inline_scene
 	special value 2 means scene URL changes (for anchor navigation*/
 	u32 needs_restart;
 	/*duration of inline scene*/
-	u32 duration;
+	u64 duration;
 	/*if not 0, all objects in the scene will run on this clock. Needed in GPAC when clock references do not
 	respect object graph (eg IOD depending on external stream for clock)*/
 	u16 force_sub_clock_id;
@@ -171,7 +171,7 @@ void gf_is_regenerate(GF_InlineScene *is);
 void gf_is_select_object(GF_InlineScene *is, GF_ObjectManager *odm);
 /*restarts dynamic scene from given time: scene graph is not reseted, objects are just restarted
 instead of closed and reopened. If a media control is present on inline, from_time is overriden by MC range*/
-void gf_is_restart_dynamic(GF_InlineScene *is, u32 from_time);
+void gf_is_restart_dynamic(GF_InlineScene *is, u64 from_time);
 /*owner inline node has been modified*/
 void gf_is_on_modified(GF_Node *node);
 /*returns scene graph associated with an externProto lib - exported for VRML/X3D loaded*/
@@ -216,7 +216,7 @@ struct _tag_terminal
 	GF_List *x3d_sensors;
 
 	/*restart time for main time-line control*/
-	u32 restart_time;
+	u64 restart_time;
 	
 	/*options (cf config doc)*/
 	Bool bifs_can_resync;
@@ -619,7 +619,7 @@ struct _od_manager
 	/*timing as evaluated by the CB*/
 	u32 current_time;
 	/*full object duration 0 if unknown*/
-	u32 duration;
+	u64 duration;
 	/*playback end in media time (eg, duration OR end_range if MediaControl)*/
 	u32 range_end;
 	/*the one and only media control currently attached to this object*/
@@ -645,7 +645,7 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 /*removes an ESD (this destroys associated channel if any)*/
 void gf_odm_remove_es(GF_ObjectManager *odm, u16 ES_ID);
 /*set stream duration - updates object duration accordingly*/
-void gf_odm_set_duration(GF_ObjectManager *odm, GF_Channel *, u32 stream_duration);
+void gf_odm_set_duration(GF_ObjectManager *odm, GF_Channel *, u64 stream_duration);
 /*signals end of stream on channels*/
 void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *);
 /*start Object streams and queue object for network PLAY*/

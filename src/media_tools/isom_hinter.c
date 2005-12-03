@@ -98,7 +98,8 @@ void MP4T_DumpSDP(GF_ISOFile *file, const char *name)
 
 void GetAvgSampleInfos(GF_ISOFile *file, u32 Track, u32 *avgSize, u32 *MaxSize, u32 *TimeDelta, u32 *maxCTSDelta, u32 *const_duration, u32 *bandwidth)
 {
-	u32 i, prevTS, count, DTS;
+	u32 i, count, ts_diff;
+	u64 prevTS, DTS, tdelta;
 	Double bw;
 	GF_ISOSample *samp;
 
@@ -108,6 +109,7 @@ void GetAvgSampleInfos(GF_ISOFile *file, u32 Track, u32 *avgSize, u32 *MaxSize, 
 	bw = 0;
 	prevTS = 0;
 	DTS = 0;
+	tdelta = 0;
 
 	count = gf_isom_get_sample_count(file, Track);
 	*const_duration = 0;
@@ -117,12 +119,13 @@ void GetAvgSampleInfos(GF_ISOFile *file, u32 Track, u32 *avgSize, u32 *MaxSize, 
 		//get the size
 		*avgSize += samp->dataLength;
 		if (*MaxSize < samp->dataLength) *MaxSize = samp->dataLength;
+		ts_diff = (u32) (samp->DTS+samp->CTS_Offset - prevTS);
 		//get the time
-		*TimeDelta += samp->DTS+samp->CTS_Offset - prevTS;
+		tdelta += ts_diff;
 
 		if (i==1) {
-			*const_duration = samp->DTS+samp->CTS_Offset - prevTS;
-		} else if ( (i<count-1) && (*const_duration != samp->DTS+samp->CTS_Offset - prevTS)) {
+			*const_duration = ts_diff;
+		} else if ( (i<count-1) && (*const_duration != ts_diff) ) {
 			*const_duration = 0;
 		}
 
@@ -133,7 +136,8 @@ void GetAvgSampleInfos(GF_ISOFile *file, u32 Track, u32 *avgSize, u32 *MaxSize, 
 		if (samp->CTS_Offset > *maxCTSDelta) *maxCTSDelta = samp->CTS_Offset;
 		gf_isom_sample_del(&samp);
 	}
-	if (count>1) *TimeDelta /= (count-1);
+	if (count>1) *TimeDelta = (u32) (tdelta/ (count-1) );
+	else *TimeDelta = (u32) tdelta;
 	*avgSize /= count;
 	bw *= gf_isom_get_media_timescale(file, Track);
 	bw /= (s64) gf_isom_get_media_duration(file, Track);
@@ -241,7 +245,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 {
 
 	GF_SLConfig my_sl;
-	u32 descIndex, MinSize, MaxSize, avgTS, maxDTS, streamType, oti, const_dur, nb_ch;
+	u32 descIndex, MinSize, MaxSize, avgTS, streamType, oti, const_dur, nb_ch, maxDTSDelta;
 	u8 IV_length, KI_length, OfficialPayloadID;
 	u32 TrackMediaSubType, TrackMediaType, hintType, nbEdts, required_rate, force_dts_delta, avc_nalu_size, PL_ID, bandwidth;
 	const char *url, *urn;
@@ -496,7 +500,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	tmp->has_ctts = gf_isom_has_time_offset(file, TrackNum);
 
 	/*get sample info*/
-	GetAvgSampleInfos(file, TrackNum, &MinSize, &MaxSize, &avgTS, &maxDTS, &const_dur, &bandwidth);
+	GetAvgSampleInfos(file, TrackNum, &MinSize, &MaxSize, &avgTS, &maxDTSDelta, &const_dur, &bandwidth);
 
 	/*update flags in MultiSL*/
 	if (flags & GP_RTP_PCK_USE_MULTI) {
@@ -513,7 +517,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	if (required_rate) {
 		Double sc = required_rate;
 		sc /= my_sl.timestampResolution;
-		maxDTS = (u32) (maxDTS*sc);
+		maxDTSDelta = (u32) (maxDTSDelta*sc);
 		my_sl.timestampResolution = required_rate;
 	}
 	/*switch to RTP TS*/
@@ -545,7 +549,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 
 	//init the builder
 	gp_rtp_builder_init(tmp->rtp_p, PayloadID, Path_MTU, max_ptime,
-					   streamType, oti, PL_ID, MinSize, MaxSize, avgTS, maxDTS, IV_length, KI_length, mpeg4mode);
+					   streamType, oti, PL_ID, MinSize, MaxSize, avgTS, maxDTSDelta, IV_length, KI_length, mpeg4mode);
 
 	/*ISMA compliance is a pain...*/
 	if (force_dts_delta) tmp->rtp_p->slMap.DTSDeltaLength = force_dts_delta;
@@ -617,7 +621,8 @@ void gf_hinter_track_del(GF_RTPHinter *tkHinter)
 
 GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 {
-	u32 i, descIndex, ts, duration;
+	u32 i, descIndex, duration;
+	u64 ts;
 	u8 PadBits;
 	Double ft;
 	GF_ISOSample *samp;
@@ -635,10 +640,10 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 		//setup SL
 		tkHint->CurrentSample = i + 1;
 
-		ts = (u32) ((samp->DTS+samp->CTS_Offset)*ft);
+		ts = (u64) (ft * (s64) (samp->DTS+samp->CTS_Offset));
 		tkHint->rtp_p->sl_header.compositionTimeStamp = ts;
 
-		ts = (u32) (samp->DTS*ft);
+		ts = (u64) (ft * (s64)(samp->DTS));
 		tkHint->rtp_p->sl_header.decodingTimeStamp = ts;
 		tkHint->rtp_p->sl_header.randomAccessPointFlag = samp->IsRAP;
 

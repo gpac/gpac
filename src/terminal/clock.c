@@ -161,7 +161,7 @@ void gf_clock_set_time(GF_Clock *ck, u32 TS)
 	if (ck->use_ocr) {
 		/*just update the drift - we could also apply a drift algo*/
 		u32 now = gf_clock_time(ck);
-		s32 drift = now - TS;
+		s32 drift = now - (u32) TS;
 		ck->drift += drift;
 	}
 }

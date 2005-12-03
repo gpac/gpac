@@ -138,7 +138,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 	memset(info, 0, sizeof(ODInfo));
 	info->od = odm->OD;
 
-	info->duration = odm->duration;
+	info->duration = (Double) (s64)odm->duration;
 	info->duration /= 1000;
 	if (odm->codec) {
 		/*since we don't remove ODs that failed setup, check for clock*/
@@ -147,7 +147,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 	} else if (odm->subscene && odm->subscene->scene_codec) {
 		info->current_time = gf_clock_time(odm->subscene->scene_codec->ck);
 		info->current_time /= 1000;
-		info->duration = odm->subscene->duration;
+		info->duration = (Double) (s64)odm->subscene->duration;
 		info->duration /= 1000;
 	}
 

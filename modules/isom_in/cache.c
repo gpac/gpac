@@ -87,8 +87,8 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 {
 	ISOMChannel *mch;
 	GF_ESD *esd;
-	u32 mtype, DTS, CTS;
-	u32 di;
+	u32 di, mtype;
+	u64 DTS, CTS;
 	ISOMReader *cache = (ISOMReader *)mc->priv;
 	if (!cache->mov || !cache->service) return GF_BAD_PARAM;
 
@@ -161,7 +161,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 	}
 
 	/*adjust DTS/CTS*/
-	DTS = (u32) (sl_hdr->decodingTimeStamp - mch->cache_seed_ts);
+	DTS = sl_hdr->decodingTimeStamp - mch->cache_seed_ts;
 
 	if (mch->is_video && (DTS<=mch->cache_sample->DTS)) {
 		assert(DTS>mch->prev_dts);
@@ -171,7 +171,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 		/*first time, shift all CTS*/
 		if (!mch->frame_cts_offset) {
 			u32 i, count = gf_isom_get_sample_count(cache->mov, mch->track);
-			mch->frame_cts_offset = (DTS-mch->prev_dts);
+			mch->frame_cts_offset = (u32) (DTS-mch->prev_dts);
 			for (i=0; i<count; i++) {
 				gf_isom_modify_cts_offset(cache->mov, mch->track, i+1, mch->frame_cts_offset);
 			}
@@ -186,7 +186,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 		assert(mch->cache_sample->DTS > mch->prev_dts + mch->frame_cts_offset);
 		CTS = mch->cache_sample->DTS + mch->cache_sample->CTS_Offset;
 		mch->cache_sample->DTS = mch->prev_dts + mch->frame_cts_offset;
-		mch->cache_sample->CTS_Offset = CTS-mch->cache_sample->DTS;
+		mch->cache_sample->CTS_Offset = (u32) (CTS-mch->cache_sample->DTS);
 	}
 	if (mch->cache_sample->CTS_Offset) 
 		mch->max_cts = mch->cache_sample->DTS+mch->cache_sample->CTS_Offset;
@@ -202,7 +202,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 	mch->cache_sample = gf_isom_sample_new();
 	mch->cache_sample->IsRAP = sl_hdr->randomAccessPointFlag;
 	mch->cache_sample->DTS = DTS + mch->frame_cts_offset;
-	mch->cache_sample->CTS_Offset = (u32) (sl_hdr->compositionTimeStamp - mch->cache_seed_ts) - DTS;
+	mch->cache_sample->CTS_Offset = (u32) (sl_hdr->compositionTimeStamp - mch->cache_seed_ts - DTS);
 	mch->cache_sample->dataLength = data_size;
 	mch->cache_sample->data = malloc(sizeof(char)*data_size);
 	memcpy(mch->cache_sample->data, data, sizeof(char)*data_size);

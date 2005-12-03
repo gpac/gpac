@@ -399,7 +399,7 @@ GF_TrackBox *gf_isom_get_track_from_file(GF_ISOFile *movie, u32 trackNumber)
 
 
 //WARNING: MOVIETIME IS EXPRESSED IN MEDIA TS
-GF_Err GetMediaTime(GF_TrackBox *trak, u32 movieTime, u64 *MediaTime, s64 *SegmentStartTime, s64 *MediaOffset, u8 *useEdit)
+GF_Err GetMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *MediaTime, s64 *SegmentStartTime, s64 *MediaOffset, u8 *useEdit)
 {
 	GF_Err e;
 	u32 i;
@@ -407,8 +407,8 @@ GF_Err GetMediaTime(GF_TrackBox *trak, u32 movieTime, u64 *MediaTime, s64 *Segme
 	s64 mtime;
 	GF_EdtsEntry *ent;
 	Double scale_ts;
-//	u32 DTS, CTS;
-	u32 sampleNumber, prevSampleNumber, firstDTS;
+	u32 sampleNumber, prevSampleNumber;
+	u64 firstDTS;
 	GF_SampleTableBox *stbl = trak->Media->information->sampleTable;
 
 	*useEdit = 1;
@@ -438,7 +438,7 @@ GF_Err GetMediaTime(GF_TrackBox *trak, u32 movieTime, u64 *MediaTime, s64 *Segme
 	//browse the edit list and get the time
 	scale_ts = trak->moov->mvhd->timeScale;
 	scale_ts /= trak->Media->mediaHeader->timeScale;
-	scale_ts *= (movieTime + 1);
+	scale_ts *= ((s64)movieTime + 1);
 	m_time = (u64) (scale_ts);
 
 	time = 0;
@@ -529,7 +529,7 @@ ent_found:
 	return GF_OK;
 }
 
-GF_Err GetNextMediaTime(GF_TrackBox *trak, u32 movieTime, u64 *OutMovieTime)
+GF_Err GetNextMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime)
 {
 	u32 i;
 	u64 time;
@@ -557,7 +557,7 @@ GF_Err GetNextMediaTime(GF_TrackBox *trak, u32 movieTime, u64 *OutMovieTime)
 	return GF_EOS;
 }
 
-GF_Err GetPrevMediaTime(GF_TrackBox *trak, u32 movieTime, u64 *OutMovieTime)
+GF_Err GetPrevMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime)
 {
 	u32 i;
 	u64 time;
@@ -669,7 +669,7 @@ err_exit:
 	return NULL;
 }
 
-GF_EdtsEntry *CreateEditEntry(u32 EditDuration, u32 MediaTime, u8 EditMode)
+GF_EdtsEntry *CreateEditEntry(u64 EditDuration, u64 MediaTime, u8 EditMode)
 {
 	GF_EdtsEntry *ent;
 

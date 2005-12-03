@@ -180,7 +180,7 @@ static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
 }
 
 static GF_Err gf_sm_live_encode_bifs_au(GF_BifsEngine *codec, u32 currentAUCount, 
-						  GF_Err (*AUCallback)(void *, char *, u32 , u32)
+						  GF_Err (*AUCallback)(void *, char *, u32 , u64)
 						  )
 {
 	GF_Err e;
@@ -244,7 +244,7 @@ GF_Err gf_beng_save_context(GF_BifsEngine *codec, char *  ctxFileName)
 	return e;
 }
 
-GF_Err gf_beng_encode_from_string(GF_BifsEngine *codec, char *auString, GF_Err (*AUCallback)(void *, char *, u32 , u32 ))
+GF_Err gf_beng_encode_from_string(GF_BifsEngine *codec, char *auString, GF_Err (*AUCallback)(void *, char *, u32 , u64 ))
 {
 	GF_StreamContext *sc;
 	u32 i, count;
@@ -276,7 +276,7 @@ exit:
 	return e;
 }
 
-GF_Err gf_beng_encode_from_file(GF_BifsEngine *codec, char *auFile, GF_Err (*AUCallback)(void *, char *, u32 , u32 ))
+GF_Err gf_beng_encode_from_file(GF_BifsEngine *codec, char *auFile, GF_Err (*AUCallback)(void *, char *, u32 , u64 ))
 {
 	GF_Err e;
 	GF_StreamContext *sc;
@@ -313,7 +313,7 @@ exit:
 	return e;
 }
 
-GF_Err gf_beng_encode_context(GF_BifsEngine *codec, GF_Err (*AUCallback)(void *, char *, u32 , u32 ))
+GF_Err gf_beng_encode_context(GF_BifsEngine *codec, GF_Err (*AUCallback)(void *, char *, u32 , u64 ))
 {
 	return gf_sm_live_encode_bifs_au(codec, 0, AUCallback);
 } 

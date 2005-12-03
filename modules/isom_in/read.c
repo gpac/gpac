@@ -567,16 +567,16 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			com->duration.duration = 0;
 			return GF_OK;
 		}
-		ch->duration = (u32) gf_isom_get_track_duration(read->mov, ch->track);
-		track_dur = (Double) ch->duration;
+		ch->duration = gf_isom_get_track_duration(read->mov, ch->track);
+		track_dur = (Double) (s64) ch->duration;
 		track_dur /= read->time_scale;
 		if (gf_isom_get_edit_segment_count(read->mov, ch->track)) {
 			com->duration.duration = (Double) track_dur;
 			ch->duration = (u32) (track_dur * ch->time_scale);
 		} else {
 			/*some file indicate a wrong TrackDuration, get the longest*/
-			ch->duration = (u32) gf_isom_get_media_duration(read->mov, ch->track);
-			media_dur = (Double) ch->duration;
+			ch->duration = gf_isom_get_media_duration(read->mov, ch->track);
+			media_dur = (Double) (s64) ch->duration;
 			media_dur /= ch->time_scale;
 			com->duration.duration = MAX(track_dur, media_dur);
 		}

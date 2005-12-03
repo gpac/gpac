@@ -2571,7 +2571,7 @@ static void ReorderAUContext(GF_List *sample_list, GF_AUContext *au, Bool lsr_du
 		NOTE: Comment is wrong? this happens when just loading BT 
 	*/
 	if (!au->timing_sec) {
-		au->timing_sec = au->timing;
+		au->timing_sec = (Double) (s64) au->timing;
 		/* Hack to avoid timescale=0 which happens when loading a BT with no SLConfig*/
 		if (!au->owner->timeScale) au->owner->timeScale = 1000;
 		au->timing_sec /= au->owner->timeScale;

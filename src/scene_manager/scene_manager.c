@@ -146,7 +146,7 @@ void gf_sm_del(GF_SceneManager *ctx)
 }
 
 
-GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u32 timing, Double time_sec, Bool isRap)
+GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double time_sec, Bool isRap)
 {
 	u32 i;
 	GF_AUContext *tmp;

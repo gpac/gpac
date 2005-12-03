@@ -868,7 +868,7 @@ GF_Err gf_isom_next_hint_packet(GF_ISOFile *the_file, u32 trackNumber, char **pc
 	GF_BitStream *bs;
 	GF_TrackBox *trak, *ref_trak;
 	GF_HintSampleEntryBox *entry;
-	u32 i, count;
+	u32 i, count, ts;
 	s32 cts_off;
 
 	*pck_data = NULL;
@@ -918,7 +918,9 @@ GF_Err gf_isom_next_hint_packet(GF_ISOFile *the_file, u32 trackNumber, char **pc
 			break;
 		}
 	}
-	gf_bs_write_u32(bs, entry->hint_sample->TransmissionTime + pck->relativeTransTime + entry->ts_offset + cts_off);	/*TS*/
+	/*TS - TODO check TS wrapping*/
+	ts = (u32) (entry->hint_sample->TransmissionTime + pck->relativeTransTime + entry->ts_offset + cts_off);
+	gf_bs_write_u32(bs, ts );
 	gf_bs_write_u32(bs, entry->ssrc);	/*SSRC*/
 	
 	/*then build all data*/
@@ -963,7 +965,7 @@ GF_Err gf_isom_next_hint_packet(GF_ISOFile *the_file, u32 trackNumber, char **pc
 			break;
 		}
 	}
-	if (trans_ts) *trans_ts = entry->hint_sample->TransmissionTime + pck->relativeTransTime + entry->ts_offset;
+	if (trans_ts) *trans_ts = ts;
 	if (disposable) *disposable = pck->B_bit;
 	if (repeated) *repeated = pck->R_bit;
 	if (sample_num) *sample_num = entry->cur_sample-1;

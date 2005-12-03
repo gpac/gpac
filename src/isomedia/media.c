@@ -338,14 +338,14 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	}
 	else if (mdia->mediaTrack->moov->mov->convert_streaming_text 
 		&& (mdia->handler->handlerType == GF_ISOM_MEDIA_TEXT) ) {
-		u32 dur;
+		u64 dur;
 		if (sampleNumber == mdia->information->sampleTable->SampleSize->sampleCount) {
-			dur = (u32) mdia->mediaHeader->duration - (*samp)->DTS;
+			dur = mdia->mediaHeader->duration - (*samp)->DTS;
 		} else {
 			stbl_GetSampleDTS(mdia->information->sampleTable->TimeToSample, sampleNumber+1, &dur);
 			dur -= (*samp)->DTS;
 		}
-		e = gf_isom_rewrite_text_sample(*samp, *sIDX, dur);
+		e = gf_isom_rewrite_text_sample(*samp, *sIDX, (u32) dur);
 		if (e) return e;
 	}
 	return GF_OK;
@@ -470,7 +470,7 @@ GF_Err Media_FindDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNname
 GF_Err Media_SetDuration(GF_TrackBox *trak)
 {
 	GF_ESD *esd;
-	u32 DTS, DTSprev;
+	u64 DTS, DTSprev;
 	GF_SttsEntry *ent;
 	u32 nbSamp = trak->Media->information->sampleTable->SampleSize->sampleCount;
 
@@ -495,11 +495,12 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 		//will be hold the same time as the prev one
 		stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp, &DTS);
 		ent = (GF_SttsEntry*)gf_list_get(trak->Media->information->sampleTable->TimeToSample->entryList, gf_list_count(trak->Media->information->sampleTable->TimeToSample->entryList)-1);
+		trak->Media->mediaHeader->duration = DTS;
 		if (!ent) {
 			stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp-1, &DTSprev);
-			trak->Media->mediaHeader->duration = DTS + (DTS - DTSprev);
+			trak->Media->mediaHeader->duration += (DTS - DTSprev);
 		} else {
-			trak->Media->mediaHeader->duration = DTS + ent->sampleDelta;
+			trak->Media->mediaHeader->duration += ent->sampleDelta;
 		}
 		return GF_OK;
 	}
@@ -668,8 +669,8 @@ GF_Err UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, u32 size, u32 CTS, u64 
 GF_Err Media_UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sample, Bool data_only)
 {
 	GF_Err e;
-	u32 drefIndex, chunkNum, descIndex, DTS;
-	u64 newOffset;
+	u32 drefIndex, chunkNum, descIndex;
+	u64 newOffset, DTS;
 	u8 isEdited;
 	GF_DataEntryURLBox *Dentry;
 	GF_SampleTableBox *stbl;
@@ -714,8 +715,8 @@ GF_Err Media_UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sam
 GF_Err Media_UpdateSampleReference(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sample, u64 data_offset)
 {
 	GF_Err e;
-	u32 drefIndex, DTS, chunkNum, descIndex;
-	u64 off;
+	u32 drefIndex, chunkNum, descIndex;
+	u64 off, DTS;
 	u8 isEdited;
 	GF_DataEntryURLBox *Dentry;
 	GF_SampleTableBox *stbl;

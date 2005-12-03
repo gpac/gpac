@@ -65,7 +65,7 @@ typedef struct
 	u32 timeScale;
 	/*this is for generic, time-based interleaving. Expressed in Media TimeScale*/
 	u32 chunkDur;
-	u32 DTSprev;
+	u64 DTSprev;
 	u8 isDone;
 	GF_MediaBox *mdia;
 	/*each writer has a sampleToChunck and ChunkOffset tables
@@ -774,8 +774,9 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 	u32 i, tracksDone;
 	TrackWriter *tmp, *curWriter, *prevWriter;
 	GF_Err e;
-	u32 DTS, descIndex, sampSize, chunkNumber, DTStmp, TStmp;
-	s32 res;
+	u64 DTS, DTStmp, TStmp;
+	s64 res;
+	u32 descIndex, sampSize, chunkNumber;
 	u16 curGroupID, curTrackPriority;
 	u8 forceNewChunk, writeGroup, isEdited;
 	//this is used to emulate the write ...
@@ -894,7 +895,8 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 	u32 i, tracksDone;
 	TrackWriter *tmp, *curWriter;
 	GF_Err e;
-	u32 DTS, descIndex, sampSize, chunkNumber;
+	u32 descIndex, sampSize, chunkNumber;
+	u64 DTS;
 	u16 curGroupID;
 	u8 forceNewChunk, writeGroup, isEdited;
 	//this is used to emulate the write ...
@@ -948,7 +950,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 		//proceed a group
 		while (writeGroup) {
 			/*the DTS for the end of this chunk*/
-			u32 chunkMaxDTS = 0;
+			u64 chunkMaxDTS = 0;
 			/*the timescale DTS for the end of this chunk*/
 			u32 chunkMaxScale = 0;
 			curWriter = NULL;
@@ -995,7 +997,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 					//small check for first 2 samples (DTS = 0 :)
 					if (tmp->sampleNumber == 2 && !tmp->chunkDur) forceNewChunk = 0;
 
-					tmp->chunkDur += (DTS - tmp->DTSprev);
+					tmp->chunkDur += (u32) (DTS - tmp->DTSprev);
 					tmp->DTSprev = DTS;
 
 					e = stbl_GetSampleInfos(curWriter->mdia->information->sampleTable, curWriter->sampleNumber, &sampOffset, &chunkNumber, &descIndex, &isEdited);

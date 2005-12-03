@@ -559,7 +559,7 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 		fprintf(dump, "#dumping track ID %d timing\n", gf_isom_get_track_id(file, i+1));
 		count = gf_isom_get_sample_count(file, i+1);
 		for (j=0; j<count; j++) {
-			s32 dts, cts;
+			u64 dts, cts;
 			GF_ISOSample *samp = gf_isom_get_sample_info(file, i+1, j+1, NULL, NULL);
 			dts = samp->DTS;
 			cts = dts + (s32) samp->CTS_Offset;
@@ -572,7 +572,7 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 		
 			if (has_cts_offset) {
 				for (k=0; k<count; k++) {
-					s32 adts, acts;
+					u64 adts, acts;
 					if (k==j) continue;
 					samp = gf_isom_get_sample_info(file, i+1, k+1, NULL, NULL);
 					adts = samp->DTS;
@@ -703,7 +703,7 @@ void DumpSDP(GF_ISOFile *file, char *inName)
 static char *format_duration(u64 dur, u32 timescale, char *szDur)
 {
 	u32 h, m, s, ms;
-	dur = (u32) (( ((Double) (s64) dur)/timescale)*1000);
+	dur = (u64) (( ((Double) (s64) dur)/timescale)*1000);
 	h = (u32) (dur / 3600000);
 	m = (u32) (dur/ 60000) - h*60;
 	s = (u32) (dur/1000) - h*3600 - m*60;
@@ -745,7 +745,8 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 {
 	Float scale;
-	u32 trackNum, j, size, dur, max_rate, rate, time_slice, ts, mtype, msub_type, timescale, sr, nb_ch, count;
+	u32 trackNum, j, size, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count;
+	u64 time_slice, dur;
 	u8 bps;
 	GF_ESD *esd;
 	char sType[5], szDur[50];
@@ -1018,7 +1019,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	}
 
 	dur = size = 0;
-	max_rate = rate = time_slice = 0;
+	max_rate = rate = 0;
+	time_slice = 0;
 	ts = gf_isom_get_media_timescale(file, trackNum);
 	for (j=0; j<gf_isom_get_sample_count(file, trackNum); j++) {
 		GF_ISOSample *samp = gf_isom_get_sample_info(file, trackNum, j+1, NULL, NULL);
@@ -1035,14 +1037,14 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	fprintf(stdout, "\nComputed info from media:\n");
 	scale = 1000;
 	scale /= ts;
-	dur = (u32) (dur * scale);
+	dur = (u64) (scale * (s64)dur);
 	fprintf(stdout, "\tTotal size %d bytes - Total samples duration %d ms\n", size, dur);
 	if (!dur) {
 		fprintf(stdout, "\n");
 		return;
 	}
 	dur /= 1000;
-	rate = size * 8 / dur;
+	rate = (u32) (size * 8 / dur);
 	max_rate *= 8;
 	if (rate >= 1500) {
 		rate /= 1024;

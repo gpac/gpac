@@ -197,9 +197,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		for (i=o_count; i<count; i++) {
 			if (szLan[0]) gf_isom_set_media_language(import.dest, i+1, szLan);
 			if (delay) {
-				u32 tk_dur;
+				u64 tk_dur;
 				gf_isom_remove_edit_segments(import.dest, i+1);
-				tk_dur = (u32) gf_isom_get_track_duration(import.dest, i+1);
+				tk_dur = gf_isom_get_track_duration(import.dest, i+1);
 				gf_isom_append_edit_segment(import.dest, i+1, (timescale*delay)/1000, 0, GF_ISOM_EDIT_EMPTY);
 				gf_isom_append_edit_segment(import.dest, i+1, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
 			}
@@ -232,9 +232,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			track = gf_isom_get_track_by_id(import.dest, import.final_trackID);
 			if (szLan[0]) gf_isom_set_media_language(import.dest, track, szLan);
 			if (delay) {
-				u32 tk_dur;
+				u64 tk_dur;
 				gf_isom_remove_edit_segments(import.dest, track);
-				tk_dur = (u32) gf_isom_get_track_duration(import.dest, track);
+				tk_dur = gf_isom_get_track_duration(import.dest, track);
 				gf_isom_append_edit_segment(import.dest, track, (timescale*delay)/1000, 0, GF_ISOM_EDIT_EMPTY);
 				gf_isom_append_edit_segment(import.dest, track, tk_dur, 0, GF_ISOM_EDIT_NORMAL);
 			}
@@ -260,7 +260,7 @@ typedef struct
 	u32 last_sample;
 	u32 sample_count;
 	u32 time_scale;
-	u32 firstDTS, lastDTS;
+	u64 firstDTS, lastDTS;
 	u32 dst_tk;
 	/*set if media can be duplicated at split boundaries - only used for text tracks and provate tracks, this assumes all
 	samples are RAP*/
@@ -406,22 +406,22 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 	if (chunk_start>0) {
 		if (needs_rap_sync) {
 			u32 sample_num;
-			Double start = chunk_start;
+			Double start;
 			tki = &tks[needs_rap_sync-1];
 
-			start = gf_isom_get_sample_dts(mp4, tki->tk, tki->sample_count);
+			start = (Double) (s64) gf_isom_get_sample_dts(mp4, tki->tk, tki->sample_count);
 			start /= tki->time_scale;
 			if (start<chunk_start) {
 				tki->stop_state = 2;
 				needs_rap_sync = 0;
 			} else  {
-				e = gf_isom_get_sample_for_media_time(mp4, tki->tk, (u32) (chunk_start*tki->time_scale), &di, GF_ISOM_SEARCH_SYNC_BACKWARD, &samp, &sample_num);
+				e = gf_isom_get_sample_for_media_time(mp4, tki->tk, (u64) (chunk_start*tki->time_scale), &di, GF_ISOM_SEARCH_SYNC_BACKWARD, &samp, &sample_num);
 				if (e!=GF_OK) {
 					fprintf(stdout, "Cannot locate RAP in track ID %d for chunk extraction from %02.2f sec\n", gf_isom_get_track_id(mp4, tki->tk), chunk_start);
 					free(tks);
 					return GF_NOT_SUPPORTED;
 				}
-				start = samp->DTS;
+				start = (Double) (s64) samp->DTS;
 				start /= tki->time_scale;
 				gf_isom_sample_del(&samp);
 				fprintf(stdout, "Adjusting chunk start time to previous random access at %02.2f sec\n", start);
@@ -434,15 +434,15 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			tki = &tks[i];
 			while (tki->last_sample<tki->sample_count) {
 				Double time;
-				u32 dts;
+				u64 dts;
 				dts = gf_isom_get_sample_dts(mp4, tki->tk, tki->last_sample+1);
-				time = dts;
+				time = (Double) (s64) dts;
 				time /= tki->time_scale;
 				if (time>=chunk_start) {
 					/*rewind one sample (text tracks & co)*/
 					if (tki->can_duplicate && tki->last_sample) {
 						tki->last_sample--;
-						tki->firstDTS = (u32) (chunk_start*tki->time_scale);
+						tki->firstDTS = (u64) (chunk_start*tki->time_scale);
 					} else {
 						tki->firstDTS = dts;
 					}
@@ -499,7 +499,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			/*add one sample of each track*/
 			for (i=0; i<nb_tk; i++) {
 				Double t;
-				u32 dts;
+				u64 dts;
 				tki = &tks[i];
 				
 				if (tki->stop_state) 
@@ -522,7 +522,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				dts -= tki->firstDTS;
 
 
-				t = dts;
+				t = (Double) (s64) dts;
 				t /= tki->time_scale;
 				if (tki->first_sample_done) {
 					if (t>max_dts) continue;
@@ -541,7 +541,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				if (tki->has_non_raps && samp->IsRAP) {
 					GF_ISOSample *next_rap;
 					u32 next_rap_num, sdi;
-					last_rap_sample_time = samp->DTS;
+					last_rap_sample_time = (Double) (s64) samp->DTS;
 					last_rap_sample_time /= tki->time_scale;
 					e = gf_isom_get_sample_for_media_time(mp4, tki->tk, samp->DTS+tki->firstDTS+2, &sdi, GF_ISOM_SEARCH_SYNC_FORWARD, &next_rap, &next_rap_num);
 					if (e==GF_EOS) is_last = 1;
@@ -583,7 +583,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 					nb_over++;
 					continue;
 				}
-				time = tki->lastDTS;
+				time = (Double) (s64) tki->lastDTS;
 				time /= tki->time_scale;
 				if (size_exceeded || (tki->last_sample==tki->sample_count) || (!tki->can_duplicate && (time>file_split_dur)) ) {
 					nb_over++;
@@ -593,15 +593,15 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				}
 				/*special tracks (not audio, not video)*/
 				else if (tki->can_duplicate) {
-					u32 dts = gf_isom_get_sample_dts(mp4, tki->tk, tki->last_sample+1);
-					time = dts - tki->firstDTS;
+					u64 dts = gf_isom_get_sample_dts(mp4, tki->tk, tki->last_sample+1);
+					time = (Double) (s64) (dts - tki->firstDTS);
 					time /= tki->time_scale;
 					if (time>file_split_dur) {
 						nb_over++;
 						tki->stop_state = 1;
 					}
 				}
-				if (!nb_add && (!max_dts || (tki->lastDTS <= 1 + tki->time_scale*max_dts))) 
+				if (!nb_add && (!max_dts || (tki->lastDTS <= 1 + (u64) (tki->time_scale*max_dts) ))) 
 					tki->first_sample_done = 0;
 			}
 			if (nb_over==nb_tk) do_add = 0;
@@ -619,7 +619,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			}
 
 			if (tki->lastDTS) {
-				time = tki->lastDTS;
+				time = (Double) (s64) tki->lastDTS;
 				time /= tki->time_scale;
 				if ((!tki->can_duplicate || all_duplicatable) && time<file_split_dur) file_split_dur = time;
 			}
@@ -649,12 +649,12 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				u32 last_samp;
 				tki = &tks[i];
 				while (1) {
-					u32 dts;
+					u64 dts;
 					last_samp = gf_isom_get_sample_count(dest, tki->dst_tk);
 					if (!last_samp) break;
 
 					dts = gf_isom_get_sample_dts(dest, tki->dst_tk, last_samp);
-					time = dts;
+					time = (Double) (s64) dts;
 					time /= tki->time_scale;
 					/*done*/
 					if (tki->last_sample==tki->sample_count) {
@@ -672,17 +672,17 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 					gf_cbk_on_progress("Splitting", nb_done, nb_samp);
 				}
 				if (tki->last_sample<tki->sample_count) {
-					u32 dts;
+					u64 dts;
 					tki->stop_state = 0;
 					dts = gf_isom_get_sample_dts(mp4, tki->tk, tki->last_sample+1);
-					time = dts - tki->firstDTS;
+					time = (Double) (s64) (dts - tki->firstDTS);
 					time /= tki->time_scale;
 					/*re-insert prev sample*/
 					if (tki->can_duplicate && (time>file_split_dur) ) {
 						tki->last_sample--;
 						dts = gf_isom_get_sample_dts(mp4, tki->tk, tki->last_sample+1);
-						tki->firstDTS += (u32) (file_split_dur*tki->time_scale);
-						gf_isom_set_last_sample_duration(dest, tki->dst_tk, tki->firstDTS - dts);
+						tki->firstDTS += (u64) (file_split_dur*tki->time_scale);
+						gf_isom_set_last_sample_duration(dest, tki->dst_tk, (u32) (tki->firstDTS - dts) );
 					} else {
 						tki->firstDTS = dts;
 					}
@@ -768,7 +768,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	GF_Err e;
 	Float ts_scale;
 	Double dest_orig_dur;
-	u32 dst_tk, tk_id, mtype, insert_dts;
+	u32 dst_tk, tk_id, mtype;
+	u64 insert_dts;
 	GF_ISOSample *samp;
 
 	if (strchr(fileName, '*')) return cat_multiple_files(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir);
@@ -821,7 +822,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	fprintf(stdout, "Appending file %s\n", fileName);
 	nb_done = 0;
 	for (i=0; i<nb_tracks; i++) {
-		u32 last_DTS;
+		u64 last_DTS;
 		Bool use_ts_dur = 1;
 		mtype = gf_isom_get_media_type(orig, i+1);
 		switch (mtype) {
@@ -886,7 +887,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		if (use_ts_dur && (count>1)) {
 			insert_dts = 2*gf_isom_get_sample_dts(dest, dst_tk, count) - gf_isom_get_sample_dts(dest, dst_tk, count-1);
 		} else {
-			insert_dts = (u32) gf_isom_get_media_duration(dest, dst_tk);
+			insert_dts = gf_isom_get_media_duration(dest, dst_tk);
 			if (!count) insert_dts = 0;
 		}
 
@@ -900,7 +901,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			if (editMode == GF_ISOM_EDIT_EMPTY) {
 				Double offset = (Double) (s64)segmentDuration * gf_isom_get_media_timescale(orig, i+1);
 				offset /= gf_isom_get_timescale(orig);
-				insert_dts += (u32) (offset*ts_scale);
+				insert_dts += (u64) (offset*ts_scale);
 			}
 		}
 
@@ -911,7 +912,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			samp = gf_isom_get_sample(orig, i+1, j+1, &di);
 
 			last_DTS = samp->DTS;
-			samp->DTS =  (u32) (samp->DTS * ts_scale) + insert_dts;
+			samp->DTS =  (u64) (ts_scale * (s64)samp->DTS) + insert_dts;
 			samp->CTS_Offset =  (u32) (samp->CTS_Offset * ts_scale);
 
 			if (gf_isom_is_self_contained(orig, i+1, di)) {
@@ -929,9 +930,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		}
 		/*scene description and text: compute last sample duration based on original media duration*/
 		if (!use_ts_dur) {
-			insert_dts = (u32) gf_isom_get_media_duration(orig, i+1);
-			insert_dts -= last_DTS;
-			gf_isom_set_last_sample_duration(dest, dst_tk, insert_dts);
+			insert_dts = gf_isom_get_media_duration(orig, i+1) - last_DTS;
+			gf_isom_set_last_sample_duration(dest, dst_tk, (u32) insert_dts);
 		}
 	}
 	gf_cbk_on_progress("Appending", nb_samp, nb_samp);

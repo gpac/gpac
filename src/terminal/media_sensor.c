@@ -127,9 +127,9 @@ void MS_UpdateTiming(GF_ObjectManager *odm)
 					media_sens->sensor->isActive = 1;
 					gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
 					if (odm->subscene) {
-						media_sens->sensor->mediaDuration = odm->subscene->duration;
+						media_sens->sensor->mediaDuration = (Double) (s64)odm->subscene->duration;
 					} else {
-						media_sens->sensor->mediaDuration = odm->duration;
+						media_sens->sensor->mediaDuration = (Double) (s64)odm->duration;
 					}
 					media_sens->sensor->mediaDuration /= 1000;
 					gf_node_event_out_str((GF_Node *) media_sens->sensor, "mediaDuration");
@@ -141,7 +141,7 @@ void MS_UpdateTiming(GF_ObjectManager *odm)
 				/*check for end of scene (MediaSensor on inline)*/
 				if (odm->subscene && odm->subscene->duration) {
 					GF_Clock *ck = gf_odm_get_media_clock(odm);
-					if (ck->has_seen_eos && media_sens->sensor->isActive && (1000*time>odm->subscene->duration)) {
+					if (ck->has_seen_eos && media_sens->sensor->isActive && (1000*time>(Double) (s64)odm->subscene->duration)) {
 						media_sens->sensor->isActive = 0;
 						gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
 					}

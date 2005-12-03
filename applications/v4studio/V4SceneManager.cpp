@@ -167,12 +167,16 @@ void V4SceneManager::LoadFile(const char *path)
 
 void V4SceneManager::SaveFile(const char *path) 
 {
+	GF_SMEncodeOptions opts;
 	char rad_name[5000];
 	strcpy(rad_name, "dump");
 	gf_sm_dump(m_pSm, rad_name, 0);
 	GF_ISOFile *mp4 = gf_isom_open(path, GF_ISOM_WRITE_EDIT, NULL);
 	m_pSm->max_node_id = gf_sg_get_max_node_id(m_pSm->scene_graph);
-	gf_sm_encode_to_file(m_pSm, mp4, "c:\\log.txt", NULL, GF_SM_LOAD_MPEG4_STRICT, 0);
+	memset(&opts, 0, sizeof(opts));
+	opts.logFile = "c:\\log.txt";
+	opts.flags = GF_SM_LOAD_MPEG4_STRICT;
+	gf_sm_encode_to_file(m_pSm, mp4, &opts);
 	gf_isom_close(mp4);
 }
 

@@ -999,15 +999,23 @@ GF_Err elst_Size(GF_Box *s)
 {
 	GF_Err e;
 	u32 durtimebytes;
-	u32 entryCount;
+	u32 i, entryCount;
 	GF_EditListBox *ptr = (GF_EditListBox *)s;
 
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	//entry count
 	ptr->size += 4;
-	durtimebytes = (ptr->version == 1 ? 16 : 8) + 4;
 	entryCount = gf_list_count(ptr->entryList);
+	ptr->version = 0;
+	for (i=0; i<entryCount; i++) {
+		GF_EdtsEntry *p = (GF_EdtsEntry*)gf_list_get(ptr->entryList, i);
+		if ((p->segmentDuration>0xFFFFFFFF) || (p->mediaTime>0xFFFFFFFF)) {
+			ptr->version = 1;
+			break;
+		}
+	}
+	durtimebytes = (ptr->version == 1 ? 16 : 8) + 4;
 	ptr->size += (entryCount * durtimebytes);
 	return GF_OK;
 }
@@ -2820,6 +2828,7 @@ GF_Err mdhd_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_MediaHeaderBox *ptr = (GF_MediaHeaderBox *)s;
+	ptr->version = (ptr->duration>0xFFFFFFFF) ? 1 : 0;
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	ptr->size += 4;
@@ -3799,8 +3808,10 @@ GF_Err mehd_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err mehd_Size(GF_Box *s)
 {
 	GF_Err e = gf_isom_full_box_get_size(s);
+	GF_MovieExtendsHeaderBox *ptr = (GF_MovieExtendsHeaderBox *)s;
 	if (e) return e;
-	s->size += (((GF_FullBox *)s)->version == 1) ? 8 : 4;
+	ptr->version = (ptr->fragment_duration>0xFFFFFFFF) ? 1 : 0;
+	s->size += (ptr->version == 1) ? 8 : 4;
 	return GF_OK;
 }
 #endif
@@ -3922,6 +3933,7 @@ GF_Err mvhd_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_MovieHeaderBox *ptr = (GF_MovieHeaderBox *)s;
+	ptr->version = (ptr->duration>0xFFFFFFFF) ? 1 : 0;
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	ptr->size += (ptr->version == 1) ? 28 : 16;
@@ -5767,9 +5779,9 @@ GF_Err tkhd_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_TrackHeaderBox *ptr = (GF_TrackHeaderBox *)s;
-	
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
+	ptr->version = (ptr->duration>0xFFFFFFFF) ? 1 : 0;
 	ptr->size += (ptr->version == 1) ? 32 : 20;
 	ptr->size += 60;
 	return GF_OK;

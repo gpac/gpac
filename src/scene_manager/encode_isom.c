@@ -73,7 +73,7 @@ static void gf_sm_finalize_mux(GF_ISOFile *mp4, GF_ESD *src, u32 offset_ts)
 	if (mux) offset_ts += mux->startTime * mts / 1000;
 	if (offset_ts) {
 		u32 off = offset_ts * ts  / mts;
-		u32 dur = (u32) gf_isom_get_media_duration(mp4, track);
+		u64 dur = gf_isom_get_media_duration(mp4, track);
 		dur = dur * ts / mts;
 		gf_isom_set_edit_segment(mp4, track, 0, off, 0, GF_ISOM_EDIT_EMPTY);
 		gf_isom_set_edit_segment(mp4, track, off, dur, 0, GF_ISOM_EDIT_NORMAL);
@@ -369,7 +369,8 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 {
 	char *data;
 	Bool is_in_iod, delete_desc, first_scene_id, rap_inband, rap_shadow;
-	u32 i, j, di, dur, rate, time_slice, init_offset, data_len, count, track, last_rap, rap_delay, flags;
+	u32 i, j, di, rate, init_offset, data_len, count, track, rap_delay, flags;
+	u64 last_rap, dur, time_slice, avg_rate;
 	GF_Err e;
 	FILE *logs;
 	GF_InitialObjectDescriptor *iod;
@@ -635,10 +636,12 @@ force_svg_to_laser:
 			goto exit;
 		}
 
-		dur = esd->decoderConfig->avgBitrate = 0;
+		dur = 0;
+		avg_rate = 0;
 		esd->decoderConfig->bufferSizeDB = 0;
-		esd->decoderConfig->maxBitrate = rate = time_slice = 0;
-
+		esd->decoderConfig->maxBitrate = 0;
+		rate = 0;
+		time_slice = 0;
 		last_rap = 0;
 		rap_delay = 0;
 		if (opts) rap_delay = opts->rap_freq * esd->slConfig->timestampResolution / 1000;
@@ -648,9 +651,9 @@ force_svg_to_laser:
 			au = gf_list_get(sc->AUs, j);
 			samp = gf_isom_sample_new();
 			/*time in sec conversion*/
-			if (au->timing_sec) au->timing = (u32) (au->timing_sec * esd->slConfig->timestampResolution);
+			if (au->timing_sec) au->timing = (u64) (au->timing_sec * esd->slConfig->timestampResolution);
 
-			if (!j) init_offset = au->timing;
+			if (!j) init_offset = (u32) au->timing;
 
 			samp->DTS = au->timing - init_offset;
 			samp->IsRAP = au->is_rap;
@@ -689,7 +692,7 @@ force_svg_to_laser:
 			if (!e && samp->dataLength) e = gf_isom_add_sample(mp4, track, di, samp);
 
 			dur = au->timing;
-			esd->decoderConfig->avgBitrate += samp->dataLength;
+			avg_rate += samp->dataLength;
 			rate += samp->dataLength;
 			if (esd->decoderConfig->bufferSizeDB<samp->dataLength) esd->decoderConfig->bufferSizeDB = samp->dataLength;
 			if (samp->DTS - time_slice > esd->slConfig->timestampResolution) {
@@ -703,7 +706,7 @@ force_svg_to_laser:
 		}
 
 		if (dur) {
-			esd->decoderConfig->avgBitrate *= esd->slConfig->timestampResolution * 8 / dur;
+			esd->decoderConfig->avgBitrate = (u32) (avg_rate * esd->slConfig->timestampResolution * 8 / dur);
 			esd->decoderConfig->maxBitrate *= 8;
 		} else {
 			esd->decoderConfig->avgBitrate = 0;
@@ -734,7 +737,7 @@ force_svg_to_laser:
 		}
 
 		/*if offset add edit list*/
-		gf_sm_finalize_mux(mp4, esd, init_offset);
+		gf_sm_finalize_mux(mp4, esd, (u32) init_offset);
 		gf_isom_set_last_sample_duration(mp4, track, 0);
 
 		if (delete_desc) {
@@ -761,8 +764,8 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 	u32 i, j, n, m;
 	GF_ESD *esd;
 	GF_StreamContext *sc;
-	u32 count, track, di, init_offset;
-	u32 dur, rate, time_slice;
+	u32 count, track, rate, di;
+	u64 dur, time_slice, init_offset, avg_rate;
 	Bool is_in_iod, delete_desc;
 
 	GF_ISOSample *samp;
@@ -830,10 +833,11 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 
 		codec = gf_odf_codec_new();
 
-		dur = esd->decoderConfig->avgBitrate = 0;
+		dur = avg_rate = 0;
 		esd->decoderConfig->bufferSizeDB = 0;
-		esd->decoderConfig->maxBitrate = rate = time_slice = 0;
-
+		esd->decoderConfig->maxBitrate = 0;
+		rate = 0;
+		time_slice = 0;
 		init_offset = 0;
 		/*encode all samples and perform import - FIXME this is destructive...*/
 		for (j=0; j<gf_list_count(sc->AUs); j++) {
@@ -921,7 +925,7 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 			if (!e) e = gf_isom_add_sample(mp4, track, di, samp);
 
 			dur = au->timing - init_offset;
-			esd->decoderConfig->avgBitrate += samp->dataLength;
+			avg_rate += samp->dataLength;
 			rate += samp->dataLength;
 			if (esd->decoderConfig->bufferSizeDB<samp->dataLength) esd->decoderConfig->bufferSizeDB = samp->dataLength;
 			if (samp->DTS - time_slice > esd->slConfig->timestampResolution) {
@@ -935,7 +939,7 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 		}
 
 		if (dur) {
-			esd->decoderConfig->avgBitrate *= esd->slConfig->timestampResolution * 8 / dur;
+			esd->decoderConfig->avgBitrate = (u32) (avg_rate * esd->slConfig->timestampResolution * 8 / dur);
 			esd->decoderConfig->maxBitrate *= 8;
 		} else {
 			esd->decoderConfig->avgBitrate = 0;
@@ -943,7 +947,7 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 		}
 		gf_isom_change_mpeg4_description(mp4, track, 1, esd);
 
-		gf_sm_finalize_mux(mp4, esd, init_offset);
+		gf_sm_finalize_mux(mp4, esd, (u32) init_offset);
 		if (delete_desc) {
 			gf_odf_desc_del((GF_Descriptor *) esd);
 			esd = NULL;
