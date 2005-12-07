@@ -343,10 +343,17 @@ void gf_term_connect_from_time(GF_Terminal * term, const char *URL, u64 startTim
 	odm->term = term;
 	gf_term_lock_net(term, 0);
 
-	term->restart_time = startTime;
+	if (startTime != (u32)-1)
+		term->restart_time = startTime;
+	else 
+		term->restart_time = 0;
 
 	/*connect - we don't have any parentID */
 	gf_term_connect_object(term, odm, (char *) URL, NULL);
+
+	/*render first visual frame and pause*/
+	if (startTime == (u32)-1)
+		gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
 }
 
 void gf_term_connect(GF_Terminal * term, const char *URL)

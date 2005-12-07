@@ -158,8 +158,9 @@ Bool gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos)
 
 	/*end of stream */
 	*eos = CB_IsEndOfStream(mo->odm->codec->CB);
-	/*not running*/
-	if (!CB_IsRunning(mo->odm->codec->CB)) goto exit;
+	/*not running and no resync (ie audio)*/
+	if (!resync && !CB_IsRunning(mo->odm->codec->CB)) goto exit;
+	/*if not running but resync (video, image), try to load the composition memory anyway*/
 
 	/*if frame locked return it*/
 	if (mo->num_fetched) {
