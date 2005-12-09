@@ -310,57 +310,6 @@ void gf_term_message(GF_Terminal *term, const char *service, const char *message
 	GF_USER_MESSAGE(term->user, service, message, error);
 }
 
-
-void gf_term_connect_from_time(GF_Terminal * term, const char *URL, u64 startTime)
-{
-	GF_InlineScene *is;
-	GF_ObjectManager *odm;
-	const char *main_url;
-	if (!URL || !strlen(URL)) return;
-
-	if (term->root_scene) {
-		if (term->root_scene->root_od && term->root_scene->root_od->net_service) {
-			main_url = term->root_scene->root_od->net_service->url;
-			if (main_url && !strcmp(main_url, URL)) {
-				gf_term_play_from_time(term, 0);
-				return;
-			}
-		}
-		/*disconnect*/
-		gf_term_disconnect(term);
-	}
-
-	gf_term_lock_net(term, 1);
-	/*create a new scene*/
-	is = gf_is_new(NULL);
-	odm = gf_odm_new();
-	gf_sg_set_javascript_api(is->graph, &term->js_ifce);
-
-	is->root_od = odm;
-	term->root_scene = is;
-	odm->parentscene = NULL;
-	odm->subscene = is;
-	odm->term = term;
-	gf_term_lock_net(term, 0);
-
-	if (startTime != (u32)-1)
-		term->restart_time = startTime;
-	else 
-		term->restart_time = 0;
-
-	/*connect - we don't have any parentID */
-	gf_term_connect_object(term, odm, (char *) URL, NULL);
-
-	/*render first visual frame and pause*/
-	if (startTime == (u32)-1)
-		gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
-}
-
-void gf_term_connect(GF_Terminal * term, const char *URL)
-{
-	gf_term_connect_from_time(term, URL, 0);
-}
-
 static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_audio)
 {
 	u32 i, j;
@@ -388,6 +337,51 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 			else gf_clock_resume(ck);
 		}
 	}
+}
+
+void gf_term_connect_from_time(GF_Terminal * term, const char *URL, u32 startTime, Bool pause_at_first_frame)
+{
+	GF_InlineScene *is;
+	GF_ObjectManager *odm;
+	const char *main_url;
+	if (!URL || !strlen(URL)) return;
+
+	if (term->root_scene) {
+		if (term->root_scene->root_od && term->root_scene->root_od->net_service) {
+			main_url = term->root_scene->root_od->net_service->url;
+			if (main_url && !strcmp(main_url, URL)) {
+				gf_term_play_from_time(term, 0, pause_at_first_frame);
+				return;
+			}
+		}
+		/*disconnect*/
+		gf_term_disconnect(term);
+	}
+
+	gf_term_lock_net(term, 1);
+	/*create a new scene*/
+	is = gf_is_new(NULL);
+	odm = gf_odm_new();
+	gf_sg_set_javascript_api(is->graph, &term->js_ifce);
+
+	is->root_od = odm;
+	term->root_scene = is;
+	odm->parentscene = NULL;
+	odm->subscene = is;
+	odm->term = term;
+	gf_term_lock_net(term, 0);
+
+	term->restart_time = startTime;
+	/*render first visual frame and pause*/
+	if (pause_at_first_frame)
+		gf_term_set_play_state(term, GF_STATE_STEP_PAUSE, 0);
+	/*connect - we don't have any parentID */
+	gf_term_connect_object(term, odm, (char *) URL, NULL);
+}
+
+void gf_term_connect(GF_Terminal * term, const char *URL)
+{
+	gf_term_connect_from_time(term, URL, 0, 0);
 }
 
 void gf_term_disconnect(GF_Terminal *term)
@@ -504,7 +498,9 @@ u32 gf_term_get_option(GF_Terminal * term, u32 type)
 	switch (type) {
 	case GF_OPT_HAS_JAVASCRIPT: return gf_sg_has_scripting();
 	case GF_OPT_IS_FINISHED: return Term_CheckIsOver(term);
-	case GF_OPT_PLAY_STATE: return term->play_state ? GF_STATE_PAUSED : GF_STATE_PLAYING;
+	case GF_OPT_PLAY_STATE: 
+		if (term->play_state || term->renderer->step_mode) return GF_STATE_PAUSED;
+		return GF_STATE_PLAYING;
 	case GF_OPT_MEDIA_CACHE: 
 		if (!term->enable_cache) return GF_MEDIA_CACHE_DISABLED;
 		else if (term->root_scene && term->root_scene->root_od->net_service->cache) return GF_MEDIA_CACHE_RUNNING;
@@ -654,7 +650,7 @@ GF_Err gf_term_connect_remote_channel(GF_Terminal *term, GF_Channel *ch, char *U
 	return GF_OK;
 }
 
-void gf_term_play_from_time(GF_Terminal *term, u64 from_time)
+void gf_term_play_from_time(GF_Terminal *term, u32 from_time, Bool pause_at_first_frame)
 {
 	if (!term || !term->root_scene) return;
 	if (term->root_scene->root_od->no_time_ctrl) return;
@@ -667,8 +663,10 @@ void gf_term_play_from_time(GF_Terminal *term, u64 from_time)
 		gf_sr_lock(term->renderer, 1);
 		gf_is_restart_dynamic(term->root_scene, from_time);
 		gf_sr_lock(term->renderer, 0);
+		if (pause_at_first_frame)
+			gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
 		return;
-	}
+	} 
 
 	/*pause everything*/
 	gf_term_set_play_state(term, GF_STATE_PAUSED, 0);
@@ -683,7 +681,7 @@ void gf_term_play_from_time(GF_Terminal *term, u64 from_time)
 
 	gf_odm_start(term->root_scene->root_od);
 	gf_sr_lock(term->renderer, 0);
-	gf_term_set_play_state(term, GF_STATE_PLAYING, 1);
+	gf_term_set_play_state(term, pause_at_first_frame ? GF_STATE_STEP_PAUSE : GF_STATE_PLAYING, 1);
 }
 
 

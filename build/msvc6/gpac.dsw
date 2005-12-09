@@ -81,10 +81,10 @@ Package=<4>
     Project_Dep_Name svg_in
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name svg_loader
+    Project_Dep_Name laser_dec
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name laser_dec
+    Project_Dep_Name svg_loader
     End Project Dependency
 }}}
 

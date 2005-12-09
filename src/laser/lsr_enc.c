@@ -2331,7 +2331,7 @@ static void lsr_write_use(GF_LASeRCodec *lsr, SVGuseElement *elt, Bool ommit_tag
 		lsr_write_fill(lsr, (SVGElement*)elt, clone);
 		lsr_write_stroke(lsr, (SVGElement*)elt, clone);
 		GF_LSR_WRITE_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
-		/*TODO */
+		/*TODO ( one value only??) */
 		GF_LSR_WRITE_INT(lsr, 0, 1, "hasOverflow");
 		lsr_write_coordinate(lsr, elt->x.value, 1, "x");
 		lsr_write_coordinate(lsr, elt->y.value, 1, "y");

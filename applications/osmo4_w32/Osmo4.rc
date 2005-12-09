@@ -440,6 +440,8 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,4,30,105,10
     CONTROL         "Single Instance",IDC_SINGLE_INSTANCE,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,4,54,65,10
+    CONTROL         "AutoPlay",IDC_AUTO_PLAY,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,80,5,44,10
 END
 
 IDD_OPT_RENDER DIALOG DISCARDABLE  0, 20, 169, 76

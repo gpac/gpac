@@ -51,7 +51,7 @@ void set_echo_off(Bool echo_off);
 static Bool is_connected = 0;
 static Bool display_rti = 0;
 static Bool Run;
-static u64 Duration;
+static u32 Duration;
 static Bool CanSeek = 0;
 static u32 Volume=100;
 static char the_url[GF_MAX_PATH];
@@ -225,7 +225,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
 	switch (evt->type) {
 	case GF_EVT_DURATION:
-		Duration = (u64) (evt->duration.duration*1000);
+		Duration = (u32) (evt->duration.duration*1000);
 		CanSeek = evt->duration.can_seek;
 		break;
 	case GF_EVT_MESSAGE:
@@ -258,22 +258,22 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			switch (evt->key.vk_code) {
 			case GF_VK_LEFT:
 				if (Duration>=2000) {
-					s64 res = gf_term_get_time_in_ms(term) - 5*Duration/100;
+					s32 res = gf_term_get_time_in_ms(term) - 5*Duration/100;
 					if (res<0) res=0;
 					fprintf(stdout, "seeking to %.2f %% (", 100.0*(s64)res / (s64)Duration);
 					PrintTime(res);
 					fprintf(stdout, ")\n");
-					gf_term_play_from_time(term, res);
+					gf_term_play_from_time(term, res, 0);
 				} 
 				break;
 			case GF_VK_RIGHT:
 				if (Duration>=2000) {
-					u64 res = gf_term_get_time_in_ms(term) + 5*Duration/100;
+					u32 res = gf_term_get_time_in_ms(term) + 5*Duration/100;
 					if (res>=Duration) res = 0;
 					fprintf(stdout, "seeking to %.2f %% (", 100.0*(s64)res / (s64)Duration);
 					PrintTime(res);
 					fprintf(stdout, ")\n");
-					gf_term_play_from_time(term, res);
+					gf_term_play_from_time(term, res, 0);
 				}
 				break;
 			/*these 2 are likely not supported by most audio ouput modules*/
@@ -670,8 +670,8 @@ int main (int argc, char **argv)
 				fprintf(stdout, " (current %.2f %%)\nEnter Seek percentage:\n", res);
 				if (scanf("%d", &seekTo) == 1) { 
 					if (seekTo > 100) seekTo = 100;
-					res = (Double)(s64)Duration; res /= 100; res *= seekTo;
-					gf_term_play_from_time(term, (u64) res);
+					res = (Double)Duration; res /= 100; res *= seekTo;
+					gf_term_play_from_time(term, (u32) res, 0);
 				}
 			}
 			break;
@@ -758,7 +758,7 @@ int main (int argc, char **argv)
 				goto exit;
 			}
 			fprintf(stdout, "Using %s\n", gf_cfg_get_key(cfg_file, "Rendering", "RendererName"));
-			if (reconnect) gf_term_connect_from_time(term, the_url, now);
+			if (reconnect) gf_term_connect_from_time(term, the_url, now, 0);
 		}
 			break;
 		case 'k':

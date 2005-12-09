@@ -172,6 +172,7 @@ public:
 // Dialog Data
 	//{{AFX_DATA(COptGen)
 	enum { IDD = IDD_OPT_GEN };
+	CButton	m_AutoPlay;
 	CButton	m_LookForSubs;
 	CButton	m_ViewXMT;
 	CButton	m_NoConsole;

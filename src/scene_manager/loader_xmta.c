@@ -1877,6 +1877,8 @@ void xmt_parse_route(XMTParser *parser, Bool is_insert, GF_Command *com)
 			com->def_name = strdup(ID);
 			/*whenever not inserting in graph, keep track of max defined ID*/
 			gf_sg_set_max_defined_route_id(parser->load->scene_graph, rID);
+			if (rID>parser->load->ctx->max_route_id) parser->load->ctx->max_route_id = rID;
+
 		}
 		com->fromNodeID = orig->sgprivate->NodeID;
 		com->fromFieldIndex = orig_field.fieldIndex;
@@ -2156,10 +2158,10 @@ void xmt_parse_command(XMTParser *parser, char *name, GF_List *com_list)
 			}
 			else if (!strcmp(str, "value")) strcpy(fVal, parser->xml_parser.value_buffer);
 			else if (!strcmp(str, "atRoute")) {
-				GF_Route *r = gf_sg_route_find_by_name(parser->load->scene_graph, parser->xml_parser.value_buffer);
-				if (!r) com->unres_name = strdup(parser->xml_parser.value_buffer);
+				u32 rID = xmt_get_route(parser, parser->xml_parser.value_buffer, 0);
+				if (!rID) com->unres_name = strdup(parser->xml_parser.value_buffer);
 				else {
-					com->RouteID = r->ID;
+					com->RouteID = rID;
 					/*for bt<->xmt conversions*/
 					com->def_name = strdup(parser->xml_parser.value_buffer);
 				}

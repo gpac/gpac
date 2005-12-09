@@ -32,6 +32,7 @@ GF_Clock *NewClock(GF_Terminal *term)
 	tmp->mx = gf_mx_new();
 	tmp->term = term;
 	tmp->speed = FIX_ONE;
+	if (term->play_state) tmp->Paused = 1;
 	return tmp;
 }
 

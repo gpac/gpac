@@ -47,10 +47,10 @@ void gf_term_disconnect(GF_Terminal *term);
 presentation from inside the EventProc where doing a disconnect/connect could deadlock*/
 void gf_term_reload(GF_Terminal *term);
 /*restarts url from given time (in ms)*/
-void gf_term_play_from_time(GF_Terminal *term, u64 from_time);
+void gf_term_play_from_time(GF_Terminal *term, u32 from_time, Bool pause_at_first_frame);
 /*connect URL and seek right away - only needed when reloading the complete player (avoids waiting
 for connection and post a seek..)*/
-void gf_term_connect_from_time(GF_Terminal *term, const char *URL, u64 time_in_ms);
+void gf_term_connect_from_time(GF_Terminal *term, const char *URL, u32 time_in_ms, Bool pause_at_first_frame);
 
 /*returns current framerate
 	if @absoluteFPS is set, the return value is the absolute framerate, eg NbFrameCount/NbTimeSpent regardless of

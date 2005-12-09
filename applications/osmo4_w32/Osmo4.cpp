@@ -224,7 +224,6 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		pFrame->SetProgTimer(1);
 		pFrame->SetFocus();
 		pFrame->SetForegroundWindow();
-
 		break;
 
 	case GF_EVT_QUIT:
@@ -508,6 +507,8 @@ BOOL WinGPAC::InitInstance()
 
 	ParseCommandLine(cmdInfo);
 
+	start_mode = 0;
+
 	if (! cmdInfo.m_strFileName.IsEmpty()) {
 		pFrame->m_pPlayList->QueueURL(cmdInfo.m_strFileName);
 		pFrame->m_pPlayList->RefreshList();
@@ -519,11 +520,16 @@ BOOL WinGPAC::InitInstance()
 		pFrame->m_pPlayList->OpenPlayList(sPL);
 		const char *sOpt = gf_cfg_get_key(GetApp()->m_user.config, "General", "PLEntry");
 		if (sOpt) {
+			s32 count = (s32)gf_list_count(pFrame->m_pPlayList->m_entries);
 			pFrame->m_pPlayList->m_cur_entry = atoi(sOpt);
-			if (pFrame->m_pPlayList->m_cur_entry>=(s32)gf_list_count(pFrame->m_pPlayList->m_entries))
-				pFrame->m_pPlayList->m_cur_entry = -1;
+			if (pFrame->m_pPlayList->m_cur_entry>=count)
+				pFrame->m_pPlayList->m_cur_entry = count-1;
 		} else {
 			pFrame->m_pPlayList->m_cur_entry = -1;
+		}
+		if (pFrame->m_pPlayList->m_cur_entry>=0) {
+			start_mode = 1;
+			pFrame->m_pPlayList->Play();
 		}
 	}
 	pFrame->SetFocus();
@@ -652,6 +658,8 @@ void WinGPAC::SetOptions()
 {
 	const char *sOpt = gf_cfg_get_key(m_user.config, "General", "Loop");
 	m_Loop = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
+	sOpt = gf_cfg_get_key(m_user.config, "General", "AutoPlay");
+	m_AutoPlay = (!sOpt || !stricmp(sOpt, "yes")) ? 1 : 0;
 	sOpt = gf_cfg_get_key(m_user.config, "General", "LookForSubtitles");
 	m_LookForSubtitles = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 	sOpt = gf_cfg_get_key(m_user.config, "General", "ConsoleOff");
@@ -823,7 +831,11 @@ void WinGPAC::OnUpdateFileStep(CCmdUI* pCmdUI)
 
 void WinGPAC::PlayFromTime(u32 time)
 {
-	gf_term_play_from_time(m_term, time);
+	Bool do_pause;
+	if (start_mode==1) do_pause = 1;
+	else if (start_mode==2) do_pause = 0;
+	else do_pause = !m_AutoPlay;
+	gf_term_play_from_time(m_term, time, do_pause);
 	m_reset = 0;
 }
 
@@ -832,6 +844,15 @@ void WinGPAC::OnFileReload()
 {
 	gf_term_disconnect(m_term);
 	m_pMainWnd->PostMessage(WM_OPENURL);
+}
+
+void WinGPAC::UpdatePlayButton(Bool force_play)
+{
+	if (!force_play && gf_term_get_option(m_term, GF_OPT_PLAY_STATE)==GF_STATE_PLAYING) {
+		((CMainFrame *) m_pMainWnd)->m_wndToolBar.SetButtonInfo(5, ID_FILE_PLAY, TBBS_BUTTON, 4);
+	} else {
+		((CMainFrame *) m_pMainWnd)->m_wndToolBar.SetButtonInfo(5, ID_FILE_PLAY, TBBS_BUTTON, 3);
+	}
 }
 
 void WinGPAC::OnFilePlay() 
@@ -844,11 +865,7 @@ void WinGPAC::OnFilePlay()
 		} else {
 			Pause();
 		}
-		if (gf_term_get_option(m_term, GF_OPT_PLAY_STATE)==GF_STATE_PLAYING) {
-			((CMainFrame *) m_pMainWnd)->m_wndToolBar.SetButtonInfo(5, ID_FILE_PLAY, TBBS_BUTTON, 4);
-		} else {
-			((CMainFrame *) m_pMainWnd)->m_wndToolBar.SetButtonInfo(5, ID_FILE_PLAY, TBBS_BUTTON, 3);
-		}
+		UpdatePlayButton();
 	} else {
 		((CMainFrame *) m_pMainWnd)->m_pPlayList->Play();
 	}
@@ -882,6 +899,7 @@ void WinGPAC::OnFileStop()
 	pFrame->m_Sliders.m_PosSlider.SetPos(0);
 	pFrame->SetProgTimer(0);
 	pFrame->m_wndToolBar.SetButtonInfo(5, ID_FILE_PLAY, TBBS_BUTTON, 3);
+	start_mode = 2;
 }
 
 void WinGPAC::OnUpdateFileStop(CCmdUI* pCmdUI) 

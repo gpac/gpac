@@ -506,6 +506,7 @@ void CMainFrame::SetProgTimer(Bool bOn)
 
 LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 {
+	Bool do_pause;
 	WinGPAC *app = GetApp();
 	CString txt, url;
 	txt = "Osmo4 - ";
@@ -513,15 +514,14 @@ LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 
 	url = m_pPlayList->GetURL();
 	m_Address.m_Address.SetWindowText(url);
-
 	SetWindowText(txt);
-
-	if (app->m_reconnect_time) {
-		gf_term_connect_from_time(app->m_term, (LPCSTR) url, app->m_reconnect_time);
-		app->m_reconnect_time = 0;
-	} else {
-		gf_term_connect(app->m_term, (LPCSTR) url);
-	}
+	if (app->start_mode==1) do_pause = 1;
+	else if (app->start_mode==2) do_pause = 0;
+	else do_pause = !app->m_AutoPlay;
+	gf_term_connect_from_time(app->m_term, (LPCSTR) url, app->m_reconnect_time, do_pause);
+	app->m_reconnect_time = 0;
+	app->start_mode = 0;
+	app->UpdatePlayButton();
 	return 1;	
 }
 
@@ -1005,7 +1005,7 @@ BOOL CMainFrame::OnCommand(WPARAM wParam, LPARAM lParam)
 	}
 	if ( (ID>=ID_SETCHAP_FIRST) && (ID<=ID_SETCHAP_LAST)) {
 		ID -= ID_SETCHAP_FIRST;
-		gf_term_play_from_time(app->m_term, (u32) (1000*m_chapters_start[ID]));
+		gf_term_play_from_time(app->m_term, (u32) (1000*m_chapters_start[ID]), 0);
 		return TRUE;
 	}
 	return CFrameWnd::OnCommand(wParam, lParam);

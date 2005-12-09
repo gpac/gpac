@@ -33,7 +33,6 @@
 #define IDD_OPT_FILETYPES               179
 #define IDR_MENUPL                      182
 #define IDD_PASSWD                      188
-
 #define IDC_FILES_MIMES                 1000
 #define IDC_FILES_PLUG                  1001
 #define ID_AUDIO_VOL                    1002
@@ -50,13 +49,13 @@
 #define IDC_LANG                        1013
 #define IDC_LOOP                        1014
 #define IDC_AUTOSTART                   1015
+#define IDC_AUTO_PLAY                   1015
 #define IDC_FILEASSOC                   1016
 #define IDC_NO_CONSOLE                  1017
 #define IDC_BIFS_RATE                   1018
 #define IDC_DEC_THREAD                  1019
 #define IDC_DIRECTRENDER                1020
 #define IDC_HWMEMORY                    1021
-#define IDC_DRAW_NORMALS                1122
 #define IDC_BIFSDROP                    1023
 #define IDC_SPIN_AUDIO                  1024
 #define IDC_EDIT_AUDIO                  1025
@@ -141,6 +140,7 @@
 #define ID_VIEW_ORIGINAL                1119
 #define ID_VIEW_FULLSCREEN              1120
 #define ID_AR_KEEP                      1121
+#define IDC_DRAW_NORMALS                1122
 #define ID_AR_FILL                      1122
 #define ID_AR_43                        1123
 #define ID_AR_169                       1124
@@ -211,8 +211,7 @@
 #define ID_AUDIO_EMPTY                  1198
 #define ID_VIDEO_EMPTY                  1199
 #define ID_SUBS_EMPTY                   1200
-#define ID_VIEW_CPU						1201
-
+#define ID_VIEW_CPU                     1201
 #define ID_VP_0                         1300
 #define ID_VP_1                         1301
 #define ID_VP_2                         1302
@@ -263,12 +262,8 @@
 #define ID_SELOBJ_7                     1347
 #define ID_SELOBJ_8                     1348
 #define ID_SELOBJ_9                     1349
-
-
-
 #define ID_SETCHAP_FIRST                2000
 #define ID_SETCHAP_LAST                 2200
-
 
 // Next default values for new objects
 // 
