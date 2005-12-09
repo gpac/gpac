@@ -219,22 +219,22 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			case GF_VK_LEFT:
 				res = gf_term_get_time_in_ms(app->m_term) - 5*app->m_duration/100;
 				if (res<0) res=0;
-				gf_term_play_from_time(app->m_term, res);
+				gf_term_play_from_time(app->m_term, res, 0);
 				break;
 			case GF_VK_RIGHT:
 				res = gf_term_get_time_in_ms(app->m_term) + 5*app->m_duration/100;
 				if ((u32) res>=app->m_duration) res = 0;
-				gf_term_play_from_time(app->m_term, res);
+				gf_term_play_from_time(app->m_term, res, 0);
 				break;
 			case GF_VK_DOWN:
 				res = gf_term_get_time_in_ms(app->m_term) - 60000;
 				if (res<0) res=0;
-				gf_term_play_from_time(app->m_term, res);
+				gf_term_play_from_time(app->m_term, res, 0);
 				break;
 			case GF_VK_UP:
 				res = gf_term_get_time_in_ms(app->m_term) + 60000;
 				if ((u32) res>=app->m_duration) res = 0;
-				gf_term_play_from_time(app->m_term, res);
+				gf_term_play_from_time(app->m_term, res, 0);
 				break;
 			}
 		} else if (evt->key.key_states & GF_KM_CTRL) {
@@ -1580,7 +1580,7 @@ void wxOsmo4Frame::OnFilePlay(wxCommandEvent & WXUNUSED(event))
 			gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
 			if (m_bToReset) {
 				m_pTimer->Start(100, 0);
-				gf_term_play_from_time(m_term, 0);
+				gf_term_play_from_time(m_term, 0, 0);
 			}
 			m_bToReset = 0;
 			UpdatePlay();
@@ -1651,7 +1651,7 @@ void wxOsmo4Frame::OnSlide(wxScrollEvent &event)
 			m_bToReset = 0;
 			if (!m_pTimer->IsRunning()) m_pTimer->Start(100, 0);
 	    }
-	    gf_term_play_from_time(m_term, (u32) res);
+	    gf_term_play_from_time(m_term, (u32) res, 0);
 	}
 #endif
 }
@@ -1678,7 +1678,7 @@ void wxOsmo4Frame::ReloadTerminal()
 	}
 	if (reconnect) {
 		if (reconnect_time) {
-			gf_term_connect_from_time(m_term, m_pPlayList->GetURL().mb_str(wxConvUTF8), reconnect_time);
+			gf_term_connect_from_time(m_term, m_pPlayList->GetURL().mb_str(wxConvUTF8), reconnect_time, 0);
 		} else {
 			gf_term_connect(m_term, m_pPlayList->GetURL().mb_str(wxConvUTF8));
 		}
@@ -2259,7 +2259,7 @@ void wxOsmo4Frame::OnChapterSel(wxCommandEvent & event)
 	GF_ObjectManager *root_od = gf_term_get_root_object(m_term);
 	if (!root_od) return;
 	u32 ID = event.GetId() - ID_SETCHAP_FIRST;
-	gf_term_play_from_time(m_term, (u32) (1000*m_chapters_start[ID]));
+	gf_term_play_from_time(m_term, (u32) (1000*m_chapters_start[ID]), 0);
 }
 
 void wxOsmo4Frame::OnUpdateChapterSel(wxUpdateUIEvent & event)

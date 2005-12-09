@@ -37,39 +37,71 @@ extern "C" {
 
 #define XML_LINE_SIZE	8000
 
+/*!
+ *	\file <gpac/xml.h>
+ *	\brief XML functions.
+ */
+
+/*!
+ *	\addtogroup xml_grp XML
+ *	\ingroup utils_grp
+ *	\brief XML Parsing functions
+ *
+ *This section documents the XML functions of the GPAC framework.\n
+ *Two parsers are available, a push-only parser (user-driven) and a SAX parser.
+ *	@{
+ */
+
+
+/*!\brief XML push parser
+ *
+ *The XML push parser object is used for simple parsing of XML data from file. It supports plain text in UTF-8 and UTF-16 encoding. It also supports
+ * GZIP encoded input files.
+ */
 typedef struct 
 {
-	/*gz input file*/
+	/*! gz input file*/
 	gzFile gz_in;
-	/*eof*/
+	/*! End of file flag*/
 	Bool done;
-	/*current line parsed (mainly used for error reports)*/
+	/*! current line parsed, mainly used for error reporting*/
 	u32 line;
-	/*0: UTF-8, 1: UTF-16 BE, 2: UTF-16 LE. String input is always converted back to utf8*/
+	/*! Unicode type. Values are 0 (UTF-8), 1(UTF-16 BE), 2(UTF-16 LE). String input is always converted back to utf8*/
 	s32 unicode_type;
-	/*line buffer - needs refinement, cannot handle attribute values with size over XMT_LINE_SIZE (except string
-	where space is used as a line-break...)*/
+	/*! working line buffer - needs refinement, cannot handle attribute values with size over XMT_LINE_SIZE (except string where space is used as a line-break...)*/
 	char line_buffer[XML_LINE_SIZE];
-	/*name buffer for elements and attributes*/
+	/*! name buffer for elements and attributes*/
 	char name_buffer[1000];
-	/*dynamic buffer for attribute values*/
+	/*! dynamic buffer for attribute values*/
 	char *value_buffer;
+	/*! slength of the dynamic attribute buffer*/
 	u32 att_buf_size;
-	/*line size and current position*/
-	u32 line_size, current_pos;
-	/*absolute line start position in file (needed for hard seeking in xmt-a)*/
+	/*! line size*/
+	u32 line_size;
+	/*! current position*/
+	u32 current_pos;
+	/*! absolute line start position in file. Used by some parsers for file seeking*/
 	s32 line_start_pos;
-	/*text parsing mode (text with markers), avoids getting rid of \n & co*/
+	/*! text parsing mode (text with markers), avoids getting rid of \n & co. Not very stable...*/
 	Bool text_parsing;
-
-	/*file size and pos for user notif*/
-	u32 file_size, file_pos;
-	/*if set notifies current progress*/
+	/*! file size for user notif*/
+	u32 file_size;
+	/*! filepos for user notif*/
+	u32 file_pos;
+	/*! progress notification function, NULL for no report*/
 	void (*OnProgress)(void *cbck, u32 done, u32 tot);
+	/*! progress callback data*/
 	void *cbk;
 } XMLParser;
 
-/*inits parser with given local file (handles gzip) - checks UTF8/16*/
+/*!
+ *	\brief XML push parser constructor
+ *
+ *	Inits the XML push parser with the given local file.
+ *\param parser the parser object to initialize 
+ *\param fileName path and name of the file to parse
+ *\note This handles UTF8/16 and gzip detection
+ */
 GF_Err xml_init_parser(XMLParser *parser, const char *fileName);
 /*reset parser (closes file and destroy value buffer)*/
 void xml_reset_parser(XMLParser *parser);
@@ -143,6 +175,8 @@ u32 gf_xml_sax_get_line(GF_SAXParser *parser);
 u32 gf_xml_sax_get_file_size(GF_SAXParser *parser);
 /*get current file position*/
 u32 gf_xml_sax_get_file_pos(GF_SAXParser *parser);
+
+/*! @} */
 
 #ifdef __cplusplus
 }

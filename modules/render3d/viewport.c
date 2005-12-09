@@ -259,7 +259,7 @@ static void RenderViewpoint(GF_Node *node, void *rs)
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
 
 	assert(eff->viewpoints);
-	if (!eff->camera->is_3D) return;
+//	if (!eff->camera->is_3D) return;
 
 	/*first traverse, bound if needed*/
 	if (gf_list_find(eff->viewpoints, node) < 0) {

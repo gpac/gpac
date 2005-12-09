@@ -29,6 +29,8 @@
 
 #ifndef GPAC_DISABLE_SVG
 
+#include <zlib.h>
+
 /*************************************************************************
  *																	 	 *
  * Functions implementing the Basic Decoder and Scene Decoder interfaces *
@@ -133,6 +135,7 @@ static GF_Err SVG_ProcessAU(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 
 	return e;
 }
 
+
 static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
@@ -149,6 +152,40 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 		}
 	case SVGLOADER_OTI_STREAMING_SVG:
 		return SVG_ProcessAU(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
+	case SVGLOADER_OTI_STREAMING_SVG_GZ:
+	{
+		char svg_data[2049];
+		GF_Err e = GF_OK;
+		int err;
+		u32 done = 0;
+		z_stream d_stream;
+		d_stream.zalloc = (alloc_func)0;
+		d_stream.zfree = (free_func)0;
+		d_stream.opaque = (voidpf)0;
+		d_stream.next_in  = inBuffer;
+		d_stream.avail_in = inBufferLength;
+		d_stream.next_out = svg_data;
+		d_stream.avail_out = 2048;
+
+		err = inflateInit(&d_stream);
+		if (err == Z_OK) {
+			while (d_stream.total_in < inBufferLength) {
+				err = inflate(&d_stream, Z_NO_FLUSH);
+				if (err < Z_OK) {
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					break;
+				}
+				svg_data[d_stream.total_out - done] = 0;
+				e = SVG_ProcessAU(plug, svg_data, d_stream.total_out - done, ES_ID, stream_time, mmlevel);
+				if (e || (err== Z_STREAM_END)) break;
+				done = d_stream.total_out;
+				d_stream.avail_out = 2048;
+				d_stream.next_out = svg_data;
+			}
+			inflateEnd(&d_stream);
+		}
+		return e;
+	}
 	case SVGLOADER_OTI_LASERML:
 		return LSR_ProcessDocument(plug, inBuffer, inBufferLength, ES_ID, stream_time, mmlevel);
 	default:
@@ -195,15 +232,19 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 	if (Upstream) return GF_NOT_SUPPORTED;
 
 	/* decSpecInfo is not null only when reading from an SVG file (local or distant, cached or not) */
-	if (objectTypeIndication == SVGLOADER_OTI_STREAMING_SVG) {
+	switch (objectTypeIndication) {
+	case SVGLOADER_OTI_STREAMING_SVG:
+	case SVGLOADER_OTI_STREAMING_SVG_GZ:
 		/*no decSpecInfo defined for streaming svg yet*/
-	} else {
+		break;
+	default:
 		if (!decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
 		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
 		parser->file_size = gf_bs_read_u32(bs);
 		gf_bs_del(bs);
 		GF_SAFEALLOC(parser->file_name, sizeof(char)*(1 + decSpecInfoSize - sizeof(u32)) );
 		memcpy(parser->file_name, decSpecInfo + sizeof(u32), decSpecInfoSize - sizeof(u32) );
+		break;
 	}
 	parser->oti = objectTypeIndication;
 
@@ -235,6 +276,7 @@ const char *SVG_GetName(struct _basedecoder *plug)
 	SVGParser *parser = plug->privateStack;
 	if (parser->oti==SVGLOADER_OTI_SVG) return (parser->load_type==SVG_LOAD_DOM) ? "GPAC SVG DOM Parser" : (parser->load_type==SVG_LOAD_SAX) ? "GPAC SVG SAX Parser" : "GPAC SVG Progressive Parser";
 	if (parser->oti==SVGLOADER_OTI_STREAMING_SVG) return "GPAC Streaming SVG + libXML Parser";
+	if (parser->oti==SVGLOADER_OTI_STREAMING_SVG_GZ) return "GPAC Streaming SVGZ + libXML Parser";
 	if (parser->oti==SVGLOADER_OTI_LASERML) return "GPAC LASeRML Parser";
 	return "INTERNAL ERROR";
 }
@@ -247,6 +289,7 @@ Bool SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, u
 		return 0;
 	} else if (StreamType==GF_STREAM_SCENE) {
 		if (ObjectType==SVGLOADER_OTI_STREAMING_SVG) return 1;
+		if (ObjectType==SVGLOADER_OTI_STREAMING_SVG_GZ) return 1;
 		return 0;
 	}
 	return 0;

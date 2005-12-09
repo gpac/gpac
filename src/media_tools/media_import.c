@@ -1967,8 +1967,7 @@ exit:
 	return e;
 }
 
-GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, u32 track, u32 di, GF_ISOSample *samp, 
-								 char *xml_file, char *xmlFrom, char *xmlTo)
+GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, char *xml_file, char *xmlFrom, char *xmlTo)
 {
 	XMLParser xml_sample_parser;
 	char *str, *xml_sample_att;
@@ -2117,11 +2116,6 @@ exit:
 		}
 		gf_f64_seek(f, sample_start_pos, SEEK_SET);
 		fread(samp->data, samp->dataLength, 1, f); 
-		if (samp->IsRAP==2) {
-			e = gf_isom_add_sample_shadow(import->dest, track, samp);
-		} else {
-			e = gf_isom_add_sample(import->dest, track, di, samp);
-		}
 	} else {
 		e = GF_IO_ERR;
 	}
@@ -2131,12 +2125,52 @@ exit:
 	return e;
 }
 
+static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size)
+{
+    z_stream stream;
+    int err;
+	char *dest = malloc(sizeof(char)*samp->dataLength*2);
+    stream.next_in = (Bytef*)samp->data;
+    stream.avail_in = (uInt)samp->dataLength;
+    stream.next_out = dest;
+    stream.avail_out = (uInt)samp->dataLength*2;
+    stream.zalloc = (alloc_func)NULL;
+    stream.zfree = (free_func)NULL;
+    stream.opaque = (voidpf)NULL;
+
+    err = deflateInit(&stream, 9);
+    if (err != Z_OK) {
+		free(dest);
+		return GF_IO_ERR;
+	}
+    err = deflate(&stream, Z_FINISH);
+    if (err != Z_STREAM_END) {
+        deflateEnd(&stream);
+		free(dest);
+        return GF_IO_ERR;
+    }
+    if (samp->dataLength<stream.total_out) {
+		fprintf(stdout, "Warning: compressed data (%d) bigger than input data (%d)\n", stream.total_out, samp->dataLength);
+	}
+	if (*max_size < stream.total_out) {
+		*max_size = samp->dataLength*2;
+		free(samp->data);
+		samp->data = dest;
+	} else {
+		memcpy(samp->data, dest, sizeof(char)*stream.total_out);
+		samp->dataLength = stream.total_out;
+		free(dest);
+	}
+    deflateEnd(&stream);
+    return GF_OK;
+}
+
 /*FIXME - need LARGE FILE support in NHNT - add a new version*/
 GF_Err gf_import_nhml(GF_MediaImporter *import)
 {
 	GF_Err e;
 	XMLParser parser;
-	Bool destroy_esd, inRootOD;
+	Bool destroy_esd, inRootOD, do_compress;
 	u32 track, tkID, di, mtype, max_size, duration, count, streamType, oti, timescale, specInfoSize, dts_inc;
 	GF_ISOSample *samp;
 	s64 media_size, media_done, offset;
@@ -2173,6 +2207,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 	destroy_esd = 0;
 	dts_inc = 0;
 	inRootOD = 0;
+	do_compress = 0;
 	specInfo = NULL;
 
 	if (!str || stricmp(str, "NHNTStream")) { 
@@ -2204,6 +2239,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 		else if (!strcmp(str, "trackID")) tkID = atoi(parser.value_buffer);
 		else if (!strcmp(str, "inRootOD")) inRootOD = !strcmp(parser.value_buffer, "yes");
 		else if (!strcmp(str, "DTS_increment")) dts_inc = atoi(parser.value_buffer);
+		else if (!strcmp(str, "gzipSamples")) do_compress = (!strcmp(parser.value_buffer, "true") || !strcmp(parser.value_buffer, "yes")) ? 1 : 0;
 		/*unknow desc related*/
 		else if (!strcmp(str, "compressorName")) strcpy(sdesc.compressor_name, parser.value_buffer);
 		else if (!strcmp(str, "codecVersion")) sdesc.version = atoi(parser.value_buffer);
@@ -2238,7 +2274,8 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 		fread(specInfo, specInfoSize, 1, info);
 		fclose(info);
 	}
-	
+	/*compressing samples, remove data ref*/
+	if (do_compress) import->flags &= ~GF_IMPORT_USE_DATAREF;
 
 	if (streamType)  {
 		if (!import->esd) {
@@ -2399,20 +2436,26 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 			}
 			gf_f64_seek(f, offset, SEEK_SET);
 			fread( samp->data, samp->dataLength, 1, f); 
-			if (samp->IsRAP==2) {
-				e = gf_isom_add_sample_shadow(import->dest, track, samp);
-			} else {
-				e = gf_isom_add_sample(import->dest, track, di, samp);
-			}
 			if (close) fclose(f);
 		} else {
 			char *xml_file;
 			if (strlen(szMediaTemp)) xml_file = szMediaTemp;
 			else xml_file = szMedia;
 			samp->dataLength = max_size;
-			gf_import_sample_from_xml(import, track, di, samp, xml_file, szXmlFrom, szXmlTo);
+			gf_import_sample_from_xml(import, samp, xml_file, szXmlFrom, szXmlTo);
 		}
 		if (e) goto exit;
+
+		if (do_compress) {
+			e = compress_sample_data(samp, &max_size);
+			if (e) goto exit;
+		}
+
+		if (samp->IsRAP==2) {
+			e = gf_isom_add_sample_shadow(import->dest, track, samp);
+		} else {
+			e = gf_isom_add_sample(import->dest, track, di, samp);
+		}
 		samp->IsRAP = 0;
 		samp->DTS += dts_inc;
 		media_done += samp->dataLength;

@@ -90,7 +90,8 @@ enum {
 	/*defined by dummy_in plugin*/
 	SVGLOADER_OTI_LASERML = 3,
 	/*defined by ourselves - streamType 3 (scene description) for SVG streaming*/
-	SVGLOADER_OTI_STREAMING_SVG	  = 10
+	SVGLOADER_OTI_STREAMING_SVG	  = 10,
+	SVGLOADER_OTI_STREAMING_SVG_GZ = 11
 };
 
 enum {

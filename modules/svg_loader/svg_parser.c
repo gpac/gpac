@@ -781,6 +781,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 		}
 		if (!xlink_href_found) {
 			local_de.target = parent;			
+			local_de.animation_elt = elt;
 		}
 	}
 	/* For anchor elements, we try to resolve the target element;
