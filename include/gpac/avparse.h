@@ -174,6 +174,8 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *width, u32 *height);
 
 GF_Err gf_avc_get_sps_info(u8 *sps, u32 sps_size, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
+const char *gf_avc_get_profile_name(u8 video_prof);
+
 #ifdef __cplusplus
 }
 #endif

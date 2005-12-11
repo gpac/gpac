@@ -722,10 +722,9 @@ u32 gf_isom_is_track_fragmented(GF_ISOFile *movie, u32 TrackID)
 
 u32 gf_isom_is_fragmented(GF_ISOFile *movie)
 {
-	if (!movie || !movie->moov || !movie->moov->mvex) return 0;
-	//if no tracks are setup in MVEX consider this is not a fragmented movie
-	//since only track data can be added to moof's
-	return gf_list_count(movie->moov->mvex->TrackExList);
+	if (!movie || !movie->moov) return 0;
+	/*only check moof number (in read mode, mvex can be deleted on the fly)*/
+	return movie->NextMoofNumber ? 1 : 0;
 }
 
 #else

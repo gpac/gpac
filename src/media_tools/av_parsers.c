@@ -1698,6 +1698,16 @@ GF_Err gf_avc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *width, u32 *height, 
 
 #endif
 
+const char *gf_avc_get_profile_name(u8 video_prof)
+{
+	switch (video_prof) {
+	case 0x42: return "Baseline";
+	case 0x4D: return "Main";
+	case 0x58: return "Extended";
+	default: return "Unknown";
+	}
+}
+
 
 #ifndef GPAC_READ_ONLY
 /*

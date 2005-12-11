@@ -762,6 +762,7 @@ EXPORTS
 	gf_vorbis_check_frame
 	gf_img_parse
 	gf_avc_get_sps_info
+	gf_avc_get_profile_name
 
 ;ismacryp.h exports
 	gf_ismacryp_crypt_file

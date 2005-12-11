@@ -452,6 +452,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			}
 		}
 		cur_file_time = chunk_start;
+	} else {
+		chunk_start = 0;
 	}
 
 	dest = NULL;
@@ -663,7 +665,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 							break;
 						}
 					}
-					if (time + (Double) GF_EPSILON_FLOAT < file_split_dur) break;
+					if (time /*+ (Double) GF_EPSILON_FLOAT*/ < file_split_dur) break;
 
 					gf_isom_remove_sample(dest, tki->dst_tk, last_samp);
 					tki->last_sample--;

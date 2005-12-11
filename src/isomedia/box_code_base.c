@@ -6386,34 +6386,39 @@ GF_Err trun_Read(GF_Box *s, GF_BitStream *bs)
 	//The rest depends on the flags
 	if (ptr->flags & GF_ISOM_TRUN_DATA_OFFSET) {
 		ptr->data_offset = gf_bs_read_u32(bs);
+		ptr->size -= 4;
 	}
 	if (ptr->flags & GF_ISOM_TRUN_FIRST_FLAG) {
 		ptr->first_sample_flags = gf_bs_read_u32(bs);
+		ptr->size -= 4;
 	}
 
 	//read each entry (even though nothing may be written)
 	for (i=0; i<ptr->sample_count; i++) {
+		u32 trun_size = 0;
 		p = (GF_TrunEntry *) malloc(sizeof(GF_TrunEntry));
 		memset(p, 0, sizeof(GF_TrunEntry));
 
 		if (ptr->flags & GF_ISOM_TRUN_DURATION) {
 			p->Duration = gf_bs_read_u32(bs);
+			trun_size += 4;
 		}
 		if (ptr->flags & GF_ISOM_TRUN_SIZE) {
 			p->size = gf_bs_read_u32(bs);
+			trun_size += 4;
 		}
 		//SHOULDN'T BE USED IF GF_ISOM_TRUN_FIRST_FLAG IS DEFINED
 		if (ptr->flags & GF_ISOM_TRUN_FLAGS) {
 			p->flags = gf_bs_read_u32(bs);
+			trun_size += 4;
 		}
 		if (ptr->flags & GF_ISOM_TRUN_CTS_OFFSET) {
 			p->CTS_Offset = gf_bs_read_u32(bs);
 		}
 		gf_list_add(ptr->entries, p);
-		if (ptr->size<p->size) return GF_ISOM_INVALID_FILE;
-		ptr->size-=p->size;
+		if (ptr->size<trun_size) return GF_ISOM_INVALID_FILE;
+		ptr->size-=trun_size;
 	}	
-	if (gf_list_count(ptr->entries) != ptr->sample_count) return GF_ISOM_INVALID_FILE;
 	return GF_OK;
 }
 

@@ -816,7 +816,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					if (full_dump) fprintf(stdout, "\t");
 					fprintf(stdout, "AVC/H264 Video - Visual Size %d x %d - ", w, h);
 					avccfg = gf_isom_avc_config_get(file, trackNum, 1);
-					fprintf(stdout, "Version %d Profile 0x%02x Level 0x%02x\n", avccfg->configurationVersion, avccfg->AVCProfileIndication, avccfg->AVCLevelIndication);
+					fprintf(stdout, "Profile %s @ Level %g\n", gf_avc_get_profile_name(avccfg->AVCProfileIndication), ((Double)avccfg->AVCLevelIndication)/10.0 );
 					slc = gf_list_get(avccfg->sequenceParameterSets, 0);
 					gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
 					if ((par_n>0) && (par_d>0)) {
