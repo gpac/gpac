@@ -31,6 +31,12 @@
 #include <gpac/internal/avilib.h>
 #include <gpac/internal/ogg.h>
 
+#if defined (WIN32) && !defined(__GNUC__)
+#define LLD "%I64d"
+#else
+#define LLD "%lld"
+#endif
+
 static GF_Err gf_export_message(GF_MediaExporter *dumper, GF_Err e, char *format, ...)
 {
 	va_list args;
@@ -1410,7 +1416,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper)
 		if (!samp) break;
 		fwrite(samp->data, samp->dataLength, 1, med);
 
-		fprintf(nhml, "<NHNTSample DTS=\"%d\" dataLength=\"%d\" ", samp->DTS, samp->dataLength);
+		fprintf(nhml, "<NHNTSample DTS=\""LLD"\" dataLength=\"%d\" ", samp->DTS, samp->dataLength);
 		if (full_dump || samp->CTS_Offset) fprintf(nhml, "CTSOffset=\"%d\" ", samp->CTS_Offset);
 		if (samp->IsRAP==1) fprintf(nhml, "isRAP=\"yes\" ");
 		else if (samp->IsRAP==2) fprintf(nhml, "isSyncShadow=\"yes\" ");

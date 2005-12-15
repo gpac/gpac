@@ -132,11 +132,11 @@ GF_Err gf_laser_encoder_get_config(GF_LASeRCodec *codec, u16 ESID, char **out_da
 		gf_bs_write_int(bs, 0, 1);
 	}
 	gf_bs_write_int(bs, codec->info->cfg.colorComponentBits - 1, 4);
-	gf_bs_write_int(bs, codec->info->cfg.resolution, 4);
-	if (codec->info->cfg.scale_bits<0) 
-		gf_bs_write_int(bs, 16 + codec->info->cfg.scale_bits, 4);
+	if (codec->info->cfg.resolution<0) 
+		gf_bs_write_int(bs, 16 + codec->info->cfg.resolution, 4);
 	else
-		gf_bs_write_int(bs, codec->info->cfg.scale_bits, 4);
+		gf_bs_write_int(bs, codec->info->cfg.resolution, 4);
+	gf_bs_write_int(bs, codec->info->cfg.scale_bits, 4);
 	gf_bs_write_int(bs, codec->info->cfg.coord_bits, 5);
 	gf_bs_write_int(bs, codec->info->cfg.append ? 1 : 0, 1);
 	gf_bs_write_int(bs, codec->info->cfg.has_string_ids ? 1 : 0, 1);
@@ -1008,7 +1008,7 @@ static void lsr_write_calc_mode(GF_LASeRCodec *lsr, u8 calc_mode)
 static void lsr_write_animatable(GF_LASeRCodec *lsr, SMIL_AttributeName *anim_type, SVGElement *elt, const char *name)
 {
 	u32 i, count;
-	s32 a_type;
+	s32 a_type = -1;
 	count = gf_node_get_field_count((GF_Node *)elt);
 	/*browse all anim types*/
 	for (i=0; i<count; i++) {
@@ -1852,7 +1852,7 @@ static void lsr_write_image(GF_LASeRCodec *lsr, SVGimageElement *elt)
 }
 static void lsr_write_line(GF_LASeRCodec *lsr, SVGlineElement *elt, Bool ommit_tag)
 {
-	SVGElement *clone;
+	SVGElement *clone = NULL;
 	Bool is_same = 0;
 
 	if (!ommit_tag && lsr_elt_has_same_base(lsr, (SVGElement *)elt, (SVGElement *)lsr->prev_line, 0)
@@ -2827,7 +2827,6 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGs
 	if (!com_list) return GF_OK;
 	count = gf_list_count(com_list);
 	for (i=0; i<count; i++) {
-		Bool is_replace = 0;
 		GF_Command *com = gf_list_get(com_list, i);
 		switch (com->tag) {
 		case GF_SG_LSR_NEW_SCENE:

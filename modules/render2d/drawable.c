@@ -756,7 +756,7 @@ u32 R2D_LP_GetLastUpdateTime(GF_Node *node)
 
 static GF_TextureHandler *svg_get_texture_handle(GF_Node *node, DOM_String uri)
 {
-	GF_Node *target;
+	GF_Node *target = NULL;
 	if (uri[0]=='#') target = gf_sg_find_node_by_name(gf_node_get_graph(node), uri+1);
 
 	if (!target) return NULL;

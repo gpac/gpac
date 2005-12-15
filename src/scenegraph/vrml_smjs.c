@@ -3184,7 +3184,6 @@ const long STACK_CHUNK_BYTES = 4024L;
 
 JSContext *gf_sg_ecmascript_new()
 {
-	JSContext *js_ctx = NULL;
 	if (!js_runtime) {
 		js_runtime = JS_NewRuntime(MAX_HEAP_BYTES);
 		if (!js_runtime) return NULL;

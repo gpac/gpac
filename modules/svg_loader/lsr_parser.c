@@ -71,9 +71,7 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 	if (!strcmp(com->name, "Insert")) {
 		s32 pos = -1;
 		char *at_att = "children";
-		char *value = NULL;
 		SVGElement *at_node = NULL;
-		SVGElement *new_node = NULL;
 		attributes = com->properties;
 		while (attributes) {
 			if (attributes->type == XML_ATTRIBUTE_NODE) {
@@ -107,7 +105,6 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 		char *at_att = NULL;
 		char *value = NULL;
 		SVGElement *at_node = NULL;
-		SVGElement *new_node = NULL;
 		attributes = com->properties;
 		while (attributes) {
 			if (attributes->type == XML_ATTRIBUTE_NODE) {

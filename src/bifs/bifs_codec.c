@@ -57,7 +57,7 @@ static GF_Err ParseConfig(GF_BitStream *bs, BIFSStreamInfo *info, u32 version)
 		info->config.BAnimRAP = gf_bs_read_int(bs, 1);
 		info->config.elementaryMasks = gf_list_new();
 		while (1) {
-			u32 node_id = gf_bs_read_int(bs, info->config.NodeIDBits);
+		  /*u32 node_id = */gf_bs_read_int(bs, info->config.NodeIDBits);
 			/*this assumes only FDP, BDP and IFS2D (no elem mask)*/
 			if (gf_bs_read_int(bs, 1) == 0) break;
 		}
@@ -67,7 +67,7 @@ static GF_Err ParseConfig(GF_BitStream *bs, BIFSStreamInfo *info, u32 version)
 	}
 }
 
-static bifs_info_del(BIFSStreamInfo *info)
+static void bifs_info_del(BIFSStreamInfo *info)
 {
 	while (1) {
 		BIFSElementaryMask *em = gf_list_last(info->config.elementaryMasks);

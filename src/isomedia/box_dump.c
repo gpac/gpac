@@ -2166,7 +2166,7 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 
 	count = gf_list_count(s->packetTable);
 
-	fprintf(trace, "<RTPHintSample SampleNumber=\"%d\" DecodingTime=\"%d\" CompositionTime=\"%d\" RandomAccessPoint=\"%d\" PacketCount=\"%d\">\n", SampleNum, tmp->DTS, tmp->DTS+tmp->CTS_Offset, tmp->IsRAP, count);
+	fprintf(trace, "<RTPHintSample SampleNumber=\"%d\" DecodingTime=\""LLD"\" CompositionTime=\""LLD"\" RandomAccessPoint=\"%d\" PacketCount=\"%d\">\n", SampleNum, tmp->DTS, tmp->DTS+tmp->CTS_Offset, tmp->IsRAP, count);
 
 	for (i=0; i<count; i++) {
 		pck = gf_list_get(s->packetTable, i);
@@ -2755,8 +2755,8 @@ GF_Err gf_isom_dump_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber, u32 S
 		return GF_NOT_SUPPORTED;
 	}
 
-	fprintf(trace, "<ISMACrypSample SampleNumber=\"%d\" DataSize=\"%d\" CompositionTime=\"%d\" ", SampleNum, isma_samp->dataLength, samp->DTS+samp->CTS_Offset);
-	if (samp->CTS_Offset) fprintf(trace, "DecodingTime=\"%d\" ", samp->DTS);
+	fprintf(trace, "<ISMACrypSample SampleNumber=\"%d\" DataSize=\"%d\" CompositionTime=\""LLD"\" ", SampleNum, isma_samp->dataLength, samp->DTS+samp->CTS_Offset);
+	if (samp->CTS_Offset) fprintf(trace, "DecodingTime=\""LLD"\" ", samp->DTS);
 	if (gf_isom_has_sync_points(the_file, trackNumber)) fprintf(trace, "RandomAccessPoint=\"%s\" ", samp->IsRAP ? "Yes" : "No");
 	fprintf(trace, "IsEncrypted=\"%s\" ", (isma_samp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? "Yes" : "No");
 	if (isma_samp->flags & GF_ISOM_ISMA_IS_ENCRYPTED) {

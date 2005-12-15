@@ -2398,7 +2398,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 	return e;
 }
 
-static void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool is_root)
+void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool is_root)
 {
 	char attValue[81920];
 	u32 i, count, nID;
@@ -2675,7 +2675,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 		
 			if (!first_bifs || (au->owner->streamType != GF_STREAM_SCENE) ) {
 				if (au->is_rap) fprintf(dumper->trace, "RAP ");
-				fprintf(dumper->trace, "AT %d ", au->timing);
+				fprintf(dumper->trace, "AT %d ", (u32) au->timing);
 				if ( (au->owner->streamType==GF_STREAM_OD && num_od) || (au->owner->streamType==GF_STREAM_SCENE && num_scene)) {
 					fprintf(dumper->trace, "IN %d ", au->owner->ESID);
 				} 
@@ -2705,7 +2705,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 				if (time != au->timing_sec) {
 					time = au->timing_sec;
 					fprintf(dumper->trace, "<saf:sceneUnit");
-					if (time) fprintf(dumper->trace, " time=\"%d\"", au->timing);
+					if (time) fprintf(dumper->trace, " time=\"%d\"", (u32) au->timing);
 					if (au->is_rap) fprintf(dumper->trace, " rap=\"true\"");
 					fprintf(dumper->trace, ">\n");
 				}

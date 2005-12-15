@@ -1040,7 +1040,7 @@ static void xml_sax_parse_comments(GF_SAXParser *parser)
 
 static GF_Err xml_sax_parse(GF_SAXParser *parser, Bool force_parse)
 {
-	u32 i;
+	u32 i = 0;
 	Bool is_text, is_end;
 	u8 c;
 	char *elt;

@@ -100,27 +100,21 @@ enum {
 	SVG_LOAD_SAX_PROGRESSIVE = 2
 };
 
-typedef enum {
+enum {
 	UNDEF		= 0, 
 	STARTSVG	= 1, 
 	SVGCONTENT	= 2, 
 	UNKNOWN		= 3, 
 	FINISHSVG	= 4, 
 	ERROR		= 5
-} SVGParserSaxStatesEnum;
+};
 
 
 struct _svg_parser
 {
-	/* Pointer to the module using this parser */
-	void *gpac_module;
 
 	/* Only needed in Process data to attach graph to renderer */
 	void *inline_scene;
-
-	/* This graph is the same as the one in inline_scene, this pointer is just for ease 
-	   and to separate as much as possible the SVG Parser from the GF_InlineScene structure */
-	GF_SceneGraph *graph;
 
 	/* Warning: interpretation of status is different 
 	   depending on the type of parser (sax/dom/streaming, LASeR/SVG)
@@ -182,10 +176,7 @@ struct _svg_parser
 	/* Libxml structures */
 	xmlSAXHandlerPtr	sax_handler; 
 	xmlParserCtxtPtr	sax_ctx;
-
-    SVGParserSaxStatesEnum	sax_state;
-    SVGParserSaxStatesEnum	prev_sax_state;
-
+  u32	sax_state, prev_sax_state;
 	s32					unknown_depth;
 
 	/* to know the current parent of following nodes  */
@@ -200,6 +191,11 @@ struct _svg_parser
 	a typical value for the refresh period is the frame simulation duration
 	*/
 	u32 sax_max_duration;
+
+	/* This graph is the same as the one in inline_scene, this pointer is just for ease 
+	   and to separate as much as possible the SVG Parser from the GF_InlineScene structure */
+	GF_SceneGraph *graph;
+
 };
 
 

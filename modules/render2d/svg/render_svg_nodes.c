@@ -630,7 +630,6 @@ static void SVG_Render_use(GF_Node *node, void *rs)
 	SVGuseElement *use = (SVGuseElement *)node;
   	GF_Matrix2D translate;
 	SVGPropertiesPointers backup_props;
-	Drawable *cs = (Drawable *)gf_node_get_private(node);
 	RenderEffect2D *eff = rs;
 
 	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
@@ -964,7 +963,6 @@ void SVG_Render_base(GF_Node *node, RenderEffect2D *eff, SVGPropertiesPointers *
 {
 	u32 i,j;
 	SVGElement *e = (SVGElement *)node;
-	Drawable *cs = (Drawable *)gf_node_get_private(node);
 	u32 count_all, count;
 
 	/* Apply inheritance */	

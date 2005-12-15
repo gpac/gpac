@@ -419,7 +419,6 @@ void UpdateDiscard(GF_TimeNode *st)
 	u32 nb_inst;
 	GF_Node *to_del;
 	SMIL_Time *begin;
-	TimeSensorStack *stack = gf_node_get_private(st->obj);
 	SVGdiscardElement *discard = (SVGdiscardElement *)st->obj;
 	begin = gf_list_get(discard->timing->begin, 0);
 	if (!begin) return;

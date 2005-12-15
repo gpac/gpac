@@ -24,8 +24,8 @@
  */
 
 #include "svg_parser.h"
-#include "gpac\options.h"
-#include "gpac\internal\terminal_dev.h"
+#include <gpac/options.h>
+#include <gpac/internal/terminal_dev.h>
 
 #ifndef GPAC_DISABLE_SVG
 
@@ -163,7 +163,6 @@ void svg_characters(void *user_data, const xmlChar *ch, s32 len)
 		char *tmp = (char *)ch;
 		/* suppress begining spaces */
 		if ((!text->core->space)||(text->core->space != XML_SPACE_PRESERVE)) {
-			u32 i = 0;
 			while ((*tmp == ' ' || *tmp=='\n')&& (len>0)) { tmp++; len--; }
 		}
 		if (text->textContent)
@@ -193,7 +192,6 @@ xmlChar *svg_expand_entities(SVGParser	*parser, xmlChar *originalStyle)
 	xmlChar *style = strdup(originalStyle);
 	xmlChar *newStyle;
 	u32 len = strlen(style);
-	s32 psemi = -1;
 	Bool	expanded=0;
 	xmlEntityPtr ent;
 	u32		newlen;
@@ -354,7 +352,7 @@ u32 svg_get_node_id(SVGParser *parser, xmlChar *nodename)
 	if (sscanf(nodename, "N%d", &ID) == 1) {
 		ID ++;
 		n = gf_sg_find_node(parser->graph, ID);
-		if (n) {
+		if (n && 0) {
 			u32 nID = svg_get_next_node_id(parser);
 			const char *nname = gf_node_get_name(n);
 			gf_node_set_id(n, nID, nname);
@@ -571,7 +569,7 @@ SVGElement *svg_parse_dom_element(SVGParser *parser, xmlNodePtr node, SVGElement
 	}
 	gf_node_register((GF_Node *)elt, (GF_Node *)parent);
 
-	if (id = xmlGetProp(node, "id")) svg_parse_element_id(parser, elt, id);
+	if ( (id = xmlGetProp(node, "id")) ) svg_parse_element_id(parser, elt, id);
 
 	/* For animation elements, we defer parsing until the all the node are parsed,
 	   then we first need to resolve the target element, 
@@ -610,8 +608,6 @@ SVGElement *svg_parse_dom_element(SVGParser *parser, xmlNodePtr node, SVGElement
 /* SAX functions */
 void svg_parse_sax_defered_anchor(SVGParser *parser, SVGElement *anchor_elt, defered_element local_de)
 {
-	u32 anim_value_type = 0, anim_transform_type = 0;
-
 	GF_FieldInfo xlink_href_info;
 	gf_node_get_field_by_name((GF_Node *)anchor_elt, "xlink:href", &xlink_href_info);
 	if (local_de.target_id) 

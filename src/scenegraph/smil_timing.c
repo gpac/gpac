@@ -201,6 +201,7 @@ static void gf_smil_timing_init_interval_list(SMIL_Timing_RTI *rti)
 	}
 }
 
+#if 0
 static void gf_smil_timing_print_interval(SMIL_Interval *interval)
 {
 	fprintf(stdout, "Current Interval - ");
@@ -210,6 +211,7 @@ static void gf_smil_timing_print_interval(SMIL_Interval *interval)
 	fprintf(stdout, "Duration - Simple %f, Active %f\n",interval->simple_duration, interval->active_duration);
 	fprintf(stdout, "\n");
 }
+#endif
 
 static s32 gf_smil_timing_find_interval_index(SMIL_Timing_RTI *rti, Double scene_time)
 {

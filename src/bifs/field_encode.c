@@ -190,7 +190,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field)
 {
 	GF_Node *child;
-	GF_List *list;
+	GF_List *list = NULL;
 	GF_Err e;
 	u32 nbBits;
 	Bool use_list;
@@ -201,7 +201,6 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	nbF = 0;
 	if (field->fieldType != GF_SG_VRML_MFNODE) {
 		nbF = ((GenMFField *)field->far_ptr)->count;
-		list = NULL;
 	} else if (field->far_ptr) {
 		list = *((GF_List **)field->far_ptr);
 		nbF = gf_list_count(list);

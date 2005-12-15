@@ -1971,9 +1971,9 @@ GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, c
 {
 	XMLParser xml_sample_parser;
 	char *str, *xml_sample_att;
-	char *elt_name;
+	char *elt_name = NULL;
 	GF_Err e;
-	GF_List *elt_stack;
+	GF_List *elt_stack = NULL;
 	u32 prev_end_pos, prev_start_pos, sample_start_pos, sample_end_pos;
 	Bool isFromAStart, isToAStart, foundFrom, foundTo;
 	char *tmp;
@@ -2120,7 +2120,7 @@ exit:
 		e = GF_IO_ERR;
 	}
 	if (f) fclose(f);
-	gf_list_del(elt_stack);
+	if (elt_stack) gf_list_del(elt_stack);
 	xml_reset_parser(&xml_sample_parser);
 	return e;
 }
@@ -2161,7 +2161,7 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dic
         return GF_IO_ERR;
     }
     if (samp->dataLength<stream.total_out) {
-		fprintf(stdout, "Warning: compressed data (%d) bigger than input data (%d)\n", stream.total_out, samp->dataLength);
+		fprintf(stdout, "Warning: compressed data (%d) bigger than input data (%d)\n", (u32) stream.total_out, (u32) samp->dataLength);
 	}
 	if (dict) {
 		if (*dict) free(*dict);

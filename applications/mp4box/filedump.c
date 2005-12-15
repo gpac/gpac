@@ -291,9 +291,9 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 			if (e) goto exit;
 		}
 		if (stat_level==2) {
-			fprintf(dump, "<AUStatistics StreamID=\"%d\" AUTime=\"%d\">\n", au->owner->ESID, au->timing);
+			fprintf(dump, "<AUStatistics StreamID=\"%d\" AUTime=\"%d\">\n", au->owner->ESID, (u32) au->timing);
 		} else {
-			fprintf(dump, "<GraphStatistics StreamID=\"%d\" AUTime=\"%d\">\n", au->owner->ESID, au->timing);
+			fprintf(dump, "<GraphStatistics StreamID=\"%d\" AUTime=\"%d\">\n", au->owner->ESID, (u32) au->timing);
 		}
 		/*dump stats*/
 		dump_stats(dump, gf_sm_stats_get(sm) );
@@ -567,7 +567,7 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 //			dts /= TS_DIV; cts /= TS_DIV;
 //			dts *= TS_MUL; cts *= TS_MUL;
 
-			fprintf(dump, "Sample %d - DTS %d - CTS %d", j+1, dts, cts);
+			fprintf(dump, "Sample %d - DTS %d - CTS %d", j+1, (u32)dts, (u32) cts);
 			if (cts<dts) { fprintf(dump, " #NEGATIVE CTS OFFSET!!!"); has_error = 1;}
 		
 			if (has_cts_offset) {
@@ -1038,7 +1038,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	scale = 1000;
 	scale /= ts;
 	dur = (u64) (scale * (s64)dur);
-	fprintf(stdout, "\tTotal size %d bytes - Total samples duration %d ms\n", size, dur);
+	fprintf(stdout, "\tTotal size %d bytes - Total samples duration %d ms\n", size, (u32) dur);
 	if (!dur) {
 		fprintf(stdout, "\n");
 		return;

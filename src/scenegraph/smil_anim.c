@@ -30,7 +30,6 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 {
 	SMILAnimationAttributes *anim = rai->anim_elt->anim;
 	GF_List *values = anim->values.values;
-	SMIL_Timing_RTI *timing = rai->anim_elt->timing->runtime;
 
 	GF_FieldInfo value_info, value_info_next;
 	u32 keyValueIndex;
@@ -58,7 +57,7 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 
 	if (gf_list_count(anim->keyTimes)) {
 		u32 keyTimeIndex;
-		Fixed keyTimeBefore, keyTimeAfter=0; 
+		Fixed keyTimeBefore = 0, keyTimeAfter=0; 
 		u32 keyTimesCount = gf_list_count(anim->keyTimes);
 		for (keyTimeIndex = rai->last_keytime_index; keyTimeIndex<keyTimesCount; keyTimeIndex++) {
 			Fixed *t = gf_list_get(anim->keyTimes, keyTimeIndex);
@@ -144,7 +143,6 @@ static void gf_smil_anim_set(SMIL_Anim_RTI *rai)
 static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_simple_time)
 {
 	SMILAnimationAttributes *anim = rai->anim_elt->anim;
-	SMIL_Timing_RTI *timing = rai->anim_elt->timing->runtime;
 
 	GF_FieldInfo from_info, to_info;
 	
@@ -185,8 +183,6 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 static void gf_smil_anim_animate_from_by(SMIL_Anim_RTI *rai, Fixed normalized_simple_time)
 {
 	SMILAnimationAttributes *anim = rai->anim_elt->anim;
-	SMIL_Timing_RTI *timing = rai->anim_elt->timing->runtime;
-
 	GF_FieldInfo from_info, by_info;
 	
 	if (rai->previous_coef == normalized_simple_time) return;
@@ -272,7 +268,6 @@ static void gf_smil_anim_discard(SMIL_Timing_RTI *rti, Fixed normalized_scene_ti
 static void gf_smil_anim_get_last_specified_value(SMIL_Anim_RTI *rai)
 {
 	SVGElement *e = rai->anim_elt;
-	void *value = NULL;
 
 	if (rai->path) {
 		if (!rai->last_specified_value.far_ptr) rai->last_specified_value.far_ptr = malloc(sizeof(GF_Matrix2D));
@@ -306,6 +301,7 @@ static void gf_smil_anim_get_last_specified_value(SMIL_Anim_RTI *rai)
 	gf_svg_attributes_pointer_update(&rai->last_specified_value, &rai->owner->presentation_value, &rai->owner->current_color_value);
 }
 
+#if 0
 /* TODO: fix this ... */
 static void gf_smil_anim_get_last_nb_iterations(SMIL_Anim_RTI *rai, u32 *nb_iterations)
 {
@@ -315,6 +311,7 @@ static void gf_smil_anim_get_last_nb_iterations(SMIL_Anim_RTI *rai, u32 *nb_iter
 		*nb_iterations = (u32)rai->anim_elt->timing->repeatDur.clock_value;
 	}
 }
+#endif
 
 static void gf_smil_anim_apply_accumulate(SMIL_Anim_RTI *rai)
 {
@@ -391,7 +388,6 @@ static void gf_smil_anim_animate(SMIL_Timing_RTI *rti, Fixed normalized_simple_t
 
 static void gf_smil_anim_freeze(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
 {
-	SVGElement *e = rti->timed_elt;
 	SMIL_Anim_RTI *rai = gf_smil_anim_get_anim_runtime_from_timing(rti);
 
 	/* we do the accumulation only once and store the result in interpolated value */
@@ -409,13 +405,12 @@ static void gf_smil_anim_freeze(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 
 static void gf_smil_anim_restore(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
 {
-	SVGElement *e = rti->timed_elt;
 	SMIL_Anim_RTI *rai = gf_smil_anim_get_anim_runtime_from_timing(rti);
 	svg_attributes_copy(&rai->owner->presentation_value, &rai->owner->saved_dom_value, 0);
 	//gf_list_del_item(rai->owner->anims, rai);
 }
 
-static void gf_smil_anim_init_runtime_info(SVGElement *e)
+void gf_smil_anim_init_runtime_info(SVGElement *e)
 {
 	u32 i;
 	GF_FieldInfo target_attribute;
@@ -503,7 +498,7 @@ static void gf_smil_anim_init_runtime_info(SVGElement *e)
 	gf_smil_anim_get_last_specified_value(rai);
 }
 
-static void gf_smil_anim_delete_runtime_info(SMIL_Anim_RTI *rai)
+void gf_smil_anim_delete_runtime_info(SMIL_Anim_RTI *rai)
 {
 	gf_svg_delete_attribute_value(rai->interpolated_value.fieldType, rai->interpolated_value.far_ptr);
 	if (rai->path) gf_path_del(rai->path);

@@ -36,12 +36,14 @@
 
 #define SLEEP_ABS_SELECT		1
 
+static u32 sys_start_time = 0;
+
 
 u32 gf_sys_clock()
 {
 	struct timeval now;
 	gettimeofday(&now, NULL);
-	return ( (now.tv_sec)*1000 + (now.tv_usec) / 1000);
+	return ( (now.tv_sec)*1000 + (now.tv_usec) / 1000) - sys_start_time;
 }
 
 u64 gf_sys_clock_ns()
@@ -190,7 +192,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, Bool (*enum_dir_i
 
 		if (filter) {
 			char ext[30];
-			char *sep = strrchr(the_file->d_name[0], '.');
+			char *sep = strrchr(the_file->d_name, '.');
 			if (!sep) goto next;
 			strcpy(ext, sep+1);
 			strlwr(ext);
@@ -289,6 +291,8 @@ void gf_sys_init()
     last_update_time = 0;
     memset(&the_rti, 0, sizeof(GF_SystemRTInfo));
     the_rti.pid = getpid();
+
+    sys_start_time = gf_sys_clock();
   }
   sys_init++;
 }
@@ -307,7 +311,10 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
   u32 entry_time;
   u64 process_u_k_time;
   u32 u_k_time, idle_time;
-  char szProc[100], line[2048];
+#if 0
+  char szProc[100];
+#endif
+  char line[2048];
   FILE *f;
 
   assert(sys_init);

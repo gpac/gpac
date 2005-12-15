@@ -297,7 +297,6 @@ Bool SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, u
 
 static GF_Err SVG_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *cap)
 {
-	SVGParser *parser = plug->privateStack;
 	cap->cap.valueInt = 0;
 	if (cap->CapCode==GF_CODEC_PADDING_BYTES) {
 		/* Adding one byte of padding for \r\n problems*/
@@ -323,8 +322,6 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	GF_REGISTER_MODULE_INTERFACE(sdec, GF_SCENE_DECODER_INTERFACE, "GPAC SVG Parser", "gpac distribution");
 
 	parser = NewSVGParser();
-	parser->gpac_module = sdec;
-
 	sdec->privateStack = parser;
 	sdec->AttachStream = SVG_AttachStream;
 	sdec->CanHandleStream = SVG_CanHandleStream;

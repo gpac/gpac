@@ -1223,3 +1223,4 @@ u32 gf_node_get_num_instances(GF_Node *node)
 {
 	return node->sgprivate->num_instances;
 }
+

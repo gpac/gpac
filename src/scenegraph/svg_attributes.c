@@ -962,7 +962,7 @@ static u32 svg_parse_number(SVG_Number *number, char *value_string, Bool clamp0t
 	} else if (!strcmp(value_string, "auto-reverse")) {
 		number->type = SVG_NUMBER_AUTO_REVERSE;
 		return 12;
-	} else if (unit = strstr(value_string, "%")) {
+	} else if ((unit = strstr(value_string, "%")) ) {
 		number->type = SVG_NUMBER_PERCENTAGE;
 	} else if ((unit = strstr(value_string, "em"))) {
 		number->type = SVG_NUMBER_EMS;
@@ -2975,7 +2975,6 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 	case SMIL_AnimateValue_datatype:
 	{
 		GF_FieldInfo a_fi;
-		GF_Node *n = (GF_Node *) elt->xlink->href.target;
 		SMIL_AnimateValue*av = (SMIL_AnimateValue*)info->far_ptr;
 		a_fi.fieldIndex = 0;
 		a_fi.fieldType = av->type;

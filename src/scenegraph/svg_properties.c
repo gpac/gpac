@@ -196,3 +196,4 @@ void gf_svg_properties_apply(SVGPropertiesPointers *render_svg_props, SVGPropert
 		render_svg_props->display = &current_svg_props->display;
 	}
 }
+

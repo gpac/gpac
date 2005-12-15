@@ -591,7 +591,7 @@ static JSBool svg_elt_remove(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 }
 
 /*TODO*/
-static svg_elt_clone(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool svg_elt_clone(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	return JS_FALSE;
 }
@@ -644,10 +644,6 @@ static JSBool svg_elt_set_attr(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	return JS_TRUE;
 }
 
-static JSBool udom_listener_handle_event(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	return JS_FALSE;
-}
 
 static Bool svg_smil_check_instance(JSContext *c, JSObject *obj)
 {
@@ -996,7 +992,7 @@ static JSBool udom_set_trait(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	GF_Err e;
 	GF_FieldInfo info;
 	GF_Node *n;
-	char *val;
+	char *val = NULL;
 	if (!JS_InstanceOf(c, obj, &svgClass, NULL) ) return JS_FALSE;
 	n = JS_GetPrivate(c, obj);
 	if (!n) return JS_FALSE;
@@ -1014,7 +1010,7 @@ static JSBool udom_set_trait(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	} else if (argc==2) {
 		e = gf_node_get_field_by_name(n, JS_GetStringBytes(JSVAL_TO_STRING(argv[0])), &info);
 		val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
-	}
+	} else e = GF_BAD_PARAM;
 	if (!val || (e!=GF_OK)) return JS_FALSE;
 	*rval = JSVAL_VOID;
 
@@ -2614,7 +2610,6 @@ static void svg_script_predestroy(GF_Node *n)
 static void svg_node_destroy(GF_SceneGraph *sg, GF_Node *n)
 {
 	u32 i, count;
-	GF_SVGJS *svg_js = sg->svg_js;
 	count = gf_list_count(sg->svg_js->node_bank);
 	for (i=0; i<count; i++) {
 		JSObject *obj = gf_list_get(sg->svg_js->node_bank, i);

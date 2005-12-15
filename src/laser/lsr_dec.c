@@ -396,11 +396,6 @@ static void lsr_read_fixed_16_8i(GF_LASeRCodec *lsr, SVG_Number *n, const char *
 }
 
 
-static const char *lsr_get_font(GF_LASeRCodec *lsr, u32 idx)
-{
-	return gf_list_get(lsr->font_table, idx);
-}
-
 static void lsr_get_color(GF_LASeRCodec *lsr, u32 idx, SVG_Color *color)
 {
 	LSRCol *c;
@@ -523,7 +518,7 @@ static void lsr_read_any_uri(GF_LASeRCodec *lsr, SVG_IRI *iri, const char *name)
 	}
 	GF_LSR_READ_INT(lsr, val, 1, "hasStreamID");
 	if (val) {
-		u32 streamID = lsr_read_vluimsbf5(lsr, name);
+	  /*u32 streamID = */lsr_read_vluimsbf5(lsr, name);
 	}
 }
 
@@ -1041,7 +1036,7 @@ static void *lsr_read_an_anim_value(GF_LASeRCodec *lsr, u32 type, const char *na
 	u32 flag;
 	u8 *enum_val;
 	u32 *id_val;
-	char *string;
+	unsigned char *string;
 	SVG_Number *num;
 	SVG_IRI *iri;
 	SVG_Point *pt;
@@ -2392,7 +2387,7 @@ static void lsr_read_group_content(GF_LASeRCodec *lsr, SVGElement *elt, Bool ski
 
 static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 fieldType, void *val, Bool is_indexed)
 {
-	u32 is_inherit, has_escape, escape_val;
+	u32 is_inherit, has_escape, escape_val = 0;
 	SVG_Paint *paint;
 	SVG_Number *n;
 	is_inherit = has_escape = 0;
@@ -2518,7 +2513,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 	GF_Command *com;
 	GF_CommandField *field;
 	s32 idx, att_type, op_att_type;
-	u32 type, idref, op_idref;
+	u32 type, idref, op_idref = 0;
 
 	operandNode = NULL;
 	att_type = op_att_type = -1;
@@ -2804,7 +2799,7 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 {
 	GF_Err e;
 	Bool reset_encoding_context;
-	u32 flag, i, count, privateDataIdentifierIndexBits;
+	u32 flag, i, count = 0, privateDataIdentifierIndexBits;
 	/*laser unit header*/
 	GF_LSR_READ_INT(lsr, reset_encoding_context, 1, "resetEncodingContext");
 	GF_LSR_READ_INT(lsr, flag, 1, "opt_group");

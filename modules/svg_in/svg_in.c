@@ -90,7 +90,7 @@ static void SVG_OnProgress(void *cbk, u32 done, u32 tot)
 static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
-	GF_Err e;
+	GF_Err e = GF_OK;
 	SVGIn *svgin = plug->privateStack;
 	switch (svgin->oti) {
 	case SVG_IN_OTI_SVG:
