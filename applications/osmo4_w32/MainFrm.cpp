@@ -196,10 +196,11 @@ void CALLBACK EXPORT RTInfoTimer(HWND , UINT , UINT nID , DWORD )
 
 	if (pFrame->m_show_rti && !pFrame->m_timer_on) {
 		if (!gf_sys_get_rti(RTI_REFRESH_MS, &rti, 0)) return;
+		if (!rti.gpac_memory) rti.gpac_memory = rti.process_cpu_usage;
 
 		if (pFrame->m_show_rti && !pFrame->m_timer_on) {
 			sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
-						gf_term_get_framerate(app->m_term, 0), rti.total_cpu_usage, rti.process_cpu_usage, rti.process_memory/1024);
+						gf_term_get_framerate(app->m_term, 0), rti.total_cpu_usage, rti.process_cpu_usage, rti.gpac_memory/1024);
 			pFrame->m_wndStatusBar.SetPaneText(1, szMsg);
 		}
 	}

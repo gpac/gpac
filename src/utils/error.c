@@ -22,6 +22,54 @@
  *
  */
 
+
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+
+/*GPAC memory tracking*/
+size_t gpac_allocated_memory = 0;
+void *gf_malloc(size_t size)
+{
+	void *ptr;
+	size_t size_g = size + sizeof(size_t);
+	ptr = malloc(size_g);
+	*(size_t *)ptr = size;
+	gpac_allocated_memory += size;
+	return (void *) ( (char *)ptr + sizeof(size_t) );
+}
+void *gf_realloc(void *ptr, size_t size)
+{
+	size_t prev_size;
+	char *ptr_g = ptr;
+	if (!ptr) return gf_malloc(size);
+	ptr_g -= sizeof(size_t);
+	prev_size = *(size_t *)ptr_g;
+	assert(gpac_allocated_memory >= prev_size);
+	gpac_allocated_memory -= prev_size;
+	ptr_g = realloc(ptr_g, size+sizeof(size_t));
+	*(size_t *)ptr_g = size;
+	gpac_allocated_memory += size;
+	return ptr_g + sizeof(size_t);
+}
+void gf_free(void *ptr)
+{
+	if (ptr) {
+		char *ptr_g = (char *)ptr - sizeof(size_t);
+		size_t size_g = *(size_t *)ptr_g;
+		assert(gpac_allocated_memory >= size_g);
+		gpac_allocated_memory -= size_g;
+		free(ptr_g);
+	}
+}
+char *gf_strdup(const char *str)
+{
+	size_t len = strlen(str) + 1;
+	char *ptr = gf_malloc(len);
+	memcpy(ptr, str, len);
+	return ptr;
+}
+
 #include <gpac/tools.h>
 
 static char szTYPE[5];

@@ -637,6 +637,7 @@ StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *path)
 			gf_list_rem(ctx->node->strike_list, i);
 			gf_list_del_item(((Render2D *)ctx->node->compositor->visual_renderer->user_priv)->strike_bank, si);
 			i--;
+			if (si->outline) gf_path_del(si->outline);
 			free(si);
 		}
 		si = NULL;

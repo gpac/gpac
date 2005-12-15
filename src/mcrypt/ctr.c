@@ -59,10 +59,10 @@ int _init_mcrypt( CTR_BUFFER* buf, void *key, int lenofkey, void *IV, int size)
     buf->c_counter_pos = 0;
     buf->blocksize = size;
 
-	buf->c_counter=calloc( 1, size);
+	buf->c_counter=malloc(size);
     if (buf->c_counter==NULL) goto freeall;
 
-	buf->enc_counter=calloc( 1, size);
+	buf->enc_counter=malloc(size);
     if (buf->enc_counter==NULL) goto freeall;
     
     if (IV!=NULL) {

@@ -270,6 +270,8 @@ DWORD GetCurrentPermissions();
 void SetProcPermissions(DWORD );
 #endif
 
+extern size_t gpac_allocated_memory;
+
 /*CPU and Memory Usage*/
 Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 {
@@ -295,6 +297,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		GlobalMemoryStatus(&ms);
 		rti->physical_memory = ms.dwTotalPhys;
 		rti->physical_memory_avail = ms.dwAvailPhys;
+		rti->gpac_memory = gpac_allocated_memory;
 		return 1;
 	}
 
@@ -368,6 +371,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	the_rti.physical_memory = ms.dwTotalPhys;
 	the_rti.physical_memory_avail = ms.dwAvailPhys;
 	if (!the_rti.process_memory) the_rti.process_memory = mem_usage_at_startup - ms.dwAvailPhys;
+	the_rti.gpac_memory = gpac_allocated_memory;
 	memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
 	return 1;
 }

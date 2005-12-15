@@ -223,6 +223,26 @@ typedef u8 bin128[16];
 typedef u32 Bool;
 #endif
 
+/*GPAC memory tracking*/
+#if 1
+void *gf_malloc(size_t size);
+void *gf_realloc(void *ptr, size_t size);
+void gf_free(void *ptr);
+char *gf_strdup(const char *str);
+
+#undef malloc
+#define malloc gf_malloc
+#undef realloc
+#define realloc gf_realloc
+#undef free
+#define free gf_free
+#undef strdup
+#define strdup gf_strdup
+
+#endif
+/*end GPAC memory tracking*/
+
+
 #ifdef __cplusplus
 }
 #endif

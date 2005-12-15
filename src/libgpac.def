@@ -19,6 +19,10 @@ EXPORTS
 	gf_cbk_on_progress
 	gf_temp_file_new
 	gf_delete_file
+	gf_malloc
+	gf_realloc
+	gf_free
+	gf_strdup
 
 ;array.h exports
 	gf_list_new

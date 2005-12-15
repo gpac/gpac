@@ -198,7 +198,7 @@ static void PrintTime(u64 time)
 	fprintf(stdout, "%02d:%02d:%02d.%02d", h, m, s, ms);
 }
 
-#define RTI_UPDATE_TIME_MS	80
+#define RTI_UPDATE_TIME_MS	200
 static FILE *rti_logs = NULL;
 static u64 memory_at_gpac_startup = 0;
 static u64 memory_at_gpac_load = 0;
@@ -228,20 +228,19 @@ static void UpdateRTInfo()
 		GF_Event evt;
 
 		if (!rti.process_memory) rti.process_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
+		if (!rti.gpac_memory) rti.gpac_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
 		sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
-			gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.process_memory / 1024) );
+			gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
 
 		evt.type = GF_EVT_SET_CAPTION;
 		evt.caption.caption = szMsg;
 		gf_term_user_event(term, &evt);
 	}
 	if (rti_logs) {
-		if (!memory_at_gpac_load) memory_at_gpac_load  = rti.physical_memory_avail;
-
 		fprintf(rti_logs, "%d\t%d\t%d\t%d\t%d\n", 
 			gf_sys_clock(),
 			(u32) gf_term_get_framerate(term, 0),
-			(u32) ((memory_at_gpac_load - rti.physical_memory_avail) / 1024) , 
+			(u32) (rti.gpac_memory/ 1024), 
 			rti.total_cpu_usage,
 			gf_term_get_time_in_ms(term)
 			);
