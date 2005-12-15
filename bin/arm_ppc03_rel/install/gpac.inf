@@ -60,8 +60,8 @@ gm_render3d.dll = 1
 libGLES_CM.dll = 1
 
 ;these 2 go together
-gm_svg_loader.dll = 1
-libxml2.dll = 1
+;gm_svg_loader.dll = 1
+;libxml2.dll = 1
 
 ;==================================================
 
@@ -103,8 +103,11 @@ DefaultDestDir = 0, %InstallDir%
 "gm_xvid_dec.dll"
 ;"gm_ogg_xiph.dll"
 
-"gm_svg_loader.dll"
-"libxml2.dll"
+"gm_render3d.dll"
+"libGLES_CM.dll"
+
+;"gm_svg_loader.dll"
+;"libxml2.dll"
 
 [GPACReg]
 ;GPAC cfg file association
@@ -119,5 +122,5 @@ HKCR,mp4file\DefaultIcon,,0x00000000,"%InstallDir%\%ExeName%,-128"
 "%AppName%", 0, "%ExeName%"
 
 [ProgLink]
-"AppName", 0, "%ExeName%"
+"%AppName%", 0, "%ExeName%"
 

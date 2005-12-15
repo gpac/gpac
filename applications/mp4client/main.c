@@ -60,6 +60,18 @@ static char the_next_url[GF_MAX_PATH];
 static GF_Terminal *term;
 static GF_Config *cfg_file;
 
+void PrintUsage()
+{
+	fprintf(stdout, "Usage MP4Client [options] [filename]\n"
+		"\t-c fileName:    user-defined configuration file\n"
+		"\t-rti fileName:  logs run-time info (FPS, CPU, Mem usage) to file\n"
+		"\n"
+		"MP4Client - GPAC command line player - version %s\n"
+		"GPAC Written by Jean Le Feuvre (c) 2001-2005 - ENST (c) 2005-200X\n",
+
+		GPAC_VERSION
+		);
+}
 
 void PrintHelp()
 {
@@ -186,24 +198,54 @@ static void PrintTime(u64 time)
 	fprintf(stdout, "%02d:%02d:%02d.%02d", h, m, s, ms);
 }
 
+#define RTI_UPDATE_TIME_MS	80
+static FILE *rti_logs = NULL;
 static u64 memory_at_gpac_startup = 0;
+static u64 memory_at_gpac_load = 0;
+
+static void init_rti_logs(char *rti_file, char *url)
+{
+	if (rti_logs) fclose(rti_logs);
+	rti_logs = fopen(rti_file, "wt");
+	if (rti_logs) {
+		fprintf(rti_logs, "!! GPAC RunTime Info");
+		if (url) fprintf(rti_logs, "for file %s", url);
+		fprintf(rti_logs, " !!\n");
+		fprintf(rti_logs, "T (ms)\tFPS\tM (kB)\tCPU\n\n");
+		memory_at_gpac_load = 0;
+	}
+}
 
 static void UpdateRTInfo()
 {
-	GF_Event evt;
 	GF_SystemRTInfo rti;
-	char szMsg[1024];
 
 	/*refresh every second*/
-	if (!display_rti || !gf_sys_get_rti(1000, &rti, 0 /*GF_RTI_ALL_PROCESSES_TIMES | GF_RTI_PROCESS_MEMORY*/) || !rti.sampling_period_duration) return;
-	if (!rti.process_memory) rti.process_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
+	if ((!display_rti && !rti_logs) || !gf_sys_get_rti(RTI_UPDATE_TIME_MS, &rti, 0 /*GF_RTI_ALL_PROCESSES_TIMES | GF_RTI_PROCESS_MEMORY*/) /*|| !rti.sampling_period_duration*/) return;
 
-	sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
-		gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.process_memory / 1024) );
+	if (display_rti) {
+		char szMsg[1024];
+		GF_Event evt;
 
-	evt.type = GF_EVT_SET_CAPTION;
-	evt.caption.caption = szMsg;
-	gf_term_user_event(term, &evt);
+		if (!rti.process_memory) rti.process_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
+		sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
+			gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.process_memory / 1024) );
+
+		evt.type = GF_EVT_SET_CAPTION;
+		evt.caption.caption = szMsg;
+		gf_term_user_event(term, &evt);
+	}
+	if (rti_logs) {
+		if (!memory_at_gpac_load) memory_at_gpac_load  = rti.physical_memory_avail;
+
+		fprintf(rti_logs, "%d\t%d\t%d\t%d\t%d\n", 
+			gf_sys_clock(),
+			(u32) gf_term_get_framerate(term, 0),
+			(u32) ((memory_at_gpac_load - rti.physical_memory_avail) / 1024) , 
+			rti.total_cpu_usage,
+			gf_term_get_time_in_ms(term)
+			);
+	}
 }
 
 static void ResetCaption()
@@ -372,16 +414,28 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	return 0;
 }
 
-GF_Config *loadconfigfile()
+GF_Config *loadconfigfile(char *filepath)
 {
 	GF_Config *cfg;
+	char *cfg_dir;
 	char szPath[GF_MAX_PATH];
 
+	if (filepath) {
+		cfg_dir = strrchr(szPath, '\\');
+		if (!cfg_dir) cfg_dir = strrchr(szPath, '/');
+		if (cfg_dir) {
+			char c = cfg_dir[0];
+			cfg_dir[0] = 0;
+			cfg = gf_cfg_new(cfg_dir, cfg_dir+1);
+			cfg_dir[0] = c;
+			if (cfg) goto success;
+		}
+	}
+	
 #ifdef WIN32
-	char *sep;
 	GetModuleFileNameA(NULL, szPath, GF_MAX_PATH);
-	sep = strrchr(szPath, '\\');
-	if (sep) sep[1] = 0;
+	cfg_dir = strrchr(szPath, '\\');
+	if (cfg_dir) cfg_dir[1] = 0;
 
 	cfg = gf_cfg_new(szPath, "GPAC.cfg");
 	if (cfg) goto success;
@@ -468,7 +522,8 @@ void set_navigation()
 int main (int argc, char **argv)
 {
 	const char *str;
-	u32 i, url_arg;
+	u32 i;
+	char *url_arg, *the_cfg, *rti_file;
 	GF_User user;
 	GF_SystemRTInfo rti;
 	FILE *playlist = NULL;
@@ -476,37 +531,40 @@ int main (int argc, char **argv)
 	/*by default use current dir*/
 	strcpy(the_url, ".");
 
-	url_arg = (argc == 2) ? 1 : 0;
-
 	memset(&user, 0, sizeof(GF_User));
 
+	url_arg = the_cfg = rti_file = NULL;
 
-	cfg_file = loadconfigfile();
-	if (argc >= 2) {
-		if (!strcmp(argv[1], "-c")) {
-			if (argc > 4) {
-				fprintf(stdout, "Usage: MP4Client [-c config_path] [url]\n");
-				if (cfg_file) gf_cfg_del(cfg_file);
-				return 1;
-			}
-			strcpy(the_url, argv[2]);
-			url_arg = (argc == 3) ? 0 : 3;
-		} else if (argc >= 3) {
-			PrintHelp();
-			if (cfg_file) gf_cfg_del(cfg_file);
+	for (i=1; i<(u32) argc; i++) {
+		char *arg = argv[i];
+		if (isalnum(arg[0]) || (arg[0]=='/') || (arg[0]=='.') || (arg[0]=='\\') ) {
+			url_arg = arg;
+		}
+		else if (!strcmp(arg, "-c") || !strcmp(arg, "-cfg")) {
+			the_cfg = argv[i+1];
+			i++;
+		}
+		else if (!strcmp(arg, "-rti")) {
+			rti_file = argv[i+1];
+			i++;
+		} else {
+			PrintUsage();
 			return 1;
 		}
 	}
-
+	cfg_file = loadconfigfile(the_cfg);
 	if (!cfg_file) {
 		fprintf(stdout, "Error: Configuration File \"GPAC.cfg\" not found\n");
 		return 1;
 	}
+
 	gf_sys_init();
 	
 	gf_sys_get_rti(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
 	memory_at_gpac_startup = rti.physical_memory_avail;
+	if (rti_file) init_rti_logs(rti_file, url_arg);
 
+		
 	Run = 1;
 	
 	fprintf(stdout, "Loading modules ... ");
@@ -549,10 +607,16 @@ int main (int argc, char **argv)
 
 	fprintf(stdout, "Using %s\n", gf_cfg_get_key(cfg_file, "Rendering", "RendererName"));
 
+
+	if (rti_file) {
+		memory_at_gpac_load = 0;
+		UpdateRTInfo();
+	}
+	
 	/*connect if requested*/
 	if (url_arg) {
 		char *ext;
-		strcpy(the_url, argv[url_arg]);
+		strcpy(the_url, url_arg);
 		ext = strrchr(the_url, '.');
 		if (!stricmp(ext, ".m3u")) {
 			fprintf(stdout, "Opening Playlist %s\n", the_url);
@@ -586,7 +650,7 @@ int main (int argc, char **argv)
 		/*we don't want getchar to block*/
 		if (!has_input()) {
 			UpdateRTInfo();
-			gf_sleep(250);
+			gf_sleep(RTI_UPDATE_TIME_MS);
 			continue;
 		}
 		c = get_a_char();
@@ -599,6 +663,7 @@ int main (int argc, char **argv)
 			gf_term_disconnect(term);
 			fprintf(stdout, "Enter the absolute URL\n");
 			scanf("%s", the_url);
+			if (rti_file) init_rti_logs(rti_file, the_url);
 			gf_term_connect(term, the_url);
 			break;
 		case 'O':
@@ -639,6 +704,10 @@ int main (int argc, char **argv)
 				gf_term_disconnect(term);
 				gf_term_connect(term, the_url);
 			}
+			break;
+		
+		case 'D':
+			if (is_connected) gf_term_disconnect(term);
 			break;
 
 		case 'p':
@@ -810,13 +879,21 @@ int main (int argc, char **argv)
 
 	fprintf(stdout, "Deleting terminal...\n");
 	if (playlist) fclose(playlist);
+
+	if (rti_file) {
+		gf_term_disconnect(term);
+		UpdateRTInfo();
+	}
+
 	gf_term_del(term);
+
 exit:
 	fprintf(stdout, "Unloading modules...\n");
 	gf_modules_del(user.modules);
 	gf_cfg_del(cfg_file);
 	gf_sys_close();
 	fprintf(stdout, "goodbye\n");
+	if (rti_logs) fclose(rti_logs);
 	return 0;
 }
 

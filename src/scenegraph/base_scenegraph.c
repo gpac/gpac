@@ -1132,7 +1132,12 @@ void gf_node_del(GF_Node *node)
 	else if (node->sgprivate->tag<=GF_NODE_RANGE_LAST_MPEG4) gf_sg_mpeg4_node_del(node);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) gf_sg_x3d_node_del(node);
 #ifndef GPAC_DISABLE_SVG
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) gf_svg_element_del((SVGElement *) node);
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) {
+		SVGElement *elt = (SVGElement *) node;
+		if (elt->sgprivate->animations) gf_smil_anim_delete_animations(elt);
+		if (elt->timing) gf_smil_timing_delete_runtime_info(elt);
+		gf_svg_element_del(elt);
+	}
 #endif
 	else gf_node_free(node);
 #endif
@@ -1212,4 +1217,9 @@ GF_Err gf_node_get_field(GF_Node *node, u32 FieldIndex, GF_FieldInfo *info)
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_LASER) return GF_NOT_SUPPORTED;
 #endif
 	return GF_NOT_SUPPORTED;
+}
+
+u32 gf_node_get_num_instances(GF_Node *node)
+{
+	return node->sgprivate->num_instances;
 }

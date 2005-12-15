@@ -1193,8 +1193,8 @@ GF_Err svg_attributes_add(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldInfo *c, Boo
 
 Bool gf_svg_is_property_inherited(GF_FieldInfo *a);
 Bool gf_svg_is_current_color(GF_FieldInfo *a);
-void *gf_svg_get_property_pointer_by_name(SVGPropertiesPointers *p, const char *name);
-void gf_svg_attributes_copy_computed_value(GF_FieldInfo *out, GF_FieldInfo *in, SVGPropertiesPointers *inherited_props);
+void *gf_svg_get_property_pointer(SVGPropertiesPointers *p, SVGElement *elt, void *orig_prop_ptr);
+void gf_svg_attributes_copy_computed_value(GF_FieldInfo *out, GF_FieldInfo *in, SVGElement*elt, void *orig_dom_ptr, SVGPropertiesPointers *inherited_props);
 void gf_svg_attributes_smart_copy(GF_FieldInfo *out, GF_FieldInfo *in, GF_FieldInfo *prop, GF_FieldInfo *current_color);
 void gf_svg_attributes_pointer_update(GF_FieldInfo *a, GF_FieldInfo *prop, GF_FieldInfo *current_color);
 
@@ -1267,6 +1267,9 @@ void gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time);
 typedef struct {
 	GF_FieldInfo presentation_value;
 	GF_FieldInfo saved_dom_value;
+	/*original location of the DOM attribute in the elt structure used for fast comparison of SVG 
+	properties when animating from/to/by/values/... inherited values*/
+	void *orig_dom_ptr;
 	GF_FieldInfo current_color_value;
 	GF_List *anims;
 } SMIL_AttributeAnimations;
@@ -1307,6 +1310,7 @@ typedef struct {
 void gf_smil_anim_init_node(GF_Node *node);
 void gf_smil_anim_init_runtime_info(SVGElement *e);
 void gf_smil_anim_delete_runtime_info(SMIL_Anim_RTI *rai);
+void gf_smil_anim_delete_animations(SVGElement *e);
 
 void gf_path_init_from_svg(GF_Path *path, GF_List *commands, GF_List *points);
 

@@ -87,7 +87,7 @@ void ProgressBar::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 				SetPosition(0);
 			} else {
 				u32 seek_to = m_Slider.GetPos();
-				gf_term_play_from_time(app->m_term, seek_to);
+				gf_term_play_from_time(app->m_term, seek_to, 0);
 			}
 			m_grabbed = 0;
 			return;

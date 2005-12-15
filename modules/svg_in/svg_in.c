@@ -126,8 +126,10 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 				file_buf[nb_read] = 0;
 				if (!nb_read) {
 					if (svgin->file_pos==svgin->file_size) {
-						e = GF_EOS;
 						SVG_OnProgress(svgin, svgin->file_pos, svgin->file_size);
+						fclose(svgin->src);
+						svgin->src = NULL;
+						return GF_EOS;
 					}
 					break;
 				}
@@ -240,9 +242,14 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 	svgin->oti = objectTypeIndication;
 	if (!DependsOnES_ID) svgin->base_es_id = ES_ID;
 
-	svgin->sax_max_duration = 30;
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SVGLoader", "SAXMaxDuration");
-	if (sOpt) svgin->sax_max_duration = atoi(sOpt);
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SVGLoader", "LoadType");
+	if (sOpt && !strcmp(sOpt, "SAX Progressive")) {
+		svgin->sax_max_duration = 30;
+		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SVGLoader", "SAXMaxDuration");
+		if (sOpt) svgin->sax_max_duration = atoi(sOpt);
+	} else {
+		svgin->sax_max_duration = 0;
+	}
 	return GF_OK;
 }
 

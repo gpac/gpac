@@ -26,6 +26,7 @@
 
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_x3d.h>
+#include <gpac/nodes_svg.h>
 
 void gf_sr_on_node_init(GF_Renderer *sr, GF_Node *node)
 {
@@ -38,6 +39,14 @@ void gf_sr_on_node_init(GF_Renderer *sr, GF_Node *node)
 	case TAG_MPEG4_ImageTexture: case TAG_X3D_ImageTexture: InitImageTexture(sr, node); break;
 	case TAG_MPEG4_PixelTexture: case TAG_X3D_PixelTexture: InitPixelTexture(sr, node); break;
 	case TAG_MPEG4_MovieTexture: case TAG_X3D_MovieTexture: InitMovieTexture(sr, node); break;
+
+#ifndef GPAC_DISABLE_SVG
+	/*discard is implemented as a timed node*/
+	case TAG_SVG_discard: 
+		InitDiscard(sr, node);
+		break;
+#endif
+		
 	default:
 		sr->visual_renderer->NodeInit(sr->visual_renderer, node);
 		break;
@@ -390,3 +399,60 @@ void TimeSensorModified(GF_Node *t)
 		}
 	}
 }
+
+
+#ifndef GPAC_DISABLE_SVG
+
+static
+void DestroyDiscard(GF_Node *ts)
+{
+	TimeSensorStack *st = gf_node_get_private(ts);
+	if (st->time_handle.is_registered) 
+		gf_sr_unregister_time_node(st->compositor, &st->time_handle);
+	free(st);
+	gf_node_set_private(ts, NULL);
+}
+
+static
+void UpdateDiscard(GF_TimeNode *st)
+{
+	u32 nb_inst;
+	GF_Node *to_del;
+	SMIL_Time *begin;
+	TimeSensorStack *stack = gf_node_get_private(st->obj);
+	SVGdiscardElement *discard = (SVGdiscardElement *)st->obj;
+	begin = gf_list_get(discard->timing->begin, 0);
+	if (!begin) return;
+	if (begin->type != SMIL_TIME_CLOCK) return;
+	if (!discard->xlink->href.target) return;
+
+	if (begin->clock > gf_node_get_scene_time(st->obj)) return;
+
+	to_del = (GF_Node*)discard->xlink->href.target;
+	/*this takes care of cases where discard is a child of its target*/
+	gf_node_register(st->obj, NULL);
+	nb_inst = gf_node_get_num_instances(st->obj);
+	gf_node_replace(to_del, NULL, 0);
+	if (nb_inst == gf_node_get_num_instances(st->obj)) {
+		gf_node_unregister(st->obj, NULL);
+		/*after this the stack may be free'd*/
+		gf_node_replace(st->obj, NULL, 0);
+	} else {
+		gf_node_unregister(st->obj, NULL);
+	}
+}
+
+void InitDiscard(GF_Renderer *sr, GF_Node *node)
+{
+	TimeSensorStack *st = malloc(sizeof(TimeSensorStack));
+	memset(st, 0, sizeof(TimeSensorStack));
+	st->time_handle.UpdateTimeNode = UpdateDiscard;
+	st->time_handle.obj = node;
+	st->store_info = 1;
+	st->compositor = sr;
+	gf_node_set_private(node, st);
+	gf_node_set_predestroy_function(node, DestroyDiscard);
+	gf_sr_register_time_node(sr, &st->time_handle);
+}
+
+#endif

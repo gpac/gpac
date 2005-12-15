@@ -98,7 +98,7 @@ static void mouse_start_timer(DDContext *ctx, HWND hWnd, GF_VideoOutput *vout)
 
 void grab_mouse(DDContext *ctx, GF_VideoOutput *vout)
 {
-//	if (ctx->fullscreen) DD_SetCursor(vout, GF_CURSOR_NORMAL);
+	if (ctx->fullscreen) DD_SetCursor(vout, GF_CURSOR_NORMAL);
 	SetCapture(ctx->cur_hwnd);
 	mouse_move(ctx, vout);
 }

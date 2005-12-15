@@ -243,9 +243,7 @@ static Bool svg_parse_animation(GF_SceneGraph *sg, DeferedAnimation *anim, const
 			if (gf_node_get_field_by_name((GF_Node *)anim->target, anim->attributeName, &info) == GF_OK) {
 				attname_value->type = info.fieldType;
 				attname_value->field_ptr = info.far_ptr;
-				/*TODO find a way to get rid of this*/
 				attname_value->name = anim->attributeName;
-				anim->attributeName = NULL;
 			} else {
 				return 1;
 			}
@@ -253,6 +251,9 @@ static Bool svg_parse_animation(GF_SceneGraph *sg, DeferedAnimation *anim, const
 		} else {
 			if (tag == TAG_SVG_animateMotion) {
 				anim_value_type = SVG_Motion_datatype;
+			} else if (tag == TAG_SVG_discard) {
+				anim->resolve_stage = 1;
+				return svg_parse_animation(sg, anim, nodeID);
 			} else {
 				return 1;
 			}
@@ -650,7 +651,10 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 				else if (!strcmp(att->name, "rap")) rap = !strcmp(att->value, "yes") ? 1 : 0;
 				else if (!strcmp(att->name, "startOffset")) startOffset = atoi(att->value);
 				else if (!strcmp(att->name, "length")) length = atoi(att->value);
-				else if (!strcmp(att->name, "source")) { source = att->value; att->value = NULL; }
+				else if (!strcmp(att->name, "source")) { 
+					source = att->value; 
+					att->value = NULL; 
+				}
 			}
 			/*TODO build NHML on the fly for later import*/
 			if (source) free(source);

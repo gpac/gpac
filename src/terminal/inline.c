@@ -1375,3 +1375,35 @@ Bool gf_is_process_anchor(GF_Node *caller, GF_Event *evt)
 	}
 	return 1;
 }
+
+/*inline node is destroyed: clear URL to force a disconnect*/
+void gf_is_predestroy(GF_Node *node)
+{
+	GF_InlineScene *pIS = gf_node_get_private(node);
+	GF_MediaObject *mo = (pIS && pIS->root_od) ? pIS->root_od->mo : NULL;
+
+	if (!mo) return;
+	/*disconnect current inline if we're the last one using it (same as regular OD session leave/join)*/
+	if (mo->num_open) {
+		mo->num_open --;
+		if (!mo->num_open) {
+			/*this is unspecified in the spec: whenever an inline not using the 
+			OD framework is destroyed, destroy the associated resource*/
+			if (mo->OD_ID == GF_ESM_DYNAMIC_OD_ID) {
+				GF_ObjectManager *par = pIS->root_od;
+				while (par->parent_OD) par = par->parent_OD;
+				gf_odm_disconnect(par, 1);
+			} else {
+				gf_odm_stop(pIS->root_od, 1);
+				gf_is_disconnect(pIS, 1);
+				assert(gf_list_count(pIS->ODlist) == 0);
+			}
+		}
+	}
+}
+
+void InitInline(GF_InlineScene *is, GF_Node *node)
+{
+	gf_node_set_render_function(node, gf_is_render);
+	gf_node_set_predestroy_function(node, gf_is_predestroy);
+}

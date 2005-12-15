@@ -38,6 +38,9 @@ void R2D_MapCoordsToAR(Render2D *sr, s32 inX, s32 inY, Fixed *x, Fixed *y)
 		/*revert to BIFS like*/
 		inX = inX - sr->compositor->width /2;
 		inY = sr->compositor->height/2 - inY;
+	} else {
+		inX -= sr->out_x;
+		inY -= sr->out_y;
 	}
 	*x = INT2FIX(inX);
 	*y = INT2FIX(inY);
@@ -49,8 +52,6 @@ void R2D_MapCoordsToAR(Render2D *sr, s32 inX, s32 inY, Fixed *x, Fixed *y)
 		*x = gf_muldiv(*x, INT2FIX(sr->cur_width), INT2FIX(sr->out_width));
 		*y = gf_muldiv(*y, INT2FIX(sr->cur_height), INT2FIX(sr->out_height));
 	} else {
-		*x -= INT2FIX( ((s32)sr->out_width - (s32)sr->compositor->scene_width) / 2 );
-		*y += INT2FIX( ((s32)sr->out_height - (s32)sr->compositor->scene_height) / 2 );
 		*x = gf_muldiv(*x, INT2FIX(sr->compositor->scene_width ), INT2FIX(sr->out_width));
 		*y = gf_muldiv(*y, INT2FIX(sr->compositor->scene_height), INT2FIX(sr->out_height));
 	}
@@ -426,7 +427,8 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	evt.x = 0;
 	evt.y = 0;
 	ev = &evt;
-	if (event->event_type<=GF_EVT_MOUSEWHEEL) R2D_MapCoordsToAR(sr, event->mouse.x, event->mouse.y, &evt.x, &evt.y);
+	if (event->event_type<=GF_EVT_MOUSEWHEEL) 
+		R2D_MapCoordsToAR(sr, event->mouse.x, event->mouse.y, &evt.x, &evt.y);
 
 #ifndef GPAC_DISABLE_SVG
 	/*DOM-style events*/

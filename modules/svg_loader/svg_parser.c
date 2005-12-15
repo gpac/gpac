@@ -418,7 +418,7 @@ void svg_parse_dom_attributes(SVGParser *parser,
 						}
 					}
 				}
-			} else {
+			} else if (strcmp(attributes->name, "style")) {
 				GF_FieldInfo info;
 				u32 evtType = svg_dom_event_by_name((char *) attributes->name + 2);
 				if (evtType != SVG_DOM_EVT_UNKNOWN) {
@@ -631,9 +631,10 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_el
 
 	GF_FieldInfo xlink_href_info;
 	gf_node_get_field_by_name((GF_Node *)animation_elt, "xlink:href", &xlink_href_info);
-	if (local_de.target_id) 
+	if (local_de.target_id) {
 		svg_parse_attribute(animation_elt, &xlink_href_info, local_de.target_id, 0, 0);
-	else {
+		free(local_de.target_id);
+	} else {
 		/* default is the parent element */
 		local_de.animation_elt->xlink->href.type = SVG_IRI_ELEMENTID;
 		local_de.animation_elt->xlink->href.target = local_de.parent;
@@ -645,12 +646,16 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_el
 		smil_parse_attributename(animation_elt, local_de.attributeName);
 		gf_node_get_field_by_name((GF_Node *)animation_elt, "attributeName", &info);
 		anim_value_type = ((SMIL_AttributeName *)info.far_ptr)->type;
-		free(local_de.attributeName);
 	} else {
-		if (gf_node_get_tag((GF_Node *)animation_elt) == TAG_SVG_animateMotion) {
+		switch (gf_node_get_tag((GF_Node *)animation_elt) ) {
+		case TAG_SVG_animateMotion:
 			anim_value_type = SVG_Motion_datatype;
-		} else {
+			break;
+		case TAG_SVG_discard:
+			break;
+		default:
 			fprintf(stdout, "Error: no attributeName specified.\n");
+			break;
 		}
 	}
 
@@ -684,6 +689,12 @@ void svg_parse_sax_defered_animation(SVGParser *parser, SVGElement *animation_el
 		svg_parse_attribute(animation_elt, &info, local_de.values, anim_value_type, anim_transform_type);
 		free(local_de.values);
 	} 
+	/*OK init the anim*/
+	gf_node_init((GF_Node *)animation_elt);
+
+	/*free attributeName after init since it is used in the SMIL anim setup*/
+	if (local_de.attributeName) free(local_de.attributeName);
+
 }
 
 SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const xmlChar **attrs, SVGElement *parent)
@@ -903,7 +914,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 	}
 
 	/* We need to init the node at the end of the parsing, after parsing all attributes */
-	if (!de && elt) {
+	if (!is_svg_animation_tag(tag) && elt) {
 		GF_DOM_Event evt;
 		/*init node*/
 		gf_node_init((GF_Node *)elt);
@@ -943,6 +954,8 @@ void SVGParser_Terminate(SVGParser *parser)
 	gf_list_del(parser->unresolved_timing_elements);
 	gf_list_del(parser->unresolved_hrefs);
 	gf_list_del(parser->defered_animation_elements);
+	if (parser->entities) gf_list_del(parser->entities);
+	if (parser->svg_node_stack) gf_list_del(parser->svg_node_stack);
 	if (parser->file_name) free(parser->file_name);
 	free(parser);
 }
@@ -968,7 +981,7 @@ GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 	xmlDocPtr doc = NULL;
 	xmlNodePtr root = NULL;
 	SVGElement *n;
-
+	//u32 d;
 	/* XML Related code */
 	if (!xmllib_is_init) {
 		xmlInitParser();
@@ -1018,7 +1031,9 @@ GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 		free(de);
 	}
 
+	//scanf("%d", &d);
 	xmlFreeDoc(doc);
+	//scanf("%d", &d);
 	return GF_OK;
 }
 

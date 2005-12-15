@@ -2942,8 +2942,8 @@ static void JS_PreDestroy(GF_Node *node)
 		if (! JSVAL_IS_VOID(fval))
 			JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
 
-	if (priv->obj_bank) gf_list_del(priv->obj_bank);
 	gf_sg_ecmascript_del(priv->js_ctx);
+	if (priv->obj_bank) gf_list_del(priv->obj_bank);
 	priv->js_ctx = NULL;
 }
 

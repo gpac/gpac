@@ -110,14 +110,14 @@ Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
 			if (app->m_duration>=2000) {
 				s32 res = gf_term_get_time_in_ms(app->m_term) - 5*app->m_duration/100;
 				if (res<0) res=0;
-				gf_term_play_from_time(app->m_term, res);
+				gf_term_play_from_time(app->m_term, res, 0);
 			}
 			break;
 		case GF_VK_RIGHT:
 			if (app->m_duration>=2000) {
 				u32 res = gf_term_get_time_in_ms(app->m_term) + 5*app->m_duration/100;
 				if (res>=app->m_duration) res = 0;
-				gf_term_play_from_time(app->m_term, res);
+				gf_term_play_from_time(app->m_term, res, 0);
 			}
 			break;
 		case GF_VK_UP:
@@ -210,8 +210,11 @@ BOOL COsmo4::InitInstance()
 		if (m_user.modules) {
 			gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) config_path);
 
+			gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 2D Renderer");
+
 			sOpt = gf_cfg_get_key(m_user.config, "Rendering", "Raster2D");
 			if (!sOpt) gf_cfg_set_key(m_user.config, "Rendering", "Raster2D", "GPAC 2D Raster");
+
 
 			sOpt = gf_cfg_get_key(m_user.config, "General", "CacheDirectory");
 			if (!sOpt) {

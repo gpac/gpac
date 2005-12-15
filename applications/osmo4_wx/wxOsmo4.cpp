@@ -1528,7 +1528,7 @@ void wxOsmo4Frame::OnTimer(wxTimerEvent& WXUNUSED(event))
 			gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
 			m_bToReset = 0;
 	    }
-	    gf_term_play_from_time(m_term, (u32) res);
+	    gf_term_play_from_time(m_term, (u32) res, 0);
 	    return;
 	  }
 	}

@@ -45,11 +45,15 @@ void RenderMediaSensor(GF_Node *node, void *rs)
 	MediaSensorStack *st = gf_node_get_private(node);
 
 	if (!st->stream) st->stream = gf_mo_find(node, &st->sensor->url);
-	if (!st->stream) return;
-	if (!st->stream->odm) return;
+	if (!st->stream || !st->stream->odm) return;
+
 	if (!st->is_init) {
-		gf_list_add(st->stream->odm->ms_stack, st);
-		gf_odm_init_segments(st->stream->odm, st->seg, &st->sensor->url);
+		/*get resolved OD*/
+		st->odm = st->stream->odm;
+		while (st->odm->remote_OD) st->odm = st->odm->remote_OD;
+
+		gf_list_add(st->odm->ms_stack, st);
+		gf_odm_init_segments(st->odm, st->seg, &st->sensor->url);
 		st->is_init = 1;
 		st->active_seg = 0;
 		
@@ -60,19 +64,19 @@ void RenderMediaSensor(GF_Node *node, void *rs)
 	ck = NULL;
 	/*check inline scenes - if the scene is set to restart DON'T MODIFY SENSOR: since we need a 2 render
 	passes to restart inline, scene is considered as not running*/
-	if (st->stream->odm->subscene && !st->stream->odm->subscene->needs_restart) {
-		ck = st->stream->odm->subscene->scene_codec->ck;
+	if (st->odm->subscene && st->odm->subscene->scene_codec && !st->odm->subscene->needs_restart) {
+		ck = st->odm->subscene->scene_codec->ck;
 		/*since audio may be used alone through an inline scene, we need to refresh the graph*/
-		if (st->stream->odm->is_open) gf_term_invalidate_renderer(st->stream->term);
+		if (st->odm->is_open) gf_term_invalidate_renderer(st->odm->term);
 	}
 	/*check anim streams*/
-	else if (st->stream->odm->codec && (st->stream->odm->codec->type==GF_STREAM_SCENE)) ck = st->stream->odm->codec->ck;
+	else if (st->odm->codec && (st->odm->codec->type==GF_STREAM_SCENE)) ck = st->odm->codec->ck;
 	/*check OCR streams*/
-	else if (st->stream->odm->ocr_codec) ck = st->stream->odm->ocr_codec->ck;
+	else if (st->odm->ocr_codec) ck = st->odm->ocr_codec->ck;
 
 	if (ck && gf_clock_is_started(ck) ) {
-		st->stream->odm->current_time = gf_clock_time(ck);
-		MS_UpdateTiming(st->stream->odm);
+		st->odm->current_time = gf_clock_time(ck);
+		MS_UpdateTiming(st->odm);
 	}
 }
 

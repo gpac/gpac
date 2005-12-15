@@ -172,7 +172,7 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 	num_faces = face->num_faces;
 	/*locate right font in collection if several*/
 	for (i=0; i<num_faces; i++) {
-		if (ft_check_face(face, ftpriv->tmp_font_name, ftpriv->tmp_font_style)) 
+		if (ft_check_face(face, ftpriv->tmp_font_name ? ftpriv->tmp_font_name : face->family_name, ftpriv->tmp_font_style)) 
 			break;
 		
 		FT_Done_Face(face);
@@ -246,7 +246,7 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 
 	/*check cfg file - freetype is slow at loading fonts so we keep the (font name + styles)=fontfile associations
 	in the cfg file*/
-	if (fontName) {
+	if (fontName && strlen(fontName)) {
 		const char *opt;
 		char file_path[GF_MAX_PATH];
 		strcpy(fname, fontName);
@@ -271,6 +271,7 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 
 	/*not found, browse all fonts*/
 	ftpriv->register_font = 1;
+	if (!strlen(ftpriv->tmp_font_name)) ftpriv->tmp_font_name = NULL;
 	gf_enum_directory(ftpriv->font_dir, 0, ft_enum_fonts, dr, "ttf;ttc");
 	ftpriv->register_font = 0;
 
@@ -295,20 +296,22 @@ static GF_Err ft_set_font(GF_FontRaster *dr, const char *OrigFontName, const cha
 
 	if (fontName) {
 		/*font not on system...*/
-		gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", fontName, "UNKNOWN");
+		gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", fname, "UNKNOWN");
 
-		/*remove cache if default fonts not found*/
-		if (!OrigFontName || !stricmp(OrigFontName, "SERIF")) {
-			gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif", NULL);
-			strcpy(ftpriv->font_serif, "");
-		}
-		else if (!stricmp(OrigFontName, "SANS")) {
-			gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSans", NULL);
-			strcpy(ftpriv->font_sans, "");
-		}
-		else if (!stricmp(OrigFontName, "TYPEWRITTER")) {
-			gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed", NULL);
-			strcpy(ftpriv->font_fixed, "");
+		if (!styles) {
+			/*remove cache if default fonts not found*/
+			if (!OrigFontName || !stricmp(OrigFontName, "SERIF")) {
+				gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif", NULL);
+				strcpy(ftpriv->font_serif, "");
+			}
+			else if (!stricmp(OrigFontName, "SANS")) {
+				gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSans", NULL);
+				strcpy(ftpriv->font_sans, "");
+			}
+			else if (!stricmp(OrigFontName, "TYPEWRITTER")) {
+				gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed", NULL);
+				strcpy(ftpriv->font_fixed, "");
+			}
 		}
 	}
 	return GF_NOT_SUPPORTED;
@@ -600,7 +603,6 @@ GF_FontRaster *FT_Load()
 	dr->get_font_metrics = ft_get_font_metrics;
 	dr->get_text_size = ft_get_text_size;
 	dr->add_text_to_path = ft_add_text_to_path;
-	
 	return dr;
 }
 

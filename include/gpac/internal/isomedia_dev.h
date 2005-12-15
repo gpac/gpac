@@ -1788,14 +1788,15 @@ GF_Err stbl_RemoveShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber);
 GF_Err stbl_RemovePaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber);
 GF_Err stbl_RemoveSampleFragments(GF_SampleTableBox *stbl, u32 sampleNumber);
 
-GF_Err GetNextMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime);
-GF_Err GetPrevMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime);
-
 #ifndef	GF_ISOM_NO_FRAGMENTS
 GF_Err StoreFragment(GF_ISOFile *movie);
 #endif
 
 #endif	
+
+
+GF_Err GetNextMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime);
+GF_Err GetPrevMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime);
 
 Bool IsHintTrack(GF_TrackBox *trak);
 Bool CheckHintFormat(GF_TrackBox *trak, u32 HintType);

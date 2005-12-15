@@ -949,7 +949,7 @@ static void lsr_setup_attribute_name(GF_LASeRCodec *lsr, SVGElement *anim, SVGEl
 		if (anim->anim->by.value) anim->anim->by.type = info.fieldType;
 		if (anim->anim->to.value) anim->anim->to.type = info.fieldType;
 		if (gf_list_count(anim->anim->values.values)) anim->anim->values.type = info.fieldType;
-		att_name->name = strdup(info.name);
+		att_name->name = (char *) info.name;
 		return;
 	}
 }

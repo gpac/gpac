@@ -151,7 +151,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, Bool (*enum_dir_i
 		sprintf(_path, "%s%c*", dir, GF_PATH_SEPARATOR);
 	}
 	CE_CharToWide(_path, path);
-	CE_WideToChar(w_filter, (char *)filter);
+	CE_CharToWide((char *)filter, w_filter);
 
 	SearchH = FindFirstFile(path, &FindData);
 	if (SearchH == INVALID_HANDLE_VALUE) return GF_IO_ERR;

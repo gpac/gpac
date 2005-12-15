@@ -2125,15 +2125,17 @@ exit:
 	return e;
 }
 
-static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size)
+#define ZLIB_COMPRESS_SAFE	4
+
+static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dict)
 {
     z_stream stream;
     int err;
-	char *dest = malloc(sizeof(char)*samp->dataLength*2);
+	char *dest = malloc(sizeof(char)*samp->dataLength*ZLIB_COMPRESS_SAFE);
     stream.next_in = (Bytef*)samp->data;
     stream.avail_in = (uInt)samp->dataLength;
     stream.next_out = dest;
-    stream.avail_out = (uInt)samp->dataLength*2;
+    stream.avail_out = (uInt)samp->dataLength*ZLIB_COMPRESS_SAFE;
     stream.zalloc = (alloc_func)NULL;
     stream.zfree = (free_func)NULL;
     stream.opaque = (voidpf)NULL;
@@ -2142,6 +2144,15 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size)
     if (err != Z_OK) {
 		free(dest);
 		return GF_IO_ERR;
+	}
+	if (dict && *dict) {
+		err = deflateSetDictionary(&stream, *dict, strlen(*dict));
+		if (err != Z_OK) {
+			fprintf(stdout, "Error assigning dictionary\n");
+			deflateEnd(&stream);
+			free(dest);
+			return GF_IO_ERR;
+		}
 	}
     err = deflate(&stream, Z_FINISH);
     if (err != Z_STREAM_END) {
@@ -2152,8 +2163,13 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size)
     if (samp->dataLength<stream.total_out) {
 		fprintf(stdout, "Warning: compressed data (%d) bigger than input data (%d)\n", stream.total_out, samp->dataLength);
 	}
+	if (dict) {
+		if (*dict) free(*dict);
+		*dict = malloc(sizeof(char)*samp->dataLength);
+		memcpy(*dict, samp->data, samp->dataLength);
+	}
 	if (*max_size < stream.total_out) {
-		*max_size = samp->dataLength*2;
+		*max_size = samp->dataLength*ZLIB_COMPRESS_SAFE;
 		free(samp->data);
 		samp->data = dest;
 	} else {
@@ -2170,12 +2186,12 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 {
 	GF_Err e;
 	XMLParser parser;
-	Bool destroy_esd, inRootOD, do_compress;
+	Bool destroy_esd, inRootOD, do_compress, use_dict;
 	u32 track, tkID, di, mtype, max_size, duration, count, streamType, oti, timescale, specInfoSize, dts_inc;
 	GF_ISOSample *samp;
 	s64 media_size, media_done, offset;
 	FILE *nhml, *mdia, *info;
-	char *str;
+	char *str, *dictionary;
 	char *ext, szName[1000], szMedia[1000], szMediaTemp[1000], szInfo[1000], szXmlFrom[1000], szXmlTo[1000], *specInfo;
 	GF_GenericSampleDescription sdesc;
 	
@@ -2216,7 +2232,9 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 	}
 	strcpy(szInfo, szName);
 	strcat(szInfo, ".info");
-	
+	dictionary = NULL;
+	use_dict = 0;
+
 	memset(&sdesc, 0, sizeof(GF_GenericSampleDescription));
 	tkID = mtype = streamType = oti = timescale = 0;
 	while (xml_has_attributes(&parser)) {
@@ -2240,6 +2258,23 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 		else if (!strcmp(str, "inRootOD")) inRootOD = !strcmp(parser.value_buffer, "yes");
 		else if (!strcmp(str, "DTS_increment")) dts_inc = atoi(parser.value_buffer);
 		else if (!strcmp(str, "gzipSamples")) do_compress = (!strcmp(parser.value_buffer, "true") || !strcmp(parser.value_buffer, "yes")) ? 1 : 0;
+		else if (!strcmp(str, "gzipDictionary")) {
+			u32 d_size;
+			if (strcmp(parser.value_buffer, "self")) {
+				FILE *d = fopen(parser.value_buffer, "rb");
+				if (!d) {
+					gf_import_message(import, GF_IO_ERR, "Cannot open dictionary file %s", parser.value_buffer);
+					continue;
+				}
+				fseek(d, 0, SEEK_END);
+				d_size = ftell(d);
+				dictionary = malloc(sizeof(char)*(d_size+1));
+				fseek(d, 0, SEEK_SET);
+				fread(dictionary, 1, d_size, d);
+				dictionary[d_size]=0;
+			}
+			use_dict = 1;
+		}
 		/*unknow desc related*/
 		else if (!strcmp(str, "compressorName")) strcpy(sdesc.compressor_name, parser.value_buffer);
 		else if (!strcmp(str, "codecVersion")) sdesc.version = atoi(parser.value_buffer);
@@ -2447,7 +2482,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 		if (e) goto exit;
 
 		if (do_compress) {
-			e = compress_sample_data(samp, &max_size);
+			e = compress_sample_data(samp, &max_size, use_dict ? &dictionary : NULL);
 			if (e) goto exit;
 		}
 
@@ -2478,6 +2513,7 @@ exit:
 	}
 	xml_reset_parser(&parser);
 	if (specInfo) free(specInfo);
+	if (dictionary) free(dictionary);
 	return e;
 }
 

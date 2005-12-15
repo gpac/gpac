@@ -94,7 +94,10 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height)
 	DDCONTEXT;
 
 
-	if (dd->pBack && !dd->fullscreen && (dd->width == Width) && (dd->height == Height) ) return GF_OK;
+	if (dd->pBack && !dd->fullscreen && (dd->width == Width) && (dd->height == Height) ) {
+		DD_Clear(dr);
+		return GF_OK;
+	}
 
 	if (dd->pBack) 	SAFE_DD_RELEASE(dd->pBack);
 

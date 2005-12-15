@@ -393,6 +393,7 @@ void gf_term_disconnect(GF_Terminal *term)
 	gf_sr_set_scene(term->renderer, NULL);
 	gf_odm_disconnect(term->root_scene->root_od, 1);
 	while (term->root_scene) gf_sleep(10);
+	while (gf_list_count(term->net_services_to_remove)) gf_sleep(10);
 }
 
 

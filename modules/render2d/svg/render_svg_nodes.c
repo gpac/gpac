@@ -357,7 +357,7 @@ void SVG_Init_switch(Render2D *sr, GF_Node *node)
 
 
 static void SVG_DrawablePostRender(Drawable *cs, SVGPropertiesPointers *backup_props, 
-								   SVGTransformableElement *elt, RenderEffect2D *eff)
+								   SVGTransformableElement *elt, RenderEffect2D *eff, Bool rectangular)
 {
 	GF_Matrix2D backup_matrix;
 	DrawableContext *ctx;
@@ -383,6 +383,13 @@ static void SVG_DrawablePostRender(Drawable *cs, SVGPropertiesPointers *backup_p
 
 	ctx = SVG_drawable_init_context(cs, eff);
 	if (ctx) {
+		if (rectangular) {
+			ctx->transparent = 0;
+			if (ctx->h_texture && ctx->h_texture->transparent) ctx->transparent = 1;
+			else if (!ctx->aspect.filled) ctx->transparent = 1;
+			else if (GF_COL_A(ctx->aspect.fill_color) != 0xFF) ctx->transparent = 1;
+			else if (ctx->transform.m[1] || ctx->transform.m[3]) ctx->transparent = 1;
+		}
 		drawctx_store_original_bounds(ctx);
 		drawable_finalize_render(ctx, eff);
 	}
@@ -438,7 +445,7 @@ static void SVG_Render_rect(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)rect, (RenderEffect2D *)rs);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)rect, (RenderEffect2D *)rs, 1);
 }
 
 void SVG_Init_rect(Render2D *sr, GF_Node *node)
@@ -462,7 +469,7 @@ static void SVG_Render_circle(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)circle, (RenderEffect2D *)rs);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)circle, (RenderEffect2D *)rs, 0);
 }
 
 void SVG_Init_circle(Render2D *sr, GF_Node *node)
@@ -485,7 +492,7 @@ static void SVG_Render_ellipse(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)ellipse, (RenderEffect2D *)rs);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)ellipse, (RenderEffect2D *)rs, 0);
 }
 
 void SVG_Init_ellipse(Render2D *sr, GF_Node *node)
@@ -509,7 +516,7 @@ static void SVG_Render_line(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)line, (RenderEffect2D *)rs);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)line, (RenderEffect2D *)rs, 0);
 }
 
 void SVG_Init_line(Render2D *sr, GF_Node *node)
@@ -544,7 +551,7 @@ static void SVG_Render_polyline(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)polyline, (RenderEffect2D *)rs);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)polyline, (RenderEffect2D *)rs, 0);
 }
 
 void SVG_Init_polyline(Render2D *sr, GF_Node *node)
@@ -580,7 +587,7 @@ static void SVG_Render_polygon(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)polygon, (RenderEffect2D *)rs);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)polygon, (RenderEffect2D *)rs, 0);
 }
 
 void SVG_Init_polygon(Render2D *sr, GF_Node *node)
@@ -608,7 +615,7 @@ static void SVG_Render_path(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)path, eff);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)path, eff, 0);
 }
 
 void SVG_Init_path(Render2D *sr, GF_Node *node)
@@ -980,7 +987,7 @@ void SVG_Render_base(GF_Node *node, RenderEffect2D *eff, SVGPropertiesPointers *
 		
 		/* The resetting is done either based on the inherited value or based on the (saved) DOM value 
 		   or in special cases on the inherited color value */
-		gf_svg_attributes_copy_computed_value(&underlying_value, &aa->saved_dom_value, eff->svg_props);
+		gf_svg_attributes_copy_computed_value(&underlying_value, &aa->saved_dom_value, (SVGElement*)node, aa->orig_dom_ptr, eff->svg_props);
 
 		/* we also need a special handling of current color if used in animation values */
 		aa->current_color_value.fieldType = SVG_Paint_datatype;

@@ -131,7 +131,6 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_SVG_audio:		SVG_Init_audio(sr, node); break;
 	case TAG_SVG_linearGradient:			SVG_Init_linearGradient(sr, node); break;
 	case TAG_SVG_radialGradient:			SVG_Init_radialGradient(sr, node); break;
-
 #endif
 	default: break;
 	}

@@ -303,7 +303,7 @@ static void split_text_letters(TextStack *st, M_Text *txt, RenderEffect3D *eff)
 	line_spacing = gf_mulfix(FSSPACE, fontSize);
 
 	if (ft_r->set_font(ft_r, FSFAMILY, FSSTYLE) != GF_OK) {
-		if (ft_r->set_font(ft_r, NULL, FSSTYLE) != GF_OK) {
+		if (ft_r->set_font(ft_r, NULL, NULL) != GF_OK) {
 			return;
 		}
 	}
@@ -362,7 +362,7 @@ static void split_text_words(TextStack *st, M_Text *txt, RenderEffect3D *eff)
 	line_spacing = gf_mulfix(FSSPACE, fontSize);
 
 	if (ft_r->set_font(ft_r, FSFAMILY, FSSTYLE) != GF_OK) {
-		if (ft_r->set_font(ft_r, NULL, FSSTYLE) != GF_OK) {
+		if (ft_r->set_font(ft_r, NULL, NULL) != GF_OK) {
 			return;
 		}
 	}
@@ -429,7 +429,7 @@ static void BuildVerticalTextGraph(TextStack *st, M_Text *txt, RenderEffect3D *e
 	line_spacing = gf_mulfix(FSSPACE , fontSize);
 
 	if (ft_r->set_font(ft_r, FSFAMILY, FSSTYLE) != GF_OK) {
-		if (ft_r->set_font(ft_r, NULL, FSSTYLE) != GF_OK) {
+		if (ft_r->set_font(ft_r, NULL, NULL) != GF_OK) {
 			return;
 		}
 	}
@@ -605,7 +605,7 @@ static void BuildTextGraph(TextStack *st, M_Text *txt, RenderEffect3D *eff)
 
 	fontSize = get_font_size(fs, eff);
 	if (ft_r->set_font(ft_r, FSFAMILY, FSSTYLE) != GF_OK) {
-		if (ft_r->set_font(ft_r, NULL, FSSTYLE) != GF_OK) {
+		if (ft_r->set_font(ft_r, NULL, NULL) != GF_OK) {
 			return;
 		}
 	}

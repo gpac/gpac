@@ -34,7 +34,7 @@ void InitMediaControl(GF_InlineScene *is, GF_Node *node);
 void MC_Modified(GF_Node *node);
 void InitMediaSensor(GF_InlineScene *is, GF_Node *node);
 void MS_Modified(GF_Node *node);
-
+void InitInline(GF_InlineScene *is, GF_Node *node);
 
 void Destroy_WorldInfo(GF_Node *node)
 {
@@ -55,7 +55,7 @@ void gf_term_on_node_init(void *_is, GF_Node *node)
 	switch (gf_node_get_tag(node)) {
 	case TAG_MPEG4_Inline: 
 	case TAG_X3D_Inline: 
-		gf_node_set_render_function(node, gf_is_render); break;
+		InitInline(is, node); break;
 	case TAG_MPEG4_MediaBuffer: break;
 	case TAG_MPEG4_MediaControl: InitMediaControl(is, node); break;
 	case TAG_MPEG4_MediaSensor: InitMediaSensor(is, node); break;

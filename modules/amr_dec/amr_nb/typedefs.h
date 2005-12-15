@@ -140,6 +140,11 @@ typedef unsigned long UWord32;
 #define PC
 #define PLATFORM "PC"
 #define LSBFIRST
+#if defined(_WIN32_WCE)
+#define PC
+#ifndef abort
+#define abort() exit(0)
+#endif
 #elif defined(__osf__)
 #define OSF
 #define PLATFORM "OSF"
@@ -156,12 +161,6 @@ typedef unsigned long UWord32;
 #define PC
 #define PLATFORM "PC"
 #define LSBFIRST
-#elif defined(_WIN32_WCE)
-#define PC
-#define PLATFORM "PC"
-#define LSBFIRST
-#ifndef abort
-#define abort() exit(0)
 #endif
 #else
 #error "can't determine architecture; adapt typedefs.h to your platform"

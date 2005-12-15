@@ -51,3 +51,6 @@ GF_TextureHandler *pt_get_texture(GF_Node *node);
 #endif
 
 
+#ifndef GPAC_DISABLE_SVG
+void InitDiscard(GF_Renderer *sr, GF_Node *node);
+#endif

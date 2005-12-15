@@ -317,6 +317,7 @@ Bool gf_sg_svg_node_init(GF_Node *node)
 		gf_smil_setup_events(node);
 		/*we may get called several times depending on xlink:href resoling for events*/
 		return (node->sgprivate->privateStack || node->sgprivate->RenderNode) ? 1 : 0;
+	/*SVG discard is handled through renderers for simplicity reasons*/
 	default:
 		return 0;
 	}

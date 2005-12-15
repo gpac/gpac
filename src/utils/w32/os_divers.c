@@ -410,7 +410,8 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 			proc_k_u_time = last_proc_k_u_time + the_rti.sampling_period_duration;
 			the_rti.cpu_idle_time = 0;
 			the_rti.total_cpu_usage = 100;
-			the_rti.process_cpu_usage = (u32) (100*the_rti.process_cpu_time_diff / the_rti.sampling_period_duration );
+			if (the_rti.sampling_period_duration)
+				the_rti.process_cpu_usage = (u32) (100*the_rti.process_cpu_time_diff / the_rti.sampling_period_duration);
 		} else {
 			u64 samp_sys_time, idle;
 			the_rti.total_cpu_time_diff = (u32) ((proc_k_u_time - last_proc_k_u_time)/1000);
@@ -425,9 +426,11 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 
 			samp_sys_time = proc_k_u_time - last_proc_k_u_time;
 			idle = proc_idle_time - last_proc_idle_time;
-            the_rti.total_cpu_usage = (u32) ( (samp_sys_time - idle) / (samp_sys_time / 100) );
 			the_rti.cpu_idle_time = (u32) (idle/1000);
-			the_rti.process_cpu_usage = (u32) (100*the_rti.process_cpu_time_diff / (samp_sys_time/1000));
+			if (samp_sys_time) {
+				the_rti.total_cpu_usage = (u32) ( (samp_sys_time - idle) / (samp_sys_time / 100) );
+				the_rti.process_cpu_usage = (u32) (100*the_rti.process_cpu_time_diff / (samp_sys_time/1000));
+			}
 		}
 	}
 	last_process_k_u_time = process_k_u_time;

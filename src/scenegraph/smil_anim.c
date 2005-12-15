@@ -257,14 +257,14 @@ static void gf_smil_anim_animate_using_path(SMIL_Anim_RTI *rai, Fixed normalized
 	if (res) rai->target_value_changed = 1;
 }
 
-static void gf_smil_anim_discard(SMIL_Anim_RTI *rai, Fixed normalized_simple_time)
+static void gf_smil_anim_discard(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
 {
-	GF_Node *targetNode = (GF_Node *)rai->anim_elt->xlink->href.target;
+	GF_Node *targetNode = (GF_Node *)rti->timed_elt->xlink->href.target;
 	if (!targetNode) return;
 	/* deletes the node and replace all references to that node to NULL */
 	gf_node_replace(targetNode, NULL, 0);
 	/* sets the node to NULL in case of future calls to discard */
-	rai->anim_elt->xlink->href.target = NULL;
+	rti->timed_elt->xlink->href.target = NULL;
 	/* TODO: The animation (discard) does not need to run again */
 	/* TODO: Invalidate the scene ?*/
 }
@@ -484,6 +484,7 @@ static void gf_smil_anim_init_runtime_info(SVGElement *e)
 
 		/* Save the DOM value before any animation starts */
 		aa->saved_dom_value = target_attribute;
+		aa->orig_dom_ptr = target_attribute.far_ptr;
 		aa->saved_dom_value.far_ptr = svg_create_value_from_attributetype(target_attribute.fieldType, 0);
 		svg_attributes_copy(&aa->saved_dom_value, &target_attribute, 0);
 
@@ -514,13 +515,14 @@ void gf_smil_anim_delete_animations(SVGElement *e)
 {
 	u32 i, j;
 	for (i = 0; i < gf_node_animation_count((GF_Node *)e); i ++) {
-		SMIL_AttributeAnimations *aa = gf_node_animation_get((GF_Node *)e->xlink->href.target, i);
+		SMIL_AttributeAnimations *aa = gf_node_animation_get((GF_Node *)e, i);
 		gf_svg_delete_attribute_value(aa->saved_dom_value.fieldType, aa->saved_dom_value.far_ptr);
 		for (j = 0; j < gf_list_count(aa->anims); j++) {
-			SMIL_Anim_RTI *rai = gf_list_get(aa->anims, i);
+			SMIL_Anim_RTI *rai = gf_list_get(aa->anims, j);
 			gf_smil_anim_delete_runtime_info(rai);
 		}
 		gf_list_del(aa->anims);
+		free(aa);
 	}
 	gf_node_animation_del((GF_Node *)e);
 }
@@ -551,7 +553,12 @@ void gf_smil_anim_init_node(GF_Node *node)
 	if (!anim_elt->xlink->href.target) return;
 
 	gf_smil_timing_init_runtime_info(anim_elt);
-	gf_smil_anim_init_runtime_info(anim_elt);
+	if (anim_elt->anim) gf_smil_anim_init_runtime_info(anim_elt);
+	/*THIS IS A DISCARD OR THIS CRASHES.*/
+	else {
+		anim_elt->timing->runtime->activation = gf_smil_anim_discard;
+	}
+
 }
 
 /* TODO: update for elliptical arcs */		

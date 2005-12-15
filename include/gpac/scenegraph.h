@@ -136,6 +136,9 @@ void gf_node_unregister_children(GF_Node *node, GF_List *childrenlist);
 Note: if the new node is not DEFed, only the first instance of "old_node" will be replaced, the other ones deleted*/
 GF_Err gf_node_replace(GF_Node *old_node, GF_Node *new_node, Bool updateOrderedGroup);
 
+/*returns number of instances for this node*/
+u32 gf_node_get_num_instances(GF_Node *node);
+
 
 /*calls RenderNode on this node*/
 void gf_node_render(GF_Node *node, void *renderStack);

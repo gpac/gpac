@@ -1327,7 +1327,7 @@ void smil_parse_attributename(SVGElement *animation_element, char *value_string)
 	}
 	if (!gf_node_get_field_by_name((GF_Node *)targetElement, value_string, &targetAttribute)) {
 		SMIL_AttributeName *attributename_value = (SMIL_AttributeName *)attribute_name.far_ptr;
-		attributename_value->name = strdup(value_string);
+		attributename_value->name = value_string;
 		attributename_value->type = targetAttribute.fieldType;
 		attributename_value->field_ptr = targetAttribute.far_ptr;
 	} else 
@@ -4213,13 +4213,13 @@ void gf_svg_attributes_smart_copy(GF_FieldInfo *out, GF_FieldInfo *in, GF_FieldI
 	}
 }
 
-void gf_svg_attributes_copy_computed_value(GF_FieldInfo *out, GF_FieldInfo *in, SVGPropertiesPointers *inherited_props)
+void gf_svg_attributes_copy_computed_value(GF_FieldInfo *out, GF_FieldInfo *in, SVGElement*elt, void *orig_dom_ptr, SVGPropertiesPointers *inherited_props)
 {
 	GF_FieldInfo prop, current_color;
 
 	prop.fieldType = in->fieldType;
 	prop.eventType = in->eventType;
-	prop.far_ptr = gf_svg_get_property_pointer_by_name(inherited_props, in->name);
+	prop.far_ptr = gf_svg_get_property_pointer(inherited_props, elt, orig_dom_ptr);
 
 	current_color.fieldType = SVG_PAINT_COLOR;
 	current_color.far_ptr = inherited_props->color;

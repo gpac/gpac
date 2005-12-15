@@ -251,7 +251,7 @@ void CMainFrame::UpdateTime()
 	if (app->m_can_seek && (now>=app->m_duration + 100)) {
 		if (gf_term_get_option(app->m_term, GF_OPT_IS_FINISHED)) {
 			if (app->m_Loop && m_full_screen) {
-				gf_term_play_from_time(app->m_term, 0);
+				gf_term_play_from_time(app->m_term, 0, 0);
 			} else {
 				OnFileStop();
 				if (app->m_Loop) OnFilePause();
@@ -390,7 +390,7 @@ LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 	app->m_stoped = 0;
 	
 	if (app->m_reconnect_time) {
-		gf_term_connect_from_time(app->m_term, filename, app->m_reconnect_time);
+		gf_term_connect_from_time(app->m_term, filename, app->m_reconnect_time, 0);
 		app->m_reconnect_time = 0;
 	} else {
 		gf_term_connect(app->m_term, filename);
