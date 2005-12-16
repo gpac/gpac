@@ -209,7 +209,7 @@ GF_Err DC_CloseService(GF_InputService *plug)
 /*Dummy input just send a file name, no multitrack to handle so we don't need to check sub_url nor expected type*/
 static GF_Descriptor *DC_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-	u32 size;
+	u32 size = 0;
 	char *uri;
 	GF_ESD *esd;
 	GF_BitStream *bs;

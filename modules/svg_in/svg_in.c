@@ -59,11 +59,12 @@ typedef struct
 static Bool svg_check_download(SVGIn *svgin)
 {
 	u32 size;
-	FILE *f = fopen(svgin->file_name, "rt");
+	FILE *f = fopen(svgin->file_name, "rb");
 	fseek(f, 0, SEEK_END);
 	size = ftell(f);
 	fclose(f);
 	if (size==svgin->file_size) return 1;
+	fprintf(stdout, "dnld not complete %d / %d\n", size, svgin->file_size);
 	return 0;
 }
 

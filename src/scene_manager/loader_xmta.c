@@ -34,6 +34,9 @@
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_x3d.h>
 
+/*for QP types*/
+#include "../bifs/quant.h"
+
 typedef struct
 {
 	GF_SceneLoader *load;
@@ -754,11 +757,11 @@ u32 GetXMTFieldTypeByName(const char *name)
 	else if (!strcmp(name, "Booleans") || !strcmp(name, "MFBool")) return GF_SG_VRML_MFBOOL;
 	else if (!strcmp(name, "Integers") || !strcmp(name, "MFInt32")) return GF_SG_VRML_MFINT32;
 	else if (!strcmp(name, "Colors") || !strcmp(name, "MFColor")) return GF_SG_VRML_MFCOLOR;
-	else if (!strcmp(name, "Vector2s") || !strcmp(name, "MFVec2f")) return GF_SG_VRML_MFVEC2F;
+	else if (!strcmp(name, "Vector2s") || !strcmp(name, "Vector2Array") || !strcmp(name, "MFVec2f")) return GF_SG_VRML_MFVEC2F;
 	else if (!strcmp(name, "Images") || !strcmp(name, "MFImage")) return GF_SG_VRML_MFIMAGE;
 	else if (!strcmp(name, "Times") || !strcmp(name, "MFTime")) return GF_SG_VRML_MFTIME;
 	else if (!strcmp(name, "Floats") || !strcmp(name, "MFFloat")) return GF_SG_VRML_MFFLOAT;
-	else if (!strcmp(name, "Vector3s") || !strcmp(name, "MFVec3f")) return GF_SG_VRML_MFVEC3F;
+	else if (!strcmp(name, "Vector3s") || !strcmp(name, "Vector3Array") || !strcmp(name, "MFVec3f")) return GF_SG_VRML_MFVEC3F;
 	else if (!strcmp(name, "Rotations") || !strcmp(name, "MFRotation")) return GF_SG_VRML_MFROTATION;
 	else if (!strcmp(name, "Strings") || !strcmp(name, "MFString")) return GF_SG_VRML_MFSTRING;
 	else if (!strcmp(name, "Nodes") || !strcmp(name, "MFNode")) return GF_SG_VRML_MFNODE;
@@ -1942,6 +1945,26 @@ u32 xmt_get_esd_id(XMTParser *parser, char *esd_name)
 	return 0;
 }
 
+static u32 xmt_get_protofield_qp_type(const char *QP_Type)
+{
+	if (!strcmp(QP_Type, "position3D")) return QC_3DPOS;
+	else if (!strcmp(QP_Type, "position2D")) return QC_2DPOS;
+	else if (!strcmp(QP_Type, "drawingOrder")) return QC_ORDER;
+	else if (!strcmp(QP_Type, "color")) return QC_COLOR;
+	else if (!strcmp(QP_Type, "textureCoordinate")) return QC_TEXTURE_COORD;
+	else if (!strcmp(QP_Type, "angle")) return QC_ANGLE;
+	else if (!strcmp(QP_Type, "scale")) return QC_SCALE;
+	else if (!strcmp(QP_Type, "keys")) return QC_INTERPOL_KEYS;
+	else if (!strcmp(QP_Type, "normals")) return QC_NORMALS;
+	else if (!strcmp(QP_Type, "rotations")) return QC_ROTATION;
+	else if (!strcmp(QP_Type, "size3D")) return QC_SIZE_3D;
+	else if (!strcmp(QP_Type, "size2D")) return QC_SIZE_2D;
+	else if (!strcmp(QP_Type, "linear")) return QC_LINEAR_SCALAR;
+	else if (!strcmp(QP_Type, "coordIndex")) return QC_COORD_INDEX;
+	else return 0;
+}
+
+
 void proto_parse_field_dec(XMTParser *parser, GF_Proto *proto, Bool check_code)
 {
 	GF_FieldInfo info;
@@ -1967,7 +1990,7 @@ void proto_parse_field_dec(XMTParser *parser, GF_Proto *proto, Bool check_code)
 		else if (strstr(str, "value") || strstr(str, "Value")) szVal = strdup(parser->xml_parser.value_buffer);
 	}
 	pfield = gf_sg_proto_field_new(proto, fType, eType, szFieldName);
-	if (szVal) {
+	if (szVal && strlen(szVal)) {
 		gf_sg_proto_field_get_field(pfield, &info);
 		str = parser->xml_parser.value_buffer;
 		parser->temp_att = parser->xml_parser.value_buffer = szVal;
@@ -1977,15 +2000,52 @@ void proto_parse_field_dec(XMTParser *parser, GF_Proto *proto, Bool check_code)
 			xmt_mffield(parser, &info, NULL);
 		}
 		parser->xml_parser.value_buffer = str;
-		free(szVal);
-		xml_element_done(&parser->xml_parser, "field");
 	} else if (gf_sg_vrml_get_sf_type(fType)==GF_SG_VRML_SFNODE) {
 		while (!xml_element_done(&parser->xml_parser, "field")) {
 			xmt_parse_field_node(parser, NULL, &info);
 		}
+		return;
 	} else {
-		xml_element_done(&parser->xml_parser, "field");
 		gf_sg_proto_field_set_value_undefined(pfield);
+	}
+	if (szVal) free(szVal);
+	while (!xml_element_done(&parser->xml_parser, "field")) {
+		str = xml_get_element(&parser->xml_parser);
+		if (!strcmp(str, "InterfaceCodingParameters")) {
+			u32 qp_type, nbBits, hasMinMax, qp_sftype;
+			Fixed ftMin, ftMax;
+			qp_type = 0;
+			hasMinMax = 0;
+			ftMin = ftMax = 0;
+			nbBits = 0;
+			while (xml_has_attributes(&parser->xml_parser)) {
+				str = xml_get_attribute(&parser->xml_parser);
+				if (!strcmp(str, "quantCategory")) qp_type = xmt_get_protofield_qp_type(parser->xml_parser.value_buffer);
+				else if (!strcmp(str, "nbBits")) nbBits = atoi(parser->xml_parser.value_buffer);
+				else if (!strcmp(str, "position3DMin") || !strcmp(str, "position2DMin")  || !strcmp(str, "drawOrderMin")  
+					|| !strcmp(str, "colorMin") || !strcmp(str, "textureCoordinateMin") || !strcmp(str, "angleMin") 
+					|| !strcmp(str, "scaleMin") || !strcmp(str, "keyMin") || !strcmp(str, "sizeMin") 
+					) {
+					hasMinMax = 1;
+					xmt_parse_float(parser, str, &ftMin);
+				}
+				else if (!strcmp(str, "position3DMax") || !strcmp(str, "position2DMax")  || !strcmp(str, "drawOrderMax")  
+					|| !strcmp(str, "colorMax") || !strcmp(str, "textureCoordinateMax") || !strcmp(str, "angleMax") 
+					|| !strcmp(str, "scaleMax") || !strcmp(str, "keyMax") || !strcmp(str, "sizeMax") 
+					) {
+					hasMinMax = 1;
+					xmt_parse_float(parser, str, &ftMax);
+				}
+				
+			}
+			if (gf_sg_vrml_get_sf_type(fType) == GF_SG_VRML_SFINT32) {
+				qp_sftype = GF_SG_VRML_SFINT32;
+			} else {
+				qp_sftype = GF_SG_VRML_SFFLOAT;
+			}
+			gf_bifs_proto_field_set_aq_info(pfield, qp_type, hasMinMax, qp_sftype, &ftMin, &ftMax, nbBits);
+			xml_element_done(&parser->xml_parser, "InterfaceCodingParameter");
+		}
 	}
 }
 void xmt_parse_proto(XMTParser *parser, GF_List *proto_list)
@@ -2319,6 +2379,7 @@ void xmt_parse_command(XMTParser *parser, char *name, GF_List *com_list)
 					}
 					/*proto */
 					else if (!strcmp(str, "ProtoDeclare")) {
+						if (!com->new_proto_list) com->new_proto_list = gf_list_new();
 						xmt_parse_proto(parser, com->new_proto_list);
 					}
 					/*route*/

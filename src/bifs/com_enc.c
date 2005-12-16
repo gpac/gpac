@@ -551,8 +551,8 @@ GF_Err BE_EncProtoList(GF_BifsEncoder *codec, GF_List *protoList, GF_BitStream *
 		if (!useAnim && !useQuant) continue;
 
 		count = gf_sg_proto_get_field_count(proto);
-		for (i=0; i<count; i++) {
-			proto_field = gf_sg_proto_field_find(proto, i);
+		for (j=0; j<count; j++) {
+			proto_field = gf_sg_proto_field_find(proto, j);
 			gf_sg_proto_field_get_field(proto_field, &field);
 
 			/*quant*/

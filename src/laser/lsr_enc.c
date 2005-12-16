@@ -837,7 +837,7 @@ static void lsr_write_rare_full(GF_LASeRCodec *lsr, GF_Node *n, GF_Node *default
 		GF_LSR_WRITE_INT(lsr, fi->fieldIndex, 6, "attributeRARE");
 		switch (fi->fieldIndex) {
 		/*properties*/
-		/*TODO !!!! what about inherit types??*/
+		/*FIXME - inherit types should not be coded (defaulmt value)*/
 
 		case RARE_AUDIO_LEVEL: lsr_write_fixed_clamp(lsr, ((SVG_Number *) fi->far_ptr)->value, "audio-level"); break;
 	    case RARE_COLOR: lsr_write_paint(lsr, fi->far_ptr, "color"); break;
@@ -2729,7 +2729,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVGElement *elt, u32 fiel
 		}
 	}
 }
-
+/*FIXME - support for scale/translate/rotation*/
 static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 {
 	GF_CommandField *field;

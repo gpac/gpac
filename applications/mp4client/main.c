@@ -198,7 +198,7 @@ static void PrintTime(u64 time)
 	fprintf(stdout, "%02d:%02d:%02d.%02d", h, m, s, ms);
 }
 
-#define RTI_UPDATE_TIME_MS	200
+#define RTI_UPDATE_TIME_MS	80
 static FILE *rti_logs = NULL;
 static u64 memory_at_gpac_startup = 0;
 static u64 memory_at_gpac_load = 0;
@@ -237,10 +237,11 @@ static void UpdateRTInfo()
 		gf_term_user_event(term, &evt);
 	}
 	if (rti_logs) {
+		if (!memory_at_gpac_load) memory_at_gpac_load = rti.gpac_memory;
 		fprintf(rti_logs, "%d\t%d\t%d\t%d\t%d\n", 
 			gf_sys_clock(),
 			(u32) gf_term_get_framerate(term, 0),
-			(u32) (rti.gpac_memory/ 1024), 
+			(u32) ((rti.gpac_memory - memory_at_gpac_load) / 1024), 
 			rti.total_cpu_usage,
 			gf_term_get_time_in_ms(term)
 			);
@@ -373,6 +374,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		if (evt->connect.is_connected) {
 			is_connected = 1;
 			fprintf(stdout, "Service Connected\n");
+			memory_at_gpac_load = 0;
 		} else {
 			fprintf(stdout, "Service %s\n", is_connected ? "Disconnected" : "Connection Failed");
 			is_connected = 0;

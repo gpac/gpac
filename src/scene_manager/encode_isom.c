@@ -405,14 +405,30 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 	count = gf_list_count(ctx->streams);
 
 	sc = NULL;
-	logs = NULL;
-	if (opts && opts->logFile) logs = fopen(opts->logFile, "wt");
 
 	flags = opts ? opts->flags : 0;
 	delete_desc = 0;
 	first_scene_id = 0;
 	esd = NULL;
 	
+	/*configure streams*/
+	j=0;
+	for (i=0; i<count; i++) {
+		sc = gf_list_get(ctx->streams, i);
+		esd = NULL;
+		if (sc->streamType != GF_STREAM_SCENE) continue;
+		/*NOT BIFS*/
+		if (!scene_type && (sc->objectType > 2) ) continue;
+		/*NOT LASeR*/
+		if (scene_type && (sc->objectType != 0x09) ) continue;
+		j++;
+	}
+	if (!j) return GF_OK;
+
+
+	logs = NULL;
+	if (opts && opts->logFile) logs = fopen(opts->logFile, "wt");
+
 	bifs_enc = NULL;
 	if (!scene_type) {
 		bifs_enc = gf_bifs_encoder_new(ctx->scene_graph);

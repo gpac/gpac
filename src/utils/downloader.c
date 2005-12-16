@@ -87,6 +87,8 @@ struct __gf_download_session
 
 	u32 total_size, bytes_done, bytes_per_sec, start_time, icy_metaint, icy_count, icy_bytes;
 
+	u32 limit_data_rate;
+
 	GF_Err last_error;
 	char *init_data;
 	u32 init_data_size;
@@ -328,7 +330,7 @@ GF_Err gf_dm_sess_last_error(GF_DownloadSession *sess)
 static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 {
 	char *tmp, tmp_url[GF_MAX_PATH];
-
+	const char *opt;
 	if (!strnicmp(url, "http://", 7)) {
 		url += 7;
 		sess->port = 80;
@@ -397,6 +399,15 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 	} else {
 		sess->server_name = strdup(tmp_url);
 	}
+
+	/*setup BW limiter*/
+	sess->limit_data_rate = 0;
+	opt = gf_cfg_get_key(sess->dm->cfg, "Downloader", "MaxRate");
+	if (opt) {
+		/*use it in in BYTES per second*/
+		sess->limit_data_rate = 1024 * atoi(opt) / 8;
+	}
+
 	return GF_OK;
 }
 
@@ -1192,6 +1203,16 @@ exit:
 	/*fetch data*/
 	while (1) {
 		u32 size;
+#if 1
+		if (sess->limit_data_rate && sess->bytes_per_sec) {
+			if (sess->bytes_per_sec>sess->limit_data_rate) {
+				/*update state*/
+				u32 runtime = gf_sys_clock() - sess->start_time;
+				sess->bytes_per_sec = (1000 * (sess->bytes_done - sess->cache_start_size)) / runtime;
+				if (sess->bytes_per_sec>sess->limit_data_rate) return;
+			}
+		}
+#endif
 		e = gf_dm_read_data(sess, sHTTP, GF_DOWNLOAD_BUFFER_SIZE, &size);
 		if (!size || e == GF_IP_NETWORK_EMPTY) return;
 
