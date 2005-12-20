@@ -2194,6 +2194,17 @@ GF_Err DumpLSRAddReplace(GF_SceneDumper *sdump, GF_Command *com, Bool is_replace
 				fprintf(sdump->trace, "value=\"");
 				DumpUTFString(sdump, *(SVG_String*)f->field_ptr);
 				fprintf(sdump->trace, "\" ");
+			} else if (f->fieldIndex==(u32)-2) {
+				char *att_name = NULL;
+				info.fieldType = SVG_Matrix_datatype;
+				if (f->fieldType==SVG_TRANSFORM_SCALE) att_name = "scale";
+				else if (f->fieldType==SVG_TRANSFORM_TRANSLATE) att_name = "translation";
+				else if (f->fieldType==SVG_TRANSFORM_ROTATE) att_name = "rotate";
+				fprintf(sdump->trace, "attributeName=\"%s\" ", att_name);
+				info.eventType = f->fieldType;
+				info.far_ptr = f->field_ptr;
+				svg_dump_attribute((SVGElement *)com->node, &info, szAtt);
+				fprintf(sdump->trace, "value=\"%s\" ", szAtt);
 			} else {
 				gf_node_get_field(com->node, f->fieldIndex, &info);
 				fprintf(sdump->trace, "attributeName=\"%s\" ", info.name);

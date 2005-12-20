@@ -285,7 +285,7 @@ Bool SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, u
 {
 	if (StreamType==GF_STREAM_PRIVATE_SCENE) {
 		if (ObjectType==SVGLOADER_OTI_SVG) return 1;
-		if (ObjectType==SVGLOADER_OTI_LASERML) return 1;
+		//if (ObjectType==SVGLOADER_OTI_LASERML) return 1;
 		return 0;
 	} else if (StreamType==GF_STREAM_SCENE) {
 		if (ObjectType==SVGLOADER_OTI_STREAMING_SVG) return 1;

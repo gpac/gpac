@@ -778,6 +778,36 @@ void gf_mx2d_inverse(GF_Matrix2D *_this)
 	gf_mx2d_copy(*_this, tmp);
 }
 
+Bool gf_mx2d_decompose(GF_Matrix2D *mx, GF_Point2D *scale, Fixed *rotate, GF_Point2D *translate)
+{
+	Fixed det, angle;
+	Fixed tmp[6];
+	if(!mx) return 0;
+
+	memcpy(tmp, mx->m, sizeof(Fixed)*6);
+	translate->x = tmp[2];
+	translate->y = tmp[5];
+
+	/*check ac+bd=0*/
+	det = gf_mulfix(tmp[0], tmp[3]) + gf_mulfix(tmp[1], tmp[4]);
+	if (ABS(det) > FIX_EPSILON) {
+		scale->x = scale->y = 0;
+		*rotate = 0;
+		return 0;
+	}
+	angle = gf_atan2(tmp[3], tmp[4]);
+	if (angle < FIX_EPSILON) {
+		scale->x = tmp[0];
+		scale->y = tmp[4];
+	} else {
+		det = gf_cos(angle);
+		scale->x = gf_divfix(tmp[0], det);
+		scale->y = gf_divfix(tmp[4], det);
+	}
+	*rotate = angle;
+	return 1;
+}
+
 void gf_mx2d_apply_coords(GF_Matrix2D *_this, Fixed *x, Fixed *y)
 {
 	Fixed _x, _y;

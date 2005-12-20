@@ -904,7 +904,7 @@ exit:
 void PrintWorldInfo(GF_Terminal *term)
 {
 	u32 i;
-	char *title;
+	const char *title;
 	GF_List *descs;
 	descs = gf_list_new();
 	title = gf_term_get_world_info(term, NULL, descs);
@@ -915,7 +915,6 @@ void PrintWorldInfo(GF_Terminal *term)
 		for (i=0; i<gf_list_count(descs); i++) {
 			char *str = gf_list_get(descs, i);
 			fprintf(stdout, "%s\n", str);
-			free(str);
 		}
 	}
 	gf_list_del(descs);

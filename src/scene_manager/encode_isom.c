@@ -410,7 +410,8 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 	delete_desc = 0;
 	first_scene_id = 0;
 	esd = NULL;
-	
+
+
 	/*configure streams*/
 	j=0;
 	for (i=0; i<count; i++) {
@@ -423,7 +424,10 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 		if (scene_type && (sc->objectType != 0x09) ) continue;
 		j++;
 	}
-	if (!j) return GF_OK;
+	if (!j) {
+		GF_Node *n = gf_sg_get_root_node(ctx->scene_graph);
+		if (!n || (gf_node_get_tag(n)!=TAG_SVG_svg) ) return GF_OK;
+	}
 
 
 	logs = NULL;

@@ -358,7 +358,7 @@ void CFileProps::SetGeneralInfo()
 void CFileProps::OnWorld() 
 {
 	CString wit;
-	char *str;
+	const char *str;
 	GF_List *descs;
 	WinGPAC *gpac = GetApp();
 
@@ -371,13 +371,11 @@ void CFileProps::OnWorld()
 
 	wit = "";
 	for (u32 i=0; i<gf_list_count(descs); i++) {
-		char *d = (char *) gf_list_get(descs, i);
+		const char *d = (const char *) gf_list_get(descs, i);
 		wit += d;
 		wit += "\n";
-		free(d);
 	}
 	MessageBox(wit, str);
-	free(str);
 	gf_list_del(descs);
 }
 

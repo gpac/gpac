@@ -485,6 +485,16 @@ void gf_mx2d_apply_point(GF_Matrix2D *_this, GF_Point2D *pt);
 */
 void gf_mx2d_apply_rect(GF_Matrix2D *_this, GF_Rect *rc);
 
+/*!\brief matrix decomposition
+ *
+ *Decomposes a 2D matrix M as M=Scale x Rotation x Translation if possible
+ *\param _this transformation matrix
+ *\param scale resulting scale part
+ *\param rotate resulting rotation part
+ *\param translate resulting translation part
+ *\return 0 if matrix cannot be decomposed, 1 otherwise
+*/
+Bool gf_mx2d_decompose(GF_Matrix2D *_this, GF_Point2D *scale, Fixed *rotate, GF_Point2D *translate);
 
 /*! @} */
 

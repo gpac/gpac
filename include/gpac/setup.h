@@ -224,7 +224,7 @@ typedef u32 Bool;
 #endif
 
 /*GPAC memory tracking*/
-#if 1
+#if 0
 void *gf_malloc(size_t size);
 void *gf_realloc(void *ptr, size_t size);
 void gf_free(void *ptr);

@@ -544,14 +544,20 @@ const char *CTXLoad_GetName(struct _basedecoder *plug)
 	case GF_SM_LOAD_X3D: return "X3D (XML Syntax) Parser";
 	case GF_SM_LOAD_SWF: return "Flash (SWF) Emulator";
 	case GF_SM_LOAD_SVG: return "SVG Loader";
+	case GF_SM_LOAD_XSR: return "LASeRML Loader";
 	case GF_SM_LOAD_MP4: return "MP4 Memory Loader";
+
 	default: return "Undetermined";
 	}
 }
 
 Bool CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, unsigned char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
-	if ((StreamType==GF_STREAM_PRIVATE_SCENE) && (ObjectType==1)) return 1;
+	if (StreamType==GF_STREAM_PRIVATE_SCENE) {
+		if (ObjectType==1) return 1;
+		/*LASeR ML: we use this plugin since it has command handling*/
+		if (ObjectType==3) return 1;
+	}
 	/*SVG*/
 	//if ((StreamType==GF_STREAM_PRIVATE_SCENE) && (ObjectType==2)) return 1;
 	return 0;

@@ -562,7 +562,7 @@ void wxFileProps::SetNetworkInfo()
 void wxFileProps::OnViewWorld(wxCommandEvent &WXUNUSED(event)) 
 {
 	wxString wit;
-	char *str;
+	const char *str;
 	GF_List *descs;
 	descs = gf_list_new();
 	str = gf_term_get_world_info(m_pApp->m_term, m_current_odm, descs);
@@ -574,13 +574,11 @@ void wxFileProps::OnViewWorld(wxCommandEvent &WXUNUSED(event))
 
 	wit = wxT("");
 	for (u32 i=0; gf_list_count(descs); i++) {
-		char *d = (char *) gf_list_get(descs, i);
+		const char *d = (const char *) gf_list_get(descs, i);
 		wit += wxString(d, wxConvUTF8);
 		wit += wxT("\n");
-		free(d);
 	}
 	wxMessageDialog(this, wit, wxString(str, wxConvUTF8), wxOK).ShowModal();
-	free(str);
 	gf_list_del(descs);
 }
 

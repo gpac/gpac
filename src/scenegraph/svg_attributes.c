@@ -2845,30 +2845,36 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 	}
 		break;
 	case SVG_Matrix_datatype:
-	{
-		SVG_Matrix *matrix = (SVG_Matrix *)info->far_ptr;
+		if ((info->eventType==SVG_TRANSFORM_SCALE) || (info->eventType==SVG_TRANSFORM_TRANSLATE)) {
+			SVG_Point *pt = info->far_ptr;
+			sprintf(attValue, "%g %g", pt->x, pt->y );
+		}
+		else if (info->eventType==SVG_TRANSFORM_ROTATE) {
+			sprintf(attValue, "%g", FIX2FLT(*(Fixed *)info->far_ptr ) );
+		} else {
+			SVG_Matrix *matrix = (SVG_Matrix *)info->far_ptr;
 #if 0
-		/*try to do a simple decomposition...*/
-		if (!matrix->m[1] && !matrix->m[3]) {
-			sprintf(attValue, "translate(%g,%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]) );
-			if ((matrix->m[0]!=FIX_ONE) || (matrix->m[4]!=FIX_ONE)) {
-				char szT[1024];
-				sprintf(szT, " scale(%g,%g)", FIX2FLT(matrix->m[0]), FIX2FLT(matrix->m[4]) );
-				strcat(attValue, szT);
-			}
-		} else if (matrix->m[1] == - matrix->m[3]) {
-			Fixed angle = gf_asin(matrix->m[3]);
-			Fixed cos_a = gf_cos(angle);
-			if (cos_a) {
-				Fixed sx, sy;
-				sx = gf_divfix(matrix->m[0], cos_a);
-				sy = gf_divfix(matrix->m[4], cos_a);
-				angle = gf_divfix(180*angle, GF_PI);
-				sprintf(attValue, "translate(%g,%g) scale(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(sx), FIX2FLT(sy), FIX2FLT(angle) );
-			}
-		} 
-		/*default*/
-		if (!strlen(attValue))
+			/*try to do a simple decomposition...*/
+			if (!matrix->m[1] && !matrix->m[3]) {
+				sprintf(attValue, "translate(%g,%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]) );
+				if ((matrix->m[0]!=FIX_ONE) || (matrix->m[4]!=FIX_ONE)) {
+					char szT[1024];
+					sprintf(szT, " scale(%g,%g)", FIX2FLT(matrix->m[0]), FIX2FLT(matrix->m[4]) );
+					strcat(attValue, szT);
+				}
+			} else if (matrix->m[1] == - matrix->m[3]) {
+				Fixed angle = gf_asin(matrix->m[3]);
+				Fixed cos_a = gf_cos(angle);
+				if (cos_a) {
+					Fixed sx, sy;
+					sx = gf_divfix(matrix->m[0], cos_a);
+					sy = gf_divfix(matrix->m[4], cos_a);
+					angle = gf_divfix(180*angle, GF_PI);
+					sprintf(attValue, "translate(%g,%g) scale(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(sx), FIX2FLT(sy), FIX2FLT(angle) );
+				}
+			} 
+			/*default*/
+			if (!strlen(attValue))
 #endif
 			sprintf(attValue, "matrix(%g %g %g %g %g %g)", FIX2FLT(matrix->m[0]), FIX2FLT(matrix->m[3]), FIX2FLT(matrix->m[1]), FIX2FLT(matrix->m[4]), FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]) );
 	}

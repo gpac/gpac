@@ -32,6 +32,9 @@
 /*for vrml base types, ROUTEs and PROTOs*/
 #include <gpac/scenegraph_vrml.h>
 
+#include <gpac/scenegraph_svg.h>
+
+
 //#define GF_CYCLIC_RENDER_ON
 
 //#define GF_ARRAY_PARENT_NODES
@@ -543,7 +546,6 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 
 
 #ifndef GPAC_DISABLE_SVG
-#include <gpac/scenegraph_svg.h>
 void JSScript_LoadSVG(GF_Node *node);
 
 typedef struct __tag_svg_script_ctx 

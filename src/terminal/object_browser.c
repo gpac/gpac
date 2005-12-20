@@ -26,9 +26,13 @@
 #include <gpac/constants.h>
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/term_info.h>
+#include "media_memory.h"
+
+
 /*WorldInfo node*/
 #include <gpac/nodes_mpeg4.h>
-#include "media_memory.h"
+/*title node*/
+#include <gpac/nodes_svg.h>
 
 
 static Bool check_in_scene(GF_InlineScene *scene, GF_ObjectManager *odm)
@@ -287,28 +291,35 @@ Bool gf_term_get_channel_net_info(GF_Terminal *term, GF_ObjectManager *odm, u32 
 	return 1;
 }
 
-char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od, GF_List *descriptions)
+const char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od, GF_List *descriptions)
 {
-	M_WorldInfo *wi;
+	GF_Node *info;
 	u32 i;
 	GF_ObjectManager *odm;
 	if (!term) return NULL;
-	wi = NULL;
+	info = NULL;
 	if (!scene_od) {
 		if (!term->root_scene) return NULL;
-		wi = (M_WorldInfo *) term->root_scene->world_info;
+		info = term->root_scene->world_info;
 	} else {
 		if (!gf_term_check_odm(term, scene_od)) return NULL;
 		odm = scene_od;
 		while (odm->remote_OD) odm = odm->remote_OD;
-		wi = (M_WorldInfo *) (odm->subscene ? odm->subscene->world_info : odm->parentscene->world_info);
+		info = (odm->subscene ? odm->subscene->world_info : odm->parentscene->world_info);
 	}
-	if (!wi) return NULL;
-
-	for (i=0; i<wi->info.count; i++) {
-		gf_list_add(descriptions, strdup(wi->info.vals[i]));
+	if (!info) return NULL;
+	
+	if (gf_node_get_tag(info) == TAG_SVG_title) {
+		return ((SVGtitleElement *) info)->textContent;
+	} else {
+		M_WorldInfo *wi = (M_WorldInfo *) info;
+		if (descriptions) {
+			for (i=0; i<wi->info.count; i++) {
+				gf_list_add(descriptions, wi->info.vals[i]);
+			}
+		}
+		return wi->title.buffer;
 	}
-	return strdup(wi->title.buffer);
 }
 
 

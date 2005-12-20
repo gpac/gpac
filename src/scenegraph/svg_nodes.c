@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Mon Nov 28 14:45:43 2005
+	DO NOT MOFIFY - File generated on GMT Tue Dec 20 16:07:46 2005
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -842,6 +842,7 @@ static void gf_svg_animateMotion_del(GF_Node *node)
 	gf_svg_reset_base_element((SVGElement *)p);
 	gf_svg_reset_path(p->path);
 	gf_smil_delete_key_types(p->keyPoints);
+	free(p->origin);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -3023,6 +3024,11 @@ static void gf_svg_font_face_del(GF_Node *node)
 {
 	SVGfont_faceElement *p = (SVGfont_faceElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	free(p->font_stretch);
+	free(p->unicode_range);
+	free(p->panose_1);
+	free(p->widths);
+	free(p->bbox);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -3229,6 +3235,7 @@ static void gf_svg_font_face_name_del(GF_Node *node)
 {
 	SVGfont_face_nameElement *p = (SVGfont_face_nameElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	free(p->name);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -4186,6 +4193,9 @@ static void gf_svg_glyph_del(GF_Node *node)
 {
 	SVGglyphElement *p = (SVGglyphElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	free(p->unicode);
+	free(p->glyph_name);
+	free(p->arabic_form);
 	gf_svg_reset_path(p->d);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
@@ -4355,6 +4365,10 @@ static void gf_svg_hkern_del(GF_Node *node)
 {
 	SVGhkernElement *p = (SVGhkernElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	free(p->u1);
+	free(p->g1);
+	free(p->u2);
+	free(p->g2);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -6695,6 +6709,9 @@ static void gf_svg_prefetch_del(GF_Node *node)
 {
 	SVGprefetchElement *p = (SVGprefetchElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	free(p->mediaTime);
+	free(p->mediaCharacterEncoding);
+	free(p->mediaContentEncodings);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -8151,6 +8168,9 @@ static void gf_svg_svg_del(GF_Node *node)
 {
 	SVGsvgElement *p = (SVGsvgElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	free(p->version);
+	free(p->baseProfile);
+	free(p->contentScriptType);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }

@@ -29,6 +29,7 @@
 #include "input_sensor.h"
 /*includes X3D nodes for WorldInfo, Inline and Key/String sensors*/
 #include <gpac/nodes_x3d.h>
+#include <gpac/nodes_svg.h>
 
 void InitMediaControl(GF_InlineScene *is, GF_Node *node);
 void MC_Modified(GF_Node *node);
@@ -42,6 +43,17 @@ void Destroy_WorldInfo(GF_Node *node)
 	is->world_info = NULL;
 }
 void Render_WorldInfo(GF_Node *node, void *rs)
+{
+	GF_InlineScene *is = gf_node_get_private(node);
+	is->world_info = (M_WorldInfo *) node;
+}
+
+void Destroy_SVGtitle(GF_Node *node)
+{
+	GF_InlineScene *is = gf_node_get_private(node);
+	is->world_info = (M_WorldInfo *) node;
+}
+void Render_SVGtitle(GF_Node *node, void *rs)
 {
 	GF_InlineScene *is = gf_node_get_private(node);
 	is->world_info = (M_WorldInfo *) node;
@@ -74,6 +86,14 @@ void gf_term_on_node_init(void *_is, GF_Node *node)
 
 	case TAG_X3D_KeySensor: InitKeySensor(is, node); break;
 	case TAG_X3D_StringSensor: InitStringSensor(is, node); break;
+
+#ifndef GPAC_DISABLE_SVG
+	case TAG_SVG_title: 
+		gf_node_set_predestroy_function(node, Destroy_SVGtitle);
+		gf_node_set_render_function(node, Render_SVGtitle);
+		gf_node_set_private(node, is);
+		break;
+#endif
 
 	default: gf_sr_on_node_init(is->root_od->term->renderer, node); break;
 	}

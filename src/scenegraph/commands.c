@@ -27,7 +27,6 @@
 /*MPEG4 tags (for internal nodes)*/
 #include <gpac/nodes_mpeg4.h>
 
-
 GF_Command *gf_sg_command_new(GF_SceneGraph *graph, u32 tag)
 {
 	GF_Command *ptr;
@@ -477,16 +476,68 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		/*attribute modif*/
 		else if (inf->field_ptr) {
 			GF_FieldInfo a, b;
-			gf_node_get_field(com->node, inf->fieldIndex, &a);
-			b = a;
-			b.far_ptr = inf->field_ptr;
-			if (com->tag == GF_SG_LSR_REPLACE) {
-				svg_attributes_copy(&a, &b, 0);
+			if (inf->fieldIndex==(u32) -2) {
+				GF_Point2D scale, translate;
+				Fixed rotate;
+				GF_Matrix2D *dest;
+				gf_node_get_field_by_name(com->node, "transform", &a);
+				dest = a.far_ptr;
+				
+				if (com->tag==GF_SG_LSR_REPLACE) {
+					if (gf_mx2d_decompose(dest, &scale, &rotate, &translate)) {
+						gf_mx2d_init(*dest);
+						if (inf->fieldType==SVG_TRANSFORM_SCALE) scale = *(GF_Point2D *)inf->field_ptr;
+						else if (inf->fieldType==SVG_TRANSFORM_TRANSLATE) translate = *(GF_Point2D *)inf->field_ptr;
+						else if (inf->fieldType==SVG_TRANSFORM_ROTATE) rotate = ((SVG_Point_Angle*)inf->field_ptr)->angle;
+
+						gf_mx2d_add_scale(dest, scale.x, scale.y);
+						gf_mx2d_add_rotation(dest, 0, 0, rotate);
+						gf_mx2d_add_translation(dest, translate.x, translate.y);
+					}
+				} else {
+					GF_Point2D *pt = inf->field_ptr;
+					if (inf->fieldType==SVG_TRANSFORM_SCALE) gf_mx2d_add_scale(dest, pt->x, pt->y);
+					else if (inf->fieldType==SVG_TRANSFORM_TRANSLATE) gf_mx2d_add_translation(dest, pt->x, pt->y);
+					else if (inf->fieldType == SVG_TRANSFORM_ROTATE) gf_mx2d_add_rotation(dest, 0, 0, ((SVG_Point_Angle*)inf->field_ptr)->angle);
+				}
 			} else {
-				svg_attributes_add(&a, &b, &a, 0);
+				if ((inf->fieldIndex==(u32) -1) && (inf->fieldType==SVG_String_datatype)) {
+					a.far_ptr = & ((SVGElement*)com->node)->textContent;
+					a.fieldType = SVG_String_datatype;
+				} else {
+					gf_node_get_field(com->node, inf->fieldIndex, &a);
+					b = a;
+					b.far_ptr = inf->field_ptr;
+				}
+				b = a;
+				b.far_ptr = inf->field_ptr;
+				if (com->tag == GF_SG_LSR_REPLACE) {
+					svg_attributes_copy(&a, &b, 0);
+				} else {
+					svg_attributes_add(&a, &b, &a, 0);
+				}
 			}
 			/*signal node modif*/
 			gf_node_changed(com->node, &a);
+		} else if (com->fromNodeID) {
+			GF_FieldInfo a, b;
+			GF_Node *fromNode = gf_sg_find_node(graph, com->fromNodeID);
+			if (!fromNode) return GF_NON_COMPLIANT_BITSTREAM;
+			if (gf_node_get_field(fromNode, com->fromFieldIndex, &b) != GF_OK) return GF_NON_COMPLIANT_BITSTREAM;
+
+			if ((inf->fieldIndex==(u32) -1) && (inf->fieldType==SVG_String_datatype)) {
+				a.far_ptr = & ((SVGElement*)com->node)->textContent;
+				a.fieldType = SVG_String_datatype;
+			} else {
+				gf_node_get_field(com->node, inf->fieldIndex, &a);
+			}
+			if (com->tag == GF_SG_LSR_REPLACE) {
+				e = svg_attributes_copy(&a, &b, 0);
+			} else {
+				e = svg_attributes_add(&a, &b, &a, 0);
+			}
+			gf_node_changed(com->node, &a);
+			return e;
 		} else {
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}

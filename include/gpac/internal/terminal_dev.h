@@ -125,7 +125,7 @@ struct _inline_scene
 	/*if not 0, all objects in the scene will run on this clock. Needed in GPAC when clock references do not
 	respect object graph (eg IOD depending on external stream for clock)*/
 	u16 force_sub_clock_id;
-	/*world info node*/
+	/*world info node or title node*/
 	void *world_info;
 
 	Bool is_dynamic_scene;

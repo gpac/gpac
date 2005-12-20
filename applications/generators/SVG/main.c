@@ -1223,6 +1223,8 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			} else {
 				fprintf(output, "\tgf_svg_reset_path(p->d);\n");
 			}
+		} else if (!strcmp("SVG_String", att->impl_type) || !strcmp("SVG_ContentType", att->impl_type)) {
+			fprintf(output, "\tfree(p->%s);\n", att->implementation_name);
 		}
 	}
 	fprintf(output, "\tgf_sg_parent_reset((GF_Node *) p);\n");
@@ -1413,46 +1415,18 @@ void replaceIncludes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 	xmlXPathFreeObject(xpathObj);
 }
 
-static char *anim_type_list[] = {
-	"audio-level", "choice", "color", "color-rendering", "cx", "cy", "d", "display", "display-align", "editable", "fill", "fill-opacity", "fill-rule", "focusEast", "focusNorth", "focusNorthEast", "focusNorthWest", "focusSouth", "focusSouthEast", "focusSouthWest", "focusWest", "focusable", "font-family", "font-size", "font-style", "font-weight", "gradientUnits", "height", "image-rendering", "line-increment", "opacity", "pathLength", "pointer-events", "points", "preserveAspectRatio", "r", "rotate", "rx", "ry", "shape-rendering", "size", "solid-color", "solid-opacity", "stop-color", "stop-opacity", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "target", "text-anchor", "transform", "type", "vector-effect", "viewBox", "viewport-fill", "viewport-fill-opacity", "visibility", "width", "x", "x1", "x2", "xlink:href", "y", "y1", "y2", NULL
-};
-
-static s32 get_lsr_anim_type(const char *name)
-{
-	u32 i = 0;
-	while (anim_type_list[i]) {
-		if (!strcmp(name, anim_type_list[i])) return i;
-		i++;
-	}
-	return -1;
-}
-
-static char *att_name_list[] = 
-{
+static char *attribute_name_type_list[] = {
 	"accumulate", "additive", "append", "attributeName", "audio-level", "bandwidth", "begin", "by", "calcMode", "children", "choice", "color", "color-rendering", "cx", "cy", "d", "delay", "display", "display-align", "dur", "editable", "enabled", "end", "event", "externalResourcesRequired", "fill", "fill-opacity", "fill-rule", "focusEast", "focusNext", "focusNorth", "focusNorthEast", "focusNorthWest", "focusPrev", "focusSouth", "focusSouthEast", "focusSouthWest", "focusWest", "focusable", "font-family", "font-size", "font-style", "font-variant", "font-weight", "from", "gradientUnits", "handler", "height", "image-rendering", "keyCodes", "keyPoints", "keySplines", "keyTimes", "line-increment", "mediaCharacterEncoding", "mediaContentEncodings", "mediaSize", "mediaTime", "observer", "offset", "opacity", "overflow", "overlay", "path", "pathLength", "pointer-events", "points", "preserveAspectRatio", "r", "repeatCount", "repeatDur", "requiredExtensions", "requiredFeatures", "requiredFormats", "restart", "rotate", "rotation", "rx", "ry", "scale", "shape-rendering", "size", "solid-color", "solid-opacity", "stop-color", "stop-opacity", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "syncBehavior", "syncBehaviorDefault", "syncReference", "syncTolerance", "syncToleranceDefault", "systemLanguage", "text-anchor", "text-rendering", "textContent", "timeAttribute", "to", "transform", "transformBehavior", "translation", "type", "values", "vector-effect", "viewBox", "viewport-fill", "viewport-fill-opacity", "visibility", "width", "x", "x1", "x2", "xlink:actuate", "xlink:arcrole", "xlink:href", "xlink:role", "xlink:show", "xlink:title", "xlink:type", "xml:base", "xml:lang", "xml:space", "y", "y1", "y2", "zoomAndPan", NULL
 };
 
-static s32 get_lsr_attib_type(const char *name)
+static s32 get_lsr_att_name_type(const char *name)
 {
 	u32 i = 0;
-	while (att_name_list[i]) {
-		if (!strcmp(name, att_name_list[i])) return i;
+	while (attribute_name_type_list[i]) {
+		if (!strcmp(name, attribute_name_type_list[i])) return i;
 		i++;
 	}
 	return -1;
-}
-
-void generateGenericAnim(FILE *output, SVGElement *elt, u32 index)
-{
-	int k;
-	for (k=0; k < generic_attributes[index].array_length; k++) {
-		char *att_name = generic_attributes[index].array[k];
-		SVGAttribute *a = findAttribute(elt, att_name);
-		if (a) {
-			s32 type = get_lsr_anim_type(att_name);
-			fprintf(output, ", %d", type);
-		}
-	}
 }
 
 void generateGenericAttrib(FILE *output, SVGElement *elt, u32 index)
@@ -1462,7 +1436,7 @@ void generateGenericAttrib(FILE *output, SVGElement *elt, u32 index)
 		char *att_name = generic_attributes[index].array[k];
 		SVGAttribute *a = findAttribute(elt, att_name);
 		if (a) {
-			s32 type = get_lsr_attib_type(att_name);
+			s32 type = get_lsr_att_name_type(att_name);
 			fprintf(output, ", %d", type);
 		}
 	}
@@ -1482,26 +1456,6 @@ static void generate_laser_tables(GF_List *svg_elements)
 
 		fcount = gf_list_count(elt->attributes);
 
-		fprintf(output, "static const s32 %s_field_to_anim_type[] = {\n", elt->implementation_name);
-		/*core info: id, xml:id, class, xml:lang, xml:base, xml:space, externalResourcesRequired*/
-		fprintf(output, "-1, -1, -1, -1, -1, -1, -1");
-		if (elt->has_properties) generateGenericAnim(output, elt, 1);
-		if (elt->has_focus) generateGenericAnim(output, elt, 2); 
-		if (elt->has_xlink) generateGenericAnim(output, elt, 3);
-		if (elt->has_timing) generateGenericAnim(output, elt, 4);
-		if (elt->has_sync) generateGenericAnim(output, elt, 5);
-		if (elt->has_animation) generateGenericAnim(output, elt, 6);
-		if (elt->has_conditional) generateGenericAnim(output, elt, 7);
-		/*WATCHOUT - HARDCODED VALUES*/
-		if (elt->has_transform) fprintf(output, ", 55");
-		if (elt->has_xy) fprintf(output, ", 63, 67");
-		for (j=0; j<fcount; j++) {
-			SVGAttribute *att = gf_list_get(elt->attributes, j);
-			fprintf(output, ", %d", get_lsr_anim_type(att->svg_name));
-		}
-		fprintf(output, "\n};\n\n");
-
-	
 		fprintf(output, "static const s32 %s_field_to_attrib_type[] = {\n", elt->implementation_name);
 
 		/*core info: id, xml:id, class, xml:lang, xml:base, xml:space, externalResourcesRequired*/
@@ -1518,22 +1472,11 @@ static void generate_laser_tables(GF_List *svg_elements)
 		if (elt->has_xy) fprintf(output, ", 116, 129");
 		for (j=0; j<fcount; j++) {
 			SVGAttribute *att = gf_list_get(elt->attributes, j);
-			fprintf(output, ", %d", get_lsr_attib_type(att->svg_name));
+			fprintf(output, ", %d", get_lsr_att_name_type(att->svg_name));
 		}
 		fprintf(output, "\n};\n\n");
 
 	}
-
-	fprintf(output, "s32 gf_lsr_field_to_anim_type(GF_Node *n, u32 fieldIndex)\n{\n\tif(!n) return -2;\n\tswitch (gf_node_get_tag(n)) {\n");
-	for (i=0; i<gf_list_count(svg_elements); i++) {
-		u32 fcount;
-		SVGElement *elt = (SVGElement *)gf_list_get(svg_elements, i);
-		fprintf(output, "\tcase TAG_SVG_%s:\n", elt->implementation_name);
-		fcount = gf_list_count(elt->attributes);
-		fprintf(output, "\t\treturn %s_field_to_anim_type[fieldIndex];\n", elt->implementation_name);
-	}
-	fprintf(output, "\tdefault:\n\t\treturn -2;\n\t}\n}\n\n");
-
 	fprintf(output, "s32 gf_lsr_field_to_attrib_type(GF_Node *n, u32 fieldIndex)\n{\n\tif(!n) return -2;\n\tswitch (gf_node_get_tag(n)) {\n");
 	for (i=0; i<gf_list_count(svg_elements); i++) {
 		u32 fcount;

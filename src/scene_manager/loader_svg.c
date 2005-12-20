@@ -499,6 +499,7 @@ static GF_Err lsr_parse_command(GF_SVGParser *parser, GF_List *attr)
 {
 	GF_FieldInfo info;
 	GF_Node *opNode;
+	GF_Err e;
 	Bool is_replace = 0;
 	char *atNode = NULL;
 	char *atAtt = NULL;
@@ -569,8 +570,18 @@ static GF_Err lsr_parse_command(GF_SVGParser *parser, GF_List *attr)
 			}
 			return GF_OK;
 		}
-		if (gf_node_get_field_by_name(parser->command->node, atAtt, &info) != GF_OK)
-			return svg_report(parser, GF_BAD_PARAM, "Attribute %s does not belong to node %s", atAtt, atNode);
+		e = gf_node_get_field_by_name(parser->command->node, atAtt, &info);
+		if (e != GF_OK) {
+			if (!strcmp(atAtt, "scale") || !strcmp(atAtt, "translation") || !strcmp(atAtt, "rotation")) {
+				e = gf_node_get_field_by_name(parser->command->node, "transform", &info);
+				if (!e) {
+					if (!strcmp(atAtt, "scale")) info.eventType = SVG_TRANSFORM_SCALE;
+					else if (!strcmp(atAtt, "translation")) info.eventType = SVG_TRANSFORM_TRANSLATE;
+					else if (!strcmp(atAtt, "rotation")) info.eventType = SVG_TRANSFORM_ROTATE;
+				}
+			}
+			if (e) return svg_report(parser, GF_BAD_PARAM, "Attribute %s does not belong to node %s", atAtt, atNode);
+		}
 
 		opNode = NULL;
 		if (atOperandNode) {
@@ -585,8 +596,13 @@ static GF_Err lsr_parse_command(GF_SVGParser *parser, GF_List *attr)
 		if (atValue) {
 			GF_FieldInfo nf;
 			nf.fieldType = info.fieldType;
-			field->field_ptr = nf.far_ptr = svg_create_value_from_attributetype(field->fieldType, 0);
-			svg_parse_attribute((SVGElement *)parser->command->node, &nf, atValue, (u8) info.fieldType, 0);
+
+			field->field_ptr = nf.far_ptr = svg_create_value_from_attributetype(info.fieldType, (u8) info.eventType);
+			svg_parse_attribute((SVGElement *)parser->command->node, &nf, atValue, (u8) info.fieldType, (u8) info.eventType);
+			if (info.eventType) {
+				field->fieldIndex = (u32) -2;
+				field->fieldType = info.eventType;
+			}
 		} else if (opNode) {
 			GF_FieldInfo op_field;
 			if (gf_node_get_field_by_name(opNode, atOperandAtt, &op_field) != GF_OK)
@@ -701,6 +717,8 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		svg_init_root_element(parser, (SVGsvgElement *)elt);
 	else if (!parent && parser->has_root) {
 		GF_CommandField *field = gf_list_get(parser->command->command_fields, 0);
+		assert(field);
+		assert(!field->fieldType);
 		if (field->new_node) {
 			field->node_list = gf_list_new();
 			field->field_ptr = &field->node_list;

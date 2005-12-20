@@ -549,8 +549,11 @@ void drawable_finalize_end(struct _drawable_context *ctx, RenderEffect2D *eff)
 		VS2D_RegisterSensor(eff->surface, ctx);
 	
 		if (eff->trav_flags & TF_RENDER_DIRECT) {
-			if (eff->trav_flags & TF_RENDER_STORE_BOUNDS)
+			/*full frame redraw in indirect mode: store bounds for next pass*/
+			if (eff->trav_flags & TF_RENDER_STORE_BOUNDS) {
 				drawable_store_bounds(ctx);
+				drawable_register_on_surface(ctx->node, eff->surface);
+			}
 			ctx->node->Draw(ctx);
 		}
 		else drawable_store_bounds(ctx);

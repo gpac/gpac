@@ -128,9 +128,9 @@ If @odm is NULL the world info of the main scene is retrieved
 returns NULL if no WorldInfo available
 returns world title if available 
 @descriptions: any textual descriptions is stored here
-  all strings are allocated by term and shall be freed by user
+  strings are not allocated
 */
-char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od, GF_List *descriptions);
+const char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od, GF_List *descriptions);
 
 /*dumps scene graph in specified file, in BT or XMT format
 @rad_name: file radical (NULL for stdout) - if not NULL MUST BE GF_MAX_PATH length
