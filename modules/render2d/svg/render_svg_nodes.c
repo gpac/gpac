@@ -294,6 +294,8 @@ static void SVG_Render_g(GF_Node *node, void *rs)
 	SVG_Render_base(node, rs, &backup_props);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
+		eff->trav_flags |= GF_SR_TRAV_SWITCHED_OFF;
+		svg_render_node_list(g->children, eff);
 		memcpy(eff->svg_props, &backup_props, styling_size);
 		return;
 	}	

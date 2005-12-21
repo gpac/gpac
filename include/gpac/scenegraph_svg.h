@@ -1061,9 +1061,9 @@ void gf_svg_reset_iri			(SVGElement *p, SVG_IRI*iri);
 
 /* delete functions for SVG types */
 void gf_svg_delete_paint		(SVG_Paint *paint);
-void gf_smil_delete_times		(GF_List *list);
-void gf_svg_delete_points		(GF_List *list);
-void gf_svg_delete_coordinates	(GF_List *list);
+void gf_smil_delete_times		(GF_List *l);
+void gf_svg_delete_points		(GF_List *l);
+void gf_svg_delete_coordinates	(GF_List *l);
 /*for keyTimes, keyPoints and keySplines*/
 void gf_smil_delete_key_types	(GF_List *l);
 

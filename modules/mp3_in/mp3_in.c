@@ -321,7 +321,7 @@ static GF_Descriptor *MP3_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 		esd->slConfig->timestampResolution = read->sample_rate;
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 		esd->decoderConfig->objectTypeIndication = read->oti;
-		esd->ESID = 3;
+		esd->ESID = 2;
 		gf_list_add(od->ESDescriptors, esd);
 		return (GF_Descriptor *) od;
 	}

@@ -434,6 +434,19 @@ void SVG_Init_video(Render2D *sr, GF_Node *node)
 /*********************/
 /* SVG audio element */
 /*********************/
+typedef struct
+{
+	GF_AudioInput input;
+	GF_TimeNode time_handle;
+	Bool is_active;
+	Double start_time;
+	MFURL aurl;
+#ifdef DANAE
+	GF_Renderer *comp;
+	void *dmo;
+#endif
+} SVG_audio_stack;
+
 
 static void SVG_Activate_audio(SVG_audio_stack *st, SVGaudioElement *audio)
 {
@@ -446,19 +459,18 @@ static void SVG_Activate_audio(SVG_audio_stack *st, SVGaudioElement *audio)
 	gf_sr_invalidate(st->input.compositor, NULL);
 }
 
-/*
-static void SVG_Deactivate_audio(SVG_audio_stack *st, SVGaudioElement *audio)
+static void SVG_Deactivate_audio(SVG_audio_stack *st)
 {
 	gf_sr_audio_stop(&st->input);
 	st->is_active = 0;
 	st->time_handle.needs_unregister = 1;
 }
-*/
 
 static void SVG_Render_audio(GF_Node *node, void *rs)
 {
-	GF_BaseEffect*eff = (GF_BaseEffect*)rs;
-	//SVGaudioElement *audio = (SVGaudioElement *)node;
+	SVGPropertiesPointers backup_props;
+	RenderEffect2D *eff = (RenderEffect2D*)rs;
+	SVGaudioElement *audio = (SVGaudioElement *)node;
 	SVG_audio_stack *st = (SVG_audio_stack *)gf_node_get_private(node);
 
 #ifdef DANAE
@@ -473,19 +485,30 @@ static void SVG_Render_audio(GF_Node *node, void *rs)
 #else
 	/*check end of stream*/
 	if (st->input.stream && st->input.stream_finished) {
-		/*
 		if (gf_mo_get_loop(st->input.stream, 0)) {
 			gf_sr_audio_restart(&st->input);
-		} else if (st->is_active && gf_mo_should_deactivate(st->input.stream)) {
-			SVG_Deactivate_audio(st, audio);
+		} else if (st->is_active /*&& gf_mo_should_deactivate(st->input.stream)*/) {
+			SVG_Deactivate_audio(st);
 		}
-		*/
 	}
 	if (st->is_active) {
 		gf_sr_audio_register(&st->input, (GF_BaseEffect*)rs);
 	}
+
+	/*for heritage and anims*/
+	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
+
 	/*store mute flag*/
-	st->input.is_muted = (eff->trav_flags & GF_SR_TRAV_SWITCHED_OFF);
+	st->input.is_muted = 0;
+	if ((eff->trav_flags & GF_SR_TRAV_SWITCHED_OFF)
+		|| (*(eff->svg_props->display) == SVG_DISPLAY_NONE) 
+		|| (*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) ) {
+	
+		st->input.is_muted = 1;
+	}
+
+	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+
 #endif
 }
 

@@ -87,26 +87,8 @@ typedef struct
 } SVG_video_stack;
 void SVG_Init_video(Render2D *se, GF_Node *node);
 
-typedef struct
-{
-	GF_AudioInput input;
-	GF_TimeNode time_handle;
-	Bool is_active;
-	Double start_time;
-	MFURL aurl;
-#ifdef DANAE
-	GF_Renderer *comp;
-	void *dmo;
-#endif
-} SVG_audio_stack;
+
 void SVG_Init_audio(Render2D *se, GF_Node *node);
-
-typedef struct 
-{
-	u8 state;
-	SensorHandler hdl;
-} SVG_SensorInfo;
-
 
 void SVG_Init_linearGradient(Render2D *sr, GF_Node *node);
 void SVG_Init_radialGradient(Render2D *sr, GF_Node *node);
