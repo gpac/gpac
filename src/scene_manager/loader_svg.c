@@ -754,10 +754,10 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 	}
 	/*only remove created nodes ... */
 	if (gf_svg_get_tag_by_name(name) != TAG_UndefinedNode) {
-		const char *name;
+		const char *the_name;
 		/*check node name...*/
-		name = gf_node_get_class_name(node);
-		if (strcmp(name, name)) fprintf(stdout, "\n\nERROR: svg depth mismatch \n\n");
+		the_name = gf_node_get_class_name(node);
+		if (strcmp(the_name, name)) fprintf(stdout, "\n\nERROR: svg depth mismatch \n\n");
 		gf_list_rem_last(parser->nodes);
 
 		if (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) {

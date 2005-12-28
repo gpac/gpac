@@ -259,8 +259,8 @@ GF_Err gf_odf_size_od_update(GF_ODUpdate *odUp, u32 *outSize)
 	if (!odUp) return GF_BAD_PARAM;
 
 	*outSize = 0;
-	for (i = 0; i < gf_list_count(odUp->objectDescriptors); i++) {
-		tmp = (GF_Descriptor*)gf_list_get(odUp->objectDescriptors, i);
+	i=0;
+	while ((tmp = gf_list_enum(odUp->objectDescriptors, &i))) {
 		gf_odf_size_descriptor(tmp, &tmpSize);
 		*outSize += tmpSize + gf_odf_size_field_size(tmpSize);
 	}
@@ -269,6 +269,7 @@ GF_Err gf_odf_size_od_update(GF_ODUpdate *odUp, u32 *outSize)
 GF_Err gf_odf_write_od_update(GF_BitStream *bs, GF_ODUpdate *odUp)
 {
 	GF_Err e;
+	GF_Descriptor *tmp;
 	u32 size, i;
 	if (! odUp) return GF_BAD_PARAM;
 
@@ -277,8 +278,8 @@ GF_Err gf_odf_write_od_update(GF_BitStream *bs, GF_ODUpdate *odUp)
 	gf_odf_write_base_descriptor(bs, odUp->tag, size);
 	if (e) return e;
 
-	for (i = 0; i < gf_list_count(odUp->objectDescriptors); i++) {
-		GF_Descriptor *tmp = (GF_Descriptor*)gf_list_get(odUp->objectDescriptors, i);
+	i=0;
+	while ((tmp = gf_list_enum(odUp->objectDescriptors, &i))) {
 		e = gf_odf_write_descriptor(bs, tmp);
 		if (e) return e;
 	}
@@ -368,12 +369,13 @@ GF_Err gf_odf_read_esd_update(GF_BitStream *bs, GF_ESDUpdate *esdUp, u32 gf_odf_
 GF_Err gf_odf_size_esd_update(GF_ESDUpdate *esdUp, u32 *outSize)
 {
 	u32 i, BitSize, tmpSize;
+	GF_Descriptor *tmp;
 	if (!esdUp) return GF_BAD_PARAM;
 
 	*outSize = 0;
 	BitSize = 10;
-	for (i = 0; i < gf_list_count(esdUp->ESDescriptors); i++) {
-		GF_Descriptor *tmp = (GF_Descriptor*)gf_list_get(esdUp->ESDescriptors, i);
+	i=0;
+	while ((tmp = gf_list_enum(esdUp->ESDescriptors, &i))) {
 		gf_odf_size_descriptor(tmp, &tmpSize);
 		BitSize += ( tmpSize + gf_odf_size_field_size(tmpSize) ) * 8;
 	}
@@ -385,6 +387,7 @@ GF_Err gf_odf_size_esd_update(GF_ESDUpdate *esdUp, u32 *outSize)
 }
 GF_Err gf_odf_write_esd_update(GF_BitStream *bs, GF_ESDUpdate *esdUp)
 {
+	GF_Descriptor *tmp;
 	GF_Err e;
 	u32 size, i;
 	if (! esdUp) return GF_BAD_PARAM;
@@ -395,8 +398,8 @@ GF_Err gf_odf_write_esd_update(GF_BitStream *bs, GF_ESDUpdate *esdUp)
 	if (e) return e;
 
 	gf_bs_write_int(bs, esdUp->ODID, 10);
-	for (i = 0; i < gf_list_count(esdUp->ESDescriptors); i++) {
-		GF_Descriptor *tmp = (GF_Descriptor*)gf_list_get(esdUp->ESDescriptors, i);
+	i=0;
+	while ((tmp = gf_list_enum(esdUp->ESDescriptors, &i))) {
 		e = gf_odf_write_descriptor(bs, tmp);
 		if (e) return e;
 	}
@@ -609,12 +612,13 @@ GF_Err gf_odf_read_ipmp_update(GF_BitStream *bs, GF_IPMPUpdate *ipmpUp, u32 gf_o
 
 GF_Err gf_odf_size_ipmp_update(GF_IPMPUpdate *ipmpUp, u32 *outSize)
 {
+	GF_Descriptor *tmp;
 	u32 i, tmpSize;
 	if (!ipmpUp) return GF_BAD_PARAM;
 
 	*outSize = 0;
-	for (i = 0; i < gf_list_count(ipmpUp->IPMPDescList); i++) {
-		GF_Descriptor *tmp = (GF_Descriptor*)gf_list_get(ipmpUp->IPMPDescList, i);
+	i=0;
+	while ((tmp = gf_list_enum(ipmpUp->IPMPDescList, &i))) {
 		gf_odf_size_descriptor(tmp, &tmpSize);
 		*outSize += tmpSize + gf_odf_size_field_size(tmpSize);
 	}
@@ -623,6 +627,7 @@ GF_Err gf_odf_size_ipmp_update(GF_IPMPUpdate *ipmpUp, u32 *outSize)
 GF_Err gf_odf_write_ipmp_update(GF_BitStream *bs, GF_IPMPUpdate *ipmpUp)
 {
 	GF_Err e;
+	GF_Descriptor *tmp;
 	u32 size, i;
 	if (! ipmpUp) return GF_BAD_PARAM;
 
@@ -631,8 +636,8 @@ GF_Err gf_odf_write_ipmp_update(GF_BitStream *bs, GF_IPMPUpdate *ipmpUp)
 	e = gf_odf_write_base_descriptor(bs, ipmpUp->tag, size);
 	if (e) return e;
 
-	for (i = 0; i < gf_list_count(ipmpUp->IPMPDescList); i++) {
-		GF_Descriptor *tmp = (GF_Descriptor*)gf_list_get(ipmpUp->IPMPDescList, i);
+	i=0;
+	while ((tmp = gf_list_enum(ipmpUp->IPMPDescList, &i))) {
 		e = gf_odf_write_descriptor(bs, tmp);
 		if (e) return e;
 	}

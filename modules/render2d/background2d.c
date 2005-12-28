@@ -92,8 +92,8 @@ static BackgroundStatus *b2D_GetStatus(Background2DStack *bck, RenderEffect2D *e
 	stack = eff->back_stack;
 	if (!stack) return NULL;
 
-	for (i=0; i<gf_list_count(bck->surfaces_links); i++) {
-		status = gf_list_get(bck->surfaces_links, i);
+	i=0;
+	while ((status = gf_list_enum(bck->surfaces_links, &i))) {
 		if (status->bind_stack == stack) return status;
 	}
 
@@ -197,12 +197,13 @@ static void b2D_set_bind(GF_Node *node)
 {
 	u32 i;
 	Bool isOnTop;
+	BackgroundStatus *status;
 	M_Background2D *newTop;
 	M_Background2D *bck = (M_Background2D *) node;
 	Background2DStack *bcks = (Background2DStack *)gf_node_get_private(node);
 
-	for (i=0; i<gf_list_count(bcks->surfaces_links); i++) {
-		BackgroundStatus *status = gf_list_get(bcks->surfaces_links, i);
+	i=0;
+	while ((status = gf_list_enum(bcks->surfaces_links, &i))) {
 		isOnTop = (gf_list_get(status->bind_stack, 0)==node) ? 1 : 0;
 
 		if (! bck->set_bind) {
@@ -245,8 +246,8 @@ DrawableContext *b2D_GetContext(M_Background2D *n, GF_List *from_stack)
 	u32 i;
 	BackgroundStatus *status;
 	Background2DStack *ptr = gf_node_get_private((GF_Node *)n);
-	for (i=0; i<gf_list_count(ptr->surfaces_links); i++) {
-		status = gf_list_get(ptr->surfaces_links, i);
+	i=0;
+	while ((status = gf_list_enum(ptr->surfaces_links, &i))) {
 		if (status->bind_stack == from_stack) return &status->ctx;
 	}
 	return NULL;

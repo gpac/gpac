@@ -143,9 +143,10 @@ void TesselatePath(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
     gluTessCallback(tess->tess_obj, GLU_TESS_ERROR, (void (CALLBACK*)()) &mesh_tess_error);
 	gluTessCallback(tess->tess_obj, GLU_EDGE_FLAG,(void (CALLBACK*)()) &mesh_tess_edgeflag);
 
-	if (path->flags & GF_PATH_FILL_ZERO_NONZERO) gluTessProperty(tess->tess_obj, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_POSITIVE);
+	if (path->flags & GF_PATH_FILL_ZERO_NONZERO) gluTessProperty(tess->tess_obj, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_NONZERO);
 
     gluTessBeginPolygon(tess->tess_obj, tess);
+	gluTessNormal(tess->tess_obj, 0, 0, 1);
 
 	gf_path_flatten(path);
 	gf_path_get_bounds(path, &rc);
@@ -299,7 +300,7 @@ void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 {
 	u32 poly_type, i, nb_pts, init_idx, direction;
     Fixed max_nor_coord, c;
-	SFVec3f v1, v2, nor;
+	SFVec3f nor;
 #ifndef GPAC_USE_OGL_ES
 	u32 *idx;
 	GLdouble vertex[3];
@@ -308,13 +309,9 @@ void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 
 	/*get normal*/
 	if (orig->flags & MESH_IS_2D) {
-		nor.x = nor.y = 0;
-		nor.z = FIX_ONE;
+		nor.x = nor.y = 0; nor.z = FIX_ONE;
 	} else {
-		gf_vec_diff(v1, orig->vertices[1].pos, orig->vertices[0].pos);
-		gf_vec_diff(v2, orig->vertices[2].pos, orig->vertices[0].pos);
-		nor = gf_vec_cross(v1, v2);
-		gf_vec_norm(&nor);
+		nor = orig->vertices[0].normal;
 	}
 
 	/*select projection direction*/
@@ -332,7 +329,6 @@ void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 	poly_type = polygon_check_convexity(orig->vertices, orig->v_count, direction);
 	switch (poly_type) {
 	case GF_POLYGON_CONVEX_LINE:
-		return;
 	/*do NOT try to make face CCW otherwise we loose front/back faces...*/
 	case GF_POLYGON_CONVEX_CW:
 	case GF_POLYGON_CONVEX_CCW:

@@ -724,7 +724,6 @@ COptRender3D::COptRender3D(CWnd* pParent /*=NULL*/)
 	: CDialog(COptRender3D::IDD, pParent)
 {
 	//{{AFX_DATA_INIT(COptRender3D)
-	m_Wireframe = -1;
 	//}}AFX_DATA_INIT
 }
 
@@ -733,14 +732,14 @@ void COptRender3D::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(COptRender3D)
-	DDX_Control(pDX, IDC_NO_BACKCULL, m_NoBackCull);
 	DDX_Control(pDX, IDC_BITMAP_USE_PIXEL, m_BitmapPixels);
 	DDX_Control(pDX, IDC_DISABLE_TX_RECT, m_DisableTXRect);
 	DDX_Control(pDX, IDC_RASTER_OUTLINE, m_RasterOutlines);
 	DDX_Control(pDX, IDC_EMUL_POW2, m_EmulPow2);
 	DDX_Control(pDX, IDC_DISABLE_POLY_AA, m_PolyAA);
 	DDX_Control(pDX, IDC_DRAW_NORMALS, m_DrawNormals);
-	DDX_Radio(pDX, IDC_WIRE_NONE, m_Wireframe);
+	DDX_Control(pDX, IDC_BACK_CULL, m_BackCull);
+	DDX_Control(pDX, IDC_DRAW_MODE, m_Wireframe);
 	//}}AFX_DATA_MAP
 }
 
@@ -770,22 +769,29 @@ BOOL COptRender3D::OnInitDialog()
 	else if (sOpt && !stricmp(sOpt, "PerVertex")) m_DrawNormals.SetCurSel(2);
 	else m_DrawNormals.SetCurSel(0);
 
+	m_BackCull.AddString("Off");
+	m_BackCull.AddString("On");
+	m_BackCull.AddString("Alpha");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "BackFaceCulling");
+	if (sOpt && !stricmp(sOpt, "Off")) m_BackCull.SetCurSel(0);
+	else if (sOpt && !stricmp(sOpt, "Alpha")) m_BackCull.SetCurSel(2);
+	else m_BackCull.SetCurSel(1);
 
+	m_Wireframe.AddString("Solid");
+	m_Wireframe.AddString("Wireframe");
+	m_Wireframe.AddString("Both");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "Wireframe");
+	if (sOpt && !stricmp(sOpt, "WireOnly")) m_Wireframe.SetCurSel(1);
+	else if (sOpt && !stricmp(sOpt, "WireOnSolid")) m_Wireframe.SetCurSel(2);
+	else m_Wireframe.SetCurSel(0);
 	
+
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "RasterOutlines");
 	m_RasterOutlines.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "EmulatePOW2");
 	m_EmulPow2.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "PolygonAA");
 	m_PolyAA.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "DisableBackFaceCulling");
-	m_NoBackCull.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "Wireframe");
-	if (sOpt && !stricmp(sOpt, "WireOnly")) m_Wireframe = 1;
-	else if (sOpt && !stricmp(sOpt, "WireOnSolid")) m_Wireframe = 2;
-	else m_Wireframe = 0;
-	UpdateData(FALSE);
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "BitmapCopyPixels");
 	m_BitmapPixels.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
@@ -802,24 +808,15 @@ void COptRender3D::SaveOptions()
 
 	u32 sel = m_DrawNormals.GetCurSel();
 	gf_cfg_set_key(gpac->m_user.config, "Render3D", "DrawNormals", (sel==2) ? "PerVertex" : (sel==1) ? "PerFace" : "Never");
+	sel = m_BackCull.GetCurSel();
+	gf_cfg_set_key(gpac->m_user.config, "Render3D", "BackFaceCulling", (sel==2) ? "WireOnSolid" : (sel==1) ? "WireOnly" : "WireNone");
+	sel = m_Wireframe.GetCurSel();
+	gf_cfg_set_key(gpac->m_user.config, "Render3D", "Wireframe", (sel==2) ? "Alpha" : (sel==1) ? "On" : "Off");
 
 	gf_cfg_set_key(gpac->m_user.config, "Render3D", "RasterOutlines", m_RasterOutlines.GetCheck() ? "yes" : "no");
 	gf_cfg_set_key(gpac->m_user.config, "Render3D", "EmulatePOW2", m_EmulPow2.GetCheck() ? "yes" : "no");
 	gf_cfg_set_key(gpac->m_user.config, "Render3D", "PolygonAA", m_PolyAA.GetCheck() ? "yes" : "no");
-	gf_cfg_set_key(gpac->m_user.config, "Render3D", "DisableBackFaceCulling", m_NoBackCull.GetCheck() ? "yes" : "no");
 
-	UpdateData();
-	switch (m_Wireframe) {
-	case 2:
-		gf_cfg_set_key(gpac->m_user.config, "Render3D", "Wireframe", "WireOnSolid");
-		break;
-	case 1:
-		gf_cfg_set_key(gpac->m_user.config, "Render3D", "Wireframe", "WireOnly");
-		break;
-	case 0:
-		gf_cfg_set_key(gpac->m_user.config, "Render3D", "Wireframe", "WireNone");
-		break;
-	}
 	gf_cfg_set_key(gpac->m_user.config, "Render3D", "DisableRectExt", m_DisableTXRect.GetCheck() ? "yes" : "no");
 	gf_cfg_set_key(gpac->m_user.config, "Render3D", "BitmapCopyPixels", m_BitmapPixels.GetCheck() ? "yes" : "no");
 }

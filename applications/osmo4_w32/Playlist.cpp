@@ -17,7 +17,7 @@ static char THIS_FILE[] = __FILE__;
 
 PLEntry::PLEntry(CString url, char *path)
 {
-	if (!path || strrchr(url, '\\')) {
+	if (!path || strrchr(url, '\\') || strstr(url, "://")) {
 		m_url = strdup(url);
 	} else {
 		char szPath[MAX_PATH];

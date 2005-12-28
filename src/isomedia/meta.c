@@ -289,14 +289,15 @@ GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u3
 GF_Err gf_isom_remove_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num)
 {
 	u32 i;
+	GF_Box *a;
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
 	if (!meta) return GF_BAD_PARAM;
-	for (i=0; i<gf_list_count(meta->other_boxes); i++) {
-		GF_Box *a = gf_list_get(meta->other_boxes, i);
+	i=0;
+	while ((a = gf_list_enum(meta->other_boxes, &i))) {
 		switch (a->type) {
 		case GF_ISOM_BOX_TYPE_XML:
 		case GF_ISOM_BOX_TYPE_BXML:
-			gf_list_rem(meta->other_boxes, i);
+			gf_list_rem(meta->other_boxes, i-1);
 			gf_isom_box_del(a);
 			return GF_OK;
 		}

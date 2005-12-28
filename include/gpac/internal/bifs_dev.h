@@ -178,7 +178,7 @@ struct __tag_bifs_enc
 
 	GF_Proto *encoding_proto;
 
-	GF_Mutex *mx;
+//	GF_Mutex *mx;
 
 	/*keep track of DEF/USE*/
 	GF_List *encoded_nodes;

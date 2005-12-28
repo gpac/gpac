@@ -175,11 +175,10 @@ exit:
 /*locate channel - if requested remove from session*/
 RTPStream *RP_FindChannel(RTPClient *rtp, LPNETCHANNEL ch, u32 ES_ID, char *es_control, Bool remove_stream)
 {
-	u32 i;
+	u32 i=0;
 	RTPStream *st;
 
-	for (i=0; i<gf_list_count(rtp->channels); i++) {
-		st = gf_list_get(rtp->channels, i);
+	while ((st = gf_list_enum(rtp->channels, &i))) {
 		if (ch && (st->channel==ch)) goto found;
 		if (ES_ID && (st->ES_ID==ES_ID)) goto found;
 		if (es_control && st->control) {
@@ -190,7 +189,7 @@ RTPStream *RP_FindChannel(RTPClient *rtp, LPNETCHANNEL ch, u32 ES_ID, char *es_c
 	return NULL;
 
 found:
-	if (remove_stream) gf_list_rem(rtp->channels, i);
+	if (remove_stream) gf_list_rem(rtp->channels, i-1);
 	return st;
 }
 
@@ -318,11 +317,12 @@ GF_Err RP_AddStream(RTPClient *rtp, RTPStream *stream, char *session_control)
 
 void RP_RemoveStream(RTPClient *rtp, RTPStream *ch)
 {
-	u32 i;
+	u32 i=0;
+	RTPStream *st;
 	gf_mx_p(rtp->mx);
-	for (i=0; i<gf_list_count(rtp->channels); i++) {
-		if (gf_list_get(rtp->channels, i) == ch) {
-			gf_list_rem(rtp->channels, i);
+	while ((st = gf_list_enum(rtp->channels, &i))) {
+		if (st == ch) {
+			gf_list_rem(rtp->channels, i-1);
 			break;
 		}
 	}

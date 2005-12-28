@@ -233,8 +233,8 @@ Bool Media_IsSampleSyncShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber)
 	u32 i;
 	GF_StshEntry *ent;
 	if (!stsh) return 0;
-	for (i=0; i<gf_list_count(stsh->entries); i++) {
-		ent = (GF_StshEntry*)gf_list_get(stsh->entries, i);
+	i=0;
+	while ((ent = gf_list_enum(stsh->entries, &i))) {
 		if ((u32) ent->syncSampleNumber == sampleNumber) return 1;
 		else if ((u32) ent->syncSampleNumber > sampleNumber) return 0;
 	}
@@ -437,9 +437,8 @@ GF_Err Media_FindDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNname
 
 	if (!dref) return GF_BAD_PARAM;
 	*dataRefIndex = 0;
-	for (i = 0; i < gf_list_count(dref->boxList); i++) {
-		entry = (GF_DataEntryURLBox*)gf_list_get(dref->boxList, i);
-		
+	i=0;
+	while ((entry = gf_list_enum(dref->boxList, &i))) {
 		if (entry->type == GF_ISOM_BOX_TYPE_URL) {
 			//self-contained case
 			if (entry->flags == 1) {
@@ -494,12 +493,41 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 		//we assume a constant frame rate for the media and assume the last sample
 		//will be hold the same time as the prev one
 		stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp, &DTS);
-		ent = (GF_SttsEntry*)gf_list_get(trak->Media->information->sampleTable->TimeToSample->entryList, gf_list_count(trak->Media->information->sampleTable->TimeToSample->entryList)-1);
+		ent = gf_list_last(trak->Media->information->sampleTable->TimeToSample->entryList);
 		trak->Media->mediaHeader->duration = DTS;
 		if (!ent) {
 			stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp-1, &DTSprev);
 			trak->Media->mediaHeader->duration += (DTS - DTSprev);
 		} else {
+			if (trak->Media->information->sampleTable->CompositionOffset) {
+				u32 count, i;
+				u64 max_ts;
+				GF_DttsEntry *cts_ent;
+				GF_CompositionOffsetBox *ctts = trak->Media->information->sampleTable->CompositionOffset;
+				if (ctts->w_LastSampleNumber==nbSamp) {
+					count = gf_list_count(ctts->entryList);
+					max_ts = trak->Media->mediaHeader->duration;
+					while (1) {
+						count -= 1;
+						cts_ent = gf_list_get(ctts->entryList, count);
+						if (nbSamp<cts_ent->sampleCount) break;
+
+						for (i=0; i<cts_ent->sampleCount; i++) {
+							stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp-i, &DTS);
+							max_ts = DTS + cts_ent->decodingOffset;
+							if (max_ts>=trak->Media->mediaHeader->duration) {
+								trak->Media->mediaHeader->duration = max_ts;
+							} else {
+								break;
+							}
+						}
+						if (max_ts<trak->Media->mediaHeader->duration) {
+							break;
+						}
+						nbSamp-=cts_ent->sampleCount;
+					}
+				}
+			}
 			trak->Media->mediaHeader->duration += ent->sampleDelta;
 		}
 		return GF_OK;

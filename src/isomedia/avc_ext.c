@@ -39,13 +39,14 @@ void AVC_RewriteESDescriptor(GF_AVCSampleEntryBox *avc)
 		avc->esd->decoderConfig->maxBitrate = avc->bitrate->maxBitrate;
 	}
 	if (avc->descr) {
-		u32 i; 
-		for (i=0; i<gf_list_count(avc->descr->descriptors); i++) {
-			GF_Descriptor *clone;
-			GF_Descriptor *desc = gf_list_get(avc->descr->descriptors, i);
+		u32 i=0; 
+		GF_Descriptor *desc,*clone;
+		i=0;
+		while ((desc = gf_list_enum(avc->descr->descriptors, &i))) {
 			clone = NULL;
 			gf_odf_desc_copy(desc, &clone);
-			if (gf_odf_desc_add_desc((GF_Descriptor *)avc->esd, clone) != GF_OK) gf_odf_desc_del(clone);
+			if (gf_odf_desc_add_desc((GF_Descriptor *)avc->esd, clone) != GF_OK) 
+				gf_odf_desc_del(clone);
 		}
 	}
 	if (avc->avc_config) {
@@ -432,6 +433,7 @@ void avc1_del(GF_Box *s)
 	if (ptr->avc_config) gf_isom_box_del((GF_Box *) ptr->avc_config);
 	if (ptr->bitrate) gf_isom_box_del((GF_Box *) ptr->bitrate);
 	if (ptr->descr) gf_isom_box_del((GF_Box *) ptr->descr);
+	if (ptr->protection_info) gf_isom_box_del((GF_Box *)ptr->protection_info);
 	/*for publishing*/
 	if (ptr->slc) gf_odf_desc_del((GF_Descriptor *)ptr->slc);
 	if (ptr->esd) gf_odf_desc_del((GF_Descriptor *)ptr->esd);

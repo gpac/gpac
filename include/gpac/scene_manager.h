@@ -106,6 +106,8 @@ it is assigned the requested ES_ID - this is needed to solve base layer*/
 GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamType, u8 objectType);
 /*removes and destroy stream context from presentation context*/
 void gf_sm_stream_del(GF_SceneManager *ctx, GF_StreamContext *sc);
+/*locate a stream based on its id*/
+GF_StreamContext *gf_sm_stream_find(GF_SceneManager *ctx, u16 ES_ID);
 /*create a new AU context in the given stream context*/
 GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double time_ms, Bool isRap);
 

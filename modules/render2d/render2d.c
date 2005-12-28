@@ -124,11 +124,12 @@ void R2D_SetScaling(Render2D *sr, Fixed scaleX, Fixed scaleY)
 
 void R2D_ResetSurfaces(Render2D *sr)
 {
-	u32 i;
-	for (i=0; i<gf_list_count(sr->surfaces_2D); i++) {
-		VisualSurface2D *surf = gf_list_get(sr->surfaces_2D, i);
+	VisualSurface2D *surf;
+	u32 i=0;
+	while ((surf = gf_list_enum(sr->surfaces_2D, &i))) {
 		surf->num_contexts = 0;
-		while (gf_list_count(surf->prev_nodes_drawn)) gf_list_rem(surf->prev_nodes_drawn, 0);
+		//while (gf_list_count(surf->prev_nodes_drawn)) gf_list_rem(surf->prev_nodes_drawn, 0);
+		gf_list_reset(surf->prev_nodes_drawn);
 		surf->to_redraw.count = 0;
 		VS2D_ResetSensors(surf);
 	}
@@ -195,9 +196,10 @@ void R2D_UnregisterSurface(Render2D *sr, struct _visual_surface_2D  *surf)
 
 Bool R2D_IsSurfaceRegistered(Render2D *sr, struct _visual_surface_2D *surf)
 {
-	u32 i;
-	for (i=0; i<gf_list_count(sr->surfaces_2D); i++) {
-		if (gf_list_get(sr->surfaces_2D, i) == surf) return 1;
+	VisualSurface2D *tmp;
+	u32 i = 0;
+	while ((tmp = gf_list_enum(sr->surfaces_2D, &i))) {
+		if (tmp == surf) return 1;
 	}
 	return 0;
 }
@@ -292,10 +294,11 @@ SensorHandler *get_sensor_handler(GF_Node *n)
 
 void R2D_RegisterSensor(GF_Renderer *compositor, SensorHandler *sh)
 {
-	u32 i;
+	SensorHandler *tmp;
+	u32 i=0;
 	Render2D *sr = (Render2D *)compositor->visual_renderer->user_priv;
-	for (i=0; i<gf_list_count(sr->sensors); i++) {
-		if (gf_list_get(sr->sensors, i) == sh) return;
+	while ((tmp = gf_list_enum(sr->sensors, &i))) {
+		if (tmp == sh) return;
 	}
 	gf_list_add(sr->sensors, sh);
 }
@@ -501,7 +504,8 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 
 	/*deactivate all other registered sensors*/
 	ev->context = NULL;
-	for (i=0; i< gf_list_count(sr->sensors); i++) {
+	count = gf_list_count(sr->sensors);
+	for (i=0; i< count; i++) {
 		SensorHandler *sh = gf_list_get(sr->sensors, i);
 		act = ! sh->skip_second_pass;
 		sh->skip_second_pass = 0;
@@ -514,7 +518,8 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	/*activate current one if any*/
 	if (ctx) {
 		ev->context = ctx;
-		for (i=gf_list_count(ctx->sensors); i>0; i--) {
+		count = gf_list_count(ctx->sensors);
+		for (i=count; i>0; i--) {
 			SensorContext *sc = gf_list_get(ctx->sensors, i-1);
 			sc->h_node->skip_second_pass = 0;
 			if (sc->h_node->OnUserEvent(sc->h_node, ev, &sc->matrix)) 
@@ -596,6 +601,7 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 {
 	GF_Window rc;
 	u32 i;
+	GF_SceneGraph *sg;
 	RenderEffect2D static_eff;
 	Render2D *sr = (Render2D *)vr->user_priv;
 	GF_Node *top_node = gf_sg_get_root_node(sr->compositor->scene);
@@ -635,8 +641,8 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	VS2D_InitDraw(sr->surface, sr->top_effect);
 	gf_node_render(top_node, sr->top_effect);
 
-	for (i=0; i<gf_list_count(sr->compositor->extra_scenes); i++) {
-		GF_SceneGraph *sg = gf_list_get(sr->compositor->extra_scenes, i);
+	i=0;
+	while ((sg = gf_list_enum(sr->compositor->extra_scenes, &i))) {
 		GF_Node *n = gf_sg_get_root_node(sg);
 		if (n) gf_node_render(n, sr->top_effect);
 	}
@@ -1263,6 +1269,19 @@ static Bool R2D_ScriptAction(GF_VisualRenderer *vr, u32 type, GF_Node *n, GF_JSA
 		}
 	}
 		return 1;
+	case GF_JSAPI_OP_LOAD_URL:
+	{
+		GF_Node *target;
+		char *sub_url = strrchr(param->uri.url, '#');
+		if (!sub_url) return 0;
+		target = gf_sg_find_node_by_name(gf_node_get_graph(n), sub_url+1);
+		if (target && (gf_node_get_tag(target)==TAG_MPEG4_Viewport) ) {
+			((M_Viewport *)target)->set_bind = 1;
+			((M_Viewport *)target)->on_set_bind(n);
+			return 1;
+		}
+		return 0;
+	}
 	}
 	return 0;
 }

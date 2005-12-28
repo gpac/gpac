@@ -543,7 +543,7 @@ void swf_resort_path(SWFPath *a, SWFReader *read)
 {
 	u32 idx, i, j;
 	GF_List *paths;
-	SWFPath *sorted;
+	SWFPath *sorted, *p, *np;
 
 	if (!a->nbType) return;
 
@@ -589,11 +589,11 @@ void swf_resort_path(SWFPath *a, SWFReader *read)
 	}
 
 restart:
-	for (i=0; i<gf_list_count(paths); i++) {
-		SWFPath *p = gf_list_get(paths, i);
+	i=0;
+	while ((p = gf_list_enum(paths, &i))) {
 
-		for (j=i+1; j<gf_list_count(paths); j++) {
-			SWFPath *np = gf_list_get(paths, j);
+		j=i+1;
+		while ((np = gf_list_enum(paths, &j))) {
 	
 			/*check if any next subpath ends at the same place we're starting*/
 			if ((np->pts[np->nbPts-1].x == p->pts[0].x) && (np->pts[np->nbPts-1].y == p->pts[0].y)) {
@@ -761,7 +761,7 @@ restart:
 
 GF_Node *swf_parse_shape_def(SWFReader *read, Bool has_styles, u32 revision)
 {
-	u32 ID, nbBits, comType, i;
+	u32 ID, nbBits, comType, i, count;
 	s32 x, y;
 	SFVec2f orig, ctrl, end;
 	Bool flag;
@@ -912,7 +912,8 @@ GF_Node *swf_parse_shape_def(SWFReader *read, Bool has_styles, u32 revision)
 
 	swf_align(read);
 
-	for (i=0; i<gf_list_count(shape.fill_left); i++) {
+	count = gf_list_count(shape.fill_left);
+	for (i=0; i<count; i++) {
 		sf0 = gf_list_get(shape.fill_left, i);
 		sf1 = gf_list_get(shape.fill_right, i);
 		/*reverse right path*/
@@ -989,8 +990,8 @@ DispShape *SWF_GetDepthEntry(SWFReader *read, u32 Depth, Bool create)
 {
 	u32 i;
 	DispShape *tmp;
-	for (i=0; i<gf_list_count(read->display_list); i++) {
-		tmp = gf_list_get(read->display_list, i);
+	i=0;
+	while ((tmp = gf_list_enum(read->display_list, &i))) {
 		if (tmp->depth == Depth) return tmp;
 	}
 	if (!create) return NULL;
@@ -1675,8 +1676,8 @@ GF_Err swf_insert_od(SWFReader *read, u32 at_time, GF_ObjectDescriptor *od)
 	read->od_au = gf_sm_stream_au_new(read->od_es, at_time, 0, 1);
 	if (!read->od_au) return GF_OUT_OF_MEM;
 
-	for (i=0; i<gf_list_count(read->od_au->commands); i++) {
-		com = gf_list_get(read->od_au->commands, i);
+	i=0;
+	while ((com = gf_list_enum(read->od_au->commands, &i))) {
 		if (com->tag == GF_ODF_OD_UPDATE_TAG) {
 			gf_list_add(com->objectDescriptors, od);
 			return GF_OK;
@@ -1938,8 +1939,9 @@ SoundInfo swf_skip_soundinfo(SWFReader *read)
 SWFSound *sndswf_get_sound(SWFReader *read, u32 ID)
 {
 	u32 i;
-	for (i=0; i<gf_list_count(read->sounds); i++) {
-		SWFSound *snd = gf_list_get(read->sounds, i);
+	SWFSound *snd;
+	i=0;
+	while ((snd = gf_list_enum(read->sounds, &i))) {
 		if (snd->ID==ID) return snd;
 	}
 	return NULL;

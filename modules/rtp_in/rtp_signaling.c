@@ -27,9 +27,10 @@
 
 Bool channel_is_valid(RTPClient *rtp, RTPStream *ch)
 {
-	u32 i;
-	for (i=0; i<gf_list_count(rtp->channels); i++) {
-		if (gf_list_get(rtp->channels, i) == ch) return 1;
+	u32 i=0;
+	RTPStream *st;
+	while ((st = gf_list_enum(rtp->channels, &i))) {
+		if (st == ch) return 1;
 	}
 	return 0;
 }
@@ -49,10 +50,10 @@ void RP_StopChannel(RTPStream *ch)
 /*this prevent sending teardown on session with running channels*/
 Bool RP_SessionActive(RTPStream *ch)
 {
+	RTPStream *ach;
 	u32 i, count, idle;
-	idle = count = 0;
-	for (i=0; i<gf_list_count(ch->owner->channels); i++) {
-		RTPStream *ach = gf_list_get(ch->owner->channels, i);
+	i = idle = count = 0;
+	while ((ach = gf_list_enum(ch->owner->channels, &i))) {
 		if (ach->rtsp != ch->rtsp) continue;
 		/*count only active channels*/
 		if (ach->status == RTP_Running) continue;
@@ -159,8 +160,8 @@ void RP_ProcessSetup(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	if (!ch) goto exit;
 
 	/*transport setup: break at the first correct transport */
-	for (i=0; i<gf_list_count(sess->rtsp_rsp->Transports); i++) {
-		trans = gf_list_get(sess->rtsp_rsp->Transports, 0);
+	i=0;
+	while ((trans = gf_list_enum(sess->rtsp_rsp->Transports, &i))) {
 		e = gf_rtp_setup_transport(ch->rtp_ch, trans, gf_rtsp_get_server_name(sess->session));
 		if (!e) break;
 	}
@@ -379,9 +380,10 @@ err_exit:
 static void SkipCommandOnSession(RTPStream *ch)
 {
 	u32 i;
+	RTPStream *a_ch;
 	if (!ch || (ch->flags & CH_SkipNextCommand) || !ch->rtsp->has_aggregated_control) return;
-	for (i=0; i<gf_list_count(ch->owner->channels); i++) {
-		RTPStream *a_ch = gf_list_get(ch->owner->channels, i);
+	i=0;
+	while ((a_ch = gf_list_enum(ch->owner->channels, &i))) {
 		if ((a_ch->flags & CH_Idle) || (ch == a_ch) || (a_ch->rtsp != ch->rtsp) ) continue;
 		a_ch->flags |= CH_SkipNextCommand;
 	}
@@ -392,7 +394,7 @@ void RP_ProcessUserCommand(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
 {
 	ChannelControl *ch_ctrl;
 	RTPStream *ch, *agg_ch;
-	u32 i;
+	u32 i, count;
 	GF_RTPInfo *info;
 
 
@@ -444,7 +446,8 @@ process_reply:
 		}
 
 		//process all RTP infos
-		for (i=0;i<gf_list_count(sess->rtsp_rsp->RTP_Infos); i++) {
+		count = gf_list_count(sess->rtsp_rsp->RTP_Infos);
+		for (i=0;i<count; i++) {
 			info = gf_list_get(sess->rtsp_rsp->RTP_Infos, i);
 			agg_ch = RP_FindChannel(sess->owner, NULL, 0, info->url, 0);
 
@@ -548,8 +551,8 @@ void RP_UserCommand(RTPSession *sess, RTPStream *ch, GF_NetworkCommand *command)
 	if ( (command->command_type==GF_NET_CHAN_PLAY) || (command->command_type==GF_NET_CHAN_RESUME) || (command->command_type==GF_NET_CHAN_PAUSE)) {
 		if (ch->status == RTP_Disconnected) {
 			if (sess->has_aggregated_control) {
-				for (i=0; i<gf_list_count(sess->owner->channels); i++) {
-					a_ch = gf_list_get(sess->owner->channels, i);
+				i=0;
+				while ((a_ch = gf_list_enum(sess->owner->channels, &i))) {
 					if (a_ch->rtsp != sess) continue;
 					RP_Setup(a_ch);
 				}

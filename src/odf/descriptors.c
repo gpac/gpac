@@ -109,11 +109,12 @@ GF_Err gf_odf_parse_descriptor(GF_BitStream *bs, GF_Descriptor **desc, u32 *desc
 GF_Err gf_odf_delete_descriptor_list(GF_List *descList)
 {
 	GF_Err e;
+	GF_Descriptor*tmp;
 	u32 i;
 	//no error if NULL chain...
 	if (! descList) return GF_OK;
-	for (i = 0; i < gf_list_count(descList); i++) {
-		GF_Descriptor *tmp = (GF_Descriptor*)gf_list_get(descList, i);
+	i=0;
+	while ((tmp = gf_list_enum(descList, &i))) {
 		e = gf_odf_delete_descriptor(tmp);
 		if (e) return e;
 	}

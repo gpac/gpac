@@ -42,8 +42,8 @@ GF_Err RP_SetupSDP(RTPClient *rtp, GF_SDPInfo *sdp, RTPStream *stream)
 	sess_ctrl = NULL;
 	range = NULL;
 
-	for (i=0; i<gf_list_count(sdp->Attributes); i++) {
-		att = gf_list_get(sdp->Attributes, i);
+	i=0;
+	while ((att = gf_list_enum(sdp->Attributes, &i))) {
 		//session-level control string. Keep it in the current session if any
 		if (!strcmp(att->Name, "control") && att->Value) sess_ctrl = att->Value;
 		//NPT range only for now
@@ -56,8 +56,8 @@ GF_Err RP_SetupSDP(RTPClient *rtp, GF_SDPInfo *sdp, RTPStream *stream)
 	}
 	
 	//setup all streams
-	for (i=0; i<gf_list_count(sdp->media_desc); i++) {
-		media = gf_list_get(sdp->media_desc, i);	
+	i=0;
+	while ((media = gf_list_enum(sdp->media_desc, &i))) {
 		ch = RP_NewStream(rtp, media, sdp, stream);
 		//do not generate error if the channel is not created, just assume
 		//1 - this is not an MPEG-4 configured channel -> not needed
@@ -161,7 +161,7 @@ GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, u32 expect_type, const char *sub_ur
 	GF_ODUpdate *odU;
 	GF_ObjectDescriptor *od;
 	GF_Descriptor *desc;
-	RTPStream *a_str;
+	RTPStream *a_str, *ch;
 	GF_Err e;
 	u32 i;
 
@@ -171,8 +171,8 @@ GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, u32 expect_type, const char *sub_ur
 	/*single object generation*/
 	a_str = NULL;
 	if (sub_url || ((expect_type!=GF_MEDIA_OBJECT_SCENE) && (expect_type!=GF_MEDIA_OBJECT_UNDEF)) ) {
-		for (i=0; i<gf_list_count(rtp->channels); i++) {
-			RTPStream *ch = gf_list_get(rtp->channels, i);
+		i=0;
+		while ((ch = gf_list_enum(rtp->channels, &i))) {
 			if (ch->sl_map.StreamType != get_stream_type_from_hint(expect_type)) continue;
 
 			if (!sub_url || strstr(sub_url, ch->control)) {
@@ -206,8 +206,8 @@ GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, u32 expect_type, const char *sub_ur
 	odU = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
 
 	/*add everything*/
-	for (i=0; i<gf_list_count(rtp->channels); i++) {
-		RTPStream *ch = gf_list_get(rtp->channels, i);
+	i=0;
+	while ((ch = gf_list_enum(rtp->channels, &i))) {
 		if (!rtp->forced_type) {
 			od = RP_GetChannelOD(ch, esd->OCRESID, i);
 			if (!od) continue;
@@ -255,8 +255,8 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 	if (! stream) {
 		/*look for IOD*/
 		if (e==GF_OK) {
-			for (i=0; i<gf_list_count(sdp->Attributes); i++) {
-				att = gf_list_get(sdp->Attributes, i);
+			i=0;
+			while ((att = gf_list_enum(sdp->Attributes, &i))) {
 				if (!iod_str && !strcmp(att->Name, "mpeg4-iod") ) iod_str = att->Value;
 				if (!is_isma_1 && !strcmp(att->Name, "isma-compliance") ) {
 					if (!stricmp(att->Value, "1,1.0,1")) is_isma_1 = 1;
@@ -266,11 +266,12 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 			/*force iod reconstruction with ISMA to use proper clock dependencies*/
 			if (is_isma_1) iod_str = NULL;
 
-			/*folks at QT have weird notions of MPEG-4 systems, they use hardcoded IOD 
-			with AAC GF_ESD even when streaming AMR...*/
+			/*some folks have weird notions of MPEG-4 systems, they use hardcoded IOD 
+			with AAC ESD even when streaming AMR...*/
 			if (iod_str) {
-				for (i=0; i<gf_list_count(rtp->channels); i++) {
-					RTPStream *ch = gf_list_get(rtp->channels, i);
+				RTPStream *ch;
+				i=0;
+				while ((ch = gf_list_enum(rtp->channels, &i))) {
 					if ((ch->rtptype==GP_RTP_PAYT_AMR) || (ch->rtptype==GP_RTP_PAYT_AMR_WB) ) {
 						iod_str = NULL;
 						break;

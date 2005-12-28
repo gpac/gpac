@@ -176,6 +176,11 @@ u32 gf_xml_sax_get_file_size(GF_SAXParser *parser);
 /*get current file position*/
 u32 gf_xml_sax_get_file_pos(GF_SAXParser *parser);
 
+/*peeks a node forward in the file. May be used to pick the attribute of the first node found matching a given (attributeName, attributeValue) couple*/
+char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value, char *substitute, char *get_attr, char *end_pattern, Bool *is_substitute);
+
+const char *gf_xml_sax_get_error(GF_SAXParser *parser);
+
 /*! @} */
 
 #ifdef __cplusplus

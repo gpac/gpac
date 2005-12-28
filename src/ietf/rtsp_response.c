@@ -468,7 +468,7 @@ exit:
 GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp, 
 						 unsigned char **out_buffer, u32 *out_size)
 {
-	u32 i, cur_pos, size;
+	u32 i, cur_pos, size, count;
 	char *buffer, temp[50];
 	GF_RTSPTransport *trans;
 	GF_X_Attribute *att;
@@ -552,10 +552,11 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Retry-After", rsp->Retry_After);
 
 	//RTP Infos
-	if (gf_list_count(rsp->RTP_Infos)) {
+	count = gf_list_count(rsp->RTP_Infos);
+	if (count) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "RTPInfo: ");
 
-		for (i=0; i<gf_list_count(rsp->RTP_Infos); i++) {
+		for (i=0; i<count; i++) {
 			//line separator for headers
 			if (i) RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n ,");
 			info = gf_list_get(rsp->RTP_Infos, i);
@@ -588,9 +589,10 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Timestamp", rsp->Timestamp);
 
 	//transport info
-	if (gf_list_count(rsp->Transports)) {
+	count = gf_list_count(rsp->Transports);
+	if (count) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Transport: ");
-		for (i=0; i<gf_list_count(rsp->Transports); i++) {
+		for (i=0; i<count; i++) {
 			//line separator for headers
 			if (i) RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n ,");
 			trans = gf_list_get(rsp->Transports, i);
@@ -657,7 +659,8 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "WWW-Authenticate", rsp->WWW_Authenticate);
 
 	//eXtensions
-	for (i=0; i<gf_list_count(rsp->Xtensions); i++) {
+	count = gf_list_count(rsp->Xtensions);
+	for (i=0; i<count; i++) {
 		att = gf_list_get(rsp->Xtensions, i);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "x-");
 		RTSP_WRITE_HEADER(buffer, size, cur_pos, att->Name, att->Value);	

@@ -124,8 +124,8 @@ static void viewport_set_bind(GF_Node *node)
 	M_Viewport *vp = (M_Viewport *) ptr->owner;
 
 	//notify all stacks using this node
-	for (i=0; i<gf_list_count(ptr->stack_list);i++) {
-		stack = gf_list_get(ptr->stack_list, i);
+	i=0;
+	while ((stack = gf_list_enum(ptr->stack_list, &i))) {
 		on_top = (gf_list_get(stack, 0) == node) ? 1 : 0;
 	
 		if (!vp->set_bind) {
@@ -173,10 +173,12 @@ static void viewport_set_bind(GF_Node *node)
 static GF_List *vp_get_stack(ViewportStack *vp, RenderEffect2D *eff)
 {
 	u32 i;	
+	GF_List *stack;
 	if (!eff->view_stack) return NULL;
 
-	for (i=0; i<gf_list_count(vp->stack_list); i++) {
-		if (eff->view_stack == gf_list_get(vp->stack_list, i) ) return eff->view_stack;	
+	i=0;
+	while ((stack = gf_list_enum(vp->stack_list, &i))) {
+		if (eff->view_stack == stack) return eff->view_stack;	
 	}
 	gf_list_add(vp->stack_list, eff->view_stack);
 	gf_list_add(eff->view_stack, vp->owner);

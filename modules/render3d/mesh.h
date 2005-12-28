@@ -99,15 +99,9 @@ typedef struct
 
 	/*aabb tree of the mesh if any*/
 	struct __AABBNode *aabb_root;
+	/*triangle indexes used in AABB tree - order may be different than the one in mesh->indices*/
 	IDX_TYPE *aabb_indices;
-	u32 aabb_nb_index;
-	/*max tree depth, 0 is unlimited*/
-	u32 max_depth;
-	/*min triangles at node to split. 0 is full split (one triangle per leaf)*/
-	u32 min_tri_limit;
-	/*one of the above type*/
-	u32 split_type;
-	u32 depth, nb_nodes;
+//	u32 aabb_nb_index;
 } GF_Mesh;
 
 GF_Mesh *new_mesh();

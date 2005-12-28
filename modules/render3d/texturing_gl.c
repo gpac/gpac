@@ -112,7 +112,7 @@ void tx_bind(GF_TextureHandler *txh)
 	case TX_DECAL:
 	default:
 		if ((gltx->gl_format==GL_LUMINANCE) || (gltx->gl_format==GL_LUMINANCE_ALPHA)) {
-			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND/*GL_MODULATE*/);
 		} else {
 			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 		}
@@ -461,10 +461,14 @@ Bool tx_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Matrix *
 			GF_Matrix2D mat;
 			M_TextureTransform *tt = (M_TextureTransform *)tx_transform;
 			gf_mx2d_init(mat);
+			/*1- translate*/
+			gf_mx2d_add_translation(&mat, tt->translation.x, tt->translation.y);
+			/*2- rotate*/
+			if (fabs(tt->rotation) > GF_EPSILON_FLOAT) gf_mx2d_add_rotation(&mat, tt->center.x, tt->center.y, tt->rotation);
+			/*3- centered-scale*/
 			gf_mx2d_add_translation(&mat, -tt->center.x, -tt->center.y);
 			gf_mx2d_add_scale(&mat, tt->scale.x, tt->scale.y);
-			if (fabs(tt->rotation) > GF_EPSILON_FLOAT) gf_mx2d_add_rotation(&mat, 0, 0, tt->rotation);
-			gf_mx2d_add_translation(&mat, tt->translation.x + tt->center.x, tt->translation.y + tt->center.y);
+			gf_mx2d_add_translation(&mat, tt->center.x, tt->center.y);
 			if (ret) {
 				gf_mx_from_mx2d(&tmp, &mat);
 				gf_mx_add_matrix(mx, &tmp);

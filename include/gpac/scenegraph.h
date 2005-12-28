@@ -323,6 +323,13 @@ enum
 	GF_SG_FOCUS_NORTH_WEST
 };
 
+typedef struct
+{
+	const char *url;
+	const char **params;
+	u32 nb_params;
+} GF_JSAPIURI;
+
 typedef union
 {
 	u32 opt;
@@ -332,7 +339,7 @@ typedef union
 	Double time;
 	GF_BBox bbox;
 	GF_Matrix mx;
-	const char *url;
+	GF_JSAPIURI uri;
 	GF_Node *focused;
 } GF_JSAPIParam;
 
@@ -370,6 +377,10 @@ enum
 	GF_JSAPI_OP_GET_FOCUS,
 	/*!set focus to given node.*/
 	GF_JSAPI_OP_SET_FOCUS,
+	/*!get target scene URL*/
+	GF_JSAPI_OP_GET_URL,
+	/*!replace target scene URL*/
+	GF_JSAPI_OP_LOAD_URL,
 };
 
 /*JavaScript interface with user*/
@@ -377,14 +388,10 @@ typedef struct
 {
 	/*user defined callback*/
 	void *callback;
-
 	/*file loading callback*/
 	Bool (*GetScriptFile)(void *callback, GF_SceneGraph *parent_graph, const char *url, void (*OnDone)(void *cbck, Bool success, const char *file_cached), void *cbk);
-
 	/*signals message or error*/
 	void (*ScriptMessage)(void *callback, GF_Err e, const char *msg);
-	/*ask the app to load a URL*/
-	Bool (*LoadURL)(void *callback, const char *url, const char **params, u32 nb_params);
 
 	/*
 	interface to various get/set options:

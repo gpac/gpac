@@ -29,6 +29,7 @@ void gppa_del(GF_Box *s)
 	GF_3GPPAudioSampleEntryBox *ptr = (GF_3GPPAudioSampleEntryBox *)s;
 	if (ptr == NULL) return;
 	if (ptr->info) gf_isom_box_del((GF_Box *)ptr->info);
+	if (ptr->protection_info) gf_isom_box_del((GF_Box *)ptr->protection_info);
 	free(ptr);
 }
 
@@ -99,6 +100,7 @@ void gppv_del(GF_Box *s)
 	GF_3GPPVisualSampleEntryBox *ptr = (GF_3GPPVisualSampleEntryBox *)s;
 	if (ptr == NULL) return;
 	if (ptr->info) gf_isom_box_del((GF_Box *)ptr->info);
+	if (ptr->protection_info) gf_isom_box_del((GF_Box *)ptr->protection_info);
 	free(ptr);
 }
 

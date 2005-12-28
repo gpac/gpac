@@ -792,8 +792,8 @@ BOOL COptRender3D::OnInitDialog()
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Rendering", "RendererName");
 	m_Use3DRender.SetCheck( (sOpt && strstr(sOpt, "3D")) ? 1 : 0);
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "DisableBackFaceCulling");
-	m_NoBackFace.SetCheck( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "BackFaceCulling");
+	m_NoBackFace.SetCheck( (sOpt && !stricmp(sOpt, "Off")) ? 1 : 0);
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Render3D", "EmulatePOW2");
 	m_EmulatePOW2.SetCheck( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
@@ -834,7 +834,7 @@ void COptRender3D::SaveOptions()
 	sel = m_WireMode.GetCurSel();
 	gf_cfg_set_key(gpac->m_user.config, "Render3D", "Wireframe", (sel==2) ? "WireOnSolid" : (sel==1) ? "WireOnly" : "WireNone");
 
-	gf_cfg_set_key(gpac->m_user.config, "Render3D", "DisableBackFaceCulling", m_NoBackFace.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Render3D", "BackFaceCulling", m_NoBackFace.GetCheck() ? "Off" : "On");
 	gf_cfg_set_key(gpac->m_user.config, "Render3D", "EmulatePOW2", m_EmulatePOW2.GetCheck() ? "yes" : "no");
 
 	m_bNeedsReload = 0;

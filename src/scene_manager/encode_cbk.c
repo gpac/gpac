@@ -67,8 +67,8 @@ static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
 	/*if no iod check we only have one bifs*/
 	if (!iod) {
 		count = 0;
-		for (i=0; i<gf_list_count(codec->ctx->streams); i++) {
-			codec->sc = (GF_StreamContext *)gf_list_get(codec->ctx->streams, i);
+		i=0;
+		while ((codec->sc = gf_list_enum(codec->ctx->streams, &i))) {
 			if (codec->sc->streamType == GF_STREAM_OD) count++;
 			codec->sc = NULL;
 		}
@@ -77,8 +77,8 @@ static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
 
 	codec->sc = NULL;
 	count = gf_list_count(codec->ctx->streams);
-	for (i=0; i<gf_list_count(codec->ctx->streams); i++) {
-		codec->sc = (GF_StreamContext *)gf_list_get(codec->ctx->streams, i);
+	i=0;
+	while ((codec->sc = gf_list_enum(codec->ctx->streams, &i))) {
 		if (codec->sc->streamType == GF_STREAM_SCENE) break;
 	}
 	if (!codec->sc) return GF_NOT_SUPPORTED;
@@ -91,8 +91,8 @@ static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
 	is_in_iod = 1;
 	if (iod) {
 		is_in_iod = 0;
-		for (j=0; j<gf_list_count(iod->ESDescriptors); j++) {
-			esd = (GF_ESD *)gf_list_get(iod->ESDescriptors, j);
+		j=0;
+		while ((esd = gf_list_enum(iod->ESDescriptors, &j))) {
 			if (esd->decoderConfig && esd->decoderConfig->streamType == GF_STREAM_SCENE) {
 				if (!codec->sc->ESID) codec->sc->ESID = esd->ESID;
 				if (codec->sc->ESID == esd->ESID) {
@@ -184,17 +184,18 @@ static GF_Err gf_sm_live_encode_bifs_au(GF_BifsEngine *codec, u32 currentAUCount
 						  )
 {
 	GF_Err e;
-	u32	j, size;
+	u32	j, size, count;
 	char *data;
 	GF_AUContext *au;
 
 	if (!AUCallback) return GF_BAD_PARAM;
 
 	e = GF_OK;
-	for (j=currentAUCount; j<gf_list_count(codec->sc->AUs); j++) {
+	count = gf_list_count(codec->sc->AUs);
+	for (j=currentAUCount; j<count; j++) {
 		au = (GF_AUContext *)gf_list_get(codec->sc->AUs, j);
 		/*in case using XMT*/
-		if (au->timing_sec) au->timing = (u32) (au->timing_sec * codec->stream_ts_res);
+		if (au->timing_sec) au->timing = (u64) (au->timing_sec * codec->stream_ts_res);
 		e = gf_bifs_encode_au(codec->bifsenc, codec->sc->ESID, au->commands, &data, &size);
 		AUCallback(codec->calling_object, data, size, au->timing);
 		free(data);
@@ -257,8 +258,8 @@ GF_Err gf_beng_encode_from_string(GF_BifsEngine *codec, char *auString, GF_Err (
 	   TODO: check how to do it when several BIFS streams are encoded at the same time */
 	sc = NULL;
 	count = gf_list_count(codec->ctx->streams);
-	for (i=0; i<gf_list_count(codec->ctx->streams); i++) {
-		sc = (GF_StreamContext *)gf_list_get(codec->ctx->streams, i);
+	i = 0;
+	while ((sc = gf_list_enum(codec->ctx->streams, &i))) {
 		if (sc->streamType == GF_STREAM_SCENE) break;
 		sc = NULL;
 	}
@@ -290,8 +291,8 @@ GF_Err gf_beng_encode_from_file(GF_BifsEngine *codec, char *auFile, GF_Err (*AUC
 	   TODO: check how to do it when several BIFS streams are encoded at the same time */
 	sc = NULL;
 	count = gf_list_count(codec->ctx->streams);
-	for (i=0; i<gf_list_count(codec->ctx->streams); i++) {
-		sc = (GF_StreamContext *)gf_list_get(codec->ctx->streams, i);
+	i=0;
+	while ((sc = gf_list_enum(codec->ctx->streams, &i))) {
 		if (sc->streamType == GF_STREAM_SCENE) break;
 		sc = NULL;
 	}

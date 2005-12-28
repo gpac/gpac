@@ -191,18 +191,17 @@ static void RenderColorTransform(GF_Node *node, void *rs)
 		grouping_traverse((GroupingNode *) ptr, eff, NULL);
 	} else {
 		GF_ColorMatrix gf_cmx_bck;
-		Bool prev_cmat = eff->has_cmat;
+		Bool prev_cmat = !eff->color_mat.identity;
 		if (prev_cmat) {
 			gf_cmx_copy(&gf_cmx_bck, &eff->color_mat);
 			gf_cmx_multiply(&eff->color_mat, &ptr->cmat);
 		} else {
 			gf_cmx_copy(&eff->color_mat, &ptr->cmat);
 		}
-		eff->has_cmat = 1;
 		grouping_traverse((GroupingNode *) ptr, eff, NULL);
 		/*restore effects*/
 		if (prev_cmat) gf_cmx_copy(&eff->color_mat, &gf_cmx_bck);
-		eff->has_cmat = prev_cmat;
+		else eff->color_mat.identity = 1;
 	}
 }
 
@@ -322,7 +321,6 @@ static void NewTransformStack(Render3D *sr, GF_Node *node, GF_List *children)
 static void RenderTransform(GF_Node *n, void *rs)
 {
 	GF_Matrix gf_mx_bckup;
-	Bool scale_backup;
 	TransformStack *st = gf_node_get_private(n);
 	M_Transform *tr = (M_Transform *)n;
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
@@ -350,12 +348,8 @@ static void RenderTransform(GF_Node *n, void *rs)
 		st->has_scale = ((tr->scale.x != FIX_ONE) || (tr->scale.y != FIX_ONE) || (tr->scale.z != FIX_ONE)) ? 1 : 0;
    	}
 
-	/*for fun we allow 3D nodes under 2D layout, form & co*/
-
 	gf_mx_copy(gf_mx_bckup, eff->model_matrix);
 	gf_mx_add_matrix(&eff->model_matrix, &st->mx);
-	scale_backup = eff->has_scale;
-	if (st->has_scale) eff->has_scale = 1;
 
 	TRANS_PUSH_MX
 	
@@ -364,7 +358,6 @@ static void RenderTransform(GF_Node *n, void *rs)
 
 	TRANS_POP_MX	
 
-	eff->has_scale = scale_backup;
 	gf_mx_copy(eff->model_matrix, gf_mx_bckup);
 	if (eff->traversing_mode==TRAVERSE_GET_BOUNDS) gf_mx_apply_bbox(&st->mx, &eff->bbox);
 }
@@ -379,7 +372,6 @@ void R3D_InitTransform(Render3D *sr, GF_Node *node)
 static void RenderTransform2D(GF_Node *node, void *rs)
 {
 	GF_Matrix gf_mx_bckup;
-	Bool scale_backup;
 	M_Transform2D *tr = (M_Transform2D *)node;
 	TransformStack *st = (TransformStack*)gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *) rs;
@@ -400,8 +392,6 @@ static void RenderTransform2D(GF_Node *node, void *rs)
 
 	gf_mx_copy(gf_mx_bckup, eff->model_matrix);
 	gf_mx_add_matrix(&eff->model_matrix, &st->mx);
-	scale_backup = eff->has_scale;
-	if (st->has_scale) eff->has_scale = 1;
 
 	TRANS_PUSH_MX
 
@@ -410,7 +400,6 @@ static void RenderTransform2D(GF_Node *node, void *rs)
 
 	TRANS_POP_MX
 	
-	eff->has_scale = scale_backup;
 	gf_mx_copy(eff->model_matrix, gf_mx_bckup);
 
 	if (eff->traversing_mode==TRAVERSE_GET_BOUNDS) 
@@ -437,7 +426,6 @@ void TM2D_GetMatrix(GF_Node *n, GF_Matrix *mx)
 static void RenderTransformMatrix2D(GF_Node *node, void *rs)
 {
 	GF_Matrix gf_mx_bckup;
-	Bool scale_backup;
 	M_TransformMatrix2D *tm = (M_TransformMatrix2D*)node;
 	TransformStack *st = (TransformStack *) gf_node_get_private(node);
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
@@ -449,8 +437,6 @@ static void RenderTransformMatrix2D(GF_Node *node, void *rs)
 
 	gf_mx_copy(gf_mx_bckup, eff->model_matrix);
 	gf_mx_add_matrix(&eff->model_matrix, &st->mx);
-	scale_backup = eff->has_scale;
-	if (st->has_scale) eff->has_scale = 1;
 
 	TRANS_PUSH_MX
 
@@ -460,7 +446,6 @@ static void RenderTransformMatrix2D(GF_Node *node, void *rs)
 	TRANS_POP_MX
 	
 	gf_mx_copy(eff->model_matrix, gf_mx_bckup);
-	eff->has_scale = scale_backup;
 
 	if (eff->traversing_mode==TRAVERSE_GET_BOUNDS) gf_mx_apply_bbox(&st->mx, &eff->bbox);
 }

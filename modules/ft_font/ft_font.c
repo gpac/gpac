@@ -149,11 +149,10 @@ static Bool ft_check_face(FT_Face font, const char *fontName, const char *styles
 
 static FT_Face ft_font_in_cache(FTBuilder *ft, const char *fontName, const char *styles)
 {
-	u32 i;
+	u32 i=0;
 	FT_Face font;
 
-	for (i=0; i<gf_list_count(ft->loaded_fonts); i++) {
-		font = gf_list_get(ft->loaded_fonts, i);
+	while ((font = gf_list_enum(ft->loaded_fonts, &i))) {
 		if (ft_check_face(font, fontName, styles)) return font;
 	}
 	return NULL;

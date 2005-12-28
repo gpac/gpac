@@ -360,6 +360,7 @@ Bool r3d_handle_composite_event(Render3D *sr, GF_UserEvent *ev)
 {
 	CompositeTextureStack *st;
 	GF_Matrix mx;
+	GF_Node *child;
 	RenderEffect3D *eff;
 	GF_List *children;
 	Bool res;
@@ -395,8 +396,8 @@ Bool r3d_handle_composite_event(Render3D *sr, GF_UserEvent *ev)
 	VS_SetupEffects(st->surface, eff);
 
 	children = Composite_GetChildren(st->txh.owner);
-	for (i=0; i<gf_list_count(children); i++) {
-		GF_Node *child = gf_list_get(children, i);
+	i=0;
+	while ((child = gf_list_enum(children, &i))) {
 		SensorHandler *hsens = r3d_get_sensor_handler(child);
 		if (hsens) gf_list_add(eff->sensors, hsens);
 	}

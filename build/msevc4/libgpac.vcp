@@ -2329,7 +2329,7 @@ NODEP_CPP_LOADER_S=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scene_manager\loader_xmta.c
+SOURCE=..\..\src\scene_manager\loader_xmt.c
 DEP_CPP_LOADER_X=\
 	"..\..\extra_lib\include\js\jsapi.h"\
 	"..\..\extra_lib\include\js\jsautocfg.h"\

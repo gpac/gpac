@@ -76,8 +76,8 @@ GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamTyp
 	u32 i;
 	GF_StreamContext *tmp;
 
-	for (i=0; i<gf_list_count(ctx->streams); i++) {
-		tmp = gf_list_get(ctx->streams, i);
+	i=0;
+	while ((tmp = gf_list_enum(ctx->streams, &i))) {
 		/*we MUST use the same ST*/
 		if (tmp->streamType!=streamType) continue;
 		/*if no ESID/OTI specified this is a base layer (default stream created by parsers)
@@ -100,6 +100,17 @@ GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamTyp
 	return tmp;
 }
 
+GF_StreamContext *gf_sm_stream_find(GF_SceneManager *ctx, u16 ES_ID)
+{
+	u32 i, count;
+	if (!ES_ID) return NULL;
+	count = gf_list_count(ctx->streams);
+	for (i=0; i<count; i++) {
+		GF_StreamContext *tmp = gf_list_get(ctx->streams, i);
+		if (tmp->ESID==ES_ID) return tmp;
+	}
+	return NULL;
+}
 static void gf_sm_delete_stream(GF_StreamContext *sc)
 {
 	while (gf_list_count(sc->AUs)) {
@@ -152,8 +163,8 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 	GF_AUContext *tmp;
 
 	/*look for existing AU*/
-	for (i=0; i<gf_list_count(stream->AUs); i++) {
-		tmp = gf_list_get(stream->AUs, i);
+	i=0;
+	while ((tmp = gf_list_enum(stream->AUs, &i))) {
 		if (timing && (tmp->timing==timing)) return tmp;
 		else if (time_sec && (tmp->timing_sec == time_sec)) return tmp;
 		else if (!time_sec && !timing && !tmp->timing && !tmp->timing_sec) return tmp;
@@ -193,8 +204,8 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 		/*FIXME - do this as well for ODs*/
 		if (sc->streamType == GF_STREAM_SCENE) {
 			/*apply all commands - this will also apply the SceneReplace*/
-			for (j=0; j<gf_list_count(sc->AUs); j++) {
-				au = gf_list_get(sc->AUs, j);
+			j=0;
+			while ((au = gf_list_enum(sc->AUs, &j))) {
 				e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
 				if (e) return e;
 			}
@@ -233,11 +244,12 @@ GF_Err gf_sm_load_run_BT(GF_SceneLoader *load);
 GF_Err gf_sm_load_init_BTString(GF_SceneLoader *load, char *str);
 GF_Err gf_sm_load_done_BTString(GF_SceneLoader *load);
 
-GF_Err gf_sm_load_init_XMT(GF_SceneLoader *load);
-void gf_sm_load_done_XMT(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_XMT(GF_SceneLoader *load);
-GF_Err gf_sm_load_init_XMTString(GF_SceneLoader *load, char *str);
-GF_Err gf_sm_load_done_XMTString(GF_SceneLoader *load);
+GF_Err gf_sm_load_init_xmt(GF_SceneLoader *load);
+void gf_sm_load_done_xmt(GF_SceneLoader *load);
+GF_Err gf_sm_load_run_xmt(GF_SceneLoader *load);
+GF_Err gf_sm_load_init_xmt_string(GF_SceneLoader *load, char *str);
+GF_Err gf_sm_load_done_xmt_string(GF_SceneLoader *load);
+
 
 GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load);
 void gf_sm_load_done_MP4(GF_SceneLoader *load);
@@ -280,7 +292,7 @@ static GF_Err gf_sm_load_init_from_string(GF_SceneLoader *load, char *str)
 		return gf_sm_load_init_BTString(load, str);
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
-		return gf_sm_load_init_XMTString(load, str);
+		return gf_sm_load_init_xmt_string(load, str);
 #ifndef GPAC_DISABLE_SVG
 	case GF_SM_LOAD_SVG: 
 	case GF_SM_LOAD_XSR: 
@@ -306,7 +318,7 @@ static void gf_sm_load_done_string(GF_SceneLoader *load)
 		break;
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
-		gf_sm_load_done_XMTString(load); 
+		/*we do not reset it here to enable SAX parsing*/
 		break;
 #ifndef GPAC_DISABLE_SVG
 	/*we do not reset it here to enable SAX parsing*/
@@ -373,7 +385,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 		return gf_sm_load_init_BT(load);
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
-		return gf_sm_load_init_XMT(load);
+		return gf_sm_load_init_xmt(load);
 #ifndef GPAC_DISABLE_SVG
 	case GF_SM_LOAD_SVG:
 	case GF_SM_LOAD_XSR:
@@ -401,7 +413,7 @@ void gf_sm_load_done(GF_SceneLoader *load)
 		break;
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
-		gf_sm_load_done_XMT(load); 
+		gf_sm_load_done_xmt(load); 
 		break;
 #ifndef GPAC_DISABLE_SVG
 	case GF_SM_LOAD_SVG:
@@ -432,7 +444,7 @@ GF_Err gf_sm_load_run(GF_SceneLoader *load)
 		return gf_sm_load_run_BT(load);
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
-		return gf_sm_load_run_XMT(load);
+		return gf_sm_load_run_xmt(load);
 #ifndef GPAC_DISABLE_SVG
 	case GF_SM_LOAD_SVG:
 	case GF_SM_LOAD_XSR:

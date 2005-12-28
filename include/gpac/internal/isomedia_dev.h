@@ -1599,7 +1599,7 @@ GF_Err gf_isom_datamap_add_data(GF_DataMap *ptr, char *data, u32 dataSize);
 
 
 /*time def for MP4/QT/MJ2K files*/
-#define GF_ISOM_MAC_TIME_OFFSET 2082758400
+#define GF_ISOM_MAC_TIME_OFFSET 2082758400/*208284480 */
 
 #ifndef	GF_ISOM_NO_FRAGMENTS
 #define GF_ISOM_FORMAT_FRAG_FLAGS(pad, sync, deg) ( ( (pad) << 17) | ( ( !(sync) ) << 16) | (deg) );

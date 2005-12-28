@@ -26,10 +26,9 @@
 
 ISOMChannel *isor_get_channel(ISOMReader *reader, LPNETCHANNEL channel)
 {
-	u32 i;
+	u32 i=0;
 	ISOMChannel *ch;
-	for (i=0; i<gf_list_count(reader->channels); i++) {
-		ch = gf_list_get(reader->channels, i);
+	while ((ch = gf_list_enum(reader->channels, &i))) {
 		if (ch->channel == channel) return ch;
 	}
 	return NULL;
@@ -37,14 +36,13 @@ ISOMChannel *isor_get_channel(ISOMReader *reader, LPNETCHANNEL channel)
 
 static void isor_delete_channel(ISOMReader *reader, ISOMChannel *ch)
 {
-	u32 i;
+	u32 i=0;
 	ISOMChannel *ch2;
-	for (i=0; i<gf_list_count(reader->channels); i++) {
-		ch2 = gf_list_get(reader->channels, i);
+	while ((ch2 = gf_list_enum(reader->channels, &i))) {
 		if (ch2 == ch) {
 			isor_reset_reader(ch);
 			free(ch);
-			gf_list_rem(reader->channels, i);
+			gf_list_rem(reader->channels, i-1);
 			return;
 		}
 	}
@@ -242,8 +240,8 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	/*no matter what always read text as TTUs*/
 	gf_isom_text_set_streaming_mode(read->mov, 1);
 
-	if ((expect_type==GF_MEDIA_OBJECT_SCENE) || (expect_type==GF_MEDIA_OBJECT_UNDEF)) trackID = 0;
-	else if (!sub_url) {
+	trackID = 0;
+	if (!sub_url) {
 		trackID = read->base_track_id;
 		read->base_track_id = 0;
 	} else {
@@ -252,6 +250,7 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 			trackID = 0;
 		} else {
 			if (!strnicmp(ext, "#trackID=", 9)) ext += 9;
+			else ext += 1;
 			trackID = atoi(ext);
 		}
 	}

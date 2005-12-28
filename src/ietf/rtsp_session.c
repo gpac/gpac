@@ -318,8 +318,8 @@ GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, unsigned char *buffer, u32 Size)
 static GF_TCPChan *GetTCPChannel(GF_RTSPSession *sess, u8 rtpID, u8 rtcpID, Bool RemoveIt)
 {
 	GF_TCPChan *ptr;
-	u32 i;
-	for (i=0; i<gf_list_count(sess->TCPChannels); i++) {
+	u32 i, count = gf_list_count(sess->TCPChannels);
+	for (i=0; i<count; i++) {
 		ptr = gf_list_get(sess->TCPChannels, i);
 		if (ptr->rtpID == rtpID) goto exit;;
 		if (ptr->rtcpID == rtcpID) goto exit;
@@ -737,10 +737,9 @@ u8 gf_rtsp_get_next_interleave_id(GF_RTSPSession *sess)
 	u32 i;
 	u8 id;
 	GF_TCPChan *ch;
-
 	id = 0;
-	for (i=0; i<gf_list_count(sess->TCPChannels); i++) {
-		ch = gf_list_get(sess->TCPChannels, i);
+	i=0;
+	while ((ch = gf_list_enum(sess->TCPChannels, &i))) {
 		if (ch->rtpID >= id) id = ch->rtpID + 1;
 		if (ch->rtcpID >= id) id = ch->rtcpID + 1;
 	}

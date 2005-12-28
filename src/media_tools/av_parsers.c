@@ -1601,10 +1601,12 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 	AVCState avc;
 	u32 i, bit_offset, flag;
 	s32 idx;
+	GF_AVCConfigSlot *slc;
+
 	memset(&avc, 0, sizeof(AVCState));
 
-	for (i=0; i<gf_list_count(avcc->sequenceParameterSets); i++) {
-		GF_AVCConfigSlot *slc = gf_list_get(avcc->sequenceParameterSets, i);
+	i=0;
+	while ((slc = gf_list_enum(avcc->sequenceParameterSets, &i))) {
 		orig = gf_bs_new(slc->data, slc->size, GF_BITSTREAM_READ);
 		/*skip NALU type*/
 		gf_bs_read_int(orig, 8);

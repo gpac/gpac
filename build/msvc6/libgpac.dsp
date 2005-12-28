@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Target_Dir ""
 MTL=midl.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_HAS_SPIDERMONKEY" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O1 /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_HAS_SPIDERMONKEY" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x40c /d "NDEBUG"
 # ADD RSC /l 0x40c /d "NDEBUG"
@@ -637,7 +637,7 @@ SOURCE=..\..\src\scene_manager\loader_svg.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\scene_manager\loader_xmta.c
+SOURCE=..\..\src\scene_manager\loader_xmt.c
 # End Source File
 # Begin Source File
 

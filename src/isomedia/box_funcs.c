@@ -646,9 +646,13 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_FRMA:	frma_del(a); return;
 	case GF_ISOM_BOX_TYPE_SCHM:		schm_del(a); return;
 	case GF_ISOM_BOX_TYPE_SCHI: schi_del(a); return;
-	case GF_ISOM_BOX_TYPE_ENCA: mp4a_del(a); return;
-	case GF_ISOM_BOX_TYPE_ENCV: mp4v_del(a); return;
-	case GF_ISOM_BOX_TYPE_ENCS: mp4s_del(a); return;
+
+	case GF_ISOM_BOX_TYPE_ENCA: 
+	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_ENCS:
+		a->type = ((GF_SampleEntryBox *)a)->protection_info->original_format->data_format;
+		gf_isom_box_del(a); 
+		return;
 
 	default:
 		defa_del(a);

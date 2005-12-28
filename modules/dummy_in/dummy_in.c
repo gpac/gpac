@@ -50,9 +50,9 @@ typedef struct
 
 DummyChannel *DC_GetChannel(DCReader *read, LPNETCHANNEL ch)
 {
-	u32 i;
-	for (i=0; i<gf_list_count(read->channels); i++) {
-		DummyChannel *dc = gf_list_get(read->channels, i);
+	DummyChannel *dc;
+	u32 i=0;
+	while ((dc = gf_list_enum(read->channels, &i))) {
 		if (dc->ch && dc->ch==ch) return dc;
 	}
 	return NULL;
@@ -60,11 +60,11 @@ DummyChannel *DC_GetChannel(DCReader *read, LPNETCHANNEL ch)
 
 Bool DC_RemoveChannel(DCReader *read, LPNETCHANNEL ch)
 {
-	u32 i;
-	for (i=0; i<gf_list_count(read->channels); i++) {
-		DummyChannel *dc = gf_list_get(read->channels, i);
+	DummyChannel *dc;
+	u32 i=0;
+	while ((dc = gf_list_enum(read->channels, &i))) {
 		if (dc->ch && dc->ch==ch) {
-			gf_list_rem(read->channels, i);
+			gf_list_rem(read->channels, i-1);
 			free(dc);
 			return 1;
 		}

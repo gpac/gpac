@@ -24,6 +24,10 @@ EXPORTS
 	gf_get_user_name
 	gf_enum_directory
 	gf_cbk_on_progress
+	gf_malloc
+	gf_realloc
+	gf_free
+	gf_strdup
 
 ;array.h exports
 	gf_list_new
@@ -33,6 +37,7 @@ EXPORTS
 	gf_list_insert
 	gf_list_rem
 	gf_list_get
+	gf_list_enum
 	gf_list_find
 	gf_list_del_item
 	gf_list_reset
@@ -1099,7 +1104,6 @@ EXPORTS
 	svg_attributes_muladd
 	svg_create_value_from_attributetype
 	svg_parse_attribute
-	svg_convert_length_unit_to_user_unit
 	svg_parse_style
 	svg_parse_iri
 	gf_sg_dom_create_listener

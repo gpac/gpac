@@ -177,7 +177,7 @@ static void RenderBackground2D(GF_Node *node, void *rs)
 #endif
 	}
 	VS3D_MultMatrix(eff->surface, mx.m);
-	VS3D_DrawMesh(eff, st->mesh, 0);
+	VS3D_DrawMesh(eff, st->mesh);
 	if (use_texture) tx_disable(&st->txh);
 
 	VS3D_PopMatrix(eff->surface);
@@ -260,7 +260,7 @@ static void DestroyBackground(GF_Node *node)
 
 #define COL_TO_RGBA(res, col) { res.red = col.red; res.green = col.green; res.blue = col.blue; res.alpha = FIX_ONE; }
 
-#define DOME_STEP_V	12
+#define DOME_STEP_V	32
 #define DOME_STEP_H	16
 
 static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool ground_dome)
@@ -270,7 +270,7 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 	u32 step_div_h;
 	GF_Vertex vx;
 	SFColorRGBA start_col, end_col;
-	Fixed start_angle, next_angle, angle, r, frac;
+	Fixed start_angle, next_angle, angle, r, frac, first_angle;
 
 	start_angle = 0;
 	mesh_reset(mesh);
@@ -293,18 +293,26 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 	ang_idx = 0;
 	
 	pad = 1;
-	next_angle = 0;
+	next_angle = first_angle = 0;
 	if (angles->count) {
 		next_angle = angles->vals[0];
+		first_angle = 7*next_angle/8;
 		pad = 0;
 	}
 
 	step_div_h = DOME_STEP_H;
-	if (ground_dome) step_div_h *= 2;
-
-
-	for (i=1; i<DOME_STEP_V; i++) {
-        angle = (i * GF_PI / DOME_STEP_V);
+	i=0;
+	if (ground_dome) {
+		step_div_h *= 2;
+		i=1;
+	} 
+	
+	for (; i<DOME_STEP_V; i++) {
+		if (ground_dome) {
+	        angle = first_angle + (i * (GF_PI2-first_angle) / DOME_STEP_V);
+		} else {
+	        angle = (i * GF_PI / DOME_STEP_V);
+		}
 
 		/*switch cols*/
 		if (angle >= next_angle) {
@@ -333,7 +341,6 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 			vx.color.green = gf_mulfix(end_col.green - start_col.green, frac) + start_col.green;
 			vx.color.blue = gf_mulfix(end_col.blue - start_col.blue, frac) + start_col.blue;
 		}
-
         vx.pos.y = gf_sin(GF_PI2 - angle);
         r = gf_sqrt(FIX_ONE - gf_mulfix(vx.pos.y, vx.pos.y));
 	
@@ -383,8 +390,10 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 static void back_draw_texture(RenderEffect3D *eff, GF_TextureHandler *txh, GF_Mesh *mesh)
 {
 	if (tx_enable(txh, NULL)) {
-		VS3D_DrawMesh(eff, mesh, 0);
+		eff->mesh_has_texture = 1;
+		VS3D_DrawMesh(eff, mesh);
 		tx_disable(txh);
+		eff->mesh_has_texture = 1;
 	}
 }
 
@@ -483,7 +492,7 @@ static void RenderBackground(GF_Node *node, void *rs)
 		gf_mx_add_scale(&mx, scale, scale, scale);
 
 		VS3D_MultMatrix(eff->surface, mx.m);
-		VS3D_DrawMesh(eff, st->sky_mesh, 0);
+		VS3D_DrawMesh(eff, st->sky_mesh);
 		VS3D_PopMatrix(eff->surface);
 	}
 
@@ -503,7 +512,7 @@ static void RenderBackground(GF_Node *node, void *rs)
 #endif
 		gf_mx_add_scale(&mx, scale, -scale, scale);
 		VS3D_MultMatrix(eff->surface, mx.m);
-		VS3D_DrawMesh(eff, st->ground_mesh, 0);
+		VS3D_DrawMesh(eff, st->ground_mesh);
 		VS3D_PopMatrix(eff->surface);
 	}
 

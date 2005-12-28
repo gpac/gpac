@@ -71,22 +71,22 @@ static GFINLINE FormGroup *form_get_group(FormStack *st, u32 i)
 
 static void fg_compute_bounds(FormGroup *fg)
 {
-	u32 i;
+	ChildGroup *cg;
+	u32 i=0;
 	memset(&fg->origin, 0, sizeof(GF_Rect));
-	for (i=0; i<gf_list_count(fg->children); i++) {
-		ChildGroup *cg = gf_list_get(fg->children, i);
+	while ((cg = gf_list_enum(fg->children, &i))) {
 		gf_rect_union(&fg->origin, &cg->final);
 	}
 	fg->final = fg->origin;
 }
 static void fg_update_bounds(FormGroup *fg)
 {
-	u32 i;
+	ChildGroup *cg;
+	u32 i=0;
 	Fixed x, y;
 	x = fg->final.x - fg->origin.x;
 	y = fg->final.y - fg->origin.y;
-	for (i=0; i<gf_list_count(fg->children); i++) {
-		ChildGroup *cg = gf_list_get(fg->children, i);
+	while ((cg = gf_list_enum(fg->children, &i))) {
 		cg->final.x += x;
 		cg->final.y += y;
 	}
@@ -255,8 +255,8 @@ static void RenderForm(GF_Node *n, void *rs)
 	}
 
 	/*center all nodes*/
-	for (i=0; i<gf_list_count(st->groups); i++) {
-		ChildGroup *cg = gf_list_get(st->groups, i);
+	i=0;
+	while ((cg = gf_list_enum(st->groups, &i))) {
 		cg->final.x = - cg->final.width/2;
 		cg->final.y = cg->final.height/2;
 	}
@@ -296,8 +296,8 @@ static void RenderForm(GF_Node *n, void *rs)
 		last_ind += index;
 
 		/*refresh all group bounds*/
-		for (j=1; j<gf_list_count(st->grouplist);j++) {
-			fg = gf_list_get(st->grouplist, j);
+		j=1;
+		while ((fg = gf_list_enum(st->grouplist, &j))) {
 			fg_compute_bounds(fg);
 		}
 		/*done*/
@@ -306,8 +306,8 @@ static void RenderForm(GF_Node *n, void *rs)
 
 	/*According to the spec clipping is not required on form so we don't do it*/
 #if FORM_CLIPS
-	for (i=0; i<gf_list_count(st->groups); i++) {
-		cg = gf_list_get(st->groups, i);
+	i=0;
+	while ((cg = gf_list_enum(st->groups, &i))) {
 		child_render_done(cg, eff);
 	}
 	if (eff->traversing_mode==TRAVERSE_SORT)  {
@@ -316,8 +316,8 @@ static void RenderForm(GF_Node *n, void *rs)
 	}
 #else
 
-	for (i=0; i<gf_list_count(st->groups); i++) {
-		cg = gf_list_get(st->groups, i);
+	i=0;
+	while ((cg = gf_list_enum(st->groups, &i))) {
 		child_render_done(cg, eff);
 	}
 #endif

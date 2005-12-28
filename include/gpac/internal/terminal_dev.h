@@ -141,7 +141,7 @@ GF_InlineScene *gf_is_new(GF_InlineScene *parentScene);
 void gf_is_del(GF_InlineScene *is);
 struct _od_manager *gf_is_find_odm(GF_InlineScene *is, u16 OD_ID);
 void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown);
-void gf_is_remove_object(GF_InlineScene *is, GF_ObjectManager *odm);
+void gf_is_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for_shutdown);
 /*browse all (media) channels and send buffering info to the app*/
 void gf_is_buffering_info(GF_InlineScene *is);
 /*the inline rendering function*/

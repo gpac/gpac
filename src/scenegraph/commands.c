@@ -56,6 +56,7 @@ static void SG_CheckNodeUnregister(GF_Command *com)
 void gf_sg_command_del(GF_Command *com)
 {
 	u32 i;
+	GF_Proto *proto;
 	if (!com) return;
 
 	if (com->tag < GF_SG_LAST_BIFS_COMMAND) {
@@ -96,8 +97,8 @@ void gf_sg_command_del(GF_Command *com)
 	}
 	gf_list_del(com->command_fields);
 
-	for (i=0; i<gf_list_count(com->new_proto_list); i++) {
-		GF_Proto *proto = gf_list_get(com->new_proto_list, i);
+	i=0;
+	while ((proto = gf_list_enum(com->new_proto_list, &i))) {
 		gf_sg_proto_del(proto);
 	}
 	gf_list_del(com->new_proto_list);
@@ -186,9 +187,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	{
 		u32 i, j;
 		GF_List *container, *list;
-		for (j=0; j<gf_list_count(com->command_fields); j++) {
-			inf = gf_list_get(com->command_fields, j);
-
+		j=0;
+		while ((inf = gf_list_enum(com->command_fields, &j))) {
 			e = gf_node_get_field(com->node, inf->fieldIndex, &field);
 			if (e) return e;
 
@@ -206,8 +206,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				list = * ((GF_List **) inf->field_ptr);
 				gf_node_unregister_children(com->node, container);
 
-				for (i=0; i<gf_list_count(list); i++) {
-					node = gf_list_get(list, i);
+				i=0;
+				while ((node = gf_list_enum(list, &i))) {
 					gf_list_add(container, node);
 					if (!e) gf_node_register(node, com->node);
 				}
@@ -231,10 +231,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	case GF_SG_MULTIPLE_INDEXED_REPLACE:
 	case GF_SG_INDEXED_REPLACE:
 	{
-		u32 sftype, i;
-		for (i=0; i<gf_list_count(com->command_fields); i++) {
-			inf = gf_list_get(com->command_fields, i);
-
+		u32 sftype, i=0;
+		while ((inf = gf_list_enum(com->command_fields, &i))) {
 			e = gf_node_get_field(com->node, inf->fieldIndex, &field);
 			if (e) return e;
 
@@ -573,9 +571,9 @@ GF_CommandField *gf_sg_command_field_new(GF_Command *com)
 GF_Err gf_sg_command_apply_list(GF_SceneGraph *graph, GF_List *comList, Double time_offset)
 {
 	GF_Err e;
-	u32 i;
-	for (i=0; i<gf_list_count(comList); i++) {
-		GF_Command *com = gf_list_get(comList, i);
+	GF_Command *com;
+	u32 i=0;
+	while ((com = gf_list_enum(comList, &i))) {
 		e = gf_sg_command_apply(graph, com, time_offset);
 		if (e) return e;
 	}
@@ -584,7 +582,7 @@ GF_Err gf_sg_command_apply_list(GF_SceneGraph *graph, GF_List *comList, Double t
 
 GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph)
 {
-	u32 i;
+	u32 i, count;
 	GF_Command *dest;
 	
 	if (com->tag==GF_SG_SCENE_REPLACE) return NULL;
@@ -606,8 +604,8 @@ GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph)
 		dest->del_proto_list = malloc(sizeof(u32) * com->del_proto_list_size);
 		memcpy(dest->del_proto_list, com->del_proto_list, sizeof(u32) * com->del_proto_list_size);
 	}
-
-	for (i=0; i<gf_list_count(com->command_fields); i++) {
+	count = gf_list_count(com->command_fields);
+	for (i=0; i<count; i++) {
 		GF_CommandField *fo = gf_list_get(com->command_fields, i);
 		GF_CommandField *fd = gf_sg_command_field_new(dest);
 
@@ -624,9 +622,10 @@ GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph)
 			fd->field_ptr = &fd->new_node;
 		}
 		if (fo->node_list) {
-			u32 j;
+			u32 j, count;
 			fd->node_list = gf_list_new();
-			for (j=0; j<gf_list_count(fo->node_list); j++) {
+			count = gf_list_count(fo->node_list);
+			for (j=0; j<count; j++) {
 				GF_Node *co = gf_list_get(fo->node_list, j);
 				GF_Node *cd = gf_node_clone(inGraph, co, dest->node);
 				gf_list_add(fd->node_list, cd);

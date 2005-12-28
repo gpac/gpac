@@ -132,11 +132,9 @@ void gf_is_del(GF_InlineScene *is)
 
 GF_ObjectManager *gf_is_find_odm(GF_InlineScene *is, u16 OD_ID)
 {
-	u32 i;
 	GF_ObjectManager *odm;
-	//browse the OD List only
-	for (i=0; i<gf_list_count(is->ODlist); i++) {
-		odm = gf_list_get(is->ODlist, i);
+	u32 i=0;
+	while ((odm = gf_list_enum(is->ODlist, &i))) {
 		if (odm->OD->objectDescriptorID == OD_ID) return odm;
 	}
 	return NULL;
@@ -144,6 +142,7 @@ GF_ObjectManager *gf_is_find_odm(GF_InlineScene *is, u16 OD_ID)
 
 void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown)
 {
+	GF_MediaObject *obj;
 	GF_Node *root_node;
 	GF_ObjectManager *odm;
 	GF_SceneDecoder *dec = NULL;
@@ -152,15 +151,14 @@ void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown)
 	/*disconnect / kill all objects BEFORE reseting the scene graph since we have 
 	potentially registered Inline nodes of the a graph with the sub-scene*/
 	if (!for_shutdown && is->static_media_ressources) {
-		u32 i;
+		u32 i=0;
 		/*stop all objects but DON'T DESTROY THEM*/
-		for (i=0; i<gf_list_count(is->ODlist); i++) {
-			odm = gf_list_get(is->ODlist, i);
+		while ((odm = gf_list_enum(is->ODlist, &i))) {
 			if (odm->is_open) gf_odm_disconnect(odm, 0);
 		}
 		/*reset all stream associations*/
-		for (i=0; i<gf_list_count(is->media_objects); i++) {
-			GF_MediaObject *obj = gf_list_get(is->media_objects, i);
+		i=0;
+		while ((obj = gf_list_enum(is->media_objects, &i))) {
 			gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
 		}
 	} else {
@@ -191,7 +189,7 @@ void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown)
 
 	/*remove stream associations*/
 	while (gf_list_count(is->media_objects)) {
-		GF_MediaObject *obj = gf_list_get(is->media_objects, 0);
+		obj = gf_list_get(is->media_objects, 0);
 		gf_list_rem(is->media_objects, 0);
 		if (obj->odm) obj->odm->mo = NULL;
 		gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
@@ -233,18 +231,19 @@ static void IS_ReinsertObject(GF_InlineScene *is, GF_MediaObject *mo)
 }
 
 
-void gf_is_remove_object(GF_InlineScene *is, GF_ObjectManager *odm)
+void gf_is_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for_shutdown)
 {
 	u32 i;
 	GF_ObjectManager *parent;
+	GF_MediaObject *obj;
 
 	gf_list_del_item(is->ODlist, odm);
 
 	parent = odm;
 	while (parent->parent_OD) parent = parent->parent_OD;
 
-	for (i=0; i<gf_list_count(is->media_objects); i++) {
-		GF_MediaObject *obj = gf_list_get(is->media_objects, i);
+	i=0;
+	while ((obj = gf_list_enum(is->media_objects, &i))) {
 		if (
 			/*assigned object*/
 			(obj->odm==odm) || 
@@ -262,18 +261,18 @@ void gf_is_remove_object(GF_InlineScene *is, GF_ObjectManager *odm)
 
 			/*if graph not attached we can remove the link (this is likely scene shutdown for some error)*/
 			if (!is->graph_attached) {
-				u32 j;
-				for (j=0; j<gf_list_count(is->extern_protos); j++) {
-					ProtoLink *pl = gf_list_get(is->extern_protos, j);
+				ProtoLink *pl;
+				u32 j=0;
+				while ((pl = gf_list_enum(is->extern_protos, &j))) {
 					if (pl->mo==obj) {
 						pl->mo = NULL;
 						break;
 					}
 				}
-				gf_list_rem(is->media_objects, i);
+				gf_list_rem(is->media_objects, i-1);
 				gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
 				free(obj);
-			} else {
+			} else if (!for_shutdown) {
 				/*if dynamic OD and more than 1 URLs resetup*/
 				if ((obj->OD_ID==GF_ESM_DYNAMIC_OD_ID) && (obj->URLs.count>1)) IS_ReinsertObject(is, obj);
 			}
@@ -353,8 +352,8 @@ void gf_is_buffering_info(GF_InlineScene *is)
 	max_buffer = cur_buffer = 0;
 
 	/*get buffering on root OD*/
-	for (j=0; j<gf_list_count(is->root_od->channels); j++) {
-		ch = gf_list_get(is->root_od->channels, j);
+	j=0;
+	while ((ch = gf_list_enum(is->root_od->channels, &j))) {
 		/*count only re-buffering channels*/
 		if (!ch->BufferOn) continue;
 
@@ -363,12 +362,11 @@ void gf_is_buffering_info(GF_InlineScene *is)
 	}
 
 	/*get buffering on all ODs*/
-	for (i=0; i<gf_list_count(is->ODlist); i++) {
-		odm = gf_list_get(is->ODlist, i);
-
+	i=0;
+	while ((odm = gf_list_enum(is->ODlist, &i))) {
 		if (!odm->codec) continue;
-		for (j=0; j<gf_list_count(odm->channels); j++) {
-			ch = gf_list_get(odm->channels, j);
+		j=0;
+		while ((ch = gf_list_enum(odm->channels, &j))) {
 			/*count only re-buffering channels*/
 			if (!ch->BufferOn) continue;
 
@@ -594,9 +592,9 @@ void gf_is_attach_to_renderer(GF_InlineScene *is)
 
 static GF_MediaObject *IS_CheckExistingObject(GF_InlineScene *is, MFURL *urls)
 {
-	u32 i;
-	for (i=0; i<gf_list_count(is->media_objects); i++) {
-		GF_MediaObject *obj = gf_list_get(is->media_objects, i);
+	GF_MediaObject *obj;
+	u32 i = 0;
+	while ((obj = gf_list_enum(is->media_objects, &i))) {
 		if ((obj->OD_ID == GF_ESM_DYNAMIC_OD_ID) && gf_is_same_url(&obj->URLs, urls)) return obj;
 		else if ((obj->OD_ID != GF_ESM_DYNAMIC_OD_ID) && (obj->OD_ID == urls->vals[0].OD_ID)) return obj;
 	}
@@ -621,8 +619,8 @@ GF_MediaObject *gf_is_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_t
 	if (!OD_ID) return NULL;
 
 	obj = NULL;
-	for (i=0; i<gf_list_count(is->media_objects); i++) {
-		obj = gf_list_get(is->media_objects, i);
+	i=0;
+	while ((obj = gf_list_enum(is->media_objects, &i))) {
 		/*regular OD scheme*/
 		if (OD_ID != GF_ESM_DYNAMIC_OD_ID && (obj->OD_ID==OD_ID)) return obj;
 
@@ -699,8 +697,8 @@ void gf_is_setup_object(GF_InlineScene *is, GF_ObjectManager *odm)
 	if (odm->mo != NULL) goto existing;
 
 
-	for (i=0; i<gf_list_count(is->media_objects); i++) {
-		obj = gf_list_get(is->media_objects, i);
+	i=0;
+	while ((obj = gf_list_enum(is->media_objects, &i))) {
 		if (obj->OD_ID==GF_ESM_DYNAMIC_OD_ID) {
 			assert(obj->odm);
 			if (obj->odm == parent) {
@@ -754,14 +752,15 @@ void gf_is_set_duration(GF_InlineScene *is)
 	u32 i;
 	u64 max_dur;
 	GF_ObjectManager *odm;
+	MediaSensorStack *media_sens;
 	GF_Clock *ck;
 
 	/*this is not normative but works in so many cases... set the duration to the max duration
 	of all streams sharing the clock*/
 	ck = gf_odm_get_media_clock(is->root_od);
 	max_dur = is->root_od->duration;
-	for (i=0; i<gf_list_count(is->ODlist); i++) {
-		odm = gf_list_get(is->ODlist, i);
+	i=0;
+	while ((odm = gf_list_enum(is->ODlist, &i))) {
 		if (!odm->codec) continue;
 		if (ck && gf_odm_shares_clock(odm, ck)) {
 			if (odm->duration>max_dur) max_dur = odm->duration;
@@ -773,8 +772,8 @@ void gf_is_set_duration(GF_InlineScene *is)
 	dur = (Double) (s64) is->duration;
 	dur /= 1000;
 	
-	for (i = 0; i < gf_list_count(is->root_od->ms_stack); i++) {
-		MediaSensorStack *media_sens = gf_list_get(is->root_od->ms_stack, i);
+	i=0;
+	while ((media_sens = gf_list_enum(is->root_od->ms_stack, &i))) {
 		if (media_sens->sensor->isActive) {
 			media_sens->sensor->mediaDuration = dur;
 			gf_node_event_out_str((GF_Node *) media_sens->sensor, "mediaDuration");
@@ -814,8 +813,8 @@ void IS_LoadExternProto(GF_InlineScene *is, MFURL *url)
 	/*internal, don't waste ressources*/
 	if (IS_IsHardcodedProto(url, is->root_od->term->user->config)) return;
 	
-	for (i=0; i<gf_list_count(is->extern_protos); i++) {
-		pl = gf_list_get(is->extern_protos, i);
+	i=0;
+	while ((pl = gf_list_enum(is->extern_protos, &i)) ) {
 		if (pl->url == url) return;
 		if (pl->url->vals[0].OD_ID == url->vals[0].OD_ID) return;
 		if (pl->url->vals[0].url && url->vals[0].url && !stricmp(pl->url->vals[0].url, url->vals[0].url) ) return;
@@ -830,14 +829,15 @@ void IS_LoadExternProto(GF_InlineScene *is, MFURL *url)
 
 GF_SceneGraph *gf_is_get_proto_lib(void *_is, MFURL *lib_url)
 {
+	ProtoLink *pl;
 	u32 i;
 	GF_InlineScene *is = (GF_InlineScene *) _is;
 	if (!is || !lib_url->count) return NULL;
 
 	if (IS_IsHardcodedProto(lib_url, is->root_od->term->user->config)) return GF_SG_INTERNAL_PROTO;
 
-	for (i=0; i<gf_list_count(is->extern_protos); i++) {
-		ProtoLink *pl = gf_list_get(is->extern_protos, i);
+	i=0;
+	while ((pl = gf_list_enum(is->extern_protos, &i))) {
 		if (!pl->mo) continue;
 		if (URL_GetODID(pl->url) != GF_ESM_DYNAMIC_OD_ID) {
 			if (URL_GetODID(pl->url) == URL_GetODID(lib_url)) {
@@ -862,10 +862,11 @@ GF_SceneGraph *gf_is_get_proto_lib(void *_is, MFURL *lib_url)
 GF_ObjectManager *IS_GetProtoSceneByGraph(void *_is, GF_SceneGraph *sg)
 {
 	u32 i;
+	ProtoLink *pl;
 	GF_InlineScene *is = (GF_InlineScene *) _is;
 	if (!is) return NULL;
-	for (i=0; i<gf_list_count(is->extern_protos); i++) {
-		ProtoLink *pl = gf_list_get(is->extern_protos, i);
+	i=0;
+	while ((pl = gf_list_enum(is->extern_protos, &i))) {
 		if (pl->mo->odm && pl->mo->odm->subscene && (pl->mo->odm->subscene->graph==sg)) return pl->mo->odm;
 	}
 	return NULL;
@@ -875,8 +876,9 @@ GF_ObjectManager *IS_GetProtoSceneByGraph(void *_is, GF_SceneGraph *sg)
 Bool IS_IsProtoLibObject(GF_InlineScene *is, GF_ObjectManager *odm)
 {
 	u32 i;
-	for (i=0; i<gf_list_count(is->extern_protos); i++) {
-		ProtoLink *pl = gf_list_get(is->extern_protos, i);
+	ProtoLink *pl;
+	i=0;
+	while ((pl = gf_list_enum(is->extern_protos, &i))) {
 		if (pl->mo->odm == odm) return 1;
 	}
 	return 0;
@@ -886,9 +888,10 @@ Bool IS_IsProtoLibObject(GF_InlineScene *is, GF_ObjectManager *odm)
 GF_MediaObject *gf_is_find_object(GF_InlineScene *is, u16 ODID, char *url)
 {
 	u32 i;
+	GF_MediaObject *mo;
 	if (!url && !ODID) return NULL;
-	for (i=0; i<gf_list_count(is->media_objects); i++) {
-		GF_MediaObject *mo = gf_list_get(is->media_objects, i);
+	i=0;
+	while ((mo = gf_list_enum(is->media_objects, &i))) {
 		if (ODID==GF_ESM_DYNAMIC_OD_ID) {
 			if (mo->URLs.count && !stricmp(mo->URLs.vals[0].url, url)) return mo;
 		} else if (mo->OD_ID==ODID) return mo;
@@ -1027,7 +1030,7 @@ void gf_is_regenerate(GF_InlineScene *is)
 	GF_Node *n1, *n2;
 	SFURL *sfu;
 	GF_Event evt;
-	GF_ObjectManager *first_odm;
+	GF_ObjectManager *first_odm, *odm;
 	M_AudioClip *ac;
 	M_MovieTexture *mt;
 	M_AnimationStream *as;
@@ -1054,8 +1057,8 @@ void gf_is_regenerate(GF_InlineScene *is)
 
 	nb_obj = 0;
 	first_odm = NULL;
-	for (i=0; i<gf_list_count(is->ODlist); i++) {
-		GF_ObjectManager *odm = gf_list_get(is->ODlist, i);
+	i=0;
+	while ((odm = gf_list_enum(is->ODlist, &i))) {
 		if (!odm->codec || (odm->codec->type!=GF_STREAM_AUDIO)) continue;
 
 		if (is_odm_url(&is->audio_url, odm)) {
@@ -1100,8 +1103,8 @@ void gf_is_regenerate(GF_InlineScene *is)
 	gf_node_register((GF_Node *)mt, n2);
 
 	first_odm = NULL;
-	for (i=0; i<gf_list_count(is->ODlist); i++) {
-		GF_ObjectManager *odm = gf_list_get(is->ODlist, i);
+	i=0;
+	while ((odm = gf_list_enum(is->ODlist, &i))) {
 		if (!odm->codec || (odm->codec->type!=GF_STREAM_VISUAL)) continue;
 
 		if (is_odm_url(&is->audio_url, odm)) {
@@ -1145,8 +1148,8 @@ void gf_is_regenerate(GF_InlineScene *is)
 	gf_node_register((GF_Node *)as, n1);
 
 	first_odm = NULL;
-	for (i=0; i<gf_list_count(is->ODlist); i++) {
-		GF_ObjectManager *odm = gf_list_get(is->ODlist, i);
+	i=0;
+	while ((odm = gf_list_enum(is->ODlist, &i))) {
 		if (!odm->codec || (odm->codec->type!=GF_STREAM_TEXT)) continue;
 
 		if (!nb_obj || is_odm_url(&is->text_url, odm)) {
@@ -1295,14 +1298,14 @@ void gf_is_restart_dynamic(GF_InlineScene *is, u64 from_time)
 {
 	u32 i;
 	GF_List *to_restart;
+	GF_ObjectManager *odm;
 	GF_Clock *ck = is->scene_codec->ck;
-
 	gf_clock_pause(ck);
 	gf_clock_reset(ck);
 
 	to_restart = gf_list_new();
-	for (i=0; i<gf_list_count(is->ODlist); i++) {
-		GF_ObjectManager *odm = gf_list_get(is->ODlist, i);
+	i=0;
+	while ((odm = gf_list_enum(is->ODlist, &i))) {
 		while (odm->remote_OD) odm = odm->remote_OD;
 		if (odm->is_open) {
 			gf_list_add(to_restart, odm);
@@ -1319,8 +1322,8 @@ void gf_is_restart_dynamic(GF_InlineScene *is, u64 from_time)
 	
 	gf_clock_set_time(ck, (u32) from_time);
 
-	for (i=0; i<gf_list_count(to_restart); i++) {
-		GF_ObjectManager *odm = gf_list_get(to_restart, i);
+	i=0;
+	while ((odm = gf_list_enum(to_restart, &i))) {
 		gf_odm_start(odm);
 	}
 	gf_list_del(to_restart);
@@ -1351,6 +1354,7 @@ Bool gf_is_process_anchor(GF_Node *caller, GF_Event *evt)
 {
 	u32 i;
 	GF_Terminal *term;
+	M_Inline *inl;
 	GF_InlineScene *is;
 	GF_SceneGraph *sg = gf_node_get_graph(caller);
 	if (!sg) return 1;
@@ -1364,8 +1368,8 @@ Bool gf_is_process_anchor(GF_Node *caller, GF_Event *evt)
 		return 1;
 	}
 	/*FIXME this is too restrictive, we assume the navigate URL is really a presentation one...*/
-	for (i=0; i<gf_list_count(is->inline_nodes); i++) {
-		M_Inline *inl = gf_list_get(is->inline_nodes, i);
+	i=0;
+	while ((inl = gf_list_enum(is->inline_nodes, &i))) {
 		gf_sg_vrml_mf_reset(&inl->url, GF_SG_VRML_MFURL);
 		gf_sg_vrml_mf_alloc(&inl->url, GF_SG_VRML_MFURL, 1);
 		inl->url.vals[0].url = strdup(evt->navigate.to_url ? evt->navigate.to_url : "");

@@ -48,7 +48,7 @@ typedef struct
 #define FSFAMILY	(fs && fs->family.count) ? (const char *)fs->family.vals[0]	: ""
 
 /*here it's tricky since it depends on our metric system...*/
-#define FSSIZE		(fs ? fs->size : -FIX_ONE)
+#define FSSIZE		(fs ? fs->size : FIX_ONE)
 #define FSSTYLE		(fs && fs->style.buffer) ? (const char *)fs->style.buffer : ""
 #define FSMAJOR		( (fs && fs->justify.count && fs->justify.vals[0]) ? (const char *)fs->justify.vals[0] : "FIRST")
 #define FSMINOR		( (fs && (fs->justify.count>1) && fs->justify.vals[1]) ? (const char *)fs->justify.vals[1] : "FIRST")
@@ -742,6 +742,7 @@ static void BuildTextGraph(TextStack *st, M_Text *txt, RenderEffect3D *eff)
 
 static void Text_SetupBounds(RenderEffect3D *eff, TextStack *st)
 {
+	CachedTextLine *tl;
 	u32 i;
 	/*text is not splitted, handle as a whole node*/
 	if (!eff->text_split_mode) {
@@ -752,21 +753,21 @@ static void Text_SetupBounds(RenderEffect3D *eff, TextStack *st)
 	assert(eff->parent);
 
 	/*otherwise notify each node as a different group*/
-	for (i=0; i<gf_list_count(st->text_lines); i++) {
-		CachedTextLine *tl = gf_list_get(st->text_lines, i);
+	i=0;
+	while ((tl = gf_list_enum(st->text_lines, &i))) {
 		/*the first one is always started by parent group*/
-		if (i) group_start_child(eff->parent, NULL);
+		if (i>1) group_start_child(eff->parent, NULL);
 		group_end_text_child(eff->parent, &tl->bounds, st->ascent, st->descent, i+1);
 	}
 }
 
-static void Text_FillTextLine(RenderEffect3D *eff, CachedTextLine *tl, Bool renorm)
+static void Text_FillTextLine(RenderEffect3D *eff, CachedTextLine *tl)
 {
 	if (!tl->mesh) {
 		tl->mesh = new_mesh();
 		mesh_from_path(tl->mesh, tl->path);
 	}
-	VS3D_DrawMesh(eff, tl->mesh, renorm);
+	VS3D_DrawMesh(eff, tl->mesh);
 }
 
 static void Text_StrikeTextLine(RenderEffect3D *eff, CachedTextLine *tl, Aspect2D *asp, Bool vect_outline)
@@ -788,7 +789,7 @@ static void Text_StrikeTextLine(RenderEffect3D *eff, CachedTextLine *tl, Aspect2
 
 	}
 	if (vect_outline) {
-		VS3D_DrawMesh(eff, tl->outline_mesh, 0);
+		VS3D_DrawMesh(eff, tl->outline_mesh);
 	} else {
 		VS3D_StrikeMesh(eff, tl->outline_mesh, Aspect_GetLineWidth(asp), asp->pen_props.dash);
 	}
@@ -796,13 +797,13 @@ static void Text_StrikeTextLine(RenderEffect3D *eff, CachedTextLine *tl, Aspect2
 
 static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 {
-	u32 i, count;
+	u32 i;
 	Aspect2D asp;
 	const char *fs_style;
 	char *hlight;
 	SFColorRGBA hl_color;
 	CachedTextLine *tl;
-	Bool draw2D, draw3D, vect_outline, has_texture, can_texture_text, renorm;
+	Bool draw2D, draw3D, vect_outline, has_texture, can_texture_text;
 	Render3D *sr = (Render3D*)st->compositor->visual_renderer->user_priv;
 	M_FontStyle *fs = (M_FontStyle *) ((M_Text *) st->owner)->fontStyle;
 
@@ -869,8 +870,6 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 	}
 	if (strstr(fs_style, "TEXTURED")) st->texture_text_flag = 1;
 
-	renorm = (draw3D && eff->has_scale) ? 1 : 0;
-
 	/*setup texture*/
 	can_texture_text = 0;
 	has_texture = VS_setup_texture(eff);
@@ -894,17 +893,16 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 
 			if (can_texture_text && TextLine_TextureIsReady(tl)) {
 				tx_enable(&tl->txh, NULL);
-				VS3D_DrawMesh(eff, tl->tx_mesh, eff->has_scale);
+				VS3D_DrawMesh(eff, tl->tx_mesh);
 				tx_disable(&tl->txh);
 				/*be nice to GL, we remove the text from HW at each frame since there may be a lot of text*/
 				R3D_TextureHWReset(&tl->txh);
 			} else {
-				Text_FillTextLine(eff, tl, renorm);
+				Text_FillTextLine(eff, tl);
 			}
 		} else {
-			count = gf_list_count(st->text_lines);
-			for (i=0; i<gf_list_count(st->text_lines); i++) {
-				tl = gf_list_get(st->text_lines, i);
+			i=0; 
+			while ((tl = gf_list_enum(st->text_lines, &i))) {
 
 				if (hlight) VS3D_FillRect(eff->surface, tl->bounds, hl_color);
 
@@ -912,12 +910,12 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 
 				if (can_texture_text && TextLine_TextureIsReady(tl)) {
 					tx_enable(&tl->txh, NULL);
-					VS3D_DrawMesh(eff, tl->tx_mesh, eff->has_scale);
+					VS3D_DrawMesh(eff, tl->tx_mesh);
 					tx_disable(&tl->txh);
 					/*be nice to GL, we remove the text from HW at each frame since there may be a lot of text*/
 					R3D_TextureHWReset(&tl->txh);
 				} else {
-					Text_FillTextLine(eff, tl, renorm);
+					Text_FillTextLine(eff, tl);
 				}
 			}
 		}
@@ -936,9 +934,8 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 			tl = gf_list_get(st->text_lines, eff->split_text_idx-1);
 			Text_StrikeTextLine(eff, tl, &asp, vect_outline);
 		} else {
-			count = gf_list_count(st->text_lines);
-			for (i=0; i<gf_list_count(st->text_lines); i++) {
-				tl = gf_list_get(st->text_lines, i);
+			i=0;
+			while ((tl = gf_list_enum(st->text_lines, &i))) {
 				Text_StrikeTextLine(eff, tl, &asp, vect_outline);
 			}
 		}
@@ -986,18 +983,17 @@ static Bool TextIntersectWithRay(GF_Node *owner, GF_Ray *ray, SFVec3f *outPoint)
 {
 	TextStack *st = gf_node_get_private(owner);
 	u32 i;
+	CachedTextLine *tl;
 
 	if (!R3D_Get2DPlaneIntersection(ray, outPoint)) return 0;
 
-	for (i=0; i<gf_list_count(st->text_lines); i++) {
-		CachedTextLine *tl = gf_list_get(st->text_lines, i);
-
-	
+	i=0;
+	while ((tl = gf_list_enum(st->text_lines, &i))) {	
 		if ( (outPoint->x >= tl->bounds.x) 
-			&& (outPoint->y <= tl->bounds.y) 
-			&& (outPoint->x <= tl->bounds.x + tl->bounds.width)
-			&& (outPoint->y >= tl->bounds.y - tl->bounds.height) 
-			) return 1;
+		&& (outPoint->y <= tl->bounds.y) 
+		&& (outPoint->x <= tl->bounds.x + tl->bounds.width)
+		&& (outPoint->y >= tl->bounds.y - tl->bounds.height) 
+		) return 1;
 	}
 	return 0;
 }

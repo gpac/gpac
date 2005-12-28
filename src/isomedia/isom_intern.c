@@ -48,15 +48,15 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 	//and all fragments must be continous
 	if (mov->NextMoofNumber + 1 != moof->mfhd->sequence_number) return GF_ISOM_INVALID_FILE;
 
-	for (i=0; i<gf_list_count(moof->TrackList); i++) {
-		traf = gf_list_get(moof->TrackList, i);
+	i=0;
+	while ((traf = gf_list_enum(moof->TrackList, &i))) {
 		if (!traf->tfhd) {
 			trak = NULL;
 			traf->trex = NULL;
 		} else {
 			trak = gf_isom_get_track_from_id(mov->moov, traf->tfhd->trackID);
-			for (j=0; j<gf_list_count(mov->moov->mvex->TrackExList); j++) {
-				traf->trex = gf_list_get(mov->moov->mvex->TrackExList, j);
+			j=0;
+			while ((traf->trex = gf_list_enum(mov->moov->mvex->TrackExList, &j))) {
 				if (traf->trex->trackID == traf->tfhd->trackID) break;
 				traf->trex = NULL;
 			}
@@ -443,9 +443,8 @@ GF_Err GetMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *MediaTime, s64 *Segme
 
 	time = 0;
 	ent = NULL;
-	for (i = 0; i < gf_list_count(trak->editBox->editList->entryList); i++) {
-		//get all the entries that are empty at the begining...
-		ent = (GF_EdtsEntry*)gf_list_get(trak->editBox->editList->entryList, i);
+	i=0;
+	while ((ent = gf_list_enum(trak->editBox->editList->entryList, &i))) {
 		if (time + ent->segmentDuration > m_time) {
 			goto ent_found;
 		}
@@ -540,8 +539,8 @@ GF_Err GetNextMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime)
 
 	time = 0;
 	ent = NULL;
-	for (i = 0; i < gf_list_count(trak->editBox->editList->entryList); i++) {
-		ent = (GF_EdtsEntry*)gf_list_get(trak->editBox->editList->entryList, i);
+	i=0;
+	while ((ent = gf_list_enum(trak->editBox->editList->entryList, &i))) {
 		if (time * trak->Media->mediaHeader->timeScale >= movieTime * trak->moov->mvhd->timeScale) {
 			/*skip empty edits*/
 			if (ent->mediaTime >= 0) {
@@ -568,8 +567,8 @@ GF_Err GetPrevMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime)
 
 	time = 0;
 	ent = NULL;
-	for (i = 0; i < gf_list_count(trak->editBox->editList->entryList); i++) {
-		ent = (GF_EdtsEntry*)gf_list_get(trak->editBox->editList->entryList, i);
+	i=0;
+	while ((ent = gf_list_enum(trak->editBox->editList->entryList, &i))) {
 		if (ent->mediaTime == -1) {
 			if ( (time + ent->segmentDuration) * trak->Media->mediaHeader->timeScale >= movieTime * trak->moov->mvhd->timeScale) {
 				*OutMovieTime = time * trak->Media->mediaHeader->timeScale / trak->moov->mvhd->timeScale;

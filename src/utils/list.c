@@ -672,8 +672,9 @@ void gf_list_reset(GF_List *ptr)
 
 s32 gf_list_find(GF_List *ptr, void *item)
 {
-	u32 i;
-	for (i=0; i<gf_list_count(ptr); i++) {
+	u32 i, count;
+	count = gf_list_count(ptr);
+	for (i=0; i<count; i++) {
 		if (gf_list_get(ptr, i) == item) return (s32) i;
 	}
 	return -1;
@@ -686,3 +687,9 @@ s32 gf_list_del_item(GF_List *ptr, void *item)
 	return i;
 }
 
+void *gf_list_enum(GF_List *ptr, u32 *pos)
+{
+	void *res = gf_list_get(ptr, *pos);
+	(*pos)++;
+	return res;
+}

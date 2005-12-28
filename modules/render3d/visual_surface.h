@@ -287,8 +287,8 @@ void VS3D_SetClipPlane(VisualSurface *surf, GF_Plane p);
 /*reset last clipping plane set*/
 void VS3D_ResetClipPlane(VisualSurface *surf);
 
-/*draw mesh - do_normalize: if any scaling is present normals must be recomputed*/
-void VS3D_DrawMesh(RenderEffect3D *eff, GF_Mesh *mesh, Bool do_normalize);
+/*draw mesh*/
+void VS3D_DrawMesh(RenderEffect3D *eff, GF_Mesh *mesh);
 /*only used for ILS/ILS2D or IFS2D outline*/
 void VS3D_StrikeMesh(RenderEffect3D *eff, GF_Mesh *mesh, Fixed width, u32 dash_style);
 
@@ -339,7 +339,7 @@ void VS3D_DrawImage(VisualSurface *surf, Fixed pos_x, Fixed pos_y, u32 width, u3
 /*get matrix for the desired mode*/
 void VS3D_GetMatrix(VisualSurface *surf, u32 mat_type, Fixed *mat);
 /*X3D hatching*/
-void VS3D_HatchMesh(RenderEffect3D *eff, GF_Mesh *mesh, Bool do_normalize, u32 hatchStyle, SFColor hatchColor);
+void VS3D_HatchMesh(RenderEffect3D *eff, GF_Mesh *mesh, u32 hatchStyle, SFColor hatchColor);
 
 #endif
 

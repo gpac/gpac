@@ -1228,7 +1228,6 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 			au = gf_list_get(sc->AUs, j);
 			samp = gf_isom_sample_new();
 			/*in case using XMT*/
-//			if (au->timing_sec) au->timing = (u32) (au->timing_sec * esd->slConfig->timestampResolution);
 //			samp->DTS = au->timing;
 			e = gf_bifs_encode_au(bifsenc, sc->ESID, au->commands, &samp->data, &samp->dataLength);
 			if (1)

@@ -508,8 +508,9 @@ void R3D_InitTouchSensor(Render3D *sr, GF_Node *node)
 
 void RenderProximitySensor(GF_Node *node, void *rs)
 {
-	SFVec3f user_pos, dist;
+	SFVec3f user_pos, dist, up;
 	SFRotation ori;
+	GF_Matrix mx;
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 	M_ProximitySensor *ps = (M_ProximitySensor *)node;
 
@@ -521,8 +522,12 @@ void RenderProximitySensor(GF_Node *node, void *rs)
 		return;
 	} else if (!ps->enabled || (eff->traversing_mode != TRAVERSE_SORT) ) return;
 
+	/*TODO FIXME - find a way to cache inverted matrix*/
+	gf_mx_copy(mx, eff->model_matrix);
+	gf_mx_inverse(&mx);
+	/*get use pos in local coord system*/
 	user_pos = eff->camera->position;
-	gf_mx_apply_vec(&eff->model_matrix, &user_pos);
+	gf_mx_apply_vec(&mx, &user_pos);
 	gf_vec_diff(dist, user_pos, ps->center);
 
 	if (dist.x<0) dist.x *= -1;
@@ -547,7 +552,9 @@ void RenderProximitySensor(GF_Node *node, void *rs)
 			gf_node_event_out_str(node, "position_changed");
 		}
 		dist = eff->camera->target;
-		gf_mx_apply_vec(&eff->model_matrix, &dist);
+		gf_mx_apply_vec(&mx, &dist);
+		up = eff->camera->up;
+		gf_mx_apply_vec(&mx, &up);
 		ori = camera_get_orientation(user_pos, dist, eff->camera->up);
 		if ((ori.q != ps->orientation_changed.q)
 			|| (ori.x != ps->orientation_changed.x)

@@ -1075,11 +1075,11 @@ void gf_path_iterator_del(GF_PathIterator *it)
     curDir = thisDir;							\
     cross = ConvexCross(dprev, dcur);					\
     if ( cross > 0 ) { \
-		if ( angleSign == -1 ) return GF_POLYGON_COMPLEX;		\
+		if ( angleSign == -1 ) return GF_POLYGON_COMPLEX_CW;		\
 		angleSign = 1;					\
 	}							\
     else if (cross < 0) {	\
-		if (angleSign == 1) return GF_POLYGON_COMPLEX;		\
+		if (angleSign == 1) return GF_POLYGON_COMPLEX_CCW;		\
 		angleSign = -1;				\
 	}						\
     pSecond = pThird;		\

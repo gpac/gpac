@@ -161,11 +161,11 @@ GF_Err WriteIniFile(GF_Config *iniFile)
 	file = fopen(iniFile->fileName, "wt");
 	if (!file) return GF_IO_ERR;
 
-	for (i=0; i<gf_list_count(iniFile->sections); i++) {
-		sec = gf_list_get(iniFile->sections, i);
+	i=0;
+	while ( (sec = gf_list_enum(iniFile->sections, &i)) ) {
 		fprintf(file, "[%s]\n", sec->section_name);
-		for (j=0; j<gf_list_count(sec->keys); j++) {
-			key = gf_list_get(sec->keys, j);
+		j=0;
+		while ( (key = gf_list_enum(sec->keys, &j)) ) {
 			fprintf(file, "%s=%s\n", key->name, key->value);
 		}
 		//end of section
@@ -204,16 +204,15 @@ const char *gf_cfg_get_key(GF_Config *iniFile, const char *secName, const char *
 	IniSection *sec;
 	IniKey *key;
 
-	for (i=0; i<gf_list_count(iniFile->sections); i++) {
-		sec = gf_list_get(iniFile->sections, i);
+	i=0;
+	while ( (sec = gf_list_enum(iniFile->sections, &i)) ) {
 		if (!strcmp(secName, sec->section_name)) goto get_key;
 	}
 	return NULL;
 
 get_key:
-
-	for (i=0; i<gf_list_count(sec->keys); i++) {
-		key = gf_list_get(sec->keys, i);
+	i=0;
+	while ( (key = gf_list_enum(sec->keys, &i)) ) {
 		if (!strcmp(key->name, keyName)) return key->value;
 	}
 	return NULL;
@@ -229,8 +228,8 @@ GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyNa
 
 	if (!iniFile || !secName || !keyName) return GF_BAD_PARAM;
 
-	for (i=0; i<gf_list_count(iniFile->sections); i++) {
-		sec = gf_list_get(iniFile->sections, i);
+	i=0;
+	while ((sec = gf_list_enum(iniFile->sections, &i)) ) {
 		if (!strcmp(secName, sec->section_name)) goto get_key;
 	}
 	//need a new key
@@ -241,9 +240,8 @@ GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyNa
 	gf_list_add(iniFile->sections, sec);
 
 get_key:
-
-	for (i=0; i<gf_list_count(sec->keys); i++) {
-		key = gf_list_get(sec->keys, i);
+	i=0;
+	while ( (key = gf_list_enum(sec->keys, &i) ) ) {
 		if (!strcmp(key->name, keyName)) goto set_value;
 	}
 	if (!keyValue) return GF_OK;
@@ -281,10 +279,9 @@ const char *gf_cfg_get_section_name(GF_Config *iniFile, u32 secIndex)
 }
 u32 gf_cfg_get_key_count(GF_Config *iniFile, const char *secName)
 {
-	u32 i;
+	u32 i = 0;
 	IniSection *sec;
-	for (i=0; i<gf_list_count(iniFile->sections); i++) {
-		sec = gf_list_get(iniFile->sections, i);
+	while ( (sec = gf_list_enum(iniFile->sections, &i)) ) {
 		if (!strcmp(secName, sec->section_name)) return gf_list_count(sec->keys);
 	}
 	return 0;
@@ -292,10 +289,9 @@ u32 gf_cfg_get_key_count(GF_Config *iniFile, const char *secName)
 
 const char *gf_cfg_get_key_name(GF_Config *iniFile, const char *secName, u32 keyIndex)
 {
-	u32 i;
+	u32 i = 0;
 	IniSection *sec;
-	for (i=0; i<gf_list_count(iniFile->sections); i++) {
-		sec = gf_list_get(iniFile->sections, i);
+	while ( (sec = gf_list_enum(iniFile->sections, &i) ) ) {
 		if (!strcmp(secName, sec->section_name)) {
 			IniKey *key = gf_list_get(sec->keys, keyIndex);
 			return key ? key->name : NULL;
@@ -312,17 +308,14 @@ GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *ke
 
 	if (!iniFile || !secName || !keyName|| !keyValue) return GF_BAD_PARAM;
 
-	sec = NULL;
-	for (i=0; i<gf_list_count(iniFile->sections); i++) {
-		sec = gf_list_get(iniFile->sections, i);
+	i=0;
+	while ( (sec = gf_list_enum(iniFile->sections, &i) ) ) {
 		if (!strcmp(secName, sec->section_name)) break;
-		sec = NULL;
 	}
 	if (!sec) return GF_BAD_PARAM;
 
-	key = NULL;
-	for (i=0; i<gf_list_count(sec->keys); i++) {
-		key = gf_list_get(sec->keys, i);
+	i=0;
+	while ( (key = gf_list_enum(sec->keys, &i) ) ) {
 		if (!strcmp(key->name, keyName)) return GF_BAD_PARAM;
 	}
 

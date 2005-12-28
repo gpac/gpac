@@ -152,8 +152,8 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	ESID = 0;
 	ctrl = NULL;
 	range = NULL;
-	for (i=0; i<gf_list_count(media->Attributes); i++) {
-		att = gf_list_get(media->Attributes, i);
+	i=0;
+	while ((att = gf_list_enum(media->Attributes, &i))) {
 		if (!stricmp(att->Name, "control")) ctrl = att->Value;
 		else if (!stricmp(att->Name, "mpeg4-esid") && att->Value) ESID = atoi(att->Value);
 		else if (!stricmp(att->Name, "range") && !range) range = gf_rtsp_range_parse(att->Value);

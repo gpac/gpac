@@ -53,10 +53,10 @@ GF_ObjectManager *gf_odm_new()
 
 void gf_odm_del(GF_ObjectManager *odm)
 {
-	u32 i, count;
-	count = gf_list_count(odm->ms_stack);
-	for (i = 0; i<count; i++) {
-		MediaSensorStack *media_sens = gf_list_get(odm->ms_stack, i);
+	u32 i;
+	MediaSensorStack *media_sens;
+	i=0;
+	while ((media_sens = gf_list_enum(odm->ms_stack, &i))) {
 		MS_Stop(media_sens);
 		/*and detach from stream object*/
 		media_sens->is_init = 0;
@@ -103,11 +103,11 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 			odm->net_service->owner = NULL;
 			/*try to assign a new root in case this is not scene shutdown*/
 			if (odm->net_service->nb_odm_users && odm->parentscene) {
-				u32 i;
-				for (i=0; i<gf_list_count(odm->parentscene->ODlist); i++) {
-					GF_ObjectManager *new_root = gf_list_get(odm->parentscene->ODlist, i);
-					if (new_root == odm) continue;
+				GF_ObjectManager *new_root;
+				u32 i = 0;
+				while ((new_root = gf_list_enum(odm->parentscene->ODlist, &i)) ) {
 					while (new_root->remote_OD) new_root = new_root->remote_OD;
+					if (new_root == odm) continue;
 					if (new_root->net_service != odm->net_service) continue;
 					new_root->net_service->owner = new_root;
 					break;
@@ -137,7 +137,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 
 	/*delete from the parent scene.*/
 	if (odm->parentscene) {
-		gf_is_remove_object(odm->parentscene, odm);
+		gf_is_remove_object(odm->parentscene, odm, do_remove);
 		if (odm->subscene) gf_is_del(odm->subscene);
 		if (odm->parent_OD) odm->parent_OD->remote_OD = NULL;
 		gf_odm_del(odm);
@@ -162,9 +162,10 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 }
 
 /*setup service for OD (extract IOD and go)*/
-void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *sub_url)
+void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url)
 {
 	u32 od_type;
+	char *sub_url = (char *) service_sub_url;
 	GF_ObjectManager *par;
 	GF_Terminal *term;
 	GF_Descriptor *desc;
@@ -180,8 +181,11 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *sub_url)
 	while (par->parent_OD) par = par->parent_OD;
 	if (par->parentscene && par->OD && par->OD->URLString) {
 		GF_MediaObject *mo;
+		char *ext;
 		mo = gf_is_find_object(par->parentscene, par->OD->objectDescriptorID, par->OD->URLString);
 		if (mo) od_type = mo->type;
+		ext = strchr(par->OD->URLString, '#');
+		if (ext) sub_url = ext;
 	}
 
 	desc = odm->net_service->ifce->GetServiceDescriptor(odm->net_service->ifce, od_type, sub_url); 
@@ -222,8 +226,9 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *sub_url)
 	if (toolList) {
 		Bool ipmp_failed = 0;
 /*
-		for (i=0; i<gf_list_count(toolList->ipmp_tools); i++) {
-			GF_IPMP_Tool *ipmpt = gf_list_get(toolList->ipmp_tools, i);
+		GF_IPMP_Tool *ipmpt;
+		i=0;
+		while ((ipmpt = gf_list_enum(toolList->ipmp_tools, &i))) {
 			if (!Term_CheckIPMPTool(odm->term, ipmpt)) {
 				ipmp_failed = 1;
 				break;
@@ -258,10 +263,9 @@ err_exit:
 /*locate ESD by ID*/
 static GF_ESD *od_get_esd(GF_ObjectDescriptor *OD, u16 ESID)
 {
-	u32 i;
 	GF_ESD *esd;
-	for (i=0; i<gf_list_count(OD->ESDescriptors); i++) {
-		esd = gf_list_get(OD->ESDescriptors, i);
+	u32 i = 0;
+	while ((esd = gf_list_enum(OD->ESDescriptors, &i)) ) {
 		if (esd->ESID==ESID) return esd;
 	}
 	return NULL;
@@ -270,11 +274,12 @@ static GF_ESD *od_get_esd(GF_ObjectDescriptor *OD, u16 ESID)
 static void ODM_SelectAlternateStream(GF_ObjectManager *odm, u32 lang_code, u8 stream_type)
 {
 	u32 i;
+	GF_ESD *esd;
 	u16 def_id, es_id;
 
 	def_id = 0;
-	for (i=0; i<gf_list_count(odm->OD->ESDescriptors); i++) {
-		GF_ESD *esd = gf_list_get(odm->OD->ESDescriptors, i);
+	i=0;
+	while ( (esd = gf_list_enum(odm->OD->ESDescriptors, &i)) ) {
 		if (esd->decoderConfig->streamType != stream_type) continue;
 
 		if (!esd->langDesc) {
@@ -290,8 +295,8 @@ static void ODM_SelectAlternateStream(GF_ObjectManager *odm, u32 lang_code, u8 s
 	}
 
 	/*remove all other media streams*/
-	for (i=0; i<gf_list_count(odm->OD->ESDescriptors); i++) {
-		GF_ESD *esd = (GF_ESD *)gf_list_get(odm->OD->ESDescriptors, i);
+	i=0;
+	while ((esd = gf_list_enum(odm->OD->ESDescriptors, &i)) ) {
 		if (esd->decoderConfig->streamType != stream_type) continue;
 
 		/*get base stream ID for this stream*/
@@ -333,8 +338,8 @@ GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline, Bool *externalCloc
 	*externalClock = 0;
 
 	/*step 1: validate OD*/
-	for (i = 0; i < gf_list_count(odm->OD->ESDescriptors); i++) {
-		esd = (GF_ESD *)gf_list_get(odm->OD->ESDescriptors, i);
+	i=0;
+	while ((esd = gf_list_enum(odm->OD->ESDescriptors, &i))) {
 		/*check external clock refs*/
 		if (esd->OCRESID && (esd->OCRESID!=esd->ESID) && (od_get_esd(odm->OD, esd->OCRESID) == NULL) ) {
 			*externalClock = 1;
@@ -392,8 +397,8 @@ GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline, Bool *externalCloc
 	/*check if inline or animation stream*/
 	*hasInline = 1;
 	base_scene = NULL;
-	for (i=0; i<gf_list_count(odm->OD->ESDescriptors); i++) {
-		esd = (GF_ESD *)gf_list_get(odm->OD->ESDescriptors, i);
+	i=0;
+	while ( (esd = gf_list_enum(odm->OD->ESDescriptors, &i)) ) {
 		switch (esd->decoderConfig->streamType) {
 		case GF_STREAM_PRIVATE_SCENE:
 		case GF_STREAM_SCENE: 
@@ -436,6 +441,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	Bool hasInline, externalClock;
 	u32 i, numOK;
 	GF_Err e;
+	GF_ESD *esd;
 
 	if (!odm->net_service) odm->net_service = serv;
 	
@@ -486,8 +492,8 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	/*avoid channels PLAY request when confirming connection (sync network service)*/
 	odm->is_open = 2;
 
-	for (i=0; i<gf_list_count(odm->OD->ESDescriptors); i++) {
-		GF_ESD *esd = gf_list_get(odm->OD->ESDescriptors, i);
+	i=0;
+	while ((esd = gf_list_enum(odm->OD->ESDescriptors, &i)) ) {
 		e = gf_odm_setup_es(odm, esd, serv);
 		/*notify error but still go on, all streams are not so usefull*/
 		if (e==GF_OK) 
@@ -557,8 +563,8 @@ void gf_odm_refresh_uninteractives(GF_ObjectManager *odm)
 	in_scene = odm->parentscene;
 	if (odm->subscene && odm->subscene->root_od == odm) {
 		in_scene = odm->subscene;
-		for (j=0; j<gf_list_count(odm->channels); j++) {
-			ch = gf_list_get(odm->channels, j);
+		i=0;
+		while ((ch = gf_list_enum(odm->channels, &i)) ) {
 			if (ch->clock->no_time_ctrl) {
 				odm->no_time_ctrl = 1;
 				break;
@@ -566,11 +572,11 @@ void gf_odm_refresh_uninteractives(GF_ObjectManager *odm)
 		}
 	}
 
-	for (i=0; i<gf_list_count(in_scene->ODlist); i++) {
-		test_od = gf_list_get(in_scene->ODlist, i);
+	i=0;
+	while ((test_od = gf_list_enum(in_scene->ODlist, &i)) ) {
 		if (odm==test_od) continue;
-		for (j=0; j<gf_list_count(test_od->channels); j++) {
-			ch = gf_list_get(test_od->channels, j);
+		j=0;
+		while ((ch = gf_list_enum(test_od->channels, &j)) ) {
 			if (ch->clock->no_time_ctrl) {
 				test_od->no_time_ctrl = 1;
 				break;
@@ -970,20 +976,19 @@ void gf_odm_remove_es(GF_ObjectManager *odm, u16 ES_ID)
 {
 	GF_ESD *esd;
 	GF_Channel *ch;
-	u32 i;
-	for (i=0; i<gf_list_count(odm->OD->ESDescriptors); i++) {
-		esd = gf_list_get(odm->OD->ESDescriptors, i);
+	u32 i = 0;
+	while ((esd = gf_list_enum(odm->OD->ESDescriptors, &i)) ) {
 		if (esd->ESID==ES_ID) goto esd_found;
 	}
 	return;
 
 esd_found:
 	/*remove esd*/
-	gf_list_rem(odm->OD->ESDescriptors, i);
+	gf_list_rem(odm->OD->ESDescriptors, i-1);
 	/*locate channel*/
 	ch = NULL;
-	for (i=0; i<gf_list_count(odm->channels); i++) {
-		ch = gf_list_get(odm->channels, i);
+	i=0;
+	while ((ch = gf_list_enum(odm->channels, &i)) ) {
 		if (ch->esd->ESID == ES_ID) break;
 		ch = NULL;
 	}
@@ -1000,12 +1005,12 @@ void gf_odm_start(GF_ObjectManager *odm)
 	gf_term_lock_net(odm->term, 1);
 	/*only if not open & ready (not waiting for ACK on channel setup)*/
 	if (!odm->is_open && !odm->pending_channels) {
-		u32 i;
+		GF_Channel *ch;
+		u32 i = 0;
 		odm->is_open = 1;
 		/*start all channels and postpone play - this assures that all channels of a multiplexed are setup
 		before one starts playing*/
-		for (i=0; i<gf_list_count(odm->channels); i++) {
-			GF_Channel *ch = gf_list_get(odm->channels, i);
+		while ( (ch = gf_list_enum(odm->channels, &i)) ) {
 			gf_es_start(ch);
 		}
 		if (gf_list_find(odm->term->od_pending, odm)<0) gf_list_add(odm->term->od_pending, odm);
@@ -1015,6 +1020,7 @@ void gf_odm_start(GF_ObjectManager *odm)
 
 void gf_odm_play(GF_ObjectManager *odm)
 {
+	GF_Channel *ch;
 	u32 i;
 	Bool skip_od_st;
 	GF_NetworkCommand com;
@@ -1024,9 +1030,9 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 	/*send play command*/
 	com.command_type = GF_NET_CHAN_PLAY;
-	for (i=0; i<gf_list_count(odm->channels); i++) {
+	i=0;
+	while ( (ch = gf_list_enum(odm->channels, &i)) ) {
 		Double ck_time;
-		GF_Channel *ch = gf_list_get(odm->channels, i);
 
 		com.base.on_channel = ch;
 		com.play.speed = 1.0;
@@ -1105,8 +1111,10 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 {
-	u32 i, count;
+	GF_Channel *ch;
+	u32 i;
 	MediaControlStack *ctrl;
+	MediaSensorStack *media_sens;
 	GF_NetworkCommand com;
 	
 	gf_list_del_item(odm->term->od_pending, odm);
@@ -1129,15 +1137,15 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	if (odm->oci_codec) gf_mm_stop_codec(odm->oci_codec);
 
 	/*stop channels*/
-	for (i=0; i<gf_list_count(odm->channels); i++) {
-		GF_Channel *ch = gf_list_get(odm->channels, i);
+	i=0;
+	while ((ch = gf_list_enum(odm->channels, &i)) ) {
 		gf_es_stop(ch);
 	}
 
 	/*send stop command*/
 	com.command_type = GF_NET_CHAN_STOP;
-	for (i=0; i<gf_list_count(odm->channels); i++) {
-		GF_Channel *ch = gf_list_get(odm->channels, i);
+	i=0;
+	while ((ch = gf_list_enum(odm->channels, &i)) ) {
 		com.base.on_channel = ch;
 		gf_term_service_command(ch->service, &com);
 	}
@@ -1146,9 +1154,8 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	odm->current_time = 0;
 
 	/*reset media sensor(s)*/
-	count = gf_list_count(odm->ms_stack);
-	for (i = 0; i<count; i++) {
-		MediaSensorStack *media_sens = gf_list_get(odm->ms_stack, i);
+	i = 0;
+	while ((media_sens = gf_list_enum(odm->ms_stack, &i))){
 		MS_Stop(media_sens);
 	}
 	/*reset media control state*/
@@ -1226,8 +1233,8 @@ void ODM_SetMediaControl(GF_ObjectManager *odm, MediaControlStack *ctrl)
 	if (ctrl && !ctrl->control->enabled) return;
 
 	/*for each clock in the controled OD*/
-	for (i=0; i<gf_list_count(odm->channels); i++) {
-		ch = gf_list_get(odm->channels, i);
+	i=0;
+	while ((ch = gf_list_enum(odm->channels, &i))) {
 		if (ch->clock->mc != ctrl) {
 			/*deactivate current control*/
 			if (ctrl && ch->clock->mc) {
@@ -1271,11 +1278,12 @@ void ODM_RemoveMediaControl(GF_ObjectManager *odm, MediaControlStack *ctrl)
 Bool ODM_SwitchMediaControl(GF_ObjectManager *odm, MediaControlStack *ctrl)
 {
 	u32 i;
+	MediaControlStack *st2;
 	if (!ctrl->control->enabled) return 0;
 
 	/*for all media controls other than this one force enable to false*/
-	for (i=0; i<gf_list_count(odm->mc_stack); i++) {
-		MediaControlStack *st2 = gf_list_get(odm->mc_stack, i);
+	i=0;
+	while ((st2 = gf_list_enum(odm->mc_stack, &i))) {
 		if (st2 == ctrl) continue;
 		if (st2->control->enabled) {
 			st2->control->enabled = 0;
@@ -1290,10 +1298,9 @@ Bool ODM_SwitchMediaControl(GF_ObjectManager *odm, MediaControlStack *ctrl)
 
 Bool gf_odm_shares_clock(GF_ObjectManager *odm, GF_Clock *ck)
 {
-	u32 i;
+	u32 i = 0;
 	GF_Channel *ch;
-	for (i=0; i<gf_list_count(odm->channels); i++) {
-		ch = gf_list_get(odm->channels, i);
+	while ((ch = gf_list_enum(odm->channels, &i))) {
 		if (ch->clock == ck) return 1;
 	}
 	return 0;
@@ -1305,6 +1312,7 @@ void gf_odm_pause(GF_ObjectManager *odm)
 {
 	u32 i;
 	GF_NetworkCommand com;
+	MediaSensorStack *media_sens;
 	GF_Channel *ch;
 
 	if (odm->no_time_ctrl) return;
@@ -1325,16 +1333,16 @@ void gf_odm_pause(GF_ObjectManager *odm)
 	if (odm->oci_codec) gf_mm_stop_codec(odm->oci_codec);
 
 	com.command_type = GF_NET_CHAN_PAUSE;
-	for (i=0; i<gf_list_count(odm->channels); i++) {
-		ch = gf_list_get(odm->channels, i); 
+	i=0;
+	while ((ch = gf_list_enum(odm->channels, &i))) {
 		gf_clock_pause(ch->clock);
 		com.base.on_channel = ch;
 		gf_term_service_command(ch->service, &com);
 	}
 
 	/*mediaSensor  shall generate isActive false when paused*/
-	for (i = 0; i<gf_list_count(odm->ms_stack); i++) {
-		MediaSensorStack *media_sens = gf_list_get(odm->ms_stack, i);
+	i=0;
+	while ((media_sens = gf_list_enum(odm->ms_stack, &i)) ) {
 		if (media_sens && media_sens->sensor->isActive) {
 			media_sens->sensor->isActive = 0;
 			gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
@@ -1347,6 +1355,7 @@ void gf_odm_resume(GF_ObjectManager *odm)
 	u32 i;
 	GF_NetworkCommand com;
 	GF_Channel *ch;
+	MediaSensorStack *media_sens;
 
 	if (odm->no_time_ctrl) return;
 
@@ -1366,16 +1375,16 @@ void gf_odm_resume(GF_ObjectManager *odm)
 	if (odm->oci_codec) gf_mm_start_codec(odm->oci_codec);
 	
 	com.command_type = GF_NET_CHAN_RESUME;
-	for (i=0; i<gf_list_count(odm->channels); i++) {
-		ch = gf_list_get(odm->channels, i); 
+	i=0;
+	while ((ch = gf_list_enum(odm->channels, &i)) ){
 		gf_clock_resume(ch->clock);
 		com.base.on_channel = ch;
 		gf_term_service_command(ch->service, &com);
 	}
 
 	/*mediaSensor shall generate isActive TRUE when resumed*/
-	for (i = 0; i<gf_list_count(odm->ms_stack); i++) {
-		MediaSensorStack *media_sens = gf_list_get(odm->ms_stack, i);
+	i=0;
+	while ((media_sens = gf_list_enum(odm->ms_stack, &i)) ){
 		if (media_sens && !media_sens->sensor->isActive) {
 			media_sens->sensor->isActive = 1;
 			gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
@@ -1393,8 +1402,8 @@ void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed)
 
 	com.command_type = GF_NET_CHAN_SET_SPEED;
 	com.play.speed = FIX2FLT(speed);
-	for (i=0; i<gf_list_count(odm->channels); i++) {
-		ch = gf_list_get(odm->channels, i); 
+	i=0;
+	while ((ch = gf_list_enum(odm->channels, &i)) ) {
 		gf_clock_set_speed(ch->clock, speed);
 		com.play.on_channel = ch;
 		gf_term_service_command(ch->service, &com);
@@ -1403,9 +1412,9 @@ void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed)
 
 GF_Segment *ODM_GetSegment(GF_ObjectManager *odm, char *descName)
 {
-	u32 i;
-	for (i=0; i<gf_list_count(odm->OD->OCIDescriptors); i++) {
-		GF_Segment *desc = gf_list_get(odm->OD->OCIDescriptors, i);
+	GF_Segment *desc;
+	u32 i = 0;
+	while ( (desc = gf_list_enum(odm->OD->OCIDescriptors, &i)) ){
 		if (desc->tag != GF_ODF_SEGMENT_TAG) continue;
 		if (!stricmp(desc->SegmentName, descName)) return desc;
 	}
@@ -1416,9 +1425,9 @@ static void ODM_InsertSegment(GF_ObjectManager *odm, GF_Segment *seg, GF_List *l
 {
 	/*this reorders segments when inserting into list - I believe this is not compliant*/
 #if 0
-	u32 i;
-	for (i=0; i<gf_list_count(list); i++) {
-		GF_Segment *desc = gf_list_get(list, i);
+	GF_Segment *desc;
+	u32 i = 0;
+	while ((desc = gf_list_enum(list, &i))) {
 		if (desc == seg) return;
 		if (seg->startTime + seg->Duration <= desc->startTime) {
 			gf_list_insert(list, seg, i);
@@ -1434,7 +1443,7 @@ void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url)
 {
 	char *str, *sep;
 	char seg1[1024], seg2[1024], seg_url[4096];
-	GF_Segment *first_seg, *last_seg;
+	GF_Segment *first_seg, *last_seg, *seg;
 	u32 i, j;
 
 	/*browse all URLs*/
@@ -1470,8 +1479,8 @@ void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url)
 		}
 		/*segment range process*/
 		ODM_InsertSegment(odm, first_seg, list);
-		for (j=0; j<gf_list_count(odm->OD->OCIDescriptors); j++) {
-			GF_Segment *seg = gf_list_get(odm->OD->OCIDescriptors, j);
+		j=0;
+		while ( (seg = gf_list_enum(odm->OD->OCIDescriptors, &j)) ) {
 			if (seg->tag != GF_ODF_SEGMENT_TAG) continue;
 			if (seg==first_seg) continue;
 			if (seg->startTime + seg->Duration <= first_seg->startTime) continue;

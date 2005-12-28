@@ -221,7 +221,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 {
 	FILE *srt_in;
 	Double scale;
-	u32 track, timescale, i;
+	u32 track, timescale, i, count;
 	GF_TextConfig*cfg;
 	GF_Err e;
 	GF_StyleRecord rec;
@@ -286,7 +286,8 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		gf_isom_set_track_layout_info(import->dest, track, cfg->text_width<<16, cfg->text_height<<16, 0, 0, cfg->layer);
 
 		/*and set sample descriptions*/
-		for (i=0; i<gf_list_count(cfg->sample_descriptions); i++) {
+		count = gf_list_count(cfg->sample_descriptions);
+		for (i=0; i<count; i++) {
 			GF_TextSampleDescriptor *sd= gf_list_get(cfg->sample_descriptions, i);
 			if (!sd->font_count) {
 				sd->fonts = malloc(sizeof(GF_FontRecord));
@@ -634,12 +635,14 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 	file_size = 0;
 	/*setup track*/
 	if (cfg) {
+		u32 count;
 		char *firstFont = NULL;
 		/*set track info*/
 		gf_isom_set_track_layout_info(import->dest, track, cfg->text_width<<16, cfg->text_height<<16, 0, 0, cfg->layer);
 
 		/*and set sample descriptions*/
-		for (i=0; i<gf_list_count(cfg->sample_descriptions); i++) {
+		count = gf_list_count(cfg->sample_descriptions);
+		for (i=0; i<count; i++) {
 			GF_TextSampleDescriptor *sd= gf_list_get(cfg->sample_descriptions, i);
 			if (!sd->font_count) {
 				sd->fonts = malloc(sizeof(GF_FontRecord));

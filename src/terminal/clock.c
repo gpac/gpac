@@ -46,8 +46,8 @@ GF_Clock *gf_clock_find(GF_List *Clocks, u16 clockID, u16 ES_ID)
 {
 	u32 i;
 	GF_Clock *tmp;
-	for (i = 0; i< gf_list_count(Clocks); i++) {
-		tmp = gf_list_get(Clocks, i);
+	i=0;
+	while ((tmp = gf_list_enum(Clocks, &i))) {
 		//first check the clock ID
 		if (tmp->clockID == clockID) return tmp;
 		//then check the ES ID
@@ -60,16 +60,19 @@ GF_Clock *gf_clock_find(GF_List *Clocks, u16 clockID, u16 ES_ID)
 GF_Clock *CK_LookForClockDep(struct _inline_scene *is, u16 clockID)
 {
 	u32 i, j;
+	GF_Channel *ch;
+	GF_ObjectManager *odm;
+
 	/*check in top OD*/
-	for (i=0; i<gf_list_count(is->root_od->channels); i++) {
-		GF_Channel *ch = gf_list_get(is->root_od->channels, i);
+	i=0;
+	while ((ch = gf_list_enum(is->root_od->channels, &i))) {
 		if (ch->esd->ESID == clockID) return ch->clock;
 	}
 	/*check in sub ODs*/
-	for (j=0; j<gf_list_count(is->ODlist); j++) {
-		GF_ObjectManager *odm = gf_list_get(is->ODlist, j);
-		for (i=0; i<gf_list_count(odm->channels); i++) {
-			GF_Channel *ch = gf_list_get(odm->channels, i);
+	j=0;
+	while ((odm = gf_list_enum(is->ODlist, &j))) {
+		i=0;
+		while ((ch = gf_list_enum(odm->channels, &i))) {
 			if (ch->esd->ESID == clockID) return ch->clock;
 		}
 	}
@@ -80,11 +83,14 @@ GF_Clock *CK_LookForClockDep(struct _inline_scene *is, u16 clockID)
 void CK_ResolveClockDep(GF_List *clocks, struct _inline_scene *is, GF_Clock *ck, u16 Clock_ESID)
 {
 	u32 i, j;
+	GF_Clock *clock;
+	GF_Channel *ch;
+	GF_ObjectManager *odm;
 
 	/*check all channels - if any is using a clock which ID is the clock_ESID then
 	this clock shall be removed*/
-	for (i=0; i<gf_list_count(is->root_od->channels); i++) {
-		GF_Channel *ch = gf_list_get(is->root_od->channels, i);
+	i=0;
+	while ((ch = gf_list_enum(is->root_od->channels, &i))) {
 		if (ch->clock->clockID == Clock_ESID) {
 			if (is->scene_codec && is->scene_codec->ck == ch->clock) is->scene_codec->ck = ck;
 			if (is->od_codec && is->od_codec->ck == ch->clock) is->od_codec->ck = ck;
@@ -93,10 +99,10 @@ void CK_ResolveClockDep(GF_List *clocks, struct _inline_scene *is, GF_Clock *ck,
 			if (ch->esd) ch->esd->OCRESID = ck->clockID;
 		}
 	}
-	for (j=0; j<gf_list_count(is->ODlist); j++) {
-		GF_ObjectManager *odm = gf_list_get(is->ODlist, j);
-		for (i=0; i<gf_list_count(odm->channels); i++) {
-			GF_Channel *ch = gf_list_get(odm->channels, i);
+	j=0;
+	while ((odm = gf_list_enum(is->ODlist, &j))) {
+		i=0;
+		while ((ch = gf_list_enum(odm->channels, &i))) {
 			if (ch->clock->clockID == Clock_ESID) {
 				if (odm->codec && (odm->codec->ck==ch->clock)) odm->codec->ck = ck;
 				if (odm->oci_codec && (odm->oci_codec->ck==ch->clock)) odm->oci_codec->ck = ck;
@@ -106,10 +112,10 @@ void CK_ResolveClockDep(GF_List *clocks, struct _inline_scene *is, GF_Clock *ck,
 		}
 	}
 	/*destroy clock*/
-	for (i=0; i<gf_list_count(clocks); i++) {
-		GF_Clock *clock = gf_list_get(clocks, i);
+	i=0;
+	while ((clock = gf_list_enum(clocks, &i))) {
 		if (clock->clockID == Clock_ESID) {
-			gf_list_rem(clocks, i);
+			gf_list_rem(clocks, i-1);
 			gf_clock_del(clock);
 			return;
 		}

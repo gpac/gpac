@@ -134,12 +134,13 @@ static JSBool svg_connection_create(JSContext *c, JSObject *obj, uintN argc, jsv
 
 static JSBool svg_nav_to_location(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
+	GF_JSAPIParam par;
 	GF_SceneGraph *sg;
-	char *url;
 	if ((argc!=1) || !JS_InstanceOf(c, obj, &globalClass, NULL)) return JS_FALSE;
 	sg = JS_GetContextPrivate(c);
-	url = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-	sg->js_ifce->LoadURL(sg->js_ifce->callback, url, NULL, 0);
+	par.uri.url = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	par.uri.nb_params = 0;
+	sg->js_ifce->ScriptAction(sg->js_ifce->callback, GF_JSAPI_OP_LOAD_URL, sg->RootNode, &par);
 	return JS_FALSE;
 }
 
@@ -442,7 +443,7 @@ static JSBool svg_doc_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *
 		/*localName*/
 		case 1:
 			sg->js_ifce->ScriptAction(sg->js_ifce, GF_JSAPI_OP_GET_SCENE_URI, sg->RootNode, &par);
-			s = JS_NewStringCopyZ(c, par.url);
+			s = JS_NewStringCopyZ(c, par.uri.url);
 			*vp = STRING_TO_JSVAL(s);
 			return JS_TRUE;
 		/*parentNode is NULL*/

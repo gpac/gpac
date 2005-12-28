@@ -159,9 +159,9 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug,
 
 	/*animation stream like*/
 	if (priv->ctx) {
-		u32 i;
-		for (i=0; i<gf_list_count(priv->ctx->streams); i++) {
-			GF_StreamContext *sc = gf_list_get(priv->ctx->streams, i);
+		GF_StreamContext *sc;
+		u32 i = 0;
+		while ((sc = gf_list_enum(priv->ctx->streams, &i))) {
 			if (ES_ID == sc->ESID) {
 				priv->nb_streams++;
 				return GF_OK;
@@ -175,7 +175,7 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug,
 	priv->file_size = gf_bs_read_u32(bs);
 	gf_bs_del(bs);
 	GF_SAFEALLOC(priv->file_name, sizeof(char)*(1 + decSpecInfoSize - sizeof(u32)) );
-	memcpy(priv->file_name, decSpecInfo + sizeof(u32), decSpecInfoSize - sizeof(u32) );
+	memcpy(priv->file_name, decSpecInfo + sizeof(u32),  sizeof(char)*(decSpecInfoSize - sizeof(u32)) );
 	priv->nb_streams = 1;
 	priv->load_flags = 0;
 	priv->base_stream_id = ES_ID;
@@ -301,16 +301,15 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 		/*and figure out duration of root scene, and take care of XMT timing*/
 		if (priv->load_flags==2) {
 			max_dur = 0;
-			for (i=0; i<gf_list_count(priv->ctx->streams); i++) {
-				sc = gf_list_get(priv->ctx->streams, i);
+			i=0;
+			while ((sc = gf_list_enum(priv->ctx->streams, &i))) {
 				/*all streams in root OD are handled with ESID 0 to differentiate with any animation streams*/
 				if (CTXLoad_StreamInRootOD(priv->ctx->root_od, sc->ESID)) sc->ESID = 0;
 				if (!sc->timeScale) sc->timeScale = 1000;
 
-				au = NULL;
-				for (j = 0; j<gf_list_count(sc->AUs); j++) {
-					au = gf_list_get(sc->AUs, j);
-					if (!au->timing) au->timing = (u32) (sc->timeScale*au->timing_sec);
+				j=0;
+				while ((au = gf_list_enum(sc->AUs, &j))) {
+					if (!au->timing) au->timing = (u64) (sc->timeScale*au->timing_sec);
 				}
 				if (au && !sc->ESID && (au->timing>max_dur)) max_dur = (u32) (au->timing * 1000 / sc->timeScale);
 			}
@@ -326,8 +325,8 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 
 	nb_updates = 0;
 
-	for (i=0; i<gf_list_count(priv->ctx->streams); i++) {
-		GF_StreamContext *sc = gf_list_get(priv->ctx->streams, i);
+	i=0;
+	while ((sc = gf_list_enum(priv->ctx->streams, &i))) {
 		/*not our stream*/
 		if (sc->ESID && (sc->ESID != ES_ID)) continue;
 		/*not the base stream*/
@@ -349,8 +348,8 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 		if (!sc->ESID && (priv->load_flags==2)) can_delete_com = 1;
 
 		/*we're in the right stream, apply update*/
-		for (j=0; j<gf_list_count(sc->AUs); j++) {
-			GF_AUContext *au = gf_list_get(sc->AUs, j);
+		j=0;
+		while ((au = gf_list_enum(sc->AUs, &j))) {
 			u32 au_time = (u32) (au->timing*1000/sc->timeScale);
 			if (au_time + 1 <= sc->last_au_time) {
 				/*remove first replace command*/
@@ -360,10 +359,10 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 						gf_list_rem(au->commands, 0);
 						gf_sg_command_del(com);
 					}
+					j--;
 					gf_list_rem(sc->AUs, j);
 					gf_list_del(au->commands);
 					free(au);
-					j--;
 				}
 				continue;
 			}
@@ -373,16 +372,17 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 			}
 
 			if (sc->streamType == GF_STREAM_SCENE) {
+				GF_Command *com;
 				/*apply the commands*/
-				for (k=0; k<gf_list_count(au->commands); k++) {
-					GF_Command *com = gf_list_get(au->commands, k);
+				k=0;
+				while ((com = gf_list_enum(au->commands, &k))) {
 					e = gf_sg_command_apply(priv->inline_scene->graph, com, 0);
 					if (e) break;
 					/*remove commands on base layer*/
 					if (can_delete_com) {
+						k--;
 						gf_list_rem(au->commands, k);
 						gf_sg_command_del(com);
-						k--;
 					}
 				}
 			} 
@@ -421,8 +421,8 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 								continue;
 							}
 							/*look for MUX info*/
-							for (k=0; k<gf_list_count(esd->extensionDescriptors); k++) {
-								mux = gf_list_get(esd->extensionDescriptors, k);
+							k=0;
+							while ((mux = gf_list_enum(esd->extensionDescriptors, &k))) {
 								if (mux->tag == GF_ODF_MUXINFO_TAG) break;
 								mux = NULL;
 							}
@@ -520,10 +520,10 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 
 			/*for root streams remove completed AUs (no longer needed)*/
 			if (!sc->ESID && !gf_list_count(au->commands) ) {
+				j--;
 				gf_list_rem(sc->AUs, j);
 				gf_list_del(au->commands);
 				free(au);
-				j--;
 			}
 		}
 	}

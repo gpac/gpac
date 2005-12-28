@@ -27,7 +27,7 @@
 /*MPEG4 tags (for internal nodes)*/
 #include <gpac/nodes_mpeg4.h>
 
-void format_sftime_string(Fixed _val, char *str)
+static void format_sftime_string(Fixed _val, char *str)
 {
 	u32 h, m, s;
 	Bool neg = 0;
@@ -42,7 +42,7 @@ void format_sftime_string(Fixed _val, char *str)
 	sprintf(str, "%s%02d:%02d:%02d", neg ? "-" : "", h, m, s);
 }
 
-void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inMFField, u32 inType)
+static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inMFField, u32 inType)
 {
 	char str[500];
 	u32 i;
@@ -263,8 +263,8 @@ void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inMFField,
 	p->outSFString.buffer = strdup(str);
 
 	/*valuator is a special case, all routes are triggered*/
-	for (i=0; i<gf_list_count(p->sgprivate->events); i++) {
-		r = gf_list_get(p->sgprivate->events, i);
+	i=0;
+	while ((r = gf_list_enum(p->sgprivate->events, &i))) {
 		if (r->FromNode != (GF_Node *)p) continue;
 
 		if (r->IS_route) {
@@ -283,35 +283,35 @@ SFVec2f), for all components i of output.i, input.i shall take the value of the 
 conversion"
 */
 
-void Valuator_SetInSFBool(GF_Node *n)
+static void Valuator_SetInSFBool(GF_Node *n)
 {
 	SFVec4f val;
 	M_Valuator *_this = (M_Valuator *) n;
 	val.x = val.y = val.z = val.q = _this->inSFBool ? FIX_ONE : 0;
 	SetValuatorOutput(_this, &val, NULL, GF_SG_VRML_SFBOOL);
 }
-void Valuator_SetInSFFloat(GF_Node *n)
+static void Valuator_SetInSFFloat(GF_Node *n)
 {
 	SFVec4f val;
 	M_Valuator *_this = (M_Valuator *) n;
 	val.x = val.y = val.z = val.q = _this->inSFFloat;
 	SetValuatorOutput(_this, &val, NULL, GF_SG_VRML_SFFLOAT);
 }
-void Valuator_SetInSFInt32(GF_Node *n)
+static void Valuator_SetInSFInt32(GF_Node *n)
 {
 	SFVec4f val;
 	M_Valuator *_this = (M_Valuator *) n;
 	val.x = val.y = val.z = val.q = INT2FIX(_this->inSFInt32);
 	SetValuatorOutput(_this, &val, NULL, GF_SG_VRML_SFINT32);
 }
-void Valuator_SetInSFTime(GF_Node *n)
+static void Valuator_SetInSFTime(GF_Node *n)
 {
 	SFVec4f val;
 	M_Valuator *_this = (M_Valuator *) n;
 	val.x = val.y = val.z = val.q = FLT2FIX(_this->inSFTime);
 	SetValuatorOutput(_this, &val, NULL, GF_SG_VRML_SFTIME);
 }
-void Valuator_SetInSFColor(GF_Node *n)
+static void Valuator_SetInSFColor(GF_Node *n)
 {
 	SFVec4f val;
 	M_Valuator *_this = (M_Valuator *) n;
@@ -321,7 +321,7 @@ void Valuator_SetInSFColor(GF_Node *n)
 	val.q = 0;
 	SetValuatorOutput(_this, &val, NULL, GF_SG_VRML_SFCOLOR);
 }
-void Valuator_SetInSFVec2f(GF_Node *n)
+static void Valuator_SetInSFVec2f(GF_Node *n)
 {
 	SFVec4f val;
 	M_Valuator *_this = (M_Valuator *) n;
@@ -330,7 +330,7 @@ void Valuator_SetInSFVec2f(GF_Node *n)
 	val.z = val.q = 0;
 	SetValuatorOutput(_this, &val, NULL, GF_SG_VRML_SFVEC2F);
 }
-void Valuator_SetInSFVec3f(GF_Node *n)
+static void Valuator_SetInSFVec3f(GF_Node *n)
 {
 	SFVec4f val;
 	M_Valuator *_this = (M_Valuator *) n;
@@ -340,7 +340,7 @@ void Valuator_SetInSFVec3f(GF_Node *n)
 	val.q = 0;
 	SetValuatorOutput(_this, &val, NULL, GF_SG_VRML_SFVEC3F);
 }
-void Valuator_SetInSFRotation(GF_Node *n)
+static void Valuator_SetInSFRotation(GF_Node *n)
 {
 	SFVec4f val;
 	M_Valuator *_this = (M_Valuator *) n;
@@ -354,7 +354,7 @@ Convert if the content of the string represents an int, float or
 double value. ‘Boolean’ string values 'true' and 'false' are
 converted to 1.0 and 0.0 respectively. Any other string is converted to 0.0
 */
-void Valuator_SetInSFString(GF_Node *n)
+static void Valuator_SetInSFString(GF_Node *n)
 {
 	SFVec4f val;
 	M_Valuator *_this = (M_Valuator *) n;
@@ -372,39 +372,60 @@ void Valuator_SetInSFString(GF_Node *n)
 	SetValuatorOutput(_this, &val, NULL, GF_SG_VRML_SFSTRING);
 }
 
-void Valuator_SetInMFColor(GF_Node *n)
+static void Valuator_SetInMFColor(GF_Node *n)
 {
 	M_Valuator *_this = (M_Valuator *) n;
 	SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFColor, GF_SG_VRML_MFCOLOR);
 }
 
-void Valuator_SetInMFFloat(GF_Node *n)
+static void Valuator_SetInMFFloat(GF_Node *n)
 {
 	M_Valuator *_this = (M_Valuator *) n;
 	SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFFloat, GF_SG_VRML_MFFLOAT);
 }
-void Valuator_SetInMFInt32(GF_Node *n)
+static void Valuator_SetInMFInt32(GF_Node *n)
 {
 	M_Valuator *_this = (M_Valuator *) n;
 	SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFInt32, GF_SG_VRML_MFINT32);
 } 
-void Valuator_SetInMFVec2f(GF_Node *n)
+static void Valuator_SetInMFVec2f(GF_Node *n)
 {
 	M_Valuator *_this = (M_Valuator *) n;
 	SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFVec2f, GF_SG_VRML_MFVEC2F);
 }
-void Valuator_SetInMFVec3f(GF_Node *n)
+static void Valuator_SetInMFVec3f(GF_Node *n)
 {
 	M_Valuator *_this = (M_Valuator *) n;
 	SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFVec3f, GF_SG_VRML_MFVEC3F);
 }
-void Valuator_SetInMFRotation(GF_Node *n)
+static void Valuator_SetInMFRotation(GF_Node *n)
 {
 	M_Valuator *_this = (M_Valuator *) n;
 	SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFRotation, GF_SG_VRML_MFROTATION);
 }
-void Valuator_SetInMFString(GF_Node *n)
+static void Valuator_SetInMFString(GF_Node *n)
 {
 	M_Valuator *_this = (M_Valuator *) n;
 	SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFString, GF_SG_VRML_MFSTRING);
+}
+
+Bool InitValuator(M_Valuator *node)
+{
+	node->on_inSFTime = Valuator_SetInSFTime;
+	node->on_inSFBool = Valuator_SetInSFBool;
+	node->on_inSFColor = Valuator_SetInSFColor;
+	node->on_inSFInt32 = Valuator_SetInSFInt32;
+	node->on_inSFFloat = Valuator_SetInSFFloat;
+	node->on_inSFVec2f = Valuator_SetInSFVec2f;
+	node->on_inSFVec3f = Valuator_SetInSFVec3f;
+	node->on_inSFRotation = Valuator_SetInSFRotation;
+	node->on_inSFString = Valuator_SetInSFString;
+	node->on_inMFColor = Valuator_SetInMFColor;
+	node->on_inMFInt32 = Valuator_SetInMFInt32;
+	node->on_inMFFloat = Valuator_SetInMFFloat;
+	node->on_inMFVec2f = Valuator_SetInMFVec2f;
+	node->on_inMFVec3f = Valuator_SetInMFVec3f;
+	node->on_inMFRotation = Valuator_SetInMFRotation;
+	node->on_inMFString = Valuator_SetInMFString;
+	return 1;
 }

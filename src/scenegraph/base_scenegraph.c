@@ -170,12 +170,12 @@ void SG_GraphRemoved(GF_Node *node, GF_SceneGraph *sg)
 		}
 		else if (info.fieldType==GF_SG_VRML_MFNODE) {
 			mflist = *(GF_List **) info.far_ptr;
-			for (j=0; j<gf_list_count(mflist); j++) {
-				n = gf_list_get(mflist, j);
+			j=0;
+			while ((n = gf_list_enum(mflist, &j))) {
 				if (n->sgprivate->scenegraph==sg) {
 					gf_node_unregister(n, node);
-					gf_list_rem(mflist, j);
 					j--;
+					gf_list_rem(mflist, j);
 				} else {
 					SG_GraphRemoved(n, sg);
 				}
@@ -221,11 +221,12 @@ void gf_sg_reset(GF_SceneGraph *sg)
 		/*first replace all instances in parents by NULL WITHOUT UNREGISTERING (to avoid destroying the node).
 		This will take care of nodes referencing themselves*/
 #ifdef GF_ARRAY_PARENT_NODES
-		u32 j;
+		u32 j, count;
 		type = node->sgprivate->tag;
 		if ((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) type = 1;
 		else type = 0;
-		for (j=0; j<gf_list_count(node->sgprivate->parentNodes); j++) {
+		count = gf_list_count(node->sgprivate->parentNodes);
+		for (j=0; j<count; j++) {
 			GF_Node *par = gf_list_get(node->sgprivate->parentNodes, j);
 			if (type) {
 				ReplaceIRINode(par, node->sgprivate->NodeID, NULL);
@@ -409,6 +410,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 {
 	u32 node_ind, j;
 	GF_SceneGraph *pSG;
+	GF_Route *r;
 
 //	fprintf(stdout, "unregister %8x from %8x\n", pNode, parentNode);
 
@@ -468,8 +470,8 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	}
 
 	/*check all routes from or to this node and destroy them - cf spec*/
-	for (j=0; j<gf_list_count(pSG->Routes); j++) {
-		GF_Route *r = gf_list_get(pSG->Routes, j);
+	j=0;
+	while ((r = gf_list_enum(pSG->Routes, &j))) {
 		if ( (r->ToNode == pNode) || (r->FromNode == pNode)) {
 			gf_sg_route_del(r);
 			j--;
@@ -565,11 +567,12 @@ static void ReplaceDEFNode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool
 			break;
 		case GF_SG_VRML_MFNODE:
 			container = *(GF_List **) field.far_ptr;
-			for (j=0; j<gf_list_count(container); j++) {
-				p = gf_list_get(container, j);
+			j=0;
+			while ((p = gf_list_enum(container, &j))) {
 				/*replace nodes different from newNode but with same ID*/
 				if ((newNode == p) || (gf_node_get_id(p) != NodeID)) continue;
-
+				
+				j--;
 				gf_list_rem(container, j);
 				if (newNode) {
 					gf_list_insert(container, newNode, j);
@@ -816,9 +819,9 @@ void gf_node_render_children(GF_Node *node, void *renderStack)
 	u32 i;
 	GF_Node *ptr;
 	GF_ParentNode *par = (GF_ParentNode *)node;
-	for (i=0; i<gf_list_count(par->children); i++) {
-		ptr = gf_list_get(par->children, i);
-		if (ptr) gf_node_render(ptr, renderStack);
+	i=0;
+	while ((ptr = gf_list_enum(par->children, &i))) {
+		gf_node_render(ptr, renderStack);
 	}
 }
 

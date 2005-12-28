@@ -83,10 +83,9 @@ void gf_mm_del(GF_MediaManager *mgr)
 
 static CodecEntry *mm_get_codec(GF_List *list, GF_Codec *codec)
 {
-	u32 i;
 	CodecEntry *ce;
-	for (i=0; i<gf_list_count(list); i++) {
-		ce = gf_list_get(list, i);
+	u32 i = 0;
+	while ((ce = gf_list_enum(list, &i))) {
 		if (ce->dec==codec) return ce;
 	}
 	return NULL;
@@ -202,8 +201,8 @@ void gf_mm_remove_codec(GF_MediaManager *mgr, GF_Codec *codec)
 	gf_mx_p(mgr->mm_mx);
 #endif
 
-	for (i = 0; i<gf_list_count(mgr->threaded_codecs); i++) {
-		ce = gf_list_get(mgr->threaded_codecs, i);
+	i=0;
+	while ((ce = gf_list_enum(mgr->threaded_codecs, &i))) {
 		if (ce->dec == codec) {
 			assert(ce->is_threaded);
 			ce->is_running = 0;
@@ -211,18 +210,18 @@ void gf_mm_remove_codec(GF_MediaManager *mgr, GF_Codec *codec)
 			gf_th_del(ce->th);
 			gf_mx_del(ce->mx);
 			free(ce);
-			gf_list_rem(mgr->threaded_codecs, i);
+			gf_list_rem(mgr->threaded_codecs, i-1);
 			goto exit;
 		}
 	}
-	for (i = 0; i<gf_list_count(mgr->unthreaded_codecs); i++) {
-		ce = gf_list_get(mgr->unthreaded_codecs, i);
+	i=0;
+	while ((ce = gf_list_enum(mgr->unthreaded_codecs, &i))) {
 		if (ce->dec == codec) {
 			assert (!ce->is_threaded);
 			gf_th_del(ce->th);
 			gf_mx_del(ce->mx);
 			free(ce);
-			gf_list_rem(mgr->unthreaded_codecs, i);
+			gf_list_rem(mgr->unthreaded_codecs, i-1);
 			break;
 		}
 	}
@@ -451,7 +450,8 @@ void gf_mm_stop_codec(GF_Codec *codec)
 void gf_mm_set_threading(GF_MediaManager *mgr, u32 mode)
 {
 	u32 i;
-	
+	CodecEntry *ce;
+
 	if (mgr->threading_mode == mode) return;
 
 	/*note we lock global mutex but don't lock any codecs*/
@@ -490,14 +490,14 @@ void gf_mm_set_threading(GF_MediaManager *mgr, u32 mode)
 	case GF_TERM_THREAD_FREE:
 	default:
 		/*remove all forced-threaded dec*/
-		for (i=0; i<gf_list_count(mgr->threaded_codecs); i++) {
-			CodecEntry *ce = gf_list_get(mgr->threaded_codecs, i);
+		i=0;
+		while ((ce = gf_list_enum(mgr->threaded_codecs, &i))) {
 			if (ce->dec_wants_threading) continue;
 			/*stop it*/
 			ce->is_running = 0;
 			while (!ce->thread_exit) gf_sleep(0);
 			ce->is_threaded = 0;
-			gf_list_rem(mgr->threaded_codecs, i);
+			gf_list_rem(mgr->threaded_codecs, i-1);
 			i--;
 			/*add to unthreaded list*/
 			ce->is_running = 1;
@@ -505,12 +505,12 @@ void gf_mm_set_threading(GF_MediaManager *mgr, u32 mode)
 			mgr->cumulated_priority += ce->dec->Priority+1;
 		}
 		/*remove all forced unthreaded dec*/
-		for (i=0; i<gf_list_count(mgr->unthreaded_codecs); i++) {
-			CodecEntry *ce = gf_list_get(mgr->unthreaded_codecs, i);
+		i=0;
+		while ((ce = gf_list_enum(mgr->unthreaded_codecs, &i)) ) {
 			if (! ce->dec_wants_threading) continue;
 			/*stop it*/
 			ce->is_threaded = 1;
-			gf_list_rem(mgr->unthreaded_codecs, i);
+			gf_list_rem(mgr->unthreaded_codecs, i-1);
 			i--;
 			mgr->cumulated_priority -= ce->dec->Priority+1;
 
@@ -529,13 +529,13 @@ void gf_mm_set_threading(GF_MediaManager *mgr, u32 mode)
 void gf_mm_set_priority(GF_MediaManager *mgr, s32 Priority)
 {
 	u32 i;
-
+	CodecEntry *ce;
 	gf_mx_p(mgr->mm_mx);
 
 	gf_th_set_priority(mgr->th, Priority);
 
-	for (i=0; i<gf_list_count(mgr->threaded_codecs); i++) {
-		CodecEntry *ce = gf_list_get(mgr->threaded_codecs, i);
+	i=0;
+	while ((ce = gf_list_enum(mgr->threaded_codecs, &i))) {
 		gf_th_set_priority(ce->th, Priority);
 	}
 	mgr->priority = Priority;

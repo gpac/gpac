@@ -42,12 +42,14 @@ u32 payt_get_type(RTPClient *rtp, GF_RTPMap *map, GF_SDPMedia *media)
 
 	/*LATM: only without multiplexing (not tested but should be straight AUs)*/
 	else if (!stricmp(map->payload_name, "MP4A-LATM")) {
-		for (i=0; i<gf_list_count(media->FMTP); i++) {
-			GF_SDP_FMTP *fmtp = gf_list_get(media->FMTP, i);
+		GF_SDP_FMTP *fmtp;
+		i=0;
+		while ((fmtp = gf_list_enum(media->FMTP, &i))) {
+			GF_X_Attribute *att;
 			if (fmtp->PayloadType != map->PayloadType) continue;
 			//this is our payload. check cpresent is 0
-			for (j=0; j<gf_list_count(fmtp->Attributes); j++) {
-				GF_X_Attribute *att = gf_list_get(fmtp->Attributes, j);
+			j=0;
+			while ((att = gf_list_enum(fmtp->Attributes, &j))) {
 				if (!stricmp(att->Name, "cpresent") && atoi(att->Value)) return 0;
 			}
 		}
@@ -164,6 +166,7 @@ static GF_Err payt_set_param(RTPStream *ch, char *param_name, char *param_val)
 u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 {
 	u32 i, j;
+	GF_SDP_FMTP *fmtp;
 
 	/*reset sl map*/
 	memset(&ch->sl_map, 0, sizeof(GP_RTPSLMap));
@@ -174,12 +177,13 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 	if (!stricmp(map->payload_name, "enc-mpeg4-generic")) ch->flags |= CH_HasISMACryp;
 
 	/*then process all FMTPs*/
-	for (i=0; i<gf_list_count(media->FMTP); i++) {
-		GF_SDP_FMTP *fmtp = gf_list_get(media->FMTP, i);
+	i=0;
+	while ((fmtp = gf_list_enum(media->FMTP, &i))) {
+		GF_X_Attribute *att;
 		//we work with only one PayloadType for now
 		if (fmtp->PayloadType != map->PayloadType) continue;
-		for (j=0; j<gf_list_count(fmtp->Attributes); j++) {
-			GF_X_Attribute *att = gf_list_get(fmtp->Attributes, j);
+		j=0;
+		while ((att = gf_list_enum(fmtp->Attributes, &j))) {
 			payt_set_param(ch, att->Name, att->Value);
 		}
 	}
@@ -300,10 +304,11 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 	case GP_RTP_PAYT_H263:
 		{
 			u32 x, y, w, h;
+			GF_X_Attribute *att;
 			GF_BitStream *bs;
 			x = y = w = h = 0;
-			for (j=0; j<gf_list_count(media->Attributes); j++) {
-				GF_X_Attribute *att = gf_list_get(media->Attributes, j);
+			j=0;
+			while ((att = gf_list_enum(media->Attributes, &j))) {
 				if (stricmp(att->Name, "cliprect")) continue;
 				/*only get the display area*/
 				sscanf(att->Value, "%d,%d,%d,%d", &y, &x, &h, &w);
@@ -327,6 +332,7 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 		char *tx3g, *a_tx3g;
 		GF_BitStream *bs;
 		u32 nb_desc;
+		GF_SDP_FMTP *fmtp;
 		GF_TextConfig tcfg;
 		memset(&tcfg, 0, sizeof(GF_TextConfig));
 		tcfg.tag = GF_ODF_TEXT_CFG_TAG;
@@ -337,11 +343,12 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 		tcfg.sampleDescriptionFlags = 1;
 		tx3g = NULL;
 
-		for (i=0; i<gf_list_count(media->FMTP); i++) {
-			GF_SDP_FMTP *fmtp = gf_list_get(media->FMTP, i);
+		i=0;
+		while ((fmtp = gf_list_enum(media->FMTP, &i))) {
+			GF_X_Attribute *att;
 			if (fmtp->PayloadType != map->PayloadType) continue;
-			for (j=0; j<gf_list_count(fmtp->Attributes); j++) {
-				GF_X_Attribute *att = gf_list_get(fmtp->Attributes, j);
+			j=0;
+			while ((att = gf_list_enum(fmtp->Attributes, &j))) {
 
 				if (!stricmp(att->Name, "width")) tcfg.text_width = atoi(att->Value);
 				else if (!stricmp(att->Name, "height")) tcfg.text_height = atoi(att->Value);
@@ -404,6 +411,7 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 		break;
 	case GP_RTP_PAYT_H264_AVC:
 	{
+		GF_SDP_FMTP *fmtp;
 		GF_AVCConfig *avcc = gf_odf_avc_cfg_new();
 		avcc->AVCProfileIndication = (ch->sl_map.PL_ID>>16) & 0xFF;
 		avcc->profile_compatibility = (ch->sl_map.PL_ID>>8) & 0xFF;
@@ -415,12 +423,13 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 		/*we will signal RAPs*/
 		ch->sl_map.RandomAccessIndication = 1;
 		/*rewrite sps and pps*/
-		for (i=0; i<gf_list_count(media->FMTP); i++) {
-			GF_SDP_FMTP *fmtp = gf_list_get(media->FMTP, i);
+		i=0;
+		while ((fmtp = gf_list_enum(media->FMTP, &i))) {
+			GF_X_Attribute *att;
 			if (fmtp->PayloadType != map->PayloadType) continue;
-			for (j=0; j<gf_list_count(fmtp->Attributes); j++) {
+			j=0;
+			while ((att = gf_list_enum(fmtp->Attributes, &j))) {
 				char *nal_ptr;
-				GF_X_Attribute *att = gf_list_get(fmtp->Attributes, j);
 				if (stricmp(att->Name, "sprop-parameter-sets")) continue;
 
 				nal_ptr = att->Value;

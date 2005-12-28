@@ -242,6 +242,11 @@ char *gf_strdup(const char *str);
 #endif
 /*end GPAC memory tracking*/
 
+#if defined (WIN32) && !defined(__GNUC__)
+#define LLD "%I64d"
+#else
+#define LLD "%lld"
+#endif
 
 #ifdef __cplusplus
 }

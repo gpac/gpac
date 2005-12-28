@@ -220,13 +220,15 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32
 	u32 i, j, count;
 	Double scene_time;
 	GF_BitStream *bs;
+	GF_FieldInfo *field;
+	ISStack *st;
 	ISPriv *priv = plug->privateStack;
 	GF_Err e = GF_OK;
 
 	/*decode data frame except if local stringSensor*/
 	bs = gf_bs_new(inBuffer, inBufferLength, GF_BITSTREAM_READ);
-	for (i=0; i<gf_list_count(priv->ddf); i++) {
-		GF_FieldInfo *field = gf_list_get(priv->ddf, i);
+	i=0;
+	while ((field = gf_list_enum(priv->ddf, &i))) {
 		/*store present flag in eventIn for command skip - this is an ugly hack but it works since DDF don't have event types*/
 		field->eventType = gf_bs_read_int(bs, 1);
 		/*parse val ourselves (we don't want to depend on bifs codec)*/
@@ -328,8 +330,8 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32
 	}
 
 	/*apply it*/
-	for (i=0; i<gf_list_count(priv->is_nodes); i++) {
-		ISStack *st = gf_list_get(priv->is_nodes, i);
+	i=0;
+	while ((st = gf_list_enum(priv->is_nodes, &i))) {
 		assert(st->is);
 		assert(st->is_dec);
 		if (!st->is->enabled) continue;
@@ -518,6 +520,7 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 	u32 left_but_down, middle_but_down, right_but_down;
 	SFFloat wheel_pos;
 	u32 i;
+	GF_Codec *cod;
 	GF_BitStream *bs;
 	GF_SLHeader slh;
 	unsigned char *buf;
@@ -581,8 +584,8 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 	slh.compositionTimeStamp = 0;
 
 	/*get all IS Mouse decoders and send frame*/
-	for (i=0; i<gf_list_count(term->input_streams); i++) {
-		GF_Codec *cod = gf_list_get(term->input_streams, i);
+	i=0;
+	while ((cod = gf_list_enum(term->input_streams, &i))) {
 		ISPriv *is = cod->decio->privateStack;
 		if (is->type==IS_Mouse) {
 			GF_Channel *ch = gf_list_get(cod->inChannels, 0);
@@ -598,7 +601,9 @@ void gf_term_keyboard_input(GF_Terminal *term, s32 keyPressed, s32 keyReleased, 
 	GF_BitStream *bs;
 	GF_SLHeader slh;
 	unsigned char *buf;
+	X_KeySensor *n;
 	u32 buf_size;
+	GF_Codec *cod;
 
 	if (!term || (!gf_list_count(term->input_streams) && !gf_list_count(term->x3d_sensors)) ) return;
 
@@ -630,8 +635,8 @@ void gf_term_keyboard_input(GF_Terminal *term, s32 keyPressed, s32 keyReleased, 
 	gf_bs_del(bs);
 
 	/*get all IS keySensor decoders and send frame*/
-	for (i=0; i<gf_list_count(term->input_streams); i++) {
-		GF_Codec *cod = gf_list_get(term->input_streams, i);
+	i=0;
+	while ((cod = gf_list_enum(term->input_streams, &i))) {
 		ISPriv *is = cod->decio->privateStack;
 		if (is->type==IS_KeySensor) {
 			GF_Channel *ch = gf_list_get(cod->inChannels, 0);
@@ -640,13 +645,13 @@ void gf_term_keyboard_input(GF_Terminal *term, s32 keyPressed, s32 keyReleased, 
 	}
 	free(buf);
 	
-	for (i=0; i<gf_list_count(term->x3d_sensors); i++) {
+	i=0;
+	while ((n = gf_list_enum(term->x3d_sensors, &i))) {
 		u16 tc[2];
 		u32 len;
 		char szStr[10];
 		const unsigned short *ptr;
-		X_KeySensor *n = gf_list_get(term->x3d_sensors, i);
-		if (gf_node_get_tag((GF_Node *)n) != TAG_X3D_KeySensor) continue;
+		if (gf_node_get_tag((GF_Node*)n) != TAG_X3D_KeySensor) continue;
 		if (!n->enabled) return;
 
 		if (keyPressed) {
@@ -706,6 +711,8 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 	u32 i;
 	GF_BitStream *bs;
 	GF_SLHeader slh;
+	X_StringSensor *n;
+	GF_Codec *cod;
 	unsigned char *buf;
 	u32 buf_size;
 
@@ -719,8 +726,8 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 	slh.compositionTimeStamp = 0;
 
 	/*get all IS StringSensor decoders and send frame*/
-	for (i=0; i<gf_list_count(term->input_streams); i++) {
-		GF_Codec *cod = gf_list_get(term->input_streams, i);
+	i=0;
+	while ((cod = gf_list_enum(term->input_streams, &i))) {
 		ISPriv *is = cod->decio->privateStack;
 		if (is->type==IS_StringSensor) {
 
@@ -744,13 +751,13 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 
 
 	/*get all X3D StringSensors*/
-	for (i=0; i<gf_list_count(term->x3d_sensors); i++) {
+	i=0;
+	while ((n = gf_list_enum(term->x3d_sensors, &i))) {
 		StringSensorStack *st;
 		char szStr[5000];
 		const unsigned short *ptr;
 		u32 len;
-		X_StringSensor *n = gf_list_get(term->x3d_sensors, i);
-		if (gf_node_get_tag((GF_Node *)n) != TAG_X3D_StringSensor) continue;
+		if (gf_node_get_tag((GF_Node*)n) != TAG_X3D_StringSensor) continue;
 		if (!n->enabled) continue;
 
 		st = (StringSensorStack *) gf_node_get_private((GF_Node *)n);
@@ -824,6 +831,7 @@ u32 RunHTKDec(void *par)
 	u32 len, val, i;
 	Float word_score;
 	GF_SLHeader slh;
+	GF_Codec *cod;
 	unsigned char *buf;
 	u32 buf_size;
 
@@ -862,8 +870,8 @@ u32 RunHTKDec(void *par)
 	slh.compositionTimeStamp = 0;
 
 	/*get all IS keySensor decoders and send frame*/
-	for (i=0; i<gf_list_count(is_dec->scene->root_od->term->input_streams); i++) {
-		GF_Codec *cod = gf_list_get(is_dec->scene->root_od->term->input_streams, i);
+	i=0; 
+	while ((cod = gf_list_enum(is_dec->scene->root_od->term->input_streams, &i))) {
 		ISPriv *is = cod->decio->privateStack;
 		if (is != is_dec) continue;
 		if (is->type==IS_HTKSensor) {
@@ -881,10 +889,10 @@ void StartHTK(ISPriv *is_dec)
 {
 	u32 j;
 	Bool run;
-
+	ISStack *st;
 	run = 0;
-	for (j=0; j<gf_list_count(is_dec->is_nodes); j++) {
-		ISStack *st = gf_list_get(is_dec->is_nodes, j);
+	j=0;
+	while ((st = gf_list_enum(is_dec->is_nodes, &j))) {
 		if (st->is->enabled) {
 			run = 1;
 			break;

@@ -31,12 +31,6 @@
 #include <gpac/internal/avilib.h>
 #include <gpac/internal/ogg.h>
 
-#if defined (WIN32) && !defined(__GNUC__)
-#define LLD "%I64d"
-#else
-#define LLD "%lld"
-#endif
-
 static GF_Err gf_export_message(GF_MediaExporter *dumper, GF_Err e, char *format, ...)
 {
 	va_list args;

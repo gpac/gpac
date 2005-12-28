@@ -64,10 +64,9 @@ void gf_modules_del(GF_ModuleManager *pm)
 
 Bool gf_module_is_loaded(GF_ModuleManager *pm, unsigned char *filename) 
 {
-	u32 i;
+	u32 i = 0;
 	ModuleInstance *inst;
-	for (i=0; i<gf_list_count(pm->plug_list); i++) {
-		inst = gf_list_get(pm->plug_list, i);
+	while ( (inst = gf_list_enum(pm->plug_list, &i) ) ) {
 		if (!strcmp(inst->szName, filename)) return 1;
 	}
 	return 0;
@@ -116,9 +115,10 @@ err_exit:
 
 GF_BaseInterface *gf_modules_load_interface_by_name(GF_ModuleManager *pm, const char *plug_name, u32 InterfaceFamily)
 {
-	u32 i;
+	u32 i, count;
 	GF_BaseInterface *ifce;
-	for (i=0; i<gf_list_count(pm->plug_list); i++) {
+	count = gf_list_count(pm->plug_list);
+	for (i=0; i<count; i++) {
 		ifce = gf_modules_load_interface(pm, i, InterfaceFamily);
 		if (!ifce) continue;
 		/*check by driver name*/

@@ -30,8 +30,8 @@ GF_TrackExtendsBox *GetTrex(GF_MovieBox *moov, u32 TrackID)
 {
 	u32 i;
 	GF_TrackExtendsBox *trex;
-	for (i=0; i<gf_list_count(moov->mvex->TrackExList); i++) {
-		trex = gf_list_get(moov->mvex->TrackExList, i);
+	i=0;
+	while ((trex = gf_list_enum(moov->mvex->TrackExList, &i))) {
 		if (trex->trackID == TrackID) return trex;
 	}
 	return NULL;
@@ -77,8 +77,8 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie)
 	//the file closed
 	if (!movie->moov->mvex || !gf_list_count(movie->moov->mvex->TrackExList)) return GF_OK;
 
-	for (i=0; i<gf_list_count(movie->moov->mvex->TrackExList); i++) {
-		trex = gf_list_get(movie->moov->mvex->TrackExList, i++);
+	i=0;
+	while ((trex = gf_list_enum(movie->moov->mvex->TrackExList, &i))) {
 		if (!trex->trackID || !gf_isom_get_track_from_id(movie->moov, trex->trackID)) return GF_IO_ERR;
 		//we could also check all our data refs are local but we'll do that at run time
 		//in order to allow a mix of both (remote refs in MOOV and local in MVEX)
@@ -149,10 +149,10 @@ u32 GetNumUsedValues(GF_TrackFragmentBox *traf, u32 value, u32 index)
 	GF_TrackFragmentRunBox *trun;
 	GF_TrunEntry *ent;
 
-	for (i=0; i<gf_list_count(traf->TrackRuns); i++) {
-		trun = gf_list_get(traf->TrackRuns, i);
-		for (j=0; j<gf_list_count(trun->entries); j++) {
-			ent = gf_list_get(trun->entries, j);
+	i=0;
+	while ((trun = gf_list_enum(traf->TrackRuns, &i))) {
+		j=0;
+		while ((ent = gf_list_enum(trun->entries, &j))) {
 			switch (index) {
 			case 1:
 				if (value == ent->Duration) NumValue ++;
@@ -172,18 +172,16 @@ u32 GetNumUsedValues(GF_TrackFragmentBox *traf, u32 value, u32 index)
 
 void ComputeFragmentDefaults(GF_TrackFragmentBox *traf)
 {
-	u32 i, j, count, MaxNum, DefValue, ret;
+	u32 i, j, MaxNum, DefValue, ret;
 	GF_TrackFragmentRunBox *trun;
 	GF_TrunEntry *ent;
 
-	count = gf_list_count(traf->TrackRuns);
-
 	//Duration default
 	MaxNum = DefValue = 0;
-	for (i=0; i<count; i++) {
-		trun = gf_list_get(traf->TrackRuns, i);
-		for (j=0; j<gf_list_count(trun->entries); j++) {
-			ent = gf_list_get(trun->entries, j);
+	i=0;
+	while ((trun = gf_list_enum(traf->TrackRuns, &i))) {
+		j=0;
+		while ((ent = gf_list_enum(trun->entries, &j))) {
 			ret = GetNumUsedValues(traf, ent->Duration, 1);
 			if (ret>MaxNum) {
 				//at least 2 duration, specify for all
@@ -204,10 +202,10 @@ escape_duration:
 
 	//Size default
 	MaxNum = DefValue = 0;
-	for (i=0; i<count; i++) {
-		trun = gf_list_get(traf->TrackRuns, i);
-		for (j=0; j<gf_list_count(trun->entries); j++) {
-			ent = gf_list_get(trun->entries, j);
+	i=0;
+	while ((trun = gf_list_enum(traf->TrackRuns, &i))) {
+		j=0;
+		while ((ent = gf_list_enum(trun->entries, &j))) {
 			ret = GetNumUsedValues(traf, ent->size, 2);
 			if (ret>MaxNum || (ret==1)) {
 				//at least 2 sizes so we must specify all sizes
@@ -229,10 +227,10 @@ escape_size:
 
 	//Flags default
 	MaxNum = DefValue = 0;
-	for (i=0; i<count; i++) {
-		trun = gf_list_get(traf->TrackRuns, i);
-		for (j=0; j<gf_list_count(trun->entries); j++) {
-			ent = gf_list_get(trun->entries, j);
+	i=0;
+	while ((trun = gf_list_enum(traf->TrackRuns, &i))) {
+		j=0;
+		while ((ent = gf_list_enum(trun->entries, &j))) {
 			ret = GetNumUsedValues(traf, ent->flags, 3);
 			if (ret>MaxNum) {
 				MaxNum = ret;
@@ -308,8 +306,8 @@ u32 UpdateRuns(GF_TrackFragmentBox *traf)
 	UseDefaultDur = 0;
 	UseDefaultFlag = 0;
 
-	for (i=0; i<gf_list_count(traf->TrackRuns); i++) {
-		trun = gf_list_get(traf->TrackRuns, i);
+	i=0;
+	while ((trun = gf_list_enum(traf->TrackRuns, &i))) {
 		RunSize = 0;
 		RunDur = 0;
 		RunFlags = 0;
@@ -339,8 +337,8 @@ u32 UpdateRuns(GF_TrackFragmentBox *traf)
 		}
 		//empty list
 		if (!first_ent) {
-			gf_list_rem(traf->TrackRuns, i);
 			i--;
+			gf_list_rem(traf->TrackRuns, i);
 			continue;
 		}
 		trun->sample_count = gf_list_count(trun->entries);
@@ -439,8 +437,8 @@ GF_Err StoreFragment(GF_ISOFile *movie)
 	bs = movie->editFileMap->bs;
 
 	//1- flush all caches
-	for (i=0; i<gf_list_count(movie->moof->TrackList); i++) {
-		traf = gf_list_get(movie->moof->TrackList, i);
+	i=0;
+	while ((traf = gf_list_enum(movie->moof->TrackList, &i))) {
 		if (!traf->DataCache) continue;
 		s_count = gf_list_count(traf->TrackRuns);
 		if (!s_count) continue;
@@ -468,16 +466,16 @@ GF_Err StoreFragment(GF_ISOFile *movie)
 	gf_bs_seek(bs, moof_start);
 
 	//3- clean our traf's
-	for (i=0; i<gf_list_count(movie->moof->TrackList); i++) {
-		traf = gf_list_get(movie->moof->TrackList, i);
+	i=0;
+	while ((traf = gf_list_enum(movie->moof->TrackList, &i))) {
 		//compute default settings for the TRAF
 		ComputeFragmentDefaults(traf);
 		//updates all trun and set all flags, INCLUDING TRAF FLAGS (durations, ...)
 		s_count = UpdateRuns(traf);
 		//empty fragment destroy it
 		if (!traf->tfhd->EmptyDuration && !s_count) {
-			gf_list_rem(movie->moof->TrackList, i);
 			i--;
+			gf_list_rem(movie->moof->TrackList, i);
 			gf_isom_box_del((GF_Box *) traf);
 			continue;
 		}
@@ -545,8 +543,8 @@ u32 GetRunSize(GF_TrackFragmentRunBox *trun)
 	u32 i, size;
 	GF_TrunEntry *ent;
 	size = 0;
-	for (i=0; i<gf_list_count(trun->entries); i++) {
-		ent = gf_list_get(trun->entries, i);
+	i=0;
+	while ((ent = gf_list_enum(trun->entries, &i))) {
 		size += ent->size;
 	}
 	return size;

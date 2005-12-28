@@ -527,10 +527,12 @@ BOOL WinGPAC::InitInstance()
 		} else {
 			pFrame->m_pPlayList->m_cur_entry = -1;
 		}
+#if 0
 		if (pFrame->m_pPlayList->m_cur_entry>=0) {
 			start_mode = 1;
 			pFrame->m_pPlayList->Play();
 		}
+#endif
 	}
 	pFrame->SetFocus();
 	pFrame->SetForegroundWindow();

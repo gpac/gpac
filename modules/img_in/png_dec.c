@@ -156,6 +156,10 @@ static GF_Err PNG_ProcessData(GF_MediaDecoder *ifcg,
 		png_set_expand(png_ptr);
 		png_read_update_info(png_ptr, info_ptr);
 	}
+	if (info_ptr->num_trans) {
+		png_set_tRNS_to_alpha(png_ptr);
+		png_read_update_info(png_ptr, info_ptr);
+	}
 
 	ctx->BPP = info_ptr->pixel_depth / 8;
 	ctx->width = info_ptr->width;

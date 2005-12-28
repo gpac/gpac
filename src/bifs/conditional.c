@@ -127,13 +127,14 @@ void BIFS_SetupConditionalClone(GF_Node *node, GF_Node *orig)
 	priv_orig = gf_node_get_private(orig);
 	/*looks we're not in BIFS*/
 	if (!priv_orig) {
+		GF_Command *ori_com;
 		M_Conditional *c_orig, *c_dest;
 		c_orig = (M_Conditional *)orig;
 		c_dest = (M_Conditional *)node;
 		gf_node_init(node);
 		/*and clone all commands*/
-		for (i=0; i<gf_list_count(c_orig->buffer.commandList); i++) {
-			GF_Command *ori_com = gf_list_get(c_orig->buffer.commandList, i);
+		i=0;
+		while ((ori_com = gf_list_enum(c_orig->buffer.commandList, &i))) {
 			GF_Command *dest_com = gf_sg_command_clone(ori_com, gf_node_get_graph(node));
 			if (dest_com) gf_list_add(c_dest->buffer.commandList, dest_com);
 		}

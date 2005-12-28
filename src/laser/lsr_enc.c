@@ -86,9 +86,9 @@ void gf_laser_set_trace(GF_LASeRCodec *codec, FILE *trace)
 
 static LASeRStreamInfo *lsr_get_stream(GF_LASeRCodec *codec, u16 ESID)
 {
-	u32 i;
-	for (i=0;i<gf_list_count(codec->streamInfo);i++) {
-		LASeRStreamInfo *ptr = gf_list_get(codec->streamInfo, i);
+	LASeRStreamInfo *ptr;
+	u32 i = 0;
+	while ((ptr = gf_list_enum(codec->streamInfo, &i))) {
 		if(ptr->ESID==ESID) return ptr;
 	}
 	return NULL;

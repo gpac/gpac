@@ -86,9 +86,9 @@ void gf_laser_decoder_set_trace(GF_LASeRCodec *codec, FILE *trace)
 
 static LASeRStreamInfo *lsr_get_stream(GF_LASeRCodec *codec, u16 ESID)
 {
-	u32 i;
-	for (i=0;i<gf_list_count(codec->streamInfo);i++) {
-		LASeRStreamInfo *ptr = gf_list_get(codec->streamInfo, i);
+	u32 i=0;
+	LASeRStreamInfo *ptr;
+	while ((ptr = gf_list_enum(codec->streamInfo, &i))) {
 		if(ptr->ESID==ESID) return ptr;
 	}
 	return NULL;
@@ -133,8 +133,9 @@ GF_Err gf_laser_decoder_configure_stream(GF_LASeRCodec *codec, u16 ESID, char *d
 
 GF_Err gf_laser_decoder_remove_stream(GF_LASeRCodec *codec, u16 ESID)
 {
-	u32 i;
-	for (i=0;i<gf_list_count(codec->streamInfo);i++) {
+	u32 i, count;
+	count = gf_list_count(codec->streamInfo);
+	for (i=0;i<count;i++) {
 		LASeRStreamInfo *ptr = (LASeRStreamInfo *) gf_list_get(codec->streamInfo, i);
 		if (ptr->ESID==ESID) {
 			free(ptr);

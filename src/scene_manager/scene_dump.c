@@ -59,6 +59,7 @@ struct _scenedump
 	Bool skip_scene_replace;
 	/*for route insert/replace in conditionals in current scene replace*/
 	GF_List *current_com_list;
+	GF_List *inserted_routes;
 
 };
 
@@ -135,6 +136,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *rad_name, char inde
 	tmp->ind_char = indent_char;
 	tmp->dump_nodes = gf_list_new();
 	tmp->mem_def_nodes = gf_list_new();
+	tmp->inserted_routes = gf_list_new();
 	tmp->sg = graph;
 	return tmp;
 }
@@ -148,6 +150,7 @@ void gf_sm_dumper_del(GF_SceneDumper *sdump)
 		gf_node_unregister(tmp, NULL);
 	}
 	gf_list_del(sdump->mem_def_nodes);
+	gf_list_del(sdump->inserted_routes);
 	if (sdump->trace != stdout) fclose(sdump->trace);
 	free(sdump);
 }
@@ -235,12 +238,8 @@ void SD_FinalizeDump(GF_SceneDumper *sdump)
 
 Bool SD_IsDEFNode(GF_SceneDumper *sdump, GF_Node *node)
 {
-	u32 i;
-
-	for (i=0; i<gf_list_count(sdump->dump_nodes); i++) {
-		GF_Node *tmp = gf_list_get(sdump->dump_nodes, i);
-		if (tmp == node) return 0;
-	}
+	s32 i = gf_list_find(sdump->dump_nodes, node);
+	if (i>=0) return 0;
 	gf_list_add(sdump->dump_nodes, node);
 	return 1;
 }
@@ -249,14 +248,6 @@ GF_Node *SD_FindNode(GF_SceneDumper *sdump, u32 ID)
 {
 	GF_Node *ret = gf_sg_find_node(sdump->sg, ID);
 	if (ret) return ret;
-/*	
-	u32 i;
-	for (i=0; i<gf_list_count(sdump->mem_def_nodes); i++) {
-		ret = gf_list_get(sdump->mem_def_nodes, i);
-		if (ret->sgprivate->NodeID == ID) return ret;
-	}
-*/
-	
 	return NULL;
 }
 
@@ -362,13 +353,22 @@ Bool DumpFindRouteName(GF_SceneDumper *sdump, u32 ID, const char **outName)
 {
 	GF_Route *r;
 	u32 i;
+	GF_Command *com;
 	r = gf_sg_route_find(sdump->sg, ID);
 	if (r) { (*outName) = r->name; return 1; }
 
+	i=0;
+	while ((com = gf_list_enum(sdump->inserted_routes, &i))) {
+		if ((com->tag == GF_SG_ROUTE_INSERT)) {
+			if (com->RouteID==ID) {
+				(*outName) = com->def_name;
+				return 1;
+			}
+		}
+	}
 	if (!sdump->current_com_list) return 0;
-
-	for (i=1; i<gf_list_count(sdump->current_com_list); i++) {
-		GF_Command *com = gf_list_get(sdump->current_com_list, i);
+	i=1;
+	while ((com = gf_list_enum(sdump->current_com_list, &i))) {
 		if ((com->tag == GF_SG_ROUTE_INSERT) || (com->tag == GF_SG_ROUTE_REPLACE)) {
 			if (com->RouteID==ID) {
 				(*outName) = com->def_name;
@@ -614,8 +614,8 @@ void DumpFieldValue(GF_SceneDumper *sdump, GF_FieldInfo field)
 		list = * ((GF_List **) field.far_ptr);
 		assert(gf_list_count(list));
 		sdump->indent++;
-		for (j=0; j<gf_list_count(list); j++) {
-			child = gf_list_get(list, j);
+		j=0;
+		while ((child = gf_list_enum(list, &j))) {
 			DumpNode(sdump, child, 1, NULL);
 		}
 		sdump->indent--;
@@ -710,8 +710,8 @@ void DumpField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field)
 		assert(gf_list_count(list));
 		if (!sdump->XMLDump || !sdump->X3DDump) StartList(sdump, (char *) field.name);
 		sdump->indent++;
-		for (j=0; j<gf_list_count(list); j++) {
-			child = gf_list_get(list, j);
+		j=0;
+		while ((child = gf_list_enum(list, &j))) {
 			DumpNode(sdump, child, 1, needs_field_container ? (char *) field.name : NULL);
 		}
 		sdump->indent--;
@@ -959,12 +959,13 @@ void DumpDynField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field, Bool
 
 			if ((field.eventType==GF_SG_EVENT_FIELD) || (field.eventType==GF_SG_EVENT_EXPOSED_FIELD)) {
 				if (sf_type == GF_SG_VRML_SFNODE) {
+					GF_Node *tmp;
 					GF_List *list = *(GF_List **)field.far_ptr;
 					fprintf(sdump->trace, ">\n");
 					sdump->indent++;
 					if (!sdump->X3DDump) fprintf(sdump->trace, "<nodes>");
-					for (i=0; i<gf_list_count(list); i++) {
-						GF_Node *tmp = gf_list_get(list, i);
+					i=0;
+					while ((tmp = gf_list_enum(list, &i))) {
 						DumpNode(sdump, tmp, 1, NULL);
 					}
 					if (!sdump->X3DDump) fprintf(sdump->trace, "</nodes>");
@@ -1032,12 +1033,13 @@ void DumpProtoField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field)
 
 		if ((field.eventType==GF_SG_EVENT_FIELD) || (field.eventType==GF_SG_EVENT_EXPOSED_FIELD)) {
 			if (sf_type == GF_SG_VRML_SFNODE) {
+				GF_Node *tmp;
 				GF_List *list = *(GF_List **)field.far_ptr;
 				fprintf(sdump->trace, ">\n");
 				sdump->indent++;
 				if (!sdump->X3DDump) fprintf(sdump->trace, "<nodes>");
-				for (i=0; i<gf_list_count(list); i++) {
-					GF_Node *tmp = gf_list_get(list, i);
+				i=0;
+				while ((tmp = gf_list_enum(list, &i))) {
 					DumpNode(sdump, tmp, 1, NULL);
 				}
 				if (!sdump->X3DDump) fprintf(sdump->trace, "</nodes>");
@@ -1066,14 +1068,15 @@ void DumpProtoField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field)
 GF_Route *SD_GetISedField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo *field) 
 {
 	u32 i;
-	for (i=0; i<gf_list_count(sdump->current_proto->sub_graph->Routes); i++) {
-		GF_Route *r = gf_list_get(sdump->current_proto->sub_graph->Routes, i);
+	GF_Route *r;
+	i=0;
+	while ((r = gf_list_enum(sdump->current_proto->sub_graph->Routes, &i))) {
 		if (!r->IS_route) continue;
 		if ((r->ToNode==node) && (r->ToFieldIndex==field->fieldIndex)) return r;
 	}
 	if (!node || !node->sgprivate->events) return NULL;
-	for (i=0; i<gf_list_count(node->sgprivate->events); i++) {
-		GF_Route *r = gf_list_get(node->sgprivate->events, i);
+	i=0;
+	while ((r = gf_list_enum(node->sgprivate->events, &i))) {
 		if (!r->IS_route) continue;
 		if (r->FromFieldIndex == field->fieldIndex) return r;
 	}
@@ -1474,8 +1477,8 @@ GF_Err DumpMultipleIndexedReplace(GF_SceneDumper *sdump, GF_Command *com)
 		fprintf(sdump->trace, ".%s [\n", field.name);
 	}
 	sdump->indent++;
-	for (i=0; i<gf_list_count(com->command_fields); i++) {
-		inf = gf_list_get(com->command_fields, i);
+	i=0;
+	while ((inf = gf_list_enum(com->command_fields, &i))) {
 		field.far_ptr = inf->field_ptr;
 
 		DUMP_IND(sdump);
@@ -1515,8 +1518,8 @@ GF_Err DumpMultipleReplace(GF_SceneDumper *sdump, GF_Command *com)
 		fprintf(sdump->trace, "\">\n");
 		
 		sdump->indent++;
-		for (i=0; i<gf_list_count(com->command_fields); i++) {
-			inf = gf_list_get(com->command_fields, i);
+		i=0;
+		while ((inf = gf_list_enum(com->command_fields, &i))) {
 			gf_node_get_field(com->node, inf->fieldIndex, &info);
 			info.far_ptr = inf->field_ptr;
 
@@ -1540,8 +1543,8 @@ GF_Err DumpMultipleReplace(GF_SceneDumper *sdump, GF_Command *com)
 		DumpNodeID(sdump, com->node);
 		fprintf(sdump->trace, " {\n");
 		sdump->indent++;
-		for (i=0; i<gf_list_count(com->command_fields); i++) {
-			inf = gf_list_get(com->command_fields, i);
+		i=0;
+		while ((inf = gf_list_enum(com->command_fields, &i))) {
 			gf_node_get_field(com->node, inf->fieldIndex, &info);
 			info.far_ptr = inf->field_ptr;
 			DumpField(sdump, com->node, info);
@@ -1621,6 +1624,8 @@ GF_Err DumpRouteInsert(GF_SceneDumper *sdump, GF_Command *com, Bool is_scene_rep
 	r.FromFieldIndex = com->fromFieldIndex;
 	r.ToNode = SD_FindNode(sdump, com->toNodeID);
 	r.ToFieldIndex = com->toFieldIndex;
+
+	gf_list_add(sdump->inserted_routes, com);
 
 	if (is_scene_replace) {
 		DumpRoute(sdump, &r, 0);
@@ -1821,6 +1826,7 @@ GF_Err DumpFieldReplace(GF_SceneDumper *sdump, GF_Command *com)
 		break;
 	case GF_SG_VRML_MFNODE:
 		{
+			GF_Node *tmp;
 			u32 i;
 			if (sdump->XMLDump) {
 				fprintf(sdump->trace, ">");
@@ -1828,8 +1834,8 @@ GF_Err DumpFieldReplace(GF_SceneDumper *sdump, GF_Command *com)
 				fprintf(sdump->trace, " [\n");
 			}
 			sdump->indent++;
-			for (i=0; i<gf_list_count(inf->node_list); i++) {
-				GF_Node *tmp = gf_list_get(inf->node_list, i);
+			i=0; 
+			while ((tmp = gf_list_enum(inf->node_list, &i))) {
 				DumpNode(sdump, tmp, 1, NULL);
 			}
 			sdump->indent--;
@@ -1987,9 +1993,8 @@ GF_Err DumpProtos(GF_SceneDumper *sdump, GF_List *protoList)
 
 	prev_proto = sdump->current_proto;
 
-	for (i=0; i<gf_list_count(protoList); i++) {
-		proto = gf_list_get(protoList, i);
-
+	i=0;
+	while ((proto = gf_list_enum(protoList, &i))) {
 		sdump->current_proto = proto;
 	
 		DUMP_IND(sdump);
@@ -2542,9 +2547,9 @@ GF_Err gf_sm_dump_graph(GF_SceneDumper *sdump, Bool skip_proto, Bool skip_routes
 		}
 		if (!sdump->XMLDump) fprintf(sdump->trace, "\n\n");
 		if (!skip_routes) {
-			u32 i;
-			for (i=0; i<gf_list_count(sdump->sg->Routes); i++) {
-				GF_Route *r = gf_list_get(sdump->sg->Routes, i);
+			GF_Route *r;
+			u32 i=0;
+			while ((r = gf_list_enum(sdump->sg->Routes, &i))) {
 				if (r->IS_route || (r->graph!=sdump->sg)) continue;
 				e = DumpRoute(sdump, r, 0);
 				if (e) return e;
@@ -2577,6 +2582,8 @@ static void ReorderAUContext(GF_List *sample_list, GF_AUContext *au, Bool lsr_du
 {
 	u32 i;
 	Bool has_base;
+	GF_AUContext *ptr;
+
 	/*
 		this happens when converting from bt to xmt
 		NOTE: Comment is wrong? this happens when just loading BT 
@@ -2590,12 +2597,12 @@ static void ReorderAUContext(GF_List *sample_list, GF_AUContext *au, Bool lsr_du
 	/*this happens when converting from xmt to bt*/
 	if (!au->timing) {
 		assert(au->owner->timeScale);
-		au->timing = (u32) (au->timing_sec * au->owner->timeScale);
+		au->timing = (u64) (au->timing_sec * au->owner->timeScale);
 	}
 
 	has_base = 0;
-	for (i=0; i<gf_list_count(sample_list); i++) {
-		GF_AUContext *ptr = gf_list_get(sample_list, i);
+	i=0; 
+	while ((ptr = gf_list_enum(sample_list, &i))) {
 		if (
 			/*time ordered*/
 			(ptr->timing_sec > au->timing_sec) 
@@ -2604,7 +2611,7 @@ static void ReorderAUContext(GF_List *sample_list, GF_AUContext *au, Bool lsr_du
 			/*set OD first for laser*/
 			|| (lsr_dump && (au->owner->streamType==GF_STREAM_OD))
 		) {
-			gf_list_insert(sample_list, au, i);
+			gf_list_insert(sample_list, au, i-1);
 			return;
 		}
 
@@ -2622,6 +2629,8 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 	u32 i, j, indent, num_scene, num_od, first_bifs, num_tracks;
 	Double time;
 	GF_SceneDumper *dumper;
+	GF_StreamContext *sc;
+	GF_AUContext *au;
 
 	sample_list = gf_list_new();
 
@@ -2631,8 +2640,8 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 	dumper = gf_sm_dumper_new(ctx->scene_graph, rad_name, ' ', dump_mode);
 	e = GF_OK;
 	/*configure all systems streams we're dumping*/
-	for (i=0; i<gf_list_count(ctx->streams); i++) {
-		GF_StreamContext *sc = gf_list_get(ctx->streams, i);
+	i=0;
+	while ((sc = gf_list_enum(ctx->streams, &i))) {
 
 		switch (sc->streamType) {
 		case GF_STREAM_SCENE:
@@ -2648,8 +2657,8 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 			continue;
 		}
 		
-		for (j=0; j<gf_list_count(sc->AUs); j++) {
-			GF_AUContext *au = gf_list_get(sc->AUs, j);
+		j=0;
+		while ((au = gf_list_enum(sc->AUs, &j))) {
 			ReorderAUContext(sample_list, au, dumper->LSRDump);
 			if (dumper->dump_mode==GF_SM_DUMP_SVG) break;
 		}
@@ -2686,7 +2695,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 		
 			if (!first_bifs || (au->owner->streamType != GF_STREAM_SCENE) ) {
 				if (au->is_rap) fprintf(dumper->trace, "RAP ");
-				fprintf(dumper->trace, "AT %d ", (u32) au->timing);
+				fprintf(dumper->trace, "AT "LLD" ", au->timing);
 				if ( (au->owner->streamType==GF_STREAM_OD && num_od) || (au->owner->streamType==GF_STREAM_SCENE && num_scene)) {
 					fprintf(dumper->trace, "IN %d ", au->owner->ESID);
 				} 
@@ -2716,7 +2725,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 				if (time != au->timing_sec) {
 					time = au->timing_sec;
 					fprintf(dumper->trace, "<saf:sceneUnit");
-					if (time) fprintf(dumper->trace, " time=\"%d\"", (u32) au->timing);
+					if (time) fprintf(dumper->trace, " time=\""LLD"\"", au->timing);
 					if (au->is_rap) fprintf(dumper->trace, " rap=\"true\"");
 					fprintf(dumper->trace, ">\n");
 				}
@@ -2728,7 +2737,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 				} else {
 					fprintf(dumper->trace, " </par>\n");
 				}
-				fprintf(dumper->trace, " <par begin=\"%.3f\" atES_ID=\"es%d\">\n", au->timing_sec, au->owner->ESID);
+				fprintf(dumper->trace, " <par begin=\"%g\" atES_ID=\"es%d\">\n", au->timing_sec, au->owner->ESID);
 			} else if (au->timing_sec>time) {
 				if (!first_par) {
 					first_par = 1;
@@ -2736,7 +2745,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 				} else {
 					fprintf(dumper->trace, " </par>\n");
 				}
-				fprintf(dumper->trace, "<par begin=\"%.3f\">\n", au->timing_sec);
+				fprintf(dumper->trace, "<par begin=\"%g\">\n", au->timing_sec);
 			}
 			switch (au->owner->streamType) {
 			case GF_STREAM_OD:

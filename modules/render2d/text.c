@@ -801,9 +801,8 @@ void Text2D_Draw(DrawableContext *ctx)
 		can_texture_text = !ctx->h_texture && !ctx->aspect.pen_props.width;
 	}
 
-	for (i=0; i<gf_list_count(st->text_lines); i++) {
-		tl = gf_list_get(st->text_lines, i);
-		
+	i=0;
+	while ((tl = gf_list_enum(st->text_lines, &i))) {
 		if (hl_color) VS2D_FillRect(ctx->surface, ctx, tl->bounds, hl_color);
 
 		if (can_texture_text && TextLine2D_TextureIsReady(tl)) {
@@ -840,8 +839,8 @@ Bool Text2D_PointOver(DrawableContext *ctx, Fixed x, Fixed y, u32 check_type)
 		return gf_path_point_over(tl->path, x, y);
 	}
 
-	for (i=0; i<gf_list_count(st->text_lines); i++) {
-		tl = gf_list_get(st->text_lines, i);
+	i=0;
+	while ((tl = gf_list_enum(st->text_lines, &i))) {
 		if (!tl->path) return 0;
 		if (gf_path_point_over(tl->path, x, y)) return 1;
 	}

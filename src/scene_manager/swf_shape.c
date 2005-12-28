@@ -74,8 +74,8 @@ GF_Node *SWF_GetAppearance(SWFReader *read, GF_Node *parent, u32 fill_col, Fixed
 	line_transp = FIX_ONE - get_bifs_alpha(l_col);
 	if (line_transp<0) line_transp=0;
 
-	for (i=0; i<gf_list_count(read->apps); i++) {
-		app = gf_list_get(read->apps, i);
+	i=0;
+	while ((app = gf_list_enum(read->apps, &i))) {
 		mat = (M_Material2D *)app->material;
 		if (!line_width) {
 			if (mat->lineProps || !mat->filled) continue;
@@ -445,10 +445,11 @@ void SWF_MergeCurve2D(M_Curve2D *s, M_Curve2D *tomerge)
 void SWFShape_InsertBIFSShape(M_OrderedGroup *og, M_Shape *n)
 {
 #if 1
+	M_Shape *prev;
 	u32 i;
-	for (i=0; i<gf_list_count(og->children); i++) {
-		M_Shape *prev = gf_list_get(og->children, i);
-		if (prev && (prev->appearance == n->appearance) ) {
+	i=0;
+	while ((prev = gf_list_enum(og->children, &i))) {
+		if (prev->appearance == n->appearance) {
 			SWF_MergeCurve2D( (M_Curve2D *)prev->geometry, (M_Curve2D *)n->geometry);
 			gf_node_register((GF_Node *)n, NULL);
 			gf_node_unregister((GF_Node *)n, NULL);
@@ -491,17 +492,16 @@ GF_Node *SWFShapeToBIFS(SWFReader *read, SWFShape *shape)
 
 	/*we need a grouping node*/
 	og = SWF_NewNode(read, TAG_MPEG4_OrderedGroup);
-	for (i=0; i<gf_list_count(shape->fill_left); i++) {
-		srec = gf_list_get(shape->fill_left, i);
+	i=0;
+	while ((srec = gf_list_enum(shape->fill_left, &i))) {
 		n = SWFShapeToCurve2D(read, shape, srec, 1);
 		if (n) SWFShape_InsertBIFSShape((M_OrderedGroup*)og, (M_Shape *)n);
 	}
-	for (i=0; i<gf_list_count(shape->lines); i++) {
-		srec = gf_list_get(shape->lines, i);
+	i=0;
+	while ((srec = gf_list_enum(shape->lines, &i))) {
 		n = SWFShapeToCurve2D(read, shape, srec, 0);
 		if (n) SWFShape_InsertBIFSShape((M_OrderedGroup*)og, (M_Shape *)n);
 	}
-
 	return og;
 }
 
@@ -595,6 +595,7 @@ GF_Node *SWFTextToBIFS(SWFReader *read, SWFText *text)
 	u32 i, j;
 	Bool use_text;
 	Fixed dx;
+	SWFGlyphRec *gr;
 	SWFFont *ft;
 	M_Transform2D *par, *gl_par;
 	M_Shape *gl;
@@ -610,8 +611,8 @@ GF_Node *SWFTextToBIFS(SWFReader *read, SWFText *text)
 	tr->ty = text->mat.m[5];
 
 
-	for (i=0; i<gf_list_count(text->text); i++) {
-		SWFGlyphRec *gr = gf_list_get(text->text, i);
+	i=0;
+	while ((gr = gf_list_enum(text->text, &i))) {
 		par = (M_Transform2D *) SWF_NewNode(read, TAG_MPEG4_Transform2D);
 		par->translation.x = gr->orig_x;
 		par->translation.y = gr->orig_y;

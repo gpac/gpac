@@ -229,7 +229,7 @@ Bool VS_GetAspect2D(RenderEffect3D *eff, Aspect2D *asp)
 	}
 
 exit:
-	if (eff->has_cmat) 
+	if (!eff->color_mat.identity) 
 		gf_cmx_apply_fixed(&eff->color_mat, &asp->alpha, &asp->fill_color.red, &asp->fill_color.green, &asp->fill_color.blue);
 	
 	/*update line width*/
@@ -244,7 +244,7 @@ exit:
 		} else {
 			asp->line_scale = FIX_ONE;
 		}
-		if (eff->has_cmat) 
+		if (!eff->color_mat.identity) 
 			gf_cmx_apply_fixed(&eff->color_mat, &asp->line_alpha, &asp->line_color.red, &asp->line_color.green, &asp->line_color.blue);
 	}
 	return has_mat;
@@ -259,8 +259,8 @@ StrikeInfo *VS_GetStrikeInfo(stack2D *st, Aspect2D *asp, RenderEffect3D *eff)
 	if (!asp->pen_props.width || !st->path) return NULL;
 
 	si = NULL;
-	for (i=0; i<gf_list_count(st->strike_list); i++) {
-		si = gf_list_get(st->strike_list, i);
+	i=0;
+	while ((si = gf_list_enum(st->strike_list, &i))) {
 		/*note this includes default LP (NULL)*/
 		if (si->lineProps == asp->lp) break;
 		si = NULL;
@@ -331,8 +331,8 @@ StrikeInfo *VS_GetStrikeInfoIFS(stack2D *st, Aspect2D *asp, RenderEffect3D *eff)
 	if (!asp->pen_props.width || !st->path) return NULL;
 
 	si = NULL;
-	for (i=0; i<gf_list_count(st->strike_list); i++) {
-		si = gf_list_get(st->strike_list, i);
+	i=0;
+	while ((si = gf_list_enum(st->strike_list, &i))) {
 		/*note this includes default LP (NULL)*/
 		if (si->lineProps == asp->lp) break;
 		si = NULL;
@@ -419,7 +419,7 @@ void stack2D_draw(stack2D *st, RenderEffect3D *eff)
 	/*fill path*/
 	if (fill_txh || (asp.alpha && asp.filled) ) {
 		if (asp.filled) VS3D_SetMaterial2D(eff->surface, asp.fill_color, asp.alpha);
-		VS3D_DrawMesh(eff, st->mesh, 0);
+		VS3D_DrawMesh(eff, st->mesh);
 		/*reset texturing in case of line texture*/
 		if (fill_txh) tx_disable(fill_txh);
 	}
@@ -432,17 +432,19 @@ void stack2D_draw(stack2D *st, RenderEffect3D *eff)
 		if (!si->is_vectorial) {
 			VS3D_StrikeMesh(eff, si->outline, Aspect_GetLineWidth(&asp), asp.pen_props.dash);
 		} else {
-			VS3D_DrawMesh(eff, si->outline, 0);
+			VS3D_DrawMesh(eff, si->outline);
 		}
 		if (asp.txh) tx_disable(asp.txh);
 	}
 }
 
-static GFINLINE Bool VS_setup_material(RenderEffect3D *eff)
+static GFINLINE Bool VS_setup_material(RenderEffect3D *eff, u32 mesh_type)
 {
 	SFColor def;
 	GF_Node *__mat;
 	def.red = def.green = def.blue = FIX_ONE;
+	/*temp storage of diffuse alpha*/
+	eff->ray.orig.x = FIX_ONE;
 
 	if (!eff->appear) {
 		/*use material2D to disable lighting*/
@@ -470,15 +472,16 @@ static GFINLINE Bool VS_setup_material(RenderEffect3D *eff)
 		Fixed diff_a, spec_a, emi_a;
 		Fixed vec[4];
 		Bool has_alpha;
-		u32 flag = F3D_LIGHT | F3D_COLOR;
+		u32 flag = F3D_LIGHT /*| F3D_COLOR*/;
 		M_Material *mat = (M_Material *)__mat;
 
 		diff = mat->diffuseColor;
 		diff_a = FIX_ONE - mat->transparency;
 
-		/*if drawing in 2D context disable lighting*/
-		if (!eff->camera->is_3D) {
-			if (eff->has_cmat) gf_cmx_apply_fixed(&eff->color_mat, &diff_a, &diff.red, &diff.green, &diff.blue);
+		/*if drawing in 2D context or special meshes (lines, points) disable lighting*/
+		if (mesh_type || !eff->camera->is_3D) {
+			if (eff->camera->is_3D) diff = mat->emissiveColor;
+			if (!eff->color_mat.identity) gf_cmx_apply_fixed(&eff->color_mat, &diff_a, &diff.red, &diff.green, &diff.blue);
 			VS3D_SetMaterial2D(eff->surface, diff, diff_a);
 			return 1;
 		}
@@ -486,7 +489,7 @@ static GFINLINE Bool VS_setup_material(RenderEffect3D *eff)
 		spec = mat->specularColor;
 		emi = mat->emissiveColor;
 		spec_a = emi_a = FIX_ONE - mat->transparency;
-		if (eff->has_cmat) {
+		if (!eff->color_mat.identity) {
 			gf_cmx_apply_fixed(&eff->color_mat, &diff_a, &diff.red, &diff.green, &diff.blue);
 			gf_cmx_apply_fixed(&eff->color_mat, &spec_a, &spec.red, &spec.green, &spec.blue);
 			gf_cmx_apply_fixed(&eff->color_mat, &emi_a, &emi.red, &emi.green, &emi.blue);
@@ -516,7 +519,11 @@ static GFINLINE Bool VS_setup_material(RenderEffect3D *eff)
 		vec[3] = diff_a;
 		VS3D_SetMaterial(eff->surface, MATERIAL_AMBIENT, vec);
 
-		VS3D_SetShininess(eff->surface, mat->shininess);
+		vec[0] = diff.red;
+		vec[1] = diff.green;
+		vec[2] = diff.blue;
+		vec[3] = diff_a;
+		VS3D_SetMaterial(eff->surface, MATERIAL_DIFFUSE, vec);
 
 		vec[0] = spec.red;
 		vec[1] = spec.green;
@@ -524,28 +531,15 @@ static GFINLINE Bool VS_setup_material(RenderEffect3D *eff)
 		vec[3] = spec_a;
 		VS3D_SetMaterial(eff->surface, MATERIAL_SPECULAR, vec);
 
-		vec[0] = diff.red;
-		vec[1] = diff.green;
-		vec[2] = diff.blue;
-		vec[3] = diff_a;
-		VS3D_SetMaterial(eff->surface, MATERIAL_DIFFUSE, vec);
 		
-		if (diff.red || diff.green || diff.blue || spec.red || spec.green || spec.blue) {
-			VS3D_SetMaterial(eff->surface, MATERIAL_NONE, vec);
-			vec[0] = emi.red;
-			vec[1] = emi.green;
-			vec[2] = emi.blue;
-			vec[3] = emi_a;
-			VS3D_SetMaterial(eff->surface, MATERIAL_EMISSIVE, vec);
-		} else {
-			VS3D_SetState(eff->surface, F3D_LIGHT, 0);
-			VS3D_SetMaterial(eff->surface, MATERIAL_EMISSIVE, vec);
-			vec[0] = emi.red;
-			vec[1] = emi.green;
-			vec[2] = emi.blue;
-			vec[3] = emi_a;
-			VS3D_SetMaterial(eff->surface, MATERIAL_NONE, vec);
-		}
+		vec[0] = emi.red;
+		vec[1] = emi.green;
+		vec[2] = emi.blue;
+		vec[3] = emi_a;
+		VS3D_SetMaterial(eff->surface, MATERIAL_EMISSIVE, vec);
+
+		VS3D_SetShininess(eff->surface, mat->shininess);
+		eff->ray.orig.x = diff_a;
 	}
 		break;
 	case TAG_MPEG4_Material2D:
@@ -556,7 +550,7 @@ static GFINLINE Bool VS_setup_material(RenderEffect3D *eff)
 
 		emi = mat->emissiveColor;
 		emi_a = FIX_ONE - mat->transparency;
-		if (eff->has_cmat) gf_cmx_apply_fixed(&eff->color_mat, &emi_a, &emi.red, &emi.green, &emi.blue);
+		if (!eff->color_mat.identity) gf_cmx_apply_fixed(&eff->color_mat, &emi_a, &emi.red, &emi.green, &emi.blue);
 		/*100% transparent DON'T DRAW*/
 		if (emi_a<FIX_EPSILON) return 0;
 		else if (emi_a+FIX_EPSILON<FIX_ONE) VS3D_SetState(eff->surface, F3D_BLEND, 1);
@@ -587,26 +581,47 @@ static GFINLINE Bool VS_setup_material(RenderEffect3D *eff)
 Bool VS_setup_texture(RenderEffect3D *eff)
 {
 	GF_TextureHandler *txh;
+	eff->mesh_has_texture = 0;
 	if (!eff->appear) return 0;
 	txh = R3D_GetTextureHandler(((M_Appearance *)eff->appear)->texture);
 	if (txh) {
-		/*according to VRML spec, texture alpha overrides material alpha*/
-		tx_set_blend_mode(txh, TX_REPLACE);
-		eff->mesh_is_transparent = txh->transparent;
-		return tx_enable(txh, ((M_Appearance *)eff->appear)->textureTransform);
+		tx_set_blend_mode(txh, TX_MODULATE);
+		eff->mesh_has_texture = tx_enable(txh, ((M_Appearance *)eff->appear)->textureTransform);
+		if (eff->mesh_has_texture) {
+			Fixed v[4];
+			switch (txh->pixelformat) {
+			/*override diffuse color with full intensity, but keep material alpha (cf VRML lighting)*/
+			case GF_PIXEL_RGB_24:
+				v[0] = v[1] = v[2] = 1; v[3] = eff->ray.orig.x;
+				VS3D_SetMaterial(eff->surface, MATERIAL_DIFFUSE, v);
+				break;
+			/*override diffuse color AND material alpha (cf VRML lighting)*/
+			case GF_PIXEL_RGBA:
+				v[0] = v[1] = v[2] = v[3] = 1;
+				VS3D_SetMaterial(eff->surface, MATERIAL_DIFFUSE, v);
+				break;
+			case GF_PIXEL_GREYSCALE:
+				eff->mesh_has_texture = 2;
+				break;
+			}
+		}
+		return eff->mesh_has_texture;
 	}
 	return 0;
 }
 
 void VS_disable_texture(RenderEffect3D *eff)
 {
-	if (eff->appear) tx_disable(R3D_GetTextureHandler(((M_Appearance *)eff->appear)->texture) );
+	if (eff->mesh_has_texture) {
+		tx_disable(R3D_GetTextureHandler(((M_Appearance *)eff->appear)->texture) );
+		eff->mesh_has_texture = 0;
+	}
 }
 
 Bool VS_SetupAppearance(RenderEffect3D *eff)
 {
 	/*setup material and check if 100% transparent - in which case don't draw*/
-	if (!VS_setup_material(eff)) return 0;
+	if (!VS_setup_material(eff, 0)) return 0;
 	/*setup texture*/
 	VS_setup_texture(eff);
 	return 1;
@@ -614,17 +629,22 @@ Bool VS_SetupAppearance(RenderEffect3D *eff)
 
 void VS_DrawMesh(RenderEffect3D *eff, GF_Mesh *mesh)
 {
-	if (VS_SetupAppearance(eff)) {
-		VS3D_DrawMesh(eff, mesh, eff->has_scale);
+	if (mesh->mesh_type) {
+		if (VS_setup_material(eff, mesh->mesh_type)) {
+			VS3D_DrawMesh(eff, mesh);
+		}
+	} else if (VS_SetupAppearance(eff)) {
+		VS3D_DrawMesh(eff, mesh);
 		VS_disable_texture(eff);
-	}
+	
 #ifndef GPAC_USE_OGL_ES
-	if (eff->appear && gf_node_get_tag(eff->appear)==TAG_X3D_Appearance) {
-		X_Appearance *ap = (X_Appearance *)eff->appear;
-		X_FillProperties *fp = ap->fillProperties ? (X_FillProperties *) ap->fillProperties : NULL;
-		if (fp && fp->hatched) VS3D_HatchMesh(eff, mesh, eff->has_scale, fp->hatchStyle, fp->hatchColor);
-	}
+		if (eff->appear && gf_node_get_tag(eff->appear)==TAG_X3D_Appearance) {
+			X_Appearance *ap = (X_Appearance *)eff->appear;
+			X_FillProperties *fp = ap->fillProperties ? (X_FillProperties *) ap->fillProperties : NULL;
+			if (fp && fp->hatched) VS3D_HatchMesh(eff, mesh, fp->hatchStyle, fp->hatchColor);
+		}
 #endif
+	}
 }
 
 
@@ -879,9 +899,10 @@ void VS_SetupEffects(VisualSurface *surface, RenderEffect3D *eff)
 	eff->viewpoints = surface->view_stack;
 	eff->fogs = surface->fog_stack;
 	eff->navigations = surface->navigation_stack;
+	eff->color_mat.identity = 1;
 	eff->camera->vp.x = eff->camera->vp.y = 0;
 	eff->min_hsize = INT2FIX(MIN(surface->width, surface->height) / 2);
-	assert(eff->min_hsize);
+	if (!eff->min_hsize) eff->min_hsize = FIX_ONE;
 
 
 	/*main surface, set AR*/
@@ -1029,6 +1050,9 @@ static GFINLINE Bool appear_has_alpha(RenderEffect3D *eff, GF_Node *node_to_draw
 			return 1;
 			break;
 		}
+	} else if (eff->camera->is_3D && eff->appear) {
+		GF_TextureHandler *txh = R3D_GetTextureHandler(((M_Appearance *)eff->appear)->texture);
+		if (txh && txh->transparent) return 1;
 	}
 
 	/*check alpha texture in3D or with bitmap*/
@@ -1036,8 +1060,8 @@ static GFINLINE Bool appear_has_alpha(RenderEffect3D *eff, GF_Node *node_to_draw
 		GF_TextureHandler *txh = R3D_GetTextureHandler(((M_Appearance *)eff->appear)->texture);
 		if (txh && txh->transparent) return 1;
 	}
-	/*if we have color matrix, consider there's alpha*/
-	if (eff->has_cmat) return 1;
+	/*TODO - FIXME check alpha only...*/
+	if (!eff->color_mat.identity) return 1;
 
 	stack = gf_node_get_private(((M_Shape *)node_to_draw)->geometry);
 	if (stack && (stack->mesh->flags & MESH_HAS_ALPHA)) return 1;
@@ -1079,16 +1103,15 @@ void VS_RegisterContext(RenderEffect3D *eff, GF_Node *node_to_draw, GF_BBox *bou
 	ctx->directional_lights = gf_list_new();
 	ctx->node_to_draw = node_to_draw;
 
-	ctx->has_scale = eff->has_scale;
 	memcpy(&ctx->model_matrix, &eff->model_matrix, sizeof(GF_Matrix));
-	ctx->has_cmat = eff->has_cmat;
-	if (ctx->has_cmat) memcpy(&ctx->color_mat, &eff->color_mat, sizeof(GF_ColorMatrix));
+	ctx->color_mat.identity = eff->color_mat.identity;
+	if (!eff->color_mat.identity) memcpy(&ctx->color_mat, &eff->color_mat, sizeof(GF_ColorMatrix));
 
 	ctx->is_pixel_metrics = eff->is_pixel_metrics;
 	ctx->split_text_idx = eff->split_text_idx;
 	
-	for (i=0; i<gf_list_count(eff->local_lights); i++) {
-		ol = gf_list_get(eff->local_lights, i);
+	i=0;
+	while ((ol = gf_list_enum(eff->local_lights, &i))) {
 		nl = malloc(sizeof(DLightContext));
 		memcpy(nl, ol, sizeof(DLightContext));
 		gf_list_add(ctx->directional_lights, nl);
@@ -1127,14 +1150,15 @@ void VS_FlushContexts(VisualSurface *surf, RenderEffect3D *eff)
 
 	count = gf_list_count(surf->alpha_nodes_to_draw);
 	for (idx=0; idx<count; idx++) {
+		DLightContext *dl;
 		Draw3DContext *ctx = gf_list_get(surf->alpha_nodes_to_draw, idx);
 
 		VS3D_PushMatrix(surf);
 
 		/*apply directional lights*/
 		eff->local_light_on = 1;
-		for (i=0; i<gf_list_count(ctx->directional_lights); i++) {
-			DLightContext *dl = gf_list_get(ctx->directional_lights, i);
+		i=0;
+		while ((dl = gf_list_enum(ctx->directional_lights, &i))) {
 			VS3D_PushMatrix(surf);
 			VS3D_MultMatrix(surf, dl->light_matrix.m);
 			gf_node_render(dl->dlight, eff);
@@ -1155,9 +1179,9 @@ void VS_FlushContexts(VisualSurface *surf, RenderEffect3D *eff)
 
 		/*restore effect*/
 		VS3D_MultMatrix(surf, ctx->model_matrix.m);
-		eff->has_scale = ctx->has_scale;
 		memcpy(&eff->model_matrix, &ctx->model_matrix, sizeof(GF_Matrix));
-		if ((eff->has_cmat = ctx->has_cmat)) memcpy(&eff->color_mat, &ctx->color_mat, sizeof(GF_ColorMatrix));
+		eff->color_mat.identity = ctx->color_mat.identity;
+		if (!eff->color_mat.identity) memcpy(&eff->color_mat, &ctx->color_mat, sizeof(GF_ColorMatrix));
 		eff->split_text_idx = ctx->split_text_idx;
 		eff->is_pixel_metrics = ctx->is_pixel_metrics;
 		/*restore cull flag in case we're completely inside (avoids final frustum/AABB tree culling)*/
@@ -1285,8 +1309,9 @@ Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_UserEvent *ev,
 	if (!node_list) {
 		gf_node_render(gf_sg_get_root_node(sr->compositor->scene), eff);
 	} else {
-		for (i=0; i<gf_list_count(node_list); i++) {
-			GF_Node *child = gf_list_get(node_list, i);
+		GF_Node *child;
+		i=0;
+		while ((child = gf_list_enum(node_list, &i))) {
 			gf_node_render(child, eff);
 		}
 	}
@@ -1535,8 +1560,9 @@ void VS_DoCollisions(RenderEffect3D *eff, GF_List *node_list)
 		if (!node_list) {
 			gf_node_render(gf_sg_get_root_node(eff->surface->render->compositor->scene), eff);
 		} else {
-			for (i=0; i<gf_list_count(node_list); i++) {
-				GF_Node *child = gf_list_get(node_list, i);
+			GF_Node *child;
+			i=0;
+			while ((child = gf_list_enum(node_list, &i))) {
 				gf_node_render(child, eff);
 			}
 		}

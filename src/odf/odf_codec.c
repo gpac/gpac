@@ -426,8 +426,8 @@ GF_Err gf_odf_qos_add_qualif(GF_QoS_Descriptor *desc, GF_QoS_Default *qualif)
 	if (desc->tag != GF_ODF_QOS_TAG) return GF_BAD_PARAM;
 	if (desc->predefined) return GF_ODF_FORBIDDEN_DESCRIPTOR;
 
-	for (i = 0; i<gf_list_count(desc->QoS_Qualifiers); i++) {
-		def = (GF_QoS_Default*)gf_list_get(desc->QoS_Qualifiers, i);
+	i=0;
+	while ((def = gf_list_enum(desc->QoS_Qualifiers, &i))) {
 		//if same Qualifier, not allowed...
 		if (def->tag == qualif->tag) return GF_ODF_FORBIDDEN_DESCRIPTOR;
 	}

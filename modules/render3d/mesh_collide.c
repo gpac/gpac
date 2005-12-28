@@ -29,6 +29,19 @@
 	AABB tree syntax&construction code is a quick extract from OPCODE (c) Pierre Terdiman, http://www.codercorner.com/Opcode.htm
 */
 
+typedef struct 
+{
+	/*max tree depth, 0 is unlimited*/
+	u32 max_depth;
+	/*min triangles at node to split. 0 is full split (one triangle per leaf)*/
+	u32 min_tri_limit;
+	/*one of the above type*/
+	u32 split_type;
+	u32 depth, nb_nodes;
+} AABSplitParams;
+
+
+
 static GFINLINE void update_node_bounds(GF_Mesh *mesh, AABBNode *node)
 {
 	u32 i, j;
@@ -96,20 +109,22 @@ static GFINLINE u32 aabb_split(GF_Mesh *mesh, AABBNode *node, u32 axis)
 	return num_pos;
 }
 
-static void mesh_subdivide_aabbtree(GF_Mesh *mesh, AABBNode *node)
+static void mesh_subdivide_aabbtree(GF_Mesh *mesh, AABBNode *node, AABSplitParams *aab_par)
 {
 	Bool do_split;
 	u32 axis, num_pos, i, j;
 	SFVec3f extend;
 
 	/*update mesh depth*/
-	mesh->aabb_nb_index ++;
-	if ( mesh->aabb_nb_index  > mesh->depth ) mesh->depth = mesh->aabb_nb_index;
-	
+	aab_par->depth ++;
+
 	/*done*/
 	if (node->nb_idx==1) return;
-	if (node->nb_idx<=mesh->min_tri_limit) return;
-	if (mesh->max_depth==mesh->depth) return;
+	if (node->nb_idx <= aab_par->min_tri_limit) return;
+	if (aab_par->max_depth == aab_par->depth) {
+		aab_par->depth --; 
+		return;
+	}
 	do_split = 1;
 
 	gf_vec_diff(extend, node->max, node->max);
@@ -117,10 +132,10 @@ static void mesh_subdivide_aabbtree(GF_Mesh *mesh, AABBNode *node)
 	axis = gf_vec_main_axis(extend);
 
 	num_pos = 0;
-	if (mesh->split_type==AABB_LONGEST) {
+	if (aab_par->split_type==AABB_LONGEST) {
 		num_pos = aabb_split(mesh, node, axis);
 	}
-	else if (mesh->split_type==AABB_BALANCED) {
+	else if (aab_par->split_type==AABB_BALANCED) {
 		Fixed res[3];
 		num_pos = aabb_split(mesh, node, 0);
 		res[0] = gf_divfix(INT2FIX(num_pos), INT2FIX(node->nb_idx)) - FIX_ONE/2; res[0] = gf_mulfix(res[0], res[0]);
@@ -134,7 +149,7 @@ static void mesh_subdivide_aabbtree(GF_Mesh *mesh, AABBNode *node)
 		if (res[2] < res[axis])	axis = 2;
 		num_pos = aabb_split(mesh, node, axis);
 	}
-	else if (mesh->split_type==AABB_BEST_AXIS) {
+	else if (aab_par->split_type==AABB_BEST_AXIS) {
 		u32 sorted[] = { 0, 1, 2 };
 		Fixed *Keys = (Fixed *) &extend.x;
 		for (j=0; j<3; j++) {
@@ -155,7 +170,7 @@ static void mesh_subdivide_aabbtree(GF_Mesh *mesh, AABBNode *node)
 			else do_split = 1;
 		}
 	}
-	else if (mesh->split_type==AABB_SPLATTER) {
+	else if (aab_par->split_type==AABB_SPLATTER) {
 		SFVec3f means, vars;
 		means.x = means.y = means.z = 0;
 		for (i=0; i<node->nb_idx; i++) {
@@ -180,70 +195,86 @@ static void mesh_subdivide_aabbtree(GF_Mesh *mesh, AABBNode *node)
 		axis = gf_vec_main_axis(vars);
 		num_pos = aabb_split(mesh, node, axis);
 	}
-	else if (mesh->split_type==AABB_FIFTY) {
+	else if (aab_par->split_type==AABB_FIFTY) {
 		do_split = 0;
 	}
 
 	if (!num_pos || (num_pos==node->nb_idx)) do_split = 0;
 
 	if (!do_split) {
-		if (mesh->split_type==AABB_FIFTY) {
+		if (aab_par->split_type==AABB_FIFTY) {
 			num_pos = node->nb_idx/2;
 		} else {
 			return;
 		}
 	}
-	mesh->nb_nodes += 2;
+	aab_par->nb_nodes += 2;
 
 	GF_SAFEALLOC(node->pos, sizeof(AABBNode));
 	node->pos->indices = &node->indices[0];
 	node->pos->nb_idx = num_pos;
 	update_node_bounds(mesh, node->pos);
-	mesh_subdivide_aabbtree(mesh, node->pos);
-	mesh->aabb_nb_index --;
+	mesh_subdivide_aabbtree(mesh, node->pos, aab_par);
 
 	GF_SAFEALLOC(node->neg, sizeof(AABBNode));
 	node->neg->indices = &node->indices[num_pos];
 	node->neg->nb_idx = node->nb_idx - num_pos;
 	update_node_bounds(mesh, node->neg);
-	mesh_subdivide_aabbtree(mesh, node->neg);
-	mesh->aabb_nb_index --;
+	mesh_subdivide_aabbtree(mesh, node->neg, aab_par);
+
+	aab_par->depth --;
 }
 
 
 void gf_mesh_build_aabbtree(GF_Mesh *mesh)
 {
-	u32 i;
+	u32 i, nb_idx;
+	AABSplitParams pars;
 
-	mesh->min_tri_limit = 6;
-	mesh->max_depth = 0;
-	if (mesh->i_count<=mesh->min_tri_limit) return;
+	memset(&pars, 0, sizeof(pars));
+	pars.min_tri_limit = 8;
+	pars.max_depth = 0;
+	pars.split_type = AABB_SPLATTER;
 
-	mesh->aabb_nb_index = mesh->i_count / 3;
-	mesh->aabb_indices = malloc(sizeof(u32) * mesh->aabb_nb_index);
-	for (i=0; i<mesh->aabb_nb_index; i++) mesh->aabb_indices[i] = i;
+	if (mesh->i_count <= pars.min_tri_limit) return;
 
-	mesh->split_type = AABB_BEST_AXIS;
+	nb_idx = mesh->i_count / 3;
+	mesh->aabb_indices = malloc(sizeof(u32) * nb_idx);
+	for (i=0; i<nb_idx; i++) mesh->aabb_indices[i] = i;
 
 	GF_SAFEALLOC(mesh->aabb_root, sizeof(AABBNode));
 	mesh->aabb_root->min = mesh->bounds.min_edge;
 	mesh->aabb_root->max = mesh->bounds.max_edge;
 	mesh->aabb_root->indices = mesh->aabb_indices;
-	mesh->aabb_root->nb_idx = mesh->aabb_nb_index;
-	mesh->nb_nodes = 1;
-	mesh->depth = 0;
-	i = mesh->aabb_nb_index;
-	mesh->aabb_nb_index = 0;
-	mesh_subdivide_aabbtree(mesh, mesh->aabb_root);
-	mesh->aabb_nb_index = i;
+	mesh->aabb_root->nb_idx = nb_idx;
+	pars.nb_nodes = 1;
+	pars.depth = 0;
+	mesh_subdivide_aabbtree(mesh, mesh->aabb_root, &pars);
 
-/*
-	fprintf(stdout, "AABB tree %d nodes depth %d - size %d bytes\n", mesh->nb_nodes, mesh->depth, sizeof(AABBNode)*mesh->nb_nodes);
-*/
-
+	//fprintf(stdout, "AABB tree %d nodes depth %d - size %d bytes\n", pars.nb_nodes, pars.depth, sizeof(AABBNode)*pars.nb_nodes);
 }
 
 
+static void ray_hit_triangle_get_u_v(GF_Ray *ray, GF_Vec *v0, GF_Vec *v1, GF_Vec *v2, Fixed *u, Fixed *v)
+{
+	Fixed det;
+	GF_Vec edge1, edge2, tvec, pvec, qvec;
+	/* find vectors for two edges sharing vert0 */
+	gf_vec_diff(edge1, *v1, *v0);
+	gf_vec_diff(edge2, *v2, *v0);
+	/* begin calculating determinant - also used to calculate U parameter */
+	pvec = gf_vec_cross(ray->dir, edge2);
+	/* if determinant is near zero, ray lies in plane of triangle */
+	det = gf_vec_dot(edge1, pvec);
+	/* calculate distance from vert0 to ray origin */
+	gf_vec_diff(tvec, ray->orig, *v0);
+	/* calculate U parameter and test bounds */
+	(*u) = gf_divfix(gf_vec_dot(tvec, pvec), det);
+	/* prepare to test V parameter */
+	qvec = gf_vec_cross(tvec, edge1);
+	/* calculate V parameter and test bounds */
+	(*v) = gf_divfix(gf_vec_dot(ray->dir, qvec), det);
+}
 
 Bool gf_mesh_aabb_ray_hit(GF_Mesh *mesh, AABBNode *n, GF_Ray *ray, Fixed *closest, SFVec3f *outPoint, SFVec3f *outNormal, SFVec2f *outTexCoords)
 {
@@ -291,7 +322,7 @@ Bool gf_mesh_aabb_ray_hit(GF_Mesh *mesh, AABBNode *n, GF_Ray *ray, Fixed *closes
 			gf_vec_add(*outPoint, ray->orig, *outPoint);
 		}
 		if (outNormal) {
-			IDX_TYPE *idx = &mesh->indices[inters_idx];
+			IDX_TYPE *idx = &mesh->indices[3*n->indices[inters_idx]];;
 			if (mesh->flags & MESH_IS_SMOOTHED) {
 				gf_vec_diff(v1, mesh->vertices[idx[1]].pos, mesh->vertices[idx[0]].pos);
 				gf_vec_diff(v2, mesh->vertices[idx[2]].pos, mesh->vertices[idx[0]].pos);
@@ -302,17 +333,10 @@ Bool gf_mesh_aabb_ray_hit(GF_Mesh *mesh, AABBNode *n, GF_Ray *ray, Fixed *closes
 			}
 		}
 		if (outTexCoords) {
-			SFVec2f txres;
-			IDX_TYPE *idx = &mesh->indices[inters_idx];
-			txres.x = txres.y = 0;
-			txres.x += mesh->vertices[idx[0]].texcoords.x;
-			txres.x += mesh->vertices[idx[1]].texcoords.x;
-			txres.x += mesh->vertices[idx[2]].texcoords.x;
-			txres.y += mesh->vertices[idx[0]].texcoords.y;
-			txres.y += mesh->vertices[idx[1]].texcoords.y;
-			txres.y += mesh->vertices[idx[2]].texcoords.y;
-			outTexCoords->x = txres.x / 3;
-			outTexCoords->y = txres.y / 3;
+			IDX_TYPE *idx = &mesh->indices[3*n->indices[inters_idx]];;
+			ray_hit_triangle_get_u_v(ray, 
+				&mesh->vertices[idx[0]].pos, &mesh->vertices[idx[1]].pos, &mesh->vertices[idx[2]].pos,
+				&outTexCoords->x, &outTexCoords->y);
 		}
 	}
 	return inters;

@@ -276,8 +276,8 @@ GF_Descriptor *gf_isom_get_root_od(GF_ISOFile *movie)
 		isom_od->URLString = NULL;
 		od->tag = GF_ODF_OD_TAG;
 		//then recreate the desc in Inc
-		for (i = 0; i < gf_list_count(isom_od->ES_ID_IncDescriptors); i++) {
-			inc = (GF_ES_ID_Inc*)gf_list_get(isom_od->ES_ID_IncDescriptors, i);
+		i=0;
+		while ((inc = gf_list_enum(isom_od->ES_ID_IncDescriptors, &i))) {
 			movie->LastError = GetESDForTime(movie->moov, inc->trackID, 0, &esd);
 			if (!movie->LastError) movie->LastError = gf_list_add(od->ESDescriptors, esd);
 			if (movie->LastError) {
@@ -311,8 +311,8 @@ GF_Descriptor *gf_isom_get_root_od(GF_ISOFile *movie)
 		isom_iod->IPMPToolList = NULL;
 
 		//then recreate the desc in Inc
-		for (i = 0; i < gf_list_count(isom_iod->ES_ID_IncDescriptors); i++) {
-			inc = (GF_ES_ID_Inc*)gf_list_get(isom_iod->ES_ID_IncDescriptors, i);
+		i=0;
+		while ((inc = gf_list_enum(isom_iod->ES_ID_IncDescriptors, &i))) {
 			movie->LastError = GetESDForTime(movie->moov, inc->trackID, 0, &esd);
 			if (!movie->LastError) movie->LastError = gf_list_add(iod->ESDescriptors, esd);
 			if (movie->LastError) {
@@ -398,8 +398,8 @@ u64 gf_isom_get_duration(GF_ISOFile *movie)
 
 	if (movie->openMode != GF_ISOM_OPEN_READ) {
 		maxDur = 0;
-		for (i = 0; i< gf_list_count(movie->moov->trackList); i++) {
-			trak = (GF_TrackBox*)gf_list_get(movie->moov->trackList, i);
+		i=0;
+		while ((trak = gf_list_enum(movie->moov->trackList, &i))) {
 			if( (movie->LastError = SetTrackDuration(trak))	) return 0;
 			if (trak->Header->duration > maxDur)
 				maxDur = trak->Header->duration;
@@ -417,8 +417,8 @@ GF_Err gf_isom_get_creation_time(GF_ISOFile *movie, u64 *creationTime, u64 *modi
 {
 	if (!movie || !movie->moov) return GF_BAD_PARAM;
 	
-	*creationTime = movie->moov->mvhd->creationTime;
-	*modificationTime = movie->moov->mvhd->modificationTime;
+	if (creationTime) *creationTime = movie->moov->mvhd->creationTime;
+	if (creationTime) *modificationTime = movie->moov->mvhd->modificationTime;
 	return GF_OK;
 }
 
@@ -448,8 +448,8 @@ u8 gf_isom_is_track_in_root_od(GF_ISOFile *movie, u32 trackNumber)
 	}
 	trackID = gf_isom_get_track_id(movie, trackNumber);
 	if (!trackID) return 2;
-	for (i = 0; i < gf_list_count(inc_list); i++) {
-		inc = (GF_ES_ID_Inc*)gf_list_get(inc_list, i);
+	i=0;
+	while ((inc = gf_list_enum(inc_list, &i))) {
 		if (inc->trackID == trackID) return 1;
 	}
 	return 0;
@@ -942,8 +942,8 @@ Bool gf_isom_has_time_offset(GF_ISOFile *the_file, u32 trackNumber)
 
 	//return true at the first offset found
 	ctts = trak->Media->information->sampleTable->CompositionOffset;
-	for (i=0; i<gf_list_count(ctts->entryList); i++) {
-		pe = gf_list_get(ctts->entryList, i);
+	i=0;
+	while ((pe = gf_list_enum(ctts->entryList, &i))) {
 		if (pe->decodingOffset && pe->sampleCount) return 1;
 	}
 	return 0;
@@ -1442,8 +1442,8 @@ u32 gf_isom_get_user_data_count(GF_ISOFile *movie, u32 trackNumber, u32 UserData
 	}
 	if (!udta) return 0;
 
-	for (i=0; i<gf_list_count(udta->recordList); i++) {
-		map = gf_list_get(udta->recordList, i);
+	i=0;
+	while ((map = gf_list_enum(udta->recordList, &i))) {
 		count = gf_list_count(map->boxList);
 
 		if ((map->boxType == GF_ISOM_BOX_TYPE_UUID) && !memcmp(map->uuid, UUID, 16)) return count;
@@ -1478,8 +1478,8 @@ GF_Err gf_isom_get_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataTyp
 	if (!UserDataIndex) return GF_BAD_PARAM;
 	if (!userData || !userDataSize || *userData) return GF_BAD_PARAM;
 
-	for (i=0; i<gf_list_count(udta->recordList); i++) {
-		map = gf_list_get(udta->recordList, i);
+	i=0;
+	while ((map = gf_list_enum(udta->recordList, &i))) {
 		if ((map->boxType == GF_ISOM_BOX_TYPE_UUID) && !memcmp(map->uuid, UUID, 16)) goto found;
 		else if (map->boxType == UserDataType) goto found;
 	
@@ -1521,13 +1521,13 @@ u32 gf_isom_get_max_chunk_duration(GF_ISOFile *movie, u32 trackNumber)
 	stts = trak->Media->information->sampleTable->TimeToSample;
 
 	sample_per_chunk = 0;
-	for (i=0; i<gf_list_count(stsc->entryList); i++) {
-		sc = gf_list_get(stsc->entryList, i);
+	i=0;
+	while ((sc = gf_list_enum(stsc->entryList, &i))) {
 		if (sc->samplesPerChunk > sample_per_chunk) sample_per_chunk = sc->samplesPerChunk;
 	}
 	sample_dur = 0;
-	for (i=0; i<gf_list_count(stts->entryList); i++) {
-		ts = gf_list_get(stts->entryList, i);
+	i=0;
+	while ((ts = gf_list_enum(stts->entryList, &i))) {
 		if (ts->sampleDelta > sample_dur) sample_dur = ts->sampleDelta;
 	}
 	
@@ -1573,8 +1573,8 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 	//duration
 	if (defaultDuration) {
 		maxValue = value = 0;
-		for (i=0; i<gf_list_count(stbl->TimeToSample->entryList); i++) {
-			ts_ent = gf_list_get(stbl->TimeToSample->entryList, i);
+		i=0;
+		while ((ts_ent = gf_list_enum(stbl->TimeToSample->entryList, &i))) {
 			if (ts_ent->sampleCount>maxValue) {
 				value = ts_ent->sampleDelta;
 				maxValue = ts_ent->sampleCount;
@@ -1589,8 +1589,8 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 	//descIndex
 	if (defaultDescriptionIndex) {
 		maxValue = value = 0;
-		for (i=0; i<gf_list_count(stbl->SampleToChunk->entryList); i++) {
-			sc_ent = gf_list_get(stbl->SampleToChunk->entryList, i);
+		i=0;
+		while ((sc_ent = gf_list_enum(stbl->SampleToChunk->entryList, &i))) {
 			if ((sc_ent->nextChunk - sc_ent->firstChunk) * sc_ent->samplesPerChunk > maxValue) {
 				value = sc_ent->sampleDescriptionIndex;
 				maxValue = (sc_ent->nextChunk - sc_ent->firstChunk) * sc_ent->samplesPerChunk;

@@ -99,12 +99,12 @@ u32 gf_sg_script_get_num_fields(GF_Node *node, u8 IndexMode)
 GF_Err gf_sg_script_get_field_index(GF_Node *node, u32 inField, u8 IndexMode, u32 *allField)
 {
 	u32 i;
+	GF_ScriptField *sf;
 	u32 nb_static = script_get_nb_static_field(node);
-
 	GF_ScriptPriv *priv = node->sgprivate->privateStack;
-	for (i=0; i<gf_list_count(priv->fields); i++) {
-		GF_ScriptField *sf = gf_list_get(priv->fields, i);
-		*allField = i+nb_static;
+	i=0;
+	while ((sf = gf_list_enum(priv->fields, &i))) {
+		*allField = i-1+nb_static;
 		switch (IndexMode) {
 		case GF_SG_FIELD_CODING_IN:
 			if ((u32)sf->IN_index==inField) return GF_OK;
@@ -118,7 +118,7 @@ GF_Err gf_sg_script_get_field_index(GF_Node *node, u32 inField, u8 IndexMode, u3
 		case GF_SG_FIELD_CODING_DYN:
 			return GF_BAD_PARAM;
 		default:
-			if (inField==i+nb_static) return GF_OK;
+			if (inField==i-1+nb_static) return GF_OK;
 			break;
 		}
 	}
@@ -251,13 +251,14 @@ GF_ScriptField *gf_sg_script_field_new(GF_Node *node, u32 eventType, u32 fieldTy
 GF_Err gf_sg_script_prepare_clone(GF_Node *dest, GF_Node *orig)
 {
 	u32 i, type;
+	GF_ScriptField *sf;
 	GF_ScriptPriv *dest_priv, *orig_priv;
 	orig_priv = orig->sgprivate->privateStack;
 	dest_priv = dest->sgprivate->privateStack;
 	if (!orig_priv || !dest_priv) return GF_BAD_PARAM;
 
-	for (i=0; i<gf_list_count(orig_priv->fields); i++) {
-		GF_ScriptField *sf = gf_list_get(orig_priv->fields, i);
+	i=0;
+	while ((sf = gf_list_enum(orig_priv->fields, &i))) {
 		switch (sf->eventType) {
 		case GF_SG_EVENT_IN:
 			type = GF_SG_SCRIPT_TYPE_EVENT_IN;

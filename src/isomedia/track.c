@@ -29,8 +29,8 @@ GF_TrackBox *GetTrackbyID(GF_MovieBox *moov, u32 TrackID)
 	GF_TrackBox *trak;
 	u32 i;
 	if (!moov) return NULL;
-	for (i = 0; i < gf_list_count(moov->trackList); i++) {
-		trak = (GF_TrackBox*)gf_list_get(moov->trackList, i);
+	i=0;
+	while ((trak = gf_list_enum(moov->trackList, &i))) {
 		if (trak->Header->trackID == TrackID) return trak;
 	}
 	return NULL;
@@ -51,9 +51,9 @@ u32 gf_isom_get_tracknum_from_id(GF_MovieBox *moov, u32 trackID)
 {
 	u32 i;
 	GF_TrackBox *trak;
-	for (i = 0; i < gf_list_count(moov->trackList); i++) {
-		trak = (GF_TrackBox*)gf_list_get(moov->trackList, i);
-		if (trak->Header->trackID == trackID) return i+1;
+	i=0;
+	while ((trak = gf_list_enum(moov->trackList, &i))) {
+		if (trak->Header->trackID == trackID) return i;
 	}
 	return 0;
 }
@@ -273,8 +273,8 @@ GF_Err Track_FindRef(GF_TrackBox *trak, u32 ReferenceType, GF_TrackReferenceType
 		return GF_OK;
 	}
 	ref = trak->References;
-	for (i = 0; i < gf_list_count(ref->boxList); i++) {
-		a = (GF_Box*)gf_list_get(ref->boxList, i);
+	i=0;
+	while ((a = gf_list_enum(ref->boxList, &i))) {
 		if (a->type == ReferenceType) {
 			*dpnd = (GF_TrackReferenceTypeBox *)a;
 			return GF_OK;
@@ -322,8 +322,8 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 	if (trak->editBox && trak->editBox->editList) {
 		trackDuration = 0;
 		elst = trak->editBox->editList;
-		for (i = 0; i<gf_list_count(elst->entryList); i++) {
-			ent = (GF_EdtsEntry*)gf_list_get(elst->entryList, i);
+		i=0;
+		while ((ent = gf_list_enum(elst->entryList, &i))) {
 			trackDuration += ent->segmentDuration;
 		}
 	} else {
@@ -371,8 +371,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 *moof_offset
 
 	chunk_size = 0;
 
-	for (i=0; i<gf_list_count(traf->TrackRuns); i++) {
-		trun = gf_list_get(traf->TrackRuns, i);
+	i=0;
+	while ((trun = gf_list_enum(traf->TrackRuns, &i))) {
 		//merge the run
 		for (j=0;j<trun->sample_count; j++) {
 			ent = gf_list_get(trun->entries, j);
@@ -438,8 +438,8 @@ u8 RequestTrack(GF_MovieBox *moov, u32 TrackID)
 	u32 i;
 	GF_TrackBox *trak;
 
-	for (i = 0; i < gf_list_count(moov->trackList); i++) {
-		trak = (GF_TrackBox*)gf_list_get(moov->trackList, i);
+	i=0;
+	while ((trak = gf_list_enum(moov->trackList, &i))) {
 		if (trak->Header->trackID == TrackID) {
 			gf_isom_set_last_error(moov->mov, GF_BAD_PARAM);
 			return 0;
@@ -456,11 +456,11 @@ GF_Err Track_RemoveRef(GF_TrackBox *trak, u32 ReferenceType)
 	if (! trak) return GF_BAD_PARAM;
 	if (! trak->References) return GF_OK;
 	ref = trak->References;
-	for (i = 0; i < gf_list_count(ref->boxList); i++) {
-		a = (GF_Box*)gf_list_get(ref->boxList, i);
+	i=0;
+	while ((a = gf_list_enum(ref->boxList, &i))) {
 		if (a->type == ReferenceType) {
 			gf_isom_box_del(a);
-			gf_list_rem(ref->boxList, i);
+			gf_list_rem(ref->boxList, i-1);
 			return GF_OK;
 		}
 	}

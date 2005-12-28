@@ -119,10 +119,9 @@ static GF_Err ODS_UpdateESD(ODPriv *priv, GF_ESDUpdate *ESDs)
 		esd = gf_list_get(ESDs->ESDescriptors, 0);
 		/*spec: "ES_Descriptors with ES_IDs that have already been received within the same name scope shall be ignored."*/
 		prev = NULL;
-		for (i=0; i<gf_list_count(odm->OD->ESDescriptors); i++) {
-			prev = gf_list_get(odm->OD->ESDescriptors, i);
+		i=0;
+		while ((prev = gf_list_enum(odm->OD->ESDescriptors, &i))) {
 			if (prev->ESID == esd->ESID) break;
-			prev = NULL;
 		}
 
 		if (prev) {

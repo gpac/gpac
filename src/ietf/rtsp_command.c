@@ -102,7 +102,7 @@ void gf_rtsp_command_del(GF_RTSPCommand *com)
 GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned char *req_buffer, 
 						 unsigned char **out_buffer, u32 *out_size)
 {
-	u32 i, cur_pos, size;
+	u32 i, cur_pos, size, count;
 	char *buffer, temp[50];
 	GF_RTSPTransport *trans;
 	GF_X_Attribute *att;
@@ -174,9 +174,10 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
 	}
 
 	//transport info
-	if (gf_list_count(com->Transports)) {
+	count = gf_list_count(com->Transports);
+	if (count) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Transport: ");
-		for (i=0; i<gf_list_count(com->Transports); i++) {
+		for (i=0; i<count; i++) {
 			//line separator for headers
 			if (i) RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n ,");
 			trans = gf_list_get(com->Transports, i);
@@ -238,7 +239,8 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "User-Agent", com->User_Agent);	
 
 	//eXtensions
-	for (i=0; i<gf_list_count(com->Xtensions); i++) {
+	count = gf_list_count(com->Xtensions);
+	for (i=0; i<count; i++) {
 		att = gf_list_get(com->Xtensions, i);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "x-");
 		RTSP_WRITE_HEADER(buffer, size, cur_pos, att->Name, att->Value);	

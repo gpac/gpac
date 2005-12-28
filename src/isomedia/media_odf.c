@@ -76,8 +76,8 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 			odU = (GF_ODUpdate *) com;
 			odU2 = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
 
-			for (i = 0; i< gf_list_count(odU->objectDescriptors); i++) {
-				desc = (GF_Descriptor*)gf_list_get(odU->objectDescriptors, i);
+			i=0;
+			while ((desc = gf_list_enum(odU->objectDescriptors, &i))) {
 				switch (desc->tag) {
 				case GF_ODF_OD_TAG:
 				case GF_ODF_ISOM_OD_TAG:
@@ -126,8 +126,8 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 				}
 				
 				//then rewrite the ESDesc
-				for (j = 0; j < gf_list_count(isom_od->ES_ID_RefDescriptors); j++) {
-					ref = (GF_ES_ID_Ref*)gf_list_get(isom_od->ES_ID_RefDescriptors, j);
+				j=0;
+				while ((ref = gf_list_enum(isom_od->ES_ID_RefDescriptors, &j))){
 					//if the ref index is not valid, skip this desc...
 					if (!mpod->trackIDs || gf_isom_get_track_from_id(mdia->mediaTrack->moov, mpod->trackIDs[ref->trackRef - 1]) == NULL) continue;
 					//OK, get the esd
@@ -155,8 +155,8 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 			esdU = (GF_ESDUpdate *) com;
 			esdU2 = (GF_ESDUpdate *) gf_odf_com_new(GF_ODF_ESD_UPDATE_TAG);
 			esdU2->ODID = esdU->ODID;
-			for (i = 0; i< gf_list_count(esdU->ESDescriptors); i++) {
-				ref = (GF_ES_ID_Ref*)gf_list_get(esdU->ESDescriptors, i);
+			i=0;
+			while ((ref = gf_list_enum(esdU->ESDescriptors, &i))) {
 				//if the ref index is not valid, skip this desc...
 				if (gf_isom_get_track_from_id(mdia->mediaTrack->moov, mpod->trackIDs[ref->trackRef - 1]) == NULL) continue;
 				//OK, get the esd
@@ -290,8 +290,8 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 			odU = (GF_ODUpdate *) com;
 			odU2 = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
 
-			for (i = 0; i < gf_list_count(odU->objectDescriptors); i++) {
-				desc = (GF_Descriptor*)gf_list_get(odU->objectDescriptors, i);
+			i=0;
+			while ((desc = gf_list_enum(odU->objectDescriptors, &i))) {
 				//both OD and IODs are accepted
 				switch (desc->tag) {
 				case GF_ODF_OD_TAG:
@@ -335,8 +335,8 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 				od->URLString = NULL;
 				isom_od->objectDescriptorID = od->objectDescriptorID;
 
-				for (j = 0; j < gf_list_count(od->ESDescriptors); j++) {
-					esd =(GF_ESD*)gf_list_get(od->ESDescriptors, j);
+				j=0;
+				while ((esd =gf_list_enum(od->ESDescriptors, &j))) {
 					ref = (GF_ES_ID_Ref *) gf_odf_desc_new(GF_ODF_ESD_REF_TAG);
 					//1 to 1 mapping trackID and ESID. Add this track to MPOD
 					//if track does not exist, this will be remove while reading the OD stream
@@ -360,8 +360,8 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 			esdU = (GF_ESDUpdate *) com;
 			esdU2 = (GF_ESDUpdate *) gf_odf_com_new(GF_ODF_ESD_UPDATE_TAG);
 			esdU2->ODID = esdU->ODID;
-			for (i = 0; i< gf_list_count(esdU->ESDescriptors); i++) {
-				esd = (GF_ESD*)gf_list_get(esdU->ESDescriptors, i);
+			i=0;
+			while ((esd = gf_list_enum(esdU->ESDescriptors, &i))) {
 				ref = (GF_ES_ID_Ref *) gf_odf_desc_new(GF_ODF_ESD_REF_TAG);
 				//1 to 1 mapping trackID and ESID
 				e = reftype_AddRefTrack(mpod, esd->ESID, &ref->trackRef);
@@ -380,16 +380,18 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 			esdR2->tag = GF_ODF_ESD_REMOVE_REF_TAG;
 			esdR2->ODID = esdR->ODID;
 			esdR2->NbESDs = esdR->NbESDs;
-			//alloc our stuff
-			esdR2->ES_ID = (unsigned short*)malloc(sizeof(u32) * esdR->NbESDs);
-			if (!esdR2->ES_ID) {
-				e = GF_OUT_OF_MEM;
-				goto err_exit;
-			}
-			for (i = 0; i < esdR->NbESDs; i++) {
-				//1 to 1 mapping trackID and ESID
-				e = reftype_AddRefTrack(mpod, esdR->ES_ID[i], &esdR2->ES_ID[i]);
-				if (e) goto err_exit;
+			if (esdR->NbESDs) {
+				//alloc our stuff
+				esdR2->ES_ID = (unsigned short*)malloc(sizeof(u32) * esdR->NbESDs);
+				if (!esdR2->ES_ID) {
+					e = GF_OUT_OF_MEM;
+					goto err_exit;
+				}
+				for (i = 0; i < esdR->NbESDs; i++) {
+					//1 to 1 mapping trackID and ESID
+					e = reftype_AddRefTrack(mpod, esdR->ES_ID[i], &esdR2->ES_ID[i]);
+					if (e) goto err_exit;
+				}
 			}
 			gf_odf_com_del(&com);
 			gf_odf_codec_add_com(ODencode, (GF_ODCom *)esdR2);

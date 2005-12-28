@@ -89,9 +89,8 @@ GF_Err gf_sg_route_del_by_id(GF_SceneGraph *sg,u32 routeID)
 GF_Route *gf_sg_route_find(GF_SceneGraph *sg, u32 RouteID)
 {
 	GF_Route *r;
-	u32 i;
-	for (i=0; i<gf_list_count(sg->Routes); i++) {
-		r = gf_list_get(sg->Routes, i);
+	u32 i=0;
+	while ((r = gf_list_enum(sg->Routes, &i))) {
 		if (r->ID == RouteID) return r;
 	}
 	return NULL;
@@ -103,8 +102,8 @@ GF_Route *gf_sg_route_find_by_name(GF_SceneGraph *sg, char *name)
 	u32 i;
 	if (!sg || !name) return NULL;
 
-	for (i=0; i<gf_list_count(sg->Routes); i++) {
-		r = gf_list_get(sg->Routes, i);
+	i=0;
+	while ((r = gf_list_enum(sg->Routes, &i))) {
 		if (r->name && !strcmp(r->name, name)) return r;
 	}
 	return NULL;
@@ -185,8 +184,8 @@ Bool gf_sg_route_activate(GF_Route *r)
 			gf_node_unregister(p, r->ToNode);
 		}
 
-		for (i=0; i<gf_list_count(orig); i++) {
-			p = gf_list_get(orig, i);
+		i=0;
+		while ((p = gf_list_enum(orig, &i))) {
 			gf_list_add(dest, p);
 			gf_node_register(p, r->ToNode);
 		}
@@ -244,8 +243,8 @@ void gf_node_event_out(GF_Node *node, u32 FieldIndex)
 	if (!node->sgprivate->events) return;
 	
 	//search for routes to activate in the order they where declared
-	for (i=0; i<gf_list_count(node->sgprivate->events); i++) {
-		r = gf_list_get(node->sgprivate->events, i);
+	i=0;
+	while ((r = gf_list_enum(node->sgprivate->events, &i))) {
 		if (r->FromNode != node) continue;
 		if (r->FromFieldIndex != FieldIndex) continue;
 
@@ -272,8 +271,8 @@ void gf_node_event_out_str(GF_Node *node, const char *eventName)
 	if (!node->sgprivate->NodeID && !node->sgprivate->scenegraph->pOwningProto) return;
 	
 	//search for routes to activate in the order they where declared
-	for (i=0; i<gf_list_count(node->sgprivate->events); i++) {
-		r = gf_list_get(node->sgprivate->events, i);
+	i=0;
+	while ((r = gf_list_enum(node->sgprivate->events, &i))) {
 		if (stricmp(r->fromFieldName, eventName)) continue;
 
 		//no postpone

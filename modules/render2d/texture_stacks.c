@@ -155,8 +155,8 @@ static void UpdateComposite2D(GF_TextureHandler *txh)
 	}
 
 	/*add sensor to effects*/	
-	for (i=0; i <gf_list_count(st->sensors); i++) {
-		SensorHandler *hsens = gf_list_get(st->sensors, i);
+	i=0; 
+	while ((hsens = gf_list_enum(st->sensors, &i))) {
 		effect_add_sensor(eff, hsens, &eff->transform);
 	}
 

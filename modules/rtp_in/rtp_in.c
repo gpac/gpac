@@ -157,8 +157,8 @@ u32 RP_Thread(void *param)
 
 		/*fecth data on udp*/
 		nb_inter = 0;
-		for (i=0; i<gf_list_count(rtp->channels); i++) {
-			ch = gf_list_get(rtp->channels, i);
+		i=0;
+		while ((ch = gf_list_enum(rtp->channels, &i))) {
 			if ((ch->flags & CH_EOS) || (ch->status!=RTP_Running) ) continue;
 			/*for interleaved channels don't read too fast, query the buffer occupancy*/
 			if (ch->flags & CH_IsInterleaved) {

@@ -304,8 +304,9 @@ GF_ISOSample *gf_isom_text_to_sample(GF_TextSample *samp)
 	if (!e) e = gpp_write_modifier(bs, (GF_Box *)samp->wrap);
 
 	if (!e) {
-		for (i=0; i<gf_list_count(samp->others); i++) {
-			GF_Box *a = gf_list_get(samp->others, i);
+		GF_Box *a;
+		i=0;
+		while ((a = gf_list_enum(samp->others, &i))) {
 			e = gpp_write_modifier(bs, a);
 			if (e) break;
 		}
@@ -559,8 +560,7 @@ GF_Err gf_isom_get_ttxt_esd(GF_MediaBox *mdia, GF_ESD **out_esd)
 	Bool has_v_info;
 	GF_List *sampleDesc;
 	GF_ESD *esd;
-
-
+	GF_TrackBox *tk;
 
 	*out_esd = NULL;
 	sampleDesc = mdia->information->sampleTable->SampleDescription->boxList;
@@ -587,8 +587,8 @@ GF_Err gf_isom_get_ttxt_esd(GF_MediaBox *mdia, GF_ESD **out_esd)
 
 	/*write v info if any visual track in this movie*/
 	has_v_info = 0;
-	for (i=0; i<gf_list_count(mdia->mediaTrack->moov->trackList); i++) {
-		GF_TrackBox *tk = gf_list_get(mdia->mediaTrack->moov->trackList, i);
+	i=0;
+	while ((tk = gf_list_enum(mdia->mediaTrack->moov->trackList, &i))) {
 		if (tk->Media->handler && (tk->Media->handler->handlerType == GF_ISOM_MEDIA_VISUAL)) {
 			has_v_info = 1;
 		}

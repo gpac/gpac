@@ -25,12 +25,6 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/utf.h>
 
-#if defined (WIN32) && !defined(__GNUC__)
-#define LLD "%I64d"
-#else
-#define LLD "%lld"
-#endif
-
 GF_Err DumpBox(GF_Box *a, FILE * trace)
 {
 	if (a->size > 0xFFFFFFFF) {
@@ -245,8 +239,8 @@ GF_Err gb_box_array_dump(GF_List *list, FILE * trace)
 	u32 i;
 	GF_Box *a;
 	if (!list) return GF_OK;
-	for (i=0; i<gf_list_count(list); i++) {
-		a = gf_list_get(list, i);
+	i=0;
+	while ((a = gf_list_enum(list, &i))) {
 		gb_box_dump(a, trace);
 	}
 	return GF_OK;
@@ -265,8 +259,8 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 	fprintf(trace, "<!--MP4Box dump trace-->\n");
 	fprintf(trace, "<IsoMediaFile Name=\"%s\">\n", mov->fileName);
 
-	for (i=0; i<gf_list_count(mov->TopBoxes); i++) {
-		box = gf_list_get(mov->TopBoxes, i);
+	i=0;
+	while ((box = gf_list_enum(mov->TopBoxes, &i))) {
 		switch (box->type) {
 		case GF_ISOM_BOX_TYPE_FTYP:
 		case GF_ISOM_BOX_TYPE_MOOV:
@@ -785,8 +779,8 @@ GF_Err udta_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<UserDataBox>\n");
 	DumpBox(a, trace);
 
-	for (i = 0; i < gf_list_count(p->recordList); i++) {
-		map = (GF_UserDataMap*) gf_list_get(p->recordList, i);
+	i=0;
+	while ((map = gf_list_enum(p->recordList, &i))) {
 		fprintf(trace, "<UDTARecord Type=\"%s\">\n", gf_4cc_to_str(map->boxType));
 		gb_box_array_dump(map->boxList, trace);
 		fprintf(trace, "</UDTARecord>\n");
@@ -831,8 +825,8 @@ GF_Err stts_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gb_full_box_dump(a, trace);
 
-	for (i=0; i<gf_list_count(p->entryList); i++) {
-		t = gf_list_get(p->entryList, i);
+	i=0;
+	while ((t = gf_list_enum(p->entryList, &i))) {
 		fprintf(trace, "<TimeToSampleEntry SampleDelta=\"%d\" SampleCount=\"%d\"/>\n", t->sampleDelta, t->sampleCount);
 	}
 	fprintf(trace, "</TimeToSampleBox>\n");
@@ -850,8 +844,8 @@ GF_Err ctts_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gb_full_box_dump(a, trace);
 
-	for (i=0; i<gf_list_count(p->entryList); i++) {
-		t = gf_list_get(p->entryList, i);
+	i=0;
+	while ((t = gf_list_enum(p->entryList, &i))) {
 		fprintf(trace, "<CompositionOffsetEntry CompositionOffset=\"%d\" SampleCount=\"%d\"/>\n", t->decodingOffset, t->sampleCount);
 	}
 	fprintf(trace, "</CompositionOffsetBox>\n");
@@ -868,8 +862,8 @@ GF_Err stsh_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<SyncShadowBox EntryCount=\"%d\">\n", gf_list_count(p->entries));
 	DumpBox(a, trace);
 	gb_full_box_dump(a, trace);
-	for (i=0; i<gf_list_count(p->entries); i++) {
-		t = gf_list_get(p->entries, i);
+	i=0;
+	while ((t = gf_list_enum(p->entries, &i))) {
 		fprintf(trace, "<SyncShadowEntry ShadowedSample=\"%d\" SyncSample=\"%d\"/>\n", t->shadowedSampleNumber, t->syncSampleNumber);
 	}
 	fprintf(trace, "</SyncShadowBox>\n");
@@ -887,8 +881,8 @@ GF_Err elst_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gb_full_box_dump(a, trace);
 
-	for (i=0; i<gf_list_count(p->entryList); i++) {
-		t = gf_list_get(p->entryList, i);
+	i=0;
+	while ((t = gf_list_enum(p->entryList, &i))) {
 		fprintf(trace, "<EditListEntry Duration=\""LLD"\" MediaTime=\""LLD"\" MediaRate=\"%d\"/>\n", t->segmentDuration, t->mediaTime, t->mediaRate);
 	}
 	fprintf(trace, "</EditListBox>\n");
@@ -906,8 +900,8 @@ GF_Err stsc_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gb_full_box_dump(a, trace);
 
-	for (i=0; i<gf_list_count(p->entryList); i++) {
-		t = gf_list_get(p->entryList, i);
+	i=0;
+	while ((t = gf_list_enum(p->entryList, &i))) {
 		fprintf(trace, "<SampleToChunkEntry FirstChunk=\"%d\" SamplesPerChunk=\"%d\" SampleDescriptionIndex=\"%d\"/>\n", t->firstChunk, t->samplesPerChunk, t->sampleDescriptionIndex);
 	}
 	fprintf(trace, "</SampleToChunkBox>\n");
@@ -1313,11 +1307,12 @@ GF_Err avcc_dump(GF_Box *a, FILE * trace)
 GF_Err m4ds_dump(GF_Box *a, FILE * trace)
 {
 	u32 i;
+	GF_Descriptor *desc;
 	GF_MPEG4ExtensionDescriptorsBox *p = (GF_MPEG4ExtensionDescriptorsBox *) a;
 	fprintf(trace, "<MPEG4ExtensionDescriptorsBox>\n");
 
-	for (i=0; i<gf_list_count(p->descriptors); i++) {
-		GF_Descriptor *desc = gf_list_get(p->descriptors, i);
+	i=0;
+	while ((desc = gf_list_enum(p->descriptors, &i))) {
 		gf_odf_dump_desc(desc, trace, 1, 1);
 	}
 	DumpBox(a, trace);
@@ -1891,8 +1886,8 @@ GF_Err hnti_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<HintTrackInfoBox>\n");
 	DumpBox(a, trace);
 
-	for (i=0 ;i<gf_list_count(p->boxList); i++) {
-		ptr = gf_list_get(p->boxList, i);
+	i=0;
+	while ((ptr = gf_list_enum(p->boxList, &i))) {
 		if (ptr->type !=GF_ISOM_BOX_TYPE_RTP) {
 			gb_box_dump(ptr, trace);
 		} else {
@@ -2061,8 +2056,8 @@ GF_Err trun_dump(GF_Box *a, FILE * trace)
 	gb_full_box_dump(a, trace);
 
 	if (p->flags & (GF_ISOM_TRUN_DURATION|GF_ISOM_TRUN_SIZE|GF_ISOM_TRUN_CTS_OFFSET|GF_ISOM_TRUN_FLAGS)) {
-		for (i=0;i<gf_list_count(p->entries); i++) {
-			ent = gf_list_get(p->entries, i);
+		i=0;
+		while ((ent = gf_list_enum(p->entries, &i))) {
 
 			fprintf(trace, "<TrackRunEntry");
 
@@ -2266,6 +2261,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 {
 	u32 i, j, count, di, len, nb_descs, shift_offset[20], so_count;
 	u64 last_DTS;
+	GF_Box *a;
 	Bool has_scroll;
 	char szDur[100];
 
@@ -2425,8 +2421,8 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 				gpp_dump_style_nobox(dump, &txt->styles->styles[j], shift_offset, so_count);
 			}
 		}
-		for (j=0; j<gf_list_count(txt->others); j++) {
-			GF_Box *a = gf_list_get(txt->others, j);
+		j=0;
+		while ((a = gf_list_enum(txt->others, &j))) {
 			switch (a->type) {
 			case GF_ISOM_BOX_TYPE_HLIT:
 				fprintf(dump, "<Highlight ");

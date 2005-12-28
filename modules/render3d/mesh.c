@@ -25,16 +25,18 @@
 #include "mesh.h"
 #include "visual_surface.h"
 
-#define MESH_STEP_ALLOC		50
+/*size alloc for meshes doubles memory at each realloc rather than using a fix-size increment 
+ (this really speeds up large meshes constructing). Final memory usage is adjusted when updating mesh bounds
+*/
 #define MESH_CHECK_VERTEX(m)		\
 	if (m->v_count == m->v_alloc) {	\
-		m->v_alloc += MESH_STEP_ALLOC;	\
+		m->v_alloc *= 2;	\
 		m->vertices = realloc(m->vertices, sizeof(GF_Vertex)*m->v_alloc);	\
 	}	\
 
 #define MESH_CHECK_IDX(m)		\
 	if (m->i_count == m->i_alloc) {	\
-		m->i_alloc += MESH_STEP_ALLOC;	\
+		m->i_alloc *= 2;	\
 		m->indices = realloc(m->indices, sizeof(IDX_TYPE)*m->i_alloc);	\
 	}	\
 
@@ -76,15 +78,25 @@ GF_Mesh *new_mesh()
 	GF_Mesh *mesh = malloc(sizeof(GF_Mesh));
 	if (mesh) {
 		memset(mesh, 0, sizeof(GF_Mesh));
-		mesh->v_alloc = MESH_STEP_ALLOC;
+		mesh->v_alloc = 8;
 		mesh->vertices = malloc(sizeof(GF_Vertex)*mesh->v_alloc);
-		mesh->i_alloc = MESH_STEP_ALLOC;
+		mesh->i_alloc = 8;
 		mesh->indices = malloc(sizeof(IDX_TYPE)*mesh->i_alloc);
 	}
 	return mesh;
 }
 
-
+static void mesh_fit_alloc(GF_Mesh *m)
+{
+	if (m->v_count && (m->v_count < m->v_alloc)) {
+		m->v_alloc = m->v_count;
+		m->vertices = realloc(m->vertices, sizeof(GF_Vertex)*m->v_alloc);
+	}
+	if (m->i_count && (m->i_count  < m->i_alloc)) {
+		m->i_alloc = m->i_count;
+		m->indices = realloc(m->indices, sizeof(IDX_TYPE)*m->i_alloc);
+	}
+}
 
 
 void mesh_update_bounds(GF_Mesh *mesh)
@@ -93,6 +105,9 @@ void mesh_update_bounds(GF_Mesh *mesh)
 	Fixed mx, my, mz, Mx, My, Mz;
 	mx = my = mz = FIX_MAX;
 	Mx = My = Mz = FIX_MIN;
+
+	mesh_fit_alloc(mesh);
+
 	for (i=0; i<mesh->v_count; i++) {
 		SFVec3f *v = &mesh->vertices[i].pos;
 		if (mx>v->x) mx=v->x;
@@ -323,9 +338,9 @@ static void compute_cylinder(Fixed height, Fixed radius, s32 numFacets, SFVec3f 
 	s32 i;
 	t = height / 2;
 	for (i=0; i<numFacets; ++i) {
-		angle = i * 2 * GF_PI / numFacets;
-		coords[i].x = gf_mulfix(radius, gf_cos(angle));
+		angle = i*GF_2PI / numFacets - GF_PI2;
 		coords[i].y = t;
+		coords[i].x = gf_mulfix(radius, gf_cos(angle));
 		coords[i].z = gf_mulfix(radius , gf_sin(angle));
 		u = FIX_ONE - i*FIX_ONE/numFacets;
 		texcoords[i].x = u;
@@ -385,7 +400,7 @@ void mesh_new_cylinder(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, B
 	}
 
 	if (bottom) {
-		Fixed angle = GF_PI2;
+		Fixed angle = 0;
 		Fixed aincr = GF_2PI / nfacets;
 
 		mesh_set_vertex(mesh, 0, -height/2, 0, 0, -FIX_ONE, 0, FIX_ONE/2, FIX_ONE/2);
@@ -405,7 +420,7 @@ void mesh_new_cylinder(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, B
 
     if (top) {
         Fixed aincr = GF_2PI / nfacets;
-        Fixed angle = GF_PI2 + aincr;
+        Fixed angle = GF_PI + aincr;
 
 		mesh_set_vertex(mesh, 0, height/2, 0, 0, FIX_ONE, 0, FIX_ONE/2, FIX_ONE/2);
         c_idx = mesh->v_count-1;
@@ -480,7 +495,7 @@ void mesh_new_cone(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, Bool 
 	}
 
 	if (bottom) {
-		Fixed angle = GF_PI2;
+		Fixed angle = 0;
 		Fixed aincr = GF_2PI / nfacets;
 
 		mesh_set_vertex(mesh, 0, -height/2, 0, 0, -FIX_ONE, 0, FIX_ONE/2, FIX_ONE/2);
@@ -523,13 +538,13 @@ void compute_sphere(Fixed radius, SFVec3f *coords, SFVec2f *texcoords, u32 num_s
         y = gf_sin(angle);
         r = gf_sqrt(FIX_ONE - gf_mulfix(y, y));
         for (j = 0; j < num_steps; j++) {
-            angle = GF_2PI * j / num_steps;
-            z = gf_mulfix(gf_sin(angle), r);
+            angle = GF_2PI * j / num_steps - GF_PI2;
             x = gf_mulfix(gf_cos(angle), r);
+            z = gf_mulfix(gf_sin(angle), r);
             coords[i * num_steps + j].x = gf_mulfix(radius, x);
             coords[i * num_steps + j].y = gf_mulfix(radius, y);
             coords[i * num_steps + j].z = gf_mulfix(radius, z);
-			texcoords[i * num_steps + j].x = j*FIX_ONE/num_steps;
+			texcoords[i * num_steps + j].x = FIX_ONE - (j+1)*FIX_ONE/num_steps;
 			texcoords[i * num_steps + j].y = i*FIX_ONE/num_steps;
         }
     }
@@ -570,10 +585,10 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res)
         }
 		mesh_set_vertex(mesh, coords[n + num_steps].x, coords[n + num_steps].y, coords[n + num_steps].z, 
 							coords[n + num_steps].x, coords[n + num_steps].y, coords[n  + num_steps].z,
-							FIX_ONE, texcoords[n + num_steps].y);
+							0/*FIX_ONE*/, texcoords[n + num_steps].y);
 		mesh_set_vertex(mesh, coords[n].x, coords[n].y, coords[n].z, 
 							coords[n].x, coords[n].y, coords[n].z,
-							FIX_ONE, texcoords[n].y);
+							0/*FIX_ONE*/, texcoords[n].y);
  		mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-4, mesh->v_count-2);
 		mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-2, mesh->v_count-1);
 	}
@@ -999,6 +1014,7 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 		coord = NULL;
 	} else {
 		coord2D = NULL;
+		if (!__coord) return;
 		/*not supported yet*/
 		if (gf_node_get_tag(__coord) == TAG_X3D_CoordinateDouble) return;
 	}
@@ -1012,8 +1028,6 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 	c_count = coord2D ? coord2D->point.count : coord->point.count;
 	if (!c_count) return;
 
-	if (!colorIndex->vals) colorIndex = coordIndex;
-	col_count = colorIndex->count ? colorIndex->count : c_count;
 	if (normal && normalIndex) {
 		if (!normalIndex->vals) normalIndex = coordIndex;
 		nor_count = normalIndex->count ? normalIndex->count : c_count;
@@ -1065,10 +1079,16 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 		}
 	}
 	n = 0;
-	if (has_color && !colorPerVertex) {
-		index = colorIndex->count ? colorIndex->vals[0] : 0;
-		MESH_GET_COL(colRGBA, index);
+	if (has_color) {
+		if (!colorPerVertex) {
+			index = colorIndex->count ? colorIndex->vals[0] : 0;
+			MESH_GET_COL(colRGBA, index);
+		} else {
+			if (!colorIndex->vals) colorIndex = coordIndex;
+		}
 	}
+	col_count = colorIndex->count ? colorIndex->count : c_count;
+
 	if (has_normal && !normalPerVertex) {
 		index = normalIndex->count ? normalIndex->vals[0] : 0;
 		if (index < nor_count) nor = normal->vector.vals[index];
@@ -1187,7 +1207,10 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 	if (!has_normal && coord) {
 		u32 j;
 		if (smooth_normals) {
-			Fixed cosCrease = gf_cos(creaseAngle);
+			Fixed cosCrease;
+			/*we only support 0->PI, whatever exceeds is smoothest*/
+			if (creaseAngle>GF_PI) cosCrease = -FIX_ONE;
+			else cosCrease = gf_cos(creaseAngle);
 
 			for (i=0; i<face_count; i++) { for (j=0; j<faces[i]->v_count; j++) {
 					faces[i]->vertices[j].normal = smooth_face_normals(pts_info, c_count, faces_info, face_count, 
@@ -1209,7 +1232,8 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 				gf_vec_diff(v1, faces[i]->vertices[1].pos, faces[i]->vertices[0].pos);
 				gf_vec_diff(v2, faces[i]->vertices[2].pos, faces[i]->vertices[0].pos);
 				n = gf_vec_cross(v1, v2);
-				gf_vec_norm(&n);
+				if (!n.x && !n.y && !n.z) n.z = FIX_ONE;
+				else gf_vec_norm(&n);
 				for (j=0; j<faces[i]->v_count; j++) faces[i]->vertices[j].normal = n;
 			}
 		}
@@ -1291,7 +1315,7 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 	faces = NULL;
 	faces_info = NULL;
 	pts_info = NULL;
-	
+
 	/*alloc face & normals tables*/
 	if (smooth_normals) {
 		faces = malloc(sizeof(GF_Mesh *)*face_count);
@@ -1309,7 +1333,6 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 	if (smooth_normals) faces[cur_face] = new_mesh();
 
 	for (j=0; j<zDimension-1; j++) {
-
 		for (i = 0; i < xDimension-1; i++) {
 			u32 k, l;
 			/*get face color*/
@@ -1329,9 +1352,15 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 			for (k=0; k<2; k++) {
 				vx.pos.z = eg->zSpacing * (j+k);
 				for (l=0; l<2; l++) {
+
 					vx.pos.y = eg->height.vals[(i+l) +(j+k)*xDimension];
 					vx.pos.x = eg->xSpacing * (i+l);
 
+					/*get color per vertex*/
+					if (has_color && eg->colorPerVertex) {
+						idx = i+l + (j+k) * xDimension;
+						MESH_GET_COL(vx.color, idx);
+					}
 					/*get tex coord*/
 					if (!has_txcoord) {
 						vx.texcoords.x = INT2FIX(i+l) / (xDimension - 1);
@@ -1340,14 +1369,9 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 						idx = (i+l) +(j+k)*xDimension;
 						if (idx<txc->point.count) vx.texcoords = txc->point.vals[idx];
 					}
-					/*get color per vertex*/
-					if (has_color && eg->colorPerVertex) {
-						idx = i + j * xDimension;
-						MESH_GET_COL(vx.color, idx);
-					}
 					/*get normal per vertex*/
 					if (has_normal && eg->normalPerVertex) {
-						idx = i + j * xDimension;
+						idx = (i+l) + (j+k) * xDimension;
 						if (idx<norm->vector.count) {
 							vx.normal = norm->vector.vals[idx];
 							gf_vec_norm(&vx.normal);
@@ -1395,7 +1419,10 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 
 	/*generate normals*/
 	if (smooth_normals) {
-		Fixed cosCrease = gf_cos(eg->creaseAngle);
+		Fixed cosCrease;
+		/*we only support 0->PI, whatever exceeds is smoothest*/
+		if (eg->creaseAngle>GF_PI) cosCrease = -FIX_ONE;
+		else cosCrease = gf_cos(eg->creaseAngle);
 
 		for (i=0; i<face_count; i++) { for (j=0; j<faces[i]->v_count; j++) {
 				faces[i]->vertices[j].normal = smooth_face_normals(pts_info, pt_count, faces_info, face_count, 
@@ -1437,6 +1464,7 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 	if (has_color) mesh->flags |= MESH_HAS_COLOR;
 	mesh_update_bounds(mesh);
 	if (!eg->ccw) mesh->flags |= MESH_IS_CW;
+	if (eg->solid) mesh->flags |= MESH_IS_SOLID;
 	if (colorRGBA) mesh->flags |= MESH_HAS_ALPHA;
 	gf_mesh_build_aabbtree(mesh);
 }
@@ -1476,7 +1504,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 	SCP *SCPs, SCPbegin, SCPend;
 	SCPInfo *SCPi;
 	Bool smooth_normals, spine_closed, check_first_spine_vec, do_close;
-	u32 i, j, k, nb_scp, nb_spine, face_count, pt_count, faces_per_cross, begin_face, end_face, face_spines, pts_per_cross, cur_pts_in_cross,cur, nb_pts;
+	u32 i, j, k, nb_scp, nb_spine, face_count, pt_count, faces_per_cross, begin_face, end_face, face_spines, pts_per_cross, cur_pts_in_cross,cur, nb_pts, convexity;
 	SFVec3f *spine, v1, v2, n, spine_vec;
 	Fixed cross_len, spine_len, cur_cross, cur_spine;
 	SFRotation r;
@@ -1843,40 +1871,45 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 			if (smooth_normals) faces_info[i].nor = n;
 		}
 	}
+
+
 	/*generate begin cap*/
 	if (begin_face) {
 		scale.x = scale.y = FIX_ONE;
 		if (spine_scale && spine_scale->count) scale = spine_scale->vals[0];
 
+		/*get first SCP after rotation*/
+		SCPbegin = SCPs[0];
+
 		vx.normal = SCPbegin.yaxis;
 		gf_vec_norm(&vx.normal);
-		gf_vec_rev(vx.normal);
+
+		convexity = gf_polygone2d_get_convexity(path->points, path->n_points);
+		switch (convexity) {
+		case GF_POLYGON_CONVEX_CCW:
+		case GF_POLYGON_COMPLEX_CCW:
+			gf_vec_rev(vx.normal);
+			break;
+		}
 
 		if (smooth_normals) faces_info[begin_face].nor = vx.normal;
 
 		cur_pts_in_cross = 0;
 		cur = 0;
-		for (i=path->n_contours; i>0; i--) {
+		for (i=0; i<path->n_contours; i++) {
 			Bool subpath_closed = 0;
-			if (i>1) {
-				nb_pts = 1 + path->contours[i-1] - path->contours[i-2];
-				cur = path->contours[i-2]+1;
-			} else {
-				nb_pts = 1 + path->contours[i-1];
-				cur = 0;
-			}
-			if ((path->points[cur].x==path->points[path->contours[i-1]].x) && (path->points[cur].y==path->points[path->contours[i-1]].y))
+			nb_pts = 1 + path->contours[i] - cur;
+			if ((path->points[cur].x==path->points[path->contours[i]].x) && (path->points[cur].y==path->points[path->contours[i]].y))
 				subpath_closed = 1;
 
-
-			for (j=nb_pts; j>0; j--) {
-				u32 pidx = j-1 + (pts_per_cross-1-cur_pts_in_cross);
-				v1.x = path->points[j-1+cur].x;
-				v1.z = path->points[j-1+cur].y;
+			for (j=0; j<nb_pts; j++) {
+				u32 pidx = j + (pts_per_cross-1-cur_pts_in_cross);
+				v1.x = path->points[j+cur].x;
+				v1.z = path->points[j+cur].y;
 				vx.texcoords.x = gf_divfix(v1.x - min_cx, width_cx);
 				vx.texcoords.y = gf_divfix(v1.z - min_cy, width_cy);
 				/*handle closed cross-section*/
-				if (subpath_closed  && (j==nb_pts)) {
+				if (subpath_closed  && (j+1==nb_pts)) {
 					pidx = (pts_per_cross-1-cur_pts_in_cross);
 					v1.x = path->points[cur].x;
 					v1.z = path->points[cur].y;
@@ -1884,12 +1917,13 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 				v1.x = gf_mulfix(v1.x , scale.x);
 				v1.z = gf_mulfix(v1.z , scale.y);
 				v1.y = 0;
-				vx.pos.x = gf_mulfix(v1.x, SCPs[0].xaxis.x) + gf_mulfix(v1.y, SCPs[0].yaxis.x) + gf_mulfix(v1.z, SCPs[0].zaxis.x) + spine[0].x;
-				vx.pos.y = gf_mulfix(v1.x, SCPs[0].xaxis.y) + gf_mulfix(v1.y, SCPs[0].yaxis.y) + gf_mulfix(v1.z, SCPs[0].zaxis.y) + spine[0].y;
-				vx.pos.z = gf_mulfix(v1.x, SCPs[0].xaxis.z) + gf_mulfix(v1.y, SCPs[0].yaxis.z) + gf_mulfix(v1.z, SCPs[0].zaxis.z) + spine[0].z;
+				vx.pos.x = gf_mulfix(v1.x, SCPbegin.xaxis.x) + gf_mulfix(v1.y, SCPbegin.yaxis.x) + gf_mulfix(v1.z, SCPbegin.zaxis.x) + spine[0].x;
+				vx.pos.y = gf_mulfix(v1.x, SCPbegin.xaxis.y) + gf_mulfix(v1.y, SCPbegin.yaxis.y) + gf_mulfix(v1.z, SCPbegin.zaxis.y) + spine[0].y;
+				vx.pos.z = gf_mulfix(v1.x, SCPbegin.xaxis.z) + gf_mulfix(v1.y, SCPbegin.yaxis.z) + gf_mulfix(v1.z, SCPbegin.zaxis.z) + spine[0].z;
 				REGISTER_POINT_FACE(begin_face);
 			}
 			cur_pts_in_cross += nb_pts;
+			cur += nb_pts;
 		}
 	}
 
@@ -1897,11 +1931,20 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 	if (end_face) {
 		scale.x = scale.y = FIX_ONE;
 		if (spine_scale && (nb_spine-1<spine_scale->count)) scale = spine_scale->vals[nb_spine-1];
+		/*get last SCP after rotation*/
+		SCPend = SCPs[nb_spine-1];
 
 		vx.normal = SCPend.yaxis;
 		gf_vec_norm(&vx.normal);
-		if (smooth_normals) faces_info[end_face].nor = vx.normal;
+		convexity = gf_polygone2d_get_convexity(path->points, path->n_points);
+		switch (convexity) {
+		case GF_POLYGON_CONVEX_CCW:
+		case GF_POLYGON_COMPLEX_CCW:
+			gf_vec_rev(vx.normal);
+			break;
+		}
 
+		if (smooth_normals) faces_info[end_face].nor = vx.normal;
 		cur_pts_in_cross = 0;
 
 		cur = 0;
@@ -1926,9 +1969,9 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 				v1.x = gf_mulfix(v1.x, scale.x);
 				v1.z = gf_mulfix(v1.z, scale.y);
 				v1.y = 0;
-				vx.pos.x = gf_mulfix(v1.x, SCPs[nb_spine-1].xaxis.x) + gf_mulfix(v1.y, SCPs[nb_spine-1].yaxis.x) + gf_mulfix(v1.z, SCPs[nb_spine-1].zaxis.x) + spine[nb_spine-1].x;
-				vx.pos.y = gf_mulfix(v1.x, SCPs[nb_spine-1].xaxis.y) + gf_mulfix(v1.y, SCPs[nb_spine-1].yaxis.y) + gf_mulfix(v1.z, SCPs[nb_spine-1].zaxis.y) + spine[nb_spine-1].y;
-				vx.pos.z = gf_mulfix(v1.x, SCPs[nb_spine-1].xaxis.z) + gf_mulfix(v1.y, SCPs[nb_spine-1].yaxis.z) + gf_mulfix(v1.z, SCPs[nb_spine-1].zaxis.z) + spine[nb_spine-1].z;
+				vx.pos.x = gf_mulfix(v1.x, SCPend.xaxis.x) + gf_mulfix(v1.y, SCPend.yaxis.x) + gf_mulfix(v1.z, SCPend.zaxis.x) + spine[nb_spine-1].x;
+				vx.pos.y = gf_mulfix(v1.x, SCPend.xaxis.y) + gf_mulfix(v1.y, SCPend.yaxis.y) + gf_mulfix(v1.z, SCPend.zaxis.y) + spine[nb_spine-1].y;
+				vx.pos.z = gf_mulfix(v1.x, SCPend.xaxis.z) + gf_mulfix(v1.y, SCPend.yaxis.z) + gf_mulfix(v1.z, SCPend.zaxis.z) + spine[nb_spine-1].z;
 
 				REGISTER_POINT_FACE(end_face);
 			}
@@ -1939,7 +1982,11 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 
 
 	if (smooth_normals) {
-		Fixed cosCrease = gf_cos(creaseAngle);
+		Fixed cosCrease;
+		/*we only support 0->PI, whatever exceeds is smoothest*/
+		if (creaseAngle>GF_PI) cosCrease = -FIX_ONE;
+		else cosCrease = gf_cos(creaseAngle);
+
 		for (i=0; i<face_count; i++) { for (j=0; j<faces[i]->v_count; j++) {
 				faces[i]->vertices[j].normal = smooth_face_normals(pts_info, pt_count, faces_info, face_count, 
 										j, i, cosCrease); 
@@ -1978,12 +2025,10 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 #ifndef GPAC_USE_OGL_ES
 			u32 *ptsPerFace = malloc(sizeof(u32)*path->n_contours);
 			/*we reversed begin cap!!!*/
+			cur = 0;
 			for (i=0; i<path->n_contours; i++) {
-				if (i+1<path->n_contours) {
-					nb_pts = 1 + path->contours[path->n_contours-i-1] - path->contours[path->n_contours-i-2];
-				} else {
-					nb_pts = 1+path->contours[0];
-				}
+				nb_pts = 1+path->contours[i] - cur;
+				cur+=nb_pts;
 				ptsPerFace[i] = nb_pts;
 			}
 			TesselateFaceMeshComplex(mesh, faces[begin_face], path->n_contours, ptsPerFace);
@@ -2056,7 +2101,6 @@ void mesh_new_extrusion(GF_Mesh *mesh, GF_Node *node)
 	gf_path_del(path);
 
 	mesh_update_bounds(mesh);
-	gf_mesh_build_aabbtree(mesh);
 	if (!ext->ccw) mesh->flags |= MESH_IS_CW;
 }
 

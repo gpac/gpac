@@ -58,8 +58,8 @@ GF_SDP_FMTP *SDP_GetFMTPForPayload(GF_SDPMedia *media, u32 PayloadType)
 	GF_SDP_FMTP *tmp;
 	u32 i;
 	if (!media) return NULL;
-	for (i=0; i<gf_list_count(media->FMTP); i++) {
-		tmp = gf_list_get(media->FMTP, i);
+	i=0;
+	while ((tmp = gf_list_enum(media->FMTP, &i))) {
 		if (tmp->PayloadType == PayloadType) return tmp;
 	}
 	return NULL;
@@ -418,8 +418,8 @@ Bool SDP_IsDynamicPayload(GF_SDPMedia *media, char *payt)
 	u32 i;
 	GF_RTPMap *map;
 	char buf[10];
-	for (i=0;i<gf_list_count(media->RTPMaps); i++) {
-		map = gf_list_get(media->RTPMaps, i);
+	i=0;
+	while ((map = gf_list_enum(media->RTPMaps, &i))) {
 		sprintf(buf, "%d", map->PayloadType);
 		if (!strcmp(payt, buf)) return 1;
 	}
@@ -673,8 +673,8 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 	}
 	//finally rewrite the fmt_list for all media, and remove dynamic payloads 
 	//from the list
-	for (i=0; i<gf_list_count(sdp->media_desc); i++) {
-		media = gf_list_get(sdp->media_desc, i);
+	i=0;
+	while ((media = gf_list_enum(sdp->media_desc, &i))) {
 		pos = 0;
 		LinePos = 1;
 		strcpy(LineBuf, "");
@@ -720,7 +720,7 @@ GF_Err SDP_CheckConnection(GF_SDPConnection *conn)
 GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 {
 	GF_Err e;
-	u32 i, j;
+	u32 i, j, count;
 	GF_SDPMedia *media;
 	GF_SDPConnection *conn;
 	GF_RTPMap *map;
@@ -750,8 +750,8 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 	}
 
 	//then check all media
-	for (i=0; i<gf_list_count(sdp->media_desc); i++) {
-		media = gf_list_get(sdp->media_desc, i);
+	i=0;
+	while ((media = gf_list_enum(sdp->media_desc, &i))) {
 		HasSeveralPorts = 0;
 
 		//m= : force non-null port, profile and fmt_list
@@ -765,16 +765,18 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 
 		//check all connections, and make sure we don't have multiple addresses 
 		//and multiple ports at the same time
-		if (gf_list_count(media->Connections)>1 && HasSeveralPorts) return GF_REMOTE_SERVICE_ERROR;
-		for (j=0; j<gf_list_count(media->Connections); j++) {
+		count = gf_list_count(media->Connections);
+		if (count>1 && HasSeveralPorts) return GF_REMOTE_SERVICE_ERROR;
+
+		for (j=0; j<count; j++) {
 			conn = gf_list_get(media->Connections, j);
 			e = SDP_CheckConnection(conn);
 			if (e) return e;
 			if ((conn->add_count >= 2) && HasSeveralPorts) return GF_REMOTE_SERVICE_ERROR; 
 		}
 		//RTPMaps. 0 is tolerated, but if some are specified check them
-		for (j=0; j<gf_list_count(media->RTPMaps); j++) {
-			map = gf_list_get(media->RTPMaps, j);
+		j=0;
+		while ((map = gf_list_enum(media->RTPMaps, &j))) {
 			//RFC2327 is not clear here, but we assume the PayloadType should be a DYN one
 			//however this depends on the profile (RTP/AVP or others) so don't check it
 			//ClockRate SHALL NOT be NULL
@@ -784,7 +786,6 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 	//Encryption: nothing tells wether the scope of the global key is eclusive or not.
 	//we accept a global key + keys per media entry, assuming that the media key primes
 	//on the global key
-
 
 	return GF_OK;
 }
@@ -891,8 +892,8 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 	//c
 	SDP_WRITE_CONN(sdp->c_connection);
 	//b
-	for (i=0; i<gf_list_count(sdp->b_bandwidth); i++) {
-		bw = gf_list_get(sdp->b_bandwidth, i);
+	i=0;
+	while ((bw = gf_list_enum(sdp->b_bandwidth, &i))) {
 		SDP_WRITE_ALLOC_STR("b=", 0);
 		SDP_WRITE_ALLOC_STR(bw->name, 0);
 		SDP_WRITE_ALLOC_STR(":", 0);
@@ -900,8 +901,8 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 		SDP_WRITE_ALLOC_STR("\r\n", 0);
 	}
 	//t+r+z
-	for (i=0; i<gf_list_count(sdp->Timing); i++) {
-		timing = gf_list_get(sdp->Timing, i);
+	i=0;
+	while ((timing = gf_list_enum(sdp->Timing, &i))) {
 		if (timing->NbRepeatOffsets > GF_SDP_MAX_TIMEOFFSET) timing->NbRepeatOffsets = GF_SDP_MAX_TIMEOFFSET;
 		if (timing->NbZoneOffsets > GF_SDP_MAX_TIMEOFFSET) timing->NbZoneOffsets = GF_SDP_MAX_TIMEOFFSET;
 		//t
@@ -972,8 +973,8 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 	TEST_SDP_WRITE_SINGLE("a=lang", sdp->a_lang, 1);
 
 	//the rest
-	for (i=0; i<gf_list_count(sdp->Attributes); i++) {
-		att = gf_list_get(sdp->Attributes, i);
+	i=0;
+	while ((att = gf_list_enum(sdp->Attributes, &i))) {
 		SDP_WRITE_ALLOC_STR("a=", 0);
 		SDP_WRITE_ALLOC_STR(att->Name, 0);
 		if (att->Value) {
@@ -984,9 +985,8 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 	}
 
 	//now write media specific
-	for (i=0; i<gf_list_count(sdp->media_desc); i++) {
-		media = gf_list_get(sdp->media_desc, i);
-
+	i=0;
+	while ((media = gf_list_enum(sdp->media_desc, &i))) {
 		//m=
 		SDP_WRITE_ALLOC_STR("m=", 0);
 		switch (media->Type) {
@@ -1016,16 +1016,16 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 		SDP_WRITE_ALLOC_STR(media->Profile, 1);
 		SDP_WRITE_ALLOC_STR(media->fmt_list, 0);
 
-		for (j=0;j<gf_list_count(media->RTPMaps); j++) {
-			map = gf_list_get(media->RTPMaps, j);
+		j=0;
+		while ((map = gf_list_enum(media->RTPMaps, &j))) {
 			SDP_WRITE_ALLOC_STR(" ", 0);
 			SDP_WRITE_ALLOC_INT(map->PayloadType, 0, 0);
 		}
 		SDP_WRITE_ALLOC_STR("\r\n", 0);
 
 		//c=
-		for (j=0; j<gf_list_count(media->Connections); j++) {
-			conn = gf_list_get(media->Connections, j);
+		j=0;
+		while ((conn = gf_list_enum(media->Connections, &j))) {
 			SDP_WRITE_CONN(conn);
 		}
 
@@ -1040,8 +1040,8 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 			SDP_WRITE_ALLOC_STR("\r\n", 0);
 		}
 		//b
-		for (j=0; j<gf_list_count(media->Bandwidths); j++) {
-			bw = gf_list_get(media->Bandwidths, j);
+		j=0;
+		while ((bw = gf_list_enum(media->Bandwidths, &j))) {
 			SDP_WRITE_ALLOC_STR("b=", 0);
 			SDP_WRITE_ALLOC_STR(bw->name, 0);
 			SDP_WRITE_ALLOC_STR(":", 0);
@@ -1050,8 +1050,8 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 		}
 
 		//a=rtpmap
-		for (j=0; j<gf_list_count(media->RTPMaps); j++) {
-			map = gf_list_get(media->RTPMaps, j);
+		j=0;
+		while ((map = gf_list_enum(media->RTPMaps, &j))) {
 
 			SDP_WRITE_ALLOC_STR("a=rtpmap", 0);
 			SDP_WRITE_ALLOC_STR(":", 0);
@@ -1066,14 +1066,13 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 			SDP_WRITE_ALLOC_STR("\r\n", 0);
 		}
 		//a=fmtp
-		for (j=0; j<gf_list_count(media->FMTP); j++) {
-			fmtp = gf_list_get(media->FMTP, j);
+		j=0;
+		while ((fmtp = gf_list_enum(media->FMTP, &j))) {
 			SDP_WRITE_ALLOC_STR("a=fmtp:", 0);
 			SDP_WRITE_ALLOC_INT(fmtp->PayloadType, 1 , 0);
-			for (k=0; k<gf_list_count(fmtp->Attributes); k++) {
-				if (k) SDP_WRITE_ALLOC_STR(";", 0);
-
-				att = gf_list_get(fmtp->Attributes, k);
+			k=0;
+			while ((att = gf_list_enum(fmtp->Attributes, &k)) ) {
+				if (k>1) SDP_WRITE_ALLOC_STR(";", 0);
 				SDP_WRITE_ALLOC_STR(att->Name, 0);
 				if (att->Value) {
 					SDP_WRITE_ALLOC_STR("=", 0);
@@ -1121,8 +1120,8 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 			SDP_WRITE_ALLOC_STR("\r\n", 0);
 		}		
 		//the rest
-		for (j=0; j<gf_list_count(media->Attributes); j++) {
-			att = gf_list_get(media->Attributes, j);
+		j=0;
+		while ((att = gf_list_enum(media->Attributes, &j))) {
 			SDP_WRITE_ALLOC_STR("a=", 0);
 			SDP_WRITE_ALLOC_STR(att->Name, 0);
 			if (att->Value) {

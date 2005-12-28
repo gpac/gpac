@@ -27,7 +27,7 @@
 //Get the sample number
 GF_Err findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sampleNumber, u32 *prevSampleNumber)
 {
-	u32 i, j, curSampNum, CTSOffset;
+	u32 i, j, curSampNum, CTSOffset, count;
 	u64 curDTS;
 	GF_SttsEntry *ent;
 	(*sampleNumber) = 0;
@@ -77,7 +77,8 @@ GF_Err findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sample
 	}
 
 	//look for the DTS from this entry
-	for (; i<gf_list_count(stbl->TimeToSample->entryList); i++) {
+	count = gf_list_count(stbl->TimeToSample->entryList);
+	for (; i<count; i++) {
 		ent = (GF_SttsEntry*)gf_list_get(stbl->TimeToSample->entryList, i);
 		if (useCTS) {
 			stbl_GetSampleCTS(stbl->CompositionOffset, curSampNum, &CTSOffset);
@@ -395,7 +396,7 @@ sample_found:
 
 GF_Err stbl_GetSampleShadow(GF_ShadowSyncBox *stsh, u32 *sampleNumber, u32 *syncNum)
 {
-	u32 i;
+	u32 i, count;
 	GF_StshEntry *ent;
 
 	if (stsh->r_LastFoundSample && (stsh->r_LastFoundSample <= *sampleNumber)) {
@@ -408,7 +409,8 @@ GF_Err stbl_GetSampleShadow(GF_ShadowSyncBox *stsh, u32 *sampleNumber, u32 *sync
 	ent = NULL;
 	(*syncNum) = 0;
 
-	for (; i<gf_list_count(stsh->entries); i++) {
+	count = gf_list_count(stsh->entries);
+	for (; i<count; i++) {
 		ent = (GF_StshEntry*)gf_list_get(stsh->entries, i);
 		//we get the exact desired sample !
 		if (ent->shadowedSampleNumber == *sampleNumber) {
@@ -452,7 +454,7 @@ GF_Err stbl_GetPaddingBits(GF_PaddingBitsBox *padb, u32 SampleNumber, u8 *PadBit
 u32 stbl_GetSampleFragmentCount(GF_SampleFragmentBox *stsf, u32 sampleNumber)
 {
 	GF_StsfEntry *ent;
-	u32 i;
+	u32 i, count;
 	if (!stsf) return 0;
 
 	//check cache
@@ -462,7 +464,8 @@ u32 stbl_GetSampleFragmentCount(GF_SampleFragmentBox *stsf, u32 sampleNumber)
 	}
 	i = stsf->r_currentEntryIndex;
 	
-	for (; i<gf_list_count(stsf->entryList); i++) {
+	count = gf_list_count(stsf->entryList);
+	for (; i<count; i++) {
 		ent = gf_list_get(stsf->entryList, i);
 		if (ent->SampleNumber == sampleNumber) {
 			stsf->r_currentEntry = ent;
@@ -477,7 +480,7 @@ u32 stbl_GetSampleFragmentCount(GF_SampleFragmentBox *stsf, u32 sampleNumber)
 u32 stbl_GetSampleFragmentSize(GF_SampleFragmentBox *stsf, u32 sampleNumber, u32 FragmentIndex)
 {
 	GF_StsfEntry *ent;
-	u32 i;
+	u32 i, count;
 	if (!stsf || !FragmentIndex) return 0;
 
 	//check cache
@@ -486,8 +489,8 @@ u32 stbl_GetSampleFragmentSize(GF_SampleFragmentBox *stsf, u32 sampleNumber, u32
 		stsf->r_currentEntryIndex = 0;
 	}
 	i = stsf->r_currentEntryIndex;
-	
-	for (; i<gf_list_count(stsf->entryList); i++) {
+	count = gf_list_count(stsf->entryList);
+	for (; i<count; i++) {
 		ent = gf_list_get(stsf->entryList, i);
 		if (ent->SampleNumber == sampleNumber) {
 			stsf->r_currentEntry = ent;

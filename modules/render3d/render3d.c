@@ -176,21 +176,22 @@ GF_Node *R3D_PickNode(GF_VisualRenderer *vr, s32 X, s32 Y)
 
 static void DestroyLineProps(GF_Node *n)
 {
+	StrikeInfo *si;
 	u32 i;
 	LinePropStack *st = gf_node_get_private(n);
 	Render3D *sr = (Render3D *)st->sr;
 	
-	for (i=0; i<gf_list_count(sr->strike_bank); i++) {
-		StrikeInfo *si = gf_list_get(sr->strike_bank, i);
+	i=0;
+	while ((si = gf_list_enum(sr->strike_bank, &i))) {
 		if (si->lineProps == n) {
 			/*remove from node*/
 			if (si->node2D) {
 				stack2D *st = (stack2D *) gf_node_get_private(si->node2D);
 				gf_list_del_item(st->strike_list, si);
 			}
+			i--;
 			gf_list_rem(sr->strike_bank, i);
 			delete_strikeinfo(si);
-			i--;
 		}
 	}
 	free(st);
@@ -220,6 +221,7 @@ u32 R3D_LP_GetLastUpdateTime(GF_Node *node)
 void R3D_DrawScene(GF_VisualRenderer *vr)
 {
 	u32 i, tag;
+	GF_SceneGraph *sg;
 	RenderEffect3D static_eff;
 	Render3D *sr = (Render3D *)vr->user_priv;
 	GF_Node *top_node = NULL;
@@ -237,7 +239,8 @@ void R3D_DrawScene(GF_VisualRenderer *vr)
 			sr->surface->width = sr->compositor->scene_width;
 			sr->surface->height = sr->compositor->scene_height;
 			if ((tag>=GF_NODE_RANGE_FIRST_X3D) && (tag<=GF_NODE_RANGE_LAST_X3D)) {
-				sr->surface->camera.is_3D = sr->root_is_3D = 1;
+				sr->surface->camera.is_3D = 1;
+				sr->root_is_3D = 2;
 			} else {
 				sr->surface->camera.is_3D = sr->root_is_3D = ((tag==TAG_MPEG4_Group) || (tag==TAG_MPEG4_Layer3D) ) ? 1 : 0;
 			}
@@ -252,8 +255,8 @@ void R3D_DrawScene(GF_VisualRenderer *vr)
 		sr->top_effect->surface = NULL;
 	}
 
-	for (i=0; i<gf_list_count(sr->compositor->extra_scenes); i++) {
-		GF_SceneGraph *sg = gf_list_get(sr->compositor->extra_scenes, i);
+	i=0; 
+	while ((sg = gf_list_enum(sr->compositor->extra_scenes, &i))) {
 		GF_Node *n = gf_sg_get_root_node(sg);
 		if (!n) continue;
 		
@@ -412,10 +415,14 @@ void R3D_ReloadConfig(GF_VisualRenderer *vr)
 	sr->bitmap_use_pixels = 0;
 #endif
 
-		sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "PolygonAA");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "PolygonAA");
 	sr->poly_aa = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
-	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "DisableBackFaceCulling");
-	sr->no_backcull = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "BackFaceCulling");
+	if (sOpt && !stricmp(sOpt, "Off")) sr->backcull = GF_BACK_CULL_OFF;
+	else if (sOpt && !stricmp(sOpt, "Alpha")) sr->backcull = GF_BACK_CULL_ALPHA;
+	else sr->backcull = GF_BACK_CULL_ON;
+
 	sOpt = gf_modules_get_option((GF_BaseInterface *)vr, "Render3D", "Wireframe");
 	if (sOpt && !stricmp(sOpt, "WireOnly")) sr->wiremode = GF_WIREFRAME_ONLY;
 	else if (sOpt && !stricmp(sOpt, "WireOnSolid")) sr->wiremode = GF_WIREFRAME_SOLID;
@@ -513,7 +520,7 @@ GF_Err R3D_SetOption(GF_VisualRenderer *vr, u32 option, u32 value)
 #endif
 	case GF_OPT_EMULATE_POW2: sr->emul_pow2 = value; return GF_OK;
 	case GF_OPT_POLYGON_ANTIALIAS: sr->poly_aa = value; return GF_OK;
-	case GF_OPT_NO_BACK_CULL: sr->no_backcull = value; return GF_OK;
+	case GF_OPT_BACK_CULL: sr->backcull = value; return GF_OK;
 	case GF_OPT_WIREFRAME: sr->wiremode = value; return GF_OK;
 	case GF_OPT_NORMALS: sr->draw_normals = value; return GF_OK;
 	case GF_OPT_RELOAD_CONFIG:
@@ -592,7 +599,7 @@ u32 R3D_GetOption(GF_VisualRenderer *vr, u32 option)
 #endif
 	case GF_OPT_EMULATE_POW2: return sr->emul_pow2;
 	case GF_OPT_POLYGON_ANTIALIAS: return sr->poly_aa;
-	case GF_OPT_NO_BACK_CULL: return sr->no_backcull;
+	case GF_OPT_BACK_CULL: return sr->backcull;
 	case GF_OPT_WIREFRAME: return sr->wiremode;
 	case GF_OPT_NORMALS: return sr->draw_normals;
 	case GF_OPT_NO_RECT_TEXTURE: return sr->disable_rect_ext;
@@ -623,7 +630,7 @@ GF_Err R3D_SetViewpoint(GF_VisualRenderer *vr, u32 viewpoint_idx, const char *vi
 /*render inline scene*/
 void R3D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_root, void *rs)
 {
-	Bool had_scale, use_pm;
+	Bool use_pm;
 	u32 h, w;
 	Fixed prev_scale;
 	GF_Matrix gf_mx_bck, mx;
@@ -638,7 +645,6 @@ void R3D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_root, void *rs)
 	}
 	gf_mx_copy(gf_mx_bck, eff->model_matrix);
 	prev_scale = eff->min_hsize;
-	had_scale = eff->has_scale;
 	/*override aspect ratio if any size info is given in the scene*/
 	if (gf_sg_get_scene_size_info(in_scene, &w, &h)) {
 		Fixed scale = INT2FIX(MIN(w, h)) / 2;
@@ -652,7 +658,6 @@ void R3D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_root, void *rs)
 		Fixed inv_scale = gf_invfix(eff->min_hsize);
 		gf_mx_add_scale(&mx, inv_scale, inv_scale, inv_scale);
 	}
-	eff->has_scale = 1;
 	eff->is_pixel_metrics = use_pm;
 	gf_mx_add_matrix(&eff->model_matrix, &mx);
 	if (eff->traversing_mode==TRAVERSE_SORT) {
@@ -665,7 +670,37 @@ void R3D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_root, void *rs)
 	}
 	eff->is_pixel_metrics = !use_pm;
 	gf_mx_copy(eff->model_matrix, gf_mx_bck);
-	eff->has_scale = had_scale;
+}
+
+static Bool R3D_ScriptAction(GF_VisualRenderer *vr, u32 type, GF_Node *n, GF_JSAPIParam *param)
+{
+	Render3D *sr = (Render3D *)vr->user_priv;
+
+	switch (type) {
+	case GF_JSAPI_OP_LOAD_URL:
+	{
+		GF_Node *target;
+		char *sub_url = strrchr(param->uri.url, '#');
+		if (!sub_url) return 0;
+		target = gf_sg_find_node_by_name(gf_node_get_graph(n), sub_url+1);
+		if (target) {
+			switch (gf_node_get_tag(target)) {
+			case TAG_MPEG4_Viewport:
+				((M_Viewport *)target)->set_bind = 1;
+				((M_Viewport *)target)->on_set_bind(n);
+				return 1;
+			case TAG_MPEG4_Viewpoint:
+			case TAG_X3D_Viewpoint:
+				((M_Viewpoint *)target)->set_bind = 1;
+				((M_Viewpoint *)target)->on_set_bind(target);
+				return 1;
+			}
+		}
+		return 0;
+	}
+	default:
+		return 0;
+	}
 }
 
 /*interface create*/
@@ -696,6 +731,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 
 	sr->SetViewpoint = R3D_SetViewpoint;
 	sr->GetViewpoint = R3D_GetViewpoint;
+	sr->ScriptAction = R3D_ScriptAction;
 
 	sr->SetOption = R3D_SetOption;
 	sr->GetOption = R3D_GetOption;

@@ -471,6 +471,36 @@ static GF_Err SR_SetSceneSize(GF_Renderer *sr, u32 Width, u32 Height)
 	return GF_OK;
 }
 
+static Fixed convert_svg_length_to_user(GF_Renderer *sr, SVG_Length *length)
+{
+	// Assuming the environment is 90dpi
+	switch (length->type) {
+	case SVG_NUMBER_PERCENTAGE:
+		break;
+	case SVG_NUMBER_EMS:
+		break;
+	case SVG_NUMBER_EXS:
+		break;
+	case SVG_NUMBER_VALUE:
+		break;
+	case SVG_NUMBER_PX:
+		return length->value;
+	case SVG_NUMBER_CM:
+		return gf_mulfix(length->value, FLT2FIX(35.43307f));
+		break;
+	case SVG_NUMBER_MM:
+		return gf_mulfix(length->value, FLT2FIX(3.543307f));
+	case SVG_NUMBER_IN:
+		return length->value * 90;
+	case SVG_NUMBER_PT:
+		return 5 * length->value / 4;
+	case SVG_NUMBER_PC:
+		return length->value * 15;
+	case SVG_NUMBER_INHERIT:
+		break;
+	}
+	return length->value;
+}
 
 GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 {
@@ -512,15 +542,13 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 				sr->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
 				l = root->width;
 				if (l.type!=SVG_NUMBER_PERCENTAGE) {
-					svg_convert_length_unit_to_user_unit(&l);
-					width = FIX2INT(l.value);
+					width = FIX2INT(convert_svg_length_to_user(sr, &l) );
 				} else {
 					width = FIX2INT(root->viewBox.width);
 				}
 				l = ((SVGsvgElement*)root)->height;
 				if (l.type!=SVG_NUMBER_PERCENTAGE) {
-					svg_convert_length_unit_to_user_unit(&l);
-					height = FIX2INT(l.value);
+					height = FIX2INT(convert_svg_length_to_user(sr, &l) );
 				} else {
 					height = FIX2INT(root->viewBox.height);
 				}
@@ -885,9 +913,10 @@ static void SR_UserInputIntern(GF_Renderer *sr, GF_Event *event)
 	switch (event->type) {
 	case GF_EVT_MOUSEMOVE:
 	{
-		u32 i;
+		u32 i, count;
 		gf_mx_p(sr->ev_mx);
-		for (i=0; i<gf_list_count(sr->events); i++) {
+		count = gf_list_count(sr->events);
+		for (i=0; i<count; i++) {
 			ev = gf_list_get(sr->events, i);
 			if (ev->event_type == GF_EVT_MOUSEMOVE) {
 				ev->mouse =  event->mouse;
@@ -1014,13 +1043,15 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	}
 
 	/*update all timed nodes*/
-	for (i=0; i<gf_list_count(sr->time_nodes); i++) {
+	count = gf_list_count(sr->time_nodes);
+	for (i=0; i<count; i++) {
 		GF_TimeNode *tn = gf_list_get(sr->time_nodes, i);
 		if (!tn->needs_unregister) tn->UpdateTimeNode(tn);
 		if (tn->needs_unregister) {
 			tn->is_registered = 0;
 			tn->needs_unregister = 0;
 			gf_list_rem(sr->time_nodes, i);
+			count--;
 			i--;
 			continue;
 		}

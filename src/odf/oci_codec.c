@@ -258,8 +258,8 @@ GF_Err gf_oci_codec_encode(OCICodec *codec, char **outAU, u32 *au_length)
 	size = 0;
 
 	//get the size of each event
-	for (i=0; i<gf_list_count(codec->OCIEvents); i++) {
-		ev = gf_list_get(codec->OCIEvents, i);
+	i=0;
+	while ((ev = gf_list_enum(codec->OCIEvents, &i))) {
 		//fixed size header
 		size += 10;
 		e = gf_odf_size_descriptor_list(codec->OCIEvents, &desc_size);

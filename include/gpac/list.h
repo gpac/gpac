@@ -147,6 +147,16 @@ void *gf_list_last(GF_List *ptr);
 GF_Err gf_list_rem_last(GF_List *ptr);
 
 
+/*!
+ *	\brief list enumerator
+ *
+ *	Retrieves given list item and increment current position
+ *	\param ptr target list object
+ *	\param pos target item position. The position is automatically incremented regardless of the return value
+ *	\note A typical enumeration will start with a value of 0 until NULL is returned.
+ */
+void *gf_list_enum(GF_List *ptr, u32 *pos);
+
 /*! @} */
 
 #ifdef __cplusplus

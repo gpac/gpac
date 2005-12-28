@@ -311,7 +311,7 @@ Bool SFE_GetNumber(ScriptEnc *sc_enc)
 Bool SFE_NextToken(ScriptEnc *sc_enc)
 {
 	u32 i;
-	while (sc_enc->cur_buf[0] == ' ' || sc_enc->cur_buf[0] == '\t') sc_enc->cur_buf++;
+	while (strchr(" \t\r\n", sc_enc->cur_buf[0])) sc_enc->cur_buf++;
 	if ((sc_enc->cur_buf[0] == '/') && (sc_enc->cur_buf[1] == '*')) {
 		sc_enc->cur_buf += 2;
 		while ((sc_enc->cur_buf[0] != '*') || (sc_enc->cur_buf[1] != '/')) {
@@ -567,18 +567,19 @@ void SFE_PutIdentifier(ScriptEnc *sc_enc, char *id)
 {
 	u32 i;
 	u32 nbBits, length;
+	char *str;
 
 	if (sc_enc->emul) return;
 
-	for (i=0; i<gf_list_count(sc_enc->identifiers); i++) {
-		char *str = gf_list_get(sc_enc->identifiers, i);
+	i=0;
+	while ((str = gf_list_enum(sc_enc->identifiers, &i))) {
 		if (strcmp(str, id)) continue;
 
 		nbBits = 0;
 		length = gf_list_count(sc_enc->identifiers) - 1;
 		while (length > 0) { length >>= 1; nbBits ++; }
 		GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "recieved", str);
-		GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, i, nbBits, "identifierCode", str);
+		GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, i-1, nbBits, "identifierCode", str);
 		return;
 	} 
 	GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "recieved", id);
@@ -1047,6 +1048,10 @@ GF_Err SFScript_Encode(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *n)
 
 	/*encode functions*/
 	while (sc_enc.cur_buf && sc_enc.cur_buf[0] && (sc_enc.cur_buf[0]!='}')) {
+		if (strchr("\r\n\t ", sc_enc.cur_buf[0]) ) {
+			sc_enc.cur_buf++;
+			continue;
+		}
 		GF_BE_WRITE_INT(codec, bs, 1, 1, "hasFunction", NULL);
 		SFE_Function(&sc_enc);
 		if (sc_enc.err) break;

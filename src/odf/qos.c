@@ -351,14 +351,11 @@ GF_Err gf_odf_size_qos(GF_QoS_Descriptor *qos, u32 *outSize)
 	
 	*outSize = 1;
 	
-	for ( i = 0; i < gf_list_count(qos->QoS_Qualifiers); i++ ) {
-		tmp = (GF_QoS_Default*)gf_list_get(qos->QoS_Qualifiers, i);
-		if (tmp) {
-
-			e = gf_odf_size_qos_qual(tmp);
-			if (e) return e;
-			*outSize += tmp->size + gf_odf_size_field_size(tmp->size);
-		}
+	i=0;
+	while ((tmp = gf_list_enum(qos->QoS_Qualifiers, &i))) {
+		e = gf_odf_size_qos_qual(tmp);
+		if (e) return e;
+		*outSize += tmp->size + gf_odf_size_field_size(tmp->size);
 	}
 	return GF_OK;
 }
@@ -381,12 +378,10 @@ GF_Err gf_odf_write_qos(GF_BitStream *bs, GF_QoS_Descriptor *qos)
 	gf_bs_write_int(bs, qos->predefined, 8);
 
 	if (! qos->predefined) {
-		for ( i = 0; i < gf_list_count(qos->QoS_Qualifiers); i++ ) {
-			tmp = (GF_QoS_Default*)gf_list_get(qos->QoS_Qualifiers, i);
-			if (tmp) {
-				e = gf_odf_write_qos_qual(bs, tmp);
-				if (e) return e;
-			} 
+		i=0;
+		while ((tmp = gf_list_enum(qos->QoS_Qualifiers, &i))) {
+			e = gf_odf_write_qos_qual(bs, tmp);
+			if (e) return e;
 		}
 	}
 	return GF_OK;

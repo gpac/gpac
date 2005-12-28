@@ -281,7 +281,7 @@ static void RenderViewpoint(GF_Node *node, void *rs)
 		/*store model matrix if changed - NOTE: we always have a 1-frame delay between VP used and real world...
 		we could remove this by pre-rendering the scene before applying vp, but that would mean 2 scene 
 		traversals*/
-		if (eff->traversing_mode==TRAVERSE_SORT) {
+		if ((eff->traversing_mode==TRAVERSE_SORT) || (eff->traversing_mode==TRAVERSE_GET_BOUNDS) ) {
 			if (!gf_mx_equal(&st->world_view_mx, &eff->model_matrix)) {
 				gf_mx_copy(st->world_view_mx, eff->model_matrix);
 				gf_node_dirty_set(node, 0, 0);
@@ -336,6 +336,8 @@ static void navinfo_set_bind(GF_Node *node)
 static void RenderNavigationInfo(GF_Node *node, void *rs)
 {
 	u32 i;
+	SFVec3f start, end;
+	Fixed scale;
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 	M_NavigationInfo *ni = (M_NavigationInfo *) node;
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
@@ -357,7 +359,15 @@ static void RenderNavigationInfo(GF_Node *node, void *rs)
 	/*not bound*/
 	if (!ni->isBound) return;
 	/*not rendering, return*/
-	if (eff->traversing_mode != TRAVERSE_RENDER_BINDABLE) return;
+	if (eff->traversing_mode != TRAVERSE_RENDER_BINDABLE) {
+		if ((eff->traversing_mode==TRAVERSE_SORT) || (eff->traversing_mode==TRAVERSE_GET_BOUNDS) ) {
+			if (!gf_mx_equal(&st->world_view_mx, &eff->model_matrix)) {
+				gf_mx_copy(st->world_view_mx, eff->model_matrix);
+				gf_node_dirty_set(node, 0, 0);
+			}
+		}
+		return;
+	}
 
 	if (!gf_node_dirty_get(node)) return;
 	gf_node_dirty_clear(node, 0);
@@ -366,19 +376,29 @@ static void RenderNavigationInfo(GF_Node *node, void *rs)
 	eff->camera->navigate_mode = 0;
 	for (i=0; i<ni->type.count; i++) {
 		if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "ANY")) eff->camera->navigation_flags |= NAV_ANY;
-		else if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "NONE")) eff->camera->navigate_mode = GF_NAVIGATE_NONE;
-		else if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "WALK")) eff->camera->navigate_mode = GF_NAVIGATE_WALK;
-		else if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "EXAMINE")) eff->camera->navigate_mode = GF_NAVIGATE_EXAMINE;
-		else if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "FLY")) eff->camera->navigate_mode = GF_NAVIGATE_FLY;
-		else if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "QTVR")) eff->camera->navigate_mode = GF_NAVIGATE_VR;
+		if (!eff->camera->navigate_mode) {
+			if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "NONE")) eff->camera->navigate_mode = GF_NAVIGATE_NONE;
+			else if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "WALK")) eff->camera->navigate_mode = GF_NAVIGATE_WALK;
+			else if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "EXAMINE")) eff->camera->navigate_mode = GF_NAVIGATE_EXAMINE;
+			else if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "FLY")) eff->camera->navigate_mode = GF_NAVIGATE_FLY;
+			else if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "QTVR")) eff->camera->navigate_mode = GF_NAVIGATE_VR;
+		}
 	}
 	if (ni->headlight) eff->camera->navigation_flags |= NAV_HEADLIGHT;
 
-	eff->camera->speed = ni->speed;
-    eff->camera->visibility = ni->visibilityLimit;
-	if (ni->avatarSize.count) eff->camera->avatar_size.x = ni->avatarSize.vals[0];
-	if (ni->avatarSize.count>1) eff->camera->avatar_size.y = ni->avatarSize.vals[1];
-	if (ni->avatarSize.count>2) eff->camera->avatar_size.z = ni->avatarSize.vals[2];
+	start.x = start.y = start.z = 0;
+	end.x = end.y = 0;
+	end.z = FIX_ONE;
+	gf_mx_apply_vec(&st->world_view_mx, &start);
+	gf_mx_apply_vec(&st->world_view_mx, &end);
+	gf_vec_diff(end, end, start);
+	scale = gf_vec_len(end);
+
+	eff->camera->speed = gf_mulfix(scale, ni->speed);
+    eff->camera->visibility = gf_mulfix(scale, ni->visibilityLimit);
+	if (ni->avatarSize.count) eff->camera->avatar_size.x = gf_mulfix(scale, ni->avatarSize.vals[0]);
+	if (ni->avatarSize.count>1) eff->camera->avatar_size.y = gf_mulfix(scale, ni->avatarSize.vals[1]);
+	if (ni->avatarSize.count>2) eff->camera->avatar_size.z = gf_mulfix(scale, ni->avatarSize.vals[2]);
 
 	if (eff->is_pixel_metrics) {
 		u32 s = MAX(eff->surface->width, eff->surface->height);
@@ -415,6 +435,8 @@ static void RenderFog(GF_Node *node, void *rs)
 {
 	Fixed density, vrange;
 	SFVec3f start, end;
+	ViewStack *vp_st;
+	M_Viewpoint *vp;
 	RenderEffect3D *eff = (RenderEffect3D *)rs;
 	M_Fog *fog = (M_Fog *) node;
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
@@ -437,14 +459,24 @@ static void RenderFog(GF_Node *node, void *rs)
 	}
 	/*not rendering, return*/
 	if (eff->traversing_mode != TRAVERSE_RENDER_BINDABLE) {
-		if (eff->traversing_mode==TRAVERSE_SORT) gf_mx_copy(st->world_view_mx, eff->model_matrix);
+		if ((eff->traversing_mode==TRAVERSE_SORT) || (eff->traversing_mode==TRAVERSE_GET_BOUNDS) ) 
+			gf_mx_copy(st->world_view_mx, eff->model_matrix);
 		return;
 	}
 	/*not bound*/
 	if (!fog->isBound || !fog->visibilityRange) return;
 
+	/*fog visibility is expressed in current bound VP so get its matrix*/
+	vp = gf_list_get(eff->viewpoints, 0);
+	vp_st = NULL;
+	if (vp->isBound) vp_st = (ViewStack *) gf_node_get_private((GF_Node *)vp);
+
 	start.x = start.y = start.z = 0;
-	end.x = end.y = end.z = fog->visibilityRange;
+	end.x = end.y = 0; end.z = fog->visibilityRange;
+	if (vp_st) {
+		gf_mx_apply_vec(&vp_st->world_view_mx, &start);
+		gf_mx_apply_vec(&vp_st->world_view_mx, &end);
+	}
 	gf_mx_apply_vec(&st->world_view_mx, &start);
 	gf_mx_apply_vec(&st->world_view_mx, &end);
 	gf_vec_diff(end, end, start);

@@ -930,8 +930,6 @@ void gf_es_on_connect(GF_Channel *ch)
 	/*if local interaction streams no buffer nor pull*/
 	if ((ch->esd->decoderConfig->streamType == GF_STREAM_INTERACT) && !ch->esd->URLString) can_buffer = 0;
 
-	/*checks whether the stream is interactive or not*/
-	com.command_type = GF_NET_CHAN_INTERACTIVE;
 	com.base.on_channel = ch;
 
 	ch->is_pulling = 0;
@@ -950,6 +948,8 @@ void gf_es_on_connect(GF_Channel *ch)
 			}
 		}
 	}
+	/*checks whether the stream is interactive or not*/
+	com.command_type = GF_NET_CHAN_INTERACTIVE;
 	if (gf_term_service_command(ch->service, &com)!=GF_OK) {
 		ch->clock->no_time_ctrl = 1;
 		ch->odm->no_time_ctrl = 1;

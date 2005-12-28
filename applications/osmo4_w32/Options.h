@@ -361,14 +361,14 @@ public:
 // Dialog Data
 	//{{AFX_DATA(COptRender3D)
 	enum { IDD = IDD_OPT_RENDER3D };
-	CButton	m_NoBackCull;
 	CButton	m_BitmapPixels;
 	CButton	m_DisableTXRect;
 	CButton	m_RasterOutlines;
 	CButton	m_EmulPow2;
 	CButton	m_PolyAA;
+	CComboBox	m_BackCull;
 	CComboBox	m_DrawNormals;
-	int		m_Wireframe;
+	CComboBox	m_Wireframe;
 	//}}AFX_DATA
 
 

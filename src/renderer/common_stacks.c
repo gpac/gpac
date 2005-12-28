@@ -251,6 +251,7 @@ typedef struct
 	Double start_time, cycle_interval;
 	u32 num_cycles;
 	GF_Renderer *compositor;
+	Bool is_x3d;
 } TimeSensorStack;
 
 static
@@ -299,11 +300,17 @@ void UpdateTimeSensor(GF_TimeNode *st)
 	}
 	
 	currentTime = gf_node_get_scene_time(st->obj);
-	if (currentTime < stack->start_time) return;
-	/*special case: if we're greater than both start and stop time don't activate*/
-	else if (!TS->isActive && (TS->stopTime > stack->start_time) && (currentTime >= TS->stopTime)) {
-		stack->time_handle.needs_unregister = 1;
-		return;
+	if (!TS->isActive) {
+		if (currentTime < stack->start_time) return;
+		/*special case: if we're greater than both start and stop time don't activate*/
+		if (!TS->isActive && (TS->stopTime > stack->start_time) && (currentTime >= TS->stopTime)) {
+			stack->time_handle.needs_unregister = 1;
+			return;
+		}
+		if (stack->is_x3d && !TS->loop) {
+			if (!stack->start_time) return;
+			if (currentTime >= TS->startTime+stack->cycle_interval) return;
+		}
 	}
 
 	cycleTime = currentTime - stack->start_time - stack->num_cycles * stack->cycle_interval;
@@ -374,7 +381,7 @@ void InitTimeSensor(GF_Renderer *sr, GF_Node *node)
 	st->time_handle.obj = node;
 	st->store_info = 1;
 	st->compositor = sr;
-
+	st->is_x3d = (gf_node_get_tag(node)==TAG_X3D_TimeSensor) ? 1 : 0;
 	gf_node_set_private(node, st);
 	gf_node_set_predestroy_function(node, DestroyTimeSensor);
 	/*time sensor needs to be run only if def'ed, otherwise it doesn't impact scene*/

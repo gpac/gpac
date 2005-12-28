@@ -272,8 +272,8 @@ GF_Proto *gf_sg_find_proto(GF_SceneGraph *sg, u32 ProtoID, char *name)
 	assert(sg);
 
 	/*browse all top-level */
-	for (i=0; i<gf_list_count(sg->protos); i++) {
-		proto = gf_list_get(sg->protos, i);
+	i=0;
+	while ((proto = gf_list_enum(sg->protos, &i))) {
 		/*first check on name if given, since parsers use this with ID=0*/
 		if (name) {
 			if (proto->Name && !stricmp(name, proto->Name)) return proto;
@@ -963,19 +963,17 @@ GF_Err gf_sg_vrml_mf_insert(void *mf, u32 FieldType, void **new_ptr, u32 InsertA
 		return GF_OK;
 	}
 
-	//alloc 1+itemCount
-	buffer = malloc(sizeof(char)*(1+mffield->count)*FieldSize);
-
 	//append at the end
 	if (InsertAt >= mffield->count) {
-		memcpy(buffer, mffield->array, mffield->count * FieldSize);
-		memset(buffer + mffield->count * FieldSize, 0, FieldSize);
-		if (new_ptr) *new_ptr = buffer + mffield->count * FieldSize;
-		free(mffield->array);
-		mffield->array = buffer;
+		mffield->array = realloc(mffield->array, sizeof(char)*(1+mffield->count)*FieldSize);
+		memset(mffield->array + mffield->count * FieldSize, 0, FieldSize);
+		if (new_ptr) *new_ptr = mffield->array + mffield->count * FieldSize;
 		mffield->count += 1;
 		return GF_OK;
 	}
+	//alloc 1+itemCount
+	buffer = malloc(sizeof(char)*(1+mffield->count)*FieldSize);
+
 	//insert in the array
 	k=0;
 	for (i=0; i < mffield->count; i++) {
@@ -1410,38 +1408,24 @@ u32 gf_node_get_num_fields_in_mode(GF_Node *Node, u8 IndexMode)
 
 
 /*all our internally handled nodes*/
-void ScalarInt_SetFraction(GF_Node *node);
-void PosInt2D_SetFraction(GF_Node *node);
-void ColorInt_SetFraction(GF_Node *node);
-void CI2D_SetFraction(GF_Node *n);
-void CoordInt_SetFraction(GF_Node *n);
-void PosInt_SetFraction(GF_Node *node);
-void OrientInt_SetFraction(GF_Node *node);
-void NormInt_SetFraction(GF_Node *n);
-void Valuator_SetInSFBool(GF_Node *n);
-void Valuator_SetInSFColor(GF_Node *n);
-void Valuator_SetInSFFloat(GF_Node *n);
-void Valuator_SetInSFInt32(GF_Node *n);
-void Valuator_SetInSFTime(GF_Node *n);
-void Valuator_SetInSFVec2f(GF_Node *n);
-void Valuator_SetInSFVec3f(GF_Node *n);
-void Valuator_SetInSFRotation(GF_Node *n);
-void Valuator_SetInSFString(GF_Node *n);
-void Valuator_SetInMFString(GF_Node *n);
-void Valuator_SetInMFColor(GF_Node *n);
-void Valuator_SetInMFFloat(GF_Node *n);
-void Valuator_SetInMFInt32(GF_Node *n);
-void Valuator_SetInMFVec2f(GF_Node *n);
-void Valuator_SetInMFVec3f(GF_Node *n);
-void Valuator_SetInMFRotation(GF_Node *n);
+Bool InitColorInterpolator(M_ColorInterpolator *node);
+Bool InitCoordinateInterpolator2D(M_CoordinateInterpolator2D *node);
+Bool InitCoordinateInterpolator(M_CoordinateInterpolator *n);
+Bool InitNormalInterpolator(M_NormalInterpolator *n);
+Bool InitPositionInterpolator2D(M_PositionInterpolator2D *node);
+Bool InitPositionInterpolator(M_PositionInterpolator *node);
+Bool InitScalarInterpolator(M_ScalarInterpolator *node);
+Bool InitOrientationInterpolator(M_OrientationInterpolator *node);
+Bool InitValuator(M_Valuator *node);
+Bool InitCoordinateInterpolator4D(M_CoordinateInterpolator4D *node);
+Bool InitPositionInterpolator4D(M_PositionInterpolator4D *node);
+
 void PA_Init(GF_Node *n);
 void PA_Modified(GF_Node *n, GF_FieldInfo *field);
 void PA2D_Init(GF_Node *n);
 void PA2D_Modified(GF_Node *n, GF_FieldInfo *field);
 void SA_Init(GF_Node *n);
 void SA_Modified(GF_Node *n, GF_FieldInfo *field);
-void CI4D_SetFraction(GF_Node *n);
-void PI4D_SetFraction(GF_Node *n);
 /*X3D tools*/
 void InitBooleanFilter(GF_Node *n);
 void InitBooleanSequencer(GF_Node *n);
@@ -1451,58 +1435,47 @@ void InitIntegerSequencer(GF_Node *n);
 void InitIntegerTrigger(GF_Node *n);
 void InitTimeTrigger(GF_Node *n);
 
-
 Bool gf_sg_vrml_node_init(GF_Node *node)
 {
 	switch (node->sgprivate->tag) {
 	case TAG_MPEG4_ColorInterpolator: 
 	case TAG_X3D_ColorInterpolator:
-		((M_ColorInterpolator *)node)->on_set_fraction = ColorInt_SetFraction; return 1;
+		return InitColorInterpolator((M_ColorInterpolator *)node);
 	case TAG_MPEG4_CoordinateInterpolator: 
 	case TAG_X3D_CoordinateInterpolator: 
-		((M_CoordinateInterpolator *)node)->on_set_fraction = CoordInt_SetFraction; return 1;
+		return InitCoordinateInterpolator((M_CoordinateInterpolator *)node);
 	case TAG_MPEG4_CoordinateInterpolator2D: 
-		((M_CoordinateInterpolator2D *)node)->on_set_fraction = CI2D_SetFraction; return 1;
+		return InitCoordinateInterpolator2D((M_CoordinateInterpolator2D *)node);
 	case TAG_MPEG4_NormalInterpolator: 
 	case TAG_X3D_NormalInterpolator: 
-		((M_NormalInterpolator*)node)->on_set_fraction = NormInt_SetFraction; return 1;
+		return InitNormalInterpolator((M_NormalInterpolator*)node);
 	case TAG_MPEG4_OrientationInterpolator: 
 	case TAG_X3D_OrientationInterpolator: 
-		((M_OrientationInterpolator*)node)->on_set_fraction = OrientInt_SetFraction; return 1;
+		return InitOrientationInterpolator((M_OrientationInterpolator*)node);
 	case TAG_MPEG4_PositionInterpolator: 
 	case TAG_X3D_PositionInterpolator: 
-		((M_PositionInterpolator *)node)->on_set_fraction = PosInt_SetFraction; return 1;
+		return InitPositionInterpolator((M_PositionInterpolator *)node);
 	case TAG_MPEG4_PositionInterpolator2D:
 	case TAG_X3D_PositionInterpolator2D:
-		((M_PositionInterpolator2D *)node)->on_set_fraction = PosInt2D_SetFraction; return 1;
+		return InitPositionInterpolator2D((M_PositionInterpolator2D *)node);
 	case TAG_MPEG4_ScalarInterpolator: 
 	case TAG_X3D_ScalarInterpolator: 
-		((M_ScalarInterpolator *)node)->on_set_fraction = ScalarInt_SetFraction; return 1;
+		return InitScalarInterpolator((M_ScalarInterpolator *)node);
 	case TAG_MPEG4_Valuator:
-		((M_Valuator *)node)->on_inSFTime = Valuator_SetInSFTime;
-		((M_Valuator *)node)->on_inSFBool = Valuator_SetInSFBool;
-		((M_Valuator *)node)->on_inSFColor = Valuator_SetInSFColor;
-		((M_Valuator *)node)->on_inSFInt32 = Valuator_SetInSFInt32;
-		((M_Valuator *)node)->on_inSFFloat = Valuator_SetInSFFloat;
-		((M_Valuator *)node)->on_inSFVec2f = Valuator_SetInSFVec2f;
-		((M_Valuator *)node)->on_inSFVec3f = Valuator_SetInSFVec3f;
-		((M_Valuator *)node)->on_inSFRotation = Valuator_SetInSFRotation;
-		((M_Valuator *)node)->on_inSFString = Valuator_SetInSFString;
-		((M_Valuator *)node)->on_inMFColor = Valuator_SetInMFColor;
-		((M_Valuator *)node)->on_inMFInt32 = Valuator_SetInMFInt32;
-		((M_Valuator *)node)->on_inMFFloat = Valuator_SetInMFFloat;
-		((M_Valuator *)node)->on_inMFVec2f = Valuator_SetInMFVec2f;
-		((M_Valuator *)node)->on_inMFVec3f = Valuator_SetInMFVec3f;
-		((M_Valuator *)node)->on_inMFRotation = Valuator_SetInMFRotation;
-		((M_Valuator *)node)->on_inMFString = Valuator_SetInMFString;
+		return InitValuator((M_Valuator *)node);
+	case TAG_MPEG4_PositionAnimator: 
+		PA_Init(node); return 1;
+	case TAG_MPEG4_PositionAnimator2D: 
+		PA2D_Init(node); return 1;
+	case TAG_MPEG4_ScalarAnimator: 
+		SA_Init(node); return 1;
+	case TAG_MPEG4_PositionInterpolator4D: 
+		return InitPositionInterpolator4D((M_PositionInterpolator4D *)node);
+	case TAG_MPEG4_CoordinateInterpolator4D: 
+		return InitCoordinateInterpolator4D((M_CoordinateInterpolator4D *)node);
+	case TAG_MPEG4_Script: 
+	case TAG_X3D_Script: 
 		return 1;
-	case TAG_MPEG4_PositionAnimator: PA_Init(node); return 1;
-	case TAG_MPEG4_PositionAnimator2D: PA2D_Init(node); return 1;
-	case TAG_MPEG4_ScalarAnimator: SA_Init(node); return 1;
-	case TAG_MPEG4_PositionInterpolator4D: ((M_PositionInterpolator4D *)node)->on_set_fraction = PI4D_SetFraction; return 1;
-	case TAG_MPEG4_CoordinateInterpolator4D: ((M_CoordinateInterpolator4D *)node)->on_set_fraction = CI4D_SetFraction; return 1;
-	case TAG_MPEG4_Script: return 1;
-	case TAG_X3D_Script: return 1;
 
 	case TAG_X3D_BooleanFilter: InitBooleanFilter(node); return 1;
 	case TAG_X3D_BooleanSequencer: InitBooleanSequencer(node); return 1;

@@ -188,13 +188,13 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 	}
 	else {
 		/*make sure all channels are in order*/
-		for (i=0; i<gf_list_count(codec->inChannels); i++) {
-			a_ch = gf_list_get(codec->inChannels, i);
+		i=0;
+		while ((a_ch = gf_list_enum(codec->inChannels, &i))) {
 			if (ch->esd->dependsOnESID == a_ch->esd->ESID) {
-				return gf_list_insert(codec->inChannels, ch, i+1);
+				return gf_list_insert(codec->inChannels, ch, i);
 			}
 			if (a_ch->esd->dependsOnESID == ch->esd->ESID) {
-				return gf_list_insert(codec->inChannels, ch, i);
+				return gf_list_insert(codec->inChannels, ch, i-1);
 			}
 		}
 		/*by default append*/

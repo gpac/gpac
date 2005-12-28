@@ -599,13 +599,12 @@ GF_Err BM_ParseFieldReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *co
 	if (inf->fieldType == GF_SG_VRML_SFNODE) {
 		gf_node_register(inf->new_node, com->node);
 	} else if (inf->fieldType == GF_SG_VRML_MFNODE) {
-		u32 i;
-		for (i=0; i<gf_list_count(inf->node_list); i++) {
-			GF_Node *p = gf_list_get(inf->node_list, i);
+		GF_Node *p;
+		u32 i=0;
+		while ((p = gf_list_enum(inf->node_list, &i))) {
 			gf_node_register(p, com->node);
 		}
 	}
-
 	gf_list_add(com_list, com);
 	return codec->LastError;
 }
@@ -658,7 +657,7 @@ GF_Err BM_ParseIndexValueReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Lis
 		inf->fieldType = GF_SG_VRML_SFNODE;
 		inf->new_node = gf_bifs_dec_node(codec, bs, field.NDTtype);
 		inf->field_ptr = &inf->new_node;
-		gf_node_register(inf->new_node, com->node);
+		if (inf->new_node) gf_node_register(inf->new_node, com->node);
 	} else {
 		memcpy(&sffield, &field, sizeof(GF_FieldInfo));
 		sffield.fieldType = gf_sg_vrml_get_sf_type(field.fieldType);

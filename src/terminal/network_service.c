@@ -99,6 +99,13 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 					evt.type = GF_EVT_CONNECT;
 					evt.connect.is_connected = 0;
 					GF_USER_SENDEVENT(term->user, &evt);
+				} else {
+					/*try to reinsert OD for VRML/X3D with multiple URLs:
+					1- first remove from parent scene without destroying object, this will trigger a re-setup
+					if other URLs are present
+					2- then destroy object*/
+					gf_is_remove_object(root->parentscene, root, 0);
+					gf_odm_disconnect(root, 1);
 				}
 				return;
 			}
@@ -107,12 +114,13 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 		if (!root) {
 			/*channel service connect*/
 			u32 i;
+			GF_ChannelSetup *cs;
 			GF_List *ODs = gf_list_new();
 			gf_term_lock_net(term, 1);
-			for (i=0; i<gf_list_count(term->channels_pending); i++) {
-				GF_ChannelSetup *cs = gf_list_get(term->channels_pending, i);
+			i=0;
+			while ((cs = gf_list_enum(term->channels_pending, &i))) {
 				if (cs->ch->service != service) continue;
-				gf_list_rem(term->channels_pending, i);
+				gf_list_rem(term->channels_pending, i-1);
 				i--;
 				/*even if error do setup (channel needs to be deleted)*/
 				if (gf_odm_post_es_setup(cs->ch, cs->dec, err) == GF_OK) {

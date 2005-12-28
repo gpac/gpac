@@ -368,13 +368,14 @@ static GF_Err TTD_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 
 static void ttd_set_blink_fraction(GF_Node *node)
 {
+	M_Material2D *m;
 	u32 i;
 	TTDPriv *priv = (TTDPriv *)gf_node_get_private(node);
 	
 	Bool blink_on = 1;
 	if (priv->process_blink->set_fraction>FIX_ONE/2) blink_on = 0;
-	for (i=0; i<gf_list_count(priv->blink_nodes); i++) {
-		M_Material2D *m = gf_list_get(priv->blink_nodes, i);
+	i=0;
+	while ((m = gf_list_enum(priv->blink_nodes, &i))) {
 		if (m->filled != blink_on) {
 			m->filled = blink_on;
 			gf_node_changed((GF_Node *) m, NULL);
@@ -652,6 +653,7 @@ void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form *form,
 /*mod can be any of TextHighlight, TextKaraoke, TextHyperText, TextBlink*/
 void TTD_SplitChunks(GF_TextSample *txt, u32 nb_chars, GF_List *chunks, GF_Box *mod)
 {
+	TTDTextChunk *tc;
 	u32 start_char, end_char;
 	u32 i;
 	switch (mod->type) {
@@ -669,8 +671,8 @@ void TTD_SplitChunks(GF_TextSample *txt, u32 nb_chars, GF_List *chunks, GF_Box *
 
 	if (end_char>nb_chars) end_char = nb_chars;
 
-	for (i=0; i<gf_list_count(chunks); i++) {
-		TTDTextChunk *tc = gf_list_get(chunks, i);
+	i=0;
+	while ((tc = gf_list_enum(chunks, &i))) {
 		if (tc->end_char<=start_char) continue;
 		/*need to split chunk at begin*/
 		if (tc->start_char<start_char) {
@@ -717,7 +719,7 @@ void TTD_SplitChunks(GF_TextSample *txt, u32 nb_chars, GF_List *chunks, GF_Box *
 
 static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_utf_16, u32 sample_duration)
 {
-	u32 i, nb_lines, start_idx;
+	u32 i, nb_lines, start_idx, count;
 	s32 *id, thw, thh, tw, th, offset;
 	Bool vertical;
 	MFInt32 idx;
@@ -729,6 +731,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	u32 char_offset, char_count;
 	GF_List *chunks;
 	TTDTextChunk *tc;
+	GF_Box *a;
 	GF_TextSampleDescriptor *td = NULL;
 	
 	/*stop timer sensor*/
@@ -744,8 +747,8 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	TTD_ResetDisplay(priv);
 	if (!sdi || !txt || !txt->len) return;
 
-	for (i=0; i<gf_list_count(priv->cfg->sample_descriptions); i++) {
-		td = gf_list_get(priv->cfg->sample_descriptions, i);
+	i=0;
+	while ((td = gf_list_enum(priv->cfg->sample_descriptions, &i))) {
 		if (td->sample_index==sdi) break;
 		td = NULL;
 	}
@@ -903,8 +906,8 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 		}
 	}
 	/*apply all other modifiers*/
-	for (i=0; i<gf_list_count(txt->others); i++) {
-		GF_Box *a = gf_list_get(txt->others, i);
+	i=0;
+	while ((a = gf_list_enum(txt->others, &i))) {
 		TTD_SplitChunks(txt, char_count, chunks, a);
 	}
 
@@ -988,7 +991,8 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = -1;
 
 	/*define a group with every item drawn*/
-	for (i=0; i<gf_list_count(form->children); i++) {
+	count = gf_list_count(form->children);
+	for (i=0; i<count; i++) {
 		gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &id); (*id) = i+1;
 	}
 	gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &id); (*id) = -1;

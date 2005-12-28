@@ -61,6 +61,40 @@ void gf_import_progress(GF_MediaImporter *import, u32 cur_samp, u32 count)
 	}
 }
 
+static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
+{
+	u32 tk_w, tk_h, stype;
+	GF_Err e;
+
+	e = gf_isom_get_visual_info(file, track, 1, &tk_w, &tk_h);
+	if (e) return e;
+
+	stype = gf_isom_get_media_subtype(file, track, 1);
+	if (stype==GF_ISOM_SUBTYPE_AVC_H264) {
+		s32 par_n, par_d;
+		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
+		GF_AVCConfigSlot *slc = gf_list_get(avcc->sequenceParameterSets, 0);
+		gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
+
+		if ((par_n>1) && (par_d>1)) 
+			tk_w = tk_w * par_n / par_d;
+	} 
+	else if ((stype==GF_ISOM_SUBTYPE_MPEG4) || (stype==GF_ISOM_SUBTYPE_MPEG4_CRYP) ) {
+		GF_M4VDecSpecInfo dsi;
+		GF_ESD *esd = gf_isom_get_esd(file, track, 1);
+		if (!esd || !esd->decoderConfig || (esd->decoderConfig->streamType!=4) || (esd->decoderConfig->objectTypeIndication!=0x20)) {
+			if (esd)  gf_odf_desc_del((GF_Descriptor *) esd);
+			return GF_NOT_SUPPORTED;
+		}
+		gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
+
+		if ((dsi.par_num>1) && (dsi.par_num>1)) 
+			tk_w = dsi.width * dsi.par_num / dsi.par_den;
+	} else {
+		return GF_OK;
+	}
+	return gf_isom_set_track_layout_info(file, track, tk_w<<16, tk_h<<16, 0, 0, 0);
+}
 
 static void MP4T_RecomputeBitRate(GF_ISOFile *file, u32 track)
 {
@@ -705,11 +739,9 @@ GF_Err gf_import_cmp(GF_MediaImporter *import)
 	if (e) goto exit;
 	gf_isom_set_visual_info(import->dest, track, di, dsi.width, dsi.height);
 	gf_import_message(import, GF_OK, "MPEG-4 Video import - %d x %d @ %02.4f FPS\nIndicated Profile: %s", dsi.width, dsi.height, FPS, gf_m4v_get_profile_name((u8) PL));
-	if (dsi.par_den && dsi.par_num) {
-		u32 w = (dsi.width * dsi.par_num) / dsi.par_den;
-		gf_import_message(import, GF_OK, "Pixel Aspect Ratio %d:%d", dsi.par_num, dsi.par_den);
-		gf_isom_set_track_layout_info(import->dest, track, w, dsi.height, 0, 0, 0);
-	}
+
+	gf_media_update_par(import->dest, track);
+
 	has_cts_offset = 0;
 	nb_samp = b_frames = ref_frame = 0;
 	do_vfr = !(import->flags & GF_IMPORT_NO_FRAME_DROP);
@@ -1014,6 +1046,8 @@ GF_Err gf_import_avi_video(GF_MediaImporter *import)
 			if (e) goto exit;
 			gf_isom_set_visual_info(import->dest, track, di, dsi.width, dsi.height);
 			gf_import_message(import, GF_OK, "AVI %s video import - %d x %d @ %.2f FPS - %d Frames\nIndicated Profile: %s", comp, dsi.width, dsi.height, FPS, num_samples, gf_m4v_get_profile_name((u8) PL));
+
+			gf_media_update_par(import->dest, track);
 		}
 
 
@@ -1447,7 +1481,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 
 	switch (mtype) {
 	case GF_ISOM_MEDIA_VISUAL:
-		if (!is_clone) gf_isom_set_visual_info(import->dest, track, di, w, h);
+		if (!is_clone) {
+			gf_isom_set_visual_info(import->dest, track, di, w, h);
+			gf_media_update_par(import->dest, track);
+		}
 		gf_import_message(import, GF_OK, "IsoMedia import - track ID %d - Video (size %d x %d)", trackID, w, h);
 		break;
 	case GF_ISOM_MEDIA_AUDIO:
@@ -1909,7 +1946,10 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 	e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? szMedia : NULL, NULL, &di);
 	if (e) goto exit;
 
-	if (w && h) gf_isom_set_visual_info(import->dest, track, di, w, h);
+	if (w && h) {
+		gf_isom_set_visual_info(import->dest, track, di, w, h);
+		gf_media_update_par(import->dest, track);
+	}
 
 	gf_import_message(import, GF_OK, "NHNT import - Stream Type %s - ObjectTypeIndication 0x%02x", gf_odf_stream_type_name(import->esd->decoderConfig->streamType), import->esd->decoderConfig->objectTypeIndication);
 
@@ -2187,7 +2227,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 	GF_Err e;
 	XMLParser parser;
 	Bool destroy_esd, inRootOD, do_compress, use_dict;
-	u32 track, tkID, di, mtype, max_size, duration, count, streamType, oti, timescale, specInfoSize, dts_inc;
+	u32 track, tkID, di, mtype, max_size, duration, count, streamType, oti, timescale, specInfoSize, dts_inc, par_den, par_num;
 	GF_ISOSample *samp;
 	s64 media_size, media_done, offset;
 	FILE *nhml, *mdia, *info;
@@ -2236,7 +2276,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 	use_dict = 0;
 
 	memset(&sdesc, 0, sizeof(GF_GenericSampleDescription));
-	tkID = mtype = streamType = oti = timescale = 0;
+	tkID = mtype = streamType = oti = timescale = par_den = par_num = 0;
 	while (xml_has_attributes(&parser)) {
 		str = xml_get_attribute(&parser);
 		if (!strcmp(str, "streamType")) streamType = atoi(parser.value_buffer);
@@ -2250,6 +2290,8 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 		else if (!strcmp(str, "timeScale")) timescale = atoi(parser.value_buffer);
 		else if (!strcmp(str, "width")) sdesc.width = atoi(parser.value_buffer);
 		else if (!strcmp(str, "height")) sdesc.height = atoi(parser.value_buffer);
+		else if (!strcmp(str, "parNum")) par_num = atoi(parser.value_buffer);
+		else if (!strcmp(str, "parDen")) par_den = atoi(parser.value_buffer);
 		else if (!strcmp(str, "sampleRate")) sdesc.samplerate = atoi(parser.value_buffer);
 		else if (!strcmp(str, "numChannels")) sdesc.nb_channels = atoi(parser.value_buffer);
 		else if (!strcmp(str, "baseMediaFile")) strcpy(szMedia, parser.value_buffer);
@@ -2393,8 +2435,17 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 	import->final_trackID = gf_isom_get_track_id(import->dest, track);
 	if (import->esd && !import->esd->ESID) import->esd->ESID = import->final_trackID;
 	
-	if (sdesc.width && sdesc.height) gf_isom_set_visual_info(import->dest, track, di, sdesc.width, sdesc.height);
-	else if (sdesc.samplerate && sdesc.nb_channels) gf_isom_set_audio_info(import->dest, track, di, sdesc.samplerate, sdesc.nb_channels, (u8) sdesc.bits_per_sample);
+	if (sdesc.width && sdesc.height) {
+		gf_isom_set_visual_info(import->dest, track, di, sdesc.width, sdesc.height);
+		if (par_den && par_num) {
+			gf_media_change_par(import->dest, track, par_num, par_den);
+		} else {
+			gf_media_update_par(import->dest, track);
+		}
+	}
+	else if (sdesc.samplerate && sdesc.nb_channels) {
+		gf_isom_set_audio_info(import->dest, track, di, sdesc.samplerate, sdesc.nb_channels, (u8) sdesc.bits_per_sample);
+	}
 
 	duration = (u32) ( ((Double) import->duration)/ 1000 * timescale);
 
@@ -3600,6 +3651,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	gf_isom_set_visual_info(import->dest, track, di, max_w, max_h);
 	avccfg->nal_unit_size = size_length/8;
 	gf_isom_avc_config_update(import->dest, track, 1, avccfg);
+	gf_media_update_par(import->dest, track);
 	MP4T_RecomputeBitRate(import->dest, track);
 
 	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, 0x15);
@@ -4283,7 +4335,7 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 		if (ar_den) tk_w = tk_w * ar_num / ar_den;
 		else if (ar_num) tk_h = tk_h * ar_den / ar_num;
 	}
-	return gf_isom_set_track_layout_info(file, track, tk_w, tk_h, 0, 0, 0);
+	return gf_isom_set_track_layout_info(file, track, tk_w<<16, tk_h<<16, 0, 0, 0);
 }
 
 #endif

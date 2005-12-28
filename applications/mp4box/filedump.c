@@ -22,12 +22,14 @@
  *
  */
 
-
 #include <gpac/scene_manager.h>
 #include <gpac/nodes_x3d.h>
 #include <gpac/internal/bifs_dev.h>
 #include <gpac/constants.h>
 #include <gpac/avparse.h>
+/*for asctime and gmtime*/
+#include <time.h>
+
 
 extern u32 swf_flags;
 extern Float swf_flatten_angle;
@@ -291,9 +293,9 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 			if (e) goto exit;
 		}
 		if (stat_level==2) {
-			fprintf(dump, "<AUStatistics StreamID=\"%d\" AUTime=\"%d\">\n", au->owner->ESID, (u32) au->timing);
+			fprintf(dump, "<AUStatistics StreamID=\"%d\" AUTime=\""LLD"\">\n", au->owner->ESID, au->timing);
 		} else {
-			fprintf(dump, "<GraphStatistics StreamID=\"%d\" AUTime=\"%d\">\n", au->owner->ESID, (u32) au->timing);
+			fprintf(dump, "<GraphStatistics StreamID=\"%d\" AUTime=\""LLD"\">\n", au->owner->ESID, au->timing);
 		}
 		/*dump stats*/
 		dump_stats(dump, gf_sm_stats_get(sm) );
@@ -534,9 +536,6 @@ void dump_file_rtp(GF_ISOFile *file, char *inName)
 	if (inName) fclose(dump);
 }
 
-#define TS_DIV 1000
-#define TS_MUL 24
-
 void dump_file_ts(GF_ISOFile *file, char *inName)
 {
 	u32 i, j, k, count;
@@ -564,10 +563,8 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 			dts = samp->DTS;
 			cts = dts + (s32) samp->CTS_Offset;
 			gf_isom_sample_del(&samp);
-//			dts /= TS_DIV; cts /= TS_DIV;
-//			dts *= TS_MUL; cts *= TS_MUL;
 
-			fprintf(dump, "Sample %d - DTS %d - CTS %d", j+1, (u32)dts, (u32) cts);
+			fprintf(dump, "Sample %d - DTS "LLD" - CTS "LLD"", j+1, dts, cts);
 			if (cts<dts) { fprintf(dump, " #NEGATIVE CTS OFFSET!!!"); has_error = 1;}
 		
 			if (has_cts_offset) {
@@ -577,8 +574,6 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 					samp = gf_isom_get_sample_info(file, i+1, k+1, NULL, NULL);
 					adts = samp->DTS;
 					acts = adts + (s32) samp->CTS_Offset;
-//					adts /= TS_DIV; acts /= TS_DIV;
-//					adts *= TS_MUL; acts *= TS_MUL;
 
 					if (adts==dts) { fprintf(dump, " #SAME DTS USED!!!"); has_error = 1; }
 					if (acts==cts) { fprintf(dump, " #SAME CTS USED!!! "); has_error = 1; }
@@ -712,6 +707,14 @@ static char *format_duration(u64 dur, u32 timescale, char *szDur)
 	return szDur;
 }
 
+static char *format_date(u64 time, char *szTime)
+{
+	time_t now;
+	time -= 2082758400;
+	now = (u32) time;
+	sprintf(szTime, "%s", asctime(gmtime(&now)) );
+	return szTime;
+}
 
 static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *name)
 {
@@ -1072,6 +1075,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 {
 	GF_InitialObjectDescriptor *iod;
 	u32 i, brand, min, timescale, count;
+	u64 create, modif;
 	char szDur[50];
 	
 	DumpMetaItem(file, 1, 0, "Root Meta");
@@ -1087,6 +1091,9 @@ void DumpMovieInfo(GF_ISOFile *file)
 	if (gf_isom_get_brand_info(file, &brand, &min, NULL) == GF_OK) {
 		fprintf(stdout, "\tFile Brand %s - version %d\n", gf_4cc_to_str(brand), min);
 	}
+	gf_isom_get_creation_time(file, &create, &modif);
+	fprintf(stdout, "\tCreated: %s", format_date(create, szDur));
+	//fprintf(stdout, "\tModified: %s", format_date(modif, szDur));
 	fprintf(stdout, "\n");
 
 	DumpMetaItem(file, 0, 0, "Moov Meta");

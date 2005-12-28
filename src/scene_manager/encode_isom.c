@@ -38,8 +38,8 @@ static GF_MuxInfo *gf_sm_get_mux_info(GF_ESD *src)
 {
 	u32 i;
 	GF_MuxInfo *mux = NULL;
-	for (i=0; i<gf_list_count(src->extensionDescriptors); i++) {
-		mux = gf_list_get(src->extensionDescriptors, i);
+	i=0;
+	while ((mux = gf_list_enum(src->extensionDescriptors, &i))) {
 		if (mux->tag == GF_ODF_MUXINFO_TAG) return mux;
 	}
 	return NULL;
@@ -49,11 +49,11 @@ static void gf_sm_remove_mux_info(GF_ESD *src)
 {
 	u32 i;
 	GF_MuxInfo *mux = NULL;
-	for (i=0; i<gf_list_count(src->extensionDescriptors); i++) {
-		mux = gf_list_get(src->extensionDescriptors, i);
+	i=0;
+	while ((mux = gf_list_enum(src->extensionDescriptors, &i))) {
 		if (mux->tag == GF_ODF_MUXINFO_TAG) {
 			gf_odf_desc_del((GF_Descriptor *)mux);
-			gf_list_rem(src->extensionDescriptors, i);
+			gf_list_rem(src->extensionDescriptors, i-1);
 			return;
 		}
 	}
@@ -277,25 +277,28 @@ static GF_Err gf_sm_import_specials(GF_SceneManager *ctx)
 	GF_Err e;
 	u32 i, j, n, m, k;
 	GF_ESD *esd;
+	GF_AUContext *au;
 	GF_StreamContext *sc;
 
-	for (i=0; i<gf_list_count(ctx->streams); i++) {
-		sc = gf_list_get(ctx->streams, i);
+	i=0;
+	while ((sc = gf_list_enum(ctx->streams, &i))) {
 		if (sc->streamType != GF_STREAM_OD) continue;
 		esd = NULL;
-		for (j=0; j<gf_list_count(sc->AUs); j++) {
-			GF_AUContext *au = gf_list_get(sc->AUs, j);
-			
-			for (k=0; k<gf_list_count(au->commands); k++) {
-				GF_ODCom *com = gf_list_get(au->commands, k);
+		j=0;
+		while ((au = gf_list_enum(sc->AUs, &j))) {
+			GF_ODCom *com;
+			k=0;
+			while ((com = gf_list_enum(au->commands, &k))) {
 				switch (com->tag) {
 				case GF_ODF_OD_UPDATE_TAG:
 				{
+					GF_ObjectDescriptor *od;
 					GF_ODUpdate *odU = (GF_ODUpdate *)com;
-					for (n=0; n<gf_list_count(odU->objectDescriptors); n++) {
-						GF_ObjectDescriptor *od = gf_list_get(odU->objectDescriptors, n);
-						for (m=0; m<gf_list_count(od->ESDescriptors); m++) {
-							GF_ESD *imp_esd = gf_list_get(od->ESDescriptors, m);
+					n=0;
+					while ((od = gf_list_enum(odU->objectDescriptors, &n))) {
+						GF_ESD *imp_esd;
+						m=0;
+						while ((imp_esd = gf_list_enum(od->ESDescriptors, &m))) {
 							e = gf_sm_import_stream_special(ctx, imp_esd);
 							if (e != GF_OK) return e;
 						}
@@ -304,9 +307,10 @@ static GF_Err gf_sm_import_specials(GF_SceneManager *ctx)
 					break;
 				case GF_ODF_ESD_UPDATE_TAG:
 				{
+					GF_ESD *imp_esd;
 					GF_ESDUpdate *esdU = (GF_ESDUpdate *)com;
-					for (m=0; m<gf_list_count(esdU->ESDescriptors); m++) {
-						GF_ESD *imp_esd = gf_list_get(esdU->ESDescriptors, m);
+					m=0;
+					while ((imp_esd = gf_list_enum(esdU->ESDescriptors, &m))) {
 						e = gf_sm_import_stream_special(ctx, imp_esd);
 						if (e != GF_OK) return e;
 					}
@@ -324,26 +328,29 @@ static GF_ESD *gf_sm_locate_esd(GF_SceneManager *ctx, u16 ES_ID)
 {
 	u32 i, j, n, m, k;
 	GF_ESD *esd;
+	GF_AUContext *au;
 	GF_StreamContext *sc;
 	if (!ES_ID) return NULL;
 
-	for (i=0; i<gf_list_count(ctx->streams); i++) {
-		sc = gf_list_get(ctx->streams, i);
+	i=0;
+	while ((sc = gf_list_enum(ctx->streams, &i))) {
 		if (sc->streamType != GF_STREAM_OD) continue;
 		esd = NULL;
-		for (j=0; j<gf_list_count(sc->AUs); j++) {
-			GF_AUContext *au = gf_list_get(sc->AUs, j);
-			
-			for (k=0; k<gf_list_count(au->commands); k++) {
-				GF_ODCom *com = gf_list_get(au->commands, k);
+		j=0;
+		while ((au = gf_list_enum(sc->AUs, &j))) {
+			GF_ODCom *com;
+			k=0;
+			while ((com = gf_list_enum(au->commands, &k))) {
 				switch (com->tag) {
 				case GF_ODF_OD_UPDATE_TAG:
 				{
+					GF_ObjectDescriptor *od;
 					GF_ODUpdate *odU = (GF_ODUpdate *)com;
-					for (n=0; n<gf_list_count(odU->objectDescriptors); n++) {
-						GF_ObjectDescriptor *od = gf_list_get(odU->objectDescriptors, n);
-						for (m=0; m<gf_list_count(od->ESDescriptors); m++) {
-							GF_ESD *imp_esd = gf_list_get(od->ESDescriptors, m);
+					n=0;
+					while ((od = gf_list_enum(odU->objectDescriptors, &n))) {
+						GF_ESD *imp_esd;
+						m=0;
+						while ((imp_esd = gf_list_enum(od->ESDescriptors, &m))) {
 							if (imp_esd->ESID == ES_ID) return imp_esd;
 						}
 					}
@@ -351,9 +358,10 @@ static GF_ESD *gf_sm_locate_esd(GF_SceneManager *ctx, u16 ES_ID)
 					break;
 				case GF_ODF_ESD_UPDATE_TAG:
 				{
+					GF_ESD *imp_esd;
 					GF_ESDUpdate *esdU = (GF_ESDUpdate *)com;
-					for (m=0; m<gf_list_count(esdU->ESDescriptors); m++) {
-						GF_ESD *imp_esd = gf_list_get(esdU->ESDescriptors, m);
+					m=0;
+					while ((imp_esd = gf_list_enum(esdU->ESDescriptors, &m))) {
 						if (imp_esd->ESID == ES_ID) return imp_esd;
 					}
 				}
@@ -395,8 +403,8 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 	/*if no iod check we only have one bifs*/
 	if (!iod) {
 		count = 0;
-		for (i=0; i<gf_list_count(ctx->streams); i++) {
-			sc = gf_list_get(ctx->streams, i);
+		i=0;
+		while ((sc = gf_list_enum(ctx->streams, &i))) {
 			if (sc->streamType == GF_STREAM_OD) count++;
 		}
 		if (!iod && count>1) return GF_NOT_SUPPORTED;
@@ -426,32 +434,40 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 	}
 	if (!j) {
 		GF_Node *n = gf_sg_get_root_node(ctx->scene_graph);
-		if (!n || (gf_node_get_tag(n)!=TAG_SVG_svg) ) return GF_OK;
+		if (!n) return GF_OK;
+		else if ((scene_type==1) && (gf_node_get_tag(n)!=TAG_SVG_svg) ) return GF_OK;
+		else if ((scene_type==0) && (gf_node_get_tag(n)>GF_NODE_RANGE_LAST_X3D) ) return GF_OK;
 	}
-
 
 	logs = NULL;
 	if (opts && opts->logFile) logs = fopen(opts->logFile, "wt");
 
 	bifs_enc = NULL;
+	lsr_enc = NULL;
+
+
 	if (!scene_type) {
 		bifs_enc = gf_bifs_encoder_new(ctx->scene_graph);
 		if (logs) gf_bifs_encoder_set_trace(bifs_enc, logs);
+		/*no streams defined, encode a RAP*/
+		if (!j) {
+			delete_desc = 0;
+			esd = NULL;
+			is_in_iod = 1;
+			goto force_scene_rap;
+		}
 	}
 	
 	lsr_enc = NULL;
 	if (scene_type==1) {
 		lsr_enc = gf_laser_encoder_new(ctx->scene_graph);
 		if (logs) gf_laser_set_trace(lsr_enc, logs);
-		/*no streams defined, we're*/
-		if (!count) {
-			GF_Node *n = gf_sg_get_root_node(ctx->scene_graph);
-			if (n && (gf_node_get_tag(n)==TAG_SVG_svg) ) {
-				delete_desc = 0;
-				esd = NULL;
-				is_in_iod = 1;
-				goto force_svg_to_laser;
-			}
+		/*no streams defined, encode a RAP*/
+		if (!j) {
+			delete_desc = 0;
+			esd = NULL;
+			is_in_iod = 1;
+			goto force_scene_rap;
 		}
 	}
 
@@ -470,8 +486,8 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 		is_in_iod = 1;
 		if (iod) {
 			is_in_iod = 0;
-			for (j=0; j<gf_list_count(iod->ESDescriptors); j++) {
-				esd = gf_list_get(iod->ESDescriptors, j);
+			j=0;
+			while ((esd = gf_list_enum(iod->ESDescriptors, &j))) {
 				if (esd->decoderConfig && esd->decoderConfig->streamType == GF_STREAM_SCENE) {
 					if (!sc->ESID) sc->ESID = esd->ESID;
 					if (sc->ESID == esd->ESID) {
@@ -521,7 +537,7 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 			continue;
 		}
 
-force_svg_to_laser:
+force_scene_rap:
 		if (!esd) {
 			delete_desc = 1;
 			esd = gf_odf_desc_esd_new(2);
@@ -592,15 +608,15 @@ force_svg_to_laser:
 
 			/*this is for safety, otherwise some players may not understand NULL node*/
 			if (!bcfg->nodeIDbits) bcfg->nodeIDbits = 1;
-			gf_bifs_encoder_new_stream(bifs_enc, sc->ESID, bcfg, (flags & GF_SM_ENCODE_USE_NAMES) ? 1 : 0, 0);
+			gf_bifs_encoder_new_stream(bifs_enc, esd->ESID, bcfg, (flags & GF_SM_ENCODE_USE_NAMES) ? 1 : 0, 0);
 			if (delete_bcfg) gf_odf_desc_del((GF_Descriptor *)bcfg);
 			/*create final BIFS config*/
 			if (esd->decoderConfig->decoderSpecificInfo) gf_odf_desc_del((GF_Descriptor *) esd->decoderConfig->decoderSpecificInfo);
 			esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-			gf_bifs_encoder_get_config(bifs_enc, sc->ESID, &data, &data_len);
+			gf_bifs_encoder_get_config(bifs_enc, esd->ESID, &data, &data_len);
 			esd->decoderConfig->decoderSpecificInfo->data = data;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = data_len;
-			esd->decoderConfig->objectTypeIndication = gf_bifs_encoder_get_version(bifs_enc, sc->ESID);		
+			esd->decoderConfig->objectTypeIndication = gf_bifs_encoder_get_version(bifs_enc, esd->ESID);		
 		} 
 		/*LASeR setup*/
 		if (scene_type==1) {
@@ -667,8 +683,8 @@ force_svg_to_laser:
 		if (opts) rap_delay = opts->rap_freq * esd->slConfig->timestampResolution / 1000;
 
 		init_offset = 0;
-		for (j=0; j<gf_list_count(sc->AUs); j++) {
-			au = gf_list_get(sc->AUs, j);
+		j=0;
+		while ((au = gf_list_enum(sc->AUs, &j))) {
 			samp = gf_isom_sample_new();
 			/*time in sec conversion*/
 			if (au->timing_sec) au->timing = (u64) (au->timing_sec * esd->slConfig->timestampResolution);
@@ -736,9 +752,10 @@ force_svg_to_laser:
 
 		/*sync shadow generation*/
 		if (rap_shadow) {
+			GF_AUContext *au;
 			last_rap = 0;
-			for (j=0; j<gf_list_count(sc->AUs); j++) {
-				GF_AUContext *au = gf_list_get(sc->AUs, j);
+			j=0;
+			while ((au = gf_list_enum(sc->AUs, &j))) {
 				e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
 				if (!j || (au->timing - last_rap < rap_delay) ) continue;
 
@@ -784,6 +801,7 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 	u32 i, j, n, m;
 	GF_ESD *esd;
 	GF_StreamContext *sc;
+	GF_AUContext *au;
 	u32 count, track, rate, di;
 	u64 dur, time_slice, init_offset, avg_rate;
 	Bool is_in_iod, delete_desc;
@@ -795,8 +813,8 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 
 	iod = (GF_InitialObjectDescriptor *) ctx->root_od;
 	count = 0;
-	for (i=0; i<gf_list_count(ctx->streams); i++) {
-		sc = gf_list_get(ctx->streams, i);
+	i=0;
+	while ((sc = gf_list_enum(ctx->streams, &i))) {
 		if (sc->streamType == GF_STREAM_OD) count++;
 	}
 	/*no OD stream, nothing to do*/
@@ -807,8 +825,8 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 	codec = NULL;
 	delete_desc = 0;
 
-	for (i=0; i<gf_list_count(ctx->streams); i++) {
-		sc = gf_list_get(ctx->streams, i);
+	i=0;
+	while ((sc = gf_list_enum(ctx->streams, &i))){
 		if (sc->streamType != GF_STREAM_OD) continue;
 
 		delete_desc = 0;
@@ -816,8 +834,8 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 		is_in_iod = 1;
 		if (iod) {
 			is_in_iod = 0;
-			for (j=0; j<gf_list_count(iod->ESDescriptors); j++) {
-				esd = gf_list_get(iod->ESDescriptors, j);
+			j=0;
+			while ((esd = gf_list_enum(iod->ESDescriptors, &j))) {
 				if (esd->decoderConfig->streamType != GF_STREAM_OD){
 					esd = NULL;
 					continue;
@@ -860,8 +878,8 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 		time_slice = 0;
 		init_offset = 0;
 		/*encode all samples and perform import - FIXME this is destructive...*/
-		for (j=0; j<gf_list_count(sc->AUs); j++) {
-			GF_AUContext *au = gf_list_get(sc->AUs, j);
+		j=0;
+		while ((au = gf_list_enum(sc->AUs, &j))) {
 			
 			while (gf_list_count(au->commands) ) {
 				GF_ODCom *com = gf_list_get(au->commands, 0);
@@ -870,11 +888,13 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 				switch (com->tag) {
 				case GF_ODF_OD_UPDATE_TAG:
 				{
+					GF_ObjectDescriptor *od;
 					GF_ODUpdate *odU = (GF_ODUpdate *)com;
-					for (n=0; n<gf_list_count(odU->objectDescriptors); n++) {
-						GF_ObjectDescriptor *od = gf_list_get(odU->objectDescriptors, n);
-						for (m=0; m<gf_list_count(od->ESDescriptors); m++) {
-							GF_ESD *imp_esd = gf_list_get(od->ESDescriptors, m);
+					n=0;
+					while ((od = gf_list_enum(odU->objectDescriptors, &n))) {
+						GF_ESD *imp_esd;
+						m=0;
+						while ((imp_esd = gf_list_enum(od->ESDescriptors, &m))) {
 							switch (imp_esd->tag) {
 							case GF_ODF_ESD_TAG:
 								e = gf_sm_import_stream(ctx, mp4, imp_esd, mediaSource);
@@ -900,9 +920,10 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 					break;
 				case GF_ODF_ESD_UPDATE_TAG:
 				{
+					GF_ESD *imp_esd;
 					GF_ESDUpdate *esdU = (GF_ESDUpdate *)com;
-					for (m=0; m<gf_list_count(esdU->ESDescriptors); m++) {
-						GF_ESD *imp_esd = gf_list_get(esdU->ESDescriptors, m);
+					m=0;
+					while ((imp_esd = gf_list_enum(esdU->ESDescriptors, &m))) {
 						switch (imp_esd->tag) {
 						case GF_ODF_ESD_TAG:
 							e = gf_sm_import_stream(ctx, mp4, imp_esd, mediaSource);
@@ -934,9 +955,9 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 			if (e) goto err_exit;
 
 			/*time in sec conversion*/
-			if (au->timing_sec) au->timing = (u32) (au->timing_sec * esd->slConfig->timestampResolution);
+			if (au->timing_sec) au->timing = (u64) (au->timing_sec * esd->slConfig->timestampResolution);
 
-			if (!j) init_offset = au->timing;
+			if (j==1) init_offset = au->timing;
 
 			samp = gf_isom_sample_new();
 			samp->DTS = au->timing - init_offset;

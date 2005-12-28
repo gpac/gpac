@@ -477,7 +477,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	if (!strlen(tci->Scheme_URI)) strcpy(tci->Scheme_URI, "urn:gpac:isma:encryption_scheme");
 
 	if (!gf_isom_has_sync_points(mp4, track) &&
-		((tci->sel_enc_type==GF_ISMACRYP_SELENC_RAP) || (tci->sel_enc_type==GF_ISMACRYP_SELENC_NON_RAP)) ) {
+	((tci->sel_enc_type==GF_ISMACRYP_SELENC_RAP) || (tci->sel_enc_type==GF_ISMACRYP_SELENC_NON_RAP)) ) {
 		log_message(logs, cbk, "Warning: All samples in trackID %d are random access - disabling selective encryption", tci->trackID);
 		tci->sel_enc_type = GF_ISMACRYP_SELENC_NONE;
 	}

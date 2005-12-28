@@ -82,8 +82,8 @@ GF_Err gf_odf_dump_com_list(GF_List *commandList, FILE *trace, u32 indent, Bool 
 {
 	GF_ODCom *com;
 	u32 i;
-	for (i=0; i<gf_list_count(commandList); i++) {
-		com = gf_list_get(commandList, i);
+	i=0;
+	while ((com = gf_list_enum(commandList, &i))) {
 		gf_odf_dump_com(com, trace, indent, XMTDump);
 	}
 	return GF_OK;
@@ -546,10 +546,10 @@ GF_Err gf_odf_dump_esd(GF_ESD *esd, FILE *trace, u32 indent, Bool XMTDump)
 	}
 
 	mi = NULL;
-	for (i=0; i<gf_list_count(esd->extensionDescriptors); i++) {
-		mi = gf_list_get(esd->extensionDescriptors, i);
+	i=0;
+	while ((mi = gf_list_enum(esd->extensionDescriptors, &i))) {
 		if (mi->tag == GF_ODF_MUXINFO_TAG) {
-			gf_list_rem(esd->extensionDescriptors, i);
+			gf_list_rem(esd->extensionDescriptors, i-1);
 			break;
 		}
 		mi = NULL;
@@ -730,7 +730,7 @@ GF_Err gf_odf_dump_laser_cfg(GF_LASERConfig *dsi, FILE *trace, u32 indent, Bool 
 
 GF_Err gf_odf_dump_txtcfg(GF_TextConfig *desc, FILE *trace, u32 indent, Bool XMTDump)
 {
-	u32 i;
+	u32 i, count;
 	char ind_buf[OD_MAX_TREE];
 	StartDescDump(trace, "TextConfig", indent, XMTDump);
 	indent++;
@@ -750,7 +750,8 @@ GF_Err gf_odf_dump_txtcfg(GF_TextConfig *desc, FILE *trace, u32 indent, Bool XMT
 	indent++;
 	OD_FORMAT_INDENT(ind_buf, indent);
 	
-	for (i=0; i<gf_list_count(desc->sample_descriptions); i++) {
+	count = gf_list_count(desc->sample_descriptions);
+	for (i=0; i<count; i++) {
 		char szStyles[1024];
 		u32 j;
 		GF_TextSampleDescriptor *sd = (GF_TextSampleDescriptor *)gf_list_get(desc->sample_descriptions, i);
@@ -1048,8 +1049,8 @@ GF_Err gf_odf_dump_cc_name(GF_CC_Name *cnd, FILE *trace, u32 indent, Bool XMTDum
 	StartDescDump(trace, "ContentCreatorNameDescriptor", indent, XMTDump);
 	EndAttributes(trace, indent, XMTDump);
 	indent++;
-	for (i=0; i<gf_list_count(cnd->ContentCreators); i++) {
-		p = gf_list_get(cnd->ContentCreators, i);
+	i=0;
+	while ((p = gf_list_enum(cnd->ContentCreators, &i))) {
 		StartSubElement(trace, "Creator", indent, XMTDump);
 		DumpInt(trace, "languageCode", p->langCode, indent, XMTDump);
 		DumpBool(trace, "isUTF8", p->isUTF8, indent, XMTDump);
@@ -1136,7 +1137,7 @@ GF_Err gf_odf_dump_esd_ref(GF_ES_ID_Ref *esd_ref, FILE *trace, u32 indent, Bool 
 GF_Err gf_odf_dump_exp_text(GF_ExpandedTextual *etd, FILE *trace, u32 indent, Bool XMTDump)
 {
 	GF_ETD_ItemText *it1, *it2;
-	u32 i;
+	u32 i, count;
 
 	StartDescDump(trace, "ExpandedTextualDescriptor", indent, XMTDump);
 	indent++;
@@ -1145,7 +1146,8 @@ GF_Err gf_odf_dump_exp_text(GF_ExpandedTextual *etd, FILE *trace, u32 indent, Bo
 	DumpString(trace, "nonItemText", etd->NonItemText, indent, XMTDump);
 	EndAttributes(trace, indent, XMTDump);
 	
-	for (i=0; i<gf_list_count(etd->itemDescriptionList); i++) {
+	count = gf_list_count(etd->itemDescriptionList);
+	for (i=0; i<count; i++) {
 		it1 = gf_list_get(etd->itemDescriptionList, i);
 		it2 = gf_list_get(etd->itemTextList, i);
 		StartSubElement(trace, "item", indent, XMTDump);	
@@ -1186,7 +1188,7 @@ GF_Err gf_odf_dump_ipi_ptr(GF_IPIPtr *ipid, FILE *trace, u32 indent, Bool XMTDum
 
 GF_Err gf_odf_dump_ipmp(GF_IPMP_Descriptor *ipmp, FILE *trace, u32 indent, Bool XMTDump)
 {
-	u32 i;
+	u32 i, count;
 	StartDescDump(trace, "IPMP_Descriptor", indent, XMTDump);
 	indent++;
 
@@ -1204,7 +1206,8 @@ GF_Err gf_odf_dump_ipmp(GF_IPMP_Descriptor *ipmp, FILE *trace, u32 indent, Bool 
 		/*parse IPMPX data*/
 		StartElement(trace, "IPMPX_Data", indent, XMTDump, 1);
 		indent++;
-		for (i=0; i<gf_list_count(ipmp->ipmpx_data); i++) {
+		count = gf_list_count(ipmp->ipmpx_data);
+		for (i=0; i<count; i++) {
 			GF_IPMPX_Data *p = gf_list_get(ipmp->ipmpx_data, i);
 			gf_ipmpx_dump_data(p, trace, indent, XMTDump);
 		}
@@ -1251,8 +1254,8 @@ GF_Err gf_odf_dump_kw(GF_KeyWord *kwd, FILE *trace, u32 indent, Bool XMTDump)
 	DumpBool(trace, "isUTF8", kwd->isUTF8, indent, XMTDump);
 	EndAttributes(trace, indent, XMTDump);
 
-	for (i=0; i<gf_list_count(kwd->keyWordsList); i++) {
-		p = gf_list_get(kwd->keyWordsList, i);
+	i=0;
+	while ((p = gf_list_enum(kwd->keyWordsList, &i))) {
 		StartSubElement(trace, "keyWord", indent, XMTDump);
 		DumpString(trace, "value", p->keyWord, indent, XMTDump);
 		EndSubElement(trace, indent, XMTDump);
@@ -1450,8 +1453,8 @@ GF_Err gf_odf_dump_oci_name(GF_OCICreators *ocn, FILE *trace, u32 indent, Bool X
 
 	StartDescDump(trace, "OCICreatorNameDescriptor", indent, XMTDump);
 	indent++;
-	for (i=0; i<gf_list_count(ocn->OCICreators); i++) {
-		p = gf_list_get(ocn->OCICreators, i);
+	i=0;
+	while ((p = gf_list_enum(ocn->OCICreators, &i))) {
 		StartSubElement(trace, "Creator", indent, XMTDump);
 		DumpInt(trace, "languageCode", p->langCode, indent, XMTDump);
 		DumpBool(trace, "isUTF8", p->isUTF8, indent, XMTDump);
@@ -1486,8 +1489,8 @@ GF_Err gf_odf_dump_qos(GF_QoS_Descriptor *qos, FILE *trace, u32 indent, Bool XMT
 		DumpInt(trace, "value", qos->predefined, indent, XMTDump);
 		EndSubElement(trace, indent, XMTDump);
 	} else {
-		for ( i = 0; i < gf_list_count(qos->QoS_Qualifiers); i++ ) {
-			p = (GF_QoS_Default*)gf_list_get(qos->QoS_Qualifiers, i);
+		i=0;
+		while ((p = gf_list_enum(qos->QoS_Qualifiers, &i))) {
 			switch (p->tag) {
 			case QoSMaxDelayTag:
 				StartSubElement(trace, "QoSMaxDelay", indent, XMTDump);
@@ -1587,8 +1590,8 @@ GF_Err gf_odf_dump_smpte_camera(GF_SMPTECamera *cpd, FILE *trace, u32 indent, Bo
 	DumpInt(trace, "cameraID", cpd->cameraID, indent, XMTDump);
 	EndAttributes(trace, indent, XMTDump);
 	
-	for (i=0; i<gf_list_count(cpd->ParamList); i++) {
-		p = gf_list_get(cpd->ParamList, i);
+	i=0;
+	while ((p = gf_list_enum(cpd->ParamList, &i))) {
 		StartSubElement(trace, "parameter", indent, XMTDump);
 		DumpInt(trace, "id", p->paramID, indent, XMTDump);
 		DumpInt(trace, "value", p->param, indent, XMTDump);

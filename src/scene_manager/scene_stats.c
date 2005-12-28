@@ -96,8 +96,8 @@ static void StatNode(GF_SceneStatistics *stat, GF_Node *n, Bool isUsed, Bool isD
 
 	if (n->sgprivate->tag == TAG_ProtoNode) {
 		GF_ProtoInstance *pr = (GF_ProtoInstance *)n;
-		for (i=0; i<gf_list_count(stat->proto_stats); i++) {
-			ptr = gf_list_get(stat->proto_stats, i);
+		i=0;
+		while ((ptr = gf_list_enum(stat->proto_stats, &i))) {
 			if (pr->proto_interface->ID == ptr->tag) break;
 			ptr = NULL;
 		}
@@ -109,8 +109,8 @@ static void StatNode(GF_SceneStatistics *stat, GF_Node *n, Bool isUsed, Bool isD
 			gf_list_add(stat->proto_stats, ptr);
 		}
 	} else {
-		for (i=0; i<gf_list_count(stat->node_stats); i++) {
-			ptr = gf_list_get(stat->node_stats, i);
+		i=0;
+		while ((ptr = gf_list_enum(stat->node_stats, &i))) {
 			if (n->sgprivate->tag == ptr->tag) break;
 			ptr = NULL;
 		}
@@ -231,9 +231,10 @@ static void StatRemField(GF_SceneStatistics *stat, u32 fieldType, GF_FieldInfo *
 Bool StatIsUSE(GF_StatManager *st, GF_Node *n) 
 {
 	u32 i;
+	GF_Node *ptr;
 	if (!n || !n->sgprivate->NodeID) return 0;
-	for (i=0; i<gf_list_count(st->def_nodes); i++) {
-		GF_Node *ptr = gf_list_get(st->def_nodes, i);
+	i=0;
+	while ((ptr = gf_list_enum(st->def_nodes, &i))) {
 		if (ptr == n) return 1;
 	}
 	gf_list_add(st->def_nodes, n);
@@ -270,8 +271,8 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 			break;
 		case GF_SG_VRML_MFNODE:
 			list = *((GF_List **)field.far_ptr);
-			for (j=0; j<gf_list_count(list); j++) {
-				child = gf_list_get(list, j);
+			j=0;
+			while ((child = gf_list_enum(list, &j))) {
 				StatNodeGraph(st, child);
 			}
 			break;
@@ -292,6 +293,7 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 	GF_FieldInfo field;
 	GF_Err e;
 	u32 i;
+	GF_Node *node;
 	GF_List *list;
 	GF_CommandField *inf = NULL;
 	if (gf_list_count(com->command_fields)) 
@@ -316,8 +318,8 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 			break;
 		case GF_SG_VRML_MFNODE:
 			list = * ((GF_List **) inf->field_ptr);
-			for (i=0; i<gf_list_count(list); i++) {
-				GF_Node *node = gf_list_get(list, i);
+			i=0;
+			while ((node = gf_list_enum(list, &i))) {
 				StatNodeGraph(stat, node);
 			}
 			break;
@@ -397,14 +399,15 @@ static GF_Err gf_sm_stat_au(GF_List *commandList, GF_StatManager *st)
 GF_Err gf_sm_stats_for_scene(GF_StatManager *stat, GF_SceneManager *sm)
 {
 	u32 i, j;
+	GF_StreamContext *sc;
 	GF_Err e;
 
-	for (i=0; i<gf_list_count(sm->streams); i++) {
-		GF_StreamContext *sc = gf_list_get(sm->streams, i);
+	i=0;
+	while ((sc = gf_list_enum(sm->streams, &i))) {
+		GF_AUContext *au;
 		if (sc->streamType != GF_STREAM_SCENE) continue;
-
-		for (j=0; j<gf_list_count(sc->AUs); j++) {
-			GF_AUContext *au = gf_list_get(sc->AUs, j);
+		j=0;
+		while ((au = gf_list_enum(sc->AUs, &j))) {
 			e = gf_sm_stat_au(au->commands, stat);
 			if (e) return e;
 		}

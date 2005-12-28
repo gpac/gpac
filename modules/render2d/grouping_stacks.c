@@ -565,6 +565,7 @@ static void RenderLayer2D(GF_Node *node, void *rs)
 	GF_List *prevback, *prevviews;
 	GF_Rect clip;
 	M_Viewport *vp;
+	ChildGroup2D *cg;
 	GF_Matrix2D gf_mx2d_bck;
 	GroupingNode2D *parent_bck;
 	DrawableContext *back_ctx;
@@ -675,8 +676,9 @@ static void RenderLayer2D(GF_Node *node, void *rs)
 		}
 	}
 
-	for (i=0; i<gf_list_count(l2D->groups); i++) {
-		child2d_render_done(gf_list_get(l2D->groups, i), eff, &l2D->clip);
+	i=0;
+	while ((cg = gf_list_enum(l2D->groups, &i))) {
+		child2d_render_done(cg, eff, &l2D->clip);
 	}
 	group2d_reset_children((GroupingNode2D*)l2D);
 

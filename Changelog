@@ -1,4 +1,9 @@
-Latest CVS Changes 03/12/05
+Latest CVS Changes 28/12/05
+  - many fixes in 3D renderer while checking the X3D conformance suite
+  - moved XMT and X3D parsers to use SAX parser. Progressive loading still to be done.
+  - fixed ISOMedia track duration in case of ctts table
+  - fixed PAR issus at import time setting wrong track sizes for visual media.
+  - misc opts in list access (some could be buggy).
   - fixed handling of 64-bit timing in GPAC (clients and MP4Box). Impacts on a few APIs (libisomedia, scene manager and terminal).
   - fixed bugs in BIFS RAP generation (BT and XMT-A loaders) 
   - added LASeR RAP generation

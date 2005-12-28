@@ -32,7 +32,7 @@ typedef struct
 	GF_TextureHandler txh;
 
 	GF_TimeNode time_handle;
-	Bool fetch_first_frame, first_frame_fetched;
+	Bool fetch_first_frame, first_frame_fetched, is_vrml;
 	Double start_time;
 } MovieTextureStack;
 
@@ -123,6 +123,7 @@ static void MT_UpdateTime(GF_TimeNode *st)
 	if (time < stack->start_time ||
 		/*special case if we're getting active AFTER stoptime */
 		(!mt->isActive && (mt->stopTime > stack->start_time) && (time>=mt->stopTime))
+		|| (!stack->start_time && stack->is_vrml && !mt->loop)
 		) {
 		/*opens stream only at first access to fetch first frame*/
 		if (stack->fetch_first_frame) {
@@ -160,6 +161,8 @@ void InitMovieTexture(GF_Renderer *sr, GF_Node *node)
 	if (((M_MovieTexture*)node)->repeatS) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
 	if (((M_MovieTexture*)node)->repeatT) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
 	
+	st->is_vrml = (gf_node_get_tag(node)==TAG_X3D_MovieTexture) ? 1 : 0;
+
 	gf_node_set_private(node, st);
 	gf_node_set_predestroy_function(node, DestroyMovieTexture);
 	
@@ -297,7 +300,7 @@ static void UpdatePixelTexture(GF_TextureHandler *txh)
 		stride *= 3;
 		break;
 	case 4:
-		pix_format = GF_PIXEL_ARGB;
+		pix_format = GF_PIXEL_RGBA;
 		txh->transparent = 1;
 		stride *= 4;
 		break;

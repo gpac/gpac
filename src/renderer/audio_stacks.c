@@ -358,8 +358,9 @@ static void RenderAudioBuffer(GF_Node *node, void *rs)
 	update_mixer = gf_list_count(st->new_inputs) ? 1 : 0;
 	
 	if (gf_mixer_get_src_count(st->am) == gf_list_count(st->new_inputs)) {
+		u32 count = gf_list_count(st->new_inputs);
 		update_mixer = 0;
-		for (j=0; j<gf_list_count(st->new_inputs); j++) {
+		for (j=0; j<count; j++) {
 			GF_AudioInput *cur = gf_list_get(st->new_inputs, j);
 			if (!gf_mixer_is_src_present(st->am, &cur->input_ifce)) {
 				update_mixer = 1;

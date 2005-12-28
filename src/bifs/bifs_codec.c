@@ -105,8 +105,8 @@ BIFSStreamInfo *gf_bifs_dec_get_stream(GF_BifsDecoder * codec, u16 ESID)
 	u32 i;
 	BIFSStreamInfo *ptr;
 
-	for (i=0;i<gf_list_count(codec->streamInfo);i++) {
-		ptr = (BIFSStreamInfo *) gf_list_get(codec->streamInfo, i);
+	i=0;
+	while ((ptr = gf_list_enum(codec->streamInfo, &i))) {
 		if(ptr->ESID==ESID) return ptr;
 	}
 	return NULL;
@@ -171,17 +171,14 @@ GF_Err gf_bifs_decoder_remove_stream(GF_BifsDecoder *codec, u16 ESID)
 	u32 i;
 	BIFSStreamInfo *ptr;
 
-//	gf_mx_p(codec->mx);
-	for (i=0;i<gf_list_count(codec->streamInfo);i++) {
-		ptr = (BIFSStreamInfo *) gf_list_get(codec->streamInfo, i);
+	i=0;
+	while ((ptr = gf_list_enum(codec->streamInfo, &i))) {
 		if(ptr->ESID==ESID) {
 			free(ptr);
-			gf_list_rem(codec->streamInfo, i);
-//			gf_mx_v(codec->mx);
+			gf_list_rem(codec->streamInfo, i-1);
 			return GF_OK;
 		}
 	}
-//	gf_mx_v(codec->mx);
 	return GF_BAD_PARAM;
 }
 
@@ -280,7 +277,7 @@ GF_BifsEncoder *gf_bifs_encoder_new(GF_SceneGraph *graph)
 	tmp->QPs = gf_list_new();
 	tmp->streamInfo = gf_list_new();
 	tmp->info = NULL;	
-	tmp->mx = gf_mx_new();
+//	tmp->mx = gf_mx_new();
 	tmp->encoded_nodes = gf_list_new();
 	tmp->scene_graph = graph;
 	return tmp;
@@ -291,8 +288,8 @@ static BIFSStreamInfo *BE_GetStream(GF_BifsEncoder * codec, u16 ESID)
 	u32 i;
 	BIFSStreamInfo *ptr;
 
-	for (i=0;i<gf_list_count(codec->streamInfo);i++) {
-		ptr = (BIFSStreamInfo *) gf_list_get(codec->streamInfo, i);
+	i=0;
+	while ((ptr = gf_list_enum(codec->streamInfo, &i))) {
 		if(ptr->ESID==ESID) return ptr;
 	}
 	return NULL;
@@ -311,7 +308,7 @@ void gf_bifs_encoder_del(GF_BifsEncoder *codec)
 	}
 	gf_list_del(codec->streamInfo);
 	gf_list_del(codec->encoded_nodes);
-	gf_mx_del(codec->mx);
+//	gf_mx_del(codec->mx);
 	free(codec);
 }
 
@@ -320,9 +317,9 @@ GF_Err gf_bifs_encoder_new_stream(GF_BifsEncoder *codec, u16 ESID, GF_BIFSConfig
 	u32 i, count; 
 	BIFSStreamInfo *pInfo;
 	
-	gf_mx_p(codec->mx);
+//	gf_mx_p(codec->mx);
 	if (BE_GetStream(codec, ESID) != NULL) {
-		gf_mx_v(codec->mx);
+//		gf_mx_v(codec->mx);
 		return GF_BAD_PARAM;
 	}
 	
@@ -354,7 +351,7 @@ GF_Err gf_bifs_encoder_new_stream(GF_BifsEncoder *codec, u16 ESID, GF_BIFSConfig
 	}
 	
 	gf_list_add(codec->streamInfo, pInfo);
-	gf_mx_v(codec->mx);
+//	gf_mx_v(codec->mx);
 	return GF_OK;
 }
 
@@ -365,10 +362,10 @@ GF_Err gf_bifs_encode_au(GF_BifsEncoder *codec, u16 ESID, GF_List *command_list,
 
 	if (!codec || !command_list || !out_data || !out_data_length) return GF_BAD_PARAM;
 
-	gf_mx_p(codec->mx);
+//	gf_mx_p(codec->mx);
 	codec->info = BE_GetStream(codec, ESID);
 	if (!codec->info) {
-		gf_mx_v(codec->mx);
+//		gf_mx_v(codec->mx);
 		return GF_BAD_PARAM;
 	}
 
@@ -382,7 +379,7 @@ GF_Err gf_bifs_encode_au(GF_BifsEncoder *codec, u16 ESID, GF_List *command_list,
 	gf_bs_align(bs);
 	gf_bs_get_content(bs, (unsigned char **) out_data, out_data_length);
 	gf_bs_del(bs);
-	gf_mx_v(codec->mx);
+//	gf_mx_v(codec->mx);
 	return e;
 }
 
@@ -392,10 +389,10 @@ GF_Err gf_bifs_encoder_get_config(GF_BifsEncoder *codec, u16 ESID, char **out_da
 
 	if (!codec || !out_data || !out_data_length) return GF_BAD_PARAM;
 
-	gf_mx_p(codec->mx);
+//	gf_mx_p(codec->mx);
 	codec->info = BE_GetStream(codec, ESID);
 	if (!codec->info) {
-		gf_mx_v(codec->mx);
+//		gf_mx_v(codec->mx);
 		return GF_BAD_PARAM;
 	}
 
@@ -436,17 +433,17 @@ GF_Err gf_bifs_encoder_get_config(GF_BifsEncoder *codec, u16 ESID, char **out_da
 	gf_bs_align(bs);
 	gf_bs_get_content(bs, (unsigned char **) out_data, out_data_length);
 	gf_bs_del(bs);
-	gf_mx_v(codec->mx);
+//	gf_mx_v(codec->mx);
 	return GF_OK;
 }
 
 u8 gf_bifs_encoder_get_version(GF_BifsEncoder *codec, u16 ESID)
 {
 	u8 ret = 0;
-	gf_mx_p(codec->mx);
+//	gf_mx_p(codec->mx);
 	codec->info = BE_GetStream(codec, ESID);
 	if (codec->info) ret = codec->info->config.version;
-	gf_mx_v(codec->mx);
+//	gf_mx_v(codec->mx);
 	return ret;
 }
 

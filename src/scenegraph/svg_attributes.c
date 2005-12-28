@@ -909,45 +909,6 @@ static void svg_parse_paint(SVG_Paint *paint, char *attribute_content)
 	}
 }
 
-void svg_convert_length_unit_to_user_unit(SVG_Length *length)
-{
-	// Assuming the environment is 90dpi
-	switch (length->type) {
-	case SVG_NUMBER_PERCENTAGE:
-		break;
-	case SVG_NUMBER_EMS:
-		break;
-	case SVG_NUMBER_EXS:
-		break;
-	case SVG_NUMBER_VALUE:
-		break;
-	case SVG_NUMBER_PX:
-		length->type = SVG_NUMBER_VALUE;
-		break;
-	case SVG_NUMBER_CM:
-		length->type = SVG_NUMBER_VALUE;
-		length->value = gf_mulfix(length->value, FLT2FIX(35.43307f));
-		break;
-	case SVG_NUMBER_MM:
-		length->type = SVG_NUMBER_VALUE;
-		length->value = gf_mulfix(length->value, FLT2FIX(3.543307f));
-		break;
-	case SVG_NUMBER_IN:
-		length->type = SVG_NUMBER_VALUE;
-		length->value *= 90;
-		break;
-	case SVG_NUMBER_PT:
-		length->type = SVG_NUMBER_VALUE;
-		length->value *= 5; length->value /= 4;
-		break;
-	case SVG_NUMBER_PC:
-		length->type = SVG_NUMBER_VALUE;
-		length->value *= 15;
-		break;
-	case SVG_NUMBER_INHERIT:
-		break;
-	}
-}
 
 static u32 svg_parse_number(SVG_Number *number, char *value_string, Bool clamp0to1)
 {
@@ -1371,7 +1332,7 @@ static void smil_parse_time_list(SVGElement *e, GF_List *values, char *begin_or_
 	if (gf_list_count(values) > 1) {
 		SMIL_Time *v, *sv;
 		GF_List *sorted = gf_list_new();
-		u32 i;
+		u32 i, count;
 		u8 added = 0;
 		do {
 			v = gf_list_get(values, 0);
@@ -1399,7 +1360,8 @@ static void smil_parse_time_list(SVGElement *e, GF_List *values, char *begin_or_
 			if (!added) gf_list_add(sorted, v);
 		} while (gf_list_count(values) > 0);
 
-		for (i = 0; i < gf_list_count(sorted); i++) {
+		count = gf_list_count(sorted);
+		for (i = 0; i < count; i++) {
 			gf_list_add(values, gf_list_get(sorted, i));
 		}
 	}
@@ -3443,7 +3405,8 @@ static GF_Err svg_points_copy(SVG_Points *a, SVG_Points *b)
 {
 	u32 i, count;
 
-	for (i = 0; i < gf_list_count(*a); i++) {
+	count = gf_list_count(*a);
+	for (i = 0; i < count; i++) {
 		SVG_Point *pt = gf_list_get(*a, i);
 		free(pt);
 	}
@@ -3484,7 +3447,8 @@ static GF_Err svg_numbers_copy(SVG_Numbers *a, SVG_Numbers *b)
 {
 	u32 i, count;
 
-	for (i = 0; i < gf_list_count(*a); i++) {
+	count = gf_list_count(*a);
+	for (i = 0; i < count; i++) {
 		SVG_Coordinate *c = gf_list_get(*a, i);
 		free(c);
 	}
@@ -3537,13 +3501,14 @@ static GF_Err svg_path_muladd(Fixed alpha, SVG_PathData *a, Fixed beta, SVG_Path
 static GF_Err svg_path_copy(SVG_PathData *a, SVG_PathData *b)
 {
 	u32 i, count;
-
-	for (i = 0; i < gf_list_count(a->commands); i++) {
+	count = gf_list_count(a->commands);
+	for (i = 0; i < count; i++) {
 		u8 *command = gf_list_get(a->commands, i);
 		free(command);
 	}
 	gf_list_reset(a->commands);
-	for (i = 0; i < gf_list_count(a->points); i++) {
+	count = gf_list_count(a->points);
+	for (i = 0; i < count; i++) {
 		SVG_Point *pt = gf_list_get(a->points, i);
 		free(pt);
 	}

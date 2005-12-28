@@ -59,7 +59,7 @@ typedef struct
 	void *cbk;
 } JSDownload;
 
-void JS_OnData(void *cbck, char *data, u32 data_size, u32 state, GF_Err e)
+static void JS_OnData(void *cbck, char *data, u32 data_size, u32 state, GF_Err e)
 {
 	JSDownload *jsdnload = (JSDownload *)cbck;
 	if (e<GF_OK) {
@@ -75,7 +75,7 @@ void JS_OnData(void *cbck, char *data, u32 data_size, u32 state, GF_Err e)
 	}
 }
 
-Bool OnJSGetScriptFile(void *opaque, GF_SceneGraph *parent_graph, const char *url, void (*OnDone)(void *cbck, Bool success, const char *the_file_path), void *cbk)
+static Bool OnJSGetScriptFile(void *opaque, GF_SceneGraph *parent_graph, const char *url, void (*OnDone)(void *cbck, Bool success, const char *the_file_path), void *cbk)
 {
 	JSDownload *jsdnload;
 	GF_InlineScene *is;
@@ -94,34 +94,41 @@ Bool OnJSGetScriptFile(void *opaque, GF_SceneGraph *parent_graph, const char *ur
 	return 1;
 }
 
-Bool OnJSAction(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam *param)
+static Bool OnJSAction(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam *param)
 {
+	Bool ret;
 	GF_Terminal *term = (GF_Terminal *) opaque;
 	if (type==GF_JSAPI_OP_GET_SCENE_URI) {
 		GF_InlineScene *is = gf_sg_get_private(gf_node_get_graph(n));
-		param->url = is->root_od->net_service->url;
+		param->uri.url = is->root_od->net_service->url;
+		param->uri.nb_params = 0;
 		return 1;
 	}
+	ret = 0;
 	if (term->renderer->visual_renderer->ScriptAction)
-		return term->renderer->visual_renderer->ScriptAction(term->renderer->visual_renderer, type, n, param);
+		ret = term->renderer->visual_renderer->ScriptAction(term->renderer->visual_renderer, type, n, param);
+
+	if (ret) return ret;
+	if (type==GF_JSAPI_OP_LOAD_URL) {
+		if (gf_sg_get_private(gf_node_get_graph(n)) == term->root_scene) {
+			GF_Event evt;
+			if (!term->user->EventProc) return 0;
+			evt.type = GF_EVT_NAVIGATE;
+			evt.navigate.to_url = param->uri.url;
+			evt.navigate.parameters = param->uri.params;
+			evt.navigate.param_count = param->uri.nb_params;
+			return term->user->EventProc(term->user->opaque, &evt);
+		} else {
+			/*TODO*/
+			return 0;
+		}
+	}
 	return 0;
 }
-void OnJSMessage(void *opaque, GF_Err e, const char *msg)
+static void OnJSMessage(void *opaque, GF_Err e, const char *msg)
 {
 	GF_Terminal *term = (GF_Terminal *) opaque;
 	gf_term_message(term, term->root_scene->root_od->net_service->url, msg, e);
-}
-
-Bool OnJSLoadURL(void *opaque, const char *url, const char **params, u32 nb_params)
-{
-	GF_Event evt;
-	GF_Terminal *term = (GF_Terminal *) opaque;
-	if (!term->user->EventProc) return 0;
-	evt.type = GF_EVT_NAVIGATE;
-	evt.navigate.to_url = url;
-	evt.navigate.parameters = params;
-	evt.navigate.param_count = nb_params;
-	return term->user->EventProc(term->user->opaque, &evt);
 }
 
 static void gf_term_reload_cfg(GF_Terminal *term)
@@ -215,7 +222,6 @@ GF_Terminal *gf_term_new(GF_User *user)
 	tmp->js_ifce.ScriptMessage = OnJSMessage;
 	tmp->js_ifce.ScriptAction = OnJSAction;
 	tmp->js_ifce.GetScriptFile = OnJSGetScriptFile;
-	tmp->js_ifce.LoadURL = OnJSLoadURL;
 
 	/*this is not changeable at runtime*/
 	cf = gf_cfg_get_key(user->config, "Systems", "NoVisualThread");
@@ -313,6 +319,7 @@ void gf_term_message(GF_Terminal *term, const char *service, const char *message
 static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_audio)
 {
 	u32 i, j;
+	GF_ClientService *ns;
 	/*only play/pause if connected*/
 	if (!term || !term->root_scene) return;
 	/*and if not already paused/playing*/
@@ -329,10 +336,11 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 	term->play_state = PlayState;
 
 	/*pause all clocks on all services*/
-	for (i=0; i<gf_list_count(term->net_services); i++) {
-		GF_ClientService *ns = gf_list_get(term->net_services, i);
-		for (j=0; j<gf_list_count(ns->Clocks); j++) {
-			GF_Clock *ck = gf_list_get(ns->Clocks, j);
+	i=0;
+	while ( (ns = gf_list_enum(term->net_services, &i)) ) {
+		GF_Clock *ck;
+		j=0;
+		while ( (ck = gf_list_enum(ns->Clocks, &j)) ) {
 			if (PlayState) gf_clock_pause(ck);
 			else gf_clock_resume(ck);
 		}
@@ -456,21 +464,23 @@ Double gf_term_get_simulation_frame_rate(GF_Terminal *term)
 /*returns 0 if any of the clock still hasn't seen EOS*/
 u32 Term_CheckClocks(GF_ClientService *ns, GF_InlineScene *is)
 {
+	GF_Clock *ck;
 	u32 i;
 	if (is) {
+		GF_ObjectManager *odm;
 		if (is->root_od->net_service != ns) {
 			if (!Term_CheckClocks(is->root_od->net_service, is)) return 0;
 		}
-		for (i=0; i<gf_list_count(is->ODlist); i++) {
-			GF_ObjectManager *odm = gf_list_get(is->ODlist, i);
+		i=0;
+		while ( (odm = gf_list_enum(is->ODlist, &i)) ) {
 			if (odm->net_service != ns) {
 				while (odm->remote_OD) odm = odm->remote_OD;
 				if (!Term_CheckClocks(odm->net_service, NULL)) return 0;
 			}
 		}
 	}
-	for (i=0; i<gf_list_count(ns->Clocks); i++) {
-		GF_Clock *ck = gf_list_get(ns->Clocks, i);
+	i=0;
+	while ( (ck = gf_list_enum(ns->Clocks, &i) ) ) {
 		if (!ck->has_seen_eos) return 0;
 	}
 	return 1;
@@ -591,13 +601,14 @@ void gf_term_lock_net(GF_Terminal *term, Bool LockIt)
 /*connects given OD manager to its URL*/
 void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, GF_ClientService *ParentService)
 {
+	GF_ClientService *ns;
 	u32 i;
 	GF_Err e;
 	gf_term_lock_net(term, 1);
 
 	/*for remoteODs/dynamic ODs, check if one of the running service cannot be used*/
-	for (i=0; i<gf_list_count(term->net_services); i++) {
-		GF_ClientService *ns = gf_list_get(term->net_services, i);
+	i=0;
+	while ( (ns = gf_list_enum(term->net_services, &i)) ) {
 		if (gf_term_service_can_handle_url(ns, serviceURL)) {
 			odm->net_service = ns;
 			gf_odm_setup_entry_point(odm, serviceURL);
@@ -633,8 +644,8 @@ GF_Err gf_term_connect_remote_channel(GF_Terminal *term, GF_Channel *ch, char *U
 		gf_term_lock_net(term, 0);
 		return GF_OK;
 	}
-	for (i=0; i<gf_list_count(term->net_services); i++) {
-		ns = gf_list_get(term->net_services, i);
+	i=0;
+	while ( (ns = gf_list_enum(term->net_services, &i)) ) {
 		if (gf_term_service_can_handle_url(ns, URL)) {
 			ch->service = ns;
 			gf_term_lock_net(term, 0);

@@ -542,8 +542,8 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_emulpow2->SetValue((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(cfg, "Render3D", "PolygonAA");
 	m_polyaa->SetValue((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(cfg, "Render3D", "DisableBackFaceCulling");
-	m_nobackcull->SetValue((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(cfg, "Render3D", "BackFaceCulling");
+	m_nobackcull->SetValue((sOpt && !stricmp(sOpt, "Off")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(cfg, "Render3D", "Wireframe");
 	sOpt = gf_cfg_get_key(cfg, "Render3D", "BitmapCopyPixels");
 	m_copypixels->SetValue((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
@@ -937,7 +937,7 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 	gf_cfg_set_key(cfg, "Render3D", "PolygonAA", m_polyaa->GetValue() ? "yes" : "no");
 	gf_cfg_set_key(cfg, "Render3D", "DisableRectExt", m_norectext->GetValue() ? "yes" : "no");
 	gf_cfg_set_key(cfg, "Render3D", "BitmapCopyPixels", m_copypixels->GetValue() ? "yes" : "no");
-	gf_cfg_set_key(cfg, "Render3D", "DisableBackFaceCulling", m_nobackcull->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "Render3D", "BackFaceCulling", m_nobackcull->GetValue() ? "Off" : "On");
 
 	sel = m_wire->GetSelection();
 	gf_cfg_set_key(cfg, "Render3D", "Wireframe", (sel==2) ? "WireOnSolid" : ( (sel==1) ? "WireOnly" : "WireNone" ) );

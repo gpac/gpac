@@ -143,7 +143,9 @@
 #define IDC_DRAW_NORMALS                1122
 #define ID_AR_FILL                      1122
 #define ID_AR_43                        1123
+#define IDC_BACK_CULL                   1123
 #define ID_AR_169                       1124
+#define IDC_DRAW_MODE                   1124
 #define ID_SHORTCUTS                    1125
 #define ID_FILE_RESTART                 1126
 #define ID_OPT_QUALITY                  1127

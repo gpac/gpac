@@ -38,7 +38,7 @@
 static Bool check_in_scene(GF_InlineScene *scene, GF_ObjectManager *odm)
 {
 	u32 i;
-	GF_ObjectManager *root;
+	GF_ObjectManager *ptr, *root;
 	if (!scene) return 0;
 	root = scene->root_od;
 	while (1) {
@@ -48,8 +48,8 @@ static Bool check_in_scene(GF_InlineScene *scene, GF_ObjectManager *odm)
 	}
 	scene = root->subscene;
 
-	for (i=0; i<gf_list_count(scene->ODlist); i++) {
-		GF_ObjectManager *ptr = gf_list_get(scene->ODlist, i);
+	i=0;
+	while ((ptr = gf_list_enum(scene->ODlist, &i))) {
 		while (1) {
 			if (ptr == odm) return 1;
 			if (!ptr->remote_OD) break;
@@ -170,13 +170,14 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 		if (!ck) {
 			info->status = 4;
 		} else {
+			GF_Channel *ch;
 			info->status = gf_clock_is_started(ck) ? 1 : 2;
 			info->clock_drift = ck->drift;
 
 			info->buffer = -1;
 			buf = 0;
-			for (i=0; i<gf_list_count(odm->channels); i++) {
-				GF_Channel *ch = gf_list_get(odm->channels, i);
+			i=0;
+			while ((ch = gf_list_enum(odm->channels, &i))) {
 				info->db_unit_count += ch->AU_Count;
 				if (!ch->is_pulling) {
 					if (ch->MaxBuffer) info->buffer = 0;

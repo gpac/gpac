@@ -565,7 +565,7 @@ static void RenderILS2D(GF_Node *node, void *rs)
 				if (!si->is_vectorial) {
 					VS3D_StrikeMesh(eff, si->outline, Aspect_GetLineWidth(&asp), asp.pen_props.dash);
 				} else {
-					VS3D_DrawMesh(eff, si->outline, 0);
+					VS3D_DrawMesh(eff, si->outline);
 				}
 			}
 		}
@@ -615,7 +615,7 @@ static void RenderPointSet2D(GF_Node *node, void *rs)
 		Aspect2D asp;
 		VS_GetAspect2D(eff, &asp);
 		VS3D_SetMaterial2D(eff->surface, asp.fill_color, asp.alpha);
-		VS3D_DrawMesh(eff, st->mesh, 0);
+		VS3D_DrawMesh(eff, st->mesh);
 	}
 	else if (eff->traversing_mode==TRAVERSE_GET_BOUNDS) {
 		eff->bbox = st->mesh->bounds;

@@ -649,8 +649,8 @@ GF_Err gf_isom_rtp_packet_set_offset(GF_ISOFile *the_file, u32 trackNumber, s32 
 	if (!pck) return GF_BAD_PARAM;
 
 	//look in the TLV
-	for (i=0; i<gf_list_count(pck->TLV); i++) {
-		rtpo = gf_list_get(pck->TLV, i);
+	i=0;
+	while ((rtpo = gf_list_enum(pck->TLV, &i))) {
 		if (rtpo->type == GF_ISOM_BOX_TYPE_RTPO) {
 			rtpo->timeOffset = timeOffset;
 			return GF_OK;

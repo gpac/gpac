@@ -45,11 +45,10 @@ void gf_modules_free_module(ModuleInstance *inst)
 static Bool gf_module_is_loaded_ce(GF_ModuleManager *pm, unsigned short *filename) 
 {
 	unsigned char szName[1024];
-	u32 i;
+	u32 i = 0;
 	ModuleInstance *inst;
 	CE_WideToChar(filename, szName);
-	for (i=0; i<gf_list_count(pm->plug_list); i++) {
-		inst = gf_list_get(pm->plug_list, i);
+	while ( (inst = gf_list_enum(pm->plug_list, &i)) ) {
 		if (!strcmp(inst->szName, szName)) return 1;
 	}
 	return 0;

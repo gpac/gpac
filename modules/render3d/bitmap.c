@@ -130,9 +130,12 @@ static void RenderBitmap(GF_Node *node, void *rs)
 				VS3D_SetState(eff->surface, F3D_BLEND, 0);
 			}
 			/*ignore texture transform for bitmap*/
- 			tx_enable(txh, NULL);
-			VS3D_DrawMesh(eff, st->mesh, 0);
- 			tx_disable(txh);
+ 			eff->mesh_has_texture = tx_enable(txh, NULL);
+			if (eff->mesh_has_texture) {
+				VS3D_DrawMesh(eff, st->mesh);
+ 				tx_disable(txh);
+				eff->mesh_has_texture = 0;
+			}
 			return;
 		}
 	}

@@ -99,8 +99,8 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		fprintf(stdout, "Error importing SRT: base scene not assigned\n");
 		return GF_BAD_PARAM;
 	}
-	for (i=0; i<gf_list_count(ctx->streams); i++) {
-		sc = gf_list_get(ctx->streams, i);
+	i=0;
+	while ((sc = gf_list_enum(ctx->streams, &i))) {
 		if (sc->streamType==GF_STREAM_SCENE) break;
 		sc = NULL;
 	}
@@ -348,8 +348,8 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		fprintf(stdout, "Error importing SUB: base scene not assigned\n");
 		return GF_BAD_PARAM;
 	}
-	for (i=0; i<gf_list_count(ctx->streams); i++) {
-		sc = gf_list_get(ctx->streams, i);
+	i=0;
+	while ((sc = gf_list_enum(ctx->streams, &i))) {
 		if (sc->streamType==GF_STREAM_SCENE) break;
 		sc = NULL;
 	}

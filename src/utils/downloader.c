@@ -312,8 +312,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 	if (sess->passwd) free(sess->passwd);
 	if (sess->mime_type) free(sess->mime_type);
 	if (sess->cache) fclose(sess->cache);
-
-
+	if (sess->init_data) free(sess->init_data);
 	free(sess);
 }
 

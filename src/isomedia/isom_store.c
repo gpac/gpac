@@ -33,8 +33,8 @@ static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 	u32 i;
 	GF_Box *a;
 	GF_FreeSpaceBox *_free;
-	for (i = 0; i < gf_list_count(movie->TopBoxes); i++) {
-		a = gf_list_get(movie->TopBoxes, i);
+	i=0;
+	while ((a = gf_list_enum(movie->TopBoxes, &i))) {
 		if (a->type == GF_ISOM_BOX_TYPE_FREE) {
 			_free = (GF_FreeSpaceBox *)a;
 			if (_free->dataSize) {
@@ -101,8 +101,8 @@ void ResetWriters(GF_List *writers)
 {
 	u32 i;
 	TrackWriter *writer;
-	for (i=0; i<gf_list_count(writers); i++) {
-		writer = (TrackWriter*)gf_list_get(writers, i);
+	i=0;
+	while ((writer = gf_list_enum(writers, &i))) {
 		writer->isDone = 0;
 		writer->chunkDur = 0;
 		writer->DTSprev = 0;
@@ -201,13 +201,13 @@ static GF_Err ShiftOffset(GF_ISOFile *file, GF_List *writers, u64 offset)
 	if (file->meta) ShiftMetaOffset(file->meta, offset);
 	if (file->moov && file->moov->meta) ShiftMetaOffset(file->moov->meta, offset);
 
-	for (i = 0; i < gf_list_count(writers); i++) {
-		writer = (TrackWriter*)gf_list_get(writers, i);
+	i=0;
+	while ((writer = gf_list_enum(writers, &i))) {
 		if (writer->mdia->mediaTrack->meta) ShiftMetaOffset(writer->mdia->mediaTrack->meta, offset);
 
 		//we have to proceed entry by entry in case a part of the media is not self-contained...
-		for (j = 0; j<gf_list_count(writer->stsc->entryList); j++) {
-			ent = (GF_StscEntry*)gf_list_get(writer->stsc->entryList, j);
+		j=0;
+		while ((ent = gf_list_enum(writer->stsc->entryList, &j))) {
 			if (!Media_IsSelfContained(writer->mdia, ent->sampleDescriptionIndex)) continue;
 
 			//OK, get the chunk(s) number(s) and "shift" its (their) offset(s).
@@ -274,8 +274,8 @@ static GF_Err WriteMoovAndMeta(GF_ISOFile *movie, GF_List *writers, GF_BitStream
 
 	if (movie->moov) {
 		//switch all our tables
-		for (i = 0; i < gf_list_count(writers); i++) {
-			writer = (TrackWriter*)gf_list_get(writers, i);
+		i=0;
+		while ((writer = gf_list_enum(writers, &i))) {
 			//don't delete them !!!
 			stsc = writer->mdia->information->sampleTable->SampleToChunk;
 			stco = writer->mdia->information->sampleTable->ChunkOffset;
@@ -290,8 +290,8 @@ static GF_Err WriteMoovAndMeta(GF_ISOFile *movie, GF_List *writers, GF_BitStream
 		e = gf_isom_box_write((GF_Box *)movie->moov, bs);
 		//and re-switch our table. We have to do it that way because it is 
 		//needed when the moov is written first
-		for (i = 0; i < gf_list_count(writers); i++) {
-			writer = (TrackWriter*)gf_list_get(writers, i);
+		i=0;
+		while ((writer = gf_list_enum(writers, &i))) {
 			//don't delete them !!!
 			stsc = writer->stsc;
 			stco = writer->stco;
@@ -318,8 +318,8 @@ u64 GetMoovAndMetaSize(GF_ISOFile *movie, GF_List *writers)
 		size = movie->moov->size;
 		if (size > 0xFFFFFFFF) size += 8;
 
-		for (i=0; i < gf_list_count(writers); i++) {
-			writer = (TrackWriter*)gf_list_get(writers, i);
+		i=0;
+		while ((writer = gf_list_enum(writers, &i))) {
 			size -= writer->mdia->information->sampleTable->ChunkOffset->size;
 			size -= writer->mdia->information->sampleTable->SampleToChunk->size;
 			gf_isom_box_size((GF_Box *)writer->stsc);
@@ -388,8 +388,8 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 		GF_ItemLocationEntry *iloc = gf_list_get(meta->item_locations->location_entries, i);
 		/*get item info*/
 		GF_ItemInfoEntryBox *iinf = NULL;
-		for (j=0; j<gf_list_count(meta->item_infos->item_infos); j++) {
-			iinf = gf_list_get(meta->item_infos->item_infos, j);
+		j=0;
+		while ((iinf = gf_list_enum(meta->item_infos->item_infos, &j))) {
 			if (iinf->item_ID==iloc->item_ID) break;
 			iinf = NULL;
 		}
@@ -440,8 +440,8 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 			} 
 			else if (gf_list_count(iloc->extent_entries)) {
 				u32 j;
-				for (j=0; j<gf_list_count(iloc->extent_entries); j++) {
-					entry = gf_list_get(iloc->extent_entries, j);
+				j=0;
+				while ((entry = gf_list_enum(iloc->extent_entries, &j))) {
 					if (j && (maxExtendOffset<it_size) ) maxExtendOffset = it_size;
 					/*compute new offset*/
 					entry->extent_offset = baseOffset + it_size;
@@ -506,8 +506,8 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 			mdatSize += size;
 			StartOffset += size;
 		}
-		for (i = 0; i < gf_list_count(writers); i++) {
-			writer = (TrackWriter*)gf_list_get(writers, i);
+		i=0;
+		while ((writer = gf_list_enum(writers, &i))) {
 			if (writer->mdia->mediaTrack->meta) {
 				e = DoWriteMeta(movie, movie->meta, bs, Emulation, StartOffset, &size);
 				if (e) return e;
@@ -519,8 +519,8 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 
 	offset = StartOffset;
 	predOffset = 0;
-	for (i = 0; i < gf_list_count(writers); i++) {
-		writer = (TrackWriter*)gf_list_get(writers, i);
+	i=0;
+	while ((writer = gf_list_enum(writers, &i))) {
 		while (!writer->isDone) {
 			//To Check: are empty sample tables allowed ???
 			if (writer->sampleNumber > writer->mdia->information->sampleTable->SampleSize->sampleCount) {
@@ -634,8 +634,8 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 		}
 
 		//if the moov is at the end, write directly
-		for (i=0; i<gf_list_count(movie->TopBoxes); i++) {
-			a = (GF_Box*)gf_list_get(movie->TopBoxes, i);
+		i=0;
+		while ((a = gf_list_enum(movie->TopBoxes, &i))) {
 			switch (a->type) {
 			/*written by hand*/
 			case GF_ISOM_BOX_TYPE_MOOV:
@@ -745,8 +745,8 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 	e = DoWrite(mw, writers, bs, 0, 0);
 	if (e) goto exit;
 	//then the rest
-	for (i = 0; i < gf_list_count(movie->TopBoxes); i++) {
-		a = (GF_Box*)gf_list_get(movie->TopBoxes, i);
+	i=0;
+	while ((a = gf_list_enum(movie->TopBoxes, &i))) {
 		switch (a->type) {
 		case GF_ISOM_BOX_TYPE_MOOV:
 		case GF_ISOM_BOX_TYPE_META:
@@ -807,8 +807,8 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 			TStmp = 0;
 			curTrackPriority = -1;
 
-			for (i = 0; i < gf_list_count(writers); i++) {
-				tmp = gf_list_get(writers, i);
+			i=0;
+			while ((tmp = gf_list_enum(writers, &i))) {
 
 				//is it done writing ?
 				//is it in our group ??
@@ -919,10 +919,10 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 		mdatSize += size;
 		StartOffset += (u32) size;
 	}
-	for (i = 0; i < gf_list_count(writers); i++) {
-		TrackWriter *writer = (TrackWriter*)gf_list_get(writers, i);
-		if (writer->mdia->mediaTrack->meta) {
-			e = DoWriteMeta(movie, writer->mdia->mediaTrack->meta, bs, Emulation, StartOffset, &size);
+	i=0;
+	while ((tmp = gf_list_enum(writers, &i))) {
+		if (tmp->mdia->mediaTrack->meta) {
+			e = DoWriteMeta(movie, tmp->mdia->mediaTrack->meta, bs, Emulation, StartOffset, &size);
 			if (e) return e;
 			mdatSize += size;
 			StartOffset += (u32) size;
@@ -1121,8 +1121,8 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 	if (e) goto exit;
 
 	//then the rest
-	for (i = 0; i < gf_list_count(movie->TopBoxes); i++) {
-		a = (GF_Box*)gf_list_get(movie->TopBoxes, i);
+	i=0;
+	while ((a = gf_list_enum(movie->TopBoxes, &i))) {
 		switch (a->type) {
 		case GF_ISOM_BOX_TYPE_MOOV:
 		case GF_ISOM_BOX_TYPE_META:

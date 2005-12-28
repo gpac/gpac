@@ -327,9 +327,10 @@ static SMIL_Anim_RTI *gf_smil_anim_get_anim_runtime_from_timing(SMIL_Timing_RTI 
 	u32 i, j;
 	if (!e->xlink->href.target) return NULL;
 	for (i = 0; i < gf_node_animation_count((GF_Node *)e->xlink->href.target); i++) {
+		SMIL_Anim_RTI *rai_tmp;
 		SMIL_AttributeAnimations *aa = gf_node_animation_get((GF_Node *)e->xlink->href.target, i);
-		for (j= 0; j < gf_list_count(aa->anims); j++) {
-			SMIL_Anim_RTI *rai_tmp = gf_list_get(aa->anims, j);
+		j=0;
+		while ((rai_tmp = gf_list_enum(aa->anims, &j))) {
 			if (rai_tmp->anim_elt->timing->runtime == rti) {						
 				return rai_tmp;
 			}
@@ -510,10 +511,11 @@ void gf_smil_anim_delete_animations(SVGElement *e)
 {
 	u32 i, j;
 	for (i = 0; i < gf_node_animation_count((GF_Node *)e); i ++) {
+		SMIL_Anim_RTI *rai;
 		SMIL_AttributeAnimations *aa = gf_node_animation_get((GF_Node *)e, i);
 		gf_svg_delete_attribute_value(aa->saved_dom_value.fieldType, aa->saved_dom_value.far_ptr);
-		for (j = 0; j < gf_list_count(aa->anims); j++) {
-			SMIL_Anim_RTI *rai = gf_list_get(aa->anims, j);
+		j=0;
+		while ((rai = gf_list_enum(aa->anims, &j))) {
 			gf_smil_anim_delete_runtime_info(rai);
 		}
 		gf_list_del(aa->anims);

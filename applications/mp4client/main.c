@@ -619,7 +619,7 @@ int main (int argc, char **argv)
 		char *ext;
 		strcpy(the_url, url_arg);
 		ext = strrchr(the_url, '.');
-		if (!stricmp(ext, ".m3u")) {
+		if (ext && !stricmp(ext, ".m3u")) {
 			fprintf(stdout, "Opening Playlist %s\n", the_url);
 			playlist = fopen(the_url, "rt");
 			if (playlist) {
@@ -908,10 +908,10 @@ void PrintWorldInfo(GF_Terminal *term)
 	GF_List *descs;
 	descs = gf_list_new();
 	title = gf_term_get_world_info(term, NULL, descs);
-	if (!title) {
+	if (!title && !gf_list_count(descs)) {
 		fprintf(stdout, "No World Info available\n");
 	} else {
-		fprintf(stdout, "\t%s\n", title);
+		fprintf(stdout, "\t%s\n", title ? title : "No title available");
 		for (i=0; i<gf_list_count(descs); i++) {
 			char *str = gf_list_get(descs, i);
 			fprintf(stdout, "%s\n", str);

@@ -15,7 +15,7 @@ CFLAGS+= -DGPAC_READ_ONLY
 endif
 
 #common obj
-OBJS=loader_bt.o loader_isom.o loader_qt.o loader_xmta.o loader_svg.o scene_dump.o scene_manager.o scene_stats.o swf_parse.o swf_shape.o text_to_bifs.o encode_cbk.o encode_isom.o 
+OBJS=loader_bt.o loader_isom.o loader_qt.o loader_xmt.o loader_svg.o scene_dump.o scene_manager.o scene_stats.o swf_parse.o swf_shape.o text_to_bifs.o encode_cbk.o encode_isom.o 
 
 SRCS := $(OBJS:.o=.c) 
 

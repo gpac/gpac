@@ -124,9 +124,9 @@ void gf_mixer_remove_all(GF_AudioMixer *am)
 
 Bool gf_mixer_is_src_present(GF_AudioMixer *am, GF_AudioInterface *ifce)
 {
-	u32 i;
-	for (i=0; i<gf_list_count(am->sources); i++) {
-		MixerInput *in = gf_list_get(am->sources, i);
+	MixerInput *in;
+	u32 i = 0;
+	while ((in = gf_list_enum(am->sources, &i))) {
 		if (in->src == ifce) return 1;
 	}
 	return 0;
@@ -171,10 +171,11 @@ void gf_mixer_add_input(GF_AudioMixer *am, GF_AudioInterface *src)
 
 void gf_mixer_remove_input(GF_AudioMixer *am, GF_AudioInterface *src)
 {
-	u32 i, j;
+	u32 i, j, count;
 	if (am->isEmpty) return;
 	gf_mixer_lock(am, 1);
-	for (i=0; i<gf_list_count(am->sources); i++) {
+	count = gf_list_count(am->sources);
+	for (i=0; i<count; i++) {
 		MixerInput *in = gf_list_get(am->sources, i);
 		if (in->src != src) continue;
 		gf_list_rem(am->sources, i);

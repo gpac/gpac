@@ -471,7 +471,7 @@ GF_TextureHandler *drawable_get_texture(RenderEffect2D *eff)
 DrawableContext *drawable_init_context(Drawable *node, RenderEffect2D *eff)
 {
 	DrawableContext *ctx;
-	u32 i;
+	u32 i, count;
 	Bool skipFill;
 	assert(eff->surface);
 
@@ -518,7 +518,8 @@ DrawableContext *drawable_init_context(Drawable *node, RenderEffect2D *eff)
 	
 
 	/*setup sensors*/
-	for (i=0; i<gf_list_count(eff->sensors); i++) 
+	count = gf_list_count(eff->sensors);
+	for (i=0; i<count; i++) 
 		drawctx_add_sensor(ctx, gf_list_get(eff->sensors, i));
 
 	setup_drawable_context(ctx, eff);
@@ -632,14 +633,15 @@ StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *path)
 	}
 
 	si = NULL;
-	for (i=0; i<gf_list_count(ctx->node->strike_list); i++) {
-		si = gf_list_get(ctx->node->strike_list, i);
+	i=0;
+	while ((si = gf_list_enum(ctx->node->strike_list, &i))) {
 		/*note this includes default LP (NULL)*/
 		if ((si->lineProps == lp) && (!path || (path==si->original)) ) break;
 		if (!si->lineProps) {
-			gf_list_rem(ctx->node->strike_list, i);
-			gf_list_del_item(((Render2D *)ctx->node->compositor->visual_renderer->user_priv)->strike_bank, si);
 			i--;
+			gf_list_rem(ctx->node->strike_list, i);
+
+			gf_list_del_item(((Render2D *)ctx->node->compositor->visual_renderer->user_priv)->strike_bank, si);
 			if (si->outline) gf_path_del(si->outline);
 			free(si);
 		}
@@ -695,9 +697,9 @@ StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *path)
 
 void drawable_reset_path(Drawable *st)
 {
-	u32 i;
-	for (i=0; i<gf_list_count(st->strike_list); i++) {
-		StrikeInfo2D *si = gf_list_get(st->strike_list, i);
+	StrikeInfo2D *si;
+	u32 i=0;
+	while ((si = gf_list_enum(st->strike_list, &i))) {
 		if (si->outline) gf_path_del(si->outline);
 		si->outline = NULL;
 		si->original = NULL;
@@ -708,9 +710,9 @@ void drawable_reset_path(Drawable *st)
 
 void R2D_LinePropsRemoved(Render2D *sr, GF_Node *n)
 {
-	u32 i;
-	for (i=0; i<gf_list_count(sr->strike_bank); i++) {
-		StrikeInfo2D *si = gf_list_get(sr->strike_bank, i);
+	StrikeInfo2D *si;
+	u32 i = 0;
+	while ((si = gf_list_enum(sr->strike_bank, &i))) {
 		if (si->lineProps == n) {
 			/*remove from node*/
 			if (si->node) {
@@ -723,9 +725,9 @@ void R2D_LinePropsRemoved(Render2D *sr, GF_Node *n)
 				res = gf_list_del_item(st->strike_list, si);
 				assert(res>=0);
 			}
+			i--;
 			gf_list_rem(sr->strike_bank, i);
 			delete_strikeinfo2d(si);
-			i--;
 		}
 	}
 }
@@ -810,7 +812,6 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGPropertiesPointe
 DrawableContext *SVG_drawable_init_context(Drawable *node, RenderEffect2D *eff)
 {
 	DrawableContext *ctx;
-	u32 i;
 	Bool skipFill = 0;
 	assert(eff->surface);
 
@@ -847,10 +848,6 @@ DrawableContext *SVG_drawable_init_context(Drawable *node, RenderEffect2D *eff)
 	default:
 		break;
 	}
-
-	/*setup sensors*/
-	for (i=0; i<gf_list_count(eff->sensors); i++) 
-		drawctx_add_sensor(ctx, gf_list_get(eff->sensors, i));
 
 	setup_SVG_drawable_context(ctx, *(eff->svg_props));
 

@@ -107,22 +107,23 @@ void VS2D_RemoveLastContext(VisualSurface2D *surf)
 void VS2D_DrawableDeleted(struct _visual_surface_2D *surf, struct _drawable *node)
 {
 	u32 i, j;
-
+	SensorInfo *si;
 	gf_list_del_item(surf->prev_nodes_drawn, node);
 
-	for (i=0; i<gf_list_count(surf->sensors); i++) {
-		SensorInfo *si = gf_list_get(surf->sensors, i);
+	i=0;
+	while ((si = gf_list_enum(surf->sensors, &i))) {
 		if (si->ctx->node==node) {
-			gf_list_rem(surf->sensors, i);
 			i--;
+			gf_list_rem(surf->sensors, i);
 			gf_list_del(si->nodes_on_top);
 			free(si);
 		} else {
-			for (j=0; j<gf_list_count(si->nodes_on_top); j++) {
-				DrawableContext *ctx = gf_list_get(si->nodes_on_top, j);
+			DrawableContext *ctx;
+			j=0; 
+			while ((ctx = gf_list_enum(si->nodes_on_top, &j))) {
 				if (ctx->node==node) {
-					gf_list_rem(si->nodes_on_top, j);
 					j--;
+					gf_list_rem(si->nodes_on_top, j);
 				}
 			}
 		}
@@ -215,8 +216,7 @@ void VS2D_RegisterSensor(VisualSurface2D *surf, DrawableContext *ctx)
 	u32 i, len;
 	SensorInfo *si;
 
-	for (i=0; i<gf_list_count(surf->sensors); i++) {
-		si = gf_list_get(surf->sensors, i);
+	while ((si = gf_list_enum(surf->sensors, &i))) {
 		if (gf_rect_overlaps(si->ctx->unclip, ctx->unclip)) {
 			gf_list_add(si->nodes_on_top, ctx);
 		}

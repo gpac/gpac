@@ -152,12 +152,21 @@ enum
 	GF_TEXTURE_TEXT_ALWAYS /*text always drawn as texture*/
 };
 
-/*Norma drawing settings*/
+/*Normal drawing settings*/
 enum
 {
 	GF_NORMALS_NONE = 0, /*normals never drawn*/
 	GF_NORMALS_FACE, /*normals drawn per face (at barycenter)*/
 	GF_NORMALS_VERTEX /*normals drawn per vertex*/
+};
+
+
+/*Back-face culling mode*/
+enum
+{
+	GF_BACK_CULL_OFF = 0, /*backface culling disabled*/
+	GF_BACK_CULL_ON, /*backface culliong enabled*/
+	GF_BACK_CULL_ALPHA, /*backface culling enabled alos for transparent meshes*/
 };
 
 /*high-level options*/
@@ -251,7 +260,7 @@ enum
 	/*get/set wireframe flag (value: cf above) (may be ugly with some cards)*/
 	GF_OPT_NORMALS,
 	/*disable backface culling*/
-	GF_OPT_NO_BACK_CULL,
+	GF_OPT_BACK_CULL,
 	/*get/set RECT Ext flag (value: boolean) - when set, GL rectangular texture extension is not used 
 	(but NPO2 texturing is if available)*/
 	GF_OPT_NO_RECT_TEXTURE,

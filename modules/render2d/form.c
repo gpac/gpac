@@ -72,10 +72,10 @@ static GFINLINE FormGroup *form_get_group(FormStack *st, u32 i)
 
 static void fg_compute_bounds(FormGroup *fg)
 {
-	u32 i;
+	u32 i = 0;
+	ChildGroup2D *cg;
 	gf_rect_reset(&fg->origin);
-	for (i=0; i<gf_list_count(fg->children); i++) {
-		ChildGroup2D *cg = gf_list_get(fg->children, i);
+	while ((cg = gf_list_enum(fg->children, &i))) {
 		gf_rect_union(&fg->origin, &cg->final);
 	}
 	fg->final = fg->origin;
@@ -83,12 +83,12 @@ static void fg_compute_bounds(FormGroup *fg)
 
 static void fg_update_bounds(FormGroup *fg)
 {
-	u32 i;
+	u32 i=0;
+	ChildGroup2D *cg;
 	Fixed x, y;
 	x = fg->final.x - fg->origin.x;
 	y = fg->final.y - fg->origin.y;
-	for (i=0; i<gf_list_count(fg->children); i++) {
-		ChildGroup2D *cg = gf_list_get(fg->children, i);
+	while ((cg = gf_list_enum(fg->children, &i))) {
 		cg->final.x += x;
 		cg->final.y += y;
 	}
@@ -230,8 +230,8 @@ static void RenderForm(GF_Node *n, void *rs)
 	eff->parent = parent_bck;
 
 	/*center all nodes*/
-	for (i=0; i<gf_list_count(st->groups); i++) {
-		ChildGroup2D *cg = gf_list_get(st->groups, i);
+	i=0;
+	while ((cg = gf_list_enum(st->groups, &i))) {
 		cg->final.x = - cg->final.width/2;
 		cg->final.y = cg->final.height/2;
 	}
@@ -271,16 +271,16 @@ static void RenderForm(GF_Node *n, void *rs)
 		last_ind += index;
 
 		/*refresh all group bounds*/
-		for (j=1; j<gf_list_count(st->grouplist);j++) {
-			fg = gf_list_get(st->grouplist, j);
+		j=1;
+		while ((fg = gf_list_enum(st->grouplist, &j))) {
 			fg_compute_bounds(fg);
 		}
 		/*done*/
 		if (last_ind>=fm->groupsIndex.count) break;
 	}
 
-	for (i=0; i<gf_list_count(st->groups); i++) {
-		cg = gf_list_get(st->groups, i);
+	i=0;
+	while ((cg = gf_list_enum(st->groups, &i))) {
 		child2d_render_done(cg, eff, &st->clip);
 	}
 

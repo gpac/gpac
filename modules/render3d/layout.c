@@ -306,7 +306,7 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 		}
 		if (l->leftToRight) {
 			current_left += gf_mulfix(l->spacing, li->width);
-		} else if (k < gf_list_count(st->lines) - 1) {
+		} else if (k < nbLines - 1) {
 			li = gf_list_get(st->lines, k+1);
 			current_left -= gf_mulfix(l->spacing, li->width);
 		}
@@ -315,7 +315,8 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 
 static void layout_scroll(LayoutStack *st, M_Layout *l)
 {
-	u32 i, hidden;
+	u32 i, hidden, nb_lines;
+	ChildGroup *cg;
 	Fixed scrolled, tot_len, rate, ellapsed;
 	Bool smooth, do_scroll;
 	Double time;
@@ -369,8 +370,9 @@ static void layout_scroll(LayoutStack *st, M_Layout *l)
 	/*check for each run*/
 	do_scroll = 0;
 
+	nb_lines = gf_list_count(st->lines);
 	tot_len = 0;
-	for (i=0; i < gf_list_count(st->lines); i++) {
+	for (i=0; i < nb_lines; i++) {
 		LineInfo *li = gf_list_get(st->lines, i);
 		if (l->scrollVertical) {
 			if (l->horizontal) { 
@@ -396,8 +398,8 @@ static void layout_scroll(LayoutStack *st, M_Layout *l)
 		scrolled = st->last_scroll;
 
 	hidden = 0;
-	for (i=0; i<gf_list_count(st->groups); i++) {
-		ChildGroup *cg = gf_list_get(st->groups, i);
+	i=0;
+	while ((cg = gf_list_enum(st->groups, &i))) {
 		if (l->scrollVertical)
 			cg->final.y += st->scroll_offset + scrolled;
 		else
@@ -434,6 +436,7 @@ static void layout_scroll(LayoutStack *st, M_Layout *l)
 static void RenderLayout(GF_Node *node, void *rs)
 {
 	u32 i;
+	ChildGroup *cg;
 	Bool mode_bckup, had_clip;
 	GroupingNode *parent_bck;
 	GF_Rect clip, prev_clipper;
@@ -482,8 +485,8 @@ static void RenderLayout(GF_Node *node, void *rs)
 	eff->text_split_mode = 0;
 
 	/*center all nodes*/
-	for (i=0; i<gf_list_count(st->groups); i++) {
-		ChildGroup *cg = gf_list_get(st->groups, i);
+	i=0;
+	while ((cg = gf_list_enum(st->groups, &i))) {
 		cg->final.x = - cg->final.width/2;
 		cg->final.y = cg->final.height/2;
 	}
@@ -493,8 +496,8 @@ static void RenderLayout(GF_Node *node, void *rs)
 	/*scroll*/
 	layout_scroll(st, l);
 
-	for (i=0; i<gf_list_count(st->groups); i++) {
-		ChildGroup *cg = gf_list_get(st->groups, i);
+	i=0;
+	while ((cg = gf_list_enum(st->groups, &i))) {
 		child_render_done(cg, eff);
 	}
 

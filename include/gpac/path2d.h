@@ -431,6 +431,10 @@ enum
 {
 	/*! Polygon is either complex or unknown*/
 	GF_POLYGON_COMPLEX,
+	/*! Polygon is complex, starting in counter-clockwise order*/
+	GF_POLYGON_COMPLEX_CCW,
+	/*! Polygon is complex, starting in clockwise order*/
+	GF_POLYGON_COMPLEX_CW,
 	/*! Polygon is a counter-clockwise convex polygon*/
 	GF_POLYGON_CONVEX_CCW,
 	/*! Polygon is a clockwise convex polygon*/

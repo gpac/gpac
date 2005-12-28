@@ -92,8 +92,8 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 	curDTS = 0;
 	sampNum = 0;
 	ent = NULL;
-	for (i=0; i < gf_list_count(stts->entryList); i++) {
-		ent = (GF_SttsEntry*)gf_list_get(stts->entryList, i);
+	i=0;
+	while ((ent = gf_list_enum(stts->entryList, &i))) {
 		for (j = 0; j<ent->sampleCount; j++) {
 			DTSs[sampNum] = curDTS;
 			curDTS += ent->sampleDelta;
@@ -210,8 +210,8 @@ GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 CTSoffset)
 	//NOPE we are inserting a sample...
 	CTSs = (u32*)malloc(sizeof(u32) * stbl->SampleSize->sampleCount);
 	sampNum = 0;
-	for (i=0; i<gf_list_count(ctts->entryList); i++) {
-		ent = (GF_DttsEntry*)gf_list_get(ctts->entryList, i);
+	i=0;
+	while ((ent = gf_list_enum(ctts->entryList, &i))) {
 		for (j = 0; j<ent->sampleCount; j++) {
 			CTSs[sampNum] = ent->decodingOffset;
 			sampNum ++;
@@ -279,13 +279,16 @@ GF_Err stbl_repackCTS(GF_CompositionOffsetBox *ctts)
 	if (!count) return GF_OK;
 	newTable = gf_list_new();
 	entry = gf_list_get(ctts->entryList, 0);
+	ctts->w_LastSampleNumber = entry->sampleCount;
 
 	gf_list_add(newTable, entry);
 	for (i=1; i<count; i++) {
 		next = gf_list_get(ctts->entryList, i);
+		ctts->w_LastSampleNumber += next->sampleCount;
 		if (entry->decodingOffset != next->decodingOffset) {
 			entry = next;
 			gf_list_add(newTable, entry);
+			ctts->w_currentEntry = entry;
 		} else {
 			entry->sampleCount += next->sampleCount;
 			free(next);
@@ -307,8 +310,8 @@ GF_Err stbl_unpackCTS(GF_SampleTableBox *stbl)
 	ctts->unpack_mode = 1;
 	newTable = gf_list_new();
 
-	for (i=0; i<gf_list_count(ctts->entryList); i++) {
-		entry = gf_list_get(ctts->entryList, i);
+	i=0;
+	while ((entry = gf_list_enum(ctts->entryList, &i))) {
 		gf_list_add(newTable, entry);
 		for (j=1; j<entry->sampleCount; j++) {
 			next = malloc(sizeof(GF_DttsEntry));
@@ -449,8 +452,9 @@ GF_Err stbl_AddRAP(GF_SyncSampleBox *stss, u32 sampleNumber)
 GF_Err stbl_AddShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber, u32 shadowNumber)
 {
 	GF_StshEntry *ent;
-	u32 i;
-	for (i=0; i<gf_list_count(stsh->entries); i++) {
+	u32 i, count;
+	count = gf_list_count(stsh->entries);
+	for (i=0; i<count; i++) {
 		ent = (GF_StshEntry*)gf_list_get(stsh->entries, i);
 		if (ent->shadowedSampleNumber == shadowNumber) {
 			ent->syncSampleNumber = sampleNumber;
@@ -663,8 +667,8 @@ GF_Err stbl_SetSampleCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 offset)
 	//NOPE we are inserting a sample...
 	CTSs = (u32*)malloc(sizeof(u32) * ctts->w_LastSampleNumber);
 	sampNum = 0;
-	for (i=0; i<gf_list_count(ctts->entryList); i++) {
-		ent = (GF_DttsEntry*)gf_list_get(ctts->entryList, i);
+	i=0;
+	while ((ent = gf_list_enum(ctts->entryList, &i))) {
 		for (j = 0; j<ent->sampleCount; j++) {
 			if (sampNum + 1 == sampleNumber) {
 				CTSs[sampNum] = offset;
@@ -779,10 +783,11 @@ GF_Err stbl_SetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 isRAP)
 
 GF_Err stbl_SetSyncShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber, u32 syncSample)
 {
-	u32 i;
+	u32 i, count;
 	GF_StshEntry *ent;
 
-	for (i=0; i<gf_list_count(stsh->entries); i++) {
+	count = gf_list_count(stsh->entries);
+	for (i=0; i<count; i++) {
 		ent = (GF_StshEntry*)gf_list_get(stsh->entries, i);
 		if (ent->shadowedSampleNumber == sampleNumber) {
 			ent->syncSampleNumber = syncSample;
@@ -833,8 +838,8 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 	sampNum = 0;
 	ent = NULL;
 	k=0;
-	for (i=0; i < gf_list_count(stts->entryList); i++) {
-		ent = (GF_SttsEntry*)gf_list_get(stts->entryList, i);
+	i=0;
+	while ((ent = gf_list_enum(stts->entryList, &i))) {
 		for (j = 0; j<ent->sampleCount; j++) {
 			if (sampNum == sampleNumber - 1) {
 				k=1;
@@ -895,7 +900,7 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber)
 {
 	u32 *CTSs;
-	u32 sampNum, i, j, k;
+	u32 sampNum, i, j, k, count;
 	GF_DttsEntry *ent;
 	GF_CompositionOffsetBox *ctts;
 
@@ -922,7 +927,8 @@ GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber)
 	CTSs = (u32*)malloc(sizeof(u32) * (ctts->w_LastSampleNumber - 1));
 	sampNum = 0;
 	k = 0;
-	for (i=0; i<gf_list_count(ctts->entryList); i++) {
+	count = gf_list_count(ctts->entryList);
+	for (i=0; i<count; i++) {
 		ent = (GF_DttsEntry*)gf_list_get(ctts->entryList, i);
 		for (j = 0; j<ent->sampleCount; j++) {
 			if (sampNum + 1 == sampleNumber) {
@@ -1020,7 +1026,7 @@ GF_Err stbl_RemoveSize(GF_SampleSizeBox *stsz, u32 sampleNumber)
 //always called after removing the sample from SampleSize
 GF_Err stbl_RemoveChunk(GF_SampleTableBox *stbl, u32 sampleNumber)
 {
-	u32 i, k;
+	u32 i, k, count;
 	u32 *offsets;
 	u64 *Loffsets;
 	GF_StscEntry *ent;
@@ -1031,7 +1037,8 @@ GF_Err stbl_RemoveChunk(GF_SampleTableBox *stbl, u32 sampleNumber)
 	free(ent);
 
 	//update the firstchunk info
-	for (i = sampleNumber - 1; i < gf_list_count(stbl->SampleToChunk->entryList); i++) {
+	count=gf_list_count(stbl->SampleToChunk->entryList);
+	for (i = sampleNumber - 1; i < count; i++) {
 		ent = (GF_StscEntry*)gf_list_get(stbl->SampleToChunk->entryList, i);
 		ent->firstChunk -= 1;
 		ent->nextChunk -= 1;
@@ -1129,11 +1136,11 @@ GF_Err stbl_RemoveShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber)
 
 	//we loop for the whole chain cause the spec doesn't say if we can have several
 	//shadows for 1 sample...
-	for (i=0; i<gf_list_count(stsh->entries); i++) {
-		ent = (GF_StshEntry*)gf_list_get(stsh->entries, i);
+	i=0;
+	while ((ent = gf_list_enum(stsh->entries, &i))) {
 		if (ent->shadowedSampleNumber == sampleNumber) {
-			gf_list_rem(stsh->entries, i);
 			i--;
+			gf_list_rem(stsh->entries, i);
 		}
 	}
 	//reset the cache
@@ -1211,7 +1218,7 @@ GF_Err stbl_RemovePaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber)
 GF_Err stbl_AddSampleFragment(GF_SampleTableBox *stbl, u32 sampleNumber, u16 size)
 {
 	GF_Err e;
-	u32 i;
+	u32 i, count;
 	GF_StsfEntry *ent;
 	u16 *newSizes;
 	GF_SampleFragmentBox *stsf;	
@@ -1234,7 +1241,8 @@ GF_Err stbl_AddSampleFragment(GF_SampleTableBox *stbl, u32 sampleNumber, u16 siz
 	}
 	i = stsf->w_currentEntryIndex;
 
-	for (; i<gf_list_count(stsf->entryList); i++) {
+	count = gf_list_count(stsf->entryList);
+	for (; i<count; i++) {
 		ent = gf_list_get(stsf->entryList, i);
 		if (ent->SampleNumber > sampleNumber) {
 			ent = malloc(sizeof(GF_StsfEntry));
@@ -1282,10 +1290,10 @@ GF_Err stbl_RemoveSampleFragments(GF_SampleTableBox *stbl, u32 sampleNumber)
 	GF_StsfEntry *ent;
 	GF_SampleFragmentBox *stsf = stbl->Fragments;
 
-	for (i=0; i<gf_list_count(stsf->entryList); i++) {
-		ent = gf_list_get(stsf->entryList, i);
+	i=0;
+	while ((ent = gf_list_enum(stsf->entryList, &i))) {
 		if (ent->SampleNumber == sampleNumber) {
-			gf_list_rem(stsf->entryList, i);
+			gf_list_rem(stsf->entryList, i-1);
 			if (ent->fragmentSizes) free(ent->fragmentSizes);
 			free(ent);
 			goto exit;

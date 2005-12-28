@@ -24,12 +24,6 @@
 
 #include <gpac/internal/odf_dev.h>
 
-#if defined (WIN32) && !defined(__GNUC__)
-#define LLD "%I64d"
-#else
-#define LLD "%lld"
-#endif
-
 
 #define GF_IPMPX_MAX_TREE		100
 

@@ -41,7 +41,7 @@ Fixed GetInterpolateFraction(Fixed key1, Fixed key2, Fixed fraction)
 	return gf_divfix(fraction - key1, keyDiff);
 }
 
-void CI2D_SetFraction(GF_Node *n)
+static void CI2D_SetFraction(GF_Node *n)
 {
 	Fixed frac;
 	u32 numElemPerKey, i, j;
@@ -84,7 +84,21 @@ void CI2D_SetFraction(GF_Node *n)
 	gf_node_event_out_str(n, "value_changed");
 }
 
-Bool CI_SetFraction(Fixed fraction, MFVec3f *vals, MFFloat *key, MFVec3f *keyValue)
+Bool InitCoordinateInterpolator2D(M_CoordinateInterpolator2D *node)
+{
+	node->on_set_fraction = CI2D_SetFraction;
+
+	if (node->key.count && !(node->keyValue.count % node->key.count) ) {
+		u32 numElemPerKey, i;
+		numElemPerKey = node->keyValue.count / node->key.count;
+		gf_sg_vrml_mf_alloc(&node->value_changed, GF_SG_VRML_MFVEC2F, numElemPerKey);
+		for (i=0; i<numElemPerKey; i++)
+			node->value_changed.vals[i] = node->keyValue.vals[i];
+	}
+	return 1;
+}
+
+static Bool CI_SetFraction(Fixed fraction, MFVec3f *vals, MFFloat *key, MFVec3f *keyValue)
 {
 	Fixed frac;
 	u32 numElemPerKey, i, j;
@@ -127,7 +141,7 @@ Bool CI_SetFraction(Fixed fraction, MFVec3f *vals, MFFloat *key, MFVec3f *keyVal
 }
 
 
-void CoordInt_SetFraction(GF_Node *n)
+static void CoordInt_SetFraction(GF_Node *n)
 {
 	M_CoordinateInterpolator *_this = (M_CoordinateInterpolator *) n;
 
@@ -135,8 +149,14 @@ void CoordInt_SetFraction(GF_Node *n)
 		gf_node_event_out_str(n, "value_changed");
 }
 
+Bool InitCoordinateInterpolator(M_CoordinateInterpolator *n)
+{
+	n->on_set_fraction = CoordInt_SetFraction;
+	CI_SetFraction(0, &n->value_changed, &n->key, &n->keyValue);
+	return 1;
+}
 
-void NormInt_SetFraction(GF_Node *n)
+static void NormInt_SetFraction(GF_Node *n)
 {
 	u32 i;
 	M_NormalInterpolator *_this = (M_NormalInterpolator *) n;
@@ -149,7 +169,14 @@ void NormInt_SetFraction(GF_Node *n)
 	gf_node_event_out_str(n, "value_changed");
 }
 
-void ColorInt_SetFraction(GF_Node *node)
+Bool InitNormalInterpolator(M_NormalInterpolator *n)
+{
+	n->on_set_fraction = NormInt_SetFraction;
+	CI_SetFraction(0, &n->value_changed, &n->key, &n->keyValue);
+	return 1;
+}
+
+static void ColorInt_SetFraction(GF_Node *node)
 {
 	u32 i;
 	Fixed frac;
@@ -186,8 +213,15 @@ void ColorInt_SetFraction(GF_Node *node)
 	gf_node_event_out_str(node, "value_changed");
 }
 
+Bool InitColorInterpolator(M_ColorInterpolator *node)
+{
+	node->on_set_fraction = ColorInt_SetFraction; 
+	if (node->keyValue.count) node->value_changed = node->keyValue.vals[0];
+	return 1;
+}
 
-void PosInt2D_SetFraction(GF_Node *node)
+
+static void PosInt2D_SetFraction(GF_Node *node)
 {
 	M_PositionInterpolator2D *_this = (M_PositionInterpolator2D *)node;
 	u32 i;
@@ -216,7 +250,14 @@ void PosInt2D_SetFraction(GF_Node *node)
 	gf_node_event_out_str(node, "value_changed");
 }
 
-void PosInt_SetFraction(GF_Node *node)
+Bool InitPositionInterpolator2D(M_PositionInterpolator2D *node)
+{
+	node->on_set_fraction = PosInt2D_SetFraction; 
+	if (node->keyValue.count) node->value_changed = node->keyValue.vals[0];
+	return 1;
+}
+
+static void PosInt_SetFraction(GF_Node *node)
 {
 	u32 i;
 	Fixed frac;
@@ -246,7 +287,14 @@ void PosInt_SetFraction(GF_Node *node)
 	gf_node_event_out_str(node, "value_changed");
 }
 
-void ScalarInt_SetFraction(GF_Node *node)
+Bool InitPositionInterpolator(M_PositionInterpolator *node)
+{
+	node->on_set_fraction = PosInt_SetFraction; 
+	if (node->keyValue.count) node->value_changed = node->keyValue.vals[0];
+	return 1;
+}
+
+static void ScalarInt_SetFraction(GF_Node *node)
 {
 	M_ScalarInterpolator *_this = (M_ScalarInterpolator *)node;
 	u32 i;
@@ -273,6 +321,13 @@ void ScalarInt_SetFraction(GF_Node *node)
 	}
 	gf_node_event_out_str(node, "value_changed");
 }
+Bool InitScalarInterpolator(M_ScalarInterpolator *node)
+{
+	node->on_set_fraction = ScalarInt_SetFraction; 
+	if (node->keyValue.count) node->value_changed = node->keyValue.vals[0];
+	return 1;
+}
+
 
 /*taken from freeWRL*/
 SFRotation gf_sg_sfrotation_interpolate(SFRotation kv1, SFRotation kv2, Fixed fraction)
@@ -327,7 +382,7 @@ SFRotation gf_sg_sfrotation_interpolate(SFRotation kv1, SFRotation kv2, Fixed fr
 	return res;
 }
 
-void OrientInt_SetFraction(GF_Node *node)
+static void OrientInt_SetFraction(GF_Node *node)
 {
 	u32 i;
 	Fixed frac;
@@ -355,7 +410,14 @@ void OrientInt_SetFraction(GF_Node *node)
 	gf_node_event_out_str(node, "value_changed");
 }
 
-void CI4D_SetFraction(GF_Node *n)
+Bool InitOrientationInterpolator(M_OrientationInterpolator *node)
+{
+	node->on_set_fraction = OrientInt_SetFraction; 
+	if (node->keyValue.count) node->value_changed = node->keyValue.vals[0];
+	return 1;
+}
+
+static void CI4D_SetFraction(GF_Node *n)
 {
 	Fixed frac;
 	u32 numElemPerKey, i, j;
@@ -404,7 +466,20 @@ void CI4D_SetFraction(GF_Node *n)
 	gf_node_event_out_str(n, "value_changed");
 }
 
-void PI4D_SetFraction(GF_Node *node)
+Bool InitCoordinateInterpolator4D(M_CoordinateInterpolator4D *node)
+{
+	node->on_set_fraction = CI4D_SetFraction;
+
+	if (node->key.count && !(node->keyValue.count % node->key.count)) {
+		u32 i, numElemPerKey = node->keyValue.count / node->key.count;
+		gf_sg_vrml_mf_alloc(&node->value_changed, GF_SG_VRML_MFVEC4F, numElemPerKey);
+		for (i=0; i<numElemPerKey; i++)
+			node->value_changed.vals[i] = node->keyValue.vals[i];
+	}
+	return 1;
+}
+
+static void PI4D_SetFraction(GF_Node *node)
 {
 	u32 i;
 	Fixed frac;
@@ -433,6 +508,13 @@ void PI4D_SetFraction(GF_Node *node)
 		}
 	}
 	gf_node_event_out_str(node, "value_changed");
+}
+
+Bool InitPositionInterpolator4D(M_PositionInterpolator4D *node)
+{
+	node->on_set_fraction = PI4D_SetFraction;
+	if (node->keyValue.count) node->value_changed = node->keyValue.vals[0];
+	return 1;
 }
 
 

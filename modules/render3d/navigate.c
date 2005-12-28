@@ -150,6 +150,7 @@ void view_translate_z(Render3D *sr, GF_Camera *cam, Fixed dz)
 	SFVec3f v;
 	if (!dz) return;
 	if (cam->jumping) dz *= JUMP_SCALE_FACTOR;
+	dz = gf_mulfix(dz, cam->speed);
 	v = gf_vec_scale(camera_get_target_dir(cam), dz);
 	gf_vec_add(cam->target, cam->target, v);
 	gf_vec_add(cam->position, cam->position, v);

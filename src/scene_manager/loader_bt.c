@@ -1005,7 +1005,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 	if (name) {
 		undef_node = gf_sg_find_node_by_name(parser->load->scene_graph, name);
 		if (undef_node) {
-			gf_list_del_item(parser->peeked_nodes, undef_node);
+			s32 idx = gf_list_del_item(parser->peeked_nodes, undef_node);
 			ID = undef_node->sgprivate->NodeID;
 			/*if we see twice a DEF N1 then force creation of a new node*/
 			if (gf_bt_has_been_def(parser, name)) {
@@ -1139,7 +1139,12 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 						str = "choice";
 						parser->last_error = gf_node_get_field_by_name(node, str, &info);
 					}
-
+					else if (!strcmp(str, "enabled")) {
+						Bool b;
+						gf_bt_parse_bool(parser, "collide", &b);
+						parser->last_error = GF_OK;
+						continue;
+					}
 				} else {
 					/*remaps old VRML/MPEG4 to X3D if possible*/
 					if ((tag==TAG_X3D_LOD) && !strcmp(str, "level")) {
@@ -1149,6 +1154,12 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 					else if ((tag==TAG_X3D_Switch) && !strcmp(str, "choice")) {
 						str = "children";
 						parser->last_error = gf_node_get_field_by_name(node, str, &info);
+					}
+					else if (!strcmp(str, "collide")) {
+						Bool b;
+						gf_bt_parse_bool(parser, "enabled", &b);
+						parser->last_error = GF_OK;
+						continue;
 					}
 				}
 			}
@@ -1378,10 +1389,11 @@ GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID)
 u32 gf_bt_get_route(GF_BTParser *parser, char *name) 
 {
 	u32 i;
+	GF_Command *com;
 	GF_Route *r = gf_sg_route_find_by_name(parser->load->scene_graph, name);
 	if (r) return r->ID;
-	for (i=0; i<gf_list_count(parser->inserted_routes); i++) {
-		GF_Command *com = gf_list_get(parser->inserted_routes, i);
+	i=0;
+	while ((com = gf_list_enum(parser->inserted_routes, &i))) {
 		if (com->def_name && !strcmp(com->def_name, name)) return com->RouteID;
 	}
 	return 0;
@@ -1390,10 +1402,11 @@ u32 gf_bt_get_route(GF_BTParser *parser, char *name)
 Bool gf_bt_route_id_used(GF_BTParser *parser, u32 ID) 
 {
 	u32 i;
+	GF_Command *com;
 	GF_Route *r = gf_sg_route_find(parser->load->scene_graph, ID);
 	if (r) return 1;
-	for (i=0; i<gf_list_count(parser->inserted_routes); i++) {
-		GF_Command *com = gf_list_get(parser->inserted_routes, i);
+	i=0;
+	while ((com = gf_list_enum(parser->inserted_routes, &i))) {
 		if (com->RouteID == ID) return 1;
 	}
 	return 0;
@@ -2696,7 +2709,7 @@ void gf_bt_parse_od_command(GF_BTParser *parser, char *name)
 
 
 
-GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com)
+GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool initial_run)
 {
 	char *str;
 	GF_Node *node, *vrml_root_node;
@@ -2716,11 +2729,15 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com)
 		if (parser->done) break;
 		
 		/*create a default root node for all VRML nodes*/
-		if ((parser->is_wrl && !parser->top_nodes) && init_com && !vrml_root_node) {
-			vrml_root_node = gf_node_new(parser->load->scene_graph, (parser->load->flags & GF_SM_LOAD_MPEG4_STRICT) ? TAG_MPEG4_Group : TAG_X3D_Group);
-			gf_node_register(vrml_root_node, NULL);
-			gf_node_init(vrml_root_node);
-			init_com->node = vrml_root_node;
+		if ((parser->is_wrl && !parser->top_nodes) && !vrml_root_node) {
+			if (initial_run ) {
+				vrml_root_node = gf_node_new(parser->load->scene_graph, (parser->load->flags & GF_SM_LOAD_MPEG4_STRICT) ? TAG_MPEG4_Group : TAG_X3D_Group);
+				gf_node_register(vrml_root_node, NULL);
+				gf_node_init(vrml_root_node);
+				gf_sg_set_root_node(parser->load->scene_graph, vrml_root_node);
+			} else {
+				vrml_root_node = gf_sg_get_root_node(parser->load->scene_graph);
+			}
 		}
 		/*X3D specific things (ignored for now)*/
 		if (!strcmp(str, "PROFILE")) gf_bt_force_line(parser);
@@ -2732,7 +2749,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com)
 		}
 
 		/*IOD*/
-		if (!strcmp(str, "InitialObjectDescriptor") || !strcmp(str, "ObjectDescriptor")) {
+		else if (!strcmp(str, "InitialObjectDescriptor") || !strcmp(str, "ObjectDescriptor")) {
 			parser->load->ctx->root_od = (GF_ObjectDescriptor *) gf_bt_parse_descriptor(parser, str);
 		}
 		/*explicit command*/
@@ -2797,7 +2814,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com)
 		}
 		else if (!strcmp(str, "ROUTE")) {
 			GF_Command *com = NULL;
-			if (!parser->top_nodes) {
+			if (!parser->top_nodes && parser->bifs_au) {
 				/*if doing a scene replace, we need route insert stuff*/
 				com = gf_sg_command_new(parser->load->scene_graph, GF_SG_ROUTE_INSERT);
 				gf_list_add(parser->bifs_au->commands, com);
@@ -2841,7 +2858,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com)
 			Bool is_base_stream = parser->stream_id ? 0 : 1;
 
 			if (!parser->stream_id) parser->stream_id = parser->base_bifs_id;
-			if (!parser->stream_id || (parser->bifs_es && (parser->stream_id==parser->bifs_es->ESID)) ) parser->stream_id = parser->base_bifs_id;
+			if (!parser->stream_id || (parser->od_es && (parser->stream_id==parser->od_es->ESID)) ) parser->stream_id = parser->base_bifs_id;
 
 			if (parser->bifs_es->ESID != parser->stream_id) {
 				GF_StreamContext *prev = parser->bifs_es;
@@ -2959,14 +2976,15 @@ GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
 	/*chunk parsing*/
 	if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
 		u32 i;
+		GF_StreamContext *sc;
 		if (!load->ctx) {
 			gf_sm_load_done_BT(load);
 			return GF_BAD_PARAM;
 		}
 		
 		/*restore context - note that base layer are ALWAYS declared BEFORE enhancement layers with gpac parsers*/
-		for (i=0; i<gf_list_count(load->ctx->streams); i++) {
-			GF_StreamContext *sc = gf_list_get(load->ctx->streams, 0); 
+		i=0;
+		while ((sc = gf_list_enum(load->ctx->streams, &i))) {
 			switch (sc->streamType) {
 			case GF_STREAM_SCENE: if (!parser->bifs_es) parser->bifs_es = sc; break;
 			case GF_STREAM_OD: if (!parser->od_es) parser->od_es = sc; break;
@@ -2990,7 +3008,7 @@ GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
 
 	/*create at least one empty BIFS stream*/
 	parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, 0);
-	parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, 0, 0, 1);
+	if (!parser->is_wrl) parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, 0, 0, 1);
 
 	parser->load = NULL;
 	gf_bt_check_line(parser);
@@ -3000,9 +3018,12 @@ GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
 
 	/*default scene replace - we create it no matter what since it is used to store BIFS config
 	when parsing IOD.*/
-	com = gf_sg_command_new(parser->load->scene_graph, GF_SG_SCENE_REPLACE);
-	gf_list_add(parser->bifs_au->commands, com);
-	e = gf_bt_loader_run_intern(parser, com);
+	com = NULL;
+	if (!parser->is_wrl) {
+		com = gf_sg_command_new(parser->load->scene_graph, GF_SG_SCENE_REPLACE);
+		gf_list_add(parser->bifs_au->commands, com);
+	}
+	e = gf_bt_loader_run_intern(parser, com, 1);
 	if (e) gf_sm_load_done_BT(load);
 	return e;
 }
@@ -3027,7 +3048,7 @@ GF_Err gf_sm_load_run_BT(GF_SceneLoader *load)
 {
 	GF_BTParser *parser = (GF_BTParser *)load->loader_priv;
 	if (!parser) return GF_BAD_PARAM;
-	return gf_bt_loader_run_intern(parser, NULL);
+	return gf_bt_loader_run_intern(parser, NULL, 0);
 }
 
 
@@ -3048,7 +3069,7 @@ GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str, void
 	parser.def_nodes = gf_list_new();
 	parser.peeked_nodes = gf_list_new();
 	parser.is_wrl = 1;
-	gf_bt_loader_run_intern(&parser, NULL);
+	gf_bt_loader_run_intern(&parser, NULL, 1);
 	gf_list_del(parser.undef_nodes);
 	gf_list_del(parser.def_nodes);
 	gf_list_del(parser.peeked_nodes);
@@ -3103,14 +3124,15 @@ GF_Err gf_sm_load_init_BTString(GF_SceneLoader *load, char *str)
 	/*chunk parsing*/
 	if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
 		u32 i;
+		GF_StreamContext *sc;
 		if (!load->ctx) {
 			gf_sm_load_done_BT(load);
 			return GF_BAD_PARAM;
 		}
 		
 		/*restore context - note that base layer are ALWAYS declared BEFORE enhancement layers with gpac parsers*/
-		for (i=0; i<gf_list_count(load->ctx->streams); i++) {
-			GF_StreamContext *sc = (GF_StreamContext *)gf_list_get(load->ctx->streams, 0); 
+		i=0;
+		while ((sc = gf_list_enum(load->ctx->streams, &i))){ 
 			switch (sc->streamType) {
 			case GF_STREAM_SCENE: if (!parser->bifs_es) parser->bifs_es = sc; break;
 			case GF_STREAM_OD: if (!parser->od_es) parser->od_es = sc; break;
@@ -3136,7 +3158,7 @@ GF_Err gf_sm_load_init_BTString(GF_SceneLoader *load, char *str)
 	when parsing IOD.*/
 	com = gf_sg_command_new(parser->load->scene_graph, GF_SG_SCENE_REPLACE);
 	gf_list_add(parser->bifs_au->commands, com);
-	e = gf_bt_loader_run_intern(parser, com);
+	e = gf_bt_loader_run_intern(parser, com, 1);
 	if (e) gf_sm_load_done_BTString(load);
 	return e;
 }

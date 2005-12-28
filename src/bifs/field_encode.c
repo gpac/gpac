@@ -300,16 +300,16 @@ GF_Route *gf_bifs_enc_is_field_ised(GF_BifsEncoder *codec, GF_Node *node, u32 fi
 	if (!codec->encoding_proto) return NULL;
 
 	if (node->sgprivate->events) {
-		for (i=0; i<gf_list_count(node->sgprivate->events); i++) {
-			r = gf_list_get(node->sgprivate->events, i);
+		i=0;
+		while ((r = gf_list_enum(node->sgprivate->events, &i))) {
 			if (!r->IS_route) continue;
 			if ((r->ToNode == node) && (r->ToFieldIndex==fieldIndex)) return r;
 			else if ((r->FromNode == node) && (r->FromFieldIndex==fieldIndex)) return r;
 		}
 	}
 
-	for (i=0; i<gf_list_count(codec->encoding_proto->sub_graph->Routes); i++) {
-		r = gf_list_get(codec->encoding_proto->sub_graph->Routes, i);
+	i=0;
+	while ((r = gf_list_enum(codec->encoding_proto->sub_graph->Routes, &i))) {
 		if (!r->IS_route) continue;
 		if ((r->ToNode == node) && (r->ToFieldIndex==fieldIndex)) return r;
 		else if ((r->FromNode == node) && (r->FromFieldIndex==fieldIndex)) return r;
@@ -331,13 +331,6 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 
 
 	e = GF_OK;
-	if (node->sgprivate->tag == TAG_ProtoNode) {
-		clone = gf_sg_proto_create_instance(node->sgprivate->scenegraph, ((GF_ProtoInstance *)node)->proto_interface);;
-	} else {
-		clone = gf_node_new(node->sgprivate->scenegraph, node->sgprivate->tag);
-	}
-	if (clone) gf_node_register(clone, NULL);
-
 
 	if (codec->encoding_proto) {
 		mode = GF_SG_FIELD_CODING_ALL;
@@ -350,8 +343,21 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 	}
 	count = gf_node_get_num_fields_in_mode(node, mode);
 	if (node->sgprivate->tag==TAG_MPEG4_Script) count = 3;
-	numBitsDEF = gf_get_bit_size(gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_DEF) - 1);
 
+	if (!count) {
+		GF_BE_WRITE_INT(codec, bs, 0, 1, "isMask", NULL);
+		GF_BE_WRITE_INT(codec, bs, 1, 1, "end", NULL);
+		return GF_OK;
+	}
+
+	if (node->sgprivate->tag == TAG_ProtoNode) {
+		clone = gf_sg_proto_create_instance(node->sgprivate->scenegraph, ((GF_ProtoInstance *)node)->proto_interface);;
+	} else {
+		clone = gf_node_new(node->sgprivate->scenegraph, node->sgprivate->tag);
+	}
+	if (clone) gf_node_register(clone, NULL);
+	
+	numBitsDEF = gf_get_bit_size(gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_DEF) - 1);
 
 	enc_fields = malloc(sizeof(s32) * count);
 	nbFinal = 0;
@@ -476,9 +482,10 @@ exit:
 
 Bool BE_NodeIsUSE(GF_BifsEncoder * codec, GF_Node *node)
 {
-	u32 i;
+	u32 i, count;
 	if (!node || !node->sgprivate->NodeID) return 0;
-	for (i=0; i<gf_list_count(codec->encoded_nodes); i++) {
+	count = gf_list_count(codec->encoded_nodes);
+	for (i=0; i<count; i++) {
 		if (gf_list_get(codec->encoded_nodes, i) == node) return 1;
 	}
 	gf_list_add(codec->encoded_nodes, node);

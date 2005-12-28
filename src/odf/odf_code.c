@@ -1212,10 +1212,11 @@ GF_Descriptor *gf_odf_new_cc_name()
 GF_Err gf_odf_del_cc_name(GF_CC_Name *cnd)
 {
 	u32 i;
+	GF_ContentCreatorInfo *tmp;
 	if (!cnd) return GF_BAD_PARAM;
 
-	for (i = 0; i < gf_list_count(cnd->ContentCreators); i++) {
-		GF_ContentCreatorInfo *tmp = (GF_ContentCreatorInfo*)gf_list_get(cnd->ContentCreators, i);
+	i=0;
+	while ((tmp = gf_list_enum(cnd->ContentCreators, &i))) {
 		if (tmp->contentCreatorName) free(tmp->contentCreatorName);
 		free(tmp);
 	}
@@ -1253,12 +1254,12 @@ GF_Err gf_odf_read_cc_name(GF_BitStream *bs, GF_CC_Name *cnd, u32 DescSize)
 GF_Err gf_odf_size_cc_name(GF_CC_Name *cnd, u32 *outSize)
 {
 	u32 i;
+	GF_ContentCreatorInfo *tmp;
 	if (!cnd) return GF_BAD_PARAM;
 
 	*outSize = 1;
-	for (i = 0; i< gf_list_count(cnd->ContentCreators) ; i++) {
-		GF_ContentCreatorInfo *tmp = (GF_ContentCreatorInfo*)gf_list_get(cnd->ContentCreators, i);
-		if (! tmp) return GF_ODF_INVALID_DESCRIPTOR;
+	i=0;
+	while ((tmp = gf_list_enum(cnd->ContentCreators, &i))) {
 		*outSize += 4 + OD_SizeUTF8String(tmp->contentCreatorName, tmp->isUTF8);
 	}
 	return GF_OK;
@@ -1267,6 +1268,7 @@ GF_Err gf_odf_size_cc_name(GF_CC_Name *cnd, u32 *outSize)
 GF_Err gf_odf_write_cc_name(GF_BitStream *bs, GF_CC_Name *cnd)
 {
 	GF_Err e;
+	GF_ContentCreatorInfo *tmp;
 	u32 i, size;
 	if (!cnd) return GF_BAD_PARAM;
 
@@ -1276,9 +1278,8 @@ GF_Err gf_odf_write_cc_name(GF_BitStream *bs, GF_CC_Name *cnd)
 	if (e) return e;
 	gf_bs_write_int(bs, gf_list_count(cnd->ContentCreators), 8);
 
-	for (i = 0; i < gf_list_count(cnd->ContentCreators) ; i++) {
-		GF_ContentCreatorInfo *tmp = (GF_ContentCreatorInfo*)gf_list_get(cnd->ContentCreators, i);
-		if (! tmp) return GF_ODF_INVALID_DESCRIPTOR;
+	i=0;
+	while ((tmp = gf_list_enum(cnd->ContentCreators, &i))) {
 		gf_bs_write_int(bs, tmp->langCode, 24);
 		gf_bs_write_int(bs, tmp->isUTF8, 1);
 		gf_bs_write_int(bs, 0, 7);		//aligned
@@ -1786,15 +1787,16 @@ GF_Err gf_odf_read_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd, u32 DescS
 
 GF_Err gf_odf_size_exp_text(GF_ExpandedTextual *etd, u32 *outSize)
 {
-	u32 i, len, nonLen, lentmp;
+	u32 i, len, nonLen, lentmp, count;
+	GF_ETD_ItemText *tmp;
 	if (!etd) return GF_BAD_PARAM;
 
 	*outSize = 5;
 	if (gf_list_count(etd->itemDescriptionList) != gf_list_count(etd->itemTextList)) return GF_ODF_INVALID_DESCRIPTOR;
 
-	for (i = 0; i < gf_list_count(etd->itemDescriptionList) ; i++) {
-		GF_ETD_ItemText *tmp;
-		tmp = (GF_ETD_ItemText*)gf_list_get(etd->itemDescriptionList, i);
+	count = gf_list_count(etd->itemDescriptionList);
+	for (i=0; i<count; i++) {
+		tmp = gf_list_get(etd->itemDescriptionList, i);
 		*outSize += OD_SizeUTF8String(tmp->text, etd->isUTF8);
 		tmp = (GF_ETD_ItemText*)gf_list_get(etd->itemTextList, i);
 		*outSize += OD_SizeUTF8String(tmp->text, etd->isUTF8);
@@ -1828,7 +1830,7 @@ GF_Err gf_odf_size_exp_text(GF_ExpandedTextual *etd, u32 *outSize)
 GF_Err gf_odf_write_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd)
 {
 	GF_Err e;
-	u32 size, i, len, nonLen, lentmp;
+	u32 size, i, len, nonLen, lentmp, count;
 	GF_ETD_ItemText *tmp;
 	if (!etd) return GF_BAD_PARAM;
 
@@ -1844,8 +1846,9 @@ GF_Err gf_odf_write_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd)
 	gf_bs_write_int(bs, 0, 7);		//aligned
 	gf_bs_write_int(bs, gf_list_count(etd->itemDescriptionList), 8);
 
-	for (i = 0; i< gf_list_count(etd->itemDescriptionList); i++) {
-		tmp = (GF_ETD_ItemText*)gf_list_get(etd->itemDescriptionList, i);
+	count = gf_list_count(etd->itemDescriptionList);
+	for (i=0; i<count; i++) {
+		tmp = gf_list_get(etd->itemDescriptionList, i);
 		OD_WriteUTF8String(bs, tmp->text, etd->isUTF8);
 		tmp = (GF_ETD_ItemText*)gf_list_get(etd->itemTextList, i);
 		OD_WriteUTF8String(bs, tmp->text, etd->isUTF8);
@@ -2182,11 +2185,12 @@ GF_Err gf_odf_size_ipmp(GF_IPMP_Descriptor *ipmp, u32 *outSize)
 	*outSize = 3;
 	/*IPMPX escape*/
 	if ((ipmp->IPMP_DescriptorID==0xFF) && (ipmp->IPMPS_Type==0xFFFF)) {
+		GF_IPMPX_Data *p;
 		*outSize += 19;
 		if (ipmp->control_point) *outSize += 1;
 		s = 0;
-		for (i=0; i<gf_list_count(ipmp->ipmpx_data); i++) {
-			GF_IPMPX_Data *p = gf_list_get(ipmp->ipmpx_data, i);
+		i=0;
+		while ((p = gf_list_enum(ipmp->ipmpx_data, &i))) {
 			s += gf_ipmpx_data_full_size(p);
 		}
 		(*outSize) += s;
@@ -2214,13 +2218,14 @@ GF_Err gf_odf_write_ipmp(GF_BitStream *bs, GF_IPMP_Descriptor *ipmp)
 	gf_bs_write_int(bs, ipmp->IPMPS_Type, 16);
 
 	if ((ipmp->IPMP_DescriptorID==0xFF) && (ipmp->IPMPS_Type==0xFFFF)) {
+		GF_IPMPX_Data *p;
 		gf_bs_write_int(bs, ipmp->IPMP_DescriptorIDEx, 16);
 		gf_bs_write_data(bs, ipmp->IPMP_ToolID, 16);
 		gf_bs_write_int(bs, ipmp->control_point, 8);
 		if (ipmp->control_point) gf_bs_write_int(bs, ipmp->cp_sequence_code, 8);
 
-		for (i=0; i<gf_list_count(ipmp->ipmpx_data); i++) {
-			GF_IPMPX_Data *p = gf_list_get(ipmp->ipmpx_data, i);
+		i=0;
+		while ((p = gf_list_enum(ipmp->ipmpx_data, &i))) {
 			gf_ipmpx_data_write(bs, p);
 		}
 	}
@@ -2348,11 +2353,12 @@ GF_Err gf_odf_read_kw(GF_BitStream *bs, GF_KeyWord *kwd, u32 DescSize)
 GF_Err gf_odf_size_kw(GF_KeyWord *kwd, u32 *outSize)
 {
 	u32 i;
+	GF_KeyWordItem *tmp;
 	if (!kwd) return GF_BAD_PARAM;
 
 	*outSize = 5;
-	for (i = 0 ; i < gf_list_count(kwd->keyWordsList); i++) {
-		GF_KeyWordItem *tmp = (GF_KeyWordItem*)gf_list_get(kwd->keyWordsList, i);
+	i=0;
+	while ((tmp = gf_list_enum(kwd->keyWordsList, &i))) {
 		*outSize += OD_SizeUTF8String(tmp->keyWord, kwd->isUTF8);
 	}
 	return GF_OK;
@@ -2361,6 +2367,7 @@ GF_Err gf_odf_write_kw(GF_BitStream *bs, GF_KeyWord *kwd)
 {
 	GF_Err e;
 	u32 size, i;
+	GF_KeyWordItem *tmp;
 	if (!kwd) return GF_BAD_PARAM;
 
 	e = gf_odf_size_descriptor((GF_Descriptor *)kwd, &size);
@@ -2371,11 +2378,9 @@ GF_Err gf_odf_write_kw(GF_BitStream *bs, GF_KeyWord *kwd)
 	gf_bs_write_int(bs, 0, 7);		//aligned(8)
 	gf_bs_write_int(bs, gf_list_count(kwd->keyWordsList), 8);
 
-	for (i = 0; i< gf_list_count(kwd->keyWordsList); i++) {
-		GF_KeyWordItem *tmp = (GF_KeyWordItem*)gf_list_get(kwd->keyWordsList, i);
-		if (tmp) {
-			OD_WriteUTF8String(bs, tmp->keyWord, kwd->isUTF8);
-		} 
+	i=0;
+	while ((tmp = gf_list_enum(kwd->keyWordsList, &i))) {
+		OD_WriteUTF8String(bs, tmp->keyWord, kwd->isUTF8);
 	}
 	return GF_OK;
 }
@@ -2493,10 +2498,11 @@ GF_Descriptor *gf_odf_new_oci_name()
 GF_Err gf_odf_del_oci_name(GF_OCICreators *ocn)
 {
 	u32 i;
+	GF_OCICreator_item *tmp;
 	if (!ocn) return GF_BAD_PARAM;
 	
-	for (i = 0; i < gf_list_count(ocn->OCICreators); i++) {
-		GF_OCICreator_item *tmp = (GF_OCICreator_item*)gf_list_get(ocn->OCICreators, i);
+	i=0;
+	while ((tmp = gf_list_enum(ocn->OCICreators, &i))) {
 		if (tmp->OCICreatorName) free(tmp->OCICreatorName);
 		free(tmp);
 	}
@@ -2534,12 +2540,12 @@ GF_Err gf_odf_read_oci_name(GF_BitStream *bs, GF_OCICreators *ocn, u32 DescSize)
 GF_Err gf_odf_size_oci_name(GF_OCICreators *ocn, u32 *outSize)
 {
 	u32 i;
+	GF_OCICreator_item *tmp;
 	if (!ocn) return GF_BAD_PARAM;
 
 	*outSize = 1;
-	for (i = 0; i< gf_list_count(ocn->OCICreators) ; i++) {
-		GF_OCICreator_item *tmp = (GF_OCICreator_item*)gf_list_get(ocn->OCICreators, i);
-		if (! tmp) return GF_ODF_INVALID_DESCRIPTOR;
+	i=0;
+	while ((tmp = gf_list_enum(ocn->OCICreators, &i))) {
 		*outSize += 4 + OD_SizeUTF8String(tmp->OCICreatorName, tmp->isUTF8);
 	}
 	return GF_OK;
@@ -2550,6 +2556,7 @@ GF_Err gf_odf_write_oci_name(GF_BitStream *bs, GF_OCICreators *ocn)
 	GF_Err e;
 	u32 size;
 	u32 i;
+	GF_OCICreator_item *tmp;
 	if (!ocn) return GF_BAD_PARAM;
 
 	e = gf_odf_size_descriptor((GF_Descriptor *)ocn, &size);
@@ -2558,9 +2565,8 @@ GF_Err gf_odf_write_oci_name(GF_BitStream *bs, GF_OCICreators *ocn)
 	if (e) return e;
 	gf_bs_write_int(bs, gf_list_count(ocn->OCICreators), 8);
 
-	for (i = 0; i < gf_list_count(ocn->OCICreators) ; i++) {
-		GF_OCICreator_item *tmp = (GF_OCICreator_item*)gf_list_get(ocn->OCICreators, i);
-		if (! tmp) return GF_ODF_INVALID_DESCRIPTOR;
+	i=0;
+	while ((tmp = gf_list_enum(ocn->OCICreators, &i))) {
 		gf_bs_write_int(bs, tmp->langCode, 24);
 		gf_bs_write_int(bs, tmp->isUTF8, 1);
 		gf_bs_write_int(bs, 0, 7);		//aligned
@@ -2830,10 +2836,11 @@ GF_Descriptor *gf_odf_new_smpte_camera()
 GF_Err gf_odf_del_smpte_camera(GF_SMPTECamera *cpd)
 {
 	u32 i;
+	GF_SmpteParam *tmp; 
 	if (!cpd) return GF_BAD_PARAM;
 
-	for (i = 0; i < gf_list_count(cpd->ParamList); i++) {
-		GF_SmpteParam *tmp = (GF_SmpteParam*)gf_list_get(cpd->ParamList, i);
+	i=0;
+	while ((tmp = gf_list_enum(cpd->ParamList, &i))) {
 		free(tmp);
 	}
 	gf_list_del(cpd->ParamList);
@@ -2865,19 +2872,15 @@ GF_Err gf_odf_read_smpte_camera(GF_BitStream *bs, GF_SMPTECamera *cpd, u32 DescS
 
 GF_Err gf_odf_size_smpte_camera(GF_SMPTECamera *cpd, u32 *outSize)
 {
-	u32 i;
 	if (!cpd) return GF_BAD_PARAM;
-
-	*outSize = 2;
-	for (i = 0; i< gf_list_count(cpd->ParamList) ; i++) {
-		*outSize += 5 * gf_list_count(cpd->ParamList);
-	}
+	*outSize = 2 + 5 * gf_list_count(cpd->ParamList);
 	return GF_OK;
 }
 
 GF_Err gf_odf_write_smpte_camera(GF_BitStream *bs, GF_SMPTECamera *cpd)
 {
 	GF_Err e;
+	GF_SmpteParam *tmp;
 	u32 size, i;
 	if (!cpd) return GF_BAD_PARAM;
 
@@ -2888,9 +2891,8 @@ GF_Err gf_odf_write_smpte_camera(GF_BitStream *bs, GF_SMPTECamera *cpd)
 	gf_bs_write_int(bs, cpd->cameraID, 8);
 	gf_bs_write_int(bs, gf_list_count(cpd->ParamList), 8);
 
-	for (i = 0; i < gf_list_count(cpd->ParamList) ; i++) {
-		GF_SmpteParam *tmp = (GF_SmpteParam*)gf_list_get(cpd->ParamList, i);
-		if (! tmp) return GF_ODF_INVALID_DESCRIPTOR;
+	i=0;
+	while ((tmp = gf_list_enum(cpd->ParamList, &i))) {
 		gf_bs_write_int(bs, tmp->paramID, 8);
 		gf_bs_write_int(bs, tmp->param, 32);
 	}

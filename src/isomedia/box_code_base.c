@@ -1526,8 +1526,8 @@ GF_Err hinf_AddBox(GF_Box *s, GF_Box *a)
 	u32 i;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_MAXR:
-		for (i = 0; i < gf_list_count(hinf->dataRates); i++) {
-			maxR = gf_list_get(hinf->dataRates, i);
+		i=0;
+		while ((maxR = gf_list_enum(hinf->dataRates, &i))) {
 			if (maxR->granularity == ((GF_MAXRBox *)a)->granularity) return GF_ISOM_INVALID_FILE;
 		}
 		gf_list_add(hinf->dataRates, a);
@@ -3379,8 +3379,7 @@ void mp4a_del(GF_Box *s)
 	if (ptr == NULL) return;
 	if (ptr->esd) gf_isom_box_del((GF_Box *)ptr->esd);
 	if (ptr->slc) gf_odf_desc_del((GF_Descriptor *)ptr->slc);
-	if ((ptr->type == GF_ISOM_BOX_TYPE_ENCA) && (ptr->protection_info != NULL) ) 
-		gf_isom_box_del((GF_Box *)ptr->protection_info);
+	if (ptr->protection_info) gf_isom_box_del((GF_Box *)ptr->protection_info);
 	free(ptr);
 }
 
@@ -3499,9 +3498,7 @@ void mp4s_del(GF_Box *s)
 	if (ptr == NULL) return;
 	if (ptr->esd) gf_isom_box_del((GF_Box *)ptr->esd);
 	if (ptr->slc) gf_odf_desc_del((GF_Descriptor *)ptr->slc);
-	if ((ptr->type == GF_ISOM_BOX_TYPE_ENCS) && (ptr->protection_info)) {
-		gf_isom_box_del((GF_Box *)ptr->protection_info);
-	}
+	if (ptr->protection_info) gf_isom_box_del((GF_Box *)ptr->protection_info);
 	free(ptr);
 }
 
@@ -3597,8 +3594,7 @@ void mp4v_del(GF_Box *s)
 	if (ptr == NULL) return;
 	if (ptr->esd) gf_isom_box_del((GF_Box *)ptr->esd);
 	if (ptr->slc) gf_odf_desc_del((GF_Descriptor *)ptr->slc);
-	if ((ptr->type == GF_ISOM_BOX_TYPE_ENCV) && (ptr->protection_info))
-		gf_isom_box_del((GF_Box*)ptr->protection_info);
+	if (ptr->protection_info) gf_isom_box_del((GF_Box *)ptr->protection_info);
 	free(ptr);
 }
 
@@ -5107,8 +5103,8 @@ GF_Err stsh_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	gf_bs_write_u32(bs, gf_list_count(ptr->entries));
-	for (i = 0; i < gf_list_count(ptr->entries); i++) {
-		ent = (GF_StshEntry*)gf_list_get(ptr->entries, i);
+	i=0;
+	while ((ent = gf_list_enum(ptr->entries, &i))) {
 		gf_bs_write_u32(bs, ent->shadowedSampleNumber);
 		gf_bs_write_u32(bs, ent->syncSampleNumber);
 	}
@@ -5417,14 +5413,13 @@ GF_Err stsz_Size(GF_Box *s)
 
 void stts_del(GF_Box *s)
 {
-	u32 i;
 	GF_SttsEntry *ent;
 	GF_TimeToSampleBox *ptr = (GF_TimeToSampleBox *)s;
 	if (ptr == NULL) return;
 	if (ptr->entryList) {
-		for (i = 0; i < gf_list_count(ptr->entryList); i++) {
-			ent = (GF_SttsEntry*)gf_list_get(ptr->entryList, i);
-			if (ent) free(ent);
+		u32 i=0;
+		while ((ent = gf_list_enum(ptr->entryList, &i))) {
+			free(ent);
 		}
 		gf_list_del(ptr->entryList);
 	}
@@ -5496,8 +5491,8 @@ GF_Err stts_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	gf_bs_write_u32(bs, gf_list_count(ptr->entryList));
-	for (i = 0; i < gf_list_count(ptr->entryList); i++) {
-		ent = (GF_SttsEntry*)gf_list_get(ptr->entryList, i);
+	i=0;
+	while ((ent = gf_list_enum(ptr->entryList, &i))) {
 		gf_bs_write_u32(bs, ent->sampleCount);
 		gf_bs_write_u32(bs, ent->sampleDelta);
 	}
@@ -5899,11 +5894,12 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 	GF_GenericVisualSampleEntryBox *genv;
 	GF_GenericAudioSampleEntryBox *gena;
 	GF_GenericSampleEntryBox *genm;
+	GF_UnknownBox *a;
 	u32 i;
 	u64 read;
 
-	for (i=0; i<gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList); i++) {
-		GF_UnknownBox *a = gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, i);
+	i=0;
+	while ((a = gf_list_enum(trak->Media->information->sampleTable->SampleDescription->boxList, &i))) {
 		switch (a->type) {
 		case GF_ISOM_BOX_TYPE_MP4S:
 		case GF_ISOM_BOX_TYPE_ENCS:
@@ -5930,7 +5926,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		switch (trak->Media->handler->handlerType) {
 		case GF_ISOM_MEDIA_VISUAL:
 			/*remove entry*/
-			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->boxList, i);
+			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->boxList, i-1);
 			genv = (GF_GenericVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRV);
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
 			genv->size = a->size;
@@ -5944,11 +5940,11 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			genv->size = a->size;
 			genv->EntryType = a->type;
 			gf_isom_box_del((GF_Box *)a);
-			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->boxList, genv, i);
+			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->boxList, genv, i-1);
 			break;
 		case GF_ISOM_MEDIA_AUDIO:
 			/*remove entry*/
-			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->boxList, i);
+			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->boxList, i-1);
 			gena = (GF_GenericAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRA);
 			gena->size = a->size;
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
@@ -5962,12 +5958,12 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			gena->size = a->size;
 			gena->EntryType = a->type;
 			gf_isom_box_del((GF_Box *)a);
-			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->boxList, gena, i);
+			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->boxList, gena, i-1);
 			break;
 
 		default:
 			/*remove entry*/
-			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->boxList, i);
+			gf_list_rem(trak->Media->information->sampleTable->SampleDescription->boxList, i-1);
 			genm = (GF_GenericSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRM);
 			genm->size = a->size;
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
@@ -5983,7 +5979,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			genm->size = a->size;
 			genm->EntryType = a->type;
 			gf_isom_box_del((GF_Box *)a);
-			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->boxList, genm, i);
+			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->boxList, genm, i-1);
 			break;
 		}
 
@@ -6569,12 +6565,10 @@ void udta_del(GF_Box *s)
 	GF_UserDataMap *map;
 	GF_UserDataBox *ptr = (GF_UserDataBox *)s;
 	if (ptr == NULL) return;
-	for (i = 0; i < gf_list_count(ptr->recordList); i++) {
-		map = (GF_UserDataMap*)gf_list_get(ptr->recordList, i);
-		if (map) {
-			gf_isom_box_array_del(map->boxList);
-			free(map);
-		}
+	i=0;
+	while ((map = gf_list_enum(ptr->recordList, &i))) {
+		gf_isom_box_array_del(map->boxList);
+		free(map);
 	}
 	gf_list_del(ptr->recordList);
 	free(ptr);
@@ -6584,8 +6578,8 @@ GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 boxType, bin128 UUID)
 {
 	u32 i;
 	GF_UserDataMap *map;
-	for (i = 0; i < gf_list_count(ptr->recordList); i++) {
-		map = (GF_UserDataMap *) gf_list_get(ptr->recordList, i);
+	i=0;
+	while ((map = gf_list_enum(ptr->recordList, &i))) {
 		if (map->boxType == boxType) {
 			if (boxType != GF_ISOM_BOX_TYPE_UUID) return map;
 			if (!memcmp(map->uuid, UUID, 16)) return map;
@@ -6671,8 +6665,8 @@ GF_Err udta_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	for (i = 0; i < gf_list_count(ptr->recordList); i++) {
-		map = (GF_UserDataMap*)gf_list_get(ptr->recordList, i);
+	i=0;
+	while ((map = gf_list_enum(ptr->recordList, &i))) {
 		//warning: here we are not passing the actual "parent" of the list
 		//but the UDTA box. The parent itself is not an box, we don't care about it
 		e = gf_isom_box_array_write(s, map->boxList, bs);
@@ -6690,8 +6684,8 @@ GF_Err udta_Size(GF_Box *s)
 	
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
-	for (i = 0; i < gf_list_count(ptr->recordList); i++) {
-		map = (GF_UserDataMap*)gf_list_get(ptr->recordList, i);
+	i=0;
+	while ((map = gf_list_enum(ptr->recordList, &i))) {
 		//warning: here we are not passing the actual "parent" of the list
 		//but the UDTA box. The parent itself is not an box, we don't care about it
 		e = gf_isom_box_array_size(s, map->boxList);

@@ -624,29 +624,27 @@ IDD_OPT_RENDER3D DIALOG DISCARDABLE  0, 20, 169, 76
 STYLE DS_MODALFRAME | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
-    CONTROL         "Use OpenGL raster Outlines",IDC_RASTER_OUTLINE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,6,2,103,10
+    CONTROL         "Use OpenGL Outlines",IDC_RASTER_OUTLINE,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,5,2,84,10
     CONTROL         "Emulate power-of-two textures for video",IDC_EMUL_POW2,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,45,140,10
     CONTROL         "Polygon Anti-Aliasing",IDC_DISABLE_POLY_AA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,6,12,78,10
-    CONTROL         "Solid Draw",IDC_WIRE_NONE,"Button",BS_AUTORADIOBUTTON | 
-                    WS_GROUP,6,22,50,10
-    CONTROL         "Wireframe",IDC_WIRE_ONLY,"Button",BS_AUTORADIOBUTTON,60,
-                    22,48,10
-    CONTROL         "Both",IDC_WIRE_BOTH,"Button",BS_AUTORADIOBUTTON,112,22,
-                    31,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,90,2,78,10
     CONTROL         "Disable rectangular texture extensions",
                     IDC_DISABLE_TX_RECT,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,6,55,135,10
     CONTROL         "Bitmap node uses direct pixel copy",
                     IDC_BITMAP_USE_PIXEL,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,6,65,125,10
-    CONTROL         "No Backface Culling",IDC_NO_BACKCULL,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,89,12,78,10
-    LTEXT           "Draw Normals",IDC_STATIC,7,34,47,8
-    COMBOBOX        IDC_DRAW_NORMALS,58,32,59,44,CBS_DROPDOWNLIST | 
+    LTEXT           "Draw Normals",IDC_STATIC,4,17,45,8
+    COMBOBOX        IDC_DRAW_NORMALS,4,25,48,44,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Backface Cull",IDC_STATIC,57,17,55,8
+    COMBOBOX        IDC_BACK_CULL,57,25,47,44,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "Draw Mode",IDC_STATIC,113,17,55,8
+    COMBOBOX        IDC_DRAW_MODE,111,25,53,44,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
 END
 
 IDD_SLIDERS DIALOG DISCARDABLE  0, 0, 218, 18

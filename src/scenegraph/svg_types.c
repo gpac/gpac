@@ -30,13 +30,15 @@
 
 void gf_svg_reset_path(SVG_PathData d) 
 {
-	u32 i;
-	for (i = 0; i < gf_list_count(d.commands); i++) {
+	u32 i, count;
+	count = gf_list_count(d.commands);
+	for (i = 0; i < count; i++) {
 		u8 *command = gf_list_get(d.commands, i);
 		free(command);
 	}
 	gf_list_del(d.commands);
-	for (i = 0; i < gf_list_count(d.points); i++) {
+	count = gf_list_count(d.points);
+	for (i = 0; i < count; i++) {
 		SVG_Point *pt = gf_list_get(d.points, i);
 		free(pt);
 	}
@@ -45,8 +47,9 @@ void gf_svg_reset_path(SVG_PathData d)
 
 void gf_smil_delete_times(GF_List *list)
 {
-	u32 i;
-	for (i = 0; i < gf_list_count(list); i++) {
+	u32 i, count;
+	count = gf_list_count(list);
+	for (i = 0; i < count; i++) {
 		SMIL_Time *v=gf_list_get(list, i);
 		free(v);
 	}
@@ -55,8 +58,8 @@ void gf_smil_delete_times(GF_List *list)
 
 void gf_svg_delete_points(GF_List *list)
 {
-	u32 i;
-	for (i = 0; i < gf_list_count(list); i++) {
+	u32 i, count = gf_list_count(list);
+	for (i = 0; i < count; i++) {
 		SVG_Point *p=gf_list_get(list, i);
 		free(p);
 	}
@@ -65,8 +68,8 @@ void gf_svg_delete_points(GF_List *list)
 
 void gf_svg_delete_coordinates(GF_List *list)
 {
-	u32 i;
-	for (i = 0; i < gf_list_count(list); i++) {
+	u32 i, count = gf_list_count(list);
+	for (i = 0; i < count; i++) {
 		SVG_Coordinate *c=gf_list_get(list, i);
 		free(c);
 	}

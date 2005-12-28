@@ -41,11 +41,13 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 
 	szName = gf_isom_get_filename(mp4);
 	if (com->tag == GF_ODF_OD_UPDATE_TAG) {
+		GF_ObjectDescriptor *od;
 		GF_ODUpdate *odU = (GF_ODUpdate *)com;
-		for (i=0; i<gf_list_count(odU->objectDescriptors); i++) {
-			GF_ObjectDescriptor *od = gf_list_get(odU->objectDescriptors, i);
-			for (j=0; j<gf_list_count(od->ESDescriptors); j++) {
-				GF_ESD *esd = gf_list_get(od->ESDescriptors, j);
+		i=0;
+		while ((od = gf_list_enum(odU->objectDescriptors, &i))) {
+			GF_ESD *esd;
+			j=0;
+			while ((esd = gf_list_enum(od->ESDescriptors, &j))) {
 				if (esd->URLString) continue;
 				switch (esd->decoderConfig->streamType) {
 				case GF_STREAM_OD:
@@ -67,9 +69,10 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 		return;
 	}
 	if (com->tag == GF_ODF_ESD_UPDATE_TAG) {
+		GF_ESD *esd;
 		GF_ESDUpdate *esdU = (GF_ESDUpdate *)com;
-		for (i=0; i<gf_list_count(esdU->ESDescriptors); i++) {
-			GF_ESD *esd = gf_list_get(esdU->ESDescriptors, i);
+		i=0;
+		while ((esd = gf_list_enum(esdU->ESDescriptors, &i))) {
 			if (esd->URLString) continue;
 			switch (esd->decoderConfig->streamType) {
 			case GF_STREAM_OD:

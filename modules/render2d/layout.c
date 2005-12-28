@@ -309,7 +309,7 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 		}
 		if (l->leftToRight) {
 			current_left += gf_mulfix(l->spacing, li->width);
-		} else if (k < gf_list_count(st->lines) - 1) {
+		} else if (k < nbLines - 1) {
 			li = gf_list_get(st->lines, k+1);
 			current_left -= gf_mulfix(l->spacing, li->width);
 		}
@@ -318,10 +318,12 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 
 static void layout_scroll(LayoutStack *st, M_Layout *l)
 {
-	u32 i, hidden;
+	u32 i, hidden, nb_lines;
 	Fixed scrolled, tot_len, rate, ellapsed;
 	Bool smooth, do_scroll;
 	Double time;
+	ChildGroup2D *cg;
+
 
 	/*not scrolling*/
 	if (!st->scale_scroll && !st->is_scrolling) return;
@@ -373,7 +375,8 @@ static void layout_scroll(LayoutStack *st, M_Layout *l)
 	do_scroll = 0;
 
 	tot_len = 0;
-	for (i=0; i < gf_list_count(st->lines); i++) {
+	nb_lines = gf_list_count(st->lines);
+	for (i=0; i < nb_lines; i++) {
 		Fixed diff = scrolled - st->last_scroll;
 		LineInfo *li = gf_list_get(st->lines, i);
 		if (l->scrollVertical) {
@@ -400,8 +403,8 @@ static void layout_scroll(LayoutStack *st, M_Layout *l)
 		scrolled = st->last_scroll;
 
 	hidden = 0;
-	for (i=0; i<gf_list_count(st->groups); i++) {
-		ChildGroup2D *cg = gf_list_get(st->groups, i);
+	i=0;
+	while ((cg = gf_list_enum(st->groups, &i))) {
 		if (l->scrollVertical)
 			cg->final.y += st->scroll_offset + scrolled;
 		else
@@ -439,6 +442,7 @@ static void RenderLayout(GF_Node *node, void *rs)
 {
 	u32 i;
 	GF_Matrix2D gf_mx2d_bck;
+	ChildGroup2D *cg;
 	GroupingNode2D *parent_bck;
 	M_Layout *l = (M_Layout *)node;
 	LayoutStack *st = (LayoutStack *) gf_node_get_private(node);
@@ -475,8 +479,8 @@ static void RenderLayout(GF_Node *node, void *rs)
 	eff->text_split_mode = 0;
 
 	/*center all nodes*/
-	for (i=0; i<gf_list_count(st->groups); i++) {
-		ChildGroup2D *cg = gf_list_get(st->groups, i);
+	i=0;
+	while ((cg = gf_list_enum(st->groups, &i))) {
 		cg->final.x = - cg->final.width/2;
 		cg->final.y = cg->final.height/2;
 	}
@@ -487,8 +491,8 @@ static void RenderLayout(GF_Node *node, void *rs)
 	layout_scroll(st, l);
 
 	/*and finish*/
-	for (i=0; i<gf_list_count(st->groups); i++) {
-		ChildGroup2D *cg = gf_list_get(st->groups, i);
+	i=0;
+	while ((cg = gf_list_enum(st->groups, &i))) {
 		child2d_render_done(cg, (RenderEffect2D *)rs, &st->clip);
 	}
 	group2d_reset_children((GroupingNode2D*)st);

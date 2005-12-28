@@ -97,10 +97,10 @@ typedef struct
 
 void OGG_EndOfFile(OGGReader *read)
 {
-	u32 i;
+	OGGStream *st;
+	u32 i=0;
 	gf_term_on_sl_packet(read->service, read->od_ch, NULL, 0, NULL, GF_EOS);
-	for (i=0; i<gf_list_count(read->streams); i++) {
-		OGGStream *st = gf_list_get(read->streams, i);
+	while ((st = gf_list_enum(read->streams, &i))) {
 		gf_term_on_sl_packet(read->service, st->ch, NULL, 0, NULL, GF_EOS);
 	}
 }
@@ -202,6 +202,7 @@ static void OGG_SendStreams(OGGReader *read)
 	GF_SLHeader slh;
 	GF_ODUpdate *odU;
 	GF_ObjectDescriptor *od;
+	OGGStream *st;
 
 	if (!read->needs_od) return;
 	read->needs_od = 0;
@@ -210,8 +211,8 @@ static void OGG_SendStreams(OGGReader *read)
 	odU = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
 
 	/*this will NOT work properly for multi track files other than 1 video, 1 audio*/
-	for (i=0; i<gf_list_count(read->streams); i++) {
-		OGGStream *st = gf_list_get(read->streams, i);
+	i=0;
+	while ((st = gf_list_enum(read->streams, &i))) {
 		od = OGG_GetOD(st, 0);
 		gf_list_add(odU->objectDescriptors, od);
 	}
@@ -354,8 +355,8 @@ static void OGG_NewStream(OGGReader *read, ogg_page *oggpage)
 
 	/*reannounce of stream (caroussel in live streams) - until now I don't think icecast uses this*/
 	serial_no = ogg_page_serialno(oggpage);
-	for (i=0; i<gf_list_count(read->streams); i++) {
-		st = gf_list_get(read->streams, i);
+	i=0;
+	while ((st = gf_list_enum(read->streams, &i))) {
 		if (st->serial_no==serial_no) {
 			OGG_ResetupStream(read, st, oggpage);
 			return;
@@ -363,8 +364,8 @@ static void OGG_NewStream(OGGReader *read, ogg_page *oggpage)
 	}
 
 	/*look if we have the same stream defined (eg, reuse first stream dead with same header page)*/
-	for (i=0; i<gf_list_count(read->streams); i++) {
-		st = gf_list_get(read->streams, i);
+	i=0;
+	while ((st = gf_list_enum(read->streams, &i))) {
 		if (st->eos_detected) {
 			ogg_stream_state os;
 			ogg_stream_init(&os, serial_no);
@@ -563,7 +564,8 @@ static u32 OggDemux(void *par)
 {
 	GF_NetworkCommand com;
 	Bool go;
-	u32 i;
+	u32 i, count;
+	OGGStream *st;
 	OGGReader *read = (OGGReader *) par;
 
 	read->bos_done = 0;
@@ -618,8 +620,9 @@ static u32 OggDemux(void *par)
 		demuxer are synchronized*/
 		go = read->nb_playing;
 		while (go && !read->kill_demux) {
-			for (i=0; i<gf_list_count(read->streams); i++) {
-				OGGStream *st = gf_list_get(read->streams, i);
+			count = gf_list_count(read->streams);
+			for (i=0; i<count; i++) {
+				st = gf_list_get(read->streams, i);
 				if (!st->ch) continue;
 				com.base.on_channel = st->ch;
 				gf_term_on_command(read->service, &com, GF_OK);
@@ -816,6 +819,7 @@ static GF_Descriptor *OGG_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 	GF_ESD *esd;
 	u32 i;
 	GF_ObjectDescriptor *od;
+	OGGStream *st;
 	OGGReader *read = plug->priv;
 	/*since we don't handle multitrack in ogg yes, we don't need to check sub_url, only use expected type*/
 
@@ -823,8 +827,8 @@ static GF_Descriptor *OGG_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 	if ((expect_type==GF_MEDIA_OBJECT_AUDIO) || (expect_type==GF_MEDIA_OBJECT_VIDEO)) {
 		if ((expect_type==GF_MEDIA_OBJECT_AUDIO) && !read->has_audio) return NULL;
 		if ((expect_type==GF_MEDIA_OBJECT_VIDEO) && !read->has_video) return NULL;
-		for (i=0; i<gf_list_count(read->streams); i++) {
-			OGGStream *st = gf_list_get(read->streams, i);
+		i=0;
+		while ((st = gf_list_enum(read->streams, &i))) {
 			if ((expect_type==GF_MEDIA_OBJECT_AUDIO) && (st->info.streamType!=GF_STREAM_AUDIO)) continue;
 			if ((expect_type==GF_MEDIA_OBJECT_VIDEO) && (st->info.streamType!=GF_STREAM_VISUAL)) continue;
 			
@@ -854,6 +858,7 @@ static GF_Err OGG_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 {
 	u32 ES_ID, i;
 	GF_Err e;
+	OGGStream *st;
 	OGGReader *read = plug->priv;
 
 	e = GF_SERVICE_ERROR;
@@ -872,8 +877,8 @@ static GF_Err OGG_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 		e = GF_OK;
 		break;
 	default:
-		for (i=0; i<gf_list_count(read->streams); i++) {
-			OGGStream *st = gf_list_get(read->streams, i);
+		i=0;
+		while ((st = gf_list_enum(read->streams, &i))) {
 			if (st->ESID==ES_ID) {
 				st->ch = channel;
 				e = GF_OK;
@@ -898,9 +903,9 @@ static GF_Err OGG_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 		read->od_ch = NULL;
 		e = GF_OK;
 	} else {
-		u32 i;
-		for (i=0; i<gf_list_count(read->streams); i++) {
-			OGGStream *st = gf_list_get(read->streams, i);
+		OGGStream *st;
+		u32 i=0;
+		while ((st = gf_list_enum(read->streams, &i))) {
 			if (st->ch==channel) {
 				st->ch = NULL;
 				e = GF_OK;
@@ -947,9 +952,9 @@ static GF_Err OGG_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			read->needs_od = 1;
 			assert(!read->nb_playing);
 		} else {
-			u32 i;
-			for (i=0; i<gf_list_count(read->streams); i++) {
-				OGGStream *st = gf_list_get(read->streams, i);
+			OGGStream *st;
+			u32 i=0;
+			while ((st = gf_list_enum(read->streams, &i))) {
 				if (st->ch == com->base.on_channel) {
 					st->is_running = 1;
 					st->map_time = read->dur ? 1 : 0;
@@ -972,9 +977,9 @@ static GF_Err OGG_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		if (read->od_ch == com->base.on_channel) {
 		}
 		else {
-			u32 i;
-			for (i=0; i<gf_list_count(read->streams); i++) {
-				OGGStream *st = gf_list_get(read->streams, i);
+			OGGStream *st;
+			u32 i=0;
+			while ((st = gf_list_enum(read->streams, &i))) {
 				if (st->ch == com->base.on_channel) {
 					st->is_running = 0;
 					read->nb_playing --;

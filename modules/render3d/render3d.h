@@ -76,13 +76,14 @@ typedef struct _render3d
 	Bool emul_pow2;
 	/*use openGL for outline rather than vectorial ones*/
 	Bool raster_outlines;
-	Bool no_backcull;
 	/*disable RECT extensions (except for Bitmap...)*/
 	Bool disable_rect_ext;
 	/*disable RECT extensions (except for Bitmap...)*/
 	Bool bitmap_use_pixels;
 	/*disable RECT extensions (except for Bitmap...)*/
 	u32 draw_normals;
+	/*backface cull type: 0 off, 1: on, 2: on with transparency*/
+	u32 backcull;
 
 	/*top level effect for zoom/pan*/
 	struct _render3d_effect *top_effect;
@@ -200,12 +201,8 @@ typedef struct _render3d_effect
 
 	/*current object (model) transformation from top-level, view is NOT included*/
 	GF_Matrix model_matrix;
-	/*set if any scaling at current depth in subtree - needed for GL normalization :( */
-	Bool has_scale;
 	/*current color transformation from top-level*/
 	GF_ColorMatrix color_mat;
-	/*set if cmat is used*/
-	Bool has_cmat;
 
 	/*current appearance when traversing geometry nodes*/
 	GF_Node *appear;
@@ -251,9 +248,7 @@ typedef struct _render3d_effect
 	/*set to the first traversed layers when picking*/
 	GF_Node *collect_layer;
 
-
-	/*this flag is set when setting the material & texture to disable backface culling. Not used by non-solid meshes*/
-	Bool mesh_is_transparent;
+	Bool mesh_is_transparent, mesh_has_texture;
 
 	/*clip planes in world coords*/
 	GF_Plane clip_planes[MAX_USER_CLIP_PLANES];
@@ -343,11 +338,8 @@ typedef struct
 	GF_Node *node_to_draw;
 	/*model matrix at this node*/
 	GF_Matrix model_matrix;
-	Bool has_scale;
 	/*current color transformation*/
 	GF_ColorMatrix color_mat;
-	/*set if cmat is used*/
-	Bool has_cmat;
 	/*1-based idx of text element drawn*/
 	u32 split_text_idx;
 	/*needed for bitmap*/

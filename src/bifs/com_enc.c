@@ -456,33 +456,31 @@ GF_Err BE_EncProtoList(GF_BifsEncoder *codec, GF_List *protoList, GF_BitStream *
 		if (codec->info->UseName) gf_bifs_enc_name(codec, bs, proto->Name);
 
 		numFields = gf_list_count(proto->proto_fields);
-		if (numFields) {
-			for (j=0; j<numFields; j++) {
-				proto_field = gf_list_get(proto->proto_fields, j);
+		for (j=0; j<numFields; j++) {
+			proto_field = gf_list_get(proto->proto_fields, j);
 
-				GF_BE_WRITE_INT(codec, bs, 1, 1, "moreField", NULL);
-				GF_BE_WRITE_INT(codec, bs, proto_field->EventType, 2, "eventType", NULL);
-				GF_BE_WRITE_INT(codec, bs, proto_field->FieldType, 6, "fieldType", NULL);
-				
-				if (codec->info->UseName) gf_bifs_enc_name(codec, bs, proto_field->FieldName);
-				switch (proto_field->EventType) {
-				case GF_SG_EVENT_EXPOSED_FIELD:
-				case GF_SG_EVENT_FIELD:
-					gf_sg_proto_field_get_field(proto_field, &field);
-					if (gf_sg_vrml_is_sf_field(field.fieldType)) {
-						e = gf_bifs_enc_sf_field(codec, bs, NULL, &field);
-					} else {
-						if (codec->info->config.UsePredictiveMFField) GF_BE_WRITE_INT(codec, bs, 0, 1, "usePredictive", NULL);
-						e = gf_bifs_enc_mf_field(codec, bs, NULL, &field);
-					}
-					if (e) goto exit;
-					break;
+			GF_BE_WRITE_INT(codec, bs, 1, 1, "moreField", NULL);
+			GF_BE_WRITE_INT(codec, bs, proto_field->EventType, 2, "eventType", NULL);
+			GF_BE_WRITE_INT(codec, bs, proto_field->FieldType, 6, "fieldType", NULL);
+			
+			if (codec->info->UseName) gf_bifs_enc_name(codec, bs, proto_field->FieldName);
+			switch (proto_field->EventType) {
+			case GF_SG_EVENT_EXPOSED_FIELD:
+			case GF_SG_EVENT_FIELD:
+				gf_sg_proto_field_get_field(proto_field, &field);
+				if (gf_sg_vrml_is_sf_field(field.fieldType)) {
+					e = gf_bifs_enc_sf_field(codec, bs, NULL, &field);
+				} else {
+					if (codec->info->config.UsePredictiveMFField) GF_BE_WRITE_INT(codec, bs, 0, 1, "usePredictive", NULL);
+					e = gf_bifs_enc_mf_field(codec, bs, NULL, &field);
 				}
-				if (proto_field->QP_Type) useQuant = 1;
-				if (proto_field->Anim_Type) useAnim = 1;
+				if (e) goto exit;
+				break;
 			}
-			GF_BE_WRITE_INT(codec, bs, 0, 1, "moreField", NULL);
+			if (proto_field->QP_Type) useQuant = 1;
+			if (proto_field->Anim_Type) useAnim = 1;
 		}
+		GF_BE_WRITE_INT(codec, bs, 0, 1, "moreField", NULL);
 		
 		GF_BE_WRITE_INT(codec, bs, proto->ExternProto.count ? 1 : 0, 1, "externProto", NULL);
 		/*externProto*/
