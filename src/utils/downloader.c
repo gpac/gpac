@@ -333,7 +333,17 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 	const char *opt;
 	if (!strnicmp(url, "http://", 7)) {
 		url += 7;
+#ifdef GPAC_WITH_PROXY_MNGMT
+		{
+			char *portStr = gf_cfg_get_key(sess->dm->cfg, "PROXY", "PORT");
+			if (portStr)
+				sess->port = atoi(portStr);
+			else
+				sess->port = 80;
+		}
+#else
 		sess->port = 80;
+#endif
 		sess->do_requests = http_do_requests;
 	} 
 	else if (!strnicmp(url, "https://", 8)) {
