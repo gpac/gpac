@@ -259,6 +259,7 @@ static void svg_parse_named_color(SVG_Color *col, char *attribute_content)
    ignores any space, comma, semi-column before and any space after
    TODO: 
 	transform the char into char and duplicate the input, instead of modifying it
+		be more robust to errors in color description ex rgb(0 0 0)
 */
 static void svg_parse_color(SVG_Color *col, char *attribute_content)
 {
