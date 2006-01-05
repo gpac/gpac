@@ -344,7 +344,7 @@ static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, 
 	HRESULT hr;
 	u32 dst_w, dst_h, src_w, src_h, flags;
 	RECT r_dst, r_src;
-
+	u32 left, top;
 	src_w = src_wnd ? src_wnd->w : src->width;
 	src_h = src_wnd ? src_wnd->h : src->height;
 	dst_w = dst_wnd ? dst_wnd->w : dd->width;
@@ -363,7 +363,8 @@ static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, 
 	if ((dst_w==src_w) && (dst_h==src_h)) {
 		flags = DDBLTFAST_WAIT;
 		if (key) flags |= DDBLTFAST_SRCCOLORKEY;
-		hr = IDirectDrawSurface_BltFast(dd->pBack, dst_wnd ? r_dst.left : 0, dst_wnd ? r_dst.top : 0, src->pSurface, src_wnd ? &r_src : NULL, flags);
+		if (dst_wnd) { left = r_dst.left; top = r_dst.top; } else left = top = 0; 
+		hr = IDirectDrawSurface_BltFast(dd->pBack, left, top, src->pSurface, src_wnd ? &r_src : NULL, flags);
 	} else {
 		flags = DDBLT_WAIT;
 		if (key) flags |= DDBLT_KEYSRC;
