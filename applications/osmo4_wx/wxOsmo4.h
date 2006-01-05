@@ -34,9 +34,6 @@ include first to avoid Bool type redef between X11 and gpac
 #include <X11/Xlib.h>
 #endif
 
-#include <gpac/terminal.h>
-#include <gpac/term_info.h>
-
 #include "wx/wxprec.h"
 
 #ifndef WX_PRECOMP
@@ -46,8 +43,11 @@ include first to avoid Bool type redef between X11 and gpac
 #include <wx/image.h>
 #include <wx/listctrl.h>
 #include <wx/event.h>
-
 #include "menubtn.h"
+
+/*include gpac AFTER wx in case we override malloc/realloc/free for mem tracking*/
+#include <gpac/terminal.h>
+#include <gpac/term_info.h>
 
 class wxOsmo4App : public wxApp
 {
@@ -94,6 +94,7 @@ enum {
 	VIEW_AR_169,
 	VIEW_OPTIONS,
 	VIEW_LOGS,
+	VIEW_RTI,
 	VIEW_PLAYLIST,
 	SWITCH_RENDER,
 	APP_SHORTCUTS,
@@ -293,6 +294,7 @@ private:
 	void OnSlide(wxScrollEvent &event);
 	void OnRelease(wxScrollEvent &event);
 	void OnLogs(wxCommandEvent & event);
+	void OnRTI(wxCommandEvent & event);
 	void OnUpdatePlay(wxUpdateUIEvent &event);
 	void OnUpdateNeedsConnect(wxUpdateUIEvent &event);
 	void OnUpdateFullScreen(wxUpdateUIEvent &event);
@@ -367,7 +369,7 @@ private:
 
 	u32 m_num_chapters;
 	Double *m_chapters_start;
-	Bool m_bExternalView;
+	Bool m_bExternalView, m_bViewRTI;
 
 	void ShowViewWindow(Bool do_show);
 };

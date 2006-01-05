@@ -71,12 +71,17 @@ typedef char s8;
 #endif
 
 /*win32 assert*/
+#ifndef assert
+
 void CE_Assert(u32 valid);
 #ifndef NDEBUG
 #define assert( t )	CE_Assert((unsigned int) (t) )
 #else
 #define assert(t)
 #endif
+
+#endif
+
 
 /*performs wide->char and char->wide conversion on a buffer GF_MAX_PATH long*/
 void CE_WideToChar(unsigned short *w_str, char *str);
@@ -224,7 +229,9 @@ typedef u32 Bool;
 #endif
 
 /*GPAC memory tracking*/
-#if 0
+#define GPAC_MEMORY_TRACKING 0
+
+#if GPAC_MEMORY_TRACKING
 void *gf_malloc(size_t size);
 void *gf_realloc(void *ptr, size_t size);
 void gf_free(void *ptr);

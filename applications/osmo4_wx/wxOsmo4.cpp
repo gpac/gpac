@@ -643,6 +643,7 @@ wxDEFAULT_FRAME_STYLE
 	m_last_prog = -1;
 	m_num_chapters = 0;
 	m_chapters_start = NULL;
+	m_bViewRTI = 0;
 
 	gf_sys_init();
 
@@ -710,6 +711,7 @@ wxDEFAULT_FRAME_STYLE
 	menu->AppendSeparator();
 	menu->Append(VIEW_OPTIONS, wxT("&Options"), wxT("View Options"));
 	menu->AppendSeparator();
+	menu->Append(VIEW_RTI, wxT("&Resource Usage"), wxT("View Resource Usage"), wxITEM_CHECK);
 	menu->Append(VIEW_LOGS, wxT("&Logs"), wxT("View GPAC logs"));
 	b->Append(menu, wxT("&View"));
 
@@ -954,6 +956,7 @@ BEGIN_EVENT_TABLE(wxOsmo4Frame, wxFrame)
 	EVT_TIMER(ID_CTRL_TIMER, wxOsmo4Frame::OnTimer)
 	EVT_COMMAND_SCROLL(ID_SLIDER, wxOsmo4Frame::OnSlide)
 	EVT_MENU(VIEW_LOGS, wxOsmo4Frame::OnLogs)
+	EVT_MENU(VIEW_RTI, wxOsmo4Frame::OnRTI)
 
 	EVT_MENUBUTTON_OPEN(FILE_PREV, wxOsmo4Frame::OnFilePrevOpen)
 	EVT_MENUBUTTON_OPEN(FILE_NEXT, wxOsmo4Frame::OnFileNextOpen)
@@ -1494,6 +1497,19 @@ void wxOsmo4Frame::SetStatus(wxString str)
 	m_LastStatusTime = gf_sys_clock();
 }
 
+#define RTI_REFRESH_MS		500
+void wxOsmo4Frame::OnRTI(wxCommandEvent & event)
+{
+	m_bViewRTI = event.IsChecked();
+	if (m_bViewRTI) {
+		if (!m_pTimer->IsRunning()) m_pTimer->Start(RTI_REFRESH_MS, 0);
+	} else if (!m_connected && m_pTimer->IsRunning()) {
+		m_LastStatusTime = 0;
+		m_pStatusbar->SetStatusText(wxT("Ready"), 2); 
+		m_pTimer->Stop();
+	}
+}
+
 void wxOsmo4Frame::OnTimer(wxTimerEvent& WXUNUSED(event))
 {
 	wxString str;
@@ -1505,6 +1521,18 @@ void wxOsmo4Frame::OnTimer(wxTimerEvent& WXUNUSED(event))
 			m_pStatusbar->SetStatusText(wxT("Ready"), 2); 
 		}
 	}
+
+	if (m_bViewRTI) {
+		GF_SystemRTInfo rti;
+		if (!gf_sys_get_rti(RTI_REFRESH_MS, &rti, 0)) return;
+		if (rti.gpac_memory) rti.process_memory = rti.gpac_memory;
+
+		str = wxString::Format(wxT("CPU %02d (%02d) - Mem %d kB" ), 
+						rti.total_cpu_usage, rti.process_cpu_usage, rti.gpac_memory/1024);
+
+		m_pStatusbar->SetStatusText(str, 2); 
+	}
+	if (!m_connected) return;
 
 	now = gf_term_get_time_in_ms(m_term);
 	if (!now) return;
@@ -1557,7 +1585,7 @@ void wxOsmo4Frame::OnTimer(wxTimerEvent& WXUNUSED(event))
 void wxOsmo4Frame::ConnectAcknowledged(Bool bOk) 
 {
 	if (bOk) {
-		m_pTimer->Start(100, 0);
+		m_pTimer->Start(RTI_REFRESH_MS, 0);
 		m_connected = 1;
 		m_bToReset = 0;
 		UpdatePlay();

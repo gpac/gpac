@@ -1005,7 +1005,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 	if (name) {
 		undef_node = gf_sg_find_node_by_name(parser->load->scene_graph, name);
 		if (undef_node) {
-			s32 idx = gf_list_del_item(parser->peeked_nodes, undef_node);
+			gf_list_del_item(parser->peeked_nodes, undef_node);
 			ID = undef_node->sgprivate->NodeID;
 			/*if we see twice a DEF N1 then force creation of a new node*/
 			if (gf_bt_has_been_def(parser, name)) {

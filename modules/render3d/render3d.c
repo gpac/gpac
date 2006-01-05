@@ -674,7 +674,7 @@ void R3D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_root, void *rs)
 
 static Bool R3D_ScriptAction(GF_VisualRenderer *vr, u32 type, GF_Node *n, GF_JSAPIParam *param)
 {
-	Render3D *sr = (Render3D *)vr->user_priv;
+	//Render3D *sr = (Render3D *)vr->user_priv;
 
 	switch (type) {
 	case GF_JSAPI_OP_LOAD_URL:

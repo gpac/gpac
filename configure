@@ -61,6 +61,7 @@ has_x11_shm="no"
 disable_svg="no"
 no_gcc_opt="no"
 use_fixed_point="no"
+use_memory_tracking="no"
 has_opengl="no"
 has_ssl="no"
 
@@ -111,6 +112,7 @@ echo "  --dxsdk-path=DX_PATH     specify directX SDK for MinGW [$dxsdk_path]"
 echo "  --mozdir=MOZ_PATH        specify mozilla main directory path for system install"
 echo ""
 echo "  --enable-debug           produce debug version"
+echo "  --track-memory           enables tracking of all memory allocated by gpac"
 echo "  --disable-fragments      disable movie fragments in ISO media support"
 echo "  --disable-opt            disable GCC optimizations"
 echo "  --disable-oss-audio      disable OSS audio"
@@ -568,10 +570,10 @@ EOF
 if $cc -o $TMPO $TMPC -ltheora 2> /dev/null  ; then
 has_theora="system"
 elif test "$alt_macosx_dir" != "" ; then
- if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -ltheora 2> /dev/null ; then
+ if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -ltheora -logg 2> /dev/null ; then
  has_theora="system"
  fi
-elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -ltheora -lm 2> /dev/null  ; then
+elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -ltheora -logg -lm 2> /dev/null  ; then
 has_theora="local"
 fi
 
@@ -670,6 +672,8 @@ for opt do
   --disable-svg) disable_svg="yes"
   ;;
   --enable-fixed-point) use_fixed_point="yes"
+  ;;
+  --track-memory) use_memory_tracking="yes"
   ;;
   --disable-opengl) has_opengl="no"
   ;;
@@ -905,6 +909,7 @@ fi
 echo ""
 echo "** GPAC $version Core Configuration **"
 echo "debug version: $debuginfo"
+echo "Memory tracking enabled: $use_memory_tracking"
 echo "read-only version: $make_readonly"
 echo "fixed-point version: $use_fixed_point"
 echo "IsoMedia MovieFragments support: $iso_fragments"
@@ -996,6 +1001,13 @@ if test "$has_amr_wb" = "yes" ; then
   echo "or through gpac_extra_libs and extracted src to modules/amr_float_dec/amr_wb_ft"
   echo "without overwriting typedefs.h file"
   echo ""
+fi
+
+if test "$use_memory_tracking" = "yes"; then
+echo "!! WARNING: GPAC Memory tracking is enabled !!"
+echo "!! This may corrupt third-party tools using libgpac !!"
+echo "!! Use at your own risk, and only for GPAC benchmarking !!"
+echo ""
 fi
 
 echo "Creating config.mak"
@@ -1135,11 +1147,30 @@ echo "X11_LIB_PATH=$X11_LIB_PATH" >> config.mak
 
 #overwrite fixed-point in math.h
 if test "$use_fixed_point" = "yes"; then
+if grep "#define GPAC_NO_FIXED_POINT" $source_path/include/gpac/math.h > /dev/null 2>&1 ; then
 sed -e 's/#define GPAC_NO_FIXED_POINT/#define GPAC_FIXED_POINT/' $source_path/include/gpac/math.h >$TMPH
-else
-sed -e 's/#define GPAC_FIXED_POINT/#define GPAC_NO_FIXED_POINT/' $source_path/include/gpac/math.h >$TMPH
-fi
 cp -f $TMPH $source_path/include/gpac/math.h
+fi
+else
+if grep "#define GPAC_FIXED_POINT" $source_path/include/gpac/math.h > /dev/null 2>&1 ; then
+sed -e 's/#define GPAC_FIXED_POINT/#define GPAC_NO_FIXED_POINT/' $source_path/include/gpac/math.h >$TMPH
+cp -f $TMPH $source_path/include/gpac/math.h
+fi
+fi
+
+
+#overwrite memory tracking in setup.h
+if test "$use_memory_tracking" = "yes"; then
+if grep "#define GPAC_MEMORY_TRACKING 0" $source_path/include/gpac/setup.h > /dev/null 2>&1 ; then
+sed -e 's/#define GPAC_MEMORY_TRACKING 0/#define GPAC_MEMORY_TRACKING 1/' $source_path/include/gpac/setup.h >$TMPH
+cp -f $TMPH $source_path/include/gpac/setup.h
+fi
+else
+if grep "#define GPAC_MEMORY_TRACKING 1" $source_path/include/gpac/setup.h > /dev/null 2>&1 ; then
+sed -e 's/#define GPAC_MEMORY_TRACKING 1/#define GPAC_MEMORY_TRACKING 0/' $source_path/include/gpac/setup.h >$TMPH
+cp -f $TMPH $source_path/include/gpac/setup.h
+fi
+fi
 
 
 # build tree in object directory if source path is different from current one

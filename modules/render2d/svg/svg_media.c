@@ -470,7 +470,6 @@ static void SVG_Render_audio(GF_Node *node, void *rs)
 {
 	SVGPropertiesPointers backup_props;
 	RenderEffect2D *eff = (RenderEffect2D*)rs;
-	SVGaudioElement *audio = (SVGaudioElement *)node;
 	SVG_audio_stack *st = (SVG_audio_stack *)gf_node_get_private(node);
 
 #ifdef DANAE

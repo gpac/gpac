@@ -10,7 +10,7 @@ LDFLAGS+=-g
 endif
 
 #common obj
-OBJS= main.o ../../../src/utils/list.o
+OBJS= main.o ../../../src/utils/list.o ../../../src/utils/error.o
 
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe

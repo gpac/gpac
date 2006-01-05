@@ -1042,16 +1042,14 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 		}
 	}
 
-	/*update all timed nodes*/
-	count = gf_list_count(sr->time_nodes);
-	for (i=0; i<count; i++) {
+	/*update all timed nodes */
+	for (i=0; i<gf_list_count(sr->time_nodes); i++) {
 		GF_TimeNode *tn = gf_list_get(sr->time_nodes, i);
 		if (!tn->needs_unregister) tn->UpdateTimeNode(tn);
 		if (tn->needs_unregister) {
 			tn->is_registered = 0;
 			tn->needs_unregister = 0;
 			gf_list_rem(sr->time_nodes, i);
-			count--;
 			i--;
 			continue;
 		}

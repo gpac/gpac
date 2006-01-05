@@ -26,8 +26,6 @@
 #ifndef _FILEPROPS_H
 #define _FILEPROPS_H
 
-#include <gpac/terminal.h>
-
 #include "wx/wxprec.h"
 
 #ifndef WX_PRECOMP
@@ -36,6 +34,7 @@
 
 #include <wx/treectrl.h>
 
+#include <gpac/terminal.h>
 
 /*abstract class for all items in the tree*/
 class ODTreeData : public wxTreeItemData

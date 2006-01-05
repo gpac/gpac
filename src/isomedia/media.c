@@ -499,6 +499,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 			stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp-1, &DTSprev);
 			trak->Media->mediaHeader->duration += (DTS - DTSprev);
 		} else {
+#ifndef GPAC_READ_ONLY
 			if (trak->Media->information->sampleTable->CompositionOffset) {
 				u32 count, i;
 				u64 max_ts;
@@ -528,6 +529,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 					}
 				}
 			}
+#endif
 			trak->Media->mediaHeader->duration += ent->sampleDelta;
 		}
 		return GF_OK;

@@ -219,7 +219,9 @@ void VS3D_DrawMeshIntern(RenderEffect3D *eff, GF_Mesh *mesh)
 
 	if ((eff->mesh_has_texture != 1) && (mesh->flags & MESH_HAS_COLOR)) {
 		glEnable(GL_COLOR_MATERIAL);
+#if !defined (GPAC_USE_OGL_ES)
 		glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
+#endif
 		glEnableClientState(GL_COLOR_ARRAY);
 		has_col = 1;
 

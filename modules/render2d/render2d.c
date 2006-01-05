@@ -509,10 +509,12 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 		SensorHandler *sh = gf_list_get(sr->sensors, i);
 		act = ! sh->skip_second_pass;
 		sh->skip_second_pass = 0;
-		count = gf_list_count(sr->sensors);
 		if (act)
 			sh->OnUserEvent(sh, ev, NULL);
-		if (count != gf_list_count(sr->sensors)) i-= 1;
+		if (count != gf_list_count(sr->sensors)) {
+			count--;
+			i-= 1;
+		}
 	}	
 	
 	/*activate current one if any*/
