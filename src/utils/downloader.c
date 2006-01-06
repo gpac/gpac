@@ -938,7 +938,7 @@ void http_do_requests(GF_DownloadSession *sess)
 		}
 #endif	
 
-		sprintf(sHTTP, "GET %s HTTP/1.0\r\n"
+		sprintf(sHTTP, "GET http://%s:%d%s HTTP/1.0\r\n"
 					"Host: %s:%d\r\n"
 					"User-Agent: %s\r\n"
 					"Accept: */*\r\n"
@@ -946,7 +946,7 @@ void http_do_requests(GF_DownloadSession *sess)
 					"%s"
 					"%s"
 					"\r\n", 
-					sess->remote_path, 
+					sess->server_name, sess->port, sess->remote_path, 
 					sess->server_name,
 					sess->port,
 					GF_DOWNLOAD_AGENT_NAME,
