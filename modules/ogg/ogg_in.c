@@ -217,7 +217,7 @@ static void OGG_SendStreams(OGGReader *read)
 		gf_list_add(odU->objectDescriptors, od);
 	}
 	gf_odf_codec_add_com(codec, (GF_ODCom *)odU);
-	gf_odf_codec_encode(codec);
+	gf_odf_codec_encode(codec, 1);
 	data = NULL;
 	data_len = 0;
 	gf_odf_codec_get_au(codec, &data, &data_len);

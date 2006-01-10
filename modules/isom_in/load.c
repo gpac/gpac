@@ -123,7 +123,7 @@ GF_Descriptor *isor_emulate_iod(ISOMReader *read)
 	}
 
 	gf_odf_codec_add_com(codec, (GF_ODCom *)odU);
-	gf_odf_codec_encode(codec);
+	gf_odf_codec_encode(codec, 1);
 	gf_odf_codec_get_au(codec, &read->od_au, &read->od_au_size);
 	gf_odf_codec_del(codec);
 

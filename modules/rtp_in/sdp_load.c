@@ -221,7 +221,7 @@ GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, u32 expect_type, const char *sub_ur
 		}
 	}
 	gf_odf_codec_add_com(codec, (GF_ODCom *) odU);
-	gf_odf_codec_encode(codec);
+	gf_odf_codec_encode(codec, 1);
 	if (rtp->od_au) free(rtp->od_au);
 	rtp->od_au = NULL;
 	gf_odf_codec_get_au(codec, &rtp->od_au, &rtp->od_au_size);

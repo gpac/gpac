@@ -207,7 +207,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 		}
 	}
 	//encode our new AU
-	e = gf_odf_codec_encode(ODencode);
+	e = gf_odf_codec_encode(ODencode, 1);
 	if (e) goto err_exit;
 
 	//and set the buffer in the sample
@@ -405,7 +405,7 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 	}
 
 	//encode our new AU
-	e = gf_odf_codec_encode(ODencode);
+	e = gf_odf_codec_encode(ODencode, 1);
 	if (e) goto err_exit;
 
 	//and set the buffer in the sample

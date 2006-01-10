@@ -354,7 +354,7 @@ static GF_Err TTIn_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, ch
 			gf_list_add(odU->objectDescriptors, od);
 			codec = gf_odf_codec_new();
 			gf_odf_codec_add_com(codec, (GF_ODCom *)odU);
-			gf_odf_codec_encode(codec);
+			gf_odf_codec_encode(codec, 1);
 			gf_odf_codec_get_au(codec, &tti->od_data, &tti->od_data_size);
 			gf_odf_codec_del(codec);
 		}

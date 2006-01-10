@@ -324,7 +324,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		free(samp->data);
 		samp->data = NULL;
 		samp->dataLength = 0;
-		gf_odf_codec_encode(cod);
+		gf_odf_codec_encode(cod, 1);
 		gf_odf_codec_get_au(cod, &samp->data, &samp->dataLength);
 		gf_odf_codec_del(cod);
 		gf_isom_update_sample(mp4, i+1, 1, samp, 1);
@@ -648,7 +648,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		free(samp->data);
 		samp->data = NULL;
 		samp->dataLength = 0;
-		gf_odf_codec_encode(cod);
+		gf_odf_codec_encode(cod, 1);
 		gf_odf_codec_get_au(cod, &samp->data, &samp->dataLength);
 		ipmpdU = NULL;
 		gf_odf_codec_del(cod);

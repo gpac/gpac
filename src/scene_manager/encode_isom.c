@@ -810,6 +810,9 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 	GF_Err e;
 	GF_ODCodec *codec;
 	GF_InitialObjectDescriptor *iod;
+	GF_List *od_state, *ipmp_state;
+
+	gf_isom_set_pl_indication(mp4, GF_ISOM_PL_OD, 0xFE);
 
 	iod = (GF_InitialObjectDescriptor *) ctx->root_od;
 	count = 0;
@@ -824,6 +827,9 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 	esd = NULL;
 	codec = NULL;
 	delete_desc = 0;
+
+	od_state = gf_list_new();
+	ipmp_state = gf_list_new();
 
 	i=0;
 	while ((sc = gf_list_enum(ctx->streams, &i))){
@@ -951,7 +957,7 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 				/*add to codec*/
 				gf_odf_codec_add_com(codec, com);
 			}
-			e = gf_odf_codec_encode(codec);
+			e = gf_odf_codec_encode(codec, 0);
 			if (e) goto err_exit;
 
 			/*time in sec conversion*/
@@ -999,6 +1005,9 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 	e = gf_isom_set_pl_indication(mp4, GF_ISOM_PL_OD, 1);
 	
 err_exit:
+	gf_list_del(od_state);
+	gf_list_del(ipmp_state);
+
 	if (codec) gf_odf_codec_del(codec);
 	if (esd && delete_desc) gf_odf_desc_del((GF_Descriptor *) esd);
 	return e;
@@ -1058,10 +1067,9 @@ GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOp
 		GF_InitialObjectDescriptor *iod =  (GF_InitialObjectDescriptor *)ctx->root_od;
 		gf_isom_set_pl_indication(mp4, GF_ISOM_PL_OD, iod->OD_profileAndLevel);
 		gf_isom_set_pl_indication(mp4, GF_ISOM_PL_SCENE, iod->scene_profileAndLevel);
-		gf_isom_set_pl_indication(mp4, GF_ISOM_PL_GRAPHICS, iod->graphics_profileAndLevel);
-		/*these are setup while importing*/
-//		gf_isom_set_pl_indication(mp4, GF_ISOM_PL_VISUAL, iod->visual_profileAndLevel);
-//		gf_isom_set_pl_indication(mp4, GF_ISOM_PL_AUDIO, iod->audio_profileAndLevel);
+	} else {
+		gf_isom_set_pl_indication(mp4, GF_ISOM_PL_SCENE, 0xFE);
+		gf_isom_set_pl_indication(mp4, GF_ISOM_PL_GRAPHICS, 0xFE);
 	}
 
 	return GF_OK;

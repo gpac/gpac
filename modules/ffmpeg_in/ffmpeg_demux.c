@@ -710,7 +710,7 @@ GF_Err FFD_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out
 		}
 		odc = gf_odf_codec_new();
 		gf_odf_codec_add_com(odc, com);
-		gf_odf_codec_encode(odc);
+		gf_odf_codec_encode(odc, 1);
 		gf_odf_codec_get_au(odc, &ffd->od_au, &ffd->od_au_size);
 		gf_odf_codec_del(odc);
 		*is_new_data = 1;

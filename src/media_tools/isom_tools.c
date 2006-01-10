@@ -279,7 +279,7 @@ GF_Err gp_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	codec = gf_odf_codec_new();
 	samp = gf_isom_sample_new();
 	gf_odf_codec_add_com(codec, (GF_ODCom *)odU);
-	gf_odf_codec_encode(codec);
+	gf_odf_codec_encode(codec, 1);
 	gf_odf_codec_get_au(codec, &samp->data, &samp->dataLength);
 	gf_odf_codec_del(codec);
 	samp->CTS_Offset = 0;

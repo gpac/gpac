@@ -2629,7 +2629,7 @@ void JSScript_LoadSVG(GF_Node *node)
 	JSBool ret;
 	jsval rval;
 	SVGscriptElement *script = (SVGscriptElement *)node;
-	if (!script->xlink->type || strcmp(script->xlink->type, "text/ecmascript") || !script->textContent) return;
+	if (/*!script->xlink->type || strcmp(script->xlink->type, "text/ecmascript") || */ !script->textContent) return;
 
 	if (!node->sgprivate->scenegraph->svg_js) {
 		GF_SVGJS *svg_js;
@@ -2657,7 +2657,6 @@ void JSScript_LoadSVG(GF_Node *node)
 		node->sgprivate->scenegraph->js_ifce->ScriptMessage(node->sgprivate->scenegraph->js_ifce->callback, GF_SCRIPT_ERROR, "SVG: Invalid script");
 		return;
 	}
-
 	return;
 }
 

@@ -488,7 +488,7 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 			gf_list_add(odU->objectDescriptors, od);
 			codec = gf_odf_codec_new();
 			gf_odf_codec_add_com(codec, (GF_ODCom *)odU);
-			gf_odf_codec_encode(codec);
+			gf_odf_codec_encode(codec, 1);
 			gf_odf_codec_get_au(codec, &read->od_data, &read->od_data_size);
 			gf_odf_codec_del(codec);
 		}

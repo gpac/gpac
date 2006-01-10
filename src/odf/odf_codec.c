@@ -69,10 +69,11 @@ GF_Err gf_odf_codec_add_com(GF_ODCodec *codec, GF_ODCom *command)
 	return gf_list_add(codec->CommandList, command);
 }
 
-GF_Err gf_odf_codec_encode(GF_ODCodec *codec)
+GF_Err gf_odf_codec_encode(GF_ODCodec *codec, Bool delete_content)
 {
 	GF_ODCom *com;
 	GF_Err e;
+	u32 i;
 
 	if (!codec) return GF_BAD_PARAM;
 	
@@ -82,25 +83,26 @@ GF_Err gf_odf_codec_encode(GF_ODCodec *codec)
 	codec->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	if (!codec->bs) return GF_OUT_OF_MEM;
 
-	//encode each command and delete them from the list
-	while (gf_list_count(codec->CommandList)) {
-		com = (GF_ODCom*)gf_list_get(codec->CommandList, 0);
+	/*encode each command*/
+	i = 0;
+	while ((com = gf_list_enum(codec->CommandList, &i))) {
 		e = gf_odf_write_command(codec->bs, com); if (e) goto err_exit;
 		//don't forget OD Commands are aligned...
 		gf_bs_align(codec->bs);
-		gf_odf_delete_command(com);
-		gf_list_rem(codec->CommandList, 0);
 	}
-	return GF_OK;
 
 //if an error occurs, delete the GF_BitStream and empty the codec
 err_exit:
-	gf_bs_del(codec->bs);
-	codec->bs = NULL;
-	while (gf_list_count(codec->CommandList)) {
-		com = (GF_ODCom*)gf_list_get(codec->CommandList, 0);
-		gf_odf_delete_command(com);
-		gf_list_rem(codec->CommandList, 0);
+	if (e) {
+		gf_bs_del(codec->bs);
+		codec->bs = NULL;
+	}
+	if (delete_content) {
+		while (gf_list_count(codec->CommandList)) {
+			com = gf_list_get(codec->CommandList, 0);
+			gf_odf_delete_command(com);
+			gf_list_rem(codec->CommandList, 0);
+		}
 	}
 	return e;
 }

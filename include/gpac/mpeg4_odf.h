@@ -931,7 +931,7 @@ void gf_odf_codec_del(GF_ODCodec *codec);
 /* add a command to the codec command list. */
 GF_Err gf_odf_codec_add_com(GF_ODCodec *codec, GF_ODCom *command);
 /*encode the current coimmand list - once called the commands are destroyed*/
-GF_Err gf_odf_codec_encode(GF_ODCodec *codec);
+GF_Err gf_odf_codec_encode(GF_ODCodec *codec, Bool delete_content);
 /*get the encoded AU. user is responsible of allocated space*/
 GF_Err gf_odf_codec_get_au(GF_ODCodec *codec, char **outAU, u32 *au_length);
 /* set the encoded AU to the codec*/
