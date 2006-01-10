@@ -690,6 +690,9 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			parser->laser_au = gf_sm_stream_au_new(parser->laser_es, time, 0, rap);
 			return;			
 		}
+		if (!strcmp(name, "endOfSAFSession") ) {
+			return;
+		}
 		if (!parser->laser_au) {
 			svg_report(parser, GF_BAD_PARAM, "LASeR Scene unit not defined for command %s", name);
 			return;
