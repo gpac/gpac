@@ -295,8 +295,9 @@ GF_Err gf_sk_send_to(GF_Socket *sock, unsigned char *buffer, u32 length, unsigne
  *\param multi_port the multicast port number
  *\param TTL the multicast TTL (Time-To-Live)
  *\param no_bind if sets, only join the multicast
+ *\param local_interface_ip the local interface IP address if desired. If NULL, the default interface will be used.
  */
-GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_ip_add, u16 multi_port, u32 TTL, Bool no_bind);
+GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_ip_add, u16 multi_port, u32 TTL, Bool no_bind, char *local_interface_ip);
 /*!
  *brief multicast address test
  *

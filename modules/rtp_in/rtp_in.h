@@ -85,6 +85,8 @@ typedef struct
 	u32 buffer_len_ms;
 	/*rebuffer low limit in ms - if the amount of buffering is less than this, rebuffering will never occur*/
 	u32 rebuffer_len_ms;
+	/*default interface for multicast*/
+	char *default_mcast_ifce;
 
 	/*packet drop emulation*/
 	u32 first_packet_drop;

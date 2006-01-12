@@ -46,6 +46,10 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 		rtp->rtp_mode = 0;
 	}
 
+	if (rtp->default_mcast_ifce) free(rtp->default_mcast_ifce);
+	rtp->default_mcast_ifce = NULL;
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "DefaultMCastInterface");
+	if (sOpt) rtp->default_mcast_ifce = strdup(sOpt);
 
 	/*
 		get heneral network config for UDP
@@ -601,8 +605,9 @@ static Bool RP_CanHandleURLInService(GF_InputService *plug, const char *url)
 GF_InputService *RTP_Load()
 {
 	RTPClient *priv;
-	GF_InputService *plug = malloc(sizeof(GF_InputService));
-	memset(plug, 0, sizeof(GF_InputService));
+	GF_InputService *plug;
+	GF_SAFEALLOC(plug, sizeof(GF_InputService));
+
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC RTP/RTSP Client", "gpac distribution")
 
 	plug->CanHandleURL = RP_CanHandleURL;
@@ -670,6 +675,7 @@ void RTP_Delete(GF_BaseInterface *bi)
 	gf_list_del(priv->channels);
 	gf_th_del(priv->th);
 	gf_mx_del(priv->mx);
+	if (priv->default_mcast_ifce) free(priv->default_mcast_ifce);
 	free(priv);
 	free(bi);
 }

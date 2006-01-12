@@ -568,8 +568,10 @@ MaxReorderDelay: max time to wait in ms before releasing first packet in reodere
 If 0 and reordering size is specified, defaults to 200 ms (usually enough).
 IsSource: if true, the channel is a sender (media data, sender report, Reciever report processing)
 if source, you must specify the Path MTU size. The RTP lib won't send any packet bigger than this size
-your application shall perform payload size splitting if needed*/
-GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u32 PathMTU, u32 ReorederingSize, u32 MaxReorderDelay);
+your application shall perform payload size splitting if needed
+local_interface_ip: local interface address to use for multicast. If NULL, default address is used
+*/
+GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u32 PathMTU, u32 ReorederingSize, u32 MaxReorderDelay, char *local_interface_ip);
 
 /*init the RTP info after a PLAY or PAUSE, rtp_time is the rtp TimeStamp of the RTP packet
 with seq_num sequence number. This info is needed to compute the CurrentTime of the RTP channel 

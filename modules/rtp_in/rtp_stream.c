@@ -97,7 +97,7 @@ GF_Err RP_InitStream(RTPStream *ch, Bool ResetOnly)
 
 	if (!ResetOnly) {
 		memset(&ch->sl_hdr, 0, sizeof(GF_SLHeader));
-		return gf_rtp_initialize(ch->rtp_ch, RTP_BUFFER_SIZE, 0, 0, ch->owner->reorder_size, 200);
+		return gf_rtp_initialize(ch->rtp_ch, RTP_BUFFER_SIZE, 0, 0, ch->owner->reorder_size, 200, ch->owner->default_mcast_ifce);
 	}
 	//just reset the sockets
 	gf_rtp_reset_buffers(ch->rtp_ch);

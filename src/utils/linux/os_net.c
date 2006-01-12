@@ -308,7 +308,7 @@ u32 gf_sk_is_multicast_address(char *multi_IPAdd)
 }
 
 //binds MULTICAST
-GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNumber, u32 TTL, Bool NoBind)
+GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNumber, u32 TTL, Bool NoBind, char *local_interface_ip)
 {
 	s32 ret;
 	s32 optval;
@@ -331,30 +331,39 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 	optval = SO_REUSEADDR;
 	setsockopt(sock->socket, SOL_SOCKET, SO_REUSEADDR, (const char *) &optval, sizeof(optval));
 
+	if (local_interface_ip) local_add = inet_addr(local_interface_ip);
+	else local_add = INADDR_ANY;
+
 	//bind to ANY interface WITHOUT port number
 	LocalAdd.sin_family = AF_INET;
-	LocalAdd.sin_addr.s_addr = htonl(INADDR_ANY);
+	LocalAdd.sin_addr.s_addr = local_add;
 	LocalAdd.sin_port = htons( MultiPortNumber);
 
 	if (!NoBind) {
 		//bind the socket
 		ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, sizeof(LocalAdd));
 		if (ret == SOCKET_ERROR) {
-			return GF_IP_CONNECTION_FAILURE;
+			/*retry without specifying the local add*/
+			LocalAdd.sin_addr.s_addr = local_add = INADDR_ANY;
+			local_interface_ip = NULL;
+			ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, sizeof(LocalAdd));
+			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 		}
 	}
 	sock->status = SK_STATUS_BIND;
  
+	//setup local interface
+	if (local_interface_ip) {
+		ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_IF, (char *) &local_add, sizeof(local_add));
+		if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+	}
+
 	//now join the multicast
 	M_req.imr_multiaddr.s_addr = mc_add;
-	//ANY interfaces for now
-	M_req.imr_interface.s_addr = INADDR_ANY;
-	ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, 
-				(char *) &M_req, sizeof(M_req));
+	M_req.imr_interface.s_addr = local_add;
 
-	if (ret == SOCKET_ERROR) {
-		return GF_IP_CONNECTION_FAILURE;
-	}
+	ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &M_req, sizeof(M_req));
+	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 	
 	//set the Time To Live
 	ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&TTL, sizeof(TTL));
