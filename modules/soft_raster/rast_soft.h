@@ -65,11 +65,11 @@ typedef struct
 
 typedef struct
 {
-	s16 n_contours;
-	s16 n_points;
+	s32 n_contours;
+	s32 n_points;
 	EVG_Vector *points;
 	u8 *tags;
-	s16 *contours;
+	s32 *contours;
 	s32 flags; /*same as path flags*/
 } EVG_Outline;
 
@@ -141,11 +141,9 @@ struct _evg_surface
 	/*FreeType outline (path converted to ft)*/
 	EVG_Outline ftoutline;
 	EVG_Raster_Params ftparams;
+	/*transformed point list*/
 	u32 pointlen;
-	u32 contourlen;
 	EVG_Vector *points;
-	s8 *tags;
-	s16 *contours;
 
 	/*FreeType raster and pool size*/
 	EVG_Raster raster;

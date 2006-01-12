@@ -280,7 +280,7 @@ static JSBool udom_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *
 	gf_list_add( ((GF_ParentNode *)node)->children, listener);
 	gf_node_register((GF_Node *)handler, node);
 	gf_list_add(((GF_ParentNode *)node)->children, handler);
-	handler->ev_event = listener->event = evtType;
+	handler->ev_event.type = listener->event.type = evtType;
 	listener->handler.target = (SVGElement *) handler;
 	listener->target.target = (SVGElement *)node;
 	handler->textContent = strdup(callback);
@@ -330,7 +330,7 @@ static JSBool udom_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 	for (i=0; i<count; i++) {
 		SVGhandlerElement *hdl;
 		SVGlistenerElement *el = (SVGlistenerElement*)gf_node_listener_get(node, i);
-		if ((el->event != evtType) || !el->handler.target) continue;
+		if ((el->event.type != evtType) || !el->handler.target) continue;
 		hdl = (SVGhandlerElement *)el->handler.target;
 		if (!hdl->textContent || strcmp(hdl->textContent, callback)) continue;
 		gf_node_listener_del(node, (GF_Node *) el);
@@ -776,8 +776,6 @@ static JSBool udom_get_trait(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	case SVG_IRI_datatype:
 	case SVG_String_datatype:
 	case SVG_ContentType_datatype:
-	case SVG_TextContent_datatype:
-	case SVG_LinkTarget_datatype:
 	case SVG_LanguageID_datatype:
 	case SVG_Focus_datatype:
 	case SVG_ID_datatype:
@@ -845,9 +843,7 @@ static JSBool udom_get_float_trait(JSContext *c, JSObject *obj, uintN argc, jsva
 	case SVG_Coordinate_datatype:
 	{
 		SVG_Number *l = (SVG_Number *)info.far_ptr;
-		if (l->type==SVG_NUMBER_UNKNOWN || 
-			l->type==SVG_NUMBER_AUTO || 
-			l->type==SVG_NUMBER_INHERIT) return JS_FALSE;
+		if (l->type==SVG_NUMBER_AUTO || l->type==SVG_NUMBER_INHERIT) return JS_FALSE;
 		*rval = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(l->value) ) );
 		return JS_TRUE;
 	}
@@ -1057,8 +1053,6 @@ static JSBool udom_set_trait(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	case SVG_IRI_datatype:
 	case SVG_String_datatype:
 	case SVG_ContentType_datatype:
-	case SVG_TextContent_datatype:
-	case SVG_LinkTarget_datatype:
 	case SVG_LanguageID_datatype:
 /*end of DOM string traits*/
 		svg_parse_attribute((SVGElement *) n, &info, val, 0, 0);

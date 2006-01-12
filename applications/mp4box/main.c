@@ -214,7 +214,7 @@ void PrintEncodeUsage()
 			"\n"
 			"LASeR Encoding options\n"
 			" -resolution res:     resolution factor (-8 to 7)\n"
-			"                       all floats are multiplied by 2^(-res)\n"
+			"                       all coords are multiplied by 2^res\n"
 			" -coord-bits bits:    bits used for encoding coordinates (default 12)\n"
 			" -scale-bits bits:    extra bits used for encoding scales (default 0)\n"
 			);

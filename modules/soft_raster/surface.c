@@ -52,9 +52,6 @@ GF_SURFACE evg_surface_new(GF_Raster2D *_dr, Bool center_coords)
 void evg_surface_delete(GF_SURFACE _this)
 {
 	EVGSurface *surf = (EVGSurface *)_this;
-
-	if (surf->contours) free(surf->contours);
-	if (surf->tags) free(surf->tags);
 	if (surf->points) free(surf->points);
 	if (surf->stencil_pix_run) free(surf->stencil_pix_run);
 	evg_raster_del(surf->raster);
@@ -305,37 +302,11 @@ GF_Err evg_surface_set_clipper(GF_SURFACE _this , GF_IRect *rc)
 	return GF_OK;
 }
 
-
-static GF_Err evg_resizecontours(EVGSurface *surf, u32 num)
-{
-	if (surf->contourlen < num) {
-		if (surf->contours != NULL) free(surf->contours);
-		surf->contours = malloc(sizeof (s16) * num);
-		if (surf->contours == NULL) {
-			surf->contourlen = 0;
-			return GF_OUT_OF_MEM;
-		}
-		surf->contourlen = num;
-	}
-	return GF_OK;
-}
-
 static GF_Err evg_resizepoints(EVGSurface *surf, u32 num)
 {
 	if (surf->pointlen < num) {
-		if (surf->points != NULL) free(surf->points);
-		surf->points = NULL;
-
-		if (surf->tags != NULL) free(surf->tags);
-		surf->tags = NULL;
-
-		surf->points = malloc(sizeof (EVG_Vector) * num);
+		surf->points = realloc(surf->points, sizeof(EVG_Vector) * num);
 		if (surf->points == NULL) {
-			surf->pointlen = 0;
-			return GF_OUT_OF_MEM;
-		}
-		surf->tags = malloc(sizeof(s8) * num);
-		if (surf->tags == NULL) {
 			surf->pointlen = 0;
 			return GF_OUT_OF_MEM;
 		}
@@ -471,16 +442,12 @@ GF_Err evg_surface_set_path(GF_SURFACE _this, GF_Path *gp)
 	surf->ftoutline.n_points = gp->n_points;
 	surf->ftoutline.n_contours = gp->n_contours;
 
+	surf->ftoutline.tags = gp->tags;
+	surf->ftoutline.contours = gp->contours;
+
 	e = evg_resizepoints(surf, gp->n_points);
 	if (e) return e;
-	e = evg_resizecontours(surf, gp->n_contours);
-	if (e) return e;
-
 	surf->ftoutline.points = surf->points;
-	surf->ftoutline.tags = surf->tags;
-	surf->ftoutline.contours = surf->contours;
-
-	for (i=0; i<gp->n_contours; i++) surf->contours[i] = gp->contours[i];
 
 	is_identity = gf_mx2d_is_identity(surf->mat);
 	gf_path_get_bounds(gp, &surf->path_bounds);
@@ -499,7 +466,6 @@ GF_Err evg_surface_set_path(GF_SURFACE _this, GF_Path *gp)
 			surf->points[i].x = (u32) (pt.x * 0x10000L);
 			surf->points[i].y = (u32) (pt.y * 0x10000L);
 #endif
-			surf->tags[i] = gp->tags[i];
 		}
 	} else {
 		for (i=0; i<gp->n_points; i++) {
@@ -513,7 +479,6 @@ GF_Err evg_surface_set_path(GF_SURFACE _this, GF_Path *gp)
 			surf->points[i].x = (u32) (pt.x * 0x10000L);
 			surf->points[i].y = (u32) (pt.y * 0x10000L);
 #endif
-			surf->tags[i] = gp->tags[i];
 		}
 	}
 

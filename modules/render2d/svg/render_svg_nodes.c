@@ -772,24 +772,29 @@ static void SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 
 void SVG_Init_a(Render2D *sr, GF_Node *node)
 {
+	XMLEV_Event evt;
 	SVGhandlerElement *handler;
 	gf_node_set_render_function(node, SVG_Render_a);
 
 	/*listener for onClick event*/
-	handler = gf_sg_dom_create_listener(node, SVG_DOM_EVT_CLICK);
+	evt.parameter = 0;
+	evt.type = SVG_DOM_EVT_CLICK;
+	handler = gf_sg_dom_create_listener(node, evt);
 	/*and overwrite handler*/
 	handler->handle_event = SVG_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
 
 	/*listener for activate event*/
-	handler = gf_sg_dom_create_listener(node, SVG_DOM_EVT_ACTIVATE);
+	evt.type = SVG_DOM_EVT_ACTIVATE;
+	handler = gf_sg_dom_create_listener(node, evt);
 	/*and overwrite handler*/
 	handler->handle_event = SVG_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
 
 #ifndef DANAE
 	/*listener for mouseover event*/
-	handler = gf_sg_dom_create_listener(node, SVG_DOM_EVT_MOUSEOVER);
+	evt.type = SVG_DOM_EVT_MOUSEOVER;
+	handler = gf_sg_dom_create_listener(node, evt);
 	/*and overwrite handler*/
 	handler->handle_event = SVG_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
@@ -877,7 +882,7 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	if (lg->x1.type==SVG_NUMBER_PERCENTAGE) start.x /= 100;
 	start.y = lg->y1.value;
 	if (lg->y1.type==SVG_NUMBER_PERCENTAGE) start.y /= 100;
-	end.x = lg->x2.type ? lg->x2.value : FIX_ONE;
+	end.x = lg->x2.value;
 	if (lg->x2.type==SVG_NUMBER_PERCENTAGE) end.x /= 100;
 	end.y = lg->y2.value;
 	if (lg->y2.type==SVG_NUMBER_PERCENTAGE) end.x /= 100;
@@ -928,11 +933,11 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	//GradientGetMatrix((GF_Node *) rg->transform, mat);
 	gf_mx2d_init(*mat);
 
-	radius = rg->r.type ? rg->r.value : FIX_ONE/2;
+	radius = rg->r.value;
 	if (rg->r.type==SVG_NUMBER_PERCENTAGE) radius /= 100;
-	center.x = rg->cx.type ? rg->cx.value : FIX_ONE/2;
+	center.x = rg->cx.value;
 	if (rg->cx.type==SVG_NUMBER_PERCENTAGE) center.x /= 100;
-	center.y = rg->cy.type ? rg->cy.value : FIX_ONE/2;
+	center.y = rg->cy.value;
 	if (rg->cy.type==SVG_NUMBER_PERCENTAGE) center.y /= 100;
 
 	focal = center;

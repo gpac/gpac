@@ -1472,11 +1472,13 @@ static void lsr_write_value_with_units(GF_LASeRCodec *lsr, SVG_Number *n, const 
 	}
 }
 
-static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, char *evtName)
+static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 {
-	if (evtName) {
+	if (evtParam) {
+		char szName[1024];
 		GF_LSR_WRITE_INT(lsr, 0, 1, "choice");
-		lsr_write_byte_align_string(lsr, evtName, "evtString");
+		sprintf(szName, "%s(%c)", gf_dom_event_name(evtType), evtParam);
+		lsr_write_byte_align_string(lsr, szName, "evtString");
 	} else {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "choice");
 		/*enumeration abort{0} activate{1} begin{2} click{3} end{4} error{5} focusin{6} focusout{7} 
@@ -2087,9 +2089,9 @@ static void lsr_write_script(GF_LASeRCodec *lsr, SVGscriptElement *elt)
 	GF_LSR_WRITE_INT(lsr, 1/*elt->enabled*/, 1, "enabled");
 	GF_LSR_WRITE_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
 	lsr_write_content_type(lsr, elt->xlink->type, "type");
-	lsr_write_href(lsr, NULL /*&elt->xlink->href*/);
+	lsr_write_href(lsr, &elt->xlink->href);
 	lsr_write_any_attribute(lsr, (GF_Node *) elt, clone);
-	lsr_write_command_list(lsr, NULL, elt);
+	lsr_write_command_list(lsr, elt->lsr_script.com_list, elt);
 	gf_node_unregister((GF_Node *)clone, NULL);
 }
 static void lsr_write_set(GF_LASeRCodec *lsr, SVGsetElement *elt, SVGElement *parent)
@@ -2368,9 +2370,9 @@ static void lsr_write_listener(GF_LASeRCodec *lsr, SVGlistenerElement *elt)
 	GF_LSR_WRITE_INT(lsr, elt->defaultAction ? 1 : 0, 1, "hasDefaultAction");
 	if (elt->defaultAction) GF_LSR_WRITE_INT(lsr, 1, 1, "defaultAction");
 	GF_LSR_WRITE_INT(lsr, 1/*elt->endabled*/, 1, "enabled");
-	if (elt->event != SVG_DOM_EVT_UNKNOWN) {
+	if (elt->event.type != SVG_DOM_EVT_UNKNOWN) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "hasEvent");
-		lsr_write_event_type(lsr, elt->event, NULL);
+		lsr_write_event_type(lsr, elt->event.type, elt->event.parameter);
 	} else {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "hasEvent");
 	}
@@ -2688,9 +2690,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVGElement *elt, u32 fiel
 			break;
 
 		case SVG_String_datatype:
-		case SVG_TextContent_datatype:
 		case SVG_ContentType_datatype:
-		case SVG_LinkTarget_datatype:
 		case SVG_LanguageID_datatype:
 			GF_LSR_WRITE_INT(lsr, 0, 1, "isInherit"); 
 			GF_LSR_WRITE_INT(lsr, 0, 1, "escapeFlag"); 
@@ -2817,9 +2817,12 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGs
 {
 	GF_CommandField *field;
 	u32 i, count = 0;
+	GF_BitStream *old_bs;
+
 	if (com_list) count += gf_list_count(com_list);
 	if (script && script->textContent) count += 1;
 
+	old_bs = NULL;
 	if (script) {
 		lsr_write_private_attributes(lsr, (SVGElement *) script);
 		if (!count) {
@@ -2827,6 +2830,9 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGs
 			return GF_OK;
 		}
 		GF_LSR_WRITE_INT(lsr, 1, 1, "opt_group");
+
+		old_bs = lsr->bs;
+		lsr->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	}
 	lsr_write_vluimsbf5(lsr, count, "occ0");
 
@@ -2834,7 +2840,8 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGs
 		GF_LSR_WRITE_INT(lsr, 11, 4, "ch4");
 		lsr_write_byte_align_string(lsr, script->textContent, "textContent");
 	}
-	if (!com_list) return GF_OK;
+	if (!com_list) goto exit;
+
 	count = gf_list_count(com_list);
 	for (i=0; i<count; i++) {
 		GF_Command *com = gf_list_get(com_list, i);
@@ -2883,16 +2890,30 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGs
 			return GF_BAD_PARAM;
 		}
 		/*same-coding scope is command-based (to check in the spec)*/
-		if (!script) {
-			lsr->prev_g = NULL;
-			lsr->prev_line = NULL;
-			lsr->prev_path = NULL;
-			lsr->prev_polygon = NULL;
-			lsr->prev_rect = NULL;
-			lsr->prev_text = NULL;
-			lsr->prev_use = NULL;
-		}
+		lsr->prev_g = NULL;
+		lsr->prev_line = NULL;
+		lsr->prev_path = NULL;
+		lsr->prev_polygon = NULL;
+		lsr->prev_rect = NULL;
+		lsr->prev_text = NULL;
+		lsr->prev_use = NULL;
 	}
+
+exit:
+	/*script is aligned*/
+	if (script)	{
+		unsigned char *data;
+		u32 data_size;
+		gf_bs_get_content(lsr->bs, &data, &data_size);
+		gf_bs_del(lsr->bs);
+		lsr->bs = old_bs;
+		lsr_write_vluimsbf5(lsr, data_size, "length");
+		/*script is aligned*/
+		gf_bs_align(lsr->bs);
+		gf_bs_write_data(lsr->bs, data, data_size);
+		free(data);
+	}
+
 	return GF_OK;
 }
 

@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Tue Dec 20 16:07:46 2005
+	DO NOT MOFIFY - File generated on GMT Wed Jan 11 13:25:55 2006
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -4338,7 +4338,7 @@ static GF_Err gf_svg_handler_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "ev:event";
-			info->fieldType = SVG_XSLT_QName_datatype;
+			info->fieldType = XMLEV_Event_datatype;
 			info->far_ptr = & ((SVGhandlerElement *)node)->ev_event;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
@@ -5075,6 +5075,8 @@ void *gf_svg_new_linearGradient()
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
+	p->x2.value = FIX_ONE;
+	p->y2.value = FIX_ONE;
 	return p;
 }
 
@@ -5343,6 +5345,9 @@ static void gf_svg_listener_del(GF_Node *node)
 {
 	SVGlistenerElement *p = (SVGlistenerElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	gf_svg_reset_iri((SVGElement *)node, &p->observer);
+	gf_svg_reset_iri((SVGElement *)node, &p->target);
+	gf_svg_reset_iri((SVGElement *)node, &p->handler);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -5387,7 +5392,7 @@ static GF_Err gf_svg_listener_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "event";
-			info->fieldType = SVG_XML_Name_datatype;
+			info->fieldType = XMLEV_Event_datatype;
 			info->far_ptr = & ((SVGlistenerElement *)node)->event;
 			return GF_OK;
 		case 8:
@@ -6832,6 +6837,9 @@ void *gf_svg_new_radialGradient()
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
+	p->cx.value = FIX_ONE/2;
+	p->cy.value = FIX_ONE/2;
+	p->r.value = FIX_ONE/2;
 	return p;
 }
 
@@ -7449,6 +7457,7 @@ void *gf_svg_new_script()
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
+	svg_init_lsr_script(&p->lsr_script);
 	return p;
 }
 
@@ -7456,6 +7465,7 @@ static void gf_svg_script_del(GF_Node *node)
 {
 	SVGscriptElement *p = (SVGscriptElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	svg_reset_lsr_script(&p->lsr_script);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -8161,6 +8171,8 @@ void *gf_svg_new_svg()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_sync((SVGElement *)p);
+	p->width.value = INT2FIX(100);
+	p->height.value = INT2FIX(100);
 	return p;
 }
 

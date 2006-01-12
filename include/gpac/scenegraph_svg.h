@@ -36,115 +36,102 @@ extern "C" {
 enum {
 	SVG_Unknown_datatype					= 0,
 
-	SVG_Boolean_datatype					= 1,
-	
-	SVG_Color_datatype						= 2,
-	SVG_Paint_datatype						= 3,
-	SVG_SVGColor_datatype = SVG_Paint_datatype,
-
 	/* keyword enum types */
-	SVG_FillRule_datatype					= 5,
+	SVG_FillRule_datatype					= 1,
 	SVG_Clip_datatype = SVG_FillRule_datatype,
-	SVG_StrokeLineJoin_datatype				= 6,
-	SVG_StrokeLineCap_datatype				= 7,
-	SVG_FontStyle_datatype					= 8,
-	SVG_FontWeight_datatype					= 9,
-	SVG_FontVariant_datatype				= 10,
-	SVG_TextAnchor_datatype					= 11,
-	SVG_TransformType_datatype				= 12, 
-	SVG_Display_datatype					= 13, 
-	SVG_Visibility_datatype					= 14,
-	SVG_Overflow_datatype					= 15,
-	SVG_ZoomAndPan_datatype					= 16,
-	SVG_DisplayAlign_datatype				= 17,
-	SVG_PointerEvents_datatype				= 18,
-	SVG_RenderingHint_datatype				= 19,
-	SVG_VectorEffect_datatype				= 20,
-	SVG_PlaybackOrder_datatype				= 21,
-	SVG_TimelineBegin_datatype				= 22,
-	XML_Space_datatype						= 23,
-	XMLEV_Propagate_datatype				= 24,
-	XMLEV_DefaultAction_datatype			= 25,
-	XMLEV_Phase_datatype					= 26,
-	SMIL_SyncBehavior_datatype				= 27,
-	SMIL_SyncTolerance_datatype				= 28,
-	SMIL_AttributeType_datatype				= 29,
-	SMIL_CalcMode_datatype					= 30,
-	SMIL_Additive_datatype					= 31,
-	SMIL_Accumulate_datatype				= 32,
-	SMIL_Restart_datatype					= 33,
-	SMIL_Fill_datatype						= 34,	
-	SVG_GradientUnit_datatype				= 81,
-	SVG_InitialVisibility_datatype			= 82,
-	SVG_FocusHighlight_datatype				= 83,
-	SVG_Overlay_datatype					= 86,
-	SVG_TransformBehavior_datatype			= 87,
+	SVG_StrokeLineJoin_datatype				= 2,
+	SVG_StrokeLineCap_datatype				= 3,
+	SVG_FontStyle_datatype					= 4,
+	SVG_FontWeight_datatype					= 5,
+	SVG_FontVariant_datatype				= 6,
+	SVG_TextAnchor_datatype					= 7,
+	SVG_TransformType_datatype				= 8, 
+	SVG_Display_datatype					= 9, 
+	SVG_Visibility_datatype					= 10,
+	SVG_Overflow_datatype					= 11,
+	SVG_ZoomAndPan_datatype					= 12,
+	SVG_DisplayAlign_datatype				= 13,
+	SVG_PointerEvents_datatype				= 14,
+	SVG_RenderingHint_datatype				= 15,
+	SVG_VectorEffect_datatype				= 16,
+	SVG_PlaybackOrder_datatype				= 17,
+	SVG_TimelineBegin_datatype				= 18,
+	XML_Space_datatype						= 19,
+	XMLEV_Propagate_datatype				= 20,
+	XMLEV_DefaultAction_datatype			= 21,
+	XMLEV_Phase_datatype					= 22,
+	SMIL_SyncBehavior_datatype				= 23,
+	SMIL_SyncTolerance_datatype				= 24,
+	SMIL_AttributeType_datatype				= 25,
+	SMIL_CalcMode_datatype					= 26,
+	SMIL_Additive_datatype					= 27,
+	SMIL_Accumulate_datatype				= 28,
+	SMIL_Restart_datatype					= 29,
+	SMIL_Fill_datatype						= 30,	
+	SVG_GradientUnit_datatype				= 31,
+	SVG_InitialVisibility_datatype			= 32,
+	SVG_FocusHighlight_datatype				= 33,
+	SVG_Overlay_datatype					= 34,
+	SVG_TransformBehavior_datatype			= 35,
 
 	/* SVG Number */
-	SVG_Number_datatype						= 78,
-	SVG_NumberOrPercentage_datatype			= 80,
-	SVG_Opacity_datatype					= 35,
-	SVG_StrokeMiterLimit_datatype			= 36,
-	SVG_FontSize_datatype					= 37,
-	SVG_StrokeDashOffset_datatype			= 38,
-	SVG_AudioLevel_datatype					= 39,
-	SVG_LineIncrement_datatype				= 40,
-	SVG_StrokeWidth_datatype				= 41,
-	SVG_Length_datatype						= 42,
-	SVG_Coordinate_datatype					= 43,
-	SVG_Rotate_datatype						= 84,
+	SVG_Number_datatype						= 50,
+	SVG_NumberOrPercentage_datatype			= 51,
+	SVG_Opacity_datatype					= 52,
+	SVG_StrokeMiterLimit_datatype			= 53,
+	SVG_FontSize_datatype					= 54,
+	SVG_StrokeDashOffset_datatype			= 55,
+	SVG_AudioLevel_datatype					= 56,
+	SVG_LineIncrement_datatype				= 57,
+	SVG_StrokeWidth_datatype				= 58,
+	SVG_Length_datatype						= 59,
+	SVG_Coordinate_datatype					= 60,
+	SVG_Rotate_datatype						= 61,
 
 	/* List of */
-	SVG_Numbers_datatype					= 79,
-	SVG_Points_datatype						= 45,
-	SVG_Coordinates_datatype				= 46,
-	SVG_FeatureList_datatype				= 47,
-	SVG_ExtensionList_datatype				= 48,
-	SVG_FormatList_datatype					= 49,
-	SVG_FontList_datatype					= 50,
-	SVG_ListOfIRI_datatype					= 51,
-	SVG_LanguageIDs_datatype				= 52,
-	SMIL_KeyTimes_datatype					= 53,
-	SMIL_KeySplines_datatype				= 54,
-	SMIL_KeyPoints_datatype					= 55,
-	SMIL_Times_datatype						= 56,
-
-	SVG_PathData_datatype					= 57,
-
-	SVG_FontFamily_datatype					= 58,
+	SVG_Numbers_datatype					= 70,
+	SVG_Points_datatype						= 71,
+	SVG_Coordinates_datatype				= 72,
+	SVG_FeatureList_datatype				= 73,
+	SVG_ExtensionList_datatype				= 74,
+	SVG_FormatList_datatype					= 75,
+	SVG_FontList_datatype					= 76,
+	SVG_ListOfIRI_datatype					= 77,
+	SVG_LanguageIDs_datatype				= 78,
+	SMIL_KeyTimes_datatype					= 79,
+	SMIL_KeySplines_datatype				= 80,
+	SMIL_KeyPoints_datatype					= 81,
+	SMIL_Times_datatype						= 82,
 
 	/* animated (untyped) value */
-	SMIL_AnimateValue_datatype				= 59,
-	SMIL_AnimateValues_datatype				= 60,
+	SMIL_AnimateValue_datatype				= 85,
+	SMIL_AnimateValues_datatype				= 86,
+	SMIL_Duration_datatype					= 87,
+	SMIL_RepeatCount_datatype				= 88,
+	SMIL_AttributeName_datatype				= 89,
 
-	SVG_ID_datatype							= 61,
-	SVG_IRI_datatype						= 62,
+	/*all other types*/
+	SVG_Boolean_datatype					= 90,
+	SVG_Color_datatype						= 91,
+	SVG_Paint_datatype						= 92,
+	SVG_SVGColor_datatype = SVG_Paint_datatype,
+	SVG_PathData_datatype					= 93,
+	SVG_FontFamily_datatype					= 94,
+	SVG_ID_datatype							= 95,
+	SVG_IRI_datatype						= 96,
+	SVG_Matrix_datatype						= 97,
+	SVG_Motion_datatype						= 98, /* required for animateMotion */
+	SVG_StrokeDashArray_datatype			= 99,
+	SVG_PreserveAspectRatio_datatype		= 100,
+	SVG_ViewBox_datatype					= 101,
+	SVG_GradientOffset_datatype				= 102,
+	SVG_Focus_datatype						= 103,
+	SVG_Clock_datatype						= 104,
+	SVG_String_datatype						= 105,
+	SVG_ContentType_datatype				= 106,
+	SVG_LanguageID_datatype					= 107,
+	XMLEV_Event_datatype					= 130,
 
-	SVG_Matrix_datatype						= 44,
-
-	/* string types */
-	SVG_String_datatype						= 63,
-
-	SMIL_Duration_datatype					= 64,
-	SMIL_RepeatCount_datatype				= 65,
-	SMIL_AttributeName_datatype				= 66,
-
-	SVG_StrokeDashArray_datatype			= 67,
-	SVG_PreserveAspectRatio_datatype		= 68,
-	SVG_ViewBox_datatype					= 69,
-	SVG_GradientOffset_datatype				= 70,
-	SVG_Focus_datatype						= 71,
-	SVG_XML_Name_datatype					= 85,
-	SVG_XSLT_QName_datatype					= 72,
-	SVG_Clock_datatype						= 73,
-
-	SVG_Motion_datatype						= 74, /* required for animateMotion */
-
-	SVG_TextContent_datatype				= 4,
-
-	SVG_ContentType_datatype				= 75,
-	SVG_LinkTarget_datatype					= 76,
-	SVG_LanguageID_datatype					= 77,
 };
 
 /* Reusing BIFS structure:
@@ -204,6 +191,14 @@ enum {
 };
 
 
+typedef struct
+{
+	u32 type;
+	/*for accessKey and mouse button, or repeatCount when the event is a SMIL repeat */
+	u32 parameter;
+} XMLEV_Event;
+
+
 typedef struct {
 	/* Type of timing value*/
 	u8 type;
@@ -214,16 +209,15 @@ typedef struct {
 	/* id of the element before resolution of the pointer to the element */
 	char *element_id; 
 
-	/* the animation event, the type of syncbase, ... */
-	u8 event;
 	/*
 	0: this SMIL time is static
 	1: this SMIL time is the prototype of a dynamic SMIL time (triggered by mouse event, access key)
 	2: this SMIL time is a resolved value of a proto SMIL time, result of element.event and should be deleted whenever 
 	appropriate*/
 	u8 dynamic_type;
-	/* either keyCode when event is accessKey or repeatCount when event is repeat */
-	u32 parameter; 
+
+	/* event type and parameter */
+	XMLEV_Event event; 
 
 	Double clock;
 } SMIL_Time;
@@ -425,20 +419,19 @@ typedef struct {
 } SVG_Paint, SVG_SVGColor;
 
 enum {
-	SVG_NUMBER_UNKNOWN		= 0,
-	SVG_NUMBER_VALUE		= 1,
-	SVG_NUMBER_PERCENTAGE	= 2,
-	SVG_NUMBER_EMS			= 3,
-	SVG_NUMBER_EXS			= 4,
-	SVG_NUMBER_PX			= 5,
-	SVG_NUMBER_CM			= 6,
-	SVG_NUMBER_MM			= 7,
-	SVG_NUMBER_IN			= 8,
-	SVG_NUMBER_PT			= 9,
-	SVG_NUMBER_PC			= 10,
-	SVG_NUMBER_INHERIT		= 11,
-	SVG_NUMBER_AUTO			= 12,
-	SVG_NUMBER_AUTO_REVERSE	= 13
+	SVG_NUMBER_VALUE		= 0,
+	SVG_NUMBER_PERCENTAGE	= 1,
+	SVG_NUMBER_EMS			= 2,
+	SVG_NUMBER_EXS			= 3,
+	SVG_NUMBER_PX			= 4,
+	SVG_NUMBER_CM			= 5,
+	SVG_NUMBER_MM			= 6,
+	SVG_NUMBER_IN			= 7,
+	SVG_NUMBER_PT			= 8,
+	SVG_NUMBER_PC			= 9,
+	SVG_NUMBER_INHERIT		= 10,
+	SVG_NUMBER_AUTO			= 11,
+	SVG_NUMBER_AUTO_REVERSE	= 12
 };
 
 typedef struct {
@@ -1029,6 +1022,14 @@ typedef struct _svg_transformable_element {
 	SVG_Matrix transform;
 } SVGTransformableElement;
 
+typedef struct
+{
+	char *data;
+	u32 data_size;
+	GF_List *com_list;
+	void (*exec_command_list)(void *script);
+} SVGCommandBuffer;
+
 /*************************************
  * Generic SVG element functions     *
  *************************************/
@@ -1106,7 +1107,7 @@ enum {
 	SVG_DOM_EVT_REPEAT,
 
 	SVG_DOM_EVT_TEXTINPUT,
-	
+
 	/*DOM MutationEvents - NOT SUPPORTED YET*/
 	SVG_DOM_EVT_TREE_MODIFIED,
 	SVG_DOM_EVT_NODE_INSERTED,
@@ -1121,7 +1122,6 @@ enum {
 
 u32 svg_dom_event_by_name(const char *name);
 const char *gf_dom_event_name(u32 type);
-
 
 typedef struct
 {
@@ -1202,7 +1202,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value);
 
 /*creates a default listener/handler for the given event on the given node, and return the 
 handler element to allow for handler function override*/
-struct _tagSVGhandlerElement *gf_sg_dom_create_listener(GF_Node *node, u32 eventType);
+struct _tagSVGhandlerElement *gf_sg_dom_create_listener(GF_Node *node, XMLEV_Event event);
 
 
 
@@ -1315,6 +1315,9 @@ void gf_smil_anim_delete_animations(SVGElement *e);
 void gf_path_init_from_svg(GF_Path *path, GF_List *commands, GF_List *points);
 
 void gf_svg_register_iri(GF_SceneGraph *sg, SVG_IRI *iri);
+
+void svg_init_lsr_script(SVGCommandBuffer *script);
+void svg_reset_lsr_script(SVGCommandBuffer *script);
 
 #ifdef __cplusplus
 }

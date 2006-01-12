@@ -54,6 +54,7 @@ static void build_graph(Drawable *cs, M_IndexedLineSet2D *ils2D)
 			gf_path_add_line_to(cs->path, pts[i].x, pts[i].y);
 		}
 	}
+	cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
 }
 
 

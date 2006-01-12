@@ -533,6 +533,8 @@ static void build_graph(Drawable *cs, GF_Matrix2D *mat, M_PointSet2D *ps2D)
 	/*for PS2D don't add to avoid too  much antialiasing, just try to fill the given pixel*/
 	for (i=0; i < coord->point.count; i++) 
 		gf_path_add_rect(cs->path, coord->point.vals[i].x, coord->point.vals[i].y, w, h);
+
+	cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
 }
 
 static void RenderPointSet2D(GF_Node *node, void *rs)

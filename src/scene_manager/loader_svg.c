@@ -377,8 +377,10 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 	/*parse all att*/
 	count = gf_list_count(attrs);
 	for (i=0; i<count; i++) {
+
 		GF_SAXAttribute *att = gf_list_get(attrs, i);
 		if (!att->value || !strlen(att->value)) continue;
+
 		if (!stricmp(att->name, "style")) {
 			/* Special case: style if present will always be first in the list */
 			svg_parse_style(elt, att->value);
@@ -403,7 +405,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 		} else if (&anim && (tag == TAG_SVG_animateTransform) && !stricmp(att->name, "type")) {
 			anim->type = att->value;
 			att->value = NULL;
-		} else if (!stricmp(att->name, "xlink:href")) {
+		} else if (!stricmp(att->name, "xlink:href") ) {
 
 			if (is_svg_animation_tag(tag)) {
 				assert(anim);
@@ -431,12 +433,21 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 			/*SVG 1.1 events: create a listener and a handler on the fly, register them with current node
 			and add listener struct*/
 			if (evtType != SVG_DOM_EVT_UNKNOWN) {
-				SVGhandlerElement *handler = gf_sg_dom_create_listener((GF_Node *) elt, evtType);
+				XMLEV_Event evt;
+				SVGhandlerElement *handler;
+				evt.type = evtType;
+				evt.parameter = 0;
+				handler = gf_sg_dom_create_listener((GF_Node *) elt, evt);
 				handler->textContent = att->value;
 				att->value = NULL;
 				gf_node_init((GF_Node *)handler);
 			} else if (gf_node_get_field_by_name((GF_Node *)elt, att->name, &info)==GF_OK) {
 				svg_parse_attribute(elt, &info, att->value, 0, 0);
+				if (info.fieldType== SVG_IRI_datatype) {
+					SVG_IRI *iri = info.far_ptr;
+					if ((iri->type==SVG_IRI_ELEMENTID) && !iri->target && iri->iri)
+						gf_list_add(parser->defered_hrefs, iri);
+				}
 			} else {
 				svg_report(parser, GF_OK, "Unknown attribute %s on element %s", (char *)att->name, gf_node_get_class_name((GF_Node *)elt));
 			}
@@ -459,6 +470,14 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 	/* We need to init the node at the end of the parsing, after parsing all attributes */
 	/* text nodes must be initialized at the end of the <text> element */
 	if (!anim && elt) gf_node_init((GF_Node *)elt);
+
+	/*register listener element*/
+	if (elt && (tag==TAG_SVG_listener)) {
+		SVGElement *par = parent;
+		SVGlistenerElement *list = (SVGlistenerElement *)elt;
+		if (list->target.target) par = list->target.target;
+		if (par) gf_node_listener_add((GF_Node *)par, (GF_Node *)elt);
+	}
 	return elt;
 }
 
@@ -621,6 +640,7 @@ static GF_Err lsr_parse_command(GF_SVGParser *parser, GF_List *attr)
 static u32 lsr_get_command_by_name(const char *name)
 {
 	if (!strcmp(name, "NewScene")) return GF_SG_LSR_NEW_SCENE;
+	else if (!strcmp(name, "RefreshScene")) return GF_SG_LSR_REFRESH_SCENE;
 	else if (!strcmp(name, "Add")) return GF_SG_LSR_ADD;
 	else if (!strcmp(name, "Clean")) return GF_SG_LSR_CLEAN;
 	else if (!strcmp(name, "Replace")) return GF_SG_LSR_REPLACE;
@@ -634,9 +654,15 @@ static u32 lsr_get_command_by_name(const char *name)
 static void svg_node_start(void *sax_cbck, const char *name, const char *name_space, GF_List *attributes)
 {
 	SVGElement *elt, *parent;
+	SVGscriptElement *script = NULL;
 	GF_SVGParser *parser = sax_cbck;
 
 	parent = gf_list_last(parser->nodes);
+	if (parent && parent->sgprivate->tag==TAG_SVG_script) {
+		script = (SVGscriptElement *)parent;
+		parent = NULL;
+	}
+
 	/*saf setup*/
 	if (!parent && (parser->load->type==GF_SM_LOAD_XSR)) {
 		u32 com_type;
@@ -702,7 +728,11 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		if (com_type != GF_SG_UNDEFINED) {
 			GF_Err e;
 			parser->command = gf_sg_command_new(parser->load->scene_graph, com_type);
-			gf_list_add(parser->laser_au->commands, parser->command);
+			if (script) {
+				gf_list_add(script->lsr_script.com_list, parser->command);
+			} else {
+				gf_list_add(parser->laser_au->commands, parser->command);
+			}
 			e = lsr_parse_command(parser, attributes);
 			if (e!= GF_OK) parser->command->node = NULL;
 			return;

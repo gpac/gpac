@@ -704,6 +704,8 @@ void setAttributeType(SVGAttribute *att)
 			strcpy(att->impl_type, "SVG_LineIncrement");
 		} else if (!strcmp(att->svg_name, "transform")) {
 			strcpy(att->impl_type, "SVG_Matrix");
+		} else if (!strcmp(att->svg_name, "event") || !strcmp(att->svg_name, "ev:event")) {
+			strcpy(att->impl_type, "XMLEV_Event");
 		} else if (strstr(att->svg_type, "datatype")) {
 			char *tmp;
 			sprintf(att->impl_type, "SVG_%s", att->svg_type);
@@ -990,6 +992,10 @@ void generateNode(FILE *output, SVGElement* svg_elt)
 		fprintf(output, "\tSVG_Point xy;\n");
 	}
 
+	if (!strcmp(svg_elt->implementation_name, "script")) {
+		fprintf(output, "\tSVGCommandBuffer lsr_script;\n");
+	} 
+
 	generateAttributes(output, svg_elt->attributes, 0);
 
 	/*special case for handler node*/
@@ -1186,6 +1192,10 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 		fprintf(output, "\tgf_mx2d_init(p->transform);\n");
 	} 
 
+	if (!strcmp(svg_elt->implementation_name, "script")) {
+		fprintf(output, "\tsvg_init_lsr_script(&p->lsr_script);\n");
+	} 
+
 	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
 		SVGAttribute *att = gf_list_get(svg_elt->attributes, i);
 		/* Initialization of complex types */
@@ -1201,6 +1211,20 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			fprintf(output, "\tp->d.points = gf_list_new();\n");
 		} 
 	}
+	/*some default values*/
+	if (!strcmp(svg_elt->svg_name, "svg")) {
+		fprintf(output, "\tp->width.value = INT2FIX(100);\n");
+		fprintf(output, "\tp->height.value = INT2FIX(100);\n");
+	}
+	else if (!strcmp(svg_elt->svg_name, "linearGradient")) {
+		fprintf(output, "\tp->x2.value = FIX_ONE;\n");
+		fprintf(output, "\tp->y2.value = FIX_ONE;\n");
+	}
+	else if (!strcmp(svg_elt->svg_name, "radialGradient")) {
+		fprintf(output, "\tp->cx.value = FIX_ONE/2;\n");
+		fprintf(output, "\tp->cy.value = FIX_ONE/2;\n");
+		fprintf(output, "\tp->r.value = FIX_ONE/2;\n");
+	}
 	fprintf(output, "\treturn p;\n}\n\n");
 
 	/* Destructor */
@@ -1208,7 +1232,11 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 	fprintf(output, "\tSVG%sElement *p = (SVG%sElement *)node;\n", svg_elt->implementation_name, svg_elt->implementation_name);
 
 	fprintf(output, "\tgf_svg_reset_base_element((SVGElement *)p);\n");
-	
+
+	if (!strcmp(svg_elt->implementation_name, "script")) {
+		fprintf(output, "\tsvg_reset_lsr_script(&p->lsr_script);\n");
+	} 
+
 	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
 		SVGAttribute *att = gf_list_get(svg_elt->attributes, i);
 		if (!strcmp("SMIL_KeyPoints", att->impl_type)) {
@@ -1223,6 +1251,8 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			} else {
 				fprintf(output, "\tgf_svg_reset_path(p->d);\n");
 			}
+		} else if (!strcmp("SVG_IRI", att->impl_type)) {
+			fprintf(output, "\tgf_svg_reset_iri((SVGElement *)node, &p->%s);\n", att->implementation_name);
 		} else if (!strcmp("SVG_String", att->impl_type) || !strcmp("SVG_ContentType", att->impl_type)) {
 			fprintf(output, "\tfree(p->%s);\n", att->implementation_name);
 		}
@@ -1437,6 +1467,10 @@ void generateGenericAttrib(FILE *output, SVGElement *elt, u32 index)
 		SVGAttribute *a = findAttribute(elt, att_name);
 		if (a) {
 			s32 type = get_lsr_att_name_type(att_name);
+			/*SMIL anim fill not updatable*/
+			if ((index==4) && !strcmp(att_name, "fill")) {
+				type = -1;
+			}
 			fprintf(output, ", %d", type);
 		}
 	}

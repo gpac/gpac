@@ -104,8 +104,18 @@ void gf_sg_handle_dom_event(SVGhandlerElement *hdl, GF_DOM_Event *event)
 static void svg_process_event(SVGlistenerElement *listen, GF_DOM_Event *event)
 {
 	SVGhandlerElement *handler = (SVGhandlerElement *) listen->handler.target;
-	if (!handler || !handler->handle_event) return;
-	if (handler->ev_event != event->type) return;
+	if (!handler) return;
+	if (handler->sgprivate->tag == TAG_SVG_script) {
+		SVGscriptElement *sc = (SVGscriptElement *)handler;
+		if (sc->lsr_script.data) {
+			sc->lsr_script.exec_command_list(sc);
+		} else if (gf_list_count(sc->lsr_script.com_list)) {
+			gf_sg_command_apply_list(listen->sgprivate->scenegraph, sc->lsr_script.com_list, gf_node_get_scene_time((GF_Node*)listen) );
+		}
+		return;
+	}
+	if (!handler->handle_event) return;
+	if (handler->ev_event.type != event->type) return;
 	handler->handle_event(handler, event);
 }
 
@@ -118,8 +128,8 @@ static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 		count = gf_list_count(node->sgprivate->events);
 		for (i=0; i<count; i++) {
 			SVGlistenerElement *listen = gf_list_get(node->sgprivate->events, i);
-			if (listen->event<=SVG_DOM_EVT_MOUSEMOVE) event->has_ui_events=1;
-			if (listen->event != event->type) continue;
+			if (listen->event.type <= SVG_DOM_EVT_MOUSEMOVE) event->has_ui_events=1;
+			if (listen->event.type != event->type) continue;
 			event->currentTarget = node;
 			/*process event*/
 			svg_process_event(listen, event);
@@ -189,7 +199,7 @@ Bool gf_sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 	return event->currentTarget ? 1 : 0;
 }
 
-SVGhandlerElement *gf_sg_dom_create_listener(GF_Node *node, u32 eventType)
+SVGhandlerElement *gf_sg_dom_create_listener(GF_Node *node, XMLEV_Event event)
 {
 	SVGlistenerElement *listener;
 	SVGhandlerElement *handler;
@@ -201,7 +211,7 @@ SVGhandlerElement *gf_sg_dom_create_listener(GF_Node *node, u32 eventType)
 	gf_list_add( ((GF_ParentNode *)node)->children, listener);
 	gf_node_register((GF_Node *)handler, node);
 	gf_list_add(((GF_ParentNode *)node)->children, handler);
-	handler->ev_event = listener->event = eventType;
+	handler->ev_event = listener->event = event;
 	listener->handler.target = (SVGElement *) handler;
 	listener->target.target = (SVGElement *)node;
 	gf_node_listener_add((GF_Node *) node, (GF_Node *) listener);
@@ -230,8 +240,8 @@ static void gf_smil_handle_event(GF_Node *anim, GF_List *l, GF_DOM_Event *evt)
 	for (i=0; i<count; i++) {
 		proto = gf_list_get(l, i);
 		if (proto->dynamic_type!=1) continue;
-		if (proto->event!=evt->type) continue;
-		if ((evt->type!=SVG_DOM_EVT_KEYPRESS) || (proto->parameter==evt->detail)) {
+		if (proto->event.type != evt->type) continue;
+		if ((evt->type != SVG_DOM_EVT_KEYPRESS) || (proto->event.parameter==evt->detail)) {
 			/*solve*/
 			GF_SAFEALLOC(resolved, sizeof(SMIL_Time));
 			resolved->type = SMIL_TIME_CLOCK;
@@ -299,8 +309,15 @@ Bool gf_sg_svg_node_init(GF_Node *node)
 {
 	switch (node->sgprivate->tag) {
 	case TAG_SVG_script:
-		if (node->sgprivate->scenegraph->script_load) 
+	{
+		SVGscriptElement *elt = (SVGscriptElement *)node;;
+		/*LASeR conditional*/
+		if (elt->lsr_script.data || gf_list_count(elt->lsr_script.com_list)) {
+		} 
+		/*regular SVG script*/
+		else if (node->sgprivate->scenegraph->script_load) 
 			node->sgprivate->scenegraph->script_load(node);
+	}
 		return 1;
 	case TAG_SVG_handler:
 		if (node->sgprivate->scenegraph->js_ifce)
@@ -388,6 +405,25 @@ void gf_svg_register_iri(GF_SceneGraph *sg, SVG_IRI *target)
 	if (gf_list_find(sg->xlink_hrefs, target)<0) {
 		gf_list_add(sg->xlink_hrefs, target);
 	}
+}
+
+
+
+void svg_init_lsr_script(SVGCommandBuffer *script)
+{
+	memset(script, 0, sizeof(SVGCommandBuffer));
+	script->com_list = gf_list_new();
+}
+
+void svg_reset_lsr_script(SVGCommandBuffer *script)
+{
+	u32 i;
+	if (script->data) free(script->data);
+	for (i=gf_list_count(script->com_list); i>0; i--) {
+		GF_Command *com = gf_list_get(script->com_list, i-1);
+		gf_sg_command_del(com);
+	}
+	gf_list_del(script->com_list);
 }
 
 #else

@@ -83,10 +83,11 @@ static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 		GF_M4VDecSpecInfo dsi;
 		GF_ESD *esd = gf_isom_get_esd(file, track, 1);
 		if (!esd || !esd->decoderConfig || (esd->decoderConfig->streamType!=4) || (esd->decoderConfig->objectTypeIndication!=0x20)) {
-			if (esd)  gf_odf_desc_del((GF_Descriptor *) esd);
+			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 			return GF_NOT_SUPPORTED;
 		}
 		gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
+		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 
 		if ((dsi.par_num>1) && (dsi.par_num>1)) 
 			tk_w = dsi.width * dsi.par_num / dsi.par_den;
@@ -2514,6 +2515,13 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 			if (!f) {
 				e = gf_import_message(import, GF_BAD_PARAM, "NHML import failure: file %s not found", close ? szMediaTemp : szMedia);
 				goto exit;
+			}
+
+			if (!samp->dataLength) {
+				u64 cur_pos = gf_f64_tell(f);
+				gf_f64_seek(f, 0, SEEK_END);
+				samp->dataLength = (u32) gf_f64_tell(f);
+				gf_f64_seek(f, cur_pos, SEEK_SET);
 			}
 
 			if (samp->dataLength>max_size) {

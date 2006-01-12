@@ -636,11 +636,13 @@ force_scene_rap:
 
 			/*this is for safety, otherwise some players may not understand NULL node*/
 			if (flags & GF_SM_ENCODE_USE_NAMES) lsrcfg.has_string_ids = 1;
+			/*override of default*/
 			if (opts) {
-				lsrcfg.resolution = opts->resolution;
-				lsrcfg.coord_bits = opts->coord_bits;
-				lsrcfg.scale_bits = opts->scale_bits;
+				if (opts->resolution) lsrcfg.resolution = opts->resolution;
+				if (opts->coord_bits) lsrcfg.coord_bits = opts->coord_bits;
+				if (opts->scale_bits) lsrcfg.scale_bits = opts->scale_bits;
 			}
+
 			gf_laser_encoder_new_stream(lsr_enc, esd->ESID , &lsrcfg);
 			/*get final config*/
 			gf_laser_encoder_get_config(lsr_enc, esd->ESID, &data, &data_len);
@@ -957,7 +959,7 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 				/*add to codec*/
 				gf_odf_codec_add_com(codec, com);
 			}
-			e = gf_odf_codec_encode(codec, 0);
+			e = gf_odf_codec_encode(codec, 1);
 			if (e) goto err_exit;
 
 			/*time in sec conversion*/

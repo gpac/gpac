@@ -48,7 +48,6 @@ struct __tag_laser_codec
 	GF_SceneGraph *sg;
 
 	FILE *trace;
-	Bool force_usename;
 
 	/*all attached streams*/
 	GF_List *streamInfo;
@@ -82,7 +81,13 @@ struct __tag_laser_codec
 	SVGrectElement *prev_rect;
 	SVGtextElement *prev_text;
 	SVGuseElement *prev_use;
+
+	/*0: normal playback, store script content
+	  1: memory decoding of scene, decompress script into commands
+	*/
+	Bool memory_dec;
 };
+
 
 /*returns laser attributeName coding type based on field index, -1 if field cannot be animated*/
 s32 gf_lsr_field_to_attrib_type(GF_Node *n, u32 fieldIndex);

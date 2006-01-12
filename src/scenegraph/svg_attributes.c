@@ -54,7 +54,8 @@ u32 svg_dom_event_by_name(const char *name)
 	if (!strncmp(name, "repeat", 6))	return SVG_DOM_EVT_REPEAT;
 	if (!strcmp(name, "keyup"))		return SVG_DOM_EVT_KEYUP;
 	if (!strcmp(name, "keydown"))	return SVG_DOM_EVT_KEYDOWN;
-	if (!strcmp(name, "keypress"))	return SVG_DOM_EVT_KEYPRESS;
+	if (!strcmp(name, "keypress") || !stricmp(name, "accesskey"))	return SVG_DOM_EVT_KEYPRESS;
+	if (!strcmp(name, "longkeypress") || !stricmp(name, "longaccesskey"))	return SVG_DOM_EVT_LONGKEYPRESS;
 	return SVG_DOM_EVT_UNKNOWN;
 }
 
@@ -82,6 +83,7 @@ const char *gf_dom_event_name(u32 type)
 	case SVG_DOM_EVT_KEYUP: return "keyup";
 	case SVG_DOM_EVT_KEYDOWN: return "keydown";
 	case SVG_DOM_EVT_KEYPRESS: return "keypress";
+	case SVG_DOM_EVT_LONGKEYPRESS: return "longkeypress";
 	default: return "unknwon";
 	}
 }
@@ -477,10 +479,10 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 	/* AccessKey Values */
 	else if ((tmp = strstr(d, "accessKey("))) {
 		v->type = SMIL_TIME_EVENT;
-		v->event = SVG_DOM_EVT_KEYPRESS;
+		v->event.type = SVG_DOM_EVT_KEYPRESS;
 		v->element = e->sgprivate->scenegraph->RootNode;
 		tmp+=10;
-		v->parameter = *tmp;
+		v->event.parameter = *tmp;
 		tmp = strchr(d, ')');
 		tmp++;
 		while (*tmp == ' ') tmp++;
@@ -503,7 +505,7 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 		}
 		if (!strchr(token, '.')) {
 			/* animation event name only */
-			v->event = svg_dom_event_by_name(token);
+			v->event.type = svg_dom_event_by_name(token);
 		} else {
 			u32 i;
 			for (i = 0; i < len; i++) {
@@ -512,18 +514,18 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 					token[i] = 0;
 					v->element_id = strdup(token);
 					token[i] = '.';
-					v->event = svg_dom_event_by_name(token+i+1);
+					v->event.type = svg_dom_event_by_name(token+i+1);
 				}
 			}
 		}
 
-		if (v->event == 3) { //repeat
+		if (v->event.type == SVG_DOM_EVT_REPEAT) { //repeat
 			tmp = strchr(token, '(');
 			if (tmp) {
 				tmp++;
-				v->parameter = atoi(tmp);
+				v->event.parameter = atoi(tmp);
 			} else {
-				v->parameter = 1;
+				v->event.parameter = 1;
 			}
 		}
 	}
@@ -1574,10 +1576,9 @@ void svg_parse_iri(SVGElement *elt, SVG_IRI *iri, char *attribute_content)
 {
 	/* TODO: Handle xpointer(id()) syntax */
 	if (attribute_content[0] == '#') {
-		elt->xlink->href.type = SVG_IRI_ELEMENTID;
-		elt->xlink->href.target = (SVGElement *)gf_sg_find_node_by_name(elt->sgprivate->scenegraph, attribute_content + 1);
-		gf_svg_register_iri(elt->sgprivate->scenegraph, &elt->xlink->href);
-		/*unresolved tagrgets are currently handled at parser level, could be done at scenegraph level...*/
+		iri->type = SVG_IRI_ELEMENTID;
+		iri->target = (SVGElement *)gf_sg_find_node_by_name(elt->sgprivate->scenegraph, attribute_content + 1);
+		gf_svg_register_iri(elt->sgprivate->scenegraph, iri);
 	} else {
 		iri->type = SVG_IRI_IRI;
 		iri->iri = strdup(attribute_content);
@@ -2000,6 +2001,22 @@ GF_Err svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_
 	case SVG_String_datatype:
 	case SVG_ContentType_datatype:
 		*(SVG_String *)info->far_ptr = strdup(attribute_content);
+		break;
+	case XMLEV_Event_datatype:
+	{
+		XMLEV_Event *xml_ev = info->far_ptr;
+		char *sep = strchr(attribute_content, '(');
+		if (sep) {
+			sep[0] = 0;
+			xml_ev->type = svg_dom_event_by_name(attribute_content);
+			sep[0] = '(';
+			/*TODO FIXME check all possible cases (accessKey & co)*/
+			sscanf(sep, "(%c)", &xml_ev->parameter);
+		} else {
+			xml_ev->parameter = 0;
+			xml_ev->type = svg_dom_event_by_name(attribute_content);
+		}
+	}
 		break;
 	default:
 		fprintf(stdout, "Warning: skipping unsupported attribute %s\n", info->name);
@@ -2768,7 +2785,6 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 		break;
 	case SVG_Focus_datatype:
 	case SVG_ID_datatype:
-	case SVG_LinkTarget_datatype:
 	case SVG_LanguageID_datatype:
 	case SVG_GradientOffset_datatype:
 	case SVG_String_datatype:
@@ -2886,9 +2902,9 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 				strcat(attValue, szBuf);
 			}
 			else if ((t->dynamic_type==1) && (t->type==SMIL_TIME_EVENT)) {
-				if (t->event == SVG_DOM_EVT_KEYPRESS) {
+				if (t->event.type == SVG_DOM_EVT_KEYPRESS) {
 					/*TODO UTF support*/
-					szBuf[0] = t->parameter;
+					szBuf[0] = t->event.parameter;
 					szBuf[1] = ')';
 					szBuf[2] = 0;
 					strcat(attValue, "accessKey(");
@@ -2901,7 +2917,7 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 						strcat(attValue, gf_node_get_name(t->element));
 						strcat(attValue, ".");
 					}
-					strcat(attValue, gf_dom_event_name(t->event));
+					strcat(attValue, gf_dom_event_name(t->event.type));
 				}
 				if (t->clock) {
 					sprintf(szBuf, "%gs", t->clock);
@@ -2975,6 +2991,16 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 	}
 		break;
 
+	case XMLEV_Event_datatype:
+	{
+		XMLEV_Event *d = info->far_ptr;
+		if (d->parameter) {
+			sprintf(attValue, "%s(%c)", gf_dom_event_name(d->type), d->parameter);
+		} else {
+			strcpy(attValue, gf_dom_event_name(d->type));
+		}
+		break;
+	}
 	default:
 		fprintf(stdout, "SVG: Warning, dumping for field %s not supported\n", info->name);
 		break;
@@ -3209,7 +3235,6 @@ Bool svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 
 	case SVG_Focus_datatype:
 	case SVG_ID_datatype:
-	case SVG_LinkTarget_datatype:
 	case SVG_LanguageID_datatype:
 	case SVG_GradientOffset_datatype:
 	case SVG_String_datatype:
@@ -3265,8 +3290,8 @@ Bool svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 			if (p1->type != p2->type) return 0;
 			if (p1->clock != p2->clock) return 0;
 			if (p1->type==SMIL_TIME_EVENT) {
-				if (p1->event != p2->event) return 0;
-				if (p1->parameter != p2->parameter) return 0;
+				if (p1->event.type != p2->event.type) return 0;
+				if (p1->event.parameter != p2->event.parameter) return 0;
 			}
 		}
 		return 1;
@@ -3315,6 +3340,14 @@ Bool svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		if ( (count = gf_list_count(av1->values) ) != gf_list_count(av1->values)) return 0;
 		return count ? 0 : 1;
 	}
+	case XMLEV_Event_datatype:
+	{
+		XMLEV_Event *d1 = f1->far_ptr;
+		XMLEV_Event *d2 = f2->far_ptr;
+		if (d1->type != d2->type) return 0;
+		if (d1->parameter != d2->parameter) return 0;
+		return 1;
+	}
 	default:
 		fprintf(stdout, "SVG: Warning, comparaison for field %s not supported\n", f1->name);
 		return 0;
@@ -3348,9 +3381,7 @@ static GF_Err svg_number_muladd(Fixed alpha, SVG_Number *a, Fixed beta, SVG_Numb
 		fprintf(stdout, "SVG: Warning, cannot add lengths of mismatching types\n");
 		return GF_BAD_PARAM;
 	}
-	if (a->type == SVG_NUMBER_UNKNOWN 
-		|| a->type == SVG_NUMBER_INHERIT
-		|| a->type == SVG_NUMBER_AUTO) {
+	if (a->type == SVG_NUMBER_INHERIT || a->type == SVG_NUMBER_AUTO) {
 		fprintf(stdout, "SVG: Warning, cannot add lengths\n");
 		return GF_BAD_PARAM;
 	}
@@ -3760,7 +3791,6 @@ GF_Err svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 	case SVG_Clock_datatype:
 	case SVG_Focus_datatype:
 	case SVG_ID_datatype:
-	case SVG_LinkTarget_datatype:
 	case SVG_GradientOffset_datatype:
 	case SMIL_KeyTimes_datatype:
 	case SMIL_KeyPoints_datatype:
@@ -3944,7 +3974,6 @@ GF_Err svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 	case SVG_FontList_datatype:
 	case SVG_Focus_datatype:
 	case SVG_ID_datatype:
-	case SVG_LinkTarget_datatype:
 	case SVG_GradientOffset_datatype:
 	case SVG_Clock_datatype:
 	case SMIL_KeyTimes_datatype:
@@ -4052,7 +4081,6 @@ GF_Err svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldInfo
 	case SVG_Clock_datatype:
 	case SVG_Focus_datatype:
 	case SVG_ID_datatype:
-	case SVG_LinkTarget_datatype:
 	case SVG_GradientOffset_datatype:
 		if (coef < FIX_ONE/2) {
 			svg_attributes_copy(c, a, clamp);

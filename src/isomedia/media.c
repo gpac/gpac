@@ -508,7 +508,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 				if (ctts->w_LastSampleNumber==nbSamp) {
 					count = gf_list_count(ctts->entryList);
 					max_ts = trak->Media->mediaHeader->duration;
-					while (1) {
+					while (count) {
 						count -= 1;
 						cts_ent = gf_list_get(ctts->entryList, count);
 						if (nbSamp<cts_ent->sampleCount) break;

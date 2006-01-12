@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Tue Dec 20 16:07:46 2005
+	DO NOT MOFIFY - File generated on GMT Wed Jan 11 13:25:55 2006
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -285,7 +285,7 @@ typedef struct _tagSVGglyphElement
 typedef struct _tagSVGhandlerElement
 {
 	BASE_SVG_ELEMENT
-	SVG_XSLT_QName ev_event;
+	XMLEV_Event ev_event;
 	void (*handle_event)(struct _tagSVGhandlerElement *hdl, GF_DOM_Event *event);
 } SVGhandlerElement;
 
@@ -338,7 +338,7 @@ typedef struct _tagSVGlinearGradientElement
 typedef struct _tagSVGlistenerElement
 {
 	BASE_SVG_ELEMENT
-	SVG_XML_Name event;
+	XMLEV_Event event;
 	XMLEV_Phase phase;
 	XMLEV_Propagate propagate;
 	XMLEV_DefaultAction defaultAction;
@@ -430,6 +430,7 @@ typedef struct _tagSVGrectElement
 typedef struct _tagSVGscriptElement
 {
 	BASE_SVG_ELEMENT
+	SVGCommandBuffer lsr_script;
 } SVGscriptElement;
 
 

@@ -2428,7 +2428,11 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 	/*remove undef listener/handlers*/
 	if (!nID) {
 		u32 tag = n->sgprivate->tag;
-		if (tag==TAG_SVG_listener) return;
+		if (tag==TAG_SVG_listener) {
+			SVGlistenerElement *list = (SVGlistenerElement *)n;
+			if (list->handler.target && !list->handler.target->sgprivate->NodeID) 
+				return;
+		}
 		if (tag==TAG_SVG_handler) return;
 	}
 	DUMP_IND(sdump);
@@ -2445,7 +2449,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 	count = gf_node_get_field_count(n);
 	for (i=0; i<count; i++) {
 		gf_node_get_field(n, i, &info);
-		if ((info.fieldType==SVG_TextContent_datatype) || (info.fieldType==SVG_ID_datatype) ) {
+		if (info.fieldType==SVG_ID_datatype) {
 			continue;
 		} else if (info.fieldType==SVG_ContentType_datatype) {
 			char *type = *(u8 **)info.far_ptr;
@@ -2476,7 +2480,24 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 			if (node->sgprivate->NodeID) continue;
 			hdl = (SVGhandlerElement *)node->handler.target;
 			if (!hdl || !hdl->textContent) continue;
-			fprintf(sdump->trace, "on%s=\"%s\" ", gf_dom_event_name(hdl->ev_event), hdl->textContent);
+			fprintf(sdump->trace, "on%s=\"%s\" ", gf_dom_event_name(hdl->ev_event.type), hdl->textContent);
+		}
+	}
+
+	if (n->sgprivate->tag==TAG_SVG_script) {
+		SVGscriptElement *sc = (SVGscriptElement *)n;
+		if (!sc->textContent) {
+			sdump->indent++;
+			fprintf(sdump->trace, ">\n");
+			if (gf_list_count(sc->lsr_script.com_list)) {
+				gf_sm_dump_command_list(sdump, sc->lsr_script.com_list, sdump->indent, 0);
+			} else if (sc->lsr_script.data) {
+				fprintf(sdump->trace, "<!-- WARNING: LASeR scripts cannot be dumped at run-time -->\n");
+			} 
+			sdump->indent--;
+			DUMP_IND(sdump);
+			fprintf(sdump->trace, "</%s>\n", gf_node_get_class_name(n));
+			return;
 		}
 	}
 

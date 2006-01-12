@@ -40,16 +40,21 @@ GF_Command *gf_sg_command_new(GF_SceneGraph *graph, u32 tag)
 }
 static void SG_CheckNodeUnregister(GF_Command *com)
 {
-	if (com->tag==GF_SG_SCENE_REPLACE) {
+	u32 i;
+	switch (com->tag) {
+	case GF_SG_SCENE_REPLACE:
+	case GF_SG_LSR_NEW_SCENE:
+	case GF_SG_LSR_REFRESH_SCENE:
 		gf_node_unregister(com->node, NULL);
-	} else {
-		u32 i;
+		break;
+	default:
 		for (i=0; i<com->in_scene->node_reg_size; i++) {
 			if (com->in_scene->node_registry[i] == com->node) {
 				gf_node_unregister(com->node, NULL);
 				return;
 			}
 		}
+		break;
 	}
 }
 

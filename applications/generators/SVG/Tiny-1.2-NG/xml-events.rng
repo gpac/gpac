@@ -30,7 +30,7 @@
     <ref name='svg.Core.attr'/>
     <optional>
       <attribute name='event' svg:animatable='false' svg:inheritable='false'>
-        <ref name='XML-Name.datatype'/>
+        <ref name='XSLT-QName.datatype'/>
       </attribute>
     </optional>
     <optional>
