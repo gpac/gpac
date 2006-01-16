@@ -98,10 +98,13 @@ static GF_Err RAW_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 {
 	if (evt) {
 		switch (evt->type) {
+#ifdef DANAE
 		case GF_EVT_SIZE:
-			break;
+			return raw_resize(dr, evt->size.width, evt->size.height);
+#else
 		case GF_EVT_VIDEO_SETUP:
 			return raw_resize(dr, evt->size.width, evt->size.height);
+#endif
 		}
 	}
 	return GF_OK;

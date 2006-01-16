@@ -287,7 +287,7 @@ static void svg_parse_color(SVG_Color *col, char *attribute_content)
 			col->green = INT2FIX((val>>4) & 0xF) / 15;
 			col->blue = INT2FIX(val & 0xF) / 15;
 		}
-	} else if (strstr(str, "rgb(") || strstr(str, "RGB(")) {
+	} else if (strstr(str, "rgb(")) {
 		Float _val;
 		u8 is_percentage= 0;
 		if (strstr(str, "%")) is_percentage = 1;
@@ -902,7 +902,7 @@ static void svg_parse_paint(SVG_Paint *paint, char *attribute_content)
 		paint->type = SVG_PAINT_NONE;
 	} else if (!strcmp(attribute_content, "inherit")) {
 		paint->type = SVG_PAINT_INHERIT;
-	} else if (!strnicmp(attribute_content, "url(", 4) ) {
+	} else if (!strncmp(attribute_content, "url(", 4) ) {
 		paint->type = SVG_PAINT_URI;
 		paint->uri = strdup(attribute_content+4);
 		paint->uri[strlen(paint->uri)-1] = 0;
@@ -1266,7 +1266,7 @@ static void svg_parse_fontvariant(SVG_FontVariant *value, char *value_string)
 
 static void svg_parse_boolean(SVG_Boolean *value, char *value_string)
 {
-	if (!stricmp(value_string, "1") || !stricmp(value_string, "true"))
+	if (!strcmp(value_string, "1") || !strcmp(value_string, "true"))
 		*value = 1;
 	else
 		*value = 0;
@@ -1904,7 +1904,7 @@ GF_Err svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_
 		smil_parse_fill((SMIL_Fill *)info->far_ptr, attribute_content);
 		break;
 	case SVG_GradientUnit_datatype:
-		*((SVG_GradientUnit *)info->far_ptr) = !stricmp(attribute_content, "userSpaceOnUse") ? SVG_GRADIENTUNITS_USER : SVG_GRADIENTUNITS_OBJECT;
+		*((SVG_GradientUnit *)info->far_ptr) = !strcmp(attribute_content, "userSpaceOnUse") ? SVG_GRADIENTUNITS_USER : SVG_GRADIENTUNITS_OBJECT;
 		break;
 	case SVG_FocusHighlight_datatype:
 		svg_parse_focushighlight(info->far_ptr, attribute_content);

@@ -451,7 +451,9 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 				bck_ctx->clip = surf->to_redraw.list[k];
 				bck_ctx->node->Draw(bck_ctx);
 			} else {
-				VS2D_Clear(surf, &surf->to_redraw.list[k], 0);
+				GF_IRect rc = surf->to_redraw.list[k];
+				gf_irect_intersect(&rc, &surf->top_clipper);
+				VS2D_Clear(surf, &rc, 0);
 			}
 		}
 	}

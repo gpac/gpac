@@ -64,7 +64,7 @@ static GF_Err ft_init_font_engine(GF_FontRaster *dr)
 	return GF_OK;
 }
 
-static GF_Err ft_shutdown_font_engine(GF_FontRaster *dr)
+GF_Err ft_shutdown_font_engine(GF_FontRaster *dr)
 {
 	FTBuilder *ftpriv = (FTBuilder *)dr->priv;
 

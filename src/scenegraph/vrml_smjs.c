@@ -405,6 +405,71 @@ static JSBool createVrmlFromString(JSContext*c, JSObject*obj, uintN argc, jsval 
 	return JS_TRUE;
 }
 
+#include <gpac/internal/terminal_dev.h>
+static JSBool getOption(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsval *rval)
+{
+	GF_Node *sc_node = JS_GetContextPrivate(c);
+	GF_JSInterface *ifce = JS_GetInterface(c);
+	JSString *js_sec_name, *js_key_name;
+	char *sec_name, *key_name, *key_val;
+	if (!ifce) return JSVAL_FALSE;
+	if (argc < 2) return JSVAL_FALSE;
+	
+	if (!JSVAL_IS_STRING(argv[0])) return JSVAL_FALSE;
+	js_sec_name = JSVAL_TO_STRING(argv[0]);
+	sec_name = JS_GetStringBytes(js_sec_name);
+
+	if (!JSVAL_IS_STRING(argv[1])) return JSVAL_FALSE;
+	js_key_name = JSVAL_TO_STRING(argv[1]);
+	key_name = JS_GetStringBytes(js_key_name);
+
+	if (ifce->callback && 
+		((GF_Terminal *)ifce->callback)->user && 
+		((GF_Terminal *)ifce->callback)->user->config) 
+		key_val = (char *)gf_cfg_get_key(((GF_Terminal *)ifce->callback)->user->config, (const char *)sec_name, (const char *)key_name);
+	else 
+		return JSVAL_FALSE;
+
+	if (key_val) {
+		JSString *s = JS_NewStringCopyZ(c, (const char *)key_val);
+		if (!s) return JS_FALSE;
+		*rval = STRING_TO_JSVAL(s); 
+		return JS_TRUE; 
+	} else {
+		return JSVAL_FALSE;
+	}
+}
+
+static JSBool setOption(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsval *rval)
+{
+	GF_Node *sc_node = JS_GetContextPrivate(c);
+	GF_JSInterface *ifce = JS_GetInterface(c);
+	JSString *js_sec_name, *js_key_name, *js_key_val;
+	char *sec_name, *key_name, *key_val;
+	if (!ifce) return JSVAL_FALSE;
+	if (argc < 3) return JSVAL_FALSE;
+	
+	if (!JSVAL_IS_STRING(argv[0])) return JSVAL_FALSE;
+	js_sec_name = JSVAL_TO_STRING(argv[0]);
+	sec_name = JS_GetStringBytes(js_sec_name);
+
+	if (!JSVAL_IS_STRING(argv[1])) return JSVAL_FALSE;
+	js_key_name = JSVAL_TO_STRING(argv[1]);
+	key_name = JS_GetStringBytes(js_key_name);
+
+	if (!JSVAL_IS_STRING(argv[2])) return JSVAL_FALSE;
+	js_key_val = JSVAL_TO_STRING(argv[2]);
+	key_val = JS_GetStringBytes(js_key_val);
+
+	if (ifce->callback && 
+		((GF_Terminal *)ifce->callback)->user && 
+		((GF_Terminal *)ifce->callback)->user->config) 
+		gf_cfg_set_key(((GF_Terminal *)ifce->callback)->user->config, (const char *)sec_name, (const char *)key_name, (const char *)key_val);
+	else 
+		return JSVAL_FALSE;
+
+	return JSVAL_TRUE;
+}
 static JSFunctionSpec browserFunctions[] = {
   {"getName", getName, 0},
   {"getVersion", getVersion, 0},
@@ -418,6 +483,8 @@ static JSFunctionSpec browserFunctions[] = {
   {"createVrmlFromString", createVrmlFromString, 0},
   {"setDescription", setDescription, 0},
   {"print",           JSPrint,          0},
+  {"getOption",  getOption,          0},
+  {"setOption",  setOption,          0},
   {0}
 };
 

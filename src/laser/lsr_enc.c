@@ -511,7 +511,7 @@ static u32 lsr_translate_coords(GF_LASeRCodec *lsr, Fixed x, u32 nb_bits)
 
 static u32 lsr_translate_scale(GF_LASeRCodec *lsr, Fixed v)
 {
-	/*always 8 bits for fixed part*/
+	/*always 8 bits for fractional part*/
 	v = v*256;
 	if (v<0) return FIX2INT(-v) | (1<<(lsr->coord_bits-1));
 	return FIX2INT(v);

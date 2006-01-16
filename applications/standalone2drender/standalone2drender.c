@@ -167,6 +167,7 @@ void SR_DeleteStandaloneRenderer(GF_Renderer *tmp)
 	free(tmp->visual_renderer);
 	DeleteVideoOutput(tmp->video_out);
 	EVG_ShutdownRenderer(tmp->r2d);
+	ft_shutdown_font_engine(tmp->font_engine);
 	FT_Delete(tmp->font_engine);
 	free(tmp->user);
 	free(tmp);
