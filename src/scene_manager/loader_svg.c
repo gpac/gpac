@@ -49,6 +49,7 @@ typedef struct
 	GF_Command *command;
 	/*SAF AU maps to OD AU and is used for each new media declaration*/
 	GF_AUContext *saf_au;
+	GF_StreamContext *saf_es;
 } GF_SVGParser;
 
 
@@ -448,7 +449,16 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 					if ((iri->type==SVG_IRI_ELEMENTID) && !iri->target && iri->iri)
 						gf_list_add(parser->defered_hrefs, iri);
 				}
-			} else {
+			}
+			/*LASeR HACKS*/
+			else if (!strcmp(att->name, "lsr:translation")) {
+				if (gf_node_get_field_by_name((GF_Node *)elt, "transform", &info)==GF_OK) {
+					Double tx, ty;
+					sscanf(att->value, "%g %g", &tx, &ty);
+					gf_mx2d_add_translation(info.far_ptr, FLT2FIX(tx), FLT2FIX(ty));
+				}
+			}
+			else {
 				svg_report(parser, GF_OK, "Unknown attribute %s on element %s", (char *)att->name, gf_node_get_class_name((GF_Node *)elt));
 			}
 		}
@@ -715,6 +725,48 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			/*create new laser unit*/
 			parser->laser_au = gf_sm_stream_au_new(parser->laser_es, time, 0, rap);
 			return;			
+		}
+		if (!strcmp(name, "StreamHeader") || !strcmp(name, "RemoteStreamHeader")) {
+			char *url;
+			u32 time, ID, OTI, ST, count, i;
+			GF_ODUpdate *odU;
+			GF_ObjectDescriptor *od;
+			Bool rap;
+			/*create a SAF stream*/
+			if (!parser->saf_es) {
+				GF_ESD *esd = (GF_ESD*)gf_odf_desc_esd_new(2);
+				esd->ESID = 0xFFFE;
+				esd->decoderConfig->streamType = GF_STREAM_OD;
+				esd->decoderConfig->objectTypeIndication = 1;
+				parser->saf_es = gf_sm_stream_new(parser->load->ctx, esd->ESID, GF_STREAM_OD, 1);
+				if (!parser->load->ctx->root_od) parser->load->ctx->root_od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
+				parser->saf_es->timeScale = 1000;
+				gf_list_add(parser->load->ctx->root_od->ESDescriptors, esd);
+			}
+			time = 0;
+			rap = 0;
+			count = gf_list_count(attributes);
+			for (i=0; i<count;i++) {
+				GF_SAXAttribute *att = gf_list_get(attributes, i);
+				if (!strcmp(att->name, "time")) time = atoi(att->value);
+				else if (!strcmp(att->name, "rap")) rap = !strcmp(att->value, "yes") ? 1 : 0;
+				else if (!strcmp(att->name, "url")) { url = att->value; att->value = NULL; } 
+				else if (!strcmp(att->name, "streamID")) ID = atoi(att->value);
+				else if (!strcmp(att->name, "objectTypeIndication")) OTI = atoi(att->value);
+				else if (!strcmp(att->name, "streamType")) ST = atoi(att->value);
+			}
+			/*create new SAF unit*/
+			parser->saf_au = gf_sm_stream_au_new(parser->saf_es, time, 0, 0);
+			odU = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
+			gf_list_add(parser->saf_au->commands, odU);
+			od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+			gf_list_add(odU->objectDescriptors, od);
+			if (url) od->URLString = url;
+			else {
+				GF_ESD *esd = (GF_ESD*)gf_odf_desc_esd_new(2);
+				gf_list_add(od->ESDescriptors, esd);
+			}
+			return;
 		}
 		if (!strcmp(name, "endOfSAFSession") ) {
 			return;

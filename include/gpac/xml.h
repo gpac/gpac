@@ -181,6 +181,9 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 
 const char *gf_xml_sax_get_error(GF_SAXParser *parser);
 
+
+char *gf_xml_sax_get_root_type(const char *file);
+
 /*! @} */
 
 #ifdef __cplusplus

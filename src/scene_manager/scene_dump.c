@@ -2526,6 +2526,10 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 }
 
 
+void dump_od_to_saf(GF_SceneDumper *dumper, GF_List *coms, u32 indent)
+{
+}	
+
 
 GF_Err SD_SetSceneGraph(GF_SceneDumper *sdump, GF_SceneGraph *sg)
 {
@@ -2726,7 +2730,11 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 
 			switch (au->owner->streamType) {
 			case GF_STREAM_OD:
-				e = gf_odf_dump_com_list(au->commands, dumper->trace, indent+1, 0);
+				if (dumper->LSRDump) {
+					dump_od_to_saf(dumper, au->commands, indent);
+				} else {
+					e = gf_odf_dump_com_list(au->commands, dumper->trace, indent+1, 0);
+				}
 				break;
 			case GF_STREAM_SCENE:
 				e = gf_sm_dump_command_list(dumper, au->commands, indent, first_bifs);
@@ -2770,7 +2778,11 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 			}
 			switch (au->owner->streamType) {
 			case GF_STREAM_OD:
-				e = gf_odf_dump_com_list(au->commands, dumper->trace, indent+1, 1);
+				if (dumper->LSRDump) {
+					dump_od_to_saf(dumper, au->commands, indent+1);
+				} else {
+					e = gf_odf_dump_com_list(au->commands, dumper->trace, indent+1, 1);
+				}
 				break;
 			case GF_STREAM_SCENE:
 				assert(gf_list_count(au->commands));

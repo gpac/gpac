@@ -312,7 +312,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 {
 	s32 ret;
 	s32 optval;
-	u_long mc_add;
+	u_long mc_add, local_add;
 	u32 flag; 
 	struct sockaddr_in LocalAdd;
 	struct ip_mreq M_req;

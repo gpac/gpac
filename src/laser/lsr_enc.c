@@ -903,6 +903,7 @@ static void lsr_write_rare_full(GF_LASeRCodec *lsr, GF_Node *n, GF_Node *default
 		case RARE_FOCUSWEST: lsr_write_focus(lsr, fi->far_ptr, "focusWest"); break;
 		case RARE_FOCUSEAST: lsr_write_focus(lsr, fi->far_ptr, "focusEast"); break;
 
+     	case RARE_FONT_VARIANT: GF_LSR_WRITE_INT(lsr, *(SVG_FontVariant *)fi->far_ptr, 2, "font-variant"); break;
 		case RARE_FONT_FAMILY:
 		{
 			s32 idx = lsr_get_font_index(lsr, fi->far_ptr);
@@ -2735,9 +2736,9 @@ static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 	GF_CommandField *field;
 	u8 type = 0;
 	u32 field_type, tr_type = 0;
-	if (com->tag==GF_SG_LSR_REPLACE) type = 6;
-	else if (com->tag==GF_SG_LSR_ADD) type = 0;
-	else if (com->tag==GF_SG_LSR_INSERT) type = 3;
+	if (com->tag==GF_SG_LSR_REPLACE) type = LSR_UPDATE_REPLACE;
+	else if (com->tag==GF_SG_LSR_ADD) type = LSR_UPDATE_ADD;
+	else if (com->tag==GF_SG_LSR_INSERT) type = LSR_UPDATE_INSERT;
 	else return GF_BAD_PARAM;
 
 	GF_LSR_WRITE_INT(lsr, type, 4, "ch4");
@@ -2748,13 +2749,13 @@ static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 		field_type = field->fieldType;
 		/*textContent cannot be used directly*/
 		if ((field->fieldIndex==(u32)-1) && (field->fieldType==SVG_String_datatype)) {
-			attType = 102;
+			attType = LSR_UPDATE_TYPE_TEXT_CONTENT;
 		}
 		/*transform*/
 		else if ((field->fieldIndex==(u32)-2)) {
-			if (field->fieldType == SVG_TRANSFORM_SCALE) attType = 79;
-			else if (field->fieldType == SVG_TRANSFORM_TRANSLATE) attType = 107;
-			else if (field->fieldType == SVG_TRANSFORM_ROTATE) attType = 76;
+			if (field->fieldType == SVG_TRANSFORM_SCALE) attType = LSR_UPDATE_TYPE_SCALE;
+			else if (field->fieldType == SVG_TRANSFORM_TRANSLATE) attType = LSR_UPDATE_TYPE_TRANSLATION;
+			else if (field->fieldType == SVG_TRANSFORM_ROTATE) attType = LSR_UPDATE_TYPE_ROTATE;
 			tr_type = field->fieldType;
 			field_type = SVG_Matrix_datatype;
 		} else {
@@ -2766,7 +2767,7 @@ static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 		GF_LSR_WRITE_INT(lsr, 0, 1, "has_attributeName");
 	}
 	/*if not add*/
-	if (type) {
+	if (type!=LSR_UPDATE_ADD) {
 		if (!field || field->pos<0) {
 			GF_LSR_WRITE_INT(lsr, 0, 1, "has_index");
 		} else {
@@ -2774,7 +2775,7 @@ static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 			lsr_write_vluimsbf5(lsr, (u32) field->pos, "index");
 		}
 	}
-	if (type!=3) {
+	if (type!=LSR_UPDATE_INSERT) {
 		if (com->fromNodeID) {
 			GF_Node *opNode;
 			u8 opAttType;
@@ -2798,7 +2799,7 @@ static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 	}
 	lsr_write_any_attribute(lsr, NULL, NULL);
 	/*if not add*/
-	if (type) {
+	if (type!=LSR_UPDATE_ADD) {
 		if (field && field->node_list && !com->fromNodeID) {
 			u32 i, count = gf_list_count(field->node_list);
 			GF_LSR_WRITE_INT(lsr, 1, 1, "opt_group");
@@ -2848,7 +2849,7 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGs
 		switch (com->tag) {
 		case GF_SG_LSR_NEW_SCENE:
 		case GF_SG_LSR_REFRESH_SCENE:
-			GF_LSR_WRITE_INT(lsr, (com->tag==GF_SG_LSR_REFRESH_SCENE) ? 5 : 4, 4, "ch4");
+			GF_LSR_WRITE_INT(lsr, (com->tag==GF_SG_LSR_REFRESH_SCENE) ? LSR_UPDATE_REFRESH_SCENE : LSR_UPDATE_NEW_SCENE, 4, "ch4");
 			if (com->tag==GF_SG_LSR_REFRESH_SCENE) lsr_write_vluimsbf5(lsr, /*refresh scene time*/0, "time");
 			lsr_write_any_attribute(lsr, NULL, NULL);
 			lsr_write_svg(lsr, (SVGsvgElement *) com->node);
@@ -2861,7 +2862,7 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGs
 		case GF_SG_LSR_CLEAN:
 			break;
 		case GF_SG_LSR_DELETE:
-			GF_LSR_WRITE_INT(lsr, 2, 4, "ch4");
+			GF_LSR_WRITE_INT(lsr, LSR_UPDATE_DELETE, 4, "ch4");
 			field = gf_list_get(com->command_fields, 0);
 			if (field && field->fieldType) {
 				u8 attType;

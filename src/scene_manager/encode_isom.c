@@ -1067,8 +1067,8 @@ GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOp
 	/*set PLs*/
 	if (ctx->root_od && ctx->root_od->tag==GF_ODF_IOD_TAG) {
 		GF_InitialObjectDescriptor *iod =  (GF_InitialObjectDescriptor *)ctx->root_od;
-		gf_isom_set_pl_indication(mp4, GF_ISOM_PL_OD, iod->OD_profileAndLevel);
 		gf_isom_set_pl_indication(mp4, GF_ISOM_PL_SCENE, iod->scene_profileAndLevel);
+		gf_isom_set_pl_indication(mp4, GF_ISOM_PL_GRAPHICS, iod->graphics_profileAndLevel);
 	} else {
 		gf_isom_set_pl_indication(mp4, GF_ISOM_PL_SCENE, 0xFE);
 		gf_isom_set_pl_indication(mp4, GF_ISOM_PL_GRAPHICS, 0xFE);

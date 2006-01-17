@@ -257,7 +257,8 @@ void wxPlaylist::RefreshList()
 	for (i=0; i<gf_list_count(m_entries); i++) {
 		PLEntry *ple = (PLEntry *) gf_list_get(m_entries, i);
 		m_FileList->InsertItem(i, wxT(""));
-		m_FileList->SetItemData(i, (u32) ple);
+		/*cast for 64-bit compilation*/
+		m_FileList->SetItemData(i, (unsigned long) ple);
 		UpdateEntry(i);
 
 		if (ple->m_bIsPlaying) m_cur_entry = i;

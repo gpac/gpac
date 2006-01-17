@@ -1511,3 +1511,27 @@ const char *gf_xml_sax_get_error(GF_SAXParser *parser)
 	return parser->err_msg;
 }
 
+
+struct _peek_type
+{
+	GF_SAXParser *parser;
+	char *res;
+};
+
+static void on_peek_node_start(void *cbk, const char *name, const char *ns, GF_List *atts)
+{
+	struct _peek_type *pt = (struct _peek_type*)cbk;
+	pt->res = strdup(name);
+	pt->parser->suspended = 1;
+}
+
+char *gf_xml_sax_get_root_type(const char *file)
+{
+	struct _peek_type pt;
+	pt.res = NULL;
+	pt.parser = gf_xml_sax_new(on_peek_node_start, NULL, NULL, &pt);
+	gf_xml_sax_parse_file(pt.parser, file, NULL);
+	gf_xml_sax_del(pt.parser);
+	return pt.res;
+}
+

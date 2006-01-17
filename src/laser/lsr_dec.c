@@ -496,7 +496,7 @@ static void lsr_read_any_uri(GF_LASeRCodec *lsr, SVG_IRI *iri, const char *name)
 	u32 val;
 	GF_LSR_READ_INT(lsr, val, 1, "hasUri");
 	if (val) {
-		unsigned char *s;
+		unsigned char *s = NULL;
 		iri->type=SVG_IRI_IRI;
 		lsr_read_byte_align_string(lsr, &s, "uri");
 		GF_LSR_READ_INT(lsr, val, 1, "hasData");
@@ -793,6 +793,7 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, SVGElement *n, SVG_Matrix *ma
 		case RARE_VECTOR_EFFECT: GF_LSR_READ_INT(lsr, n->properties->vector_effect, 4, "vector-effect"); break;
 	    case RARE_VISIBILITY: GF_LSR_READ_INT(lsr, n->properties->visibility, 2, "visibility"); break;
 
+     	case RARE_FONT_VARIANT: GF_LSR_READ_INT(lsr, ((SVGfont_faceElement *)n)->font_variant, 2, "font-variant"); break;
 		case RARE_FONT_FAMILY:
 		{
 			u32 flag;
@@ -2635,17 +2636,17 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 			tr_type = 0;
 			switch (att_type) {
 			/*text*/
-			case 102:
+			case LSR_UPDATE_TYPE_TEXT_CONTENT:
 				field->fieldIndex = (u32) -1;
 				field_type = field->fieldType = SVG_String_datatype;
 				break;
 			/*matrix.translation, scale or rotate*/
-			case 76:
-			case 79:
-			case 107:
+			case LSR_UPDATE_TYPE_SCALE:
+			case LSR_UPDATE_TYPE_ROTATE:
+			case LSR_UPDATE_TYPE_TRANSLATION:
 				field_type = SVG_Matrix_datatype;
 				field->fieldIndex = (-2);
-				field->fieldType = tr_type = (att_type==107) ? SVG_TRANSFORM_TRANSLATE : ((att_type==79) ? SVG_TRANSFORM_SCALE : SVG_TRANSFORM_ROTATE);
+				field->fieldType = tr_type = (att_type==LSR_UPDATE_TYPE_TRANSLATION) ? SVG_TRANSFORM_TRANSLATE : ((att_type==LSR_UPDATE_TYPE_SCALE) ? SVG_TRANSFORM_SCALE : SVG_TRANSFORM_ROTATE);
 				break;
 			default:
 				field->fieldIndex = lsr_get_field_from_attrib_type(com->node, att_type);
@@ -2663,19 +2664,19 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 			u8 tr_type = 0;
 			switch (att_type) {
 			/*text*/
-			case 102:
+			case LSR_UPDATE_TYPE_TEXT_CONTENT:
 				info.far_ptr = &((SVGElement *)n)->textContent;
 				field_type = SVG_String_datatype;
 				info.name = "textContent";
 				break;
 			/*matrix.translation, scale or rotate*/
-			case 76:
-			case 79:
-			case 107:
-				info.far_ptr = (att_type==76) ? ((void *)&matrix_tmp_rot) : ((void *)&matrix_tmp);
+			case LSR_UPDATE_TYPE_SCALE:
+			case LSR_UPDATE_TYPE_ROTATE:
+			case LSR_UPDATE_TYPE_TRANSLATION:
+				info.far_ptr = (att_type==LSR_UPDATE_TYPE_ROTATE) ? ((void *)&matrix_tmp_rot) : ((void *)&matrix_tmp);
 				field_type = SVG_Matrix_datatype;
 				fieldIndex = (-2);
-				tr_type = (att_type==107) ? SVG_TRANSFORM_TRANSLATE : ((att_type==79) ? SVG_TRANSFORM_SCALE : SVG_TRANSFORM_ROTATE);
+				tr_type = (att_type==LSR_UPDATE_TYPE_TRANSLATION) ? SVG_TRANSFORM_TRANSLATE : ((att_type==LSR_UPDATE_TYPE_SCALE) ? SVG_TRANSFORM_SCALE : SVG_TRANSFORM_ROTATE);
 				break;
 			default:
 				fieldIndex = lsr_get_field_from_attrib_type((GF_Node*)n, att_type);
@@ -2684,7 +2685,6 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 				break;
 			}
 			if (tr_type) {
-
 				GF_Matrix2D *dest;
 				lsr_read_update_value(lsr, (GF_Node*)n, field_type, tr_type, info.far_ptr, (idx==-1) ? 0 : 1);
 
@@ -2696,18 +2696,18 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 					Fixed rotate;
 					if (gf_mx2d_decompose(dest, &scale, &rotate, &translate)) {
 						gf_mx2d_init(*dest);
-						if (att_type==79) scale = matrix_tmp;
-						else if (att_type==107) translate = matrix_tmp;
-						else if (att_type==76) rotate = matrix_tmp_rot;
+						if (att_type==LSR_UPDATE_TYPE_SCALE) scale = matrix_tmp;
+						else if (att_type==LSR_UPDATE_TYPE_TRANSLATION) translate = matrix_tmp;
+						else if (att_type==LSR_UPDATE_TYPE_ROTATE) rotate = matrix_tmp_rot;
 
 						gf_mx2d_add_scale(dest, scale.x, scale.y);
 						gf_mx2d_add_rotation(dest, 0, 0, rotate);
 						gf_mx2d_add_translation(dest, translate.x, translate.y);
 					}
 				} 
-				else if (att_type==79) gf_mx2d_add_scale(dest, matrix_tmp.x, matrix_tmp.y);
-				else if (att_type==107) gf_mx2d_add_translation(dest, matrix_tmp.x, matrix_tmp.y);
-				else if (att_type==76) gf_mx2d_add_rotation(dest, 0, 0, matrix_tmp_rot);
+				else if (att_type==LSR_UPDATE_TYPE_SCALE) gf_mx2d_add_scale(dest, matrix_tmp.x, matrix_tmp.y);
+				else if (att_type==LSR_UPDATE_TYPE_TRANSLATION) gf_mx2d_add_translation(dest, matrix_tmp.x, matrix_tmp.y);
+				else if (att_type==LSR_UPDATE_TYPE_ROTATE) gf_mx2d_add_rotation(dest, 0, 0, matrix_tmp_rot);
 			}
 			else if (com_type) {
 				lsr_read_update_value(lsr, (GF_Node*)n, field_type, tr_type, info.far_ptr, (idx==-1) ? 0 : 1);
@@ -2907,16 +2907,16 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGsc
 	for (i=0; i<count; i++) {
 		GF_LSR_READ_INT(lsr, type, 4, "ch4");
 		switch (type) {
-		case 0:	/*add*/
-		case 3:	/*insert*/
-		case 6:	/*replace*/
+		case LSR_UPDATE_ADD:
+		case LSR_UPDATE_INSERT:
+		case LSR_UPDATE_REPLACE:
 			e = lsr_read_add_replace_insert(lsr, com_list, type);
 			break;
-		case 2: /*Delete*/
+		case LSR_UPDATE_DELETE:
 			e = lsr_read_delete(lsr, com_list);
 			break;
-		case 4: /*NewScene*/
-		case 5: /*RefreshScene - TODO FIXME, depends on decoder state*/
+		case LSR_UPDATE_NEW_SCENE:
+		case LSR_UPDATE_REFRESH_SCENE: /*TODO FIXME, depends on decoder state*/
 			if (type==5) lsr_read_vluimsbf5(lsr, "time");
 			lsr_read_any_attribute(lsr, NULL);
 			if (com_list) {
@@ -2935,7 +2935,7 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGsc
 				gf_sg_set_scene_size_info(lsr->sg, 0, 0, 1);
 			}
 			break;
-		case 11:	/*script*/
+		case LSR_UPDATE_TEXT_CONTENT:	/*script*/
 			if (script) lsr_read_byte_align_string(lsr, &script->textContent, "textContent");
 			break;
 		default:

@@ -123,6 +123,7 @@ s32 gf_lsr_field_to_attrib_type(GF_Node *n, u32 fieldIndex);
 #define RARE_VIEWPORT_FILL_OPACITY	26
 #define RARE_VECTOR_EFFECT			27
 #define RARE_VISIBILITY				28
+#define RARE_FONT_VARIANT			50
 #define RARE_FONT_FAMILY			51
 #define RARE_FONT_SIZE				52
 #define RARE_FONT_STYLE				53
@@ -162,6 +163,27 @@ s32 gf_lsr_field_to_attrib_type(GF_Node *n, u32 fieldIndex);
 #define RARE_MIN					63
 /*transform*/
 #define RARE_TRANSFORM				47
+
+
+
+#define LSR_UPDATE_TYPE_SCALE			79
+#define LSR_UPDATE_TYPE_ROTATE			75
+#define LSR_UPDATE_TYPE_TRANSLATION		109
+#define LSR_UPDATE_TYPE_TEXT_CONTENT	104
+
+
+#define LSR_UPDATE_ADD				0
+#define LSR_UPDATE_CLEAN			1
+#define LSR_UPDATE_DELETE			2
+#define LSR_UPDATE_INSERT			3
+#define LSR_UPDATE_NEW_SCENE		4
+#define LSR_UPDATE_REFRESH_SCENE	5
+#define LSR_UPDATE_REPLACE			6
+#define LSR_UPDATE_RESTORE			7
+#define LSR_UPDATE_SAVE				8
+#define LSR_UPDATE_SEND_EVENT		9
+#define LSR_UPDATE_EXTEND			10
+#define LSR_UPDATE_TEXT_CONTENT		11
 
 
 #endif
