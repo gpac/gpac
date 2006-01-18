@@ -98,6 +98,16 @@ static Bool OnJSAction(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam *param)
 {
 	Bool ret;
 	GF_Terminal *term = (GF_Terminal *) opaque;
+
+	if (type==GF_JSAPI_OP_GET_OPT) {
+		param->gpac_cfg.key_val = gf_cfg_get_key(term->user->config, param->gpac_cfg.section, param->gpac_cfg.key);
+		return 1;
+	}
+	if (type==GF_JSAPI_OP_SET_OPT) {
+		gf_cfg_set_key(term->user->config, param->gpac_cfg.section, param->gpac_cfg.key, param->gpac_cfg.key_val);
+		return 1;
+	}
+
 	if (type==GF_JSAPI_OP_GET_SCENE_URI) {
 		GF_InlineScene *is = gf_sg_get_private(gf_node_get_graph(n));
 		param->uri.url = is->root_od->net_service->url;
