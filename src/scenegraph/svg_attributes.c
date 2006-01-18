@@ -3094,6 +3094,9 @@ Bool svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	case SVG_TimelineBegin_datatype:
 	case SVG_FocusHighlight_datatype:
 	case SVG_TransformType_datatype:
+	case SVG_Overlay_datatype:
+	case SVG_TransformBehavior_datatype:
+	case SVG_InitialVisibility_datatype:
 		return (v1==v2) ? 1 : 0;
 	case SVG_Color_datatype:
 		return svg_colors_equal((SVG_Color *)f1->far_ptr, (SVG_Color *)f2->far_ptr);

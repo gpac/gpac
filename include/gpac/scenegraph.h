@@ -330,6 +330,13 @@ typedef struct
 	u32 nb_params;
 } GF_JSAPIURI;
 
+typedef struct
+{
+	const char *section;
+	const char *key;
+	const char *key_val;
+} GF_JSAPIOPT;
+
 typedef union
 {
 	u32 opt;
@@ -340,6 +347,7 @@ typedef union
 	GF_BBox bbox;
 	GF_Matrix mx;
 	GF_JSAPIURI uri;
+	GF_JSAPIOPT gpac_cfg;
 	GF_Node *focused;
 } GF_JSAPIParam;
 
@@ -381,6 +389,10 @@ enum
 	GF_JSAPI_OP_GET_URL,
 	/*!replace target scene URL*/
 	GF_JSAPI_OP_LOAD_URL,
+	/*!get option by section and key*/
+	GF_JSAPI_OP_GET_OPT,
+	/*!get option by section and key*/
+	GF_JSAPI_OP_SET_OPT,
 };
 
 /*JavaScript interface with user*/

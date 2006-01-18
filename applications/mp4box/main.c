@@ -1029,14 +1029,14 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-chap")) { CHECK_NEXT_ARG chap_file = argv[i+1]; i++; open_edit = 1; }
 		else if (!stricmp(arg, "-inter") || !stricmp(arg, "-old-inter")) {
 			CHECK_NEXT_ARG
-			InterleavingTime = ( (Float) atof(argv[i+1]) ) / 1000;
+			InterleavingTime = atof(argv[i+1]) / 1000;
 			open_edit = 1;
 			needSave = 1;
 			if (!stricmp(arg, "-old-inter")) old_interleave = 1;
 			i++;
 		} else if (!stricmp(arg, "-frag")) {
 			CHECK_NEXT_ARG
-			InterleavingTime = ((Float) atof(argv[i+1]) ) / 1000;
+			InterleavingTime = atof(argv[i+1]) / 1000;
 			open_edit = 1;
 			needSave = 1;
 			i++;
@@ -1234,7 +1234,7 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-packed")) import_flags |= GF_IMPORT_FORCE_PACKED;
 		else if (!stricmp(arg, "-sbr")) import_flags |= GF_IMPORT_SBR_IMPLICIT;
 		else if (!stricmp(arg, "-sbrx")) import_flags |= GF_IMPORT_SBR_EXPLICIT;
-		else if (!stricmp(arg, "-fps")) { CHECK_NEXT_ARG import_fps = (Float) atof(argv[i+1]); i++; }
+		else if (!stricmp(arg, "-fps")) { CHECK_NEXT_ARG import_fps = atof(argv[i+1]); i++; }
 		else if (!stricmp(arg, "-agg")) { CHECK_NEXT_ARG agg_samples = atoi(argv[i+1]); i++; }
 		else if (!stricmp(arg, "-keepsys")) keep_sys_tracks = 1;
 		else if (!stricmp(arg, "-ms")) { CHECK_NEXT_ARG mediaSource = argv[i+1]; i++; }
