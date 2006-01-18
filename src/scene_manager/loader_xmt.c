@@ -1638,6 +1638,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			if (* ((GF_Node **)container.far_ptr) ) gf_node_unregister(* ((GF_Node **)container.far_ptr) , parent->node);
 			* ((GF_Node **)container.far_ptr) = node;
 			gf_node_register(node, parent->node);
+			parent->container_field.far_ptr = NULL;
 		} else {
 			GF_List *l = * ((GF_List **)container.far_ptr);
 			gf_list_add(l, node);

@@ -902,7 +902,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 	fprintf(vrml_code, "\nu32 gf_node_x3d_type_by_class_name(const char *node_name)\n{\n\tif(!node_name) return 0;\n");
 	for (i=0; i<gf_list_count(BNodes); i++) {
 		n = gf_list_get(BNodes, i);
-		if (!n->skip_impl) fprintf(vrml_code, "\tif (!stricmp(node_name, \"%s\")) return TAG_X3D_%s;\n", n->name, n->name);
+		if (!n->skip_impl) fprintf(vrml_code, "\tif (!strcmp(node_name, \"%s\")) return TAG_X3D_%s;\n", n->name, n->name);
 	}
 	fprintf(vrml_code, "\treturn 0;\n}\n\n");
 
@@ -1184,7 +1184,6 @@ void parse_profile(GF_List *nodes, FILE *prof)
 			}
 		}
 
-//		if (0 && !stricmp(sLine, "Appearance") || !stricmp(sLine, "Shape") || !stricmp(sLine, "Sound2D") ) {
 		if (0) {
 			printf("Warning: cannot disable node %s (required in all BIFS profiles)\n", sLine);
 		} else {
