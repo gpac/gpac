@@ -218,7 +218,7 @@ Bool VS_SetupAppearance(RenderEffect3D *eff);
 /*setup texture - return 0 if texture could not be setup (not available or error)*/
 Bool VS_setup_texture(RenderEffect3D *eff);
 /*setup texture in 2D nodes taking care of Material2D fill & transparency - returns NULL if texture not setup*/
-GF_TextureHandler *VS_setup_gf_sr_texture_2d(RenderEffect3D *eff, Aspect2D *asp);
+GF_TextureHandler *VS_setup_texture_2d(RenderEffect3D *eff, Aspect2D *asp);
 /*disable effect texture*/
 void VS_disable_texture(RenderEffect3D *eff);
 

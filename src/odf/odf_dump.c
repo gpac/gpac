@@ -708,10 +708,9 @@ GF_Err DumpRawBIFSConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Boo
 
 GF_Err gf_odf_dump_laser_cfg(GF_LASERConfig *dsi, FILE *trace, u32 indent, Bool XMTDump)
 {
-	fprintf(trace, "<lsr:LASeRHeader profile=\"%s\" pointsCodec=\"%s\" encoding=\"%s\"", 
+	fprintf(trace, "<lsr:LASeRHeader profile=\"%s\" pointsCodec=\"%s\"", 
 		dsi->profile ? "mini" : "full",
-		dsi->pointsCodec ? "Unknown" : "ExpGolombPointsCodec",
-		dsi->encoding ? "Unknown" : "SimpleEncoding");
+		dsi->pointsCodec ? "Unknown" : "ExpGolombPointsCodec");
 
 	if (dsi->colorComponentBits) fprintf(trace, " colorComponentBits=\"%d\"", dsi->colorComponentBits);
 	if (dsi->append) fprintf(trace, " append=\"true\"");
@@ -721,7 +720,7 @@ GF_Err gf_odf_dump_laser_cfg(GF_LASERConfig *dsi, FILE *trace, u32 indent, Bool 
 	if (dsi->pathComponents) fprintf(trace, " pathComponents=\"%d\"", dsi->pathComponents);
 	if (dsi->time_resolution && (dsi->time_resolution!=1000) ) fprintf(trace, " timeResolution=\"%d\"", dsi->time_resolution);
 	if (dsi->resolution) fprintf(trace, " resolution=\"%d\"", dsi->resolution);
-	if (dsi->scale_bits) fprintf(trace, " scaleBits_minus_coordBits=\"%d\"", dsi->scale_bits);
+	if (dsi->scale_bits_minus_coord_bits) fprintf(trace, " scaleBits_minus_coordBits=\"%d\"", dsi->scale_bits_minus_coord_bits);
 	fprintf(trace, "/>\n");
 	return GF_OK;
 }

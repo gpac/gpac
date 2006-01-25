@@ -100,6 +100,9 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 	GF_SAFEALLOC(svg_props->display, sizeof(SVG_Display));
 	*svg_props->display = SVG_DISPLAY_INLINE;
 
+	GF_SAFEALLOC(svg_props->stop_opacity, sizeof(SVG_Opacity));
+	svg_props->stop_opacity->type = SVG_NUMBER_VALUE;
+	svg_props->stop_opacity->value = FIX_ONE;
 }
 
 void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)

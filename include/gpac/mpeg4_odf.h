@@ -515,14 +515,13 @@ typedef struct __tag_laser_config
 	BASE_DESCRIPTOR
 	u8 profile;
 	u8 level;
-	u8 encoding;
 	u8 pointsCodec;
 	u8 pathComponents;
 	u8 fullRequestHost;
 	u16 time_resolution;
 	u8 colorComponentBits;
 	s8 resolution;
-	u8 scale_bits;
+	u8 scale_bits_minus_coord_bits;
 	u8 coord_bits;
 	u8 append;
 	u8 has_string_ids;

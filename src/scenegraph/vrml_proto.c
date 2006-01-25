@@ -406,6 +406,18 @@ GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_pa
 			break;
 		}
 	}
+
+	if (node->sgprivate->tag==TAG_MPEG4_InputSensor) {
+		GF_Command *com_o, *com_f;
+		u32 k = 0;
+		M_InputSensor *clone_is = (M_InputSensor *)node;
+		M_InputSensor *orig_is = (M_InputSensor *)orig;
+		while ( (com_o = gf_list_enum(orig_is->buffer.commandList, &k) ) ) {
+			com_f = gf_sg_command_clone(com_o, node->sgprivate->scenegraph);
+			gf_list_add(clone_is->buffer.commandList, com_f);
+		}
+	}
+
 	/*register node*/
 	if (orig->sgprivate->NodeID) {
 		gf_node_set_id(node, orig->sgprivate->NodeID, orig->sgprivate->NodeName);

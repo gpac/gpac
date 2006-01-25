@@ -315,20 +315,18 @@ static void merge_row_rgb_555(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc
 		while ( pos >= 0x10000L ) {
 			r = *src++; g = *src++; b = *src++; a = *src++;
 			pos -= 0x10000L;
+			a = mul255(a, alpha);
 		}
-
 		if (a && alpha) {
 			col = *dst;
 			_r = (col >> 7) & 0xf8;
 			_g = (col >> 2) & 0xf8;
 			_b = (col << 3) & 0xf8;
-			a = mul255(a, alpha);
 			_r = mul255(a, r - _r) + _r;
 			_g = mul255(a, g - _g) + _g;
 			_b = mul255(a, b - _b) + _b;
 			*dst = GF_COL_555(_r, _g, _b);
 		}
-
 		dst += x_pitch;
 		pos += h_inc;
 		dst_w--;
@@ -347,18 +345,17 @@ static void merge_row_rgb_565(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc
 		while ( pos >= 0x10000L ) {
 			r = *src++; g = *src++; b = *src++; a = *src++;
 			pos -= 0x10000L;
+			a = mul255(a, alpha);
 		}
-
-		if (a && alpha) {
+		if (a) {
 			col = *dst;
 			_r = (col >> 8) & 0xf8;
 			_g = (col >> 3) & 0xfc;
 			_b = (col << 3) & 0xf8;
-			a = mul255(a, alpha);
 			_r = mul255(a, r - _r) + _r;
 			_g = mul255(a, g - _g) + _g;
 			_b = mul255(a, b - _b) + _b;
-			*dst = GF_COL_555(_r, _g, _b);
+			*dst = GF_COL_565(_r, _g, _b);
 		}
 		dst += x_pitch;
 		pos += h_inc;
@@ -377,15 +374,13 @@ static void merge_row_rgb_24(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, 
 		while ( pos >= 0x10000L ) {
 			r = *src++; g = *src++; b = *src++; a = *src++;
 			pos -= 0x10000L;
-		}
-
-		if (a && alpha) {
-			_r = dst[0]; _g = dst[0]; _b = dst[0];
 			a = mul255(a, alpha);
+		}
+		if (a) {
+			_r = dst[0]; _g = dst[0]; _b = dst[0];
 			dst[0] = mul255(a, r - _r) + _r;
 			dst[1] = mul255(a, g - _g) + _g;
 			dst[2] = mul255(a, b - _b) + _b;
-
 		}
 		dst += x_pitch;
 		pos += h_inc;

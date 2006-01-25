@@ -505,7 +505,7 @@ static GF_ESD *lsr_parse_header(GF_SVGParser *parser, const char *name, const ch
 			else if (!strcmp(att->name, "resolution")) lsrc->resolution = atoi(att->value);
 			else if (!strcmp(att->name, "timeResolution")) lsrc->time_resolution = atoi(att->value);
 			else if (!strcmp(att->name, "coordBits")) lsrc->coord_bits = atoi(att->value);
-			else if (!strcmp(att->name, "scaleBits_minus_coordBits")) lsrc->scale_bits = atoi(att->value);
+			else if (!strcmp(att->name, "scaleBits_minus_coordBits")) lsrc->scale_bits_minus_coord_bits = atoi(att->value);
 			else if (!strcmp(att->name, "colorComponentBits")) lsrc->colorComponentBits = atoi(att->value);
 			else if (!strcmp(att->name, "append")) lsrc->append = !strcmp(att->value, "yes") ? 1 : 0;
 			else if (!strcmp(att->name, "useFullRequestHost")) lsrc->fullRequestHost = !strcmp(att->value, "yes") ? 1 : 0;

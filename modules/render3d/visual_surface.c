@@ -382,7 +382,7 @@ void VS_Set2DStrikeAspect(VisualSurface *surf, Aspect2D *asp)
 	VS3D_SetMaterial2D(surf, asp->line_color, asp->line_alpha);
 }
 
-GF_TextureHandler *VS_setup_gf_sr_texture_2d(RenderEffect3D *eff, Aspect2D *asp)
+GF_TextureHandler *VS_setup_texture_2d(RenderEffect3D *eff, Aspect2D *asp)
 {
 	Bool ret;
 	GF_TextureHandler *txh;
@@ -414,7 +414,7 @@ void stack2D_draw(stack2D *st, RenderEffect3D *eff)
 	if (!asp.alpha) {
 		fill_txh = NULL;
 	} else {
-		fill_txh = VS_setup_gf_sr_texture_2d(eff, &asp);
+		fill_txh = VS_setup_texture_2d(eff, &asp);
 	}
 	/*fill path*/
 	if (fill_txh || (asp.alpha && asp.filled) ) {

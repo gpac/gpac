@@ -640,7 +640,7 @@ force_scene_rap:
 			if (opts) {
 				if (opts->resolution) lsrcfg.resolution = opts->resolution;
 				if (opts->coord_bits) lsrcfg.coord_bits = opts->coord_bits;
-				if (opts->scale_bits) lsrcfg.scale_bits = opts->scale_bits;
+				if (opts->scale_bits) lsrcfg.scale_bits_minus_coord_bits = opts->scale_bits;
 			}
 
 			gf_laser_encoder_new_stream(lsr_enc, esd->ESID , &lsrcfg);

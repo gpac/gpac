@@ -452,7 +452,7 @@ static void IS_Register(ISStack *st)
 	gf_mo_play(st->is_dec);
 }
 
-
+/*TODO FIXME: find a way to register without relying on RenderNode, cos it isn't always called (cf use with PROTO)*/
 static void RenderInputSensor(GF_Node *node, void *rs)
 {
 	ISStack *st = gf_node_get_private(node);
