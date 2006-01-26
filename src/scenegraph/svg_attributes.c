@@ -1934,6 +1934,7 @@ GF_Err svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_
 	case SVG_StrokeDashOffset_datatype:
 	case SVG_LineIncrement_datatype:
 	case SVG_Rotate_datatype:
+	case SVG_Number_datatype:
 		svg_parse_number(info->far_ptr, attribute_content, 0);
 		break;
 

@@ -59,6 +59,7 @@ static Bool NavigateTo = 0;
 static char the_next_url[GF_MAX_PATH];
 static GF_Terminal *term;
 static GF_Config *cfg_file;
+static Bool no_mime_check = 0;
 
 void PrintUsage()
 {
@@ -389,7 +390,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		fprintf(stdout, "Go to URL: \"%s\"\r", evt->navigate.to_url);
 		break;
 	case GF_EVT_NAVIGATE:
-		if (gf_term_is_supported_url(term, evt->navigate.to_url, 1, 0)) {
+		if (gf_term_is_supported_url(term, evt->navigate.to_url, 1, no_mime_check)) {
 			/*eek that's ugly but I don't want to write an event queue for that*/
 			strcpy(the_next_url, evt->navigate.to_url);
 			NavigateTo = 1;
@@ -606,13 +607,19 @@ int main (int argc, char **argv)
 	str = gf_cfg_get_key(cfg_file, "Audio", "DriverName");
 	if (!strcmp(str, "No Audio Output Available")) fprintf(stdout, "WARNING: no audio output availble - make sure no other program is locking the sound card\n");
 
+	str = gf_cfg_get_key(cfg_file, "General", "NoMIMETypeFetch");
+	no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
+
+
 	fprintf(stdout, "Using %s\n", gf_cfg_get_key(cfg_file, "Rendering", "RendererName"));
+
 
 
 	if (rti_file) {
 		memory_at_gpac_load = 0;
 		UpdateRTInfo();
 	}
+
 	
 	/*connect if requested*/
 	if (url_arg) {

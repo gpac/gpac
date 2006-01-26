@@ -443,6 +443,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		for (i=0; i< gf_modules_get_count(term->user->modules); i++) {
 			ifce = (GF_InputService *) gf_modules_load_interface(term->user->modules, i, GF_NET_CLIENT_INTERFACE);
 			if (!ifce) continue;
+			fprintf(stdout, "test url %s on module %s\n", sURL,	ifce->module_name);
 			if (net_check_interface(ifce) && ifce->CanHandleURL(ifce, sURL)) break;
 			gf_modules_close_interface((GF_BaseInterface *) ifce);
 			ifce = NULL;
@@ -666,14 +667,16 @@ void gf_term_register_mime_type(GF_InputService *ifce, const char *mimeType, con
 Bool gf_term_check_extension(GF_InputService *ifce, const char *mimeType, const char *extList, const char *description, const char *fileExt)
 {
 	const char *szExtList;
-	char *ext, szExt[50];
+	char *ext, szExt[100];
 	if (!ifce || !mimeType || !extList || !description || !fileExt) return 0;
+	/*this is a URL*/
+	if ( (strlen(fileExt)>20) || strchr(fileExt, '/')) return 0;
+
 	if (fileExt[0]=='.') fileExt++;
 	strcpy(szExt, fileExt);
 	strlwr(szExt);
 	ext = strchr(szExt, '#');
 	if (ext) ext[0]=0;
-
 
 	szExtList = gf_modules_get_option((GF_BaseInterface *)(GF_BaseInterface *)ifce, "MimeTypes", mimeType);
 	if (!szExtList) {

@@ -518,7 +518,7 @@ LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 	SetWindowText(txt);
 	if (app->start_mode==1) do_pause = 1;
 	else if (app->start_mode==2) do_pause = 0;
-	else do_pause = !app->m_AutoPlay;
+	else do_pause = /*!app->m_AutoPlay*/0;
 	gf_term_connect_from_time(app->m_term, (LPCSTR) url, app->m_reconnect_time, do_pause);
 	app->m_reconnect_time = 0;
 	app->start_mode = 0;
@@ -753,7 +753,7 @@ LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 {
 	WinGPAC *gpac = GetApp();
 
-	if (gf_term_is_supported_url(gpac->m_term, gpac->m_navigate_url, 1, 0)) {
+	if (gf_term_is_supported_url(gpac->m_term, gpac->m_navigate_url, 1, gpac->m_NoMimeFetch)) {
 		char *str = gf_url_concatenate(m_pPlayList->GetURL(), gpac->m_navigate_url);
 		if (str) {
 			m_pPlayList->Truncate();
@@ -764,7 +764,7 @@ LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 			return 0;
 		}
 	}
-	
+
 	console_message = gpac->m_navigate_url;
 	console_err = GF_OK;
 	PostMessage(WM_CONSOLEMSG);

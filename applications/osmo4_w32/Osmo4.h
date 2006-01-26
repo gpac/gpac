@@ -59,7 +59,7 @@ public:
 	void UpdatePlayButton(Bool force_play = 0);
 
 	/*general options*/
-	Bool m_Loop, m_AutoPlay, m_LookForSubtitles, m_NoConsole, m_ViewXMTA, m_SingleInstance;
+	Bool m_Loop, m_AutoPlay, m_LookForSubtitles, m_NoConsole, m_ViewXMTA, m_SingleInstance, m_NoMimeFetch;
 	u32 start_mode;
 
 	void ReloadTerminal();

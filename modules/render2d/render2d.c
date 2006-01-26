@@ -608,7 +608,7 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	Render2D *sr = (Render2D *)vr->user_priv;
 	GF_Node *top_node = gf_sg_get_root_node(sr->compositor->scene);
 
-	if (!top_node) return;
+	if (!top_node || !sr->cur_width && !sr->cur_height) return;
 
 	if (!sr->main_surface_setup) {
 		sr->use_dom_events = 0;

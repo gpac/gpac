@@ -578,13 +578,13 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 	}
 
 	SR_ResetFrameRate(sr);	
-	sr->draw_next_frame = 1;
 	gf_mx_v(sr->ev_mx);
 	gf_sr_lock(sr, 0);
 	/*here's a nasty trick: the app may respond to this by calling a gf_sr_set_size from a different
 	thread, but in an atomic way (typically happen on Win32 when changing the window size). WE MUST
 	NOTIFY THE SIZE CHANGE AFTER RELEASING THE RENDERER MUTEX*/
 	if (do_notif) GF_USER_SETSIZE(sr->user, width, height);
+	sr->draw_next_frame = 1;
 	return GF_OK;
 }
 

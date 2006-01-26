@@ -668,6 +668,8 @@ void WinGPAC::SetOptions()
 	m_NoConsole = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 	sOpt = gf_cfg_get_key(m_user.config, "General", "ViewXMT");
 	m_ViewXMTA  = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
+	sOpt = gf_cfg_get_key(m_user.config, "General", "NoMIMETypeFetch");
+	m_NoMimeFetch = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 }
 
 

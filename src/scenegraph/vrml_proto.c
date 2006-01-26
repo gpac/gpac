@@ -683,7 +683,7 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 		a proto may be partially instanciated when used in another proto)*/
 		if (gf_sg_vrml_get_sf_type(inst->FieldType) != GF_SG_VRML_SFNODE) {
 			if (from_inst) {
-				from_field = gf_list_get(from_inst->fields, i);
+				from_field = gf_list_get(from_inst->fields, i-1);
 				gf_sg_vrml_field_copy(inst->field_pointer, from_field->field_pointer, inst->FieldType);
 			} else {
 				gf_sg_vrml_field_copy(inst->field_pointer, field->default_value, inst->FieldType);

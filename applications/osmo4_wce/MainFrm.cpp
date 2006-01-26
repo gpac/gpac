@@ -408,7 +408,7 @@ LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 	char to_url[MAX_PATH];
 	CE_WideToChar((LPTSTR) (LPCTSTR) app->m_navigate_url, to_url);
 
-	if (gf_term_is_supported_url(app->m_term, to_url, 1, 0)) {
+	if (gf_term_is_supported_url(app->m_term, to_url, 1, app->m_no_mime_fetch)) {
 		char fileName[MAX_PATH];
 		TCHAR w_to_url[MAX_PATH];
 		CE_WideToChar((LPTSTR) (LPCTSTR) app->m_filename, fileName);
