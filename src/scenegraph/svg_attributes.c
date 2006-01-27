@@ -2008,11 +2008,13 @@ GF_Err svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_
 		XMLEV_Event *xml_ev = info->far_ptr;
 		char *sep = strchr(attribute_content, '(');
 		if (sep) {
+			char _v;
 			sep[0] = 0;
 			xml_ev->type = svg_dom_event_by_name(attribute_content);
 			sep[0] = '(';
 			/*TODO FIXME check all possible cases (accessKey & co)*/
-			sscanf(sep, "(%c)", &xml_ev->parameter);
+			sscanf(sep, "(%c)", &_v);
+			xml_ev->parameter = _v;
 		} else {
 			xml_ev->parameter = 0;
 			xml_ev->type = svg_dom_event_by_name(attribute_content);

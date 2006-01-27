@@ -453,8 +453,8 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 			/*LASeR HACKS*/
 			else if (!strcmp(att->name, "lsr:translation")) {
 				if (gf_node_get_field_by_name((GF_Node *)elt, "transform", &info)==GF_OK) {
-					Double tx, ty;
-					sscanf(att->value, "%g %g", &tx, &ty);
+					Float tx, ty;
+					sscanf(att->value, "%f %f", &tx, &ty);
 					gf_mx2d_add_translation(info.far_ptr, FLT2FIX(tx), FLT2FIX(ty));
 				}
 			}
