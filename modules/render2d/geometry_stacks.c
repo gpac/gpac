@@ -155,7 +155,7 @@ void R2D_DrawRectangle(DrawableContext *ctx)
 		unclip = ctx->original;
 		gf_mx2d_apply_rect(&ctx->transform, &unclip);
 		unclip_pix = clip = gf_rect_pixelize(&unclip);
-		gf_irect_intersect(&clip, &ctx->surface->top_clipper);
+		gf_irect_intersect(&clip, &ctx->clip);
 
 		/*direct rendering, render without clippers */
 		if (ctx->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {

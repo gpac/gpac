@@ -145,7 +145,7 @@ static void RenderBackground2D(GF_Node *node, void *rs)
 	if (!use_texture || (!is_layer && st->txh.transparent) ) VS3D_SetMaterial2D(eff->surface, bck->backColor, FIX_ONE);
 	if (use_texture) {
 		VS3D_SetState(eff->surface, F3D_COLOR, !is_layer);
-		use_texture = tx_enable(&st->txh, NULL);
+		eff->mesh_has_texture = tx_enable(&st->txh, NULL);
 	}
 
 	gf_mx_init(mx);
@@ -178,7 +178,10 @@ static void RenderBackground2D(GF_Node *node, void *rs)
 	}
 	VS3D_MultMatrix(eff->surface, mx.m);
 	VS3D_DrawMesh(eff, st->mesh);
-	if (use_texture) tx_disable(&st->txh);
+	if (eff->mesh_has_texture) {
+		tx_disable(&st->txh);
+		eff->mesh_has_texture = 0;
+	}
 
 	VS3D_PopMatrix(eff->surface);
 }
@@ -393,7 +396,7 @@ static void back_draw_texture(RenderEffect3D *eff, GF_TextureHandler *txh, GF_Me
 		eff->mesh_has_texture = 1;
 		VS3D_DrawMesh(eff, mesh);
 		tx_disable(txh);
-		eff->mesh_has_texture = 1;
+		eff->mesh_has_texture = 0;
 	}
 }
 

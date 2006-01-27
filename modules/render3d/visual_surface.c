@@ -384,7 +384,6 @@ void VS_Set2DStrikeAspect(VisualSurface *surf, Aspect2D *asp)
 
 GF_TextureHandler *VS_setup_texture_2d(RenderEffect3D *eff, Aspect2D *asp)
 {
-	Bool ret;
 	GF_TextureHandler *txh;
 	if (!eff->appear) return NULL;
 	txh = R3D_GetTextureHandler(((M_Appearance *)eff->appear)->texture);
@@ -398,8 +397,8 @@ GF_TextureHandler *VS_setup_texture_2d(RenderEffect3D *eff, Aspect2D *asp)
 			tx_set_blend_mode(txh, TX_REPLACE);
 		}
 	}
-	ret = tx_enable(txh, ((M_Appearance *)eff->appear)->textureTransform);
-	if (ret) return txh;
+	eff->mesh_has_texture = tx_enable(txh, ((M_Appearance *)eff->appear)->textureTransform);
+	if (eff->mesh_has_texture) return txh;
 	return NULL;
 }
 
@@ -421,7 +420,10 @@ void stack2D_draw(stack2D *st, RenderEffect3D *eff)
 		if (asp.filled) VS3D_SetMaterial2D(eff->surface, asp.fill_color, asp.alpha);
 		VS3D_DrawMesh(eff, st->mesh);
 		/*reset texturing in case of line texture*/
-		if (fill_txh) tx_disable(fill_txh);
+		if (eff->mesh_has_texture) {
+			tx_disable(fill_txh);
+			eff->mesh_has_texture = 0;
+		}
 	}
 
 	/*strike path*/
@@ -429,12 +431,16 @@ void stack2D_draw(stack2D *st, RenderEffect3D *eff)
 	si = VS_GetStrikeInfo(st, &asp, eff);
 	if (si) {
 		VS_Set2DStrikeAspect(eff->surface, &asp);
+		if (asp.txh) eff->mesh_has_texture = 1;
 		if (!si->is_vectorial) {
 			VS3D_StrikeMesh(eff, si->outline, Aspect_GetLineWidth(&asp), asp.pen_props.dash);
 		} else {
 			VS3D_DrawMesh(eff, si->outline);
 		}
-		if (asp.txh) tx_disable(asp.txh);
+		if (asp.txh) {
+			tx_disable(asp.txh);
+			eff->mesh_has_texture = 0;
+		}		
 	}
 }
 

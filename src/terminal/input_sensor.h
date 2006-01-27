@@ -80,7 +80,7 @@ typedef struct
 	MFURL url;
 
 	Bool registered;
-	GF_MediaObject *is_dec;
+	GF_MediaObject *is_mo;
 	M_InputSensor *is;
 } ISStack;
 

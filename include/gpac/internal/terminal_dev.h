@@ -210,10 +210,10 @@ struct _tag_terminal
 	GF_List *od_pending;
 	/*network lock*/
 	GF_Mutex *net_mx;
-	/*all input stream decoders*/
-	GF_List *input_streams;
 	/*all X3D key/mouse/string sensors*/
 	GF_List *x3d_sensors;
+	/*all input stream decoders*/
+	GF_List *input_streams;
 
 	/*restart time for main time-line control*/
 	u64 restart_time;
@@ -231,6 +231,10 @@ struct _tag_terminal
 
 	u32 reload_state;
 	char *reload_url;
+
+	/*special list used by nodes needing a call to RenderNode but not in the traverese scene graph (VRML/MPEG-4 protos only). 
+	For these nodes, the traverse effect passed will be NULL. This is only used by InputSensor node at the moment*/
+	GF_List *nodes_pending;
 };
 
 
@@ -263,6 +267,10 @@ void gf_term_invalidate_renderer(GF_Terminal *term);
 void gf_term_on_node_init(void *_is, GF_Node *node);
 void gf_term_on_node_modified(void *_is, GF_Node *node); 
 
+/*add/rem node requiring a call to render without being present in traversed graph (VRML/MPEG-4 protos). 
+For these nodes, the traverse effect passed will be NULL.*/
+void gf_term_add_render_node(GF_Terminal *term, GF_Node *node);
+void gf_term_rem_render_node(GF_Terminal *term, GF_Node *node);
 
 /*
 		Media manager

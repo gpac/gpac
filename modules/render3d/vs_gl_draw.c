@@ -347,10 +347,9 @@ void VS3D_DrawMeshIntern(RenderEffect3D *eff, GF_Mesh *mesh)
 	}
 
 	glDisableClientState(GL_VERTEX_ARRAY);
-	if (has_col) {
-		glDisableClientState(GL_COLOR_ARRAY);
-		glDisable(GL_COLOR_MATERIAL);
-	}
+	if (has_col) glDisableClientState(GL_COLOR_ARRAY);
+	glDisable(GL_COLOR_MATERIAL);
+
 	if (has_tx) glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	if (has_norm) glDisableClientState(GL_NORMAL_ARRAY);
 

@@ -311,6 +311,7 @@ GF_Err gf_term_del(GF_Terminal * term)
 	assert(!gf_list_count(term->channels_pending));
 	gf_list_del(term->channels_pending);
 	assert(!gf_list_count(term->od_pending));
+	assert(!term->nodes_pending);
 	gf_list_del(term->od_pending);
 	if (term->downloader) gf_dm_del(term->downloader);
 	gf_mx_del(term->net_mx);
@@ -567,8 +568,23 @@ void gf_term_handle_services(GF_Terminal *term)
 		if (!ns) break;
 		gf_term_service_del(ns);
 	}
+
+	if (term->nodes_pending) {
+		u32 i, count, n_count;
+		i=0;
+		count = gf_list_count(term->nodes_pending);
+		while (i<count) {
+			GF_Node *n = gf_list_get(term->nodes_pending, i);
+			gf_node_render(n, NULL);
+			if (!term->nodes_pending) break;
+			n_count = gf_list_count(term->nodes_pending);
+			if (n_count==count) i++;
+			else count=n_count;
+		}
+	}
 	gf_sr_lock(term->renderer, 0);
 
+	
 	/*need to reload*/
 	if (term->reload_state == 1) {
 		term->reload_state = 2;
@@ -580,6 +596,26 @@ void gf_term_handle_services(GF_Terminal *term)
 		free(term->reload_url);
 		term->reload_url = NULL;
 	}
+}
+
+void gf_term_add_render_node(GF_Terminal *term, GF_Node *node)
+{
+	gf_sr_lock(term->renderer, 1);
+	if (!term->nodes_pending) term->nodes_pending = gf_list_new();
+	gf_list_add(term->nodes_pending, node);
+	gf_sr_lock(term->renderer, 0);
+}
+void gf_term_rem_render_node(GF_Terminal *term, GF_Node *node)
+{
+	gf_sr_lock(term->renderer, 1);
+	if (term->nodes_pending) {
+		gf_list_del_item(term->nodes_pending, node);
+		if (!gf_list_count(term->nodes_pending)) {
+			gf_list_del(term->nodes_pending);
+			term->nodes_pending = NULL;
+		}
+	}
+	gf_sr_lock(term->renderer, 0);
 }
 
 void gf_term_close_services(GF_Terminal *term, GF_ClientService *ns)

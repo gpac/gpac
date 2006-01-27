@@ -640,6 +640,13 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 		//setup SL
 		tkHint->CurrentSample = i + 1;
 
+		/*keep same AU indicator if sync shadow - TODO FIXME: this assumes shadows are placed interleaved with 
+		the track content which is the case for GPAC scene carousel generation, but may not always be true*/
+		if (samp->IsRAP==2) {
+			tkHint->rtp_p->sl_header.AU_sequenceNumber -= 1;
+			samp->IsRAP = 1;
+		}
+
 		ts = (u64) (ft * (s64) (samp->DTS+samp->CTS_Offset));
 		tkHint->rtp_p->sl_header.compositionTimeStamp = ts;
 
@@ -702,14 +709,13 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 		}
 		tkHint->rtp_p->sl_header.packetSequenceNumber += 1;
 
-		gf_isom_sample_del(&samp);
-
 		//signal some progress
 		if(tkHint->OnProgress != NULL){
 			tkHint->OnProgress(tkHint->cbk_obj, tkHint->CurrentSample, tkHint->TotalSample);
 		}
 
 		tkHint->rtp_p->sl_header.AU_sequenceNumber += 1;
+		gf_isom_sample_del(&samp);
 	}
 
 	//flush

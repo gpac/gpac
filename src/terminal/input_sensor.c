@@ -333,7 +333,7 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32
 	i=0;
 	while ((st = gf_list_enum(priv->is_nodes, &i))) {
 		assert(st->is);
-		assert(st->is_dec);
+		assert(st->is_mo);
 		if (!st->is->enabled) continue;
 
 		count = gf_list_count(st->is->buffer.commandList);
@@ -412,7 +412,7 @@ static void IS_Unregister(ISStack *st)
 	u32 i;
 	GF_ObjectManager *odm;
 	ISPriv *is_dec;
-	odm = st->is_dec->odm;
+	odm = st->is_mo->odm;
 	if (!odm) return;
 
 	assert(odm->codec && (odm->codec->type == GF_STREAM_INTERACT));
@@ -427,16 +427,17 @@ static void IS_Unregister(ISStack *st)
 		}
 	}
 	/*stop stream*/
-	gf_mo_stop(st->is_dec);
-	st->is_dec = NULL;
+	gf_mo_stop(st->is_mo);
+	st->is_mo = NULL;
 	st->registered = 0;
 }
 
-static void IS_Register(ISStack *st)
+static void IS_Register(GF_Node *n)
 {
 	GF_ObjectManager *odm;
 	ISPriv *is_dec;
-	odm = st->is_dec->odm;
+	ISStack *st = gf_node_get_private(n);
+	odm = st->is_mo->odm;
 	if (!odm) return;
 
 	assert(odm->codec && (odm->codec->type == GF_STREAM_INTERACT));
@@ -449,25 +450,30 @@ static void IS_Register(ISStack *st)
 	StartHTK(is_dec);
 #endif
 	/*start stream*/
-	gf_mo_play(st->is_dec);
+	gf_mo_play(st->is_mo);
+
+	gf_term_rem_render_node(odm->term, n);
 }
 
-/*TODO FIXME: find a way to register without relying on RenderNode, cos it isn't always called (cf use with PROTO)*/
 static void RenderInputSensor(GF_Node *node, void *rs)
 {
 	ISStack *st = gf_node_get_private(node);
 	M_InputSensor *is = (M_InputSensor *)node;
 
 	/*get decoder object */
-	if (!st->is_dec) st->is_dec = gf_mo_find(node, &is->url);
+	if (!st->is_mo) st->is_mo = gf_mo_find(node, &is->url);
 	/*register with decoder*/
-	if (st->is_dec && !st->registered) IS_Register(st);
+	if (st->is_mo && !st->registered) IS_Register(node);
 }
 
 void DestroyInputSensor(GF_Node *node)
 {
+	GF_InlineScene *is;
 	ISStack *st = gf_node_get_private(node);
 	if (st->registered) IS_Unregister(st);
+	is = gf_sg_get_private(gf_node_get_graph(node));
+	gf_term_rem_render_node(is->root_od->term, node);
+
 	gf_sg_vrml_mf_reset(&st->url, GF_SG_VRML_MFURL);
 	free(st);
 }
@@ -481,6 +487,7 @@ void InitInputSensor(GF_InlineScene *is, GF_Node *node)
 	gf_node_set_private(node, stack);
 	gf_node_set_render_function(node, RenderInputSensor);
 	gf_node_set_predestroy_function(node, DestroyInputSensor);
+	gf_term_add_render_node(is->root_od->term, node);
 }
 
 /*check only URL changes*/
@@ -491,7 +498,7 @@ void InputSensorModified(GF_Node *node)
 	ISPriv *is_dec;
 #endif
 	ISStack *st = gf_node_get_private(node);
-	if (!st->is_dec) return;
+	if (!st->is_mo) return;
 
 #if GPAC_HTK_DEMO
 	/*turn audio analyse on/off*/
@@ -503,7 +510,7 @@ void InputSensorModified(GF_Node *node)
 	StartHTK(is_dec);
 #endif
 
-	if (! gf_mo_url_changed(st->is_dec, &st->url)) return;
+	if (! gf_mo_url_changed(st->is_mo, &st->url)) return;
 	/*unregister*/
 	IS_Unregister(st);
 }

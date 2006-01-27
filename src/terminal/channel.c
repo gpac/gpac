@@ -640,7 +640,6 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			}
 		}
 		AUSeqNum = hdr.AU_sequenceNumber;
-
 		/*Get CTS */
 		if (hdr.compositionTimeStampFlag) {
 			ch->net_dts = ch->net_cts = hdr.compositionTimeStamp;
@@ -697,9 +696,13 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			return;
 		}
 
-		/*TO DO - caroussel for repeated AUs*/
+		/*carousel for repeated AUs - TODO fix channel state to deal with packet loss.*/
 		if (ch->esd->slConfig->AUSeqNumLength) {
-			if (AUSeqNum == ch->au_sn) return;
+			//fprintf(stdout, "RCV AU SN %d - prev SN %d\n", AUSeqNum, ch->au_sn);
+			if (hdr.randomAccessPointFlag && (AUSeqNum == ch->au_sn)) {
+				//fprintf(stdout, "RAP Carousel found - skipping\n");
+				return;
+			}
 			ch->au_sn = AUSeqNum;
 		}
 	}

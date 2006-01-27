@@ -443,7 +443,6 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		for (i=0; i< gf_modules_get_count(term->user->modules); i++) {
 			ifce = (GF_InputService *) gf_modules_load_interface(term->user->modules, i, GF_NET_CLIENT_INTERFACE);
 			if (!ifce) continue;
-			fprintf(stdout, "test url %s on module %s\n", sURL,	ifce->module_name);
 			if (net_check_interface(ifce) && ifce->CanHandleURL(ifce, sURL)) break;
 			gf_modules_close_interface((GF_BaseInterface *) ifce);
 			ifce = NULL;

@@ -70,6 +70,9 @@ void RP_ConfirmChannelConnect(RTPStream *ch, GF_Err e)
 		com.cfg.sl_config.useRandomAccessPointFlag = 1;
 		com.cfg.sl_config.hasRandomAccessUnitsOnlyFlag = 0;
 	}
+	/*should work for simple carsousel without streamState indicated*/
+	com.cfg.sl_config.AUSeqNumLength = ch->sl_map.IndexLength;
+
 	/*reconfig*/
 	gf_term_on_command(ch->owner->service, &com, GF_OK);
 

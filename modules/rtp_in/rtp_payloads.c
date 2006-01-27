@@ -610,6 +610,8 @@ void RP_ParsePayloadMPEG4(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 s
 			if (ch->sl_map.StreamStateIndication) {
 				ch->sl_hdr.AU_sequenceNumber = gf_bs_read_int(hdr_bs, ch->sl_map.StreamStateIndication);
 				au_hdr_size -= ch->sl_map.StreamStateIndication;
+			} else {
+				ch->sl_hdr.AU_sequenceNumber = au_idx;
 			}
 		}
 		/*no header present, update CTS/DTS - note we're sure there's no interleaving*/
