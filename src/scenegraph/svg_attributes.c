@@ -2052,6 +2052,9 @@ GF_Err svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_
 	case LASeR_Size_datatype:
 		laser_parse_size(info->far_ptr, attribute_content);
 		break;
+	case SVG_Clock_datatype:
+		svg_parse_clock_value(attribute_content, info->far_ptr);
+		break;
 	default:
 		fprintf(stdout, "Warning: skipping unsupported attribute %s\n", info->name);
 		break;
@@ -2677,6 +2680,24 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 		else if (intVal==SVG_TRANSFORMBEHAVIOR_PINNED90) strcpy(attValue, "pinned90");
 		else if (intVal==SVG_TRANSFORMBEHAVIOR_PINNED180) strcpy(attValue, "pinned180");
 		else if (intVal==SVG_TRANSFORMBEHAVIOR_PINNED270) strcpy(attValue, "pinned270");
+		break;
+	case LASeR_Choice_datatype:
+		if (intVal==LASeR_CHOICE_ALL) strcpy(attValue, "all");
+		else if (intVal==LASeR_CHOICE_NONE) strcpy(attValue, "none");
+		else if (intVal==LASeR_CHOICE_CLIP) strcpy(attValue, "clip");
+		else if (intVal==LASeR_CHOICE_DELTA) strcpy(attValue, "delta");
+		else if (intVal==LASeR_CHOICE_N) {
+			char szT[1000];
+			sprintf(szT, "%d", ((LASeR_Choice *)info->far_ptr)->choice_index);		
+			strcat(attValue, szT);
+		}
+		break;
+	case LASeR_Size_datatype:
+		{
+			char szT[1000];
+			sprintf(szT, "%g %g", FIX2FLT(((LASeR_Size *)info->far_ptr)->width), FIX2FLT(((LASeR_Size *)info->far_ptr)->height));		
+			strcat(attValue, szT);
+		}
 		break;
 /* end of keyword type parsing */
 

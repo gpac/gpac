@@ -997,7 +997,6 @@ typedef struct {
 	SMIL_Fill fill;
 	SMIL_Duration max;
 	SMIL_Duration min;
-	SVG_Boolean lsr_enabled;
 	struct _smil_timing_rti *runtime; /* contains values for runtime handling of the SMIL timing */
 } SMILTimingAttributes;
 
@@ -1019,6 +1018,7 @@ typedef struct {
 	SMIL_KeySplines keySplines;
 	SMIL_KeyTimes keyTimes;
 	SVG_TransformType type;
+	SVG_Boolean lsr_enabled;
 } SMILAnimationAttributes;
 
 typedef struct {

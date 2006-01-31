@@ -159,7 +159,7 @@ static _atts generic_attributes[] = {
 	{ 5, xlink_generic_names,		7, xlink },
 	{ 5, timing_generic_names,		11, timing },
 	{ 2, sync_generic_names,		6, sync },
-	{ 5, animate_generic_names,	   12, anim },
+	{ 5, animate_generic_names,	   13, anim },
 	{ 1, conditional_generic_names,	5, conditional}
 };
 
@@ -599,7 +599,7 @@ void setAttributeType(SVGAttribute *att)
 		} else if (!strcmp(att->svg_name, "clipBegin") ||
 				   !strcmp(att->svg_name, "clipEnd")
 				  ) {
-			strcpy(att->impl_type, "SMIL_Time");
+			strcpy(att->impl_type, "SVG_Clock");
 		} else if (!strcmp(att->svg_name, "min") ||
 				   !strcmp(att->svg_name, "max") ||
 				   !strcmp(att->svg_name, "dur") ||

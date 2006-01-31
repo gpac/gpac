@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Tue Jan 31 10:57:54 2006
+	DO NOT MOFIFY - File generated on GMT Tue Jan 31 13:56:22 2006
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -606,6 +606,11 @@ static GF_Err gf_svg_animate_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->fieldType = SMIL_Additive_datatype;
 			info->far_ptr = &((SVGElement *)node)->anim->additive;
 			return GF_OK;
+		case 34:
+			info->name = "lsr:enabled";
+			info->fieldType = SVG_Boolean_datatype;
+			info->far_ptr = &((SVGElement *)node)->anim->lsr_enabled;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
 }
@@ -810,6 +815,11 @@ static GF_Err gf_svg_animateColor_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			info->fieldType = SMIL_Additive_datatype;
 			info->far_ptr = &((SVGElement *)node)->anim->additive;
 			return GF_OK;
+		case 34:
+			info->name = "lsr:enabled";
+			info->fieldType = SVG_Boolean_datatype;
+			info->far_ptr = &((SVGElement *)node)->anim->lsr_enabled;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
 }
@@ -1011,21 +1021,26 @@ static GF_Err gf_svg_animateMotion_get_attribute(GF_Node *node, GF_FieldInfo *in
 			info->far_ptr = &((SVGElement *)node)->anim->additive;
 			return GF_OK;
 		case 32:
+			info->name = "lsr:enabled";
+			info->fieldType = SVG_Boolean_datatype;
+			info->far_ptr = &((SVGElement *)node)->anim->lsr_enabled;
+			return GF_OK;
+		case 33:
 			info->name = "path";
 			info->fieldType = SVG_PathData_datatype;
 			info->far_ptr = & ((SVGanimateMotionElement *)node)->path;
 			return GF_OK;
-		case 33:
+		case 34:
 			info->name = "keyPoints";
 			info->fieldType = SMIL_KeyPoints_datatype;
 			info->far_ptr = & ((SVGanimateMotionElement *)node)->keyPoints;
 			return GF_OK;
-		case 34:
+		case 35:
 			info->name = "rotate";
 			info->fieldType = SVG_Rotate_datatype;
 			info->far_ptr = & ((SVGanimateMotionElement *)node)->rotate;
 			return GF_OK;
-		case 35:
+		case 36:
 			info->name = "origin";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = & ((SVGanimateMotionElement *)node)->origin;
@@ -1238,6 +1253,11 @@ static GF_Err gf_svg_animateTransform_get_attribute(GF_Node *node, GF_FieldInfo 
 			info->name = "additive";
 			info->fieldType = SMIL_Additive_datatype;
 			info->far_ptr = &((SVGElement *)node)->anim->additive;
+			return GF_OK;
+		case 35:
+			info->name = "lsr:enabled";
+			info->fieldType = SVG_Boolean_datatype;
+			info->far_ptr = &((SVGElement *)node)->anim->lsr_enabled;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
@@ -7722,6 +7742,11 @@ static GF_Err gf_svg_set_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->fieldType = SMIL_AnimateValue_datatype;
 			info->far_ptr = &((SVGElement *)node)->anim->to;
 			return GF_OK;
+		case 26:
+			info->name = "lsr:enabled";
+			info->fieldType = SVG_Boolean_datatype;
+			info->far_ptr = &((SVGElement *)node)->anim->lsr_enabled;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
 }
@@ -10923,10 +10948,10 @@ u32 gf_svg_get_attribute_count(GF_Node *node)
 {
 	switch (node->sgprivate->tag) {
 		case TAG_SVG_a: return 67;
-		case TAG_SVG_animate: return 34;
-		case TAG_SVG_animateColor: return 34;
-		case TAG_SVG_animateMotion: return 36;
-		case TAG_SVG_animateTransform: return 35;
+		case TAG_SVG_animate: return 35;
+		case TAG_SVG_animateColor: return 35;
+		case TAG_SVG_animateMotion: return 37;
+		case TAG_SVG_animateTransform: return 36;
 		case TAG_SVG_animation: return 61;
 		case TAG_SVG_audio: return 44;
 		case TAG_SVG_circle: return 62;
@@ -10958,7 +10983,7 @@ u32 gf_svg_get_attribute_count(GF_Node *node)
 		case TAG_SVG_radialGradient: return 45;
 		case TAG_SVG_rect: return 65;
 		case TAG_SVG_script: return 9;
-		case TAG_SVG_set: return 26;
+		case TAG_SVG_set: return 27;
 		case TAG_SVG_solidColor: return 41;
 		case TAG_SVG_stop: return 42;
 		case TAG_SVG_svg: return 66;
