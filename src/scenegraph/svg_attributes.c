@@ -1801,6 +1801,31 @@ void svg_parse_transform_animation_value(SVGElement *elt, void *transform, char 
 	}	
 }
 
+GF_Err laser_parse_choice(LASeR_Choice *choice, char *attribute_content)
+{
+	if (!strcmp(attribute_content, "none")) {
+		choice->type = LASeR_CHOICE_NONE;
+	} else if (!strcmp(attribute_content, "all")) {
+		choice->type = LASeR_CHOICE_ALL;
+	} else if (!strcmp(attribute_content, "clip")) {
+		choice->type = LASeR_CHOICE_CLIP;
+	} else if (!strcmp(attribute_content, "delta")) {
+		choice->type = LASeR_CHOICE_DELTA;
+	} else {
+		choice->type = LASeR_CHOICE_N;
+		choice->choice_index = atoi(attribute_content);
+	}
+	return GF_OK;
+}
+
+GF_Err laser_parse_size(LASeR_Size *size, char *attribute_content)
+{
+	char *str = attribute_content;
+	u32 i = 0;
+	i+=svg_parse_float(&(str[i]), &(size->width), 0);
+	i+=svg_parse_float(&(str[i]), &(size->height), 0);
+	return GF_OK;
+}
 /* Parse an SVG attribute */
 GF_Err svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type)
 {
@@ -2020,6 +2045,12 @@ GF_Err svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_
 			xml_ev->type = svg_dom_event_by_name(attribute_content);
 		}
 	}
+		break;
+	case LASeR_Choice_datatype:
+		laser_parse_choice(info->far_ptr, attribute_content);
+		break;
+	case LASeR_Size_datatype:
+		laser_parse_size(info->far_ptr, attribute_content);
 		break;
 	default:
 		fprintf(stdout, "Warning: skipping unsupported attribute %s\n", info->name);
@@ -3100,6 +3131,8 @@ Bool svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	case SVG_Overlay_datatype:
 	case SVG_TransformBehavior_datatype:
 	case SVG_InitialVisibility_datatype:
+	case LASeR_Choice_datatype:
+	case LASeR_TimeAttribute_datatype:
 		return (v1==v2) ? 1 : 0;
 	case SVG_Color_datatype:
 		return svg_colors_equal((SVG_Color *)f1->far_ptr, (SVG_Color *)f2->far_ptr);
@@ -3352,6 +3385,14 @@ Bool svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		XMLEV_Event *d2 = f2->far_ptr;
 		if (d1->type != d2->type) return 0;
 		if (d1->parameter != d2->parameter) return 0;
+		return 1;
+	}
+	case LASeR_Size_datatype:
+	{
+		LASeR_Size *sz1 = f1->far_ptr;
+		LASeR_Size *sz2 = f2->far_ptr;
+		if (sz1->width != sz2->width) return 0;
+		if (sz1->height != sz2->height) return 0;
 		return 1;
 	}
 	default:
@@ -3611,6 +3652,13 @@ static GF_Err svg_matrix_muladd(Fixed alpha, SVG_Matrix *a, Fixed beta, SVG_Matr
 	return GF_OK;
 }
 
+static GF_Err laser_size_muladd(Fixed alpha, LASeR_Size *sza, Fixed beta, LASeR_Size *szb, LASeR_Size *szc)
+{
+	szc->width  = gf_mulfix(alpha, sza->width)  + gf_mulfix(beta, szb->width);
+	szc->height = gf_mulfix(alpha, sza->height) + gf_mulfix(beta, szb->height);
+	return GF_OK;
+}
+
 /* c = alpha * a + beta * b */
 GF_Err svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a, 
 							 Fixed beta, GF_FieldInfo *b, 
@@ -3748,6 +3796,9 @@ GF_Err svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 		if (*s_a) free(*s_a);
 		*s_a = res;
 	}
+		break;
+	case LASeR_Size_datatype:
+		laser_size_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
 		break;
 
 	/* Keyword types */
@@ -4035,6 +4086,7 @@ GF_Err svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldInfo
 	case SVG_StrokeDashArray_datatype:
 	case SVG_Motion_datatype:
 	case SVG_Matrix_datatype:
+	case LASeR_Size_datatype:
 		return svg_attributes_muladd(FIX_ONE-coef, a, coef, b, c, clamp);
 
 	/* discrete types: interpolation is the selection of one of the 2 values 
@@ -4088,6 +4140,8 @@ GF_Err svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldInfo
 	case SVG_Focus_datatype:
 	case SVG_ID_datatype:
 	case SVG_GradientOffset_datatype:
+	case LASeR_Choice_datatype:
+	case LASeR_TimeAttribute_datatype:
 		if (coef < FIX_ONE/2) {
 			svg_attributes_copy(c, a, clamp);
 		} else {

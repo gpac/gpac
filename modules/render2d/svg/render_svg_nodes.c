@@ -311,7 +311,24 @@ static void SVG_Render_g(GF_Node *node, void *rs)
 
 	gf_mx2d_copy(backup_matrix, eff->transform);
 	gf_mx2d_pre_multiply(&eff->transform, &g->transform);
-	svg_render_node_list(g->children, eff);
+	switch (g->lsr_choice.type) {
+	case LASeR_CHOICE_NONE:
+		break;
+	case LASeR_CHOICE_ALL:
+		svg_render_node_list(g->children, eff);
+		break;
+	case LASeR_CHOICE_N:
+		svg_render_node(gf_list_get(g->children, g->lsr_choice.choice_index), eff);
+		break;
+	case LASeR_CHOICE_CLIP:
+		/* TODO */
+		break;
+	case LASeR_CHOICE_DELTA:
+		/* TODO */
+		break;
+	default:
+		svg_render_node_list(g->children, eff);
+	}
 
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, styling_size);

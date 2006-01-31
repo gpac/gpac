@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Jan 20 08:05:08 2006
+	DO NOT MOFIFY - File generated on GMT Tue Jan 31 10:57:54 2006
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -1518,61 +1518,66 @@ static GF_Err gf_svg_animation_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->sync->syncMaster;
 			return GF_OK;
 		case 48:
+			info->name = "syncReference";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->sync->syncReference;
+			return GF_OK;
+		case 49:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->x;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->y;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->width;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->height;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "preserveAspectRatio";
 			info->fieldType = SVG_PreserveAspectRatio_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->preserveAspectRatio;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "initialVisibility";
 			info->fieldType = SVG_InitialVisibility_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->initialVisibility;
@@ -1779,41 +1784,56 @@ static GF_Err gf_svg_audio_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->timing->fill;
 			return GF_OK;
 		case 33:
+			info->name = "clipBegin";
+			info->fieldType = SVG_Clock_datatype;
+			info->far_ptr = &((SVGElement *)node)->timing->clipBegin;
+			return GF_OK;
+		case 34:
+			info->name = "clipEnd";
+			info->fieldType = SVG_Clock_datatype;
+			info->far_ptr = &((SVGElement *)node)->timing->clipEnd;
+			return GF_OK;
+		case 35:
 			info->name = "syncBehavior";
 			info->fieldType = SMIL_SyncBehavior_datatype;
 			info->far_ptr = &((SVGElement *)node)->sync->syncBehavior;
 			return GF_OK;
-		case 34:
+		case 36:
 			info->name = "syncTolerance";
 			info->fieldType = SMIL_SyncTolerance_datatype;
 			info->far_ptr = &((SVGElement *)node)->sync->syncTolerance;
 			return GF_OK;
-		case 35:
+		case 37:
 			info->name = "syncMaster";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->sync->syncMaster;
 			return GF_OK;
-		case 36:
+		case 38:
+			info->name = "syncReference";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->sync->syncReference;
+			return GF_OK;
+		case 39:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 37:
+		case 40:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 38:
+		case 41:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 39:
+		case 42:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 40:
+		case 43:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
@@ -4167,6 +4187,16 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
+		case 59:
+			info->name = "lsr:choice";
+			info->fieldType = LASeR_Choice_datatype;
+			info->far_ptr = & ((SVGgElement *)node)->lsr_choice;
+			return GF_OK;
+		case 60:
+			info->name = "lsr:size";
+			info->fieldType = LASeR_Size_datatype;
+			info->far_ptr = & ((SVGgElement *)node)->lsr_size;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
 }
@@ -5424,6 +5454,16 @@ static GF_Err gf_svg_listener_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->name = "handler";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = & ((SVGlistenerElement *)node)->handler;
+			return GF_OK;
+		case 14:
+			info->name = "lsr:timeAttribute";
+			info->fieldType = LASeR_TimeAttribute_datatype;
+			info->far_ptr = & ((SVGlistenerElement *)node)->lsr_timeAttribute;
+			return GF_OK;
+		case 15:
+			info->name = "lsr:delay";
+			info->fieldType = SVG_Clock_datatype;
+			info->far_ptr = & ((SVGlistenerElement *)node)->lsr_delay;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
@@ -7507,6 +7547,16 @@ static GF_Err gf_svg_script_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->name = "externalResourcesRequired";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->core->eRR;
+			return GF_OK;
+		case 7:
+			info->name = "lsr:begin";
+			info->fieldType = SMIL_Times_datatype;
+			info->far_ptr = & ((SVGscriptElement *)node)->lsr_begin;
+			return GF_OK;
+		case 8:
+			info->name = "lsr:enabled";
+			info->fieldType = SVG_Boolean_datatype;
+			info->far_ptr = & ((SVGscriptElement *)node)->lsr_enabled;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
@@ -10655,86 +10705,101 @@ static GF_Err gf_svg_video_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->timing->fill;
 			return GF_OK;
 		case 45:
+			info->name = "clipBegin";
+			info->fieldType = SVG_Clock_datatype;
+			info->far_ptr = &((SVGElement *)node)->timing->clipBegin;
+			return GF_OK;
+		case 46:
+			info->name = "clipEnd";
+			info->fieldType = SVG_Clock_datatype;
+			info->far_ptr = &((SVGElement *)node)->timing->clipEnd;
+			return GF_OK;
+		case 47:
 			info->name = "syncBehavior";
 			info->fieldType = SMIL_SyncBehavior_datatype;
 			info->far_ptr = &((SVGElement *)node)->sync->syncBehavior;
 			return GF_OK;
-		case 46:
+		case 48:
 			info->name = "syncTolerance";
 			info->fieldType = SMIL_SyncTolerance_datatype;
 			info->far_ptr = &((SVGElement *)node)->sync->syncTolerance;
 			return GF_OK;
-		case 47:
+		case 49:
 			info->name = "syncMaster";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->sync->syncMaster;
 			return GF_OK;
-		case 48:
+		case 50:
+			info->name = "syncReference";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->sync->syncReference;
+			return GF_OK;
+		case 51:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 49:
+		case 52:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 50:
+		case 53:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 51:
+		case 54:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 52:
+		case 55:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 53:
+		case 56:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 54:
+		case 57:
 			info->name = "transformBehavior";
 			info->fieldType = SVG_TransformBehavior_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->transformBehavior;
 			return GF_OK;
-		case 55:
+		case 58:
 			info->name = "overlay";
 			info->fieldType = SVG_Overlay_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->overlay;
 			return GF_OK;
-		case 56:
+		case 59:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->x;
 			return GF_OK;
-		case 57:
+		case 60:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->y;
 			return GF_OK;
-		case 58:
+		case 61:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->width;
 			return GF_OK;
-		case 59:
+		case 62:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->height;
 			return GF_OK;
-		case 60:
+		case 63:
 			info->name = "preserveAspectRatio";
 			info->fieldType = SVG_PreserveAspectRatio_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->preserveAspectRatio;
 			return GF_OK;
-		case 61:
+		case 64:
 			info->name = "initialVisibility";
 			info->fieldType = SVG_InitialVisibility_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->initialVisibility;
@@ -10862,8 +10927,8 @@ u32 gf_svg_get_attribute_count(GF_Node *node)
 		case TAG_SVG_animateColor: return 34;
 		case TAG_SVG_animateMotion: return 36;
 		case TAG_SVG_animateTransform: return 35;
-		case TAG_SVG_animation: return 60;
-		case TAG_SVG_audio: return 41;
+		case TAG_SVG_animation: return 61;
+		case TAG_SVG_audio: return 44;
 		case TAG_SVG_circle: return 62;
 		case TAG_SVG_defs: return 41;
 		case TAG_SVG_desc: return 7;
@@ -10875,14 +10940,14 @@ u32 gf_svg_get_attribute_count(GF_Node *node)
 		case TAG_SVG_font_face_src: return 7;
 		case TAG_SVG_font_face_uri: return 14;
 		case TAG_SVG_foreignObject: return 70;
-		case TAG_SVG_g: return 59;
+		case TAG_SVG_g: return 61;
 		case TAG_SVG_glyph: return 13;
 		case TAG_SVG_handler: return 8;
 		case TAG_SVG_hkern: return 12;
 		case TAG_SVG_image: return 47;
 		case TAG_SVG_line: return 63;
 		case TAG_SVG_linearGradient: return 46;
-		case TAG_SVG_listener: return 14;
+		case TAG_SVG_listener: return 16;
 		case TAG_SVG_metadata: return 7;
 		case TAG_SVG_missing_glyph: return 9;
 		case TAG_SVG_mpath: return 14;
@@ -10892,7 +10957,7 @@ u32 gf_svg_get_attribute_count(GF_Node *node)
 		case TAG_SVG_prefetch: return 19;
 		case TAG_SVG_radialGradient: return 45;
 		case TAG_SVG_rect: return 65;
-		case TAG_SVG_script: return 7;
+		case TAG_SVG_script: return 9;
 		case TAG_SVG_set: return 26;
 		case TAG_SVG_solidColor: return 41;
 		case TAG_SVG_stop: return 42;
@@ -10904,7 +10969,7 @@ u32 gf_svg_get_attribute_count(GF_Node *node)
 		case TAG_SVG_title: return 7;
 		case TAG_SVG_tspan: return 58;
 		case TAG_SVG_use: return 68;
-		case TAG_SVG_video: return 62;
+		case TAG_SVG_video: return 65;
 		default: return 0;
 	}
 }

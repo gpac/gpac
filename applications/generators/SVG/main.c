@@ -76,18 +76,18 @@ static char *xlink[] = {
 
 /* Timing */
 static char *timing[] = {
-	"begin", "end", "dur", "repeatCount", "repeatDur", "restart", "min", "max", "fill"
+	"begin", "end", "dur", "repeatCount", "repeatDur", "restart", "min", "max", "fill", "clipBegin", "clipEnd"
 };
 
 /* Sync */
 static char *sync[] = {
-	"syncBehavior", "syncBehaviorDefault", "syncTolerance", "syncToleranceDefault", "syncMaster"
+	"syncBehavior", "syncBehaviorDefault", "syncTolerance", "syncToleranceDefault", "syncMaster", "syncReference"
 };
 
 /* Animation */
 static char *anim[] = {
 	"attributeName", "attributeType", "to", "from", "by", "values",
-	"type", "calcMode", "keySplines", "keyTimes", "accumulate", "additive"
+	"type", "calcMode", "keySplines", "keyTimes", "accumulate", "additive", "lsr:enabled"
 };
 
 /* Conditional Processing */
@@ -130,6 +130,7 @@ static char *xlink_generic_names[] = {
 };
 
 static char *timing_generic_names[] = { 
+	"svg.MediaClip.attr",
 	"svg.AnimateTiming.attr", 
 	"svg.AnimateTimingNoMinMax.attr", 
 	"svg.AnimateBegin.attr",
@@ -156,8 +157,8 @@ static _atts generic_attributes[] = {
 	{ 3, properties_generic_names, 35, properties },
 	{ 2, focus_generic_names,	   12, focus },
 	{ 5, xlink_generic_names,		7, xlink },
-	{ 4, timing_generic_names,		9, timing },
-	{ 2, sync_generic_names,		5, sync },
+	{ 5, timing_generic_names,		11, timing },
+	{ 2, sync_generic_names,		6, sync },
 	{ 5, animate_generic_names,	   12, anim },
 	{ 1, conditional_generic_names,	5, conditional}
 };
@@ -343,6 +344,7 @@ static Bool isGenericAttributesGroup(char *name)
 		!strcmp(name, "svg.External.attr") ||
 		!strcmp(name, "svg.Properties.attr") ||
 		!strcmp(name, "svg.Media.attr") ||
+		!strcmp(name, "svg.MediaClip.attr") ||
 		!strcmp(name, "svg.Opacity.attr") ||
 		!strcmp(name, "svg.FocusHighlight.attr") || 
 		!strcmp(name, "svg.Focus.attr") ||
@@ -590,9 +592,14 @@ void setAttributeType(SVGAttribute *att)
 		} else if (!strcmp(att->svg_name, "accumulate")) {
 			strcpy(att->impl_type, "SMIL_Accumulate");
 		} else if (!strcmp(att->svg_name, "begin") ||
-				   !strcmp(att->svg_name, "end")
+				   !strcmp(att->svg_name, "end") ||
+				   !strcmp(att->svg_name, "lsr:begin")
 				  ) {
 			strcpy(att->impl_type, "SMIL_Times");
+		} else if (!strcmp(att->svg_name, "clipBegin") ||
+				   !strcmp(att->svg_name, "clipEnd")
+				  ) {
+			strcpy(att->impl_type, "SMIL_Time");
 		} else if (!strcmp(att->svg_name, "min") ||
 				   !strcmp(att->svg_name, "max") ||
 				   !strcmp(att->svg_name, "dur") ||
@@ -673,6 +680,14 @@ void setAttributeType(SVGAttribute *att)
 			strcpy(att->impl_type, "SVG_Rotate");
 		} else if (!strcmp(att->svg_name, "font-variant")) {
 			strcpy(att->impl_type, "SVG_FontVariant");
+		} else if (!strcmp(att->svg_name, "lsr:enabled")) {
+			strcpy(att->impl_type, "SVG_Boolean");
+		} else if (!strcmp(att->svg_name, "lsr:choice")) {
+			strcpy(att->impl_type, "LASeR_Choice");
+		} else if (!strcmp(att->svg_name, "lsr:size")) {
+			strcpy(att->impl_type, "LASeR_Size");
+		} else if (!strcmp(att->svg_name, "lsr:timeAttribute")) {
+			strcpy(att->impl_type, "LASeR_TimeAttribute");
 		} else {
 			strcpy(att->impl_type, "SVG_String");
 			fprintf(stdout, "Warning: using type SVG_String for attribute %s.\n", att->svg_name);
@@ -933,7 +948,11 @@ static FILE *BeginFile(u32 type)
 		sprintf(sPath, "..%c..%c..%c..%csrc%cscenegraph%csvg_nodes.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 #endif
 	} else {
+#ifdef LOCAL_SVG_NODES
+		sprintf(sPath, "lsr_tables.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+#else
 		sprintf(sPath, "..%c..%c..%c..%csrc%claser%clsr_tables.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+#endif
 	}
 	
 	f = fopen(sPath, "wt");

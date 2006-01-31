@@ -51,6 +51,7 @@
 
   <define name='svg.AnimateTimingNoFillNoMinMax.attr' combine='interleave'>
     <ref name='svg.AnimateBegin.attr'/>
+    <optional><attribute name='lsr:enabled' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
     <optional><attribute name='dur' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
     <optional><attribute name='end' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
     <optional><attribute name='repeatCount' svg:animatable='false' svg:inheritable='false'><text/></attribute></optional>
@@ -92,6 +93,11 @@
     <optional>
       <attribute name='syncMaster' svg:animatable='false' svg:inheritable='false'>
         <ref name='Boolean.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='syncReference' svg:animatable='false' svg:inheritable='false'>
+        <data type='string'/>
       </attribute>
     </optional>
   </define>

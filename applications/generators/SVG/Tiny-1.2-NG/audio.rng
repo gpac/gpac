@@ -33,6 +33,7 @@
     <ref name='svg.AnimateSync.attr'/>
     <ref name='svg.Media.attr'/>
     <ref name='svg.ContentType.attr'/>
+	<ref name='svg.MediaClip.attr'/>
   </define>
 
   <define name='audio.CM'>

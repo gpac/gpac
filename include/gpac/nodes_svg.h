@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Jan 20 08:05:08 2006
+	DO NOT MOFIFY - File generated on GMT Tue Jan 31 10:57:54 2006
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -267,6 +267,8 @@ typedef struct _tagSVGgElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	LASeR_Choice lsr_choice;
+	LASeR_Size lsr_size;
 } SVGgElement;
 
 
@@ -345,6 +347,8 @@ typedef struct _tagSVGlistenerElement
 	SVG_IRI observer;
 	SVG_IRI target;
 	SVG_IRI handler;
+	LASeR_TimeAttribute lsr_timeAttribute;
+	SVG_Clock lsr_delay;
 } SVGlistenerElement;
 
 
@@ -431,6 +435,8 @@ typedef struct _tagSVGscriptElement
 {
 	BASE_SVG_ELEMENT
 	SVGCommandBuffer lsr_script;
+	SMIL_Times lsr_begin;
+	SVG_Boolean lsr_enabled;
 } SVGscriptElement;
 
 

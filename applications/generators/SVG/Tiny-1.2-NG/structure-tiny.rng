@@ -172,6 +172,16 @@
     <ref name='svg.Conditional.attr'/>
     <ref name='svg.Focus.attr'/>
     <ref name='svg.Transform.attr'/>
+	<optional>
+      <attribute name='lsr:choice' svg:animatable='true' svg:inheritable='false'>
+        <data type='string'/>
+      </attribute>
+	</optional>
+	<optional>
+      <attribute name='lsr:size' svg:animatable='true' svg:inheritable='false'>
+        <data type='string'/>
+      </attribute>
+	</optional>
   </define>
 
 

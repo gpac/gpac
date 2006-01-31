@@ -26,4 +26,21 @@
     </optional>
   </define>
 
+  <define name='svg.MediaClip.attr' combine='interleave'>
+    <optional>
+      <attribute name='clipBegin' svg:animatable='true' svg:inheritable='false'>
+        <choice>
+          <ref name='Clock.datatype'/>
+          <value>indefinite</value>
+        </choice>
+      </attribute>
+      <attribute name='clipEnd' svg:animatable='true' svg:inheritable='false'>
+        <choice>
+          <ref name='Clock.datatype'/>
+          <value>indefinite</value>
+        </choice>
+      </attribute>
+    </optional>
+  </define>
+
 </grammar>

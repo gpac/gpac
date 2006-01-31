@@ -70,6 +70,17 @@
         </choice>
       </attribute>
     </optional>
+    <optional>
+      <attribute name='display-align' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>auto</value>
+          <value>before</value>
+          <value>center</value>
+          <value>after</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
   </define>
 
 

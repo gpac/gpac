@@ -132,6 +132,10 @@ enum {
 	SVG_LanguageID_datatype					= 107,
 	XMLEV_Event_datatype					= 130,
 
+	/*LASeR types*/
+	LASeR_Choice_datatype					= 135,
+	LASeR_Size_datatype						= 136,
+	LASeR_TimeAttribute_datatype			= 137
 };
 
 /* Reusing BIFS structure:
@@ -768,6 +772,28 @@ typedef enum {
 	SVG_OVERLAY_TOP	 = 1
 } SVG_Overlay;
 
+typedef enum {
+	LASeR_CHOICE_ALL   = 0,
+	LASeR_CHOICE_CLIP  = 1,
+	LASeR_CHOICE_DELTA = 2,
+	LASeR_CHOICE_NONE  = 3,
+	LASeR_CHOICE_N	   = 4
+} LASeR_Choice_enum;
+
+typedef struct {
+	u32 type;
+	u32 choice_index;
+} LASeR_Choice;
+
+typedef struct {
+	Fixed width, height;
+} LASeR_Size;
+
+typedef enum {
+	LASeR_TIMEATTRIBUTE_BEGIN = 0,
+	LASeR_TIMEATTRIBUTE_END = 1
+} LASeR_TimeAttribute;
+
 /**************************************************
  *  SVG's styling properties (see 6.1 in REC 1.1) *
  *************************************************/
@@ -963,6 +989,7 @@ typedef struct {
 
 typedef struct {
 	SMIL_Times begin, end;
+	SMIL_Time clipBegin, clipEnd;
 	SMIL_Duration dur;
 	SMIL_RepeatCount repeatCount;
 	SMIL_Duration repeatDur;
@@ -970,6 +997,7 @@ typedef struct {
 	SMIL_Fill fill;
 	SMIL_Duration max;
 	SMIL_Duration min;
+	SVG_Boolean lsr_enabled;
 	struct _smil_timing_rti *runtime; /* contains values for runtime handling of the SMIL timing */
 } SMILTimingAttributes;
 
@@ -977,6 +1005,7 @@ typedef struct {
 	SMIL_SyncBehavior syncBehavior, syncBehaviorDefault;
 	SMIL_SyncTolerance syncTolerance, syncToleranceDefault;
 	SVG_Boolean syncMaster;
+	SVG_String syncReference;
 } SMILSyncAttributes;
 
 typedef struct {
