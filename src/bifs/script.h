@@ -97,5 +97,7 @@ enum
 	NUMBER_OF_EXPR_TYPE=49
 };
 
+GF_Err SFScript_Parse(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Node *n);
+GF_Err SFScript_Encode(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *n);
 
 #endif

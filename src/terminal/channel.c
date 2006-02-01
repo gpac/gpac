@@ -33,16 +33,22 @@
 #include "media_memory.h"
 
 /*reset channel*/
-static void Channel_Reset(GF_Channel *ch)
+static void Channel_Reset(GF_Channel *ch, Bool for_start)
 {
 	gf_es_lock(ch, 1);
 
 	ch->IsClockInit = 0;
 	ch->au_sn = 0;
 	ch->pck_sn = 0;
-	ch->NeedRap = 1;
+	ch->stream_state = 1;
 	ch->IsRap = 0;
 	ch->IsEndOfStream = 0;
+
+	if (for_start) {
+		gf_es_lock(ch, 0);
+		return;
+	}
+
 	ch->ts_offset = 0;
 	ch->seed_ts = 0;
 
@@ -105,7 +111,7 @@ GF_Channel *gf_es_new(GF_ESD *esd)
 	}
 
 
-	Channel_Reset(tmp);
+	Channel_Reset(tmp, 0);
 	return tmp;
 }
 
@@ -140,7 +146,7 @@ void gf_es_reconfig_sl(GF_Channel *ch, GF_SLConfig *slc)
 /*destroy channel*/
 void gf_es_del(GF_Channel *ch)
 {
-	Channel_Reset(ch);
+	Channel_Reset(ch, 0);
 	if (ch->AU_buffer_pull) {
 		ch->AU_buffer_pull->data = NULL;
 		DB_Delete(ch->AU_buffer_pull);
@@ -165,6 +171,10 @@ GF_Err gf_es_start(GF_Channel *ch)
 	case GF_ESM_ES_UNAVAILABLE:
 	case GF_ESM_ES_SETUP:
 		return GF_BAD_PARAM;
+	/*if the channel is already running, don't reset its settings. This only happens in the case of broadcast 
+	objects started several times by the scene but not stoped at the ODManager level (cf gf_odm_stop)*/
+	case GF_ESM_ES_RUNNING:
+		return GF_OK;
 	default:
 		break;
 	}
@@ -173,7 +183,7 @@ GF_Err gf_es_start(GF_Channel *ch)
 	if (gf_es_owns_clock(ch)) gf_clock_reset(ch->clock);
 
 	/*reset channel*/
-	Channel_Reset(ch);
+	Channel_Reset(ch, 1);
 	/*create pull buffer if needed*/
 	if (ch->is_pulling && !ch->AU_buffer_pull) ch->AU_buffer_pull = DB_New();
 
@@ -217,7 +227,7 @@ void Channel_WaitRAP(GF_Channel *ch)
 	ch->pck_sn = 0;
 
 	/*if using RAP signal and codec not resilient, wait for rap. If RAP isn't signaled DON'T wait for it :)*/
-	if (ch->esd->slConfig->useRandomAccessPointFlag && !ch->codec_resilient) ch->NeedRap = 1;
+	if (!ch->codec_resilient) ch->stream_state = 2;
 	if (ch->buffer) free(ch->buffer);
 	ch->buffer = NULL;
 	ch->AULength = 0;
@@ -337,6 +347,8 @@ static void Channel_UpdateBufferTime(GF_Channel *ch)
 	ch->BufferTime += ch->au_duration;
 }
 
+#define DEBUG_SL	0
+
 /*dispatch the AU in the DB*/
 static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 {
@@ -375,7 +387,6 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 	if (ch->media_padding_bytes) memset(au->data + au->dataLength, 0, sizeof(char)*ch->media_padding_bytes);
 	
 	ch->len = ch->allocSize = 0;
-	if (ch->NeedRap && au->RAP) ch->NeedRap = 0;
 
 	gf_es_lock(ch, 1);
 
@@ -462,7 +473,10 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 	ch->au_duration = 0;
 	if (duration) ch->au_duration = (u32) ((u64)1000 * duration / ch->ts_res);
 
-	//fprintf(stdout, "CH %d - Dispatch AU CTS %d time %d Buffer %d Nb AUs %d\n", ch->esd->ESID, au->CTS, gf_clock_time(ch->clock), ch->BufferTime, ch->AU_Count);
+#if DEBUG_SL
+	fprintf(stdout, "ES%d - Dispatch AU CTS %d time %d Buffer %d Nb AUs %d\n", ch->esd->ESID, au->CTS, gf_clock_time(ch->clock), ch->BufferTime, ch->AU_Count);
+#endif
+
 
 	if (ch->BufferOn) {
 		ch->last_au_time = gf_term_get_time(ch->odm->term);
@@ -594,22 +608,33 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	/*get RAP*/
 	if (ch->esd->slConfig->hasRandomAccessUnitsOnlyFlag) {
 		hdr.randomAccessPointFlag = 1;
-	} else if (!ch->esd->slConfig->useRandomAccessPointFlag) {
-		ch->NeedRap = 0;
+	} else if (!ch->esd->slConfig->useRandomAccessPointFlag || ch->codec_resilient) {
+		ch->stream_state = 0;
 	}
 
 	if (ch->esd->slConfig->packetSeqNumLength) {
 		if (ch->pck_sn && hdr.packetSequenceNumber) {
 			/*repeated -> drop*/
-			if (ch->pck_sn == hdr.packetSequenceNumber) return;
+			if (ch->pck_sn == hdr.packetSequenceNumber) {
+#if DEBUG_SL
+				fprintf(stdout, "ES%d: repeated packet, droping\n", ch->esd->ESID);
+#endif
+				return;
+			}
 			/*if codec has no resiliency check packet drops*/
 			if (!ch->codec_resilient && !hdr.accessUnitStartFlag) {
 				if (ch->pck_sn == (u32) (1<<ch->esd->slConfig->packetSeqNumLength) ) {
 					if (hdr.packetSequenceNumber) {
+#if DEBUG_SL
+						fprintf(stdout, "ES%d: packet loss, droping & wait RAP\n", ch->esd->ESID);
+#endif
 						Channel_WaitRAP(ch);
 						return;
 					}
 				} else if (ch->pck_sn + 1 != hdr.packetSequenceNumber) {
+#if DEBUG_SL
+					fprintf(stdout, "ES%d: packet loss, droping & wait RAP\n", ch->esd->ESID);
+#endif
 					Channel_WaitRAP(ch);
 					return;
 				}
@@ -619,7 +644,12 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	}
 
 	/*if idle or empty, skip the packet*/
-	if (hdr.idleFlag || (hdr.paddingFlag && !hdr.paddingBits)) return;
+	if (hdr.idleFlag || (hdr.paddingFlag && !hdr.paddingBits)) {
+#if DEBUG_SL
+			fprintf(stdout, "ES%d: Idle or empty packet - skipping\n", ch->esd->ESID);
+#endif
+		return;
+	}
 
 
 	NewAU = 0;
@@ -629,7 +659,9 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 
 		/*if we have a pending AU, add it*/
 		if (ch->buffer) {
-			fprintf(stdout, "MISSED END OF AU\n");
+#if DEBUG_SL
+			fprintf(stdout, "ES%d: MISSED END OF AU\n", ch->esd->ESID);
+#endif
 			if (ch->codec_resilient) {
 				Channel_DispatchAU(ch, 0);
 			} else {
@@ -647,7 +679,8 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			if (hdr.decodingTimeStampFlag) ch->net_dts = hdr.decodingTimeStamp;
 
 			/*until clock is not init check seed ts*/
-			if (!ch->IsClockInit && (ch->net_dts < ch->seed_ts)) ch->seed_ts = ch->net_dts;
+			if (!ch->IsClockInit && (ch->net_dts < ch->seed_ts)) 
+				ch->seed_ts = ch->net_dts;
 
 			ch->net_dts -= ch->seed_ts;
 			ch->net_cts -= ch->seed_ts;
@@ -678,11 +711,20 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 
 		/*if channel owns the clock, start it*/
 		if (!ch->IsClockInit) {
-			if (gf_es_owns_clock(ch)) {
-				gf_clock_set_time(ch->clock, ch->DTS);
-				ch->IsClockInit = 1;
-			}
-			if (ch->clock->clock_init) ch->IsClockInit = 1;
+			/*first data received on channel inits the clock, regardless of:
+				wether it owns it or not
+				wether data can be processed or not (carousel)
+			this ensures timing is consistent for all streams of a same network session. 
+			By not doing so, we would desynchronize streams by setting the time origin in the future for 
+			some streams in case of carousel:
+				Video: V(CTS0) V(CTS1)        V(CTS2)
+				Scene:                 S(CTS0)
+				Time :                 INIT: t=0
+				Final: S(CTS0) V(CTS0) V(CTS1) V(CTS2)
+				Sent : V(CTS0) V(CTS1) S(CTS0) V(CTS2)
+			*/
+			if (!ch->clock->clock_init) gf_clock_set_time(ch->clock, ch->DTS);
+			ch->IsClockInit = 1;
 		}
 		/*if the AU Length is carried in SL, get its size*/
 		if (ch->esd->slConfig->AULength > 0) {
@@ -690,22 +732,68 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		} else {
 			ch->AULength = 0;
 		}
-
-		/*skip the AU if we're waiting for a RAP.*/
-		if (ch->NeedRap && !hdr.randomAccessPointFlag) {
+		/*carousel for repeated AUs.*/
+		if (ch->esd->slConfig->AUSeqNumLength) {
+			if (hdr.randomAccessPointFlag) {
+				/*initial tune-in*/
+				if (ch->stream_state==1) {
+#if DEBUG_SL
+					fprintf(stdout, "ES%d: RAP Carousel found - tuning in\n", ch->esd->ESID);
+#endif
+					ch->au_sn = AUSeqNum;
+					ch->stream_state = 0;
+				}
+				/*carousel RAP*/
+				else if (AUSeqNum == ch->au_sn) {
+					/*error recovery*/
+					if (ch->stream_state==2) {
+#if DEBUG_SL
+						fprintf(stdout, "ES%d: RAP Carousel found - recovering\n", ch->esd->ESID);
+#endif
+						ch->stream_state = 0;
+					} 
+					else {
+#if DEBUG_SL
+						fprintf(stdout, "ES%d: RAP Carousel found - skipping\n", ch->esd->ESID);
+#endif
+						return;
+					}
+				}
+				/*regular RAP*/
+				else {
+					ch->au_sn = AUSeqNum;
+					ch->stream_state = 0;
+				}
+			} 
+			/*regular AU but waiting for RAP*/
+			else if (ch->stream_state) {
+#if DEBUG_SL
+				fprintf(stdout, "ES%d: Waiting for RAP Carousel - skipping\n", ch->esd->ESID);
+#endif
+				return;
+			} else {
+				ch->au_sn = AUSeqNum;
+#if DEBUG_SL
+				fprintf(stdout, "ES%d: NON-RAP AU received\n", ch->esd->ESID);
+#endif
+			}
+		}
+		/*no carousel signaling, tune-in at first RAP*/
+		else if (hdr.randomAccessPointFlag) {
+			ch->stream_state = 0;
+#if DEBUG_SL
+			fprintf(stdout, "ES%d: RAP AU received\n", ch->esd->ESID);
+#endif
+		}
+		/*waiting for RAP, return*/
+		else if (ch->stream_state) {
+#if DEBUG_SL
+			fprintf(stdout, "ES%d: Waiting for RAP - skipping AU (DTS %d)\n", ch->esd->ESID, ch->DTS);
+#endif
 			return;
 		}
-
-		/*carousel for repeated AUs - TODO fix channel state to deal with packet loss.*/
-		if (ch->esd->slConfig->AUSeqNumLength) {
-			//fprintf(stdout, "RCV AU SN %d - prev SN %d\n", AUSeqNum, ch->au_sn);
-			if (hdr.randomAccessPointFlag && (AUSeqNum == ch->au_sn)) {
-				//fprintf(stdout, "RAP Carousel found - skipping\n");
-				return;
-			}
-			ch->au_sn = AUSeqNum;
-		}
 	}
+
 	/*update the RAP marker on a packet base (to cope with AVC/H264 NALU->AU reconstruction)*/
 	if (hdr.randomAccessPointFlag) ch->IsRap = 1;
 
@@ -723,6 +811,9 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	if (EndAU) ch->NextIsAUStart = 1;
 
 	if (!StreamLength && EndAU && ch->buffer) {
+#if DEBUG_SL
+			fprintf(stdout, "ES%d: Empty packet, flushing buffer\n", ch->esd->ESID);
+#endif
 		Channel_DispatchAU(ch, 0);
 		return;
 	}
@@ -730,7 +821,9 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 
 	/*missed begining, unusable*/
 	if (!ch->buffer && !NewAU) {
-		fprintf(stdout, "MISSED BEGIN OF AU\n");
+#if DEBUG_SL
+		fprintf(stdout, "ES%d: MISSED BEGIN OF AU\n", ch->esd->ESID);
+#endif
 		return;
 	}
 
@@ -741,7 +834,10 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		/*ignore length fields*/
 		size = StreamLength + ch->media_padding_bytes;
 		ch->buffer = malloc(sizeof(char) * size);
-		if (!ch->buffer) return;
+		if (!ch->buffer) {
+			assert(0);
+			return;
+		}
 
 		ch->allocSize = size;
 		memset(ch->buffer, 0, sizeof(char) * size);
@@ -750,7 +846,12 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	if (!ch->esd->slConfig->usePaddingFlag) hdr.paddingFlag = 0;
 
 	/*if no bitstream, we missed the AU Start packet. Unusable ...*/
-	if (!ch->buffer) return;
+	if (!ch->buffer) {
+#if DEBUG_SL
+		fprintf(stdout, "ES%d: Empty buffer - missed begining of AU\n", ch->esd->ESID);
+#endif
+		return;
+	}
 	
 	if (ch->crypt) {
 		if (hdr.isma_encrypted) Channel_DecryptISMA(ch, payload, StreamLength, &hdr);

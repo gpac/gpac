@@ -596,6 +596,7 @@ GF_Err BM_ParseFieldReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *co
 	codec->LastError = gf_bifs_dec_field(codec, bs, node, &field);
 
 	/*register nodes*/
+#if 0
 	if (inf->fieldType == GF_SG_VRML_SFNODE) {
 		gf_node_register(inf->new_node, com->node);
 	} else if (inf->fieldType == GF_SG_VRML_MFNODE) {
@@ -605,6 +606,7 @@ GF_Err BM_ParseFieldReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *co
 			gf_node_register(p, com->node);
 		}
 	}
+#endif
 	gf_list_add(com_list, com);
 	return codec->LastError;
 }

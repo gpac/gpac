@@ -166,7 +166,6 @@ static GFINLINE void SFS_Line(ScriptParser *parser)
 }
 
 
-
 GF_Err SFScript_Parse(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Node *n)
 {
 	GF_Err e;

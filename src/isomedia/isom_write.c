@@ -3015,7 +3015,7 @@ u64 gf_isom_estimate_size(GF_ISOFile *movie)
 
 
 //set shadowing on/off
-GF_Err gf_isom_set_sync_shadow_enabled(GF_ISOFile *movie, u32 trackNumber, u8 SyncShadowEnabled)
+GF_Err gf_isom_remove_sync_shadows(GF_ISOFile *movie, u32 trackNumber)
 {
 	GF_TrackBox *trak;
 	GF_SampleTableBox *stbl;
@@ -3025,10 +3025,9 @@ GF_Err gf_isom_set_sync_shadow_enabled(GF_ISOFile *movie, u32 trackNumber, u8 Sy
 	if (!trak) return GF_BAD_PARAM;
 
 	stbl = trak->Media->information->sampleTable;
-	if (SyncShadowEnabled) {
-		if (!stbl->ShadowSync) stbl->ShadowSync = (GF_ShadowSyncBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSH);
-	} else {
-		if (stbl->ShadowSync) gf_isom_box_del((GF_Box *) stbl->ShadowSync);
+	if (stbl->ShadowSync) {
+		gf_isom_box_del((GF_Box *) stbl->ShadowSync);
+		stbl->ShadowSync = NULL;
 	}
 	return GF_OK;
 }
@@ -3046,7 +3045,7 @@ GF_Err gf_isom_set_sync_shadow(GF_ISOFile *movie, u32 trackNumber, u32 sampleNum
 	if (!trak || !sampleNumber || !syncSample) return GF_BAD_PARAM;
 
 	stbl = trak->Media->information->sampleTable;
-	if (!stbl->ShadowSync) return GF_BAD_PARAM;
+	if (!stbl->ShadowSync) stbl->ShadowSync = (GF_ShadowSyncBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSH);
 
 	//if no sync, skip
 	if (!stbl->SyncSample) return GF_OK;

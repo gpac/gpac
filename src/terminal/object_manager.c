@@ -496,10 +496,11 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	while ((esd = gf_list_enum(odm->OD->ESDescriptors, &i)) ) {
 		e = gf_odm_setup_es(odm, esd, serv);
 		/*notify error but still go on, all streams are not so usefull*/
-		if (e==GF_OK) 
+		if (e==GF_OK) {
 			numOK++;
-		else
+		} else {
 			gf_term_message(odm->term, odm->net_service->url, "Stream Setup Failure", e);
+		}
 
 	}
 	odm->is_open = 0;
@@ -688,7 +689,7 @@ clock_setup:
 			dec = odm->subscene->scene_codec = gf_codec_new(odm, esd, odm->OD_PL, &e);
 			gf_mm_add_codec(odm->term->mediaman, odm->subscene->scene_codec);
 			odm->subscene->is_dynamic_scene = 1;
-			dec->flags |= GF_ESM_CODEC_IS_STATIC_OD;
+			dec->flags |= GF_ESM_CODEC_IS_SCENE_OD;
 		} else if (! odm->subscene->od_codec) {
 			dec = odm->subscene->od_codec = gf_codec_new(odm, esd, odm->OD_PL, &e);
 			gf_mm_add_codec(odm->term->mediaman, odm->subscene->od_codec);
@@ -820,6 +821,11 @@ clock_setup:
 		cs = malloc(sizeof(GF_ChannelSetup));
 		cs->ch = ch;
 		cs->dec = dec;
+
+		/*HACK: special case when OD resources are statically described in the ESD itself (ISMA streaming)*/
+		if ((ch->esd->decoderConfig->streamType==GF_STREAM_OD) && strstr(ch->esd->URLString, "data:application/mpeg4-od-au;") ) 
+			dec->flags |= GF_ESM_CODEC_IS_STATIC_OD;
+
 		gf_term_lock_net(odm->term, 1);
 		gf_list_add(odm->term->channels_pending, cs);
 		e = gf_term_connect_remote_channel(odm->term, ch, esd->URLString);
@@ -850,6 +856,7 @@ GF_Err gf_odm_post_es_setup(GF_Channel *ch, GF_Codec *dec, GF_Err had_err)
 {
 	char szURL[2048];
 	GF_Err e;
+	GF_NetworkCommand com;
 
 	e = had_err;
 	if (e) {
@@ -897,11 +904,14 @@ GF_Err gf_odm_post_es_setup(GF_Channel *ch, GF_Codec *dec, GF_Err had_err)
 	}
 
 	/*in case a channel is inserted in a running OD, open and play if not in queue*/
-	if (ch->odm->is_open==1) {
+	if ( (ch->odm->is_open==1) 
+		/*HACK: special case when OD resources are statically described in the ESD itself (ISMA streaming)*/
+		|| 	(dec && (dec->flags & GF_ESM_CODEC_IS_STATIC_OD)) 
+	) {
+
 		gf_term_lock_net(ch->odm->term, 1);
 		gf_es_start(ch);
 		if (gf_list_find(ch->odm->term->od_pending, ch->odm)<0) {
-			GF_NetworkCommand com;
 			com.command_type = GF_NET_CHAN_PLAY;
 			com.base.on_channel = ch;
 			com.play.speed = FIX2FLT(ch->clock->speed);
@@ -1120,6 +1130,13 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	gf_list_del_item(odm->term->od_pending, odm);
 
 	if (!odm->is_open) return;
+
+	/*TODO FIXME UGLY - hack for broadcast environment, do not stop the object if no time control and instruction
+	comes from the scene*/
+	if (odm->no_time_ctrl && !force_close) {
+		//fprintf(stdout, "OD%d - broadcast detected, ignoring Stop from scene\n", odm->OD->objectDescriptorID);
+		return;
+	}
 
 	/*little opt for image codecs: don't actually stop the OD*/
 	if (!force_close && odm->codec && odm->codec->CB) {

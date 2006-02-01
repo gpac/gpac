@@ -471,6 +471,8 @@ EXPORTS
 	gf_isom_is_single_av
 	gf_isom_guess_specification
 	gf_isom_delete_text_sample
+	gf_isom_has_sync_shadows
+
 
 ;NON-READ-ONLY exports
 ;	gf_isom_set_timescale
@@ -544,7 +546,7 @@ EXPORTS
 ;	gf_isom_set_fragment_option
 ;	gf_isom_fragment_add_sample
 ;	gf_isom_fragment_append_data
-;	gf_isom_set_sync_shadow_enabled
+;	gf_isom_remove_sync_shadows
 ;	gf_isom_set_sync_shadow
 ;	gf_isom_set_track_group
 ;	gf_isom_set_track_priority_in_group

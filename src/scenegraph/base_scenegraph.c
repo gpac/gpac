@@ -490,6 +490,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 {
 	GF_SceneGraph *pSG; 
+	if (!node) return GF_OK;
 	
 //	fprintf(stdout, "register %8x in %8x\n", node, parentNode);
 

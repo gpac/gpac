@@ -379,9 +379,15 @@ check_unit:
 	/*destroy this AU*/
 	gf_es_drop_au(ch);
 
-	if (e) goto exit;
-	/*dynamic OD stream, regenerate scene*/
-	if (codec->flags & GF_ESM_CODEC_IS_STATIC_OD) gf_is_regenerate(codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene);
+	if (e) {
+		ch->stream_state = 2;
+		goto exit;
+	}
+	/*OD acts as scene codec, regenerate scene*/
+	if (codec->flags & GF_ESM_CODEC_IS_SCENE_OD) gf_is_regenerate(codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene);
+	/*static OD resources (embedded in ESD), reset time*/
+	else if (codec->flags & GF_ESM_CODEC_IS_STATIC_OD) gf_clock_reset(codec->ck);
+	
 
 	/*always force redraw for system codecs*/
 	invalidate_scene = 1;

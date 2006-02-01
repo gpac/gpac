@@ -27,6 +27,7 @@
 #include <gpac/internal/bifs_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
 #include "quant.h" 
+#include "script.h" 
 
 
 GF_Err gf_bifs_insert_sf_node(void *mfnode_far_ptr, GF_Node *new_child, s32 Position)
@@ -92,41 +93,43 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		e = gf_bifs_dec_unquant_field(codec, bs, node, field);
 		if (e != GF_EOS) return e;
 	}
+
 	//not quantized, use normal scheme
-	if (field->fieldType == GF_SG_VRML_SFBOOL) {
+	switch (field->fieldType) {
+	case GF_SG_VRML_SFBOOL:
 		* ((SFBool *) field->far_ptr) = (SFBool) gf_bs_read_int(bs, 1);
-	} 
-	else if (field->fieldType == GF_SG_VRML_SFCOLOR) {
+		break;
+	case GF_SG_VRML_SFCOLOR:
 		((SFColor *)field->far_ptr)->red = BD_ReadSFFloat(codec, bs);;
 		((SFColor *)field->far_ptr)->green = BD_ReadSFFloat(codec, bs);
 		((SFColor *)field->far_ptr)->blue = BD_ReadSFFloat(codec, bs);
-	} 
-	else if (field->fieldType == GF_SG_VRML_SFFLOAT) {
+		break;
+	case GF_SG_VRML_SFFLOAT:
 		*((SFFloat *)field->far_ptr) = BD_ReadSFFloat(codec, bs);
-	} 
-	else if (field->fieldType == GF_SG_VRML_SFINT32) {
+		break;
+	case GF_SG_VRML_SFINT32:
 		*((SFInt32 *)field->far_ptr) = (s32) gf_bs_read_int(bs, 32);
-	} 
-	else if (field->fieldType == GF_SG_VRML_SFTIME) {
+		break;
+	case GF_SG_VRML_SFTIME:
 		*((SFTime *)field->far_ptr) = gf_bs_read_double(bs);
 		if (node) BD_CheckSFTimeOffset(codec, node, field);
-	} 
-	else if (field->fieldType == GF_SG_VRML_SFVEC2F) {
+		break;
+	case GF_SG_VRML_SFVEC2F:
 		((SFVec2f *)field->far_ptr)->x = BD_ReadSFFloat(codec, bs);
 		((SFVec2f *)field->far_ptr)->y = BD_ReadSFFloat(codec, bs);
-	} 
-	else if (field->fieldType == GF_SG_VRML_SFVEC3F) {
+		break;
+	case GF_SG_VRML_SFVEC3F:
 		((SFVec3f *)field->far_ptr)->x = BD_ReadSFFloat(codec, bs);
 		((SFVec3f *)field->far_ptr)->y = BD_ReadSFFloat(codec, bs);
 		((SFVec3f *)field->far_ptr)->z = BD_ReadSFFloat(codec, bs);
-	} 
-	else if (field->fieldType == GF_SG_VRML_SFROTATION) {
+		break;
+	case GF_SG_VRML_SFROTATION:
 		((SFRotation *)field->far_ptr)->x = BD_ReadSFFloat(codec, bs);
 		((SFRotation *)field->far_ptr)->y = BD_ReadSFFloat(codec, bs);
 		((SFRotation *)field->far_ptr)->z = BD_ReadSFFloat(codec, bs);
 		((SFRotation *)field->far_ptr)->q = BD_ReadSFFloat(codec, bs);
-	} 
-	else if (field->fieldType == GF_SG_VRML_SFSTRING) {
+		break;
+	case GF_SG_VRML_SFSTRING:
 		size = gf_bs_read_int(bs, 5);
 		length = gf_bs_read_int(bs, size);
 		if (gf_bs_available(bs) < length) return GF_NON_COMPLIANT_BITSTREAM;
@@ -137,8 +140,9 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		for (i=0; i<length; i++) {
 			 ((SFString *)field->far_ptr)->buffer[i] = gf_bs_read_int(bs, 8);
 		}
-	} 
-	else if (field->fieldType == GF_SG_VRML_SFURL) {
+		break;
+	case GF_SG_VRML_SFURL:
+	{
 		SFURL *url = (SFURL *) field->far_ptr;
 		size = gf_bs_read_int(bs, 1);
 		if (size) {
@@ -166,8 +170,9 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 				url->url = NULL;
 			}
 		}
-	} 
-	else if (field->fieldType == GF_SG_VRML_SFIMAGE) {
+	}
+		break;
+	case GF_SG_VRML_SFIMAGE:
 		if (((SFImage *)field->far_ptr)->pixels) free(((SFImage *)field->far_ptr)->pixels);
 		w = gf_bs_read_int(bs, 12);
 		h = gf_bs_read_int(bs, 12);
@@ -185,8 +190,9 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		for (i=0; i<size; i++) {
 			((SFImage *)field->far_ptr)->pixels[i] = gf_bs_read_int(bs, 8);
 		}
-	} 
-	else if (field->fieldType == GF_SG_VRML_SFCOMMANDBUFFER) {
+		break;
+	case GF_SG_VRML_SFCOMMANDBUFFER:
+	{
 		SFCommandBuffer *sfcb = (SFCommandBuffer *)field->far_ptr;
 		if (sfcb->buffer) free(sfcb->buffer);		
 		while (gf_list_count(sfcb->commandList)) {
@@ -221,26 +227,25 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 			gf_bs_del(is_bs);
 		}
 	} 
-	else if (field->fieldType == GF_SG_VRML_SFNODE) {
-	//for nodes the field ptr is a ptr to the field, which is a node ptr ;)
+		break;
+	case GF_SG_VRML_SFNODE:
+		//for nodes the field ptr is a ptr to the field, which is a node ptr ;)
 		new_node = gf_bifs_dec_node(codec, bs, field->NDTtype);
 		if (new_node) {
 			e = gf_node_register(new_node, node);
 			if (e) return e;
 		}
-
 		//it may happen that new_node is NULL (this is valid for a proto declaration)
 		*((GF_Node **) field->far_ptr) = new_node;
-	} 
-	else if (field->fieldType == GF_SG_VRML_SFSCRIPT) {
-		GF_Err SFScript_Parse(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n);
-		e = SFScript_Parse(codec, bs, node);
-	} else {
+		break;
+	case GF_SG_VRML_SFSCRIPT:
+		codec->LastError = SFScript_Parse(codec, bs, node);
+		break;
+	default:
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	return codec->LastError;
 }
-
 
 GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field)
 {

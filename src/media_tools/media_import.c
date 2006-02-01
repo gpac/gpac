@@ -897,9 +897,16 @@ GF_Err gf_import_avi_video(GF_MediaImporter *import)
 	if (!in) return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Unsupported avi file");
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
+		char *comp;
 		import->tk_info[0].track_num = 1;
 		import->tk_info[0].type = GF_ISOM_MEDIA_VISUAL;
 		import->tk_info[0].flags = GF_IMPORT_USE_DATAREF | GF_IMPORT_NO_FRAME_DROP | GF_IMPORT_OVERRIDE_FPS;
+		import->tk_info[0].FPS = AVI_frame_rate(in);
+		import->tk_info[0].width = AVI_video_width(in);
+		import->tk_info[0].height = AVI_video_height(in);
+		comp = AVI_video_compressor(in);
+		import->tk_info[0].media_type = GF_FOUR_CHAR_INT(comp[0], comp[1], comp[2], comp[3]);
+
 		import->nb_tracks = 1;
 		for (i=0; i<(u32) AVI_audio_tracks(in); i++) {
 			import->tk_info[i+1].track_num = i+2;
@@ -1577,6 +1584,14 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 			import->tk_info[import->nb_tracks].track_num = i+1;
 			import->tk_info[import->nb_tracks].type = GF_ISOM_MEDIA_VISUAL;
 			import->tk_info[import->nb_tracks].flags = GF_IMPORT_OVERRIDE_FPS;
+
+			import->tk_info[import->nb_tracks].FPS = mpeg2ps_get_video_stream_framerate(ps, i);
+			import->tk_info[import->nb_tracks].width = mpeg2ps_get_video_stream_width(ps, i);
+			import->tk_info[import->nb_tracks].height = mpeg2ps_get_video_stream_height(ps, i);
+
+			import->tk_info[import->nb_tracks].media_type = GF_FOUR_CHAR_INT('M', 'P', 'G', '1');
+			if (mpeg2ps_get_video_stream_type(ps, i) == MPEG_VIDEO_MPEG2) import->tk_info[import->nb_tracks].media_type ++;
+
 			import->nb_tracks++;
 		}
 		nb_streams = mpeg2ps_get_audio_stream_count(ps);
@@ -3795,6 +3810,18 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 			if ((oggpacket.bytes >= 7) && !strncmp(&oggpacket.packet[1], "theora", 6)) {
 				import->tk_info[import->nb_tracks].type = GF_ISOM_MEDIA_VISUAL;
 				import->tk_info[import->nb_tracks].flags = GF_IMPORT_OVERRIDE_FPS;
+
+				bs = gf_bs_new(oggpacket.packet, oggpacket.bytes, GF_BITSTREAM_READ);
+				gf_bs_read_int(bs, 80);
+				import->tk_info[import->nb_tracks].width = gf_bs_read_u16(bs) << 4;
+				import->tk_info[import->nb_tracks].height = gf_bs_read_u16(bs) << 4;
+				gf_bs_read_int(bs, 64);
+				fps_num = gf_bs_read_u32(bs);
+				fps_den = gf_bs_read_u32(bs);
+				gf_bs_del(bs);
+				import->tk_info[import->nb_tracks].FPS = fps_num;
+				import->tk_info[import->nb_tracks].FPS /= fps_den;
+				import->tk_info[import->nb_tracks].media_type = GF_FOUR_CHAR_INT('t','h','e','o');
 			} else if ((oggpacket.bytes >= 7) && !strncmp(&oggpacket.packet[1], "vorbis", 6)) {
 				import->tk_info[import->nb_tracks].type = GF_ISOM_MEDIA_AUDIO;
 				import->tk_info[import->nb_tracks].flags = 0;

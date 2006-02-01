@@ -754,17 +754,19 @@ force_scene_rap:
 
 		/*sync shadow generation*/
 		if (rap_shadow) {
+			u32 au_count = gf_list_count(sc->AUs);
 			GF_AUContext *au;
 			last_rap = 0;
-			j=0;
-			while ((au = gf_list_enum(sc->AUs, &j))) {
+			for (j=0; j<au_count; j++) {
+				au = gf_list_get(sc->AUs, j);
 				e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
-				if (!j || (au->timing - last_rap < rap_delay) ) continue;
+				if (!j) continue;
+				/*force a RAP shadow on last sample*/
+				if ((au->timing - last_rap < rap_delay) && (j+1<au_count) ) continue;
 
 				samp = gf_isom_sample_new();
-				samp->DTS = au->timing;
+				last_rap = samp->DTS = au->timing - init_offset;
 				samp->IsRAP = 1;
-				last_rap = au->timing;
 				/*RAP generation*/
 				if (bifs_enc)
 					e = gf_bifs_encoder_get_rap(bifs_enc, &samp->data, &samp->dataLength);
@@ -798,21 +800,19 @@ exit:
 }
 
 
-GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
+static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource, GF_SMEncodeOptions *opts)
 {
-	u32 i, j, n, m;
+	u32 i, j, n, m, rap_delay;
 	GF_ESD *esd;
 	GF_StreamContext *sc;
 	GF_AUContext *au;
 	u32 count, track, rate, di;
-	u64 dur, time_slice, init_offset, avg_rate;
-	Bool is_in_iod, delete_desc;
-
+	u64 dur, time_slice, init_offset, avg_rate, last_rap, last_not_shadow;
+	Bool is_in_iod, delete_desc, rap_inband, rap_shadow;
 	GF_ISOSample *samp;
 	GF_Err e;
-	GF_ODCodec *codec;
+	GF_ODCodec *codec, *rap_codec;
 	GF_InitialObjectDescriptor *iod;
-	GF_List *od_state, *ipmp_state;
 
 	gf_isom_set_pl_indication(mp4, GF_ISOM_PL_OD, 0xFE);
 
@@ -826,12 +826,19 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 	if (!count) return GF_OK;
 	if (!iod && count>1) return GF_NOT_SUPPORTED;
 
-	esd = NULL;
-	codec = NULL;
-	delete_desc = 0;
 
-	od_state = gf_list_new();
-	ipmp_state = gf_list_new();
+	rap_inband = rap_shadow = 0;
+	if (opts && opts->rap_freq) {
+		if (opts->flags & GF_SM_ENCODE_RAP_INBAND) {
+			rap_inband = 1;
+		} else {
+			rap_shadow = 1;
+		}
+	}
+
+	esd = NULL;
+	codec = rap_codec = NULL;
+	delete_desc = 0;
 
 	i=0;
 	while ((sc = gf_list_enum(ctx->streams, &i))){
@@ -879,12 +886,20 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 
 		codec = gf_odf_codec_new();
 
+		if (rap_inband || rap_shadow) {
+			rap_codec = gf_odf_codec_new();
+			rap_delay = opts->rap_freq * esd->slConfig->timestampResolution / 1000;
+		}
+		
+
 		dur = avg_rate = 0;
 		esd->decoderConfig->bufferSizeDB = 0;
 		esd->decoderConfig->maxBitrate = 0;
 		rate = 0;
 		time_slice = 0;
 		init_offset = 0;
+		last_rap = 0;
+
 		/*encode all samples and perform import - FIXME this is destructive...*/
 		j=0;
 		while ((au = gf_list_enum(sc->AUs, &j))) {
@@ -958,7 +973,13 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 
 				/*add to codec*/
 				gf_odf_codec_add_com(codec, com);
+
+				if (rap_codec) {
+					e = gf_odf_codec_apply_com(rap_codec, com);
+					if (e) goto err_exit;
+				}
 			}
+
 			e = gf_odf_codec_encode(codec, 1);
 			if (e) goto err_exit;
 
@@ -970,7 +991,20 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 			samp = gf_isom_sample_new();
 			samp->DTS = au->timing - init_offset;
 			samp->IsRAP = au->is_rap;
-			e = gf_odf_codec_get_au(codec, &samp->data, &samp->dataLength);
+
+			last_not_shadow = samp->DTS;
+
+			if (rap_inband && (samp->DTS - last_rap >= rap_delay)) {
+				last_rap = samp->DTS;
+				e = gf_odf_codec_encode(rap_codec, 0);
+				if (e) goto err_exit;
+				e = gf_odf_codec_get_au(rap_codec, &samp->data, &samp->dataLength);
+				samp->IsRAP = 1;
+			} else {
+				e = gf_odf_codec_get_au(codec, &samp->data, &samp->dataLength);
+			}
+
+
 			if (!e) e = gf_isom_add_sample(mp4, track, di, samp);
 
 			dur = au->timing - init_offset;
@@ -981,6 +1015,23 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 				if (esd->decoderConfig->maxBitrate < rate) esd->decoderConfig->maxBitrate = rate;
 				rate = 0;
 				time_slice = samp->DTS;
+			}
+
+
+			if (rap_shadow && (samp->DTS - last_rap >= rap_delay)) {
+				last_rap = samp->DTS;
+				e = gf_odf_codec_encode(rap_codec, 0);
+				if (e) goto err_exit;
+				if (samp->data) free(samp->data);
+				samp->data = NULL;
+				samp->dataLength = 0;
+				e = gf_odf_codec_get_au(rap_codec, &samp->data, &samp->dataLength);
+				if (e) goto err_exit;
+				samp->IsRAP = 1;
+				e = gf_isom_add_sample_shadow(mp4, track, samp);
+				if (e) goto err_exit;
+
+				last_not_shadow = 0;
 			}
 
 			gf_isom_sample_del(&samp);
@@ -1003,14 +1054,28 @@ GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *mediaSource)
 		}
 		esd = NULL;
 		gf_isom_set_last_sample_duration(mp4, track, 0);
+
+		if (rap_codec) {
+			if (last_not_shadow) {
+				samp = gf_isom_sample_new();
+				samp->DTS = last_not_shadow;
+				samp->IsRAP = 1;
+				e = gf_odf_codec_encode(rap_codec, 0);
+				if (!e) e = gf_odf_codec_get_au(rap_codec, &samp->data, &samp->dataLength);
+				if (!e) e = gf_isom_add_sample_shadow(mp4, track, samp);
+				if (e) goto err_exit;
+				gf_isom_sample_del(&samp);
+			}
+
+			gf_odf_codec_del(rap_codec);
+			rap_codec = NULL;
+		}
 	}
 	e = gf_isom_set_pl_indication(mp4, GF_ISOM_PL_OD, 1);
 	
 err_exit:
-	gf_list_del(od_state);
-	gf_list_del(ipmp_state);
-
 	if (codec) gf_odf_codec_del(codec);
+	if (rap_codec) gf_odf_codec_del(rap_codec);
 	if (esd && delete_desc) gf_odf_desc_del((GF_Descriptor *) esd);
 	return e;
 }
@@ -1035,7 +1100,7 @@ GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOp
 	e = gf_sm_encode_scene(ctx, mp4, opts, 1);
 	if (e) return e;
 	/*then encode OD to setup all streams*/
-	e = gf_sm_encode_od(ctx, mp4, opts ? opts->mediaSource : NULL);
+	e = gf_sm_encode_od(ctx, mp4, opts ? opts->mediaSource : NULL, opts);
 	if (e) return e;
 
 	/*store iod*/

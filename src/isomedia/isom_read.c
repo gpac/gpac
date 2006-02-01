@@ -949,6 +949,15 @@ Bool gf_isom_has_time_offset(GF_ISOFile *the_file, u32 trackNumber)
 	return 0;
 }
 
+Bool gf_isom_has_sync_shadows(GF_ISOFile *the_file, u32 trackNumber)
+{
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return 0;
+	if (!trak->Media->information->sampleTable->ShadowSync) return 0;
+	if (gf_list_count(trak->Media->information->sampleTable->ShadowSync->entries) ) return 1;
+	return 0;
+}
+
 //return a sample give its number, and set the SampleDescIndex of this sample
 //this index allows to retrieve the stream description if needed (2 media in 1 track)
 //return NULL if error

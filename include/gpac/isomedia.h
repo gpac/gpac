@@ -510,9 +510,13 @@ u32 gf_isom_get_sync_point_count(GF_ISOFile *the_file, u32 trackNumber);
 /*returns 1 if one sample of the track is found to have a composition time offset (DTS<CTS)*/
 Bool gf_isom_has_time_offset(GF_ISOFile *the_file, u32 trackNumber);
 
+/*returns 1 if the track has sync shadow samples*/
+Bool gf_isom_has_sync_shadows(GF_ISOFile *the_file, u32 trackNumber);
+
 /*rough estimation of file size, only works for completely self-contained files and without fragmentation
 for the current time*/
 u64 gf_isom_estimate_size(GF_ISOFile *the_file);
+
 
 /*
 		MPEG-4 Systems extensions
@@ -1076,11 +1080,9 @@ GF_Err gf_isom_fragment_append_data(GF_ISOFile *the_file, u32 TrackID, unsigned 
 		GENERIC Publishing API
 ******************************************************************/
 
-/*Set the sync shadow on/off for a file.
-Shadowing allows you to add Random Access samples that will REPLACE the desired sample
-Most of the time the shadowed sample should be place "outside" the track time line 
-through an edit list*/
-GF_Err gf_isom_set_sync_shadow_enabled(GF_ISOFile *the_file, u32 trackNumber, u8 SyncShadowEnabled);
+/*Removes all sync shadow entries for a given track. The shadow samples are NOT removed; they must be removed
+by the user app*/
+GF_Err gf_isom_remove_sync_shadows(GF_ISOFile *the_file, u32 trackNumber);
 
 /*Use this function to do the shadowing if you use shadowing.
 the sample to be shadowed MUST be a non-sync sample (ignored if not)

@@ -28,6 +28,7 @@
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/internal/bifs_tables.h>
 #include "quant.h" 
+#include "script.h" 
 
 
 GF_Err gf_bifs_field_index_by_mode(GF_Node *node, u32 all_ind, u8 indexMode, u32 *outField)
@@ -175,10 +176,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		return gf_bifs_enc_node(codec, *((GF_Node **)field->far_ptr), field->NDTtype, bs);
 
 	case GF_SG_VRML_SFSCRIPT:
-	{
-		GF_Err SFScript_Encode(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *n);
 		codec->LastError = SFScript_Encode(codec, bs, node);
-	}
 		break;
 	default:
 		return GF_NON_COMPLIANT_BITSTREAM;

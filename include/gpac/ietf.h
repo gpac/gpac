@@ -1003,8 +1003,11 @@ enum
 	/*if flag set, CTS is signaled in RTP payload - DTS is automatically set if needed*/
 	GP_RTP_PCK_SIGNAL_TS	=	(1<<7),
 
-	/*use LATML payload for AAC-LC*/
-	GP_RTP_PCK_USE_LATM_AAC	=	(1<<8),
+	/*setup payload for carouseling of systems streams*/
+	GP_RTP_PCK_AUTO_CAROUSEL = (1<<8),
+
+	/*use LATM payload for AAC-LC*/
+	GP_RTP_PCK_USE_LATM_AAC	=	(1<<9),
 
 	/*ISMACryp options*/
 	/*signals that input data is selectively encrypted (eg not all input frames are encrypted) 

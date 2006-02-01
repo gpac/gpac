@@ -404,6 +404,7 @@ GF_Err stbl_AddSize(GF_SampleSizeBox *stsz, u32 sampleNumber, u32 size)
 		}
 		free(stsz->sizes);
 		stsz->sizes = newSizes;
+		stsz->alloc_size = 1 + stsz->sampleCount;
 	}
 	stsz->sampleCount++;
 	return GF_OK;
@@ -545,7 +546,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 				free(stco->offsets);
 				stco->offsets = newOff;
 				stco->entryCount ++;
-				stco->alloc_size++;
+				stco->alloc_size = stco->entryCount;
 			}
 		}
 	} else {

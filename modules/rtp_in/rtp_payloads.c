@@ -641,7 +641,7 @@ void RP_ParsePayloadMPEG4(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 s
 				}
 				i++;
 			}
-			if (is_rap) ch->sl_hdr.randomAccessPointFlag = 1;
+			ch->sl_hdr.randomAccessPointFlag = is_rap ? 1 : 0;
 		}
 
 		if (ch->owner->first_packet_drop && (ch->sl_hdr.packetSequenceNumber >= ch->owner->first_packet_drop) ) {

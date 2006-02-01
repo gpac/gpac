@@ -5045,8 +5045,13 @@ GF_Err stsf_Size(GF_Box *s)
 
 void stsh_del(GF_Box *s)
 {
+	u32 i = 0;
+	GF_StshEntry *ent;
 	GF_ShadowSyncBox *ptr = (GF_ShadowSyncBox *)s;
 	if (ptr == NULL) return;
+	while ( (ent = gf_list_enum(ptr->entries, &i)) ) {
+		free(ent);
+	}
 	gf_list_del(ptr->entries);
 	free(ptr);
 }

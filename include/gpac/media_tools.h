@@ -80,8 +80,13 @@ struct __track_import_info
 	u32 track_num;
 	/*track type (GF_ISOM_MEDIA_****)*/
 	u32 type;
+	/*media type ('MPG1', 'MPG2', ISO 4CC, AVI 4CC)*/
+	u32 media_type;
 	/*possible import flags*/
 	u32 flags;
+	/*video src info*/
+	Double FPS;
+	u32 width, height;
 };
 
 /*track dumper*/

@@ -941,6 +941,9 @@ GF_Err gf_odf_codec_decode(GF_ODCodec *codec);
 from the command list. Return NULL when commandList is empty*/
 GF_ODCom *gf_odf_codec_get_com(GF_ODCodec *codec);
 
+/*apply a command to the codec command list. Command is duplicated if needed
+This is used for state maintenance and RAP generation.*/
+GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command);
 
 /************************************************************
 		GF_ODCom Functions

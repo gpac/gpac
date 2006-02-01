@@ -432,8 +432,8 @@ struct _es_channel
 	u32 max_au_sn, max_pck_sn;
 	/*the AU length indicated in the SL Header. */
 	u32 AULength;
-	/*RAP indicator. If set, skip till a RAP is received*/
-	Bool NeedRap;
+	/*state indicator: 0 OK, 1: not tuned in, 2: has error and needs RAP*/
+	u32 stream_state;
 	/*the AU in reception is RAP*/
 	Bool IsRap;
 	/*signal that next AU is an AU start*/
@@ -529,9 +529,11 @@ enum
 	GF_ESM_CODEC_HAS_UPSTREAM = 1,
 	/*the codec uses the interface from another codec (only used by private scene streams to handle
 	any intern sprite/animation streams)*/
-	GF_ESM_CODEC_IS_USE = 2,
-	/*set for OD codec when static (eg all ressources are static and scene graph is generated on the fly)*/
-	GF_ESM_CODEC_IS_STATIC_OD = 4,
+	GF_ESM_CODEC_IS_USE = 1<<1,
+	/*set for OD codec when all ressources are static and scene graph is generated on the fly*/
+	GF_ESM_CODEC_IS_SCENE_OD = 1<<2,
+	/*set for OD codec when static (ressources are declared in OD stream esd a la ISMA*/
+	GF_ESM_CODEC_IS_STATIC_OD = 1<<3,
 };
 
 struct _generic_codec 

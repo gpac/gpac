@@ -74,7 +74,10 @@ void convert_file_info(char *inName, u32 trackID)
 		default: fprintf(stdout, "Other (4CC: %s)\n", gf_4cc_to_str(import.tk_info[i].type)); break;
 		}
 		if (!trackID) continue;
-		fprintf(stdout, "Import Capabilities:\n");
+		if (import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL)
+			fprintf(stdout, "Source: %s %dx%d @ %g FPS\n", gf_4cc_to_str(import.tk_info[i].media_type), import.tk_info[i].width, import.tk_info[i].height, import.tk_info[i].FPS);
+
+		fprintf(stdout, "\nImport Capabilities:\n");
 		if (import.tk_info[i].flags & GF_IMPORT_USE_DATAREF) fprintf(stdout, "\tCan use data referencing\n");
 		if (import.tk_info[i].flags & GF_IMPORT_NO_FRAME_DROP) fprintf(stdout, "\tCan use fixed FPS import\n");
 		if (import.tk_info[i].flags & GF_IMPORT_FORCE_PACKED) fprintf(stdout, "\tCan force packed bitstream import\n");
@@ -83,6 +86,7 @@ void convert_file_info(char *inName, u32 trackID)
 		if (import.tk_info[i].flags & GF_IMPORT_FORCE_MPEG4) fprintf(stdout, "\tCan force MPEG-4 Systems stream description\n");
 		if (import.tk_info[i].flags & GF_IMPORT_3GPP_AGGREGATION) fprintf(stdout, "\tCan use 3GPP frame aggregation\n");
 		if (import.tk_info[i].flags & GF_IMPORT_NO_DURATION) fprintf(stdout, "\tCannot use duration-based import\n");
+
 		found = 1;
 		break;
 	}

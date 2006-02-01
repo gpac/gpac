@@ -60,6 +60,7 @@ static char the_next_url[GF_MAX_PATH];
 static GF_Terminal *term;
 static GF_Config *cfg_file;
 static Bool no_mime_check = 0;
+static Bool be_quiet = 0;
 
 void PrintUsage()
 {
@@ -282,7 +283,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		if (!evt->message.message) return 0;
 		if (evt->message.error) 
 			fprintf(stdout, "%s (%s): %s\n", evt->message.message, servName, gf_error_to_string(evt->message.error));
-		else
+		else if (!be_quiet) 
 			fprintf(stdout, "(%s) %s\r", servName, evt->message.message);
 	}
 		break;
@@ -549,6 +550,9 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-rti")) {
 			rti_file = argv[i+1];
 			i++;
+		}
+		else if (!strcmp(arg, "-quiet")) {
+			be_quiet = 1;
 		} else {
 			PrintUsage();
 			return 1;

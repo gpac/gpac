@@ -197,7 +197,7 @@ void gf_clock_resume(GF_Clock *ck)
 u32 gf_clock_real_time(GF_Clock *ck)
 {
 	u32 time;
-	if (!ck || !ck->StartTime) return 0;
+	if (!ck || !ck->clock_init) return 0;
 	time = ck->Paused > 0 ? ck->PauseTime : gf_term_get_time(ck->term);
 #ifdef GPAC_FIXED_POINT
 	time = ck->discontinuity_time + ck->init_time + (time - ck->StartTime) * FIX2INT(100*ck->speed) / 100;

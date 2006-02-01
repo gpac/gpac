@@ -834,6 +834,7 @@ void gf_bt_mffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 
 Bool gf_bt_check_ndt(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *node, GF_Node *parent)
 {
+	if (!node) return 1;
 	if (parent->sgprivate->tag == TAG_MPEG4_Script) return 1;
 	if (parent->sgprivate->tag == TAG_X3D_Script) return 1;
 	if (node->sgprivate->tag == TAG_UndefinedNode) return 1;

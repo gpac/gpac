@@ -1,4 +1,7 @@
-Latest CVS Changes 28/12/05
+Latest CVS Changes 01/02/06
+  - fixed support for Scene Carousel in hinters, core and rtp reassembler. Currently only BIFS and BIFS+AV can be use the scene carousel, carouseling of 
+    static data (eg images) is not supported. The OD data must be embedded in the IOD a la ISMA.
+  - added FPS and size info dumping for MPEG and AVI file import (MP4Box -info file.mpg)
   - many fixes in 3D renderer while checking the X3D conformance suite
   - moved XMT and X3D parsers to use SAX parser. Progressive loading still to be done.
   - fixed ISOMedia track duration in case of ctts table

@@ -385,6 +385,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					streamType = GF_STREAM_AUDIO;
 					nb_ch = 1;
 				}
+				/*visual streams*/
 				else if (streamType==GF_STREAM_VISUAL) {
 					if (oti==0x20) {
 						GF_M4VDecSpecInfo dsi;
@@ -406,6 +407,10 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					}
 
 					required_rate = default_rtp_rate;
+				}
+				/*systems streams*/
+				else if (gf_isom_has_sync_shadows(file, TrackNum)) {
+					flags |= GP_RTP_PCK_AUTO_CAROUSEL;
 				}
 				gf_odf_desc_del((GF_Descriptor*)esd);
 			}
@@ -501,6 +506,11 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 
 	/*get sample info*/
 	GetAvgSampleInfos(file, TrackNum, &MinSize, &MaxSize, &avgTS, &maxDTSDelta, &const_dur, &bandwidth);
+
+	/*systems carousel: we need at least IDX and RAP signaling*/
+	if (flags & GP_RTP_PCK_AUTO_CAROUSEL) {
+		flags |= GP_RTP_PCK_SIGNAL_RAP | GP_RTP_PCK_SIGNAL_AU_IDX;
+	}
 
 	/*update flags in MultiSL*/
 	if (flags & GP_RTP_PCK_USE_MULTI) {

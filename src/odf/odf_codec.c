@@ -50,8 +50,11 @@ GF_ODCodec *gf_odf_codec_new()
 void gf_odf_codec_del(GF_ODCodec *codec)
 {
 	if (!codec) return;
-	if (gf_list_count(codec->CommandList)) {
-		//empty our command list
+
+	while (gf_list_count(codec->CommandList)) {
+		GF_ODCom *com = gf_list_get(codec->CommandList, 0);
+		gf_odf_delete_command(com);
+		gf_list_rem(codec->CommandList, 0);
 	}
 	gf_list_del(codec->CommandList);
 	if (codec->bs) gf_bs_del(codec->bs);
@@ -531,5 +534,95 @@ GF_ESD *gf_odf_desc_esd_new(u32 sl_predefined)
 	esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 	esd->slConfig = (GF_SLConfig *) gf_odf_new_slc((u8) sl_predefined);
 	return esd;
+}
+
+
+GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
+{
+	GF_ODCom *com;
+	GF_ODUpdate *odU, *odU_o;
+	u32 i, count;
+	count = gf_list_count(codec->CommandList);
+
+	switch (command->tag) {
+	case GF_ODF_OD_REMOVE_TAG:
+		for (i=0; i<count; i++) {
+			com = gf_list_get(codec->CommandList, i);
+			/*process OD updates*/
+			if (com->tag==GF_ODF_OD_UPDATE_TAG) {
+				u32 count, j, k;
+				GF_ODRemove *odR = (GF_ODRemove *) command;
+				odU = (GF_ODUpdate *)com;
+				count = gf_list_count(odU->objectDescriptors);
+				/*remove all descs*/
+				for (k=0; k<count; k++) {
+					GF_ObjectDescriptor *od = gf_list_get(odU->objectDescriptors, k);
+					for (j=0; j<odR->NbODs; j++) {
+						if (od->objectDescriptorID==odR->OD_ID[j]) {
+							gf_list_rem(odU->objectDescriptors, k);
+							k--; count--;
+							gf_odf_desc_del((GF_Descriptor *)od);
+							break;
+						}
+					}
+				}
+				if (!gf_list_count(odU->objectDescriptors)) {
+					gf_list_rem(codec->CommandList, i);
+					i--;
+					count--;
+				}
+			}
+			/*process ESD updates*/
+			else if (com->tag==GF_ODF_ESD_UPDATE_TAG) {
+				u32 j;
+				GF_ODRemove *odR = (GF_ODRemove *) command;
+				GF_ESDUpdate *esdU = (GF_ESDUpdate*)com;
+				for (j=0; j<odR->NbODs; j++) {
+					if (esdU->ODID==odR->OD_ID[j]) {
+						gf_list_rem(codec->CommandList, i);
+						i--;
+						count--;
+						gf_odf_com_del((GF_ODCom**)&esdU);
+						break;
+					}
+				}
+			}
+		}
+		return GF_OK;
+	case GF_ODF_OD_UPDATE_TAG:
+		odU_o = NULL;
+		for (i=0; i<count; i++) {
+			odU_o = gf_list_get(codec->CommandList, i);
+			/*process OD updates*/
+			if (odU_o->tag==GF_ODF_OD_UPDATE_TAG) break;
+			odU_o = NULL;
+		}
+		if (!odU_o) {
+			odU_o = (GF_ODUpdate *)gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
+			gf_list_add(codec->CommandList, odU_o);
+		}
+		odU = (GF_ODUpdate*)command;
+		count = gf_list_count(odU->objectDescriptors);
+		for (i=0; i<count; i++) {
+			Bool found = 0;
+			GF_ObjectDescriptor *od = gf_list_get(odU->objectDescriptors, i);
+			u32 j, count2 = gf_list_count(odU_o->objectDescriptors);
+			for (j=0; j<count2; j++) {
+				GF_ObjectDescriptor *od2 = gf_list_get(odU_o->objectDescriptors, j);
+				if (od2->objectDescriptorID==od->objectDescriptorID) {
+					found = 1; 
+					break;
+				}
+			}
+			if (!found) {
+				GF_ObjectDescriptor *od_new;
+				gf_odf_desc_copy((GF_Descriptor*)od, (GF_Descriptor**)&od_new);
+				gf_list_add(odU_o->objectDescriptors, od_new);
+			}
+
+		}
+		return GF_OK;
+	}
+	return GF_NOT_SUPPORTED;
 }
 
