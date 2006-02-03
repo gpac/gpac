@@ -110,7 +110,7 @@ void node_init(void *cbk, GF_Node *node)
 	case TAG_MPEG4_QuantizationParameter:
 		break;
 	default:
-		gf_sr_on_node_init(b2v->sr, node);
+		if (b2v->sr) gf_sr_on_node_init(b2v->sr, node);
 		break;
 	}
 }
@@ -118,7 +118,7 @@ void node_init(void *cbk, GF_Node *node)
 void node_modif(void *cbk, GF_Node *node)
 {
 	BIFSVID *b2v = cbk;
-	gf_sr_invalidate(b2v->sr, node);
+	if (b2v->sr) gf_sr_invalidate(b2v->sr, node);
 }
 
 Double get_scene_time(void *cbk)
@@ -271,6 +271,211 @@ GF_Config *loadconfigfile()
 	return cfg;
 }
 
+void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, char *rad_name, u32 dump_type, char *out_dir, Double fps, s32 frameID, s32 dump_time)
+{
+	GF_User user;
+	char out_path[GF_MAX_PATH];
+	char old_driv[1024];
+	BIFSVID b2v;
+	Bool needs_raw;
+	GF_Err e;
+	GF_VideoSurface fb;
+	unsigned char **rendered_frames;
+	u32 nb_viewpoints = 5;
+	u32 viewpoint_index;
+
+
+	/* Configuration of the Rendering Capabilities */
+	{
+		const char *test;
+		char config_path[GF_MAX_PATH];
+		memset(&user, 0, sizeof(GF_User));
+		if (szConfigFile && strlen(szConfigFile)) {
+			user.config = gf_cfg_new(config_path, GPAC_CFG_FILE);
+		} else {
+			user.config = loadconfigfile();
+		}
+
+		if (!user.config) {
+			fprintf(stdout, "Configuration File \"GPAC.cfg\" not found\nPlease enter full path to config file:\n");
+			scanf("%s", config_path);
+			user.config = gf_cfg_new(config_path, GPAC_CFG_FILE);
+			if (!user.config) {
+				fprintf(stdout, "Error: Configuration File \"%s\" not found in %s\n", GPAC_CFG_FILE, config_path);
+				return;
+			}
+		}
+
+		test = gf_cfg_get_key(user.config, "General", "ModulesDirectory");
+		user.modules = gf_modules_new((const unsigned char *) test, user.config);
+		strcpy(old_driv, "raw_out");
+		if (!gf_modules_get_count(user.modules)) {
+			printf("Error: no modules found\n");
+			goto err_exit;
+		}
+
+		/*switch driver to raw_driver*/
+		test = gf_cfg_get_key(user.config, "Video", "DriverName");
+		if (test) strcpy(old_driv, test);
+
+		needs_raw = 0;
+		test = gf_cfg_get_key(user.config, "Rendering", "RendererName");
+		/*since we only support RGB24 for MP42AVI force using RAW out with 2D driver*/
+		if (test && strstr(test, "2D")) {
+			gf_cfg_set_key(user.config, "Video", "DriverName", "Raw Video Output");
+			needs_raw = 1;
+		}
+		if (needs_raw) {
+			test = gf_cfg_get_key(user.config, "Video", "DriverName");
+			if (stricmp(test, "raw_out") && stricmp(test, "Raw Video Output")) {
+				printf("couldn't load raw output driver (%s used)\n", test);
+				goto err_exit;
+			}
+		}
+	}
+
+	memset(&b2v, 0, sizeof(BIFSVID));
+	/* Initialization of the renderer */
+	b2v.sr = gf_sr_new(&user, 0, 1, NULL);
+	gf_sr_set_option(b2v.sr, GF_OPT_VISIBLE, 0);
+
+	/* Initialization of the scene graph */	
+	b2v.sg = gf_sg_new();
+	gf_sg_set_scene_time_callback(b2v.sg, get_scene_time, &b2v);
+	gf_sg_set_init_callback(b2v.sg, node_init, &b2v);
+	gf_sg_set_modified_callback(b2v.sg, node_modif, &b2v);
+
+	/*load config*/
+	gf_sr_set_option(b2v.sr, GF_OPT_RELOAD_CONFIG, 1);
+
+	{
+		u32 di;
+		u32 track_number;
+		GF_ESD *esd;
+		u16 es_id;
+		b2v.bifs = gf_bifs_decoder_new(b2v.sg, 0);
+		gf_bifs_decoder_set_clock(b2v.bifs, get_scene_time, &b2v);
+
+		for (track_number=0; track_number<gf_isom_get_track_count(file); track_number++) {
+			esd = gf_isom_get_esd(file, track_number+1, 1);
+			if (!esd) continue;
+			if (!esd->dependsOnESID && (esd->decoderConfig->streamType == GF_STREAM_SCENE)) break;
+			gf_odf_desc_del((GF_Descriptor *) esd);
+			esd = NULL;
+		}
+		if (!esd) {
+			printf("no bifs track found\n");
+			goto err_exit;
+		}
+
+		es_id = (u16) gf_isom_get_track_id(file, track_number+1);
+		e = gf_bifs_decoder_configure_stream(b2v.bifs, es_id, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, esd->decoderConfig->objectTypeIndication);
+		if (e) {
+			printf("BIFS init error %s\n", gf_error_to_string(e));
+			gf_odf_desc_del((GF_Descriptor *) esd);
+			esd = NULL;
+			goto err_exit;
+		}
+
+		{
+			GF_ISOSample *samp = gf_isom_get_sample(file, track_number+1, 1, &di);
+			b2v.cts = samp->DTS + samp->CTS_Offset;
+			/*apply command*/
+			gf_bifs_decode_au(b2v.bifs, es_id, samp->data, samp->dataLength);
+			gf_isom_sample_del(&samp);
+		}
+
+		b2v.duration = gf_isom_get_media_duration(file, track_number+1);
+
+		gf_odf_desc_del((GF_Descriptor *) esd);
+	
+	}
+	gf_sr_set_scene(b2v.sr, b2v.sg);
+
+	if (!width || !height) {
+		gf_sg_get_scene_size_info(b2v.sg, &width, &height);
+	}
+	/*we work in RGB24, and we must make sure the pitch is %4*/
+	if ((width*3)%4) {
+		printf("Adjusting width (%d) to have a stride multiple of 4\n", width);
+		while ((width*3)%4) width--;
+	}
+	gf_sr_set_size(b2v.sr, width, height);
+	gf_sr_get_screen_buffer(b2v.sr, &fb);
+	width = fb.width;
+	height = fb.height;
+	gf_sr_release_screen_buffer(b2v.sr, &fb);
+
+	GF_SAFEALLOC(rendered_frames, nb_viewpoints*sizeof(char *));
+	for (viewpoint_index = 1; viewpoint_index <= nb_viewpoints; viewpoint_index++) {
+		GF_SAFEALLOC(rendered_frames[viewpoint_index-1], fb.width*fb.height*3);
+		gf_sr_set_viewpoint(b2v.sr, viewpoint_index, NULL);
+		gf_sr_render_frame(b2v.sr);
+		/*needed for background2D !!*/
+		gf_sr_render_frame(b2v.sr);
+		strcpy(out_path, "");
+		if (out_dir) {
+			strcat(out_path, out_dir);
+			if (out_path[strlen(out_path)-1] != '\\') strcat(out_path, "\\");
+		}
+		strcat(out_path, rad_name);
+		strcat(out_path, "_view");
+		gf_sr_get_screen_buffer(b2v.sr, &fb);
+		write_bmp(&fb, out_path, viewpoint_index);
+		memcpy(rendered_frames[viewpoint_index-1], fb.video_buffer, fb.width*fb.height*3);
+		gf_sr_release_screen_buffer(b2v.sr, &fb);
+	}
+
+	if (width != 800 || height != 480) {
+		printf("Wrong scene dimension, cannot produce output\n");
+		goto err_exit;
+	} else {
+		u32 x, y;
+		GF_VideoSurface out_fb;
+		u32 bpp = 3;
+		out_fb.width = 800;
+		out_fb.height = 480;
+		out_fb.pitch = 800*bpp;
+		out_fb.pixel_format = GF_PIXEL_RGB_24;
+		out_fb.is_hardware_memory = 0;
+		GF_SAFEALLOC(out_fb.video_buffer, out_fb.pitch*out_fb.height)
+		for (y=0; y<out_fb.height; y++) {
+			u32 line_shift = y%5;
+			for (x=0; x<out_fb.width;x++) {
+				u32 view_shift = (line_shift+bpp*x)%5;
+				u32 offset = out_fb.pitch*y + x*bpp;
+				/* red */
+				out_fb.video_buffer[offset] = rendered_frames[view_shift][offset];
+				/* green */
+				out_fb.video_buffer[offset+1] = rendered_frames[(view_shift+1)%5][offset+1];
+				/* blue */
+				out_fb.video_buffer[offset+2] = rendered_frames[(view_shift+2)%5][offset+2];
+			}
+		}
+		write_bmp(&out_fb, "output", 0);
+	}
+
+	/*destroy everything*/
+	gf_bifs_decoder_del(b2v.bifs);
+	gf_sg_del(b2v.sg);
+	gf_sr_set_scene(b2v.sr, NULL);
+	gf_sr_del(b2v.sr);
+
+
+
+err_exit:
+/*	if (rendered_frames) {
+		for (viewpoint_index = 1; viewpoint_index <= nb_viewpoints; viewpoint_index++) {
+			if (rendered_frames[viewpoint_index-1]) free(rendered_frames[viewpoint_index-1]);
+		}
+		free(rendered_frames);
+	}
+	if (output_merged_frame) free(output_merged_frame);
+*/
+	if (user.modules) gf_modules_del(user.modules);
+	if (needs_raw) gf_cfg_set_key(user.config, "Video", "DriverName", old_driv);
+ 	gf_cfg_del(user.config);
+}
 
 void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, char *rad_name, u32 dump_type, char *out_dir, Double fps, s32 frameID, s32 dump_time)
 {
@@ -326,7 +531,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	test = gf_cfg_get_key(user.config, "Rendering", "RendererName");
 	/*since we only support RGB24 for MP42AVI force using RAW out with 2D driver*/
 	if (test && strstr(test, "2D")) {
-		gf_cfg_set_key(user.config, "Video", "DriverName", "raw_out");
+		gf_cfg_set_key(user.config, "Video", "DriverName", "Raw Video Output");
 		needs_raw = 1;
 	}
 
@@ -559,6 +764,8 @@ int main (int argc, char **argv)
 				}
 				i++;
 			}
+		} else if (!stricmp(arg, "-3d")) {
+			dump_type = 3;
 		} else if (!stricmp(arg, "-outpath")) {
 			dump_out = argv[i+1];
 			i++;
@@ -579,6 +786,8 @@ int main (int argc, char **argv)
 		PrintUsage();
 		return 0;
 	}
+	gf_sys_init();
+
 	file = gf_isom_open(inName, GF_ISOM_OPEN_READ, NULL);
 	if (!file) {
 		printf("Error opening file: %s\n", gf_error_to_string(gf_isom_last_error(NULL)));
@@ -597,7 +806,10 @@ int main (int argc, char **argv)
 	}
 	while (rad[strlen(rad)-1] != '.') rad[strlen(rad)-1] = 0;
 	rad[strlen(rad)-1] = 0;
-	bifs_to_vid(file, szConfigFile, dump_w, dump_h, rad, dump_type, dump_out, fps_dump, frameID, dump_time);
+	if (dump_type == 3) {
+		bifs3d_viewpoints_merger(file, szConfigFile, dump_w, dump_h, rad, dump_type, dump_out, fps_dump, frameID, dump_time);
+	} 
+	else bifs_to_vid(file, szConfigFile, dump_w, dump_h, rad, dump_type, dump_out, fps_dump, frameID, dump_time);
 	printf("\ndone\n");
 	gf_isom_delete(file);
 	return 0;
