@@ -1180,7 +1180,7 @@ typedef struct
 	Fixed prev_scale, new_scale;
 } GF_DOM_Event;
 
-Bool gf_sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event);
+Bool gf_sg_fire_dom_event(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event);
 
 /*listener are simply nodes added to the node events list. 
 THIS SHALL NOT BE USED WITH VRML-BASED GRAPHS: either one uses listeners or one uses routes

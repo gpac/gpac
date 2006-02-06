@@ -49,7 +49,6 @@
 #define IDC_LANG                        1013
 #define IDC_LOOP                        1014
 #define IDC_AUTOSTART                   1015
-#define IDC_AUTO_PLAY                   1015
 #define IDC_FILEASSOC                   1016
 #define IDC_NO_CONSOLE                  1017
 #define IDC_BIFS_RATE                   1018

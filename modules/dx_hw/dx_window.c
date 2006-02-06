@@ -424,7 +424,13 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 		break;
 	/*if scene resize resize window*/
 	case GF_EVT_SIZE:
-		if (ctx->owns_hwnd) SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width + ctx->off_w, evt->size.height + ctx->off_h, SWP_NOZORDER | SWP_NOMOVE);
+		if (ctx->owns_hwnd) {
+			SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width + ctx->off_w, evt->size.height + ctx->off_h, SWP_NOZORDER | SWP_NOMOVE);
+			if (ctx->fullscreen) {
+				ctx->store_width = evt->size.width;
+				ctx->store_height = evt->size.height;
+			}
+		}
 		break;
 	/*HW setup*/
 	case GF_EVT_VIDEO_SETUP:

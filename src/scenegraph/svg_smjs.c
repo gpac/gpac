@@ -519,7 +519,7 @@ static void svg_elt_add(JSContext *c, GF_Node *par, GF_Node *n, s32 pos)
 
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.type = SVG_DOM_EVT_LOAD;
-		gf_sg_fire_dom_event(n, &evt);
+		gf_sg_fire_dom_event(n, NULL, &evt);
 	}
 	svg_node_changed(par, NULL);
 }
@@ -624,24 +624,50 @@ static JSBool svg_elt_get_attr(JSContext *c, JSObject *obj, uintN argc, jsval *a
 
 static JSBool svg_elt_set_attr(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	u32 offset = 0;
+	u32 i, count, offset = 0;
+	XMLEV_Event evt;
+	SVGhandlerElement *handler;
 	GF_FieldInfo info;
 	char *attName, *attValue, *inNS;
 	SVGElement *elt = (SVGElement *)JS_GetPrivate(c, obj);
 	if (!elt || (argc>3)) return JS_FALSE;
 	inNS = NULL;
 	if (argc==3) {
-		if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-		inNS = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+		if (JSVAL_IS_STRING(argv[0])) {
+			inNS = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+		}
 		offset = 1;
 	}
 	if (!JSVAL_IS_STRING(argv[offset]) || !JSVAL_IS_STRING(argv[offset+1])) return JS_FALSE;
 	attName = JS_GetStringBytes(JSVAL_TO_STRING(argv[offset]));
 	attValue = JS_GetStringBytes(JSVAL_TO_STRING(argv[offset+1]));
-	if (gf_node_get_field_by_name((GF_Node *)elt, attName, &info) != GF_OK) return JS_FALSE;
-	svg_parse_attribute(elt, &info, attValue, 0, 0);
-	svg_node_changed((GF_Node *)elt, &info);
+
 	*rval = JSVAL_VOID;
+	if (gf_node_get_field_by_name((GF_Node *)elt, attName, &info) == GF_OK) {
+		svg_parse_attribute(elt, &info, attValue, 0, 0);
+		svg_node_changed((GF_Node *)elt, &info);
+		return JS_TRUE;
+	}
+	/*check for old adressing of events*/
+	evt.parameter = 0;
+	evt.type = svg_dom_event_by_name(attName + 2);
+	if (evt.type == SVG_DOM_EVT_UNKNOWN) return JS_FALSE;
+
+	/*check if we're modifying an existing listener*/
+	count = gf_list_count(elt->sgprivate->events);
+	for (i=0;i<count; i++) {
+		SVGhandlerElement *handler;
+		SVGlistenerElement *listen = gf_list_get(elt->sgprivate->events, i);
+		if (listen->event.type != evt.type) continue;
+		assert(listen->handler.target);
+		handler = (SVGhandlerElement *)listen->handler.target;
+		if (handler->textContent) free(handler->textContent);
+		handler->textContent = strdup(attValue);
+		return JS_TRUE;
+	}
+	/*nope, create a listener*/
+	handler = gf_sg_dom_create_listener((GF_Node *) elt, evt);
+	handler->textContent = strdup(attValue);
 	return JS_TRUE;
 }
 

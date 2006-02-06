@@ -132,6 +132,7 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)
 	if(svg_props->text_anchor) free(svg_props->text_anchor);
 	if(svg_props->visibility) free(svg_props->visibility);
 	if(svg_props->display) free(svg_props->display);
+	if(svg_props->stop_opacity) free(svg_props->stop_opacity);
 	memset(svg_props, 0, sizeof(SVGPropertiesPointers));
 }
 

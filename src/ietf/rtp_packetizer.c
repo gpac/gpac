@@ -504,15 +504,8 @@ GF_Err gp_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 	if (dsi && dsi_size) {
 		k = 0;
 		for (i=0; i<dsi_size; i++) {
-			if ((unsigned char) dsi[i] < 0x10) {
-				dsiString[k] = '0';
-				k++;
-				sprintf(&dsiString[k], "%x", (unsigned char) dsi[i]);
-				k++;
-			} else {
-				sprintf(&dsiString[k], "%x", (unsigned char) dsi[i]);
-				k+=2;
-			}
+			sprintf(&dsiString[k], "%02x", (unsigned char) dsi[i]);
+			k+=2;
 		}
 		dsiString[k] = 0;
 		SDP_ADD_STR("config", dsiString);

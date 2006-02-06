@@ -647,6 +647,7 @@ void SVG_Init_path(Render2D *sr, GF_Node *node)
 
 static void SVG_Render_use(GF_Node *node, void *rs)
 {
+	GF_Node *prev_use;
 	GF_Matrix2D backup_matrix;
 	SVGuseElement *use = (SVGuseElement *)node;
   	GF_Matrix2D translate;
@@ -683,7 +684,10 @@ static void SVG_Render_use(GF_Node *node, void *rs)
 	gf_mx2d_pre_multiply(&eff->transform, &use->transform);
 	gf_mx2d_pre_multiply(&eff->transform, &translate);
 
+	prev_use = eff->parent_use;
+	eff->parent_use = (GF_Node *)use;
 	gf_node_render((GF_Node *)use->xlink->href.target, eff);
+	eff->parent_use = prev_use;
 
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));

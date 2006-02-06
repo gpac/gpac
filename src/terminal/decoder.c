@@ -385,8 +385,8 @@ check_unit:
 	}
 	/*OD acts as scene codec, regenerate scene*/
 	if (codec->flags & GF_ESM_CODEC_IS_SCENE_OD) gf_is_regenerate(codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene);
-	/*static OD resources (embedded in ESD), reset time*/
-	else if (codec->flags & GF_ESM_CODEC_IS_STATIC_OD) gf_clock_reset(codec->ck);
+	/*static OD resources (embedded in ESD) in broadcast mode, reset time*/
+	else if ((codec->flags & GF_ESM_CODEC_IS_STATIC_OD) && codec->ck->no_time_ctrl) gf_clock_reset(codec->ck);
 	
 
 	/*always force redraw for system codecs*/

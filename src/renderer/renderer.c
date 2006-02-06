@@ -106,18 +106,31 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 		/*size changed from scene cfg: resize window first*/
 		if (sr->msg_type & GF_SR_CFG_SET_SIZE) {
 			GF_Event evt;
+			u32 fs_width, fs_height;
 			Bool restore_fs = sr->fullscreen;
-			if (restore_fs) gf_sr_set_fullscreen(sr);
+			fs_width = fs_height = 0;
+			if (restore_fs) {
+				//gf_sr_set_fullscreen(sr);
+				fs_width = sr->width;
+				fs_height = sr->height;
+			}
 			/*send resize event*/
-			if (!(sr->msg_type & GF_SR_CFG_WINDOWSIZE_NOTIF) ) {
+			if (!(sr->msg_type & GF_SR_CFG_WINDOWSIZE_NOTIF)) {
 				evt.type = GF_EVT_SIZE;
 				evt.size.width = sr->new_width;
 				evt.size.height = sr->new_height;
 				sr->video_out->ProcessEvent(sr->video_out, &evt);
 			}
-			gf_sr_set_output_size(sr, sr->new_width, sr->new_height);
+			if (restore_fs) {
+				//gf_sr_set_fullscreen(sr);
+				sr->width = fs_width;
+				sr->height = fs_height;
+				sr->visual_renderer->RecomputeAR(sr->visual_renderer);
+				sr->reset_graphics = 1;
+			} else {
+				gf_sr_set_output_size(sr, sr->new_width, sr->new_height);
+			}
 			sr->new_width = sr->new_height = 0;
-			if (restore_fs) gf_sr_set_fullscreen(sr);
 		}
 		/*aspect ratio modif*/
 		if (sr->msg_type & GF_SR_CFG_AR) {
@@ -528,9 +541,12 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 	sr->scene = scene_graph;
 	do_notif = 0;
 	if (scene_graph) {
+		Bool had_size_info = sr->has_size_info;
 		/*get pixel size if any*/
 		gf_sg_get_scene_size_info(sr->scene, &width, &height);
 		sr->has_size_info = (width && height) ? 1 : 0;
+		if (sr->has_size_info != had_size_info) sr->scene_width = sr->scene_height = 0;
+
 #ifndef GPAC_DISABLE_SVG
 		/*hack for SVG where size is set in %*/
 		if (!sr->has_size_info) {
@@ -713,7 +729,6 @@ GF_Err gf_sr_set_option(GF_Renderer *sr, u32 type, u32 value)
 	case GF_OPT_AUDIO_PAN: gf_sr_ar_set_pan(sr->audio_renderer, value); break;
 	case GF_OPT_OVERRIDE_SIZE:
 		sr->override_size_flags = value ? 1 : 0;
-		sr->draw_next_frame = 1;
 		break;
 	case GF_OPT_STRESS_MODE: sr->stress_mode = value; break;
 	case GF_OPT_ANTIALIAS: sr->antiAlias = value; break;
@@ -1185,9 +1200,9 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 		break;
 	/*switch fullscreen off!!!*/
 	case GF_EVT_SHOWHIDE:
-		gf_sr_set_option(sr, GF_OPT_FULLSCREEN, 0);
+		gf_sr_set_option(sr, GF_OPT_FULLSCREEN, !sr->fullscreen);
 		break;
-	/*switch fullscreen off!!!*/
+
 	case GF_EVT_SET_CAPTION:
 		sr->video_out->ProcessEvent(sr->video_out, event);
 		break;

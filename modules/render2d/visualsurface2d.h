@@ -103,6 +103,7 @@ static GFINLINE void gf_irect_intersect(GF_IRect *rc1, GF_IRect *rc2)
 /*@rc2 fully contained in @rc1*/
 static GFINLINE Bool gf_irect_inside(GF_IRect rc1, GF_IRect rc2) 
 {
+	if (!rc1.width || !rc1.height) return 0;
 	if ( (rc1.x <= rc2.x)  && (rc1.y >= rc2.y)  && (rc1.x + rc1.width >= rc2.x + rc2.width) && (rc1.y - rc1.height <= rc2.y - rc2.height) )
 		return 1;
 	return 0;
@@ -206,8 +207,6 @@ typedef struct _visual_surface_2D
 
 	/*static list of context*/
 	struct _drawable_context **contexts;
-	/*nodes to draw (same alloc size as contexts)*/
-	u32 *nodes_to_draw;	
 	u32 num_contexts, alloc_contexts;
 
 	/*background and viewport stacks*/

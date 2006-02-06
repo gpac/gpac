@@ -165,7 +165,7 @@ void gf_sg_dom_stack_parents(GF_Node *node, GF_List *stack)
 	gf_sg_dom_stack_parents(gf_node_get_parent(node, 0), stack);
 }
 
-Bool gf_sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
+Bool gf_sg_fire_dom_event(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event)
 {
 	if (!node || !event) return 0;
 	event->target = node;
@@ -193,7 +193,10 @@ Bool gf_sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 	event->event_phase = 0;
 	if (sg_fire_dom_event(node, event) && event->bubbles) {
 		event->event_phase = 1;
-		gf_sg_dom_event_bubble(gf_node_get_parent(node, 0), event);
+		if (!parent_use) parent_use = gf_node_get_parent(node, 0);
+		/*TODO check in the specs*/
+		else event->target = parent_use;
+		gf_sg_dom_event_bubble(parent_use, event);
 	}
 
 	return event->currentTarget ? 1 : 0;

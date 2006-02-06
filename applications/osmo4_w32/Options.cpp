@@ -177,7 +177,6 @@ void COptGen::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(COptGen)
-	DDX_Control(pDX, IDC_AUTO_PLAY, m_AutoPlay);
 	DDX_Control(pDX, IDC_LOOKFORSUB, m_LookForSubs);
 	DDX_Control(pDX, IDC_DUMP_XMT, m_ViewXMT);
 	DDX_Control(pDX, IDC_NO_CONSOLE, m_NoConsole);
@@ -206,8 +205,6 @@ BOOL COptGen::OnInitDialog()
 	
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "Loop");
 	m_Loop.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "AutoPlay");
-	m_AutoPlay.SetCheck((!sOpt || !stricmp(sOpt, "yes")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "LookForSubtitles");
 	m_LookForSubs.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "ConsoleOff");
@@ -225,8 +222,6 @@ void COptGen::SaveOptions()
 
 	gpac->m_Loop = m_Loop.GetCheck();
 	gf_cfg_set_key(gpac->m_user.config, "General", "Loop", gpac->m_Loop ? "yes" : "no");
-	gpac->m_AutoPlay = m_AutoPlay.GetCheck();
-	gf_cfg_set_key(gpac->m_user.config, "General", "AutoPlay", gpac->m_AutoPlay ? "yes" : "no");
 	gpac->m_LookForSubtitles = m_LookForSubs.GetCheck();
 	gf_cfg_set_key(gpac->m_user.config, "General", "LookForSubtitles",  gpac->m_LookForSubtitles ? "yes" : "no");
 	gpac->m_NoConsole = m_NoConsole.GetCheck();

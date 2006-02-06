@@ -61,7 +61,6 @@ void DeleteVisualSurface2D(VisualSurface2D *surf)
 		DeleteDrawableContext(surf->contexts[i]);
 	
 	free(surf->contexts);
-	free(surf->nodes_to_draw);
 	gf_list_del(surf->back_stack);
 	gf_list_del(surf->view_stack);
 	gf_list_del(surf->prev_nodes_drawn);
@@ -88,8 +87,6 @@ DrawableContext *VS2D_GetDrawableContext(VisualSurface2D *surf)
 		for (i=surf->num_contexts; i<surf->alloc_contexts; i++) newctx[i] = NewDrawableContext();
 		free(surf->contexts);
 		surf->contexts = newctx;
-
-		surf->nodes_to_draw = realloc(surf->nodes_to_draw, surf->alloc_contexts * sizeof(u32));	
 	}
 	i = surf->num_contexts;
 	surf->num_contexts++;
@@ -268,12 +265,13 @@ static void remove_hidden_sensors(VisualSurface2D *surf, u32 nodes_to_draw, Draw
 
 #define CHECK_UNCHANGED		0
 
-static void mark_opaque_areas(VisualSurface2D *surf, u32 nodes_to_draw, GF_RectArray *ra)
+static void mark_opaque_areas(VisualSurface2D *surf)
 {
 	u32 i, k;
 #if CHECK_UNCHANGED
 	Bool remove;
 #endif
+	GF_RectArray *ra = &surf->to_redraw;
 	if (!ra->count) return;
 	ra->opaque_node_index = realloc(ra->opaque_node_index, sizeof(u32) * ra->count);
 
@@ -283,8 +281,10 @@ static void mark_opaque_areas(VisualSurface2D *surf, u32 nodes_to_draw, GF_RectA
 #endif
 		ra->opaque_node_index[k] = 0;
 
-		for (i=nodes_to_draw; i>0; i--) {
-			DrawableContext *ctx = surf->contexts[surf->nodes_to_draw[i-1]];
+		for (i=surf->num_contexts; i>0; i--) {
+			DrawableContext *ctx = surf->contexts[i-1];
+			if (ctx->invalid) continue;
+
 			if (!gf_irect_inside(ctx->clip, ra->list[k]) ) {
 #if CHECK_UNCHANGED
 				if (remove && gf_rect_overlaps(ctx->clip, ra->list[k])) {
@@ -338,7 +338,7 @@ dirty rects algo when a lot of small shapes are moving*/
 
 Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 {
-	u32 j, k, i, num_to_draw, count, max_nodes_allowed;
+	u32 j, k, i, count, max_nodes_allowed, num_changed;
 	GF_IRect refreshRect;
 	Bool redraw_all;
 	M_Background2D *bck;
@@ -352,7 +352,7 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 		return 1;
 	}
 
-	num_to_draw = 0;
+	num_changed = 0;
 	
 	/*if the aspect ratio has changed redraw everything*/
 	redraw_all = eff->invalidate_all;
@@ -378,13 +378,13 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	count = surf->num_contexts;
 	for (i=0; i<count; i++) {
 		ctx = surf->contexts[i];
-		if (!ctx->clip.width || !ctx->clip.height) continue;
-
-		//register node to draw
-		surf->nodes_to_draw[num_to_draw] = i;
-		num_to_draw++;
+		if (gf_rect_is_empty(ctx->clip)) {
+			ctx->invalid = 1;
+			continue;
+		}
 
 		drawctx_update_info(ctx);
+		if (ctx->redraw_flags) num_changed ++;
 
 		/*node has changed, add to redraw area*/
 		if (!redraw_all && ctx->redraw_flags) {
@@ -426,7 +426,7 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 		ra_refresh(&surf->to_redraw);
 	}
 	/*mark opaque areas to speed up*/
-	mark_opaque_areas(surf, num_to_draw, &surf->to_redraw);
+	mark_opaque_areas(surf);
 
 	/*nothing to redraw*/
 	if (ra_is_empty(&surf->to_redraw) ) goto exit;
@@ -458,15 +458,18 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 		}
 	}
 
+
 /*
-	fprintf(stdout, "%d nodes to redraw (%d total) - %d dirty rects\n", num_to_draw, surf->num_contexts, surf->to_redraw.count);
+	fprintf(stdout, "%d nodes to redraw (%d total) - %d dirty rects\n", num_changed, surf->num_contexts, surf->to_redraw.count);
 	fprintf(stdout, "DR: X:%d Y:%d W:%d H:%d\n", surf->to_redraw.list[0].x, surf->to_redraw.list[0].y, surf->to_redraw.list[0].width, surf->to_redraw.list[0].height);
 */
 	refreshRect = surf->to_redraw.list[0];
-	for (j = 0; j < num_to_draw; j++) {
-		ctx = surf->contexts[surf->nodes_to_draw[j]];
+	for (i=0; i<surf->num_contexts; i++) {
+		ctx = surf->contexts[i];
+		if (ctx->invalid) continue;
+
 		if ((surf->to_redraw.count>1) || gf_irect_overlaps(ctx->clip, refreshRect)) {
-			surf->draw_node_index = j+1;
+			surf->draw_node_index = i+1;
 			ctx->node->Draw(ctx);
 		}
 		drawable_register_on_surface(ctx->node, surf);

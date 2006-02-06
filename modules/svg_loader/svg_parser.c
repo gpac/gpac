@@ -543,7 +543,7 @@ void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVGEle
 		gf_node_init((GF_Node *)elt);
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.type = SVG_DOM_EVT_LOAD;
-		gf_sg_fire_dom_event((GF_Node*)elt, &evt);
+		gf_sg_fire_dom_event((GF_Node*)elt, NULL, &evt);
 	}
 }
 
@@ -603,7 +603,7 @@ SVGElement *svg_parse_dom_element(SVGParser *parser, xmlNodePtr node, SVGElement
 		gf_node_init((GF_Node *)elt);
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.type = SVG_DOM_EVT_LOAD;
-		gf_sg_fire_dom_event((GF_Node *)elt, &evt);
+		gf_sg_fire_dom_event((GF_Node *)elt, NULL, &evt);
 	}
 	return elt;
 }
@@ -925,7 +925,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 		/*fire initialization event*/
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.type = SVG_DOM_EVT_LOAD;
-		gf_sg_fire_dom_event((GF_Node *) elt, &evt);
+		gf_sg_fire_dom_event((GF_Node *) elt, NULL, &evt);
 	}
 	return elt;
 }

@@ -824,8 +824,13 @@ DrawableContext *SVG_drawable_init_context(Drawable *node, RenderEffect2D *eff)
 	gf_mx2d_copy(ctx->transform, eff->transform);
 
 	ctx->node = node;
+	ctx->parent_use = eff->parent_use;
 	if (eff->invalidate_all || node->node_changed) ctx->redraw_flags |= CTX_NODE_DIRTY;
 	else if (gf_node_dirty_get(node->owner) & GF_SG_SVG_APPEARANCE_DIRTY) ctx->redraw_flags |= CTX_NODE_DIRTY;
+	else if (ctx->parent_use && (gf_node_dirty_get(ctx->parent_use) & GF_SG_SVG_APPEARANCE_DIRTY)) {
+		ctx->redraw_flags |= CTX_NODE_DIRTY;
+		gf_node_dirty_clear(ctx->parent_use, GF_SG_SVG_APPEARANCE_DIRTY);
+	}
 
 	ctx->h_texture = NULL;
 

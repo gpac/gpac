@@ -413,7 +413,9 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_INTERACTIVE:
 		/*looks like pure RTP / multicast etc, not interactive*/
 		if (!ch->control) return GF_NOT_SUPPORTED;
-		if (ch->flags & CH_HasRange) return GF_OK;
+		else if (ch->flags & CH_HasRange) return GF_OK;
+		/*embedded data*/
+		else if (strstr(ch->control, "application")) return GF_OK;
 		return GF_NOT_SUPPORTED;
 	case GF_NET_CHAN_BUFFER:
 		if (!(ch->rtp_ch || ch->rtsp || !ch->control)) {

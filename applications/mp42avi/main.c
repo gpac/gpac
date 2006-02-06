@@ -440,7 +440,8 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 		out_fb.is_hardware_memory = 0;
 		GF_SAFEALLOC(out_fb.video_buffer, out_fb.pitch*out_fb.height)
 		for (y=0; y<out_fb.height; y++) {
-			u32 line_shift = y%5;
+			/*starting red pixel is R1, R5, R4, R3, R2, R1, R5, ... when increasing line num*/
+			u32 line_shift = (5-y) % 5;
 			for (x=0; x<out_fb.width;x++) {
 				u32 view_shift = (line_shift+bpp*x)%5;
 				u32 offset = out_fb.pitch*y + x*bpp;

@@ -207,18 +207,24 @@ typedef struct _drawable_context
 	Bool transparent;
 	/*set if text ctx*/
 	Bool is_text;
-	/*private for render, indicates path has been textured, in which case FILL is skiped*/
-	Bool path_filled;
-	/*private for render, indicates path outline has been textured, in which case STRIKE is skiped*/
-	Bool path_stroke;
 	/*set by background*/
 	Bool is_background;
 	/*used by bitmap - no antialiasing when drawn*/
 	Bool no_antialias;
 	/*only used by text when splitting strings into chars / substrings*/
 	s32 sub_path_index;
+
+	/*private for render, indicates path has been textured, in which case FILL is skiped*/
+	Bool path_filled;
+	/*private for render, indicates path outline has been textured, in which case STRIKE is skiped*/
+	Bool path_stroke;
+	Bool invalid;
+
 	/*for SVG & co: number of listeners from doc root to current element*/
 	u32 num_listeners;
+#ifndef GPAC_DISABLE_SVG
+	GF_Node *parent_use;
+#endif
 } DrawableContext;	
 
 DrawableContext *NewDrawableContext();

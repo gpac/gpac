@@ -63,7 +63,8 @@ Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
 	case GF_EVT_SIZE:
 		app->m_scene_width = event->size.width;
 		app->m_scene_height = event->size.height;
-		pFrame->PostMessage(WM_SETSIZE, event->size.width, event->size.height);
+		if (!pFrame->m_full_screen) 
+			pFrame->PostMessage(WM_SETSIZE, event->size.width, event->size.height);
 		break;
 	case GF_EVT_CONNECT:
 		app->m_open = event->connect.is_connected;
@@ -77,7 +78,8 @@ Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
 		/*by default, don't display timing if not seekable and vice-versa*/
 		if (app->m_can_seek != pFrame->m_view_timing) {
 			pFrame->m_view_timing = app->m_can_seek;
-			pFrame->PostMessage(WM_SETSIZE, 0, 0);
+			if (!pFrame->m_full_screen) 
+				pFrame->PostMessage(WM_SETSIZE, 0, 0);
 		}
 		break;
 	case GF_EVT_NAVIGATE:

@@ -724,7 +724,8 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 				Sent : V(CTS0) V(CTS1) S(CTS0) V(CTS2)
 			*/
 			if (!ch->clock->clock_init) gf_clock_set_time(ch->clock, ch->DTS);
-			ch->IsClockInit = 1;
+			//if (gf_es_owns_clock(ch)) gf_clock_set_time(ch->clock, ch->DTS);
+			if (ch->clock->clock_init) ch->IsClockInit = 1;
 		}
 		/*if the AU Length is carried in SL, get its size*/
 		if (ch->esd->slConfig->AULength > 0) {

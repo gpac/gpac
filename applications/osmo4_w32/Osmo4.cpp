@@ -205,7 +205,7 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 	case GF_EVT_SIZE:
 		gpac->orig_width = evt->size.width;
 		gpac->orig_height = evt->size.height;
-		if (gpac->m_term) 
+		if (gpac->m_term && !pFrame->m_bFullScreen) 
 			pFrame->PostMessage(WM_SETSIZE, evt->size.width, evt->size.height);
 		break;
 
@@ -222,8 +222,10 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		pFrame->m_wndToolBar.SetButtonInfo(5, ID_FILE_PLAY, TBBS_BUTTON, gpac->m_isopen ? 4 : 3);
 		pFrame->m_Sliders.m_PosSlider.SetPos(0);
 		pFrame->SetProgTimer(1);
-		pFrame->SetFocus();
-		pFrame->SetForegroundWindow();
+		if (!pFrame->m_bFullScreen) {
+			pFrame->SetFocus();
+			pFrame->SetForegroundWindow();
+		}
 		break;
 
 	case GF_EVT_QUIT:
@@ -660,8 +662,6 @@ void WinGPAC::SetOptions()
 {
 	const char *sOpt = gf_cfg_get_key(m_user.config, "General", "Loop");
 	m_Loop = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
-	sOpt = gf_cfg_get_key(m_user.config, "General", "AutoPlay");
-	m_AutoPlay = (!sOpt || !stricmp(sOpt, "yes")) ? 1 : 0;
 	sOpt = gf_cfg_get_key(m_user.config, "General", "LookForSubtitles");
 	m_LookForSubtitles = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 	sOpt = gf_cfg_get_key(m_user.config, "General", "ConsoleOff");
@@ -838,7 +838,7 @@ void WinGPAC::PlayFromTime(u32 time)
 	Bool do_pause;
 	if (start_mode==1) do_pause = 1;
 	else if (start_mode==2) do_pause = 0;
-	else do_pause = !m_AutoPlay;
+	else do_pause = /*!m_AutoPlay*/0;
 	gf_term_play_from_time(m_term, time, do_pause);
 	m_reset = 0;
 }

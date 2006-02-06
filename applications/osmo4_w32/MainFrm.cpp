@@ -155,7 +155,7 @@ CMainFrame::CMainFrame()
 {
 	m_icoerror = AfxGetApp()->LoadIcon(IDI_ERR);
 	m_icomessage = AfxGetApp()->LoadIcon(IDI_MESSAGE);
-	m_bFullScreen = 0;	
+	m_bFullScreen = m_bRestoreFS = 0;	
 	m_aspect_ratio = GF_ASPECT_RATIO_KEEP;
 	m_pProps = NULL;
 	m_pOpt = NULL;
@@ -352,6 +352,13 @@ void CMainFrame::Dump(CDumpContext& dc) const
 void CMainFrame::OnSetFocus(CWnd* pOldWnd)
 {
 	m_pWndView->SetFocus();
+	if (m_bRestoreFS==1) {
+		m_bRestoreFS=2;
+	}
+	else if (m_bRestoreFS==2) {
+		m_bRestoreFS = 0;
+		SetFullscreen();
+	}
 }
 
 BOOL CMainFrame::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo)
@@ -764,11 +771,17 @@ LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 			return 0;
 		}
 	}
+	
+	if (m_bFullScreen) {
+		SetFullscreen();
+		m_bRestoreFS = 1;
+	}
 
 	console_message = gpac->m_navigate_url;
 	console_err = GF_OK;
 	PostMessage(WM_CONSOLEMSG);
 	ShellExecute(NULL, "open", (LPCSTR) gpac->m_navigate_url, NULL, NULL, SW_SHOWNORMAL);
+
 	return 0;
 }
 

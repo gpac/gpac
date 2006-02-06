@@ -55,7 +55,7 @@ protected:
 public:
 
 	ProgressBar    m_progBar;
-	Bool m_full_screen, m_view_timing;
+	Bool m_full_screen, m_restore_fs, m_view_timing;
 	u32 m_timer_on;
 	CString console_message;
 	GF_Err console_err;
@@ -69,6 +69,7 @@ public:
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CMainFrame)
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
+	afx_msg void OnSetFocus(CWnd *pOldWnd);
 	virtual BOOL OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo);
 	//}}AFX_VIRTUAL
 

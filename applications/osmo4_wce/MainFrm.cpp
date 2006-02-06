@@ -60,6 +60,7 @@ IMPLEMENT_DYNAMIC(CMainFrame, CFrameWnd)
 BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	//{{AFX_MSG_MAP(CMainFrame)
 	ON_WM_CREATE()
+	ON_WM_SETFOCUS()
 	ON_COMMAND(ID_APP_EXIT, OnAppExit)
 	ON_MESSAGE(WM_OPENURL, Open)
 	ON_MESSAGE(WM_SETTINGCHANGE, OnSIPChange)
@@ -100,11 +101,21 @@ CMainFrame::CMainFrame()
 {
 	GXOpenInput();
 	m_view_timing = 0;
+	m_restore_fs = 0;
 }
 
 CMainFrame::~CMainFrame()
 {
 	GXCloseInput();
+}
+
+void CMainFrame::OnSetFocus(CWnd* pOldWnd)
+{
+	if (m_restore_fs) {
+		m_restore_fs = 0;
+		GetApp()->ShowTaskBar(0);
+		OnViewFullscreen();
+	}
 }
 
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -267,7 +278,6 @@ void CMainFrame::CloseURL()
 {
 	COsmo4 *app = GetApp();
 	if (!app->m_open) return;
-	if (m_full_screen) OnViewFullscreen();
 	if (m_view_timing) KillTimer(PROGRESS_TIMER);
 	gf_term_disconnect(app->m_term);
 	app->m_open = 0;
@@ -423,6 +433,13 @@ LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 		console_message = app->m_navigate_url;
 		console_err = GF_OK;
 		PostMessage(WM_CONSOLEMSG);
+
+		
+		if (m_full_screen) {
+			OnViewFullscreen();
+			app->ShowTaskBar(1);
+			m_restore_fs = 1;
+		}
 	
 		memset(&info, 0, sizeof(SHELLEXECUTEINFO));
 		info.cbSize = sizeof(SHELLEXECUTEINFO);

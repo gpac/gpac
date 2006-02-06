@@ -2084,6 +2084,7 @@ void svg_parse_one_style(SVGElement *elt, char *one_style)
 		fprintf(stderr, "Error: Attribute %s does not belong to element %s.\n", attributeName, gf_svg_get_element_name(gf_node_get_tag((GF_Node*)elt)));
 #endif
 	}
+	free(attributeName);
 }
 
 void svg_parse_style(SVGElement *elt, char *style) 

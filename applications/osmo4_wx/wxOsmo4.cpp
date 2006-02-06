@@ -1467,7 +1467,12 @@ void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 		}
 		break;
 	case GF_EVT_SIZE:
-		DoLayout(event.gpac_evt.size.width, event.gpac_evt.size.height);
+		if (gf_term_get_option(m_term, GF_OPT_FULLSCREEN)) {
+			m_orig_width = event.gpac_evt.size.width;
+			m_orig_height = event.gpac_evt.size.height;
+		} else {
+			DoLayout(event.gpac_evt.size.width, event.gpac_evt.size.height);
+		}
 		break;
 	case GF_EVT_VIEWPOINTS:
 		BuildViewList();

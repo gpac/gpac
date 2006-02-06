@@ -849,7 +849,7 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 			GF_DOM_Event evt;
 			memset(&evt, 0, sizeof(GF_DOM_Event));
 			evt.type = SVG_DOM_EVT_LOAD;
-			gf_sg_fire_dom_event(node, &evt);
+			gf_sg_fire_dom_event(node, NULL, &evt);
 		}
 	}
 }
