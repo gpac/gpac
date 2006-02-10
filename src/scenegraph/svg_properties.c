@@ -103,6 +103,10 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 	GF_SAFEALLOC(svg_props->stop_opacity, sizeof(SVG_Opacity));
 	svg_props->stop_opacity->type = SVG_NUMBER_VALUE;
 	svg_props->stop_opacity->value = FIX_ONE;
+
+	GF_SAFEALLOC(svg_props->opacity, sizeof(SVG_Opacity));
+	svg_props->opacity->type = SVG_NUMBER_VALUE;
+	svg_props->opacity->value = FIX_ONE;
 }
 
 void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)
@@ -111,6 +115,7 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)
 	gf_svg_delete_paint(svg_props->fill);
 	if(svg_props->fill_rule) free(svg_props->fill_rule);
 	if(svg_props->fill_opacity) free(svg_props->fill_opacity);
+	if(svg_props->opacity) free(svg_props->opacity);
 	gf_svg_delete_paint(svg_props->stroke);
 	if(svg_props->stroke_opacity) free(svg_props->stroke_opacity);
 	if(svg_props->stroke_width) free(svg_props->stroke_width);
@@ -198,6 +203,9 @@ void gf_svg_properties_apply(SVGPropertiesPointers *render_svg_props, SVGPropert
 	}
 	if (current_svg_props->display != SVG_DISPLAY_INHERIT) {
 		render_svg_props->display = &current_svg_props->display;
+	}
+	if (current_svg_props->opacity.type != SVG_NUMBER_INHERIT) {
+		render_svg_props->opacity = &current_svg_props->opacity;
 	}
 }
 

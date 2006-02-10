@@ -163,6 +163,7 @@ void gf_svg_init_properties(SVGElement *p)
 
 	p->properties->fill_rule = SVG_FILLRULE_INHERIT;
 	p->properties->fill_opacity.type = SVG_NUMBER_INHERIT;
+	p->properties->opacity.type = SVG_NUMBER_INHERIT;
 	p->properties->stroke.type = SVG_PAINT_INHERIT;
 	p->properties->viewport_fill.type = SVG_PAINT_INHERIT;
 	p->properties->stop_color.type = SVG_PAINT_INHERIT;

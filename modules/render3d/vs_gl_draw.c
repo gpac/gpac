@@ -31,6 +31,8 @@
 void R3D_LoadExtensions(Render3D *sr)
 {
 	const char *ext = glGetString(GL_EXTENSIONS);
+	/*store OGL extension to config for app usage*/
+	gf_cfg_set_key(sr->compositor->user->config, "Render3D", "OpenGLExtensions", ext);
 	if (!ext) return;
 	memset(&sr->hw_caps, 0, sizeof(HardwareCaps));
 
@@ -379,7 +381,6 @@ u32 ogles_push_enable(u32 mask)
 }
 void ogles_pop_enable(u32 mask)
 {
-	u32 atts = 0;
 	if (mask & GL_LIGHTING) glEnable(GL_LIGHTING);
 	if (mask & GL_BLEND) glEnable(GL_BLEND);
 	if (mask & GL_COLOR_MATERIAL) glEnable(GL_COLOR_MATERIAL);
@@ -1212,10 +1213,12 @@ void VS3D_FillRect(VisualSurface *surf, GF_Rect rc, SFColorRGBA color)
 	}
 	glBegin(GL_QUADS);
 	glVertex3f(FIX2FLT(rc.x), FIX2FLT(rc.y), 0);
-	glVertex3f(FIX2FLT(rc.x+rc.width), FIX2FLT(rc.y), 0);
-	glVertex3f(FIX2FLT(rc.x+rc.width), FIX2FLT(rc.y-rc.height), 0);
 	glVertex3f(FIX2FLT(rc.x), FIX2FLT(rc.y-rc.height), 0);
+	glVertex3f(FIX2FLT(rc.x+rc.width), FIX2FLT(rc.y-rc.height), 0);
+	glVertex3f(FIX2FLT(rc.x+rc.width), FIX2FLT(rc.y), 0);
 	glEnd();
+	
+	glDisable(GL_COLOR_MATERIAL | GL_COLOR_MATERIAL_FACE);
 #endif
 
 	glDisable(GL_BLEND);

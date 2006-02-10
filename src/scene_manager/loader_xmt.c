@@ -1413,6 +1413,8 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 		}
 		/*connect */
 		if (!strcmp(name, "connect")) {
+			GF_ProtoFieldInterface *pf;
+			Bool is_script = 0;
 			GF_FieldInfo pfield, nfield;
 			char *atField, *atProtoField;
 			XMTNodeStack *last = gf_list_last(parser->nodes);
@@ -1428,20 +1430,34 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 				if (!strcmp(att->name, "nodeField")) atField = att->value;
 				else if (!strcmp(att->name, "protoField")) atProtoField = att->value;
 			}
-			if (!atField) xmt_report(parser, GF_OK, "connect: Missing node field - skipping");
-			else if (!atProtoField) xmt_report(parser, GF_OK, "connect: Missing proto field - skipping");
-			else if ( (e = gf_node_get_field_by_name(last->node, atField, &nfield)) != GF_OK) 
-				xmt_report(parser, e, "connect: %s not an field of node %s", atField, gf_node_get_class_name(last->node) );
-			else {
-				GF_ProtoFieldInterface *pf = gf_sg_proto_field_find_by_name(parser->parsing_proto, atProtoField);
-				if (!pf) {
-					xmt_report(parser, GF_BAD_PARAM, "connect: Proto field %s is not defined", atProtoField);
+			if (!atField) {
+				xmt_report(parser, GF_OK, "connect: Missing node field - skipping");
+				return NULL;
+			}
+			if (!atProtoField) {
+				xmt_report(parser, GF_OK, "connect: Missing proto field - skipping");
+				return NULL;
+			}
+			if ( (e = gf_node_get_field_by_name(last->node, atField, &nfield)) != GF_OK) {
+				u32 l_tag = gf_node_get_tag(last->node);
+				if ((l_tag!=TAG_MPEG4_Script) && (l_tag!=TAG_X3D_Script)) {
+					xmt_report(parser, e, "connect: %s not an field of node %s", atField, gf_node_get_class_name(last->node) );
 					return NULL;
 				}
-				gf_sg_proto_field_get_field(pf, &pfield);
-				e = gf_sg_proto_field_set_ised(parser->parsing_proto, pfield.fieldIndex, last->node, nfield.fieldIndex);
-				if (e) xmt_report(parser, GF_BAD_PARAM, "connect: %s", gf_error_to_string(e));
+				is_script = 1;
 			}
+			pf = gf_sg_proto_field_find_by_name(parser->parsing_proto, atProtoField);
+			if (!pf) {
+				xmt_report(parser, GF_BAD_PARAM, "connect: Proto field %s is not defined", atProtoField);
+				return NULL;
+			}
+			gf_sg_proto_field_get_field(pf, &pfield);
+			if (is_script) {
+				gf_sg_script_field_new(last->node, pfield.eventType, pfield.fieldType, atField);
+				gf_node_get_field_by_name(last->node, atField, &nfield);
+			}
+			e = gf_sg_proto_field_set_ised(parser->parsing_proto, pfield.fieldIndex, last->node, nfield.fieldIndex);
+			if (e) xmt_report(parser, GF_BAD_PARAM, "connect: %s", gf_error_to_string(e));
 			return NULL;
 		}
 	}

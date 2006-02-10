@@ -135,10 +135,12 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		PostQuitMessage (0);
 		break;
 	case WM_ACTIVATE:
+#if 1
 		if (ctx->fullscreen && (LOWORD(wParam)==WA_INACTIVE) && (hWnd==ctx->fs_hwnd)) {
 			evt.type = GF_EVT_SHOWHIDE;
 			vout->on_event(vout->evt_cbk_hdl, &evt);
 		}
+#endif
 		break;
 
 	case WM_SETCURSOR:

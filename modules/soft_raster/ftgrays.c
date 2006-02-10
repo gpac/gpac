@@ -128,6 +128,7 @@ typedef struct
 	int alloc, num;
 } AAScanline;
 
+
 typedef struct  TRaster_
 {
 	AAScanline *scanlines;
@@ -142,6 +143,10 @@ typedef struct  TRaster_
 	int num_gray_spans;
 	EVG_Raster_Span_Func  render_span;
 	void *render_span_data;
+
+#ifdef INLINE_POINT_CONVERSION
+	GF_Matrix2D *mx;
+#endif
 } TRaster;
 
 #define AA_CELL_STEP_ALLOC	8
@@ -180,7 +185,26 @@ static GFINLINE void gray_set_cell( TRaster *raster, TCoord  ex, TCoord  ey )
 	}
 }
 
-static GFINLINE int gray_move_to( EVG_Vector*  to, EVG_Raster   raster )
+
+#ifdef INLINE_POINT_CONVERSION
+
+static GFINLINE void evg_translate_point(GF_Matrix2D *mx, EVG_Vector *pt, TPos *x, TPos *y)
+{
+		Fixed _x, _y;
+		_x = pt->x;
+		_y = pt->y;
+		gf_mx2d_apply_coords(mx, &_x, &_y);
+#ifdef GPAC_FIXED_POINT
+		*x = UPSCALE(_x);
+		*y = UPSCALE(_y);
+#else
+		*x = (s32) (_x * ONE_PIXEL);
+		*y = (s32) (_y * ONE_PIXEL);
+#endif
+}
+#endif
+
+static GFINLINE int gray_move_to( EVG_Vector*  to, EVG_Raster   raster)
 {
 	TPos  x, y;
 	TCoord  ex, ey;
@@ -188,8 +212,12 @@ static GFINLINE int gray_move_to( EVG_Vector*  to, EVG_Raster   raster )
 	/* record current cell, if any */
 	gray_record_cell(raster);
 
+#ifdef INLINE_POINT_CONVERSION
+	evg_translate_point(raster->mx, to, &x, &y);
+#else
 	x = UPSCALE( to->x );
 	y = UPSCALE( to->y );
+#endif
 	ex = TRUNC(x);
 	ey = TRUNC(y);
 	if ( ex < raster->min_ex ) ex = (TCoord)(raster->min_ex - 1);
@@ -292,13 +320,23 @@ static void gray_render_scanline( TRaster *raster,  TCoord  ey, TPos x1, TCoord 
 /*************************************************************************/
 /*                                                                       */
 /* Render a given line as a series of scanlines.                         */
-static GFINLINE void gray_render_line( TRaster *raster, TPos  to_x, TPos  to_y )
+static GFINLINE void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y, int is_line)
 {
 	TCoord  min, max;
 	TCoord  ey1, ey2, fy1, fy2;
 	TPos    dx, dy, x, x2;
 	long    p, first;
 	int     delta, rem, mod, lift, incr;
+
+	/*point filtering*/
+#if 0
+	if (is_line) {
+		dx = (to_x - raster->x)>>PIXEL_BITS;
+		dy = (to_y - raster->y)>>PIXEL_BITS;
+		if ( dx*dx + dy*dy < 1) return;
+	}
+#endif
+
 
 	ey1 = TRUNC( raster->last_ey );
 	ey2 = TRUNC( to_y ); /* if (ey2 >= raster->max_ey) ey2 = raster->max_ey-1; */
@@ -416,10 +454,9 @@ End:
 
 
  
-static int EVG_Outline_Decompose(EVG_Outline *outline, void *user)
+static int EVG_Outline_Decompose(EVG_Outline *outline, TRaster *user)
 {
 	EVG_Vector   v_last;
-	EVG_Vector   v_control;
 	EVG_Vector   v_start;
 	EVG_Vector*  point;
 	EVG_Vector*  limit;
@@ -427,6 +464,9 @@ static int EVG_Outline_Decompose(EVG_Outline *outline, void *user)
 	int   n;         /* index of contour in outline     */
 	int   first;     /* index of first point in contour */
 	char  tag;       /* current point's state           */
+#ifdef INLINE_POINT_CONVERSION
+	TPos _x, _y;
+#endif
 
 	first = 0;
 	for ( n = 0; n < outline->n_contours; n++ ) {
@@ -437,19 +477,27 @@ static int EVG_Outline_Decompose(EVG_Outline *outline, void *user)
 		v_start = outline->points[first];
 		v_last  = outline->points[last];
 
-		v_control = v_start;
-
 		point = outline->points + first;
 		tags  = outline->tags  + first;
 		tag   = tags[0];
-		gray_move_to( &v_start, user );
+		gray_move_to(&v_start, user);
 		while ( point < limit ) {
 			point++;
 			tags++;
-			gray_render_line(user, UPSCALE(point->x), UPSCALE( point->y));
+#ifdef INLINE_POINT_CONVERSION
+			evg_translate_point(user->mx, point, &_x, &_y);
+			gray_render_line(user, _x, _y, 1);
+#else
+			gray_render_line(user, UPSCALE(point->x), UPSCALE( point->y), 1);
+#endif
 		}
+#ifdef INLINE_POINT_CONVERSION
+		evg_translate_point(user->mx, &v_start, &_x, &_y);
+		gray_render_line(user, _x, _y, 0);
+#else
 		/* close the contour with a line segment */
-		gray_render_line(user, UPSCALE(v_start.x), UPSCALE( v_start.y));
+		gray_render_line(user, UPSCALE(v_start.x), UPSCALE( v_start.y), 0);
+#endif
 		first = last + 1;
 	}
 	return 0;
@@ -652,42 +700,11 @@ static void gray_sweep_line( TRaster *raster, AAScanline *sl, int y, Bool zero_n
 	raster->render_span(y + raster->min_ey, raster->num_gray_spans, raster->gray_spans, raster->render_span_data );
 }
 
-static void gray_compute_cbox(TRaster *raster, EVG_Outline*  outline) 
-{
-	EVG_Vector*   vec     = outline->points;
-	EVG_Vector*   limit   = vec + outline->n_points;
-
-	if ( outline->n_points <= 0 ) {
-		raster->min_ex = raster->max_ex = 0;
-		raster->min_ey = raster->max_ey = 0;
-		return;
-	}
-
-	raster->min_ex = raster->max_ex = vec->x;
-	raster->min_ey = raster->max_ey = vec->y;
-	vec++;
-	for ( ; vec < limit; vec++ ) {
-		TPos  x = vec->x;
-		TPos  y = vec->y;
-		
-		if ( x < raster->min_ex ) raster->min_ex = x;
-		if ( x > raster->max_ex ) raster->max_ex = x;
-		if ( y < raster->min_ey ) raster->min_ey = y;
-		if ( y > raster->max_ey ) raster->max_ey = y;
-	}
-
-	/* truncate the bounding box to integer pixels */
-	raster->min_ex = raster->min_ex >> GPAC_FIX_BITS;
-	raster->min_ey = raster->min_ey >> GPAC_FIX_BITS;
-	raster->max_ex = ( raster->max_ex + ((1<<GPAC_FIX_BITS) -1) ) >> GPAC_FIX_BITS;
-	raster->max_ey = ( raster->max_ey + ((1<<GPAC_FIX_BITS) -1) ) >> GPAC_FIX_BITS;
-}
 
 int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 {
 	Bool zero_non_zero_rule;
 	int i, size_y;
-	EVG_BBox *clip;
 	EVG_Outline*  outline = (EVG_Outline*)params->source;
 	/* return immediately if the outline is empty */
 	if ( outline->n_points == 0 || outline->n_contours <= 0 ) return 0;
@@ -696,17 +713,14 @@ int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 	raster->render_span_data = params->user;
 
 	/* Set up state in the raster object */
-	clip = &params->clip_box;
-	gray_compute_cbox(raster, outline);
+	raster->min_ex = params->clip_xMin;
+	raster->min_ey = params->clip_yMin;
+	raster->max_ex = params->clip_xMax;
+	raster->max_ey = params->clip_yMax;
 
-	/* clip to target bitmap, exit if nothing to do */
-	if ( raster->max_ex <= clip->xMin || raster->min_ex >= clip->xMax || raster->max_ey <= clip->yMin || raster->min_ey >= clip->yMax )
-		return 0;
-
-	if ( raster->min_ex < clip->xMin ) raster->min_ex = clip->xMin;
-	if ( raster->min_ey < clip->yMin ) raster->min_ey = clip->yMin;
-	if ( raster->max_ex > clip->xMax ) raster->max_ex = clip->xMax;
-	if ( raster->max_ey > clip->yMax ) raster->max_ey = clip->yMax;
+#ifdef INLINE_POINT_CONVERSION
+	raster->mx = params->mx;
+#endif
 
 	size_y = raster->max_ey - raster->min_ey;
     if (raster->max_lines < size_y) {
@@ -714,7 +728,6 @@ int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 		memset(&raster->scanlines[raster->max_lines], 0, sizeof(AAScanline)*(size_y-raster->max_lines) );
 		raster->max_lines = size_y;
 	}
-	for (i=0; i<size_y; i++) raster->scanlines[i].num = 0;
 	
 	raster->ex = raster->max_ex+1;
 	raster->ey = raster->max_ey+1;
@@ -732,6 +745,7 @@ int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 		if (sl->num) {
 			if (sl->num>1) gray_quick_sort(sl->cells, sl->num);
 			gray_sweep_line(raster, sl, i, zero_non_zero_rule);
+			sl->num = 0;
 		}
 	}
 	return 0;

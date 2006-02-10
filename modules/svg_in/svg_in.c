@@ -130,7 +130,8 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 						SVG_OnProgress(svgin, svgin->file_pos, svgin->file_size);
 						fclose(svgin->src);
 						svgin->src = NULL;
-						return GF_EOS;
+						e = GF_EOS;
+						goto exit;
 					}
 					break;
 				}
@@ -183,6 +184,8 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 	case SVG_IN_OTI_LASERML: return GF_NOT_SUPPORTED;
 	default: return GF_BAD_PARAM;
 	}
+
+exit:
 	if (!svgin->attached && (gf_sg_get_root_node(svgin->loader.scene_graph)!=NULL) ) {
 		gf_is_attach_to_renderer(svgin->inline_scene);
 		svgin->attached = 1;

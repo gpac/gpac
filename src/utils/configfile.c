@@ -31,8 +31,8 @@
 
 typedef struct
 {
-	char name[MAX_SECTION_NAME];
-	char value[MAX_INI_LINE];
+	char *name;
+	char *value;
 } IniKey;
 
 typedef struct
@@ -53,7 +53,6 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 {
 	IniSection *p;
 	IniKey *k;
-	u32 i;
 	FILE *file;
 	char *ret;
 	char fileName[GF_MAX_PATH];
@@ -115,18 +114,18 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 				fclose(file);
 				return NULL;
 			}
-			k = malloc(sizeof(IniKey));
-			i = 0;
-			while (line[i] != '=') {
-				k->name[i] = line[i];
-				i++;
+			GF_SAFEALLOC(k, sizeof(IniKey));
+			ret = strchr(line, '=');
+			if (ret) {
+				ret[0] = 0;
+				k->name = strdup(line);
+				ret[0] = '=';
+				ret += 1;
+				while (ret[0] == ' ') ret++;
+				k->value = strdup(ret);
+				while (k->name[strlen(k->name) - 1] == ' ') k->name[strlen(k->name) - 1] = 0;
+				while (k->value[strlen(k->value) - 1] == ' ') k->value[strlen(k->value) - 1] = 0;
 			}
-			k->name[i] = 0;
-			while (k->name[strlen(k->name) - 1] == ' ') k->name[strlen(k->name) - 1] = 0;
-			i++;
-			while (line[i] == ' ') i++;
-			strcpy(k->value, line + i);
-			while (k->value[strlen(k->value) - 1] == ' ') k->value[strlen(k->value) - 1] = 0;
 			gf_list_add(p->keys, k);
 		}
 	}
@@ -141,6 +140,8 @@ void DelSection(IniSection *ptr)
 
 	while (gf_list_count(ptr->keys)) {
 		k = gf_list_get(ptr->keys, 0);
+		if (k->value) free(k->value);
+		if (k->name) free(k->name);
 		free(k);
 		gf_list_rem(ptr->keys, 0);
 	}
@@ -247,14 +248,16 @@ get_key:
 	if (!keyValue) return GF_OK;
 	//need a new key
 	key = malloc(sizeof(IniKey));
-	strcpy(key->name, keyName);
-	strcpy(key->value, "");
+	key->name = strdup(keyName);
+	key->value = strdup("");
 	iniFile->hasChanged = 1;
 	gf_list_add(sec->keys, key);
 
 set_value:
 	if (!keyValue) {
 		gf_list_del_item(sec->keys, key);
+		if (key->name) free(key->name);
+		if (key->value) free(key->value);
 		free(key);
 		iniFile->hasChanged = 1;
 		return GF_OK;
@@ -262,7 +265,8 @@ set_value:
 	//same value, don't update
 	if (!strcmp(key->value, keyValue)) return GF_OK;
 
-	strcpy(key->value, keyValue);
+	if (key->value) free(key->value);
+	key->value = strdup(keyValue);
 	iniFile->hasChanged = 1;
 	return GF_OK;
 }
@@ -320,8 +324,8 @@ GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *ke
 	}
 
 	key = malloc(sizeof(IniKey));
-	strcpy(key->name, keyName);
-	strcpy(key->value, keyValue);
+	key->name = strdup(keyName);
+	key->value = strdup(keyValue);
 	gf_list_insert(sec->keys, key, index);
 	iniFile->hasChanged = 1;
 	return GF_OK;

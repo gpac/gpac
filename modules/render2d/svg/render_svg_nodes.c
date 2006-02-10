@@ -999,6 +999,7 @@ void SVG_Render_base(GF_Node *node, RenderEffect2D *eff, SVGPropertiesPointers *
 	memcpy(backup_props, eff->svg_props, sizeof(SVGPropertiesPointers));
 	gf_svg_properties_apply(eff->svg_props, e->properties);
 
+	/*TODO FIXME - THIS IS WRONG, we're changing orders of animations which may corrupt the visual result*/
 	count_all = gf_node_animation_count(node);
 	/* Loop 1: For all animated attributes (target_attribute) */
 	for (i = 0; i < count_all; i++) {

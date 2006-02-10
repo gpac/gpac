@@ -224,8 +224,10 @@ SVGhandlerElement *gf_sg_dom_create_listener(GF_Node *node, XMLEV_Event event)
 }
 
 
-static void gf_smil_handle_event(GF_Node *anim, GF_List *l, GF_DOM_Event *evt)
+static void gf_smil_handle_event(GF_Node *anim, GF_List *l, GF_DOM_Event *evt, Bool is_end)
 {
+	void gf_smil_timing_end_notif(SMIL_Timing_RTI *rti, Double clock);
+	SVGElement *anim_t = (SVGElement *)anim;
 	SMIL_Time *resolved, *proto;
 	u32 found = 0;
 	u32 i, j, count = gf_list_count(l);
@@ -256,11 +258,14 @@ static void gf_smil_handle_event(GF_Node *anim, GF_List *l, GF_DOM_Event *evt)
 				if (proto->clock > resolved->clock) break;
 			}
 			gf_list_insert(l, resolved, j);
+			if (is_end) gf_smil_timing_end_notif( ((SVGElement *)anim)->timing->runtime, resolved->clock);
+
 			count++;
 			found++;
 		}
 	}
-	if (found) gf_node_changed(anim, NULL);
+	if (found) 
+		gf_node_changed(anim, NULL);
 }
 
 static void gf_smil_handle_event_begin(SVGhandlerElement *hdl, GF_DOM_Event *evt)
@@ -268,7 +273,7 @@ static void gf_smil_handle_event_begin(SVGhandlerElement *hdl, GF_DOM_Event *evt
 	GF_FieldInfo info;
 	GF_Node *anim = gf_node_get_private((GF_Node *)hdl);
 	gf_node_get_field_by_name(anim, "begin", &info);
-	gf_smil_handle_event(anim, *(GF_List **)info.far_ptr, evt);
+	gf_smil_handle_event(anim, *(GF_List **)info.far_ptr, evt, 0);
 }
 
 static void gf_smil_handle_event_end(SVGhandlerElement *hdl, GF_DOM_Event *evt)
@@ -276,7 +281,7 @@ static void gf_smil_handle_event_end(SVGhandlerElement *hdl, GF_DOM_Event *evt)
 	GF_FieldInfo info;
 	GF_Node *anim = gf_node_get_private((GF_Node *)hdl);
 	gf_node_get_field_by_name(anim, "end", &info);
-	gf_smil_handle_event(anim, *(GF_List **)info.far_ptr, evt);
+	gf_smil_handle_event(anim, *(GF_List **)info.far_ptr, evt, 1);
 }
 
 static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)

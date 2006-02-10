@@ -386,6 +386,7 @@ void VS2D_TexturePath(VisualSurface2D *surf, GF_Path *path, struct _drawable_con
 	VS2D_TexturePathIntern(surf, path, NULL, ctx);
 }
 
+#define ADAPTATION_SIZE		0
 
 void VS2D_DrawPath(VisualSurface2D *surf, GF_Path *path, DrawableContext *ctx, GF_STENCIL brush, GF_STENCIL pen)
 {
@@ -394,8 +395,9 @@ void VS2D_DrawPath(VisualSurface2D *surf, GF_Path *path, DrawableContext *ctx, G
 #ifdef SKIP_DRAW
 	return;
 #endif
+	
+	assert(surf->the_surface);
 
-	if (!surf->the_surface) return;
 	if (ctx->path_filled && ctx->path_stroke) {
 		if (surf->render->compositor->draw_bvol) draw_clipper(surf, ctx);
 		return;
@@ -429,25 +431,38 @@ void VS2D_DrawPath(VisualSurface2D *surf, GF_Path *path, DrawableContext *ctx, G
 
 	/*fill path*/
 	if (dofill) {
-		/*push path*/
-		r2d->surface_set_path(surf->the_surface, path);
-		VS2D_DoFill(surf, ctx, brush);
-		r2d->surface_set_path(surf->the_surface, NULL);
+#if ADAPTATION_SIZE
+		if ((ctx->clip.width<ADAPTATION_SIZE) && (ctx->clip.height<ADAPTATION_SIZE)) {
+			r2d->surface_clear(surf->the_surface, &ctx->clip, ctx->aspect.fill_color);
+		} else 
+#endif
+		{
+			/*push path*/
+			r2d->surface_set_path(surf->the_surface, path);
+			VS2D_DoFill(surf, ctx, brush);
+			r2d->surface_set_path(surf->the_surface, NULL);
+		}
 	}
 
 	if (dostrike) {
-		StrikeInfo2D *si = drawctx_get_strikeinfo(ctx, path);
-		if (si && si->outline) {
-			if (ctx->aspect.line_texture) {
-				VS2D_TexturePathIntern(surf, si->outline, ctx->aspect.line_texture, ctx);
-			} else {
-				r2d->surface_set_path(surf->the_surface, si->outline);
-				VS2D_DoFill(surf, ctx, pen);
-			}
-			/*that's ugly, but we cannot cache path outline for IFS2D/ILS2D*/
-			if (path && !ctx->is_text && (path!=ctx->node->path) ) {
-				gf_path_del(si->outline);
-				si->outline = NULL;
+#if ADAPTATION_SIZE
+		if ((ctx->clip.width<ADAPTATION_SIZE) && (ctx->clip.height<ADAPTATION_SIZE)) {
+		} else 
+#endif
+		{
+			StrikeInfo2D *si = drawctx_get_strikeinfo(ctx, path);
+			if (si && si->outline) {
+				if (ctx->aspect.line_texture) {
+					VS2D_TexturePathIntern(surf, si->outline, ctx->aspect.line_texture, ctx);
+				} else {
+					r2d->surface_set_path(surf->the_surface, si->outline);
+					VS2D_DoFill(surf, ctx, pen);
+				}
+				/*that's ugly, but we cannot cache path outline for IFS2D/ILS2D*/
+				if (path && !ctx->is_text && (path!=ctx->node->path) ) {
+					gf_path_del(si->outline);
+					si->outline = NULL;
+				}
 			}
 		}
 	}

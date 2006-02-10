@@ -35,9 +35,13 @@
 
 void gf_sm_load_done_BT(GF_SceneLoader *load);
 
-
-
 #define BT_LINE_SIZE	4000
+
+typedef struct
+{
+	char *name;
+	char *value;
+} BTDefSymbol;
 
 typedef struct
 {
@@ -55,6 +59,8 @@ typedef struct
 	u32 is_wrl;
 	/*0: no unicode, 1: UTF-16BE, 2: UTF-16LE*/
 	u32 unicode_type;
+
+	GF_List *def_symbols;
 
 	/*routes are not created in the graph when parsing, so we need to track insert and delete/replace*/
 	GF_List *unresolved_routes, *inserted_routes, *peeked_nodes;
@@ -132,7 +138,9 @@ void gf_bt_check_line(GF_BTParser *parser)
 		break;
 	}
 
-	if (parser->line_buffer[parser->line_pos]=='#') parser->line_size = parser->line_pos;
+	if (parser->line_buffer[parser->line_pos]=='#') {
+		parser->line_size = parser->line_pos;
+	}
 	else if ((parser->line_buffer[parser->line_pos]=='/') && (parser->line_buffer[parser->line_pos+1]=='/') ) parser->line_size = parser->line_pos;
 
 	if (parser->line_size == parser->line_pos) {
@@ -281,7 +289,43 @@ next_line:
 					}
 				}
 			}
+			if (!strnicmp(parser->line_buffer+parser->line_pos, "#define ", 8)) {
+				char *buf, *sep;
+				parser->line_pos+=8;
+				buf = parser->line_buffer+parser->line_pos;
+				sep = strchr(buf, ' ');
+				if (sep && (sep[1]!='\n') ) {
+					BTDefSymbol *def;
+					GF_SAFEALLOC(def, sizeof(BTDefSymbol));
+					sep[0] = 0;
+					def->name = strdup(buf);
+					sep[0] = ' ';
+					buf = sep+1;
+					while (strchr(" \t", buf[0])) buf++;
+					def->value = strdup(buf);
+					gf_list_add(parser->def_symbols, def);
+				}
+			}
 			goto next_line;
+		}
+
+		/*brute-force replacement of defined symbols (!!FIXME - no mem checking done !!)*/
+		if (parser->line_pos < parser->line_size) {
+			u32 i, count;
+			count = gf_list_count(parser->def_symbols);
+			for (i=0; i<count; i++) {
+				u32 symb_len, val_len, copy_len;
+				BTDefSymbol *def = gf_list_get(parser->def_symbols, i);
+				char *start = strstr(parser->line_buffer, def->name);
+				if (!start) continue;
+				symb_len = strlen(def->name);
+				if (!strchr(" \n\r\t", start[symb_len])) continue;
+				val_len = strlen(def->value);
+				copy_len = strlen(start + symb_len) + 1;
+				memmove(start + val_len, start + symb_len, sizeof(char)*copy_len);
+				memcpy(start, def->value, sizeof(char)*val_len);
+				parser->line_size = strlen(parser->line_buffer);
+			}
 		}
 	}
 	if (!parser->line_size) {
@@ -2967,6 +3011,7 @@ GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
 	}
 	parser->gz_in = gzInput;
 	load->loader_priv = parser;
+	parser->def_symbols = gf_list_new();
 
 	parser->unresolved_routes = gf_list_new();
 	parser->inserted_routes = gf_list_new();
@@ -3038,6 +3083,14 @@ void gf_sm_load_done_BT(GF_SceneLoader *load)
 	gf_list_del(parser->undef_nodes);
 	gf_list_del(parser->def_nodes);
 	gf_list_del(parser->peeked_nodes);
+	while (gf_list_count(parser->def_symbols)) {
+		BTDefSymbol *d = gf_list_get(parser->def_symbols, 0);
+		gf_list_rem(parser->def_symbols, 0);
+		free(d->name);
+		free(d->value);
+		free(d);
+	}
+	gf_list_del(parser->def_symbols);
 	gzclose(parser->gz_in);
 	free(parser->line_buffer);
 	free(parser);
@@ -3074,6 +3127,15 @@ GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str, void
 	gf_list_del(parser.undef_nodes);
 	gf_list_del(parser.def_nodes);
 	gf_list_del(parser.peeked_nodes);
+	while (gf_list_count(parser.def_symbols)) {
+		BTDefSymbol *d = gf_list_get(parser.def_symbols, 0);
+		gf_list_rem(parser.def_symbols, 0);
+		free(d->name);
+		free(d->value);
+		free(d);
+	}
+	gf_list_del(parser.def_symbols);
+
 	return parser.top_nodes;
 }
 

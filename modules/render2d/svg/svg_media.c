@@ -139,7 +139,7 @@ static void SVG_BuildGraph_image(SVG_image_stack *st)
 	gf_path_get_bounds(st->graph->path, &new_rc);
 	/*change in visual aspect*/
 	if (!gf_rect_equal(rc, new_rc)) st->graph->node_changed = 1;
-	gf_node_dirty_clear(st->graph->owner, 0);
+	gf_node_dirty_clear(st->graph->owner, GF_SG_SVG_GEOMETRY_DIRTY);
 }
 
 
@@ -153,7 +153,7 @@ static void SVG_BuildGraph_video(SVG_video_stack *st)
 	gf_path_get_bounds(st->graph->path, &new_rc);
 	/*change in visual aspect*/
 	if (!gf_rect_equal(rc, new_rc)) st->graph->node_changed = 1;
-	gf_node_dirty_clear(st->graph->owner, 0);
+	gf_node_dirty_clear(st->graph->owner, GF_SG_SVG_GEOMETRY_DIRTY);
 }
 
 static void SVG_Render_bitmap(GF_Node *node, void *rs)
@@ -215,6 +215,11 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 	}
 	else if (ctx->h_texture->transparent) 
 		ctx->transparent = 1;
+	else if (eff->svg_props->opacity && (eff->svg_props->opacity->type==SVG_NUMBER_VALUE) && (eff->svg_props->opacity->value!=FIX_ONE)) {
+		ctx->transparent = 1;
+		ctx->aspect.fill_alpha = FIX2INT(0xFF * eff->svg_props->opacity->value);
+		ctx->aspect.fill_color = ctx->aspect.fill_alpha << 24;
+	}
 
 	/*bounds are stored when building graph*/	
 	drawable_finalize_render(ctx, eff);

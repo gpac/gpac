@@ -200,7 +200,7 @@ static void PrintTime(u64 time)
 	fprintf(stdout, "%02d:%02d:%02d.%02d", h, m, s, ms);
 }
 
-#define RTI_UPDATE_TIME_MS	80
+#define RTI_UPDATE_TIME_MS	500
 static FILE *rti_logs = NULL;
 static u64 memory_at_gpac_startup = 0;
 static u64 memory_at_gpac_load = 0;

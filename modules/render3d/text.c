@@ -803,7 +803,7 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 	char *hlight;
 	SFColorRGBA hl_color;
 	CachedTextLine *tl;
-	Bool draw2D, draw3D, vect_outline, has_texture, can_texture_text;
+	Bool draw2D, draw3D, vect_outline, can_texture_text;
 	Render3D *sr = (Render3D*)st->compositor->visual_renderer->user_priv;
 	M_FontStyle *fs = (M_FontStyle *) ((M_Text *) st->owner)->fontStyle;
 
@@ -871,27 +871,35 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 	if (strstr(fs_style, "TEXTURED")) st->texture_text_flag = 1;
 
 	/*setup texture*/
+	VS_setup_texture(eff);
 	can_texture_text = 0;
-	has_texture = VS_setup_texture(eff);
 	if (draw2D || draw3D) {
 		/*check if we can use text texturing*/
-		if (!has_texture && (sr->compositor->texture_text_mode || st->texture_text_flag) ) {
-			can_texture_text = 1;
-			if (draw2D && asp.pen_props.width) can_texture_text = 0;
+		if (sr->compositor->texture_text_mode || st->texture_text_flag) {
+			if (draw2D && asp.pen_props.width) {
+				can_texture_text = 0;
+			} else {
+				can_texture_text = eff->mesh_has_texture ? 0 : 1;
+			}
 		}
 	}
 
 	VS3D_SetAntiAlias(eff->surface, st->compositor->antiAlias);
-	if (draw2D || draw3D || has_texture) {
+	if (draw2D || draw3D || eff->mesh_has_texture) {
 
 		if (draw2D) VS3D_SetMaterial2D(eff->surface, asp.fill_color, asp.alpha);
 
 		if (eff->split_text_idx) {
 			tl = gf_list_get(st->text_lines, eff->split_text_idx-1);
 			assert(tl);
-			if (hlight) VS3D_FillRect(eff->surface, tl->bounds, hl_color);
+			if (hlight) {
+				VS3D_FillRect(eff->surface, tl->bounds, hl_color);
+				if (draw2D) VS3D_SetMaterial2D(eff->surface, asp.fill_color, asp.alpha);
+				else VS_SetupAppearance(eff);
+			}
 
 			if (can_texture_text && TextLine_TextureIsReady(tl)) {
+				VS_setup_texture(eff);
 				tx_enable(&tl->txh, NULL);
 				VS3D_DrawMesh(eff, tl->tx_mesh);
 				tx_disable(&tl->txh);
@@ -904,11 +912,14 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 			i=0; 
 			while ((tl = gf_list_enum(st->text_lines, &i))) {
 
-				if (hlight) VS3D_FillRect(eff->surface, tl->bounds, hl_color);
-
-//				if (draw2D) VS3D_SetMaterial2D(eff->surface, asp.fill_color, asp.alpha);
+				if (hlight) {
+					VS3D_FillRect(eff->surface, tl->bounds, hl_color);
+					if (draw2D) VS3D_SetMaterial2D(eff->surface, asp.fill_color, asp.alpha);
+					else VS_SetupAppearance(eff);
+				}
 
 				if (can_texture_text && TextLine_TextureIsReady(tl)) {
+					eff->mesh_has_texture = 1;
 					tx_enable(&tl->txh, NULL);
 					VS3D_DrawMesh(eff, tl->tx_mesh);
 					tx_disable(&tl->txh);
@@ -920,7 +931,7 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 			}
 		}
 		/*reset texturing in case of line texture*/
-		if (has_texture) VS_disable_texture(eff);
+		VS_disable_texture(eff);
 	}
 
 	VS3D_SetState(eff->surface, F3D_BLEND, 0);

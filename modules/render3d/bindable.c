@@ -143,7 +143,7 @@ void Bindable_SetSetBind(GF_Node *bindable, Bool val)
 	default: return;
 	}
 }
-#if 0
+#if 1
 static void dump_bindable_stack(GF_List *stack, char *label)
 {
 	u32 j=0;
@@ -179,20 +179,17 @@ void Bindable_OnSetBind(GF_Node *bindable, GF_List *stack_list)
 				gf_list_rem(stack, 0);
 				gf_list_add(stack, bindable);
 				node = gf_list_get(stack, 0);
-				Bindable_SetSetBind(node, 1);
+				Bindable_SetIsBound(node, 1);
 			}
 		} else {
 			if (!is_bound) Bindable_SetIsBound(bindable, 1);
 			if (!on_top) {
-				/*push old top one down*/
+				/*push old top one down and unbind*/
 				node = gf_list_get(stack, 0);
-				gf_list_rem(stack, 0);
-				gf_list_insert(stack, node, 1);
+				Bindable_SetIsBound(node, 0);
 				/*insert new top*/
 				gf_list_del_item(stack, bindable);
 				gf_list_insert(stack, bindable, 0);
-				/*unbind old top*/
-				Bindable_SetSetBind(node, 0);
 			}
 		}
 	}

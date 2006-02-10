@@ -52,7 +52,9 @@ GF_SURFACE evg_surface_new(GF_Raster2D *_dr, Bool center_coords)
 void evg_surface_delete(GF_SURFACE _this)
 {
 	EVGSurface *surf = (EVGSurface *)_this;
+#ifndef INLINE_POINT_CONVERSION
 	if (surf->points) free(surf->points);
+#endif
 	if (surf->stencil_pix_run) free(surf->stencil_pix_run);
 	evg_raster_del(surf->raster);
 	free(surf);
@@ -302,21 +304,8 @@ GF_Err evg_surface_set_clipper(GF_SURFACE _this , GF_IRect *rc)
 	return GF_OK;
 }
 
-static GF_Err evg_resizepoints(EVGSurface *surf, u32 num)
-{
-	if (surf->pointlen < num) {
-		surf->points = realloc(surf->points, sizeof(EVG_Vector) * num);
-		if (surf->points == NULL) {
-			surf->pointlen = 0;
-			return GF_OUT_OF_MEM;
-		}
-		surf->pointlen = num;
-	}
-	return GF_OK;
-}
 
-
-static Bool setup_ft_callbacks(EVGSurface *surf)
+static Bool setup_grey_callback(EVGSurface *surf)
 {
 	u32 col, a;
 	Bool use_const = 1;
@@ -423,12 +412,13 @@ static Bool setup_ft_callbacks(EVGSurface *surf)
 	return 1;
 }
 
+
 GF_Err evg_surface_set_path(GF_SURFACE _this, GF_Path *gp)
 {
+#ifndef INLINE_POINT_CONVERSION
 	u32 i;
-	GF_Err e;
-	Bool is_identity;
 	GF_Point2D pt;
+#endif
 	EVGSurface *surf = (EVGSurface *)_this;
 
 	if (!surf) return GF_BAD_PARAM;
@@ -437,7 +427,6 @@ GF_Err evg_surface_set_path(GF_SURFACE _this, GF_Path *gp)
 		surf->ftoutline.n_contours = 0;
 		return GF_OK;
 	}
-
 	gf_path_flatten(gp);
 	surf->ftoutline.n_points = gp->n_points;
 	surf->ftoutline.n_contours = gp->n_contours;
@@ -445,45 +434,42 @@ GF_Err evg_surface_set_path(GF_SURFACE _this, GF_Path *gp)
 	surf->ftoutline.tags = gp->tags;
 	surf->ftoutline.contours = gp->contours;
 
-	e = evg_resizepoints(surf, gp->n_points);
-	if (e) return e;
-	surf->ftoutline.points = surf->points;
-
-	is_identity = gf_mx2d_is_identity(surf->mat);
+	/*store path bounds for gradient/textures*/
 	gf_path_get_bounds(gp, &surf->path_bounds);
-
 	/*invert Y (ft uses min Y)*/
 	surf->path_bounds.y -= surf->path_bounds.height;
 
-	if (is_identity) {
-		for (i=0; i<gp->n_points; i++) {
-			pt = gp->points[i];
-#ifdef GPAC_FIXED_POINT
-			surf->points[i].x = pt.x;
-			surf->points[i].y = pt.y;
-#else
-			/*move to 16.16 representation*/
-			surf->points[i].x = (u32) (pt.x * 0x10000L);
-			surf->points[i].y = (u32) (pt.y * 0x10000L);
-#endif
-		}
-	} else {
-		for (i=0; i<gp->n_points; i++) {
-			pt = gp->points[i];
-			gf_mx2d_apply_point(&surf->mat, &pt);
-#ifdef GPAC_FIXED_POINT
-			surf->points[i].x = pt.x;
-			surf->points[i].y = pt.y;
-#else
-			/*move to 16.16 representation*/
-			surf->points[i].x = (u32) (pt.x * 0x10000L);
-			surf->points[i].y = (u32) (pt.y * 0x10000L);
-#endif
-		}
-	}
-
 	surf->ftoutline.flags = 0;
 	if (gp->flags & GF_PATH_FILL_ZERO_NONZERO) surf->ftoutline.flags = GF_PATH_FILL_ZERO_NONZERO;
+
+#ifdef INLINE_POINT_CONVERSION
+	surf->ftoutline.n_points = gp->n_points;
+	surf->ftoutline.points = gp->points;
+	surf->ftparams.mx = &surf->mat;
+#else
+	if (surf->pointlen < gp->n_points) {
+		surf->points = realloc(surf->points, sizeof(EVG_Vector) * gp->n_points);
+		if (surf->points == NULL) {
+			surf->pointlen = 0;
+			return GF_OUT_OF_MEM;
+		}
+		surf->pointlen = gp->n_points;
+	}
+	surf->ftoutline.points = surf->points;
+	
+	for (i=0; i<gp->n_points; i++) {
+		pt = gp->points[i];
+		gf_mx2d_apply_point(&surf->mat, &pt);
+#ifdef GPAC_FIXED_POINT
+		surf->points[i].x = pt.x;
+		surf->points[i].y = pt.y;
+#else
+		/*move to 16.16 representation*/
+		surf->points[i].x = (u32) (pt.x * 0x10000L);
+		surf->points[i].y = (u32) (pt.y * 0x10000L);
+#endif
+	}
+#endif
 	return GF_OK;
 }
 
@@ -500,7 +486,7 @@ GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 	surf->sten = sten;
 
 	/*setup ft raster calllbacks*/
-	if (!setup_ft_callbacks(surf)) return GF_OK;
+	if (!setup_grey_callback(surf)) return GF_OK;
 
 	get_surface_world_matrix(surf, &mat);
 
@@ -562,15 +548,15 @@ GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 	}
 
 	if (surf->useClipper) {
-		surf->ftparams.clip_box.xMin = surf->clipper.x;
-		surf->ftparams.clip_box.yMin = surf->clipper.y;
-		surf->ftparams.clip_box.xMax = (surf->clipper.x + surf->clipper.width);
-		surf->ftparams.clip_box.yMax = (surf->clipper.y + surf->clipper.height);
+		surf->ftparams.clip_xMin = surf->clipper.x;
+		surf->ftparams.clip_yMin = surf->clipper.y;
+		surf->ftparams.clip_xMax = (surf->clipper.x + surf->clipper.width);
+		surf->ftparams.clip_yMax = (surf->clipper.y + surf->clipper.height);
 	} else {
-		surf->ftparams.clip_box.xMin = 0;
-		surf->ftparams.clip_box.yMin = 0;
-		surf->ftparams.clip_box.xMax = (surf->width);
-		surf->ftparams.clip_box.yMax = (surf->height);
+		surf->ftparams.clip_xMin = 0;
+		surf->ftparams.clip_yMin = 0;
+		surf->ftparams.clip_xMax = (surf->width);
+		surf->ftparams.clip_yMax = (surf->height);
 	}
 
 	/*and call the raster*/

@@ -48,20 +48,19 @@ typedef struct _evg_base_stencil
 	EVGBASESTENCIL
 } EVGStencil;
 
+/*define this macro to convert points in the outline decomposition rather than when attaching path
+to surface. When point conversion is inlined in the raster, memory usage is lower (no need for temp storage)*/
+#define INLINE_POINT_CONVERSION
 
-/*FreeType redefined*/
+#ifdef INLINE_POINT_CONVERSION
+typedef struct __vec2f EVG_Vector;
+#else
 typedef struct
 {
 	s32 x;
 	s32 y;
 } EVG_Vector;
-
-typedef struct 
-{
-	s32 xMin, yMin;
-	s32 xMax, yMax;
-} EVG_BBox;
-
+#endif
 
 typedef struct
 {
@@ -88,8 +87,13 @@ typedef void (*EVG_SpanFunc)(int y, int count, EVG_Span *spans, void *user);
 typedef struct EVG_Raster_Params_
 {
 	EVG_Outline *source;
+#ifdef INLINE_POINT_CONVERSION
+	GF_Matrix2D *mx;
+#endif
 	EVG_SpanFunc gray_spans;
-	EVG_BBox clip_box;
+
+	s32 clip_xMin, clip_yMin, clip_xMax, clip_yMax;
+
 	void *user;
 } EVG_Raster_Params;
 
@@ -138,15 +142,18 @@ struct _evg_surface
 	u32 fill_565;
 	u32 fill_555;
 
+	/*FreeType raster*/
+	EVG_Raster raster;
+
 	/*FreeType outline (path converted to ft)*/
 	EVG_Outline ftoutline;
 	EVG_Raster_Params ftparams;
+
+#ifndef INLINE_POINT_CONVERSION
 	/*transformed point list*/
 	u32 pointlen;
 	EVG_Vector *points;
-
-	/*FreeType raster and pool size*/
-	EVG_Raster raster;
+#endif
 };
 
 /*solid color brush*/

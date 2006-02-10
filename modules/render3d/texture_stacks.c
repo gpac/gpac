@@ -384,8 +384,8 @@ Bool r3d_handle_composite_event(Render3D *sr, GF_UserEvent *ev)
 		while (txcoord.y<0) txcoord.y += FIX_ONE; while (txcoord.y>FIX_ONE) txcoord.y -= FIX_ONE;
 	}
 	/*convert to tx space*/
-	ev->mouse.x = FIX2INT(txcoord.x - FIX_ONE/2) * st->surface->width;
-	ev->mouse.y = FIX2INT(txcoord.y - FIX_ONE/2) * st->surface->height;
+	ev->mouse.x = FIX2INT( (txcoord.x - FIX_ONE/2) * st->surface->width);
+	ev->mouse.y = FIX2INT( (txcoord.y - FIX_ONE/2) * st->surface->height);
 
 	eff = effect3d_new();
 	eff->surface = st->surface;
