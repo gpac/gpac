@@ -1,4 +1,10 @@
-Latest CVS Changes 01/02/06
+Latest CVS Changes 10/02/06
+  - misc fixes in SVG animation module (animation begin and end event, restarting of animations)
+  - added 'define' support in BT - to use it just do:
+     #define symbol blab labl a
+    and reuse the symbol in the BT text. This may be quite buggy, but it can be usefull
+  - misc fixes in XMT proto+script parsing
+  - misc opts in software rasterizer
   - fixed support for Scene Carousel in hinters, core and rtp reassembler. Currently only BIFS and BIFS+AV can be use the scene carousel, carouseling of 
     static data (eg images) is not supported. The OD data must be embedded in the IOD a la ISMA.
   - added FPS and size info dumping for MPEG and AVI file import (MP4Box -info file.mpg)
