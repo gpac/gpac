@@ -947,6 +947,10 @@ GF_Err gf_import_avi_video(GF_MediaImporter *import)
 		gf_import_message(import, GF_NOT_SUPPORTED, "Video format %s not compliant with MPEG-4 Visual - please recompress the file first", comp);
 		e = GF_NOT_SUPPORTED;
 		goto exit;
+	} else if (!stricmp(comp, "H264") || !stricmp(comp, "X264")) {
+		gf_import_message(import, GF_NOT_SUPPORTED, "H264/AVC Video format not supported in AVI - please extract to raw format first", comp);
+		e = GF_NOT_SUPPORTED;
+		goto exit;
 	} else {
 		gf_import_message(import, GF_NOT_SUPPORTED, "Video format %s not supported - recompress the file first", comp);
 		e = GF_NOT_SUPPORTED;
@@ -1376,7 +1380,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 {
 	GF_Err e;
 	u64 offset, sampDTS;
-	u32 track, di, trackID, track_in, i, num_samples, mtype, stype, w, h, duration, sr, sbr_sr, ch;
+	u32 track, di, trackID, track_in, i, num_samples, mtype, stype, w, h, duration, sr, sbr_sr, ch, mstype;
 	u8 bps;
 	char lang[4];
 	const char *url, *urn;
@@ -1448,7 +1452,8 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			sbr = dsi.has_sbr;
 		}
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, PL);
-	}
+	} 
+
 	gf_odf_desc_del((GF_Descriptor *) iod);
 	
 	/*check if MPEG-4 or not*/
@@ -1479,6 +1484,30 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		gf_isom_set_media_language(import->dest, track, lang);
 
 	} else {
+		if (! (import->flags & GF_IMPORT_KEEP_ALL_TRACKS) ) {
+			mstype = gf_isom_get_media_subtype(import->orig, track_in, 1);
+			switch (mstype) {
+			case GF_ISOM_SUBTYPE_MPEG4:
+			case GF_ISOM_SUBTYPE_MPEG4_CRYP:
+			case GF_ISOM_SUBTYPE_AVC_H264:
+			case GF_ISOM_SUBTYPE_3GP_H263:
+			case GF_ISOM_SUBTYPE_3GP_AMR:
+			case GF_ISOM_SUBTYPE_3GP_AMR_WB:
+			case GF_ISOM_SUBTYPE_3GP_EVRC:
+			case GF_ISOM_SUBTYPE_3GP_QCELP:
+			case GF_ISOM_SUBTYPE_3GP_SMV:
+				break;
+			default:
+				switch (mtype) {
+				case GF_ISOM_MEDIA_HINT:
+				case GF_ISOM_MEDIA_TEXT:
+					break;
+				default:
+					return gf_import_message(import, GF_OK, "IsoMedia import - skipping track ID %d (unknown type \'%s\')", trackID, gf_4cc_to_str(mstype));
+				}
+			}
+
+		}
 		e = gf_isom_clone_track(import->orig, track_in, import->dest, (import->flags & GF_IMPORT_USE_DATAREF), &track);
 		is_clone = 1;
 		di = 1;
@@ -1508,7 +1537,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	default:
 	{
 		char szT[5];
-		u32 mstype = gf_isom_get_mpeg4_subtype(import->orig, track_in, di);
+		mstype = gf_isom_get_mpeg4_subtype(import->orig, track_in, di);
 		if (!mstype) mstype = gf_isom_get_media_subtype(import->orig, track_in, di);
 		strcpy(szT, gf_4cc_to_str(mtype));
 		gf_import_message(import, GF_OK, "IsoMedia import - track ID %d - media type \"%s:%s\"", 

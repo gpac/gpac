@@ -35,7 +35,6 @@ extern "C" {
 //the default size is 64, cause we need to handle large boxes...
 #define GF_ISOM_BOX			\
 	u32 type;			\
-	u8 uuid[16];			\
 	u64 size;			\
 
 #define GF_ISOM_FULL_BOX		\
@@ -43,6 +42,9 @@ extern "C" {
 	u8 version;			\
 	u32 flags;			\
 
+#define GF_ISOM_UUID_BOX	\
+	GF_ISOM_BOX			\
+	u8 uuid[16];		\
 
 typedef struct
 {
@@ -53,6 +55,11 @@ typedef struct
 {
 	GF_ISOM_FULL_BOX
 } GF_FullBox;
+
+typedef struct
+{
+	GF_ISOM_UUID_BOX
+} GF_UUIDBox;
 
 /*constructor*/
 GF_Box *gf_isom_box_new(u32 boxType);
@@ -254,6 +261,13 @@ typedef struct
 	char *data;
 	u32 dataSize;
 } GF_UnknownBox;
+
+typedef struct
+{
+	GF_ISOM_UUID_BOX
+	char *data;
+	u32 dataSize;
+} GF_UnknwonUUIDBox;
 
 typedef struct
 {
@@ -564,20 +578,19 @@ typedef struct
 
 
 #define GF_ISOM_SAMPLE_ENTRY_FIELDS		\
-	u16 dataReferenceIndex;	\
-	char reserved[ 6 ]; \
+	GF_ISOM_UUID_BOX					\
+	u16 dataReferenceIndex;				\
+	char reserved[ 6 ];					\
 	struct __tag_protect_box *protection_info;
 
 /*base sample entry box (never used but for typecasting)*/
 typedef struct
 {
-	GF_ISOM_BOX
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
 } GF_SampleEntryBox;
 
 typedef struct
 {
-	GF_ISOM_BOX
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
 	/*box type as specified in the file (not this box's type!!)*/
 	u32 EntryType;
@@ -595,7 +608,6 @@ typedef struct
 /*for all MPEG4 media except audio and video*/
 typedef struct
 {
-	GF_ISOM_BOX
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
 	GF_ESDBox *esd;
 	/*used for hinting when extracting the OD stream...*/
@@ -604,8 +616,7 @@ typedef struct
 
 
 #define GF_ISOM_VISUAL_SAMPLE_ENTRY		\
-	GF_ISOM_BOX							\
-	GF_ISOM_SAMPLE_ENTRY_FIELDS					\
+	GF_ISOM_SAMPLE_ENTRY_FIELDS			\
 	u16 version;						\
 	u16 revision;						\
 	u32 vendor;							\
@@ -687,9 +698,8 @@ typedef struct
 } GF_AVCSampleEntryBox;
 
 
-#define GF_ISOM_AUDIO_SAMPLE_ENTRY		\
-	GF_ISOM_BOX						\
-	GF_ISOM_SAMPLE_ENTRY_FIELDS				\
+#define GF_ISOM_AUDIO_SAMPLE_ENTRY	\
+	GF_ISOM_SAMPLE_ENTRY_FIELDS		\
 	u16 version;					\
 	u16 revision;					\
 	u32 vendor;						\
@@ -907,8 +917,6 @@ typedef struct
 	GF_List *list;
 } GF_ChapterListBox;
 
-#define GF_WatermarkBox GF_UnknownBox
-
 typedef struct
 {
 	GF_ISOM_BOX
@@ -947,7 +955,6 @@ typedef struct
 
 typedef struct
 {
-	GF_ISOM_BOX						\
 	GF_ISOM_SAMPLE_ENTRY_FIELDS				\
 	u32 displayFlags;
 	s8 horizontal_justification;
@@ -1307,7 +1314,6 @@ typedef struct
 /*RTP Hint Track Sample Entry*/
 typedef struct
 {
-	GF_ISOM_BOX
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
 	u16 HintTrackVersion;
 	u16 LastCompatibleVersion;
@@ -1734,6 +1740,8 @@ GF_Err gf_isom_get_ttxt_esd(GF_MediaBox *mdia, GF_ESD **out_esd);
 /*inserts TTU header - only used when conversion to StreamingText is on*/
 GF_Err gf_isom_rewrite_text_sample(GF_ISOSample *samp, u32 sampleDescriptionIndex, u32 sample_dur);
 
+GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 box_type, bin128 *uuid);
+
 #ifndef GPAC_READ_ONLY
 
 GF_Err FlushCaptureMode(GF_ISOFile *movie);
@@ -2021,6 +2029,7 @@ GF_Box *tkhd_New();
 GF_Box *tref_New();
 GF_Box *mdia_New();
 GF_Box *defa_New();
+GF_Box *uuid_New();
 GF_Box *void_New();
 GF_Box *stsf_New();
 GF_Box *gnrm_New();
@@ -2070,6 +2079,7 @@ void tkhd_del(GF_Box *);
 void tref_del(GF_Box *);
 void mdia_del(GF_Box *);
 void defa_del(GF_Box *);
+void uuid_del(GF_Box *);
 void void_del(GF_Box *);
 void stsf_del(GF_Box *);
 void gnrm_del(GF_Box *);
@@ -2119,6 +2129,7 @@ GF_Err tkhd_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err tref_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err mdia_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err defa_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err uuid_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err void_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err stsf_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err gnrm_Write(GF_Box *s, GF_BitStream *bs);
@@ -2168,6 +2179,7 @@ GF_Err tkhd_Size(GF_Box *);
 GF_Err tref_Size(GF_Box *);
 GF_Err mdia_Size(GF_Box *);
 GF_Err defa_Size(GF_Box *);
+GF_Err uuid_Size(GF_Box *);
 GF_Err void_Size(GF_Box *);
 GF_Err stsf_Size(GF_Box *);
 GF_Err gnrm_Size(GF_Box *);
@@ -2217,6 +2229,7 @@ GF_Err tkhd_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err tref_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err mdia_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err defa_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err uuid_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err void_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err stsf_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err pdin_Read(GF_Box *s, GF_BitStream *bs);

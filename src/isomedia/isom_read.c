@@ -657,7 +657,6 @@ u32 gf_isom_get_media_timescale(GF_ISOFile *the_file, u32 trackNumber)
 u32 gf_isom_get_copyright_count(GF_ISOFile *mov)
 {
 	GF_UserDataMap *map;
-	GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 boxType, bin128 UUID);
 	if (!mov || !mov->moov || !mov->moov->udta) return 0;
 	map = udta_getEntry(mov->moov->udta, GF_ISOM_BOX_TYPE_CPRT, NULL);
 	if (!map) return 0;
@@ -668,7 +667,6 @@ GF_Err gf_isom_get_copyright(GF_ISOFile *mov, u32 Index, const char **threeCharC
 {
 	GF_UserDataMap *map;
 	GF_CopyrightBox *cprt;
-	GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 boxType, bin128 UUID);
 	
 	if (!mov || !mov->moov || !Index) return GF_BAD_PARAM;
 
@@ -687,16 +685,15 @@ GF_Err gf_isom_get_copyright(GF_ISOFile *mov, u32 Index, const char **threeCharC
 GF_Err gf_isom_get_watermark(GF_ISOFile *mov, bin128 UUID, u8** data, u32* length)
 {
 	GF_UserDataMap *map;
-	GF_WatermarkBox *wm;
-	GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 boxType, bin128 UUID);
+	GF_UnknwonUUIDBox *wm;
 
 	if (!mov) return GF_BAD_PARAM;
 	if (!mov->moov || !mov->moov->udta) return GF_NOT_SUPPORTED;
 	
-	map = udta_getEntry(mov->moov->udta, GF_ISOM_BOX_TYPE_UUID, UUID);
+	map = udta_getEntry(mov->moov->udta, GF_ISOM_BOX_TYPE_UUID, (bin128 *) & UUID);
 	if (!map) return GF_NOT_SUPPORTED;
 
-	wm = (GF_WatermarkBox*)gf_list_get(map->boxList, 0);
+	wm = (GF_UnknwonUUIDBox*)gf_list_get(map->boxList, 0);
 	if (!wm) return GF_NOT_SUPPORTED;
 
 	*data = malloc(wm->dataSize);
@@ -710,7 +707,6 @@ u32 gf_isom_get_chapter_count(GF_ISOFile *movie, u32 trackNumber)
 	GF_UserDataMap *map;
 	GF_ChapterListBox *lst;
 	GF_UserDataBox *udta;
-	GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 boxType, bin128 UUID);
 
 	if (!movie || !movie->moov) return 0;
 
@@ -736,7 +732,6 @@ GF_Err gf_isom_get_chapter(GF_ISOFile *movie, u32 trackNumber, u32 Index, u64 *c
 	GF_ChapterListBox *lst;
 	GF_ChapterEntry *ce;
 	GF_UserDataBox *udta;
-	GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 boxType, bin128 UUID);
 
 	if (!movie || !movie->moov) return GF_BAD_PARAM;
 
@@ -1706,7 +1701,7 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 		udesc = malloc(sizeof(GF_GenericSampleDescription));
 		memset(udesc, 0, sizeof(GF_GenericSampleDescription));
 		if (entry->EntryType == GF_ISOM_BOX_TYPE_UUID) {
-			memcpy(udesc->UUID, entry->uuid, sizeof(bin128));
+			memcpy(udesc->UUID, ((GF_UUIDBox*)entry)->uuid, sizeof(bin128));
 		} else {
 			udesc->codec_tag = entry->EntryType;
 		}
@@ -1733,7 +1728,7 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 		udesc = malloc(sizeof(GF_GenericSampleDescription));
 		memset(udesc, 0, sizeof(GF_GenericSampleDescription));
 		if (gena->EntryType == GF_ISOM_BOX_TYPE_UUID) {
-			memcpy(udesc->UUID, gena->uuid, sizeof(bin128));
+			memcpy(udesc->UUID, ((GF_UUIDBox*)gena)->uuid, sizeof(bin128));
 		} else {
 			udesc->codec_tag = gena->EntryType;
 		}
@@ -1754,7 +1749,7 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 		udesc = malloc(sizeof(GF_GenericSampleDescription));
 		memset(udesc, 0, sizeof(GF_GenericSampleDescription));
 		if (genm->EntryType == GF_ISOM_BOX_TYPE_UUID) {
-			memcpy(udesc->UUID, genm->uuid, sizeof(bin128));
+			memcpy(udesc->UUID, ((GF_UUIDBox*)genm)->uuid, sizeof(bin128));
 		} else {
 			udesc->codec_tag = genm->EntryType;
 		}

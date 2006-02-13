@@ -176,6 +176,8 @@ void PrintImportUsage()
 			" -cat file:           concatenates file samples to (new) output file\n"
 			"                       * Note: creates tracks if needed\n"
 			" -keepsys:            keeps all MPEG-4 Systems info when using '-add' / 'cat'\n"
+			" -keepall:            keeps all existing tracks when using '-add'\n"
+			"                       * Note: only used when adding IsoMedia files\n"
 			"\n"
 			"All the following options can be specified as default or for each track.\n"
 			"When specified by track the syntax is \":opt\" or \":opt=val\".\n\n"
@@ -1239,6 +1241,7 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-fps")) { CHECK_NEXT_ARG import_fps = atof(argv[i+1]); i++; }
 		else if (!stricmp(arg, "-agg")) { CHECK_NEXT_ARG agg_samples = atoi(argv[i+1]); i++; }
 		else if (!stricmp(arg, "-keepsys")) keep_sys_tracks = 1;
+		else if (!stricmp(arg, "-keepall")) import_flags |= GF_IMPORT_KEEP_ALL_TRACKS;
 		else if (!stricmp(arg, "-ms")) { CHECK_NEXT_ARG mediaSource = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-mp4")) { encode = 1; open_edit = 1; }
 		else if (!stricmp(arg, "-log")) do_log = 1; 

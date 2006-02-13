@@ -196,7 +196,7 @@ void CALLBACK EXPORT RTInfoTimer(HWND , UINT , UINT nID , DWORD )
 
 	if (pFrame->m_show_rti && !pFrame->m_timer_on) {
 		if (!gf_sys_get_rti(RTI_REFRESH_MS, &rti, 0)) return;
-		if (!rti.gpac_memory) rti.gpac_memory = rti.process_cpu_usage;
+		if (!rti.gpac_memory) rti.gpac_memory = rti.process_memory ? rti.process_memory : rti.physical_memory;
 
 		if (pFrame->m_show_rti && !pFrame->m_timer_on) {
 			sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 

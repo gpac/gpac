@@ -608,8 +608,9 @@ static JSBool svg_elt_get_attr(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	if (!elt || (argc>2)) return JS_FALSE;
 	inNS = NULL;
 	if (argc==2) {
-		if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-		inNS = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+		if (JSVAL_IS_STRING(argv[0])) 
+			inNS = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+
 		offset = 1;
 	}
 	if (!JSVAL_IS_STRING(argv[offset]) ) return JS_FALSE;

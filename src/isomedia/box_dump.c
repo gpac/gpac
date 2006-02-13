@@ -32,8 +32,8 @@ GF_Err DumpBox(GF_Box *a, FILE * trace)
 	} else {
 		fprintf(trace, "<BoxInfo Size=\"%d\" ", (u32) a->size);
 	}
-	if (a->type == GF_ISOM_BOX_TYPE_UUID ) {
-		fprintf(trace, "ExtendedType=\"%s\"/>\n", a->uuid);
+	if (a->type == GF_ISOM_BOX_TYPE_UUID) {
+		fprintf(trace, "ExtendedType=\"%s\"/>\n", ((GF_UUIDBox*)a)->uuid);
 	} else {
 		fprintf(trace, "Type=\"%s\"/>\n", gf_4cc_to_str(a->type));
 	}

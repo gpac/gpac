@@ -500,7 +500,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 			trak->Media->mediaHeader->duration += (DTS - DTSprev);
 		} else {
 #ifndef GPAC_READ_ONLY
-			if (trak->Media->information->sampleTable->CompositionOffset) {
+			if (trak->moov->mov->editFileMap && trak->Media->information->sampleTable->CompositionOffset) {
 				u32 count, i;
 				u64 max_ts;
 				GF_DttsEntry *cts_ent;
@@ -515,7 +515,8 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 
 						for (i=0; i<cts_ent->sampleCount; i++) {
 							stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp-i, &DTS);
-							max_ts = DTS + cts_ent->decodingOffset;
+							if ((s32) cts_ent->decodingOffset < 0) max_ts = DTS;
+							else max_ts = DTS + cts_ent->decodingOffset;
 							if (max_ts>=trak->Media->mediaHeader->duration) {
 								trak->Media->mediaHeader->duration = max_ts;
 							} else {

@@ -331,7 +331,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		sd->horiz_justif = 1; /*center of scene*/
 		sd->vert_justif = -1;	/*bottom of scene*/
 
-		if (import->flags & GF_IMPORT_SKIT_TXT_BOX) {
+		if (import->flags & GF_IMPORT_SKIP_TXT_BOX) {
 			sd->default_pos.top = sd->default_pos.left = sd->default_pos.right = sd->default_pos.bottom = 0;
 		} else {
 			if ((sd->default_pos.bottom==sd->default_pos.top) || (sd->default_pos.right==sd->default_pos.left)) {
@@ -684,7 +684,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		sd->horiz_justif = 1; /*center of scene*/
 		sd->vert_justif = -1;	/*bottom of scene*/
 
-		if (import->flags & GF_IMPORT_SKIT_TXT_BOX) {
+		if (import->flags & GF_IMPORT_SKIP_TXT_BOX) {
 			sd->default_pos.top = sd->default_pos.left = sd->default_pos.right = sd->default_pos.bottom = 0;
 		} else {
 			if ((sd->default_pos.bottom==sd->default_pos.top) || (sd->default_pos.right==sd->default_pos.left)) {
@@ -1078,7 +1078,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 						}
 
 					}
-					if (import->flags & GF_IMPORT_SKIT_TXT_BOX) {
+					if (import->flags & GF_IMPORT_SKIP_TXT_BOX) {
 						td.default_pos.top = td.default_pos.left = td.default_pos.right = td.default_pos.bottom = 0;
 					} else {
 						if ((td.default_pos.bottom==td.default_pos.top) || (td.default_pos.right==td.default_pos.left)) {

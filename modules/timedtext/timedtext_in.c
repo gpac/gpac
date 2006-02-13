@@ -106,7 +106,7 @@ GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 	import.dest = tti->mp4;
 	import.user_data = tti;
 	/*override layout from sub file*/
-	import.flags = GF_IMPORT_SKIT_TXT_BOX;
+	import.flags = GF_IMPORT_SKIP_TXT_BOX;
 	import.in_name = (char *) url;
 	
 	e = gf_media_import(&import);

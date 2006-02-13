@@ -109,7 +109,8 @@ proceed_box:
 	if (!newBox) return GF_OUT_OF_MEM;
 
 	//OK, init and read this box
-	memcpy(newBox->uuid, uuid, 16);
+	if (type==GF_ISOM_BOX_TYPE_UUID) memcpy(((GF_UUIDBox *)newBox)->uuid, uuid, 16);
+
 	if (!newBox->type) newBox->type = type; 
 
 	end = gf_bs_available(bs);
@@ -190,7 +191,10 @@ GF_Err gf_isom_read_box_list(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)
 	GF_Box *a;
 	while (parent->size) {
 		e = gf_isom_parse_box(&a, bs);
-		if (e) return e;
+		if (e) {
+			if (a) gf_isom_box_del(a);
+			return e;
+		}
 		if (parent->size < a->size) return GF_ISOM_INVALID_FILE;
 		parent->size -= a->size;
 		e = add_box(parent, a);
@@ -238,8 +242,10 @@ GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs)
 		gf_bs_write_u32(bs, (u32) ptr->size);
 	}
 	gf_bs_write_u32(bs, ptr->type);
-	if (ptr->type == GF_ISOM_BOX_TYPE_UUID) gf_bs_write_data(bs, (unsigned char *)ptr->uuid, 16);
-	if (ptr->size > 0xFFFFFFFF) gf_bs_write_u64(bs, ptr->size);
+	if (ptr->type == GF_ISOM_BOX_TYPE_UUID) 
+		gf_bs_write_data(bs, (unsigned char *) ((GF_UUIDBox*)ptr)->uuid, 16);
+	if (ptr->size > 0xFFFFFFFF) 
+		gf_bs_write_u64(bs, ptr->size);
 	return GF_OK;
 }
 
@@ -469,17 +475,11 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_ENCS: return encs_New();
 
 	case GF_ISOM_BOX_TYPE_UUID:
-		a = defa_New();
-		if (a) a->type = GF_ISOM_BOX_TYPE_UUID;
-		return a;
+		return uuid_New();
 
 	default:
 		a = defa_New();
-		if (a) {
-			a->type = boxType;
-			/*to identify a default box regardless of its type we format the UUID (not used)*/
-			memset(a->uuid, 1, 16);
-		}
+		if (a) a->type = boxType;
 		return a;
 	}
 }
@@ -653,7 +653,9 @@ void gf_isom_box_del(GF_Box *a)
 		a->type = ((GF_SampleEntryBox *)a)->protection_info->original_format->data_format;
 		gf_isom_box_del(a); 
 		return;
-
+	case GF_ISOM_BOX_TYPE_UUID:
+		uuid_del(a);
+		return;
 	default:
 		defa_del(a);
 		return;
@@ -820,6 +822,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_ENCV: return mp4v_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_ENCS: return mp4s_Read(a, bs);
 
+	case GF_ISOM_BOX_TYPE_UUID: return uuid_Read(a, bs);
 	default:
 		return defa_Read(a, bs);
 	}
@@ -988,6 +991,7 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_ENCV: return mp4v_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_ENCS: return mp4s_Write(a, bs);
 
+	case GF_ISOM_BOX_TYPE_UUID: return uuid_Write(a, bs);
 	default:
 		return defa_Write(a, bs);
 	}
@@ -1152,7 +1156,7 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_ENCA: return mp4a_Size(a);
 	case GF_ISOM_BOX_TYPE_ENCV: return mp4v_Size(a);
 	case GF_ISOM_BOX_TYPE_ENCS: return mp4s_Size(a);
-
+	case GF_ISOM_BOX_TYPE_UUID: return uuid_Size(a);
 	default: return defa_Size(a);
 	}
 }

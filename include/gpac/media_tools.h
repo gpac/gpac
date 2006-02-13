@@ -60,7 +60,9 @@ enum
 	GF_IMPORT_FORCE_MPEG4 = 1<<5,
 	/*special flag for text import at run time (never set on probe), indicates to leave the text box empty
 	so that we dynamically adapt to display size*/
-	GF_IMPORT_SKIT_TXT_BOX = 1<<6,
+	GF_IMPORT_SKIP_TXT_BOX = 1<<6,
+	/*indicates to keep unknown tracks from .MOV/.IsoMedia files*/
+	GF_IMPORT_KEEP_ALL_TRACKS = 1<<7,
 	
 	/*when set, only updates tracks info and return*/
 	GF_IMPORT_PROBE_ONLY	= 1<<20,

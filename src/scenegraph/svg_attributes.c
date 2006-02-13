@@ -1497,11 +1497,17 @@ static void svg_parse_viewbox(SVG_ViewBox *value, char *value_string)
 
 static void svg_parse_coordinates(GF_List *values, char *value_string)
 {
+	SVG_Coordinate *c;
 	u32 i = 0;
 	char *str = value_string;
 	u32 len = strlen(str);
+
+	while (gf_list_count(values)) {
+		c = gf_list_get(values, 0);
+		gf_list_rem(values, 0);
+		free(c);
+	}
 	while (i < len) {
-		SVG_Coordinate *c;
 		GF_SAFEALLOC(c, sizeof(SVG_Coordinate));
 		i+=svg_parse_number(c, &(str[i]), 0);
 		gf_list_add(values, c);

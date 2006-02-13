@@ -667,6 +667,71 @@ GF_Err defa_Size(GF_Box *s)
 
 #endif //GPAC_READ_ONLY
 
+
+void uuid_del(GF_Box *s)
+{
+	GF_UnknwonUUIDBox *ptr = (GF_UnknwonUUIDBox *) s;
+	if (!s) return;
+	if (ptr->data) free(ptr->data);
+	free(ptr);
+}
+
+
+GF_Err uuid_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 bytesToRead;
+	GF_UnknwonUUIDBox *ptr = (GF_UnknwonUUIDBox *)s;
+	if (ptr->size > 0xFFFFFFFF) return GF_ISOM_INVALID_FILE;
+	bytesToRead = (u32) (ptr->size);
+
+	if (bytesToRead) {
+		ptr->data = (char*)malloc(bytesToRead);
+		if (ptr->data == NULL ) return GF_OUT_OF_MEM;
+		ptr->dataSize = bytesToRead;
+		gf_bs_read_data(bs, (unsigned char*)ptr->data, ptr->dataSize);
+	}
+	return GF_OK;
+}
+
+//warning: we don't have any boxType, trick has to be done while creating..
+GF_Box *uuid_New()
+{
+	GF_UnknwonUUIDBox *tmp = (GF_UnknwonUUIDBox *) malloc(sizeof(GF_UnknwonUUIDBox));
+	memset(tmp, 0, sizeof(GF_UnknwonUUIDBox));
+	tmp->type = GF_ISOM_BOX_TYPE_UUID;
+	return (GF_Box *) tmp;
+}
+
+//from here, for write/edit versions
+#ifndef GPAC_READ_ONLY
+
+GF_Err uuid_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_UnknwonUUIDBox *ptr = (GF_UnknwonUUIDBox*)s;
+	if (!s) return GF_BAD_PARAM;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+    if (ptr->data) {
+		gf_bs_write_data(bs, (unsigned char*)ptr->data, ptr->dataSize);
+	}
+	return GF_OK;
+}
+
+GF_Err uuid_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_UnknwonUUIDBox*ptr = (GF_UnknwonUUIDBox*)s;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	ptr->size += ptr->dataSize;
+	return GF_OK;
+}
+
+#endif //GPAC_READ_ONLY
+
+
 void dinf_del(GF_Box *s)
 {
 	GF_DataInformationBox *ptr = (GF_DataInformationBox *)s;
@@ -4386,10 +4451,13 @@ GF_Err stbl_Read(GF_Box *s, GF_BitStream *bs)
 			}
 			a->size = s;
 		}
+		if (ptr->size<a->size) {
+			gf_isom_box_del(a);
+			return GF_ISOM_INVALID_FILE;
+		}
+		ptr->size -= a->size;
 		e = stbl_AddBox(ptr, a);
 		if (e) return e;
-		if (ptr->size<a->size) return GF_ISOM_INVALID_FILE;
-		ptr->size -= a->size;
 	}
 	return GF_OK;
 }
@@ -6579,15 +6647,15 @@ void udta_del(GF_Box *s)
 	free(ptr);
 }
 
-GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 boxType, bin128 UUID)
+GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 box_type, bin128 *uuid)
 {
 	u32 i;
 	GF_UserDataMap *map;
 	i=0;
 	while ((map = gf_list_enum(ptr->recordList, &i))) {
-		if (map->boxType == boxType) {
-			if (boxType != GF_ISOM_BOX_TYPE_UUID) return map;
-			if (!memcmp(map->uuid, UUID, 16)) return map;
+		if (map->boxType == box_type) {
+			if ((box_type != GF_ISOM_BOX_TYPE_UUID) || !uuid) return map;
+			if (!memcmp(map->uuid, *uuid, 16)) return map;
 		}
 	}
 	return NULL;
@@ -6600,14 +6668,15 @@ GF_Err udta_AddBox(GF_UserDataBox *ptr, GF_Box *a)
 	if (!ptr) return GF_BAD_PARAM;
 	if (!a) return GF_OK;
 
-	map = udta_getEntry(ptr, a->type, a->uuid);
+	map = udta_getEntry(ptr, a->type, (a->type==GF_ISOM_BOX_TYPE_UUID) ? & ((GF_UUIDBox *)a)->uuid : NULL);
 	if (map == NULL) {
 		map = (GF_UserDataMap *) malloc(sizeof(GF_UserDataMap));
 		if (map == NULL) return GF_OUT_OF_MEM;
 		memset(map, 0, sizeof(GF_UserDataMap));
 		
 		map->boxType = a->type;
-		if (a->type == GF_ISOM_BOX_TYPE_UUID) memcpy(map->uuid, a->uuid, 16);
+		if (a->type == GF_ISOM_BOX_TYPE_UUID) 
+			memcpy(map->uuid, ((GF_UUIDBox *)a)->uuid, 16);
 		map->boxList = gf_list_new();
 		if (!map->boxList) {
 			free(map);

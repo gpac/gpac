@@ -553,8 +553,6 @@ GF_Err gf_isom_hint_sample_description_data(GF_ISOFile *the_file, u32 trackNumbe
 
 #endif //GPAC_READ_ONLY
 
-GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 boxType);
-
 #ifndef GPAC_READ_ONLY
 
 GF_Err gf_isom_rtp_packet_set_flags(GF_ISOFile *the_file, u32 trackNumber,
@@ -729,7 +727,7 @@ GF_Err gf_isom_sdp_add_track_line(GF_ISOFile *the_file, u32 trackNumber, const c
 	//currently, only RTP hinting supports SDP
 	if (!CheckHintFormat(trak, GF_ISOM_HINT_RTP)) return GF_BAD_PARAM;
 
-	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_HNTI);
+	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_HNTI, NULL);
 	if (!map) return GF_ISOM_INVALID_FILE;
 
 	//we should have only one HNTI in the UDTA
@@ -771,7 +769,7 @@ GF_Err gf_isom_sdp_clean_track(GF_ISOFile *the_file, u32 trackNumber)
 	//currently, only RTP hinting supports SDP
 	if (!CheckHintFormat(trak, GF_ISOM_HINT_RTP)) return GF_BAD_PARAM;
 
-	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_HNTI);
+	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_HNTI, NULL);
 	if (!map) return GF_ISOM_INVALID_FILE;
 
 	//we should have only one HNTI in the UDTA
@@ -808,11 +806,11 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 		if (e) return e;
 	}
 	//find a hnti in the udta
-	map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI);
+	map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI, NULL);
 	if (!map) {
 		e = udta_AddBox(movie->moov->udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI));
 		if (e) return e;
-		map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI);
+		map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI, NULL);
 	}
 
 	//there should be one and only one hnti
@@ -862,7 +860,7 @@ GF_Err gf_isom_sdp_clean(GF_ISOFile *movie)
 	if (!movie->moov || !movie->moov->udta) return GF_OK;
 
 	//find a hnti in the udta
-	map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI);
+	map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI, NULL);
 	if (!map) return GF_OK;
 
 	//there should be one and only one hnti
@@ -889,7 +887,7 @@ GF_Err gf_isom_sdp_get(GF_ISOFile *movie, const char **sdp, u32 *length)
 	if (!movie->moov->udta) return GF_OK;
 
 	//find a hnti in the udta
-	map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI);
+	map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI, NULL);
 	if (!map) return GF_OK;
 
 	//there should be one and only one hnti
@@ -918,7 +916,7 @@ GF_Err gf_isom_sdp_track_get(GF_ISOFile *the_file, u32 trackNumber, const char *
 	if (!trak) return GF_BAD_PARAM;
 	if (!trak->udta) return GF_OK;
 
-	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_HNTI);
+	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_HNTI, NULL);
 	if (!map) return GF_ISOM_INVALID_FILE;
 
 	//we should have only one HNTI in the UDTA
