@@ -230,6 +230,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	u32 i, last_sep;
 	char cache_name[GF_MAX_PATH], tmp[GF_MAX_PATH];
 	const char *opt;
+	char *doubledots;
 
 	if (!sess->dm->cache_directory) return;
 	if (sess->flags & GF_DOWNLOAD_SESSION_NOT_CACHED) return;
@@ -237,6 +238,8 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	strcpy(cache_name, sess->dm->cache_directory);
 
 	strcpy(tmp, sess->server_name);
+	while (doubledots = strchr(tmp, ':'))
+		*doubledots = '_';
 	strcat(tmp, sess->remote_path);
 	last_sep = 0;
 
