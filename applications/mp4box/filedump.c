@@ -712,7 +712,7 @@ static char *format_date(u64 time, char *szTime)
 	time_t now;
 	time -= 2082758400;
 	now = (u32) time;
-	sprintf(szTime, "%s", asctime(gmtime(&now)) );
+	sprintf(szTime, "GMT %s", asctime(gmtime(&now)) );
 	return szTime;
 }
 

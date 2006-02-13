@@ -455,8 +455,13 @@ GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_ty
 			if (hasVOP) go = 0;
 			break;
 
-		case VO_START_CODE:
+		case VOS_START_CODE:
 		case VOL_START_CODE:
+			if (hasVOP) 
+				go = 0;
+			break;
+
+		case VO_START_CODE:
 		default:
 			break;
 

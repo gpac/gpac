@@ -143,7 +143,7 @@ static void MP4T_RecomputeBitRate(GF_ISOFile *file, u32 track)
 
 static void get_video_timing(Double fps, u32 *timescale, u32 *dts_inc)
 {
-	u32 fps_1000 = (u32) (fps*1000);
+	u32 fps_1000 = (u32) (fps*1000 + 0.5);
 	/*handle all drop-frame formats*/
 	if (fps_1000==29970) {
 		*timescale = 30000;
@@ -1053,7 +1053,7 @@ GF_Err gf_import_avi_video(GF_MediaImporter *import)
 			e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name: NULL, NULL, &di);
 			if (e) goto exit;
 			gf_isom_set_visual_info(import->dest, track, di, dsi.width, dsi.height);
-			gf_import_message(import, GF_OK, "AVI %s video import - %d x %d @ %.2f FPS - %d Frames\nIndicated Profile: %s", comp, dsi.width, dsi.height, FPS, num_samples, gf_m4v_get_profile_name((u8) PL));
+			gf_import_message(import, GF_OK, "AVI %s video import - %d x %d @ %02.4f FPS - %d Frames\nIndicated Profile: %s", comp, dsi.width, dsi.height, FPS, num_samples, gf_m4v_get_profile_name((u8) PL));
 
 			gf_media_update_par(import->dest, track);
 		}
@@ -1654,7 +1654,7 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 	e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, NULL, NULL, &di);
 	if (e) goto exit;
 
-	gf_import_message(import, GF_OK, "%s Video import - Resolution %d x %d @ %g FPS", (mtype==0x6A) ? "MPEG-1" : "MPEG-2", w, h, FPS);
+	gf_import_message(import, GF_OK, "%s Video import - Resolution %d x %d @ %02.4f FPS", (mtype==0x6A) ? "MPEG-1" : "MPEG-2", w, h, FPS);
 	gf_isom_set_visual_info(import->dest, track, di, w, h);
 
 	gf_isom_set_cts_packing(import->dest, track, 1);
@@ -3406,7 +3406,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 					memcpy(slc->data, buffer, sizeof(char)*slc->size);
 					gf_list_add(avccfg->sequenceParameterSets, slc);
 					if (!idx) {
-						gf_import_message(import, GF_OK, "AVC-H264 import - frame size %d x %d at %.3f FPS", avc.sps[idx].width, avc.sps[idx].height, FPS);
+						gf_import_message(import, GF_OK, "AVC-H264 import - frame size %d x %d at %02.4f FPS", avc.sps[idx].width, avc.sps[idx].height, FPS);
 					}
 					if ((max_w <= avc.sps[idx].width) && (max_h <= avc.sps[idx].height)) {
 						max_w = avc.sps[idx].width;
@@ -3909,7 +3909,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 			if (import->video_fps) FPS = import->video_fps;
 			num_headers = 0;
 
-			gf_import_message(import, GF_OK, "OGG Theora import - %.3f FPS - Resolution %d x %d", FPS, w, h);
+			gf_import_message(import, GF_OK, "OGG Theora import - %2.4f FPS - Resolution %d x %d", FPS, w, h);
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			continue;
 		}

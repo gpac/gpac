@@ -183,6 +183,9 @@ static char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32
 					szLineConv[j] = szLine[i]; i++; j++;
 					szLineConv[j] = szLine[i]; i++; j++; 
 					szLineConv[j] = szLine[i]; i++; j++; 
+				} else {
+					i+=1;
+					continue;
 				}
 			}
 			szLineConv[j] = szLine[i];

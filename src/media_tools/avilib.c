@@ -300,6 +300,7 @@ static int avi_init_super_index(avi_t *AVI, unsigned char *idxtag, avisuperindex
 	sil->stdindex[k] = malloc (sizeof (avistdindex_chunk));
 	// gets rewritten later
 	sil->stdindex[k]->qwBaseOffset = (u64)k * NEW_RIFF_THRES;
+	sil->stdindex[k]->aIndex = NULL;
     }
 
     *si = sil;
@@ -1716,7 +1717,15 @@ int AVI_close(avi_t *AVI)
    if(AVI->video_index) free(AVI->video_index);
    if(AVI->video_superindex) {
        if(AVI->video_superindex->aIndex) free(AVI->video_superindex->aIndex);
-       free(AVI->video_superindex);
+	   if (AVI->video_superindex->stdindex) {
+		   for (j=0; j < NR_IXNN_CHUNKS; j++) {
+			   if (AVI->video_superindex->stdindex[j]->aIndex)
+				   free(AVI->video_superindex->stdindex[j]->aIndex);
+			   free(AVI->video_superindex->stdindex[j]);
+		   }
+		   free(AVI->video_superindex->stdindex);
+	   }
+	   free(AVI->video_superindex);
    }
 
    for (j=0; j<AVI->anum; j++) 
