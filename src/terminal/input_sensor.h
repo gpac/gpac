@@ -76,9 +76,6 @@ typedef struct
 {
 	/*stream context*/
 	u16 ES_ID;
-
-	MFURL url;
-
 	Bool registered;
 	GF_MediaObject *is_mo;
 	M_InputSensor *is;

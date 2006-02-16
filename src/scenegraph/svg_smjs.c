@@ -365,7 +365,7 @@ static JSBool doc_create_element(JSContext *c, JSObject *obj, uintN argc, jsval 
 	inNS = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 	eltName = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
 
-	tag = gf_svg_get_tag_by_name(eltName);
+	tag = gf_node_svg_type_by_class_name(eltName);
 	if (!tag) return JS_FALSE;
 	n = (GF_Node *) gf_svg_new_node(sg, tag);
 	*rval = OBJECT_TO_JSVAL(svg_elt_construct(c, n));
@@ -639,9 +639,15 @@ static JSBool svg_elt_set_attr(JSContext *c, JSObject *obj, uintN argc, jsval *a
 		}
 		offset = 1;
 	}
-	if (!JSVAL_IS_STRING(argv[offset]) || !JSVAL_IS_STRING(argv[offset+1])) return JS_FALSE;
+	if (!JSVAL_IS_STRING(argv[offset])) return JS_FALSE;
 	attName = JS_GetStringBytes(JSVAL_TO_STRING(argv[offset]));
-	attValue = JS_GetStringBytes(JSVAL_TO_STRING(argv[offset+1]));
+
+	if (!JSVAL_IS_STRING(argv[offset+1])) {
+		/*non-uDOM*/
+		attValue = JS_GetStringBytes(JS_ValueToString(c, argv[offset+1]));
+	} else {
+		attValue = JS_GetStringBytes(JSVAL_TO_STRING(argv[offset+1]));
+	}
 
 	*rval = JSVAL_VOID;
 	if (gf_node_get_field_by_name((GF_Node *)elt, attName, &info) == GF_OK) {

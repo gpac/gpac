@@ -353,7 +353,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 	DeferedAnimation *anim = NULL;
 
 	/* Translates the node type (called name) from a String into a unique numeric identifier in GPAC */
-	tag = gf_svg_get_tag_by_name(name);
+	tag = gf_node_svg_type_by_class_name(name);
 	if (tag == TAG_UndefinedNode) {
 		parser->last_error = GF_SG_UNKNOWN_NODE;
 		return NULL;
@@ -838,7 +838,7 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 		}
 	}
 	/*only remove created nodes ... */
-	if (gf_svg_get_tag_by_name(name) != TAG_UndefinedNode) {
+	if (gf_node_svg_type_by_class_name(name) != TAG_UndefinedNode) {
 		const char *the_name;
 		/*check node name...*/
 		the_name = gf_node_get_class_name(node);

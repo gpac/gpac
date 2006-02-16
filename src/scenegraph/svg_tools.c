@@ -224,48 +224,51 @@ SVGhandlerElement *gf_sg_dom_create_listener(GF_Node *node, XMLEV_Event event)
 }
 
 
-static void gf_smil_handle_event(GF_Node *anim, GF_List *l, GF_DOM_Event *evt, Bool is_end)
+static void gf_smil_handle_event(GF_Node *anim, GF_FieldInfo *info, GF_DOM_Event *evt, Bool is_end)
 {
 	void gf_smil_timing_end_notif(SMIL_Timing_RTI *rti, Double clock);
 	SVGElement *anim_t = (SVGElement *)anim;
 	SMIL_Time *resolved, *proto;
+	Double scene_time = gf_node_get_scene_time(evt->target);
+	GF_List *times = *(GF_List **)info->far_ptr;
 	u32 found = 0;
-	u32 i, j, count = gf_list_count(l);
+	u32 i, j, count = gf_list_count(times);
 
-	/*remove all previously instantiated times?? TODO move this chack to SMIL anim module*/
+	/*remove all previously instantiated times that are in the past
+	TODO FIXME: this is not 100% correct, a begin val in the past can be interpreted!!*/
 	for (i=0; i<count; i++) {
-		proto = gf_list_get(l, i);
-		if (proto->dynamic_type == 2) {
+		proto = gf_list_get(times, i);
+		if ((proto->dynamic_type == 2) && (proto->clock<scene_time) ) {
 			free(proto);
-			gf_list_rem(l, i);
+			gf_list_rem(times, i);
 			i--;
 			count--;
 		}
 	}
+
 	for (i=0; i<count; i++) {
-		proto = gf_list_get(l, i);
+		proto = gf_list_get(times, i);
 		if (proto->dynamic_type!=1) continue;
 		if (proto->event.type != evt->type) continue;
 		if ((evt->type != SVG_DOM_EVT_KEYPRESS) || (proto->event.parameter==evt->detail)) {
 			/*solve*/
 			GF_SAFEALLOC(resolved, sizeof(SMIL_Time));
 			resolved->type = SMIL_TIME_CLOCK;
-			resolved->clock = gf_node_get_scene_time(evt->target) + proto->clock;
+			resolved->clock = scene_time + proto->clock;
 			resolved->dynamic_type=2;
+
+			/*insert in sorted order*/
 			for (j=0; j<count; j++) {
-				proto = gf_list_get(l, j);
+				proto = gf_list_get(times, j);
 				if (proto->dynamic_type==1) continue;
 				if (proto->clock > resolved->clock) break;
 			}
-			gf_list_insert(l, resolved, j);
-			if (is_end) gf_smil_timing_end_notif( ((SVGElement *)anim)->timing->runtime, resolved->clock);
-
+			gf_list_insert(times, resolved, j);
 			count++;
 			found++;
 		}
 	}
-	if (found) 
-		gf_node_changed(anim, NULL);
+	if (found) gf_node_changed(anim, info);
 }
 
 static void gf_smil_handle_event_begin(SVGhandlerElement *hdl, GF_DOM_Event *evt)
@@ -273,7 +276,7 @@ static void gf_smil_handle_event_begin(SVGhandlerElement *hdl, GF_DOM_Event *evt
 	GF_FieldInfo info;
 	GF_Node *anim = gf_node_get_private((GF_Node *)hdl);
 	gf_node_get_field_by_name(anim, "begin", &info);
-	gf_smil_handle_event(anim, *(GF_List **)info.far_ptr, evt, 0);
+	gf_smil_handle_event(anim, &info, evt, 0);
 }
 
 static void gf_smil_handle_event_end(SVGhandlerElement *hdl, GF_DOM_Event *evt)
@@ -281,7 +284,7 @@ static void gf_smil_handle_event_end(SVGhandlerElement *hdl, GF_DOM_Event *evt)
 	GF_FieldInfo info;
 	GF_Node *anim = gf_node_get_private((GF_Node *)hdl);
 	gf_node_get_field_by_name(anim, "end", &info);
-	gf_smil_handle_event(anim, *(GF_List **)info.far_ptr, evt, 1);
+	gf_smil_handle_event(anim, &info, evt, 1);
 }
 
 static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
@@ -344,6 +347,25 @@ Bool gf_sg_svg_node_init(GF_Node *node)
 		return (node->sgprivate->privateStack || node->sgprivate->RenderNode) ? 1 : 0;
 	/*SVG discard is handled through renderers for simplicity reasons*/
 	default:
+		return 0;
+	}
+	return 0;
+}
+
+Bool gf_sg_svg_node_changed(GF_Node *node, GF_FieldInfo *field)
+{
+	switch (node->sgprivate->tag) {
+	case TAG_SVG_animateMotion:
+	case TAG_SVG_set: 
+	case TAG_SVG_animate: 
+	case TAG_SVG_animateColor: 
+	case TAG_SVG_animateTransform: 
+		gf_smil_timing_modified(node, field);
+		return 1;
+	case TAG_SVG_audio: 
+	case TAG_SVG_video: 
+		gf_smil_timing_modified(node, field);
+		/*used by renderers*/
 		return 0;
 	}
 	return 0;
@@ -436,7 +458,7 @@ void svg_reset_lsr_script(SVGCommandBuffer *script)
 
 #else
 /*these ones are only needed for W32 libgpac_dll build in order not to modify export def file*/
-u32 gf_svg_get_tag_by_name(const char *element_name)
+u32 gf_node_svg_type_by_class_name(const char *element_name)
 {
 	return 0;
 }

@@ -89,7 +89,8 @@ struct __gf_download_session
 	char *mime_type;
 	u32 flags;
 
-	u32 total_size, bytes_done, bytes_per_sec, start_time, icy_metaint, icy_count, icy_bytes;
+	u32 total_size, bytes_done, start_time, icy_metaint, icy_count, icy_bytes;
+	u32 bytes_per_sec, window_start, bytes_in_wnd;
 
 	u32 limit_data_rate;
 
@@ -734,7 +735,10 @@ void gf_dm_del(GF_DownloadManager *dm)
 
 static GFINLINE void gf_dm_data_recieved(GF_DownloadSession *sess, char *data, u32 nbBytes)
 {
-	u32 runtime;
+	u32 runtime, rcv;
+	
+	rcv = nbBytes;
+
 	if (! (sess->flags & GF_DOWNLOAD_SESSION_NOT_CACHED)) {
 		if (sess->cache) {
 			fwrite(data, nbBytes, 1, sess->cache);
@@ -790,11 +794,18 @@ static GFINLINE void gf_dm_data_recieved(GF_DownloadSession *sess, char *data, u
 		return;
 	}
 	/*update state if not done*/
-	runtime = gf_sys_clock() - sess->start_time;
-	if (!runtime) {
-		sess->bytes_per_sec = 0;
-	} else {
-		sess->bytes_per_sec = (1000 * (sess->bytes_done - sess->cache_start_size)) / runtime;
+	if (rcv) {
+		sess->bytes_in_wnd += rcv;
+		runtime = gf_sys_clock() - sess->window_start;
+		if (!runtime) {
+			sess->bytes_per_sec = 0;
+		} else {
+			sess->bytes_per_sec = (1000 * (sess->bytes_in_wnd)) / runtime;
+			if (runtime>1000) {
+				sess->window_start += 500;
+				sess->bytes_in_wnd = sess->bytes_per_sec / 2;
+			}
+		}
 	}
 }
 
@@ -1162,7 +1173,7 @@ void http_do_requests(GF_DownloadSession *sess)
 		if (!ContentLength && sess->mime_type && strstr(sess->mime_type, "ogg")) is_ice = 1;
 
 		/*some servers may reply without content length, but we MUST have it*/
-		if (!is_ice && !ContentLength) e = GF_REMOTE_SERVICE_ERROR;
+//		if (!is_ice && !ContentLength) e = GF_REMOTE_SERVICE_ERROR;
 		if (e) goto exit;
 
 		/*force disabling cache (no content length)*/
@@ -1215,8 +1226,9 @@ void http_do_requests(GF_DownloadSession *sess)
 			sess->bytes_done = sess->cache_start_size;
 		}
 
-		sess->start_time = gf_sys_clock();
-		
+		sess->window_start = sess->start_time = gf_sys_clock();
+		sess->bytes_in_wnd = 0;
+
 
 		//we may have existing data in this buffer ...
 		if (!e && (BodyStart < (u32) bytesRead)) {
@@ -1245,14 +1257,21 @@ exit:
 		if (sess->limit_data_rate && sess->bytes_per_sec) {
 			if (sess->bytes_per_sec>sess->limit_data_rate) {
 				/*update state*/
-				u32 runtime = gf_sys_clock() - sess->start_time;
-				sess->bytes_per_sec = (1000 * (sess->bytes_done - sess->cache_start_size)) / runtime;
-				if (sess->bytes_per_sec>sess->limit_data_rate) return;
+				u32 runtime = gf_sys_clock() - sess->window_start;
+				sess->bytes_per_sec = (1000 * (sess->bytes_in_wnd)) / runtime;
+				if (sess->bytes_per_sec > sess->limit_data_rate) return;
 			}
 		}
 #endif
 		e = gf_dm_read_data(sess, sHTTP, GF_DOWNLOAD_BUFFER_SIZE, &size);
-		if (!size || e == GF_IP_NETWORK_EMPTY) return;
+		if (!size || e == GF_IP_NETWORK_EMPTY) {
+		
+			if (!sess->total_size && (gf_sys_clock() - sess->window_start > 1000)) {
+				sess->total_size = sess->bytes_done;
+				gf_dm_data_recieved(sess, NULL, 0);
+			}
+			return;
+		}
 
 		if (e) {
 			gf_dm_disconnect(sess);

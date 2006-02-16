@@ -1064,7 +1064,7 @@ typedef struct
  *************************************/
 
 /*the exported functions used by the scene graph*/
-u32			gf_svg_get_tag_by_name		(const char *element_name);
+u32			gf_node_svg_type_by_class_name		(const char *element_name);
 u32			gf_svg_get_attribute_count	(GF_Node *);
 GF_Err		gf_svg_get_attribute_info	(GF_Node *node, GF_FieldInfo *info);
 const char *gf_svg_get_element_name		(u32 tag);

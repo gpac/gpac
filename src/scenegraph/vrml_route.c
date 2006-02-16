@@ -250,7 +250,8 @@ void gf_node_event_out(GF_Node *node, u32 FieldIndex)
 
 		/*no postpone for IS routes*/
 		if (r->IS_route ) {
-			if (gf_sg_route_activate(r)) gf_node_changed(r->ToNode, &r->ToField);
+			if (gf_sg_route_activate(r)) 
+				gf_node_changed(r->ToNode, &r->ToField);
 		}
 		//queue
 		else {

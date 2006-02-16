@@ -520,11 +520,11 @@ void set_svg_progressive()
 {
 	use_svg_prog = !use_svg_prog;
 	if (use_svg_prog) {
-		gf_cfg_set_key(user.config, "SVGLoader", "LoadType", "SAX Progressive");
-		gf_cfg_set_key(user.config, "SVGLoader", "SAXMaxDuration", "30");
+		gf_cfg_set_key(user.config, "SAXLoader", "Progressive", "yes");
+		gf_cfg_set_key(user.config, "SAXLoader", "MaxDuration", "30");
 	} else {
-		gf_cfg_set_key(user.config, "SVGLoader", "SAXMaxDuration", "0");
-		gf_cfg_set_key(user.config, "SVGLoader", "LoadType", "DOM");
+		gf_cfg_set_key(user.config, "SAXLoader", "MaxDuration", "0");
+		gf_cfg_set_key(user.config, "SAXLoader", "Progressive", "no");
 	}
 }
 
@@ -968,8 +968,8 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	str = gf_cfg_get_key(user.config, "Rendering", "RendererName");
 	use_3D_renderer = (str && strstr(str, "3D")) ? 1 : 0;
 
-	str = gf_cfg_get_key(user.config, "SVGLoader", "LoadType");
-	use_svg_prog = (str && strstr(str, "SAX Progressive")) ? 1 : 0;
+	str = gf_cfg_get_key(user.config, "SAXLoader", "Progressive");
+	use_svg_prog = (str && !strcmp(str, "yes")) ? 1 : 0;
 
 	if (InitInstance(nShowCmd)) {
 		SetForegroundWindow(g_hwnd);

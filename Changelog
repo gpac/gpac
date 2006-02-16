@@ -1,4 +1,6 @@
-Latest CVS Changes 10/02/06
+Latest CVS Changes 16/02/06
+  - added progressive loading support for XMT and X3D files.
+  - misc fixes in InputSensor handling.
   - misc fixes in SVG animation module (animation begin and end event, restarting of animations)
   - added 'define' support in BT - to use it just do:
      #define symbol blab labl a

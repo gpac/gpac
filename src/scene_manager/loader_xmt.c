@@ -39,6 +39,7 @@ typedef struct
 	u32 doc_type;
 	/*0: not init, 1: header, 2: body*/
 	u32 doc_state;
+	u32 current_node_tag;
 
 	GF_SceneLoader *load;
 	GF_Err last_error;
@@ -1307,12 +1308,12 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 	u32	tag, i, count, ID;
 	Bool register_def = 0;
 	Bool is_script = 0;
-	GF_Node *node, *undef_node;
+	GF_Node *node;
 	GF_FieldInfo container;
 	char *def_name;
 	GF_Proto *proto = NULL;
 
-	node = undef_node = NULL;
+	node = NULL;
 	if (!strcmp(name, "NULL")) return NULL;
 	if (!strcmp(name, "ROUTE")) {
 		if (!parser->parsing_proto && (parser->doc_type==1) ) {
@@ -1501,9 +1502,12 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 		return NULL;
 	}
 	
+	ID = 0;
+	def_name = NULL;
 	tag = 0;
+	count = gf_list_count(attrs);
+
 	if (!strcmp(name, "ProtoInstance")) {
-		count = gf_list_count(attrs);
 		for (i=0; i<count; i++) {
 			GF_SAXAttribute *att = gf_list_get(attrs, i);
 			if (!att->value || !strlen(att->value)) continue;
@@ -1522,7 +1526,18 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 				node = gf_sg_proto_create_instance(parser->load->scene_graph, proto);
 				free(att->value);
 				att->value = NULL;
-				break;
+			}
+			else if (!strcmp(att->name, "USE")) {
+				node = xmt_find_node(parser, att->value);
+				e = GF_OK;
+				if (!node) 
+					e = xmt_report(parser, GF_BAD_PARAM, "Warning: Cannot find node %s referenced in USE - skipping", att->value);
+
+				if (e) return NULL;
+				ID = 0;
+				register_def = 0;
+				tag = 0;
+				count = 0;
 			}
 		}
 	} else {
@@ -1559,49 +1574,62 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			return NULL;
 		}
 	}
-	ID = 0;
-	def_name = NULL;
-	undef_node = NULL;
+
+	parser->current_node_tag = tag;
+
 	if (parent) container = parent->container_field;
 	else { 
 		container.far_ptr = NULL;
 		container.fieldIndex = 0;
 		container.fieldType = 0;
 	}
-	count = gf_list_count(attrs);
+
 	for (i=0; i<count; i++) {
 		GF_SAXAttribute *att = gf_list_get(attrs, i);
 		if (!att->value || !strlen(att->value)) continue;
 
 		if (!strcmp(att->name, "DEF")) {
+			GF_Node *undef_node = gf_sg_find_node_by_name(parser->load->scene_graph, att->value);
 			register_def = 1;
-			undef_node = gf_sg_find_node_by_name(parser->load->scene_graph, att->value);
 			if (undef_node) {
 				gf_list_del_item(parser->peeked_nodes, undef_node);
 				ID = undef_node->sgprivate->NodeID;
 				/*if we see twice a DEF N1 then force creation of a new node*/
 				if (xmt_has_been_def(parser, att->value)) {
-					undef_node = NULL;
 					ID = xmt_get_node_id(parser, att->value);
 					xmt_report(parser, GF_OK, "Warning: Node %s has been defined several times - IDs may get corrupted", att->value);
+				} else {
+					gf_node_register(node, NULL);
+					gf_node_unregister(node, NULL);
+					node = undef_node;
+					ID = 0;
 				}
 			} else {
 				ID = xmt_get_node_id(parser, att->value);
+
 			}
 			def_name = att->value;
 		}
 		/*USE node*/
 		else if (!strcmp(att->name, "USE")) {
-			GF_Node *def_node = xmt_find_node(parser, att->value);
+			GF_Err e;
+			GF_Node *def_node;
+
+			def_node = xmt_find_node(parser, att->value);
+
+			e = GF_OK;
+			if (!def_node) 
+				e = xmt_report(parser, GF_BAD_PARAM, "Warning: Cannot find node %s referenced in USE - skipping", att->value);
+			else if (tag != gf_node_get_tag(def_node)) {
+				xmt_report(parser, GF_OK, "Warning: Node type %s doesn't match type %s of node %s", gf_node_get_class_name(node), gf_node_get_class_name(def_node), att->value);
+			}
 
 			/*DESTROY NODE*/
 			gf_node_register(node, NULL);
 			gf_node_unregister(node, NULL);
 
-			if (!def_node) {
-				xmt_report(parser, GF_BAD_PARAM, "Warning: Cannot find node %s referenced in USE - skipping", att->value);
-				return NULL;
-			}
+			if (e) return NULL;
+
 			node = def_node;
 			ID = 0;
 			register_def = 0;
@@ -1635,10 +1663,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 	if (!parser->parsing_proto) xmt_update_timenode(parser, node);
 
 	if (register_def) gf_list_add(parser->def_nodes, node);
-	if (ID) {
-		gf_node_set_id(node, ID, def_name);
-		if (undef_node) gf_node_replace(undef_node, node, 0);
-	}
+	if (ID) gf_node_set_id(node, ID, def_name);
 
 	if (is_script) {
 		u32 last_field = gf_node_get_field_count(parent->node);
@@ -2222,6 +2247,11 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 	XMTNodeStack *top, *new_top;
 	GF_XMTParser *parser = sax_cbck;
 
+	if (parser->last_error) {
+		gf_xml_sax_suspend(parser->sax_parser, 1);
+		return;
+	}
+
 	/*init doc type*/
 	if (!parser->doc_type) {
 		if (!strcmp(name, "XMT-A")) parser->doc_type = 1;
@@ -2532,6 +2562,10 @@ attach_node:
 						gf_node_register(node, NULL);
 					}
 				}
+			}
+			/*special case: replace scene has already been applied (progressive loading)*/
+			else if ((parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) && (parser->load->scene_graph->RootNode!=node) ) {
+				gf_node_register(node, NULL);
 			} else {
 				xmt_report(parser, GF_OK, "Warning: node %s defined outside scene scope - skipping", name);
 				gf_node_register(node, NULL);
@@ -2559,6 +2593,11 @@ attach_node:
 				}
 			}
 		}
+	} else if (parser->current_node_tag==tag) {
+		gf_list_rem_last(parser->nodes);
+		free(top);
+	} else {
+		xmt_report(parser, GF_OK, "Warning: closing element %s doesn't match created node %s", name, gf_node_get_class_name(top->node) );
 	}
 }
 

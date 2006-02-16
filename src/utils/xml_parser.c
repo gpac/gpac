@@ -1316,7 +1316,7 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 	unsigned char szLine[1024];
 	if (!parser->gz_in) return GF_BAD_PARAM;
 
-	while (!gzeof(parser->gz_in)) {
+	while (!gzeof(parser->gz_in) && !parser->suspended) {
 		u32 read = gzread(parser->gz_in, szLine, 1023);
 		szLine[read] = 0;
 		e = gf_xml_sax_parse(parser, szLine);

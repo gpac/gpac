@@ -39,9 +39,14 @@ typedef struct
 	u32 load_flags;
 	u32 nb_streams;
 	u32 base_stream_id;
+	u32 last_check_time, last_check_size;
 	/*mp3 import from flash*/
 	GF_List *files_to_delete;
 	GF_SceneLoader load;
+	/*progressive loading support for XMT X3D*/
+	FILE *src;
+	u32 file_pos, sax_max_duration;
+	Bool progressive_support;
 } CTXLoadPriv;
 
 
@@ -101,49 +106,65 @@ void CTXLoad_OnReverseActivate(GF_Node *node)
 	CTXLoadPriv *priv = (CTXLoadPriv *) gf_node_get_private(node);
 	M_Conditional*c = (M_Conditional*)node;
 	/*always apply in parent graph to handle protos correctly*/
-	if (!c->reverseActivate) gf_sg_command_apply_list(gf_node_get_graph(node), c->buffer.commandList, gf_is_get_time(priv->inline_scene));
+	if (!c->reverseActivate) 
+		gf_sg_command_apply_list(gf_node_get_graph(node), c->buffer.commandList, gf_is_get_time(priv->inline_scene));
 }
 
 void CTXLoad_NodeInit(void *cbk, GF_Node *node)
 {
 	CTXLoadPriv *priv = (CTXLoadPriv *) cbk;
 	if (gf_node_get_tag(node) == TAG_MPEG4_Conditional) {
-		((M_Conditional*)node)->on_activate = CTXLoad_OnActivate;
-		((M_Conditional*)node)->on_reverseActivate = CTXLoad_OnReverseActivate;
+		M_Conditional*c = (M_Conditional*)node;
+		c->on_activate = CTXLoad_OnActivate;
+		c->on_reverseActivate = CTXLoad_OnReverseActivate;
 		gf_node_set_private(node, priv);
 	} else {
 		gf_term_on_node_init(priv->inline_scene, node);
 	}
 }
 
-static GF_Err CTXLoad_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_scene_decoder)
-{
-	CTXLoadPriv *priv = plug->privateStack;
-	if (priv->ctx) return GF_BAD_PARAM;
-
-	priv->inline_scene = scene;
-	priv->app = scene->root_od->term;
-
-	gf_sg_set_init_callback(scene->graph, CTXLoad_NodeInit, priv);
-	return GF_OK;
-}
-
-static GF_Err CTXLoad_ReleaseScene(GF_SceneDecoder *plug)
-{
-	CTXLoad_Reset((CTXLoadPriv *) plug->privateStack);
-	return GF_OK;
-}
-
 static Bool CTXLoad_CheckDownload(CTXLoadPriv *priv)
 {
 	u32 size;
-	FILE *f = fopen(priv->file_name, "rt");
+	FILE *f;
+	u32 now = gf_sys_clock();
+
+	if (!priv->file_size && (now - priv->last_check_time < 1000) ) return 0;
+
+	f = fopen(priv->file_name, "rt");
 	fseek(f, 0, SEEK_END);
 	size = ftell(f);
 	fclose(f);
-	if (size==priv->file_size) return 1;
+
+	/*we MUST have a complete file for now ...*/
+	if (!priv->file_size) {
+		if (priv->last_check_size == size) return 1;
+		priv->last_check_size = size;
+		priv->last_check_time = now;
+	} else {
+		if (size==priv->file_size) return 1;
+	}
 	return 0;
 }
+
+static void CTXLoad_OnMessage(void *cbk, char *szMsg, GF_Err e)
+{
+	CTXLoadPriv *priv = (CTXLoadPriv *)cbk;
+	gf_term_message(priv->inline_scene->root_od->term, priv->inline_scene->root_od->net_service->url, szMsg, e);
+}
+
+static void CTXLoad_OnProgress(void *cbk, u32 done, u32 tot)
+{
+	GF_Event evt;
+	CTXLoadPriv *priv = (CTXLoadPriv *)cbk;
+	evt.type = GF_EVT_PROGRESS;
+	evt.progress.progress_type = 2;
+	evt.progress.done = done;
+	evt.progress.total = tot;
+	evt.progress.service = priv->inline_scene->root_od->net_service->url;
+	GF_USER_SENDEVENT(priv->inline_scene->root_od->term->user, &evt);
+}
+
 
 static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug, 
 									 u16 ES_ID, 
@@ -153,6 +174,7 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug,
 									 u32 objectTypeIndication, 
 									 Bool Upstream)
 {
+	const char *ext;
 	GF_BitStream *bs;
 	CTXLoadPriv *priv = plug->privateStack;
 	if (Upstream) return GF_NOT_SUPPORTED;
@@ -179,6 +201,37 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug,
 	priv->nb_streams = 1;
 	priv->load_flags = 0;
 	priv->base_stream_id = ES_ID;
+
+	
+	priv->ctx = gf_sm_new(priv->inline_scene->graph);
+	memset(&priv->load, 0, sizeof(GF_SceneLoader));
+	priv->load.ctx = priv->ctx;
+	priv->load.cbk = priv;
+	priv->load.scene_graph = priv->inline_scene->graph;
+	priv->load.fileName = priv->file_name;
+	priv->load.OnMessage = CTXLoad_OnMessage;
+	priv->load.OnProgress = CTXLoad_OnProgress;
+	priv->load.flags = GF_SM_LOAD_FOR_PLAYBACK;
+	priv->load.localPath = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
+	priv->load.swf_import_flags = GF_SM_SWF_STATIC_DICT | GF_SM_SWF_QUAD_CURVE | GF_SM_SWF_SCALABLE_LINE;
+
+	priv->progressive_support = 0;
+	priv->sax_max_duration = 0;
+
+	ext = strrchr(priv->file_name, '.');
+	if (!ext) return GF_OK;
+
+	ext++;
+	if (!stricmp(ext, "xmt") || !stricmp(ext, "xmtz") || !stricmp(ext, "xmta") 
+		|| !stricmp(ext, "x3d") || !stricmp(ext, "x3dz")
+	) {
+		ext = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "Progressive");
+		priv->progressive_support = (ext && !stricmp(ext, "yes")) ? 1 : 0;
+	}
+	if (priv->progressive_support) {
+		ext = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "MaxDuration");
+		if (ext) priv->sax_max_duration = atoi(ext);
+	}
 	return GF_OK;
 }
 
@@ -186,6 +239,25 @@ static GF_Err CTXLoad_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 {
 	CTXLoadPriv *priv = plug->privateStack;
 	priv->nb_streams --;
+	return GF_OK;
+}
+
+static GF_Err CTXLoad_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_scene_decoder)
+{
+	CTXLoadPriv *priv = plug->privateStack;
+	if (priv->ctx) return GF_BAD_PARAM;
+
+	priv->inline_scene = scene;
+	priv->app = scene->root_od->term;
+
+	gf_sg_set_init_callback(scene->graph, CTXLoad_NodeInit, priv);
+
+	return GF_OK;
+}
+
+static GF_Err CTXLoad_ReleaseScene(GF_SceneDecoder *plug)
+{
+	CTXLoad_Reset((CTXLoadPriv *) plug->privateStack);
 	return GF_OK;
 }
 
@@ -204,23 +276,6 @@ static Bool CTXLoad_StreamInRootOD(GF_ObjectDescriptor *od, u32 ESID)
 	return 0;
 }
 
-static void CTXLoad_OnMessage(void *cbk, char *szMsg, GF_Err e)
-{
-	CTXLoadPriv *priv = (CTXLoadPriv *)cbk;
-	gf_term_message(priv->inline_scene->root_od->term, priv->inline_scene->root_od->net_service->url, szMsg, e);
-}
-
-static void CTXLoad_OnProgress(void *cbk, u32 done, u32 tot)
-{
-	GF_Event evt;
-	CTXLoadPriv *priv = (CTXLoadPriv *)cbk;
-	evt.type = GF_EVT_PROGRESS;
-	evt.progress.progress_type = 2;
-	evt.progress.done = done;
-	evt.progress.total = tot;
-	evt.progress.service = priv->inline_scene->root_od->net_service->url;
-	GF_USER_SENDEVENT(priv->inline_scene->root_od->term->user, &evt);
-}
 
 static GF_SceneGraph *CTXLoad_GetProtoLib(void *cbk, MFURL *lib_url)
 {
@@ -239,12 +294,35 @@ Double CTXLoad_GetVRMLTime(void *cbk)
 	return res;
 }
 
+static void CTXLoad_CheckStreams(CTXLoadPriv *priv )
+{
+	u32 i, j, max_dur;
+	GF_AUContext *au;
+	GF_StreamContext *sc;
+	max_dur = 0;
+	i=0;
+	while ((sc = gf_list_enum(priv->ctx->streams, &i))) {
+		/*all streams in root OD are handled with ESID 0 to differentiate with any animation streams*/
+		if (CTXLoad_StreamInRootOD(priv->ctx->root_od, sc->ESID)) sc->ESID = 0;
+		if (!sc->timeScale) sc->timeScale = 1000;
+
+		j=0;
+		while ((au = gf_list_enum(sc->AUs, &j))) {
+			if (!au->timing) au->timing = (u64) (sc->timeScale*au->timing_sec);
+		}
+		if (au && !sc->ESID && (au->timing>max_dur)) max_dur = (u32) (au->timing * 1000 / sc->timeScale);
+	}
+	if (max_dur) {
+		priv->inline_scene->root_od->duration = max_dur;
+		gf_is_set_duration(priv->inline_scene);
+	}
+}
 
 static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
-	u32 i, j, k, nb_updates, max_dur;
+	u32 i, j, k, nb_updates;
 	GF_AUContext *au;
 	Bool can_delete_com;
 	GF_StreamContext *sc;
@@ -257,23 +335,55 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 	assert(ES_ID);
 
 	if (priv->load_flags != 2) {
+
+		if (priv->progressive_support) {
+			u32 entry_time;
+			char file_buf[4096+1];
+			if (!priv->src) {
+				priv->src = fopen(priv->file_name, "rb");
+				if (!priv->src) return GF_URL_ERROR;
+				priv->file_pos = 0;
+			}
+			priv->load.type = GF_SM_LOAD_XMTA;
+			e = GF_OK;
+			entry_time = gf_sys_clock();
+			fseek(priv->src, priv->file_pos, SEEK_SET);
+			while (1) {
+				u32 diff, nb_read;
+				nb_read = fread(file_buf, 1, 4096, priv->src);
+				file_buf[nb_read] = 0;
+				if (!nb_read) {
+					if (priv->file_pos==priv->file_size) {
+						CTXLoad_OnProgress(priv, priv->file_pos, priv->file_size);
+						fclose(priv->src);
+						priv->src = NULL;
+						priv->load_flags = 2;
+						gf_sm_load_done(&priv->load);
+						break;
+					}
+					break;
+				}
+
+				e = gf_sm_load_string(&priv->load, file_buf);
+				priv->file_pos += nb_read;
+				if (e) break;
+				diff = gf_sys_clock() - entry_time;
+				CTXLoad_OnProgress(priv, priv->file_pos, priv->file_size);
+				if (diff > priv->sax_max_duration) break;
+			}
+			if (!priv->inline_scene->graph_attached) {
+				gf_sg_set_scene_size_info(priv->inline_scene->graph, priv->ctx->scene_width, priv->ctx->scene_height, priv->ctx->is_pixel_metrics);
+				gf_is_attach_to_renderer(priv->inline_scene);
+
+				CTXLoad_CheckStreams(priv);
+			}
+		}
 		/*load first frame only*/
-		if (!priv->load_flags) {
+		else if (!priv->load_flags) {
 			/*we need the whole file*/
-			if (! CTXLoad_CheckDownload(priv)) return GF_OK;
+			if (!CTXLoad_CheckDownload(priv)) return GF_OK;
 
 			priv->load_flags = 1;
-			priv->ctx = gf_sm_new(priv->inline_scene->graph);
-			memset(&priv->load, 0, sizeof(GF_SceneLoader));
-			priv->load.ctx = priv->ctx;
-			priv->load.cbk = priv;
-			priv->load.scene_graph = priv->inline_scene->graph;
-			priv->load.fileName = priv->file_name;
-			priv->load.OnMessage = CTXLoad_OnMessage;
-			priv->load.OnProgress = CTXLoad_OnProgress;
-			priv->load.flags = GF_SM_LOAD_FOR_PLAYBACK;
-			priv->load.localPath = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
-			priv->load.swf_import_flags = GF_SM_SWF_STATIC_DICT | GF_SM_SWF_QUAD_CURVE | GF_SM_SWF_SCALABLE_LINE;
 			e = gf_sm_load_init(&priv->load);
 			if (!e) {
 				gf_sg_set_scene_size_info(priv->inline_scene->graph, priv->ctx->scene_width, priv->ctx->scene_height, priv->ctx->is_pixel_metrics);
@@ -300,23 +410,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 
 		/*and figure out duration of root scene, and take care of XMT timing*/
 		if (priv->load_flags==2) {
-			max_dur = 0;
-			i=0;
-			while ((sc = gf_list_enum(priv->ctx->streams, &i))) {
-				/*all streams in root OD are handled with ESID 0 to differentiate with any animation streams*/
-				if (CTXLoad_StreamInRootOD(priv->ctx->root_od, sc->ESID)) sc->ESID = 0;
-				if (!sc->timeScale) sc->timeScale = 1000;
-
-				j=0;
-				while ((au = gf_list_enum(sc->AUs, &j))) {
-					if (!au->timing) au->timing = (u64) (sc->timeScale*au->timing_sec);
-				}
-				if (au && !sc->ESID && (au->timing>max_dur)) max_dur = (u32) (au->timing * 1000 / sc->timeScale);
-			}
-			if (max_dur) {
-				priv->inline_scene->root_od->duration = max_dur;
-				gf_is_set_duration(priv->inline_scene);
-			}
+			CTXLoad_CheckStreams(priv);
 			if (!gf_list_count(priv->ctx->streams)) {
 				gf_is_attach_to_renderer(priv->inline_scene);
 			}
@@ -353,7 +447,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 			u32 au_time = (u32) (au->timing*1000/sc->timeScale);
 			if (au_time + 1 <= sc->last_au_time) {
 				/*remove first replace command*/
-				if (!sc->ESID && (sc->streamType==GF_STREAM_SCENE)) {
+				if (can_delete_com && (sc->streamType==GF_STREAM_SCENE)) {
 					while (gf_list_count(au->commands)) {
 						GF_Command *com = gf_list_get(au->commands, 0);
 						gf_list_rem(au->commands, 0);

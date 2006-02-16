@@ -152,14 +152,17 @@ void gf_smil_timing_end_notif(SMIL_Timing_RTI *rti, Double clock)
 	}
 }
 
-static void gf_smil_timing_add_new_interval(SMIL_Timing_RTI *rti, Double begin, u32 index)
+static void gf_smil_timing_add_new_interval(SMIL_Timing_RTI *rti, SMIL_Interval *interval, Double begin, u32 index)
 {
 	u32 j, end_count;
-	SMIL_Interval *interval;
 	SMIL_Time *end;
 
-	GF_SAFEALLOC(interval, sizeof(SMIL_Interval));
-	interval->begin = begin;
+
+	if (!interval) {
+		GF_SAFEALLOC(interval, sizeof(SMIL_Interval));
+		interval->begin = begin;
+		gf_list_add(rti->intervals, interval);
+	}
 
 	end_count = gf_list_count(rti->timed_elt->timing->end);
 	/* trying to find a matching end */
@@ -182,8 +185,6 @@ static void gf_smil_timing_add_new_interval(SMIL_Timing_RTI *rti, Double begin, 
 		interval->end = -1;
 	}
 	gf_smil_timing_compute_active_duration(rti, interval);
-	
-	gf_list_add(rti->intervals, interval);
 }
 
 /* assumes that the list of time values is sorted */
@@ -205,13 +206,13 @@ static void gf_smil_timing_init_interval_list(SMIL_Timing_RTI *rti)
 			begin = gf_list_get(rti->timed_elt->timing->begin, i);
 			if (begin->type < SMIL_TIME_EVENT) {
 				/* we create an acceptable only if begin is unspecified or defined (clock or wallclock) */
-				gf_smil_timing_add_new_interval(rti, begin->clock, i);
+				gf_smil_timing_add_new_interval(rti, NULL, begin->clock, i);
 			} else {
 				/* this is not an acceptable value for a begin */
 			}
 		} 
 	} else {
-		gf_smil_timing_add_new_interval(rti, 0, 0);
+		gf_smil_timing_add_new_interval(rti, NULL, 0, 0);
 	}
 }
 
@@ -223,22 +224,19 @@ static void gf_smil_timing_refresh_interval_list(SMIL_Timing_RTI *rti)
 
 	count = gf_list_count(rti->timed_elt->timing->begin);
 	for (i = 0; i < count; i ++) {
-		Bool found = 0;
+		SMIL_Interval *existing_interval = NULL;
 		begin = gf_list_get(rti->timed_elt->timing->begin, i);
 		/* this is not an acceptable value for a begin */
 		if (begin->type >= SMIL_TIME_EVENT) continue;
 
 		count2 = gf_list_count(rti->intervals);
 		for (j=0; j<count2; j++) {
-			SMIL_Interval *interval = gf_list_get(rti->intervals, j);
-			if (interval->begin==begin->clock) {
-				found = 1;
-				break;
-			}
+			existing_interval = gf_list_get(rti->intervals, j);
+			if (existing_interval->begin==begin->clock) break;
+			existing_interval = NULL;
 		}
 		/* we create an acceptable only if begin is unspecified or defined (clock or wallclock) */
-		if (!found) 
-			gf_smil_timing_add_new_interval(rti, begin->clock, i);
+		gf_smil_timing_add_new_interval(rti, existing_interval, begin->clock, i);
 	}
 }
 
@@ -350,11 +348,6 @@ post_active:
 		if (rti->timed_elt->timing->restart != SMIL_RESTART_NEVER) { /* Check changes in begin or end attributes */
 			s32 interval_index;
 
-			if (gf_node_dirty_get((GF_Node *)rti->timed_elt)) {
-				gf_smil_timing_refresh_interval_list(rti);
-				gf_node_dirty_set((GF_Node *)rti->timed_elt, 0, 0);
-			}
-
 			interval_index = gf_smil_timing_find_interval_index(rti, scene_time);
 			if (interval_index >= 0 && interval_index != rti->current_interval_index) {
 				/* intervals are different, use the new one */
@@ -387,19 +380,15 @@ Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double sce
 	return normalizedSimpleTime;
 }
 
-void gf_smil_timing_modified(GF_Node *node)
+void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 {
 	SVGElement *e = (SVGElement *)node;
 	SMIL_Timing_RTI *rti;
 	
-	if (!e->timing) return;
+	if (!field || !e->timing) return;
 	rti = e->timing->runtime;
 	if (!rti) return;
 
-	rti->status = SMIL_STATUS_STARTUP;
-	while (gf_list_count(rti->intervals) > 0) {
-		SMIL_Interval *interval = gf_list_get(rti->intervals, 0);
-		gf_list_rem(rti->intervals, 0);
-		free(interval);
-	}
+	/*recompute interval list*/
+	gf_smil_timing_refresh_interval_list(rti);
 }

@@ -24,6 +24,7 @@
 
 #include <gpac/scene_manager.h>
 #include <gpac/nodes_x3d.h>
+#include <gpac/nodes_svg.h>
 #include <gpac/internal/bifs_dev.h>
 #include <gpac/constants.h>
 #include <gpac/avparse.h>
@@ -377,7 +378,7 @@ void PrintNodeSFField(u32 type, void *far_ptr)
 		break;
 	}
 }
-void PrintNode(const char *name, Bool x3d_node)
+void PrintNode(const char *name, u32 graph_type)
 {
 	const char *nname, *std_name;
 	GF_Node *node;
@@ -388,7 +389,10 @@ void PrintNode(const char *name, Bool x3d_node)
 	Fixed bmin, bmax;
 	u32 nbBits;
 
-	if (x3d_node) {
+	if (graph_type==2) {
+		tag = gf_node_svg_type_by_class_name(name);
+		std_name = "SVG";
+	} else if (graph_type==1) {
 		tag = gf_node_x3d_type_by_class_name(name);
 		std_name = "X3D";
 	} else {
@@ -414,6 +418,11 @@ void PrintNode(const char *name, Bool x3d_node)
 
 	for (i=0; i<nbF; i++) {
 		gf_node_get_field(node, i, &f);
+		if (graph_type==2) {
+			fprintf(stdout, "\t%s\n", f.name);
+			continue;
+		}
+
 		fprintf(stdout, "\t%s %s %s", gf_sg_vrml_get_event_type_name(f.eventType, 0), gf_sg_vrml_get_field_type_by_name(f.fieldType), f.name);
 		if (f.fieldType==GF_SG_VRML_SFNODE) fprintf(stdout, " NULL");
 		else if (f.fieldType==GF_SG_VRML_MFNODE) fprintf(stdout, " []");
@@ -454,23 +463,29 @@ void PrintNode(const char *name, Bool x3d_node)
 	gf_sg_del(sg);
 }
 
-void PrintBuiltInNodes(Bool x3d_node)
+void PrintBuiltInNodes(u32 graph_type)
 {
 	GF_Node *node;
 	GF_SceneGraph *sg;
 	u32 i, nb_in, nb_not_in, start_tag, end_tag;
 
-	if (x3d_node) {
+	if (graph_type==1) {
 		start_tag = GF_NODE_RANGE_FIRST_X3D;
 		end_tag = TAG_LastImplementedX3D;
+	} else if (graph_type==2) {
+		start_tag = GF_NODE_RANGE_FIRST_SVG;
+		end_tag = GF_NODE_RANGE_LAST_SVG;
 	} else {
 		start_tag = GF_NODE_RANGE_FIRST_MPEG4;
 		end_tag = TAG_LastImplementedMPEG4;
 	}
 	nb_in = nb_not_in = 0;
 	sg = gf_sg_new();
-	if (x3d_node) {
+	
+	if (graph_type==1) {
 		fprintf(stdout, "Available X3D nodes in this build (dumping):\n");
+	} else if (graph_type==2) {
+		fprintf(stdout, "Available SVG nodes in this build (dumping and LASeR coding):\n");
 	} else {
 		fprintf(stdout, "Available MPEG-4 nodes in this build (encoding/decoding/dumping):\n");
 	}
@@ -482,11 +497,17 @@ void PrintBuiltInNodes(Bool x3d_node)
 			gf_node_unregister(node, NULL);
 			nb_in++;
 		} else {
+			if (graph_type==2) 
+				break;
 			nb_not_in++;
 		}
 	}
 	gf_sg_del(sg);
-	fprintf(stdout, "\n%d nodes supported - %d nodes not supported\n", nb_in, nb_not_in);
+	if (graph_type==2) {
+		fprintf(stdout, "\n%d nodes supported\n", nb_in);
+	} else {
+		fprintf(stdout, "\n%d nodes supported - %d nodes not supported\n", nb_in, nb_not_in);
+	}
 }
 
 void dump_file_mp4(GF_ISOFile *file, char *inName)

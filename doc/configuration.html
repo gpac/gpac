@@ -11,9 +11,9 @@
 
 <P ALIGN="CENTER"><BR>
 <SPAN STYLE="Font-Size : 14pt"><FONT FACE="Times New Roman"><BR></FONT></SPAN>
-<B><SPAN STYLE="Font-Size : 24pt"><FONT FACE="Times New Roman">GPAC Configuration file documentation - version 0.4.0</FONT></SPAN></B>
+<B><SPAN STYLE="Font-Size : 24pt"><FONT FACE="Times New Roman">GPAC Configuration file documentation - version 0.4.1-DEV</FONT></SPAN></B>
 <BR>
-<SPAN STYLE="Font-Size : 18pt"><FONT FACE="Times New Roman">Last Modified July 2005</FONT></SPAN></B>
+<SPAN STYLE="Font-Size : 18pt"><FONT FACE="Times New Roman">Last Modified February 2006</FONT></SPAN></B>
 
 </P>
 
@@ -42,7 +42,7 @@
 <B><U><A HREF="#Streaming">Streaming</A></U></B>
 <B><U><A HREF="#MimeTypes">MimeTypes</A></U></B>
 <B><U><A HREF="#StreamingCache">StreamingCache</A></U></B>
-<B><U><A HREF="#SVGLoader">SVGLoader</A></U></B>
+<B><U><A HREF="#SAXLoader">SAXLoader</A></U></B>
 <B><U><A HREF="#WviD">XviD</A></U></B>
 <B><U><A HREF="#FFMPEG">FFMPEG</A></U></B>
 
@@ -79,12 +79,28 @@
 <DD>Specifies whether application messages (script, buffering, download progress) are displayed in the console or not.<BR>
 
 <BR>
-<B>Browser</B> [value: <I>string</I>]<BR>
-<DD>Specifies prefered browser for WWW anchors and scene graph viewing - Only used by Osmo4/wxWidgets.<BR>
+<B>SingleInstance</B> [value: <I>"yes", "no"</I>]<BR>
+<DD>Specifies if the player should be a single instance application or not (Osmo4-Win32 only).<BR>
 	
 <BR>
 <B>LookForSubtitles</B> [value: <I>"yes" "no"</I>]<BR>
 <DD>Specifies if Osmo4 shall look for subtitle files when opening a presentation.<BR>
+
+<BR>
+<B>ViewXMT</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies if scene dumping shall be done in XML (XMT, X3D) or in VRML-like syntax (BT, WRL).<BR>
+
+<BR>
+<B>ConfigPanel</B> [value: <I>positive integer</I>]<BR>
+<DD>Specifies the latest config panel selected by user.<BR>
+
+<BR>
+<B>NoMIMETypeFetch</B> [value: <I>"yes", "no"</I>]<BR>
+<DD>Specifies if the player has to check for mime type when following hyperlinks, or only follow links of known extensions.<BR>
+
+<BR>
+<B>Loop</B> [value: <I>"yes", "no"</I>]<BR>
+<DD>Specifies if the playlist shall be restarted when playback is over.<BR>
 
 <BR>
 <B>PLEntry</B> [value: <I>positive integer</I>]<BR>
@@ -92,6 +108,25 @@
 <DD><LI>"gpac_pl.m3u" on win32 platforms, stored in same directory as application</LI>
 <DD><LI>".gpac_pl.m3u" on other platforms, stored in user home directory</LI>
 <BR>	
+
+
+<BR>
+<B>FillScreen</B> [value: <I>"yes", "no"</I>]<BR>
+<DD>Specifies if the display area shall fill all available space on screen. PocketPC Windows only<BR>
+
+<BR>
+<B>DisableBackLight</B> [value: <I>"yes", "no"</I>]<BR>
+<DD>Specifies if the screen backlighting shall be disabled while playing. PocketPC Windows only<BR>
+
+<BR>
+<B>LastWorkingDir</B> [value: <I>"yes", "no"</I>]<BR>
+<DD>Specifies the directory of the last local file opened. Smartphone Windows only<BR>
+
+<BR>
+<B>Browser</B> [value: <I>string</I>]<BR>
+<DD>Specifies prefered browser for WWW anchors and scene graph viewing - Only used by Osmo4/wxWidgets.<BR>
+	
+
 </P>
 
 <BR>
@@ -140,8 +175,8 @@ handling and "Multi" means that each decoder runs in its own thread.<BR>
 <DD>Specifies whether the visual rendering is done in the main codec manager or in a dedicated thread.<BR>
 
 <BR>
-<B>DefAudioDec</B> and <B>DefVideoDec</B> [value: <I>string</I>]<BR>
-<DD>Specifies which module to use by default for audio/video decoding. The string is the name of the module to be used (same considerations as other modules, cf introduction).<BR>
+<B>DefAudioDec</B> , <B>DefVideoDec</B> and <B>DefImageDec</B> [value: <I>string</I>]<BR>
+<DD>Specifies which module to use by default for audio/video/image decoding. The string is the name of the module to be used (same considerations as other modules, cf introduction).<BR>
 	
 <BR>
 <B>codec_<I>XX</I>_<I>XX</I></B> [value: <I>string</I>]<BR>
@@ -191,7 +226,11 @@ and by the 3D renderer for text texturing and gradients compute.<BR>
 <B>BoundingVolume</B> [value: <I>"None" "Box" "AABB"</I>]<BR>
 <DD>Specifies whether the bounding volume of an object shall be drawn or not. Note that the 2D renderer only uses rectangles as bounding volumes. The "AABB" value is used by the 
 3D renderer only, and specifies the object bounding-box tree shall be drawn.
+<BR>
 
+<BR>
+<B>StressMode</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Specifies whether the renderer shall redraw the scene and reload texture at each simulation tick or whenever needed.
 		
 </P>
 <BR>
@@ -250,6 +289,10 @@ the  setting is applied or not depends on the graphics module (currently all mod
 <DD>Specifies whether the bitmap node should be drawn with regular openGL texturing ("no") or through pixel copy routines ("yes"). This greatly impacts video rendering through 
 bitmap depending on the graphics card. Some cards will have faster pixel copy routines that texture transfer ones, some won't.<BR>
 
+<BR>
+<B>OpenGLExtensions</B> [value: <I>string</I>]<BR>
+<DD>Read-only option listing the OpenGL extensions supported by the GL driver. Only valid after the 3D renderer has been used.<BR>
+
 </P>
 
 <BR>
@@ -300,6 +343,9 @@ audio object. The quality of fast forward audio playback will also be degradated
 <BR>
 <B>SwitchResolution</B> [value: <I>"yes" "no"</I>]<BR>
 <DD>Specifies fullscreen resolution mode. If enabled, selects smallest video resolution larger than scene size, otherwise use current video resolution.<BR>
+<BR>
+<B>UseHardwareMemory</B> [value: <I>"yes" "no"</I>]<BR>
+<DD>Only valid for 2D renderer. Specifies if main video backbuffer is on hardware or system memory. Depending on the scene type, this may drastically change the playback speed.<BR>
 </P>
 
 <BR>
@@ -315,7 +361,7 @@ audio object. The quality of fast forward audio playback will also be degradated
 <DD>Specifies timeout in ms befor initial media buffering aborts. Default terminal value is 20000 (20 seconds).<BR>
 <BR>
 <B>UDPNotAvailable</B> [value: "yes" "no"</I>]<BR>
-<DD>Specifies if UDP traffic is not available. This is automatically set by the engine if <I>AutoReconfigUDP</I> is set.<BR>
+<DD>Specifies if UDP traffic is not available. This is automatically set by GPAC if <I>AutoReconfigUDP</I> is set.<BR>
 <BR>
 <B>UDPTimeout</B> [value: <I>positive integer</I>]<BR>
 <DD>Specifies timeout in ms for initial UDP detection. Once a UDP packet is recieved the timeout is ignored.<BR>
@@ -365,6 +411,9 @@ integrate text rendering which is always heavy work.<BR>
 <BR>
 <B>RestartFiles</B> [value: <I>"yes" "no"</I>]<BR>
 <DD>Specifies whether incompletely downloaded files shall be removed before redownloading.<BR>
+<BR>
+<B>MaxRate</B> [value: <I>positive integer</I>]<BR>
+<DD>Specifies a maximum data rate in kilo bits per seconds for file downloading. This is used for simulation purposes. A value of 0 means no rate restriction.<BR>
 </P>
 
 <BR>
@@ -433,18 +482,18 @@ If not specified, the default cache directory (cf <A HREF="#General">General</A>
 
 <BR>
 <P ALIGN="LEFT">
-<B><U><A NAME="SVGLoader">Section "SVGLoader"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<B><U><A NAME="SAXLoader">Section "SAXLoader"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
-<DD>The "SVGLoader" section of the config file holds all configuration options for the SVG file loader.<BR>
+<DD>The "SAXLoader" section of the config file holds all configuration options for XML SAX parsing of SVG, XMT and X3D files.<BR>
 <BR>
-<B>LoadType</B> [value: <I>"DOM" "SAX" "SAX Progressive"</I>]<BR>
-<DD>Specifies XML parsing mode used by the loader.<BR>
-<DD><I>"DOM"</I>: DOM parsing is used (document will first be completely downloaded).<BR>
-<DD><I>"SAX"</I>: SAX parsing is used.<BR>
-<DD><I>"SAX Progressive"</I>: SAX parsing is used with progressive loading of the document.<BR>
+<B>Progressive</B> [value: <I>"yes" "no" "DOM"</I>]<BR>
+<DD>Specifies XML parsing mode used by different file loaders using the SAX parser.<BR>
+<DD><I>"yes"</I>: SAX parsing is used with progressive loading of the document.<BR>
+<DD><I>"no"</I>: SAX parsing is used, document will first be completely downloaded.<BR>
+<DD><I>"DOM"</I>: DOM parsing is used, document will first be completely downloaded. Only supported by libXML2 plugin, other plugin handle it as "no".<BR>
 <BR>
-<B>SAXMaxDuration</B> [value <I>positive integer</I>]<BR>
-<DD>Specifies the maximum amount of time the SAX parser should spent loading a portion of the document. Only used in <I>SAX Progressive</I> mode<BR>
+<B>MaxDuration</B> [value <I>positive integer</I>]<BR>
+<DD>Specifies the maximum amount of time the SAX parser should spent loading a portion of the document. Only used with SAX Progressive mode<BR>
 	
 </P>
 
@@ -478,7 +527,7 @@ If not specified, the default cache directory (cf <A HREF="#General">General</A>
 
 <BR><BR><BR>
 <P ALIGN="RIGHT">
-<A HREF="http://gpac.sourceforge.net">GPAC</A> (C) 2001 - 2005 <A HREF="mailto:jeanlf@users.sourceforge.net">Jean Le Feuvre</A>
+<A HREF="http://gpac.sourceforge.net">GPAC</A> (C) 2001 - 2005 <A HREF="mailto:jeanlf@users.sourceforge.net">Jean Le Feuvre</A> - (C) 2005 - 20XX ENST
 </P>
 
 </BODY>

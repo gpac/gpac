@@ -559,7 +559,7 @@ SVGElement *svg_parse_dom_element(SVGParser *parser, xmlNodePtr node, SVGElement
 	char *id = NULL;
 
 	/* Translates the node type (called name) from a String into a unique numeric identifier in GPAC */
-	tag = gf_svg_get_tag_by_name(node->name);
+	tag = gf_node_svg_type_by_class_name(node->name);
 	if (tag == TAG_UndefinedNode) {
 		parser->last_error = GF_SG_UNKNOWN_NODE;
 		return NULL;
@@ -712,7 +712,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 	defered_element local_de;
 
 	/* Translates the node type (called name) from a String into a unique numeric identifier in GPAC */
-	tag = gf_svg_get_tag_by_name(name);
+	tag = gf_node_svg_type_by_class_name(name);
 	if (tag == TAG_UndefinedNode) {
 		parser->last_error = GF_SG_UNKNOWN_NODE;
 		return NULL;

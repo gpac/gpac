@@ -273,6 +273,9 @@ Bool gf_sg_vrml_node_init(GF_Node *node);
 Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field);
 
 Bool gf_sg_svg_node_init(GF_Node *node);
+Bool gf_sg_svg_node_changed(GF_Node *node, GF_FieldInfo *field);
+
+void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field);
 
 //
 //		MF Fields tools

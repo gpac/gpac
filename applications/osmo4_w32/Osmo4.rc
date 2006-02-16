@@ -166,7 +166,7 @@ IDD_ABOUTBOX DIALOGEX 0, 0, 209, 137
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 EXSTYLE WS_EX_CLIENTEDGE
 CAPTION "Osmo4 / GPAC version X.X.X"
-FONT 8, "MS Sans Serif"
+FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,8,4,20,20
     CTEXT           "Osmo4 Player - GPAC Multimedia Framework",IDC_STATIC,31,
@@ -508,13 +508,18 @@ IDD_OPT_HTTP DIALOG DISCARDABLE  0, 20, 169, 76
 STYLE DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
-    PUSHBUTTON      "...",IDC_BROWSE_CACHE,2,14,164,12
+    PUSHBUTTON      "...",IDC_BROWSE_CACHE,5,13,157,12
     CONTROL         "Clean cache at exit",IDC_CLEAN_CACHE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,3,31,77,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,3,33,77,10
     CONTROL         "Always redownload incomplete cached files",
                     IDC_RESTART_CACHE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    3,44,153,10
-    LTEXT           "Temporary Downloaded Files",IDC_STATIC,36,3,92,8
+                    3,45,153,10
+    LTEXT           "Cache Directory",IDC_STATIC,6,3,52,8
+    CONTROL         "XML progressive load",IDC_SAX_PROGRESSIVE,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,3,58,84,10
+    EDITTEXT        IDC_SAX_DELAY,140,56,22,12,ES_CENTER | ES_AUTOHSCROLL | 
+                    ES_NUMBER
+    LTEXT           "TimeSlice (ms)",IDC_STATIC,91,58,46,8
 END
 
 IDD_OPT_FONT DIALOG DISCARDABLE  0, 20, 169, 76

@@ -1691,8 +1691,8 @@ int main(int argc, char **argv)
 		}
 		fprintf(output, "\t\tdefault: return GF_BAD_PARAM;\n\t}\n}\n\n");
 
-		/* u32 gf_svg_get_tag_by_name(const char *element_name) */
-		fprintf(output, "u32 gf_svg_get_tag_by_name(const char *element_name)\n{\n\tif (!element_name) return TAG_UndefinedNode;\n");
+		/* u32 gf_node_svg_type_by_class_name(const char *element_name) */
+		fprintf(output, "u32 gf_node_svg_type_by_class_name(const char *element_name)\n{\n\tif (!element_name) return TAG_UndefinedNode;\n");
 		for (i=0; i<gf_list_count(svg_elements); i++) {
 			SVGElement *elt = (SVGElement *)gf_list_get(svg_elements, i);
 			fprintf(output, "\tif (!stricmp(element_name, \"%s\")) return TAG_SVG_%s;\n", elt->svg_name, elt->implementation_name);

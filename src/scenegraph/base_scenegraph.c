@@ -1119,6 +1119,9 @@ void gf_node_changed(GF_Node *node, GF_FieldInfo *field)
 
 	/*internal nodes*/
 	if (gf_sg_vrml_node_changed(node, field)) return;
+#ifndef GPAC_DISABLE_SVG
+	else if (gf_sg_svg_node_changed(node, field)) return;
+#endif
 
 	/*force child dirty tag*/
 	if (field && ((field->fieldType==GF_SG_VRML_SFNODE) || (field->fieldType==GF_SG_VRML_MFNODE))) node->sgprivate->is_dirty |= GF_SG_CHILD_DIRTY;

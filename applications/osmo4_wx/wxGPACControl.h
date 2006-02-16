@@ -45,6 +45,7 @@ enum
 	ID_AUDIO_DRIVER,
 	ID_FONT_DIR,
 	ID_CACHE_DIR,
+	ID_PROGRESSIVE,
 	ID_RTSP_PORT,
 	ID_RTP_OVER_RTSP,
 	ID_RTSP_REBUFFER,
@@ -57,6 +58,7 @@ class wxGPACControl : public wxDialog
 {
 public:
     wxGPACControl(wxWindow *parent);
+	virtual ~wxGPACControl();
 
 private:
 	DECLARE_EVENT_TABLE()
@@ -72,6 +74,7 @@ private:
 	void OnSetAudioDriver(wxCommandEvent &event);
 	void FontDir(wxCommandEvent &event);
 	void CacheDir(wxCommandEvent &event);
+	void OnProgressive(wxCommandEvent &event);
 	void RTPoverRTSP(wxCommandEvent &event);
 	void Rebuffer(wxCommandEvent &event);
 	void OnSetRTSPPort(wxCommandEvent &event);
@@ -116,7 +119,8 @@ private:
 	wxComboBox *m_texturemode;
 	/*file download*/
 	wxButton *m_cachedir;
-	wxCheckBox *m_cleancache, *m_restartcache;
+	wxCheckBox *m_cleancache, *m_restartcache, *m_progressive;
+	wxTextCtrl *m_sax_duration;
 	/*streaming*/
 	wxComboBox *m_port;
 	wxCheckBox *m_rtsp, *m_reorder, *m_dorebuffer;

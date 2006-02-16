@@ -164,8 +164,6 @@
 #define ID_NAVIGATE_GAME                1150
 #define ID_NAV_RESET                    1151
 #define ID_FILE_STOP                    1152
-#define ID_BUTTON32806                  1153
-#define ID_BUTTON32807                  1154
 #define ID_FILE_PREV                    1155
 #define ID_FILE_NEXT                    1156
 #define ID_FILE_PROPS                   1157
@@ -213,6 +211,8 @@
 #define ID_VIDEO_EMPTY                  1199
 #define ID_SUBS_EMPTY                   1200
 #define ID_VIEW_CPU                     1201
+#define IDC_SAX_PROGRESSIVE             1202
+#define IDC_SAX_DELAY                   1203
 #define ID_VP_0                         1300
 #define ID_VP_1                         1301
 #define ID_VP_2                         1302
@@ -273,7 +273,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        189
 #define _APS_NEXT_COMMAND_VALUE         32961
-#define _APS_NEXT_CONTROL_VALUE         1128
+#define _APS_NEXT_CONTROL_VALUE         1129
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

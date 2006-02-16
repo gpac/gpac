@@ -249,14 +249,14 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 	parser->oti = objectTypeIndication;
 
 	parser->sax_max_duration = 30;
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SVGLoader", "SAXMaxDuration");
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "MaxDuration");
 	if (sOpt) parser->sax_max_duration = atoi(sOpt);
 
 	parser->load_type = SVG_LOAD_DOM;
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SVGLoader", "LoadType");
-	if (sOpt && !strcmp(sOpt, "DOM") ) parser->load_type = SVG_LOAD_DOM;
-	else if (sOpt && !strcmp(sOpt, "SAX") ) parser->load_type = SVG_LOAD_SAX;
-	else if (sOpt && !strcmp(sOpt, "SAX Progressive") ) parser->load_type = SVG_LOAD_SAX_PROGRESSIVE;
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "Progressive");
+	if (sOpt && !strcmp(sOpt, "yes") ) parser->load_type = SVG_LOAD_SAX_PROGRESSIVE;
+	else if (sOpt && !strcmp(sOpt, "DOM") ) parser->load_type = SVG_LOAD_DOM;
+	else parser->load_type = SVG_LOAD_SAX;
 
 	/*if DOM parsing is requested and file size is not available, the server didn't send
 	a proper content length, force SAX parsing*/

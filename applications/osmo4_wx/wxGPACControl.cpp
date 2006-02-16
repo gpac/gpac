@@ -347,7 +347,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	/*download*/
 	s_dnld = new wxBoxSizer(wxVERTICAL);
 	bs = new wxBoxSizer(wxHORIZONTAL);
-	bs->Add(new wxStaticText(this, 0, wxT("Temp Downloaded Files")), wxALIGN_CENTER | wxADJUST_MINSIZE | wxALIGN_RIGHT);
+	bs->Add(new wxStaticText(this, 0, wxT("Cache Directory")), wxALIGN_CENTER | wxADJUST_MINSIZE | wxALIGN_RIGHT);
 	m_cachedir = new wxButton(this, ID_CACHE_DIR, wxT("..."));
 	bs->Add(m_cachedir, wxALIGN_CENTER | wxADJUST_MINSIZE);
 	s_dnld->Add(bs, 0, wxALL|wxEXPAND, 2);
@@ -355,6 +355,13 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	s_dnld->Add(m_cleancache);
 	m_restartcache = new wxCheckBox(this, -1, wxT("Always redownload incomplete cached files"));
 	s_dnld->Add(m_restartcache);
+	bs = new wxBoxSizer(wxHORIZONTAL);
+	m_progressive = new wxCheckBox(this, ID_PROGRESSIVE, wxT("XML progressive load"));
+	bs->Add(m_progressive, wxALIGN_CENTER | wxADJUST_MINSIZE);
+	m_sax_duration = new wxTextCtrl(this, 0, wxT(""), wxPoint(10, 120), wxSize(60, 20));
+	bs->Add(m_sax_duration, wxALIGN_CENTER | wxADJUST_MINSIZE);
+	bs->Add(new wxStaticText(this, 0, wxT("max load slice (ms)")), wxADJUST_MINSIZE | wxALIGN_CENTER);
+	s_dnld->Add(bs, 0, wxALL|wxEXPAND, 2);
 	s_main->Add(s_dnld, 0, wxEXPAND, 0);
 
 	/*streaming*/
@@ -637,13 +644,18 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	else m_texturemode->SetSelection(0);
 
 	/*downloader*/
+	sOpt = gf_cfg_get_key(cfg, "General", "CacheDirectory");
+	if (sOpt) m_cachedir->SetLabel(wxString(sOpt, wxConvUTF8) );
 	sOpt = gf_cfg_get_key(cfg, "Downloader", "CleanCache");
 	m_cleancache->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(cfg, "Downloader", "RestartFiles");
 	m_restartcache->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	sOpt = gf_cfg_get_key(cfg, "General", "CacheDirectory");
-	if (sOpt) m_cachedir->SetLabel(wxString(sOpt, wxConvUTF8) );
-	
+	sOpt = gf_cfg_get_key(cfg, "SAXLoader", "Progressive");
+	m_progressive->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(cfg, "SAXLoader", "MaxDuration");
+	m_sax_duration->SetValue(sOpt ? wxString(sOpt, wxConvUTF8) : wxT("30"));
+	if (! m_progressive->GetValue()) m_sax_duration->Enable(0);
+
 	/*streaming*/	
 	m_port->Append(wxT("554 (RTSP standard)"));
 	m_port->Append(wxT("7070 (RTSP ext)"));
@@ -734,8 +746,12 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_select->Append(wxT("File Download"));
 	m_select->Append(wxT("Real-Time Streaming"));
 	m_select->Append(wxT("Streaming Cache"));
-	m_select->SetSelection(0);
-	m_sel = 0;
+
+	sOpt = gf_cfg_get_key(cfg, "General", "ConfigPanel");
+	m_sel = sOpt ? atoi(sOpt) : 0;
+	if (m_sel>11) m_sel=11;
+	m_select->SetSelection(m_sel);
+
 	DoSelect();
 }
 
@@ -746,6 +762,7 @@ BEGIN_EVENT_TABLE(wxGPACControl, wxDialog)
 	EVT_COMBOBOX(ID_AUDIO_DRIVER, wxGPACControl::OnSetAudioDriver)
 	EVT_BUTTON(ID_FONT_DIR, wxGPACControl::FontDir)
 	EVT_BUTTON(ID_CACHE_DIR, wxGPACControl::CacheDir)
+	EVT_CHECKBOX(ID_PROGRESSIVE, wxGPACControl::OnProgressive)
 	EVT_CHECKBOX(ID_RTP_OVER_RTSP, wxGPACControl::RTPoverRTSP)
 	EVT_CHECKBOX(ID_RTSP_REBUFFER, wxGPACControl::Rebuffer)
 	EVT_COMBOBOX(ID_RTSP_PORT, wxGPACControl::OnSetRTSPPort)
@@ -754,6 +771,12 @@ BEGIN_EVENT_TABLE(wxGPACControl, wxDialog)
 END_EVENT_TABLE()
 
 
+wxGPACControl::~wxGPACControl()
+{
+	char str[20];
+	sprintf(str, "%d", m_sel);
+	gf_cfg_set_key(m_pApp->m_user.config, "General", "ConfigPanel", str);
+}
 
 
 void wxGPACControl::DoSelect()
@@ -814,6 +837,11 @@ void wxGPACControl::CacheDir(wxCommandEvent &WXUNUSED(event))
 	if (dlg.ShowModal() == wxID_OK) {
 		m_cachedir->SetLabel(dlg.GetPath());
 	}
+}
+
+void wxGPACControl::OnProgressive(wxCommandEvent &WXUNUSED(event))
+{
+	m_sax_duration->Enable(m_progressive->GetValue() ? 1 : 0);
 }
 
 void wxGPACControl::RTPoverRTSP(wxCommandEvent &WXUNUSED(event))
@@ -971,6 +999,8 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 
 	gf_cfg_set_key(cfg, "Downloader", "CleanCache", m_cleancache->GetValue() ? "yes" : "no");
 	gf_cfg_set_key(cfg, "Downloader", "RestartFiles", m_restartcache->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "SAXLoader", "Progressive", m_progressive->GetValue() ? "yes" : "no");
+	gf_cfg_set_key(cfg, "SAXLoader", "MaxDuration", m_sax_duration->GetLabel().mb_str(wxConvUTF8));
 	gf_cfg_set_key(cfg, "General", "CacheDirectory", m_cachedir->GetLabel().mb_str(wxConvUTF8));
 
 

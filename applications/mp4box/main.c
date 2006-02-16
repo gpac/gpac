@@ -45,8 +45,8 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 /*in filedump.c*/
 void dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log);
 void dump_scene_stats(char *file, char *inName, u32 stat_level);
-void PrintNode(const char *name, Bool x3d_node);
-void PrintBuiltInNodes(Bool x3d_node);
+void PrintNode(const char *name, u32 graph_type);
+void PrintBuiltInNodes(u32 graph_type);
 void dump_file_mp4(GF_ISOFile *file, char *inName);
 void dump_file_rtp(GF_ISOFile *file, char *inName);
 void dump_file_ts(GF_ISOFile *file, char *inName);
@@ -410,6 +410,8 @@ void PrintUsage()
 			" -node NodeName:      gets MPEG4 node syntax and QP info\n"
 			" -xnodes:             lists supported X3D nodes\n"
 			" -xnode NodeName:     gets X3D node syntax\n"
+			" -snodes:             lists supported SVG nodes\n"
+			" -snode NodeName:     gets SVG node syntax\n"
 			"\n"
 			" -version:            gets build version\n"
 			);
@@ -969,8 +971,10 @@ int main(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-node")) { CHECK_NEXT_ARG PrintNode(argv[i+1], 0); return (0); }
 		else if (!stricmp(arg, "-xnode")) { CHECK_NEXT_ARG PrintNode(argv[i+1], 1); return (0); }
+		else if (!stricmp(arg, "-snode")) { CHECK_NEXT_ARG PrintNode(argv[i+1], 2); return (0); }
 		else if (!stricmp(arg, "-nodes")) { PrintBuiltInNodes(0); return (0); }
 		else if (!stricmp(arg, "-xnodes")) { PrintBuiltInNodes(1); return (0); } 
+		else if (!stricmp(arg, "-snodes")) { PrintBuiltInNodes(2); return (0); } 
 		else if (!stricmp(arg, "-std")) dump_std = 1;
 		else if (!stricmp(arg, "-bt")) dump_mode = 1 + GF_SM_DUMP_BT;
 		else if (!stricmp(arg, "-xmt")) dump_mode = 1 + GF_SM_DUMP_XMTA;

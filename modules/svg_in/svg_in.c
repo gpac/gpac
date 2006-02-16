@@ -246,10 +246,10 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 	svgin->oti = objectTypeIndication;
 	if (!DependsOnES_ID) svgin->base_es_id = ES_ID;
 
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SVGLoader", "LoadType");
-	if (sOpt && !strcmp(sOpt, "SAX Progressive")) {
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "Progressive");
+	if (sOpt && !strcmp(sOpt, "yes")) {
 		svgin->sax_max_duration = 30;
-		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SVGLoader", "SAXMaxDuration");
+		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "MaxDuration");
 		if (sOpt) svgin->sax_max_duration = atoi(sOpt);
 	} else {
 		svgin->sax_max_duration = 0;

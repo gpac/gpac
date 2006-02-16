@@ -473,8 +473,6 @@ void DestroyInputSensor(GF_Node *node)
 	if (st->registered) IS_Unregister(st);
 	is = gf_sg_get_private(gf_node_get_graph(node));
 	gf_term_rem_render_node(is->root_od->term, node);
-
-	gf_sg_vrml_mf_reset(&st->url, GF_SG_VRML_MFURL);
 	free(st);
 }
 
@@ -497,8 +495,22 @@ void InputSensorModified(GF_Node *node)
 	GF_ObjectManager *odm;
 	ISPriv *is_dec;
 #endif
+	GF_MediaObject *mo;
 	ISStack *st = gf_node_get_private(node);
-	if (!st->is_mo) return;
+
+	mo = gf_mo_find(node, &st->is->url);
+	if (mo!=st->is_mo) {
+		if (st->is_mo) IS_Unregister(st);
+		st->is_mo = mo;
+		if (st->is->enabled) 
+			IS_Register(node);
+		else
+			return;
+	} else if (!st->is->enabled) {
+		IS_Unregister(st);
+		st->is_mo = NULL;
+		return;
+	}
 
 #if GPAC_HTK_DEMO
 	/*turn audio analyse on/off*/
@@ -509,10 +521,6 @@ void InputSensorModified(GF_Node *node)
 	is_dec = odm->codec->decio->privateStack;
 	StartHTK(is_dec);
 #endif
-
-	if (! gf_mo_url_changed(st->is_mo, &st->url)) return;
-	/*unregister*/
-	IS_Unregister(st);
 }
 
 
