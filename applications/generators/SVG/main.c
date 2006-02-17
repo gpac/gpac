@@ -1408,7 +1408,7 @@ void generate_table(GF_List *elements)
 	for (i = 0; i < gf_list_count(elements); i++) {
 		SVGElement *elt = gf_list_get(elements, i);
 		fprintf(f, "<h2 id='table_%s'>%s</h2>\n", elt->implementation_name, elt->svg_name);
-		fprintf(f, "<table>\n", elt->implementation_name);
+		fprintf(f, "<table>\n");
 		fprintf(f, "<thead>\n");
 		fprintf(f, "<tr>\n");
 		fprintf(f, "<th>Attribute Name</th>\n");
@@ -1609,7 +1609,7 @@ int main(int argc, char **argv)
 		}
 		fprintf(output, ",\n\t/*undefined elements (when parsing) use this tag*/\n\tTAG_SVG_UndefinedElement\n};\n\n");
 
-		/*
+#if 0
 		fprintf(output, "/******************************************\n");
  		fprintf(output, "*   SVG Attributes Groups definitions     *\n");
  		fprintf(output, "*******************************************\n");
@@ -1630,8 +1630,8 @@ int main(int argc, char **argv)
 			attgrp->attrs = sortAttr(attgrp->attrs);
 			generateAttributes(output, attgrp->attrs, 1);
 			fprintf(output, "\n");
-		}*/
-
+		}
+#endif
 		fprintf(output, "/******************************************\n");
  		fprintf(output, "*   SVG Elements structure definitions    *\n");
  		fprintf(output, "*******************************************/\n");

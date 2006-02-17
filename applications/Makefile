@@ -1,6 +1,11 @@
 include ../config.mak
 
-APPDIRS=mp4box mp4client mp42avi generators
+APPDIRS=mp4box mp4client mp42avi
+
+ifeq ($(TARGET_ARCH_ARMV4L), yes)
+else
+APPDIRS +=generators
+endif
 
 #no osmozilla compilation for mingw, too many issues at the time being
 ifeq ($(CONFIG_WIN32), no)
