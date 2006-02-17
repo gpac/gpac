@@ -2343,7 +2343,7 @@ static void svg_dump_number(SVG_Number *l, char *attValue)
 	else if (l->type == SVG_NUMBER_AUTO) strcpy(attValue, "auto");
 	else if (l->type == SVG_NUMBER_AUTO_REVERSE) strcpy(attValue, "auto-reverse");
 	else {
-		sprintf(attValue, "%g", l->value);
+		sprintf(attValue, "%g", FIX2FLT(l->value) );
 		if (l->type == SVG_NUMBER_PERCENTAGE) strcat(attValue, "%");
 		else if (l->type == SVG_NUMBER_EMS) strcat(attValue, "em");
 		else if (l->type == SVG_NUMBER_EXS) strcat(attValue, "ex");
@@ -2792,7 +2792,7 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 	case SVG_ViewBox_datatype:
 	{
 		SVG_ViewBox *v = (SVG_ViewBox *)info->far_ptr;
-		sprintf(attValue, "%g %g %g %g", v->x, v->y, v->width, v->height);
+		sprintf(attValue, "%g %g %g %g", FIX2FLT(v->x), FIX2FLT(v->y), FIX2FLT(v->width), FIX2FLT(v->height) );
 	}
 		break;
 	case SVG_StrokeDashArray_datatype:
@@ -2888,7 +2888,7 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 	case SVG_Matrix_datatype:
 		if ((info->eventType==SVG_TRANSFORM_SCALE) || (info->eventType==SVG_TRANSFORM_TRANSLATE)) {
 			SVG_Point *pt = info->far_ptr;
-			sprintf(attValue, "%g %g", pt->x, pt->y );
+			sprintf(attValue, "%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y) );
 		}
 		else if (info->eventType==SVG_TRANSFORM_ROTATE) {
 			sprintf(attValue, "%g", FIX2FLT(*(Fixed *)info->far_ptr ) );
