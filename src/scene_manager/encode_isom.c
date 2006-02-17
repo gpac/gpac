@@ -828,6 +828,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 
 
 	rap_inband = rap_shadow = 0;
+	rap_delay = 0;
 	if (opts && opts->rap_freq) {
 		if (opts->flags & GF_SM_ENCODE_RAP_INBAND) {
 			rap_inband = 1;
@@ -899,6 +900,9 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 		time_slice = 0;
 		init_offset = 0;
 		last_rap = 0;
+		rap_delay = 0;
+		last_not_shadow = 0;
+		if (opts) rap_delay = opts->rap_freq * esd->slConfig->timestampResolution / 1000;
 
 		/*encode all samples and perform import - FIXME this is destructive...*/
 		j=0;

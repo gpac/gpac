@@ -1039,7 +1039,7 @@ static void lsr_read_anim_restart(GF_LASeRCodec *lsr, u8 *animRestart, const cha
 static void *lsr_read_an_anim_value(GF_LASeRCodec *lsr, u32 type, const char *name)
 {
 	u32 flag;
-	u32 escapeFlag, escape_val;
+	u32 escapeFlag, escape_val = 0;
 	u8 *enum_val;
 	u32 *id_val;
 	unsigned char *string;
@@ -1441,16 +1441,18 @@ static void lsr_read_event_type(GF_LASeRCodec *lsr, XMLEV_Event *evtType)
 	if (!flag) {
 		char *evtName, *sep;
 		evtName = NULL;
-		lsr_read_byte_align_string(lsr, &evtName, "evtString");
+		lsr_read_byte_align_string(lsr, (unsigned char **)&evtName, "evtString");
 		evtType->type = evtType->parameter = 0;
 		if (evtName) {
 			sep = strchr(evtName, '(');
 			if (sep) {
+				char a_c;
 				sep[0] = 0;
 				evtType->type = svg_dom_event_by_name(evtName);
 				sep[0] = '(';
 				/*TODO FIXME check all possible cases (accessKey & co)*/
-				sscanf(sep, "(%c)", &evtType->parameter);
+				sscanf(sep, "(%c)", &a_c);
+				evtType->parameter = a_c;
 			} else {
 				evtType->type = svg_dom_event_by_name(evtName);
 			}

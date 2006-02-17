@@ -2760,7 +2760,7 @@ static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 	field = gf_list_get(com->command_fields, 0);
 	field_type = 0;
 	if (field && !field->new_node && !field->node_list) {
-		u8 attType;
+		u8 attType = 0;
 		field_type = field->fieldType;
 		/*textContent cannot be used directly*/
 		if ((field->fieldIndex==(u32)-1) && (field->fieldType==SVG_String_datatype)) {

@@ -727,7 +727,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			return;			
 		}
 		if (!strcmp(name, "StreamHeader") || !strcmp(name, "RemoteStreamHeader")) {
-			char *url;
+			char *url = NULL;
 			u32 time, ID, OTI, ST, count, i;
 			GF_ODUpdate *odU;
 			GF_ObjectDescriptor *od;

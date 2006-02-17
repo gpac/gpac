@@ -226,8 +226,6 @@ SVGhandlerElement *gf_sg_dom_create_listener(GF_Node *node, XMLEV_Event event)
 
 static void gf_smil_handle_event(GF_Node *anim, GF_FieldInfo *info, GF_DOM_Event *evt, Bool is_end)
 {
-	void gf_smil_timing_end_notif(SMIL_Timing_RTI *rti, Double clock);
-	SVGElement *anim_t = (SVGElement *)anim;
 	SMIL_Time *resolved, *proto;
 	Double scene_time = gf_node_get_scene_time(evt->target);
 	GF_List *times = *(GF_List **)info->far_ptr;

@@ -75,7 +75,7 @@ GF_Err gf_odf_codec_add_com(GF_ODCodec *codec, GF_ODCom *command)
 GF_Err gf_odf_codec_encode(GF_ODCodec *codec, Bool delete_content)
 {
 	GF_ODCom *com;
-	GF_Err e;
+	GF_Err e = GF_OK;
 	u32 i;
 
 	if (!codec) return GF_BAD_PARAM;
