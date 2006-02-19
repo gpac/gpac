@@ -1272,6 +1272,8 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			}
 		} else if (!strcmp("SVG_IRI", att->impl_type)) {
 			fprintf(output, "\tgf_svg_reset_iri((SVGElement *)node, &p->%s);\n", att->implementation_name);
+		} else if (!strcmp("SVG_FontFamily", att->impl_type)) {
+			fprintf(output, "\tif (p->%s.value) free(p->%s.value);\n", att->implementation_name, att->implementation_name);
 		} else if (!strcmp("SVG_String", att->impl_type) || !strcmp("SVG_ContentType", att->impl_type)) {
 			fprintf(output, "\tfree(p->%s);\n", att->implementation_name);
 		}

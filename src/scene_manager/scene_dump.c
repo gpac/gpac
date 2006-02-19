@@ -2785,9 +2785,10 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 				}
 				break;
 			case GF_STREAM_SCENE:
-				assert(gf_list_count(au->commands));
-				e = gf_sm_dump_command_list(dumper, au->commands, indent+1, first_bifs);
-				first_bifs = 0;
+				if (gf_list_count(au->commands)) {
+					e = gf_sm_dump_command_list(dumper, au->commands, indent+1, first_bifs);
+					first_bifs = 0;
+				}
 				break;
 			}
 			time = au->timing_sec;

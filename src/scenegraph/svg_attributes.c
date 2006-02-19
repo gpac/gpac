@@ -1584,6 +1584,7 @@ void svg_parse_iri(SVGElement *elt, SVG_IRI *iri, char *attribute_content)
 	if (attribute_content[0] == '#') {
 		iri->type = SVG_IRI_ELEMENTID;
 		iri->target = (SVGElement *)gf_sg_find_node_by_name(elt->sgprivate->scenegraph, attribute_content + 1);
+		if (!iri->target) iri->iri = strdup(attribute_content);
 		gf_svg_register_iri(elt->sgprivate->scenegraph, iri);
 	} else {
 		iri->type = SVG_IRI_IRI;
@@ -2886,15 +2887,28 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 	}
 		break;
 	case SVG_Matrix_datatype:
-		if ((info->eventType==SVG_TRANSFORM_SCALE) || (info->eventType==SVG_TRANSFORM_TRANSLATE)) {
+		if (info->eventType==SVG_TRANSFORM_TRANSLATE) {
 			SVG_Point *pt = info->far_ptr;
 			sprintf(attValue, "%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y) );
 		}
+		else if (info->eventType==SVG_TRANSFORM_SCALE) {
+			SVG_Point *pt = info->far_ptr;
+			if (pt->x == pt->y) {
+				sprintf(attValue, "%g", FIX2FLT(pt->x));
+			} else {
+				sprintf(attValue, "%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y) );
+			}
+		}
 		else if (info->eventType==SVG_TRANSFORM_ROTATE) {
-			sprintf(attValue, "%g", FIX2FLT(*(Fixed *)info->far_ptr ) );
+			SVG_Point_Angle *pt = info->far_ptr;
+			if (pt->x || pt->y) {
+				sprintf(attValue, "%g %g %g", FIX2FLT( 180 * gf_divfix(pt->angle, GF_PI) ), FIX2FLT(pt->x), FIX2FLT(pt->y) );
+			} else {
+				sprintf(attValue, "%g", FIX2FLT( 180 * gf_divfix(pt->angle, GF_PI) ));
+			}
 		} else {
 			SVG_Matrix *matrix = (SVG_Matrix *)info->far_ptr;
-#if 0
+#if 1
 			/*try to do a simple decomposition...*/
 			if (!matrix->m[1] && !matrix->m[3]) {
 				sprintf(attValue, "translate(%g,%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]) );
@@ -2911,7 +2925,11 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 					sx = gf_divfix(matrix->m[0], cos_a);
 					sy = gf_divfix(matrix->m[4], cos_a);
 					angle = gf_divfix(180*angle, GF_PI);
-					sprintf(attValue, "translate(%g,%g) scale(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(sx), FIX2FLT(sy), FIX2FLT(angle) );
+					if ((sx==sy) && ( ABS(FIX_ONE - ABS(sx) ) < FIX_ONE/100)) {
+						sprintf(attValue, "translate(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(angle) );
+					} else {
+						sprintf(attValue, "translate(%g,%g) scale(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(sx), FIX2FLT(sy), FIX2FLT(angle) );
+					}
 				}
 			} 
 			/*default*/
@@ -3589,6 +3607,17 @@ static GF_Err svg_path_muladd(Fixed alpha, SVG_PathData *a, Fixed beta, SVG_Path
 	}
 #endif
 
+	while (gf_list_count(c->commands)) {
+		u8 *command = gf_list_last(c->commands);
+		free(command);
+		gf_list_rem_last(c->commands);
+	}
+	while (gf_list_count(c->points)) {
+		SVG_Point *pt = gf_list_last(c->points);
+		free(pt);
+		gf_list_rem_last(c->points);
+	}
+	
 	for (i = 0; i < ccount; i++) {
 		u8 *nc = malloc(sizeof(u8));
 		*nc = *(u8*)gf_list_get(a->commands, i);

@@ -33,6 +33,7 @@ void gf_smil_timing_init_runtime_info(SVGElement *timed_elt)
 {
 	SMIL_Timing_RTI *rti;
 	if (!timed_elt->timing) return;
+	if (timed_elt->timing->runtime) return;
 
 	GF_SAFEALLOC(rti, sizeof(SMIL_Timing_RTI))
 	rti->timed_elt = timed_elt;
@@ -385,7 +386,7 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 	SVGElement *e = (SVGElement *)node;
 	SMIL_Timing_RTI *rti;
 	
-	if (!field || !e->timing) return;
+	if (/*!field ||*/ !e->timing) return;
 	rti = e->timing->runtime;
 	if (!rti) return;
 

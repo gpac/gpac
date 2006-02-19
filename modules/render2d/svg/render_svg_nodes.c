@@ -778,14 +778,36 @@ static void SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 			tag == TAG_SVG_animateTransform ||
 			tag == TAG_SVG_animateMotion || 
 			tag == TAG_SVG_discard) {
+			u32 i, count, found;
 			SVGsetElement *set = (SVGsetElement *)a->xlink->href.target;
 			SMIL_Time *begin;
 			GF_SAFEALLOC(begin, sizeof(SMIL_Time));
 			begin->type = SMIL_TIME_CLOCK;
 			begin->clock = gf_node_get_scene_time((GF_Node *)set);
-			/* TODO insert the sorted value */
-			gf_list_add(set->timing->begin, begin);
-			//SMIL_Modified_Animation((GF_Node *)a->xlink->href.target);
+			begin->dynamic_type = 2;
+
+			found = 0;
+			count = gf_list_count(set->timing->begin);
+			for (i=0; i<count; i++) {
+				SMIL_Time *first = gf_list_get(set->timing->begin, i);
+				/*remove past instanciations*/
+				if ((first->dynamic_type == 2) && (first->clock < begin->clock)) {
+					gf_list_rem(set->timing->begin, i);
+					free(first);
+					i--;
+					count--;
+					continue;
+				}
+				if ( (first->type == SMIL_TIME_INDEFINITE) 
+					|| ( (first->type == SMIL_TIME_CLOCK) && (first->clock > begin->clock) ) 
+				) {
+					gf_list_insert(set->timing->begin, begin, i);
+					found = 1;
+					break;
+				}
+			}
+			if (!found) gf_list_add(set->timing->begin, begin);
+			gf_node_changed((GF_Node *)a->xlink->href.target, NULL);
 		}
 	}
 	return;
@@ -1028,7 +1050,12 @@ void SVG_Render_base(GF_Node *node, RenderEffect2D *eff, SVGPropertiesPointers *
 			gf_smil_timing_notify_time(rai->anim_elt->timing->runtime, gf_node_get_scene_time(node));
 		}
 		/* end of Loop 2 */
+
+		
+		/*TODO FIXME, we need a finer granularity here and we must know if the animated attribute has changed or not (freeze)...*/
 		gf_node_dirty_set(node, GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_SVG_APPEARANCE_DIRTY, 0);
+		eff->invalidate_all = 1;
+
 		gf_sr_invalidate(eff->surface->render->compositor, NULL);
 
 	}

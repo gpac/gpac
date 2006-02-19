@@ -38,15 +38,25 @@ int processDanaeAudio(void *param, unsigned int scene_time);
 /* Generic URI handling */
 /************************/
 
-void SVG_SetMFURLFromURI(MFURL *mfurl, char *uri) 
+void SVG_SetMFURLFromURI(GF_Renderer *sr, MFURL *mfurl, SVG_IRI *iri) 
 {
 	SFURL *sfurl = NULL;
+	if (!iri->iri) return;
+
 	mfurl->count = 1;
 	GF_SAFEALLOC(mfurl->vals, sizeof(SFURL))
 	sfurl = mfurl->vals;
 	sfurl->OD_ID = 0;
-	sfurl->url = strdup(uri);
+#ifndef DANAE
+	if (!strncmp(iri->iri, "data:", 5)) {
+		const char *cache_dir = gf_cfg_get_key(sr->user->config, "General", "CacheDirectory");
+		svg_store_embedded_data(iri, iri->iri, cache_dir, "embedded_");
+	}
+	sfurl->url = strdup(iri->iri);
+#endif
+
 }
+
 #if 0
 static void SVG_ComputeAR(Fixed objw, Fixed objh, Fixed viewportw, Fixed viewporth,
 						  SVG_PreserveAspectRatio *par, GF_Matrix2D *par_mat)
@@ -277,7 +287,7 @@ void SVG_Init_image(Render2D *sr, GF_Node *node)
 	st->txh.flags = 0;
 
 	/* builds the MFURL to be used by the texture */
-	SVG_SetMFURLFromURI(&(st->txurl), ((SVGimageElement*)node)->xlink->href.iri);
+	SVG_SetMFURLFromURI(sr->compositor, &(st->txurl), & ((SVGimageElement*)node)->xlink->href);
 
 	gf_node_set_private(node, st);
 	gf_node_set_render_function(node, SVG_Render_bitmap);
@@ -427,7 +437,7 @@ void SVG_Init_video(Render2D *sr, GF_Node *node)
 	st->fetch_first_frame = 1;
 	
 	/* create an MFURL from the SVG iri */
-	SVG_SetMFURLFromURI(&(st->txurl), ((SVGvideoElement *)node)->xlink->href.iri);
+	SVG_SetMFURLFromURI(sr->compositor, &(st->txurl), & ((SVGvideoElement *)node)->xlink->href);
 
 	gf_sr_register_time_node(st->txh.compositor, &st->time_handle);	
 	
@@ -567,7 +577,7 @@ void SVG_Init_audio(Render2D *sr, GF_Node *node)
 	st->time_handle.obj = node;
 
 	/* creates an MFURL from the URI of the SVG element */
-	SVG_SetMFURLFromURI(&(st->aurl), ((SVGaudioElement *)node)->xlink->href.iri);
+	SVG_SetMFURLFromURI(sr->compositor, &(st->aurl), & ((SVGaudioElement *)node)->xlink->href);
 
 	gf_node_set_private(node, st);
 	gf_node_set_render_function(node, SVG_Render_audio);

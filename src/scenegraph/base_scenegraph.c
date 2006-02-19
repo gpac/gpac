@@ -1103,9 +1103,9 @@ void gf_node_init(GF_Node *node)
 
 	/*internal nodes*/
 	if (gf_sg_vrml_node_init(node)) return;
-	if (gf_sg_svg_node_init(node)) return;
+	else if (gf_sg_svg_node_init(node)) return;
 	/*user defined init*/
-	pSG->UserNodeInit(pSG->NodeInitCallback, node);
+	else pSG->UserNodeInit(pSG->NodeInitCallback, node);
 }
 
 

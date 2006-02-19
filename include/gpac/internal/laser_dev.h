@@ -86,6 +86,11 @@ struct __tag_laser_codec
 	  1: memory decoding of scene, decompress script into commands
 	*/
 	Bool memory_dec;
+
+	GF_List *defered_hrefs;
+	GF_List *defered_anims;
+
+	char *cache_dir, *service_name;
 };
 
 

@@ -258,8 +258,11 @@ static void gf_smil_handle_event(GF_Node *anim, GF_FieldInfo *info, GF_DOM_Event
 			/*insert in sorted order*/
 			for (j=0; j<count; j++) {
 				proto = gf_list_get(times, j);
-				if (proto->dynamic_type==1) continue;
-				if (proto->clock > resolved->clock) break;
+
+				if ( (proto->type == SMIL_TIME_INDEFINITE) 
+					|| ( (proto->type == SMIL_TIME_CLOCK) && (proto->clock > resolved->clock) ) 
+					) 
+					break;
 			}
 			gf_list_insert(times, resolved, j);
 			count++;

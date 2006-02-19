@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Tue Jan 31 13:56:22 2006
+	DO NOT MOFIFY - File generated on GMT Sat Feb 18 10:48:18 2006
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -3064,6 +3064,7 @@ static void gf_svg_font_face_del(GF_Node *node)
 {
 	SVGfont_faceElement *p = (SVGfont_faceElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->font_family.value) free(p->font_family.value);
 	free(p->font_stretch);
 	free(p->unicode_range);
 	free(p->panose_1);

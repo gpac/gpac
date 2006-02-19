@@ -103,6 +103,10 @@ void gf_svg_delete_attribute_value(u32 type, void *value)
 		if (*(SVG_String *)value) free(*(SVG_String *)value);
 		free(value);
 		break;
+	case SVG_StrokeDashArray_datatype:
+		if (((SVG_StrokeDashArray*)value)->array.vals) free(((SVG_StrokeDashArray*)value)->array.vals);
+		free(value);
+		break;
 	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:

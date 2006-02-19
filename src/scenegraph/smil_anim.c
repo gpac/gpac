@@ -270,8 +270,9 @@ static void gf_smil_anim_get_last_specified_value(SMIL_Anim_RTI *rai)
 	SVGElement *e = rai->anim_elt;
 
 	if (rai->path) {
-		if (!rai->last_specified_value.far_ptr) rai->last_specified_value.far_ptr = malloc(sizeof(GF_Matrix2D));
-		gf_svg_compute_path_anim(rai, rai->last_specified_value.far_ptr, FIX_ONE);
+		/*TODO CHECK WITH CYRIL !! */
+//		if (!rai->last_specified_value.far_ptr) rai->last_specified_value.far_ptr = malloc(sizeof(GF_Matrix2D));
+//		gf_svg_compute_path_anim(rai, rai->last_specified_value.far_ptr, FIX_ONE);
 	} else if (gf_node_get_tag((GF_Node *)rai->anim_elt) == TAG_SVG_set) { 		
 		rai->last_specified_value.fieldType = e->anim->to.type;
 		rai->last_specified_value.eventType = e->anim->to.transform_type;
@@ -390,6 +391,7 @@ static void gf_smil_anim_animate(SMIL_Timing_RTI *rti, Fixed normalized_simple_t
 static void gf_smil_anim_freeze(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
 {
 	SMIL_Anim_RTI *rai = gf_smil_anim_get_anim_runtime_from_timing(rti);
+	if (!rai) return;
 
 	/* we do the accumulation only once and store the result in interpolated value */
 	if (rti->cycle_number == rti->first_frozen) {

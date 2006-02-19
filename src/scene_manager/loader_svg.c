@@ -38,7 +38,7 @@ typedef struct
 	Bool has_root;
 	
 	/* stack of SVG nodes*/
-	GF_List *nodes;
+	GF_List *node_stack;
 
 	GF_List *defered_hrefs;
 	GF_List *defered_animations;
@@ -52,6 +52,14 @@ typedef struct
 	GF_StreamContext *saf_es;
 } GF_SVGParser;
 
+typedef struct
+{
+	/*top of parsed sub-tree*/
+	GF_Node *node;
+	/*depth of unknwon elements being skipped*/
+	u32 unknown_depth;
+} SVGNodeStack;
+
 
 typedef struct {
 	/* Stage of the resolving:
@@ -61,7 +69,9 @@ typedef struct {
 	u32 resolve_stage;
 	/* Animation element being defered */
 	SVGElement *animation_elt;
-	/* target element*/
+	/* anim parent*/
+	SVGElement *anim_parent;
+	/* target animated element*/
 	SVGElement *target;
 	/* id of the target element when unresolved*/
 	char *target_id;
@@ -190,7 +200,7 @@ static void svg_parse_element_id(GF_SVGParser *parser, SVGElement *elt, char *no
 	}
 }
 
-static Bool svg_resolve_smil_times(GF_SceneGraph *sg, SVGElement *anim_target, GF_List *smil_times, const char *node_name)
+static Bool svg_resolve_smil_times(GF_SceneGraph *sg, SVGElement *anim_parent, GF_List *smil_times, const char *node_name)
 {
 	u32 i, done, count = gf_list_count(smil_times);
 	done = 0;
@@ -202,8 +212,8 @@ static Bool svg_resolve_smil_times(GF_SceneGraph *sg, SVGElement *anim_target, G
 			continue;
 		}
 		if (!t->element_id) {
-			/*event target is anim target*/
-			if (!t->element) t->element = (GF_Node *)anim_target;
+			/*event source is anim parent*/
+			if (!t->element) t->element = (GF_Node *)anim_parent;
 			done++;
 			continue;
 		}
@@ -290,14 +300,19 @@ static Bool svg_parse_animation(GF_SceneGraph *sg, DeferedAnimation *anim, const
 
 	if (anim->resolve_stage == 1) {
 		gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "begin", &info);
-		if (svg_resolve_smil_times(sg, anim->target, * (GF_List **) info.far_ptr, nodeID)) {
+		if (svg_resolve_smil_times(sg, anim->anim_parent, * (GF_List **) info.far_ptr, nodeID)) {
 			anim->resolve_stage = 2;
 		} else {
 			return 0;
 		}
 	}
 	gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "end", &info);
-	if (!svg_resolve_smil_times(sg, anim->target, * (GF_List **) info.far_ptr, nodeID)) return 0;
+	if (!svg_resolve_smil_times(sg, anim->anim_parent, * (GF_List **) info.far_ptr, nodeID)) return 0;
+
+	/*animateMotion needs its children to be parsed !! */
+	if (gf_node_get_tag((GF_Node *)anim->animation_elt) == TAG_SVG_animateMotion)
+		return 1;
+
 	/*OK init the anim*/
 	gf_node_init((GF_Node *)anim->animation_elt);
 	return 1;
@@ -355,7 +370,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 	/* Translates the node type (called name) from a String into a unique numeric identifier in GPAC */
 	tag = gf_node_svg_type_by_class_name(name);
 	if (tag == TAG_UndefinedNode) {
-		parser->last_error = GF_SG_UNKNOWN_NODE;
+		svg_report(parser, GF_OK, "Unknown element %s - skipping", name);
 		return NULL;
 	}
 
@@ -373,6 +388,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 		/*default anim target is parent node*/
 		anim->animation_elt = elt;
 		anim->target = parent;
+		anim->anim_parent = parent;
 	}
 
 	/*parse all att*/
@@ -663,13 +679,14 @@ static u32 lsr_get_command_by_name(const char *name)
 }
 static void svg_node_start(void *sax_cbck, const char *name, const char *name_space, GF_List *attributes)
 {
-	SVGElement *elt, *parent;
+	SVGNodeStack *stack, *parent;
+	SVGElement *elt;
 	SVGscriptElement *script = NULL;
 	GF_SVGParser *parser = sax_cbck;
 
-	parent = gf_list_last(parser->nodes);
-	if (parent && parent->sgprivate->tag==TAG_SVG_script) {
-		script = (SVGscriptElement *)parent;
+	parent = gf_list_last(parser->node_stack);
+	if (parent && parent->node->sgprivate->tag==TAG_SVG_script) {
+		script = (SVGscriptElement *)parent->node;
 		parent = NULL;
 	}
 
@@ -794,9 +811,14 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 	if (parser->has_root) {
 		assert(parent || parser->command);
 	}
-	elt = svg_parse_element(parser, name, name_space, attributes, parent);
-	if (!elt) return;
-	gf_list_add(parser->nodes, elt);
+	elt = svg_parse_element(parser, name, name_space, attributes, parent ? (SVGElement *) parent->node : NULL);
+	if (!elt) {
+		if (parent) parent->unknown_depth++;
+		return;
+	}
+	GF_SAFEALLOC(stack, sizeof(SVGNodeStack));
+	stack->node = (GF_Node *) elt;
+	gf_list_add(parser->node_stack, stack);
 
 	if (!strcmp(name, "svg") && !parser->has_root) 
 		svg_init_root_element(parser, (SVGsvgElement *)elt);
@@ -822,9 +844,9 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 static void svg_node_end(void *sax_cbck, const char *name, const char *name_space)
 {
 	GF_SVGParser *parser = sax_cbck;
-	GF_Node *node = gf_list_last(parser->nodes);
+	SVGNodeStack *top = gf_list_last(parser->node_stack);
 
-	if (!node) {
+	if (!top) {
 		if (parser->laser_au && !strcmp(name, "sceneUnit")) {
 			parser->laser_au = NULL;
 			return;
@@ -840,16 +862,37 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 	/*only remove created nodes ... */
 	if (gf_node_svg_type_by_class_name(name) != TAG_UndefinedNode) {
 		const char *the_name;
+		GF_Node *node = top->node;
 		/*check node name...*/
 		the_name = gf_node_get_class_name(node);
-		if (strcmp(the_name, name)) fprintf(stdout, "\n\nERROR: svg depth mismatch \n\n");
-		gf_list_rem_last(parser->nodes);
+		if (strcmp(the_name, name)) {
+			if (top->unknown_depth) {
+				top->unknown_depth--;
+				return;
+			} else {
+				svg_report(parser, GF_BAD_PARAM, "SVG depth mismatch");
+				return;
+			}
+		}
+		free(top);
+		gf_list_rem_last(parser->node_stack);
 
 		if (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) {
 			GF_DOM_Event evt;
 			memset(&evt, 0, sizeof(GF_DOM_Event));
 			evt.type = SVG_DOM_EVT_LOAD;
 			gf_sg_fire_dom_event(node, NULL, &evt);
+
+			/*init animateMotion once all children have been parsed tomake sure we get the mpath child if any*/
+			if (node->sgprivate->tag == TAG_SVG_animateMotion) {
+				gf_node_init(node);
+			}
+		}
+	} else if (top) {
+		if (top->unknown_depth) {
+			top->unknown_depth--;
+		} else {
+			svg_report(parser, GF_BAD_PARAM, "SVG depth mismatch");
 		}
 	}
 }
@@ -859,22 +902,24 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 	const char *buf;
 	u32 len;
 	GF_SVGParser *parser = sax_cbck;
-	SVGElement *node_core;
-	SVGElement *node = gf_list_last(parser->nodes);
+	SVGElement *node_core, *node;
+	SVGNodeStack *top = gf_list_last(parser->node_stack);
+	node = top ? (SVGElement *) top->node : NULL;
 	if (!node && !parser->command) return;
-
-	buf = text_content;
-	len = strlen(buf);
+	if (top && top->unknown_depth) return;
 
 	node_core = node;
 	if (!node) node_core = (SVGElement *)parser->command->node;
 	if (!node_core) return;
 
+	buf = text_content;
+	len = strlen(buf);
+
 	if (!node_core->core->space || (node_core->core->space != XML_SPACE_PRESERVE)) {
 		Bool go = 1;;
 		while (go) {
 			switch (buf[0]) {
-			case '\n': case '\r': case ' ':
+			case '\n': case '\t': case '\r': case ' ':
 				buf ++;
 				break;
 			default:
@@ -888,7 +933,7 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 		while (go) {
 			if (!len) break;
 			switch (buf[len-1]) {
-			case '\n': case '\r': case ' ':
+			case '\n': case '\r': case ' ': case '\t': 
 				len--;
 				break;
 			default:
@@ -956,7 +1001,7 @@ static GF_SVGParser *svg_new_parser(GF_SceneLoader *load)
 	GF_SVGParser *parser;
 	if ((load->type==GF_SM_LOAD_XSR) && !load->ctx) return NULL;
 	GF_SAFEALLOC(parser, sizeof(GF_SVGParser));
-	parser->nodes = gf_list_new();
+	parser->node_stack = gf_list_new();
 	parser->defered_hrefs = gf_list_new();
 	parser->defered_animations = gf_list_new();
 	parser->sax_parser = gf_xml_sax_new(svg_node_start, svg_node_end, svg_text_content, parser);
@@ -1017,7 +1062,12 @@ GF_Err gf_sm_load_done_SVG(GF_SceneLoader *load)
 {
 	GF_SVGParser *parser = (GF_SVGParser *)load->loader_priv;
 	if (!parser) return GF_OK;
-	gf_list_del(parser->nodes);
+	while (gf_list_count(parser->node_stack)) {
+		SVGNodeStack *st = gf_list_last(parser->node_stack);
+		gf_list_rem_last(parser->node_stack);
+		free(st);
+	}
+	gf_list_del(parser->node_stack);
 	gf_list_del(parser->defered_hrefs);
 	svg_reset_defered_animations(parser->defered_animations);
 	gf_list_del(parser->defered_animations);
