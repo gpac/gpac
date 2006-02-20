@@ -84,6 +84,7 @@
 #define IDC_CTRL_STOP                   1055
 #define IDC_EMULATE_POW2                1056
 #define IDC_WIRE_MODE                   1057
+#define IDC_SAX_DURATION                1058
 #define IDC_DRAW_NORMALS                1059
 #define IDC_SPIN_OPT                    1060
 #define IDC_AUDIO_DUR                   1061
@@ -91,6 +92,7 @@
 #define IDC_FILL_SCREEN                 1063
 #define IDC_VIEW_FPS                    1064
 #define IDC_NO_BACKLIGHT                1065
+#define IDC_SAX_PROGRESSIVE             1066
 #define IDS_CAP_FILE                    32772
 #define ID_FILE_RESTART                 32773
 #define ID_FPS_DISP                     32774
@@ -161,7 +163,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        143
 #define _APS_NEXT_COMMAND_VALUE         32820
-#define _APS_NEXT_CONTROL_VALUE         1058
+#define _APS_NEXT_CONTROL_VALUE         1059
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

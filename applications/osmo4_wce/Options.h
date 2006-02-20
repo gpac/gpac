@@ -132,8 +132,10 @@ public:
 	//{{AFX_DATA(COptHTTP)
 	enum { IDD = IDD_OPT_HTTP };
 	CButton	m_RestartFile;
+	CButton	m_Progressive;
 	CButton	m_CleanCache;
 	CButton	m_CacheDir;
+	CEdit	m_SaxDuration;
 	//}}AFX_DATA
 
 
@@ -152,6 +154,7 @@ protected:
 	// Generated message map functions
 	//{{AFX_MSG(COptHTTP)
 	afx_msg void OnBrowseCache();
+	afx_msg void OnProgressive();
 	virtual BOOL OnInitDialog();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()

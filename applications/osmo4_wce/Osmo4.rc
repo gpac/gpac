@@ -498,13 +498,17 @@ IDD_OPT_HTTP DIALOG DISCARDABLE  0, 20, 133, 121
 STYLE DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "System"
 BEGIN
-    LTEXT           "Temporary Downloaded Files",IDC_STATIC,17,40,93,8
-    PUSHBUTTON      "...",IDC_BROWSE_CACHE,8,53,113,14
+    LTEXT           "Cache Directory",IDC_STATIC,35,9,53,8
+    PUSHBUTTON      "...",IDC_BROWSE_CACHE,7,22,113,14
     CONTROL         "Remove temp files",IDC_CLEAN_CACHE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,6,79,75,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,43,75,10
     CONTROL         "Always redownload incomplete cached files",
                     IDC_RESTART_CACHE,"Button",BS_AUTOCHECKBOX | 
-                    BS_MULTILINE | WS_TABSTOP,6,91,102,22
+                    BS_MULTILINE | WS_TABSTOP,7,54,102,22
+    CONTROL         "XML Progressive Load",IDC_SAX_PROGRESSIVE,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,8,77,85,10
+    EDITTEXT        IDC_SAX_DURATION,27,89,35,14,ES_CENTER | ES_AUTOHSCROLL | 
+                    ES_NUMBER
 END
 
 IDD_OPT_STREAM DIALOG DISCARDABLE  0, 20, 133, 121

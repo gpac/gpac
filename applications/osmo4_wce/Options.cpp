@@ -105,8 +105,12 @@ BOOL COptions::OnInitDialog()
 	m_Selection.AddString(_T("Download"));
 	m_Selection.AddString(_T("Streaming"));
 	HideAll();
-	m_Selection.SetCurSel(0);
-	m_general.ShowWindow(SW_SHOW);
+
+	const char *sOpt = gf_cfg_get_key(GetApp()->m_user.config, "General", "ConfigPanel");
+	u32 sel = sOpt ? atoi(sOpt) : 0;
+	if (sel>8) sel=8;
+	m_Selection.SetCurSel(sel);
+	OnSelchangeCombosel();
 
 	SetFocus();
 	return TRUE;  
@@ -131,6 +135,10 @@ void COptions::OnSaveopt()
 
 void COptions::OnOK() 
 {
+	char str[20];
+	sprintf(str, "%d", m_Selection.GetCurSel());
+	gf_cfg_set_key(GetApp()->m_user.config, "General", "ConfigPanel", str);
+
 	EndDialog(IDCANCEL);
 }
 
@@ -567,6 +575,8 @@ void COptHTTP::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_RESTART_CACHE, m_RestartFile);
 	DDX_Control(pDX, IDC_CLEAN_CACHE, m_CleanCache);
 	DDX_Control(pDX, IDC_BROWSE_CACHE, m_CacheDir);
+	DDX_Control(pDX, IDC_SAX_PROGRESSIVE, m_Progressive);
+	DDX_Control(pDX, IDC_SAX_DURATION, m_SaxDuration);
 	//}}AFX_DATA_MAP
 }
 
@@ -574,6 +584,7 @@ void COptHTTP::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(COptHTTP, CDialog)
 	//{{AFX_MSG_MAP(COptHTTP)
 	ON_BN_CLICKED(IDC_BROWSE_CACHE, OnBrowseCache)
+	ON_BN_CLICKED(IDC_SAX_PROGRESSIVE, OnProgressive)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -595,25 +606,32 @@ BOOL COptHTTP::OnInitDialog()
 	const char *sOpt;
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Downloader", "CleanCache");
-	if (sOpt && !stricmp(sOpt, "yes")) {
-		m_CleanCache.SetCheck(1);
-	} else {
-		m_CleanCache.SetCheck(0);
-	}
+	m_CleanCache.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Downloader", "RestartFiles");
-	if (sOpt && !stricmp(sOpt, "yes")) {
-		m_RestartFile.SetCheck(1);
+	m_RestartFile.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "SAXLoader", "Progressive");
+	m_Progressive.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "SAXLoader", "MaxDuration");
+	if (sOpt) {
+		CE_CharToWide((char *) sOpt, wTmp);
+		m_SaxDuration.SetWindowText(wTmp);
 	} else {
-		m_RestartFile.SetCheck(0);
+		m_SaxDuration.SetWindowText( _T("30") );
 	}
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "CacheDirectory");
 	CE_CharToWide((char *) sOpt, wTmp);
 	if (sOpt) m_CacheDir.SetWindowText(wTmp);
 	
+	OnProgressive();
 	return TRUE; 
 }
 
+void COptHTTP::OnProgressive()
+{
+	m_SaxDuration.EnableWindow( m_Progressive.GetCheck() ? TRUE : FALSE );
+}
 
 void COptHTTP::SaveOptions()
 {
@@ -623,6 +641,11 @@ void COptHTTP::SaveOptions()
 
 	gf_cfg_set_key(gpac->m_user.config, "Downloader", "CleanCache", m_CleanCache.GetCheck() ? "yes" : "no");
 	gf_cfg_set_key(gpac->m_user.config, "Downloader", "RestartFiles", m_RestartFile.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "SAXLoader", "Progressive", m_Progressive.GetCheck() ? "yes" : "no");
+
+	m_SaxDuration.GetWindowText(wTmp, MAX_PATH);
+	CE_WideToChar(wTmp, szCacheDir);
+	gf_cfg_set_key(gpac->m_user.config, "SAXLoader", "MaxDuration", szCacheDir);
 
 	m_CacheDir.GetWindowText(wTmp, MAX_PATH);
 	CE_WideToChar(wTmp, szCacheDir);
