@@ -2520,6 +2520,9 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 
 		/*by default handle all samples as contigous*/
 		offset = 0;
+
+		samp->dataLength = 0;
+
 		while (xml_has_attributes(&parser)) {
 			str = xml_get_attribute(&parser);
 			if (!strcmp(str, "DTS")) {
