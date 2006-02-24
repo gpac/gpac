@@ -154,6 +154,7 @@ void gf_clock_reset(GF_Clock *ck)
 	ck->init_time = 0;
 	ck->StartTime = 0;
 	ck->has_seen_eos = 0;
+	if (ck->no_time_ctrl==2) ck->no_time_ctrl = 1;
 }
 
 void gf_clock_set_time(GF_Clock *ck, u32 TS)

@@ -578,7 +578,7 @@ void gf_is_render(GF_Node *n, void *render_stack)
 
 void gf_is_attach_to_renderer(GF_InlineScene *is)
 {
-	if (is->graph_attached) return;
+	if (is->graph_attached==1) return;
 	if (gf_sg_get_root_node(is->graph)==NULL) return;
 	is->graph_attached = 1;
 	/*main display scene, setup renderer*/

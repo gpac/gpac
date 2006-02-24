@@ -597,8 +597,9 @@ void RP_ParsePayloadMPEG4(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 s
 				ch->sl_hdr.decodingTimeStampFlag = 0;
 			}
 			if (ch->sl_hdr.decodingTimeStampFlag) {
-				s32 ts = hdr->TimeStamp - (s32) gf_bs_read_int(hdr_bs, ch->sl_map.DTSDeltaLength);
-				ch->sl_hdr.decodingTimeStamp = (ts>0) ? ts : 0;
+				u32 ts_off = gf_bs_read_int(hdr_bs, ch->sl_map.DTSDeltaLength);
+				/*TODO FIXME may not be true in case of TS wrapping*/
+				if (hdr->TimeStamp > ts_off) ch->sl_hdr.decodingTimeStamp = hdr->TimeStamp - ts_off;
 				au_hdr_size -= ch->sl_map.DTSDeltaLength;
 			}
 			/*RAP flag*/

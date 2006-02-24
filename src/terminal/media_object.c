@@ -184,14 +184,16 @@ Bool gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos)
 
 	/*resync*/
 	if (resync) {
+		u32 nb_droped = 0;
 		obj_time = gf_clock_time(mo->odm->codec->ck);
 		while (CU->TS < obj_time) {
 			if (!CU->next->dataLength) break;
 			/*figure out closest time*/
-			if (CU->next->TS > obj_time) {
-				/*current frame is closer to object clock than next one, keep it*/
-				if ((obj_time - CU->TS) < (CU->next->TS - obj_time) ) break;
-
+			if (CU->next->TS > obj_time) break;
+			nb_droped ++;
+			if (nb_droped>1) {
+				//fprintf(stdout, "droping frame TS %d time %d\n", CU->TS, obj_time);
+				mo->odm->codec->nb_droped++;
 			}
 			/*discard*/
 			CU->RenderedLength = CU->dataLength = 0;
@@ -220,7 +222,7 @@ exit:
 	return ret;
 }
 
-void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, Bool forceDrop)
+void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, u32 forceDrop)
 {
 	u32 obj_time;
 	if (!mo || !mo->num_fetched) return;
@@ -240,6 +242,8 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, Bool forceDrop)
 		if (mo->odm->codec->CB->output->RenderedLength == mo->odm->codec->CB->output->dataLength) {
 			if (forceDrop) {
 				CB_DropOutput(mo->odm->codec->CB);
+				forceDrop--;
+//				if (forceDrop) mo->odm->codec->nb_droped++;
 			} else {
 				obj_time = gf_clock_time(mo->odm->codec->ck);
 				if (mo->odm->codec->CB->output->next->dataLength) { 

@@ -469,7 +469,7 @@ GF_Err Media_FindDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNname
 GF_Err Media_SetDuration(GF_TrackBox *trak)
 {
 	GF_ESD *esd;
-	u64 DTS, DTSprev;
+	u64 DTS;
 	GF_SttsEntry *ent;
 	u32 nbSamp = trak->Media->information->sampleTable->SampleSize->sampleCount;
 
@@ -495,7 +495,12 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 		stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp, &DTS);
 		ent = gf_list_last(trak->Media->information->sampleTable->TimeToSample->entryList);
 		trak->Media->mediaHeader->duration = DTS;
+
+#if 1
+		trak->Media->mediaHeader->duration += ent->sampleDelta;
+#else
 		if (!ent) {
+			u64 DTSprev;
 			stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp-1, &DTSprev);
 			trak->Media->mediaHeader->duration += (DTS - DTSprev);
 		} else {
@@ -533,6 +538,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 #endif
 			trak->Media->mediaHeader->duration += ent->sampleDelta;
 		}
+#endif
 		return GF_OK;
 	}
 }

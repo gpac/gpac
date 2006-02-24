@@ -200,7 +200,7 @@ static void PrintTime(u64 time)
 	fprintf(stdout, "%02d:%02d:%02d.%02d", h, m, s, ms);
 }
 
-#define RTI_UPDATE_TIME_MS	500
+#define RTI_UPDATE_TIME_MS	200
 static FILE *rti_logs = NULL;
 static u64 memory_at_gpac_startup = 0;
 static u64 memory_at_gpac_load = 0;
@@ -1290,9 +1290,10 @@ void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm)
 	if (odi.db_unit_count) fprintf(stdout, " - DB: %d AU", odi.db_unit_count);
 	if (odi.cb_max_count) fprintf(stdout, " - CB: %d/%d CUs", odi.cb_unit_count, odi.cb_max_count);
 	
+	fprintf(stdout, "\n * %d decoded frames - %d dropped frames\n", odi.nb_dec_frames, odi.nb_droped);
 	avg_dec_time = 0;
 	if (odi.nb_dec_frames) { avg_dec_time = (Float) odi.total_dec_time; avg_dec_time /= odi.nb_dec_frames; }
-	fprintf(stdout, "\n * Avg Bitrate %d kbps (%d max) - Avg Decoding Time %.2f ms (%d max)\n",
+	fprintf(stdout, " * Avg Bitrate %d kbps (%d max) - Avg Decoding Time %.2f ms (%d max)\n",
 								(u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time);
 }
 

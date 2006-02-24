@@ -284,9 +284,9 @@ static GF_Err gdip_set_font(GF_FontRaster *dr, const char *fontName, const char 
 	if (fontName && strlen(fontName) >= GDIP_MAX_STRING_SIZE) fontName = NULL;
 
 	if (!fontName || !strlen(fontName) ) fontName = ctx->font_serif;
-	else if (!strcmp(fontName, "SANS")) fontName = ctx->font_sans;
-	else if (!strcmp(fontName, "SERIF")) fontName = ctx->font_serif;
-	else if (!strcmp(fontName, "TYPEWRITER")) fontName = ctx->font_fixed;
+	else if (!stricmp(fontName, "SANS")) fontName = ctx->font_sans;
+	else if (!stricmp(fontName, "SERIF")) fontName = ctx->font_serif;
+	else if (!stricmp(fontName, "TYPEWRITER")) fontName = ctx->font_fixed;
 
 	MultiByteToWideChar(CP_ACP, 0, fontName, strlen(fontName)+1, 
 						wcFontName, sizeof(wcFontName)/sizeof(wcFontName[0]) );
@@ -298,16 +298,19 @@ static GF_Err gdip_set_font(GF_FontRaster *dr, const char *fontName, const char 
 	//setup styles
 	ctx->font_style = 0;
 	if (styles) {
-		if (strstr(styles, "BOLDITALIC")) ctx->font_style |= FontStyleBoldItalic;
-		else if (strstr(styles, "BOLD")) ctx->font_style |= FontStyleBold;
-		else if (strstr(styles, "ITALIC")) ctx->font_style |= FontStyleItalic;
+		char *upr_styles = strdup(styles);
+		strupr(upr_styles);
+		if (strstr(upr_styles, "BOLDITALIC")) ctx->font_style |= FontStyleBoldItalic;
+		else if (strstr(upr_styles, "BOLD")) ctx->font_style |= FontStyleBold;
+		else if (strstr(upr_styles, "ITALIC")) ctx->font_style |= FontStyleItalic;
 		
-		if (strstr(styles, "UNDERLINED")) {
+		if (strstr(upr_styles, "UNDERLINED")) {
 			ctx->font_style |= FontStyleUnderline;
 		}
-		if (strstr(styles, "STRIKEOUT")) {
+		if (strstr(upr_styles, "STRIKEOUT")) {
 			ctx->font_style |= FontStyleStrikeout;
 		}
+		free(upr_styles);
 	}	
 
 	return GF_OK;

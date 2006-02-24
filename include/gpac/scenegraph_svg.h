@@ -157,7 +157,6 @@ typedef DOM_String SVG_LanguageID;
 typedef DOM_String SVG_TextContent;
 
 /* types not yet handled properly, i.e. for the moment using strings */
-typedef DOM_String SVG_Focus;
 typedef DOM_String SVG_ID;
 typedef DOM_String SVG_LinkTarget;
 typedef DOM_String SVG_GradientOffset;
@@ -201,7 +200,6 @@ typedef struct
 	/*for accessKey and mouse button, or repeatCount when the event is a SMIL repeat */
 	u32 parameter;
 } XMLEV_Event;
-
 
 typedef struct {
 	/* Type of timing value*/
@@ -312,6 +310,21 @@ typedef struct {
 	u8 *iri;
 	struct _svg_element *target;
 } SVG_IRI;
+
+
+enum
+{
+	SVG_FOCUS_SELF = 0, 
+	SVG_FOCUS_AUTO, 
+	SVG_FOCUS_IRI, 
+};
+
+typedef struct
+{
+	u8 type;
+	SVG_IRI target;
+} SVG_Focus;
+
 
 enum {
 	SVG_FONTFAMILY_INHERIT,
@@ -686,8 +699,8 @@ enum {
 typedef u8 XMLEV_Propagate;
 
 enum {
-	XMLEVENT_DEFAULTACTION_CANCEL	= 0,
-	XMLEVENT_DEFAULTACTION_PERFORM	= 1
+	XMLEVENT_DEFAULTACTION_PERFORM	= 0,
+	XMLEVENT_DEFAULTACTION_CANCEL
 };
 typedef u8 XMLEV_DefaultAction;
 
@@ -769,7 +782,8 @@ typedef enum {
 
 typedef enum {
 	SVG_OVERLAY_NONE = 0,
-	SVG_OVERLAY_TOP	 = 1
+	SVG_OVERLAY_TOP,
+	SVG_OVERLAY_FULLSCREEN,
 } SVG_Overlay;
 
 typedef enum {
@@ -786,13 +800,15 @@ typedef struct {
 } LASeR_Choice;
 
 typedef struct {
+	Bool enabled;
 	Fixed width, height;
 } LASeR_Size;
 
-typedef enum {
+enum {
 	LASeR_TIMEATTRIBUTE_BEGIN = 0,
-	LASeR_TIMEATTRIBUTE_END = 1
-} LASeR_TimeAttribute;
+	LASeR_TIMEATTRIBUTE_END
+};
+typedef u8 LASeR_TimeAttribute;
 
 /**************************************************
  *  SVG's styling properties (see 6.1 in REC 1.1) *
@@ -989,7 +1005,7 @@ typedef struct {
 
 typedef struct {
 	SMIL_Times begin, end;
-	SMIL_Time clipBegin, clipEnd;
+	SVG_Clock clipBegin, clipEnd;
 	SMIL_Duration dur;
 	SMIL_RepeatCount repeatCount;
 	SMIL_Duration repeatDur;
@@ -1344,6 +1360,7 @@ void gf_smil_anim_delete_animations(SVGElement *e);
 void gf_path_init_from_svg(GF_Path *path, GF_List *commands, GF_List *points);
 
 void gf_svg_register_iri(GF_SceneGraph *sg, SVG_IRI *iri);
+void gf_svg_unregister_iri(GF_SceneGraph *sg, SVG_IRI *iri);
 
 void svg_init_lsr_script(SVGCommandBuffer *script);
 void svg_reset_lsr_script(SVGCommandBuffer *script);

@@ -1161,7 +1161,7 @@ restart:
 exit:
 	if (is_text) {
 		if (i) xml_sax_store_text(parser, i);
-		xml_sax_flush_text(parser);
+		/*DON'T FLUSH TEXT YET, wait for next '<' to do so otherwise we may corrupt xml base entities (&apos;, ...)*/
 	}
 	xml_sax_swap(parser);
 	return GF_OK;

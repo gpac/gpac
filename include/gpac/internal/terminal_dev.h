@@ -114,8 +114,12 @@ struct _inline_scene
 	GF_List *extra_scenes;
 	/*inline scene graph*/
 	GF_SceneGraph *graph;
-	/*graph state - if not attached, no traversing of inline*/
-	Bool graph_attached;
+	/*graph state - if not attached, no traversing of inline
+	0: not attached
+	1: attached
+	2: temp graph attached. The temp graph is generated when waiting for the first scene AU to be processed
+	*/
+	u32 graph_attached;
 	/*togles inline restart - needed because the restart may be triggered from inside the scene or from
 	parent scene, hence 2 render passes must be used
 	special value 2 means scene URL changes (for anchor navigation*/
@@ -570,6 +574,8 @@ struct _generic_codec
 	u32 last_stat_start, cur_bit_size;
 	u32 avg_bit_rate, max_bit_rate;
 	u32 total_dec_time, nb_dec_frames, max_dec_time;
+	/*number of droped frames*/
+	u32 nb_droped;
 
 	/*for CTS reconstruction (channels not using SL): we cannot just update timing at each frame, not precise enough 
 	since we use ms and not microsec TSs*/

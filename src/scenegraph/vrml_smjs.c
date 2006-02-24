@@ -1796,6 +1796,7 @@ static void array_rewriteMFField(JSContext *c, GF_JSField *ptr)
 	jsval item;
 	u32 i, len;
 	jsdouble d;
+	char *str_val;
 	GF_JSField *from;
 
 	JS_GetArrayLength(c, ptr->js_list, &len);
@@ -1854,10 +1855,13 @@ static void array_rewriteMFField(JSContext *c, GF_JSField *ptr)
 			}
 			break;
 		case GF_SG_VRML_MFSTRING:
-			if (JSVAL_IS_STRING(item)) {
+			{
 				MFString *mfs = (MFString *) ptr->field.far_ptr;
-				JSString *str = JSVAL_TO_STRING(item);
-				char *str_val = JS_GetStringBytes(str);
+				if (JSVAL_IS_STRING(item)) {
+					str_val = JS_GetStringBytes(JSVAL_TO_STRING(item));
+				} else {
+					str_val = JS_GetStringBytes(JS_ValueToString(c, item));
+				}
 				if (!mfs->vals[i] || strcmp(mfs->vals[i], str_val)) {
 					if (mfs->vals[i]) free(mfs->vals[i]);
 					mfs->vals[i] = strdup(str_val);
@@ -1865,11 +1869,15 @@ static void array_rewriteMFField(JSContext *c, GF_JSField *ptr)
 			}
 			break;
 		case GF_SG_VRML_MFURL:
-			if (JSVAL_IS_STRING(item)) {
+			{
 				MFURL *mfu = (MFURL *) ptr->field.far_ptr;
-				JSString *str = JSVAL_TO_STRING(item);
+				if (JSVAL_IS_STRING(item)) {
+					str_val = JS_GetStringBytes(JSVAL_TO_STRING(item));
+				} else {
+					str_val = JS_GetStringBytes(JS_ValueToString(c, item));
+				}
 				if (mfu->vals[i].url) free(mfu->vals[i].url);
-				mfu->vals[i].url = strdup(JS_GetStringBytes(str));
+				mfu->vals[i].url = strdup(str_val);
 				mfu->vals[i].OD_ID = 0;
 			}
 			break;

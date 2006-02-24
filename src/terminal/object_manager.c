@@ -508,6 +508,11 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	/*special case for ODs only having OCRs: force a START since they're never refered to by media nodes*/
 	if (odm->ocr_codec) gf_odm_start(odm);
 
+	/*static OD stream: setup streams and post play*/
+	else if (odm->parentscene && odm->parentscene->od_codec && (odm->parentscene->od_codec->flags & GF_ESM_CODEC_IS_STATIC_OD)) {
+		gf_odm_start(odm);
+	}
+
 #if 0
 	/*clean up - note that this will not be performed if one of the stream is using ESD URL*/
 	if (!numOK) {
@@ -910,20 +915,19 @@ GF_Err gf_odm_post_es_setup(GF_Channel *ch, GF_Codec *dec, GF_Err had_err)
 	) {
 
 		gf_term_lock_net(ch->odm->term, 1);
+		gf_list_del_item(ch->odm->term->od_pending, ch->odm);
+
 		gf_es_start(ch);
-		if (gf_list_find(ch->odm->term->od_pending, ch->odm)<0) {
-			com.command_type = GF_NET_CHAN_PLAY;
-			com.base.on_channel = ch;
-			com.play.speed = FIX2FLT(ch->clock->speed);
-			com.play.start_range = gf_clock_time(ch->clock);
-			com.play.start_range /= 1000;
-			com.play.end_range = -1.0;
-			gf_term_service_command(ch->service, &com);
-		}
+		com.command_type = GF_NET_CHAN_PLAY;
+		com.base.on_channel = ch;
+		com.play.speed = FIX2FLT(ch->clock->speed);
+		com.play.start_range = gf_clock_time(ch->clock);
+		com.play.start_range /= 1000;
+		com.play.end_range = -1.0;
+		gf_term_service_command(ch->service, &com);
 		if (dec && (dec->Status!=GF_ESM_CODEC_PLAY)) gf_mm_start_codec(dec);
 		gf_term_lock_net(ch->odm->term, 0);
 	}
-
 	return GF_OK;
 
 err_exit:

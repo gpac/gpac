@@ -32,6 +32,35 @@
 
 #include "media_memory.h"
 
+#define DEBUG_SL		0
+#define DEBUG_CLOCK		0
+#define DEBUG_CAROUSEL	0
+
+static void ch_buffer_off(GF_Channel *ch)
+{
+	/*just in case*/
+	if (ch->BufferOn) {
+		ch->BufferOn = 0;
+		gf_clock_buffer_off(ch->clock);
+#if DEBUG_CLOCK
+		fprintf(stdout, "ES%d: buffering off at %d (nb buffering on clock: %d)\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->clock->Buffering);
+#endif
+	}
+}
+
+
+static void ch_buffer_on(GF_Channel *ch)
+{
+	/*just in case*/
+	if (!ch->BufferOn) {
+		ch->BufferOn = 1;
+		gf_clock_buffer_on(ch->clock);
+#if DEBUG_CLOCK
+		fprintf(stdout, "ES%d: buffering on at %d (nb buffering on clock: %d)\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->clock->Buffering);
+#endif
+	}
+}
+
 /*reset channel*/
 static void Channel_Reset(GF_Channel *ch, Bool for_start)
 {
@@ -52,11 +81,7 @@ static void Channel_Reset(GF_Channel *ch, Bool for_start)
 	ch->ts_offset = 0;
 	ch->seed_ts = 0;
 
-	/*just in case*/
-	if (ch->BufferOn) {
-		ch->BufferOn = 0;
-		gf_clock_buffer_off(ch->clock);
-	}
+	ch_buffer_off(ch);
 
 	if (ch->buffer) free(ch->buffer);
 	ch->buffer = NULL;
@@ -190,8 +215,7 @@ GF_Err gf_es_start(GF_Channel *ch)
 	/*and start buffering - pull channels always turn off buffering immediately, otherwise 
 	buffering size is setup by the network service - except InputSensor*/
 	if ((ch->esd->decoderConfig->streamType != GF_STREAM_INTERACT) || ch->esd->URLString) {
-		ch->BufferOn = 1;
-		gf_clock_buffer_on(ch->clock);
+		ch_buffer_on(ch);
 	}
 	ch->last_au_time = gf_term_get_time(ch->odm->term);
 	ch->es_state = GF_ESM_ES_RUNNING;
@@ -210,10 +234,8 @@ GF_Err gf_es_stop(GF_Channel *ch)
 		break;
 	}
 
-	if (ch->BufferOn) {
-		gf_clock_buffer_off(ch->clock);
-		ch->BufferOn = 0;
-	}
+	ch_buffer_off(ch);
+
 	ch->es_state = GF_ESM_ES_CONNECTED;
 	if (ch->buffer) free(ch->buffer);
 	ch->buffer = NULL;
@@ -267,6 +289,10 @@ static Bool Channel_NeedsBuffering(GF_Channel *ch, u32 ForRebuffering)
 		}
 		return 0;
 	}
+	/*we're in a broadcast scenario and one of the stream running on this clock has completed its buffering: 
+	abort all buffering*/
+	if (ch->clock->no_time_ctrl == 2) return 0;
+
 	/*nothing received, buffer needed*/
 	if (!ch->first_au_fetched && !ch->AU_buffer_first) {
 		u32 now = gf_term_get_time(ch->odm->term);
@@ -309,10 +335,10 @@ static Bool Channel_NeedsBuffering(GF_Channel *ch, u32 ForRebuffering)
 static void Channel_UpdateBuffering(GF_Channel *ch, Bool update_info)
 {
 	if (update_info && ch->MaxBuffer) gf_is_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
-	if (!Channel_NeedsBuffering(ch, 0) && ch->BufferOn) {
-		ch->BufferOn = 0;
-		gf_clock_buffer_off(ch->clock);
+	if (!Channel_NeedsBuffering(ch, 0)) {
+		ch_buffer_off(ch);
 		if (ch->MaxBuffer) gf_is_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
+		if (ch->clock->no_time_ctrl) ch->clock->no_time_ctrl = 2;
 	}
 }
 
@@ -346,8 +372,6 @@ static void Channel_UpdateBufferTime(GF_Channel *ch)
 	}
 	ch->BufferTime += ch->au_duration;
 }
-
-#define DEBUG_SL	0
 
 /*dispatch the AU in the DB*/
 static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
@@ -709,23 +733,31 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			}
 		}
 
-		/*if channel owns the clock, start it*/
 		if (!ch->IsClockInit) {
 			/*first data received on channel inits the clock, regardless of:
-				wether it owns it or not
-				wether data can be processed or not (carousel)
-			this ensures timing is consistent for all streams of a same network session. 
-			By not doing so, we would desynchronize streams by setting the time origin in the future for 
-			some streams in case of carousel:
-				Video: V(CTS0) V(CTS1)        V(CTS2)
-				Scene:                 S(CTS0)
-				Time :                 INIT: t=0
-				Final: S(CTS0) V(CTS0) V(CTS1) V(CTS2)
-				Sent : V(CTS0) V(CTS1) S(CTS0) V(CTS2)
+				- wether channel owns the clock or not
+				- wether data can be processed or not (carousel)
+			We then offset other streams' timeline by the time ellapsed since clock initialization
 			*/
-			if (!ch->clock->clock_init) gf_clock_set_time(ch->clock, ch->DTS);
-			//if (gf_es_owns_clock(ch)) gf_clock_set_time(ch->clock, ch->DTS);
+#if 1
+			if (!ch->clock->clock_init) {
+				gf_clock_set_time(ch->clock, ch->DTS);
+			} else if (ch->clock->no_time_ctrl) {
+				s32 offset = gf_term_get_time(ch->odm->term);
+				offset -= ch->clock->StartTime;
+				if (offset>0) {
+					ch->ts_offset += offset;
+					ch->DTS += offset;
+					ch->CTS += offset;
+				}
+			}
+			ch->IsClockInit = 1;
+#else
+			if (!ch->clock->clock_init && gf_es_owns_clock(ch)) {
+				gf_clock_set_time(ch->clock, ch->DTS);
+			}
 			if (ch->clock->clock_init) ch->IsClockInit = 1;
+#endif
 		}
 		/*if the AU Length is carried in SL, get its size*/
 		if (ch->esd->slConfig->AULength > 0) {
@@ -738,7 +770,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			if (hdr.randomAccessPointFlag) {
 				/*initial tune-in*/
 				if (ch->stream_state==1) {
-#if DEBUG_SL
+#if DEBUG_CAROUSEL
 					fprintf(stdout, "ES%d: RAP Carousel found - tuning in\n", ch->esd->ESID);
 #endif
 					ch->au_sn = AUSeqNum;
@@ -748,13 +780,13 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 				else if (AUSeqNum == ch->au_sn) {
 					/*error recovery*/
 					if (ch->stream_state==2) {
-#if DEBUG_SL
+#if DEBUG_CAROUSEL
 						fprintf(stdout, "ES%d: RAP Carousel found - recovering\n", ch->esd->ESID);
 #endif
 						ch->stream_state = 0;
 					} 
 					else {
-#if DEBUG_SL
+#if DEBUG_CAROUSEL
 						fprintf(stdout, "ES%d: RAP Carousel found - skipping\n", ch->esd->ESID);
 #endif
 						return;
@@ -768,13 +800,13 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			} 
 			/*regular AU but waiting for RAP*/
 			else if (ch->stream_state) {
-#if DEBUG_SL
+#if DEBUG_CAROUSEL
 				fprintf(stdout, "ES%d: Waiting for RAP Carousel - skipping\n", ch->esd->ESID);
 #endif
 				return;
 			} else {
 				ch->au_sn = AUSeqNum;
-#if DEBUG_SL
+#if DEBUG_CAROUSEL
 				fprintf(stdout, "ES%d: NON-RAP AU received\n", ch->esd->ESID);
 #endif
 			}
@@ -782,13 +814,13 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		/*no carousel signaling, tune-in at first RAP*/
 		else if (hdr.randomAccessPointFlag) {
 			ch->stream_state = 0;
-#if DEBUG_SL
+#if DEBUG_CAROUSEL
 			fprintf(stdout, "ES%d: RAP AU received\n", ch->esd->ESID);
 #endif
 		}
 		/*waiting for RAP, return*/
 		else if (ch->stream_state) {
-#if DEBUG_SL
+#if DEBUG_CAROUSEL
 			fprintf(stdout, "ES%d: Waiting for RAP - skipping AU (DTS %d)\n", ch->esd->ESID, ch->DTS);
 #endif
 			return;
@@ -889,10 +921,8 @@ void gf_es_on_eos(GF_Channel *ch)
 	ch->IsEndOfStream = 1;
 	
 	/*flush buffer*/
-	if (ch->BufferOn) {
-		ch->BufferOn = 0;
-		gf_clock_buffer_off(ch->clock);
-	}
+	ch_buffer_off(ch);
+
 	ch->clock->has_seen_eos = 1;
 	gf_odm_on_eos(ch->odm, ch);
 }
@@ -916,10 +946,7 @@ LPAUBUFFER gf_es_get_au(GF_Channel *ch)
 	}
 
 	/*pull from stream - resume clock if needed*/
-	if (ch->BufferOn) {
-		ch->BufferOn = 0;
-		gf_clock_buffer_off(ch->clock);
-	}
+	ch_buffer_off(ch);
 
 	e = gf_term_channel_get_sl_packet(ch->service, ch, (char **) &ch->AU_buffer_pull->data, &ch->AU_buffer_pull->dataLength, &slh, &comp, &state, &is_new_data);
 	if (e) state = e;
@@ -963,10 +990,8 @@ void gf_es_init_dummy(GF_Channel *ch)
 	GF_Err e, state;
 	if (!ch->is_pulling) return;
 	/*pull from stream - resume clock if needed*/
-	if (ch->BufferOn) {
-		ch->BufferOn = 0;
-		gf_clock_buffer_off(ch->clock);
-	}
+	ch_buffer_off(ch);
+
 	e = gf_term_channel_get_sl_packet(ch->service, ch, (char **) &ch->AU_buffer_pull->data, &ch->AU_buffer_pull->dataLength, &slh, &comp, &state, &is_new_data);
 	if (e) state = e;
 	if ((state==GF_OK) && is_new_data) gf_es_receive_sl_packet(ch->service, ch, NULL, 0, &slh, GF_OK);
@@ -1005,9 +1030,8 @@ void gf_es_drop_au(GF_Channel *ch)
 	Channel_UpdateBufferTime(ch);
 
 	/*if we get under our limit, rebuffer EXCEPT WHEN EOS is signaled*/
-	if (!ch->IsEndOfStream && !ch->BufferOn && Channel_NeedsBuffering(ch, 1)) {
-		ch->BufferOn = 1;
-		gf_clock_buffer_on(ch->clock);
+	if (!ch->IsEndOfStream && Channel_NeedsBuffering(ch, 1)) {
+		ch_buffer_on(ch);
 	}
 
 	/*unlock the channel*/
@@ -1062,7 +1086,8 @@ void gf_es_on_connect(GF_Channel *ch)
 	}
 
 	/*signal channel state*/
-	ch->es_state = GF_ESM_ES_CONNECTED;
+	if (ch->es_state == GF_ESM_ES_WAIT_FOR_ACK) 
+		ch->es_state = GF_ESM_ES_CONNECTED;
 	/*signal only once connected to prevent PLAY trigger on connection callback*/
 	ch->odm->pending_channels--;
 
@@ -1141,7 +1166,7 @@ void gf_es_config_ismacryp(GF_Channel *ch, GF_NetComISMACryp *isma_cryp)
 	GF_Err e;
 
 	/*always buffer when fetching keys*/
-	gf_clock_buffer_on(ch->clock);
+	ch_buffer_on(ch);
 
 	ch->is_protected = 1;
 	e = GF_OK;
@@ -1221,7 +1246,7 @@ void gf_es_config_ismacryp(GF_Channel *ch, GF_NetComISMACryp *isma_cryp)
 	}
 
 exit:
-	gf_clock_buffer_off(ch->clock);
+	ch_buffer_off(ch);
 	if (e && ch->crypt) {
 		gf_crypt_close(ch->crypt);
 		ch->crypt = NULL;

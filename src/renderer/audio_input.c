@@ -60,7 +60,7 @@ static char *AI_FetchFrame(void *callback, u32 *size, u32 audio_delay_ms)
 	if (audio_delay_ms) {
 		/*CU is way too late, discard and fetch a new one - this usually happen when media speed is more than 1*/
 		if (drift>500) {
-			gf_mo_release_data(ai->stream, ai->stream->current_size, 1);
+			gf_mo_release_data(ai->stream, ai->stream->current_size, 2);
 			ai->need_release = 0;
 			return AI_FetchFrame(callback, size, audio_delay_ms);
 		}

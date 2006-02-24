@@ -484,14 +484,13 @@ void wxFileProps::SetDecoderInfo()
 	if (odi.cb_max_count) 
 		info += wxString::Format(wxT("Composition Memory: %d/%d Units\n"), odi.cb_unit_count, odi.cb_max_count);
 
-
 	Float avg_dec_time = 0;
 	if (odi.nb_dec_frames) {
 		avg_dec_time = (Float) odi.total_dec_time; 
 		avg_dec_time /= odi.nb_dec_frames; 
 	}
-	info += wxString::Format(wxT("Average Bitrate %d kbps (%d max)\nAverage Decoding Time %.2f ms (%d max)\nTotal decoded frames %d\n"),
-								(u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time, odi.nb_dec_frames);
+	info += wxString::Format(wxT("Average Bitrate %d kbps (%d max)\nAverage Decoding Time %.2f ms (%d max)\nTotal decoded frames %d - %d dropped\n"),
+								(u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time, odi.nb_dec_frames, odi.nb_droped);
 
 	m_pViewInfo->Clear();
 	m_pViewInfo->AppendText(info);

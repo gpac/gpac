@@ -146,8 +146,9 @@ resync'ed to its object clock (eg frame droping)
 Bool gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos);
 /*release given amount of media data - nb_bytes is used for audio - if forceDrop is set, the unlocked frame will be 
 droped if all bytes are consumed, otherwise it will be droped based on object time - typically, video fetches with the resync
-flag set and release without forceDrop, while audio fetches without resync but forces buffer drop*/
-void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, Bool forceDrop);
+flag set and release without forceDrop, while audio fetches without resync but forces buffer drop. If forceDrop is set to 2, 
+the frame will be stated as a discraded frame*/
+void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, u32 forceDrop);
 /*get media time*/
 void gf_mo_get_media_time(GF_MediaObject *mo, u32 *media_time, u32 *media_dur);
 /*get object clock*/

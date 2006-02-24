@@ -1548,6 +1548,47 @@ static void svg_parse_floats(GF_List *values, char *value_string, Bool is_angle)
 	}
 }
 
+static void svg_string_list_add(GF_List *values, char *string, u32 string_type)
+{
+	SVG_IRI *iri;
+	switch (string_type) {
+	case 1:
+		iri = malloc(sizeof(SVG_IRI));
+		iri->type = SVG_IRI_IRI;
+		iri->iri = strdup(string);
+		gf_list_add(values, iri);
+		break;
+	default:
+		gf_list_add(values, strdup(string));
+		break;
+	}
+}
+
+static void svg_parse_strings(GF_List *values, char *value_string, u32 string_type)
+{
+	char *next, *sep = value_string;
+
+	while (gf_list_count(values)) {
+		next = gf_list_last(values);
+		gf_list_rem_last(values);
+		free(next);
+	}
+	
+	while (1) {
+		while (sep && sep[0]==' ') sep++;
+		if (!sep) break;
+		next = strchr(sep, ';');
+		if (!next) {
+			svg_string_list_add(values, sep, string_type);
+			break;
+		}
+		next[0]=0;
+		svg_string_list_add(values, sep, string_type);
+		next[0]=';';
+		sep = next+1;
+	}
+}
+
 static void svg_parse_strokedasharray(SVG_StrokeDashArray *value, char *value_string)
 {
 	if (!strcmp(value_string, "none")) {
@@ -1709,6 +1750,21 @@ static void svg_parse_transformbehavior(SVG_TransformBehavior *tb, char *attribu
 		*tb = SVG_TRANSFORMBEHAVIOR_PINNED270;
 	}
 }
+
+static void svg_parse_focus(SVGElement *elt,  SVG_Focus *o, char *attribute_content)
+{
+	if (o->target.iri) free(o->target.iri);
+	o->target.iri = NULL;
+	o->target.target = NULL;
+
+	if (!strcmp(attribute_content, "self")) o->type = SVG_FOCUS_SELF;
+	else if (!strcmp(attribute_content, "auto")) o->type = SVG_FOCUS_AUTO;
+	else {
+		o->type = SVG_FOCUS_IRI;
+		svg_parse_iri(elt, &o->target, attribute_content);
+	}
+}
+
 /* end of Basic SVG datatype parsing functions */
 
 void svg_parse_one_anim_value(SVGElement *elt, SMIL_AnimateValue *anim_value, char *attribute_content, u8 anim_value_type, u8 transform_type)
@@ -1716,6 +1772,35 @@ void svg_parse_one_anim_value(SVGElement *elt, SMIL_AnimateValue *anim_value, ch
 	GF_FieldInfo info;
 	info.fieldType = anim_value_type;
 	info.name = "animation value";
+	/*figure out transform animation type if not known - this is needed for laser which cannot animate matrices */
+	if ( (anim_value_type==SVG_Matrix_datatype) && !transform_type) {
+		char *sep = strchr(attribute_content, '(');
+		if (sep) {
+			sep = strchr(sep+1, '(');
+			if (!sep) {
+				if (!strncmp(attribute_content, "translate(", 10)) {
+					transform_type = SVG_TRANSFORM_TRANSLATE;
+					attribute_content+=10;
+				}
+				else if (!strncmp(attribute_content, "scale(", 6)) {
+					transform_type = SVG_TRANSFORM_SCALE;
+					attribute_content+=6;
+				}
+				else if (!strncmp(attribute_content, "rotate(", 7)) {
+					transform_type = SVG_TRANSFORM_ROTATE;
+					attribute_content+=7;
+				}
+				else if (!strncmp(attribute_content, "skewX(", 6)) {
+					transform_type = SVG_TRANSFORM_SKEWX;
+					attribute_content+=6;
+				}
+				else if (!strncmp(attribute_content, "skewY(", 6)) {
+					transform_type = SVG_TRANSFORM_SKEWY;
+					attribute_content+=6;
+				}
+			}
+		}
+	}
 	info.far_ptr = svg_create_value_from_attributetype(anim_value_type, transform_type);
 	if (info.far_ptr) svg_parse_attribute(elt, &info, attribute_content, anim_value_type, transform_type);
 	anim_value->value = info.far_ptr;
@@ -2033,8 +2118,19 @@ GF_Err svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_
 
 	case SVG_String_datatype:
 	case SVG_ContentType_datatype:
+	case SVG_LanguageID_datatype:
 		*(SVG_String *)info->far_ptr = strdup(attribute_content);
 		break;
+
+	case SVG_FeatureList_datatype:
+	case SVG_ExtensionList_datatype:
+	case SVG_LanguageIDs_datatype:
+		svg_parse_strings(*(GF_List **)info->far_ptr, attribute_content, 0);
+		break;
+	case SVG_ListOfIRI_datatype:
+		svg_parse_strings(*(GF_List **)info->far_ptr, attribute_content, 1);
+		break;
+
 	case XMLEV_Event_datatype:
 	{
 		XMLEV_Event *xml_ev = info->far_ptr;
@@ -2053,11 +2149,19 @@ GF_Err svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_
 		}
 	}
 		break;
+
+	case SVG_Focus_datatype:
+		svg_parse_focus(elt, info->far_ptr, attribute_content);
+		break;
 	case LASeR_Choice_datatype:
 		laser_parse_choice(info->far_ptr, attribute_content);
 		break;
 	case LASeR_Size_datatype:
 		laser_parse_size(info->far_ptr, attribute_content);
+		break;
+	case LASeR_TimeAttribute_datatype:
+		if (!strcmp(attribute_content, "end")) *(u8 *)info->far_ptr = LASeR_TIMEATTRIBUTE_END;
+		else *(u8 *)info->far_ptr = LASeR_TIMEATTRIBUTE_BEGIN;
 		break;
 	case SVG_Clock_datatype:
 		svg_parse_clock_value(attribute_content, info->far_ptr);
@@ -2308,6 +2412,12 @@ void *svg_create_value_from_attributetype(u32 attribute_type, u8 transform_type)
 			return path;
 		}
 		break;
+	case SVG_Focus_datatype:
+	{
+		SVG_Focus *foc;
+		GF_SAFEALLOC(foc, sizeof(SVG_Focus));
+		return foc;
+	}
 	default:
 		fprintf(stdout, "Error: Type not supported: %d.\n", attribute_type);
 	} 
@@ -2846,7 +2956,6 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 		sprintf(attValue, "%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y));
 	}
 		break;
-	case SVG_Focus_datatype:
 	case SVG_ID_datatype:
 	case SVG_LanguageID_datatype:
 	case SVG_GradientOffset_datatype:
@@ -2855,7 +2964,14 @@ GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 		if (*(SVG_String *)info->far_ptr) 
 			strcpy(attValue, *(SVG_String *)info->far_ptr );
 		break;
-
+	case SVG_Focus_datatype:
+	{
+		SVG_Focus *foc = info->far_ptr;
+		if (foc->type==SVG_FOCUS_SELF) strcpy(attValue, "self");
+		else if (foc->type==SVG_FOCUS_AUTO) strcpy(attValue, "auto");
+		else sprintf(attValue, "#%s", foc->target.iri);
+	}
+		break;
 
 	/*not sure what we'll put in requiredFormats*/
 	case SVG_FormatList_datatype:
@@ -3318,7 +3434,6 @@ Bool svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	case SVG_Matrix_datatype:
 		return svg_matrices_equal(f1->far_ptr, f2->far_ptr);
 
-	case SVG_Focus_datatype:
 	case SVG_ID_datatype:
 	case SVG_LanguageID_datatype:
 	case SVG_GradientOffset_datatype:
@@ -3330,6 +3445,16 @@ Bool svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		if (!str1 && !str2) return 1;
 		return (str1 && str2 && !strcmp(str1, str2)) ? 1 : 0;
 	}
+
+	case SVG_Focus_datatype:
+	{
+		SVG_Focus *foc1 = f1->far_ptr;
+		SVG_Focus *foc2 = f2->far_ptr;
+		if (foc1->type!=foc2->type) return 0;
+		if (foc1->type != SVG_FOCUS_IRI) return 1;
+		return (foc1->target.iri && foc2->target.iri && !strcmp(foc1->target.iri, foc2->target.iri)) ? 1 : 0;
+	}
+		break;
 
 	/*not sure what we'll put in requiredFormats*/
 	case SVG_FormatList_datatype:
@@ -4081,12 +4206,19 @@ GF_Err svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 		}
 		return GF_OK;
 	
+	case SVG_Focus_datatype:
+	{
+		((SVG_Focus *)a->far_ptr)->type = ((SVG_Focus *)b->far_ptr)->type;
+		if ( ((SVG_Focus *)b->far_ptr)->target.iri) 
+			((SVG_Focus *)a->far_ptr)->target.iri = strdup( ((SVG_Focus *)b->far_ptr)->target.iri);
+	}
+		return GF_OK;
+
 	/* Unsupported types */
 	case SVG_ListOfIRI_datatype:
 	case SVG_FormatList_datatype:
 	case SVG_LanguageIDs_datatype:
 	case SVG_FontList_datatype:
-	case SVG_Focus_datatype:
 	case SVG_ID_datatype:
 	case SVG_GradientOffset_datatype:
 	case SVG_Clock_datatype:
@@ -4194,7 +4326,6 @@ GF_Err svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldInfo
 	case SVG_LanguageIDs_datatype:
 	case SVG_FontList_datatype:
 	case SVG_Clock_datatype:
-	case SVG_Focus_datatype:
 	case SVG_ID_datatype:
 	case SVG_GradientOffset_datatype:
 	case LASeR_Choice_datatype:

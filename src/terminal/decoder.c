@@ -337,7 +337,7 @@ check_unit:
 	
 
 	/*clock is not started*/
-	if (ch->first_au_fetched && !gf_clock_is_started(ch->clock)) goto exit;
+//	if (ch->first_au_fetched && !gf_clock_is_started(ch->clock)) goto exit;
 
 	/*check timing based on the input channel and main FPS*/
 	if ( (AU->DTS > obj_time + codec->odm->term->half_frame_duration) ) goto exit;
@@ -364,6 +364,10 @@ check_unit:
 		gf_term_lock_renderer(codec->odm->term, 1);
 		scene_locked = 1;
 	}
+	/*otherwise we're droping the frame*/
+	else {
+		codec->nb_droped ++;
+	}
 
 	/*current media time for system objects is the clock time, since the media is likely to have random 
 	updates in time*/
@@ -385,9 +389,19 @@ check_unit:
 	}
 	/*OD acts as scene codec, regenerate scene*/
 	if (codec->flags & GF_ESM_CODEC_IS_SCENE_OD) gf_is_regenerate(codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene);
-	/*static OD resources (embedded in ESD) in broadcast mode, reset time*/
-	else if ((codec->flags & GF_ESM_CODEC_IS_STATIC_OD) && codec->ck->no_time_ctrl) gf_clock_reset(codec->ck);
-	
+	/*in broadcast mode, generate a scene if none is available*/
+	else if (codec->ck->no_time_ctrl) {
+		GF_InlineScene *is = codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene;
+		if (is->graph_attached != 1 ) {
+			Bool prev_dyn = is->is_dynamic_scene; 
+			is->is_dynamic_scene = 1;
+			gf_is_regenerate(is);
+			is->graph_attached = 2;
+			is->is_dynamic_scene = prev_dyn;
+		}
+		/*static OD resources (embedded in ESD) in broadcast mode, reset time*/
+		if (codec->flags & GF_ESM_CODEC_IS_STATIC_OD) gf_clock_reset(codec->ck);
+	}
 
 	/*always force redraw for system codecs*/
 	invalidate_scene = 1;
@@ -784,6 +798,7 @@ void gf_codec_set_status(GF_Codec *codec, u32 Status)
 		codec->last_stat_start = codec->cur_bit_size = codec->max_bit_rate = codec->avg_bit_rate = 0;
 		codec->nb_dec_frames = codec->total_dec_time = codec->max_dec_time = 0;
 		codec->cur_audio_bytes = codec->cur_video_frames = 0;
+		codec->nb_droped = 0;
 	}
 	else codec->Status = Status;
 

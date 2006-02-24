@@ -148,11 +148,13 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 		/*since we don't remove ODs that failed setup, check for clock*/
 		if (odm->codec->ck) info->current_time = odm->codec->CB ? odm->current_time : gf_clock_time(odm->codec->ck);
 		info->current_time /= 1000;
+		info->nb_droped = odm->codec->nb_droped;
 	} else if (odm->subscene && odm->subscene->scene_codec) {
 		info->current_time = gf_clock_time(odm->subscene->scene_codec->ck);
 		info->current_time /= 1000;
 		info->duration = (Double) (s64)odm->subscene->duration;
 		info->duration /= 1000;
+		info->nb_droped = odm->subscene->scene_codec->nb_droped;
 	}
 
 	info->buffer = -2;

@@ -241,23 +241,23 @@ void gf_svg_delete_properties(SVGProperties *p)
 	free(p);
 }
 
-void gf_svg_reset_focus(SVG_Focus focus) 
+static void svg_reset_focus(SVG_Focus focus) 
 {
-	return;
+	if (focus.target.iri) free(focus.target.iri);
 }
 
 void gf_svg_delete_focus(SVGFocusAttributes *p) 
 {
-	gf_svg_reset_focus(p->nav_next);
-	gf_svg_reset_focus(p->nav_prev);
-	gf_svg_reset_focus(p->nav_down);
-	gf_svg_reset_focus(p->nav_down_left);
-	gf_svg_reset_focus(p->nav_down_right);
-	gf_svg_reset_focus(p->nav_left);
-	gf_svg_reset_focus(p->nav_right);
-	gf_svg_reset_focus(p->nav_up);
-	gf_svg_reset_focus(p->nav_up_left);
-	gf_svg_reset_focus(p->nav_up_right);
+	svg_reset_focus(p->nav_next);
+	svg_reset_focus(p->nav_prev);
+	svg_reset_focus(p->nav_down);
+	svg_reset_focus(p->nav_down_left);
+	svg_reset_focus(p->nav_down_right);
+	svg_reset_focus(p->nav_left);
+	svg_reset_focus(p->nav_right);
+	svg_reset_focus(p->nav_up);
+	svg_reset_focus(p->nav_up_left);
+	svg_reset_focus(p->nav_up_right);
 	free(p);		
 }
 
@@ -297,13 +297,29 @@ void gf_svg_delete_anim(SMILAnimationAttributes *p)
 	free(p);		
 } 
 
+static void svg_delete_string_list(GF_List *l) 
+{
+	while (gf_list_count(l)) {
+		char *str = gf_list_last(l);
+		gf_list_rem_last(l);
+		free(str);
+	}
+	gf_list_del(l);
+}
 void gf_svg_delete_conditional(SVGConditionalAttributes *p)
 {
-	gf_list_del(p->requiredExtensions);
+	while (gf_list_count(p->requiredFeatures)) {
+		SVG_IRI *iri = gf_list_last(p->requiredFeatures);
+		gf_list_rem_last(p->requiredFeatures);
+		if (iri->iri) free(iri->iri);
+		free(iri);
+	}
 	gf_list_del(p->requiredFeatures);
-	gf_list_del(p->requiredFonts);
-	gf_list_del(p->requiredFormats);
-	gf_list_del(p->systemLanguage);
+
+	svg_delete_string_list(p->requiredExtensions);
+	svg_delete_string_list(p->requiredFonts);
+	svg_delete_string_list(p->requiredFormats);
+	svg_delete_string_list(p->systemLanguage);
 	free(p);		
 } 
 

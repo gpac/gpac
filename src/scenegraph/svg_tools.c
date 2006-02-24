@@ -27,6 +27,10 @@
 
 #include <gpac/nodes_svg.h>
 
+
+static void gf_smil_handle_event(GF_Node *anim, GF_FieldInfo *info, GF_DOM_Event *evt, Bool is_end);
+
+
 SVGElement *gf_svg_new_node(GF_SceneGraph *inScene, u32 tag)
 {
 	SVGElement *node;
@@ -114,6 +118,36 @@ static void svg_process_event(SVGlistenerElement *listen, GF_DOM_Event *event)
 		}
 		return;
 	}
+	/*laser-like handling*/
+	if (handler->timing) {
+		u32 i, count;
+		GF_List *times;
+		SMIL_Time *resolved;
+		GF_FieldInfo info;
+
+		if (listen->lsr_timeAttribute==LASeR_TIMEATTRIBUTE_END) times = handler->timing->end;
+		else times = handler->timing->begin;
+
+		/*solve*/
+		GF_SAFEALLOC(resolved, sizeof(SMIL_Time));
+		resolved->type = SMIL_TIME_CLOCK;
+		resolved->clock = gf_node_get_scene_time((GF_Node *)handler) + listen->lsr_delay;
+		resolved->dynamic_type=2;
+		count = gf_list_count(times);
+		for (i=0; i<count; i++) {
+			SMIL_Time *proto = gf_list_get(times, i);
+			if ( (proto->type == SMIL_TIME_INDEFINITE) 
+				|| ( (proto->type == SMIL_TIME_CLOCK) && (proto->clock > resolved->clock) ) 
+				) 
+				break;
+		}
+		gf_list_insert(times, resolved, i);
+		memset(&info , 0, sizeof(GF_FieldInfo));
+		info.fieldType = SMIL_Times_datatype;
+		info.far_ptr = &times;
+		gf_node_changed((GF_Node*)handler, &info);
+		return;
+	}
 	if (!handler->handle_event) return;
 	if (handler->ev_event.type != event->type) return;
 	handler->handle_event(handler, event);
@@ -140,7 +174,7 @@ static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 				gf_list_rem(node->sgprivate->events, i);
 				count--;
 				i--;
-				gf_node_replace((GF_Node *) listen->handler.target, NULL, 0);
+				if (listen->handler.target) gf_node_replace((GF_Node *) listen->handler.target, NULL, 0);
 				gf_node_replace((GF_Node *) listen, NULL, 0);
 			}
 			/*canceled*/
@@ -436,6 +470,10 @@ void gf_svg_register_iri(GF_SceneGraph *sg, SVG_IRI *target)
 	if (gf_list_find(sg->xlink_hrefs, target)<0) {
 		gf_list_add(sg->xlink_hrefs, target);
 	}
+}
+void gf_svg_unregister_iri(GF_SceneGraph *sg, SVG_IRI *target)
+{
+	gf_list_del_item(sg->xlink_hrefs, target);
 }
 
 

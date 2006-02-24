@@ -200,7 +200,7 @@ static void svg_parse_element_id(GF_SVGParser *parser, SVGElement *elt, char *no
 	}
 }
 
-static Bool svg_resolve_smil_times(GF_SceneGraph *sg, SVGElement *anim_parent, GF_List *smil_times, const char *node_name)
+static Bool svg_resolve_smil_times(GF_SVGParser *parser, GF_SceneGraph *sg, SVGElement *anim_parent, SVGElement *anim, GF_List *smil_times, Bool is_end, const char *node_name)
 {
 	u32 i, done, count = gf_list_count(smil_times);
 	done = 0;
@@ -225,10 +225,36 @@ static Bool svg_resolve_smil_times(GF_SceneGraph *sg, SVGElement *anim_parent, G
 			done++;
 		}
 	}
-	return (done==count) ? 1 : 0;
+	if (done!=count) return 0;
+	if (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) return 1;
+	/*TODO rewrite all SMIL events with listeners*/
+	for (i=0; i<count; i++) {
+		SVGlistenerElement *listen;
+		SMIL_Time *t = gf_list_get(smil_times, i);
+		/*not an event*/
+		if (t->type != SMIL_TIME_EVENT) continue;
+
+		gf_list_rem(smil_times, i);
+		count--; 
+		i--;
+
+		listen = (SVGlistenerElement *)gf_svg_new_node(sg, TAG_SVG_listener);
+		listen->lsr_delay = t->clock;
+		listen->defaultAction = is_end ? LASeR_TIMEATTRIBUTE_END : LASeR_TIMEATTRIBUTE_BEGIN;
+
+		listen->event = t->event;
+		listen->handler.target = anim;
+		
+		gf_list_add( ((SVGElement *)t->element)->children, listen);
+		gf_node_register((GF_Node*)listen, t->element);
+
+		free(t);
+	}
+
+	return 1;
 }
 
-static Bool svg_parse_animation(GF_SceneGraph *sg, DeferedAnimation *anim, const char *nodeID)
+static Bool svg_parse_animation(GF_SVGParser *parser, GF_SceneGraph *sg, DeferedAnimation *anim, const char *nodeID)
 {
 	GF_FieldInfo info;
 	u32 tag;
@@ -264,7 +290,7 @@ static Bool svg_parse_animation(GF_SceneGraph *sg, DeferedAnimation *anim, const
 				anim_value_type = SVG_Motion_datatype;
 			} else if (tag == TAG_SVG_discard) {
 				anim->resolve_stage = 1;
-				return svg_parse_animation(sg, anim, nodeID);
+				return svg_parse_animation(parser, sg, anim, nodeID);
 			} else {
 				return 1;
 			}
@@ -276,7 +302,7 @@ static Bool svg_parse_animation(GF_SceneGraph *sg, DeferedAnimation *anim, const
 			svg_parse_attribute(anim->animation_elt, &info, anim->type, 0, 0);
 			anim_transform_type = *(SVG_TransformType *) info.far_ptr;
 			anim_value_type = SVG_Matrix_datatype;
-		} 
+		}
 
 		/* Parsing of to / from / by / values */
 		if (anim->to) {
@@ -299,15 +325,13 @@ static Bool svg_parse_animation(GF_SceneGraph *sg, DeferedAnimation *anim, const
 	}
 
 	if (anim->resolve_stage == 1) {
-		gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "begin", &info);
-		if (svg_resolve_smil_times(sg, anim->anim_parent, * (GF_List **) info.far_ptr, nodeID)) {
+		if (svg_resolve_smil_times(parser, sg, anim->anim_parent, anim->animation_elt, anim->animation_elt->timing->begin, 0, nodeID)) {
 			anim->resolve_stage = 2;
 		} else {
 			return 0;
 		}
 	}
-	gf_node_get_field_by_name((GF_Node *)anim->animation_elt, "end", &info);
-	if (!svg_resolve_smil_times(sg, anim->anim_parent, * (GF_List **) info.far_ptr, nodeID)) return 0;
+	if (!svg_resolve_smil_times(parser, sg, anim->anim_parent, anim->animation_elt, anim->animation_elt->timing->end, 1, nodeID)) return 0;
 
 	/*animateMotion needs its children to be parsed !! */
 	if (gf_node_get_tag((GF_Node *)anim->animation_elt) == TAG_SVG_animateMotion)
@@ -318,7 +342,7 @@ static Bool svg_parse_animation(GF_SceneGraph *sg, DeferedAnimation *anim, const
 	return 1;
 }
 
-static void svg_resolved_refs(GF_SceneGraph *sg, GF_List *defered_animations, GF_List *defered_hrefs, const char *nodeID)
+static void svg_resolved_refs(GF_SVGParser *parser, GF_SceneGraph *sg, GF_List *defered_animations, GF_List *defered_hrefs, const char *nodeID)
 {
 	u32 count, i;
 
@@ -350,7 +374,7 @@ static void svg_resolved_refs(GF_SceneGraph *sg, GF_List *defered_animations, GF
 			DeferedAnimation *anim = gf_list_get(defered_animations, i);
 			if (nodeID && anim->target_id && strcmp(anim->target_id + 1, nodeID)) continue;
 			/*resolve it*/
-			if (svg_parse_animation(sg, anim, nodeID)) {
+			if (svg_parse_animation(parser, sg, anim, nodeID)) {
 				gf_node_init((GF_Node *)anim->animation_elt);
 				svg_delete_defered_anim(anim, defered_animations);
 				i--;
@@ -481,7 +505,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 	}
 
 	if (anim) {
-		if (svg_parse_animation(parser->load->scene_graph, anim, NULL)) {
+		if (svg_parse_animation(parser, parser->load->scene_graph, anim, NULL)) {
 			svg_delete_defered_anim(anim, NULL);
 		} else {
 			gf_list_add(parser->defered_animations, anim);
@@ -490,7 +514,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 
 	/* if the new element has an id, we try to resolve defered references */
 	if (ided) {
-		svg_resolved_refs(parser->load->scene_graph, parser->defered_animations, parser->defered_hrefs, gf_node_get_name((GF_Node *)elt));
+		svg_resolved_refs(parser, parser->load->scene_graph, parser->defered_animations, parser->defered_hrefs, gf_node_get_name((GF_Node *)elt));
 	}
 
 	/* We need to init the node at the end of the parsing, after parsing all attributes */
