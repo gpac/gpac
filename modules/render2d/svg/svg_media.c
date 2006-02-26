@@ -38,11 +38,13 @@ int processDanaeAudio(void *param, unsigned int scene_time);
 /* Generic URI handling */
 /************************/
 
-void SVG_SetMFURLFromURI(GF_Renderer *sr, MFURL *mfurl, SVG_IRI *iri) 
+Bool SVG_SetMFURLFromURI(GF_Renderer *sr, MFURL *mfurl, SVG_IRI *iri) 
 {
+	Bool ret = 1;
 	SFURL *sfurl = NULL;
-	if (!iri->iri) return;
+	if (!iri->iri) return 0;
 
+	gf_sg_vrml_mf_reset(mfurl, GF_SG_VRML_MFURL);
 	mfurl->count = 1;
 	GF_SAFEALLOC(mfurl->vals, sizeof(SFURL))
 	sfurl = mfurl->vals;
@@ -50,11 +52,20 @@ void SVG_SetMFURLFromURI(GF_Renderer *sr, MFURL *mfurl, SVG_IRI *iri)
 #ifndef DANAE
 	if (!strncmp(iri->iri, "data:", 5)) {
 		const char *cache_dir = gf_cfg_get_key(sr->user->config, "General", "CacheDirectory");
-		svg_store_embedded_data(iri, iri->iri, cache_dir, "embedded_");
+		ret = gf_svg_store_embedded_data(iri, cache_dir, "embedded_");
 	}
 	sfurl->url = strdup(iri->iri);
 #endif
+	return ret;
+}
 
+static Bool SVG_check_url_change(MFURL *url, SVG_IRI *iri)
+{
+	if (url->count && !iri->iri) return 1;
+	if (!url->count && iri->iri) return 1;
+	if (!url->count) return 0;
+	if (!strcmp(url->vals[0].url, iri->iri)) return 0;
+	return 1;
 }
 
 #if 0
@@ -178,13 +189,30 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 
 	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
 
-	if (gf_node_get_tag(node)==TAG_SVG_image) {
-		SVG_BuildGraph_image(gf_node_get_private(node));
-		m = &((SVGimageElement *)node)->transform;
-	} else {
-		SVG_BuildGraph_video(gf_node_get_private(node));
-		m = &((SVGvideoElement *)node)->transform;
+	if (gf_node_dirty_get(node)) {
+		if (gf_node_get_tag(node)==TAG_SVG_image) {
+			SVG_BuildGraph_image(gf_node_get_private(node));
+			m = &((SVGimageElement *)node)->transform;
+		} else {
+			SVG_BuildGraph_video(gf_node_get_private(node));
+			m = &((SVGvideoElement *)node)->transform;
+		}
+
+		/*if open and changed, stop and play*/
+		if (SVG_check_url_change(&st->txurl, & ((SVGElement *)node)->xlink->href)) {
+			const char *cache_dir = gf_cfg_get_key(st->txh.compositor->user->config, "General", "CacheDirectory");
+			gf_svg_store_embedded_data(& ((SVGElement *)node)->xlink->href, cache_dir, "embedded_");
+
+			if (SVG_check_url_change(&st->txurl, & ((SVGElement *)node)->xlink->href)) {
+				SVG_SetMFURLFromURI(st->txh.compositor, &(st->txurl), & ((SVGElement*)node)->xlink->href);
+				if (st->txh.is_open) gf_sr_texture_stop(&st->txh);
+				fprintf(stdout, "URL changed to %s\n", st->txurl.vals[0].url);
+				gf_sr_texture_play(&st->txh, &st->txurl);
+			}
+		} 
+		gf_node_dirty_clear(node, 0);
 	}
+
 	/*FIXME: setup aspect ratio*/
 
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {

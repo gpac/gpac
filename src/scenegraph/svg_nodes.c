@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Sat Feb 18 10:48:18 2006
+	DO NOT MOFIFY - File generated on GMT Sat Feb 25 10:56:16 2006
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -5396,9 +5396,9 @@ static void gf_svg_listener_del(GF_Node *node)
 {
 	SVGlistenerElement *p = (SVGlistenerElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
-	gf_svg_reset_iri((SVGElement *)node, &p->observer);
-	gf_svg_reset_iri((SVGElement *)node, &p->target);
-	gf_svg_reset_iri((SVGElement *)node, &p->handler);
+	gf_svg_reset_iri(node->sgprivate->scenegraph, &p->observer);
+	gf_svg_reset_iri(node->sgprivate->scenegraph, &p->target);
+	gf_svg_reset_iri(node->sgprivate->scenegraph, &p->handler);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }

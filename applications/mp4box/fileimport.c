@@ -32,6 +32,7 @@
 
 #ifndef GPAC_READ_ONLY
 
+extern Bool quiet_mode;
 extern u32 swf_flags;
 extern Float swf_flatten_angle;
 
@@ -561,7 +562,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				e = gf_isom_add_sample(dest, tki->dst_tk, di, samp);
 				gf_isom_sample_del(&samp);
 				tki->last_sample += 1;
-				gf_cbk_on_progress("Splitting", nb_done, nb_samp);
+				if (!quiet_mode) gf_cbk_on_progress("Splitting", nb_done, nb_samp);
 				nb_done++;
 				if (e) {
 					fprintf(stdout, "Error cloning track %d sample %d\n", tki->tk, tki->last_sample);
@@ -675,7 +676,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 					tki->last_sample--;
 					assert(tki->last_sample);
 					nb_done--;
-					gf_cbk_on_progress("Splitting", nb_done, nb_samp);
+					if (!quiet_mode) gf_cbk_on_progress("Splitting", nb_done, nb_samp);
 				}
 				if (tki->last_sample<tki->sample_count) {
 					u64 dts;
@@ -752,13 +753,13 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		}
 
 		gf_isom_clone_pl_indications(mp4, dest);
-		e = gf_isom_close_progress(dest, gf_cbk_on_progress, "Writing");
+		e = gf_isom_close_progress(dest, quiet_mode ? NULL : gf_cbk_on_progress, "Writing");
 		dest = NULL;
 		if (e) fprintf(stdout, "Error storing file %s\n", gf_error_to_string(e));
 		if (is_last || chunk_extraction) break;
 		cur_file++;
 	}
-	gf_cbk_on_progress("Splitting", nb_samp, nb_samp);
+	if (!quiet_mode) gf_cbk_on_progress("Splitting", nb_samp, nb_samp);
 err_exit:
 	if (dest) gf_isom_delete(dest);
 	free(tks);
@@ -931,7 +932,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			}
 			gf_isom_sample_del(&samp);
 			if (e) goto err_exit;
-			gf_cbk_on_progress("Appending", nb_done, nb_samp);
+			if (!quiet_mode) gf_cbk_on_progress("Appending", nb_done, nb_samp);
 			nb_done++;
 		}
 		/*scene description and text: compute last sample duration based on original media duration*/
@@ -940,7 +941,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			gf_isom_set_last_sample_duration(dest, dst_tk, (u32) insert_dts);
 		}
 	}
-	gf_cbk_on_progress("Appending", nb_samp, nb_samp);
+	if (!quiet_mode) gf_cbk_on_progress("Appending", nb_samp, nb_samp);
 
 	/*check chapters*/
 	for (i=0; i<gf_isom_get_chapter_count(orig, 0); i++) {
@@ -1053,7 +1054,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts)
 	load.fileName = in;
 	load.ctx = ctx;
 	load.cbk = "Parsing";
-	load.OnProgress = gf_cbk_on_progress;
+	load.OnProgress = quiet_mode ? NULL : gf_cbk_on_progress;
 	load.swf_import_flags = swf_flags;
 	load.swf_flatten_limit = swf_flatten_angle;
 	/*since we're encoding we must get MPEG4 nodes only*/

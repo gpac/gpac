@@ -33,6 +33,7 @@
 
 
 extern u32 swf_flags;
+extern Bool quiet_mode;
 extern Float swf_flatten_angle;
 extern u32 get_file_type_by_ext(char *inName);
 
@@ -49,7 +50,7 @@ void dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 	memset(&load, 0, sizeof(GF_SceneLoader));
 	load.fileName = file;
 	load.ctx = ctx;
-	load.OnProgress = gf_cbk_on_progress;
+	load.OnProgress = quiet_mode ? NULL : gf_cbk_on_progress;
 	load.cbk = "Parsing";
 	load.swf_import_flags = swf_flags;
 	load.swf_flatten_limit = swf_flatten_angle;
@@ -232,7 +233,7 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 	}
 
 	load.cbk = "Parsing";
-	load.OnProgress = gf_cbk_on_progress;
+	load.OnProgress = quiet_mode ? NULL : gf_cbk_on_progress;
 	e = gf_sm_load_init(&load);
 	if (!e) e = gf_sm_load_run(&load);
 	gf_sm_load_done(&load);
@@ -308,7 +309,7 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 			fprintf(dump, "</GraphStatistics>\n");
 		}
 
-		gf_cbk_on_progress("Analysing AU", i+1, count);
+		if (!quiet_mode) gf_cbk_on_progress("Analysing AU", i+1, count);
 	}
 
 
@@ -604,10 +605,10 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 			}
 
 			fprintf(dump, "\n");
-			gf_cbk_on_progress("Analysing Track Timing", j+1, count);
+			if (!quiet_mode) gf_cbk_on_progress("Analysing Track Timing", j+1, count);
 		}
 		fprintf(dump, "\n\n");
-		gf_cbk_on_progress("Analysing Track Timing", count, count);
+		if (!quiet_mode) gf_cbk_on_progress("Analysing Track Timing", count, count);
 	}
 	if (inName) fclose(dump);
 	if (has_error) fprintf(stdout, "\tFile has CTTS table errors\n");
@@ -675,7 +676,7 @@ void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_
 	} else {
 		dump = stdout;
 	}
-	e = gf_isom_text_dump(file, track, dump, to_srt, gf_cbk_on_progress, "Converting");
+	e = gf_isom_text_dump(file, track, dump, to_srt, quiet_mode ? NULL : gf_cbk_on_progress, "Converting");
 	if (inName) fclose(dump);
 
 	if (e) fprintf(stdout, "Conversion failed (%s)\n", gf_error_to_string(e));

@@ -1103,7 +1103,7 @@ void gf_svg_init_core			(SVGElement *p);
 
 /* reset functions for SVG types */
 void gf_svg_reset_path			(SVG_PathData path);
-void gf_svg_reset_iri			(SVGElement *p, SVG_IRI*iri);
+void gf_svg_reset_iri			(GF_SceneGraph *sg, SVG_IRI*iri);
 
 /* delete functions for SVG types */
 void gf_svg_delete_paint		(SVG_Paint *paint);
@@ -1219,7 +1219,8 @@ GF_Err svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_
 void smil_parse_attributename(SVGElement *animation_element, char *value_string);
 void svg_parse_style(SVGElement *elt, char *style);
 GF_Err svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue);
-Bool svg_store_embedded_data(SVG_IRI *iri, const char *iri_data, const char *cache_dir, const char *base_filename);
+
+Bool gf_svg_store_embedded_data(SVG_IRI *iri, const char *cache_dir, const char *base_filename);
 
 /* a == b */
 Bool svg_attributes_equal(GF_FieldInfo *a, GF_FieldInfo *b);
@@ -1243,7 +1244,7 @@ void gf_svg_attributes_copy_computed_value(GF_FieldInfo *out, GF_FieldInfo *in, 
 void gf_svg_attributes_smart_copy(GF_FieldInfo *out, GF_FieldInfo *in, GF_FieldInfo *prop, GF_FieldInfo *current_color);
 void gf_svg_attributes_pointer_update(GF_FieldInfo *a, GF_FieldInfo *prop, GF_FieldInfo *current_color);
 
-void gf_svg_delete_attribute_value(u32 type, void *value);
+void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg);
 
 /*creates a default listener/handler for the given event on the given node, and return the 
 handler element to allow for handler function override*/

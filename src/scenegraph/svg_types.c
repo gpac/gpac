@@ -82,21 +82,21 @@ void gf_svg_delete_paint(SVG_Paint *paint)
 	free(paint);
 }
 
-void gf_svg_reset_iri(SVGElement *p, SVG_IRI *iri) 
+void gf_svg_reset_iri(GF_SceneGraph *sg, SVG_IRI *iri) 
 {
 	if (!iri) return;
 	if (iri->iri) free(iri->iri);
-	if (p) gf_list_del_item(p->sgprivate->scenegraph->xlink_hrefs, iri);
+	gf_list_del_item(sg->xlink_hrefs, iri);
 }
 
-void gf_svg_delete_attribute_value(u32 type, void *value)
+void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 {
 	switch (type) {
 	case SVG_Paint_datatype:
 		gf_svg_delete_paint((SVG_Paint *)value);
 		break;
 	case SVG_IRI_datatype:
-		gf_svg_reset_iri(NULL, (SVG_IRI *)value);
+		gf_svg_reset_iri(sg, (SVG_IRI *)value);
 		free(value);
 		break;
 	case SVG_String_datatype:
@@ -117,27 +117,27 @@ void gf_svg_delete_attribute_value(u32 type, void *value)
 	} 
 }
 
-void gf_svg_delete_one_anim_value(u8 anim_datatype, void *anim_value)
+static void svg_delete_one_anim_value(u8 anim_datatype, void *anim_value, GF_SceneGraph *sg)
 {
 	/* TODO: handle specific animation types : Motion, else ? */
-	gf_svg_delete_attribute_value(anim_datatype, anim_value);
+	gf_svg_delete_attribute_value(anim_datatype, anim_value, sg);
 }
 
-void gf_svg_reset_animate_values(SMIL_AnimateValues anim_values)
+static void svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg)
 {
 	u32 i, count;
 	count = gf_list_count(anim_values.values);
 	for (i = 0; i < count; i++) {
 		void *value = gf_list_get(anim_values.values, i);
-		gf_svg_delete_one_anim_value(anim_values.type, value);
+		svg_delete_one_anim_value(anim_values.type, value, sg);
 	}
 	gf_list_del(anim_values.values);
 	anim_values.values = NULL;
 }
 
-void gf_svg_reset_animate_value(SMIL_AnimateValue anim_value)
+static void svg_reset_animate_value(SMIL_AnimateValue anim_value, GF_SceneGraph *sg)
 {
-	gf_svg_delete_one_anim_value(anim_value.type, anim_value.value);
+	svg_delete_one_anim_value(anim_value.type, anim_value.value, sg);
 	anim_value.value = NULL;
 }
 
@@ -228,7 +228,7 @@ void gf_svg_init_conditional(SVGElement *p)
 
 void gf_svg_delete_core(SVGElement *elt, XMLCoreAttributes *p) 
 {
-	gf_svg_reset_iri(elt, &p->base);
+	gf_svg_reset_iri(elt->sgprivate->scenegraph, &p->base);
 	if (p->lang) free(p->lang);
 	if (p->_class) free(p->_class);
 	free(p);
@@ -263,11 +263,11 @@ void gf_svg_delete_focus(SVGFocusAttributes *p)
 
 void gf_svg_delete_xlink(SVGElement *elt, XLinkAttributes *p)
 {
-	gf_svg_reset_iri(elt, &p->href);
+	gf_svg_reset_iri(elt->sgprivate->scenegraph, &p->href);
 	if (p->type) free(p->type);
 	if (p->title) free(p->title);
-	gf_svg_reset_iri(elt, &p->arcrole);
-	gf_svg_reset_iri(elt, &p->role);
+	gf_svg_reset_iri(elt->sgprivate->scenegraph, &p->arcrole);
+	gf_svg_reset_iri(elt->sgprivate->scenegraph, &p->role);
 	if (p->show) free(p->show);
 	if (p->actuate) free(p->actuate);
 	free(p);		
@@ -277,7 +277,7 @@ void gf_svg_delete_timing(SMILTimingAttributes *p)
 {
 	gf_smil_delete_times(p->begin);
 	gf_smil_delete_times(p->end);
-	free(p->runtime);
+	if (p->runtime) free(p->runtime);
 	free(p);		
 }
 
@@ -286,14 +286,14 @@ void gf_svg_delete_sync(SMILSyncAttributes *p)
 	free(p);
 }
 
-void gf_svg_delete_anim(SMILAnimationAttributes *p)
+static void gf_svg_delete_anim(SMILAnimationAttributes *p, GF_SceneGraph *sg)
 {
 	gf_smil_delete_key_types(p->keySplines);
 	gf_smil_delete_key_types(p->keyTimes);
-	gf_svg_reset_animate_value(p->from);
-	gf_svg_reset_animate_value(p->by);
-	gf_svg_reset_animate_value(p->to);
-	gf_svg_reset_animate_values(p->values);
+	svg_reset_animate_value(p->from, sg);
+	svg_reset_animate_value(p->by, sg);
+	svg_reset_animate_value(p->to, sg);
+	svg_reset_animate_values(p->values, sg);
 	free(p);		
 } 
 
@@ -330,7 +330,7 @@ void gf_svg_reset_base_element(SVGElement *p)
 	if (p->properties)	gf_svg_delete_properties(p->properties);
 	if (p->focus)		gf_svg_delete_focus(p->focus);
 	if (p->conditional) gf_svg_delete_conditional(p->conditional);
-	if (p->anim)		gf_svg_delete_anim(p->anim);
+	if (p->anim)		gf_svg_delete_anim(p->anim, p->sgprivate->scenegraph);
 	if (p->sync)		gf_svg_delete_sync(p->sync);
 	if (p->timing)		gf_svg_delete_timing(p->timing);
 	if (p->xlink)		gf_svg_delete_xlink(p, p->xlink);

@@ -223,14 +223,17 @@ static GF_Err JPEG_ProcessData(GF_MediaDecoder *ifcg,
 		return GF_BUFFER_TOO_SMALL;
 	}
 
+	scan_line = NULL;
 	/*decode*/
 	jpx.cinfo.do_fancy_upsampling = FALSE;
 	jpx.cinfo.do_block_smoothing = FALSE;
 	if (!jpeg_start_decompress(&jpx.cinfo)) {
+		if (scan_line) free(scan_line);
 		jpeg_destroy_decompress(&jpx.cinfo);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	if (jpx.cinfo.rec_outbuf_height>JPEG_MAX_SCAN_BLOCK_HEIGHT) {
+		if (scan_line) free(scan_line);
 		jpeg_destroy_decompress(&jpx.cinfo);
 		return GF_IO_ERR;
 	}

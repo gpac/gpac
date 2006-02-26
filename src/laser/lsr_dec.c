@@ -3099,7 +3099,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 				tmp.far_ptr = svg_create_value_from_attributetype(info.fieldType, tr_type);
 				lsr_read_update_value(lsr, n, field_type, tr_type, tmp.far_ptr, (idx==-1) ? 0 : 1);
 				svg_attributes_add(&info, &tmp, &info, 0);
-				gf_svg_delete_attribute_value(info.fieldType, tmp.far_ptr);
+				gf_svg_delete_attribute_value(info.fieldType, tmp.far_ptr, gf_node_get_graph(n));
 			}
 		}
 	} 

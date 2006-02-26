@@ -1367,6 +1367,7 @@ static void smil_parse_time_list(SVGElement *e, GF_List *values, char *begin_or_
 		for (i = 0; i < count; i++) {
 			gf_list_add(values, gf_list_get(sorted, i));
 		}
+		gf_list_del(sorted);
 	}
 }
 
@@ -4197,6 +4198,7 @@ GF_Err svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 
 	case SVG_IRI_datatype:
 		((SVG_IRI *)a->far_ptr)->type = ((SVG_IRI *)b->far_ptr)->type;
+		if ( ((SVG_IRI *)a->far_ptr)->iri) free(((SVG_IRI *)a->far_ptr)->iri);
 		((SVG_IRI *)a->far_ptr)->iri = strdup(((SVG_IRI *)b->far_ptr)->iri);
 		if (((SVG_IRI *)a->far_ptr)->type == SVG_IRI_ELEMENTID) {
 			GF_Node *n = (GF_Node *) ((SVG_IRI *)b->far_ptr)->target;

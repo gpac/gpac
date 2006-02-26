@@ -57,6 +57,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump);
 void DumpMovieInfo(GF_ISOFile *file);
 
 
+Bool quiet_mode = 0;
+
 /*some global vars for swf import :(*/
 u32 swf_flags = 0;
 Float swf_flatten_angle = 0;
@@ -559,7 +561,7 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 		if (interleave) sl_mode |= GP_RTP_PCK_USE_INTERLEAVING;
 
 		hinter = gf_hinter_track_new(file, i+1, MTUSize, max_ptime, rtp_rate, sl_mode, init_payt, copy, media_group, media_prio, 
-			gf_cbk_on_progress, "Hinting", &e);
+			quiet_mode ? NULL : gf_cbk_on_progress, "Hinting", &e);
 
 		if (!hinter) {
 			if (e) {
@@ -902,6 +904,7 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-?")) { PrintUsage(); return 0; }
 		else if (!stricmp(arg, "-version")) { PrintVersion(); return 0; }
 		else if (!stricmp(arg, "-sdp")) print_sdp = 1;
+		else if (!stricmp(arg, "-quiet")) quiet_mode = 1;
 		else if (!stricmp(arg, "-info")) {
 			print_info = 1;
 			if ((i+1<(u32) argc) && (sscanf(argv[i+1], "%d", &info_track_id)==1)) {
@@ -1910,7 +1913,7 @@ int main(int argc, char **argv)
 		if (!InterleavingTime) InterleavingTime = 0.5;
 		if (HintIt) fprintf(stdout, "Warning: cannot hint and fragment - ignoring hint\n");
 		fprintf(stdout, "Fragmenting file (%.3f seconds fragments)\n", InterleavingTime);
-		e = gf_media_fragment_file(file, outfile, InterleavingTime, gf_cbk_on_progress, "Fragmenting");
+		e = gf_media_fragment_file(file, outfile, InterleavingTime, quiet_mode ? NULL : gf_cbk_on_progress, "Fragmenting");
 		if (e) fprintf(stdout, "Error while fragmenting file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		if (!e && !outName && !force_new) {
@@ -2002,7 +2005,7 @@ int main(int argc, char **argv)
 		if (HintIt && FullInter) fprintf(stdout, "Hinted file - Full Interleaving\n");
 		else if (do_flat || !InterleavingTime) fprintf(stdout, "Flat storage\n");
 		else fprintf(stdout, "%.3f secs Interleaving%s\n", InterleavingTime, old_interleave ? " - no drift control" : "");
-		e = gf_isom_close_progress(file, gf_cbk_on_progress, "Writing");
+		e = gf_isom_close_progress(file, quiet_mode ? NULL : gf_cbk_on_progress, "Writing");
 		if (e) goto err_exit;
 		if (!outName && !encode && !force_new) {
 			if (remove(inName)) fprintf(stdout, "Error removing file %s\n", inName);

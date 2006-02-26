@@ -411,9 +411,9 @@ void svg_parse_dom_attributes(SVGParser *parser,
 				} else {
 					GF_FieldInfo info;
 					if (!gf_node_get_field_by_name((GF_Node *)elt, "xlink:href", &info)) {
-						if (!svg_store_embedded_data(info.far_ptr, attributes->children->content, parser->temp_dir, parser->file_name)) {
-							svg_parse_attribute(elt, &info, attributes->children->content, 0, 0);
-						}
+						svg_parse_attribute(elt, &info, attributes->children->content, 0, 0);
+						/*try to store base-coded data*/
+						gf_svg_store_embedded_data(info.far_ptr, parser->temp_dir, parser->file_name);
 					}
 				}
 			} else if (strcmp(attributes->name, "style")) {

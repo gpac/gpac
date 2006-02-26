@@ -131,7 +131,8 @@ static GF_Err xmt_report(GF_XMTParser *parser, GF_Err e, char *format, ...)
 static void xmt_progress(void *cbk, u32 done, u32 total)
 {
 	GF_XMTParser *parser = cbk;
-	parser->load->OnProgress(parser->load->cbk, done, total);
+	if (parser->load && parser->load->OnProgress)
+		parser->load->OnProgress(parser->load->cbk, done, total);
 }
 
 static void xmt_new_od_link(GF_XMTParser *parser, GF_ObjectDescriptor *od, char *name, u32 ID)

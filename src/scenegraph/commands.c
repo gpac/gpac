@@ -96,7 +96,7 @@ void gf_sg_command_del(GF_Command *com)
 				gf_node_unregister_children(com->node, inf->node_list);
 				gf_list_del(inf->node_list);
 			} else if (inf->field_ptr) {
-				gf_svg_delete_attribute_value(inf->fieldType, inf->field_ptr);
+				gf_svg_delete_attribute_value(inf->fieldType, inf->field_ptr, com->in_scene);
 			}
 			free(inf);
 		}

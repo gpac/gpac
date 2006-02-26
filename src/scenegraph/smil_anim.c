@@ -503,7 +503,7 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 
 void gf_smil_anim_delete_runtime_info(SMIL_Anim_RTI *rai)
 {
-	gf_svg_delete_attribute_value(rai->interpolated_value.fieldType, rai->interpolated_value.far_ptr);
+	gf_svg_delete_attribute_value(rai->interpolated_value.fieldType, rai->interpolated_value.far_ptr, rai->anim_elt->sgprivate->scenegraph);
 	if (rai->path) gf_path_del(rai->path);
 	if (rai->path_iterator) gf_path_iterator_del(rai->path_iterator);
 	free(rai);
@@ -515,7 +515,7 @@ void gf_smil_anim_delete_animations(SVGElement *e)
 	for (i = 0; i < gf_node_animation_count((GF_Node *)e); i ++) {
 		SMIL_Anim_RTI *rai;
 		SMIL_AttributeAnimations *aa = gf_node_animation_get((GF_Node *)e, i);
-		gf_svg_delete_attribute_value(aa->saved_dom_value.fieldType, aa->saved_dom_value.far_ptr);
+		gf_svg_delete_attribute_value(aa->saved_dom_value.fieldType, aa->saved_dom_value.far_ptr, e->sgprivate->scenegraph);
 		j=0;
 		while ((rai = gf_list_enum(aa->anims, &j))) {
 			gf_smil_anim_delete_runtime_info(rai);

@@ -1112,7 +1112,7 @@ EXPORTS
 	svg_parse_style
 	svg_parse_iri
 	gf_sg_dom_create_listener
-	svg_store_embedded_data
+	gf_svg_store_embedded_data
 	smil_parse_attributename
 	gf_smil_anim_init_node
 	gf_svg_is_property_inherited

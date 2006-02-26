@@ -406,13 +406,46 @@ Bool gf_sg_svg_node_changed(GF_Node *node, GF_FieldInfo *field)
 	return 0;
 }
 
-#include <gpac/base_coding.h>
-Bool svg_store_embedded_data(SVG_IRI *iri, const char *iri_data, const char *cache_dir, const char *base_filename)
+static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_size, u32 idx)
 {
-	char szFile[GF_MAX_PATH], *sep, buf[20], *data;
-	u32 data_size;
+	char szFile[GF_MAX_PATH];
+	u32 fsize;
+	FILE *f;
+	
+	sprintf(szFile, "%s%04X%s", base_file, idx, ext);
+	
+	f = fopen(szFile, "rb");
+	if (!f) return 0;
 
-	if (!cache_dir || !base_filename || !iri || !!strncmp(iri_data, "data:", 5)) return 0;
+	fseek(f, 0, SEEK_END);
+	fsize = ftell(f);
+	if (fsize==data_size) {
+		u32 offset=0;
+		char cache[1024];
+		fseek(f, 0, SEEK_SET);
+		while (fsize) {
+			u32 read = fread(cache, 1, 1024, f);
+			fsize -= read;
+			if (memcmp(cache, data+offset, sizeof(char)*read)) break;
+			offset+=read;
+		}
+		fclose(f);
+		/*same file*/
+		if (!fsize) return 2;
+	}
+	fclose(f);
+	return 1;
+}
+/*TODO FIXME, this is ugly, add proper cache system*/
+#include <gpac/base_coding.h>
+Bool gf_svg_store_embedded_data(SVG_IRI *iri, const char *cache_dir, const char *base_filename)
+{
+	char szFile[GF_MAX_PATH], buf[20], *sep, *data, *ext;
+	u32 data_size, idx;
+	Bool existing;
+	FILE *f;
+
+	if (!cache_dir || !base_filename || !iri || !iri->iri || strncmp(iri->iri, "data:", 5)) return 0;
 
 	/*handle "data:" scheme when cache is specified*/
 	strcpy(szFile, cache_dir);
@@ -432,36 +465,58 @@ Bool svg_store_embedded_data(SVG_IRI *iri, const char *iri_data, const char *cac
 	}
 	sep = strrchr(szFile, '.');
 	if (sep) sep[0] = 0;
-	sprintf(buf, "_img_%08X", (u32) iri);
-	strcat(szFile, buf);
+	strcat(szFile, "_img_");
+
 	/*get mime type*/
-	sep = (char *)iri_data + 5;
-	if (!strncmp(sep, "image/jpg", 9) || !strncmp(sep, "image/jpeg", 10)) strcat(szFile, ".jpg");
-	else if (!strncmp(sep, "image/png", 9)) strcat(szFile, ".png");
+	sep = (char *)iri->iri + 5;
+	if (!strncmp(sep, "image/jpg", 9) || !strncmp(sep, "image/jpeg", 10)) ext = ".jpg";
+	else if (!strncmp(sep, "image/png", 9)) ext = ".png";
+	else return 0;
+
 
 	data = NULL;
-	sep = strchr(iri_data, ';');
+	sep = strchr(iri->iri, ';');
 	if (!strncmp(sep, ";base64,", 8)) {
 		sep += 8;
 		data_size = 2*strlen(sep);
 		data = malloc(sizeof(char)*data_size);
+		if (!data) return 0;
 		data_size = gf_base64_decode(sep, strlen(sep), data, data_size);
 	}
 	else if (!strncmp(sep, ";base16,", 8)) {
 		data_size = 2*strlen(sep);
 		data = malloc(sizeof(char)*data_size);
+		if (!data) return 0;
 		sep += 8;
 		data_size = gf_base16_decode(sep, strlen(sep), data, data_size);
 	}
+	if (!data_size) return 0;
+	
 	iri->type = SVG_IRI_IRI;
-	if (data) {
-		FILE *f = fopen(szFile, "wb");
+	
+	existing = 0;
+	idx = 0;
+	while (1) {
+		u32 res = check_existing_file(szFile, ext, data, data_size, idx);
+		if (!res) break;
+		if (res==2) {
+			existing = 1;
+			break;
+		}
+		idx++;
+	}
+	sprintf(buf, "%04X", idx);
+	strcat(szFile, buf);
+	strcat(szFile, ext);
+
+	if (!existing) {
+		f = fopen(szFile, "wb");
 		fwrite(data, data_size, 1, f);
 		fclose(f);
-		if (iri->iri) free(iri->iri);
-		iri->iri = strdup(szFile);
-		free(data);
-	} 
+	}
+	free(data);
+	free(iri->iri);
+	iri->iri = strdup(szFile);
 	return 1;
 }
 
