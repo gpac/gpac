@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:gpac="urn:enst:gpac" >
 	<xsl:output method="html" version="1.0" encoding="UTF-8" indent="yes"/>
 
     <xsl:template match="svg-status-query">
@@ -19,8 +19,11 @@
         	</head>
             <body>
     
-                <h1>SVG 1.1 Test Suite Implementation results (<xsl:value-of select="@date"/>)</h1>
+                <h1>SVG 1.1 Test Suite Implementation Results</h1>
+                <h1>Profile: <xsl:value-of select="@profile"/></h1>
+                <h1>Date : <xsl:value-of select="@date"/></h1>
                 <h2><xsl:value-of select="@company"/> - <xsl:value-of select="@product"/> - <xsl:value-of select="@version"/></h2>
+                <h3><xsl:value-of select="@gpac:raster"/> - <xsl:value-of select="@gpac:xml-loader"/> - <xsl:value-of select="@gpac:font-engine"/></h3>
 				<h2>Global results</h2>
 				<table>
 					<tbody>
@@ -29,17 +32,17 @@
 							<td align="right"><xsl:value-of select="count(//test)"/></td>
 						</tr>
 						<tr>
-							<td class="OK">Number of tests with status = OK</td>
+							<td class="OK">Number of (non-empty) tests with status = OK</td>
 							<td class="OK" align="right"><xsl:value-of select="count(//test[@status='OK'])"/></td>
 							<td class="OK" align="right"><xsl:value-of select="format-number(count(//test[@status='OK']) div count(//test), '.%')"/></td>
 						</tr>
 						<tr>
-							<td class="PARTIAL">Number of tests with status = PARTIAL</td>
+							<td class="PARTIAL">Number of (non-empty) tests with status = PARTIAL</td>
 							<td class="PARTIAL" align="right"><xsl:value-of select="count(//test[@status='PARTIAL'])"/></td>
 							<td class="PARTIAL" align="right"><xsl:value-of select="format-number(count(//test[@status='PARTIAL']) div count(//test), '.%')"/></td>
 						</tr>
 						<tr>
-							<td class="FAIL">Number of tests with status = FAIL</td>
+							<td class="FAIL">Number of (non-empty) tests with status = FAIL</td>
 							<td class="FAIL" align="right"><xsl:value-of select="count(//test[@status='FAIL'])"/></td>
 							<td class="FAIL" align="right"><xsl:value-of select="format-number(count(//test[@status='FAIL']) div count(//test), '.%')"/></td>
 						</tr>
@@ -55,7 +58,7 @@
     					</tr>
     				</thead>
                     <tbody>
-                    <xsl:apply-templates select="./*"/>
+                    <xsl:apply-templates select="./test"/>
                     </tbody>
                 </table>
             </body>
