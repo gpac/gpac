@@ -21,89 +21,10 @@
 <!-- test attributes:                                                                   -->
 <!--    status=must be one of 'OK', 'PARTIAL', or 'FAIL'                                -->
 <!--    comment=optional comment to publish with the result, like why you don't pass :) -->
-	<test name="animate-elem-02-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-03-t" revision="1.8" status="PARTIAL" comment="Font problem"/>
-	<test name="animate-elem-04-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-05-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-06-t" revision="1.9" status="OK" comment=""/>
-	<test name="animate-elem-07-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-08-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-09-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-10-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-11-t" revision="1.9" status="PARTIAL" comment="paced keyword is not supported yet, linear used instead."/>
-	<test name="animate-elem-12-t" revision="1.8" status="PARTIAL" comment="spline keyword is not supported yet, linear used instead."/>
-	<test name="animate-elem-13-t" revision="1.8" status="OK" comment=""/>
-	<test name="animate-elem-14-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-15-t" revision="1.5" status="PARTIAL" comment="paced keyword is not supported yet, linear used instead."/>
-	<test name="animate-elem-17-t" revision="1.5" status="PARTIAL" comment="spline keyword is not supported yet, linear used instead."/>
-	<test name="animate-elem-19-t" revision="1.5" status="OK" comment=""/>
-	<test name="animate-elem-20-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-21-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-22-b" revision="1.6" status="PARIAL" comment="Problem with opacity"/>
-	<test name="animate-elem-23-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-24-t" revision="1.7" status="PARTIAL" comment="SVG Fonts not supported, animateMotion and animateTransform combination not supported on text"/>
-	<test name="animate-elem-25-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-26-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-27-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-28-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-29-b" revision="1.4" status="OK" comment=""/>
-	<test name="animate-elem-30-t" revision="1.5" status="OK" comment=""/>
-	<test name="animate-elem-31-t" revision="1.5" status="PARTIAL" comment="Some circle pairs are not displayed/hidden at the same time/"/>
-	<test name="animate-elem-32-t" revision="1.15" status="OK" comment=""/>
-	<test name="animate-elem-33-t" revision="1.7" status="PARTIAL" comment="keyPoints not supported in all cases."/>
-	<test name="animate-elem-34-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-35-t" revision="1.6" status="PARTIAL" comment="Problems when several use elements don't have the same stroke properties (dashing ...)."/>
-	<test name="animate-elem-36-t" revision="1.8" status="PARTIAL" comment="Image is not rotated"/>
-	<test name="animate-elem-37-t" revision="1.6" status="PARTIAL" comment="Circle is not rotated ?"/>
-	<test name="animate-elem-38-t" revision="1.5" status="OK" comment=""/>
-	<test name="animate-elem-39-t" revision="1.7" status="FAIL" comment="Text is not redrawn correctly and Crash when leaving"/>
-	<test name="animate-elem-40-t" revision="1.6" status="PARTIAL" comment="Multiple x/y values on text is not supported."/>
-	<test name="animate-elem-41-t" revision="1.7" status="OK" comment=""/>
-	<test name="animate-elem-42-t" revision="1.3" status="OK" comment="empty"/>
-	<test name="animate-elem-43-t" revision="1.4" status="OK" comment="empty"/>
-	<test name="animate-elem-44-t" revision="1.5" status="PARTIAL" comment="Removal of carriage return in text is done but not of spaces"/>
-	<test name="animate-elem-45-t" revision="1.3" status="OK" comment="empty"/>
-	<test name="animate-elem-46-t" revision="1.7" status="PARTIAL" comment="animation of font-weight + text in g and a."/>
-	<test name="animate-elem-47-t" revision="1.3" status="OK" comment="empty"/>
-	<test name="animate-elem-48-t" revision="1.3" status="OK" comment="empty"/>
-	<test name="animate-elem-49-t" revision="1.3" status="OK" comment="empty"/>
-	<test name="animate-elem-50-t" revision="1.3" status="OK" comment="empty"/>
-	<test name="animate-elem-51-t" revision="1.3" status="OK" comment="empty"/>
-	<test name="animate-elem-52-t" revision="1.5" status="PARTIAL" comment="Sensitive region is misplaced"/>
-	<test name="animate-elem-53-t" revision="1.5" status="PARTIAL" comment="Problem with underlying value for second animation"/>
-	<test name="animate-elem-60-t" revision="1.4" status="PARTIAL" comment="No repeat and wallclock events"/>
-	<test name="animate-elem-61-t" revision="1.4" status="PARTIAL" comment="No repeat event"/>
-	<test name="animate-elem-62-t" revision="1.4" status="PARTIAL" comment="Wrong for indefinite, unspecified, sync base, repeat, accessKey and wallclock"/>
-	<test name="animate-elem-63-t" revision="1.4" status="PARTIAL" comment="No event base, sync base, repeat, accessKey"/>
-	<test name="animate-elem-64-t" revision="1.4" status="OK" comment=""/>
-	<test name="animate-elem-65-t" revision="1.4" status="PARTIAL" comment=""/>
-	<test name="animate-elem-66-t" revision="1.4" status="PARTIAL" comment=""/>
-	<test name="animate-elem-67-t" revision="1.5" status="PARTIAL" comment=""/>
-	<test name="animate-elem-68-t" revision="1.5" status="OK" comment=""/>
-	<test name="animate-elem-69-t" revision="1.5" status="OK" comment=""/>
-	<test name="animate-elem-70-t" revision="1.4" status="OK" comment=""/>
-	<test name="animate-elem-77-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-78-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-80-t" revision="1.6" status="OK" comment=""/>
-	<test name="animate-elem-81-t" revision="1.4" status="PARTIAL" comment="wrong final value for sum/replace"/>
-	<test name="animate-elem-82-t" revision="1.4" status="PARTIAL" comment="paced translation, wrong final value for sum/replace"/>
-	<test name="animate-elem-83-t" revision="1.5" status="PARTIAL" comment="to animation is not supported, wrong final value"/>
-	<test name="animate-elem-84-t" revision="1.3" status="PARTIAL" comment=""/>
+	<test name="animate-elem-22-b" revision="1.6" status="FAIL" comment="Opacity not supported"/>
+	<test name="animate-elem-29-b" revision="1.4" status="FAIL" comment="Crash when leaving"/>
 	<test name="color-prop-01-b" revision="1.4" status="FAIL" comment="Problem with gradients"/>
-	<test name="color-prop-03-t" revision="1.5" status="OK" comment=""/>
-	<test name="color-prop-04-t" revision="1.3" status="FAIL" comment="No System Color"/>
-	<test name="color-prop-05-t" revision="1.1" status="FAIL" comment="currentColor and color property problem"/>
-	<test name="coords-coord-01-t" revision="1.2" status="OK" comment=""/>
-	<test name="coords-coord-02-t" revision="1.2" status="OK" comment=""/>
 	<test name="coords-trans-01-b" revision="1.5" status="OK" comment=""/>
-	<test name="coords-trans-02-t" revision="1.6" status="OK" comment=""/>
-	<test name="coords-trans-03-t" revision="1.6" status="OK" comment=""/>
-	<test name="coords-trans-04-t" revision="1.6" status="OK" comment=""/>
-	<test name="coords-trans-05-t" revision="1.6" status="OK" comment=""/>
-	<test name="coords-trans-06-t" revision="1.6" status="OK" comment=""/>
-	<test name="coords-trans-07-t" revision="1.6" status="OK" comment=""/>
-	<test name="coords-trans-08-t" revision="1.6" status="OK" comment=""/>
-	<test name="coords-trans-09-t" revision="1.6" status="OK" comment=""/>
 	<test name="coords-units-01-b" revision="1.5" status="FAIL" comment="Problem with gradients"/>
 	<test name="coords-units-02-b" revision="1.3" status="PARTIAL" comment=""/>
 	<test name="coords-units-03-b" revision="1.4" status="PARTIAL" comment=""/>
@@ -121,42 +42,20 @@
 	<test name="filters-offset-01-b" revision="1.3" status="FAIL" comment="No filter implemented"/>
 	<test name="filters-overview-01-b" revision="1.5" status="FAIL" comment="No filter implemented"/>
 	<test name="filters-tile-01-b" revision="1.9" status="FAIL" comment="No filter implemented"/>
-	<test name="fonts-desc-01-t" revision="1.3" status="FAIL" comment="No SVG Font"/>
-	<test name="fonts-desc-02-t" revision="1.2" status="FAIL" comment="No SVG Font"/>
-	<test name="fonts-desc-03-t" revision="1.2" status="FAIL" comment="No SVG Font"/>
-	<test name="fonts-desc-04-t" revision="1.2" status="FAIL" comment="No SVG Font"/>
-	<test name="fonts-desc-05-t" revision="1.2" status="FAIL" comment="No SVG Font"/>
-	<test name="fonts-elem-01-t" revision="1.4" status="PARTIAL" comment="No SVG Font"/>
-	<test name="fonts-elem-02-t" revision="1.4" status="FAIL" comment="No SVG Font"/>
 	<test name="fonts-elem-03-b" revision="1.2" status="FAIL" comment="No SVG Font"/>
 	<test name="fonts-elem-04-b" revision="1.1" status="FAIL" comment="No SVG Font"/>
-	<test name="fonts-elem-05-t" revision="1.7" status="FAIL" comment="No SVG Font"/>
-	<test name="fonts-elem-06-t" revision="1.9" status="FAIL" comment="No SVG Font"/>
 	<test name="fonts-elem-07-b" revision="1.6" status="FAIL" comment="No SVG Font"/>
-	<test name="fonts-glyph-02-t" revision="1.6" status="FAIL" comment="No SVG Font"/>
-	<test name="fonts-glyph-03-t" revision="1.8" status="FAIL" comment="No SVG Font"/>
-	<test name="fonts-glyph-04-t" revision="1.8" status="FAIL" comment="No SVG Font"/>
-	<test name="fonts-kern-01-t" revision="1.8" status="FAIL" comment="No SVG Font"/>
 	<test name="interact-dom-01-b" revision="1.2" status="FAIL" comment="DOM API not supported (doc.createText node is not a function)"/>
 	<test name="interact-events-01-b" revision="1.2" status="OK" comment=""/>
 	<test name="interact-order-01-b" revision="1.2" status="OK" comment=""/>
 	<test name="interact-order-02-b" revision="1.3" status="OK" comment=""/>
 	<test name="interact-order-03-b" revision="1.2" status="PARTIAL" comment="Strings are not selectable"/>
-	<test name="interact-zoom-01-t" revision="1.6" status="OK" comment=""/>
-	<tst name="interact-zoom-02-t" revision="1.1" status="OK" comment=""/>
-	<test name="interact-zoom-03-t" revision="1.1" status="OK" comment=""/>
 	<test name="linking-a-01-b" revision="1.9" status="FAIL" comment="Linking to an element is not supported"/>
 	<test name="linking-a-02-b" revision="1.7" status="FAIL" comment="Linking to an element is not supported"/>
 	<test name="linking-a-03-b" revision="1.2" status="FAIL" comment="SVGView not supported"/>
-	<test name="linking-a-04-t" revision="1.9" status="OK" comment=""/>
-	<test name="linking-a-05-t" revision="1.7" status="OK" comment=""/>
-	<test name="linking-a-06-t" revision="1.4" status="OK" comment="empty"/>
-	<test name="linking-a-07-t" revision="1.9" status="OK" comment=""/>
-	<test name="linking-a-08-t" revision="1.1" status="FAIL" comment="Link inside text"/>
 	<test name="linking-a-09-b" revision="1.2" status="FAIL" comment="Link inside text"/>
 	<test name="linking-uri-01-b" revision="1.6" status="FAIL" comment="Link to viewbox not supported"/>
 	<test name="linking-uri-02-b" revision="1.7" status="FAIL" comment="Link to viewbox not supported"/>
-	<test name="linking-uri-03-t" revision="1.8" status="OK" comment=""/>
 	<test name="masking-mask-01-b" revision="1.7" status="FAIL" comment="No masking yet implemented."/>
 	<test name="masking-opacity-01-b" revision="1.6" status="FAIL" comment="No masking yet implemented."/>
 	<test name="masking-path-01-b" revision="1.10" status="FAIL" comment="No masking yet implemented."/>
@@ -165,35 +64,7 @@
 	<test name="masking-path-04-b" revision="1.8" status="FAIL" comment="No masking yet implemented."/>
 	<test name="masking-path-06-b" revision="1.5" status="FAIL" comment="No masking yet implemented."/>
 	<test name="metadata-example-01-b" revision="1.7" status="OK" comment=""/>
-	<test name="painting-fill-01-t" revision="1.5" status="OK" comment=""/>
-	<test name="painting-fill-02-t" revision="1.6" status="OK" comment=""/>
-	<test name="painting-fill-03-t" revision="1.5" status="OK" comment=""/>
-	<test name="painting-fill-04-t" revision="1.7" status="OK" comment=""/>
-	<test name="painting-fill-05-t" revision="1.1" status="OK" comment=""/>
 	<test name="painting-render-01-b" revision="1.7" status="FAIL" comment="color-interpolation not supported yet."/>
-	<test name="painting-stroke-01-t" revision="1.9" status="OK" comment=""/>
-	<test name="painting-stroke-02-t" revision="1.9" status="OK" comment=""/>
-	<test name="painting-stroke-03-t" revision="1.9" status="OK" comment=""/>
-	<test name="painting-stroke-04-t" revision="1.9" status="OK" comment=""/>
-	<test name="painting-stroke-05-t" revision="1.6" status="PARTIAL" comment="Very thin stroke is not displayed due to alpha blending limitation (8 bits -> min alpha is 0.004)"/>
-	<test name="painting-stroke-06-t" revision="1.1" status="OK" comment=""/>
-	<test name="painting-stroke-07-t" revision="1.1" status="OK" comment=""/>
-	<test name="painting-stroke-08-t" revision="1.1" status="OK" comment=""/>
-	<test name="paths-data-01-t" revision="1.6" status="OK" comment=""/>
-	<test name="paths-data-02-t" revision="1.6" status="OK" comment=""/>
-	<test name="paths-data-04-t" revision="1.7" status="OK" comment=""/>
-	<test name="paths-data-05-t" revision="1.8" status="OK" comment=""/>
-	<test name="paths-data-06-t" revision="1.7" status="OK" comment=""/>
-	<test name="paths-data-07-t" revision="1.8" status="OK" comment=""/>
-	<test name="paths-data-08-t" revision="1.10" status="OK" comment=""/>
-	<test name="paths-data-09-t" revision="1.10" status="OK" comment=""/>
-	<test name="paths-data-10-t" revision="1.10" status="OK" comment=""/>
-	<test name="paths-data-11-t" revision="1.5" status="OK" comment="empty"/>
-	<test name="paths-data-12-t" revision="1.1" status="OK" comment=""/>
-	<test name="paths-data-13-t" revision="1.1" status="OK" comment=""/>
-	<test name="paths-data-14-t" revision="1.1" status="OK" comment=""/>
-	<test name="paths-data-15-t" revision="1.1" status="OK" comment=""/>
-	<test name="paths-dist-01-t" revision="1.4" status="OK" comment="empty"/>		
 	<test name="pservers-grad-01-b" revision="1.5" status="FAIL" comment="Bug in gradients"/>
 	<test name="pservers-grad-02-b" revision="1.8" status="FAIL" comment="Bug in gradients"/>
 	<test name="pservers-grad-03-b" revision="1.6" status="FAIL" comment="Patterns not yet implemented."/>
@@ -211,59 +82,21 @@
 	<test name="pservers-grad-15-b" revision="1.1" status="FAIL" comment="Bug in gradients"/>
 	<test name="pservers-grad-16-b" revision="1.1" status="FAIL" comment="Bug in gradients"/>
 	<test name="pservers-pattern-01-b" revision="1.6" status="FAIL" comment="Patterns not yet implemented."/>
-	<test name="render-elems-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="render-elems-02-t" revision="1.7" status="OK" comment=""/>
-	<test name="render-elems-03-t" revision="1.7" status="OK" comment=""/>
-	<test name="render-elems-06-t" revision="1.4" status="PARTIAL" comment="SVG Fonts not supported."/>
-	<test name="render-elems-07-t" revision="1.4" status="PARTIAL" comment="SVG Fonts not supported."/>
-	<test name="render-elems-08-t" revision="1.4" status="PARTIAL" comment="SVG Fonts not supported."/>
 	<test name="render-groups-01-b" revision="1.6" status="FAIL" comment="group opacity not supported."/>
-	<test name="render-groups-03-t" revision="1.6" status="PARTIAL" comment="SVG Fonts not supported."/>
 	<test name="script-handle-01-b" revision="1.1" status="OK" comment=""/>
 	<test name="script-handle-02-b" revision="1.1" status="PARTIAL" comment="OnFocus* not supported."/>
 	<test name="script-handle-03-b" revision="1.3" status="OK" comment=""/>
 	<test name="script-handle-04-b" revision="1.2" status="OK" comment=""/>
-	<test name="shapes-circle-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="shapes-circle-02-t" revision="1.1" status="OK" comment=""/>
-	<test name="shapes-ellipse-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="shapes-ellipse-02-t" revision="1.1" status="OK" comment=""/>
-	<test name="shapes-intro-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="shapes-line-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="shapes-polygon-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="shapes-polyline-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="shapes-rect-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="shapes-rect-02-t" revision="1.2" status="OK" comment=""/>
-	<test name="struct-cond-01-t" revision="1.6" status="FAIL" comment="required* attributes are not yet supported."/>
-	<test name="struct-cond-02-t" revision="1.8" status="FAIL" comment="Switch does not do selection yet."/>
-	<test name="struct-cond-03-t" revision="1.7" status="FAIL" comment="Switch does not do selection yet."/>
-	<test name="struct-defs-01-t" revision="1.7" status="OK" comment=""/>
 	<test name="struct-dom-01-b" revision="1.1" status="FAIL" comment="DOM API Not supported"/>
 	<test name="struct-dom-02-b" revision="1.1" status="FAIL" comment="DOM API Not supported"/>
 	<test name="struct-dom-03-b" revision="1.1" status="FAIL" comment="DOM API Not supported"/>
 	<test name="struct-dom-04-b" revision="1.1" status="FAIL" comment="DOM API Not supported"/>
 	<test name="struct-dom-05-b" revision="1.2" status="FAIL" comment="DOM API Not supported"/>
 	<test name="struct-dom-06-b" revision="1.3" status="FAIL" comment="DOM API Not supported"/>
-	<test name="struct-frag-01-t" revision="1.3" status="OK" comment=""/>
-	<test name="struct-frag-02-t" revision="1.7" status="OK" comment=""/>
-	<test name="struct-frag-03-t" revision="1.7" status="OK" comment=""/>
-	<test name="struct-frag-04-t" revision="1.6" status="OK" comment=""/>
-	<test name="struct-frag-05-t" revision="1.11" status="OK" comment=""/>
-	<test name="struct-frag-06-t" revision="1.8" status="OK" comment=""/>
-	<test name="struct-group-01-t" revision="1.4" status="OK" comment=""/>
 	<test name="struct-group-02-b" revision="1.1" status="PARTIAL" comment="Wrong positioning"/>
-	<test name="struct-group-03-t" revision="1.5" status="PARTIAL" comment="Problem with font-style property"/>
-	<test name="struct-image-01-t" revision="1.8" status="OK" comment=""/>
 	<test name="struct-image-02-b" revision="1.2" status="FAIL" comment=""/>
-	<test name="struct-image-03-t" revision="1.6" status="OK" comment=""/>
-	<test name="struct-image-04-t" revision="1.4" status="OK" comment=""/>
 	<test name="struct-image-05-b" revision="1.1" status="FAIL" comment=""/>
-	<test name="struct-image-06-t" revision="1.9" status="FAIL" comment="preserveAspectRatio not supported on the image element"/>
-	<test name="struct-image-07-t" revision="1.7" status="FAIL" comment="xml:base not supported"/>
-	<test name="struct-image-08-t" revision="1.6" status="OK" comment="empty"/>
 	<test name="struct-symbol-01-b" revision="1.6" status="FAIL" comment="Crash - symbol not supported"/>
-	<test name="struct-use-01-t" revision="1.12" status="PARTIAL" comment="Problem with italic text"/>
-	<test name="struct-use-02-t" revision="1.8" status="OK" comment=""/>
-	<test name="struct-use-03-t" revision="1.6" status="OK" comment=""/>
 	<test name="struct-use-04-b" revision="1.5" status="FAIL" comment="External references on use not supported"/>
 	<test name="struct-use-05-b" revision="1.5" status="FAIL" comment="External references on use not supported"/>
 	<test name="styling-css-01-b" revision="1.3" status="FAIL" comment="CSS not supported"/>
@@ -272,37 +105,23 @@
 	<test name="styling-css-05-b" revision="1.4" status="FAIL" comment="CSS not supported"/>
 	<test name="styling-css-06-b" revision="1.1" status="FAIL" comment="CSS not supported"/>
 	<test name="styling-inherit-01-b" revision="1.2" status="FAIL" comment=""/>
-	<test name="styling-pres-01-t" revision="1.3" status="PARTIAL" comment="Does not go into error  and displays a black rectangle"/>
 	<test name="text-align-01-b" revision="1.5" status="OK" comment=""/>
 	<test name="text-align-02-b" revision="1.5" status="FAIL" comment="baseline-shift not supported"/>
 	<test name="text-align-03-b" revision="1.5" status="FAIL" comment="tspan not supported"/>
 	<test name="text-align-04-b" revision="1.5" status="FAIL" comment="tref not supported"/>
 	<test name="text-align-05-b" revision="1.5" status="FAIL" comment="Vertical text not supported yet."/>
 	<test name="text-align-06-b" revision="1.5" status="FAIL" comment="Vertical text not supported yet."/>
-	<test name="text-align-07-t" revision="1.1" status="FAIL" comment="Problems with fonts"/>
 	<test name="text-align-08-b" revision="1.3" status="FAIL" comment="Font not found"/>
 	<test name="text-altglyph-01-b" revision="1.5" status="FAIL" comment="altglyph not supported"/>
 	<test name="text-deco-01-b" revision="1.8" status="FAIL" comment="text-decoration not supported yet."/>
-	<test name="text-fonts-01-t" revision="1.5" status="PARTIAL" comment="No Japanese nor Chinese text."/>
-	<test name="text-fonts-02-t" revision="1.7" status="FAIL" comment="font-weight not supported yet."/>
-	<test name="text-fonts-03-t" revision="1.5" status="FAIL" comment="Fonts not found"/>
-	<test name="text-intro-01-t" revision="1.6" status="FAIL" comment="No Japanese nor Chinese text, hebrew and yiddish in bad order."/>
 	<test name="text-intro-02-b" revision="1.8" status="FAIL" comment="unicode-bidi not supported"/>
 	<test name="text-intro-03-b" revision="1.6" status="FAIL" comment="Fonts not found"/>
-	<test name="text-intro-04-t" revision="1.10" status="FAIL" comment="No Japanese nor Chinese text, hebrew and yiddish in bad order."/>
-	<test name="text-intro-05-t" revision="1.2" status="FAIL" comment="No Ligature in arabic script."/>
 	<test name="text-path-01-b" revision="1.7" status="FAIL" comment="Text on a path not supported yet."/>
 	<test name="text-spacing-01-b" revision="1.6" status="FAIL" comment="text spacing not implemented"/>
 	<test name="text-text-01-b" revision="1.7" status="FAIL" comment="text adjustement not yet supported"/>
 	<test name="text-text-03-b" revision="1.7" status="FAIL" comment="font-style not supported"/>
-	<test name="text-text-04-t" revision="1.11" status="FAIL" comment="No SVG Font."/>
-	<test name="text-text-05-t" revision="1.6" status="FAIL" comment="No SVG Font"/>
-	<test name="text-text-06-t" revision="1.7" status="FAIL" comment="No SVG Font"/>
-	<test name="text-text-07-t" revision="1.5" status="FAIL" comment="Neither rotation nor position of indivual glyphs are implemented"/>
 	<test name="text-text-08-b" revision="1.1" status="FAIL" comment="Opacity not supported"/>
 	<test name="text-tref-01-b" revision="1.6" status="FAIL" comment="tref not supported"/>
 	<test name="text-tselect-01-b" revision="1.8" status="FAIL" comment="text selection not supported"/>
 	<test name="text-tspan-01-b" revision="1.7" status="FAIL" comment="tspan not supported"/>
-	<test name="text-ws-01-t" revision="1.7" status="OK" comment=""/>
-	<test name="text-ws-02-t" revision="1.7" status="FAIL" comment="No whitespace preservation."/>
 </svg-status-query>
