@@ -1009,18 +1009,17 @@ GF_Err co64_dump(GF_Box *a, FILE * trace)
 	u32 i;
 
 	p = (GF_ChunkLargeOffsetBox *)a;
-	fprintf(trace, "<ChunkLargeOffsetBox EntryCount=\"%d\"\n", p->entryCount);
+	fprintf(trace, "<ChunkLargeOffsetBox EntryCount=\"%d\">\n", p->entryCount);
 	DumpBox(a, trace);
 	gb_full_box_dump(a, trace);
 
 	if (!p->offsets) {
 		fprintf(trace, "<Warning: No Chunk Offsets indications/>\n");
 	} else {
-		for (i=0; i<p->entryCount; i++) {
+		for (i=0; i<p->entryCount; i++) 
 			fprintf(trace, "<ChunkOffsetEntry offset=\""LLD"\"/>\n", p->offsets[i]);
-		}
 	}
-	fprintf(trace, "</ChunkLargeOffsetBox>n");
+	fprintf(trace, "</ChunkLargeOffsetBox>\n");
 	return GF_OK;
 }
 

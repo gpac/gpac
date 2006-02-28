@@ -1,4 +1,5 @@
-Latest CVS Changes 16/02/06
+Latest CVS Changes 28/02/06
+  - fixedbug in large MP4 file (> 4GB) writing (chunk offset table was corrupted)
   - added progressive loading support for XMT and X3D files.
   - misc fixes in InputSensor handling.
   - misc fixes in SVG animation module (animation begin and end event, restarting of animations)

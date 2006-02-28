@@ -561,7 +561,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 				free(co64->offsets);
 				co64->offsets = newLarge;
 			}
-			co64->offsets[co64->entryCount] = (u32) offset;
+			co64->offsets[co64->entryCount] = offset;
 			co64->entryCount += 1;
 		} else {
 			//nope. we're inserting
