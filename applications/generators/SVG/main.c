@@ -1212,7 +1212,7 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 	} 
 
 	if (!strcmp(svg_elt->implementation_name, "script")) {
-		fprintf(output, "\tsvg_init_lsr_script(&p->lsr_script);\n");
+		fprintf(output, "\tgf_svg_init_lsr_script(&p->lsr_script);\n");
 	} 
 
 	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
@@ -1253,7 +1253,7 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 	fprintf(output, "\tgf_svg_reset_base_element((SVGElement *)p);\n");
 
 	if (!strcmp(svg_elt->implementation_name, "script")) {
-		fprintf(output, "\tsvg_reset_lsr_script(&p->lsr_script);\n");
+		fprintf(output, "\tgf_svg_reset_lsr_script(&p->lsr_script);\n");
 	} 
 
 	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {

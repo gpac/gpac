@@ -967,6 +967,8 @@ also clones sampleDescriptions
 GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *dest_file, Bool keep_data_ref, u32 *dest_track);
 /*special shortcut: clones IOD PLs from orig to dest if any*/
 GF_Err gf_isom_clone_pl_indications(GF_ISOFile *orig, GF_ISOFile *dest);
+/*clones root OD from input to output file, without copying root OD track references*/
+GF_Err gf_isom_clone_root_od(GF_ISOFile *input, GF_ISOFile *output);
 
 /*returns true if same set of sample description in both tracks - this does include self-contained checking
 and reserved flags. The specific media cfg (DSI & co) is not analysed, only

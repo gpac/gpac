@@ -516,9 +516,9 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				b = a;
 				b.far_ptr = inf->field_ptr;
 				if (com->tag == GF_SG_LSR_REPLACE) {
-					svg_attributes_copy(&a, &b, 0);
+					gf_svg_attributes_copy(&a, &b, 0);
 				} else {
-					svg_attributes_add(&a, &b, &a, 0);
+					gf_svg_attributes_add(&a, &b, &a, 0);
 				}
 			}
 			/*signal node modif*/
@@ -536,9 +536,9 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				gf_node_get_field(com->node, inf->fieldIndex, &a);
 			}
 			if (com->tag == GF_SG_LSR_REPLACE) {
-				e = svg_attributes_copy(&a, &b, 0);
+				e = gf_svg_attributes_copy(&a, &b, 0);
 			} else {
-				e = svg_attributes_add(&a, &b, &a, 0);
+				e = gf_svg_attributes_add(&a, &b, &a, 0);
 			}
 			gf_node_changed(com->node, &a);
 			return e;

@@ -8,6 +8,7 @@
 #include <gpac/modules/codec.h>
 #include <gpac/modules/font.h>
 #include <gpac/constants.h>
+#include <gpac/iso639.h>
 
 #include "Options.h"
 #include <gx.h>
@@ -1151,73 +1152,6 @@ END_MESSAGE_MAP()
 
 
 
-
-/*ISO 639-2 code names (complete set in /_other directory)*/
-#define NUM_LANGUAGE	59
-static char *Languages[118] = 
-{
-"Albanian","alb",
-"Arabic","ara",
-"Armenian","arm",
-"Azerbaijani","aze",
-"Basque","baq",
-"Belarusian","bel",
-"Bosnian","bos",
-"Breton","bre",
-"Bulgarian","bul",
-"Catalan","cat",
-"Celtic (Other)","cel",
-"Chinese","chi",
-"Croatian","scr",
-"Czech","cze",
-"Danish","dan",
-"Dutch","dut",
-"English","eng",
-"Esperanto","epo",
-"Estonian","est",
-"Fijian","fij",
-"Finnish","fin",
-"French","fre",
-"Georgian","geo",
-"German","ger",
-"Greek, Modern (1453-)","gre",
-"Haitian","hat",
-"Hawaiian","haw",
-"Hebrew","heb",
-"Indonesian","ind",
-"Iranian (Other)","ira",
-"Irish","gle",
-"Italian","ita",
-"Japanese","jpn",
-"Korean","kor",
-"Kurdish","kur",
-"Latin","lat",
-"Lithuanian","lit",
-"Luxembourgish","ltz",
-"Macedonian","mac",
-"Mongolian","mon",
-"Norwegian","nor",
-"Occitan (post 1500)","oci",
-"Persian","per",
-"Philippine (Other)","phi" ,
-"Polish","pol",
-"Portuguese","por",
-"Russian","rus",
-"Serbian","srp",
-"Slovak","slo",
-"Slovenian","slv",
-"Somali","som",
-"Spanish","spa",
-"Swedish","swe",
-"Tahitian","tah",
-"Thai","tha",
-"Tibetan","tib",
-"Turkish","tur",
-"Undetermined","und",
-"Vietnamese","vie",
-};
-
-
 BOOL COptSystems::OnInitDialog() 
 {
 	CDialog::OnInitDialog();
@@ -1225,15 +1159,20 @@ BOOL COptSystems::OnInitDialog()
 	COsmo4 *gpac = GetApp();
 	const char *sOpt;
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Systems", "Language");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Systems", "Language3CC");
 	if (!sOpt) sOpt = "eng";
 	s32 select = 0;
 	while (m_Lang.GetCount()) m_Lang.DeleteString(0);
-	for (s32 i = 0; i<NUM_LANGUAGE; i++) {
+	u32 i=0;
+	while (GF_ISO639_Lang[i]) {
 		TCHAR szTmp[100];
-		CE_CharToWide(Languages[2*i], szTmp);
-		m_Lang.AddString(szTmp);
-		if (sOpt && !stricmp(sOpt, Languages[2*i + 1])) select = i;
+		/*only use common languages (having both 2- and 3-char code names)*/
+		if (GF_ISO639_Lang[i+2][0]) {
+			CE_CharToWide( (char *)GF_ISO639_Lang[i], szTmp);
+			m_Lang.AddString(szTmp);
+			if (sOpt && !stricmp(sOpt, GF_ISO639_Lang[i+1])) select = m_Lang.GetCount() - 1;
+		}
+		i+=3;
 	}
 	m_Lang.SetCurSel(select);
 
@@ -1273,7 +1212,18 @@ void COptSystems::SaveOptions()
 	COsmo4 *gpac = GetApp();
 
 	s32 sel = m_Lang.GetCurSel();
-	gf_cfg_set_key(gpac->m_user.config, "Systems", "Language", Languages[2*sel + 1]);
+	u32 i=0;
+	while (GF_ISO639_Lang[i]) {
+		/*only use common languages (having both 2- and 3-char code names)*/
+		if (GF_ISO639_Lang[i+2][0]) {
+			if (!sel) break;
+			sel--;
+		}
+		i+=3;
+	}
+	gf_cfg_set_key(gpac->m_user.config, "Systems", "LanguageName", GF_ISO639_Lang[i]);
+	gf_cfg_set_key(gpac->m_user.config, "Systems", "Language3CC", GF_ISO639_Lang[i+1]);
+	gf_cfg_set_key(gpac->m_user.config, "Systems", "Language2CC", GF_ISO639_Lang[i+2]);
 
 	sel = m_Threading.GetCurSel();
 	gf_cfg_set_key(gpac->m_user.config, "Systems", "ThreadingPolicy", (sel==0) ? "Single" : ( (sel==1) ? "Multi" : "Free"));

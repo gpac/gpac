@@ -31,17 +31,6 @@
 static void gf_smil_handle_event(GF_Node *anim, GF_FieldInfo *info, GF_DOM_Event *evt, Bool is_end);
 
 
-SVGElement *gf_svg_new_node(GF_SceneGraph *inScene, u32 tag)
-{
-	SVGElement *node;
-	if (!inScene) return NULL;
-	node = gf_svg_create_node(tag);
-	if (node) {
-		node->sgprivate->scenegraph = inScene;
-	}
-	return (SVGElement *)node;
-}
-
 GF_Err gf_node_animation_add(GF_Node *node, void *animation)
 {
 	if (!node || !animation) return GF_BAD_PARAM;
@@ -68,7 +57,7 @@ void *gf_node_animation_get(GF_Node *node, u32 i)
 	return gf_list_get(node->sgprivate->animations, i);
 }
 
-GF_Err gf_node_listener_add(GF_Node *node, GF_Node *listener)
+GF_Err gf_dom_listener_add(GF_Node *node, SVGlistenerElement *listener)
 {
 	if (!node || !listener) return GF_BAD_PARAM;
 	if (listener->sgprivate->tag!=TAG_SVG_listener) return GF_BAD_PARAM;
@@ -77,19 +66,19 @@ GF_Err gf_node_listener_add(GF_Node *node, GF_Node *listener)
 	return gf_list_add(node->sgprivate->events, listener);
 }
 
-GF_Err gf_node_listener_del(GF_Node *node, GF_Node *listener)
+GF_Err gf_dom_listener_del(GF_Node *node, SVGlistenerElement *listener)
 {
 	if (!node || !node->sgprivate->events || !listener) return GF_BAD_PARAM;
 	return (gf_list_del_item(node->sgprivate->events, listener)<0) ? GF_BAD_PARAM : GF_OK;
 }
 
-u32 gf_node_listener_count(GF_Node *node)
+u32 gf_dom_listener_count(GF_Node *node)
 {
 	if (!node || !node->sgprivate->events) return 0;
 	return gf_list_count(node->sgprivate->events);
 }
 
-GF_Node *gf_node_listener_get(GF_Node *node, u32 i)
+SVGlistenerElement *gf_dom_listener_get(GF_Node *node, u32 i)
 {
 	if (!node || !node->sgprivate->events) return 0;
 	return gf_list_get(node->sgprivate->events, i);
@@ -199,7 +188,7 @@ void gf_sg_dom_stack_parents(GF_Node *node, GF_List *stack)
 	gf_sg_dom_stack_parents(gf_node_get_parent(node, 0), stack);
 }
 
-Bool gf_sg_fire_dom_event(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event)
+Bool gf_dom_event_fire(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *event)
 {
 	if (!node || !event) return 0;
 	event->target = node;
@@ -236,14 +225,14 @@ Bool gf_sg_fire_dom_event(GF_Node *node, GF_Node *parent_use, GF_DOM_Event *even
 	return event->currentTarget ? 1 : 0;
 }
 
-SVGhandlerElement *gf_sg_dom_create_listener(GF_Node *node, XMLEV_Event event)
+SVGhandlerElement *gf_dom_listener_build(GF_Node *node, XMLEV_Event event)
 {
 	SVGlistenerElement *listener;
 	SVGhandlerElement *handler;
 
 	/*emulate a listener for onClick event*/
-	listener = (SVGlistenerElement *) gf_svg_new_node(node->sgprivate->scenegraph, TAG_SVG_listener);
-	handler = (SVGhandlerElement *) gf_svg_new_node(node->sgprivate->scenegraph, TAG_SVG_handler);
+	listener = (SVGlistenerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
+	handler = (SVGhandlerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_handler);
 	gf_node_register((GF_Node *)listener, node);
 	gf_list_add( ((GF_ParentNode *)node)->children, listener);
 	gf_node_register((GF_Node *)handler, node);
@@ -251,7 +240,7 @@ SVGhandlerElement *gf_sg_dom_create_listener(GF_Node *node, XMLEV_Event event)
 	handler->ev_event = listener->event = event;
 	listener->handler.target = (SVGElement *) handler;
 	listener->target.target = (SVGElement *)node;
-	gf_node_listener_add((GF_Node *) node, (GF_Node *) listener);
+	gf_dom_listener_add((GF_Node *) node, listener);
 	/*set default handler*/
 	handler->handle_event = gf_sg_handle_dom_event;
 	return handler;
@@ -282,26 +271,29 @@ static void gf_smil_handle_event(GF_Node *anim, GF_FieldInfo *info, GF_DOM_Event
 		proto = gf_list_get(times, i);
 		if (proto->dynamic_type!=1) continue;
 		if (proto->event.type != evt->type) continue;
-		if ((evt->type != SVG_DOM_EVT_KEYPRESS) || (proto->event.parameter==evt->detail)) {
-			/*solve*/
-			GF_SAFEALLOC(resolved, sizeof(SMIL_Time));
-			resolved->type = SMIL_TIME_CLOCK;
-			resolved->clock = scene_time + proto->clock;
-			resolved->dynamic_type=2;
-
-			/*insert in sorted order*/
-			for (j=0; j<count; j++) {
-				proto = gf_list_get(times, j);
-
-				if ( (proto->type == SMIL_TIME_INDEFINITE) 
-					|| ( (proto->type == SMIL_TIME_CLOCK) && (proto->clock > resolved->clock) ) 
-					) 
-					break;
-			}
-			gf_list_insert(times, resolved, j);
-			count++;
-			found++;
+		if ((evt->type == SVG_DOM_EVT_KEYPRESS) || (evt->type == SVG_DOM_EVT_REPEAT)) {
+			if (proto->event.parameter!=evt->detail) continue;
 		}
+		/*solve*/
+		GF_SAFEALLOC(resolved, sizeof(SMIL_Time));
+		resolved->type = SMIL_TIME_CLOCK;
+		resolved->clock = scene_time + proto->clock;
+		resolved->dynamic_type=2;
+
+		/*insert in sorted order*/
+		for (j=0; j<count; j++) {
+			proto = gf_list_get(times, j);
+
+			if ((proto->type == SMIL_TIME_CLOCK) || (proto->type == SMIL_TIME_WALLCLOCK) ) {
+				if (proto->clock > resolved->clock) break;
+			} else {
+				break;
+			}
+		}
+		gf_list_insert(times, resolved, j);
+		if (j!=count) i++;
+		count++;
+		found++;
 	}
 	if (found) gf_node_changed(anim, info);
 }
@@ -334,7 +326,7 @@ static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
 		if (t->dynamic_type) continue;
 		/*not resolved yet*/
 		if (!t->element && t->element_id) continue;
-		hdl = gf_sg_dom_create_listener(t->element, t->event);
+		hdl = gf_dom_listener_build(t->element, t->event);
 		hdl->handle_event = is_begin ? gf_smil_handle_event_begin : gf_smil_handle_event_end;
 		gf_node_set_private((GF_Node *)hdl, node);
 		t->element = NULL;
@@ -533,13 +525,13 @@ void gf_svg_unregister_iri(GF_SceneGraph *sg, SVG_IRI *target)
 
 
 
-void svg_init_lsr_script(SVGCommandBuffer *script)
+void gf_svg_init_lsr_script(SVGCommandBuffer *script)
 {
 	memset(script, 0, sizeof(SVGCommandBuffer));
 	script->com_list = gf_list_new();
 }
 
-void svg_reset_lsr_script(SVGCommandBuffer *script)
+void gf_svg_reset_lsr_script(SVGCommandBuffer *script)
 {
 	u32 i;
 	if (script->data) free(script->data);
@@ -549,6 +541,7 @@ void svg_reset_lsr_script(SVGCommandBuffer *script)
 	}
 	gf_list_del(script->com_list);
 }
+
 
 #else
 /*these ones are only needed for W32 libgpac_dll build in order not to modify export def file*/
@@ -565,10 +558,6 @@ GF_Err gf_svg_get_attribute_info(GF_Node *node, GF_FieldInfo *info)
 	return GF_NOT_SUPPORTED;
 }
 
-GF_Node *gf_svg_new_node(GF_SceneGraph *inScene, u32 tag)
-{
-	return NULL;
-}
 GF_Node *gf_svg_create_node(GF_SceneGraph *inScene, u32 tag)
 {
 	return NULL;
@@ -582,5 +571,8 @@ Bool gf_sg_svg_node_init(GF_Node *node)
 	return 0;
 }
 
+Bool gf_svg_conditional_eval(SVGElement *node)
+{
+}
 
 #endif	//GPAC_DISABLE_SVG

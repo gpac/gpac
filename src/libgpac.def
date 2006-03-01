@@ -535,6 +535,7 @@ EXPORTS
 	gf_isom_clone_sample_description
 	gf_isom_clone_track
 	gf_isom_clone_pl_indications
+	gf_isom_clone_root_od
 	gf_isom_is_same_sample_description
 	gf_isom_add_chapter
 	gf_isom_remove_chapter
@@ -1089,41 +1090,28 @@ EXPORTS
 	gf_laser_set_trace
 
 ;SVG exports
-	gf_svg_get_attribute_info
-	gf_svg_get_attribute_count
 	gf_node_svg_type_by_class_name
-	gf_svg_new_node
-	gf_svg_get_element_name
-	gf_node_animation_add
-	gf_node_animation_del
-	gf_node_animation_count
-	gf_node_animation_get
-	gf_node_listener_add
-	gf_node_listener_del
-	gf_node_listener_count
-	gf_node_listener_get
-	gf_sg_fire_dom_event
-	svg_attributes_add
-	svg_attributes_interpolate
-	svg_attributes_copy
-	svg_attributes_muladd
-	svg_create_value_from_attributetype
-	svg_parse_attribute
-	svg_parse_style
-	svg_parse_iri
-	gf_sg_dom_create_listener
-	gf_svg_store_embedded_data
-	smil_parse_attributename
-	gf_smil_anim_init_node
-	gf_svg_is_property_inherited
-	gf_svg_is_current_color
-	gf_svg_attributes_copy_computed_value
-	gf_smil_timing_notify_time
+	gf_svg_create_attribute_value
+	gf_svg_delete_attribute_value
+	gf_svg_attributes_equal
+	gf_svg_attributes_copy
+	gf_svg_attributes_add
+	gf_svg_attributes_interpolate
+	gf_svg_attributes_muladd
+	gf_svg_parse_attribute
+	gf_svg_parse_style
 	gf_svg_properties_init_pointers
 	gf_svg_properties_reset_pointers
 	gf_svg_properties_apply
-	gf_path_init_from_svg
-	svg_dom_event_by_name
-	gf_dom_event_name
 	gf_svg_register_iri
 	gf_svg_unregister_iri
+	gf_svg_path_build
+	gf_svg_store_embedded_data
+	gf_dom_listener_build
+	gf_dom_listener_add
+	gf_dom_listener_del
+	gf_dom_listener_count
+	gf_dom_listener_get
+	gf_dom_event_fire
+	gf_dom_event_type_by_name
+	gf_dom_event_get_name

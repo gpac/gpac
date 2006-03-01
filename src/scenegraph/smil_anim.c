@@ -48,7 +48,7 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 		if (rai->previous_key_index != 0) {
 			value_info.far_ptr = gf_list_get(values, 0);
 			gf_svg_attributes_pointer_update(&value_info, &rai->owner->presentation_value, &rai->owner->current_color_value);
-			svg_attributes_copy(&rai->interpolated_value, &value_info, 0);
+			gf_svg_attributes_copy(&rai->interpolated_value, &value_info, 0);
 			rai->previous_key_index = 0;
 			rai->target_value_changed = 1;
 		}
@@ -104,7 +104,7 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 	case SMIL_CALCMODE_DISCRETE:
 		value_info.far_ptr = gf_list_get(values, keyValueIndex);
 		gf_svg_attributes_pointer_update(&value_info, &rai->owner->presentation_value, &rai->owner->current_color_value);
-		svg_attributes_copy(&rai->interpolated_value, &value_info, 0);
+		gf_svg_attributes_copy(&rai->interpolated_value, &value_info, 0);
 		break;
 	case SMIL_CALCMODE_PACED:
 		/* TODO: at the moment assume it is linear */
@@ -115,13 +115,13 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 		if (keyValueIndex == nbValues - 1) {
 			value_info.far_ptr = gf_list_get(values, nbValues - 1);
 			gf_svg_attributes_pointer_update(&value_info, &rai->owner->presentation_value, &rai->owner->current_color_value);
-			svg_attributes_copy(&rai->interpolated_value, &value_info, 0);
+			gf_svg_attributes_copy(&rai->interpolated_value, &value_info, 0);
 		} else {
 			value_info.far_ptr = gf_list_get(values, keyValueIndex);
 			gf_svg_attributes_pointer_update(&value_info, &rai->owner->presentation_value, &rai->owner->current_color_value);
 			value_info_next.far_ptr = gf_list_get(values, keyValueIndex+1);
 			gf_svg_attributes_pointer_update(&value_info_next, &rai->owner->presentation_value, &rai->owner->current_color_value);
-			svg_attributes_interpolate(&value_info, &value_info_next, &rai->interpolated_value, interpolation_coefficient, 1);
+			gf_svg_attributes_interpolate(&value_info, &value_info_next, &rai->interpolated_value, interpolation_coefficient, 1);
 		}
 		break;
 	}
@@ -136,7 +136,7 @@ static void gf_smil_anim_set(SMIL_Anim_RTI *rai)
 	to_info.far_ptr   = rai->anim_elt->anim->to.value;
 	gf_svg_attributes_pointer_update(&to_info, &rai->owner->presentation_value, &rai->owner->current_color_value);
 
-	svg_attributes_copy(&rai->interpolated_value, &to_info, 0);
+	gf_svg_attributes_copy(&rai->interpolated_value, &to_info, 0);
 	rai->target_value_changed = 1;
 }
 
@@ -166,7 +166,7 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 			/* before half of the duration stay at 'from' and then switch to 'to' */
 			s32 useFrom = (normalized_simple_time<=FIX_ONE/2);
 			if (useFrom == rai->previous_key_index) return;
-			svg_attributes_copy(&rai->interpolated_value, (useFrom?&from_info:&to_info), 0);
+			gf_svg_attributes_copy(&rai->interpolated_value, (useFrom?&from_info:&to_info), 0);
 			rai->previous_key_index = useFrom;
 		}
 		break;
@@ -174,7 +174,7 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 	case SMIL_CALCMODE_PACED:
 	case SMIL_CALCMODE_LINEAR:
 	default:
-		svg_attributes_interpolate(&from_info, &to_info, &rai->interpolated_value, normalized_simple_time, 1);
+		gf_svg_attributes_interpolate(&from_info, &to_info, &rai->interpolated_value, normalized_simple_time, 1);
 		break;
 	}
 	rai->target_value_changed = 1;
@@ -206,9 +206,9 @@ static void gf_smil_anim_animate_from_by(SMIL_Anim_RTI *rai, Fixed normalized_si
 			s32 useFrom = (normalized_simple_time<=FIX_ONE/2);
 			if (useFrom == rai->previous_key_index) return;
 			if (useFrom) {
-				svg_attributes_copy(&rai->interpolated_value, &from_info, 0);
+				gf_svg_attributes_copy(&rai->interpolated_value, &from_info, 0);
 			} else {
-				svg_attributes_muladd(FIX_ONE, &from_info, FIX_ONE, &by_info, &rai->interpolated_value, 0);
+				gf_svg_attributes_muladd(FIX_ONE, &from_info, FIX_ONE, &by_info, &rai->interpolated_value, 0);
 			}
 			rai->previous_key_index = useFrom;
 		}
@@ -217,7 +217,7 @@ static void gf_smil_anim_animate_from_by(SMIL_Anim_RTI *rai, Fixed normalized_si
 	case SMIL_CALCMODE_PACED:
 	case SMIL_CALCMODE_LINEAR:
 	default:
-		svg_attributes_muladd(FIX_ONE, &from_info, normalized_simple_time, &by_info, &rai->interpolated_value, 0);
+		gf_svg_attributes_muladd(FIX_ONE, &from_info, normalized_simple_time, &by_info, &rai->interpolated_value, 0);
 		break;
 	}
 	rai->target_value_changed = 1;
@@ -318,7 +318,7 @@ static void gf_smil_anim_apply_accumulate(SMIL_Anim_RTI *rai)
 {
 	u32 nb_iterations = rai->anim_elt->timing->runtime->current_interval->nb_iterations;
 	if (rai->anim_elt->anim->accumulate == SMIL_ACCUMULATE_SUM && nb_iterations > 0) {
-		svg_attributes_muladd(INT2FIX(nb_iterations), &rai->last_specified_value, FIX_ONE, &rai->interpolated_value, &rai->interpolated_value, 1);
+		gf_svg_attributes_muladd(INT2FIX(nb_iterations), &rai->last_specified_value, FIX_ONE, &rai->interpolated_value, &rai->interpolated_value, 1);
 	} 
 }
 
@@ -382,9 +382,9 @@ static void gf_smil_anim_animate(SMIL_Timing_RTI *rti, Fixed normalized_simple_t
 	/* Apply additive behavior if required
 		PV = (additive == sum ? PV + anim->IV : anim->IV); */
 	if (rai->anim_elt->anim->additive == SMIL_ADDITIVE_SUM) {
-		svg_attributes_add(&rai->owner->presentation_value, &rai->interpolated_value, &rai->owner->presentation_value, 1);
+		gf_svg_attributes_add(&rai->owner->presentation_value, &rai->interpolated_value, &rai->owner->presentation_value, 1);
 	} else {
-		svg_attributes_copy(&rai->owner->presentation_value, &rai->interpolated_value, 1);
+		gf_svg_attributes_copy(&rai->owner->presentation_value, &rai->interpolated_value, 1);
 	}
 }
 
@@ -400,16 +400,16 @@ static void gf_smil_anim_freeze(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 		if (rai->target_value_changed) gf_smil_anim_apply_accumulate(rai);
 	} 
 	if (rai->anim_elt->anim->additive == SMIL_ADDITIVE_SUM) {
-		svg_attributes_add(&rai->owner->presentation_value, &rai->interpolated_value, &rai->owner->presentation_value, 1);
+		gf_svg_attributes_add(&rai->owner->presentation_value, &rai->interpolated_value, &rai->owner->presentation_value, 1);
 	} else {
-		svg_attributes_copy(&rai->owner->presentation_value, &rai->interpolated_value, 1);
+		gf_svg_attributes_copy(&rai->owner->presentation_value, &rai->interpolated_value, 1);
 	}
 }
 
 static void gf_smil_anim_restore(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
 {
 	SMIL_Anim_RTI *rai = gf_smil_anim_get_anim_runtime_from_timing(rti);
-	svg_attributes_copy(&rai->owner->presentation_value, &rai->owner->saved_dom_value, 0);
+	gf_svg_attributes_copy(&rai->owner->presentation_value, &rai->owner->saved_dom_value, 0);
 	//gf_list_del_item(rai->owner->anims, rai);
 }
 
@@ -430,7 +430,7 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 	GF_SAFEALLOC(rai, sizeof(SMIL_Anim_RTI))
 	rai->anim_elt = e;	
 	rai->interpolated_value = target_attribute;
-	rai->interpolated_value.far_ptr = svg_create_value_from_attributetype(target_attribute.fieldType, 0);
+	rai->interpolated_value.far_ptr = gf_svg_create_attribute_value(target_attribute.fieldType, 0);
 	rai->previous_key_index = -1;
 	rai->previous_coef = -1;
 
@@ -440,7 +440,7 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 		if (e->anim->to.type == 0 && e->anim->by.type == 0 && e->anim->values.type == 0) {
 			rai->path = gf_path_new();
 			if (gf_list_count(am->path.points)) {
-				gf_path_init_from_svg(rai->path, am->path.commands, am->path.points);
+				gf_svg_path_build(rai->path, am->path.commands, am->path.points);
 				rai->path_iterator = gf_path_iterator_new(rai->path);
 				rai->length = gf_path_iterator_get_length(rai->path_iterator);
 			} else {
@@ -455,7 +455,7 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 						else if (mpath->xlink->href.iri) used_path= gf_sg_find_node_by_name(gf_node_get_graph((GF_Node *)mpath), mpath->xlink->href.iri);
 						if (used_path && gf_node_get_tag(used_path) == TAG_SVG_path) {
 							SVGpathElement *used_path_elt = (SVGpathElement *)used_path;
-							gf_path_init_from_svg(rai->path, used_path_elt->d.commands, used_path_elt->d.points);
+							gf_svg_path_build(rai->path, used_path_elt->d.commands, used_path_elt->d.points);
 							rai->path_iterator = gf_path_iterator_new(rai->path);
 							rai->length = gf_path_iterator_get_length(rai->path_iterator);
 						}
@@ -483,8 +483,8 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 		/* Save the DOM value before any animation starts */
 		aa->saved_dom_value = target_attribute;
 		aa->orig_dom_ptr = target_attribute.far_ptr;
-		aa->saved_dom_value.far_ptr = svg_create_value_from_attributetype(target_attribute.fieldType, 0);
-		svg_attributes_copy(&aa->saved_dom_value, &target_attribute, 0);
+		aa->saved_dom_value.far_ptr = gf_svg_create_attribute_value(target_attribute.fieldType, 0);
+		gf_svg_attributes_copy(&aa->saved_dom_value, &target_attribute, 0);
 
 		/* Stores the pointer to the presentation value */
 		aa->presentation_value = target_attribute;
@@ -561,7 +561,7 @@ void gf_smil_anim_init_node(GF_Node *node)
 }
 
 /* TODO: update for elliptical arcs */		
-void gf_path_init_from_svg(GF_Path *path, GF_List *commands, GF_List *points)
+void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 {
 	u32 i, j, command_count, points_count;
 	SVG_Point orig, ct_orig, ct_end, end, *tmp;
@@ -640,3 +640,4 @@ void gf_path_init_from_svg(GF_Path *path, GF_List *commands, GF_List *points)
 		}
 	}	
 }
+

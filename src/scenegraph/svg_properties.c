@@ -141,71 +141,116 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)
 	memset(svg_props, 0, sizeof(SVGPropertiesPointers));
 }
 
-/* Updates the SVG Styling Properties Pointers of the renderer (render_svg_props) with the properties
-   of the current SVG element (current_svg_props). Only the properties in current_svg_props 
-   with a value different than inherit are updated.
-   This function implements inheritance. 
-   TODO: Check if all properties are implemented */
-void gf_svg_properties_apply(SVGPropertiesPointers *render_svg_props, SVGProperties *current_svg_props)
-{
-	if (!render_svg_props) return;
+/* Updates the passed SVG Styling Properties Pointers with the properties of the given SVG element:
+	1- applies inheritance whenever needed.
+	2- applies any running animation on the element
 
-	if (current_svg_props->color.color.type != SVG_COLOR_INHERIT) {
-		render_svg_props->color = &current_svg_props->color;
+	TODO: Check if all properties are implemented 
+*/
+void gf_svg_properties_apply(GF_Node *node, SVGPropertiesPointers *render_svg_props)
+{
+	u32 count_all, count, i,j;
+	SVGElement *elt = (SVGElement*)node;
+
+	/*Step 1: perform inheritance*/
+	if (render_svg_props && elt->properties) {
+		if (elt->properties->color.color.type != SVG_COLOR_INHERIT) {
+			render_svg_props->color = &elt->properties->color;
+		}
+		if (elt->properties->fill.type != SVG_PAINT_INHERIT) {
+			render_svg_props->fill = &(elt->properties->fill);
+		}
+		if (elt->properties->fill_rule != SVG_FILLRULE_INHERIT) {
+			render_svg_props->fill_rule = &elt->properties->fill_rule;
+		}
+		if (elt->properties->fill_opacity.type != SVG_NUMBER_INHERIT) {
+			render_svg_props->fill_opacity = &elt->properties->fill_opacity;
+		}
+		if (elt->properties->stroke.type != SVG_PAINT_INHERIT) {
+			render_svg_props->stroke = &elt->properties->stroke;
+		}
+		if (elt->properties->stroke_opacity.type != SVG_NUMBER_INHERIT) {
+			render_svg_props->stroke_opacity = &elt->properties->stroke_opacity;
+		}
+		if (elt->properties->stroke_width.type != SVG_NUMBER_INHERIT) {
+			render_svg_props->stroke_width = &elt->properties->stroke_width;
+		}
+		if (elt->properties->stroke_miterlimit.type != SVG_NUMBER_INHERIT) {
+			render_svg_props->stroke_miterlimit = &elt->properties->stroke_miterlimit;
+		}
+		if (elt->properties->stroke_linecap != SVG_STROKELINECAP_INHERIT) {
+			render_svg_props->stroke_linecap = &elt->properties->stroke_linecap;
+		}
+		if (elt->properties->stroke_linejoin != SVG_STROKELINEJOIN_INHERIT) {
+			render_svg_props->stroke_linejoin = &elt->properties->stroke_linejoin;
+		}
+		if (elt->properties->stroke_dashoffset.type != SVG_NUMBER_INHERIT) {
+			render_svg_props->stroke_dashoffset = &elt->properties->stroke_dashoffset;
+		}
+		if (elt->properties->stroke_dasharray.type != SVG_STROKEDASHARRAY_INHERIT) {
+			render_svg_props->stroke_dasharray = &elt->properties->stroke_dasharray;
+		}
+		if (elt->properties->font_family.type != SVG_FONTFAMILY_INHERIT) {
+			render_svg_props->font_family = &elt->properties->font_family;
+		}
+		if (elt->properties->font_size.type != SVG_NUMBER_INHERIT) {
+			render_svg_props->font_size = &elt->properties->font_size;
+		}
+		if (elt->properties->font_style != SVG_FONTSTYLE_INHERIT) {
+			render_svg_props->font_style = &elt->properties->font_style;
+		}
+		if (elt->properties->text_anchor != SVG_TEXTANCHOR_INHERIT) {
+			render_svg_props->text_anchor = &elt->properties->text_anchor;
+		}
+		if (elt->properties->visibility != SVG_VISIBILITY_INHERIT) {
+			render_svg_props->visibility = &elt->properties->visibility;
+		}
+		if (elt->properties->display != SVG_DISPLAY_INHERIT) {
+			render_svg_props->display = &elt->properties->display;
+		}
+		if (elt->properties->opacity.type != SVG_NUMBER_INHERIT) {
+			render_svg_props->opacity = &elt->properties->opacity;
+		}
 	}
-	if (current_svg_props->fill.type != SVG_PAINT_INHERIT) {
-		render_svg_props->fill = &(current_svg_props->fill);
-	}
-	if (current_svg_props->fill_rule != SVG_FILLRULE_INHERIT) {
-		render_svg_props->fill_rule = &current_svg_props->fill_rule;
-	}
-	if (current_svg_props->fill_opacity.type != SVG_NUMBER_INHERIT) {
-		render_svg_props->fill_opacity = &current_svg_props->fill_opacity;
-	}
-	if (current_svg_props->stroke.type != SVG_PAINT_INHERIT) {
-		render_svg_props->stroke = &current_svg_props->stroke;
-	}
-	if (current_svg_props->stroke_opacity.type != SVG_NUMBER_INHERIT) {
-		render_svg_props->stroke_opacity = &current_svg_props->stroke_opacity;
-	}
-	if (current_svg_props->stroke_width.type != SVG_NUMBER_INHERIT) {
-		render_svg_props->stroke_width = &current_svg_props->stroke_width;
-	}
-	if (current_svg_props->stroke_miterlimit.type != SVG_NUMBER_INHERIT) {
-		render_svg_props->stroke_miterlimit = &current_svg_props->stroke_miterlimit;
-	}
-	if (current_svg_props->stroke_linecap != SVG_STROKELINECAP_INHERIT) {
-		render_svg_props->stroke_linecap = &current_svg_props->stroke_linecap;
-	}
-	if (current_svg_props->stroke_linejoin != SVG_STROKELINEJOIN_INHERIT) {
-		render_svg_props->stroke_linejoin = &current_svg_props->stroke_linejoin;
-	}
-	if (current_svg_props->stroke_dashoffset.type != SVG_NUMBER_INHERIT) {
-		render_svg_props->stroke_dashoffset = &current_svg_props->stroke_dashoffset;
-	}
-	if (current_svg_props->stroke_dasharray.type != SVG_STROKEDASHARRAY_INHERIT) {
-		render_svg_props->stroke_dasharray = &current_svg_props->stroke_dasharray;
-	}
-	if (current_svg_props->font_family.type != SVG_FONTFAMILY_INHERIT) {
-		render_svg_props->font_family = &current_svg_props->font_family;
-	}
-	if (current_svg_props->font_size.type != SVG_NUMBER_INHERIT) {
-		render_svg_props->font_size = &current_svg_props->font_size;
-	}
-	if (current_svg_props->font_style != SVG_FONTSTYLE_INHERIT) {
-		render_svg_props->font_style = &current_svg_props->font_style;
-	}
-	if (current_svg_props->text_anchor != SVG_TEXTANCHOR_INHERIT) {
-		render_svg_props->text_anchor = &current_svg_props->text_anchor;
-	}
-	if (current_svg_props->visibility != SVG_VISIBILITY_INHERIT) {
-		render_svg_props->visibility = &current_svg_props->visibility;
-	}
-	if (current_svg_props->display != SVG_DISPLAY_INHERIT) {
-		render_svg_props->display = &current_svg_props->display;
-	}
-	if (current_svg_props->opacity.type != SVG_NUMBER_INHERIT) {
-		render_svg_props->opacity = &current_svg_props->opacity;
+
+	/*Step 2: handle all animations*/
+
+	/*TODO FIXME - THIS IS WRONG, we're changing orders of animations which may corrupt the visual result*/
+	count_all = gf_node_animation_count(node);
+	/* Loop 1: For all animated attributes (target_attribute) */
+	for (i = 0; i < count_all; i++) {
+		GF_FieldInfo underlying_value;
+		SMIL_AttributeAnimations *aa = gf_node_animation_get(node, i);		
+		count = gf_list_count(aa->anims);
+		if (!count) continue;
+
+		/* initializing the type of the underlying value */
+		underlying_value.fieldType = aa->saved_dom_value.fieldType;		
+		/* the pointer contains the result of the previous animation cycle,
+		   it needs to be reset */
+		underlying_value.far_ptr = aa->presentation_value.far_ptr;
+		
+		/* The resetting is done either based on the inherited value or based on the (saved) DOM value 
+		   or in special cases on the inherited color value */
+		gf_svg_attributes_copy_computed_value(&underlying_value, &aa->saved_dom_value, (SVGElement*)node, aa->orig_dom_ptr, render_svg_props);
+
+		/* we also need a special handling of current color if used in animation values */
+		aa->current_color_value.fieldType = SVG_Paint_datatype;
+		aa->current_color_value.far_ptr = render_svg_props->color;
+
+		/* Loop 2: For all animations (anim) */
+		for (j = 0; j < count; j++) {
+			SMIL_Anim_RTI *rai = gf_list_get(aa->anims, j);			
+			gf_smil_timing_notify_time(rai->anim_elt->timing->runtime, gf_node_get_scene_time(node));
+		}
+		/* end of Loop 2 */
+
+		
+		/*TODO FIXME, we need a finer granularity here and we must know if the animated attribute has changed or not (freeze)...*/
+		gf_node_dirty_set(node, GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_SVG_APPEARANCE_DIRTY, 0);
+
+		gf_node_changed(node, NULL);
+//		gf_sr_invalidate(eff->surface->render->compositor, NULL);
 	}
 }
 

@@ -1204,7 +1204,7 @@ GF_Err gf_xml_sax_parse(GF_SAXParser *parser, void *string)
 		char szName[200];
 		XML_Entity *ent;
 		char *entStart = strstr(current, "&");
-		char *entEnd = strstr(current, ";");
+		char *entEnd = entStart ? strstr(entStart, ";") : NULL;
 
 		if (parser->in_entity) {
 			if (!entEnd) return xml_sax_append_string(parser, string);

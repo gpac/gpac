@@ -7518,7 +7518,7 @@ void *gf_svg_new_script()
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
-	svg_init_lsr_script(&p->lsr_script);
+	gf_svg_init_lsr_script(&p->lsr_script);
 	return p;
 }
 
@@ -7526,7 +7526,7 @@ static void gf_svg_script_del(GF_Node *node)
 {
 	SVGscriptElement *p = (SVGscriptElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
-	svg_reset_lsr_script(&p->lsr_script);
+	gf_svg_reset_lsr_script(&p->lsr_script);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }

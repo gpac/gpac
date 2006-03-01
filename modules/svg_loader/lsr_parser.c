@@ -132,7 +132,7 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 				if (pos>=0) 
 					fprintf(stdout, "WARNING: point replace not supported\n");
 				else
-					svg_parse_attribute(at_node, &info, value, 0, 0);
+					gf_svg_parse_attribute(at_node, &info, value, 0, 0);
 
 				gf_node_dirty_set((GF_Node *) at_node, GF_SG_SVG_GEOMETRY_DIRTY|GF_SG_SVG_APPEARANCE_DIRTY, 0);
 			}

@@ -1,4 +1,7 @@
-Latest CVS Changes 28/02/06
+Latest CVS Changes 01/03/06
+  - more SVG support: system color, basic conditional processing (switch), SMIL anim events
+  - moved all language handling to both ISO 639-1 (2 char code) and 639-2 (3 char code), as 639-1 is used in SVG.
+  - fixed mp4 root OD creatin when fragmenting file (PLs were not copied over)
   - fixedbug in large MP4 file (> 4GB) writing (chunk offset table was corrupted)
   - added progressive loading support for XMT and X3D files.
   - misc fixes in InputSensor handling.

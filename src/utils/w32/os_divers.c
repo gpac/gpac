@@ -126,7 +126,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 			if (!sep) goto next;
 			strcpy(ext, sep+1);
 			strlwr(ext);
-			if (!strstr(filter, sep+1)) goto next;
+			if (!strstr(filter, ext)) goto next;
 		}
 
 		strcpy(item_path, path);

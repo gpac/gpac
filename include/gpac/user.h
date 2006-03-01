@@ -99,6 +99,8 @@ enum {
 	GF_EVT_PROGRESS, /*progress message from the MPEG-4 terminal*/
 	GF_EVT_VIEWPOINTS,	/*indicates viewpoint list has changed - no struct associated*/
 	GF_EVT_STREAMLIST,	/*indicates stream list has changed - no struct associated - only used when no scene info is present*/
+
+	GF_EVT_SYS_COLORS,	/*queries the list of system colors*/
 };
 
 /*virtual keys - codes respect MPEG4/VRML KeySensor ones*/
@@ -312,6 +314,22 @@ typedef struct
 	char *password;
 } GF_EventAuthorize;
 
+
+/*event proc return value: 1 if info has been completed, 0 otherwise */
+typedef struct
+{
+	/*GF_EVT_SYS_COLORS*/
+	u8 type;
+	/*ARGB colors, in order:
+	ActiveBorder, ActiveCaption, AppWorkspace, Background, ButtonFace, ButtonHighlight, ButtonShadow, 
+	ButtonText, CaptionText, GrayText, Highlight, HighlightText, InactiveBorder, InactiveCaption, 
+	InactiveCaptionText, InfoBackground, InfoText, Menu, MenuText, Scrollbar, ThreeDDarkShadow, 
+	ThreeDFace, ThreeDHighlight, ThreeDLightShadow, ThreeDShadow, Window, WindowFrame, WindowText
+	*/
+	u32 sys_colors[28];
+} GF_EventSysColors;
+
+
 typedef union
 {
 	u8 type;
@@ -328,6 +346,7 @@ typedef union
 	GF_EventCaption caption;
 	GF_EventCursor cursor;
 	GF_EventAuthorize auth;
+	GF_EventSysColors sys_cols;
 } GF_Event;
 	
 /*user object for all callbacks*/

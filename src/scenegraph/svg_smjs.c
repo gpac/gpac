@@ -212,7 +212,7 @@ static JSObject *svg_elt_construct(JSContext *c, GF_Node *n)
 /*TODO - try to be more precise...*/
 static JSBool dom_imp_has_feature(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	*rval = JS_TRUE;
+	*rval = BOOLEAN_TO_JSVAL(1);
 	return JS_TRUE;
 }
 
@@ -225,7 +225,7 @@ static JSFunctionSpec globalClassFuncs[] = {
 	{"createConnection", svg_connection_create, 0},
 	{"gotoLocation", svg_nav_to_location, 1},
     {"alert",           svg_echo,          0},
-	/*technically, this is part of Implementation interface, not global, but let's try not to complicat things too much*/
+	/*technically, this is part of Implementation interface, not global, but let's try not to complicate things too much*/
 	{"hasFeature", dom_imp_has_feature, 2},
 	{0}
 };
@@ -270,12 +270,12 @@ static JSBool udom_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *
 	}
 	if(!callback) return JS_FALSE;
 
-	evtType = svg_dom_event_by_name(type);
+	evtType = gf_dom_event_type_by_name(type);
 	if (evtType==SVG_DOM_EVT_UNKNOWN) return JS_FALSE;
 
 	/*emulate a listener for onClick event*/
-	listener = (SVGlistenerElement *) gf_svg_new_node(node->sgprivate->scenegraph, TAG_SVG_listener);
-	handler = (SVGhandlerElement *) gf_svg_new_node(node->sgprivate->scenegraph, TAG_SVG_handler);
+	listener = (SVGlistenerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
+	handler = (SVGhandlerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_handler);
 	gf_node_register((GF_Node *)listener, node);
 	gf_list_add( ((GF_ParentNode *)node)->children, listener);
 	gf_node_register((GF_Node *)handler, node);
@@ -285,7 +285,7 @@ static JSBool udom_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *
 	listener->target.target = (SVGElement *)node;
 	handler->textContent = strdup(callback);
 	handler->handle_event = gf_sg_handle_dom_event;
-	gf_node_listener_add((GF_Node *) node, (GF_Node *) listener);
+	gf_dom_listener_add((GF_Node *) node, listener);
 	return JS_TRUE;
 }
 static JSBool udom_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -323,17 +323,17 @@ static JSBool udom_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 	}
 	if(!callback) return JS_FALSE;
 
-	evtType = svg_dom_event_by_name(type);
+	evtType = gf_dom_event_type_by_name(type);
 	if (evtType==SVG_DOM_EVT_UNKNOWN) return JS_FALSE;
 	
 	count = gf_list_count(node->sgprivate->events);
 	for (i=0; i<count; i++) {
 		SVGhandlerElement *hdl;
-		SVGlistenerElement *el = (SVGlistenerElement*)gf_node_listener_get(node, i);
+		SVGlistenerElement *el = (SVGlistenerElement*)gf_dom_listener_get(node, i);
 		if ((el->event.type != evtType) || !el->handler.target) continue;
 		hdl = (SVGhandlerElement *)el->handler.target;
 		if (!hdl->textContent || strcmp(hdl->textContent, callback)) continue;
-		gf_node_listener_del(node, (GF_Node *) el);
+		gf_dom_listener_del(node, el);
 		gf_list_del_item( ((GF_ParentNode *)node)->children, (GF_Node *) hdl);
 		gf_node_unregister((GF_Node *) hdl, node);
 		gf_list_del_item( ((GF_ParentNode *)node)->children, (GF_Node *) el);
@@ -367,7 +367,7 @@ static JSBool doc_create_element(JSContext *c, JSObject *obj, uintN argc, jsval 
 
 	tag = gf_node_svg_type_by_class_name(eltName);
 	if (!tag) return JS_FALSE;
-	n = (GF_Node *) gf_svg_new_node(sg, tag);
+	n = (GF_Node *) gf_node_new(sg, tag);
 	*rval = OBJECT_TO_JSVAL(svg_elt_construct(c, n));
 	return JS_TRUE;
 }
@@ -519,7 +519,7 @@ static void svg_elt_add(JSContext *c, GF_Node *par, GF_Node *n, s32 pos)
 
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.type = SVG_DOM_EVT_LOAD;
-		gf_sg_fire_dom_event(n, NULL, &evt);
+		gf_dom_event_fire(n, NULL, &evt);
 	}
 	svg_node_changed(par, NULL);
 }
@@ -617,7 +617,7 @@ static JSBool svg_elt_get_attr(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	attName = JS_GetStringBytes(JSVAL_TO_STRING(argv[offset]));
 	if (gf_node_get_field_by_name((GF_Node *)elt, attName, &info) != GF_OK) return JS_FALSE;
 
-	svg_dump_attribute(elt, &info, attValue);
+	gf_svg_dump_attribute(elt, &info, attValue);
 	s = JS_NewStringCopyZ(c, attValue);
 	*rval = STRING_TO_JSVAL(s);
 	return JS_TRUE;
@@ -651,13 +651,13 @@ static JSBool svg_elt_set_attr(JSContext *c, JSObject *obj, uintN argc, jsval *a
 
 	*rval = JSVAL_VOID;
 	if (gf_node_get_field_by_name((GF_Node *)elt, attName, &info) == GF_OK) {
-		svg_parse_attribute(elt, &info, attValue, 0, 0);
+		gf_svg_parse_attribute(elt, &info, attValue, 0, 0);
 		svg_node_changed((GF_Node *)elt, &info);
 		return JS_TRUE;
 	}
 	/*check for old adressing of events*/
 	evt.parameter = 0;
-	evt.type = svg_dom_event_by_name(attName + 2);
+	evt.type = gf_dom_event_type_by_name(attName + 2);
 	if (evt.type == SVG_DOM_EVT_UNKNOWN) return JS_FALSE;
 
 	/*check if we're modifying an existing listener*/
@@ -673,7 +673,7 @@ static JSBool svg_elt_set_attr(JSContext *c, JSObject *obj, uintN argc, jsval *a
 		return JS_TRUE;
 	}
 	/*nope, create a listener*/
-	handler = gf_sg_dom_create_listener((GF_Node *) elt, evt);
+	handler = gf_dom_listener_build((GF_Node *) elt, evt);
 	handler->textContent = strdup(attValue);
 	return JS_TRUE;
 }
@@ -814,7 +814,7 @@ static JSBool udom_get_trait(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	case SVG_ID_datatype:
 	case SVG_GradientOffset_datatype:
 /*end of DOM string traits*/
-		svg_dump_attribute((SVGElement *) n, &info, attValue);
+		gf_svg_dump_attribute((SVGElement *) n, &info, attValue);
 		*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, attValue) );
 		return JS_TRUE;
 		/*dump to trait*/
@@ -1088,7 +1088,7 @@ static JSBool udom_set_trait(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	case SVG_ContentType_datatype:
 	case SVG_LanguageID_datatype:
 /*end of DOM string traits*/
-		svg_parse_attribute((SVGElement *) n, &info, val, 0, 0);
+		gf_svg_parse_attribute((SVGElement *) n, &info, val, 0, 0);
 		break;
 
 #if 0
@@ -1630,6 +1630,34 @@ static JSBool svg_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		default: 
 			return JS_FALSE;
 		}
+	} else if (JSVAL_IS_STRING(id)) {
+		SVGElement *n = JS_GetPrivate(c, obj);
+		GF_FieldInfo info;
+		char *name = JS_GetStringBytes(JSVAL_TO_STRING(id));
+		if ( gf_node_get_field_by_name((GF_Node *)n, name, &info) != GF_OK) return JS_TRUE;
+
+		switch (info.fieldType) {
+		case SVG_Opacity_datatype:
+		case SVG_AudioLevel_datatype:
+		case SVG_Length_datatype:
+		case SVG_Coordinate_datatype: 
+		case SVG_StrokeWidth_datatype:
+		case SVG_NumberOrPercentage_datatype:
+		case SVG_StrokeMiterLimit_datatype:
+		case SVG_FontSize_datatype:
+		case SVG_StrokeDashOffset_datatype:
+		case SVG_LineIncrement_datatype:
+		case SVG_Rotate_datatype:
+		case SVG_Number_datatype:
+			if ( ((SVG_Number*)info.far_ptr)->type==SVG_NUMBER_INHERIT) {
+				JSString *s = JS_NewStringCopyZ(c, "inherit");
+				*vp = STRING_TO_JSVAL(s);
+			} else {
+				jsdouble *d = JS_NewDouble(c, FIX2FLT(((SVG_Number*)info.far_ptr)->value) );
+				*vp = DOUBLE_TO_JSVAL(d);
+			}
+			return JS_TRUE;
+		}
 	}
 	return JS_TRUE;
 }
@@ -1683,6 +1711,44 @@ static JSBool svg_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 			return JS_FALSE;
 		default: 
 			return JS_FALSE;
+		}
+	} else if (JSVAL_IS_STRING(id)) {
+		SVGElement *n = JS_GetPrivate(c, obj);
+		GF_FieldInfo info;
+		char *name = JS_GetStringBytes(JSVAL_TO_STRING(id));
+		if ( gf_node_get_field_by_name((GF_Node *)n, name, &info) != GF_OK) return JS_TRUE;
+
+		if (JSVAL_IS_STRING(*vp)) {
+			char *str = JS_GetStringBytes(JSVAL_TO_STRING(*vp));
+			gf_svg_parse_attribute(n, &info, str, 0, 0);
+		} else {
+			switch (info.fieldType) {
+			case SVG_Opacity_datatype:
+			case SVG_AudioLevel_datatype:
+			case SVG_Length_datatype:
+			case SVG_Coordinate_datatype: 
+			case SVG_StrokeWidth_datatype:
+			case SVG_NumberOrPercentage_datatype:
+			case SVG_StrokeMiterLimit_datatype:
+			case SVG_FontSize_datatype:
+			case SVG_StrokeDashOffset_datatype:
+			case SVG_LineIncrement_datatype:
+			case SVG_Rotate_datatype:
+			case SVG_Number_datatype:
+				if (JSVAL_IS_NUMBER(*vp)) {
+					jsdouble d;
+					JS_ValueToNumber(c, *vp, &d);
+					((SVG_Number*)info.far_ptr)->type = SVG_NUMBER_VALUE;
+					((SVG_Number*)info.far_ptr)->value = FLT2FIX(d);
+				} else {
+					return JS_FALSE;
+				}
+				break;
+			default:
+				return JS_FALSE;
+			}
+			svg_node_changed((GF_Node *)n, &info);
+			return JS_TRUE;
 		}
 	}
 	return JS_TRUE;
@@ -1853,7 +1919,7 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 		switch (JSVAL_TO_INT(id)) {
 		/*type*/
 		case 0:
-			s = JS_NewStringCopyZ(c, gf_dom_event_name(evt->type) );
+			s = JS_NewStringCopyZ(c, gf_dom_event_get_name(evt->type) );
 			*vp = STRING_TO_JSVAL( s );
 			break;
 		/*target*/

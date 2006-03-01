@@ -108,7 +108,7 @@ static void R2D_SetUserTransform(Render2D *sr, Fixed zoom, Fixed tx, Fixed ty, B
 			evt.new_translate.y = sr->trans_y;
 			evt.type = SVG_DOM_EVT_ZOOM;
 		}
-		gf_sg_fire_dom_event(gf_sg_get_root_node(sr->compositor->scene), NULL, &evt);
+		gf_dom_event_fire(gf_sg_get_root_node(sr->compositor->scene), NULL, &evt);
 	}
 #endif
 
@@ -343,20 +343,30 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 					if (sr->grab_node) {
 						evt.relatedTarget = ctx->node->owner;
 						evt.type = SVG_DOM_EVT_MOUSEOUT;
-						ret += gf_sg_fire_dom_event(sr->grab_node->owner, NULL, &evt);
+						ret += gf_dom_event_fire(sr->grab_node->owner, NULL, &evt);
 						/*prepare mouseOver*/
 						evt.relatedTarget = sr->grab_node->owner;
 					}
 					/*mouse over*/
 					evt.type = SVG_DOM_EVT_MOUSEOVER;
-					ret += gf_sg_fire_dom_event(ctx->node->owner, ctx->parent_use, &evt);
+					ret += gf_dom_event_fire(ctx->node->owner, ctx->parent_use, &evt);
+
+					/*send focus out event*/
+					if (sr->grab_node || sr->focus_node) {
+						evt.relatedTarget = sr->grab_node ? sr->grab_node->owner: sr->focus_node;
+						evt.type = SVG_DOM_EVT_FOCUSOUT;
+						ret += gf_dom_event_fire(evt.relatedTarget, NULL, &evt);
+					}
+					evt.relatedTarget = ctx->node->owner;
+					evt.type = SVG_DOM_EVT_FOCUSIN;
+					ret += gf_dom_event_fire(evt.relatedTarget, NULL, &evt);
 
 					sr->grab_ctx = ctx;
 					sr->grab_node = ctx->node;
 					sr->focus_node = ctx->node->owner;
 				} else {
 					evt.type = SVG_DOM_EVT_MOUSEMOVE;
-					ret += gf_sg_fire_dom_event(ctx->node->owner, ctx->parent_use, &evt);
+					ret += gf_dom_event_fire(ctx->node->owner, ctx->parent_use, &evt);
 				}
 				break;
 			case GF_EVT_LEFTDOWN:
@@ -365,7 +375,7 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 				if ((sr->last_click_x!=evt.screenX) || (sr->last_click_y!=evt.screenY)) sr->num_clicks = 0;
 				evt.type = SVG_DOM_EVT_MOUSEDOWN;
 				evt.detail = (event->event_type - GF_EVT_LEFTDOWN)/2;
-				ret += gf_sg_fire_dom_event(ctx->node->owner, ctx->parent_use, &evt);
+				ret += gf_dom_event_fire(ctx->node->owner, ctx->parent_use, &evt);
 				sr->last_click_x = evt.screenX;
 				sr->last_click_y = evt.screenY;
 				break;
@@ -374,12 +384,12 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 			case GF_EVT_RIGHTUP:
 				evt.type = SVG_DOM_EVT_MOUSEUP;
 				evt.detail = (event->event_type - GF_EVT_LEFTUP)/2;
-				ret += gf_sg_fire_dom_event(ctx->node->owner, ctx->parent_use, &evt);
+				ret += gf_dom_event_fire(ctx->node->owner, ctx->parent_use, &evt);
 				if ((sr->last_click_x==evt.screenX) || (sr->last_click_y==evt.screenY)) {
 					sr->num_clicks ++;
 					evt.type = SVG_DOM_EVT_CLICK;
 					evt.detail = sr->num_clicks;
-					ret += gf_sg_fire_dom_event(ctx->node->owner, ctx->parent_use, &evt);
+					ret += gf_dom_event_fire(ctx->node->owner, ctx->parent_use, &evt);
 				}
 				break;
 			}
@@ -407,7 +417,7 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 			evt.type = ((event->event_type==GF_EVT_VKEYDOWN) || (event->event_type==GF_EVT_KEYDOWN)) ? SVG_DOM_EVT_KEYDOWN : SVG_DOM_EVT_KEYUP;
 			evt.detail = event->key.virtual_code;
 		}
-		ret += gf_sg_fire_dom_event(sr->focus_node, NULL, &evt);
+		ret += gf_dom_event_fire(sr->focus_node, NULL, &evt);
 	}
 	return ret;
 }
@@ -608,7 +618,7 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	Render2D *sr = (Render2D *)vr->user_priv;
 	GF_Node *top_node = gf_sg_get_root_node(sr->compositor->scene);
 
-	if (!top_node || (!sr->cur_width && !sr->cur_height) ) return;
+	if (!top_node) return;
 
 	if (!sr->main_surface_setup) {
 		sr->use_dom_events = 0;

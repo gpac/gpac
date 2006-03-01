@@ -146,9 +146,18 @@ the file names and no value is used. This section is only used by GUI clients (o
 <BR><BR>
 
 <DD>The "Systems" section of the config file holds all configuration options for the MPEG-4 Systems engine.
-<BR><BR>
-<B>Language</B> [value: <I>3-char code from ISO 639-2</I>]<BR>
-<DD>Specifies the user prefered language. This is used to select streams in case of alternate content in an audio object.<BR>
+<BR>
+<BR>
+<B>LanguageName</B> [value: <I>string</I>]<BR>
+<DD>Specifies the user prefered language in readable english. This is used to select streams in case of alternate content in an audio object.<BR>
+
+<BR>
+<B>Language3CC</B> [value: <I>3-char code from ISO 639-2</I>]<BR>
+<DD>Specifies the user prefered language as expressed in ISO 639-2. This is used to select streams in case of alternate content in an audio object.<BR>
+
+<BR>
+<B>Language2CC</B> [value: <I>2-char code from ISO 639-1</I>]<BR>
+<DD>Specifies the user prefered language as expressed in ISO 639-1. This is used to select streams in case of alternate content in an audio object.<BR>
 
 <BR>
 <B>AlwaysDrawBIFS</B> [value: <I>"yes" "no"</I>]<BR>

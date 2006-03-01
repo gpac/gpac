@@ -87,6 +87,7 @@ thread accessing the HW ressources
 */
 static void gf_sr_reconfig_task(GF_Renderer *sr)
 {
+	GF_Event evt;
 	u32 width,height;
 	
 	/*reconfig audio if needed*/
@@ -105,7 +106,6 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 		}
 		/*size changed from scene cfg: resize window first*/
 		if (sr->msg_type & GF_SR_CFG_SET_SIZE) {
-			GF_Event evt;
 			u32 fs_width, fs_height;
 			Bool restore_fs = sr->fullscreen;
 			fs_width = fs_height = 0;
@@ -145,7 +145,17 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 	}
 
 	/*3D driver changed message, recheck extensions*/
-	if (sr->reset_graphics) sr->visual_renderer->GraphicsReset(sr->visual_renderer);
+	if (sr->reset_graphics) {
+		sr->visual_renderer->GraphicsReset(sr->visual_renderer);
+
+		evt.type = GF_EVT_SYS_COLORS;
+		if (sr->user->EventProc && sr->user->EventProc(sr->user->opaque, &evt) ) {
+			u32 i;
+			for (i=0; i<28; i++) {
+				sr->sys_colors[i] = evt.sys_cols.sys_colors[i] & 0x00FFFFFF;
+			}
+		}
+	}
 }
 
 GF_Err gf_sr_render_frame(GF_Renderer *sr)

@@ -116,7 +116,7 @@ static void SVG_Draw_bitmap(DrawableContext *ctx)
 	//else if (ctx->h_texture->has_cmat) cmat = NULL;
 
 	/*this is not a native texture, use graphics*/
-	if (!ctx->h_texture->data) {
+	if (!ctx->h_texture->data || ctx->transform.m[1] || ctx->transform.m[3]) {
 		use_blit = 0;
 	} else {
 		if (!ctx->surface->SupportsFormat || !ctx->surface->DrawBitmap ) use_blit = 0;
@@ -211,6 +211,12 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 			}
 		} 
 		gf_node_dirty_clear(node, 0);
+	} else {
+		if (gf_node_get_tag(node)==TAG_SVG_image) {
+			m = &((SVGimageElement *)node)->transform;
+		} else {
+			m = &((SVGvideoElement *)node)->transform;
+		}
 	}
 
 	/*FIXME: setup aspect ratio*/

@@ -742,7 +742,7 @@ static Bool lsr_elt_has_same_base(GF_LASeRCodec *lsr, SVGElement *elt, SVGElemen
 		info.fieldType = base_info.fieldType = SVG_Paint_datatype;
 		info.far_ptr = &elt->properties->stroke;
 		base_info.far_ptr = &base->properties->stroke;
-		if (!svg_attributes_equal(&info, &base_info)) return 0;
+		if (!gf_svg_attributes_equal(&info, &base_info)) return 0;
 	}
 
 	/*check rare attribs*/
@@ -755,7 +755,7 @@ static Bool lsr_elt_has_same_base(GF_LASeRCodec *lsr, SVGElement *elt, SVGElemen
 		if (!field_rare) continue;
 		/*check if default*/
 		gf_node_get_field((GF_Node *)base, i, &base_info);
-		if (svg_attributes_equal(&info, &base_info)) continue;
+		if (gf_svg_attributes_equal(&info, &base_info)) continue;
 		return 0;
 	}
 	/*TODO check anyAttribute*/
@@ -767,7 +767,7 @@ static Bool lsr_elt_has_same_fill(GF_LASeRCodec *lsr, SVGElement *elt, SVGElemen
 	f1.fieldType = f2.fieldType = SVG_Paint_datatype;
 	f1.far_ptr = &elt->properties->fill;
 	f2.far_ptr = &base->properties->fill;
-	if (svg_attributes_equal(&f1, &f2)) return 1;
+	if (gf_svg_attributes_equal(&f1, &f2)) return 1;
 	/*TODO compare anyAttribute class...*/
 	return 0;
 }
@@ -777,7 +777,7 @@ static Bool lsr_elt_has_same_stroke(GF_LASeRCodec *lsr, SVGElement *elt, SVGElem
 	f1.fieldType = f2.fieldType = SVG_Paint_datatype;
 	f1.far_ptr = &elt->properties->stroke;
 	f2.far_ptr = &base->properties->stroke;
-	if (svg_attributes_equal(&f1, &f2)) return 1;
+	if (gf_svg_attributes_equal(&f1, &f2)) return 1;
 	/*TODO compare anyAttribute class...*/
 	return 0;
 }
@@ -826,7 +826,7 @@ static void lsr_write_rare_full(GF_LASeRCodec *lsr, GF_Node *n, GF_Node *default
 		if (!field_rare) continue;
 		/*check if default*/
 		gf_node_get_field(default_node, i, &def_info);
-		if (svg_attributes_equal(&all_info[nb_rare], &def_info)) continue;
+		if (gf_svg_attributes_equal(&all_info[nb_rare], &def_info)) continue;
 		/*override field index to store rare val*/
 		all_info[nb_rare].fieldIndex = field_rare;
 		nb_rare++;
@@ -1014,7 +1014,7 @@ static void lsr_write_fill(GF_LASeRCodec *lsr, SVGElement *n, SVGElement *clone)
 		f1.fieldType = f2.fieldType = SVG_Paint_datatype;
 		f1.far_ptr = &n->properties->fill;
 		f2.far_ptr = &clone->properties->fill;
-		has_fill = svg_attributes_equal(&f1, &f2) ? 0 : 1;
+		has_fill = gf_svg_attributes_equal(&f1, &f2) ? 0 : 1;
 	}
 	GF_LSR_WRITE_INT(lsr, has_fill, 1, "has_fill");
 	if (has_fill) lsr_write_paint(lsr, f1.far_ptr, "fill");
@@ -1027,7 +1027,7 @@ static void lsr_write_stroke(GF_LASeRCodec *lsr, SVGElement *n, SVGElement *clon
 	f1.fieldType = f2.fieldType = SVG_Paint_datatype;
 	f1.far_ptr = &n->properties->stroke;
 	f2.far_ptr = &clone->properties->stroke;
-	has_stroke = svg_attributes_equal(&f1, &f2) ? 0 : 1;
+	has_stroke = gf_svg_attributes_equal(&f1, &f2) ? 0 : 1;
 	GF_LSR_WRITE_INT(lsr, has_stroke, 1, "has_stroke");
 	if (has_stroke) lsr_write_paint(lsr, f1.far_ptr, "stroke");
 }
@@ -1628,7 +1628,7 @@ static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 	if (evtParam && (evtType!=SVG_DOM_EVT_KEYPRESS) && (evtType!=SVG_DOM_EVT_LONGKEYPRESS) ) {
 		char szName[1024];
 		GF_LSR_WRITE_INT(lsr, 0, 1, "choice");
-		sprintf(szName, "%s(%c)", gf_dom_event_name(evtType), evtParam);
+		sprintf(szName, "%s(%c)", gf_dom_event_get_name(evtType), evtParam);
 		lsr_write_byte_align_string(lsr, szName, "evtString");
 	} else if (evtType==SVG_DOM_EVT_MOUSEMOVE) {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "choice");
@@ -1703,7 +1703,7 @@ static void lsr_write_href_anim(GF_LASeRCodec *lsr, SVG_IRI *href, SVGElement *p
 static void lsr_write_a(GF_LASeRCodec *lsr, SVGaElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare_full(lsr, (GF_Node *) elt, (GF_Node *) clone, &elt->transform);
@@ -1721,7 +1721,7 @@ static void lsr_write_a(GF_LASeRCodec *lsr, SVGaElement *elt)
 static void lsr_write_animate(GF_LASeRCodec *lsr, SVGanimateElement *elt, SVGElement *parent)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -1754,7 +1754,7 @@ static void lsr_write_animate(GF_LASeRCodec *lsr, SVGanimateElement *elt, SVGEle
 static void lsr_write_animateMotion(GF_LASeRCodec *lsr, SVGanimateMotionElement *elt, SVGElement *parent)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -1794,7 +1794,7 @@ static void lsr_write_animateMotion(GF_LASeRCodec *lsr, SVGanimateMotionElement 
 static void lsr_write_animateTransform(GF_LASeRCodec *lsr, SVGanimateTransformElement *elt, SVGElement *parent)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -1835,7 +1835,7 @@ static void lsr_write_animateTransform(GF_LASeRCodec *lsr, SVGanimateTransformEl
 static void lsr_write_audio(GF_LASeRCodec *lsr, SVGaudioElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -1861,7 +1861,7 @@ static void lsr_write_audio(GF_LASeRCodec *lsr, SVGaudioElement *elt)
 static void lsr_write_circle(GF_LASeRCodec *lsr, SVGcircleElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare_full(lsr, (GF_Node *) elt, (GF_Node *) clone, &elt->transform);
@@ -1877,7 +1877,7 @@ static void lsr_write_circle(GF_LASeRCodec *lsr, SVGcircleElement *elt)
 static void lsr_write_cursor(GF_LASeRCodec *lsr, SVGElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -1892,7 +1892,7 @@ static void lsr_write_cursor(GF_LASeRCodec *lsr, SVGElement *elt)
 static void lsr_write_data(GF_LASeRCodec *lsr, SVGdescElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -1904,7 +1904,7 @@ static void lsr_write_data(GF_LASeRCodec *lsr, SVGdescElement *elt)
 static void lsr_write_defs(GF_LASeRCodec *lsr, SVGdefsElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -1917,7 +1917,7 @@ static void lsr_write_defs(GF_LASeRCodec *lsr, SVGdefsElement *elt)
 static void lsr_write_ellipse(GF_LASeRCodec *lsr, SVGellipseElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare_full(lsr, (GF_Node *) elt, (GF_Node *) clone, &elt->transform);
@@ -1934,7 +1934,7 @@ static void lsr_write_ellipse(GF_LASeRCodec *lsr, SVGellipseElement *elt)
 static void lsr_write_foreignObject(GF_LASeRCodec *lsr, SVGforeignObjectElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare_full(lsr, (GF_Node *) elt, (GF_Node *) clone, &elt->transform);
@@ -1986,7 +1986,7 @@ static void lsr_write_g(GF_LASeRCodec *lsr, SVGgElement *elt, Bool ommit_tag)
 	} else {
 		/*gType*/
 		if (!ommit_tag) GF_LSR_WRITE_INT(lsr, 12, 6, "ch4"); 
-		clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+		clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 		gf_node_register((GF_Node *)clone, NULL);
 		lsr_write_id(lsr, (GF_Node *) elt);
 		lsr_write_rare_full(lsr, (GF_Node *) elt, (GF_Node *) clone, &elt->transform);
@@ -2022,7 +2022,7 @@ static void lsr_write_g(GF_LASeRCodec *lsr, SVGgElement *elt, Bool ommit_tag)
 static void lsr_write_image(GF_LASeRCodec *lsr, SVGimageElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -2062,7 +2062,7 @@ static void lsr_write_line(GF_LASeRCodec *lsr, SVGlineElement *elt, Bool ommit_t
 	} else {
 		/*lineType*/
 		if (!ommit_tag) GF_LSR_WRITE_INT(lsr, 14, 6, "ch4"); 
-		clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+		clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 		gf_node_register((GF_Node *)clone, NULL);
 		lsr_write_id(lsr, (GF_Node *) elt);
 		lsr_write_rare_full(lsr, (GF_Node *) elt, (GF_Node *) clone, &elt->transform);
@@ -2084,7 +2084,7 @@ static void lsr_write_line(GF_LASeRCodec *lsr, SVGlineElement *elt, Bool ommit_t
 static void lsr_write_linearGradient(GF_LASeRCodec *lsr, SVGlinearGradientElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -2108,7 +2108,7 @@ static void lsr_write_linearGradient(GF_LASeRCodec *lsr, SVGlinearGradientElemen
 static void lsr_write_mpath(GF_LASeRCodec *lsr, SVGmpathElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -2122,7 +2122,7 @@ static void lsr_write_path(GF_LASeRCodec *lsr, SVGpathElement *elt, Bool ommit_t
 	SVGElement *clone;
 	Bool is_same = 0;
 
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 
 	if (!ommit_tag && lsr_elt_has_same_base(lsr, (SVGElement *)elt, (SVGElement *)lsr->prev_path, 0) 
@@ -2177,7 +2177,7 @@ static void lsr_write_polygon(GF_LASeRCodec *lsr, SVGpolygonElement *elt, Bool i
 		else if (same_stroke) same_type = 3;
 	}
 
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	if (same_type) {
 		/*samepolygonType / samepolylineType */
@@ -2210,7 +2210,7 @@ static void lsr_write_polygon(GF_LASeRCodec *lsr, SVGpolygonElement *elt, Bool i
 static void lsr_write_radialGradient(GF_LASeRCodec *lsr, SVGradialGradientElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -2236,7 +2236,7 @@ static void lsr_write_rect(GF_LASeRCodec *lsr, SVGrectElement *elt, Bool ommit_t
 	SVGElement *clone;
 	Bool same_type = 0;
 
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 
 	if (!ommit_tag && lsr_elt_has_same_base(lsr, (SVGElement *)elt, (SVGElement *)lsr->prev_rect, 0) 
@@ -2281,7 +2281,7 @@ static void lsr_write_rect(GF_LASeRCodec *lsr, SVGrectElement *elt, Bool ommit_t
 static void lsr_write_script(GF_LASeRCodec *lsr, SVGscriptElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -2297,7 +2297,7 @@ static void lsr_write_script(GF_LASeRCodec *lsr, SVGscriptElement *elt)
 static void lsr_write_set(GF_LASeRCodec *lsr, SVGsetElement *elt, SVGElement *parent)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -2318,7 +2318,7 @@ static void lsr_write_set(GF_LASeRCodec *lsr, SVGsetElement *elt, SVGElement *pa
 static void lsr_write_stop(GF_LASeRCodec *lsr, SVGstopElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -2332,7 +2332,7 @@ static void lsr_write_stop(GF_LASeRCodec *lsr, SVGstopElement *elt)
 static void lsr_write_svg(GF_LASeRCodec *lsr, SVGsvgElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -2413,7 +2413,7 @@ static void lsr_write_svg(GF_LASeRCodec *lsr, SVGsvgElement *elt)
 static void lsr_write_switch(GF_LASeRCodec *lsr, SVGswitchElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare_full(lsr, (GF_Node *) elt, (GF_Node *) clone, &elt->transform);
@@ -2430,7 +2430,7 @@ static void lsr_write_text(GF_LASeRCodec *lsr, SVGtextElement *elt, Bool ommit_t
 	SVGElement *clone;
 	u32 same_type = 0;
 
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 
 	if (!ommit_tag && lsr_elt_has_same_base(lsr, (SVGElement *)elt, (SVGElement *)lsr->prev_text, 0) 
@@ -2473,7 +2473,7 @@ static void lsr_write_text(GF_LASeRCodec *lsr, SVGtextElement *elt, Bool ommit_t
 static void lsr_write_tspan(GF_LASeRCodec *lsr, SVGtspanElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -2503,7 +2503,7 @@ static void lsr_write_use(GF_LASeRCodec *lsr, SVGuseElement *elt, Bool ommit_tag
 		lsr_write_id(lsr, (GF_Node *) elt);
 		lsr_write_href(lsr, &elt->xlink->href);
 	} else {
-		clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+		clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 		gf_node_register((GF_Node *)clone, NULL);
 		/*useType*/
 		if (!ommit_tag) GF_LSR_WRITE_INT(lsr, 45, 6, "ch4"); 
@@ -2527,7 +2527,7 @@ static void lsr_write_use(GF_LASeRCodec *lsr, SVGuseElement *elt, Bool ommit_tag
 static void lsr_write_video(GF_LASeRCodec *lsr, SVGvideoElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	/*no transform here (transformBehavior instead)*/
@@ -2574,7 +2574,7 @@ static void lsr_write_video(GF_LASeRCodec *lsr, SVGvideoElement *elt)
 static void lsr_write_listener(GF_LASeRCodec *lsr, SVGlistenerElement *elt)
 {
 	SVGElement *clone;
-	clone = gf_svg_new_node(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
+	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
@@ -2619,9 +2619,12 @@ static void lsr_write_listener(GF_LASeRCodec *lsr, SVGlistenerElement *elt)
 	} else {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "hasTarget");
 	}
-	if (elt->lsr_delay>0) {
+	if (elt->lsr_delay != 0) {
+		s32 val = (s32) (lsr->time_resolution*elt->lsr_delay);
 		GF_LSR_WRITE_INT(lsr, 1, 1, "hasDelay");
-		lsr_write_vluimsbf5(lsr, (u32) (lsr->time_resolution*elt->lsr_delay), "delay");
+		GF_LSR_WRITE_INT(lsr, (val>0) ? 0 : 11, 1, "sign");
+		if (val<0) val = -val;
+		lsr_write_vluimsbf5(lsr, val, "delay");
 	} else {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "hasDelay");
 	}

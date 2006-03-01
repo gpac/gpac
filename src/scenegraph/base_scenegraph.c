@@ -1157,9 +1157,6 @@ u32 gf_node_get_field_count(GF_Node *node)
 	/*for both MPEG4 & X3D*/
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_ALL);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_attribute_count(node);
-#ifdef GPAC_USE_LASeR
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_LASER) return LASeRNode_GetFieldCount(node, 0);
-#endif
 	return 0;
 }
 
@@ -1176,9 +1173,6 @@ const char *gf_node_get_class_name(GF_Node *node)
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_class_name(node->sgprivate->tag);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_class_name(node->sgprivate->tag);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_element_name(node->sgprivate->tag);
-#ifdef GPAC_USE_LASeR
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_LASER) return LASeR_GetNodeName(node->sgprivate->tag);
-#endif
 	else return "UnsupportedNode";
 #endif
 }

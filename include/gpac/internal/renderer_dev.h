@@ -153,6 +153,9 @@ struct __tag_base_renderer
 
 	/* SVG List of animated attributes */
 	GF_List *svg_animated_attributes;
+
+	/*list of system colors*/
+	u32 sys_colors[28];
 };
 
 /*macro setting up rendering stack with following member @owner: node pointer and @compositor: compositor*/

@@ -416,6 +416,8 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 			drawable_unregister_from_surface(n, surf);
 		}
 	}
+	/*no visual rendering*/
+	//if (!surf->render->cur_width && !surf->render->cur_height) goto exit;
 
 	CHECK_MAX_NODE
 

@@ -2208,14 +2208,14 @@ GF_Err DumpLSRAddReplace(GF_SceneDumper *sdump, GF_Command *com, Bool is_replace
 				fprintf(sdump->trace, "attributeName=\"%s\" ", att_name);
 				info.eventType = f->fieldType;
 				info.far_ptr = f->field_ptr;
-				svg_dump_attribute((SVGElement *)com->node, &info, szAtt);
+				gf_svg_dump_attribute((SVGElement *)com->node, &info, szAtt);
 				fprintf(sdump->trace, "value=\"%s\" ", szAtt);
 			} else {
 				gf_node_get_field(com->node, f->fieldIndex, &info);
 				fprintf(sdump->trace, "attributeName=\"%s\" ", info.name);
 				if (f->field_ptr) {
 					info.far_ptr = f->field_ptr;
-					svg_dump_attribute((SVGElement *)com->node, &info, szAtt);
+					gf_svg_dump_attribute((SVGElement *)com->node, &info, szAtt);
 					fprintf(sdump->trace, "value=\"%s\" ", szAtt);
 				}
 			}
@@ -2443,7 +2443,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 	
 	if (nID) fprintf(sdump->trace, "id=\"%s\" ", lsr_format_node_id(n, attValue));
 
-	proto = (GF_Node *) gf_svg_new_node(sdump->sg, n->sgprivate->tag);
+	proto = (GF_Node *) gf_node_new(sdump->sg, n->sgprivate->tag);
 	gf_node_register(proto, NULL);
 
 	count = gf_node_get_field_count(n);
@@ -2464,9 +2464,9 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 		}
 		/*don't dump default fields*/
 		gf_node_get_field(proto, i, &pf);
-		if (svg_attributes_equal(&info, &pf)) continue;
+		if (gf_svg_attributes_equal(&info, &pf)) continue;
 
-		svg_dump_attribute(svg, &info, attValue);
+		gf_svg_dump_attribute(svg, &info, attValue);
 		if (strlen(attValue)) fprintf(sdump->trace, "%s=\"%s\" ", info.name, attValue);
 	}
 	gf_node_unregister(proto, NULL);
@@ -2480,7 +2480,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 			if (node->sgprivate->NodeID) continue;
 			hdl = (SVGhandlerElement *)node->handler.target;
 			if (!hdl || !hdl->textContent) continue;
-			fprintf(sdump->trace, "on%s=\"%s\" ", gf_dom_event_name(hdl->ev_event.type), hdl->textContent);
+			fprintf(sdump->trace, "on%s=\"%s\" ", gf_dom_event_get_name(hdl->ev_event.type), hdl->textContent);
 		}
 	}
 

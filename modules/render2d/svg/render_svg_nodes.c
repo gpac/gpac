@@ -33,7 +33,7 @@
 */
 void svg_render_node(GF_Node *node, RenderEffect2D *eff)
 {
-	Bool has_listener = gf_node_listener_count(node);
+	Bool has_listener = gf_dom_listener_count(node);
 	if (has_listener) {
 		eff->nb_listeners++;
 		gf_node_render(node, eff);
@@ -290,7 +290,6 @@ static void SVG_Render_g(GF_Node *node, void *rs)
 	SVGgElement *g = (SVGgElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
-
 	SVG_Render_base(node, rs, &backup_props);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
@@ -340,10 +339,60 @@ void SVG_Init_g(Render2D *sr, GF_Node *node)
 	gf_node_set_render_function(node, SVG_Render_g);
 }
 
+
+static Bool eval_conditional(GF_Renderer *sr, SVGElement *elt)
+{
+	u32 i, count;
+	Bool found;
+	const char *lang_3cc, *lang_2cc;
+	if (!elt->conditional) return 1;
+
+	count = gf_list_count(elt->conditional->requiredFeatures);
+	for (i=0;i<count;i++) {
+		SVG_IRI *iri = gf_list_get(elt->conditional->requiredFeatures, i);
+		if (!iri->iri) continue;
+		/*TODO FIXME: be a bit more precise :)*/
+		if (!strnicmp(iri->iri, "http://www.w3.org/", 18)) {
+			char *feat = strrchr(iri->iri, '#');
+			if (!feat) continue;
+			feat++;
+			if (!strcmp(feat, "SVGDOM")) return 0;
+			if (!strcmp(feat, "Font")) return 0;
+			continue;
+		}
+		return 0;
+	}
+	count = gf_list_count(elt->conditional->requiredExtensions);
+	if (count) return 0;
+
+	lang_3cc = gf_cfg_get_key(sr->user->config, "Systems", "Language3CC");
+	if (!lang_3cc) lang_3cc = "und";
+	lang_2cc = gf_cfg_get_key(sr->user->config, "Systems", "Language2CC");
+	if (!lang_2cc) lang_2cc = "un";
+
+	count = gf_list_count(elt->conditional->systemLanguage);
+	found = count ? 0 : 1;
+	for (i=0;i<count;i++) {
+		char *lang = gf_list_get(elt->conditional->systemLanguage, i);
+		/*3 char-code*/
+		if (strlen(lang)==3) {
+			if (!stricmp(lang, lang_3cc)) { found = 1; break; }
+		}
+		/*2 char-code, only check first 2 chars - TODO FIXME*/
+		else if (!strnicmp(lang, lang_2cc, 2)) { found = 1; break; }
+	}
+	if (!found) return 0;
+
+	return 1;
+}
+
+
 static void SVG_Render_switch(GF_Node *node, void *rs)
 {
 	GF_Matrix2D backup_matrix;
 	SVGPropertiesPointers backup_props;
+	u32 i, count;
+	SVGElement *child;
 	u32 styling_size = sizeof(SVGPropertiesPointers);
 
 	SVGswitchElement *s = (SVGswitchElement *)node;
@@ -365,7 +414,15 @@ static void SVG_Render_switch(GF_Node *node, void *rs)
 
 	gf_mx2d_copy(backup_matrix, eff->transform);
 	gf_mx2d_pre_multiply(&eff->transform, &s->transform);
-	svg_render_node_list(s->children, eff);
+
+	count = gf_list_count(s->children);
+	for (i=0; i<count; i++) {
+		child = gf_list_get(s->children, i);
+		if (eval_conditional(eff->surface->render->compositor, child)) {
+			svg_render_node((GF_Node*)child, eff);
+			break;
+		}
+	}
 
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, styling_size);
@@ -631,7 +688,7 @@ static void SVG_Render_path(GF_Node *node, void *rs)
 		//fprintf(stdout, "Rebuilding path %8x\n", path);	
 		drawable_reset_path(cs);
 		if (*(eff->svg_props->fill_rule)==GF_PATH_FILL_ZERO_NONZERO) cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
-		gf_path_init_from_svg(cs->path, path->d.commands, path->d.points);
+		gf_svg_path_build(cs->path, path->d.commands, path->d.points);
 
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
@@ -822,14 +879,14 @@ void SVG_Init_a(Render2D *sr, GF_Node *node)
 	/*listener for onClick event*/
 	evt.parameter = 0;
 	evt.type = SVG_DOM_EVT_CLICK;
-	handler = gf_sg_dom_create_listener(node, evt);
+	handler = gf_dom_listener_build(node, evt);
 	/*and overwrite handler*/
 	handler->handle_event = SVG_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
 
 	/*listener for activate event*/
 	evt.type = SVG_DOM_EVT_ACTIVATE;
-	handler = gf_sg_dom_create_listener(node, evt);
+	handler = gf_dom_listener_build(node, evt);
 	/*and overwrite handler*/
 	handler->handle_event = SVG_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
@@ -837,7 +894,7 @@ void SVG_Init_a(Render2D *sr, GF_Node *node)
 #ifndef DANAE
 	/*listener for mouseover event*/
 	evt.type = SVG_DOM_EVT_MOUSEOVER;
-	handler = gf_sg_dom_create_listener(node, evt);
+	handler = gf_dom_listener_build(node, evt);
 	/*and overwrite handler*/
 	handler->handle_event = SVG_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
@@ -1013,53 +1070,12 @@ GF_TextureHandler *svg_gradient_get_texture(GF_Node *node)
 
 void SVG_Render_base(GF_Node *node, RenderEffect2D *eff, SVGPropertiesPointers *backup_props)
 {
-	u32 i,j;
-	SVGElement *e = (SVGElement *)node;
-	u32 count_all, count;
-
 	/* Apply inheritance */	
 	memcpy(backup_props, eff->svg_props, sizeof(SVGPropertiesPointers));
-	gf_svg_properties_apply(eff->svg_props, e->properties);
+	gf_svg_properties_apply(node, eff->svg_props);
 
-	/*TODO FIXME - THIS IS WRONG, we're changing orders of animations which may corrupt the visual result*/
-	count_all = gf_node_animation_count(node);
-	/* Loop 1: For all animated attributes (target_attribute) */
-	for (i = 0; i < count_all; i++) {
-		GF_FieldInfo underlying_value;
-		SMIL_AttributeAnimations *aa = gf_node_animation_get(node, i);		
-		count = gf_list_count(aa->anims);
-		if (!count) continue;
-
-		/* initializing the type of the underlying value */
-		underlying_value.fieldType = aa->saved_dom_value.fieldType;		
-		/* the pointer contains the result of the previous animation cycle,
-		   it needs to be reset */
-		underlying_value.far_ptr = aa->presentation_value.far_ptr;
-		
-		/* The resetting is done either based on the inherited value or based on the (saved) DOM value 
-		   or in special cases on the inherited color value */
-		gf_svg_attributes_copy_computed_value(&underlying_value, &aa->saved_dom_value, (SVGElement*)node, aa->orig_dom_ptr, eff->svg_props);
-
-		/* we also need a special handling of current color if used in animation values */
-		aa->current_color_value.fieldType = SVG_Paint_datatype;
-		aa->current_color_value.far_ptr   = eff->svg_props->color;
-
-		/* Loop 2: For all animations (anim) */
-		for (j = 0; j < count; j++) {
-			SMIL_Anim_RTI *rai = gf_list_get(aa->anims, j);			
-			gf_smil_timing_notify_time(rai->anim_elt->timing->runtime, gf_node_get_scene_time(node));
-		}
-		/* end of Loop 2 */
-
-		
-		/*TODO FIXME, we need a finer granularity here and we must know if the animated attribute has changed or not (freeze)...*/
-		gf_node_dirty_set(node, GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_SVG_APPEARANCE_DIRTY, 0);
-		eff->invalidate_all = 1;
-
-		gf_sr_invalidate(eff->surface->render->compositor, NULL);
-
-	}
-	/* end of Loop 1 */
+	/*TODO FIXME - this is because we don't have proper dirty signaling for SVG yet*/
+	if (gf_node_dirty_get(node) & GF_SG_SVG_APPEARANCE_DIRTY) eff->invalidate_all = 1;
 }
 
 

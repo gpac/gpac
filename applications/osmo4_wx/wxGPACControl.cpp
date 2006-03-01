@@ -31,73 +31,10 @@
 #include <gpac/modules/audio_out.h>
 #include <gpac/modules/video_out.h>
 
+#include <gpac/iso639.h>
 
 #include "wxGPACControl.h"
 
-/*ISO 639-2 code names (complete set in /doc directory)*/
-#define NUM_LANGUAGE	59
-static char *Languages[118] = 
-{
-"Albanian","alb",
-"Arabic","ara",
-"Armenian","arm",
-"Azerbaijani","aze",
-"Basque","baq",
-"Belarusian","bel",
-"Bosnian","bos",
-"Breton","bre",
-"Bulgarian","bul",
-"Catalan","cat",
-"Celtic (Other)","cel",
-"Chinese","chi",
-"Croatian","scr",
-"Czech","cze",
-"Danish","dan",
-"Dutch","dut",
-"English","eng",
-"Esperanto","epo",
-"Estonian","est",
-"Fijian","fij",
-"Finnish","fin",
-"French","fre",
-"Georgian","geo",
-"German","ger",
-"Greek, Modern (1453-)","gre",
-"Haitian","hat",
-"Hawaiian","haw",
-"Hebrew","heb",
-"Indonesian","ind",
-"Iranian (Other)","ira",
-"Irish","gle",
-"Italian","ita",
-"Japanese","jpn",
-"Korean","kor",
-"Kurdish","kur",
-"Latin","lat",
-"Lithuanian","lit",
-"Luxembourgish","ltz",
-"Macedonian","mac",
-"Mongolian","mon",
-"Norwegian","nor",
-"Occitan (post 1500)","oci",
-"Persian","per",
-"Philippine (Other)","phi" ,
-"Polish","pol",
-"Portuguese","por",
-"Russian","rus",
-"Serbian","srp",
-"Slovak","slo",
-"Slovenian","slv",
-"Somali","som",
-"Spanish","spa",
-"Swedish","swe",
-"Tahitian","tah",
-"Thai","tha",
-"Tibetan","tib",
-"Turkish","tur",
-"Undetermined","und",
-"Vietnamese","vie",
-};
 
 #define NUM_RATES 11
 static char *BIFSRates[11] = 
@@ -426,12 +363,17 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_viewxmt->SetValue((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 
 	/*systems config*/
-	sOpt = gf_cfg_get_key(cfg, "Systems", "Language");
+	sOpt = gf_cfg_get_key(cfg, "Systems", "Language3CC");
 	if (!sOpt) sOpt = "eng";
 	u32 select = 0;
-	for (i = 0; i<NUM_LANGUAGE; i++) {
-		m_lang->Append(wxString(Languages[2*i], wxConvUTF8) );
-		if (sOpt && !stricmp(sOpt, Languages[2*i + 1])) select = i;
+	i=0;
+	while (GF_ISO639_Lang[i]) {
+		/*only use common languages (having both 2- and 3-char code names)*/
+		if (GF_ISO639_Lang[i+2][0]) {
+			m_lang->Append(wxString(GF_ISO639_Lang[i], wxConvUTF8) );
+			if (sOpt && !stricmp(sOpt, GF_ISO639_Lang[i+1])) select = m_lang->GetCount() - 1;
+		}
+		i+=3;
 	}
 	m_lang->SetSelection(select);
 	sOpt = gf_cfg_get_key(cfg, "Systems", "ThreadingPolicy");
@@ -930,7 +872,20 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 	gf_cfg_set_key(cfg, "General", "ViewXMT", m_viewxmt->GetValue() ? "yes" : "no");
 
 	s32 sel = m_lang->GetSelection();
-	gf_cfg_set_key(cfg, "Systems", "Language", Languages[2*sel + 1]);
+	u32 i=0;
+	while (GF_ISO639_Lang[i]) {
+		/*only use common languages (having both 2- and 3-char code names)*/
+		if (GF_ISO639_Lang[i+2][0]) {
+			if (!sel) break;
+			sel--;
+		}
+		i+=3;
+	}
+	gf_cfg_set_key(cfg, "Systems", "LanguageName", GF_ISO639_Lang[i]);
+	gf_cfg_set_key(cfg, "Systems", "Language3CC", GF_ISO639_Lang[i+1]);
+	gf_cfg_set_key(cfg, "Systems", "Language2CC", GF_ISO639_Lang[i+2]);
+
+
 	sel = m_thread->GetSelection();
 	gf_cfg_set_key(cfg, "Systems", "ThreadingPolicy", (sel==0) ? "Single" : ( (sel==1) ? "Multi" : "Free"));
 	gf_cfg_set_key(cfg, "Systems", "ForceSingleClock", m_singletime->GetValue() ? "yes" : "no");

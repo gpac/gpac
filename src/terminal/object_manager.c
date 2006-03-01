@@ -375,9 +375,9 @@ GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline, Bool *externalCloc
 	/*the rest should be OK*/
 
 	/*select independant streams - check language and (TODO) bitrate & term caps*/
-	sOpt = gf_cfg_get_key(odm->term->user->config, "Systems", "Language");
+	sOpt = gf_cfg_get_key(odm->term->user->config, "Systems", "Language3CC");
 	if (!sOpt) {
-		gf_cfg_set_key(odm->term->user->config, "Systems", "Language", "und");
+		gf_cfg_set_key(odm->term->user->config, "Systems", "Language3CC", "und");
 		sOpt = "und";
 	}
 	lang = (sOpt[0]<<16) | (sOpt[1]<<8) | sOpt[2];

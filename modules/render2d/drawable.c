@@ -785,17 +785,24 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGPropertiesPointe
 	}
 	else if (props.fill->color.type == SVG_COLOR_CURRENTCOLOR) {
 		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(props.fill_opacity->value, props.color->color.red, props.color->color.green, props.color->color.blue);
-	} else {
+	} else if (props.fill->color.type == SVG_COLOR_RGBCOLOR) {
 		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(props.fill_opacity->value, props.fill->color.red, props.fill->color.green, props.fill->color.blue);
+	} else if (props.fill->color.type >= SVG_COLOR_ACTIVE_BORDER) {
+		ctx->aspect.fill_color = ctx->surface->render->compositor->sys_colors[props.fill->color.type - 3];
+		ctx->aspect.fill_color |= ((u32) (props.fill_opacity->value*255) ) << 24;
 	}
+
 	ctx->aspect.has_line = (props.stroke->type != SVG_PAINT_NONE);
 	if (props.stroke->type==SVG_PAINT_URI) {
 		ctx->aspect.line_texture = svg_get_texture_handle(ctx->node->owner, props.stroke->uri);
 	}
 	else if (props.stroke->color.type == SVG_COLOR_CURRENTCOLOR) {
 		ctx->aspect.line_color = GF_COL_ARGB_FIXED(props.stroke_opacity->value, props.color->color.red, props.color->color.green, props.color->color.blue);
-	} else {
+	} else if (props.stroke->color.type == SVG_COLOR_RGBCOLOR) {
 		ctx->aspect.line_color = GF_COL_ARGB_FIXED(props.stroke_opacity->value, props.stroke->color.red, props.stroke->color.green, props.stroke->color.blue);
+	} else if (props.stroke->color.type >= SVG_COLOR_ACTIVE_BORDER) {
+		ctx->aspect.line_color = ctx->surface->render->compositor->sys_colors[SVG_COLOR_ACTIVE_BORDER - 3];
+		ctx->aspect.line_color |= ((u32) (props.stroke_opacity->value*255)) << 24;
 	}
 	if (props.stroke_dasharray->type != SVG_STROKEDASHARRAY_NONE) {
 		ctx->aspect.pen_props.dash = GF_DASH_STYLE_CUSTOM_ABS;

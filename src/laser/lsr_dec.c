@@ -1252,13 +1252,13 @@ static void *lsr_read_an_anim_value(GF_LASeRCodec *lsr, u32 type, const char *na
 		return num;
     case 2:
 	{
-		SVG_PathData *pd = svg_create_value_from_attributetype(SVG_PathData_datatype, 0);
+		SVG_PathData *pd = gf_svg_create_attribute_value(SVG_PathData_datatype, 0);
 		lsr_read_path_type(lsr, pd, name); 
 		return pd;
 	}
     case 3: 
 	{
-		SVG_Points *pts = svg_create_value_from_attributetype(SVG_Points_datatype, 0);
+		SVG_Points *pts = gf_svg_create_attribute_value(SVG_Points_datatype, 0);
 		lsr_read_point_sequence(lsr, *pts, name); 
 		return pts;
 	}
@@ -1638,13 +1638,13 @@ static void lsr_read_event_type(GF_LASeRCodec *lsr, XMLEV_Event *evtType)
 			if (sep) {
 				char a_c;
 				sep[0] = 0;
-				evtType->type = svg_dom_event_by_name(evtName);
+				evtType->type = gf_dom_event_type_by_name(evtName);
 				sep[0] = '(';
 				/*TODO FIXME check all possible cases (accessKey & co)*/
 				sscanf(sep, "(%c)", &a_c);
 				evtType->parameter = a_c;
 			} else {
-				evtType->type = svg_dom_event_by_name(evtName);
+				evtType->type = gf_dom_event_type_by_name(evtName);
 			}
 			free(evtName);
 		}
@@ -2433,7 +2433,7 @@ static GF_Node *lsr_read_text(GF_LASeRCodec *lsr, u32 same_type)
 			f1.fieldType = f2.fieldType = SVG_Numbers_datatype;
 			f1.far_ptr = elt->rotate;
 			f2.far_ptr = lsr->prev_text->rotate;
-			svg_attributes_copy(&f1, &f2, 0);
+			gf_svg_attributes_copy(&f1, &f2, 0);
 		}
 		lsr_read_id(lsr, (GF_Node *) elt);
 		if (same_type==2) lsr_read_fill(lsr, (SVGElement *) elt);
@@ -2583,8 +2583,10 @@ static GF_Node *lsr_read_listener(GF_LASeRCodec *lsr, SVGElement *parent)
 
 	GF_LSR_READ_INT(lsr, flag, 1, "hasDelay");
 	if (flag) {
+		GF_LSR_READ_INT(lsr, flag, 1, "sign");
 		elt->lsr_delay = lsr_read_vluimsbf5(lsr, "delay");
 		elt->lsr_delay /= lsr->time_resolution;
+		if (flag) elt->lsr_delay *= -1;
 	} else {
 		elt->lsr_delay = 0;
 	}
@@ -2599,7 +2601,7 @@ static GF_Node *lsr_read_listener(GF_LASeRCodec *lsr, SVGElement *parent)
 	lsr_read_group_content(lsr, (SVGElement *) elt, 0);
 
 	if (elt->target.target) parent = elt->target.target;
-	gf_node_listener_add((GF_Node *) parent, (GF_Node *) elt);
+	gf_dom_listener_add((GF_Node *) parent, elt);
 
 	return (GF_Node *)elt;
 }
@@ -2675,7 +2677,7 @@ static GF_Node *lsr_read_scene_content_model(GF_LASeRCodec *lsr, SVGElement *par
 		GF_DOM_Event evt;
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.type = SVG_DOM_EVT_LOAD;
-		gf_sg_fire_dom_event(n, NULL, &evt);
+		gf_dom_event_fire(n, NULL, &evt);
 	}
 	return n;
 }
@@ -2735,7 +2737,7 @@ static GF_Node *lsr_read_content_model_36(GF_LASeRCodec *lsr, SVGElement *parent
 		GF_DOM_Event evt;
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.type = SVG_DOM_EVT_LOAD;
-		gf_sg_fire_dom_event(n, NULL, &evt);
+		gf_dom_event_fire(n, NULL, &evt);
 	}
 	return n;
 }
@@ -3036,7 +3038,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 				field_type = field->fieldType = info.fieldType;
 				break;
 			}
-			field->field_ptr = svg_create_value_from_attributetype(field_type, tr_type);
+			field->field_ptr = gf_svg_create_attribute_value(field_type, tr_type);
 			lsr_read_update_value(lsr, NULL, field_type, tr_type, field->field_ptr, (idx==-1) ? 0 : 1);
 		} else {
 			GF_Point2D matrix_tmp;
@@ -3096,9 +3098,9 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 			} else {
 				GF_FieldInfo tmp;
 				tmp = info;
-				tmp.far_ptr = svg_create_value_from_attributetype(info.fieldType, tr_type);
+				tmp.far_ptr = gf_svg_create_attribute_value(info.fieldType, tr_type);
 				lsr_read_update_value(lsr, n, field_type, tr_type, tmp.far_ptr, (idx==-1) ? 0 : 1);
-				svg_attributes_add(&info, &tmp, &info, 0);
+				gf_svg_attributes_add(&info, &tmp, &info, 0);
 				gf_svg_delete_attribute_value(info.fieldType, tmp.far_ptr, gf_node_get_graph(n));
 			}
 		}
@@ -3123,9 +3125,9 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 			gf_node_get_field(n, fieldIndex, &info);
 			gf_node_get_field(operandNode, opFieldIndex, &op_info);
 			if (com_type) {
-				svg_attributes_copy(&info, &op_info, 0);
+				gf_svg_attributes_copy(&info, &op_info, 0);
 			} else {
-				svg_attributes_add(&info, &op_info, &info, 0);
+				gf_svg_attributes_add(&info, &op_info, &info, 0);
 			}
 		}
 	}

@@ -580,6 +580,9 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	e = gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_ISOM, 1);
 	if (e) goto err_exit;
 
+	//copy movie desc
+	gf_isom_clone_root_od(input, output);
+
 	MaxFragmentDuration = (u32) (max_duration * gf_isom_get_timescale(input));
 	//duplicates all tracks
 	for (i=0; i<gf_isom_get_track_count(input); i++) {
@@ -633,7 +636,6 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 		if (gf_isom_is_track_in_root_od(input, i+1)) gf_isom_add_track_to_root_od(output, TrackNum);
 		//copy user data ?
 	}
-	//copy movie desc
 
 
 	//flush movie

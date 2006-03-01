@@ -272,10 +272,170 @@ void gf_sg_sfurl_del(SFURL url);
 Bool gf_sg_vrml_node_init(GF_Node *node);
 Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field);
 
-Bool gf_sg_svg_node_init(GF_Node *node);
-Bool gf_sg_svg_node_changed(GF_Node *node, GF_FieldInfo *field);
 
+
+#ifndef GPAC_DISABLE_SVG
+
+
+SVGElement *gf_svg_create_node(u32 ElementTag);
+void gf_svg_element_del(SVGElement *elt);
+void gf_svg_reset_base_element(SVGElement *p);
+Bool gf_sg_svg_node_init(GF_Node *node);
+
+
+void gf_svg_init_conditional(SVGElement *p);
+void gf_svg_init_anim(SVGElement *p);
+void gf_svg_init_sync(SVGElement *p);
+void gf_svg_init_timing(SVGElement *p);
+void gf_svg_init_xlink(SVGElement *p);
+void gf_svg_init_focus(SVGElement *p);
+void gf_svg_init_properties(SVGElement *p);
+void gf_svg_init_core(SVGElement *p);
+
+Bool gf_sg_svg_node_changed(GF_Node *node, GF_FieldInfo *field);
 void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field);
+
+GF_Err gf_svg_get_attribute_info(GF_Node *node, GF_FieldInfo *info);
+u32 gf_svg_get_attribute_count(GF_Node *);
+const char *gf_svg_get_element_name(u32 tag);
+
+/* animations */
+GF_Err gf_node_animation_add(GF_Node *node, void *animation);
+GF_Err gf_node_animation_del(GF_Node *node);
+u32 gf_node_animation_count(GF_Node *node);
+void *gf_node_animation_get(GF_Node *node, u32 i);
+
+Bool gf_svg_is_property_inherited(GF_FieldInfo *a);
+Bool gf_svg_is_current_color(GF_FieldInfo *a);
+void *gf_svg_get_property_pointer(SVGPropertiesPointers *p, SVGElement *elt, void *orig_prop_ptr);
+void gf_svg_attributes_copy_computed_value(GF_FieldInfo *out, GF_FieldInfo *in, SVGElement*elt, void *orig_dom_ptr, SVGPropertiesPointers *inherited_props);
+void gf_svg_attributes_smart_copy(GF_FieldInfo *out, GF_FieldInfo *in, GF_FieldInfo *prop, GF_FieldInfo *current_color);
+void gf_svg_attributes_pointer_update(GF_FieldInfo *a, GF_FieldInfo *prop, GF_FieldInfo *current_color);
+
+
+/* reset functions for SVG types */
+void gf_svg_reset_path(SVG_PathData path);
+void gf_svg_reset_iri(GF_SceneGraph *sg, SVG_IRI*iri);
+/* delete functions for SVG types */
+void gf_svg_delete_paint		(SVG_Paint *paint);
+void gf_smil_delete_times		(GF_List *l);
+void gf_svg_delete_points		(GF_List *l);
+void gf_svg_delete_coordinates	(GF_List *l);
+/*for keyTimes, keyPoints and keySplines*/
+void gf_smil_delete_key_types	(GF_List *l);
+
+
+/* SMIL Timing structures */
+/* status of an SMIL timed element */ 
+enum {
+	SMIL_STATUS_STARTUP = 0,
+	SMIL_STATUS_WAITING_TO_BEGIN,
+	SMIL_STATUS_ACTIVE,
+	SMIL_STATUS_END_INTERVAL,
+	SMIL_STATUS_POST_ACTIVE,
+	SMIL_STATUS_FROZEN,
+	SMIL_STATUS_DONE
+};
+
+typedef struct {
+	u32 activation_cycle;
+	u32 nb_iterations;
+
+	/* negative values mean indefinite */
+	Double begin, 
+		   end,
+		   simple_duration, 
+		   active_duration;
+
+} SMIL_Interval;
+
+typedef struct _smil_timing_rti
+{
+	SVGElement *timed_elt;
+
+	/* SMIL element life-cycle status */
+	u8 status;
+	u32 cycle_number;
+	u32 first_frozen;
+
+	/* List of possible intervals for activation of the element */
+	GF_List *intervals;
+	s32	current_interval_index;
+	SMIL_Interval *current_interval;
+
+	/* is called only when the timed element is active */
+	void (*activation)(struct _smil_timing_rti *rti, Fixed normalized_simple_time);
+
+	/* is called (possibly many times) when the timed element is frozen */
+	void (*freeze)(struct _smil_timing_rti *rti, Fixed normalized_simple_time);
+
+	/* is called (only once) when the timed element is restored */
+	void (*restore)(struct _smil_timing_rti *rti, Fixed normalized_simple_time);
+
+} SMIL_Timing_RTI;
+
+void gf_smil_timing_init_runtime_info(SVGElement *timed_elt);
+void gf_smil_timing_delete_runtime_info(SVGElement *timed_elt);
+Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double scene_time);
+void gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time);
+
+/* SMIL Animation Structures */
+/* This structure is used per animated attribute,
+   it contains all the animations applying to the same attribute,
+   and the presentation value passed from one animation to the next one */
+typedef struct {
+	GF_FieldInfo presentation_value;
+	GF_FieldInfo saved_dom_value;
+	/*original location of the DOM attribute in the elt structure used for fast comparison of SVG 
+	properties when animating from/to/by/values/... inherited values*/
+	void *orig_dom_ptr;
+	GF_FieldInfo current_color_value;
+	GF_List *anims;
+} SMIL_AttributeAnimations;
+
+/* This structure is per animation element, 
+   it holds the result of the animation and 
+   some info to make animation computation faster */
+typedef struct {
+	SMIL_AttributeAnimations *owner;
+
+	/* animation element */
+	SVGElement *anim_elt;
+
+	/* result of the animation */
+	GF_FieldInfo interpolated_value;
+
+	/* last value of the animation, used in accumulation phase */
+	GF_FieldInfo last_specified_value;
+
+	/* temporary value needed when the type of 
+	   the key values is different from the target attribute type */
+	GF_FieldInfo tmp_value;
+
+	s32 previous_key_index;
+	Fixed previous_coef;
+	u32 last_keytime_index;
+
+	/* needed ? */
+	Bool target_value_changed;
+
+	GF_Path *path;
+	u8 rotate;
+	GF_PathIterator *path_iterator;
+	Fixed length;
+
+} SMIL_Anim_RTI;
+
+void gf_smil_anim_init_node(GF_Node *node);
+void gf_smil_anim_init_runtime_info(SVGElement *e);
+void gf_smil_anim_delete_runtime_info(SMIL_Anim_RTI *rai);
+void gf_smil_anim_delete_animations(SVGElement *e);
+
+void gf_svg_init_lsr_script(SVGCommandBuffer *script);
+void gf_svg_reset_lsr_script(SVGCommandBuffer *script);
+
+#endif
+
 
 //
 //		MF Fields tools

@@ -112,10 +112,10 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 		else {
 			u32 entry_time;
 			char file_buf[SVG_PROGRESSIVE_BUFFER_SIZE+1];
-			if (!svgin->src) {
+			/*initial load*/
+			if (!svgin->src && !svgin->file_pos) {
 				svgin->src = fopen(svgin->file_name, "rb");
 				if (!svgin->src) return GF_URL_ERROR;
-				svgin->file_pos = 0;
 				svgin->loader.fileName = svgin->file_name;
 			}
 			e = GF_OK;
@@ -238,6 +238,7 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 		if (!decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
 		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
 		svgin->file_size = gf_bs_read_u32(bs);
+		svgin->file_pos = 0;
 		gf_bs_del(bs);
 		GF_SAFEALLOC(svgin->file_name, sizeof(char)*(1 + decSpecInfoSize - sizeof(u32)) );
 		memcpy(svgin->file_name, decSpecInfo + sizeof(u32), decSpecInfoSize - sizeof(u32) );

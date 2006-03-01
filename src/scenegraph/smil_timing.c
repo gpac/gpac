@@ -22,7 +22,7 @@
  *
  */
 
-#include <gpac/scenegraph_svg.h>
+#include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_svg.h>
 
 static void gf_smil_timing_null_timed_function(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
@@ -224,6 +224,13 @@ static void gf_smil_timing_refresh_interval_list(SMIL_Timing_RTI *rti)
 	SMIL_Time *begin;
 
 	count = gf_list_count(rti->timed_elt->timing->begin);
+	
+	if (!count) {
+		if (rti->current_interval)
+			gf_smil_timing_add_new_interval(rti, rti->current_interval, rti->current_interval->begin, 0);
+		return;
+	}
+
 	for (i = 0; i < count; i ++) {
 		SMIL_Interval *existing_interval = NULL;
 		begin = gf_list_get(rti->timed_elt->timing->begin, i);
@@ -239,6 +246,7 @@ static void gf_smil_timing_refresh_interval_list(SMIL_Timing_RTI *rti)
 		/* we create an acceptable only if begin is unspecified or defined (clock or wallclock) */
 		gf_smil_timing_add_new_interval(rti, existing_interval, begin->clock, i);
 	}
+
 }
 
 #if 0
@@ -298,12 +306,15 @@ waiting_to_begin:
 			rti->status = SMIL_STATUS_ACTIVE;
 			memset(&evt, 0, sizeof(evt));
 			evt.type = SVG_DOM_EVT_BEGIN;
-			gf_sg_fire_dom_event((GF_Node *)rti->timed_elt, NULL, &evt);
+			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 		}
 		else return;
 	}
 
 	if (rti->status == SMIL_STATUS_ACTIVE) {
+		u32 cur_id;
+		Fixed simple_time;
+
 		if (rti->current_interval->active_duration >= 0 
 			&& scene_time >= (rti->current_interval->begin + rti->current_interval->active_duration)) {
 			rti->status = SMIL_STATUS_POST_ACTIVE;
@@ -324,7 +335,15 @@ waiting_to_begin:
 			} 
 		}
 
-		rti->activation(rti, gf_smil_timing_get_normalized_simple_time(rti, scene_time));
+		cur_id = rti->current_interval->nb_iterations;
+		simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
+		rti->activation(rti, simple_time);
+		if (cur_id < rti->current_interval->nb_iterations) {
+			memset(&evt, 0, sizeof(evt));
+			evt.type = SVG_DOM_EVT_REPEAT;
+			evt.detail = rti->current_interval->nb_iterations;
+			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
+		}
 	}
 
 post_active:
@@ -338,7 +357,7 @@ post_active:
 		}
 		memset(&evt, 0, sizeof(evt));
 		evt.type = SVG_DOM_EVT_END;
-		gf_sg_fire_dom_event((GF_Node *)rti->timed_elt, NULL, &evt);
+		gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 	}
 
 	if (rti->status == SMIL_STATUS_FROZEN) {
@@ -355,7 +374,7 @@ post_active:
 				rti->current_interval_index = interval_index;
 				rti->current_interval = gf_list_get(rti->intervals, rti->current_interval_index);
 //				gf_smil_timing_print_interval(stack->current_interval);
-				/* TODO notify time dependencies */
+
 				rti->status = SMIL_STATUS_WAITING_TO_BEGIN;
 				goto waiting_to_begin;
 			}
@@ -370,7 +389,11 @@ Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double sce
 	Fixed normalizedSimpleTime;
 
 	activeTime			 = scene_time - rti->current_interval->begin;
-	rti->current_interval->nb_iterations = (u32)floor(activeTime / rti->current_interval->simple_duration);
+	if (rti->current_interval->simple_duration>0) {
+		rti->current_interval->nb_iterations = (u32)floor(activeTime / rti->current_interval->simple_duration);
+	} else {
+		rti->current_interval->nb_iterations = 0;
+	}
 	simpleTime			 = activeTime - rti->current_interval->simple_duration * rti->current_interval->nb_iterations;
 
 	/* to be sure clamp simpleTime */
