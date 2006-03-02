@@ -1,5 +1,6 @@
-Latest CVS Changes 01/03/06
-  - more SVG support: system color, basic conditional processing (switch), SMIL anim events
+Latest CVS Changes 02/03/06
+  - added support for importing AMR/SMV/EVRC file missing their magic number
+  - more SVG support: system color, basic conditional processing (switch), SMIL anim events, gradients (SVG 1.1 Full)
   - moved all language handling to both ISO 639-1 (2 char code) and 639-2 (3 char code), as 639-1 is used in SVG.
   - fixed mp4 root OD creatin when fragmenting file (PLs were not copied over)
   - fixedbug in large MP4 file (> 4GB) writing (chunk offset table was corrupted)
