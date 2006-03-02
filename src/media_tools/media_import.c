@@ -2686,8 +2686,17 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		return gf_import_message(import, GF_NOT_SUPPORTED, "Multichannel AMR WideBand Audio Not Supported");
 	}
 	else {
-		fclose(mdia);
-		return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Corrupted AMR file header (expecting '#!AMR...')");
+		char *ext = strrchr(import->in_name, '.');
+		if (ext && !stricmp(ext, ".amr")) { mtype = GF_ISOM_SUBTYPE_3GP_AMR; update_gpp_cfg = 1; ext = "AMR"; }
+		else if (ext && !stricmp(ext, ".evc")) { mtype = GF_ISOM_SUBTYPE_3GP_EVRC; oti = 0xA0; ext = "EVRC"; }
+		else if (ext && !stricmp(ext, ".smv")) { mtype = GF_ISOM_SUBTYPE_3GP_SMV; oti = 0xA1; ext = "SMV"; }
+		else {
+			fclose(mdia);
+			return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Corrupted AMR/SMV/EVRC file header");
+		}
+		
+		fseek(mdia, 0, SEEK_SET);
+		gf_import_message(import, GF_OK, "Importing %s Audio (File header corrupted, missing \"#!%s\\n\")", ext, ext);
 	}
 
 	delete_esd = 0;
@@ -2771,6 +2780,10 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 					samp->dataLength = GF_SMV_EVRC_RATE_TO_SIZE[2*i+1] - 1;
 					break;
 				}
+			}
+			if (!samp->dataLength) {
+				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Corrupted TOC (%d)", toc);
+				goto exit;
 			}
 			samp->data[0] = toc;
 			break;
