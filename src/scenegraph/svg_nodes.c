@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Sat Feb 25 10:56:16 2006
+	DO NOT MOFIFY - File generated on GMT Thu Mar 02 16:32:19 2006
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -5126,8 +5126,10 @@ void *gf_svg_new_linearGradient()
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
+	gf_svg_init_xlink((SVGElement *)p);
 	p->x2.value = FIX_ONE;
 	p->y2.value = FIX_ONE;
+	gf_mx2d_init(p->gradientTransform);
 	return p;
 }
 
@@ -5348,26 +5350,71 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
 		case 41:
+			info->name = "xlink:href";
+			info->fieldType = SVG_IRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->href;
+			return GF_OK;
+		case 42:
+			info->name = "xlink:show";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->show;
+			return GF_OK;
+		case 43:
+			info->name = "xlink:title";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->title;
+			return GF_OK;
+		case 44:
+			info->name = "xlink:actuate";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->actuate;
+			return GF_OK;
+		case 45:
+			info->name = "xlink:role";
+			info->fieldType = SVG_IRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->role;
+			return GF_OK;
+		case 46:
+			info->name = "xlink:arcrole";
+			info->fieldType = SVG_IRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->arcrole;
+			return GF_OK;
+		case 47:
+			info->name = "xlink:type";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->type;
+			return GF_OK;
+		case 48:
 			info->name = "gradientUnits";
 			info->fieldType = SVG_GradientUnit_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->gradientUnits;
 			return GF_OK;
-		case 42:
+		case 49:
+			info->name = "spreadMethod";
+			info->fieldType = SVG_SpreadMethod_datatype;
+			info->far_ptr = & ((SVGlinearGradientElement *)node)->spreadMethod;
+			return GF_OK;
+		case 50:
+			info->name = "gradientTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = & ((SVGlinearGradientElement *)node)->gradientTransform;
+			return GF_OK;
+		case 51:
 			info->name = "x1";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->x1;
 			return GF_OK;
-		case 43:
+		case 52:
 			info->name = "y1";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->y1;
 			return GF_OK;
-		case 44:
+		case 53:
 			info->name = "x2";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->x2;
 			return GF_OK;
-		case 45:
+		case 54:
 			info->name = "y2";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->y2;
@@ -6898,9 +6945,13 @@ void *gf_svg_new_radialGradient()
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
+	gf_svg_init_xlink((SVGElement *)p);
 	p->cx.value = FIX_ONE/2;
 	p->cy.value = FIX_ONE/2;
 	p->r.value = FIX_ONE/2;
+	gf_mx2d_init(p->gradientTransform);
+	p->fx.value = FIX_ONE/2;
+	p->fy.value = FIX_ONE/2;
 	return p;
 }
 
@@ -7121,21 +7172,76 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
 		case 41:
+			info->name = "xlink:href";
+			info->fieldType = SVG_IRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->href;
+			return GF_OK;
+		case 42:
+			info->name = "xlink:show";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->show;
+			return GF_OK;
+		case 43:
+			info->name = "xlink:title";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->title;
+			return GF_OK;
+		case 44:
+			info->name = "xlink:actuate";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->actuate;
+			return GF_OK;
+		case 45:
+			info->name = "xlink:role";
+			info->fieldType = SVG_IRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->role;
+			return GF_OK;
+		case 46:
+			info->name = "xlink:arcrole";
+			info->fieldType = SVG_IRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->arcrole;
+			return GF_OK;
+		case 47:
+			info->name = "xlink:type";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->type;
+			return GF_OK;
+		case 48:
+			info->name = "fx";
+			info->fieldType = SVG_Coordinate_datatype;
+			info->far_ptr = & ((SVGradialGradientElement *)node)->fx;
+			return GF_OK;
+		case 49:
+			info->name = "fy";
+			info->fieldType = SVG_Coordinate_datatype;
+			info->far_ptr = & ((SVGradialGradientElement *)node)->fy;
+			return GF_OK;
+		case 50:
 			info->name = "gradientUnits";
 			info->fieldType = SVG_GradientUnit_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->gradientUnits;
 			return GF_OK;
-		case 42:
+		case 51:
+			info->name = "spreadMethod";
+			info->fieldType = SVG_SpreadMethod_datatype;
+			info->far_ptr = & ((SVGradialGradientElement *)node)->spreadMethod;
+			return GF_OK;
+		case 52:
+			info->name = "gradientTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = & ((SVGradialGradientElement *)node)->gradientTransform;
+			return GF_OK;
+		case 53:
 			info->name = "cx";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->cx;
 			return GF_OK;
-		case 43:
+		case 54:
 			info->name = "cy";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->cy;
 			return GF_OK;
-		case 44:
+		case 55:
 			info->name = "r";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->r;
@@ -8582,16 +8688,26 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = & ((SVGsvgElement *)node)->playbackOrder;
 			return GF_OK;
 		case 63:
+			info->name = "x";
+			info->fieldType = SVG_Coordinate_datatype;
+			info->far_ptr = & ((SVGsvgElement *)node)->x;
+			return GF_OK;
+		case 64:
+			info->name = "y";
+			info->fieldType = SVG_Coordinate_datatype;
+			info->far_ptr = & ((SVGsvgElement *)node)->y;
+			return GF_OK;
+		case 65:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->width;
 			return GF_OK;
-		case 64:
+		case 66:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->height;
 			return GF_OK;
-		case 65:
+		case 67:
 			info->name = "preserveAspectRatio";
 			info->fieldType = SVG_PreserveAspectRatio_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->preserveAspectRatio;
@@ -10972,7 +11088,7 @@ u32 gf_svg_get_attribute_count(GF_Node *node)
 		case TAG_SVG_hkern: return 12;
 		case TAG_SVG_image: return 47;
 		case TAG_SVG_line: return 63;
-		case TAG_SVG_linearGradient: return 46;
+		case TAG_SVG_linearGradient: return 55;
 		case TAG_SVG_listener: return 16;
 		case TAG_SVG_metadata: return 7;
 		case TAG_SVG_missing_glyph: return 9;
@@ -10981,13 +11097,13 @@ u32 gf_svg_get_attribute_count(GF_Node *node)
 		case TAG_SVG_polygon: return 60;
 		case TAG_SVG_polyline: return 60;
 		case TAG_SVG_prefetch: return 19;
-		case TAG_SVG_radialGradient: return 45;
+		case TAG_SVG_radialGradient: return 56;
 		case TAG_SVG_rect: return 65;
 		case TAG_SVG_script: return 9;
 		case TAG_SVG_set: return 27;
 		case TAG_SVG_solidColor: return 41;
 		case TAG_SVG_stop: return 42;
-		case TAG_SVG_svg: return 66;
+		case TAG_SVG_svg: return 68;
 		case TAG_SVG_switch: return 59;
 		case TAG_SVG_tbreak: return 7;
 		case TAG_SVG_text: return 63;

@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Sat Feb 25 10:56:16 2006
+	DO NOT MOFIFY - File generated on GMT Thu Mar 02 16:32:19 2006
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -330,6 +330,8 @@ typedef struct _tagSVGlinearGradientElement
 {
 	BASE_SVG_ELEMENT
 	SVG_GradientUnit gradientUnits;
+	SVG_SpreadMethod spreadMethod;
+	SVG_Matrix gradientTransform;
 	SVG_Coordinate x1;
 	SVG_Coordinate y1;
 	SVG_Coordinate x2;
@@ -411,7 +413,11 @@ typedef struct _tagSVGprefetchElement
 typedef struct _tagSVGradialGradientElement
 {
 	BASE_SVG_ELEMENT
+	SVG_Coordinate fx;
+	SVG_Coordinate fy;
 	SVG_GradientUnit gradientUnits;
+	SVG_SpreadMethod spreadMethod;
+	SVG_Matrix gradientTransform;
 	SVG_Coordinate cx;
 	SVG_Coordinate cy;
 	SVG_Length r;
@@ -470,6 +476,8 @@ typedef struct _tagSVGsvgElement
 	SVG_Clock snapshotTime;
 	SVG_TimelineBegin timelineBegin;
 	SVG_PlaybackOrder playbackOrder;
+	SVG_Coordinate x;
+	SVG_Coordinate y;
 	SVG_Length width;
 	SVG_Length height;
 	SVG_PreserveAspectRatio preserveAspectRatio;

@@ -1032,15 +1032,14 @@ static void xml_sax_cdata(GF_SAXParser *parser)
 	}
 }
 
-static void xml_sax_parse_comments(GF_SAXParser *parser)
+static Bool xml_sax_parse_comments(GF_SAXParser *parser)
 {
 	char *end = strstr(parser->buffer + parser->current_pos, "-->");
-	if (!end) {
-		parser->current_pos = parser->line_size;
-		return;
-	}
+	if (!end) return 0;
+
 	parser->current_pos += 3 + (u32) (end - (parser->buffer + parser->current_pos) );
 	parser->sax_state = SAX_STATE_TEXT_CONTENT;
+	return 1;
 }
 
 
@@ -1136,7 +1135,10 @@ restart:
 			}
 			break;
 		case SAX_STATE_COMMENT:
-			xml_sax_parse_comments(parser);
+			if (!xml_sax_parse_comments(parser)) {
+				xml_sax_swap(parser);
+				return GF_OK;
+			}
 			break;
 		case SAX_STATE_ATT_NAME:
 		case SAX_STATE_ATT_VALUE:

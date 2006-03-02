@@ -1004,7 +1004,7 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 				break;
 			}
 		}
-		while (result[j]==' ') j--;
+		while (j && result[j]==' ') j--;
 		result[j] = 0;
 		len = j;
 	}

@@ -89,7 +89,8 @@
     <ref name='svg.Focus.attr'/>
     <ref name='svg.AnimateSyncDefault.attr'/>
     <ref name='svg.Core.attr'/>
-    <ref name='svg.WH.attr'/>
+    <!-- modified to XYWH for SVG 1.1 basic -->
+    <ref name='svg.XYWH.attr'/>
     <ref name='svg.PAR.attr'/>
     <optional>
       <attribute name='viewBox' svg:animatable='true' svg:inheritable='false'>

@@ -180,6 +180,9 @@ void gf_svg_init_properties(SVGElement *p)
 	p->properties->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties->text_anchor = SVG_TEXTANCHOR_INHERIT;
+
+	p->properties->stop_opacity.type = SVG_NUMBER_VALUE;
+	p->properties->stop_opacity.value = FIX_ONE;
 }
 
 void gf_svg_init_focus(SVGElement *p)

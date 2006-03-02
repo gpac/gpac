@@ -73,6 +73,7 @@ enum {
 	SVG_FocusHighlight_datatype				= 33,
 	SVG_Overlay_datatype					= 34,
 	SVG_TransformBehavior_datatype			= 35,
+	SVG_SpreadMethod_datatype				= 36,
 
 	/* SVG Number */
 	SVG_Number_datatype						= 50,
@@ -813,6 +814,14 @@ typedef enum {
 	SVG_OVERLAY_TOP,
 	SVG_OVERLAY_FULLSCREEN,
 } SVG_Overlay;
+
+
+enum {
+	SVG_SPREAD_PAD = 0,
+	SVG_SPREAD_REFLECT,
+	SVG_SPREAD_REPEAT,
+};
+typedef u8 SVG_SpreadMethod;
 
 typedef enum {
 	LASeR_CHOICE_ALL   = 0,

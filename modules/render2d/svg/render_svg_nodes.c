@@ -240,6 +240,7 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 	/* 2) */
 	top_clip = eff->surface->top_clipper;
 	gf_mx2d_copy(backup_matrix, eff->transform);
+	if (svg->x.value || svg->y.value) gf_mx2d_add_translation(&eff->transform, svg->x.value, svg->y.value);
 	SVGSetViewport(eff, svg, is_root_svg);
 
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
@@ -987,8 +988,9 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	end.y = lg->y2.value;
 	if (lg->y2.type==SVG_NUMBER_PERCENTAGE) end.x /= 100;
 
-	/*gradientTransform???*/
-	gf_mx2d_init(*mat);
+	txh->compositor->r2d->stencil_set_gradient_mode(txh->hwtx, lg->spreadMethod);
+
+	gf_mx2d_copy(*mat, lg->gradientTransform);
 
 	if (lg->gradientUnits==SVG_GRADIENTUNITS_OBJECT) {
 		/*move to local coord system - cf SVG spec*/
@@ -1030,8 +1032,7 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	/*create gradient brush if needed*/
 	if (!txh->hwtx) return;
 
-	//GradientGetMatrix((GF_Node *) rg->transform, mat);
-	gf_mx2d_init(*mat);
+	gf_mx2d_copy(*mat, rg->gradientTransform);
 
 	radius = rg->r.value;
 	if (rg->r.type==SVG_NUMBER_PERCENTAGE) radius /= 100;
@@ -1040,7 +1041,12 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	center.y = rg->cy.value;
 	if (rg->cy.type==SVG_NUMBER_PERCENTAGE) center.y /= 100;
 
-	focal = center;
+	txh->compositor->r2d->stencil_set_gradient_mode(txh->hwtx, rg->spreadMethod);
+
+	focal.x = rg->fx.value;
+	if (rg->fx.type==SVG_NUMBER_PERCENTAGE) focal.x /= 100;
+	focal.y = rg->fy.value;
+	if (rg->fy.type==SVG_NUMBER_PERCENTAGE) focal.y /= 100;
 
 	if (rg->gradientUnits==SVG_GRADIENTUNITS_OBJECT) {
 		/*move to local coord system - cf SVG spec*/
@@ -1064,7 +1070,10 @@ void SVG_Init_radialGradient(Render2D *sr, GF_Node *node)
 
 GF_TextureHandler *svg_gradient_get_texture(GF_Node *node)
 {
-	SVG_GradientStack *st = (SVG_GradientStack*) gf_node_get_private(node);
+	SVGElement *g = (SVGElement *)node;
+	SVG_GradientStack *st;
+	if (g->xlink->href.target) g = g->xlink->href.target;
+	st = (SVG_GradientStack*) gf_node_get_private((GF_Node *)g);
 	return st->nb_col ? &st->txh : NULL;
 }
 

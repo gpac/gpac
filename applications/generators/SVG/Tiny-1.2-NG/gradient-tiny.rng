@@ -52,6 +52,26 @@
         </choice>
       </attribute>
     </optional>
+
+
+
+    <!-- ... ZZZgradients full ... -->
+    <optional>
+      <attribute name='spreadMethod'>
+        <choice>
+          <value>pad</value>
+          <value>reflect</value>
+          <value>repeat</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='gradientTransform'>
+        <ref name='TransformList.datatype'/>
+      </attribute>
+    </optional>
+    <!-- seems to have disapeared from tiny ?? -->
+    <ref name='svg.XLinkEmbed.attr'/>
   </define>
 
   <define name='GradientCommon.CM'>
@@ -96,8 +116,19 @@
     <ref name='svg.Core.attr'/>
     <ref name='svg.CxCy.attr'/>
     <ref name='svg.R.attr'/>
-  </define>
 
+  <!-- ... radialgradient full ... -->
+    <optional>
+      <attribute name='fx'>
+        <ref name='Coordinate.datatype'/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name='fy'>
+        <ref name='Coordinate.datatype'/>
+      </attribute>
+    </optional>
+  </define>
 
   <!-- ... stop ................................................... -->
   <define name='stop'>

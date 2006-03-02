@@ -2054,6 +2054,11 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 	case SVG_TransformBehavior_datatype:
 		svg_parse_transformbehavior(info->far_ptr, attribute_content);
 		break;
+	case SVG_SpreadMethod_datatype:
+		if (!strcmp(attribute_content, "reflect")) *(u8*)info->far_ptr = SVG_SPREAD_REFLECT;
+		else if (!strcmp(attribute_content, "repeat")) *(u8*)info->far_ptr = SVG_SPREAD_REPEAT;
+		else *(u8*)info->far_ptr = SVG_SPREAD_PAD;
+		break;
 /* end of keyword type parsing */
 
 	/* keyword | floats */
@@ -2303,6 +2308,7 @@ void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type)
 	case SVG_GradientUnit_datatype:
 	case SVG_Overlay_datatype:
 	case SVG_TransformBehavior_datatype:
+	case SVG_SpreadMethod_datatype:
 		{
 			u8 *keyword;
 			GF_SAFEALLOC(keyword, sizeof(u8))
@@ -2826,6 +2832,12 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		else if (intVal==SVG_TRANSFORMBEHAVIOR_PINNED180) strcpy(attValue, "pinned180");
 		else if (intVal==SVG_TRANSFORMBEHAVIOR_PINNED270) strcpy(attValue, "pinned270");
 		break;
+	case SVG_SpreadMethod_datatype:
+		if (intVal==SVG_SPREAD_REFLECT) strcpy(attValue, "reflect");
+		else if (intVal==SVG_SPREAD_REFLECT) strcpy(attValue, "repeat");
+		else strcpy(attValue, "pad");
+		break;
+
 	case LASeR_Choice_datatype:
 		if (intVal==LASeR_CHOICE_ALL) strcpy(attValue, "all");
 		else if (intVal==LASeR_CHOICE_NONE) strcpy(attValue, "none");
@@ -3319,6 +3331,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	case SVG_TransformType_datatype:
 	case SVG_Overlay_datatype:
 	case SVG_TransformBehavior_datatype:
+	case SVG_SpreadMethod_datatype:
 	case SVG_InitialVisibility_datatype:
 	case LASeR_Choice_datatype:
 	case LASeR_TimeAttribute_datatype:
@@ -4043,6 +4056,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 	case SVG_VectorEffect_datatype:
 	case SVG_PlaybackOrder_datatype:
 	case SVG_TimelineBegin_datatype:
+	case SVG_SpreadMethod_datatype:
 	case SVG_TransformType_datatype:
 
 	/* Unsupported types */

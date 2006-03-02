@@ -688,6 +688,10 @@ void setAttributeType(SVGAttribute *att)
 			strcpy(att->impl_type, "LASeR_Size");
 		} else if (!strcmp(att->svg_name, "lsr:timeAttribute")) {
 			strcpy(att->impl_type, "LASeR_TimeAttribute");
+		} else if (!strcmp(att->svg_name, "spreadMethod")) {
+			strcpy(att->impl_type, "SVG_SpreadMethod");
+		} else if (!strcmp(att->svg_name, "gradientTransform")) {
+			strcpy(att->impl_type, "SVG_Matrix");
 		} else {
 			strcpy(att->impl_type, "SVG_String");
 			fprintf(stdout, "Warning: using type SVG_String for attribute %s.\n", att->svg_name);
@@ -721,6 +725,8 @@ void setAttributeType(SVGAttribute *att)
 			strcpy(att->impl_type, "SVG_Matrix");
 		} else if (!strcmp(att->svg_name, "event") || !strcmp(att->svg_name, "ev:event")) {
 			strcpy(att->impl_type, "XMLEV_Event");
+		} else if (!strcmp(att->svg_name, "gradientTransform")) {
+			strcpy(att->impl_type, "SVG_Matrix");
 		} else if (strstr(att->svg_type, "datatype")) {
 			char *tmp;
 			sprintf(att->impl_type, "SVG_%s", att->svg_type);
@@ -1238,11 +1244,15 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 	else if (!strcmp(svg_elt->svg_name, "linearGradient")) {
 		fprintf(output, "\tp->x2.value = FIX_ONE;\n");
 		fprintf(output, "\tp->y2.value = FIX_ONE;\n");
+		fprintf(output, "\tgf_mx2d_init(p->gradientTransform);\n");
 	}
 	else if (!strcmp(svg_elt->svg_name, "radialGradient")) {
 		fprintf(output, "\tp->cx.value = FIX_ONE/2;\n");
 		fprintf(output, "\tp->cy.value = FIX_ONE/2;\n");
 		fprintf(output, "\tp->r.value = FIX_ONE/2;\n");
+		fprintf(output, "\tgf_mx2d_init(p->gradientTransform);\n");
+		fprintf(output, "\tp->fx.value = FIX_ONE/2;\n");
+		fprintf(output, "\tp->fy.value = FIX_ONE/2;\n");
 	}
 	fprintf(output, "\treturn p;\n}\n\n");
 
