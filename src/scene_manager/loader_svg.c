@@ -978,6 +978,8 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 	result = strdup(text_content);
 	len = strlen(text_content);
 
+	if (is_cdata) goto skip_xml_space;
+
 	if (!node_core->core->space || (node_core->core->space != XML_SPACE_PRESERVE)) {
 		u32 j, i, state;
 		i = j = 0;
@@ -1028,6 +1030,8 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 		result[j] = 0;
 		len = j;
 	}
+
+skip_xml_space:
 	if (!len) {
 		free(result);
 		return;
