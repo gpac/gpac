@@ -469,6 +469,9 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 		} else if (!stricmp(att->name, "id")) {
 			svg_parse_element_id(parser, elt, att->value);
 			ided = 1;
+		} else if (!stricmp(att->name, "xml:id")) {
+			svg_parse_element_id(parser, elt, att->value);
+			ided = 1;
 		} else if (anim && !stricmp(att->name, "attributeName")) {
 			anim->attributeName = att->value;
 			att->value = NULL;

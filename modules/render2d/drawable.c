@@ -760,6 +760,22 @@ u32 R2D_LP_GetLastUpdateTime(GF_Node *node)
 
 #ifndef GPAC_DISABLE_SVG
 
+static GF_Node *svg_get_texture_target(GF_Node *node, DOM_String uri)
+{
+	GF_Node *target = NULL;
+	if (uri[0]=='#') target = gf_sg_find_node_by_name(gf_node_get_graph(node), uri+1);
+	return target;
+}
+
+static u32 svg_get_texture_type(GF_Node *node, DOM_String uri)
+{
+	GF_Node *target = NULL;
+	if (uri[0]=='#') target = gf_sg_find_node_by_name(gf_node_get_graph(node), uri+1);
+
+	if (!target) return TAG_SVG_UndefinedElement;
+	return gf_node_get_tag(target);
+}
+
 static GF_TextureHandler *svg_get_texture_handle(GF_Node *node, DOM_String uri)
 {
 	GF_Node *target = NULL;
@@ -780,8 +796,13 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGPropertiesPointe
 	ctx->aspect.fill_alpha = 255;
 	ctx->aspect.filled = (props.fill->type != SVG_PAINT_NONE);
 	if (props.fill->type==SVG_PAINT_URI) {
-		ctx->h_texture = svg_get_texture_handle(ctx->node->owner, props.fill->uri);
-		ctx->aspect.filled = 0;
+		if (svg_get_texture_type(ctx->node->owner, props.fill->uri) == TAG_SVG_solidColor) {
+			SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)svg_get_texture_target(ctx->node->owner, props.fill->uri);
+			ctx->aspect.fill_color = GF_COL_ARGB_FIXED(solidColorElt->properties->solid_opacity.value, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);			
+		} else {
+			ctx->h_texture = svg_get_texture_handle(ctx->node->owner, props.fill->uri);
+			ctx->aspect.filled = 0;
+		}
 	}
 	else if (props.fill->color.type == SVG_COLOR_CURRENTCOLOR) {
 		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(props.fill_opacity->value, props.color->color.red, props.color->color.green, props.color->color.blue);
@@ -794,7 +815,12 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGPropertiesPointe
 
 	ctx->aspect.has_line = (props.stroke->type != SVG_PAINT_NONE);
 	if (props.stroke->type==SVG_PAINT_URI) {
-		ctx->aspect.line_texture = svg_get_texture_handle(ctx->node->owner, props.stroke->uri);
+		if (svg_get_texture_type(ctx->node->owner, props.fill->uri) == TAG_SVG_solidColor) {
+			SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)svg_get_texture_target(ctx->node->owner, props.fill->uri);
+			ctx->aspect.line_color = GF_COL_ARGB_FIXED(solidColorElt->properties->solid_opacity.value, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);			
+		} else {
+			ctx->aspect.line_texture = svg_get_texture_handle(ctx->node->owner, props.stroke->uri);
+		}
 	}
 	else if (props.stroke->color.type == SVG_COLOR_CURRENTCOLOR) {
 		ctx->aspect.line_color = GF_COL_ARGB_FIXED(props.stroke_opacity->value, props.color->color.red, props.color->color.green, props.color->color.blue);
@@ -809,7 +835,8 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGPropertiesPointe
 		ctx->aspect.pen_props.dash_offset = props.stroke_dashoffset->value;
 		ctx->aspect.pen_props.dash_set = (GF_DashSettings *) &(props.stroke_dasharray->array);
 	}
-	ctx->aspect.is_scalable = 1;
+	ctx->aspect.is_scalable = (*props.vector_effect == SVG_VECTOREFFECT_NONSCALINGSTROKE)?0:1;
+	
 	ctx->aspect.pen_props.cap = *props.stroke_linecap;
 	ctx->aspect.pen_props.join = *props.stroke_linejoin;
 	ctx->aspect.pen_props.width = (ctx->aspect.has_line?props.stroke_width->value:0);

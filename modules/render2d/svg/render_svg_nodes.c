@@ -92,21 +92,80 @@ static void SVGSetViewport(RenderEffect2D *eff, SVGsvgElement *svg, Bool is_root
 	if (is_root) {
 		u32 scene_width = eff->surface->render->compositor->scene_width;
 		u32 scene_height = eff->surface->render->compositor->scene_height;
+		u32 dpi = 90; /* Should retrieve the dpi from the system */
 
-		if (svg->width.type == SVG_NUMBER_VALUE) 
+		switch (svg->width.type) {
+		case SVG_NUMBER_VALUE:
+		case SVG_NUMBER_PX:
 			real_width = INT2FIX(scene_width);
-		else
+			break;
+		case SVG_NUMBER_PERCENTAGE:
 			/*u32 * fixed / u32*/
 			real_width = scene_width*svg->width.value/100;
+			break;
+		case SVG_NUMBER_IN:
+			real_width = dpi * svg->width.value;
+			break;
+		case SVG_NUMBER_CM:
+			real_width = gf_mulfix(dpi*FLT2FIX(0.39), svg->width.value);
+			break;
+		case SVG_NUMBER_MM:
+			real_width = gf_mulfix(dpi*FLT2FIX(0.039), svg->width.value);
+			break;
+		case SVG_NUMBER_PT:
+			real_width = dpi/12 * svg->width.value;
+			break;
+		case SVG_NUMBER_PC:
+			real_width = dpi/6 * svg->width.value;
+			break;
+		default:
+			break;
+		}
 
-		if (svg->height.type == SVG_NUMBER_VALUE)
+		switch (svg->height.type) {
+		case SVG_NUMBER_VALUE:
+		case SVG_NUMBER_PX:
 			real_height = INT2FIX(scene_height);
-		else 
+			break;
+		case SVG_NUMBER_PERCENTAGE:
 			real_height = scene_height*svg->height.value/100;
+			break;
+		case SVG_NUMBER_IN:
+			real_height = dpi * svg->height.value;
+			break;
+		case SVG_NUMBER_CM:
+			real_height = gf_mulfix(dpi*FLT2FIX(0.39), svg->height.value);
+			break;
+		case SVG_NUMBER_MM:
+			real_height = gf_mulfix(dpi*FLT2FIX(0.039), svg->height.value);
+			break;
+		case SVG_NUMBER_PT:
+			real_height = dpi/12 * svg->height.value;
+			break;
+		case SVG_NUMBER_PC:
+			real_height = dpi/6 * svg->height.value;
+			break;
+		default:
+			break;
+		}
 	} else {
 		real_width = real_height = 0;
-		if (svg->width.type == SVG_NUMBER_VALUE) real_width = svg->width.value;
-		if (svg->height.type == SVG_NUMBER_VALUE) real_height = svg->height.value;
+		switch (svg->width.type) {
+		case SVG_NUMBER_VALUE:
+		case SVG_NUMBER_PX:
+			real_width = svg->width.value;
+			break;
+		default:
+			break;
+		}
+		switch (svg->height.type) {
+		case SVG_NUMBER_VALUE:
+		case SVG_NUMBER_PX:
+			real_height = svg->height.value;
+			break;
+		default:
+			break;
+		}
 	}
 	
 	if (!real_width || !real_height) return;
@@ -212,6 +271,7 @@ static void SVGSetViewport(RenderEffect2D *eff, SVGsvgElement *svg, Bool is_root
  */
 static void SVG_Render_svg(GF_Node *node, void *rs)
 {
+	u32 viewport_color;
 	GF_Matrix2D backup_matrix;
 	GF_IRect top_clip;
 	Bool is_root_svg = 0;
@@ -243,6 +303,11 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 	if (svg->x.value || svg->y.value) gf_mx2d_add_translation(&eff->transform, svg->x.value, svg->y.value);
 	SVGSetViewport(eff, svg, is_root_svg);
 
+	/* TODO: FIX ME: make sure this is called only when needed 
+	or should we use eff->surface->default_back_color */
+	viewport_color = GF_COL_ARGB_FIXED(eff->svg_props->viewport_fill_opacity->value, eff->svg_props->viewport_fill->color.red, eff->svg_props->viewport_fill->color.green, eff->svg_props->viewport_fill->color.blue);
+	VS2D_Clear(eff->surface, &top_clip, viewport_color);
+		
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
 		svg_get_nodes_bounds(node, svg->children, eff);
 		memcpy(eff->svg_props, &backup_props, styling_size);

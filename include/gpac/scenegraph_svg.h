@@ -852,51 +852,55 @@ typedef u8 LASeR_TimeAttribute;
  *************************************************/
 
 typedef struct {
-	/* Tiny 1.2 properties, alphabetically sorted */
+	/* Tiny 1.2 properties*/
 	SVG_Paint					*color;
 	SVG_Paint					*fill; 
 	SVG_Paint					*stroke;
 	SVG_Paint					*solid_color;
 	SVG_Paint					*stop_color;
 	SVG_Paint					*viewport_fill;
+
 	SVG_Opacity					*fill_opacity;
 	SVG_Opacity					*solid_opacity;
 	SVG_Opacity					*stop_opacity;
 	SVG_Opacity					*stroke_opacity;
 	SVG_Opacity					*viewport_fill_opacity;
+	SVG_Opacity					*opacity; /* Restricted property in Tiny 1.2 */
+
 	SVG_AudioLevel				*audio_level;
+
 	SVG_RenderingHint			*color_rendering;
 	SVG_RenderingHint			*image_rendering;
 	SVG_RenderingHint			*shape_rendering;
 	SVG_RenderingHint			*text_rendering;
+
 	SVG_Display					*display; 
-	SVG_DisplayAlign			*display_align;
-	SVG_FillRule				*fill_rule; 
+	SVG_Visibility				*visibility;
+	SVG_Overflow				*overflow; /* Restricted property in Tiny 1.2 */
+	
 	SVG_FontFamily				*font_family;
 	SVG_FontSize				*font_size;
 	SVG_FontStyle				*font_style; 
 	SVG_FontWeight				*font_weight; 
-	SVG_LineIncrement			*line_increment;
+	SVG_FontVariant				*font_variant; 
+	SVG_LineIncrement			*line_increment;	
+	SVG_TextAnchor				*text_anchor;
+	SVG_DisplayAlign			*display_align;
+	
 	SVG_PointerEvents			*pointer_events;
+	
+	SVG_FillRule				*fill_rule; 
+	
 	SVG_StrokeDashArray			*stroke_dasharray;
 	SVG_StrokeDashOffset		*stroke_dashoffset;
 	SVG_StrokeLineCap			*stroke_linecap; 
 	SVG_StrokeLineJoin			*stroke_linejoin; 
 	SVG_StrokeMiterLimit		*stroke_miterlimit; 
 	SVG_StrokeWidth				*stroke_width;
-	SVG_TextAnchor				*text_anchor;
 	SVG_VectorEffect			*vector_effect;
-	SVG_Visibility				*visibility;
-
-	/* Not a property in Tiny 1.2 because only on video but a property in Full 1.1 */
-	SVG_Opacity					*opacity;
-
-	SVG_Overflow				*overflow; 
-
-
+		
 	/* Full 1.1 props, i.e. not implemented */
 /*
-	SVG_FontVariant *font_variant; 
 	SVG_String *font;
 	SVG_String *font_size_adjust;
 	SVG_String *font_stretch;
@@ -939,40 +943,45 @@ typedef struct {
 	SVG_Paint					solid_color;
 	SVG_Paint					stop_color;
 	SVG_Paint					viewport_fill;
+
 	SVG_Opacity					fill_opacity;
 	SVG_Opacity					solid_opacity;
 	SVG_Opacity					stop_opacity;
 	SVG_Opacity					stroke_opacity;
 	SVG_Opacity					viewport_fill_opacity;
+	SVG_Opacity					opacity; /* Restricted property in Tiny 1.2 */
+
 	SVG_AudioLevel				audio_level;
+
 	SVG_RenderingHint			color_rendering;
 	SVG_RenderingHint			image_rendering;
 	SVG_RenderingHint			shape_rendering;
 	SVG_RenderingHint			text_rendering;
+
 	SVG_Display					display; 
-	SVG_DisplayAlign			display_align;
-	SVG_FillRule				fill_rule; 
+	SVG_Visibility				visibility;
+	SVG_Overflow				overflow; /* Restricted property in Tiny 1.2 */
+
 	SVG_FontFamily				font_family;
 	SVG_FontSize				font_size;
 	SVG_FontStyle				font_style; 
 	SVG_FontWeight				font_weight; 
+	SVG_FontVariant				font_variant; 
 	SVG_LineIncrement			line_increment;
+	SVG_TextAnchor				text_anchor;
+	SVG_DisplayAlign			display_align;
+
 	SVG_PointerEvents			pointer_events;
+
+	SVG_FillRule				fill_rule; 
+
 	SVG_StrokeDashArray			stroke_dasharray;
 	SVG_StrokeDashOffset		stroke_dashoffset;
 	SVG_StrokeLineCap			stroke_linecap; 
 	SVG_StrokeLineJoin			stroke_linejoin; 
 	SVG_StrokeMiterLimit		stroke_miterlimit; 
 	SVG_StrokeWidth				stroke_width;
-	SVG_TextAnchor				text_anchor;
-	SVG_VectorEffect			vector_effect;
-	SVG_Visibility				visibility;
-
-	/* Not a property in Tiny 1.2 because only on video but a property in Full 1.1 */
-	SVG_Opacity					opacity;
-
-	SVG_Overflow				overflow; 
-
+	SVG_VectorEffect			vector_effect;	
 
 	/* Full 1.1 props, i.e. not implemented */
 /*
