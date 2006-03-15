@@ -95,6 +95,14 @@ void svg_entity_decl(void *user_data,
 	}
 }
 
+void svg_cdata_block(void *user_data, 
+					 const xmlChar * value, 
+					 int len)
+{
+	SVGParser	*parser = (SVGParser *)user_data;
+	parser->sax_state = STARTSVG;
+}
+
 void svg_start_document(void *user_data)
 {
 	SVGParser	*parser = (SVGParser *)user_data;
@@ -128,6 +136,13 @@ xmlEntityPtr svg_get_entity(void * user_data, const xmlChar *name)
 		}
 	}
 	return xmlGetPredefinedEntity(name);
+}
+
+
+Bool is_svg_script_element(SVGElement *elt)
+{
+	u32 tag = elt->sgprivate->tag;
+	return (tag==TAG_SVG_script);
 }
 
 Bool is_svg_text_element(SVGElement *elt)
@@ -185,7 +200,12 @@ void svg_characters(void *user_data, const xmlChar *ch, s32 len)
 
 		gf_node_changed((GF_Node *)elt, NULL);
 	}
+	if (is_svg_script_element(elt))
+	{
+		SVGscriptElement *script = (SVGtextElement *)elt;
+	}
 }
+
 // TODO verifiy good practices to replace entities
 xmlChar *svg_expand_entities(SVGParser	*parser, xmlChar *originalStyle)
 {
@@ -880,6 +900,8 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 					gf_svg_parse_attribute(elt, &info, (xmlChar *)attrs[attribute_index+1], 0, 0);
 				}
 			}
+		} else if (!stricmp(attrs[attribute_index], "language")) {
+			// TODO process this attribute (for scripts)
 		} else if (!stricmp(attrs[attribute_index], "xlink:href")) {
 			if (is_svg_animation_tag(tag)) {
 				/* already dealt with above */
@@ -1078,6 +1100,7 @@ static void SVGParser_InitSaxHandler(SVGParser *parser)
 	parser->sax_handler->startElement	= svg_start_element;
 	parser->sax_handler->getEntity		= svg_get_entity;
 	parser->sax_handler->entityDecl 	= svg_entity_decl;
+	parser->sax_handler->cdataBlock 	= svg_cdata_block;
 }
 
 GF_Err SVGParser_InitProgressiveFileChunk(SVGParser *parser)
