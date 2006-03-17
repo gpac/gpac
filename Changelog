@@ -1,4 +1,10 @@
-Latest CVS Changes 02/03/06
+Latest CVS Changes 17/03/06
+  - regression tests (.bt and .x3dv) are not aprt of the CVS & GPAC source tree
+  - added 2D/3D selection param for osmozilla: use3d="true" or use3d="false" to force renderer used.
+  - added SAF (LASeR Simple Aggregation Format)  support: mux and demux (MP4Box) + SAF input plugin.
+  - various fixes on X3D scene parsing and dumping
+  - removed old XML parser, all parsing now relies on the SAX parser.
+  - draft IPV6 support, not fully tested yet.
   - added support for importing AMR/SMV/EVRC file missing their magic number
   - more SVG support: system color, basic conditional processing (switch), SMIL anim events, gradients (SVG 1.1 Full)
   - moved all language handling to both ISO 639-1 (2 char code) and 639-2 (3 char code), as 639-1 is used in SVG.
