@@ -3670,6 +3670,7 @@ static GF_Err svg_number_muladd(Fixed alpha, SVG_Number *a, Fixed beta, SVG_Numb
 
 static GF_Err svg_viewbox_muladd(Fixed alpha, SVG_ViewBox *a, Fixed beta, SVG_ViewBox *b, SVG_ViewBox *c)
 {
+	c->is_set = 1;
 	c->x = gf_mulfix(alpha, a->x) + gf_mulfix(beta, b->x);
 	c->y = gf_mulfix(alpha, a->y) + gf_mulfix(beta, b->y);
 	c->width = gf_mulfix(alpha, a->width) + gf_mulfix(beta, b->width);
