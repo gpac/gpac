@@ -613,7 +613,7 @@ GF_Err gf_bifs_enc_route(GF_BifsEncoder *codec, GF_Route *r, GF_BitStream *bs)
 	GF_BE_WRITE_INT(codec, bs, r->FromNode->sgprivate->NodeID - 1, codec->info->config.NodeIDBits, "outNodeID", NULL);
 	numBits = gf_node_get_num_fields_in_mode(r->FromNode, GF_SG_FIELD_CODING_OUT) - 1;
 	numBits = gf_get_bit_size(numBits);
-	e = gf_bifs_field_index_by_mode(r->FromNode, r->FromFieldIndex, GF_SG_FIELD_CODING_OUT, &ind);
+	e = gf_bifs_field_index_by_mode(r->FromNode, r->FromField.fieldIndex, GF_SG_FIELD_CODING_OUT, &ind);
 	if (e) return e;
 	GF_BE_WRITE_INT(codec, bs, ind, numBits, "outField", NULL);
 
@@ -621,7 +621,7 @@ GF_Err gf_bifs_enc_route(GF_BifsEncoder *codec, GF_Route *r, GF_BitStream *bs)
 	GF_BE_WRITE_INT(codec, bs, r->ToNode->sgprivate->NodeID - 1, codec->info->config.NodeIDBits, "inNodeID", NULL);
 	numBits = gf_node_get_num_fields_in_mode(r->ToNode, GF_SG_FIELD_CODING_IN) - 1;
 	numBits = gf_get_bit_size(numBits);
-	e = gf_bifs_field_index_by_mode(r->ToNode, r->ToFieldIndex, GF_SG_FIELD_CODING_IN, &ind);
+	e = gf_bifs_field_index_by_mode(r->ToNode, r->ToField.fieldIndex, GF_SG_FIELD_CODING_IN, &ind);
 	GF_BE_WRITE_INT(codec, bs, ind, numBits, "inField", NULL);
 	return e;
 }
@@ -745,9 +745,9 @@ GF_Err gf_bifs_enc_commands(GF_BifsEncoder *codec, GF_List *comList, GF_BitStrea
 				GF_Command *rcom = gf_list_get(comList, i+1);
 				if (rcom->tag!=GF_SG_ROUTE_INSERT) break;
 				GF_SAFEALLOC(r, sizeof(GF_Route));
-				r->FromFieldIndex = rcom->fromFieldIndex;
+				r->FromField.fieldIndex = rcom->fromFieldIndex;
 				r->FromNode = gf_sg_find_node(codec->scene_graph, rcom->fromNodeID);
-				r->ToFieldIndex = rcom->toFieldIndex;
+				r->ToField.fieldIndex = rcom->toFieldIndex;
 				r->ToNode = gf_sg_find_node(codec->scene_graph, rcom->toNodeID);
 				r->ID = rcom->RouteID;
 				r->name = rcom->def_name;

@@ -934,7 +934,7 @@ GF_ESD *gp_media_map_esd(GF_ISOFile *mp4, u32 track)
 		esd->decoderConfig->objectTypeIndication = GPAC_EXTRA_CODECS_OTI;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		/*format ext*/
-		gf_bs_write_u32(bs, GF_FOUR_CHAR_INT('h', '2', '6', '3'));
+		gf_bs_write_u32(bs, GF_4CC('h', '2', '6', '3'));
 		gf_isom_get_visual_info(mp4, track, 1, &w, &h);
 		gf_bs_write_u16(bs, w);
 		gf_bs_write_u16(bs, h);

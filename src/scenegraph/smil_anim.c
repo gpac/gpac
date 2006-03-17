@@ -571,7 +571,7 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 	for (i=0, j=0; i<command_count; i++) {
 		u8 *command = gf_list_get(commands, i);
 		switch (*command) {
-		case 0: /* Move To */
+		case SVG_PATHCOMMAND_M: /* Move To */
 			tmp = gf_list_get(points, j);
 			orig = *tmp;
 			gf_path_add_move_to(path, orig.x, orig.y);
@@ -582,7 +582,7 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 			*/
 			ct_orig = orig;
 			break;
-		case 1: /* Line To */
+		case SVG_PATHCOMMAND_L: /* Line To */
 			tmp = gf_list_get(points, j);
 			end = *tmp;
 
@@ -592,7 +592,7 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 			/*cf above*/
 			ct_orig = orig;
 			break;
-		case 2: /* Curve To */
+		case SVG_PATHCOMMAND_C: /* Curve To */
 			tmp = gf_list_get(points, j);
 			ct_orig = *tmp;
 			tmp = gf_list_get(points, j+1);
@@ -604,7 +604,7 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 			orig = end;
 			j+=3;
 			break;
-		case 3: /* Next Curve To */
+		case SVG_PATHCOMMAND_S: /* Next Curve To */
 			ct_orig.x = 2*orig.x - ct_orig.x;
 			ct_orig.y = 2*orig.y - ct_orig.y;
 			tmp = gf_list_get(points, j);
@@ -616,7 +616,7 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 			orig = end;
 			j+=2;
 			break;
-		case 4: /* Quadratic Curve To */
+		case SVG_PATHCOMMAND_Q: /* Quadratic Curve To */
 			tmp = gf_list_get(points, j);
 			ct_orig = *tmp;
 			tmp = gf_list_get(points, j+1);
@@ -625,7 +625,7 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 			orig = end;
 			j+=2;
 			break;
-		case 5: /* Next Quadratic Curve To */
+		case SVG_PATHCOMMAND_T: /* Next Quadratic Curve To */
 			ct_orig.x = 2*orig.x - ct_orig.x;
 			ct_orig.y = 2*orig.y - ct_orig.y;
 			tmp = gf_list_get(points, j);
@@ -634,7 +634,7 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 			orig = end;
 			j++;
 			break;
-		case 6: /* Close */
+		case SVG_PATHCOMMAND_Z: /* Close */
 			gf_path_close(path);
 			break;
 		}

@@ -186,7 +186,7 @@ void SG_GraphRemoved(GF_Node *node, GF_SceneGraph *sg)
 
 void gf_sg_reset(GF_SceneGraph *sg)
 {
-	u32 i, type;
+	u32 i, type, count;
 	if (!sg) return;
 
 	/*inlined graph, remove any of this graph nodes from the parent graph*/
@@ -214,9 +214,13 @@ void gf_sg_reset(GF_SceneGraph *sg)
 	/*WATCHOUT: we may have cyclic dependencies due to
 	1- a node referencing itself (forbidden in VRML)
 	2- nodes refered to in commands of conditionals children of this node (MPEG-4 is mute about that)
+	we recursively preocess from last declared DEF node to first one
 	*/
-	for (i=0; i<sg->node_reg_size; i++) {
-		GF_Node *node = sg->node_registry[i];
+restart:
+	for (i=sg->node_reg_size; i>0; i--) {
+		GF_Node *node = sg->node_registry[i-1];
+		sg->node_registry[i-1] = NULL;
+		if (!node) continue;
 
 		/*first replace all instances in parents by NULL WITHOUT UNREGISTERING (to avoid destroying the node).
 		This will take care of nodes referencing themselves*/
@@ -238,6 +242,7 @@ void gf_sg_reset(GF_SceneGraph *sg)
 		care of conditional case as we perform special checking when destroying commands*/
 		gf_list_reset(node->sgprivate->parentNodes);
 #else
+		{
 		GF_NodeList *nlist = node->sgprivate->parents;
 		type = node->sgprivate->tag;
 		if ((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) type = 1;
@@ -253,9 +258,11 @@ void gf_sg_reset(GF_SceneGraph *sg)
 			nlist = next;
 		}
 		node->sgprivate->parents = NULL;
+		}
 #endif
-		sg->node_registry[i] = NULL;
+		count = sg->node_reg_size;
 		gf_node_del(node);
+		if (count != sg->node_reg_size) goto restart;
 	}
 	sg->node_reg_size = 0;
 
@@ -384,7 +391,11 @@ void gf_sg_set_scene_size_info(GF_SceneGraph *sg, u32 width, u32 height, Bool us
 
 Bool gf_sg_use_pixel_metrics(GF_SceneGraph *sg)
 {
-	return (sg ? sg->usePixelMetrics : 0);
+	if (sg) {
+		while (sg->pOwningProto) sg = sg->parent_scene;
+		return sg->usePixelMetrics;
+	}
+	return 0;
 }
 
 Bool gf_sg_get_scene_size_info(GF_SceneGraph *sg, u32 *width, u32 *height)
@@ -420,6 +431,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	if (pNode == (GF_Node*)pSG->pOwningProto) pSG = pSG->parent_scene;
 	assert(pSG);
 
+
 #ifdef GF_ARRAY_PARENT_NODES
 	if (parentNode) gf_list_rem(pNode->sgprivate->parentNodes, parentNode);
 #else
@@ -450,6 +462,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	
 	/*this is just an instance removed*/
 	if (pNode->sgprivate->num_instances) return GF_OK;
+
 	
 #ifdef GF_ARRAY_PARENT_NODES
 	assert(gf_list_count(pNode->sgprivate->parentNodes)==0);
@@ -978,6 +991,7 @@ void gf_node_free(GF_Node *node)
 #else
 	assert(! node->sgprivate->parents);
 #endif
+
 	if (node->sgprivate->NodeName) free(node->sgprivate->NodeName);
 	free(node->sgprivate);
 	free(node);

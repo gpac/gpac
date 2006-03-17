@@ -2760,9 +2760,9 @@ GF_Err gf_isom_store_movie_config(GF_ISOFile *movie, Bool remove_all)
 	bin128 binID;
 	if (movie == NULL) return GF_BAD_PARAM;
 
-	gf_isom_remove_user_data(movie, 0, GF_FOUR_CHAR_INT('G','P','A','C'), binID);
+	gf_isom_remove_user_data(movie, 0, GF_4CC('G','P','A','C'), binID);
 	count = gf_isom_get_track_count(movie);
-	for (i=0; i<count; i++) gf_isom_remove_user_data(movie, i+1, GF_FOUR_CHAR_INT('G','P','A','C'), binID);
+	for (i=0; i<count; i++) gf_isom_remove_user_data(movie, i+1, GF_4CC('G','P','A','C'), binID);
 
 	if (remove_all) return GF_OK;
 
@@ -2773,7 +2773,7 @@ GF_Err gf_isom_store_movie_config(GF_ISOFile *movie, Bool remove_all)
 	gf_bs_write_u32(bs, movie->interleavingTime);
 	gf_bs_get_content(bs, (unsigned char **) &data, &len);
 	gf_bs_del(bs);
-	gf_isom_add_user_data(movie, 0, GF_FOUR_CHAR_INT('G','P','A','C'), binID, data, len);
+	gf_isom_add_user_data(movie, 0, GF_4CC('G','P','A','C'), binID, data, len);
 	free(data);
 	/*update tracks: interleaving group/priority and track edit name*/
 	for (i=0; i<count; i++) {
@@ -2788,7 +2788,7 @@ GF_Err gf_isom_store_movie_config(GF_ISOFile *movie, Bool remove_all)
 		for (j=0; j<len; j++) gf_bs_write_u8(bs, trak->name[j]);
 		gf_bs_get_content(bs, (unsigned char **) &data, &len);
 		gf_bs_del(bs);
-		gf_isom_add_user_data(movie, i+1, GF_FOUR_CHAR_INT('G','P','A','C'), binID, data, len);
+		gf_isom_add_user_data(movie, i+1, GF_4CC('G','P','A','C'), binID, data, len);
 		free(data);
 	}
 	return GF_OK;
@@ -2806,10 +2806,10 @@ GF_Err gf_isom_load_movie_config(GF_ISOFile *movie)
 
 	found_cfg = 0;
 	/*restore movie*/
-	count = gf_isom_get_user_data_count(movie, 0, GF_FOUR_CHAR_INT('G','P','A','C'), binID);
+	count = gf_isom_get_user_data_count(movie, 0, GF_4CC('G','P','A','C'), binID);
 	for (i=0; i<count; i++) {
 		data = NULL;
-		gf_isom_get_user_data(movie, 0, GF_FOUR_CHAR_INT('G','P','A','C'), binID, i+1, &data, &len);
+		gf_isom_get_user_data(movie, 0, GF_4CC('G','P','A','C'), binID, i+1, &data, &len);
 		if (!data) continue;
 		/*check marker*/
 		if ((unsigned char) data[0] != 0xFE) {
@@ -2829,10 +2829,10 @@ GF_Err gf_isom_load_movie_config(GF_ISOFile *movie)
 	for (i=0; i<gf_isom_get_track_count(movie); i++) {
 		u32 j;
 		GF_TrackBox *trak = gf_isom_get_track_from_file(movie, i+1);
-		count = gf_isom_get_user_data_count(movie, i+1, GF_FOUR_CHAR_INT('G','P','A','C'), binID);
+		count = gf_isom_get_user_data_count(movie, i+1, GF_4CC('G','P','A','C'), binID);
 		for (j=0; j<count; j++) {
 			data = NULL;
-			gf_isom_get_user_data(movie, i+1, GF_FOUR_CHAR_INT('G','P','A','C'), binID, j+1, &data, &len);
+			gf_isom_get_user_data(movie, i+1, GF_4CC('G','P','A','C'), binID, j+1, &data, &len);
 			if (!data) continue;
 			/*check marker*/
 			if ((unsigned char) data[0] != 0xFE) {

@@ -49,10 +49,12 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 	GF_Route *r;
 	SFVec4f output, sf_out;
 	u32 count, num_out;
+	Bool do_sum;
 
 	if (!p->sgprivate->NodeID && !p->sgprivate->scenegraph->pOwningProto) return;
 	if (!p->sgprivate->events) return;
 
+	do_sum = p->Sum;
 	num_out = 1;
 
 	if (!inMFField) {
@@ -62,9 +64,10 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 		output.z = gf_mulfix(p->Factor3, inSFField->z) + p->Offset3;
 		output.q = gf_mulfix(p->Factor4, inSFField->q) + p->Offset4;
 
-		if (p->Sum) {
+		if (do_sum) {
 			output.x = output.x + output.y + output.z + output.q;
 			output.y = output.z = output.q = output.x;
+			do_sum = 0;
 		}
 
 		switch (inType) {
@@ -84,20 +87,19 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 		count = inMFField->count;
 	}
 	/*reallocate all MF fields*/
-	gf_sg_vrml_mf_reset(&p->outMFColor, GF_SG_VRML_MFCOLOR);
+/*	gf_sg_vrml_mf_reset(&p->outMFColor, GF_SG_VRML_MFCOLOR);
 	gf_sg_vrml_mf_reset(&p->outMFFloat, GF_SG_VRML_MFFLOAT);
 	gf_sg_vrml_mf_reset(&p->outMFInt32, GF_SG_VRML_MFINT32);
 	gf_sg_vrml_mf_reset(&p->outMFRotation, GF_SG_VRML_MFROTATION);
 	gf_sg_vrml_mf_reset(&p->outMFString, GF_SG_VRML_MFSTRING);
 	gf_sg_vrml_mf_reset(&p->outMFVec2f, GF_SG_VRML_MFVEC2F);
 	gf_sg_vrml_mf_reset(&p->outMFVec3f, GF_SG_VRML_MFVEC3F);
-
+*/
 	gf_sg_vrml_mf_alloc(&p->outMFColor, GF_SG_VRML_MFCOLOR, count);
 	gf_sg_vrml_mf_alloc(&p->outMFFloat, GF_SG_VRML_MFFLOAT, count);
 	gf_sg_vrml_mf_alloc(&p->outMFInt32, GF_SG_VRML_MFINT32, count);
 	gf_sg_vrml_mf_alloc(&p->outMFRotation, GF_SG_VRML_MFROTATION, count);
-	gf_sg_vrml_mf_alloc(&p->outMFString, GF_SG_VRML_MFSTRING, count);
-	gf_sg_vrml_mf_alloc(&p->outMFVec2f, GF_SG_VRML_MFVEC2F, count);
+	gf_sg_vrml_mf_alloc(&p->outMFString, GF_SG_VRML_MFSTRING, count);	gf_sg_vrml_mf_alloc(&p->outMFVec2f, GF_SG_VRML_MFVEC2F, count);
 	gf_sg_vrml_mf_alloc(&p->outMFVec3f, GF_SG_VRML_MFVEC3F, count);
 
 	/*set all MF outputs*/
@@ -187,7 +189,7 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 				break;
 
 			}
-			if (p->Sum) {
+			if (do_sum) {
 				output.x = output.x + output.y + output.z + output.q;
 				output.y = output.z = output.q = output.x;
 			}
@@ -212,14 +214,14 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 			if (inType==GF_SG_VRML_SFTIME) {
 				format_sftime_string(output.x, str);
 			} else {
-				sprintf(str, "%.6f", FIX2FLT(output.x));
+				sprintf(str, "%g", FIX2FLT(output.x));
 			}
 		} else if (num_out==2) {
-			sprintf(str, "%.4f %.4f", FIX2FLT(output.x), FIX2FLT(output.y));
+			sprintf(str, "%g %g", FIX2FLT(output.x), FIX2FLT(output.y));
 		} else if (num_out==3) {
-			sprintf(str, "%.3f %.3f %.3f", FIX2FLT(output.x), FIX2FLT(output.y), FIX2FLT(output.z));
+			sprintf(str, "%g %g %g", FIX2FLT(output.x), FIX2FLT(output.y), FIX2FLT(output.z));
 		} else if (num_out==4) {
-			sprintf(str, "%.2f %.2f %.2f %.2f", FIX2FLT(output.x), FIX2FLT(output.y), FIX2FLT(output.z), FIX2FLT(output.q));
+			sprintf(str, "%g %g %g %g", FIX2FLT(output.x), FIX2FLT(output.y), FIX2FLT(output.z), FIX2FLT(output.q));
 		}
 
 		if (p->outMFString.vals[i]) free(p->outMFString.vals[i]);

@@ -374,7 +374,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 			else if (strstr(szExt, "svg")) load->type = GF_SM_LOAD_SVG;
 			else if (strstr(szExt, "xsr")) load->type = GF_SM_LOAD_XSR;
 			else if (strstr(szExt, "xml")) {
-				char *rtype = gf_xml_sax_get_root_type(load->fileName);
+				char *rtype = gf_xml_get_root_type(load->fileName);
 				if (rtype) {
 					if (!strcmp(rtype, "SAFSession")) load->type = GF_SM_LOAD_XSR;
 					else if (!strcmp(rtype, "XMT-A")) load->type = GF_SM_LOAD_XMTA;

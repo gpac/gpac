@@ -421,3 +421,91 @@ err_exit:
 	return e;
 }
 
+
+
+// Rewrite the good dependancies when an OD AU is extracted from the file
+static u32 Media_FindOD_ID(GF_MediaBox *mdia, GF_ISOSample *sample, u32 track_id)
+{
+	GF_Err e;
+	GF_ODCodec *ODdecode;
+	GF_ODCom *com;
+	u32 the_od_id;
+	GF_ODUpdate *odU;
+	GF_ESD *esd;
+	GF_Descriptor *desc;
+	GF_TrackReferenceTypeBox *mpod;
+	u32 i, j;
+
+	if (!mdia || !sample || !sample->data || !sample->dataLength) return 0;
+
+	mpod = NULL;
+	e = Track_FindRef(mdia->mediaTrack, GF_ISOM_BOX_TYPE_MPOD, &mpod);
+	if (e) return 0;
+	//no references, nothing to do...
+	if (!mpod) return 0;
+
+	ODdecode = gf_odf_codec_new();
+	if (!ODdecode) return 0;
+	e = gf_odf_codec_set_au(ODdecode, sample->data, sample->dataLength);
+	if (e) goto err_exit;
+	e = gf_odf_codec_decode(ODdecode);
+	if (e) goto err_exit;
+
+	while (1) {
+		GF_List *esd_list = NULL;
+		com = gf_odf_codec_get_com(ODdecode);
+		if (!com) break;
+		if (com->tag != GF_ODF_OD_UPDATE_TAG) continue;
+		odU = (GF_ODUpdate *) com;
+
+		i=0;
+		while ((desc = gf_list_enum(odU->objectDescriptors, &i))) {
+			switch (desc->tag) {
+			case GF_ODF_OD_TAG:
+			case GF_ODF_IOD_TAG:
+				esd_list = ((GF_ObjectDescriptor *)desc)->ESDescriptors; break;
+			default:
+				continue;
+			}	
+			the_od_id = 0;
+			j=0;
+			while ((esd = gf_list_enum( esd_list, &j))){
+				if (esd->ESID==track_id) {
+					the_od_id = ((GF_IsomObjectDescriptor*)desc)->objectDescriptorID;
+					break;
+				}
+			}
+			if (the_od_id) break;
+		}
+		gf_odf_com_del((GF_ODCom **)&odU);
+		if (the_od_id) break;
+	}
+
+err_exit:
+	gf_odf_codec_del(ODdecode);
+	if (e) return 0;
+	return the_od_id;
+}
+
+
+u32 gf_isom_find_od_for_track(GF_ISOFile *file, u32 track)
+{
+	u32 i, j, di, the_od_id;
+	GF_TrackBox *od_tk;
+	GF_TrackBox *tk = gf_isom_get_track_from_file(file, track);
+	if (!tk) return 0;
+
+	the_od_id = 0;
+	i=0;
+	while ( (od_tk = gf_list_enum(file->moov->trackList, &i))) {
+		if (od_tk->Media->handler->handlerType != GF_ISOM_MEDIA_OD) continue;
+
+		for (j=0; j<od_tk->Media->information->sampleTable->SampleSize->sampleCount; j++) {
+			GF_ISOSample *samp = gf_isom_get_sample(file, i, j+1, &di);
+			the_od_id = Media_FindOD_ID(od_tk->Media, samp, tk->Header->trackID);
+			gf_isom_sample_del(&samp);
+			if (the_od_id) return the_od_id;
+		}
+	}
+	return 0;
+}

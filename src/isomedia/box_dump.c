@@ -2367,7 +2367,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 				str = txt->text;
 				len = gf_utf8_mbstowcs(utf16Line, 10000, (const char **) &str);
 			}
-			if (len>=0) {
+			if (len != (u32) -1) {
 				utf16Line[len] = 0;
 				fprintf(dump, " text=\"\'");
 				for (j=0; j<len; j++) {
@@ -2398,7 +2398,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 				}
 				fprintf(dump, "\'\"");
 			} else {
-				fprintf(dump, "text=\"UNKNOWN UTF ENCODING\"");
+				fprintf(dump, "text=\"%s\"", txt->text);
 			}
 		}
 		if (txt->highlight_color) {

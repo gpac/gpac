@@ -239,7 +239,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	strcpy(cache_name, sess->dm->cache_directory);
 
 	strcpy(tmp, sess->server_name);
-	while (doubledots = strchr(tmp, ':'))
+	while ( (doubledots = strchr(tmp, ':')) )
 		*doubledots = '_';
 	strcat(tmp, sess->remote_path);
 	last_sep = 0;
@@ -853,6 +853,7 @@ GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, cons
 	if (bytes_per_sec) *bytes_per_sec = sess->bytes_per_sec;
 	if (net_status) *net_status = sess->status;
 	if (sess->status == GF_DOWNLOAD_STATE_DISCONNECTED) return GF_EOS;
+	else if (sess->status == GF_DOWNLOAD_STATE_UNAVAILABLE) return GF_SERVICE_ERROR;
 	return GF_OK;
 }
 

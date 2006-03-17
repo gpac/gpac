@@ -367,7 +367,7 @@ GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg)
 	cfg->level = gf_bs_read_int(bs, 8);
 	/*cfg->reserved = */gf_bs_read_int(bs, 3);	
 	cfg->pointsCodec = gf_bs_read_int(bs, 2);	
-	cfg->pathComponents = gf_bs_read_int(bs, 8);	
+	cfg->pathComponents = gf_bs_read_int(bs, 4);	
 	cfg->fullRequestHost = gf_bs_read_int(bs, 1);	
 	if (gf_bs_read_int(bs, 1)) cfg->time_resolution = gf_bs_read_int(bs, 16);
 	else cfg->time_resolution = 1000;

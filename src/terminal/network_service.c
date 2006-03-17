@@ -222,6 +222,41 @@ static void term_on_slp_recieved(void *user_priv, GF_ClientService *service, LPN
 	gf_es_receive_sl_packet(service, ch, data, data_size, hdr, reception_status);
 }
 
+static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Descriptor *media_desc)
+{
+	GF_InlineScene *is;
+	GF_ObjectManager *odm, *root;
+	GF_ObjectDescriptor *od;
+	GET_TERM();
+
+	root = service->owner;
+	switch (media_desc->tag) {
+	case GF_ODF_OD_TAG:
+	case GF_ODF_IOD_TAG:
+		if (root && (root->net_service == service)) {
+			od = (GF_ObjectDescriptor *) media_desc;
+			break;
+		}
+	default:
+		gf_odf_desc_del(media_desc);
+		return;
+	}
+
+	gf_term_lock_net(term, 1);
+
+	is = root->subscene ? root->subscene : root->parentscene;
+	odm = gf_is_find_odm(is, od->objectDescriptorID);
+	/*remove the old OD*/
+	if (odm) gf_odm_disconnect(odm, 1);
+	odm = gf_odm_new();
+	odm->OD = od;
+	odm->term = term;
+	odm->parentscene = is;
+	gf_list_add(is->ODlist, odm);
+	gf_odm_setup_object(odm, service);
+
+	gf_term_lock_net(term, 0);
+}
 
 static void term_on_command(void *user_priv, GF_ClientService *service, GF_NetworkCommand *com, GF_Err response)
 {
@@ -258,9 +293,13 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		gf_odm_set_duration(ch->odm, ch, (u32) (1000*com->duration.duration));
 		break;
 	case GF_NET_CHAN_BUFFER_QUERY:
-		com->buffer.max = ch->MaxBuffer;
-		com->buffer.min = ch->MinBuffer;
-		com->buffer.occupancy = ch->BufferTime;
+		if (ch->IsEndOfStream) {
+			com->buffer.max = com->buffer.min = com->buffer.occupancy = 0;
+		} else {
+			com->buffer.max = ch->MaxBuffer;
+			com->buffer.min = ch->MinBuffer;
+			com->buffer.occupancy = ch->BufferTime;
+		}
 		break;
 	case GF_NET_CHAN_ISMACRYP_CFG:
 		gf_term_lock_net(term, 1);
@@ -277,6 +316,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		return;
 	}
 }
+
 
 Bool net_check_interface(GF_InputService *ifce)
 {
@@ -540,6 +580,11 @@ void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data
 {
 	assert(service);
 	term_on_slp_recieved(service->term, service, ns, data, data_size, hdr, reception_status);
+}
+
+void gf_term_add_media(GF_ClientService *service, GF_Descriptor *media_desc)
+{
+	term_on_media_add(service->term, service, media_desc);
 }
 
 const char *gf_term_get_service_url(GF_ClientService *service)

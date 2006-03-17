@@ -106,9 +106,9 @@ static GF_Err EncScriptFields(ScriptEnc *sc_enc)
 				GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "isedField", NULL);
 
 				if (isedField->ToNode == sc_enc->script) {
-					GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, isedField->FromFieldIndex, nbBitsProto, "protoField", NULL);
+					GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, isedField->FromField.fieldIndex, nbBitsProto, "protoField", NULL);
 				} else {
-					GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, isedField->ToFieldIndex, nbBitsProto, "protoField", NULL);
+					GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, isedField->ToField.fieldIndex, nbBitsProto, "protoField", NULL);
 				}
 				continue;
 			}

@@ -25,7 +25,9 @@
 
 #include <stdlib.h>
 #include <string.h>
+#ifndef _WIN32_WCE
 #include <assert.h>
+#endif
 
 /*GPAC memory tracking*/
 size_t gpac_allocated_memory = 0;
@@ -45,7 +47,9 @@ void *gf_realloc(void *ptr, size_t size)
 	if (!ptr) return gf_malloc(size);
 	ptr_g -= sizeof(size_t);
 	prev_size = *(size_t *)ptr_g;
+#ifndef _WIN32_WCE
 	assert(gpac_allocated_memory >= prev_size);
+#endif
 	gpac_allocated_memory -= prev_size;
 	ptr_g = realloc(ptr_g, size+sizeof(size_t));
 	*(size_t *)ptr_g = size;
@@ -57,7 +61,9 @@ void gf_free(void *ptr)
 	if (ptr) {
 		char *ptr_g = (char *)ptr - sizeof(size_t);
 		size_t size_g = *(size_t *)ptr_g;
+#ifndef _WIN32_WCE
 		assert(gpac_allocated_memory >= size_g);
+#endif
 		gpac_allocated_memory -= size_g;
 		free(ptr_g);
 	}

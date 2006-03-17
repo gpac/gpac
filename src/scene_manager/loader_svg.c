@@ -460,7 +460,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 	count = gf_list_count(attrs);
 	for (i=0; i<count; i++) {
 
-		GF_SAXAttribute *att = gf_list_get(attrs, i);
+		GF_XMLAttribute *att = gf_list_get(attrs, i);
 		if (!att->value || !strlen(att->value)) continue;
 
 		if (!stricmp(att->name, "style")) {
@@ -567,7 +567,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 		SVGElement *par = parent;
 		SVGlistenerElement *listener = (SVGlistenerElement *)elt;
 		if (listener->target.target) par = listener->target.target;
-		if (par) gf_dom_listener_add((GF_Node *)par, listener);
+		if (par) gf_dom_listener_add((GF_Node *)par, (GF_Node *) listener);
 	}
 	return elt;
 }
@@ -580,7 +580,7 @@ static GF_ESD *lsr_parse_header(GF_SVGParser *parser, const char *name, const ch
 		GF_LASERConfig *lsrc = (GF_LASERConfig *) gf_odf_desc_new(GF_ODF_LASER_CFG_TAG);
 		count = gf_list_count(attrs);
 		for (i=0; i<count;i++) {
-			GF_SAXAttribute *att = gf_list_get(attrs, i);
+			GF_XMLAttribute *att = gf_list_get(attrs, i);
 			if (!strcmp(att->name, "profile")) lsrc->profile = !strcmp(att->value, "full") ? 1 : 0;
 			else if (!strcmp(att->name, "level")) lsrc->level = atoi(att->value);
 			else if (!strcmp(att->name, "resolution")) lsrc->resolution = atoi(att->value);
@@ -624,7 +624,7 @@ static GF_Err lsr_parse_command(GF_SVGParser *parser, GF_List *attr)
 		return GF_OK;
 	case GF_SG_LSR_DELETE:
 		for (i=0; i<count; i++) {
-			GF_SAXAttribute *att = gf_list_get(attr, i);
+			GF_XMLAttribute *att = gf_list_get(attr, i);
 			if (!strcmp(att->name, "ref")) atNode = att->value;
 			else if (!strcmp(att->name, "attributeName")) atAtt = att->value;
 			else if (!strcmp(att->name, "index")) index = atoi(att->value);
@@ -648,7 +648,7 @@ static GF_Err lsr_parse_command(GF_SVGParser *parser, GF_List *attr)
 	case GF_SG_LSR_ADD:
 	case GF_SG_LSR_INSERT:
 		for (i=0; i<count; i++) {
-			GF_SAXAttribute *att = gf_list_get(attr, i);
+			GF_XMLAttribute *att = gf_list_get(attr, i);
 			if (!strcmp(att->name, "ref")) atNode = att->value;
 			else if (!strcmp(att->name, "operandElementId")) atOperandNode = att->value;
 			else if (!strcmp(att->name, "operandAttributeName")) atOperandAtt = att->value;
@@ -780,7 +780,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			time = startOffset = length = rap = 0;
 			count = gf_list_count(attributes);
 			for (i=0; i<count;i++) {
-				GF_SAXAttribute *att = gf_list_get(attributes, i);
+				GF_XMLAttribute *att = gf_list_get(attributes, i);
 				if (!strcmp(att->name, "time")) time = atoi(att->value);
 				else if (!strcmp(att->name, "rap")) rap = !strcmp(att->value, "yes") ? 1 : 0;
 				else if (!strcmp(att->name, "startOffset")) startOffset = atoi(att->value);
@@ -800,7 +800,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			if (!gf_list_count(parser->laser_es->AUs)) rap = 1;
 			count = gf_list_count(attributes);
 			for (i=0; i<count;i++) {
-				GF_SAXAttribute *att = gf_list_get(attributes, i);
+				GF_XMLAttribute *att = gf_list_get(attributes, i);
 				if (!strcmp(att->name, "time")) time = atoi(att->value);
 				else if (!strcmp(att->name, "rap")) rap = !strcmp(att->value, "yes") ? 1 : 0;
 			}
@@ -829,7 +829,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			rap = 0;
 			count = gf_list_count(attributes);
 			for (i=0; i<count;i++) {
-				GF_SAXAttribute *att = gf_list_get(attributes, i);
+				GF_XMLAttribute *att = gf_list_get(attributes, i);
 				if (!strcmp(att->name, "time")) time = atoi(att->value);
 				else if (!strcmp(att->name, "rap")) rap = !strcmp(att->value, "yes") ? 1 : 0;
 				else if (!strcmp(att->name, "url")) { url = att->value; att->value = NULL; } 
@@ -1131,13 +1131,12 @@ GF_Err gf_sm_load_init_SVGString(GF_SceneLoader *load, char *str_data)
 	GF_SVGParser *parser = load->loader_priv;
 
 	if (!parser) {
-		char BOM[5];
-		if (strlen(str_data)<4) return GF_BAD_PARAM;
+		char BOM[6];
 		BOM[0] = str_data[0];
 		BOM[1] = str_data[1];
 		BOM[2] = str_data[2];
 		BOM[3] = str_data[3];
-		BOM[4] = 0;
+		BOM[4] = BOM[5] = 0;
 		parser = svg_new_parser(load);
 		e = gf_xml_sax_init(parser->sax_parser, BOM);
 		if (e) {

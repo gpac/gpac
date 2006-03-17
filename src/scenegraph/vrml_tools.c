@@ -214,7 +214,7 @@ u32 gf_sg_get_next_available_route_id(GF_SceneGraph *sg)
 
 void gf_sg_set_max_defined_route_id(GF_SceneGraph *sg, u32 ID)
 {
-	sg->max_defined_route_id = ID;
+	sg->max_defined_route_id = MAX(sg->max_defined_route_id, ID);
 }
 
 u32 gf_sg_get_next_available_proto_id(GF_SceneGraph *sg) 
@@ -1007,9 +1007,8 @@ GF_Err gf_sg_vrml_mf_alloc(void *mf, u32 FieldType, u32 NbItems)
 	if (!FieldSize) return GF_BAD_PARAM;
 	if (NbItems>MAX_MFFIELD_ALLOC) return GF_IO_ERR;
 
-	if (mffield->count!=NbItems) 
-		gf_sg_vrml_mf_reset(mf, FieldType);
-
+	if (mffield->count==NbItems) return GF_OK;
+	gf_sg_vrml_mf_reset(mf, FieldType);
 	if (NbItems) {
 		mffield->array = malloc(sizeof(char)*FieldSize*NbItems);
 		memset(mffield->array, 0, sizeof(char)*FieldSize*NbItems);
@@ -1237,10 +1236,14 @@ void gf_sg_vrml_field_copy(void *dest, void *orig, u32 field_type)
 		gf_sg_sfcommand_del( *(SFCommandBuffer *)dest);
 		((SFCommandBuffer *)dest)->commandList = gf_list_new();
 		((SFCommandBuffer *)dest)->bufferSize = ((SFCommandBuffer *)orig)->bufferSize;
-		((SFCommandBuffer *)dest)->buffer = malloc(sizeof(char)*((SFCommandBuffer *)orig)->bufferSize);
-		memcpy(((SFCommandBuffer *)dest)->buffer, 
-			((SFCommandBuffer *)orig)->buffer,
-			sizeof(char)*((SFCommandBuffer *)orig)->bufferSize);
+		if (((SFCommandBuffer *)dest)->bufferSize) {
+			((SFCommandBuffer *)dest)->buffer = malloc(sizeof(char)*((SFCommandBuffer *)orig)->bufferSize);
+			memcpy(((SFCommandBuffer *)dest)->buffer, 
+				((SFCommandBuffer *)orig)->buffer,
+				sizeof(char)*((SFCommandBuffer *)orig)->bufferSize);
+		} else {
+			((SFCommandBuffer *)dest)->buffer = NULL;
+		}
 		break;
 
 	/*simply copy text string*/

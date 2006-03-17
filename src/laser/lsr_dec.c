@@ -112,9 +112,9 @@ GF_Err gf_laser_decoder_configure_stream(GF_LASeRCodec *codec, u16 ESID, char *d
 
 	info->cfg.profile = gf_bs_read_int(bs, 8);
 	info->cfg.level = gf_bs_read_int(bs, 8);
-	/*info->cfg.reserved = */ gf_bs_read_int(bs, 2);
+	/*info->cfg.reserved = */ gf_bs_read_int(bs, 3);
 	info->cfg.pointsCodec = gf_bs_read_int(bs, 2);
-	info->cfg.pathComponents = gf_bs_read_int(bs, 8);
+	info->cfg.pathComponents = gf_bs_read_int(bs, 4);
 	info->cfg.fullRequestHost = gf_bs_read_int(bs, 1);
 	if (gf_bs_read_int(bs, 1)) {
 		info->cfg.time_resolution = gf_bs_read_int(bs, 16);
@@ -417,12 +417,15 @@ static void lsr_read_byte_align_string(GF_LASeRCodec *lsr, unsigned char **str, 
 	len = lsr_read_vluimsbf8(lsr, "len");
 	if (str) {
 		if (*str) free(*str);
+		*str = NULL;
 		if (len) {
+			if (len > gf_bs_available(lsr->bs) ) {
+				lsr->last_error = GF_NON_COMPLIANT_BITSTREAM;
+				return;
+			}
 			*str = malloc(sizeof(char)*(len+1));
 			gf_bs_read_data(lsr->bs, *str, len);
 			(*str) [len] = 0;
-		} else {
-			*str = NULL;
 		}
 	} else {
 		while (len) { gf_bs_read_int(lsr->bs, 8); len--; }
@@ -494,7 +497,7 @@ static void lsr_read_any_uri(GF_LASeRCodec *lsr, SVG_IRI *iri, const char *name)
 	}
 }
 
-static void lsr_read_any_uri_string(GF_LASeRCodec *lsr, char **str, const char *name)
+static void lsr_read_any_uri_string(GF_LASeRCodec *lsr, unsigned char **str, const char *name)
 {
 	SVG_IRI iri;
 	if (*str) free(*str);
@@ -857,26 +860,59 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, SVGElement *n, SVG_Matrix *ma
 	    case RARE_XML_LANG: lsr_read_byte_align_string(lsr, & n->core->lang, "xml:lang"); break;
 	    case RARE_XML_SPACE: GF_LSR_READ_INT(lsr, n->core->space, 1, "xml:space"); break;
 		/*focusable*/
-		case RARE_FOCUSNEXT: lsr_read_focus(lsr, & n->focus->nav_next, "focusNext"); break;
-		case RARE_FOCUSNORTH: lsr_read_focus(lsr, & n->focus->nav_up, "focusNorth"); break;
-		case RARE_FOCUSNORTHEAST: lsr_read_focus(lsr, & n->focus->nav_up_right, "focusNorthEast"); break;
-		case RARE_FOCUSNORTHWEST: lsr_read_focus(lsr, & n->focus->nav_up_left, "focusNorthWest"); break;
-		case RARE_FOCUSPREV: lsr_read_focus(lsr, & n->focus->nav_prev, "focusPrev"); break;
-		case RARE_FOCUSSOUTH: lsr_read_focus(lsr, & n->focus->nav_down, "focusSouth"); break;
-		case RARE_FOCUSSOUTHEAST: lsr_read_focus(lsr, & n->focus->nav_down_right, "focusSouthEast"); break;
-		case RARE_FOCUSSOUTHWEST: lsr_read_focus(lsr, & n->focus->nav_down_left, "focusSouthWest"); break;
-		case RARE_FOCUSWEST: lsr_read_focus(lsr, & n->focus->nav_left, "focusWest"); break;
-		case RARE_FOCUSEAST: lsr_read_focus(lsr, & n->focus->nav_right, "focusEast"); break;
-		case RARE_HREF_TITLE: lsr_read_byte_align_string(lsr, & n->xlink->title, "xlink:title"); break;		
-		case RARE_HREF_TYPE: lsr_read_byte_align_string(lsr, & n->xlink->type, "xlink:type"); break;		
-		case RARE_HREF_ROLE: lsr_read_any_uri(lsr, & n->xlink->role, "xlink:role");  break;
-		case RARE_HREF_ARCROLE: lsr_read_any_uri(lsr, & n->xlink->arcrole, "xlink:arcrole");  break;
-		case RARE_HREF_ACTUATE: lsr_read_any_uri_string(lsr, & n->xlink->actuate, "xlink:actuate");  break;
-		case RARE_HREF_SHOW: lsr_read_byte_align_string(lsr, & n->xlink->show, "xlink:show"); break;		
+		case RARE_FOCUSNEXT: 
+			if (!n->focus) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
+			lsr_read_focus(lsr, & n->focus->nav_next, "focusNext"); break;
+		case RARE_FOCUSNORTH: 
+			if (!n->focus) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
+			lsr_read_focus(lsr, & n->focus->nav_up, "focusNorth"); break;
+		case RARE_FOCUSNORTHEAST: 
+			if (!n->focus) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
+			lsr_read_focus(lsr, & n->focus->nav_up_right, "focusNorthEast"); break;
+		case RARE_FOCUSNORTHWEST: 
+			if (!n->focus) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
+			lsr_read_focus(lsr, & n->focus->nav_up_left, "focusNorthWest"); break;
+		case RARE_FOCUSPREV: 
+			if (!n->focus) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
+			lsr_read_focus(lsr, & n->focus->nav_prev, "focusPrev"); break;
+		case RARE_FOCUSSOUTH: 
+			if (!n->focus) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
+			lsr_read_focus(lsr, & n->focus->nav_down, "focusSouth"); break;
+		case RARE_FOCUSSOUTHEAST: 
+			if (!n->focus) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
+			lsr_read_focus(lsr, & n->focus->nav_down_right, "focusSouthEast"); break;
+		case RARE_FOCUSSOUTHWEST: 
+			if (!n->focus) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
+			lsr_read_focus(lsr, & n->focus->nav_down_left, "focusSouthWest"); break;
+		case RARE_FOCUSWEST: 
+			if (!n->focus) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
+			lsr_read_focus(lsr, & n->focus->nav_left, "focusWest"); break;
+		case RARE_FOCUSEAST: 
+			if (!n->focus) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
+			lsr_read_focus(lsr, & n->focus->nav_right, "focusEast"); break;
+		case RARE_HREF_TITLE: 
+			if (!n->xlink) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
+			lsr_read_byte_align_string(lsr, & n->xlink->title, "xlink:title"); break;		
+		case RARE_HREF_TYPE: 
+			if (!n->xlink) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
+			lsr_read_byte_align_string(lsr, & n->xlink->type, "xlink:type"); break;		
+		case RARE_HREF_ROLE: 
+			if (!n->xlink) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
+			lsr_read_any_uri(lsr, & n->xlink->role, "xlink:role");  break;
+		case RARE_HREF_ARCROLE: 
+			if (!n->xlink) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
+			lsr_read_any_uri(lsr, & n->xlink->arcrole, "xlink:arcrole");  break;
+		case RARE_HREF_ACTUATE: 
+			if (!n->xlink) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
+			lsr_read_byte_align_string(lsr, & n->xlink->actuate, "xlink:actuate");  break;
+		case RARE_HREF_SHOW: 
+			if (!n->xlink) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
+			lsr_read_byte_align_string(lsr, & n->xlink->show, "xlink:show"); break;		
 		case RARE_END: lsr_read_time_list(lsr, n->timing->end, "end"); break;
 		case RARE_MIN: lsr_read_duration(lsr, &n->timing->min, "min"); break;
 		case RARE_MAX: lsr_read_duration(lsr, &n->timing->max, "min"); break;
 		}
+		if (lsr->last_error) break;
 	}
 }
 
@@ -941,6 +977,8 @@ static void lsr_read_calc_mode(GF_LASeRCodec *lsr, u8 *calc_mode)
 static u32 lsr_read_animatable(GF_LASeRCodec *lsr, const char *name)
 {
 	u32 val;
+	GF_LSR_READ_INT(lsr, val, 1, "hasAttributeName");
+	if (!val) return 0;
 	GF_LSR_READ_INT(lsr, val, 8, "attributeType");
 	return val;
 }
@@ -1172,7 +1210,7 @@ static void lsr_read_anim_fill(GF_LASeRCodec *lsr, u8 *animFreeze, const char *n
 	if (val) {
 		/*enumeration freeze{0} remove{1}*/
 		GF_LSR_READ_INT(lsr, val, 1, name);
-		*animFreeze = SMIL_FILL_REMOVE;
+		*animFreeze = val ? SMIL_FILL_REMOVE : SMIL_FILL_FREEZE;
 	} else {
 		*animFreeze = SMIL_FILL_FREEZE;
 	}
@@ -1365,7 +1403,7 @@ static void lsr_read_anim_values(GF_LASeRCodec *lsr, SMIL_AnimateValues *anims, 
 		/*TODO THIS IS WRONG FIXME*/
 		free(att);
 	}
-
+	
 	GF_LSR_READ_INT(lsr, type, 4, "type");
 	count = lsr_read_vluimsbf5(lsr, "count");
 	for (i=0; i<count; i++) {
@@ -1474,18 +1512,111 @@ static void lsr_read_point_sequence(GF_LASeRCodec *lsr, GF_List *pts, const char
 }
 static void lsr_read_path_type(GF_LASeRCodec *lsr, SVG_PathData *path, const char *name)
 {
-	u32 i, count;
+	u32 i, count, c, pt_idx;
+	SVG_Point ref, *cur;
 	lsr_read_point_sequence(lsr, path->points, "seq");
 	while (gf_list_count(path->commands)) {
 		u8 *v = gf_list_last(path->commands);
 		gf_list_rem_last(path->commands);
 		free(v);
 	}
+	ref.x = ref.y = 0;
+	pt_idx = 0;
     count = lsr_read_vluimsbf5(lsr, "nbOfTypes");
     for (i=0; i<count; i++) {
         u8 *type = malloc(sizeof(u8));
+		GF_LSR_READ_INT(lsr, c, 5, name);
+
+		if (!i && (c!=LSR_PATH_COM_M) && (c!=LSR_PATH_COM_m) ) {
+			u8 *mtype;
+			SVG_Point *pt;
+			GF_SAFEALLOC(pt, sizeof(SVG_Point));
+			gf_list_insert(path->points, pt, 0);
+			mtype = malloc(sizeof(u8));
+			*mtype = LSR_PATH_COM_M;
+			gf_list_add(path->commands, mtype);
+			pt_idx+=1;
+		}
+
+		switch (c) {
+		case LSR_PATH_COM_H:
+		case LSR_PATH_COM_V:
+		case LSR_PATH_COM_L:
+			*type=SVG_PATHCOMMAND_L; 
+			pt_idx+=1;
+			break;
+		case LSR_PATH_COM_M:
+			*type=SVG_PATHCOMMAND_M; 
+			pt_idx++;
+			break;
+		case LSR_PATH_COM_Q: 
+			*type=SVG_PATHCOMMAND_Q; 
+			pt_idx+=2;
+			break;
+		case LSR_PATH_COM_C: 
+			*type=SVG_PATHCOMMAND_C; 
+			pt_idx+=3;
+			break;
+		case LSR_PATH_COM_S: 
+			*type=SVG_PATHCOMMAND_S; 
+			pt_idx+=2;
+			break;
+		case LSR_PATH_COM_T: 
+			*type=SVG_PATHCOMMAND_T; 
+			pt_idx+=1;
+			break;
+		case LSR_PATH_COM_z:
+		case LSR_PATH_COM_Z: 
+			*type=SVG_PATHCOMMAND_Z; 
+			break;
+		case LSR_PATH_COM_h: 
+		case LSR_PATH_COM_l: 
+		case LSR_PATH_COM_v:
+			*type=SVG_PATHCOMMAND_L; 
+			cur = gf_list_get(path->points, pt_idx);
+			cur->x += ref.x; cur->x += ref.x;
+			pt_idx++;
+			break;
+		case LSR_PATH_COM_m: 
+			*type=SVG_PATHCOMMAND_M; 
+			cur = gf_list_get(path->points, pt_idx);
+			cur->x += ref.x; cur->x += ref.x;
+			pt_idx++;
+			break;
+		case LSR_PATH_COM_c: 
+			*type=SVG_PATHCOMMAND_C; 
+			cur = gf_list_get(path->points, pt_idx);
+			cur->x += ref.x; cur->x += ref.x;
+			cur = gf_list_get(path->points, pt_idx+1);
+			cur->x += ref.x; cur->x += ref.x;
+			cur = gf_list_get(path->points, pt_idx+2);
+			cur->x += ref.x; cur->x += ref.x;
+			pt_idx+=3;
+			break;
+		case LSR_PATH_COM_s: 
+			*type=SVG_PATHCOMMAND_S; 
+			cur = gf_list_get(path->points, pt_idx);
+			cur->x += ref.x; cur->x += ref.x;
+			cur = gf_list_get(path->points, pt_idx+1);
+			cur->x += ref.x; cur->x += ref.x;
+			pt_idx+=2;
+			break;
+		case LSR_PATH_COM_q: 
+			*type=SVG_PATHCOMMAND_Q; 
+			cur = gf_list_get(path->points, pt_idx);
+			cur->x += ref.x; cur->x += ref.x;
+			cur = gf_list_get(path->points, pt_idx+1);
+			cur->x += ref.x; cur->x += ref.x;
+			pt_idx+=2;
+			break;
+		case LSR_PATH_COM_t:
+			*type=SVG_PATHCOMMAND_T; 
+			cur = gf_list_get(path->points, pt_idx);
+			cur->x += ref.x; cur->x += ref.x;
+			pt_idx++;
+			break;
+		}
 		gf_list_add(path->commands, type);
-		GF_LSR_READ_INT(lsr, *type, 8, name);
     }
 }
 
@@ -1835,7 +1966,9 @@ static void lsr_translate_anim_trans_values(SMIL_AnimateValues *val, u32 transfo
 {
 	u32 count, i;
 	SVG_Point_Angle *p;
+	SVG_Point *pt;
 	Fixed *f;
+	GF_List *l;
 
 	val->transform_type = transform_type;
 	val->type = SVG_Matrix_datatype;
@@ -1848,8 +1981,21 @@ static void lsr_translate_anim_trans_values(SMIL_AnimateValues *val, u32 transfo
 		case SVG_TRANSFORM_ROTATE:
 			p = malloc(sizeof(SVG_Point_Angle));
 			p->x = p->y = 0;
-			p->angle = ((SVG_Number *)a_val)->value;
-			free(a_val);
+			p->angle = 0;
+
+			l = a_val;
+			f = gf_list_get(a_val, 0);
+			p->angle = *f;
+			f = gf_list_get(a_val, 1);
+			if (f) p->x = *f;
+			f = gf_list_get(a_val, 2);
+			if (f) p->y = *f;
+			while (gf_list_count(l)) {
+				f = gf_list_last(l);
+				gf_list_rem_last(l);
+				free(f);
+			}
+			gf_list_del(l);
 			gf_list_rem(val->values, i);
 			gf_list_insert(val->values, p, i);
 			break;
@@ -1860,6 +2006,26 @@ static void lsr_translate_anim_trans_values(SMIL_AnimateValues *val, u32 transfo
 			free(a_val);
 			gf_list_rem(val->values, i);
 			gf_list_insert(val->values, f, i);
+			break;
+		case SVG_TRANSFORM_SCALE:
+			pt = malloc(sizeof(SVG_Point));
+			l = a_val;
+			f = gf_list_get(a_val, 0);
+			if (f) pt->x = *f;
+			f = gf_list_get(a_val, 1);
+			if (f) pt->y = *f;
+			else pt->y = pt->x;
+			while (gf_list_count(l)) {
+				f = gf_list_last(l);
+				gf_list_rem_last(l);
+				free(f);
+			}
+			gf_list_del(l);
+			gf_list_rem(val->values, i);
+			gf_list_insert(val->values, pt, i);
+			break;
+		default:
+			fprintf(stdout, "unknwon transform type\n");
 			break;
 		}
 	}
@@ -2328,6 +2494,7 @@ static GF_Node *lsr_read_stop(GF_LASeRCodec *lsr)
 }
 static GF_Node *lsr_read_svg(GF_LASeRCodec *lsr)
 {
+	SMIL_Duration snap;
 	u32 flag;
 	SVGsvgElement*elt = (SVGsvgElement*) gf_node_new(lsr->sg, TAG_SVG_svg);
 	lsr_read_id(lsr, (GF_Node *) elt);
@@ -2363,6 +2530,10 @@ static GF_Node *lsr_read_svg(GF_LASeRCodec *lsr)
 	} else {
 		elt->preserveAspectRatio.align = SVG_PRESERVEASPECTRATIO_XMIDYMID;
 	}
+
+	lsr_read_duration(lsr, &snap, "snapshotTime");
+	if (snap.type==SMIL_DURATION_DEFINED) elt->snapshotTime = snap.clock_value;
+	else elt->snapshotTime = 0;
 
 	GF_LSR_READ_INT(lsr, flag, 1, "hasSyncBehavior");
 	if (flag) {
@@ -2518,7 +2689,7 @@ static GF_Node *lsr_read_video(GF_LASeRCodec *lsr, SVGElement *parent)
 			GF_LSR_READ_INT(lsr, flag, 2, "choice");
 			elt->overlay = (flag==2) ? SVG_OVERLAY_TOP : (flag ? SVG_OVERLAY_NONE :  SVG_OVERLAY_FULLSCREEN);
 		} else {
-			char *str = NULL;
+			u8 *str = NULL;
 			lsr_read_byte_align_string(lsr, & str, "overlayExt");
 			if (str) free(str);
 		}
@@ -2601,7 +2772,7 @@ static GF_Node *lsr_read_listener(GF_LASeRCodec *lsr, SVGElement *parent)
 	lsr_read_group_content(lsr, (SVGElement *) elt, 0);
 
 	if (elt->target.target) parent = elt->target.target;
-	gf_dom_listener_add((GF_Node *) parent, elt);
+	gf_dom_listener_add((GF_Node *) parent, (GF_Node *) elt);
 
 	return (GF_Node *)elt;
 }
@@ -2746,6 +2917,8 @@ static void lsr_read_group_content(GF_LASeRCodec *lsr, SVGElement *elt, Bool ski
 {
 	u32 i, count;
 	if (!skip_object_content) lsr_read_object_content(lsr, elt);
+
+	
 	/*node attributes are all parsed*/
 	gf_node_init((GF_Node *)elt);
 
@@ -2761,6 +2934,7 @@ static void lsr_read_group_content(GF_LASeRCodec *lsr, SVGElement *elt, Bool ski
 			} else {
 				/*either error or text content*/
 			}
+			if (lsr->last_error) break;
 		}
 	}
 }
@@ -3333,6 +3507,9 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGsc
 		lsr->prev_rect = NULL;
 		lsr->prev_text = NULL;
 		lsr->prev_use = NULL;
+
+		if (lsr->last_error) 
+			return lsr->last_error;
 	}
 exit:
 	/*script is align*/
@@ -3352,6 +3529,9 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 	GF_Err e;
 	Bool reset_encoding_context;
 	u32 flag, i, count = 0, privateDataIdentifierIndexBits;
+
+	lsr->last_error = GF_OK;
+
 	/*laser unit header*/
 	GF_LSR_READ_INT(lsr, reset_encoding_context, 1, "resetEncodingContext");
 	GF_LSR_READ_INT(lsr, flag, 1, "opt_group");

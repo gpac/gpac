@@ -116,6 +116,11 @@ Section "LASeR Decoder"
   File "..\gm_laser_dec.dll"
 SectionEnd
 
+Section "SAF Demultiplexer"
+  SectionIn 1 2
+  File "..\gm_saf_in.dll"
+SectionEnd
+
 Section "VRML/X3D/MPEG-4 Text/SWF Loader"
   SectionIn 1 2
   File "..\gm_ctx_load.dll"

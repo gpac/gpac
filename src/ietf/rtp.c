@@ -33,8 +33,6 @@ GF_RTPChannel *gf_rtp_new()
 	GF_RTPChannel *tmp;
 	tmp = malloc(sizeof(GF_RTPChannel));
 	memset(tmp, 0, sizeof(GF_RTPChannel));
-
-	tmp->first_rtp_pck = 1;
 	tmp->first_SR = 1;
 	tmp->SSRC = gf_rand();
 	
@@ -114,10 +112,10 @@ GF_Err gf_rtp_set_info_rtp(GF_RTPChannel *ch, u32 seq_num, u32 rtp_time, u32 ssr
 	ch->rtp_first_SN = seq_num;
 	ch->num_sn_loops = 0;
 	//reset RTCP
-	ch->first_rtp_pck = 1;
+	ch->ntp_init = 0;
 	ch->first_SR = 1;
 	ch->SenderSSRC = ssrc;
-	ch->last_num_pck_rcv = ch->last_num_pck_expected = ch->last_num_pck_loss = ch->tot_num_pck_rcv = ch->tot_num_pck_expected = ch->rtcp_bytes_sent = 0;
+	ch->total_pck = ch->total_bytes = ch->last_num_pck_rcv = ch->last_num_pck_expected = ch->last_num_pck_loss = ch->tot_num_pck_rcv = ch->tot_num_pck_expected = ch->rtcp_bytes_sent = 0;
 	return GF_OK;
 }
 
@@ -240,32 +238,22 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 	return GF_OK;
 }
 
-//get the UTC time expressed in RTP timescale
+/*get the UTC time expressed in RTP timescale*/
 u32 gf_rtp_channel_time(GF_RTPChannel *ch)
 {
-	u32 sec, frac;
-	Double t;
-
+	u32 sec, frac, res;
 	gf_get_ntp(&sec, &frac);
-	t = (frac >> 4);
-	t /= 0x10000;
-	t += sec;
-	t *= ch->TimeScale;
-	return (u32) t;
+	res = ( (u32) ( (frac>>26)*ch->TimeScale) ) >> 6;
+	res += ch->TimeScale*(sec - ch->ntp_init);
+	return (u32) res;
 }
 
 u32 gf_rtp_get_report_time()
 {
 	u32 sec, frac;
-	Double t;
-
 	gf_get_ntp(&sec, &frac);
-	t = (frac>>4);
-	t /= 0x10000;
-	t += sec;
-	//in units of 1/65536 seconds
-	t *= 65536;
-	return (u32) t;
+	/*in units of 1/65536 seconds*/
+	return (u32) ( (frac>>16) + 0x10000L*sec );
 }
 
 
@@ -273,11 +261,11 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch)
 {
 	Double d;
 
-	//offset between .5 and 1.5 sec ...
+	/*offset between .5 and 1.5 sec*/
 	d = 0.5 + ((Double) gf_rand()) / ((Double) RAND_MAX);
-	//of a minimal 5sec interval expressed in 1/65536 of a sec
+	/*of a minimal 5sec interval expressed in 1/65536 of a sec*/
 	d = 5.0 * d * 65536;
-	//we should estimate bandwidth sharing too, but as we only support one sender ...
+	/*we should estimate bandwidth sharing too, but as we only support one sender*/
 	ch->next_report_time = gf_rtp_get_report_time() + (u32) d;
 }
 
@@ -315,9 +303,9 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeader *rtp_hdr, u32 *PayloadStart)
 {
 	GF_Err e;
-	s32 Deviance, delta;
+	s32 deviance, delta;
 	u32 CurrSeq, LastSeq;
-	u32 lost, low16;
+	u32 ntp, lost, low16;
 
 	if (!rtp_hdr) return GF_BAD_PARAM;
 	e = GF_OK;
@@ -332,84 +320,98 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 	rtp_hdr->Marker = ( pck[1] & 0x80 ) >> 7;
 	rtp_hdr->PayloadType = pck[1] & 0x7F;
 
-	//we don't support multiple CSRC now. Only one source (the server) is allowed
+	/*we don't support multiple CSRC now. Only one source (the server) is allowed*/
 	if (rtp_hdr->CSRCCount) return GF_NOT_SUPPORTED;
-
-	//SeqNum
+	/*SeqNum*/
 	rtp_hdr->SequenceNumber = ((pck[2] << 8) & 0xFF00) | (pck[3] & 0xFF);
-
-	//TS
+	/*TS*/
 	rtp_hdr->TimeStamp = (u32) ((pck[4]<<24) &0xFF000000) | ((pck[5]<<16) & 0xFF0000) | ((pck[6]<<8) & 0xFF00) | ((pck[7]) & 0xFF);
-
-	//SSRC
+	/*SSRC*/
 	rtp_hdr->SSRC = ((pck[8]<<24) &0xFF000000) | ((pck[9]<<16) & 0xFF0000) | ((pck[10]<<8) & 0xFF00) | ((pck[11]) & 0xFF);
-
-	//first we only work with one payload type...
+	/*first we only work with one payload type...*/
 	if (rtp_hdr->PayloadType != ch->PayloadType) return GF_NOT_SUPPORTED;
 
-	//update RTP time if we didn't get the info
+	/*update RTP time if we didn't get the info*/
 	if (!ch->rtp_time) {
 		ch->rtp_time = rtp_hdr->TimeStamp;
 		ch->rtp_first_SN = rtp_hdr->SequenceNumber;
 		ch->num_sn_loops = 0;
 	}
 
-	if (ch->rtp_log && !ch->first_rtp_pck && ch->SenderSSRC && (ch->SenderSSRC != rtp_hdr->SSRC) ) {
-		//fprintf(ch->rtp_log, "SSRC mismatch: %d vs %d\n", rtp_hdr->SSRC, ch->SenderSSRC);
+	if (!ch->ntp_init && ch->SenderSSRC && (ch->SenderSSRC != rtp_hdr->SSRC) ) {
+		//if (ch->rtp_log ) fprintf(ch->rtp_log, "SSRC mismatch: %d vs %d\n", rtp_hdr->SSRC, ch->SenderSSRC);
 		return GF_IP_NETWORK_EMPTY;
 	}
 
-	//process RTP / update the RTCP 
-	if (ch->first_rtp_pck ) {
-		ch->first_rtp_pck = 0;
-		ch->last_pck_sn = (u32) rtp_hdr->SequenceNumber;
-		ch->last_deviance = gf_rtp_channel_time(ch) - rtp_hdr->TimeStamp;
-		ch->Jitter = 0;
-	} else {
-		//this is a loop in SN - add it
-		if ( (ch->last_pck_sn + 1> rtp_hdr->SequenceNumber) 
-			&& (rtp_hdr->SequenceNumber >= ch->last_pck_sn + MAX_RTP_SN/2)) {
-			ch->num_sn_loops += 1;
-		}
 
-		//LOG packet drop
-		if (ch->rtp_log && ch->last_pck_sn + 1 != rtp_hdr->SequenceNumber) 
-			fprintf(ch->rtp_log, "RTP Pck Loss %d -> %d\n", ch->last_pck_sn, rtp_hdr->SequenceNumber);
-		
-		//RTP specs annexe A.8
-		Deviance = gf_rtp_channel_time(ch) - rtp_hdr->TimeStamp;
-		delta = ch->last_deviance = Deviance;
-		ch->last_deviance = Deviance;
-
-		if (delta < 0) delta = -delta;
-		ch->Jitter += delta - ( (ch->Jitter + 8) >> 4);
-
-		LastSeq = ch->last_pck_sn;
-		CurrSeq = (u32) rtp_hdr->SequenceNumber;
-		//next sequential pck
-		if ( ( (LastSeq + 1) & 0xffff ) == CurrSeq ) {	
-			ch->last_num_pck_rcv += 1;
-			ch->last_num_pck_expected += 1;
-		}
-		//repeated pck
-		else if ( (LastSeq & 0xffff ) == CurrSeq ) {
-			ch->last_num_pck_rcv += 1;
-		}
-		//drop pck
-		else {
-			//pck Loss
-			low16 = LastSeq & 0xffff;
-			if ( CurrSeq > low16 )
-				lost = CurrSeq - low16;
-			else
-				lost = 0xffff - low16 + CurrSeq + 1;
-
-			ch->last_num_pck_expected += lost;
-			ch->last_num_pck_rcv += 1;
-			ch->last_num_pck_loss += lost;
-		}
-		ch->last_pck_sn = CurrSeq;
+	/*RTP specs annexe A.8*/
+	if (!ch->ntp_init) {
+		gf_get_ntp(&ch->ntp_init, &lost);
+		ch->last_pck_sn = (u32) rtp_hdr->SequenceNumber-1;
 	}
+	/*this is a loop in SN - add it*/
+	if ( (ch->last_pck_sn + 1 > rtp_hdr->SequenceNumber) 
+		&& (rtp_hdr->SequenceNumber >= ch->last_pck_sn + MAX_RTP_SN/2)) {
+		ch->num_sn_loops += 1;
+	}
+	
+	ntp = gf_rtp_channel_time(ch);
+	deviance = ntp - rtp_hdr->TimeStamp;
+	delta = deviance - ch->last_deviance;
+	ch->last_deviance = deviance;
+
+	if (delta < 0) delta = -delta;
+	ch->Jitter += delta - ( (ch->Jitter + 8) >> 4);
+
+	lost = 0;
+	LastSeq = ch->last_pck_sn;
+	CurrSeq = (u32) rtp_hdr->SequenceNumber;
+	/*next sequential pck*/
+	if ( ( (LastSeq + 1) & 0xffff ) == CurrSeq ) {	
+		ch->last_num_pck_rcv += 1;
+		ch->last_num_pck_expected += 1;
+	}
+	/*repeated pck*/
+	else if ( (LastSeq & 0xffff ) == CurrSeq ) {
+		ch->last_num_pck_rcv += 1;
+	}
+	/*drop pck*/
+	else {
+		low16 = LastSeq & 0xffff;
+		if ( CurrSeq > low16 )
+			lost = CurrSeq - low16;
+		else
+			lost = 0xffff - low16 + CurrSeq + 1;
+
+		ch->last_num_pck_expected += lost;
+		ch->last_num_pck_rcv += 1;
+		ch->last_num_pck_loss += lost;
+	}
+	ch->last_pck_sn = CurrSeq;
+
+
+	if (ch->rtp_log) {
+#if 0
+		if (ch->last_pck_sn + 1 != rtp_hdr->SequenceNumber) 
+			fprintf(ch->rtp_log, "RTP Pck Loss %d -> %d\n", ch->last_pck_sn, rtp_hdr->SequenceNumber);
+#else
+		ch->total_pck++;
+		ch->total_bytes += pck_size-12;
+
+		fprintf(ch->rtp_log, "RTP\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
+									ch->SenderSSRC,
+									rtp_hdr->TimeStamp,
+									rtp_hdr->SequenceNumber,
+									ntp,
+									delta,
+									ch->Jitter >> 4,
+									lost,
+									ch->total_pck,
+									ch->total_bytes
+				);
+#endif
+	}
+
 	//we work with no CSRC so payload offset is always 12
 	*PayloadStart = 12;
 
@@ -598,6 +600,15 @@ u32 gf_rtp_get_local_ssrc(GF_RTPChannel *ch)
 void gf_rtp_set_log(GF_RTPChannel *ch, FILE *log)
 {
 	if (ch) ch->rtp_log = log;
+	if (log) {
+		fprintf(log,	"#RTP log format:\n"
+						"#RTP SenderSSRC RTP_TimeStamp RTP_SeqNum NTP@Recv Deviance Jitter NbLost NbTotPck NbTotBytes\n"
+						"#RTCP Sender reports log format:\n"
+						"#RTCP-SR SenderSSRC RTP_TimeStamp@NTP NbTotPck NbTotBytes NTP\n"
+						"#RTCP Receiver reports log format:\n"
+						"#RTCP-RR StreamSSRC Jitter ExtendedSeqNum ExpectDiff LossDiff NTP\n"
+				);
+	}
 }
 
 Float gf_rtp_get_loss(GF_RTPChannel *ch)

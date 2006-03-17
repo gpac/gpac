@@ -81,7 +81,7 @@ Bool gf_isom_probe_file(const char *fileName)
 	type = 0;
 	if (fread(data, 1, 4, f) == 4) {
 		if (fread(data, 1, 4, f) == 4) {
-			type = GF_FOUR_CHAR_INT(data[0], data[1], data[2], data[3]);
+			type = GF_4CC(data[0], data[1], data[2], data[3]);
 		}
 	}
 	fclose(f);
@@ -94,7 +94,7 @@ Bool gf_isom_probe_file(const char *fileName)
 	case GF_ISOM_BOX_TYPE_UDTA:
 	case GF_ISOM_BOX_TYPE_META:
 	case GF_ISOM_BOX_TYPE_VOID:
-	case GF_FOUR_CHAR_INT('w','i','d','e'):
+	case GF_4CC('w','i','d','e'):
 		return 1;
 	default:
 		return 0;
@@ -2027,7 +2027,7 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 	/*MP3: ISMA and MPEG4*/
 	if (nb_mp3) {
 		if (!nb_text && (nb_v<=1) && (nb_a<=1) && (nb_scene==1) && (nb_od==1))
-			return GF_FOUR_CHAR_INT('I', 'S', 'M', 'A');
+			return GF_4CC('I', 'S', 'M', 'A');
 		return GF_ISOM_BRAND_MP42;
 	}
 	/*MP4*/
@@ -2038,7 +2038,7 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 	}
 	/*use ISMA (3GP fine too)*/
 	if (!nb_amr && !nb_h263 && !nb_text) {
-		if ((nb_v<=1) && (nb_a<=1)) return GF_FOUR_CHAR_INT('I', 'S', 'M', 'A');
+		if ((nb_v<=1) && (nb_a<=1)) return GF_4CC('I', 'S', 'M', 'A');
 		return GF_ISOM_BRAND_MP42;
 	}
 

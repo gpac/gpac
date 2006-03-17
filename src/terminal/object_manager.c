@@ -93,6 +93,10 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 	/*then delete all the OD channels associated with this service*/
 	while (gf_list_count(odm->channels)) {
 		ch = gf_list_get(odm->channels, 0);
+		if (ch->clock->mc && ch->clock->mc->stream && ch->clock->mc->stream->odm==odm) {
+			ch->clock->mc->stream = NULL;
+			ch->clock->mc = NULL;
+		}
 		ODM_DeleteChannel(odm, ch);
 	}
 
@@ -174,7 +178,8 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	assert(odm->OD==NULL);
 
 	odm->net_service->nb_odm_users++;
-	od_type = GF_MEDIA_OBJECT_UNDEF;
+	if (odm->subscene) od_type = GF_MEDIA_OBJECT_SCENE;
+	else od_type = GF_MEDIA_OBJECT_UNDEF;
 
 	/*for remote ODs, get expected OD type in case the service needs to generate the IOD on the fly*/
 	par = odm;
@@ -608,6 +613,7 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	GF_Codec *dec;
 	s8 flag;
 	u16 clockID;
+	Bool emulated_od = 0;
 	GF_Err e;
 	GF_InlineScene *is;
 
@@ -756,6 +762,9 @@ clock_setup:
 			}
 		}
 		dec = odm->codec;
+		if ((esd->ESID==esd->OCRESID) &&(esd->ESID>=65530)) {
+			emulated_od = 1;
+		}
 		break;
 
 	case GF_STREAM_PRIVATE_SCENE:
@@ -802,9 +811,6 @@ clock_setup:
 	ch->es_state = GF_ESM_ES_SETUP;
 	ch->odm = odm;
 
-	/*one more channel to wait for*/
-	odm->pending_channels++;
-
 	/*get media padding BEFORE channel setup, since we use it on channel connect ack*/
 	if (dec) {
 		cap.CapCode = GF_CODEC_PADDING_BYTES;
@@ -815,6 +821,13 @@ clock_setup:
 		gf_codec_get_capability(dec, &cap);
 		ch->codec_resilient = cap.cap.valueInt;
 	}
+
+	if (emulated_od) {
+		ch->service = NULL;
+	}
+
+	/*one more channel to wait for*/
+	odm->pending_channels++;
 
 	/*service redirection*/
 	if (esd->URLString) {
@@ -868,21 +881,25 @@ GF_Err gf_odm_post_es_setup(GF_Channel *ch, GF_Codec *dec, GF_Err had_err)
 		ch->odm->pending_channels--;
 		goto err_exit;
 	}
-	if (ch->esd->URLString) {
-		strcpy(szURL, ch->esd->URLString);
-	} else {
-		sprintf(szURL, "ES_ID=%d", ch->esd->ESID);
-	}
-
 
 	/*insert channel*/
 	if (dec) gf_list_insert(ch->odm->channels, ch, 0);
 
-	ch->es_state = GF_ESM_ES_WAIT_FOR_ACK;
+	if (ch->service) {
+		ch->es_state = GF_ESM_ES_WAIT_FOR_ACK;
+		if (ch->esd->URLString) {
+			strcpy(szURL, ch->esd->URLString);
+		} else {
+			sprintf(szURL, "ES_ID=%d", ch->esd->ESID);
+		}
 
-	/*connect before setup: this is needed in case the decoder cfg is wrong, we may need to get it from
-	network config...*/
-	e = ch->service->ifce->ConnectChannel(ch->service->ifce, ch, szURL, ch->esd->decoderConfig->upstream);
+		/*connect before setup: this is needed in case the decoder cfg is wrong, we may need to get it from
+		network config...*/
+		e = ch->service->ifce->ConnectChannel(ch->service->ifce, ch, szURL, ch->esd->decoderConfig->upstream);
+	} else {
+		ch->es_state = GF_ESM_ES_CONNECTED;
+		ch->odm->pending_channels--;
+	}
 
 	if (e) {
 		if (dec) gf_list_rem(ch->odm->channels, 0);
@@ -977,10 +994,12 @@ void ODM_DeleteChannel(GF_ObjectManager *odm, GF_Channel *ch)
 		if (!count) count = gf_codec_remove_channel(odm->subscene->od_codec, ch);
 	}
 	assert(count);
-
-	ch->service->ifce->DisconnectChannel(ch->service->ifce, ch); 
-	if (ch->esd->URLString) ch->service->nb_ch_users--;
-	ODM_CheckChannelService(ch);
+	
+	if (ch->service) {
+		ch->service->ifce->DisconnectChannel(ch->service->ifce, ch); 
+		if (ch->esd->URLString) ch->service->nb_ch_users--;
+		ODM_CheckChannelService(ch);
+	}
 
 	//and delete
 	gf_es_del(ch);
@@ -1087,7 +1106,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 		}
 
 		/*don't replay OD channel, only init clock if needed*/
-		if (skip_od_st && (ch->esd->decoderConfig->streamType==GF_STREAM_OD)) {
+		if (!ch->service || (skip_od_st && (ch->esd->decoderConfig->streamType==GF_STREAM_OD))) {
 			Bool gf_es_owns_clock(GF_Channel *ch);
 
 			if (gf_es_owns_clock(ch) ) 
@@ -1167,8 +1186,10 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	com.command_type = GF_NET_CHAN_STOP;
 	i=0;
 	while ((ch = gf_list_enum(odm->channels, &i)) ) {
-		com.base.on_channel = ch;
-		gf_term_service_command(ch->service, &com);
+		if (ch->service) {
+			com.base.on_channel = ch;
+			gf_term_service_command(ch->service, &com);
+		}
 	}
 
 	odm->is_open = 0;

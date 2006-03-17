@@ -29,6 +29,8 @@
 #include <gpac/internal/scenegraph_dev.h>
 
 #include <gpac/nodes_x3d.h>
+/*for key codes...*/
+#include <gpac/user.h>
 
 /*since 0.2.2, we use zlib for bt reading to handle wrl.gz files*/
 #include <zlib.h>
@@ -474,12 +476,61 @@ Bool gf_bt_check_externproto_field(GF_BTParser *parser, char *str)
 	return 0;
 }
 
+static Bool check_keyword(GF_BTParser *parser, char *str, s32 *val)
+{
+	s32 res;
+	char *sep;
+	sep = strchr(str, '$');
+	if (!sep) return 0;
+	sep++;
+	if (!strcmp(sep, "F1")) res = GF_VK_F1;
+	else if (!strcmp(sep, "F2")) res = GF_VK_F2;
+	else if (!strcmp(sep, "F3")) res = GF_VK_F3;
+	else if (!strcmp(sep, "F4")) res = GF_VK_F4;
+	else if (!strcmp(sep, "F5")) res = GF_VK_F5;
+	else if (!strcmp(sep, "F6")) res = GF_VK_F6;
+	else if (!strcmp(sep, "F7")) res = GF_VK_F7;
+	else if (!strcmp(sep, "F8")) res = GF_VK_F8;
+	else if (!strcmp(sep, "F9")) res = GF_VK_F9;
+	else if (!strcmp(sep, "F10")) res = GF_VK_F10;
+	else if (!strcmp(sep, "F11")) res = GF_VK_F11;
+	else if (!strcmp(sep, "F12")) res = GF_VK_F12;
+	else if (!strcmp(sep, "HOME")) res = GF_VK_HOME;
+	else if (!strcmp(sep, "END")) res = GF_VK_END;
+	else if (!strcmp(sep, "PREV")) res = GF_VK_PRIOR;
+	else if (!strcmp(sep, "NEXT")) res = GF_VK_NEXT;
+	else if (!strcmp(sep, "UP")) res = GF_VK_UP;
+	else if (!strcmp(sep, "DOWN")) res = GF_VK_DOWN;
+	else if (!strcmp(sep, "LEFT")) res = GF_VK_LEFT;
+	else if (!strcmp(sep, "RIGHT")) res = GF_VK_RIGHT;
+	else if (!strcmp(sep, "RETURN")) res = '\r';
+	else if (!strcmp(sep, "BACK")) res = '\b';
+	else if (!strcmp(sep, "TAB")) res = '\t';
+	else if (strlen(sep)==1) {
+		char c;
+		sscanf(sep, "%c", &c);
+		res = c;
+	} else {
+		gf_bt_report(parser, GF_OK, "Warning: unrecognized keyword %s", str);
+		res = 0;
+	}
+	if (strchr(str, '-')) *val = -res;
+	else *val = res;
+	return 1;
+}
+
 GF_Err gf_bt_parse_float(GF_BTParser *parser, const char *name, Fixed *val)
 {
+	s32 var;
 	Float f;
 	char *str = gf_bt_get_next(parser, 0);
 	if (!str) return parser->last_error = GF_IO_ERR;
 	if (gf_bt_check_externproto_field(parser, str)) return GF_OK;
+	
+	if (check_keyword(parser, str, &var)) {
+		*val = INT2FIX(var); 
+		return GF_OK; 
+	}
 	if (sscanf(str, "%g", &f) != 1) {
 		return gf_bt_report(parser, GF_BAD_PARAM, "%s: Number expected", name);
 	}
@@ -501,6 +552,8 @@ GF_Err gf_bt_parse_int(GF_BTParser *parser, const char *name, SFInt32 *val)
 	char *str = gf_bt_get_next(parser, 0);
 	if (!str) return parser->last_error = GF_IO_ERR;
 	if (gf_bt_check_externproto_field(parser, str)) return GF_OK;
+
+	if (check_keyword(parser, str, val)) return GF_OK; 
 	/*URL ODID*/
 	if (!strnicmp(str, "od:", 3)) str += 3;
 	if (sscanf(str, "%d", val) != 1) {
@@ -904,10 +957,10 @@ u32 gf_bt_get_next_node_id(GF_BTParser *parser)
 u32 gf_bt_get_next_route_id(GF_BTParser *parser)
 {
 	u32 ID;
-	GF_SceneGraph *sc = parser->load->scene_graph;
-	if (parser->parsing_proto) sc = gf_sg_proto_get_graph(parser->parsing_proto);
+	GF_SceneGraph *sg = parser->load->scene_graph;
+	if (parser->parsing_proto) sg = gf_sg_proto_get_graph(parser->parsing_proto);
 
-	ID = gf_sg_get_next_available_route_id(sc);
+	ID = gf_sg_get_next_available_route_id(sg);
 	if (parser->load->ctx && (ID>parser->load->ctx->max_route_id)) 
 		parser->load->ctx->max_route_id = ID;
 	return ID;
@@ -945,6 +998,7 @@ u32 gf_bt_get_def_id(GF_BTParser *parser, char *defName)
 
 Bool gf_bt_set_field_is(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 {
+	GF_Err e;
 	u32 i;
 	GF_ProtoFieldInterface *pfield;
 	GF_FieldInfo pinfo;
@@ -964,7 +1018,8 @@ Bool gf_bt_set_field_is(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 		return 1;
 	}
 	gf_sg_proto_field_get_field(pfield, &pinfo);
-	gf_sg_proto_field_set_ised(parser->parsing_proto, pinfo.fieldIndex, n, info->fieldIndex);
+	e = gf_sg_proto_field_set_ised(parser->parsing_proto, pinfo.fieldIndex, n, info->fieldIndex);
+	if (e) gf_bt_report(parser, GF_BAD_PARAM, "IS: Invalid field type for field %s", info->name);
 	return 1;
 }
 
@@ -1360,7 +1415,7 @@ GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID)
 	strcpy(nName, defID);
 
 	n = NULL;
-	while (!parser->done) {
+	while (!parser->done && !the_node) {
 		str = gf_bt_get_next(parser, 0);
 		gf_bt_check_code(parser, '[');
 		gf_bt_check_code(parser, ']');
@@ -1369,7 +1424,7 @@ GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID)
 		gf_bt_check_code(parser, ',');
 		gf_bt_check_code(parser, '.');
 
-		if (!strcmp(str, "AT")) {
+		if (!strcmp(str, "AT") || !strcmp(str, "PROTO") ) {
 			/*only check in current command (but be aware of conditionals..)*/
 			if (!the_node && gf_list_find(parser->bifs_au->commands, parser->cur_com)) {
 				gf_bt_report(parser, GF_BAD_PARAM, "Cannot find node %s\n", nName);
@@ -1399,6 +1454,7 @@ GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID)
 			if (!p) {
 				/*locate proto*/
 				gf_bt_report(parser, GF_BAD_PARAM, "%s: not a valid/supported node", str);
+				free(ret);
 				return NULL;
 			}
 			n = gf_sg_proto_create_instance(parser->load->scene_graph, p);
@@ -1651,18 +1707,16 @@ next_field:
 			GF_Route *r = gf_bt_parse_route(parser, 1, 0, NULL);
 			if (isDEF) {
 				u32 rID = gf_bt_get_route(parser, szDefName);
-				if (!rID) {
-					rID = gf_bt_get_next_route_id(parser);
-					if (parser->load->cbk && (parser->load->ctx->max_route_id<rID)) parser->load->ctx->max_route_id = rID;
-				}
-				gf_sg_route_set_id(r, rID);
+				if (!rID) rID = gf_bt_get_next_route_id(parser);
+				parser->last_error = gf_sg_route_set_id(r, rID);
 				gf_sg_route_set_name(r, szDefName);
 				isDEF = 0;
 			}
 		} else {
-			GF_Node *n = gf_bt_sf_node(parser, str, NULL, NULL);
+			GF_Node *n = gf_bt_sf_node(parser, str, NULL, isDEF ? szDefName : NULL);
+			isDEF = 0;
 			if (!n) goto err;
-			if (isDEF) {
+			if (0 && isDEF) {
 				u32 ID = gf_bt_get_def_id(parser, szDefName);
 				isDEF = 0;
 				gf_node_set_id(n, ID, szDefName);
@@ -1801,7 +1855,7 @@ void gf_bt_resolve_routes(GF_BTParser *parser, Bool clean)
 		case GF_SG_ROUTE_DELETE:
 		case GF_SG_ROUTE_REPLACE:
 			com->RouteID = gf_bt_get_route(parser, com->unres_name);
-			if (!com->RouteID) gf_bt_report(parser, GF_BAD_PARAM, "Cannot resolve GF_Route DEF %s", com->unres_name);
+			if (!com->RouteID) gf_bt_report(parser, GF_BAD_PARAM, "Cannot resolve Route %s", com->unres_name);
 			free(com->unres_name);
 			com->unres_name = NULL;
 			com->unresolved = 0;
@@ -2859,7 +2913,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 		}
 		else if (!strcmp(str, "ROUTE")) {
 			GF_Command *com = NULL;
-			if (!parser->top_nodes && parser->bifs_au) {
+			if (!parser->top_nodes && parser->bifs_au && !parser->is_wrl) {
 				/*if doing a scene replace, we need route insert stuff*/
 				com = gf_sg_command_new(parser->load->scene_graph, GF_SG_ROUTE_INSERT);
 				gf_list_add(parser->bifs_au->commands, com);
@@ -2868,7 +2922,8 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 
 			r = gf_bt_parse_route(parser, 1, 0, com);
 			if (has_id) {
-				u32 rID = gf_bt_get_next_route_id(parser);
+				u32 rID = gf_bt_get_route(parser, szDEFName);
+				if (!rID) rID = gf_bt_get_next_route_id(parser);
 				if (com) {
 					com->RouteID = rID;
 					com->def_name = strdup(szDEFName);

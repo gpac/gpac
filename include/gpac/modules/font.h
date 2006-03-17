@@ -35,7 +35,7 @@ extern "C" {
 
 
 /*interface name and version for font raster*/
-#define GF_FONT_RASTER_INTERFACE		GF_FOUR_CHAR_INT('G','F','R', 0x01)
+#define GF_FONT_RASTER_INTERFACE		GF_4CC('G','F','R', 0x01)
 
 typedef struct _font_raster
 {

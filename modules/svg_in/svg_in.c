@@ -52,7 +52,7 @@ typedef struct
 	u32 sax_max_duration;
 	u16 base_es_id;
 	u32 file_pos;
-	FILE *src;
+	gzFile *src;
 	Bool attached;
 } SVGIn;
 
@@ -96,7 +96,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 	switch (svgin->oti) {
 	case SVG_IN_OTI_SVG:
 		/*full doc parsing*/
-		if (!svgin->sax_max_duration && svgin->file_size) {
+		if ((svgin->sax_max_duration==(u32) -1) && svgin->file_size) {
 			/*init step*/
 			if (!svgin->loader.fileName) {
 				svgin->loader.fileName = svgin->file_name;
@@ -111,24 +111,24 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 		/*chunk parsing*/
 		else {
 			u32 entry_time;
-			char file_buf[SVG_PROGRESSIVE_BUFFER_SIZE+1];
+			char file_buf[SVG_PROGRESSIVE_BUFFER_SIZE+2];
 			/*initial load*/
 			if (!svgin->src && !svgin->file_pos) {
-				svgin->src = fopen(svgin->file_name, "rb");
+				svgin->src = gzopen(svgin->file_name, "rb");
 				if (!svgin->src) return GF_URL_ERROR;
 				svgin->loader.fileName = svgin->file_name;
 			}
 			e = GF_OK;
 			entry_time = gf_sys_clock();
-			fseek(svgin->src, svgin->file_pos, SEEK_SET);
+			
 			while (1) {
 				u32 diff, nb_read;
-				nb_read = fread(file_buf, 1, SVG_PROGRESSIVE_BUFFER_SIZE, svgin->src);
-				file_buf[nb_read] = 0;
+				nb_read = gzread(svgin->src, file_buf, SVG_PROGRESSIVE_BUFFER_SIZE);
+				file_buf[nb_read] = file_buf[nb_read+1] = 0;
 				if (!nb_read) {
-					if (svgin->file_pos==svgin->file_size) {
+					if (gzeof(svgin->src)) {
 						SVG_OnProgress(svgin, svgin->file_pos, svgin->file_size);
-						fclose(svgin->src);
+						gzclose(svgin->src);
 						svgin->src = NULL;
 						e = GF_EOS;
 						goto exit;
@@ -138,7 +138,10 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 
 				e = gf_sm_load_string(&svgin->loader, file_buf);
 				svgin->file_pos += nb_read;
+				/*handle decompression*/
+				if (svgin->file_pos > svgin->file_size) svgin->file_size = svgin->file_pos + 1;
 				if (e) break;
+
 				diff = gf_sys_clock() - entry_time;
 				SVG_OnProgress(svgin, svgin->file_pos, svgin->file_size);
 				if (diff > svgin->sax_max_duration) break;
@@ -253,7 +256,7 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "MaxDuration");
 		if (sOpt) svgin->sax_max_duration = atoi(sOpt);
 	} else {
-		svgin->sax_max_duration = 0;
+		svgin->sax_max_duration = (u32) -1;
 	}
 	return GF_OK;
 }
@@ -270,7 +273,7 @@ static GF_Err SVG_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 const char *SVG_GetName(struct _basedecoder *plug)
 {
 	SVGIn *svgin = plug->privateStack;
-	if (svgin->oti==SVG_IN_OTI_SVG) return (!svgin->sax_max_duration && svgin->file_size) ? "GPAC SVG SAX Parser" : "GPAC SVG Progressive Parser";
+	if (svgin->oti==SVG_IN_OTI_SVG) return ((svgin->sax_max_duration==(u32)-1) && svgin->file_size) ? "GPAC SVG SAX Parser" : "GPAC SVG Progressive Parser";
 	if (svgin->oti==SVG_IN_OTI_STREAMING_SVG) return "GPAC Streaming SVG Parser";
 	if (svgin->oti==SVG_IN_OTI_STREAMING_SVG_GZ) return "GPAC Streaming SVGZ Parser";
 	if (svgin->oti==SVG_IN_OTI_LASERML) return "GPAC LASeRML Parser";

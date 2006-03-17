@@ -394,7 +394,9 @@ used to signal that the user is mozilla and prevent some X11 calls crashing the 
   XSynchronize((Display *) m_user.os_display, True);
   m_user.os_window_handler = aWindow->window;
 #endif
-		
+
+	gf_cfg_set_key(m_user.config, "Rendering", "RendererName", m_bForce3D ? "GPAC 3D Renderer" : "GPAC 2D Renderer");
+	m_bForce3D = 0;
 	m_term = gf_term_new(&m_user);
 	if (! m_term) return NPERR_GENERIC_ERROR;
 
@@ -420,12 +422,12 @@ used to signal that the user is mozilla and prevent some X11 calls crashing the 
 	return TRUE;
 }
 
-
 void nsOsmozillaInstance::SetOptions()
 {
 	const char *sOpt = gf_cfg_get_key(m_user.config, "General", "Loop");
 	m_Loop = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 	m_bAutoStart = 1;
+	m_bForce3D = 0;		
 
 	/*options sent from plugin*/
 	for(int i=0;i<m_argc;i++) {   
@@ -434,6 +436,9 @@ void nsOsmozillaInstance::SetOptions()
 
 		else if (!stricmp(m_argn[i],"src") ) {
 			m_szURL = strdup(m_argv[i]);
+		}
+		else if (!stricmp(m_argn[i],"use3d") && !stricmp(m_argv[i], "true") ) {
+			m_bForce3D = 1;
 		}
 		else if (!stricmp(m_argn[i],"AspectRatio")) {
 			u32 ar = GF_ASPECT_RATIO_KEEP;
@@ -450,6 +455,25 @@ NPError nsOsmozillaInstance::NewStream(NPMIMEType type, NPStream * stream,
 				    NPBool seekable, uint16 * stype)
 {
 	m_szURL = strdup((const char *)stream->url);
+
+	Bool reload = 0;
+	const char *rend_name = gf_cfg_get_key(m_user.config, "Rendering", "RendererName");
+	if (m_bForce3D) {
+		if (strstr(rend_name, "2D")) {
+			gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 3D Renderer");
+			reload = 1;
+		}
+		m_bForce3D = 0;
+	} else {
+		if (strstr(rend_name, "3D")) {
+			gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 2D Renderer");
+			reload = 1;
+		}
+	}
+	if (reload) {
+		gf_term_del(m_term);
+		m_term = gf_term_new(&m_user);
+	}
 	gf_term_connect(m_term, (const char *) m_szURL);
     *stype = NP_SEEK;
     return NPERR_NO_ERROR;

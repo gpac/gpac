@@ -11,7 +11,7 @@
 
 <P ALIGN="CENTER"><BR>
 <SPAN STYLE="Font-Size : 14pt"><FONT FACE="Times New Roman"><BR></FONT></SPAN>
-<B><SPAN STYLE="Font-Size : 24pt"><FONT FACE="Times New Roman">GPAC Configuration file documentation - version 0.4.1-DEV</FONT></SPAN></B>
+<B><SPAN STYLE="Font-Size : 24pt"><FONT FACE="Times New Roman">GPAC Configuration file documentation<BR>Version 0.4.1-DEV</FONT></SPAN></B>
 <BR>
 <SPAN STYLE="Font-Size : 18pt"><FONT FACE="Times New Roman">Last Modified February 2006</FONT></SPAN></B>
 
@@ -20,6 +20,7 @@
 <BR><BR>
 
 <P ALIGN="LEFT">
+<A NAME="Overview"></A>
 <B><U>Overview</U></B>
 <BR><BR>
 <DD>
@@ -61,7 +62,8 @@
 </P>
 
 <P ALIGN="LEFT">
-<B><U><A NAME="General">Section "General"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="General"></A>
+<B><U>Section "General"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>The <B>General</B> section of the config file holds player specific options. This section is not used by GPAC core engine.
 <BR><BR>
@@ -132,7 +134,8 @@
 <BR>
 
 <P ALIGN="LEFT">
-<B><U><A NAME="RecentFiles">Section "RecentFiles"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="RecentFiles"></A>
+<B><U>Section "RecentFiles"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>The "RecentFiles" section of the config file holds last accessed files (hardcoded to no more than 20) in the last access order. The keys are
 the file names and no value is used. This section is only used by GUI clients (osmo4/wxOsmo4)
@@ -142,7 +145,8 @@ the file names and no value is used. This section is only used by GUI clients (o
 <BR>
 
 <P ALIGN="LEFT">
-<B><U><A NAME="Systems">Section "Systems"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="Systems"></A>
+<B><U>Section "Systems"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 
 <DD>The "Systems" section of the config file holds all configuration options for the MPEG-4 Systems engine.
@@ -197,7 +201,8 @@ The string is the name of the module to be used (same considerations as other mo
 </P>
 <BR>
 <P ALIGN="LEFT">
-<B><U><A NAME="Rendering">Section "Rendering"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="Rendering"></A>
+<B><U>Section "Rendering"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>The "Rendering" section of the config file holds all configuration options for the logical rendering engine.
 <BR><BR>
@@ -244,7 +249,8 @@ and by the 3D renderer for text texturing and gradients compute.<BR>
 </P>
 <BR>
 <P ALIGN="LEFT">
-<B><U><A NAME="Render2D">Section "Render2D"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="Render2D"></A>
+<B><U>Section "Render2D"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>The "Render2D" section of the config file holds all configuration options for the 2D tile rendering engine and hardware.<BR>
 <BR>
@@ -263,7 +269,8 @@ the  setting is applied or not depends on the graphics module (currently all mod
 
 <BR>
 <P ALIGN="LEFT">
-<B><U><A NAME="Render3D">Section "Render3D"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="Render3D"></A>
+<B><U>Section "Render3D"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>The "Render3D" section of the config file holds all configuration options for the 3D rendering engine and OpenGL hardware.<BR>
 <BR>
@@ -306,7 +313,8 @@ bitmap depending on the graphics card. Some cards will have faster pixel copy ro
 
 <BR>
 <P ALIGN="LEFT">
-<B><U><A NAME="Audio">Section "Audio"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="Audio"></A>
+<B><U>Section "Audio"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>The "Audio" section of the config file holds all configuration options for the audio rendering engine and hardware.<BR>
 <BR>
@@ -343,7 +351,8 @@ audio object. The quality of fast forward audio playback will also be degradated
 
 <BR>
 <P ALIGN="LEFT">
-<B><U><A NAME="Video">Section "Video"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="Video"></A>
+<B><U>Section "Video"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>The "Video" section of the config file holds all configuration options for the video renderer and hardware.<BR>
 <BR>
@@ -359,7 +368,8 @@ audio object. The quality of fast forward audio playback will also be degradated
 
 <BR>
 <P ALIGN="LEFT">
-<B><U><A NAME="Network">Section "Network"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="Network"></A>
+<B><U>Section "Network"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>The "Network" section of the config file holds all configuration options for the network used by modules and systems engine.<BR>
 <BR>
@@ -386,7 +396,8 @@ the stream rebuffered till BufferLength. Therefore a value of 0 means no rebuffe
 
 <BR>
 <P ALIGN="LEFT">
-<B><U><A NAME="FontEngine">Section "FontEngine"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="FontEngine"></A>
+<B><U>Section "FontEngine"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>The "FontEngine" section of the config file holds all configuration options for the font handling. The GPAC rendering module handles text through vectorial outline, allowing graphics module development without having to 
 integrate text rendering which is always heavy work.<BR>
@@ -411,7 +422,8 @@ integrate text rendering which is always heavy work.<BR>
 
 <BR>
 <P ALIGN="LEFT">
-<B><U><A NAME="Downloader">Section "Downloader"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="Downloader"></A>
+<B><U>Section "Downloader"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>The "Downloader" section of the config file holds all configuration options for file downloading and caching.<BR>
 <BR>
@@ -427,7 +439,8 @@ integrate text rendering which is always heavy work.<BR>
 
 <BR>
 <P ALIGN="LEFT">
-<B><U><A NAME="Streaming">Section "Streaming"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="Streaming"></A>
+<B><U>Section "Streaming"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>The "Streaming" section of the config file holds all configuration options for real-time streaming using IETF SDP/RTSP/RTP/RTCP protocols.<BR>
 <BR>
@@ -457,7 +470,8 @@ RTSP server through an HTTP tunnel, and transport will take place on the RTSP co
 
 <BR>
 <P ALIGN="LEFT">
-<B><U><A NAME="MimeTypes">Section "MimeTypes"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="MimeTypes"></A>
+<B><U>Section "MimeTypes"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>This section is used to keep MIME types and file associations for GPAC modules.
 <BR>The format of the key is:
@@ -472,7 +486,8 @@ If MIME type is not available, provided extensions are first checked, then all i
 
 <BR>
 <P ALIGN="LEFT">
-<B><U><A NAME="StreamingCache">Section "StreamingCache"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="StreamingCache"></A>
+<B><U>Section "StreamingCache"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>The "StreamingCache" section of the config file holds all configuration options for the streaming cache. Streaming cache allows for recording of 
 live sources such as RTP/RTSP sessions and internet radios. This is currently just an experimental feature in GPAC.<BR>
@@ -491,7 +506,8 @@ If not specified, the default cache directory (cf <A HREF="#General">General</A>
 
 <BR>
 <P ALIGN="LEFT">
-<B><U><A NAME="SAXLoader">Section "SAXLoader"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="SAXLoader"></A>
+<B><U>Section "SAXLoader"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>The "SAXLoader" section of the config file holds all configuration options for XML SAX parsing of SVG, XMT and X3D files.<BR>
 <BR>
@@ -508,7 +524,8 @@ If not specified, the default cache directory (cf <A HREF="#General">General</A>
 
 <BR>
 <P ALIGN="LEFT">
-<B><U><A NAME="XviD">Section "XviD"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="XviD"></A>
+<B><U>Section "XviD"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>The "XviD" section of the config file holds all configuration options for the XviD codec.<BR>
 <BR>
@@ -526,7 +543,8 @@ If not specified, the default cache directory (cf <A HREF="#General">General</A>
 
 <BR>
 <P ALIGN="LEFT">
-<B><U><A NAME="FFMPEG">Section "FFMPEG"</A></U></B> <I><A HREF="#Overview">Back to top</A></I>
+<A NAME="FFMPEG"></A>
+<B><U>Section "FFMPEG"</U></B> <I><A HREF="#Overview">Back to top</A></I>
 <BR><BR>
 <DD>The "FFMPEG" section of the config file holds all configuration options for the FFMPEG demuxer and decoder.<BR>
 <BR>

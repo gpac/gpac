@@ -484,6 +484,22 @@ static Bool OnTouchSensor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *senso
 	ts->hitPoint_changed.y = Y;
 	ts->hitPoint_changed.z = 0;
 	gf_node_event_out_str(sh->owner, "hitPoint_changed");
+
+#if 0
+	X = ev->x;
+	Y = ev->y;
+	gf_mx2d_apply_coords(&ev->context->transform, &X, &Y);
+	
+	ts->hitTexCoord_changed.x = gf_divfix(X-ev->context->unclip.x, ev->context->unclip.width);
+	if (ts->hitTexCoord_changed.x < 0) ts->hitTexCoord_changed.x = 0;
+	else if (ts->hitTexCoord_changed.x > FIX_ONE) ts->hitTexCoord_changed.x = FIX_ONE;
+
+	ts->hitTexCoord_changed.y = (ev->context->unclip.y-Y) / ev->context->unclip.height;
+	if (ts->hitTexCoord_changed.y < 0) ts->hitTexCoord_changed.y = 0;
+	else if (ts->hitTexCoord_changed.y > FIX_ONE) ts->hitTexCoord_changed.y = FIX_ONE;
+	gf_node_event_out_str(sh->owner, "hitTexCoord_changed");
+#endif
+
 	return 0;
 }
 

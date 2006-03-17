@@ -163,6 +163,8 @@ static GF_Descriptor *IMG_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 	IMGLoader *jpl = plug->priv;
 	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 
+	/*override default*/
+	if (expect_type==GF_MEDIA_OBJECT_UNDEF) expect_type=GF_MEDIA_OBJECT_VIDEO;
 	jpl->srv_type = expect_type;
 
 	od->objectDescriptorID = 1;

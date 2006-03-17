@@ -139,9 +139,16 @@ static void RenderRectangle(GF_Node *node, void *reff)
 	drawable_finalize_render(ctx, eff);
 }
 
+static Bool txtrans_identity(GF_Node *appear)
+{
+	if (!appear || !((M_Appearance*)appear)->textureTransform) return 1;
+	/*we could optimize, but let's assume that if a transform is used, it is not identity...*/
+	return 0;
+}
+
 void R2D_DrawRectangle(DrawableContext *ctx)
 {
-	if (!ctx->h_texture || !ctx->h_texture->stream || ctx->transform.m[1] || ctx->transform.m[3]) {
+	if (!ctx->h_texture || !ctx->h_texture->stream || ctx->transform.m[1] || ctx->transform.m[3] || !txtrans_identity(ctx->appear) ) {
 		VS2D_TexturePath(ctx->surface, ctx->node->path, ctx);
 		VS2D_DrawPath(ctx->surface, ctx->node->path, ctx, NULL, NULL);
 	} else {

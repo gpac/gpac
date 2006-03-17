@@ -40,6 +40,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, Doub
 
 GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts);
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir);
+
+GF_ISOFile *package_file(char *file_name, const char *tmpdir);
 #endif
 
 /*in filedump.c*/
@@ -55,6 +57,8 @@ void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_
 void DumpSDP(GF_ISOFile *file, char *inName);
 void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump);
 void DumpMovieInfo(GF_ISOFile *file);
+void PrintLanguages();
+const char *GetLanguageCode(char *lang);
 
 
 Bool quiet_mode = 0;
@@ -173,6 +177,15 @@ void PrintImportUsage()
 			" \":delay=delay_ms\":   sets imported media initial delay in ms\n"
 			" \":par=PAR\":          sets visual pixel aspect ratio (PAR=Num:Den)\n"
 			" \":name=NAME\":        sets track handler name\n"
+			" \":fps=VAL\":          same as -fps option\n"
+			" \":agg=VAL\":          same as -agg option\n"
+			" \":par=VAL\":          same as -par option\n"
+			" \":dref\":             same as -dref option\n"
+			" \":nodrop\":           same as -nodrop option\n"
+			" \":packed\":           same as -packed option\n"
+			" \":sbr\":              same as -sbr option\n"
+			" \":sbrx\":             same as -sbrx option\n"
+			" \":mpeg4\":            same as -mpeg4 option\n"
 			"\n"
 			" -add file:           add file tracks to (new) output file\n"
 			" -cat file:           concatenates file samples to (new) output file\n"
@@ -235,7 +248,8 @@ void PrintEncryptUsage()
 			"\n"
 			"DRM file syntax for GPAC ISMACryp:\n"
 			"                      File is XML and shall start with xml header\n"
-			"                      File is a list of \"ISMACrypTrack\" elements (all at root)\n"
+			"                      File root is an \"ISMACryp\" element\n"
+			"                      File is a list of \"ISMACrypTrack\" elements\n"
 			"\n"
 			"ISMACrypTrack attributes are\n"
 			" TrackID:             ID of track to en/decrypt\n"
@@ -306,6 +320,8 @@ void PrintExtractUsage()
 			" -qcp TrackID:        same as \'-raw\' but defaults to QCP file for EVRC/SMV\n" 
 			" -aviraw TK:          extracts AVI track in raw format\n"
 			"                      $TK can be one of \"video\" \"audio\" \"audioN\"\n" 
+			" -saf:                remux file to SAF multiplex\n"
+			"                       * Note: can be used when encoding scene descriptions\n"
 			"\n");
 }
 void PrintDumpUsage()
@@ -363,6 +379,8 @@ void PrintMetaUsage()
 			" -rem-xml [tk=ID]:    removes meta XML data\n"
 			" -dump-xml args:      dumps meta XML to file - syntax file_path[:tk=ID]\n"
 			" -dump-item args:     dumps item to file - syntax item_ID[:tk=ID][:path=fileName]\n"
+			" -package:            packages input XML file into an ISO container\n"
+			"                       * all media referenced except hyperlinks are added to file\n"
 			"\n");
 }
 
@@ -414,6 +432,7 @@ void PrintUsage()
 			" -xnode NodeName:     gets X3D node syntax\n"
 			" -snodes:             lists supported SVG nodes\n"
 			" -snode NodeName:     gets SVG node syntax\n"
+			" -languages:              lists supported ISO 639 languages\n"
 			"\n"
 			" -version:            gets build version\n"
 			);
@@ -518,7 +537,7 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 			continue;
 		default:
 			/*no hinting of systems track on isma*/
-			if (spec_type==GF_FOUR_CHAR_INT('I','S','M','A')) continue;
+			if (spec_type==GF_4CC('I','S','M','A')) continue;
 		}
 		mtype = gf_isom_get_media_subtype(file, i+1, 1);
 		if ((mtype==GF_ISOM_SUBTYPE_MPEG4) || (mtype==GF_ISOM_SUBTYPE_MPEG4_CRYP) ) mtype = gf_isom_get_mpeg4_subtype(file, i+1, 1);
@@ -694,7 +713,9 @@ void remove_systems_tracks(GF_ISOFile *file)
 	1: ISO media 
 	2: input bt file (.bt, .wrl)
 	3: input XML file (.xmt)
-	4: input SWF file (.swf)
+	4: input SVG file (.svg)
+	5: input SWF file (.swf)
+	6: input LASeR file (.lsr or .saf)
 */
 u32 get_file_type_by_ext(char *inName)
 {
@@ -709,6 +730,7 @@ u32 get_file_type_by_ext(char *inName)
 	else if (strstr(lowername, ".svg")) type = 4;
 	else if (strstr(lowername, ".xsr")) type = 4;
 	else if (strstr(lowername, ".swf")) type = 5;
+	else if (strstr(lowername, ".lsr") || strstr(lowername, ".saf")) type = 6;
 	else type = 0;
 
 	/*try open file in read mode*/
@@ -720,7 +742,7 @@ u32 get_file_type_by_ext(char *inName)
 static Bool can_convert_to_isma(GF_ISOFile *file)
 {
 	u32 spec = gf_isom_guess_specification(file);
-	if (spec==GF_FOUR_CHAR_INT('I','S','M','A')) return 1;
+	if (spec==GF_4CC('I','S','M','A')) return 1;
 	return 0;
 }
 
@@ -797,7 +819,7 @@ static Bool parse_meta_args(MetaAction *meta, char *opts)
 			switch (meta->act_type) {
 			case 0:
 				if (!stricmp(szSlot, "null") || !stricmp(szSlot, "0")) meta->meta_4cc = 0;
-				else meta->meta_4cc = GF_FOUR_CHAR_INT(szSlot[0], szSlot[1], szSlot[2], szSlot[3]);
+				else meta->meta_4cc = GF_4CC(szSlot[0], szSlot[1], szSlot[2], szSlot[3]);
 				ret = 1;
 				break;
 			case 1: 
@@ -857,8 +879,8 @@ int main(int argc, char **argv)
 	TrackAction tracks[MAX_CUMUL_OPS];
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
 	u32 i, MTUSize, stat_level, hint_flags, MakeISMA, Make3GP, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur;
-	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks;
-	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts;
+	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, do_package;
+	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file;
 	GF_ISOFile *file;
 
@@ -876,8 +898,8 @@ int main(int argc, char **argv)
 	import_flags = 0;
 	split_size = 0;
 	MTUSize = 1500;
-	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = 0;
-	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = 0;
+	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = 0;
+	do_package = chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = 0;
 	x3d_info = MakeISMA = Make3GP = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = 0;
 	track_dump_type = 0;
 	ismaCrypt = 0;
@@ -1192,6 +1214,7 @@ int main(int argc, char **argv)
 				strncpy(tracks[nb_track_act].lang, ext+1, 3);
 				ext[0] = 0;
 				tracks[nb_track_act].trackID = atoi(szTK);
+				ext[0] = '=';
 			}
 			open_edit = 1;
 			nb_track_act++;
@@ -1251,6 +1274,7 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-keepall")) import_flags |= GF_IMPORT_KEEP_ALL_TRACKS;
 		else if (!stricmp(arg, "-ms")) { CHECK_NEXT_ARG mediaSource = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-mp4")) { encode = 1; open_edit = 1; }
+		else if (!stricmp(arg, "-saf")) { do_saf = 1; }
 		else if (!stricmp(arg, "-log")) do_log = 1; 
 		else if (!stricmp(arg, "-def")) opts.flags |= GF_SM_ENCODE_USE_NAMES;
 		else if (!stricmp(arg, "-sync")) {
@@ -1404,10 +1428,12 @@ int main(int argc, char **argv)
 			nb_meta_act++;
 			i++;
 		}
+		else if (!stricmp(arg, "-package")) do_package = 1;
+		
 		else if (!stricmp(arg, "-brand")) { 
 			char *b = argv[i+1];
 			CHECK_NEXT_ARG 
-			major_brand = GF_FOUR_CHAR_INT(b[0], b[1], b[2], b[3]);
+			major_brand = GF_4CC(b[0], b[1], b[2], b[3]);
 			open_edit = 1;
 			i++;
 		}
@@ -1418,7 +1444,7 @@ int main(int argc, char **argv)
 				fprintf(stdout, "Sorry - no more than %d brand remove operations allowed\n", MAX_CUMUL_OPS);
 				return 1;
 			}
-			brand_add[nb_alt_brand_add] = GF_FOUR_CHAR_INT(b[0], b[1], b[2], b[3]);
+			brand_add[nb_alt_brand_add] = GF_4CC(b[0], b[1], b[2], b[3]);
 			nb_alt_brand_add++;
 			open_edit = 1;
 			i++;
@@ -1430,12 +1456,16 @@ int main(int argc, char **argv)
 				fprintf(stdout, "Sorry - no more than %d brand remove operations allowed\n", MAX_CUMUL_OPS);
 				return 1;
 			}
-			brand_rem[nb_alt_brand_rem] = GF_FOUR_CHAR_INT(b[0], b[1], b[2], b[3]);
+			brand_rem[nb_alt_brand_rem] = GF_4CC(b[0], b[1], b[2], b[3]);
 			nb_alt_brand_rem++;
 			open_edit = 1;
 			i++;
 		}
 #endif
+		else if (!stricmp(arg, "-languages")) { 
+			PrintLanguages();
+			return 0;
+		}
 		else if (!stricmp(arg, "-h")) {
 			if (i+1== (u32) argc) PrintUsage();
 			else if (!strcmp(argv[i+1], "extract")) PrintExtractUsage();
@@ -1475,6 +1505,15 @@ int main(int argc, char **argv)
 		PrintUsage();
 		return 1;
 	}
+
+	if (do_saf && !encode) {
+		switch (get_file_type_by_ext(inName)) {
+		case 2: case 3: case 4: 
+			encode = 1;
+			break;
+		}
+	}
+
 
 	if ((dump_ttxt || dump_srt) && !trackID) {
 		GF_MediaImporter import;
@@ -1609,7 +1648,15 @@ int main(int argc, char **argv)
 		fprintf(stdout, "Cannot encode file - read-only release\n");
 #endif
 		needSave = 1;
-	} else if (!file && !(track_dump_type& GF_EXPORT_AVI_NATIVE)) {
+		if (do_saf) {
+			needSave = 0;
+			open_edit = 0;
+		}
+	} else if (do_package) {
+		file = package_file(inName, tmpdir);
+		needSave = 1;
+		open_edit = 1;
+	} else if (!file && !(track_dump_type & GF_EXPORT_AVI_NATIVE)) {
 		FILE *st = fopen(inName, "rb");
 		Bool file_exists = 0;
 		if (st) {
@@ -1634,12 +1681,20 @@ int main(int argc, char **argv)
 		/*allowed for bt<->xmt*/
 		case 2:
 		case 3:
-		/*allowed for swf->bt, swf->xmt*/
+		/*allowed for svg->lsr**/
 		case 4:
+		/*allowed for swf->bt, swf->xmt*/
+		case 5:
 			break;
+		/*used for .saf / .lsr dump*/
+		case 6:
+			if ((dump_mode==1+GF_SM_DUMP_LASER) || (dump_mode==1+GF_SM_DUMP_SVG)) {
+				break;
+			}
+
 		default:
 #ifndef GPAC_READ_ONLY
-			if (!open_edit && file_exists && !gf_isom_probe_file(inName)) {
+			if (!open_edit && file_exists && !gf_isom_probe_file(inName) && !dump_mode) {
 				convert_file_info(inName, info_track_id);
 				return 0;
 			} else
@@ -1709,16 +1764,20 @@ int main(int argc, char **argv)
 		open_edit = 0;
 	}
 
-	if (track_dump_type) {
+	if (do_saf || track_dump_type) {
 		char szFile[1024];
 		GF_MediaExporter mdump;
 		memset(&mdump, 0, sizeof(mdump));
 		mdump.file = file;
-		mdump.flags = track_dump_type;
-		mdump.trackID = trackID;
-		mdump.sample_num = raw_sample_num;
-		sprintf(szFile, "%s_track%d", outfile, trackID);
-		mdump.out_name = szFile;
+		mdump.flags = do_saf ? GF_EXPORT_SAF : track_dump_type;
+		if (!do_saf) {
+			mdump.trackID = trackID;
+			mdump.sample_num = raw_sample_num;
+			sprintf(szFile, "%s_track%d", outfile, trackID);
+			mdump.out_name = szFile;
+		} else {
+			mdump.out_name = outfile;
+		}
 		e = gf_media_export(&mdump);
 		if (e) goto err_exit;
 	}
@@ -1816,8 +1875,14 @@ int main(int argc, char **argv)
 		} else {
 			char *rel_name = strrchr(inName, GF_PATH_SEPARATOR);
 			if (!rel_name) rel_name = strrchr(inName, '/');
-			if (rel_name) sprintf(outfile, "out_%s", rel_name + 1);
-			else sprintf(outfile, "out_%s", inName);
+			if (do_package) {
+				strcpy(outfile, rel_name ? rel_name + 1 : inName);
+				rel_name = strrchr(outfile, '.');
+				if (rel_name) rel_name[0] = 0;
+				strcat(outfile, ".m21");
+			} else {
+				sprintf(outfile, "out_%s", rel_name ? rel_name + 1 : inName);
+			}
 		}
 		if (MakeISMA) {
 			fprintf(stdout, "Converting to ISMA Audio-Video MP4 file...\n");
@@ -1868,7 +1933,7 @@ int main(int argc, char **argv)
 		case 1:
 			for (i=0; i<gf_isom_get_track_count(file); i++) {
 				if (track && (track != i+1)) continue;
-				e = gf_isom_set_media_language(file, i+1, tka->lang);
+				e = gf_isom_set_media_language(file, i+1, (char *) GetLanguageCode(tka->lang));
 				if (e) goto err_exit;
 				needSave = 1;
 			}
@@ -1997,7 +2062,7 @@ int main(int argc, char **argv)
 		if (outName) {
 			fprintf(stdout, "Saving to %s: ", outfile);
 			gf_isom_set_final_name(file, outfile);
-		} else if (encode) {
+		} else if (encode || do_package) {
 			fprintf(stdout, "Saving to %s: ", gf_isom_get_filename(file) );
 		} else {
 			fprintf(stdout, "Saving %s: ", inName);
@@ -2007,7 +2072,7 @@ int main(int argc, char **argv)
 		else fprintf(stdout, "%.3f secs Interleaving%s\n", InterleavingTime, old_interleave ? " - no drift control" : "");
 		e = gf_isom_close_progress(file, quiet_mode ? NULL : gf_cbk_on_progress, "Writing");
 		if (e) goto err_exit;
-		if (!outName && !encode && !force_new) {
+		if (!outName && !encode && !force_new && !do_package) {
 			if (remove(inName)) fprintf(stdout, "Error removing file %s\n", inName);
 			else if (rename(outfile, inName)) fprintf(stdout, "Error renaming file %s\n", outfile);
 		}

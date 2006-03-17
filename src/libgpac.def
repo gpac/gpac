@@ -169,6 +169,29 @@ EXPORTS
 	gf_dm_sess_get_stats
 	gf_dm_sess_fetch_data
 
+;xml.h exports
+	gf_xml_sax_new
+	gf_xml_sax_del
+	gf_xml_sax_init
+	gf_xml_sax_parse
+	gf_xml_sax_suspend
+	gf_xml_sax_parse_file
+	gf_xml_sax_get_line
+	gf_xml_sax_get_file_size
+	gf_xml_sax_get_file_pos
+	gf_xml_sax_peek_node
+	gf_xml_sax_binary_file
+	gf_xml_sax_get_error
+	gf_xml_get_root_type
+	gf_xml_sax_get_node_start_pos
+	gf_xml_sax_get_node_end_pos
+	gf_xml_dom_new
+	gf_xml_dom_del
+	gf_xml_dom_parse
+	gf_xml_dom_get_root
+	gf_xml_dom_get_error
+	gf_xml_dom_get_line
+
 ;math.h exports
 ;	gf_mulfix
 ;	gf_muldiv
@@ -469,6 +492,7 @@ EXPORTS
 	gf_isom_reset_hint_reader
 	gf_isom_next_hint_packet
 	gf_isom_has_sync_shadows
+	gf_isom_find_od_for_track
 
 ;NON-READ-ONLY exports
 	gf_isom_set_timescale
@@ -625,6 +649,7 @@ EXPORTS
 	gf_term_on_command
 	gf_term_on_sl_packet
 	gf_term_get_service_url
+	gf_term_add_media
 	gf_term_register_mime_type
 	gf_term_check_extension
 	gf_term_download_new

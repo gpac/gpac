@@ -58,6 +58,19 @@ extern "C" {
  */
 s32 gf_token_get(unsigned char *buffer, s32 start, unsigned char *separators, unsigned char *token, s32 token_size);
 /*!
+ *\brief get string component without delimitting characters
+ *
+ *Gets the next string component comprised in a given set of characters, removing surrounding characters
+ *\param buffer source string to scan
+ *\param start char offset from begining of buffer where tokenization shall start
+ *\param separators separator characters to use
+ *\param strip_set surrounding characters to remove
+ *\param token output buffer location
+ *\param token_size output buffer allocated size
+ *\return position of the first char in the buffer after the last terminating separator, or -1 if token could not be found
+ */
+s32 gf_token_get_strip(unsigned char *buffer, s32 start, unsigned char *separators, unsigned char *strip_set, unsigned char *token, s32 token_size);
+/*!
  *\brief line removal
  *
  *Gets one line from buffer and remove delimiters CR, LF and CRLF

@@ -414,7 +414,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 
 	gf_es_lock(ch, 1);
 
-	if (ch->service->cache) {
+	if (ch->service && ch->service->cache) {
 		GF_SLHeader slh;
 		memset(&slh, 0, sizeof(GF_SLHeader));
 		slh.accessUnitEndFlag = slh.accessUnitStartFlag = 1;
@@ -1170,7 +1170,7 @@ void gf_es_config_ismacryp(GF_Channel *ch, GF_NetComISMACryp *isma_cryp)
 
 	ch->is_protected = 1;
 	e = GF_OK;
-	if ((isma_cryp->scheme_version != 1) || (isma_cryp->scheme_type != GF_FOUR_CHAR_INT('i','A','E','C')) ) {
+	if ((isma_cryp->scheme_version != 1) || (isma_cryp->scheme_type != GF_4CC('i','A','E','C')) ) {
 		gf_term_message(ch->odm->term, ch->service->url, "Unknown ISMACryp scheme and version", GF_NOT_SUPPORTED);
 		goto exit;
 	}
@@ -1194,7 +1194,7 @@ void gf_es_config_ismacryp(GF_Channel *ch, GF_NetComISMACryp *isma_cryp)
 		memcpy(ch->salt, data+16, sizeof(char)*8);
 	}
 	/*hexadecimal inband encoding*/
-	if (!strnicmp(isma_cryp->kms_uri, "(key-hexa)", 10)) {
+	else if (!strnicmp(isma_cryp->kms_uri, "(key-hexa)", 10)) {
 		u32 v;
 		char szT[3], *k;
 		u32 i;

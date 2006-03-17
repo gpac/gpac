@@ -212,6 +212,7 @@ void SD_SetupDump(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 			fprintf(sdump->trace, "<head>\n");
 			fprintf(sdump->trace, "<meta content=\"X3D File Converted/Dumped by GPAC Version %s\" name=\"generator\"/>\n", GPAC_VERSION);
 			fprintf(sdump->trace, "</head>\n");
+			fprintf(sdump->trace, "<Scene>\n");
 		} else {
 			fprintf(sdump->trace, "#X3D V3.0\n\n");
 		}
@@ -232,6 +233,7 @@ void SD_FinalizeDump(GF_SceneDumper *sdump)
 		fprintf(sdump->trace, " </Body>\n");
 		fprintf(sdump->trace, "</XMT-A>\n");
 	} else {
+		fprintf(sdump->trace, "</Scene>\n");
 		fprintf(sdump->trace, "</X3D>\n");
 	}
 }
@@ -1072,13 +1074,13 @@ GF_Route *SD_GetISedField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo *fi
 	i=0;
 	while ((r = gf_list_enum(sdump->current_proto->sub_graph->Routes, &i))) {
 		if (!r->IS_route) continue;
-		if ((r->ToNode==node) && (r->ToFieldIndex==field->fieldIndex)) return r;
+		if ((r->ToNode==node) && (r->ToField.fieldIndex==field->fieldIndex)) return r;
 	}
 	if (!node || !node->sgprivate->events) return NULL;
 	i=0;
 	while ((r = gf_list_enum(node->sgprivate->events, &i))) {
 		if (!r->IS_route) continue;
-		if (r->FromFieldIndex == field->fieldIndex) return r;
+		if (r->FromField.fieldIndex == field->fieldIndex) return r;
 	}
 	return NULL;
 }
@@ -1089,10 +1091,10 @@ void DumpISField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field, Bool 
 
 	GF_Route *r = SD_GetISedField(sdump, node, &field);
 	if (r->FromNode) {
-		pfield.fieldIndex = r->ToFieldIndex;
+		pfield.fieldIndex = r->ToField.fieldIndex;
 		gf_sg_proto_get_field(sdump->current_proto, NULL, &pfield);
 	} else {
-		pfield.fieldIndex = r->FromFieldIndex;
+		pfield.fieldIndex = r->FromField.fieldIndex;
 		gf_sg_proto_get_field(sdump->current_proto, NULL, &pfield);
 	}
 	
@@ -1621,9 +1623,9 @@ GF_Err DumpRouteInsert(GF_SceneDumper *sdump, GF_Command *com, Bool is_scene_rep
 	r.ID = com->RouteID;
 	r.name = com->def_name;
 	r.FromNode = SD_FindNode(sdump, com->fromNodeID);
-	r.FromFieldIndex = com->fromFieldIndex;
+	r.FromField.fieldIndex = com->fromFieldIndex;
 	r.ToNode = SD_FindNode(sdump, com->toNodeID);
-	r.ToFieldIndex = com->toFieldIndex;
+	r.ToField.fieldIndex = com->toFieldIndex;
 
 	gf_list_add(sdump->inserted_routes, com);
 
@@ -1920,9 +1922,9 @@ GF_Err DumpRouteReplace(GF_SceneDumper *sdump, GF_Command *com)
 
 	memset(&r2, 0, sizeof(GF_Route));
 	r2.FromNode = SD_FindNode(sdump, com->fromNodeID);
-	r2.FromFieldIndex = com->fromFieldIndex;
+	r2.FromField.fieldIndex = com->fromFieldIndex;
 	r2.ToNode = SD_FindNode(sdump, com->toNodeID);
-	r2.ToFieldIndex = com->toFieldIndex;
+	r2.ToField.fieldIndex = com->toFieldIndex;
 
 	DUMP_IND(sdump);
 	if (sdump->XMLDump) {
@@ -1943,8 +1945,8 @@ GF_Err DumpRoute(GF_SceneDumper *sdump, GF_Route *r, u32 dump_type)
 {
 	char toNode[512], fromNode[512];
 	if (!r->is_setup) {
-		gf_node_get_field(r->FromNode, r->FromFieldIndex, &r->FromField);
-		gf_node_get_field(r->ToNode, r->ToFieldIndex, &r->ToField);
+		gf_node_get_field(r->FromNode, r->FromField.fieldIndex, &r->FromField);
+		gf_node_get_field(r->ToNode, r->ToField.fieldIndex, &r->ToField);
 		r->is_setup = 1;
 	}
 	if (!r->FromNode || !r->ToNode) return GF_BAD_PARAM;
@@ -2468,6 +2470,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 
 		gf_svg_dump_attribute(svg, &info, attValue);
 		if (strlen(attValue)) fprintf(sdump->trace, "%s=\"%s\" ", info.name, attValue);
+		fflush(sdump->trace);
 	}
 	gf_node_unregister(proto, NULL);
 
@@ -2656,6 +2659,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 	GF_SceneDumper *dumper;
 	GF_StreamContext *sc;
 	GF_AUContext *au;
+	Bool no_root_found = 1;
 
 	sample_list = gf_list_new();
 
@@ -2788,6 +2792,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 				if (gf_list_count(au->commands)) {
 					e = gf_sm_dump_command_list(dumper, au->commands, indent+1, first_bifs);
 					first_bifs = 0;
+					no_root_found = 0;
 				}
 				break;
 			}
@@ -2796,6 +2801,19 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 		if (dumper->LSRDump) fprintf(dumper->trace, "</saf:sceneUnit>\n");
 		if (dumper->X3DDump || (dumper->dump_mode==GF_SM_DUMP_VRML)) break;
 	}
+	if (no_root_found && ctx->scene_graph->RootNode) {
+		GF_Route *r;
+		DumpProtos(dumper, ctx->scene_graph->protos);
+		DumpNode(dumper, ctx->scene_graph->RootNode, 0, NULL);
+		i=0;
+		fprintf(dumper->trace, "\n");
+		while ((r = gf_list_enum(dumper->sg->Routes, &i))) {
+			if (r->IS_route || (r->graph!=dumper->sg)) continue;
+			e = DumpRoute(dumper, r, 0);
+			if (e) return e;
+		}
+	}
+
 	/*close command*/
 	if (!dumper->X3DDump && first_par) fprintf(dumper->trace, " </par>\n");
 

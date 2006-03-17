@@ -120,15 +120,15 @@ through the following Reference Types*/
 enum
 {
 	/*ref type for the OD track dependencies*/
-	GF_ISOM_REF_OD			= GF_FOUR_CHAR_INT( 'm', 'p', 'o', 'd' ),
+	GF_ISOM_REF_OD			= GF_4CC( 'm', 'p', 'o', 'd' ),
 	/*ref type for stream dependencies*/
-	GF_ISOM_REF_DECODE = GF_FOUR_CHAR_INT( 'd', 'p', 'n', 'd' ),
+	GF_ISOM_REF_DECODE = GF_4CC( 'd', 'p', 'n', 'd' ),
 	/*ref type for OCR (Object Clock Reference) dependencies*/
-	GF_ISOM_REF_OCR				= GF_FOUR_CHAR_INT( 's', 'y', 'n', 'c' ),
+	GF_ISOM_REF_OCR				= GF_4CC( 's', 'y', 'n', 'c' ),
 	/*ref type for IPI (Intellectual Property Information) dependencies*/
-	GF_ISOM_REF_IPI				= GF_FOUR_CHAR_INT( 'i', 'p', 'i', 'r' ),
+	GF_ISOM_REF_IPI				= GF_4CC( 'i', 'p', 'i', 'r' ),
 	/*ref type for Hint tracks*/
-	GF_ISOM_REF_HINT		= GF_FOUR_CHAR_INT( 'h', 'i', 'n', 't' )
+	GF_ISOM_REF_HINT		= GF_4CC( 'h', 'i', 'n', 't' )
 };
 
 /*Track Edition flag*/
@@ -145,29 +145,29 @@ enum {
 enum
 {
 	/*base media types*/
-	GF_ISOM_MEDIA_VISUAL	= GF_FOUR_CHAR_INT( 'v', 'i', 'd', 'e' ),
-	GF_ISOM_MEDIA_AUDIO		= GF_FOUR_CHAR_INT( 's', 'o', 'u', 'n' ),
-	GF_ISOM_MEDIA_HINT		= GF_FOUR_CHAR_INT( 'h', 'i', 'n', 't' ),
-	GF_ISOM_MEDIA_TEXT		= GF_FOUR_CHAR_INT( 't', 'e', 'x', 't' ),
+	GF_ISOM_MEDIA_VISUAL	= GF_4CC( 'v', 'i', 'd', 'e' ),
+	GF_ISOM_MEDIA_AUDIO		= GF_4CC( 's', 'o', 'u', 'n' ),
+	GF_ISOM_MEDIA_HINT		= GF_4CC( 'h', 'i', 'n', 't' ),
+	GF_ISOM_MEDIA_TEXT		= GF_4CC( 't', 'e', 'x', 't' ),
 
 	/*MPEG-4 media types*/
-	GF_ISOM_MEDIA_OD		= GF_FOUR_CHAR_INT( 'o', 'd', 's', 'm' ),
-	GF_ISOM_MEDIA_OCR		= GF_FOUR_CHAR_INT( 'c', 'r', 's', 'm' ),
-	GF_ISOM_MEDIA_SCENE		= GF_FOUR_CHAR_INT( 's', 'd', 's', 'm' ),
-	GF_ISOM_MEDIA_MPEG7		= GF_FOUR_CHAR_INT( 'm', '7', 's', 'm' ),
-	GF_ISOM_MEDIA_OCI		= GF_FOUR_CHAR_INT( 'o', 'c', 's', 'm' ),
-	GF_ISOM_MEDIA_IPMP		= GF_FOUR_CHAR_INT( 'i', 'p', 's', 'm' ),
-	GF_ISOM_MEDIA_MPEGJ		= GF_FOUR_CHAR_INT( 'm', 'j', 's', 'm' ),
+	GF_ISOM_MEDIA_OD		= GF_4CC( 'o', 'd', 's', 'm' ),
+	GF_ISOM_MEDIA_OCR		= GF_4CC( 'c', 'r', 's', 'm' ),
+	GF_ISOM_MEDIA_SCENE		= GF_4CC( 's', 'd', 's', 'm' ),
+	GF_ISOM_MEDIA_MPEG7		= GF_4CC( 'm', '7', 's', 'm' ),
+	GF_ISOM_MEDIA_OCI		= GF_4CC( 'o', 'c', 's', 'm' ),
+	GF_ISOM_MEDIA_IPMP		= GF_4CC( 'i', 'p', 's', 'm' ),
+	GF_ISOM_MEDIA_MPEGJ		= GF_4CC( 'm', 'j', 's', 'm' ),
 	/*GPAC-defined, for any track using MPEG-4 systems signaling but with undefined streaml types*/
-	GF_ISOM_MEDIA_ESM		= GF_FOUR_CHAR_INT( 'g', 'e', 's', 'm' ),
+	GF_ISOM_MEDIA_ESM		= GF_4CC( 'g', 'e', 's', 'm' ),
 
-	GF_ISOM_MEDIA_FLASH		= GF_FOUR_CHAR_INT( 'f', 'l', 's', 'h' )
+	GF_ISOM_MEDIA_FLASH		= GF_4CC( 'f', 'l', 's', 'h' )
 };
 
 /* Encryption Scheme Type in the SchemeTypeInfoBox */
 enum 
 {
-	GF_ISOM_ISMACRYP_SCHEME	= GF_FOUR_CHAR_INT( 'i', 'A', 'E', 'C' )
+	GF_ISOM_ISMACRYP_SCHEME	= GF_4CC( 'i', 'A', 'E', 'C' )
 };
 
 /*specific media sub-types - you shall make sure the media sub type is what you expect*/
@@ -175,23 +175,23 @@ enum
 {
 	/*reserved, internal use in the lib. Indicates the track complies to MPEG-4 system
 	specification, and the usual OD framework tools may be used*/
-	GF_ISOM_SUBTYPE_MPEG4		= GF_FOUR_CHAR_INT( 'M', 'P', 'E', 'G' ),
+	GF_ISOM_SUBTYPE_MPEG4		= GF_4CC( 'M', 'P', 'E', 'G' ),
 	
 	/*reserved, internal use in the lib. Indicates the track is of GF_ISOM_SUBTYPE_MPEG4
 	but it is encrypted.*/
-	GF_ISOM_SUBTYPE_MPEG4_CRYP	= GF_FOUR_CHAR_INT( 'E', 'N', 'C', 'M' ),
+	GF_ISOM_SUBTYPE_MPEG4_CRYP	= GF_4CC( 'E', 'N', 'C', 'M' ),
 
 	/*AVC/H264 media type - not listed as an MPEG-4 type, ALTHOUGH this library automatically remaps
 	GF_AVCConfig to MPEG-4 ESD*/
-	GF_ISOM_SUBTYPE_AVC_H264		= GF_FOUR_CHAR_INT( 'a', 'v', 'c', '1' ),
+	GF_ISOM_SUBTYPE_AVC_H264		= GF_4CC( 'a', 'v', 'c', '1' ),
 
 	/*3GPP(2) extension subtypes*/
-	GF_ISOM_SUBTYPE_3GP_H263		= GF_FOUR_CHAR_INT( 's', '2', '6', '3' ),
-	GF_ISOM_SUBTYPE_3GP_AMR		= GF_FOUR_CHAR_INT( 's', 'a', 'm', 'r' ),
-	GF_ISOM_SUBTYPE_3GP_AMR_WB	= GF_FOUR_CHAR_INT( 's', 'a', 'w', 'b' ),
-	GF_ISOM_SUBTYPE_3GP_EVRC		= GF_FOUR_CHAR_INT( 's', 'e', 'v', 'c' ),
-	GF_ISOM_SUBTYPE_3GP_QCELP	= GF_FOUR_CHAR_INT( 's', 'q', 'c', 'p' ),
-	GF_ISOM_SUBTYPE_3GP_SMV		= GF_FOUR_CHAR_INT( 's', 's', 'm', 'v' )
+	GF_ISOM_SUBTYPE_3GP_H263		= GF_4CC( 's', '2', '6', '3' ),
+	GF_ISOM_SUBTYPE_3GP_AMR		= GF_4CC( 's', 'a', 'm', 'r' ),
+	GF_ISOM_SUBTYPE_3GP_AMR_WB	= GF_4CC( 's', 'a', 'w', 'b' ),
+	GF_ISOM_SUBTYPE_3GP_EVRC		= GF_4CC( 's', 'e', 'v', 'c' ),
+	GF_ISOM_SUBTYPE_3GP_QCELP	= GF_4CC( 's', 'q', 'c', 'p' ),
+	GF_ISOM_SUBTYPE_3GP_SMV		= GF_4CC( 's', 's', 'm', 'v' )
 };
 
 
@@ -225,29 +225,29 @@ enum
 {
 	/*file complying to the generic ISO Media File (base specification ISO/IEC 14496-12)
 	this is the default brand when creating a new movie*/
-	GF_ISOM_BRAND_ISOM = GF_FOUR_CHAR_INT( 'i', 's', 'o', 'm' ),
+	GF_ISOM_BRAND_ISOM = GF_4CC( 'i', 's', 'o', 'm' ),
 	/*file complying to ISO/IEC 14496-1 2001 edition. A .mp4 file without a brand
 	is equivalent to a file compatible with this brand*/
-	GF_ISOM_BRAND_MP41 = GF_FOUR_CHAR_INT( 'm', 'p', '4', '1' ),
+	GF_ISOM_BRAND_MP41 = GF_4CC( 'm', 'p', '4', '1' ),
 	/*file complying to ISO/IEC 14496-14 (MP4 spec)*/
-	GF_ISOM_BRAND_MP42 = GF_FOUR_CHAR_INT( 'm', 'p', '4', '2' ),
+	GF_ISOM_BRAND_MP42 = GF_4CC( 'm', 'p', '4', '2' ),
 	/*file complying to ISO/IEC 15444-3 (JPEG2000) without profile restriction*/
-	GF_ISOM_BRAND_MJP2 = GF_FOUR_CHAR_INT( 'm', 'j', 'p', '2' ),
+	GF_ISOM_BRAND_MJP2 = GF_4CC( 'm', 'j', 'p', '2' ),
 	/*file complying to ISO/IEC 15444-3 (JPEG2000) with simple profile restriction*/
-	GF_ISOM_BRAND_MJ2S = GF_FOUR_CHAR_INT( 'm', 'j', '2', 's' ),
+	GF_ISOM_BRAND_MJ2S = GF_4CC( 'm', 'j', '2', 's' ),
 	/*old versions of 3GPP spec (without timed text)*/
-	GF_ISOM_BRAND_3GP4 = GF_FOUR_CHAR_INT('3', 'g', 'p', '4'),
-	GF_ISOM_BRAND_3GP5 = GF_FOUR_CHAR_INT('3', 'g', 'p', '5'),
+	GF_ISOM_BRAND_3GP4 = GF_4CC('3', 'g', 'p', '4'),
+	GF_ISOM_BRAND_3GP5 = GF_4CC('3', 'g', 'p', '5'),
 	/*final version of 3GPP file spec*/
-	GF_ISOM_BRAND_3GP6 = GF_FOUR_CHAR_INT('3', 'g', 'p', '6'),
+	GF_ISOM_BRAND_3GP6 = GF_4CC('3', 'g', 'p', '6'),
 	/*generci 3GPP file (several audio tracks, etc..)*/
-	GF_ISOM_BRAND_3GG6 = GF_FOUR_CHAR_INT('3', 'g', 'g', '6'),
+	GF_ISOM_BRAND_3GG6 = GF_4CC('3', 'g', 'g', '6'),
 	/*3GPP2 file spec*/
-	GF_ISOM_BRAND_3G2A = GF_FOUR_CHAR_INT('3', 'g', '2', 'a'),
+	GF_ISOM_BRAND_3G2A = GF_4CC('3', 'g', '2', 'a'),
 	/*AVC file spec*/
-	GF_ISOM_BRAND_AVC1 = GF_FOUR_CHAR_INT('a', 'v', 'c', '1'),
+	GF_ISOM_BRAND_AVC1 = GF_4CC('a', 'v', 'c', '1'),
 	/* file complying to ISO/IEC 21000-9:2005 (MPEG-21 spec)*/
-	GF_ISOM_BRAND_MP21 = GF_FOUR_CHAR_INT('m', 'p', '2', '1'),
+	GF_ISOM_BRAND_MP21 = GF_4CC('m', 'p', '2', '1'),
 };
 
 
@@ -553,6 +553,8 @@ GF_Err gf_isom_get_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenc
 
 u8 gf_isom_get_pl_indication(GF_ISOFile *the_file, u8 PL_Code);
 
+/*locates the first ObjectDescriptor using the given track by inspecting any OD tracks*/
+u32 gf_isom_find_od_for_track(GF_ISOFile *file, u32 track);
 
 /*returns file name*/
 const char *gf_isom_get_filename(GF_ISOFile *the_file);
@@ -1136,7 +1138,7 @@ GF_Err gf_isom_make_interleave(GF_ISOFile *mp4file, Double TimeInSec);
 /*supported hint formats - ONLY RTP now*/
 enum
 {
-	GF_ISOM_HINT_RTP = GF_FOUR_CHAR_INT( 'r', 't', 'p', ' ' )
+	GF_ISOM_HINT_RTP = GF_4CC( 'r', 't', 'p', ' ' )
 };
 
 
@@ -1323,7 +1325,7 @@ GF_Err gf_isom_next_hint_packet(GF_ISOFile *the_file, u32 trackNumber, char **pc
 /*Generic 3GP/3GP2 config record*/
 typedef struct 
 {
-	/*GF_FOUR_CHAR_INT record type, one fo the above GF_ISOM_SUBTYPE_3GP_ * subtypes*/
+	/*GF_4CC record type, one fo the above GF_ISOM_SUBTYPE_3GP_ * subtypes*/
 	u32 type;
 	/*4CC vendor name*/
 	u32 vendor;

@@ -345,15 +345,16 @@ enum {
 }; 
 typedef u8 SVG_FontStyle;
 
+/*the values are chosen to match LASeR code points*/
 enum {
-	SVG_PATHCOMMAND_M = 0,
-	SVG_PATHCOMMAND_L = 1,
-	SVG_PATHCOMMAND_C = 2,
-	SVG_PATHCOMMAND_S = 3,
+	SVG_PATHCOMMAND_M = 3,
+	SVG_PATHCOMMAND_L = 2,
+	SVG_PATHCOMMAND_C = 0,
+	SVG_PATHCOMMAND_S = 5,
 	SVG_PATHCOMMAND_Q = 4,
-	SVG_PATHCOMMAND_T = 5,
-	SVG_PATHCOMMAND_A = 7,
-	SVG_PATHCOMMAND_Z = 6
+	SVG_PATHCOMMAND_T = 6,
+	SVG_PATHCOMMAND_A = 20,
+	SVG_PATHCOMMAND_Z = 8
 };
 
 typedef struct {
@@ -1247,8 +1248,8 @@ THIS SHALL NOT BE USED WITH VRML-BASED GRAPHS: either one uses listeners or one 
 the listener node is NOT registered, it is the user responsability to delete it from its parent
 @listener is a listenerElement (XML event)
 */
-GF_Err gf_dom_listener_add(GF_Node *node, struct _tagSVGlistenerElement *listener);
-GF_Err gf_dom_listener_del(GF_Node *node, struct _tagSVGlistenerElement *listener);
+GF_Err gf_dom_listener_add(GF_Node *node, GF_Node *listener);
+GF_Err gf_dom_listener_del(GF_Node *node, GF_Node *listener);
 u32 gf_dom_listener_count(GF_Node *node);
 struct _tagSVGlistenerElement *gf_dom_listener_get(GF_Node *node, u32 i);
 

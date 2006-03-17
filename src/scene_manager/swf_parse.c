@@ -1875,7 +1875,7 @@ GF_Err swf_def_sound(SWFReader *read)
 			bytes[1] = swf_read_int(read, 8);
 			bytes[2] = swf_read_int(read, 8);
 			bytes[3] = swf_read_int(read, 8);
-			hdr = GF_FOUR_CHAR_INT(bytes[0], bytes[1], bytes[2], bytes[3]);
+			hdr = GF_4CC(bytes[0], bytes[1], bytes[2], bytes[3]);
 			size = gf_mp3_frame_size(hdr);
 			if (alloc_size<size-4) {
 				frame = realloc(frame, sizeof(char)*(size-4));
@@ -2167,7 +2167,7 @@ GF_Err swf_soundstream_block(SWFReader *read)
 		bytes[1] = swf_read_int(read, 8);
 		bytes[2] = swf_read_int(read, 8);
 		bytes[3] = swf_read_int(read, 8);
-		hdr = GF_FOUR_CHAR_INT(bytes[0], bytes[1], bytes[2], bytes[3]);
+		hdr = GF_4CC(bytes[0], bytes[1], bytes[2], bytes[3]);
 		size = gf_mp3_frame_size(hdr);
 		if (alloc_size<size-4) {
 			frame = realloc(frame, sizeof(char)*(size-4));

@@ -74,7 +74,7 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, Bool from_ff_demux)
 		size = gf_bs_read_u32(bs);
 		/*there should be an 'SMI' entry*/
 		at_type = gf_bs_read_u32(bs);
-		if (at_type == GF_FOUR_CHAR_INT('S', 'M', 'I', ' ')) {
+		if (at_type == GF_4CC('S', 'M', 'I', ' ')) {
 			av_free(ffd->ctx->extradata);
 			ffd->ctx->extradata_size = 0x5a + size;
 			ffd->ctx->extradata = (uint8_t*) av_mallocz(ffd->ctx->extradata_size);
@@ -143,7 +143,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, unsigned char 
 			ffd->ctx->bits_per_sample = gf_bs_read_u8(bs);
 			ffd->ctx->frame_size = gf_bs_read_u8(bs);
 			/*just in case...*/
-			if (codec_id == GF_FOUR_CHAR_INT('a', 'm', 'r', ' ')) {
+			if (codec_id == GF_4CC('a', 'm', 'r', ' ')) {
 			  ffd->ctx->sample_rate = 8000;
 			  ffd->ctx->channels = 1;
 			  ffd->ctx->bits_per_sample = 16;

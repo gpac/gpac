@@ -309,7 +309,7 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32
 		} else {
 			if (priv->delChar) {
 				/*remove chars*/
-				if (len && (priv->enteredText[len-1] == priv->delChar)) {
+				if ((len>1) && (priv->enteredText[len-1] == priv->delChar)) {
 					priv->enteredText[len-1] = (short) '\0';
 					len--;
 					if (len) {
@@ -427,7 +427,7 @@ static void IS_Unregister(ISStack *st)
 		}
 	}
 	/*stop stream*/
-	gf_mo_stop(st->is_mo);
+	if (st->is_mo->num_open) gf_mo_stop(st->is_mo);
 	st->is_mo = NULL;
 	st->registered = 0;
 }
@@ -499,9 +499,11 @@ void InputSensorModified(GF_Node *node)
 	ISStack *st = gf_node_get_private(node);
 
 	mo = gf_mo_find(node, &st->is->url);
-	if (mo!=st->is_mo) {
-		if (st->is_mo) IS_Unregister(st);
-		st->is_mo = mo;
+	if ((mo!=st->is_mo) || !st->registered){
+		if (mo!=st->is_mo) {
+			if (st->is_mo) IS_Unregister(st);
+			st->is_mo = mo;
+		}
 		if (st->is->enabled) 
 			IS_Register(node);
 		else
@@ -654,8 +656,10 @@ void gf_term_keyboard_input(GF_Terminal *term, s32 keyPressed, s32 keyReleased, 
 	while ((cod = gf_list_enum(term->input_streams, &i))) {
 		ISPriv *is = cod->decio->privateStack;
 		if (is->type==IS_KeySensor) {
-			GF_Channel *ch = gf_list_get(cod->inChannels, 0);
-			gf_es_receive_sl_packet(ch->service, ch, buf, buf_size, &slh, GF_OK);
+//			GF_Channel *ch = gf_list_get(cod->inChannels, 0);
+//			gf_es_receive_sl_packet(ch->service, ch, buf, buf_size, &slh, GF_OK);
+
+			IS_ProcessData((GF_SceneDecoder*)cod->decio, buf, buf_size, 0, 0, 0);
 		}
 	}
 	free(buf);

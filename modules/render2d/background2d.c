@@ -166,12 +166,8 @@ static void RenderBackground2D(GF_Node *node, void *rs)
 
 	/*background context bounds are always setup by parent group/surface*/
 	if (back_use_texture(bck) ) {
-		if (bcks->txh.hwtx) {
-			if (!status->ctx.redraw_flags && bcks->txh.needs_refresh) status->ctx.redraw_flags |= CTX_TEXTURE_DIRTY;
-		} else {
-			gf_sr_invalidate(bcks->compositor, NULL);
-			status->ctx.redraw_flags = CTX_APP_DIRTY;
-		}
+		if (bcks->txh.hwtx && !status->ctx.redraw_flags && bcks->txh.needs_refresh) 
+			status->ctx.redraw_flags |= CTX_TEXTURE_DIRTY;
 	} else {
 		col = GF_COL_ARGB_FIXED(FIX_ONE, bck->backColor.red, bck->backColor.green, bck->backColor.blue);
 		if (col != status->ctx.aspect.fill_color) {
@@ -262,7 +258,7 @@ static void DrawBackground(DrawableContext *ctx)
 
 	ctx->path_filled = 0;
 
-	if ( back_use_texture(b2D_getnode(bcks)) ) {
+	if ( back_use_texture(b2D_getnode(bcks))) {
 
 		if (!ctx->surface->DrawBitmap) {
 			/*set target rect*/

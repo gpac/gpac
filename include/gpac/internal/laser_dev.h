@@ -46,7 +46,7 @@ struct __tag_laser_codec
 {
 	GF_BitStream *bs;
 	GF_SceneGraph *sg;
-
+	GF_Err last_error;
 	FILE *trace;
 
 	/*all attached streams*/
@@ -190,6 +190,29 @@ s32 gf_lsr_field_to_attrib_type(GF_Node *n, u32 fieldIndex);
 #define LSR_UPDATE_EXTEND			10
 #define LSR_UPDATE_TEXT_CONTENT		11
 
+
+/*Code point Path code*/
+enum
+{
+	LSR_PATH_COM_C = 0,
+	LSR_PATH_COM_H,
+	LSR_PATH_COM_L,
+	LSR_PATH_COM_M, 
+	LSR_PATH_COM_Q, 
+	LSR_PATH_COM_S, 
+	LSR_PATH_COM_T, 
+	LSR_PATH_COM_V, 
+	LSR_PATH_COM_Z, 
+	LSR_PATH_COM_c, 
+	LSR_PATH_COM_h, 
+	LSR_PATH_COM_l, 
+	LSR_PATH_COM_m, 
+	LSR_PATH_COM_q, 
+	LSR_PATH_COM_s, 
+	LSR_PATH_COM_t,
+	LSR_PATH_COM_v,
+	LSR_PATH_COM_z
+};
 
 #endif
 

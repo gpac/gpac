@@ -87,6 +87,15 @@ char *gf_url_concatenate(const char *parentName, const char *pathName);
  */
 void gf_utc_time_since_1970(u32 *sec, u32 *msec);
 
+
+/*!
+ *	\brief NTP seconds from 1900 to 1970
+ *	\hideinitializer
+ *
+ *	Macro giving the number of seconds from from 1900 to 1970
+*/
+#define GF_NTP_SEC_1900_TO_1970 2208988800ul
+
 /*!
  *\brief gets NTP time 
  *

@@ -605,6 +605,10 @@ SOURCE=..\..\include\gpac\internal\ogg.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\media_tools\saf.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\media_tools\text_import.c
 # End Source File
 # End Group

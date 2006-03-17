@@ -32,11 +32,6 @@ extern "C" {
 #include <gpac/tools.h>
 #include <gpac/list.h>
 
-/*since 0.2.2, we use zlib for xmt/x3d reading to handle gz files*/
-#include <zlib.h>
-
-#define XML_LINE_SIZE	8000
-
 /*!
  *	\file <gpac/xml.h>
  *	\brief XML functions.
@@ -48,106 +43,53 @@ extern "C" {
  *	\brief XML Parsing functions
  *
  *This section documents the XML functions of the GPAC framework.\n
- *Two parsers are available, a push-only parser (user-driven) and a SAX parser.
  *	@{
  */
 
 
-/*!\brief XML push parser
- *
- *The XML push parser object is used for simple parsing of XML data from file. It supports plain text in UTF-8 and UTF-16 encoding. It also supports
- * GZIP encoded input files.
- */
-typedef struct 
-{
-	/*! gz input file*/
-	gzFile gz_in;
-	/*! End of file flag*/
-	Bool done;
-	/*! current line parsed, mainly used for error reporting*/
-	u32 line;
-	/*! Unicode type. Values are 0 (UTF-8), 1(UTF-16 BE), 2(UTF-16 LE). String input is always converted back to utf8*/
-	s32 unicode_type;
-	/*! working line buffer - needs refinement, cannot handle attribute values with size over XMT_LINE_SIZE (except string where space is used as a line-break...)*/
-	char line_buffer[XML_LINE_SIZE];
-	/*! name buffer for elements and attributes*/
-	char name_buffer[1000];
-	/*! dynamic buffer for attribute values*/
-	char *value_buffer;
-	/*! slength of the dynamic attribute buffer*/
-	u32 att_buf_size;
-	/*! line size*/
-	u32 line_size;
-	/*! current position*/
-	u32 current_pos;
-	/*! absolute line start position in file. Used by some parsers for file seeking*/
-	s32 line_start_pos;
-	/*! text parsing mode (text with markers), avoids getting rid of \n & co. Not very stable...*/
-	Bool text_parsing;
-	/*! file size for user notif*/
-	u32 file_size;
-	/*! filepos for user notif*/
-	u32 file_pos;
-	/*! progress notification function, NULL for no report*/
-	void (*OnProgress)(void *cbck, u32 done, u32 tot);
-	/*! progress callback data*/
-	void *cbk;
-} XMLParser;
 
-/*!
- *	\brief XML push parser constructor
- *
- *	Inits the XML push parser with the given local file.
- *\param parser the parser object to initialize 
- *\param fileName path and name of the file to parse
- *\note This handles UTF8/16 and gzip detection
- */
-GF_Err xml_init_parser(XMLParser *parser, const char *fileName);
-/*reset parser (closes file and destroy value buffer)*/
-void xml_reset_parser(XMLParser *parser);
-/*get next element name*/
-char *xml_get_element(XMLParser *parser);
-/*returns 1 if given element is done*/
-Bool xml_element_done(XMLParser *parser, char *name);
-/*skip given element*/
-void xml_skip_element(XMLParser *parser, char *name);
-/*skip element attributes*/
-void xml_skip_attributes(XMLParser *parser);
-/*returns 1 if element has attributes*/
-Bool xml_has_attributes(XMLParser *parser);
-/*returns next attribute name*/
-char *xml_get_attribute(XMLParser *parser);
-/*returns attribute value*/
-char *xml_get_attribute_value(XMLParser *parser);
-/*translate input string, removing all special XML encoding. Returned string shall be freed by caller*/
-char *xml_translate_xml_string(char *str);
-/*checks if next line should be loaded - is not needed except when seeking file outside the parser routines*/
-void xml_check_line(XMLParser *parser);
-/*sets text mode on/off*/
-void xml_set_text_mode(XMLParser *parser, Bool text_mode);
-
-/*loads text between elements if any (returns 1) or retruns 0 if no text.
-Text data is stored in attribute value buffer*/
-Bool xml_load_text(XMLParser *parser);
-/*fetches CSS-attribute {name : Val} in the same way as attribute (eg returns Name and stores Val in attribute value buffer)*/
-char *xml_get_css(XMLParser *parser);
-
-
-/*
-	SAX XML Parser
-*/
 typedef struct
 {
 	/*name or namespace:name*/
 	char *name;
 	/*value*/
 	char *value;
-} GF_SAXAttribute;
+} GF_XMLAttribute;
+
+/*XML node types*/
+enum
+{
+	GF_XML_NODE_TYPE = 0,
+	GF_XML_TEXT_TYPE,
+	GF_XML_CDATA_TYPE,
+};
+
+typedef struct
+{
+	u32 type;
+	/*
+	For DOM nodes: name
+	For other (text, css, cdata), element content*/
+	char *name;
+
+	/*for DOM nodes only*/
+	char *ns;	/*namespace*/
+	GF_List *attributes;
+	GF_List *content;
+} GF_XMLNode;
+
+
+
+/*
+	SAX XML Parser
+*/
 
 typedef struct _tag_sax_parser GF_SAXParser;
 typedef	void (*gf_xml_sax_node_start)(void *sax_cbck, const char *node_name, const char *name_space, GF_List *attributes);
 typedef	void (*gf_xml_sax_node_end)(void *sax_cbck, const char *node_name, const char *name_space);
 typedef	void (*gf_xml_sax_text_content)(void *sax_cbck, const char *content, Bool is_cdata);
+
+typedef	void (*gf_xml_sax_progress)(void *cbck, u32 done, u32 tot);
 
 /*creates new sax parser - all callbacks are optionals*/
 GF_SAXParser *gf_xml_sax_new(gf_xml_sax_node_start on_node_start, 
@@ -168,7 +110,7 @@ GF_Err gf_xml_sax_parse(GF_SAXParser *parser, void *string_bytes);
 */
 GF_Err gf_xml_sax_suspend(GF_SAXParser *parser, Bool do_suspend);
 /*parses file (potentially gzipped). OnProgress is optional, used to get progress callback*/
-GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, void (*OnProgress)(void *cbck, u32 done, u32 tot));
+GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_sax_progress OnProgress);
 /*get current line number*/
 u32 gf_xml_sax_get_line(GF_SAXParser *parser);
 /*get file size - may be inaccurate if gzipped (only compressed file size is known)*/
@@ -179,10 +121,25 @@ u32 gf_xml_sax_get_file_pos(GF_SAXParser *parser);
 /*peeks a node forward in the file. May be used to pick the attribute of the first node found matching a given (attributeName, attributeValue) couple*/
 char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value, char *substitute, char *get_attr, char *end_pattern, Bool *is_substitute);
 
+/*file mode only, returns 1 if file is compressed, 0 otherwise*/
+Bool gf_xml_sax_binary_file(GF_SAXParser *parser);
+
 const char *gf_xml_sax_get_error(GF_SAXParser *parser);
 
+char *gf_xml_get_root_type(const char *file);
 
-char *gf_xml_sax_get_root_type(const char *file);
+u32 gf_xml_sax_get_node_start_pos(GF_SAXParser *parser);
+u32 gf_xml_sax_get_node_end_pos(GF_SAXParser *parser);
+
+
+typedef struct _tag_dom_parser GF_DOMParser;
+GF_DOMParser *gf_xml_dom_new();
+void gf_xml_dom_del(GF_DOMParser *parser);
+GF_Err gf_xml_dom_parse(GF_DOMParser *parser, const char *file, gf_xml_sax_progress OnProgress, void *cbk);
+GF_XMLNode *gf_xml_dom_get_root(GF_DOMParser *parser);
+const char *gf_xml_dom_get_error(GF_DOMParser *parser);
+u32 gf_xml_dom_get_line(GF_DOMParser *parser);
+
 
 /*! @} */
 

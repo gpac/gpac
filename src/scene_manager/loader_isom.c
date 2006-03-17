@@ -297,14 +297,16 @@ GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load)
 
 		if (esd && esd->URLString) {
 			gf_odf_desc_del((GF_Descriptor *)esd);
+			esd = NULL;
 			continue;
 		}
 
 		/*make sure we load the root BIFS stream first*/
-		if (esd && esd->dependsOnESID) {
+		if (esd && esd->dependsOnESID && (esd->dependsOnESID!=esd->ESID) ) {
 			u32 track = gf_isom_get_track_by_id(load->isom, esd->dependsOnESID);
 			if (gf_isom_get_media_type(load->isom, track) != GF_ISOM_MEDIA_OD) {
 				gf_odf_desc_del((GF_Descriptor *)esd);
+				esd = NULL;
 				continue;
 			}
 		}

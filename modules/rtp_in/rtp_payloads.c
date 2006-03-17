@@ -139,7 +139,7 @@ static GF_Err payt_set_param(RTPStream *ch, char *param_name, char *param_val)
 	else if (!stricmp(param_name, "octet-align")) ch->flags |= CH_AMR_Align;
 	/*ISMACryp config*/
 	else if (!stricmp(param_name, "ISMACrypCryptoSuite")) {
-		if (!stricmp(param_val, "AES_CTR_128")) ch->isma_scheme = GF_FOUR_CHAR_INT('i','A','E','C');
+		if (!stricmp(param_val, "AES_CTR_128")) ch->isma_scheme = GF_4CC('i','A','E','C');
 		else ch->isma_scheme = 0;
 	}
 	else if (!stricmp(param_name, "ISMACrypSelectiveEncryption")) {
@@ -242,7 +242,7 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 		/*mark if AU header is present*/
 		ch->sl_map.auh_first_min_len = 0;
 		if (ch->flags & CH_HasISMACryp) {
-			if (!ch->isma_scheme) ch->isma_scheme = GF_FOUR_CHAR_INT('i','A','E','C');
+			if (!ch->isma_scheme) ch->isma_scheme = GF_4CC('i','A','E','C');
 			if (!ch->sl_map.IV_length) ch->sl_map.IV_length = 4;
 
 			if (ch->flags & CH_UseSelEnc) ch->sl_map.auh_first_min_len += 8;
@@ -292,9 +292,9 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 			/*create DSI*/
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (ch->rtptype == GP_RTP_PAYT_AMR) {
-				gf_bs_write_u32(bs, GF_FOUR_CHAR_INT('s', 'a', 'm', 'r'));
+				gf_bs_write_u32(bs, GF_4CC('s', 'a', 'm', 'r'));
 			} else {
-				gf_bs_write_u32(bs, GF_FOUR_CHAR_INT('s', 'a', 'w', 'b'));
+				gf_bs_write_u32(bs, GF_4CC('s', 'a', 'w', 'b'));
 			}
 			gf_bs_write_int(bs, 0, 5*8);
 			gf_bs_get_content(bs, (unsigned char **) &ch->sl_map.config, &ch->sl_map.configSize);
@@ -318,7 +318,7 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 			ch->sl_map.ObjectTypeIndication = GPAC_EXTRA_CODECS_OTI;
 			/*create DSI*/
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			gf_bs_write_u32(bs, GF_FOUR_CHAR_INT('h', '2', '6', '3'));
+			gf_bs_write_u32(bs, GF_4CC('h', '2', '6', '3'));
 			gf_bs_write_u16(bs, w);
 			gf_bs_write_u16(bs, h);
 			gf_bs_get_content(bs, (unsigned char **) &ch->sl_map.config, &ch->sl_map.configSize);
@@ -699,7 +699,7 @@ void RP_ParsePayloadMPEG12Audio(RTPStream *ch, GF_RTPHeader *hdr, char *payload,
 		/*new frame, store size*/
 		ch->sl_hdr.compositionTimeStampFlag = 0;
 		if (ch->sl_hdr.accessUnitStartFlag) {
-			mp3hdr = GF_FOUR_CHAR_INT((u8) payload[0], (u8) payload[1], (u8) payload[2], (u8) payload[3]);
+			mp3hdr = GF_4CC((u8) payload[0], (u8) payload[1], (u8) payload[2], (u8) payload[3]);
 			ch->sl_hdr.accessUnitLength = gf_mp3_frame_size(mp3hdr);
 			ch->sl_hdr.compositionTimeStampFlag = 1;
 		}

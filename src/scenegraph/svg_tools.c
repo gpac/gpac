@@ -57,7 +57,7 @@ void *gf_node_animation_get(GF_Node *node, u32 i)
 	return gf_list_get(node->sgprivate->animations, i);
 }
 
-GF_Err gf_dom_listener_add(GF_Node *node, SVGlistenerElement *listener)
+GF_Err gf_dom_listener_add(GF_Node *node, GF_Node *listener)
 {
 	if (!node || !listener) return GF_BAD_PARAM;
 	if (listener->sgprivate->tag!=TAG_SVG_listener) return GF_BAD_PARAM;
@@ -66,7 +66,7 @@ GF_Err gf_dom_listener_add(GF_Node *node, SVGlistenerElement *listener)
 	return gf_list_add(node->sgprivate->events, listener);
 }
 
-GF_Err gf_dom_listener_del(GF_Node *node, SVGlistenerElement *listener)
+GF_Err gf_dom_listener_del(GF_Node *node, GF_Node *listener)
 {
 	if (!node || !node->sgprivate->events || !listener) return GF_BAD_PARAM;
 	return (gf_list_del_item(node->sgprivate->events, listener)<0) ? GF_BAD_PARAM : GF_OK;
@@ -240,7 +240,7 @@ SVGhandlerElement *gf_dom_listener_build(GF_Node *node, XMLEV_Event event)
 	handler->ev_event = listener->event = event;
 	listener->handler.target = (SVGElement *) handler;
 	listener->target.target = (SVGElement *)node;
-	gf_dom_listener_add((GF_Node *) node, listener);
+	gf_dom_listener_add((GF_Node *) node, (GF_Node *) listener);
 	/*set default handler*/
 	handler->handle_event = gf_sg_handle_dom_event;
 	return handler;

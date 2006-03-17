@@ -225,7 +225,9 @@ GF_Err gf_sm_load_run(GF_SceneLoader *load);
 void gf_sm_load_done(GF_SceneLoader *load);
 
 /*parses memory scene (any textural format) into the context
-!! THE LOADER TYPE MUST BE ASSIGNED (BT/WRL/XMT/X3D only !!
+!! THE LOADER TYPE MUST BE ASSIGNED (BT/WRL/XMT/X3D/SVG only) !!
+The string MUST be at least 4 bytes long in order to detect BOM (unicode encoding). 
+The string can ba either UTF-8 or UTF-16 data
 */
 GF_Err gf_sm_load_string(GF_SceneLoader *load, char *str);
 

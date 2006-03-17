@@ -30,6 +30,8 @@
 #include <gpac/avparse.h>
 /*for asctime and gmtime*/
 #include <time.h>
+/*ISO 639 languages*/
+#include <gpac/iso639.h>
 
 
 extern u32 swf_flags;
@@ -37,12 +39,63 @@ extern Bool quiet_mode;
 extern Float swf_flatten_angle;
 extern u32 get_file_type_by_ext(char *inName);
 
+#ifndef GPAC_READ_ONLY
+GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample);
+#endif
+
+void PrintLanguages()
+{
+	u32 i=0;
+	fprintf(stdout, "Supported ISO 639 languages and codes:\n\n");
+	while (GF_ISO639_Lang[i]) {
+		if (!GF_ISO639_Lang[i+2][0]) {
+			i+=3;
+			continue;
+		}
+		fprintf(stdout, "%s (%s - %s)\n", GF_ISO639_Lang[i], GF_ISO639_Lang[i+1], GF_ISO639_Lang[i+2]);
+		i+=3;
+	}
+}
+
+static const char *GetLanguage(char *lcode)
+{
+	u32 i=0;
+	if ((lcode[0]=='u') && (lcode[1]=='n') && (lcode[2]=='d')) return "Undetermined";
+	while (GF_ISO639_Lang[i]) {
+		if (GF_ISO639_Lang[i+2][0] && strstr(GF_ISO639_Lang[i+1], lcode)) return GF_ISO639_Lang[i];
+		i+=3;
+	}
+	return "Unknown";
+}
+
+const char *GetLanguageCode(char *lang)
+{
+	u32 i;
+	Bool check_2cc = 0;
+	i = strlen(lang);
+	if (i==3) return lang;
+	if (i==2) check_2cc = 1;
+
+	i=0;
+	while (GF_ISO639_Lang[i]) {
+		if (GF_ISO639_Lang[i+2][0]) {
+			if (check_2cc) {
+				if (!stricmp(GF_ISO639_Lang[i+2], lang) ) return GF_ISO639_Lang[i+1];
+			} else if (!stricmp(GF_ISO639_Lang[i], lang)) return GF_ISO639_Lang[i+1];
+		}
+		i+=3;
+	}
+	return "und";
+}
+
+
 void dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 {
 	GF_Err e;
 	GF_SceneManager *ctx;
 	GF_SceneGraph *sg;
 	GF_SceneLoader load;
+	u32 ftype;
 	e = GF_OK;
 
 	sg = gf_sg_new();
@@ -55,7 +108,8 @@ void dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 	load.swf_import_flags = swf_flags;
 	load.swf_flatten_limit = swf_flatten_angle;
 
-	if (get_file_type_by_ext(file) == 1) {
+	ftype = get_file_type_by_ext(file);
+	if (ftype == 1) {
 		load.isom = gf_isom_open(file, GF_ISOM_OPEN_READ, NULL);
 		if (!load.isom) {
 			fprintf(stdout, "Cannot open file: %s\n", gf_error_to_string(gf_isom_last_error(NULL)));
@@ -64,6 +118,23 @@ void dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 			return;
 		}
 	}
+#ifndef GPAC_READ_ONLY
+	/*SAF*/
+	else if (ftype==6) {
+		load.isom = gf_isom_open("saf_conv", GF_ISOM_WRITE_EDIT, NULL);
+		if (load.isom) e = import_file(load.isom, file, 0, 0, 0);
+		else e = gf_isom_last_error(NULL);
+
+		if (e) {
+			fprintf(stdout, "Error importing file: %s\n", gf_error_to_string(e));
+			gf_sm_del(ctx);
+			gf_sg_del(sg);
+			if (load.isom) gf_isom_delete(load.isom);
+			return;
+		}
+	}
+#endif
+
 	if (do_log) load.flags = GF_SM_LOAD_DUMP_BINARY;
 	e = gf_sm_load_init(&load);
 	if (!e) e = gf_sm_load_run(&load);
@@ -786,7 +857,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	fprintf(stdout, "Track # %d Info - TrackID %d - TimeScale %d - Duration %s\n", trackNum, trackID, timescale, format_duration(gf_isom_get_media_duration(file, trackNum), timescale, szDur));
 	if (gf_isom_is_track_in_root_od(file, trackNum) ) fprintf(stdout, "Track is present in Root OD\n");
 	gf_isom_get_media_language(file, trackNum, sType);
-	fprintf(stdout, "Media Info: Language \"%s\" - ", sType);
+	fprintf(stdout, "Media Info: Language \"%s\" - ", GetLanguage(sType) );
 	mtype = gf_isom_get_media_type(file, trackNum);
 	fprintf(stdout, "Type \"%s\" - ", gf_4cc_to_str(mtype));
 	msub_type = gf_isom_get_mpeg4_subtype(file, trackNum, 1);
@@ -890,7 +961,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						fprintf(stdout, "MPEG-1/2 Audio - %d Channels - SampleRate %d\n", nb_ch, sr);
 					} else {
 						GF_ISOSample *samp = gf_isom_get_sample(file, trackNum, 1, &oti);
-						oti = GF_FOUR_CHAR_INT((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
+						oti = GF_4CC((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
 						if (full_dump) fprintf(stdout, "\t");
 						fprintf(stdout, "%s Audio - %d Channel(s) - SampleRate %d - Layer %d\n",
 							gf_mp3_version_name(oti),

@@ -1,0 +1,6 @@
+LIBRARY     gm_saf_in.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

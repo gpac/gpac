@@ -285,7 +285,7 @@ static JSBool udom_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *
 	listener->target.target = (SVGElement *)node;
 	handler->textContent = strdup(callback);
 	handler->handle_event = gf_sg_handle_dom_event;
-	gf_dom_listener_add((GF_Node *) node, listener);
+	gf_dom_listener_add((GF_Node *) node, (GF_Node *) listener);
 	return JS_TRUE;
 }
 static JSBool udom_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -333,7 +333,7 @@ static JSBool udom_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 		if ((el->event.type != evtType) || !el->handler.target) continue;
 		hdl = (SVGhandlerElement *)el->handler.target;
 		if (!hdl->textContent || strcmp(hdl->textContent, callback)) continue;
-		gf_dom_listener_del(node, el);
+		gf_dom_listener_del(node, (GF_Node *) el);
 		gf_list_del_item( ((GF_ParentNode *)node)->children, (GF_Node *) hdl);
 		gf_node_unregister((GF_Node *) hdl, node);
 		gf_list_del_item( ((GF_ParentNode *)node)->children, (GF_Node *) el);

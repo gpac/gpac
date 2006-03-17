@@ -71,7 +71,6 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	Render2D *sr = (Render2D *)vr->user_priv;
 
 	switch (gf_node_get_tag(node)) {
-	case TAG_MPEG4_Anchor: R2D_InitAnchor(sr, node); break;
 	case TAG_MPEG4_Background2D: R2D_InitBackground2D(sr, node); break;
 	case TAG_MPEG4_Bitmap: R2D_InitBitmap(sr, node); break;
 	case TAG_MPEG4_Circle: R2D_InitCircle(sr, node); break;
@@ -81,22 +80,16 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_MPEG4_XCurve2D: R2D_InitCurve2D(sr, node); break;
 	case TAG_MPEG4_DiscSensor: R2D_InitDiscSensor(sr, node); break;
 	case TAG_MPEG4_Ellipse: R2D_InitEllipse(sr, node); break;
-	case TAG_MPEG4_Group: R2D_InitGroup(sr, node); break;
 	case TAG_MPEG4_IndexedFaceSet2D: R2D_InitIFS2D(sr, node); break;
 	case TAG_MPEG4_IndexedLineSet2D: R2D_InitILS2D(sr, node); break;
 	case TAG_MPEG4_Form: R2D_InitForm(sr, node); break;
 	case TAG_MPEG4_Layer2D: R2D_InitLayer2D(sr, node); break;
 	case TAG_MPEG4_Layout: R2D_InitLayout(sr, node); break;
-	case TAG_MPEG4_PointSet2D: R2D_InitPointSet2D(sr, node); break;
 	case TAG_MPEG4_OrderedGroup: R2D_InitOrderedGroup(sr, node); break;
 	case TAG_MPEG4_MatteTexture: R2D_InitMatteTexture(sr, node); break;
 	case TAG_MPEG4_PlaneSensor2D: R2D_InitPlaneSensor2D(sr, node); break;
+	case TAG_MPEG4_PointSet2D: R2D_InitPointSet2D(sr, node); break;
 	case TAG_MPEG4_ProximitySensor2D: R2D_InitProximitySensor2D(sr, node); break;
-	case TAG_MPEG4_Rectangle: R2D_InitRectangle(sr, node); break;
-	case TAG_MPEG4_Shape: R2D_InitShape(sr, node); break;
-	case TAG_MPEG4_Switch: R2D_InitSwitch(sr, node); break;
-	case TAG_MPEG4_Text: R2D_InitText(sr, node); break;
-	case TAG_MPEG4_TouchSensor: R2D_InitTouchSensor(sr, node); break;
 	case TAG_MPEG4_Transform2D: R2D_InitTransform2D(sr, node); break;
 	case TAG_MPEG4_TransformMatrix2D: R2D_InitTransformMatrix2D(sr, node); break;
 	case TAG_MPEG4_Viewport: R2D_InitViewport(sr, node); break;
@@ -106,6 +99,15 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_MPEG4_LinearGradient: R2D_InitLinearGradient(sr, node); break;
 	case TAG_MPEG4_RadialGradient: R2D_InitRadialGradient(sr, node); break;
 	case TAG_MPEG4_PathLayout: R2D_InitPathLayout(sr, node); break;
+
+	case TAG_MPEG4_Anchor: case TAG_X3D_Anchor: R2D_InitAnchor(sr, node); break;
+	case TAG_MPEG4_Group: case TAG_X3D_Group: case TAG_X3D_StaticGroup: R2D_InitGroup(sr, node); break;
+	case TAG_MPEG4_Rectangle: case TAG_X3D_Rectangle2D: R2D_InitRectangle(sr, node); break;
+	case TAG_MPEG4_Shape: case TAG_X3D_Shape: R2D_InitShape(sr, node); break;
+	case TAG_MPEG4_Switch: case TAG_X3D_Switch: R2D_InitSwitch(sr, node); break;
+	case TAG_MPEG4_Text: case TAG_X3D_Text: R2D_InitText(sr, node); break;
+	case TAG_MPEG4_TouchSensor: case TAG_X3D_TouchSensor: R2D_InitTouchSensor(sr, node); break;
+
 
 	case TAG_ProtoNode: R2D_InitHardcodedProto(sr, node); break;
 		

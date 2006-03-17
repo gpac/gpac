@@ -278,7 +278,7 @@ typedef struct
 */
 
 /*interface name for video output*/
-#define GF_RENDERER_INTERFACE	GF_FOUR_CHAR_INT('G','R','E','N') 
+#define GF_RENDERER_INTERFACE	GF_4CC('G','R','E','N') 
 
 typedef struct visual_render_module GF_VisualRenderer;
 

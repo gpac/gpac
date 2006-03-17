@@ -1479,7 +1479,7 @@ void replaceIncludes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 }
 
 static char *attribute_name_type_list[] = {
-	"accumulate", "additive", "append", "attributeName", "audio-level", "bandwidth", "begin", "by", "calcMode", "children", "choice", "color", "color-rendering", "cx", "cy", "d", "delay", "display", "display-align", "dur", "editable", "enabled", "end", "event", "externalResourcesRequired", "fill", "fill-opacity", "fill-rule", "focusEast", "focusNext", "focusNorth", "focusNorthEast", "focusNorthWest", "focusPrev", "focusSouth", "focusSouthEast", "focusSouthWest", "focusWest", "focusable", "font-family", "font-size", "font-style", "font-variant", "font-weight", "from", "gradientUnits", "handler", "height", "image-rendering", "keyCodes", "keyPoints", "keySplines", "keyTimes", "line-increment", "mediaCharacterEncoding", "mediaContentEncodings", "mediaSize", "mediaTime", "observer", "offset", "opacity", "overflow", "overlay", "path", "pathLength", "pointer-events", "points", "preserveAspectRatio", "r", "repeatCount", "repeatDur", "requiredExtensions", "requiredFeatures", "requiredFormats", "restart", "rotate", "rotation", "rx", "ry", "scale", "shape-rendering", "size", "solid-color", "solid-opacity", "stop-color", "stop-opacity", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "svg.height", "svg.width", "syncBehavior", "syncBehaviorDefault", "syncReference", "syncTolerance", "syncToleranceDefault", "systemLanguage", "text-anchor", "text-rendering", "textContent", "timeAttribute", "to", "transform", "transformBehavior", "translation", "type", "values", "vector-effect", "viewBox", "viewport-fill", "viewport-fill-opacity", "visibility", "width", "x", "x1", "x2", "xlink:actuate", "xlink:arcrole", "xlink:href", "xlink:role", "xlink:show", "xlink:title", "xlink:type", "xml:base", "xml:lang", "xml:space", "y", "y1", "y2", "zoomAndPan", NULL
+	"a.target", "accumulate", "additive", "append", "attributeName", "audio-level", "bandwidth", "begin", "by", "calcMode", "children", "choice", "color", "color-rendering", "cx", "cy", "d", "delay", "display", "display-align", "dur", "editable", "enabled", "end", "event", "externalResourcesRequired", "fill", "fill-opacity", "fill-rule", "focusable", "font-family", "font-size", "font-style", "font-variant", "font-weight", "from", "gradientUnits", "handler", "height", "image-rendering", "keyCodes", "keyPoints", "keySplines", "keyTimes", "line-increment", "mediaCharacterEncoding", "mediaContentEncodings", "mediaSize", "mediaTime", "nav-down", "nav-down-left", "nav-down-right", "nav-left", "nav-next", "nav-prev", "nav-right", "nav-up", "nav-up-left", "nav-up-right", "observer", "offset", "opacity", "overflow", "overlay", "path", "pathLength", "pointer-events", "points", "preserveAspectRatio", "r", "repeatCount", "repeatDur", "requiredExtensions", "requiredFeatures", "requiredFormats", "restart", "rotate", "rotation", "rx", "ry", "scale", "shape-rendering", "size", "solid-color", "solid-opacity", "stop-color", "stop-opacity", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "svg.height", "svg.width", "syncBehavior", "syncBehaviorDefault", "syncReference", "syncTolerance", "syncToleranceDefault", "systemLanguage", "target", "text-anchor", "text-rendering", "textContent", "timeAttribute", "to", "transform", "transformBehavior", "translation", "type", "values", "vector-effect", "viewBox", "viewport-fill", "viewport-fill-opacity", "visibility", "width", "x", "x1", "x2", "xlink:actuate", "xlink:arcrole", "xlink:href", "xlink:role", "xlink:show", "xlink:title", "xlink:type", "xml:base", "xml:lang", "xml:space", "y", "y1", "y2", "zoomAndPan", NULL
 };
 
 
@@ -1514,7 +1514,7 @@ static void generate_laser_tables(GF_List *svg_elements)
 {
 	FILE *output;
 	u32 i;
-	Bool is_svg;
+	u32 special_cases;
 
 	output = BeginFile(2);
 	fprintf(output, "\n#include <gpac/nodes_svg.h>\n\n");
@@ -1542,17 +1542,21 @@ static void generate_laser_tables(GF_List *svg_elements)
 
 
 		/*svg.width and svg.height escapes*/
-		is_svg = !strcmp(elt->svg_name, "svg");
+		special_cases = 0;
+		if (!strcmp(elt->svg_name, "svg")) special_cases = 1;
+		else if (!strcmp(elt->svg_name, "a")) special_cases = 2;
 
 		for (j=0; j<fcount; j++) {
 			SVGAttribute *att = gf_list_get(elt->attributes, j);
 			s32 type = get_lsr_att_name_type(att->svg_name);
-			if (is_svg) {
+			if (special_cases==1) {
 				if (!strcmp(att->svg_name, "width")) 
 					type = 95;
 				else if (!strcmp(att->svg_name, "height")) 
 					type = 94;
 			}
+			if ((special_cases==2) && !strcmp(att->svg_name, "target")) 
+				type = 0;
 			fprintf(output, ", %d", type);
 		}
 		fprintf(output, "\n};\n\n");

@@ -1046,7 +1046,7 @@ static void get_info_from_frame (mpeg2ps_stream_t *sptr,
 
   if (sptr->m_stream_id >= 0xc0) {
     // mpeg audio
-    u32 hdr = GF_FOUR_CHAR_INT(buffer[0],buffer[1],buffer[2],buffer[3]);
+    u32 hdr = GF_4CC(buffer[0],buffer[1],buffer[2],buffer[3]);
 
     sptr->channels = gf_mp3_num_channels(hdr);
     sptr->freq = gf_mp3_sampling_rate(hdr);

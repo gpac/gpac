@@ -123,9 +123,9 @@ GF_Err gf_laser_encoder_get_config(GF_LASeRCodec *codec, u16 ESID, char **out_da
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_int(bs, codec->info->cfg.profile, 8);
 	gf_bs_write_int(bs, codec->info->cfg.level, 8);
-	gf_bs_write_int(bs, 0 /*codec->info->cfg.reserved*/, 2);
+	gf_bs_write_int(bs, 0 /*codec->info->cfg.reserved*/, 3);
 	gf_bs_write_int(bs, codec->info->cfg.pointsCodec, 2);
-	gf_bs_write_int(bs, codec->info->cfg.pathComponents, 8);
+	gf_bs_write_int(bs, codec->info->cfg.pathComponents, 4);
 	gf_bs_write_int(bs, codec->info->cfg.fullRequestHost, 1);
 	if (codec->info->cfg.time_resolution != 1000) {
 		gf_bs_write_int(bs, 1, 1);
@@ -990,7 +990,7 @@ static void lsr_write_rare_full(GF_LASeRCodec *lsr, GF_Node *n, GF_Node *default
 		case RARE_HREF_TYPE: lsr_write_byte_align_string(lsr, *(SVG_String *)fi->far_ptr, "xlink:type"); break;
 		case RARE_HREF_ROLE: lsr_write_any_uri(lsr, fi->far_ptr, "xlink:role"); break;
 		case RARE_HREF_ARCROLE: lsr_write_any_uri(lsr, fi->far_ptr, "xlink:arcrole"); break;
-		case RARE_HREF_ACTUATE: lsr_write_any_uri_string(lsr, *(SVG_String *)fi->far_ptr, "xlink:actuate"); break;
+		case RARE_HREF_ACTUATE: lsr_write_byte_align_string(lsr, *(SVG_String *)fi->far_ptr, "xlink:actuate"); break;
 		case RARE_HREF_SHOW: lsr_write_byte_align_string(lsr, *(SVG_String *)fi->far_ptr, "xlink:show"); break;
 		case RARE_END: lsr_write_time_list(lsr, *(GF_List **)fi->far_ptr, "end"); break;
 		case RARE_MIN: lsr_write_duration(lsr, fi->far_ptr, "min"); break;
@@ -1082,6 +1082,7 @@ static void lsr_write_animatable(GF_LASeRCodec *lsr, SMIL_AttributeName *anim_ty
 	}
 	
 	if (a_type<0) fprintf(stdout, "Unsupported attributeName\n");
+	GF_LSR_WRITE_INT(lsr, 1, 1, "hasAttributeName");
 	GF_LSR_WRITE_INT(lsr, (u8) a_type, 8, "attributeType");
 }
 
@@ -1219,8 +1220,8 @@ static u32 svg_type_to_lsr_anim(u32 svg_type, u32 transform_type)
 		switch (transform_type) {
 		/*ARG LOOKS LIKE THE SPEC IS BROKEN HERE*/
 		case SVG_TRANSFORM_TRANSLATE: return 9;
-		case SVG_TRANSFORM_SCALE: return 9;
-		case SVG_TRANSFORM_ROTATE: return 1;
+		case SVG_TRANSFORM_SCALE: return 8;
+		case SVG_TRANSFORM_ROTATE: return 8;
 		case SVG_TRANSFORM_SKEWX: return 1;
 		case SVG_TRANSFORM_SKEWY: return 1;
 		//case SVG_TRANSFORM_MATRIX: return;
@@ -1328,6 +1329,21 @@ static void lsr_write_an_anim_value(GF_LASeRCodec *lsr, void *val, u32 lsr_type,
 				SVG_Coordinate *v = gf_list_get(l, i);
 				lsr_write_fixed_16_8(lsr, v->value, "val");
 			}
+		} else if ((svg_type==SVG_Matrix_datatype) && (transform_type==SVG_TRANSFORM_ROTATE)) {
+			SVG_Point_Angle *p = val;
+			count = (p->x || p->y) ? 3 : 1;
+			lsr_write_vluimsbf5(lsr, count, "count");
+			lsr_write_fixed_16_8(lsr, p->angle, "val");
+			if (count==3) {
+				lsr_write_fixed_16_8(lsr, p->x, "val");
+				lsr_write_fixed_16_8(lsr, p->y, "val");
+			}
+		} else if ((svg_type==SVG_Matrix_datatype) && (transform_type==SVG_TRANSFORM_SCALE)) {
+			SVG_Point *pt = val;
+			count = (pt->x == pt->y) ? 2 : 1;
+			lsr_write_vluimsbf5(lsr, count, "count");
+			lsr_write_fixed_16_8(lsr, pt->x, "val");
+			if (count==2) lsr_write_fixed_16_8(lsr, pt->y, "val");
 		} else {
 			GF_List *l = *(GF_List **)val;
 			count = gf_list_count(l);
@@ -1507,7 +1523,7 @@ static void lsr_write_path_type(GF_LASeRCodec *lsr, SVG_PathData *path, const ch
     lsr_write_vluimsbf5(lsr, count, "nbOfTypes");
     for (i=0; i<count; i++) {
         u8 type = *(u8 *) gf_list_get(path->commands, i);
-		GF_LSR_WRITE_INT(lsr, type, 8, name);
+		GF_LSR_WRITE_INT(lsr, type, 5, name);
     }
 }
 
@@ -2331,6 +2347,7 @@ static void lsr_write_stop(GF_LASeRCodec *lsr, SVGstopElement *elt)
 }
 static void lsr_write_svg(GF_LASeRCodec *lsr, SVGsvgElement *elt)
 {
+	SMIL_Duration snap;
 	SVGElement *clone;
 	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
@@ -2367,6 +2384,11 @@ static void lsr_write_svg(GF_LASeRCodec *lsr, SVGsvgElement *elt)
 		default: GF_LSR_WRITE_INT(lsr, 0, 4, "alignXandY"); break;
 		}
 	}
+
+	snap.type = elt->snapshotTime ? SMIL_DURATION_DEFINED : SMIL_DURATION_INDEFINITE;
+	snap.clock_value = elt->snapshotTime;
+	lsr_write_duration(lsr, &snap, "snapshotTime");
+
 	if (!elt->sync->syncBehaviorDefault) {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "hasSyncBehavior");
 	} else {

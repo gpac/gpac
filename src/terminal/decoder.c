@@ -100,12 +100,14 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			dsiSize = ch->esd->decoderConfig->decoderSpecificInfo->dataLength;
 		} 
 		/*ALWAYS override with network DSI if any*/
-		com.command_type = GF_NET_CHAN_GET_DSI;
-		com.base.on_channel = ch;
-		e = gf_term_service_command(ch->service, &com);
-		if (!e && com.get_dsi.dsi) {
-			dsi = com.get_dsi.dsi;
-			dsiSize = com.get_dsi.dsi_len;
+		if (ch->service) {
+			com.command_type = GF_NET_CHAN_GET_DSI;
+			com.base.on_channel = ch;
+			e = gf_term_service_command(ch->service, &com);
+			if (!e && com.get_dsi.dsi) {
+				dsi = com.get_dsi.dsi;
+				dsiSize = com.get_dsi.dsi_len;
+			}
 		}
 
 		e = codec->decio->AttachStream(codec->decio, ch->esd->ESID, 
@@ -157,24 +159,25 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		if (cap.cap.valueInt) codec->is_reordering = 1;
 
 		/*setup net channel config*/
-		memset(&com, 0, sizeof(GF_NetworkCommand));
-		com.command_type = GF_NET_CHAN_CONFIG;
-		com.base.on_channel = ch;
+		if (ch->service) {
+			memset(&com, 0, sizeof(GF_NetworkCommand));
+			com.command_type = GF_NET_CHAN_CONFIG;
+			com.base.on_channel = ch;
 
-		com.cfg.priority = ch->esd->streamPriority;
-		com.cfg.sync_id = (u32) ch->clock;
-		memcpy(&com.cfg.sl_config, ch->esd->slConfig, sizeof(GF_SLConfig));
-		/*get the frame duration if audio (used by some network stack)*/
-		if (ch->odm->codec && (ch->odm->codec->type==GF_STREAM_AUDIO) ) {
-			cap.CapCode = GF_CODEC_SAMPLERATE;
-			gf_codec_get_capability(ch->odm->codec, &cap);
-			com.cfg.sample_rate = cap.cap.valueInt;
-			cap.CapCode = GF_CODEC_CU_DURATION;
-			gf_codec_get_capability(ch->odm->codec, &cap);
-			com.cfg.frame_duration = cap.cap.valueInt;
-		} 
-		gf_term_service_command(ch->service, &com);
-
+			com.cfg.priority = ch->esd->streamPriority;
+			com.cfg.sync_id = (u32) ch->clock;
+			memcpy(&com.cfg.sl_config, ch->esd->slConfig, sizeof(GF_SLConfig));
+			/*get the frame duration if audio (used by some network stack)*/
+			if (ch->odm->codec && (ch->odm->codec->type==GF_STREAM_AUDIO) ) {
+				cap.CapCode = GF_CODEC_SAMPLERATE;
+				gf_codec_get_capability(ch->odm->codec, &cap);
+				com.cfg.sample_rate = cap.cap.valueInt;
+				cap.CapCode = GF_CODEC_CU_DURATION;
+				gf_codec_get_capability(ch->odm->codec, &cap);
+				com.cfg.frame_duration = cap.cap.valueInt;
+			} 
+			gf_term_service_command(ch->service, &com);
+		}
 	}
 
 	/*assign the first base layer as the codec clock by default, or current channel clock if no clock set

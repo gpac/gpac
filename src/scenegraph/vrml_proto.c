@@ -443,17 +443,18 @@ GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_pa
 		
 		/*eventOut*/
 		if (r1->FromNode == orig) {
-			r2 = gf_sg_route_new(inScene, node, r1->FromFieldIndex, (GF_Node *) proto, r1->ToFieldIndex);
+			r2 = gf_sg_route_new(inScene, node, r1->FromField.fieldIndex, (GF_Node *) proto, r1->ToField.fieldIndex);
 			r2->IS_route = 1;
 		}
 		/*eventIn or exposedField*/
 		else if (r1->ToNode == orig) {
-			r2 = gf_sg_route_new(inScene, (GF_Node *) proto, r1->FromFieldIndex, node, r1->ToFieldIndex);
+			r2 = gf_sg_route_new(inScene, (GF_Node *) proto, r1->FromField.fieldIndex, node, r1->ToField.fieldIndex);
 			r2->IS_route = 1;
+
+			/*activate the route now so that proto instanciation works properly, otherwise we may load scripts with wrong field values
+			Note: we don't activate eventOut routes upon instanciation since no event has been triggered yet*/
+			gf_sg_route_activate(r2);
 		}
-		/*activate the route now so that proto instanciation works properly, otherwise
-		we may load scripts with wrong field values*/		
-		if (r2) gf_sg_route_activate(r2);
 	}
 	
 	/*remember scripts*/
@@ -605,9 +606,9 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 
 		r2 = gf_sg_route_new(proto_node->sgprivate->scenegraph, 
 				gf_sg_find_node(proto_node->sgprivate->scenegraph, route->FromNode->sgprivate->NodeID), 
-				route->FromFieldIndex, 
+				route->FromField.fieldIndex, 
 				gf_sg_find_node(proto_node->sgprivate->scenegraph, route->ToNode->sgprivate->NodeID), 
-				route->ToFieldIndex);
+				route->ToField.fieldIndex);
 
 		if (route->ID) gf_sg_route_set_id(r2, route->ID);
 		if (route->name) gf_sg_route_set_name(r2, route->name);
@@ -615,7 +616,12 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 	/*activate all ISed fields so that inits on events is properly done*/
 	i=0;
 	while ((route = gf_list_enum(proto_node->sgprivate->scenegraph->Routes, &i))) {
-		if (route->IS_route) gf_sg_route_activate(route);
+		if (!route->IS_route) continue;
+		/*do not activate eventIn to eventIn routes*/
+		if (route->is_setup) {
+			if ((route->ToField.eventType == GF_SG_EVENT_IN) && (route->FromField.eventType == GF_SG_EVENT_IN) ) continue;
+		}
+		gf_sg_route_activate(route);
 	}
 	/*and load all scripts (this must be done once all fields are routed for the "initialize" method)*/
 	while (gf_list_count(proto_node->scripts_to_load)) {
@@ -823,9 +829,9 @@ GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node 
 	r->IS_route = 1;
 
 	if (nodeField.eventType==GF_SG_EVENT_OUT) {
-		r->FromFieldIndex = nodeFieldIndex;
+		r->FromField.fieldIndex = nodeFieldIndex;
 		r->FromNode = node;
-		r->ToFieldIndex = protoFieldIndex;
+		r->ToField.fieldIndex = protoFieldIndex;
 		r->ToNode = NULL;
 		if (!node->sgprivate->events) node->sgprivate->events = gf_list_new();
 		gf_list_add(node->sgprivate->events, r);
@@ -834,15 +840,15 @@ GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node 
 		case GF_SG_EVENT_FIELD:
 		case GF_SG_EVENT_EXPOSED_FIELD:
 		case GF_SG_EVENT_IN:
-			r->FromFieldIndex = protoFieldIndex;
+			r->FromField.fieldIndex = protoFieldIndex;
 			r->FromNode = NULL;
-			r->ToFieldIndex = nodeFieldIndex;
+			r->ToField.fieldIndex = nodeFieldIndex;
 			r->ToNode = node;
 			break;
 		case GF_SG_EVENT_OUT:
-			r->FromFieldIndex = nodeFieldIndex;
+			r->FromField.fieldIndex = nodeFieldIndex;
 			r->FromNode = node;
-			r->ToFieldIndex = protoFieldIndex;
+			r->ToField.fieldIndex = protoFieldIndex;
 			r->ToNode = NULL;
 			if (!node->sgprivate->events) node->sgprivate->events = gf_list_new();
 			break;
@@ -882,9 +888,9 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 	r->IS_route = 1;
 
 	if (nodeField.eventType==GF_SG_EVENT_OUT) {
-		r->FromFieldIndex = nodeFieldIndex;
+		r->FromField.fieldIndex = nodeFieldIndex;
 		r->FromNode = node;
-		r->ToFieldIndex = protoFieldIndex;
+		r->ToField.fieldIndex = protoFieldIndex;
 		r->ToNode = protoinst;
 		if (!node->sgprivate->events) node->sgprivate->events = gf_list_new();
 		gf_list_add(node->sgprivate->events, r);
@@ -893,15 +899,15 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 		case GF_SG_EVENT_FIELD:
 		case GF_SG_EVENT_EXPOSED_FIELD:
 		case GF_SG_EVENT_IN:
-			r->FromFieldIndex = protoFieldIndex;
+			r->FromField.fieldIndex = protoFieldIndex;
 			r->FromNode = protoinst;
-			r->ToFieldIndex = nodeFieldIndex;
+			r->ToField.fieldIndex = nodeFieldIndex;
 			r->ToNode = node;
 			break;
 		case GF_SG_EVENT_OUT:
-			r->FromFieldIndex = nodeFieldIndex;
+			r->FromField.fieldIndex = nodeFieldIndex;
 			r->FromNode = node;
-			r->ToFieldIndex = protoFieldIndex;
+			r->ToField.fieldIndex = protoFieldIndex;
 			r->ToNode = protoinst;
 			if (!node->sgprivate->events) node->sgprivate->events = gf_list_new();
 			gf_list_add(node->sgprivate->events, r);
@@ -1013,12 +1019,12 @@ void gf_sg_proto_check_field_change(GF_Node *node, u32 fieldIndex)
 		while ((r = gf_list_enum(node->sgprivate->events, &i))) {
 			if (!r->IS_route) continue;
 			/*eventIn or exposedField*/
-			if ((r->FromNode == node) && (r->FromFieldIndex == fieldIndex) ) {
+			if ((r->FromNode == node) && (r->FromField.fieldIndex == fieldIndex) ) {
 				if (gf_sg_route_activate(r)) 
 					gf_node_changed(r->ToNode, &r->FromField);
 			}
 			/*eventOut*/
-			if ((r->ToNode == node) && (r->ToFieldIndex == fieldIndex) ) {
+			if ((r->ToNode == node) && (r->ToField.fieldIndex == fieldIndex) ) {
 				gf_sg_route_activate(r);
 			}
 		}
@@ -1034,11 +1040,11 @@ void gf_sg_proto_check_field_change(GF_Node *node, u32 fieldIndex)
 	while ((r = gf_list_enum(node->sgprivate->events, &i))) {
 		if (!r->IS_route) continue;
 		/*activate eventOuts*/
-		if ((r->FromNode == node) && (r->FromFieldIndex == fieldIndex)) {
+		if ((r->FromNode == node) && (r->FromField.fieldIndex == fieldIndex)) {
 			gf_sg_route_activate(r);
 		}
 		/*or eventIns / (exposed)Fields*/
-		else if ((r->ToNode == node) && (r->ToFieldIndex == fieldIndex)) {
+		else if ((r->ToNode == node) && (r->ToField.fieldIndex == fieldIndex)) {
 			/*don't forget to notify the node it has changed*/
 			if (gf_sg_route_activate(r)) 
 				gf_node_changed(node, &r->ToField);
@@ -1138,9 +1144,9 @@ Bool gf_sg_proto_field_is_sftime_offset(GF_Node *node, GF_FieldInfo *field)
 	while ((r = gf_list_enum(inst->proto_interface->sub_graph->Routes, &i))) {
 		if (!r->IS_route) continue;
 		/*only check eventIn/field/exposedField*/
-		if (r->FromNode || (r->FromFieldIndex != field->fieldIndex)) continue;
+		if (r->FromNode || (r->FromField.fieldIndex != field->fieldIndex)) continue;
 
-		gf_node_get_field(r->ToNode, r->ToFieldIndex, &inf);
+		gf_node_get_field(r->ToNode, r->ToField.fieldIndex, &inf);
 		/*IS to another proto*/
 		if (r->ToNode->sgprivate->tag == TAG_ProtoNode) return gf_sg_proto_field_is_sftime_offset(r->ToNode, &inf);
 		/*IS to a startTime/stopTime field*/

@@ -52,9 +52,9 @@
     				    </xsl:if>
                     </embed>
                     <form name="formname">
-                        <input type="button" value="Play" onclick='Play(document.player)'/>
-                        <input type="button" value="Pause" onclick='Pause(document.player)'/>
-                        <input type="button" value="Reload" onclick='Reload(document.player)'/>
+                        <input type="button" value="Play" onclick='document.player.Play()'/>
+                        <input type="button" value="Pause" onclick='document.player.Pause()'/>
+                        <input type="button" value="Reload" onclick='document.player.Reload()'/>
                     </form>
 				</div>
 				<div id="snapshotview">

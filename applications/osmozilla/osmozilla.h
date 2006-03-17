@@ -140,7 +140,7 @@ public:
 
 	char *m_szURL;
 
-	Bool m_isopen, m_paused, m_url_changed;
+	Bool m_isopen, m_paused, m_url_changed, m_bForce3D;
 	u32 max_duration;
 	Bool can_seek;
 	uint32 m_height, m_width;

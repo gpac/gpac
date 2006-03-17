@@ -200,22 +200,15 @@ struct _route
 
 	u32 ID;
 	char *name;
-	
-	/*NB: this assumes a node is never replaced with a # node with same ID without deleting the associated route*/
+
 	GF_Node *FromNode;
-	u32 FromFieldIndex;
 	GF_FieldInfo FromField;
 
 	GF_Node *ToNode;
-	u32 ToFieldIndex;
 	GF_FieldInfo ToField;
-
-	/*this is just a hint for speed up*/
-	const char *fromFieldName;
 
 	/*scope of this route*/
 	GF_SceneGraph *graph;
-
 	u32 lastActivateTime;
 };
 

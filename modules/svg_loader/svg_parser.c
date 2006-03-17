@@ -202,7 +202,7 @@ void svg_characters(void *user_data, const xmlChar *ch, s32 len)
 	}
 	if (is_svg_script_element(elt))
 	{
-		SVGscriptElement *script = (SVGtextElement *)elt;
+		SVGscriptElement *script = (SVGscriptElement *)elt;
 	}
 }
 

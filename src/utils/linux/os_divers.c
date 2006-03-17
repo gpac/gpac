@@ -94,14 +94,11 @@ void gf_sleep(u32 ms)
 		Some NTP tools
 */
 
-#define SECS_1900_TO_1970 2208988800ul
-       
-
 void gf_get_ntp(u32 *sec, u32 *frac)
 {
 	struct timeval now;
 	gettimeofday(&now, NULL);
-	*sec = now.tv_sec + SECS_1900_TO_1970;
+	*sec = now.tv_sec + GF_NTP_SEC_1900_TO_1970;
 	*frac = (now.tv_usec << 12) + (now.tv_usec << 8) - ((now.tv_usec * 3650) >> 6);
 }
 

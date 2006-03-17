@@ -301,16 +301,16 @@ GF_Route *gf_bifs_enc_is_field_ised(GF_BifsEncoder *codec, GF_Node *node, u32 fi
 		i=0;
 		while ((r = gf_list_enum(node->sgprivate->events, &i))) {
 			if (!r->IS_route) continue;
-			if ((r->ToNode == node) && (r->ToFieldIndex==fieldIndex)) return r;
-			else if ((r->FromNode == node) && (r->FromFieldIndex==fieldIndex)) return r;
+			if ((r->ToNode == node) && (r->ToField.fieldIndex==fieldIndex)) return r;
+			else if ((r->FromNode == node) && (r->FromField.fieldIndex==fieldIndex)) return r;
 		}
 	}
 
 	i=0;
 	while ((r = gf_list_enum(codec->encoding_proto->sub_graph->Routes, &i))) {
 		if (!r->IS_route) continue;
-		if ((r->ToNode == node) && (r->ToFieldIndex==fieldIndex)) return r;
-		else if ((r->FromNode == node) && (r->FromFieldIndex==fieldIndex)) return r;
+		if ((r->ToNode == node) && (r->ToField.fieldIndex==fieldIndex)) return r;
+		else if ((r->FromNode == node) && (r->FromField.fieldIndex==fieldIndex)) return r;
 	}
 	return NULL;
 }
@@ -439,9 +439,9 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 				if (use_list) GF_BE_WRITE_INT(codec, bs, allInd, numBitsALL, "nodeField", NULL);
 
 				if (isedField->ToNode == node) {
-					GF_BE_WRITE_INT(codec, bs, isedField->FromFieldIndex, nbBitsProto, "protoField", NULL);
+					GF_BE_WRITE_INT(codec, bs, isedField->FromField.fieldIndex, nbBitsProto, "protoField", NULL);
 				} else {
-					GF_BE_WRITE_INT(codec, bs, isedField->ToFieldIndex, nbBitsProto, "protoField", NULL);
+					GF_BE_WRITE_INT(codec, bs, isedField->ToField.fieldIndex, nbBitsProto, "protoField", NULL);
 				}
 				continue;
 			}

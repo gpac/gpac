@@ -6,6 +6,9 @@
 #include "FileProps.h"
 #include "MainFrm.h"
 
+/*ISO 639 languages*/
+#include <gpac/iso639.h>
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
@@ -626,7 +629,25 @@ void CFileProps::SetStreamsInfo()
 
 		/*check language*/
 		if (esd->langDesc) {
-			sprintf(buf, "Stream Language: %c%c%c\r\n", (char) ((esd->langDesc->langCode>>16)&0xFF), (char) ((esd->langDesc->langCode>>8)&0xFF), (char) (esd->langDesc->langCode & 0xFF) );
+			u32 i=0;
+			char lan[4], *szLang;
+			lan[0] = esd->langDesc->langCode>>16;
+			lan[1] = (esd->langDesc->langCode>>8)&0xFF;
+			lan[2] = (esd->langDesc->langCode)&0xFF;
+			lan[3] = 0;
+
+			if ((lan[0]=='u') && (lan[1]=='n') && (lan[2]=='d')) szLang = "Undetermined";
+			else {
+				szLang = lan;
+				while (GF_ISO639_Lang[i]) {
+					if (GF_ISO639_Lang[i+2][0] && strstr(GF_ISO639_Lang[i+1], lan)) {
+						szLang = (char*) GF_ISO639_Lang[i];
+						break;
+					}
+					i+=3;
+				}
+			}
+			sprintf(buf, "Stream Language: %s\r\n", szLang);
 			strcat(info, buf);
 		}
 		strcat(info, "\r\n");

@@ -58,6 +58,25 @@ s32 gf_token_get(unsigned char *Buffer, s32 Start,  unsigned char *Separator,  u
 	return (end+1);
 }
 
+s32 gf_token_get_strip(unsigned char *Buffer, s32 Start,  unsigned char *Separator,  unsigned char *strip_set, unsigned char *Container, s32 ContainerSize)
+{
+	u32 i, k, len;
+	s32 res = gf_token_get(Buffer, Start, Separator, Container, ContainerSize);
+	if (!strip_set || (res<0)) return res;
+	i=k=0;
+	len = strlen(Container);
+	while (strchr(strip_set, Container[i]) ) i++;
+	while (len && strchr(strip_set, Container[len]) ) {
+		Container[len]=0;
+		len--;
+	}
+	while (k+i<=len) {
+		Container[k] = Container[k+i];
+		k++;
+	}
+	Container[k] = 0;
+	return res;
+}
 
 
 s32 gf_token_get_line(unsigned char	*Buffer, 

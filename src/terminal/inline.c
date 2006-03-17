@@ -201,6 +201,7 @@ static void IS_InsertObject(GF_InlineScene *is, GF_MediaObject *mo)
 {
 	GF_ObjectManager *root_od;
 	GF_ObjectManager *odm;
+	char *url;
 	if (!mo || !is) return;
 
 	odm = gf_odm_new();
@@ -210,10 +211,45 @@ static void IS_InsertObject(GF_InlineScene *is, GF_MediaObject *mo)
 	odm->parentscene = is;
 	odm->OD = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 	odm->OD->objectDescriptorID = GF_ESM_DYNAMIC_OD_ID;
-	odm->OD->URLString = strdup(mo->URLs.vals[0].url);
 	odm->parentscene = is;
 	odm->term = is->root_od->term;
 	root_od = is->root_od;
+
+	url = mo->URLs.vals[0].url;
+	if (!stricmp(url, "KeySensor")) {
+		GF_ESD *esd = gf_odf_desc_esd_new(0);
+		esd->decoderConfig->streamType = GF_STREAM_INTERACT;
+		esd->decoderConfig->objectTypeIndication = 1;
+		free(esd->decoderConfig->decoderSpecificInfo->data);
+		esd->decoderConfig->decoderSpecificInfo->data = strdup(" KeySensor");
+		esd->decoderConfig->decoderSpecificInfo->data[0] = 9;
+		esd->decoderConfig->decoderSpecificInfo->dataLength = 10;
+		esd->ESID = esd->OCRESID = 65534;
+		gf_list_add(odm->OD->ESDescriptors, esd);
+	} else if (!stricmp(url, "StringSensor")) {
+		GF_ESD *esd = gf_odf_desc_esd_new(0);
+		esd->decoderConfig->streamType = GF_STREAM_INTERACT;
+		esd->decoderConfig->objectTypeIndication = 1;
+		free(esd->decoderConfig->decoderSpecificInfo->data);
+		esd->decoderConfig->decoderSpecificInfo->data = strdup(" StringSensor");
+		esd->decoderConfig->decoderSpecificInfo->data[0] = 12;
+		esd->decoderConfig->decoderSpecificInfo->dataLength = 13;
+		esd->ESID = esd->OCRESID = 65534;
+		gf_list_add(odm->OD->ESDescriptors, esd);
+	} else if (!stricmp(url, "Mouse")) {
+		GF_ESD *esd = gf_odf_desc_esd_new(0);
+		esd->decoderConfig->streamType = GF_STREAM_INTERACT;
+		esd->decoderConfig->objectTypeIndication = 1;
+		free(esd->decoderConfig->decoderSpecificInfo->data);
+		esd->decoderConfig->decoderSpecificInfo->data = strdup(" Mouse");
+		esd->decoderConfig->decoderSpecificInfo->data[0] = 5;
+		esd->decoderConfig->decoderSpecificInfo->dataLength = 6;
+		esd->ESID = esd->OCRESID = 65534;
+		gf_list_add(odm->OD->ESDescriptors, esd);
+	} else {
+		odm->OD->URLString = strdup(mo->URLs.vals[0].url);
+	}
+
 	gf_list_add(is->ODlist, odm);
 	while (root_od->remote_OD) root_od = root_od->remote_OD;
 	gf_odm_setup_object(odm, root_od->net_service);

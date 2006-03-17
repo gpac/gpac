@@ -390,7 +390,7 @@ Bool Media_IsSelfContained(GF_MediaBox *mdia, u32 StreamDescIndex)
 	a = (GF_FullBox*)gf_list_get(mdia->information->dataInformation->dref->boxList, drefIndex - 1);
 	if (a->flags & 1) return 1;
 	/*QT specific*/
-	if (a->type == GF_FOUR_CHAR_INT('a', 'l', 'i', 's')) return 1;
+	if (a->type == GF_4CC('a', 'l', 'i', 's')) return 1;
 	return 0;
 }
 

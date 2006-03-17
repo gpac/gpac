@@ -27,6 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/utf.h>
 #include <gpac/xml.h>
+#include <gpac/token.h>
 #include <gpac/internal/media_dev.h>
 
 #ifndef GPAC_READ_ONLY
@@ -78,32 +79,40 @@ static s32 gf_text_get_utf_type(FILE *in_src)
 
 static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 {
-	char szLine[2048], szTest[10];
+	char szLine[2048];
 	u32 val;
 	s32 uni_type;
-	FILE *test = fopen(filename, "rt");
+	FILE *test = fopen(filename, "rb");
 	if (!test) return GF_URL_ERROR;
 	uni_type = gf_text_get_utf_type(test);
 
-	while (fgets(szLine, 2048, test) != NULL) {
-		REM_TRAIL_MARKS(szLine, "\r\n\t ")
-
-		if (strlen(szLine)) break;
+	if (uni_type>1) {
+		const u16 *sptr;
+		char szUTF[1024];
+		u32 read = fread(szUTF, 1, 1023, test);
+		szUTF[read]=0;
+		sptr = (short*)szUTF;
+		read = gf_utf8_wcstombs(szLine, read, &sptr);
+	} else {
+		val = fread(szLine, 1, 1024, test);
+		szLine[val]=0;
 	}
+	REM_TRAIL_MARKS(szLine, "\r\n\t ")
+
 	*fmt = GF_TEXT_IMPORT_NONE;
 	if ((szLine[0]=='{') && strstr(szLine, "}{")) *fmt = GF_TEXT_IMPORT_SUB;
-	else if (sscanf(szLine, "%d", &val)==1) {
-		sprintf(szTest, "%d", val);
-		if (!strcmp(szTest, szLine)) *fmt = GF_TEXT_IMPORT_SRT;
-	}
 	else if (!strnicmp(szLine, "<?xml ", 6)) {
 		char *ext = strrchr(filename, '.');
 		if (!strnicmp(ext, ".ttxt", 5)) *fmt = GF_TEXT_IMPORT_TTXT;
 		ext = strstr(szLine, "?>");
 		if (ext) ext += 2;
 		if (!ext[0]) fgets(szLine, 2048, test);
-		if (strstr(szLine, "x-quicktime-tx3g")) *fmt = GF_TEXT_IMPORT_TEXML;
+		if (strstr(szLine, "x-quicktime-tx3g") || strstr(szLine, "text3GTrack")) *fmt = GF_TEXT_IMPORT_TEXML;
+		else if (strstr(szLine, "TextStream")) *fmt = GF_TEXT_IMPORT_TTXT;
 	}
+	else if (strstr(szLine, " --> ") ) 
+		*fmt = GF_TEXT_IMPORT_SRT;
+
 	fclose(test);
 	return GF_OK;
 }
@@ -818,12 +827,12 @@ exit:
 	}	\
 
 
-u32 ttxt_get_color(GF_MediaImporter *import, XMLParser *parser)
+u32 ttxt_get_color(GF_MediaImporter *import, char *val)
 {
 	u32 r, g, b, a, res;
 	r = g = b = a = 0;
-	if (sscanf(parser->value_buffer, "%x %x %x %x", &r, &g, &b, &a) != 4) {
-		gf_import_message(import, GF_OK, "Warning (line %d): color badly formatted", parser->line);
+	if (sscanf(val, "%x %x %x %x", &r, &g, &b, &a) != 4) {
+		gf_import_message(import, GF_OK, "Warning: color badly formatted");
 	}
 	res = (a&0xFF); res<<=8;
 	res |= (r&0xFF); res<<=8;
@@ -832,134 +841,103 @@ u32 ttxt_get_color(GF_MediaImporter *import, XMLParser *parser)
 	return res;
 }
 
-void ttxt_parse_text_box(GF_MediaImporter *import, XMLParser *parser, GF_BoxRecord *box)
+void ttxt_parse_text_box(GF_MediaImporter *import, GF_XMLNode *n, GF_BoxRecord *box)
 {
+	u32 i=0;
+	GF_XMLAttribute *att;
 	memset(box, 0, sizeof(GF_BoxRecord));
-	while (xml_has_attributes(parser)) {
-		char *str = xml_get_attribute(parser);
-		if (!stricmp(str, "top")) box->top = atoi(parser->value_buffer);
-		else if (!stricmp(str, "bottom")) box->bottom = atoi(parser->value_buffer);
-		else if (!stricmp(str, "left")) box->left = atoi(parser->value_buffer);
-		else if (!stricmp(str, "right")) box->right = atoi(parser->value_buffer);
+	while ( (att=gf_list_enum(n->attributes, &i))) {
+		if (!stricmp(att->name, "top")) box->top = atoi(att->value);
+		else if (!stricmp(att->name, "bottom")) box->bottom = atoi(att->value);
+		else if (!stricmp(att->name, "left")) box->left = atoi(att->value);
+		else if (!stricmp(att->name, "right")) box->right = atoi(att->value);
 	}
-	xml_skip_element(parser, "TextBox");
 }
 
-void ttxt_parse_text_style(GF_MediaImporter *import, XMLParser *parser, GF_StyleRecord *style)
+void ttxt_parse_text_style(GF_MediaImporter *import, GF_XMLNode *n, GF_StyleRecord *style)
 {
+	u32 i=0;
+	GF_XMLAttribute *att;
 	memset(style, 0, sizeof(GF_StyleRecord));
 	style->fontID = 1;
 	style->font_size = TTXT_DEFAULT_FONT_SIZE;
 	style->text_color = 0xFFFFFFFF;
 
-	while (xml_has_attributes(parser)) {
-		char *str = xml_get_attribute(parser);
-		if (!stricmp(str, "fromChar")) style->startCharOffset = atoi(parser->value_buffer);
-		else if (!stricmp(str, "toChar")) style->endCharOffset = atoi(parser->value_buffer);
-		else if (!stricmp(str, "fontID")) style->fontID = atoi(parser->value_buffer);
-		else if (!stricmp(str, "fontSize")) style->font_size = atoi(parser->value_buffer);
-		else if (!stricmp(str, "color")) style->text_color = ttxt_get_color(import, parser);
-		else if (!stricmp(str, "styles")) {
-			if (strstr(parser->value_buffer, "Bold")) style->style_flags |= GF_TXT_STYLE_BOLD;
-			if (strstr(parser->value_buffer, "Italic")) style->style_flags |= GF_TXT_STYLE_ITALIC;
-			if (strstr(parser->value_buffer, "Underlined")) style->style_flags |= GF_TXT_STYLE_UNDERLINED;
+	while ( (att=gf_list_enum(n->attributes, &i))) {
+		if (!stricmp(att->name, "fromChar")) style->startCharOffset = atoi(att->value);
+		else if (!stricmp(att->name, "toChar")) style->endCharOffset = atoi(att->value);
+		else if (!stricmp(att->name, "fontID")) style->fontID = atoi(att->value);
+		else if (!stricmp(att->name, "fontSize")) style->font_size = atoi(att->value);
+		else if (!stricmp(att->name, "color")) style->text_color = ttxt_get_color(import, att->value);
+		else if (!stricmp(att->name, "styles")) {
+			if (strstr(att->value, "Bold")) style->style_flags |= GF_TXT_STYLE_BOLD;
+			if (strstr(att->value, "Italic")) style->style_flags |= GF_TXT_STYLE_ITALIC;
+			if (strstr(att->value, "Underlined")) style->style_flags |= GF_TXT_STYLE_UNDERLINED;
 		}
 	}
-	xml_skip_element(parser, "Style");
 }
 
-char *ttxt_parse_string(GF_MediaImporter *import, XMLParser *parser)
+char *ttxt_parse_string(GF_MediaImporter *import, char *str)
 {
-	char value[XML_LINE_SIZE];
 	u32 i=0;
 	u32 k=0;
-	char *str = parser->value_buffer;
+	u32 len = strlen(str);
+	u32 state = 0;
+	if (str[0]!='\'') return str;
 
-	strcpy(value, "");
-	if (str[0]=='\'') {
-		while (strchr(str, '\'')) {
-			while (str[0] != '\'')  str += 1;
-			str+=1;
-			while (str[i] && (str[i] != '\'')) {
-				/*handle UTF-8 - WARNING: if parser is in unicode string is already utf8 multibyte chars*/
-				if (!parser->unicode_type && (str[i] & 0x80)) {
-					/*non UTF8 (likely some win-CP)*/
-					if ( (str[i+1] & 0xc0) != 0x80) {
-						value[k] = 0xc0 | ( (str[i] >> 6) & 0x3 );
-						k++;
-						str[i] &= 0xbf;
-					}
-					/*we only handle UTF8 chars on 2 bytes (eg first byte is 0b110xxxxx)*/
-					else if ( (str[i] & 0xe0) == 0xc0) {
-						value[k] = str[i];
-						i++;
-						k++;
-					}
-				}
-				value[k] = str[i];
-				i++;
+	for (i=0; i<len; i++) {
+		if (str[i] == '\'') {
+			if (!state && k) {
+				str[k]='\n';
 				k++;
 			}
-			if (!str[i+1]) break;
-			str = str + i + 1;
-			i=0;
-			value[k] = '\n';
-			k++;
-		} 
-	} else {
-		while (str[i]) {
-			/*handle UTF-8 - WARNING: if parser is in unicode string is already utf8 multibyte chars*/
-			if (!parser->unicode_type && (str[i] & 0x80) ) {
-				/*non UTF8 (likely some win-CP)*/
-				if ( (str[i+1] & 0xc0) != 0x80) {
-					value[k] = 0xc0 | ( (str[i] >> 6) & 0x3 );
-					k++;
-					str[i] &= 0xbf;
-				}
-				/*we only handle UTF8 chars on 2 bytes (eg first byte is 0b110xxxxx)*/
-				else if ( (str[i] & 0xe0) == 0xc0) {
-					value[k] = str[i];
-					i++;
-					k++;
-				}
-			}
-			value[k] = str[i];
-			i++;
+			state = !state;
+		} else if (state) {
+			str[k] = str[i];
 			k++;
 		}
 	}
-	value[k] = 0;
-	if (!strlen(value)) return strdup("");
-	return xml_translate_xml_string(value);
+	str[k]=0;
+	return str;
 }
 
 /*for GCC warnings*/
-static void xml_import_progress(void *import, u32 cur_samp, u32 count)
+static void dom_import_progress(void *cbk, u32 cur_samp, u32 count)
 {
-	gf_import_progress((GF_MediaImporter *)import, cur_samp, count);
+	GF_MediaImporter *import = cbk;
+	if (import->import_progress) {
+		import->import_progress(import, cur_samp, count);
+	} else {
+		gf_import_progress(import, cur_samp, count);
+	}
 }
 
 static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 {
 	GF_Err e;
 	Bool last_sample_empty;
-	u32 track, ID, nb_samples, nb_descs;
+	u32 i, j, k, track, ID, nb_samples, nb_descs, nb_children;
 	u64 last_sample_duration;
-	XMLParser parser;
-	char *str;
+	GF_XMLAttribute *att;
+	GF_DOMParser *parser;
+	GF_XMLNode *root, *node, *ext;
 
 	if (import->flags==GF_IMPORT_PROBE_ONLY) return GF_OK;
 
-	e = xml_init_parser(&parser, import->in_name);
-	if (e) return gf_import_message(import, e, "Cannot open file %s", import->in_name);
+	parser = gf_xml_dom_new();
+	e = gf_xml_dom_parse(parser, import->in_name, dom_import_progress, import);
+	if (e) {
+		gf_import_message(import, e, "Error parsing TTXT file: Line %d - %s", gf_xml_dom_get_line(parser), gf_xml_dom_get_error(parser));
+		gf_xml_dom_del(parser);
+		return e;
+	}
+	root = gf_xml_dom_get_root(parser);
 
-	str = xml_get_element(&parser);
-	if (!str) { e = GF_IO_ERR; goto exit; }
-	if (strcmp(str, "TextStream")) {
-		e = gf_import_message(import, GF_BAD_PARAM, "Invalid Timed Text file - expecting %s got %s", "TextStream", str);
+	e = GF_OK;
+	if (strcmp(root->name, "TextStream")) {
+		e = gf_import_message(import, GF_BAD_PARAM, "Invalid Timed Text file - expecting \"TextStream\" got %s", "TextStream", root->name);
 		goto exit;
 	}
-	xml_skip_attributes(&parser);
 
 	/*setup track in 3GP format directly (no ES desc)*/
 	ID = (import->esd) ? import->esd->ESID : 0;
@@ -982,101 +960,99 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 	gf_text_import_set_language(import, track);
 
 	gf_import_message(import, GF_OK, "Timed Text (GPAC TTXT) Import");
-	parser.OnProgress = xml_import_progress;
-	parser.cbk = import;
 
 	last_sample_empty = 0;
 	last_sample_duration = 0;
 	nb_descs = 0;
 	nb_samples = 0;
-	while (!xml_element_done(&parser, "TextStream") && !parser.done) {
-		str = xml_get_element(&parser);
-		CHECK_STR(str)
+	nb_children = gf_list_count(root->content);
 
-		if (!strcmp(str, "TextStreamHeader")) {
+	i=0;
+	while ( (node = gf_list_enum(root->content, &i))) {
+		if (node->type) { nb_children--; continue; }
+
+		if (!strcmp(node->name, "TextStreamHeader")) {
+			GF_XMLNode *sdesc;
 			s32 w, h, tx, ty, layer;
 			w = TTXT_DEFAULT_WIDTH;
 			h = TTXT_DEFAULT_HEIGHT;
 			tx = ty = layer = 0;
+			nb_children--;
 
-			while (xml_has_attributes(&parser)) {
-				str = xml_get_attribute(&parser);
-				if (!strcmp(str, "width")) w = atoi(parser.value_buffer);
-				else if (!strcmp(str, "height")) h = atoi(parser.value_buffer);
-				else if (!strcmp(str, "layer")) layer = atoi(parser.value_buffer);
-				else if (!strcmp(str, "translation_x")) tx = atoi(parser.value_buffer);
-				else if (!strcmp(str, "translation_y")) ty = atoi(parser.value_buffer);
+			j=0;
+			while ( (att=gf_list_enum(node->attributes, &j))) {
+				if (!strcmp(att->name, "width")) w = atoi(att->value);
+				else if (!strcmp(att->name, "height")) h = atoi(att->value);
+				else if (!strcmp(att->name, "layer")) layer = atoi(att->value);
+				else if (!strcmp(att->name, "translation_x")) tx = atoi(att->value);
+				else if (!strcmp(att->name, "translation_y")) ty = atoi(att->value);
 			}
 			gf_isom_set_track_layout_info(import->dest, track, w<<16, h<<16, tx<<16, ty<<16, (s16) layer);
 
-			while (!xml_element_done(&parser, "TextStreamHeader")) {
-				str = xml_get_element(&parser);
-				CHECK_STR(str)
+			j=0;
+			while ( (sdesc=gf_list_enum(node->content, &j))) {
+				if (sdesc->type) continue;
 
-				if (!strcmp(str, "TextSampleDescription")) {
+				if (!strcmp(sdesc->name, "TextSampleDescription")) {
 					GF_TextSampleDescriptor td;
-					u32 idx, i;
+					u32 idx;
 					memset(&td, 0, sizeof(GF_TextSampleDescriptor));
 					td.tag = GF_ODF_TEXT_CFG_TAG;
 					td.vert_justif = -1;
 					td.default_style.fontID = 1;
 					td.default_style.font_size = TTXT_DEFAULT_FONT_SIZE;
 
-					while (xml_has_attributes(&parser)) {
-						str = xml_get_attribute(&parser);
-						if (!strcmp(str, "horizontalJustification")) {
-							if (!stricmp(parser.value_buffer, "center")) td.horiz_justif = 1;
-							else if (!stricmp(parser.value_buffer, "right")) td.horiz_justif = -1;
-							else if (!stricmp(parser.value_buffer, "left")) td.horiz_justif = 0;
+					k=0;
+					while ( (att=gf_list_enum(sdesc->attributes, &k))) {
+						if (!strcmp(att->name, "horizontalJustification")) {
+							if (!stricmp(att->value, "center")) td.horiz_justif = 1;
+							else if (!stricmp(att->value, "right")) td.horiz_justif = -1;
+							else if (!stricmp(att->value, "left")) td.horiz_justif = 0;
 						}
-						else if (!strcmp(str, "verticalJustification")) {
-							if (!stricmp(parser.value_buffer, "center")) td.vert_justif = 1;
-							else if (!stricmp(parser.value_buffer, "bottom")) td.vert_justif = -1;
-							else if (!stricmp(parser.value_buffer, "top")) td.vert_justif = 0;
+						else if (!strcmp(att->name, "verticalJustification")) {
+							if (!stricmp(att->value, "center")) td.vert_justif = 1;
+							else if (!stricmp(att->value, "bottom")) td.vert_justif = -1;
+							else if (!stricmp(att->value, "top")) td.vert_justif = 0;
 						}
-						else if (!strcmp(str, "backColor")) td.back_color = ttxt_get_color(import, &parser);
-						else if (!strcmp(str, "verticalText") && !stricmp(parser.value_buffer, "yes") ) td.displayFlags |= GF_TXT_VERTICAL;
-						else if (!strcmp(str, "fillTextRegion") && !stricmp(parser.value_buffer, "yes") ) td.displayFlags |= GF_TXT_FILL_REGION;
-						else if (!strcmp(str, "continuousKaraoke") && !stricmp(parser.value_buffer, "yes") ) td.displayFlags |= GF_TXT_KARAOKE;
-						else if (!strcmp(str, "scroll")) {
-							if (!stricmp(parser.value_buffer, "inout")) td.displayFlags |= GF_TXT_SCROLL_IN | GF_TXT_SCROLL_OUT;
-							else if (!stricmp(parser.value_buffer, "in")) td.displayFlags |= GF_TXT_SCROLL_IN;
-							else if (!stricmp(parser.value_buffer, "out")) td.displayFlags |= GF_TXT_SCROLL_OUT;
+						else if (!strcmp(att->name, "backColor")) td.back_color = ttxt_get_color(import, att->value);
+						else if (!strcmp(att->name, "verticalText") && !stricmp(att->value, "yes") ) td.displayFlags |= GF_TXT_VERTICAL;
+						else if (!strcmp(att->name, "fillTextRegion") && !stricmp(att->value, "yes") ) td.displayFlags |= GF_TXT_FILL_REGION;
+						else if (!strcmp(att->name, "continuousKaraoke") && !stricmp(att->value, "yes") ) td.displayFlags |= GF_TXT_KARAOKE;
+						else if (!strcmp(att->name, "scroll")) {
+							if (!stricmp(att->value, "inout")) td.displayFlags |= GF_TXT_SCROLL_IN | GF_TXT_SCROLL_OUT;
+							else if (!stricmp(att->value, "in")) td.displayFlags |= GF_TXT_SCROLL_IN;
+							else if (!stricmp(att->value, "out")) td.displayFlags |= GF_TXT_SCROLL_OUT;
 						}
-						else if (!strcmp(str, "scrollMode")) {
+						else if (!strcmp(att->name, "scrollMode")) {
 							u32 scroll_mode = GF_TXT_SCROLL_CREDITS;
-							if (!stricmp(parser.value_buffer, "Credits")) scroll_mode = GF_TXT_SCROLL_CREDITS;
-							else if (!stricmp(parser.value_buffer, "Marquee")) scroll_mode = GF_TXT_SCROLL_MARQUEE;
-							else if (!stricmp(parser.value_buffer, "Right")) scroll_mode = GF_TXT_SCROLL_RIGHT;
-							else if (!stricmp(parser.value_buffer, "Down")) scroll_mode = GF_TXT_SCROLL_DOWN;
+							if (!stricmp(att->value, "Credits")) scroll_mode = GF_TXT_SCROLL_CREDITS;
+							else if (!stricmp(att->value, "Marquee")) scroll_mode = GF_TXT_SCROLL_MARQUEE;
+							else if (!stricmp(att->value, "Right")) scroll_mode = GF_TXT_SCROLL_RIGHT;
+							else if (!stricmp(att->value, "Down")) scroll_mode = GF_TXT_SCROLL_DOWN;
 							td.displayFlags |= ((scroll_mode<<7) & GF_TXT_SCROLL_DIRECTION);
 						}
 					}
-					while (!xml_element_done(&parser, "TextSampleDescription")) {
-						str = xml_get_element(&parser);
-						if (!strcmp(str, "TextBox")) ttxt_parse_text_box(import, &parser, &td.default_pos);
-						else if (!strcmp(str, "Style")) ttxt_parse_text_style(import, &parser, &td.default_style);
-						else if (!strcmp(str, "FontTable")) {
-							xml_skip_attributes(&parser);
-							while (!xml_element_done(&parser, "FontTable")) {
-								str = xml_get_element(&parser);
-								if (!strcmp(str, "FontTableEntry")) {
-									td.font_count += 1;
-									td.fonts = realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
-									while (xml_has_attributes(&parser)) {
-										str = xml_get_attribute(&parser);
-										if (!stricmp(str, "fontID")) td.fonts[td.font_count-1].fontID = atoi(parser.value_buffer);
-										else if (!stricmp(str, "fontName")) td.fonts[td.font_count-1].fontName = strdup(parser.value_buffer);
-									}
-									xml_skip_element(&parser, "FontTableEntry");
+
+					k=0;
+					while ( (ext=gf_list_enum(sdesc->content, &k))) {
+						if (ext->type) continue;
+						if (!strcmp(ext->name, "TextBox")) ttxt_parse_text_box(import, ext, &td.default_pos);
+						else if (!strcmp(ext->name, "Style")) ttxt_parse_text_style(import, ext, &td.default_style);
+						else if (!strcmp(ext->name, "FontTable")) {
+							GF_XMLNode *ftable;
+							u32 z=0;
+							while ( (ftable=gf_list_enum(ext->content, &z))) {
+								u32 m;
+								if (ftable->type || strcmp(ftable->name, "FontTableEntry")) continue;
+								td.font_count += 1;
+								td.fonts = realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
+								m=0;
+								while ( (att=gf_list_enum(ftable->attributes, &m))) {
+									if (!stricmp(att->name, "fontID")) td.fonts[td.font_count-1].fontID = atoi(att->value);
+									else if (!stricmp(att->name, "fontName")) td.fonts[td.font_count-1].fontName = strdup(att->value);
 								}
-								else xml_skip_element(&parser, str);
 							}
 						}
-						else {
-							xml_skip_element(&parser, str);
-						}
-
 					}
 					if (import->flags & GF_IMPORT_SKIP_TXT_BOX) {
 						td.default_pos.top = td.default_pos.left = td.default_pos.right = td.default_pos.bottom = 0;
@@ -1094,12 +1070,14 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 						td.fonts[0].fontName = strdup("Serif");
 					}
 					gf_isom_new_text_description(import->dest, track, &td, NULL, NULL, &idx);
-					for (i=0; i<td.font_count; i++) free(td.fonts[i].fontName);
+					for (k=0; k<td.font_count; k++) free(td.fonts[k].fontName);
 					free(td.fonts);
 					nb_descs ++;
 				}
 			}
-		} else if (!strcmp(str, "TextSample")) {
+		}
+		/*sample text*/
+		else if (!strcmp(node->name, "TextSample")) {
 			GF_ISOSample *s;
 			GF_TextSample * samp;
 			u32 ts, descIndex;
@@ -1113,107 +1091,103 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 			descIndex = 1;
 			last_sample_empty = 0;
 
-			while (xml_has_attributes(&parser)) {
-				str = xml_get_attribute(&parser);
-				if (!strcmp(str, "sampleTime")) {
+			j=0;
+			while ( (att=gf_list_enum(node->attributes, &j))) {
+				if (!strcmp(att->name, "sampleTime")) {
 					u32 h, m, s, ms;
-					if (sscanf(parser.value_buffer, "%d:%d:%d.%d", &h, &m, &s, &ms) == 4) {
+					if (sscanf(att->value, "%d:%d:%d.%d", &h, &m, &s, &ms) == 4) {
 						ts = (h*3600 + m*60 + s)*1000 + ms;
 					} else {
-						ts = (u32) (atof(parser.value_buffer) * 1000);
+						ts = (u32) (atof(att->value) * 1000);
 					}
 				}
-				else if (!strcmp(str, "sampleDescriptionIndex")) descIndex = atoi(parser.value_buffer);
-				else if (!strcmp(str, "text")) {
+				else if (!strcmp(att->name, "sampleDescriptionIndex")) descIndex = atoi(att->value);
+				else if (!strcmp(att->name, "text")) {
 					u32 len;
-					char *str = ttxt_parse_string(import, &parser);
+					char *str = ttxt_parse_string(import, att->value);
 					len = strlen(str);
 					gf_isom_text_add_text(samp, str, len);
-					free(str);
 					last_sample_empty = len ? 0 : 1;
 				}
-				else if (!strcmp(str, "scrollDelay")) gf_isom_text_set_scroll_delay(samp, (u32) (1000*atoi(parser.value_buffer)));
-				else if (!strcmp(str, "highlightColor")) gf_isom_text_set_highlight_color_argb(samp, ttxt_get_color(import, &parser));
-				else if (!strcmp(str, "wrap") && !strcmp(parser.value_buffer, "Automatic")) gf_isom_text_set_wrap(samp, 0x01);
+				else if (!strcmp(att->name, "scrollDelay")) gf_isom_text_set_scroll_delay(samp, (u32) (1000*atoi(att->value)));
+				else if (!strcmp(att->name, "highlightColor")) gf_isom_text_set_highlight_color_argb(samp, ttxt_get_color(import, att->value));
+				else if (!strcmp(att->name, "wrap") && !strcmp(att->value, "Automatic")) gf_isom_text_set_wrap(samp, 0x01);
 			}
 			/*get all modifiers*/
-			while (!xml_element_done(&parser, "TextSample")) {
-				str = xml_get_element(&parser);
-				if (!stricmp(str, "Style")) {
+			j=0;
+			while ( (ext=gf_list_enum(node->content, &j))) {
+				if (ext->type) continue;
+
+				if (!stricmp(ext->name, "Style")) {
 					GF_StyleRecord r;
-					ttxt_parse_text_style(import, &parser, &r);
+					ttxt_parse_text_style(import, ext, &r);
 					gf_isom_text_add_style(samp, &r);
 				}
-				else if (!stricmp(str, "TextBox")) {
+				else if (!stricmp(ext->name, "TextBox")) {
 					GF_BoxRecord r;
-					ttxt_parse_text_box(import, &parser, &r);
+					ttxt_parse_text_box(import, ext, &r);
 					gf_isom_text_set_box(samp, r.top, r.left, r.bottom, r.right);
 				}
-				else if (!stricmp(str, "Highlight")) {
+				else if (!stricmp(ext->name, "Highlight")) {
 					u16 start, end;
 					start = end = 0;
-					while (xml_has_attributes(&parser)) {
-						str = xml_get_attribute(&parser);
-						if (!strcmp(str, "fromChar")) start = atoi(parser.value_buffer);
-						else if (!strcmp(str, "toChar")) end = atoi(parser.value_buffer);
+					k=0;
+					while ( (att=gf_list_enum(ext->attributes, &k))) {
+						if (!strcmp(att->name, "fromChar")) start = atoi(att->value);
+						else if (!strcmp(att->name, "toChar")) end = atoi(att->value);
 					}
-					xml_skip_element(&parser, "Highlight");
 					gf_isom_text_add_highlight(samp, start, end);
 				}
-				else if (!stricmp(str, "Blinking")) {
+				else if (!stricmp(ext->name, "Blinking")) {
 					u16 start, end;
 					start = end = 0;
-					while (xml_has_attributes(&parser)) {
-						str = xml_get_attribute(&parser);
-						if (!strcmp(str, "fromChar")) start = atoi(parser.value_buffer);
-						else if (!strcmp(str, "toChar")) end = atoi(parser.value_buffer);
+					k=0;
+					while ( (att=gf_list_enum(ext->attributes, &k))) {
+						if (!strcmp(att->name, "fromChar")) start = atoi(att->value);
+						else if (!strcmp(att->name, "toChar")) end = atoi(att->value);
 					}
-					xml_skip_element(&parser, "Blinking");
 					gf_isom_text_add_blink(samp, start, end);
 				}
-				else if (!stricmp(str, "HyperLink")) {
+				else if (!stricmp(ext->name, "HyperLink")) {
 					u16 start, end;
 					char *url, *url_tt;
 					start = end = 0;
 					url = url_tt = NULL;
-					while (xml_has_attributes(&parser)) {
-						str = xml_get_attribute(&parser);
-						if (!strcmp(str, "fromChar")) start = atoi(parser.value_buffer);
-						else if (!strcmp(str, "toChar")) end = atoi(parser.value_buffer);
-						else if (!strcmp(str, "URL")) url = strdup(parser.value_buffer);
-						else if (!strcmp(str, "URLToolTip")) url_tt = strdup(parser.value_buffer);
+					k=0;
+					while ( (att=gf_list_enum(ext->attributes, &k))) {
+						if (!strcmp(att->name, "fromChar")) start = atoi(att->value);
+						else if (!strcmp(att->name, "toChar")) end = atoi(att->value);
+						else if (!strcmp(att->name, "URL")) url = strdup(att->value);
+						else if (!strcmp(att->name, "URLToolTip")) url_tt = strdup(att->value);
 					}
-					xml_skip_element(&parser, "HyperLink");
 					gf_isom_text_add_hyperlink(samp, url, url_tt, start, end);
 					if (url) free(url);
 					if (url_tt) free(url_tt);
 				}
-				else if (!stricmp(str, "Karaoke")) {
+				else if (!stricmp(ext->name, "Karaoke")) {
 					u32 startTime;
+					GF_XMLNode *krok;
 					startTime = 0;
-					while (xml_has_attributes(&parser)) {
-						str = xml_get_attribute(&parser);
-						if (!strcmp(str, "startTime")) startTime = (u32) (1000*atof(parser.value_buffer));
+					k=0;
+					while ( (att=gf_list_enum(ext->attributes, &k))) {
+						if (!strcmp(att->name, "startTime")) startTime = (u32) (1000*atof(att->value));
 					}
 					gf_isom_text_add_karaoke(samp, startTime);
-					while (!xml_element_done(&parser, "Karaoke")) {
-						str = xml_get_element(&parser);
-						if (!strcmp(str, "KaraokeRange")) {
-							u16 start, end;
-							u32 endTime;
-							start = end = 0;
-							endTime = 0;
-							while (xml_has_attributes(&parser)) {
-								str = xml_get_attribute(&parser);
-								if (!strcmp(str, "fromChar")) start = atoi(parser.value_buffer);
-								else if (!strcmp(str, "toChar")) end = atoi(parser.value_buffer);
-								else if (!strcmp(str, "endTime")) endTime = (u32) (1000*atof(parser.value_buffer));
-							}
-							xml_skip_element(&parser, "KaraokeRange");
-							gf_isom_text_set_karaoke_segment(samp, endTime, start, end);
-						} else {
-							xml_skip_element(&parser, str);
+					k=0;
+					while ( (krok=gf_list_enum(ext->content, &k))) {
+						u16 start, end;
+						u32 endTime, m;
+						if (krok->type) continue;
+						if (strcmp(krok->name, "KaraokeRange")) continue;
+						start = end = 0;
+						endTime = 0;
+						m=0;
+						while ( (att=gf_list_enum(krok->attributes, &m))) {
+							if (!strcmp(att->name, "fromChar")) start = atoi(att->value);
+							else if (!strcmp(att->name, "toChar")) end = atoi(att->value);
+							else if (!strcmp(att->name, "endTime")) endTime = (u32) (1000*atof(att->value));
 						}
+						gf_isom_text_set_karaoke_segment(samp, endTime, start, end);
 					}
 				}
 			}
@@ -1242,11 +1216,8 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 			gf_isom_sample_del(&s);
 			nb_samples++;
 
-			gf_import_progress(import, parser.file_pos, parser.file_size);
+			gf_import_progress(import, nb_samples, nb_children);
 			if (import->duration && (ts>import->duration)) break;
-		} else {
-			gf_import_message(import, GF_OK, "Unknown element %s - skipping", str);
-			xml_skip_element(&parser, str);
 		}
 	}
 	if (last_sample_empty) {
@@ -1256,18 +1227,18 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 	gf_import_progress(import, nb_samples, nb_samples);
 
 exit:
-	xml_reset_parser(&parser);
+	gf_xml_dom_del(parser);
 	return e;
 }
 
 
-u32 tx3g_get_color(GF_MediaImporter *import, XMLParser *parser)
+u32 tx3g_get_color(GF_MediaImporter *import, char *value)
 {
 	u32 r, g, b, a;
 	u32 res, v;
 	r = g = b = a = 0;
-	if (sscanf(parser->value_buffer, "%d%%, %d%%, %d%%, %d%%", &r, &g, &b, &a) != 4) {
-		gf_import_message(import, GF_OK, "Warning (line %d): color badly formatted", parser->line);
+	if (sscanf(value, "%d%%, %d%%, %d%%, %d%%", &r, &g, &b, &a) != 4) {
+		gf_import_message(import, GF_OK, "Warning: color badly formatted");
 	}
 	v = (u32) (a*255/100);
 	res = (v&0xFF); res<<=8;
@@ -1280,17 +1251,17 @@ u32 tx3g_get_color(GF_MediaImporter *import, XMLParser *parser)
 	return res;
 }
 
-void tx3g_parse_text_box(GF_MediaImporter *import, XMLParser *parser, GF_BoxRecord *box)
+void tx3g_parse_text_box(GF_MediaImporter *import, GF_XMLNode *n, GF_BoxRecord *box)
 {
+	u32 i=0;
+	GF_XMLAttribute *att;
 	memset(box, 0, sizeof(GF_BoxRecord));
-	while (xml_has_attributes(parser)) {
-		char *str = xml_get_attribute(parser);
-		if (!stricmp(str, "x")) box->left = atoi(parser->value_buffer);
-		else if (!stricmp(str, "y")) box->top = atoi(parser->value_buffer);
-		else if (!stricmp(str, "height")) box->bottom = atoi(parser->value_buffer);
-		else if (!stricmp(str, "width")) box->right = atoi(parser->value_buffer);
+	while ((att=gf_list_enum(n->attributes, &i))) {
+		if (!stricmp(att->name, "x")) box->left = atoi(att->value);
+		else if (!stricmp(att->name, "y")) box->top = atoi(att->value);
+		else if (!stricmp(att->name, "height")) box->bottom = atoi(att->value);
+		else if (!stricmp(att->name, "width")) box->right = atoi(att->value);
 	}
-	xml_skip_element(parser, "defaultTextBox");
 }
 
 typedef struct
@@ -1301,7 +1272,7 @@ typedef struct
 
 #define GET_MARKER_POS(_val, __isend) \
 	{	\
-		u32 i, __m = atoi(parser.value_buffer);	\
+		u32 i, __m = atoi(att->value);	\
 		_val = 0;	\
 		for (i=0; i<nb_marks; i++) { if (__m==marks[i].id) { _val = marks[i].pos; /*if (__isend) _val--; */break; } }	 \
 	}	
@@ -1310,31 +1281,28 @@ typedef struct
 static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 {
 	GF_Err e;
-	u32 track, ID, nb_samples, nb_descs, timescale, w, h;
+	u32 track, ID, nb_samples, nb_descs, timescale, w, h, i, j, k;
 	u64 DTS;
 	s32 tx, ty, layer;
 	GF_StyleRecord styles[50];
 	Marker marks[50];
-
-	XMLParser parser;
-	char *str;
+	GF_XMLAttribute *att;
+	GF_DOMParser *parser;
+	GF_XMLNode *root, *node;
 
 	if (import->flags==GF_IMPORT_PROBE_ONLY) return GF_OK;
 
-	e = xml_init_parser(&parser, import->in_name);
-	if (e) return gf_import_message(import, e, "Cannot open file %s", import->in_name);
-
-	str = xml_get_element(&parser);
-	if (!str) { e = GF_IO_ERR; goto exit; }
-	if (strcmp(str, "?quicktime")) {
-		e = gf_import_message(import, GF_BAD_PARAM, "Invalid QT TeXML file - expecting \"?quicktime\" header got %s", str);
-		goto exit;
+	parser = gf_xml_dom_new();
+	e = gf_xml_dom_parse(parser, import->in_name, dom_import_progress, import);
+	if (e) {
+		gf_import_message(import, e, "Error parsing TeXML file: Line %d - %s", gf_xml_dom_get_line(parser), gf_xml_dom_get_error(parser));
+		gf_xml_dom_del(parser);
+		return e;
 	}
-	xml_skip_attributes(&parser);
+	root = gf_xml_dom_get_root(parser);
 
-	str = xml_get_element(&parser);
-	if (strcmp(str, "text3GTrack")) {
-		e = gf_import_message(import, GF_BAD_PARAM, "Invalid QT TeXML file - expecting %s got %s", "text3GTrack", str);
+	if (strcmp(root->name, "text3GTrack")) {
+		e = gf_import_message(import, GF_BAD_PARAM, "Invalid QT TeXML file - expecting root \"text3GTrack\" got \"%s\"", root->name);
 		goto exit;
 	}
 	w = TTXT_DEFAULT_WIDTH;
@@ -1342,19 +1310,18 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 	tx = ty = 0;
 	layer = 0;
 	timescale = 1000;
-	while (xml_has_attributes(&parser)) {
-		str = xml_get_attribute(&parser);
-		if (!strcmp(str, "trackWidth")) w = atoi(parser.value_buffer);
-		else if (!strcmp(str, "trackHeight")) h = atoi(parser.value_buffer);
-		else if (!strcmp(str, "layer")) layer = atoi(parser.value_buffer);
-		else if (!strcmp(str, "timescale")) timescale = atoi(parser.value_buffer);
-		else if (!strcmp(str, "transform")) {
+	i=0;
+	while ( (att=gf_list_enum(root->attributes, &i))) {
+		if (!strcmp(att->name, "trackWidth")) w = atoi(att->value);
+		else if (!strcmp(att->name, "trackHeight")) h = atoi(att->value);
+		else if (!strcmp(att->name, "layer")) layer = atoi(att->value);
+		else if (!strcmp(att->name, "timescale")) timescale = atoi(att->value);
+		else if (!strcmp(att->name, "transform")) {
 			Float fx, fy;
-			sscanf(parser.value_buffer, "translate(%f,%f)", &fx, &fy);
+			sscanf(att->value, "translate(%f,%f)", &fx, &fy);
 			tx = (u32) fx; ty = (u32) fy;
 		}
 	}
-
 
 	/*setup track in 3GP format directly (no ES desc)*/
 	ID = (import->esd) ? import->esd->ESID : 0;
@@ -1378,126 +1345,140 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 	gf_isom_set_track_layout_info(import->dest, track, w<<16, h<<16, tx<<16, ty<<16, (s16) layer);
 
 	gf_text_import_set_language(import, track);
+	e = GF_OK;
 
 	gf_import_message(import, GF_OK, "Timed Text (QT TeXML) Import - Track Size %d x %d", w, h);
-	parser.OnProgress = xml_import_progress;
-	parser.cbk = import;
-
 
 	nb_descs = 0;
 	nb_samples = 0;
-	while (!xml_element_done(&parser, "text3GTrack") && !parser.done) {
+	i=0;
+	while ( (node=gf_list_enum(root->content, &i))) {
+		GF_XMLNode *desc;
 		GF_TextSampleDescriptor td;
 		GF_TextSample * samp = NULL;
 		GF_ISOSample *s;
 		u32 duration, descIndex, nb_styles, nb_marks;
 		Bool isRAP, same_style, same_box;
-		str = xml_get_element(&parser);
-		CHECK_STR(str)
-		if (strcmp(str, "sample")) continue;
+
+		if (node->type) continue;
+		if (strcmp(node->name, "sample")) continue;
 
 		isRAP = 0;
 		duration = 1000;
-		while (xml_has_attributes(&parser)) {
-			str = xml_get_attribute(&parser);
-			if (!strcmp(str, "duration")) duration = atoi(parser.value_buffer);
-			else if (!strcmp(str, "keyframe")) isRAP = !stricmp(parser.value_buffer, "true");
+		j=0;
+		while ((att=gf_list_enum(node->attributes, &j))) {
+			if (!strcmp(att->name, "duration")) duration = atoi(att->value);
+			else if (!strcmp(att->name, "keyframe")) isRAP = !stricmp(att->value, "true");
 		}
-
 		nb_styles = 0;
 		nb_marks = 0;
 		same_style = same_box = 0;
 		descIndex = 1;
-		while (!xml_element_done(&parser, "sample") && !parser.done) {
-			str = xml_get_element(&parser);
-			CHECK_STR(str)
-			if (!strcmp(str, "description")) {
-				u32 i;
+		j=0;
+		while ((desc=gf_list_enum(node->content, &j))) {
+			if (desc->type) continue;
+
+			if (!strcmp(desc->name, "description")) {
+				GF_XMLNode *sub;
 				memset(&td, 0, sizeof(GF_TextSampleDescriptor));
 				td.tag = GF_ODF_TEXT_CFG_TAG;
 				td.vert_justif = -1;
 				td.default_style.fontID = 1;
 				td.default_style.font_size = TTXT_DEFAULT_FONT_SIZE;
 
-				while (xml_has_attributes(&parser)) {
-					str = xml_get_attribute(&parser);
-					if (!strcmp(str, "horizontalJustification")) {
-						if (!stricmp(parser.value_buffer, "center")) td.horiz_justif = 1;
-						else if (!stricmp(parser.value_buffer, "right")) td.horiz_justif = -1;
-						else if (!stricmp(parser.value_buffer, "left")) td.horiz_justif = 0;
+				k=0;
+				while ((att=gf_list_enum(desc->attributes, &k))) {
+					if (!strcmp(att->name, "horizontalJustification")) {
+						if (!stricmp(att->value, "center")) td.horiz_justif = 1;
+						else if (!stricmp(att->value, "right")) td.horiz_justif = -1;
+						else if (!stricmp(att->value, "left")) td.horiz_justif = 0;
 					}
-					else if (!strcmp(str, "verticalJustification")) {
-						if (!stricmp(parser.value_buffer, "center")) td.vert_justif = 1;
-						else if (!stricmp(parser.value_buffer, "bottom")) td.vert_justif = -1;
-						else if (!stricmp(parser.value_buffer, "top")) td.vert_justif = 0;
+					else if (!strcmp(att->name, "verticalJustification")) {
+						if (!stricmp(att->value, "center")) td.vert_justif = 1;
+						else if (!stricmp(att->value, "bottom")) td.vert_justif = -1;
+						else if (!stricmp(att->value, "top")) td.vert_justif = 0;
 					}
-					else if (!strcmp(str, "backgroundColor")) td.back_color = tx3g_get_color(import, &parser);
-					else if (!strcmp(str, "displayFlags")) {
+					else if (!strcmp(att->name, "backgroundColor")) td.back_color = tx3g_get_color(import, att->value);
+					else if (!strcmp(att->name, "displayFlags")) {
 						Bool rev_scroll = 0;
-						if (strstr(parser.value_buffer, "scroll")) {
+						if (strstr(att->value, "scroll")) {
 							u32 scroll_mode = 0;
-							if (strstr(parser.value_buffer, "scrollIn")) td.displayFlags |= GF_TXT_SCROLL_IN;
-							if (strstr(parser.value_buffer, "scrollOut")) td.displayFlags |= GF_TXT_SCROLL_OUT;
-							if (strstr(parser.value_buffer, "reverse")) rev_scroll = 1;
-							if (strstr(parser.value_buffer, "horizontal")) scroll_mode = rev_scroll ? GF_TXT_SCROLL_RIGHT : GF_TXT_SCROLL_MARQUEE;
+							if (strstr(att->value, "scrollIn")) td.displayFlags |= GF_TXT_SCROLL_IN;
+							if (strstr(att->value, "scrollOut")) td.displayFlags |= GF_TXT_SCROLL_OUT;
+							if (strstr(att->value, "reverse")) rev_scroll = 1;
+							if (strstr(att->value, "horizontal")) scroll_mode = rev_scroll ? GF_TXT_SCROLL_RIGHT : GF_TXT_SCROLL_MARQUEE;
 							else scroll_mode = (rev_scroll ? GF_TXT_SCROLL_DOWN : GF_TXT_SCROLL_CREDITS);
 							td.displayFlags |= (scroll_mode<<7) & GF_TXT_SCROLL_DIRECTION;
 						}
-						if (strstr(parser.value_buffer, "writeTextVertically")) td.displayFlags |= GF_TXT_VERTICAL;
-						if (!strcmp(str, "continuousKaraoke")) td.displayFlags |= GF_TXT_KARAOKE;
+						/*TODO FIXME: check in QT doc !!*/
+						if (strstr(att->value, "writeTextVertically")) td.displayFlags |= GF_TXT_VERTICAL;
+						if (!strcmp(att->name, "continuousKaraoke")) td.displayFlags |= GF_TXT_KARAOKE;
 					}
 				}
-				while (!xml_element_done(&parser, "description")) {
-					str = xml_get_element(&parser);
-					if (!strcmp(str, "defaultTextBox")) tx3g_parse_text_box(import, &parser, &td.default_pos);
-					else if (!strcmp(str, "fontTable")) {
-						xml_skip_attributes(&parser);
-						while (!xml_element_done(&parser, "FontTable")) {
-							str = xml_get_element(&parser);
-							if (!strcmp(str, "font")) {
+
+				k=0;
+				while ((sub=gf_list_enum(desc->content, &k))) {
+					if (sub->type) continue;
+					if (!strcmp(sub->name, "defaultTextBox")) tx3g_parse_text_box(import, sub, &td.default_pos);
+					else if (!strcmp(sub->name, "fontTable")) {
+						GF_XMLNode *ftable;
+						u32 m=0;
+						while ((ftable=gf_list_enum(sub->content, &m))) {
+							if (ftable->type) continue;
+							if (!strcmp(ftable->name, "font")) {
+								u32 n=0;
 								td.font_count += 1;
 								td.fonts = realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
-								while (xml_has_attributes(&parser)) {
-									str = xml_get_attribute(&parser);
-									if (!stricmp(str, "id")) td.fonts[td.font_count-1].fontID = atoi(parser.value_buffer);
-									else if (!stricmp(str, "name")) td.fonts[td.font_count-1].fontName = strdup(parser.value_buffer);
+								while ((att=gf_list_enum(ftable->attributes, &n))) {
+									if (!stricmp(att->name, "id")) td.fonts[td.font_count-1].fontID = atoi(att->value);
+									else if (!stricmp(att->name, "name")) td.fonts[td.font_count-1].fontName = strdup(att->value);
 								}
-								xml_skip_element(&parser, "font");
 							}
-							else xml_skip_element(&parser, str);
 						}
 					}
-					else if (!strcmp(str, "sharedStyles")) {
+					else if (!strcmp(sub->name, "sharedStyles")) {
 						u32 idx = 0;
-						xml_skip_attributes(&parser);
-						while (!xml_element_done(&parser, "SharedStyles")) {
-							str = xml_get_element(&parser);
-							if (!strcmp(str, "style")) {
-								memset(&styles[nb_styles], 0, sizeof(GF_StyleRecord));
-								while (xml_has_attributes(&parser)) {
-									str = xml_get_attribute(&parser);
-									if (!strcmp(str, "id")) styles[nb_styles].startCharOffset = atoi(parser.value_buffer);
-								}
-								while (!xml_element_done(&parser, "style")) {
-									str = xml_get_css(&parser);
-									if (!strcmp(str, "font-table")) {
-										styles[nb_styles].fontID = atoi(parser.value_buffer);
-										for (i=0; i<td.font_count; i++) { if (td.fonts[i].fontID == styles[nb_styles].fontID) { idx = i; break; } }
-									}
-									else if (!strcmp(str, "font-size")) styles[nb_styles].font_size = atoi(parser.value_buffer);
-									else if (!strcmp(str, "font-style") && !strcmp(parser.value_buffer, "italic")) styles[nb_styles].style_flags |= GF_TXT_STYLE_ITALIC;
-									else if (!strcmp(str, "font-weight") && !strcmp(parser.value_buffer, "bold")) styles[nb_styles].style_flags |= GF_TXT_STYLE_BOLD;
-									else if (!strcmp(str, "text-decoration") && !strcmp(parser.value_buffer, "underline")) styles[nb_styles].style_flags |= GF_TXT_STYLE_UNDERLINED;
-									else if (!strcmp(str, "color")) styles[nb_styles].text_color = tx3g_get_color(import, &parser);
-								}
-								if (!nb_styles) td.default_style = styles[0];
-								nb_styles++;
-							}
-							else xml_skip_element(&parser, str);
+						GF_XMLNode *style, *ftable;
+						u32 m=0;
+						while ((style=gf_list_enum(sub->content, &m))) {
+							if (style->type) continue;
+							if (!strcmp(style->name, "style")) break;
 						}
-					}
-					else {
-						xml_skip_element(&parser, str);
+						if (style) {
+							char *cur;
+							s32 start=0;
+							char css_style[1024], css_val[1024];
+							memset(&styles[nb_styles], 0, sizeof(GF_StyleRecord));
+							m=0;
+							while ( (att=gf_list_enum(style->attributes, &m))) {
+								if (!strcmp(att->name, "id")) styles[nb_styles].startCharOffset = atoi(att->value);
+							}
+							m=0;
+							while ( (ftable=gf_list_enum(style->content, &m))) {
+								if (ftable->type) break;
+							}
+							cur = ftable->name;
+							while (cur) {
+								start = gf_token_get_strip(cur, 0, "{:", " ", css_style, 1024);
+								if (start <0) break;
+								start = gf_token_get_strip(cur, start, ":}", " ", css_val, 1024);
+								if (start <0) break;
+								cur = strchr(cur+start, '{');
+
+								if (!strcmp(css_style, "font-table")) {
+									u32 z;
+									styles[nb_styles].fontID = atoi(css_val);
+									for (z=0; z<td.font_count; z++) { if (td.fonts[z].fontID == styles[nb_styles].fontID) { idx = z; break; } }
+								}
+								else if (!strcmp(css_style, "font-size")) styles[nb_styles].font_size = atoi(css_val);
+								else if (!strcmp(css_style, "font-style") && !strcmp(css_val, "italic")) styles[nb_styles].style_flags |= GF_TXT_STYLE_ITALIC;
+								else if (!strcmp(css_style, "font-weight") && !strcmp(css_val, "bold")) styles[nb_styles].style_flags |= GF_TXT_STYLE_BOLD;
+								else if (!strcmp(css_style, "text-decoration") && !strcmp(css_val, "underline")) styles[nb_styles].style_flags |= GF_TXT_STYLE_UNDERLINED;
+								else if (!strcmp(css_style, "color")) styles[nb_styles].text_color = tx3g_get_color(import, css_val);
+							}
+							if (!nb_styles) td.default_style = styles[0];
+							nb_styles++;
+						}
 					}
 
 				}
@@ -1518,59 +1499,58 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 					same_style = same_box = 1;
 				}
 
-				for (i=0; i<td.font_count; i++) free(td.fonts[i].fontName);
+				for (k=0; k<td.font_count; k++) free(td.fonts[k].fontName);
 				free(td.fonts);
 				nb_descs ++;
-			} else if (!strcmp(str, "sampleData")) {
+			} 
+			else if (!strcmp(desc->name, "sampleData")) {
 				Bool is_utf16 = 0;
+				GF_XMLNode *sub;
 				u16 start, end;
-				u32 styleID, i;
-				u32 nb_chars, txt_len;
+				u32 styleID;
+				u32 nb_chars, txt_len, m;
 				txt_len = nb_chars = 0;
 
 				samp = gf_isom_new_text_sample();
 
-				while (xml_has_attributes(&parser)) {
-					str = xml_get_attribute(&parser);
-					if (!strcmp(str, "targetEncoding") && !strcmp(parser.value_buffer, "utf16")) is_utf16 = 1;
-					else if (!strcmp(str, "scrollDelay")) gf_isom_text_set_scroll_delay(samp, atoi(parser.value_buffer) );
-					else if (!strcmp(str, "highlightColor")) gf_isom_text_set_highlight_color_argb(samp, tx3g_get_color(import, &parser));
+				k=0;
+				while ((att=gf_list_enum(desc->attributes, &k))) {
+					if (!strcmp(att->name, "targetEncoding") && !strcmp(att->value, "utf16")) is_utf16 = 1;
+					else if (!strcmp(att->name, "scrollDelay")) gf_isom_text_set_scroll_delay(samp, atoi(att->value) );
+					else if (!strcmp(att->name, "highlightColor")) gf_isom_text_set_highlight_color_argb(samp, tx3g_get_color(import, att->value));
 				}
 				start = end = 0;
-				while (!xml_element_done(&parser, "sampleData")) {
-					str = xml_get_element(&parser);
-					if (!strcmp(str, "text")) {
+				k=0;
+				while ((sub=gf_list_enum(desc->content, &k))) {
+					if (sub->type) continue;
+					if (!strcmp(sub->name, "text")) {
+						GF_XMLNode *text;
 						styleID = 0;
-						while (xml_has_attributes(&parser)) {
-							str = xml_get_attribute(&parser);
-							if (!strcmp(str, "styleID")) styleID = atoi(parser.value_buffer);
+						m=0;
+						while ((att=gf_list_enum(sub->attributes, &m))) {
+							if (!strcmp(att->name, "styleID")) styleID = atoi(att->value);
 						}
-						xml_set_text_mode(&parser, 1);
 						txt_len = 0;
-						while (!xml_element_done(&parser, "text")) {
-							str = xml_get_element(&parser);
-							if (str) {
-								if (!strcmp(str, "marker")) {
+
+						m=0;
+						while ((text=gf_list_enum(sub->content, &m))) {
+							if (!text->type) {
+								if (!strcmp(text->name, "marker")) {
+									u32 z;
 									memset(&marks[nb_marks], 0, sizeof(Marker));
 									marks[nb_marks].pos = nb_chars+txt_len;
-									while (xml_has_attributes(&parser)) {
-										str = xml_get_attribute(&parser);
-										if (!strcmp(str, "id")) marks[nb_marks].id = atoi(parser.value_buffer);
+
+									z = 0;
+									while ( (att=gf_list_enum(text->attributes, &z))) {
+										if (!strcmp(att->name, "id")) marks[nb_marks].id = atoi(att->value);
 									}
-									xml_skip_element(&parser, "marker");
 									nb_marks++;
 								}
-								else xml_skip_element(&parser, str);
-							} else {
-								while (xml_load_text(&parser)) {
-									char *str = ttxt_parse_string(import, &parser);
-									txt_len += strlen(str);
-									gf_isom_text_add_text(samp, str, strlen(str));
-									free(str);
-								}
+							} else if (text->type==GF_XML_TEXT_TYPE) {
+								txt_len += strlen(text->name);
+								gf_isom_text_add_text(samp, text->name, strlen(text->name));
 							}
 						}
-						xml_set_text_mode(&parser, 0);
 						if (styleID && (!same_style || (td.default_style.startCharOffset != styleID))) {
 							GF_StyleRecord st = td.default_style;
 							for (i=0; i<nb_styles; i++) { if (styles[i].startCharOffset==styleID) { st = styles[i]; break; } }
@@ -1580,64 +1560,58 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 						}
 						nb_chars += txt_len;
 					}
-					else if (!stricmp(str, "highlight")) {
-						while (xml_has_attributes(&parser)) {
-							str = xml_get_attribute(&parser);
-							if (!strcmp(str, "startMarker")) GET_MARKER_POS(start, 0)
-							else if (!strcmp(str, "endMarker")) GET_MARKER_POS(end, 1)
+					else if (!stricmp(sub->name, "highlight")) {
+						m=0;
+						while ((att=gf_list_enum(sub->attributes, &m))) {
+							if (!strcmp(att->name, "startMarker")) GET_MARKER_POS(start, 0)
+							else if (!strcmp(att->name, "endMarker")) GET_MARKER_POS(end, 1)
 						}
-						xml_skip_element(&parser, "highlight");
 						gf_isom_text_add_highlight(samp, start, end);
 					}
-					else if (!stricmp(str, "blink")) {
-						while (xml_has_attributes(&parser)) {
-							str = xml_get_attribute(&parser);
-							if (!strcmp(str, "startMarker")) GET_MARKER_POS(start, 0)
-							else if (!strcmp(str, "endMarker")) GET_MARKER_POS(end, 1)
+					else if (!stricmp(sub->name, "blink")) {
+						m=0;
+						while ((att=gf_list_enum(sub->attributes, &m))) {
+							if (!strcmp(att->name, "startMarker")) GET_MARKER_POS(start, 0)
+							else if (!strcmp(att->name, "endMarker")) GET_MARKER_POS(end, 1)
 						}
-						xml_skip_element(&parser, "blink");
 						gf_isom_text_add_blink(samp, start, end);
 					}
-					else if (!stricmp(str, "link")) {
+					else if (!stricmp(sub->name, "link")) {
 						char *url, *url_tt;
 						url = url_tt = NULL;
-						while (xml_has_attributes(&parser)) {
-							str = xml_get_attribute(&parser);
-							if (!strcmp(str, "startMarker")) GET_MARKER_POS(start, 0)
-							else if (!strcmp(str, "endMarker")) GET_MARKER_POS(end, 1)
-							else if (!strcmp(str, "URL") || !strcmp(str, "href")) url = strdup(parser.value_buffer);
-							else if (!strcmp(str, "URLToolTip") || !strcmp(str, "altString")) url_tt = strdup(parser.value_buffer);
+						m=0;
+						while ((att=gf_list_enum(sub->attributes, &m))) {
+							if (!strcmp(att->name, "startMarker")) GET_MARKER_POS(start, 0)
+							else if (!strcmp(att->name, "endMarker")) GET_MARKER_POS(end, 1)
+							else if (!strcmp(att->name, "URL") || !strcmp(att->name, "href")) url = strdup(att->value);
+							else if (!strcmp(att->name, "URLToolTip") || !strcmp(att->name, "altString")) url_tt = strdup(att->value);
 						}
-						xml_skip_element(&parser, "link");
 						gf_isom_text_add_hyperlink(samp, url, url_tt, start, end);
 						if (url) free(url);
 						if (url_tt) free(url_tt);
 					}
-					else if (!stricmp(str, "karaoke")) {
+					else if (!stricmp(sub->name, "karaoke")) {
 						u32 time = 0;
-						while (xml_has_attributes(&parser)) {
-							str = xml_get_attribute(&parser);
-							if (!strcmp(str, "startTime")) time = atoi(parser.value_buffer);
+						GF_XMLNode *krok;
+						m=0;
+						while ((att=gf_list_enum(sub->attributes, &m))) {
+							if (!strcmp(att->name, "startTime")) time = atoi(att->value);
 						}
 						gf_isom_text_add_karaoke(samp, time);
-						while (!xml_element_done(&parser, "karaoke")) {
-							str = xml_get_element(&parser);
-							if (!strcmp(str, "run")) {
-								start = end = 0;
-								while (xml_has_attributes(&parser)) {
-									str = xml_get_attribute(&parser);
-									if (!strcmp(str, "startMarker")) GET_MARKER_POS(start, 0)
-									else if (!strcmp(str, "endMarker")) GET_MARKER_POS(end, 1)
-									else if (!strcmp(str, "duration")) time += atoi(parser.value_buffer);
-								}
-								xml_skip_element(&parser, "run");
-								gf_isom_text_set_karaoke_segment(samp, time, start, end);
-							} else {
-								xml_skip_element(&parser, str);
+						m=0;
+						while ((krok=gf_list_enum(sub->content, &m))) {
+							u32 u=0;
+							if (krok->type) continue;
+							if (strcmp(krok->name, "run")) continue;
+							start = end = 0;
+							while ((att=gf_list_enum(krok->attributes, &u))) {
+								if (!strcmp(att->name, "startMarker")) GET_MARKER_POS(start, 0)
+								else if (!strcmp(att->name, "endMarker")) GET_MARKER_POS(end, 1)
+								else if (!strcmp(att->name, "duration")) time += atoi(att->value);
 							}
+							gf_isom_text_set_karaoke_segment(samp, time, start, end);
 						}
 					}
-					else xml_skip_element(&parser, str);
 				}
 			}
 		}
@@ -1661,7 +1635,7 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 	gf_import_progress(import, nb_samples, nb_samples);
 
 exit:
-	xml_reset_parser(&parser);
+	gf_xml_dom_del(parser);
 	return e;
 }
 

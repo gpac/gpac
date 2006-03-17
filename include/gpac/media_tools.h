@@ -163,6 +163,8 @@ enum
 	GF_EXPORT_AVI_NATIVE = (1<<5),
 	/*NHML format (any media)*/
 	GF_EXPORT_NHML = (1<<6),
+	/*SAF format*/
+	GF_EXPORT_SAF = (1<<7),
 
 	/*following ones are real flags*/
 	/*used for MP4 extraction, indicates track should be added to dest file if any*/
@@ -281,6 +283,25 @@ GF_ESD *gp_media_map_esd(GF_ISOFile *mp4, u32 track);
 
 /*changes pixel aspect ratio for visual tracks if supported. Negative values remove any PAR info*/
 GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den);
+
+
+/*SAF Multiplexer object. The multiplexer supports concurencial (multi-threaded) access*/
+typedef struct __saf_muxer GF_SAFMuxer;
+/*SAF Multiplexer constructor*/
+GF_SAFMuxer *gf_saf_mux_new();
+/*SAF Multiplexer destructor*/
+void gf_saf_mux_del(GF_SAFMuxer *mux);
+/*adds a new stream in the SAF multiplex*/
+GF_Err gf_saf_mux_stream_add(GF_SAFMuxer *mux, u32 stream_id, u32 ts_res, u32 buffersize_db, u8 stream_type, u8 object_type, char *mime_type, char *dsi, u32 dsi_len, char *remote_url);
+/*removes a stream from the SAF multiplex*/
+GF_Err gf_saf_mux_stream_rem(GF_SAFMuxer *mux, u32 stream_id);
+/*adds an AU to the given stream. !!AU data will be freed by the multiplexer!! 
+AUs are not reinterleaved based on their CTS, in order to enable audio interleaving
+*/
+GF_Err gf_saf_mux_add_au(GF_SAFMuxer *mux, u32 stream_id, u32 CTS, char *data, u32 data_len, Bool is_rap);
+/*gets the content of the multiplexer for the given time.
+if force_end_of_session is set, this flushes the SAF Session - no more operations will be allowed on the muxer*/
+GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_session, char **out_data, u32 *out_size);
 
 
 #ifdef __cplusplus

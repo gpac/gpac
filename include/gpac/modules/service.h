@@ -247,7 +247,7 @@ typedef union __netcommand
 */
 
 /*interface name and version for input service*/
-#define GF_NET_CLIENT_INTERFACE			GF_FOUR_CHAR_INT('G', 'I', 'S', 0x01)
+#define GF_NET_CLIENT_INTERFACE			GF_4CC('G', 'I', 'S', 0x01)
 
 typedef struct _netinterface
 {
@@ -323,7 +323,7 @@ typedef struct _netinterface
 	void *priv;
 } GF_InputService;
 
-/*callback functions - these can be linked with non-GPL modules*/
+/*callback functions - these can be linked with non-LGPL modules*/
 /*message from service - error is set if error*/
 void gf_term_on_message(GF_ClientService *service, GF_Err error, const char *message);
 /*to call on service (if channel is NULL) or channel connect completed*/
@@ -347,6 +347,10 @@ void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data
 /*returns URL associated with service (so that you don't need to store it)*/
 const char *gf_term_get_service_url(GF_ClientService *service);
 
+/*adds a new media from network. The media descriptor is then owned/destroyed by the term*/
+void gf_term_add_media(GF_ClientService *service, GF_Descriptor *media_desc);
+
+
 /*check if @fileExt extension is supported for given mimeType, and if associated with module. If mimeType not registered, register it for given module*/
 Bool gf_term_check_extension(GF_InputService *ifce, const char *mimeType, const char *extList, const char *description, const char *fileExt);
 /*register mime types & file extensions - most modules should only need the check version above*/
@@ -364,7 +368,7 @@ void gf_term_download_update_stats(GF_DownloadSession * sess);
 
 
 /*MPEG-4 media cache interface name*/
-#define GF_STREAMING_MEDIA_CACHE		GF_FOUR_CHAR_INT('G', 'M', 'C', 0x01)
+#define GF_STREAMING_MEDIA_CACHE		GF_4CC('G', 'M', 'C', 0x01)
 
 typedef struct _cacheinterface
 {

@@ -26,6 +26,10 @@
 #include <gpac/internal/ietf_dev.h>
 #include <gpac/bitstream.h>
 
+#ifndef _WIN32_WCE
+#include <time.h>
+#endif
+
 u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 {
 	GF_Err e;
@@ -44,7 +48,7 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size)
 	GF_RTCPHeader rtcp_hdr;
 	GF_BitStream *bs;
 	char sdes_buffer[300];
-	u32 i, sender_ssrc, cur_ssrc, val, NTP_H, NTP_L, sdes_type, sdes_len, res, first;
+	u32 i, sender_ssrc, cur_ssrc, val, sdes_type, sdes_len, res, first, nb_bytes, nb_pck;
 	GF_Err e = GF_OK;
 	
 	//bad RTCP packet
@@ -88,38 +92,41 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size)
 		switch (rtcp_hdr.PayloadType) {
 		//Sender report - we assume there's only one sender
 		case 200:
-			//sender ssrc
+			/*sender ssrc*/
 			sender_ssrc = gf_bs_read_u32(bs);
 			rtcp_hdr.Length -= 1;
 			/*not for us...*/
 			if (ch->SenderSSRC && (ch->SenderSSRC != sender_ssrc)) break;
 
-			//NTP
-			NTP_H = gf_bs_read_u32(bs);
-			NTP_L = gf_bs_read_u32(bs);
 			if (ch->first_SR) {
 				ch->first_SR = 0;
 				gf_rtp_get_next_report_time(ch);
-				//this is to make sure we only handle ONE sender
 				ch->SenderSSRC = sender_ssrc;
-				if (ch->rtp_log) fprintf(ch->rtp_log, "Got Sender SSRC: %d\n", ch->SenderSSRC); 
 			}
-			if (sender_ssrc == ch->SenderSSRC) {
-				ch->last_report_time = gf_rtp_get_report_time();
-				ch->last_SR_NTP_sec = NTP_H;
-				ch->last_SR_NTP_frac = NTP_L;
-			}
-			//extract RTP ts too for multicast
-			val = gf_bs_read_u32(bs);
-			if (sender_ssrc == ch->SenderSSRC) ch->last_SR_rtp_time = val;
-			//pck count
-			val = gf_bs_read_u32(bs);
-			if (sender_ssrc == ch->SenderSSRC) ch->total_pck = val;
-			//payload byte count
-			val = gf_bs_read_u32(bs);
-			if (sender_ssrc == ch->SenderSSRC) ch->total_bytes = val;
+			ch->last_report_time = gf_rtp_get_report_time();
+
+			ch->last_SR_NTP_sec = gf_bs_read_u32(bs);
+			ch->last_SR_NTP_frac = gf_bs_read_u32(bs);
+			ch->last_SR_rtp_time = gf_bs_read_u32(bs);
+			nb_pck = gf_bs_read_u32(bs);
+			nb_bytes = gf_bs_read_u32(bs);
 
 			rtcp_hdr.Length -= 5;
+
+			if (ch->rtp_log) {
+				time_t gtime = ch->last_SR_NTP_sec - GF_NTP_SEC_1900_TO_1970;
+				fprintf(ch->rtp_log, "\nRTCP-SR\t%d\t%d\t%d\t%d\t%s\n", 
+									ch->SenderSSRC,
+									ch->last_SR_rtp_time,
+									ch->total_pck,
+									ch->total_bytes,
+#ifndef _WIN32_WCE
+									asctime(gmtime(&gtime))
+#else
+									"Not Available"
+#endif
+				);
+			}
 			
 			//common encoding for SR and RR
 			goto process_reports;
@@ -275,9 +282,10 @@ static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 
 	size = 8;
 
+	gf_get_ntp(&sec, &frac);
+
 	//SenderReport part
 	if (is_sr) {
-		gf_get_ntp(&sec, &frac);
 		//sender time
 		gf_bs_write_u32(bs, sec);
 		gf_bs_write_u32(bs, frac);
@@ -310,11 +318,6 @@ static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 	if (!expect_diff || (loss_diff <= 0)) loss_diff = 0;
 	else loss_diff = (loss_diff<<8) / expect_diff;
 
-	if (ch->rtp_log)
-		fprintf(ch->rtp_log, "SSRC %d Sending report at %u: %d extended - since last: %d expected %d loss %u Jitter\n", 
-								ch->SSRC, NTP_Time, extended, expect_diff, loss_diff, ch->Jitter >> 4);
-
-	
 	gf_bs_write_u8(bs, loss_diff);
 
 	//update and write cumulative loss
@@ -335,6 +338,23 @@ static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 
 	// DLSR
 	gf_bs_write_u32(bs, (NTP_Time - ch->last_report_time));
+
+
+	if (ch->rtp_log) {
+		time_t gtime = sec - GF_NTP_SEC_1900_TO_1970;
+		fprintf(ch->rtp_log, "\nRTCP-RR\t%d\t%d\t%d\t%d\t%d\t%s\n", 
+							ch->SSRC,
+							ch->Jitter >> 4,
+							extended,
+							expect_diff,
+							loss_diff,
+#ifndef _WIN32_WCE
+									asctime(gmtime(&gtime))
+#else
+									"Not Available"
+#endif
+		);
+	}
 
 	size += 24;
 	return size;

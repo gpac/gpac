@@ -31,23 +31,18 @@
 GF_Route *gf_sg_route_new(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField, GF_Node *toNode, u32 toField)
 {
 	GF_Route *r;
-	GF_FieldInfo info;
 	if (!sg || !toNode || !fromNode) return NULL;
 
 	GF_SAFEALLOC(r, sizeof(GF_Route));
 	if (!r) return NULL;
 	r->FromNode = fromNode;
-	r->FromFieldIndex = fromField;
+	r->FromField.fieldIndex = fromField;
 	r->ToNode = toNode;
-	r->ToFieldIndex = toField;
+	r->ToField.fieldIndex = toField;
 	r->graph = sg;
 
-	//remember the name of the event out
-	gf_node_get_field(fromNode, fromField, &info);
-	r->fromFieldName = info.name;
 	if (!fromNode->sgprivate->events) fromNode->sgprivate->events = gf_list_new();
 	gf_list_add(fromNode->sgprivate->events, r);
-
 	gf_list_add(sg->Routes, r);
 	return r;
 }
@@ -140,6 +135,12 @@ char *gf_sg_route_get_name(GF_Route *route)
 	return route->name;
 }
 
+static void gf_sg_route_setup(GF_Route *r) 
+{
+	gf_node_get_field(r->FromNode, r->FromField.fieldIndex, &r->FromField);
+	gf_node_get_field(r->ToNode, r->ToField.fieldIndex, &r->ToField);
+	r->is_setup = 1;
+}
 
 Bool gf_sg_route_activate(GF_Route *r)
 {
@@ -148,12 +149,26 @@ Bool gf_sg_route_activate(GF_Route *r)
 	void VRML_FieldCopyCast(void *dest, u32 dst_field_type, void *orig, u32 ori_field_type);
 
 	if (!r->is_setup) {
-		gf_node_get_field(r->FromNode, r->FromFieldIndex, &r->FromField);
-		gf_node_get_field(r->ToNode, r->ToFieldIndex, &r->ToField);
-		r->is_setup = 1;
+		gf_sg_route_setup(r);
 		/*special case when initing ISed routes on eventOuts: skip*/
-		if (r->IS_route && (r->FromField.eventType == GF_SG_EVENT_OUT)) return 0;
+		if (r->IS_route) {
+			if (r->FromField.eventType == GF_SG_EVENT_OUT) return 0;
+		}
 	}
+#if 0
+	if (r->IS_route) {
+		fprintf(stdout, "EXEC %s.%s IS %s.%s", r->FromNode->sgprivate->NodeName, r->FromField.name, r->ToNode->sgprivate->NodeName, r->ToField.name);
+	} else {
+		fprintf(stdout, "EXEC ROUTE %s.%s TO %s.%s", r->FromNode->sgprivate->NodeName, r->FromField.name, r->ToNode->sgprivate->NodeName, r->ToField.name);
+	}
+	if (r->FromField.fieldType==GF_SG_VRML_SFBOOL) {
+		fprintf(stdout, "\tBOOL VAL: %d", *((SFBool*)r->FromField.far_ptr) );
+	}
+	else if (r->FromField.fieldType==GF_SG_VRML_SFINT32) {
+		fprintf(stdout, "\tINT VAL: %d", *((SFInt32*)r->FromField.far_ptr) );
+	}
+	fprintf(stdout, "\n");
+#endif
 
 	ret = 1;
 	switch (r->FromField.fieldType) {
@@ -219,14 +234,14 @@ Bool gf_sg_route_activate(GF_Route *r)
 	}
 	//check if ISed or not - this will notify the node of any changes
 	else {
-		gf_sg_proto_check_field_change(r->ToNode, r->ToFieldIndex);
+		gf_sg_proto_check_field_change(r->ToNode, r->ToField.fieldIndex);
 		/*only happen on proto, an eventOut may route to an eventOut*/
 		if (r->IS_route && r->ToField.eventType==GF_SG_EVENT_OUT) 
-			gf_node_event_out(r->ToNode, r->ToFieldIndex);
+			gf_node_event_out(r->ToNode, r->ToField.fieldIndex);
 	}
 	/*and signal routes on exposed fields if field changed*/
 	if (r->ToField.eventType == GF_SG_EVENT_EXPOSED_FIELD)
-		gf_node_event_out(r->ToNode, r->ToFieldIndex);
+		gf_node_event_out(r->ToNode, r->ToField.fieldIndex);
 
 	return ret;
 }
@@ -246,10 +261,10 @@ void gf_node_event_out(GF_Node *node, u32 FieldIndex)
 	i=0;
 	while ((r = gf_list_enum(node->sgprivate->events, &i))) {
 		if (r->FromNode != node) continue;
-		if (r->FromFieldIndex != FieldIndex) continue;
+		if (r->FromField.fieldIndex != FieldIndex) continue;
 
 		/*no postpone for IS routes*/
-		if (r->IS_route ) {
+		if (r->IS_route) {
 			if (gf_sg_route_activate(r)) 
 				gf_node_changed(r->ToNode, &r->ToField);
 		}
@@ -274,7 +289,8 @@ void gf_node_event_out_str(GF_Node *node, const char *eventName)
 	//search for routes to activate in the order they where declared
 	i=0;
 	while ((r = gf_list_enum(node->sgprivate->events, &i))) {
-		if (stricmp(r->fromFieldName, eventName)) continue;
+		if (!r->is_setup) gf_sg_route_setup(r);
+		if (stricmp(r->FromField.name, eventName)) continue;
 
 		//no postpone
 		if (r->IS_route) {

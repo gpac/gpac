@@ -65,7 +65,7 @@ static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, unsigned char *
 	if (e) return e;
 	if (!dsi.width || !dsi.height) return GF_NON_COMPLIANT_BITSTREAM;
 
-	ctx->codec =  InitCodec(dsi.width, dsi.height, GF_FOUR_CHAR_INT('x', 'v', 'i', 'd'));
+	ctx->codec =  InitCodec(dsi.width, dsi.height, GF_4CC('x', 'v', 'i', 'd'));
 
 	DecodeFrame(ctx->codec, decSpecInfo, decSpecInfoSize, ptr, ptr, ptr, pitch);
 

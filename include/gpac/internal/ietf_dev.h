@@ -129,7 +129,7 @@ struct __tag_rtp_channel
 
 	/*RTCP info*/
 	char *s_name, *s_email, *s_location, *s_phone, *s_tool, *s_note, *s_priv;
-	s8 first_rtp_pck;
+//	s8 first_rtp_pck;
 	s8 first_SR;
 	u32 SSRC;
 	u32 SenderSSRC;
@@ -144,7 +144,7 @@ struct __tag_rtp_channel
 	/*stats since last SR*/
 	u32 last_num_pck_rcv, last_num_pck_expected, last_num_pck_loss;
 	/*jitter compute*/
-	u32 Jitter;
+	u32 Jitter, ntp_init;
 	s32 last_deviance;	
 	/*NTP of last SR*/
 	u32 last_SR_NTP_sec, last_SR_NTP_frac;

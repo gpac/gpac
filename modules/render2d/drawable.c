@@ -564,6 +564,7 @@ void drawable_finalize_end(struct _drawable_context *ctx, RenderEffect2D *eff)
 void drawable_finalize_render(struct _drawable_context *ctx, RenderEffect2D *eff)
 {
 	Fixed pw;
+	GF_Rect unclip;
 
 	ctx->unclip = ctx->original;
 	gf_mx2d_apply_rect(&eff->transform, &ctx->unclip);
@@ -595,17 +596,18 @@ void drawable_finalize_render(struct _drawable_context *ctx, RenderEffect2D *eff
 			ctx->unclip.height += pw;
 		}
 	}
+	unclip = ctx->unclip;
 
 	if (!ctx->no_antialias) {
-		/*grow of 2 pixels (-1 and +1) to handle AA*/
+		/*grow of 2 pixels (-1 and +1) to handle AA, but ONLY on cliper otherwise we will modify layout/form */
 		pw = (eff->is_pixel_metrics) ? FIX_ONE : 2*FIX_ONE/eff->surface->width;
-		ctx->unclip.x -= pw;
-		ctx->unclip.y += pw;
-		ctx->unclip.width += 2*pw;
-		ctx->unclip.height += 2*pw;
+		unclip.x -= pw;
+		unclip.y += pw;
+		unclip.width += 2*pw;
+		unclip.height += 2*pw;
 	}
 
-	ctx->clip = gf_rect_pixelize(&ctx->unclip);
+	ctx->clip = gf_rect_pixelize(&unclip);
 	ctx->unclip_pix = ctx->clip;
 
 	drawable_finalize_end(ctx, eff);

@@ -39,28 +39,38 @@ static void DestroySwitch(GF_Node *node)
 }
 static void RenderSwitch(GF_Node *node, void *rs)
 {
-	u32 i;
+	u32 i, count;
 	Bool prev_switch;
+	GF_List *children;
+	s32 whichChoice;
 	GF_Node *child;
 	SwitchStack *st = (SwitchStack *)gf_node_get_private(node);
-	M_Switch *sw = (M_Switch *) node;
 	RenderEffect2D *eff; 
-	u32 count = gf_list_count(sw->choice);
-
 	eff = (RenderEffect2D *)rs;
+
+
+	/*WARNING: X3D/MPEG4 NOT COMPATIBLE*/
+	if (gf_node_get_tag(node)==TAG_MPEG4_Switch) {
+		children = ((M_Switch *)node)->choice;
+		whichChoice = ((M_Switch *)node)->whichChoice;
+	} else {
+		children = ((X_Switch *)node)->children;
+		whichChoice = ((X_Switch *)node)->whichChoice;
+	}
+	count = gf_list_count(children);
 
 	prev_switch = eff->trav_flags;
 	/*check changes in choice field*/
-	if ((gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) || (st->last_switch != sw->whichChoice) ) {
+	if ((gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) || (st->last_switch != whichChoice) ) {
 		eff->trav_flags |= GF_SR_TRAV_SWITCHED_OFF;
 		/*deactivation must be signaled because switch may contain audio nodes...*/
 		for (i=0; i<count; i++) {
-			if ((s32) i==sw->whichChoice) continue;
-			child = gf_list_get(sw->choice, i);
+			if ((s32) i==whichChoice) continue;
+			child = gf_list_get(children, i);
 			gf_node_render(child, eff);
 		}
 		eff->trav_flags &= ~GF_SR_TRAV_SWITCHED_OFF;
-		st->last_switch = sw->whichChoice;
+		st->last_switch = whichChoice;
 	}
 
 	gf_node_dirty_clear(node, 0);
@@ -69,8 +79,8 @@ static void RenderSwitch(GF_Node *node, void *rs)
 	CSQ: switch cannot be used to switch sensors, too bad...*/
 	eff->trav_flags = prev_switch;
 
-	if (sw->whichChoice>=0) {
-		child = gf_list_get(sw->choice, sw->whichChoice);
+	if (whichChoice>=0) {
+		child = gf_list_get(children, whichChoice);
 		gf_node_render(child, eff);
 	}
 }

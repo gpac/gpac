@@ -144,53 +144,53 @@ enum
 typedef enum
 {
 	/*!8 bit GREY */
-	GF_PIXEL_GREYSCALE	=	GF_FOUR_CHAR_INT('G','R','E','Y'),
+	GF_PIXEL_GREYSCALE	=	GF_4CC('G','R','E','Y'),
 	/*!16 bit greyscale*/
-	GF_PIXEL_ALPHAGREY	=	GF_FOUR_CHAR_INT('G','R','A','L'),
+	GF_PIXEL_ALPHAGREY	=	GF_4CC('G','R','A','L'),
 	/*!15 bit RGB*/
-	GF_PIXEL_RGB_555	=	GF_FOUR_CHAR_INT('R','5','5','5'),
+	GF_PIXEL_RGB_555	=	GF_4CC('R','5','5','5'),
 	/*!16 bit RGB*/
-	GF_PIXEL_RGB_565	=	GF_FOUR_CHAR_INT('R','5','6','5'),
+	GF_PIXEL_RGB_565	=	GF_4CC('R','5','6','5'),
 	/*!24 bit RGB*/
-	GF_PIXEL_RGB_24		=	GF_FOUR_CHAR_INT('R','G','B','3'),
+	GF_PIXEL_RGB_24		=	GF_4CC('R','G','B','3'),
 	/*!24 bit BGR - used for graphics cards video format signaling*/
-	GF_PIXEL_BGR_24		=	GF_FOUR_CHAR_INT('B','G','R','3'),
+	GF_PIXEL_BGR_24		=	GF_4CC('B','G','R','3'),
 	/*!32 bit RGB*/
-	GF_PIXEL_RGB_32		=	GF_FOUR_CHAR_INT('R','G','B','4'),
+	GF_PIXEL_RGB_32		=	GF_4CC('R','G','B','4'),
 	/*!32 bit BGR - used for graphics cards video format signaling*/
-	GF_PIXEL_BGR_32		=	GF_FOUR_CHAR_INT('B','G','R','4'),
+	GF_PIXEL_BGR_32		=	GF_4CC('B','G','R','4'),
 
 	/*!32 bit ARGB.*/
-	GF_PIXEL_ARGB		=	GF_FOUR_CHAR_INT('A','R','G','B'),
+	GF_PIXEL_ARGB		=	GF_4CC('A','R','G','B'),
 	/*!32 bit RGBA (openGL like)*/
-	GF_PIXEL_RGBA		=	GF_FOUR_CHAR_INT('R','G','B', 'A'),
+	GF_PIXEL_RGBA		=	GF_4CC('R','G','B', 'A'),
 
 	/*!YUV packed format*/
-	GF_PIXEL_YUY2		=	GF_FOUR_CHAR_INT('Y','U','Y','2'),
+	GF_PIXEL_YUY2		=	GF_4CC('Y','U','Y','2'),
 	/*!YUV packed format*/
-	GF_PIXEL_YVYU		=	GF_FOUR_CHAR_INT('Y','V','Y','U'),
+	GF_PIXEL_YVYU		=	GF_4CC('Y','V','Y','U'),
 	/*!YUV packed format*/
-	GF_PIXEL_UYVY		=	GF_FOUR_CHAR_INT('U','Y','V','Y'),
+	GF_PIXEL_UYVY		=	GF_4CC('U','Y','V','Y'),
 	/*!YUV packed format*/
-	GF_PIXEL_VYUY		=	GF_FOUR_CHAR_INT('V','Y','U','Y'),
+	GF_PIXEL_VYUY		=	GF_4CC('V','Y','U','Y'),
 	/*!YUV packed format*/
-	GF_PIXEL_Y422		=	GF_FOUR_CHAR_INT('Y','4','2','2'),
+	GF_PIXEL_Y422		=	GF_4CC('Y','4','2','2'),
 	/*!YUV packed format*/
-	GF_PIXEL_UYNV		=	GF_FOUR_CHAR_INT('U','Y','N','V'),
+	GF_PIXEL_UYNV		=	GF_4CC('U','Y','N','V'),
 	/*!YUV packed format*/
-	GF_PIXEL_YUNV		=	GF_FOUR_CHAR_INT('Y','U','N','V'),
+	GF_PIXEL_YUNV		=	GF_4CC('Y','U','N','V'),
 	/*!YUV packed format*/
-	GF_PIXEL_V422		=	GF_FOUR_CHAR_INT('V','4','2','2'),
+	GF_PIXEL_V422		=	GF_4CC('V','4','2','2'),
 	
 	/*!YUV planar format*/
-	GF_PIXEL_YV12		=	GF_FOUR_CHAR_INT('Y','V','1','2'),
+	GF_PIXEL_YV12		=	GF_4CC('Y','V','1','2'),
 	/*!YUV planar format*/
-	GF_PIXEL_IYUV		=	GF_FOUR_CHAR_INT('I','Y','U','V'),
+	GF_PIXEL_IYUV		=	GF_4CC('I','Y','U','V'),
 	/*!YUV planar format*/
-	GF_PIXEL_I420		=	GF_FOUR_CHAR_INT('I','4','2','0'),
+	GF_PIXEL_I420		=	GF_4CC('I','4','2','0'),
 
 	/*!YV12 + Alpha plane*/
-	GF_PIXEL_YUVA		=	GF_FOUR_CHAR_INT('Y', 'U', 'V', 'A')
+	GF_PIXEL_YUVA		=	GF_4CC('Y', 'U', 'V', 'A')
 
 } GF_PixelFormat;
 

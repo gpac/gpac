@@ -126,13 +126,6 @@ void DC_DownloadFile(GF_InputService *plug, char *url)
 }
 
 
-static Bool DC_IsLocal(const char *url)
-{
-	if (!strnicmp(url, "file://", 7)) return 1;
-	if (strstr(url, "://")) return 0;
-	return 1;
-}
-
 GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	DCReader *read = (DCReader *) plug->priv;
@@ -171,7 +164,7 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 			) 
 			read->oti = 0x01;
 
-		else if (!stricmp(ext, "svg") || !stricmp(ext, "svgz")) {
+		else if (!stricmp(ext, "svg") || !stricmp(ext, "svgz") || !stricmp(ext, "svg.gz")) {
 			read->oti = 0x02;
 		}
 		/*XML LASeR*/
@@ -179,7 +172,7 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 	}
 
 	/*remote fetch*/
-	if (!DC_IsLocal(url)) {
+	if (strnicmp(url, "file://", 7) && strstr(url, "://")) {
 		DC_DownloadFile(plug, read->szURL);
 		return GF_OK;
 	}

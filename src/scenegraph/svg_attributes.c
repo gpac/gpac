@@ -2519,7 +2519,7 @@ static void svg_dump_iri(SVG_IRI*iri, char *attValue)
 
 static void svg_dump_point(SVG_Point *pt, char *attValue)
 {
-	sprintf(attValue, "%g %g ", FIX2FLT(pt->x), FIX2FLT(pt->y) );
+	if (pt) sprintf(attValue, "%g %g ", FIX2FLT(pt->x), FIX2FLT(pt->y) );
 }
 
 static void svg_dump_path(SVG_PathData *path, char *attValue)
@@ -2592,6 +2592,9 @@ static void svg_dump_path(SVG_PathData *path, char *attValue)
 			break;
 		case SVG_PATHCOMMAND_Z:
 			strcat(attValue, "Z");
+			break;
+		default:
+			fprintf(stdout, "WARING: unknown SVG path command %d\n", command);
 			break;
 		}
 	}
@@ -2860,6 +2863,9 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 			sprintf(szT, "%g %g", FIX2FLT(((LASeR_Size *)info->far_ptr)->width), FIX2FLT(((LASeR_Size *)info->far_ptr)->height));		
 			strcat(attValue, szT);
 		}
+		break;
+	case LASeR_TimeAttribute_datatype:
+		strcpy(attValue, (intVal==LASeR_TIMEATTRIBUTE_END) ? "end" : "begin");
 		break;
 /* end of keyword type parsing */
 

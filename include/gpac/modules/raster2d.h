@@ -126,7 +126,7 @@ typedef void *GF_STENCIL;
 typedef void *GF_SURFACE;
 
 /*interface name and version for raster2D*/
-#define GF_RASTER_2D_INTERFACE		GF_FOUR_CHAR_INT('G','R','2', 0x02)
+#define GF_RASTER_2D_INTERFACE		GF_4CC('G','R','2', 0x02)
 
 /*graphics driver*/
 typedef struct _raster2d_interface

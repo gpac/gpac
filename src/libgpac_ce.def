@@ -174,6 +174,29 @@ EXPORTS
 	gf_dm_sess_fetch_data
 	gf_dm_sess_last_error
 
+;xml.h exports
+	gf_xml_sax_new
+	gf_xml_sax_del
+	gf_xml_sax_init
+	gf_xml_sax_parse
+	gf_xml_sax_suspend
+	gf_xml_sax_parse_file
+	gf_xml_sax_get_line
+	gf_xml_sax_get_file_size
+	gf_xml_sax_get_file_pos
+	gf_xml_sax_peek_node
+	gf_xml_sax_binary_file
+	gf_xml_sax_get_error
+	gf_xml_get_root_type
+	gf_xml_sax_get_node_start_pos
+	gf_xml_sax_get_node_end_pos
+	gf_xml_dom_new
+	gf_xml_dom_del
+	gf_xml_dom_parse
+	gf_xml_dom_get_root
+	gf_xml_dom_get_error
+	gf_xml_dom_get_line
+
 ;math.h exports
 	gf_invfix
 	gf_mulfix
@@ -630,6 +653,7 @@ EXPORTS
 	gf_term_download_new
 	gf_term_download_del
 	gf_term_download_update_stats
+	gf_term_add_media
 
 ;ietf.h exports
 	gf_rtsp_nc_to_string

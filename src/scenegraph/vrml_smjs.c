@@ -304,9 +304,9 @@ static JSBool deleteRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsva
 
 	i=0;
 	while ((r = gf_list_enum(n1->sgprivate->events, &i))) {
-		if (r->FromFieldIndex != f_id1) continue;
+		if (r->FromField.fieldIndex != f_id1) continue;
 		if (r->ToNode != n2) continue;
-		if (r->ToFieldIndex != f_id2) continue;
+		if (r->ToField.fieldIndex != f_id2) continue;
 		gf_sg_route_del(r);
 		return JS_TRUE;
 	}
@@ -2769,6 +2769,30 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 							s = JS_NewStringCopyZ(priv->js_ctx, f->vals[i].url);
 						}
 						newVal = STRING_TO_JSVAL(s);
+						JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
+					}
+				}
+					break;
+				case GF_SG_VRML_MFNODE:
+				{
+					GF_List *f = *(GF_List **) field->far_ptr;
+					u32 count = gf_list_count(f);
+
+					JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
+					JS_SetArrayLength(priv->js_ctx, jsf->js_list, count);
+
+					for (i=0; i<count; i++) {
+						JSObject *pf = JS_NewObject(priv->js_ctx, &SFNodeClass, 0, obj);
+						n = gf_list_get(f, i);
+						slot = NewJSField();
+						slot->owner = parent;
+						slot->temp_node = n;
+						slot->field.far_ptr = & slot->temp_node;
+						slot->field.fieldType = GF_SG_VRML_SFNODE;
+						gf_node_register(n, parent);
+						JS_SetPrivate(priv->js_ctx, pf, slot);
+
+						newVal = OBJECT_TO_JSVAL(pf);
 						JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
 					}
 				}

@@ -752,9 +752,9 @@ GF_Err BM_SceneReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 		GF_Route *r = gf_list_get(codec->scenegraph->Routes, 0);
 		GF_Command *ri = gf_sg_command_new(codec->current_graph, GF_SG_ROUTE_INSERT);
 		gf_list_rem(codec->scenegraph->Routes, 0);
-		ri->fromFieldIndex = r->FromFieldIndex;
+		ri->fromFieldIndex = r->FromField.fieldIndex;
 		ri->fromNodeID = r->FromNode->sgprivate->NodeID;
-		ri->toFieldIndex = r->ToFieldIndex;
+		ri->toFieldIndex = r->ToField.fieldIndex;
 		ri->toNodeID = r->ToNode->sgprivate->NodeID;
 		if (r->ID) ri->RouteID = r->ID;
 		ri->def_name = r->name ? strdup(r->name) : NULL;

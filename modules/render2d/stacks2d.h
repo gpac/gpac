@@ -28,6 +28,7 @@
 #define NODE_STACKS_H
 
 #include "grouping.h"
+#include <gpac/nodes_x3d.h>
 
 void R2D_InitAnchor(Render2D *sr, GF_Node *node);
 SensorHandler *r2d_anchor_get_handler(GF_Node *n);

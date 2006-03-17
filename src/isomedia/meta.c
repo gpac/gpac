@@ -308,7 +308,7 @@ GF_Err gf_isom_remove_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num)
 GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, char *XMLFileName, Bool IsBinaryXML)
 {
 	GF_Err e;
-	FILE *didfile;
+	FILE *xmlfile;
 	GF_XMLBox *xml;
 	GF_MetaBox *meta;
 
@@ -328,19 +328,19 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 
 
 	/*assume 32bit max size = 4Go should be sufficient for a DID!!*/
-	didfile = fopen(XMLFileName, "rt");
-	if (!didfile) return GF_URL_ERROR;
-	fseek(didfile, 0, SEEK_END);
-	xml->xml_length = ftell(didfile);
-	fseek(didfile, 0, SEEK_SET);
+	xmlfile = fopen(XMLFileName, "rt");
+	if (!xmlfile) return GF_URL_ERROR;
+	fseek(xmlfile, 0, SEEK_END);
+	xml->xml_length = ftell(xmlfile);
+	fseek(xmlfile, 0, SEEK_SET);
 	xml->xml = malloc(sizeof(unsigned char)*xml->xml_length);
-	xml->xml_length = fread(xml->xml, 1, sizeof(unsigned char)*xml->xml_length, didfile);
-	if (ferror(didfile)) {
+	xml->xml_length = fread(xml->xml, 1, sizeof(unsigned char)*xml->xml_length, xmlfile);
+	if (ferror(xmlfile)) {
 		free(xml->xml);
 		xml->xml = NULL;
 		return GF_BAD_PARAM;
 	}
-	fclose(didfile);
+	fclose(xmlfile);
 	return GF_OK;
 }
 

@@ -360,6 +360,21 @@ Package=<4>
 
 ###############################################################################
 
+Project: "saf_in"=.\saf_in.vcp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libgpac_dll
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "soft_rast"=.\soft_rast.vcp - Package Owner=<4>
 
 Package=<5>

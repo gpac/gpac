@@ -36,6 +36,7 @@ extern Bool quiet_mode;
 extern u32 swf_flags;
 extern Float swf_flatten_angle;
 
+const char *GetLanguageCode(char *lang);
 
 void convert_file_info(char *inName, u32 trackID)
 {
@@ -68,15 +69,21 @@ void convert_file_info(char *inName, u32 trackID)
 		else fprintf(stdout, "Track type: ");
 
 		switch (import.tk_info[i].type) {
-		case GF_ISOM_MEDIA_VISUAL: fprintf(stdout, "Video\n"); break;
-		case GF_ISOM_MEDIA_AUDIO: fprintf(stdout, "Audio\n"); break;
-		case GF_ISOM_MEDIA_TEXT: fprintf(stdout, "Text\n"); break;
-		case GF_ISOM_MEDIA_SCENE: fprintf(stdout, "Scene\n"); break;
+		case GF_ISOM_MEDIA_VISUAL: fprintf(stdout, "Video (%s)\n", gf_4cc_to_str(import.tk_info[i].media_type)); break;
+		case GF_ISOM_MEDIA_AUDIO: fprintf(stdout, "Audio (%s)\n", gf_4cc_to_str(import.tk_info[i].media_type)); break;
+		case GF_ISOM_MEDIA_TEXT: fprintf(stdout, "Text (%s)\n", gf_4cc_to_str(import.tk_info[i].media_type)); break;
+		case GF_ISOM_MEDIA_SCENE: fprintf(stdout, "Scene (%s)\n", gf_4cc_to_str(import.tk_info[i].media_type)); break;
 		default: fprintf(stdout, "Other (4CC: %s)\n", gf_4cc_to_str(import.tk_info[i].type)); break;
 		}
 		if (!trackID) continue;
-		if (import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL)
-			fprintf(stdout, "Source: %s %dx%d @ %g FPS\n", gf_4cc_to_str(import.tk_info[i].media_type), import.tk_info[i].width, import.tk_info[i].height, import.tk_info[i].FPS);
+		if (import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL) {
+			if (import.tk_info[i].width && import.tk_info[i].height) {
+				fprintf(stdout, "Source: %s %dx%d @ %g FPS\n", gf_4cc_to_str(import.tk_info[i].media_type), import.tk_info[i].width, import.tk_info[i].height, import.tk_info[i].FPS);
+			} else {
+				fprintf(stdout, "Source: %s\n", gf_4cc_to_str(import.tk_info[i].media_type));
+			}
+		}
+			
 
 		fprintf(stdout, "\nImport Capabilities:\n");
 		if (import.tk_info[i].flags & GF_IMPORT_USE_DATAREF) fprintf(stdout, "\tCan use data referencing\n");
@@ -100,7 +107,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 track_id, i, delay, timescale, track;
 	s32 par_d, par_n;
 	Bool do_audio, do_video, do_all;
-	char szLan[4];
+	const char *szLan;
 	GF_Err e;
 	GF_MediaImporter import;
 	char *ext, szName[1000], *handler_name;
@@ -114,7 +121,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		return GF_BAD_PARAM;
 	}
 
-	szLan[0] = szLan[3] = 0;
+	szLan = NULL;
 	delay = 0;
 	par_d = par_n = -2;
 	/*use ':' as separator, but beware DOS paths...*/
@@ -129,7 +136,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		if (ext2) ext2[0] = 0;
 
 		/*all extensions for track-based importing*/
-		if (!strnicmp(ext+1, "lang=", 5)) strncpy(szLan, ext+6, 3);
+		if (!strnicmp(ext+1, "lang=", 5)) szLan = GetLanguageCode(ext+6);
 		else if (!strnicmp(ext+1, "delay=", 6)) delay = atoi(ext+7);
 		else if (!strnicmp(ext+1, "fps=", 4)) force_fps = atof(ext+5);
 		else if (!stricmp(ext+1, "dref")) import_flags |= GF_IMPORT_USE_DATAREF;
@@ -200,7 +207,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		count = gf_isom_get_track_count(import.dest);
 		timescale = gf_isom_get_timescale(dest);
 		for (i=o_count; i<count; i++) {
-			if (szLan[0]) gf_isom_set_media_language(import.dest, i+1, szLan);
+			if (szLan) gf_isom_set_media_language(import.dest, i+1, (char *) szLan);
 			if (delay) {
 				u64 tk_dur;
 				gf_isom_remove_edit_segments(import.dest, i+1);
@@ -214,7 +221,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (handler_name) gf_isom_set_handler_name(import.dest, i+1, handler_name);
 		}
 	} else {
-
 		for (i=0; i<import.nb_tracks; i++) {
 			import.trackID = import.tk_info[i].track_num;
 			if (do_all) e = gf_media_import(&import);
@@ -235,7 +241,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 			timescale = gf_isom_get_timescale(dest);
 			track = gf_isom_get_track_by_id(import.dest, import.final_trackID);
-			if (szLan[0]) gf_isom_set_media_language(import.dest, track, szLan);
+			if (szLan) gf_isom_set_media_language(import.dest, track, (char *) szLan);
 			if (delay) {
 				u64 tk_dur;
 				gf_isom_remove_edit_segments(import.dest, track);
@@ -299,7 +305,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 
 	conv_type = 0;
 	switch (gf_isom_guess_specification(mp4)) {
-	case GF_FOUR_CHAR_INT('I','S','M','A'): conv_type = 1; break;
+	case GF_4CC('I','S','M','A'): conv_type = 1; break;
 	case GF_ISOM_BRAND_3GP4: 
 	case GF_ISOM_BRAND_3GP5:
 	case GF_ISOM_BRAND_3GP6:
@@ -1347,6 +1353,138 @@ exit:
 		gf_sg_del(sg);
 	}
 	return e;
+}
+
+#include <gpac/xml.h>
+
+void sax_node_start(void *sax_cbck, const char *node_name, const char *name_space, GF_List *attributes)
+{
+	char szCheck[100];
+	GF_List *imports = sax_cbck;
+	GF_XMLAttribute *att;
+	u32 i=0;
+
+	/*do not process hyperlinks*/
+	if (!strcmp(node_name, "a") || !strcmp(node_name, "Anchor")) return;
+	
+	while ( (att=gf_list_enum(attributes, &i))) {
+		if (stricmp(att->name, "xlink:href") && stricmp(att->name, "url")) continue;
+		if (att->value[0]=='#') continue;
+		if (!strnicmp(att->value, "od:", 3)) continue;
+		sprintf(szCheck, "%d", atoi(att->value));
+		if (!strcmp(szCheck, att->value)) continue;
+		gf_list_add(imports, att->value);
+		att->value = NULL;
+	}
+}
+
+GF_ISOFile *package_file(char *file_name, const char *tmpdir)
+{
+	GF_ISOFile *file = NULL;
+	GF_Err e;
+	GF_SAXParser *sax;
+	GF_List *imports;
+	Bool ascii;
+	char *isom_src = NULL;
+	u32 i, count, mtype;
+
+	char *type = gf_xml_get_root_type(file_name);
+	if (!type) {
+		fprintf(stdout, "File %s is not a valid XML file\n", file_name);
+		return NULL;
+	}
+
+	imports = gf_list_new();
+	sax = gf_xml_sax_new(sax_node_start, NULL, NULL, imports);
+	e = gf_xml_sax_parse_file(sax, file_name, NULL);
+	ascii = !gf_xml_sax_binary_file(sax);
+	gf_xml_sax_del(sax);
+	if (e<0) goto exit;
+	e = GF_OK;
+
+	if (!stricmp(type, "svg")) mtype = ascii ? GF_4CC('s','v','g',' ') : GF_4CC('s','v','g','z');
+	else if (!stricmp(type, "smil")) mtype = ascii ? GF_4CC('s','m','i','l') : GF_4CC('s','m','l','z');
+	else if (!stricmp(type, "x3d")) mtype = ascii ? GF_4CC('x','3','d',' ')  : GF_4CC('x','3','d','z')  ;
+	else if (!stricmp(type, "xmt-a")) mtype = ascii ? GF_4CC('x','m','t','a') : GF_4CC('x','m','t','z');
+
+
+	count = gf_list_count(imports);
+	for (i=0; i<count; i++) {
+		char *item = gf_list_get(imports, i);
+		FILE *test = fopen(item, "rb");
+		if (!test) {
+			gf_list_rem(imports, i);
+			i--;
+			count--;
+			free(item);
+			continue;
+		}
+		fclose(test);
+		if (gf_isom_probe_file(item)) {
+			if (isom_src) {
+				fprintf(stdout, "Cannot package several IsoMedia files together\n");
+				e = GF_NOT_SUPPORTED;
+				goto exit;
+			}
+			gf_list_rem(imports, i);
+			i--;
+			count--;
+			isom_src = item;
+			continue;
+		}
+	}
+	if (isom_src) {
+		file = gf_isom_open(isom_src, GF_ISOM_OPEN_EDIT, tmpdir);
+	} else {
+		file = gf_isom_open("package", GF_ISOM_WRITE_EDIT, tmpdir);
+	}
+
+	e = gf_isom_set_meta_type(file, 1, 0, mtype);
+	if (e) goto exit;
+	/*add self ref*/
+	if (isom_src) {
+		e = gf_isom_add_meta_item(file, 1, 0, 1, NULL, isom_src, NULL, NULL, NULL,  NULL);
+		if (e) goto exit;
+	}
+	e = gf_isom_set_meta_xml(file, 1, 0, file_name, !ascii);
+	if (e) goto exit;
+
+	count = gf_list_count(imports);
+	for (i=0; i<count; i++) {
+		char *ext, *mime, *encoding;
+		char *item = gf_list_get(imports, i);
+
+		mime = encoding = NULL;
+		ext = strrchr(item, '.');
+		if (!stricmp(ext, ".gz")) ext = strrchr(ext-1, '.');
+
+		if (!stricmp(ext, ".jpg") || !stricmp(ext, ".jpeg")) mime = "image/jpeg"; 
+		else if (!stricmp(ext, ".png")) mime = "image/png"; 
+		else if (!stricmp(ext, ".svg")) mime = "image/svg+xml"; 
+		else if (!stricmp(ext, ".x3d")) mime = "model/x3d+xml"; 
+		else if (!stricmp(ext, ".xmt")) mime = "application/x-xmt"; 
+		else if (!stricmp(ext, ".svgz") || !stricmp(ext, ".svg.gz")) { mime = "image/svg+xml"; encoding = "binary-gzip"; }
+		else if (!stricmp(ext, ".x3dz") || !stricmp(ext, ".x3d.gz")) { mime = "model/x3d+xml"; encoding = "binary-gzip"; }
+		else if (!stricmp(ext, ".xmtz") || !stricmp(ext, ".xmt.gz")) { mime = "application/x-xmt"; encoding = "binary-gzip"; }
+
+		e = gf_isom_add_meta_item(file, 1, 0, 0, item, item, mime, NULL, NULL,  NULL);
+		if (e) goto exit;
+	}
+
+exit:
+	while (gf_list_count(imports)) {
+		char *item = gf_list_last(imports);
+		gf_list_rem_last(imports);
+		free(item);
+	}
+	gf_list_del(imports);
+	if (isom_src) free(isom_src);
+	if (type) free(type);
+	if (e) {
+		if (file) gf_isom_delete(file);
+		return NULL;
+	}
+	return file;
 }
 
 #endif
