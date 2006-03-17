@@ -1238,7 +1238,9 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 	}
 	/*some default values*/
 	if (!strcmp(svg_elt->svg_name, "svg")) {
+		fprintf(output, "\tp->width.type = SVG_NUMBER_PERCENTAGE;\n");
 		fprintf(output, "\tp->width.value = INT2FIX(100);\n");
+		fprintf(output, "\tp->height.type = SVG_NUMBER_PERCENTAGE;\n");
 		fprintf(output, "\tp->height.value = INT2FIX(100);\n");
 	}
 	else if (!strcmp(svg_elt->svg_name, "linearGradient")) {

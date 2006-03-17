@@ -1507,11 +1507,16 @@ static void smil_parse_syncToleranceOrDefault(SMIL_SyncTolerance *value, char *v
 static void svg_parse_viewbox(SVG_ViewBox *value, char *value_string)
 {
 	char *str = value_string;
-	u32 i = 0;
-	i+=svg_parse_float(&(str[i]), &(value->x), 0);
-	i+=svg_parse_float(&(str[i]), &(value->y), 0);
-	i+=svg_parse_float(&(str[i]), &(value->width), 0);
-	i+=svg_parse_float(&(str[i]), &(value->height), 0);
+	if (!strcmp(str, "none")) {
+		value->is_set = 0;
+	} else {
+		u32 i = 0;
+		value->is_set = 1;
+		i+=svg_parse_float(&(str[i]), &(value->x), 0);
+		i+=svg_parse_float(&(str[i]), &(value->y), 0);
+		i+=svg_parse_float(&(str[i]), &(value->width), 0);
+		i+=svg_parse_float(&(str[i]), &(value->height), 0);
+	}
 }
 
 static void svg_parse_coordinates(GF_List *values, char *value_string)
@@ -2942,7 +2947,10 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 	case SVG_ViewBox_datatype:
 	{
 		SVG_ViewBox *v = (SVG_ViewBox *)info->far_ptr;
-		sprintf(attValue, "%g %g %g %g", FIX2FLT(v->x), FIX2FLT(v->y), FIX2FLT(v->width), FIX2FLT(v->height) );
+		if (v->is_set)
+			sprintf(attValue, "%g %g %g %g", FIX2FLT(v->x), FIX2FLT(v->y), FIX2FLT(v->width), FIX2FLT(v->height) );
+		else 
+			strcat(attValue, "none");
 	}
 		break;
 	case SVG_StrokeDashArray_datatype:
@@ -3243,6 +3251,19 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 	return GF_OK;
 }
 
+static Bool svg_viewbox_equal(SVG_ViewBox *v1, SVG_ViewBox *v2)
+{
+	if (v1->is_set != v2->is_set) return 0;
+	if (!v1->is_set) 
+		return 1;
+	else {
+		if ( (v1->x == v2->x)  && (v1->y == v2->y) && (v1->width == v2->width) && (v1->height == v2->height) )
+			return 1;
+		else 
+			return 0;
+	}
+}
+
 static Bool svg_colors_equal(SVG_Color *c1, SVG_Color *c2)
 {
 	if (c1->type != c2->type) return 0;
@@ -3433,7 +3454,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	{
 		SVG_ViewBox *v1 = (SVG_ViewBox *)f1->far_ptr;
 		SVG_ViewBox *v2 = (SVG_ViewBox *)f2->far_ptr;
-		return gf_rect_equal(*(GF_Rect *)v1, *(GF_Rect *)v2);
+		return svg_viewbox_equal(v1, v2);
 	}
 	case SVG_StrokeDashArray_datatype:
 	{
@@ -3647,7 +3668,7 @@ static GF_Err svg_number_muladd(Fixed alpha, SVG_Number *a, Fixed beta, SVG_Numb
 	return GF_OK;
 }
 
-static GF_Err svg_rect_muladd(Fixed alpha, SVG_Rect *a, Fixed beta, SVG_Rect *b, SVG_Rect *c)
+static GF_Err svg_viewbox_muladd(Fixed alpha, SVG_ViewBox *a, Fixed beta, SVG_ViewBox *b, SVG_ViewBox *c)
 {
 	c->x = gf_mulfix(alpha, a->x) + gf_mulfix(beta, b->x);
 	c->y = gf_mulfix(alpha, a->y) + gf_mulfix(beta, b->y);
@@ -3925,7 +3946,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 		return svg_number_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
 
 	case SVG_ViewBox_datatype:
-		return svg_rect_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
+		return svg_viewbox_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
 
 	case SVG_Points_datatype:
 		return svg_points_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
@@ -4127,7 +4148,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 		break;
 
 	case SVG_ViewBox_datatype:
-		*((SVG_Rect *)a->far_ptr) = *((SVG_Rect *)b->far_ptr);
+		*((SVG_ViewBox *)a->far_ptr) = *((SVG_ViewBox *)b->far_ptr);
 		break;
 
 	case SVG_Points_datatype:

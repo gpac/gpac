@@ -171,7 +171,7 @@ static void SVGSetViewport(RenderEffect2D *eff, SVGsvgElement *svg, Bool is_root
 	if (!real_width || !real_height) return;
 
 
-	if (svg->viewBox.width != 0 && svg->viewBox.height != 0) {
+	if (svg->viewBox.is_set && svg->viewBox.width != 0 && svg->viewBox.height != 0) {
 		Fixed scale, vp_w, vp_h;
 		if (svg->preserveAspectRatio.meetOrSlice==SVG_MEETORSLICE_MEET) {
 			if (gf_divfix(real_width, svg->viewBox.width) > gf_divfix(real_height, svg->viewBox.height)) {

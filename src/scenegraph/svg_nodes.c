@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Thu Mar 02 16:32:19 2006
+	DO NOT MOFIFY - File generated on GMT Fri Mar 17 08:31:41 2006
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -8353,7 +8353,9 @@ void *gf_svg_new_svg()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_sync((SVGElement *)p);
+	p->width.type = SVG_NUMBER_PERCENTAGE;
 	p->width.value = INT2FIX(100);
+	p->height.type = SVG_NUMBER_PERCENTAGE;
 	p->height.value = INT2FIX(100);
 	return p;
 }

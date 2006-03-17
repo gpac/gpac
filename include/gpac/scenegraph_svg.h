@@ -371,10 +371,9 @@ typedef struct {
 } SVG_Point_Angle;
 
 typedef struct {
+	Bool is_set;
 	Fixed x, y, width, height;
-} SVG_Rect;
-
-typedef SVG_Rect SVG_ViewBox;
+} SVG_ViewBox;
 
 typedef Bool SVG_Boolean;
 
