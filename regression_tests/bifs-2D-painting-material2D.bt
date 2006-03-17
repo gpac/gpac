@@ -1,0 +1,140 @@
+InitialObjectDescriptor {
+ objectDescriptorID 1
+ audioProfileLevelIndication 255
+ visualProfileLevelIndication 254
+ sceneProfileLevelIndication 254
+ graphicsProfileLevelIndication 254
+ ODProfileLevelIndication 255
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     isCommandStream true
+     pixelMetric true
+     pixelWidth 600
+     pixelHeight 200
+    }
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  Background2D {
+   backColor 1 1 1
+  }
+  WorldInfo {
+   info ["This shows Material Node usage" "with transparency tests" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "Material properties"
+  }
+  Transform2D {
+   translation -180 0
+   children [
+    DEF TR Transform2D {
+     children [
+      Shape {
+       appearance Appearance {
+        material Material2D {
+         emissiveColor 0 0 0
+         filled TRUE
+        }
+       }
+       geometry Rectangle {
+        size 80 80
+       }
+      }
+     ]
+    }
+    Shape {
+     appearance Appearance {
+      material Material2D {
+       emissiveColor 1 0 1
+      }
+     }
+     geometry DEF REC Rectangle {
+      size 150 100
+     }
+    }
+    Transform2D {
+     translation 0 -70
+     children [
+      Shape {
+       appearance DEF TEXTAPP Appearance {
+        material Material2D {
+         emissiveColor 0 0 0
+         filled TRUE
+        }
+       }
+       geometry Text {
+        string ["Not filled, Color 1 0 1"]
+        fontStyle DEF FS FontStyle {
+         justify ["MIDDLE" "MIDDLE"]
+         size 14
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+  Transform2D {
+   children [
+    USE TR
+    Shape {
+     appearance Appearance {
+      material Material2D {
+       emissiveColor 1 0 1
+       filled TRUE
+      }
+     }
+     geometry USE REC
+    }
+    Transform2D {
+     translation 0 -70
+     children [
+      Shape {
+       appearance USE TEXTAPP
+       geometry Text {
+        string ["filled, Color 1 0 1"]
+        fontStyle USE FS
+       }
+      }
+     ]
+    }
+   ]
+  }
+  Transform2D {
+   translation 180 0
+   children [
+    USE TR
+    Shape {
+     appearance Appearance {
+      material Material2D {
+       emissiveColor 1 0 1
+       filled TRUE
+       transparency 0.6
+      }
+     }
+     geometry USE REC
+    }
+    Transform2D {
+     translation 0 -70
+     children [
+      Shape {
+       appearance USE TEXTAPP
+       geometry Text {
+        string ["filled, Color 1 0 1" "transparency 0.6"]
+        fontStyle USE FS
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
+
+

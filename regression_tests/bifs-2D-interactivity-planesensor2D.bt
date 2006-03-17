@@ -1,0 +1,116 @@
+InitialObjectDescriptor {
+ objectDescriptorID 1
+ audioProfileLevelIndication 255
+ visualProfileLevelIndication 254
+ sceneProfileLevelIndication 1
+ graphicsProfileLevelIndication 1
+ ODProfileLevelIndication 1
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     isCommandStream true
+     pixelMetric true
+     pixelWidth 600
+     pixelHeight 300
+    }
+   }
+  }
+  ES_Descriptor {
+   ES_ID 2
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 1
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  Background2D {
+   backColor 1 1 1
+  }
+  WorldInfo {
+   info ["This shows PlaneSensor2D" "with and without auto-offset field" "with a texture-mapped shape" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "PlaneSensor2D test"
+  }
+  DEF T1 Transform2D {
+   translation -150 0
+   children [
+    DEF S Shape {
+     appearance Appearance {
+      texture ImageTexture {
+       url [od:10]
+       repeatS FALSE
+       repeatT FALSE
+      }
+     }
+     geometry Circle {
+      radius 100
+     }
+    }
+    Shape {
+     appearance DEF APP Appearance {
+      material Material2D {
+       emissiveColor 0 0 0
+       filled TRUE
+      }
+     }
+     geometry Text {
+      string ["Auto-offset on"]
+      fontStyle DEF FS FontStyle {
+       justify ["MIDDLE"]
+       size 24
+      }
+     }
+    }
+    DEF PS1 PlaneSensor2D {
+     maxPosition 200 200
+     minPosition -200 -200
+     offset -150 0
+    }
+   ]
+  }
+  DEF T2 Transform2D {
+   translation 150 0
+   children [
+    USE S
+    Shape {
+     appearance USE APP
+     geometry Text {
+      string ["Auto-offset off"]
+      fontStyle USE FS
+     }
+    }
+    DEF PS2 PlaneSensor2D {
+     autoOffset FALSE
+     maxPosition 200 200
+     minPosition -200 -200
+     offset 150 0
+    }
+   ]
+  }
+ ]
+}
+
+ROUTE PS1.translation_changed TO T1.translation
+ROUTE PS2.translation_changed TO T2.translation
+
+AT 0 {
+  UPDATE OD [
+   ObjectDescriptor {
+    objectDescriptorID 10
+    esDescr [
+     ES_Descriptor {
+      ES_ID 20
+      muxInfo MuxInfo {
+       fileName "auxiliary_files/sky.jpg"
+      }
+     }
+    ]
+   }
+  ]
+}
+

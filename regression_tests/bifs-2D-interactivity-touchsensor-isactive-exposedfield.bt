@@ -1,0 +1,91 @@
+InitialObjectDescriptor {
+ objectDescriptorID 1
+ audioProfileLevelIndication 255
+ visualProfileLevelIndication 254
+ sceneProfileLevelIndication 1
+ graphicsProfileLevelIndication 1
+ ODProfileLevelIndication 1
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     isCommandStream true
+     pixelMetric true
+     pixelWidth 200
+     pixelHeight 140
+    }
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  Background2D {
+   backColor 1 1 1
+  }
+  WorldInfo {
+   info ["This shows a touchSensor controling a material.filled" "through an isActive eventOut" "the modified field is routed to the second material.filled" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "TouchSensor test"
+  }
+  Transform2D {
+   scale 0.5 0.5
+   children [
+    Transform2D {
+     translation 0 60
+     children [
+      Shape {
+       appearance Appearance {
+        material Material2D {
+         emissiveColor 0 1 0
+         filled TRUE
+        }
+       }
+       geometry Rectangle {
+        size 100 100
+       }
+      }
+      DEF TS1 TouchSensor {}
+      DEF TS2 TouchSensor {}
+     ]
+    }
+    Transform2D {
+     translation -100 -50
+     children [
+      Shape {
+       appearance Appearance {
+        material DEF M1 Material2D {
+         emissiveColor 1 1 0
+        }
+       }
+       geometry Circle {
+        radius 50
+       }
+      }
+     ]
+    }
+    Transform2D {
+     translation 100 -50
+     children [
+      Shape {
+       appearance Appearance {
+        material DEF M2 Material2D {
+         emissiveColor 0 1 1
+        }
+       }
+       geometry Circle {
+        radius 50
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
+
+ROUTE TS1.isActive TO M1.filled
+ROUTE M1.filled TO M2.filled
+

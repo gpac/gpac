@@ -1,0 +1,81 @@
+InitialObjectDescriptor {
+ objectDescriptorID 1
+ audioProfileLevelIndication 255
+ visualProfileLevelIndication 254
+ sceneProfileLevelIndication 1
+ graphicsProfileLevelIndication 1
+ ODProfileLevelIndication 1
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     isCommandStream true
+     pixelMetric true
+     pixelWidth 400
+     pixelHeight 400
+    }
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  Background2D {
+   backColor 1 1 1
+  }
+  WorldInfo {
+   info ["This shows two ProximitySensor2D" "on a single shape" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "ProximitySensor2D test"
+  }
+  DEF T1 Transform2D {
+   children [
+    Shape {
+     appearance Appearance {
+      material DEF M1 Material2D {
+       emissiveColor 0.5 0.6 0.4
+       filled TRUE
+      }
+     }
+     geometry Rectangle {
+      size 300 300
+     }
+    }
+    DEF PSOUT ProximitySensor2D {
+     size 200 200
+    }
+    DEF PSIN ProximitySensor2D {
+     size 50 50
+    }
+   ]
+  }
+  DEF CIN Conditional {
+   buffer {
+    REPLACE M1.filled BY FALSE
+   }
+  }
+  DEF RCIN Conditional {
+   buffer {
+    REPLACE M1.filled BY TRUE
+   }
+  }
+  DEF COUT Conditional {
+   buffer {
+    REPLACE M1.emissiveColor BY 1 0 0
+   }
+  }
+  DEF RCOUT Conditional {
+   buffer {
+    REPLACE M1.emissiveColor BY 0.5 0.6 0.4
+   }
+  }
+ ]
+}
+
+ROUTE PSOUT.isActive TO COUT.activate
+ROUTE PSOUT.isActive TO RCOUT.reverseActivate
+ROUTE PSIN.isActive TO CIN.activate
+ROUTE PSIN.isActive TO RCIN.reverseActivate
+

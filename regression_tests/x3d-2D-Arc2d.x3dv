@@ -1,0 +1,23 @@
+#X3D V3.0
+
+Group { 
+ children [
+  WorldInfo {
+   title "Arc2D X3D test"
+   info ["This shows an Arc2D" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+  }
+
+  Transform {
+  	children [
+     Shape {
+     	appearance Appearance {
+				material Material { diffuseColor 1.0 0.0 0.0 }
+     	}
+      geometry Arc2D {
+      	radius 1
+      }
+     }
+    ]
+  }
+ ]
+}

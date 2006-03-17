@@ -1,0 +1,76 @@
+InitialObjectDescriptor {
+ objectDescriptorID 1
+ audioProfileLevelIndication 255
+ visualProfileLevelIndication 254
+ sceneProfileLevelIndication 1
+ graphicsProfileLevelIndication 1
+ ODProfileLevelIndication 1
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     isCommandStream true
+     pixelMetric true
+     pixelWidth 300
+     pixelHeight 300
+    }
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  Background2D {
+   backColor 1 1 0
+  }
+  WorldInfo {
+   info ["This shows OrderedGroup node" "with order modification" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "OrderedGroup Test"
+  }
+  DEF OG OrderedGroup {
+   order [1 0]
+   children [
+    DEF S1 Shape {
+     appearance DEF A1 Appearance {
+      material Material2D {
+       emissiveColor 1 1 1
+       filled TRUE
+      }
+     }
+     geometry Rectangle {
+      size 160 60
+     }
+    }
+    Shape {
+     appearance Appearance {
+      material Material2D {
+       emissiveColor 0 1 1
+       filled TRUE
+      }
+     }
+     geometry Circle {
+      radius 40
+     }
+    }
+    DEF TS TouchSensor {}
+   ]
+  }
+  DEF C Conditional {
+   buffer {
+    REPLACE OG.order BY [0 1]
+   }
+  }
+  DEF RC Conditional {
+   buffer {
+    REPLACE OG.order BY [1 0]
+   }
+  }
+ ]
+}
+
+ROUTE TS.isActive TO C.activate
+ROUTE TS.isActive TO RC.reverseActivate
+

@@ -1,0 +1,21 @@
+
+PROTO testURL [
+ exposedField MFString theURL [""]
+] {
+ Transform2D {
+  children [
+   Shape {
+    appearance Appearance {
+     texture DEF MYTEXT ImageTexture {
+      url IS theURL
+     }
+    }
+    geometry Bitmap {}
+
+   }
+  ]
+ }
+}
+NULL
+
+

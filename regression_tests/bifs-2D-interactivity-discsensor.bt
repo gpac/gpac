@@ -1,0 +1,123 @@
+InitialObjectDescriptor {
+ objectDescriptorID 1
+ audioProfileLevelIndication 255
+ visualProfileLevelIndication 254
+ sceneProfileLevelIndication 1
+ graphicsProfileLevelIndication 1
+ ODProfileLevelIndication 1
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     isCommandStream true
+     pixelMetric true
+     pixelWidth 600
+     pixelHeight 300
+    }
+   }
+  }
+  ES_Descriptor {
+   ES_ID 2
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 1
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  Background2D {
+   backColor 1 1 1
+  }
+  WorldInfo {
+   info ["This shows disc sensor" "with and without auto-offset field" "with a texture-mapped shape" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "Disc Sensor test"
+  }
+  DEF T1 Transform2D {
+   scale 1 2
+   scaleOrientation 0.75
+   translation -150 0
+   children [
+    DEF S Shape {
+     appearance Appearance {
+      texture ImageTexture {
+       url [od:10]
+       repeatS FALSE
+       repeatT FALSE
+      }
+     }
+     geometry Rectangle {
+      size 100 100
+     }
+    }
+    DEF DS1 DiscSensor {}
+   ]
+  }
+  Transform2D {
+   translation -150 0
+   children [
+    Shape {
+     appearance DEF APP Appearance {
+      material Material2D {
+       emissiveColor 0 0 0
+       filled TRUE
+      }
+     }
+     geometry Text {
+      string ["Auto-offset on"]
+      fontStyle DEF FS FontStyle {
+       justify ["MIDDLE"]
+       size 24
+      }
+     }
+    }
+   ]
+  }
+  DEF T2 Transform2D {
+   scale 1 2
+   scaleOrientation 0.75
+   translation 150 0
+   children [
+    USE S
+    DEF DS2 DiscSensor {
+     autoOffset FALSE
+    }
+   ]
+  }
+  Transform2D {
+   translation 150 0
+   children [
+    Shape {
+     appearance USE APP
+     geometry Text {
+      string ["Auto-offset off"]
+      fontStyle USE FS
+     }
+    }
+   ]
+  }
+ ]
+}
+
+ROUTE DS1.rotation_changed TO T1.rotationAngle
+ROUTE DS2.rotation_changed TO T2.rotationAngle
+
+AT 0 {
+  UPDATE OD [
+   ObjectDescriptor {
+    objectDescriptorID 10
+    esDescr [
+     ES_Descriptor {
+      ES_ID 20
+      muxInfo MuxInfo {
+       fileName "auxiliary_files/sky.jpg"
+      }
+     }
+    ]
+   }
+  ]
+}
+

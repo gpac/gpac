@@ -1,0 +1,79 @@
+InitialObjectDescriptor {
+ objectDescriptorID 1
+ audioProfileLevelIndication 255
+ visualProfileLevelIndication 255
+ sceneProfileLevelIndication 254
+ graphicsProfileLevelIndication 254
+ ODProfileLevelIndication 255
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     isCommandStream true
+     pixelMetric true
+     pixelWidth 300
+     pixelHeight 300
+    }
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  Background2D {  backColor 1 1 1  }
+  WorldInfo {
+   info ["This shows a rectangle in layer 2D with varrying size" "over a circle" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "Layer2D Test"
+  }
+  Shape {
+   appearance Appearance {
+    material Material2D {
+     emissiveColor 1 1 0
+     filled TRUE
+    }
+   }
+   geometry Circle {
+    radius 50
+   }
+  }
+  Transform2D {
+   translation -50 -50
+   children [
+    DEF L Layer2D {
+     size 200 200
+     children [
+      Transform2D {
+       translation 25 0
+       children [
+        Shape {
+         appearance Appearance {
+          material Material2D {
+           filled TRUE
+          }
+         }
+         geometry Rectangle {
+          size 100 100
+         }
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+  DEF TS TimeSensor {
+   loop TRUE
+  }
+  DEF PI PositionInterpolator2D {
+   key [0 0.5 1]
+   keyValue [200 200 0 0 200 200]
+  }
+ ]
+}
+
+ROUTE TS.fraction_changed TO PI.set_fraction
+ROUTE PI.value_changed TO L.size
+

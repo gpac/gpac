@@ -1,0 +1,45 @@
+InitialObjectDescriptor {
+ objectDescriptorID 1
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   OCR_ES_ID 1
+   decConfigDescr DecoderConfigDescriptor {
+    objectTypeIndication 1
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     nodeIDbits 10
+     routeIDbits 10
+     isCommandStream true
+     pixelMetric true
+     pixelWidth 600
+     pixelHeight 400
+    }
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  Background2D {
+   backColor 1 1 1
+  }
+  WorldInfo {
+   info ["This shows inline scene with segments" "and mediaControl on each of the inline segments" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "MediaControl and Inline"
+  }
+  Inline {
+   url ["11-mediacontrol-seg-inline.mp4"]
+  }
+  MediaSensor {
+   url ["11-mediacontrol-seg-inline.mp4"]
+  }
+  MediaControl {
+   url ["11-mediacontrol-seg-inline.mp4#red" "11-mediacontrol-seg-inline.mp4#blue" "11-mediacontrol-seg-inline.mp4#green"]
+   loop TRUE
+  }
+ ]
+}
+
+

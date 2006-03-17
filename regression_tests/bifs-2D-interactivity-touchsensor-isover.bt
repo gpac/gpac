@@ -1,0 +1,52 @@
+InitialObjectDescriptor {
+ objectDescriptorID 1
+ audioProfileLevelIndication 255
+ visualProfileLevelIndication 254
+ sceneProfileLevelIndication 1
+ graphicsProfileLevelIndication 1
+ ODProfileLevelIndication 1
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     isCommandStream true
+     pixelMetric true
+     pixelWidth 400
+     pixelHeight 260
+    }
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  Background2D {
+   backColor 1 1 1
+  }
+  WorldInfo {
+   info ["This shows usage of touchSensor isOver event" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "TouchSensor test"
+  }
+  Transform2D {
+   children [
+    DEF TS TouchSensor {}
+    Shape {
+     appearance Appearance {
+      material DEF M1 Material2D {
+       emissiveColor 0 0 1
+      }
+     }
+     geometry Rectangle {
+      size 200 100
+     }
+    }
+   ]
+  }
+ ]
+}
+
+ROUTE TS.isOver TO M1.filled
+

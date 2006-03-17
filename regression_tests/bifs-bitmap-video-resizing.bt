@@ -1,0 +1,145 @@
+InitialObjectDescriptor {
+ objectDescriptorID 1
+ audioProfileLevelIndication 255
+ visualProfileLevelIndication 254
+ sceneProfileLevelIndication 254
+ graphicsProfileLevelIndication 254
+ ODProfileLevelIndication 1
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     isCommandStream true
+     pixelMetric true
+     pixelWidth 400
+     pixelHeight 300
+    }
+   }
+  }
+  ES_Descriptor {
+   ES_ID 2
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 1
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  Background2D {
+   backColor 1 1 1
+  }
+  WorldInfo {
+   info ["This shows dynamic bitmap scaling" "over static bitmaps" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "Bitmap Test"
+  }
+  Transform2D {
+   translation 0 100
+   children [
+    DEF TR Transform2D {
+     children [
+      Transform2D {
+       translation -100 0
+       children [
+        DEF S Shape {
+         appearance Appearance {
+          texture ImageTexture {
+           url [od:12]
+           repeatS FALSE
+           repeatT FALSE
+          }
+         }
+         geometry Bitmap {}
+
+        }
+       ]
+      }
+      Transform2D {
+       children [
+        USE S
+       ]
+      }
+      Transform2D {
+       translation 100 0
+       children [
+        USE S
+       ]
+      }
+     ]
+    }
+   ]
+  }
+  Transform2D {
+   children [
+    USE TR
+   ]
+  }
+  Transform2D {
+   translation 0 -100
+   children [
+    USE TR
+   ]
+  }
+  Transform2D {
+   children [
+    Transform2D {
+     children [
+      Shape {
+       appearance Appearance {
+        texture MovieTexture {
+         loop TRUE
+         url [od:10]
+        }
+       }
+       geometry DEF BMP Bitmap {
+        scale 0.75 0.75
+       }
+      }
+     ]
+    }
+   ]
+  }
+  DEF TS TimeSensor {
+   loop TRUE
+  }
+  DEF PI PositionInterpolator2D {
+   key [0 0.5 1]
+   keyValue [2 2 0.25 0.25 2 2]
+  }
+ ]
+}
+
+ROUTE TS.fraction_changed TO PI.set_fraction
+ROUTE PI.value_changed TO BMP.scale
+
+AT 0 {
+  UPDATE OD [
+   ObjectDescriptor {
+    objectDescriptorID 10
+    esDescr [
+     ES_Descriptor {
+      ES_ID 20
+      OCR_ES_ID 20
+      muxInfo MuxInfo {
+       fileName "auxiliary_files/video_small.media"
+      }
+     }
+    ]
+   }
+   ObjectDescriptor {
+    objectDescriptorID 12
+    esDescr [
+     ES_Descriptor {
+      ES_ID 21
+      muxInfo MuxInfo {
+       fileName "auxiliary_files/logo.jpg"
+      }
+     }
+    ]
+   }
+  ]
+}
+

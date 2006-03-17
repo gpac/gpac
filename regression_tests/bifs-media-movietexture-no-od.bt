@@ -1,0 +1,58 @@
+InitialObjectDescriptor {
+ objectDescriptorID 1
+ audioProfileLevelIndication 255
+ visualProfileLevelIndication 1
+ sceneProfileLevelIndication 254
+ graphicsProfileLevelIndication 254
+ ODProfileLevelIndication 255
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     isCommandStream true
+     pixelMetric true
+     pixelWidth 320
+     pixelHeight 240
+    }
+   }
+  }
+  ES_Descriptor {
+   ES_ID 2
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 1
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  Background2D {
+   backColor 1 1 1
+  }
+  WorldInfo {
+   info ["This shows MovieTexture with a non-OD URL (direct addressing)" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "MovieTexture Test"
+  }
+  Sound2D {
+   source AudioClip {
+    loop TRUE
+    url ["missing_file.avi"]
+   }
+  }
+  Shape {
+   appearance Appearance {
+    texture DEF MT MovieTexture {
+     loop TRUE
+     url ["missing_file.avi"]
+    }
+   }
+   geometry Bitmap {}
+
+  }
+ ]
+}
+
+

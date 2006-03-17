@@ -1,0 +1,106 @@
+InitialObjectDescriptor {
+ objectDescriptorID 1
+ audioProfileLevelIndication 255
+ visualProfileLevelIndication 255
+ sceneProfileLevelIndication 254
+ graphicsProfileLevelIndication 254
+ ODProfileLevelIndication 255
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     isCommandStream true
+     pixelMetric true
+     pixelWidth 300
+     pixelHeight 300
+    }
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  DEF B Background2D {
+   backColor 1 0 0
+  }
+  WorldInfo {
+   info ["This shows PixelTexture size 4x4" "with 1, 2, 3 and 4 bytes per pixel depth" "and back color interpolation" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "Pixel Texture Test"
+  }
+  Transform2D {
+   translation -80 80
+   children [
+    Shape {
+     appearance Appearance {
+      texture PixelTexture {
+       image 4 4 1 0xFF 0xFF 0x00 0x00 0xFF 0xFF 0x00 0x00 0x00 0x00 0xFF 0xFF 0x00 0x00 0xFF 0xFF
+      }
+     }
+     geometry Circle {
+      radius 50
+     }
+    }
+   ]
+  }
+  Transform2D {
+   translation 80 80
+   children [
+    Shape {
+     appearance Appearance {
+      texture PixelTexture {
+       image 4 4 2 0x00FF 0x00FF 0x0000 0x0000 0x00FF 0x00FF 0x0000 0x0000 0x0000 0x0000 0x00FF 0x00FF 0x0000 0x0000 0x00FF 0x00FF
+      }
+     }
+     geometry Circle {
+      radius 50
+     }
+    }
+   ]
+  }
+  Transform2D {
+   translation -80 -80
+   children [
+    Shape {
+     appearance Appearance {
+      texture PixelTexture {
+       image 4 4 3 0xFFFFFF 0xFFFFFF 0x00FF00 0x00FF00 0xFFFFFF 0xFFFFFF 0x00FF00 0x00FF00 0xFF00FF 0xFF00FF 0x000000 0x000000 0xFF00FF 0xFF00FF 0x000000 0x000000
+      }
+     }
+     geometry Circle {
+      radius 50
+     }
+    }
+   ]
+  }
+  Transform2D {
+   translation 80 -80
+   children [
+    Shape {
+     appearance Appearance {
+      texture PixelTexture {
+       image 4 4 4 0xFFFFFF00 0xFFFFFF00 0x00FF00FF 0x00FF00FF 0xFFFFFF00 0xFFFFFF00 0x00FF00FF 0x00FF00FF 0xFF00FFFF 0xFF00FFFF 0x00000000 0x00000000 0xFF00FFFF 0xFF00FFFF 0x00000000 0x00000000
+      }
+     }
+     geometry Circle {
+      radius 50
+     }
+    }
+   ]
+  }
+  DEF TS TimeSensor {
+   cycleInterval 2
+   loop TRUE
+  }
+  DEF CI ColorInterpolator {
+   key [0 0.5 1]
+   keyValue [1 0 0 0 0 1 1 0 0]
+  }
+ ]
+}
+
+ROUTE TS.fraction_changed TO CI.set_fraction
+ROUTE CI.value_changed TO B.backColor
+

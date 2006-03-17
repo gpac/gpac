@@ -1,0 +1,51 @@
+InitialObjectDescriptor {
+ objectDescriptorID 1
+ audioProfileLevelIndication 255
+ visualProfileLevelIndication 255
+ sceneProfileLevelIndication 254
+ graphicsProfileLevelIndication 254
+ ODProfileLevelIndication 255
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     isCommandStream true
+     pixelWidth 450
+     pixelHeight 450
+    }
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  Background2D {
+   backColor 1 1 1
+  }
+  WorldInfo {
+   info ["This shows PointSet2D" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "PointSet2D Test"
+  }
+  Transform2D {
+   children [
+    Shape {
+     appearance Appearance {
+      material Material2D {
+       emissiveColor 1 0 0
+      }
+     }
+     geometry PointSet2D {
+      coord DEF COORD Coordinate2D {
+       point [-0.25 -0.25 0.25 -0.25 0.25 0.25 -0.25 0.25]
+      }
+     }
+    }
+   ]
+  }
+ ]
+}
+
+

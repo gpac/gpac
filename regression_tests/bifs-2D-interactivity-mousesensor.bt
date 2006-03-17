@@ -1,0 +1,163 @@
+InitialObjectDescriptor {
+ objectDescriptorID 1
+ audioProfileLevelIndication 255
+ visualProfileLevelIndication 254
+ sceneProfileLevelIndication 1
+ graphicsProfileLevelIndication 1
+ ODProfileLevelIndication 1
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     isCommandStream true
+     pixelMetric true
+     pixelWidth 600
+     pixelHeight 600
+    }
+   }
+  }
+  ES_Descriptor {
+   ES_ID 2
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 1
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  Background2D {
+   backColor 1 1 1
+  }
+  WorldInfo {
+   info ["This shows Mouse input sensor" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "InputSensor Test - Mouse device"
+  }
+  Transform2D {
+   translation -120 -100
+   children [
+    Shape {
+     appearance DEF APP Appearance {
+      material Material2D {
+       emissiveColor 0 0 0
+       filled TRUE
+      }
+     }
+     geometry DEF TXT1 Text {
+      string ["Left Down" ""]
+      fontStyle DEF FS FontStyle {
+       justify ["MIDDLE"]
+       size 20
+      }
+     }
+    }
+   ]
+  }
+  Transform2D {
+   translation 0 -100
+   children [
+    Shape {
+     appearance USE APP
+     geometry DEF TXT2 Text {
+      string ["Middle Down" ""]
+      fontStyle USE FS
+     }
+    }
+   ]
+  }
+  Transform2D {
+   translation 120 -100
+   children [
+    Shape {
+     appearance USE APP
+     geometry DEF TXT3 Text {
+      string ["Right Down" ""]
+      fontStyle USE FS
+     }
+    }
+   ]
+  }
+  Transform2D {
+   translation 0 -150
+   children [
+    Shape {
+     appearance USE APP
+     geometry DEF TXT4 Text {
+      string [""]
+      fontStyle USE FS
+     }
+    }
+   ]
+  }
+  DEF SC Script {
+   eventIn SFBool set_left
+   eventIn SFBool set_middle
+   eventIn SFBool set_right
+   eventIn SFFloat set_wheel
+   field SFFloat wheel_pos 0
+   field SFNode t1 USE TXT1
+   field SFNode t2 USE TXT2
+   field SFNode t3 USE TXT3
+   field SFNode t4 USE TXT4
+   url ["javascript:function set_left(value, timestamp) {t1.string[1] = '' + value;}function set_middle(value, timestamp) {t2.string[1] = '' + value;}function set_right(value, timestamp) {t3.string[1] = '' + value;}function set_wheel(value, timestamp) {wheel_pos += value;t4.string[0] = 'Wheel Pos ' + wheel_pos;}"   ]
+  }
+  DEF TR Transform2D {
+   children [
+    Shape {
+     appearance Appearance {
+      texture ImageTexture {
+       url [od:2]
+      }
+     }
+     geometry Bitmap {}
+
+    }
+   ]
+  }
+  InputSensor {
+   url [od:10]
+   buffer {
+    REPLACE TR.translation BY 0 0
+    REPLACE SC.set_left BY FALSE
+    REPLACE SC.set_middle BY FALSE
+    REPLACE SC.set_right BY FALSE
+    REPLACE SC.set_wheel BY 0
+   }
+  }
+ ]
+}
+
+
+AT 0 {
+  UPDATE OD [
+   ObjectDescriptor {
+    objectDescriptorID 2
+    esDescr [
+     ES_Descriptor {
+      ES_ID 3
+      muxInfo MuxInfo {
+       fileName "auxiliary_files/logo.jpg"
+      }
+     }
+    ]
+   }
+   ObjectDescriptor {
+    objectDescriptorID 10
+    esDescr [
+     ES_Descriptor {
+      ES_ID 5
+      decConfigDescr DecoderConfigDescriptor {
+       streamType 10
+       decSpecificInfo UIConfig {
+        deviceName "Mouse"
+       }
+      }
+     }
+    ]
+   }
+  ]
+}
+

@@ -1,0 +1,84 @@
+InitialObjectDescriptor {
+ objectDescriptorID 1
+ audioProfileLevelIndication 255
+ visualProfileLevelIndication 254
+ sceneProfileLevelIndication 254
+ graphicsProfileLevelIndication 254
+ ODProfileLevelIndication 1
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     isCommandStream true
+     pixelMetric true
+     pixelWidth 400
+     pixelHeight 300
+    }
+   }
+  }
+  ES_Descriptor {
+   ES_ID 2
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 1
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  Background2D {
+   backColor 1 1 0
+  }
+  WorldInfo {
+   info ["This shows Bitmap with scale 0.75 0.75" "in Pixel Metrics" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "Bitmap Test"
+  }
+  Transform2D {
+   children [
+    DEF TR Transform2D {
+     children [
+      Shape {
+       appearance Appearance {
+        texture MovieTexture {
+         url [od:10]
+         repeatS FALSE
+         repeatT FALSE
+         loop TRUE
+        }
+       }
+       geometry Bitmap {
+        scale 0.75 0.75
+       }
+      }
+      DEF PS PlaneSensor2D {
+       maxPosition 200 200
+       minPosition -200 -200
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
+
+ROUTE PS.translation_changed TO TR.translation
+
+AT 0 {
+  UPDATE OD [
+   ObjectDescriptor {
+    objectDescriptorID 10
+    esDescr [
+     ES_Descriptor {
+      ES_ID 20
+      muxInfo MuxInfo {
+       fileName "auxiliary_files/logo.png"
+      }
+     }
+    ]
+   }
+  ]
+}
+

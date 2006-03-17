@@ -1,0 +1,23 @@
+#X3D V3.0
+
+Group { 
+ children [
+  WorldInfo {
+   title "Polyline2D X3D test"
+   info ["This shows a Polyline2D" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+  }
+
+  Transform {
+  	children [
+     Shape {
+     	appearance Appearance {
+				material Material { diffuseColor 1.0 0.0 0.0 }
+     	}
+      geometry PolyLine2D {
+      	lineSegments [0 0, 0.2 0.2, 0.4 0, 0.6 0.2, 0.8 0, 1 0.2]
+      }
+     }
+    ]
+  }
+ ]
+}
