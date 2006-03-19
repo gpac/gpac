@@ -212,7 +212,7 @@ void BD_EndOfStream(void *co)
 
 void gf_bs_set_eos_callback(GF_BitStream *bs, void (*EndOfStream)(void *par), void *par);
 
-GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_length)
+GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_length, Double ts_offset)
 {
 	GF_BitStream *bs;
 	GF_Err e;
@@ -227,6 +227,7 @@ GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_l
 	}
 	/*setup current scene graph*/
 	codec->current_graph = codec->scenegraph;
+	codec->cts_offset = ts_offset;
 
 	bs = gf_bs_new(data, data_length, GF_BITSTREAM_READ);
 	gf_bs_set_eos_callback(bs, BD_EndOfStream, codec);
@@ -254,10 +255,9 @@ GF_Node *gf_bifs_dec_find_node(GF_BifsDecoder * codec, u32 NodeID)
 
 
 
-void gf_bifs_decoder_set_clock(GF_BifsDecoder *codec, Double (*GetSceneTime)(void *st_cbk), void *st_cbk )
+void gf_bifs_decoder_set_time_offset(GF_BifsDecoder *codec, Double ts)
 {
-	codec->GetSceneTime = GetSceneTime;
-	codec->st_cbk = st_cbk;
+	codec->cts_offset = ts;
 }
 
 GF_Node *gf_bifs_enc_find_node(GF_BifsEncoder *codec, u32 nodeID)

@@ -860,7 +860,7 @@ void IS_LoadExternProto(GF_InlineScene *is, MFURL *url)
 	gf_list_add(is->extern_protos, pl);
 	pl->mo = gf_is_get_media_object(is, url, GF_MEDIA_OBJECT_SCENE);
 	/*this may already be destroyed*/
-	if (pl->mo) gf_mo_play(pl->mo);
+	if (pl->mo) gf_mo_play(pl->mo, 0, 0);
 }
 
 GF_SceneGraph *gf_is_get_proto_lib(void *_is, MFURL *lib_url)

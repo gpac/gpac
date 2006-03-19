@@ -293,8 +293,12 @@ u32 DD_WindowThread(void *par)
 			ctx->th_state = 2;
 			return 1;
 		}
-		SetForegroundWindow(ctx->os_hwnd);
-		ShowWindow(ctx->os_hwnd, SW_SHOWNORMAL);
+		if (ctx->switch_res) {
+			ShowWindow(ctx->os_hwnd, SW_HIDE);
+		} else {
+			SetForegroundWindow(ctx->os_hwnd);
+			ShowWindow(ctx->os_hwnd, SW_SHOWNORMAL);
+		}
 
 		/*get border & title bar sizes*/
 		rc.left = rc.top = 0;
@@ -313,6 +317,7 @@ u32 DD_WindowThread(void *par)
 	ShowWindow(ctx->fs_hwnd, SW_HIDE);
 	ctx->th_state = 1;
 
+	ctx->switch_res = 0;
 	SetWindowLong(ctx->os_hwnd, GWL_USERDATA, (LONG) vout);
 	SetWindowLong(ctx->fs_hwnd, GWL_USERDATA, (LONG) vout);
 
@@ -332,7 +337,7 @@ u32 DD_WindowThread(void *par)
 }
 
 
-void DD_SetupWindow(GF_VideoOutput *dr)
+void DD_SetupWindow(GF_VideoOutput *dr, Bool hide)
 {
 	DDContext *ctx = (DDContext *)dr->opaque;
 
@@ -341,6 +346,7 @@ void DD_SetupWindow(GF_VideoOutput *dr)
 		/*override window proc*/
 		SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, (DWORD) DD_WindowProc);
 	}
+	ctx->switch_res = hide;
 	/*create our event thread - since we always have a dedicated window for fullscreen, we need that
 	even when a window is passed to us*/
 	ctx->th = gf_th_new();

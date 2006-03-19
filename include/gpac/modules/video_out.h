@@ -92,10 +92,9 @@ typedef struct _video_out
 
 	/*setup system - if os_handle is NULL the driver shall create the output display (common case)
 	the other case is currently only used by child windows on win32 and winCE
-	@no_proc_override: when set and a os_handle is passed, the module shall not try to
-	override the window proc
+	@init_flags: a list of initialization flags as specified in user.h
 	if cfg is specified, the output is 3D, otherwise 2D*/
-	GF_Err (*Setup)(struct _video_out *vout, void *os_handle, void *os_display, Bool no_proc_override, GF_GLConfig *cfg);
+	GF_Err (*Setup)(struct _video_out *vout, void *os_handle, void *os_display, u32 init_flags, GF_GLConfig *cfg);
 	/*shutdown system */
 	void (*Shutdown) (struct _video_out *vout);
 

@@ -163,13 +163,14 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
 
 
 
-GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no_proc_override, GF_GLConfig *cfg)
+GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_flags, GF_GLConfig *cfg)
 {
 	RECT rc;
 	DDCONTEXT
 	dd->os_hwnd = (HWND) os_handle;
 	
-	DD_SetupWindow(dr);
+	if (init_flags & GF_TERM_INIT_NOT_THREADED) dd->systems_memory = 2;
+	DD_SetupWindow(dr, init_flags & GF_TERM_INIT_HIDE);
 	/*fatal error*/
 	if (!dd->os_hwnd) return GF_IO_ERR;
 	dd->cur_hwnd = dd->os_hwnd;

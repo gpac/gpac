@@ -54,7 +54,7 @@ static void init_reader(ISOMChannel *ch)
 
 	assert(ch->sample==NULL);
 
-	if (ch->is_ocr) {
+	if (ch->streamType==GF_STREAM_OCR) {
 		assert(!ch->sample);
 		ch->sample = gf_isom_sample_new();
 		ch->sample->IsRAP = 1;
@@ -156,8 +156,11 @@ fetch_next:
 		ch->current_slh.decodingTimeStamp = ch->sample->DTS;
 		ch->current_slh.compositionTimeStamp = ch->sample->DTS + ch->sample->CTS_Offset;
 	} else {
-		ch->current_slh.decodingTimeStamp = ch->start;
 		ch->current_slh.compositionTimeStamp = ch->start;
+		if (ch->streamType==GF_STREAM_SCENE)
+			ch->current_slh.decodingTimeStamp = ch->sample->DTS;
+		else
+			ch->current_slh.decodingTimeStamp = ch->start;
 	}
 	ch->current_slh.randomAccessPointFlag = ch->sample->IsRAP;
 

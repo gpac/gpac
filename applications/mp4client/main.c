@@ -51,27 +51,42 @@ Bool has_input();
 u8 get_a_char();
 void set_echo_off(Bool echo_off);
 
-static Bool is_connected = 0;
+Bool is_connected = 0;
+GF_Terminal *term;
+u32 Duration;
+GF_Err last_error = GF_OK;
+
+static GF_Config *cfg_file;
 static Bool display_rti = 0;
 static Bool Run;
-static u32 Duration;
 static Bool CanSeek = 0;
 static u32 Volume=100;
 static char the_url[GF_MAX_PATH];
 static Bool NavigateTo = 0;
 static char the_next_url[GF_MAX_PATH];
-static GF_Terminal *term;
-static GF_Config *cfg_file;
 static Bool no_mime_check = 0;
 static Bool be_quiet = 0;
+
+
+void dump_frame(GF_Terminal *term, char *rad_path, u32 dump_type, u32 frameNum);
+Bool dump_file(char *the_url, u32 dump_mode, Double fps, u32 width, u32 height, u32 *times, u32 nb_times);
 
 void PrintUsage()
 {
 	fprintf(stdout, "Usage MP4Client [options] [filename]\n"
 		"\t-c fileName:    user-defined configuration file\n"
 		"\t-rti fileName:  logs run-time info (FPS, CPU, Mem usage) to file\n"
+		"\t-quiet:         removes script message, buffering and downloading status\n"
 		"\n"
-		"MP4Client - GPAC command line player - version %s\n"
+		"Dumper Options:\n"
+		"\t-bmp [times]:   dumps given frames to bmp\n"
+		"\t-raw [times]:   dumps given frames to bmp\n"
+		"\t-avi [times]:   dumps given file to raw avi\n"
+		"\t-fps FPS:       specifies frame rate for AVI dumping (default: 25.0)\n"
+		"\t-size WxH:      specifies size for dumping (default: scene size)\n"
+		"\t-2d:            uses 2D renderer\n"
+		"\t-3d:            uses 3D renderer\n"
+		"MP4Client - GPAC command line player and dumper - version %s\n"
 		"GPAC Written by Jean Le Feuvre (c) 2001-2005 - ENST (c) 2005-200X\n",
 
 		GPAC_VERSION
@@ -118,8 +133,6 @@ void PrintHelp()
 		"\tR: toggles run-time info display on/off\n"
 		"\tq: exit the application\n"
 		"\th: print this message\n"
-		"\nStartup Options:\n"
-		"\t-c config_path: specifies config file path\n"
 		"\n"
 		"MP4Client - GPAC command line player - version %s\n"
 		"GPAC Written by Jean Le Feuvre (c) 2001-2005 - ENST (c) 2005-200X\n",
@@ -296,9 +309,10 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			servName = evt->message.service;
 		}
 		if (!evt->message.message) return 0;
-		if (evt->message.error) 
+		if (evt->message.error) {
+			if (!is_connected) last_error = evt->message.error;
 			fprintf(stdout, "%s (%s): %s\n", evt->message.message, servName, gf_error_to_string(evt->message.error));
-		else if (!be_quiet) 
+		} else if (!be_quiet) 
 			fprintf(stdout, "(%s) %s\r", servName, evt->message.message);
 	}
 		break;
@@ -369,7 +383,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			break;
 		case 'R':
 		case 'r':
-//			gf_term_set_option(term, GF_OPT_FORCE_REDRAW, 1);
+//			gf_term_set_option(term, GF_OPT_REFRESH, 1);
 			gf_term_set_option(term, GF_OPT_DIRECT_RENDER, !gf_term_get_option(term, GF_OPT_DIRECT_RENDER) );
 			break;
 		case '4': gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_4_3); break;
@@ -392,7 +406,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			is_connected = 1;
 			fprintf(stdout, "Service Connected\n");
 			memory_at_gpac_load = 0;
-		} else {
+		} else if (is_connected) {
 			fprintf(stdout, "Service %s\n", is_connected ? "Disconnected" : "Connection Failed");
 			is_connected = 0;
 			Duration = 0;
@@ -571,12 +585,52 @@ void set_navigation()
 	if (e) fprintf(stdout, "Error setting mode: %s\n", gf_error_to_string(e));
 }
 
+static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
+{
+	char *str;
+	Double sec;
+	u32 h, m, s, ms, f, fps;
+	if (!arg || (arg[0]=='-') || !isdigit(arg[0])) return 0;
 
+	/*SMPTE time code*/
+	if (strchr(arg, ':') && strchr(arg, ';') && strchr(arg, '/')) {
+		if (sscanf(arg, "%02d:%02d:%02d;%02d/%02d", &h, &m, &s, &f, &fps)==5) {
+			sec = 0;
+			if (fps) sec = ((Double)f) / fps;
+			sec += 3600*h + 60*m + s;
+			times[*nb_times] = (u32) (1000*sec);
+			*nb_times ++;
+			return 1;
+		}
+	}
+	while (arg) {
+		str = strchr(arg, ';');
+		if (str) str[0] = 0;
+		/*HH:MM:SS:MS time code*/
+		if (strchr(arg, ':') && (sscanf(arg, "%02d:%02d:%02d:%02d", &h, &m, &s, &ms)==4)) {
+			sec = ms;
+			sec /= 1000;
+			sec += 3600*h + 60*m + s;
+			times[*nb_times] = (u32) (1000*sec);
+			*nb_times ++;
+		} else if (sscanf(arg, "%f", &sec)==1) {
+			sec = atof(arg);
+			times[*nb_times] = (u32) (1000*sec);
+			(*nb_times) ++;
+		}
+		if (!str) break;
+		str[0] = ';';
+		arg = str+1;
+	}
+	return 1;
+}
 
 int main (int argc, char **argv)
 {
 	const char *str;
-	u32 i;
+	u32 i, width, height, times[100], nb_times, rend_mode, dump_mode;
+	Double fps = 25.0;
+	Bool ret;
 	char *url_arg, *the_cfg, *rti_file;
 	GF_User user;
 	GF_SystemRTInfo rti;
@@ -587,28 +641,53 @@ int main (int argc, char **argv)
 
 	memset(&user, 0, sizeof(GF_User));
 
+	dump_mode = rend_mode = 0;
 	url_arg = the_cfg = rti_file = NULL;
+	width = height = 0;
+	nb_times = 0;
+	times[0] = 0;
 
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
 		if (isalnum(arg[0]) || (arg[0]=='/') || (arg[0]=='.') || (arg[0]=='\\') ) {
 			url_arg = arg;
-		}
-		else if (!strcmp(arg, "-c") || !strcmp(arg, "-cfg")) {
+		} else if (!strcmp(arg, "-c") || !strcmp(arg, "-cfg")) {
 			the_cfg = argv[i+1];
 			i++;
-		}
-		else if (!strcmp(arg, "-rti")) {
+		} else if (!strcmp(arg, "-rti")) {
 			rti_file = argv[i+1];
 			i++;
-		}
-		else if (!strcmp(arg, "-quiet")) {
+		} else if (!strcmp(arg, "-avi")) {
+			dump_mode = 1;
+			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+		} else if (!strcmp(arg, "-bmp")) {
+			dump_mode = 2;
+			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+		} else if (!stricmp(arg, "-size")) {
+			if (sscanf(argv[i+1], "%dx%d", &width, &height) != 2) {
+				width = height = 0;
+			}
+			i++;
+		} else if (!stricmp(arg, "-fps")) {
+			fps = atof(argv[i+1]);
+			i++;
+		} else if (!stricmp(arg, "-2d")) {
+			rend_mode = 1;
+		} else if (!stricmp(arg, "-3d")) {
+			rend_mode = 2;
+		} else if (!strcmp(arg, "-quiet")) {
 			be_quiet = 1;
 		} else {
 			PrintUsage();
 			return 1;
 		}
 	}
+	if (dump_mode && !url_arg) {
+		fprintf(stdout, "Missing argument for dump\n");
+		PrintUsage();
+		return 1;
+	}
+	if (dump_mode) rti_file = NULL;
 	cfg_file = loadconfigfile(the_cfg);
 	if (!cfg_file) {
 		fprintf(stdout, "Error: Configuration File \"GPAC.cfg\" not found\n");
@@ -621,9 +700,14 @@ int main (int argc, char **argv)
 	memory_at_gpac_startup = rti.physical_memory_avail;
 	if (rti_file) init_rti_logs(rti_file, url_arg);
 
-		
-	Run = 1;
-	
+	/*setup dumping options*/
+	if (dump_mode) {
+		if (rend_mode==2) user.init_flags |= GF_TERM_INIT_FORCE_3D;
+		else if (rend_mode==1) user.init_flags |= GF_TERM_INIT_FORCE_2D;
+
+		user.init_flags |= GF_TERM_INIT_NOT_THREADED | GF_TERM_INIT_HIDE;
+	}
+
 	fprintf(stdout, "Loading modules ... ");
 	str = gf_cfg_get_key(cfg_file, "General", "ModulesDirectory");
 
@@ -646,7 +730,7 @@ int main (int argc, char **argv)
 	fprintf(stdout, "Loading GPAC Terminal ... ");	
 	term = gf_term_new(&user);
 	if (!term) {
-		fprintf(stdout, "Init error - check you have at least one video out...\nFound modules:\n");
+		fprintf(stdout, "\nInit error - check you have at least one video out...\nFound modules:\n");
 		list_modules(user.modules);
 		gf_modules_del(user.modules);
 		gf_cfg_del(cfg_file);
@@ -655,18 +739,27 @@ int main (int argc, char **argv)
 	}
 	fprintf(stdout, "OK\n");
 
-	/*check video output*/
-	str = gf_cfg_get_key(cfg_file, "Video", "DriverName");
-	if (!strcmp(str, "Raw Video Output")) fprintf(stdout, "WARNING: using raw output video (memory only) - no display used\n");
-	/*check audio output*/
-	str = gf_cfg_get_key(cfg_file, "Audio", "DriverName");
-	if (!strcmp(str, "No Audio Output Available")) fprintf(stdout, "WARNING: no audio output availble - make sure no other program is locking the sound card\n");
 
-	str = gf_cfg_get_key(cfg_file, "General", "NoMIMETypeFetch");
-	no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
+	if (dump_mode) {
+//		gf_term_set_option(term, GF_OPT_VISIBLE, 0);
+	} else {
+		/*check video output*/
+		str = gf_cfg_get_key(cfg_file, "Video", "DriverName");
+		if (!strcmp(str, "Raw Video Output")) fprintf(stdout, "WARNING: using raw output video (memory only) - no display used\n");
+		/*check audio output*/
+		str = gf_cfg_get_key(cfg_file, "Audio", "DriverName");
+		if (!strcmp(str, "No Audio Output Available")) fprintf(stdout, "WARNING: no audio output availble - make sure no other program is locking the sound card\n");
+
+		str = gf_cfg_get_key(cfg_file, "General", "NoMIMETypeFetch");
+		no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
+	}
 
 
-	fprintf(stdout, "Using %s\n", gf_cfg_get_key(cfg_file, "Rendering", "RendererName"));
+	if (rend_mode) {
+		fprintf(stdout, "Using %dD renderer\n", (rend_mode==2) ? 3 : 2);
+	} else {
+		fprintf(stdout, "Using %s\n", gf_cfg_get_key(cfg_file, "Rendering", "RendererName"));
+	}
 
 
 
@@ -698,6 +791,17 @@ int main (int argc, char **argv)
 	} else {
 		fprintf(stdout, "Hit 'h' for help\n\n");
 	}
+	Run = 1;
+	ret = 1;
+	if (dump_mode) {
+		if (!nb_times) {
+			times[0] = 0;
+			nb_times++;
+		}
+		ret = dump_file(the_url, dump_mode, fps, width, height, times, nb_times);
+		Run = 0;
+	}
+
 
 	while (Run) {
 		char c;
@@ -940,22 +1044,21 @@ int main (int argc, char **argv)
 		}
 	}
 
-	fprintf(stdout, "Deleting terminal...\n");
+	gf_term_disconnect(term);
+	if (rti_file) UpdateRTInfo();
+
+	fprintf(stdout, "Deleting terminal... ");
 	if (playlist) fclose(playlist);
-
-	if (rti_file) {
-		gf_term_disconnect(term);
-		UpdateRTInfo();
-	}
-
 	gf_term_del(term);
+	fprintf(stdout, "OK\n");
 
 exit:
-	fprintf(stdout, "Unloading modules...\n");
+
+	fprintf(stdout, "Unloading modules... ");
 	gf_modules_del(user.modules);
+	fprintf(stdout, "OK\n");
 	gf_cfg_del(cfg_file);
 	gf_sys_close();
-	fprintf(stdout, "goodbye\n");
 	if (rti_logs) fclose(rti_logs);
 	return 0;
 }

@@ -280,7 +280,7 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 		return GF_OK;
 	}
 
-	in = fopen(import->in_name, "rb");
+	in = gf_f64_open(import->in_name, "rb");
 	if (!in) return gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", import->in_name);
 
 	hdr = gf_mp3_get_next_header(in);
@@ -466,7 +466,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 		return GF_OK;
 	}
 
-	in = fopen(import->in_name, "rb");
+	in = gf_f64_open(import->in_name, "rb");
 	if (!in) return gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", import->in_name);
 
 	bs = gf_bs_from_file(in, GF_BITSTREAM_READ);
@@ -655,7 +655,7 @@ GF_Err gf_import_cmp(GF_MediaImporter *import)
 		return GF_OK;
 	}
 
-	mdia = fopen(import->in_name, "rb");
+	mdia = gf_f64_open(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Opening %s failed", import->in_name);
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 
@@ -2009,9 +2009,9 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 	samp->data = malloc(sizeof(char) * 1024);
 	max_size = 1024;
 	count = 0;
-	fseek(mdia, 0, SEEK_END);
-	media_size = ftell(mdia);
-	fseek(mdia, 0, SEEK_SET);
+	gf_f64_seek(mdia, 0, SEEK_END);
+	media_size = gf_f64_tell(mdia);
+	gf_f64_seek(mdia, 0, SEEK_SET);
 	media_done = 0;
 	next_is_start = 1;
 
@@ -2509,9 +2509,9 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 	count = 0;
 	media_size = 0;
 	if (mdia) {
-		fseek(mdia, 0, SEEK_END);
-		media_size = ftell(mdia);
-		fseek(mdia, 0, SEEK_SET);
+		gf_f64_seek(mdia, 0, SEEK_END);
+		media_size = gf_f64_tell(mdia);
+		gf_f64_seek(mdia, 0, SEEK_SET);
 	}
 	media_done = 0;
 
@@ -2867,7 +2867,7 @@ GF_Err gf_import_qcp(GF_MediaImporter *import)
 	memset(&gpp_cfg, 0, sizeof(GF_3GPConfig));
 	delete_esd = 0;
 
-	mdia = fopen(import->in_name, "rb");
+	mdia = gf_f64_open(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
 	
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
@@ -3180,7 +3180,7 @@ GF_Err gf_import_h263(GF_MediaImporter *import)
 		return GF_OK;
 	}
 
-	mdia = fopen(import->in_name, "rb");
+	mdia = gf_f64_open(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
@@ -3343,7 +3343,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 		return GF_OK;
 	}
 
-	mdia = fopen(import->in_name, "rb");
+	mdia = gf_f64_open(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
 	
 	FPS = (Double) import->video_fps;
@@ -3823,7 +3823,8 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 {
 	GF_Err e;
     ogg_sync_state oy;
-	u32 di, track, done, tot_size, duration;
+	u32 di, track, duration;
+	u64 tot_size, done;
 	u32 w, h, fps_num, fps_den, keyframe_freq_force, theora_kgs, flag, dts_inc, timescale;
 	Double FPS;
 	Bool destroy_esd, go;
@@ -3896,9 +3897,9 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 
 	e = GF_OK;
 	done = 0;
-	fseek(f_in, 0, SEEK_END);
-	tot_size = ftell(f_in);
-	fseek(f_in, 0, SEEK_SET);
+	gf_f64_seek(f_in, 0, SEEK_END);
+	tot_size = gf_f64_tell(f_in);
+	gf_f64_seek(f_in, 0, SEEK_SET);
 
 
 	destroy_esd = 0;
@@ -4031,7 +4032,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 				samp->DTS += dts_inc;
 			}
 
-			gf_import_progress(import, done, tot_size);
+			gf_import_progress(import, (u32) done, (u32) tot_size);
 			done += oggpacket.bytes;
 			if ((duration && (samp->DTS > duration) ) || (import->flags & GF_IMPORT_DO_ABORT)) {
 				go = 0;
@@ -4039,7 +4040,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 			}
 		}
 	}
-	gf_import_progress(import, tot_size, tot_size);
+	gf_import_progress(import, (u32) tot_size, (u32) tot_size);
 
 	if (!serial_no) {
 		gf_import_message(import, GF_OK, "OGG: No supported video found");
@@ -4047,7 +4048,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 		MP4T_RecomputeBitRate(import->dest, track);
 
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, 0xFE);
-		gf_import_progress(import, tot_size, tot_size);
+		gf_import_progress(import, (u32) tot_size, (u32) tot_size);
 	}
 	
 exit:
@@ -4068,7 +4069,8 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 {
 	GF_Err e;
     ogg_sync_state oy;
-	u32 di, track, done, tot_size, duration;
+	u32 di, track, duration;
+	u64 done, tot_size;
 	s32 block_size;
 	GF_ISOSample *samp;
 	Bool destroy_esd, go;
@@ -4094,9 +4096,9 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 	e = GF_OK;
 
 	done = 0;
-	fseek(f_in, 0, SEEK_END);
-	tot_size = ftell(f_in);
-	fseek(f_in, 0, SEEK_SET);
+	gf_f64_seek(f_in, 0, SEEK_END);
+	tot_size = gf_f64_tell(f_in);
+	gf_f64_seek(f_in, 0, SEEK_SET);
 
 	destroy_esd = 0;
 	samp = gf_isom_sample_new();
@@ -4206,7 +4208,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 			samp->DTS += block_size;
 
-			gf_import_progress(import, done, tot_size);
+			gf_import_progress(import, (u32) done, (u32) tot_size);
 			done += oggpacket.bytes;
 			if ((duration && (samp->DTS > duration) ) || (import->flags & GF_IMPORT_DO_ABORT)) {
 				go = 0;
@@ -4214,14 +4216,14 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 			}
 		}
 	}
-	gf_import_progress(import, tot_size, tot_size);
+	gf_import_progress(import, (u32) tot_size, (u32) tot_size);
 
 	if (!serial_no) {
 		gf_import_message(import, GF_OK, "OGG: No supported audio found");
 	} else {
 		samp->data = NULL;
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, 0xFE);
-		gf_import_progress(import, tot_size, tot_size);
+		gf_import_progress(import, (u32) tot_size, (u32) tot_size);
 
 		MP4T_RecomputeBitRate(import->dest, track);
 	}
@@ -4515,7 +4517,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		return gf_import_cmp(importer);
 	else if (!strnicmp(ext, ".263", 4) || !strnicmp(ext, ".h263", 5) || !stricmp(fmt, "H263") ) 
 		return gf_import_h263(importer);
-	else if (!strnicmp(ext, ".h264", 5) || !strnicmp(ext, ".264", 4)
+	else if (!strnicmp(ext, ".h264", 5) || !strnicmp(ext, ".264", 4) || !strnicmp(ext, ".x264", 5)
 		|| !strnicmp(ext, ".h26L", 5) || !strnicmp(ext, ".26l", 4)
 		|| !stricmp(fmt, "AVC") || !stricmp(fmt, "H264") ) 
 		return gf_import_h264(importer);

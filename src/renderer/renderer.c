@@ -158,13 +158,11 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 	}
 }
 
-GF_Err gf_sr_render_frame(GF_Renderer *sr)
+Bool gf_sr_render_frame(GF_Renderer *sr)
 {	
-
-	gf_sr_reconfig_task(sr);
 	/*render*/
 	gf_sr_simulation_tick(sr);
-	return GF_OK;
+	return sr->draw_next_frame;
 }
 
 u32 SR_RenderRun(void *par)
@@ -225,25 +223,38 @@ static GF_Renderer *SR_New(GF_User *user)
 	const char *sOpt;
 	GF_VisualRenderer *vrend;
 	GF_GLConfig cfg, *gl_cfg;
+	Bool forced = 1;
 	GF_Renderer *tmp = malloc(sizeof(GF_Renderer));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_Renderer));
 	tmp->user = user;
 
 	/*load renderer to check for GL flag*/
-	sOpt = gf_cfg_get_key(user->config, "Rendering", "RendererName");
-	if (sOpt) {
-		tmp->visual_renderer = (GF_VisualRenderer *) gf_modules_load_interface_by_name(user->modules, sOpt, GF_RENDERER_INTERFACE);
-		if (!tmp->visual_renderer) sOpt = NULL;
+	if (! (user->init_flags & (GF_TERM_INIT_FORCE_2D | GF_TERM_INIT_FORCE_3D)) ) {
+		sOpt = gf_cfg_get_key(user->config, "Rendering", "RendererName");
+		if (sOpt) {
+			tmp->visual_renderer = (GF_VisualRenderer *) gf_modules_load_interface_by_name(user->modules, sOpt, GF_RENDERER_INTERFACE);
+			if (!tmp->visual_renderer) sOpt = NULL;
+		}
+		forced = 0;
 	}
 	if (!tmp->visual_renderer) {
 		u32 i, count;
 		count = gf_modules_get_count(user->modules);
 		for (i=0; i<count; i++) {
 			tmp->visual_renderer = (GF_VisualRenderer *) gf_modules_load_interface(user->modules, i, GF_RENDERER_INTERFACE);
-			if (tmp->visual_renderer) break;
+			if (tmp->visual_renderer) {
+				if ((tmp->visual_renderer->bNeedsGL && (user->init_flags & GF_TERM_INIT_FORCE_2D)) 
+					|| (!tmp->visual_renderer->bNeedsGL && (user->init_flags & GF_TERM_INIT_FORCE_3D)) ) {
+
+					gf_modules_close_interface((GF_BaseInterface *)tmp->visual_renderer);
+					tmp->visual_renderer = NULL;
+					continue;
+				}
+				break;
+			}
 		}
-		if (tmp->visual_renderer) gf_cfg_set_key(user->config, "Rendering", "RendererName", tmp->visual_renderer->module_name);
+		if (!forced && tmp->visual_renderer) gf_cfg_set_key(user->config, "Rendering", "RendererName", tmp->visual_renderer->module_name);
 	}
 
 	if (!tmp->visual_renderer) {
@@ -264,7 +275,7 @@ static GF_Renderer *SR_New(GF_User *user)
 			tmp->video_out->evt_cbk_hdl = tmp;
 			tmp->video_out->on_event = gf_sr_on_event;
 			/*init hw*/
-			if (tmp->video_out->Setup(tmp->video_out, user->os_window_handler, user->os_display, user->dont_override_window_proc, gl_cfg) != GF_OK) {
+			if (tmp->video_out->Setup(tmp->video_out, user->os_window_handler, user->os_display, user->init_flags, gl_cfg) != GF_OK) {
 				gf_modules_close_interface((GF_BaseInterface *)tmp->video_out);
 				tmp->video_out = NULL;
 			}
@@ -282,7 +293,7 @@ static GF_Renderer *SR_New(GF_User *user)
 			tmp->video_out->evt_cbk_hdl = tmp;
 			tmp->video_out->on_event = gf_sr_on_event;
 			/*init hw*/
-			if (tmp->video_out->Setup(tmp->video_out, user->os_window_handler, user->os_display, user->dont_override_window_proc, gl_cfg)==GF_OK) {
+			if (tmp->video_out->Setup(tmp->video_out, user->os_window_handler, user->os_display, user->init_flags, gl_cfg)==GF_OK) {
 				gf_cfg_set_key(user->config, "Video", "DriverName", tmp->video_out->module_name);
 				break;
 			}
@@ -348,17 +359,15 @@ static GF_Renderer *SR_New(GF_User *user)
 	return tmp;
 }
 
-GF_Renderer *gf_sr_new(GF_User *user, Bool self_threaded, Bool no_audio, GF_Terminal *term)
+GF_Renderer *gf_sr_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 {
 	GF_Renderer *tmp = SR_New(user);
 	if (!tmp) return NULL;
 	tmp->term = term;
 
 	/**/
-	if (!no_audio) {
-		tmp->audio_renderer = gf_sr_ar_load(user);	
-		if (!tmp->audio_renderer) GF_USER_MESSAGE(user, "", "NO AUDIO RENDERER", GF_OK);
-	}
+	tmp->audio_renderer = gf_sr_ar_load(user);	
+	if (!tmp->audio_renderer) GF_USER_MESSAGE(user, "", "NO AUDIO RENDERER", GF_OK);
 
 	gf_mx_p(tmp->mx);
 
@@ -630,11 +639,6 @@ void gf_sr_lock(GF_Renderer *sr, Bool doLock)
 	}
 }
 
-void gf_sr_refresh(GF_Renderer *sr)
-{
-	if (sr) sr->draw_next_frame = 1;
-}
-
 GF_Err gf_sr_set_size(GF_Renderer *sr, u32 NewWidth, u32 NewHeight)
 {
 	Bool lock_ok;
@@ -656,8 +660,6 @@ GF_Err gf_sr_set_size(GF_Renderer *sr, u32 NewWidth, u32 NewHeight)
 	
 	if (lock_ok) gf_sr_lock(sr, 0);
 
-	/*force video resize*/
-	if (!sr->VisualThread) gf_sr_reconfig_task(sr);
 	return GF_OK;
 }
 
@@ -750,9 +752,7 @@ GF_Err gf_sr_set_option(GF_Renderer *sr, u32 type, u32 value)
 		sr->msg_type |= GF_SR_CFG_AR;
 		break;
 	case GF_OPT_INTERACTION_LEVEL: sr->interaction_level = value; break;
-	case GF_OPT_FORCE_REDRAW:
-		sr->reset_graphics = 1;
-		break;
+	case GF_OPT_REFRESH: sr->reset_graphics = value; break;
 	case GF_OPT_FULLSCREEN:
 		if (sr->fullscreen != value) sr->msg_type |= GF_SR_CFG_FULLSCREEN; break;
 	case GF_OPT_ORIGINAL_VIEW:
@@ -1102,7 +1102,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 		return;
 	}
 	/*not threaded, let the owner decide*/
-	if (!sr->VisualThread) return;
+	if (!sr->VisualThread || !sr->frame_duration) return;
 
 
 	/*compute sleep time till next frame, otherwise we'll kill the CPU*/
@@ -1137,7 +1137,7 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 
 	switch (event->type) {
 	case GF_EVT_REFRESH:
-		gf_sr_refresh(sr);
+		sr->draw_next_frame = 1;
 		break;
 	case GF_EVT_VIDEO_SETUP:
 		gf_sr_reset_graphics(sr);

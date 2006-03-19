@@ -23,6 +23,8 @@
  */
 
 #include <gpac/internal/renderer_dev.h>
+#include <gpac/internal/terminal_dev.h>
+#include <gpac/options.h>
 
 #include <gpac/nodes_svg.h>
 
@@ -68,7 +70,7 @@ Bool gf_sr_texture_check_url_change(GF_TextureHandler *txh, MFURL *url)
 #endif
 }
 
-GF_Err gf_sr_texture_play(GF_TextureHandler *txh, MFURL *url)
+GF_Err gf_sr_texture_play_from(GF_TextureHandler *txh, MFURL *url, Double media_offset, Bool can_loop)
 {
 	if (txh->is_open) return GF_BAD_PARAM;
 
@@ -82,14 +84,14 @@ GF_Err gf_sr_texture_play(GF_TextureHandler *txh, MFURL *url)
 	gf_sg_vrml_field_copy(&txh->current_url, url, GF_SG_VRML_MFURL);
 
 #ifdef DANAE
-txh->dmo = getDanaeMediaOjbectFromUrl(txh->compositor->danae_session, url->vals[0].url, (gf_node_get_tag(txh->owner)==TAG_SVG_video) ? 1 : 0);
+	txh->dmo = getDanaeMediaOjbectFromUrl(txh->compositor->danae_session, url->vals[0].url, (gf_node_get_tag(txh->owner)==TAG_SVG_video) ? 1 : 0);
 #else 
 	/*get media object*/
 	txh->stream = gf_mo_find(txh->owner, url);
 	/*bad/Empty URL*/
 	if (!txh->stream) return GF_NOT_SUPPORTED;
 	/*request play*/
-	gf_mo_play(txh->stream);
+	gf_mo_play(txh->stream, media_offset, can_loop);
 #endif
 
 	txh->last_frame_time = (u32) (-1);
@@ -97,6 +99,17 @@ txh->dmo = getDanaeMediaOjbectFromUrl(txh->compositor->danae_session, url->vals[
 	txh->is_open = 1;
 	return GF_OK;
 }
+GF_Err gf_sr_texture_play(GF_TextureHandler *txh, MFURL *url)
+{
+	Double offset = 0;
+	Bool loop = 0;
+	if (txh->compositor->term && (txh->compositor->term->play_state!=GF_STATE_PLAYING)) {
+		offset = gf_node_get_scene_time(txh->owner);
+		loop = gf_mo_get_loop(gf_mo_find(txh->owner, url), 0);
+	}
+	return gf_sr_texture_play_from(txh, url, offset, loop);
+}
+
 
 void gf_sr_texture_stop(GF_TextureHandler *txh)
 {

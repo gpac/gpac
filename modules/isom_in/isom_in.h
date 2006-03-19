@@ -83,7 +83,8 @@ typedef struct
 	Double speed;
 
 	u32 time_scale;
-	Bool to_init, is_playing, is_ocr;
+	Bool to_init, is_playing;
+	u8 streamType;
 	
 	u16 FAKE_ESID;
 
@@ -91,7 +92,6 @@ typedef struct
 
 	/*cache stuff*/
 	u64 cache_seed_ts;
-	Bool is_video;
 	u32 frame_cts_offset;
 	u64 prev_dts, max_cts;
 	GF_ISOSample *cache_sample;

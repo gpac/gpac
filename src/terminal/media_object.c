@@ -141,7 +141,7 @@ Bool gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos)
 {
 	Bool ret;
 	u32 obj_time;
-	LPCUBUFFER CU;
+	GF_CMUnit *CU;
 	*eos = 0;
 
 	if (!mo) return 0;
@@ -154,12 +154,12 @@ Bool gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos)
 	}
 
 	ret = 0;
-	CB_Lock(mo->odm->codec->CB, 1);
+	gf_cm_lock(mo->odm->codec->CB, 1);
 
 	/*end of stream */
-	*eos = CB_IsEndOfStream(mo->odm->codec->CB);
+	*eos = gf_cm_is_eos(mo->odm->codec->CB);
 	/*not running and no resync (ie audio)*/
-	if (!resync && !CB_IsRunning(mo->odm->codec->CB)) goto exit;
+	if (!resync && !gf_cm_is_running(mo->odm->codec->CB)) goto exit;
 	/*if not running but resync (video, image), try to load the composition memory anyway*/
 
 	/*if frame locked return it*/
@@ -171,7 +171,7 @@ Bool gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos)
 	}
 
 	/*new frame to fetch, lock*/
-	CU = CB_GetOutput(mo->odm->codec->CB);
+	CU = gf_cm_get_output(mo->odm->codec->CB);
 	/*no output*/
 	if (!CU || (CU->RenderedLength == CU->dataLength)) {
 		goto exit;
@@ -197,9 +197,9 @@ Bool gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos)
 			}
 			/*discard*/
 			CU->RenderedLength = CU->dataLength = 0;
-			CB_DropOutput(mo->odm->codec->CB);
+			gf_cm_drop_output(mo->odm->codec->CB);
 			/*get next*/
-			CU = CB_GetOutput(mo->odm->codec->CB);
+			CU = gf_cm_get_output(mo->odm->codec->CB);
 		}
 	}
 	mo->current_size = CU->dataLength - CU->RenderedLength;
@@ -218,7 +218,7 @@ Bool gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos)
 	
 exit:
 
-	CB_Lock(mo->odm->codec->CB, 0);
+	gf_cm_lock(mo->odm->codec->CB, 0);
 	return ret;
 }
 
@@ -230,7 +230,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, u32 forceDrop)
 	mo->num_fetched--;
 	if (mo->num_fetched) return;
 
-	CB_Lock(mo->odm->codec->CB, 1);
+	gf_cm_lock(mo->odm->codec->CB, 1);
 
 	/*perform a sanity check on TS since the CB may have changed status - this may happen in 
 	temporal scalability only*/
@@ -241,7 +241,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, u32 forceDrop)
 		/*discard frame*/
 		if (mo->odm->codec->CB->output->RenderedLength == mo->odm->codec->CB->output->dataLength) {
 			if (forceDrop) {
-				CB_DropOutput(mo->odm->codec->CB);
+				gf_cm_drop_output(mo->odm->codec->CB);
 				forceDrop--;
 //				if (forceDrop) mo->odm->codec->nb_droped++;
 			} else {
@@ -250,15 +250,15 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, u32 forceDrop)
 					if (2*obj_time < mo->current_ts + mo->odm->codec->CB->output->next->TS ) {
 						mo->odm->codec->CB->output->RenderedLength = 0;
 					} else {
-						CB_DropOutput(mo->odm->codec->CB);
+						gf_cm_drop_output(mo->odm->codec->CB);
 					}
 				} else {
-					CB_DropOutput(mo->odm->codec->CB);
+					gf_cm_drop_output(mo->odm->codec->CB);
 				}
 			}
 		}
 	}
-	CB_Lock(mo->odm->codec->CB, 0);
+	gf_cm_lock(mo->odm->codec->CB, 0);
 }
 
 void gf_mo_get_object_time(GF_MediaObject *mo, u32 *obj_time)
@@ -284,12 +284,24 @@ void gf_mo_get_object_time(GF_MediaObject *mo, u32 *obj_time)
 }
 
 
-void gf_mo_play(GF_MediaObject *mo)
+void gf_mo_play(GF_MediaObject *mo, Double media_offset, Bool can_loop)
 {
 	if (!mo) return;
 
 	gf_term_lock_net(mo->term, 1);
 	if (!mo->num_open && mo->odm) {
+		if (mo->odm->no_time_ctrl) {
+			mo->odm->current_time = 0;
+		} else {
+			mo->odm->current_time = (u32) (media_offset*1000);
+			if (mo->odm->duration && (mo->odm->current_time > mo->odm->duration)) {
+				if (can_loop) {
+					mo->odm->current_time %= (u32) mo->odm->duration;
+				} else {
+					mo->odm->current_time = (u32) mo->odm->duration;
+				}
+			}
+		}
 		gf_odm_start(mo->odm);
 	} else {
 		if (mo->num_to_restart) mo->num_restart--;

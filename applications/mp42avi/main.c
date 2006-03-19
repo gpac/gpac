@@ -238,9 +238,17 @@ void dump_frame(BIFSVID b2v, char *conv_buf, char *out_path, u32 dump_type, avi_
 GF_Config *loadconfigfile()
 {
 	GF_Config *cfg;
+	char *cfg_dir;
 	char szPath[GF_MAX_PATH];
 
 #ifdef WIN32
+	GetModuleFileNameA(NULL, szPath, GF_MAX_PATH);
+	cfg_dir = strrchr(szPath, '\\');
+	if (cfg_dir) cfg_dir[1] = 0;
+
+	cfg = gf_cfg_new(szPath, "GPAC.cfg");
+	if (cfg) goto success;
+
 #ifdef _DEBUG
 	strcpy(szPath, "C:\\Users\\Cyril\\sourceforge\\gpac\\bin\\w32_deb\\");
 #else
@@ -341,8 +349,9 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 	}
 
 	memset(&b2v, 0, sizeof(BIFSVID));
+	user.init_flags = GF_TERM_INIT_NO_AUDIO;
 	/* Initialization of the renderer */
-	b2v.sr = gf_sr_new(&user, 0, 1, NULL);
+	b2v.sr = gf_sr_new(&user, 0, NULL);
 	gf_sr_set_option(b2v.sr, GF_OPT_VISIBLE, 0);
 
 	/* Initialization of the scene graph */	
@@ -360,7 +369,6 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 		GF_ESD *esd;
 		u16 es_id;
 		b2v.bifs = gf_bifs_decoder_new(b2v.sg, 0);
-		gf_bifs_decoder_set_clock(b2v.bifs, get_scene_time, &b2v);
 
 		for (track_number=0; track_number<gf_isom_get_track_count(file); track_number++) {
 			esd = gf_isom_get_esd(file, track_number+1, 1);
@@ -387,7 +395,7 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 			GF_ISOSample *samp = gf_isom_get_sample(file, track_number+1, 1, &di);
 			b2v.cts = samp->DTS + samp->CTS_Offset;
 			/*apply command*/
-			gf_bifs_decode_au(b2v.bifs, es_id, samp->data, samp->dataLength);
+			gf_bifs_decode_au(b2v.bifs, es_id, samp->data, samp->dataLength, ((Double)(s64)b2v.cts)/1000.0);
 			gf_isom_sample_del(&samp);
 		}
 
@@ -556,7 +564,9 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 		needs_raw = 1;
 	}
 
-	b2v.sr = gf_sr_new(&user, 0, 1, NULL);
+		needs_raw = 0;
+	user.init_flags = GF_TERM_INIT_NO_AUDIO | GF_TERM_INIT_FORCE_3D;
+	b2v.sr = gf_sr_new(&user, 0, NULL);
 	gf_sr_set_option(b2v.sr, GF_OPT_VISIBLE, 0);
 
 	b2v.sg = gf_sg_new();
@@ -568,7 +578,6 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	gf_sr_set_option(b2v.sr, GF_OPT_RELOAD_CONFIG, 1);
 
 	b2v.bifs = gf_bifs_decoder_new(b2v.sg, 0);
-	gf_bifs_decoder_set_clock(b2v.bifs, get_scene_time, &b2v);
 
 	if (needs_raw) {
 		test = gf_cfg_get_key(user.config, "Video", "DriverName");
@@ -638,6 +647,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	}
 
 	gf_sr_set_size(b2v.sr, width, height);
+	gf_sr_render_frame(b2v.sr);
 
 	gf_sr_get_screen_buffer(b2v.sr, &fb);
 	width = fb.width;
@@ -661,7 +671,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 
 		b2v.cts = samp->DTS + samp->CTS_Offset;
 		/*apply command*/
-		gf_bifs_decode_au(b2v.bifs, es_id, samp->data, samp->dataLength);
+		gf_bifs_decode_au(b2v.bifs, es_id, samp->data, samp->dataLength, ((Double)(s64)b2v.cts)/1000.0);
 		gf_isom_sample_del(&samp);
 
 		if ((frameID>=0) && (j<(u32)frameID)) continue;

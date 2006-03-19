@@ -116,7 +116,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 		}
 		GF_SAFEALLOC(mch, sizeof(ISOMChannel));
 		mch->time_scale = esd->slConfig->timestampResolution;
-		mch->is_video = (mtype==GF_ISOM_MEDIA_VISUAL) ? 1 : 0;
+		mch->streamType = esd->decoderConfig->streamType;
 		mch->track = gf_isom_new_track(cache->mov, com.cache_esd.esd->ESID, mtype, mch->time_scale);
 		mch->is_playing = 1;
 		mch->channel = ch;
@@ -163,7 +163,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 	/*adjust DTS/CTS*/
 	DTS = sl_hdr->decodingTimeStamp - mch->cache_seed_ts;
 
-	if (mch->is_video && (DTS<=mch->cache_sample->DTS)) {
+	if ((mch->streamType==GF_STREAM_VISUAL) && (DTS<=mch->cache_sample->DTS)) {
 		assert(DTS>mch->prev_dts);
 		CTS = mch->cache_sample->DTS + mch->cache_sample->CTS_Offset;
 		mch->cache_sample->CTS_Offset = 0;

@@ -44,6 +44,7 @@ typedef struct _media_manager GF_MediaManager;
 typedef struct _object_clock GF_Clock;
 typedef struct _es_channel GF_Channel;
 typedef struct _generic_codec GF_Codec;
+typedef struct _composition_memory GF_CompositionMemory;
 
 
 struct _net_service
@@ -87,6 +88,9 @@ GF_Err gf_term_channel_release_sl_packet(GF_ClientService *ns, LPNETCHANNEL chan
 GF_Err gf_term_service_cache_load(GF_ClientService *ns);
 GF_Err gf_term_service_cache_close(GF_ClientService *ns, Bool no_save);
 
+/*forwards all clocks of the given amount of time. Can only be used when terminal is in paused mode
+this is mainly designed for movie dumping in MP4Client*/
+GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff);
 
 /*
 		Inline scene stuff
@@ -299,7 +303,7 @@ struct _media_manager
 	/*thread priority*/
 	s32 priority;
 	/*thread exec flags*/
-	Bool run, exit;
+	u32 state;
 
 	/*mutex for decoder access*/
 	GF_Mutex *mm_mx;

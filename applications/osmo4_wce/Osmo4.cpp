@@ -126,7 +126,7 @@ Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
 			if (app->m_duration>=2000) pFrame->PostMessage(WM_COMMAND, ID_FILE_STEP);	
 			break;
 		case GF_VK_DOWN:
-			gf_term_refresh(app->m_term);
+			gf_term_set_option(app->m_term, GF_OPTION_REFRESH, 0);
 			break;
 		}
 		break;
@@ -479,7 +479,7 @@ void COsmo4::ShowTaskBar(Bool showIt, Bool pause_only)
 			::ShowWindow(::FindWindow(_T("HHTaskbar"),NULL), SW_HIDE);
 		}
 		gf_term_set_option(m_term, GF_OPT_FREEZE_DISPLAY, 0);
-		gf_term_refresh(m_term);
+		gf_term_set_option(m_term, GF_OPTION_REFRESH, 0);
 		if (m_DoResume) {
 			gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
 			SetBacklightState(1);

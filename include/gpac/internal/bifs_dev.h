@@ -106,9 +106,6 @@ struct __tag_bifs_dec
 	/*only set at SceneReplace during proto parsing, NULL otherwise*/
 	GF_Proto *pCurrentProto;
 
-	Double (*GetSceneTime)(void *st_cbk);
-	void *st_cbk;
-
 	/*when set the decoder works with commands rather than modifying the scene graph directly*/
 	Bool dec_memory_mode;
 	Bool force_keep_qp;
@@ -117,6 +114,7 @@ struct __tag_bifs_dec
 	GF_List *conditionals;
 
 	Bool ignore_size;
+	Double cts_offset;
 	
 //	GF_Mutex *mx;
 };

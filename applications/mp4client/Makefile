@@ -10,7 +10,7 @@ LDFLAGS+=-g
 endif
 
 #common obj
-OBJS= main.o 
+OBJS= main.o extract.o
 
 ifeq ($(BUILD_INSTALL), yes)
 INSTALL_FLAGS=-DGPAC_MODULES_PATH=\"$(moddir)\"

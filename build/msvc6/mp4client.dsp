@@ -86,6 +86,10 @@ LINK32=link.exe
 # Name "mp4client - Win32 Debug"
 # Begin Source File
 
+SOURCE=..\..\applications\mp4client\extract.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\applications\mp4client\main.c
 # End Source File
 # End Target

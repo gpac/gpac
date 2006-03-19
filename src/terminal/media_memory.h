@@ -48,10 +48,10 @@ typedef struct _decoding_buffer
 
 	u32 dataLength;
 	unsigned char *data;
-} AUBUFFER, *LPAUBUFFER;
+} GF_DBUnit;
 
-LPAUBUFFER DB_New();
-void DB_Delete(LPAUBUFFER db);
+GF_DBUnit *gf_db_unit_new();
+void gf_db_unit_del(GF_DBUnit *db);
 
 
 /*composition memory (composition buffer) status*/
@@ -81,18 +81,18 @@ typedef struct _composition_unit {
 
 	u32 dataLength;
 	char* data;
-} CUBUFFER, *LPCUBUFFER;
+} GF_CMUnit;
 
 
 /*composition buffer (circular buffer of CUs)*/
-typedef struct _composition_memory
+struct _composition_memory
 {
 	/*input is used by the decoder to deliver CUs. 
 	if temporal scalability is enabled, this is the LAST DELIVERED CU 
 	otherwise this is the next available CU slot*/
-	LPCUBUFFER input;
+	GF_CMUnit *input;
 	/*output is the next available frme for rendering*/
-	LPCUBUFFER output;
+	GF_CMUnit *output;
 	/*capacity is the number of allocated buffers*/
 	u32 Capacity;
 	/*Min is the triggering of the media manager*/
@@ -116,48 +116,49 @@ typedef struct _composition_memory
 
 	/*exclusive access is required since rendering and decoding don't take place in the same thread*/
 	GF_Mutex *mx;
-
-} COMPOBUF, *LPCOMPOBUF;
+};
 
 /*a composition buffer only has fixed-size unit*/
-LPCOMPOBUF CB_New(u32 UnitSize, u32 capacity);
-void CB_Delete(LPCOMPOBUF cb);
+GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity);
+void gf_cm_del(GF_CompositionMemory *cb);
 /*re-inits complete cb*/
-void CB_Reinit(LPCOMPOBUF cb, u32 UnitSize, u32 Capacity);
+void gf_cm_reinit(GF_CompositionMemory *cb, u32 UnitSize, u32 Capacity);
 
 /*get exclusive access to CB*/
-void CB_Lock(LPCOMPOBUF cb, u32 LockIt);
+void gf_cm_lock(GF_CompositionMemory *cb, u32 LockIt);
 
 /*locks available input for desired TS (needed for scalability) - return NULL if no 
 input is available (buffer full)*/
-LPCUBUFFER CB_LockInput(LPCOMPOBUF cb, u32 TS);
+GF_CMUnit *gf_cm_lock_input(GF_CompositionMemory *cb, u32 TS);
 /*dispatch data in input. If NbBytes is 0, no data is dispatched. TS is needed for re-ordering
 of buffers*/
-void CB_UnlockInput(LPCOMPOBUF cb, u32 TS, u32 NbBytes);
+void gf_cm_unlock_input(GF_CompositionMemory *cb, u32 TS, u32 NbBytes);
+/*rewind input of 1 unit - used when doing precise seeking*/
+void gf_cm_rewind_input(GF_CompositionMemory *cb);
 
 /*fetch output buffer, NULL if output is empty*/
-LPCUBUFFER CB_GetOutput(LPCOMPOBUF cb);
+GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb);
 /*release the output buffer once rendered - if renderedLength is not equal to dataLength the
 output is NOT droped*/
-void CB_DropOutput(LPCOMPOBUF cb);
+void gf_cm_drop_output(GF_CompositionMemory *cb);
 
 /*reset the entire memory*/
-void CB_Reset(LPCOMPOBUF cb);
+void gf_cm_reset(GF_CompositionMemory *cb);
 
 /*resize the buffers*/
-void CB_ResizeBuffers(LPCOMPOBUF cb, u32 newCapacity);
+void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity);
 
 /*set the status of the buffer. Buffering is done automatically*/
-void CB_SetStatus(LPCOMPOBUF cb, u32 Status);
+void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status);
 
 /*return 1 if object is running (clock started), 0 otherwise*/
-Bool CB_IsRunning(LPCOMPOBUF cb);
+Bool gf_cm_is_running(GF_CompositionMemory *cb);
 /*signals end of stream*/
-void CB_SetEndOfStream(LPCOMPOBUF cb);
+void gf_cm_set_eos(GF_CompositionMemory *cb);
 /*returns 1 if end of stream has been reached (eg, signaled and no more data)*/
-Bool CB_IsEndOfStream(LPCOMPOBUF cb);
+Bool gf_cm_is_eos(GF_CompositionMemory *cb);
 /*aborts buffering if any*/
-void CB_AbortBuffering(LPCOMPOBUF cb);
+void gf_cm_abort_buffering(GF_CompositionMemory *cb);
 
 #ifdef __cplusplus
 }

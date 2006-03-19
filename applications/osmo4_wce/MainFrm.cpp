@@ -371,8 +371,7 @@ void CMainFrame::OnViewFullscreen()
 		m_full_screen = 0;
 		OnSetSize(0,0);
 		m_dumbWnd.ShowWindow(SW_SHOW);
-		gf_term_refresh(app->m_term);
-
+		gf_term_set_option(app->m_term, GF_OPTION_REFRESH, 0);
 	}
 }
 

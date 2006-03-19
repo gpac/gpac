@@ -158,7 +158,7 @@ GF_Err gf_sr_audio_open(GF_AudioInput *ai, MFURL *url)
 	gf_sg_vrml_field_copy(&ai->url, url, GF_SG_VRML_MFURL);
 
 	/*request play*/
-	gf_mo_play(ai->stream);
+	gf_mo_play(ai->stream, 0, 0);
 
 	ai->stream_finished = 0;
 	ai->is_open = 1;

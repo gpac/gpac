@@ -126,7 +126,7 @@ typedef struct
 	u32 last_mouse_move, timer, cursor_type_backup;
 } DDContext;
 
-void DD_SetupWindow(GF_VideoOutput *dr);
+void DD_SetupWindow(GF_VideoOutput *dr, Bool hide);
 void DD_ShutdownWindow(GF_VideoOutput*dr);
 GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt);
 

@@ -452,7 +452,7 @@ exit:
 }
 
 
-GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u32 no_proc_override, GF_GLConfig *cfg)
+GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u32 init_flags, GF_GLConfig *cfg)
 {
 	SDLVID();
 	/*we don't allow SDL hack, not stable enough*/
@@ -460,6 +460,7 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 	ctx->os_handle = os_handle;
 	ctx->is_init = 0;
 	ctx->is_3D_out = cfg ? 1 : 0;
+	ctx->systems_memory = (init_flags & GF_TERM_INIT_NOT_THREADED) ? 2 : 0;
 	if (!SDLOUT_InitSDL()) return GF_IO_ERR;
 	ctx->sdl_th_state = 0;
 	gf_th_run(ctx->sdl_th, SDLVid_EventProc, dr);
@@ -560,8 +561,10 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight)
 	
 	if (ctx->is_3D_out) return GF_BAD_PARAM;
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseHardwareMemory");
-	ctx->systems_memory = (opt && !strcmp(opt, "yes")) ? 0 : 1;
+	if (ctx->systems_memory<2) {
+		opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseHardwareMemory");
+		ctx->systems_memory = (opt && !strcmp(opt, "yes")) ? 0 : 1;
+	}
 
 	/*clear screen*/
 	col = SDL_MapRGB(ctx->screen->format, 0, 0, 0);

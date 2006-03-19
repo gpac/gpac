@@ -1499,7 +1499,7 @@ void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 		switch (event.gpac_evt.key.virtual_code) {
 		case 'R':
 		case 'r':
-			gf_term_set_option(m_term, GF_OPT_FORCE_REDRAW, 1);
+			gf_term_set_option(m_term, GF_OPT_REFRESH, 1);
 			break;
 		case 'P':
 		case 'p':

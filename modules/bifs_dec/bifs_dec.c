@@ -55,8 +55,6 @@ GF_Err BIFS_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_sc
 	priv->app = scene->root_od->term;
 	
 	priv->codec = gf_bifs_decoder_new(scene->graph, 0);
-	/*attach the clock*/
-	gf_bifs_decoder_set_clock(priv->codec, gf_is_get_time, scene);
 	/*ignore all size info on anim streams*/
 	if (!is_scene_decoder) gf_bifs_decoder_ignore_size_info(priv->codec);
 	return GF_OK;
@@ -103,7 +101,7 @@ static GF_Err BIFS_ProcessData(GF_SceneDecoder*plug, unsigned char *inBuffer, u3
 	GF_Err e = GF_OK;
 	BIFSPriv *priv = plug->privateStack;
 
-	e = gf_bifs_decode_au(priv->codec, ES_ID, inBuffer, inBufferLength);
+	e = gf_bifs_decode_au(priv->codec, ES_ID, inBuffer, inBufferLength, ((Double)AU_time)/1000.0);
 
 	/*if scene not attached do it*/
 	gf_is_attach_to_renderer(priv->pScene);

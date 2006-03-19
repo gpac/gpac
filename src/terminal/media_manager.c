@@ -58,9 +58,10 @@ GF_MediaManager *gf_mm_new(GF_Terminal *term, u32 threading_mode)
 
 	tmp->interrupt_cycle_ms = 33;
 	tmp->threading_mode = threading_mode;
+	if (term->user->init_flags & GF_TERM_INIT_NOT_THREADED) return tmp;
+
 	tmp->th = gf_th_new();
-	tmp->run = 1;
-	tmp->exit = 0;
+	tmp->state = 1;
 	tmp->priority = GF_THREAD_PRIORITY_NORMAL;
 	gf_th_run(tmp->th, MM_Loop, tmp);
 	return tmp;
@@ -68,16 +69,18 @@ GF_MediaManager *gf_mm_new(GF_Terminal *term, u32 threading_mode)
 
 void gf_mm_del(GF_MediaManager *mgr)
 {
-	mgr->run = 0;
-	while (!mgr->exit) gf_sleep(20);
+	if (mgr->th) {
+		mgr->state = 0;
+		while (mgr->state!=2) gf_sleep(0);
 
-	assert(! gf_list_count(mgr->threaded_codecs));
-	assert(! gf_list_count(mgr->unthreaded_codecs));
+		assert(! gf_list_count(mgr->threaded_codecs));
+		assert(! gf_list_count(mgr->unthreaded_codecs));
+		gf_th_del(mgr->th);
+	}
 
 	gf_list_del(mgr->threaded_codecs);
 	gf_list_del(mgr->unthreaded_codecs);
 	gf_mx_del(mgr->mm_mx);
-	gf_th_del(mgr->th);
 	free(mgr);
 }
 
@@ -247,7 +250,7 @@ u32 MM_Loop(void *par)
 
 	gf_th_set_priority(mgr->th, mgr->priority);
 
-	while (mgr->run) {
+	while (mgr->state) {
 		gf_term_handle_services(mgr->term);
 		gf_mx_p(mgr->mm_mx);
 
@@ -311,6 +314,7 @@ u32 MM_Loop(void *par)
 			time_taken = gf_sys_clock();
 			gf_sr_render_frame(mgr->term->renderer);
 			time_taken = gf_sys_clock() - time_taken;
+
 			if (time_left>time_taken) 
 				time_left -= time_taken;
 			else
@@ -324,15 +328,8 @@ u32 MM_Loop(void *par)
 			gf_sleep(time_left);
 		}
 	}
-	mgr->exit = 1;
+	mgr->state = 2;
 	return 0;
-}
-
-void MM_SetInterruptCycleTime(GF_MediaManager *mgr, u32 time)
-{
-	gf_mx_p(mgr->mm_mx);
-	mgr->interrupt_cycle_ms = time;
-	gf_mx_v(mgr->mm_mx);
 }
 
 u32 RunSingleDec(void *ptr)
@@ -387,7 +384,7 @@ void gf_mm_start_codec(GF_Codec *codec)
 	ce->has_error = 0;
 
 	/*clean decoder memory and wait for RAP*/
-	if (codec->CB) CB_Reset(codec->CB);
+	if (codec->CB) gf_cm_reset(codec->CB);
 
 	cap.CapCode = GF_CODEC_WAIT_RAP;
 	gf_codec_set_capability(codec, cap);
@@ -541,5 +538,36 @@ void gf_mm_set_priority(GF_MediaManager *mgr, s32 Priority)
 	mgr->priority = Priority;
 
 	gf_mx_v(mgr->mm_mx);
+}
+
+
+GF_Err gf_term_process(GF_Terminal *term)
+{
+	GF_Err e;
+	u32 i;
+	CodecEntry *ce;
+	if(term->render_frames!=2) return GF_BAD_PARAM;
+
+	/*update till frame mature*/
+	while (1) {
+		gf_term_handle_services(term);
+		gf_mx_p(term->mediaman->mm_mx);
+
+		i=0;
+		while ((ce = gf_list_enum(term->mediaman->unthreaded_codecs, &i))) {
+			e = gf_codec_process(ce->dec, 10000);
+			/*avoid signaling errors too often...*/
+			if (e && !ce->has_error) {
+				gf_term_message(ce->dec->odm->term, ce->dec->odm->net_service->url, "Decoding Error", e);
+				ce->has_error = 1;
+			}
+
+		}
+		gf_mx_v(term->mediaman->mm_mx);
+
+		if (!gf_sr_render_frame(term->renderer))
+			break;
+	}
+	return GF_OK;
 }
 

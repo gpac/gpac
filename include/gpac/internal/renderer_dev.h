@@ -253,6 +253,7 @@ GF_TextureHandler *gf_sr_texture_get_handler(GF_Node *n);
 Bool gf_sr_texture_check_url_change(GF_TextureHandler *txh, MFURL *url);
 /*starts associated object*/
 GF_Err gf_sr_texture_play(GF_TextureHandler *txh, MFURL *url);
+GF_Err gf_sr_texture_play_from(GF_TextureHandler *txh, MFURL *url, Double time_offset, Bool can_loop);
 /*stops associated object*/
 void gf_sr_texture_stop(GF_TextureHandler *txh);
 /*restarts associated object - DO NOT CALL stop/start*/

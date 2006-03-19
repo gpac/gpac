@@ -24,41 +24,39 @@
 
 
 
-#include "media_memory.h"
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/constants.h>
+#include "media_memory.h"
 #include "media_control.h"
 
 #define NO_TEMPORAL_SCALABLE	1
 
 
-LPAUBUFFER DB_New()
+GF_DBUnit *gf_db_unit_new()
 {
-	LPAUBUFFER tmp = malloc(sizeof(AUBUFFER));
-	if (!tmp) return NULL;
-	memset(tmp, 0, sizeof(AUBUFFER));
+	GF_DBUnit *tmp;
+	GF_SAFEALLOC(tmp, sizeof(GF_DBUnit));
 	return tmp;
 }
 
-void DB_Delete(LPAUBUFFER db)
+void gf_db_unit_del(GF_DBUnit *db)
 {
 	if (!db) return;
-	if (db->next) DB_Delete(db->next);
+	if (db->next) gf_db_unit_del(db->next);
 	if (db->data) free(db->data);
 	free(db);
 }
 
-LPCUBUFFER CU_New()
+static GF_CMUnit *gf_cm_unit_new()
 {
-	LPCUBUFFER tmp = malloc(sizeof(CUBUFFER));
-	if (!tmp) return NULL;
-	memset(tmp, 0, sizeof(CUBUFFER));
+	GF_CMUnit *tmp;
+	GF_SAFEALLOC(tmp, sizeof(GF_CMUnit));
 	return tmp;
 }
 
-void CU_Delete(LPCUBUFFER cb)
+static void gf_cm_unit_del(GF_CMUnit *cb)
 {
-	if (cb->next) CU_Delete(cb->next);
+	if (cb->next) gf_cm_unit_del(cb->next);
 	cb->next = NULL;
 	if (cb->data) {
 		free(cb->data);
@@ -68,15 +66,15 @@ void CU_Delete(LPCUBUFFER cb)
 }
 
 
-LPCOMPOBUF CB_New(u32 UnitSize, u32 capacity)
+GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity)
 {
-	LPCOMPOBUF tmp;
-	LPCUBUFFER cu, prev;
+	GF_CompositionMemory *tmp;
+	GF_CMUnit *cu, *prev;
 	u32 i;
 	if (!capacity) return NULL;
 	
-	tmp = malloc(sizeof(COMPOBUF));
-	memset(tmp, 0, sizeof(COMPOBUF));
+	GF_SAFEALLOC(tmp, sizeof(GF_CompositionMemory));
+
 	tmp->Capacity = capacity;
 	tmp->UnitSize = UnitSize;
 	tmp->mx = gf_mx_new();
@@ -84,7 +82,7 @@ LPCOMPOBUF CB_New(u32 UnitSize, u32 capacity)
 	prev = NULL;
 	i = 1;
 	while (capacity) {
-		cu = CU_New();
+		cu = gf_cm_unit_new();
 		if (!prev) {
 			tmp->input = cu;
 		} else {
@@ -108,9 +106,9 @@ LPCOMPOBUF CB_New(u32 UnitSize, u32 capacity)
 	return tmp;
 }
 
-void CB_Delete(LPCOMPOBUF cb)
+void gf_cm_del(GF_CompositionMemory *cb)
 {
-	CB_Lock(cb, 1);
+	gf_cm_lock(cb, 1);
 	/*may happen when CB is destroyed right after creation in case*/
 	if (cb->Status == CB_BUFFER) {
 		gf_clock_buffer_off(cb->odm->codec->ck);
@@ -118,13 +116,13 @@ void CB_Delete(LPCOMPOBUF cb)
 	
 	/*break the loop and destroy*/
 	cb->input->prev->next = NULL;
-	CU_Delete(cb->input);
-	CB_Lock(cb, 0);
+	gf_cm_unit_del(cb->input);
+	gf_cm_lock(cb, 0);
 	gf_mx_del(cb->mx);
 	free(cb);
 }
 
-void CB_Lock(LPCOMPOBUF cb, u32 LockIt)
+void gf_cm_lock(GF_CompositionMemory *cb, u32 LockIt)
 {
 	if (LockIt) 
 		gf_mx_p(cb->mx);
@@ -132,8 +130,17 @@ void CB_Lock(LPCOMPOBUF cb, u32 LockIt)
 		gf_mx_v(cb->mx);
 }
 
+void gf_cm_rewind_input(GF_CompositionMemory *cb)
+{
+	if (cb->UnitCount) {
+		cb->UnitCount--;
+		cb->input = cb->input->prev;
+		cb->input->dataLength = 0; 
+	}
+}
+
 /*access to the input buffer - return NULL if no input is available (buffer full)*/
-LPCUBUFFER CB_LockInput(LPCOMPOBUF cb, u32 TS)
+GF_CMUnit *gf_cm_lock_input(GF_CompositionMemory *cb, u32 TS)
 {
 #if NO_TEMPORAL_SCALABLE
 	/*there is still something in the input buffer*/
@@ -144,7 +151,7 @@ LPCUBUFFER CB_LockInput(LPCOMPOBUF cb, u32 TS)
 	return cb->input;
 
 #else	
-	LPCUBUFFER cu;
+	GF_CMUnit *cu;
 
 	/*spatial scalable, go backward to fetch same TS*/
 	cu = cb->input;
@@ -166,19 +173,19 @@ LPCUBUFFER CB_LockInput(LPCOMPOBUF cb, u32 TS)
 }
 
 /*re-orders units in case of temporal scalability. Blocking call as it may change the output unit too*/
-LPCUBUFFER LocateAndOrderUnit(LPCOMPOBUF cb, u32 TS)
+static GF_CMUnit *LocateAndOrderUnit(GF_CompositionMemory *cb, u32 TS)
 {
-	LPCUBUFFER unit;
+	GF_CMUnit *unit;
 #if NO_TEMPORAL_SCALABLE
 	unit = cb->input;
 	cb->input = cb->input->next;
 	return unit;
 
 #else
-	LPCUBUFFER cu;
+	GF_CMUnit *cu;
 
 	/*lock the buffer since we may move pointers*/
-	CB_Lock(cb, 1);
+	gf_cm_lock(cb, 1);
 	unit = NULL;
 
 	/*1- locate cu*/
@@ -267,19 +274,19 @@ exit:
 	}
 
 	/*unlock the buffer*/
-	CB_Lock(cb, 0);
+	gf_cm_lock(cb, 0);
 	return unit;
 
 #endif
 }
 
-void CB_UnlockInput(LPCOMPOBUF cb, u32 TS, u32 NbBytes)
+void gf_cm_unlock_input(GF_CompositionMemory *cb, u32 TS, u32 NbBytes)
 {
-	LPCUBUFFER cu;
+	GF_CMUnit *cu;
 
 	/*nothing dispatched, ignore*/
 	if (!NbBytes) return;
-	CB_Lock(cb, 1);
+	gf_cm_lock(cb, 1);
 
 	/*insert/swap this CU*/
 	cu = LocateAndOrderUnit(cb, TS);
@@ -303,17 +310,17 @@ void CB_UnlockInput(LPCOMPOBUF cb, u32 TS, u32 NbBytes)
 			gf_term_invalidate_renderer(cb->odm->term);
 		}
 	}
-	CB_Lock(cb, 0);
+	gf_cm_lock(cb, 0);
 }
 
 
 /*Reset composition memory. Note we don't reset the content of each frame since it would lead to green frames 
 when using bitmap (visual), where data is not cached*/
-void CB_Reset(LPCOMPOBUF cb)
+void gf_cm_reset(GF_CompositionMemory *cb)
 {
-	LPCUBUFFER cu;
+	GF_CMUnit *cu;
 
-	CB_Lock(cb, 1);
+	gf_cm_lock(cb, 1);
 
 	cu = cb->input;
 	cu->RenderedLength = 0;
@@ -331,17 +338,17 @@ void CB_Reset(LPCOMPOBUF cb)
 	cb->HasSeenEOS = 0;
 
 	if (cb->odm->mo) cb->odm->mo->current_ts = 0;
-	CB_Lock(cb, 0);
+	gf_cm_lock(cb, 0);
 }
 
 /*resize buffers (blocking)*/
-void CB_ResizeBuffers(LPCOMPOBUF cb, u32 newCapacity)
+void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity)
 {
-	LPCUBUFFER cu;
+	GF_CMUnit *cu;
 	if (!newCapacity) return;
 
 	/*lock buffer*/
-	CB_Lock(cb, 1);
+	gf_cm_lock(cb, 1);
 	cu = cb->input;
 
 	cb->UnitSize = newCapacity;
@@ -353,22 +360,22 @@ void CB_ResizeBuffers(LPCOMPOBUF cb, u32 newCapacity)
 		cu = cu->next;
 	}
 
-	CB_Lock(cb, 0);
+	gf_cm_lock(cb, 0);
 }
 
 
 
 /*resize buffers (blocking)*/
-void CB_Reinit(LPCOMPOBUF cb, u32 UnitSize, u32 Capacity)
+void gf_cm_reinit(GF_CompositionMemory *cb, u32 UnitSize, u32 Capacity)
 {
-	LPCUBUFFER cu, prev;
+	GF_CMUnit *cu, *prev;
 	u32 i;
 	if (!Capacity || !UnitSize) return;
 
-	CB_Lock(cb, 1);
+	gf_cm_lock(cb, 1);
 	/*break the loop and destroy*/
 	cb->input->prev->next = NULL;
-	CU_Delete(cb->input);
+	gf_cm_unit_del(cb->input);
 
 
 	cb->Capacity = Capacity;
@@ -377,7 +384,7 @@ void CB_Reinit(LPCOMPOBUF cb, u32 UnitSize, u32 Capacity)
 	prev = NULL;
 	i = 1;
 	while (Capacity) {
-		cu = CU_New();
+		cu = gf_cm_unit_new();
 		if (!prev) {
 			cb->input = cu;
 		} else {
@@ -393,14 +400,14 @@ void CB_Reinit(LPCOMPOBUF cb, u32 UnitSize, u32 Capacity)
 	cu->next = cb->input;
 	cb->input->prev = cu;
 	cb->output = cb->input;
-	CB_Lock(cb, 0);
+	gf_cm_lock(cb, 0);
 }
 
 /*access to the first available CU for rendering
 this is a blocking call since input may change the output (temporal scalability)*/
-LPCUBUFFER CB_GetOutput(LPCOMPOBUF cb)
+GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 {
-	LPCUBUFFER out = NULL;
+	GF_CMUnit *out = NULL;
 
 	/*if paused or stop or buffering, do nothing*/
 	switch (cb->Status) {
@@ -443,7 +450,7 @@ exit:
 
 
 /*drop the output CU*/
-void CB_DropOutput(LPCOMPOBUF cb)
+void gf_cm_drop_output(GF_CompositionMemory *cb)
 {
 	assert(cb->UnitCount);
 	/*this allows reuse of the CU*/
@@ -468,10 +475,10 @@ void CB_DropOutput(LPCOMPOBUF cb)
 	}
 }
 
-void CB_SetStatus(LPCOMPOBUF cb, u32 Status)
+void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 {
 
-	CB_Lock(cb, 1);
+	gf_cm_lock(cb, 1);
 	/*if we're asked for play, trigger on buffering*/
 	if (Status == CB_PLAY) {
 		switch (cb->Status) {
@@ -496,18 +503,18 @@ void CB_SetStatus(LPCOMPOBUF cb, u32 Status)
 			gf_clock_buffer_off(cb->odm->codec->ck);
 		}
 		if (Status == CB_STOP) {
-			CB_Reset(cb);
+			gf_cm_reset(cb);
 		}
 		cb->Status = Status;
 	}
 
-	CB_Lock(cb, 0);
+	gf_cm_lock(cb, 0);
 
 }
 
-void CB_SetEndOfStream(LPCOMPOBUF cb)
+void gf_cm_set_eos(GF_CompositionMemory *cb)
 {
-	CB_Lock(cb, 1);
+	gf_cm_lock(cb, 1);
 	/*we may have a pb if the stream is so short that the EOS is signaled 
 	while we're buffering. In this case we shall turn the clock on and 
 	keep a trace of the EOS notif*/
@@ -517,16 +524,16 @@ void CB_SetEndOfStream(LPCOMPOBUF cb)
 	}
 	cb->HasSeenEOS = 1;
 	gf_term_invalidate_renderer(cb->odm->term);
-	CB_Lock(cb, 0);
+	gf_cm_lock(cb, 0);
 }
 
 
-Bool CB_IsRunning(LPCOMPOBUF cb)
+Bool gf_cm_is_running(GF_CompositionMemory *cb)
 {
 	if (cb->Status == CB_PLAY)
 		return !cb->odm->codec->ck->Paused;
 
-	if ((cb->Status == CB_BUFFER_DONE) && gf_clock_is_started(cb->odm->codec->ck)) {
+	if ((cb->Status == CB_BUFFER_DONE) && (gf_clock_is_started(cb->odm->codec->ck) || cb->odm->term->play_state) ) {
 		cb->Status = CB_PLAY;
 		return 1;
 	}
@@ -539,12 +546,12 @@ Bool CB_IsRunning(LPCOMPOBUF cb)
 }
 
 
-Bool CB_IsEndOfStream(LPCOMPOBUF cb)
+Bool gf_cm_is_eos(GF_CompositionMemory *cb)
 {
 	return ( (cb->Status == CB_STOP) && cb->HasSeenEOS);
 }
 
-void CB_AbortBuffering(LPCOMPOBUF cb)
+void gf_cm_abort_buffering(GF_CompositionMemory *cb)
 {
 	if (cb->Status == CB_BUFFER) {
 		cb->Status = CB_BUFFER_DONE;

@@ -349,6 +349,28 @@ typedef union
 	GF_EventSysColors sys_cols;
 } GF_Event;
 	
+
+enum
+{
+	/*display should be hidden upon initialization*/
+	GF_TERM_INIT_HIDE = 1,
+	/*no audio renderer will be created*/
+	GF_TERM_INIT_NO_AUDIO = 1<<1,
+	/*terminal is used to extract content: 
+		* audio render is disabled
+		* media codecs are not threaded
+		* all composition memories are filled before rendering
+		* rendering is done after media decoding
+		* frame-rate regulation is disabled (no sleep)
+		* the user is responsible for updating the terminal
+	*/
+	GF_TERM_INIT_NOT_THREADED = 1<<2,
+	/*forces 2D renderer, regardless of config file*/
+	GF_TERM_INIT_FORCE_2D = 1<<3,
+	/*forces 3D renderer, regardless of config file*/
+	GF_TERM_INIT_FORCE_3D = 1<<4
+};
+
 /*user object for all callbacks*/
 typedef struct 
 {
@@ -369,11 +391,8 @@ typedef struct
 	/*for now, only used by X11 (indicates display the window is on)*/
 	void *os_display;
 
-	/*only used with os_window_handler (win32/CE). 
-	If not set the window proc will be overriden and the video driver will take care of window messages
-	If set the window proc will be untouched and the app will have to process the window messages
-	*/
-	Bool dont_override_window_proc;
+	/*init flags bypassing GPAC config file	*/
+	u32 init_flags;
 } GF_User;
 
 

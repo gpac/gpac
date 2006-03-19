@@ -107,12 +107,16 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height)
 	ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;    
 	ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseHardwareMemory");
-	if (opt && !strcmp(opt, "yes")) {
-		dd->systems_memory = 0;
-	} else {
+	if (dd->systems_memory==2) {
 		ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
-		dd->systems_memory = 1;
+	} else {
+		opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseHardwareMemory");
+		if (opt && !strcmp(opt, "yes")) {
+			dd->systems_memory = 0;
+		} else {
+			ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
+			dd->systems_memory = 1;
+		}
 	}
 
 	ddsd.dwWidth = Width;

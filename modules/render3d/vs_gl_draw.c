@@ -1236,8 +1236,7 @@ GF_Err R3D_GetScreenBuffer(GF_VisualRenderer *vr, GF_VideoSurface *fb)
 	fb->height = sr->out_height;
 	fb->pixel_format = GF_PIXEL_RGB_24;
 
-	/*don't understand why I get BGR when using GL_RGB*/
-	glReadPixels(sr->out_x, sr->out_y, sr->out_width, sr->out_height, GL_BGR_EXT, GL_UNSIGNED_BYTE, fb->video_buffer);
+	glReadPixels(sr->out_x, sr->out_y, sr->out_width, sr->out_height, GL_RGB, GL_UNSIGNED_BYTE, fb->video_buffer);
 
 	/*flip image (openGL always handle image data bottom to top) */
 	tmp = malloc(sizeof(char)*fb->pitch);

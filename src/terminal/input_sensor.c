@@ -450,7 +450,7 @@ static void IS_Register(GF_Node *n)
 	StartHTK(is_dec);
 #endif
 	/*start stream*/
-	gf_mo_play(st->is_mo);
+	gf_mo_play(st->is_mo, 0, 0);
 
 	gf_term_rem_render_node(odm->term, n);
 }

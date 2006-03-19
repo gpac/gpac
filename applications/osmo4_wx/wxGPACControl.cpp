@@ -1003,7 +1003,6 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 
 	if (!need_reload) {
 		gf_term_set_option(m_pApp->m_term, GF_OPT_RELOAD_CONFIG, 1);
-		gf_term_refresh(m_pApp->m_term);
 	} else {
 		m_pApp->ReloadTerminal();
 	}

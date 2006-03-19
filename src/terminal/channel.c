@@ -87,7 +87,7 @@ static void Channel_Reset(GF_Channel *ch, Bool for_start)
 	ch->buffer = NULL;
 	ch->len = ch->allocSize = 0;
 
-	DB_Delete(ch->AU_buffer_first);
+	gf_db_unit_del(ch->AU_buffer_first);
 	ch->AU_buffer_first = ch->AU_buffer_last = NULL;
 	ch->AU_Count = 0;
 	ch->BufferTime = 0;
@@ -97,7 +97,7 @@ static void Channel_Reset(GF_Channel *ch, Bool for_start)
 	ch->last_IV = 0;
 	if (ch->AU_buffer_pull) {
 		ch->AU_buffer_pull->data = NULL;
-		DB_Delete(ch->AU_buffer_pull);
+		gf_db_unit_del(ch->AU_buffer_pull);
 		ch->AU_buffer_pull = NULL;
 	}
 	gf_es_lock(ch, 0);
@@ -174,7 +174,7 @@ void gf_es_del(GF_Channel *ch)
 	Channel_Reset(ch, 0);
 	if (ch->AU_buffer_pull) {
 		ch->AU_buffer_pull->data = NULL;
-		DB_Delete(ch->AU_buffer_pull);
+		gf_db_unit_del(ch->AU_buffer_pull);
 	}
 	if (ch->crypt) gf_crypt_close(ch->crypt);
 	if (ch->mx) gf_mx_del(ch->mx);
@@ -210,7 +210,7 @@ GF_Err gf_es_start(GF_Channel *ch)
 	/*reset channel*/
 	Channel_Reset(ch, 1);
 	/*create pull buffer if needed*/
-	if (ch->is_pulling && !ch->AU_buffer_pull) ch->AU_buffer_pull = DB_New();
+	if (ch->is_pulling && !ch->AU_buffer_pull) ch->AU_buffer_pull = gf_db_unit_new();
 
 	/*and start buffering - pull channels always turn off buffering immediately, otherwise 
 	buffering size is setup by the network service - except InputSensor*/
@@ -264,11 +264,11 @@ void gf_es_map_time(GF_Channel *ch, Bool reset)
 	ch->len = ch->allocSize = 0;
 
 	if (reset) {
-		DB_Delete(ch->AU_buffer_first);
+		gf_db_unit_del(ch->AU_buffer_first);
 		ch->AU_buffer_first = ch->AU_buffer_last = NULL;
 		ch->AU_Count = 0;
 	} else {
-		LPAUBUFFER au = ch->AU_buffer_first;
+		GF_DBUnit *au = ch->AU_buffer_first;
 		while (au) {
 			au->DTS = au->CTS = ch->ts_offset;
 			au = au->next;
@@ -348,7 +348,7 @@ static void Channel_UpdateBufferTime(GF_Channel *ch)
 		ch->BufferTime = 0;
 	}
 	else if (ch->skip_sl) {
-		LPAUBUFFER au;
+		GF_DBUnit *au;
 		/*compute buffer size from avg bitrate*/
 		u32 avg_rate = ch->esd->decoderConfig->avgBitrate;
 		if (!avg_rate && ch->odm->codec) avg_rate = ch->odm->codec->avg_bit_rate;
@@ -376,7 +376,7 @@ static void Channel_UpdateBufferTime(GF_Channel *ch)
 /*dispatch the AU in the DB*/
 static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 {
-	LPAUBUFFER au;
+	GF_DBUnit *au;
 	if (!ch->buffer || !ch->len) {
 		if (ch->buffer) {
 			free(ch->buffer);
@@ -385,7 +385,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 		return;
 	}
 
-	au = DB_New();
+	au = gf_db_unit_new();
 	if (!au) {
 		free(ch->buffer);
 		ch->buffer = NULL;
@@ -438,7 +438,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 		HOWEVER, we must recompute a monotone increasing DTS in case the decoder does perform frame reordering
 		in which case the DTS is used for presentation time!!*/
 		else if (ch->odm->codec && (ch->odm->codec->type!=GF_STREAM_AUDIO)) {
-			LPAUBUFFER au_prev, ins_au;
+			GF_DBUnit *au_prev, *ins_au;
 			u32 DTS;
 
 			/*append AU*/
@@ -476,7 +476,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 				au->next = ch->AU_buffer_first;
 				ch->AU_buffer_first = au;
 			} else {
-				LPAUBUFFER au_prev = ch->AU_buffer_first;
+				GF_DBUnit *au_prev = ch->AU_buffer_first;
 				while (au_prev->next && au_prev->next->DTS<au->DTS) {
 					au_prev = au_prev->next;
 				}
@@ -512,11 +512,11 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 
 void Channel_RecieveSkipSL(GF_ClientService *serv, GF_Channel *ch, char *StreamBuf, u32 StreamLength)
 {
-	LPAUBUFFER au;
+	GF_DBUnit *au;
 	if (!StreamLength) return;
 
 	gf_es_lock(ch, 1);
-	au = DB_New();
+	au = gf_db_unit_new();
 	au->RAP = 1;
 	au->DTS = gf_clock_time(ch->clock);
 	au->data = malloc(sizeof(char) * (ch->media_padding_bytes + StreamLength));
@@ -741,7 +741,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			*/
 #if 1
 			if (!ch->clock->clock_init) {
-				gf_clock_set_time(ch->clock, ch->DTS);
+				gf_clock_set_time(ch->clock, ch->CTS);
 			} else if (ch->clock->no_time_ctrl) {
 				s32 offset = gf_term_get_time(ch->odm->term);
 				offset -= ch->clock->StartTime;
@@ -929,7 +929,7 @@ void gf_es_on_eos(GF_Channel *ch)
 
 
 
-LPAUBUFFER gf_es_get_au(GF_Channel *ch)
+GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 {
 	Bool comp, is_new_data;
 	GF_Err e, state;
@@ -1000,7 +1000,7 @@ void gf_es_init_dummy(GF_Channel *ch)
 
 void gf_es_drop_au(GF_Channel *ch)
 {
-	LPAUBUFFER au;
+	GF_DBUnit *au;
 
 	if (ch->is_pulling) {
 		gf_term_channel_release_sl_packet(ch->service, ch);
@@ -1019,7 +1019,7 @@ void gf_es_drop_au(GF_Channel *ch)
 	au = ch->AU_buffer_first;
 	ch->AU_buffer_first = au->next;
 	au->next = NULL;
-	DB_Delete(au);
+	gf_db_unit_del(au);
 	ch->AU_Count -= 1;
 
 	if (!ch->AU_Count && ch->AU_buffer_first) {

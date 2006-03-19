@@ -63,7 +63,14 @@ enum
 {
 	GF_STATE_PLAYING = 0,	/*terminal is playing*/
 	GF_STATE_PAUSED, /*terminal is paused*/
-	GF_STATE_STEP_PAUSE, /*SET only: terminal will pause after next frame (simulation tick)*/
+	GF_STATE_STEP_PAUSE, /*get/set only: terminal will pause after next frame (simulation tick). On get, indicates that rendering step hasn't performed yet*/
+};
+
+/*refresh mode*/
+enum
+{
+	GF_REFRESH_NORMAL = 0, /*posts normal redraw message */
+	GF_REFRESH_FULL, /*posts full redraw message, including reset of hardware resources*/
 };
 
 /*interaction level settings*/
@@ -208,9 +215,9 @@ enum
 	GF_OPT_IS_FINISHED,
 	/*set/get aspect ratio (value: one of AspectRatio enum) */
 	GF_OPT_ASPECT_RATIO,
-	/*send a force redraw message (SetOption only): all graphics info (display list, vectorial path) is 
+	/*send a redraw message (SetOption only): all graphics info (display list, vectorial path) is 
 	recomputed, and textures are reloaded in HW*/
-	GF_OPT_FORCE_REDRAW,
+	GF_OPT_REFRESH,
 	/*set/get stress mode (value: boolean) - in stress mode a GF_OPT_FORCE_REDRAW is emulated at each frame*/
 	GF_OPT_STRESS_MODE,
 	/*get/set bounding volume drawing (value: one of the above option)*/

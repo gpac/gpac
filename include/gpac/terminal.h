@@ -46,8 +46,12 @@ void gf_term_disconnect(GF_Terminal *term);
 /*reloads (shutdown/restart) the current url if any. This is the only safe way of restarting a 
 presentation from inside the EventProc where doing a disconnect/connect could deadlock*/
 void gf_term_reload(GF_Terminal *term);
-/*restarts url from given time (in ms)*/
-void gf_term_play_from_time(GF_Terminal *term, u32 from_time, Bool pause_at_first_frame);
+/*restarts url from given time (in ms). Return value: 
+	0: service is not connected yet
+	1: service has no seeking capabilities
+	2: service has been seeked
+*/
+u32 gf_term_play_from_time(GF_Terminal *term, u32 from_time, Bool pause_at_first_frame);
 /*connect URL and seek right away - only needed when reloading the complete player (avoids waiting
 for connection and post a seek..)*/
 void gf_term_connect_from_time(GF_Terminal *term, const char *URL, u32 time_in_ms, Bool pause_at_first_frame);
@@ -86,16 +90,15 @@ GF_Err gf_term_set_simulation_frame_rate(GF_Terminal * term, Double frame_rate);
 /*gets simulation frame rate*/
 Double gf_term_get_simulation_frame_rate(GF_Terminal *term);
 
-
-/*refresh window info when window moved (redraws offscrenn to screen without rendering) */
-/*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
-void gf_term_refresh(GF_Terminal *term);
-
 /*request visual output size change:
 	* NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)
 	* if the user app manages the output window it shall resize it before calling this
 */
 GF_Err gf_term_set_size(GF_Terminal *term, u32 NewWidth, u32 NewHeight);
+
+/*decodes all pending media and render frame. This can only be used when the terminal runs
+in the non-threaded mode(GF_TERM_INIT_NOT_THREADED flag set)*/
+GF_Err gf_term_process(GF_Terminal *term);
 
 /*post user interaction to terminal*/
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/

@@ -845,7 +845,6 @@ EXPORTS
 ;bifs.h exports
 	gf_bifs_decoder_new
 	gf_bifs_decoder_del
-	gf_bifs_decoder_set_clock
 	gf_bifs_decoder_ignore_size_info
 	gf_bifs_decoder_configure_stream
 	gf_bifs_decoder_remove_stream
@@ -1016,7 +1015,6 @@ EXPORTS
 	gf_term_get_channel_net_info
 	gf_term_get_world_info
 	gf_term_dump_scene
-	gf_term_refresh
 	gf_term_set_size
 	gf_term_user_event
 	gf_term_mouse_input
@@ -1028,6 +1026,8 @@ EXPORTS
 	gf_term_attach_service
 	gf_term_set_simulation_frame_rate
 	gf_term_get_simulation_frame_rate
+	gf_term_step_clocks
+	gf_term_process
 
 ;renderer.h exports
 	gf_sr_new
@@ -1041,7 +1041,6 @@ EXPORTS
 	gf_sr_lock
 	gf_sr_user_event
 	gf_sr_map_point
-	gf_sr_refresh
 	gf_sr_set_option
 	gf_sr_get_option
 	gf_sr_get_fps
@@ -1064,6 +1063,7 @@ EXPORTS
 	gf_sr_texture_get_handler
 	gf_sr_texture_check_url_change
 	gf_sr_texture_play
+	gf_sr_texture_play_from
 	gf_sr_texture_stop
 	gf_sr_texture_restart
 	gf_sr_texture_update_frame

@@ -55,10 +55,8 @@ void SFCommandBufferChanged(GF_BifsDecoder * codec, GF_Node *node)
 //on the wire. If from scripts or within proto the offset doesn't apply
 void BD_OffsetSFTime(GF_BifsDecoder * codec, Double *time)
 {
-	Double now;
-	if (codec->pCurrentProto || !codec->GetSceneTime || codec->dec_memory_mode) return;
-	now = codec->GetSceneTime(codec->st_cbk);
-	*time += now;
+	if (codec->pCurrentProto || codec->dec_memory_mode) return;
+	*time += codec->cts_offset;
 }
 
 void BD_CheckSFTimeOffset(GF_BifsDecoder *codec, GF_Node *node, GF_FieldInfo *inf)

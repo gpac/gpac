@@ -103,7 +103,8 @@ static u32 FFDemux_Run(void *par)
 
 				map.base.on_channel = ffd->video_ch;
 				map.map_time.timestamp = (u64) pkt.pts;
-				map.map_time.media_time = ffd->seek_time;
+//				map.map_time.media_time = ffd->seek_time;
+				map.map_time.media_time = 0;
 				map.map_time.reset_buffers = 0;
 				gf_term_on_command(ffd->service, &map, GF_OK);
 			}

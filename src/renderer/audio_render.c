@@ -80,52 +80,55 @@ GF_AudioRenderer *gf_sr_ar_load(GF_User *user)
 	ar->mixer = gf_mixer_new(ar);
 	ar->user = user;
 
-	/*get a prefered renderer*/
-	sOpt = gf_cfg_get_key(user->config, "Audio", "DriverName");
-	if (sOpt) {
-		ar->audio_out = (GF_AudioOutput *) gf_modules_load_interface_by_name(user->modules, sOpt, GF_AUDIO_OUTPUT_INTERFACE);
-		if (!ar->audio_out) {
-			ar->audio_out = NULL;
-			sOpt = NULL;
-		}
-	}
-	if (!ar->audio_out) {
-		count = gf_modules_get_count(ar->user->modules);
-		for (i=0; i<count; i++) {
-			ar->audio_out = (GF_AudioOutput *) gf_modules_load_interface(ar->user->modules, i, GF_AUDIO_OUTPUT_INTERFACE);
-			if (!ar->audio_out) continue;
-			/*check that's a valid audio renderer*/
-			if (ar->audio_out->SelfThreaded) {
-				if (ar->audio_out->SetPriority) break;
-			} else {
-				if (ar->audio_out->WriteAudio) break;
-			}
-			gf_modules_close_interface((GF_BaseInterface *)ar->audio_out);
-			ar->audio_out = NULL;
-		}
-	}
+	if (! (user->init_flags & GF_TERM_INIT_NO_AUDIO) ) {
 
-	/*if not init we run with a NULL audio renderer*/
-	if (ar->audio_out) {
-		ar->audio_out->FillBuffer = AR_FillBuffer;
-		ar->audio_out->audio_renderer = ar;
-		e = ar->audio_out->Setup(ar->audio_out, ar->user->os_window_handler, num_buffers, total_duration);
-		if (e==GF_OK) e = AR_SetupAudioFormat(ar);
-		if (e != GF_OK) {
-			gf_modules_close_interface((GF_BaseInterface *)ar->audio_out);
-			ar->audio_out = NULL;
-		} else {
-			/*remember the module we use*/
-			gf_cfg_set_key(user->config, "Audio", "DriverName", ar->audio_out->module_name);
-			if (!ar->audio_out->SelfThreaded) {
-				ar->th = gf_th_new();
-				ar->audio_th_state = 1;
-				gf_th_run(ar->th, AR_MainLoop, ar);
+		/*get a prefered renderer*/
+		sOpt = gf_cfg_get_key(user->config, "Audio", "DriverName");
+		if (sOpt) {
+			ar->audio_out = (GF_AudioOutput *) gf_modules_load_interface_by_name(user->modules, sOpt, GF_AUDIO_OUTPUT_INTERFACE);
+			if (!ar->audio_out) {
+				ar->audio_out = NULL;
+				sOpt = NULL;
 			}
-			if (ar->audio_out->SelfThreaded && ar->audio_out->SetPriority) ar->audio_out->SetPriority(ar->audio_out, GF_THREAD_PRIORITY_REALTIME);
 		}
+		if (!ar->audio_out) {
+			count = gf_modules_get_count(ar->user->modules);
+			for (i=0; i<count; i++) {
+				ar->audio_out = (GF_AudioOutput *) gf_modules_load_interface(ar->user->modules, i, GF_AUDIO_OUTPUT_INTERFACE);
+				if (!ar->audio_out) continue;
+				/*check that's a valid audio renderer*/
+				if (ar->audio_out->SelfThreaded) {
+					if (ar->audio_out->SetPriority) break;
+				} else {
+					if (ar->audio_out->WriteAudio) break;
+				}
+				gf_modules_close_interface((GF_BaseInterface *)ar->audio_out);
+				ar->audio_out = NULL;
+			}
+		}
+
+		/*if not init we run with a NULL audio renderer*/
+		if (ar->audio_out) {
+			ar->audio_out->FillBuffer = AR_FillBuffer;
+			ar->audio_out->audio_renderer = ar;
+			e = ar->audio_out->Setup(ar->audio_out, ar->user->os_window_handler, num_buffers, total_duration);
+			if (e==GF_OK) e = AR_SetupAudioFormat(ar);
+			if (e != GF_OK) {
+				gf_modules_close_interface((GF_BaseInterface *)ar->audio_out);
+				ar->audio_out = NULL;
+			} else {
+				/*remember the module we use*/
+				gf_cfg_set_key(user->config, "Audio", "DriverName", ar->audio_out->module_name);
+				if (!ar->audio_out->SelfThreaded) {
+					ar->th = gf_th_new();
+					ar->audio_th_state = 1;
+					gf_th_run(ar->th, AR_MainLoop, ar);
+				}
+				if (ar->audio_out->SelfThreaded && ar->audio_out->SetPriority) ar->audio_out->SetPriority(ar->audio_out, GF_THREAD_PRIORITY_REALTIME);
+			}
+		}
+		if (!ar->audio_out) gf_cfg_set_key(user->config, "Audio", "DriverName", "No Audio Output Available");
 	}
-	if (!ar->audio_out) gf_cfg_set_key(user->config, "Audio", "DriverName", "No Audio Output Available");
 
 	sOpt = gf_cfg_get_key(user->config, "Audio", "Volume");
 	ar->volume = sOpt ? atoi(sOpt) : 75;

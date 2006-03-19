@@ -110,7 +110,7 @@ URL cannot be handled - note that until the mediaObject.isInit member is true, t
 (and could actually never be) */
 GF_MediaObject *gf_mo_find(GF_Node *node, MFURL *url);
 /*opens media object*/
-void gf_mo_play(GF_MediaObject *mo);
+void gf_mo_play(GF_MediaObject *mo, Double media_offset, Bool can_loop);
 /*stops media object - video memory is not reset, last frame is kept*/
 void gf_mo_stop(GF_MediaObject *mo);
 /*restarts media object - shall be used for all looping media instead of stop/play for mediaControl

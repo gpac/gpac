@@ -51,12 +51,13 @@ static Bool MT_GetLoop(MovieTextureStack *stack, M_MovieTexture *mt)
 {
 	return gf_mo_get_loop(stack->txh.stream, mt->loop);
 }
-static void MT_Activate(MovieTextureStack *stack, M_MovieTexture *mt)
+static void MT_Activate(MovieTextureStack *stack, M_MovieTexture *mt, Double scene_time)
 {
 	mt->isActive = 1;
 	gf_node_event_out_str((GF_Node*)mt, "isActive");
 	if (!stack->txh.is_open) {
-		gf_sr_texture_play(&stack->txh, &mt->url);
+		scene_time -= mt->startTime;
+		gf_sr_texture_play_from(&stack->txh, &mt->url, scene_time, gf_mo_get_loop(stack->txh.stream, mt->loop));
 	}
 	gf_mo_set_speed(stack->txh.stream, mt->speed);
 }
@@ -146,7 +147,7 @@ static void MT_UpdateTime(GF_TimeNode *st)
 	"A time-dependent node is inactive until its startTime is reached. When time now becomes greater than or 
 	equal to startTime, an isActive TRUE event is generated and the time-dependent node becomes active 	*/
 
-	if (! mt->isActive) MT_Activate(stack, mt);
+	if (! mt->isActive) MT_Activate(stack, mt, time);
 }
 void InitMovieTexture(GF_Renderer *sr, GF_Node *node)
 {

@@ -41,10 +41,10 @@ typedef struct __tag_base_renderer GF_Renderer;
 
 /*creates default renderer 
 if self_threaded, video renderer uses a dedicated thread, otherwise visual rendering is done by the user
-audio renderer always runs in its own thread
+audio renderer always runs in its own thread if enabled
 term may be NULL, in which case InputSensors won't be enabled
 */
-GF_Renderer *gf_sr_new(GF_User *user_interface, Bool self_threaded, Bool no_audio, GF_Terminal *term);
+GF_Renderer *gf_sr_new(GF_User *user_interface, Bool self_threaded, GF_Terminal *term);
 void gf_sr_del(GF_Renderer *sr);
 
 /*sets simulation frame rate*/
@@ -54,7 +54,7 @@ void gf_sr_set_fps(GF_Renderer *sr, Double fps);
 GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph);
 
 /*if the renderer doesn't use its own thread for visual, this will perform a render pass*/
-GF_Err gf_sr_render_frame(GF_Renderer *sr);
+Bool gf_sr_render_frame(GF_Renderer *sr);
 
 /*inits rendering info for the node - shall be called for all nodes the parent system doesn't handle*/
 void gf_sr_on_node_init(GF_Renderer *sr, GF_Node *node);
@@ -80,9 +80,6 @@ void gf_sr_user_event(GF_Renderer *sr, GF_Event *event);
 X and Y are point coordinates in the display expressed in BIFS-like fashion (0,0) at center of 
 display and Y increasing from bottom to top*/
 void gf_sr_map_point(GF_Renderer *sr, s32 X, s32 Y, Fixed *bifsX, Fixed *bifsY);
-
-/*forces a paint of the window*/
-void gf_sr_refresh(GF_Renderer *sr);
 
 /*signal the size of the display area has been changed*/
 GF_Err gf_sr_size_changed(GF_Renderer *sr, u32 NewWidth, u32 NewHeight);

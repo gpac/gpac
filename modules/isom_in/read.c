@@ -409,7 +409,14 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 	ch->channel = channel;
 	gf_list_add(read->channels, ch);
 	ch->track = track;
-	if (gf_isom_get_media_type(ch->owner->mov, ch->track) == GF_ISOM_MEDIA_OCR) ch->is_ocr = 1;
+	switch (gf_isom_get_media_type(ch->owner->mov, ch->track)) {
+	case GF_ISOM_MEDIA_OCR:
+		ch->streamType = GF_STREAM_OCR;
+		break;
+	case GF_ISOM_MEDIA_SCENE:
+		ch->streamType = GF_STREAM_SCENE;
+		break;
+	}
 
 	if (track) {
 		ch->has_edit_list = gf_isom_get_edit_segment_count(ch->owner->mov, ch->track) ? 1 : 0;
@@ -531,7 +538,7 @@ static u32 check_round(ISOMChannel *ch, u32 val_ts, Double val_range, Bool make_
 {
 	Double round_check = val_ts;
 	round_check /= ch->time_scale;
-	if (round_check != val_range) val_ts += make_greater ? 1 : -1;
+//	if (round_check != val_range) val_ts += make_greater ? 1 : -1;
 	return val_ts;
 }
 

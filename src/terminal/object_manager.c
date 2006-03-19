@@ -1058,6 +1058,12 @@ void gf_odm_play(GF_ObjectManager *odm)
 	Bool skip_od_st;
 	GF_NetworkCommand com;
 	MediaControlStack *ctrl;
+	GF_Clock *parent_ck = NULL;
+
+	if (odm->parentscene) {
+		parent_ck = gf_odm_get_media_clock(odm->parentscene->root_od);
+		if (!gf_odm_shares_clock(odm, parent_ck)) parent_ck = NULL;
+	}
 
 	skip_od_st = (odm->subscene && odm->subscene->static_media_ressources) ? 1 : 0;
 
@@ -1069,19 +1075,26 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 		com.base.on_channel = ch;
 		com.play.speed = 1.0;
-		/*plays from current time*/
-		ck_time = gf_clock_time(ch->clock);
-		ck_time /= 1000;
-		/*handle initial start - MPEG-4 is a bit annoying here, streams are not started through OD but through
-		scene nodes. If the stream runs on the BIFS/OD clock, the clock is already started at this point and we're 
-		sure to get at least a one-frame delay in PLAY, so just remove it - note we're generous (one second)
-		but this shouldn't hurt*/
-		if (ck_time<=1.0) ck_time = 0;
+		/*play from requested time (seeking or non-mpeg4 media control)*/
+		if (odm->current_time) {
+			ck_time = odm->current_time;
+			ck_time /= 1000;
+		}
+		/*play from current time*/
+		else {
+			ck_time = gf_clock_time(ch->clock);
+			ck_time /= 1000;
+			/*handle initial start - MPEG-4 is a bit annoying here, streams are not started through OD but through
+			scene nodes. If the stream runs on the BIFS/OD clock, the clock is already started at this point and we're 
+			sure to get at least a one-frame delay in PLAY, so just remove it - note we're generous (one second)
+			but this shouldn't hurt*/
+			if (ck_time<=1.0) ck_time = 0;
+		}
 		com.play.start_range = ck_time;
 		com.play.end_range = -1;
-		/*override range and speed with MC - here we don't adjust since mediaControl is here to give us the exact
-		media start time*/
-		ctrl = ODM_GetMediaControl(odm);
+		/*if object shares parent scene clock, do not use media control*/
+		ctrl = parent_ck ? NULL : ODM_GetMediaControl(odm);
+		/*override range and speed with MC*/
 		if (ctrl) {
 			MC_GetRange(ctrl, &com.play.start_range, &com.play.end_range);
 			com.play.speed = FIX2FLT(ctrl->control->mediaSpeed);
@@ -1090,6 +1103,19 @@ void gf_odm_play(GF_ObjectManager *odm)
 				com.play.start_range = ck_time;
 			}
 			gf_clock_set_speed(ch->clock, ctrl->control->mediaSpeed);
+			/*if requested seek time AND media control, adjust start range to current play time*/
+			if (odm->current_time) {
+				if ((com.play.start_range>=0) && (com.play.end_range>com.play.start_range)) {
+					if (ctrl->control->loop) {
+						Double active_dur = com.play.end_range - com.play.start_range;
+						while (ck_time>active_dur) ck_time -= active_dur;
+					} else {
+						ck_time = 0;
+						com.play.start_range = com.play.end_range;
+					}
+				}
+				com.play.start_range += ck_time;
+			}
 		}
 		/*user-defined seek on top scene*/
 		else if (odm->term->root_scene->root_od==odm) {
@@ -1123,13 +1149,13 @@ void gf_odm_play(GF_ObjectManager *odm)
 	}
 	/*if root OD reset the global seek time*/	
 	if (odm->term->root_scene->root_od==odm) odm->term->restart_time = 0;
-
+	odm->current_time = 0;
 
 	/*start codecs last (otherwise we end up pulling data from channels not yet connected->pbs when seeking)*/
 	if (odm->codec) {
 		/*reset*/
 		if (odm->codec->CB) {
-			CB_SetStatus(odm->codec->CB, CB_STOP);
+			gf_cm_set_status(odm->codec->CB, CB_STOP);
 			odm->codec->CB->HasSeenEOS = 0;
 		}
 		gf_mm_start_codec(odm->codec);

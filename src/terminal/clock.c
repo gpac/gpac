@@ -164,6 +164,7 @@ void gf_clock_set_time(GF_Clock *ck, u32 TS)
 		ck->clock_init = 1;
 		/*update starttime and pausetime even in pause mode*/
 		ck->PauseTime = ck->StartTime = gf_term_get_time(ck->term);
+		if (ck->term->play_state) ck->Paused ++;
 	}
 	/*TODO: test with pure OCR streams*/
 	if (ck->use_ocr) {
