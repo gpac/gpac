@@ -75,6 +75,13 @@ struct __tag_socket
 };
 
 
+void gf_get_ntp(u32 *sec, u32 *frac)
+{
+	struct timeval now;
+	gettimeofday(&now, NULL);
+	*sec = now.tv_sec + GF_NTP_SEC_1900_TO_1970;
+	*frac = (now.tv_usec << 12) + (now.tv_usec << 8) - ((now.tv_usec * 3650) >> 6);
+}
 
 GF_Err gf_sk_get_host_name(char *buffer)
 {

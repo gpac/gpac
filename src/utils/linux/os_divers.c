@@ -90,19 +90,6 @@ void gf_sleep(u32 ms)
 }
 
 
-/*
-		Some NTP tools
-*/
-
-void gf_get_ntp(u32 *sec, u32 *frac)
-{
-	struct timeval now;
-	gettimeofday(&now, NULL);
-	*sec = now.tv_sec + GF_NTP_SEC_1900_TO_1970;
-	*frac = (now.tv_usec << 12) + (now.tv_usec << 8) - ((now.tv_usec * 3650) >> 6);
-}
-
-
 void gf_delete_file(char *fileName)
 {
 	remove(fileName);
