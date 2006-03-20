@@ -86,6 +86,8 @@ void PrintUsage()
 		"\t-size WxH:      specifies size for dumping (default: scene size)\n"
 		"\t-2d:            uses 2D renderer\n"
 		"\t-3d:            uses 3D renderer\n"
+		"\t-fill:          uses fill aspect ratio for dumping (default: none)\n"
+		"\t-show:          show window while dumping (default: no)\n"
 		"MP4Client - GPAC command line player and dumper - version %s\n"
 		"GPAC Written by Jean Le Feuvre (c) 2001-2005 - ENST (c) 2005-200X\n",
 
@@ -588,6 +590,7 @@ void set_navigation()
 static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 {
 	char *str;
+	Float var;
 	Double sec;
 	u32 h, m, s, ms, f, fps;
 	if (!arg || (arg[0]=='-') || !isdigit(arg[0])) return 0;
@@ -612,8 +615,8 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 			sec /= 1000;
 			sec += 3600*h + 60*m + s;
 			times[*nb_times] = (u32) (1000*sec);
-			*nb_times ++;
-		} else if (sscanf(arg, "%f", &sec)==1) {
+			(*nb_times) ++;
+		} else if (sscanf(arg, "%f", &var)==1) {
 			sec = atof(arg);
 			times[*nb_times] = (u32) (1000*sec);
 			(*nb_times) ++;
@@ -630,7 +633,7 @@ int main (int argc, char **argv)
 	const char *str;
 	u32 i, width, height, times[100], nb_times, rend_mode, dump_mode;
 	Double fps = 25.0;
-	Bool ret;
+	Bool ret, fill_ar, visible;
 	char *url_arg, *the_cfg, *rti_file;
 	GF_User user;
 	GF_SystemRTInfo rti;
@@ -642,6 +645,7 @@ int main (int argc, char **argv)
 	memset(&user, 0, sizeof(GF_User));
 
 	dump_mode = rend_mode = 0;
+	fill_ar = visible = 0;
 	url_arg = the_cfg = rti_file = NULL;
 	width = height = 0;
 	nb_times = 0;
@@ -657,6 +661,10 @@ int main (int argc, char **argv)
 		} else if (!strcmp(arg, "-rti")) {
 			rti_file = argv[i+1];
 			i++;
+		} else if (!strcmp(arg, "-fill")) {
+			fill_ar = 1;
+		} else if (!strcmp(arg, "-show")) {
+			visible = 1;
 		} else if (!strcmp(arg, "-avi")) {
 			dump_mode = 1;
 			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
@@ -704,8 +712,8 @@ int main (int argc, char **argv)
 	if (dump_mode) {
 		if (rend_mode==2) user.init_flags |= GF_TERM_INIT_FORCE_3D;
 		else if (rend_mode==1) user.init_flags |= GF_TERM_INIT_FORCE_2D;
-
-		user.init_flags |= GF_TERM_INIT_NOT_THREADED | GF_TERM_INIT_HIDE;
+		user.init_flags |= GF_TERM_INIT_NOT_THREADED /*| GF_TERM_INIT_HIDE*/;
+		if (!visible) user.init_flags |= GF_TERM_INIT_HIDE;
 	}
 
 	fprintf(stdout, "Loading modules ... ");
@@ -742,6 +750,7 @@ int main (int argc, char **argv)
 
 	if (dump_mode) {
 //		gf_term_set_option(term, GF_OPT_VISIBLE, 0);
+		if (fill_ar) gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_FILL_SCREEN);
 	} else {
 		/*check video output*/
 		str = gf_cfg_get_key(cfg_file, "Video", "DriverName");
@@ -768,9 +777,19 @@ int main (int argc, char **argv)
 		UpdateRTInfo();
 	}
 
+	Run = 1;
+	ret = 1;
+	if (dump_mode) {
+		if (!nb_times) {
+			times[0] = 0;
+			nb_times++;
+		}
+		ret = dump_file(url_arg, dump_mode, fps, width, height, times, nb_times);
+		Run = 0;
+	}
 	
 	/*connect if requested*/
-	if (url_arg) {
+	else if (url_arg) {
 		char *ext;
 		strcpy(the_url, url_arg);
 		ext = strrchr(the_url, '.');
@@ -790,16 +809,6 @@ int main (int argc, char **argv)
 		}
 	} else {
 		fprintf(stdout, "Hit 'h' for help\n\n");
-	}
-	Run = 1;
-	ret = 1;
-	if (dump_mode) {
-		if (!nb_times) {
-			times[0] = 0;
-			nb_times++;
-		}
-		ret = dump_file(the_url, dump_mode, fps, width, height, times, nb_times);
-		Run = 0;
 	}
 
 

@@ -24,11 +24,12 @@
  */
 
 
+#include <gpac/terminal.h>
+#include <gpac/options.h>
+
 #ifdef WIN32
 #include <windows.h>
-#define GPAC_CFG_FILE "GPAC.cfg"
 #else
-#include <pwd.h>
 typedef struct tagBITMAPFILEHEADER 
 {
     u16	bfType;
@@ -54,15 +55,12 @@ typedef struct tagBITMAPINFOHEADER{
 
 #define BI_RGB        0L
 
-#define GPAC_CFG_FILE ".gpacrc"
 #endif
 
-#include <gpac/terminal.h>
-#include <gpac/options.h>
+
 #include <gpac/internal/avilib.h>
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/renderer_dev.h>
-
 
 extern Bool is_connected;
 extern GF_Terminal *term;
@@ -254,16 +252,21 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 	gf_sr_release_screen_buffer(term->renderer, &fb);
 }
 
-Bool dump_file(char *fileName, u32 dump_mode, Double fps, u32 width, u32 height, u32 *times, u32 nb_times)
+Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 *times, u32 nb_times)
 {
 	u32 i = 0;
+	GF_VideoSurface fb;
 	char szPath[MAX_PATH];
-	char *prev = strrchr(fileName, '//');
-	if (!prev) prev = strrchr(fileName, '\\');
-	if (!prev) prev = fileName;
+	char *prev = strrchr(url, '//');
+	if (!prev) prev = strrchr(url, '\\');
+	if (!prev) prev = url;
 	strcpy(szPath, prev);
 	prev = strrchr(szPath, '.');
 	if (prev) prev[0] = 0;
+
+	fprintf(stdout, "Opening URL %s\n", url);
+	/*connect in pause mode*/
+	gf_term_connect_from_time(term, url, 0, 1);
 
 	while (!term->renderer->scene) {
 		if (last_error) return 1;
@@ -271,18 +274,28 @@ Bool dump_file(char *fileName, u32 dump_mode, Double fps, u32 width, u32 height,
 		gf_sleep(10);
 	}
 	
-	if (!width || !height) {
-		GF_VideoSurface fb;
-		gf_sr_get_screen_buffer(term->renderer, &fb);
-		width = fb.width;
-		height = fb.height;
-		gf_sr_release_screen_buffer(term->renderer, &fb);
+	if (width && height) {
+		gf_term_set_size(term, width, height);
+		gf_term_process(term);
 	}
+
+	gf_sr_get_screen_buffer(term->renderer, &fb);
+	width = fb.width;
+	height = fb.height;
+	gf_sr_release_screen_buffer(term->renderer, &fb);
 
 	/*we work in RGB24, and we must make sure the pitch is %4*/
 	if ((width*3)%4) {
 		fprintf(stdout, "Adjusting width (%d) to have a stride multiple of 4\n", width);
 		while ((width*3)%4) width--;
+
+		gf_term_set_size(term, width, height);
+		gf_term_process(term);
+
+		gf_sr_get_screen_buffer(term->renderer, &fb);
+		width = fb.width;
+		height = fb.height;
+		gf_sr_release_screen_buffer(term->renderer, &fb);
 	}
 
 	if (dump_mode==1) {
@@ -297,23 +310,29 @@ Bool dump_file(char *fileName, u32 dump_mode, Double fps, u32 width, u32 height,
 			return 1;
 		}
 		if (!fps) fps = 25.0;
-		comp[0] = comp[1] = comp[2] = comp[3] = comp[4] = 0;
-		AVI_set_video(avi_out, width, height, fps, comp);
-		conv_buf = malloc(sizeof(char) * width * height * 3);
-
 		time = prev_time = 0;
 		nb_frames = 0;
 
 		if (nb_times==2) {
-			gf_term_play_from_time(term, times[0], 1);
+			prev_time = times[0];
 			dump_dur = times[1] - times[0];
 		} else {
-			gf_term_play_from_time(term, 0, 1);
 			dump_dur = times[0] ? times[0] : Duration;
 		}
+		if (!dump_dur) {
+			fprintf(stdout, "Warning: file has no duration, defaulting to 1 sec\n");
+			dump_dur = 1000;
+		}
+
+		comp[0] = comp[1] = comp[2] = comp[3] = comp[4] = 0;
+		AVI_set_video(avi_out, width, height, fps, comp);
+		conv_buf = malloc(sizeof(char) * width * height * 3);
+
+		/*step to first frame*/
+		if (prev_time) gf_term_step_clocks(term, prev_time);
 
 		while (time < dump_dur) {
-			while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE) || term->renderer->draw_next_frame) {
+			while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
 				gf_term_process(term);
 			}
 			fprintf(stdout, "Dumping %02d/100\r", (u32) ((100.0*prev_time)/dump_dur) );
@@ -329,10 +348,10 @@ Bool dump_file(char *fileName, u32 dump_mode, Double fps, u32 width, u32 height,
 		free(conv_buf);
 		fprintf(stdout, "AVI Extraction 100/100\n");
 	} else {
-		gf_term_play_from_time(term, times[0], 1);
+		if (times[0]) gf_term_step_clocks(term, times[0]);
 
 		for (i=0; i<nb_times; i++) {
-			while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE) || term->renderer->draw_next_frame) {
+			while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
 				gf_term_process(term);
 			}
 			dump_frame(term, szPath, dump_mode, i+1, NULL, NULL);

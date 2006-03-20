@@ -266,7 +266,7 @@ GF_Config *loadconfigfile()
 	cfg = gf_cfg_new(szPath, "GPAC.cfg");
 #else
 	/*linux*/
-	char *cfg_dir = getenv("HOME");
+	cfg_dir = getenv("HOME");
 	if (cfg_dir) {
 		strcpy(szPath, cfg_dir);
 	} else {
