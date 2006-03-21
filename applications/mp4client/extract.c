@@ -67,6 +67,11 @@ extern GF_Terminal *term;
 extern u32 Duration;
 extern GF_Err last_error;
 
+static GFINLINE u8 colmask(s32 a, s32 n)
+{
+    s32 mask = (1 << n) - 1;
+    return (u8) (a & (0xff & ~mask)) | ((-((a >> n) & 1)) & mask);
+}
 
 void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 {
@@ -75,7 +80,7 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	BITMAPINFOHEADER fi;
 	FILE *fout;
 	u32 j, i;
-	u16 src_16;
+	u16 col;
 	char *ptr;
 
 	sprintf(str, "%s_%d.bmp", rad_name, img_num);
@@ -136,17 +141,17 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 				ptr+=3;
 				break;
 			case GF_PIXEL_RGB_565:
-				src_16 = * (u16 *)ptr;
-				fputc(src_16 & 0x1F, fout);
-				fputc((src_16>>5) & 0x3F, fout);
-				fputc((src_16>>11) & 0x1F, fout);
+				col = * (u16 *)ptr;
+				fputc(colmask(col >> (11 - 3), 3), fout);
+				fputc(colmask(col >> (5 - 2), 2), fout);
+				fputc(colmask(col << 3, 3), fout);
 				ptr+=2;
 				break;
 			case GF_PIXEL_RGB_555:
-				src_16 = * (u16 *)ptr;
-				fputc(src_16 & 0x1F, fout);
-				fputc((src_16>>5) & 0x1F, fout);
-				fputc((src_16>>10) & 0x1F, fout);
+				col = * (u16 *)ptr;
+				fputc(colmask(col >> (10 - 3), 3), fout);
+				fputc(colmask(col >> (5 - 3), 3), fout);
+				fputc(colmask(col << 3, 3), fout);
 				ptr+=2;
 				break;
 			}
