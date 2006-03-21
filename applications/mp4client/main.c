@@ -607,7 +607,7 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 		}
 	}
 	while (arg) {
-		str = strchr(arg, ';');
+		str = strchr(arg, '-');
 		if (str) str[0] = 0;
 		/*HH:MM:SS:MS time code*/
 		if (strchr(arg, ':') && (sscanf(arg, "%02d:%02d:%02d:%02d", &h, &m, &s, &ms)==4)) {
@@ -622,7 +622,7 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 			(*nb_times) ++;
 		}
 		if (!str) break;
-		str[0] = ';';
+		str[0] = '-';
 		arg = str+1;
 	}
 	return 1;

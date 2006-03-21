@@ -257,7 +257,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 	u32 i = 0;
 	GF_VideoSurface fb;
 	char szPath[GF_MAX_PATH];
-	char *prev = strrchr(url, '//');
+	char *prev = strrchr(url, '/');
 	if (!prev) prev = strrchr(url, '\\');
 	if (!prev) prev = url;
 	strcpy(szPath, prev);
