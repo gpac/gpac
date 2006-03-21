@@ -47,7 +47,7 @@ extern "C" {
 */
 
 /*interface name and version for audio output*/
-#define GF_AUDIO_OUTPUT_INTERFACE		GF_4CC('G','A','O', 0x01)
+#define GF_AUDIO_OUTPUT_INTERFACE		GF_4CC('G','A','O', 0x02)
 
 /*interface returned on query interface*/
 typedef struct _audiooutput
@@ -71,7 +71,7 @@ typedef struct _audiooutput
 	possible sampleRate able to handle NbChannels and NbBitsPerSample - if it doesn't handle the NbChannels
 	the internal mixer will do it
 	*/
-	u32 (*QueryOutputSampleRate)(struct _audiooutput *aout, u32 desired_samplerate, u32 NbChannels, u32 nbBitsPerSample);
+	GF_Err (*QueryOutputSampleRate)(struct _audiooutput *aout, u32 *io_desired_samplerate, u32 *io_NbChannels, u32 *io_nbBitsPerSample);
 
 	/*set output config - if audio is not running, driver must start it
 	*SampleRate, *NbChannels, *nbBitsPerSample: 

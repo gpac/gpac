@@ -383,27 +383,32 @@ static void WAV_SetPan(GF_AudioOutput *dr, u32 Pan) { }
 #endif
 
 
-static u32 WAV_QueryOutputSampleRate(GF_AudioOutput *dr, u32 desired_samplerate, u32 NbChannels, u32 nbBitsPerSample)
+static GF_Err WAV_QueryOutputSampleRate(GF_AudioOutput *dr, u32 *desired_samplerate, u32 *NbChannels, u32 *nbBitsPerSample)
 {
 	/*iPaq's output frequencies available*/
 #ifdef _WIN32_WCE
-	switch (desired_samplerate) {
+	switch (*desired_samplerate) {
 	case 11025:
 	case 22050:
-		return 22050;
+		*desired_samplerate = 22050;
+		break;
 	case 8000:
 	case 16000:
 	case 32000:
-		return 44100;
+		*desired_samplerate = 44100;
+		break;
 	case 24000:
 	case 48000:
-		return 44100;
-	case 44100: return 44100;
+		*desired_samplerate = 44100;
+		break;
+	case 44100:
+		*desired_samplerate = 44100;
+		break;
 	default:
-		return desired_samplerate;
+		break;
 	}
 #else
-	return desired_samplerate;
+	return GF_OK;
 #endif
 }
 

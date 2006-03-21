@@ -191,11 +191,11 @@ void gf_mixer_remove_input(GF_AudioMixer *am, GF_AudioInterface *src)
 }
 
 
-static u32 get_best_samplerate(GF_AudioMixer *am, u32 obj_samplerate, u32 outCH, u32 outBPS)
+static GF_Err get_best_samplerate(GF_AudioMixer *am, u32 *out_sr, u32 *out_ch, u32 *out_bps)
 {
-	if (!am->ar) return obj_samplerate;
-	if (!am->ar->audio_out || !am->ar->audio_out->QueryOutputSampleRate) return obj_samplerate;
-	return am->ar->audio_out->QueryOutputSampleRate(am->ar->audio_out, obj_samplerate, outCH, outBPS);
+	if (!am->ar) return GF_OK;
+	if (!am->ar->audio_out || !am->ar->audio_out->QueryOutputSampleRate) return GF_OK;
+	return am->ar->audio_out->QueryOutputSampleRate(am->ar->audio_out, out_sr, out_ch, out_bps);
 }
 
 void gf_mixer_get_config(GF_AudioMixer *am, u32 *outSR, u32 *outCH, u32 *outBPS, u32 *outChCfg)
@@ -214,10 +214,12 @@ void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outBPS, u3
 	gf_mixer_lock(am, 1);
 	am->bits_per_sample = outBPS;
 	if (!am->force_channel_out) am->nb_channels = outCH;
-	am->sample_rate = get_best_samplerate(am, outSR, outCH, outBPS);
-	if (outCH>2) am->channel_cfg = outChCfg;
-	else if (outCH==2) am->channel_cfg = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT;
-	else am->channel_cfg = GF_AUDIO_CH_FRONT_LEFT;
+	if (get_best_samplerate(am, &outSR, &outCH, &outBPS) == GF_OK) {
+		am->sample_rate = outSR;
+		if (outCH>2) am->channel_cfg = outChCfg;
+		else if (outCH==2) am->channel_cfg = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT;
+		else am->channel_cfg = GF_AUDIO_CH_FRONT_LEFT;
+	}
 	/*if main mixer recfg output*/
 	if (am->ar)	am->ar->need_reconfig = 1;
 	gf_mixer_lock(am, 0);

@@ -162,10 +162,10 @@ static void SDLAud_SetPriority(GF_AudioOutput *dr, u32 priority)
 	/*not supported by SDL*/
 }
 
-static u32 SDLAud_QueryOutputSampleRate(GF_AudioOutput *dr, u32 desired_samplerate, u32 NbChannels, u32 nbBitsPerSample)
+static GF_Err SDLAud_QueryOutputSampleRate(GF_AudioOutput *dr, u32 *desired_samplerate, u32 *NbChannels, u32 *nbBitsPerSample)
 {
 	/*cannot query supported formats in SDL...*/
-	return desired_samplerate;
+	return GF_OK;
 }
 
 void *SDL_NewAudio()

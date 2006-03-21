@@ -349,10 +349,10 @@ void DS_WriteAudio(GF_AudioOutput *dr)
 	}
 }
 
-static u32 DS_QueryOutputSampleRate(GF_AudioOutput *dr, u32 desired_samplerate, u32 NbChannels, u32 nbBitsPerSample)
+static GF_Err DS_QueryOutputSampleRate(GF_AudioOutput *dr, u32 *desired_samplerate, u32 *NbChannels, u32 *nbBitsPerSample)
 {
 	/*all sample rates supported for now ... */
-	return desired_samplerate;
+	return GF_OK;
 }
 
 static void DS_Play(GF_AudioOutput *dr, u32 PlayType)
