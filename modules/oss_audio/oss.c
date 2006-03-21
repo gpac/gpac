@@ -39,8 +39,9 @@
 
 typedef struct 
 {
-	int audio_dev;
+	int audio_dev, sr, nb_ch;
 	u32 buf_size, delay, num_buffers, total_duration;
+	u32 force_sr;
 	char *wav_buf;
 } OSSContext;
 
@@ -51,7 +52,12 @@ typedef struct
 static GF_Err OSS_Setup(GF_AudioOutput*dr, void *os_handle, u32 num_buffers, u32 total_duration)
 {
 	int audio;
+	const char *opt;
 	OSSCTX();
+
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "OSS", "ForceSampleRate");
+	if (opt) ctx->force_sr = atoi(opt);
+
 	/*open OSS in non-blocking mode*/
 	if((audio=open(OSS_AUDIO_DEVICE,O_WRONLY|O_NDELAY))==-1) 
 	  return GF_NOT_SUPPORTED;
@@ -76,7 +82,7 @@ static void OSS_Shutdown(GF_AudioOutput*dr)
 
 static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg)
 {
-	int i, format, blockalign, frag_size, nb_bufs, frag_spec;
+	int format, blockalign, frag_size, nb_bufs, frag_spec;
 	long flags;
 	OSSCTX();
 
@@ -87,7 +93,6 @@ static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCha
 	if (ctx->wav_buf) free(ctx->wav_buf);
 	ctx->wav_buf = NULL;
 	ctx->audio_dev=open(OSS_AUDIO_DEVICE,O_WRONLY);
-	blockalign = i =(*NbChannels);
 
 	/* Make the file descriptor use blocking writes with fcntl() so that 
 	 we don't have to handle sleep() ourselves*/
@@ -95,7 +100,10 @@ static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCha
 	flags &= ~O_NONBLOCK;
 	if (fcntl(ctx->audio_dev, F_SETFL, flags) < 0 ) return GF_IO_ERR;
 
-	if (ioctl(ctx->audio_dev, SNDCTL_DSP_CHANNELS,&i)==-1) return GF_IO_ERR;	
+	ctx->nb_ch = (int) (*NbChannels);
+	if (ioctl(ctx->audio_dev, SNDCTL_DSP_CHANNELS, &ctx->nb_ch)==-1) return GF_IO_ERR;
+
+	blockalign = ctx->nb_ch;
 	if ((*nbBitsPerSample) == 16) {
 	  blockalign *= 2;
 	  format = AFMT_S16_LE;
@@ -103,8 +111,8 @@ static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCha
 	  format = AFMT_S8;
 	}
 	if(ioctl(ctx->audio_dev, SNDCTL_DSP_SETFMT,&format)==-1) return GF_IO_ERR;
-	i=(*SampleRate);
-	if(ioctl(ctx->audio_dev, SNDCTL_DSP_SPEED,&i)==-1) return GF_IO_ERR;
+        ctx->sr = (*SampleRate);
+	if(ioctl(ctx->audio_dev, SNDCTL_DSP_SPEED,&ctx->sr)==-1) return GF_IO_ERR;
 	if (ctx->num_buffers && ctx->total_duration) {
 		frag_size = (*SampleRate) * ctx->total_duration * blockalign;
 		frag_size /= (1000 * ctx->num_buffers);
@@ -155,27 +163,33 @@ static u32 OSS_GetAudioDelay(GF_AudioOutput*dr)
  *
  * todo: supported samplerate could depend on nb_channels and format
  */
-static u32 OSS_QueryOutputSampleRate(GF_AudioOutput*dr, u32 desired_sr, u32 NbChannels, u32 nbBitsPerSample)
+static GF_Err OSS_QueryOutputSampleRate(GF_AudioOutput*dr, u32 *desired_sr, u32 *NbChannels, u32 *nbBitsPerSample)
 {
 #ifdef FORCE_SR_LIMIT
-  if (!(desired_sr % 11025)) return desired_sr;
-  if (desired_sr<22050) return 22050;
-  return 44100;
+  *NbChannels = 2;
+  if (!( *desired_sr % 11025)) return GF_OK;
+  if (*desired_sr<22050) *desired_sr = 22050;
+  else *desired_sr = 44100;
+  return GF_OK;
 #else
-  return desired_sr;
-#endif
-
-#if 0
 	/* reset and reopen audio-device */
 	int i;
 	OSSCTX();
-	ioctl(ctx->audio_dev,SNDCTL_DSP_RESET);
-	close(ctx->audio_dev);
-	ctx->audio_dev=open(OSS_AUDIO_DEVICE,O_WRONLY);
-	i=desired_sr;
-	if(ioctl(ctx->audio_dev, SNDCTL_DSP_SPEED,&i)==-1) return 44100;
-	fprintf(stdout, "OSS uses samplerate %d for desired sr %d\n", i, desired_sr);
-	return i;
+	if (ctx->force_sr) {
+	  *desired_sr = ctx->force_sr;
+	  return GF_OK;
+	}
+	i=*desired_sr;
+	if(ioctl(ctx->audio_dev, SNDCTL_DSP_SPEED,&i)==-1) return GF_IO_ERR;
+	//fprintf(stdout, "OSS uses samplerate %d for desired sr %d\n", i, *desired_sr);
+	*desired_sr = i;
+	i = *NbChannels;
+	if(ioctl(ctx->audio_dev,SNDCTL_DSP_CHANNELS, &i)==-1) return GF_IO_ERR;
+	//fprintf(stdout, "OSS uses %d channels for %d desired ones\n", i, *NbChannels);
+	*NbChannels = i;
+	if(ioctl(ctx->audio_dev, SNDCTL_DSP_SPEED,&ctx->sr)==-1) return GF_OK;
+	if(ioctl(ctx->audio_dev,SNDCTL_DSP_CHANNELS, &ctx->nb_ch)==-1) return GF_OK;
+	return GF_OK;
 #endif
 }
 

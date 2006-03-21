@@ -695,7 +695,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		xWindow->videoaccesstype = VIDEO_XI_SHMPIXMAP;
 	    } else {
 	      xWindow->videoaccesstype = VIDEO_XI_SHMSTD;
-	      fprintf(stdout, "\nUsing X11 Hardware Blit\n");
+	      //fprintf(stdout, "\nUsing X11 Hardware Blit\n");
 	    }
 	  }
 	}

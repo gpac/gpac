@@ -88,6 +88,18 @@ else
 	install -D -m 755 ../../bin/gcc/nposmozilla.xpt "$(MOZILLA_DIR)/components/nposmozilla.xpt"
 endif
 
+uninstall:
+ifeq ($(MOZILLA_DIR), local)
+ifeq ($(USER_NAME), root)
+else
+	rm -rf "$(HOME)/.mozilla/plugins/$(LIB)"
+	rm -rf "$(HOME)/.mozilla/components/nposmozilla.xpt"
+endif
+else
+	rm -rf "$(MOZILLA_DIR)/components/$(LIB)"
+	rm -rf "$(MOZILLA_DIR)/components/nposmozilla.xpt"
+endif
+
 dep: depend
 
 depend:
