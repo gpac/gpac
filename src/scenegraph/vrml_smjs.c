@@ -499,6 +499,7 @@ void Script_FieldChanged(GF_Node *parent, GF_JSField *parent_owner, GF_FieldInfo
 
 	if ((parent->sgprivate->tag != TAG_MPEG4_Script) && (parent->sgprivate->tag != TAG_X3D_Script) ) {
 		if (field->on_event_in) field->on_event_in(parent);
+		gf_sg_proto_check_field_change(parent, field->fieldIndex);
 		/*field has changed, set routes...*/
 		gf_node_event_out(parent, field->fieldIndex);
 		gf_node_changed(parent, field);
@@ -3000,6 +3001,11 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 		for (i=0; i<size; i++) {
 			JSObject *pf = JS_NewObject(priv->js_ctx, &SFNodeClass, 0, obj);
 			n = gf_list_get(f, i);
+			if (n->sgprivate->tag == TAG_ProtoNode) {
+				GF_ProtoInstance *proto_inst = (GF_ProtoInstance *) n;
+				if (!proto_inst->RenderingNode) 
+					gf_sg_proto_instanciate(proto_inst);
+			}
 			if (parent) {
 				slot = NewJSField();
 				slot->owner = parent;

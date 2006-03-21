@@ -1,5 +1,6 @@
 #include "safe_include.h" 
 #include <gpac/terminal.h>
+#include <gpac/options.h>
 
 #include "wx/wxprec.h"
 
@@ -52,7 +53,7 @@ Bool V4S_EventProc(void *par, GF_Event *evt)
 
 	switch (evt->type) {
 	case GF_EVT_REFRESH:
-		gf_term_set_option(panel->GetMPEG4Terminal(), GF_OPTION_REFRESH, 0);
+		gf_term_set_option(panel->GetMPEG4Terminal(), GF_OPT_REFRESH, 0);
 		break;
 	case GF_EVT_SIZE:
 //		gf_sr_set_size(panel->GetSceneRenderer(), evt->size.width, evt->size.height);

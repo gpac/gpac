@@ -2464,7 +2464,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 			top->container_field.far_ptr = NULL;
 			top->container_field.name = NULL;
 		} else if (top->node->sgprivate->tag == TAG_ProtoNode) {
-			if (!strcmp(name, "node")) {
+			if (!strcmp(name, "node") || !strcmp(name, "nodes")) {
 				top->container_field.far_ptr = NULL;
 				top->container_field.name = NULL;
 			} else if (!strcmp(name, "ProtoInstance")) {

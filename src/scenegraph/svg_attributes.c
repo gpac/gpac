@@ -330,7 +330,7 @@ static void svg_parse_color(SVG_Color *col, char *attribute_content)
 			col->blue = INT2FIX(val & 0xF) / 15;
 		}
 		col->type = SVG_COLOR_RGBCOLOR;
-	} else if (strstr(str, "rgb(")) {
+	} else if (strstr(str, "rgb(") || strstr(str, "RGB(")) {
 		Float _val;
 		u8 is_percentage= 0;
 		if (strstr(str, "%")) is_percentage = 1;
@@ -714,7 +714,7 @@ static void svg_parse_path(SVG_PathData *d_attribute, char *attribute_content)
 		while(1) {
 			while ( (d[i]==' ') || (d[i] =='\t') ) i++;			
 			c = d[i];
-			if (c == SVG_PATHCOMMAND_M) break;
+			if (! c) break;
 next_command:
 			switch (c) {
 			case 'm':
@@ -727,7 +727,7 @@ next_command:
 				gf_list_add(d_commands, command);
 				if (c == 'M' || c == 'm') *command = SVG_PATHCOMMAND_M;
 				if (c == 'L' || c == 'l') {
-					*command = 1;
+					*command = SVG_PATHCOMMAND_L;
 					subpath_closed = SVG_PATHCOMMAND_L;	
 				}
 				

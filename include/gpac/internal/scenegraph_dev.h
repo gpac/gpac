@@ -345,6 +345,7 @@ typedef struct {
 typedef struct _smil_timing_rti
 {
 	SVGElement *timed_elt;
+	Double scene_time;
 
 	/* SMIL element life-cycle status */
 	u8 status;
@@ -370,7 +371,8 @@ typedef struct _smil_timing_rti
 void gf_smil_timing_init_runtime_info(SVGElement *timed_elt);
 void gf_smil_timing_delete_runtime_info(SVGElement *timed_elt);
 Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double scene_time);
-void gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time);
+/*returns 1 if animation changed the target value/element/... */
+Bool gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time);
 
 /* SMIL Animation Structures */
 /* This structure is used per animated attribute,

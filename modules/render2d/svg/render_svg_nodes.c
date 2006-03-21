@@ -303,10 +303,12 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 	if (svg->x.value || svg->y.value) gf_mx2d_add_translation(&eff->transform, svg->x.value, svg->y.value);
 	SVGSetViewport(eff, svg, is_root_svg);
 
-	/* TODO: FIX ME: make sure this is called only when needed 
-	or should we use eff->surface->default_back_color */
+	/* TODO: FIX ME: this only works for single SVG elemnt in the doc*/
 	viewport_color = GF_COL_ARGB_FIXED(eff->svg_props->viewport_fill_opacity->value, eff->svg_props->viewport_fill->color.red, eff->svg_props->viewport_fill->color.green, eff->svg_props->viewport_fill->color.blue);
-	VS2D_Clear(eff->surface, &top_clip, viewport_color);
+	if (eff->surface->render->back_color != viewport_color) {
+		eff->invalidate_all = 1;
+		eff->surface->render->back_color = viewport_color;
+	}
 		
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
 		svg_get_nodes_bounds(node, svg->children, eff);
@@ -1149,7 +1151,7 @@ void SVG_Render_base(GF_Node *node, RenderEffect2D *eff, SVGPropertiesPointers *
 	gf_svg_properties_apply(node, eff->svg_props);
 
 	/*TODO FIXME - this is because we don't have proper dirty signaling for SVG yet*/
-	if (gf_node_dirty_get(node) & GF_SG_SVG_APPEARANCE_DIRTY) eff->invalidate_all = 1;
+//	if (gf_node_dirty_get(node) & GF_SG_SVG_APPEARANCE_DIRTY) eff->invalidate_all = 1;
 }
 
 

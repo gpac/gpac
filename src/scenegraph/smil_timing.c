@@ -42,6 +42,7 @@ void gf_smil_timing_init_runtime_info(SVGElement *timed_elt)
 	rti->activation = gf_smil_timing_null_timed_function;
 	rti->freeze = gf_smil_timing_null_timed_function;
 	rti->restore = gf_smil_timing_null_timed_function;
+	rti->scene_time = -1;
 
 	timed_elt->timing->runtime = rti;
 }
@@ -278,11 +279,16 @@ static s32 gf_smil_timing_find_interval_index(SMIL_Timing_RTI *rti, Double scene
 	return index;
 }
 
-void gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
+Bool gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 {
+	Bool ret = 1;
 	GF_DOM_Event evt;
 
+	if (rti->scene_time == scene_time) ret = 0;
+	rti->scene_time = scene_time;
+
 	rti->cycle_number++;
+
 //	fprintf(stdout, "Scene Time: %f - Timing Stack: %8x, Status: %d\n", scene_time, rti, rti->status);
 
 	if (rti->status == SMIL_STATUS_STARTUP) {
@@ -296,7 +302,7 @@ void gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 			rti->current_interval = gf_list_get(rti->intervals, rti->current_interval_index);
 			//gf_smil_timing_print_interval(stack->current_interval);
 		} else {
-			return;
+			return 0;
 		}
 	} 
 
@@ -308,7 +314,7 @@ waiting_to_begin:
 			evt.type = SVG_DOM_EVT_BEGIN;
 			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 		}
-		else return;
+		else return ret;
 	}
 
 	if (rti->status == SMIL_STATUS_ACTIVE) {
@@ -337,6 +343,7 @@ waiting_to_begin:
 
 		cur_id = rti->current_interval->nb_iterations;
 		simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
+		/*TODO FIXME: this should signal if target value has been changed*/
 		rti->activation(rti, simple_time);
 		if (cur_id < rti->current_interval->nb_iterations) {
 			memset(&evt, 0, sizeof(evt));
@@ -380,6 +387,7 @@ post_active:
 			}
 		}
 	}
+	return ret;
 }
 
 Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double scene_time) 

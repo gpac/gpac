@@ -242,7 +242,7 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)
 */
 void gf_svg_properties_apply(GF_Node *node, SVGPropertiesPointers *render_svg_props)
 {
-	u32 count_all, count, i,j;
+	u32 count_all, count, i,j, nb_modifs;
 	SVGElement *elt = (SVGElement*)node;
 
 	/*Step 1: perform inheritance*/
@@ -332,10 +332,12 @@ void gf_svg_properties_apply(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 
 	/*Step 2: handle all animations*/
 
+	nb_modifs = 0;
 	/*TODO FIXME - THIS IS WRONG, we're changing orders of animations which may corrupt the visual result*/
 	count_all = gf_node_animation_count(node);
 	/* Loop 1: For all animated attributes (target_attribute) */
 	for (i = 0; i < count_all; i++) {
+		u32 loc_modifs;
 		GF_FieldInfo underlying_value;
 		SMIL_AttributeAnimations *aa = gf_node_animation_get(node, i);		
 		count = gf_list_count(aa->anims);
@@ -355,19 +357,22 @@ void gf_svg_properties_apply(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 		aa->current_color_value.fieldType = SVG_Paint_datatype;
 		aa->current_color_value.far_ptr = render_svg_props->color;
 
+		loc_modifs = 0;
 		/* Loop 2: For all animations (anim) */
 		for (j = 0; j < count; j++) {
 			SMIL_Anim_RTI *rai = gf_list_get(aa->anims, j);			
-			gf_smil_timing_notify_time(rai->anim_elt->timing->runtime, gf_node_get_scene_time(node));
+			loc_modifs += gf_smil_timing_notify_time(rai->anim_elt->timing->runtime, gf_node_get_scene_time(node));
 		}
 		/* end of Loop 2 */
 
 		
 		/*TODO FIXME, we need a finer granularity here and we must know if the animated attribute has changed or not (freeze)...*/
-		gf_node_dirty_set(node, GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_SVG_APPEARANCE_DIRTY, 0);
+		if (loc_modifs) 
+			gf_node_dirty_set(node, GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_SVG_APPEARANCE_DIRTY, 0);
 
-		gf_node_changed(node, NULL);
-//		gf_sr_invalidate(eff->surface->render->compositor, NULL);
+		nb_modifs += loc_modifs;
 	}
+	if (nb_modifs) 
+		gf_node_changed(node, NULL);
 }
 

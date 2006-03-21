@@ -49,6 +49,9 @@ static void RenderSwitch(GF_Node *node, void *rs)
 	eff = (RenderEffect2D *)rs;
 
 
+	if (gf_node_get_name(node)) {
+		node = node;
+	}
 	/*WARNING: X3D/MPEG4 NOT COMPATIBLE*/
 	if (gf_node_get_tag(node)==TAG_MPEG4_Switch) {
 		children = ((M_Switch *)node)->choice;
