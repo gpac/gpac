@@ -36,7 +36,7 @@ u32 MM_Loop(void *par);
 enum
 {
 	MM_CE_IDLE = 0,
-	MM_CE_RUNNING,
+	MM_CE_ACTIVE,
 	MM_CE_DEAD,
 };
 
@@ -397,13 +397,13 @@ void gf_mm_start_codec(GF_Codec *codec)
 
 	gf_codec_set_status(codec, GF_ESM_CODEC_PLAY);
 
-	if (ce->state!=MM_CE_RUNNING) {
+	if (ce->state!=MM_CE_ACTIVE) {
 		if (ce->thread) {
-			ce->state = MM_CE_RUNNING;
+			ce->state = MM_CE_ACTIVE;
 			gf_th_run(ce->thread, RunSingleDec, ce);
 			gf_th_set_priority(ce->thread, mgr->priority);
 		} else {
-			ce->state = MM_CE_RUNNING;
+			ce->state = MM_CE_ACTIVE;
 			mgr->cumulated_priority += ce->dec->Priority+1;
 		}
 	}
@@ -434,8 +434,11 @@ void gf_mm_stop_codec(GF_Codec *codec)
 	/*set status directly and don't touch CB state*/
 	codec->Status = GF_ESM_CODEC_STOP;
 	/*don't wait for end of thread since this can be triggered within the decoding thread*/
-	ce->state = MM_CE_IDLE;
-	if (!ce->thread) mgr->cumulated_priority -= codec->Priority+1;
+	if (ce->state == MM_CE_ACTIVE) {
+		ce->state = MM_CE_IDLE;
+		if (!ce->thread) 
+			mgr->cumulated_priority -= codec->Priority+1;
+	}
 
 	if (ce->mx) gf_mx_v(ce->mx);
 }
@@ -459,13 +462,13 @@ void gf_mm_set_threading(GF_MediaManager *mgr, u32 mode)
 
 			prev_state = ce->state;
 			/*stop thread*/
-			if (ce->state==MM_CE_RUNNING) {
+			if (ce->state==MM_CE_ACTIVE) {
 				ce->state = 0;
 				while (ce->state != MM_CE_DEAD) gf_sleep(0);
 			}
-			if (prev_state==MM_CE_RUNNING) {
+			if (prev_state==MM_CE_ACTIVE) {
 				mgr->cumulated_priority += ce->dec->Priority+1;
-				ce->state = MM_CE_RUNNING;
+				ce->state = MM_CE_ACTIVE;
 			} else {
 				ce->state = MM_CE_IDLE;
 			}
@@ -481,7 +484,7 @@ void gf_mm_set_threading(GF_MediaManager *mgr, u32 mode)
 		while (gf_list_count(mgr->unthreaded_codecs)) {
 			CodecEntry *ce = gf_list_get(mgr->unthreaded_codecs, 0);
 			gf_list_rem(mgr->unthreaded_codecs, 0);
-			if (ce->state==MM_CE_RUNNING) mgr->cumulated_priority -= ce->dec->Priority+1;
+			if (ce->state==MM_CE_ACTIVE) mgr->cumulated_priority -= ce->dec->Priority+1;
 
 			ce->thread = gf_th_new();
 			ce->mx = gf_mx_new();
@@ -506,13 +509,13 @@ void gf_mm_set_threading(GF_MediaManager *mgr, u32 mode)
 			/*stop it*/
 			prev_state = ce->state;
 			/*stop thread*/
-			if (ce->state==MM_CE_RUNNING) {
+			if (ce->state==MM_CE_ACTIVE) {
 				ce->state = 0;
 				while (ce->state != MM_CE_DEAD) gf_sleep(0);
 			}
-			if (prev_state==MM_CE_RUNNING) {
+			if (prev_state==MM_CE_ACTIVE) {
 				mgr->cumulated_priority += ce->dec->Priority+1;
-				ce->state = MM_CE_RUNNING;
+				ce->state = MM_CE_ACTIVE;
 			} else {
 				ce->state = MM_CE_IDLE;
 			}
@@ -528,7 +531,7 @@ void gf_mm_set_threading(GF_MediaManager *mgr, u32 mode)
 			if (! ce->req_thread) continue;
 			gf_list_rem(mgr->unthreaded_codecs, i-1);
 			i--;
-			if (ce->state==MM_CE_RUNNING) mgr->cumulated_priority -= ce->dec->Priority+1;
+			if (ce->state==MM_CE_ACTIVE) mgr->cumulated_priority -= ce->dec->Priority+1;
 
 			/*add to unthreaded list*/
 			gf_list_add(mgr->threaded_codecs, ce);
