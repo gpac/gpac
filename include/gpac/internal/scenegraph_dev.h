@@ -183,6 +183,7 @@ struct __tag_scene_graph
 
 #ifndef GPAC_DISABLE_SVG
 	GF_List *xlink_hrefs;
+	GF_List *smil_timed_elements;
 #ifdef GPAC_HAS_SPIDERMONKEY
 	struct __tag_svg_script_ctx *svg_js;
 #endif
@@ -298,11 +299,12 @@ GF_Err gf_node_animation_del(GF_Node *node);
 u32 gf_node_animation_count(GF_Node *node);
 void *gf_node_animation_get(GF_Node *node, u32 i);
 
-Bool gf_svg_is_property_inherited(GF_FieldInfo *a);
+Bool gf_svg_is_inherit(GF_FieldInfo *a);
 Bool gf_svg_is_current_color(GF_FieldInfo *a);
-void *gf_svg_get_property_pointer(SVGPropertiesPointers *p, SVGElement *elt, void *orig_prop_ptr);
+void *gf_svg_get_property_pointer(SVGPropertiesPointers *rendering_property_context, 
+								  SVGProperties *elt_property_context, 
+								  void *input_attribute);
 void gf_svg_attributes_copy_computed_value(GF_FieldInfo *out, GF_FieldInfo *in, SVGElement*elt, void *orig_dom_ptr, SVGPropertiesPointers *inherited_props);
-void gf_svg_attributes_smart_copy(GF_FieldInfo *out, GF_FieldInfo *in, GF_FieldInfo *prop, GF_FieldInfo *current_color);
 void gf_svg_attributes_pointer_update(GF_FieldInfo *a, GF_FieldInfo *prop, GF_FieldInfo *current_color);
 
 
@@ -357,6 +359,8 @@ typedef struct _smil_timing_rti
 	s32	current_interval_index;
 	SMIL_Interval *current_interval;
 
+	void (*evaluate)(struct _smil_timing_rti *rti, Fixed normalized_simple_time);
+
 	/* is called only when the timed element is active */
 	void (*activation)(struct _smil_timing_rti *rti, Fixed normalized_simple_time);
 
@@ -376,16 +380,21 @@ Bool gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time);
 
 /* SMIL Animation Structures */
 /* This structure is used per animated attribute,
-   it contains all the animations applying to the same attribute,
-   and the presentation value passed from one animation to the next one */
+   it contains:
+    - all the animations applying to the same attribute,
+    - the specified value before any inheritance has been applied nor any animation started 
+	    (as specified in the SVG document),
+    - the presentation value passed from one animation to the next one,
+	- a pointer to the value of the color property (for handling of 'currentColor'),
+	- the location of the attribute in the elt structure when it was created 
+	   (used for fast comparison of SVG properties when animating from/to/by/values/... inherited values)
+*/
 typedef struct {
-	GF_FieldInfo presentation_value;
-	GF_FieldInfo saved_dom_value;
-	/*original location of the DOM attribute in the elt structure used for fast comparison of SVG 
-	properties when animating from/to/by/values/... inherited values*/
-	void *orig_dom_ptr;
-	GF_FieldInfo current_color_value;
 	GF_List *anims;
+	GF_FieldInfo saved_specified_value;
+	GF_FieldInfo presentation_value;
+	GF_FieldInfo current_color_value;
+	void *orig_dom_ptr;
 } SMIL_AttributeAnimations;
 
 /* This structure is per animation element, 
@@ -407,9 +416,9 @@ typedef struct {
 	   the key values is different from the target attribute type */
 	GF_FieldInfo tmp_value;
 
-	s32 previous_key_index;
-	Fixed previous_coef;
-	u32 last_keytime_index;
+	s32		previous_key_index;
+	Fixed	previous_coef;
+	u32		previous_keytime_index;
 
 	/* needed ? */
 	Bool target_value_changed;

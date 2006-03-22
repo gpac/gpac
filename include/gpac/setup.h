@@ -127,6 +127,7 @@ typedef unsigned int size_t;
 #include <stdarg.h>
 #include <assert.h>
 
+
 #endif	/*END WIN32 non win-ce*/
 
 #else	/*end WIN32 config*/

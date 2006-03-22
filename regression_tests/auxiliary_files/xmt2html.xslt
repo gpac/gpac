@@ -6,6 +6,12 @@
 	<xsl:param name="previous"/>
 	<xsl:param name="next"/>
 	<xsl:param name="use3d"/>
+	<xsl:param name="snapshot1"/>
+	<xsl:param name="snapshot2"/>
+	<xsl:param name="snapshot3"/>
+	<xsl:param name="snapshot4"/>
+	<xsl:param name="snapshot5"/>
+	<xsl:param name="snapshot6"/>
 	
 	<xsl:param name="title" select="//xmt:WorldInfo/@title"/>
 	
@@ -34,14 +40,15 @@
 				</div>
 				
 				<div id="contentview">
-    				<h2>Content</h2>
     				<div id="downloadbar">
+    				    <h2>Download</h2>
     					<ul>
-    						<li><a href="{$filename}.mp4">Download binary description (BIFS/MP4)</a></li>
-    						<li><a href="{$filename}.bt">Download textual description (BT)</a></li>
-    						<li><a href="{$filename}.xmt">Download XML description (XMT-A)</a></li>
+    						<li><a href="{$filename}.mp4">BIFS/MP4</a></li>
+    						<li><a href="{$filename}.bt">BT</a></li>
+    						<li><a href="{$filename}.xmt">XMT-A</a></li>
     					</ul>
     				</div>
+    				<h2>Viewer</h2>
     				<embed id="player" src="{$filename}.mp4" width="{//xmt:commandStream/xmt:size/@pixelWidth}"
     				                             height="{//xmt:commandStream/xmt:size/@pixelHeight}"
     				                             type="application/x-gpac"
@@ -59,6 +66,24 @@
 				</div>
 				<div id="snapshotview">
     				<h2>Snapshots</h2>
+    				<xsl:if test="$snapshot1">
+				        <img src="{$filename}_1.bmp" alt="Snapshot #1"/>
+    				</xsl:if>
+    				<xsl:if test="$snapshot2">
+    				    <img src="{$filename}_2.bmp" alt="Snapshot #2"/>
+    				</xsl:if>
+    				<xsl:if test="$snapshot3">
+    				    <img src="{$filename}_3.bmp" alt="Snapshot #3"/>
+    				</xsl:if>
+    				<xsl:if test="$snapshot4">
+    				    <img src="{$filename}_4.bmp" alt="Snapshot #4"/>
+    				</xsl:if>
+    				<xsl:if test="$snapshot5">
+    				    <img src="{$filename}_5.bmp" alt="Snapshot #5"/>
+    				</xsl:if>
+    				<xsl:if test="$snapshot6">
+    				    <img src="{$filename}_6.bmp" alt="Snapshot #6"/>
+    				</xsl:if>
 				</div>
 
 				<div id="codeview">

@@ -817,9 +817,9 @@ static void setup_SVG_drawable_context(DrawableContext *ctx, SVGPropertiesPointe
 
 	ctx->aspect.has_line = (props.stroke->type != SVG_PAINT_NONE);
 	if (props.stroke->type==SVG_PAINT_URI) {
-		if (svg_get_texture_type(ctx->node->owner, props.fill->uri) == TAG_SVG_solidColor) {
-			SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)svg_get_texture_target(ctx->node->owner, props.fill->uri);
-			ctx->aspect.line_color = GF_COL_ARGB_FIXED(solidColorElt->properties->solid_opacity.value, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);			
+		if (svg_get_texture_type(ctx->node->owner, props.stroke->uri) == TAG_SVG_solidColor) {
+			SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)svg_get_texture_target(ctx->node->owner, props.stroke->uri);
+			ctx->aspect.line_color = GF_COL_ARGB_FIXED(solidColorElt->properties->solid_opacity.value, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);
 		} else {
 			ctx->aspect.line_texture = svg_get_texture_handle(ctx->node->owner, props.stroke->uri);
 		}

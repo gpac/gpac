@@ -390,8 +390,6 @@ GF_Renderer *gf_sr_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 		gf_sr_set_size(tmp, 320, 20);
 	}
 
-	tmp->svg_animated_attributes = gf_list_new();
-	
 	gf_mx_v(tmp->mx);
 
 	return tmp;
@@ -436,8 +434,6 @@ void gf_sr_del(GF_Renderer *sr)
 	gf_list_del(sr->textures);
 	gf_list_del(sr->time_nodes);
 	gf_list_del(sr->extra_scenes);
-
-	gf_list_del(sr->svg_animated_attributes);
 
 	gf_sr_lock(sr, 0);
 	gf_mx_del(sr->mx);
@@ -579,13 +575,13 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 				if (l.type!=SVG_NUMBER_PERCENTAGE) {
 					width = FIX2INT(convert_svg_length_to_user(sr, &l) );
 				} else {
-					width = FIX2INT(root->viewBox.width);
+					width = 320; //FIX2INT(root->viewBox.width);
 				}
 				l = ((SVGsvgElement*)root)->height;
 				if (l.type!=SVG_NUMBER_PERCENTAGE) {
 					height = FIX2INT(convert_svg_length_to_user(sr, &l) );
 				} else {
-					height = FIX2INT(root->viewBox.height);
+					height = 240; //FIX2INT(root->viewBox.height);
 				}
 			}
 		}
@@ -1046,6 +1042,10 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	dirty flag set*/
 	gf_sg_activate_routes(sr->scene);
 
+	if (gf_sg_notify_smil_timed_elements(sr->scene)) {
+		sr->draw_next_frame = 1;
+	}
+
 	/*update all textures*/
 	count = gf_list_count(sr->textures);
 	for (i=0; i<count; i++) {
@@ -1087,8 +1087,6 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 		gf_sr_texture_release_stream(st);
 	}
 	end_time = gf_sys_clock() - in_time;
-
-	gf_list_reset(sr->svg_animated_attributes);
 
 	gf_sr_lock(sr, 0);
 

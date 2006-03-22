@@ -1148,7 +1148,7 @@ void SVG_Render_base(GF_Node *node, RenderEffect2D *eff, SVGPropertiesPointers *
 {
 	/* Apply inheritance */	
 	memcpy(backup_props, eff->svg_props, sizeof(SVGPropertiesPointers));
-	gf_svg_properties_apply(node, eff->svg_props);
+	gf_svg_apply_inheritance_and_animation(node, eff->svg_props);
 
 	/*TODO FIXME - this is because we don't have proper dirty signaling for SVG yet*/
 //	if (gf_node_dirty_get(node) & GF_SG_SVG_APPEARANCE_DIRTY) eff->invalidate_all = 1;

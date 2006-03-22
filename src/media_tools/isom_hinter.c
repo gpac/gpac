@@ -1065,7 +1065,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 				esd->URLString = malloc(sizeof(char) * (strlen(sdpLine)+1));
 				strcpy(esd->URLString, sdpLine);
 			} else {
-				fprintf(stdout, "Warning: BIFS sample too large to be embedded in IOD - ISMA disabled\n");
+				fprintf(stdout, "Warning: Scene description sample too large to be embedded in IOD - ISMA disabled\n");
 				is_ok = 0;
 			}
 			gf_isom_sample_del(&samp);

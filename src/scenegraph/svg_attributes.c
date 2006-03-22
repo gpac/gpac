@@ -3075,6 +3075,10 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 			} else {
 				sprintf(attValue, "%g", FIX2FLT( 180 * gf_divfix(pt->angle, GF_PI) ));
 			}
+		} else if (info->eventType==SVG_TRANSFORM_SKEWX || 
+				   info->eventType==SVG_TRANSFORM_SKEWY) {
+			Fixed *f = info->far_ptr;
+			sprintf(attValue, "%g", FIX2FLT( 180 * gf_divfix(*f, GF_PI) ));
 		} else {
 			SVG_Matrix *matrix = (SVG_Matrix *)info->far_ptr;
 #if 1
@@ -4210,6 +4214,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 				fprintf(stdout, "SVG: Warning, copy of attributes %s not supported\n", a->name);
 				return GF_NOT_SUPPORTED;
 			}
+			a->eventType = SVG_TRANSFORM_MATRIX;
 		} else {
 			gf_mx2d_copy(*(SVG_Matrix *)a->far_ptr, *(SVG_Matrix *)b->far_ptr);
 		}
@@ -4425,7 +4430,8 @@ GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldI
 
 }
 
-Bool gf_svg_is_property_inherited(GF_FieldInfo *a)
+/* TODO: Check that all possibly inherited types are treated */
+Bool gf_svg_is_inherit(GF_FieldInfo *a)
 {
 	switch (a->fieldType) {
 	case SVG_Color_datatype:
@@ -4510,36 +4516,46 @@ Bool gf_svg_is_current_color(GF_FieldInfo *a)
 	return 0;
 }
 
+/* Replaces the far pointer to the attribute value with either:
+     - the pointer to the value which is inherited 
+	 - the pointer to the value of the color attribute (if this attribute is set to currentColor) */
 void gf_svg_attributes_pointer_update(GF_FieldInfo *in, GF_FieldInfo *prop, GF_FieldInfo *current_color)
 {
 	if ((in->fieldType == SVG_Paint_datatype) && gf_svg_is_current_color(in)) {
 		*in = *current_color;
-	} else if (in->fieldType == 0 || gf_svg_is_property_inherited(in)) {
+	} else if (in->fieldType == 0 || gf_svg_is_inherit(in)) {
 		*in = *prop;
 	}
 }
 
-void gf_svg_attributes_smart_copy(GF_FieldInfo *out, GF_FieldInfo *in, GF_FieldInfo *prop, GF_FieldInfo *current_color)
-{
-	if (gf_svg_is_property_inherited(in)) {
-		gf_svg_attributes_copy(out, prop, 0);
-	} else if (gf_svg_is_current_color(in)) {
-		gf_svg_attributes_copy(out, current_color, 0);
-	} else {
-		gf_svg_attributes_copy(out, in, 0);
-	}
-}
-
-void gf_svg_attributes_copy_computed_value(GF_FieldInfo *out, GF_FieldInfo *in, SVGElement*elt, void *orig_dom_ptr, SVGPropertiesPointers *inherited_props)
+/* 
+	Returns the computed value based on the specified value, the element and the property context 
+	  computed_field_info: the far pointer in this struct is the computed value 
+	  specified_field_info: the far pointer in this struct is the specified value 
+	  elt: is the current SVG element to which attribute belongs
+	  orig_dom_ptr: is the address of the attribute created when creating the element (before it was used as presentation value)
+	  inherited_props: the current context of properties (as pointers to where the real value is)
+*/
+void gf_svg_attributes_copy_computed_value(GF_FieldInfo *computed_field_info, 
+										   GF_FieldInfo *specified_field_info, 
+										   SVGElement *elt, 
+										   void *orig_dom_ptr, 
+										   SVGPropertiesPointers *inherited_props)
 {
 	GF_FieldInfo prop, current_color;
 
-	prop.fieldType = in->fieldType;
-	prop.eventType = in->eventType;
-	prop.far_ptr = gf_svg_get_property_pointer(inherited_props, elt, orig_dom_ptr);
+	prop.fieldType = specified_field_info->fieldType;
+	prop.eventType = specified_field_info->eventType;
+	prop.far_ptr = gf_svg_get_property_pointer(inherited_props, elt->properties, orig_dom_ptr);
 
 	current_color.fieldType = SVG_PAINT_COLOR;
 	current_color.far_ptr = inherited_props->color;
 
-	gf_svg_attributes_smart_copy(out, in, &prop, &current_color);
+	if (gf_svg_is_inherit(specified_field_info)) {
+		gf_svg_attributes_copy(computed_field_info, &prop, 0);
+	} else if (gf_svg_is_current_color(specified_field_info)) {
+		gf_svg_attributes_copy(computed_field_info, &current_color, 0);
+	} else {
+		gf_svg_attributes_copy(computed_field_info, specified_field_info, 0);
+	}
 }

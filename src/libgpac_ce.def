@@ -840,7 +840,6 @@ EXPORTS
 ;bifs.h exports
 	gf_bifs_decoder_new
 	gf_bifs_decoder_del
-	gf_bifs_decoder_set_clock
 	gf_bifs_decoder_ignore_size_info
 	gf_bifs_decoder_configure_stream
 	gf_bifs_decoder_remove_stream
@@ -1010,7 +1009,6 @@ EXPORTS
 	gf_term_get_channel_net_info
 	gf_term_get_world_info
 ;	gf_term_dump_scene
-	gf_term_refresh
 	gf_term_set_size
 	gf_term_user_event
 	gf_term_mouse_input
@@ -1035,7 +1033,6 @@ EXPORTS
 	gf_sr_lock
 	gf_sr_user_event
 	gf_sr_map_point
-	gf_sr_refresh
 	gf_sr_set_option
 	gf_sr_get_option
 	gf_sr_get_fps
@@ -1122,7 +1119,7 @@ EXPORTS
 	gf_svg_parse_style
 	gf_svg_properties_init_pointers
 	gf_svg_properties_reset_pointers
-	gf_svg_properties_apply
+	gf_svg_apply_inheritance_and_animation
 	gf_svg_register_iri
 	gf_svg_unregister_iri
 	gf_svg_path_build

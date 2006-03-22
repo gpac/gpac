@@ -24,22 +24,20 @@ body {
 
 #downloadbar
 {
-	margin: 0;
 	font-size: 110%;
 	text-align: center;
-	background-color: #455E87;
 }
 
 #downloadbar li
 {
 	display: inline;
 	list-style-type: none;
-	padding-left: 30px;
+	padding-right: 20px;
 }
 
 #downloadbar a:link, #downloadbar a:visited
 {
-	color: #fff;
+	color: #347879;
 	font-weight: bold;
 	background-color: transparent;
 	text-decoration: none;
@@ -64,8 +62,12 @@ h3
 
 #description
 {
+    width: 48%;
+    float: left;
 	text-align: left;
-	background-color: #fff;
+    border: 1px;
+    border-style: dotted;
+    border-color: #0000bb;
 }
 
 #contentview embed 
@@ -76,6 +78,11 @@ h3
 
 #contentview
 {
+    border: 1px;
+    border-style: dotted;
+    border-color: #0000bb;
+    width: 50%;
+    float: right;
     text-align:center;
 }
 

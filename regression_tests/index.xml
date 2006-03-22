@@ -1,7 +1,19 @@
 <testsuitelist> 
+<format name="SVG">
+<category name="Static Vector Graphics (no interactivity)">
+<file name="svg-chaise" type="svg" /> 
+</category>
+<category name="Animated Vector Graphics (no interactivity)">
+<file name="svg-anim" type="svg" /> 
+</category>
+</format>
 <format name="BIFS">
 <category name="2D Shapes">
-<file name="bifs-2D-shapes-all" type="bt" /> 
+<file name="bifs-2D-shapes-all" type="bt">
+    <snapshot time="3"/>
+    <snapshot time="7"/>
+    <snapshot time="9.5"/>
+</file>
 <file name="bifs-2D-shapes-indexfaceset2D" type="bt" /> 
 <file name="bifs-2D-shapes-indexlineset2D" type="bt" /> 
 <file name="bifs-2D-shapes-pointset2D" type="bt" /> 

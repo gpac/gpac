@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Mar 17 08:31:41 2006
+	DO NOT MOFIFY - File generated on GMT Wed Mar 22 15:27:25 2006
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -5128,7 +5128,6 @@ void *gf_svg_new_linearGradient()
 	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
 	p->x2.value = FIX_ONE;
-	p->y2.value = FIX_ONE;
 	gf_mx2d_init(p->gradientTransform);
 	return p;
 }

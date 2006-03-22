@@ -540,7 +540,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 				}
 			}
 			else {
-				svg_report(parser, GF_OK, "Unknown attribute %s on element %s", (char *)att->name, gf_node_get_class_name((GF_Node *)elt));
+				svg_report(parser, GF_OK, "Unknown attribute %s on element %s\n", (char *)att->name, gf_node_get_class_name((GF_Node *)elt));
 			}
 		}
 	}

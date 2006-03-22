@@ -1135,7 +1135,7 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props);
 	1- applies inheritance whenever needed.
 	2- applies any running animation on the element
 */
-void gf_svg_properties_apply(GF_Node *node, SVGPropertiesPointers *render_svg_props);
+void gf_svg_apply_inheritance_and_animation(GF_Node *node, SVGPropertiesPointers *render_svg_props);
 
 
 void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type);
@@ -1256,6 +1256,8 @@ struct _tagSVGlistenerElement *gf_dom_listener_get(GF_Node *node, u32 i);
 /*creates a default listener/handler for the given event on the given node, and return the 
 handler element to allow for handler function override*/
 struct _tagSVGhandlerElement *gf_dom_listener_build(GF_Node *node, XMLEV_Event event);
+
+Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg);
 
 
 #ifdef __cplusplus

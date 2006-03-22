@@ -339,46 +339,4 @@ void gf_svg_reset_base_element(SVGElement *p)
 	if (p->xlink)		gf_svg_delete_xlink(p, p->xlink);
 }
 
-void *gf_svg_get_property_pointer(SVGPropertiesPointers *p, SVGElement*elt, void *orig)
-{
-	if (!p || !elt || !elt->properties) return NULL;
-	else if (orig == &elt->properties->color) return p->color;
-	else if (orig == &elt->properties->fill) return p->fill;
-	else if (orig == &elt->properties->stroke) return p->stroke;
-	else if (orig == &elt->properties->solid_color) return p->solid_color;
-	else if (orig == &elt->properties->stop_color) return p->stop_color;
-	else if (orig == &elt->properties->viewport_fill) return p->viewport_fill;
-	else if (orig == &elt->properties->fill_opacity) return p->fill_opacity;
-	else if (orig == &elt->properties->solid_opacity) return p->solid_opacity;
-	else if (orig == &elt->properties->stop_opacity) return p->stop_opacity;
-	else if (orig == &elt->properties->stroke_opacity) return p->stop_opacity;
-	else if (orig == &elt->properties->viewport_fill_opacity) return p->viewport_fill_opacity;
-	else if (orig == &elt->properties->audio_level) return p->audio_level;
-	else if (orig == &elt->properties->color_rendering) return p->color_rendering;
-	else if (orig == &elt->properties->image_rendering) return p->image_rendering;
-	else if (orig == &elt->properties->shape_rendering) return p->shape_rendering;
-	else if (orig == &elt->properties->text_rendering) return p->text_rendering;
-	else if (orig == &elt->properties->display) return p->display;
-	else if (orig == &elt->properties->display_align) return p->display_align;
-	else if (orig == &elt->properties->fill_rule) return p->fill_rule;
-	else if (orig == &elt->properties->font_family) return p->font_family;
-	else if (orig == &elt->properties->font_size) return p->font_size;
-	else if (orig == &elt->properties->font_style) return p->font_style;
-	else if (orig == &elt->properties->font_weight) return p->font_weight;
-	else if (orig == &elt->properties->line_increment) return p->line_increment;
-	else if (orig == &elt->properties->pointer_events) return p->pointer_events;
-	else if (orig == &elt->properties->stroke_dasharray) return p->stroke_dasharray;
-	else if (orig == &elt->properties->stroke_dashoffset) return p->stroke_dashoffset;
-	else if (orig == &elt->properties->stroke_linecap) return p->stroke_linecap;
-	else if (orig == &elt->properties->stroke_linejoin) return p->stroke_linejoin;
-	else if (orig == &elt->properties->stroke_miterlimit) return p->stroke_miterlimit;
-	else if (orig == &elt->properties->stroke_width) return p->stroke_width;
-	else if (orig == &elt->properties->text_anchor) return p->text_anchor;
-	else if (orig == &elt->properties->vector_effect) return p->vector_effect;
-	else if (orig == &elt->properties->visibility) return p->visibility;
-	else if (orig == &elt->properties->opacity) return p->opacity;
-	else if (orig == &elt->properties->overflow) return p->overflow;
-	else return NULL;
-}
-
 #endif /*GPAC_DISABLE_SVG*/

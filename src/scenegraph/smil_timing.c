@@ -45,6 +45,8 @@ void gf_smil_timing_init_runtime_info(SVGElement *timed_elt)
 	rti->scene_time = -1;
 
 	timed_elt->timing->runtime = rti;
+
+	gf_list_add(timed_elt->sgprivate->scenegraph->smil_timed_elements, rti);
 }
 
 void gf_smil_timing_delete_runtime_info(SVGElement *timed_elt)
@@ -59,6 +61,7 @@ void gf_smil_timing_delete_runtime_info(SVGElement *timed_elt)
 		free(interval);
 	}
 	gf_list_del(rti->intervals);
+	gf_list_del_item(timed_elt->sgprivate->scenegraph->smil_timed_elements, rti);
 	free(rti);
 	timed_elt->timing->runtime = NULL;
 }
@@ -279,12 +282,25 @@ static s32 gf_smil_timing_find_interval_index(SMIL_Timing_RTI *rti, Double scene
 	return index;
 }
 
+Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg)
+{
+	u32 active_count = 0, i = 0;
+	SMIL_Timing_RTI *rti;
+	while((rti = gf_list_enum(sg->smil_timed_elements, &i))) {
+		active_count += gf_smil_timing_notify_time(rti, sg->GetSceneTime(sg->SceneCallback));
+	}
+	return (active_count>0);
+}
+
+/* Returns 1 when a rendering traversal is required!!! */
 Bool gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 {
-	Bool ret = 1;
+	Bool ret = 0;
 	GF_DOM_Event evt;
 
-	if (rti->scene_time == scene_time) ret = 0;
+	rti->evaluate = NULL;
+	
+	if (rti->scene_time == scene_time) return 0;
 	rti->scene_time = scene_time;
 
 	rti->cycle_number++;
@@ -319,11 +335,12 @@ waiting_to_begin:
 
 	if (rti->status == SMIL_STATUS_ACTIVE) {
 		u32 cur_id;
-		Fixed simple_time;
+//		Fixed simple_time;
 
 		if (rti->current_interval->active_duration >= 0 
 			&& scene_time >= (rti->current_interval->begin + rti->current_interval->active_duration)) {
 			rti->status = SMIL_STATUS_POST_ACTIVE;
+			ret = 1;
 			goto post_active;
 		}
 
@@ -337,14 +354,17 @@ waiting_to_begin:
 				rti->current_interval_index = interval_index;
 				rti->current_interval = gf_list_get(rti->intervals, rti->current_interval_index);
 //				gf_smil_timing_print_interval(stack->current_interval);
-				/* TODO notify time dependencies */
+				memset(&evt, 0, sizeof(evt));
+				evt.type = SVG_DOM_EVT_BEGIN;
+				gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 			} 
 		}
 
+		ret = 1;
+		
+		//simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
 		cur_id = rti->current_interval->nb_iterations;
-		simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
-		/*TODO FIXME: this should signal if target value has been changed*/
-		rti->activation(rti, simple_time);
+		rti->evaluate = rti->activation;
 		if (cur_id < rti->current_interval->nb_iterations) {
 			memset(&evt, 0, sizeof(evt));
 			evt.type = SVG_DOM_EVT_REPEAT;
@@ -360,7 +380,7 @@ post_active:
 			rti->first_frozen = rti->cycle_number;
 		} else {
 			rti->status = SMIL_STATUS_DONE;
-			rti->restore(rti, gf_smil_timing_get_normalized_simple_time(rti, scene_time));
+			rti->evaluate = rti->restore;
 		}
 		memset(&evt, 0, sizeof(evt));
 		evt.type = SVG_DOM_EVT_END;
@@ -368,7 +388,7 @@ post_active:
 	}
 
 	if (rti->status == SMIL_STATUS_FROZEN) {
-		rti->freeze(rti, gf_smil_timing_get_normalized_simple_time(rti, scene_time));
+		rti->evaluate = rti->freeze;
 	}
 
 	if ((rti->status == SMIL_STATUS_DONE) || (rti->status == SMIL_STATUS_FROZEN)) {
@@ -383,6 +403,7 @@ post_active:
 //				gf_smil_timing_print_interval(stack->current_interval);
 
 				rti->status = SMIL_STATUS_WAITING_TO_BEGIN;
+				rti->evaluate = NULL;
 				goto waiting_to_begin;
 			}
 		}
@@ -397,11 +418,14 @@ Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double sce
 	Fixed normalizedSimpleTime;
 
 	activeTime			 = scene_time - rti->current_interval->begin;
+	if (activeTime > rti->current_interval->active_duration) return FIX_ONE;
+
 	if (rti->current_interval->simple_duration>0) {
 		rti->current_interval->nb_iterations = (u32)floor(activeTime / rti->current_interval->simple_duration);
 	} else {
 		rti->current_interval->nb_iterations = 0;
 	}
+	
 	simpleTime			 = activeTime - rti->current_interval->simple_duration * rti->current_interval->nb_iterations;
 
 	/* to be sure clamp simpleTime */

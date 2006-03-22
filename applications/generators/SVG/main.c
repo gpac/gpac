@@ -1245,7 +1245,6 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 	}
 	else if (!strcmp(svg_elt->svg_name, "linearGradient")) {
 		fprintf(output, "\tp->x2.value = FIX_ONE;\n");
-		fprintf(output, "\tp->y2.value = FIX_ONE;\n");
 		fprintf(output, "\tgf_mx2d_init(p->gradientTransform);\n");
 	}
 	else if (!strcmp(svg_elt->svg_name, "radialGradient")) {

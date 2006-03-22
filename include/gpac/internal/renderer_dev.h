@@ -151,9 +151,6 @@ struct __tag_base_renderer
 	/*unit box (1.0 size) and unit sphere (1.0 radius)*/
 	u32 draw_bvol;
 
-	/* SVG List of animated attributes */
-	GF_List *svg_animated_attributes;
-
 	/*list of system colors*/
 	u32 sys_colors[28];
 };
