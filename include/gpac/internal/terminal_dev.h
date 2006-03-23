@@ -636,10 +636,12 @@ struct _od_manager
 	/*number of channels with connection not yet acknowledge*/
 	u32 pending_channels;
 	Bool is_open;
-	/*timing as evaluated by the CB*/
+	/*timing as evaluated by the composition memory or the scene codec*/
 	u32 current_time;
 	/*full object duration 0 if unknown*/
 	u64 duration;
+	/*media start time as requested by scene renderer (eg not media control)*/
+	u32 media_start_time;
 	/*playback end in media time (eg, duration OR end_range if MediaControl)*/
 	u32 range_end;
 	/*the one and only media control currently attached to this object*/

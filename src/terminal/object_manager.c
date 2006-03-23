@@ -1076,8 +1076,8 @@ void gf_odm_play(GF_ObjectManager *odm)
 		com.base.on_channel = ch;
 		com.play.speed = 1.0;
 		/*play from requested time (seeking or non-mpeg4 media control)*/
-		if (odm->current_time) {
-			ck_time = odm->current_time;
+		if (odm->media_start_time) {
+			ck_time = odm->media_start_time;
 			ck_time /= 1000;
 		}
 		/*play from current time*/
@@ -1104,7 +1104,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 			}
 			gf_clock_set_speed(ch->clock, ctrl->control->mediaSpeed);
 			/*if requested seek time AND media control, adjust start range to current play time*/
-			if (odm->current_time) {
+			if (odm->media_start_time) {
 				if ((com.play.start_range>=0) && (com.play.end_range>com.play.start_range)) {
 					if (ctrl->control->loop) {
 						Double active_dur = com.play.end_range - com.play.start_range;
@@ -1149,7 +1149,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 	}
 	/*if root OD reset the global seek time*/	
 	if (odm->term->root_scene->root_od==odm) odm->term->restart_time = 0;
-	odm->current_time = 0;
+	odm->media_start_time = 0;
 
 	/*start codecs last (otherwise we end up pulling data from channels not yet connected->pbs when seeking)*/
 	if (odm->codec) {
@@ -1229,7 +1229,6 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	/*reset media control state*/
 	ctrl = ODM_GetMediaControl(odm);
 	if (ctrl) ctrl->current_seg = 0;
-
 }
 
 void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *on_channel)

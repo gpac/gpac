@@ -291,14 +291,14 @@ void gf_mo_play(GF_MediaObject *mo, Double media_offset, Bool can_loop)
 	gf_term_lock_net(mo->term, 1);
 	if (!mo->num_open && mo->odm) {
 		if (mo->odm->no_time_ctrl) {
-			mo->odm->current_time = 0;
+			mo->odm->media_start_time = 0;
 		} else {
-			mo->odm->current_time = (u32) (media_offset*1000);
-			if (mo->odm->duration && (mo->odm->current_time > mo->odm->duration)) {
+			mo->odm->media_start_time = (u32) (media_offset*1000);
+			if (mo->odm->duration && (mo->odm->media_start_time > mo->odm->duration)) {
 				if (can_loop) {
-					mo->odm->current_time %= (u32) mo->odm->duration;
+					mo->odm->media_start_time %= (u32) mo->odm->duration;
 				} else {
-					mo->odm->current_time = (u32) mo->odm->duration;
+					mo->odm->media_start_time = (u32) mo->odm->duration;
 				}
 			}
 		}
