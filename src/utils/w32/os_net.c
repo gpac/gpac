@@ -357,6 +357,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 			}
 		}
 		freeaddrinfo(res);
+		if (!sock->socket) return GF_IP_CONNECTION_FAILURE;
 	} else
 	{
 		switch(error)

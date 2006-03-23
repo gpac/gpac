@@ -35,7 +35,8 @@
 GF_Err RTSP_UnpackURL(char *sURL, char *Server, u16 *Port, char *Service, Bool *useTCP)
 {
 	char schema[10], *test, text[1024], *retest;
-	u32 i;
+	u32 i, len;
+	Bool is_ipv6;
 	if (!sURL) return GF_BAD_PARAM;
 
 	strcpy(Server, "");
@@ -69,7 +70,10 @@ found:
 	if (!stricmp(schema, "rtsp")) *useTCP = 1;
 
 	//check for port
-	retest = strstr(test, ":");
+	retest = strrchr(test, ':');
+	/*IPV6 address*/
+	if (retest && strchr(retest, ']')) retest = NULL;
+
 	if (retest && strstr(retest, "/")) {
 		retest += 1;
 		i=0;
@@ -82,10 +86,13 @@ found:
 		*Port = atoi(text);
 	}
 	//get the server name
-	strcpy(text, test);
+	is_ipv6 = 0;
+	len = strlen(test);
 	i=0;
-	while (i<strlen(text)) {
-		if ( (text[i] == '/') || (text[i] == ':') ) break;
+	while (i<len) {
+		if (test[i]=='[') is_ipv6 = 1;
+		else if (test[i]==']') is_ipv6 = 0;
+		if ( (test[i] == '/') || (!is_ipv6 && (test[i] == ':')) ) break;
 		text[i] = test[i];
 		i += 1;
 	}
