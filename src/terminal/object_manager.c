@@ -494,21 +494,26 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	}
 
 	numOK = odm->pending_channels = 0;
-	/*avoid channels PLAY request when confirming connection (sync network service)*/
-	odm->is_open = 2;
 
-	i=0;
-	while ((esd = gf_list_enum(odm->OD->ESDescriptors, &i)) ) {
-		e = gf_odm_setup_es(odm, esd, serv);
-		/*notify error but still go on, all streams are not so usefull*/
-		if (e==GF_OK) {
-			numOK++;
-		} else {
-			gf_term_message(odm->term, odm->net_service->url, "Stream Setup Failure", e);
+	/*empty IOD, use a dynamic scene*/
+	if (!gf_list_count(odm->OD->ESDescriptors) && odm->subscene) {
+		odm->subscene->is_dynamic_scene = 1;
+	} else {
+		/*avoid channels PLAY request when confirming connection (sync network service)*/
+		odm->is_open = 2;
+
+		i=0;
+		while ((esd = gf_list_enum(odm->OD->ESDescriptors, &i)) ) {
+			e = gf_odm_setup_es(odm, esd, serv);
+			/*notify error but still go on, all streams are not so usefull*/
+			if (e==GF_OK) {
+				numOK++;
+			} else {
+				gf_term_message(odm->term, odm->net_service->url, "Stream Setup Failure", e);
+			}
 		}
-
+		odm->is_open = 0;
 	}
-	odm->is_open = 0;
 
 	/*special case for ODs only having OCRs: force a START since they're never refered to by media nodes*/
 	if (odm->ocr_codec) gf_odm_start(odm);
