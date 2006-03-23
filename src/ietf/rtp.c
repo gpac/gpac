@@ -242,7 +242,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 u32 gf_rtp_channel_time(GF_RTPChannel *ch)
 {
 	u32 sec, frac, res;
-	gf_get_ntp(&sec, &frac);
+	gf_net_get_ntp(&sec, &frac);
 	res = ( (u32) ( (frac>>26)*ch->TimeScale) ) >> 6;
 	res += ch->TimeScale*(sec - ch->ntp_init);
 	return (u32) res;
@@ -251,7 +251,7 @@ u32 gf_rtp_channel_time(GF_RTPChannel *ch)
 u32 gf_rtp_get_report_time()
 {
 	u32 sec, frac;
-	gf_get_ntp(&sec, &frac);
+	gf_net_get_ntp(&sec, &frac);
 	/*in units of 1/65536 seconds*/
 	return (u32) ( (frac>>16) + 0x10000L*sec );
 }
@@ -346,7 +346,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 
 	/*RTP specs annexe A.8*/
 	if (!ch->ntp_init) {
-		gf_get_ntp(&ch->ntp_init, &lost);
+		gf_net_get_ntp(&ch->ntp_init, &lost);
 		ch->last_pck_sn = (u32) rtp_hdr->SequenceNumber-1;
 	}
 	/*this is a loop in SN - add it*/
@@ -497,7 +497,7 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *extra_
 	ch->num_pck_sent += 1;
 	//store timing
 	ch->last_pck_ts = rtp_hdr->TimeStamp;
-	gf_get_ntp(&ch->last_pck_ntp_sec, &ch->last_pck_ntp_frac);
+	gf_net_get_ntp(&ch->last_pck_ntp_sec, &ch->last_pck_ntp_frac);
 	return GF_OK;
 }
 

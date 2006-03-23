@@ -103,7 +103,7 @@ void gf_utc_time_since_1970(u32 *sec, u32 *msec);
  \param sec NTP time in seconds
  \param frac fractional NTP time expressed in 1 / (1<<32 - 1) seconds units
  */
-void gf_get_ntp(u32 *sec, u32 *frac);
+void gf_net_get_ntp(u32 *sec, u32 *frac);
 
 
 
@@ -350,6 +350,16 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, unsigned char *buffer, u32 length, u3
  *\return the socket handle
  */
 s32 gf_sk_get_handle(GF_Socket *sock);
+
+
+/*!
+ *\brief gets ipv6 support
+ *
+ *Returns IPV6 support information.
+ *\param none
+ *\return 2 if the machine has IPV6 support, 1 if the library was compiled with IPV6 support, 0 otherwise
+ */
+u32 gf_net_has_ipv6();
 
 
 /*! @} */

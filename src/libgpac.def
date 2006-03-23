@@ -123,7 +123,9 @@ EXPORTS
 	gf_url_get_absolute_path
 	gf_url_concatenate
 	gf_utc_time_since_1970
-	gf_get_ntp
+	gf_net_get_ntp
+	gf_net_has_ipv6
+
 
 ;base_coding.h exports
 	gf_base64_encode

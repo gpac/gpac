@@ -629,6 +629,7 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 }
 
 int main (int argc, char **argv)
+
 {
 	const char *str;
 	u32 i, width, height, times[100], nb_times, rend_mode, dump_mode;

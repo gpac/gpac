@@ -64,6 +64,7 @@ use_fixed_point="no"
 use_memory_tracking="no"
 has_opengl="no"
 has_ssl="no"
+has_ipv6="no"
 
 win32="no"
 mingw32="no"
@@ -840,6 +841,25 @@ fi
 #end xml2 tes
 
 
+# look for IPv6
+cat > $TMPC << EOF
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+int main( void ) {
+  struct sockaddr_storage saddr;
+  struct ipv6_mreq mreq6;
+  getaddrinfo(0,0,0,0);
+  getnameinfo(0,0,0,0,0,0,0);
+  IN6_IS_ADDR_MULTICAST(0);
+}
+EOF
+
+if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
+has_ipv6="yes"
+fi
+
 
 # Checking for CFLAGS
 if test -z "$CFLAGS"; then
@@ -912,6 +932,7 @@ echo "debug version: $debuginfo"
 echo "Memory tracking enabled: $use_memory_tracking"
 echo "read-only version: $make_readonly"
 echo "fixed-point version: $use_fixed_point"
+echo "IPV6 Support: $has_ipv6"
 echo "IsoMedia MovieFragments support: $iso_fragments"
 echo "SVG Support disabled: $disable_svg"
 echo ""
@@ -1110,6 +1131,8 @@ echo "CONFIG_AMR_WB_FT=$has_amr_wb" >> config.mak
 echo "DEBUGBUILD=$debuginfo" >> config.mak
 echo "ISOFRAGMENTS=$iso_fragments" >> config.mak
 echo "GPACREADONLY=$make_readonly" >> config.mak
+
+echo "CONFIG_IPV6=$has_ipv6" >> config.mak
 
 if test "$win32" = "yes" ; then
 echo "CONFIG_DIRECTX=$has_mingw_directx" >> config.mak

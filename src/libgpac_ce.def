@@ -20,7 +20,6 @@ EXPORTS
 	gf_rand_init
 	gf_rand
 	gf_utc_time_since_1970
-	gf_get_ntp
 	gf_get_user_name
 	gf_enum_directory
 	gf_cbk_on_progress
@@ -125,6 +124,9 @@ EXPORTS
 	gf_sk_is_multicast_address
 	gf_sk_send_wait
 	gf_sk_receive_wait
+	gf_net_get_ntp
+	gf_net_has_ipv6
+
 	gf_url_is_local
 	gf_url_get_absolute_path
 	gf_url_concatenate

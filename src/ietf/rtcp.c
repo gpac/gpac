@@ -282,7 +282,7 @@ static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 
 	size = 8;
 
-	gf_get_ntp(&sec, &frac);
+	gf_net_get_ntp(&sec, &frac);
 
 	//SenderReport part
 	if (is_sr) {

@@ -63,7 +63,7 @@ static u32 IsInit = 0;
 		Some NTP tools
 */
 
-void gf_get_ntp(u32 *sec, u32 *frac)
+void gf_net_get_ntp(u32 *sec, u32 *frac)
 {
 	s32 gettimeofday(struct timeval *tp, void *tz);
 	struct timeval now;
@@ -846,4 +846,9 @@ u32 SKG_Select(GF_SocketGroup *group)
 	return ready;
 }
 
+
+u32 gf_net_has_ipv6()
+{
+	return 0;
+}
 

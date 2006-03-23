@@ -22,8 +22,6 @@
  *
  */
 
-#define GPAC_IPV6 1
-
 #include <gpac/network.h>
 
 #include <unistd.h>
@@ -75,13 +73,33 @@ struct __tag_socket
 #endif
 };
 
-void gf_get_ntp(u32 *sec, u32 *frac)
+void gf_net_get_ntp(u32 *sec, u32 *frac)
 {
 	struct timeval now;
 	gettimeofday(&now, NULL);
 	*sec = now.tv_sec + GF_NTP_SEC_1900_TO_1970;
 	*frac = (now.tv_usec << 12) + (now.tv_usec << 8) - ((now.tv_usec * 3650) >> 6);
 }
+
+static u32 ipv6_check_state = 0;
+
+u32 gf_net_has_ipv6()
+{
+#ifdef GPAC_IPV6
+	if (!ipv6_check_state) {
+		SOCKET s = socket(PF_INET6, SOCK_STREAM, 0);
+		if (!s) ipv6_check_state = 1;
+		else {
+			ipv6_check_state = 2;
+			close(s);
+		}
+	} 
+	return 1;
+#else
+	return 0;
+#endif
+}
+
 
 GF_Err gf_sk_get_host_name(char *buffer)
 {

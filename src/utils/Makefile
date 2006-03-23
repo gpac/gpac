@@ -18,6 +18,10 @@ ifeq ($(HAS_OPENSSL), yes)
 CFLAGS+=-DGPAC_HAS_SSL
 endif
 
+ifeq ($(CONFIG_IPV6), yes)
+CFLAGS+=-DGPAC_IPV6
+endif
+
 #per-platform source 
 ifeq ($(CONFIG_WIN32), yes)
 OBJS += ./w32/os_divers.o ./w32/os_net.o ./w32/os_module.o ./w32/os_thread.o
