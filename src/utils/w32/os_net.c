@@ -280,7 +280,6 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 	struct	addrinfo *res, *aip;
 	struct	addrinfo hints;
 	struct addrinfo *test;
-	int	sockipv6 = -1;
 	s32 error;
 	struct sockaddr_in6 *addrptr = (struct sockaddr_in6 *)&(sock->RemoteAddress);
 		
@@ -1028,8 +1027,9 @@ GF_Err gf_sk_send_to(GF_Socket *sock, unsigned char *buffer, u32 length, unsigne
 		freeaddrinfo(res);
 	} else {
 	 	struct sockaddr_in6 * addrptr = (struct sockaddr_in6 *)(&sock->RemoteAddress);
-		((struct sockaddr_in6 *)&remote)->sin6_port = addrptr->sin6_port;
-		((struct sockaddr_in6 *)&remote)->sin6_addr.u = addrptr->sin6_addr.u;
+		* ((struct sockaddr_in6 *)&remote) = * addrptr;
+//		((struct sockaddr_in6 *)&remote)->sin6_port = addrptr->sin6_port;
+//		((struct sockaddr_in6 *)&remote)->sin6_addr.u = addrptr->sin6_addr.u;
 			// remotePtr->sin6_port = addrptr->sin6_port;
 			// remotePtr->sin6_addr.u = addrptr->sin6_addr.u;
 	}
