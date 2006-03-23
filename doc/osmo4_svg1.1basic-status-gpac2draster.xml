@@ -23,7 +23,7 @@
 <!--    comment=optional comment to publish with the result, like why you don't pass :) -->
 	<test name="animate-elem-22-b" revision="1.6" status="FAIL" comment="opacity attribute not supported"/>
 	<test name="animate-elem-29-b" revision="1.4" status="PARTIAL" comment="Fade in does not restart"/>
-	<test name="color-prop-01-b" revision="1.4" status="PARTIAL" comment="Bug in default linear gradients values"/>
+	<test name="color-prop-01-b" revision="1.4" status="OK" comment=""/>
 	<test name="coords-trans-01-b" revision="1.5" status="OK" comment=""/>
 	<test name="coords-units-01-b" revision="1.5" status="PARTIAL" comment="?"/>
 	<test name="coords-units-02-b" revision="1.3" status="PARTIAL" comment="?"/>
@@ -64,7 +64,7 @@
 	<test name="masking-path-04-b" revision="1.8" status="FAIL" comment="No masking yet implemented."/>
 	<test name="masking-path-06-b" revision="1.5" status="FAIL" comment="No masking yet implemented."/>
 	<test name="metadata-example-01-b" revision="1.7" status="OK" comment=""/>
-	<test name="painting-render-01-b" revision="1.7" status="FAIL" comment="color-interpolation not supported yet."/>
+	<test name="painting-render-01-b" revision="1.7" status="PARTIAL" comment="color-interpolation: only RGB supported."/>
 	<test name="pservers-grad-01-b" revision="1.5" status="OK" comment=""/>
 	<test name="pservers-grad-02-b" revision="1.8" status="OK" comment=""/>
 	<test name="pservers-grad-03-b" revision="1.6" status="FAIL" comment="Patterns not yet implemented."/>
@@ -79,7 +79,7 @@
 	<test name="pservers-grad-12-b" revision="1.7" status="OK" comment=""/>
 	<test name="pservers-grad-13-b" revision="1.5" status="PARTIAL" comment="Bug in focal points in some cases"/>
 	<test name="pservers-grad-14-b" revision="1.5" status="OK" comment=""/>
-	<test name="pservers-grad-15-b" revision="1.1" status="PARTIAL" comment="Bug in default linear gradients values"/>
+	<test name="pservers-grad-15-b" revision="1.1" status="OK" comment=""/>
 	<test name="pservers-grad-16-b" revision="1.1" status="OK" comment=""/>
 	<test name="pservers-pattern-01-b" revision="1.6" status="FAIL" comment="Patterns not yet implemented."/>
 	<test name="render-groups-01-b" revision="1.6" status="FAIL" comment="CRASH !! group opacity not supported."/>
@@ -120,7 +120,7 @@
 	<test name="text-spacing-01-b" revision="1.6" status="FAIL" comment="text spacing not implemented"/>
 	<test name="text-text-01-b" revision="1.7" status="FAIL" comment="text adjustement not yet supported"/>
 	<test name="text-text-03-b" revision="1.7" status="FAIL" comment="font-style not supported"/>
-	<test name="text-text-08-b" revision="1.1" status="FAIL" comment="Opacity not supported"/>
+	<test name="text-text-08-b" revision="1.1" status="FAIL" comment="opacity not supported"/>
 	<test name="text-tref-01-b" revision="1.6" status="FAIL" comment="tref not supported"/>
 	<test name="text-tselect-01-b" revision="1.8" status="FAIL" comment="text selection not supported"/>
 	<test name="text-tspan-01-b" revision="1.7" status="FAIL" comment="tspan not supported"/>

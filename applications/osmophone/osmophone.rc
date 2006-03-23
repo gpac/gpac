@@ -148,6 +148,7 @@ BEGIN
         END
         MENUITEM SEPARATOR
         MENUITEM "Options",                     IDM_MENU_SWITCH
+        MENUITEM "Disable Playlist",            IDS_CAP_DISABLE_PLAYLIST
     END
 END
 
@@ -212,6 +213,11 @@ STRINGTABLE DISCARDABLE
 BEGIN
     IDS_CAP_OPTION          "Options"
     IDS_CAP_MENUITEM40072   "?"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_CAP_DISABLE_PLAYLIST "Disable Playlist"
 END
 
 #endif    // English (U.S.) resources

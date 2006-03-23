@@ -112,6 +112,7 @@
 #define IDM_VIEW_LOW_RATE               40100
 #define IDM_VIEW_DIRECT                 40101
 #define IDM_VIEW_SVG_LOAD               40102
+#define IDS_CAP_DISABLE_PLAYLIST        40103
 
 // Next default values for new objects
 // 

@@ -917,6 +917,10 @@ static void xmt_parse_mf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node
 	if (!strlen(value)) return;
 
 	while (value[0] && !parser->last_error) {
+
+		while (value[0] && value[0] == ' ') value++;
+		if (!value[0]) break;
+
 		gf_sg_vrml_mf_append(info->far_ptr, info->fieldType, &sfInfo.far_ptr);
 
 		/*special case for MF type based on string (MFString, MFURL and MFScript), we need to take care
@@ -930,7 +934,11 @@ static void xmt_parse_mf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node
 		} else {
 			res = xmt_parse_sf_field(parser, &sfInfo, n, value);
 		}
-		value += res;
+		if (res) {
+			value += res;
+		} else {
+			break;
+		}
 	}
 }
 

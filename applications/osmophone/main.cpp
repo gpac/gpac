@@ -55,6 +55,7 @@ static HINSTANCE g_hinst = NULL;
 
 static Bool is_connected = 0;
 static Bool navigation_on = 0;
+static Bool playlist_navigation_on = 1;
 
 static u32 Duration;
 static Bool CanSeek = 0;
@@ -639,6 +640,9 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 		load_recent_file(LOWORD(wParam) - IDM_OPEN_FILE1); 
 		break;
 
+	case IDS_CAP_DISABLE_PLAYLIST:
+		playlist_navigation_on = !playlist_navigation_on;
+		break;
 	case IDM_VIEW_SVG_LOAD:
 		set_svg_progressive();
 		break;
@@ -666,6 +670,7 @@ static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 	}
 
 	u32 opt = gf_term_get_option(term, GF_OPT_ASPECT_RATIO);	
+	CheckMenuItem((HMENU)wParam, IDS_CAP_DISABLE_PLAYLIST, MF_BYCOMMAND| (!playlist_navigation_on ? MF_CHECKED : MF_UNCHECKED) );
 	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_NONE, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_KEEP) ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_FILL, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_FILL_SCREEN) ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_4_3, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_4_3) ? MF_CHECKED : MF_UNCHECKED);
@@ -750,7 +755,7 @@ BOOL CALLBACK MainWndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_HOTKEY:
 		break;
 	case WM_KEYDOWN:
-		if (!navigation_on) {
+		if (playlist_navigation_on && !navigation_on) {
 			if (wParam==VK_LEFT) { switch_playlist(1); break; }
 			else if (wParam==VK_RIGHT) { switch_playlist(0); break; }
 		}
