@@ -65,6 +65,7 @@ struct __tag_socket
 	SOCKET socket;
 	u32 type;
 	Bool blocking;
+  Bool is_ipv6;
 	//this is used for server sockets / multicast sockets
 #ifdef GPAC_IPV6
 	struct sockaddr_storage RemoteAddress;
@@ -156,11 +157,9 @@ GF_Socket *gf_sk_new(u32 SocketType)
 	tmp = malloc(sizeof(GF_Socket));
 	memset(tmp, 0, sizeof(GF_Socket));
 
-#ifdef GPAC_IPV6
-	tmp->socket = socket(PF_INET6, (SocketType == GF_SOCK_TYPE_UDP) ? SOCK_DGRAM : SOCK_STREAM, 0);
-#else
+	/*create the socket in IPV4 by default. IPV6 detection is done upon connect*/
 	tmp->socket = socket(AF_INET, (SocketType == GF_SOCK_TYPE_UDP) ? SOCK_DGRAM : SOCK_STREAM, 0);
-#endif
+
 	if (tmp->socket == INVALID_SOCKET) {
 		free(tmp);
 		return NULL;
@@ -247,8 +246,9 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 	{
 		char  node[50];
 		char  portstring[20];
+		int sock_type = (sock->type==GF_SOCK_TYPE_TCP) ? SOCK_STREAM : SOCK_DGRAM;
 		memset(&hints, 0, sizeof(hints));
-		hints.ai_socktype = SOCK_STREAM; //sock->type;
+		hints.ai_socktype = sock_type;
  		hints.ai_family = PF_UNSPEC;
  		sprintf (portstring, "%d", PortNumber);
  		
@@ -266,7 +266,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 				test = aip;
 				if (sock->type == GF_SOCK_TYPE_TCP) {
 					if ((sock->RemoteAddress.ss_family==test->ai_family)&&
-						(sock->type==test->ai_socktype)&&
+						(sock_type==test->ai_socktype)&&
 						(test->ai_protocol==SOCK_STREAM))
 					{
 						// family: sock0, test10; type: sock2, test1; protocol: test6
@@ -286,19 +286,27 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 					} else
 					{
 						close(sock->socket);
-						sock->socket = (SOCKET)NULL;
 						sock->socket = socket(test->ai_family,test->ai_socktype, test->ai_protocol);
 						if (sock->socket == -1)
 						{
 							sock->socket = (SOCKET)NULL;
 							continue;
 						}
-						ret = connect(sock->socket,  test->ai_addr, test->ai_addrlen);						
+						ret = connect(sock->socket,  test->ai_addr, test->ai_addrlen);				
+						if (ret == SOCKET_ERROR) {
+							close(sock->socket);
+							sock->socket = (SOCKET)NULL;
+							continue;
+						}
+		
+						gf_sk_set_blocking(sock, !sock->blocking);
+						sock->is_ipv6 = (test->ai_family==PF_INET6) ? 1 : 0;
 					}
 					break;
 				}
 			}
 			freeaddrinfo(res);
+			if (!sock->socket) return GF_IP_CONNECTION_FAILURE;
 		} else
 		{
 			switch(error)
@@ -365,9 +373,6 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 //this will enable reuse of ports on a single machine
 GF_Err gf_sk_bind(GF_Socket *sock, u16 PortNumber, Bool reUse)
 {
-#ifdef GPAC_IPV6
-	sock->status = SK_STATUS_BIND;
-#else
 	s32 ret;
 	s32 optval;
 	char buf[GF_MAX_IP_NAME_LEN];
@@ -375,6 +380,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 PortNumber, Bool reUse)
 	struct hostent *Host;
 
 	if (!sock || (sock->status != SK_STATUS_CREATE)) return GF_BAD_PARAM;
+	if (sock->is_ipv6) return GF_NOT_SUPPORTED;
 
 	memset((void *) &LocalAdd, 0, sizeof(LocalAdd));
 	//ger the local name
@@ -401,7 +407,6 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 PortNumber, Bool reUse)
 	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 
 	sock->status = SK_STATUS_BIND;
-#endif
 	return GF_OK;
 }
 
