@@ -211,6 +211,8 @@ public:
 // Dialog Data
 	//{{AFX_DATA(COptHTTP)
 	enum { IDD = IDD_OPT_HTTP };
+	CEdit	m_ProxyName;
+	CButton	m_useProxy;
 	CEdit	m_SAXDuration;
 	CButton	m_Progressive;
 	CButton	m_RestartFile;
@@ -236,6 +238,7 @@ protected:
 	afx_msg void OnBrowseCache();
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSaxProgressive();
+	afx_msg void OnUseProxy();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

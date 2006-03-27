@@ -91,6 +91,7 @@ void gf_svg_reset_iri(GF_SceneGraph *sg, SVG_IRI *iri)
 
 void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 {
+	GF_List *l;
 	switch (type) {
 	case SVG_Paint_datatype:
 		gf_svg_delete_paint((SVG_Paint *)value);
@@ -105,6 +106,16 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		break;
 	case SVG_StrokeDashArray_datatype:
 		if (((SVG_StrokeDashArray*)value)->array.vals) free(((SVG_StrokeDashArray*)value)->array.vals);
+		free(value);
+		break;
+	case SVG_Coordinates_datatype:
+		l = *(GF_List**)value;
+		while (gf_list_count(l)) {
+			SVG_Number *n = gf_list_last(l);
+			gf_list_rem_last(l);
+			free(n);
+		}
+		gf_list_del(l);
 		free(value);
 		break;
 	case SVG_StrokeWidth_datatype:
@@ -244,23 +255,26 @@ void gf_svg_delete_properties(SVGProperties *p)
 	free(p);
 }
 
-static void svg_reset_focus(SVG_Focus focus) 
+static void svg_reset_focus(SVGElement *elt, SVG_Focus *focus) 
 {
-	if (focus.target.iri) free(focus.target.iri);
+	if (focus->target.target) {
+		gf_svg_unregister_iri(elt->sgprivate->scenegraph, &focus->target);
+	}
+	if (focus->target.iri) free(focus->target.iri);
 }
 
-void gf_svg_delete_focus(SVGFocusAttributes *p) 
+void gf_svg_delete_focus(SVGElement *elt, SVGFocusAttributes *p) 
 {
-	svg_reset_focus(p->nav_next);
-	svg_reset_focus(p->nav_prev);
-	svg_reset_focus(p->nav_down);
-	svg_reset_focus(p->nav_down_left);
-	svg_reset_focus(p->nav_down_right);
-	svg_reset_focus(p->nav_left);
-	svg_reset_focus(p->nav_right);
-	svg_reset_focus(p->nav_up);
-	svg_reset_focus(p->nav_up_left);
-	svg_reset_focus(p->nav_up_right);
+	svg_reset_focus(elt, &p->nav_next);
+	svg_reset_focus(elt, &p->nav_prev);
+	svg_reset_focus(elt, &p->nav_down);
+	svg_reset_focus(elt, &p->nav_down_left);
+	svg_reset_focus(elt, &p->nav_down_right);
+	svg_reset_focus(elt, &p->nav_left);
+	svg_reset_focus(elt, &p->nav_right);
+	svg_reset_focus(elt, &p->nav_up);
+	svg_reset_focus(elt, &p->nav_up_left);
+	svg_reset_focus(elt, &p->nav_up_right);
 	free(p);		
 }
 
@@ -286,6 +300,7 @@ void gf_svg_delete_timing(SMILTimingAttributes *p)
 
 void gf_svg_delete_sync(SMILSyncAttributes *p)
 {
+	if (p->syncReference) free(p->syncReference);
 	free(p);
 }
 
@@ -331,7 +346,7 @@ void gf_svg_reset_base_element(SVGElement *p)
 	if (p->textContent) free(p->textContent);
 	if (p->core)		gf_svg_delete_core(p, p->core);
 	if (p->properties)	gf_svg_delete_properties(p->properties);
-	if (p->focus)		gf_svg_delete_focus(p->focus);
+	if (p->focus)		gf_svg_delete_focus(p, p->focus);
 	if (p->conditional) gf_svg_delete_conditional(p->conditional);
 	if (p->anim)		gf_svg_delete_anim(p->anim, p->sgprivate->scenegraph);
 	if (p->sync)		gf_svg_delete_sync(p->sync);

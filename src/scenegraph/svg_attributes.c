@@ -4433,6 +4433,8 @@ GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldI
 /* TODO: Check that all possibly inherited types are treated */
 Bool gf_svg_is_inherit(GF_FieldInfo *a)
 {
+	if (!a->far_ptr) return 1;
+
 	switch (a->fieldType) {
 	case SVG_Color_datatype:
 		return (((SVG_Color *)a->far_ptr)->type == SVG_COLOR_INHERIT);

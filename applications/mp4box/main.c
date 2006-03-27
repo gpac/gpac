@@ -45,7 +45,7 @@ GF_ISOFile *package_file(char *file_name, const char *tmpdir);
 #endif
 
 /*in filedump.c*/
-void dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log);
+GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log);
 void dump_scene_stats(char *file, char *inName, u32 stat_level);
 void PrintNode(const char *name, u32 graph_type);
 void PrintBuiltInNodes(u32 graph_type);
@@ -1745,7 +1745,9 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	if (dump_mode) dump_file_text(inName, dump_std ? NULL : outfile, dump_mode-1, do_log);
+	if (dump_mode) {
+		if (dump_file_text(inName, dump_std ? NULL : outfile, dump_mode-1, do_log)) return 1;
+	}
 	if (stat_level) dump_scene_stats(inName, dump_std ? NULL : outfile, stat_level);
 	if (!HintIt && print_sdp) DumpSDP(file, dump_std ? NULL : outfile);
 	if (print_info) {

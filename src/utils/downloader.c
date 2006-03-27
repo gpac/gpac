@@ -69,10 +69,7 @@ struct __gf_download_session
 
 	char *server_name;
 	u16 port;
-#ifdef GPAC_WITH_PROXY_MNGMT
-	char *used_server_name; /* used_server_name is different from server_name if a proxy is used */
-	u16 used_port; /* used_prot is different from port if a proxy is used */
-#endif
+
 	char *remote_path;
 	char *user;
 	char *passwd;
@@ -340,16 +337,7 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 	const char *opt;
 	if (!strnicmp(url, "http://", 7)) {
 		url += 7;
-#ifdef GPAC_WITH_PROXY_MNGMT
-		{
-			char *portStr = gf_cfg_get_key(sess->dm->cfg, "PROXY", "PORT");
-			sess->used_port = sess->port = 80;
-			if (portStr)
-				sess->used_port = atoi(portStr);
-		}
-#else
 		sess->port = 80;
-#endif
 		sess->do_requests = http_do_requests;
 	} 
 	else if (!strnicmp(url, "https://", 8)) {
@@ -394,16 +382,7 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 	
 	tmp = strrchr(tmp_url, ':');
 	if (tmp) {
-#ifdef GPAC_WITH_PROXY_MNGMT
-		{
-			char *portStr = gf_cfg_get_key(sess->dm->cfg, "PROXY", "PORT");
-			sess->used_port = sess->port = atoi(tmp+1);
-			if (portStr)
-				sess->used_port = atoi(portStr);
-		}
-#else
 		sess->port = atoi(tmp+1);
-#endif
 		tmp[0] = 0;
 	}
 	tmp = strrchr(tmp_url, '@');
@@ -422,16 +401,7 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 		}
 		sess->user = strdup(tmp_url);
 	} else {
-#ifdef GPAC_WITH_PROXY_MNGMT
-		{
-			char *serverName = gf_cfg_get_key(sess->dm->cfg, "PROXY", "PROXYNAME");
-			sess->used_server_name = sess->server_name = strdup(tmp_url);
-			if (serverName)
-				sess->used_server_name = strdup(serverName);
-		}
-#else
 		sess->server_name = strdup(tmp_url);
-#endif
 	}
 
 	/*setup BW limiter*/
@@ -575,6 +545,8 @@ static Bool pattern_match(const char *pattern, const char *string)
 static void gf_dm_connect(GF_DownloadSession *sess)
 {
 	GF_Err e;
+	u16 proxy_port = 0;
+	const char *proxy;
 	if (!sess->sock) {
 		//sess->num_retry = 40;
 		sess->sock = gf_sk_new(GF_SOCK_TYPE_TCP);
@@ -584,11 +556,24 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	sess->status = GF_DOWNLOAD_STATE_SETUP;
 	sess->OnDataRcv(sess->usr_cbk, NULL, 0, sess->status, GF_OK);
 
-#ifdef GPAC_WITH_PROXY_MNGMT
-	e = gf_sk_connect(sess->sock, sess->used_server_name, sess->used_port);
-#else
-	e = gf_sk_connect(sess->sock, sess->server_name, sess->port);
-#endif
+
+	
+	/*PROXY setup*/
+	proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Enabled");
+	if (proxy && !strcmp(proxy, "yes")) {
+		proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Port");
+		proxy_port = proxy ? atoi(proxy) : 80;
+		
+		proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Name");
+	} else {
+		proxy = NULL;
+	}
+
+	if (proxy) {
+		e = gf_sk_connect(sess->sock, (char *) proxy, proxy_port);
+	} else {
+		e = gf_sk_connect(sess->sock, sess->server_name, sess->port);
+	}
 	/*retry*/
 	if ((e == GF_IP_SOCK_WOULD_BLOCK) && sess->num_retry) {
 		sess->status = GF_DOWNLOAD_STATE_SETUP;
@@ -914,6 +899,7 @@ void http_do_requests(GF_DownloadSession *sess)
 	if (sess->status==GF_DOWNLOAD_STATE_CONNECTED) {
 		unsigned char range_buf[1024];
 		unsigned char pass_buf[1024];
+		const char *user_agent;
 		u32 size;
 
 		/*setup authentification*/
@@ -953,6 +939,10 @@ void http_do_requests(GF_DownloadSession *sess)
 		}
 #endif	
 
+		user_agent = gf_modules_get_option((GF_BaseInterface *)sess->dm->cfg, "Downloader", "UserAgent");
+		if (!user_agent) user_agent = GF_DOWNLOAD_AGENT_NAME;
+
+
 		sprintf(sHTTP, "GET http://%s:%d%s HTTP/1.0\r\n"
 					"Host: %s:%d\r\n"
 					"User-Agent: %s\r\n"
@@ -964,7 +954,7 @@ void http_do_requests(GF_DownloadSession *sess)
 					sess->server_name, sess->port, sess->remote_path, 
 					sess->server_name,
 					sess->port,
-					GF_DOWNLOAD_AGENT_NAME,
+					user_agent,
 					(const char *) pass_buf,
 					(const char *) range_buf,
 					(sess->flags & GF_DOWNLOAD_IS_ICY) ? "Icy-Metadata:1\r\n" : ""

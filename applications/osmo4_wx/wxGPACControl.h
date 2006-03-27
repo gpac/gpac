@@ -51,6 +51,7 @@ enum
 	ID_RTSP_REBUFFER,
 	ID_RECORD_DIR,
 	ID_USE_FILENAME,
+	ID_USE_PROXY,
 };
 
 class wxOsmo4Frame;
@@ -75,6 +76,7 @@ private:
 	void FontDir(wxCommandEvent &event);
 	void CacheDir(wxCommandEvent &event);
 	void OnProgressive(wxCommandEvent &event);
+	void OnUseProxy(wxCommandEvent &event);
 	void RTPoverRTSP(wxCommandEvent &event);
 	void Rebuffer(wxCommandEvent &event);
 	void OnSetRTSPPort(wxCommandEvent &event);
@@ -119,8 +121,8 @@ private:
 	wxComboBox *m_texturemode;
 	/*file download*/
 	wxButton *m_cachedir;
-	wxCheckBox *m_cleancache, *m_restartcache, *m_progressive;
-	wxTextCtrl *m_sax_duration;
+	wxCheckBox *m_cleancache, *m_restartcache, *m_progressive, *m_use_proxy;
+	wxTextCtrl *m_sax_duration, *m_proxy_name;
 	/*streaming*/
 	wxComboBox *m_port;
 	wxCheckBox *m_rtsp, *m_reorder, *m_dorebuffer;

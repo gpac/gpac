@@ -213,6 +213,8 @@
 #define ID_VIEW_CPU                     1201
 #define IDC_SAX_PROGRESSIVE             1202
 #define IDC_SAX_DELAY                   1203
+#define IDC_HTTP_PROXY                  1204
+#define IDC_HTTP_USE_PROXY              1205
 #define ID_VP_0                         1300
 #define ID_VP_1                         1301
 #define ID_VP_2                         1302

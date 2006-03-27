@@ -4339,6 +4339,7 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 		type = gf_bs_read_int(bs, 4);
 		stream_id = gf_bs_read_int(bs, 12);
 		au_size-=2;
+		if (!stream_id) stream_id = 1000;
 		
 		if ((type==1) || (type==2) || (type==7)) {
 			Bool in_root_od = 0;
@@ -4349,6 +4350,8 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 			u8 st = gf_bs_read_u8(bs);
 			u32 ts_res = gf_bs_read_u24(bs);
 			u32 buffersize_db = gf_bs_read_u16(bs);
+
+			if (!ts_res) ts_res = 1000;
 
 			au_size -= 7;
 
@@ -4414,7 +4417,7 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 					import->esd->URLString = malloc(sizeof(char)*(url_len+1));
 					gf_bs_read_data(bs, import->esd->URLString, url_len);
 					import->esd->URLString[url_len] = 0;
-					au_size-=url_len;
+					au_size-=2+url_len;
 				}
 				if (au_size) {
 					if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
@@ -4427,7 +4430,7 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 				if (gf_isom_get_track_by_id(import->dest, stream_id)) stream_id = 0;
 				track = gf_isom_new_track(import->dest, stream_id, mtype, ts_res);
 				gf_isom_set_track_enabled(import->dest, track, 1);
-				import->final_trackID = import->esd->ESID = gf_isom_get_track_id(import->dest, track);
+				stream_id = import->final_trackID = import->esd->ESID = gf_isom_get_track_id(import->dest, track);
 				gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &mtype);
 				if (delete_esd) {
 					gf_odf_desc_del((GF_Descriptor *) import->esd);

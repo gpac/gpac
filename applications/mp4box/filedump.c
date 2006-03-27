@@ -89,7 +89,7 @@ const char *GetLanguageCode(char *lang)
 }
 
 
-void dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
+GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 {
 	GF_Err e;
 	GF_SceneManager *ctx;
@@ -112,10 +112,11 @@ void dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 	if (ftype == 1) {
 		load.isom = gf_isom_open(file, GF_ISOM_OPEN_READ, NULL);
 		if (!load.isom) {
-			fprintf(stdout, "Cannot open file: %s\n", gf_error_to_string(gf_isom_last_error(NULL)));
+			e = gf_isom_last_error(NULL);
+			fprintf(stdout, "Error opening file: %s\n", gf_error_to_string(e));
 			gf_sm_del(ctx);
 			gf_sg_del(sg);
-			return;
+			return e;
 		}
 	}
 #ifndef GPAC_READ_ONLY
@@ -130,7 +131,7 @@ void dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 			gf_sm_del(ctx);
 			gf_sg_del(sg);
 			if (load.isom) gf_isom_delete(load.isom);
-			return;
+			return e;
 		}
 	}
 #endif
@@ -148,6 +149,7 @@ void dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 	gf_sg_del(sg);
 	if (e) fprintf(stdout, "Error loading scene: %s\n", gf_error_to_string(e));
 	if (load.isom) gf_isom_delete(load.isom);
+	return e;
 }
 
 

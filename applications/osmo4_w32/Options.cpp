@@ -1146,6 +1146,8 @@ void COptHTTP::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(COptHTTP)
+	DDX_Control(pDX, IDC_HTTP_PROXY, m_ProxyName);
+	DDX_Control(pDX, IDC_HTTP_USE_PROXY, m_useProxy);
 	DDX_Control(pDX, IDC_SAX_DELAY, m_SAXDuration);
 	DDX_Control(pDX, IDC_SAX_PROGRESSIVE, m_Progressive);
 	DDX_Control(pDX, IDC_RESTART_CACHE, m_RestartFile);
@@ -1159,6 +1161,7 @@ BEGIN_MESSAGE_MAP(COptHTTP, CDialog)
 	//{{AFX_MSG_MAP(COptHTTP)
 	ON_BN_CLICKED(IDC_BROWSE_CACHE, OnBrowseCache)
 	ON_BN_CLICKED(IDC_SAX_PROGRESSIVE, OnSaxProgressive)
+	ON_BN_CLICKED(IDC_HTTP_USE_PROXY, OnUseProxy)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -1197,6 +1200,7 @@ void COptHTTP::OnBrowseCache()
 
 BOOL COptHTTP::OnInitDialog() 
 {
+	char proxy[GF_MAX_PATH];
 	CDialog::OnInitDialog();
 	
 	WinGPAC *gpac = GetApp();
@@ -1222,6 +1226,21 @@ BOOL COptHTTP::OnInitDialog()
 		m_SAXDuration.SetWindowText("0");
 	}
 	//if (m_Progressive.GetCheck()) m_SAXDuration.EnableWindow(1);
+
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "HTTPProxy", "Enabled");
+	m_useProxy.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	OnUseProxy();
+	strcpy(proxy, "");
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "HTTPProxy", "Name");
+	if (sOpt) {
+		strcpy(proxy, sOpt);
+		sOpt = gf_cfg_get_key(gpac->m_user.config, "HTTPProxy", "Port");
+		if (sOpt) {
+			strcat(proxy, ":");
+			strcat(proxy, sOpt);
+		}
+	}
+	m_ProxyName.SetWindowText(proxy);
 	return TRUE; 
 }
 
@@ -1231,6 +1250,16 @@ void COptHTTP::OnSaxProgressive()
 		m_SAXDuration.EnableWindow(1);
 	} else {
 		m_SAXDuration.EnableWindow(0);
+	}
+}
+
+
+void COptHTTP::OnUseProxy() 
+{
+	if (m_useProxy.GetCheck()) {
+		m_ProxyName.EnableWindow(1);
+	} else {
+		m_ProxyName.EnableWindow(0);
 	}
 }
 
@@ -1245,6 +1274,18 @@ void COptHTTP::SaveOptions()
 	m_SAXDuration.GetWindowText(szCacheDir, MAX_PATH);
 	gf_cfg_set_key(gpac->m_user.config, "SAXLoader", "MaxDuration", szCacheDir);
 
+	gf_cfg_set_key(gpac->m_user.config, "HTTPProxy", "Enabled", m_useProxy.GetCheck() ? "yes" : "no");
+	m_ProxyName.GetWindowText(szCacheDir, MAX_PATH);
+	char *sep = strrchr(szCacheDir, ':');
+	if (sep) {
+		sep[0] = 0;
+		gf_cfg_set_key(gpac->m_user.config, "HTTPProxy", "Name", szCacheDir);
+		sep[0] = ':';
+		gf_cfg_set_key(gpac->m_user.config, "HTTPProxy", "Port", sep+1);
+	} else {
+		gf_cfg_set_key(gpac->m_user.config, "HTTPProxy", "Name", szCacheDir);
+		gf_cfg_set_key(gpac->m_user.config, "HTTPProxy", "Port", NULL);
+	}
 	m_CacheDir.GetWindowText(szCacheDir, MAX_PATH);
 	gf_cfg_set_key(gpac->m_user.config, "General", "CacheDirectory", szCacheDir);
 }

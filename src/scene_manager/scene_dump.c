@@ -2524,7 +2524,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 		SD_DumpSVGElement(sdump, c, n, 0);
 	}
 	sdump->indent--;
-	DUMP_IND(sdump);
+	if (!svg->textContent) DUMP_IND(sdump);
 	fprintf(sdump->trace, "</%s>\n", gf_node_get_class_name(n));
 }
 

@@ -270,6 +270,7 @@ GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load)
 	GF_BIFSConfig *bc;
 	GF_ESD *esd;
 	GF_Err e;
+	char *scene_msg = "MPEG-4 BIFS Scene Parsing";
 	if (!load->isom) return GF_BAD_PARAM;
 
 	/*load IOD*/
@@ -281,10 +282,6 @@ GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load)
 		gf_odf_desc_del((GF_Descriptor *) load->ctx->root_od);
 		load->ctx->root_od = NULL;
 	}
-
-	e = GF_OK;
-	if (load->OnMessage) load->OnMessage(load->cbk, "MPEG-4 (MP4) Scene Parsing", GF_OK);
-	else fprintf(stdout, "MPEG-4 (MP4) Scene Parsing\n");
 	
 	esd = NULL;
 
@@ -310,9 +307,14 @@ GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load)
 				continue;
 			}
 		}
+		if (esd->decoderConfig->objectTypeIndication==0x09) scene_msg = "MPEG-4 LASeR Scene Parsing";
 		break;
 	}
 	if (!esd) return GF_OK;
+
+	e = GF_OK;
+	if (load->OnMessage) load->OnMessage(load->cbk, scene_msg, GF_OK);
+	else fprintf(stdout, "%s\n", scene_msg);
 
 	track = i+1;
 

@@ -76,7 +76,7 @@ enum
 	GF_IMPORT_DO_ABORT = 1<<31
 };
 
-#define GF_IMPORT_MAX_TRACKS	10
+#define GF_IMPORT_MAX_TRACKS	100
 struct __track_import_info
 {
 	u32 track_num;

@@ -508,18 +508,21 @@ IDD_OPT_HTTP DIALOG DISCARDABLE  0, 20, 169, 76
 STYLE DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
-    PUSHBUTTON      "...",IDC_BROWSE_CACHE,5,13,157,12
+    PUSHBUTTON      "...",IDC_BROWSE_CACHE,57,4,109,12
     CONTROL         "Clean cache at exit",IDC_CLEAN_CACHE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,3,33,77,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,3,19,77,10
     CONTROL         "Always redownload incomplete cached files",
                     IDC_RESTART_CACHE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    3,45,153,10
-    LTEXT           "Cache Directory",IDC_STATIC,6,3,52,8
+                    3,30,153,10
+    LTEXT           "Cache Directory",IDC_STATIC,5,5,52,8
     CONTROL         "XML progressive load",IDC_SAX_PROGRESSIVE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,3,58,84,10
-    EDITTEXT        IDC_SAX_DELAY,140,56,22,12,ES_CENTER | ES_AUTOHSCROLL | 
+                    BS_AUTOCHECKBOX | WS_TABSTOP,3,42,84,10
+    EDITTEXT        IDC_SAX_DELAY,142,41,22,12,ES_CENTER | ES_AUTOHSCROLL | 
                     ES_NUMBER
-    LTEXT           "TimeSlice (ms)",IDC_STATIC,91,58,46,8
+    LTEXT           "TimeSlice (ms)",IDC_STATIC,91,43,46,8
+    EDITTEXT        IDC_HTTP_PROXY,54,58,111,12,ES_AUTOHSCROLL
+    CONTROL         "Use proxy",IDC_HTTP_USE_PROXY,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,3,59,47,10
 END
 
 IDD_OPT_FONT DIALOG DISCARDABLE  0, 20, 169, 76

@@ -1519,9 +1519,10 @@ static void lsr_write_path_type(GF_LASeRCodec *lsr, SVG_PathData *path, const ch
 {
 	u32 i, count;
 	lsr_write_point_sequence(lsr, path->points, "seq");
+	/*initial move is not coded*/
 	count = gf_list_count(path->commands);
-    lsr_write_vluimsbf5(lsr, count, "nbOfTypes");
-    for (i=0; i<count; i++) {
+    lsr_write_vluimsbf5(lsr, count-1, "nbOfTypes");
+    for (i=1; i<count; i++) {
         u8 type = *(u8 *) gf_list_get(path->commands, i);
 		GF_LSR_WRITE_INT(lsr, type, 5, name);
     }
@@ -2041,7 +2042,7 @@ static void lsr_write_image(GF_LASeRCodec *lsr, SVGimageElement *elt)
 	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
-	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
+	lsr_write_rare_full(lsr, (GF_Node *) elt, (GF_Node *) clone, &elt->transform);
 	GF_LSR_WRITE_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
 	lsr_write_coordinate(lsr, elt->height.value, 1, "height");
 
@@ -2552,8 +2553,7 @@ static void lsr_write_video(GF_LASeRCodec *lsr, SVGvideoElement *elt)
 	clone = (SVGElement *) gf_node_new(lsr->sg, gf_node_get_tag((GF_Node *)elt) );
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
-	/*no transform here (transformBehavior instead)*/
-	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
+	lsr_write_rare_full(lsr, (GF_Node *) elt, (GF_Node *) clone, &elt->transform);
 	lsr_write_time_list(lsr, elt->timing->begin, "has_begin");
 	lsr_write_duration(lsr, &elt->timing->dur, "has_dur");
 	GF_LSR_WRITE_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");

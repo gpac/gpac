@@ -6,6 +6,15 @@
 	<title>GPAC Configuration documentation </title>
 </head>
 
+<p style="text-align: center;">
+<br/>
+<b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.1-DEV</span></b>
+<br/>
+<b><span style="Font-Size: 18pt">Last Modified February 2006</span></b>
+</p>
+
+<br/><br/>
+
 <a name="Overview"></a><span style="text-decoration: underline;"><b>Overview</b></span>
 <p style="text-indent: 5%">
 Some applications in the GPAC framework use a configuration file shared among modules and reloadable at run time. Modules may use the configuration file as well (to avoid multiple config files). This doc attempts to provide explanations for the different options.
@@ -24,6 +33,7 @@ The config file is based on the win32 .ini file model, thus is ordered by sectio
 <b><a href="#Network" style="text-decoration: underline;">Network</a></b>
 <b><a href="#FontEngine" style="text-decoration: underline;">FontEngine</a></b>
 <b><a href="#Downloader" style="text-decoration: underline;">Downloader</a></b>
+<b><a href="#HTTPProxy" style="text-decoration: underline;">HTTPProxy</a></b>
 <b><a href="#Streaming" style="text-decoration: underline;">Streaming</a></b>
 <b><a href="#MimeTypes" style="text-decoration: underline;">MimeTypes</a></b>
 <b><a href="#StreamingCache" style="text-decoration: underline;">StreamingCache</a></b>
@@ -407,6 +417,23 @@ Specifies whether incompletely downloaded files shall be removed before redownlo
 <b>MaxRate</b> [value: <i>positive integer</i>]
 <p style="text-indent: 5%">
 Specifies a maximum data rate in kilo bits per seconds for file downloading. This is used for simulation purposes. A value of 0 means no rate restriction.</p>
+<b>UserAgent</b> [value: <i>string</i>]
+<p style="text-indent: 5%">
+Specifies an alternate user agent (default one is "GPAC $VERSION").</p>
+
+<br/><br/>
+<a name="HTTPProxy"></a>
+<span style="text-decoration: underline;"><b>Section "HTTPProxy"</b></span> <i><a href="#Overview">Back to top</a></i>
+<p>The "HTTPProxy" section of the config file holds configuration option for HTTP proxy adressing. Currently only one proxy can be enabled, and no URI selection is done.</p>
+<b>Enabled</b> [value: <i>"yes" "no"</i>]
+<p style="text-indent: 5%">
+Specifies whether the proxy should be used or not when downloading files.</p>
+<b>Name</b> [value: <i>string</i>]
+<p style="text-indent: 5%">
+Specifies the proxy name (IP address or resolved name) without protocol identifier (eg, no "http://"). If not present, the proxy is disabled.</p>
+<b>Port</b> [value: <i>positive integer</i>]
+<p style="text-indent: 5%">
+Specifies the port to use with the proxy. If no port is specified, the default HTTP port (80) is used.</p>
 
 <br/><br/>
 <a name="Streaming"></a>

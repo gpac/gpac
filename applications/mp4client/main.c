@@ -771,7 +771,11 @@ int main (int argc, char **argv)
 		fprintf(stdout, "Using %s\n", gf_cfg_get_key(cfg_file, "Rendering", "RendererName"));
 	}
 
-
+	str = gf_cfg_get_key(cfg_file, "HTTPProxy", "Enabled");
+	if (str && !strcmp(str, "yes")) {
+		str = gf_cfg_get_key(cfg_file, "HTTPProxy", "Name");
+		if (str) fprintf(stdout, "HTTP Proxy %s enabled\n", str);
+	}
 
 	if (rti_file) {
 		memory_at_gpac_load = 0;

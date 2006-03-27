@@ -299,6 +299,12 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	bs->Add(m_sax_duration, wxALIGN_CENTER | wxADJUST_MINSIZE);
 	bs->Add(new wxStaticText(this, 0, wxT("max load slice (ms)")), wxADJUST_MINSIZE | wxALIGN_CENTER);
 	s_dnld->Add(bs, 0, wxALL|wxEXPAND, 2);
+	bs = new wxBoxSizer(wxHORIZONTAL);
+	m_use_proxy = new wxCheckBox(this, ID_USE_PROXY, wxT("Use proxy"));
+	bs->Add(m_use_proxy, wxALIGN_CENTER | wxADJUST_MINSIZE);
+	m_proxy_name = new wxTextCtrl(this, 0, wxT(""), wxPoint(10, 120), wxSize(60, 20));
+	bs->Add(m_proxy_name, wxALIGN_CENTER | wxADJUST_MINSIZE);
+	s_dnld->Add(bs, 0, wxALL|wxEXPAND, 2);
 	s_main->Add(s_dnld, 0, wxEXPAND, 0);
 
 	/*streaming*/
@@ -598,6 +604,24 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_sax_duration->SetValue(sOpt ? wxString(sOpt, wxConvUTF8) : wxT("30"));
 	if (! m_progressive->GetValue()) m_sax_duration->Enable(0);
 
+	sOpt = gf_cfg_get_key(cfg, "HTTPProxy", "Enabled");
+	m_use_proxy->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+	char szProxy[GF_MAX_PATH];
+	strcpy(szProxy, "");
+	sOpt = gf_cfg_get_key(cfg, "HTTPProxy", "Name");
+	if (sOpt) {
+		strcat(szProxy, sOpt);
+		sOpt = gf_cfg_get_key(cfg, "HTTPProxy", "Port");
+		if (sOpt) {
+			strcat(szProxy, ":");
+			strcat(szProxy, sOpt);
+		}
+	} else {
+		m_use_proxy->SetValue(0);
+	}
+	m_proxy_name->SetValue(szProxy);
+	if (! m_use_proxy->GetValue()) m_proxy_name->Enable(0);
+
 	/*streaming*/	
 	m_port->Append(wxT("554 (RTSP standard)"));
 	m_port->Append(wxT("7070 (RTSP ext)"));
@@ -705,6 +729,7 @@ BEGIN_EVENT_TABLE(wxGPACControl, wxDialog)
 	EVT_BUTTON(ID_FONT_DIR, wxGPACControl::FontDir)
 	EVT_BUTTON(ID_CACHE_DIR, wxGPACControl::CacheDir)
 	EVT_CHECKBOX(ID_PROGRESSIVE, wxGPACControl::OnProgressive)
+	EVT_CHECKBOX(ID_USE_PROXY, wxGPACControl::OnUseProxy)
 	EVT_CHECKBOX(ID_RTP_OVER_RTSP, wxGPACControl::RTPoverRTSP)
 	EVT_CHECKBOX(ID_RTSP_REBUFFER, wxGPACControl::Rebuffer)
 	EVT_COMBOBOX(ID_RTSP_PORT, wxGPACControl::OnSetRTSPPort)
@@ -784,6 +809,11 @@ void wxGPACControl::CacheDir(wxCommandEvent &WXUNUSED(event))
 void wxGPACControl::OnProgressive(wxCommandEvent &WXUNUSED(event))
 {
 	m_sax_duration->Enable(m_progressive->GetValue() ? 1 : 0);
+}
+
+void wxGPACControl::OnUseProxy(wxCommandEvent &WXUNUSED(event))
+{
+	m_proxy_name->Enable(m_use_proxy->GetValue() ? 1 : 0);
 }
 
 void wxGPACControl::RTPoverRTSP(wxCommandEvent &WXUNUSED(event))
