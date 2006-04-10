@@ -140,10 +140,6 @@ static void RP_close_service_thread(RTPClient *rtp)
 		free(rtp->sdp_temp);
 	}
 	rtp->sdp_temp = NULL;
-	if (rtp->od_au) free(rtp->od_au);
-	rtp->od_au = NULL;
-	rtp->od_au_size = 0;
-
 	if (rtp->do_exit==1) gf_term_on_disconnect(rtp->service, NULL, GF_OK);
 	rtp->run_client = 0;
 }
@@ -256,6 +252,7 @@ static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 	reply right away*/
 	else {
 		gf_term_on_connect(serv, NULL, GF_OK);
+		RP_SetupObjects(priv);
 	}
 	return GF_OK;
 }
@@ -303,20 +300,14 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 	sess = NULL;
 	if (strstr(url, "ES_ID=")) {
 		sscanf(url, "ES_ID=%d", &ESID);
-		if (ESID==priv->od_es_id) {
-			priv->od_ch = channel;
-			gf_term_on_connect(priv->service, channel, GF_OK);
-			return GF_OK;
-		} else {
-			/*first case: simple URL (same namespace)*/
-			ch = RP_FindChannel(priv, NULL, ESID, NULL, 0);
-			/*this should not happen, the sdp must describe all streams in the service*/
-			if (!ch) return GF_SERVICE_ERROR;
-			
-			/*assign app channel*/
-			ch->channel = channel;
-			sess = ch->rtsp;
-		}
+		/*first case: simple URL (same namespace)*/
+		ch = RP_FindChannel(priv, NULL, ESID, NULL, 0);
+		/*this should not happen, the sdp must describe all streams in the service*/
+		if (!ch) return GF_SERVICE_ERROR;
+		
+		/*assign app channel*/
+		ch->channel = channel;
+		sess = ch->rtsp;
 	}
 	/*rtsp url - create a session if needed*/
 	else if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8)) {
@@ -358,14 +349,8 @@ static GF_Err RP_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	RTPStream *ch;
 	RTPClient *priv = plug->priv;
 
-	if (priv->od_ch==channel) {
-		priv->od_ch = NULL;
-		gf_term_on_disconnect(priv->service, channel, GF_OK);
-		return GF_OK;
-	}
 	ch = RP_FindChannel(priv, channel, 0, NULL, 0);
 	if (!ch) return GF_STREAM_NOT_FOUND;
-
 	gf_mx_p(priv->mx);
 	/*disconnect stream BUT DO NOT DELETE IT since we don't store SDP*/
 	RP_DisconnectStream(ch);
@@ -383,22 +368,6 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	if (!com->base.on_channel) {
 		if (com->command_type==GF_NET_IS_CACHABLE) return GF_OK;
 		return GF_NOT_SUPPORTED;
-	}
-
-	if (priv->od_ch==com->base.on_channel) {
-		switch (com->command_type) {
-		case GF_NET_CHAN_SET_PULL: return GF_OK;
-		case GF_NET_CHAN_BUFFER: com->buffer.max = com->buffer.min = 0; return GF_OK;
-		case GF_NET_CHAN_DURATION: com->duration.duration = 0; return GF_OK;
-		case GF_NET_CHAN_PLAY:
-			priv->od_fetched = 0;
-			priv->od_start_time = (u32) (com->play.start_range*1000);
-			return GF_OK;
-		case GF_NET_CHAN_STOP:
-			priv->od_start_time = 0;
-			break;
-		}
-		return GF_OK;
 	}
 
 	ch = RP_FindChannel(priv, com->base.on_channel, 0, NULL, 0);
@@ -516,25 +485,6 @@ static GF_Err RP_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char
 	RTPStream *ch;
 	RTPClient *priv = plug->priv;
 
-	if (priv->od_ch==channel) {
-		*sl_compressed = 0;
-		memset(out_sl_hdr, 0, sizeof(GF_SLHeader));
-		out_sl_hdr->accessUnitEndFlag = 1;
-		out_sl_hdr->accessUnitStartFlag = 1;
-		out_sl_hdr->compositionTimeStamp = priv->od_start_time;
-		out_sl_hdr->compositionTimeStampFlag = 1;
-		out_sl_hdr->randomAccessPointFlag = 1;
-		if (priv->od_fetched) {
-			*out_reception_status = GF_EOS;
-		} else {
-			*out_reception_status = GF_OK;
-			*is_new_data = 1;
-			*out_data_ptr = priv->od_au;
-			*out_data_size = priv->od_au_size;
-		}
-		return GF_OK;
-	}
-
 	ch = RP_FindChannel(priv, channel, 0, NULL, 0);
 	if (!ch) return GF_STREAM_NOT_FOUND;
 	if (ch->rtp_ch || ch->rtsp || !ch->control) return GF_SERVICE_ERROR;
@@ -573,10 +523,7 @@ static GF_Err RP_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 {
 	RTPStream *ch;
 	RTPClient *priv = plug->priv;
-	if (priv->od_ch==channel) {
-		priv->od_fetched = 1;
-		return GF_OK;
-	}
+
 	ch = RP_FindChannel(priv, channel, 0, NULL, 0);
 	if (!ch) return GF_STREAM_NOT_FOUND;
 	if (ch->rtp_ch || ch->rtsp || !ch->control) return GF_SERVICE_ERROR;

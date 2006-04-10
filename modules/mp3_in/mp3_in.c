@@ -39,15 +39,11 @@ typedef struct
 	u32 duration;
 
 	u32 pad_bytes;
-	Bool es_done, od_done;
-	LPNETCHANNEL es_ch, od_ch;
+	Bool done;
+	LPNETCHANNEL ch;
 
-	char *es_data;
-	u32 es_data_size;
-
-	char *od_data;
-	u32 od_data_size;
-
+	char *data;
+	u32 data_size;
 
 	GF_SLHeader sl_hdr;
 
@@ -78,6 +74,27 @@ static Bool mp3_is_local(const char *url)
 	if (!strnicmp(url, "file://", 7)) return 1;
 	if (strstr(url, "://")) return 0;
 	return 1;
+}
+
+
+static GF_ESD *MP3_GetESD(MP3Reader *read)
+{
+	GF_ESD *esd = gf_odf_desc_esd_new(0);
+	esd->slConfig->timestampResolution = read->sample_rate;
+	esd->decoderConfig->streamType = GF_STREAM_AUDIO;
+	esd->decoderConfig->objectTypeIndication = read->oti;
+	esd->ESID = 1;
+	return esd;
+}
+
+static void mp3_setup_object(MP3Reader *read)
+{
+	GF_ESD *esd;
+	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+	od->objectDescriptorID = 1;
+	esd = MP3_GetESD(read);
+	gf_list_add(od->ESDescriptors, esd);
+	gf_term_add_media(read->service, (GF_Descriptor*)od, 0);
 }
 
 
@@ -118,8 +135,8 @@ static void MP3_RegulateDataRate(MP3Reader *read)
 
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.command_type = GF_NET_CHAN_BUFFER_QUERY;
-	com.base.on_channel = read->es_ch;
-	while (read->es_ch) {
+	com.base.on_channel = read->ch;
+	while (read->ch) {
 		gf_term_on_command(read->service, &com, GF_OK);
 		if (com.buffer.occupancy < com.buffer.max) break;
 		gf_sleep(2);
@@ -140,17 +157,18 @@ static void MP3_OnLiveData(MP3Reader *read, char *data, u32 data_size)
 
 		read->needs_connection = 0;
 		gf_term_on_connect(read->service, NULL, GF_OK);
+		mp3_setup_object(read);
 	}
 	if (!data_size) return;
 
-	read->es_data = realloc(read->es_data, sizeof(char)*(read->es_data_size+data_size) );
-	memcpy(read->es_data + read->es_data_size, data, sizeof(char)*data_size);
-	read->es_data_size += data_size;
-	if (!read->es_ch) return;
+	read->data = realloc(read->data, sizeof(char)*(read->data_size+data_size) );
+	memcpy(read->data + read->data_size, data, sizeof(char)*data_size);
+	read->data_size += data_size;
+	if (!read->ch) return;
 
 	
-	data = read->es_data;
-	data_size = read->es_data_size;
+	data = read->data;
+	data_size = read->data_size;
 
 	while (1) {
 		hdr = gf_mp3_get_next_header_mem(data, data_size, &pos);
@@ -161,9 +179,9 @@ static void MP3_OnLiveData(MP3Reader *read, char *data, u32 data_size)
 		if (!hdr || (pos+size>data_size)) {
 			char *d = malloc(sizeof(char) * data_size);
 			memcpy(d, data, sizeof(char) * data_size);
-			free(read->es_data);
-			read->es_data = d;
-			read->es_data_size = data_size;
+			free(read->data);
+			read->data = d;
+			read->data_size = data_size;
 
 			MP3_RegulateDataRate(read);
 			return;
@@ -174,7 +192,7 @@ static void MP3_OnLiveData(MP3Reader *read, char *data, u32 data_size)
 		read->sl_hdr.AU_sequenceNumber++;
 		read->sl_hdr.compositionTimeStampFlag = 1;
 		read->sl_hdr.compositionTimeStamp += gf_mp3_window_size(hdr);
-		gf_term_on_sl_packet(read->service, read->es_ch, data + pos, size, &read->sl_hdr, GF_OK);
+		gf_term_on_sl_packet(read->service, read->ch, data + pos, size, &read->sl_hdr, GF_OK);
 		data += pos + size;
 		assert(data_size>=pos+size);
 		data_size -= pos+size;
@@ -239,6 +257,7 @@ void MP3_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 	if (read->needs_connection) {
 		read->needs_connection = 0;
 		gf_term_on_connect(read->service, NULL, e);
+		if (!e) mp3_setup_object(read);
 	}
 }
 
@@ -289,6 +308,7 @@ static GF_Err MP3_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		reply = GF_NOT_SUPPORTED;
 	}
 	gf_term_on_connect(serv, NULL, reply);
+	if (!reply) mp3_setup_object(read);
 	return GF_OK;
 }
 
@@ -301,39 +321,26 @@ static GF_Err MP3_CloseService(GF_InputService *plug)
 	if (read->dnload) gf_term_download_del(read->dnload);
 	read->dnload = NULL;
 
-	if (read->es_data) free(read->es_data);
-	read->es_data = NULL;
+	if (read->data) free(read->data);
+	read->data = NULL;
 	gf_term_on_disconnect(read->service, NULL, GF_OK);
 	return GF_OK;
 }
 
 static GF_Descriptor *MP3_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-	GF_ESD *esd;
 	MP3Reader *read = plug->priv;
-	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-	od->objectDescriptorID = 1;
 	/*since we don't handle multitrack in mp3, we don't need to check sub_url, only use expected type*/
 
 	/*audio object*/
 	if (expect_type==GF_MEDIA_OBJECT_AUDIO) {
-		esd = gf_odf_desc_esd_new(0);
-		esd->slConfig->timestampResolution = read->sample_rate;
-		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-		esd->decoderConfig->objectTypeIndication = read->oti;
-		esd->ESID = 2;
+		GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+		GF_ESD *esd = MP3_GetESD(read);
+		od->objectDescriptorID = 1;
 		gf_list_add(od->ESDescriptors, esd);
 		return (GF_Descriptor *) od;
 	}
-	/*inline scene*/
-	/*OD ESD*/
-	esd = gf_odf_desc_esd_new(0);
-	esd->slConfig->timestampResolution = 1000;
-	esd->decoderConfig->streamType = GF_STREAM_OD;
-	esd->decoderConfig->objectTypeIndication = GPAC_STATIC_OD_OTI;
-	esd->ESID = 1;
-	gf_list_add(od->ESDescriptors, esd);
-	return (GF_Descriptor *) od;
+	return NULL;
 }
 
 static GF_Err MP3_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
@@ -343,24 +350,18 @@ static GF_Err MP3_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	MP3Reader *read = plug->priv;
 
 	e = GF_SERVICE_ERROR;
-	if ((read->es_ch==channel) || (read->od_ch==channel)) goto exit;
+	if (read->ch==channel) goto exit;
 
 	e = GF_STREAM_NOT_FOUND;
 	if (strstr(url, "ES_ID")) {
 		sscanf(url, "ES_ID=%d", &ES_ID);
 	}
 	/*URL setup*/
-	else if (!read->es_ch && MP3_CanHandleURL(plug, url)) ES_ID = 2;
+	else if (!read->ch && MP3_CanHandleURL(plug, url)) ES_ID = 1;
 
-	switch (ES_ID) {
-	case 1:
-		read->od_ch = channel;
+	if (ES_ID==1) {
+		read->ch = channel;
 		e = GF_OK;
-		break;
-	case 2:
-		read->es_ch = channel;
-		e = GF_OK;
-		break;
 	}
 
 exit:
@@ -372,13 +373,10 @@ static GF_Err MP3_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
 	MP3Reader *read = plug->priv;
 	GF_Err e = GF_STREAM_NOT_FOUND;
-	if (read->es_ch == channel) {
-		read->es_ch = NULL;
-		if (read->es_data) free(read->es_data);
-		read->es_data = NULL;
-		e = GF_OK;
-	} else if (read->od_ch == channel) {
-		read->od_ch = NULL;
+	if (read->ch == channel) {
+		read->ch = NULL;
+		if (read->data) free(read->data);
+		read->data = NULL;
 		e = GF_OK;
 	}
 	gf_term_on_disconnect(read->service, channel, e);
@@ -396,13 +394,13 @@ static GF_Err MP3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	}
 	switch (com->command_type) {
 	case GF_NET_CHAN_SET_PULL:
-		if ((read->es_ch == com->base.on_channel) && read->is_live) return GF_NOT_SUPPORTED;
+		if ((read->ch == com->base.on_channel) && read->is_live) return GF_NOT_SUPPORTED;
 		return GF_OK;
 	case GF_NET_CHAN_INTERACTIVE:
-		if ((read->es_ch == com->base.on_channel) && read->is_live) return GF_NOT_SUPPORTED;
+		if ((read->ch == com->base.on_channel) && read->is_live) return GF_NOT_SUPPORTED;
 		return GF_OK;
 	case GF_NET_CHAN_BUFFER:
-		if ((read->es_ch == com->base.on_channel) && read->is_live) {
+		if ((read->ch == com->base.on_channel) && read->is_live) {
 			if (com->buffer.max<2000) com->buffer.max = 2000;
 			com->buffer.min = com->buffer.max/2;
 		}
@@ -420,14 +418,14 @@ static GF_Err MP3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		read->current_time = 0;
 		if (read->stream) fseek(read->stream, 0, SEEK_SET);
 
-		if (read->es_ch == com->base.on_channel) { 
-			read->es_done = 0; 
+		if (read->ch == com->base.on_channel) { 
+			read->done = 0; 
 			/*PLAY after complete download, estimate duration*/
 			if (!read->is_remote && !read->duration) {
 				MP3_ConfigureFromFile(read);
 				if (read->duration) {
 					GF_NetworkCommand rcfg;
-					rcfg.base.on_channel = read->es_ch;
+					rcfg.base.on_channel = read->ch;
 					rcfg.base.command_type = GF_NET_CHAN_DURATION;
 					rcfg.duration.duration = read->duration;
 					rcfg.duration.duration /= read->sample_rate;
@@ -435,7 +433,6 @@ static GF_Err MP3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 				}
 			}
 		}
-		else if (read->od_ch == com->base.on_channel) { read->od_done = 0; }
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
 		return GF_OK;
@@ -450,6 +447,8 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 	u32 pos, hdr, start_from;
 	MP3Reader *read = plug->priv;
 
+	if (read->ch != channel) return GF_STREAM_NOT_FOUND;
+
 	*out_reception_status = GF_OK;
 	*sl_compressed = 0;
 	*is_new_data = 0;
@@ -458,53 +457,12 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 	read->sl_hdr.randomAccessPointFlag = 1;
 	read->sl_hdr.compositionTimeStampFlag = 1;
 
-	if (read->od_ch == channel) {
-		GF_ODCodec *codec;
-		GF_ObjectDescriptor *od;
-		GF_ODUpdate *odU;
-		GF_ESD *esd;
-		if (read->od_done) {
-			*out_reception_status = GF_EOS;
-			return GF_OK;
-		}
-		read->sl_hdr.compositionTimeStamp = (u64) (read->start_range * 1000);
-		*out_sl_hdr = read->sl_hdr;
-		if (!read->od_data) {
-			*is_new_data = 1;
-			odU = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
-			od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-			od->objectDescriptorID = 2;
-			esd = gf_odf_desc_esd_new(0);
-			esd->slConfig->timestampResolution = read->sample_rate;
-			/*we signal start/end of units in live mode*/
-			if (read->is_live) esd->slConfig->useAccessUnitEndFlag = esd->slConfig->useAccessUnitStartFlag = 1;
-			esd->slConfig->useTimestampsFlag = 1;
-
-			esd->ESID = 2;
-			esd->OCRESID = 1;
-			esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-			esd->decoderConfig->objectTypeIndication = read->oti;
-			gf_list_add(od->ESDescriptors, esd);
-			gf_list_add(odU->objectDescriptors, od);
-			codec = gf_odf_codec_new();
-			gf_odf_codec_add_com(codec, (GF_ODCom *)odU);
-			gf_odf_codec_encode(codec, 1);
-			gf_odf_codec_get_au(codec, &read->od_data, &read->od_data_size);
-			gf_odf_codec_del(codec);
-		}
-		*out_data_ptr = read->od_data;
-		*out_data_size = read->od_data_size;
-		return GF_OK;
-	}
-
-	if (read->es_ch != channel) return GF_STREAM_NOT_FOUND;
-
 	/*fetching es data*/
-	if (read->es_done) {
+	if (read->done) {
 		*out_reception_status = GF_EOS;
 		return GF_OK;
 	}
-	if (!read->es_data) {
+	if (!read->data) {
 		if (!read->stream) {
 			*out_data_ptr = NULL;
 			*out_data_size = 0;
@@ -517,17 +475,17 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 		if (!hdr) {
 			if (!read->dnload) {
 				*out_reception_status = GF_EOS;
-				read->es_done = 1;
+				read->done = 1;
 			} else {
 				fseek(read->stream, pos, SEEK_SET);
 				*out_reception_status = GF_OK;
 			}
 			return GF_OK;
 		}
-		read->es_data_size = gf_mp3_frame_size(hdr);
-		if (!read->es_data_size) {
+		read->data_size = gf_mp3_frame_size(hdr);
+		if (!read->data_size) {
 			*out_reception_status = GF_EOS;
-			read->es_done = 1;
+			read->done = 1;
 			return GF_OK;
 		}
 
@@ -546,23 +504,23 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 					return GF_OK;
 				}
 				read->current_time += gf_mp3_window_size(hdr);
-				read->es_data_size = gf_mp3_frame_size(hdr);
-				fseek(read->stream, read->es_data_size-4, SEEK_CUR);
+				read->data_size = gf_mp3_frame_size(hdr);
+				fseek(read->stream, read->data_size-4, SEEK_CUR);
 			}
 			read->start_range = 0;
 		}
 
 		read->sl_hdr.compositionTimeStamp = read->current_time;
 
-		read->es_data = malloc(sizeof(char) * (read->es_data_size+read->pad_bytes));
-		read->es_data[0] = (hdr >> 24) & 0xFF;
-		read->es_data[1] = (hdr >> 16) & 0xFF;
-		read->es_data[2] = (hdr >> 8) & 0xFF;
-		read->es_data[3] = (hdr ) & 0xFF;
+		read->data = malloc(sizeof(char) * (read->data_size+read->pad_bytes));
+		read->data[0] = (hdr >> 24) & 0xFF;
+		read->data[1] = (hdr >> 16) & 0xFF;
+		read->data[2] = (hdr >> 8) & 0xFF;
+		read->data[3] = (hdr ) & 0xFF;
 		/*end of file*/
-		if (fread(&read->es_data[4], 1, read->es_data_size - 4, read->stream) != read->es_data_size-4) {
-			free(read->es_data);
-			read->es_data = NULL;
+		if (fread(&read->data[4], 1, read->data_size - 4, read->stream) != read->data_size-4) {
+			free(read->data);
+			read->data = NULL;
 			if (read->is_remote) {
 				fseek(read->stream, pos, SEEK_SET);
 				*out_reception_status = GF_OK;
@@ -571,11 +529,11 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 			}
 			return GF_OK;
 		}
-		if (read->pad_bytes) memset(read->es_data + read->es_data_size, 0, sizeof(char) * read->pad_bytes);
+		if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);
 	}
 	*out_sl_hdr = read->sl_hdr;
-	*out_data_ptr = read->es_data;
-	*out_data_size = read->es_data_size;
+	*out_data_ptr = read->data;
+	*out_data_size = read->data_size;
 	return GF_OK;
 }
 
@@ -583,17 +541,10 @@ static GF_Err MP3_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 {
 	MP3Reader *read = plug->priv;
 
-	if (read->es_ch == channel) {
-		if (!read->es_data) return GF_BAD_PARAM;
-		free(read->es_data);
-		read->es_data = NULL;
-		return GF_OK;
-	}
-	if (read->od_ch == channel) {
-		if (!read->od_data) return GF_BAD_PARAM;
-		free(read->od_data);
-		read->od_data = NULL;
-		read->od_done = 1;
+	if (read->ch == channel) {
+		if (!read->data) return GF_BAD_PARAM;
+		free(read->data);
+		read->data = NULL;
 		return GF_OK;
 	}
 	return GF_OK;

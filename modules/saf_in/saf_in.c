@@ -238,7 +238,7 @@ static void SAF_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 					gf_list_add(od->ESDescriptors, ch->esd);
 					ch->esd = NULL;
 					od->objectDescriptorID = ch->stream_id;
-					gf_term_add_media(read->service, (GF_Descriptor*)od);
+					gf_term_add_media(read->service, (GF_Descriptor*)od, 0);
 
 				}
 			}

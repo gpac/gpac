@@ -86,7 +86,7 @@ void log_message(void (*LogMsg)(void *cbk, const char *szMsg), void *cbk, char *
 }
 
 
-GF_Err gp_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, Bool no_ocr, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk)
+GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, Bool no_ocr, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk)
 {
 	u32 AudioTrack, VideoTrack, Tracks, i, mType, bifsT, odT, descIndex, VideoType, VID, AID, bifsID, odID;
 	u32 bifs, w, h;
@@ -386,7 +386,7 @@ GF_Err gp_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 }
 
 
-GF_Err gp_media_make_3gpp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk)
+GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk)
 {
 	u32 Tracks, i, mType, nb_vid, nb_avc, nb_aud, nb_txt, nb_non_mp4;
 	Bool is_3g2 = 0;
@@ -883,7 +883,7 @@ err_exit:
 
 #endif //GPAC_READ_ONLY
 
-GF_ESD *gp_media_map_esd(GF_ISOFile *mp4, u32 track)
+GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 {
 	u32 type;
 	GF_GenericSampleDescription *udesc;

@@ -40,16 +40,12 @@ typedef struct
 
 	Bool needs_connection;
 	u32 pad_bytes;
-	Bool es_done, od_done;
-	u32 es_status, od_status;
-	LPNETCHANNEL es_ch, od_ch;
+	Bool done;
+	u32 status;
+	LPNETCHANNEL ch;
 
-	unsigned char *es_data;
-	u32 es_data_size;
-
-	char *od_data;
-	u32 od_data_size;
-
+	unsigned char *data;
+	u32 data_size;
 	GF_SLHeader sl_hdr;
 
 	Double start_range, end_range;
@@ -59,6 +55,42 @@ typedef struct
 
 	//Bool is_live;
 } AMR_Reader;
+
+static GF_ESD *AMR_GetESD(AMR_Reader *read)
+{
+	GF_BitStream *dsi;
+	GF_ESD *esd;
+	esd = gf_odf_desc_esd_new(0);
+	esd->decoderConfig->streamType = GF_STREAM_AUDIO;
+	esd->ESID = 1;
+	esd->OCRESID = 0;
+	esd->slConfig->timestampResolution = read->sample_rate;
+	/*all packets are complete AUs*/
+	esd->slConfig->useAccessUnitEndFlag = esd->slConfig->useAccessUnitStartFlag = 0;
+	esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
+
+	if ((read->mtype==GF_ISOM_SUBTYPE_3GP_AMR) || (read->mtype==GF_ISOM_SUBTYPE_3GP_AMR_WB)) {
+		esd->decoderConfig->objectTypeIndication = GPAC_EXTRA_CODECS_OTI;
+		dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_write_u32(dsi, read->mtype);
+		gf_bs_get_content(dsi, (unsigned char **) & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
+		gf_bs_del(dsi);
+	} 
+	else if (read->mtype==GF_ISOM_SUBTYPE_3GP_EVRC) esd->decoderConfig->objectTypeIndication = 0xA0;
+	else if (read->mtype==GF_ISOM_SUBTYPE_3GP_SMV) esd->decoderConfig->objectTypeIndication = 0xA1;
+	return esd;
+}
+
+static void AMR_SetupObject(AMR_Reader *read)
+{
+	GF_ESD *esd;
+	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+	od->objectDescriptorID = 1;
+	esd = AMR_GetESD(read);
+	esd->OCRESID = 0;
+	gf_list_add(od->ESDescriptors, esd);
+	gf_term_add_media(read->service, (GF_Descriptor*)od, 0);
+}
 
 static Bool AMR_CanHandleURL(GF_InputService *plug, const char *url)
 {
@@ -195,6 +227,7 @@ static void AMR_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 	if (read->needs_connection) {
 		read->needs_connection = 0;
 		gf_term_on_connect(read->service, NULL, e);
+		if (!e) AMR_SetupObject(read);
 	}
 }
 
@@ -245,6 +278,7 @@ static GF_Err AMR_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		reply = GF_NOT_SUPPORTED;
 	}
 	gf_term_on_connect(serv, NULL, reply);
+	if (!reply) AMR_SetupObject(read);
 	return GF_OK;
 }
 
@@ -256,61 +290,27 @@ static GF_Err AMR_CloseService(GF_InputService *plug)
 	if (read->dnload) gf_term_download_del(read->dnload);
 	read->dnload = NULL;
 
-	if (read->es_data) free(read->es_data);
-	read->es_data = NULL;
+	if (read->data) free(read->data);
+	read->data = NULL;
 	gf_term_on_disconnect(read->service, NULL, GF_OK);
 	return GF_OK;
 }
 
-static GF_ESD *AMR_GetESD(AMR_Reader *read)
-{
-	GF_BitStream *dsi;
-	GF_ESD *esd;
-	esd = gf_odf_desc_esd_new(0);
-	esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-	esd->ESID = 2;
-	esd->OCRESID = 1;
-	esd->slConfig->timestampResolution = read->sample_rate;
-	/*all packets are complete AUs*/
-	esd->slConfig->useAccessUnitEndFlag = esd->slConfig->useAccessUnitStartFlag = 0;
-	esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
-
-	if ((read->mtype==GF_ISOM_SUBTYPE_3GP_AMR) || (read->mtype==GF_ISOM_SUBTYPE_3GP_AMR_WB)) {
-		esd->decoderConfig->objectTypeIndication = GPAC_EXTRA_CODECS_OTI;
-		dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_bs_write_u32(dsi, read->mtype);
-		gf_bs_get_content(dsi, (unsigned char **) & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
-		gf_bs_del(dsi);
-	} 
-	else if (read->mtype==GF_ISOM_SUBTYPE_3GP_EVRC) esd->decoderConfig->objectTypeIndication = 0xA0;
-	else if (read->mtype==GF_ISOM_SUBTYPE_3GP_SMV) esd->decoderConfig->objectTypeIndication = 0xA1;
-	return esd;
-}
-
 static GF_Descriptor *AMR_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-	GF_ESD *esd;
 	AMR_Reader *read = plug->priv;
-	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 	/*since we don't handle multitrack in aac, we don't need to check sub_url, only use expected type*/
 
-	od->objectDescriptorID = 1;
 	/*audio object*/
 	if (expect_type==GF_MEDIA_OBJECT_AUDIO) {
-		esd = AMR_GetESD(read);
-		esd->OCRESID = 0;
+		GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+		GF_ESD *esd = AMR_GetESD(read);
+		od->objectDescriptorID = 1;
 		gf_list_add(od->ESDescriptors, esd);
 		return (GF_Descriptor *) od;
 	}
-	/*inline scene*/
-	/*OD ESD*/
-	esd = gf_odf_desc_esd_new(0);
-	esd->slConfig->timestampResolution = 1000;
-	esd->decoderConfig->streamType = GF_STREAM_OD;
-	esd->decoderConfig->objectTypeIndication = GPAC_STATIC_OD_OTI;
-	esd->ESID = 1;
-	gf_list_add(od->ESDescriptors, esd);
-	return (GF_Descriptor *) od;
+	/*let player handle scene description*/
+	return NULL;
 }
 
 static GF_Err AMR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
@@ -320,24 +320,18 @@ static GF_Err AMR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	AMR_Reader *read = plug->priv;
 
 	e = GF_SERVICE_ERROR;
-	if ((read->es_ch==channel) || (read->od_ch==channel)) goto exit;
+	if (read->ch==channel) goto exit;
 
 	e = GF_STREAM_NOT_FOUND;
 	if (strstr(url, "ES_ID")) {
 		sscanf(url, "ES_ID=%d", &ES_ID);
 	}
 	/*URL setup*/
-	else if (!read->es_ch && AMR_CanHandleURL(plug, url)) ES_ID = 2;
+	else if (!read->ch && AMR_CanHandleURL(plug, url)) ES_ID = 1;
 
-	switch (ES_ID) {
-	case 1:
-		read->od_ch = channel;
+	if (ES_ID==1) {
+		read->ch = channel;
 		e = GF_OK;
-		break;
-	case 2:
-		read->es_ch = channel;
-		e = GF_OK;
-		break;
 	}
 
 exit:
@@ -350,13 +344,10 @@ static GF_Err AMR_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	AMR_Reader *read = plug->priv;
 
 	GF_Err e = GF_STREAM_NOT_FOUND;
-	if (read->es_ch == channel) {
-		read->es_ch = NULL;
-		if (read->es_data) free(read->es_data);
-		read->es_data = NULL;
-		e = GF_OK;
-	} else if (read->od_ch == channel) {
-		read->od_ch = NULL;
+	if (read->ch == channel) {
+		read->ch = NULL;
+		if (read->data) free(read->data);
+		read->data = NULL;
 		e = GF_OK;
 	}
 	gf_term_on_disconnect(read->service, channel, e);
@@ -388,14 +379,14 @@ static GF_Err AMR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		read->current_time = 0;
 		if (read->stream) fseek(read->stream, read->start_offset, SEEK_SET);
 
-		if (read->es_ch == com->base.on_channel) { 
-			read->es_done = 0; 
+		if (read->ch == com->base.on_channel) { 
+			read->done = 0; 
 			/*PLAY after complete download, estimate duration*/
 			if (!read->is_remote && !read->duration) {
 				AMR_ConfigureFromFile(read);
 				if (read->duration) {
 					GF_NetworkCommand rcfg;
-					rcfg.base.on_channel = read->es_ch;
+					rcfg.base.on_channel = read->ch;
 					rcfg.base.command_type = GF_NET_CHAN_DURATION;
 					rcfg.duration.duration = read->duration;
 					rcfg.duration.duration /= read->sample_rate;
@@ -403,7 +394,6 @@ static GF_Err AMR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 				}
 			}
 		}
-		else if (read->od_ch == com->base.on_channel) { read->od_done = 0; }
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
 		return GF_OK;
@@ -426,48 +416,15 @@ static GF_Err AMR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 	memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
 	read->sl_hdr.randomAccessPointFlag = 1;
 	read->sl_hdr.compositionTimeStampFlag = 1;
-
-	if (read->od_ch == channel) {
-		GF_ODCodec *codec;
-		GF_ObjectDescriptor *od;
-		GF_ODUpdate *odU;
-		GF_ESD *esd;
-		if (read->od_done) {
-			*out_reception_status = GF_EOS;
-			return GF_OK;
-		}
-		read->sl_hdr.compositionTimeStamp = (u64) (read->start_range * 1000);
-		*out_sl_hdr = read->sl_hdr;
-		if (!read->od_data) {
-			*is_new_data = 1;
-			odU = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
-			od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-			od->objectDescriptorID = 2;
-
-			esd = AMR_GetESD(read);
-			/*we signal start/end of units in live mode*/
-			gf_list_add(od->ESDescriptors, esd);
-			gf_list_add(odU->objectDescriptors, od);
-			codec = gf_odf_codec_new();
-			gf_odf_codec_add_com(codec, (GF_ODCom *)odU);
-			gf_odf_codec_encode(codec, 1);
-			gf_odf_codec_get_au(codec, &read->od_data, &read->od_data_size);
-			gf_odf_codec_del(codec);
-		}
-		*out_data_ptr = read->od_data;
-		*out_data_size = read->od_data_size;
-		return GF_OK;
-	}
-
-	if (read->es_ch != channel) return GF_STREAM_NOT_FOUND;
+	if (read->ch != channel) return GF_STREAM_NOT_FOUND;
 
 	/*fetching es data*/
-	if (read->es_done) {
+	if (read->done) {
 		*out_reception_status = GF_EOS;
 		return GF_OK;
 	}
 
-	if (!read->es_data) {
+	if (!read->data) {
 		if (!read->stream) {
 			*out_data_ptr = NULL;
 			*out_data_size = 0;
@@ -482,17 +439,17 @@ fetch_next:
 		switch (read->mtype) {
 		case GF_ISOM_SUBTYPE_3GP_AMR:
 			ft = (toc >> 3) & 0x0F;
-			read->es_data_size = GF_AMR_FRAME_SIZE[ft];
+			read->data_size = GF_AMR_FRAME_SIZE[ft];
 			break;
 		case GF_ISOM_SUBTYPE_3GP_AMR_WB:
 			ft = (toc >> 3) & 0x0F;
-			read->es_data_size = GF_AMR_WB_FRAME_SIZE[ft];
+			read->data_size = GF_AMR_WB_FRAME_SIZE[ft];
 			break;
 		default:
 			for (i=0; i<GF_SMV_EVRC_RATE_TO_SIZE_NB; i++) {
 				if (GF_SMV_EVRC_RATE_TO_SIZE[2*i]==toc) {
 					/*remove rate_type byte*/
-					read->es_data_size = GF_SMV_EVRC_RATE_TO_SIZE[2*i+1] - 1;
+					read->data_size = GF_SMV_EVRC_RATE_TO_SIZE[2*i+1] - 1;
 					break;
 				}
 			}
@@ -503,23 +460,23 @@ fetch_next:
 			start_from = (u32) (read->start_range * read->sample_rate);
 			if (read->current_time + read->block_size < start_from) {
 				read->current_time += read->block_size;
-				fseek(read->stream, read->es_data_size, SEEK_CUR);
+				fseek(read->stream, read->data_size, SEEK_CUR);
 				goto fetch_next;
 			} else {
 				read->start_range = 0;
 			}
 		}
 		
-		read->es_data_size++;
+		read->data_size++;
 		read->sl_hdr.compositionTimeStamp = read->current_time;
-		read->es_data = malloc(sizeof(char) * (read->es_data_size+read->pad_bytes));
-		read->es_data[0] = toc;
-		if (read->es_data_size>1) fread(read->es_data + 1, read->es_data_size-1, 1, read->stream);
-		if (read->pad_bytes) memset(read->es_data + read->es_data_size, 0, sizeof(char) * read->pad_bytes);
+		read->data = malloc(sizeof(char) * (read->data_size+read->pad_bytes));
+		read->data[0] = toc;
+		if (read->data_size>1) fread(read->data + 1, read->data_size-1, 1, read->stream);
+		if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);
 	}
 	*out_sl_hdr = read->sl_hdr;
-	*out_data_ptr = read->es_data;
-	*out_data_size = read->es_data_size;
+	*out_data_ptr = read->data;
+	*out_data_size = read->data_size;
 	return GF_OK;
 }
 
@@ -527,18 +484,11 @@ static GF_Err AMR_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 {
 	AMR_Reader *read = plug->priv;
 
-	if (read->es_ch == channel) {
-		if (!read->es_data) return GF_BAD_PARAM;
-		free(read->es_data);
-		read->es_data = NULL;
+	if (read->ch == channel) {
+		if (!read->data) return GF_BAD_PARAM;
+		free(read->data);
+		read->data = NULL;
 		read->current_time += read->block_size;
-		return GF_OK;
-	}
-	if (read->od_ch == channel) {
-		if (!read->od_data) return GF_BAD_PARAM;
-		free(read->od_data);
-		read->od_data = NULL;
-		read->od_done = 1;
 		return GF_OK;
 	}
 	return GF_OK;

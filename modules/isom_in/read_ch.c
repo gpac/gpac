@@ -99,26 +99,6 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	u32 ivar;
 	if (ch->sample) return;
 
-	/*that's our fake OD stream*/
-	if (ch->FAKE_ESID) {
-		ch->current_slh.accessUnitEndFlag = 1;
-		ch->current_slh.accessUnitStartFlag = 1;
-		ch->current_slh.AU_sequenceNumber = 1;
-		ch->current_slh.compositionTimeStampFlag = 1;
-		ch->current_slh.decodingTimeStampFlag = 1;
-		ch->current_slh.packetSequenceNumber = 1;
-		ch->current_slh.randomAccessPointFlag = 0;
-		if (ch->last_state == GF_EOS) return;
-
-		ch->sample = gf_isom_sample_new();
-		ch->sample->dataLength = ch->owner->od_au_size;
-		ch->sample->data = ch->owner->od_au;
-		ch->sample->IsRAP = 1;
-		ch->current_slh.decodingTimeStamp = ch->start;
-		ch->current_slh.compositionTimeStamp = ch->start;
-		return;
-	}
-
 	if (ch->to_init) {
 		init_reader(ch);
 	} else if (ch->has_edit_list) {
@@ -183,13 +163,6 @@ fetch_next:
 
 void isor_reader_release_sample(ISOMChannel *ch)
 {
-
-	if (ch->FAKE_ESID) {
-		/*DON'T DESTROY OD, it will be needed for later seek...*/
-		ch->last_state = GF_EOS;
-		ch->sample->data = NULL;
-		ch->sample->dataLength = 0;
-	}
 	/*this is to handle edit list*/
 	if (ch->sample->data) ch->sample_num++;
 

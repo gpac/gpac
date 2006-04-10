@@ -411,7 +411,6 @@ GF_Err gf_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 			GdipDeleteMatrix(newmat);
 
 			GdipSetInterpolationMode(_graph->graph, (_sten->tFilter==GF_TEXTURE_FILTER_HIGH_QUALITY) ? InterpolationModeHighQuality : InterpolationModeLowQuality);
-
 			GdipFillPath(_graph->graph, _sten->pTexture, _graph->current);
 		}
 		break;

@@ -307,6 +307,7 @@ void VS2D_TexturePathText(VisualSurface2D *surf, DrawableContext *txt_ctx, GF_Pa
 void VS2D_TexturePathIntern(VisualSurface2D *surf, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx)
 {
 	Fixed sS, sT;
+	u32 tx_tile;
 	GF_Matrix2D gf_mx2d_txt, gf_sr_texture_transform;
 	GF_Rect rc, orig_rc;
 	GF_Raster2D *r2d = surf->render->compositor->r2d;
@@ -350,6 +351,11 @@ void VS2D_TexturePathIntern(VisualSurface2D *surf, GF_Path *path, GF_TextureHand
 	/*set path transform, except for background2D node which is directly build in the final coord system*/
 	r2d->stencil_set_matrix(txh->hwtx, &gf_mx2d_txt);
 
+
+	tx_tile = 0;
+	if (txh->flags & GF_SR_TEXTURE_REPEAT_S) tx_tile |= GF_TEXTURE_REPEAT_S;
+	if (txh->flags & GF_SR_TEXTURE_REPEAT_T) tx_tile |= GF_TEXTURE_REPEAT_T;
+	r2d->stencil_set_tiling(txh->hwtx, tx_tile);
 
 	if (!ctx->is_background) {
 		/*texture alpha scale is the original material transparency, NOT the one after color transform*/

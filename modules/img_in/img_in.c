@@ -41,15 +41,11 @@ typedef struct
 	u32 img_type;
 
 	u32 pad_bytes;
-	Bool es_done, od_done;
-	LPNETCHANNEL es_ch, od_ch;
+	Bool done;
+	LPNETCHANNEL ch;
 
-	char *es_data;
-	u32 es_data_size;
-
-	char *od_data;
-	u32 od_data_size;
-
+	char *data;
+	u32 data_size;
 
 	GF_SLHeader sl_hdr;
 
@@ -57,6 +53,18 @@ typedef struct
 	GF_DownloadSession * dnload;
 } IMGLoader;
 
+
+GF_ESD *IMG_GetESD(IMGLoader *read)
+{
+	GF_ESD *esd = gf_odf_desc_esd_new(0);
+	esd->slConfig->timestampResolution = 1000;
+	esd->decoderConfig->streamType = GF_STREAM_VISUAL;
+	if (read->img_type == IMG_JPEG) esd->decoderConfig->objectTypeIndication = 0x6c;
+	else if (read->img_type == IMG_PNG) esd->decoderConfig->objectTypeIndication = 0x6d;
+	else if (read->img_type == IMG_BMP) esd->decoderConfig->objectTypeIndication = GPAC_BMP_OTI;
+	esd->ESID = 1;
+	return esd;
+}
 
 static Bool IMG_CanHandleURL(GF_InputService *plug, const char *url)
 {
@@ -77,57 +85,68 @@ static Bool jp_is_local(const char *url)
 }
 
 
+static void IMG_SetupObject(IMGLoader *read)
+{
+	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+	GF_ESD *esd = IMG_GetESD(read);
+	od->objectDescriptorID = 1;
+	gf_list_add(od->ESDescriptors, esd);
+	gf_term_add_media(read->service, (GF_Descriptor *)od, 0);
+}
+
+
 void IMG_OnData(void *cbk, char *data, u32 data_size, u32 status, GF_Err e)
 {
 	const char *szCache;
-	IMGLoader *jpl = (IMGLoader *) cbk;
+	IMGLoader *read = (IMGLoader *) cbk;
 
 	/*handle service message*/
-	gf_term_download_update_stats(jpl->dnload);
+	gf_term_download_update_stats(read->dnload);
 
 	/*wait to get the whole file*/
 	if (e == GF_OK) return;
 	else if (e==GF_EOS) {
-		szCache = gf_dm_sess_get_cache_name(jpl->dnload);
+		szCache = gf_dm_sess_get_cache_name(read->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
-			jpl->stream = fopen((char *) szCache, "rb");
-			if (!jpl->stream) e = GF_SERVICE_ERROR;
+			read->stream = fopen((char *) szCache, "rb");
+			if (!read->stream) e = GF_SERVICE_ERROR;
 			else {
 				e = GF_OK;
-				fseek(jpl->stream, 0, SEEK_END);
-				jpl->es_data_size = ftell(jpl->stream);
-				fseek(jpl->stream, 0, SEEK_SET);
+				fseek(read->stream, 0, SEEK_END);
+				read->data_size = ftell(read->stream);
+				fseek(read->stream, 0, SEEK_SET);
 			}
 		}
 	} 
 	/*OK confirm*/
-	gf_term_on_connect(jpl->service, NULL, e);
+	gf_term_on_connect(read->service, NULL, e);
+	if (!e) IMG_SetupObject(read);
 }
 
 void jp_download_file(GF_InputService *plug, char *url)
 {
-	IMGLoader *jpl = (IMGLoader *) plug->priv;
+	IMGLoader *read = (IMGLoader *) plug->priv;
 
-	jpl->dnload = gf_term_download_new(jpl->service, url, 0, IMG_OnData, jpl);
-	if (!jpl->dnload) gf_term_on_connect(jpl->service, NULL, GF_NOT_SUPPORTED);
+	read->dnload = gf_term_download_new(read->service, url, 0, IMG_OnData, read);
+	if (!read->dnload) gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
 	/*service confirm is done once fetched*/
 }
 
 static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	char *sExt;
-	IMGLoader *jpl = plug->priv;
+	IMGLoader *read = plug->priv;
 
-	jpl->service = serv;
+	read->service = serv;
 
 	sExt = strrchr(url, '.');
-	if (!stricmp(sExt, ".jpeg") || !stricmp(sExt, ".jpg")) jpl->img_type = IMG_JPEG;
-	else if (!stricmp(sExt, ".png")) jpl->img_type = IMG_PNG;
-	else if (!stricmp(sExt, ".bmp")) jpl->img_type = IMG_BMP;
+	if (!stricmp(sExt, ".jpeg") || !stricmp(sExt, ".jpg")) read->img_type = IMG_JPEG;
+	else if (!stricmp(sExt, ".png")) read->img_type = IMG_PNG;
+	else if (!stricmp(sExt, ".bmp")) read->img_type = IMG_BMP;
 
-	if (jpl->dnload) gf_term_download_del(jpl->dnload);
-	jpl->dnload = NULL;
+	if (read->dnload) gf_term_download_del(read->dnload);
+	read->dnload = NULL;
 
 	/*remote fetch*/
 	if (!jp_is_local(url)) {
@@ -135,122 +154,102 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		return GF_OK;
 	}
 
-	jpl->stream = fopen(url, "rb");
-	if (jpl->stream) {
-		fseek(jpl->stream, 0, SEEK_END);
-		jpl->es_data_size = ftell(jpl->stream);
-		fseek(jpl->stream, 0, SEEK_SET);
+	read->stream = fopen(url, "rb");
+	if (read->stream) {
+		fseek(read->stream, 0, SEEK_END);
+		read->data_size = ftell(read->stream);
+		fseek(read->stream, 0, SEEK_SET);
 	}
-	gf_term_on_connect(serv, NULL, jpl->stream ? GF_OK : GF_URL_ERROR);
+	gf_term_on_connect(serv, NULL, read->stream ? GF_OK : GF_URL_ERROR);
+	if (read->stream) IMG_SetupObject(read);
 	return GF_OK;
 }
 
 static GF_Err IMG_CloseService(GF_InputService *plug)
 {
-	IMGLoader *jpl = plug->priv;
-	if (jpl->stream) fclose(jpl->stream);
-	jpl->stream = NULL;
-	if (jpl->dnload) gf_term_download_del(jpl->dnload);
-	jpl->dnload = NULL;
-
-	gf_term_on_disconnect(jpl->service, NULL, GF_OK);
+	IMGLoader *read = plug->priv;
+	if (read->stream) fclose(read->stream);
+	read->stream = NULL;
+	if (read->dnload) gf_term_download_del(read->dnload);
+	read->dnload = NULL;
+	gf_term_on_disconnect(read->service, NULL, GF_OK);
 	return GF_OK;
 }
 
 static GF_Descriptor *IMG_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
 	GF_ESD *esd;
-	IMGLoader *jpl = plug->priv;
-	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+	IMGLoader *read = plug->priv;
 
 	/*override default*/
 	if (expect_type==GF_MEDIA_OBJECT_UNDEF) expect_type=GF_MEDIA_OBJECT_VIDEO;
-	jpl->srv_type = expect_type;
+	read->srv_type = expect_type;
 
-	od->objectDescriptorID = 1;
 	/*visual object*/
 	if (expect_type==GF_MEDIA_OBJECT_VIDEO) {
-		esd = gf_odf_desc_esd_new(0);
-		esd->slConfig->timestampResolution = 1000;
-		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		if (jpl->img_type == IMG_JPEG) esd->decoderConfig->objectTypeIndication = 0x6c;
-		else if (jpl->img_type == IMG_PNG) esd->decoderConfig->objectTypeIndication = 0x6d;
-		else if (jpl->img_type == IMG_BMP) esd->decoderConfig->objectTypeIndication = GPAC_BMP_OTI;
+		GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+		od->objectDescriptorID = 1;
+		esd = IMG_GetESD(read);
 		gf_list_add(od->ESDescriptors, esd);
-		esd->ESID = 3;
-
 		return (GF_Descriptor *) od;
 	}
-	/*inline scene*/
-	/*OD ESD*/
-	esd = gf_odf_desc_esd_new(0);
-	esd->slConfig->timestampResolution = 1000;
-	esd->decoderConfig->streamType = GF_STREAM_OD;
-	esd->decoderConfig->objectTypeIndication = GPAC_STATIC_OD_OTI;
-	esd->ESID = 1;
-	gf_list_add(od->ESDescriptors, esd);
-	return (GF_Descriptor *) od;
+	return NULL;
 }
 
 static GF_Err IMG_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
 {
 	u32 ES_ID;
 	GF_Err e;
-	IMGLoader *jpl = plug->priv;
+	IMGLoader *read = plug->priv;
 
 	e = GF_SERVICE_ERROR;
-	if ((jpl->es_ch==channel) || (jpl->od_ch==channel)) goto exit;
+	if (read->ch==channel) goto exit;
 
-	e = GF_OK;
+	e = GF_STREAM_NOT_FOUND;
 	if (strstr(url, "ES_ID")) {
 		sscanf(url, "ES_ID=%d", &ES_ID);
 	}
 	/*URL setup*/
-	else if (!jpl->es_ch && IMG_CanHandleURL(plug, url)) ES_ID = 3;
+	else if (!read->ch && IMG_CanHandleURL(plug, url)) ES_ID = 1;
 
-	switch (ES_ID) {
-	case 1:
-		jpl->od_ch = channel;
-		break;
-	case 3:
-		jpl->es_ch = channel;
-		break;
+	if (ES_ID==1) {
+		read->ch = channel;
+		e = GF_OK;
 	}
 
 exit:
-	gf_term_on_connect(jpl->service, channel, e);
+	gf_term_on_connect(read->service, channel, e);
 	return e;
 }
 
 static GF_Err IMG_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
-	IMGLoader *jpl = plug->priv;
+	GF_Err e = GF_STREAM_NOT_FOUND;
+	IMGLoader *read = plug->priv;
 
-	if (jpl->es_ch == channel) {
-		jpl->es_ch = NULL;
-	} else if (jpl->od_ch == channel) {
-		jpl->od_ch = NULL;
+	if (read->ch == channel) {
+		read->ch = NULL;
+		e = GF_OK;
 	}
-	gf_term_on_disconnect(jpl->service, channel, GF_OK);
+	gf_term_on_disconnect(read->service, channel, e);
 	return GF_OK;
 }
 
 static GF_Err IMG_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
-	IMGLoader *jpl = plug->priv;
+	IMGLoader *read = plug->priv;
 
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 	switch (com->command_type) {
 	case GF_NET_CHAN_SET_PADDING:
-		jpl->pad_bytes = com->pad.padding_bytes;
+		read->pad_bytes = com->pad.padding_bytes;
 		return GF_OK;
 	case GF_NET_CHAN_DURATION:
 		com->duration.duration = 0;
 		return GF_OK;
 	case GF_NET_CHAN_PLAY:
 		/*note we don't handle range since we're only dealing with images*/
-		if (jpl->es_ch == com->base.on_channel) { jpl->es_done = 0; }
-		else if (jpl->od_ch == com->base.on_channel) { jpl->od_done = 0; }
+		if (read->ch == com->base.on_channel) { read->done = 0; }
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
 		return GF_OK;
@@ -262,94 +261,53 @@ static GF_Err IMG_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 static GF_Err IMG_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
-	IMGLoader *jpl = plug->priv;
+	IMGLoader *read = plug->priv;
 
 	*out_reception_status = GF_OK;
 	*sl_compressed = 0;
 	*is_new_data = 0;
 
-	memset(&jpl->sl_hdr, 0, sizeof(GF_SLHeader));
-	jpl->sl_hdr.randomAccessPointFlag = 1;
-	jpl->sl_hdr.compositionTimeStampFlag = 1;
-	*out_sl_hdr = jpl->sl_hdr;
+	memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
+	read->sl_hdr.randomAccessPointFlag = 1;
+	read->sl_hdr.compositionTimeStampFlag = 1;
+	*out_sl_hdr = read->sl_hdr;
 
 	/*fetching es data*/
-	if (jpl->es_ch == channel) {
-		if (jpl->es_done) {
+	if (read->ch == channel) {
+		if (read->done) {
 			*out_reception_status = GF_EOS;
 			return GF_OK;
 		}
-		if (!jpl->es_data) {
-			if (!jpl->stream) {
+		if (!read->data) {
+			if (!read->stream) {
 				*out_data_ptr = NULL;
 				*out_data_size = 0;
 				return GF_OK;
 			}
 			*is_new_data = 1;
-			fseek(jpl->stream, 0, SEEK_SET);
-			jpl->es_data = malloc(sizeof(char) * (jpl->es_data_size + jpl->pad_bytes));
-			fread(jpl->es_data, sizeof(char) * jpl->es_data_size, 1, jpl->stream);
-			fseek(jpl->stream, 0, SEEK_SET);
-			if (jpl->pad_bytes) memset(jpl->es_data + jpl->es_data_size, 0, sizeof(char) * jpl->pad_bytes);
+			fseek(read->stream, 0, SEEK_SET);
+			read->data = malloc(sizeof(char) * (read->data_size + read->pad_bytes));
+			fread(read->data, sizeof(char) * read->data_size, 1, read->stream);
+			fseek(read->stream, 0, SEEK_SET);
+			if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);
 
 		}
-		*out_data_ptr = jpl->es_data;
-		*out_data_size = jpl->es_data_size;
+		*out_data_ptr = read->data;
+		*out_data_size = read->data_size;
 		return GF_OK;
 	}
-	if (jpl->od_ch == channel) {
-		GF_ODCodec *codec;
-		GF_ObjectDescriptor *od;
-		GF_ODUpdate *odU;
-		GF_ESD *esd;
-		if (jpl->od_done) {
-			*out_reception_status = GF_EOS;
-			return GF_OK;
-		}
-		if (!jpl->od_data) {
-			*is_new_data = 1;
-			odU = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
-			od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-			od->objectDescriptorID = 3;
-			esd = gf_odf_desc_esd_new(0);
-			esd->slConfig->timestampResolution = 1000;
-			esd->ESID = 3;
-			esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-			if (jpl->img_type==IMG_JPEG) esd->decoderConfig->objectTypeIndication = 0x6c;
-			else if (jpl->img_type==IMG_PNG) esd->decoderConfig->objectTypeIndication = 0x6d;
-			else if (jpl->img_type==IMG_BMP) esd->decoderConfig->objectTypeIndication = GPAC_BMP_OTI;
-			gf_list_add(od->ESDescriptors, esd);
-			gf_list_add(odU->objectDescriptors, od);
-			codec = gf_odf_codec_new();
-			gf_odf_codec_add_com(codec, (GF_ODCom *)odU);
-			gf_odf_codec_encode(codec, 1);
-			gf_odf_codec_get_au(codec, &jpl->od_data, &jpl->od_data_size);
-			gf_odf_codec_del(codec);
-		}
-		*out_data_ptr = jpl->od_data;
-		*out_data_size = jpl->od_data_size;
-		return GF_OK;
-	}
-
 	return GF_STREAM_NOT_FOUND;
 }
 
 static GF_Err IMG_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 {
-	IMGLoader *jpl = plug->priv;
+	IMGLoader *read = plug->priv;
 
-	if (jpl->es_ch == channel) {
-		if (!jpl->es_data) return GF_BAD_PARAM;
-		free(jpl->es_data);
-		jpl->es_data = NULL;
-		jpl->es_done = 1;
-		return GF_OK;
-	}
-	if (jpl->od_ch == channel) {
-		if (!jpl->od_data) return GF_BAD_PARAM;
-		free(jpl->od_data);
-		jpl->od_data = NULL;
-		jpl->od_done = 1;
+	if (read->ch == channel) {
+		if (!read->data) return GF_BAD_PARAM;
+		free(read->data);
+		read->data = NULL;
+		read->done = 1;
 		return GF_OK;
 	}
 	return GF_OK;
@@ -383,7 +341,7 @@ void *NewLoaderInterface()
 void DeleteLoaderInterface(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
-	IMGLoader *jpl = plug->priv;
-	free(jpl);
+	IMGLoader *read = plug->priv;
+	free(read);
 	free(plug);
 }

@@ -91,7 +91,6 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		e = gf_bifs_dec_unquant_field(codec, bs, node, field);
 		if (e != GF_EOS) return e;
 	}
-
 	//not quantized, use normal scheme
 	switch (field->fieldType) {
 	case GF_SG_VRML_SFBOOL:

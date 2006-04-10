@@ -31,11 +31,11 @@ typedef struct
 	GF_Renderer *compositor;
 	GROUPINGNODESTACK
 	
-	Bool start_scroll, all_scroll_out, is_scrolling;
+	Bool start_scroll, is_scrolling;
 	Double start_time, pause_time;
 	GF_List *lines;
 	GF_Rect clip;
-	Fixed scroll_offset, last_scroll, prev_rate, scroll_rate, scale_scroll;
+	Fixed last_scroll, prev_rate, scroll_rate, scale_scroll, scroll_len, scroll_min, scroll_max;
 } LayoutStack;
 
 typedef struct
@@ -159,6 +159,7 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 	major = get_justify(l, 0);
 	minor = get_justify(l, 1);
 	
+	st->scroll_len = 0;
 	nbLines = gf_list_count(st->lines);
 	if (l->horizontal) {
 		if (l->wrap && !l->topToBottom) {
@@ -237,6 +238,11 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 			} else {
 				current_top += gf_mulfix(l->spacing - FIX_ONE, li->height);
 			}
+			if (l->scrollVertical) {
+				st->scroll_len += li->height;
+			} else {
+				if (st->scroll_len < li->width) st->scroll_len = li->width;
+			}
 		}
 		return;
 	}
@@ -310,16 +316,117 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 			li = gf_list_get(st->lines, k+1);
 			current_left -= gf_mulfix(l->spacing, li->width);
 		}
+		if (l->scrollVertical) {
+			if (st->scroll_len < li->height) st->scroll_len = li->height;
+		} else {
+			st->scroll_len += li->width;
+		}
 	}		
 }
 
+static void layout_setup_scroll_bounds(LayoutStack *st, M_Layout *l)
+{
+	u32 minor_justify = 0;
+
+	st->scroll_min = st->scroll_max = 0;
+
+	if (l->horizontal) minor_justify = l->scrollVertical ? 1 : 0;
+	else minor_justify = l->scrollVertical ? 0 : 1;
+
+	/*update scroll-out max limit*/
+	if (l->scrollMode != -1) {
+		/*set max limit*/
+		switch( get_justify(l, minor_justify)) {
+		case L_END:
+			if (l->scrollVertical) {
+				if (st->scale_scroll<0) st->scroll_max = - st->scroll_len;
+				else st->scroll_max = st->clip.height;
+			} else {
+				if (st->scale_scroll<0) st->scroll_max = - st->clip.width;
+				else st->scroll_max = st->scroll_len;
+			}
+			break;
+		case L_MIDDLE:
+			if (l->scrollVertical) {
+				if (st->scale_scroll<0) st->scroll_max = - (st->clip.height + st->scroll_len)/2;
+				else st->scroll_max = (st->clip.height + st->scroll_len)/2;
+			} else {
+				if (st->scale_scroll<0) st->scroll_max = - (st->clip.width + st->scroll_len)/2;
+				else st->scroll_max = (st->clip.width + st->scroll_len)/2;
+			}
+			break;
+		default:
+			if (l->scrollVertical) {
+				if (st->scale_scroll<0) st->scroll_max = - st->clip.height;
+				else st->scroll_max = st->scroll_len;
+			} else {
+				if (st->scale_scroll<0) st->scroll_max = - st->scroll_len;
+				else st->scroll_max = st->clip.width;
+			}
+			break;
+		}
+	} 
+	/*scroll-in only*/
+	else {
+		st->scroll_max = 0;
+	}
+
+	/*scroll-out only*/
+	if (l->scrollMode==1) {
+		st->scroll_min = 0;
+		return;
+	}
+
+	/*when vertically scrolling an horizontal layout, don't use vertical justification, only justify top/bottom lines*/
+	if (l->horizontal && l->scrollVertical) {
+		if (st->scale_scroll<0) {
+			st->scroll_min = st->scroll_len;
+		} else {
+			st->scroll_min = - st->clip.height;
+		}
+		return;
+	}
+
+	/*update scroll-in offset*/
+	switch( get_justify(l, minor_justify)) {
+	case L_END:
+		if (l->scrollVertical) {
+			if (st->scale_scroll<0) st->scroll_min = st->clip.height;
+			else st->scroll_min = - st->scroll_len;
+		} else {
+			if (st->scale_scroll<0) st->scroll_min = st->scroll_len;
+			else st->scroll_min = -st->clip.width;
+		}
+		break;
+	case L_MIDDLE:
+		if (l->scrollVertical) {
+			if (st->scale_scroll<0) st->scroll_min = (st->clip.height + st->scroll_len)/2;
+			else st->scroll_min = - (st->clip.height + st->scroll_len)/2;
+		} else {
+			if (st->scale_scroll<0) st->scroll_min = (st->clip.width + st->scroll_len)/2;
+			else st->scroll_min = - (st->clip.width + st->scroll_len)/2;
+		}
+		break;
+	default:
+		if (l->scrollVertical) {
+			if (st->scale_scroll<0) st->scroll_min = st->scroll_len;
+			else st->scroll_min = - st->clip.height;
+		} else {
+			if (st->scale_scroll<0) st->scroll_min = st->clip.width;
+			else st->scroll_min = - st->scroll_len;
+		}
+		break;
+	}
+}
+
+
 static void layout_scroll(LayoutStack *st, M_Layout *l)
 {
-	u32 i, hidden, nb_lines;
-	ChildGroup *cg;
-	Fixed scrolled, tot_len, rate, ellapsed;
-	Bool smooth, do_scroll;
+	u32 i, nb_lines;
+	Fixed scrolled, rate, ellapsed, scroll_diff;
+	Bool smooth, do_scroll, stop;
 	Double time;
+	ChildGroup *cg;
 
 	/*not scrolling*/
 	if (!st->scale_scroll && !st->is_scrolling) return;
@@ -330,19 +437,11 @@ static void layout_scroll(LayoutStack *st, M_Layout *l)
 	if (st->start_scroll) {
 		st->start_scroll = 0;
 		st->start_time = time;
-		st->scroll_offset = 0;
 		st->last_scroll = 0;
-		st->all_scroll_out = 0;
 		st->is_scrolling = 1;
 		st->prev_rate = st->scale_scroll;
-		gf_sr_invalidate(st->compositor, NULL);
-		return;
+		layout_setup_scroll_bounds(st, l);
 	}
-	if (st->all_scroll_out) {
-		st->is_scrolling = 0;
-		return;
-	}
-
 
 	/*handle pause/resume*/
 	rate = st->scale_scroll;
@@ -365,71 +464,71 @@ static void layout_scroll(LayoutStack *st, M_Layout *l)
 	else if (l->horizontal && !l->scrollVertical) smooth = 1;
 
 	/*compute advance in pixels for smooth scroll*/
-	ellapsed = FLT2FIX ((Float) (time - st->start_time));
+	ellapsed = FLT2FIX((Float) (time - st->start_time));
 	scrolled = gf_mulfix(ellapsed, rate);
-	/*check for each run*/
-	do_scroll = 0;
 
-	nb_lines = gf_list_count(st->lines);
-	tot_len = 0;
-	for (i=0; i < nb_lines; i++) {
-		LineInfo *li = gf_list_get(st->lines, i);
-		if (l->scrollVertical) {
-			if (l->horizontal) { 
-				tot_len += li->height;
-			} else {
-				if (tot_len < li->height) tot_len = li->height;
-			}
-			if (fabs(scrolled - st->last_scroll) >= li->height) do_scroll = 1;
+	stop = 0;
+	scroll_diff = st->scroll_max - st->scroll_min;
+	if ((scroll_diff<0) && (scrolled<scroll_diff)) {
+		stop = 1;
+		scrolled = scroll_diff;
+	}
+	else if ((scroll_diff>0) && (scrolled>scroll_diff)) {
+		stop = 1;
+		scrolled = scroll_diff;
+	}
+	
+	do_scroll = 1;
+	if (!stop) {
+		if (smooth) {
+			do_scroll = 1;
 		} else {
-			if (!l->horizontal) { 
-				tot_len += li->width;
-			} else {
-				if (tot_len < li->width) tot_len = li->width;
+			scroll_diff = scrolled - st->last_scroll;
+			do_scroll = 0;
+
+			nb_lines = gf_list_count(st->lines);
+			for (i=0; i < nb_lines; i++) {
+				LineInfo *li = gf_list_get(st->lines, i);
+				if (l->scrollVertical) {
+					if (ABS(scroll_diff) >= li->height) {
+						do_scroll = 1;
+						break;
+					}
+				} else {
+					if (fabs(scroll_diff) >= li->width) {
+						do_scroll = 1;
+						break;
+					}
+				}
 			}
-			if (fabs(scrolled - st->last_scroll) >= li->width) do_scroll = 1;
 		}
 	}
-	if (smooth) do_scroll = 1;
 
 	if (do_scroll) 
 		st->last_scroll = scrolled;
 	else
 		scrolled = st->last_scroll;
 
-	hidden = 0;
 	i=0;
 	while ((cg = gf_list_enum(st->groups, &i))) {
 		if (l->scrollVertical)
-			cg->final.y += st->scroll_offset + scrolled;
+			cg->final.y += st->scroll_min + scrolled;
 		else
-			cg->final.x += st->scroll_offset + scrolled;
-
-		/*check if they're in the bounds*/
-		if (! gf_rect_overlaps(cg->final, st->clip)) hidden++;
+			cg->final.x += st->scroll_min + scrolled;
 	}
+
 	/*draw next frame*/
-	gf_sr_invalidate(st->compositor, NULL);
+	if (!stop) {
+		gf_sr_invalidate(st->compositor, NULL);
+		return;
+	}
 
-	if (hidden != gf_list_count(st->groups) ) return;
 	/*done*/
-	st->all_scroll_out = 1;
-
 	if (!l->loop) return;
 
 	/*restart*/
-	st->all_scroll_out = 0;
-	if (l->scrollVertical) {
-		if (st->scale_scroll > 0) 
-			st->scroll_offset -= st->clip.height + tot_len;
-		else
-			st->scroll_offset += st->clip.height + tot_len;
-	} else {
-		if (st->scale_scroll > 0) 
-			st->scroll_offset -= st->clip.width + tot_len;
-		else
-			st->scroll_offset += st->clip.width + tot_len;
-	}
+	st->start_time = time;
+	gf_sr_invalidate(st->compositor, NULL);
 }
 
 

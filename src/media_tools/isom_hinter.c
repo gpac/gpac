@@ -551,14 +551,14 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 
 	// in case a different timescale was provided
 	tmp->OrigTimeScale = gf_isom_get_media_timescale(file, TrackNum);
-	tmp->rtp_p = gp_rtp_builder_new(hintType, &my_sl, flags, tmp, 
+	tmp->rtp_p = gf_rtp_builder_new(hintType, &my_sl, flags, tmp, 
 								MP4T_OnNewPacket, MP4T_OnPacketDone, 
 								/*if copy, no data ref*/
 								copy_media ? NULL : MP4T_OnDataRef, 
 								MP4T_OnData);
 
 	//init the builder
-	gp_rtp_builder_init(tmp->rtp_p, PayloadID, Path_MTU, max_ptime,
+	gf_rtp_builder_init(tmp->rtp_p, PayloadID, Path_MTU, max_ptime,
 					   streamType, oti, PL_ID, MinSize, MaxSize, avgTS, maxDTSDelta, IV_length, KI_length, mpeg4mode);
 
 	/*ISMA compliance is a pain...*/
@@ -618,14 +618,14 @@ u32 gf_hinter_track_get_flags(GF_RTPHinter *tkHinter)
 void gf_hinter_track_get_payload_name(GF_RTPHinter *tkHinter, char *payloadName)
 {
 	char mediaName[30];
-	gp_rtp_builder_get_payload_name(tkHinter->rtp_p, payloadName, mediaName);
+	gf_rtp_builder_get_payload_name(tkHinter->rtp_p, payloadName, mediaName);
 }
 
 void gf_hinter_track_del(GF_RTPHinter *tkHinter)
 {
 	if (!tkHinter) return;
 
-	if (tkHinter->rtp_p) gp_rtp_builder_del(tkHinter->rtp_p);
+	if (tkHinter->rtp_p) gf_rtp_builder_del(tkHinter->rtp_p);
 	free(tkHinter);
 }
 
@@ -710,12 +710,12 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 				tkHint->base_offset_in_sample = samp->dataLength-remain;
 				remain -= size;
 				tkHint->rtp_p->sl_header.accessUnitEndFlag = remain ? 0 : 1;
-				gp_rtp_builder_process(tkHint->rtp_p, ptr, size, (u8) !remain, samp->dataLength, duration, (u8) (descIndex + SIDX_OFFSET_3GPP) );
+				gf_rtp_builder_process(tkHint->rtp_p, ptr, size, (u8) !remain, samp->dataLength, duration, (u8) (descIndex + SIDX_OFFSET_3GPP) );
 				ptr += size;
 				tkHint->rtp_p->sl_header.accessUnitStartFlag = 0;
 			}
 		} else {
-			gp_rtp_builder_process(tkHint->rtp_p, samp->data, samp->dataLength, 1, samp->dataLength, duration, (u8) (descIndex + SIDX_OFFSET_3GPP) );
+			gf_rtp_builder_process(tkHint->rtp_p, samp->data, samp->dataLength, 1, samp->dataLength, duration, (u8) (descIndex + SIDX_OFFSET_3GPP) );
 		}
 		tkHint->rtp_p->sl_header.packetSequenceNumber += 1;
 
@@ -729,7 +729,7 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 	}
 
 	//flush
-	gp_rtp_builder_process(tkHint->rtp_p, NULL, 0, 1, 0, 0, 0);
+	gf_rtp_builder_process(tkHint->rtp_p, NULL, 0, 1, 0, 0, 0);
 
 	gf_isom_end_hint_sample(tkHint->file, tkHint->HintTrack, (u8) tkHint->SampleIsRAP);
 	return GF_OK;
@@ -787,7 +787,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	if (gf_isom_get_media_type(tkHint->file, tkHint->TrackNum) == GF_ISOM_MEDIA_VISUAL)
 		gf_isom_get_visual_info(tkHint->file, tkHint->TrackNum, 1, &Width, &Height);
 
-	gp_rtp_builder_get_payload_name(tkHint->rtp_p, payloadName, mediaName);
+	gf_rtp_builder_get_payload_name(tkHint->rtp_p, payloadName, mediaName);
 
 	/*TODO- extract out of rtp_p for future live tools*/
 	sprintf(sdpLine, "m=%s 0 RTP/%s %d", mediaName, tkHint->rtp_p->slMap.IV_length ? "SAVP" : "AVP", tkHint->rtp_p->PayloadType);
@@ -865,9 +865,9 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		dcd = gf_isom_get_decoder_config(tkHint->file, tkHint->TrackNum, 1);
 
 		if (dcd && dcd->decoderSpecificInfo && dcd->decoderSpecificInfo->data) {
-			gp_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, dcd->decoderSpecificInfo->data, dcd->decoderSpecificInfo->dataLength);
+			gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, dcd->decoderSpecificInfo->data, dcd->decoderSpecificInfo->dataLength);
 		} else {
-			gp_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, NULL, 0);
+			gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, NULL, 0);
 		}
 		if (dcd) gf_odf_desc_del((GF_Descriptor *)dcd);
 
@@ -913,7 +913,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		gf_bs_get_content(bs, &config_bytes, &config_size); 
 		gf_bs_del(bs); 
  
-		gp_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, config_bytes, config_size); 
+		gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, config_bytes, config_size); 
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine); 
 		free(config_bytes); 
 	} 

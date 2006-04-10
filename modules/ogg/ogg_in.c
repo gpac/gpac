@@ -76,15 +76,12 @@ typedef struct
 	/*ogg ogfile state*/
     ogg_sync_state oy;
 	
-	Bool needs_od;
 	OGGStream *resync_stream;
 
 	Bool has_video, has_audio, is_single_media;
 
 	Double dur;
 	u32 data_buffer_ms;
-
-	LPNETCHANNEL od_ch;
 
 	Bool needs_connection;
 	Double start_range, end_range;
@@ -99,7 +96,6 @@ void OGG_EndOfFile(OGGReader *read)
 {
 	OGGStream *st;
 	u32 i=0;
-	gf_term_on_sl_packet(read->service, read->od_ch, NULL, 0, NULL, GF_EOS);
 	while ((st = gf_list_enum(read->streams, &i))) {
 		gf_term_on_sl_packet(read->service, st->ch, NULL, 0, NULL, GF_EOS);
 	}
@@ -167,7 +163,7 @@ static OGGStream *OGG_FindStreamForPage(OGGReader *read, ogg_page *oggpage)
 
 
 
-static GF_ObjectDescriptor *OGG_GetOD(OGGStream *st, Bool no_ocr)
+static GF_ObjectDescriptor *OGG_GetOD(OGGStream *st)
 {
 	GF_ObjectDescriptor *od;
 	GF_ESD *esd;
@@ -179,7 +175,6 @@ static GF_ObjectDescriptor *OGG_GetOD(OGGStream *st, Bool no_ocr)
 	esd->decoderConfig->objectTypeIndication = GPAC_OGG_MEDIA_OTI;
 	esd->decoderConfig->avgBitrate = st->info.bitrate;
 	esd->ESID = st->ESID;
-	esd->OCRESID = no_ocr ? 0 : 1;
 
 	esd->slConfig->useTimestampsFlag = 1;
 	esd->slConfig->useAccessUnitEndFlag = esd->slConfig->useAccessUnitStartFlag = 1;
@@ -192,43 +187,6 @@ static GF_ObjectDescriptor *OGG_GetOD(OGGStream *st, Bool no_ocr)
 	memcpy(esd->decoderConfig->decoderSpecificInfo->data, st->dsi, sizeof(char) * st->dsi_len);
 	gf_list_add(od->ESDescriptors, esd);
 	return od;
-}
-
-static void OGG_SendStreams(OGGReader *read)
-{
-	GF_ODCodec *codec;
-	char *data;
-	u32 data_len, i;
-	GF_SLHeader slh;
-	GF_ODUpdate *odU;
-	GF_ObjectDescriptor *od;
-	OGGStream *st;
-
-	if (!read->needs_od) return;
-	read->needs_od = 0;
-
-	codec = gf_odf_codec_new();
-	odU = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
-
-	/*this will NOT work properly for multi track files other than 1 video, 1 audio*/
-	i=0;
-	while ((st = gf_list_enum(read->streams, &i))) {
-		od = OGG_GetOD(st, 0);
-		gf_list_add(odU->objectDescriptors, od);
-	}
-	gf_odf_codec_add_com(codec, (GF_ODCom *)odU);
-	gf_odf_codec_encode(codec, 1);
-	data = NULL;
-	data_len = 0;
-	gf_odf_codec_get_au(codec, &data, &data_len);
-	gf_odf_codec_del(codec);
-	memset(&slh, 0, sizeof(GF_SLHeader));
-	slh.accessUnitEndFlag = slh.accessUnitStartFlag = 1;
-	slh.compositionTimeStampFlag = 1;
-	slh.compositionTimeStamp = (u64) (read->start_range * 1000);
-	slh.randomAccessPointFlag = 1;
-	gf_term_on_sl_packet(read->service, read->od_ch, data, data_len, &slh, GF_OK);
-	free(data);
 }
 
 u64 OGG_GranuleToTime(OGGInfo *cfg, s64 granule)
@@ -419,6 +377,7 @@ static void OGG_NewStream(OGGReader *read, ogg_page *oggpage)
 	} else {
 		read->has_audio = 1;
 	}
+	if (st->got_headers) gf_term_add_media(read->service, (GF_Descriptor*) OGG_GetOD(st), 0);
 }
 
 void OGG_SignalEndOfStream(OGGReader *read, OGGStream *st)
@@ -513,6 +472,7 @@ void OGG_Process(OGGReader *read)
 			st->parse_headers--;
 			if (!st->parse_headers) {
 				st->got_headers = 1;
+				gf_term_add_media(read->service, (GF_Descriptor*) OGG_GetOD(st), 0);
 				break;
 			}
 		}
@@ -572,36 +532,34 @@ static u32 OggDemux(void *par)
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.command_type = GF_NET_CHAN_BUFFER_QUERY;
 
+	if (read->needs_connection) {
+		read->needs_connection=0;
+		gf_term_on_connect(read->service, NULL, GF_OK);
+	}
+
     ogg_sync_init(&read->oy);
+
 
 	while (!read->kill_demux) {
 		OGG_Process(read);
 
 		if (!read->bos_done) continue;
-
-		if (read->needs_connection) {
-			read->needs_connection=0;
-			gf_term_on_connect(read->service, NULL, GF_OK);
-			/*wait till we have an OD stream if we need one*/
-			if (!read->is_single_media) {
-				while (!read->kill_demux && !read->od_ch) gf_sleep(20);
-				if (read->kill_demux) break;
-			}
-		}
 		
+#if 0
 		/*idle*/
 		while (!read->kill_demux && !read->nb_playing) {
 			/*send OD updates*/
 			OGG_SendStreams(read);
 			gf_sleep(20);
 		}
+#endif
 
 		/*(re)starting, seek*/
 		if (read->do_seek) {
 			read->do_seek = 0;
 			ogg_sync_clear(&read->oy);
 			ogg_sync_init(&read->oy);
-			OGG_SendStreams(read);
+//			OGG_SendStreams(read);
 
 			if (read->ogfile) {
 				u32 seek_to = 0;
@@ -816,7 +774,6 @@ static GF_Err OGG_CloseService(GF_InputService *plug)
 
 static GF_Descriptor *OGG_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-	GF_ESD *esd;
 	u32 i;
 	GF_ObjectDescriptor *od;
 	OGGStream *st;
@@ -832,26 +789,14 @@ static GF_Descriptor *OGG_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 			if ((expect_type==GF_MEDIA_OBJECT_AUDIO) && (st->info.streamType!=GF_STREAM_AUDIO)) continue;
 			if ((expect_type==GF_MEDIA_OBJECT_VIDEO) && (st->info.streamType!=GF_STREAM_VISUAL)) continue;
 			
-			od = OGG_GetOD(st, 1);
+			od = OGG_GetOD(st);
 			read->is_single_media = 1;
 			return (GF_Descriptor *) od;
 		}
 		/*not supported yet - we need to know what's in the ogg stream for that*/
 		return NULL;
 	}
-
-	od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-	od->objectDescriptorID = 1;
-
-	/*inline scene*/
-	/*OD ESD*/
-	esd = gf_odf_desc_esd_new(0);
-	esd->slConfig->timestampResolution = 1000;
-	esd->decoderConfig->streamType = GF_STREAM_OD;
-	esd->decoderConfig->objectTypeIndication = GPAC_STATIC_OD_OTI;
-	esd->ESID = 1;
-	gf_list_add(od->ESDescriptors, esd);
-	return (GF_Descriptor *) od;
+	return NULL;
 }
 
 static GF_Err OGG_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
@@ -861,9 +806,6 @@ static GF_Err OGG_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	OGGStream *st;
 	OGGReader *read = plug->priv;
 
-	e = GF_SERVICE_ERROR;
-	if (read->od_ch==channel) goto exit;
-
 	e = GF_STREAM_NOT_FOUND;
 	if (strstr(url, "ES_ID")) {
 		sscanf(url, "ES_ID=%d", &ES_ID);
@@ -871,24 +813,14 @@ static GF_Err OGG_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	/*URL setup*/
 //	else if (!read->es_ch && OGG_CanHandleURL(plug, url)) ES_ID = 3;
 
-	switch (ES_ID) {
-	case 1:
-		read->od_ch = channel;
-		e = GF_OK;
-		break;
-	default:
-		i=0;
-		while ((st = gf_list_enum(read->streams, &i))) {
-			if (st->ESID==ES_ID) {
-				st->ch = channel;
-				e = GF_OK;
-				break;
-			}
+	i=0;
+	while ((st = gf_list_enum(read->streams, &i))) {
+		if (st->ESID==ES_ID) {
+			st->ch = channel;
+			e = GF_OK;
+			break;
 		}
-		break;
 	}
-
-exit:
 	gf_term_on_connect(read->service, channel, e);
 	return e;
 }
@@ -896,21 +828,16 @@ exit:
 static GF_Err OGG_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
 	GF_Err e;
+	OGGStream *st;
+	u32 i=0;
 	OGGReader *read = plug->priv;
 
 	e = GF_STREAM_NOT_FOUND;
-	if (read->od_ch == channel) {
-		read->od_ch = NULL;
-		e = GF_OK;
-	} else {
-		OGGStream *st;
-		u32 i=0;
-		while ((st = gf_list_enum(read->streams, &i))) {
-			if (st->ch==channel) {
-				st->ch = NULL;
-				e = GF_OK;
-				break;
-			}
+	while ((st = gf_list_enum(read->streams, &i))) {
+		if (st->ch==channel) {
+			st->ch = NULL;
+			e = GF_OK;
+			break;
 		}
 	}
 	gf_term_on_disconnect(read->service, channel, e);
@@ -919,6 +846,8 @@ static GF_Err OGG_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 
 static GF_Err OGG_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
+	OGGStream *st;
+	u32 i;
 	OGGReader *read = plug->priv;
 
 	if (!com->base.on_channel) {
@@ -936,9 +865,7 @@ static GF_Err OGG_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	case GF_NET_CHAN_BUFFER:
 		com->buffer.min = com->buffer.max = 0;
-		if (read->is_live && (com->base.on_channel != read->od_ch)) {
-			com->buffer.max = read->data_buffer_ms;
-		}
+		if (read->is_live) com->buffer.max = read->data_buffer_ms;
 		return GF_OK;
 	case GF_NET_CHAN_SET_PADDING: return GF_NOT_SUPPORTED;
 
@@ -948,43 +875,32 @@ static GF_Err OGG_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_PLAY:
 		read->start_range = com->play.start_range;
 		read->end_range = com->play.end_range;
-		if (read->od_ch == com->base.on_channel) {
-			read->needs_od = 1;
-			assert(!read->nb_playing);
-		} else {
-			OGGStream *st;
-			u32 i=0;
-			while ((st = gf_list_enum(read->streams, &i))) {
-				if (st->ch == com->base.on_channel) {
-					st->is_running = 1;
-					st->map_time = read->dur ? 1 : 0;
-					if (!read->nb_playing) read->do_seek = 1;
-					read->nb_playing ++;
-					break;
-				}
+		i=0;
+		while ((st = gf_list_enum(read->streams, &i))) {
+			if (st->ch == com->base.on_channel) {
+				st->is_running = 1;
+				st->map_time = read->dur ? 1 : 0;
+				if (!read->nb_playing) read->do_seek = 1;
+				read->nb_playing ++;
+				break;
 			}
 		}
 		/*recfg duration in case*/
 		if (!read->is_remote && read->dur) { 
 			GF_NetworkCommand rcfg;
-			rcfg.base.on_channel = read->od_ch;
+			rcfg.base.on_channel = NULL;
 			rcfg.base.command_type = GF_NET_CHAN_DURATION;
 			rcfg.duration.duration = read->dur;
 			gf_term_on_command(read->service, &rcfg, GF_OK);
 		}
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
-		if (read->od_ch == com->base.on_channel) {
-		}
-		else {
-			OGGStream *st;
-			u32 i=0;
-			while ((st = gf_list_enum(read->streams, &i))) {
-				if (st->ch == com->base.on_channel) {
-					st->is_running = 0;
-					read->nb_playing --;
-					break;
-				}
+		i=0;
+		while ((st = gf_list_enum(read->streams, &i))) {
+			if (st->ch == com->base.on_channel) {
+				st->is_running = 0;
+				read->nb_playing --;
+				break;
 			}
 		}
 		return GF_OK;

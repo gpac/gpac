@@ -156,13 +156,7 @@ static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u16 OCR_ES_ID, u32 ch
 GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, u32 expect_type, const char *sub_url)
 {
 	GF_ObjectDescriptor *the_od;
-	GF_ESD *esd;
-	GF_ODCodec *codec;
-	GF_ODUpdate *odU;
-	GF_ObjectDescriptor *od;
-	GF_Descriptor *desc;
 	RTPStream *a_str, *ch;
-	GF_Err e;
 	u32 i;
 
 	if (expect_type==GF_MEDIA_OBJECT_INTERACT) return NULL;
@@ -188,51 +182,32 @@ GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, u32 expect_type, const char *sub_ur
 		}
 		return NULL;
 	}
+	return NULL;
+}
 
-	e = GF_OK;
-	the_od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-	the_od->objectDescriptorID = 1;
-	
-	/*generate OD stream*/
-	esd = gf_odf_desc_esd_new(0);
-	esd->slConfig->timestampResolution = 1000;
-	esd->slConfig->useRandomAccessPointFlag = 1;
-	esd->slConfig->useTimestampsFlag = 1;
-	esd->decoderConfig->streamType = GF_STREAM_OD;
-	esd->decoderConfig->objectTypeIndication = GPAC_STATIC_OD_OTI;
-	rtp->od_es_id = esd->OCRESID = esd->ESID = 0xFFFE;
 
-	codec = gf_odf_codec_new();
-	odU = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
+void RP_SetupObjects(RTPClient *rtp)
+{
+	GF_ObjectDescriptor *od;
+	RTPStream *ch;
+	u32 i;
 
 	/*add everything*/
 	i=0;
 	while ((ch = gf_list_enum(rtp->channels, &i))) {
 		if (!rtp->forced_type) {
-			od = RP_GetChannelOD(ch, esd->OCRESID, i);
+			od = RP_GetChannelOD(ch, 0, i);
 			if (!od) continue;
-			gf_list_add(odU->objectDescriptors, od);
+			gf_term_add_media(rtp->service, (GF_Descriptor*)od, 1);
 		} else if (rtp->forced_type==ch->sl_map.StreamType) {
-			od = RP_GetChannelOD(ch, esd->OCRESID, i);
+			od = RP_GetChannelOD(ch, 0, i);
 			if (!od) continue;
-			gf_list_add(odU->objectDescriptors, od);
+			gf_term_add_media(rtp->service, (GF_Descriptor*)od, 1);
 			rtp->forced_type = 0;
 			break;
 		}
 	}
-	gf_odf_codec_add_com(codec, (GF_ODCom *) odU);
-	gf_odf_codec_encode(codec, 1);
-	if (rtp->od_au) free(rtp->od_au);
-	rtp->od_au = NULL;
-	gf_odf_codec_get_au(codec, &rtp->od_au, &rtp->od_au_size);
-	gf_odf_codec_del(codec);
-
-	gf_list_add(the_od->ESDescriptors, esd);
-
-	/*finally encode IOD*/
-	rtp->session_desc = (GF_Descriptor *)the_od;
-	gf_odf_desc_copy(rtp->session_desc, &desc);
-	return desc;
+	gf_term_add_media(rtp->service, NULL, 0);
 }
 
 void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
@@ -283,6 +258,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 		}
 		/*attach service*/
 		gf_term_on_connect(rtp->service, NULL, e);
+		if (!e) RP_SetupObjects(rtp);
 	}
 	/*channel SDP */
 	else {

@@ -1889,13 +1889,13 @@ int main(int argc, char **argv)
 		if (MakeISMA) {
 			fprintf(stdout, "Converting to ISMA Audio-Video MP4 file...\n");
 			/*keep ESIDs when doing ISMACryp*/
-			e = gp_media_make_isma(file, ismaCrypt ? 1 : 0, 0, (MakeISMA==2) ? 1 : 0, NULL, NULL);
+			e = gf_media_make_isma(file, ismaCrypt ? 1 : 0, 0, (MakeISMA==2) ? 1 : 0, NULL, NULL);
 			if (e) goto err_exit;
 			needSave = 1;
 		}
 		if (Make3GP) {
 			fprintf(stdout, "Converting to 3GP file...\n");
-			e = gp_media_make_3gpp(file, NULL, NULL);
+			e = gf_media_make_3gpp(file, NULL, NULL);
 			if (e) goto err_exit;
 			needSave = 1;
 		}

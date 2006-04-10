@@ -92,14 +92,6 @@ typedef struct
 	u32 first_packet_drop;
 	u32 frequency_drop;
 
-	/*OD data for static OD stream - we don't use the usual base64 encoding in OD ESD URL since data may be much
-	larger that what ESD.URL supports (255 bytes)*/
-	u32 od_au_size, od_es_id, state;
-	Bool od_fetched;
-	char *od_au;
-	LPNETCHANNEL od_ch;
-	u32 od_start_time;
-
 	u32 forced_type;
 	/*logs*/
 	FILE *logs;
@@ -134,6 +126,8 @@ RTPSession *RP_NewSession(RTPClient *rtp, char *session_control);
 void RP_RemoveSession(RTPSession *sess, Bool immediate_shutdown);
 /*check session by control string*/
 RTPSession *RP_CheckSession(RTPClient *rtp, char *control);
+
+void RP_SetupObjects(RTPClient *rtp);
 
 void RP_ProcessCommands(RTPSession *sess, Bool read_tcp);
 

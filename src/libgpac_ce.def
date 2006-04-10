@@ -78,8 +78,8 @@ EXPORTS
 	gf_bs_get_position
 	gf_bs_get_size
 	gf_bs_get_refreshed_size
-	gf_temp_file_new
 	gf_delete_file
+	;gf_temp_file_new
 
 ;thread.h exports
 	gf_th_new
@@ -738,11 +738,11 @@ EXPORTS
 	gf_sdp_conn_del
 	gf_sdp_fmtp_new
 	gf_sdp_fmtp_del
-	gp_rtp_builder_new
-	gp_rtp_builder_del
-	gp_rtp_builder_init
-	gp_rtp_builder_process
-	gp_rtp_builder_format_sdp
+	gf_rtp_builder_new
+	gf_rtp_builder_del
+	gf_rtp_builder_init
+	gf_rtp_builder_process
+	gf_rtp_builder_format_sdp
 
 ;avilib exports
 ;	AVI_write_frame
@@ -760,9 +760,9 @@ EXPORTS
 ;	gf_hinter_track_get_flags
 ;	gf_hinter_track_get_payload_name
 ;	gf_hinter_can_embbed_data
-;	gp_media_make_isma
-;	gp_media_make_3gpp
-	gp_media_map_esd
+;	gf_media_make_isma
+;	gf_media_make_3gpp
+	gf_media_map_esd
 ;	gf_media_import
 ;	gf_media_export
 ;	gf_media_fragment_file

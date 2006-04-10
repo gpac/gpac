@@ -798,7 +798,7 @@ void gf_is_set_duration(GF_InlineScene *is)
 	i=0;
 	while ((odm = gf_list_enum(is->ODlist, &i))) {
 		if (!odm->codec) continue;
-		if (ck && gf_odm_shares_clock(odm, ck)) {
+		if (!ck || gf_odm_shares_clock(odm, ck)) {
 			if (odm->duration>max_dur) max_dur = odm->duration;
 		}
 	}
@@ -1116,6 +1116,8 @@ void gf_is_regenerate(GF_InlineScene *is)
 		sfu->OD_ID = is->audio_url.OD_ID;
 		if (is->audio_url.url) sfu->url = strdup(is->audio_url.url);
 		nb_obj++;
+
+		if (!is->dyn_ck) is->dyn_ck = first_odm->codec->ck;
 	}
 
 	/*transform for any translation due to scene resize (3GPP)*/
@@ -1170,6 +1172,7 @@ void gf_is_regenerate(GF_InlineScene *is)
 			gf_sg_set_scene_size_info(is->graph, w, h, 1);
 		}
 		nb_obj++;
+		if (!is->dyn_ck) is->dyn_ck = first_odm->codec->ck;
 	}
 
 	n2 = is_create_node(is->graph, TAG_MPEG4_Bitmap, NULL);
@@ -1199,6 +1202,7 @@ void gf_is_regenerate(GF_InlineScene *is)
 				is->text_url.url = strdup(odm->OD->URLString);
 			}
 			first_odm = NULL;
+			if (!is->dyn_ck) is->dyn_ck = odm->codec->ck;
 			break;
 		}
 		if (!first_odm) first_odm = odm;
@@ -1212,6 +1216,7 @@ void gf_is_regenerate(GF_InlineScene *is)
 			sfu->url = strdup(first_odm->OD->URLString);
 			is->text_url.url = strdup(first_odm->OD->URLString);
 		}
+		if (!is->dyn_ck) is->dyn_ck = first_odm->codec->ck;
 	}
 
 	/*disconnect to force resize*/
@@ -1335,9 +1340,6 @@ void gf_is_restart_dynamic(GF_InlineScene *is, u64 from_time)
 	u32 i;
 	GF_List *to_restart;
 	GF_ObjectManager *odm;
-	GF_Clock *ck = is->scene_codec->ck;
-	gf_clock_pause(ck);
-	gf_clock_reset(ck);
 
 	to_restart = gf_list_new();
 	i=0;
@@ -1355,11 +1357,10 @@ void gf_is_restart_dynamic(GF_InlineScene *is, u64 from_time)
 		MC_GetRange(is->root_od->media_ctrl, &start, &end);
 		if (start>=0) from_time = (u32) (start*1000.0);
 	}
-	
-	gf_clock_set_time(ck, (u32) from_time);
 
 	i=0;
 	while ((odm = gf_list_enum(to_restart, &i))) {
+		odm->media_start_time = (u32) from_time;
 		gf_odm_start(odm);
 	}
 	gf_list_del(to_restart);
@@ -1381,8 +1382,6 @@ void gf_is_restart_dynamic(GF_InlineScene *is, u64 from_time)
 			gf_node_changed((GF_Node *)as, NULL);
 		}
 	}
-
-	gf_clock_resume(ck);
 }
 
 

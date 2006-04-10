@@ -1150,7 +1150,7 @@ typedef struct __tag_rtp_packetizer GP_RTPPacketizer;
 		@is_head: signal the data added MUST be inserted at the begining of the payload. Otherwise data
 		is concatenated as recieved
 */
-GP_RTPPacketizer *gp_rtp_builder_new(u32 hintType, 
+GP_RTPPacketizer *gf_rtp_builder_new(u32 hintType, 
 						GF_SLConfig *slc, 
 						u32 flags,
 						void *cbk_obj, 
@@ -1161,7 +1161,7 @@ GP_RTPPacketizer *gp_rtp_builder_new(u32 hintType,
 					);
 
 /*destroy builder*/
-void gp_rtp_builder_del(GP_RTPPacketizer *builder);
+void gf_rtp_builder_del(GP_RTPPacketizer *builder);
 
 /*
 		init the builder
@@ -1192,7 +1192,7 @@ specified is too close to the PathMTU
 	@pref_mode: MPEG-4 generic only, specifies the payload mode - can be NULL (mode generic)
 */
 
-void gp_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU, u32 max_ptime,
+void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU, u32 max_ptime,
 					   u32 StreamType, u32 OTI, u32 PL_ID,
 					   u32 avgSize, u32 maxSize, 
 					   u32 avgTS, u32 maxDTS,
@@ -1208,12 +1208,12 @@ void gp_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_i
 @duration: sample duration in rtp timescale (only needed for 3GPP text streams)
 @descIndex: sample description index (only needed for 3GPP text streams)
 */
-GF_Err gp_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex);
+GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex);
 
 /*format the "fmtp: " attribute for the MPEG-4 generic packetizer. sdpline shall be at least 2000 char*/
-GF_Err gp_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, char *dsi, u32 dsi_size);
+GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, char *dsi, u32 dsi_size);
 /*formats SDP payload name and media name - both MUST be at least 20 bytes*/
-Bool gp_rtp_builder_get_payload_name(GP_RTPPacketizer *builder, char *szPayloadName, char *szMediaName);
+Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *builder, char *szPayloadName, char *szMediaName);
 
 
 #ifdef __cplusplus

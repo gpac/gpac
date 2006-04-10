@@ -72,81 +72,47 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 /*emulate a default IOD for all other files (3GP, weird MP4, QT )*/
 GF_Descriptor *isor_emulate_iod(ISOMReader *read)
 {
-	GF_ODCodec *codec;
-	GF_ODUpdate *odU;
-	u32 i, OD_ID, ID;
-	GF_InitialObjectDescriptor *fake_iod;
-	GF_ObjectDescriptor *od;
-	GF_ESD *esd;
-
-	//gf_term_on_message(read->service, GF_OK, "IOD not found or broken - emulating");
-	read->OD_ESID = 0;
-	for (i=0; i<gf_isom_get_track_count(read->mov); i++) {
-		switch (gf_isom_get_media_type(read->mov, i+1)) {
-		case GF_ISOM_MEDIA_AUDIO:
-		case GF_ISOM_MEDIA_VISUAL:
-		case GF_ISOM_MEDIA_TEXT:
-			ID = gf_isom_get_track_id(read->mov, i+1);
-			if ((ID<0xFFFF) && (read->OD_ESID < ID)) read->OD_ESID = ID;
-			break;
-		}
-	}
-	/*no usable tracks*/
-	if (!read->OD_ESID) return NULL;
-	read->OD_ESID++;
-
-
-	OD_ID = 2;
-
-	/*make OD AU*/
-	codec = gf_odf_codec_new();	
-	odU = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
-
-	for (i=0; i<gf_isom_get_track_count(read->mov); i++) {
-		switch (gf_isom_get_media_type(read->mov, i+1)) {
-		case GF_ISOM_MEDIA_AUDIO:
-		case GF_ISOM_MEDIA_VISUAL:
-		case GF_ISOM_MEDIA_TEXT:
-			esd = gp_media_map_esd(read->mov, i+1);
-			if (esd) {
-				od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-				od->objectDescriptorID = OD_ID;
-				esd->OCRESID = read->OD_ESID;
-				gf_list_add(od->ESDescriptors, esd);
-				gf_list_add(odU->objectDescriptors, od);
-				OD_ID++;
-			}
-			break;
-		default:
-			break;
-		}
-	}
-
-	gf_odf_codec_add_com(codec, (GF_ODCom *)odU);
-	gf_odf_codec_encode(codec, 1);
-	gf_odf_codec_get_au(codec, &read->od_au, &read->od_au_size);
-	gf_odf_codec_del(codec);
-
-
 	/*generate an IOD with our private dynamic OD stream*/
-	fake_iod = (GF_InitialObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
-	fake_iod->objectDescriptorID = 1;
-	esd = gf_odf_desc_esd_new(0);
-	esd->slConfig->timestampResolution = 1000;
-	esd->slConfig->useRandomAccessPointFlag = 1;
-	esd->slConfig->useTimestampsFlag = 1;
-	esd->OCRESID = esd->ESID = read->OD_ESID;
-	esd->decoderConfig->streamType = GF_STREAM_OD;
-	esd->decoderConfig->objectTypeIndication = GPAC_STATIC_OD_OTI;
-	gf_list_add(fake_iod->ESDescriptors, esd);
-	fake_iod->graphics_profileAndLevel = 1;
-	fake_iod->OD_profileAndLevel = 1;
-	fake_iod->scene_profileAndLevel = 1;
-	fake_iod->audio_profileAndLevel = 0xFE;
-	fake_iod->visual_profileAndLevel = 0xFE;
+	GF_InitialObjectDescriptor *fake_iod = (GF_InitialObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
 	isor_emulate_chapters(read->mov, fake_iod);
+	read->no_service_desc = 1;
 	return (GF_Descriptor *)fake_iod;
 }
+
+void isor_declare_objects(ISOMReader *read)
+{
+	GF_ObjectDescriptor *od;
+	GF_ESD *esd;
+	u32 i, count, ocr_es_id;
+
+	ocr_es_id = 0;
+
+	/*TODO check for alternate tracks*/
+	count  =gf_isom_get_track_count(read->mov);
+	for (i=0; i<count; i++) {
+		if (!gf_isom_is_track_enabled(read->mov, i+1)) continue;
+	
+		switch (gf_isom_get_media_type(read->mov, i+1)) {
+		case GF_ISOM_MEDIA_AUDIO:
+		case GF_ISOM_MEDIA_VISUAL:
+		case GF_ISOM_MEDIA_TEXT:
+			break;
+		default:
+			continue;
+		}
+		esd = gf_media_map_esd(read->mov, i+1);
+		if (esd) {
+			od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+			od->objectDescriptorID = esd->ESID;
+			if (!ocr_es_id) ocr_es_id = esd->ESID;
+			esd->OCRESID = ocr_es_id;
+			gf_list_add(od->ESDescriptors, esd);
+			gf_term_add_media(read->service, (GF_Descriptor*)od, 1);
+		}
+	}
+	gf_term_add_media(read->service, NULL, 0);
+}
+
 
 Bool QueryInterface(u32 InterfaceType) 
 {

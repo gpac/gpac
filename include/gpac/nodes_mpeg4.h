@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Mon Nov 21 16:56:09 2005
+	DO NOT MOFIFY - File generated on GMT Mon Mar 27 18:39:47 2006
 
 	BY MPEG4Gen for GPAC Version 0.4.1-DEV
 */
@@ -431,6 +431,7 @@ typedef struct _tagCompositeTexture2D
 	SFInt32 pixelHeight;	/*exposedField*/
 	GF_Node *background;	/*exposedField*/
 	GF_Node *viewport;	/*exposedField*/
+	SFInt32 repeatSandT;	/*field*/
 } M_CompositeTexture2D;
 
 
@@ -444,6 +445,8 @@ typedef struct _tagCompositeTexture3D
 	GF_Node *fog;	/*exposedField*/
 	GF_Node *navigationInfo;	/*exposedField*/
 	GF_Node *viewpoint;	/*exposedField*/
+	SFBool repeatS;	/*field*/
+	SFBool repeatT;	/*field*/
 } M_CompositeTexture3D;
 
 
@@ -795,6 +798,7 @@ typedef struct _tagLayout
 	SFBool loop;	/*exposedField*/
 	SFBool scrollVertical;	/*exposedField*/
 	SFFloat scrollRate;	/*exposedField*/
+	SFInt32 scrollMode;	/*exposedField*/
 } M_Layout;
 
 

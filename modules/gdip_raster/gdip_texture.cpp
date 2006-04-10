@@ -244,7 +244,7 @@ static
 GF_Err gf_set_gf_sr_texture_repeat_mode(GF_STENCIL _this, GF_TextureTiling mode)
 {
 	GPSTEN();
-	/*not supported*/
+	_sten->tiling = mode;
 	return GF_OK;
 }
 static
@@ -513,7 +513,8 @@ void gf_load_texture(struct _stencil *sten)
 	if (sten->pTexture) GdipDeleteBrush(sten->pTexture);
 	GdipCreateTextureIAI(sten->pBitmap, attr, 0, 0, sten->width, sten->height, &sten->pTexture);
 
-	/*wrap mode is actually ignored in constructor...*/
+	/*1- wrap mode is actually ignored in constructor*/
+	/*2- GDIPlus does not support S / T clamping */
 	GdipSetTextureWrapMode(sten->pTexture, WrapModeTile);
 
 	GdipDisposeImageAttributes(attr);

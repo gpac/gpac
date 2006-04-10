@@ -408,7 +408,7 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 {
 	s32 cx;
 	u32 x0, y0, pix, replace_col;
-	Bool has_alpha, has_replace_cmat, has_cmat;
+	Bool has_alpha, has_replace_cmat, has_cmat, repeat_s, repeat_t;
 	Fixed x, y, _fd;
 	u32 *data = surf->stencil_pix_run;
 	EVG_Texture *_this = (EVG_Texture *) p;
@@ -417,8 +417,14 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 	x = INT2FIX(_x);
 	y = INT2FIX(_y);
 	gf_mx2d_apply_coords(&_this->smat, &x, &y);
-	_fd = INT2FIX(_this->width); while (x<0) x += _fd;
-	_fd = INT2FIX(_this->height); while (y<0) y += _fd;
+	_fd = INT2FIX(_this->width); 
+	repeat_s = _this->mod & GF_TEXTURE_REPEAT_S;
+	if (!repeat_s && (x < - _fd)) x = 0;
+	while (x<0) x += _fd;
+	_fd = INT2FIX(_this->height); 
+	repeat_t = _this->mod & GF_TEXTURE_REPEAT_T;
+	if (!repeat_t && (y < - _fd)) y = 0;
+	while (y<0) y += _fd;
 
 	y0 = (s32) FIX2INT(y);
 	has_alpha = (_this->alpha != 255) ? 1 : 0;
@@ -428,11 +434,18 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 
 	while (count) {
 		x0 = FIX2INT(x);
-		x0 = (x0) % _this->width;
+
+		if (repeat_s) {
+			x0 = (x0) % _this->width;
+		} else {
+			x0 = MIN(x0, _this->width-1);
+		}
 		x += _this->inc_x;
 		
 		y0 = FIX2INT(y);
-		y0 = (y0) % _this->height;
+		if (repeat_t) {
+			y0 = (y0) % _this->height;
+		} else if (y0 >= _this->width) y0 = _this->height-1;
 		y += _this->inc_y;
 
 		pix = _this->tx_get_pixel(_this->pixels + _this->stride*y0 + _this->Bpp*x0);
@@ -484,6 +497,7 @@ static void bmp_fill_run_straight(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _
 	s32 x0, y0;
 	u32 pix;
 	u32 __a;
+	Bool repeat_s = 0;
 	Fixed x, y, _fdim;
 	char *pix_line;
 	u32 *data = surf->stencil_pix_run;
@@ -495,17 +509,25 @@ static void bmp_fill_run_straight(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _
 
 	/* and move in absolute coords*/
 	_fdim = INT2FIX(_this->width);
+	if (!(_this->mod & GF_TEXTURE_REPEAT_S)) {
+		if (x<- _fdim) x=0;
+		repeat_s = 0;
+	} else repeat_s = 1;
+
 	while (x<0) x += _fdim;
 	_fdim = INT2FIX(_this->height);
+	if (!(_this->mod & GF_TEXTURE_REPEAT_T) && (y<- _fdim)) y=0;
 	while (y<0) y += _fdim;
 
 	y0 = FIX2INT(y);
-	y0 = (y0) % _this->height;
 	pix_line = _this->pixels + _this->stride*y0;
 
 	while (count) {
 		x0 = FIX2INT(x);
-		x0 = (x0) % _this->width;
+		if (repeat_s) {
+			x0 = (x0) % _this->width;
+		} else if (x0 >= (s32) _this->width) x0 = _this->width-1;
+
 		x += _this->inc_x;
 		pix = _this->tx_get_pixel(pix_line + _this->Bpp*x0);
 
@@ -559,7 +581,7 @@ EVGStencil *evg_gf_sr_texture_brush()
 	tmp->type = GF_STENCIL_TEXTURE;
 	/*default is using the surface settings*/
 	tmp->filter = GF_TEXTURE_FILTER_DEFAULT;
-	tmp->mod = GF_TEXTURE_TILE_BASE;
+	tmp->mod = 0;
 	gf_cmx_init(&tmp->cmat);
 	tmp->alpha = 255;
 	return (EVGStencil *) tmp;

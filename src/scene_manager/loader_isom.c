@@ -52,7 +52,19 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 				switch (esd->decoderConfig->streamType) {
 				case GF_STREAM_OD:
 				case GF_STREAM_SCENE:
+					break;
+				/*dump the OCR track duration in case the OCR is used by media controls & co*/
 				case GF_STREAM_OCR:
+				{
+					u32 track;
+					Double dur;
+					GF_MuxInfo *mi = (GF_MuxInfo *) gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
+					gf_list_add(esd->extensionDescriptors, mi);
+					track = gf_isom_get_track_by_id(mp4, esd->ESID);
+					dur = (Double) (s64) gf_isom_get_track_duration(mp4, track);
+					dur /= gf_isom_get_timescale(mp4);
+					mi->duration = (u32) (dur * 1000);
+				}
 					break;
 				default:
 				{
@@ -77,7 +89,19 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 			switch (esd->decoderConfig->streamType) {
 			case GF_STREAM_OD:
 			case GF_STREAM_SCENE:
+				break;
+			/*dump the OCR track duration in case the OCR is used by media controls & co*/
 			case GF_STREAM_OCR:
+			{
+				u32 track;
+				Double dur;
+				GF_MuxInfo *mi = (GF_MuxInfo *) gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
+				gf_list_add(esd->extensionDescriptors, mi);
+				track = gf_isom_get_track_by_id(mp4, esd->ESID);
+				dur = (Double) (s64) gf_isom_get_track_duration(mp4, track);
+				dur /= gf_isom_get_timescale(mp4);
+				mi->duration = (u32) (dur * 1000);
+			}
 				break;
 			default:
 			{

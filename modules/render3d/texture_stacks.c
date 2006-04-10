@@ -322,10 +322,13 @@ void R3D_CompositeAdjustScale(GF_Node *node, Fixed *sx, Fixed *sy)
 
 void R3D_InitCompositeTexture3D(Render3D *sr, GF_Node *node)
 {
+	M_CompositeTexture3D *c3d = (M_CompositeTexture3D *)node;
 	CompositeTextureStack *st = malloc(sizeof(CompositeTextureStack));
 	memset(st, 0, sizeof(CompositeTextureStack));
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
-	st->txh.flags = GF_SR_TEXTURE_REPEAT_S | GF_SR_TEXTURE_REPEAT_T;
+	st->txh.flags = 0;
+	if (c3d->repeatS) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
+	if (c3d->repeatT) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
 	st->first = 1;
 	/*create composite surface*/
 	st->surface = VS_New();
@@ -340,10 +343,13 @@ void R3D_InitCompositeTexture3D(Render3D *sr, GF_Node *node)
 
 void R3D_InitCompositeTexture2D(Render3D *sr, GF_Node *node)
 {
+	M_CompositeTexture2D *c2d = (M_CompositeTexture2D *)node;
 	CompositeTextureStack *st = malloc(sizeof(CompositeTextureStack));
 	memset(st, 0, sizeof(CompositeTextureStack));
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
-	st->txh.flags = GF_SR_TEXTURE_REPEAT_S | GF_SR_TEXTURE_REPEAT_T;
+	st->txh.flags = 0;
+	if ((c2d->repeatSandT==1) || (c2d->repeatSandT==3) ) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
+	if (c2d->repeatSandT>1) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
 	st->first = 1;
 	/*create composite surface*/
 	st->surface = VS_New();

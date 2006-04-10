@@ -853,7 +853,7 @@ static void lsr_write_rare_full(GF_LASeRCodec *lsr, GF_Node *n, GF_Node *default
 	    case RARE_COLOR: lsr_write_paint(lsr, fi->far_ptr, "color"); break;
 		case RARE_COLOR_RENDERING: GF_LSR_WRITE_INT(lsr, *(SVG_RenderingHint*)fi->far_ptr, 2, "color-rendering"); break;
 		case RARE_DISPLAY: GF_LSR_WRITE_INT(lsr, *(SVG_Display*)fi->far_ptr, 5, "display"); break;
-	    case RARE_DISPLAY_ALIGN: GF_LSR_WRITE_INT(lsr, *(SVG_DisplayAlign*)fi->far_ptr, 2, "display-align"); break;
+	    case RARE_DISPLAY_ALIGN: GF_LSR_WRITE_INT(lsr, *(SVG_DisplayAlign*)fi->far_ptr, 3, "display-align"); break;
 		case RARE_FILL_OPACITY: lsr_write_fixed_clamp(lsr, ((SVG_Number *)fi->far_ptr)->value, "fill-opacity"); break;
 	    case RARE_FILL_RULE: GF_LSR_WRITE_INT(lsr, *(SVG_FillRule*)fi->far_ptr, 2, "fill-rule"); break;
 		case RARE_IMAGE_RENDERING: GF_LSR_WRITE_INT(lsr, *(SVG_RenderingHint*)fi->far_ptr, 2, "image-rendering"); break;
@@ -987,11 +987,13 @@ static void lsr_write_rare_full(GF_LASeRCodec *lsr, GF_Node *n, GF_Node *default
 		case RARE_FONT_WEIGHT: GF_LSR_WRITE_INT(lsr, *((SVG_FontWeight *)fi->far_ptr), 4, "fontWeight"); break;
 
 		case RARE_HREF_TITLE: lsr_write_byte_align_string(lsr, *(SVG_String *)fi->far_ptr, "xlink:title"); break;
-		case RARE_HREF_TYPE: lsr_write_byte_align_string(lsr, *(SVG_String *)fi->far_ptr, "xlink:type"); break;
+		/*TODO FIXME*/
+		case RARE_HREF_TYPE: GF_LSR_WRITE_INT(lsr, 0, 3, "xlink:type"); break;
 		case RARE_HREF_ROLE: lsr_write_any_uri(lsr, fi->far_ptr, "xlink:role"); break;
 		case RARE_HREF_ARCROLE: lsr_write_any_uri(lsr, fi->far_ptr, "xlink:arcrole"); break;
-		case RARE_HREF_ACTUATE: lsr_write_byte_align_string(lsr, *(SVG_String *)fi->far_ptr, "xlink:actuate"); break;
-		case RARE_HREF_SHOW: lsr_write_byte_align_string(lsr, *(SVG_String *)fi->far_ptr, "xlink:show"); break;
+		/*TODO FIXME*/
+		case RARE_HREF_ACTUATE: GF_LSR_WRITE_INT(lsr, 0, 2, "xlink:actuate"); break;
+		case RARE_HREF_SHOW: GF_LSR_WRITE_INT(lsr, 0, 3, "xlink:show"); break;
 		case RARE_END: lsr_write_time_list(lsr, *(GF_List **)fi->far_ptr, "end"); break;
 		case RARE_MIN: lsr_write_duration(lsr, fi->far_ptr, "min"); break;
 		case RARE_MAX: lsr_write_duration(lsr, fi->far_ptr, "max"); break;
@@ -1670,15 +1672,16 @@ static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 		case SVG_DOM_EVT_LOAD: GF_LSR_WRITE_INT(lsr, 11, 6, "event"); break;
 		case SVG_DOM_EVT_LONGKEYPRESS: GF_LSR_WRITE_INT(lsr, 12, 6, "event"); break;
 		case SVG_DOM_EVT_MOUSEDOWN: GF_LSR_WRITE_INT(lsr, 13, 6, "event"); break;
-		case SVG_DOM_EVT_MOUSEOUT: GF_LSR_WRITE_INT(lsr, 14, 6, "event"); break;
-		case SVG_DOM_EVT_MOUSEOVER: GF_LSR_WRITE_INT(lsr, 15, 6, "event"); break;
-		case SVG_DOM_EVT_MOUSEUP: GF_LSR_WRITE_INT(lsr, 16, 6, "event"); break;
-		case SVG_DOM_EVT_REPEAT: GF_LSR_WRITE_INT(lsr, 18, 6, "event"); break;
-		case SVG_DOM_EVT_RESIZE: GF_LSR_WRITE_INT(lsr, 19, 6, "event"); break;
-		case SVG_DOM_EVT_SCROLL: GF_LSR_WRITE_INT(lsr, 21, 6, "event"); break;
-		case SVG_DOM_EVT_TEXTINPUT: GF_LSR_WRITE_INT(lsr, 22, 6, "event"); break;
-		case SVG_DOM_EVT_UNLOAD: GF_LSR_WRITE_INT(lsr, 23, 6, "event"); break;
-		case SVG_DOM_EVT_ZOOM: GF_LSR_WRITE_INT(lsr, 24, 6, "event"); break;
+		case SVG_DOM_EVT_MOUSEMOVE: GF_LSR_WRITE_INT(lsr, 14, 6, "event"); break;		
+		case SVG_DOM_EVT_MOUSEOUT: GF_LSR_WRITE_INT(lsr, 15, 6, "event"); break;
+		case SVG_DOM_EVT_MOUSEOVER: GF_LSR_WRITE_INT(lsr, 16, 6, "event"); break;
+		case SVG_DOM_EVT_MOUSEUP: GF_LSR_WRITE_INT(lsr, 17, 6, "event"); break;
+		case SVG_DOM_EVT_REPEAT: GF_LSR_WRITE_INT(lsr, 19, 6, "event"); break;
+		case SVG_DOM_EVT_RESIZE: GF_LSR_WRITE_INT(lsr, 20, 6, "event"); break;
+		case SVG_DOM_EVT_SCROLL: GF_LSR_WRITE_INT(lsr, 22, 6, "event"); break;
+		case SVG_DOM_EVT_TEXTINPUT: GF_LSR_WRITE_INT(lsr, 23, 6, "event"); break;
+		case SVG_DOM_EVT_UNLOAD: GF_LSR_WRITE_INT(lsr, 24, 6, "event"); break;
+		case SVG_DOM_EVT_ZOOM: GF_LSR_WRITE_INT(lsr, 25, 6, "event"); break;
 		default:
 			fprintf(stdout, "Unsupported LASER event\n");
 			GF_LSR_WRITE_INT(lsr, 0, 6, "event"); break;

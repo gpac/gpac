@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef _GF_MODULE_SERVICE_H_
-#define _GF_MODULE_SERVICE_H_
+#ifndef _GF_SERVICE_H_
+#define _GF_SERVICE_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -347,8 +347,11 @@ void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data
 /*returns URL associated with service (so that you don't need to store it)*/
 const char *gf_term_get_service_url(GF_ClientService *service);
 
-/*adds a new media from network. The media descriptor is then owned/destroyed by the term*/
-void gf_term_add_media(GF_ClientService *service, GF_Descriptor *media_desc);
+/*adds a new media from network. !! The media descriptor is then owned/destroyed by the term!!
+media_desc: object descriptor for the new media. May be NULL to force scene rebuilt.
+no_scene_check: specifies if the scene description shall be rebuilt or not.
+*/
+void gf_term_add_media(GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_update);
 
 
 /*check if @fileExt extension is supported for given mimeType, and if associated with module. If mimeType not registered, register it for given module*/
@@ -400,4 +403,4 @@ typedef struct _cacheinterface
 }
 #endif
 
-#endif	/*_GF_MODULE_SERVICE_H_*/
+#endif	/*_GF_SERVICE_H_*/

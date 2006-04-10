@@ -137,7 +137,9 @@ struct _inline_scene
 	void *world_info;
 
 	Bool is_dynamic_scene;
-	/*URLs of current video, audio and subs (we can't store objects since they're destroyed when seeking)*/
+	/*clock for dynamic scene - current assumption is that all selected streams are synchronized in the dyn scene*/
+	GF_Clock *dyn_ck;
+	/*URLs of current video, audio and subs (we can't store objects since they may be destroyed when seeking)*/
 	SFURL visual_url, audio_url, text_url;
 	/*set to 1 when single time-line presentation with ONE OD AU is detected - the goal is to prevent
 	OD shutdown/startup when seeking. This will also remove unneeded net traffic for AddChannel/RemoveChannel
@@ -222,9 +224,6 @@ struct _tag_terminal
 	GF_List *x3d_sensors;
 	/*all input stream decoders*/
 	GF_List *input_streams;
-
-	/*restart time for main time-line control*/
-	u64 restart_time;
 	
 	/*options (cf config doc)*/
 	Bool bifs_can_resync;

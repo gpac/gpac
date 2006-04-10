@@ -94,15 +94,11 @@ typedef struct
 	Double seek_time;
 
 	s32 audio_st, video_st;
-	u32 od_es_id;
-	/*app channels*/
-	LPNETCHANNEL od_ch;
+	/*app channels (only deal with 1 audio and one video for now)*/
 	LPNETCHANNEL audio_ch;
 	LPNETCHANNEL video_ch;
 	Bool audio_run, video_run;
 	AVRational audio_tscale, video_tscale;
-	/*stream fetch state*/
-	u32 od_state;
 	u32 data_buffer_ms;
 
 	/*demuxer thread - we cannot use direct fetching because of demultiplex structure of libavformat
@@ -113,9 +109,6 @@ typedef struct
 
 	u32 service_type;
 	Bool unreliable_audio_timing;
-
-	char *od_au;
-	u32 od_au_size;
 } FFDemux;
 
 void *New_FFMPEG_Demux();

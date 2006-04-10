@@ -27,7 +27,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows Layout node" "performing scrolling with scrool pause/play" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   info ["This shows Layout node" "performing scrolling with scrool pause/play through scrollRate field" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
    title "Layout Test"
   }
   Transform2D {
@@ -98,62 +98,121 @@ OrderedGroup {
    ]
   }
   Transform2D {
-   translation 0 40
+   translation -100 40
    children [
     Shape {
-     appearance Appearance {
-      material Material2D {
-       emissiveColor 0 1 1
-       filled TRUE
-      }
-     }
-     geometry Rectangle {
-      size 100 25
-     }
-    }
-    Shape {
-     appearance Appearance {
+     appearance DEF TXT_APP Appearance {
       material Material2D {
        emissiveColor 0 0 0
        filled TRUE
       }
      }
      geometry DEF TXT Text {
-      string ["ScrollRate 0"]
+      string ["ScrollRate: 0"]
       fontStyle USE FS
      }
     }
-    DEF TS TouchSensor {}
    ]
   }
-  DEF C Conditional {
+  Transform2D {
+   translation 0 40
+   children [
+    DEF BACK_RC Shape {
+     appearance Appearance {
+      material Material2D {
+       emissiveColor 0 1 1
+       filled TRUE
+       lineProps LineProperties {
+        lineColor 0 0 0
+       }
+      }
+     }
+     geometry Rectangle {
+      size 60 25
+     }
+    }   
+    Shape {
+     appearance USE TXT_APP 
+     geometry Text {
+      string ["UP"]
+      fontStyle USE FS
+     }
+    }
+    DEF TS_UP TouchSensor {}
+   ]
+  }
+  Transform2D {
+   translation 60 40
+   children [
+    USE BACK_RC 
+    Shape {
+     appearance USE TXT_APP
+     geometry Text {
+      string ["DOWN"]
+      fontStyle USE FS
+     }
+    }
+    DEF TS_DOWN TouchSensor {}
+   ]
+  }
+ 
+  DEF C_UP Conditional {
    buffer {
     REPLACE LAY.scrollRate BY 0.1
     REPLACE TXT.string[0] BY "ScrollRate 0.1"
    }
   }
-  DEF RC Conditional {
+  DEF RC_UP Conditional {
    buffer {
     REPLACE LAY.scrollRate BY 0
     REPLACE TXT.string[0] BY "ScrollRate 0"
    }
   }
-  DEF C2 Conditional {
+  DEF C2_UP Conditional {
    buffer {
     REPLACE LAY.scrollRate BY 0.2
     REPLACE TXT.string[0] BY "ScrollRate 0.2"
    }
   }
-  DEF RC2 Conditional {
+  DEF RC2_UP Conditional {
    buffer {
     REPLACE LAY.scrollRate BY 0.1
     REPLACE TXT.string[0] BY "ScrollRate 0.1"
    }
   }
+
+  DEF C_DOWN Conditional {
+   buffer {
+    REPLACE LAY.scrollRate BY -0.1
+    REPLACE TXT.string[0] BY "ScrollRate -0.1"
+   }
+  }
+  DEF RC_DOWN Conditional {
+   buffer {
+    REPLACE LAY.scrollRate BY 0
+    REPLACE TXT.string[0] BY "ScrollRate 0"
+   }
+  }
+  DEF C2_DOWN Conditional {
+   buffer {
+    REPLACE LAY.scrollRate BY -0.2
+    REPLACE TXT.string[0] BY "ScrollRate -0.2"
+   }
+  }
+  DEF RC2_DOWN Conditional {
+   buffer {
+    REPLACE LAY.scrollRate BY -0.1
+    REPLACE TXT.string[0] BY "ScrollRate -0.1"
+   }
+  }
  ]
 }
 
-ROUTE TS.isOver TO C.activate
-ROUTE TS.isOver TO RC.reverseActivate
-ROUTE TS.isActive TO C2.activate
-ROUTE TS.isActive TO RC2.reverseActivate
+ROUTE TS_UP.isOver TO C_UP.activate
+ROUTE TS_UP.isOver TO RC_UP.reverseActivate
+ROUTE TS_UP.isActive TO C2_UP.activate
+ROUTE TS_UP.isActive TO RC2_UP.reverseActivate
+ROUTE TS_DOWN.isOver TO C_DOWN.activate
+ROUTE TS_DOWN.isOver TO RC_DOWN.reverseActivate
+ROUTE TS_DOWN.isActive TO C2_DOWN.activate
+ROUTE TS_DOWN.isActive TO RC2_DOWN.reverseActivate

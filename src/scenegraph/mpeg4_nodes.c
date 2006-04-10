@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Mon Nov 21 16:56:09 2005
+	DO NOT MOFIFY - File generated on GMT Mon Mar 27 18:39:47 2006
 
 	BY MPEG4Gen for GPAC Version 0.4.1-DEV
 */
@@ -2610,7 +2610,7 @@ static void CompositeTexture2D_Del(GF_Node *node)
 	gf_node_free((GF_Node *) p);
 }
 
-static const u16 CompositeTexture2D_Def2All[] = { 2, 3, 4, 5, 6};
+static const u16 CompositeTexture2D_Def2All[] = { 2, 3, 4, 5, 6, 7};
 static const u16 CompositeTexture2D_In2All[] = { 0, 1, 2, 3, 4, 5, 6};
 static const u16 CompositeTexture2D_Out2All[] = { 2, 3, 4, 5, 6};
 
@@ -2618,11 +2618,11 @@ static u32 CompositeTexture2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
 	case GF_SG_FIELD_CODING_IN: return 7;
-	case GF_SG_FIELD_CODING_DEF: return 5;
+	case GF_SG_FIELD_CODING_DEF: return 6;
 	case GF_SG_FIELD_CODING_OUT: return 5;
 	case GF_SG_FIELD_CODING_DYN: return 0;
 	default:
-		return 7;
+		return 8;
 	}
 }
 
@@ -2694,6 +2694,12 @@ static GF_Err CompositeTexture2D_get_field(GF_Node *node, GF_FieldInfo *info)
 		info->NDTtype = NDT_SFViewportNode;
 		info->far_ptr = & ((M_CompositeTexture2D *)node)->viewport;
 		return GF_OK;
+	case 7:
+		info->name = "repeatSandT";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_CompositeTexture2D *) node)->repeatSandT;
+		return GF_OK;
 	default:
 		return GF_BAD_PARAM;
 	}
@@ -2742,6 +2748,7 @@ GF_Node *CompositeTexture2D_Create()
 	/*default field values*/
 	p->pixelWidth = -1;
 	p->pixelHeight = -1;
+	p->repeatSandT = 3;
 	return (GF_Node *)p;
 }
 
@@ -2761,7 +2768,7 @@ static void CompositeTexture3D_Del(GF_Node *node)
 	gf_node_free((GF_Node *) p);
 }
 
-static const u16 CompositeTexture3D_Def2All[] = { 2, 3, 4, 5, 6, 7, 8};
+static const u16 CompositeTexture3D_Def2All[] = { 2, 3, 4, 5, 6, 7, 8, 9, 10};
 static const u16 CompositeTexture3D_In2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8};
 static const u16 CompositeTexture3D_Out2All[] = { 2, 3, 4, 5, 6, 7, 8};
 
@@ -2769,11 +2776,11 @@ static u32 CompositeTexture3D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
 	case GF_SG_FIELD_CODING_IN: return 9;
-	case GF_SG_FIELD_CODING_DEF: return 7;
+	case GF_SG_FIELD_CODING_DEF: return 9;
 	case GF_SG_FIELD_CODING_OUT: return 7;
 	case GF_SG_FIELD_CODING_DYN: return 0;
 	default:
-		return 9;
+		return 11;
 	}
 }
 
@@ -2859,6 +2866,18 @@ static GF_Err CompositeTexture3D_get_field(GF_Node *node, GF_FieldInfo *info)
 		info->NDTtype = NDT_SFViewpointNode;
 		info->far_ptr = & ((M_CompositeTexture3D *)node)->viewpoint;
 		return GF_OK;
+	case 9:
+		info->name = "repeatS";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_CompositeTexture3D *) node)->repeatS;
+		return GF_OK;
+	case 10:
+		info->name = "repeatT";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_CompositeTexture3D *) node)->repeatT;
+		return GF_OK;
 	default:
 		return GF_BAD_PARAM;
 	}
@@ -2907,6 +2926,8 @@ GF_Node *CompositeTexture3D_Create()
 	/*default field values*/
 	p->pixelWidth = -1;
 	p->pixelHeight = -1;
+	p->repeatS = 1;
+	p->repeatT = 1;
 	return (GF_Node *)p;
 }
 
@@ -6607,20 +6628,20 @@ static void Layout_Del(GF_Node *node)
 	gf_node_free((GF_Node *) p);
 }
 
-static const u16 Layout_Def2All[] = { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
-static const u16 Layout_In2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
-static const u16 Layout_Out2All[] = { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
+static const u16 Layout_Def2All[] = { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
+static const u16 Layout_In2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
+static const u16 Layout_Out2All[] = { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
 static const u16 Layout_Dyn2All[] = { 4, 9, 13};
 
 static u32 Layout_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 14;
-	case GF_SG_FIELD_CODING_DEF: return 12;
-	case GF_SG_FIELD_CODING_OUT: return 12;
+	case GF_SG_FIELD_CODING_IN: return 15;
+	case GF_SG_FIELD_CODING_DEF: return 13;
+	case GF_SG_FIELD_CODING_OUT: return 13;
 	case GF_SG_FIELD_CODING_DYN: return 3;
 	default:
-		return 14;
+		return 15;
 	}
 }
 
@@ -6735,6 +6756,12 @@ static GF_Err Layout_get_field(GF_Node *node, GF_FieldInfo *info)
 		info->fieldType = GF_SG_VRML_SFFLOAT;
 		info->far_ptr = & ((M_Layout *) node)->scrollRate;
 		return GF_OK;
+	case 14:
+		info->name = "scrollMode";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_Layout *) node)->scrollMode;
+		return GF_OK;
 	default:
 		return GF_BAD_PARAM;
 	}
@@ -6797,6 +6824,7 @@ GF_Node *Layout_Create()
 	p->spacing = FLT2FIX(1);
 	p->scrollVertical = 1;
 	p->scrollRate = FLT2FIX(0);
+	p->scrollMode = 0;
 	return (GF_Node *)p;
 }
 
@@ -19999,129 +20027,129 @@ u32 gf_sg_mpeg4_node_get_child_ndt(GF_Node *node)
 u32 gf_node_mpeg4_type_by_class_name(const char *node_name)
 {
 	if(!node_name) return 0;
-	if (!strcmp(node_name, "Anchor")) return TAG_MPEG4_Anchor;
-	if (!strcmp(node_name, "AnimationStream")) return TAG_MPEG4_AnimationStream;
-	if (!strcmp(node_name, "Appearance")) return TAG_MPEG4_Appearance;
-	if (!strcmp(node_name, "AudioBuffer")) return TAG_MPEG4_AudioBuffer;
-	if (!strcmp(node_name, "AudioClip")) return TAG_MPEG4_AudioClip;
-	if (!strcmp(node_name, "AudioDelay")) return TAG_MPEG4_AudioDelay;
-	if (!strcmp(node_name, "AudioFX")) return TAG_MPEG4_AudioFX;
-	if (!strcmp(node_name, "AudioMix")) return TAG_MPEG4_AudioMix;
-	if (!strcmp(node_name, "AudioSource")) return TAG_MPEG4_AudioSource;
-	if (!strcmp(node_name, "AudioSwitch")) return TAG_MPEG4_AudioSwitch;
-	if (!strcmp(node_name, "Background")) return TAG_MPEG4_Background;
-	if (!strcmp(node_name, "Background2D")) return TAG_MPEG4_Background2D;
-	if (!strcmp(node_name, "Billboard")) return TAG_MPEG4_Billboard;
-	if (!strcmp(node_name, "Bitmap")) return TAG_MPEG4_Bitmap;
-	if (!strcmp(node_name, "Box")) return TAG_MPEG4_Box;
-	if (!strcmp(node_name, "Circle")) return TAG_MPEG4_Circle;
-	if (!strcmp(node_name, "Collision")) return TAG_MPEG4_Collision;
-	if (!strcmp(node_name, "Color")) return TAG_MPEG4_Color;
-	if (!strcmp(node_name, "ColorInterpolator")) return TAG_MPEG4_ColorInterpolator;
-	if (!strcmp(node_name, "CompositeTexture2D")) return TAG_MPEG4_CompositeTexture2D;
-	if (!strcmp(node_name, "CompositeTexture3D")) return TAG_MPEG4_CompositeTexture3D;
-	if (!strcmp(node_name, "Conditional")) return TAG_MPEG4_Conditional;
-	if (!strcmp(node_name, "Cone")) return TAG_MPEG4_Cone;
-	if (!strcmp(node_name, "Coordinate")) return TAG_MPEG4_Coordinate;
-	if (!strcmp(node_name, "Coordinate2D")) return TAG_MPEG4_Coordinate2D;
-	if (!strcmp(node_name, "CoordinateInterpolator")) return TAG_MPEG4_CoordinateInterpolator;
-	if (!strcmp(node_name, "CoordinateInterpolator2D")) return TAG_MPEG4_CoordinateInterpolator2D;
-	if (!strcmp(node_name, "Curve2D")) return TAG_MPEG4_Curve2D;
-	if (!strcmp(node_name, "Cylinder")) return TAG_MPEG4_Cylinder;
-	if (!strcmp(node_name, "CylinderSensor")) return TAG_MPEG4_CylinderSensor;
-	if (!strcmp(node_name, "DirectionalLight")) return TAG_MPEG4_DirectionalLight;
-	if (!strcmp(node_name, "DiscSensor")) return TAG_MPEG4_DiscSensor;
-	if (!strcmp(node_name, "ElevationGrid")) return TAG_MPEG4_ElevationGrid;
-	if (!strcmp(node_name, "Extrusion")) return TAG_MPEG4_Extrusion;
-	if (!strcmp(node_name, "Fog")) return TAG_MPEG4_Fog;
-	if (!strcmp(node_name, "FontStyle")) return TAG_MPEG4_FontStyle;
-	if (!strcmp(node_name, "Form")) return TAG_MPEG4_Form;
-	if (!strcmp(node_name, "Group")) return TAG_MPEG4_Group;
-	if (!strcmp(node_name, "ImageTexture")) return TAG_MPEG4_ImageTexture;
-	if (!strcmp(node_name, "IndexedFaceSet")) return TAG_MPEG4_IndexedFaceSet;
-	if (!strcmp(node_name, "IndexedFaceSet2D")) return TAG_MPEG4_IndexedFaceSet2D;
-	if (!strcmp(node_name, "IndexedLineSet")) return TAG_MPEG4_IndexedLineSet;
-	if (!strcmp(node_name, "IndexedLineSet2D")) return TAG_MPEG4_IndexedLineSet2D;
-	if (!strcmp(node_name, "Inline")) return TAG_MPEG4_Inline;
-	if (!strcmp(node_name, "LOD")) return TAG_MPEG4_LOD;
-	if (!strcmp(node_name, "Layer2D")) return TAG_MPEG4_Layer2D;
-	if (!strcmp(node_name, "Layer3D")) return TAG_MPEG4_Layer3D;
-	if (!strcmp(node_name, "Layout")) return TAG_MPEG4_Layout;
-	if (!strcmp(node_name, "LineProperties")) return TAG_MPEG4_LineProperties;
-	if (!strcmp(node_name, "ListeningPoint")) return TAG_MPEG4_ListeningPoint;
-	if (!strcmp(node_name, "Material")) return TAG_MPEG4_Material;
-	if (!strcmp(node_name, "Material2D")) return TAG_MPEG4_Material2D;
-	if (!strcmp(node_name, "MovieTexture")) return TAG_MPEG4_MovieTexture;
-	if (!strcmp(node_name, "NavigationInfo")) return TAG_MPEG4_NavigationInfo;
-	if (!strcmp(node_name, "Normal")) return TAG_MPEG4_Normal;
-	if (!strcmp(node_name, "NormalInterpolator")) return TAG_MPEG4_NormalInterpolator;
-	if (!strcmp(node_name, "OrderedGroup")) return TAG_MPEG4_OrderedGroup;
-	if (!strcmp(node_name, "OrientationInterpolator")) return TAG_MPEG4_OrientationInterpolator;
-	if (!strcmp(node_name, "PixelTexture")) return TAG_MPEG4_PixelTexture;
-	if (!strcmp(node_name, "PlaneSensor")) return TAG_MPEG4_PlaneSensor;
-	if (!strcmp(node_name, "PlaneSensor2D")) return TAG_MPEG4_PlaneSensor2D;
-	if (!strcmp(node_name, "PointLight")) return TAG_MPEG4_PointLight;
-	if (!strcmp(node_name, "PointSet")) return TAG_MPEG4_PointSet;
-	if (!strcmp(node_name, "PointSet2D")) return TAG_MPEG4_PointSet2D;
-	if (!strcmp(node_name, "PositionInterpolator")) return TAG_MPEG4_PositionInterpolator;
-	if (!strcmp(node_name, "PositionInterpolator2D")) return TAG_MPEG4_PositionInterpolator2D;
-	if (!strcmp(node_name, "ProximitySensor2D")) return TAG_MPEG4_ProximitySensor2D;
-	if (!strcmp(node_name, "ProximitySensor")) return TAG_MPEG4_ProximitySensor;
-	if (!strcmp(node_name, "QuantizationParameter")) return TAG_MPEG4_QuantizationParameter;
-	if (!strcmp(node_name, "Rectangle")) return TAG_MPEG4_Rectangle;
-	if (!strcmp(node_name, "ScalarInterpolator")) return TAG_MPEG4_ScalarInterpolator;
-	if (!strcmp(node_name, "Script")) return TAG_MPEG4_Script;
-	if (!strcmp(node_name, "Shape")) return TAG_MPEG4_Shape;
-	if (!strcmp(node_name, "Sound")) return TAG_MPEG4_Sound;
-	if (!strcmp(node_name, "Sound2D")) return TAG_MPEG4_Sound2D;
-	if (!strcmp(node_name, "Sphere")) return TAG_MPEG4_Sphere;
-	if (!strcmp(node_name, "SphereSensor")) return TAG_MPEG4_SphereSensor;
-	if (!strcmp(node_name, "SpotLight")) return TAG_MPEG4_SpotLight;
-	if (!strcmp(node_name, "Switch")) return TAG_MPEG4_Switch;
-	if (!strcmp(node_name, "TermCap")) return TAG_MPEG4_TermCap;
-	if (!strcmp(node_name, "Text")) return TAG_MPEG4_Text;
-	if (!strcmp(node_name, "TextureCoordinate")) return TAG_MPEG4_TextureCoordinate;
-	if (!strcmp(node_name, "TextureTransform")) return TAG_MPEG4_TextureTransform;
-	if (!strcmp(node_name, "TimeSensor")) return TAG_MPEG4_TimeSensor;
-	if (!strcmp(node_name, "TouchSensor")) return TAG_MPEG4_TouchSensor;
-	if (!strcmp(node_name, "Transform")) return TAG_MPEG4_Transform;
-	if (!strcmp(node_name, "Transform2D")) return TAG_MPEG4_Transform2D;
-	if (!strcmp(node_name, "Valuator")) return TAG_MPEG4_Valuator;
-	if (!strcmp(node_name, "Viewpoint")) return TAG_MPEG4_Viewpoint;
-	if (!strcmp(node_name, "VisibilitySensor")) return TAG_MPEG4_VisibilitySensor;
-	if (!strcmp(node_name, "WorldInfo")) return TAG_MPEG4_WorldInfo;
-	if (!strcmp(node_name, "AcousticMaterial")) return TAG_MPEG4_AcousticMaterial;
-	if (!strcmp(node_name, "AcousticScene")) return TAG_MPEG4_AcousticScene;
-	if (!strcmp(node_name, "ApplicationWindow")) return TAG_MPEG4_ApplicationWindow;
-	if (!strcmp(node_name, "DirectiveSound")) return TAG_MPEG4_DirectiveSound;
-	if (!strcmp(node_name, "Hierarchical3DMesh")) return TAG_MPEG4_Hierarchical3DMesh;
-	if (!strcmp(node_name, "MaterialKey")) return TAG_MPEG4_MaterialKey;
-	if (!strcmp(node_name, "PerceptualParameters")) return TAG_MPEG4_PerceptualParameters;
-	if (!strcmp(node_name, "TemporalTransform")) return TAG_MPEG4_TemporalTransform;
-	if (!strcmp(node_name, "TemporalGroup")) return TAG_MPEG4_TemporalGroup;
-	if (!strcmp(node_name, "ServerCommand")) return TAG_MPEG4_ServerCommand;
-	if (!strcmp(node_name, "InputSensor")) return TAG_MPEG4_InputSensor;
-	if (!strcmp(node_name, "MatteTexture")) return TAG_MPEG4_MatteTexture;
-	if (!strcmp(node_name, "MediaBuffer")) return TAG_MPEG4_MediaBuffer;
-	if (!strcmp(node_name, "MediaControl")) return TAG_MPEG4_MediaControl;
-	if (!strcmp(node_name, "MediaSensor")) return TAG_MPEG4_MediaSensor;
-	if (!strcmp(node_name, "CoordinateInterpolator4D")) return TAG_MPEG4_CoordinateInterpolator4D;
-	if (!strcmp(node_name, "NonLinearDeformer")) return TAG_MPEG4_NonLinearDeformer;
-	if (!strcmp(node_name, "PositionAnimator")) return TAG_MPEG4_PositionAnimator;
-	if (!strcmp(node_name, "PositionAnimator2D")) return TAG_MPEG4_PositionAnimator2D;
-	if (!strcmp(node_name, "PositionInterpolator4D")) return TAG_MPEG4_PositionInterpolator4D;
-	if (!strcmp(node_name, "ScalarAnimator")) return TAG_MPEG4_ScalarAnimator;
-	if (!strcmp(node_name, "Clipper2D")) return TAG_MPEG4_Clipper2D;
-	if (!strcmp(node_name, "ColorTransform")) return TAG_MPEG4_ColorTransform;
-	if (!strcmp(node_name, "Ellipse")) return TAG_MPEG4_Ellipse;
-	if (!strcmp(node_name, "LinearGradient")) return TAG_MPEG4_LinearGradient;
-	if (!strcmp(node_name, "PathLayout")) return TAG_MPEG4_PathLayout;
-	if (!strcmp(node_name, "RadialGradient")) return TAG_MPEG4_RadialGradient;
-	if (!strcmp(node_name, "TransformMatrix2D")) return TAG_MPEG4_TransformMatrix2D;
-	if (!strcmp(node_name, "Viewport")) return TAG_MPEG4_Viewport;
-	if (!strcmp(node_name, "XCurve2D")) return TAG_MPEG4_XCurve2D;
-	if (!strcmp(node_name, "XFontStyle")) return TAG_MPEG4_XFontStyle;
-	if (!strcmp(node_name, "XLineProperties")) return TAG_MPEG4_XLineProperties;
+	if (!stricmp(node_name, "Anchor")) return TAG_MPEG4_Anchor;
+	if (!stricmp(node_name, "AnimationStream")) return TAG_MPEG4_AnimationStream;
+	if (!stricmp(node_name, "Appearance")) return TAG_MPEG4_Appearance;
+	if (!stricmp(node_name, "AudioBuffer")) return TAG_MPEG4_AudioBuffer;
+	if (!stricmp(node_name, "AudioClip")) return TAG_MPEG4_AudioClip;
+	if (!stricmp(node_name, "AudioDelay")) return TAG_MPEG4_AudioDelay;
+	if (!stricmp(node_name, "AudioFX")) return TAG_MPEG4_AudioFX;
+	if (!stricmp(node_name, "AudioMix")) return TAG_MPEG4_AudioMix;
+	if (!stricmp(node_name, "AudioSource")) return TAG_MPEG4_AudioSource;
+	if (!stricmp(node_name, "AudioSwitch")) return TAG_MPEG4_AudioSwitch;
+	if (!stricmp(node_name, "Background")) return TAG_MPEG4_Background;
+	if (!stricmp(node_name, "Background2D")) return TAG_MPEG4_Background2D;
+	if (!stricmp(node_name, "Billboard")) return TAG_MPEG4_Billboard;
+	if (!stricmp(node_name, "Bitmap")) return TAG_MPEG4_Bitmap;
+	if (!stricmp(node_name, "Box")) return TAG_MPEG4_Box;
+	if (!stricmp(node_name, "Circle")) return TAG_MPEG4_Circle;
+	if (!stricmp(node_name, "Collision")) return TAG_MPEG4_Collision;
+	if (!stricmp(node_name, "Color")) return TAG_MPEG4_Color;
+	if (!stricmp(node_name, "ColorInterpolator")) return TAG_MPEG4_ColorInterpolator;
+	if (!stricmp(node_name, "CompositeTexture2D")) return TAG_MPEG4_CompositeTexture2D;
+	if (!stricmp(node_name, "CompositeTexture3D")) return TAG_MPEG4_CompositeTexture3D;
+	if (!stricmp(node_name, "Conditional")) return TAG_MPEG4_Conditional;
+	if (!stricmp(node_name, "Cone")) return TAG_MPEG4_Cone;
+	if (!stricmp(node_name, "Coordinate")) return TAG_MPEG4_Coordinate;
+	if (!stricmp(node_name, "Coordinate2D")) return TAG_MPEG4_Coordinate2D;
+	if (!stricmp(node_name, "CoordinateInterpolator")) return TAG_MPEG4_CoordinateInterpolator;
+	if (!stricmp(node_name, "CoordinateInterpolator2D")) return TAG_MPEG4_CoordinateInterpolator2D;
+	if (!stricmp(node_name, "Curve2D")) return TAG_MPEG4_Curve2D;
+	if (!stricmp(node_name, "Cylinder")) return TAG_MPEG4_Cylinder;
+	if (!stricmp(node_name, "CylinderSensor")) return TAG_MPEG4_CylinderSensor;
+	if (!stricmp(node_name, "DirectionalLight")) return TAG_MPEG4_DirectionalLight;
+	if (!stricmp(node_name, "DiscSensor")) return TAG_MPEG4_DiscSensor;
+	if (!stricmp(node_name, "ElevationGrid")) return TAG_MPEG4_ElevationGrid;
+	if (!stricmp(node_name, "Extrusion")) return TAG_MPEG4_Extrusion;
+	if (!stricmp(node_name, "Fog")) return TAG_MPEG4_Fog;
+	if (!stricmp(node_name, "FontStyle")) return TAG_MPEG4_FontStyle;
+	if (!stricmp(node_name, "Form")) return TAG_MPEG4_Form;
+	if (!stricmp(node_name, "Group")) return TAG_MPEG4_Group;
+	if (!stricmp(node_name, "ImageTexture")) return TAG_MPEG4_ImageTexture;
+	if (!stricmp(node_name, "IndexedFaceSet")) return TAG_MPEG4_IndexedFaceSet;
+	if (!stricmp(node_name, "IndexedFaceSet2D")) return TAG_MPEG4_IndexedFaceSet2D;
+	if (!stricmp(node_name, "IndexedLineSet")) return TAG_MPEG4_IndexedLineSet;
+	if (!stricmp(node_name, "IndexedLineSet2D")) return TAG_MPEG4_IndexedLineSet2D;
+	if (!stricmp(node_name, "Inline")) return TAG_MPEG4_Inline;
+	if (!stricmp(node_name, "LOD")) return TAG_MPEG4_LOD;
+	if (!stricmp(node_name, "Layer2D")) return TAG_MPEG4_Layer2D;
+	if (!stricmp(node_name, "Layer3D")) return TAG_MPEG4_Layer3D;
+	if (!stricmp(node_name, "Layout")) return TAG_MPEG4_Layout;
+	if (!stricmp(node_name, "LineProperties")) return TAG_MPEG4_LineProperties;
+	if (!stricmp(node_name, "ListeningPoint")) return TAG_MPEG4_ListeningPoint;
+	if (!stricmp(node_name, "Material")) return TAG_MPEG4_Material;
+	if (!stricmp(node_name, "Material2D")) return TAG_MPEG4_Material2D;
+	if (!stricmp(node_name, "MovieTexture")) return TAG_MPEG4_MovieTexture;
+	if (!stricmp(node_name, "NavigationInfo")) return TAG_MPEG4_NavigationInfo;
+	if (!stricmp(node_name, "Normal")) return TAG_MPEG4_Normal;
+	if (!stricmp(node_name, "NormalInterpolator")) return TAG_MPEG4_NormalInterpolator;
+	if (!stricmp(node_name, "OrderedGroup")) return TAG_MPEG4_OrderedGroup;
+	if (!stricmp(node_name, "OrientationInterpolator")) return TAG_MPEG4_OrientationInterpolator;
+	if (!stricmp(node_name, "PixelTexture")) return TAG_MPEG4_PixelTexture;
+	if (!stricmp(node_name, "PlaneSensor")) return TAG_MPEG4_PlaneSensor;
+	if (!stricmp(node_name, "PlaneSensor2D")) return TAG_MPEG4_PlaneSensor2D;
+	if (!stricmp(node_name, "PointLight")) return TAG_MPEG4_PointLight;
+	if (!stricmp(node_name, "PointSet")) return TAG_MPEG4_PointSet;
+	if (!stricmp(node_name, "PointSet2D")) return TAG_MPEG4_PointSet2D;
+	if (!stricmp(node_name, "PositionInterpolator")) return TAG_MPEG4_PositionInterpolator;
+	if (!stricmp(node_name, "PositionInterpolator2D")) return TAG_MPEG4_PositionInterpolator2D;
+	if (!stricmp(node_name, "ProximitySensor2D")) return TAG_MPEG4_ProximitySensor2D;
+	if (!stricmp(node_name, "ProximitySensor")) return TAG_MPEG4_ProximitySensor;
+	if (!stricmp(node_name, "QuantizationParameter")) return TAG_MPEG4_QuantizationParameter;
+	if (!stricmp(node_name, "Rectangle")) return TAG_MPEG4_Rectangle;
+	if (!stricmp(node_name, "ScalarInterpolator")) return TAG_MPEG4_ScalarInterpolator;
+	if (!stricmp(node_name, "Script")) return TAG_MPEG4_Script;
+	if (!stricmp(node_name, "Shape")) return TAG_MPEG4_Shape;
+	if (!stricmp(node_name, "Sound")) return TAG_MPEG4_Sound;
+	if (!stricmp(node_name, "Sound2D")) return TAG_MPEG4_Sound2D;
+	if (!stricmp(node_name, "Sphere")) return TAG_MPEG4_Sphere;
+	if (!stricmp(node_name, "SphereSensor")) return TAG_MPEG4_SphereSensor;
+	if (!stricmp(node_name, "SpotLight")) return TAG_MPEG4_SpotLight;
+	if (!stricmp(node_name, "Switch")) return TAG_MPEG4_Switch;
+	if (!stricmp(node_name, "TermCap")) return TAG_MPEG4_TermCap;
+	if (!stricmp(node_name, "Text")) return TAG_MPEG4_Text;
+	if (!stricmp(node_name, "TextureCoordinate")) return TAG_MPEG4_TextureCoordinate;
+	if (!stricmp(node_name, "TextureTransform")) return TAG_MPEG4_TextureTransform;
+	if (!stricmp(node_name, "TimeSensor")) return TAG_MPEG4_TimeSensor;
+	if (!stricmp(node_name, "TouchSensor")) return TAG_MPEG4_TouchSensor;
+	if (!stricmp(node_name, "Transform")) return TAG_MPEG4_Transform;
+	if (!stricmp(node_name, "Transform2D")) return TAG_MPEG4_Transform2D;
+	if (!stricmp(node_name, "Valuator")) return TAG_MPEG4_Valuator;
+	if (!stricmp(node_name, "Viewpoint")) return TAG_MPEG4_Viewpoint;
+	if (!stricmp(node_name, "VisibilitySensor")) return TAG_MPEG4_VisibilitySensor;
+	if (!stricmp(node_name, "WorldInfo")) return TAG_MPEG4_WorldInfo;
+	if (!stricmp(node_name, "AcousticMaterial")) return TAG_MPEG4_AcousticMaterial;
+	if (!stricmp(node_name, "AcousticScene")) return TAG_MPEG4_AcousticScene;
+	if (!stricmp(node_name, "ApplicationWindow")) return TAG_MPEG4_ApplicationWindow;
+	if (!stricmp(node_name, "DirectiveSound")) return TAG_MPEG4_DirectiveSound;
+	if (!stricmp(node_name, "Hierarchical3DMesh")) return TAG_MPEG4_Hierarchical3DMesh;
+	if (!stricmp(node_name, "MaterialKey")) return TAG_MPEG4_MaterialKey;
+	if (!stricmp(node_name, "PerceptualParameters")) return TAG_MPEG4_PerceptualParameters;
+	if (!stricmp(node_name, "TemporalTransform")) return TAG_MPEG4_TemporalTransform;
+	if (!stricmp(node_name, "TemporalGroup")) return TAG_MPEG4_TemporalGroup;
+	if (!stricmp(node_name, "ServerCommand")) return TAG_MPEG4_ServerCommand;
+	if (!stricmp(node_name, "InputSensor")) return TAG_MPEG4_InputSensor;
+	if (!stricmp(node_name, "MatteTexture")) return TAG_MPEG4_MatteTexture;
+	if (!stricmp(node_name, "MediaBuffer")) return TAG_MPEG4_MediaBuffer;
+	if (!stricmp(node_name, "MediaControl")) return TAG_MPEG4_MediaControl;
+	if (!stricmp(node_name, "MediaSensor")) return TAG_MPEG4_MediaSensor;
+	if (!stricmp(node_name, "CoordinateInterpolator4D")) return TAG_MPEG4_CoordinateInterpolator4D;
+	if (!stricmp(node_name, "NonLinearDeformer")) return TAG_MPEG4_NonLinearDeformer;
+	if (!stricmp(node_name, "PositionAnimator")) return TAG_MPEG4_PositionAnimator;
+	if (!stricmp(node_name, "PositionAnimator2D")) return TAG_MPEG4_PositionAnimator2D;
+	if (!stricmp(node_name, "PositionInterpolator4D")) return TAG_MPEG4_PositionInterpolator4D;
+	if (!stricmp(node_name, "ScalarAnimator")) return TAG_MPEG4_ScalarAnimator;
+	if (!stricmp(node_name, "Clipper2D")) return TAG_MPEG4_Clipper2D;
+	if (!stricmp(node_name, "ColorTransform")) return TAG_MPEG4_ColorTransform;
+	if (!stricmp(node_name, "Ellipse")) return TAG_MPEG4_Ellipse;
+	if (!stricmp(node_name, "LinearGradient")) return TAG_MPEG4_LinearGradient;
+	if (!stricmp(node_name, "PathLayout")) return TAG_MPEG4_PathLayout;
+	if (!stricmp(node_name, "RadialGradient")) return TAG_MPEG4_RadialGradient;
+	if (!stricmp(node_name, "TransformMatrix2D")) return TAG_MPEG4_TransformMatrix2D;
+	if (!stricmp(node_name, "Viewport")) return TAG_MPEG4_Viewport;
+	if (!stricmp(node_name, "XCurve2D")) return TAG_MPEG4_XCurve2D;
+	if (!stricmp(node_name, "XFontStyle")) return TAG_MPEG4_XFontStyle;
+	if (!stricmp(node_name, "XLineProperties")) return TAG_MPEG4_XLineProperties;
 	return 0;
 }
 

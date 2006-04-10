@@ -2822,22 +2822,23 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 	in_com = init_com ? 0 : 1;
 	parser->cur_com = init_com;
 
+	/*create a default root node for all VRML nodes*/
+	if ((parser->is_wrl && !parser->top_nodes) && !vrml_root_node) {
+		if (initial_run ) {
+			vrml_root_node = gf_node_new(parser->load->scene_graph, (parser->load->flags & GF_SM_LOAD_MPEG4_STRICT) ? TAG_MPEG4_Group : TAG_X3D_Group);
+			gf_node_register(vrml_root_node, NULL);
+			gf_node_init(vrml_root_node);
+			gf_sg_set_root_node(parser->load->scene_graph, vrml_root_node);
+		} else {
+			vrml_root_node = gf_sg_get_root_node(parser->load->scene_graph);
+		}
+	}
+
 	/*parse all top-level items*/
 	while (!parser->last_error) {
 		str = gf_bt_get_next(parser, 0);
 		if (parser->done) break;
 		
-		/*create a default root node for all VRML nodes*/
-		if ((parser->is_wrl && !parser->top_nodes) && !vrml_root_node) {
-			if (initial_run ) {
-				vrml_root_node = gf_node_new(parser->load->scene_graph, (parser->load->flags & GF_SM_LOAD_MPEG4_STRICT) ? TAG_MPEG4_Group : TAG_X3D_Group);
-				gf_node_register(vrml_root_node, NULL);
-				gf_node_init(vrml_root_node);
-				gf_sg_set_root_node(parser->load->scene_graph, vrml_root_node);
-			} else {
-				vrml_root_node = gf_sg_get_root_node(parser->load->scene_graph);
-			}
-		}
 		/*X3D specific things (ignored for now)*/
 		if (!strcmp(str, "PROFILE")) gf_bt_force_line(parser);
 		else if (!strcmp(str, "COMPONENT")) gf_bt_force_line(parser);
@@ -2982,6 +2983,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 			|| parser->is_wrl 
 			) 
 		{
+
 			node = gf_bt_sf_node(parser, str, vrml_root_node, has_id ? szDEFName : NULL);
 			has_id = 0;
 			if (!node) break;
@@ -3107,13 +3109,16 @@ GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
 		return GF_OK;
 	}
 
-	/*create at least one empty BIFS stream*/
-	parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, 0);
-	if (!parser->is_wrl) parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, 0, 0, 1);
-
 	parser->load = NULL;
 	gf_bt_check_line(parser);
 	parser->load = load;
+
+	/*create at least one empty BIFS stream*/
+	if (!parser->is_wrl) {
+		parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, 0);
+		parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, 0, 0, 1);
+	}
+
 	if (load->OnMessage) load->OnMessage(load->cbk, ((parser->is_wrl==2) ? "X3D (WRL) Scene Parsing" : (parser->is_wrl ? "VRML Scene Parsing" : "MPEG-4 (BT) Scene Parsing")), GF_OK);
 	else fprintf(stdout, ((parser->is_wrl==2) ? "X3D (WRL) Scene Parsing\n" : (parser->is_wrl ? "VRML Scene Parsing\n" : "MPEG-4 (BT) Scene Parsing\n")));
 

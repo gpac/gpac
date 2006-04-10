@@ -35,11 +35,8 @@ typedef struct
 	GF_ClientService *service;
 	Bool od_done;
 	Bool needs_connection;
-	u32 es_status, od_status;
-	LPNETCHANNEL es_ch, od_ch;
-
-	char *od_data;
-	u32 od_data_size;
+	u32 status;
+	LPNETCHANNEL ch;
 
 	GF_SLHeader sl_hdr;
 
@@ -71,6 +68,20 @@ static Bool TTIn_is_local(const char *url)
 	if (!strnicmp(url, "file://", 7)) return 1;
 	if (strstr(url, "://")) return 0;
 	return 1;
+}
+
+static GF_ESD *tti_get_esd(TTIn *tti)
+{
+	return gf_media_map_esd(tti->mp4, tti->tt_track);
+}
+
+static void tti_setup_object(TTIn *tti)
+{
+	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+	GF_ESD *esd = tti_get_esd(tti);
+	od->objectDescriptorID = esd->ESID;
+	gf_list_add(od->ESDescriptors, esd);
+	gf_term_add_media(tti->service, (GF_Descriptor *)od, 0);
 }
 
 void tti_progress(GF_MediaImporter *ti, u32 cur_sample, u32 sample_count) {}
@@ -138,6 +149,7 @@ void TTIn_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 	if (tti->needs_connection) {
 		tti->needs_connection = 0;
 		gf_term_on_connect(tti->service, NULL, e);
+		if (!e) tti_setup_object(tti);
 	}
 }
 
@@ -171,6 +183,7 @@ static GF_Err TTIn_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	}
 	e = TTIn_LoadFile(plug, url, 0);
 	gf_term_on_connect(serv, NULL, e);
+	if (!e) tti_setup_object(tti);
 	return GF_OK;
 }
 
@@ -194,27 +207,16 @@ static GF_Err TTIn_CloseService(GF_InputService *plug)
 
 static GF_Descriptor *TTIn_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-	GF_ESD *esd;
 	TTIn *tti = plug->priv;
-	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-
-	od->objectDescriptorID = 1;
 	/*visual object*/
 	if (expect_type==GF_MEDIA_OBJECT_TEXT) {
-		esd = gp_media_map_esd(tti->mp4, tti->tt_track);
+		GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+		GF_ESD *esd = tti_get_esd(tti);
+		od->objectDescriptorID = esd->ESID;
 		gf_list_add(od->ESDescriptors, esd);
-		esd->ESID = 2;
 		return (GF_Descriptor *) od;
 	}
-
-	/*OD ESD*/
-	esd = gf_odf_desc_esd_new(0);
-	esd->slConfig->timestampResolution = 1000;
-	esd->decoderConfig->streamType = GF_STREAM_OD;
-	esd->decoderConfig->objectTypeIndication = GPAC_STATIC_OD_OTI;
-	esd->ESID = 1;
-	gf_list_add(od->ESDescriptors, esd);
-	return (GF_Descriptor *) od;
+	return NULL;
 }
 
 static GF_Err TTIn_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
@@ -224,22 +226,15 @@ static GF_Err TTIn_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 	TTIn *tti = plug->priv;
 
 	e = GF_SERVICE_ERROR;
-	if ((tti->es_ch==channel) || (tti->od_ch==channel)) goto exit;
+	if (tti->ch==channel) goto exit;
 
-	e = GF_OK;
+	e = GF_STREAM_NOT_FOUND;
 	ES_ID = 0;
 	if (strstr(url, "ES_ID")) sscanf(url, "ES_ID=%d", &ES_ID);
 
-	switch (ES_ID) {
-	case 1:
-		tti->od_ch = channel;
-		break;
-	case 2:
-		tti->es_ch = channel;
-		break;
-	default:
-		e = GF_STREAM_NOT_FOUND;
-		break;
+	if (ES_ID==1) {
+		tti->ch = channel;
+		e = GF_OK;
 	}
 
 exit:
@@ -252,11 +247,8 @@ static GF_Err TTIn_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel
 	TTIn *tti = plug->priv;
 	GF_Err e = GF_STREAM_NOT_FOUND;
 
-	if (tti->es_ch == channel) {
-		tti->es_ch = NULL;
-		e = GF_OK;
-	} else if (tti->od_ch == channel) {
-		tti->od_ch = NULL;
+	if (tti->ch == channel) {
+		tti->ch = NULL;
 		e = GF_OK;
 	}
 	gf_term_on_disconnect(tti->service, channel, e);
@@ -278,8 +270,7 @@ static GF_Err TTIn_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	case GF_NET_CHAN_PLAY:
 		tti->start_range = (com->play.start_range>0) ? (u32) (com->play.start_range * 1000) : 0;
-		if (tti->od_ch == com->base.on_channel) { tti->od_done = 0; }
-		else if (tti->es_ch == com->base.on_channel) {
+		if (tti->ch == com->base.on_channel) {
 			tti->samp_num = 0;
 			if (tti->samp) gf_isom_sample_del(&tti->samp);
 		}
@@ -306,7 +297,7 @@ static GF_Err TTIn_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, ch
 	tti->sl_hdr.accessUnitStartFlag = tti->sl_hdr.accessUnitEndFlag = 1;
 
 	/*fetching es data*/
-	if (tti->es_ch == channel) {
+	if (tti->ch == channel) {
 		if (tti->samp_num>=gf_isom_get_sample_count(tti->mp4, tti->tt_track)) {
 			*out_reception_status = GF_EOS;
 			return GF_OK;
@@ -333,37 +324,6 @@ static GF_Err TTIn_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, ch
 		*out_sl_hdr = tti->sl_hdr;
 		return GF_OK;
 	}
-	if (tti->od_ch == channel) {
-		GF_ODCodec *codec;
-		GF_ObjectDescriptor *od;
-		GF_ODUpdate *odU;
-		GF_ESD *esd;
-		if (tti->od_done) {
-			*out_reception_status = GF_EOS;
-			return GF_OK;
-		}
-		if (!tti->od_data) {
-			*is_new_data = 1;
-			odU = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
-			od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-			od->objectDescriptorID = 2;
-			esd = gp_media_map_esd(tti->mp4, tti->tt_track);
-			esd->ESID = 2;
-			esd->OCRESID = 1;
-			gf_list_add(od->ESDescriptors, esd);
-			gf_list_add(odU->objectDescriptors, od);
-			codec = gf_odf_codec_new();
-			gf_odf_codec_add_com(codec, (GF_ODCom *)odU);
-			gf_odf_codec_encode(codec, 1);
-			gf_odf_codec_get_au(codec, &tti->od_data, &tti->od_data_size);
-			gf_odf_codec_del(codec);
-		}
-		*out_data_ptr = tti->od_data;
-		*out_data_size = tti->od_data_size;
-		tti->sl_hdr.compositionTimeStamp = tti->sl_hdr.decodingTimeStamp = tti->start_range;
-		*out_sl_hdr = tti->sl_hdr;
-		return GF_OK;
-	}
 	return GF_STREAM_NOT_FOUND;
 }
 
@@ -371,18 +331,11 @@ static GF_Err TTIn_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel
 {
 	TTIn *tti = plug->priv;
 
-	if (tti->es_ch == channel) {
+	if (tti->ch == channel) {
 		if (!tti->samp) return GF_BAD_PARAM;
 		gf_isom_sample_del(&tti->samp);
 		tti->samp = NULL;
 		tti->samp_num++;
-		return GF_OK;
-	}
-	if (tti->od_ch == channel) {
-		if (!tti->od_data) return GF_BAD_PARAM;
-		free(tti->od_data);
-		tti->od_data = NULL;
-		tti->od_done = 1;
 		return GF_OK;
 	}
 	return GF_OK;

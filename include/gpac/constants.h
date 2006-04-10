@@ -267,17 +267,6 @@ static const u32 GF_AMR_WB_FRAME_SIZE[16] = { 17, 23, 32, 36, 40, 46, 50, 58, 60
 
 
 /*!
- * \brief Static Ressources ObjectTypeIndication
- *
- *	This ObjectTypeIndication indicates that scene information is not available (or not trustable :), in which case the IOD will only contain the OD stream with this OTI.\n
- *	This OD stream shall send one access unit with all available ressources in the service. Note that it may still act as a regular OD stream in case ressources are updated on the fly (broadcast radio/tv for ex).\n
- *	The scenegraph wll be regenerated at each OD AU, based on all available objects.\n
- *	Using this OTI will enable user stream selection (if provided in GUI) which is otherwise disabled.\n
- *	In this mode all clock references are ignored and all streams share the same clock.
-*/
-#define GPAC_STATIC_OD_OTI		0x81
-
-/*!
  * \brief OGG ObjectTypeIndication
  *
  *	Object type indication for all OGG media. The DSI contains all intitialization ogg packets for the codec

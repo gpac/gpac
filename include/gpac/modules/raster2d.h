@@ -63,17 +63,13 @@ typedef enum
 } GF_GradientMode;
 
 
-/*texture modes*/
+/*texture tiling flags*/
 typedef enum
 {
-	/*texture is tiled across the path - this is the default mode if not specified*/
-	GF_TEXTURE_TILE_BASE = 0,
-	/*tiling with X-fliping at each repeat*/
-	GF_TEXTURE_TILE_FLIP_X,
-	/*tiling with Y-fliping at each repeat*/
-	GF_TEXTURE_TILE_FLIP_Y,
-	/*tiling with X and Y-fliping at each repeat*/
-	GF_TEXTURE_TILE_FLIP_XY
+	/*texture is repeated in its horizontal direction*/
+	GF_TEXTURE_REPEAT_S = (1<<1),
+	/*texture is repeated in its horizontal direction*/
+	GF_TEXTURE_REPEAT_T = (1<<2),
 } GF_TextureTiling;
 
 /*filter levels for texturing - up to the graphics engine but the following levels are used by

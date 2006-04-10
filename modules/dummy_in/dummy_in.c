@@ -27,6 +27,7 @@
 /*for GF_STREAM_PRIVATE_SCENE definition*/
 #include <gpac/constants.h>
 #include <gpac/download.h>
+#include <gpac/xml.h>
 
 typedef struct
 {
@@ -93,6 +94,20 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 	if (gf_term_check_extension(plug, "image/svg+xml", "svg svg.gz svgz", "SVG Document", sExt)) return 1;
 	if (gf_term_check_extension(plug, "image/x-svgm", "svgm", "SVGM Document", sExt)) return 1;
 	if (gf_term_check_extension(plug, "application/x-LASeR+xml", "xsr", "LASeR Document", sExt)) return 1;
+
+	if (!strnicmp(url, "file://", 7) || !strstr(url, "://")) {
+		char *rtype = gf_xml_get_root_type(url);
+		if (rtype) {
+			Bool handled = 0;
+			if (!strcmp(rtype, "SAFSession")) handled = 1;
+			else if (!strcmp(rtype, "XMT-A")) handled = 1;
+			else if (!strcmp(rtype, "X3D")) handled = 1;
+			else if (!strcmp(rtype, "svg")) handled = 1;
+			free(rtype);
+			return handled;
+		}
+	}
+	
 	return 0;
 }
 
@@ -153,7 +168,17 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 	}
 	read->service = serv;
 
-	if (ext) {
+	if (!strnicmp(url, "file://", 7) || !strstr(url, "://")) {
+		char *rtype = gf_xml_get_root_type(url);
+		if (rtype) {
+			if (!strcmp(rtype, "SAFSession")) read->oti = 0x03;
+			else if (!strcmp(rtype, "svg")) read->oti = 0x02;
+			else if (!strcmp(rtype, "XMT-A")) read->oti = 0x01;
+			else if (!strcmp(rtype, "X3D")) read->oti = 0x01;
+			free(rtype);
+		}
+	}
+	else if (ext) {
 		if (!stricmp(ext, "bt") || !stricmp(ext, "btz") || !stricmp(ext, "bt.gz") 
 			|| !stricmp(ext, "xmta") 
 			|| !stricmp(ext, "xmt") || !stricmp(ext, "xmt.gz") || !stricmp(ext, "xmtz") 

@@ -37,7 +37,6 @@ void gf_modules_free_module(ModuleInstance *inst)
 	}
 
 	if (inst->lib_handle) FreeLibrary(inst->lib_handle);
-
 	gf_list_del(inst->interfaces);
 	free(inst);
 }

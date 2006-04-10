@@ -270,16 +270,16 @@ the file should not contain more than one audio and one video track
 @keepImage: if set, generates system info if image is found - only used for image imports
 @LogMsg: redirection for message or NULL for stdout
 */
-GF_Err gp_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, Bool no_ocr, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk);
+GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, Bool no_ocr, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk);
 
 /*make the file 3GP compliant && sets profile
 @LogMsg: redirection for message or NULL for stdout
 */
-GF_Err gp_media_make_3gpp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk);
+GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk);
 
 /*creates (if needed) a GF_ESD for the given track - THIS IS RESERVED for local playback
 only, since the OTI used when emulated is not standard...*/
-GF_ESD *gp_media_map_esd(GF_ISOFile *mp4, u32 track);
+GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track);
 
 /*changes pixel aspect ratio for visual tracks if supported. Negative values remove any PAR info*/
 GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den);

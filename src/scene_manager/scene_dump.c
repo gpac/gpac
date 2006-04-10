@@ -526,11 +526,17 @@ void DumpSFField(GF_SceneDumper *sdump, u32 type, void *ptr, Bool is_mf)
 		/*dump in unicode*/
 		str = ((SFString *)ptr)->buffer;
 		if (str && str[0]) {
-		  if (sdump->XMLDump) {
-			  DumpUTFString(sdump, str);
-		  } else {
-			fprintf(sdump->trace, "%s", str);
-		  }
+			if (sdump->XMLDump) {
+				DumpUTFString(sdump, str);
+			} else if (!strchr(str, '\"')) {
+				fprintf(sdump->trace, "%s", str);
+			} else {
+				u32 i, len = strlen(str);
+				for (i=0; i<len; i++) {
+					if (str[i]=='\"') fputc('\\', sdump->trace);
+					fputc(str[i], sdump->trace);
+				}
+			}
 		}
 
 		if (sdump->XMLDump) {

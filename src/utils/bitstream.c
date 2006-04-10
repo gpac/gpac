@@ -201,7 +201,6 @@ u8 gf_bs_read_bit(GF_BitStream *bs)
 
 }
 
-
 u32 gf_bs_read_int(GF_BitStream *bs, u32 nBits)
 {
 	u32 ret;

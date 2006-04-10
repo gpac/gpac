@@ -214,8 +214,10 @@ void gf_mm_remove_codec(GF_MediaManager *mgr, GF_Codec *codec)
 	while ((ce = gf_list_enum(mgr->threaded_codecs, &i))) {
 		if (ce->dec == codec) {
 			assert(ce->thread);
-			ce->state = MM_CE_IDLE;
-			while (ce->state!=MM_CE_DEAD) gf_sleep(10);
+			if (ce->state == MM_CE_ACTIVE) {
+				ce->state = MM_CE_IDLE;
+				while (ce->state!=MM_CE_DEAD) gf_sleep(10);
+			}
 			gf_th_del(ce->thread);
 			gf_mx_del(ce->mx);
 			free(ce);

@@ -422,7 +422,7 @@ void gf_term_connect_from_time(GF_Terminal * term, const char *URL, u32 startTim
 	odm->term = term;
 	gf_term_lock_net(term, 0);
 
-	term->restart_time = startTime;
+	odm->media_start_time = (u32) startTime;
 	/*render first visual frame and pause*/
 	if (pause_at_first_frame)
 		gf_term_set_play_state(term, GF_STATE_STEP_PAUSE, 0, 0);
@@ -700,10 +700,10 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 		gf_odm_disconnect(odm, 1);
 		return;
 	}
+	gf_term_lock_net(term, 0);
+
 	/*OK connect*/
 	odm->net_service->ifce->ConnectService(odm->net_service->ifce, odm->net_service, odm->net_service->url);
-
-	gf_term_lock_net(term, 0);
 }
 
 /*connects given channel to its URL if needed*/
@@ -768,7 +768,7 @@ Bool gf_term_play_from_time(GF_Terminal *term, u32 from_time, Bool pause_at_firs
 	gf_is_disconnect(term->root_scene, 0);
 	/*make sure we don't have OD queued*/
 	while (gf_list_count(term->od_pending)) gf_list_rem(term->od_pending, 0);
-	term->restart_time = from_time;
+	term->root_scene->root_od->media_start_time = from_time;
 
 	gf_odm_start(term->root_scene->root_od);
 	gf_term_set_play_state(term, pause_at_first_frame ? GF_STATE_STEP_PAUSE : GF_STATE_PLAYING, 1, 0);
@@ -791,8 +791,10 @@ Double gf_term_get_framerate(GF_Terminal *term, Bool absoluteFPS)
 /*get main scene current time in sec*/
 u32 gf_term_get_time_in_ms(GF_Terminal *term)
 {
-	if (!term || !term->root_scene || !term->root_scene->scene_codec) return 0;
-	return gf_clock_time(term->root_scene->scene_codec->ck);
+	if (!term || !term->root_scene) return 0;
+	if (term->root_scene->scene_codec) return gf_clock_time(term->root_scene->scene_codec->ck);
+	else if (term->root_scene->is_dynamic_scene) return gf_clock_time(term->root_scene->dyn_ck);
+	return 0;
 }
 
 GF_Node *gf_term_pick_node(GF_Terminal *term, s32 X, s32 Y)
@@ -872,7 +874,6 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 	odm->parentscene = NULL;
 	odm->subscene = is;
 	odm->term = term;
-	term->restart_time = 0;
 
 	odm->net_service = malloc(sizeof(GF_ClientService));
 	memset(odm->net_service, 0, sizeof(GF_ClientService));

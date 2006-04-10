@@ -219,13 +219,15 @@ static void C2D_ReleaseSurfaceAccess(VisualSurface2D *surf)
 
 void R2D_InitCompositeTexture2D(Render2D *sr, GF_Node *node)
 {
+	M_CompositeTexture2D *c2d = (M_CompositeTexture2D *)node;
 	Composite2DStack *st = malloc(sizeof(Composite2DStack));
 	memset(st, 0, sizeof(Composite2DStack));
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = UpdateComposite2D;
 
 	st->txh.flags = GF_SR_TEXTURE_COMPOSITE;
-	//st->txh.flags |= GF_SR_TEXTURE_REPEAT_S | GF_SR_TEXTURE_REPEAT_T;
+	if ((c2d->repeatSandT==1) || (c2d->repeatSandT==3) ) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
+	if (c2d->repeatSandT>1) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
 
 	/*create composite surface*/
 	st->surf = NewVisualSurface2D();

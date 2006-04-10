@@ -55,7 +55,7 @@ GF_Thread *gf_th_new()
 
 DWORD WINAPI RunThread(void *ptr)
 {
-	DWORD ret;
+	DWORD ret = 0;
 	GF_Thread *t = (GF_Thread *)ptr;
 
 	/* Signal the caller */

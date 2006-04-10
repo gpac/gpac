@@ -619,7 +619,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	} else {
 		m_use_proxy->SetValue(0);
 	}
-	m_proxy_name->SetValue(szProxy);
+	m_proxy_name->SetValue( wxString(szProxy, wxConvUTF8) );
 	if (! m_use_proxy->GetValue()) m_proxy_name->Enable(0);
 
 	/*streaming*/	

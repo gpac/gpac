@@ -4,7 +4,7 @@
  *			Copyright (c) Jean Le Feuvre 2000-2005
  *					All rights reserved
  *
- *  This file is part of GPAC / MP4 reader module
+ *  This file is part of GPAC / IsoMedia reader module
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -107,6 +107,7 @@ void isor_on_data(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 		if (!read->mov) e = gf_isom_last_error(NULL);
 		else read->time_scale = gf_isom_get_timescale(read->mov);
 		gf_term_on_connect(read->service, NULL, GF_OK);
+		if (read->no_service_desc) isor_declare_objects(read);
 	}
 	
 	if (!size) return;
@@ -141,10 +142,11 @@ void isor_on_data(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 	/*ok let's go*/
 	read->time_scale = gf_isom_get_timescale(read->mov);
 	gf_term_on_connect(read->service, NULL, GF_OK);
+	if (read->no_service_desc) isor_declare_objects(read);
 }
 
 
-void MP4_SetupDownload(GF_InputService *plug, const char *url)
+void isor_setup_download(GF_InputService *plug, const char *url)
 {
 	ISOMReader *read = (ISOMReader *) plug->priv;
 	read->dnload = gf_term_download_new(read->service, url, 0, isor_on_data, read);
@@ -191,11 +193,11 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 		read->time_scale = gf_isom_get_timescale(read->mov);
 		/*reply to user*/
 		gf_term_on_connect(serv, NULL, GF_OK);
+		if (read->no_service_desc) isor_declare_objects(read);
 	} else {
 		/*setup downloader*/
-		MP4_SetupDownload(plug, szURL);
+		isor_setup_download(plug, szURL);
 	}
-
 	return GF_OK;
 }
 
@@ -215,9 +217,6 @@ GF_Err ISOR_CloseService(GF_InputService *plug)
 		gf_list_rem(read->channels, 0);
 		isor_delete_channel(read, ch);
 	}
-
-	if (read->od_au) free(read->od_au);
-	read->od_au = NULL;
 
 	if (read->dnload) gf_term_download_del(read->dnload);
 	read->dnload = NULL;
@@ -269,7 +268,7 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	if (trackID && (expect_type!=GF_MEDIA_OBJECT_SCENE) ) {
 		u32 track = gf_isom_get_track_by_id(read->mov, trackID);
 		if (!track) return NULL;
-		esd = gp_media_map_esd(read->mov, track);
+		esd = gf_media_map_esd(read->mov, track);
 		esd->OCRESID = 0;
 		iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(read->mov);
 		if (!iod) {
@@ -394,15 +393,12 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 		e = GF_SERVICE_ERROR;
 		goto exit;
 	}
-	if (ESID == read->OD_ESID) {
-		track = 0;
-	} else {
-		track = gf_isom_get_track_by_id(read->mov, (u32) ESID);
-		if (!track) {
-			e = GF_STREAM_NOT_FOUND;
-			goto exit;
-		}
+	track = gf_isom_get_track_by_id(read->mov, (u32) ESID);
+	if (!track) {
+		e = GF_STREAM_NOT_FOUND;
+		goto exit;
 	}
+
 	ch = malloc(sizeof(ISOMChannel));
 	memset(ch, 0, sizeof(ISOMChannel));
 	ch->owner = read;
@@ -418,13 +414,8 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 		break;
 	}
 
-	if (track) {
-		ch->has_edit_list = gf_isom_get_edit_segment_count(ch->owner->mov, ch->track) ? 1 : 0;
-		ch->time_scale = gf_isom_get_media_timescale(ch->owner->mov, ch->track);
-	} else {
-		ch->FAKE_ESID = ESID;
-		ch->time_scale = 1000;
-	}
+	ch->has_edit_list = gf_isom_get_edit_segment_count(ch->owner->mov, ch->track) ? 1 : 0;
+	ch->time_scale = gf_isom_get_media_timescale(ch->owner->mov, ch->track);
 
 exit:
 	gf_term_on_connect(read->service, channel, e);

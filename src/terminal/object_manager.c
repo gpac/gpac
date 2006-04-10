@@ -194,10 +194,9 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	}
 
 	desc = odm->net_service->ifce->GetServiceDescriptor(odm->net_service->ifce, od_type, sub_url); 
-	if (!desc) {
-		gf_term_message(odm->term, odm->net_service->url, "Service Entry Point not found", GF_SERVICE_ERROR);
-		goto err_exit;
-	}
+
+	/*create empty service descriptor, this will automatically create a dynamic scene*/
+	if (!desc) desc = gf_odf_desc_new(GF_ODF_OD_TAG);
 
 	toolList = NULL;
 	switch (desc->tag) {
@@ -246,6 +245,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 			goto err_exit;
 		}
 	}
+
 	/*keep track of term since the setup may fail and the OD may be destroyed*/
 	term = odm->term;
 	gf_term_lock_net(term, 1);
@@ -350,10 +350,7 @@ GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline, Bool *externalCloc
 			*externalClock = 1;
 		}
 		switch (esd->decoderConfig->streamType) {
-		case GF_STREAM_OD:
-			nb_od++;
-			if (esd->decoderConfig->objectTypeIndication == GPAC_STATIC_OD_OTI) nb_scene++;
-			break;
+		case GF_STREAM_OD: nb_od++; break;
 		case GF_STREAM_OCR: nb_ocr++; break;
 		case GF_STREAM_SCENE: nb_scene++; break;
 		case GF_STREAM_MPEG7: nb_mp7++; break;
@@ -498,6 +495,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	/*empty IOD, use a dynamic scene*/
 	if (!gf_list_count(odm->OD->ESDescriptors) && odm->subscene) {
 		odm->subscene->is_dynamic_scene = 1;
+		gf_odm_start(odm);
 	} else {
 		/*avoid channels PLAY request when confirming connection (sync network service)*/
 		odm->is_open = 2;
@@ -517,11 +515,6 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 
 	/*special case for ODs only having OCRs: force a START since they're never refered to by media nodes*/
 	if (odm->ocr_codec) gf_odm_start(odm);
-
-	/*static OD stream: setup streams and post play*/
-	else if (odm->parentscene && odm->parentscene->od_codec && (odm->parentscene->od_codec->flags & GF_ESM_CODEC_IS_STATIC_OD)) {
-		gf_odm_start(odm);
-	}
 
 #if 0
 	/*clean up - note that this will not be performed if one of the stream is using ESD URL*/
@@ -699,14 +692,8 @@ clock_setup:
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			break;
 		}
-
 		/*OD codec acts as main scene codec when used to generate scene graph*/
-		if (esd->decoderConfig->objectTypeIndication==GPAC_STATIC_OD_OTI) {
-			dec = odm->subscene->scene_codec = gf_codec_new(odm, esd, odm->OD_PL, &e);
-			gf_mm_add_codec(odm->term->mediaman, odm->subscene->scene_codec);
-			odm->subscene->is_dynamic_scene = 1;
-			dec->flags |= GF_ESM_CODEC_IS_SCENE_OD;
-		} else if (! odm->subscene->od_codec) {
+		if (! odm->subscene->od_codec) {
 			dec = odm->subscene->od_codec = gf_codec_new(odm, esd, odm->OD_PL, &e);
 			gf_mm_add_codec(odm->term->mediaman, odm->subscene->od_codec);
 		}
@@ -1122,11 +1109,6 @@ void gf_odm_play(GF_ObjectManager *odm)
 				com.play.start_range += ck_time;
 			}
 		}
-		/*user-defined seek on top scene*/
-		else if (odm->term->root_scene->root_od==odm) {
-			com.play.start_range = (Double) (s64) odm->term->restart_time;
-			com.play.start_range /= 1000.0;
-		}
 		/*full object playback*/
 		if (com.play.end_range<=0) {
 			odm->range_end = (u32) odm->duration;
@@ -1152,8 +1134,6 @@ void gf_odm_play(GF_ObjectManager *odm)
 			gf_term_service_command(ch->service, &com);
 		}
 	}
-	/*if root OD reset the global seek time*/	
-	if (odm->term->root_scene->root_od==odm) odm->term->restart_time = 0;
 	odm->media_start_time = 0;
 
 	/*start codecs last (otherwise we end up pulling data from channels not yet connected->pbs when seeking)*/
@@ -1291,6 +1271,7 @@ GF_Clock *gf_odm_get_media_clock(GF_ObjectManager *odm)
 	if (odm->codec) return odm->codec->ck;
 	if (odm->ocr_codec) return odm->ocr_codec->ck;
 	if (odm->subscene && odm->subscene->scene_codec) return odm->subscene->scene_codec->ck;
+	if (odm->subscene && odm->subscene->dyn_ck) return odm->subscene->dyn_ck;
 	return NULL;
 }
 

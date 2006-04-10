@@ -222,7 +222,7 @@ static void term_on_slp_recieved(void *user_priv, GF_ClientService *service, LPN
 	gf_es_receive_sl_packet(service, ch, data, data_size, hdr, reception_status);
 }
 
-static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Descriptor *media_desc)
+static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_check)
 {
 	GF_InlineScene *is;
 	GF_ObjectManager *odm, *root;
@@ -230,6 +230,13 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	GET_TERM();
 
 	root = service->owner;
+	is = root->subscene ? root->subscene : root->parentscene;
+
+	if (!media_desc) {
+		if (!no_scene_check) gf_is_regenerate(is);
+		return;
+	}
+
 	switch (media_desc->tag) {
 	case GF_ODF_OD_TAG:
 	case GF_ODF_IOD_TAG:
@@ -243,8 +250,6 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	}
 
 	gf_term_lock_net(term, 1);
-
-	is = root->subscene ? root->subscene : root->parentscene;
 	odm = gf_is_find_odm(is, od->objectDescriptorID);
 	/*remove the old OD*/
 	if (odm) gf_odm_disconnect(odm, 1);
@@ -253,9 +258,12 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	odm->term = term;
 	odm->parentscene = is;
 	gf_list_add(is->ODlist, odm);
+	gf_term_lock_net(term, 0);
+
 	gf_odm_setup_object(odm, service);
 
-	gf_term_lock_net(term, 0);
+	/*OD inserted by service: resetup scene*/
+	if (!no_scene_check && is->is_dynamic_scene) gf_is_regenerate(is);
 }
 
 static void term_on_command(void *user_priv, GF_ClientService *service, GF_NetworkCommand *com, GF_Err response)
@@ -582,9 +590,9 @@ void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data
 	term_on_slp_recieved(service->term, service, ns, data, data_size, hdr, reception_status);
 }
 
-void gf_term_add_media(GF_ClientService *service, GF_Descriptor *media_desc)
+void gf_term_add_media(GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_check)
 {
-	term_on_media_add(service->term, service, media_desc);
+	term_on_media_add(service->term, service, media_desc, no_scene_check);
 }
 
 const char *gf_term_get_service_url(GF_ClientService *service)

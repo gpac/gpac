@@ -89,6 +89,7 @@ struct __tag_laser_codec
 
 	GF_List *defered_hrefs;
 	GF_List *defered_anims;
+	GF_List *defered_listeners;
 
 	char *cache_dir, *service_name;
 };
@@ -171,10 +172,10 @@ s32 gf_lsr_field_to_attrib_type(GF_Node *n, u32 fieldIndex);
 
 
 
-#define LSR_UPDATE_TYPE_SCALE			79
-#define LSR_UPDATE_TYPE_ROTATE			75
-#define LSR_UPDATE_TYPE_TRANSLATION		109
-#define LSR_UPDATE_TYPE_TEXT_CONTENT	104
+#define LSR_UPDATE_TYPE_SCALE			80
+#define LSR_UPDATE_TYPE_ROTATE			76
+#define LSR_UPDATE_TYPE_TRANSLATION		111
+#define LSR_UPDATE_TYPE_TEXT_CONTENT	106
 
 
 #define LSR_UPDATE_ADD				0

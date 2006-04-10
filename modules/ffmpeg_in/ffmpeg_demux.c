@@ -261,119 +261,6 @@ exit:
 	return ret;
 }
 
-static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
-{
-	GF_Err e;
-	s64 last_aud_pts;
-	s32 i;
-	const char *sOpt;
-	FFDemux *ffd = plug->priv;
-	AVInputFormat *av_in = NULL;
-	char *ext, szName[1000];
-
-	if (ffd->ctx) return GF_SERVICE_ERROR;
-
-	strcpy(szName, url);
-	ext = strrchr(szName, '#');
-	ffd->service_type = 0;
-	e = GF_NOT_SUPPORTED;
-	ffd->service = serv;
-
-	if (ext) {
-		if (!stricmp(&ext[1], "video")) ffd->service_type = 1;
-		else if (!stricmp(&ext[1], "audio")) ffd->service_type = 2;
-		ext[0] = 0;
-	}
-	i = av_open_input_file(&ffd->ctx, szName, NULL, 0, NULL);
-	if (i<0) {
-		char szExt[20];
-		ext = strrchr(szName, '.');
-		strcpy(szExt, ext+1);
-		strlwr(szExt);
-
-		/*some extensions not supported by ffmpeg*/
-		if (ext && !strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
-		i = av_open_input_file(&ffd->ctx, szName, av_in, 0, NULL);
-	}
-
-	switch (i) {
-	case 0: e = GF_OK; break;
-	case AVERROR_IO: e = GF_URL_ERROR; goto err_exit;
-	case AVERROR_INVALIDDATA: e = GF_NON_COMPLIANT_BITSTREAM; goto err_exit;
-	case AVERROR_NOMEM: e = GF_OUT_OF_MEM; goto err_exit;
-	case AVERROR_NOFMT: e = GF_NOT_SUPPORTED; goto err_exit;
-	default: e = GF_SERVICE_ERROR; goto err_exit;
-	}
-
-
-    if (av_find_stream_info(ffd->ctx) <0) goto err_exit;
-	/*figure out if we can use codecs or not*/
-	ffd->audio_st = ffd->video_st = -1;
-    for (i = 0; i < ffd->ctx->nb_streams; i++) {
-        AVCodecContext *enc = ffd->ctx->streams[i]->codec;
-        switch(enc->codec_type) {
-        case CODEC_TYPE_AUDIO:
-            if (ffd->audio_st<0) {
-				ffd->audio_st = i;
-				ffd->audio_tscale = ffd->ctx->streams[i]->time_base;
-			}
-            break;
-        case CODEC_TYPE_VIDEO:
-            if (ffd->video_st<0) {
-				ffd->video_st = i;
-				ffd->video_tscale = ffd->ctx->streams[i]->time_base;
-			}
-            break;
-        default:
-            break;
-        }
-    }
-	if ((ffd->service_type==1) && (ffd->video_st<0)) goto err_exit;
-	if ((ffd->service_type==2) && (ffd->audio_st<0)) goto err_exit;
-	if ((ffd->video_st<0) && (ffd->audio_st<0)) goto err_exit;
-
-	/*setup indexes for BIFS/OD*/
-	ffd->od_es_id = 2 + MAX(ffd->video_st, ffd->audio_st);
-
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "DataBufferMS"); 
-	ffd->data_buffer_ms = 0;
-	if (sOpt) ffd->data_buffer_ms = atoi(sOpt);
-	if (!ffd->data_buffer_ms) ffd->data_buffer_ms = FFD_DATA_BUFFER;
-
-	/*check we do have increasing pts. If not we can't rely on pts, we must skip SL
-	we assume video pts is always present*/
-	if (ffd->audio_st>=0) {
-		last_aud_pts = 0;
-		for (i=0; i<20; i++) {
-			AVPacket pkt;
-			pkt.stream_index = -1;
-			if (av_read_frame(ffd->ctx, &pkt) <0) break;
-			if (pkt.pts == AV_NOPTS_VALUE) pkt.pts = pkt.dts;
-			if (pkt.stream_index==ffd->audio_st) last_aud_pts = pkt.pts;
-		}
-		if (last_aud_pts*ffd->audio_tscale.den<10*ffd->audio_tscale.num) ffd->unreliable_audio_timing = 1;
-	}
-
-	/*build seek*/
-	ffd->seekable = (av_seek_frame(ffd->ctx, -1, 0, AVSEEK_FLAG_BACKWARD)<0) ? 0 : 1;
-	if (!ffd->seekable) {
-	    av_close_input_file(ffd->ctx);
-		av_open_input_file(&ffd->ctx, szName, av_in, 0, NULL);
-	    av_find_stream_info(ffd->ctx);
-	}
-
-	/*let's go*/
-	gf_term_on_connect(serv, NULL, GF_OK);
-	return GF_OK;
-
-err_exit:
-    if (ffd->ctx) av_close_input_file(ffd->ctx);
-	ffd->ctx = NULL;
-	gf_term_on_connect(serv, NULL, e);
-	return GF_OK;
-}
-
-
 static GF_ESD *FFD_GetESDescriptor(FFDemux *ffd, Bool for_audio)
 {
 	GF_BitStream *bs;
@@ -480,6 +367,144 @@ opaque_video:
 	return esd;
 }
 
+
+static void FFD_SetupObjects(FFDemux *ffd)
+{
+	GF_ESD *esd;
+	GF_ObjectDescriptor *od;
+	u32 audio_esid = 0;
+	
+	if (ffd->audio_st>=0) {
+		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+		esd = FFD_GetESDescriptor(ffd, 1);
+		od->objectDescriptorID = esd->ESID;
+		audio_esid = esd->ESID;
+		gf_list_add(od->ESDescriptors, esd);
+		gf_term_add_media(ffd->service, (GF_Descriptor*)od, (ffd->video_st>=0) ? 1 : 0);
+	}
+	if (ffd->video_st>=0) {
+		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+		esd = FFD_GetESDescriptor(ffd, 0);
+		od->objectDescriptorID = esd->ESID;
+		esd->OCRESID = audio_esid;
+		gf_list_add(od->ESDescriptors, esd);
+		gf_term_add_media(ffd->service, (GF_Descriptor*)od, 0);
+	}
+}
+
+
+static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
+{
+	GF_Err e;
+	s64 last_aud_pts;
+	s32 i;
+	const char *sOpt;
+	FFDemux *ffd = plug->priv;
+	AVInputFormat *av_in = NULL;
+	char *ext, szName[1000];
+
+	if (ffd->ctx) return GF_SERVICE_ERROR;
+
+	strcpy(szName, url);
+	ext = strrchr(szName, '#');
+	ffd->service_type = 0;
+	e = GF_NOT_SUPPORTED;
+	ffd->service = serv;
+
+	if (ext) {
+		if (!stricmp(&ext[1], "video")) ffd->service_type = 1;
+		else if (!stricmp(&ext[1], "audio")) ffd->service_type = 2;
+		ext[0] = 0;
+	}
+	i = av_open_input_file(&ffd->ctx, szName, NULL, 0, NULL);
+	if (i<0) {
+		char szExt[20];
+		ext = strrchr(szName, '.');
+		strcpy(szExt, ext+1);
+		strlwr(szExt);
+
+		/*some extensions not supported by ffmpeg*/
+		if (ext && !strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
+		i = av_open_input_file(&ffd->ctx, szName, av_in, 0, NULL);
+	}
+
+	switch (i) {
+	case 0: e = GF_OK; break;
+	case AVERROR_IO: e = GF_URL_ERROR; goto err_exit;
+	case AVERROR_INVALIDDATA: e = GF_NON_COMPLIANT_BITSTREAM; goto err_exit;
+	case AVERROR_NOMEM: e = GF_OUT_OF_MEM; goto err_exit;
+	case AVERROR_NOFMT: e = GF_NOT_SUPPORTED; goto err_exit;
+	default: e = GF_SERVICE_ERROR; goto err_exit;
+	}
+
+
+    if (av_find_stream_info(ffd->ctx) <0) goto err_exit;
+	/*figure out if we can use codecs or not*/
+	ffd->audio_st = ffd->video_st = -1;
+    for (i = 0; i < ffd->ctx->nb_streams; i++) {
+        AVCodecContext *enc = ffd->ctx->streams[i]->codec;
+        switch(enc->codec_type) {
+        case CODEC_TYPE_AUDIO:
+            if (ffd->audio_st<0) {
+				ffd->audio_st = i;
+				ffd->audio_tscale = ffd->ctx->streams[i]->time_base;
+			}
+            break;
+        case CODEC_TYPE_VIDEO:
+            if (ffd->video_st<0) {
+				ffd->video_st = i;
+				ffd->video_tscale = ffd->ctx->streams[i]->time_base;
+			}
+            break;
+        default:
+            break;
+        }
+    }
+	if ((ffd->service_type==1) && (ffd->video_st<0)) goto err_exit;
+	if ((ffd->service_type==2) && (ffd->audio_st<0)) goto err_exit;
+	if ((ffd->video_st<0) && (ffd->audio_st<0)) goto err_exit;
+
+
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "DataBufferMS"); 
+	ffd->data_buffer_ms = 0;
+	if (sOpt) ffd->data_buffer_ms = atoi(sOpt);
+	if (!ffd->data_buffer_ms) ffd->data_buffer_ms = FFD_DATA_BUFFER;
+
+	/*check we do have increasing pts. If not we can't rely on pts, we must skip SL
+	we assume video pts is always present*/
+	if (ffd->audio_st>=0) {
+		last_aud_pts = 0;
+		for (i=0; i<20; i++) {
+			AVPacket pkt;
+			pkt.stream_index = -1;
+			if (av_read_frame(ffd->ctx, &pkt) <0) break;
+			if (pkt.pts == AV_NOPTS_VALUE) pkt.pts = pkt.dts;
+			if (pkt.stream_index==ffd->audio_st) last_aud_pts = pkt.pts;
+		}
+		if (last_aud_pts*ffd->audio_tscale.den<10*ffd->audio_tscale.num) ffd->unreliable_audio_timing = 1;
+	}
+
+	/*build seek*/
+	ffd->seekable = (av_seek_frame(ffd->ctx, -1, 0, AVSEEK_FLAG_BACKWARD)<0) ? 0 : 1;
+	if (!ffd->seekable) {
+	    av_close_input_file(ffd->ctx);
+		av_open_input_file(&ffd->ctx, szName, av_in, 0, NULL);
+	    av_find_stream_info(ffd->ctx);
+	}
+
+	/*let's go*/
+	gf_term_on_connect(serv, NULL, GF_OK);
+	FFD_SetupObjects(ffd);
+	return GF_OK;
+
+err_exit:
+    if (ffd->ctx) av_close_input_file(ffd->ctx);
+	ffd->ctx = NULL;
+	gf_term_on_connect(serv, NULL, e);
+	return GF_OK;
+}
+
+
 static GF_Descriptor *FFD_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
 	GF_ObjectDescriptor *od;
@@ -488,11 +513,11 @@ static GF_Descriptor *FFD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 
 	if (!ffd->ctx) return NULL;
 
-	od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-	od->objectDescriptorID = 1;
 
 	/*since we don't handle multitrack in ffmpeg, we don't need to check sub_url, only use expected type*/
 	if (expect_type==GF_MEDIA_OBJECT_AUDIO) {
+		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+		od->objectDescriptorID = 1;
 		esd = FFD_GetESDescriptor(ffd, 1);
 		/*if session join, setup sync*/
 		if (ffd->video_ch) esd->OCRESID = ffd->video_st+1;
@@ -500,27 +525,15 @@ static GF_Descriptor *FFD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 		return (GF_Descriptor *) od;
 	}
 	if (expect_type==GF_MEDIA_OBJECT_VIDEO) {
+		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+		od->objectDescriptorID = 1;
 		esd = FFD_GetESDescriptor(ffd, 0);
 		/*if session join, setup sync*/
 		if (ffd->audio_ch) esd->OCRESID = ffd->audio_st+1;
 		gf_list_add(od->ESDescriptors, esd);
 		return (GF_Descriptor *) od;
 	}
-
-	/*setup OD stream (no DSI)*/
-	esd = (GF_ESD *) gf_odf_desc_esd_new(0);
-	esd->ESID = ffd->od_es_id;
-	esd->OCRESID = 0;
-	esd->decoderConfig->streamType = GF_STREAM_OD;
-	esd->decoderConfig->objectTypeIndication = GPAC_STATIC_OD_OTI;
-	
-	/*we only send 1 full AU RAP*/
-	esd->slConfig->useAccessUnitStartFlag = esd->slConfig->useAccessUnitEndFlag = 0;
-	esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
-	esd->slConfig->useTimestampsFlag = 1;
-	esd->slConfig->timestampResolution = 1000;
-	gf_odf_desc_add_desc((GF_Descriptor *)od, (GF_Descriptor *) esd);
-	return (GF_Descriptor *)od;
+	return NULL;
 }
 
 
@@ -532,7 +545,7 @@ static GF_Err FFD_CloseService(GF_InputService *plug)
 
 	if (ffd->ctx) av_close_input_file(ffd->ctx);
 	ffd->ctx = NULL;
-	ffd->audio_ch = ffd->video_ch = ffd->od_ch = NULL;
+	ffd->audio_ch = ffd->video_ch = NULL;
 	ffd->audio_run = ffd->video_run = 0;
 
 	gf_term_on_disconnect(ffd->service, NULL, GF_OK);
@@ -556,15 +569,7 @@ static GF_Err FFD_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	}
 	sscanf(url, "ES_ID=%d", &ESID);
 
-	if (ESID==ffd->od_es_id) {
-		if (ffd->od_ch) {
-			e = GF_SERVICE_ERROR;
-			goto exit;
-		}
-		ffd->od_ch = channel;
-		e = GF_OK;
-	}
-	else if ((s32) ESID == 1 + ffd->audio_st) {
+	if ((s32) ESID == 1 + ffd->audio_st) {
 		if (ffd->audio_ch) {
 			e = GF_SERVICE_ERROR;
 			goto exit;
@@ -592,11 +597,7 @@ static GF_Err FFD_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	FFDemux *ffd = plug->priv;
 
 	e = GF_STREAM_NOT_FOUND;
-	if (ffd->od_ch == channel) {
-		e = GF_OK;
-		ffd->od_ch = NULL;
-	}
-	else if (ffd->audio_ch == channel) {
+	if (ffd->audio_ch == channel) {
 		e = GF_OK;
 		ffd->audio_ch = NULL;
 		ffd->audio_run = 0;
@@ -619,9 +620,7 @@ static GF_Err FFD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	switch (com->command_type) {
 	/*only BIFS/OD work in pull mode (cf ffmpeg_in.h)*/
 	case GF_NET_CHAN_SET_PULL:
-		if (ffd->audio_ch==com->base.on_channel) return GF_NOT_SUPPORTED;
-		if (ffd->video_ch==com->base.on_channel) return GF_NOT_SUPPORTED;
-		return GF_OK;
+		return GF_NOT_SUPPORTED;
 	case GF_NET_CHAN_INTERACTIVE:
 		return ffd->seekable ? GF_OK : GF_NOT_SUPPORTED;
 	case GF_NET_CHAN_BUFFER:
@@ -655,7 +654,6 @@ static GF_Err FFD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_STOP:
 		if (ffd->audio_ch==com->base.on_channel) ffd->audio_run = 0;
 		else if (ffd->video_ch==com->base.on_channel) ffd->video_run = 0;
-		else if (ffd->od_ch==com->base.on_channel) ffd->od_state = 0;
 		return GF_OK;
 	/*note we don't handle PAUSE/RESUME/SET_SPEED, this is automatically handled by the demuxing thread 
 	through buffer occupancy queries*/
@@ -667,75 +665,6 @@ static GF_Err FFD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	return GF_OK;
 }
 
-
-GF_Err FFD_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
-{
-	GF_ODCodec *odc;
-	GF_ODCom *com;
-	GF_ObjectDescriptor *OD;
-	GF_ESD *esd;
-
-	FFDemux *ffd = plug->priv;
-	if (channel==ffd->audio_ch) return GF_BAD_PARAM;
-	if (channel==ffd->video_ch) return GF_BAD_PARAM;
-
-	*sl_compressed = 0;
-	memset(out_sl_hdr, 0, sizeof(GF_SLHeader));
-	out_sl_hdr->accessUnitEndFlag = 1;
-	out_sl_hdr->accessUnitStartFlag = 1;
-	out_sl_hdr->compositionTimeStampFlag = 1;
-	out_sl_hdr->compositionTimeStamp = (u32) (1000 * ffd->seek_time);
-
-	*out_reception_status = (ffd->od_state == 2) ? GF_EOS : GF_OK;
-	if (!ffd->od_au && (ffd->od_state != 2)) {
-		/*compute OD AU*/
-		com = gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
-
-		if ((ffd->service_type!=1) && (ffd->audio_st>=0)) {
-			OD = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-			esd = FFD_GetESDescriptor(ffd, 1);
-			esd->OCRESID = ffd->od_es_id;
-			OD->objectDescriptorID = esd->ESID;
-			gf_odf_desc_add_desc((GF_Descriptor*)OD, (GF_Descriptor *) esd);
-			gf_list_add( ((GF_ODUpdate*)com)->objectDescriptors, OD);
-
-		}
-		/*compute video */
-		if ((ffd->service_type!=2) && (ffd->video_st>=0)) {
-			OD = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-			esd = FFD_GetESDescriptor(ffd, 0);
-			esd->OCRESID = ffd->od_es_id;
-			OD->objectDescriptorID = esd->ESID;
-			gf_odf_desc_add_desc((GF_Descriptor*)OD, (GF_Descriptor *) esd);
-			gf_list_add( ((GF_ODUpdate*)com)->objectDescriptors, OD);
-		}
-		odc = gf_odf_codec_new();
-		gf_odf_codec_add_com(odc, com);
-		gf_odf_codec_encode(odc, 1);
-		gf_odf_codec_get_au(odc, &ffd->od_au, &ffd->od_au_size);
-		gf_odf_codec_del(odc);
-		*is_new_data = 1;
-
-	} else {
-		*is_new_data = 0;
-	}
-	*out_data_ptr = ffd->od_au;
-	*out_data_size = ffd->od_au_size;
-	if (!ffd->od_state) ffd->od_state = 1;
-	return GF_OK;
-}
-
-GF_Err FFD_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
-{
-	FFDemux *ffd = plug->priv;
-	if (channel!=ffd->od_ch) return GF_BAD_PARAM;
-
-	ffd->od_state = 2;
-	if (ffd->od_au) free(ffd->od_au);
-	ffd->od_au = NULL;
-	ffd->od_au_size = 0;
-	return GF_OK;
-}
 
 static Bool FFD_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
@@ -774,9 +703,6 @@ void *New_FFMPEG_Demux()
 	ffd->DisconnectChannel = FFD_DisconnectChannel;
 	ffd->GetServiceDescriptor = FFD_GetServiceDesc;
 	ffd->ServiceCommand = FFD_ServiceCommand;
-	/*for OD only*/
-	ffd->ChannelGetSLP = FFD_ChannelGetSLP;
-	ffd->ChannelReleaseSLP = FFD_ChannelReleaseSLP;
 
 	ffd->CanHandleURLInService = FFD_CanHandleURLInService;
 

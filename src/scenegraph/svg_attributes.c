@@ -2600,6 +2600,41 @@ static void svg_dump_path(SVG_PathData *path, char *attValue)
 	}
 }
 
+static void svg_dump_access_key(XMLEV_Event *evt, char *attValue)
+{
+	char szBuf[10];
+	strcpy(attValue, "accessKey(");
+	/*TODO - FIXME */
+	switch (evt->parameter) {
+	case 0: strcat(attValue, "UP"); break;
+	case 1: strcat(attValue, "DOWN"); break;
+	case 2: strcat(attValue, "LEFT"); break;
+	case 3: strcat(attValue, "RIGHT"); break;
+	case 4: strcat(attValue, "FIRE"); break;
+	case 5: strcat(attValue, "NO_KEY"); break;
+	case 6: strcat(attValue, "ANY_KEY"); break;
+	case 7: strcat(attValue, "SOFT_KEY_1"); break;
+	case 8: strcat(attValue, "SOFT_KEY_2"); break;
+	case 35: strcat(attValue, "#"); break;
+	case 42: strcat(attValue, "*"); break;
+	case 48: strcat(attValue, "0"); break;
+	case 49: strcat(attValue, "1"); break;
+	case 50: strcat(attValue, "2"); break;
+	case 51: strcat(attValue, "3"); break;
+	case 52: strcat(attValue, "4"); break;
+	case 53: strcat(attValue, "5"); break;
+	case 54: strcat(attValue, "6"); break;
+	case 55: strcat(attValue, "7"); break;
+	case 56: strcat(attValue, "8"); break;
+	case 57: strcat(attValue, "9"); break;
+	default:
+		szBuf[0] = evt->parameter;
+		szBuf[1] = 0;
+		strcat(attValue, szBuf);
+		break;
+	}
+	strcat(attValue, ")");
+}
 
 GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 {
@@ -3156,11 +3191,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 			}
 			else if ((t->dynamic_type==1) && (t->type==SMIL_TIME_EVENT)) {
 				if (t->event.type == SVG_DOM_EVT_KEYPRESS) {
-					/*TODO UTF support*/
-					szBuf[0] = t->event.parameter;
-					szBuf[1] = ')';
-					szBuf[2] = 0;
-					strcat(attValue, "accessKey(");
+					svg_dump_access_key(&t->event, szBuf);
 					strcat(attValue, szBuf);
 				} else {
 					if (t->element_id) {
@@ -3248,7 +3279,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 	{
 		XMLEV_Event *d = info->far_ptr;
 		if (d->parameter) {
-			sprintf(attValue, "%s(%c)", gf_dom_event_get_name(d->type), d->parameter);
+			svg_dump_access_key(d, attValue);
 		} else {
 			strcpy(attValue, gf_dom_event_get_name(d->type));
 		}

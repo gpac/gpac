@@ -370,6 +370,7 @@ exposedField	SFInt32               pixelWidth 		-1 #%b=[0,65535]	#%q=13 16
 exposedField	SFInt32               pixelHeight 	    -1 #%b=[0,65535]	#%q=13 16
 exposedField    SFBackground2DNode    background      NULL
 exposedField    SFViewportNode        viewport        NULL
+field	SFInt32               repeatSandT  3 #%b=[0,3] #%q=13 2
 ] {
 }
 
@@ -383,6 +384,8 @@ exposedField 	SFBackground3DNode	    background	    NULL
 exposedField	SFFogNode	            fog		        NULL
 exposedField	SFNavigationInfoNode	navigationInfo	NULL
 exposedField	SFViewpointNode	        viewpoint	    NULL
+field	SFBool repeatS TRUE
+field	SFBool repeatT TRUE
 ] {
 }
 
@@ -816,6 +819,7 @@ exposedField	SFBool		smoothScroll	FALSE
 exposedField	SFBool		loop		FALSE
 exposedField	SFBool		scrollVertical	TRUE
 exposedField	SFFloat		scrollRate	0	#%b=(-I,+I)	#%q=0 #%a=7
+exposedField	SFInt32 scrollMode 0 #%b=[-1,1] #%q=13 2
 ]{}
 
 PROTO LineProperties [ #%NDT=SFWorldNode,SFLinePropertiesNode  %COD=N

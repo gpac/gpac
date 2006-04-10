@@ -750,8 +750,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		}
 		cur_file_time += file_split_dur;
 
-		if (conv_type==1) gp_media_make_isma(dest, 1, 0, 0, NULL, NULL);
-		else if (conv_type==2) gp_media_make_3gpp(dest, NULL, NULL);
+		if (conv_type==1) gf_media_make_isma(dest, 1, 0, 0, NULL, NULL);
+		else if (conv_type==2) gf_media_make_3gpp(dest, NULL, NULL);
 		if (InterleavingTime) {
 			gf_isom_make_interleave(dest, InterleavingTime);
 		} else {

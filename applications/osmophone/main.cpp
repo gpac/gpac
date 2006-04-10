@@ -954,7 +954,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		return 0;
 	}
 
-		/*first launch, register all files ext*/
+	/*first launch, register all files ext*/
 	if (initial_launch) {
 		u32 i;
 		for (i=0; i<gf_modules_get_count(user.modules); i++) {
