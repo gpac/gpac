@@ -284,10 +284,24 @@ static s32 gf_smil_timing_find_interval_index(SMIL_Timing_RTI *rti, Double scene
 
 Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg)
 {
-	u32 active_count = 0, i = 0;
 	SMIL_Timing_RTI *rti;
+	Double scene_time = sg->GetSceneTime(sg->SceneCallback);
+	u32 active_count = 0, i = 0;
+
+	sg->reeval_timing = 0;
 	while((rti = gf_list_enum(sg->smil_timed_elements, &i))) {
-		active_count += gf_smil_timing_notify_time(rti, sg->GetSceneTime(sg->SceneCallback));
+		active_count += gf_smil_timing_notify_time(rti, scene_time);
+	}
+	/*in case an anim triggers another one previously inactivated...
+	TODO FIXME: it would be much better to stack anim as active/inactive*/
+	while (sg->reeval_timing) {
+		sg->reeval_timing = 0;
+		i = 0;
+		while((rti = gf_list_enum(sg->smil_timed_elements, &i))) {
+			/*this means the anim has been, modified, re-evaluate it*/
+			if (rti->scene_time==-1) 
+				active_count += gf_smil_timing_notify_time(rti, scene_time);
+		}
 	}
 	return (active_count>0);
 }
@@ -297,13 +311,11 @@ Bool gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 {
 	Bool ret = 0;
 	GF_DOM_Event evt;
-
-	rti->evaluate = NULL;
 	
 	if (rti->scene_time == scene_time) return 0;
 	rti->scene_time = scene_time;
-
 	rti->cycle_number++;
+	rti->evaluate = NULL;
 
 //	fprintf(stdout, "Scene Time: %f - Timing Stack: %8x, Status: %d\n", scene_time, rti, rti->status);
 
@@ -446,5 +458,7 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 	if (!rti) return;
 
 	/*recompute interval list*/
+	rti->scene_time = -1;
+	node->sgprivate->scenegraph->reeval_timing = 1;
 	gf_smil_timing_refresh_interval_list(rti);
 }

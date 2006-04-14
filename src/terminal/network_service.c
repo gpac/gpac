@@ -350,8 +350,7 @@ char *NM_GetMimeType(GF_Terminal *term, const char *url, GF_Err *ret_code)
 	(*ret_code) = GF_OK;
 	sess = gf_dm_sess_new(term->downloader, (char *) url, GF_DOWNLOAD_SESSION_NOT_THREADED, NM_OnMimeData, NULL, NULL, ret_code);
 	if (!sess) {
-		if (strstr(url, "rtsp://")) (*ret_code) = GF_OK;
-		else if (strstr(url, "rtp://")) (*ret_code) = GF_OK;
+		if (strstr(url, "rtsp://") || strstr(url, "rtp://") || strstr(url, "udp://") || strstr(url, "tcp://") ) (*ret_code) = GF_OK;
 		return NULL;
 	}
 	mime_type = (char *) gf_dm_sess_mime_type(sess);

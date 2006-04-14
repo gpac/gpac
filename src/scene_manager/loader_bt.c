@@ -638,10 +638,12 @@ GF_Err gf_bt_parse_colorRGBA(GF_BTParser *parser, const char *name, SFColorRGBA 
 
 static void gf_bt_offset_time(GF_BTParser *parser, Double *time)
 {
-	Double res;
-	res = parser->au_time;
-	res /= parser->bifs_es->timeScale;
-	*time += res;
+	if (!parser->is_wrl) {
+		Double res;
+		res = parser->au_time;
+		res /= parser->bifs_es->timeScale;
+		*time += res;
+	}
 }
 
 static void gf_bt_check_time_offset(GF_BTParser *parser, GF_Node *n, GF_FieldInfo *info)

@@ -87,11 +87,13 @@ static Bool jp_is_local(const char *url)
 
 static void IMG_SetupObject(IMGLoader *read)
 {
-	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-	GF_ESD *esd = IMG_GetESD(read);
-	od->objectDescriptorID = 1;
-	gf_list_add(od->ESDescriptors, esd);
-	gf_term_add_media(read->service, (GF_Descriptor *)od, 0);
+	if (!read->ch) {
+		GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+		GF_ESD *esd = IMG_GetESD(read);
+		od->objectDescriptorID = 1;
+		gf_list_add(od->ESDescriptors, esd);
+		gf_term_add_media(read->service, (GF_Descriptor *)od, 0);
+	}
 }
 
 

@@ -184,6 +184,7 @@ struct __tag_scene_graph
 #ifndef GPAC_DISABLE_SVG
 	GF_List *xlink_hrefs;
 	GF_List *smil_timed_elements;
+	Bool reeval_timing;
 #ifdef GPAC_HAS_SPIDERMONKEY
 	struct __tag_svg_script_ctx *svg_js;
 #endif

@@ -167,18 +167,8 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 		if (tmp) tmp[0] = 0;
 	}
 	read->service = serv;
-
-	if (!strnicmp(url, "file://", 7) || !strstr(url, "://")) {
-		char *rtype = gf_xml_get_root_type(url);
-		if (rtype) {
-			if (!strcmp(rtype, "SAFSession")) read->oti = 0x03;
-			else if (!strcmp(rtype, "svg")) read->oti = 0x02;
-			else if (!strcmp(rtype, "XMT-A")) read->oti = 0x01;
-			else if (!strcmp(rtype, "X3D")) read->oti = 0x01;
-			free(rtype);
-		}
-	}
-	else if (ext) {
+	
+	if (ext) {
 		if (!stricmp(ext, "bt") || !stricmp(ext, "btz") || !stricmp(ext, "bt.gz") 
 			|| !stricmp(ext, "xmta") 
 			|| !stricmp(ext, "xmt") || !stricmp(ext, "xmt.gz") || !stricmp(ext, "xmtz") 
@@ -194,6 +184,17 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 		}
 		/*XML LASeR*/
 		else if (!stricmp(ext, "xsr")) read->oti = 0x03;
+	}
+
+	if (!read->oti && (!strnicmp(url, "file://", 7) || !strstr(url, "://"))) {
+		char *rtype = gf_xml_get_root_type(url);
+		if (rtype) {
+			if (!strcmp(rtype, "SAFSession")) read->oti = 0x03;
+			else if (!strcmp(rtype, "svg")) read->oti = 0x02;
+			else if (!strcmp(rtype, "XMT-A")) read->oti = 0x01;
+			else if (!strcmp(rtype, "X3D")) read->oti = 0x01;
+			free(rtype);
+		}
 	}
 
 	/*remote fetch*/

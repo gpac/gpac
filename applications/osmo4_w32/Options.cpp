@@ -768,9 +768,9 @@ void COptRender3D::SaveOptions()
 	u32 sel = m_DrawNormals.GetCurSel();
 	gf_cfg_set_key(gpac->m_user.config, "Render3D", "DrawNormals", (sel==2) ? "PerVertex" : (sel==1) ? "PerFace" : "Never");
 	sel = m_BackCull.GetCurSel();
-	gf_cfg_set_key(gpac->m_user.config, "Render3D", "BackFaceCulling", (sel==2) ? "WireOnSolid" : (sel==1) ? "WireOnly" : "WireNone");
+	gf_cfg_set_key(gpac->m_user.config, "Render3D", "BackFaceCulling", (sel==2) ? "Alpha" : (sel==1) ? "On" : "Off");
 	sel = m_Wireframe.GetCurSel();
-	gf_cfg_set_key(gpac->m_user.config, "Render3D", "Wireframe", (sel==2) ? "Alpha" : (sel==1) ? "On" : "Off");
+	gf_cfg_set_key(gpac->m_user.config, "Render3D", "Wireframe", (sel==2) ? "WireOnSolid" : (sel==1) ? "WireOnly" : "WireNone");
 
 	gf_cfg_set_key(gpac->m_user.config, "Render3D", "RasterOutlines", m_RasterOutlines.GetCheck() ? "yes" : "no");
 	gf_cfg_set_key(gpac->m_user.config, "Render3D", "EmulatePOW2", m_EmulPow2.GetCheck() ? "yes" : "no");

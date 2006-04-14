@@ -348,8 +348,8 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 		gf_sr_set_option(term->renderer, GF_OPT_PLAY_STATE, 0xFF);
 	else
 		gf_sr_set_option(term->renderer, GF_OPT_PLAY_STATE, PlayState);
-	/*step mode real pause is done by renderer*/
-//	if (PlayState==GF_STATE_STEP_PAUSE) return;
+
+	if (PlayState==GF_STATE_STEP_PAUSE) PlayState = term->play_state ? GF_STATE_PLAYING : GF_STATE_PAUSED;
 	if (term->play_state == PlayState) return;
 	term->play_state = PlayState;
 
