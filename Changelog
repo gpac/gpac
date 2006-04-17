@@ -1,5 +1,7 @@
-Latest CVS Changes 17/03/06
-  - regression tests (.bt and .x3dv) are not aprt of the CVS & GPAC source tree
+Latest CVS Changes 17/04/06
+  - initial version of MPEG-2 TS demuxer (MP4Box and client plugin)
+  - more LASeR debug and support...
+  - regression tests (.bt and .x3dv) are now part of the CVS & GPAC source tree
   - added 2D/3D selection param for osmozilla: use3d="true" or use3d="false" to force renderer used.
   - added SAF (LASeR Simple Aggregation Format)  support: mux and demux (MP4Box) + SAF input plugin.
   - various fixes on X3D scene parsing and dumping

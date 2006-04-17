@@ -349,7 +349,7 @@ static void M2TS_OnEventPCR(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	char data[188];
-	u32 size;
+	u32 size, fsize;
 	s32 nb_rwd;
 	char szURL[2048];
 	char *ext;
@@ -382,8 +382,10 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	read->ts->on_event = M2TS_OnEventPCR;
 	read->end_range = 0;
 	nb_rwd = 1;
+	fsize = read->file_size;
+	while (fsize % 188) fsize--;
 	while (1) {
-		fseek(read->file, read->file_size - 188 * nb_rwd, SEEK_SET);
+		fseek(read->file, fsize - 188 * nb_rwd, SEEK_SET);
 		/*read chunks by chunks*/
 		size = fread(data, 1, 188, read->file);
 		if (!size) break;
