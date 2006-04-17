@@ -1028,6 +1028,7 @@ reply could destroy the object we're queuing for play*/
 void gf_odm_start(GF_ObjectManager *odm)
 {
 	gf_term_lock_net(odm->term, 1);
+
 	/*only if not open & ready (not waiting for ACK on channel setup)*/
 	if (!odm->is_open && !odm->pending_channels) {
 		GF_Channel *ch;
@@ -1161,16 +1162,16 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	MediaSensorStack *media_sens;
 	GF_NetworkCommand com;
 	
-	gf_list_del_item(odm->term->od_pending, odm);
-
 	if (!odm->is_open) return;
 
-	/*TODO FIXME UGLY - hack for broadcast environment, do not stop the object if no time control and instruction
+	/*Handle broadcast environment, do not stop the object if no time control and instruction
 	comes from the scene*/
 	if (odm->no_time_ctrl && !force_close) {
 		//fprintf(stdout, "OD%d - broadcast detected, ignoring Stop from scene\n", odm->OD->objectDescriptorID);
 		return;
 	}
+
+	gf_list_del_item(odm->term->od_pending, odm);
 
 	/*little opt for image codecs: don't actually stop the OD*/
 	if (!force_close && odm->codec && odm->codec->CB) {
@@ -1187,11 +1188,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	if (odm->ocr_codec) gf_mm_stop_codec(odm->ocr_codec);
 	if (odm->oci_codec) gf_mm_stop_codec(odm->oci_codec);
 
-	/*stop channels*/
-	i=0;
-	while ((ch = gf_list_enum(odm->channels, &i)) ) {
-		gf_es_stop(ch);
-	}
+	gf_term_lock_net(odm->term, 1);
 
 	/*send stop command*/
 	com.command_type = GF_NET_CHAN_STOP;
@@ -1202,6 +1199,14 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 			gf_term_service_command(ch->service, &com);
 		}
 	}
+	/*stop channels*/
+	i=0;
+	while ((ch = gf_list_enum(odm->channels, &i)) ) {
+		gf_es_stop(ch);
+	}
+	fprintf(stdout, "channel stoped\n");
+
+	gf_term_lock_net(odm->term, 0);
 
 	odm->is_open = 0;
 	odm->current_time = 0;

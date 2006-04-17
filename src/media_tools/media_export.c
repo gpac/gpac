@@ -24,6 +24,7 @@
 
 
 #include <gpac/internal/media_dev.h>
+#include <gpac/mpegts.h>
 #include <gpac/constants.h>
 
 #ifndef GPAC_READ_ONLY
@@ -441,11 +442,11 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				break;
 			case 0x6A:
 				strcat(szName, ".m1v");
-				gf_export_message(dumper, GF_OK, "Extracting MPEG-1 Visual stream to h264");
+				gf_export_message(dumper, GF_OK, "Extracting MPEG-1 Visual stream to m1v");
 				break;
 			case 0x60: case 0x61: case 0x62: case 0x63: case 0x64: case 0x65: 
 				strcat(szName, ".m2v");
-				gf_export_message(dumper, GF_OK, "Extracting MPEG-2 Visual stream to h264");
+				gf_export_message(dumper, GF_OK, "Extracting MPEG-2 Visual stream to m2v");
 				break;
 			case 0x6C:
 				strcat(szName, ".jpg");
@@ -1540,13 +1541,145 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 	return GF_OK;
 }
 
+void m2ts_export_check(GF_M2TS_Demuxer *ts, u32 evt_type, void *par) 
+{
+	if (evt_type == GF_M2TS_EVT_PAT_REPEAT) ts->user = NULL;
+}
+void m2ts_export_dump(GF_M2TS_Demuxer *ts, u32 evt_type, void *par) 
+{
+	if (evt_type == GF_M2TS_EVT_PES_PCK) {
+		FILE *dst = ts->user;
+		GF_M2TS_PES_PCK *pck = par;
+		fwrite(pck->data, pck->data_len, 1, dst);
+	}
+}
+
+GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
+{
+	char data[188], szFile[GF_MAX_PATH];
+	GF_M2TS_PES *stream;
+	u32 i, size, fsize, fdone;
+	GF_M2TS_Demuxer *ts;
+	FILE *src, *dst;
+
+	if (dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_OK;
+	
+	src = fopen(dumper->in_name, "rb");
+	if (!src) return gf_export_message(dumper, GF_CODEC_NOT_FOUND, "Error opening %s", dumper->in_name);
+
+	fseek(src, 0, SEEK_END);
+	fsize = ftell(src);
+	fseek(src, 0, SEEK_SET);
+
+	ts = gf_m2ts_demux_new();
+	ts->on_event = m2ts_export_check;
+	ts->user = dumper;
+	/*get PAT*/
+	while (!feof(src)) {
+		size = fread(data, 1, 188, src);
+		if (size<188) break;
+		gf_m2ts_process_data(ts, data, size);
+		if (!ts->user) break;
+	}
+	if (ts->user) {
+		fclose(src);
+		gf_m2ts_demux_del(ts);
+		return gf_export_message(dumper, GF_URL_ERROR, "Cannot locate program association table");
+	}
+
+	stream = NULL;
+	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
+		GF_M2TS_PES *pes = (GF_M2TS_PES *)ts->ess[i];
+		if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
+		if (pes->pid == dumper->trackID) {
+			stream = pes;
+			gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_RAW);
+		} else {
+			gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
+		}
+	}
+	if (!stream) {
+		fclose(src);
+		gf_m2ts_demux_del(ts);
+		return gf_export_message(dumper, GF_URL_ERROR, "Cannot find PID %d in transport stream", dumper->trackID);
+	}
+	gf_m2ts_reset_parsers(ts);
+
+	sprintf(szFile, "%s_pid%d", dumper->out_name ? dumper->out_name : "", stream->pid);
+	switch (stream->stream_type) {
+	case GF_M2TS_VIDEO_MPEG1:
+		strcat(szFile, ".m1v");
+		gf_export_message(dumper, GF_OK, "Extracting MPEG-1 Visual stream to m1v");
+		break;
+	case GF_M2TS_VIDEO_MPEG2:
+		strcat(szFile, ".m2v");
+		gf_export_message(dumper, GF_OK, "Extracting MPEG-2 Visual stream to m1v");
+		break;
+	case GF_M2TS_AUDIO_MPEG1:
+		strcat(szFile, ".mp3");
+		gf_export_message(dumper, GF_OK, "Extracting MPEG-1 Audio stream to mp3");
+		break;
+	case GF_M2TS_AUDIO_MPEG2:
+		strcat(szFile, ".mp3");
+		gf_export_message(dumper, GF_OK, "Extracting MPEG-2 Audio stream to mp3");
+		break;
+	case GF_M2TS_AUDIO_AAC:
+		strcat(szFile, ".aac");
+		gf_export_message(dumper, GF_OK, "Extracting MPEG-4 Audio stream to aac");
+		break;
+	case GF_M2TS_VIDEO_MPEG4:
+		strcat(szFile, ".cmp");
+		gf_export_message(dumper, GF_OK, "Extracting MPEG-4 Visual stream to cmp");
+		break;
+	case GF_M2TS_VIDEO_H264:
+		strcat(szFile, ".264");
+		gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC/H264 Visual stream to h264");
+		break;
+	default:
+		strcat(szFile, ".raw");
+		gf_export_message(dumper, GF_OK, "Extracting Unknown stream to raw");
+		break;
+	}
+	dst = fopen(szFile, "wb");
+	if (!dst) {
+		fclose(src);
+		gf_m2ts_demux_del(ts);
+		return gf_export_message(dumper, GF_IO_ERR, "Cannot open file %s for writing", szFile);
+	}
+	gf_m2ts_reset_parsers(ts);
+	gf_f64_seek(src, 0, SEEK_SET);
+	fdone = 0;
+	ts->user = dst;
+	ts->on_event = m2ts_export_dump;
+	while (!feof(src)) {
+		size = fread(data, 1, 188, src);
+		if (size<188) break;
+		gf_m2ts_process_data(ts, data, size);
+		fdone += size;
+		dump_progress(dumper, fdone, fsize);
+		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
+	}
+	dump_progress(dumper, fsize, fsize);
+	fclose(dst);
+	fclose(src);
+	gf_m2ts_demux_del(ts);
+	return GF_OK;
+}
 
 GF_Err gf_media_export(GF_MediaExporter *dumper)
 {
 	if (!dumper) return GF_BAD_PARAM;
 	if (!dumper->out_name && !dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_BAD_PARAM;
 	
-	if (dumper->flags & GF_EXPORT_NATIVE) return gf_media_export_native(dumper);
+	if (dumper->flags & GF_EXPORT_NATIVE) {
+		if (dumper->in_name) {
+			char *ext = strrchr(dumper->in_name, '.');
+			if (ext && (!strnicmp(ext, ".ts", 3) || !strnicmp(ext, ".m2t", 4)) ) {
+				return gf_media_export_ts_native(dumper);
+			}
+		}
+		return gf_media_export_native(dumper);
+	}
 	else if (dumper->flags & GF_EXPORT_RAW_SAMPLES) return gf_media_export_samples(dumper);
 	else if (dumper->flags & GF_EXPORT_NHNT) return gf_media_export_nhnt(dumper);
 	else if (dumper->flags & GF_EXPORT_AVI) return gf_media_export_avi(dumper);

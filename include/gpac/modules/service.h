@@ -78,6 +78,8 @@ enum
 	/*retrieves ESD for channel - net->term only, for cache configuration*/
 	GF_NET_CHAN_GET_ESD,
 	
+	/*service buffer query (for all channels running in service), app<-module*/
+	GF_NET_BUFFER_QUERY,
 	/*retrieves network stats for service/channel; app->module*/
 	GF_NET_GET_STATS,
 	/*retrieves whether service can be cached (rtp, http streaming radios, etc) or not. No associated struct*/

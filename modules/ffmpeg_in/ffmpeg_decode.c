@@ -392,7 +392,7 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 	FFDec *ffd = plug->privateStack;
 
 	/*WARNING: this breaks H264 (and maybe others) decoding, disabled for now*/
-#if 0
+#if 1
 	if (!ffd->ctx->hurry_up) {
 		switch (mmlevel) {
 		case GF_CODEC_LEVEL_SEEK:
@@ -564,6 +564,9 @@ redecode:
 				pict.linesize[0] = ffd->ctx->width;
 				pict.linesize[1] = pict.linesize[2] = ffd->ctx->width/2;
 				pix_out = PIX_FMT_YUV420P;
+				if (!mmlevel && ffd->frame->interlaced_frame) {
+					s32 res = avpicture_deinterlace((AVPicture *) ffd->frame, (AVPicture *) ffd->frame, ffd->ctx->pix_fmt, ffd->ctx->width, ffd->ctx->height);
+				}
 			}
 			pict.data[3] = 0;
 			pict.linesize[3] = 0;

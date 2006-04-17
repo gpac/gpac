@@ -23,6 +23,9 @@ EXPORTS
 	gf_realloc
 	gf_free
 	gf_strdup
+	gf_f64_open
+	gf_f64_seek
+	gf_f64_tell
 
 ;array.h exports
 	gf_list_new
@@ -1101,6 +1104,14 @@ EXPORTS
 	gf_mo_get_loop
 	gf_mo_set_speed
 
+;mpegts.h exports
+	gf_m2ts_demux_new
+	gf_m2ts_demux_del
+	gf_m2ts_process_data
+	gf_m2ts_reset_parsers
+	gf_m2ts_set_pes_framing
+
+
 ;laser.h exports
 	gf_laser_decoder_new
 	gf_laser_decoder_del
@@ -1143,3 +1154,4 @@ EXPORTS
 	gf_dom_event_fire
 	gf_dom_event_type_by_name
 	gf_dom_event_get_name
+

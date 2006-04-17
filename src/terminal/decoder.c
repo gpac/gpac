@@ -718,7 +718,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 				} else if (codec->fps && cu_buf_size) {
 					deltaTS = (u32) (1000.0f / codec->fps);
 				}
-				AU->DTS += deltaTS;
+				//AU->DTS += deltaTS;
 				AU->CTS += deltaTS;
 			}
 			codec_update_stats(codec, 0, now);

@@ -271,6 +271,36 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 	GF_Channel *ch;
 	GET_TERM();
 
+	if (com->command_type==GF_NET_BUFFER_QUERY) {
+		GF_List *od_list;
+		u32 i;
+		GF_ObjectManager *odm;
+		com->buffer.max = 0;
+		com->buffer.min = com->buffer.occupancy = (u32) -1;
+		if (!service->owner) return;
+		
+		od_list = NULL;
+		if (service->owner->parentscene) od_list = service->owner->parentscene->ODlist;
+		else if (service->owner->subscene) od_list = service->owner->subscene->ODlist;
+		if (!od_list) return;
+		i=0;
+		while ((odm=gf_list_enum(od_list, &i))) {
+			u32 j, count;
+			count = gf_list_count(odm->channels);
+			for (j=0; j<count; j++) {
+				GF_Channel *ch = gf_list_get(odm->channels, j);
+				if (ch->service != service) continue;
+				if (ch->IsEndOfStream) continue;
+				if (ch->es_state != GF_ESM_ES_RUNNING) continue;
+				if (ch->MaxBuffer>com->buffer.max) com->buffer.max = ch->MaxBuffer;
+				if (ch->MinBuffer<com->buffer.min) com->buffer.min = ch->MinBuffer;
+				if ((u32) ch->BufferTime<com->buffer.occupancy) com->buffer.occupancy = ch->BufferTime;
+			}
+		}
+		if (com->buffer.occupancy==(u32) -1) com->buffer.occupancy = 0;
+		return;
+	}
+
 	if (!com->base.on_channel) return;
 
 	ch = gf_term_get_channel(service, com->base.on_channel);
@@ -285,6 +315,14 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		return;
 	/*time mapping (TS to media-time)*/
 	case GF_NET_CHAN_MAP_TIME:
+		if (0 && ch->clock) {
+			u32 now = gf_clock_real_time(ch->clock);
+			ch->clock->init_time = com->map_time.timestamp;
+			ch->clock->StartTime = now + gf_term_get_time(term) - (u32) (com->map_time.media_time*1000);
+			now = gf_clock_real_time(ch->clock);
+			ch->clock->clock_init = 1;
+			return;
+		}
 		ch->seed_ts = com->map_time.timestamp;
 		ch->ts_offset = (u32) (com->map_time.media_time*1000);
 		/*

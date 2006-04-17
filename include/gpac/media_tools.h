@@ -89,6 +89,8 @@ struct __track_import_info
 	/*video src info*/
 	Double FPS;
 	u32 width, height;
+	/*for MPEG2 TS: program number*/
+	u16 prog_num;
 };
 
 /*track dumper*/

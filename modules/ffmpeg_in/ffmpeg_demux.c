@@ -61,6 +61,8 @@ static u32 FFDemux_Run(void *par)
 	do_seek = !video_init;
 	map_audio_time = video_init ? ffd->unreliable_audio_timing : 0;
 
+	av_log_set_level(AV_LOG_DEBUG);
+
 	while (ffd->is_running) {
 
 		pkt.stream_index = -1;
@@ -399,9 +401,9 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	s64 last_aud_pts;
 	s32 i;
 	const char *sOpt;
+	char *ext, szName[1000];
 	FFDemux *ffd = plug->priv;
 	AVInputFormat *av_in = NULL;
-	char *ext, szName[1000];
 
 	if (ffd->ctx) return GF_SERVICE_ERROR;
 
@@ -445,13 +447,13 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
         AVCodecContext *enc = ffd->ctx->streams[i]->codec;
         switch(enc->codec_type) {
         case CODEC_TYPE_AUDIO:
-            if (ffd->audio_st<0) {
+            if ((ffd->audio_st<0) && (ffd->service_type!=1)) {
 				ffd->audio_st = i;
 				ffd->audio_tscale = ffd->ctx->streams[i]->time_base;
 			}
             break;
         case CODEC_TYPE_VIDEO:
-            if (ffd->video_st<0) {
+            if ((ffd->video_st<0) && (ffd->service_type!=2)) {
 				ffd->video_st = i;
 				ffd->video_tscale = ffd->ctx->streams[i]->time_base;
 			}

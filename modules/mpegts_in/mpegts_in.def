@@ -1,0 +1,6 @@
+LIBRARY     gm_mpegts_in.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

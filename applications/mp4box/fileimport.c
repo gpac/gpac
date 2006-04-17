@@ -76,6 +76,8 @@ void convert_file_info(char *inName, u32 trackID)
 		default: fprintf(stdout, "Other (4CC: %s)\n", gf_4cc_to_str(import.tk_info[i].type)); break;
 		}
 		if (!trackID) continue;
+		if (import.tk_info[i].prog_num) fprintf(stdout, "Program Number: %d\n", import.tk_info[i].prog_num);
+
 		if (import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL) {
 			if (import.tk_info[i].width && import.tk_info[i].height) {
 				fprintf(stdout, "Source: %s %dx%d @ %g FPS\n", gf_4cc_to_str(import.tk_info[i].media_type), import.tk_info[i].width, import.tk_info[i].height, import.tk_info[i].FPS);
@@ -110,7 +112,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	const char *szLan;
 	GF_Err e;
 	GF_MediaImporter import;
-	char *ext, szName[1000], *handler_name;
+	char *ext, szName[1000], *handler_name, *fmt;
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
 
@@ -129,6 +131,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	if (ext && ext[1]=='\\') ext = strchr(szName+2, ':');
 
 	handler_name = NULL;
+	fmt = NULL;
 	while (ext) {
 		char *ext2 = strchr(ext+1, ':');
 		if (ext2 && !strncmp(ext2, "://", 3)) ext2 = strchr(ext2+1, ':');
@@ -157,9 +160,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				sscanf(ext+5, "%d:%d", &par_n, &par_d);
 			}
 		}
-		else if (!strnicmp(ext+1, "name=", 5)) {
-			handler_name = strdup(ext+6);
-		}
+		else if (!strnicmp(ext+1, "name=", 5)) handler_name = strdup(ext+6);
+		else if (!strnicmp(ext+1, "fmt=", 4)) fmt = strdup(ext+5);
 
 		if (ext2) ext2[0] = ':';
 		ext2 = ext+1;
@@ -190,6 +192,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 	import.in_name = szName;
 	import.flags = GF_IMPORT_PROBE_ONLY;
+	import.streamFormat = fmt;
 	e = gf_media_import(&import);
 	if (e) goto exit;
 
@@ -261,6 +264,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 exit:
 	if (handler_name) free(handler_name);
+	if (fmt) free(fmt);
 	return e;
 }
 

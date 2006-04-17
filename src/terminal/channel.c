@@ -237,9 +237,7 @@ GF_Err gf_es_stop(GF_Channel *ch)
 	ch_buffer_off(ch);
 
 	ch->es_state = GF_ESM_ES_CONNECTED;
-	if (ch->buffer) free(ch->buffer);
-	ch->buffer = NULL;
-	ch->len = 0;
+	Channel_Reset(ch, 0);
 	return GF_OK;
 }
 
@@ -684,7 +682,8 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		/*if we have a pending AU, add it*/
 		if (ch->buffer) {
 #if DEBUG_SL
-			fprintf(stdout, "ES%d: MISSED END OF AU\n", ch->esd->ESID);
+			if (ch->esd->slConfig->useAccessUnitEndFlag)
+				fprintf(stdout, "ES%d: MISSED END OF AU\n", ch->esd->ESID);
 #endif
 			if (ch->codec_resilient) {
 				Channel_DispatchAU(ch, 0);
@@ -855,7 +854,8 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	/*missed begining, unusable*/
 	if (!ch->buffer && !NewAU) {
 #if DEBUG_SL
-		fprintf(stdout, "ES%d: MISSED BEGIN OF AU\n", ch->esd->ESID);
+		if (ch->esd->slConfig->useAccessUnitStartFlag)
+			fprintf(stdout, "ES%d: MISSED BEGIN OF AU\n", ch->esd->ESID);
 #endif
 		return;
 	}

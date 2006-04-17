@@ -1076,5 +1076,13 @@ SOURCE=..\..\include\gpac\xml.h
 SOURCE=..\..\include\gpac\yuv.h
 # End Source File
 # End Group
+# Begin Source File
+
+SOURCE=..\..\src\media_tools\mpegts.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\mpegts.h
+# End Source File
 # End Target
 # End Project

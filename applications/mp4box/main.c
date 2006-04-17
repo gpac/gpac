@@ -1693,13 +1693,15 @@ int main(int argc, char **argv)
 			}
 
 		default:
+			if (!open_edit && file_exists && !gf_isom_probe_file(inName) && track_dump_type) {
+			} 
 #ifndef GPAC_READ_ONLY
-			if (!open_edit && file_exists && !gf_isom_probe_file(inName) && !dump_mode) {
+			else if (!open_edit && file_exists && !gf_isom_probe_file(inName) && !dump_mode) {
 				convert_file_info(inName, info_track_id);
 				return 0;
-			} else
+			}
 #endif
-			if (open_edit) {
+			else if (open_edit) {
 				file = gf_isom_open(inName, GF_ISOM_WRITE_EDIT, tmpdir);
 				if (!outName && file) outName = inName;
 			} else if (!file_exists) {
@@ -1744,6 +1746,17 @@ int main(int argc, char **argv)
 		if (e) goto err_exit;
 		return 0;
 	}
+	if (!open_edit && !gf_isom_probe_file(inName) && track_dump_type) {
+		GF_MediaExporter mdump;
+		memset(&mdump, 0, sizeof(mdump));
+		mdump.in_name = inName;
+		mdump.flags = track_dump_type;
+		mdump.trackID = trackID;
+		mdump.out_name = outfile;
+		e = gf_media_export(&mdump);
+		if (e) goto err_exit;
+		return 0;
+	} 
 
 	if (dump_mode) {
 		if (dump_file_text(inName, dump_std ? NULL : outfile, dump_mode-1, do_log)) return 1;

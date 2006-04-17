@@ -1075,6 +1075,7 @@ void gf_is_regenerate(GF_InlineScene *is)
 
 	if (is->root_od->term->root_scene == is) 
 		gf_sr_set_scene(is->root_od->term->renderer, NULL);
+
 	gf_sg_reset(is->graph);
 	gf_sg_get_scene_size_info(is->graph, &w, &h);
 	gf_sg_set_scene_size_info(is->graph, w, h, 1);

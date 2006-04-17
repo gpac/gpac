@@ -21,7 +21,7 @@ CFLAGS+=-DGPAC_BIG_ENDIAN
 endif
 
 #common obj
-OBJS=av_parsers.o avilib.o gpac_ogg.o ismacryp.o isom_hinter.o isom_tools.o media_export.o media_import.o mpeg2_ps.o text_import.o saf.o
+OBJS=av_parsers.o avilib.o gpac_ogg.o ismacryp.o isom_hinter.o isom_tools.o media_export.o media_import.o mpeg2_ps.o text_import.o saf.o mpegts.o
 
 
 SRCS := $(OBJS:.o=.c) 
