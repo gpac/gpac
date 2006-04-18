@@ -315,14 +315,6 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		return;
 	/*time mapping (TS to media-time)*/
 	case GF_NET_CHAN_MAP_TIME:
-		if (0 && ch->clock) {
-			u32 now = gf_clock_real_time(ch->clock);
-			ch->clock->init_time = com->map_time.timestamp;
-			ch->clock->StartTime = now + gf_term_get_time(term) - (u32) (com->map_time.media_time*1000);
-			now = gf_clock_real_time(ch->clock);
-			ch->clock->clock_init = 1;
-			return;
-		}
 		ch->seed_ts = com->map_time.timestamp;
 		ch->ts_offset = (u32) (com->map_time.media_time*1000);
 		/*

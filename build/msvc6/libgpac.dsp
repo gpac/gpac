@@ -601,6 +601,10 @@ SOURCE=..\..\src\media_tools\mpeg2_ps.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\media_tools\mpegts.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\gpac\internal\ogg.h
 # End Source File
 # Begin Source File
@@ -977,6 +981,10 @@ SOURCE=..\..\include\gpac\mpeg4_odf.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\gpac\mpegts.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\gpac\network.h
 # End Source File
 # Begin Source File
@@ -1076,13 +1084,5 @@ SOURCE=..\..\include\gpac\xml.h
 SOURCE=..\..\include\gpac\yuv.h
 # End Source File
 # End Group
-# Begin Source File
-
-SOURCE=..\..\src\media_tools\mpegts.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\mpegts.h
-# End Source File
 # End Target
 # End Project

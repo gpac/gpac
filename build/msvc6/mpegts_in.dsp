@@ -38,8 +38,8 @@ RSC=rc.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "mpegts_in___Win32_Release"
-# PROP Intermediate_Dir "mpegts_in___Win32_Release"
+# PROP Output_Dir "obj/mpegts_in_rel"
+# PROP Intermediate_Dir "obj/mpegts_in_rel"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "MPEGTS_IN_EXPORTS" /YX /FD /c
@@ -65,8 +65,8 @@ LINK32=link.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "mpegts_in___Win32_Debug"
-# PROP Intermediate_Dir "mpegts_in___Win32_Debug"
+# PROP Output_Dir "obj/mpegts_in_deb"
+# PROP Intermediate_Dir "obj/mpegts_in_deb"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "MPEGTS_IN_EXPORTS" /YX /FD /GZ /c
@@ -93,11 +93,11 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\mpegts_in.c
+SOURCE=..\..\modules\mpegts_in\mpegts_in.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\mpegts_in.def
+SOURCE=..\..\modules\mpegts_in\mpegts_in.def
 # End Source File
 # End Group
 # Begin Group "Header Files"
