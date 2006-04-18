@@ -110,6 +110,8 @@ typedef struct
 	u8 section_number;
 	u8 last_section_number;
 	u8 start;
+	/*error indiator*/
+	u8 had_error;
 } GF_M2TS_Section;
 
 /*MPEG-2 TS program object*/

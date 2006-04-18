@@ -409,6 +409,7 @@ static Bool gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_Section *sec, GF
 		sec->section = malloc(sizeof(char)*data_size);
 		memcpy(sec->section, data, sizeof(char)*data_size);
 		sec->section_recv = data_size;
+		sec->had_error = 0;
 	} else if (disc || hdr->error) {
 		if (sec->section) free(sec->section);
 		sec->section = NULL;
@@ -425,6 +426,7 @@ static Bool gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_Section *sec, GF
 		}
 		sec->section_recv += data_size;
 	}
+	if (hdr->error) sec->had_error = 1;
 
 	/*alloc final buffer*/
 	if (!sec->section_len && (sec->section_recv >= 3)) {
@@ -452,7 +454,7 @@ static Bool gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_Section *sec, GF
 		} else {
 			gf_m2ts_report(ts, GF_OK, "Corrupted section (CRC32 failed)\n");
 		}
-	} else {
+	} else if (!sec->had_error) {
 		sec->start = 3;
 		return 1;
 	}
@@ -802,6 +804,18 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size);
 		pos += 1+af_size;
 		payload_size = 183 - af_size;
+		break;
+	/*adaptation only - still process in cas of PCR*/
+	case 2: 
+		af_size = data[4];
+		if (af_size>183) {
+			//error
+			return;
+		}
+		paf = &af;
+		memset(paf, 0, sizeof(GF_M2TS_AdaptationField));
+		gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size);
+		payload_size = 0;
 		break;
 	/*reserved*/
 	case 0:

@@ -1204,8 +1204,6 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	while ((ch = gf_list_enum(odm->channels, &i)) ) {
 		gf_es_stop(ch);
 	}
-	fprintf(stdout, "channel stoped\n");
-
 	gf_term_lock_net(odm->term, 0);
 
 	odm->is_open = 0;
