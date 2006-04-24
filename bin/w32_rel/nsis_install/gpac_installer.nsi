@@ -168,6 +168,11 @@ Section "MP4 and 3GPP File Reader"
   File "..\gm_isom_in.dll"
 SectionEnd
 
+Section "MPEG-2 TS Reader"
+  SectionIn 1 2
+  File "..\gm_mpegts_in.dll"
+SectionEnd
+
 Section "Real-Time Streaming (RTP/RTSP/RTP) Support"
   SectionIn 1 2
   File "..\gm_rtp_in.dll"

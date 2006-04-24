@@ -31,7 +31,7 @@
 #include <gpac/constants.h>
 
 
-#define UDP_BUFFER_SIZE	0x2000
+#define UDP_BUFFER_SIZE	0x40000
 
 typedef struct
 {
