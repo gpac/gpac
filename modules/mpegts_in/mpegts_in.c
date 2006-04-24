@@ -30,6 +30,9 @@
 #include <gpac/network.h>
 #include <gpac/constants.h>
 
+
+#define UDP_BUFFER_SIZE	0x2000
+
 typedef struct
 {
 	GF_ClientService *service;
@@ -220,7 +223,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 
 u32 M2TS_Run(void *_p)
 {
-	char data[3760];
+	char data[UDP_BUFFER_SIZE];
 	u32 size, i;
 	M2TSIn *read = _p;
 
@@ -229,17 +232,33 @@ u32 M2TS_Run(void *_p)
 	gf_m2ts_reset_parsers(read->ts);
 
 	if (read->sock) {
+		Bool first_run, is_rtp;
+		first_run = 1;
+		is_rtp = 0;
 		while (read->run_state) {
+			GF_Err e;
+			size = 0;
 			/*read chunks by chunks*/
-			GF_Err e = gf_sk_receive(read->sock, data, 3760, 0, &size);
+			e = gf_sk_receive(read->sock, data, UDP_BUFFER_SIZE, 0, &size);
 			if (!size || e) {
-				gf_sleep(3);
+				gf_sleep(1);
 				continue;
 			}
+			if (first_run) {
+				first_run = 0;
+				/*FIXME: we assume only simple RTP packaging (no CSRC nor extensions)*/
+				if ((data[0] != 0x47) && ((data[1] & 0x7F) == 33) ) {
+					is_rtp = 1;
+					//fprintf(stdout, "MPEG-TS over RTP detected\n", size);
+				}
+			}
 			/*process chunk*/
-			gf_m2ts_process_data(read->ts, data, size);
+			if (is_rtp) {
+				gf_m2ts_process_data(read->ts, data+12, size-12);
+			} else {
+				gf_m2ts_process_data(read->ts, data, size);
+			}
 		}
-
 	} else {
 		u32 pos = 0;
 		if (read->start_range && read->duration) {
@@ -300,7 +319,9 @@ void M2TS_SetupLive(M2TSIn *read, char *url)
 
 	read->sock = gf_sk_new(sock_type);
 	if (!read->sock) { e = GF_IO_ERR; goto exit; }
-	gf_sk_set_buffer_size(read->sock, 0, 20*188);
+
+	gf_sk_set_buffer_size(read->sock, 0, UDP_BUFFER_SIZE);
+	gf_sk_set_blocking(read->sock, 0);
 
 	/*setup port and src*/
 	port = 1234;
@@ -320,9 +341,11 @@ void M2TS_SetupLive(M2TSIn *read, char *url)
 			gf_sk_set_remote_port(read->sock, port);
 		}
 	}
+
 	if (str) str[0] = ':';
 	read->pmt_state = 0;
 	read->th = gf_th_new();
+	gf_th_set_priority(read->th, GF_THREAD_PRIORITY_HIGHEST);
 	/*start playing for tune-in*/
 	gf_th_run(read->th, M2TS_Run, read);
 
