@@ -931,15 +931,15 @@ void http_do_requests(GF_DownloadSession *sess)
 #if 0
 		if (strstr(sess->remote_path, "getKey.php?")) {
 			char *sLogin, *sPass;
-			sLogin = gf_modules_get_option((GF_BaseInterface *)sess->dm->cfg, "General", "KMS_User");
-			sPass = gf_modules_get_option((GF_BaseInterface *)sess->dm->cfg, "General", "KMS_Password");
+			sLogin = gf_cfg_get_key(sess->dm->cfg, "General", "KMS_User");
+			sPass = gf_cfg_get_key(sess->dm->cfg, "General", "KMS_Password");
 			if (!sLogin) sLogin = "mix";
 			if (!sPass) sPass = "mix";
 			sprintf(https_get_buffer, "%s&login=%s&password=%s", sess->remote_path, sLogin, sPass);
 		}
 #endif	
 
-		user_agent = gf_modules_get_option((GF_BaseInterface *)sess->dm->cfg, "Downloader", "UserAgent");
+		user_agent = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserAgent");
 		if (!user_agent) user_agent = GF_DOWNLOAD_AGENT_NAME;
 
 

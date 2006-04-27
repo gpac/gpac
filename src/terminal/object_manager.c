@@ -93,10 +93,12 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 	/*then delete all the OD channels associated with this service*/
 	while (gf_list_count(odm->channels)) {
 		ch = gf_list_get(odm->channels, 0);
+#if 0
 		if (ch->clock->mc && ch->clock->mc->stream && ch->clock->mc->stream->odm==odm) {
 			ch->clock->mc->stream = NULL;
 			ch->clock->mc = NULL;
 		}
+#endif
 		ODM_DeleteChannel(odm, ch);
 	}
 
@@ -1069,7 +1071,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 		com.base.on_channel = ch;
 		com.play.speed = 1.0;
 		/*play from requested time (seeking or non-mpeg4 media control)*/
-		if (odm->media_start_time) {
+		if (odm->media_start_time && !ch->clock->clock_init) {
 			ck_time = odm->media_start_time;
 			ck_time /= 1000;
 		}
@@ -1079,9 +1081,8 @@ void gf_odm_play(GF_ObjectManager *odm)
 			ck_time /= 1000;
 			/*handle initial start - MPEG-4 is a bit annoying here, streams are not started through OD but through
 			scene nodes. If the stream runs on the BIFS/OD clock, the clock is already started at this point and we're 
-			sure to get at least a one-frame delay in PLAY, so just remove it - note we're generous (one second)
-			but this shouldn't hurt*/
-			if (ck_time<=1.0) ck_time = 0;
+			sure to get at least a one-frame delay in PLAY, so just remove it - note we're generous but this shouldn't hurt*/
+			if (ck_time<=0.5) ck_time = 0;
 		}
 		com.play.start_range = ck_time;
 		com.play.end_range = -1;

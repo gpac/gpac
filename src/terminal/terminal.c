@@ -771,7 +771,7 @@ Bool gf_term_play_from_time(GF_Terminal *term, u32 from_time, Bool pause_at_firs
 	term->root_scene->root_od->media_start_time = from_time;
 
 	gf_odm_start(term->root_scene->root_od);
-	gf_term_set_play_state(term, pause_at_first_frame ? GF_STATE_STEP_PAUSE : GF_STATE_PLAYING, 1, 0);
+	gf_term_set_play_state(term, pause_at_first_frame ? GF_STATE_STEP_PAUSE : GF_STATE_PLAYING, 0, 1);
 	return 2;
 }
 

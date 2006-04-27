@@ -1299,7 +1299,7 @@ void WriteNodeCode(GF_List *BNodes)
 	for (i=0; i<gf_list_count(BNodes); i++) {
 		n = gf_list_get(BNodes, i);
 		if (n->skip_impl) continue;
-		fprintf(f, "\tif (!stricmp(node_name, \"%s\")) return TAG_MPEG4_%s;\n", n->name, n->name);
+		fprintf(f, "\tif (!strcmp(node_name, \"%s\")) return TAG_MPEG4_%s;\n", n->name, n->name);
 	}
 	fprintf(f, "\treturn 0;\n}\n\n");
 

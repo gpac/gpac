@@ -195,6 +195,8 @@ void RP_SetupObjects(RTPClient *rtp)
 	/*add everything*/
 	i=0;
 	while ((ch = gf_list_enum(rtp->channels, &i))) {
+		if (ch->control && !strnicmp(ch->control, "data:", 5)) continue;
+
 		if (!rtp->forced_type) {
 			od = RP_GetChannelOD(ch, 0, i);
 			if (!od) continue;
@@ -254,11 +256,11 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 				}
 			}
 			
-			if (iod_str) e = RP_SDPLoadIOD(rtp, iod_str);
+//			if (iod_str) e = RP_SDPLoadIOD(rtp, iod_str);
 		}
 		/*attach service*/
 		gf_term_on_connect(rtp->service, NULL, e);
-		if (!e) RP_SetupObjects(rtp);
+		if (!e && !rtp->session_desc) RP_SetupObjects(rtp);
 	}
 	/*channel SDP */
 	else {

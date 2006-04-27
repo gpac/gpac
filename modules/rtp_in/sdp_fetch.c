@@ -98,7 +98,6 @@ void SDP_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 	} else {
 		gf_term_on_connect(rtp->service, NULL, e);
 		rtp->sdp_temp = NULL;
-		RP_SetupObjects(rtp);
 	}
 	free(sdp->remote_url);
 	free(sdp);

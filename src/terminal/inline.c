@@ -149,7 +149,7 @@ void gf_is_disconnect(GF_InlineScene *is, Bool for_shutdown)
 	if (is->scene_codec) dec = (GF_SceneDecoder *)is->scene_codec->decio;
 	
 	/*disconnect / kill all objects BEFORE reseting the scene graph since we have 
-	potentially registered Inline nodes of the a graph with the sub-scene*/
+	potentially registered Inline nodes of the graph with the sub-scene*/
 	if (!for_shutdown && is->static_media_ressources) {
 		u32 i=0;
 		/*stop all objects but DON'T DESTROY THEM*/

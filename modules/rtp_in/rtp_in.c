@@ -276,10 +276,8 @@ static GF_Descriptor *RP_GetServiceDesc(GF_InputService *plug, u32 expect_type, 
 		return RP_EmulateIOD(priv, expect_type, sub_url);
 	}
 
-	if (!priv->session_desc) 
-		return RP_EmulateIOD(priv, expect_type, sub_url);
-
-	gf_odf_desc_copy(priv->session_desc, &desc);
+	desc = priv->session_desc;
+	priv->session_desc = NULL;
 	return desc;
 }
 

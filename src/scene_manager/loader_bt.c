@@ -2144,7 +2144,9 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 			return gf_list_add(cmdList, com);
 		}
 		str = gf_bt_get_next(parser, 0);
-		gf_node_get_field_by_name(n, str, &info);
+		if (gf_node_get_field_by_name(n, str, &info) != GF_OK) {
+			return gf_bt_report(parser, GF_BAD_PARAM, "%s not a field of node %s", str, gf_node_get_class_name(n) );
+		}
 		if (!gf_bt_check_code(parser, '[')) {
 			return gf_bt_report(parser, GF_BAD_PARAM, "[ expected");
 		}
@@ -2152,10 +2154,25 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 		if (!gf_bt_check_code(parser, ']')) {
 			return gf_bt_report(parser, GF_BAD_PARAM, "[ expected");
 		}
+		if (gf_sg_vrml_is_sf_field(info.fieldType)) {
+			if (info.fieldType == GF_SG_VRML_SFNODE) {
+				com = gf_sg_command_new(parser->load->scene_graph, GF_SG_FIELD_REPLACE);
+				bd_set_com_node(com, n);
+				inf = gf_sg_command_field_new(com);
+				inf->fieldIndex = info.fieldIndex;
+				inf->fieldType = info.fieldType;
+				inf->new_node = NULL;
+				inf->field_ptr = &inf->new_node;
+				return gf_list_add(cmdList, com);
+			}
+			return gf_bt_report(parser, GF_BAD_PARAM, "%s is an SFField - cannot indexed delete", info.name);
+		}
+
 		com = gf_sg_command_new(parser->load->scene_graph, GF_SG_INDEXED_DELETE);
 		bd_set_com_node(com, n);
 		inf = gf_sg_command_field_new(com);
 		inf->fieldIndex = info.fieldIndex;
+		inf->fieldType = info.fieldType;
 		inf->pos = pos;
 		return gf_list_add(cmdList, com);
 	}
