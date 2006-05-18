@@ -31,7 +31,7 @@
 	<test name="coords-viewattr-01-b" revision="1.6" status="OK" comment=""/>
 	<test name="coords-viewattr-02-b" revision="1.5" status="FAIL" comment="CRASH !!"/>
 	<test name="coords-viewattr-03-b" revision="1.5" status="FAIL" comment=""/>
-	<test name="filters-blend-01-b" revision="1.7" status="FAIL" comment="CRASH !! No filter implemented"/>
+	<test name="filters-blend-01-b" revision="1.7" status="FAIL" comment="No filter implemented"/>
 	<test name="filters-color-01-b" revision="1.5" status="FAIL" comment="No filter implemented"/>
 	<test name="filters-composite-02-b" revision="1.3" status="FAIL" comment="No filter implemented"/>
 	<test name="filters-comptran-01-b" revision="1.5" status="FAIL" comment="No filter implemented"/>
@@ -73,7 +73,7 @@
 	<test name="pservers-grad-06-b" revision="1.7" status="FAIL" comment="Patterns not yet implemented."/>
 	<test name="pservers-grad-07-b" revision="1.8" status="OK" comment=""/>
 	<test name="pservers-grad-08-b" revision="1.6" status="OK" comment=""/>
-	<test name="pservers-grad-09-b" revision="1.7" status="PARTIAL" comment="Bug in default linear gradients values"/>
+	<test name="pservers-grad-09-b" revision="1.7" status="OK" comment=""/>
 	<test name="pservers-grad-10-b" revision="1.7" status="OK" comment=""/>
 	<test name="pservers-grad-11-b" revision="1.7" status="OK" comment=""/>
 	<test name="pservers-grad-12-b" revision="1.7" status="OK" comment=""/>
@@ -82,7 +82,7 @@
 	<test name="pservers-grad-15-b" revision="1.1" status="OK" comment=""/>
 	<test name="pservers-grad-16-b" revision="1.1" status="OK" comment=""/>
 	<test name="pservers-pattern-01-b" revision="1.6" status="FAIL" comment="Patterns not yet implemented."/>
-	<test name="render-groups-01-b" revision="1.6" status="FAIL" comment="CRASH !! group opacity not supported."/>
+	<test name="render-groups-01-b" revision="1.6" status="FAIL" comment="group opacity not supported."/>
 	<test name="script-handle-01-b" revision="1.1" status="OK" comment=""/>
 	<test name="script-handle-02-b" revision="1.1" status="OK" comment=""/>
 	<test name="script-handle-03-b" revision="1.3" status="OK" comment=""/>
@@ -94,9 +94,9 @@
 	<test name="struct-dom-05-b" revision="1.2" status="FAIL" comment="DOM API Not supported"/>
 	<test name="struct-dom-06-b" revision="1.3" status="FAIL" comment="DOM API Not supported"/>
 	<test name="struct-group-02-b" revision="1.1" status="PARTIAL" comment="Wrong positioning"/>
-	<test name="struct-image-02-b" revision="1.2" status="FAIL" comment="CRASH !!"/>
-	<test name="struct-image-05-b" revision="1.1" status="FAIL" comment=""/>
-	<test name="struct-symbol-01-b" revision="1.6" status="FAIL" comment="CRASH !! symbol not supported"/>
+	<test name="struct-image-02-b" revision="1.2" status="FAIL" comment="Wrong positioning"/>
+	<test name="struct-image-05-b" revision="1.1" status="FAIL" comment="Wrong positioning"/>
+	<test name="struct-symbol-01-b" revision="1.6" status="FAIL" comment="symbol not supported"/>
 	<test name="struct-use-04-b" revision="1.5" status="FAIL" comment="External references on use not supported"/>
 	<test name="struct-use-05-b" revision="1.5" status="FAIL" comment="External references on use not supported"/>
 	<test name="styling-css-01-b" revision="1.3" status="FAIL" comment="CSS not supported"/>

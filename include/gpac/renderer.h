@@ -129,6 +129,8 @@ void gf_sr_render_inline(GF_Renderer *sr, GF_Node *inline_root, void *rs);
 
 /*set outupt size*/
 GF_Err gf_sr_set_size(GF_Renderer *sr, u32 NewWidth, u32 NewHeight);
+/*get outupt size*/
+Bool gf_sr_get_size(GF_Renderer *sr, u32 *Width, u32 *Height);
 
 /*returns total length of audio hardware buffer in ms, 0 if no audio*/
 u32 gf_sr_get_audio_buffer_length(GF_Renderer *sr);

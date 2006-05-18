@@ -430,7 +430,7 @@ Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double sce
 	Fixed normalizedSimpleTime;
 
 	activeTime			 = scene_time - rti->current_interval->begin;
-	if (activeTime > rti->current_interval->active_duration) return FIX_ONE;
+	if (rti->current_interval->active_duration != -1 && activeTime > rti->current_interval->active_duration) return FIX_ONE;
 
 	if (rti->current_interval->simple_duration>0) {
 		rti->current_interval->nb_iterations = (u32)floor(activeTime / rti->current_interval->simple_duration);

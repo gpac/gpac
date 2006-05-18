@@ -1,0 +1,183 @@
+<?xml version="1.0"?>
+<testSuiteStatus>
+    <!--=============================================================-->
+    <!-- This file contains the header portion of the                -->
+    <!-- test_status.xml file.                                       -->
+    <!--=============================================================-->
+    <!-- $Id: osmo4_svg1.2tiny-status-gpac2Draster.xml,v 1.1 2006-05-18 06:46:44 cconcolato Exp $ -->
+    <!--=============================================================-->
+    <contributors>
+        <contributor email="Ola.Andersson@zoomon.com" symbol="OA"
+        name="Ola Anderson" />
+        <contributor email="benoit@itedo.com" symbol="BB"
+        name="Benoit Bezaire" />
+        <contributor email="Vincent.Hardy@sun.com" symbol="VH"
+        name="Vincent Hardy" />
+        <contributor email="shayman@rim.com" symbol="SH"
+        name="Scott Hayman" />
+        <contributor email="Michael.Ingrassia@nokia.com" symbol="MI"
+        name="Michael Ingrassia" />
+        <contributor email="chris@w3.org" symbol="CL"
+        name="Chris Lilley" />
+        <contributor email="craign@cisra.canon.com.au" symbol="CN"
+        name="Craig Northway" />
+        <contributor email="ueda.hirotaka@sharp.co.jp" symbol="UH"
+        name="Hirotaka Ueda" />
+        <contributor email="aq@fuchsia-design.com" symbol="AQ"
+        name="Antoine Quint" />
+        <contributor email="jon.ferraiolo@adobe.com" symbol="JF"
+        name="Jon Ferraiolo" />
+    </contributors>
+
+    <!-- ================================================================== -->
+    <!-- The featureTests element describes all the tests needed for a      -->
+    <!-- given feature or specification chapter.                            -->
+    <!--                                                                    -->
+    <!-- + the featureName attribute describes the feature.                 -->
+    <!-- + the owner attribute should be the two-letter acronym of the test -->
+    <!--   owner(see the minutes template for a list of values.             -->
+    <!-- + the evaluationComplete attribute should be 'true' or 'false'     -->
+    <!-- + the version attribute should be 1.1 or 1.2.                      -->
+    <!-- ================================================================== -->
+
+    <!-- ================================================================== -->
+    <!-- The test element describes a test shortly and captures its         -->
+    <!-- status.                                                            -->
+    <!--                                                                    --> 
+    <!-- + the name attribute is the full test name such as                 -->
+    <!--   animate-elem-34-t.svg.                                           -->
+    <!-- + the owner attribute is the two letter accronym.                  -->
+    <!-- + the reviewer attribute is the two-letter accronym of the         -->
+    <!--   reviewer.                                                        -->
+    <!-- + the status attribute is one of:                                  -->
+    <!--   . empty : the evaluation has determined this test is needed      -->
+    <!--            but the test has not been created.                      -->
+    <!--   . created : the test has been created and is ready for review    -->
+    <!--   . reviewed : the test has been reviewed and approved             -->
+    <!--   . imageCreated : the test reference image has been generated.    -->
+    <!--   . imageOwnerReviewed : the reference image has been reviewed     -->
+    <!--            by the test owner.                                      -->
+    <!--   . accepted : The test and the reference image have been reviewed -->
+    <!--            and accepted                                            -->
+    <!-- + the issue attribute is optional. If present, it means that       -->
+    <!--   the test has raised an issue and the value is the issue #        -->
+    <!-- ================================================================== -->
+<featureTests featureName="" sectionNumber="19.2"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-animation-117-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom animations</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-bubbling-107-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test event bubbling</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-clippath-113-f.svg" owner="JF" reviewer="[reviewer]" status="created">Custom clippath example</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-clippathprimitives-121-f.svg" owner="JF" reviewer="[reviewer]" status="created">Custom clippath primitives example</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-disallow-103-f.svg" owner="JF" reviewer="[reviewer]" status="created">Verify that bindings in the SVG namespace are not honored</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-disallow-104-f.svg" owner="JF" reviewer="[reviewer]" status="created">Verify that bindings in the SVG namespace are not honored</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-disallow-105-f.svg" owner="JF" reviewer="[reviewer]" status="created">Verify that bindings against an SVG element are not honored</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-extref-102-f.svg" owner="JF" reviewer="[reviewer]" status="created">Simple sXBL external reference example</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-filter-115-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom filters</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-filterprimitives-118-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom filter primitives</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-gradientprimitives-120-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom gradient primitivess</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-gradients-109-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom gradients</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-marker-112-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom markers</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-mask-114-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom masks</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-patterns-110-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom patterns</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-presentationatts-108-f.svg" owner="JF" reviewer="[reviewer]" status="created">Verify that user agent ignores presentation attributes on custom elements</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-rendering-106-f.svg" owner="JF" reviewer="[reviewer]" status="created">Verify adherence to sXBL rendering rules</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-simple-101-f.svg" owner="JF" reviewer="[reviewer]" status="created">Simple sXBL (hello world) example</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-solidColor-111-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom solidColor definitions</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-traitDef-122-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test the traitDef element</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-vectoreffect-116-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom vector effects</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-vectoreffectprimitives-119-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test custom vector effect primitives</test>
+</featureTests>
+<featureTests featureName="Alternate content based on display resolutions" sectionNumber="12.3"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="media-multires-101-f.svg" owner="unknown" reviewer="" status="created">multiImage with just subImageRef children</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="media-multires-102-f.svg" owner="unknown" reviewer="" status="created">multiImage element with both subImageRef and subImage</test>
+</featureTests>
+<featureTests featureName="Animation elements" sectionNumber="19.2"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="animate-elem-101-t.svg" owner="SH" reviewer="[reviewer]" status="created">Tests the animation of the       vector-effect property</test>
+</featureTests>
+<featureTests featureName="Background Fill Property" sectionNumber="11.1"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="painting-background-101-t.svg" owner="SH" reviewer="CL" status="reviewed">Tests the background-fill and background-fill-opacity       properties</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="painting-background-102-f.svg" owner="CL" reviewer="[reviewer]" status="created">Tests the background-fill and background-fill-opacity       properties on nested svg elements</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="painting-background-103-t.svg" owner="CL" reviewer="[reviewer]" status="created">Tests the background-fill and background-fill-opacity       properties with solidColor</test>
+</featureTests>
+<featureTests featureName="CSS Stylesheets" sectionNumber="3.11"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-css-123-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test CSS stylesheet processing</test>
+</featureTests>
+<featureTests featureName="Element focus and navigation" sectionNumber="15.1"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="applications-focus-101-t.svg" owner="AQ" reviewer="[reviewer]" status="created">Test for directional focus   navigation attributes</test>
+</featureTests>
+<featureTests featureName="Enhanced Alpha Compositing" sectionNumber="10.1"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-101-f.svg" owner="CN" reviewer="[reviewer]" status="created">This file tests all the compositing operators</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-102-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of atop operator</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-103-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of 'clip to self' operator.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-104-f.svg" owner="CN" reviewer="[reviewer]" status="created">This file tests the clip-to-self     attribute with all compositing operators</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-105-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of color_burn operator.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-106-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of color_dodge operator.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-107-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of darken operator.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-108-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of difference operator.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-109-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of enable-background.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-110-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of exclusion operator.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-111-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of hard-light operator.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-112-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of knock-out on compositing operations.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-113-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of lighten operator.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-114-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of multiply operator.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-115-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of overlay operator.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-116-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of screen operator.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-117-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of soft-light operator.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-118-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of src-in operator.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-119-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of src_out operator.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="rendering-composit-120-f.svg" owner="CN" reviewer="[reviewer]" status="created">Test of src_over operator.</test>
+</featureTests>
+<featureTests featureName="Extended links" sectionNumber="14."><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="extendedlinks-intro-101-f.svg" owner="[CL]" reviewer="[reviewer]" status="created">[extended links with title attributes]</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="extendedlinks-intro-102-f.svg" owner="[CL]" reviewer="[reviewer]" status="created">[extended links with title elements]</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="extendedlinks-intro-103-f.svg" owner="[CL]" reviewer="[reviewer]" status="created">[extended links with a single choice]</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="extendedlinks-intro-104-f.svg" owner="[CL]" reviewer="[reviewer]" status="created">[extended links with switch for titles]</test>
+</featureTests>
+<featureTests featureName="Filter Region extensions" sectionNumber="11.9"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="painting-margin-101-f.svg" owner="VH" reviewer="unknown" status="created">Compares the same filter with and without margins</test>
+</featureTests>
+<featureTests featureName="Filter primitives overview" sectionNumber="15.7"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="filters-overview-102-b.svg" owner="VH" reviewer="unknown" status="created">checks         that the paddings are properly handled</test>
+</featureTests>
+<featureTests featureName="Focus and navigation" sectionNumber="3.12"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="binding-focus-124-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test CSS stylesheet processing</test>
+</featureTests>
+<featureTests featureName="Navigation between pages" sectionNumber="5.6"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="multipage-nav-101-t.svg" owner="CN" reviewer="VH" status="reviewed">This tests the navigation of pages using durations.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="multipage-nav-102-t.svg" owner="CN" reviewer="VH" status="reviewed">This tests the navigation of pages using begin and end.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="multipage-nav-103-t.svg" owner="CN" reviewer="VH" status="reviewed">This tests the navigation of pages using events for end.</test>
+</featureTests>
+<featureTests featureName="Overlaying graphics" sectionNumber="11.15"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="painting-overlay-101-f.svg" owner="JF" reviewer="[reviewer]" status="created">Test overlay and overlay-host properties</test>
+</featureTests>
+<featureTests featureName="Specifying a snapshot time" sectionNumber="17.4"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="nonvisual-snapshot-101-t.svg" owner="OA" reviewer="[reviewer]" status="empty">Test the snapShotTime attribute on the root svg element.</test>
+</featureTests>
+<featureTests featureName="Specifying paint" sectionNumber="11.7"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="painting-paint-101-f.svg" owner="CN" reviewer="[reviewer]" status="created">This test uses icc-named-color.</test>
+</featureTests>
+<featureTests featureName="Text Flow" sectionNumber="4.12"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="flow-flow-101-t.svg" owner="CL" reviewer="[reviewer]" status="created">[basic text flow in a single region]</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="flow-flow-102-t.svg" owner="CL" reviewer="[reviewer]" status="created">[Text flow with Japanese text, and styled spans.]</test>
+</featureTests>
+<featureTests featureName="The 'use' element" sectionNumber="5.6"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="struct-use-101-t.svg" owner="unknown" reviewer="" status="created">Inheritance of properties through shadow tree with use</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="struct-use-102-t.svg" owner="OA" reviewer="[reviewer]" status="created">Tests external references on the use element</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="struct-use-103-t.svg" owner="OA" reviewer="[reviewer]" status="created">Tests animated external references on the use element</test>
+</featureTests>
+<featureTests featureName="The animation element" sectionNumber="13.1"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="animation-animate-101-t.svg" owner="OA" reviewer="[reviewer]" status="created">Test the animation element</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="animation-animate-102-t.svg" owner="OA" reviewer="[reviewer]" status="created">Test the animation element</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="animation-animate-103-t.svg" owner="OA" reviewer="[reviewer]" status="created">Test the animation element</test>
+</featureTests>
+<featureTests featureName="The audio element" sectionNumber="12.1"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="media-audio-101-t.svg" owner="UH" reviewer="unknown" status="created">Plays music files</test>
+</featureTests>
+<featureTests featureName="The flowDiv element" sectionNumber="4.4"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="flow-div-101-t.svg" owner="CL" reviewer="[reviewer]" status="created">[basic text flow in a single non rectangular region, with a flowdiv]</test>
+</featureTests>
+<featureTests featureName="The pageSet element" sectionNumber="5.3"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="multipage-pageset-101-t.svg" owner="HU" reviewer="[reviewer]" status="created">This is the test for multiple pages.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="multipage-pageset-102-t.svg" owner="CN" reviewer="[reviewer]" status="created">This tests static rendering of paginated content</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="multipage-pageset-103-t.svg" owner="CN" reviewer="[reviewer]" status="created">This tests static rendering of paginated content</test>
+</featureTests>
+<featureTests featureName="The solidColor Element" sectionNumber="11.4"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="painting-solidcolor-101-f.svg" owner="VH" reviewer="unknown" status="created">Tests solidColour</test>
+</featureTests>
+<featureTests featureName="The veFill element" sectionNumber="9.11"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-fill-101-f.svg" owner="[CL]" reviewer="[reviewer]" status="empty">[veFill fill types]</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-fill-102-f.svg" owner="[CL]" reviewer="[reviewer]" status="empty">[veFill multi fill ]</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-fill-103-f.svg" owner="[CL]" reviewer="[reviewer]" status="empty">[veFill empty ]</test>
+</featureTests>
+<featureTests featureName="The veStroke element" sectionNumber="9.12"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-stroke-101-f.svg" owner="[CL]" reviewer="[reviewer]" status="empty">[veStroke fill types]</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-stroke-102-f.svg" owner="[CL]" reviewer="[reviewer]" status="empty">[veStroke multiple strokes]</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-stroke-103-f.svg" owner="[CL]" reviewer="[reviewer]" status="empty">[veStroke empty]</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-stroke-104-f.svg" owner="[CL]" reviewer="[reviewer]" status="empty">[veStroke stroke order]</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-stroke-105-f.svg" owner="[CL]" reviewer="[reviewer]" status="empty">[veStroke attribute inheritance]</test>
+</featureTests>
+<featureTests featureName="The vector-effect property" sectionNumber="9.18"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="vectoreffects-prop-101-t.svg" owner="SH" reviewer="[reviewer]" status="created">Tests the vector-effect       property</test>
+</featureTests>
+<featureTests featureName="The video element" sectionNumber="12.2"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="media-video-101-f.svg" owner="[CL]" reviewer="[reviewer]" status="created">[video example derived from spec]</test>
+</featureTests>
+<featureTests featureName="Time containers" sectionNumber="13.3"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="animation-timecontainer-101-t.svg" owner="OA" reviewer="[reviewer]" status="empty">Test the timing attributes on the root svg element.</test>
+<test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="animation-timecontainer-102-t.svg" owner="OA" reviewer="[reviewer]" status="empty">Test the timing attributes on the root svg element.</test>
+</featureTests>
+<featureTests featureName="Using device colors" sectionNumber="11.5"><test xmlns:testcase="http://www.w3.org/2000/02/svg/testsuite/description/" name="painting-devicecolor-101-f.svg" owner="CN" reviewer="CL" status="created">This test uses device-color.</test>
+</featureTests>
+</testSuiteStatus>

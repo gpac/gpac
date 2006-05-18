@@ -67,26 +67,27 @@ void SVG_Init_text(Render2D *sr, GF_Node *node);
 void SVG_Init_a(Render2D *se, GF_Node *node);
 
 /* Media rendering functions */
-typedef struct {
-	GF_TextureHandler txh;
-	Drawable *graph;
+#define BASE_IMAGE_STACK 	\
+	GF_TextureHandler txh; \
+	Drawable *graph; \
 	MFURL txurl;
+
+typedef struct {
+	BASE_IMAGE_STACK
 } SVG_image_stack;
 
 void SVG_Init_image(Render2D *se, GF_Node *node);
 
 typedef struct
 {
-	GF_TextureHandler txh;
-	Drawable *graph;
+	BASE_IMAGE_STACK
+
 	GF_TimeNode time_handle;
 	Bool fetch_first_frame, first_frame_fetched;
 	Double start_time;
 	Bool isActive;
-	MFURL txurl;
 } SVG_video_stack;
 void SVG_Init_video(Render2D *se, GF_Node *node);
-
 
 void SVG_Init_audio(Render2D *se, GF_Node *node);
 

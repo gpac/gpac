@@ -611,9 +611,23 @@ static s32 ft_stroker_outside( FT_Stroker *stroker, s32 side )
 	FT_StrokeBorder  border = stroker->borders + side;
 	s32 error;
 	Fixed rotate;
-	if ( stroker->line_join == GF_LINE_JOIN_ROUND ) {
+	u32 join = stroker->line_join;
+
+	if ( join == GF_LINE_JOIN_MITER_SVG ) {
+		Fixed sin_theta, inv_sin_theta;
+		join = GF_LINE_JOIN_MITER;
+		sin_theta = gf_sin(gf_angle_diff( stroker->angle_out - GF_PI, stroker->angle_in) / 2 );
+		if (sin_theta) {
+			inv_sin_theta = gf_invfix(sin_theta); 
+			if (inv_sin_theta > stroker->miter_limit) join = GF_LINE_JOIN_BEVEL;
+		} else {
+			join = GF_LINE_JOIN_BEVEL;
+		}
+	}
+
+	if ( join == GF_LINE_JOIN_ROUND ) {
 		error = ft_stroker_arcto( stroker, side );
-	} else if (stroker->line_join == GF_LINE_JOIN_BEVEL) {
+	} else if (join == GF_LINE_JOIN_BEVEL) {
 		GF_Point2D  delta;
 		rotate = FT_SIDE_TO_ROTATE( side );
 		delta = gf_v2d_from_polar(stroker->radius, stroker->angle_out + rotate );
@@ -628,10 +642,9 @@ static s32 ft_stroker_outside( FT_Stroker *stroker, s32 side )
 		Fixed  sigma, radius = stroker->radius;
 		Fixed theta, phi;
 		Fixed thcos;
-		Bool  miter;
+		Bool  miter = 1;
 
 		rotate = FT_SIDE_TO_ROTATE( side );
-		miter  = ( stroker->line_join == GF_LINE_JOIN_MITER ) ? 1 : 0;
 
 		theta  = gf_angle_diff( stroker->angle_in, stroker->angle_out );
 		if ( theta == GF_PI ) {
@@ -645,8 +658,9 @@ static s32 ft_stroker_outside( FT_Stroker *stroker, s32 side )
 		thcos = gf_cos( theta );
 		sigma = gf_mulfix( stroker->miter_limit, thcos );
 
-		if ( sigma >= FIX_ONE )
+		if ( sigma >= FIX_ONE ) {
 			miter = 0;
+		} 
 
 		/* this is a miter (broken angle) */
 		if ( miter ) {

@@ -387,7 +387,7 @@ enum {
 typedef u8 SVG_FillRule, SVG_Clip;
 	
 enum {
-	SVG_STROKELINEJOIN_MITER = GF_LINE_JOIN_MITER,
+	SVG_STROKELINEJOIN_MITER = GF_LINE_JOIN_MITER_SVG,
 	SVG_STROKELINEJOIN_ROUND = GF_LINE_JOIN_ROUND,
 	SVG_STROKELINEJOIN_BEVEL = GF_LINE_JOIN_BEVEL,
 	SVG_STROKELINEJOIN_INHERIT = 100
@@ -1259,6 +1259,206 @@ struct _tagSVGhandlerElement *gf_dom_listener_build(GF_Node *node, XMLEV_Event e
 
 Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg);
 
+enum {
+	DOM_KEY_UNIDENTIFIED = 0, 
+	DOM_KEY_ACCEPT = 1, /* "Accept"    The Accept (Commit) key.*/
+	DOM_KEY_AGAIN, /* "Again"  The Again key.*/
+	DOM_KEY_ALLCANDIDATES, /* "AllCandidates"    The All Candidates key.*/
+	DOM_KEY_ALPHANUM, /*"Alphanumeric"    The Alphanumeric key.*/
+	DOM_KEY_ALT, /*"Alt"    The Alt (Menu) key.*/
+	DOM_KEY_ALTGRAPH, /*"AltGraph"    The Alt-Graph key.*/
+	DOM_KEY_APPS, /*"Apps"    The Application key.*/
+	DOM_KEY_ATTN, /*"Attn"    The ATTN key.*/
+	DOM_KEY_BROWSERBACK, /*"BrowserBack"    The Browser Back key.*/
+	DOM_KEY_BROWSERFAVORITES, /*"BrowserFavorites"    The Browser Favorites key.*/
+	DOM_KEY_BROWSERFORWARD, /*"BrowserForward"    The Browser Forward key.*/
+	DOM_KEY_BROWSERHOME, /*"BrowserHome"    The Browser Home key.*/
+	DOM_KEY_BROWSERREFRESH, /*"BrowserRefresh"    The Browser Refresh key.*/
+	DOM_KEY_BROWSERSEARCH, /*"BrowserSearch"    The Browser Search key.*/
+	DOM_KEY_BROWSERSTOP, /*"BrowserStop"    The Browser Stop key.*/
+	DOM_KEY_CAPSLOCK, /*"CapsLock"    The Caps Lock (Capital) key.*/
+	DOM_KEY_CLEAR, /*"Clear"    The Clear key.*/
+	DOM_KEY_CODEINPUT, /*"CodeInput"    The Code Input key.*/
+	DOM_KEY_COMPOSE, /*"Compose"    The Compose key.*/
+	DOM_KEY_CONTROL, /*"Control"    The Control (Ctrl) key.*/
+	DOM_KEY_CRSEL, /*"Crsel"    The Crsel key.*/
+	DOM_KEY_CONVERT, /*"Convert"    The Convert key.*/
+	DOM_KEY_COPY, /*"Copy"    The Copy key.*/
+	DOM_KEY_CUT, /*"Cut"    The Cut key.*/
+	DOM_KEY_DOWN, /*"Down"    The Down Arrow key.*/
+	DOM_KEY_END, /*"End"    The End key.*/
+	DOM_KEY_ENTER, /*"Enter"    The Enter key.
+                   Note: This key identifier is also used for the Return (Macintosh numpad) key.*/
+	DOM_KEY_ERASEEOF, /*"EraseEof"    The Erase EOF key.*/
+	DOM_KEY_EXECUTE, /*"Execute"    The Execute key.*/
+	DOM_KEY_EXSEL, /*"Exsel"    The Exsel key.*/
+	DOM_KEY_F1, /*"F1"    The F1 key.*/
+	DOM_KEY_F2, /*"F2"    The F2 key.*/
+	DOM_KEY_F3, /*"F3"    The F3 key.*/
+	DOM_KEY_F4, /*"F4"    The F4 key.*/
+	DOM_KEY_F5, /*"F5"    The F5 key.*/
+	DOM_KEY_F6, /*"F6"    The F6 key.*/
+	DOM_KEY_F7, /*"F7"    The F7 key.*/
+	DOM_KEY_F8, /*"F8"    The F8 key.*/
+	DOM_KEY_F9, /*"F9"    The F9 key.*/
+	DOM_KEY_F10, /*"F10"    The F10 key.*/
+	DOM_KEY_F11, /*"F11"    The F11 key.*/
+	DOM_KEY_F12, /*"F12"    The F12 key.*/
+	DOM_KEY_F13, /*"F13"    The F13 key.*/
+	DOM_KEY_F14, /*"F14"    The F14 key.*/
+	DOM_KEY_F15, /*"F15"    The F15 key.*/
+	DOM_KEY_F16, /*"F16"    The F16 key.*/
+	DOM_KEY_F17, /*"F17"    The F17 key.*/
+	DOM_KEY_F18, /*"F18"    The F18 key.*/
+	DOM_KEY_F19, /*"F19"    The F19 key.*/
+	DOM_KEY_F20, /*"F20"    The F20 key.*/
+	DOM_KEY_F21, /*"F21"    The F21 key.*/
+	DOM_KEY_F22, /*"F22"    The F22 key.*/
+	DOM_KEY_F23, /*"F23"    The F23 key.*/
+	DOM_KEY_F24, /*"F24"    The F24 key.*/
+	DOM_KEY_FINALMODE, /*"FinalMode"    The Final Mode (Final) key used on some asian keyboards.*/
+	DOM_KEY_FIND, /*"Find"    The Find key.*/
+	DOM_KEY_FULLWIDTH, /*"FullWidth"    The Full-Width Characters key.*/
+	DOM_KEY_HALFWIDTH, /*"HalfWidth"    The Half-Width Characters key.*/
+	DOM_KEY_HANGULMODE, /*"HangulMode"    The Hangul (Korean characters) Mode key.*/
+	DOM_KEY_HANJAMODE, /*"HanjaMode"    The Hanja (Korean characters) Mode key.*/
+	DOM_KEY_HELP, /*"Help"    The Help key.*/
+	DOM_KEY_HIRAGANA, /*"Hiragana"    The Hiragana (Japanese Kana characters) key.*/
+	DOM_KEY_HOME, /*"Home"    The Home key.*/
+	DOM_KEY_INSERT, /*"Insert"    The Insert (Ins) key.*/
+	DOM_KEY_JAPANESEHIRAGANA, /*"JapaneseHiragana"    The Japanese-Hiragana key.*/
+	DOM_KEY_JAPANESEKATAKANA, /*"JapaneseKatakana"    The Japanese-Katakana key.*/
+	DOM_KEY_JAPANESEROMAJI, /*"JapaneseRomaji"    The Japanese-Romaji key.*/
+	DOM_KEY_JUNJAMODE, /*"JunjaMode"    The Junja Mode key.*/
+	DOM_KEY_KANAMODE, /*"KanaMode"    The Kana Mode (Kana Lock) key.*/
+	DOM_KEY_KANJIMODE, /*"KanjiMode"    The Kanji (Japanese name for ideographic characters of Chinese origin) Mode key.*/
+	DOM_KEY_KATAKANA, /*"Katakana"    The Katakana (Japanese Kana characters) key.*/
+	DOM_KEY_LAUNCHAPPLICATION1, /*"LaunchApplication1"    The Start Application One key.*/
+	DOM_KEY_LAUNCHAPPLICATION2, /*"LaunchApplication2"    The Start Application Two key.*/
+	DOM_KEY_LAUNCHMAIL, /*"LaunchMail"    The Start Mail key.*/
+	DOM_KEY_LEFT, /*"Left"    The Left Arrow key.*/
+	DOM_KEY_META, /*"Meta"    The Meta key.*/
+	DOM_KEY_MEDIANEXTTRACK, /*"MediaNextTrack"    The Media Next Track key.*/
+	DOM_KEY_MEDIAPLAYPAUSE, /*"MediaPlayPause"    The Media Play Pause key.*/
+	DOM_KEY_MEDIAPREVIOUSTRACK, /*"MediaPreviousTrack"    The Media Previous Track key.*/
+	DOM_KEY_MEDIASTOP, /*"MediaStop"    The Media Stok key.*/
+	DOM_KEY_MODECHANGE, /*"ModeChange"    The Mode Change key.*/
+	DOM_KEY_NONCONVERT, /*"Nonconvert"    The Nonconvert (Don't Convert) key.*/
+	DOM_KEY_NUMLOCK, /*"NumLock"    The Num Lock key.*/
+	DOM_KEY_PAGEDOWN, /*"PageDown"    The Page Down (Next) key.*/
+	DOM_KEY_PAGEUP, /*"PageUp"    The Page Up key.*/
+	DOM_KEY_PASTE, /*"Paste"    The Paste key.*/
+	DOM_KEY_PAUSE, /*"Pause"    The Pause key.*/
+	DOM_KEY_PLAY, /*"Play"    The Play key.*/
+	DOM_KEY_PREVIOUSCANDIDATE, /*"PreviousCandidate"    The Previous Candidate function key.*/
+	DOM_KEY_PRINTSCREEN, /*"PrintScreen"    The Print Screen (PrintScrn, SnapShot) key.*/
+	DOM_KEY_PROCESS, /*"Process"    The Process key.*/
+	DOM_KEY_PROPS, /*"Props"    The Props key.*/
+	DOM_KEY_RIGHT, /*"Right"    The Right Arrow key.*/
+	DOM_KEY_ROMANCHARACTERS, /*"RomanCharacters"    The Roman Characters function key.*/
+	DOM_KEY_SCROLL, /*"Scroll"    The Scroll Lock key.*/
+	DOM_KEY_SELECT, /*"Select"    The Select key.*/
+	DOM_KEY_SELECTMEDIA, /*"SelectMedia"    The Select Media key.*/
+	DOM_KEY_SHIFT, /*"Shift"    The Shift key.*/
+	DOM_KEY_STOP, /*"Stop"    The Stop key.*/
+	DOM_KEY_UP, /*"Up"    The Up Arrow key.*/
+	DOM_KEY_UNDO, /*"Undo"    The Undo key.*/
+	DOM_KEY_VOLUMEDOWN, /*"VolumeDown"    The Volume Down key.*/
+	DOM_KEY_VOLUMEMUTE, /*"VolumeMute"    The Volume Mute key.*/
+	DOM_KEY_VOLUMEUP, /*"VolumeUp"    The Volume Up key.*/
+	DOM_KEY_WIN, /*"Win"    The Windows Logo key.*/
+	DOM_KEY_ZOOM, /*"Zoom"    The Zoom key.*/
+	DOM_KEY_BACKSPACE, /*"U+0008"    The Backspace (Back) key.*/
+	DOM_KEY_TAB, /*"U+0009"    The Horizontal Tabulation (Tab) key.*/
+	DOM_KEY_CANCEL, /*"U+0018"    The Cancel key.*/
+	DOM_KEY_ESCAPE, /*"U+001B"    The Escape (Esc) key.*/
+	DOM_KEY_SPACE, /*"U+0020"    The Space (Spacebar) key.*/
+	DOM_KEY_EXCLAMATION, /*"U+0021"    The Exclamation Mark (Factorial, Bang) key (!).*/
+	DOM_KEY_QUOTATION, /*"U+0022"    The Quotation Mark (Quote Double) key (").*/
+	DOM_KEY_NUMBER, /*"U+0023"    The Number Sign (Pound Sign, Hash, Crosshatch, Octothorpe) key (#).*/
+	DOM_KEY_DOLLAR, /*"U+0024"    The Dollar Sign (milreis, escudo) key ($).*/
+	DOM_KEY_AMPERSAND, /*"U+0026"    The Ampersand key (&).*/
+	DOM_KEY_APOSTROPHE, /*"U+0027"    The Apostrophe (Apostrophe-Quote, APL Quote) key (').*/
+	DOM_KEY_LEFTPARENTHESIS, /*"U+0028"    The Left Parenthesis (Opening Parenthesis) key (().*/
+	DOM_KEY_RIGHTPARENTHESIS, /*"U+0029"    The Right Parenthesis (Closing Parenthesis) key ()).*/
+	DOM_KEY_STAR, /*"U+002A"    The Asterix (Star) key (*).*/
+	DOM_KEY_PLUS, /*"U+002B"    The Plus Sign (Plus) key (+).*/
+	DOM_KEY_COMMA, /*"U+002C"    The Comma (decimal separator) sign key (,).*/
+	DOM_KEY_HYPHEN, /*"U+002D"    The Hyphen-minus (hyphen or minus sign) key (-).*/
+	DOM_KEY_FULLSTOP, /*"U+002E"    The Full Stop (period, dot, decimal point) key (.).*/
+	DOM_KEY_SLASH, /*"U+002F"    The Solidus (slash, virgule, shilling) key (/).*/
+	DOM_KEY_0, /*"U+0030"    The Digit Zero key (0).*/
+	DOM_KEY_1, /*"U+0031"    The Digit One key (1).*/
+	DOM_KEY_2, /*"U+0032"    The Digit Two key (2).*/
+	DOM_KEY_3, /*"U+0033"    The Digit Three key (3).*/
+	DOM_KEY_4, /*"U+0034"    The Digit Four key (4).*/
+	DOM_KEY_5, /*"U+0035"    The Digit Five key (5).*/
+	DOM_KEY_6, /*"U+0036"    The Digit Six key (6).*/
+	DOM_KEY_7, /*"U+0037"    The Digit Seven key (7).*/
+	DOM_KEY_8, /*"U+0038"    The Digit Eight key (8).*/
+	DOM_KEY_9, /*"U+0039"    The Digit Nine key (9).*/
+	DOM_KEY_COLON, /*"U+003A"    The Colon key (:).*/
+	DOM_KEY_SEMICOLON, /*"U+003B"    The Semicolon key (;).*/
+	DOM_KEY_LESSTHAN, /*"U+003C"    The Less-Than Sign key (<).*/
+	DOM_KEY_EQUALS, /*"U+003D"    The Equals Sign key (=).*/
+	DOM_KEY_GREATERTHAN, /*"U+003E"    The Greater-Than Sign key (>).*/
+	DOM_KEY_QUESTION, /*"U+003F"    The Question Mark key (?).*/
+	DOM_KEY_AT, /*"U+0040"    The Commercial At (@) key.*/
+	DOM_KEY_A, /*"U+0041"    The Latin Capital Letter A key (A).*/
+	DOM_KEY_B, /*"U+0042"    The Latin Capital Letter B key (B).*/
+	DOM_KEY_C, /*"U+0043"    The Latin Capital Letter C key (C).*/
+	DOM_KEY_D, /*"U+0044"    The Latin Capital Letter D key (D).*/
+	DOM_KEY_E, /*"U+0045"    The Latin Capital Letter E key (E).*/
+	DOM_KEY_F, /*"U+0046"    The Latin Capital Letter F key (F).*/
+	DOM_KEY_G, /*"U+0047"    The Latin Capital Letter G key (G).*/
+	DOM_KEY_H, /*"U+0048"    The Latin Capital Letter H key (H).*/
+	DOM_KEY_I, /*"U+0049"    The Latin Capital Letter I key (I).*/
+	DOM_KEY_J, /*"U+004A"    The Latin Capital Letter J key (J).*/
+	DOM_KEY_K, /*"U+004B"    The Latin Capital Letter K key (K).*/
+	DOM_KEY_L, /*"U+004C"    The Latin Capital Letter L key (L).*/
+	DOM_KEY_M, /*"U+004D"    The Latin Capital Letter M key (M).*/
+	DOM_KEY_N, /*"U+004E"    The Latin Capital Letter N key (N).*/
+	DOM_KEY_O, /*"U+004F"    The Latin Capital Letter O key (O).*/
+	DOM_KEY_P, /*"U+0050"    The Latin Capital Letter P key (P).*/
+	DOM_KEY_Q, /*"U+0051"    The Latin Capital Letter Q key (Q).*/
+	DOM_KEY_R, /*"U+0052"    The Latin Capital Letter R key (R).*/
+	DOM_KEY_S, /*"U+0053"    The Latin Capital Letter S key (S).*/
+	DOM_KEY_T, /*"U+0054"    The Latin Capital Letter T key (T).*/
+	DOM_KEY_U, /*"U+0055"    The Latin Capital Letter U key (U).*/
+	DOM_KEY_V, /*"U+0056"    The Latin Capital Letter V key (V).*/
+	DOM_KEY_W, /*"U+0057"    The Latin Capital Letter W key (W).*/
+	DOM_KEY_X, /*"U+0058"    The Latin Capital Letter X key (X).*/
+	DOM_KEY_Y, /*"U+0059"    The Latin Capital Letter Y key (Y).*/
+	DOM_KEY_Z, /*"U+005A"    The Latin Capital Letter Z key (Z).*/
+	DOM_KEY_LEFTSQUAREBRACKET, /*"U+005B"    The Left Square Bracket (Opening Square Bracket) key ([).*/
+	DOM_KEY_BACKSLASH, /*"U+005C"    The Reverse Solidus (Backslash) key (\).*/
+	DOM_KEY_RIGHTSQUAREBRACKET, /*"U+005D"    The Right Square Bracket (Closing Square Bracket) key (]).*/
+	DOM_KEY_CIRCUM, /*"U+005E"    The Circumflex Accent key (^).*/
+	DOM_KEY_UNDERSCORE, /*"U+005F"    The Low Sign (Spacing Underscore, Underscore) key (_).*/
+	DOM_KEY_GRAVEACCENT, /*"U+0060"    The Grave Accent (Back Quote) key (`).*/
+	DOM_KEY_LEFTCURLYBRACKET, /*"U+007B"    The Left Curly Bracket (Opening Curly Bracket, Opening Brace, Brace Left) key ({).*/
+	DOM_KEY_PIPE, /*"U+007C"    The Vertical Line (Vertical Bar, Pipe) key (|).*/
+	DOM_KEY_RIGHTCURLYBRACKET, /*"U+007D"    The Right Curly Bracket (Closing Curly Bracket, Closing Brace, Brace Right) key (}).*/
+	DOM_KEY_DEL, /*"U+007F"    The Delete (Del) Key.*/
+	DOM_KEY_INVERTEXCLAMATION, /*"U+00A1"    The Inverted Exclamation Mark key (¡).*/
+	DOM_KEY_DEADGRAVE, /*"U+0300"    The Combining Grave Accent (Greek Varia, Dead Grave) key.*/
+	DOM_KEY_DEADEACUTE, /*"U+0301"    The Combining Acute Accent (Stress Mark, Greek Oxia, Tonos, Dead Eacute) key.*/
+	DOM_KEY_DEADCIRCUM, /*"U+0302"    The Combining Circumflex Accent (Hat, Dead Circumflex) key.*/
+	DOM_KEY_DEADTILDE, /*"U+0303"    The Combining Tilde (Dead Tilde) key.*/
+	DOM_KEY_DEADMACRON, /*"U+0304"    The Combining Macron (Long, Dead Macron) key.*/
+	DOM_KEY_DEADBREVE, /*"U+0306"    The Combining Breve (Short, Dead Breve) key.*/
+	DOM_KEY_DEADABOVEDOT, /*"U+0307"    The Combining Dot Above (Derivative, Dead Above Dot) key.*/
+	DOM_KEY_DEADDIARESIS, /*"U+0308"    The Combining Diaeresis (Double Dot Abode, Umlaut, Greek Dialytika, Double Derivative, Dead Diaeresis) key.*/
+	DOM_KEY_DEADRINGABOVE, /*"U+030A"    The Combining Ring Above (Dead Above Ring) key.*/
+	DOM_KEY_DEADDOUBLEACUTE, /*"U+030B"    The Combining Double Acute Accent (Dead Doubleacute) key.*/
+	DOM_KEY_DEADCARON, /*"U+030C"    The Combining Caron (Hacek, V Above, Dead Caron) key.*/
+	DOM_KEY_DEADCEDILLA, /*"U+0327"    The Combining Cedilla (Dead Cedilla) key.*/
+	DOM_KEY_DEADOGONEK, /*"U+0328"    The Combining Ogonek (Nasal Hook, Dead Ogonek) key.*/
+	DOM_KEY_DEADIOTA, /*"U+0345"    The Combining Greek Ypogegrammeni (Greek Non-Spacing Iota Below, Iota Subscript, Dead Iota) key.*/
+	DOM_KEY_EURO, /*"U+20AC"    The Euro Currency Sign key (€).*/
+	DOM_KEY_DEADVOICESOUND, /*"U+3099"    The Combining Katakana-Hiragana Voiced Sound Mark (Dead Voiced Sound) key.*/
+	DOM_KEY_DEADSEMIVOICESOUND, /*"U+309A"    The Combining Katakana-Hiragana Semi-Voiced Sound Mark (Dead Semivoiced Sound) key. */
+};
 
 #ifdef __cplusplus
 }

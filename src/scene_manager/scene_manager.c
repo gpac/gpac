@@ -475,3 +475,32 @@ GF_Err gf_sm_load_run(GF_SceneLoader *load)
 	}
 }
 
+#ifdef DANAE
+void *DANAE_NewSceneLoader(char *filename, void *scene_graph)
+{
+	GF_SceneLoader *scene_loader;
+	
+	GF_SAFEALLOC(scene_loader, sizeof(GF_SceneLoader));
+	scene_loader->fileName = filename;
+	scene_loader->scene_graph = scene_graph;
+   	scene_loader->flags = GF_SM_LOAD_FOR_PLAYBACK;
+	if (gf_sm_load_init(scene_loader) != GF_OK) {
+		free(scene_loader);
+		return NULL;
+	}
+	return scene_loader;
+
+}
+
+void DANAE_SceneLoader_Parse(void *p)
+{
+	gf_sm_load_run(p);
+}
+
+void DANAE_SceneLoader_Terminate(void *p)
+{
+	gf_sm_load_done(p);
+	free(p);
+}
+
+#endif

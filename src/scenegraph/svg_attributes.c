@@ -88,6 +88,230 @@ const char *gf_dom_event_get_name(u32 type)
 	}
 }
 
+static const struct predef_keyid {u32 key_code;  const char *name; } predefined_key_identifiers[] = 
+{
+	{ DOM_KEY_ACCEPT, "Accept" },
+	{ DOM_KEY_AGAIN, "Again" },
+	{ DOM_KEY_ALLCANDIDATES, "AllCandidates" },
+	{ DOM_KEY_ALPHANUM, "Alphanumeric" },
+	{ DOM_KEY_ALT, "Alt" },
+	{ DOM_KEY_ALTGRAPH, "AltGraph" },
+	{ DOM_KEY_APPS, "Apps" },
+	{ DOM_KEY_ATTN, "Attn" },
+	{ DOM_KEY_BROWSERBACK, "BrowserBack" },
+	{ DOM_KEY_BROWSERFAVORITES, "BrowserFavorites" },
+	{ DOM_KEY_BROWSERFORWARD, "BrowserForward" },
+	{ DOM_KEY_BROWSERHOME, "BrowserHome" },
+	{ DOM_KEY_BROWSERREFRESH, "BrowserRefresh" },
+	{ DOM_KEY_BROWSERSEARCH, "BrowserSearch" },
+	{ DOM_KEY_BROWSERSTOP, "BrowserStop" },
+	{ DOM_KEY_CAPSLOCK, "CapsLock" },
+	{ DOM_KEY_CLEAR, "Clear" },
+	{ DOM_KEY_CODEINPUT, "CodeInput" },
+	{ DOM_KEY_COMPOSE, "Compose" },
+	{ DOM_KEY_CONTROL, "Control" },
+	{ DOM_KEY_CRSEL, "Crsel" },
+	{ DOM_KEY_CONVERT, "Convert" },
+	{ DOM_KEY_COPY, "Copy"  },
+	{ DOM_KEY_CUT, "Cut" },
+	{ DOM_KEY_DOWN, "Down" },
+	{ DOM_KEY_END, "End" },
+	{ DOM_KEY_ENTER, "Enter" },
+	{ DOM_KEY_ERASEEOF, "EraseEof" },
+	{ DOM_KEY_EXECUTE, "Execute" },
+	{ DOM_KEY_EXSEL, "Exsel" },
+	{ DOM_KEY_F1, "F1" },
+	{ DOM_KEY_F2, "F2" },
+	{ DOM_KEY_F3, "F3" },
+	{ DOM_KEY_F4, "F4" },
+	{ DOM_KEY_F5, "F5" },
+	{ DOM_KEY_F6, "F6" },
+	{ DOM_KEY_F7, "F7" },
+	{ DOM_KEY_F8, "F8" },
+	{ DOM_KEY_F9, "F9" },
+	{ DOM_KEY_F10, "F10" },
+	{ DOM_KEY_F11, "F11" },
+	{ DOM_KEY_F12, "F12" },
+	{ DOM_KEY_F13, "F13" },
+	{ DOM_KEY_F14, "F14" },
+	{ DOM_KEY_F15, "F15" },
+	{ DOM_KEY_F16, "F16" },
+	{ DOM_KEY_F17, "F17" },
+	{ DOM_KEY_F18, "F18" },
+	{ DOM_KEY_F19, "F19" },
+	{ DOM_KEY_F20, "F20" },
+	{ DOM_KEY_F21, "F21" },
+	{ DOM_KEY_F22, "F22" },
+	{ DOM_KEY_F23, "F23" },
+	{ DOM_KEY_F24, "F24" },
+	{ DOM_KEY_FINALMODE, "FinalMode" },
+	{ DOM_KEY_FIND, "Find" },
+	{ DOM_KEY_FULLWIDTH, "FullWidth" },
+	{ DOM_KEY_HALFWIDTH, "HalfWidth" },
+	{ DOM_KEY_HANGULMODE, "HangulMode" },
+	{ DOM_KEY_HANJAMODE, "HanjaMode"   },
+	{ DOM_KEY_HELP, "Help" },
+	{ DOM_KEY_HIRAGANA, "Hiragana" },
+	{ DOM_KEY_HOME, "Home" },
+	{ DOM_KEY_INSERT, "Insert" },
+	{ DOM_KEY_JAPANESEHIRAGANA, "JapaneseHiragana" },
+	{ DOM_KEY_JAPANESEKATAKANA, "JapaneseKatakana" },
+	{ DOM_KEY_JAPANESEROMAJI, "JapaneseRomaji" },
+	{ DOM_KEY_JUNJAMODE, "JunjaMode" },
+	{ DOM_KEY_KANAMODE, "KanaMode"   },
+	{ DOM_KEY_KANJIMODE, "KanjiMode" },
+	{ DOM_KEY_KATAKANA, "Katakana"   },
+	{ DOM_KEY_LAUNCHAPPLICATION1, "LaunchApplication1" },
+	{ DOM_KEY_LAUNCHAPPLICATION2, "LaunchApplication2" },
+	{ DOM_KEY_LAUNCHMAIL, "LaunchMail" },
+	{ DOM_KEY_LEFT, "Left" },
+	{ DOM_KEY_META, "Meta" },
+	{ DOM_KEY_MEDIANEXTTRACK, "MediaNextTrack" },
+	{ DOM_KEY_MEDIAPLAYPAUSE, "MediaPlayPause" },
+	{ DOM_KEY_MEDIAPREVIOUSTRACK, "MediaPreviousTrack" },
+	{ DOM_KEY_MEDIASTOP, "MediaStop" },
+	{ DOM_KEY_MODECHANGE, "ModeChange" },
+	{ DOM_KEY_NONCONVERT, "Nonconvert" },
+	{ DOM_KEY_NUMLOCK, "NumLock" },
+	{ DOM_KEY_PAGEDOWN, "PageDown" },
+	{ DOM_KEY_PAGEUP, "PageUp" },
+	{ DOM_KEY_PASTE, "Paste" },
+	{ DOM_KEY_PAUSE, "Pause" },
+	{ DOM_KEY_PLAY, "Play" },
+	{ DOM_KEY_PREVIOUSCANDIDATE, "PreviousCandidate" },
+	{ DOM_KEY_PRINTSCREEN, "PrintScreen" },
+	{ DOM_KEY_PROCESS, "Process" },
+	{ DOM_KEY_PROPS, "Props" },
+	{ DOM_KEY_RIGHT, "Right" },
+	{ DOM_KEY_ROMANCHARACTERS, "RomanCharacters" },
+	{ DOM_KEY_SCROLL, "Scroll" },
+	{ DOM_KEY_SELECT, "Select" },
+	{ DOM_KEY_SELECTMEDIA, "SelectMedia" },
+	{ DOM_KEY_SHIFT, "Shift" },
+	{ DOM_KEY_STOP, "Stop" },
+	{ DOM_KEY_UP, "Up" },
+	{ DOM_KEY_UNDO, "Undo" },
+	{ DOM_KEY_VOLUMEDOWN, "VolumeDown" },
+	{ DOM_KEY_VOLUMEMUTE, "VolumeMute" },
+	{ DOM_KEY_VOLUMEUP, "VolumeUp" },
+	{ DOM_KEY_WIN, "Win" },
+	{ DOM_KEY_ZOOM, "Zoom" },
+	{ DOM_KEY_BACKSPACE, "U+0008" },
+	{ DOM_KEY_TAB, "U+0009" },
+	{ DOM_KEY_CANCEL, "U+0018" },
+	{ DOM_KEY_ESCAPE, "U+001B" },
+	{ DOM_KEY_SPACE, "U+0020" },
+	{ DOM_KEY_EXCLAMATION, "U+0021" },
+	{ DOM_KEY_QUOTATION, "U+0022" },
+	{ DOM_KEY_NUMBER, "U+0023" },
+	{ DOM_KEY_DOLLAR, "U+0024" },
+	{ DOM_KEY_AMPERSAND, "U+0026" },
+	{ DOM_KEY_APOSTROPHE, "U+0027" },
+	{ DOM_KEY_LEFTPARENTHESIS, "U+0028" },
+	{ DOM_KEY_RIGHTPARENTHESIS, "U+0029" },
+	{ DOM_KEY_STAR, "U+002A" },
+	{ DOM_KEY_PLUS, "U+002B" },
+	{ DOM_KEY_COMMA, "U+002C" },
+	{ DOM_KEY_HYPHEN, "U+002D" },
+	{ DOM_KEY_FULLSTOP, "U+002E" },
+	{ DOM_KEY_SLASH, "U+002F" },
+	{ DOM_KEY_0, "U+0030" },
+	{ DOM_KEY_1, "U+0031" },
+	{ DOM_KEY_2, "U+0032" },
+	{ DOM_KEY_3, "U+0033" },
+	{ DOM_KEY_4, "U+0034" },
+	{ DOM_KEY_5, "U+0035" },
+	{ DOM_KEY_6, "U+0036" },
+	{ DOM_KEY_7, "U+0037" },
+	{ DOM_KEY_8, "U+0038" },
+	{ DOM_KEY_9, "U+0039" },
+	{ DOM_KEY_COLON, "U+003A" },
+	{ DOM_KEY_SEMICOLON, "U+003B" },
+	{ DOM_KEY_LESSTHAN, "U+003C" },
+	{ DOM_KEY_EQUALS, "U+003D" },
+	{ DOM_KEY_GREATERTHAN, "U+003E" },
+	{ DOM_KEY_QUESTION, "U+003F" },
+	{ DOM_KEY_AT, "U+0040" },
+	{ DOM_KEY_A, "U+0041" },
+	{ DOM_KEY_B, "U+0042" },
+	{ DOM_KEY_C, "U+0043" },
+	{ DOM_KEY_D, "U+0044" },
+	{ DOM_KEY_E, "U+0045" },
+	{ DOM_KEY_F, "U+0046" },
+	{ DOM_KEY_G, "U+0047" },
+	{ DOM_KEY_H, "U+0048" },
+	{ DOM_KEY_I, "U+0049" },
+	{ DOM_KEY_J, "U+004A" },
+	{ DOM_KEY_K, "U+004B" },
+	{ DOM_KEY_L, "U+004C" },
+	{ DOM_KEY_M, "U+004D" },
+	{ DOM_KEY_N, "U+004E" },
+	{ DOM_KEY_O, "U+004F" },
+	{ DOM_KEY_P, "U+0050" },
+	{ DOM_KEY_Q, "U+0051" },
+	{ DOM_KEY_R, "U+0052" },
+	{ DOM_KEY_S, "U+0053" },
+	{ DOM_KEY_T, "U+0054" },
+	{ DOM_KEY_U, "U+0055" },
+	{ DOM_KEY_V, "U+0056" },
+	{ DOM_KEY_W, "U+0057" },
+	{ DOM_KEY_X, "U+0058" },
+	{ DOM_KEY_Y, "U+0059" },
+	{ DOM_KEY_Z, "U+005A" },
+	{ DOM_KEY_LEFTSQUAREBRACKET, "U+005B" },
+	{ DOM_KEY_BACKSLASH, "U+005C" },
+	{ DOM_KEY_RIGHTSQUAREBRACKET, "U+005D" },
+	{ DOM_KEY_CIRCUM, "U+005E" },
+	{ DOM_KEY_UNDERSCORE, "U+005F" },
+	{ DOM_KEY_GRAVEACCENT, "U+0060" },
+	{ DOM_KEY_LEFTCURLYBRACKET, "U+007B" },
+	{ DOM_KEY_PIPE, "U+007C" },
+	{ DOM_KEY_RIGHTCURLYBRACKET, "U+007D" },
+	{ DOM_KEY_DEL, "U+007F" },
+	{ DOM_KEY_INVERTEXCLAMATION, "U+00A1" },
+	{ DOM_KEY_DEADGRAVE, "U+0300" },
+	{ DOM_KEY_DEADEACUTE, "U+0301" },
+	{ DOM_KEY_DEADCIRCUM, "U+0302" },
+	{ DOM_KEY_DEADTILDE, "U+0303" },
+	{ DOM_KEY_DEADMACRON, "U+0304" },
+	{ DOM_KEY_DEADBREVE, "U+0306" },
+	{ DOM_KEY_DEADABOVEDOT, "U+0307" },
+	{ DOM_KEY_DEADDIARESIS, "U+0308" },
+	{ DOM_KEY_DEADRINGABOVE, "U+030A" },
+	{ DOM_KEY_DEADDOUBLEACUTE, "U+030B" },
+	{ DOM_KEY_DEADCARON, "U+030C" },
+	{ DOM_KEY_DEADCEDILLA, "U+0327" },
+	{ DOM_KEY_DEADOGONEK, "U+0328" },
+	{ DOM_KEY_DEADIOTA, "U+0345" },
+	{ DOM_KEY_EURO, "U+20AC" },
+	{ DOM_KEY_DEADVOICESOUND, "U+3099" },
+	{ DOM_KEY_DEADSEMIVOICESOUND, "U+309A" }
+};
+
+static void gf_dom_parse_key_identifier(u32 *key_identifier, char *attribute_content)
+{
+	if (strlen(attribute_content) == 1) {
+		char *c = strupr(attribute_content);
+		if (*c >= 'A' && *c <= 'Z') {
+			*key_identifier = DOM_KEY_A + (*c - 'A');
+		} else if (*c >= '0' && *c <= '9') {
+			*key_identifier = DOM_KEY_0 + (*c - '0');
+		} else {
+			*key_identifier = DOM_KEY_UNIDENTIFIED;
+		}
+	} else {
+		u32 i, count;
+		count = sizeof(predefined_key_identifiers) / sizeof(struct predef_keyid);
+		for (i=0; i<count; i++) {
+			if (!strcmp(attribute_content, predefined_key_identifiers[i].name)) {
+				*key_identifier = predefined_key_identifiers[i].key_code;
+				return;
+			}
+		}
+		*key_identifier = DOM_KEY_UNIDENTIFIED;
+	}
+}
+
 /* Basic SVG datatype parsing functions */
 static const struct predef_col { const char *name; u8 r; u8 g; u8 b; } predefined_colors[] = 
 {
@@ -521,15 +745,14 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 
 	/* AccessKey Values */
 	else if ((tmp = strstr(d, "accessKey("))) {
+		char *sep;
 		v->type = SMIL_TIME_EVENT;
 		v->event.type = SVG_DOM_EVT_KEYPRESS;
 		v->element = e->sgprivate->scenegraph->RootNode;
 		tmp+=10;
-		v->event.parameter = *tmp;
-		tmp = strchr(d, ')');
-		tmp++;
-		while (*tmp == ' ') tmp++;
-		if (*tmp != 0) svg_parse_clock_value(tmp, &(v->clock));
+		sep = strchr(d, ')');
+		sep[0] = 0;
+		gf_dom_parse_key_identifier(&v->event.parameter, tmp);
 		return;
 	} 
 
@@ -702,15 +925,13 @@ static void svg_parse_path(SVG_PathData *d_attribute, char *attribute_content)
 	char *d = attribute_content;
 	Bool first_command = 1;
 	if (strlen(d)) {
-		Bool pt0_inited, subpath_closed;
-		SVG_Point *pt, pt0, cur_pt;
+		SVG_Point *pt, cur_pt, prev_m_pt;
 		u8 *command;
 		u32 i, k;
 		char c, prev_c = 'M';
 		i = 0;
 		cur_pt.x = cur_pt.y = 0;
-		pt0_inited = 0;
-		subpath_closed = 0;
+		prev_m_pt.x = prev_m_pt.y = 0;
 		while(1) {
 			while ( (d[i]==' ') || (d[i] =='\t') ) i++;			
 			c = d[i];
@@ -718,42 +939,42 @@ static void svg_parse_path(SVG_PathData *d_attribute, char *attribute_content)
 next_command:
 			switch (c) {
 			case 'm':
-				if (first_command) cur_pt.x = cur_pt.y = 0;
 			case 'M':
-			case 'L':
-			case 'l':
 				i++;
 				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
-				if (c == 'M' || c == 'm') *command = SVG_PATHCOMMAND_M;
-				if (c == 'L' || c == 'l') {
-					*command = SVG_PATHCOMMAND_L;
-					subpath_closed = SVG_PATHCOMMAND_L;	
-				}
-				
+				*command = SVG_PATHCOMMAND_M;
+
 				GF_SAFEALLOC(pt, sizeof(SVG_Point))
 				gf_list_add(d_points, pt);
 				i += svg_parse_float(&(d[i]), &(pt->x), 0);
 				i += svg_parse_float(&(d[i]), &(pt->y), 0);				
 				if (c == 'm') {
-					if (!subpath_closed) {
-						pt->x += cur_pt.x;
-						pt->y += cur_pt.y;
-					} else {
-						pt->x += pt0.x;
-						pt->y += pt0.y;
-					}
-				} else if (c == 'l') {
 					pt->x += cur_pt.x;
 					pt->y += cur_pt.y;
 				}
 				cur_pt.x = pt->x;
 				cur_pt.y = pt->y;
-				if (!pt0_inited) {
-					pt0.x = cur_pt.x;
-					pt0.y = cur_pt.y;
-					pt0_inited = 1;
+				prev_m_pt = cur_pt;
+				prev_c = c;
+				break;
+			case 'L':
+			case 'l':
+				i++;
+				GF_SAFEALLOC(command, sizeof(u8))
+				gf_list_add(d_commands, command);
+				*command = SVG_PATHCOMMAND_L;
+				
+				GF_SAFEALLOC(pt, sizeof(SVG_Point))
+				gf_list_add(d_points, pt);
+				i += svg_parse_float(&(d[i]), &(pt->x), 0);
+				i += svg_parse_float(&(d[i]), &(pt->y), 0);				
+				if (c == 'l') {
+					pt->x += cur_pt.x;
+					pt->y += cur_pt.y;
 				}
+				cur_pt.x = pt->x;
+				cur_pt.y = pt->y;
 				prev_c = c;
 				break;
 			case 'H':
@@ -762,7 +983,6 @@ next_command:
 				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_L;
-				subpath_closed = 0;
 
 				GF_SAFEALLOC(pt, sizeof(SVG_Point))
 				gf_list_add(d_points, pt);
@@ -780,7 +1000,6 @@ next_command:
 				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_L;
-				subpath_closed = 0;
 
 				GF_SAFEALLOC(pt, sizeof(SVG_Point))
 				gf_list_add(d_points, pt);
@@ -798,7 +1017,6 @@ next_command:
 				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_C;
-				subpath_closed = 0;
 				
 				for (k=0; k<3; k++) {
 					GF_SAFEALLOC(pt, sizeof(SVG_Point))
@@ -820,7 +1038,6 @@ next_command:
 				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_S;
-				subpath_closed = 0;
 				
 				for (k=0; k<2; k++) {
 					GF_SAFEALLOC(pt, sizeof(SVG_Point))
@@ -842,7 +1059,6 @@ next_command:
 				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_Q;
-				subpath_closed = 0;
 				
 				for (k=0; k<2; k++) {
 					GF_SAFEALLOC(pt, sizeof(SVG_Point))
@@ -864,7 +1080,6 @@ next_command:
 				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_T;
-				subpath_closed = 0;
 				
 				GF_SAFEALLOC(pt, sizeof(SVG_Point))
 				gf_list_add(d_points, pt);
@@ -886,7 +1101,6 @@ next_command:
 					GF_SAFEALLOC(command, sizeof(u8))
 					gf_list_add(d_commands, command);
 					*command = SVG_PATHCOMMAND_A;
-					subpath_closed = 0;
 	
 					GF_SAFEALLOC(pt, sizeof(SVG_Point))
 					gf_list_add(d_points, pt);
@@ -916,8 +1130,8 @@ next_command:
 				GF_SAFEALLOC(command, sizeof(u8))
 				gf_list_add(d_commands, command);
 				*command = SVG_PATHCOMMAND_Z;
-				subpath_closed = 1;
 				prev_c = c;
+				cur_pt = prev_m_pt;
 				break;
 			default:
 				i--;
@@ -933,7 +1147,6 @@ next_command:
 				}
 				goto next_command;
 			}
-			first_command = 0;
 		}
 	}
 }
@@ -2165,13 +2378,19 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 		XMLEV_Event *xml_ev = info->far_ptr;
 		char *sep = strchr(attribute_content, '(');
 		if (sep) {
-			char _v;
 			sep[0] = 0;
 			xml_ev->type = gf_dom_event_type_by_name(attribute_content);
 			sep[0] = '(';
-			/*TODO FIXME check all possible cases (accessKey & co)*/
-			sscanf(sep, "(%c)", &_v);
-			xml_ev->parameter = _v;
+			if (xml_ev->type == SVG_DOM_EVT_REPEAT) {
+				char _v;
+				sscanf(sep, "(%c)", &_v);
+				xml_ev->parameter = _v;
+			} else { /* key events ... */
+				char *sep2 = strchr(attribute_content, ')');
+				sep2[0] = 0;
+				gf_dom_parse_key_identifier(&xml_ev->parameter, sep++);
+				sep2[0] = ')';
+			}			
 		} else {
 			xml_ev->parameter = 0;
 			xml_ev->type = gf_dom_event_type_by_name(attribute_content);
@@ -2602,9 +2821,16 @@ static void svg_dump_path(SVG_PathData *path, char *attValue)
 
 static void svg_dump_access_key(XMLEV_Event *evt, char *attValue)
 {
-	char szBuf[10];
+	u32 i, count;
 	strcpy(attValue, "accessKey(");
-	/*TODO - FIXME */
+	count = sizeof(predefined_key_identifiers) / sizeof(struct predef_keyid);
+	for (i=0; i<count; i++) {
+		if (evt->parameter == predefined_key_identifiers[i].key_code) {
+			strcat(attValue, predefined_key_identifiers[i].name);
+			break;
+		}
+	}
+	/* OLD LASeR CODE 
 	switch (evt->parameter) {
 	case 0: strcat(attValue, "UP"); break;
 	case 1: strcat(attValue, "DOWN"); break;
@@ -2627,12 +2853,7 @@ static void svg_dump_access_key(XMLEV_Event *evt, char *attValue)
 	case 55: strcat(attValue, "7"); break;
 	case 56: strcat(attValue, "8"); break;
 	case 57: strcat(attValue, "9"); break;
-	default:
-		szBuf[0] = evt->parameter;
-		szBuf[1] = 0;
-		strcat(attValue, szBuf);
-		break;
-	}
+	*/
 	strcat(attValue, ")");
 }
 

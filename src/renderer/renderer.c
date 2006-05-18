@@ -499,6 +499,13 @@ static GF_Err SR_SetSceneSize(GF_Renderer *sr, u32 Width, u32 Height)
 	return GF_OK;
 }
 
+Bool gf_sr_get_size(GF_Renderer *sr, u32 *Width, u32 *Height)
+{
+	*Height = sr->scene_height;
+	*Width = sr->scene_width;
+	return 1;
+}
+
 static Fixed convert_svg_length_to_user(GF_Renderer *sr, SVG_Length *length)
 {
 	// Assuming the environment is 90dpi

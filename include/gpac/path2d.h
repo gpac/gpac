@@ -485,6 +485,8 @@ typedef enum
 	GF_LINE_JOIN_ROUND,
 	/*! Line join is a bevel join*/
 	GF_LINE_JOIN_BEVEL,
+	/*! Line join is a miter then bevel join*/
+	GF_LINE_JOIN_MITER_SVG
 } GF_LineJoin;
 
 /*!
