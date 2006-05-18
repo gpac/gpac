@@ -181,20 +181,24 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	track_id = 0;
 	do_all = 1;
 	ext = strrchr(szName, '#');
-	if (ext) {
-		if (!strnicmp(ext, "#audio", 6)) do_audio = 1;
-		else if (!strnicmp(ext, "#video", 6)) do_video = 1;
-		else if (!strnicmp(ext, "#trackID=", 9)) track_id = atoi(&ext[9]);
-		else track_id = atoi(&ext[1]);
-		ext[0] = 0;
-	}
-	if (do_audio || do_video || track_id) do_all = 0;
+	if (ext) ext[0] = 0;
 
 	import.in_name = szName;
 	import.flags = GF_IMPORT_PROBE_ONLY;
 	import.streamFormat = fmt;
 	e = gf_media_import(&import);
 	if (e) goto exit;
+
+	if (ext) {
+		ext++;
+		if (!strnicmp(ext, "audio", 5)) do_audio = 1;
+		else if (!strnicmp(ext, "video", 5)) do_video = 1;
+		else if (!strnicmp(ext, "trackID=", 8)) track_id = atoi(&ext[8]);
+		else if (!strnicmp(ext, "PID=", 4)) track_id = atoi(&ext[4]);
+		else track_id = atoi(ext);
+	}
+	if (do_audio || do_video || track_id) do_all = 0;
+
 
 	import.dest = dest;
 	import.video_fps = force_fps;

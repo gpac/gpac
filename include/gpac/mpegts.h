@@ -156,6 +156,8 @@ typedef struct tag_m2ts_pes
 	/*PES reframer - if NULL, pes processing is skiped*/
 	u32 frame_state;
 	void (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, u64 DTS, u64 CTS, unsigned char *data, u32 data_len);
+
+	u64 first_dts;
 } GF_M2TS_PES;
 
 
@@ -209,6 +211,8 @@ typedef struct tag_m2ts_demux
 	u32 buffer_size, alloc_size;
 	/*default transport PID filters*/
 	GF_M2TS_Section *pas, *nit, *sdt;
+
+	Bool has_all_first_dts;
 } GF_M2TS_Demuxer;
 
 
