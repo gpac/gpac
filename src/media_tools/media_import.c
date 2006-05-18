@@ -4572,7 +4572,6 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				default:
 					continue;
 				}
-				pes->program->first_dts = 0;
 				break;
 			}
 			if (mtype) {
@@ -4605,7 +4604,7 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					import->esd = NULL;
 				}
 				/*wait until we have visual or audio info*/
-				//import->flags |= GF_IMPORT_DO_ABORT;
+				// import->flags |= GF_IMPORT_DO_ABORT;
 			}
 		}
 		break;
@@ -4613,8 +4612,7 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		pck = par;
 		if (import->flags & GF_IMPORT_PROBE_ONLY) return;
 		if (pck->stream->pid != import->trackID) return;
-		if (pck->stream->vid_h || pck->stream->aud_sr)
-			import->flags |= GF_IMPORT_DO_ABORT;
+		if (pck->stream->vid_h || pck->stream->aud_sr) import->flags |= GF_IMPORT_DO_ABORT;
 		break;
 	}
 }
@@ -4628,6 +4626,36 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 	if (evt_type != GF_M2TS_EVT_PES_PCK) return;
 	pck = par;
+
+	/* Even if we don't import this stream we need to check the first dts of the program */
+	if (!pck->stream->first_dts) {
+		pck->stream->first_dts = pck->DTS;
+		if (!pck->stream->program->first_dts || 
+			pck->stream->program->first_dts > pck->stream->first_dts) {
+			pck->stream->program->first_dts = pck->stream->first_dts;
+		}
+		if (!ts->has_all_first_dts) {
+			Bool stop = 0;
+			u32 i, prog_count = gf_list_count(ts->programs);
+			for (i=0;i<prog_count; i++) {
+				GF_M2TS_Program *prog = gf_list_get(ts->programs, i);
+				u32 j, stream_count = gf_list_count(prog->streams);
+				for (j=0;j<stream_count;j++) {
+					GF_M2TS_ES *es = gf_list_get(prog->streams, j);
+					if (es->pid != prog->pmt_pid) {
+						GF_M2TS_PES *pes = (GF_M2TS_PES *)es; 
+						if (!pes->first_dts) {
+							stop = 1;
+							break;
+						}
+					}
+				}
+				if (stop) break;
+			}
+			if (stop == 0) ts->has_all_first_dts = 1;
+		}
+	}
+
 	if (pck->stream->pid != import->trackID) return;
 
 	if (!(pck->flags & GF_M2TS_PES_PCK_AU_START)) {
@@ -4641,10 +4669,12 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	samp->DTS = pck->DTS ? pck->DTS : pck->PTS;
 	samp->CTS_Offset = (u32) (pck->PTS - samp->DTS);
 
-	if (!pck->stream->program->first_dts) {
-		u32 w = 0;
-		pck->stream->program->first_dts = samp->DTS;
+/*	if (pck->stream->pid == 130 || pck->stream->pid == 130 ) 
+		fprintf(stdout, "Sample PID: %d DTS: "LLD" CTS_Offset: %d\n", pck->stream->pid, samp->DTS, samp->CTS_Offset);
+*/
+	if (pck->stream->first_dts == samp->DTS) {
 
+		u32 w = 0;
 		if (pck->stream->vid_w) {
 			w = pck->stream->vid_w;
 			if (pck->stream->vid_par) w = w * (pck->stream->vid_par>>16) / (pck->stream->vid_par&0xffff);
@@ -4668,8 +4698,8 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		gf_isom_set_media_language(import->dest, import->final_trackID, (char *) gf_4cc_to_str(pck->stream->lang)+1);
 	}
 
-	if (samp->DTS >= pck->stream->program->first_dts) {
-		samp->DTS -= pck->stream->program->first_dts;
+	if (samp->DTS >= pck->stream->first_dts) {
+		samp->DTS -= pck->stream->first_dts;
 		samp->IsRAP = (pck->flags & GF_M2TS_PES_PCK_RAP) ? 1 : 0;
 		samp->data = pck->data;
 		samp->dataLength = pck->data_len;
@@ -4707,6 +4737,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	ts->on_event = on_m2ts_import_event;
 	ts->user = import;
 
+	/* First parsing to get the PMT and so on (GF_IMPORT_PROBE_ONLY or not)*/
 	while (!feof(mts)) {
 		size = fread(data, 1, 188, mts);
 		if (size<188) break;
@@ -4715,9 +4746,9 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
-
 	import->flags &= ~GF_IMPORT_DO_ABORT;
 
+	/* Second parsing, the real one */ 
 	if (!(import->flags & GF_IMPORT_PROBE_ONLY)) {
 
 		pes = (GF_M2TS_PES *)ts->ess[import->trackID];
@@ -4744,8 +4775,23 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 		gf_import_progress(import, (u32) fsize, (u32) fsize);
 		MP4T_RecomputeBitRate(import->dest, import->final_trackID);
 		import->final_trackID = gf_isom_get_track_by_id(import->dest, import->final_trackID);
-	}
 
+		/* creation of the edit lists */
+		if (pes->first_dts != pes->program->first_dts) {
+			u32 track = gf_isom_get_track_by_id(import->dest, import->trackID);
+			u32 media_ts, moov_ts, offset;
+			u64 dur;
+			media_ts = gf_isom_get_media_timescale(import->dest, track);
+			moov_ts = gf_isom_get_timescale(import->dest);
+			assert(pes->program->first_dts < pes->first_dts);
+			offset = (u32)(pes->first_dts - pes->program->first_dts) * moov_ts / media_ts;
+			dur = gf_isom_get_media_duration(import->dest, track);
+			gf_isom_set_edit_segment(import->dest, track, 0, offset, 0, GF_ISOM_EDIT_EMPTY);				
+			gf_isom_set_edit_segment(import->dest, track, offset, dur, 0, GF_ISOM_EDIT_NORMAL);				
+			fprintf(stdout, "samples shifted by %d ms\n", (u32)((pes->first_dts - pes->program->first_dts)/90));
+		}
+	}
+	
 	gf_m2ts_demux_del(ts);
 	fclose(mts);
 	return GF_OK;

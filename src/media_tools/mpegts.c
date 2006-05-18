@@ -127,6 +127,12 @@ static void gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u6
 		if (DTS) pes->DTS = DTS;
 		else pes->DTS = PTS;
 	}
+
+/*
+	if (pes->pid == 120) 
+		fprintf(stdout, "PES    PID: %d DTS: "LLD" PTS: "LLD"\n", pes->pid, pes->DTS, pes->PTS);
+*/
+
 	/*dispatch frame*/
 	pck.stream = pes;
 	pck.DTS = pes->DTS;
@@ -918,33 +924,33 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 		pes->data = NULL;
 		pes->data_len = 0;
 		pes->PTS = pes->DTS = 0;
-		pes->program->first_dts = 0;
 	}
 }
 
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 {
 	if (pes->pid==pes->program->pmt_pid) return GF_BAD_PARAM;
+
 	if (mode==GF_M2TS_PES_FRAMING_RAW) {
 		pes->reframe = gf_m2ts_reframe_default;
 		return GF_OK;
-	}
-	if (mode==GF_M2TS_PES_FRAMING_SKIP) {
+	} else if (mode==GF_M2TS_PES_FRAMING_SKIP) {
 		pes->reframe = NULL;
 		return GF_OK;
+	} else { // mode==GF_M2TS_PES_FRAMING_DEFAULT
+		switch (pes->stream_type) {
+		case 1: case 2:
+			pes->reframe = gf_m2ts_reframe_mpeg_video;
+			break;
+		case 3: case 4:
+			pes->reframe = gf_m2ts_reframe_mpeg_audio;
+			break;
+		default:
+			pes->reframe = gf_m2ts_reframe_default;
+			break;
+		}
+		return GF_OK;
 	}
-	switch (pes->stream_type) {
-	case 1: case 2:
-		pes->reframe = gf_m2ts_reframe_mpeg_video;
-		break;
-	case 3: case 4:
-		pes->reframe = gf_m2ts_reframe_mpeg_audio;
-		break;
-	default:
-		pes->reframe = gf_m2ts_reframe_default;
-		break;
-	}
-	return GF_OK;
 }
 
 GF_M2TS_Demuxer *gf_m2ts_demux_new()
