@@ -27,6 +27,8 @@
 #define _GF_MPEG_TS_H_
 
 #include <gpac/list.h>
+#include <gpac/internal/odf_dev.h>
+
 
 /*Maximum number of streams in a TS*/
 #define GF_M2TS_MAX_STREAMS	8192
@@ -101,9 +103,9 @@ typedef struct
 	unsigned char *section;
 	u16 section_recv;
 	/*section header*/
-	u16 section_len;
 	u8 table_id;
 	u8 syntax_indicator;
+	u16 section_len;
 	u16 sec_id;
 	u8 version_number;
 	u8 current_next_indicator;
@@ -121,23 +123,27 @@ typedef struct
 	u32 pmt_pid;  
 	u32 pcr_pid;
 	u32 number;
+
+	GF_List *desc; //
 	/*first dts found on this program - this is used by parsers, but not setup by the lib*/
 	u64 first_dts;
 } GF_M2TS_Program;
 
 /*Abstract Section/PES stream object, only used for type casting*/
+#define ABSTRACT_ES GF_M2TS_Program *program; \
+					u32 pid; \
+					u32 stream_type; \
+					Bool has_SL; \
+					Bool has_FMC;
 typedef struct 
 {
-	GF_M2TS_Program *program;
-	u32 pid;
+	ABSTRACT_ES
 } GF_M2TS_ES;
 
 /*MPEG-2 TS ES object*/
 typedef struct tag_m2ts_pes
 {
-	GF_M2TS_Program *program;
-	u32 pid;
-	u8 stream_type;
+	ABSTRACT_ES
 	u32 lang;
 
 	/*object info*/
@@ -213,6 +219,10 @@ typedef struct tag_m2ts_demux
 	GF_M2TS_Section *pas, *nit, *sdt;
 
 	Bool has_all_first_dts;
+
+	/* when writing to file */
+	FILE *pes_out;
+
 } GF_M2TS_Demuxer;
 
 

@@ -393,6 +393,8 @@ EXPORTS
 	gf_odf_avc_cfg_write
 	gf_sl_packetize
 	gf_sl_depacketize
+; for MPEG-2 plugin
+	gf_odf_parse_descriptor
 
 ;isomedia.h exports
 	gf_isom_sample_new

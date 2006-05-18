@@ -26,6 +26,7 @@
 #include <gpac/avparse.h>
 
 
+
 typedef struct
 {
 	u8 sync;
@@ -603,8 +604,41 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_PMT *pmt, GF_M2TS_H
 	data = pmt->sec->section + pmt->sec->start;
 	pmt->program->pcr_pid = ((data[0] & 0x1f) << 8) | data[1];
 
-	/*skip descriptor - !! IOD should be somewhere around here !! */
+	/*IOD descriptor - !! IOD should be somewhere around here !! */
 	info_length = ((data[2]&0xf)<<8) | data[3];
+
+	if (info_length != 0) {
+		/* ...Read Descriptors ... */
+		u8 tag, len;
+		u32 first_loop_len = 0;
+		tag = data[4];
+		len = data[5];
+		while (info_length != first_loop_len) {
+			
+			if (tag == 29) { // IOD tag identifier from MPEG-2 tables
+
+				u8 scope, label;
+				GF_Descriptor *desc;
+				u32 size;
+				GF_BitStream *pmt_bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+
+				scope = data[6];
+				label = data[7];
+
+				gf_bs_skip_bytes(pmt_bs, 7);
+
+				printf("parsing IOD descriptor\n");
+				gf_odf_parse_descriptor(pmt_bs, &desc, &size);
+
+			} else {
+				/* Ignore unknown descriptors */
+				printf("ignoring 1nd loop descriptor\n");
+				//gf_bs_skip_bytes(pmt_bs,len);
+			}
+			first_loop_len += 2 + len;
+		}
+	}
+
 	if (pmt->sec->start + 4 + info_length > pmt->sec->section_len) return;
 	data = pmt->sec->section + pmt->sec->start + 4 + info_length;
 	pos = pmt->sec->start + 4 + info_length;
@@ -612,12 +646,40 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_PMT *pmt, GF_M2TS_H
 	while (pos<pmt->sec->section_len) {
 		u32 d_pos;
 		GF_SAFEALLOC(pes, sizeof(GF_M2TS_PES));
+
 		pes->program = pmt->program;
 		gf_list_add(pmt->program->streams, pes);
-		pes->stream_type = data[0];
+
+		pes->stream_type = data[0];     // 0x13 flux de paquet SL  ou flux FlexMux dans des section
+										// 0x12 flux de paquet SL  ou flux FlexMux dans des PES
+
 		pes->pid = ((data[1] & 0x1f) << 8) | data[2];
-		ts->ess[pes->pid] = (GF_M2TS_ES *) pes;
+		//ts->ess[pes->pid] = (GF_M2TS_ES *) pes;
 		desc_len = ((data[3] & 0xf) << 8) | data[4];
+
+		/* Second Loop Descriptor */
+		{
+			u32 second_loop_len = 0;
+			u8 tag, len;
+			while (second_loop_len != desc_len) {
+				tag = data[5];
+				len = data[6];
+				if (tag == 30) { // SL Descriptor tag identifier from MPEG-2 tables
+					u32 ES_ID = ((data[7] & 0x1f) << 8) | data[8];
+					
+					pes->has_SL = 1;
+					printf("PID: %d, ESID: %d\n", pes->pid, ES_ID);
+				} else  {
+					/* Ignore unknown descriptors */
+					printf("ignoring 2nd loop descriptor\n");
+					//gf_bs_skip_bytes(pmt_bs,len);
+				}
+				second_loop_len += 2 + len;
+			}
+		}
+		//gf_bs_skip_bytes(pmt_bs, es_info_length);
+		ts->ess[pes->pid] = (GF_M2TS_ES *) pes;
+
 		pos += 5;
 		data += 5;
 
@@ -702,7 +764,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	if (paf && paf->PCR_flag) {
 		GF_M2TS_PES_PCK pck;
 		memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
-		pck.PTS = paf->PCR_base * 300 + paf->PCR_ext;
+		pck.PTS = paf->PCR_base * 300 + paf->PCR_ext; // ???
 		pck.stream = pes;
 		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PES_PCR, &pck);
 	}
@@ -774,6 +836,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 #endif	
 }
 
+
 static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 {
 	GF_M2TS_ES *es;
@@ -790,6 +853,35 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	hdr.scrambling_ctrl = (data[3] >> 6) & 0x3;
 	hdr.adaptation_field = (data[3] >> 4) & 0x3;
 	hdr.continuity_counter = data[3] & 0xf;
+
+/* */
+	if (0){
+	FILE *ts_out;
+	
+	ts_out = fopen("test_mux2.ts","a+b");
+		if (!ts_out) return;
+	
+			if (hdr.pid == 0){
+				fwrite(data, 1, 188 , ts_out);
+			}
+			if (hdr.pid == 610){
+				fwrite(data, 1, 188 , ts_out);
+			}
+			if (hdr.pid == 620){
+				fwrite(data, 1, 188 , ts_out);
+			}
+			if (hdr.pid == 330){
+				u16 pid = 0x276;
+				data[1] = data[1] | (pid >> 8);
+				data[2] = data[2] | (pid);
+				pid = ( (data[1]&0x1f) << 8) | data[2];
+				fwrite(data, 1, 188 , ts_out);
+			}
+
+	fclose(ts_out);
+	}
+
+/* */
 
 	paf = NULL;
 	payload_size = 184;
@@ -842,6 +934,9 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	if (hdr.pid == 0x0010) {
 		/*ignore them, unused at application level*/
 		return;
+	}
+	/*EIT*/
+	if (1) {
 	}
 
 	es = ts->ess[hdr.pid];
