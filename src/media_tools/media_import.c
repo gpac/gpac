@@ -4788,7 +4788,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			dur = gf_isom_get_media_duration(import->dest, track);
 			gf_isom_set_edit_segment(import->dest, track, 0, offset, 0, GF_ISOM_EDIT_EMPTY);				
 			gf_isom_set_edit_segment(import->dest, track, offset, dur, 0, GF_ISOM_EDIT_NORMAL);				
-			fprintf(stdout, "samples shifted by %d ms\n", (u32)((pes->first_dts - pes->program->first_dts)/90));
+			gf_import_message(import, GF_OK, "Timeline offset: %d ms", (u32)((pes->first_dts - pes->program->first_dts)/90));
 		}
 	}
 	
