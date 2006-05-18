@@ -223,6 +223,10 @@ typedef struct tag_m2ts_demux
 	/* when writing to file */
 	FILE *pes_out;
 
+	/* when dumping TS information */
+	u32 dump_pid;
+	Bool has_seen_pat;
+
 } GF_M2TS_Demuxer;
 
 
