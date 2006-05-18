@@ -726,9 +726,6 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 				/*OK read header*/
 				gf_m2ts_pes_header(pes->data+3, pes->data_len-3, &pesh);
 
-				/*remember first DTS we found on this program - used by media importers*/
-//				if (!pes->program->first_dts) pes->program->first_dts = pesh.DTS ? pesh.DTS : pesh.PTS;
-
 				/*3-byte start-code + 6 bytes header + hdr extensions*/
 				var = 9 + pesh.hdr_data_len;
 				pes->reframe(ts, pes, pesh.DTS, pesh.PTS, pes->data+var, pes->data_len-var);

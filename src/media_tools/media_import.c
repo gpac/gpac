@@ -4629,7 +4629,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 	/* Even if we don't import this stream we need to check the first dts of the program */
 	if (!pck->stream->first_dts) {
-		pck->stream->first_dts = pck->DTS;
+		pck->stream->first_dts = (pck->DTS?pck->DTS:pck->PTS);
 		if (!pck->stream->program->first_dts || 
 			pck->stream->program->first_dts > pck->stream->first_dts) {
 			pck->stream->program->first_dts = pck->stream->first_dts;
@@ -4785,7 +4785,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			moov_ts = gf_isom_get_timescale(import->dest);
 			assert(pes->program->first_dts < pes->first_dts);
 			offset = (u32)(pes->first_dts - pes->program->first_dts) * moov_ts / media_ts;
-			dur = gf_isom_get_media_duration(import->dest, track);
+			dur = gf_isom_get_media_duration(import->dest, track) * moov_ts / media_ts;
 			gf_isom_set_edit_segment(import->dest, track, 0, offset, 0, GF_ISOM_EDIT_EMPTY);				
 			gf_isom_set_edit_segment(import->dest, track, offset, dur, 0, GF_ISOM_EDIT_NORMAL);				
 			gf_import_message(import, GF_OK, "Timeline offset: %d ms", (u32)((pes->first_dts - pes->program->first_dts)/90));
