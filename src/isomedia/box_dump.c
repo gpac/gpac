@@ -2160,7 +2160,7 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 
 	count = gf_list_count(s->packetTable);
 
-	fprintf(trace, "<RTPHintSample SampleNumber=\"%d\" DecodingTime=\""LLD"\" CompositionTime=\""LLD"\" RandomAccessPoint=\"%d\" PacketCount=\"%d\">\n", SampleNum, tmp->DTS, tmp->DTS+tmp->CTS_Offset, tmp->IsRAP, count);
+	fprintf(trace, "<RTPHintSample SampleNumber=\"%d\" DecodingTime=\""LLD"\" RandomAccessPoint=\"%d\" PacketCount=\"%d\">\n", SampleNum, tmp->DTS, tmp->IsRAP, count);
 
 	for (i=0; i<count; i++) {
 		pck = gf_list_get(s->packetTable, i);

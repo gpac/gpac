@@ -1,7 +1,14 @@
 include ../config.mak
 
 #all OS and lib independent
-PLUGDIRS=aac_in bifs_dec ctx_load dummy_in soft_raster mp3_in isom_in odf_dec rtp_in raw_out render2d timedtext img_in svg_in laser_dec saf_in mpegts_in
+PLUGDIRS=aac_in bifs_dec ctx_load dummy_in soft_raster mp3_in isom_in odf_dec rtp_in raw_out render2d timedtext img_in svg_in saf_in mpegts_in
+
+ifeq ($(DISABLE_SVG), no)
+PLUGDIRS+=laser_dec svg_in
+ifeq ($(HAS_LIBXML2), yes)
+PLUGDIRS+=svg_loader
+endif
+endif
 
 ifeq ($(CONFIG_FT), no)
 else
@@ -44,13 +51,6 @@ ifeq ($(CONFIG_SDL), yes)
 PLUGDIRS+=sdl_out
 endif
 
-ifeq ($(DISABLE_SVG), no)
-ifeq ($(HAS_LIBXML2), yes)
-PLUGDIRS+=svg_loader
-endif
-endif
-
-
 ifeq ($(HAS_OPENGL),yes)
 PLUGDIRS+=render3d
 endif
@@ -75,13 +75,13 @@ endif
 all: plugs
 
 plugs:	
-	for i in $(PLUGDIRS) ; do $(MAKE) -C $$i all; done 
+	set -e; for i in $(PLUGDIRS) ; do $(MAKE) -C $$i all; done 
 
 dep:
-	for i in $(PLUGDIRS) ; do $(MAKE) -C $$i dep; done 
+	set -e; for i in $(PLUGDIRS) ; do $(MAKE) -C $$i dep; done 
 
 clean:
-	for i in $(PLUGDIRS) ; do $(MAKE) -C $$i clean; done 
+	set -e; for i in $(PLUGDIRS) ; do $(MAKE) -C $$i clean; done 
 
 distclean:	
-	for i in $(PLUGDIRS) ; do $(MAKE) -C $$i distclean; done 
+	set -e; for i in $(PLUGDIRS) ; do $(MAKE) -C $$i distclean; done 

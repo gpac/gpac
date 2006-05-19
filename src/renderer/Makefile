@@ -9,6 +9,9 @@ CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
+ifeq ($(DISABLE_SVG), yes)
+CFLAGS+=-DGPAC_DISABLE_SVG
+endif
 
 #common obj
 OBJS=audio_input.o audio_mixer.o audio_render.o audio_stacks.o base_textures.o common_stacks.o renderer.o texturing.o 

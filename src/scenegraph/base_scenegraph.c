@@ -31,7 +31,10 @@
 #include <gpac/nodes_x3d.h>
 
 static void ReplaceDEFNode(GF_Node *FromNode, u32 NodeID, GF_Node *newNode, Bool updateOrderedGroup);
+
+#ifndef GPAC_DISABLE_SVG
 static void ReplaceIRINode(GF_Node *FromNode, GF_Node *oldNode, GF_Node *newNode);
+#endif
 
 
 #define DEFAULT_MAX_CYCLIC_RENDER	30
@@ -229,16 +232,20 @@ restart:
 #ifdef GF_ARRAY_PARENT_NODES
 		u32 j, count;
 		type = node->sgprivate->tag;
+#ifndef GPAC_DISABLE_SVG
 		if ((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) type = 1;
-		else type = 0;
+		else 
+#endif
+			type = 0;
 		count = gf_list_count(node->sgprivate->parentNodes);
 		for (j=0; j<count; j++) {
 			GF_Node *par = gf_list_get(node->sgprivate->parentNodes, j);
+#ifndef GPAC_DISABLE_SVG
 			if (type) {
 				ReplaceIRINode(par, node->sgprivate->NodeID, NULL);
-			} else {
+			} else 
+#endif
 				ReplaceDEFNode(par, node->sgprivate->NodeID, NULL, 0);
-			}
 		}
 		/*then we remove the node from the registry and destroy it. This will take 
 		care of conditional case as we perform special checking when destroying commands*/
@@ -247,15 +254,20 @@ restart:
 		{
 		GF_NodeList *nlist = node->sgprivate->parents;
 		type = node->sgprivate->tag;
+#ifndef GPAC_DISABLE_SVG
 		if ((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) type = 1;
-		else type = 0;
+		else 
+#endif
+			type = 0;
 		while (nlist) {
 			GF_NodeList *next = nlist->next;
+#ifndef GPAC_DISABLE_SVG
 			if (type) {
 				ReplaceIRINode(nlist->node, node, NULL);
-			} else {
+			} else 
+#endif
 				ReplaceDEFNode(nlist->node, node->sgprivate->NodeID, NULL, 0);
-			}
+			
 			free(nlist);
 			nlist = next;
 		}
@@ -661,10 +673,13 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 //	assert(node == pSG->node_registry[i]);
 
 	type = node->sgprivate->tag;
+#ifndef GPAC_DISABLE_SVG
 	if ((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) {
 		type = 1;
 		Replace_IRI(pSG, node, new_node);
-	} else type = 0;
+	} else 
+#endif
+		type = 0;
 
 	/*first check if this is the root node*/
 	replace_root = (node->sgprivate->scenegraph->RootNode == node) ? 1 : 0;
@@ -672,11 +687,12 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 #ifdef GF_ARRAY_PARENT_NODES
 	while ( (u32 i = gf_list_count(node->sgprivate->parentNodes)) ) {
 		par = gf_list_get(node->sgprivate->parentNodes, 0);
+#ifndef GPAC_DISABLE_SVG
 		if (type) {
 			ReplaceIRINode(par, node, new_node, updateOrderedGroup);
-		} else {
+		} else 
+#endif
 			ReplaceDEFNode(par, node->sgprivate->NodeID, new_node, updateOrderedGroup);
-		}
 				
 		/*adds the parent to the new node*/
 		if (new_node) gf_node_register(new_node, par);
@@ -690,11 +706,13 @@ GF_Err gf_node_replace(GF_Node *node, GF_Node *new_node, Bool updateOrderedGroup
 		Bool do_break = node->sgprivate->parents->next ? 0 : 1;
 		par = node->sgprivate->parents->node;
 
-		if (type) {
+#ifndef GPAC_DISABLE_SVG
+		if (type)
 			ReplaceIRINode(par, node, new_node);
-		} else {
+		else
+#endif
 			ReplaceDEFNode(par, node->sgprivate->NodeID, new_node, updateOrderedGroup);
-		}
+
 		if (new_node) gf_node_register(new_node, par);
 		gf_node_unregister(node, par);
 		if (do_break) break;
@@ -1119,7 +1137,9 @@ void gf_node_init(GF_Node *node)
 
 	/*internal nodes*/
 	if (gf_sg_vrml_node_init(node)) return;
+#ifndef GPAC_DISABLE_SVG
 	else if (gf_sg_svg_node_init(node)) return;
+#endif
 	/*user defined init*/
 	else pSG->UserNodeInit(pSG->NodeInitCallback, node);
 }
@@ -1172,7 +1192,9 @@ u32 gf_node_get_field_count(GF_Node *node)
 	if (node->sgprivate->tag <= TAG_UndefinedNode) return 0;
 	/*for both MPEG4 & X3D*/
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_ALL);
+#ifndef GPAC_DISABLE_SVG
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_attribute_count(node);
+#endif
 	return 0;
 }
 
@@ -1188,7 +1210,9 @@ const char *gf_node_get_class_name(GF_Node *node)
 	else if (node->sgprivate->tag==TAG_ProtoNode) return ((GF_ProtoInstance*)node)->proto_name;
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_class_name(node->sgprivate->tag);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_class_name(node->sgprivate->tag);
+#ifndef GPAC_DISABLE_SVG
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_element_name(node->sgprivate->tag);
+#endif
 	else return "UnsupportedNode";
 #endif
 }
@@ -1230,8 +1254,9 @@ GF_Err gf_node_get_field(GF_Node *node, u32 FieldIndex, GF_FieldInfo *info)
 		return gf_sg_script_get_field(node, info);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_field(node, info);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_field(node, info);
+#ifndef GPAC_DISABLE_SVG
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) return gf_svg_get_attribute_info(node, info);
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_LASER) return GF_NOT_SUPPORTED;
+#endif
 #endif
 	return GF_NOT_SUPPORTED;
 }

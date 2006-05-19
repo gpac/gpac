@@ -387,7 +387,9 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 	GF_StreamContext *sc;
 	GF_ESD *esd;
 	GF_BifsEncoder *bifs_enc;
+#ifndef GPAC_DISABLE_SVG
 	GF_LASeRCodec *lsr_enc;
+#endif
 
 	rap_inband = rap_shadow = 0;
 	if (opts && opts->rap_freq) {
@@ -435,16 +437,19 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 	if (!j) {
 		GF_Node *n = gf_sg_get_root_node(ctx->scene_graph);
 		if (!n) return GF_OK;
-		else if ((scene_type==1) && (gf_node_get_tag(n)!=TAG_SVG_svg) ) return GF_OK;
-		else if ((scene_type==0) && (gf_node_get_tag(n)>GF_NODE_RANGE_LAST_X3D) ) return GF_OK;
+#ifndef GPAC_DISABLE_SVG
+		if ((scene_type==1) && (gf_node_get_tag(n)!=TAG_SVG_svg) ) return GF_OK;
+#endif
+		if ((scene_type==0) && (gf_node_get_tag(n)>GF_NODE_RANGE_LAST_X3D) ) return GF_OK;
 	}
 
 	logs = NULL;
 	if (opts && opts->logFile) logs = fopen(opts->logFile, "wt");
 
 	bifs_enc = NULL;
+#ifndef GPAC_DISABLE_SVG
 	lsr_enc = NULL;
-
+#endif
 
 	if (!scene_type) {
 		bifs_enc = gf_bifs_encoder_new(ctx->scene_graph);
@@ -458,8 +463,8 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 		}
 	}
 	
-	lsr_enc = NULL;
 	if (scene_type==1) {
+#ifndef GPAC_DISABLE_SVG
 		lsr_enc = gf_laser_encoder_new(ctx->scene_graph);
 		if (logs) gf_laser_set_trace(lsr_enc, logs);
 		/*no streams defined, encode a RAP*/
@@ -469,6 +474,9 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 			is_in_iod = 1;
 			goto force_scene_rap;
 		}
+#else
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 
 	/*configure streams*/
@@ -619,6 +627,7 @@ force_scene_rap:
 			esd->decoderConfig->objectTypeIndication = gf_bifs_encoder_get_version(bifs_enc, esd->ESID);		
 		} 
 		/*LASeR setup*/
+#ifndef GPAC_DISABLE_SVG
 		if (scene_type==1) {
 			GF_LASERConfig lsrcfg;
 
@@ -651,7 +660,7 @@ force_scene_rap:
 			esd->decoderConfig->decoderSpecificInfo->dataLength = data_len;
 			esd->decoderConfig->objectTypeIndication = 0x09;
 		}
-
+#endif
 		/*create stream description*/
 		gf_isom_new_mpeg4_description(mp4, track, esd, NULL, NULL, &di);
 		if (is_in_iod) {
@@ -667,8 +676,10 @@ force_scene_rap:
 		
 			if (bifs_enc)
 				e = gf_bifs_encoder_get_rap(bifs_enc, &samp->data, &samp->dataLength);
+#ifndef GPAC_DISABLE_SVG
 			else if (lsr_enc)
 				e = gf_laser_encoder_get_rap(lsr_enc, &samp->data, &samp->dataLength);
+#endif
 			if (!e && samp->dataLength) e = gf_isom_add_sample(mp4, track, di, samp);
 			gf_isom_sample_del(&samp);
 			goto exit;
@@ -703,8 +714,10 @@ force_scene_rap:
 					/*first encode command*/
 					if (bifs_enc)
 						e = gf_bifs_encode_au(bifs_enc, sc->ESID, au->commands, &samp->data, &samp->dataLength);
+#ifndef GPAC_DISABLE_SVG
 					else if (lsr_enc)
 						e = gf_laser_encode_au(lsr_enc, sc->ESID, au->commands, 0, &samp->data, &samp->dataLength);
+#endif
 
 					/*and apply commands*/
 					e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
@@ -714,8 +727,10 @@ force_scene_rap:
 					/*then get RAP*/
 					if (bifs_enc)
 						e = gf_bifs_encoder_get_rap(bifs_enc, &samp->data, &samp->dataLength);
+#ifndef GPAC_DISABLE_SVG
 					else if (lsr_enc)
 						e = gf_laser_encoder_get_rap(lsr_enc, &samp->data, &samp->dataLength);
+#endif
 
 					samp->IsRAP = 1;
 					last_rap = samp->DTS;
@@ -723,8 +738,10 @@ force_scene_rap:
 			} else {
 				if (bifs_enc)
 					e = gf_bifs_encode_au(bifs_enc, sc->ESID, au->commands, &samp->data, &samp->dataLength);
+#ifndef GPAC_DISABLE_SVG
 				else if (lsr_enc)
 					e = gf_laser_encode_au(lsr_enc, sc->ESID, au->commands, 0, &samp->data, &samp->dataLength);
+#endif
 			}
 			/*if no commands don't add the AU*/
 			if (!e && samp->dataLength) e = gf_isom_add_sample(mp4, track, di, samp);
@@ -793,7 +810,9 @@ force_scene_rap:
 
 exit:
 	if (bifs_enc) gf_bifs_encoder_del(bifs_enc);
-	else if (lsr_enc) gf_laser_encoder_del(lsr_enc);
+#ifndef GPAC_DISABLE_SVG
+	if (lsr_enc) gf_laser_encoder_del(lsr_enc);
+#endif
 	if (logs) fclose(logs);
 	if (esd && delete_desc) gf_odf_desc_del((GF_Descriptor *) esd);
 	return e;

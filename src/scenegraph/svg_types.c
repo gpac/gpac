@@ -51,6 +51,7 @@ void gf_smil_delete_times(GF_List *list)
 	count = gf_list_count(list);
 	for (i = 0; i < count; i++) {
 		SMIL_Time *v=gf_list_get(list, i);
+		if (v->element_id) free(v->element_id);
 		free(v);
 	}
 	gf_list_del(list);
@@ -251,6 +252,8 @@ void gf_svg_delete_core(SVGElement *elt, XMLCoreAttributes *p)
 void gf_svg_delete_properties(SVGProperties *p) 
 {
 	free(p->font_family.value);
+	if (p->fill.uri) free(p->fill.uri);
+	if (p->stroke.uri) free(p->stroke.uri);
 	free(p->stroke_dasharray.array.vals);
 	free(p);
 }

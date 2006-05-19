@@ -28,7 +28,7 @@
 #ifndef GPAC_DISABLE_SVG
 
 #include <gpac/utf.h>
-#include "../visualsurface2d.h"
+#include "visualsurface2d.h"
 
 typedef struct 
 {

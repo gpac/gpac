@@ -256,7 +256,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 				}
 			}
 			
-//			if (iod_str) e = RP_SDPLoadIOD(rtp, iod_str);
+			if (iod_str) e = RP_SDPLoadIOD(rtp, iod_str);
 		}
 		/*attach service*/
 		gf_term_on_connect(rtp->service, NULL, e);

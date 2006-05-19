@@ -129,19 +129,19 @@ SOURCE=..\..\src\utils\module_wrap.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\utils\w32\os_divers.c
+SOURCE=..\..\src\utils\os_divers.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\utils\w32\os_module.c
+SOURCE=..\..\src\utils\os_module.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\utils\w32\os_net.c
+SOURCE=..\..\src\utils\os_net.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\utils\w32\os_thread.c
+SOURCE=..\..\src\utils\os_thread.c
 # End Source File
 # Begin Source File
 

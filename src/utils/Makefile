@@ -11,7 +11,7 @@ endif
 
 
 #common obj
-OBJS=list.o base_encoding.o bitstream.o color.o configfile.o downloader.o error.o math.o path2d.o path2d_stroker.o module.o token.o url.o utf.o xml_parser.o
+OBJS=os_divers.o os_net.o os_module.o os_thread.o list.o base_encoding.o bitstream.o color.o configfile.o downloader.o error.o math.o path2d.o path2d_stroker.o module.o token.o url.o utf.o xml_parser.o
 
 
 ifeq ($(HAS_OPENSSL), yes)
@@ -20,21 +20,6 @@ endif
 
 ifeq ($(CONFIG_IPV6), yes)
 CFLAGS+=-DGPAC_IPV6
-endif
-
-#per-platform source 
-ifeq ($(CONFIG_WIN32), yes)
-OBJS += ./w32/os_divers.o ./w32/os_net.o ./w32/os_module.o ./w32/os_thread.o
-endif
-ifeq ($(CONFIG_LINUX), yes)
-OBJS += ./linux/os_divers.o ./linux/os_net.o ./linux/os_module.o ./linux/os_thread.o
-endif
-ifeq ($(CONFIG_FREEBSD), yes)
-OBJS += ./linux/os_divers.o ./linux/os_net.o ./linux/os_module.o ./linux/os_thread.o
-CFLAGS+=-DCONFIG_FREEBSD
-endif
-ifeq ($(CONFIG_DARWIN), yes)
-OBJS += ./linux/os_divers.o ./linux/os_net.o ./linux/os_module.o ./linux/os_thread.o
 endif
 
 SRCS := $(OBJS:.o=.c) 

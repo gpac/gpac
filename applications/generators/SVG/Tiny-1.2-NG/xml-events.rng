@@ -73,16 +73,8 @@
       </attribute>
     </optional>
     <optional>
-      <attribute name='lsr:timeAttribute' svg:animatable='false' svg:inheritable='false'>
-        <choice>
-          <value>begin</value>
-          <value>end</value>
-        </choice>
-      </attribute>
-    </optional>
-    <optional>
-      <attribute name='lsr:delay' svg:animatable='false' svg:inheritable='false'>
-		<ref name='Clock.datatype'/>
+      <attribute name="enabled" svg:animatable="false" svg:inheritable="false">
+        <ref name="Boolean.datatype"/>
       </attribute>
     </optional>
   </define>

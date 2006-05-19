@@ -30,6 +30,9 @@
 #include <gpac/internal/odf_dev.h>
 
 
+typedef struct tag_m2ts_demux GF_M2TS_Demuxer;
+typedef struct tag_m2ts_es GF_M2TS_ES;
+
 /*Maximum number of streams in a TS*/
 #define GF_M2TS_MAX_STREAMS	8192
 
@@ -44,12 +47,18 @@ enum
 	GF_M2TS_PRIVATE_DATA  = 0x06,
 	GF_M2TS_AUDIO_AAC = 0x0f,
 	GF_M2TS_VIDEO_MPEG4 = 0x10,
+
+	GF_M2TS_SYSTEMS_MPEG4_PES = 0x12,
+	GF_M2TS_SYSTEMS_MPEG4_SECTIONS = 0x13,
+
 	GF_M2TS_VIDEO_H264 = 0x1b,
 
 	GF_M2TS_AUDIO_AC3 = 0x81,
 	GF_M2TS_AUDIO_DTS = 0x8a,
 	GF_M2TS_SUBTITLE_DVB = 0x100,
 };
+/*returns readable name for given stream type*/
+const char *gf_m2ts_get_stream_name(u32 streamType);
 
 /*PES data framing modes*/
 enum
@@ -80,10 +89,14 @@ enum
 	GF_M2TS_EVT_PAT_REPEAT,
 	/*PMT has been found (service tune-in) - assoctiated parameter: new PMT*/
 	GF_M2TS_EVT_PMT_FOUND,
+	/*repeated PMT has been found (carousel) - assoctiated parameter: updated PMT*/
+	GF_M2TS_EVT_PMT_REPEAT,
 	/*PMT has been changed - assoctiated parameter: updated PMT*/
 	GF_M2TS_EVT_PMT_UPDATE,
 	/*SDT has been received - assoctiated parameter: none*/
 	GF_M2TS_EVT_SDT_FOUND,
+	/*repeated SDT has been found (carousel) - assoctiated parameter: none*/
+	GF_M2TS_EVT_SDT_REPEAT,
 	/*SDT has been received - assoctiated parameter: none*/
 	GF_M2TS_EVT_SDT_UPDATE,
 	/*PES packet has been received - assoctiated parameter: PES packet*/
@@ -94,6 +107,8 @@ enum
 	GF_M2TS_EVT_SL_PCK,
 };
 
+typedef void (*gf_m2ts_section_callback)(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pes, unsigned char *data, u32 data_size, Bool is_repeated); 
+
 /*MPEG-2 TS section object (PAT, PMT, etc..)*/
 typedef struct
 {
@@ -103,20 +118,28 @@ typedef struct
 	/*section reassembler*/
 	s16 cc;
 	unsigned char *section;
-	u16 section_recv;
+	u16 received;
 	/*section header*/
 	u8 table_id;
 	u8 syntax_indicator;
-	u16 section_len;
+	u16 length;
 	u16 sec_id;
 	u8 version_number;
 	u8 current_next_indicator;
 	u8 section_number;
 	u8 last_section_number;
+	/*start offset in reconstructed section*/
 	u8 start;
 	/*error indiator*/
 	u8 had_error;
-} GF_M2TS_Section;
+	u8 last_version_number;
+
+	/*section aggregator*/
+	unsigned char *data;
+	u32 data_size;
+
+	gf_m2ts_section_callback process_section; 
+} GF_M2TS_SectionFilter;
 
 /*MPEG-2 TS program object*/
 typedef struct 
@@ -133,19 +156,23 @@ typedef struct
 } GF_M2TS_Program;
 
 /*Abstract Section/PES stream object, only used for type casting*/
-#define ABSTRACT_ES GF_M2TS_Program *program; \
-					u32 pid; \
-					u32 stream_type;
-typedef struct 
+#define ABSTRACT_ES		\
+			GF_M2TS_Program *program; \
+			u32 pid; \
+			GF_M2TS_SectionFilter *sec;	\
+
+
+struct tag_m2ts_es
 {
 	ABSTRACT_ES
-} GF_M2TS_ES;
+};
 
 /*MPEG-2 TS ES object*/
 typedef struct tag_m2ts_pes
 {
 	ABSTRACT_ES
 	u32 lang;
+	u32 stream_type;
 
 	/*object info*/
 	u32 vid_w, vid_h, vid_par, aud_sr, aud_nb_ch;
@@ -170,18 +197,7 @@ typedef struct tag_m2ts_pes
 	Bool has_SL; 
 	Bool has_FMC;
 	u32 ES_ID;
-	GF_M2TS_Section *mpeg4_sec;
 } GF_M2TS_PES;
-
-
-/*MPEG-2 TS PMT stream*/
-typedef struct 
-{
-	GF_M2TS_Program *program;
-	u32 pid;
-	/*section filter*/
-	GF_M2TS_Section *sec;
-} GF_M2TS_PMT;
 
 /*SDT information object*/
 typedef struct
@@ -216,7 +232,7 @@ typedef struct
 } GF_M2TS_SL_PCK;
 
 /*MPEG-2 TS demuxer*/
-typedef struct tag_m2ts_demux
+struct tag_m2ts_demux
 {
 	GF_M2TS_ES *ess[GF_M2TS_MAX_STREAMS];
 	GF_List *programs;
@@ -232,18 +248,8 @@ typedef struct tag_m2ts_demux
 	unsigned char *buffer;
 	u32 buffer_size, alloc_size;
 	/*default transport PID filters*/
-	GF_M2TS_Section *pas, *nit, *sdt;
-
-	Bool has_all_first_dts;
-
-	/* when writing to file */
-	FILE *pes_out;
-
-	/* when dumping TS information */
-	u32 dump_pid;
-	Bool has_seen_pat;
-
-} GF_M2TS_Demuxer;
+	GF_M2TS_SectionFilter *pas, *nit, *sdt;
+};
 
 
 GF_M2TS_Demuxer *gf_m2ts_demux_new();

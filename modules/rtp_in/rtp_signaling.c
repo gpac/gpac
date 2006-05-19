@@ -142,7 +142,6 @@ void RP_ProcessSetup(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	u32 i;
 	GF_RTSPTransport *trans;
 	
-	
 	ch = com->user_data;
 	if (e) goto exit;
 
@@ -162,6 +161,10 @@ void RP_ProcessSetup(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	/*transport setup: break at the first correct transport */
 	i=0;
 	while ((trans = gf_list_enum(sess->rtsp_rsp->Transports, &i))) {
+		/*copy over prev ports*/
+		if (ch->owner->force_client_ports)
+			gf_rtp_get_ports(ch->rtp_ch, &trans->client_port_first, &trans->client_port_last);
+		
 		e = gf_rtp_setup_transport(ch->rtp_ch, trans, gf_rtsp_get_server_name(sess->session));
 		if (!e) break;
 	}

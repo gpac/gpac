@@ -29,7 +29,7 @@
 #include <gpac/options.h>
 
 #ifndef GPAC_DISABLE_SVG
-#include "svg/svg_stacks.h"
+#include "svg_stacks.h"
 #endif
 
 void R2D_MapCoordsToAR(Render2D *sr, s32 inX, s32 inY, Fixed *x, Fixed *y)
@@ -394,6 +394,23 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 				break;
 			}
 			cursor_type = evt.has_ui_events ? GF_CURSOR_TOUCH : GF_CURSOR_NORMAL;
+		} else {
+			/*mouse out*/
+			if (sr->grab_node) {
+				memset(&evt, 0, sizeof(GF_DOM_Event));
+				evt.clientX = evt.screenX = FIX2INT(X);
+				evt.clientY = evt.screenY = FIX2INT(Y);
+				evt.bubbles = 1;
+				evt.cancelable = 1;
+				evt.ctrl_key = (sr->compositor->key_states & GF_KM_CTRL) ? 1 : 0;
+				evt.shift_key = (sr->compositor->key_states & GF_KM_SHIFT) ? 1 : 0;
+				evt.alt_key = (sr->compositor->key_states & GF_KM_ALT) ? 1 : 0;
+				evt.type = SVG_DOM_EVT_MOUSEOUT;
+				ret += gf_dom_event_fire(sr->grab_node->owner, NULL, &evt);
+				if (sr->grab_node->owner == sr->focus_node) sr->focus_node = NULL;
+			}
+			sr->grab_node = NULL;
+			sr->grab_ctx = NULL;
 		}
 		if (sr->last_sensor != cursor_type) {
 			R2DSETCURSOR(cursor_type);

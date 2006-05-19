@@ -30,16 +30,6 @@
     <ref name='svg.CorePreserve.attr'/>
     <ref name='svg.External.attr'/>
     <ref name='svg.ContentType.attr'/>
-    <optional>
-      <attribute name='lsr:begin' svg:animatable='false' svg:inheritable='false'>
-		<text/>
-	  </attribute>
-    </optional>
-    <optional>
-      <attribute name='lsr:enabled' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Boolean.datatype'/>
-      </attribute>
-    </optional>
   </define>
 
   <define name='script.CM'>

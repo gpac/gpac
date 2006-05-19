@@ -147,8 +147,8 @@ BEGIN
             MENUITEM "Ratio 16/9",                  IDM_VIEW_AR_16_9
         END
         MENUITEM SEPARATOR
-        MENUITEM "Options",                     IDM_MENU_SWITCH
         MENUITEM "Disable Playlist",            IDS_CAP_DISABLE_PLAYLIST
+        MENUITEM "Options",                     IDM_MENU_SWITCH
     END
 END
 

@@ -78,6 +78,7 @@ static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
 		GF_AVCConfigSlot *slc = gf_list_get(avcc->sequenceParameterSets, 0);
 		gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
+		gf_odf_avc_cfg_del(avcc);
 
 		if ((par_n>1) && (par_d>1)) 
 			tk_w = tk_w * par_n / par_d;
@@ -4633,26 +4634,6 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		if (!pck->stream->program->first_dts || 
 			pck->stream->program->first_dts > pck->stream->first_dts) {
 			pck->stream->program->first_dts = pck->stream->first_dts;
-		}
-		if (!ts->has_all_first_dts) {
-			Bool stop = 0;
-			u32 i, prog_count = gf_list_count(ts->programs);
-			for (i=0;i<prog_count; i++) {
-				GF_M2TS_Program *prog = gf_list_get(ts->programs, i);
-				u32 j, stream_count = gf_list_count(prog->streams);
-				for (j=0;j<stream_count;j++) {
-					GF_M2TS_ES *es = gf_list_get(prog->streams, j);
-					if (es->pid != prog->pmt_pid) {
-						GF_M2TS_PES *pes = (GF_M2TS_PES *)es; 
-						if (!pes->first_dts) {
-							stop = 1;
-							break;
-						}
-					}
-				}
-				if (stop) break;
-			}
-			if (stop == 0) ts->has_all_first_dts = 1;
 		}
 	}
 

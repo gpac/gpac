@@ -91,6 +91,7 @@ void gf_sg_command_del(GF_Command *com)
 			free(inf);
 		}
 	} else {
+#ifndef GPAC_DISABLE_SVG
 		while (gf_list_count(com->command_fields)) {
 			GF_CommandField *inf = gf_list_get(com->command_fields, 0);
 			gf_list_rem(com->command_fields, 0);
@@ -104,6 +105,7 @@ void gf_sg_command_del(GF_Command *com)
 			}
 			free(inf);
 		}
+#endif
 	}
 	gf_list_del(com->command_fields);
 

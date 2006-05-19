@@ -691,18 +691,17 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 {
 	u32 len;
 	char *tmp;
-	v->owner_animation = (GF_Node *)e;
 
 	/* Offset Values */
 	if ((d[0] >= '0' && d[0] <= '9') || d[0] == '+' || d[0] == '-'){
-		v->type = SMIL_TIME_CLOCK;
+		v->type = GF_SMIL_TIME_CLOCK;
 		svg_parse_clock_value(d, &(v->clock));
 		return;
 	} 
 	
 	/* Indefinite Values */
 	else if (!strcmp(d, "indefinite")) {
-		v->type = SMIL_TIME_INDEFINITE;
+		v->type = GF_SMIL_TIME_INDEFINITE;
 		return;
 	} 
 
@@ -714,7 +713,7 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 		Float seconds;
 		char *tmp1, *tmp2;
 
-		v->type = SMIL_TIME_WALLCLOCK;
+		v->type = GF_SMIL_TIME_WALLCLOCK;
 		tmp += 10;
 		if ((tmp1 = strchr(tmp, 'T')) ) {
 			/* From tmp to wallStartTime, we parse a date */
@@ -746,7 +745,7 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 	/* AccessKey Values */
 	else if ((tmp = strstr(d, "accessKey("))) {
 		char *sep;
-		v->type = SMIL_TIME_EVENT;
+		v->type = GF_SMIL_TIME_EVENT;
 		v->event.type = SVG_DOM_EVT_KEYPRESS;
 		v->element = e->sgprivate->scenegraph->RootNode;
 		tmp+=10;
@@ -758,7 +757,7 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 
 	else {
 		char token[500];
-		v->type = SMIL_TIME_EVENT;
+		v->type = GF_SMIL_TIME_EVENT;
 		if ((tmp = strchr(d, '+')) || (tmp = strchr(d, '-'))) {
 			len = tmp - d;
 			while (d[len-1] == ' ' && len > 0) len--;
@@ -1574,13 +1573,13 @@ static void smil_parse_time_list(SVGElement *e, GF_List *values, char *begin_or_
 			added = 0;
 			for (i=0; i<gf_list_count(sorted); i++) {
 				sv = gf_list_get(sorted, i);
-				if (v->type >= SMIL_TIME_EVENT) {
+				if (v->type >= GF_SMIL_TIME_EVENT) {
 					/* unresolved or indefinite so add at the end of the sorted list */
 					gf_list_add(sorted, v);
 					added = 1;
 					break;
 				} else {
-					if (sv->type >= SMIL_TIME_EVENT) {
+					if (sv->type >= GF_SMIL_TIME_EVENT) {
 						gf_list_insert(sorted, v, i);
 						added = 1;
 					} else {
@@ -3390,18 +3389,19 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 	case SMIL_Times_datatype:
 	{
 		u32 i, count;
+		GF_Node *par = gf_node_get_parent((GF_Node *)elt, 0);
 		GF_List *l = *(GF_List **) info->far_ptr;
 		count = gf_list_count(l);
 		for (i=0; i<count; i++) {
 			char szBuf[1000];
 			SMIL_Time *t = gf_list_get(l, i);
 			if (i) strcat(attValue, ";");
-			if (t->type == SMIL_TIME_CLOCK) {
+			if (t->type == GF_SMIL_TIME_CLOCK) {
 				sprintf(szBuf, "%gs", t->clock);
 				strcat(attValue, szBuf);
-			} else if (t->type==SMIL_TIME_INDEFINITE) {
+			} else if (t->type==GF_SMIL_TIME_INDEFINITE) {
 				strcat(attValue, "indefinite");
-			} else if (t->type==SMIL_TIME_WALLCLOCK) {
+			} else if (t->type==GF_SMIL_TIME_WALLCLOCK) {
 				u32 h, m, s;
 				/*TODO - day month and year*/
 				h = (u32) t->clock * 3600;
@@ -3410,7 +3410,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 				sprintf(szBuf, "wallclock(%d:%d:%d)", h, m, s);
 				strcat(attValue, szBuf);
 			}
-			else if ((t->dynamic_type==1) && (t->type==SMIL_TIME_EVENT)) {
+			else if (t->type==GF_SMIL_TIME_EVENT) {
 				if (t->event.type == SVG_DOM_EVT_KEYPRESS) {
 					svg_dump_access_key(&t->event, szBuf);
 					strcat(attValue, szBuf);
@@ -3418,8 +3418,14 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 					if (t->element_id) {
 						strcat(attValue, t->element_id);
 						strcat(attValue, ".");
-					} else if (t->element) {
-						strcat(attValue, gf_node_get_name(t->element));
+					} else if (t->element && (t->element!=par) && gf_node_get_id(t->element) ) {
+						const char *name = gf_node_get_name(t->element);
+						if (name) {
+							strcat(attValue, name);
+						} else {
+							sprintf(szBuf, "N%d", gf_node_get_id(t->element)-1 );
+							strcat(attValue, szBuf);
+						}
 						strcat(attValue, ".");
 					}
 					strcat(attValue, gf_dom_event_get_name(t->event.type));
@@ -3822,7 +3828,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 			SMIL_Time *p2 = gf_list_get(l2, i);
 			if (p1->type != p2->type) return 0;
 			if (p1->clock != p2->clock) return 0;
-			if (p1->type==SMIL_TIME_EVENT) {
+			if (p1->type==GF_SMIL_TIME_EVENT) {
 				if (p1->event.type != p2->event.type) return 0;
 				if (p1->event.parameter != p2->event.parameter) return 0;
 			}

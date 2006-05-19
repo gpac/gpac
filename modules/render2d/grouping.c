@@ -26,7 +26,7 @@
 #include "grouping.h"
 #include "visualsurface2d.h"
 #ifndef GPAC_DISABLE_SVG
-#include "svg/svg_stacks.h"
+#include "svg_stacks.h"
 #endif
 
 void child2d_compute_bounds(ChildGroup2D *cg)

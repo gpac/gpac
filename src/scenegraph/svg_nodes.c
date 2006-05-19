@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed Mar 22 15:27:25 2006
+	DO NOT MOFIFY - File generated on GMT Wed May 17 11:54:23 2006
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -2207,6 +2207,196 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+void *gf_svg_new_conditional()
+{
+	SVGconditionalElement *p;
+	GF_SAFEALLOC(p, sizeof(SVGconditionalElement));
+	if (!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_SVG_conditional);
+	gf_sg_parent_setup((GF_Node *) p);
+#ifdef GF_NODE_USE_POINTERS
+	((GF_Node *p)->sgprivate->name = "conditional";
+	((GF_Node *p)->sgprivate->node_del = SVG_conditional_Del;
+	((GF_Node *p)->sgprivate->get_field = SVG_conditional_get_attribute;
+#endif
+	gf_svg_init_core((SVGElement *)p);
+	gf_svg_init_lsr_conditional(&p->updates);
+	return p;
+}
+
+static void gf_svg_conditional_del(GF_Node *node)
+{
+	SVGconditionalElement *p = (SVGconditionalElement *)node;
+	gf_svg_reset_base_element((SVGElement *)p);
+	gf_svg_reset_lsr_conditional(&p->updates);
+	gf_sg_parent_reset((GF_Node *) p);
+	gf_node_free((GF_Node *)p);
+}
+
+static GF_Err gf_svg_conditional_get_attribute(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+		case 0:
+			info->name = "id";
+			info->fieldType = SVG_ID_datatype;
+			info->far_ptr = &node->sgprivate->NodeName;
+			return GF_OK;
+		case 1:
+			info->name = "xml:id";
+			info->fieldType = SVG_ID_datatype;
+			info->far_ptr = &node->sgprivate->NodeName;
+			return GF_OK;
+		case 2:
+			info->name = "class";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->_class;
+			return GF_OK;
+		case 3:
+			info->name = "xml:lang";
+			info->fieldType = SVG_LanguageID_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->lang;
+			return GF_OK;
+		case 4:
+			info->name = "xml:base";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->base;
+			return GF_OK;
+		case 5:
+			info->name = "xml:space";
+			info->fieldType = XML_Space_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->space;
+			return GF_OK;
+		case 6:
+			info->name = "externalResourcesRequired";
+			info->fieldType = SVG_Boolean_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->eRR;
+			return GF_OK;
+		case 7:
+			info->name = "lsr:begin";
+			info->fieldType = SMIL_Times_datatype;
+			info->far_ptr = & ((SVGconditionalElement *)node)->lsr_begin;
+			return GF_OK;
+		case 8:
+			info->name = "lsr:enabled";
+			info->fieldType = SVG_Boolean_datatype;
+			info->far_ptr = & ((SVGconditionalElement *)node)->lsr_enabled;
+			return GF_OK;
+		default: return GF_BAD_PARAM;
+	}
+}
+
+void *gf_svg_new_cursorManager()
+{
+	SVGcursorManagerElement *p;
+	GF_SAFEALLOC(p, sizeof(SVGcursorManagerElement));
+	if (!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_SVG_cursorManager);
+	gf_sg_parent_setup((GF_Node *) p);
+#ifdef GF_NODE_USE_POINTERS
+	((GF_Node *p)->sgprivate->name = "cursorManager";
+	((GF_Node *p)->sgprivate->node_del = SVG_cursorManager_Del;
+	((GF_Node *p)->sgprivate->get_field = SVG_cursorManager_get_attribute;
+#endif
+	gf_svg_init_core((SVGElement *)p);
+	gf_svg_init_xlink((SVGElement *)p);
+	return p;
+}
+
+static void gf_svg_cursorManager_del(GF_Node *node)
+{
+	SVGcursorManagerElement *p = (SVGcursorManagerElement *)node;
+	gf_svg_reset_base_element((SVGElement *)p);
+	gf_sg_parent_reset((GF_Node *) p);
+	gf_node_free((GF_Node *)p);
+}
+
+static GF_Err gf_svg_cursorManager_get_attribute(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+		case 0:
+			info->name = "id";
+			info->fieldType = SVG_ID_datatype;
+			info->far_ptr = &node->sgprivate->NodeName;
+			return GF_OK;
+		case 1:
+			info->name = "xml:id";
+			info->fieldType = SVG_ID_datatype;
+			info->far_ptr = &node->sgprivate->NodeName;
+			return GF_OK;
+		case 2:
+			info->name = "class";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->_class;
+			return GF_OK;
+		case 3:
+			info->name = "xml:lang";
+			info->fieldType = SVG_LanguageID_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->lang;
+			return GF_OK;
+		case 4:
+			info->name = "xml:base";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->base;
+			return GF_OK;
+		case 5:
+			info->name = "xml:space";
+			info->fieldType = XML_Space_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->space;
+			return GF_OK;
+		case 6:
+			info->name = "externalResourcesRequired";
+			info->fieldType = SVG_Boolean_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->eRR;
+			return GF_OK;
+		case 7:
+			info->name = "xlink:href";
+			info->fieldType = SVG_IRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->href;
+			return GF_OK;
+		case 8:
+			info->name = "xlink:show";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->show;
+			return GF_OK;
+		case 9:
+			info->name = "xlink:title";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->title;
+			return GF_OK;
+		case 10:
+			info->name = "xlink:actuate";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->actuate;
+			return GF_OK;
+		case 11:
+			info->name = "xlink:role";
+			info->fieldType = SVG_IRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->role;
+			return GF_OK;
+		case 12:
+			info->name = "xlink:arcrole";
+			info->fieldType = SVG_IRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->arcrole;
+			return GF_OK;
+		case 13:
+			info->name = "xlink:type";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->xlink->type;
+			return GF_OK;
+		case 14:
+			info->name = "x";
+			info->fieldType = SVG_Length_datatype;
+			info->far_ptr = & ((SVGcursorManagerElement *)node)->x;
+			return GF_OK;
+		case 15:
+			info->name = "y";
+			info->fieldType = SVG_Length_datatype;
+			info->far_ptr = & ((SVGcursorManagerElement *)node)->y;
+			return GF_OK;
+		default: return GF_BAD_PARAM;
+	}
+}
+
 void *gf_svg_new_defs()
 {
 	SVGdefsElement *p;
@@ -4208,16 +4398,6 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 59:
-			info->name = "lsr:choice";
-			info->fieldType = LASeR_Choice_datatype;
-			info->far_ptr = & ((SVGgElement *)node)->lsr_choice;
-			return GF_OK;
-		case 60:
-			info->name = "lsr:size";
-			info->fieldType = LASeR_Size_datatype;
-			info->far_ptr = & ((SVGgElement *)node)->lsr_size;
-			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
 }
@@ -5523,14 +5703,9 @@ static GF_Err gf_svg_listener_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = & ((SVGlistenerElement *)node)->handler;
 			return GF_OK;
 		case 14:
-			info->name = "lsr:timeAttribute";
-			info->fieldType = LASeR_TimeAttribute_datatype;
-			info->far_ptr = & ((SVGlistenerElement *)node)->lsr_timeAttribute;
-			return GF_OK;
-		case 15:
-			info->name = "lsr:delay";
-			info->fieldType = SVG_Clock_datatype;
-			info->far_ptr = & ((SVGlistenerElement *)node)->lsr_delay;
+			info->name = "enabled";
+			info->fieldType = SVG_Boolean_datatype;
+			info->far_ptr = & ((SVGlistenerElement *)node)->enabled;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
@@ -7609,6 +7784,341 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
+void *gf_svg_new_rectClip()
+{
+	SVGrectClipElement *p;
+	GF_SAFEALLOC(p, sizeof(SVGrectClipElement));
+	if (!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_SVG_rectClip);
+	gf_sg_parent_setup((GF_Node *) p);
+#ifdef GF_NODE_USE_POINTERS
+	((GF_Node *p)->sgprivate->name = "rectClip";
+	((GF_Node *p)->sgprivate->node_del = SVG_rectClip_Del;
+	((GF_Node *p)->sgprivate->get_field = SVG_rectClip_get_attribute;
+#endif
+	gf_svg_init_core((SVGElement *)p);
+	gf_svg_init_properties((SVGElement *)p);
+	gf_svg_init_focus((SVGElement *)p);
+	gf_svg_init_conditional((SVGElement *)p);
+	gf_mx2d_init(p->transform);
+	return p;
+}
+
+static void gf_svg_rectClip_del(GF_Node *node)
+{
+	SVGrectClipElement *p = (SVGrectClipElement *)node;
+	gf_svg_reset_base_element((SVGElement *)p);
+	gf_sg_parent_reset((GF_Node *) p);
+	gf_node_free((GF_Node *)p);
+}
+
+static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+		case 0:
+			info->name = "id";
+			info->fieldType = SVG_ID_datatype;
+			info->far_ptr = &node->sgprivate->NodeName;
+			return GF_OK;
+		case 1:
+			info->name = "xml:id";
+			info->fieldType = SVG_ID_datatype;
+			info->far_ptr = &node->sgprivate->NodeName;
+			return GF_OK;
+		case 2:
+			info->name = "class";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->_class;
+			return GF_OK;
+		case 3:
+			info->name = "xml:lang";
+			info->fieldType = SVG_LanguageID_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->lang;
+			return GF_OK;
+		case 4:
+			info->name = "xml:base";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->base;
+			return GF_OK;
+		case 5:
+			info->name = "xml:space";
+			info->fieldType = XML_Space_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->space;
+			return GF_OK;
+		case 6:
+			info->name = "externalResourcesRequired";
+			info->fieldType = SVG_Boolean_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->eRR;
+			return GF_OK;
+		case 7:
+			info->name = "audio-level";
+			info->fieldType = SVG_AudioLevel_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
+			return GF_OK;
+		case 8:
+			info->name = "display";
+			info->fieldType = SVG_Display_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->display;
+			return GF_OK;
+		case 9:
+			info->name = "image-rendering";
+			info->fieldType = SVG_RenderingHint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->image_rendering;
+			return GF_OK;
+		case 10:
+			info->name = "pointer-events";
+			info->fieldType = SVG_PointerEvents_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->pointer_events;
+			return GF_OK;
+		case 11:
+			info->name = "shape-rendering";
+			info->fieldType = SVG_RenderingHint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->shape_rendering;
+			return GF_OK;
+		case 12:
+			info->name = "text-rendering";
+			info->fieldType = SVG_RenderingHint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_rendering;
+			return GF_OK;
+		case 13:
+			info->name = "viewport-fill";
+			info->fieldType = SVG_Paint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
+			return GF_OK;
+		case 14:
+			info->name = "viewport-fill-opacity";
+			info->fieldType = SVG_Opacity_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
+			return GF_OK;
+		case 15:
+			info->name = "visibility";
+			info->fieldType = SVG_Visibility_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->visibility;
+			return GF_OK;
+		case 16:
+			info->name = "color";
+			info->fieldType = SVG_Paint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->color;
+			return GF_OK;
+		case 17:
+			info->name = "color-rendering";
+			info->fieldType = SVG_RenderingHint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->color_rendering;
+			return GF_OK;
+		case 18:
+			info->name = "display-align";
+			info->fieldType = SVG_DisplayAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->display_align;
+			return GF_OK;
+		case 19:
+			info->name = "fill";
+			info->fieldType = SVG_Paint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->fill;
+			return GF_OK;
+		case 20:
+			info->name = "fill-opacity";
+			info->fieldType = SVG_Opacity_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
+			return GF_OK;
+		case 21:
+			info->name = "fill-rule";
+			info->fieldType = SVG_FillRule_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->fill_rule;
+			return GF_OK;
+		case 22:
+			info->name = "font-family";
+			info->fieldType = SVG_FontFamily_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->font_family;
+			return GF_OK;
+		case 23:
+			info->name = "font-size";
+			info->fieldType = SVG_FontSize_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->font_size;
+			return GF_OK;
+		case 24:
+			info->name = "font-style";
+			info->fieldType = SVG_FontStyle_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->font_style;
+			return GF_OK;
+		case 25:
+			info->name = "font-weight";
+			info->fieldType = SVG_FontWeight_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->font_weight;
+			return GF_OK;
+		case 26:
+			info->name = "line-increment";
+			info->fieldType = SVG_LineIncrement_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
+			return GF_OK;
+		case 27:
+			info->name = "solid-color";
+			info->fieldType = SVG_SVGColor_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->solid_color;
+			return GF_OK;
+		case 28:
+			info->name = "solid-opacity";
+			info->fieldType = SVG_Opacity_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
+			return GF_OK;
+		case 29:
+			info->name = "stop-color";
+			info->fieldType = SVG_SVGColor_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stop_color;
+			return GF_OK;
+		case 30:
+			info->name = "stop-opacity";
+			info->fieldType = SVG_Opacity_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
+			return GF_OK;
+		case 31:
+			info->name = "stroke";
+			info->fieldType = SVG_Paint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke;
+			return GF_OK;
+		case 32:
+			info->name = "stroke-dasharray";
+			info->fieldType = SVG_StrokeDashArray_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_dasharray;
+			return GF_OK;
+		case 33:
+			info->name = "stroke-dashoffset";
+			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
+			return GF_OK;
+		case 34:
+			info->name = "stroke-linecap";
+			info->fieldType = SVG_StrokeLineCap_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_linecap;
+			return GF_OK;
+		case 35:
+			info->name = "stroke-linejoin";
+			info->fieldType = SVG_StrokeLineJoin_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_linejoin;
+			return GF_OK;
+		case 36:
+			info->name = "stroke-miterlimit";
+			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
+			return GF_OK;
+		case 37:
+			info->name = "stroke-opacity";
+			info->fieldType = SVG_Opacity_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
+			return GF_OK;
+		case 38:
+			info->name = "stroke-width";
+			info->fieldType = SVG_StrokeWidth_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
+			return GF_OK;
+		case 39:
+			info->name = "text-anchor";
+			info->fieldType = SVG_TextAnchor_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
+			return GF_OK;
+		case 40:
+			info->name = "vector-effect";
+			info->fieldType = SVG_VectorEffect_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
+			return GF_OK;
+		case 41:
+			info->name = "focusHighlight";
+			info->fieldType = SVG_FocusHighlight_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
+			return GF_OK;
+		case 42:
+			info->name = "focusable";
+			info->fieldType = SVG_Boolean_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->focusable;
+			return GF_OK;
+		case 43:
+			info->name = "nav-down";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
+			return GF_OK;
+		case 44:
+			info->name = "nav-down-left";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
+			return GF_OK;
+		case 45:
+			info->name = "nav-down-right";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
+			return GF_OK;
+		case 46:
+			info->name = "nav-left";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
+			return GF_OK;
+		case 47:
+			info->name = "nav-next";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
+			return GF_OK;
+		case 48:
+			info->name = "nav-prev";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
+			return GF_OK;
+		case 49:
+			info->name = "nav-right";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
+			return GF_OK;
+		case 50:
+			info->name = "nav-up";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
+			return GF_OK;
+		case 51:
+			info->name = "nav-up-left";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
+			return GF_OK;
+		case 52:
+			info->name = "nav-up-right";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
+			return GF_OK;
+		case 53:
+			info->name = "requiredExtensions";
+			info->fieldType = SVG_ListOfIRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
+			return GF_OK;
+		case 54:
+			info->name = "requiredFeatures";
+			info->fieldType = SVG_ListOfIRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
+			return GF_OK;
+		case 55:
+			info->name = "requiredFonts";
+			info->fieldType = SVG_FontList_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
+			return GF_OK;
+		case 56:
+			info->name = "requiredFormats";
+			info->fieldType = SVG_FormatList_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
+			return GF_OK;
+		case 57:
+			info->name = "systemLanguage";
+			info->fieldType = SVG_LanguageIDs_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
+			return GF_OK;
+		case 58:
+			info->name = "transform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = &((SVGTransformableElement *)node)->transform;
+			return GF_OK;
+		case 59:
+			info->name = "size";
+			info->fieldType = LASeR_Size_datatype;
+			info->far_ptr = & ((SVGrectClipElement *)node)->size;
+			return GF_OK;
+		default: return GF_BAD_PARAM;
+	}
+}
+
 void *gf_svg_new_script()
 {
 	SVGscriptElement *p;
@@ -7623,7 +8133,6 @@ void *gf_svg_new_script()
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
-	gf_svg_init_lsr_script(&p->lsr_script);
 	return p;
 }
 
@@ -7631,7 +8140,6 @@ static void gf_svg_script_del(GF_Node *node)
 {
 	SVGscriptElement *p = (SVGscriptElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
-	gf_svg_reset_lsr_script(&p->lsr_script);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -7674,15 +8182,340 @@ static GF_Err gf_svg_script_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->core->eRR;
 			return GF_OK;
+		default: return GF_BAD_PARAM;
+	}
+}
+
+void *gf_svg_new_selector()
+{
+	SVGselectorElement *p;
+	GF_SAFEALLOC(p, sizeof(SVGselectorElement));
+	if (!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_SVG_selector);
+	gf_sg_parent_setup((GF_Node *) p);
+#ifdef GF_NODE_USE_POINTERS
+	((GF_Node *p)->sgprivate->name = "selector";
+	((GF_Node *p)->sgprivate->node_del = SVG_selector_Del;
+	((GF_Node *p)->sgprivate->get_field = SVG_selector_get_attribute;
+#endif
+	gf_svg_init_core((SVGElement *)p);
+	gf_svg_init_properties((SVGElement *)p);
+	gf_svg_init_focus((SVGElement *)p);
+	gf_svg_init_conditional((SVGElement *)p);
+	gf_mx2d_init(p->transform);
+	return p;
+}
+
+static void gf_svg_selector_del(GF_Node *node)
+{
+	SVGselectorElement *p = (SVGselectorElement *)node;
+	gf_svg_reset_base_element((SVGElement *)p);
+	gf_sg_parent_reset((GF_Node *) p);
+	gf_node_free((GF_Node *)p);
+}
+
+static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+		case 0:
+			info->name = "id";
+			info->fieldType = SVG_ID_datatype;
+			info->far_ptr = &node->sgprivate->NodeName;
+			return GF_OK;
+		case 1:
+			info->name = "xml:id";
+			info->fieldType = SVG_ID_datatype;
+			info->far_ptr = &node->sgprivate->NodeName;
+			return GF_OK;
+		case 2:
+			info->name = "class";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->_class;
+			return GF_OK;
+		case 3:
+			info->name = "xml:lang";
+			info->fieldType = SVG_LanguageID_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->lang;
+			return GF_OK;
+		case 4:
+			info->name = "xml:base";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->base;
+			return GF_OK;
+		case 5:
+			info->name = "xml:space";
+			info->fieldType = XML_Space_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->space;
+			return GF_OK;
+		case 6:
+			info->name = "externalResourcesRequired";
+			info->fieldType = SVG_Boolean_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->eRR;
+			return GF_OK;
 		case 7:
-			info->name = "lsr:begin";
-			info->fieldType = SMIL_Times_datatype;
-			info->far_ptr = & ((SVGscriptElement *)node)->lsr_begin;
+			info->name = "audio-level";
+			info->fieldType = SVG_AudioLevel_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
-			info->name = "lsr:enabled";
+			info->name = "display";
+			info->fieldType = SVG_Display_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->display;
+			return GF_OK;
+		case 9:
+			info->name = "image-rendering";
+			info->fieldType = SVG_RenderingHint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->image_rendering;
+			return GF_OK;
+		case 10:
+			info->name = "pointer-events";
+			info->fieldType = SVG_PointerEvents_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->pointer_events;
+			return GF_OK;
+		case 11:
+			info->name = "shape-rendering";
+			info->fieldType = SVG_RenderingHint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->shape_rendering;
+			return GF_OK;
+		case 12:
+			info->name = "text-rendering";
+			info->fieldType = SVG_RenderingHint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_rendering;
+			return GF_OK;
+		case 13:
+			info->name = "viewport-fill";
+			info->fieldType = SVG_Paint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
+			return GF_OK;
+		case 14:
+			info->name = "viewport-fill-opacity";
+			info->fieldType = SVG_Opacity_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
+			return GF_OK;
+		case 15:
+			info->name = "visibility";
+			info->fieldType = SVG_Visibility_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->visibility;
+			return GF_OK;
+		case 16:
+			info->name = "color";
+			info->fieldType = SVG_Paint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->color;
+			return GF_OK;
+		case 17:
+			info->name = "color-rendering";
+			info->fieldType = SVG_RenderingHint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->color_rendering;
+			return GF_OK;
+		case 18:
+			info->name = "display-align";
+			info->fieldType = SVG_DisplayAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->display_align;
+			return GF_OK;
+		case 19:
+			info->name = "fill";
+			info->fieldType = SVG_Paint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->fill;
+			return GF_OK;
+		case 20:
+			info->name = "fill-opacity";
+			info->fieldType = SVG_Opacity_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
+			return GF_OK;
+		case 21:
+			info->name = "fill-rule";
+			info->fieldType = SVG_FillRule_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->fill_rule;
+			return GF_OK;
+		case 22:
+			info->name = "font-family";
+			info->fieldType = SVG_FontFamily_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->font_family;
+			return GF_OK;
+		case 23:
+			info->name = "font-size";
+			info->fieldType = SVG_FontSize_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->font_size;
+			return GF_OK;
+		case 24:
+			info->name = "font-style";
+			info->fieldType = SVG_FontStyle_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->font_style;
+			return GF_OK;
+		case 25:
+			info->name = "font-weight";
+			info->fieldType = SVG_FontWeight_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->font_weight;
+			return GF_OK;
+		case 26:
+			info->name = "line-increment";
+			info->fieldType = SVG_LineIncrement_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
+			return GF_OK;
+		case 27:
+			info->name = "solid-color";
+			info->fieldType = SVG_SVGColor_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->solid_color;
+			return GF_OK;
+		case 28:
+			info->name = "solid-opacity";
+			info->fieldType = SVG_Opacity_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
+			return GF_OK;
+		case 29:
+			info->name = "stop-color";
+			info->fieldType = SVG_SVGColor_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stop_color;
+			return GF_OK;
+		case 30:
+			info->name = "stop-opacity";
+			info->fieldType = SVG_Opacity_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
+			return GF_OK;
+		case 31:
+			info->name = "stroke";
+			info->fieldType = SVG_Paint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke;
+			return GF_OK;
+		case 32:
+			info->name = "stroke-dasharray";
+			info->fieldType = SVG_StrokeDashArray_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_dasharray;
+			return GF_OK;
+		case 33:
+			info->name = "stroke-dashoffset";
+			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
+			return GF_OK;
+		case 34:
+			info->name = "stroke-linecap";
+			info->fieldType = SVG_StrokeLineCap_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_linecap;
+			return GF_OK;
+		case 35:
+			info->name = "stroke-linejoin";
+			info->fieldType = SVG_StrokeLineJoin_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_linejoin;
+			return GF_OK;
+		case 36:
+			info->name = "stroke-miterlimit";
+			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
+			return GF_OK;
+		case 37:
+			info->name = "stroke-opacity";
+			info->fieldType = SVG_Opacity_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
+			return GF_OK;
+		case 38:
+			info->name = "stroke-width";
+			info->fieldType = SVG_StrokeWidth_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
+			return GF_OK;
+		case 39:
+			info->name = "text-anchor";
+			info->fieldType = SVG_TextAnchor_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
+			return GF_OK;
+		case 40:
+			info->name = "vector-effect";
+			info->fieldType = SVG_VectorEffect_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
+			return GF_OK;
+		case 41:
+			info->name = "focusHighlight";
+			info->fieldType = SVG_FocusHighlight_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
+			return GF_OK;
+		case 42:
+			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
-			info->far_ptr = & ((SVGscriptElement *)node)->lsr_enabled;
+			info->far_ptr = &((SVGElement *)node)->focus->focusable;
+			return GF_OK;
+		case 43:
+			info->name = "nav-down";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
+			return GF_OK;
+		case 44:
+			info->name = "nav-down-left";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
+			return GF_OK;
+		case 45:
+			info->name = "nav-down-right";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
+			return GF_OK;
+		case 46:
+			info->name = "nav-left";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
+			return GF_OK;
+		case 47:
+			info->name = "nav-next";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
+			return GF_OK;
+		case 48:
+			info->name = "nav-prev";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
+			return GF_OK;
+		case 49:
+			info->name = "nav-right";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
+			return GF_OK;
+		case 50:
+			info->name = "nav-up";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
+			return GF_OK;
+		case 51:
+			info->name = "nav-up-left";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
+			return GF_OK;
+		case 52:
+			info->name = "nav-up-right";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
+			return GF_OK;
+		case 53:
+			info->name = "requiredExtensions";
+			info->fieldType = SVG_ListOfIRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
+			return GF_OK;
+		case 54:
+			info->name = "requiredFeatures";
+			info->fieldType = SVG_ListOfIRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
+			return GF_OK;
+		case 55:
+			info->name = "requiredFonts";
+			info->fieldType = SVG_FontList_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
+			return GF_OK;
+		case 56:
+			info->name = "requiredFormats";
+			info->fieldType = SVG_FormatList_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
+			return GF_OK;
+		case 57:
+			info->name = "systemLanguage";
+			info->fieldType = SVG_LanguageIDs_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
+			return GF_OK;
+		case 58:
+			info->name = "transform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = &((SVGTransformableElement *)node)->transform;
+			return GF_OK;
+		case 59:
+			info->name = "choice";
+			info->fieldType = LASeR_Choice_datatype;
+			info->far_ptr = & ((SVGselectorElement *)node)->choice;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
@@ -7852,6 +8685,341 @@ static GF_Err gf_svg_set_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->name = "lsr:enabled";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->anim->lsr_enabled;
+			return GF_OK;
+		default: return GF_BAD_PARAM;
+	}
+}
+
+void *gf_svg_new_simpleLayout()
+{
+	SVGsimpleLayoutElement *p;
+	GF_SAFEALLOC(p, sizeof(SVGsimpleLayoutElement));
+	if (!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_SVG_simpleLayout);
+	gf_sg_parent_setup((GF_Node *) p);
+#ifdef GF_NODE_USE_POINTERS
+	((GF_Node *p)->sgprivate->name = "simpleLayout";
+	((GF_Node *p)->sgprivate->node_del = SVG_simpleLayout_Del;
+	((GF_Node *p)->sgprivate->get_field = SVG_simpleLayout_get_attribute;
+#endif
+	gf_svg_init_core((SVGElement *)p);
+	gf_svg_init_properties((SVGElement *)p);
+	gf_svg_init_focus((SVGElement *)p);
+	gf_svg_init_conditional((SVGElement *)p);
+	gf_mx2d_init(p->transform);
+	return p;
+}
+
+static void gf_svg_simpleLayout_del(GF_Node *node)
+{
+	SVGsimpleLayoutElement *p = (SVGsimpleLayoutElement *)node;
+	gf_svg_reset_base_element((SVGElement *)p);
+	gf_sg_parent_reset((GF_Node *) p);
+	gf_node_free((GF_Node *)p);
+}
+
+static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+		case 0:
+			info->name = "id";
+			info->fieldType = SVG_ID_datatype;
+			info->far_ptr = &node->sgprivate->NodeName;
+			return GF_OK;
+		case 1:
+			info->name = "xml:id";
+			info->fieldType = SVG_ID_datatype;
+			info->far_ptr = &node->sgprivate->NodeName;
+			return GF_OK;
+		case 2:
+			info->name = "class";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->_class;
+			return GF_OK;
+		case 3:
+			info->name = "xml:lang";
+			info->fieldType = SVG_LanguageID_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->lang;
+			return GF_OK;
+		case 4:
+			info->name = "xml:base";
+			info->fieldType = SVG_String_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->base;
+			return GF_OK;
+		case 5:
+			info->name = "xml:space";
+			info->fieldType = XML_Space_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->space;
+			return GF_OK;
+		case 6:
+			info->name = "externalResourcesRequired";
+			info->fieldType = SVG_Boolean_datatype;
+			info->far_ptr = &((SVGElement *)node)->core->eRR;
+			return GF_OK;
+		case 7:
+			info->name = "audio-level";
+			info->fieldType = SVG_AudioLevel_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
+			return GF_OK;
+		case 8:
+			info->name = "display";
+			info->fieldType = SVG_Display_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->display;
+			return GF_OK;
+		case 9:
+			info->name = "image-rendering";
+			info->fieldType = SVG_RenderingHint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->image_rendering;
+			return GF_OK;
+		case 10:
+			info->name = "pointer-events";
+			info->fieldType = SVG_PointerEvents_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->pointer_events;
+			return GF_OK;
+		case 11:
+			info->name = "shape-rendering";
+			info->fieldType = SVG_RenderingHint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->shape_rendering;
+			return GF_OK;
+		case 12:
+			info->name = "text-rendering";
+			info->fieldType = SVG_RenderingHint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_rendering;
+			return GF_OK;
+		case 13:
+			info->name = "viewport-fill";
+			info->fieldType = SVG_Paint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
+			return GF_OK;
+		case 14:
+			info->name = "viewport-fill-opacity";
+			info->fieldType = SVG_Opacity_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
+			return GF_OK;
+		case 15:
+			info->name = "visibility";
+			info->fieldType = SVG_Visibility_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->visibility;
+			return GF_OK;
+		case 16:
+			info->name = "color";
+			info->fieldType = SVG_Paint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->color;
+			return GF_OK;
+		case 17:
+			info->name = "color-rendering";
+			info->fieldType = SVG_RenderingHint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->color_rendering;
+			return GF_OK;
+		case 18:
+			info->name = "display-align";
+			info->fieldType = SVG_DisplayAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->display_align;
+			return GF_OK;
+		case 19:
+			info->name = "fill";
+			info->fieldType = SVG_Paint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->fill;
+			return GF_OK;
+		case 20:
+			info->name = "fill-opacity";
+			info->fieldType = SVG_Opacity_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
+			return GF_OK;
+		case 21:
+			info->name = "fill-rule";
+			info->fieldType = SVG_FillRule_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->fill_rule;
+			return GF_OK;
+		case 22:
+			info->name = "font-family";
+			info->fieldType = SVG_FontFamily_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->font_family;
+			return GF_OK;
+		case 23:
+			info->name = "font-size";
+			info->fieldType = SVG_FontSize_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->font_size;
+			return GF_OK;
+		case 24:
+			info->name = "font-style";
+			info->fieldType = SVG_FontStyle_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->font_style;
+			return GF_OK;
+		case 25:
+			info->name = "font-weight";
+			info->fieldType = SVG_FontWeight_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->font_weight;
+			return GF_OK;
+		case 26:
+			info->name = "line-increment";
+			info->fieldType = SVG_LineIncrement_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
+			return GF_OK;
+		case 27:
+			info->name = "solid-color";
+			info->fieldType = SVG_SVGColor_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->solid_color;
+			return GF_OK;
+		case 28:
+			info->name = "solid-opacity";
+			info->fieldType = SVG_Opacity_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
+			return GF_OK;
+		case 29:
+			info->name = "stop-color";
+			info->fieldType = SVG_SVGColor_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stop_color;
+			return GF_OK;
+		case 30:
+			info->name = "stop-opacity";
+			info->fieldType = SVG_Opacity_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
+			return GF_OK;
+		case 31:
+			info->name = "stroke";
+			info->fieldType = SVG_Paint_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke;
+			return GF_OK;
+		case 32:
+			info->name = "stroke-dasharray";
+			info->fieldType = SVG_StrokeDashArray_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_dasharray;
+			return GF_OK;
+		case 33:
+			info->name = "stroke-dashoffset";
+			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
+			return GF_OK;
+		case 34:
+			info->name = "stroke-linecap";
+			info->fieldType = SVG_StrokeLineCap_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_linecap;
+			return GF_OK;
+		case 35:
+			info->name = "stroke-linejoin";
+			info->fieldType = SVG_StrokeLineJoin_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_linejoin;
+			return GF_OK;
+		case 36:
+			info->name = "stroke-miterlimit";
+			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
+			return GF_OK;
+		case 37:
+			info->name = "stroke-opacity";
+			info->fieldType = SVG_Opacity_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
+			return GF_OK;
+		case 38:
+			info->name = "stroke-width";
+			info->fieldType = SVG_StrokeWidth_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
+			return GF_OK;
+		case 39:
+			info->name = "text-anchor";
+			info->fieldType = SVG_TextAnchor_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
+			return GF_OK;
+		case 40:
+			info->name = "vector-effect";
+			info->fieldType = SVG_VectorEffect_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
+			return GF_OK;
+		case 41:
+			info->name = "focusHighlight";
+			info->fieldType = SVG_FocusHighlight_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
+			return GF_OK;
+		case 42:
+			info->name = "focusable";
+			info->fieldType = SVG_Boolean_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->focusable;
+			return GF_OK;
+		case 43:
+			info->name = "nav-down";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
+			return GF_OK;
+		case 44:
+			info->name = "nav-down-left";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
+			return GF_OK;
+		case 45:
+			info->name = "nav-down-right";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
+			return GF_OK;
+		case 46:
+			info->name = "nav-left";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
+			return GF_OK;
+		case 47:
+			info->name = "nav-next";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
+			return GF_OK;
+		case 48:
+			info->name = "nav-prev";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
+			return GF_OK;
+		case 49:
+			info->name = "nav-right";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
+			return GF_OK;
+		case 50:
+			info->name = "nav-up";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
+			return GF_OK;
+		case 51:
+			info->name = "nav-up-left";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
+			return GF_OK;
+		case 52:
+			info->name = "nav-up-right";
+			info->fieldType = SVG_Focus_datatype;
+			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
+			return GF_OK;
+		case 53:
+			info->name = "requiredExtensions";
+			info->fieldType = SVG_ListOfIRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
+			return GF_OK;
+		case 54:
+			info->name = "requiredFeatures";
+			info->fieldType = SVG_ListOfIRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
+			return GF_OK;
+		case 55:
+			info->name = "requiredFonts";
+			info->fieldType = SVG_FontList_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
+			return GF_OK;
+		case 56:
+			info->name = "requiredFormats";
+			info->fieldType = SVG_FormatList_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
+			return GF_OK;
+		case 57:
+			info->name = "systemLanguage";
+			info->fieldType = SVG_LanguageIDs_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
+			return GF_OK;
+		case 58:
+			info->name = "transform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = &((SVGTransformableElement *)node)->transform;
+			return GF_OK;
+		case 59:
+			info->name = "delta";
+			info->fieldType = LASeR_Size_datatype;
+			info->far_ptr = & ((SVGsimpleLayoutElement *)node)->delta;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
@@ -10962,6 +12130,8 @@ SVGElement *gf_svg_create_node(u32 ElementTag)
 		case TAG_SVG_animation: return gf_svg_new_animation();
 		case TAG_SVG_audio: return gf_svg_new_audio();
 		case TAG_SVG_circle: return gf_svg_new_circle();
+		case TAG_SVG_conditional: return gf_svg_new_conditional();
+		case TAG_SVG_cursorManager: return gf_svg_new_cursorManager();
 		case TAG_SVG_defs: return gf_svg_new_defs();
 		case TAG_SVG_desc: return gf_svg_new_desc();
 		case TAG_SVG_discard: return gf_svg_new_discard();
@@ -10989,8 +12159,11 @@ SVGElement *gf_svg_create_node(u32 ElementTag)
 		case TAG_SVG_prefetch: return gf_svg_new_prefetch();
 		case TAG_SVG_radialGradient: return gf_svg_new_radialGradient();
 		case TAG_SVG_rect: return gf_svg_new_rect();
+		case TAG_SVG_rectClip: return gf_svg_new_rectClip();
 		case TAG_SVG_script: return gf_svg_new_script();
+		case TAG_SVG_selector: return gf_svg_new_selector();
 		case TAG_SVG_set: return gf_svg_new_set();
+		case TAG_SVG_simpleLayout: return gf_svg_new_simpleLayout();
 		case TAG_SVG_solidColor: return gf_svg_new_solidColor();
 		case TAG_SVG_stop: return gf_svg_new_stop();
 		case TAG_SVG_svg: return gf_svg_new_svg();
@@ -11018,6 +12191,8 @@ void gf_svg_element_del(SVGElement *elt)
 		case TAG_SVG_animation: gf_svg_animation_del(node); return;
 		case TAG_SVG_audio: gf_svg_audio_del(node); return;
 		case TAG_SVG_circle: gf_svg_circle_del(node); return;
+		case TAG_SVG_conditional: gf_svg_conditional_del(node); return;
+		case TAG_SVG_cursorManager: gf_svg_cursorManager_del(node); return;
 		case TAG_SVG_defs: gf_svg_defs_del(node); return;
 		case TAG_SVG_desc: gf_svg_desc_del(node); return;
 		case TAG_SVG_discard: gf_svg_discard_del(node); return;
@@ -11045,8 +12220,11 @@ void gf_svg_element_del(SVGElement *elt)
 		case TAG_SVG_prefetch: gf_svg_prefetch_del(node); return;
 		case TAG_SVG_radialGradient: gf_svg_radialGradient_del(node); return;
 		case TAG_SVG_rect: gf_svg_rect_del(node); return;
+		case TAG_SVG_rectClip: gf_svg_rectClip_del(node); return;
 		case TAG_SVG_script: gf_svg_script_del(node); return;
+		case TAG_SVG_selector: gf_svg_selector_del(node); return;
 		case TAG_SVG_set: gf_svg_set_del(node); return;
+		case TAG_SVG_simpleLayout: gf_svg_simpleLayout_del(node); return;
 		case TAG_SVG_solidColor: gf_svg_solidColor_del(node); return;
 		case TAG_SVG_stop: gf_svg_stop_del(node); return;
 		case TAG_SVG_svg: gf_svg_svg_del(node); return;
@@ -11073,6 +12251,8 @@ u32 gf_svg_get_attribute_count(GF_Node *node)
 		case TAG_SVG_animation: return 61;
 		case TAG_SVG_audio: return 44;
 		case TAG_SVG_circle: return 62;
+		case TAG_SVG_conditional: return 9;
+		case TAG_SVG_cursorManager: return 16;
 		case TAG_SVG_defs: return 41;
 		case TAG_SVG_desc: return 7;
 		case TAG_SVG_discard: return 15;
@@ -11083,14 +12263,14 @@ u32 gf_svg_get_attribute_count(GF_Node *node)
 		case TAG_SVG_font_face_src: return 7;
 		case TAG_SVG_font_face_uri: return 14;
 		case TAG_SVG_foreignObject: return 70;
-		case TAG_SVG_g: return 61;
+		case TAG_SVG_g: return 59;
 		case TAG_SVG_glyph: return 13;
 		case TAG_SVG_handler: return 8;
 		case TAG_SVG_hkern: return 12;
 		case TAG_SVG_image: return 47;
 		case TAG_SVG_line: return 63;
 		case TAG_SVG_linearGradient: return 55;
-		case TAG_SVG_listener: return 16;
+		case TAG_SVG_listener: return 15;
 		case TAG_SVG_metadata: return 7;
 		case TAG_SVG_missing_glyph: return 9;
 		case TAG_SVG_mpath: return 14;
@@ -11100,8 +12280,11 @@ u32 gf_svg_get_attribute_count(GF_Node *node)
 		case TAG_SVG_prefetch: return 19;
 		case TAG_SVG_radialGradient: return 56;
 		case TAG_SVG_rect: return 65;
-		case TAG_SVG_script: return 9;
+		case TAG_SVG_rectClip: return 60;
+		case TAG_SVG_script: return 7;
+		case TAG_SVG_selector: return 60;
 		case TAG_SVG_set: return 27;
+		case TAG_SVG_simpleLayout: return 60;
 		case TAG_SVG_solidColor: return 41;
 		case TAG_SVG_stop: return 42;
 		case TAG_SVG_svg: return 68;
@@ -11128,6 +12311,8 @@ GF_Err gf_svg_get_attribute_info(GF_Node *node, GF_FieldInfo *info)
 		case TAG_SVG_animation: return gf_svg_animation_get_attribute(node, info);
 		case TAG_SVG_audio: return gf_svg_audio_get_attribute(node, info);
 		case TAG_SVG_circle: return gf_svg_circle_get_attribute(node, info);
+		case TAG_SVG_conditional: return gf_svg_conditional_get_attribute(node, info);
+		case TAG_SVG_cursorManager: return gf_svg_cursorManager_get_attribute(node, info);
 		case TAG_SVG_defs: return gf_svg_defs_get_attribute(node, info);
 		case TAG_SVG_desc: return gf_svg_desc_get_attribute(node, info);
 		case TAG_SVG_discard: return gf_svg_discard_get_attribute(node, info);
@@ -11155,8 +12340,11 @@ GF_Err gf_svg_get_attribute_info(GF_Node *node, GF_FieldInfo *info)
 		case TAG_SVG_prefetch: return gf_svg_prefetch_get_attribute(node, info);
 		case TAG_SVG_radialGradient: return gf_svg_radialGradient_get_attribute(node, info);
 		case TAG_SVG_rect: return gf_svg_rect_get_attribute(node, info);
+		case TAG_SVG_rectClip: return gf_svg_rectClip_get_attribute(node, info);
 		case TAG_SVG_script: return gf_svg_script_get_attribute(node, info);
+		case TAG_SVG_selector: return gf_svg_selector_get_attribute(node, info);
 		case TAG_SVG_set: return gf_svg_set_get_attribute(node, info);
+		case TAG_SVG_simpleLayout: return gf_svg_simpleLayout_get_attribute(node, info);
 		case TAG_SVG_solidColor: return gf_svg_solidColor_get_attribute(node, info);
 		case TAG_SVG_stop: return gf_svg_stop_get_attribute(node, info);
 		case TAG_SVG_svg: return gf_svg_svg_get_attribute(node, info);
@@ -11183,6 +12371,8 @@ u32 gf_node_svg_type_by_class_name(const char *element_name)
 	if (!stricmp(element_name, "animation")) return TAG_SVG_animation;
 	if (!stricmp(element_name, "audio")) return TAG_SVG_audio;
 	if (!stricmp(element_name, "circle")) return TAG_SVG_circle;
+	if (!stricmp(element_name, "conditional")) return TAG_SVG_conditional;
+	if (!stricmp(element_name, "cursorManager")) return TAG_SVG_cursorManager;
 	if (!stricmp(element_name, "defs")) return TAG_SVG_defs;
 	if (!stricmp(element_name, "desc")) return TAG_SVG_desc;
 	if (!stricmp(element_name, "discard")) return TAG_SVG_discard;
@@ -11210,8 +12400,11 @@ u32 gf_node_svg_type_by_class_name(const char *element_name)
 	if (!stricmp(element_name, "prefetch")) return TAG_SVG_prefetch;
 	if (!stricmp(element_name, "radialGradient")) return TAG_SVG_radialGradient;
 	if (!stricmp(element_name, "rect")) return TAG_SVG_rect;
+	if (!stricmp(element_name, "rectClip")) return TAG_SVG_rectClip;
 	if (!stricmp(element_name, "script")) return TAG_SVG_script;
+	if (!stricmp(element_name, "selector")) return TAG_SVG_selector;
 	if (!stricmp(element_name, "set")) return TAG_SVG_set;
+	if (!stricmp(element_name, "simpleLayout")) return TAG_SVG_simpleLayout;
 	if (!stricmp(element_name, "solidColor")) return TAG_SVG_solidColor;
 	if (!stricmp(element_name, "stop")) return TAG_SVG_stop;
 	if (!stricmp(element_name, "svg")) return TAG_SVG_svg;
@@ -11237,6 +12430,8 @@ const char *gf_svg_get_element_name(u32 tag)
 	case TAG_SVG_animation: return "animation";
 	case TAG_SVG_audio: return "audio";
 	case TAG_SVG_circle: return "circle";
+	case TAG_SVG_conditional: return "conditional";
+	case TAG_SVG_cursorManager: return "cursorManager";
 	case TAG_SVG_defs: return "defs";
 	case TAG_SVG_desc: return "desc";
 	case TAG_SVG_discard: return "discard";
@@ -11264,8 +12459,11 @@ const char *gf_svg_get_element_name(u32 tag)
 	case TAG_SVG_prefetch: return "prefetch";
 	case TAG_SVG_radialGradient: return "radialGradient";
 	case TAG_SVG_rect: return "rect";
+	case TAG_SVG_rectClip: return "rectClip";
 	case TAG_SVG_script: return "script";
+	case TAG_SVG_selector: return "selector";
 	case TAG_SVG_set: return "set";
+	case TAG_SVG_simpleLayout: return "simpleLayout";
 	case TAG_SVG_solidColor: return "solidColor";
 	case TAG_SVG_stop: return "stop";
 	case TAG_SVG_svg: return "svg";

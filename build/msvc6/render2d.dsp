@@ -88,26 +88,6 @@ LINK32=link.exe
 
 # Name "render2d - Win32 Release"
 # Name "render2d - Win32 Debug"
-# Begin Group "svg"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=..\..\modules\render2d\svg\render_svg_nodes.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\render2d\svg\render_svg_text.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\render2d\svg\svg_media.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\render2d\svg\svg_stacks.h
-# End Source File
-# End Group
 # Begin Source File
 
 SOURCE=..\..\modules\render2d\background2d.c
@@ -183,6 +163,22 @@ SOURCE=..\..\modules\render2d\sound.c
 # Begin Source File
 
 SOURCE=..\..\modules\render2d\stacks2d.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\render2d\svg_base.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\render2d\svg_media.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\render2d\svg_stacks.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\render2d\svg_text.c
 # End Source File
 # Begin Source File
 

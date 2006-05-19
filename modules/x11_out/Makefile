@@ -11,6 +11,11 @@ CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
+ifeq ($(X11_INC_PATH), )
+else
+CFLAGS+=-I$(X11_INC_PATH)
+endif
+
 ifeq ($(X11_LIB_PATH), )
 else
 LDFLAGS+=-L$(X11_LIB_PATH)

@@ -506,6 +506,7 @@ Bool gf_sr_get_size(GF_Renderer *sr, u32 *Width, u32 *Height)
 	return 1;
 }
 
+#ifndef GPAC_DISABLE_SVG
 static Fixed convert_svg_length_to_user(GF_Renderer *sr, SVG_Length *length)
 {
 	// Assuming the environment is 90dpi
@@ -536,6 +537,7 @@ static Fixed convert_svg_length_to_user(GF_Renderer *sr, SVG_Length *length)
 	}
 	return length->value;
 }
+#endif
 
 GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 {
@@ -1049,9 +1051,11 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	dirty flag set*/
 	gf_sg_activate_routes(sr->scene);
 
+#ifndef GPAC_DISABLE_SVG
 	if (gf_sg_notify_smil_timed_elements(sr->scene)) {
 		sr->draw_next_frame = 1;
 	}
+#endif
 
 	/*update all textures*/
 	count = gf_list_count(sr->textures);

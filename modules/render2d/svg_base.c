@@ -23,7 +23,7 @@
  *
  */
 
-#include "../visualsurface2d.h"
+#include "visualsurface2d.h"
 
 #ifndef GPAC_DISABLE_SVG
 #include "svg_stacks.h"
@@ -378,25 +378,7 @@ static void SVG_Render_g(GF_Node *node, void *rs)
 
 	gf_mx2d_copy(backup_matrix, eff->transform);
 	gf_mx2d_pre_multiply(&eff->transform, &g->transform);
-	switch (g->lsr_choice.type) {
-	case LASeR_CHOICE_NONE:
-		break;
-	case LASeR_CHOICE_ALL:
-		svg_render_node_list(g->children, eff);
-		break;
-	case LASeR_CHOICE_N:
-		svg_render_node(gf_list_get(g->children, g->lsr_choice.choice_index), eff);
-		break;
-	case LASeR_CHOICE_CLIP:
-		/* TODO */
-		break;
-	case LASeR_CHOICE_DELTA:
-		/* TODO */
-		break;
-	default:
-		svg_render_node_list(g->children, eff);
-	}
-
+	svg_render_node_list(g->children, eff);
 	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, styling_size);
 }
@@ -407,7 +389,150 @@ void SVG_Init_g(Render2D *sr, GF_Node *node)
 	gf_node_set_render_function(node, SVG_Render_g);
 }
 
+static void SVG_Render_selector(GF_Node *node, void *rs)
+{
+	GF_Matrix2D backup_matrix;
+	SVGPropertiesPointers backup_props;
+	u32 styling_size = sizeof(SVGPropertiesPointers);
+	SVGselectorElement *sel = (SVGselectorElement *)node;
+	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
+	SVG_Render_base(node, rs, &backup_props);
+
+	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
+		u32 prev_flags = eff->trav_flags;
+		eff->trav_flags |= GF_SR_TRAV_SWITCHED_OFF;
+		svg_render_node_list(sel->children, eff);
+		memcpy(eff->svg_props, &backup_props, styling_size);
+		eff->trav_flags = prev_flags;
+		return;
+	}	
+	
+	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+		gf_mx2d_pre_multiply(&eff->transform, &sel->transform);
+		svg_get_nodes_bounds(node, sel->children, eff);
+		memcpy(eff->svg_props, &backup_props, styling_size);
+		return;
+	}
+
+	gf_mx2d_copy(backup_matrix, eff->transform);
+	gf_mx2d_pre_multiply(&eff->transform, &sel->transform);
+	switch (sel->choice.type) {
+	case LASeR_CHOICE_NONE:
+		break;
+	case LASeR_CHOICE_ALL:
+		svg_render_node_list(sel->children, eff);
+		break;
+	case LASeR_CHOICE_N:
+		svg_render_node(gf_list_get(sel->children, sel->choice.choice_index), eff);
+		break;
+	}
+
+	gf_mx2d_copy(eff->transform, backup_matrix);  
+	memcpy(eff->svg_props, &backup_props, styling_size);
+}
+
+void SVG_Init_selector(Render2D *sr, GF_Node *node)
+{
+	gf_node_set_render_function(node, SVG_Render_selector);
+}
+
+
+static void SVG_Render_simpleLayout(GF_Node *node, void *rs)
+{
+	GF_Matrix2D backup_matrix;
+	SVGPropertiesPointers backup_props;
+	u32 styling_size = sizeof(SVGPropertiesPointers);
+	SVGsimpleLayoutElement *sl = (SVGsimpleLayoutElement*)node;
+	RenderEffect2D *eff = (RenderEffect2D *) rs;
+
+	SVG_Render_base(node, rs, &backup_props);
+
+	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
+		u32 prev_flags = eff->trav_flags;
+		eff->trav_flags |= GF_SR_TRAV_SWITCHED_OFF;
+		svg_render_node_list(sl->children, eff);
+		memcpy(eff->svg_props, &backup_props, styling_size);
+		eff->trav_flags = prev_flags;
+		return;
+	}	
+	
+	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+		gf_mx2d_pre_multiply(&eff->transform, &sl->transform);
+		if (sl->delta.enabled) {
+			/*TODO*/
+		} else {
+			svg_get_nodes_bounds(node, sl->children, eff);
+		}
+		memcpy(eff->svg_props, &backup_props, styling_size);
+		return;
+	}
+
+	gf_mx2d_copy(backup_matrix, eff->transform);
+	gf_mx2d_pre_multiply(&eff->transform, &sl->transform);
+	if (sl->delta.enabled) {
+		/*TODO*/
+	} else {
+		svg_render_node_list(sl->children, eff);
+	}
+	gf_mx2d_copy(eff->transform, backup_matrix);  
+	memcpy(eff->svg_props, &backup_props, styling_size);
+}
+
+void SVG_Init_simpleLayout(Render2D *sr, GF_Node *node)
+{
+	gf_node_set_render_function(node, SVG_Render_simpleLayout);
+}
+
+static void SVG_Render_rectClip(GF_Node *node, void *rs)
+{
+	GF_Matrix2D backup_matrix;
+	SVGPropertiesPointers backup_props;
+	u32 styling_size = sizeof(SVGPropertiesPointers);
+	SVGrectClipElement *rc = (SVGrectClipElement *)node;
+	RenderEffect2D *eff = (RenderEffect2D *) rs;
+
+	SVG_Render_base(node, rs, &backup_props);
+
+	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
+		u32 prev_flags = eff->trav_flags;
+		eff->trav_flags |= GF_SR_TRAV_SWITCHED_OFF;
+		svg_render_node_list(rc->children, eff);
+		memcpy(eff->svg_props, &backup_props, styling_size);
+		eff->trav_flags = prev_flags;
+		return;
+	}	
+	
+	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+		gf_mx2d_pre_multiply(&eff->transform, &rc->transform);
+		if (rc->size.enabled) {
+			eff->bounds.width = rc->size.width;
+			eff->bounds.x = - rc->size.width / 2;
+			eff->bounds.height = rc->size.height;
+			eff->bounds.y = rc->size.height / 2;
+			gf_mx2d_apply_rect(&eff->transform, &eff->bounds);
+		} else {
+			svg_get_nodes_bounds(node, rc->children, eff);
+		}
+		memcpy(eff->svg_props, &backup_props, styling_size);
+		return;
+	}
+
+	gf_mx2d_copy(backup_matrix, eff->transform);
+	gf_mx2d_pre_multiply(&eff->transform, &rc->transform);
+	/*setup cliper*/
+	if (rc->size.enabled) {
+		/*TODO*/
+	}
+	svg_render_node_list(rc->children, eff);
+	gf_mx2d_copy(eff->transform, backup_matrix);  
+	memcpy(eff->svg_props, &backup_props, styling_size);
+}
+
+void SVG_Init_rectClip(Render2D *sr, GF_Node *node)
+{
+	gf_node_set_render_function(node, SVG_Render_rectClip);
+}
 static Bool eval_conditional(GF_Renderer *sr, SVGElement *elt)
 {
 	u32 i, count;
@@ -907,24 +1032,23 @@ static void SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 			SVGsetElement *set = (SVGsetElement *)a->xlink->href.target;
 			SMIL_Time *begin;
 			GF_SAFEALLOC(begin, sizeof(SMIL_Time));
-			begin->type = SMIL_TIME_CLOCK;
+			begin->type = GF_SMIL_TIME_EVENT_RESLOVED;
 			begin->clock = gf_node_get_scene_time((GF_Node *)set);
-			begin->dynamic_type = 2;
 
 			found = 0;
 			count = gf_list_count(set->timing->begin);
 			for (i=0; i<count; i++) {
 				SMIL_Time *first = gf_list_get(set->timing->begin, i);
 				/*remove past instanciations*/
-				if ((first->dynamic_type == 2) && (first->clock < begin->clock)) {
+				if ((first->type==GF_SMIL_TIME_EVENT_RESLOVED) && (first->clock < begin->clock)) {
 					gf_list_rem(set->timing->begin, i);
 					free(first);
 					i--;
 					count--;
 					continue;
 				}
-				if ( (first->type == SMIL_TIME_INDEFINITE) 
-					|| ( (first->type == SMIL_TIME_CLOCK) && (first->clock > begin->clock) ) 
+				if ( (first->type == GF_SMIL_TIME_INDEFINITE) 
+					|| ( (first->type == GF_SMIL_TIME_CLOCK) && (first->clock > begin->clock) ) 
 				) {
 					gf_list_insert(set->timing->begin, begin, i);
 					found = 1;
@@ -1119,6 +1243,9 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 		/*move to local coord system - cf SVG spec*/
 		gf_mx2d_add_scale(mat, bounds->width, bounds->height);
 		gf_mx2d_add_translation(mat, bounds->x, bounds->y  - bounds->height);
+	} else if ((rg->fx.value==rg->fy.value) && (rg->fx.value==FIX_ONE/2)) {
+		focal.x = center.x;
+		focal.y = center.y;
 	}
 	txh->compositor->r2d->stencil_set_radial_gradient(txh->hwtx, center.x, center.y, focal.x, focal.y, radius, radius);
 }

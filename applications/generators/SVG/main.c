@@ -682,12 +682,10 @@ void setAttributeType(SVGAttribute *att)
 			strcpy(att->impl_type, "SVG_FontVariant");
 		} else if (!strcmp(att->svg_name, "lsr:enabled")) {
 			strcpy(att->impl_type, "SVG_Boolean");
-		} else if (!strcmp(att->svg_name, "lsr:choice")) {
+		} else if (!strcmp(att->svg_name, "choice")) {
 			strcpy(att->impl_type, "LASeR_Choice");
-		} else if (!strcmp(att->svg_name, "lsr:size")) {
+		} else if (!strcmp(att->svg_name, "size") || !strcmp(att->svg_name, "delta")) {
 			strcpy(att->impl_type, "LASeR_Size");
-		} else if (!strcmp(att->svg_name, "lsr:timeAttribute")) {
-			strcpy(att->impl_type, "LASeR_TimeAttribute");
 		} else if (!strcmp(att->svg_name, "spreadMethod")) {
 			strcpy(att->impl_type, "SVG_SpreadMethod");
 		} else if (!strcmp(att->svg_name, "gradientTransform")) {
@@ -1017,8 +1015,8 @@ void generateNode(FILE *output, SVGElement* svg_elt)
 		fprintf(output, "\tSVG_Point xy;\n");
 	}
 
-	if (!strcmp(svg_elt->implementation_name, "script")) {
-		fprintf(output, "\tSVGCommandBuffer lsr_script;\n");
+	if (!strcmp(svg_elt->implementation_name, "conditional")) {
+		fprintf(output, "\tSVGCommandBuffer updates;\n");
 	} 
 
 	generateAttributes(output, svg_elt->attributes, 0);
@@ -1217,8 +1215,8 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 		fprintf(output, "\tgf_mx2d_init(p->transform);\n");
 	} 
 
-	if (!strcmp(svg_elt->implementation_name, "script")) {
-		fprintf(output, "\tgf_svg_init_lsr_script(&p->lsr_script);\n");
+	if (!strcmp(svg_elt->implementation_name, "conditional")) {
+		fprintf(output, "\tgf_svg_init_lsr_conditional(&p->updates);\n");
 	} 
 
 	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
@@ -1263,8 +1261,8 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 
 	fprintf(output, "\tgf_svg_reset_base_element((SVGElement *)p);\n");
 
-	if (!strcmp(svg_elt->implementation_name, "script")) {
-		fprintf(output, "\tgf_svg_reset_lsr_script(&p->lsr_script);\n");
+	if (!strcmp(svg_elt->implementation_name, "conditional")) {
+		fprintf(output, "\tgf_svg_reset_lsr_conditional(&p->updates);\n");
 	} 
 
 	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
@@ -1478,7 +1476,7 @@ void replaceIncludes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 }
 
 static char *attribute_name_type_list[] = {
-	"a.target", "accumulate", "additive", "append", "attributeName", "audio-level", "bandwidth", "begin", "by", "calcMode", "children", "choice", "color", "color-rendering", "cx", "cy", "d", "delay", "display", "display-align", "dur", "editable", "enabled", "end", "event", "externalResourcesRequired", "fill", "fill-opacity", "fill-rule", "focusable", "font-family", "font-size", "font-style", "font-variant", "font-weight", "from", "gradientUnits", "handler", "height", "image-rendering", "keyCodes", "keyPoints", "keySplines", "keyTimes", "line-increment", "mediaCharacterEncoding", "mediaContentEncodings", "mediaSize", "mediaTime", "nav-down", "nav-down-left", "nav-down-right", "nav-left", "nav-next", "nav-prev", "nav-right", "nav-up", "nav-up-left", "nav-up-right", "observer", "offset", "opacity", "overflow", "overlay", "path", "pathLength", "pointer-events", "points", "preserveAspectRatio", "r", "repeatCount", "repeatDur", "requiredExtensions", "requiredFeatures", "requiredFormats", "restart", "rotate", "rotation", "rx", "ry", "scale", "shape-rendering", "size", "solid-color", "solid-opacity", "stop-color", "stop-opacity", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "svg.height", "svg.width", "syncBehavior", "syncBehaviorDefault", "syncReference", "syncTolerance", "syncToleranceDefault", "systemLanguage", "target", "text-anchor", "text-rendering", "textContent", "timeAttribute", "to", "transform", "transformBehavior", "translation", "type", "values", "vector-effect", "viewBox", "viewport-fill", "viewport-fill-opacity", "visibility", "width", "x", "x1", "x2", "xlink:actuate", "xlink:arcrole", "xlink:href", "xlink:role", "xlink:show", "xlink:title", "xlink:type", "xml:base", "xml:lang", "xml:space", "y", "y1", "y2", "zoomAndPan", NULL
+	"a.target", "accumulate", "additive", "attributeName", "audio-level", "bandwidth", "begin", "calcMode", "children", "choice", "clipBegin", "clipEnd", "color", "color-rendering", "cx", "cy", "d", "display", "display-align", "dur", "editable", "enabled", "end", "event", "externalResourcesRequired", "fill", "fill-opacity", "fill-rule", "focusable", "font-family", "font-size", "font-style", "font-variant", "font-weight", "gradientUnits", "handler", "height", "image-rendering", "keyPoints", "keySplines", "keyTimes", "line-increment", "listener.target", "mediaCharacterEncoding", "mediaContentEncodings", "mediaSize", "mediaTime", "nav-down", "nav-down-left", "nav-down-right", "nav-left", "nav-next", "nav-prev", "nav-right", "nav-up", "nav-up-left", "nav-up-right", "observer", "offset", "opacity", "overflow", "overlay", "path", "pathLength", "pointer-events", "points", "preserveAspectRatio", "r", "repeatCount", "repeatDur", "requiredExtensions", "requiredFeatures", "requiredFormats", "restart", "rotate", "rotation", "rx", "ry", "scale", "shape-rendering", "size", "solid-color", "solid-opacity", "stop-color", "stop-opacity", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "svg.height", "svg.width", "syncBehavior", "syncBehaviorDefault", "syncReference", "syncTolerance", "syncToleranceDefault", "systemLanguage", "text-anchor", "text-decoration", "text-rendering", "textContent", "transform", "transformBehavior", "translation", "vector-effect", "viewBox", "viewport-fill", "viewport-fill-opacity", "visibility", "width", "x", "x1", "x2", "xlink:actuate", "xlink:arcrole", "xlink:href", "xlink:role", "xlink:show", "xlink:title", "xlink:type", "xml:base", "xml:lang", "y", "y1", "y2", "zoomAndPan", NULL
 };
 
 

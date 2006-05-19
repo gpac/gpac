@@ -407,6 +407,7 @@ static GF_Err WAV_QueryOutputSampleRate(GF_AudioOutput *dr, u32 *desired_sampler
 	default:
 		break;
 	}
+	return GF_OK;
 #else
 	return GF_OK;
 #endif

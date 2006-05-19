@@ -143,7 +143,7 @@ void Bindable_SetSetBind(GF_Node *bindable, Bool val)
 	default: return;
 	}
 }
-#if 1
+#if 0
 static void dump_bindable_stack(GF_List *stack, char *label)
 {
 	u32 j=0;

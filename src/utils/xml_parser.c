@@ -274,9 +274,11 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 					return 0;
 				}
 				if (!parser->in_quote && (c=='/')) {
-					parser->sax_state = SAX_STATE_SYNTAX_ERROR;
-					sprintf(parser->err_msg, "Markup error");
-					return 1;
+					if (!parser->init_state) {
+						parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+						sprintf(parser->err_msg, "Markup error");
+						return 1;
+					}
 				}
 			}
 			else if ((parser->sax_state!=SAX_STATE_ATT_VALUE) && (c=='"')) {
@@ -739,39 +741,39 @@ GF_Err gf_xml_sax_parse(GF_SAXParser *parser, void *string)
 
 	/*solve entities*/
 	while (count) {
-		char szName[200];
+		char *entityEnd, szName[200];
 		XML_Entity *ent;
-		char *entStart = strstr(current, "&");
-		char *entEnd = entStart ? strstr(entStart, ";") : NULL;
+		char *entityStart = strstr(current, "&");
 
 		if (parser->in_entity) {
-			if (!entEnd) return xml_sax_append_string(parser, string);
+			entityEnd = strstr(current, ";");
+			if (!entityEnd) return xml_sax_append_string(parser, string);
+			entityStart = strrchr(parser->buffer, '&');
 
-			current = entEnd+1;
-			entStart = strrchr(parser->buffer, '&');
-			strcpy(szName, entStart+1);
-			entStart[0] = 0;
-			entEnd[0] = 0;
-			strcat(szName, string);
+			strcpy(szName, entityStart+1);
+			entityStart[0] = 0;
+			entityEnd[0] = 0;
+			strcat(szName, current);
+			entityEnd[0] = ';';
 			parser->in_entity = 0;
+			current = entityEnd+1;
 		} else {
-			if (!entStart) break;
+			if (!entityStart) break;
+			entityEnd = strstr(entityStart, ";");
 
-			entStart[0] = 0;
+			entityStart[0] = 0;
 			xml_sax_append_string(parser, current);
-
 			xml_sax_parse(parser, 1);
-			entStart[0] = '&';
+			entityStart[0] = '&';
 
-			if (!entEnd) {
+			if (!entityEnd) {
 				parser->in_entity = 1;
 				/*store entity start*/
-				return xml_sax_append_string(parser, entStart);
+				return xml_sax_append_string(parser, entityStart);
 			}
-			strncpy(szName, entStart+1, entEnd - entStart - 1);
-			szName[entEnd - entStart - 1] = 0;
-
-			current = entEnd + 1;
+			strncpy(szName, entityStart+1, entityEnd - entityStart - 1);
+			szName[entityEnd - entityStart - 1] = 0;
+			current = entityEnd + 1;
 		}
 
 		for (i=0; i<count; i++) {

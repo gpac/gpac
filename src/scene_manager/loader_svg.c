@@ -30,6 +30,8 @@
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_svg.h>
 
+#ifndef GPAC_DISABLE_SVG
+
 typedef struct
 {
 	GF_SceneLoader *load;
@@ -222,7 +224,7 @@ static Bool svg_resolve_smil_times(GF_SVGParser *parser, GF_SceneGraph *sg, SVGE
 	for (i=0; i<count; i++) {
 		SMIL_Time *t = gf_list_get(smil_times, i);
 		/*not an event*/
-		if (t->type != SMIL_TIME_EVENT) {
+		if (t->type != GF_SMIL_TIME_EVENT) {
 			done++;
 			continue;
 		}
@@ -241,48 +243,6 @@ static Bool svg_resolve_smil_times(GF_SVGParser *parser, GF_SceneGraph *sg, SVGE
 		}
 	}
 	if (done!=count) return 0;
-	if (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) return 1;
-	if (!done) return 1;
-
-	/*rewrite all SMIL events with listeners*/
-	for (i=0; i<count; i++) {
-		SVGlistenerElement *listen;
-		SMIL_Time *t = gf_list_get(smil_times, i);
-		/*not an event*/
-		if (t->type != SMIL_TIME_EVENT) continue;
-
-		gf_list_rem(smil_times, i);
-		count--; 
-		i--;
-
-		listen = (SVGlistenerElement *)gf_node_new(sg, TAG_SVG_listener);
-		listen->lsr_delay = t->clock;
-		listen->defaultAction = is_end ? LASeR_TIMEATTRIBUTE_END : LASeR_TIMEATTRIBUTE_BEGIN;
-
-		listen->event = t->event;
-		listen->handler.target = anim;
-		listen->handler.type = SVG_IRI_ELEMENTID;
-		/*drawback of LASeR encoding: the anim MUST have an ID assigned...*/
-		if (!gf_node_get_id((GF_Node*)anim)) {
-			char szNodeName[1024];
-			u32 nID = gf_sg_get_next_available_node_id(sg);
-			sprintf(szNodeName, "__lsr_dyn_id_%d", nID);
-			gf_node_set_id((GF_Node*)anim, nID, szNodeName);
-			svg_report(parser, GF_OK, "Assigning ID to <%s> for LASeR encoding", gf_node_get_class_name((GF_Node*)anim));
-		}
-		
-		gf_list_add( ((SVGElement *)t->element)->children, listen);
-		gf_node_register((GF_Node*)listen, t->element);
-
-		free(t);
-	}
-	/*only event-based, we MUST add an indefinite time to prevent default behaviour "begin=0"*/
-	if (!count) {
-		SMIL_Time *t;
-		GF_SAFEALLOC(t, sizeof(SMIL_Time));
-		t->type = SMIL_TIME_INDEFINITE;
-		gf_list_add(smil_times, t);
-	}
 	return 1;
 }
 
@@ -376,7 +336,7 @@ static Bool svg_parse_animation(GF_SVGParser *parser, GF_SceneGraph *sg, Defered
 	if (!svg_resolve_smil_times(parser, sg, anim->anim_parent, anim->animation_elt, anim->animation_elt->timing->end, 1, nodeID)) return 0;
 
 	/*animateMotion needs its children to be parsed !! */
-	if (gf_node_get_tag((GF_Node *)anim->animation_elt) == TAG_SVG_animateMotion)
+	if (!nodeID && gf_node_get_tag((GF_Node *)anim->animation_elt) == TAG_SVG_animateMotion)
 		return 1;
 
 	/*OK init the anim*/
@@ -437,7 +397,6 @@ static void svg_resolved_refs(GF_SVGParser *parser, GF_SceneGraph *sg, const cha
 		DeferedAnimation *anim = gf_list_get(parser->defered_animations, i);
 		/*resolve it - we don't check the name since it may be used in SMIL times, which we don't track at anim level*/
 		if (svg_parse_animation(parser, sg, anim, nodeID)) {
-			gf_node_init((GF_Node *)anim->animation_elt);
 			svg_delete_defered_anim(anim, parser->defered_animations);
 			i--;
 			count--;
@@ -785,12 +744,12 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 {
 	SVGNodeStack *stack, *parent;
 	SVGElement *elt;
-	SVGscriptElement *script = NULL;
+	SVGconditionalElement *cond = NULL;
 	GF_SVGParser *parser = sax_cbck;
 
 	parent = gf_list_last(parser->node_stack);
-	if (parent && parent->node->sgprivate->tag==TAG_SVG_script) {
-		script = (SVGscriptElement *)parent->node;
+	if (parent && parent->node->sgprivate->tag==TAG_SVG_conditional) {
+		cond = (SVGconditionalElement *)parent->node;
 		parent = NULL;
 	}
 
@@ -901,8 +860,8 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		if (com_type != GF_SG_UNDEFINED) {
 			GF_Err e;
 			parser->command = gf_sg_command_new(parser->load->scene_graph, com_type);
-			if (script) {
-				gf_list_add(script->lsr_script.com_list, parser->command);
+			if (cond) {
+				gf_list_add(cond->updates.com_list, parser->command);
 			} else {
 				gf_list_add(parser->laser_au->commands, parser->command);
 			}
@@ -1215,4 +1174,5 @@ GF_Err gf_sm_load_done_SVG(GF_SceneLoader *load)
 	return GF_OK;
 }
 
+#endif
 

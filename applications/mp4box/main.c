@@ -99,14 +99,15 @@ void PrintGeneralUsage()
 			"                       * Note: By default input (MP4,3GP) file is overwritten\n"
 			" -tmp dirname         specifies directory for temporary file creation\n"
 			"                       * Note: Default temp dir is OS-dependent\n"
-			" -nosys               removes all MPEG-4 Systems info except IOD (profiles)\n"
+			" -no-sys              removes all MPEG-4 Systems info except IOD (profiles)\n"
 			"                       * Note: Set by default whith '-add' and '-cat'\n"
+			" -no-iod              removes InitialObjkectDescriptor from file\n"
 			" -isma                rewrites the file as an ISMA 1.0 AV file\n"
 			" -ismax               same as \'-isma\' and removes all clock references\n"
 			" -3gp                 rewrites as 3GPP(2) file (no more MPEG-4 Systems Info)\n"
 			"                       * Note 1: some tracks may be removed in the process\n"
 			"                       * Note 2: always on for *.3gp *.3g2 *.3gpp\n"
-			" -brand ABCD          sets major brand of file\n"
+			" -brand ABCD[:v]      sets major brand of file, with optional version\n"
 			" -ab ABCD             adds given brand to file's alternate brand list\n"
 			" -rb ABCD             removes given brand from file's alternate brand list\n"
 			" -cprt string         adds copyright string to movie\n"
@@ -121,9 +122,9 @@ void PrintGeneralUsage()
 			"                       * NAME can indicate a UTF-8 file (\"file://file name\"\n"
 			" -split time_sec      splits in files of time_sec max duration\n"
 			"                       * Note: this removes all MPEG-4 Systems media\n"
-			" -splits filesize     splits in files of max filesize kB.\n"
+			" -split-size size     splits in files of max filesize kB.\n"
 			"                       * Note: this removes all MPEG-4 Systems media\n"
-			" -splitx start:end    extracts a new file from start to end (in seconds)\n"
+			" -split-chunk S:E     extracts a new file from Start to End (in seconds)\n"
 			"                       * Note: this removes all MPEG-4 Systems media\n"
 			"\n");
 }
@@ -193,14 +194,14 @@ void PrintImportUsage()
 			" -add file:           add file tracks to (new) output file\n"
 			" -cat file:           concatenates file samples to (new) output file\n"
 			"                       * Note: creates tracks if needed\n"
-			" -keepsys:            keeps all MPEG-4 Systems info when using '-add' / 'cat'\n"
-			" -keepall:            keeps all existing tracks when using '-add'\n"
+			" -keep-sys:           keeps all MPEG-4 Systems info when using '-add' / 'cat'\n"
+			" -keep-all:           keeps all existing tracks when using '-add'\n"
 			"                       * Note: only used when adding IsoMedia files\n"
 			"\n"
 			"All the following options can be specified as default or for each track.\n"
 			"When specified by track the syntax is \":opt\" or \":opt=val\".\n\n"
 			" -dref:               keeps media data in original file\n"
-			" -nodrop:             forces constant FPS when importing AVI video\n"
+			" -no-drop:             forces constant FPS when importing AVI video\n"
 			" -packed:             forces packed bitstream when importing raw ASP\n"
 			" -sbr:                backward compatible signaling of AAC-SBR\n"
 			" -sbrx:               non-backward compatible signaling of AAC-SBR\n"
@@ -228,9 +229,9 @@ void PrintEncodeUsage()
 			" -log:                generates BIFS encoder log file\n"
 			" -ms file:            specifies file for track importing\n"
 			"\nChunk Processing\n"
-			" -inctx file:         specifies initial context (MP4/BT/XMT)\n"
+			" -ctx-in file:        specifies initial context (MP4/BT/XMT)\n"
 			"                       * Note: input file must be a commands-only file\n"
-			" -outctx:             specifies storage of updated context (MP4/BT/XMT)\n"
+			" -ctx-out file:       specifies storage of updated context (MP4/BT/XMT)\n"
 			"\n"
 			"LASeR Encoding options\n"
 			" -resolution res:     resolution factor (-8 to 7)\n"
@@ -303,7 +304,7 @@ void PrintHintUsage()
 			" -iod:                prevents systems tracks embedding in IOD\n"
 			"                       * Note: shouldn't be used with -isma option\n"
 			"\n"
-			" -sdp_ex string:      adds sdp string to (hint) track (\"-sdp_ex tkID:string\")\n"
+			" -add-sdp string:     adds sdp string to (hint) track (\"-add-sdp tkID:string\")\n"
 			"                      or movie. This will take care of SDP lines ordering\n"
 			"                       * WARNING: You cannot add anything to SDP, cf rfc2327.\n"
 			" -unhint:             removes all hinting information.\n"
@@ -399,10 +400,10 @@ void PrintSWFUsage()
 			"                       * Note: By default SWF defines are sent when needed\n"
 			" -ctrl:               uses a dedicated stream for movie control\n"
 			"                       * Note: Forces \'-static\'\n"
-			" -notext:             removes all SWF text\n"
-			" -nofont:             removes all embedded SWF Fonts (terminal fonts used)\n"
-			" -noline:             removes all lines from SWF shapes\n"
-			" -nograd:             removes all gradients from swf shapes\n"
+			" -no-text:            removes all SWF text\n"
+			" -no-font:            removes all embedded SWF Fonts (terminal fonts used)\n"
+			" -no-line:            removes all lines from SWF shapes\n"
+			" -no-grad:            removes all gradients from swf shapes\n"
 			" -quad:               uses quadratic bezier curves instead of cubic ones\n"
 			" -xlp:                support for lines transparency and scalability\n"
 			" -flatten ang:        complementary angle below which 2 lines are merged\n"
@@ -881,10 +882,10 @@ int main(int argc, char **argv)
 	char *szTracksToAdd[MAX_CUMUL_OPS];
 	TrackAction tracks[MAX_CUMUL_OPS];
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
-	u32 i, MTUSize, stat_level, hint_flags, MakeISMA, Make3GP, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur;
-	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, do_package;
+	u32 i, MTUSize, stat_level, hint_flags, MakeISMA, Make3GP, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version;
+	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, do_package, remove_root_od;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts;
-	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file;
+	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump;
 	GF_ISOFile *file;
 
 	if (argc < 2) {
@@ -892,7 +893,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	nb_add = nb_cat = nb_track_act = nb_sdp_ex = max_ptime = raw_sample_num = nb_meta_act = rtp_rate = major_brand = nb_alt_brand_add = nb_alt_brand_rem = car_dur = 0;
+	nb_add = nb_cat = nb_track_act = nb_sdp_ex = max_ptime = raw_sample_num = nb_meta_act = rtp_rate = major_brand = nb_alt_brand_add = nb_alt_brand_rem = car_dur = minor_version = 0;
 	e = GF_OK;
 	split_duration = 0.0;
 	split_start = -1.0;
@@ -902,11 +903,12 @@ int main(int argc, char **argv)
 	split_size = 0;
 	MTUSize = 1500;
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = 0;
-	do_package = chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = 0;
+	do_package = chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
 	x3d_info = MakeISMA = Make3GP = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = 0;
 	track_dump_type = 0;
 	ismaCrypt = 0;
 	file = NULL;
+	pes_dump = NULL;
 	memset(&opts, 0, sizeof(opts));
 	
 	trackID = stat_level = hint_flags = 0;
@@ -1036,17 +1038,21 @@ int main(int argc, char **argv)
 #endif
 			if (!stricmp(arg, "-ttxt")) dump_ttxt = 1;
 			else dump_srt = 1;
-		} else if (!stricmp(arg, "-dm2ts")) dump_m2ts = 1;
+		} else if (!stricmp(arg, "-dm2ts")) {
+			dump_m2ts = 1;
+			if ( ((i+1<(u32) argc) && inName) || (i+2<(u32) argc) ) {
+				if (argv[i+1][0] != '-') pes_dump = argv[i+1];
+			}
+		}
 
 #ifndef GPAC_READ_ONLY
 		/*SWF importer options*/
 		else if (!stricmp(arg, "-static")) swf_flags |= GF_SM_SWF_STATIC_DICT;
 		else if (!stricmp(arg, "-ctrl")) swf_flags |= GF_SM_SWF_SPLIT_TIMELINE;
-		else if (!stricmp(arg, "-notext")) swf_flags |= GF_SM_SWF_NO_TEXT;
-		else if (!stricmp(arg, "-nofont")) swf_flags |= GF_SM_SWF_NO_FONT;
-		else if (!stricmp(arg, "-noline")) swf_flags |= GF_SM_SWF_NO_LINE;
-		else if (!stricmp(arg, "-nograd")) swf_flags |= GF_SM_SWF_NO_GRADIENT;
-		else if (!stricmp(arg, "-nograd")) swf_flags |= GF_SM_SWF_NO_GRADIENT;
+		else if (!stricmp(arg, "-no-text")) swf_flags |= GF_SM_SWF_NO_TEXT;
+		else if (!stricmp(arg, "-no-font")) swf_flags |= GF_SM_SWF_NO_FONT;
+		else if (!stricmp(arg, "-no-line")) swf_flags |= GF_SM_SWF_NO_LINE;
+		else if (!stricmp(arg, "-no-grad")) swf_flags |= GF_SM_SWF_NO_GRADIENT;
 		else if (!stricmp(arg, "-quad")) swf_flags |= GF_SM_SWF_QUAD_CURVE;
 		else if (!stricmp(arg, "-xlp")) swf_flags |= GF_SM_SWF_SCALABLE_LINE;
 		else if (!stricmp(arg, "-flatten")) {
@@ -1056,7 +1062,8 @@ int main(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-isma")) { MakeISMA = 1; open_edit = 1; }
 		else if (!stricmp(arg, "-3gp")) { Make3GP = 1; open_edit = 1; }
-		else if (!stricmp(arg, "-nosys")) { remove_sys_tracks = 1; open_edit = 1; }
+		else if (!stricmp(arg, "-no-sys") || !stricmp(arg, "-nosys")) { remove_sys_tracks = 1; open_edit = 1; }
+		else if (!stricmp(arg, "-no-iod")) { remove_root_od = 1; open_edit = 1; }
 		else if (!stricmp(arg, "-ismax")) { MakeISMA = 2; open_edit = 1; }
 		else if (!stricmp(arg, "-out")) { CHECK_NEXT_ARG outName = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-tmp")) { CHECK_NEXT_ARG tmpdir = argv[i+1]; i++; }
@@ -1104,7 +1111,7 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-mtu")) { CHECK_NEXT_ARG MTUSize = atoi(argv[i+1]); i++; }
 		else if (!stricmp(arg, "-cardur")) { CHECK_NEXT_ARG car_dur = atoi(argv[i+1]); i++; }
 		else if (!stricmp(arg, "-rate")) { CHECK_NEXT_ARG rtp_rate = atoi(argv[i+1]); i++; }
-		else if (!stricmp(arg, "-sdp_ex")) {
+		else if (!stricmp(arg, "-add-sdp") || !stricmp(arg, "-sdp_ex")) {
 			char *id;
 			CHECK_NEXT_ARG
 			if (nb_sdp_ex>=MAX_CUMUL_OPS) {
@@ -1267,14 +1274,14 @@ int main(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-dref")) import_flags |= GF_IMPORT_USE_DATAREF;
-		else if (!stricmp(arg, "-nodrop")) import_flags |= GF_IMPORT_NO_FRAME_DROP;
+		else if (!stricmp(arg, "-no-drop") || !stricmp(arg, "-nodrop")) import_flags |= GF_IMPORT_NO_FRAME_DROP;
 		else if (!stricmp(arg, "-packed")) import_flags |= GF_IMPORT_FORCE_PACKED;
 		else if (!stricmp(arg, "-sbr")) import_flags |= GF_IMPORT_SBR_IMPLICIT;
 		else if (!stricmp(arg, "-sbrx")) import_flags |= GF_IMPORT_SBR_EXPLICIT;
 		else if (!stricmp(arg, "-fps")) { CHECK_NEXT_ARG import_fps = atof(argv[i+1]); i++; }
 		else if (!stricmp(arg, "-agg")) { CHECK_NEXT_ARG agg_samples = atoi(argv[i+1]); i++; }
-		else if (!stricmp(arg, "-keepsys")) keep_sys_tracks = 1;
-		else if (!stricmp(arg, "-keepall")) import_flags |= GF_IMPORT_KEEP_ALL_TRACKS;
+		else if (!stricmp(arg, "-keep-sys") || !stricmp(arg, "-keepsys")) keep_sys_tracks = 1;
+		else if (!stricmp(arg, "-keep-all") || !stricmp(arg, "-keepall")) import_flags |= GF_IMPORT_KEEP_ALL_TRACKS;
 		else if (!stricmp(arg, "-ms")) { CHECK_NEXT_ARG mediaSource = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-mp4")) { encode = 1; open_edit = 1; }
 		else if (!stricmp(arg, "-saf")) { do_saf = 1; }
@@ -1308,8 +1315,8 @@ int main(int argc, char **argv)
 			i++;
 		}
 		/*chunk encoding*/
-		else if (!stricmp(arg, "-outctx")) { CHECK_NEXT_ARG output_ctx = argv[i+1]; i++; }
-		else if (!stricmp(arg, "-inctx")) {
+		else if (!stricmp(arg, "-ctx-out") || !stricmp(arg, "-outctx")) { CHECK_NEXT_ARG output_ctx = argv[i+1]; i++; }
+		else if (!stricmp(arg, "-ctx-in") || !stricmp(arg, "-inctx")) {
 			CHECK_NEXT_ARG
 			chunk_mode = 1;
 			input_ctx = argv[i+1];
@@ -1357,8 +1364,8 @@ int main(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-split")) { CHECK_NEXT_ARG split_duration = atof(argv[i+1]); i++; split_size = 0; }
-		else if (!stricmp(arg, "-splits")) { CHECK_NEXT_ARG split_size = atoi(argv[i+1]); i++; split_duration = 0; }
-		else if (!stricmp(arg, "-splitx")) { 
+		else if (!stricmp(arg, "-split-size") || !stricmp(arg, "-splits")) { CHECK_NEXT_ARG split_size = atoi(argv[i+1]); i++; split_duration = 0; }
+		else if (!stricmp(arg, "-split-chunk") || !stricmp(arg, "-splitx")) { 
 			CHECK_NEXT_ARG 
 			if (!strstr(argv[i+1], ":")) {
 				fprintf(stdout, "Chunk extraction usage: \"-splitx start->end\" expressed in seconds\n");
@@ -1438,6 +1445,7 @@ int main(int argc, char **argv)
 			CHECK_NEXT_ARG 
 			major_brand = GF_4CC(b[0], b[1], b[2], b[3]);
 			open_edit = 1;
+			if (b[4]==':') minor_version = atoi(b+5);
 			i++;
 		}
 		else if (!stricmp(arg, "-ab")) { 
@@ -1700,7 +1708,11 @@ int main(int argc, char **argv)
 			} 
 #ifndef GPAC_READ_ONLY
 			else if (!open_edit && file_exists && !gf_isom_probe_file(inName) && !dump_mode) {
-				convert_file_info(inName, info_track_id);
+				if (dump_m2ts) {
+					dump_mpeg2_ts(inName, pes_dump);
+				} else {
+					convert_file_info(inName, info_track_id);
+				}
 				return 0;
 			}
 #endif
@@ -1774,7 +1786,6 @@ int main(int argc, char **argv)
 	if (dump_rtp) dump_file_rtp(file, dump_std ? NULL : outfile);
 	if (dump_ts) dump_file_ts(file, dump_std ? NULL : outfile);
 	if (dump_cr) dump_file_ismacryp(file, dump_std ? NULL : outfile);
-	if (dump_m2ts) dump_mpeg2_ts(inName, NULL);
 	if ((dump_ttxt || dump_srt) && trackID) dump_timed_text_track(file, trackID, dump_std ? NULL : outfile, 0, dump_srt);
 	
 	if (split_duration || split_size) {
@@ -1874,6 +1885,9 @@ int main(int argc, char **argv)
 		remove_systems_tracks(file);
 		needSave = 1;
 		MakeISMA = 0;
+	}
+	if (remove_root_od) {
+		gf_isom_remove_root_od(file);
 	}
 	if (remove_hint) {
 		for (i=0; i<gf_isom_get_track_count(file); i++) {
@@ -2072,9 +2086,18 @@ int main(int argc, char **argv)
 		if (e) goto err_exit;
 	}
 
-	if (major_brand) gf_isom_set_brand_info(file, major_brand, 0);
-	for (i=0; i<nb_alt_brand_add; i++) gf_isom_modify_alternate_brand(file, brand_add[i], 1);
-	for (i=0; i<nb_alt_brand_rem; i++) gf_isom_modify_alternate_brand(file, brand_add[i], 0);
+	if (major_brand) {
+		gf_isom_set_brand_info(file, major_brand, minor_version);
+		needSave = 1;
+	}
+	for (i=0; i<nb_alt_brand_add; i++) {
+		gf_isom_modify_alternate_brand(file, brand_add[i], 1);
+		needSave = 1;
+	}
+	for (i=0; i<nb_alt_brand_rem; i++) {
+		gf_isom_modify_alternate_brand(file, brand_add[i], 0);
+		needSave = 1;
+	}
 
 	if (!encode && !force_new) gf_isom_set_final_name(file, outfile);
 	if (needSave) {

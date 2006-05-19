@@ -24,6 +24,7 @@
  */
 
 #include <gpac/internal/laser_dev.h>
+#include <gpac/internal/scenegraph_dev.h>
 #include <gpac/bitstream.h>
 #include <gpac/math.h>
 
@@ -43,11 +44,11 @@ static void lsr_dec_log_bits(GF_LASeRCodec *lsr, u32 val, u32 nb_bits, const cha
 
 static void lsr_read_group_content(GF_LASeRCodec *lsr, SVGElement *elt, Bool skip_object_content);
 static void lsr_read_group_content_post_init(GF_LASeRCodec *lsr, SVGElement *elt, Bool skip_init);
-static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *comList, SVGscriptElement *script);
+static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *comList, SVGconditionalElement *script);
 static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list);
 static void lsr_read_path_type(GF_LASeRCodec *lsr, SVG_PathData *path, const char *name);
 static void lsr_read_point_sequence(GF_LASeRCodec *lsr, GF_List *pts, const char *name);
-static Bool lsr_setup_attribute_name(GF_LASeRCodec *lsr, SVGElement *anim, SVGElement *anim_parent);
+static Bool lsr_setup_smil_anim(GF_LASeRCodec *lsr, SVGElement *anim, SVGElement *anim_parent);
 
 GF_LASeRCodec *gf_laser_decoder_new(GF_SceneGraph *graph)
 {
@@ -355,9 +356,10 @@ static void lsr_read_codec_IDREF(GF_LASeRCodec *lsr, SVG_IRI *href, const char *
 	n = gf_sg_find_node(lsr->sg, nID);
 	if (!n) {
 		char NodeID[1024];
-		sprintf(NodeID, "%d", nID);
+		sprintf(NodeID, "N%d", nID-1);
 		href->iri = strdup(NodeID);
-		if (href->type!=0xFF) gf_list_add(lsr->defered_hrefs, href);
+		if (href->type!=0xFF) 
+			gf_list_add(lsr->defered_hrefs, href);
 		href->type = SVG_IRI_ELEMENTID;
 		return;
 	}
@@ -444,7 +446,7 @@ static void lsr_read_byte_align_string(GF_LASeRCodec *lsr, unsigned char **str, 
 static void lsr_read_text_content(GF_LASeRCodec *lsr, unsigned char **txt, const char *name)
 {
 	u32 len, len2;
-	char *str = NULL;
+	unsigned char *str = NULL;
 	lsr_read_byte_align_string(lsr, &str, name);
 	if (!str) return;
 	if (!*txt) {
@@ -549,15 +551,28 @@ static void lsr_read_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *nam
 			GF_LSR_READ_INT(lsr, val, 2, "choice");
 			switch (val) {
 			case 0: paint->type = SVG_PAINT_INHERIT; break;
-			case 1: paint->type = SVG_PAINT_COLOR; break;
+			case 1: paint->type = SVG_PAINT_COLOR; paint->color.type = SVG_COLOR_CURRENTCOLOR; break;
 			default: paint->type = SVG_PAINT_NONE; break;
 			}
 		} else {
 			GF_LSR_READ_INT(lsr, val, 1, "isURI");
 			if (val) {
 				SVG_IRI iri;
+				iri.iri = NULL;
 				lsr_read_any_uri(lsr, &iri, name);
-				paint->uri = iri.iri;
+				gf_svg_unregister_iri(lsr->sg, &iri);
+				if (iri.iri) {
+					paint->uri = iri.iri;
+				} else {
+					char szN[1024];
+					const char *n = gf_node_get_name((GF_Node*)iri.target);
+					if (n) {
+						sprintf(szN, "#%s", n);
+					} else {
+						sprintf(szN, "#N%d", gf_node_get_id((GF_Node*) iri.target) - 1);
+					}
+					paint->uri = strdup(szN);
+				}
 				paint->type = SVG_PAINT_URI;
 			} else {
 				lsr_read_extension(lsr, name);
@@ -634,7 +649,7 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 	count = gf_list_count(lsr->defered_anims);
 	for (i=0; i<count; i++) {
 		SVGElement *elt = gf_list_get(lsr->defered_anims, i);
-		if (elt->xlink->href.target && lsr_setup_attribute_name(lsr, elt, NULL)) {
+		if (lsr_setup_smil_anim(lsr, elt, NULL)) {
 			gf_list_rem(lsr->defered_anims, i);
 			i--;
 			count--;
@@ -751,8 +766,114 @@ static void lsr_restore_base(GF_LASeRCodec *lsr, SVGElement *elt, SVGElement *ba
 	}
 }
 
+
+static void lsr_read_event_type(GF_LASeRCodec *lsr, XMLEV_Event *evtType)
+{
+	u32 flag;
+	GF_LSR_READ_INT(lsr, flag, 1, "choice");
+	if (!flag) {
+		char *evtName, *sep;
+		evtName = NULL;
+		lsr_read_byte_align_string(lsr, (unsigned char **)&evtName, "evtString");
+		evtType->type = evtType->parameter = 0;
+		if (evtName) {
+			sep = strchr(evtName, '(');
+			if (sep) {
+				char a_c;
+				sep[0] = 0;
+				evtType->type = gf_dom_event_type_by_name(evtName);
+				sep[0] = '(';
+				/*TODO FIXME check all possible cases (accessKey & co)*/
+				sscanf(sep, "(%c)", &a_c);
+				evtType->parameter = a_c;
+			} else {
+				evtType->type = gf_dom_event_type_by_name(evtName);
+			}
+			free(evtName);
+		}
+	} else {
+		evtType->parameter = 0;
+		GF_LSR_READ_INT(lsr, flag, 6, "event");
+		/* Enumeration: abort{0} accesskey{1} activate{2} begin{3} click{4} end{5} error{6} focusin{7} 
+		focusout{8} keydown{9} keyup{10} load{11} longaccesskey{12} mousedown{13} mousemove{14} mouseout{15} 
+		mouseover{16} mouseup{17} pause{18} repeat{19} resize{20} resume{21} scroll{22} textinput{23} unload{24} zoom{25} */
+		switch (flag) {
+		case 0: evtType->type = SVG_DOM_EVT_ABORT; break;
+		case 1: evtType->type = SVG_DOM_EVT_KEYPRESS; break;
+		case 2: evtType->type = SVG_DOM_EVT_ACTIVATE; break;
+		case 3: evtType->type = SVG_DOM_EVT_BEGIN; break;
+		case 4: evtType->type = SVG_DOM_EVT_CLICK; break;
+		case 5: evtType->type = SVG_DOM_EVT_END; break;
+		case 6: evtType->type = SVG_DOM_EVT_ERROR; break;
+		case 7: evtType->type = SVG_DOM_EVT_FOCUSIN; break;
+		case 8: evtType->type = SVG_DOM_EVT_FOCUSOUT; break;
+		case 9: evtType->type = SVG_DOM_EVT_KEYDOWN; break;
+		case 10: evtType->type = SVG_DOM_EVT_KEYUP; break;
+		case 11: evtType->type = SVG_DOM_EVT_LOAD; break;
+		case 12: evtType->type = SVG_DOM_EVT_LONGKEYPRESS; break;
+		case 13: evtType->type = SVG_DOM_EVT_MOUSEDOWN; break;
+		case 14: evtType->type = SVG_DOM_EVT_MOUSEMOVE; break;
+		case 15: evtType->type = SVG_DOM_EVT_MOUSEOUT; break;
+		case 16: evtType->type = SVG_DOM_EVT_MOUSEOVER; break;
+		case 17: evtType->type = SVG_DOM_EVT_MOUSEUP; break;
+		case 19: evtType->type = SVG_DOM_EVT_REPEAT; break;
+		case 20: evtType->type = SVG_DOM_EVT_RESIZE; break;
+		case 22: evtType->type = SVG_DOM_EVT_SCROLL; break;
+		case 23: evtType->type = SVG_DOM_EVT_TEXTINPUT; break;
+		case 24: evtType->type = SVG_DOM_EVT_UNLOAD; break;
+		case 25: evtType->type = SVG_DOM_EVT_ZOOM; break;
+		default:
+			fprintf(stdout, "Unsupported LASER event\n");
+			break;
+		}
+		if ((flag==1) || (flag==12)) {
+			GF_LSR_READ_INT(lsr, flag, 1, "hasKeyCode");
+			if (flag) evtType->parameter = lsr_read_vluimsbf5(lsr, "keyCode");
+		}
+	}
+}
+
+
+static SMIL_Time *lsr_read_smil_time(GF_LASeRCodec *lsr)
+{
+	SMIL_Time *t;
+	u32 val;
+
+	GF_SAFEALLOC(t, sizeof(SMIL_Time));
+	t->type = GF_SMIL_TIME_CLOCK;
+
+	GF_LSR_READ_INT(lsr, val, 1, "hasEvent");
+	if (val) {
+		t->type = GF_SMIL_TIME_EVENT;
+		GF_LSR_READ_INT(lsr, val, 1, "hasIdentifier");
+		if (val) {
+			SVG_IRI iri;
+			iri.type = 0xFF;
+			iri.iri = NULL;
+			lsr_read_codec_IDREF(lsr, &iri, "idref");
+			gf_svg_unregister_iri(lsr->sg, &iri);
+			if (iri.iri) {
+				t->element_id = iri.iri;
+			} else {
+				t->element = (GF_Node *)iri.target;
+			}
+		}
+		lsr_read_event_type(lsr, &t->event);
+	}
+	GF_LSR_READ_INT(lsr, val, 1, "hasClock");
+	if (val) {
+		u32 now;
+		GF_LSR_READ_INT(lsr, val, 1, "sign");
+		now = lsr_read_vluimsbf5(lsr, "value");
+		t->clock = now;
+		t->clock /= lsr->time_resolution;
+		if (val) t->clock *= -1;
+	}
+	return t;
+}
+
 /*TODO FIXME: list shall never be NULL, but wait for action on script and times coding (LASeR COR ?) */
-static void lsr_read_time_list(GF_LASeRCodec *lsr, GF_List *l, const char *name, Bool skipable)
+static void lsr_read_smil_times(GF_LASeRCodec *lsr, GF_List *l, const char *name, Bool skipable)
 {
 	SMIL_Time *v;
 	u32 val, i, count;
@@ -770,24 +891,15 @@ static void lsr_read_time_list(GF_LASeRCodec *lsr, GF_List *l, const char *name,
 	if (val) {
 		if (l) {
 			GF_SAFEALLOC(v, sizeof(SMIL_Time));
-			v->type = SMIL_TIME_INDEFINITE;
+			v->type = GF_SMIL_TIME_INDEFINITE;
 			gf_list_add(l, v);
 		}
 		return;
 	}
 	count = lsr_read_vluimsbf5(lsr, "count");
 	for (i=0; i<count; i++) {
-		u32 now;
-		GF_LSR_READ_INT(lsr, val, 1, "sign");
-		now = lsr_read_vluimsbf5(lsr, "value");
-		if (l) {
-			GF_SAFEALLOC(v, sizeof(SMIL_Time));
-			v->type = SMIL_TIME_CLOCK;
-			v->clock = now;
-			v->clock /= lsr->time_resolution;
-			if (val) v->clock *= -1;
-			gf_list_add(l, v);
-		}
+		v = lsr_read_smil_time(lsr);
+		gf_list_add(l, v);
 	} 
 }
 
@@ -795,7 +907,7 @@ static void lsr_read_duration(GF_LASeRCodec *lsr, SMIL_Duration *smil, const cha
 {
 	u32 val;
 	smil->type = 0;
-	GF_LSR_READ_INT(lsr, val, 1, "has_dur");
+	GF_LSR_READ_INT(lsr, val, 1, name);
 	if (!val) return;
 
 	GF_LSR_READ_INT(lsr, val, 1, "choice");
@@ -846,7 +958,9 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, SVGElement *n, SVG_Matrix *ma
 			GF_LSR_READ_INT(lsr, n->properties->display_align, 3, "display-align"); break;
 		case RARE_FILL_OPACITY: 
 			if (!n->properties) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
-			n->properties->fill_opacity.value = lsr_read_fixed_clamp(lsr, "fill-opacity"); break;
+			n->properties->fill_opacity.type = SVG_NUMBER_VALUE; 
+			n->properties->fill_opacity.value = lsr_read_fixed_clamp(lsr, "fill-opacity"); 
+			break;
 	    case RARE_FILL_RULE: 
 			if (!n->properties) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
 			GF_LSR_READ_INT(lsr, n->properties->fill_rule, 2, "fill-rule"); break;
@@ -1004,7 +1118,7 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, SVGElement *n, SVG_Matrix *ma
 			if (!n->xlink) { lsr->last_error = GF_NON_COMPLIANT_BITSTREAM; break; }
 			/*TODO FIXME*/
 			GF_LSR_READ_INT(lsr, field_rare, 3, "xlink:show"); break;
-		case RARE_END: lsr_read_time_list(lsr, n->timing->end, "end", 0); break;
+		case RARE_END: lsr_read_smil_times(lsr, n->timing->end, "end", 0); break;
 		case RARE_MIN: lsr_read_duration(lsr, &n->timing->min, "min"); break;
 		case RARE_MAX: lsr_read_duration(lsr, &n->timing->max, "min"); break;
 		}
@@ -1233,14 +1347,44 @@ static void lsr_translate_anim_values(SMIL_AnimateValues *val, u32 coded_type)
 
 }
 
-static Bool lsr_setup_attribute_name(GF_LASeRCodec *lsr, SVGElement *anim, SVGElement *anim_parent)
+static Bool lsr_init_smil_times(GF_LASeRCodec *lsr, SVGElement *anim, GF_List *times, SVGElement *parent)
 {
-	u32 i, count, coded_type;
-	GF_Node *n;
-	s32 a_type = (s32) anim->anim->attributeName.type;
+	u32 i, count;
+	count = gf_list_count(times);
+	for (i=0; i<count; i++) {
+		SMIL_Time *t = gf_list_get(times, i);
+		if (t->type==GF_SMIL_TIME_EVENT) {
+			if (t->element_id) {
+				if (t->element_id[0]=='N') {
+					t->element = gf_sg_find_node(lsr->sg, atoi(t->element_id+1) + 1);
+				} else {
+					t->element = gf_sg_find_node_by_name(lsr->sg, t->element_id);
+				}
+				if (!t->element) return 0;
+				free(t->element_id);
+				t->element_id = NULL;
+			} else if (!t->element) {
+				t->element = (GF_Node*)parent;
+			}
+		}
+	}
+	return 1;
+}
 
+static Bool lsr_setup_smil_anim(GF_LASeRCodec *lsr, SVGElement *anim, SVGElement *anim_parent)
+{
+	u32 i, count, coded_type, not_res;
+	GF_Node *n;
+
+	/*setup smil events*/
+	not_res = 0;
+	if (!lsr_init_smil_times(lsr, anim, anim->timing->begin, anim_parent)) not_res++;
+	if (!lsr_init_smil_times(lsr, anim, anim->timing->end, anim_parent)) not_res++;
+	if (anim->sgprivate->tag==TAG_SVG_animateMotion) return not_res ? 0 : 1;
+
+	/*setup target node*/
 	if (!anim->xlink->href.target) {
-		/*target node not received*/
+		/*not received*/
 		if (anim->xlink->href.type == SVG_IRI_ELEMENTID) return 0;
 		
 		anim->xlink->href.type = SVG_IRI_ELEMENTID;
@@ -1250,66 +1394,45 @@ static Bool lsr_setup_attribute_name(GF_LASeRCodec *lsr, SVGElement *anim, SVGEl
 	} else {
 		n = (GF_Node *)anim->xlink->href.target;
 	}
-	/*browse all anim types*/
-	count = gf_node_get_field_count(n);
-	for (i=0; i<count; i++) {
-		GF_FieldInfo info;
-		s32 the_type = gf_lsr_field_to_attrib_type(n, i);
-		if (the_type != a_type) continue;
-		gf_node_get_field(n, i, &info);
-		anim->anim->attributeName.field_ptr = info.far_ptr;
-		anim->anim->attributeName.type = info.fieldType;
-		/*and setup inited values*/
-		if (anim->anim->from.value) {
-			coded_type = anim->anim->from.type;
-			anim->anim->from.type = info.fieldType;
-			lsr_translate_anim_value(&anim->anim->from, coded_type);
+	/*browse all anim types and retranslate anim values. This must be done in 2 steps since we may not have received
+	the target node when parsing the animation node*/
+	if (!anim->anim->attributeName.field_ptr) {
+		s32 a_type = (s32) anim->anim->attributeName.type;
+		count = gf_node_get_field_count(n);
+		for (i=0; i<count; i++) {
+			GF_FieldInfo info;
+			s32 the_type = gf_lsr_field_to_attrib_type(n, i);
+			if (the_type != a_type) continue;
+			gf_node_get_field(n, i, &info);
+			anim->anim->attributeName.field_ptr = info.far_ptr;
+			anim->anim->attributeName.type = info.fieldType;
+			/*and setup inited values*/
+			if (anim->anim->from.value) {
+				coded_type = anim->anim->from.type;
+				anim->anim->from.type = info.fieldType;
+				lsr_translate_anim_value(&anim->anim->from, coded_type);
+			}
+			if (anim->anim->by.value) {
+				coded_type = anim->anim->from.type;
+				anim->anim->by.type = info.fieldType;
+				lsr_translate_anim_value(&anim->anim->by, coded_type);
+			}
+			if (anim->anim->to.value) {
+				coded_type = anim->anim->to.type;
+				anim->anim->to.type = info.fieldType;
+				lsr_translate_anim_value(&anim->anim->to, coded_type);
+			}
+			if (gf_list_count(anim->anim->values.values)) {
+				coded_type = anim->anim->values.type;
+				anim->anim->values.type = info.fieldType;
+				lsr_translate_anim_values(&anim->anim->values, coded_type);
+			}
+			anim->anim->attributeName.name = (char *) info.name;
+			break;
 		}
-		if (anim->anim->by.value) {
-			coded_type = anim->anim->from.type;
-			anim->anim->by.type = info.fieldType;
-			lsr_translate_anim_value(&anim->anim->by, coded_type);
-		}
-		if (anim->anim->to.value) {
-			coded_type = anim->anim->to.type;
-			anim->anim->to.type = info.fieldType;
-			lsr_translate_anim_value(&anim->anim->to, coded_type);
-		}
-		if (gf_list_count(anim->anim->values.values)) {
-			coded_type = anim->anim->values.type;
-			anim->anim->values.type = info.fieldType;
-			lsr_translate_anim_values(&anim->anim->values, coded_type);
-		}
-		anim->anim->attributeName.name = (char *) info.name;
-		break;
 	}
-	return 1;
+	return not_res ? 0 : 1;
 }
-
-
-static void lsr_read_single_time(GF_LASeRCodec *lsr, SMIL_Time *v, const char *name)
-{
-	u32 val;
-	v->type = SMIL_TIME_INDEFINITE;
-	GF_LSR_READ_INT(lsr, val, 1, name);
-	if (!val) return;
-
-	GF_LSR_READ_INT(lsr, val, 1, "choice");
-	if (val) {
-		GF_LSR_READ_INT(lsr, val, 1, "time");
-		v->type = val ? SMIL_TIME_UNSPECIFIED : SMIL_TIME_INDEFINITE;
-	} else {
-		Bool sign;
-		u32 now;
-		GF_LSR_READ_INT(lsr, sign, 1, "sign");
-		now = lsr_read_vluimsbf5(lsr, "value");
-		v->type = SMIL_TIME_CLOCK;
-		v->clock = now;
-		v->clock /= lsr->time_resolution;
-		if (sign) v->clock *= -1; 
-	}
-}
-
 
 static void lsr_read_anim_fill(GF_LASeRCodec *lsr, u8 *animFreeze, const char *name)
 {
@@ -1383,7 +1506,7 @@ static void *lsr_read_an_anim_value(GF_LASeRCodec *lsr, u32 coded_type, u32 type
 	GF_LSR_READ_INT(lsr, escapeFlag, 1, "escapeFlag");
 	if (escapeFlag) GF_LSR_READ_INT(lsr, escape_val, 2, "escapeEnum");
 
-    switch(type) {
+    switch (coded_type) {
     case 0: 
 		string = NULL;
 		lsr_read_byte_align_string(lsr, &string, name); 
@@ -1813,71 +1936,6 @@ static void lsr_read_value_with_units(GF_LASeRCodec *lsr, SVG_Number *n, const c
 	}
 }
 
-static void lsr_read_event_type(GF_LASeRCodec *lsr, XMLEV_Event *evtType)
-{
-	u32 flag;
-	GF_LSR_READ_INT(lsr, flag, 1, "choice");
-	if (!flag) {
-		char *evtName, *sep;
-		evtName = NULL;
-		lsr_read_byte_align_string(lsr, (unsigned char **)&evtName, "evtString");
-		evtType->type = evtType->parameter = 0;
-		if (evtName) {
-			sep = strchr(evtName, '(');
-			if (sep) {
-				char a_c;
-				sep[0] = 0;
-				evtType->type = gf_dom_event_type_by_name(evtName);
-				sep[0] = '(';
-				/*TODO FIXME check all possible cases (accessKey & co)*/
-				sscanf(sep, "(%c)", &a_c);
-				evtType->parameter = a_c;
-			} else {
-				evtType->type = gf_dom_event_type_by_name(evtName);
-			}
-			free(evtName);
-		}
-	} else {
-		evtType->parameter = 0;
-		GF_LSR_READ_INT(lsr, flag, 6, "event");
-		/* Enumeration: abort{0} accesskey{1} activate{2} begin{3} click{4} end{5} error{6} focusin{7} 
-		focusout{8} keydown{9} keyup{10} load{11} longaccesskey{12} mousedown{13} mousemove{14} mouseout{15} 
-		mouseover{16} mouseup{17} pause{18} repeat{19} resize{20} resume{21} scroll{22} textinput{23} unload{24} zoom{25} */
-		switch (flag) {
-		case 0: evtType->type = SVG_DOM_EVT_ABORT; break;
-		case 1: evtType->type = SVG_DOM_EVT_KEYPRESS; break;
-		case 2: evtType->type = SVG_DOM_EVT_ACTIVATE; break;
-		case 3: evtType->type = SVG_DOM_EVT_BEGIN; break;
-		case 4: evtType->type = SVG_DOM_EVT_CLICK; break;
-		case 5: evtType->type = SVG_DOM_EVT_END; break;
-		case 6: evtType->type = SVG_DOM_EVT_ERROR; break;
-		case 7: evtType->type = SVG_DOM_EVT_FOCUSIN; break;
-		case 8: evtType->type = SVG_DOM_EVT_FOCUSOUT; break;
-		case 9: evtType->type = SVG_DOM_EVT_KEYDOWN; break;
-		case 10: evtType->type = SVG_DOM_EVT_KEYUP; break;
-		case 11: evtType->type = SVG_DOM_EVT_LOAD; break;
-		case 12: evtType->type = SVG_DOM_EVT_LONGKEYPRESS; break;
-		case 13: evtType->type = SVG_DOM_EVT_MOUSEDOWN; break;
-		case 14: evtType->type = SVG_DOM_EVT_MOUSEMOVE; break;
-		case 15: evtType->type = SVG_DOM_EVT_MOUSEOUT; break;
-		case 16: evtType->type = SVG_DOM_EVT_MOUSEOVER; break;
-		case 17: evtType->type = SVG_DOM_EVT_MOUSEUP; break;
-		case 19: evtType->type = SVG_DOM_EVT_REPEAT; break;
-		case 20: evtType->type = SVG_DOM_EVT_RESIZE; break;
-		case 22: evtType->type = SVG_DOM_EVT_SCROLL; break;
-		case 23: evtType->type = SVG_DOM_EVT_TEXTINPUT; break;
-		case 24: evtType->type = SVG_DOM_EVT_UNLOAD; break;
-		case 25: evtType->type = SVG_DOM_EVT_ZOOM; break;
-		default:
-			fprintf(stdout, "Unsupported LASER event\n");
-			break;
-		}
-		if ((flag==1) || (flag==12)) {
-			GF_LSR_READ_INT(lsr, flag, 1, "hasKeyCode");
-			if (flag) evtType->parameter = lsr_read_vluimsbf5(lsr, "keyCode");
-		}
-	}
-}
 
 static void lsr_read_clip_time(GF_LASeRCodec *lsr, SVG_Clock *clock, const char *name)
 {
@@ -1920,7 +1978,7 @@ static GF_Node *lsr_read_animate(GF_LASeRCodec *lsr, SVGElement *parent)
 	SVGanimateElement *elt = (SVGanimateElement *) gf_node_new(lsr->sg, TAG_SVG_animate);
 	lsr_read_id(lsr, (GF_Node *) elt);
 	lsr_read_rare(lsr, (SVGElement *) elt);
-	elt->anim->attributeName.type = lsr_read_animatable(lsr, "has_attributeName");
+	elt->anim->attributeName.type = lsr_read_animatable(lsr, "attributeName");
 
 	lsr_read_accumulate(lsr, &elt->anim->accumulate);
 	lsr_read_additive(lsr, &elt->anim->additive);
@@ -1930,7 +1988,7 @@ static GF_Node *lsr_read_animate(GF_LASeRCodec *lsr, SVGElement *parent)
 	lsr_read_fraction_12(lsr, elt->anim->keySplines, "has_keySplines");
 	lsr_read_fraction_12(lsr, elt->anim->keyTimes, "has_keyTimes");
 	lsr_read_anim_values(lsr, &elt->anim->values, elt->anim->attributeName.type, "has_values");
-	lsr_read_time_list(lsr, elt->timing->begin, "has_begin", 1);
+	lsr_read_smil_times(lsr, elt->timing->begin, "has_begin", 1);
 	lsr_read_duration(lsr, &elt->timing->dur, "has_dur");
 	GF_LSR_READ_INT(lsr, elt->anim->lsr_enabled, 1, "enabled");
 	lsr_read_anim_fill(lsr, &elt->timing->fill, "has_fill");
@@ -1941,7 +1999,7 @@ static GF_Node *lsr_read_animate(GF_LASeRCodec *lsr, SVGElement *parent)
 	lsr_read_href(lsr, (SVGElement *) elt);
 	lsr_read_any_attribute(lsr, (GF_Node *) elt, 1);
 
-	if (!lsr_setup_attribute_name(lsr, (SVGElement *)elt, parent)) {
+	if (!lsr_setup_smil_anim(lsr, (SVGElement *)elt, parent)) {
 		gf_list_add(lsr->defered_anims, elt);
 		lsr_read_group_content_post_init(lsr, (SVGElement *) elt, 1);
 	} else {
@@ -1965,7 +2023,7 @@ static GF_Node *lsr_read_animateMotion(GF_LASeRCodec *lsr, SVGElement *parent)
 	lsr_read_fraction_12(lsr, elt->anim->keySplines, "has_keySplines");
 	lsr_read_fraction_12(lsr, elt->anim->keyTimes, "has_keyTimes");
 	lsr_read_anim_values(lsr, &elt->anim->values, 0xFFFF, "has_values");
-	lsr_read_time_list(lsr, elt->timing->begin, "has_begin", 1);
+	lsr_read_smil_times(lsr, elt->timing->begin, "begin", 1);
 	lsr_read_duration(lsr, &elt->timing->dur, "has_dur");
 	GF_LSR_READ_INT(lsr, elt->anim->lsr_enabled, 1, "enabled");
 	lsr_read_anim_fill(lsr, &elt->timing->fill, "has_fill");
@@ -1979,19 +2037,27 @@ static GF_Node *lsr_read_animateMotion(GF_LASeRCodec *lsr, SVGElement *parent)
 
 	lsr_read_rotate_type(lsr, &elt->rotate, "rotate");
 	lsr_read_href(lsr, (SVGElement *)elt);
+	GF_LSR_READ_INT(lsr, elt->anim->lsr_enabled, 1, "enabled");
 	lsr_read_any_attribute(lsr, (GF_Node *) elt, 1);
+
 	if (elt->xlink->href.type == SVG_IRI_IRI) {
 		elt->xlink->href.type = SVG_IRI_ELEMENTID;
 		elt->xlink->href.target = parent;
 		gf_svg_register_iri(lsr->sg, &elt->xlink->href);
 	}
+
 	/*and setup inited values*/
 	if (elt->anim->from.value) elt->anim->from.type = SVG_Motion_datatype;
 	if (elt->anim->by.value) elt->anim->by.type = SVG_Motion_datatype;
 	if (elt->anim->to.value) elt->anim->to.type = SVG_Motion_datatype;
 	if (gf_list_count(elt->anim->values.values)) elt->anim->values.type = SVG_Motion_datatype;
 
-	lsr_read_group_content_post_init(lsr, (SVGElement *) elt, 0);
+	if (!lsr_setup_smil_anim(lsr, (SVGElement *)elt, parent)) {
+		gf_list_add(lsr->defered_anims, elt);
+		lsr_read_group_content_post_init(lsr, (SVGElement *) elt, 1);
+	} else {
+		lsr_read_group_content_post_init(lsr, (SVGElement *) elt, 0);
+	}
 	return (GF_Node *) elt;
 }
 
@@ -2096,7 +2162,7 @@ static GF_Node *lsr_read_animateTransform(GF_LASeRCodec *lsr, SVGElement *parent
 	SVGanimateTransformElement *elt= (SVGanimateTransformElement *) gf_node_new(lsr->sg, TAG_SVG_animateTransform);
 	lsr_read_id(lsr, (GF_Node *) elt);
 	lsr_read_rare(lsr, (SVGElement *) elt);
-	elt->anim->attributeName.type = lsr_read_animatable(lsr, "has_attributeName");
+	elt->anim->attributeName.type = lsr_read_animatable(lsr, "attributeName");
 
 	lsr_read_accumulate(lsr, &elt->anim->accumulate);
 	lsr_read_additive(lsr, &elt->anim->additive);
@@ -2106,7 +2172,7 @@ static GF_Node *lsr_read_animateTransform(GF_LASeRCodec *lsr, SVGElement *parent
 	lsr_read_fraction_12(lsr, elt->anim->keySplines, "has_keySplines");
 	lsr_read_fraction_12(lsr, elt->anim->keyTimes, "has_keyTimes");
 	lsr_read_anim_values(lsr, &elt->anim->values, elt->anim->attributeName.type, "has_values");
-	lsr_read_time_list(lsr, elt->timing->begin, "has_begin", 1);
+	lsr_read_smil_times(lsr, elt->timing->begin, "has_begin", 1);
 	lsr_read_duration(lsr, &elt->timing->dur, "has_dur");
 	GF_LSR_READ_INT(lsr, elt->anim->lsr_enabled, 1, "enabled");
 	lsr_read_anim_fill(lsr, &elt->timing->fill, "has_fill");
@@ -2133,7 +2199,7 @@ static GF_Node *lsr_read_animateTransform(GF_LASeRCodec *lsr, SVGElement *parent
 	lsr_read_href(lsr, (SVGElement *)elt);
 	lsr_read_any_attribute(lsr, (GF_Node *) elt, 1);
 
-	if (!lsr_setup_attribute_name(lsr, (SVGElement *)elt, parent)) {
+	if (!lsr_setup_smil_anim(lsr, (SVGElement *)elt, parent)) {
 		gf_list_add(lsr->defered_anims, elt);
 		lsr_read_group_content_post_init(lsr, (SVGElement *) elt, 1);
 	} else {
@@ -2148,7 +2214,7 @@ static GF_Node *lsr_read_audio(GF_LASeRCodec *lsr, SVGElement *parent)
 	SVGaudioElement *elt= (SVGaudioElement *) gf_node_new(lsr->sg, TAG_SVG_audio);
 	lsr_read_id(lsr, (GF_Node *) elt);
 	lsr_read_rare(lsr, (SVGElement *) elt);
-	lsr_read_time_list(lsr, elt->timing->begin, "has_begin", 1);
+	lsr_read_smil_times(lsr, elt->timing->begin, "has_begin", 1);
 	lsr_read_duration(lsr, &elt->timing->dur, "has_dur");
 	GF_LSR_READ_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
 	lsr_read_anim_repeat(lsr, &elt->timing->repeatCount, "has_repeatCount");
@@ -2187,10 +2253,21 @@ static GF_Node *lsr_read_circle(GF_LASeRCodec *lsr)
 	lsr_read_group_content(lsr, (SVGElement *) elt, 0);
 	return (GF_Node *) elt;
 }
-static GF_Node *lsr_read_cursor(GF_LASeRCodec *lsr)
+static GF_Node *lsr_read_conditional(GF_LASeRCodec *lsr)
 {
-	/*TODO FIX CODE GENERATION*/
-	SVGimageElement *elt = (SVGimageElement*) gf_node_new(lsr->sg, TAG_SVG_image);
+	SVGconditionalElement*elt = (SVGconditionalElement*) gf_node_new(lsr->sg, TAG_SVG_conditional);
+	lsr_read_id(lsr, (GF_Node *) elt);
+	lsr_read_rare(lsr, (SVGElement*) elt);
+	lsr_read_smil_times(lsr, elt->lsr_begin, "begin", 1);
+	GF_LSR_READ_INT(lsr, elt->lsr_enabled, 1, "enabled");
+	GF_LSR_READ_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
+	lsr_read_any_attribute(lsr, (GF_Node *) elt, 1);
+	lsr_read_command_list(lsr, NULL, elt);
+	return (GF_Node *)elt;
+}
+static GF_Node *lsr_read_cursorManager(GF_LASeRCodec *lsr)
+{
+	SVGcursorManagerElement *elt = (SVGcursorManagerElement *) gf_node_new(lsr->sg, TAG_SVG_cursorManager);
 	lsr_read_id(lsr, (GF_Node *) elt);
 	lsr_read_rare(lsr, (SVGElement *) elt);
 	lsr_read_coordinate(lsr, &elt->x, 1, "x");
@@ -2264,16 +2341,15 @@ static GF_Node *lsr_read_foreignObject(GF_LASeRCodec *lsr)
 	GF_LSR_READ_INT(lsr, flag, 1, "opt_group");
 	return (GF_Node *) elt;
 }
+
+
 static GF_Node *lsr_read_g(GF_LASeRCodec *lsr, Bool is_same)
 {
-	u32 flag;
 	SVGgElement *elt = (SVGgElement*) gf_node_new(lsr->sg, TAG_SVG_g);
 	if (is_same) {
 		if (lsr->prev_g) {
 			lsr_restore_base(lsr, (SVGElement *)elt, (SVGElement *)lsr->prev_g, 0, 0);
 			gf_mx2d_copy(elt->transform, lsr->prev_g->transform);
-			elt->lsr_choice = lsr->prev_g->lsr_choice;
-			elt->lsr_size = lsr->prev_g->lsr_size;
 		}
 		lsr_read_id(lsr, (GF_Node *) elt);
 	} else {
@@ -2281,27 +2357,7 @@ static GF_Node *lsr_read_g(GF_LASeRCodec *lsr, Bool is_same)
 		lsr_read_rare_full(lsr, (SVGElement*) elt, &elt->transform);
 		lsr_read_fill(lsr, (SVGElement*)elt);
 		lsr_read_stroke(lsr, (SVGElement*)elt);
-		GF_LSR_READ_INT(lsr, flag, 1, "hasChoice");
-		if (flag) {
-			GF_LSR_READ_INT(lsr, flag, 1, "choice");
-			if (flag) {
-				GF_LSR_READ_INT(lsr, elt->lsr_choice.type, 2, "type");
-			} else {
-				GF_LSR_READ_INT(lsr, elt->lsr_choice.choice_index, 8, "value");
-				elt->lsr_choice.type = LASeR_CHOICE_N;
-			}
-		} else {
-			elt->lsr_choice.type = LASeR_CHOICE_ALL;
-		}
 		GF_LSR_READ_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
-		GF_LSR_READ_INT(lsr, elt->lsr_size.enabled, 1, "size");
-		if (flag) {
-			SVG_Number num;
-			lsr_read_coordinate(lsr, & num, 0, "width");
-			elt->lsr_size.width = num.value;
-			lsr_read_coordinate(lsr, & num, 0, "height");
-			elt->lsr_size.height = num.value;
-		}
 		lsr_read_any_attribute(lsr, (GF_Node *) elt, 1);
 		lsr->prev_g = elt;
 	}
@@ -2498,31 +2554,77 @@ static GF_Node *lsr_read_rect(GF_LASeRCodec *lsr, u32 same_type)
 	lsr_read_group_content(lsr, (SVGElement *) elt, same_type);
 	return (GF_Node *)elt;
 }
-static GF_Node *lsr_read_script(GF_LASeRCodec *lsr)
+
+static GF_Node *lsr_read_rectClip(GF_LASeRCodec *lsr)
 {
 	u32 flag;
+	SVGrectClipElement *elt = (SVGrectClipElement*) gf_node_new(lsr->sg, TAG_SVG_rectClip);
+	lsr_read_id(lsr, (GF_Node *) elt);
+	lsr_read_rare_full(lsr, (SVGElement*) elt, &elt->transform);
+	lsr_read_fill(lsr, (SVGElement*)elt);
+	lsr_read_stroke(lsr, (SVGElement*)elt);
+	GF_LSR_READ_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
+	GF_LSR_READ_INT(lsr, flag, 1, "has_size");
+	if (flag) {
+		SVG_Number num;
+		lsr_read_coordinate(lsr, & num, 0, "width");
+		elt->size.width = num.value;
+		lsr_read_coordinate(lsr, & num, 0, "height");
+		elt->size.height = num.value;
+	}
+	lsr_read_any_attribute(lsr, (GF_Node *) elt, 1);
+	lsr_read_group_content(lsr, (SVGElement *) elt, 0);
+	return (GF_Node *) elt;
+}
+
+static GF_Node *lsr_read_script(GF_LASeRCodec *lsr)
+{
 	SVGscriptElement*elt = (SVGscriptElement*) gf_node_new(lsr->sg, TAG_SVG_script);
 	lsr_read_id(lsr, (GF_Node *) elt);
 	lsr_read_rare(lsr, (SVGElement*) elt);
-	/*TODO fix code generator*/
-	lsr_read_time_list(lsr, NULL /*&elt->timing->begin*/, "begin", 1);
-	GF_LSR_READ_INT(lsr, /*elt->anim->lsr_enabled*/flag, 1, "enabled");
 	GF_LSR_READ_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
 	lsr_read_script_type(lsr, &elt->xlink->type, "type");
 
 	lsr_read_href(lsr, (SVGElement *) elt);
 	lsr_read_any_attribute(lsr, (GF_Node *) elt, 1);
-	lsr_read_command_list(lsr, NULL, elt);
+	lsr_read_group_content(lsr, (SVGElement *) elt, 0);
 	return (GF_Node *)elt;
 }
+
+static GF_Node *lsr_read_selector(GF_LASeRCodec *lsr)
+{
+	u32 flag;
+	SVGselectorElement *elt = (SVGselectorElement*) gf_node_new(lsr->sg, TAG_SVG_selector);
+	lsr_read_id(lsr, (GF_Node *) elt);
+	lsr_read_rare_full(lsr, (SVGElement*) elt, &elt->transform);
+	lsr_read_fill(lsr, (SVGElement*)elt);
+	lsr_read_stroke(lsr, (SVGElement*)elt);
+	GF_LSR_READ_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
+	GF_LSR_READ_INT(lsr, flag, 1, "hasChoice");
+	if (flag) {
+		GF_LSR_READ_INT(lsr, flag, 1, "choice");
+		if (flag) {
+			GF_LSR_READ_INT(lsr, elt->choice.type, 2, "type");
+		} else {
+			GF_LSR_READ_INT(lsr, elt->choice.choice_index, 8, "value");
+			elt->choice.type = LASeR_CHOICE_N;
+		}
+	} else {
+		elt->choice.type = LASeR_CHOICE_ALL;
+	}
+	lsr_read_any_attribute(lsr, (GF_Node *) elt, 1);
+	lsr_read_group_content(lsr, (SVGElement *) elt, 0);
+	return (GF_Node *) elt;
+}
+
 static GF_Node *lsr_read_set(GF_LASeRCodec *lsr, SVGElement *parent)
 {
 	SVGsetElement*elt = (SVGsetElement*) gf_node_new(lsr->sg, TAG_SVG_set);
 	lsr_read_id(lsr, (GF_Node *) elt);
 	lsr_read_rare(lsr, (SVGElement*) elt);
-	elt->anim->attributeName.type = lsr_read_animatable(lsr, "has_attributeName");
+	elt->anim->attributeName.type = lsr_read_animatable(lsr, "attributeName");
 
-	lsr_read_time_list(lsr, elt->timing->begin, "has_begin", 1);
+	lsr_read_smil_times(lsr, elt->timing->begin, "has_begin", 1);
 	lsr_read_duration(lsr, &elt->timing->dur, "has_dur");
 	GF_LSR_READ_INT(lsr, elt->anim->lsr_enabled, 1, "enabled");
 	lsr_read_anim_fill(lsr, &elt->timing->fill, "has_fill");
@@ -2533,7 +2635,7 @@ static GF_Node *lsr_read_set(GF_LASeRCodec *lsr, SVGElement *parent)
 	lsr_read_href(lsr, (SVGElement *)elt);
 	lsr_read_any_attribute(lsr, (GF_Node *) elt, 1);
 
-	if (!lsr_setup_attribute_name(lsr, (SVGElement *)elt, parent)) {
+	if (!lsr_setup_smil_anim(lsr, (SVGElement *)elt, parent)) {
 		gf_list_add(lsr->defered_anims, elt);
 		lsr_read_group_content_post_init(lsr, (SVGElement *) elt, 1);
 	} else {
@@ -2541,6 +2643,30 @@ static GF_Node *lsr_read_set(GF_LASeRCodec *lsr, SVGElement *parent)
 	}
 	return (GF_Node *)elt;
 }
+
+static GF_Node *lsr_read_simpleLayout(GF_LASeRCodec *lsr)
+{
+	u32 flag;
+	SVGsimpleLayoutElement *elt = (SVGsimpleLayoutElement*) gf_node_new(lsr->sg, TAG_SVG_simpleLayout);
+	lsr_read_id(lsr, (GF_Node *) elt);
+	lsr_read_rare_full(lsr, (SVGElement*) elt, &elt->transform);
+	lsr_read_fill(lsr, (SVGElement*)elt);
+	lsr_read_stroke(lsr, (SVGElement*)elt);
+	GF_LSR_READ_INT(lsr, flag, 1, "has_delta");
+	if (flag) {
+		SVG_Number num;
+		lsr_read_coordinate(lsr, & num, 0, "width");
+		elt->delta.width = num.value;
+		lsr_read_coordinate(lsr, & num, 0, "height");
+		elt->delta.height = num.value;
+	}
+	GF_LSR_READ_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
+
+	lsr_read_any_attribute(lsr, (GF_Node *) elt, 1);
+	lsr_read_group_content(lsr, (SVGElement *) elt, 0);
+	return (GF_Node *) elt;
+}
+
 static GF_Node *lsr_read_stop(GF_LASeRCodec *lsr)
 {
 	SVGstopElement *elt = (SVGstopElement *) gf_node_new(lsr->sg, TAG_SVG_stop);
@@ -2680,7 +2806,7 @@ static void lsr_strip_text_content(SVGElement *elt)
 			state = 0;
 			break;
 		}
-		elt->textContent[i] = 0;
+		//elt->textContent[i] = 0;
 	}
 	while (j && elt->textContent[j]==' ') j--;
 	elt->textContent[j] = 0;
@@ -2775,7 +2901,7 @@ static GF_Node *lsr_read_video(GF_LASeRCodec *lsr, SVGElement *parent)
 	SVGvideoElement*elt = (SVGvideoElement*) gf_node_new(lsr->sg, TAG_SVG_video);
 	lsr_read_id(lsr, (GF_Node *) elt);
 	lsr_read_rare_full(lsr, (SVGElement*) elt, &elt->transform);
-	lsr_read_time_list(lsr, elt->timing->begin, "has_begin", 1);
+	lsr_read_smil_times(lsr, elt->timing->begin, "has_begin", 1);
 	lsr_read_duration(lsr, &elt->timing->dur, "has_dur");
 	GF_LSR_READ_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
 	lsr_read_coordinate(lsr, &elt->height, 1, "height");
@@ -2829,7 +2955,6 @@ static GF_Node *lsr_read_listener(GF_LASeRCodec *lsr, SVGElement *parent)
 	lsr_read_rare(lsr, (SVGElement *) elt);
 	GF_LSR_READ_INT(lsr, elt->defaultAction, 1, "hasDefaultAction");
 	if (elt->defaultAction) GF_LSR_READ_INT(lsr, elt->defaultAction, 1, "defaultAction");
-	GF_LSR_READ_INT(lsr, flag/*elt->endabled*/, 1, "enabled");
 	GF_LSR_READ_INT(lsr, flag, 1, "hasEvent");
 	if (flag) lsr_read_event_type(lsr, &elt->event);
 	GF_LSR_READ_INT(lsr, flag, 1, "hasHandler");
@@ -2849,21 +2974,7 @@ static GF_Node *lsr_read_listener(GF_LASeRCodec *lsr, SVGElement *parent)
 	GF_LSR_READ_INT(lsr, flag, 1, "hasTarget");
 	if (flag) lsr_read_codec_IDREF(lsr, &elt->target, "target");
 
-	GF_LSR_READ_INT(lsr, flag, 1, "hasDelay");
-	if (flag) {
-		GF_LSR_READ_INT(lsr, flag, 1, "sign");
-		elt->lsr_delay = lsr_read_vluimsbf5(lsr, "delay");
-		elt->lsr_delay /= lsr->time_resolution;
-		if (flag) elt->lsr_delay *= -1;
-	} else {
-		elt->lsr_delay = 0;
-	}
-	elt->lsr_timeAttribute = 0;
-	GF_LSR_READ_INT(lsr, flag, 1, "hasTimeAttribute");
-	if (flag) {
-		GF_LSR_READ_INT(lsr, flag, 1, "timeAttribute");
-		elt->lsr_timeAttribute = flag+1;
-	}
+	GF_LSR_READ_INT(lsr, elt->enabled, 1, "enabled");
 
 	lsr_read_any_attribute(lsr, (GF_Node *) elt, 1);
 	lsr_read_group_content(lsr, (SVGElement *) elt, 0);
@@ -2909,8 +3020,8 @@ static GF_Node *lsr_read_scene_content_model(GF_LASeRCodec *lsr, SVGElement *par
 	case LSR_SCENE_CONTENT_MODEL_animateTransform: n = lsr_read_animateTransform(lsr, parent); break;
 	case LSR_SCENE_CONTENT_MODEL_audio: n = lsr_read_audio(lsr, parent); break;
 	case LSR_SCENE_CONTENT_MODEL_circle: n = lsr_read_circle(lsr); break;
-	case LSR_SCENE_CONTENT_MODEL_conditional: n = lsr_read_script(lsr); break;
-	case LSR_SCENE_CONTENT_MODEL_cursorManager: n = lsr_read_cursor(lsr); break;
+	case LSR_SCENE_CONTENT_MODEL_conditional: n = lsr_read_conditional(lsr); break;
+	case LSR_SCENE_CONTENT_MODEL_cursorManager: n = lsr_read_cursorManager(lsr); break;
 	case LSR_SCENE_CONTENT_MODEL_defs: n = lsr_read_defs(lsr); break;
 	case LSR_SCENE_CONTENT_MODEL_desc: n = lsr_read_data(lsr, TAG_SVG_desc); break;
 	case LSR_SCENE_CONTENT_MODEL_ellipse: n = lsr_read_ellipse(lsr); break;
@@ -2926,8 +3037,7 @@ static GF_Node *lsr_read_scene_content_model(GF_LASeRCodec *lsr, SVGElement *par
 	case LSR_SCENE_CONTENT_MODEL_polyline: n = lsr_read_polygon(lsr, 1, 0); break;
 	case LSR_SCENE_CONTENT_MODEL_radialGradient: n = lsr_read_radialGradient(lsr); break;
 	case LSR_SCENE_CONTENT_MODEL_rect: n = lsr_read_rect(lsr, 0); break;
-	case LSR_SCENE_CONTENT_MODEL_rectClip: break;
-	case LSR_SCENE_CONTENT_MODEL_rowLayout: break;
+	case LSR_SCENE_CONTENT_MODEL_rectClip: n = lsr_read_rectClip(lsr); break;
 	case LSR_SCENE_CONTENT_MODEL_sameg: n = lsr_read_g(lsr, 1); break;
 	case LSR_SCENE_CONTENT_MODEL_sameline: n = lsr_read_line(lsr, 1); break;
 	case LSR_SCENE_CONTENT_MODEL_samepath: n = lsr_read_path(lsr, 1); break;
@@ -2944,8 +3054,9 @@ static GF_Node *lsr_read_scene_content_model(GF_LASeRCodec *lsr, SVGElement *par
 	case LSR_SCENE_CONTENT_MODEL_sametextfill: n = lsr_read_text(lsr, 2); break;
 	case LSR_SCENE_CONTENT_MODEL_sameuse: n = lsr_read_use(lsr, 1); break;
 	case LSR_SCENE_CONTENT_MODEL_script: n = lsr_read_script(lsr); break;
-	case LSR_SCENE_CONTENT_MODEL_selector: break;
+	case LSR_SCENE_CONTENT_MODEL_selector: n = lsr_read_selector(lsr); break;
 	case LSR_SCENE_CONTENT_MODEL_set: n = lsr_read_set(lsr, parent); break;
+	case LSR_SCENE_CONTENT_MODEL_simpleLayout: n = lsr_read_simpleLayout(lsr); break;
 	case LSR_SCENE_CONTENT_MODEL_stop: n = lsr_read_stop(lsr); break;
 	case LSR_SCENE_CONTENT_MODEL_switch: n = lsr_read_switch(lsr); break;
 	case LSR_SCENE_CONTENT_MODEL_text: n = lsr_read_text(lsr, 0); break;
@@ -2975,54 +3086,62 @@ static GF_Node *lsr_read_update_content_model(GF_LASeRCodec *lsr, SVGElement *pa
 	GF_Node *n=NULL;
 	GF_LSR_READ_INT(lsr, flag, 1, "ch4"); 
 	if (flag) {
-		GF_LSR_READ_INT(lsr, flag, 1, "ch6"); 
-		if (flag) {
+		GF_LSR_READ_INT(lsr, flag, 3, "ch61"); 
+		switch (flag) {
+		case 0/*LSR_UPDATE_CONTENT_MODEL_conditional*/:  
+			n = lsr_read_conditional(lsr); break;
+		case 1/*LSR_UPDATE_CONTENT_MODEL_cursorManager*/:
+			n = lsr_read_cursorManager(lsr); break;
+		case 2: 
 			lsr_read_extend_class(lsr, NULL, 0, "extend");
-		} else {
+			return NULL;
+		case 3:
 			lsr_read_private_element_container(lsr);
+			return NULL;
+		case 4/*LSR_UPDATE_CONTENT_MODEL_rectClip*/:
+			n = lsr_read_rectClip(lsr); break;
+		case 5/*LSR_UPDATE_CONTENT_MODEL_simpleLayout*/:
+			n = lsr_read_simpleLayout(lsr); break;
+		case 6/*LSR_UPDATE_CONTENT_MODEL_selector*/:
+			n = lsr_read_selector(lsr); break;
 		}
-		return NULL;
-	}
-	GF_LSR_READ_INT(lsr, flag, 6, "ch6");
-	switch(flag) {
-	case LSR_UPDATE_CONTENT_MODEL_a: n = lsr_read_a(lsr); break;
-	case LSR_UPDATE_CONTENT_MODEL_animate: n = lsr_read_animate(lsr, parent); break;
-	case LSR_UPDATE_CONTENT_MODEL_animateColor: n = lsr_read_animate(lsr, parent); break;
-	case LSR_UPDATE_CONTENT_MODEL_animateMotion: n = lsr_read_animateMotion(lsr, parent); break;
-	case LSR_UPDATE_CONTENT_MODEL_animateTransform: n = lsr_read_animateTransform(lsr, parent); break;
-	case LSR_UPDATE_CONTENT_MODEL_audio: n = lsr_read_audio(lsr, parent); break;
-	case LSR_UPDATE_CONTENT_MODEL_circle: n = lsr_read_circle(lsr); break;
-	case LSR_UPDATE_CONTENT_MODEL_conditional:  n = lsr_read_script(lsr); break;
-	case LSR_UPDATE_CONTENT_MODEL_cursorManager: n = lsr_read_cursor(lsr); break;
-	case LSR_UPDATE_CONTENT_MODEL_defs: n = lsr_read_defs(lsr); break;
-	case LSR_UPDATE_CONTENT_MODEL_desc: n = lsr_read_data(lsr, TAG_SVG_desc); break;
-	case LSR_UPDATE_CONTENT_MODEL_ellipse: n = lsr_read_ellipse(lsr); break;
-	case LSR_UPDATE_CONTENT_MODEL_foreignObject: n = lsr_read_foreignObject(lsr); break;
-	case LSR_UPDATE_CONTENT_MODEL_g: n = lsr_read_g(lsr, 0); break;
-	case LSR_UPDATE_CONTENT_MODEL_image: n = lsr_read_image(lsr); break;
-	case LSR_UPDATE_CONTENT_MODEL_line: n = lsr_read_line(lsr, 0); break;
-	case LSR_UPDATE_CONTENT_MODEL_linearGradient: n = lsr_read_linearGradient(lsr); break;
-	case LSR_UPDATE_CONTENT_MODEL_metadata: n = lsr_read_data(lsr, TAG_SVG_metadata); break;
-	case LSR_UPDATE_CONTENT_MODEL_mpath: n = lsr_read_mpath(lsr); break;
-	case LSR_UPDATE_CONTENT_MODEL_path: n = lsr_read_path(lsr, 0); break;
-	case LSR_UPDATE_CONTENT_MODEL_polygon: n = lsr_read_polygon(lsr, 0, 0); break;
-	case LSR_UPDATE_CONTENT_MODEL_polyline: n = lsr_read_polygon(lsr, 1, 0); break;
-	case LSR_UPDATE_CONTENT_MODEL_radialGradient: n = lsr_read_radialGradient(lsr); break;
-	case LSR_UPDATE_CONTENT_MODEL_rect: n = lsr_read_rect(lsr, 0); break;
-	case LSR_UPDATE_CONTENT_MODEL_rectClip: break;
-	case LSR_UPDATE_CONTENT_MODEL_rowLayout:break;
-	case LSR_UPDATE_CONTENT_MODEL_script: n = lsr_read_script(lsr); break;
-	case LSR_UPDATE_CONTENT_MODEL_selector: break;
-	case LSR_UPDATE_CONTENT_MODEL_set: n = lsr_read_set(lsr, parent); break;
-	case LSR_UPDATE_CONTENT_MODEL_stop: n = lsr_read_stop(lsr); break;
-	case LSR_UPDATE_CONTENT_MODEL_svg: n = lsr_read_svg(lsr); break;
-	case LSR_UPDATE_CONTENT_MODEL_switch: n = lsr_read_switch(lsr); break;
-	case LSR_UPDATE_CONTENT_MODEL_text: n = lsr_read_text(lsr, 0); break;
-	case LSR_UPDATE_CONTENT_MODEL_title: n = lsr_read_data(lsr, TAG_SVG_title); break;
-	case LSR_UPDATE_CONTENT_MODEL_tspan: n = lsr_read_tspan(lsr); break;
-	case LSR_UPDATE_CONTENT_MODEL_use: n = lsr_read_use(lsr, 0); break;
-	case LSR_UPDATE_CONTENT_MODEL_video: n = lsr_read_video(lsr, parent); break;
-	case LSR_UPDATE_CONTENT_MODEL_listener: n = lsr_read_listener(lsr, parent); break;
+	} else {
+		GF_LSR_READ_INT(lsr, flag, 6, "ch6");
+		switch(flag) {
+		case LSR_UPDATE_CONTENT_MODEL_a: n = lsr_read_a(lsr); break;
+		case LSR_UPDATE_CONTENT_MODEL_animate: n = lsr_read_animate(lsr, parent); break;
+		case LSR_UPDATE_CONTENT_MODEL_animateColor: n = lsr_read_animate(lsr, parent); break;
+		case LSR_UPDATE_CONTENT_MODEL_animateMotion: n = lsr_read_animateMotion(lsr, parent); break;
+		case LSR_UPDATE_CONTENT_MODEL_animateTransform: n = lsr_read_animateTransform(lsr, parent); break;
+		case LSR_UPDATE_CONTENT_MODEL_audio: n = lsr_read_audio(lsr, parent); break;
+		case LSR_UPDATE_CONTENT_MODEL_circle: n = lsr_read_circle(lsr); break;
+		case LSR_UPDATE_CONTENT_MODEL_defs: n = lsr_read_defs(lsr); break;
+		case LSR_UPDATE_CONTENT_MODEL_desc: n = lsr_read_data(lsr, TAG_SVG_desc); break;
+		case LSR_UPDATE_CONTENT_MODEL_ellipse: n = lsr_read_ellipse(lsr); break;
+		case LSR_UPDATE_CONTENT_MODEL_foreignObject: n = lsr_read_foreignObject(lsr); break;
+		case LSR_UPDATE_CONTENT_MODEL_g: n = lsr_read_g(lsr, 0); break;
+		case LSR_UPDATE_CONTENT_MODEL_image: n = lsr_read_image(lsr); break;
+		case LSR_UPDATE_CONTENT_MODEL_line: n = lsr_read_line(lsr, 0); break;
+		case LSR_UPDATE_CONTENT_MODEL_linearGradient: n = lsr_read_linearGradient(lsr); break;
+		case LSR_UPDATE_CONTENT_MODEL_metadata: n = lsr_read_data(lsr, TAG_SVG_metadata); break;
+		case LSR_UPDATE_CONTENT_MODEL_mpath: n = lsr_read_mpath(lsr); break;
+		case LSR_UPDATE_CONTENT_MODEL_path: n = lsr_read_path(lsr, 0); break;
+		case LSR_UPDATE_CONTENT_MODEL_polygon: n = lsr_read_polygon(lsr, 0, 0); break;
+		case LSR_UPDATE_CONTENT_MODEL_polyline: n = lsr_read_polygon(lsr, 1, 0); break;
+		case LSR_UPDATE_CONTENT_MODEL_radialGradient: n = lsr_read_radialGradient(lsr); break;
+		case LSR_UPDATE_CONTENT_MODEL_rect: n = lsr_read_rect(lsr, 0); break;
+		case LSR_UPDATE_CONTENT_MODEL_script: n = lsr_read_script(lsr); break;
+		case LSR_UPDATE_CONTENT_MODEL_set: n = lsr_read_set(lsr, parent); break;
+		case LSR_UPDATE_CONTENT_MODEL_stop: n = lsr_read_stop(lsr); break;
+		case LSR_UPDATE_CONTENT_MODEL_svg: n = lsr_read_svg(lsr); break;
+		case LSR_UPDATE_CONTENT_MODEL_switch: n = lsr_read_switch(lsr); break;
+		case LSR_UPDATE_CONTENT_MODEL_text: n = lsr_read_text(lsr, 0); break;
+		case LSR_UPDATE_CONTENT_MODEL_title: n = lsr_read_data(lsr, TAG_SVG_title); break;
+		case LSR_UPDATE_CONTENT_MODEL_tspan: n = lsr_read_tspan(lsr); break;
+		case LSR_UPDATE_CONTENT_MODEL_use: n = lsr_read_use(lsr, 0); break;
+		case LSR_UPDATE_CONTENT_MODEL_video: n = lsr_read_video(lsr, parent); break;
+		case LSR_UPDATE_CONTENT_MODEL_listener: n = lsr_read_listener(lsr, parent); break;
+		}
 	}
 	if (n) {
 		GF_DOM_Event evt;
@@ -3537,7 +3656,7 @@ static GF_Err lsr_read_delete(GF_LASeRCodec *lsr, GF_List *com_list)
 
 void lsr_exec_command_list(void *sc)
 {
-	SVGscriptElement *script = sc;
+	SVGconditionalElement *cond = sc;
 	GF_LASeRCodec *codec = gf_node_get_private(sc);
 	assert(!codec->bs);
 
@@ -3552,40 +3671,35 @@ void lsr_exec_command_list(void *sc)
 	else 
 		codec->res_factor = gf_divfix(FIX_ONE, INT2FIX(1 << (-codec->info->cfg.resolution)) );
 
-	codec->bs = gf_bs_new(script->lsr_script.data, script->lsr_script.data_size, GF_BITSTREAM_READ);
+	codec->bs = gf_bs_new(cond->updates.data, cond->updates.data_size, GF_BITSTREAM_READ);
 	codec->memory_dec = 0;
 	lsr_read_command_list(codec, NULL, NULL);
 	gf_bs_del(codec->bs);
 	codec->bs = NULL;
 }
 
-static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGscriptElement *script)
+static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGconditionalElement *cond)
 {
 	GF_Node *n;
 	GF_Command *com;
 	GF_Err e;
-	Bool is_laserscript = 0;
 	u32 i, type, count;
 
-	if (script) {
+	if (cond) {
 		u32 s_len;
 		s_len = lsr_read_vluimsbf5(lsr, "length");
 		gf_bs_align(lsr->bs);
-		if (script->xlink->type && !strcmp(script->xlink->type, "application/laserscript")) {
-			is_laserscript = 1;
-
-			/*not in memory mode, direct decode*/
-			if (!lsr->memory_dec) {
-				com_list = NULL;
-				script->lsr_script.data_size = s_len;
-				script->lsr_script.data = malloc(sizeof(char)*s_len);
-				gf_bs_read_data(lsr->bs, script->lsr_script.data, s_len);
-				goto exit;
-			}
-			/*memory mode, decode commands*/
-			else {
-				com_list = script->lsr_script.com_list;
-			}
+		/*not in memory mode, direct decode*/
+		if (!lsr->memory_dec) {
+			com_list = NULL;
+			cond->updates.data_size = s_len;
+			cond->updates.data = malloc(sizeof(char)*s_len);
+			gf_bs_read_data(lsr->bs, cond->updates.data, s_len);
+			goto exit;
+		}
+		/*memory mode, decode commands*/
+		else {
+			com_list = cond->updates.com_list;
 		}
 	}
 	count = lsr_read_vluimsbf5(lsr, "occ0");
@@ -3620,14 +3734,14 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGsc
 				gf_sg_set_scene_size_info(lsr->sg, 0, 0, 1);
 			}
 			break;
-		case LSR_UPDATE_TEXT_CONTENT:	/*script*/
-			if (script) lsr_read_byte_align_string(lsr, &script->textContent, "textContent");
+		case LSR_UPDATE_TEXT_CONTENT:
+			lsr_read_byte_align_string(lsr, NULL, "textContent");
 			break;
 		default:
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		/*same-coding scope is command-based (to check in the spec)*/
-		if (is_laserscript) {
+		if (cond) {
 			lsr->prev_g = NULL;
 			lsr->prev_line = NULL;
 			lsr->prev_path = NULL;
@@ -3642,24 +3756,18 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGsc
 	}
 exit:
 	/*script is align*/
-	if (script) {
+	if (cond) {
 		gf_bs_align(lsr->bs);
-		lsr_read_object_content(lsr, (SVGElement *) script);
-
-		/*setup script execution*/
-		if (script->lsr_script.data) {
-			script->lsr_script.exec_command_list = lsr_exec_command_list;
-			gf_node_set_private((GF_Node *) script, lsr);
-		}
-		if (is_laserscript) {
-			lsr->prev_g = NULL;
-			lsr->prev_line = NULL;
-			lsr->prev_path = NULL;
-			lsr->prev_polygon = NULL;
-			lsr->prev_rect = NULL;
-			lsr->prev_text = NULL;
-			lsr->prev_use = NULL;
-		}
+		lsr_read_object_content(lsr, (SVGElement*)cond);
+		cond->updates.exec_command_list = lsr_exec_command_list;
+		gf_node_set_private((GF_Node *) cond, lsr);
+		lsr->prev_g = NULL;
+		lsr->prev_line = NULL;
+		lsr->prev_path = NULL;
+		lsr->prev_polygon = NULL;
+		lsr->prev_rect = NULL;
+		lsr->prev_text = NULL;
+		lsr->prev_use = NULL;
 	}
 	return GF_OK;
 }

@@ -187,13 +187,22 @@ typedef struct {
 } SMIL_AttributeName;
 
 enum {
-	SMIL_TIME_UNSPECIFIED   = 0,
-	SMIL_TIME_CLOCK			= 1,
-	SMIL_TIME_WALLCLOCK		= 2,
-	SMIL_TIME_EVENT			= 3,
-	SMIL_TIME_INDEFINITE	= 4
+	/*unspecified time*/
+	GF_SMIL_TIME_UNSPECIFIED   = 0,
+	/*clock time*/
+	GF_SMIL_TIME_CLOCK			= 1,
+	/*wallclock time*/
+	GF_SMIL_TIME_WALLCLOCK		= 2,
+	/*resolved time of an event, discarded when restarting animation.*/
+	GF_SMIL_TIME_EVENT_RESLOVED	= 3,
+	/*event time*/
+	GF_SMIL_TIME_EVENT			= 4,
+	/*indefinite time*/
+	GF_SMIL_TIME_INDEFINITE		= 5
 };
 
+#define GF_SMIL_TIME_IS_CLOCK(v) (v<=GF_SMIL_TIME_EVENT_RESLOVED)
+#define GF_SMIL_TIME_IS_SPECIFIED_CLOCK(v) ((v) && (v<=GF_SMIL_TIME_EVENT_RESLOVED) )
 
 typedef struct
 {
@@ -207,21 +216,12 @@ typedef struct {
 	u8 type;
 	/* in case of syncbase, event, repeat value: this is the pointer to the source of the event */
 	GF_Node *element; 
-	/* parent animation*/
-	GF_Node *owner_animation; 
 	/* id of the element before resolution of the pointer to the element */
 	char *element_id; 
 
-	/*
-	0: this SMIL time is static
-	1: this SMIL time is the prototype of a dynamic SMIL time (triggered by mouse event, access key)
-	2: this SMIL time is a resolved value of a proto SMIL time, result of element.event and should be deleted whenever 
-	appropriate*/
-	u8 dynamic_type;
-
 	/* event type and parameter */
 	XMLEV_Event event; 
-
+	/*clock offset (absolute or relative to event)*/
 	Double clock;
 } SMIL_Time;
 

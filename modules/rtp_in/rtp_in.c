@@ -114,6 +114,11 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 	} else {
 		rtp->logs = NULL;
 	}
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "DisableRTCP");
+	rtp->disable_rtcp = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
+
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "ForceClientPorts");
+	rtp->force_client_ports = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 
 	rtp->handle_announce = 0;
 	rtp->bandwidth = 10000000;
@@ -121,12 +126,13 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 
 static void RP_close_service_thread(RTPClient *rtp)
 {
+	gf_mx_p(rtp->mx);
+
 	while (gf_list_count(rtp->channels)) {
 		RTPStream *ch = gf_list_get(rtp->channels, 0);
 		gf_list_rem(rtp->channels, 0);
 		RP_DeleteStream(ch);
 	}
-
 	if (rtp->rtsp_session) 
 		RP_RemoveSession(rtp->rtsp_session, 1);
 
@@ -140,8 +146,9 @@ static void RP_close_service_thread(RTPClient *rtp)
 		free(rtp->sdp_temp);
 	}
 	rtp->sdp_temp = NULL;
-	if (rtp->do_exit==1) gf_term_on_disconnect(rtp->service, NULL, GF_OK);
-	rtp->run_client = 0;
+	gf_term_on_disconnect(rtp->service, NULL, GF_OK);
+
+	gf_mx_v(rtp->mx);
 }
 
 u32 RP_Thread(void *param)
@@ -151,8 +158,9 @@ u32 RP_Thread(void *param)
 	RTPStream *ch;
 	RTPClient *rtp = param;
 
+	rtp->status = 1;
 	com.command_type = GF_NET_CHAN_BUFFER_QUERY;
-	while (rtp->run_client) {
+	while (rtp->status) {
 		gf_mx_p(rtp->mx);
 
 		/*fecth data on udp*/
@@ -175,16 +183,13 @@ u32 RP_Thread(void *param)
 		
 		/*and process commands / flush TCP*/
 		if (rtp->rtsp_session) RP_ProcessCommands(rtp->rtsp_session, nb_inter);
-
-		if (rtp->do_exit) RP_close_service_thread(rtp);
-
 		gf_sleep(1);
 	}
 
 	if (rtp->dnload) gf_term_download_del(rtp->dnload);
 	rtp->dnload = NULL;
 
-	rtp->client_exit = 1;
+	rtp->status = 2;
 	return 0;
 }
 
@@ -224,7 +229,6 @@ static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 	RT_LoadPrefs(plug, priv);
 
 	/*start thread*/
-	priv->run_client = 1;
 	gf_th_run(priv->th, RP_Thread, priv);
 
 	/*local or remote SDP*/
@@ -259,8 +263,9 @@ static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 
 static GF_Err RP_CloseService(GF_InputService *plug)
 {
-	RTPClient *priv = plug->priv;
-	priv->do_exit = 1;
+	RTPClient *rtp = plug->priv;
+	RP_close_service_thread(rtp);
+	if (rtp->status==1) rtp->status = 0;
 	return GF_OK;
 }
 
@@ -593,15 +598,13 @@ void RTP_Delete(GF_BaseInterface *bi)
 	u32 retry;
 	GF_InputService *plug = (GF_InputService *) bi;
 	priv = plug->priv;
-	if (priv->run_client) {
-		if (!priv->do_exit) priv->do_exit = 2;
-		retry = 20;
-		while (!priv->client_exit && retry) {
-			gf_sleep(10);
-			retry--;
-		}
-		assert(retry);
+
+	retry = 20;
+	while ((priv->status==1) && retry) {
+		gf_sleep(10);
+		retry--;
 	}
+	assert(retry);
 
 	/*delete all streams*/
 	while (gf_list_count(priv->channels)) {

@@ -98,15 +98,16 @@ static void svg_process_event(SVGlistenerElement *listen, GF_DOM_Event *event)
 {
 	SVGhandlerElement *handler = (SVGhandlerElement *) listen->handler.target;
 	if (!handler) return;
-	if (handler->sgprivate->tag == TAG_SVG_script) {
-		SVGscriptElement *sc = (SVGscriptElement *)handler;
-		if (sc->lsr_script.data) {
-			sc->lsr_script.exec_command_list(sc);
-		} else if (gf_list_count(sc->lsr_script.com_list)) {
-			gf_sg_command_apply_list(listen->sgprivate->scenegraph, sc->lsr_script.com_list, gf_node_get_scene_time((GF_Node*)listen) );
+	if (handler->sgprivate->tag == TAG_SVG_conditional) {
+		SVGconditionalElement *cond = (SVGconditionalElement *)handler;
+		if (cond->updates.data) {
+			cond->updates.exec_command_list(cond);
+		} else if (gf_list_count(cond->updates.com_list)) {
+			gf_sg_command_apply_list(listen->sgprivate->scenegraph, cond->updates.com_list, gf_node_get_scene_time((GF_Node*)listen) );
 		}
 		return;
 	}
+#if 0
 	/*laser-like handling*/
 	if (handler->timing) {
 		u32 i, count;
@@ -137,6 +138,7 @@ static void svg_process_event(SVGlistenerElement *listen, GF_DOM_Event *event)
 		gf_node_changed((GF_Node*)handler, &info);
 		return;
 	}
+#endif
 	if (!handler->handle_event) return;
 	if (handler->ev_event.type != event->type) return;
 	handler->handle_event(handler, event);
@@ -259,7 +261,7 @@ static void gf_smil_handle_event(GF_Node *anim, GF_FieldInfo *info, GF_DOM_Event
 	TODO FIXME: this is not 100% correct, a begin val in the past can be interpreted!!*/
 	for (i=0; i<count; i++) {
 		proto = gf_list_get(times, i);
-		if ((proto->dynamic_type == 2) && (proto->clock<scene_time) ) {
+		if ((proto->type == GF_SMIL_TIME_EVENT_RESLOVED) && (proto->clock<scene_time) ) {
 			free(proto);
 			gf_list_rem(times, i);
 			i--;
@@ -269,22 +271,21 @@ static void gf_smil_handle_event(GF_Node *anim, GF_FieldInfo *info, GF_DOM_Event
 
 	for (i=0; i<count; i++) {
 		proto = gf_list_get(times, i);
-		if (proto->dynamic_type!=1) continue;
+		if (proto->type != GF_SMIL_TIME_EVENT) continue;
 		if (proto->event.type != evt->type) continue;
 		if ((evt->type == SVG_DOM_EVT_KEYPRESS) || (evt->type == SVG_DOM_EVT_REPEAT)) {
 			if (proto->event.parameter!=evt->detail) continue;
 		}
 		/*solve*/
 		GF_SAFEALLOC(resolved, sizeof(SMIL_Time));
-		resolved->type = SMIL_TIME_CLOCK;
+		resolved->type = GF_SMIL_TIME_EVENT_RESLOVED;
 		resolved->clock = scene_time + proto->clock;
-		resolved->dynamic_type=2;
 
 		/*insert in sorted order*/
 		for (j=0; j<count; j++) {
 			proto = gf_list_get(times, j);
 
-			if ((proto->type == SMIL_TIME_CLOCK) || (proto->type == SMIL_TIME_WALLCLOCK) ) {
+			if ( GF_SMIL_TIME_IS_SPECIFIED_CLOCK(proto->type) ) {
 				if (proto->clock > resolved->clock) break;
 			} else {
 				break;
@@ -301,17 +302,23 @@ static void gf_smil_handle_event(GF_Node *anim, GF_FieldInfo *info, GF_DOM_Event
 static void gf_smil_handle_event_begin(SVGhandlerElement *hdl, GF_DOM_Event *evt)
 {
 	GF_FieldInfo info;
-	GF_Node *anim = gf_node_get_private((GF_Node *)hdl);
-	gf_node_get_field_by_name(anim, "begin", &info);
-	gf_smil_handle_event(anim, &info, evt, 0);
+	SVGElement *anim = gf_node_get_private((GF_Node *)hdl);
+	memset(&info, 0, sizeof(GF_FieldInfo));
+	info.name = "begin";
+	info.far_ptr = &anim->timing->begin;
+	info.fieldType = SMIL_Times_datatype;
+	gf_smil_handle_event((GF_Node*)anim, &info, evt, 0);
 }
 
 static void gf_smil_handle_event_end(SVGhandlerElement *hdl, GF_DOM_Event *evt)
 {
 	GF_FieldInfo info;
-	GF_Node *anim = gf_node_get_private((GF_Node *)hdl);
-	gf_node_get_field_by_name(anim, "end", &info);
-	gf_smil_handle_event(anim, &info, evt, 1);
+	SVGElement *anim = gf_node_get_private((GF_Node *)hdl);
+	memset(&info, 0, sizeof(GF_FieldInfo));
+	info.name = "end";
+	info.far_ptr = &anim->timing->end;
+	info.fieldType = SMIL_Times_datatype;
+	gf_smil_handle_event((GF_Node *)anim, &info, evt, 1);
 }
 
 static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
@@ -321,16 +328,13 @@ static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
 	count = gf_list_count(l);
 	for (i=0; i<count; i++) {
 		SMIL_Time *t = gf_list_get(l, i);
-		if (t->type != SMIL_TIME_EVENT) continue;
-		/*already setup*/
-		if (t->dynamic_type) continue;
+		if (t->type != GF_SMIL_TIME_EVENT) continue;
 		/*not resolved yet*/
 		if (!t->element && t->element_id) continue;
 		hdl = gf_dom_listener_build(t->element, t->event);
 		hdl->handle_event = is_begin ? gf_smil_handle_event_begin : gf_smil_handle_event_end;
 		gf_node_set_private((GF_Node *)hdl, node);
 		t->element = NULL;
-		t->dynamic_type = 1;
 	}
 }
 
@@ -347,15 +351,10 @@ Bool gf_sg_svg_node_init(GF_Node *node)
 {
 	switch (node->sgprivate->tag) {
 	case TAG_SVG_script:
-	{
-		SVGscriptElement *elt = (SVGscriptElement *)node;;
-		/*LASeR conditional*/
-		if (elt->lsr_script.data || gf_list_count(elt->lsr_script.com_list)) {
-		} 
-		/*regular SVG script*/
-		else if (node->sgprivate->scenegraph->script_load) 
+		if (node->sgprivate->scenegraph->script_load) 
 			node->sgprivate->scenegraph->script_load(node);
-	}
+		return 1;
+	case TAG_SVG_conditional:
 		return 1;
 	case TAG_SVG_handler:
 		if (node->sgprivate->scenegraph->js_ifce)
@@ -525,13 +524,13 @@ void gf_svg_unregister_iri(GF_SceneGraph *sg, SVG_IRI *target)
 
 
 
-void gf_svg_init_lsr_script(SVGCommandBuffer *script)
+void gf_svg_init_lsr_conditional(SVGCommandBuffer *script)
 {
 	memset(script, 0, sizeof(SVGCommandBuffer));
 	script->com_list = gf_list_new();
 }
 
-void gf_svg_reset_lsr_script(SVGCommandBuffer *script)
+void gf_svg_reset_lsr_conditional(SVGCommandBuffer *script)
 {
 	u32 i;
 	if (script->data) free(script->data);

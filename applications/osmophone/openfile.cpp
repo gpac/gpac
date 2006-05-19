@@ -298,7 +298,7 @@ BOOL InitFileDialog(const HWND hWnd)
 }
 
 BOOL CALLBACK FileDialogProc(const HWND hWnd, const UINT Msg, const WPARAM wParam, const LPARAM lParam) 
-{   
+{
 	BOOL bProcessedMsg = TRUE;
 
     switch (Msg) {
@@ -316,47 +316,54 @@ BOOL CALLBACK FileDialogProc(const HWND hWnd, const UINT Msg, const WPARAM wPara
 		break;
 
     case WM_COMMAND:
-        switch LOWORD(wParam) {
-        case IDOK:
-            process_list_change(hWnd, 0);
-            break;
-        case IDCANCEL:
-            EndDialog(hWnd, 0);
-            break;
-		case IDM_OF_VIEW_ALL:
-			bViewUnknownTypes = !bViewUnknownTypes;
-			refresh_menu_states();
-			set_directory(w_current_dir);
-			break;
-		case IDM_OF_PLAYLIST:
-			playlist_mode = !playlist_mode;
-			if (playlist_mode) refresh_playlist();
-			else set_directory(w_current_dir);
-			switch_menu_pl();
-			break;
-		case IDM_OF_PL_ACT:
-			if (playlist_mode) {
-				playlist_act(0);
+		if (LOWORD(wParam) == IDC_FILELIST) {
+			if (HIWORD(wParam) == LBN_DBLCLK) {
+		        process_list_change(hWnd, 0);
 			} else {
-				process_list_change(hWnd, 1);
+	            bProcessedMsg = FALSE;
 			}
-			break;
-		case IDM_OF_PL_UP:
-			playlist_act(1);
-			break;
-		case IDM_OF_PL_DOWN:
-			playlist_act(2);
-			break;
-		case IDM_OF_PL_CLEAR:
-			playlist_act(3);
-			break;
-        default:
-            bProcessedMsg = FALSE;
-			break;
-        }
+		} else {
+			switch (LOWORD(wParam)) {
+			case IDOK:
+				process_list_change(hWnd, 0);
+				break;
+			case IDCANCEL:
+				EndDialog(hWnd, 0);
+				break;
+			case IDM_OF_VIEW_ALL:
+				bViewUnknownTypes = !bViewUnknownTypes;
+				refresh_menu_states();
+				set_directory(w_current_dir);
+				break;
+			case IDM_OF_PLAYLIST:
+				playlist_mode = !playlist_mode;
+				if (playlist_mode) refresh_playlist();
+				else set_directory(w_current_dir);
+				switch_menu_pl();
+				break;
+			case IDM_OF_PL_ACT:
+				if (playlist_mode) {
+					playlist_act(0);
+				} else {
+					process_list_change(hWnd, 1);
+				}
+				break;
+			case IDM_OF_PL_UP:
+				playlist_act(1);
+				break;
+			case IDM_OF_PL_DOWN:
+				playlist_act(2);
+				break;
+			case IDM_OF_PL_CLEAR:
+				playlist_act(3);
+				break;
+			default:
+				bProcessedMsg = FALSE;
+				break;
+			}
+		}
         break;
 	case WM_KEYDOWN:
-		MessageBox(GetForegroundWindow(), _T(""), _T(""), MB_OK);
 		switch (wParam) {
 		case VK_LEFT: 
 		case '1': 

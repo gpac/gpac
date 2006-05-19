@@ -13,14 +13,14 @@ endif
 all: sggen 
 
 sggen:
-	for i in $(GENDIRS) ; do $(MAKE) -C $$i all; done 
+	set -e; for i in $(GENDIRS) ; do $(MAKE) -C $$i all; done 
 
 dep:
-	for i in $(GENDIRS) ; do $(MAKE) -C $$i dep; done 
+	set -e; for i in $(GENDIRS) ; do $(MAKE) -C $$i dep; done 
 
 clean: 
-	for i in $(GENDIRS) ; do $(MAKE) -C $$i clean; done 
+	set -e; for i in $(GENDIRS) ; do $(MAKE) -C $$i clean; done 
 
 distclean: 
-	for i in $(GENDIRS) ; do $(MAKE) -C $$i distclean; done 
+	set -e; for i in $(GENDIRS) ; do $(MAKE) -C $$i distclean; done 
 

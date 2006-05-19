@@ -63,7 +63,7 @@ typedef struct
 
 	GF_Mutex *mx;
 	GF_Thread *th;
-	Bool run_client, client_exit, do_exit;
+	u32 status, disable_rtcp;
 
 
 	/*RTSP config*/
@@ -93,6 +93,8 @@ typedef struct
 	u32 frequency_drop;
 
 	u32 forced_type;
+	/*prevents client port override by server*/
+	Bool force_client_ports;
 	/*logs*/
 	FILE *logs;
 } RTPClient;

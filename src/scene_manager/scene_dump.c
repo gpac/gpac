@@ -66,7 +66,10 @@ struct _scenedump
 
 GF_Err DumpRoute(GF_SceneDumper *sdump, GF_Route *r, u32 dump_type);
 void DumpNode(GF_SceneDumper *sdump, GF_Node *node, Bool in_list, char *fieldContainer);
+
+#ifndef GPAC_DISABLE_SVG
 void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool is_root);
+#endif
 
 GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 indent, Bool skip_first_replace);
 
@@ -79,6 +82,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *rad_name, char inde
 	/*store original*/
 	tmp->dump_mode = dump_mode;
 
+#ifndef GPAC_DISABLE_SVG
 	if ((graph->RootNode && (graph->RootNode->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG) && (graph->RootNode->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) )
 	|| (dump_mode==GF_SM_DUMP_LASER) || (dump_mode==GF_SM_DUMP_SVG)) {
 		tmp->XMLDump = 1;
@@ -93,7 +97,9 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *rad_name, char inde
 		} else {
 			tmp->trace = stdout;
 		}
-	} else {
+	} else 
+#endif
+	{
 
 		if (dump_mode==GF_SM_DUMP_AUTO_TXT) {
 			if (!graph->RootNode || (graph->RootNode->sgprivate->tag<=GF_NODE_RANGE_LAST_MPEG4) ) {
@@ -2178,6 +2184,7 @@ GF_Err DumpProtoInsert(GF_SceneDumper *sdump, GF_Command *com)
 }
 
 
+#ifndef GPAC_DISABLE_SVG
 static char *lsr_format_node_id(GF_Node *n, char *str)
 {
 	if (n->sgprivate->NodeName) sprintf(str, "%s", n->sgprivate->NodeName);
@@ -2283,6 +2290,7 @@ GF_Err DumpLSRSendEvent(GF_SceneDumper *sdump, GF_Command *com)
 {
 	return GF_OK;
 }
+#endif
 
 GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 indent, Bool skip_first_replace)
 {
@@ -2380,6 +2388,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 		case GF_SG_MULTIPLE_INDEXED_REPLACE: e = DumpMultipleIndexedReplace(sdump, com); break;
 		case GF_SG_NODE_DELETE_EX: e = DumpNodeDelete(sdump, com); break;
 
+#ifndef GPAC_DISABLE_SVG
 		/*laser commands*/
 		case GF_SG_LSR_NEW_SCENE: e = DumpLSRNewScene(sdump, com); break;
 		case GF_SG_LSR_ADD: e = DumpLSRAddReplace(sdump, com, 0); break;
@@ -2390,6 +2399,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 		case GF_SG_LSR_RESTORE: e = DumpLSRRestore(sdump, com); break;
 		case GF_SG_LSR_SAVE: e = DumpLSRSave(sdump, com); break;
 		case GF_SG_LSR_SEND_EVENT: e = DumpLSRSendEvent(sdump, com); break;
+#endif
 		}
 		if (e) break;
 
@@ -2422,6 +2432,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 	return e;
 }
 
+#ifndef GPAC_DISABLE_SVG
 void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool is_root)
 {
 	char attValue[81920];
@@ -2493,21 +2504,19 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 		}
 	}
 
-	if (n->sgprivate->tag==TAG_SVG_script) {
-		SVGscriptElement *sc = (SVGscriptElement *)n;
-		if (!sc->textContent) {
-			sdump->indent++;
-			fprintf(sdump->trace, ">\n");
-			if (gf_list_count(sc->lsr_script.com_list)) {
-				gf_sm_dump_command_list(sdump, sc->lsr_script.com_list, sdump->indent, 0);
-			} else if (sc->lsr_script.data) {
-				fprintf(sdump->trace, "<!-- WARNING: LASeR scripts cannot be dumped at run-time -->\n");
-			} 
-			sdump->indent--;
-			DUMP_IND(sdump);
-			fprintf(sdump->trace, "</%s>\n", gf_node_get_class_name(n));
-			return;
-		}
+	if (n->sgprivate->tag==TAG_SVG_conditional) {
+		SVGconditionalElement *cond = (SVGconditionalElement *)n;
+		sdump->indent++;
+		fprintf(sdump->trace, ">\n");
+		if (gf_list_count(cond->updates.com_list)) {
+			gf_sm_dump_command_list(sdump, cond->updates.com_list, sdump->indent, 0);
+		} else if (cond->updates.data) {
+			fprintf(sdump->trace, "<!-- WARNING: LASeR scripts cannot be dumped at run-time -->\n");
+		} 
+		sdump->indent--;
+		DUMP_IND(sdump);
+		fprintf(sdump->trace, "</%s>\n", gf_node_get_class_name(n));
+		return;
 	}
 
 	count = gf_list_count(svg->children);
@@ -2533,7 +2542,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 	if (!svg->textContent) DUMP_IND(sdump);
 	fprintf(sdump->trace, "</%s>\n", gf_node_get_class_name(n));
 }
-
+#endif
 
 void dump_od_to_saf(GF_SceneDumper *dumper, GF_List *coms, u32 indent)
 {
@@ -2704,6 +2713,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 
 	SD_SetupDump(dumper, (GF_Descriptor *) ctx->root_od);
 
+#ifndef GPAC_DISABLE_SVG
 	if (dumper->dump_mode==GF_SM_DUMP_SVG) {
 		GF_AUContext *au = gf_list_get(sample_list, 0);
 		GF_Command *com = NULL;
@@ -2717,6 +2727,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 		}
 		goto exit;
 	}
+#endif
 
 	time = dumper->LSRDump ? -1 : 0;
 	first_par = 0;

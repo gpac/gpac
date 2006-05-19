@@ -79,11 +79,10 @@ bigendian="no"
 SHFLAGS=-shared
 need_inet_aton="no"
 LDFLAGS="$LDFLAGS -Wl,--warn-common"
-#avoid the strict aliasing warnings...
-CFLAGS="-fno-strict-aliasing"
+CFLAGS=""
 GPAC_SH_FLAGS=-lpthread
 DYN_LIB_SUFFIX="so"
-X11_LIB_PATH="/usr/X11R6/lib"
+X11_PATH="/usr/X11R6"
 
 #Configure Usage
 if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
@@ -108,7 +107,7 @@ echo "  --extra-libs=ELIBS       add ELIBS [$ELIBS]"
 echo "  --cpu=CPU                force cpu to CPU  [$cpu]"
 echo "  --sdl-cfg=SDL_PATH       specify path to sdl-config for local install [$sdl_path]"
 echo "  --enable-sdl-static      use static SDL linking [default=no]"
-echo "  --X11-libs=X11_LIB_PATH  specify path for X11 libraries [$X11_LIB_PATH]"
+echo "  --X11-path=X11_PATH      specify path for X11 includes and libraries [$X11_PATH]"
 echo "  --dxsdk-path=DX_PATH     specify directX SDK for MinGW [$dxsdk_path]"
 echo "  --mozdir=MOZ_PATH        specify mozilla main directory path for system install"
 echo ""
@@ -121,7 +120,8 @@ echo "  --disable-x11-shm        disable X11 shared memory support"
 echo "  --disable-fragments      disable movie fragments in ISO media support"
 echo "  --enable-readonly        force ISO media to be read-only"
 echo "  --disable-svg            disable SVG support"
-echo "  --enable-fixed-point     force ISO media to be read-only"
+echo "  --enable-fixed-point     enable fixed-point math (THIS MODIFIES GPAC MATH.H HEADER)"
+echo "  --force-fixed-point      force fixed-point math without changing gpac math.h header"
 echo "  --disable-opengl         disable OpenGL support"
 echo "  --disable-ssl            disable OpenSSL support"
 echo "  --enable-amr-nb-fixed    enable AMR NB fixed-point decoder"
@@ -130,7 +130,7 @@ echo "  --enable-amr-wb          enable AMR WB library"
 echo "  --enable-amr             enable both AMR NB and WB libraries"
 echo ""
 echo "Extra libraries configuration. You can turn a libray off or force using the local version in gpac/extra_lib/"
-echo "  --use-js=OPT             force SpiderMonkey ECMAScript off/local"
+echo "  --use-js=OPT             force SpiderMonkey ECMAScript OPT=[no,local]"
 echo "  --use-ft=OPT             force FreeType OPT=[no,local]"
 echo "  --use-jpeg=OPT           force JPEG OPT=[no,local]"
 echo "  --use-png=OPT            force PNG OPT=[no,local]"
@@ -183,7 +183,7 @@ case "$cpu" in
       fi
     fi
   ;;
-  armv4l)
+  armv4l|arm)
     cpu="armv4l"
   ;;
   alpha)
@@ -201,14 +201,14 @@ case "$cpu" in
 esac
 
 # find source path
-# XXX: we assume an absolute path is given when launching configure, 
-# except in './configure' case.
-source_path=${0%configure}
-source_path=${source_path%/}
+# find source path
+source_path="`echo $0 | sed -e 's#/configure##'`"
 source_path_used="yes"
 if test -z "$source_path" -o "$source_path" = "." ; then
     source_path=`pwd`
     source_path_used="no"
+else
+    source_path="`cd \"$source_path\"; pwd`"
 fi
 
 # OS specific
@@ -315,6 +315,7 @@ linux="yes"
 *) ;;
 esac
 
+
 #look for zlib
 cat > $TMPC << EOF
 #include <zlib.h>
@@ -330,6 +331,15 @@ else
   echo "error: zlib not found on system or in local libs"
   exit 1
 fi
+
+#check GCC flags support
+if $cc -o $TMPO $TMPC -lz -fno-strict-aliasing 2> /dev/null  ; then
+CFLAGS="$CFLAGS -fno-strict-aliasing"
+fi
+if $cc -o $TMPO $TMPC -lz -Wno-pointer-sign 2> /dev/null  ; then
+CFLAGS="$CFLAGS -Wno-pointer-sign"
+fi
+
 
 #check dlopen
 cat > $TMPC << EOF
@@ -642,7 +652,7 @@ for opt do
   ;;
   --enable-sdl-static=*) sdl_static="yes"
   ;;
-  --X11-libs=*) X11_LIB_PATH=`echo $opt | cut -d '=' -f 2`
+  --X11-path=*) X11_PATH=`echo $opt | cut -d '=' -f 2`
   ;;
   --dxsdk-path=*) dxsdk_path=`echo $opt | cut -d '=' -f 2`
   ;;
@@ -674,6 +684,8 @@ for opt do
   ;;
   --enable-fixed-point) use_fixed_point="yes"
   ;;
+  --force-fixed-point) use_fixed_point="forced"
+  ;;
   --track-memory) use_memory_tracking="yes"
   ;;
   --disable-opengl) has_opengl="no"
@@ -686,15 +698,15 @@ for opt do
   ;;
   --use-ft=*) has_ft=${opt#--use-ft=}
   ;;
-  --use-mad=*) has_mad==${opt#--use-mad=}
+  --use-mad=*) has_mad=${opt#--use-mad=}
   ;;
-  --use-xvid=*) has_xvid==${opt#--use-xvid=}
+  --use-xvid=*) has_xvid=${opt#--use-xvid=}
   ;;
-  --use-jpeg=*) has_jpeg==${opt#--use-jpeg=}
+  --use-jpeg=*) has_jpeg=${opt#--use-jpeg=}
   ;;
-  --use-ffmpeg=*) has_ffmpeg==${opt#--use-ffmpeg=}
+  --use-ffmpeg=*) has_ffmpeg=${opt#--use-ffmpeg=}
   ;;
-  --use-png=*) has_png==${opt#--use-png=}
+  --use-png=*) has_png=${opt#--use-png=}
   ;;
   esac
 done
@@ -910,11 +922,10 @@ mandir="${prefix}/man"
 fi
 
 if test "$cpu" = "armv4l"; then
-X11_LIB_PATH=""
+X11_PATH=""
 fi
 
-version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h |
- cut -d '"' -f 2`
+version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h | cut -d '"' -f 2`
 echo ""
 echo "** System Configuration"
 echo "Install prefix: $prefix"
@@ -946,7 +957,7 @@ echo "OSS Audio: no"
 else
 echo "OSS Audio: yes"
 fi
-echo "X11 Shared Memory support: $has_x11_shm (path: $X11_LIB_PATH)"
+echo "X11 Shared Memory support: $has_x11_shm (path: $X11_PATH)"
 fi
 
 echo "SDL Support: $has_sdl"
@@ -1032,8 +1043,22 @@ echo ""
 fi
 
 echo "Creating config.mak"
-
 echo "# Automatically generated by configure - do not modify" > config.mak
+
+#overwrite fixed-point in math.h
+if test "$use_fixed_point" = "yes"; then
+if grep "#define GPAC_NO_FIXED_POINT" $source_path/include/gpac/math.h > /dev/null 2>&1 ; then
+sed -e 's/#define GPAC_NO_FIXED_POINT/#define GPAC_FIXED_POINT/' $source_path/include/gpac/math.h >$TMPH
+cp -f $TMPH $source_path/include/gpac/math.h
+fi
+elif test "$use_fixed_point" = "forced"; then
+CFLAGS="$CFLAGS -DGPAC_FIXED_POINT"
+else
+if grep "#define GPAC_FIXED_POINT" $source_path/include/gpac/math.h > /dev/null 2>&1 ; then
+sed -e 's/#define GPAC_FIXED_POINT/#define GPAC_NO_FIXED_POINT/' $source_path/include/gpac/math.h >$TMPH
+cp -f $TMPH $source_path/include/gpac/math.h
+fi
+fi
 
 echo "prefix=$prefix" >> config.mak
 echo "DESTDIR=$DESTDIR" >> config.mak
@@ -1165,22 +1190,8 @@ if test "$has_x11_shm" = "yes"; then
 echo "USE_X11_SHM=$has_x11_shm" >> config.mak
 fi
 
-echo "X11_LIB_PATH=$X11_LIB_PATH" >> config.mak
-
-
-#overwrite fixed-point in math.h
-if test "$use_fixed_point" = "yes"; then
-if grep "#define GPAC_NO_FIXED_POINT" $source_path/include/gpac/math.h > /dev/null 2>&1 ; then
-sed -e 's/#define GPAC_NO_FIXED_POINT/#define GPAC_FIXED_POINT/' $source_path/include/gpac/math.h >$TMPH
-cp -f $TMPH $source_path/include/gpac/math.h
-fi
-else
-if grep "#define GPAC_FIXED_POINT" $source_path/include/gpac/math.h > /dev/null 2>&1 ; then
-sed -e 's/#define GPAC_FIXED_POINT/#define GPAC_NO_FIXED_POINT/' $source_path/include/gpac/math.h >$TMPH
-cp -f $TMPH $source_path/include/gpac/math.h
-fi
-fi
-
+echo "X11_LIB_PATH=$X11_PATH/lib" >> config.mak
+echo "X11_INC_PATH=$X11_PATH/include" >> config.mak
 
 #overwrite memory tracking in setup.h
 if test "$use_memory_tracking" = "yes"; then
@@ -1198,15 +1209,39 @@ fi
 
 # build tree in object directory if source path is different from current one
 if test "$source_path_used" = "yes" ; then
-    DIRS="src/utils src/isom src/ietf src/odf src/bifs src/scenegraph src/terminal src/mcrypt src/media src/scene_manager src/render"
-    FILES="Makefile src/utils/Makefile src/isom/Makefile src/ietf/Makefile src/odf/Makefile src/bifs/Makefile src/scenegraph/Makefile src/terminal/Makefile src/mcrypt/Makefile src/media/Makefile src/scene_manager/Makefile src/render/Makefile"
+
+    echo "Creating compilation tree image"
+    DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/terminal src/mcrypt src/media_tools src/scene_manager src/renderer src/laser 
+         applications applications/mp4box applications/mp4client applications/mp4box applications/osmozilla applications/osmo4_wx"
+    
     for dir in $DIRS ; do
             mkdir -p $dir
+            ln -sf $source_path/$dir/Makefile $dir/Makefile
     done
-    for f in $FILES ; do
-        ln -sf $source_path/$f $f
+    ln -sf $source_path/Makefile Makefile
+    ln -sf $source_path/src/libgpac.def src/libgpac.def
+
+    MOD_DIRS="modules modules/aac_in modules/amr_dec modules/amr_float_dec modules/bifs_dec modules/ctx_load modules/dummy_in modules/dx_hw modules/ffmpeg_in modules/ft_font modules/img_in modules/isom_in modules/laser_dec modules/mp3_in modules/mpegts_in modules/odf_dec modules/ogg modules/oss_audio modules/raw_out modules/render2d modules/render3d modules/rtp_in modules/saf_in modules/sdl_out modules/soft_raster modules/svg_in modules/svg_loader modules/timedtext modules/wav_out modules/x11_out modules/xvid_dec"
+    cur_dir="`pwd`"
+    for dir in $MOD_DIRS ; do
+            mkdir -p $dir
+            ln -sf $source_path/$dir/Makefile $dir/Makefile
+            cd $source_path/$dir
+            if ls *.def > /dev/null 2>&1; then
+             def_file="`ls *.def`"
+             cd $cur_dir
+             ln -sf $source_path/$dir/$def_file $dir/$def_file
+            else
+             cd $cur_dir
+            fi
     done
+    cd $cur_dir
+
+    echo "SRC_LOCAL_PATH=no" >> config.mak
+else
+    echo "SRC_LOCAL_PATH=yes" >> config.mak
 fi
+
 echo "SRC_PATH=$source_path" >> config.mak
 
 
@@ -1222,4 +1257,4 @@ if [ ! -d "./bin/gcc/temp" ]; then
 	mkdir ./bin/gcc/temp
 fi
 
-echo "done - type 'make help' for make info, 'make' to build"
+echo "Done - type 'make help' for make info, 'make' to build"

@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/modules/evg_rend
+VPATH=$(SRC_PATH)/modules/soft_raster
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 

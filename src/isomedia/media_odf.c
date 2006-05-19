@@ -444,6 +444,8 @@ static u32 Media_FindOD_ID(GF_MediaBox *mdia, GF_ISOSample *sample, u32 track_id
 	//no references, nothing to do...
 	if (!mpod) return 0;
 
+	the_od_id = 0;
+
 	ODdecode = gf_odf_codec_new();
 	if (!ODdecode) return 0;
 	e = gf_odf_codec_set_au(ODdecode, sample->data, sample->dataLength);
@@ -467,7 +469,6 @@ static u32 Media_FindOD_ID(GF_MediaBox *mdia, GF_ISOSample *sample, u32 track_id
 			default:
 				continue;
 			}	
-			the_od_id = 0;
 			j=0;
 			while ((esd = gf_list_enum( esd_list, &j))){
 				if (esd->ESID==track_id) {

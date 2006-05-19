@@ -213,6 +213,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			break;
 		}
 		break;
+	case GF_EVT_LDOUBLECLICK:
+		set_full_screen();
+		return 0;
 	}
 	return 0;
 }

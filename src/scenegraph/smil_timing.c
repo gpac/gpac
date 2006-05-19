@@ -174,8 +174,7 @@ static void gf_smil_timing_add_new_interval(SMIL_Timing_RTI *rti, SMIL_Interval 
 	if (end_count > index) {
 		for (j = index; j < end_count; j++) {
 			end = gf_list_get(rti->timed_elt->timing->end, j);
-			if (end->type == SMIL_TIME_CLOCK || 
-				end->type == SMIL_TIME_WALLCLOCK) {
+			if ( GF_SMIL_TIME_IS_SPECIFIED_CLOCK(end->type) )  {
 				if( end->clock >= interval->begin) {
 					interval->end = end->clock;
 					break;
@@ -209,7 +208,7 @@ static void gf_smil_timing_init_interval_list(SMIL_Timing_RTI *rti)
 	if (count) {
 		for (i = 0; i < count; i ++) {
 			begin = gf_list_get(rti->timed_elt->timing->begin, i);
-			if (begin->type < SMIL_TIME_EVENT) {
+			if (GF_SMIL_TIME_IS_CLOCK(begin->type) ) {
 				/* we create an acceptable only if begin is unspecified or defined (clock or wallclock) */
 				gf_smil_timing_add_new_interval(rti, NULL, begin->clock, i);
 			} else {
@@ -239,7 +238,7 @@ static void gf_smil_timing_refresh_interval_list(SMIL_Timing_RTI *rti)
 		SMIL_Interval *existing_interval = NULL;
 		begin = gf_list_get(rti->timed_elt->timing->begin, i);
 		/* this is not an acceptable value for a begin */
-		if (begin->type >= SMIL_TIME_EVENT) continue;
+		if (! GF_SMIL_TIME_IS_CLOCK(begin->type) ) continue;
 
 		count2 = gf_list_count(rti->intervals);
 		for (j=0; j<count2; j++) {

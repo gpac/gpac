@@ -420,8 +420,7 @@ void DestroyDiscard(GF_Node *ts)
 	gf_node_set_private(ts, NULL);
 }
 
-static
-void UpdateDiscard(GF_TimeNode *st)
+static void UpdateDiscard(GF_TimeNode *st)
 {
 	u32 nb_inst;
 	GF_Node *to_del;
@@ -429,7 +428,7 @@ void UpdateDiscard(GF_TimeNode *st)
 	SVGdiscardElement *discard = (SVGdiscardElement *)st->obj;
 	begin = gf_list_get(discard->timing->begin, 0);
 	if (!begin) return;
-	if (begin->type != SMIL_TIME_CLOCK) return;
+	if (!GF_SMIL_TIME_IS_SPECIFIED_CLOCK(begin->type) ) return;
 	if (!discard->xlink->href.target) return;
 
 	if (begin->clock > gf_node_get_scene_time(st->obj)) return;

@@ -24,7 +24,7 @@
  */
 
 #include "svg_stacks.h"
-#include "../visualsurface2d.h"
+#include "visualsurface2d.h"
 
 #ifndef GPAC_DISABLE_SVG
 

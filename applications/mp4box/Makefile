@@ -14,6 +14,10 @@ ifeq ($(GPACREADONLY), yes)
 CFLAGS+= -DGPAC_READ_ONLY
 endif
 
+ifeq ($(DISABLE_SVG), yes)
+CFLAGS+=-DGPAC_DISABLE_SVG
+endif
+
 #common obj
 OBJS= main.o filedump.o fileimport.o
 

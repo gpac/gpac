@@ -192,7 +192,7 @@ SOURCE=..\..\src\utils\module_wrap.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\utils\wce\os_divers.c
+SOURCE=..\..\src\utils\os_divers.c
 DEP_CPP_OS_DI=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
@@ -200,7 +200,7 @@ DEP_CPP_OS_DI=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\utils\wce\os_module.c
+SOURCE=..\..\src\utils\os_module.c
 DEP_CPP_OS_MO=\
 	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\list.h"\
@@ -212,7 +212,7 @@ DEP_CPP_OS_MO=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\utils\wce\os_net.c
+SOURCE=..\..\src\utils\os_net.c
 DEP_CPP_OS_NE=\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\setup.h"\
@@ -221,7 +221,7 @@ DEP_CPP_OS_NE=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\utils\wce\os_thread.c
+SOURCE=..\..\src\utils\os_thread.c
 DEP_CPP_OS_TH=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\thread.h"\
@@ -2082,6 +2082,7 @@ DEP_CPP_MEDIA_E=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\media_tools.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\mpegts.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
@@ -2103,6 +2104,7 @@ DEP_CPP_MEDIA_I=\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\media_tools.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\mpegts.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
@@ -3457,9 +3459,19 @@ SOURCE=..\..\include\gpac\internal\laser_dev.h
 
 SOURCE=..\..\src\laser\lsr_dec.c
 DEP_CPP_LSR_D=\
+	"..\..\extra_lib\include\js\jsapi.h"\
+	"..\..\extra_lib\include\js\jsautocfg.h"\
+	"..\..\extra_lib\include\js\jscompat.h"\
+	"..\..\extra_lib\include\js\jscpucfg.h"\
+	"..\..\extra_lib\include\js\jslong.h"\
+	"..\..\extra_lib\include\js\jsosdep.h"\
+	"..\..\extra_lib\include\js\jsotypes.h"\
+	"..\..\extra_lib\include\js\jspubtd.h"\
+	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\laser_dev.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\laser.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
@@ -3468,9 +3480,14 @@ DEP_CPP_LSR_D=\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_LSR_D=\
+	"..\..\extra_lib\include\js\jsstddef.h"\
+	"..\..\extra_lib\include\js\platform.h"\
 	
 # End Source File
 # Begin Source File

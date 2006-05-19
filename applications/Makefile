@@ -1,10 +1,12 @@
 include ../config.mak
 
-APPDIRS=mp4box mp4client mp42avi
+APPDIRS=mp4box mp4client
 
+ifeq ($(SRC_LOCAL_PATH), yes)
 ifeq ($(TARGET_ARCH_ARMV4L), yes)
 else
 APPDIRS +=generators
+endif
 endif
 
 #no osmozilla compilation for mingw, too many issues at the time being
@@ -27,25 +29,26 @@ all: apps
 
 
 apps: 
-	for i in $(APPDIRS) ; do $(MAKE) -C $$i all; done 
+	set -e; for i in $(APPDIRS) ; do $(MAKE) -C $$i all; done 
 
 sggen:
 	$(MAKE) -C generators all
 
 V4Studio:
-	for i in $(V4STUDIODIR) ; do $(MAKE) -C $$i dep; done 
+	set -e; for i in $(V4STUDIODIR) ; do $(MAKE) -C $$i dep; done 
 
 dep:
-	for i in $(ALLDIRS) ; do $(MAKE) -C $$i dep; done 
+	set -e; for i in $(ALLDIRS) ; do $(MAKE) -C $$i dep; done 
 
 clean: 
-	for i in $(ALLDIRS) ; do $(MAKE) -C $$i clean; done 
+	set -e; for i in $(ALLDIRS) ; do $(MAKE) -C $$i clean; done 
 
 distclean: 
-	for i in $(ALLDIRS) ; do $(MAKE) -C $$i distclean; done 
+	set -e; for i in $(ALLDIRS) ; do $(MAKE) -C $$i distclean; done 
 
 install:
-	for i in $(INSTDIRS) ; do $(MAKE) -C $$i install; done
+	set -e; for i in $(INSTDIRS) ; do $(MAKE) -C $$i install; done
 
 uninstall:
-	for i in $(INSTDIRS) ; do $(MAKE) -C $$i uninstall; done
+	set -e; for i in $(INSTDIRS) ; do $(MAKE) -C $$i uninstall; done
+	

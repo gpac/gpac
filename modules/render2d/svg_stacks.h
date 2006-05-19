@@ -24,7 +24,7 @@
 #ifndef _SVG_STACKS_H
 #define _SVG_STACKS_H
 
-#include "../render2d.h"
+#include "render2d.h"
 
 #ifndef GPAC_DISABLE_SVG
 #include <gpac/nodes_svg.h>
@@ -32,7 +32,7 @@
 /* Common stack for Textures */
 
 /* Reusing generic 2D stacks for rendering */
-#include "../stacks2d.h"
+#include "stacks2d.h"
 
 void SVG_Render_base(GF_Node *node, RenderEffect2D *eff, SVGPropertiesPointers *backup_props);
 
@@ -57,6 +57,9 @@ void SVG_Init_line(Render2D *sr, GF_Node *node);
 void SVG_Init_polyline(Render2D *sr, GF_Node *node);
 void SVG_Init_polygon(Render2D *sr, GF_Node *node);
 void SVG_Init_path(Render2D *sr, GF_Node *node);
+void SVG_Init_rectClip(Render2D *sr, GF_Node *node);
+void SVG_Init_selector(Render2D *sr, GF_Node *node);
+void SVG_Init_simpleLayout(Render2D *sr, GF_Node *node);
 
 void SVG_Init_use(Render2D *se, GF_Node *node);
 
@@ -66,7 +69,6 @@ void SVG_Init_text(Render2D *sr, GF_Node *node);
 /* Interactive functions */
 void SVG_Init_a(Render2D *se, GF_Node *node);
 
-/* Media rendering functions */
 #define BASE_IMAGE_STACK 	\
 	GF_TextureHandler txh; \
 	Drawable *graph; \
@@ -75,13 +77,11 @@ void SVG_Init_a(Render2D *se, GF_Node *node);
 typedef struct {
 	BASE_IMAGE_STACK
 } SVG_image_stack;
-
 void SVG_Init_image(Render2D *se, GF_Node *node);
 
 typedef struct
 {
 	BASE_IMAGE_STACK
-
 	GF_TimeNode time_handle;
 	Bool fetch_first_frame, first_frame_fetched;
 	Double start_time;

@@ -436,8 +436,8 @@ void gf_smil_anim_init_runtime_info(SVGElement *e);
 void gf_smil_anim_delete_runtime_info(SMIL_Anim_RTI *rai);
 void gf_smil_anim_delete_animations(SVGElement *e);
 
-void gf_svg_init_lsr_script(SVGCommandBuffer *script);
-void gf_svg_reset_lsr_script(SVGCommandBuffer *script);
+void gf_svg_init_lsr_conditional(SVGCommandBuffer *script);
+void gf_svg_reset_lsr_conditional(SVGCommandBuffer *script);
 
 #endif
 

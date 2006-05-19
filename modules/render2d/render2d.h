@@ -182,14 +182,16 @@ typedef struct _render2d_effect
 	/*parent group for composition: can be Form, Layout or Layer2D*/
 	struct _parent_group *parent;
 
+	/*for object picking*/
+	GF_Rect bounds;
+	GF_Node *for_node;
+
 	/* Styling Property and others for SVG context */
 #ifndef GPAC_DISABLE_SVG
 	SVGPropertiesPointers *svg_props;
 	GF_Node *parent_use;
 	/*number of listeners in the current tree branch*/
 	u32 nb_listeners;
-	GF_Rect bounds;
-	GF_Node *for_node;
 #endif
 
 } RenderEffect2D;

@@ -9,6 +9,13 @@ CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
+ifeq ($(CONFIG_LINUX),yes)
+ifeq ($(X11_INC_PATH), )
+else
+CFLAGS+=-I$(X11_INC_PATH)
+endif
+endif
+
 #common obj
 OBJS=sdl_out.o audio.o video.o
 

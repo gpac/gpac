@@ -61,8 +61,6 @@ static u32 FFDemux_Run(void *par)
 	do_seek = !video_init;
 	map_audio_time = video_init ? ffd->unreliable_audio_timing : 0;
 
-	av_log_set_level(AV_LOG_DEBUG);
-
 	while (ffd->is_running) {
 
 		pkt.stream_index = -1;

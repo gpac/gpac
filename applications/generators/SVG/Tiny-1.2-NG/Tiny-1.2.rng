@@ -51,4 +51,5 @@
   <include href='text-tiny.rng'/>
   <include href='xml-events.rng'/>
 
+  <include href='laser-ext.rng'/>
 </grammar>

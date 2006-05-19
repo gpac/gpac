@@ -59,11 +59,11 @@ static GF_Err OSS_Setup(GF_AudioOutput*dr, void *os_handle, u32 num_buffers, u32
 	if (opt) ctx->force_sr = atoi(opt);
 
 	/*open OSS in non-blocking mode*/
-	if((audio=open(OSS_AUDIO_DEVICE,O_WRONLY|O_NDELAY))==-1) 
+	if((audio=open(OSS_AUDIO_DEVICE,O_WRONLY|O_NONBLOCK))==-1) 
 	  return GF_NOT_SUPPORTED;
 
 	/*set blocking mode back*/
-	fcntl(audio, F_SETFL, fcntl(audio, F_GETFL) & ~FNDELAY);
+	//fcntl(audio, F_SETFL, fcntl(audio, F_GETFL) & ~FNDELAY);
 	ctx->audio_dev=audio;
 	ctx->num_buffers = num_buffers;
 	ctx->total_duration = total_duration;
@@ -92,7 +92,8 @@ static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCha
 	close(ctx->audio_dev);
 	if (ctx->wav_buf) free(ctx->wav_buf);
 	ctx->wav_buf = NULL;
-	ctx->audio_dev=open(OSS_AUDIO_DEVICE,O_WRONLY);
+	ctx->audio_dev=open(OSS_AUDIO_DEVICE,O_WRONLY|O_NONBLOCK);
+	if (!ctx->audio_dev) return GF_IO_ERR;
 
 	/* Make the file descriptor use blocking writes with fcntl() so that 
 	 we don't have to handle sleep() ourselves*/
@@ -123,7 +124,7 @@ static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCha
 	}
 	frag_spec = 0;
 	while ( (0x01<<frag_spec) < frag_size) frag_spec++;
-	if (frag_spec>10) frag_spec--;
+	while (frag_spec>7) frag_spec--;
 
 	ctx->buf_size = 0x01 << frag_spec;
 	ctx->delay = (1000*ctx->buf_size) / (*SampleRate * blockalign);

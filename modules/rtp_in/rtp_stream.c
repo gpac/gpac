@@ -405,7 +405,7 @@ void RP_ReadStream(RTPStream *ch)
 	}
 
 	/*and send the report*/
-	gf_rtp_send_rtcp_report(ch->rtp_ch, SendTCPData, ch);
+	if (!ch->owner->disable_rtcp) gf_rtp_send_rtcp_report(ch->rtp_ch, SendTCPData, ch);
 	
 	if (tot_size) ch->owner->udp_time_out = 0;
 

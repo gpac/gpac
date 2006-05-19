@@ -362,7 +362,7 @@ void M2TS_SetupLive(M2TSIn *read, char *url)
 	/*do we have a source ?*/
 	if (strlen(url) && strcmp(url, "localhost") ) {
 		if (gf_sk_is_multicast_address(url)) {
-			gf_sk_setup_multicast(read->sock, url, port, 0, 1, NULL);
+			gf_sk_setup_multicast(read->sock, url, port, 0, 0, NULL);
 		} else {
 			gf_sk_set_remote_address(read->sock, url);
 			gf_sk_set_remote_port(read->sock, port);

@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed Mar 22 15:27:25 2006
+	DO NOT MOFIFY - File generated on GMT Wed May 17 11:54:23 2006
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -50,6 +50,8 @@ enum {
 	TAG_SVG_animation,
 	TAG_SVG_audio,
 	TAG_SVG_circle,
+	TAG_SVG_conditional,
+	TAG_SVG_cursorManager,
 	TAG_SVG_defs,
 	TAG_SVG_desc,
 	TAG_SVG_discard,
@@ -77,8 +79,11 @@ enum {
 	TAG_SVG_prefetch,
 	TAG_SVG_radialGradient,
 	TAG_SVG_rect,
+	TAG_SVG_rectClip,
 	TAG_SVG_script,
+	TAG_SVG_selector,
 	TAG_SVG_set,
+	TAG_SVG_simpleLayout,
 	TAG_SVG_solidColor,
 	TAG_SVG_stop,
 	TAG_SVG_svg,
@@ -160,6 +165,23 @@ typedef struct _tagSVGcircleElement
 	SVG_Coordinate cy;
 	SVG_Length r;
 } SVGcircleElement;
+
+
+typedef struct _tagSVGconditionalElement
+{
+	BASE_SVG_ELEMENT
+	SVGCommandBuffer updates;
+	SMIL_Times lsr_begin;
+	SVG_Boolean lsr_enabled;
+} SVGconditionalElement;
+
+
+typedef struct _tagSVGcursorManagerElement
+{
+	BASE_SVG_ELEMENT
+	SVG_Length x;
+	SVG_Length y;
+} SVGcursorManagerElement;
 
 
 typedef struct _tagSVGdefsElement
@@ -267,8 +289,6 @@ typedef struct _tagSVGgElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
-	LASeR_Choice lsr_choice;
-	LASeR_Size lsr_size;
 } SVGgElement;
 
 
@@ -349,8 +369,7 @@ typedef struct _tagSVGlistenerElement
 	SVG_IRI observer;
 	SVG_IRI target;
 	SVG_IRI handler;
-	LASeR_TimeAttribute lsr_timeAttribute;
-	SVG_Clock lsr_delay;
+	SVG_Boolean enabled;
 } SVGlistenerElement;
 
 
@@ -437,19 +456,40 @@ typedef struct _tagSVGrectElement
 } SVGrectElement;
 
 
+typedef struct _tagSVGrectClipElement
+{
+	BASE_SVG_ELEMENT
+	SVG_Matrix transform;
+	LASeR_Size size;
+} SVGrectClipElement;
+
+
 typedef struct _tagSVGscriptElement
 {
 	BASE_SVG_ELEMENT
-	SVGCommandBuffer lsr_script;
-	SMIL_Times lsr_begin;
-	SVG_Boolean lsr_enabled;
 } SVGscriptElement;
+
+
+typedef struct _tagSVGselectorElement
+{
+	BASE_SVG_ELEMENT
+	SVG_Matrix transform;
+	LASeR_Choice choice;
+} SVGselectorElement;
 
 
 typedef struct _tagSVGsetElement
 {
 	BASE_SVG_ELEMENT
 } SVGsetElement;
+
+
+typedef struct _tagSVGsimpleLayoutElement
+{
+	BASE_SVG_ELEMENT
+	SVG_Matrix transform;
+	LASeR_Size delta;
+} SVGsimpleLayoutElement;
 
 
 typedef struct _tagSVGsolidColorElement

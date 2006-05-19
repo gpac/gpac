@@ -464,8 +464,11 @@ void PrintNode(const char *name, u32 graph_type)
 	Fixed bmin, bmax;
 	u32 nbBits;
 
+	tag = 0;
 	if (graph_type==2) {
+#ifndef GPAC_DISABLE_SVG
 		tag = gf_node_svg_type_by_class_name(name);
+#endif
 		std_name = "SVG";
 	} else if (graph_type==1) {
 		tag = gf_node_x3d_type_by_class_name(name);
@@ -1239,35 +1242,65 @@ void DumpMovieInfo(GF_ISOFile *file)
 	}
 }
 
+typedef struct
+{
+	/* when writing to file */
+	FILE *pes_out;
+	/* when dumping TS information */
+	u32 dump_pid;
+	Bool has_seen_pat;
+} GF_M2TS_Dump;
+
 static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par) 
 {
+	u32 i, count;
+	GF_M2TS_Program *prog;
 	GF_M2TS_PES_PCK *pck;
+	GF_M2TS_Dump *dumper = (GF_M2TS_Dump *)ts->user;
+
 	switch (evt_type) {
 	case GF_M2TS_EVT_PAT_FOUND:
-		fprintf(stdout, "Service connected (PAT found)\n");
+		fprintf(stdout, "Initial PAT found - %d programs\n", gf_list_count(ts->programs) );
 		break;
 	case GF_M2TS_EVT_PAT_REPEAT:
-		ts->has_seen_pat = 1;
+		dumper->has_seen_pat = 1;
 		break;
 	case GF_M2TS_EVT_PAT_UPDATE:
-		fprintf(stdout, "Service connected (PAT found)\n");
+		fprintf(stdout, "PAT updated - %d programs\n", gf_list_count(ts->programs) );
 		break;
 	case GF_M2TS_EVT_PMT_FOUND:
-		fprintf(stdout, "Program list found - %d streams\n", gf_list_count( ((GF_M2TS_Program*)par)->streams) );
+		prog = (GF_M2TS_Program*)par;
+		count = gf_list_count(prog->streams);
+		fprintf(stdout, "Program number %d found - %d streams:\n", prog->number, count);
+		for (i=0; i<count; i++) {
+			GF_M2TS_ES *es = gf_list_get(prog->streams, i);
+			if (es->pid == prog->pmt_pid) fprintf(stdout, "\tStreamID %d: Program Map Table stream\n", es->pid);
+			else {
+				GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
+				fprintf(stdout, "\tStreamID %d: %s stream", pes->pid, gf_m2ts_get_stream_name(pes->stream_type) );
+				if (pes->ES_ID) fprintf(stdout, " - MPEG-4 ES ID %d", pes->ES_ID);
+				fprintf(stdout, "\n");
+			}
+		}
 		break;
 	case GF_M2TS_EVT_PMT_UPDATE:
-		fprintf(stdout, "Program list updated - %d streams\n", gf_list_count( ((GF_M2TS_Program*)par)->streams) );
+		//fprintf(stdout, "Program list updated - %d streams\n", gf_list_count( ((GF_M2TS_Program*)par)->streams) );
 		break;
 	case GF_M2TS_EVT_SDT_FOUND:
-		fprintf(stdout, "Program Description found - %d desc\n", gf_list_count(ts->SDTs) );
+		count = gf_list_count(ts->SDTs) ;
+		fprintf(stdout, "Program Description found - %d desc:\n", count);
+		for (i=0; i<count; i++) {
+			GF_M2TS_SDT *sdt = gf_list_get(ts->SDTs, i);
+			fprintf(stdout, "\tServiceID %d - Provider %s - Name %s\n", sdt->service_id, sdt->provider, sdt->service);
+		}
 		break;
 	case GF_M2TS_EVT_SDT_UPDATE:
-		fprintf(stdout, "Program Description updated - %d desc\n", gf_list_count(ts->SDTs) );
+		//fprintf(stdout, "Program Description updated - %d desc\n", gf_list_count(ts->SDTs) );
 		break;
 	case GF_M2TS_EVT_PES_PCK:
 		pck = par;
-		if (ts->pes_out && (ts->dump_pid == pck->stream->pid)) {
-			fwrite(pck->data, pck->data_len, 1, ts->pes_out);
+		if (dumper->pes_out && (dumper->dump_pid == pck->stream->pid)) {
+			fwrite(pck->data, pck->data_len, 1, dumper->pes_out);
 		}
 
 		//fprintf(stdout, "PES(%d): DTS "LLD" PTS" LLD" RAP %d size %d\n", pck->stream->pid, pck->DTS, pck->PTS, pck->rap, pck->data_len);
@@ -1278,6 +1311,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name)
 {
 	char data[188];
+	GF_M2TS_Dump dumper;
 	u32 size, fsize, fdone;
 	GF_M2TS_Demuxer *ts;
 
@@ -1285,7 +1319,9 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name)
 
 	ts = gf_m2ts_demux_new();
 	ts->on_event = on_m2ts_dump_event;
-
+	memset(&dumper, 0, sizeof(GF_M2TS_Dump));
+	ts->user = &dumper;
+	
 	fseek(src, 0, SEEK_END);
 	fsize = ftell(src);
 	fseek(src, 0, SEEK_SET);
@@ -1296,10 +1332,19 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name)
 		if (size<188) break;
 
 		gf_m2ts_process_data(ts, data, size);
-		if (ts->has_seen_pat) break;
+		if (dumper.has_seen_pat) break;
 	}
 
-	ts->pes_out = fopen(pes_out_name, "wb");
+	if (pes_out_name) {
+		char *pid = strrchr(pes_out_name, '#');
+		if (pid) {
+			dumper.dump_pid = atoi(pid+1);
+			pid[0] = 0;
+			dumper.pes_out = fopen(pes_out_name, "wb");
+			pid[0] = '#';
+		}
+	}
+
 	gf_m2ts_reset_parsers(ts);
 	gf_f64_seek(src, 0, SEEK_SET);
 	fdone = 0;
@@ -1312,9 +1357,9 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name)
 		fdone += size;
 		gf_cbk_on_progress("MPEG-2 TS Parsing", fdone, fsize);
 	}
-	gf_cbk_on_progress("MPEG-2 TS Parsing", fsize, fsize);
+	//gf_cbk_on_progress("MPEG-2 TS Parsing", fsize, fsize);
 
 	fclose(src);
 	gf_m2ts_demux_del(ts);
-	if (ts->pes_out) fclose(ts->pes_out);
+	if (dumper.pes_out) fclose(dumper.pes_out);
 }

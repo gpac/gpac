@@ -27,7 +27,7 @@
 #include "stacks2d.h"
 
 #ifndef GPAC_DISABLE_SVG
-#include "svg/svg_stacks.h"
+#include "svg_stacks.h"
 #endif
 
 void R2D_InitLineProps(Render2D *sr, GF_Node *node);
@@ -133,6 +133,10 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_SVG_audio:		SVG_Init_audio(sr, node); break;
 	case TAG_SVG_linearGradient:			SVG_Init_linearGradient(sr, node); break;
 	case TAG_SVG_radialGradient:			SVG_Init_radialGradient(sr, node); break;
+
+	case TAG_SVG_rectClip: SVG_Init_rectClip(sr, node); break;
+	case TAG_SVG_selector: SVG_Init_selector(sr, node); break;
+	case TAG_SVG_simpleLayout: SVG_Init_simpleLayout(sr, node); break;
 #endif
 	default: break;
 	}

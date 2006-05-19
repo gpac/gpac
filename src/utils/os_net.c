@@ -25,24 +25,32 @@
 
 #include <gpac/network.h>
 
+
+#if defined(WIN32) || defined(_WIN32_WCE)
+
+#ifdef _WIN32_WCE
+#include <winsock.h>
+#else
 #include <sys/timeb.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#endif
+
 #include <windows.h>
 
 #ifdef IPV6_MULTICAST_IF
-#pragma message("using WinSock IPV6")
 #define GPAC_IPV6 1
+#ifndef __GNUC__
+#pragma message("Using WinSock IPV6")
+#endif
 #else
-#ifdef GPAC_IPV6
 #undef GPAC_IPV6
+#ifndef __GNUC__
+#pragma message("Using WinSock IPV4")
+#endif
 #endif
 
-#endif
-
-#define SOCK_MICROSEC_WAIT	500
-
-
+/*common win32 redefs*/
 #define EAGAIN				WSAEWOULDBLOCK
 #define EISCONN				WSAEISCONN
 #define ENOTCONN			WSAENOTCONN
@@ -54,12 +62,47 @@
 
 #define LASTSOCKERROR WSAGetLastError()
 
+/*the number of sockets used. This because the WinSock lib needs init*/
+static u32 wsa_init = 0;
+
+#else
+/*non-win32*/
+#include <unistd.h>
+#include <fcntl.h>
+#include <netdb.h>
+ 
+#ifndef __BEOS__
+#include <errno.h>
+#endif
+
+#ifndef __DARWIN__
+#include <sys/time.h>
+#endif
+
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+
+#define INVALID_SOCKET -1
+#define SOCKET_ERROR -1
+#define LASTSOCKERROR errno
+
+typedef s32 SOCKET;
+#define closesocket(v) close(v)
+
+#endif
+
+
+#define SOCK_MICROSEC_WAIT	500
+
 /* socket status */
 #define SK_STATUS_CREATE	0x01
 #define SK_STATUS_BIND		0x02
 #define SK_STATUS_CONNECT	0x03
 #define SK_STATUS_LISTEN	0x04
 
+static u32 ipv6_check_state = 0;
 
 
 struct __tag_socket
@@ -67,31 +110,15 @@ struct __tag_socket
 	u32 status;
 	SOCKET socket;
 	u32 type;
-	Bool blocking;
-	Bool is_ipv6;
+	Bool blocking, is_ipv6;
 	//this is used for server sockets / multicast sockets
 #ifdef GPAC_IPV6
-	struct sockaddr_storage RemoteAddress;
+	struct sockaddr_storage dest_addr;
 #else
-	struct sockaddr_in		RemoteAddress;
+	struct sockaddr_in dest_addr;
 #endif
+	u32 dest_addr_len;
 };
-
-#ifndef gettimeofday
-s32 gettimeofday(struct timeval *tp, void *tz)
-{
-	struct _timeb timebuffer;   
-
-	_ftime( &timebuffer );
-	tp->tv_sec  = timebuffer.time;
-	tp->tv_usec = timebuffer.millitm * 1000;
-	return 0;
-}
-#endif
-
-
-//the number of sockets used. This because the WinSock lib needs init
-static u32 IsInit = 0;
 
 /*
 		Some NTP tools
@@ -100,67 +127,110 @@ static u32 IsInit = 0;
 void gf_net_get_ntp(u32 *sec, u32 *frac)
 {
 	struct timeval now;
+#ifdef WIN32
+	s32 gettimeofday(struct timeval *tp, void *tz);
+#endif
 	gettimeofday(&now, NULL);
 	*sec = (u32) (now.tv_sec) + GF_NTP_SEC_1900_TO_1970;
 	*frac = (u32) ( (now.tv_usec << 12) + (now.tv_usec << 8) - ((now.tv_usec * 3650) >> 6) );
 }
 
-static u32 ipv6_check_state = 0;
-
 u32 gf_net_has_ipv6()
 {
 #ifdef GPAC_IPV6
 	if (!ipv6_check_state) {
-		SOCKET s = socket(PF_INET6, SOCK_STREAM, 0);
+		SOCKET s;
+#ifdef WIN32
+		if (!wsa_init) {
+			WSADATA Data;
+			if (WSAStartup(0x0202, &Data)!=0) {
+				ipv6_check_state = 1;
+				return 0;
+			}
+		}
+		s = socket(PF_INET6, SOCK_STREAM, 0);
+		if (!wsa_init) WSACleanup();
+#else
+		s = socket(PF_INET6, SOCK_STREAM, 0);
+#endif
 		if (!s) ipv6_check_state = 1;
 		else {
 			ipv6_check_state = 2;
 			closesocket(s);
 		}
 	} 
-	return 1;
+	return (ipv6_check_state==2);
 #else
 	return 0;
 #endif
 }
 
+#ifdef GPAC_IPV6
+static struct addrinfo *gf_sk_get_ipv6_addr(char *PeerName, u16 PortNumber, int family, int flags)
+{
+	struct	addrinfo *res=NULL;
+	struct	addrinfo hints;
+	char node[50], portstring[20], *service, *dest;
+
+	service = dest = NULL;
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_socktype = SOCK_DGRAM;
+ 	hints.ai_family = family;
+	hints.ai_flags = flags; 
+
+	if (PortNumber) {
+		sprintf (portstring, "%d", PortNumber);
+		service = (char *)portstring;
+	}
+	if (PeerName) {
+ 		strcpy(node, PeerName);
+ 		if (node[0]=='[') {
+ 			node[strlen(node)-1] = 0;
+ 			strcpy(node, &node[1]);
+ 		}
+		dest = (char *) node;
+	}
+	if (getaddrinfo((const char *)dest, (const char *)service, &hints, &res) != 0) return NULL;
+	return res;
+}
+
+static Bool gf_sk_ipv6_set_remote_address(GF_Socket *sock, char *address, u16 PortNumber)
+{
+	struct addrinfo *res = gf_sk_get_ipv6_addr(address, PortNumber, AF_UNSPEC, 0);
+	if (!res) return 0;
+    memcpy(&sock->dest_addr, res->ai_addr, res->ai_addrlen);
+	sock->dest_addr_len = res->ai_addrlen;
+	freeaddrinfo(res);
+	return 1;
+}
+#endif
 
 
 GF_Err gf_sk_get_host_name(char *buffer)
 {
-	s32 ret;
-	ret = gethostname(buffer, GF_MAX_IP_NAME_LEN);
-
-	if (ret == SOCKET_ERROR) return GF_IP_ADDRESS_NOT_FOUND;
-	return GF_OK;
+	s32 ret = gethostname(buffer, GF_MAX_IP_NAME_LEN);
+	return (ret == SOCKET_ERROR) ? GF_IP_ADDRESS_NOT_FOUND : GF_OK;
 }
 
 GF_Err gf_sk_get_local_ip(GF_Socket *sock, char *buffer)
 {
 #ifdef GPAC_IPV6
 	char clienthost[NI_MAXHOST];
-	char clientservice[NI_MAXSERV];
- 	struct sockaddr_in6 * addrptr = (struct sockaddr_in6 *)(&sock->RemoteAddress);
-	u32 len = sizeof(struct sockaddr_in6);
-	u32 error;
-	buffer[0] = 0;
-	// if (getsockname(sock->socket, (struct sockaddr*) addrptr, &len)) return GF_IP_NETWORK_FAILURE;
-	error = getnameinfo((struct sockaddr *)addrptr, len, clienthost, sizeof(clienthost), 
-				clientservice, sizeof(clientservice), NI_NUMERICHOST);
-	if (error!=0)
-		return GF_IP_ADDRESS_NOT_FOUND;
-	sprintf(buffer, clienthost);
+    struct sockaddr_storage clientaddr;
+    socklen_t addrlen = sizeof(clientaddr);
+    if (getsockname(sock->socket, (struct sockaddr *)&clientaddr, &addrlen)) return GF_IP_NETWORK_FAILURE;
+
+    if (getnameinfo((struct sockaddr *)&clientaddr, addrlen, clienthost, sizeof(clienthost), NULL, 0, NI_NUMERICHOST)) 
+		return GF_IP_NETWORK_FAILURE;
+	strcpy(buffer, clienthost);
 #else
 	char *ip;
 	struct sockaddr_in name;
 	u32 len = sizeof(struct sockaddr_in);
-
-	buffer[0] = 0;
 	if (getsockname(sock->socket, (struct sockaddr*) &name, &len)) return GF_IP_NETWORK_FAILURE;
-
 	ip = inet_ntoa(name.sin_addr);
 	if (!ip) return GF_IP_NETWORK_FAILURE;
-	sprintf(buffer, ip);
+	strcpy(buffer, ip);
 #endif
 	return GF_OK;
 }
@@ -169,31 +239,36 @@ GF_Socket *gf_sk_new(u32 SocketType)
 {
 	GF_Socket *tmp;
 
+	/*init WinSock*/
+#ifdef WIN32
 	WSADATA Data;
-	//init WinSock
-	if (!IsInit)
-		if (WSAStartup(0x0202, &Data ) != 0 ) return NULL;
-
+	if (!wsa_init && (WSAStartup(0x0202, &Data)!=0) ) return NULL;
+#endif
 	if ((SocketType != GF_SOCK_TYPE_UDP) && (SocketType != GF_SOCK_TYPE_TCP)) return NULL;
-
 	GF_SAFEALLOC(tmp, sizeof(GF_Socket) );
 
 	/*always create the socket on V4 IP, switch to V6 is made updon connect*/
-	tmp->socket = socket(PF_INET, (SocketType == GF_SOCK_TYPE_UDP) ? SOCK_DGRAM : SOCK_STREAM, 0);
+	tmp->socket = socket(AF_INET, (SocketType == GF_SOCK_TYPE_UDP) ? SOCK_DGRAM : SOCK_STREAM, 0);
 	if (tmp->socket == INVALID_SOCKET) {
 		free(tmp);
-		if (!IsInit) WSACleanup();
+#ifdef WIN32
+		if (!wsa_init) WSACleanup();
+#endif
 		return NULL;
 	}
 
 	tmp->type = SocketType;
 	tmp->status = SK_STATUS_CREATE;
-	IsInit ++;
 	tmp->blocking = 1;
 #ifdef GPAC_IPV6
-	memset(&tmp->RemoteAddress, 0, sizeof(struct sockaddr_in6));
+	memset(&tmp->dest_addr, 0, sizeof(struct sockaddr_storage));
 #else
-	memset(&tmp->RemoteAddress, 0, sizeof(struct sockaddr_in));
+	memset(&tmp->dest_addr, 0, sizeof(struct sockaddr_in));
+	tmp->dest_addr_len = sizeof(struct sockaddr);
+#endif
+
+#ifdef WIN32
+	wsa_init ++;
 #endif
 	return tmp;
 }
@@ -213,9 +288,16 @@ GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool SendBuffer, u32 NewSize)
 GF_Err gf_sk_set_blocking(GF_Socket *sock, u32 NonBlockingOn)
 {
 	s32 res;
+#ifdef WIN32
 	u_long val = NonBlockingOn;
 	res = ioctlsocket(sock->socket, FIONBIO, &val);
 	if (res) return GF_SERVICE_ERROR;
+#else
+	s32 flag = fcntl(sock->socket, F_GETFL, 0);
+	res = fcntl(sock->socket, F_SETFL, flag | O_NONBLOCK);
+	if (res) return GF_SERVICE_ERROR;
+	sock->blocking = NonBlockingOn ? 0 : 1;
+#endif
 	sock->blocking = NonBlockingOn ? 0 : 1;
 	return GF_OK;
 }
@@ -242,29 +324,28 @@ void gf_sk_del(GF_Socket *sock)
 	closesocket(sock->socket);
 #else
 	/*leave multicast*/
-	if ( ((htonl( sock->RemoteAddress.sin_addr.s_addr ) >> 8) & 0x00f00000) == 0x00e00000) {
+	if ( ((htonl( sock->dest_addr.sin_addr.s_addr ) >> 8) & 0x00f00000) == 0x00e00000) {
 		if (sock->status == SK_STATUS_BIND) {
 			struct ip_mreq M_req;
-			M_req.imr_multiaddr.s_addr = sock->RemoteAddress.sin_addr.s_addr ;
+			M_req.imr_multiaddr.s_addr = sock->dest_addr.sin_addr.s_addr ;
 			M_req.imr_interface.s_addr = INADDR_ANY;
 			setsockopt(sock->socket, IPPROTO_IP, IP_DROP_MEMBERSHIP, (char *) &M_req, sizeof(M_req));
 		}
 	}
 	closesocket(sock->socket);
 #endif
-	IsInit --;
-	if (!IsInit) WSACleanup();
+
+#ifdef WIN32
+	wsa_init --;
+	if (!wsa_init) WSACleanup();
+#endif
 	free(sock);
 }
 
 void gf_sk_reset(GF_Socket *sock)
 {
 	u32 clear;
-
-	if (!sock) return;
-	//clear the socket buffer and state
-	setsockopt(sock->socket, SOL_SOCKET, SO_ERROR, (char *) &clear, sizeof(u32) );
-
+	if (sock) setsockopt(sock->socket, SOL_SOCKET, SO_ERROR, (char *) &clear, sizeof(u32) );
 }
 
 s32 gf_sk_get_handle(GF_Socket *sock) 
@@ -272,126 +353,80 @@ s32 gf_sk_get_handle(GF_Socket *sock)
 	return sock->socket;
 }
 
+
+
 //connects a socket to a remote peer on a given port
 GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 {
 	s32 ret;
 #ifdef GPAC_IPV6
-	struct	addrinfo *res, *aip;
-	struct	addrinfo hints;
-	struct addrinfo *test;
-	s32 error;
-	struct sockaddr_in6 *addrptr = (struct sockaddr_in6 *)&(sock->RemoteAddress);
-		
-	char  node[50];
-	char  portstring[20];
+	struct addrinfo *res, *aip;
+
 	int ws2_sock_type = (sock->type==GF_SOCK_TYPE_UDP) ? SOCK_DGRAM : SOCK_STREAM;
 
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_socktype = ws2_sock_type;
- 	hints.ai_family = PF_UNSPEC;
- 	sprintf (portstring, "%d", PortNumber);
- 		
- 	strcpy(node, PeerName);
- 	if (node[0]=='[')
- 	{
- 		node[strlen(node)-1] = 0;
- 		strcpy(node, &node[1]);
- 	}
-	error = getaddrinfo(node, (const char *)portstring, &hints, &res);
-	if (error==0)
-	{
-		for (aip=res; aip!=NULL; aip =aip->ai_next)
-		{
-			test = aip;
-			if (sock->type == GF_SOCK_TYPE_TCP) {
-				if ((sock->RemoteAddress.ss_family==test->ai_family)&&
-					(ws2_sock_type==test->ai_socktype)&&
-					(test->ai_protocol==SOCK_STREAM))
-				{
-					// family: sock0, test10; type: sock2, test1; protocol: test6
-					ret = connect(sock->socket,  test->ai_addr, test->ai_addrlen);
-					if (ret == SOCKET_ERROR) {
-						closesocket(sock->socket);
-						sock->socket = (SOCKET)NULL;
-						continue;
-					}
-					/*
-					test is supposed to contain a linked list of addrinfo struct
-					and we are supposed to create the socket from the first adress which works
-					*/
-					addrptr->sin6_family = test->ai_family;
-					addrptr->sin6_port = PortNumber;
-					// memcpy((char *) &sock->RemoteAddress.sin6_addr, test->ai_addr, test->ai_addrlen);
-				} else
-				{
-					closesocket(sock->socket);
-					sock->socket = (SOCKET)NULL;
-					sock->socket = socket(test->ai_family,test->ai_socktype, test->ai_protocol);
-					/*TODO: FIXME, copy over other properties (recption buffer size & co)*/
-					gf_sk_set_blocking(sock, !sock->blocking);
-
-
-					if (sock->socket == -1) 
-					{
-						sock->socket = (SOCKET)NULL;
-						continue;
-					}
-					ret = connect(sock->socket,  test->ai_addr, test->ai_addrlen);						
-					if (ret == SOCKET_ERROR) {
-						closesocket(sock->socket);
-						sock->socket = (SOCKET)NULL;
-						continue;
-					}
-					/*
-					test is supposed to contain a linked list of addrinfo struct
-					and we are supposed to create the socket from the first adress which works
-					*/
-					addrptr->sin6_family = test->ai_family;
-					addrptr->sin6_port = PortNumber;
-					// memcpy((char *) &sock->RemoteAddress.sin6_addr, test->ai_addr, test->ai_addrlen);
-				}
-				sock->is_ipv6 = (test->ai_family==PF_INET6) ? 1 : 0;
-				break;
-			}
+	res = gf_sk_get_ipv6_addr(PeerName, PortNumber, AF_UNSPEC, 0);
+	if (!res) {
+/*		switch(error) {
+		case EAI_FAMILY: return GF_IP_CONNECTION_FAILURE;
+		case EAI_SOCKTYPE:
+			return GF_IP_CONNECTION_FAILURE;
+		case EAI_BADFLAGS:
+			return GF_IP_CONNECTION_FAILURE;
+		case EAI_NONAME:
+			return GF_IP_CONNECTION_FAILURE;
+		case EAI_SERVICE:
+			return GF_IP_CONNECTION_FAILURE;
+		 case EAI_ADDRFAMILY:
+			return GF_IP_CONNECTION_FAILURE;
+		default:
+			return GF_IP_CONNECTION_FAILURE;
 		}
-		freeaddrinfo(res);
-		if (!sock->socket) return GF_IP_CONNECTION_FAILURE;
-	} else
-	{
-		switch(error)
-		{
-			case EAI_FAMILY:
-				return GF_IP_CONNECTION_FAILURE;
-			break;
-			case EAI_SOCKTYPE:
-				return GF_IP_CONNECTION_FAILURE;
-			break;
-			case EAI_BADFLAGS:
-				return GF_IP_CONNECTION_FAILURE;
-			break;
-			case EAI_NONAME:
-				return GF_IP_CONNECTION_FAILURE;
-			break;
-			case EAI_SERVICE:
-				return GF_IP_CONNECTION_FAILURE;
-			break;
-			// case EAI_ADDRFAMILY:
-			//	return GF_IP_CONNECTION_FAILURE;
-			//break;
-			default:
-				return GF_IP_CONNECTION_FAILURE;
-			break;
-		}
+*/
+		return GF_IP_CONNECTION_FAILURE;
 	}
+	/*todo: get existing socket setting*/
+	if (sock->type != GF_SOCK_TYPE_TCP) return GF_NOT_SUPPORTED;
+
+	/*close socket*/
+	closesocket(sock->socket);
+	sock->socket = (SOCKET)NULL;
+
+	/*for all interfaces*/
+	for (aip=res; aip!=NULL; aip=aip->ai_next) {
+		if (ws2_sock_type!=aip->ai_socktype) continue;
+		sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
+		if (sock->socket == INVALID_SOCKET) {
+			sock->socket = (SOCKET)NULL;
+			continue;
+		}
+		ret = connect(sock->socket, aip->ai_addr, aip->ai_addrlen);						
+		if (ret == SOCKET_ERROR) {
+			closesocket(sock->socket);
+			sock->socket = (SOCKET)NULL;
+			continue;
+		}
+		/*TODO: copy over other properties (recption buffer size & co)*/
+		gf_sk_set_blocking(sock, !sock->blocking);
+
+	    memcpy(&sock->dest_addr, aip->ai_addr, aip->ai_addrlen);
+		sock->dest_addr_len = aip->ai_addrlen;
+		sock->is_ipv6 = (aip->ai_family==PF_INET6) ? 1 : 0;
+		break;
+	}
+	freeaddrinfo(res);
+	if (!sock->socket) return GF_IP_CONNECTION_FAILURE;
+	sock->status = SK_STATUS_CONNECT;
+	return GF_OK;
+
 #else	
 	struct hostent *Host;
 	
-	//setup the address
-	sock->RemoteAddress.sin_family = AF_INET;
-	sock->RemoteAddress.sin_port = htons(PortNumber);
-	sock->RemoteAddress.sin_addr.s_addr = inet_addr(PeerName);
-	if (sock->RemoteAddress.sin_addr.s_addr==INADDR_NONE) {
+	/*setup the address*/
+	sock->dest_addr.sin_family = AF_INET;
+	sock->dest_addr.sin_port = htons(PortNumber);
+	/*get the server IP*/
+	sock->dest_addr.sin_addr.s_addr = inet_addr(PeerName);
+	if (sock->dest_addr.sin_addr.s_addr==INADDR_NONE) {
 		Host = gethostbyname(PeerName);
 		if (Host == NULL) {
 			switch (LASTSOCKERROR) {
@@ -400,12 +435,11 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 			default: return GF_IP_NETWORK_FAILURE;
 			}
 		}
-		memcpy((char *) &sock->RemoteAddress.sin_addr, Host->h_addr_list[0], sizeof(u32));
+		memcpy((char *) &sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u32));
 	}
 
-
 	if (sock->type == GF_SOCK_TYPE_TCP) {
-		ret = connect(sock->socket, (struct sockaddr *) &sock->RemoteAddress, sizeof(struct sockaddr));
+		ret = connect(sock->socket, (struct sockaddr *) &sock->dest_addr, sizeof(struct sockaddr));
 		if (ret == SOCKET_ERROR) {
 			switch (LASTSOCKERROR) {
 			case EAGAIN:
@@ -418,8 +452,6 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 		}
 	}
 #endif
-
-
 	sock->status = SK_STATUS_CONNECT;
 	return GF_OK;
 }
@@ -428,40 +460,74 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 //this will enable reuse of ports on a single machine
 GF_Err gf_sk_bind(GF_Socket *sock, u16 PortNumber, Bool reUse)
 {
-	s32 ret;
-	s32 optval;
+#ifdef GPAC_IPV6
+	struct addrinfo *res, *aip;
+#else
 	size_t addrlen;
 	struct sockaddr_in LocalAdd;
 	struct hostent *Host;
 	char buf[GF_MAX_IP_NAME_LEN];
+#endif
+	s32 ret;
+	s32 optval;
 
 	if (!sock || (sock->status != SK_STATUS_CREATE)) return GF_BAD_PARAM;
-	/*TODO - to be completed*/
-	if (sock->is_ipv6) return GF_NOT_SUPPORTED;
-
-	memset((void *) &LocalAdd, 0, sizeof(LocalAdd));
-
-	ret = gethostname(buf, GF_MAX_IP_NAME_LEN);
-	if (ret == SOCKET_ERROR) return GF_IP_ADDRESS_NOT_FOUND;
-	//get the IP address
-	Host = gethostbyname(buf);
-	if (Host == NULL) return GF_IP_ADDRESS_NOT_FOUND;
-	//setup the address
-	memcpy((char *) &LocalAdd.sin_addr, Host->h_addr_list[0], sizeof(LocalAdd.sin_addr));
-	LocalAdd.sin_family = AF_INET;
-	LocalAdd.sin_addr.s_addr = INADDR_ANY;
-	LocalAdd.sin_port = htons(PortNumber);
-	addrlen = sizeof(struct sockaddr_in);
 
 	if (reUse) {
 		//retry with ReUsability of socket names
 		optval = 1;
 		setsockopt(sock->socket, SOL_SOCKET, SO_REUSEADDR, (const char *) &optval, sizeof(optval));
 	}
+	
+	/*IPV6 bind*/
+#ifdef GPAC_IPV6
+	res = gf_sk_get_ipv6_addr(NULL, PortNumber, AF_UNSPEC, AI_PASSIVE);
+	if (!res) return GF_IP_CONNECTION_FAILURE;
 
-	//bind the socket
+	/*close socket*/
+	closesocket(sock->socket);
+	sock->socket = (SOCKET)NULL;
+
+	/*for all interfaces*/
+	for (aip=res; aip!=NULL; aip=aip->ai_next) {
+		int ws2_sock_type = (sock->type==GF_SOCK_TYPE_UDP) ? SOCK_DGRAM : SOCK_STREAM;
+		if (ws2_sock_type!=aip->ai_socktype) continue;
+		sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
+		if (sock->socket == INVALID_SOCKET) {
+			sock->socket = (SOCKET)NULL;
+			continue;
+		}
+		/*TODO: copy over other properties (recption buffer size & co)*/
+		gf_sk_set_blocking(sock, !sock->blocking);
+
+		ret = bind(sock->socket, aip->ai_addr, aip->ai_addrlen);
+		if (ret == SOCKET_ERROR) {
+			closesocket(sock->socket);
+			sock->socket = (SOCKET)NULL;
+			continue;
+		}
+		sock->is_ipv6 = (aip->ai_family==PF_INET6) ? 1 : 0;
+		break;
+	}
+	freeaddrinfo(res);
+	if (!sock->socket) return GF_IP_CONNECTION_FAILURE;
+#else
+	memset((void *) &LocalAdd, 0, sizeof(LocalAdd));
+	ret = gethostname(buf, GF_MAX_IP_NAME_LEN);
+	if (ret == SOCKET_ERROR) return GF_IP_ADDRESS_NOT_FOUND;
+	/*get the IP address*/
+	Host = gethostbyname(buf);
+	if (Host == NULL) return GF_IP_ADDRESS_NOT_FOUND;
+	/*setup the address*/
+	memcpy((char *) &LocalAdd.sin_addr, Host->h_addr_list[0], sizeof(LocalAdd.sin_addr));
+	LocalAdd.sin_family = AF_INET;
+	LocalAdd.sin_addr.s_addr = INADDR_ANY;
+	LocalAdd.sin_port = htons(PortNumber);
+	addrlen = sizeof(struct sockaddr_in);
+	/*bind the socket*/
 	ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, addrlen);
 	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+#endif
 	sock->status = SK_STATUS_BIND;
 	return GF_OK;
 }
@@ -508,7 +574,7 @@ GF_Err gf_sk_send(GF_Socket *sock, unsigned char *buffer, u32 length)
 		if (sock->type == GF_SOCK_TYPE_TCP) {
 			Res = send(sock->socket, &buffer[Count], length - Count, 0);
 		} else {
-			Res = sendto(sock->socket, &buffer[Count], length - Count, 0, (struct sockaddr *) &sock->RemoteAddress, sizeof(struct sockaddr));
+			Res = sendto(sock->socket, &buffer[Count], length - Count, 0, (struct sockaddr *) &sock->dest_addr, sock->dest_addr_len);
 		}
 		if (Res == SOCKET_ERROR) {
 			switch (LASTSOCKERROR) {
@@ -529,12 +595,22 @@ GF_Err gf_sk_send(GF_Socket *sock, unsigned char *buffer, u32 length)
 
 u32 gf_sk_is_multicast_address(char *multi_IPAdd)
 {
-	if (!multi_IPAdd) return 0;
 #ifdef GPAC_IPV6
-	/* TODO inet_addr : use WSAStringToAddress or getaddrinfo with AI_NUMERICHOST instead */
-	/* or use the macro defined for that with IPv6  */
-	return ((htonl(inet_addr(multi_IPAdd)) >> 8) & 0x00f00000) == 0x00e00000;	
+	u32 val;
+ 	struct addrinfo *res;
+	if (!multi_IPAdd) return 0;
+	res = gf_sk_get_ipv6_addr(multi_IPAdd, 0, AF_UNSPEC, AI_PASSIVE);
+	if (!res) return 0;
+	val = 0;
+	if (res->ai_addr->sa_family == AF_INET) {
+	        val = IN_MULTICAST(ntohl(((struct sockaddr_in *)res->ai_addr)->sin_addr.s_addr));  
+	} else if (res->ai_addr->sa_family == AF_INET6) {
+		val = IN6_IS_ADDR_MULTICAST(& ((struct sockaddr_in6 *)res->ai_addr)->sin6_addr);
+	}
+	freeaddrinfo(res);
+	return val;
 #else
+	if (!multi_IPAdd) return 0;
 	return ((htonl(inet_addr(multi_IPAdd)) >> 8) & 0x00f00000) == 0x00e00000;	
 #endif
 }
@@ -543,161 +619,150 @@ u32 gf_sk_is_multicast_address(char *multi_IPAdd)
 GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNumber, u32 TTL, Bool NoBind, char *local_interface_ip)
 {
 	s32 ret;
-	DWORD optval;
-	u_long mc_add, local_add;
 	u32 flag; 
-#ifdef GPAC_IPV6
-	/* ip_mreq : use ipv6_mreq in addition for IPv6 support */
-	struct ipv6_mreq M_req;
-	struct sockaddr_in6 LocalAdd;
-	struct sockaddr_in6 * addrptr = (struct sockaddr_in6 *)&sock->RemoteAddress;
-#else
 	struct ip_mreq M_req;
-	SOCKADDR_IN LocalAdd;
+	u32 optval;
+#ifdef GPAC_IPV6
+	struct sockaddr *addr;
+	struct addrinfo *res, *aip;
+#else
+	u_long local_add_id;
 #endif
 
 	if (!sock || (sock->status != SK_STATUS_CREATE)) return GF_BAD_PARAM;
 
-	if (sock->is_ipv6) return GF_NOT_SUPPORTED;
-
-	if (TTL > 255) return GF_BAD_PARAM;
-
-	memset((void *) &LocalAdd, 0, sizeof(LocalAdd));
-
-	//check the address
-	mc_add = inet_addr(multi_IPAdd);
-	if (!((mc_add >= 0xe0000000) || (mc_add <= 0xefffffff) )) return GF_BAD_PARAM;
-
-	//retry with ReUsability of socket names
-	optval = SO_REUSEADDR;
-	setsockopt(sock->socket, SOL_SOCKET, SO_REUSEADDR, (const char *) &optval, sizeof(optval));
+	if (TTL > 255) TTL = 255;
+	
+	/*check the address*/
+	if (!gf_sk_is_multicast_address(multi_IPAdd)) return GF_BAD_PARAM;
 
 #ifdef GPAC_IPV6
-	/*
-	inet_addr : use WSAStringToAddress or getaddrinfo with AI_NUMERICHOST instead
-	*/
-	if (local_interface_ip) local_add = inet_addr(local_interface_ip);
-	/* 
-	INADDR_ANY : use getaddrinfo with nodename=NULL and AI_PASSIVE instead, or use in6addr_any in addition for IPv6 support
-	*/
-	else local_add = INADDR_ANY;
 
-	//bind to ANY interface WITHOUT port number
-	LocalAdd.sin6_family = AF_INET6;
-	// TODO adapter ça: LocalAdd.sin6_addr = local_add;
-	LocalAdd.sin6_port = htons( MultiPortNumber);
-	if (!NoBind) {
-		//bind the socket
-		ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, sizeof(LocalAdd));
-		if (ret == SOCKET_ERROR) {
-			/*retry without specifying the local add*/
-			/* for IPv6
-			INADDR_ANY : use getaddrinfo with nodename=NULL and AI_PASSIVE instead, or use in6addr_any in addition for IPv6 support
-			TODO adapter ça: LocalAdd.sin_addr.s_addr = local_add = INADDR_ANY;???
-			*/
-			// 
+	res = gf_sk_get_ipv6_addr(local_interface_ip, MultiPortNumber, AF_UNSPEC, AI_PASSIVE);
+	if (!res) {
+		if (local_interface_ip) {
+			res = gf_sk_get_ipv6_addr(NULL, MultiPortNumber, AF_UNSPEC, AI_PASSIVE);
 			local_interface_ip = NULL;
-			ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, sizeof(LocalAdd));
-			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 		}
+		if (!res) return GF_IP_CONNECTION_FAILURE;
 	}
-#else
 
-	if (local_interface_ip) local_add = inet_addr(local_interface_ip);
-	else local_add = INADDR_ANY;
+	/*close socket*/
+	closesocket(sock->socket);
+	sock->socket = (SOCKET)NULL;
 
-	//bind to ANY interface WITHOUT port number
-	LocalAdd.sin_family = AF_INET;
-	LocalAdd.sin_addr.s_addr = local_add;
-	LocalAdd.sin_port = htons( MultiPortNumber);
-	if (!NoBind) {
-		//bind the socket
-		ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, sizeof(LocalAdd));
-		if (ret == SOCKET_ERROR) {
-			/*retry without specifying the local add*/
-			/* for IPv6
-			INADDR_ANY : use getaddrinfo with nodename=NULL and AI_PASSIVE instead, or use in6addr_any in addition for IPv6 support
-			TODO adapter ça: LocalAdd.sin_addr.s_addr = local_add = INADDR_ANY;???
-			*/
-			// 
-			LocalAdd.sin_addr.s_addr = local_add = INADDR_ANY;
-			local_interface_ip = NULL;
-			ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, sizeof(LocalAdd));
-			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+	/*for all interfaces*/
+	for (aip=res; aip!=NULL; aip=aip->ai_next) {
+		int ws2_sock_type = (sock->type==GF_SOCK_TYPE_UDP) ? SOCK_DGRAM : SOCK_STREAM;
+		if (ws2_sock_type!=aip->ai_socktype) continue;
+		sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
+		if (sock->socket == INVALID_SOCKET) {
+			sock->socket = (SOCKET)NULL;
+			continue;
 		}
+		/*enable address reuse*/
+		optval = SO_REUSEADDR;
+		setsockopt(sock->socket, SOL_SOCKET, SO_REUSEADDR, (const char *) &optval, sizeof(optval));
+
+		/*TODO: copy over other properties (recption buffer size & co)*/
+		gf_sk_set_blocking(sock, !sock->blocking);
+
+		if (!NoBind) {
+			ret = bind(sock->socket, aip->ai_addr, aip->ai_addrlen);
+			if (ret == SOCKET_ERROR) {
+				closesocket(sock->socket);
+				sock->socket = (SOCKET)NULL;
+				continue;
+			}
+		}
+		sock->is_ipv6 = (aip->ai_family==AF_INET6) ? 1 : 0;
+		break;
 	}
-#endif
+	freeaddrinfo(res);
+	if (!sock->socket) return GF_IP_CONNECTION_FAILURE;
 
 	sock->status = SK_STATUS_BIND;
 
-#ifdef GPAC_IPV6
-	//now join the multicast
-	/* TODO
-	M_req.ipv6mr_multiaddr.u = mc_add;
-	M_req.ipv6mr_interface = local_add;
-	*/
-	/*
-	IPPROTO_IP : use IPPROTO_IPV6 in addition for IPv6 support
-	IP_ADD_MEMBERSHIP : use WSAJoinLeaf instead, or use IPV6_JOIN_GROUP in addition for IPv6 support
-	*/
-	ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &M_req, sizeof(M_req));
-	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+	if (!gf_sk_ipv6_set_remote_address(sock, multi_IPAdd, MultiPortNumber)) 
+		return GF_IP_CONNECTION_FAILURE;
 
-	//setup local interface
-	if (local_interface_ip) {
-		/*
-		IPPROTO_IP : use IPPROTO_IPV6 in addition for IPv6 support
-		IP_MULTICAST_IF : use IPV6_MULTICAST_IF in addition for IPv6 support
-		*/
-		ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_IF, (char *) &local_add, sizeof(local_add));
+	addr = (struct sockaddr *)&sock->dest_addr;
+	if (addr->sa_family == AF_INET) {
+        M_req.imr_multiaddr.s_addr = ((struct sockaddr_in *)addr)->sin_addr.s_addr;
+        M_req.imr_interface.s_addr = INADDR_ANY;
+		ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &M_req, sizeof(M_req));
+		if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+		/*set TTL*/
+		ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_TTL, (char *) &TTL, sizeof(TTL));
+		if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+		/*Disable loopback*/
+		flag = 1;
+		ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_LOOP, (char *) &flag, sizeof(flag));
 		if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 	}
-	
-	//set the Time To Live
-	/*
-	IPPROTO_IP : use IPPROTO_IPV6 in addition for IPv6 support
-	IP_MULTICAST_TTL : use SIO_MULTICAST_SCOPE instead, or use IPV6_MULTICAST_HOPS in addition for IPv6 support
-	*/
-	ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&TTL, sizeof(TTL));
-	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
-
-	//Disable loopback
-	flag = 1;
-	/*
-	IPPROTO_IP : use IPPROTO_IPV6 in addition for IPv6 support
-	IP_MULTICAST_LOOP : use SIO_MULTIPOINT_LOOPBACK instead, or use IPV6_MULTICAST_LOOP in addition for IPv6 support
-	*/
-	ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_LOOP, (char *) &flag, sizeof(flag));
-	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
-	sock->RemoteAddress.ss_family = AF_INET6;
-	// TODO ??? sock->RemoteAddress.sin6_addr.u = mc_add;
-	addrptr->sin6_port = htons( MultiPortNumber);
+	if (addr->sa_family == AF_INET6) {
+		struct ipv6_mreq M_reqV6;
+        memcpy(&M_reqV6.ipv6mr_multiaddr, &(((struct sockaddr_in6 *)addr)->sin6_addr), sizeof(struct in6_addr));
+        M_reqV6.ipv6mr_interface = 0;
+        ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *) &M_reqV6, sizeof(M_reqV6));
+		if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+		/*set TTL*/
+		ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *) &TTL, sizeof(TTL));
+		if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+		/*Disable loopback*/
+		flag = 1;
+		ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, (char *) &flag, sizeof(flag));
+		if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+	} 
 #else
-	//now join the multicast
-	M_req.imr_multiaddr.s_addr = mc_add;
-	M_req.imr_interface.s_addr = local_add;
+
+	/*enable address reuse*/
+	optval = SO_REUSEADDR;
+	setsockopt(sock->socket, SOL_SOCKET, SO_REUSEADDR, (const char *) &optval, sizeof(optval));
+
+	if (local_interface_ip) local_add_id = inet_addr(local_interface_ip);
+	else local_add_id = htonl(INADDR_ANY);
+
+	if (!NoBind) {
+		SOCKADDR_IN local_address;
+
+		local_address.sin_family = AF_INET;
+		local_address.sin_addr.s_addr = local_add_id;
+		local_address.sin_port = htons( MultiPortNumber);
+
+		ret = bind(sock->socket, (struct sockaddr *) &local_address, sizeof(local_address));
+		if (ret == SOCKET_ERROR) {
+			/*retry without specifying the local add*/
+			local_address.sin_addr.s_addr = local_add_id = htonl(INADDR_ANY);
+			local_interface_ip = NULL;
+			ret = bind(sock->socket, (struct sockaddr *) &local_address, sizeof(local_address));
+			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+		}
+		/*setup local interface*/
+		if (local_interface_ip) {
+			ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_IF, (char *) &local_add_id, sizeof(local_add_id));
+			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+		}
+	}
+	sock->status = SK_STATUS_BIND;
+
+	/*now join the multicast*/
+	M_req.imr_multiaddr.s_addr = inet_addr(multi_IPAdd);
+	M_req.imr_interface.s_addr = local_add_id;
 
 	ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &M_req, sizeof(M_req));
 	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
-
-	//setup local interface
-	if (local_interface_ip) {
-		ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_IF, (char *) &local_add, sizeof(local_add));
-		if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
-	}
-	
-	//set the Time To Live
+	/*set the Time To Live*/
 	ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&TTL, sizeof(TTL));
 	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
-
-	//Disable loopback
+	/*Disable loopback*/
 	flag = 1;
 	ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_LOOP, (char *) &flag, sizeof(flag));
 	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 
-	sock->RemoteAddress.sin_family = AF_INET;
-	sock->RemoteAddress.sin_addr.s_addr = mc_add;
-	sock->RemoteAddress.sin_port = htons( MultiPortNumber);
+	sock->dest_addr.sin_family = AF_INET;
+	sock->dest_addr.sin_addr.s_addr = M_req.imr_multiaddr.s_addr;
+	sock->dest_addr.sin_port = htons( MultiPortNumber);
 #endif
 	return GF_OK;
 }
@@ -777,7 +842,7 @@ GF_Err gf_sk_listen(GF_Socket *sock, u32 MaxConnection)
 
 GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 {
-	u32 clientAddSize, ready, res;
+	u32 client_address_size, ready, res;
 	SOCKET sk;
 	struct timeval timeout;
 	fd_set Group;
@@ -803,12 +868,11 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 	}
 	if (!ready || !FD_ISSET(sock->socket, &Group)) return GF_IP_NETWORK_EMPTY;
 #ifdef GPAC_IPV6
-	clientAddSize = sizeof(struct sockaddr_in6);
-	sk = accept(sock->socket, (struct sockaddr *) &sock->RemoteAddress, &clientAddSize);
+	client_address_size = sizeof(struct sockaddr_in6);
 #else
-	clientAddSize = sizeof(struct sockaddr_in);
-	sk = accept(sock->socket, (struct sockaddr *) &sock->RemoteAddress, &clientAddSize);
+	client_address_size = sizeof(struct sockaddr_in);
 #endif
+	sk = accept(sock->socket, (struct sockaddr *) &sock->dest_addr, &client_address_size);
 
 	//we either have an error or we have no connections
 	if (sk == INVALID_SOCKET) {
@@ -821,22 +885,19 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 		}		
 	}
 
-	
 	(*newConnection) = malloc(sizeof(GF_Socket));
 	(*newConnection)->socket = sk;
 	(*newConnection)->type = sock->type;
 	(*newConnection)->blocking = sock->blocking;
 	(*newConnection)->status = SK_STATUS_CONNECT;
 #ifdef GPAC_IPV6
-	memcpy( &(*newConnection)->RemoteAddress, &sock->RemoteAddress, clientAddSize);
-
-	memset(&sock->RemoteAddress, 0, sizeof(struct sockaddr_in6));
+	memcpy( &(*newConnection)->dest_addr, &sock->dest_addr, client_address_size);
+	memset(&sock->dest_addr, 0, sizeof(struct sockaddr_in6));
 #else
-	memcpy( &(*newConnection)->RemoteAddress, &sock->RemoteAddress, clientAddSize);
-
-	memset(&sock->RemoteAddress, 0, sizeof(struct sockaddr_in));
+	memcpy( &(*newConnection)->dest_addr, &sock->dest_addr, client_address_size);
+	memset(&sock->dest_addr, 0, sizeof(struct sockaddr_in));
 #endif
-
+	(*newConnection)->dest_addr_len = client_address_size;
 	return GF_OK;
 }
 
@@ -886,10 +947,7 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 {
 	u32 one;
 
-	if (!sock 
-		|| (sock->type != GF_SOCK_TYPE_TCP)
-		|| (sock->status != SK_STATUS_CONNECT)
-		)
+	if (!sock || (sock->type != GF_SOCK_TYPE_TCP) || (sock->status != SK_STATUS_CONNECT) )
 		return GF_BAD_PARAM;
 
 	one = serverOn ? 1 : 0;
@@ -901,22 +959,15 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
 {
 #ifdef GPAC_IPV6
-	//char straddr[INET6_ADDRSTRLEN];
 	char clienthost[NI_MAXHOST];
-	char clientservice[NI_MAXSERV];
- 	struct sockaddr_in6 * addrptr = (struct sockaddr_in6 *)(&sock->RemoteAddress);
-	u32 len = sizeof(struct sockaddr_in6);
-	u32 error;
+ 	struct sockaddr_in6 * addrptr = (struct sockaddr_in6 *)(&sock->dest_addr_len);
 	if (!sock || sock->status != SK_STATUS_CONNECT) return GF_BAD_PARAM;
-	buf[0] = 0;
-	error = getnameinfo((struct sockaddr *)addrptr, len, clienthost, sizeof(clienthost), 
-				clientservice, sizeof(clientservice), NI_NUMERICHOST);
-	if (error!=0)
+	if (getnameinfo((struct sockaddr *)addrptr, sock->dest_addr_len, clienthost, sizeof(clienthost), NULL, 0, NI_NUMERICHOST)) 
 		return GF_IP_ADDRESS_NOT_FOUND;
-	sprintf(buf, clienthost);
+	strcpy(buf, clienthost);
 #else
 	if (!sock || sock->status != SK_STATUS_CONNECT) return GF_BAD_PARAM;
-	sprintf(buf, inet_ntoa(sock->RemoteAddress.sin_addr));
+	strcpy(buf, inet_ntoa(sock->dest_addr.sin_addr));
 #endif
 	return GF_OK;	
 }
@@ -925,36 +976,18 @@ GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
 GF_Err gf_sk_set_remote_address(GF_Socket *sock, char *address)
 {
 #ifdef GPAC_IPV6
- 	struct sockaddr_in6 * addrptr = (struct sockaddr_in6 *)(&sock->RemoteAddress);
 	if (!sock || !address) return GF_BAD_PARAM;
-	sock->RemoteAddress.ss_family = AF_INET6;
-	/* TODO inet_addr : use WSAStringToAddress or getaddrinfo with AI_NUMERICHOST instead
-		sock->RemoteAddress.ai_addr = inet_addr(address);
-		*/
-	// TODO ??? if (sock->RemoteAddress.sin6_addr == INADDR_NONE) 
-	{
-		int error;
-		struct addrinfo * res;
-		struct addrinfo hints;
-		memset(&hints, 0, sizeof(hints));
-		hints.ai_family = PF_UNSPEC;
-		hints.ai_socktype = 0;
-		error = getaddrinfo(address, NULL, &hints, &res);
-		if (error != 0) return GF_IP_ADDRESS_NOT_FOUND;
-		memcpy((char *) &addrptr->sin6_addr, res->ai_addr, sizeof(struct sockaddr *));
-		freeaddrinfo(res);
-	}
+	if (!gf_sk_ipv6_set_remote_address(sock, address, 0)) return GF_IP_ADDRESS_NOT_FOUND;
+	return GF_OK;
 #else
 	struct hostent *Host;
-
 	if (!sock || !address) return GF_BAD_PARAM;
-
-	sock->RemoteAddress.sin_family = AF_INET;
-	sock->RemoteAddress.sin_addr.S_un.S_addr = inet_addr(address);
-	if (sock->RemoteAddress.sin_addr.S_un.S_addr == INADDR_NONE) {
+	sock->dest_addr.sin_family = AF_INET;
+	sock->dest_addr.sin_addr.S_un.S_addr = inet_addr(address);
+	if (sock->dest_addr.sin_addr.S_un.S_addr == INADDR_NONE) {
 		Host = gethostbyname(address);
 		if (Host == NULL) return GF_IP_ADDRESS_NOT_FOUND;
-		memcpy((char *) &sock->RemoteAddress.sin_addr, Host->h_addr_list[0], sizeof(u32));
+		memcpy((char *) &sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u32));
 	}
 #endif
 	return GF_OK;
@@ -962,11 +995,13 @@ GF_Err gf_sk_set_remote_address(GF_Socket *sock, char *address)
 
 GF_Err gf_sk_set_remote_port(GF_Socket *sock, u16 RemotePort)
 {
-	if (!sock || !RemotePort) return GF_BAD_PARAM;
 #ifdef GPAC_IPV6
-	// where is the port for an IPV6 connection sock->RemoteAddress. .sin_port = htons(RemotePort);
+	struct sockaddr *addr = (struct sockaddr *)&sock->dest_addr;
+	if (addr->sa_family == AF_INET) ((struct sockaddr_in *)addr)->sin_port =  htons(RemotePort);
+	else if (addr->sa_family == AF_INET6) ((struct sockaddr_in6 *)addr)->sin6_port =  htons(RemotePort);
 #else
-	sock->RemoteAddress.sin_port = htons(RemotePort);
+	if (!sock || !RemotePort) return GF_BAD_PARAM;
+	sock->dest_addr.sin_port = htons(RemotePort);
 #endif
 	return GF_OK;
 }
@@ -975,11 +1010,11 @@ GF_Err gf_sk_set_remote_port(GF_Socket *sock, u16 RemotePort)
 //send length bytes of a buffer
 GF_Err gf_sk_send_to(GF_Socket *sock, unsigned char *buffer, u32 length, unsigned char *remoteHost, u16 remotePort)
 {
-	u32 Count, Res, ready;
+	u32 Count, Res, ready, remote_add_len;
 #ifdef GPAC_IPV6
-	struct sockaddr_storage remote;
+	struct sockaddr_storage remote_add;
 #else
-	struct sockaddr_in remote;
+	struct sockaddr_in remote_add;
 	struct hostent *Host;
 #endif
 	struct timeval timeout;
@@ -1009,48 +1044,43 @@ GF_Err gf_sk_send_to(GF_Socket *sock, unsigned char *buffer, u32 length, unsigne
 		if (!ready || !FD_ISSET(sock->socket, &Group)) return GF_IP_NETWORK_EMPTY;
 	}
 
-	//setup the address
+	/*setup the address*/
 #ifdef GPAC_IPV6
-	remote.ss_family = AF_INET6;
+	remote_add.ss_family = AF_INET6;
 	//if a remote host is specified, use it. Otherwise use the default host
 	if (remoteHost) {
 		//setup the address
-		struct addrinfo *res;
-		struct addrinfo hints;
-		int error;
-		// TODO find equivalent for IPV6: remote.sin_port = htons(remotePort);
-		//get the server IP
-		error = getaddrinfo(remoteHost, NULL, &hints, & res);
-		if (error != 0) return GF_IP_ADDRESS_NOT_FOUND;
-		// ?? memcpy((char *)&(remotePtr->sin6_addr), res->ai_addr, sizeof(struct sockaddr *));
-		memcpy((char *) &(((struct sockaddr_in6 *)&remote)->sin6_addr), res->ai_addr, sizeof(struct sockaddr *));
+		struct addrinfo *res = gf_sk_get_ipv6_addr(remoteHost, remotePort, AF_UNSPEC, 0);
+		if (!res) return GF_IP_ADDRESS_NOT_FOUND;
+		memcpy(&remote_add, res->ai_addr, res->ai_addrlen);
+		remote_add_len = res->ai_addrlen;
 		freeaddrinfo(res);
 	} else {
-	 	struct sockaddr_in6 * addrptr = (struct sockaddr_in6 *)(&sock->RemoteAddress);
-		* ((struct sockaddr_in6 *)&remote) = * addrptr;
-//		((struct sockaddr_in6 *)&remote)->sin6_port = addrptr->sin6_port;
-//		((struct sockaddr_in6 *)&remote)->sin6_addr.u = addrptr->sin6_addr.u;
-			// remotePtr->sin6_port = addrptr->sin6_port;
-			// remotePtr->sin6_addr.u = addrptr->sin6_addr.u;
+		struct sockaddr_in6 *remotePtr = (struct sockaddr_in6 *)&remote_add;
+	 	struct sockaddr_in6 * addrptr = (struct sockaddr_in6 *)(&sock->dest_addr);
+		remotePtr->sin6_port = addrptr->sin6_port;
+		remotePtr->sin6_addr = addrptr->sin6_addr;
+		remote_add_len = sock->dest_addr_len;
 	}
 #else
-	remote.sin_family = AF_INET;
+	remote_add_len = sizeof(struct sockaddr_in);
+	remote_add.sin_family = AF_INET;
 	//if a remote host is specified, use it. Otherwise use the default host
 	if (remoteHost) {
 		//setup the address
-		remote.sin_port = htons(remotePort);
+		remote_add.sin_port = htons(remotePort);
 		//get the server IP
 		Host = gethostbyname(remoteHost);
 		if (Host == NULL) return GF_IP_ADDRESS_NOT_FOUND;
-		memcpy((char *) &remote.sin_addr, Host->h_addr_list[0], sizeof(u32));
+		memcpy((char *) &remote_add.sin_addr, Host->h_addr_list[0], sizeof(u32));
 	} else {
-		remote.sin_port = sock->RemoteAddress.sin_port;
-		remote.sin_addr.s_addr = sock->RemoteAddress.sin_addr.s_addr;
+		remote_add.sin_port = sock->dest_addr.sin_port;
+		remote_add.sin_addr.s_addr = sock->dest_addr.sin_addr.s_addr;
 	}
 #endif		
 	Count = 0;
 	while (Count < length) {
-		Res = sendto(sock->socket, &buffer[Count], length - Count, 0, (struct sockaddr *) &remote, sizeof(remote)); 		
+		Res = sendto(sock->socket, &buffer[Count], length - Count, 0, (struct sockaddr *) &remote_add, remote_add_len); 		
 		if (Res == SOCKET_ERROR) {
 			switch (LASTSOCKERROR) {
 			case EAGAIN:

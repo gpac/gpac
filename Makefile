@@ -32,12 +32,12 @@ depend:
 	$(MAKE) -C applications dep
 	$(MAKE) -C modules dep
 
-clean: $(CLEANVHOOK)
+clean:
 	$(MAKE) -C src clean
 	$(MAKE) -C applications clean
 	$(MAKE) -C modules clean
 
-distclean: $(CLEANVHOOK)
+distclean:
 	$(MAKE) -C src distclean
 	$(MAKE) -C applications distclean
 	$(MAKE) -C modules distclean
@@ -115,7 +115,7 @@ help:
 	@echo "all (void): builds main library, programs and plugins"
 	@echo "lib: builds GPAC library only (libgpac.so)"
 	@echo "apps: builds programs only"
-	@echo "mods: builds mudules only"
+	@echo "modules: builds modules only"
 	@echo "instmoz: build and local install of osmozilla"
 	@echo "sggen: builds scene graph generators"
 	@echo 

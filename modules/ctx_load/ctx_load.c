@@ -34,6 +34,7 @@ typedef struct
 	GF_InlineScene *inline_scene;
 	GF_Terminal *app;
 	GF_SceneManager *ctx;
+	GF_SceneLoader load;
 	char *file_name;
 	u32 file_size;
 	u32 load_flags;
@@ -42,7 +43,6 @@ typedef struct
 	u32 last_check_time, last_check_size;
 	/*mp3 import from flash*/
 	GF_List *files_to_delete;
-	GF_SceneLoader load;
 	/*progressive loading support for XMT X3D*/
 	FILE *src;
 	u32 file_pos, sax_max_duration;
@@ -166,6 +166,25 @@ static void CTXLoad_OnProgress(void *cbk, u32 done, u32 tot)
 }
 
 
+static GF_Err CTXLoad_Setup(GF_BaseDecoder *plug)
+{
+	CTXLoadPriv *priv = plug->privateStack;
+	if (!priv->file_name) return GF_BAD_PARAM;
+
+	priv->ctx = gf_sm_new(priv->inline_scene->graph);
+	memset(&priv->load, 0, sizeof(GF_SceneLoader));
+	priv->load.ctx = priv->ctx;
+	priv->load.cbk = priv;
+	priv->load.scene_graph = priv->inline_scene->graph;
+	priv->load.fileName = priv->file_name;
+	priv->load.OnMessage = CTXLoad_OnMessage;
+	priv->load.OnProgress = CTXLoad_OnProgress;
+	priv->load.flags = GF_SM_LOAD_FOR_PLAYBACK;
+	priv->load.localPath = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
+	priv->load.swf_import_flags = GF_SM_SWF_STATIC_DICT | GF_SM_SWF_QUAD_CURVE | GF_SM_SWF_SCALABLE_LINE;
+	return GF_OK;
+}
+
 static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug, 
 									 u16 ES_ID, 
 									 unsigned char *decSpecInfo, 
@@ -192,7 +211,8 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug,
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	/*main dummy stream we need a dsi*/
-	if (!decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
+	if (!decSpecInfo) 
+		return GF_NON_COMPLIANT_BITSTREAM;
 	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
 	priv->file_size = gf_bs_read_u32(bs);
 	gf_bs_del(bs);
@@ -203,17 +223,7 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug,
 	priv->base_stream_id = ES_ID;
 
 	
-	priv->ctx = gf_sm_new(priv->inline_scene->graph);
-	memset(&priv->load, 0, sizeof(GF_SceneLoader));
-	priv->load.ctx = priv->ctx;
-	priv->load.cbk = priv;
-	priv->load.scene_graph = priv->inline_scene->graph;
-	priv->load.fileName = priv->file_name;
-	priv->load.OnMessage = CTXLoad_OnMessage;
-	priv->load.OnProgress = CTXLoad_OnProgress;
-	priv->load.flags = GF_SM_LOAD_FOR_PLAYBACK;
-	priv->load.localPath = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
-	priv->load.swf_import_flags = GF_SM_SWF_STATIC_DICT | GF_SM_SWF_QUAD_CURVE | GF_SM_SWF_SCALABLE_LINE;
+	CTXLoad_Setup(plug);
 
 	priv->progressive_support = 0;
 	priv->sax_max_duration = 0;
@@ -333,6 +343,10 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 
 	/*this signals main scene deconnection, destroy the context if needed*/
 	assert(ES_ID);
+	if (!priv->ctx) {
+		e = CTXLoad_Setup((GF_BaseDecoder *)plug);
+		if (e) return e;
+	}
 
 	if (priv->load_flags != 2) {
 

@@ -25,7 +25,9 @@
 #include "drawable.h"
 #include "visualsurface2d.h"
 #include "stacks2d.h"
-#include "svg/svg_stacks.h"
+#ifndef GPAC_DISABLE_SVG
+#include "svg_stacks.h"
+#endif
 
 #define BOUNDSINFO_STEPALLOC		1
 
@@ -781,7 +783,10 @@ static u32 svg_get_texture_type(GF_Node *node, DOM_String uri)
 static GF_TextureHandler *svg_get_texture_handle(GF_Node *node, DOM_String uri)
 {
 	GF_Node *target = NULL;
-	if (uri[0]=='#') target = gf_sg_find_node_by_name(gf_node_get_graph(node), uri+1);
+	if (uri[0]=='#') {
+		target = gf_sg_find_node_by_name(gf_node_get_graph(node), uri+1);
+		if (!target && (uri[1]=='N')) target = gf_sg_find_node(gf_node_get_graph(node), atoi(uri+2)+1);
+	}
 
 	if (!target) return NULL;
 	switch (gf_node_get_tag(target)) {

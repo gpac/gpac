@@ -168,9 +168,9 @@ GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char 
 	ISMACrypInfo *info;
 	GF_TrackCryptInfo *tci;
 
+	e = GF_OK;
 	info = load_crypt_file(drm_file, NULL, NULL);
 	if (!info) return GF_NOT_SUPPORTED;
-
 	count = gf_list_count(info->tcis);
 	for (i=0; i<count; i++) {
 		tci = gf_list_get(info->tcis, i);
@@ -699,6 +699,7 @@ GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4, const char *drm_file, void (*logs
 		log_message(logs, cbk, "Cannot open or validate xml file %s", drm_file);
 		return GF_NOT_SUPPORTED;
 	}
+	e = GF_OK;
 	count = gf_list_count(info->tcis);
 
 	common_idx=0;

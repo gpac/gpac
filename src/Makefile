@@ -1,9 +1,17 @@
 include ../config.mak
 
-outlibs=libgpac_bifs.a libgpac_terminal.a libgpac_ietf.a libgpac_isom.a libgpac_odf.a libgpac_scenegraph.a libgpac_scene_manager.a libgpac_media.a libgpac_utils.a libgpac_render.a libgpac_mcrypt.a libgpac_laser.a
+VPATH=$(SRC_PATH)/src
+
+outlibs=libgpac_bifs.a libgpac_terminal.a libgpac_ietf.a libgpac_isom.a libgpac_odf.a libgpac_scenegraph.a libgpac_scene_manager.a libgpac_media.a libgpac_utils.a libgpac_render.a libgpac_mcrypt.a
 
 #all OS and lib independent
-GPACLIB_DIRS=utils odf ietf isomedia mcrypt media_tools bifs terminal renderer scenegraph scene_manager laser
+GPACLIB_DIRS=utils odf ietf isomedia mcrypt media_tools bifs terminal renderer scenegraph scene_manager
+
+ifeq ($(DISABLE_SVG), no)
+outlibs+= libgpac_laser.a
+GPACLIB_DIRS+= laser
+endif
+
 
 ifeq ($(CONFIG_JS),no)
 else
@@ -26,7 +34,7 @@ endif
 
 LIB=libgpac.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-LDFLAGS+=-export-symbols libgpac.def
+#LDFLAGS+=-export-symbols libgpac.def
 else
 ifeq ($(CONFIG_DARWIN),yes)
 LDFLAGS+=-install_name $(prefix)/lib/$(LIB)
@@ -39,10 +47,10 @@ all: lib
 lib: $(LIB)
 
 $(LIB):
-	rm -f ../bin/gcc/libgpac_static.a
+	rm -f ../bin/gcc/libgpac_static.a; 
 	rm -f ../bin/gcc/$(LIB)
 	for thelib in $(outlibs);	do rm -f ../bin/gcc/temp/$$thelib;	done
-	for i in $(GPACLIB_DIRS) ; do $(MAKE) -C $$i all; done
+	set -e; for i in $(GPACLIB_DIRS);	do $(MAKE) -C $$i all; done
 	for thelib in $(outlibs);	do ar x ../bin/gcc/temp/$$thelib;	done
 	ar cr ../bin/gcc/libgpac_static.a *.o
 	ranlib ../bin/gcc/libgpac_static.a
@@ -53,9 +61,9 @@ dep:
 	for i in $(GPACLIB_DIRS) ; do $(MAKE) -C $$i dep; done
 
 clean: 
-	for i in $(GPACLIB_DIRS) ; do $(MAKE) -C $$i clean; done
+	set -e; for i in $(GPACLIB_DIRS) ; do $(MAKE) -C $$i clean; done
 	rm -rf ../bin/gcc/libgpac_static.a
 	rm -rf ../bin/gcc/$(LIB)
 
 distclean: 
-	for i in $(GPACLIB_DIRS) ; do $(MAKE) -C $$i distclean; done
+	set -e; for i in $(GPACLIB_DIRS) ; do $(MAKE) -C $$i distclean; done
