@@ -617,8 +617,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_PMT *pmt, GF_M2TS_H
 			
 			if (tag == 29) { // IOD tag identifier from MPEG-2 tables
 
-				u8 scope, label;
-				GF_Descriptor *desc;
+				u8 scope, label;				
 				u32 size;
 				GF_BitStream *pmt_bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 
@@ -628,7 +627,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_PMT *pmt, GF_M2TS_H
 				gf_bs_skip_bytes(pmt_bs, 7);
 
 				printf("parsing IOD descriptor\n");
-				gf_odf_parse_descriptor(pmt_bs, &desc, &size);
+				gf_odf_parse_descriptor(pmt_bs, &(GF_Descriptor *)pmt->program->pmt_iod, &size);
 
 			} else {
 				/* Ignore unknown descriptors */

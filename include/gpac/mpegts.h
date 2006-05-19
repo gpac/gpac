@@ -124,7 +124,8 @@ typedef struct
 	u32 pcr_pid;
 	u32 number;
 
-	GF_List *desc; //
+	GF_InitialObjectDescriptor *pmt_iod;
+
 	/*first dts found on this program - this is used by parsers, but not setup by the lib*/
 	u64 first_dts;
 } GF_M2TS_Program;
