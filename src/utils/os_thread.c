@@ -124,7 +124,7 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 		return GF_IO_ERR;
 	}
 
-	/*wait for the child function to call us - do NOT return bedfore, otherwise the thread status would
+	/*wait for the child function to call us - do NOT return before, otherwise the thread status would
 	be unknown*/ 	
 	gf_sema_wait(t->_signal);
 	gf_sema_del(t->_signal);

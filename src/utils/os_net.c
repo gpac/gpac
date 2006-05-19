@@ -166,7 +166,7 @@ u32 gf_net_has_ipv6()
 }
 
 #ifdef GPAC_IPV6
-static struct addrinfo *gf_sk_get_ipv6_addr(char *PeerName, u16 PortNumber, int family, int flags)
+static struct addrinfo *gf_sk_get_ipv6_addr(char *PeerName, u16 PortNumber, int family, int flags, int sock_type)
 {
 	struct	addrinfo *res=NULL;
 	struct	addrinfo hints;
@@ -174,7 +174,7 @@ static struct addrinfo *gf_sk_get_ipv6_addr(char *PeerName, u16 PortNumber, int 
 
 	service = dest = NULL;
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_socktype = SOCK_DGRAM;
+	hints.ai_socktype = sock_type;
  	hints.ai_family = family;
 	hints.ai_flags = flags; 
 
@@ -196,7 +196,7 @@ static struct addrinfo *gf_sk_get_ipv6_addr(char *PeerName, u16 PortNumber, int 
 
 static Bool gf_sk_ipv6_set_remote_address(GF_Socket *sock, char *address, u16 PortNumber)
 {
-	struct addrinfo *res = gf_sk_get_ipv6_addr(address, PortNumber, AF_UNSPEC, 0);
+	struct addrinfo *res = gf_sk_get_ipv6_addr(address, PortNumber, AF_UNSPEC, 0, sock->type);
 	if (!res) return 0;
     memcpy(&sock->dest_addr, res->ai_addr, res->ai_addrlen);
 	sock->dest_addr_len = res->ai_addrlen;
@@ -248,7 +248,7 @@ GF_Socket *gf_sk_new(u32 SocketType)
 	GF_SAFEALLOC(tmp, sizeof(GF_Socket) );
 
 	/*always create the socket on V4 IP, switch to V6 is made updon connect*/
-	tmp->socket = socket(AF_INET, (SocketType == GF_SOCK_TYPE_UDP) ? SOCK_DGRAM : SOCK_STREAM, 0);
+	tmp->socket = socket(AF_INET, SocketType, 0);
 	if (tmp->socket == INVALID_SOCKET) {
 		free(tmp);
 #ifdef WIN32
@@ -362,9 +362,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 #ifdef GPAC_IPV6
 	struct addrinfo *res, *aip;
 
-	int ws2_sock_type = (sock->type==GF_SOCK_TYPE_UDP) ? SOCK_DGRAM : SOCK_STREAM;
-
-	res = gf_sk_get_ipv6_addr(PeerName, PortNumber, AF_UNSPEC, 0);
+	res = gf_sk_get_ipv6_addr(PeerName, PortNumber, AF_UNSPEC, 0, sock->type);
 	if (!res) {
 /*		switch(error) {
 		case EAI_FAMILY: return GF_IP_CONNECTION_FAILURE;
@@ -384,8 +382,6 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 */
 		return GF_IP_CONNECTION_FAILURE;
 	}
-	/*todo: get existing socket setting*/
-	if (sock->type != GF_SOCK_TYPE_TCP) return GF_NOT_SUPPORTED;
 
 	/*close socket*/
 	closesocket(sock->socket);
@@ -393,7 +389,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 
 	/*for all interfaces*/
 	for (aip=res; aip!=NULL; aip=aip->ai_next) {
-		if (ws2_sock_type!=aip->ai_socktype) continue;
+		if (sock->type != (u32) aip->ai_socktype) continue;
 		sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
 		if (sock->socket == INVALID_SOCKET) {
 			sock->socket = (SOCKET)NULL;
@@ -481,7 +477,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 PortNumber, Bool reUse)
 	
 	/*IPV6 bind*/
 #ifdef GPAC_IPV6
-	res = gf_sk_get_ipv6_addr(NULL, PortNumber, AF_UNSPEC, AI_PASSIVE);
+	res = gf_sk_get_ipv6_addr(NULL, PortNumber, AF_UNSPEC, AI_PASSIVE, sock->type);
 	if (!res) return GF_IP_CONNECTION_FAILURE;
 
 	/*close socket*/
@@ -490,8 +486,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 PortNumber, Bool reUse)
 
 	/*for all interfaces*/
 	for (aip=res; aip!=NULL; aip=aip->ai_next) {
-		int ws2_sock_type = (sock->type==GF_SOCK_TYPE_UDP) ? SOCK_DGRAM : SOCK_STREAM;
-		if (ws2_sock_type!=aip->ai_socktype) continue;
+		if (sock->type != (u32) aip->ai_socktype) continue;
 		sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
 		if (sock->socket == INVALID_SOCKET) {
 			sock->socket = (SOCKET)NULL;
@@ -539,9 +534,6 @@ GF_Err gf_sk_send(GF_Socket *sock, unsigned char *buffer, u32 length)
 	u32 Count, Res, ready;
 	struct timeval timeout;
 	fd_set Group;
-
-	/*TODO - to be completed*/
-	if (sock->is_ipv6) return GF_NOT_SUPPORTED;
 
 	e = GF_OK;
 
@@ -599,7 +591,7 @@ u32 gf_sk_is_multicast_address(char *multi_IPAdd)
 	u32 val;
  	struct addrinfo *res;
 	if (!multi_IPAdd) return 0;
-	res = gf_sk_get_ipv6_addr(multi_IPAdd, 0, AF_UNSPEC, AI_PASSIVE);
+	res = gf_sk_get_ipv6_addr(multi_IPAdd, 0, AF_UNSPEC, AI_PASSIVE, SOCK_STREAM);
 	if (!res) return 0;
 	val = 0;
 	if (res->ai_addr->sa_family == AF_INET) {
@@ -638,10 +630,10 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 
 #ifdef GPAC_IPV6
 
-	res = gf_sk_get_ipv6_addr(local_interface_ip, MultiPortNumber, AF_UNSPEC, AI_PASSIVE);
+	res = gf_sk_get_ipv6_addr(local_interface_ip, MultiPortNumber, AF_UNSPEC, AI_PASSIVE, sock->type);
 	if (!res) {
 		if (local_interface_ip) {
-			res = gf_sk_get_ipv6_addr(NULL, MultiPortNumber, AF_UNSPEC, AI_PASSIVE);
+			res = gf_sk_get_ipv6_addr(NULL, MultiPortNumber, AF_UNSPEC, AI_PASSIVE, sock->type);
 			local_interface_ip = NULL;
 		}
 		if (!res) return GF_IP_CONNECTION_FAILURE;
@@ -653,8 +645,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 
 	/*for all interfaces*/
 	for (aip=res; aip!=NULL; aip=aip->ai_next) {
-		int ws2_sock_type = (sock->type==GF_SOCK_TYPE_UDP) ? SOCK_DGRAM : SOCK_STREAM;
-		if (ws2_sock_type!=aip->ai_socktype) continue;
+		if (sock->type != (u32) aip->ai_socktype) continue;
 		sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
 		if (sock->socket == INVALID_SOCKET) {
 			sock->socket = (SOCKET)NULL;
@@ -929,17 +920,8 @@ GF_Err gf_sk_get_local_info(GF_Socket *sock, u16 *Port, u32 *Familly)
 	if (getsockopt(sock->socket, SOL_SOCKET, SO_TYPE, (char *) &fam, &size) == SOCKET_ERROR)
 		return GF_IP_NETWORK_FAILURE;
 
-	switch (fam) {
-	case SOCK_DGRAM:
-		*Familly = GF_SOCK_TYPE_UDP;
-		return GF_OK;
-	case SOCK_STREAM:
-		*Familly = GF_SOCK_TYPE_TCP;
-		return GF_OK;
-	default:
-		*Familly = 0;
-		return GF_OK;
-	}
+	*Familly = fam;
+	return GF_OK;
 }
 
 //we have to do this for the server sockets as we use only one thread 
@@ -1050,7 +1032,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, unsigned char *buffer, u32 length, unsigne
 	//if a remote host is specified, use it. Otherwise use the default host
 	if (remoteHost) {
 		//setup the address
-		struct addrinfo *res = gf_sk_get_ipv6_addr(remoteHost, remotePort, AF_UNSPEC, 0);
+		struct addrinfo *res = gf_sk_get_ipv6_addr(remoteHost, remotePort, AF_UNSPEC, 0, sock->type);
 		if (!res) return GF_IP_ADDRESS_NOT_FOUND;
 		memcpy(&remote_add, res->ai_addr, res->ai_addrlen);
 		remote_add_len = res->ai_addrlen;

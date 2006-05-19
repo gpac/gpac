@@ -118,10 +118,10 @@ typedef struct __tag_socket GF_Socket;
 /*!Buffer size to pass for IP address retrieval*/
 #define GF_MAX_IP_NAME_LEN	516
 
-/*!socket is a UDP socket*/
-#define GF_SOCK_TYPE_UDP		0x01
 /*!socket is a TCP socket*/
-#define GF_SOCK_TYPE_TCP		0x02
+#define GF_SOCK_TYPE_TCP		0x01
+/*!socket is a UDP socket*/
+#define GF_SOCK_TYPE_UDP		0x02
 
 /*!
  *\brief socket constructor
