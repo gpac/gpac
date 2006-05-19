@@ -197,6 +197,12 @@ static void MP2TS_SendPacket(M2TSIn *read, GF_M2TS_PES_PCK *pck)
 	gf_term_on_sl_packet(read->service, pck->stream->user, pck->data, pck->data_len, &slh, GF_OK);
 }
 
+static void MP2TS_SendSLPacket(M2TSIn *read, GF_M2TS_SL_PCK *pck)
+{
+	fprintf(stdout, "Sending SL Packet on stream %d\n", pck->stream->ES_ID);
+	gf_term_on_sl_packet(read->service, pck->stream->user, pck->data, pck->data_len, NULL, GF_OK);
+}
+
 static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 {
 	M2TSIn *read = (M2TSIn *) ts->user;
@@ -204,10 +210,14 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_PAT_FOUND:
 		if (!read->pmt_state) {
 			read->pmt_state = 1;
-			gf_term_on_connect(read->service, NULL, GF_OK);
+			/* In case the TS has one program, wait for the PMT to send connect, in case of IOD in PMT */
+			if (gf_list_count(read->ts->programs) != 1)
+				gf_term_on_connect(read->service, NULL, GF_OK);
 		}
 		break;
 	case GF_M2TS_EVT_PMT_FOUND:
+		if (gf_list_count(read->ts->programs) == 1)
+			gf_term_on_connect(read->service, NULL, GF_OK);
 		MP2TS_SetupProgram(read, param);
 		break;
 	case GF_M2TS_EVT_PAT_UPDATE:
@@ -216,6 +226,9 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		break;
 	case GF_M2TS_EVT_PES_PCK:
 		MP2TS_SendPacket(read, param);
+		break;
+	case GF_M2TS_EVT_SL_PCK:
+		MP2TS_SendSLPacket(read, param);
 		break;
 	}
 }
@@ -298,21 +311,35 @@ u32 M2TS_Run(void *_p)
 	return 0;
 }
 
+static void M2TS_OnEventPCR(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
+{
+	if (evt_type==GF_M2TS_EVT_PES_PCR) {
+		M2TSIn *read = ts->user;
+		GF_M2TS_PES_PCK *pck = param;
+		if (!read->nb_playing) {
+			read->nb_playing = pck->stream->pid;
+			read->end_range = (u32) (pck->PTS / 90);
+		} else if (read->nb_playing == pck->stream->pid) {
+			read->start_range = (u32) (pck->PTS / 90);
+		}
+	}
+}
+
 void M2TS_SetupLive(M2TSIn *read, char *url)
 {
 	GF_Err e = GF_OK;
 	char *str;
 	u16 port;
 	u32 sock_type = 0;
+
 	if (!strnicmp(url, "udp://", 6) || !strnicmp(url, "mpegts-udp://", 13)) {
 		sock_type = GF_SOCK_TYPE_UDP;
-	} 
-	else if (!strnicmp(url, "mpegts-tcp://", 13) ) {
+	} else if (!strnicmp(url, "mpegts-tcp://", 13) ) {
 		sock_type = GF_SOCK_TYPE_TCP;
+	} else {
+		e = GF_NOT_SUPPORTED;
+		goto exit;
 	}
-	if (!sock_type) e = GF_NOT_SUPPORTED;
-
-	if (e) goto exit;
 
 	url = strchr(url, ':');
 	url += 3;
@@ -341,9 +368,8 @@ void M2TS_SetupLive(M2TSIn *read, char *url)
 			gf_sk_set_remote_port(read->sock, port);
 		}
 	}
-
 	if (str) str[0] = ':';
-	read->pmt_state = 0;
+
 	read->th = gf_th_new();
 	gf_th_set_priority(read->th, GF_THREAD_PRIORITY_HIGHEST);
 	/*start playing for tune-in*/
@@ -355,52 +381,26 @@ exit:
 	}
 }
 
-static void M2TS_OnEventPCR(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
-{
-	if (evt_type==GF_M2TS_EVT_PES_PCR) {
-		M2TSIn *read = ts->user;
-		GF_M2TS_PES_PCK *pck = param;
-		if (!read->nb_playing) {
-			read->nb_playing = pck->stream->pid;
-			read->end_range = (u32) (pck->PTS / 90);
-		} else if (read->nb_playing == pck->stream->pid) {
-			read->start_range = (u32) (pck->PTS / 90);
-		}
-	}
-}
-
-static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
+void M2TS_SetupFile(M2TSIn *read, char *url)
 {
 	char data[188];
 	u32 size, fsize;
 	s32 nb_rwd;
-	char szURL[2048];
-	char *ext;
-	M2TSIn *read = plug->priv;
-	read->service = serv;
 
-	strcpy(szURL, url);
-	ext = strrchr(szURL, '#');
-	if (ext) ext[0] = 0;
-
-	read->pmt_state = 0;
-	read->duration = 0;
-
-	/*remote fetch*/
-	if (strstr(url, "udp://") || strstr(url, "tcp://") ) {
-		M2TS_SetupLive(read, (char *) szURL);
-		return GF_OK;
-	}
-
-	read->file = fopen(szURL, "rb");
+	read->file = fopen(url, "rb");
 	if (!read->file) {
-		gf_term_on_connect(serv, NULL, GF_URL_ERROR);
-		return GF_OK;
+		gf_term_on_connect(read->service, NULL, GF_URL_ERROR);
 	}
 
 	fseek(read->file, 0, SEEK_END);
 	read->file_size = ftell(read->file);
-	/*estimate duration*/
+	
+#if 0
+	/* 
+		estimate duration by reading the end of the file
+		read->end_range is initialized to the PTS of the last TS packet
+		read->nb_playing is initialized to the PID of the last TS packet
+	*/
 	read->nb_playing = 0;
 	read->ts->on_event = M2TS_OnEventPCR;
 	read->end_range = 0;
@@ -418,6 +418,10 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 		nb_rwd ++;
 	}
 
+	/* 
+	   reset of the file 
+	   initialization of read->start_range to the PTS of the first TS packet with PID = read->nb_playing 
+	*/
 	fseek(read->file, 0, SEEK_SET);
 	gf_m2ts_reset_parsers(read->ts);
 	read->start_range = 0;
@@ -431,14 +435,40 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	}
 	read->duration = (read->end_range - read->start_range) / 300000.0;
 	gf_m2ts_demux_del(read->ts);
-	read->ts = gf_m2ts_demux_new();
-	read->ts->user = read;
+#endif
+
+	/* reinitialization for seek */
 	read->end_range = read->start_range = 0;
 	read->nb_playing = 0;
+
+	/* Creation of the real demuxer for playback */
+	read->ts = gf_m2ts_demux_new();
+	read->ts->user = read;
 
 	read->th = gf_th_new();
 	/*start playing for tune-in*/
 	gf_th_run(read->th, M2TS_Run, read);
+}
+
+static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
+{
+	char szURL[2048];
+	char *ext;
+	M2TSIn *read = plug->priv;
+	read->service = serv;
+
+	strcpy(szURL, url);
+	ext = strrchr(szURL, '#');
+	if (ext) ext[0] = 0;
+
+	read->pmt_state = 0;
+	read->duration = 0;
+
+	if (strstr(url, "udp://") || strstr(url, "tcp://") ) {
+		M2TS_SetupLive(read, (char *) szURL);
+	} else {
+		M2TS_SetupFile(read, (char *) szURL);
+	}
 	return GF_OK;
 }
 
@@ -448,7 +478,7 @@ static GF_Err M2TS_CloseService(GF_InputService *plug)
 
 	if (read->th) {
 		if (read->run_state == 1) {
-			read->run_state=0;
+			read->run_state = 0;
 			while (read->run_state!=2) gf_sleep(0);
 		}
 		gf_th_del(read->th);
@@ -465,10 +495,18 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 {
 	u32 i=0;
 	M2TSIn *read = plug->priv;
-	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
-	od->objectDescriptorID = 1;
+	GF_Descriptor *desc;
+	if (gf_list_count(read->ts->programs) == 1) {
+		GF_M2TS_Program *prog = gf_list_get(read->ts->programs, 0);
+		if (prog->pmt_iod) {
+			gf_odf_desc_copy((GF_Descriptor *)prog->pmt_iod, &desc);
+			return desc;
+		}
+	} 
 	/*returning an empty IOD means "no scene description", let the terminal handle all media objects*/
-	return (GF_Descriptor *) od;
+	desc = gf_odf_desc_new(GF_ODF_IOD_TAG);
+	((GF_ObjectDescriptor *) desc)->objectDescriptorID = 1;
+	return desc;
 }
 
 static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
@@ -480,6 +518,30 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 	e = GF_STREAM_NOT_FOUND;
 	if (strstr(url, "ES_ID")) {
 		sscanf(url, "ES_ID=%d", &ES_ID);
+
+		/* In case there is a real IOD, we need to translate PID into ESID */
+		if (gf_list_count(read->ts->programs) == 1) {
+			GF_M2TS_Program *prog = gf_list_get(read->ts->programs, 0);
+			if (prog->pmt_iod) {
+				u32 i;
+				for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
+					GF_M2TS_PES *pes = (GF_M2TS_PES *)read->ts->ess[i];
+					if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
+					if (pes->ES_ID == ES_ID) {
+						if (pes->user) {
+							e = GF_SERVICE_ERROR;
+							gf_term_on_connect(read->service, channel, e);
+							return e;
+						} else {
+							pes->user = channel;
+							e = GF_OK;
+							gf_term_on_connect(read->service, channel, e);
+							return e;
+						}
+					}
+				}
+			}
+		} 
 
 		if ((ES_ID<GF_M2TS_MAX_STREAMS) && read->ts->ess[ES_ID]) {
 			GF_M2TS_PES *pes = (GF_M2TS_PES *)read->ts->ess[ES_ID];

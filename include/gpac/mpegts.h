@@ -90,6 +90,8 @@ enum
 	GF_M2TS_EVT_PES_PCK,
 	/*PCR has been received - assoctiated parameter: PES packet with no data*/
 	GF_M2TS_EVT_PES_PCR,
+	/*An MPEG-4 SL Packet has been received in a section - assoctiated parameter: SL packet */
+	GF_M2TS_EVT_SL_PCK,
 };
 
 /*MPEG-2 TS section object (PAT, PMT, etc..)*/
@@ -133,9 +135,7 @@ typedef struct
 /*Abstract Section/PES stream object, only used for type casting*/
 #define ABSTRACT_ES GF_M2TS_Program *program; \
 					u32 pid; \
-					u32 stream_type; \
-					Bool has_SL; \
-					Bool has_FMC;
+					u32 stream_type;
 typedef struct 
 {
 	ABSTRACT_ES
@@ -165,6 +165,12 @@ typedef struct tag_m2ts_pes
 	void (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, u64 DTS, u64 CTS, unsigned char *data, u32 data_len);
 
 	u64 first_dts;
+
+	/* MPEG-4 Streams carried in MPEG-2 data */
+	Bool has_SL; 
+	Bool has_FMC;
+	u32 ES_ID;
+	GF_M2TS_Section *mpeg4_sec;
 } GF_M2TS_PES;
 
 
@@ -199,6 +205,15 @@ typedef struct
 	/*parent stream*/
 	GF_M2TS_PES *stream;
 } GF_M2TS_PES_PCK;
+
+/*MPEG-4 SL packet from MPEG-2 TS*/
+typedef struct
+{
+	unsigned char *data;
+	u32 data_len;
+	/*parent stream*/
+	GF_M2TS_PES *stream;
+} GF_M2TS_SL_PCK;
 
 /*MPEG-2 TS demuxer*/
 typedef struct tag_m2ts_demux

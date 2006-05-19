@@ -284,7 +284,7 @@ static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, Bool simple_check)
 		if ((ts->buffer[i]==0x47) && (ts->buffer[i+188]==0x47)) break;
 		i++;
 	}
-	if (i) gf_m2ts_report(ts, GF_OK, "re-sync skiped %d bytes", i);
+	if (i) gf_m2ts_report(ts, GF_OK, "re-sync skipped %d bytes", i);
 	return i;
 }
 
@@ -450,7 +450,7 @@ static Bool gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_Section *sec, GF
 	if (sec->syntax_indicator) {
 		/*remove crc32*/
 		sec->section_len -= 4;
-		if ( gf_m2ts_crc32_check(data, sec->section_len)) {
+		if ( 1 || gf_m2ts_crc32_check(data, sec->section_len)) {
 			sec->sec_id = (data[3]<<8) | data[4];
 			sec->version_number = (data[5] >> 1) & 0x1f;
 			sec->current_next_indicator = (data[5] & 0x1) ? 1 : 0;
@@ -466,7 +466,7 @@ static Bool gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_Section *sec, GF
 		return 1;
 	}
 	/*broken section*/
-	free(sec->section);
+	if (sec->section) free(sec->section);
 	memset(sec, 0, sizeof(GF_M2TS_Section));
 	sec->cc = -1;
 	return 0;
@@ -602,6 +602,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_PMT *pmt, GF_M2TS_H
 	if (pmt->sec->sec_id != pmt->program->number) return;
 
 	data = pmt->sec->section + pmt->sec->start;
+	data_size = pmt->sec->section_len;
 	pmt->program->pcr_pid = ((data[0] & 0x1f) << 8) | data[1];
 
 	/*IOD descriptor - !! IOD should be somewhere around here !! */
@@ -619,19 +620,20 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_PMT *pmt, GF_M2TS_H
 
 				u8 scope, label;				
 				u32 size;
-				GF_BitStream *pmt_bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+				GF_BitStream *pmt_bs = gf_bs_new(data+8, data_size-8, GF_BITSTREAM_READ);
 
 				scope = data[6];
 				label = data[7];
 
-				gf_bs_skip_bytes(pmt_bs, 7);
-
-				printf("parsing IOD descriptor\n");
-				gf_odf_parse_descriptor(pmt_bs, &(GF_Descriptor *)pmt->program->pmt_iod, &size);
+				printf("Parsing IOD descriptor ... ");
+				if (gf_odf_parse_descriptor(pmt_bs, &(GF_Descriptor *)pmt->program->pmt_iod, &size) == GF_OK)
+					printf("done.\n");
+				else 
+					printf("error.\n");
 
 			} else {
 				/* Ignore unknown descriptors */
-				printf("ignoring 1nd loop descriptor\n");
+				printf("Ignoring 1st loop descriptor\n");
 				//gf_bs_skip_bytes(pmt_bs,len);
 			}
 			first_loop_len += 2 + len;
@@ -664,13 +666,13 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_PMT *pmt, GF_M2TS_H
 				tag = data[5];
 				len = data[6];
 				if (tag == 30) { // SL Descriptor tag identifier from MPEG-2 tables
-					u32 ES_ID = ((data[7] & 0x1f) << 8) | data[8];
+					pes->ES_ID = ((data[7] & 0x1f) << 8) | data[8];
 					
 					pes->has_SL = 1;
-					printf("PID: %d, ESID: %d\n", pes->pid, ES_ID);
+					printf("PID: %d, ESID: %d\n", pes->pid, pes->ES_ID);
 				} else  {
 					/* Ignore unknown descriptors */
-					printf("ignoring 2nd loop descriptor\n");
+					printf("Ignoring 2nd loop descriptor\n");
 					//gf_bs_skip_bytes(pmt_bs,len);
 				}
 				second_loop_len += 2 + len;
@@ -757,6 +759,27 @@ static void gf_m2ts_pes_header(unsigned char *data, u32 data_size, GF_M2TS_PESHe
 	}
 }
 
+static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Header *hdr, unsigned char *data, u32 data_size, GF_M2TS_AdaptationField *paf)
+{
+	GF_M2TS_SL_PCK sl_pck;
+
+	if (!pes->mpeg4_sec) pes->mpeg4_sec = gf_m2ts_section_filter_new();
+
+	if (!gf_m2ts_gather_section(ts, pes->mpeg4_sec, hdr, data, data_size)) return;
+
+	/*skip if already received*/
+	if (pes->mpeg4_sec->section_init && (pes->mpeg4_sec->section_number == pes->mpeg4_sec->last_section_number)) {
+		/* maybe an update is needed ? */
+		return;
+	}
+
+	sl_pck.data = pes->mpeg4_sec->section + pes->mpeg4_sec->start;
+	sl_pck.data_len = pes->mpeg4_sec->section_len - pes->mpeg4_sec->start;
+	sl_pck.stream = pes;
+	if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SL_PCK, &sl_pck);
+	gf_m2ts_section_filter_del(pes->mpeg4_sec);
+	pes->mpeg4_sec = NULL;
+}
 
 static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Header *hdr, unsigned char *data, u32 data_size, GF_M2TS_AdaptationField *paf)
 {
@@ -766,6 +789,11 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 		pck.PTS = paf->PCR_base * 300 + paf->PCR_ext; // ???
 		pck.stream = pes;
 		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PES_PCR, &pck);
+	}
+
+	if (pes->stream_type == 0x13) { /* carriage of ISO_IEC_14496 data in sections */
+		gf_m2ts_process_mpeg4section(ts, pes, hdr, data, data_size, paf);
+		return;
 	}
 
 	if (!pes->reframe) return;
