@@ -77,6 +77,16 @@ enum
 };
 
 #define GF_IMPORT_MAX_TRACKS	100
+struct __track_video_info
+{
+	u32 width, height, par;
+	Double FPS;
+};
+struct __track_audio_info
+{
+	u32 sample_rate, nb_channels;
+};
+
 struct __track_import_info
 {
 	u32 track_num;
@@ -86,11 +96,20 @@ struct __track_import_info
 	u32 media_type;
 	/*possible import flags*/
 	u32 flags;
-	/*video src info*/
-	Double FPS;
-	u32 width, height;
+	/*media format info*/
+	union {
+		struct __track_video_info video_info;
+		struct __track_audio_info audio_info;
+	};
+	u32 lang;
 	/*for MPEG2 TS: program number*/
 	u16 prog_num;
+};
+
+struct __program_import_info
+{
+	u32 number;
+	char name[40];
 };
 
 /*track dumper*/
@@ -143,6 +162,10 @@ typedef struct __track_import
 	u32 nb_tracks;
 	/*track info after probing (GF_IMPORT_PROBE_ONLY set).*/
 	struct __track_import_info tk_info[GF_IMPORT_MAX_TRACKS];
+
+	/*for MPEG-TS and similar: program names*/
+	u32 nb_progs;
+	struct __program_import_info pg_info[GF_IMPORT_MAX_TRACKS];
 } GF_MediaImporter;
 
 GF_Err gf_media_import(GF_MediaImporter *importer);

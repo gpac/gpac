@@ -1264,6 +1264,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		break;
 	case GF_M2TS_EVT_PAT_REPEAT:
 		dumper->has_seen_pat = 1;
+		fprintf(stdout, "Repeated PAT found - %d programs\n", gf_list_count(ts->programs) );
 		break;
 	case GF_M2TS_EVT_PAT_UPDATE:
 		fprintf(stdout, "PAT updated - %d programs\n", gf_list_count(ts->programs) );
@@ -1284,7 +1285,10 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		}
 		break;
 	case GF_M2TS_EVT_PMT_UPDATE:
-		//fprintf(stdout, "Program list updated - %d streams\n", gf_list_count( ((GF_M2TS_Program*)par)->streams) );
+		fprintf(stdout, "Program list updated - %d streams\n", gf_list_count( ((GF_M2TS_Program*)par)->streams) );
+		break;
+	case GF_M2TS_EVT_PMT_REPEAT:
+		//fprintf(stdout, "Repeated Program list found - %d streams\n", gf_list_count( ((GF_M2TS_Program*)par)->streams) );
 		break;
 	case GF_M2TS_EVT_SDT_FOUND:
 		count = gf_list_count(ts->SDTs) ;

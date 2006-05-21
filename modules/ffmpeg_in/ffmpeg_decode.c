@@ -95,6 +95,7 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, Bool from_ff_demux)
 static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, unsigned char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
 	u32 codec_id;
+	int gotpic;
 	GF_BitStream *bs;
 	GF_M4VDecSpecInfo dsi;
 	GF_Err e;
@@ -104,8 +105,6 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, unsigned char 
 	ffd->ES_ID = ES_ID;
 
 	ffd->ctx = avcodec_alloc_context();
-
-	if (ffd->st==4) ffd->frame = avcodec_alloc_frame();
 	
 	/*private FFMPEG DSI*/
 	if (ffd->oti == GPAC_FFMPEG_CODECS_OTI) {
@@ -198,18 +197,18 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, unsigned char 
 				break;
 			}
 		}
+		else if ((ffd->st==GF_STREAM_ND_SUBPIC) && (ffd->oti==0xe0)) {
+			codec_id = CODEC_ID_DVD_SUBTITLE;
+		}
 		ffd->codec = avcodec_find_decoder(codec_id);
 	}
 	/*should never happen*/
 	if (!ffd->codec) return GF_OUT_OF_MEM;
 
 	/*setup MPEG-4 video streams*/
-	if (ffd->st==GF_STREAM_VISUAL) {
+	if ((ffd->st==GF_STREAM_VISUAL)) {
 		/*for all MPEG-4 variants get size*/
-		if ((ffd->oti==0x20) 
-			/*FFMPEG should be able to init with the AVCDecoderConfigRecord we use as a DSI - cannot test
-			it for now, FFMPEG CVS is broken and prev version doesn't support it ...*/
-			|| (ffd->oti == 0x21)) {
+		if ((ffd->oti==0x20) || (ffd->oti == 0x21)) {
 			if (!decSpecInfoSize || !decSpecInfo) return GF_NON_COMPLIANT_BITSTREAM;
 
 			/*for regular MPEG-4, try to decode and if this fails try H263 decoder at first frame*/
@@ -228,6 +227,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, unsigned char 
 			memcpy(ffd->ctx->extradata, decSpecInfo, decSpecInfoSize);
 			ffd->ctx->extradata_size = decSpecInfoSize;
 		}
+		ffd->frame = avcodec_alloc_frame();
 	}
 
 	if (avcodec_open(ffd->ctx, ffd->codec)<0) return GF_NON_COMPLIANT_BITSTREAM;
@@ -248,6 +248,13 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, unsigned char 
 		case CODEC_ID_MJPEGB:
 		case CODEC_ID_LJPEG:
 			ffd->pix_fmt = GF_PIXEL_RGB_24; 
+			break;
+		case CODEC_ID_DVD_SUBTITLE:
+	ffd->ctx->debug = FF_DEBUG_PICT_INFO | FF_DEBUG_BITSTREAM | FF_DEBUG_STARTCODE;
+	av_log_set_level(AV_LOG_DEBUG);
+			ffd->frame = avcodec_alloc_frame();
+			avcodec_decode_video(ffd->ctx, ffd->frame, &gotpic, decSpecInfo, decSpecInfoSize);
+			ffd->pix_fmt = GF_PIXEL_YV12; 
 			break;
 		default:
 			ffd->pix_fmt = GF_PIXEL_YV12; 
@@ -639,6 +646,10 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, u32 Obje
 			return 0;
 		}
 	}
+	/*NeroDigital DVD subtitles*/
+	else if ((StreamType==GF_STREAM_ND_SUBPIC) && (ObjectType==0xe0)) 
+		return 1;
+
 	if (!codec_id) return 0;
 	if (check_4cc && (ffmpeg_get_codec(codec_id) != NULL)) return 1;
 	if (avcodec_find_decoder(codec_id) != NULL) return 1;

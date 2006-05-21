@@ -108,6 +108,7 @@ extern "C" {
    */
   u32 mpeg2ps_get_video_stream_width(mpeg2ps_t *ps, u32 streamno);
   u32 mpeg2ps_get_video_stream_height(mpeg2ps_t *ps, u32 streamno);
+  u32 mpeg2ps_get_video_stream_aspect_ratio(mpeg2ps_t *ps, u32 streamno);
   double   mpeg2ps_get_video_stream_bitrate(mpeg2ps_t *ps, u32 streamno);
   double   mpeg2ps_get_video_stream_framerate(mpeg2ps_t *ps, u32 streamno);
 

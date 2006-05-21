@@ -38,6 +38,8 @@ typedef struct
 	GF_ClientService *service;
 	u32 pmt_state;
 	GF_M2TS_Demuxer *ts;
+	char *program;
+	u32 prog_id;
 
 	/*demuxer thread*/
 	GF_Thread *th;
@@ -176,7 +178,9 @@ static void MP2TS_SetupProgram(M2TSIn *read, GF_M2TS_Program *prog)
 static void MP2TS_SendPacket(M2TSIn *read, GF_M2TS_PES_PCK *pck)
 {
 	GF_SLHeader slh;
-	assert(pck->stream->user);
+
+	if (!pck->stream->user) return;
+	
 
 	if (!pck->stream->program->first_dts && pck->PTS) {
 		pck->stream->program->first_dts = (pck->DTS ? pck->DTS : pck->PTS) - read->start_range * 90;
@@ -218,11 +222,39 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_PMT_FOUND:
 		if (gf_list_count(read->ts->programs) == 1)
 			gf_term_on_connect(read->service, NULL, GF_OK);
-		MP2TS_SetupProgram(read, param);
+		
+		/*do not setup if we've been asked for a dedicated program*/
+		if (!read->program) MP2TS_SetupProgram(read, param);
 		break;
 	case GF_M2TS_EVT_PAT_UPDATE:
 	case GF_M2TS_EVT_PMT_UPDATE:
 		if (read->pmt_state) read->pmt_state = 2;
+		break;
+	case GF_M2TS_EVT_SDT_UPDATE:
+	case GF_M2TS_EVT_SDT_FOUND:
+		if (read->program) {
+			u32 i, count, prog_id;
+			prog_id = atoi(read->program);
+			count = gf_list_count(ts->SDTs);
+			for (i=0; i<count; i++) {
+				GF_M2TS_SDT *sdt = gf_list_get(ts->SDTs, i);
+				if (!stricmp(sdt->service, read->program)) read->prog_id = sdt->service_id;
+				else if (sdt->service_id==prog_id)  read->prog_id = sdt->service_id;
+			}
+			if (read->prog_id) {
+				GF_M2TS_Program *prog;
+				free(read->program);
+				read->program = NULL;
+				count = gf_list_count(ts->programs);
+				for (i=0; i<count; i++) {
+					prog = gf_list_get(ts->programs, i);
+					if (prog->number==read->prog_id) {
+						MP2TS_SetupProgram(read, prog);
+						break;
+					}
+				}
+			}
+		}
 		break;
 	case GF_M2TS_EVT_PES_PCK:
 		MP2TS_SendPacket(read, param);
@@ -395,7 +427,7 @@ void M2TS_SetupFile(M2TSIn *read, char *url)
 	fseek(read->file, 0, SEEK_END);
 	read->file_size = ftell(read->file);
 	
-#if 0
+#if 1
 	/* 
 		estimate duration by reading the end of the file
 		read->end_range is initialized to the PTS of the last TS packet
@@ -457,9 +489,15 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	M2TSIn *read = plug->priv;
 	read->service = serv;
 
+	if (read->program) free(read->program);
+	read->program = NULL;
+	read->prog_id = 0;
 	strcpy(szURL, url);
 	ext = strrchr(szURL, '#');
-	if (ext) ext[0] = 0;
+	if (ext) {
+		read->program = strdup(ext+1);
+		ext[0] = 0;
+	}
 
 	read->pmt_state = 0;
 	read->duration = 0;

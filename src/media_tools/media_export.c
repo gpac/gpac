@@ -1061,6 +1061,13 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 			}
 			gf_isom_set_visual_info(outfile, newTk, 1, w, h);
 		}
+		else if ((esd->decoderConfig->streamType == GF_STREAM_ND_SUBPIC) && (esd->decoderConfig->objectTypeIndication == 0xe0)) {
+			u32 w, h;
+			s32 trans_x, trans_y;
+			s16 layer;
+			gf_isom_get_track_layout_info(infile, inTrackNum, &w, &h, &trans_x, &trans_y, &layer);
+			gf_isom_set_track_layout_info(outfile, newTk, w << 16, h << 16, trans_x, trans_y, layer);
+		}
 		esd->decoderConfig->avgBitrate = 0;
 		esd->decoderConfig->maxBitrate = 0;
 	} else {

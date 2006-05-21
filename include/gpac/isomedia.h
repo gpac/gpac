@@ -149,6 +149,7 @@ enum
 	GF_ISOM_MEDIA_AUDIO		= GF_4CC( 's', 'o', 'u', 'n' ),
 	GF_ISOM_MEDIA_HINT		= GF_4CC( 'h', 'i', 'n', 't' ),
 	GF_ISOM_MEDIA_TEXT		= GF_4CC( 't', 'e', 'x', 't' ),
+	GF_ISOM_MEDIA_SUBPIC	= GF_4CC( 's', 'u', 'b', 'p' ),
 
 	/*MPEG-4 media types*/
 	GF_ISOM_MEDIA_OD		= GF_4CC( 'o', 'd', 's', 'm' ),

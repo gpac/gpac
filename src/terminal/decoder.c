@@ -142,6 +142,10 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			gf_codec_get_capability(codec, &cap);
 			max = cap.cap.valueInt;
 			break;
+		case GF_STREAM_ND_SUBPIC:
+			max = 1;
+			min = 0;
+			break;
 		default:
 			min = max = 0;
 		}
@@ -862,7 +866,10 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	}
 
 	ifce_type = GF_SCENE_DECODER_INTERFACE;
-	if ((esd->decoderConfig->streamType==GF_STREAM_AUDIO) || (esd->decoderConfig->streamType==GF_STREAM_VISUAL))
+	if ((esd->decoderConfig->streamType==GF_STREAM_AUDIO) 
+		|| (esd->decoderConfig->streamType==GF_STREAM_VISUAL)
+		|| (esd->decoderConfig->streamType==GF_STREAM_ND_SUBPIC)
+		)
 		ifce_type = GF_MEDIA_DECODER_INTERFACE;
 
 	/*a bit dirty, if FFMPEG is used for demuxer load it for decoder too*/

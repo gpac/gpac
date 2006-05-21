@@ -283,6 +283,7 @@ const char *gf_odf_stream_type_name(u32 streamType)
 	case GF_STREAM_MPEGJ: return "MPEGJ";
 	case GF_STREAM_INTERACT: return "Interaction";
 	case GF_STREAM_TEXT: return "Text";
+	case GF_STREAM_ND_SUBPIC: return "NeroDigital Subpicture";
 	default: 
 		sprintf(szStreamText, "Unknown (0x%02x)", streamType);
 		return szStreamText;

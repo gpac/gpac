@@ -289,6 +289,7 @@ Bool Track_IsMPEG4Stream(u32 HandlerType)
 	switch (HandlerType) {
 	case GF_ISOM_MEDIA_VISUAL:
 	case GF_ISOM_MEDIA_AUDIO:
+    case GF_ISOM_MEDIA_SUBPIC:
 	case GF_ISOM_MEDIA_OD:
 	case GF_ISOM_MEDIA_OCR:
 	case GF_ISOM_MEDIA_SCENE:

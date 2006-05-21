@@ -615,6 +615,14 @@ SOURCE=..\..\src\media_tools\saf.c
 
 SOURCE=..\..\src\media_tools\text_import.c
 # End Source File
+# Begin Source File
+
+SOURCE=..\..\src\media_tools\vobsub.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\internal\vobsub.h
+# End Source File
 # End Group
 # Begin Group "scene_manager"
 

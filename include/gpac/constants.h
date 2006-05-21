@@ -75,6 +75,8 @@ enum
 	GF_STREAM_FONT		= 0x0C,
 	/*!MPEG-4 Streaming Text Stream*/
 	GF_STREAM_TEXT		= 0x0D,
+	/*!Nero Digital Subpicture Stream*/
+	GF_STREAM_ND_SUBPIC = 0x38,
 
 	/*GPAC internal stream types*/
 

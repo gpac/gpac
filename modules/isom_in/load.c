@@ -96,6 +96,7 @@ void isor_declare_objects(ISOMReader *read)
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_TEXT:
+		case GF_ISOM_MEDIA_SUBPIC:
 			break;
 		default:
 			continue;

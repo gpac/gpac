@@ -1190,7 +1190,7 @@ void gf_is_regenerate(GF_InlineScene *is)
 	first_odm = NULL;
 	i=0;
 	while ((odm = gf_list_enum(is->ODlist, &i))) {
-		if (!odm->codec || (odm->codec->type!=GF_STREAM_TEXT)) continue;
+		if (!odm->codec || ((odm->codec->type!=GF_STREAM_TEXT) && (odm->codec->type!=GF_STREAM_ND_SUBPIC)) ) continue;
 
 		if (!nb_obj || is_odm_url(&is->text_url, odm)) {
 			if (is->text_url.url) free(is->text_url.url);

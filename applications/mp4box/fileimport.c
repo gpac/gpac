@@ -69,21 +69,43 @@ void convert_file_info(char *inName, u32 trackID)
 		else fprintf(stdout, "Track type: ");
 
 		switch (import.tk_info[i].type) {
-		case GF_ISOM_MEDIA_VISUAL: fprintf(stdout, "Video (%s)\n", gf_4cc_to_str(import.tk_info[i].media_type)); break;
-		case GF_ISOM_MEDIA_AUDIO: fprintf(stdout, "Audio (%s)\n", gf_4cc_to_str(import.tk_info[i].media_type)); break;
-		case GF_ISOM_MEDIA_TEXT: fprintf(stdout, "Text (%s)\n", gf_4cc_to_str(import.tk_info[i].media_type)); break;
-		case GF_ISOM_MEDIA_SCENE: fprintf(stdout, "Scene (%s)\n", gf_4cc_to_str(import.tk_info[i].media_type)); break;
-		default: fprintf(stdout, "Other (4CC: %s)\n", gf_4cc_to_str(import.tk_info[i].type)); break;
+		case GF_ISOM_MEDIA_VISUAL: fprintf(stdout, "Video (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
+		case GF_ISOM_MEDIA_AUDIO: fprintf(stdout, "Audio (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
+		case GF_ISOM_MEDIA_TEXT: fprintf(stdout, "Text (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
+		case GF_ISOM_MEDIA_SCENE: fprintf(stdout, "Scene (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
+		default: fprintf(stdout, "Other (4CC: %s)", gf_4cc_to_str(import.tk_info[i].type)); break;
 		}
-		if (!trackID) continue;
-		if (import.tk_info[i].prog_num) fprintf(stdout, "Program Number: %d\n", import.tk_info[i].prog_num);
 
-		if (import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL) {
-			if (import.tk_info[i].width && import.tk_info[i].height) {
-				fprintf(stdout, "Source: %s %dx%d @ %g FPS\n", gf_4cc_to_str(import.tk_info[i].media_type), import.tk_info[i].width, import.tk_info[i].height, import.tk_info[i].FPS);
+		if (import.tk_info[i].lang) fprintf(stdout, " - lang %s", gf_4cc_to_str(import.tk_info[i].lang));
+
+		if (import.tk_info[i].prog_num) {
+			if (!import.nb_progs) {
+				fprintf(stdout, " - Program %d", import.tk_info[i].prog_num);
 			} else {
-				fprintf(stdout, "Source: %s\n", gf_4cc_to_str(import.tk_info[i].media_type));
+				u32 j;
+				for (j=0; j<import.nb_progs; j++) {
+					if (import.tk_info[i].prog_num != import.pg_info[j].number) continue;
+					fprintf(stdout, " - Program %s", import.pg_info[j].name);
+					break;
+				}
 			}
+		}
+		fprintf(stdout, "\n");
+		if (!trackID) continue;
+
+		if ((import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL) 
+			&& import.tk_info[i].video_info.width 
+			&& import.tk_info[i].video_info.height
+			) {
+			fprintf(stdout, "Source: %s %dx%d", gf_4cc_to_str(import.tk_info[i].media_type), import.tk_info[i].video_info.width, import.tk_info[i].video_info.height);
+			if (import.tk_info[i].video_info.FPS) fprintf(stdout, " @ %g FPS", import.tk_info[i].video_info.FPS);
+			if (import.tk_info[i].video_info.par) fprintf(stdout, " PAR: %d:%d", import.tk_info[i].video_info.par >> 16, import.tk_info[i].video_info.par & 0xFFFF);
+			fprintf(stdout, "\n");
+		}
+		else if ((import.tk_info[i].type==GF_ISOM_MEDIA_AUDIO) && import.tk_info[i].audio_info.sample_rate) {
+			fprintf(stdout, "Source: %s - SampleRate %d - %d channels\n", gf_4cc_to_str(import.tk_info[i].media_type), import.tk_info[i].audio_info.sample_rate, import.tk_info[i].audio_info.nb_channels);
+		} else {
+			fprintf(stdout, "Source: %s\n", gf_4cc_to_str(import.tk_info[i].media_type));
 		}
 			
 
@@ -107,7 +129,7 @@ void convert_file_info(char *inName, u32 trackID)
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
 	u32 track_id, i, delay, timescale, track;
-	s32 par_d, par_n;
+	s32 par_d, par_n, prog_id;
 	Bool do_audio, do_video, do_all;
 	const char *szLan;
 	GF_Err e;
@@ -178,7 +200,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	
 	/*select switches for av containers import*/
 	do_audio = do_video = 0;
-	track_id = 0;
+	track_id = prog_id = 0;
 	do_all = 1;
 	ext = strrchr(szName, '#');
 	if (ext) ext[0] = 0;
@@ -195,10 +217,18 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!strnicmp(ext, "video", 5)) do_video = 1;
 		else if (!strnicmp(ext, "trackID=", 8)) track_id = atoi(&ext[8]);
 		else if (!strnicmp(ext, "PID=", 4)) track_id = atoi(&ext[4]);
+		else if (!strnicmp(ext, "program=", 8)) { 
+			for (i=0; i<import.nb_progs; i++) {
+				if (!stricmp(import.pg_info[i].name, ext+8)) {
+					prog_id = import.pg_info[i].number;
+					do_all = 0;
+					break;
+				}
+			}
+		}
 		else track_id = atoi(ext);
 	}
 	if (do_audio || do_video || track_id) do_all = 0;
-
 
 	import.dest = dest;
 	import.video_fps = force_fps;
@@ -230,7 +260,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	} else {
 		for (i=0; i<import.nb_tracks; i++) {
 			import.trackID = import.tk_info[i].track_num;
-			if (do_all) e = gf_media_import(&import);
+			if (prog_id) {
+				if (import.tk_info[i].prog_num!=prog_id) continue;
+				e = gf_media_import(&import);
+			}
+			else if (do_all) e = gf_media_import(&import);
 			else if (track_id && (track_id==import.trackID)) {
 				track_id = 0;
 				e = gf_media_import(&import);

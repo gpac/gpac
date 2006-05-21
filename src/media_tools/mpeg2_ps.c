@@ -145,7 +145,7 @@ typedef struct mpeg2ps_stream_t
   u32 samples_per_frame;
   u32 layer;
   // video stuff
-  u32 h, w;
+  u32 h, w, par;
   Double frame_rate;
   s32 have_mpeg2;
   Double bit_rate;
@@ -290,7 +290,7 @@ static Double mpeg12_frame_rate_table[16] =
 
 #define SEQ_ID 1
 int MPEG12_ParseSeqHdr(u8 *pbuffer, u32 buflen, s32 *have_mpeg2, u32 *height, u32 *width, 
-								  Double *frame_rate, Double *bitrate, Double *aspect_ratio)
+								  Double *frame_rate, Double *bitrate, u32 *aspect_ratio)
 {
   u32 aspect_code;
   u32 framerate_code;
@@ -315,12 +315,14 @@ int MPEG12_ParseSeqHdr(u8 *pbuffer, u32 buflen, s32 *have_mpeg2, u32 *height, u3
       *height |= pbuffer[2];
       aspect_code = (pbuffer[3] >> 4) & 0xf;
       if (aspect_ratio != NULL) {
-	switch (aspect_code) {
-	default: *aspect_ratio = 1.0; break;
-	case 2: *aspect_ratio = 4.0 / 3.0; break;
-	case 3: *aspect_ratio = 16.0 / 9.0; break;
-	case 4: *aspect_ratio = 2.21; break;
-	}
+		  u32 par = 0;
+			switch (aspect_code) {
+			default: *aspect_ratio = 0; break;
+			case 2: par = 4; par<<=16; par |= 3; break;
+			case 3: par = 16; par<<=16; par |= 9; break;
+			case 4: par = 2; par<<=16; par |= 21; break;
+			}
+			*aspect_ratio = par;
       }
 	  
 	
@@ -1036,7 +1038,7 @@ static void get_info_from_frame (mpeg2ps_stream_t *sptr,
 			       &sptr->w,
 			       &sptr->frame_rate,
 			       &sptr->bit_rate,
-			       NULL) < 0) {
+			       &sptr->par) < 0) {
       sptr->m_stream_id = 0;
       sptr->m_fd = FDNULL;
     }
@@ -1533,6 +1535,14 @@ u32 mpeg2ps_get_video_stream_height (mpeg2ps_t *ps, u32 streamno)
     return 0;
   }
   return ps->video_streams[streamno]->h;
+}
+
+u32 mpeg2ps_get_video_stream_aspect_ratio (mpeg2ps_t *ps, u32 streamno)
+{
+  if (invalid_video_streamno(ps, streamno)) {
+    return 0;
+  }
+  return ps->video_streams[streamno]->par;
 }
 
 Double mpeg2ps_get_video_stream_bitrate (mpeg2ps_t *ps, u32 streamno)

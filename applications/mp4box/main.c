@@ -1087,8 +1087,11 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-hint")) { open_edit = 1; HintIt = 1; }
 		else if (!stricmp(arg, "-unhint")) { open_edit = 1; remove_hint = 1; }
 		else if (!stricmp(arg, "-copy")) HintCopy = 1;
-		else if (!stricmp(arg, "-tight")) FullInter = 1;
-		else if (!stricmp(arg, "-ocr")) force_ocr = 1;
+		else if (!stricmp(arg, "-tight")) {
+			FullInter = 1;
+			open_edit = 1;
+			needSave = 1;
+		} else if (!stricmp(arg, "-ocr")) force_ocr = 1;
 		else if (!stricmp(arg, "-latm")) hint_flags |= GP_RTP_PCK_USE_LATM_AAC;
 		else if (!stricmp(arg, "-rap")) hint_flags |= GP_RTP_PCK_SIGNAL_RAP;
 		else if (!stricmp(arg, "-ts")) hint_flags |= GP_RTP_PCK_SIGNAL_TS;
@@ -2110,6 +2113,7 @@ int main(int argc, char **argv)
 			fprintf(stdout, "Saving %s: ", inName);
 		}
 		if (HintIt && FullInter) fprintf(stdout, "Hinted file - Full Interleaving\n");
+		else if (FullInter) fprintf(stdout, "Full Interleaving\n");
 		else if (do_flat || !InterleavingTime) fprintf(stdout, "Flat storage\n");
 		else fprintf(stdout, "%.3f secs Interleaving%s\n", InterleavingTime, old_interleave ? " - no drift control" : "");
 		e = gf_isom_close_progress(file, quiet_mode ? NULL : gf_cbk_on_progress, "Writing");

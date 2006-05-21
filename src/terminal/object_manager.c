@@ -1165,12 +1165,14 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	
 	if (!odm->is_open) return;
 
+#if 0
 	/*Handle broadcast environment, do not stop the object if no time control and instruction
 	comes from the scene*/
 	if (odm->no_time_ctrl && !force_close) {
 		//fprintf(stdout, "OD%d - broadcast detected, ignoring Stop from scene\n", odm->OD->objectDescriptorID);
 		return;
 	}
+#endif
 
 	gf_list_del_item(odm->term->od_pending, odm);
 
@@ -1200,11 +1202,13 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 			gf_term_service_command(ch->service, &com);
 		}
 	}
+
 	/*stop channels*/
 	i=0;
 	while ((ch = gf_list_enum(odm->channels, &i)) ) {
 		gf_es_stop(ch);
 	}
+
 	gf_term_lock_net(odm->term, 0);
 
 	odm->is_open = 0;
