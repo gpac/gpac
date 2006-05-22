@@ -39,6 +39,10 @@ u32 gf_get_bit_size(u32 MaxVal)
 
 #ifdef GPAC_FIXED_POINT
 
+#ifndef __GNUC__
+#pragma message("Compiling with fixed-point arithmetic")
+#endif
+
 /* the following is 0.2715717684432231 * 2^30 */
 #define GF_TRIG_COSCALE  0x11616E8EUL
 

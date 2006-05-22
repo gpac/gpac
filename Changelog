@@ -1,4 +1,9 @@
-Latest CVS Changes 17/04/06
+Latest CVS Changes 19/05/06
+  - commit of Falco's patch for VobSub import.
+  - program-based import for MPEG-2 TS streams (MP4Box -add file.ts#program=ProgName).
+  - more IPV6 support
+  - cleanup of Makefiles (gpac can now be compiled outside the main source tree with gcc, eg $ ~/cvs/test>../gpac/configure
+  - added support for majorbrand versioning in MP4Box: "-brand GPAC:2" will set the major brand to GPAC, with a version of 2.
   - initial version of MPEG-2 TS demuxer (MP4Box and client plugin)
   - more LASeR debug and support...
   - regression tests (.bt and .x3dv) are now part of the CVS & GPAC source tree

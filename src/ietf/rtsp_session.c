@@ -285,11 +285,12 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 	if (!sess->connection) {
 		sess->connection = gf_sk_new(sess->ConnectionType);
 		if (!sess->connection) return GF_OUT_OF_MEM;
-		if (sess->SockBufferSize) gf_sk_set_buffer_size(sess->connection, 0, sess->SockBufferSize);
 	}
 	//the session is down, reconnect
 	e = gf_sk_connect(sess->connection, sess->Server, sess->Port);
 	if (e) return e;
+
+	if (sess->SockBufferSize) gf_sk_set_buffer_size(sess->connection, 0, sess->SockBufferSize);
 
 	if (!sess->http && sess->HasTunnel) {
 		e = gf_rtsp_http_tunnel_start(sess, "toto is the king of RTSP");
@@ -651,7 +652,7 @@ GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener)
 		gf_sk_del(new_conn);
 		return NULL;
 	}
-	e = gf_sk_set_blocking(new_conn, 1);
+	e = gf_sk_set_block_mode(new_conn, 1);
 	if (e) {
 		gf_sk_del(new_conn);
 		return NULL;

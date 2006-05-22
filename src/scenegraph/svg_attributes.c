@@ -922,7 +922,7 @@ static void svg_parse_path(SVG_PathData *d_attribute, char *attribute_content)
 	GF_List *d_commands = d_attribute->commands;
 	GF_List *d_points = d_attribute->points;
 	char *d = attribute_content;
-	Bool first_command = 1;
+
 	if (strlen(d)) {
 		SVG_Point *pt, cur_pt, prev_m_pt;
 		u8 *command;

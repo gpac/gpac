@@ -379,28 +379,28 @@ void M2TS_SetupLive(M2TSIn *read, char *url)
 	read->sock = gf_sk_new(sock_type);
 	if (!read->sock) { e = GF_IO_ERR; goto exit; }
 
-	gf_sk_set_buffer_size(read->sock, 0, UDP_BUFFER_SIZE);
-	gf_sk_set_blocking(read->sock, 0);
-
 	/*setup port and src*/
 	port = 1234;
 	str = strrchr(url, ':');
 	/*take care of IPv6 address*/
 	if (str && strchr(str, ']')) str = strchr(url, ':');
-	if (str) port = atoi(str+1);
-	gf_sk_bind(read->sock, port, 1);
-	if (str) str[0] = 0;
+	if (str) {
+		port = atoi(str+1);
+		str[0] = 0;
+	}
 
 	/*do we have a source ?*/
 	if (strlen(url) && strcmp(url, "localhost") ) {
 		if (gf_sk_is_multicast_address(url)) {
 			gf_sk_setup_multicast(read->sock, url, port, 0, 0, NULL);
 		} else {
-			gf_sk_set_remote_address(read->sock, url);
-			gf_sk_set_remote_port(read->sock, port);
+			gf_sk_bind(read->sock, port, url, 0, GF_SOCK_REUSE_PORT);
 		}
 	}
 	if (str) str[0] = ':';
+
+	gf_sk_set_buffer_size(read->sock, 0, UDP_BUFFER_SIZE);
+	gf_sk_set_block_mode(read->sock, 0);
 
 	read->th = gf_th_new();
 	gf_th_set_priority(read->th, GF_THREAD_PRIORITY_HIGHEST);

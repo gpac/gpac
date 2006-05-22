@@ -1,3 +1,6 @@
+/*
+	VobSub import by Ivan "falco" Vecera
+*/
 #ifndef _GF_VOBSUB_H_
 #define _GF_VOBSUB_H_
 

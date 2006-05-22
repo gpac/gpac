@@ -5044,7 +5044,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 
         for (i = 0, left = psize; i < psize; i += size, left -= size) {
             hsize = 0x18 + buf[0x16];
-            size  = min(left, 0x800 - hsize);
+            size  = MIN(left, 0x800 - hsize);
             memcpy(packet + i, buf + hsize, size);
 
             if (size != left) {

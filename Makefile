@@ -55,7 +55,6 @@ tar:
 install:
 	install -d "$(prefix)/bin"
 	install $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(prefix)/bin"
-	install $(INSTFLAGS) -m 755 bin/gcc/MP42Avi "$(prefix)/bin"
 	$(MAKE) -C applications install
 	install -d "$(moddir)"
 	install bin/gcc/*.$(DYN_LIB_SUFFIX) "$(moddir)"
@@ -78,7 +77,6 @@ endif
 endif
 	install -d "$(mandir)/man1"
 	install -m 644 doc/man/mp4box.1 $(mandir)/man1/
-	install -m 644 doc/man/mp42avi.1 $(mandir)/man1/
 	install -m 644 doc/man/mp4client.1 $(mandir)/man1/
 	install -m 644 doc/man/gpac.1 $(mandir)/man1/
 
@@ -87,10 +85,8 @@ uninstall:
 	rm -rf $(moddir)
 	rm -rf $(prefix)/lib/libgpac*
 	rm -rf $(prefix)/bin/mp4box
-	rm -rf $(prefix)/bin/mp42avi
 	rm -rf $(prefix)/bin/mp42client
 	rm -rf $(mandir)/man1/mp4box.1
-	rm -rf $(mandir)/man1/mp42avi.1
 	rm -rf $(mandir)/man1/mp4client.1
 	rm -rf $(mandir)/man1/gpac.1
 

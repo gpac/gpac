@@ -102,7 +102,7 @@ EXPORTS
 	gf_sk_del
 	gf_sk_reset
 	gf_sk_set_buffer_size
-	gf_sk_set_blocking
+	gf_sk_set_block_mode
 	gf_sk_get_handle
 	gf_sk_bind
 	gf_sk_connect
@@ -115,8 +115,6 @@ EXPORTS
 	gf_sk_get_local_ip
 	gf_sk_get_local_info
 	gf_sk_get_remote_address
-	gf_sk_set_remote_address
-	gf_sk_set_remote_port
 	gf_sk_send_to
 	gf_sk_setup_multicast
 	gf_sk_is_multicast_address

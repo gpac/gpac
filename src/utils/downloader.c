@@ -591,7 +591,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	
 	sess->status = GF_DOWNLOAD_STATE_CONNECTED;
 	sess->OnDataRcv(sess->usr_cbk, NULL, 0, GF_DOWNLOAD_STATE_CONNECTED, GF_OK);
-	gf_sk_set_blocking(sess->sock, 1);
+	gf_sk_set_block_mode(sess->sock, 1);
 	gf_dm_configure_cache(sess);
 
 #ifdef GPAC_HAS_SSL

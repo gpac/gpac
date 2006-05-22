@@ -150,18 +150,12 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		if (ch->net_info.IsUnicast) {
 			//if client, bind and connect the socket
 			if (!IsSource) {
-				e = gf_sk_bind(ch->rtp, ch->net_info.client_port_first, 1);
-				if (e) return e;
-				e = gf_sk_connect(ch->rtp, ch->net_info.source, ch->net_info.port_first);
+				e = gf_sk_bind(ch->rtp, ch->net_info.client_port_first, ch->net_info.source, ch->net_info.port_first, GF_SOCK_REUSE_PORT);
 				if (e) return e;
 			}
 			//else bind and set remote destination
 			else {
-				e = gf_sk_bind(ch->rtp, ch->net_info.port_first, 1);
-				if (e) return e;
-				e = gf_sk_set_remote_address(ch->rtp, ch->net_info.destination);
-				if (e) return e;
-				e = gf_sk_set_remote_port(ch->rtp, ch->net_info.client_port_first);
+				e = gf_sk_bind(ch->rtp, ch->net_info.port_first, ch->net_info.destination, ch->net_info.client_port_first, GF_SOCK_REUSE_PORT);
 				if (e) return e;
 			}
 		} else {
@@ -196,16 +190,10 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		if (!ch->rtcp) return GF_IP_NETWORK_FAILURE;
 		if (ch->net_info.IsUnicast) {
 			if (!IsSource) {
-				e = gf_sk_bind(ch->rtcp, ch->net_info.client_port_last, 1);
-				if (e) return e;
-				e = gf_sk_connect(ch->rtcp, ch->net_info.source, ch->net_info.port_last);
+				e = gf_sk_bind(ch->rtcp, ch->net_info.client_port_last, ch->net_info.source, ch->net_info.port_last, GF_SOCK_REUSE_PORT);
 				if (e) return e;
 			} else {
-				e = gf_sk_bind(ch->rtcp, ch->net_info.port_last, 1);
-				if (e) return e;
-				e = gf_sk_set_remote_address(ch->rtcp, ch->net_info.destination);
-				if (e) return e;
-				e = gf_sk_set_remote_port(ch->rtcp, ch->net_info.client_port_last);
+				e = gf_sk_bind(ch->rtcp, ch->net_info.port_last, ch->net_info.destination, ch->net_info.client_port_last, GF_SOCK_REUSE_PORT);
 				if (e) return e;
 			}
 		} else {
@@ -559,7 +547,7 @@ GF_Err gf_rtp_set_ports(GF_RTPChannel *ch)
 	retry = 100;
 	while (1) {
 		/*try to bind without reuse. If fails this means the port is used on the machine, don't reuse it*/
-		GF_Err e = gf_sk_bind(sock, p, 0);
+		GF_Err e = gf_sk_bind(sock, p, NULL, 0, 0);
 		if (e==GF_OK) break;
 		if (e!=GF_IP_CONNECTION_FAILURE) {
 			gf_sk_del(sock);

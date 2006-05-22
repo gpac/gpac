@@ -105,7 +105,17 @@ void gf_utc_time_since_1970(u32 *sec, u32 *msec);
  */
 void gf_net_get_ntp(u32 *sec, u32 *frac);
 
-
+/*!
+ * Socket options
+ *	\hideinitializer
+ */
+enum
+{
+	/*!Reuses port.*/
+	GF_SOCK_REUSE_PORT = 1,
+	/*!Forces IPV6 if available.*/
+	GF_SOCK_FORCE_IPV6 = 1<<1
+};
 
 /*!
  *\brief abstracted socket object
@@ -149,7 +159,7 @@ void gf_sk_reset(GF_Socket *sock);
 /*!
  *\brief socket buffer size control
  *
- *Sets the size of the internal buffer of the socket. 
+ *Sets the size of the internal buffer of the socket. The socket MUST be bound or connected before.
  *\param sock the socket object
  *\param send_buffer if 0, sets the size of the reception buffer, otherwise sets the size of the emission buffer
  *\param new_size new size of the buffer in bytes.
@@ -165,16 +175,18 @@ GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool send_buffer, u32 new_size);
  *\param sock the socket object
  *\param NonBlockingOn set to 1 to use on-blocking sockets, 0 otherwise
  */
-GF_Err gf_sk_set_blocking(GF_Socket *sock, Bool NonBlockingOn);
+GF_Err gf_sk_set_block_mode(GF_Socket *sock, Bool NonBlockingOn);
 /*!
  *\brief socket binding
  *
  *Binds the given socket to the specified port.
  *\param sock the socket object
  *\param port port number to bind this socket to
+ *\param peer_name the remote server address
+ *\param peer_port remote port number to connect the socket to
  *\param re_use set to 1 to enable reuse of ports on a single machine, 0 otherwise
  */
-GF_Err gf_sk_bind(GF_Socket *sock, u16 port, Bool re_use);
+GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32 options);
 /*!
  *\brief connects a socket 
  *
@@ -271,28 +283,9 @@ GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buffer);
  *Sets the remote address of a socket. This is used by connectionless sockets using SendTo and RecieveFrom
  *\param sock the socket object
  *\param address the remote peer address
- */
-GF_Err gf_sk_set_remote_address(GF_Socket *sock, char *address);
-/*!
- *\brief set remote port
- *
- *Sets the remote port of a socket. This is used by connectionless sockets using SendTo and RecieveFrom
- *\param sock the socket object
  *\param port the remote peer port
  */
-GF_Err gf_sk_set_remote_port(GF_Socket *sock, u16 port);
-
-/*!
- *\brief connection-less emission 
- *
- *Sends data to the specified host. 
- *\param sock the socket object
- *\param buffer the data buffer to send
- *\param length the data length to send
- *\param remote_host the remote address to send data to. If NULL, the default host is used (cf \ref gf_sk_set_remote_address)
- *\param remote_port the remote port to send data to. This must be specified if the remote_host is used
- */
-GF_Err gf_sk_send_to(GF_Socket *sock, unsigned char *buffer, u32 length, unsigned char *remote_host, u16 remote_port);
+GF_Err gf_sk_set_remote(GF_Socket *sock, char *address, u16 port);
 
 
 /*!
