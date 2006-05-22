@@ -698,6 +698,8 @@ clock_setup:
 		if (! odm->subscene->od_codec) {
 			dec = odm->subscene->od_codec = gf_codec_new(odm, esd, odm->OD_PL, &e);
 			gf_mm_add_codec(odm->term->mediaman, odm->subscene->od_codec);
+		} else {
+			e = GF_NON_COMPLIANT_BITSTREAM;
 		}
 		break;
 	case GF_STREAM_OCR:
