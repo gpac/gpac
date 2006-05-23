@@ -90,13 +90,13 @@ void tx_set_blend_mode(GF_TextureHandler *txh, u32 mode)
 	}
 }
 
-void tx_bind(GF_TextureHandler *txh)
+void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode)
 {
 	GLTexture *gltx = (GLTexture *) txh->hwtx;
 	if (!gltx->id || !gltx->gl_type) return;
 	glEnable(gltx->gl_type);
 
-	switch (gltx->blend_mode) {
+	switch (blend_mode) {
 	case TX_BLEND:
 		if (txh->transparent) glEnable(GL_BLEND);
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
@@ -119,6 +119,12 @@ void tx_bind(GF_TextureHandler *txh)
 		break;
 	}
 	glBindTexture(gltx->gl_type, gltx->id);
+}
+
+void tx_bind(GF_TextureHandler *txh)
+{
+	GLTexture *gltx = (GLTexture *) txh->hwtx;
+	tx_bind_with_mode(txh, txh->transparent, gltx->blend_mode);
 }
 
 void tx_disable(GF_TextureHandler *txh)
@@ -502,22 +508,62 @@ Bool tx_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Matrix *
 	return ret;
 }
 
+static Bool tx_enable_matte_texture(GF_Node *n)
+{
+	GF_TextureHandler *b_surf;
+	GF_TextureHandler *a_surf;
+	GF_TextureHandler *alpha_surf;
+	M_MatteTexture *matte = (M_MatteTexture *)n;
+	b_surf = R3D_GetTextureHandler(matte->surfaceB);
+	if (!b_surf || !b_surf->hwtx) return 0;
+	tx_set_image(b_surf, 0);
+	tx_bind(b_surf);
+
+/*
+	a_surf = R3D_GetTextureHandler(matte->surfaceA);
+	alpha_surf = R3D_GetTextureHandler(matte->alphaSurface);
+
+	if (!alpha_surf || !alpha_surf->hwtx) return 0;
+	tx_set_image(alpha_surf, 0);
+	tx_bind_with_mode(alpha_surf, tx_is_transparent(b_surf), ((GLTexture *)b_surf->hwtx)->blend_mode);
+*/
+	return 1;
+}
+
+Bool tx_is_transparent(GF_TextureHandler *txh)
+{
+	M_MatteTexture *matte;
+	if (!txh->matteTexture) return txh->transparent;
+	matte = (M_MatteTexture *)txh->matteTexture;
+	if (!matte->operation.buffer) return txh->transparent;
+	if (matte->alphaSurface) return 1;
+	if (!strcmp(matte->operation.buffer, "COLOR_MATRIX")) return 1;
+	return txh->transparent;
+}
+
 Bool tx_enable(GF_TextureHandler *txh, GF_Node *tx_transform)
 {
 	GF_Matrix mx;
-	Render3D *sr;
-	GLTexture *gltx;
+	Render3D *sr = (Render3D *)txh->compositor->visual_renderer->user_priv;
+
+	if (txh->matteTexture) {
+		if (!tx_enable_matte_texture(txh->matteTexture)) return 0;
+		VS3D_SetMatrixMode(sr->surface, MAT_TEXTURE);
+		if (tx_get_transform(txh, tx_transform, &mx)) 
+			VS3D_LoadMatrix(sr->surface, mx.m);
+		else
+			VS3D_ResetMatrix(sr->surface);
+		VS3D_SetMatrixMode(sr->surface, MAT_MODELVIEW);
+		return 1;
+	}
 	if (!txh || !txh->hwtx) return 0;
 	tx_set_image(txh, 0);
-	sr = (Render3D *)txh->compositor->visual_renderer->user_priv;
-	gltx = (GLTexture *)txh->hwtx;
 
 	VS3D_SetMatrixMode(sr->surface, MAT_TEXTURE);
 	if (tx_get_transform(txh, tx_transform, &mx)) 
 		VS3D_LoadMatrix(sr->surface, mx.m);
 	else
 		VS3D_ResetMatrix(sr->surface);
-		
 	VS3D_SetMatrixMode(sr->surface, MAT_MODELVIEW);
 
 	tx_bind(txh);

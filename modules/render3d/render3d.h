@@ -295,6 +295,8 @@ Bool tx_set_image(GF_TextureHandler *txh, Bool generate_mipmaps);
 @tx_transform: texture transform node from appearance*/
 Bool tx_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Matrix *mx);
 
+Bool tx_is_transparent(GF_TextureHandler *txh);
+
 /*set blending mode*/
 enum
 {

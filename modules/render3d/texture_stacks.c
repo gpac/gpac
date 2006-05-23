@@ -412,19 +412,50 @@ Bool r3d_handle_composite_event(Render3D *sr, GF_UserEvent *ev)
 	return res;
 }
 
+static void UpdateMatteTexture(GF_TextureHandler *txh)
+{
+	/*nothing to do*/
+}
+static void DestroyMatteTexture(GF_Node *node)
+{
+	MatteTextureStack *st = (MatteTextureStack *) gf_node_get_private(node);
+	/*prevent destroying of sub textures*/
+	st->txh.hwtx = NULL;
+	gf_sr_texture_destroy(&st->txh);
+	free(st);
+}
 
+void R3D_InitMatteTexture(Render3D *sr, GF_Node *node)
+{
+	M_MatteTexture *matte = (M_MatteTexture *)node;
+	MatteTextureStack *st;
+	GF_SAFEALLOC(st, sizeof(MatteTextureStack));
+	gf_sr_texture_setup(&st->txh, sr->compositor, node);
+	st->txh.flags = GF_SR_TEXTURE_MATTE;
+	st->txh.update_texture_fcnt = UpdateMatteTexture;
+	gf_node_set_private(node, st);
+	gf_node_set_predestroy_function(node, DestroyMatteTexture);
+}
+
+GF_TextureHandler *r3d_matte_get_texture(GF_Node *node)
+{
+	GF_TextureHandler *hdl = R3D_GetTextureHandler(((M_MatteTexture*)node)->surfaceB);
+	if (hdl) hdl->matteTexture = node;
+	return hdl;
+}
 
 GF_TextureHandler *R3D_GetTextureHandler(GF_Node *n)
 {
+	GF_TextureHandler *hdl;
 	if (!n) return NULL;
 	switch (gf_node_get_tag(n)) {
-	case TAG_MPEG4_CompositeTexture2D: return r3d_composite_get_texture(n);
-	case TAG_MPEG4_CompositeTexture3D: return r3d_composite_get_texture(n);
-	case TAG_MPEG4_LinearGradient: return r3d_lg_get_texture(n);
-	case TAG_MPEG4_RadialGradient: return r3d_rg_get_texture(n);
-/*	
-	case TAG_MPEG4_MatteTexture: return matte_get_texture(n);
-*/
-	default: return gf_sr_texture_get_handler(n);
+	case TAG_MPEG4_CompositeTexture2D: hdl = r3d_composite_get_texture(n); break;
+	case TAG_MPEG4_CompositeTexture3D: hdl = r3d_composite_get_texture(n); break;
+	case TAG_MPEG4_LinearGradient: hdl = r3d_lg_get_texture(n); break;
+	case TAG_MPEG4_RadialGradient: hdl = r3d_rg_get_texture(n); break;
+	case TAG_MPEG4_MatteTexture: return r3d_matte_get_texture(n);
+	default: hdl = gf_sr_texture_get_handler(n); break;
 	}
+	hdl->matteTexture = NULL;
+	return hdl;
 }

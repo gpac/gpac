@@ -167,6 +167,13 @@ void R3D_InitViewport(Render3D *sr, GF_Node *node);
 void R3D_InitViewpoint(Render3D *sr, GF_Node *node);
 void R3D_InitNonLinearDeformer(Render3D *sr, GF_Node *node);
 
+
+typedef struct
+{
+	GF_TextureHandler txh;
+} MatteTextureStack;
+void R3D_InitMatteTexture(Render3D *sr, GF_Node *node);
+
 /*for lineproperties/XLineProperties*/
 typedef struct
 {

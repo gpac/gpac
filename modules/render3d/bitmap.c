@@ -124,7 +124,7 @@ static void RenderBitmap(GF_Node *node, void *rs)
 			if (asp.alpha != FIX_ONE) {
 				VS3D_SetMaterial2D(eff->surface, asp.fill_color, asp.alpha);
 				tx_set_blend_mode(txh, TX_MODULATE);
-			} else if (txh->transparent) {
+			} else if (tx_is_transparent(txh)) {
 				tx_set_blend_mode(txh, TX_REPLACE);
 			} else {
 				VS3D_SetState(eff->surface, F3D_BLEND, 0);

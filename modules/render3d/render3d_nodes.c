@@ -48,6 +48,7 @@ void R3D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_MPEG4_Layout: R3D_InitLayout(sr, node); break;
 	case TAG_MPEG4_LinearGradient: R3D_InitLinearGradient(sr, node); break;
 	case TAG_MPEG4_LineProperties: R3D_InitLineProps(sr, node); break;
+	case TAG_MPEG4_MatteTexture: R3D_InitMatteTexture(sr, node); break;
 	case TAG_MPEG4_OrderedGroup: R3D_InitOrderedGroup(sr, node); break;
 	case TAG_MPEG4_PathLayout: R3D_InitPathLayout(sr, node); break;
 	case TAG_MPEG4_PlaneSensor2D: R3D_InitPlaneSensor2D(sr, node); break;

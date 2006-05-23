@@ -132,7 +132,7 @@ typedef struct
 enum
 {
 	/*set to signal texture is a composite one*/
-	GF_SR_TEXTURE_COMPOSITE = (1<<2),
+	GF_SR_TEXTURE_COMPOSITE = (1<<3),
 };
 
 enum

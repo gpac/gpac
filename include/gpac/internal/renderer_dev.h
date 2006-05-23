@@ -184,8 +184,12 @@ typedef void *GF_HWTEXTURE;
 
 enum
 {
+	/*texture repeat along s*/
 	GF_SR_TEXTURE_REPEAT_S = (1<<0),
-	GF_SR_TEXTURE_REPEAT_T = (1<<1)
+	/*texture repeat along t*/
+	GF_SR_TEXTURE_REPEAT_T = (1<<1),
+	/*texture is a matte texture*/
+	GF_SR_TEXTURE_MATTE = (1<<2),
 };
 
 typedef struct _gf_sr_texture_handler
@@ -228,6 +232,9 @@ typedef struct _gf_sr_texture_handler
 	u32 width, height, stride, pixelformat, pixel_ar;
 	/*if set texture has been transformed by MatteTexture -> disable blit*/
 	Bool has_cmat;
+
+	/*matteTexture parent if any*/
+	GF_Node *matteTexture;
 
 #ifdef DANAE
 	/* DANAE GF_MediaObject equivalent */

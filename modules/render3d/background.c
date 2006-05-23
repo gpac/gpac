@@ -56,7 +56,7 @@ static Bool back_gf_sr_texture_enabled(MFURL *url, GF_TextureHandler *txh)
 			use_texture = 0;
 			gf_sr_invalidate(txh->compositor, NULL);
 		}
-		tx_set_blend_mode(txh, txh->transparent ? TX_REPLACE : TX_DECAL);
+		tx_set_blend_mode(txh, tx_is_transparent(txh) ? TX_REPLACE : TX_DECAL);
 	}
 	return use_texture;
 }
