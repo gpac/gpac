@@ -1,6 +1,6 @@
 include ../../config.mak
 
-vpath %.c $(SRC_PATH)/applications/osmo4_wx
+vpath %.cpp $(SRC_PATH)/applications/osmo4_wx
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
