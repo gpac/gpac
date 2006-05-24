@@ -115,6 +115,8 @@ echo "  --enable-debug           produce debug version"
 echo "  --track-memory           enables tracking of all memory allocated by gpac"
 echo "  --disable-fragments      disable movie fragments in ISO media support"
 echo "  --disable-opt            disable GCC optimizations"
+echo "  --disable-ipv6           disable IPV6 support"
+echo "  --disable-wx             disable wxWidgets support"
 echo "  --disable-oss-audio      disable OSS audio"
 echo "  --disable-x11-shm        disable X11 shared memory support"
 echo "  --disable-fragments      disable movie fragments in ISO media support"
@@ -632,6 +634,52 @@ has_oss_audio="YES"
 fi
 fi
 
+#look for wxWidgets support
+has_wx="no"
+wx_too_old="no"
+
+if test "`which wx-config`" != "" ; then
+
+wx_version=`wx-config --version | sed 's/[^0-9]//g'`
+
+if test "$wx_version" -lt 250 ; then
+wx_too_old="yes"
+has_wx="yes"
+else
+if test "$wx_version" -lt 260 ; then
+has_wx="yes"
+wx_cflags=`wx-config --cppflags`
+wx_lflags=`wx-config --libs=core`
+else
+has_wx="yes"
+wx_cflags=`wx-config --cppflags core, base`
+wx_lflags=`wx-config --libs core, base`
+fi
+
+if test "$darwin" = "yes" ; then
+wx_lflags="-Wl,-bind_at_load $wx_lflags -lstdc++" #10.4 needs it, not sure about 10.3
+fi
+
+fi
+
+cat > $TMPCPP << EOF
+#include <wx/wx.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc $wx_cflags -o $TMPO $TMPCPP $wx_lflags > /dev/null 2>&1 ; then
+wx_version=`wx-config --version | sed 's/[^0-9]//g'`
+if test "$wx_version" -lt 254 ; then
+wx_too_old="yes"
+else
+has_wx="yes"
+fi
+fi
+
+fi
+#end wx test
+
+
 #look for X11 shared memory support
 cat > $TMPC << EOF
 #include <X11/Xlib.h>
@@ -644,6 +692,26 @@ EOF
 if $cc -o $TMPO $TMPC 2> /dev/null  ; then
 has_x11_shm="yes"
 fi
+
+# look for IPv6
+cat > $TMPC << EOF
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+int main( void ) {
+  struct sockaddr_storage saddr;
+  struct ipv6_mreq mreq6;
+  getaddrinfo(0,0,0,0);
+  getnameinfo(0,0,0,0,0,0,0);
+  IN6_IS_ADDR_MULTICAST(0);
+}
+EOF
+
+if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
+has_ipv6="yes"
+fi
+
 
 
 for opt do
@@ -671,6 +739,10 @@ for opt do
   --enable-debug) debuginfo="yes"; no_gcc_opt="yes"
   ;;
   --disable-opt) no_gcc_opt="yes"
+  ;;
+  --disable-ipv6) has_ipv6="no"
+  ;;
+  --disable-wx) has_wx="no"
   ;;
   --disable-fragments) iso_fragments="no"
   ;;
@@ -776,50 +848,6 @@ fi
 fi
 #end SDL check
 
-#look for wxWidgets support
-has_wx="no"
-wx_too_old="no"
-
-if test "`which wx-config`" != "" ; then
-
-wx_version=`wx-config --version | sed 's/[^0-9]//g'`
-
-if test "$wx_version" -lt 250 ; then
-wx_too_old="yes"
-has_wx="yes"
-else
-if test "$wx_version" -lt 260 ; then
-has_wx="yes"
-wx_cflags=`wx-config --cppflags`
-wx_lflags=`wx-config --libs=core`
-else
-has_wx="yes"
-wx_cflags=`wx-config --cppflags core, base`
-wx_lflags=`wx-config --libs core, base`
-fi
-
-if test "$darwin" = "yes" ; then
-wx_lflags="-Wl,-bind_at_load $wx_lflags -lstdc++" #10.4 needs it, not sure about 10.3
-fi
-
-fi
-
-cat > $TMPCPP << EOF
-#include <wx/wx.h>
-int main( void ) { return 0; }
-EOF
-
-if $cc $wx_cflags -o $TMPO $TMPCPP $wx_lflags > /dev/null 2>&1 ; then
-wx_version=`wx-config --version | sed 's/[^0-9]//g'`
-if test "$wx_version" -lt 254 ; then
-wx_too_old="yes"
-else
-has_wx="yes"
-fi
-fi
-
-fi
-#end wx test
 
 #look for libxml2 support
 has_xml2="no"
@@ -851,26 +879,6 @@ fi
 
 fi
 #end xml2 tes
-
-
-# look for IPv6
-cat > $TMPC << EOF
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-int main( void ) {
-  struct sockaddr_storage saddr;
-  struct ipv6_mreq mreq6;
-  getaddrinfo(0,0,0,0);
-  getnameinfo(0,0,0,0,0,0,0);
-  IN6_IS_ADDR_MULTICAST(0);
-}
-EOF
-
-if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
-has_ipv6="yes"
-fi
 
 
 # Checking for CFLAGS

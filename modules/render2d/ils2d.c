@@ -98,7 +98,7 @@ static void ILS2D_Draw(DrawableContext *ctx)
 	M_Coordinate2D *coord = (M_Coordinate2D*) ils2D->coord;
 	M_Color *color = (M_Color *) ils2D->color;
 
-
+	end.x = end.y = 0;
 	if (!coord->point.count) return;
 
 	if (! ils2D->color) {

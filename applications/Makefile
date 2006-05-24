@@ -9,13 +9,15 @@ APPDIRS +=generators
 endif
 endif
 
+V4STUDIODIR=
+INSTDIRS=mp4client
+
 #no osmozilla compilation for mingw, too many issues at the time being
 ifeq ($(CONFIG_WIN32), no)
 APPDIRS+=osmozilla
+INSTDIRS+=osmozilla
 endif
 
-V4STUDIODIR=
-INSTDIRS=mp4client osmozilla
 
 ifeq ($(USE_WXWIDGETS), yes)
 APPDIRS+=osmo4_wx

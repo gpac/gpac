@@ -242,8 +242,14 @@ void swf_get_colormatrix(SWFReader *read, GF_ColorMatrix *cmat)
 		cmat->m[19] = FLT2FIX( swf_read_int(read, nbbits) * SWF_COLOR_SCALE );
 	}
 	cmat->identity = 0;
-	if ((cmat->m[0] == cmat->m[6] == cmat->m[12] == cmat->m[18] == FIX_ONE)
-		&& (cmat->m[4] == cmat->m[9] == cmat->m[14] == cmat->m[19] == 0))
+	if ((cmat->m[0] == cmat->m[6]) 
+		&& (cmat->m[0] == cmat->m[12])
+		&& (cmat->m[0] == cmat->m[18])
+		&& (cmat->m[0] == FIX_ONE)
+		&& (cmat->m[4] == cmat->m[9])
+		&& (cmat->m[4] == cmat->m[14])
+		&& (cmat->m[4] == cmat->m[19])
+		&& (cmat->m[4] == 0))
 		cmat->identity = 1;
 
 }
@@ -778,7 +784,7 @@ GF_Node *swf_parse_shape_def(SWFReader *read, Bool has_styles, u32 revision)
 	shape.fill_left = gf_list_new();
 	shape.fill_right = gf_list_new();
 	shape.lines = gf_list_new();
-
+	ctrl.x = ctrl.y = 0;
 	swf_align(read);
 	ID = 0;
 

@@ -823,6 +823,7 @@ u32 gf_mp3_get_next_header(FILE* in)
 	u8 b, state = 0;
 	u32 dropped = 0;
 	u8 bytes[4];
+	bytes[0] = bytes[1] = bytes[2] = bytes[3] = 0;
 
 	while (1) {
 		if (fread(&b, 1, 1, in) == 0) return 0;
@@ -873,6 +874,7 @@ u32 gf_mp3_get_next_header_mem(char *buffer, u32 size, u32 *pos)
 	u8 b, state = 0;
 	u32 dropped = 0;
 	u8 bytes[4];
+	bytes[0] = bytes[1] = bytes[2] = bytes[3] = 0;
 
 	cur = 0;
 	*pos = 0;

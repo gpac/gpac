@@ -3220,6 +3220,7 @@ GF_Err gf_import_h263(GF_MediaImporter *import)
 	mdia = gf_f64_open(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
 
+	e = GF_OK;
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 	if (!H263_IsStartCode(bs)) {
 		e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Cannot find H263 Picture Start Code");
@@ -3884,6 +3885,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 	FILE *f_in;
 	GF_ISOSample *samp;
 
+	dts_inc = 0;
 	/*assume audio or simple AV file*/
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		f_in = gf_f64_open(import->in_name, "rb");
@@ -3933,7 +3935,6 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 	}
 
 	if (import->flags & GF_IMPORT_USE_DATAREF) return gf_import_message(import, GF_NOT_SUPPORTED, "Cannot use data referencing with OGG files");
-
 
 	sno = get_ogg_serial_no_for_stream(import->in_name, import->trackID, 1);
 	/*not our stream*/

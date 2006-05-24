@@ -38,16 +38,12 @@
 
 #include <windows.h>
 
-#ifdef IPV6_MULTICAST_IF
+#if !defined(__GNUC__) && defined(IPV6_MULTICAST_IF)
 #define GPAC_IPV6 1
-#ifndef __GNUC__
 #pragma message("Using WinSock IPV6")
-#endif
 #else
 #undef GPAC_IPV6
-#ifndef __GNUC__
 #pragma message("Using WinSock IPV4")
-#endif
 #endif
 
 /*common win32 redefs*/
@@ -56,9 +52,8 @@
 #define ENOTCONN			WSAENOTCONN
 #define ECONNRESET			WSAECONNRESET
 #define EMSGSIZE			WSAEMSGSIZE
-#define ECONNABORTED		WSAECONNABORTED
+#define ECONNABORTED			WSAECONNABORTED
 #define ENETDOWN			WSAENETDOWN
-#define	ENOHOST				WSAHOST_NOT_FOUND
 
 #define LASTSOCKERROR WSAGetLastError()
 
@@ -96,7 +91,9 @@ typedef s32 SOCKET;
 
 #define SOCK_MICROSEC_WAIT	500
 
+#ifdef GPAC_IPV6
 static u32 ipv6_check_state = 0;
+#endif
 
 /*internal flags*/
 enum
@@ -319,7 +316,7 @@ static void gf_sk_free(GF_Socket *sock)
 		setsockopt(sock->socket, IPPROTO_IP, IP_DROP_MEMBERSHIP, (char *) &mreq, sizeof(mreq));
 #endif
 	}
-	closesocket(sock->socket);
+	if (sock->socket) closesocket(sock->socket);
 	sock->socket = (SOCKET) 0L;
 }
 
@@ -355,7 +352,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 
 	gf_sk_free(sock);
 
-	res = gf_sk_get_ipv6_addr(PeerName, PortNumber, AF_UNSPEC, 0, sock->type);
+	res = gf_sk_get_ipv6_addr(PeerName, PortNumber, AF_UNSPEC, AI_PASSIVE, sock->type);
 	if (!res) return GF_IP_CONNECTION_FAILURE;
 
 	/*for all interfaces*/
@@ -370,19 +367,21 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 		if (aip->ai_family==PF_INET6) sock->flags |= GF_SOCK_IS_IPV6;
 		else sock->flags &= ~GF_SOCK_IS_IPV6;
 
-		ret = connect(sock->socket, aip->ai_addr, aip->ai_addrlen);						
+		ret = connect(sock->socket, aip->ai_addr, aip->ai_addrlen);
 		if (ret == SOCKET_ERROR) {
 			closesocket(sock->socket);
 			sock->socket = (SOCKET)NULL;
 			continue;
 		}
-	    memcpy(&sock->dest_addr, aip->ai_addr, aip->ai_addrlen);
+
+		memcpy(&sock->dest_addr, aip->ai_addr, aip->ai_addrlen);
 		sock->dest_addr_len = aip->ai_addrlen;
-		break;
+
+		freeaddrinfo(res);
+		return GF_OK;
 	}
 	freeaddrinfo(res);
-	if (!sock->socket) return GF_IP_CONNECTION_FAILURE;
-	return GF_OK;
+	return GF_IP_CONNECTION_FAILURE;
 
 #else	
 	struct hostent *Host;
@@ -400,7 +399,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 		if (Host == NULL) {
 			switch (LASTSOCKERROR) {
 			case ENETDOWN: return GF_IP_NETWORK_FAILURE;
-			case ENOHOST: return GF_IP_ADDRESS_NOT_FOUND;
+			//case ENOHOST: return GF_IP_ADDRESS_NOT_FOUND;
 			default: return GF_IP_NETWORK_FAILURE;
 			}
 		}
@@ -444,13 +443,17 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 	if (!sock || sock->socket) return GF_BAD_PARAM;
 	
 #ifdef GPAC_IPV6
-	af = (options & GF_SOCK_FORCE_IPV6) ? PF_INET6 : PF_INET;
+	af = (options & GF_SOCK_FORCE_IPV6) ? PF_INET6 : PF_UNSPEC;
 	if (!gf_net_has_ipv6()) af = PF_INET;
 	/*probe way to peer: is it V4 or V6? */
 	if (peer_name && peer_port) {
 		res = gf_sk_get_ipv6_addr(peer_name, peer_port, af, AI_PASSIVE, sock->type);
 		if (!res) return GF_IP_CONNECTION_FAILURE;
+#ifdef WIN32
+		/*win32 has troubles redirecting IPV4 datagrams to IPV6 sockets, so override 
+		local family type to avoid IPV4(S)->IPV6(C) UDP*/
 		af = res->ai_family;
+#endif
 		memcpy(&sock->dest_addr, res->ai_addr, res->ai_addrlen);
 		sock->dest_addr_len = res->ai_addrlen;
 		freeaddrinfo(res);
@@ -471,6 +474,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 			optval = 1;
 			setsockopt(sock->socket, SOL_SOCKET, SO_REUSEADDR, (const char *) &optval, sizeof(optval));
 		}
+		if (sock->flags & GF_SOCK_NON_BLOCKING) gf_sk_set_block_mode(sock, 1);
 
 		ret = bind(sock->socket, aip->ai_addr, aip->ai_addrlen);
 		if (ret == SOCKET_ERROR) {
@@ -478,7 +482,6 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 			sock->socket = (SOCKET)NULL;
 			continue;
 		}
-		if (sock->flags & GF_SOCK_NON_BLOCKING) gf_sk_set_block_mode(sock, 1);
 
 		if (aip->ai_family==PF_INET6) sock->flags |= GF_SOCK_IS_IPV6;
 		else sock->flags &= ~GF_SOCK_IS_IPV6;
@@ -517,13 +520,15 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 	ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, addrlen);
 	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 
-	sock->dest_addr.sin_port = htons(peer_port);
-	sock->dest_addr.sin_family = AF_INET;
-	sock->dest_addr.sin_addr.S_un.S_addr = inet_addr(peer_name);
-	if (sock->dest_addr.sin_addr.S_un.S_addr == INADDR_NONE) {
-		Host = gethostbyname(peer_name);
-		if (Host == NULL) return GF_IP_ADDRESS_NOT_FOUND;
-		memcpy((char *) &sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u32));
+	if (peer_name && peer_port) {
+		sock->dest_addr.sin_port = htons(peer_port);
+		sock->dest_addr.sin_family = AF_INET;
+		sock->dest_addr.sin_addr.s_addr = inet_addr(peer_name);
+		if (sock->dest_addr.sin_addr.s_addr == INADDR_NONE) {
+			Host = gethostbyname(peer_name);
+			if (Host == NULL) return GF_IP_ADDRESS_NOT_FOUND;
+			memcpy((char *) &sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u32));
+		}
 	}
 #endif
 	return GF_OK;
@@ -714,7 +719,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 	else local_add_id = htonl(INADDR_ANY);
 
 	if (!NoBind) {
-		SOCKADDR_IN local_address;
+		struct sockaddr_in local_address;
 
 		local_address.sin_family = AF_INET;
 		local_address.sin_addr.s_addr = local_add_id;

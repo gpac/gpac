@@ -381,7 +381,7 @@ GF_Err Media_CheckDataEntry(GF_MediaBox *mdia, u32 dataEntryIndex)
 
 Bool Media_IsSelfContained(GF_MediaBox *mdia, u32 StreamDescIndex)
 {
-	u32 drefIndex;
+	u32 drefIndex=0;
 	GF_FullBox *a;
 	GF_SampleEntryBox *se = NULL;
 

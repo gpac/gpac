@@ -459,7 +459,7 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 		if (codec->encoding_proto) GF_BE_WRITE_INT(codec, bs, 0, 1, "isedField", NULL);
 		if (use_list) {
 			if (codec->encoding_proto || nodeIsFDP) {
-				u32 ind;
+				u32 ind=0;
 				/*for proto, we're in ALL mode and we need DEF mode*/
 				/*for FDP, encoding requires to get def id from all id as fields 2 and 3 are reversed*/
 				gf_bifs_field_index_by_mode(node, allInd, GF_SG_FIELD_CODING_DEF, &ind);

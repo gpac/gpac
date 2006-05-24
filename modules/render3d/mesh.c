@@ -773,6 +773,8 @@ void mesh_new_ils(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex, GF_Node 
 		coord2D = NULL;
 	}
 
+	colRGBA.red = colRGBA.green = colRGBA.blue = colRGBA.alpha = 0;
+
 	if (!coord2D && !coord) return;
 	c_count = coord2D ? coord2D->point.count : coord->point.count;
 	if (!c_count) return;
@@ -1009,6 +1011,10 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 	X_ColorRGBA *colorRGBA = (X_ColorRGBA *) __color;
 	M_Normal *normal = (M_Normal*) __normal;
 	M_TextureCoordinate *txcoord = (M_TextureCoordinate*) __texCoords;
+
+	nor.x = nor.y = nor.z = 0;
+	center = pt = bounds = nor;
+	tx.x = tx.y = 0;
 
 	if (__coord && (gf_node_get_tag(__coord) == TAG_MPEG4_Coordinate2D)) {
 		coord = NULL;

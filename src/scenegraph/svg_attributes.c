@@ -4147,7 +4147,7 @@ static GF_Err svg_dasharray_copy(SVG_StrokeDashArray *a, SVG_StrokeDashArray *b)
 
 static GF_Err svg_matrix_muladd(Fixed alpha, SVG_Matrix *a, Fixed beta, SVG_Matrix *b, SVG_Matrix *c)
 {
-	if (alpha == beta == FIX_ONE) {
+	if ((alpha == beta) && (alpha == FIX_ONE) ) {
 		SVG_Matrix tmp;
 		gf_mx2d_copy(tmp, *b);
 		gf_mx2d_add_matrix(&tmp, a);

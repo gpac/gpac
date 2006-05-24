@@ -102,7 +102,8 @@ static void IFS2D_Draw(DrawableContext *ctx)
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)ctx->node->owner;
 	M_Coordinate2D *coord = (M_Coordinate2D*) ifs2D->coord;
 	M_Color *color = (M_Color *) ifs2D->color;
-
+		
+	col.red = col.green = col.blue = 0;
 	/*simple case, no color specified*/
 	if (!ifs2D->color) {
 		VS2D_TexturePath(ctx->surface, ctx->node->path, ctx);
