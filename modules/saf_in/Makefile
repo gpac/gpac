@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/modules/saf_in
+vpath %.c $(SRC_PATH)/modules/saf_in
 
 CFLAGS= $(OPTFLAGS) -w -I$(SRC_PATH)/include
 
@@ -10,6 +10,10 @@ CFLAGS+=-g -DDEBUG
 LDFLAGS+=-g
 endif
 
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
+endif
 
 #common obj
 OBJS=saf_in.o

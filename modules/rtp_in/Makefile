@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/modules/rtp_in
+vpath %.c $(SRC_PATH)/modules/rtp_in
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
@@ -9,6 +9,10 @@ CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
+endif
 
 #common obj
 OBJS= rtp_in.o rtp_payloads.o rtp_session.o rtp_signaling.o rtp_stream.o sdp_fetch.o sdp_load.o

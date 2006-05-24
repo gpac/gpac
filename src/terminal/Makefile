@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/src/terminal
+vpath %.c $(SRC_PATH)/src/terminal
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
@@ -9,6 +9,10 @@ CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
+endif
 
 #common obj
 OBJS=channel.o clock.o decoder.o term_node_init.o inline.o input_sensor.o media_control.o media_manager.o \

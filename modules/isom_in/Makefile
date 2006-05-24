@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/modules/isom_in
+vpath %.c $(SRC_PATH)/modules/isom_in
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
@@ -9,6 +9,10 @@ CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
+endif
 
 #common obj
 OBJS= load.o read.o read_ch.o cache.o

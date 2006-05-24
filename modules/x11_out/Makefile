@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/modules/x11_out
+vpath %.c $(SRC_PATH)/modules/x11_out
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 # -I/usr/local/arm/3.3.2/include
@@ -9,6 +9,11 @@ CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
 LDFLAGS+=-g
+endif
+
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
 endif
 
 ifeq ($(X11_INC_PATH), )

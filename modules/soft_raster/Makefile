@@ -1,12 +1,17 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/modules/soft_raster
+vpath %.c $(SRC_PATH)/modules/soft_raster
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
 LDFLAGS+=-g
+endif
+
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
 endif
 
 #big-endian config (needed for ARGB pixel format)

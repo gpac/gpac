@@ -1,12 +1,17 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/modules/sdl_out
+vpath %.c $(SRC_PATH)/modules/sdl_out
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include $(SDL_CFLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
 LDFLAGS+=-g
+endif
+
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
 endif
 
 ifeq ($(CONFIG_LINUX),yes)

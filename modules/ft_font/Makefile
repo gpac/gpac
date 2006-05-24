@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/modules/ft_font
+vpath %.c $(SRC_PATH)/modules/ft_font
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include $(FT_CFLAGS)
 
@@ -9,6 +9,10 @@ CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
+endif
 
 #common obj
 OBJS= ft_font.o

@@ -1,12 +1,17 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/modules/xvid_dec
+vpath %.c $(SRC_PATH)/modules/xvid_dec
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
 LDFLAGS+=-g
+endif
+
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
 endif
 
 #common obj

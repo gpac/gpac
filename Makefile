@@ -3,7 +3,7 @@
 #
 include config.mak
 
-VPATH=$(SRC_PATH)
+vpath %.c $(SRC_PATH)
 
 INSTFLAGS=-s
 ifeq ($(DEBUGBUILD),yes)

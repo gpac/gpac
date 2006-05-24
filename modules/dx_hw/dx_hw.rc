@@ -46,8 +46,8 @@ END
 // Cursor
 //
 
-IDC_HAND_PTR            CURSOR  DISCARDABLE     "res\\hand.cur"
-IDC_COLLIDE             CURSOR  DISCARDABLE     "res\\collide.cur"
+IDC_HAND_PTR            CURSOR  DISCARDABLE     "hand.cur"
+IDC_COLLIDE             CURSOR  DISCARDABLE     "collide.cur"
 #endif    // French (France) resources
 /////////////////////////////////////////////////////////////////////////////
 

@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/src/bifs
+vpath %.c $(SRC_PATH)/src/bifs
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
@@ -9,6 +9,10 @@ CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
+endif
 
 #common obj
 OBJS=arith_decoder.o bifs_codec.o bifs_node_tables.o com_dec.o com_enc.o conditional.o field_decode.o \

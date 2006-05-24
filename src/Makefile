@@ -1,6 +1,6 @@
 include ../config.mak
 
-VPATH=$(SRC_PATH)/src
+vpath %.c $(SRC_PATH)/src
 
 outlibs=libgpac_bifs.a libgpac_terminal.a libgpac_ietf.a libgpac_isom.a libgpac_odf.a libgpac_scenegraph.a libgpac_scene_manager.a libgpac_media.a libgpac_utils.a libgpac_render.a libgpac_mcrypt.a
 

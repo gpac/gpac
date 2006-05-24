@@ -38,12 +38,16 @@
 
 #include <windows.h>
 
-#if !defined(__GNUC__) && defined(IPV6_MULTICAST_IF)
+#if !defined(__GNUC__)
+
+#if defined(IPV6_MULTICAST_IF)
 #define GPAC_IPV6 1
 #pragma message("Using WinSock IPV6")
 #else
 #undef GPAC_IPV6
 #pragma message("Using WinSock IPV4")
+#endif
+
 #endif
 
 /*common win32 redefs*/
@@ -98,6 +102,7 @@ static u32 ipv6_check_state = 0;
 /*internal flags*/
 enum
 {
+	GF_SOCK_IS_TCP = 1<<9,
 	GF_SOCK_IS_IPV6 = 1<<10,
 	GF_SOCK_NON_BLOCKING = 1<<11,
 	GF_SOCK_IS_MULTICAST = 1<<12,
@@ -107,7 +112,6 @@ enum
 struct __tag_socket
 {
 	u32 flags;
-	u32 type;
 	SOCKET socket;
 	/*destination address for sendto/recvfrom*/
 #ifdef GPAC_IPV6
@@ -194,7 +198,7 @@ static struct addrinfo *gf_sk_get_ipv6_addr(char *PeerName, u16 PortNumber, int 
 
 static Bool gf_sk_ipv6_set_remote_address(GF_Socket *sock, char *address, u16 PortNumber)
 {
-	struct addrinfo *res = gf_sk_get_ipv6_addr(address, PortNumber, AF_UNSPEC, 0, sock->type);
+	struct addrinfo *res = gf_sk_get_ipv6_addr(address, PortNumber, AF_UNSPEC, 0, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM);
 	if (!res) return 0;
     memcpy(&sock->dest_addr, res->ai_addr, res->ai_addrlen);
 	sock->dest_addr_len = res->ai_addrlen;
@@ -245,7 +249,7 @@ GF_Socket *gf_sk_new(u32 SocketType)
 	if ((SocketType != GF_SOCK_TYPE_UDP) && (SocketType != GF_SOCK_TYPE_TCP)) return NULL;
 
 	GF_SAFEALLOC(tmp, sizeof(GF_Socket) );
-	tmp->type = SocketType;
+	if (SocketType == GF_SOCK_TYPE_TCP) tmp->flags |= GF_SOCK_IS_TCP;
 
 #ifdef GPAC_IPV6
 	memset(&tmp->dest_addr, 0, sizeof(struct sockaddr_storage));
@@ -348,16 +352,17 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 {
 	s32 ret;
 #ifdef GPAC_IPV6
+	u32 type = (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM;
 	struct addrinfo *res, *aip;
 
 	gf_sk_free(sock);
 
-	res = gf_sk_get_ipv6_addr(PeerName, PortNumber, AF_UNSPEC, AI_PASSIVE, sock->type);
+	res = gf_sk_get_ipv6_addr(PeerName, PortNumber, AF_UNSPEC, AI_PASSIVE, type);
 	if (!res) return GF_IP_CONNECTION_FAILURE;
 
 	/*for all interfaces*/
 	for (aip=res; aip!=NULL; aip=aip->ai_next) {
-		if (sock->type != (u32) aip->ai_socktype) continue;
+		if (type != (u32) aip->ai_socktype) continue;
 		sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
 		if (sock->socket == INVALID_SOCKET) {
 			sock->socket = (SOCKET)NULL;
@@ -387,7 +392,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 	struct hostent *Host;
 	
 	if (!sock->socket) 
-		sock->socket = socket(AF_INET, sock->type, 0);
+		sock->socket = socket(AF_INET, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0);
 
 	/*setup the address*/
 	sock->dest_addr.sin_family = AF_INET;
@@ -406,7 +411,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 		memcpy((char *) &sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u32));
 	}
 
-	if (sock->type == GF_SOCK_TYPE_TCP) {
+	if (sock->flags & GF_SOCK_IS_TCP) {
 		ret = connect(sock->socket, (struct sockaddr *) &sock->dest_addr, sizeof(struct sockaddr));
 		if (ret == SOCKET_ERROR) {
 			switch (LASTSOCKERROR) {
@@ -431,6 +436,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 #ifdef GPAC_IPV6
 	struct addrinfo *res, *aip;
 	int af;
+	u32 type;
 #else
 	size_t addrlen;
 	struct sockaddr_in LocalAdd;
@@ -443,11 +449,12 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 	if (!sock || sock->socket) return GF_BAD_PARAM;
 	
 #ifdef GPAC_IPV6
+	type = (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM;
 	af = (options & GF_SOCK_FORCE_IPV6) ? PF_INET6 : PF_UNSPEC;
 	if (!gf_net_has_ipv6()) af = PF_INET;
 	/*probe way to peer: is it V4 or V6? */
 	if (peer_name && peer_port) {
-		res = gf_sk_get_ipv6_addr(peer_name, peer_port, af, AI_PASSIVE, sock->type);
+		res = gf_sk_get_ipv6_addr(peer_name, peer_port, af, AI_PASSIVE, type);
 		if (!res) return GF_IP_CONNECTION_FAILURE;
 #ifdef WIN32
 		/*win32 has troubles redirecting IPV4 datagrams to IPV6 sockets, so override 
@@ -459,12 +466,12 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 		freeaddrinfo(res);
 	}
 	
-	res = gf_sk_get_ipv6_addr(NULL, port, af, AI_PASSIVE, sock->type);
+	res = gf_sk_get_ipv6_addr(NULL, port, af, AI_PASSIVE, type);
 	if (!res) return GF_IP_CONNECTION_FAILURE;
 
 	/*for all interfaces*/
 	for (aip=res; aip!=NULL; aip=aip->ai_next) {
-		if (sock->type != (u32) aip->ai_socktype) continue;
+		if (type != (u32) aip->ai_socktype) continue;
 		sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
 		if (sock->socket == INVALID_SOCKET) {
 			sock->socket = (SOCKET)NULL;
@@ -495,7 +502,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 #else
 
 	if (!sock->socket) {
-		sock->socket = socket(AF_INET, sock->type, 0);
+		sock->socket = socket(AF_INET, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM, 0);
 		if (sock->flags & GF_SOCK_NON_BLOCKING) gf_sk_set_block_mode(sock, 1);
 		sock->flags &= ~GF_SOCK_IS_IPV6;
 	}
@@ -570,7 +577,7 @@ GF_Err gf_sk_send(GF_Socket *sock, unsigned char *buffer, u32 length)
 	//direct writing
 	Count = 0;
 	while (Count < length) {
-		if (sock->type == GF_SOCK_TYPE_TCP) {
+		if (sock->flags & GF_SOCK_IS_TCP) {
 			Res = send(sock->socket, &buffer[Count], length - Count, 0);
 		} else {
 			Res = sendto(sock->socket, &buffer[Count], length - Count, 0, (struct sockaddr *) &sock->dest_addr, sock->dest_addr_len);
@@ -623,6 +630,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 #ifdef GPAC_IPV6
 	struct sockaddr *addr;
 	struct addrinfo *res, *aip;
+	u32 type;
 #else
 	u_long local_add_id;
 #endif
@@ -635,11 +643,11 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 	if (!gf_sk_is_multicast_address(multi_IPAdd)) return GF_BAD_PARAM;
 
 #ifdef GPAC_IPV6
-
-	res = gf_sk_get_ipv6_addr(local_interface_ip, MultiPortNumber, AF_UNSPEC, AI_PASSIVE, sock->type);
+	type = (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM;
+	res = gf_sk_get_ipv6_addr(local_interface_ip, MultiPortNumber, AF_UNSPEC, AI_PASSIVE, type);
 	if (!res) {
 		if (local_interface_ip) {
-			res = gf_sk_get_ipv6_addr(NULL, MultiPortNumber, AF_UNSPEC, AI_PASSIVE, sock->type);
+			res = gf_sk_get_ipv6_addr(NULL, MultiPortNumber, AF_UNSPEC, AI_PASSIVE, type);
 			local_interface_ip = NULL;
 		}
 		if (!res) return GF_IP_CONNECTION_FAILURE;
@@ -647,7 +655,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 
 	/*for all interfaces*/
 	for (aip=res; aip!=NULL; aip=aip->ai_next) {
-		if (sock->type != (u32) aip->ai_socktype) continue;
+		if (type != (u32) aip->ai_socktype) continue;
 		sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
 		if (sock->socket == INVALID_SOCKET) {
 			sock->socket = (SOCKET)NULL;
@@ -882,7 +890,6 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 
 	(*newConnection) = malloc(sizeof(GF_Socket));
 	(*newConnection)->socket = sk;
-	(*newConnection)->type = sock->type;
 	(*newConnection)->flags = sock->flags & ~GF_SOCK_IS_LISTENING;
 #ifdef GPAC_IPV6
 	memcpy( &(*newConnection)->dest_addr, &sock->dest_addr, client_address_size);
@@ -931,7 +938,7 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 {
 	u32 one;
 
-	if (!sock || (sock->type != GF_SOCK_TYPE_TCP) || !sock->socket)
+	if (!sock || !(sock->flags & GF_SOCK_IS_TCP) || !sock->socket)
 		return GF_BAD_PARAM;
 
 	one = serverOn ? 1 : 0;
@@ -999,7 +1006,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, unsigned char *buffer, u32 length, unsigne
 	//if a remote host is specified, use it. Otherwise use the default host
 	if (remoteHost) {
 		//setup the address
-		struct addrinfo *res = gf_sk_get_ipv6_addr(remoteHost, remotePort, AF_UNSPEC, 0, sock->type);
+		struct addrinfo *res = gf_sk_get_ipv6_addr(remoteHost, remotePort, AF_UNSPEC, 0, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM);
 		if (!res) return GF_IP_ADDRESS_NOT_FOUND;
 		memcpy(&remote_add, res->ai_addr, res->ai_addrlen);
 		remote_add_len = res->ai_addrlen;

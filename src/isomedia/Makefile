@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/src/isomedia
+vpath %.c $(SRC_PATH)/src/isomedia
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
@@ -19,6 +19,10 @@ CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
+endif
 
 #common obj
 OBJS=avc_ext.o box_code_3gpp.o box_code_base.o box_code_isma.o box_code_meta.o box_dump.o box_funcs.o data_map.o hint_track.o hinting.o \

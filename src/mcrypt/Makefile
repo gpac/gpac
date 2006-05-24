@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/src/mcrypt
+vpath %.c $(SRC_PATH)/src/mcrypt
 
 #there's a bunch of warnings in there, get rid of them
 CFLAGS= $(OPTFLAGS) -w -I$(SRC_PATH)/include
@@ -10,6 +10,10 @@ CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
+endif
 
 #common obj
 OBJS= cbc.o \

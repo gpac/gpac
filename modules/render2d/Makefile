@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/modules/render2d
+vpath %.c $(SRC_PATH)/modules/render2d
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
@@ -9,6 +9,10 @@ CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
+endif
 
 #common obj
 OBJS= background2d.o drawable.o form.o geometry_stacks.o grouping.o grouping_stacks.o ifs2d.o ils2d.o layout.o path_layout.o render2d.o \

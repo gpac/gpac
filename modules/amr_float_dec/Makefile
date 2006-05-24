@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/modules/amr_float_dec
+vpath %.c $(SRC_PATH)/modules/amr_float_dec
 
 #note: __MSDOS__ defined is the same cfg as linux. There may be some pbs on other platforms, to check...
 CFLAGS= $(OPTFLAGS) -w -I$(SRC_PATH)/include -D__MSDOS__
@@ -10,6 +10,10 @@ CFLAGS+=-g -DDEBUG
 LDFLAGS+=-g
 endif
 
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
+endif
 
 #common obj
 OBJS=../amr_dec/amr_in.o amr_float_dec.o

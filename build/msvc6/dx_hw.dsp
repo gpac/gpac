@@ -89,6 +89,14 @@ LINK32=link.exe
 # Name "dx_hw - Win32 Debug"
 # Begin Source File
 
+SOURCE=..\..\modules\dx_hw\collide.cur
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\dx_hw\res\collide.cur
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\modules\dx_hw\copy_pixels.c
 # End Source File
 # Begin Source File
@@ -118,6 +126,14 @@ SOURCE=..\..\modules\dx_hw\dx_video.c
 # Begin Source File
 
 SOURCE=..\..\modules\dx_hw\dx_window.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\dx_hw\hand.cur
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\dx_hw\res\hand.cur
 # End Source File
 # Begin Source File
 

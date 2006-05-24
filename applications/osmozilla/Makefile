@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/applications/osmozilla
+vpath %.c $(SRC_PATH)/applications/osmozilla
 
 GECKO_PATH=$(SRC_PATH)/extra_lib/include/gecko-sdk
 
@@ -24,6 +24,11 @@ CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include \
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
 LDFLAGS+=-g
+endif
+
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
 endif
 
 ifeq ($(CONFIG_WIN32),yes)

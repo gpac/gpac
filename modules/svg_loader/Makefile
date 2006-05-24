@@ -1,12 +1,17 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/modules/svg_loader
+vpath %.c $(SRC_PATH)/modules/svg_loader
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include -I$(VPATH)/svg_parser
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
 LDFLAGS+=-g
+endif
+
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
 endif
 
 #common obj

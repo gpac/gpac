@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/src/utils
+vpath %.c $(SRC_PATH)/src/utils
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
@@ -9,6 +9,10 @@ CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
+endif
 
 #common obj
 OBJS=os_divers.o os_net.o os_module.o os_thread.o list.o base_encoding.o bitstream.o color.o configfile.o downloader.o error.o math.o path2d.o path2d_stroker.o module.o token.o url.o utf.o xml_parser.o

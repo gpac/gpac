@@ -1,12 +1,17 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/modules/wav_out
+vpath %.c $(SRC_PATH)/modules/wav_out
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include -DDISABLE_WAVE_EX
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
 LDFLAGS+=-g
+endif
+
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
 endif
 
 #common obj

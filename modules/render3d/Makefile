@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/modules/render3d
+vpath %.c $(SRC_PATH)/modules/render3d
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
@@ -9,6 +9,10 @@ CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
+endif
 
 #common obj
 OBJS= background.o bindable.o bitmap.o camera.o form.o geometry_stacks.o geometry_x3d.o gradients.o grouping.o grouping_stacks.o hardcoded_protos.o \

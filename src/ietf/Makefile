@@ -1,6 +1,6 @@
 include ../../config.mak
 
-VPATH=$(SRC_PATH)/src/ietf
+vpath %.c $(SRC_PATH)/src/ietf
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
@@ -9,6 +9,10 @@ CFLAGS+=-g
 LDFLAGS+=-g
 endif
 
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
+endif
 
 #common obj
 OBJS=rtcp.o rtp.o rtp_packetizer.o rtp_pck_3gpp.o rtp_pck_mpeg12.o rtp_pck_mpeg4.o rtsp_command.o rtsp_common.o rtsp_response.o rtsp_session.o sdp.o

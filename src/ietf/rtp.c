@@ -468,7 +468,7 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *extra_
 	}
 	//payload
 	memcpy(ch->send_buffer + Start, pck, pck_size);
-	e = gf_sk_send_to(ch->rtp, ch->send_buffer, Start + pck_size, NULL, 0);
+	e = gf_sk_send(ch->rtp, ch->send_buffer, Start + pck_size);
 	if (e) return e;
 
 	//Update RTCP for sender reports

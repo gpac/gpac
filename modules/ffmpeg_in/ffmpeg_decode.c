@@ -250,8 +250,6 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, u16 ES_ID, unsigned char 
 			ffd->pix_fmt = GF_PIXEL_RGB_24; 
 			break;
 		case CODEC_ID_DVD_SUBTITLE:
-	ffd->ctx->debug = FF_DEBUG_PICT_INFO | FF_DEBUG_BITSTREAM | FF_DEBUG_STARTCODE;
-	av_log_set_level(AV_LOG_DEBUG);
 			ffd->frame = avcodec_alloc_frame();
 			avcodec_decode_video(ffd->ctx, ffd->frame, &gotpic, decSpecInfo, decSpecInfoSize);
 			ffd->pix_fmt = GF_PIXEL_YV12; 
