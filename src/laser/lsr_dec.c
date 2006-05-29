@@ -762,7 +762,9 @@ static void lsr_restore_base(GF_LASeRCodec *lsr, SVGElement *elt, SVGElement *ba
 			memcpy(elt->properties->stroke_dasharray.array.vals, base->properties->stroke_dasharray.array.vals, size);
 		}
 		if (reset_fill) memset(&elt->properties->fill, 0, sizeof(SVG_Paint));
+		else if (base->properties->fill.uri) elt->properties->fill.uri = strdup(base->properties->fill.uri);
 		if (reset_stroke) memset(&elt->properties->stroke, 0, sizeof(SVG_Paint));
+		else if (base->properties->stroke.uri) elt->properties->stroke.uri = strdup(base->properties->stroke.uri);
 	}
 }
 
@@ -2150,7 +2152,7 @@ static void lsr_translate_anim_trans_values(SMIL_AnimateValues *val, u32 transfo
 			gf_list_insert(val->values, pt, i);
 			break;
 		default:
-			fprintf(stdout, "unknwon transform type\n");
+			fprintf(stdout, "unknown transform type\n");
 			break;
 		}
 	}
