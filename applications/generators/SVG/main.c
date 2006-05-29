@@ -1525,7 +1525,7 @@ static void generate_laser_tables(GF_List *svg_elements)
 		fprintf(output, "static const s32 %s_field_to_attrib_type[] = {\n", elt->implementation_name);
 
 		/*core info: id, xml:id, class, xml:lang, xml:base, xml:space, externalResourcesRequired*/
-		fprintf(output, "-1, -1, -1, 127, 126, 128, 24");
+		fprintf(output, "-1, -1, -1, 125, 124, -1, 24");
 		if (elt->has_properties) generateGenericAttrib(output, elt, 1);
 		if (elt->has_focus) generateGenericAttrib(output, elt, 2); 
 		if (elt->has_xlink) generateGenericAttrib(output, elt, 3);
