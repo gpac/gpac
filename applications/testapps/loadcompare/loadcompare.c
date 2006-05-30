@@ -28,6 +28,20 @@ typedef struct {
 	FILE *out;
 } GF_LoadCompare;
 
+u32 getlasertracksize(char *in)
+{
+	u32 j, totalsize = 0;
+	GF_ISOFile *mp4 = gf_isom_open(in, GF_ISOM_OPEN_READ, NULL);
+	u32 track_id = gf_isom_get_track_id(mp4, 1);
+	u32 trackNum = gf_isom_get_track_by_id(mp4, track_id);
+	for (j=0; j<gf_isom_get_sample_count(mp4, trackNum); j++) {
+		GF_ISOSample *samp = gf_isom_get_sample_info(mp4, trackNum, j+1, NULL, NULL);
+		totalsize += samp->dataLength;
+	}
+	gf_isom_close(mp4);
+	return totalsize;
+}
+
 GF_Err dumpsvg(char *in, char *out)
 {
 	GF_Err e;
@@ -215,6 +229,32 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 	}
 	fprintf(lc->out,"\t%d", loadonefile(name, 0));
 
+	/*Sizes */
+	tmpfile = fopen(item_name, "rt");
+	fseek(tmpfile, 0, SEEK_END);
+	fprintf(lc->out,"\t%d", ftell(tmpfile));
+	fclose(tmpfile);
+
+	strcpy(name2, (const char*)item_name);
+	tmp = strrchr(name2, '.');
+	strcpy(tmp, "_out.svg");
+	tmpfile = fopen(name2, "rt");
+	fseek(tmpfile, 0, SEEK_END);
+	fprintf(lc->out,"\t%d", ftell(tmpfile));
+	fclose(tmpfile);
+
+	strcpy(name, (const char*)item_name);
+	strcat(name, "z");
+	tmpfile = fopen(name, "rb");
+	fseek(tmpfile, 0, SEEK_END);
+	fprintf(lc->out,"\t%d", ftell(tmpfile));
+	fclose(tmpfile);
+
+	strcpy(name, (const char*)item_name);
+	tmp = strrchr(name, '.');
+	strcpy(tmp, ".mp4");
+	fprintf(lc->out,"\t%d", getlasertracksize(name));
+	
 	fprintf(lc->out,"\n");
 	fflush(lc->out);
 	return 0;
@@ -230,7 +270,7 @@ int main(int argc, char **argv)
 	lc.out = fopen(argv[1], "wt");
 	if (!lc.out) return -1;
 
-	fprintf(lc.out,"File Name\tMP4 Load Time\tInput SVG Load Time\tDecoded SVG Load Time\tSVGZ Load Time\n");
+	fprintf(lc.out,"File Name\tMP4 Load Time\tInput SVG Load Time\tDecoded SVG Load Time\tSVGZ Load Time\tSVG Size\tDecoded SVG Size\tSVGZ Size\tLASeR track size");
 
 //	loadcompare_one(&lc, "batik3D.svg", NULL);
 	gf_enum_directory(argv[2], 0, loadcompare_one, &lc, "svg");
