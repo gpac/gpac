@@ -28,6 +28,7 @@ typedef struct {
 	FILE *out;
 	u32 nbloads;
 	u32 verbose;
+	char tmpdir[100];
 } GF_LoadCompare;
 
 u32 getlasertracksize(char *in)
@@ -120,8 +121,11 @@ GF_Err encodelaser(GF_LoadCompare *lc, char *in, GF_ISOFile *mp4, GF_SMEncodeOpt
 			}				
 			opts->coord_bits = stats->int_res_2d + opts->resolution;
 			if (lc->verbose) fprintf(stdout, " Coordinates & Lengths encoded using ");
-			if (opts->resolution < 0) if (lc->verbose) fprintf(stdout, "only the %d most significant bits (of %d).\n", opts->coord_bits, stats->int_res_2d);
-			else if (lc->verbose) fprintf(stdout, "a %d.%d representation\n", stats->int_res_2d, opts->resolution);
+			if (opts->resolution < 0) {
+				if (lc->verbose) fprintf(stdout, "only the %d most significant bits (of %d).\n", opts->coord_bits, stats->int_res_2d);
+			} else {
+				if (lc->verbose) fprintf(stdout, "a %d.%d representation\n", stats->int_res_2d, opts->resolution);
+			}
 
 			if (lc->verbose) fprintf(stdout, " Matrix Scale & Skew Coefficients ");
 			if (opts->coord_bits < stats->scale_int_res_2d) {
@@ -169,22 +173,30 @@ u32 loadonefile(char *item_name, Bool is_mp4, u32 nbloads)
 		starttime = gf_sys_clock();
 
 		e = gf_sm_load_init(&load);
-		if (e) goto err_exit;
+		if (e) {
+			fprintf(stderr, "Error loading file %s\n", item_name);
+			goto err_exit;
+		}
 
 		e = gf_sm_load_run(&load);
-		if (e) goto err_exit;
+		if (e) {
+			fprintf(stderr, "Error loading file %s\n", item_name);
+			goto err_exit;
+		}
+
+		endtime = gf_sys_clock();
 		
 		gf_sm_load_done(&load);
-		endtime = gf_sys_clock();
-		totaltime += endtime-starttime;
-
 		gf_sm_del(load.ctx);
 		gf_sg_del(sg);
 		if (is_mp4) gf_isom_close(load.isom);
+
+		totaltime += endtime-starttime;
 	}
 
 	return totaltime;
 err_exit:
+	gf_sm_load_done(&load);
 	gf_sm_del(load.ctx);
 	gf_sg_del(sg);
 	if (is_mp4) gf_isom_close(load.isom);
@@ -199,6 +211,7 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 	char name[100], name2[100];
 	char *tmp;
 	GF_LoadCompare *lc = cbck;
+	u32 time;
 
 	strcpy(name, (const char*)item_name);
 	tmp = strrchr(name, '.');
@@ -208,15 +221,15 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 	tmp[0] = '.';
 
 	/* MP4 */
-	if (lc->verbose) fprintf(stdout,"Looking for MP4 file ...");
+	if (lc->verbose) fprintf(stdout,"Looking for MP4 file ... ");
 	strcpy(name, (const char*)item_name);
 	tmp = strrchr(name, '.');
 	strcpy(tmp, ".mp4");
 	tmpfile = fopen(name, "rb");
-	if (!tmpfile) { /* LASeR encoding the file if it does not exist */
+	if (!tmpfile) { // encoding the file if the MP4 does not exist
 		GF_SMEncodeOptions opts;
 		GF_ISOFile *mp4;
-		if (lc->verbose) fprintf(stdout,"not present.\nEncoding SVG into LASeR...\n");
+		if (lc->verbose) fprintf(stdout,"not present.\nEncoding SVG into LASeR... \n");
 
 		memset(&opts, 0, sizeof(GF_SMEncodeOptions));
 		opts.auto_qant = 1;
@@ -237,17 +250,21 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 		if (lc->verbose) fprintf(stdout,"present.\n");
 		fclose(tmpfile);
 	}
-	if (lc->verbose) fprintf(stdout,"Loading and decoding %d time(s) the MP4 file ...\n", lc->nbloads);
-	fprintf(lc->out,"\t%d", loadonefile(name, 1, lc->nbloads));
+	
+	if (lc->verbose) fprintf(stdout,"Loading and decoding %d time(s) the MP4 file ... \n", lc->nbloads);
+	time = loadonefile(name, 1, lc->nbloads);
+	if (time) fprintf(lc->out,"\t%d", time);
+	else return 1;
 
 	/* Dump the decoded SVG */
-	if (lc->verbose) fprintf(stdout,"Looking for the decoded SVG ...");
-	strcpy(name2, (const char*)item_name);
+	if (lc->verbose) fprintf(stdout,"Looking for the decoded SVG ... ");
+	strcpy(name2, lc->tmpdir);
+	strcat(name2, (const char*)item_name);
 	tmp = strrchr(name2, '.');
 	strcpy(tmp, "_out.svg");
 	tmpfile = fopen(name2, "rt");
 	if (!tmpfile) {
-		if (lc->verbose) fprintf(stdout,"not present.\nDecoding MP4 and dumping SVG ...\n");
+		if (lc->verbose) fprintf(stdout,"not present.\nDecoding MP4 and dumping SVG ... \n");
 		tmp = strrchr(name2, '.');
 		tmp[0] = 0;
 		e = dumpsvg(name, name2);
@@ -261,22 +278,26 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 		fclose(tmpfile);
 	}
 	
-	/* SVG */
-	if (lc->verbose) fprintf(stdout,"Loading and parsing %d time(s) the input SVG file ...\n", lc->nbloads);
-	fprintf(lc->out,"\t%d", loadonefile(item_name, 0, lc->nbloads));
-	if (lc->verbose) fprintf(stdout,"Loading and parsing %d time(s) the decoded SVG file ...\n", lc->nbloads);
-	fprintf(lc->out,"\t%d", loadonefile(name2, 0, lc->nbloads));
+	/* SVG Parsing */
+	if (lc->verbose) fprintf(stdout,"Loading and parsing %d time(s) the input SVG file ... \n", lc->nbloads);
+	time = loadonefile(item_name, 0, lc->nbloads);
+	if (time) fprintf(lc->out,"\t%d", time);
+	else return 1;
+	if (lc->verbose) fprintf(stdout,"Loading and parsing %d time(s) the decoded SVG file ... \n", lc->nbloads);
+	time = loadonefile(name2, 0, lc->nbloads);
+	if (time) fprintf(lc->out,"\t%d", time);
+	else return 1;
 
 	/* SVGZ */
-	if (lc->verbose) fprintf(stdout,"Looking for the SVGZ ...");
+	if (lc->verbose) fprintf(stdout,"Looking for the SVGZ ... ");
 	strcpy(name, (const char*)item_name);
 	strcat(name, "z");
 	tmpfile = fopen(name, "rb");
-	if (!tmpfile) { /* GZIP the file if it does not exist */
+	if (!tmpfile) { // compress the file if the SVGZ does not exist
 		char buffer[100];
 		u32 size;
 		void *gzFile;
-		if (lc->verbose) fprintf(stdout,"not present.\nGzipping SVG ...\n");
+		if (lc->verbose) fprintf(stdout,"not present.\nGzipping SVG ... \n");
 		gzFile = gzopen(name, "wb");
 		tmpfile = fopen(item_name, "rt");
 		while ((size = fread(buffer, 1, 100, tmpfile))) gzwrite(gzFile, buffer, size);
@@ -286,8 +307,10 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 		if (lc->verbose) fprintf(stdout,"present.\n");
 		fclose(tmpfile);
 	}
-	if (lc->verbose) fprintf(stdout,"Loading, decompressing and parsing %d time(s) the SVGZ file ...\n", lc->nbloads);
-	fprintf(lc->out,"\t%d", loadonefile(name, 0, lc->nbloads));
+	if (lc->verbose) fprintf(stdout,"Loading, decompressing and parsing %d time(s) the SVGZ file ... \n", lc->nbloads);
+	time = loadonefile(name, 0, lc->nbloads);
+	if (time) fprintf(lc->out,"\t%d", time);
+	else return 1;
 
 	/*Sizes */
 	if (lc->verbose) fprintf(stdout,"Checking file sizes\n");
@@ -302,7 +325,8 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 		return 1;
 	}
 
-	strcpy(name2, (const char*)item_name);
+	strcpy(name2, lc->tmpdir);
+	strcat(name2, (const char*)item_name);
 	tmp = strrchr(name2, '.');
 	strcpy(tmp, "_out.svg");
 	tmpfile = fopen(name2, "rt");
@@ -316,7 +340,6 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 		fprintf(stderr, "Cannot probe size for %s\n", name2);
 		return 1;
 	}
-
 	strcpy(name, (const char*)item_name);
 	strcat(name, "z");
 	tmpfile = fopen(name, "rb");
@@ -347,6 +370,7 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 	if (lc->verbose) fprintf(stdout,"%s done\n", item_name);
 	fprintf(lc->out,"\n");
 	fflush(lc->out);
+
 	return 0;
 }
 
@@ -389,6 +413,9 @@ int main(int argc, char **argv)
 			i++;
 		} else if (!stricmp(arg, "-verbose")) {
 			lc.verbose = (u32)atoi(argv[i+1]);
+			i++;
+		} else if (!stricmp(arg, "-tmpdir")) {
+			strcpy(lc.tmpdir, argv[i+1]);
 			i++;
 		} else {
 			usage();
