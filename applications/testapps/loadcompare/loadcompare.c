@@ -26,6 +26,7 @@
 
 typedef struct {
 	FILE *out;
+	u32 nbloads;
 } GF_LoadCompare;
 
 u32 getlasertracksize(char *in)
@@ -38,7 +39,7 @@ u32 getlasertracksize(char *in)
 		GF_ISOSample *samp = gf_isom_get_sample_info(mp4, trackNum, j+1, NULL, NULL);
 		totalsize += samp->dataLength;
 	}
-	gf_isom_close(mp4);
+	gf_isom_delete(mp4);
 	return totalsize;
 }
 
@@ -130,17 +131,19 @@ err_exit:
 	return e;
 }
 
-u32 loadonefile(char *item_name, Bool is_mp4) 
+u32 loadonefile(char *item_name, Bool is_mp4, u32 nbloads) 
 {
 	GF_Err e;
 	u32 starttime,endtime, totaltime, i; 
+	GF_SceneGraph *sg;
 	GF_SceneLoader load;
 
 	totaltime = 0;
 	
-	for (i =0; i<5; i++) {
+	for (i =0; i<nbloads; i++) {
 		memset(&load, 0, sizeof(GF_SceneLoader));
-		load.ctx = gf_sm_new(gf_sg_new());
+		sg = gf_sg_new();
+		load.ctx = gf_sm_new(sg);
 		load.fileName = item_name;
 		if (is_mp4) load.isom = gf_isom_open(item_name, GF_ISOM_OPEN_READ, NULL);
 		starttime = gf_sys_clock();
@@ -154,7 +157,8 @@ u32 loadonefile(char *item_name, Bool is_mp4)
 		totaltime += endtime-starttime;
 
 		gf_sm_del(load.ctx);
-		if (is_mp4) gf_isom_close(load.isom);
+		gf_sg_del(sg);
+		if (is_mp4) gf_isom_delete(load.isom);
 	}
 
 	return totaltime;
@@ -189,11 +193,11 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 		mp4 = gf_isom_open(name, GF_ISOM_OPEN_WRITE, NULL);
 		
 		encodelaser(item_name, mp4, &opts);
-		gf_isom_close(mp4);
+		gf_isom_delete(mp4);
 	} else {
 		fclose(tmpfile);
 	}
-	fprintf(lc->out,"\t%d", loadonefile(name, 1));
+	fprintf(lc->out,"\t%d", loadonefile(name, 1, lc->nbloads));
 
 	/* Dump the decoded SVG */
 	strcpy(name2, (const char*)item_name);
@@ -208,8 +212,8 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 	} else fclose(tmpfile);
 	
 	/* SVG */
-	fprintf(lc->out,"\t%d", loadonefile(item_name, 0));
-	fprintf(lc->out,"\t%d", loadonefile(name2, 0));
+	fprintf(lc->out,"\t%d", loadonefile(item_name, 0, lc->nbloads));
+	fprintf(lc->out,"\t%d", loadonefile(name2, 0, lc->nbloads));
 
 	/* SVGZ */
 	strcpy(name, (const char*)item_name);
@@ -221,18 +225,18 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 		void *gzFile = gzopen(name, "wb");
 		tmpfile = fopen(item_name, "rt");
 		fprintf(stdout,"Gzipping ...\n");
-		while (size = fread(buffer, 1, 100, tmpfile)) gzwrite(gzFile, buffer, size);
+		while ((size = fread(buffer, 1, 100, tmpfile))) gzwrite(gzFile, buffer, size);
 		fclose(tmpfile);
 		gzclose(gzFile);
 	} else {
 		fclose(tmpfile);
 	}
-	fprintf(lc->out,"\t%d", loadonefile(name, 0));
+	fprintf(lc->out,"\t%d", loadonefile(name, 0, lc->nbloads));
 
 	/*Sizes */
 	tmpfile = fopen(item_name, "rt");
 	fseek(tmpfile, 0, SEEK_END);
-	fprintf(lc->out,"\t%d", ftell(tmpfile));
+	fprintf(lc->out,"\t%d", (u32)ftell(tmpfile));
 	fclose(tmpfile);
 
 	strcpy(name2, (const char*)item_name);
@@ -240,42 +244,83 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 	strcpy(tmp, "_out.svg");
 	tmpfile = fopen(name2, "rt");
 	fseek(tmpfile, 0, SEEK_END);
-	fprintf(lc->out,"\t%d", ftell(tmpfile));
+	fprintf(lc->out,"\t%d", (u32)ftell(tmpfile));
 	fclose(tmpfile);
+	gf_delete_file(name2);
 
 	strcpy(name, (const char*)item_name);
 	strcat(name, "z");
 	tmpfile = fopen(name, "rb");
 	fseek(tmpfile, 0, SEEK_END);
-	fprintf(lc->out,"\t%d", ftell(tmpfile));
+	fprintf(lc->out,"\t%d", (u32)ftell(tmpfile));
 	fclose(tmpfile);
+//	gf_delete_file(name);
 
 	strcpy(name, (const char*)item_name);
 	tmp = strrchr(name, '.');
 	strcpy(tmp, ".mp4");
 	fprintf(lc->out,"\t%d", getlasertracksize(name));
+//	gf_delete_file(name);
 	
 	fprintf(lc->out,"\n");
 	fflush(lc->out);
 	return 0;
 }
 
+void usage() 
+{
+	fprintf(stdout, "Compare LASeR and SVG encoding size and loading time\n");
+	fprintf(stdout, "usage: (-out output_result) (-single input.svg | -dir dir) (-nloads X)\n");
+	fprintf(stdout, "defaults are: stdout, dir=. and X = 1");
+}
+
 int main(int argc, char **argv)
 {
+	u32 i;
+	char *arg;
 	GF_LoadCompare lc;
-	
-	gf_sys_init();
-	memset(&lc, 0, sizeof(GF_LoadCompare));
+	Bool single = 0;
+	char *out = NULL;
+	char in[256] = ".";
 
-	lc.out = fopen(argv[1], "wt");
-	if (!lc.out) return -1;
+	memset(&lc, 0, sizeof(GF_LoadCompare));
+	lc.nbloads = 1;
+	lc.out = stdout;
+	
+	for (i = 1; i < (u32) argc ; i++) {
+		arg = argv[i];
+		if (!stricmp(arg, "-out")) {
+			out = argv[i+1];
+			i++;
+		} else if (!stricmp(arg, "-single")) {
+			single = 1;
+			strcpy(in, argv[i+1]);
+			i++;
+		} else if (!stricmp(arg, "-dir")) {
+			strcpy(in, argv[i+1]);
+			i++;
+		} else if (!stricmp(arg, "-nloads")) {
+			lc.nbloads = (u32)atoi(argv[i+1]);
+			i++;
+		} else {
+			usage();
+			return -1;
+		}	
+	}
+
+	gf_sys_init();
+	if (out) lc.out = fopen(out, "wt");
+	if (!lc.out) {
+		fprintf(stderr, "Cannot open output file %s\n", out);
+		return -1;
+	}
 
 	fprintf(lc.out,"File Name\tMP4 Load Time\tInput SVG Load Time\tDecoded SVG Load Time\tSVGZ Load Time\tSVG Size\tDecoded SVG Size\tSVGZ Size\tLASeR track size\n");
 
-	if (!strcmp(argv[2], "-single")) {
-		loadcompare_one(&lc, argv[3], NULL);
+	if (single) {
+		loadcompare_one(&lc, in, NULL);
 	} else {
-		gf_enum_directory(argv[2], 0, loadcompare_one, &lc, "svg");
+		gf_enum_directory(in, 0, loadcompare_one, &lc, "svg");
 	}
 		
 	if (lc.out) fclose(lc.out);
