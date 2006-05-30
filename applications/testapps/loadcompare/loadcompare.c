@@ -27,19 +27,25 @@
 typedef struct {
 	FILE *out;
 	u32 nbloads;
+	u32 verbose;
 } GF_LoadCompare;
 
 u32 getlasertracksize(char *in)
 {
 	u32 j, totalsize = 0;
+	u32 track_id, trackNum;
+	
 	GF_ISOFile *mp4 = gf_isom_open(in, GF_ISOM_OPEN_READ, NULL);
-	u32 track_id = gf_isom_get_track_id(mp4, 1);
-	u32 trackNum = gf_isom_get_track_by_id(mp4, track_id);
+	if (!mp4) return 0;
+	
+	track_id = gf_isom_get_track_id(mp4, 1);
+	trackNum = gf_isom_get_track_by_id(mp4, track_id);
 	for (j=0; j<gf_isom_get_sample_count(mp4, trackNum); j++) {
 		GF_ISOSample *samp = gf_isom_get_sample_info(mp4, trackNum, j+1, NULL, NULL);
 		totalsize += samp->dataLength;
+		gf_isom_sample_del(&samp);
 	}
-	gf_isom_delete(mp4);
+	gf_isom_close(mp4);
 	return totalsize;
 }
 
@@ -58,17 +64,31 @@ GF_Err dumpsvg(char *in, char *out)
 	load.ctx = ctx;
 
 	load.isom = gf_isom_open(in, GF_ISOM_OPEN_READ, NULL);
+	if (!load.isom) return GF_ISOM_INVALID_FILE;
+
 	e = gf_sm_load_init(&load);
-	if (!e) e = gf_sm_load_run(&load);
-	gf_sm_load_done(&load);
+	if (e) {
+		fprintf(stderr, "Error loading SVG file\n");
+		goto err_exit;
+	}
+	
+	e = gf_sm_load_run(&load);
+	if (e) {
+		fprintf(stderr, "Error loading SVG file\n");
+		goto err_exit;
+	}
+
 	e = gf_sm_dump(ctx, out, GF_SM_DUMP_SVG);
+
+err_exit:
+	gf_sm_load_done(&load);
 	gf_sm_del(ctx);
 	gf_sg_del(sg);
-	gf_isom_delete(load.isom);
+	gf_isom_close(load.isom);
 	return e;
 }
 
-GF_Err encodelaser(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts) 
+GF_Err encodelaser(GF_LoadCompare *lc, char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts) 
 {
 	GF_Err e;
 	GF_SceneLoader load;
@@ -86,36 +106,36 @@ GF_Err encodelaser(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts)
 	gf_sm_load_done(&load);
 
 	if (opts->auto_qant) {
-		fprintf(stdout, "Analysing Scene for Automatic Quantization\n");
+		if (lc->verbose) fprintf(stdout, "Analysing Scene for Automatic Quantization\n");
 		statsman = gf_sm_stats_new();
 		e = gf_sm_stats_for_scene(statsman, ctx);
 		if (!e) {
 			GF_SceneStatistics *stats = gf_sm_stats_get(statsman);
 			if (opts->resolution > (s32)stats->frac_res_2d) {
-				fprintf(stdout, " Given resolution %d is (unnecessarily) too high, using %d instead.\n", opts->resolution, stats->frac_res_2d);
+				if (lc->verbose) fprintf(stdout, " Given resolution %d is (unnecessarily) too high, using %d instead.\n", opts->resolution, stats->frac_res_2d);
 				opts->resolution = stats->frac_res_2d;
 			} else if (stats->int_res_2d + opts->resolution <= 0) {
-				fprintf(stdout, " Given resolution %d is too low, using %d instead.\n", opts->resolution, stats->int_res_2d - 1);
+				if (lc->verbose) fprintf(stdout, " Given resolution %d is too low, using %d instead.\n", opts->resolution, stats->int_res_2d - 1);
 				opts->resolution = 1 - stats->int_res_2d;
 			}				
 			opts->coord_bits = stats->int_res_2d + opts->resolution;
-			fprintf(stdout, " Coordinates & Lengths encoded using ");
-			if (opts->resolution < 0) fprintf(stdout, "only the %d most significant bits (of %d).\n", opts->coord_bits, stats->int_res_2d);
-			else fprintf(stdout, "a %d.%d representation\n", stats->int_res_2d, opts->resolution);
+			if (lc->verbose) fprintf(stdout, " Coordinates & Lengths encoded using ");
+			if (opts->resolution < 0) if (lc->verbose) fprintf(stdout, "only the %d most significant bits (of %d).\n", opts->coord_bits, stats->int_res_2d);
+			else if (lc->verbose) fprintf(stdout, "a %d.%d representation\n", stats->int_res_2d, opts->resolution);
 
-			fprintf(stdout, " Matrix Scale & Skew Coefficients ");
+			if (lc->verbose) fprintf(stdout, " Matrix Scale & Skew Coefficients ");
 			if (opts->coord_bits < stats->scale_int_res_2d) {
 				opts->scale_bits = stats->scale_int_res_2d - opts->coord_bits;
-				fprintf(stdout, "encoded using a %d.8 representation\n", stats->scale_int_res_2d);
+				if (lc->verbose) fprintf(stdout, "encoded using a %d.8 representation\n", stats->scale_int_res_2d);
 			} else  {
 				opts->scale_bits = 0;
-				fprintf(stdout, "not encoded.\n");
+				if (lc->verbose) fprintf(stdout, "not encoded.\n");
 			}
 		}
 	}
 
 	if (e) {
-		fprintf(stdout, "Error loading file %s\n", gf_error_to_string(e));
+		fprintf(stderr, "Error loading file %s\n", gf_error_to_string(e));
 		goto err_exit;
 	} else {
 		e = gf_sm_encode_to_file(ctx, mp4, opts);
@@ -149,23 +169,31 @@ u32 loadonefile(char *item_name, Bool is_mp4, u32 nbloads)
 		starttime = gf_sys_clock();
 
 		e = gf_sm_load_init(&load);
-		if (e) return 0;
+		if (e) goto err_exit;
 
 		e = gf_sm_load_run(&load);
-		if (!e) gf_sm_load_done(&load);
+		if (e) goto err_exit;
+		
+		gf_sm_load_done(&load);
 		endtime = gf_sys_clock();
 		totaltime += endtime-starttime;
 
 		gf_sm_del(load.ctx);
 		gf_sg_del(sg);
-		if (is_mp4) gf_isom_delete(load.isom);
+		if (is_mp4) gf_isom_close(load.isom);
 	}
 
 	return totaltime;
+err_exit:
+	gf_sm_del(load.ctx);
+	gf_sg_del(sg);
+	if (is_mp4) gf_isom_close(load.isom);
+	return 0;
 }
 
 Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 {
+	GF_Err e = GF_OK;
 	u32 lasersize;
 	FILE *tmpfile;
 	char name[100], name2[100];
@@ -175,12 +203,12 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 	strcpy(name, (const char*)item_name);
 	tmp = strrchr(name, '.');
 	tmp[0] = 0;
-	fprintf(stdout,"Processing %s\n", name);
+	if (lc->verbose) fprintf(stdout,"Processing %s\n", name);
 	fprintf(lc->out,"%s", name);
 	tmp[0] = '.';
 
 	/* MP4 */
-	fprintf(stdout,"Looking for MP4 file ...");
+	if (lc->verbose) fprintf(stdout,"Looking for MP4 file ...");
 	strcpy(name, (const char*)item_name);
 	tmp = strrchr(name, '.');
 	strcpy(tmp, ".mp4");
@@ -188,47 +216,59 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 	if (!tmpfile) { /* LASeR encoding the file if it does not exist */
 		GF_SMEncodeOptions opts;
 		GF_ISOFile *mp4;
-		fprintf(stdout,"not present.\nEncoding SVG into LASeR...\n");
+		if (lc->verbose) fprintf(stdout,"not present.\nEncoding SVG into LASeR...\n");
 
 		memset(&opts, 0, sizeof(GF_SMEncodeOptions));
 		opts.auto_qant = 1;
 		opts.resolution = 8;
 		mp4 = gf_isom_open(name, GF_ISOM_OPEN_WRITE, NULL);
-		
-		encodelaser(item_name, mp4, &opts);
-		gf_isom_delete(mp4);
+		if (mp4) {
+			e = encodelaser(lc, item_name, mp4, &opts);
+			if (e) {
+				fprintf(stderr, "Error in LASeR encoding %s\n", item_name);
+				return 1;
+			}
+			gf_isom_close(mp4);
+		} else {
+			fprintf(stderr, "Error: MP4 file could not be created\n");
+			return 1;
+		}
 	} else {
-		fprintf(stdout,"present.\n");
+		if (lc->verbose) fprintf(stdout,"present.\n");
 		fclose(tmpfile);
 	}
-	fprintf(stdout,"Loading and decoding %d time(s) the MP4 file ...\n", lc->nbloads);
+	if (lc->verbose) fprintf(stdout,"Loading and decoding %d time(s) the MP4 file ...\n", lc->nbloads);
 	fprintf(lc->out,"\t%d", loadonefile(name, 1, lc->nbloads));
 
 	/* Dump the decoded SVG */
-	fprintf(stdout,"Looking for the decoded SVG ...");
+	if (lc->verbose) fprintf(stdout,"Looking for the decoded SVG ...");
 	strcpy(name2, (const char*)item_name);
 	tmp = strrchr(name2, '.');
 	strcpy(tmp, "_out.svg");
 	tmpfile = fopen(name2, "rt");
 	if (!tmpfile) {
-		fprintf(stdout,"not present.\nDecoding MP4 and dumping SVG ...\n");
+		if (lc->verbose) fprintf(stdout,"not present.\nDecoding MP4 and dumping SVG ...\n");
 		tmp = strrchr(name2, '.');
 		tmp[0] = 0;
-		dumpsvg(name, name2);
+		e = dumpsvg(name, name2);
+		if (e) {
+			fprintf(stderr, "Error dumping SVG %s\n", name2);
+			return 1;
+		}
 		tmp[0] = '.';
 	} else {
-		fprintf(stdout,"present.\n");
+		if (lc->verbose) fprintf(stdout,"present.\n");
 		fclose(tmpfile);
 	}
 	
 	/* SVG */
-	fprintf(stdout,"Loading and parsing %d time(s) the input SVG file ...\n", lc->nbloads);
+	if (lc->verbose) fprintf(stdout,"Loading and parsing %d time(s) the input SVG file ...\n", lc->nbloads);
 	fprintf(lc->out,"\t%d", loadonefile(item_name, 0, lc->nbloads));
-	fprintf(stdout,"Loading and parsing %d time(s) the decoded SVG file ...\n", lc->nbloads);
+	if (lc->verbose) fprintf(stdout,"Loading and parsing %d time(s) the decoded SVG file ...\n", lc->nbloads);
 	fprintf(lc->out,"\t%d", loadonefile(name2, 0, lc->nbloads));
 
 	/* SVGZ */
-	fprintf(stdout,"Looking for the SVGZ ...");
+	if (lc->verbose) fprintf(stdout,"Looking for the SVGZ ...");
 	strcpy(name, (const char*)item_name);
 	strcat(name, "z");
 	tmpfile = fopen(name, "rb");
@@ -236,55 +276,75 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 		char buffer[100];
 		u32 size;
 		void *gzFile;
-		fprintf(stdout,"not present.\nGzipping SVG ...\n");
+		if (lc->verbose) fprintf(stdout,"not present.\nGzipping SVG ...\n");
 		gzFile = gzopen(name, "wb");
 		tmpfile = fopen(item_name, "rt");
 		while ((size = fread(buffer, 1, 100, tmpfile))) gzwrite(gzFile, buffer, size);
 		fclose(tmpfile);
 		gzclose(gzFile);
 	} else {
-		fprintf(stdout,"present.\n");
+		if (lc->verbose) fprintf(stdout,"present.\n");
 		fclose(tmpfile);
 	}
-	fprintf(stdout,"Loading, decompressing and parsing %d time(s) the SVGZ file ...\n", lc->nbloads);
+	if (lc->verbose) fprintf(stdout,"Loading, decompressing and parsing %d time(s) the SVGZ file ...\n", lc->nbloads);
 	fprintf(lc->out,"\t%d", loadonefile(name, 0, lc->nbloads));
 
 	/*Sizes */
-	fprintf(stdout,"Checking file sizes\n");
+	if (lc->verbose) fprintf(stdout,"Checking file sizes\n");
 	tmpfile = fopen(item_name, "rt");
-	fseek(tmpfile, 0, SEEK_END);
-	fprintf(lc->out,"\t%d", (u32)ftell(tmpfile));
-	fprintf(stdout,"Input SVG: %d\n", (u32)ftell(tmpfile));
-	fclose(tmpfile);
+	if (tmpfile) { 
+		fseek(tmpfile, 0, SEEK_END);
+		fprintf(lc->out,"\t%d", (u32)ftell(tmpfile));
+		if (lc->verbose) fprintf(stdout,"Input SVG: %d\n", (u32)ftell(tmpfile));
+		fclose(tmpfile);
+	} else {
+		fprintf(stderr, "Cannot probe size for %s\n", item_name);
+		return 1;
+	}
 
 	strcpy(name2, (const char*)item_name);
 	tmp = strrchr(name2, '.');
 	strcpy(tmp, "_out.svg");
 	tmpfile = fopen(name2, "rt");
-	fseek(tmpfile, 0, SEEK_END);
-	fprintf(lc->out,"\t%d", (u32)ftell(tmpfile));
-	fprintf(stdout,"Output SVG: %d\n", (u32)ftell(tmpfile));
-	fclose(tmpfile);
-	gf_delete_file(name2);
+	if (tmpfile) { 
+		fseek(tmpfile, 0, SEEK_END);
+		fprintf(lc->out,"\t%d", (u32)ftell(tmpfile));
+		if (lc->verbose) fprintf(stdout,"Output SVG: %d\n", (u32)ftell(tmpfile));
+		fclose(tmpfile);
+		gf_delete_file(name2);
+	} else {
+		fprintf(stderr, "Cannot probe size for %s\n", name2);
+		return 1;
+	}
 
 	strcpy(name, (const char*)item_name);
 	strcat(name, "z");
 	tmpfile = fopen(name, "rb");
 	fseek(tmpfile, 0, SEEK_END);
-	fprintf(lc->out,"\t%d", (u32)ftell(tmpfile));
-	fprintf(stdout,"SVGZ: %d\n", (u32)ftell(tmpfile));
-	fclose(tmpfile);
-//	gf_delete_file(name);
+	if (tmpfile) { 
+		fprintf(lc->out,"\t%d", (u32)ftell(tmpfile));
+		if (lc->verbose) fprintf(stdout,"SVGZ: %d\n", (u32)ftell(tmpfile));
+		fclose(tmpfile);
+	//	gf_delete_file(name);
+	} else {
+		fprintf(stderr, "Cannot probe size for %s\n", name);
+		return 1;
+	}
 
 	strcpy(name, (const char*)item_name);
 	tmp = strrchr(name, '.');
 	strcpy(tmp, ".mp4");
 	lasersize = getlasertracksize(name);
-	fprintf(lc->out,"\t%d", lasersize);
-	fprintf(stdout,"LASeR: %d\n", lasersize);
-//	gf_delete_file(name);
+	if (lasersize != 0) { 
+		fprintf(lc->out,"\t%d", lasersize);
+		if (lc->verbose) fprintf(stdout,"LASeR: %d\n", lasersize);
+	//	gf_delete_file(name);
+	} else {
+		fprintf(stderr, "Cannot probe size for %s\n", name);
+		return 1;
+	}
 	
-	fprintf(stdout,"%s done\n", item_name);
+	if (lc->verbose) fprintf(stdout,"%s done\n", item_name);
 	fprintf(lc->out,"\n");
 	fflush(lc->out);
 	return 0;
@@ -293,7 +353,7 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 void usage() 
 {
 	fprintf(stdout, "Compare LASeR and SVG encoding size and loading time\n");
-	fprintf(stdout, "usage: (-out output_result) (-single input.svg | -dir dir) (-nloads X)\n");
+	fprintf(stdout, "usage: (-out output_result) (-single input.svg | -dir dir) (-nloads X) (-verbose X)\n");
 	fprintf(stdout, "defaults are: stdout, dir=. and X = 1");
 }
 
@@ -305,6 +365,8 @@ int main(int argc, char **argv)
 	Bool single = 0;
 	char *out = NULL;
 	char in[256] = ".";
+
+	fprintf(stdout, "LASeR and SVG Comparison tool\n");
 
 	memset(&lc, 0, sizeof(GF_LoadCompare));
 	lc.nbloads = 1;
@@ -324,6 +386,9 @@ int main(int argc, char **argv)
 			i++;
 		} else if (!stricmp(arg, "-nloads")) {
 			lc.nbloads = (u32)atoi(argv[i+1]);
+			i++;
+		} else if (!stricmp(arg, "-verbose")) {
+			lc.verbose = (u32)atoi(argv[i+1]);
 			i++;
 		} else {
 			usage();
