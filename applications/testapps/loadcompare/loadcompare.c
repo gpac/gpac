@@ -22,11 +22,99 @@
  *
  */
 #include <gpac/scene_manager.h>
+#include <zlib.h>
 
 typedef struct {
 	FILE *out;
 } GF_LoadCompare;
 
+GF_Err dumpsvg(char *in, char *out)
+{
+	GF_Err e;
+	GF_SceneManager *ctx;
+	GF_SceneGraph *sg;
+	GF_SceneLoader load;
+	e = GF_OK;
+
+	sg = gf_sg_new();
+	ctx = gf_sm_new(sg);
+	memset(&load, 0, sizeof(GF_SceneLoader));
+	load.fileName = in;
+	load.ctx = ctx;
+
+	load.isom = gf_isom_open(in, GF_ISOM_OPEN_READ, NULL);
+	e = gf_sm_load_init(&load);
+	if (!e) e = gf_sm_load_run(&load);
+	gf_sm_load_done(&load);
+	e = gf_sm_dump(ctx, out, GF_SM_DUMP_SVG);
+	gf_sm_del(ctx);
+	gf_sg_del(sg);
+	gf_isom_delete(load.isom);
+	return e;
+}
+
+GF_Err encodelaser(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts) 
+{
+	GF_Err e;
+	GF_SceneLoader load;
+	GF_SceneManager *ctx;
+	GF_SceneGraph *sg;
+	GF_StatManager *statsman = NULL;
+	
+	sg = gf_sg_new();
+	ctx = gf_sm_new(sg);
+	memset(&load, 0, sizeof(GF_SceneLoader));
+	load.fileName = in;
+	load.ctx = ctx;
+	e = gf_sm_load_init(&load);
+	e = gf_sm_load_run(&load);
+	gf_sm_load_done(&load);
+
+	if (opts->auto_qant) {
+		fprintf(stdout, "Analysing Scene for Automatic Quantization\n");
+		statsman = gf_sm_stats_new();
+		e = gf_sm_stats_for_scene(statsman, ctx);
+		if (!e) {
+			GF_SceneStatistics *stats = gf_sm_stats_get(statsman);
+			if (opts->resolution > (s32)stats->frac_res_2d) {
+				fprintf(stdout, " Given resolution %d is (unnecessarily) too high, using %d instead.\n", opts->resolution, stats->frac_res_2d);
+				opts->resolution = stats->frac_res_2d;
+			} else if (stats->int_res_2d + opts->resolution <= 0) {
+				fprintf(stdout, " Given resolution %d is too low, using %d instead.\n", opts->resolution, stats->int_res_2d - 1);
+				opts->resolution = 1 - stats->int_res_2d;
+			}				
+			opts->coord_bits = stats->int_res_2d + opts->resolution;
+			fprintf(stdout, " Coordinates & Lengths encoded using ");
+			if (opts->resolution < 0) fprintf(stdout, "only the %d most significant bits (of %d).\n", opts->coord_bits, stats->int_res_2d);
+			else fprintf(stdout, "a %d.%d representation\n", stats->int_res_2d, opts->resolution);
+
+			fprintf(stdout, " Matrix Scale & Skew Coefficients ");
+			if (opts->coord_bits < stats->scale_int_res_2d) {
+				opts->scale_bits = stats->scale_int_res_2d - opts->coord_bits;
+				fprintf(stdout, "encoded using a %d.8 representation\n", stats->scale_int_res_2d);
+			} else  {
+				opts->scale_bits = 0;
+				fprintf(stdout, "not encoded.\n");
+			}
+		}
+	}
+
+	if (e) {
+		fprintf(stdout, "Error loading file %s\n", gf_error_to_string(e));
+		goto err_exit;
+	} else {
+		e = gf_sm_encode_to_file(ctx, mp4, opts);
+	}
+
+	gf_isom_set_brand_info(mp4, GF_ISOM_BRAND_MP42, 1);
+	gf_isom_modify_alternate_brand(mp4, GF_ISOM_BRAND_ISOM, 1);
+
+err_exit:
+	if (statsman) gf_sm_stats_del(statsman);
+	gf_sm_del(ctx);
+	gf_sg_del(sg);
+	return e;
+}
 
 u32 loadonefile(char *item_name, Bool is_mp4) 
 {
@@ -60,27 +148,75 @@ u32 loadonefile(char *item_name, Bool is_mp4)
 
 Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 {
-	char name[100];
+	FILE *tmpfile;
+	char name[100], name2[100];
 	char *tmp;
 	GF_LoadCompare *lc = cbck;
 
-	fprintf(stdout,"%s\n", item_name);
-	fprintf(lc->out,"%s", item_name);
+	strcpy(name, (const char*)item_name);
+	tmp = strrchr(name, '.');
+	tmp[0] = 0;
+	fprintf(stdout,"Processing %s\n", name);
+	fprintf(lc->out,"%s", name);
+	tmp[0] = '.';
 
-	/* SVG */
-	fprintf(lc->out,"\t%d", loadonefile(item_name, 0));
-	/* SVGZ */
-    if (0) {
-		strcpy(name, (const char*)item_name);
-		fprintf(lc->out,"\t%d", loadonefile(strcat(name, "z"), 0));
-	}
 	/* MP4 */
 	strcpy(name, (const char*)item_name);
 	tmp = strrchr(name, '.');
-	strcpy(tmp, "_0.mp4");
+	strcpy(tmp, ".mp4");
+	tmpfile = fopen(name, "rb");
+	if (!tmpfile) { /* LASeR encoding the file if it does not exist */
+		GF_SMEncodeOptions opts;
+		GF_ISOFile *mp4;
+
+		memset(&opts, 0, sizeof(GF_SMEncodeOptions));
+		opts.auto_qant = 1;
+		opts.resolution = 8;
+		mp4 = gf_isom_open(name, GF_ISOM_OPEN_WRITE, NULL);
+		
+		encodelaser(item_name, mp4, &opts);
+		gf_isom_close(mp4);
+	} else {
+		fclose(tmpfile);
+	}
 	fprintf(lc->out,"\t%d", loadonefile(name, 1));
 
+	/* Dump the decoded SVG */
+	strcpy(name2, (const char*)item_name);
+	tmp = strrchr(name2, '.');
+	strcpy(tmp, "_out.svg");
+	tmpfile = fopen(name2, "rt");
+	if (!tmpfile) {
+		tmp = strrchr(name2, '.');
+		tmp[0] = 0;
+		dumpsvg(name, name2);
+		tmp[0] = '.';
+	} else fclose(tmpfile);
+	
+	/* SVG */
+	fprintf(lc->out,"\t%d", loadonefile(item_name, 0));
+	fprintf(lc->out,"\t%d", loadonefile(name2, 0));
+
+	/* SVGZ */
+	strcpy(name, (const char*)item_name);
+	strcat(name, "z");
+	tmpfile = fopen(name, "rb");
+	if (!tmpfile) { /* GZIP the file if it does not exist */
+		char buffer[100];
+		u32 size;
+		void *gzFile = gzopen(name, "wb");
+		tmpfile = fopen(item_name, "rt");
+		fprintf(stdout,"Gzipping ...\n");
+		while (size = fread(buffer, 1, 100, tmpfile)) gzwrite(gzFile, buffer, size);
+		fclose(tmpfile);
+		gzclose(gzFile);
+	} else {
+		fclose(tmpfile);
+	}
+	fprintf(lc->out,"\t%d", loadonefile(name, 0));
+
 	fprintf(lc->out,"\n");
+	fflush(lc->out);
 	return 0;
 }
 
@@ -94,7 +230,7 @@ int main(int argc, char **argv)
 	lc.out = fopen(argv[1], "wt");
 	if (!lc.out) return -1;
 
-	fprintf(lc.out,"File Name\tSVG Load Time\tGZIP Load Time\tMP4 Load Time\n");
+	fprintf(lc.out,"File Name\tMP4 Load Time\tInput SVG Load Time\tDecoded SVG Load Time\tSVGZ Load Time\n");
 
 //	loadcompare_one(&lc, "batik3D.svg", NULL);
 	gf_enum_directory(argv[2], 0, loadcompare_one, &lc, "svg");
