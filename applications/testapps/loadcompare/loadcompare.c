@@ -166,6 +166,7 @@ u32 loadonefile(char *item_name, Bool is_mp4, u32 nbloads)
 
 Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 {
+	u32 lasersize;
 	FILE *tmpfile;
 	char name[100], name2[100];
 	char *tmp;
@@ -179,6 +180,7 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 	tmp[0] = '.';
 
 	/* MP4 */
+	fprintf(stdout,"Looking for MP4 file ...");
 	strcpy(name, (const char*)item_name);
 	tmp = strrchr(name, '.');
 	strcpy(tmp, ".mp4");
@@ -186,6 +188,7 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 	if (!tmpfile) { /* LASeR encoding the file if it does not exist */
 		GF_SMEncodeOptions opts;
 		GF_ISOFile *mp4;
+		fprintf(stdout,"not present.\nEncoding SVG into LASeR...\n");
 
 		memset(&opts, 0, sizeof(GF_SMEncodeOptions));
 		opts.auto_qant = 1;
@@ -195,48 +198,63 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 		encodelaser(item_name, mp4, &opts);
 		gf_isom_delete(mp4);
 	} else {
+		fprintf(stdout,"present.\n");
 		fclose(tmpfile);
 	}
+	fprintf(stdout,"Loading and decoding %d time(s) the MP4 file ...\n", lc->nbloads);
 	fprintf(lc->out,"\t%d", loadonefile(name, 1, lc->nbloads));
 
 	/* Dump the decoded SVG */
+	fprintf(stdout,"Looking for the decoded SVG ...");
 	strcpy(name2, (const char*)item_name);
 	tmp = strrchr(name2, '.');
 	strcpy(tmp, "_out.svg");
 	tmpfile = fopen(name2, "rt");
 	if (!tmpfile) {
+		fprintf(stdout,"not present.\nDecoding MP4 and dumping SVG ...\n");
 		tmp = strrchr(name2, '.');
 		tmp[0] = 0;
 		dumpsvg(name, name2);
 		tmp[0] = '.';
-	} else fclose(tmpfile);
+	} else {
+		fprintf(stdout,"present.\n");
+		fclose(tmpfile);
+	}
 	
 	/* SVG */
+	fprintf(stdout,"Loading and parsing %d time(s) the input SVG file ...\n", lc->nbloads);
 	fprintf(lc->out,"\t%d", loadonefile(item_name, 0, lc->nbloads));
+	fprintf(stdout,"Loading and parsing %d time(s) the decoded SVG file ...\n", lc->nbloads);
 	fprintf(lc->out,"\t%d", loadonefile(name2, 0, lc->nbloads));
 
 	/* SVGZ */
+	fprintf(stdout,"Looking for the SVGZ ...");
 	strcpy(name, (const char*)item_name);
 	strcat(name, "z");
 	tmpfile = fopen(name, "rb");
 	if (!tmpfile) { /* GZIP the file if it does not exist */
 		char buffer[100];
 		u32 size;
-		void *gzFile = gzopen(name, "wb");
+		void *gzFile;
+		fprintf(stdout,"not present.\nGzipping SVG ...\n");
+		gzFile = gzopen(name, "wb");
 		tmpfile = fopen(item_name, "rt");
-		fprintf(stdout,"Gzipping ...\n");
 		while ((size = fread(buffer, 1, 100, tmpfile))) gzwrite(gzFile, buffer, size);
 		fclose(tmpfile);
 		gzclose(gzFile);
 	} else {
+		fprintf(stdout,"present.\n");
 		fclose(tmpfile);
 	}
+	fprintf(stdout,"Loading, decompressing and parsing %d time(s) the SVGZ file ...\n", lc->nbloads);
 	fprintf(lc->out,"\t%d", loadonefile(name, 0, lc->nbloads));
 
 	/*Sizes */
+	fprintf(stdout,"Checking file sizes\n");
 	tmpfile = fopen(item_name, "rt");
 	fseek(tmpfile, 0, SEEK_END);
 	fprintf(lc->out,"\t%d", (u32)ftell(tmpfile));
+	fprintf(stdout,"Input SVG: %d\n", (u32)ftell(tmpfile));
 	fclose(tmpfile);
 
 	strcpy(name2, (const char*)item_name);
@@ -245,6 +263,7 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 	tmpfile = fopen(name2, "rt");
 	fseek(tmpfile, 0, SEEK_END);
 	fprintf(lc->out,"\t%d", (u32)ftell(tmpfile));
+	fprintf(stdout,"Output SVG: %d\n", (u32)ftell(tmpfile));
 	fclose(tmpfile);
 	gf_delete_file(name2);
 
@@ -253,15 +272,19 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 	tmpfile = fopen(name, "rb");
 	fseek(tmpfile, 0, SEEK_END);
 	fprintf(lc->out,"\t%d", (u32)ftell(tmpfile));
+	fprintf(stdout,"SVGZ: %d\n", (u32)ftell(tmpfile));
 	fclose(tmpfile);
 //	gf_delete_file(name);
 
 	strcpy(name, (const char*)item_name);
 	tmp = strrchr(name, '.');
 	strcpy(tmp, ".mp4");
-	fprintf(lc->out,"\t%d", getlasertracksize(name));
+	lasersize = getlasertracksize(name);
+	fprintf(lc->out,"\t%d", lasersize);
+	fprintf(stdout,"LASeR: %d\n", lasersize);
 //	gf_delete_file(name);
 	
+	fprintf(stdout,"%s done\n", item_name);
 	fprintf(lc->out,"\n");
 	fflush(lc->out);
 	return 0;
