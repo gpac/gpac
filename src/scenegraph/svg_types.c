@@ -337,7 +337,14 @@ void gf_svg_delete_conditional(SVGConditionalAttributes *p)
 	}
 	gf_list_del(p->requiredFeatures);
 
-	svg_delete_string_list(p->requiredExtensions);
+	while (gf_list_count(p->requiredExtensions)) {
+		SVG_IRI *iri = gf_list_last(p->requiredExtensions);
+		gf_list_rem_last(p->requiredExtensions);
+		if (iri->iri) free(iri->iri);
+		free(iri);
+	}
+	gf_list_del(p->requiredExtensions);
+
 	svg_delete_string_list(p->requiredFonts);
 	svg_delete_string_list(p->requiredFormats);
 	svg_delete_string_list(p->systemLanguage);
