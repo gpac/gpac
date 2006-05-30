@@ -234,10 +234,14 @@ void PrintEncodeUsage()
 			" -ctx-out file:       specifies storage of updated context (MP4/BT/XMT)\n"
 			"\n"
 			"LASeR Encoding options\n"
-			" -resolution res:     resolution factor (-8 to 7)\n"
-			"                       all coords are multiplied by 2^res\n"
-			" -coord-bits bits:    bits used for encoding coordinates (default 12)\n"
-			" -scale-bits bits:    extra bits used for encoding scales (default 0)\n"
+			" -auto_quant res:     resolution is given as if using -resolution\n"
+			"                       but coord-bits and scale-bits are infered\n"
+			" -resolution res:     resolution factor (-8 to 7, default 0)\n"
+			"                       all coords are multiplied by 2^res before truncation\n"
+			" -coord-bits bits:    bits used for encoding truncated coordinates\n"
+			"                       (0 to 31, default 12)\n"
+			" -scale-bits bits:    extra bits used for encoding truncated scales\n"
+			"                       (0 to 4, default 0)\n"
 			);
 }
 
@@ -1305,6 +1309,12 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-resolution")) {
 			CHECK_NEXT_ARG
 			opts.resolution = atoi(argv[i+1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-auto_quant")) {
+			CHECK_NEXT_ARG
+			opts.resolution = atoi(argv[i+1]);
+			opts.auto_qant = 1;
 			i++;
 		}
 		else if (!stricmp(arg, "-coord-bits")) {

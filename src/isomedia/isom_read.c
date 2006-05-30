@@ -685,7 +685,7 @@ GF_Err gf_isom_get_copyright(GF_ISOFile *mov, u32 Index, const char **threeCharC
 GF_Err gf_isom_get_watermark(GF_ISOFile *mov, bin128 UUID, u8** data, u32* length)
 {
 	GF_UserDataMap *map;
-	GF_UnknwonUUIDBox *wm;
+	GF_UnknownUUIDBox *wm;
 
 	if (!mov) return GF_BAD_PARAM;
 	if (!mov->moov || !mov->moov->udta) return GF_NOT_SUPPORTED;
@@ -693,7 +693,7 @@ GF_Err gf_isom_get_watermark(GF_ISOFile *mov, bin128 UUID, u8** data, u32* lengt
 	map = udta_getEntry(mov->moov->udta, GF_ISOM_BOX_TYPE_UUID, (bin128 *) & UUID);
 	if (!map) return GF_NOT_SUPPORTED;
 
-	wm = (GF_UnknwonUUIDBox*)gf_list_get(map->boxList, 0);
+	wm = (GF_UnknownUUIDBox*)gf_list_get(map->boxList, 0);
 	if (!wm) return GF_NOT_SUPPORTED;
 
 	*data = malloc(wm->dataSize);

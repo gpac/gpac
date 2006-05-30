@@ -285,6 +285,7 @@ typedef struct
 	s32 resolution;
 	/*coordBits, scaleBits*/
 	u32 coord_bits, scale_bits;
+	Bool auto_qant;
 } GF_SMEncodeOptions;
 
 /*
@@ -340,6 +341,13 @@ typedef struct _scenestat
 	
 	/*ranges of all SFVec2fs for points only (MFVec2fs)*/
 	SFVec2f max_2d, min_2d;
+	/* resolution of 2D points (nb bits for integer part and decimal part)*/
+	u32 int_res_2d, frac_res_2d;
+	/* resolution of scale coefficient (nb bits for integer part)*/
+	u32 scale_int_res_2d, scale_frac_res_2d;
+
+	Fixed max_fixed, min_fixed;
+
 	/*number of parsed 2D points*/
 	u32 count_2d;
 	/*number of deleted 2D points*/

@@ -222,6 +222,9 @@ static void dump_stats(FILE *dump, GF_SceneStatistics *stats)
 		if (i) fprintf(dump, "<CumulatedStat TotalNumberOfProtos=\"%d\" ReallyAllocatedProtos=\"%d\" DeletedProtos=\"%d\"/>\n", count, created, deleted);
 		fprintf(dump, "</ProtoStatistics>\n");
 	}
+	fprintf(dump, "<FixedValues min=\"%f\" max=\"%f\">\n", FIX2FLT( stats->min_fixed) , FIX2FLT( stats->max_fixed ));
+	fprintf(dump, "<Resolutions scaleIntegerPart=\"%d\" scaleFracPart=\"%d\" coordIntegerPart=\"%d\" coordFracPart=\"%d\"/>\n", stats->scale_int_res_2d, stats->scale_frac_res_2d, stats->int_res_2d, stats->frac_res_2d);
+	fprintf(dump, "</FixedValues>\n");
 	fprintf(dump, "<FieldStatistic FieldType=\"MFVec2f\">\n");
 	fprintf(dump, "<ParsingInfo NumParsed=\"%d\" NumRemoved=\"%d\"/>", stats->count_2d, stats->rem_2d);
 	if (stats->count_2d) {

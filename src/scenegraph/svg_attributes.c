@@ -27,6 +27,7 @@
 #include <gpac/scenegraph_svg.h>
 #include <gpac/internal/scenegraph_dev.h>
 
+#define DUMP_COORDINATES 1
 
 /*
 	    list of supported events in Tiny 1.2 as of 2005/09/10:
@@ -84,7 +85,7 @@ const char *gf_dom_event_get_name(u32 type)
 	case SVG_DOM_EVT_KEYDOWN: return "keydown";
 	case SVG_DOM_EVT_KEYPRESS: return "keypress";
 	case SVG_DOM_EVT_LONGKEYPRESS: return "longkeypress";
-	default: return "unknwon";
+	default: return "unknown";
 	}
 }
 
@@ -2860,7 +2861,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 {
 	u8 intVal = *(u8 *)info->far_ptr;
 	strcpy(attValue, "");
-
+	
 	switch (info->fieldType) {
 	case SVG_Boolean_datatype:
 		sprintf(attValue, "%s", *(SVG_Boolean *)info->far_ptr ? "true" : "false");
@@ -2876,7 +2877,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		SVG_Paint *paint = (SVG_Paint *)info->far_ptr;
 		if (paint->type == SVG_PAINT_NONE) strcpy(attValue, "none");
 		else if (paint->type == SVG_PAINT_INHERIT) strcpy(attValue, "inherit");
-		else if (paint->type == SVG_PAINT_URI) sprintf(attValue, "url(%s)", paint->uri);
+		else if (paint->type == SVG_PAINT_URI) sprintf(attValue, "url(#%s)", paint->uri);
 		else svg_dump_color(&paint->color, attValue);
 	}
 		break;
@@ -3136,7 +3137,9 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 	case SVG_Coordinate_datatype:
 	case SVG_Rotate_datatype:
 	case SVG_Number_datatype:
+#if DUMP_COORDINATES
 		svg_dump_number((SVG_Number *)info->far_ptr, attValue);
+#endif
 		break;
 
 	case SVG_IRI_datatype:
@@ -3159,10 +3162,13 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		break;
 
 	case SVG_PathData_datatype:
+#if DUMP_COORDINATES
 		svg_dump_path((SVG_PathData *)info->far_ptr, attValue);
+#endif
 		break;
 	case SVG_Points_datatype:
 	{
+#if DUMP_COORDINATES
 		GF_List *l = *(GF_List **) info->far_ptr;
 		u32 i = 0;
 		u32 count = gf_list_count(l);
@@ -3173,6 +3179,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 			if (i) strcat(attValue, " ");
 			strcat(attValue, szT);
 		}
+#endif
 	}
 		break;
 	case SMIL_KeyTimes_datatype:
@@ -3193,6 +3200,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		break;
 	case SVG_Coordinates_datatype:
 	{
+#if DUMP_COORDINATES
 		GF_List *l = *(GF_List **) info->far_ptr;
 		u32 i = 0;
 		u32 count = gf_list_count(l);
@@ -3203,6 +3211,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 			if (i) strcat(attValue, " ");
 			strcat(attValue, szT);
 		}
+#endif
 	}
 		break;
 	case SVG_ViewBox_datatype:
@@ -3260,8 +3269,10 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 	/* required for animateMotion */
 	case SVG_Motion_datatype:
 	{
+#if DUMP_COORDINATES
 		SVG_Point *pt = (SVG_Point *)info->far_ptr;
 		sprintf(attValue, "%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y));
+#endif
 	}
 		break;
 	case SVG_ID_datatype:
@@ -3298,6 +3309,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		break;
 	case SVG_Numbers_datatype:
 	{
+#if DUMP_COORDINATES
 		GF_List *l1 = *(GF_List **) info->far_ptr;
 		u32 i = 0;
 		u32 count = gf_list_count(l1);
@@ -3308,9 +3320,11 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 			if (i) strcat(attValue, " ");
 			strcat(attValue, szT);
 		}
+#endif
 	}
 		break;
 	case SVG_Matrix_datatype:
+#if DUMP_COORDINATES
 		if (info->eventType==SVG_TRANSFORM_TRANSLATE) {
 			SVG_Point *pt = info->far_ptr;
 			sprintf(attValue, "%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y) );
@@ -3364,7 +3378,8 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 			if (!strlen(attValue))
 #endif
 			sprintf(attValue, "matrix(%g %g %g %g %g %g)", FIX2FLT(matrix->m[0]), FIX2FLT(matrix->m[3]), FIX2FLT(matrix->m[1]), FIX2FLT(matrix->m[4]), FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]) );
-	}
+		}
+#endif
 		break;
 
 	case SMIL_AttributeName_datatype:

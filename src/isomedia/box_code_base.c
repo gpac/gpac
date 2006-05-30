@@ -670,7 +670,7 @@ GF_Err defa_Size(GF_Box *s)
 
 void uuid_del(GF_Box *s)
 {
-	GF_UnknwonUUIDBox *ptr = (GF_UnknwonUUIDBox *) s;
+	GF_UnknownUUIDBox *ptr = (GF_UnknownUUIDBox *) s;
 	if (!s) return;
 	if (ptr->data) free(ptr->data);
 	free(ptr);
@@ -680,7 +680,7 @@ void uuid_del(GF_Box *s)
 GF_Err uuid_Read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 bytesToRead;
-	GF_UnknwonUUIDBox *ptr = (GF_UnknwonUUIDBox *)s;
+	GF_UnknownUUIDBox *ptr = (GF_UnknownUUIDBox *)s;
 	if (ptr->size > 0xFFFFFFFF) return GF_ISOM_INVALID_FILE;
 	bytesToRead = (u32) (ptr->size);
 
@@ -696,8 +696,8 @@ GF_Err uuid_Read(GF_Box *s, GF_BitStream *bs)
 //warning: we don't have any boxType, trick has to be done while creating..
 GF_Box *uuid_New()
 {
-	GF_UnknwonUUIDBox *tmp = (GF_UnknwonUUIDBox *) malloc(sizeof(GF_UnknwonUUIDBox));
-	memset(tmp, 0, sizeof(GF_UnknwonUUIDBox));
+	GF_UnknownUUIDBox *tmp = (GF_UnknownUUIDBox *) malloc(sizeof(GF_UnknownUUIDBox));
+	memset(tmp, 0, sizeof(GF_UnknownUUIDBox));
 	tmp->type = GF_ISOM_BOX_TYPE_UUID;
 	return (GF_Box *) tmp;
 }
@@ -708,7 +708,7 @@ GF_Box *uuid_New()
 GF_Err uuid_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	GF_UnknwonUUIDBox *ptr = (GF_UnknwonUUIDBox*)s;
+	GF_UnknownUUIDBox *ptr = (GF_UnknownUUIDBox*)s;
 	if (!s) return GF_BAD_PARAM;
 
 	e = gf_isom_box_write_header(s, bs);
@@ -722,7 +722,7 @@ GF_Err uuid_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err uuid_Size(GF_Box *s)
 {
 	GF_Err e;
-	GF_UnknwonUUIDBox*ptr = (GF_UnknwonUUIDBox*)s;
+	GF_UnknownUUIDBox*ptr = (GF_UnknownUUIDBox*)s;
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
 	ptr->size += ptr->dataSize;

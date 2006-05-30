@@ -60,10 +60,12 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 		Fixed keyTimeBefore = 0, keyTimeAfter=0; 
 		u32 keyTimesCount = gf_list_count(anim->keyTimes);
 		for (keyTimeIndex = rai->previous_keytime_index; keyTimeIndex<keyTimesCount; keyTimeIndex++) {
-			Fixed *t = gf_list_get(anim->keyTimes, keyTimeIndex);
+			Fixed *tm1, *t = gf_list_get(anim->keyTimes, keyTimeIndex);
 			if (normalized_simple_time < *t) {
 				rai->previous_keytime_index = keyTimeIndex;
-				keyTimeBefore = *(Fixed *) gf_list_get(anim->keyTimes, keyTimeIndex-1);
+				tm1 = (Fixed *) gf_list_get(anim->keyTimes, keyTimeIndex-1);
+				if (tm1) keyTimeBefore = *tm1; 
+				else keyTimeBefore = 0;
 				keyTimeAfter = *t;
 				break;
 			}

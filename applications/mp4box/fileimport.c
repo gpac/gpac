@@ -1095,6 +1095,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts)
 	GF_SceneLoader load;
 	GF_SceneManager *ctx;
 	GF_SceneGraph *sg;
+	GF_StatManager *statsman = NULL;
 	
 	sg = gf_sg_new();
 	ctx = gf_sm_new(sg);
@@ -1116,6 +1117,35 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts)
 	e = gf_sm_load_run(&load);
 	gf_sm_load_done(&load);
 
+	if (opts->auto_qant) {
+		fprintf(stdout, "Analysing Scene for Automatic Quantization\n");
+		statsman = gf_sm_stats_new();
+		e = gf_sm_stats_for_scene(statsman, ctx);
+		if (!e) {
+			GF_SceneStatistics *stats = gf_sm_stats_get(statsman);
+			if (opts->resolution > (s32)stats->frac_res_2d) {
+				fprintf(stdout, " Given resolution %d is (unnecessarily) too high, using %d instead.\n", opts->resolution, stats->frac_res_2d);
+				opts->resolution = stats->frac_res_2d;
+			} else if (stats->int_res_2d + opts->resolution <= 0) {
+				fprintf(stdout, " Given resolution %d is too low, using %d instead.\n", opts->resolution, stats->int_res_2d - 1);
+				opts->resolution = 1 - stats->int_res_2d;
+			}				
+			opts->coord_bits = stats->int_res_2d + opts->resolution;
+			fprintf(stdout, " Coordinates & Lengths encoded using ");
+			if (opts->resolution < 0) fprintf(stdout, "only the %d most significant bits (of %d).\n", opts->coord_bits, stats->int_res_2d);
+			else fprintf(stdout, "a %d.%d representation\n", stats->int_res_2d, opts->resolution);
+
+			fprintf(stdout, " Matrix Scale & Skew Coefficients ");
+			if (opts->coord_bits < stats->scale_int_res_2d) {
+				opts->scale_bits = stats->scale_int_res_2d - opts->coord_bits;
+				fprintf(stdout, "encoded using a %d.8 representation\n", stats->scale_int_res_2d);
+			} else  {
+				opts->scale_bits = 0;
+				fprintf(stdout, "not encoded.\n");
+			}
+		}
+	}
+
 	if (e) {
 		fprintf(stdout, "Error loading file %s\n", gf_error_to_string(e));
 		goto err_exit;
@@ -1127,6 +1157,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts)
 	gf_isom_modify_alternate_brand(mp4, GF_ISOM_BRAND_ISOM, 1);
 
 err_exit:
+	if (statsman) gf_sm_stats_del(statsman);
 	gf_sm_del(ctx);
 	gf_sg_del(sg);
 	return e;

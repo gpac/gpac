@@ -1132,6 +1132,7 @@ static void lsr_write_href(GF_LASeRCodec *lsr, SVG_IRI *iri)
 {
 	Bool has_href = iri ? 1 : 0;
 	if (iri->type==SVG_IRI_ELEMENTID) {
+		if (!iri->target && iri->iri) iri->target = (SVGElement *)gf_sg_find_node_by_name(lsr->sg, iri->iri+1);
 		if (!iri->target || !gf_node_get_id((GF_Node *)iri->target)) has_href = 0;
 	} else if (!iri->iri) has_href = 0;
 

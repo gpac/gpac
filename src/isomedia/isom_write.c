@@ -1718,7 +1718,7 @@ GF_Err gf_isom_remove_copyright(GF_ISOFile *movie, u32 index)
 GF_Err gf_isom_set_watermark(GF_ISOFile *movie, bin128 UUID, u8* data, u32 length)
 {
 	GF_Err e;
-	GF_UnknwonUUIDBox *ptr;
+	GF_UnknownUUIDBox *ptr;
 	GF_UserDataMap *map;
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
@@ -1732,7 +1732,7 @@ GF_Err gf_isom_set_watermark(GF_ISOFile *movie, bin128 UUID, u8* data, u32 lengt
 	
 	map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_UUID, (bin128 *) & UUID);
 	if (map) {
-		ptr = (GF_UnknwonUUIDBox *)gf_list_get(map->boxList, 0);
+		ptr = (GF_UnknownUUIDBox *)gf_list_get(map->boxList, 0);
 		if (ptr) {
 			free(ptr->data);
 			ptr->data = (char*)malloc(length);
@@ -1742,7 +1742,7 @@ GF_Err gf_isom_set_watermark(GF_ISOFile *movie, bin128 UUID, u8* data, u32 lengt
 		}
 	}
 	//nope, create one
-	ptr = (GF_UnknwonUUIDBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_UUID);
+	ptr = (GF_UnknownUUIDBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_UUID);
 	memcpy(ptr->uuid, UUID, 16);
 	ptr->data = (char*)malloc(length);
 	memcpy(ptr->data, data, length);

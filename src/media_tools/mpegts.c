@@ -95,7 +95,7 @@ const char *gf_m2ts_get_stream_name(u32 streamType)
 	case GF_M2TS_AUDIO_AC3: return "Dolby AC3 Audio";
 	case GF_M2TS_AUDIO_DTS: return "Dolby DTS Audio";
 	case GF_M2TS_SUBTITLE_DVB: return "DVB Subtitle";
-	default: return "Unknwon";
+	default: return "Unknown";
 	}
 }
 

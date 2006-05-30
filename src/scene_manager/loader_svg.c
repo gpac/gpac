@@ -59,7 +59,7 @@ typedef struct
 {
 	/*top of parsed sub-tree*/
 	GF_Node *node;
-	/*depth of unknwon elements being skipped*/
+	/*depth of unknown elements being skipped*/
 	u32 unknown_depth;
 } SVGNodeStack;
 

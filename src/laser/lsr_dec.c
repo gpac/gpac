@@ -559,6 +559,7 @@ static void lsr_read_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *nam
 			if (val) {
 				SVG_IRI iri;
 				iri.iri = NULL;
+				iri.type = 0xFF;
 				lsr_read_any_uri(lsr, &iri, name);
 				gf_svg_unregister_iri(lsr->sg, &iri);
 				if (iri.iri) {
@@ -611,7 +612,11 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 	count = gf_list_count(lsr->defered_hrefs);
 	for (i=0; i<count; i++) {
 		SVG_IRI *href = gf_list_get(lsr->defered_hrefs, i);
-		if (id == (u32) atoi(href->iri)) {
+		char *str_id = href->iri;
+		if (str_id[0] == '#') str_id++;
+		/*skip 'N'*/
+		str_id++;
+		if (id == (1 + (u32) atoi(str_id))) {
 			href->target = (SVGElement*) n;
 			free(href->iri);
 			href->iri = NULL;
@@ -2102,6 +2107,9 @@ static void lsr_translate_anim_trans_values(SMIL_AnimateValues *val, u32 transfo
 	count = gf_list_count(val->values);
 	if (!count) return;
 
+	if (transform_type==SVG_TRANSFORM_TRANSLATE) 
+		return;
+
 	for (i=0;i<count; i++) {
 		void *a_val = gf_list_get(val->values, i);
 		switch (transform_type) {
@@ -2532,6 +2540,8 @@ static GF_Node *lsr_read_rect(GF_LASeRCodec *lsr, u32 same_type)
 		if (lsr->prev_rect) {
 			lsr_restore_base(lsr, (SVGElement *)elt, (SVGElement *)lsr->prev_rect, (same_type==2) ? 1 : 0, 0);
 			gf_mx2d_copy(elt->transform, lsr->prev_rect->transform);
+			elt->rx = lsr->prev_rect->rx;
+			elt->ry = lsr->prev_rect->ry;
 		}
 		lsr_read_id(lsr, (GF_Node *) elt);
 		if (same_type==2) lsr_read_fill(lsr, (SVGElement *) elt);

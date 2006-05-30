@@ -267,7 +267,7 @@ typedef struct
 	GF_ISOM_UUID_BOX
 	char *data;
 	u32 dataSize;
-} GF_UnknwonUUIDBox;
+} GF_UnknownUUIDBox;
 
 typedef struct
 {
