@@ -270,10 +270,13 @@ int main(int argc, char **argv)
 	lc.out = fopen(argv[1], "wt");
 	if (!lc.out) return -1;
 
-	fprintf(lc.out,"File Name\tMP4 Load Time\tInput SVG Load Time\tDecoded SVG Load Time\tSVGZ Load Time\tSVG Size\tDecoded SVG Size\tSVGZ Size\tLASeR track size");
+	fprintf(lc.out,"File Name\tMP4 Load Time\tInput SVG Load Time\tDecoded SVG Load Time\tSVGZ Load Time\tSVG Size\tDecoded SVG Size\tSVGZ Size\tLASeR track size\n");
 
-//	loadcompare_one(&lc, "batik3D.svg", NULL);
-	gf_enum_directory(argv[2], 0, loadcompare_one, &lc, "svg");
+	if (!strcmp(argv[2], "-single")) {
+		loadcompare_one(&lc, argv[3], NULL);
+	} else {
+		gf_enum_directory(argv[2], 0, loadcompare_one, &lc, "svg");
+	}
 		
 	if (lc.out) fclose(lc.out);
 	gf_sys_close();
