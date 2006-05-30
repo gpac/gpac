@@ -591,7 +591,7 @@ Bool VS_setup_texture(RenderEffect3D *eff)
 	if (!eff->appear) return 0;
 	txh = R3D_GetTextureHandler(((M_Appearance *)eff->appear)->texture);
 	if (txh) {
-		tx_set_blend_mode(txh, TX_MODULATE);
+		tx_set_blend_mode(txh, tx_is_transparent(txh) ? TX_MODULATE : TX_REPLACE);
 		eff->mesh_has_texture = tx_enable(txh, ((M_Appearance *)eff->appear)->textureTransform);
 		if (eff->mesh_has_texture) {
 			Fixed v[4];

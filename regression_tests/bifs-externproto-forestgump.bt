@@ -89,7 +89,7 @@ AT 0 {
   UPDATE OD [
    ObjectDescriptor {
     objectDescriptorID 20
-    URLstring "06-externproto-forestgump-lib.mp4"
+    URLstring "bifs-externproto-forestgump-lib.mp4"
    }
   ]
 }

@@ -7,21 +7,21 @@ case $1 in
 	echo "Converting BT to XMT-A"
   find . -name "*.bt" | sort | while read FILE; do
 	echo "Processing $FILE"
-	MP4Box -xmt "$(basename "$FILE")"
+	MP4Box -xmt -quiet "$(basename "$FILE")"
 	done
 	;;
 "xmp4"	)
 	echo "Converting XMT-A to MP4"
   find . -name "*.xmt" | sort | while read FILE; do
 	echo "Processing $FILE"
-	MP4Box -mp4 "$(basename "$FILE")"
+	MP4Box -mp4 -quiet "$(basename "$FILE")"
 	done
 	;;
 "x3d"	)
 	echo "Converting X3DV to X3D"
   find . -name "*.x3dv" | sort | while read FILE; do
 	echo "Processing $FILE"
-	MP4Box -x3d "$(basename "$FILE")"
+	MP4Box -x3d -quiet "$(basename "$FILE")"
 	done
 	;;
 "clean"	) 
@@ -41,7 +41,7 @@ case $1 in
 	echo "Converting BT to MP4"
   find . -name "*.bt" | sort | while read FILE; do
 	echo "Processing $FILE"
-	MP4Box -mp4 "$(basename "$FILE")"
+	MP4Box -mp4 -quiet "$(basename "$FILE")"
 	done
 	;;
 

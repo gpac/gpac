@@ -60,8 +60,6 @@ void gf_import_progress(GF_MediaImporter *import, u32 cur_samp, u32 count)
 {
 	if (import->import_progress) {
 		import->import_progress(import, cur_samp, count);
-	} else {
-		gf_cbk_on_progress("Importing", cur_samp, count);
 	}
 }
 

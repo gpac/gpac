@@ -31,16 +31,17 @@ void RP_SendFailure(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	gf_term_on_message(sess->owner->service, e, sMsg);
 }
 
-void RP_ProcessResponse(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
+Bool RP_ProcessResponse(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
 {
 	if (!strcmp(com->method, GF_RTSP_DESCRIBE)) 
-		RP_ProcessDescribe(sess, com, e);
+		return RP_ProcessDescribe(sess, com, e);
 	else if (!strcmp(com->method, GF_RTSP_SETUP)) 
 		RP_ProcessSetup(sess, com, e);
 	else if (!strcmp(com->method, GF_RTSP_TEARDOWN)) 
 		RP_ProcessTeardown(sess, com, e);
 	else if (!strcmp(com->method, GF_RTSP_PLAY) || !strcmp(com->method, GF_RTSP_PAUSE)) 
 		RP_ProcessUserCommand(sess, com, e);
+	return 1;
 }
 
 /*access to command list is protected bymutex, BUT ONLY ACCESS - this way we're sure that command queueing
@@ -82,7 +83,9 @@ void RP_ProcessCommands(RTPSession *sess, Bool read_tcp)
 	if ( (com && sess->wait_for_reply) || (!com && sess->owner->handle_announce)) {
 		e = gf_rtsp_get_response(sess->session, sess->rtsp_rsp);
 		if (e!= GF_IP_NETWORK_EMPTY) {
-			RP_ProcessResponse(sess, com, e);
+			/*if 0, this is a service connect error -> plugin may be discarded */
+			if (!RP_ProcessResponse(sess, com, e)) return;
+
 			RP_RemoveCommand(sess);
 			gf_rtsp_command_del(com);
 			sess->wait_for_reply = 0;

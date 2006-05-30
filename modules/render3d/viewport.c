@@ -238,15 +238,15 @@ void R3D_InitViewport(Render3D *sr, GF_Node *node)
 static void viewpoint_set_bind(GF_Node *node)
 {
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
+
+	if (!((M_Viewpoint*)node)->isBound ) 
+		st->prev_was_bound = 0;
 	Bindable_OnSetBind(node, st->reg_stacks);
 	gf_sr_invalidate(st->compositor, NULL);
 	/*notify change of vp stack*/
 	VPCHANGED(st->compositor);
 	/*and dirty ourselves to force frustrum update*/
 	gf_node_dirty_set(node, 0, 0);
-
-	if (!((M_Viewpoint*)node)->isBound) 
-		st->prev_was_bound = 0;
 }
 
 static void RenderViewpoint(GF_Node *node, void *rs)
@@ -469,7 +469,7 @@ static void RenderFog(GF_Node *node, void *rs)
 	/*fog visibility is expressed in current bound VP so get its matrix*/
 	vp = gf_list_get(eff->viewpoints, 0);
 	vp_st = NULL;
-	if (vp->isBound) vp_st = (ViewStack *) gf_node_get_private((GF_Node *)vp);
+	if (vp && vp->isBound) vp_st = (ViewStack *) gf_node_get_private((GF_Node *)vp);
 
 	start.x = start.y = start.z = 0;
 	end.x = end.y = 0; end.z = fog->visibilityRange;

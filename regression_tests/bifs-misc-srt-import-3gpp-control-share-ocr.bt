@@ -13,8 +13,8 @@ InitialObjectDescriptor {
     decSpecificInfo BIFSConfig {
      isCommandStream true
      pixelMetric true
-     pixelWidth 400
-     pixelHeight 400
+     pixelWidth 320
+     pixelHeight 240
     }
    }
   }
@@ -30,18 +30,16 @@ InitialObjectDescriptor {
 OrderedGroup {
  children [
   Background2D {
-   backColor 1 1 1
+   backColor 1 0 1
   }
   WorldInfo {
-   info ["This shows usage of the inline node" "using remote (rtsp) scene for inline" "Inline scene is referenced with OD" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Inline Test"
+   info ["This shows usage of SRT importer" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "SRT importing Test"
   }
-  Transform2D {
-   children [
-    Inline {
-     url [od:8]
-    }
-   ]
+  AnimationStream {
+   url [od:5]
+   startTime 5
+   stopTime 10
   }
  ]
 }
@@ -50,8 +48,16 @@ OrderedGroup {
 AT 0 {
   UPDATE OD [
    ObjectDescriptor {
-    objectDescriptorID 8
-    URLstring "rtsp://a1749.q.kamai.net/7/1749/1416/3c964c64/neo.qtv.apple.com/secure/may/preview/civ3_700.mp4"
+    objectDescriptorID 5
+    esDescr [
+     ES_Descriptor {
+      ES_ID 4
+      OCR_ES_ID 1
+      muxInfo MuxInfo {
+       fileName "auxiliary_files/subtitle.srt"
+      }
+     }
+    ]
    }
   ]
 }

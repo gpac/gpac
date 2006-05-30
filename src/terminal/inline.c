@@ -45,10 +45,12 @@ typedef struct
 Double gf_is_get_time(void *_is)
 {
 	Double ret;
+	GF_Clock *ck;
 	GF_InlineScene *is = (GF_InlineScene *)_is;
 	assert(is);
-	if (!is->scene_codec) return 0.0;
-	ret = gf_clock_time(is->scene_codec->ck);
+	ck = is->scene_codec ? is->scene_codec->ck : is->dyn_ck;
+	if (!ck) return 0.0;
+	ret = gf_clock_time(ck);
 	ret/=1000.0;
 	return ret;
 }
@@ -1359,12 +1361,17 @@ void gf_is_restart_dynamic(GF_InlineScene *is, u64 from_time)
 		if (start>=0) from_time = (u32) (start*1000.0);
 	}
 
+	/*reset clock*/
+	if (is->dyn_ck) gf_clock_reset(is->dyn_ck);
+
+	/*restart objects*/
 	i=0;
 	while ((odm = gf_list_enum(to_restart, &i))) {
 		odm->media_start_time = (u32) from_time;
 		gf_odm_start(odm);
 	}
 	gf_list_del(to_restart);
+
 	/*also check nodes if no media control since they may be deactivated (end of stream)*/
 	if (!is->root_od->media_ctrl) {
 		M_AudioClip *ac = (M_AudioClip *) gf_sg_find_node_by_name(is->graph, "DYN_AUDIO");

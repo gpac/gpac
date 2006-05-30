@@ -284,8 +284,11 @@ static s32 gf_smil_timing_find_interval_index(SMIL_Timing_RTI *rti, Double scene
 Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg)
 {
 	SMIL_Timing_RTI *rti;
-	Double scene_time = sg->GetSceneTime(sg->SceneCallback);
+	Double scene_time;
 	u32 active_count = 0, i = 0;
+
+	if (!sg) return 0;
+	scene_time = sg->GetSceneTime(sg->SceneCallback);
 
 	sg->reeval_timing = 0;
 	while((rti = gf_list_enum(sg->smil_timed_elements, &i))) {

@@ -74,7 +74,7 @@ AT 0 {
   UPDATE OD [
    ObjectDescriptor {
     objectDescriptorID 20
-    URLstring "06-externproto-simple-lib.mp4"
+    URLstring "bifs-externproto-simple-lib.mp4"
    }
   ]
 }

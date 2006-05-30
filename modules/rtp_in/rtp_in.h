@@ -167,8 +167,6 @@ enum
 	CH_IsInterleaved = (1<<4),
 	/*EOS signaled (RTCP or range-based)*/
 	CH_EOS = (1<<5),
-	/*stream is setup but not playing...*/
-	CH_Idle = (1<<6),
 	/*AWFULL hack at rtp level to cope with ffmpeg h264 crashes when jumping in stream without IDR*/
 	CH_AVC_WaitRAP = (1<<7),
 	/*AMR config*/
@@ -315,7 +313,7 @@ typedef struct
 
 /*RTSP signaling */
 Bool RP_PreprocessDescribe(RTPSession *sess, GF_RTSPCommand *com);
-void RP_ProcessDescribe(RTPSession *sess, GF_RTSPCommand *com, GF_Err e);
+Bool RP_ProcessDescribe(RTPSession *sess, GF_RTSPCommand *com, GF_Err e);
 void RP_ProcessSetup(RTPSession *sess, GF_RTSPCommand *com, GF_Err e);
 void RP_ProcessTeardown(RTPSession *sess, GF_RTSPCommand *com, GF_Err e);
 Bool RP_PreprocessUserCom(RTPSession *sess, GF_RTSPCommand *com);

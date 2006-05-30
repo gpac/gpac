@@ -39,7 +39,7 @@ void RP_StopChannel(RTPStream *ch)
 {
 	if (!ch || !ch->rtsp) return;
 
-	ch->flags &= ~CH_Idle;
+	ch->flags &= ~CH_SkipNextCommand;
 	ch->status = RTP_Disconnected;
 	//remove interleaved
 	if (gf_rtp_is_interleaved(ch->rtp_ch)) {
@@ -51,16 +51,14 @@ void RP_StopChannel(RTPStream *ch)
 Bool RP_SessionActive(RTPStream *ch)
 {
 	RTPStream *ach;
-	u32 i, count, idle;
-	i = idle = count = 0;
+	u32 i, count;
+	i = count = 0;
 	while ((ach = gf_list_enum(ch->owner->channels, &i))) {
 		if (ach->rtsp != ch->rtsp) continue;
 		/*count only active channels*/
-		if (ach->status == RTP_Running) continue;
-		count++;
-		if (ach->flags & CH_Idle) idle++;
+		if (ach->status == RTP_Running) count++;
 	}
-	return (count==idle) ? 0 : 1;
+	return count ? 1 : 0;
 }
 
 
@@ -219,7 +217,7 @@ Bool RP_PreprocessDescribe(RTPSession *sess, GF_RTSPCommand *com)
 }
 
 /*process describe reply*/
-void RP_ProcessDescribe(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
+Bool RP_ProcessDescribe(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
 {
 	RTPStream *ch;
 	ChannelDescribe *ch_desc;
@@ -262,9 +260,12 @@ void RP_ProcessDescribe(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	e = RP_SetupChannel(ch, ch_desc);
 
 exit:
+	com->user_data = NULL;
 	if (e) {
 		if (!ch_desc) {
+			/*THIS MAY DESTROY THE WHOLE PLUGIN*/
 			gf_term_on_connect(sess->owner->service, NULL, e);
+			return 0;
 		} else if (ch) {
 			RP_ConfirmChannelConnect(ch, e);
 		} else {
@@ -272,7 +273,7 @@ exit:
 		}
 	}
 	if (ch_desc) free(ch_desc);
-	com->user_data = NULL;
+	return 1;
 }
 
 /*send describe*/
@@ -360,9 +361,8 @@ Bool RP_PreprocessUserCom(RTPSession *sess, GF_RTSPCommand *com)
 		skip_it = 1;
 	}
 	/*check if aggregation discards this command*/
-	if ((ch->flags & CH_Idle) || skip_it || (sess->has_aggregated_control && (ch->flags & CH_SkipNextCommand) )) {
+	if (skip_it || (sess->has_aggregated_control && (ch->flags & CH_SkipNextCommand) )) {
 		ch->flags &= ~CH_SkipNextCommand;
-		ch->flags &= ~CH_Idle;
 		gf_term_on_command(sess->owner->service, &ch_ctrl->com, GF_OK);
 		free(ch_ctrl);
 		com->user_data = NULL;
@@ -387,7 +387,7 @@ static void SkipCommandOnSession(RTPStream *ch)
 	if (!ch || (ch->flags & CH_SkipNextCommand) || !ch->rtsp->has_aggregated_control) return;
 	i=0;
 	while ((a_ch = gf_list_enum(ch->owner->channels, &i))) {
-		if ((a_ch->flags & CH_Idle) || (ch == a_ch) || (a_ch->rtsp != ch->rtsp) ) continue;
+		if ((ch == a_ch) || (a_ch->rtsp != ch->rtsp) ) continue;
 		a_ch->flags |= CH_SkipNextCommand;
 	}
 }
@@ -633,22 +633,12 @@ void RP_UserCommand(RTPSession *sess, RTPStream *ch, GF_NetworkCommand *command)
 	//but let's be nice to the server
 	else if (command->command_type==GF_NET_CHAN_STOP) {
 		ch->current_start = 0;
-		ch->flags |= CH_Idle;
-
 		ch->stat_stop_time = gf_sys_clock();
+		RP_StopChannel(ch);
+		if (com) gf_rtsp_command_del(com);
 
 		/*last stream running*/
-		if (!RP_SessionActive(ch)) {
-			ch->flags &= ~CH_Idle;
-			RP_StopChannel(ch);
-			SkipCommandOnSession(ch);
-			ch->flags &= ~CH_SkipNextCommand;
-			gf_rtsp_command_del(com);
-			RP_FlushAndTearDown(sess);
-		} else {
-			ch->flags &= ~CH_SkipNextCommand;
-			if (com) gf_rtsp_command_del(com);
-		}
+		if (!RP_SessionActive(ch)) RP_FlushAndTearDown(sess);
 		return;
 	} else {
 		gf_term_on_command(sess->owner->service, command, GF_NOT_SUPPORTED);

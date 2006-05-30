@@ -2775,28 +2775,29 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 				}
 					break;
 				case GF_SG_VRML_MFNODE:
-				{
-					GF_List *f = *(GF_List **) field->far_ptr;
-					u32 count = gf_list_count(f);
+					/*for eventIn fields, rebuild node list*/
+					if (field->fieldType == GF_SG_EVENT_IN) {
+						GF_List *f = *(GF_List **) field->far_ptr;
+						u32 count = gf_list_count(f);
 
-					JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
-					JS_SetArrayLength(priv->js_ctx, jsf->js_list, count);
+						JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
+						JS_SetArrayLength(priv->js_ctx, jsf->js_list, count);
 
-					for (i=0; i<count; i++) {
-						JSObject *pf = JS_NewObject(priv->js_ctx, &SFNodeClass, 0, obj);
-						n = gf_list_get(f, i);
-						slot = NewJSField();
-						slot->owner = parent;
-						slot->temp_node = n;
-						slot->field.far_ptr = & slot->temp_node;
-						slot->field.fieldType = GF_SG_VRML_SFNODE;
-						gf_node_register(n, parent);
-						JS_SetPrivate(priv->js_ctx, pf, slot);
+						for (i=0; i<count; i++) {
+							JSObject *pf = JS_NewObject(priv->js_ctx, &SFNodeClass, 0, obj);
+							n = gf_list_get(f, i);
+							slot = NewJSField();
+							slot->owner = parent;
+							slot->temp_node = n;
+							slot->field.far_ptr = & slot->temp_node;
+							slot->field.fieldType = GF_SG_VRML_SFNODE;
+							gf_node_register(n, parent);
+							JS_SetPrivate(priv->js_ctx, pf, slot);
 
-						newVal = OBJECT_TO_JSVAL(pf);
-						JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
+							newVal = OBJECT_TO_JSVAL(pf);
+							JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
+						}
 					}
-				}
 					break;
 				}
 				return OBJECT_TO_JSVAL(obj);

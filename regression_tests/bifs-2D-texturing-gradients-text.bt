@@ -57,14 +57,16 @@ OrderedGroup {
        appearance Appearance {
         material Material2D {
          emissiveColor 0 0 0
+         transparency 0
          filled TRUE
         }
        }
        geometry DEF T Text {
-        string ["Gradient Text" "demonstration"]
+        string ["Gradient" "Text Demo"]
         fontStyle FontStyle {
          justify ["MIDDLE" "END"]
          size 30
+         style "BOLD"
         }
        }
       }
@@ -122,6 +124,6 @@ OrderedGroup {
 }
 
 ROUTE PS.translation_changed TO TR.translation
-ROUTE TIME.fraction_changed TO PI.set_fraction
+#ROUTE TIME.fraction_changed TO PI.set_fraction
 ROUTE PI.value_changed TO TR.scale
 

@@ -200,6 +200,16 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	/*create empty service descriptor, this will automatically create a dynamic scene*/
 	if (!desc) desc = gf_odf_desc_new(GF_ODF_OD_TAG);
 
+	if (!gf_list_count( ((GF_ObjectDescriptor*)desc)->ESDescriptors)) {
+		/*new subscene*/
+		if (!odm->subscene) {
+			assert(odm->parentscene);
+			odm->subscene = gf_is_new(odm->parentscene);
+			odm->subscene->root_od = odm;
+			gf_sg_set_javascript_api(odm->subscene->graph, &odm->term->js_ifce);
+		}
+	}
+
 	toolList = NULL;
 	switch (desc->tag) {
 	case GF_ODF_IOD_TAG:
@@ -495,7 +505,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	numOK = odm->pending_channels = 0;
 
 	/*empty IOD, use a dynamic scene*/
-	if (!gf_list_count(odm->OD->ESDescriptors) && odm->subscene) {
+	if (!gf_list_count(odm->OD->ESDescriptors) && (odm->subscene->root_od==odm)) {
 		odm->subscene->is_dynamic_scene = 1;
 		gf_odm_start(odm);
 	} else {
@@ -1295,17 +1305,28 @@ void ODM_SetMediaControl(GF_ObjectManager *odm, MediaControlStack *ctrl)
 	if (ctrl && (gf_list_find(odm->mc_stack, ctrl) < 0)) gf_list_add(odm->mc_stack, ctrl);
 	if (ctrl && !ctrl->control->enabled) return;
 
-	/*for each clock in the controled OD*/
-	i=0;
-	while ((ch = gf_list_enum(odm->channels, &i))) {
-		if (ch->clock->mc != ctrl) {
+	if (odm->subscene && odm->subscene->is_dynamic_scene) {
+		if (odm->subscene->dyn_ck) {
 			/*deactivate current control*/
-			if (ctrl && ch->clock->mc) {
-				ch->clock->mc->control->enabled = 0;
-				gf_node_event_out_str((GF_Node *)ch->clock->mc->control, "enabled");
+			if (ctrl && odm->subscene->dyn_ck->mc) {
+				odm->subscene->dyn_ck->mc->control->enabled = 0;
+				gf_node_event_out_str((GF_Node *)odm->subscene->dyn_ck->mc->control, "enabled");
 			}
-			/*and attach this control to the clock*/
-			ch->clock->mc = ctrl;
+			odm->subscene->dyn_ck->mc = ctrl;
+		}
+	} else {
+		/*for each clock in the controled OD*/
+		i=0;
+		while ((ch = gf_list_enum(odm->channels, &i))) {
+			if (ch->clock->mc != ctrl) {
+				/*deactivate current control*/
+				if (ctrl && ch->clock->mc) {
+					ch->clock->mc->control->enabled = 0;
+					gf_node_event_out_str((GF_Node *)ch->clock->mc->control, "enabled");
+				}
+				/*and attach this control to the clock*/
+				ch->clock->mc = ctrl;
+			}
 		}
 	}
 	/*store active control on media*/

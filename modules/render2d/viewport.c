@@ -119,7 +119,7 @@ static void viewport_set_bind(GF_Node *node)
 	Bool on_top;
 	u32 i;
 	GF_List *stack;
-	GF_Node *tmp;
+	GF_Node *a_vp;
 	ViewportStack *ptr = (ViewportStack *) gf_node_get_private(node);
 	M_Viewport *vp = (M_Viewport *) ptr->owner;
 
@@ -135,13 +135,13 @@ static void viewport_set_bind(GF_Node *node)
 			}
 
 			if (on_top) {
-				tmp = gf_list_get(stack, 0);
+				a_vp = gf_list_get(stack, 0);
 				gf_list_rem(stack, 0);
-				gf_list_add(stack, tmp);
-				tmp = gf_list_get(stack, 0);
-				if (tmp != node) {
-					((M_Viewport *) tmp)->set_bind = 1;
-					gf_node_event_out_str(tmp, "set_bind");
+				gf_list_add(stack, a_vp);
+				a_vp = gf_list_get(stack, 0);
+				if (a_vp != node) {
+					((M_Viewport *) a_vp)->set_bind = 1;
+					gf_node_event_out_str(a_vp, "set_bind");
 				}
 			}
 		} else {
@@ -153,12 +153,12 @@ static void viewport_set_bind(GF_Node *node)
 			}
 
 			if (!on_top) {
-				tmp = gf_list_get(stack, 0);
-				gf_list_del_item(stack, ptr);
-				gf_list_insert(stack, ptr, 0);
-				if (tmp != node) {
-					((M_Viewport *) tmp)->set_bind = 0;
-					gf_node_event_out_str(tmp, "isBound");
+				a_vp = gf_list_get(stack, 0);
+				if (a_vp != node) {
+					gf_list_del_item(stack, vp);
+					gf_list_insert(stack, vp, 0);
+					((M_Viewport *) a_vp)->isBound = 0;
+					gf_node_event_out_str(a_vp, "isBound");
 				}
 			}
 		}

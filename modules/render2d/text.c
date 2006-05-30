@@ -352,13 +352,11 @@ static void split_text_words(TextStack2D *st, M_Text *txt, RenderEffect2D *eff)
 			ft_dr->add_text_to_path(ft_dr, tl->path, 1, letter, 0, 0, FIX_ONE, FIX_ONE, st->ascent, &rc);
 			gf_path_get_bounds(tl->path, &ctx->original);
 			ctx->original.width = rc.width;
-			if (ctx->original.x != 0) ctx->original.width -= ctx->original.x;
-			ctx->original.x = 0;
-			ctx->original.height = MAX(st->ascent + st->descent, ctx->original.height);
-			if (ctx->original.y != 0) ctx->original.height -= ctx->original.y;
-			ctx->original.y = 0;
+			ctx->original.height = st->ascent + st->descent;
+			ctx->original.x = ctx->original.y = 0;
 
-			TextLine_StoreBounds(tl);
+			//TextLine_StoreBounds(tl);
+			tl->bounds = ctx->original;
 
 			drawable_finalize_render(ctx, eff);
 			group2d_end_child(eff->parent);

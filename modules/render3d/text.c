@@ -757,7 +757,7 @@ static void Text_SetupBounds(RenderEffect3D *eff, TextStack *st)
 	while ((tl = gf_list_enum(st->text_lines, &i))) {
 		/*the first one is always started by parent group*/
 		if (i>1) group_start_child(eff->parent, NULL);
-		group_end_text_child(eff->parent, &tl->bounds, st->ascent, st->descent, i+1);
+		group_end_text_child(eff->parent, &tl->bounds, st->ascent, st->descent, i);
 	}
 }
 
@@ -899,7 +899,7 @@ static void Text_Draw(RenderEffect3D *eff, TextStack *st)
 			}
 
 			if (can_texture_text && TextLine_TextureIsReady(tl)) {
-				VS_setup_texture(eff);
+				eff->mesh_has_texture = 1;
 				tx_enable(&tl->txh, NULL);
 				VS3D_DrawMesh(eff, tl->tx_mesh);
 				tx_disable(&tl->txh);

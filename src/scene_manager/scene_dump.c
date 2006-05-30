@@ -952,11 +952,24 @@ void DumpDynField(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInfo field, Bool
 			if ((field.eventType==GF_SG_EVENT_FIELD) || (field.eventType==GF_SG_EVENT_EXPOSED_FIELD)) {
 				fprintf(sdump->trace, " [");
 
-				for (i=0; i<mffield->count; i++) {
-					if (i) fprintf(sdump->trace, " ");
-					if (field.fieldType != GF_SG_VRML_MFNODE) {
-						gf_sg_vrml_mf_get_item(field.far_ptr, field.fieldType, &slot_ptr, i);
-						DumpSFField(sdump, sf_type, slot_ptr, (mffield->count>1) ? 1 : 0);
+				if (sf_type == GF_SG_VRML_SFNODE) {
+					u32 count;
+					GF_List *l = *(GF_List **)field.far_ptr;
+					count = gf_list_count(l);
+					fprintf(sdump->trace, "\n");
+					sdump->indent++;
+					for (i=0; i<count; i++) {
+						DumpNode(sdump, gf_list_get(l, i), 1, NULL);
+					}
+					sdump->indent--;
+					DUMP_IND(sdump);
+				} else {
+					for (i=0; i<mffield->count; i++) {
+						if (i) fprintf(sdump->trace, " ");
+						if (field.fieldType != GF_SG_VRML_MFNODE) {
+							gf_sg_vrml_mf_get_item(field.far_ptr, field.fieldType, &slot_ptr, i);
+							DumpSFField(sdump, sf_type, slot_ptr, (mffield->count>1) ? 1 : 0);
+						}
 					}
 				}
 				fprintf(sdump->trace, "]");

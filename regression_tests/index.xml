@@ -97,7 +97,6 @@
 <file name="bifs-text-glyph-advance" type="bt" /> 
 </category>
 <category name="2D Positioning &amp; Layout">
-<file name="bifs-2D-positioning-transform" type="bt" /> 
 <file name="bifs-2D-positioning-transform2D" type="bt" /> 
 <file name="bifs-2D-positioning-transformmatrix2D" type="bt" /> 
 <file name="bifs-2D-positioning-clipper2D" type="bt" /> 
@@ -252,6 +251,8 @@
 </category>
 <category name="Games">
 <file name="bifs-game-arrange" type="bt" /> 
+<file name="bifs-game-breakout" type="bt" /> 
+<file name="bifs-game-minesweeper" type="bt" /> 
 <file name="bifs-game-othello" type="bt" /> 
 </category>
 <category name="PROTO and EXTERNPROTO">
@@ -325,6 +326,7 @@
 <file name="bifs-3D-interactivity-collision" type="bt" use3d="true" /> 
 </category>
 <category name="3D Positioning &amp; Layout">
+<file name="bifs-3D-positioning-transform" type="bt" /> 
 <file name="bifs-3D-positioning-layer3D-views" type="bt" use3d="true" /> 
 <file name="bifs-3D-positioning-layer3D" type="bt" use3d="true" /> 
 <file name="bifs-3D-positioning-lod" type="bt" use3d="true" /> 
@@ -337,6 +339,8 @@
 <file name="bifs-misc-non-linear-parsing-conditional" type="bt" /> 
 <file name="bifs-misc-non-linear-parsing-use" type="bt" /> 
 <file name="bifs-misc-srt-import-3gpp" type="bt" /> 
+<file name="bifs-misc-srt-import-3gpp-control" type="bt" /> 
+<file name="bifs-misc-srt-import-3gpp-control-share-ocr" type="bt" /> 
 <file name="bifs-misc-srt-import" type="bt" /> 
 <file name="bifs-misc-UTF16-input" type="bt" /> 
 <file name="bifs-misc-hc-proto-pathextrusion" type="bt" use3d="true"/> 

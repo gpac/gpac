@@ -581,8 +581,6 @@ static void RenderLayout(GF_Node *node, void *rs)
 		goto layout_exit;
 	}
 
-	eff->text_split_mode = 0;
-
 	/*center all nodes*/
 	i=0;
 	while ((cg = gf_list_enum(st->groups, &i))) {
@@ -608,6 +606,7 @@ static void RenderLayout(GF_Node *node, void *rs)
 layout_exit:
 	group_reset_children((GroupingNode*)st);
 	if (eff->traversing_mode==TRAVERSE_GET_BOUNDS) gf_bbox_from_rect(&eff->bbox, &st->clip);
+	eff->text_split_mode = 0;
 }
 
 void R3D_InitLayout(Render3D *sr, GF_Node *node)

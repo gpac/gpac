@@ -109,11 +109,11 @@ GF_Err RP_InitStream(RTPStream *ch, Bool ResetOnly)
 
 void RP_DisconnectStream(RTPStream *ch)
 {
-	if (ch->rtsp && !(ch->flags & CH_Idle) && (ch->status == RTP_Running)) {
-		RP_Teardown(ch->rtsp, ch);
-	}
+	/*no check for teardown, this is done at STOP stage*/
+#if 0
 	ch->status = RTP_Disconnected;
 	ch->flags &= ~CH_Connected;
+#endif
 	ch->channel = NULL;
 }
 
@@ -345,6 +345,8 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 void RP_ProcessRTCP(RTPStream *ch, char *pck, u32 size)
 {
 	GF_Err e;
+
+	if (ch->status == RTP_Connected) return;
 
 	ch->rtcp_bytes += size;
 

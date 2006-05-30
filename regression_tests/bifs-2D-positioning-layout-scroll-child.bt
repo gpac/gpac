@@ -45,7 +45,7 @@ OrderedGroup {
    smoothScroll TRUE
    loop TRUE
    scrollVertical FALSE
-   scrollRate 0.05
+   scrollRate 0.1
    children [
     Transform2D {
      children [

@@ -53,9 +53,9 @@
 		* blinking - any nb per sample supported
 		* complete scrolling: in, out, in+out, up, down, right and left directions. All other
 		modifiers are supported when scrolling
+		* scroll delay
 
 	It does NOT support:
-		* scroll delay
 		* dynamic hilighting (karaoke)
 		* wrap
 
@@ -86,7 +86,7 @@ typedef struct
 	GF_List *blink_nodes;
 	u32 scroll_type, scroll_mode;
 	Fixed scroll_time, scroll_delay;
-	Bool is_active;
+	Bool is_active, use_texture;
 } TTDPriv;
 
 
@@ -248,6 +248,7 @@ static GF_Err TTD_AttachStream(GF_BaseDecoder *plug,
 	GF_Err e;
 	GF_DefaultDescriptor dsi;
 	GF_Node *root, *n1, *n2;
+	const char *opt;
 	/*no scalable, no upstream*/
 	if (priv->nb_streams || Upstream) return GF_NOT_SUPPORTED;
 	if (!decSpecInfo || !decSpecInfoSize) return GF_NON_COMPLIANT_BITSTREAM;
@@ -342,6 +343,10 @@ static GF_Err TTD_AttachStream(GF_BaseDecoder *plug,
 	gf_node_register((GF_Node *) priv->process_blink, NULL);
 	gf_node_register((GF_Node *) priv->ts_scroll, NULL);
 	gf_node_register((GF_Node *) priv->process_scroll, NULL);
+
+	/*option setup*/
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "StreamingText", "UseTexturing");
+	priv->use_texture = (opt && !strcmp(opt, "yes")) ? 1 : 0;
 	return e;
 }
 
@@ -572,7 +577,7 @@ void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form *form,
 	/*a better way would be to draw the entire text box in a composite texture & bitmap but we can't really rely 
 	on text box size (in MP4Box, it actually defaults to the entire video area) and drawing a too large texture
 	& bitmap could slow down rendering*/
-	strcat(szStyle, " TEXTURED");
+	if (priv->use_texture) strcat(szStyle, " TEXTURED");
 
 	fs->style.buffer = strdup(szStyle);
 	fs->horizontal = (tsd->displayFlags & GF_TXT_VERTICAL) ? 0 : 1;

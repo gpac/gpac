@@ -9,19 +9,22 @@ IF "%1" == "clean" GOTO REGCLEAN
 IF "%1" == "help" GOTO GETHELP
 
 :BTTOMP4
-for %%a in (*.bt) DO C:\Users\Cyril\sourceforge\gpac\bin\w32_deb\MP4Box -mp4 %%a
+for %%a in (*.bt) DO (
+echo %%a
+MP4Box -mp4 -quiet %%a
+)
 GOTO DONE
 
 :BTTOXMT
 for %%a in (*.bt) DO (
 echo %%a
-MP4Box -xmt %%a
+MP4Box -xmt -quiet %%a
 )
 GOTO DONE
 
 :XMTTOMP4
 for %%a in (*.xmt) DO (
-MP4Box -mp4 %%a
+MP4Box -mp4 -quiet %%a
 echo %a
 )
 GOTO DONE

@@ -85,7 +85,7 @@ void gf_sg_command_del(GF_Command *com)
 				}
 				break;
 			default:
-				gf_sg_vrml_field_pointer_del(inf->field_ptr, inf->fieldType);
+				if (inf->field_ptr) gf_sg_vrml_field_pointer_del(inf->field_ptr, inf->fieldType);
 				break;
 			}
 			free(inf);

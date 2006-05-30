@@ -33,7 +33,7 @@ OrderedGroup {
   Transform2D {
    children [
     Inline {
-     url ["13-inline-segment-inline.mp4#Middle"]
+     url ["bifs-linking-inline-segment-inline.mp4#Middle"]
     }
    ]
   }

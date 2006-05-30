@@ -331,6 +331,7 @@ static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
 		case GF_NAVIGATE_EXAMINE:
 			if (keys & GF_KM_CTRL) {
 				view_translate_z(sr, cam, gf_mulfix(dy, trans_scale));
+				view_roll(sr, cam, gf_mulfix(dx, trans_scale));
 			} else {
 				view_exam_x(sr, cam, -gf_mulfix(GF_PI, dx));
 				view_exam_y(sr, cam, gf_mulfix(GF_PI, dy));
@@ -417,7 +418,7 @@ static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
 				else view_translate_x(sr, cam, key_inv * key_trans);
 				break;
 			case GF_NAVIGATE_EXAMINE:
-				if (keys & GF_KM_CTRL) view_translate_x(sr, cam, key_inv * key_trans);
+				if (keys & GF_KM_CTRL) view_roll(sr, cam, gf_mulfix(dx, trans_scale));
 				else view_exam_x(sr, cam, -key_inv * key_exam);
 				break;
 			case GF_NAVIGATE_ORBIT:
@@ -435,13 +436,14 @@ static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
 			return 1;
 		case GF_VK_DOWN: key_inv = -1;
 		case GF_VK_UP:
+			if (keys & GF_KM_ALT) return 0;
 			switch (cam->navigate_mode) {
 			case GF_NAVIGATE_SLIDE:
 				if (keys & GF_KM_CTRL) view_translate_z(sr, cam, key_inv * key_trans);
 				else view_translate_y(sr, cam, key_inv * key_trans);
 				break;
 			case GF_NAVIGATE_EXAMINE:
-				if (keys & GF_KM_CTRL) view_translate_y(sr, cam, key_inv * key_trans);
+				if (keys & GF_KM_CTRL) view_translate_z(sr, cam, key_inv * key_trans);
 				else view_exam_y(sr, cam, -key_inv * key_exam);
 				break;
 			case GF_NAVIGATE_ORBIT:

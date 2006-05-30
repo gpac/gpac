@@ -53,7 +53,7 @@ AT 0 {
   UPDATE OD [
    ObjectDescriptor {
     objectDescriptorID 8
-    URLstring "13-inline-od-inline.mp4"
+    URLstring "bifs-linking-inline-od-inline.mp4"
    }
   ]
 }

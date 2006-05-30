@@ -64,8 +64,10 @@ void RenderMediaSensor(GF_Node *node, void *rs)
 	ck = NULL;
 	/*check inline scenes - if the scene is set to restart DON'T MODIFY SENSOR: since we need a 2 render
 	passes to restart inline, scene is considered as not running*/
-	if (st->odm->subscene && st->odm->subscene->scene_codec && !st->odm->subscene->needs_restart) {
-		ck = st->odm->subscene->scene_codec->ck;
+	if (st->odm->subscene && !st->odm->subscene->needs_restart) {
+		if (st->odm->subscene->scene_codec) ck = st->odm->subscene->scene_codec->ck;
+		/*dynamic scene*/
+		else ck = st->odm->subscene->dyn_ck;
 		/*since audio may be used alone through an inline scene, we need to refresh the graph*/
 		if (st->odm->is_open) gf_term_invalidate_renderer(st->odm->term);
 	}

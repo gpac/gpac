@@ -39,7 +39,7 @@ OrderedGroup {
   AnimationStream {
    url [od:5]
    startTime 0
-   stopTime 4
+   stopTime 0
   }
  ]
 }

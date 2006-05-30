@@ -13,8 +13,8 @@ InitialObjectDescriptor {
     decSpecificInfo BIFSConfig {
      isCommandStream true
      pixelMetric true
-     pixelWidth 240
-     pixelHeight 200
+     pixelWidth 320
+     pixelHeight 220
     }
    }
   }
@@ -47,7 +47,7 @@ OrderedGroup {
    url [od:8]
   }
   DEF PANEL Transform2D {
-   translation 0 80
+   translation 0 100
    children [
     DEF TRPAUSE Transform2D {
      translation -100 0
@@ -129,7 +129,7 @@ OrderedGroup {
      ]
     }
     Transform2D {
-     translation 0 -160
+     translation 0 -200
      children [
       DEF TS TouchSensor {}
       Transform2D {
@@ -333,8 +333,7 @@ AT 0 {
   UPDATE OD [
    ObjectDescriptor {
     objectDescriptorID 8
-    #URLstring "RTSP://COLUMBIA.FOREST.NET/AUDEM/MP4PLAYLIST1"
-    URLstring "rtsp://a1749.q.kamai.net/7/1749/1416/3c964c64/neo.qtv.apple.com/secure/may/preview/classic_cars_300.mp4"
+    URLstring "rtsp://a1749.q.kamai.net/7/1749/1416/3c964c64/neo.qtv.apple.com/secure/may/preview/civ3_700.mp4"
    }
   ]
 }

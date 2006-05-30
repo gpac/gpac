@@ -64,7 +64,7 @@ Group {
   }
 
 	Anchor {
-		url "02-viewpoint-bind.bt#VP2"
+		url "bifs-3D-viewpoint-bind.mp4#VP2"
 		children [
 			Shape {
 				appearance Appearance {

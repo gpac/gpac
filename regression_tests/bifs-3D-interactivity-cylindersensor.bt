@@ -67,7 +67,7 @@ Group {
     Shape {
      #appearance Appearance { material Material2D { filled TRUE emissiveColor 0 1 0} }
      appearance Appearance { material Material {emissiveColor 0 1 0 diffuseColor 0 0 1} }
-     geometry DEF TXT Text { string "Trackpoint" fontStyle FontStyle {size 0.8 justify "MIDDLE" style "HIGHLIGHT#RV" } }
+     geometry DEF TXT Text { string "Trackpoint" fontStyle FontStyle {size 0.8 justify "MIDDLE" } }
     }
    ]
   }

@@ -24,6 +24,10 @@ InitialObjectDescriptor {
 OrderedGroup {
  children [
   Background2D { backColor 1 1 1 }
+  WorldInfo {
+   info ["This test shows glyphs, along with their bounding boxes, the font baseline, the word bounding box and the two-lines text bounding box" "If the Arial font is found and used, bounding-boxes should be properly positioned" "" "GPAC Regression Tests" "(C) 2002-2006 GPAC Team"]
+   title "Text bounding boxes test"
+  }
   Transform2D {
    translation -140 80
    children [

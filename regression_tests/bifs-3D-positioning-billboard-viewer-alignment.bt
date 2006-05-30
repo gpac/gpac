@@ -30,6 +30,7 @@ Group {
    info ["This shows a Billboard in viewer-align mode" "The green box coordinate system should onlyt be a translation of the viewer one" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
   }
 	Viewpoint {position 0 0 10}
+	NavigationInfo { type ["EXAMINE" "ANY"] }
   Billboard {
   	axisOfRotation 0 0 0
   	children [

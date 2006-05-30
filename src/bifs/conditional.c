@@ -77,9 +77,11 @@ static void Conditional_execute(M_Conditional *node)
 
 	bs = gf_bs_new(node->buffer.buffer, node->buffer.bufferSize, GF_BITSTREAM_READ);
 	codec = priv->codec;
+	codec->cts_offset = gf_node_get_scene_time((GF_Node*)node);
 	/*this may destroy the conditional...*/
 	e = gf_bifs_dec_command(codec, bs);
 	gf_bs_del(bs);
+	codec->cts_offset = 0;
 	codec->pCurrentProto = prevproto;
 	codec->current_graph = prev_graph;
 	//set isActive - to clarify in the specs

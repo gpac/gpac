@@ -849,7 +849,7 @@ void CMainFrame::OnNavInfo()
 		"\tH move: H translate - V move: V translate - V move+CTRL or Wheel: Z-translate\n"
 		"\tleft/right: H translate - left/right+CTRL: H pan - up/down: V translate - up/down+CTRL: Z-translate\n"
 		"* Examine & Orbit mode:\n"
-		"\tH move: Y-Axis rotate - H move+CTRL: No move - V move: X-Axis rotate - V move+CTRL or Wheel: Z-translate\n"
+		"\tH move: Y-Axis rotate - H move+CTRL: Z-Axis rotate - V move: X-Axis rotate - V move+CTRL or Wheel: Z-translate\n"
 		"\tleft/right: Y-Axis rotate - left/right+CTRL: H translate - up/down: X-Axis rotate - up/down+CTRL: Y-translate\n"
 		"* VR mode:\n"
 		"\tH move: H pan - V move: V pan - V move+CTRL or Wheel: Camera Zoom\n"

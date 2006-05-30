@@ -30,13 +30,13 @@ OrderedGroup {
    title "MediaControl and Inline"
   }
   Inline {
-   url ["11-mediacontrol-seg-inline.mp4"]
+   url ["bifs-timeline-mediacontrol-seg-inline.mp4"]
   }
   MediaSensor {
-   url ["11-mediacontrol-seg-inline.mp4"]
+   url ["bifs-timeline-mediacontrol-seg-inline.mp4"]
   }
   MediaControl {
-   url ["11-mediacontrol-seg-inline.mp4#red" "11-mediacontrol-seg-inline.mp4#blue" "11-mediacontrol-seg-inline.mp4#green"]
+   url ["bifs-timeline-mediacontrol-seg-inline.mp4#red" "bifs-timeline-mediacontrol-seg-inline.mp4#blue" "bifs-timeline-mediacontrol-seg-inline.mp4#green"]
    loop TRUE
   }
  ]

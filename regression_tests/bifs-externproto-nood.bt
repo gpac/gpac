@@ -37,7 +37,7 @@ EXTERNPROTO EXPR1 [
  exposedField SFColor lineColor 0 0 0
  exposedField SFFloat lineWidth 0
  exposedField SFNode obj NULL
-] ""06-externproto-nood-lib.bt#GEOMETRY_PROTO""
+] "bifs-externproto-nood-lib.bt#GEOMETRY_PROTO"
 
 EXTERNPROTO EXPR2 [
  exposedField SFVec2f translation 0 0

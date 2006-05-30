@@ -53,21 +53,20 @@ void MC_Restart(GF_ObjectManager *odm)
 	if (!odm || odm->no_time_ctrl) return;
 
 	ctrl = ODM_GetMediaControl(odm);
-	
-	/*we have a control*/
 	if (ctrl) {
-		/*filter calls to only handle objects owning media control*/
+		/*we have a control - filter calls to only handle objects owning media control*/
 		ctrl_od = ctrl->stream->odm;
 		/*if media control owns the scene this OD refers to the scene is always restarted - TODO make that an option*/
 		if (!ctrl_od->subscene) {
 			if (ctrl->stream->odm != odm) return;
 		}
 		odm = ctrl->stream->odm;
-	}
-	/*this is inline restart - only possible through media control*/
-	if (odm->subscene && odm->subscene->root_od==ctrl->stream->odm) {
-		gf_is_restart(odm->subscene);
-		return;
+
+		/*this is inline restart - only possible through media control*/
+		if (odm->subscene && odm->subscene->root_od==ctrl->stream->odm) {
+			gf_is_restart(odm->subscene);
+			return;
+		}
 	}
 
 	/*if clock is main scene clock do nothing*/
@@ -145,7 +144,7 @@ void MC_Resume(GF_ObjectManager *odm)
 
 	in_scene = odm->parentscene;
 	if (odm->subscene && odm->subscene->root_od==odm) {
-		assert( gf_odm_shares_clock(odm, ck) );
+		assert(odm->subscene->is_dynamic_scene || gf_odm_shares_clock(odm, ck) );
 		/*resume root*/
 		gf_odm_resume(odm);
 		in_scene = odm->subscene;
@@ -175,7 +174,7 @@ void MC_Pause(GF_ObjectManager *odm)
 
 	in_scene = odm->parentscene;
 	if (odm->subscene && odm->subscene->root_od==odm) {
-		assert( gf_odm_shares_clock(odm, ck) );
+		assert(odm->subscene->is_dynamic_scene || gf_odm_shares_clock(odm, ck) );
 		/*pause root*/
 		gf_odm_pause(odm);
 		in_scene = odm->subscene;
@@ -284,6 +283,10 @@ void RenderMediaControl(GF_Node *node, void *rs)
 			stack->stream = gf_is_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF);
 			if (stack->stream) {
 				if (!stack->stream->odm) return;
+				/*MediaControl on inline: if dynamic scene, make sure it is connected before attaching...*/
+				if (stack->stream->odm->subscene) {
+					if (stack->stream->odm->subscene->is_dynamic_scene && !stack->stream->odm->subscene->dyn_ck) return;
+				}
 				gf_sg_vrml_field_copy(&stack->url, &stack->control->url, GF_SG_VRML_MFURL);
 
 				/*remove from prev*/
