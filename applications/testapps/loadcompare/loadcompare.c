@@ -67,6 +67,10 @@ GF_Err load_mp4(GF_LoadCompare *lc, GF_ISOFile *mp4, u32 *loadtime)
 	return e;
 }
 
+void load_progress(void *cbk, u32 done, u32 total) {
+	fprintf(stdout, "%d/%d\r", done, total);
+}
+
 GF_Err load_file(GF_LoadCompare *lc, char *item_path, u32 *loadtime)
 {
 	GF_Err e = GF_OK;
@@ -80,6 +84,7 @@ GF_Err load_file(GF_LoadCompare *lc, char *item_path, u32 *loadtime)
 		memset(&load, 0, sizeof(GF_SceneLoader));
 		sg = gf_sg_new();
 		load.ctx = gf_sm_new(sg);
+		load.OnProgress = load_progress;
 
 		load.fileName = item_path;
 		starttime = gf_sys_clock();
