@@ -1203,7 +1203,7 @@ static u32 svg_parse_number(SVG_Number *number, char *value_string, Bool clamp0t
 	} else {
 		number->type = SVG_NUMBER_VALUE;
 	}
-	if (unit) len = unit - value_string; 
+	if (unit) len = strlen(unit); 
 	len+=svg_parse_float(value_string, &(number->value), 0);
 
 	if (clamp0to1) number->value = MAX(0, MIN(1, number->value));
