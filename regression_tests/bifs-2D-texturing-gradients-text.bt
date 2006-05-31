@@ -124,6 +124,6 @@ OrderedGroup {
 }
 
 ROUTE PS.translation_changed TO TR.translation
-#ROUTE TIME.fraction_changed TO PI.set_fraction
+ROUTE TIME.fraction_changed TO PI.set_fraction
 ROUTE PI.value_changed TO TR.scale
 

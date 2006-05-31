@@ -1,6 +1,6 @@
 include ../../../config.mak
 
-vapth %.c $(SRC_PATH)/applications/generators/SVG
+vpath %.c $(SRC_PATH)/applications/generators/SVG
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 

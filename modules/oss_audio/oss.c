@@ -82,7 +82,7 @@ static void OSS_Shutdown(GF_AudioOutput*dr)
 
 static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg)
 {
-	int format, blockalign, frag_size, nb_bufs, frag_spec;
+	int format, blockalign, nb_bufs, frag_spec;
 	long flags;
 	OSSCTX();
 
@@ -114,23 +114,16 @@ static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCha
 	if(ioctl(ctx->audio_dev, SNDCTL_DSP_SETFMT,&format)==-1) return GF_IO_ERR;
         ctx->sr = (*SampleRate);
 	if(ioctl(ctx->audio_dev, SNDCTL_DSP_SPEED,&ctx->sr)==-1) return GF_IO_ERR;
-	if (ctx->num_buffers && ctx->total_duration) {
-		frag_size = (*SampleRate) * ctx->total_duration * blockalign;
-		frag_size /= (1000 * ctx->num_buffers);
-		nb_bufs = ctx->num_buffers;
-	} else {
-		frag_size = 1024*blockalign;
-		nb_bufs = 2;
-	}
-	frag_spec = 0;
-	while ( (0x01<<frag_spec) < frag_size) frag_spec++;
-	while (frag_spec>7) frag_spec--;
 
+	frag_spec = 7;
 	ctx->buf_size = 0x01 << frag_spec;
+	nb_bufs = ctx->num_buffers ? ctx->num_buffers : 8;
+	if (nb_bufs<8) nb_bufs = 8;
+
 	ctx->delay = (1000*ctx->buf_size) / (*SampleRate * blockalign);
 	frag_spec = ((nb_bufs<<16) & 0xFFFF0000) | frag_spec;
 	
-	ctx->delay = (1000*ctx->buf_size) / (*SampleRate * blockalign);
+	ctx->delay = (1000*ctx->buf_size*nb_bufs) / (*SampleRate * blockalign);
 	if ( ioctl(ctx->audio_dev, SNDCTL_DSP_SETFRAGMENT, &frag_spec) < 0 ) return GF_IO_ERR;
 
 	//fprintf(stdout, "OSS setup %d buffers %d bytes each (%d ms buffer delay)", nb_bufs, ctx->buf_size, ctx->delay);
