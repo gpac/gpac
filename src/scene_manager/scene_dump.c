@@ -2539,9 +2539,13 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 	}
 	fprintf(sdump->trace, ">");
 	if (svg->textContent) {
-		if (is_cdata) fprintf(sdump->trace, "<![CDATA[\n");
-		fprintf(sdump->trace, "%s", svg->textContent);
-		if (is_cdata) fprintf(sdump->trace, "]]>\n");
+		if (is_cdata) {
+			fprintf(sdump->trace, "<![CDATA[\n");
+			fprintf(sdump->trace, "%s", svg->textContent);
+			fprintf(sdump->trace, "]]>\n");
+		} else {
+			DumpUTFString(sdump, svg->textContent);
+		}
 	} else {
 		fprintf(sdump->trace, "\n");
 	}
