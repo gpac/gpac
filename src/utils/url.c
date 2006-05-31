@@ -103,9 +103,6 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 
 	prot_type = URL_GetProtocolType(pathName);
 	if (prot_type != GF_URL_TYPE_RELATIVE) return strdup(pathName);
-	/*we need abs path for parent*/
-	prot_type = URL_GetProtocolType(parentName);
-	if (prot_type == GF_URL_TYPE_RELATIVE) return strdup(pathName);
 
 	pathSepCount = 0;
 	name = NULL;
@@ -113,8 +110,10 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 		for (i = 0; i< strlen(pathName) - 2; i++) {
 			/*current dir*/
 			if ( (pathName[i] == '.') 
-				&& ( (pathName[i+1] == GF_PATH_SEPARATOR) || (pathName[i+1] == '/') ) )
+				&& ( (pathName[i+1] == GF_PATH_SEPARATOR) || (pathName[i+1] == '/') ) ) {
+				i++;
 				continue;
+			}
 			/*parent dir*/
 			if ( (pathName[i] == '.') && (pathName[i+1] == '.') 
 				&& ( (pathName[i+2] == GF_PATH_SEPARATOR) || (pathName[i+2] == '/') )

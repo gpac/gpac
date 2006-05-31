@@ -393,7 +393,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "mpegts_in"=..\..\modules\mpegts_in\mpegts_in.dsp - Package Owner=<4>
+Project: "mpegts_in"=.\mpegts_in.dsp - Package Owner=<4>
 
 Package=<5>
 {{{

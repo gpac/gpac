@@ -3342,7 +3342,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 			if (pt->x || pt->y) {
 				sprintf(attValue, "%g %g %g", FIX2FLT( 180 * gf_divfix(pt->angle, GF_PI) ), FIX2FLT(pt->x), FIX2FLT(pt->y) );
 			} else {
-				sprintf(attValue, "%g", FIX2FLT( 180 * gf_divfix(pt->angle, GF_PI) ));
+				sprintf(attValue, "%g", FIX2FLT(gf_divfix(180 * pt->angle, GF_PI) ));
 			}
 		} else if (info->eventType==SVG_TRANSFORM_SKEWX || 
 				   info->eventType==SVG_TRANSFORM_SKEWY) {
@@ -3356,22 +3356,30 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 				sprintf(attValue, "translate(%g,%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]) );
 				if ((matrix->m[0]!=FIX_ONE) || (matrix->m[4]!=FIX_ONE)) {
 					char szT[1024];
-					sprintf(szT, " scale(%g,%g)", FIX2FLT(matrix->m[0]), FIX2FLT(matrix->m[4]) );
+					if ((matrix->m[0]==-FIX_ONE) && (matrix->m[4]==-FIX_ONE)) {
+						strcpy(szT, " rotate(180)");
+					} else {
+						sprintf(szT, " scale(%g,%g)", FIX2FLT(matrix->m[0]), FIX2FLT(matrix->m[4]) );
+					}
 					strcat(attValue, szT);
 				}
 			} else if (matrix->m[1] == - matrix->m[3]) {
 				Fixed angle = gf_asin(matrix->m[3]);
 				Fixed cos_a = gf_cos(angle);
-				if (cos_a) {
+				if (ABS(cos_a)>FIX_EPSILON) {
 					Fixed sx, sy;
 					sx = gf_divfix(matrix->m[0], cos_a);
 					sy = gf_divfix(matrix->m[4], cos_a);
 					angle = gf_divfix(180*angle, GF_PI);
 					if ((sx==sy) && ( ABS(FIX_ONE - ABS(sx) ) < FIX_ONE/100)) {
-						sprintf(attValue, "translate(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(angle) );
+						sprintf(attValue, "translate(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), gf_divfix(FIX2FLT(angle)*180, GF_PI) );
 					} else {
-						sprintf(attValue, "translate(%g,%g) scale(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(sx), FIX2FLT(sy), FIX2FLT(angle) );
+						sprintf(attValue, "translate(%g,%g) scale(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), FIX2FLT(sx), FIX2FLT(sy), gf_divfix(FIX2FLT(angle)*180, GF_PI) );
 					}
+				} else {
+					Fixed a = angle;
+					if (a<0) a += GF_2PI;
+					sprintf(attValue, "translate(%g,%g) rotate(%g)", FIX2FLT(matrix->m[2]), FIX2FLT(matrix->m[5]), gf_divfix(FIX2FLT(a)*180, GF_PI) );
 				}
 			} 
 			/*default*/

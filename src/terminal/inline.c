@@ -738,7 +738,7 @@ void gf_is_setup_object(GF_InlineScene *is, GF_ObjectManager *odm)
 	i=0;
 	while ((obj = gf_list_enum(is->media_objects, &i))) {
 		if (obj->OD_ID==GF_ESM_DYNAMIC_OD_ID) {
-			assert(obj->odm);
+			//assert(obj->odm);
 			if (obj->odm == parent) {
 				/*assign FINAL OD, not parent*/
 				obj->odm = odm;

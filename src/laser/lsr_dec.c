@@ -592,7 +592,7 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 {
 	u32 val, id, i, count;
 	unsigned char *name;
-	GF_LSR_READ_INT(lsr, val, 1, "has__0_id");
+	GF_LSR_READ_INT(lsr, val, 1, "has_id");
 	if (!val) return;
 	
 	name = NULL;
@@ -706,6 +706,8 @@ static void lsr_read_matrix(GF_LASeRCodec *lsr, GF_Matrix2D *mx)
 			mx->m[0] = lsr_translate_scale(lsr, flag);
 			GF_LSR_READ_INT(lsr, flag, lsr->coord_bits, "yy");
 			mx->m[4] = lsr_translate_scale(lsr, flag);
+		} else {
+			mx->m[0] = mx->m[4] = FIX_ONE;
 		}
 		GF_LSR_READ_INT(lsr, flag, 1, "xy_yx_present");
 		if (flag) {
@@ -937,7 +939,7 @@ static void lsr_read_duration(GF_LASeRCodec *lsr, SMIL_Duration *smil, const cha
 static void lsr_read_rare_full(GF_LASeRCodec *lsr, SVGElement *n, SVG_Matrix *matrix)
 {
 	u32 i, nb_rare, field_rare;
-	GF_LSR_READ_INT(lsr, nb_rare, 1, "has__0_rare");
+	GF_LSR_READ_INT(lsr, nb_rare, 1, "has_rare");
 	if (!nb_rare) return;
 	GF_LSR_READ_INT(lsr, nb_rare, 6, "nbOfAttributes");
 
@@ -1138,7 +1140,7 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, SVGElement *n, SVG_Matrix *ma
 static void lsr_read_fill(GF_LASeRCodec *lsr, SVGElement *n)
 {
 	Bool has_fill;
-	GF_LSR_READ_INT(lsr, has_fill, 1, "has_fill");
+	GF_LSR_READ_INT(lsr, has_fill, 1, "fill");
 	if (has_fill) 
 		lsr_read_paint(lsr, &n->properties->fill, "fill");
 	else
@@ -1650,6 +1652,7 @@ static void lsr_read_anim_values(GF_LASeRCodec *lsr, SMIL_AnimateValues *anims, 
 		void *att = lsr_read_an_anim_value(lsr, coded_type, type, name);
 		if (att) gf_list_add(anims->values, att);
 	}
+	anims->type = coded_type;
 }
 
 static void lsr_read_fraction_12(GF_LASeRCodec *lsr, GF_List *l, const char *name)
@@ -1989,20 +1992,20 @@ static GF_Node *lsr_read_animate(GF_LASeRCodec *lsr, SVGElement *parent)
 
 	lsr_read_accumulate(lsr, &elt->anim->accumulate);
 	lsr_read_additive(lsr, &elt->anim->additive);
-	lsr_read_anim_value(lsr, &elt->anim->by, elt->anim->attributeName.type, "has_by");
+	lsr_read_anim_value(lsr, &elt->anim->by, elt->anim->attributeName.type, "by");
 	lsr_read_calc_mode(lsr, &elt->anim->calcMode);
-	lsr_read_anim_value(lsr, &elt->anim->from, elt->anim->attributeName.type, "has_from");
-	lsr_read_fraction_12(lsr, elt->anim->keySplines, "has_keySplines");
-	lsr_read_fraction_12(lsr, elt->anim->keyTimes, "has_keyTimes");
-	lsr_read_anim_values(lsr, &elt->anim->values, elt->anim->attributeName.type, "has_values");
-	lsr_read_smil_times(lsr, elt->timing->begin, "has_begin", 1);
-	lsr_read_duration(lsr, &elt->timing->dur, "has_dur");
+	lsr_read_anim_value(lsr, &elt->anim->from, elt->anim->attributeName.type, "from");
+	lsr_read_fraction_12(lsr, elt->anim->keySplines, "keySplines");
+	lsr_read_fraction_12(lsr, elt->anim->keyTimes, "keyTimes");
+	lsr_read_anim_values(lsr, &elt->anim->values, elt->anim->attributeName.type, "values");
+	lsr_read_smil_times(lsr, elt->timing->begin, "begin", 1);
+	lsr_read_duration(lsr, &elt->timing->dur, "dur");
 	GF_LSR_READ_INT(lsr, elt->anim->lsr_enabled, 1, "enabled");
-	lsr_read_anim_fill(lsr, &elt->timing->fill, "has_fill");
+	lsr_read_anim_fill(lsr, &elt->timing->fill, "fill");
 	lsr_read_anim_repeat(lsr, &elt->timing->repeatCount, "repeatCount");
-	lsr_read_repeat_duration(lsr, &elt->timing->repeatDur, "has_repeatDur");
-	lsr_read_anim_restart(lsr, &elt->timing->restart, "has_restart");
-	lsr_read_anim_value(lsr, &elt->anim->to, elt->anim->attributeName.type, "has_to");
+	lsr_read_repeat_duration(lsr, &elt->timing->repeatDur, "repeatDur");
+	lsr_read_anim_restart(lsr, &elt->timing->restart, "restart");
+	lsr_read_anim_value(lsr, &elt->anim->to, elt->anim->attributeName.type, "to");
 	lsr_read_href(lsr, (SVGElement *) elt);
 	lsr_read_any_attribute(lsr, (GF_Node *) elt, 1);
 
@@ -2024,20 +2027,20 @@ static GF_Node *lsr_read_animateMotion(GF_LASeRCodec *lsr, SVGElement *parent)
 	lsr_read_rare(lsr, (SVGElement*) elt);
 	lsr_read_accumulate(lsr, &elt->anim->accumulate);
 	lsr_read_additive(lsr, &elt->anim->additive);
-	lsr_read_anim_value(lsr, &elt->anim->by, 0xFFFF, "has_by");
+	lsr_read_anim_value(lsr, &elt->anim->by, 0xFFFF, "by");
 	lsr_read_calc_mode(lsr, &elt->anim->calcMode);
-	lsr_read_anim_value(lsr, &elt->anim->from, 0xFFFF, "has_from");
-	lsr_read_fraction_12(lsr, elt->anim->keySplines, "has_keySplines");
-	lsr_read_fraction_12(lsr, elt->anim->keyTimes, "has_keyTimes");
-	lsr_read_anim_values(lsr, &elt->anim->values, 0xFFFF, "has_values");
+	lsr_read_anim_value(lsr, &elt->anim->from, 0xFFFF, "from");
+	lsr_read_fraction_12(lsr, elt->anim->keySplines, "keySplines");
+	lsr_read_fraction_12(lsr, elt->anim->keyTimes, "keyTimes");
+	lsr_read_anim_values(lsr, &elt->anim->values, 0xFFFF, "values");
 	lsr_read_smil_times(lsr, elt->timing->begin, "begin", 1);
-	lsr_read_duration(lsr, &elt->timing->dur, "has_dur");
+	lsr_read_duration(lsr, &elt->timing->dur, "dur");
 	GF_LSR_READ_INT(lsr, elt->anim->lsr_enabled, 1, "enabled");
-	lsr_read_anim_fill(lsr, &elt->timing->fill, "has_fill");
-	lsr_read_anim_repeat(lsr, &elt->timing->repeatCount, "has_repeatCount");
-	lsr_read_repeat_duration(lsr, &elt->timing->repeatDur, "has_repeatDur");
-	lsr_read_anim_restart(lsr, &elt->timing->restart, "has_restart");
-	lsr_read_anim_value(lsr, &elt->anim->to, 0xFFFF, "has_to");
+	lsr_read_anim_fill(lsr, &elt->timing->fill, "fill");
+	lsr_read_anim_repeat(lsr, &elt->timing->repeatCount, "repeatCount");
+	lsr_read_repeat_duration(lsr, &elt->timing->repeatDur, "repeatDur");
+	lsr_read_anim_restart(lsr, &elt->timing->restart, "restart");
+	lsr_read_anim_value(lsr, &elt->anim->to, 0xFFFF, "to");
 	lsr_read_float_list(lsr, elt->keyPoints, "keyPoints");
 	GF_LSR_READ_INT(lsr, flag, 1, "hasPath");
 	if (flag) lsr_read_path_type(lsr, &elt->path, "path");
@@ -2096,13 +2099,14 @@ static void lsr_translate_anim_trans_value(SMIL_AnimateValue *val, u32 transform
 
 static void lsr_translate_anim_trans_values(SMIL_AnimateValues *val, u32 transform_type)
 {
-	u32 count, i;
+	u32 count, i, coded_type;
 	SVG_Point_Angle *p;
 	SVG_Point *pt;
 	Fixed *f;
 	GF_List *l;
 
 	val->transform_type = transform_type;
+	coded_type = val->type;
 	val->type = SVG_Matrix_datatype;
 	count = gf_list_count(val->values);
 	if (!count) return;
@@ -2118,19 +2122,24 @@ static void lsr_translate_anim_trans_values(SMIL_AnimateValues *val, u32 transfo
 			p->x = p->y = 0;
 			p->angle = 0;
 
-			l = a_val;
-			f = gf_list_get(a_val, 0);
-			p->angle = *f;
-			f = gf_list_get(a_val, 1);
-			if (f) p->x = *f;
-			f = gf_list_get(a_val, 2);
-			if (f) p->y = *f;
-			while (gf_list_count(l)) {
-				f = gf_list_last(l);
-				gf_list_rem_last(l);
-				free(f);
+			if (coded_type==8) {
+				l = a_val;
+				f = gf_list_get(a_val, 0);
+				p->angle = *f;
+				f = gf_list_get(a_val, 1);
+				if (f) p->x = *f;
+				f = gf_list_get(a_val, 2);
+				if (f) p->y = *f;
+				while (gf_list_count(l)) {
+					f = gf_list_last(l);
+					gf_list_rem_last(l);
+					free(f);
+				}
+				gf_list_del(l);
+			} else if (coded_type==1) {
+				p->angle = ((SVG_Number *)a_val)->value;
+				free(a_val);
 			}
-			gf_list_del(l);
 			gf_list_rem(val->values, i);
 			gf_list_insert(val->values, p, i);
 			break;
@@ -2176,20 +2185,20 @@ static GF_Node *lsr_read_animateTransform(GF_LASeRCodec *lsr, SVGElement *parent
 
 	lsr_read_accumulate(lsr, &elt->anim->accumulate);
 	lsr_read_additive(lsr, &elt->anim->additive);
-	lsr_read_anim_value(lsr, &elt->anim->by, elt->anim->attributeName.type, "has_by");
+	lsr_read_anim_value(lsr, &elt->anim->by, elt->anim->attributeName.type, "by");
 	lsr_read_calc_mode(lsr, &elt->anim->calcMode);
-	lsr_read_anim_value(lsr, &elt->anim->from, elt->anim->attributeName.type, "has_from");
-	lsr_read_fraction_12(lsr, elt->anim->keySplines, "has_keySplines");
-	lsr_read_fraction_12(lsr, elt->anim->keyTimes, "has_keyTimes");
-	lsr_read_anim_values(lsr, &elt->anim->values, elt->anim->attributeName.type, "has_values");
-	lsr_read_smil_times(lsr, elt->timing->begin, "has_begin", 1);
-	lsr_read_duration(lsr, &elt->timing->dur, "has_dur");
+	lsr_read_anim_value(lsr, &elt->anim->from, elt->anim->attributeName.type, "from");
+	lsr_read_fraction_12(lsr, elt->anim->keySplines, "keySplines");
+	lsr_read_fraction_12(lsr, elt->anim->keyTimes, "keyTimes");
+	lsr_read_anim_values(lsr, &elt->anim->values, elt->anim->attributeName.type, "values");
+	lsr_read_smil_times(lsr, elt->timing->begin, "begin", 1);
+	lsr_read_duration(lsr, &elt->timing->dur, "dur");
 	GF_LSR_READ_INT(lsr, elt->anim->lsr_enabled, 1, "enabled");
-	lsr_read_anim_fill(lsr, &elt->timing->fill, "has_fill");
-	lsr_read_anim_repeat(lsr, &elt->timing->repeatCount, "has_repeatCount");
-	lsr_read_repeat_duration(lsr, &elt->timing->repeatDur, "has_repeatDur");
-	lsr_read_anim_restart(lsr, &elt->timing->restart, "has_restart");
-	lsr_read_anim_value(lsr, &elt->anim->to, elt->anim->attributeName.type, "has_to");
+	lsr_read_anim_fill(lsr, &elt->timing->fill, "fill");
+	lsr_read_anim_repeat(lsr, &elt->timing->repeatCount, "repeatCount");
+	lsr_read_repeat_duration(lsr, &elt->timing->repeatDur, "repeatDur");
+	lsr_read_anim_restart(lsr, &elt->timing->restart, "restart");
+	lsr_read_anim_value(lsr, &elt->anim->to, elt->anim->attributeName.type, "to");
 
 	/*enumeration rotate{0} scale{1} skewX{2} skewY{3} translate{4}*/
 	GF_LSR_READ_INT(lsr, flag, 3, "rotscatra");
@@ -2224,11 +2233,11 @@ static GF_Node *lsr_read_audio(GF_LASeRCodec *lsr, SVGElement *parent)
 	SVGaudioElement *elt= (SVGaudioElement *) gf_node_new(lsr->sg, TAG_SVG_audio);
 	lsr_read_id(lsr, (GF_Node *) elt);
 	lsr_read_rare(lsr, (SVGElement *) elt);
-	lsr_read_smil_times(lsr, elt->timing->begin, "has_begin", 1);
-	lsr_read_duration(lsr, &elt->timing->dur, "has_dur");
+	lsr_read_smil_times(lsr, elt->timing->begin, "begin", 1);
+	lsr_read_duration(lsr, &elt->timing->dur, "dur");
 	GF_LSR_READ_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
-	lsr_read_anim_repeat(lsr, &elt->timing->repeatCount, "has_repeatCount");
-	lsr_read_repeat_duration(lsr, &elt->timing->repeatDur, "has_repeatDur");
+	lsr_read_anim_repeat(lsr, &elt->timing->repeatCount, "repeatCount");
+	lsr_read_repeat_duration(lsr, &elt->timing->repeatDur, "repeatDur");
 	lsr_read_sync_behavior(lsr, &elt->sync->syncBehavior, "syncBehavior");
 	lsr_read_sync_tolerance(lsr, &elt->sync->syncTolerance, "syncBehavior");
 	lsr_read_content_type(lsr, &elt->xlink->type, "type");
@@ -2636,14 +2645,14 @@ static GF_Node *lsr_read_set(GF_LASeRCodec *lsr, SVGElement *parent)
 	lsr_read_rare(lsr, (SVGElement*) elt);
 	elt->anim->attributeName.type = lsr_read_animatable(lsr, "attributeName");
 
-	lsr_read_smil_times(lsr, elt->timing->begin, "has_begin", 1);
-	lsr_read_duration(lsr, &elt->timing->dur, "has_dur");
+	lsr_read_smil_times(lsr, elt->timing->begin, "begin", 1);
+	lsr_read_duration(lsr, &elt->timing->dur, "dur");
 	GF_LSR_READ_INT(lsr, elt->anim->lsr_enabled, 1, "enabled");
-	lsr_read_anim_fill(lsr, &elt->timing->fill, "has_fill");
-	lsr_read_anim_repeat(lsr, &elt->timing->repeatCount, "has_repeatCount");
-	lsr_read_repeat_duration(lsr, &elt->timing->repeatDur, "has_repeatDur");
-	lsr_read_anim_restart(lsr, &elt->timing->restart, "has_restart");
-	lsr_read_anim_value(lsr, &elt->anim->to, elt->anim->attributeName.type, "has_to");
+	lsr_read_anim_fill(lsr, &elt->timing->fill, "fill");
+	lsr_read_anim_repeat(lsr, &elt->timing->repeatCount, "repeatCount");
+	lsr_read_repeat_duration(lsr, &elt->timing->repeatDur, "repeatDur");
+	lsr_read_anim_restart(lsr, &elt->timing->restart, "restart");
+	lsr_read_anim_value(lsr, &elt->anim->to, elt->anim->attributeName.type, "to");
 	lsr_read_href(lsr, (SVGElement *)elt);
 	lsr_read_any_attribute(lsr, (GF_Node *) elt, 1);
 
@@ -2913,8 +2922,8 @@ static GF_Node *lsr_read_video(GF_LASeRCodec *lsr, SVGElement *parent)
 	SVGvideoElement*elt = (SVGvideoElement*) gf_node_new(lsr->sg, TAG_SVG_video);
 	lsr_read_id(lsr, (GF_Node *) elt);
 	lsr_read_rare_full(lsr, (SVGElement*) elt, &elt->transform);
-	lsr_read_smil_times(lsr, elt->timing->begin, "has_begin", 1);
-	lsr_read_duration(lsr, &elt->timing->dur, "has_dur");
+	lsr_read_smil_times(lsr, elt->timing->begin, "begin", 1);
+	lsr_read_duration(lsr, &elt->timing->dur, "dur");
 	GF_LSR_READ_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
 	lsr_read_coordinate(lsr, &elt->height, 1, "height");
 	GF_LSR_READ_INT(lsr, flag, 1, "hasOverlay");
@@ -2932,8 +2941,8 @@ static GF_Node *lsr_read_video(GF_LASeRCodec *lsr, SVGElement *parent)
 		elt->overlay = SVG_OVERLAY_NONE;
 	}
 
-	lsr_read_anim_repeat(lsr, &elt->timing->repeatCount, "has_repeatCount");
-	lsr_read_repeat_duration(lsr, &elt->timing->repeatDur, "has_repeatDur");
+	lsr_read_anim_repeat(lsr, &elt->timing->repeatCount, "repeatCount");
+	lsr_read_repeat_duration(lsr, &elt->timing->repeatDur, "repeatDur");
 	lsr_read_sync_behavior(lsr, &elt->sync->syncBehavior, "syncBehavior");
 	lsr_read_sync_tolerance(lsr, &elt->sync->syncTolerance, "syncBehavior");
 	lsr_read_transform_behavior(lsr, &fixme, "transformBehavior");
