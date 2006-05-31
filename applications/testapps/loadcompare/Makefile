@@ -26,7 +26,7 @@ endif
 #common obj
 OBJS= loadcompare.o
 
-LINKFLAGS=-L../../bin/gcc
+LINKFLAGS=-L../../../bin/gcc
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=LoadCompare$(EXE)
