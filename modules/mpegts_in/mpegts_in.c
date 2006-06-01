@@ -427,7 +427,7 @@ void M2TS_SetupFile(M2TSIn *read, char *url)
 	fseek(read->file, 0, SEEK_END);
 	read->file_size = ftell(read->file);
 	
-#if 1
+#if 0
 	/* 
 		estimate duration by reading the end of the file
 		read->end_range is initialized to the PTS of the last TS packet

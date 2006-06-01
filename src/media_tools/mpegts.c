@@ -432,6 +432,12 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		if (gf_m2ts_crc32_check(data, sec->length)) {
 			s32 cur_sec_num;
 			sec->sec_id = (data[3]<<8) | data[4];
+			if (sec->sec_id != 0 && sec->sec_id != 1){
+				FILE *out = fopen("section_type.txt", "a+t");
+				fprintf(out,"section_id BIFS4/5OD %d \n", sec->sec_id);
+				fclose(out);
+			}
+
 			sec->version_number = (data[5] >> 1) & 0x1f;
 			sec->current_next_indicator = (data[5] & 0x1) ? 1 : 0;
 			cur_sec_num = data[6];
@@ -472,6 +478,11 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 
 		if (sec->data) {
 			if (sec->current_next_indicator) {
+				if (!es){
+					GF_SAFEALLOC(es, sizeof(GF_M2TS_ES));
+					GF_SAFEALLOC(es->sec, sizeof(GF_M2TS_SectionFilter));
+					es->sec->table_id = sec->table_id;
+				}
 				sec->process_section(ts, es, sec->data, sec->data_size, is_repeated);
 				sec->section_init = 1;
 			}
@@ -480,6 +491,11 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			sec->data_size = 0;
 		} else {
 			if (sec->current_next_indicator) {
+				if (!es){
+					GF_SAFEALLOC(es, sizeof(GF_M2TS_ES));
+					GF_SAFEALLOC(es->sec, sizeof(GF_M2TS_SectionFilter));
+					es->sec->table_id = sec->table_id;
+				}
 				sec->process_section(ts, es, sec->section + sec->start, sec->length - sec->start, is_repeated);
 				sec->section_init = 1;
 			}
@@ -569,7 +585,21 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, unsigned ch
 		return;
 	}
 
+	// 0x42 SDT for actual ts , 0x46 SDT for other ts
+	// 0x4a BAT section, 0x72 ST section
+	if (es->sec->table_id != 0x42) {
+		if (es->sec->table_id == 0x46) gf_m2ts_report(ts, GF_OK, "SDT for other ts");
+		if (es->sec->table_id == 0x4a) gf_m2ts_report(ts, GF_OK, "BAT sectin");
+		if (es->sec->table_id == 0x72) gf_m2ts_report(ts, GF_OK, "ST section");
+		gf_m2ts_reset_sdt(ts);
+		return;
+	}
+
 	/*reset service desc*/
+	free(es->sec->section);
+	es->sec->section = NULL;
+	es->sec->length = es->sec->received = 0;
+	gf_m2ts_report(ts, GF_OK, "SDT for actual ts");
 	gf_m2ts_reset_sdt(ts);
 
 	orig_net_id = (data[0] << 8) | data[1];
@@ -590,7 +620,7 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, unsigned ch
 		pos += 5;
 
 		d_pos = 0;
-		while (d_pos<descs_size) {
+		while (d_pos < descs_size) {
 			u8 d_tag = data[pos+d_pos];
 			u8 d_len = data[pos+d_pos+1];
 
@@ -621,6 +651,7 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, unsigned ch
 
 			default:
 				d_pos += d_len;
+				if (d_len == 0) d_pos = descs_size;
 				break;
 			}
 		}
@@ -655,7 +686,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pmt, unsigned c
 		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PMT_REPEAT, pmt->program);
 		return;
 	}
-	if (pmt->sec->sec_id != pmt->program->number) return;
+	//if (pmt->sec->sec_id != pmt->program->number) return;
 
 	if (pmt->program->pmt_iod) gf_odf_desc_del((GF_Descriptor *)pmt->program->pmt_iod);
 	pmt->program->pmt_iod = NULL;
@@ -671,7 +702,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pmt, unsigned c
 		u32 first_loop_len = 0;
 		tag = data[4];
 		len = data[5];
-		while (info_length != first_loop_len) {
+		while (info_length > first_loop_len) {
 			if (tag == 29) { // IOD tag identifier from MPEG-2 tables
 				u8 scope, label;				
 				u32 size;
@@ -680,7 +711,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pmt, unsigned c
 				label = data[7];
 				
 				iod_bs = gf_bs_new(data+8, data_size-8, GF_BITSTREAM_READ);
-#if 0
+#if 1
 				printf("Parsing IOD descriptor ... ");
 				if (gf_odf_parse_descriptor(iod_bs , (GF_Descriptor **) &pmt->program->pmt_iod, &size) == GF_OK)
 					printf("done.\n");
@@ -727,7 +758,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pmt, unsigned c
 		{
 			u32 second_loop_len = 0;
 			u8 tag, len;
-			while (second_loop_len != desc_len) {
+			while (second_loop_len < desc_len) {
 				tag = data[5];
 				len = data[6];
 				if (tag == 30) { // SL Descriptor tag identifier from MPEG-2 tables
@@ -766,6 +797,11 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pmt, unsigned c
 		pos += desc_len;
 		data += desc_len;
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
+		if (0){
+			FILE *t = fopen("PID_ESID.txt", "a+t");
+			fprintf(t, "PID %d \tES_ID %d \t section19/18pes %d \n", pes->pid, pes->ES_ID, pes->stream_type);
+			fclose(t);
+		}
 	}
 	evt_type = pmt->sec->section_init ? GF_M2TS_EVT_PMT_UPDATE : GF_M2TS_EVT_PMT_FOUND;
 	if (ts->on_event) ts->on_event(ts, evt_type, pmt->program);
@@ -863,6 +899,8 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	if (pes->stream_type == 0x13) { 		
 		gf_m2ts_gather_section(ts, pes->sec, (GF_M2TS_ES *)pes, hdr, data, data_size);
 		return;
+	}else if (pes->stream_type == 0x12){
+		// 
 	}
 
 	if (!pes->reframe) return;
@@ -1020,6 +1058,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	}
 	/*SDT*/
 	else if (hdr.pid == 0x0011) {
+		
 		gf_m2ts_gather_section(ts, ts->sdt, NULL, &hdr, data, payload_size);
 		return;
 	}

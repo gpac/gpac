@@ -110,7 +110,7 @@ enum
 typedef void (*gf_m2ts_section_callback)(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pes, unsigned char *data, u32 data_size, Bool is_repeated); 
 
 /*MPEG-2 TS section object (PAT, PMT, etc..)*/
-typedef struct
+typedef struct GF_M2TS_SectionFilter
 {
 	/*set to 1 once the section has been parsed and loaded - used to discard carousel'ed data*/
 	u8 section_init;
@@ -139,6 +139,9 @@ typedef struct
 	u32 data_size;
 
 	gf_m2ts_section_callback process_section; 
+
+	/* section interleaved */
+	struct GF_M2TS_SectionFilter *sub_section;
 } GF_M2TS_SectionFilter;
 
 /*MPEG-2 TS program object*/
@@ -249,6 +252,9 @@ struct tag_m2ts_demux
 	u32 buffer_size, alloc_size;
 	/*default transport PID filters*/
 	GF_M2TS_SectionFilter *pas, *nit, *sdt;
+	
+	/* analyser */
+	FILE *pes_out;
 };
 
 
@@ -258,5 +264,6 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts);
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode);
 GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size);
 
+u32 gf_m2ts_crc32(unsigned char *data, u32 len);
 
 #endif	//_GF_MPEG_TS_H_
