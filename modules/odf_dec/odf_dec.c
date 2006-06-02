@@ -48,8 +48,7 @@ static GF_Err ODF_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapability
 static GF_Err ODF_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_inline_scene)
 {
 	ODPriv *priv = plug->privateStack;
-	if (priv->scene) return GF_BAD_PARAM;
-	priv->scene = scene;
+	if (!priv->scene) priv->scene = scene;
 	return GF_OK;
 }
 
@@ -172,7 +171,7 @@ static GF_Err ODF_AttachStream(GF_BaseDecoder *plug,
 	
 	if (Upstream) return GF_OK;
 	//warning, we only support one stream ...
-	if (priv->streamCount) return GF_NOT_SUPPORTED;
+	//if (priv->streamCount) return GF_NOT_SUPPORTED;
 	priv->ESIDs = malloc(sizeof(u16));
 	priv->ESIDs[0] = ES_ID;
 	priv->streamCount ++;

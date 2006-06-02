@@ -49,6 +49,7 @@ typedef struct
 
 static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, unsigned char *decSpecInfo, u32 decSpecInfoSize, u16 DependsOnES_ID, u32 objectTypeIndication, Bool UpStream)
 {
+	GF_Err e;
 	GF_M4ADecSpecInfo a_cfg;
 	FAADCTX();
 	
@@ -59,10 +60,11 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, u16 ES_ID, unsigned char *
 	ctx->codec = faacDecOpen();
 	if (!ctx->codec) return GF_IO_ERR;
 
+	e = gf_m4a_get_config((unsigned char *) decSpecInfo, decSpecInfoSize, &a_cfg);
+	if (e) return e;
 	if ( (s8) faacDecInit2(ctx->codec, (unsigned char *) decSpecInfo, decSpecInfoSize, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels) < 0)
-		return GF_NON_COMPLIANT_BITSTREAM;
+		return GF_NOT_SUPPORTED;
 
-	gf_m4a_get_config((unsigned char *) decSpecInfo, decSpecInfoSize, &a_cfg);
 	ctx->is_sbr = a_cfg.has_sbr;
 	ctx->num_samples = 1024;
 	ctx->out_size = 2 * ctx->num_samples * ctx->num_channels;

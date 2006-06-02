@@ -29,7 +29,6 @@
 /*in case the media manager is also responsible for visual rendering*/
 #include <gpac/renderer.h>
 
-//#define NO_MM_LOCK
 
 u32 MM_Loop(void *par);
 
@@ -56,7 +55,7 @@ GF_MediaManager *gf_mm_new(GF_Terminal *term, u32 threading_mode)
 {
 	GF_MediaManager *tmp = malloc(sizeof(GF_MediaManager));
 	memset(tmp, 0, sizeof(GF_MediaManager));
-	tmp->mm_mx = gf_mx_new();
+	tmp->mx = gf_mx_new();
 	tmp->threaded_codecs = gf_list_new();
 	tmp->unthreaded_codecs = gf_list_new();
 	tmp->term = term;
@@ -85,7 +84,7 @@ void gf_mm_del(GF_MediaManager *mgr)
 
 	gf_list_del(mgr->threaded_codecs);
 	gf_list_del(mgr->unthreaded_codecs);
-	gf_mx_del(mgr->mm_mx);
+	gf_mx_del(mgr->mx);
 	free(mgr);
 }
 
@@ -110,9 +109,7 @@ void gf_mm_add_codec(GF_MediaManager *mgr, GF_Codec *codec)
 	assert(codec);
 
 	/*we need REAL exclusive access when adding a dec*/
-#ifndef NO_MM_LOCK
-	gf_mx_p(mgr->mm_mx);
-#endif
+	gf_mx_p(mgr->mx);
 
 	cd = mm_get_codec(mgr->unthreaded_codecs, codec);
 	if (cd) goto exit;
@@ -194,9 +191,7 @@ void gf_mm_add_codec(GF_MediaManager *mgr, GF_Codec *codec)
 	gf_list_add(mgr->unthreaded_codecs, cd);
 
 exit:
-#ifndef NO_MM_LOCK
-	gf_mx_v(mgr->mm_mx);
-#endif
+	gf_mx_v(mgr->mx);
 	return;
 }
 
@@ -206,9 +201,7 @@ void gf_mm_remove_codec(GF_MediaManager *mgr, GF_Codec *codec)
 	CodecEntry *ce;
 
 	/*we need REAL exclusive access when removing a dec*/
-#ifndef NO_MM_LOCK
-	gf_mx_p(mgr->mm_mx);
-#endif
+	gf_mx_p(mgr->mx);
 
 	i=0;
 	while ((ce = gf_list_enum(mgr->threaded_codecs, &i))) {
@@ -235,9 +228,7 @@ void gf_mm_remove_codec(GF_MediaManager *mgr, GF_Codec *codec)
 		}
 	}
 exit:
-#ifndef NO_MM_LOCK
-	gf_mx_v(mgr->mm_mx);
-#endif
+	gf_mx_v(mgr->mx);
 	return;
 }
 
@@ -258,13 +249,13 @@ u32 MM_Loop(void *par)
 
 	while (mgr->state) {
 		gf_term_handle_services(mgr->term);
-		gf_mx_p(mgr->mm_mx);
+		gf_mx_p(mgr->mx);
 
 		count = gf_list_count(mgr->unthreaded_codecs);
 		time_left = mgr->interrupt_cycle_ms;
 
 		if (!count) {
-			gf_mx_v(mgr->mm_mx);
+			gf_mx_v(mgr->mx);
 			gf_sleep(mgr->interrupt_cycle_ms);
 			continue;
 		}
@@ -311,7 +302,7 @@ u32 MM_Loop(void *par)
 				break;
 			}
 		}
-		gf_mx_v(mgr->mm_mx);
+		gf_mx_v(mgr->mx);
 
 		if (mgr->term->render_frames) {
 			time_taken = gf_sys_clock();
@@ -424,6 +415,7 @@ void gf_mm_stop_codec(GF_Codec *codec)
 	if (!ce) return;
 
 	if (ce->mx) gf_mx_p(ce->mx);
+	else gf_mx_p(mgr->mx);
 	
 	if (codec->decio && codec->odm->mo && (codec->odm->mo->mo_flags & GF_MO_DISPLAY_REMOVE) ) {
 		GF_CodecCapability cap;
@@ -443,6 +435,7 @@ void gf_mm_stop_codec(GF_Codec *codec)
 	}
 
 	if (ce->mx) gf_mx_v(ce->mx);
+	else gf_mx_v(mgr->mx);
 }
 
 void gf_mm_set_threading(GF_MediaManager *mgr, u32 mode)
@@ -453,7 +446,7 @@ void gf_mm_set_threading(GF_MediaManager *mgr, u32 mode)
 	if (mgr->threading_mode == mode) return;
 
 	/*note we lock global mutex but don't lock any codecs*/
-	gf_mx_p(mgr->mm_mx);
+	gf_mx_p(mgr->mx);
 
 	switch (mode) {
 	/*moving to no threads*/
@@ -548,14 +541,14 @@ void gf_mm_set_threading(GF_MediaManager *mgr, u32 mode)
 		}
 	}
 	mgr->threading_mode = mode;
-	gf_mx_v(mgr->mm_mx);
+	gf_mx_v(mgr->mx);
 }
 
 void gf_mm_set_priority(GF_MediaManager *mgr, s32 Priority)
 {
 	u32 i;
 	CodecEntry *ce;
-	gf_mx_p(mgr->mm_mx);
+	gf_mx_p(mgr->mx);
 
 	gf_th_set_priority(mgr->th, Priority);
 
@@ -565,7 +558,7 @@ void gf_mm_set_priority(GF_MediaManager *mgr, s32 Priority)
 	}
 	mgr->priority = Priority;
 
-	gf_mx_v(mgr->mm_mx);
+	gf_mx_v(mgr->mx);
 }
 
 
@@ -579,7 +572,7 @@ GF_Err gf_term_process(GF_Terminal *term)
 	/*update till frame mature*/
 	while (1) {
 		gf_term_handle_services(term);
-		gf_mx_p(term->mediaman->mm_mx);
+		gf_mx_p(term->mediaman->mx);
 
 		i=0;
 		while ((ce = gf_list_enum(term->mediaman->unthreaded_codecs, &i))) {
@@ -591,7 +584,7 @@ GF_Err gf_term_process(GF_Terminal *term)
 			}
 
 		}
-		gf_mx_v(term->mediaman->mm_mx);
+		gf_mx_v(term->mediaman->mx);
 
 		if (!gf_sr_render_frame(term->renderer))
 			break;

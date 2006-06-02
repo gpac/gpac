@@ -305,7 +305,7 @@ struct _media_manager
 	u32 state;
 
 	/*mutex for decoder access*/
-	GF_Mutex *mm_mx;
+	GF_Mutex *mx;
 
 	GF_List *unthreaded_codecs;
 	GF_List *threaded_codecs;

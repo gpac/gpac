@@ -1144,8 +1144,18 @@ static void xmt_update_timenode(GF_XMTParser *parser, GF_Node *node)
 	}
 }
 
-static u32 xmt_get_ft_by_name(const char *name)
+static void xmt_strip_name(char *in, char *out)
 {
+	while (in[0]==' ') in++;
+	strcpy(out, in);
+	while (out[strlen(out)-1] == ' ') out[strlen(out)-1] = 0;
+}
+
+static u32 xmt_get_ft_by_name(const char *_name)
+{
+	char name[1024];
+	xmt_strip_name((char *)_name, name);
+
 	if (!strcmp(name, "Boolean") || !strcmp(name, "SFBool")) return GF_SG_VRML_SFBOOL;
 	else if (!strcmp(name, "Integer") || !strcmp(name, "SFInt32")) return GF_SG_VRML_SFINT32;
 	else if (!strcmp(name, "Color") || !strcmp(name, "SFColor")) return GF_SG_VRML_SFCOLOR;
@@ -1179,15 +1189,21 @@ static u32 xmt_get_ft_by_name(const char *name)
 	else if (!strcmp(name, "MFVec2d")) return GF_SG_VRML_MFVEC2D;
 	else return GF_SG_VRML_UNKNOWN;
 }
-static u32 xmt_get_script_et_by_name(const char *name)
+static u32 xmt_get_script_et_by_name(const char *_name)
 {
+	char name[1024];
+	xmt_strip_name((char *)_name, name);
+
 	if (!strcmp(name, "eventIn") || !strcmp(name, "inputOnly") ) return GF_SG_SCRIPT_TYPE_EVENT_IN;
 	else if (!strcmp(name, "eventOut") || !strcmp(name, "outputOnly")) return GF_SG_SCRIPT_TYPE_EVENT_OUT;
 	else if (!strcmp(name, "field") || !strcmp(name, "initializeOnly") ) return GF_SG_SCRIPT_TYPE_FIELD;
 	else return GF_SG_EVENT_UNKNOWN;
 }
-static u32 xmt_get_et_by_name(const char *name)
+static u32 xmt_get_et_by_name(const char *_name)
 {
+	char name[1024];
+	xmt_strip_name((char *)_name, name);
+
 	if (!strcmp(name, "eventIn") || !strcmp(name, "inputOnly") ) return GF_SG_EVENT_IN;
 	else if (!strcmp(name, "eventOut") || !strcmp(name, "outputOnly")) return GF_SG_EVENT_OUT;
 	else if (!strcmp(name, "field") || !strcmp(name, "initializeOnly") ) return GF_SG_EVENT_FIELD;

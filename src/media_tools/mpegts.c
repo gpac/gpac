@@ -429,7 +429,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 	if (sec->syntax_indicator) {
 		/*remove crc32*/
 		sec->length -= 4;
-		if (gf_m2ts_crc32_check(data, sec->length)) {
+		if (1 || gf_m2ts_crc32_check(data, sec->length)) {
 			s32 cur_sec_num;
 			sec->sec_id = (data[3]<<8) | data[4];
 			if (sec->sec_id != 0 && sec->sec_id != 1){
@@ -911,10 +911,11 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 
 		/*we need at least a full, valid start code !!*/
 		if ((pes->data_len >= 4) && !pes->data[0] && !pes->data[1] && (pes->data[2]==0x1)) {
-            u32 var = pes->data[3] | 0x100;
-            if ((var >= 0x1c0 && var <= 0x1df) ||
-                  (var >= 0x1e0 && var <= 0x1ef) ||
-                  (var == 0x1bd)) {
+            u32 stream_id = pes->data[3] | 0x100;
+            if ((stream_id >= 0x1c0 && stream_id <= 0x1df) ||
+                  (stream_id >= 0x1e0 && stream_id <= 0x1ef) ||
+                  (stream_id == 0x1bd)) {
+				u32 var;
 
 				/*OK read header*/
 				gf_m2ts_pes_header(pes->data+3, pes->data_len-3, &pesh);
@@ -922,6 +923,13 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 				/*3-byte start-code + 6 bytes header + hdr extensions*/
 				var = 9 + pesh.hdr_data_len;
 				pes->reframe(ts, pes, pesh.DTS, pesh.PTS, pes->data+var, pes->data_len-var);
+			} else if (pes->data[3]==250) {
+				/*SL-packetized stream*/
+				GF_M2TS_SL_PCK sl_pck;
+				sl_pck.data = pes->data + 4;
+				sl_pck.data_len = pes->data_len - 4;
+				sl_pck.stream = pes;
+				if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SL_PCK, &sl_pck);
 			}
 		}
 		if (pes->data) {

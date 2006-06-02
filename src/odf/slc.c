@@ -396,9 +396,7 @@ void gf_sl_depacketize (GF_SLConfig *slConfig, GF_SLHeader *Header, char *PDU, u
 			if (Header->instantBitrateFlag) Header->instantBitrate = gf_bs_read_int(bs, slConfig->instantBitrateLength);
 		}
 	}
-	/*FIXME - is header aligned ??? */
 	gf_bs_align(bs);
-
 	*HeaderLen = (u32) gf_bs_get_position(bs);
 	gf_bs_del(bs);
 }

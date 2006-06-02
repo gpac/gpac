@@ -90,7 +90,12 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 	/*no destroy*/
 	if (!do_remove) return;
 
-	/*then delete all the OD channels associated with this service*/
+	/*unload the decoders before deleting the channels to prevent any access fault*/
+	if (odm->codec) gf_mm_remove_codec(odm->term->mediaman, odm->codec);
+	if (odm->ocr_codec) gf_mm_remove_codec(odm->term->mediaman, odm->ocr_codec);
+	if (odm->oci_codec) gf_mm_remove_codec(odm->term->mediaman, odm->oci_codec);
+
+	/*then delete all the channels in this OD */
 	while (gf_list_count(odm->channels)) {
 		ch = gf_list_get(odm->channels, 0);
 #if 0
@@ -102,6 +107,12 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 		ODM_DeleteChannel(odm, ch);
 	}
 
+	/*delete the decoders*/
+	if (odm->codec) gf_codec_del(odm->codec);
+	if (odm->ocr_codec) gf_codec_del(odm->ocr_codec);
+	if (odm->oci_codec) gf_codec_del(odm->oci_codec);
+
+	/*then detach from network service*/
 	if (odm->net_service) {
 		if (odm->net_service->owner == odm) {
 			if (odm->net_service->nb_odm_users) odm->net_service->nb_odm_users--;
@@ -122,23 +133,6 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 		}
 		if (!odm->net_service->nb_odm_users) gf_term_close_services(odm->term, odm->net_service);
 		odm->net_service = NULL;
-	}
-
-	/*last thing to do, unload the decoders if no channels associated*/
-	if (odm->codec) {
-		assert(!gf_list_count(odm->codec->inChannels));
-		gf_mm_remove_codec(odm->term->mediaman, odm->codec);
-		gf_codec_del(odm->codec);
-	}
-	if (odm->ocr_codec) {
-		assert(!gf_list_count(odm->ocr_codec->inChannels));
-		gf_mm_remove_codec(odm->term->mediaman, odm->ocr_codec);
-		gf_codec_del(odm->ocr_codec);
-	}
-	if (odm->oci_codec) {
-		assert(!gf_list_count(odm->oci_codec->inChannels));
-		gf_mm_remove_codec(odm->term->mediaman, odm->oci_codec);
-		gf_codec_del(odm->oci_codec);
 	}
 
 	/*delete from the parent scene.*/
@@ -706,11 +700,10 @@ clock_setup:
 		}
 		/*OD codec acts as main scene codec when used to generate scene graph*/
 		if (! odm->subscene->od_codec) {
-			dec = odm->subscene->od_codec = gf_codec_new(odm, esd, odm->OD_PL, &e);
+			odm->subscene->od_codec = gf_codec_new(odm, esd, odm->OD_PL, &e);
 			gf_mm_add_codec(odm->term->mediaman, odm->subscene->od_codec);
-		} else {
-			e = GF_NON_COMPLIANT_BITSTREAM;
-		}
+		} 
+		dec = odm->subscene->od_codec;
 		break;
 	case GF_STREAM_OCR:
 		/*OD codec acts as main scene codec when used to generate scene graph*/
