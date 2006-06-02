@@ -79,27 +79,29 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 			char *sKey = att->value;
 			if (!strnicmp(sKey, "0x", 2)) sKey += 2;
 			if (strlen(sKey) == 32) {
-				for (i=0; i<32; i+=2) {
+				u32 j;
+				for (j=0; j<32; j+=2) {
 					u32 v;
 					char szV[5];
-					sprintf(szV, "%c%c", sKey[i], sKey[i+1]);
+					sprintf(szV, "%c%c", sKey[j], sKey[j+1]);
 					sscanf(szV, "%x", &v);
-					tkc->key[i/2] = v;
+					tkc->key[j/2] = v;
 				}
 			} else {
-				log_message(info->logs, info->cbk, "Warning: Key %s not 16-bytes long - skipping", sKey);
+				log_message(info->logs, info->cbk, "Warning: Key is not 16-bytes long - skipping");
 			}
 		}
 		else if (!stricmp(att->name, "salt")) {
 			char *sKey = att->value;
 			if (!strnicmp(sKey, "0x", 2)) sKey += 2;
 			if (strlen(sKey) != 8) {
-				for (i=0; i<16; i+=2) {
+				u32 j;
+				for (j=0; j<16; j+=2) {
 					char szV[5];
 					u32 v;
-					sprintf(szV, "%c%c", sKey[i], sKey[i+1]);
+					sprintf(szV, "%c%c", sKey[j], sKey[j+1]);
 					sscanf(szV, "%x", &v);
-					tkc->salt[i/2] = v;
+					tkc->salt[j/2] = v;
 				}
 			} else {
 				memcpy(tkc->salt, sKey, 8);
@@ -447,12 +449,16 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file, void (*lo
 				continue;
 			}
 			fclose(test);
+			if (gf_ismacryp_gpac_get_info(tci.trackID, (char *) KMS_URI, tci.key, tci.salt) != GF_OK) {
+				log_message(logs, cbk, "Couldn't load TrackID %d keys in GPAC DRM file %s", tci.trackID, KMS_URI);
+				continue;
+			}
 		}
 
 		if (strlen(tci.KMS_URI) && strcmp(KMS_URI, tci.KMS_URI) )
 			log_message(logs, cbk, "Warning: KMS URI for trackID %d Mismatch", trackID);
 
-		if (drm_file) {
+		if (drm_file || (KMS_URI && strncmp(KMS_URI, "(key)", 5)) ) {
 			strcpy(tci.KMS_URI, KMS_URI);
 		} else {
 			strcpy(tci.KMS_URI, "self-contained");

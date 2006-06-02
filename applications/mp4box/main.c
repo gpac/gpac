@@ -286,7 +286,8 @@ void PrintHintUsage()
 {
 	fprintf(stdout, "Hinting Options\n"
 			" -hint:               hints the file for RTP/RTSP\n"
-			" -mtu size:           specifies MTU size in bytes. Default size is 1500\n"
+			" -mtu size:           specifies RTP MTU (max size) in bytes. Default size is 1450\n"
+			"                       * Note: this includes the RTP header (12 bytes)\n"
 			" -copy:               copies media data to hint track rather than reference\n"
 			"                       * Note: speeds up server but takes much more space\n"
 			" -multi [maxptime]:   enables frame concatenation in RTP packets if possible\n"
@@ -905,7 +906,7 @@ int main(int argc, char **argv)
 	import_fps = 0;
 	import_flags = 0;
 	split_size = 0;
-	MTUSize = 1500;
+	MTUSize = 1450;
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = 0;
 	do_package = chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
 	x3d_info = MakeISMA = Make3GP = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = 0;

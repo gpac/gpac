@@ -72,7 +72,7 @@ void gf_isom_datamap_close(GF_MediaInformationBox *minf)
 
 /*cf below, we disable filedatamap since it tricks mem usage on w32*/
 #if 0
-static Bool MP4_IsLargeFile(char *path)
+static Bool IsLargeFile(char *path)
 {
 #ifndef _WIN32_WCE
 	FILE *stream;
@@ -134,7 +134,7 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 		/*It seems win32 file mapping is reported in prog mem usage -> large increases of occupancy. Should not be a pb 
 		but unless you want mapping, only regular IO will be used...*/
 #if 0
-		if (MP4_IsLargeFile(sPath)) {
+		if (IsLargeFile(sPath)) {
 			*outDataMap = gf_isom_fdm_new(sPath, mode);
 		} else {
 			*outDataMap = gf_isom_fmo_new(sPath, mode);

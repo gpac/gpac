@@ -688,10 +688,12 @@ wxDEFAULT_FRAME_STYLE
 	m_chapters_start = NULL;
 	m_bViewRTI = 0;
 
+#ifndef WIN32
 	/*use '.' and not ',' for printf/scanf...*/
 	wxLocale locale;
 	locale.Init( NULL, NULL, NULL, true, false ); 
 	setlocale( LC_NUMERIC, "C" ); 
+#endif
 
 	gf_sys_init();
 

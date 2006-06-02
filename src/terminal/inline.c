@@ -340,7 +340,7 @@ u32 URL_GetODID(MFURL *url)
 		} else if (url->vals[i].url && strlen(url->vals[i].url)) {
 			/*format: od:ID or od:ID#segment - also check for "ID" in case...*/
 			str = url->vals[i].url;
-			if (strstr(str, "od:")) str += 3;
+			if (!strnicmp(str, "od:", 3)) str += 3;
 			/*remove segment info*/
 			s_url = strdup(str);
 			j = 0;

@@ -597,7 +597,7 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 #endif
 		/*set scene size only if different, otherwise keep scaling/FS*/
 		if ( !width || (sr->scene_width!=width) || !height || (sr->scene_height!=height)) {
-			do_notif = sr->has_size_info ;
+			do_notif = sr->has_size_info || (!sr->scene_width && !sr->scene_height);
 			SR_SetSceneSize(sr, width, height);
 
 			/*get actual size in pixels*/
