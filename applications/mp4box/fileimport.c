@@ -1187,15 +1187,13 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	Bool is_in_iod, delete_desc, encode_names, delete_bcfg;
 	GF_BIFSConfig *bcfg;
 	GF_AUContext		*au;
-	GF_ISOSample		*samp;
-	GF_ISOFile *dest;
-	char szF[GF_MAX_PATH], *ext;
+	char szRad[GF_MAX_PATH], *ext;
+	char szName[1024];
+	FILE *f;
 
-	strcpy(szF, bifsOutputFile);
-	ext = strrchr(szF, '.');
+	strcpy(szRad, bifsOutputFile);
+	ext = strrchr(szRad, '.');
 	if (ext) ext[0] = 0;
-	strcat(szF, ".bifs");
-	//strcat(szF, ".mp4");
 
 
 	/* step3: encoding all AUs in ctx->streams starting at AU index 1 (0 is SceneReplace from previous context) */
@@ -1213,13 +1211,10 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		if (!iod && count>1) return GF_NOT_SUPPORTED;
 	}
 
-//	dest = gf_isom_open(szF, GF_ISOM_OPEN_WRITE);
-//	if (!dest) return gf_isom_last_error(NULL);
-
 	count = gf_list_count(ctx->streams);
 
 	for (i=0; i<gf_list_count(ctx->streams); i++) {
-		u32 track, nbb;
+		u32 nbb;
 		GF_StreamContext *sc = gf_list_get(ctx->streams, i);
 		esd = NULL;
 		if (sc->streamType != GF_STREAM_SCENE) continue;
@@ -1291,9 +1286,6 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		if (!esd->slConfig) esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 		if (sc->timeScale) esd->slConfig->timestampResolution = sc->timeScale;
 		if (!esd->slConfig->timestampResolution) esd->slConfig->timestampResolution = 1000;
-//		track = gf_isom_new_track(dest, sc->ESID, GF_ISOM_MEDIA_SCENE, esd->slConfig->timestampResolution );
-//		gf_isom_set_track_enabled(dest, track, 1);
-//		if (!sc->ESID) sc->ESID = gf_isom_get_track_id(dest, track);
 		esd->ESID = sc->ESID;
 		gf_bifs_encoder_get_config(bifsenc, sc->ESID, &data, &data_len);
 
@@ -1303,32 +1295,21 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		esd->decoderConfig->decoderSpecificInfo->dataLength = data_len;
 		esd->decoderConfig->objectTypeIndication = gf_bifs_encoder_get_version(bifsenc, sc->ESID);		
 
-		
-		/*create stream description*/
-//		gf_isom_new_mpeg4_description(dest, track, esd, NULL, NULL, &di);
-//		if (is_in_iod) gf_isom_add_track_to_root_od(dest, track);
-
 		for (j=1; j<gf_list_count(sc->AUs); j++) {
+			char *data;
+			u32 data_len;
 			au = gf_list_get(sc->AUs, j);
-			samp = gf_isom_sample_new();
-			/*in case using XMT*/
-//			samp->DTS = au->timing;
-			e = gf_bifs_encode_au(bifsenc, sc->ESID, au->commands, &samp->data, &samp->dataLength);
-			if (1)
-			{
-				FILE *f = fopen("test2.bifs", "wb");
-				fwrite(samp->data, 1, samp->dataLength, f);
+			e = gf_bifs_encode_au(bifsenc, sc->ESID, au->commands, &data, &data_len);
+			if (data) {
+				sprintf(szName, "%s%02d.bifs", szRad, j);
+				f = fopen(szName, "wb");
+				fwrite(data, data_len, 1, f);
 				fclose(f);
-				//AUCallback(samp);
-			} else {
-				gf_isom_add_sample(dest, track, 1, samp);
+				free(data);
 			}
 		}
 	}
-//	if (dest) {
-//		if (e) gf_isom_delete(dest);
-//		else gf_isom_close(dest);
-//	}
+	gf_bifs_encoder_del(bifsenc);
 	return e;
 }
 

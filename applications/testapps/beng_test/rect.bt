@@ -1,4 +1,4 @@
-GF_InitialObjectDescriptor {
+InitialObjectDescriptor {
  objectDescriptorID 1
  audioProfileLevelIndication 255
  visualProfileLevelIndication 254
@@ -8,7 +8,7 @@ GF_InitialObjectDescriptor {
  esDescr [
   ES_Descriptor {
    ES_ID 1
-   decConfigDescr GF_DecoderConfig {
+   decConfigDescr DecoderConfigDescriptor {
     streamType 3
     decSpecificInfo BIFSConfig {
         nodeIdBits 10
