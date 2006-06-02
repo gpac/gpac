@@ -51,7 +51,6 @@ IMPLEMENT_APP(wxOsmo4App)
 #endif
 
 
-
 wxString get_pref_browser(GF_Config *cfg)
 {
 	const char *sOpt = gf_cfg_get_key(cfg, "General", "Browser");
@@ -518,7 +517,6 @@ Bool wxOsmo4Frame::LoadTerminal()
 		if ( dlg.ShowModal() != wxID_OK ) return 0;
 		abs_gpac_path = dlg.GetPath();
 	}
-
 #endif
 
 #endif
@@ -689,6 +687,11 @@ wxDEFAULT_FRAME_STYLE
 	m_num_chapters = 0;
 	m_chapters_start = NULL;
 	m_bViewRTI = 0;
+
+	/*use '.' and not ',' for printf/scanf...*/
+	wxLocale locale;
+	locale.Init( NULL, NULL, NULL, true, false ); 
+	setlocale( LC_NUMERIC, "C" ); 
 
 	gf_sys_init();
 
