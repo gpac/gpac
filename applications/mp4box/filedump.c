@@ -877,6 +877,12 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	if (!msub_type) msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
 	fprintf(stdout, "Sub Type \"%s\" - %d samples\n", gf_4cc_to_str(msub_type), gf_isom_get_sample_count(file, trackNum));
 	
+	if (!gf_isom_is_self_contained(file, trackNum, 1)) {
+		const char *url, *urn;
+		gf_isom_get_data_reference(file, trackNum, 1, &url, &urn);
+		fprintf(stdout, "Media Data Location: %s\n", url ? url : urn);
+	}
+
 	if (full_dump) {
 		const char *handler_name;
 		gf_isom_get_handler_name(file, trackNum, &handler_name);

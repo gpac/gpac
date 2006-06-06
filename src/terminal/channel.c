@@ -1235,6 +1235,15 @@ void gf_es_config_ismacryp(GF_Channel *ch, GF_NetComISMACryp *isma_cryp)
 			goto exit;
 		}
 	}
+	/*hardcoded keys*/
+	else {
+		static u8 mysalt[] = { 8,7,6,5,4,3,2,1, 0,0,0,0,0,0,0,0 };
+		static u8 mykey[][16]  = {
+	{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+	  0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 } };
+		memcpy(ch->salt, mysalt, sizeof(char)*8);
+		memcpy(ch->key, mykey, sizeof(char)*16);
+	}
 
 	/*init decrypter*/
 	memset(IV, 0, sizeof(char)*16);

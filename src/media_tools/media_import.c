@@ -2646,6 +2646,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 		}
 		samp->IsRAP = 0;
+		samp->CTS_Offset = 0;
 		samp->DTS += dts_inc;
 		media_done += samp->dataLength;
 		gf_import_progress(import, (u32) media_done, (u32) (media_size ? media_size : media_done+1) );

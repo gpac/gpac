@@ -2147,12 +2147,10 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 		if (gf_node_get_field_by_name(n, str, &info) != GF_OK) {
 			return gf_bt_report(parser, GF_BAD_PARAM, "%s not a field of node %s", str, gf_node_get_class_name(n) );
 		}
-		if (!gf_bt_check_code(parser, '[')) {
-			return gf_bt_report(parser, GF_BAD_PARAM, "[ expected");
-		}
-		gf_bt_parse_int(parser, "index", &pos);
-		if (!gf_bt_check_code(parser, ']')) {
-			return gf_bt_report(parser, GF_BAD_PARAM, "[ expected");
+		if (gf_bt_check_code(parser, '[')) {
+			gf_bt_parse_int(parser, "index", &pos);
+			if (!gf_bt_check_code(parser, ']')) 
+				return gf_bt_report(parser, GF_BAD_PARAM, "[ expected");
 		}
 		if (gf_sg_vrml_is_sf_field(info.fieldType)) {
 			if (info.fieldType == GF_SG_VRML_SFNODE) {
