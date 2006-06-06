@@ -837,49 +837,51 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, 
 
 	/*decode conditionals / input sensors*/
 	if (!e) {
-		GF_Node *n;
-		SFCommandBuffer *c_bfr;
-		u32 NbPass = gf_list_count(codec->conditionals);
+		CommandBufferItem *cbi;
+		u32 NbPass = gf_list_count(codec->command_buffers);
 		GF_List *nextPass = gf_list_new();
 		while (NbPass) {
-			while (gf_list_count(codec->conditionals)) {
-				n = gf_list_get(codec->conditionals, 0);
-				gf_list_rem(codec->conditionals, 0);
-				codec->current_graph = gf_node_get_graph((GF_Node *)n);
-				c_bfr = NULL;
-				switch (gf_node_get_tag(n)) {
-				case TAG_MPEG4_Conditional: c_bfr = & ((M_Conditional *)n)->buffer; break;
-				case TAG_MPEG4_InputSensor: c_bfr = & ((M_InputSensor *)n)->buffer; break;
+			while (gf_list_count(codec->command_buffers)) {
+				cbi = gf_list_get(codec->command_buffers, 0);
+				gf_list_rem(codec->command_buffers, 0);
+				codec->current_graph = gf_node_get_graph(cbi->node);
+				e = GF_OK;
+				if (cbi->cb->bufferSize) {
+					bs = gf_bs_new(cbi->cb->buffer, cbi->cb->bufferSize, GF_BITSTREAM_READ);
+					gf_bs_set_eos_callback(bs, BM_EndOfStream, codec);
+					e = BM_ParseCommand(codec, bs, cbi->cb->commandList);
+					gf_bs_del(bs);
 				}
-				assert(c_bfr);
-				bs = gf_bs_new(c_bfr->buffer, c_bfr->bufferSize, GF_BITSTREAM_READ);
-				gf_bs_set_eos_callback(bs, BM_EndOfStream, codec);
-
-				e = BM_ParseCommand(codec, bs, c_bfr->commandList);
-				gf_bs_del(bs);
-				if (!e) continue;
+				if (!e) {
+					free(cbi);
+					continue;
+				}
 				/*this may be an error or a dependency pb - reset coimmand list and move to next pass*/
-				while (gf_list_count(c_bfr->commandList)) {
-					GF_Command *com = gf_list_get(c_bfr->commandList, 0);
-					gf_list_rem(c_bfr->commandList, 0);
+				while (gf_list_count(cbi->cb->commandList)) {
+					GF_Command *com = gf_list_get(cbi->cb->commandList, 0);
+					gf_list_rem(cbi->cb->commandList, 0);
 					gf_sg_command_del(com);
 				}
-				gf_list_add(nextPass, n);
+				gf_list_add(nextPass, cbi);
 			}
 			if (!gf_list_count(nextPass)) break;
 			/*prepare next pass*/
 			while (gf_list_count(nextPass)) {
-				n = gf_list_get(nextPass, 0);
+				cbi = gf_list_get(nextPass, 0);
 				gf_list_rem(nextPass, 0);
-				gf_list_add(codec->conditionals, n);
+				gf_list_add(codec->command_buffers, cbi);
 			}
 			NbPass --;
-			if (NbPass > gf_list_count(codec->conditionals)) NbPass = gf_list_count(codec->conditionals);
+			if (NbPass > gf_list_count(codec->command_buffers)) NbPass = gf_list_count(codec->command_buffers);
 		}
 		gf_list_del(nextPass);
 	}
 	/*if err or not reset conditionals*/
-	while (gf_list_count(codec->conditionals)) gf_list_rem(codec->conditionals, 0);
+	while (gf_list_count(codec->command_buffers)) {
+		CommandBufferItem *cbi = gf_list_get(codec->command_buffers, 0);
+		free(cbi);
+		gf_list_rem(codec->command_buffers, 0);
+	}
 
 	/*reset current config*/
 	codec->info = NULL;

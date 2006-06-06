@@ -1395,6 +1395,7 @@ GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID)
 {
 	GF_Node *n, *the_node;
 	u32 tag, ID;
+	Bool prev_is_insert = 0;
 	char *str, *ret;
 	char nName[1000];
 	u32 pos, line, line_pos, i, count;
@@ -1426,7 +1427,7 @@ GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID)
 		gf_bt_check_code(parser, ',');
 		gf_bt_check_code(parser, '.');
 
-		if (!strcmp(str, "AT") || !strcmp(str, "PROTO") ) {
+		if ( (!prev_is_insert && !strcmp(str, "AT")) || !strcmp(str, "PROTO") ) {
 			/*only check in current command (but be aware of conditionals..)*/
 			if (!the_node && gf_list_find(parser->bifs_au->commands, parser->cur_com)) {
 				gf_bt_report(parser, GF_BAD_PARAM, "Cannot find node %s\n", nName);
@@ -1434,6 +1435,9 @@ GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID)
 			}
 			continue;
 		}
+		if (!strcmp(str, "INSERT")) prev_is_insert = 1;
+		else prev_is_insert = 0;
+
 		if (strcmp(str, "DEF")) continue;
 		str = gf_bt_get_next(parser, 0);
 		ret = strdup(str);

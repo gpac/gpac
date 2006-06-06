@@ -74,6 +74,13 @@ typedef struct
 	u16 ESID;
 } BIFSStreamInfo;
 
+/*per_stream config support*/
+typedef struct 
+{
+	GF_Node *node;
+	SFCommandBuffer *cb;
+} CommandBufferItem;
+
 
 struct __tag_bifs_dec
 {
@@ -111,7 +118,7 @@ struct __tag_bifs_dec
 	Bool force_keep_qp;
 	/*only set in mem mode. Conditionals/InputSensors are stacked while decoding, then decoded once the AU is decoded
 	to make sure all nodes potentially used by the conditional command buffer are created*/
-	GF_List *conditionals;
+	GF_List *command_buffers;
 
 	Bool ignore_size;
 	Double cts_offset;

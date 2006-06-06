@@ -92,7 +92,7 @@ GF_BifsDecoder *gf_bifs_decoder_new(GF_SceneGraph *scenegraph, Bool command_dec)
 	if (command_dec) {
 		tmp->dec_memory_mode = 1;
 		tmp->force_keep_qp = 1;
-		tmp->conditionals = gf_list_new();
+		tmp->command_buffers = gf_list_new();
 	}
 	tmp->current_graph = NULL;
 //	tmp->mx = gf_mx_new();
@@ -197,8 +197,8 @@ void gf_bifs_decoder_del(GF_BifsDecoder *codec)
 	}
 	gf_list_del(codec->streamInfo);
 	if (codec->dec_memory_mode) {
-		assert(gf_list_count(codec->conditionals) == 0);
-		gf_list_del(codec->conditionals);
+		assert(gf_list_count(codec->command_buffers) == 0);
+		gf_list_del(codec->command_buffers);
 	}
 //	gf_mx_del(codec->mx);
 	free(codec);

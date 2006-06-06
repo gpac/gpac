@@ -1874,6 +1874,14 @@ GF_Err DumpFieldReplace(GF_SceneDumper *sdump, GF_Command *com)
 		}
 		break;
 	case GF_SG_VRML_SFCOMMANDBUFFER:
+		if (sdump->XMLDump) {
+		} else {
+			SFCommandBuffer *cb = inf->field_ptr;
+			fprintf(sdump->trace, " {\n");
+			gf_sm_dump_command_list(sdump, cb->commandList, sdump->indent+1, 0);
+			DUMP_IND(sdump);
+			fprintf(sdump->trace, "}\n");
+		}
 		break;
 	default:
 		field.far_ptr = inf->field_ptr;

@@ -72,14 +72,14 @@ void gf_sg_command_del(GF_Command *com)
 
 			switch (inf->fieldType) {
 			case GF_SG_VRML_SFNODE:
-				if (inf->new_node) gf_node_unregister(inf->new_node, NULL);
+				if (inf->new_node) gf_node_unregister(inf->new_node, com->node);
 				break;
 			case GF_SG_VRML_MFNODE:
 				if (inf->field_ptr) {
 					while (gf_list_count(inf->node_list)) {
 						GF_Node *n = gf_list_last(inf->node_list);
 						gf_list_rem_last(inf->node_list);
-						gf_node_unregister(n, NULL);
+						gf_node_unregister(n, com->node);
 					}
 					gf_list_del(inf->node_list);
 				}

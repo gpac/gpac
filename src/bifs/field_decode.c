@@ -214,7 +214,12 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		//the # ID Bits may change
 		SFCommandBufferChanged(codec, node);
 		/*memory mode, register command buffer for later parsing*/
-		if (codec->dec_memory_mode) gf_list_add(codec->conditionals, node);
+		if (codec->dec_memory_mode) {
+			CommandBufferItem *cbi = malloc(sizeof(CommandBufferItem));
+			cbi->node = node;
+			cbi->cb = sfcb;
+			gf_list_add(codec->command_buffers, cbi);
+		}
 		/*InputSensor only work on decompressed commands*/
 		else if (node->sgprivate->tag==TAG_MPEG4_InputSensor) {
 			GF_Err BM_ParseCommand(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_list);
