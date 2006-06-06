@@ -671,9 +671,6 @@ GF_Err gf_import_cmp(GF_MediaImporter *import)
 	is_packed = 0;
 	nbNotCoded = nbI = nbP = nbB = max_b = 0;
 	enable_vfr = is_vfr = erase_pl = 0;
-	samp = gf_isom_sample_new();
-	max_size = 4096;
-	samp->data = malloc(sizeof(char)*max_size);
 
 	samp = NULL;
 	vparse = M4V_NewParserBitStream(bs);
@@ -693,6 +690,10 @@ GF_Err gf_import_cmp(GF_MediaImporter *import)
 		import->nb_tracks = 1;
 		goto exit;
 	}
+
+	samp = gf_isom_sample_new();
+	max_size = 4096;
+	samp->data = malloc(sizeof(char)*max_size);
 
 	PL = dsi.VideoPL;
 	if (!PL) {
@@ -881,8 +882,8 @@ GF_Err gf_import_cmp(GF_MediaImporter *import)
 exit:
 	if (samp) gf_isom_sample_del(&samp);
 	if (destroy_esd) gf_odf_desc_del((GF_Descriptor *) import->esd);
+	/*this destroys the bitstream as well*/
 	gf_m4v_parser_del(vparse);
-	if (bs) gf_bs_del(bs);
 	fclose(mdia);
 	return e;
 }
