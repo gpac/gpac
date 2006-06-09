@@ -595,7 +595,7 @@ u32 get_pix_rgba(char *pix) { return GF_COL_ARGB(*(pix+3) & 0xFF, *pix & 0xFF, *
 u32 get_pix_rgb_32(char *pix) { return ((*(u32 *) pix) | 0xFF000000); }
 u32 get_pix_rgb_24(char *pix) { return GF_COL_ARGB(0xFF, *pix & 0xFF, *(pix+1) & 0xFF, *(pix+2) & 0xFF); }
 u32 get_pix_bgr_24(char *pix) { return GF_COL_ARGB(0xFF, *(pix+2) & 0xFF, * (pix+1) & 0xFF, *pix & 0xFF); }
-u32 get_pix_555(char *pix) { return GF_COL_ARGB(0xFF, (u8) ( (*(u16*)pix >> 7) & 0xf8), (u8) ( (*(u16*)pix >> 2) & 0xf8), (u8) ( (*(u16*)pix << 3) & 0xf8) ); }
+u32 get_pix_555(char *pix) { u16 val = *(u16*)pix; return GF_COL_ARGB(0xFF, (u8) ( (val >> 7) & 0xf8), (u8) ( (val >> 2) & 0xf8), (u8) ( (val << 3) & 0xf8) ); }
 u32 get_pix_565(char *pix) { u16 val = *(u16*)pix; return GF_COL_ARGB(0xFF,  (u8) ( (val >> 8) & 0xf8), (u8) ( (val >> 3) & 0xfc),  (u8) ( (val << 3) & 0xf8)	); }
 u32 get_pix_grey(char *pix) { u8 val = *pix; return GF_COL_ARGB(0xFF, val, val, val); }
 u32 get_pix_alphagrey(char *pix) { return GF_COL_ARGB(*(pix+1), *pix, *pix, *pix); }

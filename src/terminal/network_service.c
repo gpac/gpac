@@ -291,10 +291,12 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 				GF_Channel *ch = gf_list_get(odm->channels, j);
 				if (ch->service != service) continue;
 				if (ch->IsEndOfStream) continue;
+				if (ch->clock->Buffering) continue;
 				if (ch->es_state != GF_ESM_ES_RUNNING) continue;
 				if (ch->MaxBuffer>com->buffer.max) com->buffer.max = ch->MaxBuffer;
 				if (ch->MinBuffer<com->buffer.min) com->buffer.min = ch->MinBuffer;
-				if ((u32) ch->BufferTime<com->buffer.occupancy) com->buffer.occupancy = ch->BufferTime;
+				if ((ch->AU_Count > 2)  && ((u32) ch->BufferTime<com->buffer.occupancy))
+					com->buffer.occupancy = ch->BufferTime;
 			}
 		}
 		if (com->buffer.occupancy==(u32) -1) com->buffer.occupancy = 0;

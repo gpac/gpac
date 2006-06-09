@@ -504,7 +504,14 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 		ch->last_au_time = gf_term_get_time(ch->odm->term);
 		Channel_UpdateBuffering(ch, 1);
 	}
+	/*little opt: if this is an OD AU, try to setup the object if needed */
+	if (ch->esd->decoderConfig->streamType==GF_STREAM_OD) {
+		gf_term_lock_net(ch->odm->term, 1);
+		gf_codec_process(ch->odm->subscene->od_codec, 100);
+		gf_term_lock_net(ch->odm->term, 0);
+	}
 	gf_es_lock(ch, 0);
+
 	return;
 }
 
@@ -604,8 +611,8 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	if (!header) {
 		if (!StreamLength) return;
 		gf_sl_depacketize(ch->esd->slConfig, &hdr, StreamBuf, StreamLength, &SLHdrLen);
-		/*FIXME: this assumes the start of the payload is byte-aligned, nothing forces that in systems*/
 		StreamLength -= SLHdrLen;
+		fprintf(stdout, "CH %d rcv CTS %d\n", ch->esd->ESID, (u32) hdr.compositionTimeStamp);
 	} else {
 		hdr = *header;
 		SLHdrLen = 0;
@@ -741,7 +748,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 #if 1
 			if (!ch->clock->clock_init) {
 				gf_clock_set_time(ch->clock, ch->CTS);
-			} else if (ch->clock->no_time_ctrl) {
+			} else if (ch->clock->no_time_ctrl && 0) {
 				s32 offset = gf_term_get_time(ch->odm->term);
 				offset -= ch->clock->StartTime;
 				if (offset>0) {

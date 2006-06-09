@@ -134,6 +134,16 @@ static void xmt_progress(void *cbk, u32 done, u32 total)
 	if (parser->load && parser->load->OnProgress)
 		parser->load->OnProgress(parser->load->cbk, done, total);
 }
+static Bool xmt_esid_available(GF_XMTParser *parser, u16 ESID) 
+{
+	u32 i;
+	XMT_ESDLink *esdl;
+	i=0;
+	while ((esdl = gf_list_enum(parser->esd_links, &i))) {
+		if (esdl->esd->ESID == ESID) return 0;
+	}
+	return 1;
+}
 
 static void xmt_new_od_link(GF_XMTParser *parser, GF_ObjectDescriptor *od, char *name, u32 ID)
 {
@@ -268,6 +278,12 @@ static void xmt_new_esd_link(GF_XMTParser *parser, GF_ESD *esd, char *desc_name,
 		if (!esdl->ESID && !strnicmp(desc_name, "es", 2)) esdl->ESID = atoi(&desc_name[2]);
 		esdl->desc_name = strdup(desc_name);
 	}
+	if (!esd->ESID) {
+		esd->ESID = 1;
+		while (!xmt_esid_available(parser, esd->ESID)) esd->ESID++;
+		esdl->ESID = esd->ESID;
+	}
+
 	gf_list_add(parser->esd_links, esdl);
 }
 static Bool xmt_set_depend_id(GF_XMTParser *parser, GF_ESD *desc, char *es_name, Bool is_ocr_dep)
@@ -340,16 +356,6 @@ static u32 xmt_locate_stream(GF_XMTParser *parser, char *stream_name)
 	esdl->desc_name = strdup(stream_name);
 	gf_list_add(parser->esd_links, esdl);
 	return esdl->ESID;
-}
-static Bool xmt_esid_available(GF_XMTParser *parser, u16 ESID) 
-{
-	u32 i;
-	XMT_ESDLink *esdl;
-	i=0;
-	while ((esdl = gf_list_enum(parser->esd_links, &i))) {
-		if (esdl->esd->ESID == ESID) return 0;
-	}
-	return 1;
 }
 static Bool xmt_odid_available(GF_XMTParser *parser, u16 ODID) 
 {
@@ -2216,7 +2222,6 @@ static void xmt_parse_command(GF_XMTParser *parser, char *name, GF_List *attrs)
 		}
 		else if (!strcmp(name, "IPMP_DescriptorRemove")) tag = GF_ODF_IPMP_REMOVE_TAG;
 
-	
 		stream = gf_sm_stream_find(parser->load->ctx, (u16) stream_id);
 		if (!stream || (stream->streamType!=GF_STREAM_OD)) stream_id = parser->base_od_id;
 		parser->od_es = gf_sm_stream_new(parser->load->ctx, (u16) stream_id, GF_STREAM_OD, 0);
@@ -2538,6 +2543,15 @@ attach_node:
 						inf = gf_sg_command_field_new(parser->command);
 						inf->fieldType = GF_SG_VRML_SFNODE;
 					}
+					if (inf->fieldType==GF_SG_VRML_MFNODE) {
+						inf->node_list = gf_list_new();
+						inf->field_ptr = &inf->node_list;
+						if (inf->new_node) {
+							gf_list_add(inf->node_list, inf->new_node);
+							inf->new_node = NULL;
+						}
+					}
+
 					if (inf->new_node) {
 						if (single_node) {
 							gf_node_unregister(inf->new_node, NULL);

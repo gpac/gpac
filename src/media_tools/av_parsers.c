@@ -1150,14 +1150,10 @@ s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 *vui_flag_pos)
         cr = avc_get_ue(bs); /*crop_right*/
         ct = avc_get_ue(bs); /*crop_top*/
         cb = avc_get_ue(bs); /*crop_bottom*/
+
+		sps->width = 16*mb_width - 2*(cl + cr);
+		sps->height -= (2-sps->frame_mbs_only_flag)*2*(ct + cb);
     }
-    sps->width = 16*mb_width - 2*(cl + cr);
-    if (sps->frame_mbs_only_flag)
-        sps->height= 16*mb_height - 2*(ct + cb);
-    else
-        sps->height= 16*mb_height - 4*(ct + cb); //FIXME recheck
-
-
 
 	if (vui_flag_pos) {
 		u32 gf_bs_get_bit_offset(GF_BitStream *bs);

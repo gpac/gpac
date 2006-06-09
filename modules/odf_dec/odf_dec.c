@@ -27,8 +27,6 @@
 
 typedef struct 
 {
-	u16 *ESIDs;
-	u32 streamCount;
 	GF_InlineScene *scene;
 	u32 PL;
 } ODPriv;
@@ -167,29 +165,12 @@ static GF_Err ODF_AttachStream(GF_BaseDecoder *plug,
 									 u32 objectTypeIndication, 
 									 Bool Upstream)
 {
-	ODPriv *priv = plug->privateStack;
-	
-	if (Upstream) return GF_OK;
-	//warning, we only support one stream ...
-	//if (priv->streamCount) return GF_NOT_SUPPORTED;
-	priv->ESIDs = malloc(sizeof(u16));
-	priv->ESIDs[0] = ES_ID;
-	priv->streamCount ++;
-	//that's it, OD doesn't use decoderSpecificInfo
-	return GF_OK;
+	return Upstream ? GF_NOT_SUPPORTED : GF_OK;
 }
 
 
 static GF_Err ODF_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 {
-	ODPriv *priv = plug->privateStack;
-
-	//warning, we only support one stream ...
-	if (!priv->streamCount) return GF_BAD_PARAM;
-	free(priv->ESIDs);
-	priv->ESIDs = NULL;
-	priv->streamCount = 0;
-
 	return GF_OK;
 }
 
@@ -282,7 +263,6 @@ Bool ODF_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, u
 void DeleteODDec(GF_BaseDecoder *plug)
 {
 	ODPriv *priv = plug->privateStack;
-	if (priv->ESIDs) free(priv->ESIDs);
 	free(priv);
 	free(plug);
 }

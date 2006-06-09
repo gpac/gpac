@@ -217,7 +217,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 	GF_Err e;
 	u32 i;
 	GF_SDPInfo *sdp;
-	Bool is_isma_1;
+	Bool is_isma_1, has_iod;
 	char *iod_str;
 	GF_X_Attribute *att;
 
@@ -259,8 +259,9 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 			if (iod_str) e = RP_SDPLoadIOD(rtp, iod_str);
 		}
 		/*attach service*/
+		has_iod = rtp->session_desc ? 1 : 0;
 		gf_term_on_connect(rtp->service, NULL, e);
-		if (!e && !rtp->session_desc) RP_SetupObjects(rtp);
+		if (!e && !has_iod) RP_SetupObjects(rtp);
 	}
 	/*channel SDP */
 	else {

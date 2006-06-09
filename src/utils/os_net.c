@@ -853,6 +853,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 	*newConnection = NULL;
 	if (!sock || !(sock->flags & GF_SOCK_IS_LISTENING) ) return GF_BAD_PARAM;
 
+#if 0
 	//can we read?
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
@@ -870,6 +871,8 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 		}
 	}
 	if (!ready || !FD_ISSET(sock->socket, &Group)) return GF_IP_NETWORK_EMPTY;
+#endif
+
 #ifdef GPAC_IPV6
 	client_address_size = sizeof(struct sockaddr_in6);
 #else
@@ -879,7 +882,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 
 	//we either have an error or we have no connections
 	if (sk == INVALID_SOCKET) {
-		if (sock->flags & GF_SOCK_NON_BLOCKING) return GF_IP_NETWORK_FAILURE;
+//		if (sock->flags & GF_SOCK_NON_BLOCKING) return GF_IP_NETWORK_FAILURE;
 		switch (LASTSOCKERROR) {
 		case EAGAIN:
 			return GF_IP_SOCK_WOULD_BLOCK;

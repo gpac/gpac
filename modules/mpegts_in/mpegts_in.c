@@ -36,7 +36,7 @@
 typedef struct
 {
 	GF_ClientService *service;
-	u32 pmt_state;
+	Bool do_regulate;
 	GF_M2TS_Demuxer *ts;
 	char *program;
 	u32 prog_id;
@@ -83,13 +83,14 @@ static void M2TS_Regulate(M2TSIn *read)
 	demuxer are synchronized*/
 	while (read->run_state) {
 		/*wait for a connected channel !!*/
-		if (!read->nb_playing && (read->pmt_state==2)) {
+		if (!read->nb_playing && read->do_regulate) {
 			gf_sleep(50);
 		} else {
 			gf_term_on_command(read->service, &com, GF_OK);
 			if (com.buffer.occupancy < REGULATE_TIME_SLOT) return;
-			//fprintf(stdout, "MPEG-2 TS regulate: %d ms in buffers\n", com.buffer.occupancy );
-			gf_sleep(com.buffer.occupancy  - REGULATE_TIME_SLOT);
+			fprintf(stdout, "MPEG-2 TS regulate: %d ms in buffers\n", com.buffer.occupancy );
+			//gf_sleep((com.buffer.occupancy  - REGULATE_TIME_SLOT) / 2);
+			gf_sleep(REGULATE_TIME_SLOT);
 		}
 	}
 }
@@ -157,6 +158,7 @@ static void MP2TS_DeclareStream(M2TSIn *read, GF_M2TS_PES *stream)
 	od->objectDescriptorID = stream->pid;	
 	/*declare but don't regenerate scene*/
 	gf_term_add_media(read->service, (GF_Descriptor*)od, 1);
+	read->do_regulate = 1;
 	/*wait for connection*/
 	while (!stream->user) gf_sleep(0);
 }
@@ -201,9 +203,8 @@ static void MP2TS_SendPacket(M2TSIn *read, GF_M2TS_PES_PCK *pck)
 	gf_term_on_sl_packet(read->service, pck->stream->user, pck->data, pck->data_len, &slh, GF_OK);
 }
 
-static void MP2TS_SendSLPacket(M2TSIn *read, GF_M2TS_SL_PCK *pck)
+static GFINLINE void MP2TS_SendSLPacket(M2TSIn *read, GF_M2TS_SL_PCK *pck)
 {
-	fprintf(stdout, "Sending SL Packet on stream %d\n", pck->stream->ES_ID);
 	gf_term_on_sl_packet(read->service, pck->stream->user, pck->data, pck->data_len, NULL, GF_OK);
 }
 
@@ -212,12 +213,9 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	M2TSIn *read = (M2TSIn *) ts->user;
 	switch (evt_type) {
 	case GF_M2TS_EVT_PAT_FOUND:
-		if (!read->pmt_state) {
-			read->pmt_state = 1;
-			/* In case the TS has one program, wait for the PMT to send connect, in case of IOD in PMT */
-			if (gf_list_count(read->ts->programs) != 1)
-				gf_term_on_connect(read->service, NULL, GF_OK);
-		}
+		/* In case the TS has one program, wait for the PMT to send connect, in case of IOD in PMT */
+		if (gf_list_count(read->ts->programs) != 1)
+			gf_term_on_connect(read->service, NULL, GF_OK);
 		break;
 	case GF_M2TS_EVT_PMT_FOUND:
 		if (gf_list_count(read->ts->programs) == 1)
@@ -228,9 +226,8 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		break;
 	case GF_M2TS_EVT_PAT_UPDATE:
 	case GF_M2TS_EVT_PMT_UPDATE:
-		if (read->pmt_state) read->pmt_state = 2;
-		break;
 	case GF_M2TS_EVT_SDT_UPDATE:
+		break;
 	case GF_M2TS_EVT_SDT_FOUND:
 		if (read->program) {
 			u32 i, count, prog_id;
@@ -327,7 +324,7 @@ u32 M2TS_Run(void *_p)
 			/*regulate file reading*/
 			M2TS_Regulate(read);
 		}
-
+		fprintf(stdout, "\nEOS reached\n");
 		if (read->nb_playing) {
 			for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
 				GF_M2TS_PES *pes = (GF_M2TS_PES *)read->ts->ess[i];
@@ -467,15 +464,15 @@ void M2TS_SetupFile(M2TSIn *read, char *url)
 	}
 	read->duration = (read->end_range - read->start_range) / 300000.0;
 	gf_m2ts_demux_del(read->ts);
+
+	/* Creation of the real demuxer for playback */
+	read->ts = gf_m2ts_demux_new();
+	read->ts->user = read;
 #endif
 
 	/* reinitialization for seek */
 	read->end_range = read->start_range = 0;
 	read->nb_playing = 0;
-
-	/* Creation of the real demuxer for playback */
-	read->ts = gf_m2ts_demux_new();
-	read->ts->user = read;
 
 	read->th = gf_th_new();
 	/*start playing for tune-in*/
@@ -499,7 +496,7 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 		ext[0] = 0;
 	}
 
-	read->pmt_state = 0;
+	read->do_regulate = 0;
 	read->duration = 0;
 
 	if (strstr(url, "udp://") || strstr(url, "tcp://") ) {
@@ -537,6 +534,7 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	if (gf_list_count(read->ts->programs) == 1) {
 		GF_M2TS_Program *prog = gf_list_get(read->ts->programs, 0);
 		if (prog->pmt_iod) {
+			read->do_regulate = 1;
 			gf_odf_desc_copy((GF_Descriptor *)prog->pmt_iod, &desc);
 			return desc;
 		}

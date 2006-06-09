@@ -3450,7 +3450,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	poc_shift = 0;
 
 	while (gf_bs_available(bs)) {
-		u8 nal_hdr;
+		u8 nal_hdr, skip_nal;
 		nal_size = AVC_NextStartCode(bs);
 
 		if (nal_size>max_size) {
@@ -3463,26 +3463,30 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 		nal_hdr = gf_bs_read_u8(bs);
 		nal_type = nal_hdr & 0x1F;
 
+		skip_nal = 0;
 		copy_size = flush_sample = 0;
 		switch (AVC_ParseNALU(bs, nal_hdr, &avc)) {
 		case 1:
 			flush_sample = 1;
 			break;
 		case -1:
-			e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing NAL unit");
-			goto exit;
+			gf_import_message(import, GF_OK, "Waring: Error parsing NAL unit");
+			skip_nal = 1;
+			break;
 		default:
 			break;
 		}
 
 		if (AVC_NALUIsSlice(nal_type)) {
-			copy_size = nal_size;
-			switch (avc.s_info.slice_type) {
-			case GF_AVC_TYPE_P: case GF_AVC_TYPE2_P: nb_p++; break;
-			case GF_AVC_TYPE_I: case GF_AVC_TYPE2_I: nb_i++; break;
-			case GF_AVC_TYPE_B: case GF_AVC_TYPE2_B: nb_b++; break;
-			case GF_AVC_TYPE_SP: case GF_AVC_TYPE2_SP: nb_sp++; break;
-			case GF_AVC_TYPE_SI: case GF_AVC_TYPE2_SI: nb_si++; break;
+			if (! skip_nal) {
+				copy_size = nal_size;
+				switch (avc.s_info.slice_type) {
+				case GF_AVC_TYPE_P: case GF_AVC_TYPE2_P: nb_p++; break;
+				case GF_AVC_TYPE_I: case GF_AVC_TYPE2_I: nb_i++; break;
+				case GF_AVC_TYPE_B: case GF_AVC_TYPE2_B: nb_b++; break;
+				case GF_AVC_TYPE_SP: case GF_AVC_TYPE2_SP: nb_sp++; break;
+				case GF_AVC_TYPE_SI: case GF_AVC_TYPE2_SI: nb_si++; break;
+				}
 			}
 		} else {
 			switch (nal_type) {

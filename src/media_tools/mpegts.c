@@ -24,6 +24,7 @@
 
 #include <gpac/mpegts.h>
 #include <gpac/avparse.h>
+#include <gpac/constants.h>
 
 
 
@@ -136,6 +137,77 @@ static void gf_m2ts_reframe_default(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 D
 	pck.data_len = data_len;
 	pck.stream = pes;
 	ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+}
+
+
+static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
+{
+	Bool start_code_found = 0;
+	u32 nal_type, sc_pos = 0;
+	u32 to_send = data_len;
+	GF_M2TS_PES_PCK pck;
+
+	if (PTS) {
+		pes->PTS = PTS;
+		if (DTS) pes->DTS = DTS;
+		else pes->DTS = PTS;
+	}
+
+	/*dispatch frame*/
+	pck.stream = pes;
+	pck.DTS = pes->DTS;
+	pck.PTS = pes->PTS;
+	pck.flags = 0;
+
+	while (sc_pos<data_len) {
+		unsigned char *start = memchr(data+sc_pos, 0, data_len-sc_pos);
+		if (!start) break;
+		sc_pos = start - data;
+
+		if (start[1] || start[2] || (start[3]!=1)) {
+			sc_pos ++;
+			continue;
+		}
+
+		if (!start_code_found) {
+			if (sc_pos) {
+				pck.data = data;
+				pck.data_len = sc_pos;
+				pck.flags = 0;
+				ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+				data += sc_pos;
+				data_len -= sc_pos;
+				sc_pos = 0;
+			}
+			start_code_found = 1;
+		} else {
+			pck.data = data + 4;
+			pck.data_len = sc_pos - 4;
+			/*check NALU type*/
+			nal_type = pck.data[0] & 0x1F;
+			if (nal_type==GF_AVC_NALU_ACCESS_UNIT) pck.flags = GF_M2TS_PES_PCK_AU_START;
+			else pck.flags = 0;
+			ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+
+			data += sc_pos;
+			data_len -= sc_pos;
+			sc_pos = 0;
+		}
+		sc_pos++;
+	}
+	if (data_len) {
+		pck.flags = 0;
+		if (start_code_found) {
+			pck.data = data + 4;
+			pck.data_len = data_len - 4;
+			nal_type = pck.data[0] & 0x1F;
+			if (nal_type==GF_AVC_NALU_ACCESS_UNIT) pck.flags = GF_M2TS_PES_PCK_AU_START;
+		} else {
+			pck.data = data;
+			pck.data_len = data_len;
+		}
+		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+	}
 }
 
 static void gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
@@ -491,10 +563,14 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			sec->data_size = 0;
 		} else {
 			if (sec->current_next_indicator) {
-				if (!es){
-					GF_SAFEALLOC(es, sizeof(GF_M2TS_ES));
-					GF_SAFEALLOC(es->sec, sizeof(GF_M2TS_SectionFilter));
-					es->sec->table_id = sec->table_id;
+				GF_M2TS_ES s_es;
+				GF_M2TS_SectionFilter s_sec;
+				if (!es) {
+					memset(&s_es, 0, sizeof(GF_M2TS_ES));
+					memset(&s_sec, 0, sizeof(GF_M2TS_SectionFilter));
+					s_es.sec = &s_sec;
+					es = &s_es;
+					s_es.sec->table_id = sec->table_id;
 				}
 				sec->process_section(ts, es, sec->section + sec->start, sec->length - sec->start, is_repeated);
 				sec->section_init = 1;
@@ -911,23 +987,30 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 
 		/*we need at least a full, valid start code !!*/
 		if ((pes->data_len >= 4) && !pes->data[0] && !pes->data[1] && (pes->data[2]==0x1)) {
+			u32 len;
             u32 stream_id = pes->data[3] | 0x100;
             if ((stream_id >= 0x1c0 && stream_id <= 0x1df) ||
                   (stream_id >= 0x1e0 && stream_id <= 0x1ef) ||
                   (stream_id == 0x1bd)) {
-				u32 var;
 
 				/*OK read header*/
 				gf_m2ts_pes_header(pes->data+3, pes->data_len-3, &pesh);
 
 				/*3-byte start-code + 6 bytes header + hdr extensions*/
-				var = 9 + pesh.hdr_data_len;
-				pes->reframe(ts, pes, pesh.DTS, pesh.PTS, pes->data+var, pes->data_len-var);
-			} else if (pes->data[3]==250) {
-				/*SL-packetized stream*/
+				len = 9 + pesh.hdr_data_len;
+				pes->reframe(ts, pes, pesh.DTS, pesh.PTS, pes->data+len, pes->data_len-len);
+			} 
+			/*SL-packetized stream*/
+			else if (pes->data[3]==0xfa) {
 				GF_M2TS_SL_PCK sl_pck;
-				sl_pck.data = pes->data + 4;
-				sl_pck.data_len = pes->data_len - 4;
+				/*read header*/
+				gf_m2ts_pes_header(pes->data+3, pes->data_len-3, &pesh);
+
+				/*3-byte start-code + 6 bytes header + hdr extensions*/
+				len = 9 + pesh.hdr_data_len;
+
+				sl_pck.data = pes->data + len;
+				sl_pck.data_len = pes->data_len - len;
 				sl_pck.stream = pes;
 				if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SL_PCK, &sl_pck);
 			}
@@ -1180,11 +1263,16 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 		return GF_OK;
 	} else { // mode==GF_M2TS_PES_FRAMING_DEFAULT
 		switch (pes->stream_type) {
-		case 1: case 2:
+		case GF_M2TS_VIDEO_MPEG1: 
+		case GF_M2TS_VIDEO_MPEG2:
 			pes->reframe = gf_m2ts_reframe_mpeg_video;
 			break;
-		case 3: case 4:
+		case GF_M2TS_AUDIO_MPEG1:
+		case GF_M2TS_AUDIO_MPEG2:
 			pes->reframe = gf_m2ts_reframe_mpeg_audio;
+			break;
+		case GF_M2TS_VIDEO_H264:
+			pes->reframe = gf_m2ts_reframe_avc_h264;
 			break;
 		default:
 			pes->reframe = gf_m2ts_reframe_default;

@@ -226,17 +226,17 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 					src+=3;
 					break;
 				case GF_PIXEL_RGB_565:
-					src_16 = * (u16 *)src;
-					dst[0] = src_16 & 0x1F;
-					dst[1] = (src_16>>5) & 0x3F;
-					dst[2] = (src_16>>11) & 0x1F;
+					src_16 = * ( (u16 *)src );
+					dst[2] = (src_16 >> 8) & 0xf8;
+					dst[1] = (src_16 >> 3) & 0xfc;
+					dst[0] = (src_16 << 3) & 0xf8;
 					src+=2;
 					break;
 				case GF_PIXEL_RGB_555:
 					src_16 = * (u16 *)src;
-					dst[0] = src_16 & 0x1F;
-					dst[1] = (src_16>>5) & 0x1F;
-					dst[2] = (src_16>>10) & 0x1F;
+					dst[2] = (src_16 >> 7) & 0xf8;
+					dst[1] = (src_16 >> 2) & 0xf8;
+					dst[0] = (src_16 << 3) & 0xf8;
 					src+=2;
 					break;
 				}

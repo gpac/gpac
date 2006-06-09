@@ -49,7 +49,7 @@ void AVC_RewriteESDescriptor(GF_AVCSampleEntryBox *avc)
 				gf_odf_desc_del(clone);
 		}
 	}
-	if (avc->avc_config) {
+	if (avc->avc_config && avc->avc_config->config) {
 		gf_odf_avc_cfg_write(avc->avc_config->config, &avc->esd->decoderConfig->decoderSpecificInfo->data, &avc->esd->decoderConfig->decoderSpecificInfo->dataLength);
 	}
 }
@@ -380,9 +380,9 @@ GF_Err avcc_Write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_AVCConfigurationBox *ptr = (GF_AVCConfigurationBox *) s;
 	if (!s) return GF_BAD_PARAM;
+	if (!ptr->config) return GF_OK;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	if (!ptr->config) return GF_OK;
 
 	gf_bs_write_u8(bs, ptr->config->configurationVersion);
 	gf_bs_write_u8(bs, ptr->config->AVCProfileIndication);
@@ -414,7 +414,11 @@ GF_Err avcc_Size(GF_Box *s)
 	u32 i, count;
 	GF_AVCConfigurationBox *ptr = (GF_AVCConfigurationBox *)s;
 	e = gf_isom_box_get_size(s);
-	if (e || !ptr->config) return e;
+	if (e) return e;
+	if (!ptr->config) {
+		ptr->size = 0;
+		return e;
+	}
 	ptr->size += 7;
 	count = gf_list_count(ptr->config->sequenceParameterSets);
 	for (i=0; i<count; i++) ptr->size += 2 + ((GF_AVCConfigSlot *)gf_list_get(ptr->config->sequenceParameterSets, i))->size;
@@ -494,7 +498,7 @@ GF_Err avc1_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	gf_isom_video_sample_entry_write((GF_VisualSampleEntryBox *)s, bs);
-	if (ptr->avc_config) {
+	if (ptr->avc_config && ptr->avc_config->config) {
 		e = gf_isom_box_write((GF_Box *) ptr->avc_config, bs);
 		if (e) return e;
 	}
@@ -518,7 +522,7 @@ GF_Err avc1_Size(GF_Box *s)
 
 	gf_isom_video_sample_entry_size((GF_VisualSampleEntryBox *)s);
 
-	if (ptr->avc_config) {
+	if (ptr->avc_config && ptr->avc_config->config) {
 		e = gf_isom_box_size((GF_Box *) ptr->avc_config); 
 		if (e) return e;
 		ptr->size += ptr->avc_config->size;
