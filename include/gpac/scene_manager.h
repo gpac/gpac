@@ -255,10 +255,14 @@ enum
 	GF_SM_DUMP_AUTO_XML,
 };
 
+#ifndef GPAC_READ_ONLY
+
 /*dumps scene context to BT or XMT
 @rad_name: file name & loc without extension - if NULL dump will happen in stdout
 @dump_mode: one of the above*/
 GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode);
+
+#endif
 
 
 /*encoding flags*/
@@ -317,6 +321,9 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 @skip_routes: routes are not dumped
 */
 GF_Err gf_sm_dump_graph(GF_SceneDumper *sdump, Bool skip_proto, Bool skip_routes);
+
+
+#ifndef GPAC_READ_ONLY
 
 /*stat object - to refine :)*/
 
@@ -387,6 +394,8 @@ GF_Err gf_sm_stats_for_scene(GF_StatManager *stat, GF_SceneManager *sm);
 
 /*produces stat report for the given command*/
 GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com);
+
+#endif
 
 
 #ifdef __cplusplus

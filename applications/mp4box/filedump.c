@@ -89,6 +89,7 @@ const char *GetLanguageCode(char *lang)
 	return "und";
 }
 
+#ifndef GPAC_READ_ONLY
 
 GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 {
@@ -120,7 +121,6 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 			return e;
 		}
 	}
-#ifndef GPAC_READ_ONLY
 	/*SAF*/
 	else if (ftype==6) {
 		load.isom = gf_isom_open("saf_conv", GF_ISOM_WRITE_EDIT, NULL);
@@ -135,7 +135,6 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 			return e;
 		}
 	}
-#endif
 
 	if (do_log) load.flags = GF_SM_LOAD_DUMP_BINARY;
 	e = gf_sm_load_init(&load);
@@ -152,7 +151,6 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 	if (load.isom) gf_isom_delete(load.isom);
 	return e;
 }
-
 
 static void dump_stats(FILE *dump, GF_SceneStatistics *stats)
 {
@@ -403,6 +401,7 @@ exit:
 	if (dump && close) fclose(dump);
 	fprintf(stdout, "done\n");
 }
+#endif
 
 void PrintFixed(Fixed val, Bool add_space)
 {
@@ -932,6 +931,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					fprintf(stdout, "AVC/H264 Video - Visual Size %d x %d - ", w, h);
 					avccfg = gf_isom_avc_config_get(file, trackNum, 1);
 					fprintf(stdout, "Profile %s @ Level %g\n", gf_avc_get_profile_name(avccfg->AVCProfileIndication), ((Double)avccfg->AVCLevelIndication)/10.0 );
+#ifndef GPAC_READ_ONLY
 					slc = gf_list_get(avccfg->sequenceParameterSets, 0);
 					gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
 					if ((par_n>0) && (par_d>0)) {
@@ -939,6 +939,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
 						fprintf(stdout, "Pixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", par_n, par_d, tw, th);
 					}
+#endif
 					gf_odf_avc_cfg_del(avccfg);
 				} 
 				/*OGG media*/

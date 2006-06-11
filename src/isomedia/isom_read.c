@@ -1655,7 +1655,7 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 
 GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes)
 {
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifdef	GF_ISOM_NO_FRAGMENTS
 	return GF_NOT_SUPPORTED;
 #else
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;

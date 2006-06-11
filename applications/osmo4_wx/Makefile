@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.cpp $(SRC_PATH)/applications/osmo4_wx
 
-CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
+CFLAGS= $(CPPFLAGS) -Wall -I$(SRC_PATH)/include
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -12,6 +12,10 @@ endif
 ifeq ($(GPROFBUILD), yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
+endif
+
+ifeq ($(GPACREADONLY), yes)
+CFLAGS+=-DGPAC_READ_ONLY
 endif
 
 #common obj

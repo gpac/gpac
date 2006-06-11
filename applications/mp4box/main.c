@@ -45,8 +45,10 @@ GF_ISOFile *package_file(char *file_name, const char *tmpdir);
 #endif
 
 /*in filedump.c*/
+#ifndef GPAC_READ_ONLY
 GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log);
 void dump_scene_stats(char *file, char *inName, u32 stat_level);
+#endif
 void PrintNode(const char *name, u32 graph_type);
 void PrintBuiltInNodes(u32 graph_type);
 void dump_file_mp4(GF_ISOFile *file, char *inName);
@@ -748,13 +750,14 @@ u32 get_file_type_by_ext(char *inName)
 	return type;
 }
 
+#ifndef GPAC_READ_ONLY
 static Bool can_convert_to_isma(GF_ISOFile *file)
 {
 	u32 spec = gf_isom_guess_specification(file);
 	if (spec==GF_4CC('I','S','M','A')) return 1;
 	return 0;
 }
-
+#endif
 
 
 typedef struct
@@ -790,6 +793,7 @@ typedef struct
 /*for SDP_EX, AddTrack and RemTrack*/
 #define MAX_CUMUL_OPS	20
 
+#ifndef GPAC_READ_ONLY
 static Bool parse_meta_args(MetaAction *meta, char *opts)
 {
 	Bool ret = 0;
@@ -849,6 +853,7 @@ static Bool parse_meta_args(MetaAction *meta, char *opts)
 	}
 	return ret;
 }
+#endif
 
 #define CHECK_NEXT_ARG	if (i+1==(u32)argc) { fprintf(stdout, "Missing arg - please check usage\n"); return 1; }
 
@@ -1541,6 +1546,7 @@ int main(int argc, char **argv)
 
 
 	if ((dump_ttxt || dump_srt) && !trackID) {
+#ifndef GPAC_READ_ONLY
 		GF_MediaImporter import;
 		file = gf_isom_open("ttxt_convert", GF_ISOM_OPEN_WRITE, NULL);
 		memset(&import, 0, sizeof(GF_MediaImporter));
@@ -1566,6 +1572,10 @@ int main(int argc, char **argv)
 			return 1;
 		}
 		return 0;
+#else
+		fprintf(stdout, "Error: read-only version\n");
+		return 1;
+#endif
 	}
 #ifndef GPAC_READ_ONLY
 	if (nb_add) {
@@ -1637,6 +1647,7 @@ int main(int argc, char **argv)
 		if (!MakeISMA && !Make3GP) MakeISMA = can_convert_to_isma(file);
 	}
 #endif
+#ifndef GPAC_READ_ONLY
 	else if (chunk_mode) {
 		if (!inName) {
 			fprintf(stdout, "chunk encoding syntax: [-outctx outDump] -inctx inScene auFile\n");
@@ -1646,6 +1657,7 @@ int main(int argc, char **argv)
 		if (e) fprintf(stdout, "Error encoding chunk file %s\n", gf_error_to_string(e));
 		return e ? 1 : 0;
 	}
+#endif
 	else if (encode) {
 #ifndef GPAC_READ_ONLY
 		char logfile[5000];
@@ -1677,11 +1689,15 @@ int main(int argc, char **argv)
 			needSave = 0;
 			open_edit = 0;
 		}
-	} else if (do_package) {
+	} 
+#ifndef GPAC_READ_ONLY
+	else if (do_package) {
 		file = package_file(inName, tmpdir);
 		needSave = 1;
 		open_edit = 1;
-	} else if (!file && !(track_dump_type & GF_EXPORT_AVI_NATIVE)) {
+	} 
+#endif
+	else if (!file && !(track_dump_type & GF_EXPORT_AVI_NATIVE)) {
 		FILE *st = fopen(inName, "rb");
 		Bool file_exists = 0;
 		if (st) {
@@ -1758,6 +1774,7 @@ int main(int argc, char **argv)
 		outfile[strlen(outfile)-1] = 0;
 	}
 
+#ifndef GPAC_READ_ONLY
 	if (track_dump_type & GF_EXPORT_AVI_NATIVE) {
 		char szFile[1024];
 		GF_MediaExporter mdump;
@@ -1791,6 +1808,7 @@ int main(int argc, char **argv)
 		if (dump_file_text(inName, dump_std ? NULL : outfile, dump_mode-1, do_log)) return 1;
 	}
 	if (stat_level) dump_scene_stats(inName, dump_std ? NULL : outfile, stat_level);
+#endif
 	if (!HintIt && print_sdp) DumpSDP(file, dump_std ? NULL : outfile);
 	if (print_info) {
 		if (info_track_id) DumpTrackInfo(file, info_track_id, 1);
@@ -1802,12 +1820,12 @@ int main(int argc, char **argv)
 	if (dump_cr) dump_file_ismacryp(file, dump_std ? NULL : outfile);
 	if ((dump_ttxt || dump_srt) && trackID) dump_timed_text_track(file, trackID, dump_std ? NULL : outfile, 0, dump_srt);
 	
+#ifndef GPAC_READ_ONLY
 	if (split_duration || split_size) {
 		split_isomedia_file(file, split_duration, split_size, inName, InterleavingTime, split_start, tmpdir);
 		/*never save file when splitting is desired*/
 		open_edit = 0;
 	}
-
 	if (do_saf || track_dump_type) {
 		char szFile[1024];
 		GF_MediaExporter mdump;
@@ -1825,6 +1843,7 @@ int main(int argc, char **argv)
 		e = gf_media_export(&mdump);
 		if (e) goto err_exit;
 	}
+#endif
 
 	for (i=0; i<nb_meta_act; i++) {
 		u32 tk = 0;
@@ -1836,6 +1855,7 @@ int main(int argc, char **argv)
 		item_nb = gf_isom_get_meta_item_by_id(file, meta->root_meta, tk, meta->item_id);
 
 		switch (meta->act_type) {
+#ifndef GPAC_READ_ONLY
 		case 0:
 			/*remove main brand when modifying...*/
 			if (meta->root_meta) {
@@ -1872,9 +1892,6 @@ int main(int argc, char **argv)
 			e = gf_isom_remove_meta_xml(file, meta->root_meta, tk);
 			needSave = 1;
 			break;
-		case 7:
-			e = gf_isom_extract_meta_xml(file, meta->root_meta, tk, meta->szPath, NULL);
-			break;
 		case 8:
 			gf_isom_get_meta_item_info(file, meta->root_meta, tk, item_nb, NULL, NULL, &self_ref, NULL, NULL, NULL, NULL, NULL);
 			if (self_ref) {
@@ -1883,6 +1900,10 @@ int main(int argc, char **argv)
 			} else {
 				e = gf_isom_extract_meta_item(file, meta->root_meta, tk, item_nb, strlen(meta->szPath) ? meta->szPath : NULL);
 			}
+			break;
+#endif
+		case 7:
+			e = gf_isom_extract_meta_xml(file, meta->root_meta, tk, meta->szPath, NULL);
 			break;
 		}
 		if (e) goto err_exit;
@@ -2139,15 +2160,13 @@ int main(int argc, char **argv)
 
 	if (e) fprintf(stdout, "Error: %s\n", gf_error_to_string(e));
 	return (e!=GF_OK) ? 1 : 0;
-
-err_exit:
-	if (file) gf_isom_delete(file);
-	fprintf(stdout, "\n\tError: %s\n", gf_error_to_string(e));
-	return 1;
 #else
 	gf_isom_delete(file);
 	fprintf(stdout, "Error: Read-only version of MP4Box.\n");
 	return 1;
 #endif
+err_exit:
+	if (file) gf_isom_delete(file);
+	fprintf(stdout, "\n\tError: %s\n", gf_error_to_string(e));
+	return 1;
 }
-

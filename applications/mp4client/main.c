@@ -67,9 +67,10 @@ static char the_next_url[GF_MAX_PATH];
 static Bool no_mime_check = 0;
 static Bool be_quiet = 0;
 
-
+#ifndef GPAC_READ_ONLY
 void dump_frame(GF_Terminal *term, char *rad_path, u32 dump_type, u32 frameNum);
 Bool dump_file(char *the_url, u32 dump_mode, Double fps, u32 width, u32 height, u32 *times, u32 nb_times);
+#endif
 
 void PrintUsage()
 {
@@ -784,6 +785,7 @@ int main (int argc, char **argv)
 
 	Run = 1;
 	ret = 1;
+#ifndef GPAC_READ_ONLY
 	if (dump_mode) {
 		if (!nb_times) {
 			times[0] = 0;
@@ -791,10 +793,11 @@ int main (int argc, char **argv)
 		}
 		ret = dump_file(url_arg, dump_mode, fps, width, height, times, nb_times);
 		Run = 0;
-	}
-	
+	} else
+#endif
+
 	/*connect if requested*/
-	else if (url_arg) {
+	if (url_arg) {
 		char *ext;
 		strcpy(the_url, url_arg);
 		ext = strrchr(the_url, '.');

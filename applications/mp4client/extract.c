@@ -27,6 +27,9 @@
 #include <gpac/terminal.h>
 #include <gpac/options.h>
 
+#ifndef GPAC_READ_ONLY
+
+
 #ifdef WIN32
 #include <windows.h>
 #else
@@ -366,3 +369,6 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, u32 
 	}
 	return 0;
 }
+
+#endif
+

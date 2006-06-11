@@ -14,6 +14,10 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
+ifeq ($(GPACREADONLY), yes)
+CFLAGS+=-DGPAC_READ_ONLY
+endif
+
 #common obj
 OBJS= main.o extract.o
 
