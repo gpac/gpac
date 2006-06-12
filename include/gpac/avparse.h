@@ -32,9 +32,10 @@ extern "C" {
 
 #include <gpac/bitstream.h>
 
-/*basic MPEG-4 visual object parser (DSI extraction and timing/framing)*/
+/*basic MPEG (1,2,4) visual object parser (DSI extraction and timing/framing)*/
 typedef struct
 {
+	/*video PL*/
 	u8 VideoPL;
 	u8 RAP_stream, objectType, has_shape, enh_layer;
 	/*video resolution*/
@@ -45,12 +46,15 @@ typedef struct
 	u16 clock_rate;
 	u8 NumBitsTimeIncrement;
 	u32 time_increment;
+	/*for MPEG 1/2*/
+	Double fps;
 } GF_M4VDecSpecInfo;
 
 
 typedef struct __tag_m4v_parser GF_M4VParser;
 
-GF_M4VParser *gf_m4v_parser_new(unsigned char *data, u32 data_size);
+GF_M4VParser *gf_m4v_parser_new(unsigned char *data, u32 data_size, Bool mpeg12video);
+GF_M4VParser *gf_m4v_parser_bs_new(GF_BitStream *bs, Bool mpeg12video);
 void gf_m4v_parser_del(GF_M4VParser *m4v);
 GF_Err gf_m4v_parse_config(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi);
 

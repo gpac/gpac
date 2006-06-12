@@ -321,7 +321,11 @@ void gf_mo_stop(GF_MediaObject *mo)
 	assert(mo->num_open);
 	mo->num_open--;
 	if (!mo->num_open && mo->odm) {
-		gf_odm_stop(mo->odm, 0);
+		/*do not stop directly, this can delete channel data currently being decoded (BIFS anim & co)*/
+		if (gf_list_find(mo->odm->term->od_pending, mo->odm)<0) {
+			mo->odm->media_start_time = -1;
+			gf_list_add(mo->odm->term->od_pending, mo->odm);
+		}
 	} else {
 		if (!mo->num_to_restart) {
 			mo->num_restart = mo->num_to_restart = mo->num_open + 1;

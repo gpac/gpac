@@ -1111,7 +1111,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 						while (ck_time>active_dur) ck_time -= active_dur;
 					} else {
 						ck_time = 0;
-						com.play.start_range = com.play.end_range;
+						//com.play.start_range = com.play.end_range;
 					}
 				}
 				com.play.start_range += ck_time;
@@ -1221,9 +1221,11 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	odm->current_time = 0;
 
 	/*reset media sensor(s)*/
-	i = 0;
-	while ((media_sens = gf_list_enum(odm->ms_stack, &i))){
-		MS_Stop(media_sens);
+	if (force_close!=2) {
+		i = 0;
+		while ((media_sens = gf_list_enum(odm->ms_stack, &i))){
+			MS_Stop(media_sens);
+		}
 	}
 	/*reset media control state*/
 	ctrl = ODM_GetMediaControl(odm);

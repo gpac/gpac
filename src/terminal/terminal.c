@@ -584,7 +584,15 @@ void gf_term_handle_services(GF_Terminal *term)
 	while (gf_list_count(term->od_pending)) {
 		GF_ObjectManager *odm = gf_list_get(term->od_pending, 0);
 		gf_list_rem(term->od_pending, 0);
-		gf_odm_play(odm);
+		/*this is a stop*/
+		if (odm->media_start_time == -1) {
+			odm->media_start_time = 0;
+			gf_odm_stop(odm, 0);
+		} 
+		/*this is a play*/
+		else {
+			gf_odm_play(odm);
+		}
 	}
 	gf_mx_v(term->net_mx);
 

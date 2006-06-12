@@ -1,4 +1,6 @@
-Latest CVS Changes 19/05/06
+Latest CVS Changes 12/06/06
+  - added MPEG-1/2 raw importing (extensions: .m1v and .m2v).
+  - cleanup of gpac/src/Makefile: no more recursive makes for libgpac
   - commit of Falco's patch for VobSub import.
   - program-based import for MPEG-2 TS streams (MP4Box -add file.ts#program=ProgName).
   - more IPV6 support

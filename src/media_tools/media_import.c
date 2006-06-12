@@ -639,9 +639,7 @@ exit:
 	return e;
 }
 
-GF_M4VParser *M4V_NewParserBitStream(GF_BitStream *bs);
-
-GF_Err gf_import_cmp(GF_MediaImporter *import)
+static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 {
 	GF_Err e;
 	Double FPS;
@@ -659,10 +657,18 @@ GF_Err gf_import_cmp(GF_MediaImporter *import)
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Opening %s failed", import->in_name);
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 
+	samp = NULL;
+	vparse = gf_m4v_parser_bs_new(bs, mpeg12);
+	e = gf_m4v_parse_config(vparse, &dsi);
+	if (e) {
+		gf_import_message(import, e, "Cannot load MPEG-4 decoder config");
+		goto exit;
+	}
+
 	tot_size = (u32) gf_bs_get_size(bs);
 	done_size = 0;
 	destroy_esd = 0;
-	FPS = GF_IMPORT_DEFAULT_FPS;
+	FPS = mpeg12 ? dsi.fps : GF_IMPORT_DEFAULT_FPS;
 	if (import->video_fps) FPS = (Double) import->video_fps;
 	get_video_timing(FPS, &timescale, &dts_inc);
 
@@ -672,18 +678,12 @@ GF_Err gf_import_cmp(GF_MediaImporter *import)
 	nbNotCoded = nbI = nbP = nbB = max_b = 0;
 	enable_vfr = is_vfr = erase_pl = 0;
 
-	samp = NULL;
-	vparse = M4V_NewParserBitStream(bs);
-	e = gf_m4v_parse_config(vparse, &dsi);
-	if (e) {
-		gf_import_message(import, e, "Cannot load MPEG-4 decoder config");
-		goto exit;
-	}
-
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->tk_info[0].track_num = 1;
 		import->tk_info[0].type = GF_ISOM_MEDIA_VISUAL;
-		import->tk_info[0].flags = GF_IMPORT_USE_DATAREF | GF_IMPORT_NO_FRAME_DROP | GF_IMPORT_OVERRIDE_FPS | GF_IMPORT_FORCE_PACKED;
+		import->tk_info[0].media_type = mpeg12 ? ((dsi.VideoPL==0x6A) ? GF_4CC('M','P','G','1') : GF_4CC('M','P','G','2') ) : GF_4CC('M','P','4','V') ;
+		import->tk_info[0].flags = GF_IMPORT_USE_DATAREF | GF_IMPORT_OVERRIDE_FPS;
+		if (!mpeg12) import->tk_info[0].flags |= GF_IMPORT_NO_FRAME_DROP | GF_IMPORT_FORCE_PACKED;
 		import->tk_info[0].video_info.width = dsi.width;
 		import->tk_info[0].video_info.height = dsi.height;
 		import->tk_info[0].video_info.par = (dsi.par_num<<16) | dsi.par_den;
@@ -700,7 +700,9 @@ GF_Err gf_import_cmp(GF_MediaImporter *import)
 		PL = 0x01;
 		erase_pl = 1;
 	}
-	samp_offset = gf_m4v_get_object_start(vparse);
+	samp_offset = 0;
+	/*MPEG-4 visual*/
+	if (!mpeg12) samp_offset = gf_m4v_get_object_start(vparse);
 	if (!import->esd) {
 		import->esd = gf_odf_desc_esd_new(0);
 		destroy_esd = 1;
@@ -720,32 +722,38 @@ GF_Err gf_import_cmp(GF_MediaImporter *import)
 	if (import->esd->decoderConfig->decoderSpecificInfo) gf_odf_desc_del((GF_Descriptor *) import->esd->decoderConfig->decoderSpecificInfo);
 	import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 	import->esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-	import->esd->decoderConfig->objectTypeIndication = 0x20;
-	import->esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char) * samp_offset);
-	import->esd->decoderConfig->decoderSpecificInfo->dataLength = samp_offset;
-	pos = gf_bs_get_position(bs);
-	gf_bs_seek(bs, 0);
-	gf_bs_read_data(bs, import->esd->decoderConfig->decoderSpecificInfo->data, samp_offset);
-	gf_bs_seek(bs, pos);
+	if (mpeg12) {
+		import->esd->decoderConfig->objectTypeIndication = dsi.VideoPL;
+	} else {
+		import->esd->decoderConfig->objectTypeIndication = 0x20;
+	}
+	if (samp_offset) {
+		import->esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char) * samp_offset);
+		import->esd->decoderConfig->decoderSpecificInfo->dataLength = samp_offset;
+		pos = gf_bs_get_position(bs);
+		gf_bs_seek(bs, 0);
+		gf_bs_read_data(bs, import->esd->decoderConfig->decoderSpecificInfo->data, samp_offset);
+		gf_bs_seek(bs, pos);
 
-	/*remove packed flag if any (VOSH user data)*/
-	forced_packed = 0;
-	i=0;
-	while (1) {
-		char *frame = import->esd->decoderConfig->decoderSpecificInfo->data;
-		while ((i+3<samp_offset)  && ((frame[i]!=0) || (frame[i+1]!=0) || (frame[i+2]!=1))) i++;
-		if (i+4>=samp_offset) break;
-		if (strncmp(frame+i+4, "DivX", 4)) {
-			i += 4;
-			continue;
+		/*remove packed flag if any (VOSH user data)*/
+		forced_packed = 0;
+		i=0;
+		while (1) {
+			char *frame = import->esd->decoderConfig->decoderSpecificInfo->data;
+			while ((i+3<samp_offset)  && ((frame[i]!=0) || (frame[i+1]!=0) || (frame[i+2]!=1))) i++;
+			if (i+4>=samp_offset) break;
+			if (strncmp(frame+i+4, "DivX", 4)) {
+				i += 4;
+				continue;
+			}
+			frame = import->esd->decoderConfig->decoderSpecificInfo->data + i + 4;
+			frame = strchr(frame, 'p');
+			if (frame) {
+				forced_packed = 1;
+				frame[0] = 'n';
+			}
+			break;
 		}
-		frame = import->esd->decoderConfig->decoderSpecificInfo->data + i + 4;
-		frame = strchr(frame, 'p');
-		if (frame) {
-			forced_packed = 1;
-			frame[0] = 'n';
-		}
-		break;
 	}
 
 	if (import->flags & GF_IMPORT_FORCE_PACKED) forced_packed = 1;
@@ -755,7 +763,11 @@ GF_Err gf_import_cmp(GF_MediaImporter *import)
 	e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name: NULL, NULL, &di);
 	if (e) goto exit;
 	gf_isom_set_visual_info(import->dest, track, di, dsi.width, dsi.height);
-	gf_import_message(import, GF_OK, "MPEG-4 Video import - %d x %d @ %02.4f FPS\nIndicated Profile: %s", dsi.width, dsi.height, FPS, gf_m4v_get_profile_name((u8) PL));
+	if (mpeg12) {
+		gf_import_message(import, GF_OK, "MPEG-%d Video import - %d x %d @ %02.4f FPS", (dsi.VideoPL==0x6A) ? 1 : 2, dsi.width, dsi.height, FPS);
+	} else {
+		gf_import_message(import, GF_OK, "MPEG-4 Video import - %d x %d @ %02.4f FPS\nIndicated Profile: %s", dsi.width, dsi.height, FPS, gf_m4v_get_profile_name((u8) PL));
+	}
 
 	gf_media_update_par(import->dest, track);
 
@@ -1015,7 +1027,7 @@ GF_Err gf_import_avi_video(GF_MediaImporter *import)
 		/*get DSI*/
 		if (!is_init) {
 			is_init = 1;
-			vparse = gf_m4v_parser_new(frame, size);
+			vparse = gf_m4v_parser_new(frame, size, 0);
 			e = gf_m4v_parse_config(vparse, &dsi);
 			PL = dsi.VideoPL;
 			if (!PL) {
@@ -1091,7 +1103,7 @@ GF_Err gf_import_avi_video(GF_MediaImporter *import)
 			size -= samp_offset;
 			file_offset = (u64) AVI_get_video_position(in, i);
 
-			vparse = gf_m4v_parser_new(frame + samp_offset, size);
+			vparse = gf_m4v_parser_new(frame + samp_offset, size, 0);
 
 			samp->dataLength = 0;
 			/*removing padding frames*/
@@ -1671,6 +1683,12 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 		for (i=0; i<nb_streams; i++) {
 			import->tk_info[import->nb_tracks].track_num = nb_v_str + i+1;
 			import->tk_info[import->nb_tracks].type = GF_ISOM_MEDIA_AUDIO;
+			switch (mpeg2ps_get_audio_stream_type(ps, i)) {
+			case MPEG_AUDIO_MPEG: import->tk_info[import->nb_tracks].media_type = GF_4CC('M','P','G','A'); break;
+			case MPEG_AUDIO_AC3: import->tk_info[import->nb_tracks].media_type = GF_4CC('A','C','3',' '); break;
+			case MPEG_AUDIO_LPCM: import->tk_info[import->nb_tracks].media_type = GF_4CC('L','P','C','M'); break;
+			default: import->tk_info[import->nb_tracks].media_type = GF_4CC('U','N','K',' '); break;
+			}
 			import->tk_info[import->nb_tracks].audio_info.sample_rate = mpeg2ps_get_audio_stream_sample_freq(ps, i);
 			import->tk_info[import->nb_tracks].audio_info.nb_channels = mpeg2ps_get_audio_stream_channels(ps, i);
 			import->nb_tracks ++;
@@ -5149,7 +5167,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		return gf_import_mpeg_ts(importer);
 	}
 
-	else if (!strnicmp(ext, ".mp3", 4) || !stricmp(fmt, "MP3") || !stricmp(fmt, "MPEG-AUDIO") ) 
+	else if (!strnicmp(ext, ".mp3", 4) || !strnicmp(ext, ".m1a", 4) || !strnicmp(ext, ".m2a", 4) || !stricmp(fmt, "MP3") || !stricmp(fmt, "MPEG-AUDIO") ) 
 		return gf_import_mp3(importer);
 	else if (!strnicmp(ext, ".media", 5) || !strnicmp(ext, ".info", 5) || !strnicmp(ext, ".nhnt", 5) || !stricmp(fmt, "NHNT") )
 		return gf_import_nhnt(importer);
@@ -5165,7 +5183,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	else if (!strnicmp(ext, ".qcp", 4) || !stricmp(fmt, "QCELP") ) 
 		return gf_import_qcp(importer);
 	else if (!strnicmp(ext, ".cmp", 4) || !strnicmp(ext, ".m4v", 4) || !stricmp(fmt, "CMP") || !stricmp(fmt, "MPEG4-Video") ) 
-		return gf_import_cmp(importer);
+		return gf_import_cmp(importer, 0);
+	else if (!strnicmp(ext, ".m2v", 4) || !strnicmp(ext, ".m1v", 4) || !stricmp(fmt, "MPEG2-Video") || !stricmp(fmt, "MPEG1-Video") ) 
+		return gf_import_cmp(importer, 2);
 	else if (!strnicmp(ext, ".263", 4) || !strnicmp(ext, ".h263", 5) || !stricmp(fmt, "H263") ) 
 		return gf_import_h263(importer);
 	else if (!strnicmp(ext, ".h264", 5) || !strnicmp(ext, ".264", 4) || !strnicmp(ext, ".x264", 5)

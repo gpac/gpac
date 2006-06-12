@@ -95,7 +95,7 @@ void MC_Restart(GF_ObjectManager *odm)
 		if (!gf_odm_shares_clock(ctrl_od, ck)) continue;
 		/*if running, stop and collect for restart*/
 		if (ctrl_od->is_open) {
-			gf_odm_stop(ctrl_od, 1);
+			gf_odm_stop(ctrl_od, 2);
 			gf_list_add(to_restart, ctrl_od);
 		}
 	}
@@ -244,10 +244,8 @@ void MC_GetRange(MediaControlStack *ctrl, Double *start_range, Double *end_range
 		if (!last_seg) last_seg = desc;
 
 		*start_range = desc->startTime;
-		if (ctrl->control->mediaStartTime>=0) {
-			if (desc->startTime + ctrl->control->mediaStartTime >= duration) *start_range += duration;
-			else *start_range += ctrl->control->mediaStartTime;
-		}
+		if (ctrl->control->mediaStartTime>=0) *start_range += ctrl->control->mediaStartTime;
+
 		*end_range = desc->startTime;
 		if ((ctrl->control->mediaStopTime>=0) && ctrl->control->mediaStopTime<duration) {
 			*end_range += ctrl->control->mediaStopTime;
@@ -271,7 +269,7 @@ void RenderMediaControl(GF_Node *node, void *rs)
 	/*not changed nothing to do - note we need to register with stream yet for control switching...*/
 	if (stack->stream && (!stack->changed || !stack->control->enabled)) return;
 
-	need_restart = 0;
+	need_restart = (stack->changed==2) ? 1 : 0;
 	shall_restart = (stack->control->mediaStartTime>=0) ? 1 : 0;
 
 	/*check url target*/
@@ -305,6 +303,11 @@ void RenderMediaControl(GF_Node *node, void *rs)
 			else if (stack->paused) {
 				MC_Resume((GF_ObjectManager *) prev->odm);
 				stack->paused = 0;
+			}
+			/*MediaControl has been detached*/
+			else {
+				ODM_RemoveMediaControl(prev->odm, stack);
+				return;
 			}
 		}
 	} else {
@@ -408,7 +411,12 @@ void MC_Modified(GF_Node *node)
 {
 	MediaControlStack *stack =(MediaControlStack *) gf_node_get_private(node);
 	if (!stack) return;
-	stack->changed = 1;
+	if (!stack->changed) {
+		if (MC_URLChanged(&stack->url, &stack->control->url)) stack->changed = 2;
+		else if (stack->media_start != stack->control->mediaStartTime) stack->changed = 2;
+		else stack->changed = 1;
+	}
+
 	/*invalidate scene, we recompute MC state in render*/
 	gf_term_invalidate_renderer(stack->parent->root_od->term);
 }

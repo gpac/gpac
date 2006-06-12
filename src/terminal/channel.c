@@ -1010,6 +1010,7 @@ void gf_es_drop_au(GF_Channel *ch)
 	GF_DBUnit *au;
 
 	if (ch->is_pulling) {
+		assert(ch->AU_buffer_pull);
 		gf_term_channel_release_sl_packet(ch->service, ch);
 		ch->AU_buffer_pull->data = NULL;
 		ch->AU_buffer_pull->dataLength = 0;

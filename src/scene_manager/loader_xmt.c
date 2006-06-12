@@ -920,7 +920,7 @@ static void xmt_parse_mf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node
 	sfInfo.name = info->name;
 	gf_sg_vrml_mf_reset(info->far_ptr, info->fieldType);
 
-	if (!strlen(value)) return;
+	if (!value || !strlen(value)) return;
 
 	while (value[0] && !parser->last_error) {
 
@@ -2543,7 +2543,7 @@ attach_node:
 						inf = gf_sg_command_field_new(parser->command);
 						inf->fieldType = GF_SG_VRML_SFNODE;
 					}
-					if (inf->fieldType==GF_SG_VRML_MFNODE) {
+					if ((inf->fieldType==GF_SG_VRML_MFNODE) && !inf->node_list) {
 						inf->node_list = gf_list_new();
 						inf->field_ptr = &inf->node_list;
 						if (inf->new_node) {

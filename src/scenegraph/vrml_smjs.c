@@ -484,9 +484,10 @@ static JSFunctionSpec browserFunctions[] = {
   {0}
 };
 
-void Script_FieldChanged(GF_Node *parent, GF_JSField *parent_owner, GF_FieldInfo *field)
+void Script_FieldChanged(JSContext *c, GF_Node *parent, GF_JSField *parent_owner, GF_FieldInfo *field)
 {
 	GF_ScriptPriv *priv;
+	u32 script_field;
 	u32 i;
 	GF_ScriptField *sf;
 
@@ -497,8 +498,19 @@ void Script_FieldChanged(GF_Node *parent, GF_JSField *parent_owner, GF_FieldInfo
 	}
 	if (!parent) return;
 
-	if ((parent->sgprivate->tag != TAG_MPEG4_Script) && (parent->sgprivate->tag != TAG_X3D_Script) ) {
+	script_field = 0;
+	if ((parent->sgprivate->tag == TAG_MPEG4_Script) || (parent->sgprivate->tag == TAG_X3D_Script) ) {
+		script_field = 1;
+		if ( (GF_Node *) JS_GetContextPrivate(c) == parent) script_field = 2;
+	}
+
+	if (script_field!=2) {
 		if (field->on_event_in) field->on_event_in(parent);
+		else if (script_field && (field->eventType==GF_SG_EVENT_IN) ) {
+			gf_sg_script_event_in(parent, field);
+			gf_node_changed(parent, field);
+			return;
+		}
 		gf_sg_proto_check_field_change(parent, field->fieldIndex);
 		/*field has changed, set routes...*/
 		gf_node_event_out(parent, field->fieldIndex);
@@ -966,7 +978,7 @@ static JSBool image_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 		}
 		default: return JS_FALSE;
 		}
-		if (changed) Script_FieldChanged(NULL, ptr, NULL);
+		if (changed) Script_FieldChanged(c, NULL, ptr, NULL);
 		return JS_TRUE;
     }
 	return JS_FALSE;
@@ -1036,7 +1048,7 @@ static JSBool vec2f_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			break;
 		default: return JS_FALSE;
 		}
-		if (changed) Script_FieldChanged(NULL, ptr, NULL);
+		if (changed) Script_FieldChanged(c, NULL, ptr, NULL);
 		return JS_TRUE;
     }
 	return JS_FALSE;
@@ -1224,7 +1236,7 @@ static JSBool vec3f_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			break;
 		default: return JS_FALSE;
 		}
-		if (changed) Script_FieldChanged(NULL, ptr, NULL);
+		if (changed) Script_FieldChanged(c, NULL, ptr, NULL);
 		return JS_TRUE;
     }
 	return JS_FALSE;
@@ -1473,7 +1485,7 @@ static JSBool rot_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 			break;
 		default: return JS_FALSE;
 		}
-		if (changed) Script_FieldChanged(NULL, ptr, NULL);
+		if (changed) Script_FieldChanged(c, NULL, ptr, NULL);
 		return JS_TRUE;
     }
 	return JS_FALSE;
@@ -1665,7 +1677,7 @@ static JSBool color_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			break;
 		default: return JS_FALSE;
 		}
-		if (changed) Script_FieldChanged(NULL, ptr, NULL);
+		if (changed) Script_FieldChanged(c, NULL, ptr, NULL);
 		return JS_TRUE;
     }
 	return JS_FALSE;
@@ -1691,7 +1703,7 @@ static JSBool color_setHSV(JSContext *c, JSObject *obj, uintN argc, jsval *argv,
 	hsv.blue = FLT2FIX( v);
 	SFColor_fromHSV(&hsv);
 	gf_sg_vrml_field_copy(v1, &hsv, GF_SG_VRML_SFCOLOR);
-	Script_FieldChanged(NULL, ptr, NULL);
+	Script_FieldChanged(c, NULL, ptr, NULL);
 	return JS_TRUE;
 }
 
@@ -1991,7 +2003,7 @@ JSBool array_setElement(JSContext *c, JSObject *obj, jsval id, jsval *rval)
 		}	
 		if (ptr->owner) {
 			array_rewriteMFField(c, ptr);
-			Script_FieldChanged(NULL, ptr, NULL);
+			Script_FieldChanged(c, NULL, ptr, NULL);
 		}
 		return JS_TRUE;
 	} 
@@ -2075,7 +2087,7 @@ JSBool array_setElement(JSContext *c, JSObject *obj, jsval id, jsval *rval)
 	if (!val_changed || !ptr->owner) return JS_TRUE;
 	/*ok switch back to node MFField*/
 	array_rewriteMFField(c, ptr);
-	Script_FieldChanged(NULL, ptr, NULL);
+	Script_FieldChanged(c, NULL, ptr, NULL);
 	return JS_TRUE;
 }
 
@@ -2396,7 +2408,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 	{
 		if (JSVAL_IS_BOOLEAN(val)) {
 			*((SFBool *) field->far_ptr) = JSVAL_TO_BOOLEAN(val);
-			Script_FieldChanged(owner, parent, field);
+			Script_FieldChanged(c, owner, parent, field);
 		}
 		return;
 	}
@@ -2404,11 +2416,11 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 	{
 		if (JSVAL_IS_INT(val) ) {
 			* ((SFInt32 *) field->far_ptr) = JSVAL_TO_INT(val);
-			Script_FieldChanged(owner, parent, field);
+			Script_FieldChanged(c, owner, parent, field);
 		} else if (JSVAL_IS_NUMBER(val) ) {
 			JS_ValueToNumber(c, val, &d );
 			*((SFInt32 *) field->far_ptr) = (s32) d;
-			Script_FieldChanged(owner, parent, field);
+			Script_FieldChanged(c, owner, parent, field);
 		}
 		return;
 	}
@@ -2417,7 +2429,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 		if (JSVAL_IS_NUMBER(val) ) {
 			JS_ValueToNumber(c, val, &d );
 			*((SFFloat *) field->far_ptr) = FLT2FIX( d);
-			Script_FieldChanged(owner, parent, field);
+			Script_FieldChanged(c, owner, parent, field);
 		}
 		return;
     }
@@ -2426,7 +2438,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 		if (JSVAL_IS_NUMBER(val) ) {
 			JS_ValueToNumber(c, val, &d );
 			*((SFTime *) field->far_ptr) = (Double) d;
-			Script_FieldChanged(owner, parent, field);
+			Script_FieldChanged(c, owner, parent, field);
 		}
 		return;
     }
@@ -2439,7 +2451,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 		if (!s->buffer || strcmp(str_val, s->buffer)) {
 			if ( s->buffer) free(s->buffer);
 			s->buffer = strdup(str_val);
-			Script_FieldChanged(owner, parent, field);
+			Script_FieldChanged(c, owner, parent, field);
 		}
 		return;
 	}
@@ -2449,7 +2461,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 		if (((SFURL*)field->far_ptr)->url) free(((SFURL*)field->far_ptr)->url);
 		((SFURL*)field->far_ptr)->url = strdup(JS_GetStringBytes(str));
 		((SFURL*)field->far_ptr)->OD_ID = 0;
-		Script_FieldChanged(owner, parent, field);
+		Script_FieldChanged(c, owner, parent, field);
 		return;
 	}
 
@@ -2467,7 +2479,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 		if (JS_InstanceOf(c, obj, &SFVec2fClass, NULL) ) {
 			p = (GF_JSField *) JS_GetPrivate(c, obj);
 			gf_sg_vrml_field_copy(field->far_ptr, p->field.far_ptr, GF_SG_VRML_SFVEC2F);
-			Script_FieldChanged(owner, parent, field);
+			Script_FieldChanged(c, owner, parent, field);
 		}
 		return;
 	}
@@ -2476,7 +2488,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 		if (JS_InstanceOf(c, obj, &SFVec3fClass, NULL) ) {
 			p = (GF_JSField *) JS_GetPrivate(c, obj);
 			gf_sg_vrml_field_copy(field->far_ptr, p->field.far_ptr, GF_SG_VRML_SFVEC3F);
-			Script_FieldChanged(owner, parent, field);
+			Script_FieldChanged(c, owner, parent, field);
 		}
 		return;
 	}
@@ -2485,7 +2497,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 		if ( JS_InstanceOf(c, obj, &SFRotationClass, NULL) ) {
 			p = (GF_JSField *) JS_GetPrivate(c, obj);
 			gf_sg_vrml_field_copy(field->far_ptr, p->field.far_ptr, GF_SG_VRML_SFROTATION);
-			Script_FieldChanged(owner, parent, field);
+			Script_FieldChanged(c, owner, parent, field);
 		}
 		return;
 	}
@@ -2494,7 +2506,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 		if (JS_InstanceOf(c, obj, &SFColorClass, NULL) ) {
 			p = (GF_JSField *) JS_GetPrivate(c, obj);
 			gf_sg_vrml_field_copy(field->far_ptr, p->field.far_ptr, GF_SG_VRML_SFCOLOR);
-			Script_FieldChanged(owner, parent, field);
+			Script_FieldChanged(c, owner, parent, field);
 		}
 		return;
 	}
@@ -2506,12 +2518,12 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 
 		if (JSVAL_IS_NULL(val)) {
 			field->far_ptr = NULL;
-			Script_FieldChanged(owner, parent, field);
+			Script_FieldChanged(c, owner, parent, field);
 		} else if (JS_InstanceOf(c, obj, &SFNodeClass, NULL) ) {
 			GF_Node *n = * (GF_Node**) ((GF_JSField *) JS_GetPrivate(c, obj))->field.far_ptr;
 			* ((GF_Node **)field->far_ptr) = n;
 			gf_node_register(n, owner);
-			Script_FieldChanged(owner, parent, field);
+			Script_FieldChanged(c, owner, parent, field);
 		}
 		return;
 	}
@@ -2520,7 +2532,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 		if ( JS_InstanceOf(c, obj, &SFImageClass, NULL) ) {
 			p = (GF_JSField *) JS_GetPrivate(c, obj);
 			gf_sg_vrml_field_copy(field->far_ptr, p->field.far_ptr, GF_SG_VRML_SFIMAGE);
-			Script_FieldChanged(owner, parent, field);
+			Script_FieldChanged(c, owner, parent, field);
 		}
 		return;
 	}
@@ -2573,7 +2585,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 			gf_list_add(list, child);
 			gf_node_register(child, owner);
 		}
-		Script_FieldChanged(owner, parent, field);
+		Script_FieldChanged(c, owner, parent, field);
 		return;
 	}
 	
@@ -2665,7 +2677,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 			return;
 		}
 	}
-	if (changed) Script_FieldChanged(owner, parent, field);
+	if (changed) Script_FieldChanged(c, owner, parent, field);
 }
 
 #define SETUP_FIELD	\

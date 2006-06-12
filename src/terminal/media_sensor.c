@@ -169,6 +169,9 @@ void MS_UpdateTiming(GF_ObjectManager *odm)
 				break;
 			}
 			if (desc->startTime + desc->Duration < time) continue;
+			if (desc->startTime + desc->Duration == time) {
+				continue;
+			}
 			/*segment switch, force activation (isActive TRUE send at each seg)*/
 			if (media_sens->active_seg != i) {
 				media_sens->active_seg = i;
