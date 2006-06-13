@@ -193,7 +193,7 @@ AT 0 {
       ES_ID 20
       OCR_ES_ID 20
       muxInfo MuxInfo {
-       fileName "auxiliary_files/mp3audio.media"
+       fileName "auxiliary_files/enst_audio.aac"
       }
      }
     ]

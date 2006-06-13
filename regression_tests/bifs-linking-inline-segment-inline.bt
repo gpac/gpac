@@ -28,7 +28,7 @@ InitialObjectDescriptor {
  ociDescr [
  	SegmentDescriptor { startTime 0 duration 4  name "Begin" }
  	SegmentDescriptor { startTime 4 duration 2 name "Middle" }
- 	SegmentDescriptor { startTime 6 duration 3 name "End" }
+ 	SegmentDescriptor { startTime 6 duration 4 name "End" }
  ]
 }
 
@@ -64,7 +64,7 @@ AT 0 {
      ES_Descriptor {
       ES_ID 20
       muxInfo MuxInfo {
-       fileName "auxiliary_files/video_small.media"
+       fileName "auxiliary_files/count_video.cmp"
       }
      }
     ]

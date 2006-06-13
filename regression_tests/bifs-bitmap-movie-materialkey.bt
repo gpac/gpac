@@ -30,7 +30,7 @@ InitialObjectDescriptor {
 OrderedGroup {
  children [
   Background2D {
-   backColor 1 1 1
+   backColor 0 0 1
   }
   WorldInfo {
    info ["This shows dragable bitmap with outscale" "with movieTexture in Meter Metrics" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
@@ -73,7 +73,7 @@ AT 0 {
       ES_ID 20
       OCR_ES_ID 20
       muxInfo MuxInfo {
-       fileName "auxiliary_files/video_small.media"
+       fileName "auxiliary_files/count_video.cmp"
       }
      }
     ]

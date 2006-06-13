@@ -39,7 +39,7 @@ typedef struct
 	Bool needs_connection;
 	u32 pad_bytes;
 	Bool done;
-	u32 status;
+	u32 is_inline;
 	LPNETCHANNEL ch;
 
 	unsigned char *data;
@@ -405,7 +405,7 @@ static GF_Err AAC_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		reply = GF_NOT_SUPPORTED;
 	}
 	gf_term_on_connect(serv, NULL, reply);
-	if (!reply) AAC_SetupObject(read);
+	if (!reply && read->is_inline ) AAC_SetupObject(read);
 	return GF_OK;
 }
 
@@ -438,6 +438,7 @@ static GF_Descriptor *AAC_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 		gf_list_add(od->ESDescriptors, esd);
 		return (GF_Descriptor *) od;
 	}
+	read->is_inline = 1;
 	/*inline scene: no specific service*/
 	return NULL;
 }

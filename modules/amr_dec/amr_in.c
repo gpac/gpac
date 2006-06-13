@@ -41,7 +41,7 @@ typedef struct
 	Bool needs_connection;
 	u32 pad_bytes;
 	Bool done;
-	u32 status;
+	u32 is_inline;
 	LPNETCHANNEL ch;
 
 	unsigned char *data;
@@ -278,7 +278,7 @@ static GF_Err AMR_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		reply = GF_NOT_SUPPORTED;
 	}
 	gf_term_on_connect(serv, NULL, reply);
-	if (!reply) AMR_SetupObject(read);
+	if (!reply && read->is_inline) AMR_SetupObject(read);
 	return GF_OK;
 }
 
@@ -310,6 +310,7 @@ static GF_Descriptor *AMR_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 		return (GF_Descriptor *) od;
 	}
 	/*let player handle scene description*/
+	read->is_inline = 1;
 	return NULL;
 }
 
