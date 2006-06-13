@@ -223,7 +223,7 @@ AT 0 {
       ES_ID 5
       OCR_ES_ID 8
       muxInfo MuxInfo {
-       fileName "auxiliary_files/video_small.media"
+       fileName "auxiliary_files/enst_video.h264"
       }
      }
     ]
@@ -235,7 +235,7 @@ AT 0 {
       ES_ID 4
       OCR_ES_ID 8
       muxInfo MuxInfo {
-       fileName "auxiliary_files/video_small.media"
+       fileName "auxiliary_files/count_video.cmp"
       }
      }
     ]

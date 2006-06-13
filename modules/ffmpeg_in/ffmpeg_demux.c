@@ -497,7 +497,8 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 	/*let's go*/
 	gf_term_on_connect(serv, NULL, GF_OK);
-	FFD_SetupObjects(ffd);
+	if (!ffd->service_type) FFD_SetupObjects(ffd);
+	ffd->service_type = 0;
 	return GF_OK;
 
 err_exit:
@@ -525,6 +526,7 @@ static GF_Descriptor *FFD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 		/*if session join, setup sync*/
 		if (ffd->video_ch) esd->OCRESID = ffd->video_st+1;
 		gf_list_add(od->ESDescriptors, esd);
+		ffd->service_type = 2;
 		return (GF_Descriptor *) od;
 	}
 	if (expect_type==GF_MEDIA_OBJECT_VIDEO) {
@@ -534,6 +536,7 @@ static GF_Descriptor *FFD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 		/*if session join, setup sync*/
 		if (ffd->audio_ch) esd->OCRESID = ffd->audio_st+1;
 		gf_list_add(od->ESDescriptors, esd);
+		ffd->service_type = 1;
 		return (GF_Descriptor *) od;
 	}
 	return NULL;

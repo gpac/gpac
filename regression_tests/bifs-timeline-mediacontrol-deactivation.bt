@@ -95,7 +95,7 @@ AT 0 {
       ES_ID 21
       OCR_ES_ID 21
       muxInfo MuxInfo {
-       fileName "auxiliary_files/video_small.media"
+       fileName "auxiliary_files/count_video.cmp"
       }
      }
     ]

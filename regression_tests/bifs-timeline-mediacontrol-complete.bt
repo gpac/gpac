@@ -63,7 +63,7 @@ OrderedGroup {
    url [od:8]
   }
   DEF PANEL Transform2D {
-   translation 0 80
+   translation 0 85
    children [
     DEF TRPAUSE Transform2D {
      translation -100 0
@@ -145,7 +145,7 @@ OrderedGroup {
      ]
     }
     Transform2D {
-     translation 0 -160
+     translation 0 -170
      children [
       DEF TS TouchSensor {}
       Transform2D {
@@ -244,7 +244,7 @@ AT 0 {
       ES_ID 21
       OCR_ES_ID 21
       muxInfo MuxInfo {
-       fileName "auxiliary_files/video_small.media"
+       fileName "auxiliary_files/enst_video.h264"
       }
      }
     ]
@@ -256,7 +256,7 @@ AT 0 {
       ES_ID 20
       OCR_ES_ID 21
       muxInfo MuxInfo {
-       fileName "auxiliary_files/mp3audio.media"
+       fileName "auxiliary_files/enst_audio.aac"
       }
      }
     ]

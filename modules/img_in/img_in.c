@@ -44,6 +44,7 @@ typedef struct
 	Bool done;
 	LPNETCHANNEL ch;
 
+	Bool is_inline;
 	char *data;
 	u32 data_size;
 
@@ -163,7 +164,7 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		fseek(read->stream, 0, SEEK_SET);
 	}
 	gf_term_on_connect(serv, NULL, read->stream ? GF_OK : GF_URL_ERROR);
-	if (read->stream) IMG_SetupObject(read);
+	if (read->stream && read->is_inline) IMG_SetupObject(read);
 	return GF_OK;
 }
 
@@ -195,6 +196,7 @@ static GF_Descriptor *IMG_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 		gf_list_add(od->ESDescriptors, esd);
 		return (GF_Descriptor *) od;
 	}
+	read->is_inline = 1;
 	return NULL;
 }
 

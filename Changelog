@@ -1,4 +1,5 @@
-Latest CVS Changes 12/06/06
+Latest CVS Changes 13/06/06
+  - changed all audio and video media in regression tests.
   - added MPEG-1/2 raw importing (extensions: .m1v and .m2v).
   - cleanup of gpac/src/Makefile: no more recursive makes for libgpac
   - commit of Falco's patch for VobSub import.

@@ -47,6 +47,8 @@ typedef struct
 
 	GF_SLHeader sl_hdr;
 
+	Bool is_inline;
+
 	u32 sample_rate, oti;
 	Double start_range, end_range;
 	u32 current_time, nb_samp;
@@ -89,12 +91,14 @@ static GF_ESD *MP3_GetESD(MP3Reader *read)
 
 static void mp3_setup_object(MP3Reader *read)
 {
-	GF_ESD *esd;
-	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-	od->objectDescriptorID = 1;
-	esd = MP3_GetESD(read);
-	gf_list_add(od->ESDescriptors, esd);
-	gf_term_add_media(read->service, (GF_Descriptor*)od, 0);
+	if (read->is_inline) {
+		GF_ESD *esd;
+		GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+		od->objectDescriptorID = 1;
+		esd = MP3_GetESD(read);
+		gf_list_add(od->ESDescriptors, esd);
+		gf_term_add_media(read->service, (GF_Descriptor*)od, 0);
+	}
 }
 
 
@@ -340,6 +344,7 @@ static GF_Descriptor *MP3_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 		gf_list_add(od->ESDescriptors, esd);
 		return (GF_Descriptor *) od;
 	}
+	read->is_inline = 1;
 	return NULL;
 }
 

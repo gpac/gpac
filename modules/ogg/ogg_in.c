@@ -70,7 +70,7 @@ typedef struct
 
 	FILE *ogfile;
 	u32 file_size;
-	Bool is_remote;
+	Bool is_remote, is_inline;
 	u32 nb_playing, kill_demux, do_seek, service_type, init_remain, bos_done;
 
 	/*ogg ogfile state*/
@@ -377,7 +377,7 @@ static void OGG_NewStream(OGGReader *read, ogg_page *oggpage)
 	} else {
 		read->has_audio = 1;
 	}
-	if (st->got_headers) gf_term_add_media(read->service, (GF_Descriptor*) OGG_GetOD(st), 0);
+	if (st->got_headers && read->is_inline) gf_term_add_media(read->service, (GF_Descriptor*) OGG_GetOD(st), 0);
 }
 
 void OGG_SignalEndOfStream(OGGReader *read, OGGStream *st)
@@ -472,7 +472,8 @@ void OGG_Process(OGGReader *read)
 			st->parse_headers--;
 			if (!st->parse_headers) {
 				st->got_headers = 1;
-				gf_term_add_media(read->service, (GF_Descriptor*) OGG_GetOD(st), 0);
+				if (read->is_inline) 
+					gf_term_add_media(read->service, (GF_Descriptor*) OGG_GetOD(st), 0);
 				break;
 			}
 		}
@@ -794,8 +795,8 @@ static GF_Descriptor *OGG_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 			return (GF_Descriptor *) od;
 		}
 		/*not supported yet - we need to know what's in the ogg stream for that*/
-		return NULL;
 	}
+	read->is_inline = 1;
 	return NULL;
 }
 
