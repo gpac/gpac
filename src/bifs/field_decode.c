@@ -191,7 +191,10 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 	case GF_SG_VRML_SFCOMMANDBUFFER:
 	{
 		SFCommandBuffer *sfcb = (SFCommandBuffer *)field->far_ptr;
-		if (sfcb->buffer) free(sfcb->buffer);		
+		if (sfcb->buffer) {
+			free(sfcb->buffer);		
+			sfcb->buffer = NULL;
+		}
 		while (gf_list_count(sfcb->commandList)) {
 			GF_Command *com = gf_list_get(sfcb->commandList, 0);
 			gf_list_rem(sfcb->commandList, 0);
