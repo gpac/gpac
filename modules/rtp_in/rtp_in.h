@@ -92,7 +92,8 @@ typedef struct
 	u32 first_packet_drop;
 	u32 frequency_drop;
 
-	u32 forced_type;
+	/*for single-object control*/
+	u32 media_type;
 	/*prevents client port override by server*/
 	Bool force_client_ports;
 	/*logs*/
@@ -332,7 +333,7 @@ void RP_UserCommand(RTPSession *sess, RTPStream *ch, GF_NetworkCommand *command)
 void RP_Teardown(RTPSession *sess, RTPStream *ch);
 
 /*emulate IOD*/
-GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, u32 expect_type, const char *sub_url);
+GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, const char *sub_url);
 
 
 /*sdp file downloader*/

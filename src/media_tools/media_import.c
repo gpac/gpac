@@ -3637,12 +3637,14 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 
 				if (avc.s_info.poc<poc_shift) {
 					u32 j;
-					for (j=ref_frame; j<=cur_samp; j++) {
-						GF_ISOSample *samp = gf_isom_get_sample_info(import->dest, track, j, NULL, NULL);
-						samp->CTS_Offset += poc_shift;
-						samp->CTS_Offset -= avc.s_info.poc;
-						gf_isom_modify_cts_offset(import->dest, track, j, samp->CTS_Offset);
-						gf_isom_sample_del(&samp);
+					if (ref_frame) {
+						for (j=ref_frame; j<=cur_samp; j++) {
+							GF_ISOSample *samp = gf_isom_get_sample_info(import->dest, track, j, NULL, NULL);
+							samp->CTS_Offset += poc_shift;
+							samp->CTS_Offset -= avc.s_info.poc;
+							gf_isom_modify_cts_offset(import->dest, track, j, samp->CTS_Offset);
+							gf_isom_sample_del(&samp);
+						}
 					}
 					poc_shift = avc.s_info.poc;
 				}

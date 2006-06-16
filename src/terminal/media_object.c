@@ -122,9 +122,9 @@ void MO_UpdateCaps(GF_MediaObject *mo)
 		gf_codec_get_capability(mo->odm->codec, &cap);
 		mo->channel_config = cap.cap.valueInt;
 
-		gf_sr_lock_audio(mo->term->renderer, 1);
+		//gf_sr_lock_audio(mo->term->renderer, 1);
 		mo->mo_flags &= ~GF_MO_IS_INIT;
-		gf_sr_lock_audio(mo->term->renderer, 0);
+		//gf_sr_lock_audio(mo->term->renderer, 0);
 	}
 	else if (mo->type==GF_MEDIA_OBJECT_TEXT) {
 		cap.CapCode = GF_CODEC_WIDTH;

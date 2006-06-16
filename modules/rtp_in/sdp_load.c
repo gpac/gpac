@@ -153,21 +153,21 @@ static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u16 OCR_ES_ID, u32 ch
 	return od;
 }
 
-GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, u32 expect_type, const char *sub_url)
+GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, const char *sub_url)
 {
 	GF_ObjectDescriptor *the_od;
 	RTPStream *a_str, *ch;
 	u32 i;
 
-	if (expect_type==GF_MEDIA_OBJECT_INTERACT) return NULL;
-	if (expect_type==GF_MEDIA_OBJECT_BIFS) return NULL;
+	if (rtp->media_type==GF_MEDIA_OBJECT_INTERACT) return NULL;
+	if (rtp->media_type==GF_MEDIA_OBJECT_BIFS) return NULL;
 
 	/*single object generation*/
 	a_str = NULL;
-	if (sub_url || ((expect_type!=GF_MEDIA_OBJECT_SCENE) && (expect_type!=GF_MEDIA_OBJECT_UNDEF)) ) {
+	if (sub_url || ((rtp->media_type != GF_MEDIA_OBJECT_SCENE) && (rtp->media_type != GF_MEDIA_OBJECT_UNDEF)) ) {
 		i=0;
 		while ((ch = gf_list_enum(rtp->channels, &i))) {
-			if (ch->sl_map.StreamType != get_stream_type_from_hint(expect_type)) continue;
+			if (ch->sl_map.StreamType != get_stream_type_from_hint(rtp->media_type)) continue;
 
 			if (!sub_url || strstr(sub_url, ch->control)) {
 				the_od = RP_GetChannelOD(ch, 0, i);
@@ -197,15 +197,15 @@ void RP_SetupObjects(RTPClient *rtp)
 	while ((ch = gf_list_enum(rtp->channels, &i))) {
 		if (ch->control && !strnicmp(ch->control, "data:", 5)) continue;
 
-		if (!rtp->forced_type) {
+		if (!rtp->media_type) {
 			od = RP_GetChannelOD(ch, 0, i);
 			if (!od) continue;
 			gf_term_add_media(rtp->service, (GF_Descriptor*)od, 1);
-		} else if (rtp->forced_type==ch->sl_map.StreamType) {
+		} else if (rtp->media_type==ch->sl_map.StreamType) {
 			od = RP_GetChannelOD(ch, 0, i);
 			if (!od) continue;
 			gf_term_add_media(rtp->service, (GF_Descriptor*)od, 1);
-			rtp->forced_type = 0;
+			rtp->media_type = 0;
 			break;
 		}
 	}
@@ -261,7 +261,8 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 		/*attach service*/
 		has_iod = rtp->session_desc ? 1 : 0;
 		gf_term_on_connect(rtp->service, NULL, e);
-		if (!e && !has_iod) RP_SetupObjects(rtp);
+		if (!e && !has_iod && !rtp->media_type) RP_SetupObjects(rtp);
+		rtp->media_type = 0;
 	}
 	/*channel SDP */
 	else {

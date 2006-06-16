@@ -23,9 +23,6 @@
  */
 
 
-#include <gpac/network.h>
-
-
 #if defined(WIN32) || defined(_WIN32_WCE)
 
 #ifdef _WIN32_WCE
@@ -62,7 +59,7 @@
 #define LASTSOCKERROR WSAGetLastError()
 
 /*the number of sockets used. This because the WinSock lib needs init*/
-static u32 wsa_init = 0;
+static int wsa_init = 0;
 
 #else
 /*non-win32*/
@@ -87,10 +84,12 @@ static u32 wsa_init = 0;
 #define SOCKET_ERROR -1
 #define LASTSOCKERROR errno
 
-typedef s32 SOCKET;
+typedef int SOCKET;
 #define closesocket(v) close(v)
 
 #endif
+
+#include <gpac/network.h>
 
 
 #define SOCK_MICROSEC_WAIT	500

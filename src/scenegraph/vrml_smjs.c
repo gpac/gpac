@@ -2464,6 +2464,25 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 		Script_FieldChanged(c, owner, parent, field);
 		return;
 	}
+	case GF_SG_VRML_MFSTRING:
+		if (JSVAL_IS_STRING(val)) {
+			JSString *str = JSVAL_TO_STRING(val);
+			gf_sg_vrml_mf_reset(field->far_ptr, field->fieldType);
+			gf_sg_vrml_mf_alloc(field->far_ptr, field->fieldType, 1);
+			((MFString*)field->far_ptr)->vals[0] = strdup(JS_GetStringBytes(str));
+			Script_FieldChanged(c, owner, parent, field);
+			return;
+		}
+	case GF_SG_VRML_MFURL:
+		if (JSVAL_IS_STRING(val)) {
+			JSString *str = JSVAL_TO_STRING(val);
+			gf_sg_vrml_mf_reset(field->far_ptr, field->fieldType);
+			gf_sg_vrml_mf_alloc(field->far_ptr, field->fieldType, 1);
+			((MFURL*)field->far_ptr)->vals[0].url = strdup(JS_GetStringBytes(str));
+			((MFURL*)field->far_ptr)->vals[0].OD_ID = 0;
+			Script_FieldChanged(c, owner, parent, field);
+			return;
+		}
 
 	default:
 		break;

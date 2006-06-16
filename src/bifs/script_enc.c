@@ -1043,16 +1043,18 @@ GF_Err SFScript_Encode(GF_BifsEncoder *codec, SFScript *script_field, GF_BitStre
 
 	if (script_field) {
 		sc_enc.cur_buf = script_field->script_text;
-	} else {
+	} else if (((M_Script*)n)->url.count) {
 		sc_enc.cur_buf = ((M_Script*)n)->url.vals[0].script_text;
 	}
-	if (!strnicmp(sc_enc.cur_buf, "javascript:", 11) 
-		|| !strnicmp(sc_enc.cur_buf, "vrmlscript:", 11)
-		|| !strnicmp(sc_enc.cur_buf, "ECMAScript:", 11)
-		) {
-		sc_enc.cur_buf += 11;
-	} else if (!strnicmp(sc_enc.cur_buf, "mpeg4script:", 12) ) {
-		sc_enc.cur_buf += 12;
+	if (sc_enc.cur_buf) {
+		if (!strnicmp(sc_enc.cur_buf, "javascript:", 11) 
+			|| !strnicmp(sc_enc.cur_buf, "vrmlscript:", 11)
+			|| !strnicmp(sc_enc.cur_buf, "ECMAScript:", 11)
+			) {
+			sc_enc.cur_buf += 11;
+		} else if (!strnicmp(sc_enc.cur_buf, "mpeg4script:", 12) ) {
+			sc_enc.cur_buf += 12;
+		}
 	}
 
 	/*encode functions*/

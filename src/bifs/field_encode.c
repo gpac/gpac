@@ -203,6 +203,8 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	nbF = 0;
 	if (field->fieldType != GF_SG_VRML_MFNODE) {
 		nbF = field->far_ptr ? ((GenMFField *)field->far_ptr)->count : 0;
+		if (!nbF && (field->fieldType == GF_SG_VRML_MFSCRIPT))
+			nbF = 1;
 	} else if (field->far_ptr) {
 		list = *((GF_List **)field->far_ptr);
 		nbF = gf_list_count(list);
@@ -398,6 +400,9 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 			SFCommandBuffer *cb = (SFCommandBuffer *)field.far_ptr;
 			if (gf_list_count(cb->commandList)) { enc_fields[i] = allInd; nbFinal++; }
 		}
+			break;
+		case GF_SG_VRML_MFSCRIPT:
+			enc_fields[i] = allInd; nbFinal++;
 			break;
 		default:
 			gf_node_get_field(clone, allInd, &clone_field);

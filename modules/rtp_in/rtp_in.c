@@ -240,8 +240,8 @@ static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 		char *the_url = strdup(url);
 		char *the_ext = strrchr(the_url, '#');
 		if (the_ext) {
-			if (!stricmp(the_ext, "#audio")) priv->forced_type = GF_STREAM_AUDIO;
-			else if (!stricmp(the_ext, "#video")) priv->forced_type = GF_STREAM_VISUAL;
+			if (!stricmp(the_ext, "#audio")) priv->media_type = GF_MEDIA_OBJECT_AUDIO;
+			else if (!stricmp(the_ext, "#video")) priv->media_type = GF_MEDIA_OBJECT_VIDEO;
 			the_ext[0] = 0;
 		}
 		sess = RP_NewSession(priv, (char *) the_url);
@@ -278,7 +278,8 @@ static GF_Descriptor *RP_GetServiceDesc(GF_InputService *plug, u32 expect_type, 
 		/*ignore the SDP IOD and regenerate one*/
 		if (priv->session_desc) gf_odf_desc_del(priv->session_desc);
 		priv->session_desc = NULL;
-		return RP_EmulateIOD(priv, expect_type, sub_url);
+		priv->media_type = expect_type;
+		return RP_EmulateIOD(priv, sub_url);
 	}
 
 	desc = priv->session_desc;
