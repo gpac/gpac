@@ -419,6 +419,12 @@ static SFCommandBuffer *NewSFCommandBuffer()
 	tmp->commandList = gf_list_new();
 	return tmp;
 }
+static SFScript *NewSFScript()
+{
+	SFScript *tmp = malloc(sizeof(SFScript));
+	memset(tmp, 0, sizeof(SFScript));
+	return tmp;
+}
 static MFBool *NewMFBool()
 {
 	MFBool *tmp = malloc(sizeof(MFBool));
@@ -497,6 +503,12 @@ static MFURL *NewMFURL()
 	memset(tmp, 0, sizeof(MFURL));
 	return tmp;
 }
+static MFScript *NewMFScript()
+{
+	MFScript *tmp = malloc(sizeof(MFScript));
+	memset(tmp, 0, sizeof(MFScript));
+	return tmp;
+}
 
 void *gf_sg_vrml_field_pointer_new(u32 FieldType) 
 {
@@ -541,6 +553,11 @@ void *gf_sg_vrml_field_pointer_new(u32 FieldType)
 		return NewSFURL();
 	case GF_SG_VRML_MFURL:
 		return NewMFURL();
+
+	case GF_SG_VRML_SFSCRIPT: 
+		return NewSFScript();
+	case GF_SG_VRML_MFSCRIPT: 
+		return NewMFScript();
 	}
 	return NULL;
 }
@@ -561,6 +578,7 @@ void gf_sg_mfvec4f_del(MFVec4f par) { free(par.vals); }
 void gf_sg_sfimage_del(SFImage im) { free(im.pixels); }
 void gf_sg_sfurl_del(SFURL url) { if (url.url) free(url.url); }
 void gf_sg_sfstring_del(SFString par) { if (par.buffer) free(par.buffer); }
+void gf_sg_sfscript_del(SFScript par) { if (par.script_text) free(par.script_text); }
 
 void gf_sg_mfstring_del(MFString par)
 {
@@ -688,6 +706,9 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 		}
 		gf_list_del((GF_List *)field);
 		return;
+	case GF_SG_VRML_MFSCRIPT:
+		gf_sg_mfscript_del( * ((MFScript *) field));
+		break;		
 
 	default:
 		assert(0);

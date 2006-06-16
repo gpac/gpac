@@ -232,7 +232,7 @@ static void init_rti_logs(char *rti_file, char *url)
 		fprintf(rti_logs, "!! GPAC RunTime Info");
 		if (url) fprintf(rti_logs, "for file %s", url);
 		fprintf(rti_logs, " !!\n");
-		fprintf(rti_logs, "T (ms)\tFPS\tM (kB)\tCPU\n\n");
+		fprintf(rti_logs, "SysTime(ms)\tFPS\tM(kB)\tCPU\tSceneTime(ms)\n");
 		memory_at_gpac_load = 0;
 	}
 }
@@ -299,6 +299,9 @@ u32 get_sys_col(int idx)
 Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
 	switch (evt->type) {
+	case GF_EVT_UPDATE_RTI:
+		memory_at_gpac_load = 0;
+		break;
 	case GF_EVT_DURATION:
 		Duration = (u32) (evt->duration.duration*1000);
 		CanSeek = evt->duration.can_seek;
@@ -408,7 +411,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		if (evt->connect.is_connected) {
 			is_connected = 1;
 			fprintf(stdout, "Service Connected\n");
-			memory_at_gpac_load = 0;
+			/* memory_at_gpac_load = 0;*/
 		} else if (is_connected) {
 			fprintf(stdout, "Service %s\n", is_connected ? "Disconnected" : "Connection Failed");
 			is_connected = 0;

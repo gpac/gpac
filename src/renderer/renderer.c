@@ -1010,6 +1010,7 @@ static void SR_ForwardUserEvent(GF_Renderer *sr, GF_UserEvent *ev)
 
 void gf_sr_simulation_tick(GF_Renderer *sr)
 {	
+	static Bool first_frame = 1;
 	u32 in_time, end_time, i, count;
 
 	/*lock renderer for the whole render cycle*/
@@ -1026,6 +1027,12 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	gf_sr_reconfig_task(sr);
 
 	if (!sr->scene) {
+		if (first_frame && sr->user->EventProc) {
+			GF_Event evt;
+			evt.type = GF_EVT_UPDATE_RTI;
+			sr->user->EventProc(sr->user->opaque, &evt);
+			first_frame = 0;
+		}
 		sr->visual_renderer->DrawScene(sr->visual_renderer);
 		gf_sr_lock(sr, 0);
 		gf_sleep(sr->frame_duration);

@@ -3208,6 +3208,9 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 			char szT[1000];
 			SVG_Coordinate *p = gf_list_get(l, i);
 			svg_dump_number((SVG_Length *)p, szT);
+			if (strstr(szT, "pt")) {
+				fprintf(stderr, "found pt in output\n");
+			}
 			if (i) strcat(attValue, " ");
 			strcat(attValue, szT);
 		}

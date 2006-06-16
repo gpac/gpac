@@ -241,7 +241,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		*((GF_Node **) field->far_ptr) = new_node;
 		break;
 	case GF_SG_VRML_SFSCRIPT:
-		codec->LastError = SFScript_Parse(codec, bs, node);
+		codec->LastError = SFScript_Parse(codec, field->far_ptr, bs, node);
 		break;
 	default:
 		return GF_NON_COMPLIANT_BITSTREAM;

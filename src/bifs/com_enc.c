@@ -335,7 +335,14 @@ GF_Err BE_FieldReplace(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream *bs)
 	e = gf_node_get_field(com->node, inf->fieldIndex, &field);
 	if (e) return e;
 	field.far_ptr = inf->field_ptr;
-	return gf_bifs_enc_field(codec, bs, com->node, &field);
+	
+	/* Warning: To be changed when proper solution is found */
+	if (gf_sg_vrml_get_sf_type(field.fieldType) == GF_SG_VRML_SFSCRIPT) codec->is_encoding_command = 1;
+
+	e = gf_bifs_enc_field(codec, bs, com->node, &field);
+
+	codec->is_encoding_command = 0;
+	return e;
 }
 
 GF_Err BE_IndexFieldReplace(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream *bs)

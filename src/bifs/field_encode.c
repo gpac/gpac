@@ -180,7 +180,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		return gf_bifs_enc_node(codec, *((GF_Node **)field->far_ptr), field->NDTtype, bs);
 
 	case GF_SG_VRML_SFSCRIPT:
-		codec->LastError = SFScript_Encode(codec, bs, node);
+		codec->LastError = SFScript_Encode(codec, (SFScript *)field->far_ptr, bs, node);
 		break;
 	default:
 		return GF_NON_COMPLIANT_BITSTREAM;

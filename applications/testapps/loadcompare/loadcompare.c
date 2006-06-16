@@ -425,6 +425,7 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 
 	if (lc->verbose) fprintf(stdout, "Done %s\n", item_path);
 	fprintf(lc->out, "\n");
+	fflush(lc->out);
 	return 0;
 }
 

@@ -89,7 +89,7 @@ OrderedGroup {
   }
   DEF C1 Conditional {
    buffer {
-    REPLACE MT.url BY ["od:20"]
+    REPLACE MT.url BY ["C:\Users\Cyril\content\clip1_small_isma.mp4"]
    }
   }
   Transform2D {
@@ -118,7 +118,7 @@ OrderedGroup {
   }
   DEF C2 Conditional {
    buffer {
-    REPLACE MT.url BY ["od:10"]
+    REPLACE MT.url BY ["C:\Users\Cyril\content\mp4\dvc.mp4"]
    }
   }
  ]

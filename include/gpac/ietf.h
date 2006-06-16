@@ -1138,9 +1138,9 @@ typedef struct __tag_rtp_packetizer GP_RTPPacketizer;
 	@slc: user-given SL config to use. If none specified, default RFC config is used
 	@cbk_obj: callback object passed back in functions
 	@OnNewPacket: callback function starting new RTP packet
-		@header: rtp hreader for new packet - note that RTP header flags are not used until PacketDone is called
+		@header: rtp header for new packet - note that RTP header flags are not used until PacketDone is called
 	@OnPacketDone: callback function closing current RTP packet
-		@header: final rtp hreader for packet
+		@header: final rtp header for packet
 	@OnDataReference: optional, to call each time data from input buffer is added to current RTP packet. 
 		If not set, data must be added through OnData
 		@payload_size: size of reference data

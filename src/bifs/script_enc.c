@@ -1018,7 +1018,7 @@ void SFE_Function(ScriptEnc *sc_enc)
 }
 
 
-GF_Err SFScript_Encode(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *n)
+GF_Err SFScript_Encode(GF_BifsEncoder *codec, SFScript *script_field, GF_BitStream *bs, GF_Node *n)
 {
 	char *ptr;
 	ScriptEnc sc_enc;
@@ -1032,11 +1032,20 @@ GF_Err SFScript_Encode(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *n)
 	sc_enc.id_buf = gf_list_new();
 	sc_enc.err = GF_OK;
 
-	EncScriptFields(&sc_enc);
+	if (codec->is_encoding_command) {
+		GF_BE_WRITE_INT(codec, bs, 1, 1, "Script::isList", NULL);
+		GF_BE_WRITE_INT(codec, bs, 1, 1, "end", NULL);
+	} else {	
+		EncScriptFields(&sc_enc);
+	}
 	/*reserevd*/
 	GF_BE_WRITE_INT(codec, bs, 1, 1, "reserved", NULL);
 
-	sc_enc.cur_buf = ((M_Script*)n)->url.vals[0].script_text;
+	if (script_field) {
+		sc_enc.cur_buf = script_field->script_text;
+	} else {
+		sc_enc.cur_buf = ((M_Script*)n)->url.vals[0].script_text;
+	}
 	if (!strnicmp(sc_enc.cur_buf, "javascript:", 11) 
 		|| !strnicmp(sc_enc.cur_buf, "vrmlscript:", 11)
 		|| !strnicmp(sc_enc.cur_buf, "ECMAScript:", 11)

@@ -166,13 +166,14 @@ static GFINLINE void SFS_Line(ScriptParser *parser)
 }
 
 
-GF_Err SFScript_Parse(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Node *n)
+GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStream *bs, GF_Node *n)
 {
 	GF_Err e;
 	u32 i, count, nbBits;
 	char *ptr;
 	ScriptParser parser;
 	M_Script *pNode = (M_Script *)n;
+	Bool has_fields = 0;
 	e = GF_OK;
 	if (gf_node_get_tag(n) != TAG_MPEG4_Script) return GF_NON_COMPLIANT_BITSTREAM;
 
@@ -195,6 +196,7 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Node *n)
 		while (!gf_bs_read_int(bs, 1)){
 			e = ParseScriptField(&parser);
 			if (e) goto exit;
+			else has_fields = 1;
 		}
 	} else {
 		nbBits = gf_bs_read_int(bs, 4);
@@ -202,6 +204,7 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Node *n)
 		for (i=0; i<count; i++) {
 			e = ParseScriptField(&parser);
 			if (e) goto exit;
+			else has_fields = 1;
 		}
 	}
 	//reserevd
@@ -222,10 +225,13 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Node *n)
 
 	SFS_Line(&parser);
 
-	gf_sg_vrml_mf_alloc(&pNode->url, GF_SG_VRML_MFSCRIPT, 1);
-	pNode->url.count = 1;
-	pNode->url.vals[0].script_text = strdup(parser.string);
-
+	if (has_fields) {
+		gf_sg_vrml_mf_alloc(&pNode->url, GF_SG_VRML_MFSCRIPT, 1);
+		pNode->url.count = 1;
+		pNode->url.vals[0].script_text = strdup(parser.string);
+	} else {
+		script_field->script_text = strdup(parser.string);
+	}
 exit:
 	//clean up
 	while (gf_list_count(parser.identifiers)) {

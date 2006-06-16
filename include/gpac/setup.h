@@ -191,7 +191,7 @@ char * my_str_lwr(char *str);
 #endif
 
 
-#endif
+#endif /* end platform specific Win32/WinCE/UNIX*/
 
 /*define what's missing*/
 #ifndef NULL
@@ -230,7 +230,7 @@ typedef u32 Bool;
 #endif
 
 /*GPAC memory tracking*/
-#define GPAC_MEMORY_TRACKING 0
+#define GPAC_MEMORY_TRACKING 1
 
 #if GPAC_MEMORY_TRACKING
 void *gf_malloc(size_t size);

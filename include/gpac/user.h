@@ -101,6 +101,7 @@ enum {
 	GF_EVT_STREAMLIST,	/*indicates stream list has changed - no struct associated - only used when no scene info is present*/
 
 	GF_EVT_SYS_COLORS,	/*queries the list of system colors*/
+	GF_EVT_UPDATE_RTI,	/*updates runtime info*/
 };
 
 /*virtual keys - codes respect MPEG4/VRML KeySensor ones*/
