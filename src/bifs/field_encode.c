@@ -169,6 +169,10 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			GF_BE_WRITE_INT(codec, bs, cb->bufferSize, nbBits, "BufferSize", NULL);
 			for (i=0; i<cb->bufferSize; i++) GF_BE_WRITE_INT(codec, bs, cb->buffer[i], 8, "buffer byte", NULL);
 		}
+		/*empty command buffer*/
+		else {
+			GF_BE_WRITE_INT(codec, bs, 0, 5, "NbBits", NULL);
+		}
 	}
 		break;
 

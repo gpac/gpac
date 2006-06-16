@@ -858,8 +858,21 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, 
 				}
 				/*this may be an error or a dependency pb - reset coimmand list and move to next pass*/
 				while (gf_list_count(cbi->cb->commandList)) {
+					u32 i;
+					GF_CommandField *cf;
 					GF_Command *com = gf_list_get(cbi->cb->commandList, 0);
 					gf_list_rem(cbi->cb->commandList, 0);
+					cf = gf_list_get(com->command_fields, 0);
+					if (cf && cf->fieldType==GF_SG_VRML_SFCOMMANDBUFFER) {
+						for (i=0; i<gf_list_count(codec->command_buffers); i++) {
+							CommandBufferItem *cbi2 = gf_list_get(codec->command_buffers, i);
+							if (cbi2->cb == cf->field_ptr) {
+								free(cbi2);
+								gf_list_rem(codec->command_buffers, i);
+								i--;
+							}
+						}
+					}
 					gf_sg_command_del(com);
 				}
 				gf_list_add(nextPass, cbi);
@@ -873,6 +886,7 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, 
 			}
 			NbPass --;
 			if (NbPass > gf_list_count(codec->command_buffers)) NbPass = gf_list_count(codec->command_buffers);
+			codec->LastError = 0;
 		}
 		gf_list_del(nextPass);
 	}
