@@ -854,6 +854,13 @@ static u32 xmt_parse_sf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node 
 	case GF_SG_VRML_SFSCRIPT:
 		res = xmt_parse_script(parser, info->name, (SFScript *)info->far_ptr, 0, a_value); 
 		break;
+	case GF_SG_VRML_SFCOMMANDBUFFER:
+	{
+		SFCommandBuffer *cb = (SFCommandBuffer *)info->far_ptr;
+		cb->buffer = (void *) parser->command;
+		parser->command_buffer = cb;
+	}
+		break;
 
 	case GF_SG_VRML_SFIMAGE:
 	{
@@ -2449,7 +2456,14 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 
 			/*end scene command*/
 			else if (!strcmp(name, "Replace") || !strcmp(name, "Insert") || !strcmp(name, "Delete") )  {
-				parser->command = NULL;
+				/*restore parent command if in CommandBuffer*/
+				if (parser->command && parser->command_buffer && parser->command_buffer->buffer) {
+					parser->command = (GF_Command*) parser->command_buffer->buffer;
+					parser->command_buffer->buffer = NULL;
+					parser->command_buffer = NULL;
+				} else {
+					parser->command = NULL;
+				}
 			}
 			/*end OD command*/
 			else if (!strcmp(name, "ObjectDescriptorUpdate") || !strcmp(name, "ObjectDescriptorRemove")
