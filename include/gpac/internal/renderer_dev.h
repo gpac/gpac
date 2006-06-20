@@ -120,6 +120,7 @@ struct __tag_base_renderer
 	/*freeze_display prevents any screen updates - needed when output driver uses direct video memory access*/
 	Bool is_hidden, freeze_display;
 
+	u32 frame_number;
 	/*count number of initialized sensors*/
 	u32 interaction_sensors;
 

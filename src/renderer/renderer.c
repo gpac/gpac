@@ -1010,7 +1010,6 @@ static void SR_ForwardUserEvent(GF_Renderer *sr, GF_UserEvent *ev)
 
 void gf_sr_simulation_tick(GF_Renderer *sr)
 {	
-	static Bool first_frame = 1;
 	u32 in_time, end_time, i, count;
 
 	/*lock renderer for the whole render cycle*/
@@ -1027,12 +1026,6 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	gf_sr_reconfig_task(sr);
 
 	if (!sr->scene) {
-		if (first_frame && sr->user->EventProc) {
-			GF_Event evt;
-			evt.type = GF_EVT_UPDATE_RTI;
-			sr->user->EventProc(sr->user->opaque, &evt);
-			first_frame = 0;
-		}
 		sr->visual_renderer->DrawScene(sr->visual_renderer);
 		gf_sr_lock(sr, 0);
 		gf_sleep(sr->frame_duration);
@@ -1053,6 +1046,13 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 		free(ev);
 	}
 	gf_mx_v(sr->ev_mx);
+
+	if (sr->frame_number == 0 && sr->user->EventProc) {
+		GF_Event evt;
+		evt.type = GF_EVT_RESET_RTI;
+		evt.caption.caption = "RESET - Before first call to draw scene";
+		sr->user->EventProc(sr->user->opaque, &evt);
+	}
 
 	/*execute all routes before updating textures, otherwise nodes inside composite texture may never see their
 	dirty flag set*/
@@ -1077,6 +1077,12 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	if (sr->draw_next_frame) {
 		sr->draw_next_frame = 0;
 		sr->visual_renderer->DrawScene(sr->visual_renderer);
+		if (sr->frame_number == 0 && sr->user->EventProc) {
+			GF_Event evt;
+			evt.type = GF_EVT_UPDATE_RTI;
+			evt.caption.caption = "Before first call to draw scene";
+			sr->user->EventProc(sr->user->opaque, &evt);
+		}
 		sr->reset_graphics = 0;
 
 		if (sr->stress_mode) {
@@ -1111,6 +1117,16 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	sr->current_frame = (sr->current_frame+1) % GF_SR_FPS_COMPUTE_SIZE;
 	sr->frame_time[sr->current_frame] = end_time;
 
+	sr->frame_number++;
+	if (sr->user->EventProc) {
+		char legend[100];
+		GF_Event evt;
+		evt.type = GF_EVT_UPDATE_RTI;
+		sprintf(legend, "After rendering of frame %d", sr->frame_number);
+		evt.caption.caption = legend;
+		sr->user->EventProc(sr->user->opaque, &evt);
+	}
+
 	/*step mode on, pause and return*/
 	if (sr->step_mode) {
 		sr->step_mode = 0;
@@ -1120,12 +1136,12 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	/*not threaded, let the owner decide*/
 	if (!sr->VisualThread || !sr->frame_duration) return;
 
-
 	/*compute sleep time till next frame, otherwise we'll kill the CPU*/
 	i=1;
 	while (i * sr->frame_duration < end_time) i++;
 	in_time = i * sr->frame_duration - end_time;
 	gf_sleep(in_time);
+
 }
 
 GF_Err gf_sr_get_viewpoint(GF_Renderer *sr, u32 viewpoint_idx, const char **outName, Bool *is_bound)

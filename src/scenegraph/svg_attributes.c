@@ -55,7 +55,7 @@ u32 gf_dom_event_type_by_name(const char *name)
 	if (!strncmp(name, "repeat", 6))	return SVG_DOM_EVT_REPEAT;
 	if (!strcmp(name, "keyup"))		return SVG_DOM_EVT_KEYUP;
 	if (!strcmp(name, "keydown"))	return SVG_DOM_EVT_KEYDOWN;
-	if (!strcmp(name, "keypress") || !stricmp(name, "accesskey"))	return SVG_DOM_EVT_KEYPRESS;
+	if (!strcmp(name, "keypress") || !stricmp(name, "accesskey"))	return SVG_DOM_EVT_KEYDOWN;
 	if (!strcmp(name, "longkeypress") || !stricmp(name, "longaccesskey"))	return SVG_DOM_EVT_LONGKEYPRESS;
 	return SVG_DOM_EVT_UNKNOWN;
 }
@@ -83,7 +83,7 @@ const char *gf_dom_event_get_name(u32 type)
 	case SVG_DOM_EVT_REPEAT: return "repeat";
 	case SVG_DOM_EVT_KEYUP: return "keyup";
 	case SVG_DOM_EVT_KEYDOWN: return "keydown";
-	case SVG_DOM_EVT_KEYPRESS: return "keypress";
+/*	case SVG_DOM_EVT_KEYPRESS: return "keypress";*/
 	case SVG_DOM_EVT_LONGKEYPRESS: return "longkeypress";
 	default: return "unknown";
 	}
@@ -292,11 +292,16 @@ static const struct predef_keyid {u32 key_code;  const char *name; } predefined_
 static void gf_dom_parse_key_identifier(u32 *key_identifier, char *attribute_content)
 {
 	if (strlen(attribute_content) == 1) {
-		char *c = strupr(attribute_content);
-		if (*c >= 'A' && *c <= 'Z') {
-			*key_identifier = DOM_KEY_A + (*c - 'A');
-		} else if (*c >= '0' && *c <= '9') {
-			*key_identifier = DOM_KEY_0 + (*c - '0');
+		char c[2];
+		c[0] = attribute_content[0];
+		c[1] = 0;
+		strupr(c);
+		if (c[0] >= 'A' && c[0] <= 'Z') {
+			*key_identifier = DOM_KEY_A + (c[0] - 'A');
+		} else if (c[0] >= '0' && c[0] <= '9') {
+			*key_identifier = DOM_KEY_0 + (c[0] - '0');
+		} else if (c[0] == '@') {
+			*key_identifier = DOM_KEY_AT;
 		} else {
 			*key_identifier = DOM_KEY_UNIDENTIFIED;
 		}
@@ -747,7 +752,7 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 	else if ((tmp = strstr(d, "accessKey("))) {
 		char *sep;
 		v->type = GF_SMIL_TIME_EVENT;
-		v->event.type = SVG_DOM_EVT_KEYPRESS;
+		v->event.type = SVG_DOM_EVT_KEYDOWN;
 		v->element = e->sgprivate->scenegraph->RootNode;
 		tmp+=10;
 		sep = strchr(d, ')');
@@ -3437,7 +3442,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 				strcat(attValue, szBuf);
 			}
 			else if (t->type==GF_SMIL_TIME_EVENT) {
-				if (t->event.type == SVG_DOM_EVT_KEYPRESS) {
+				if (t->event.type == SVG_DOM_EVT_KEYDOWN) {
 					svg_dump_access_key(&t->event, szBuf);
 					strcat(attValue, szBuf);
 				} else {

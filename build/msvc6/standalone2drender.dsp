@@ -176,14 +176,6 @@ SOURCE=..\..\modules\render2d\render2d_nodes.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\render2d\svg\render_svg_nodes.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\render2d\svg\render_svg_text.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\modules\render2d\sensor_stacks.c
 # End Source File
 # Begin Source File
@@ -204,7 +196,19 @@ SOURCE=..\..\modules\soft_raster\surface.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\render2d\svg\svg_media.c
+SOURCE=..\..\modules\render2d\svg_base.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\render2d\svg_media.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\render2d\svg_stacks.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\render2d\svg_text.c
 # End Source File
 # Begin Source File
 

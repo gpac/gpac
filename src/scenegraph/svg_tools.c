@@ -273,7 +273,7 @@ static void gf_smil_handle_event(GF_Node *anim, GF_FieldInfo *info, GF_DOM_Event
 		proto = gf_list_get(times, i);
 		if (proto->type != GF_SMIL_TIME_EVENT) continue;
 		if (proto->event.type != evt->type) continue;
-		if ((evt->type == SVG_DOM_EVT_KEYPRESS) || (evt->type == SVG_DOM_EVT_REPEAT)) {
+		if ((evt->type == SVG_DOM_EVT_KEYDOWN) || (evt->type == SVG_DOM_EVT_REPEAT)) {
 			if (proto->event.parameter!=evt->detail) continue;
 		}
 		/*solve*/

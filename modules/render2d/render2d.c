@@ -313,6 +313,56 @@ void R2D_UnregisterSensor(GF_Renderer *compositor, SensorHandler *sh)
 
 #ifndef GPAC_DISABLE_SVG
 
+static u32 gf_dom_translate_vkey(u32 gpac_key) 
+{
+	switch(gpac_key) {
+		case GF_VK_F1: return DOM_KEY_F1;
+		case GF_VK_F2: return DOM_KEY_F2;
+		case GF_VK_F3: return DOM_KEY_F3;
+		case GF_VK_F4: return DOM_KEY_F4;
+		case GF_VK_F5: return DOM_KEY_F5;
+		case GF_VK_F6: return DOM_KEY_F6;
+		case GF_VK_F7: return DOM_KEY_F7;
+		case GF_VK_F8: return DOM_KEY_F8;
+		case GF_VK_F9: return DOM_KEY_F9;
+		case GF_VK_F10: return DOM_KEY_F10;
+		case GF_VK_F11: return DOM_KEY_F11;
+		case GF_VK_F12: return DOM_KEY_F12;
+		case GF_VK_HOME: return DOM_KEY_HOME;
+		case GF_VK_END: return DOM_KEY_END;
+		case GF_VK_PRIOR: return DOM_KEY_PAGEUP;
+		case GF_VK_NEXT: return DOM_KEY_PAGEDOWN;
+		case GF_VK_UP: return DOM_KEY_UP;
+		case GF_VK_DOWN: return DOM_KEY_DOWN;
+		case GF_VK_LEFT: return DOM_KEY_LEFT;
+		case GF_VK_RIGHT: return DOM_KEY_RIGHT;
+		case GF_VK_RETURN: return DOM_KEY_ENTER;
+		case GF_VK_ESCAPE: return DOM_KEY_ESCAPE;
+		case GF_VK_SHIFT: return DOM_KEY_SHIFT;
+		case GF_VK_CONTROL: return DOM_KEY_CONTROL;
+		case GF_VK_MENU: return DOM_KEY_ALT;
+		}
+	return 0;
+}
+
+static u32 gf_dom_translate_key(u32 gpac_key)
+{
+	u32 dom_key;
+	char str[10]; 
+	char *strU;
+	str[0] = gpac_key;
+	str[1] = 0;
+	strU = strupr(str);
+	if ( strU[0] >= 'A' && strU[0] <= 'Z') {
+		dom_key = DOM_KEY_A + (strU[0] - 'A');
+	} else if (strU[0] >= '0' && str[0] <= '9') {
+		dom_key = DOM_KEY_0 + (strU[0] - '0');
+	} else {
+		dom_key = DOM_KEY_UNIDENTIFIED;
+	}			
+	return dom_key;
+}
+
 Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fixed Y)
 {
 	GF_DOM_Event evt;
@@ -417,24 +467,38 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 			sr->last_sensor = cursor_type;
 		}
 	}
-	else if ((event->event_type>=GF_EVT_CHAR) && (event->event_type<=GF_EVT_KEYUP)) {
+	else if (event->event_type==GF_EVT_CHAR) {
+	} 
+	else if ((event->event_type>GF_EVT_CHAR) && (event->event_type<=GF_EVT_KEYUP)) {
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.ctrl_key = (sr->compositor->key_states & GF_KM_CTRL) ? 1 : 0;
 		evt.shift_key = (sr->compositor->key_states & GF_KM_SHIFT) ? 1 : 0;
 		evt.alt_key = (sr->compositor->key_states & GF_KM_ALT) ? 1 : 0;
 		evt.bubbles = 1;
 		evt.cancelable = 1;
+		if (event->event_type==GF_EVT_VKEYDOWN || event->event_type==GF_EVT_VKEYDOWN) {
+			evt.detail = gf_dom_translate_vkey(event->key.vk_code);
+		} else {
+			evt.detail = gf_dom_translate_key(event->key.virtual_code);
+		}
+		if (event->event_type==GF_EVT_VKEYDOWN || event->event_type==GF_EVT_KEYDOWN)
+			evt.type = SVG_DOM_EVT_KEYDOWN;
+		else 
+			evt.type = SVG_DOM_EVT_KEYUP;
+		ret += gf_dom_event_fire(sr->focus_node, NULL, &evt);
+
 		if ((event->event_type==GF_EVT_VKEYDOWN) && (event->key.vk_code==GF_VK_RETURN)) {
 			evt.type = SVG_DOM_EVT_ACTIVATE;
-		}
+			evt.detail = 0;
+			ret += gf_dom_event_fire(sr->focus_node, NULL, &evt);
+		} 
+
+
 		else if (event->event_type==GF_EVT_CHAR) {
-			evt.type = SVG_DOM_EVT_KEYPRESS;
-			evt.detail = event->character.unicode_char;
 		} else {
 			evt.type = ((event->event_type==GF_EVT_VKEYDOWN) || (event->event_type==GF_EVT_KEYDOWN)) ? SVG_DOM_EVT_KEYDOWN : SVG_DOM_EVT_KEYUP;
 			evt.detail = event->key.virtual_code;
 		}
-		ret += gf_dom_event_fire(sr->focus_node, NULL, &evt);
 	}
 	return ret;
 }

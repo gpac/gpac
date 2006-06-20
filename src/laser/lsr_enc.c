@@ -677,7 +677,7 @@ static void lsr_write_fixed_clamp(GF_LASeRCodec *lsr, Fixed f, const char *name)
 
 static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 {
-	if (evtParam && (evtType!=SVG_DOM_EVT_KEYPRESS) && (evtType!=SVG_DOM_EVT_LONGKEYPRESS) ) {
+	if (evtParam && (evtType!=SVG_DOM_EVT_KEYDOWN) && (evtType!=SVG_DOM_EVT_LONGKEYPRESS) ) {
 		char szName[1024];
 		GF_LSR_WRITE_INT(lsr, 0, 1, "choice");
 		sprintf(szName, "%s(%c)", gf_dom_event_get_name(evtType), evtParam);
@@ -692,7 +692,6 @@ static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 		mouseup{16} pause{17} repeat{18} resize{19} resume{20} scroll{21} textinput{22} unload{23} zoom{24} */
 		switch (evtType) {
 		case SVG_DOM_EVT_ABORT: GF_LSR_WRITE_INT(lsr, 0, 6, "event"); break;
-		case SVG_DOM_EVT_KEYPRESS: GF_LSR_WRITE_INT(lsr, 1, 6, "event"); break;
 		case SVG_DOM_EVT_ACTIVATE: GF_LSR_WRITE_INT(lsr, 2, 6, "event"); break;
 		case SVG_DOM_EVT_BEGIN: GF_LSR_WRITE_INT(lsr, 3, 6, "event"); break;
 		case SVG_DOM_EVT_CLICK: GF_LSR_WRITE_INT(lsr, 4, 6, "event"); break;
@@ -700,6 +699,7 @@ static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 		case SVG_DOM_EVT_ERROR: GF_LSR_WRITE_INT(lsr, 6, 6, "event"); break;
 		case SVG_DOM_EVT_FOCUSIN: GF_LSR_WRITE_INT(lsr, 7, 6, "event"); break;
 		case SVG_DOM_EVT_FOCUSOUT: GF_LSR_WRITE_INT(lsr, 8, 6, "event"); break;
+		/*case SVG_DOM_EVT_KEYPRESS: GF_LSR_WRITE_INT(lsr, 1, 6, "event"); break;*/
 		case SVG_DOM_EVT_KEYDOWN: GF_LSR_WRITE_INT(lsr, 9, 6, "event"); break;
 		case SVG_DOM_EVT_KEYUP: GF_LSR_WRITE_INT(lsr, 10, 6, "event"); break;
 		case SVG_DOM_EVT_LOAD: GF_LSR_WRITE_INT(lsr, 11, 6, "event"); break;
@@ -720,7 +720,7 @@ static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 			GF_LSR_WRITE_INT(lsr, 0, 6, "event"); break;
 			return;
 		}
-		if ((evtType==SVG_DOM_EVT_KEYPRESS) || (evtType==SVG_DOM_EVT_LONGKEYPRESS)) {
+		if ((evtType==SVG_DOM_EVT_KEYDOWN) || (evtType==SVG_DOM_EVT_LONGKEYPRESS)) {
 			if (evtParam) {
 				GF_LSR_WRITE_INT(lsr, 1, 1, "hasKeyCode");
 				lsr_write_vluimsbf5(lsr, evtParam, "keyCode");

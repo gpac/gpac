@@ -808,7 +808,6 @@ static void lsr_read_event_type(GF_LASeRCodec *lsr, XMLEV_Event *evtType)
 		mouseover{16} mouseup{17} pause{18} repeat{19} resize{20} resume{21} scroll{22} textinput{23} unload{24} zoom{25} */
 		switch (flag) {
 		case 0: evtType->type = SVG_DOM_EVT_ABORT; break;
-		case 1: evtType->type = SVG_DOM_EVT_KEYPRESS; break;
 		case 2: evtType->type = SVG_DOM_EVT_ACTIVATE; break;
 		case 3: evtType->type = SVG_DOM_EVT_BEGIN; break;
 		case 4: evtType->type = SVG_DOM_EVT_CLICK; break;
@@ -816,6 +815,7 @@ static void lsr_read_event_type(GF_LASeRCodec *lsr, XMLEV_Event *evtType)
 		case 6: evtType->type = SVG_DOM_EVT_ERROR; break;
 		case 7: evtType->type = SVG_DOM_EVT_FOCUSIN; break;
 		case 8: evtType->type = SVG_DOM_EVT_FOCUSOUT; break;
+		case 1: evtType->type = SVG_DOM_EVT_KEYDOWN; break; /* TODO FIXME was keypress and is useless and removed */
 		case 9: evtType->type = SVG_DOM_EVT_KEYDOWN; break;
 		case 10: evtType->type = SVG_DOM_EVT_KEYUP; break;
 		case 11: evtType->type = SVG_DOM_EVT_LOAD; break;
