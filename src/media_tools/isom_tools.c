@@ -543,6 +543,57 @@ remove_track:
 	return GF_OK;
 }
 
+GF_Err gf_media_make_psp(GF_ISOFile *mp4, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk)
+{
+	u32 i, count;
+	u32 nb_a, nb_v;
+	/*psp track UUID*/
+	bin128 psp_track_uuid = {0x55, 0x53, 0x4D, 0x54, 0x21, 0xD2, 0x4F, 0xCE, 0xBB, 0x88, 0x69, 0x5C, 0xFA, 0xC9, 0xC7, 0x40};
+	u8 psp_track_sig [] = {0x00, 0x00, 0x00, 0x1C, 0x4D, 0x54, 0x44, 0x54, 0x00, 0x01, 0x00, 0x12, 0x00, 0x00, 0x00, 0x0A, 0x55, 0xC4, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
+	/*psp mov UUID*/
+	//bin128 psp_uuid = {0x50, 0x52, 0x4F, 0x46, 0x21, 0xD2, 0x4F, 0xCE, 0xBB, 0x88, 0x69, 0x5C, 0xFA, 0xC9, 0xC7, 0x40};
+
+	nb_a = nb_v = 0;
+	count = gf_isom_get_track_count(mp4);
+	for (i=0; i<count; i++) {
+		switch (gf_isom_get_media_type(mp4, i+1)) {
+		case GF_ISOM_MEDIA_VISUAL:
+			nb_v++; 
+			break;
+		case GF_ISOM_MEDIA_AUDIO:
+			nb_a++; 
+			break;
+		}
+	}
+	if ((nb_v != 1) && (nb_a!=1)) {
+		log_message(LogMsg, cbk, "PSP Movies need one audio track and one video track");
+		return GF_BAD_PARAM;
+	}
+	for (i=0; i<count; i++) {
+		switch (gf_isom_get_media_type(mp4, i+1)) {
+		case GF_ISOM_MEDIA_VISUAL:
+		case GF_ISOM_MEDIA_AUDIO:
+			/*if no edit list, add one*/
+			if (!gf_isom_get_edit_segment_count(mp4, i+1)) {
+				gf_isom_remove_edit_segments(mp4, i+1);
+				gf_isom_append_edit_segment(mp4, i+1, gf_isom_get_track_duration(mp4, i+1), 0, GF_ISOM_EDIT_NORMAL);
+			}
+			/*add PSP UUID*/
+			gf_isom_remove_uuid(mp4, i+1, psp_track_uuid);
+			gf_isom_add_uuid(mp4, i+1, psp_track_uuid, (char *) psp_track_sig, 28);
+			break;
+		default:
+			log_message(LogMsg, cbk, "Removing track ID %d", gf_isom_get_track_id(mp4, i+1) );
+			gf_isom_remove_track(mp4, i+1);
+			i -= 1;
+			count -= 1;
+			break;
+		}
+	}
+	gf_isom_set_brand_info(mp4, GF_4CC('M','S','N','V'), 0);
+	gf_isom_modify_alternate_brand(mp4, GF_4CC('M','S','N','V'), 1);
+	return GF_OK;
+}
 
 typedef struct
 {

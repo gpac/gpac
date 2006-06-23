@@ -3284,6 +3284,7 @@ void moov_del(GF_Box *s)
 #endif
 
 	gf_isom_box_array_del(ptr->trackList);
+	gf_isom_box_array_del(ptr->boxes);
 	free(ptr);
 }
 
@@ -3330,8 +3331,7 @@ GF_Err moov_AddBox(GF_Box *s, GF_Box *a)
 		((GF_TrackBox *)a)->moov = ptr;
 		return gf_list_add(ptr->trackList, a);
 	default:
-		gf_isom_box_del(a);
-		return GF_OK;
+		return gf_list_add(ptr->boxes, a);
 	}
 }
 
@@ -3349,6 +3349,12 @@ GF_Box *moov_New()
 	memset(tmp, 0, sizeof(GF_MovieBox));
 	tmp->trackList = gf_list_new();
 	if (!tmp->trackList) {
+		free(tmp);
+		return NULL;
+	}
+	tmp->boxes = gf_list_new();
+	if (!tmp->boxes) {
+		gf_list_del(tmp->trackList);
 		free(tmp);
 		return NULL;
 	}
@@ -3395,7 +3401,7 @@ GF_Err moov_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->udta, bs);
 		if (e) return e;
 	}
-	return GF_OK;
+	return gf_isom_box_array_write(s, ptr->boxes, bs);
 }
 
 GF_Err moov_Size(GF_Box *s)
@@ -3433,7 +3439,9 @@ GF_Err moov_Size(GF_Box *s)
 	}
 #endif
 
-	return gf_isom_box_array_size(s, ptr->trackList);
+	e = gf_isom_box_array_size(s, ptr->trackList);
+	if (e) return e;
+	return gf_isom_box_array_size(s, ptr->boxes);
 }
 
 #endif //GPAC_READ_ONLY
@@ -5957,6 +5965,7 @@ void trak_del(GF_Box *s)
 	if (ptr->References) gf_isom_box_del((GF_Box *)ptr->References);
 	if (ptr->editBox) gf_isom_box_del((GF_Box *)ptr->editBox);
 	if (ptr->meta) gf_isom_box_del((GF_Box *)ptr->meta);
+	gf_isom_box_array_del(ptr->boxes);
 	if (ptr->name) free(ptr->name); 
 	free(ptr);
 }
@@ -6090,8 +6099,10 @@ GF_Err trak_AddBox(GF_Box *s, GF_Box *a)
 		ptr->Media = (GF_MediaBox *)a;
 		((GF_MediaBox *)a)->mediaTrack = ptr;
 		return GF_OK;
+	default:
+		gf_list_add(ptr->boxes, a);
+		return GF_OK;
 	}
-	gf_isom_box_del(a);
 	return GF_OK;
 }
 
@@ -6112,6 +6123,7 @@ GF_Box *trak_New()
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_TrackBox));
 	tmp->type = GF_ISOM_BOX_TYPE_TRAK;
+	tmp->boxes = gf_list_new();
 	return (GF_Box *)tmp;
 }
 
@@ -6149,7 +6161,7 @@ GF_Err trak_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->udta, bs);
 		if (e) return e;
 	}
-	return GF_OK;
+	return gf_isom_box_array_write(s, ptr->boxes, bs);
 }
 
 GF_Err trak_Size(GF_Box *s)
@@ -6190,7 +6202,7 @@ GF_Err trak_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->meta->size;
 	}
-	return GF_OK;
+	return gf_isom_box_array_size(s, ptr->boxes);
 }
 
 #endif //GPAC_READ_ONLY

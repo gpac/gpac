@@ -518,8 +518,8 @@ void Script_FieldChanged(JSContext *c, GF_Node *parent, GF_JSField *parent_owner
 		return;
 	}
 	/*otherwise mark field if eventOut*/
-	if (parent_owner) {
-		priv = parent_owner->owner->sgprivate->privateStack;
+	if (parent_owner || parent) {
+		priv = parent ? parent->sgprivate->privateStack : parent_owner->owner->sgprivate->privateStack;
 		i=0;
 		while ((sf = gf_list_enum(priv->fields, &i))) {
 			if (sf->ALL_index == field->fieldIndex) {

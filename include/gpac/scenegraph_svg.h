@@ -339,8 +339,8 @@ typedef struct {
 
 enum {
 	SVG_FONTSTYLE_INHERIT = 0,
-	SVG_FONTSTYLE_NORMAL = 1,
-	SVG_FONTSTYLE_ITALIC = 2,  
+	SVG_FONTSTYLE_ITALIC = 1,  
+	SVG_FONTSTYLE_NORMAL = 2,
 	SVG_FONTSTYLE_OBLIQUE = 3
 }; 
 typedef u8 SVG_FontStyle;
@@ -514,12 +514,7 @@ typedef u8 SVG_TransformType;
 typedef GF_List * SVG_TransformList;
 
 enum {
-	SVG_FONTWEIGHT_INHERIT,
-	SVG_FONTWEIGHT_NORMAL,
-	SVG_FONTWEIGHT_BOLD, 
-	SVG_FONTWEIGHT_BOLDER, 
-	SVG_FONTWEIGHT_LIGHTER, 
-	SVG_FONTWEIGHT_100, 
+	SVG_FONTWEIGHT_100 = 0, 
 	SVG_FONTWEIGHT_200,
 	SVG_FONTWEIGHT_300, 
 	SVG_FONTWEIGHT_400,
@@ -527,7 +522,12 @@ enum {
 	SVG_FONTWEIGHT_600,
 	SVG_FONTWEIGHT_700,
 	SVG_FONTWEIGHT_800,
-	SVG_FONTWEIGHT_900
+	SVG_FONTWEIGHT_900,
+	SVG_FONTWEIGHT_BOLD, 
+	SVG_FONTWEIGHT_BOLDER, 
+	SVG_FONTWEIGHT_INHERIT,
+	SVG_FONTWEIGHT_LIGHTER, 
+	SVG_FONTWEIGHT_NORMAL
 };
 typedef u8 SVG_FontWeight;
 
@@ -539,9 +539,9 @@ enum {
 typedef u8 SVG_FontVariant;
 
 enum {
-	SVG_VISIBILITY_INHERIT	= 0,
-	SVG_VISIBILITY_VISIBLE  = 1,
-	SVG_VISIBILITY_HIDDEN   = 2,
+	SVG_VISIBILITY_HIDDEN   = 0,
+	SVG_VISIBILITY_INHERIT	= 1,
+	SVG_VISIBILITY_VISIBLE  = 2,
 	SVG_VISIBILITY_COLLAPSE = 3
 };
 typedef u8 SVG_Visibility;
@@ -594,10 +594,10 @@ typedef struct {
 } SVG_StrokeDashArray;
 
 enum {
-	SVG_TEXTANCHOR_START,
-	SVG_TEXTANCHOR_MIDDLE,
 	SVG_TEXTANCHOR_END,
-	SVG_TEXTANCHOR_INHERIT
+	SVG_TEXTANCHOR_INHERIT,
+	SVG_TEXTANCHOR_MIDDLE,
+	SVG_TEXTANCHOR_START
 };
 typedef u8 SVG_TextAnchor;
 
@@ -1156,6 +1156,8 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a, Fixed beta, GF_Fie
 GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type);
 void gf_svg_parse_style(SVGElement *elt, char *style);
 GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue);
+GF_Err gf_svg_dump_attribute_indexed(SVGElement *elt, GF_FieldInfo *info, char *attValue);
+
 Bool gf_svg_store_embedded_data(SVG_IRI *iri, const char *cache_dir, const char *base_filename);
 void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points);
 void gf_svg_register_iri(GF_SceneGraph *sg, SVG_IRI *iri);

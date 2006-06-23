@@ -1217,6 +1217,8 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 
 	if (!strcmp(svg_elt->implementation_name, "conditional")) {
 		fprintf(output, "\tgf_svg_init_lsr_conditional(&p->updates);\n");
+		fprintf(output, "\tp->lsr_begin = gf_list_new();\n");
+
 	} 
 
 	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
@@ -1232,6 +1234,8 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 		} else if (!strcmp("SVG_PathData", att->impl_type)) {
 			fprintf(output, "\tp->d.commands = gf_list_new();\n");
 			fprintf(output, "\tp->d.points = gf_list_new();\n");
+		} else if (!strcmp(att->svg_name, "lsr:enabled")) {
+			fprintf(output, "\tp->lsr_enabled = 1;\n");
 		} 
 	}
 	/*some default values*/
@@ -1263,6 +1267,10 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 
 	if (!strcmp(svg_elt->implementation_name, "conditional")) {
 		fprintf(output, "\tgf_svg_reset_lsr_conditional(&p->updates);\n");
+		fprintf(output, "\tgf_smil_delete_times(p->lsr_begin);\n");
+	} 
+	else if (!strcmp(svg_elt->implementation_name, "a")) {
+		fprintf(output, "\tif (p->target) free(p->target);\n");
 	} 
 
 	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {

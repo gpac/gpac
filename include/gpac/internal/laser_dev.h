@@ -92,6 +92,7 @@ struct __tag_laser_codec
 	GF_List *defered_listeners;
 
 	char *cache_dir, *service_name;
+	GF_List *unresolved_commands;
 };
 
 
@@ -172,10 +173,10 @@ s32 gf_lsr_field_to_attrib_type(GF_Node *n, u32 fieldIndex);
 
 
 
-#define LSR_UPDATE_TYPE_SCALE			80
-#define LSR_UPDATE_TYPE_ROTATE			76
-#define LSR_UPDATE_TYPE_TRANSLATION		111
-#define LSR_UPDATE_TYPE_TEXT_CONTENT	106
+#define LSR_UPDATE_TYPE_SCALE			78
+#define LSR_UPDATE_TYPE_ROTATE			75
+#define LSR_UPDATE_TYPE_TRANSLATION		107
+#define LSR_UPDATE_TYPE_TEXT_CONTENT	104
 
 
 #define LSR_UPDATE_ADD				0
@@ -284,8 +285,6 @@ enum
 	LSR_UPDATE_CONTENT_MODEL_animateTransform,
 	LSR_UPDATE_CONTENT_MODEL_audio,
 	LSR_UPDATE_CONTENT_MODEL_circle,
-	LSR_UPDATE_CONTENT_MODEL_conditional,
-	LSR_UPDATE_CONTENT_MODEL_cursorManager,
 	LSR_UPDATE_CONTENT_MODEL_defs,
 	LSR_UPDATE_CONTENT_MODEL_desc,
 	LSR_UPDATE_CONTENT_MODEL_ellipse,
@@ -301,10 +300,7 @@ enum
 	LSR_UPDATE_CONTENT_MODEL_polyline,
 	LSR_UPDATE_CONTENT_MODEL_radialGradient,
 	LSR_UPDATE_CONTENT_MODEL_rect,
-	LSR_UPDATE_CONTENT_MODEL_rectClip,
-	LSR_UPDATE_CONTENT_MODEL_simpleLayout,
 	LSR_UPDATE_CONTENT_MODEL_script,
-	LSR_UPDATE_CONTENT_MODEL_selector,
 	LSR_UPDATE_CONTENT_MODEL_set,
 	LSR_UPDATE_CONTENT_MODEL_stop,
 	LSR_UPDATE_CONTENT_MODEL_svg,
@@ -317,5 +313,15 @@ enum
 	LSR_UPDATE_CONTENT_MODEL_listener,
 };
 
+enum
+{
+	LSR_UPDATE_CONTENT_MODEL2_conditional = 0,
+	LSR_UPDATE_CONTENT_MODEL2_cursorManager,
+	LSR_UPDATE_CONTENT_MODEL2_extend,
+	LSR_UPDATE_CONTENT_MODEL2_private,
+	LSR_UPDATE_CONTENT_MODEL2_rectClip,
+	LSR_UPDATE_CONTENT_MODEL2_simpleLayout,
+	LSR_UPDATE_CONTENT_MODEL2_selector,
+};
 #endif
 

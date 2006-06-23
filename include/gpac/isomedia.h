@@ -842,6 +842,11 @@ GF_Err gf_isom_remove_user_data(GF_ISOFile *the_file, u32 trackNumber, u32 UserD
 use the UDAT read functions to get the item index*/
 GF_Err gf_isom_remove_user_data_item(GF_ISOFile *the_file, u32 trackNumber, u32 UserDataType, bin128 UUID, u32 UserDataIndex);
 
+/*remove track, moov (trackNumber=0) or file-level (trackNumber=0xFFFFFFFF) UUID box of matching type*/
+GF_Err gf_isom_remove_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID);
+/*adds track, moov (trackNumber=0) or file-level (trackNumber=0xFFFFFFFF) UUID box of given type*/
+GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, char *data, u32 data_size);
+
 /*
 		Update of the Writing API for IsoMedia Version 2
 */	

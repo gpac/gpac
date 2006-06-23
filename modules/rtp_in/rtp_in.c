@@ -419,7 +419,9 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			ch->status = RTP_Running;
 			if (ch->rtp_ch) {
 				ch->check_rtp_time = 1;
+				gf_mx_p(priv->mx);
 				RP_InitStream(ch, 0);
+				gf_mx_v(priv->mx);
 				gf_rtp_set_info_rtp(ch->rtp_ch, 0, 0, 0);
 			} else {
 				/*direct channel, store current start*/

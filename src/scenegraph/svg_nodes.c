@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Mon May 29 16:31:07 2006
+	DO NOT MOFIFY - File generated on GMT Thu Jun 22 15:29:41 2006
 
 	BY SVGGen for GPAC Version 0.4.1-DEV
 */
@@ -60,6 +60,7 @@ static void gf_svg_a_del(GF_Node *node)
 {
 	SVGaElement *p = (SVGaElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->target) free(p->target);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -2221,6 +2222,8 @@ void *gf_svg_new_conditional()
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_lsr_conditional(&p->updates);
+	p->lsr_begin = gf_list_new();
+	p->lsr_enabled = 1;
 	return p;
 }
 
@@ -2229,6 +2232,7 @@ static void gf_svg_conditional_del(GF_Node *node)
 	SVGconditionalElement *p = (SVGconditionalElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
 	gf_svg_reset_lsr_conditional(&p->updates);
+	gf_smil_delete_times(p->lsr_begin);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }

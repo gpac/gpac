@@ -3550,6 +3550,110 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 	return GF_OK;
 }
 
+
+GF_Err gf_svg_dump_attribute_indexed(SVGElement *elt, GF_FieldInfo *info, char *attValue)
+{
+	u8 intVal = *(u8 *)info->far_ptr;
+	strcpy(attValue, "");
+	
+	switch (info->fieldType) {
+	case SVG_PointerEvents_datatype:
+		break;
+	case SVG_ListOfIRI_datatype:
+		strcpy(attValue, (char *) info->far_ptr);
+		break;
+
+	case SVG_Points_datatype:
+	{
+#if DUMP_COORDINATES
+		SVG_Point *p = info->far_ptr;
+		sprintf(attValue, "%g %g", FIX2FLT(p->x), FIX2FLT(p->y));
+#endif
+	}
+		break;
+	case SMIL_KeyPoints_datatype:
+		break;
+	case SMIL_KeyTimes_datatype:
+	case SMIL_KeySplines_datatype:
+	{
+		Fixed *p = info->far_ptr;
+		sprintf(attValue, "%g", FIX2FLT(*p));
+	}
+		break;
+	case SVG_Coordinates_datatype:
+	{
+#if DUMP_COORDINATES
+		SVG_Coordinate *p = info->far_ptr;
+		svg_dump_number((SVG_Length *)p, attValue);
+		if (strstr(attValue, "pt")) {
+			fprintf(stderr, "found pt in output\n");
+		}
+#endif
+	}
+		break;
+	case SVG_ViewBox_datatype:
+	{
+		Fixed *v = info->far_ptr;
+		sprintf(attValue, "%g", FIX2FLT(*v));
+	}
+		break;
+	case SVG_StrokeDashArray_datatype:
+	{
+		Fixed *p = info->far_ptr;
+		sprintf(attValue, "%g", FIX2FLT(*p));
+	}
+		break;
+	case SMIL_Times_datatype:
+	{
+		SMIL_Time *t = info->far_ptr;
+		if (t->type == GF_SMIL_TIME_CLOCK) {
+			sprintf(attValue, "%gs", t->clock);
+		} else if (t->type==GF_SMIL_TIME_INDEFINITE) {
+			strcpy(attValue, "indefinite");
+		} else if (t->type==GF_SMIL_TIME_WALLCLOCK) {
+			u32 h, m, s;
+			/*TODO - day month and year*/
+			h = (u32) t->clock * 3600;
+			m = (u32) (t->clock * 60 - 60*h);
+			s = (u32) (t->clock - 3600*h - 60*m);
+			sprintf(attValue, "wallclock(%d:%d:%d)", h, m, s);
+		}
+		else if (t->type==GF_SMIL_TIME_EVENT) {
+			GF_Node *par = gf_node_get_parent((GF_Node *)elt, 0);
+			if (t->event.type == SVG_DOM_EVT_KEYDOWN) {
+				svg_dump_access_key(&t->event, attValue);
+			} else {
+				strcpy(attValue, "");
+				if (t->element_id) {
+					strcat(attValue, t->element_id);
+					strcat(attValue, ".");
+				} else if (t->element && (t->element!=par) && gf_node_get_id(t->element) ) {
+					const char *name = gf_node_get_name(t->element);
+					if (name) {
+						strcat(attValue, name);
+					} else {
+						sprintf(attValue, "N%d", gf_node_get_id(t->element)-1 );
+					}
+					strcat(attValue, ".");
+				}
+				strcat(attValue, gf_dom_event_get_name(t->event.type));
+			}
+			if (t->clock) {
+				char szBuf[100];
+				sprintf(szBuf, "%gs", t->clock);
+				strcpy(attValue, "+");
+				strcat(attValue, szBuf);
+			}
+		}
+	}
+		break;
+	default:
+		fprintf(stdout, "SVG: Warning, dumping for field %s not supported\n", info->name);
+		break;
+	}
+	return GF_OK;
+}
+
 static Bool svg_viewbox_equal(SVG_ViewBox *v1, SVG_ViewBox *v2)
 {
 	if (v1->is_set != v2->is_set) return 0;

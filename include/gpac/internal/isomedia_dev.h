@@ -351,6 +351,8 @@ typedef struct
 	struct __tag_meta_box *meta;
 	/*track boxes*/
 	GF_List *trackList;
+	/*other boxes*/
+	GF_List *boxes;
 
 	GF_ISOFile *mov;
 
@@ -391,6 +393,8 @@ typedef struct
 	GF_TrackReferenceBox *References;
 	/*meta box if any*/
 	struct __tag_meta_box *meta;
+	/*other*/
+	GF_List *boxes;
 
 	GF_MovieBox *moov;
 	/*private for media padding*/

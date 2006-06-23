@@ -731,23 +731,27 @@ void remove_systems_tracks(GF_ISOFile *file)
 */
 u32 get_file_type_by_ext(char *inName)
 {
-	char *lowername;
-	u32 type;
-	lowername = strdup(inName);
-	if (!lowername) return 0;
-	strlwr(lowername);
-	if (strstr(lowername, ".mp4") || strstr(lowername, ".3gp") || strstr(lowername, ".mov") || strstr(lowername, ".3g2")) type = 1;
-	else if (strstr(lowername, ".bt") || strstr(lowername, ".wrl") || strstr(lowername, ".x3dv")) type = 2;
-	else if (strstr(lowername, ".xmt") || strstr(lowername, ".x3d")) type = 3;
-	else if (strstr(lowername, ".svg")) type = 4;
-	else if (strstr(lowername, ".xsr")) type = 4;
-	else if (strstr(lowername, ".swf")) type = 5;
-	else if (strstr(lowername, ".lsr") || strstr(lowername, ".saf")) type = 6;
-	else type = 0;
+	u32 type = 0;
+	char *__ext = strrchr(inName, '.');
+	if (__ext) {
+		char ext[20];
+		if (!strcmp(__ext, ".gz")) __ext = strrchr(__ext-1, '.');
+		strcpy(ext, __ext+1);
+		__ext = strchr(ext, '.');
+		if (__ext) __ext[0] = 0;
+
+		if (!stricmp(ext, "mp4") || !stricmp(ext, "3gp") || !stricmp(ext, "mov") || !stricmp(ext, "3g2")) type = 1;
+		else if (!stricmp(ext, "bt") || !stricmp(ext, "wrl") || !stricmp(ext, "x3dv")) type = 2;
+		else if (!stricmp(ext, "xmt") || !stricmp(ext, "x3d")) type = 3;
+		else if (!stricmp(ext, "lsr") || !stricmp(ext, "saf")) type = 6;
+		else if (!stricmp(ext, "svg")) type = 4;
+		else if (!stricmp(ext, "xsr")) type = 4;
+		else if (!stricmp(ext, "swf")) type = 5;
+		else type = 0;
+	}
 
 	/*try open file in read mode*/
 	if (!type && gf_isom_probe_file(inName)) type = 1;
-	free(lowername);
 	return type;
 }
 
@@ -894,7 +898,7 @@ int main(int argc, char **argv)
 	TrackAction tracks[MAX_CUMUL_OPS];
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
 	u32 i, MTUSize, stat_level, hint_flags, MakeISMA, Make3GP, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version;
-	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, do_package, remove_root_od;
+	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, do_package, remove_root_od, make_psp;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump;
 	GF_ISOFile *file;
@@ -914,7 +918,7 @@ int main(int argc, char **argv)
 	split_size = 0;
 	MTUSize = 1450;
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = 0;
-	do_package = chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
+	do_package = chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = make_psp = 0;
 	x3d_info = MakeISMA = Make3GP = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = 0;
 	track_dump_type = 0;
 	ismaCrypt = 0;
@@ -1769,6 +1773,12 @@ int main(int argc, char **argv)
 		if (!strcmp(szExt, ".3gp") || !strcmp(szExt, ".3gpp") || !strcmp(szExt, ".3g2")) {
 			MakeISMA = 0;
 			Make3GP = 1;
+			make_psp = 0;
+		}
+		else if (!strcmp(szExt, ".psp")) {
+			MakeISMA = 0;
+			Make3GP = 0;
+			make_psp = 1;
 		}
 
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
@@ -1963,6 +1973,12 @@ int main(int argc, char **argv)
 		if (Make3GP) {
 			fprintf(stdout, "Converting to 3GP file...\n");
 			e = gf_media_make_3gpp(file, NULL, NULL);
+			if (e) goto err_exit;
+			needSave = 1;
+		}
+		if (make_psp) {
+			fprintf(stdout, "Converting to PSP file...\n");
+			e = gf_media_make_psp(file, NULL, NULL);
 			if (e) goto err_exit;
 			needSave = 1;
 		}

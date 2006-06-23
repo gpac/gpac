@@ -372,7 +372,6 @@ check_unit:
 		/*we're droping the frame*/
 		if (scene_locked) codec->nb_droped ++;
 		mm_level = GF_CODEC_LEVEL_NORMAL;
-//		au_time = obj_time;
 		au_time = AU->DTS;
 	}
 

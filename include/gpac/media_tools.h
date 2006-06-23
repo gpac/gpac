@@ -302,6 +302,11 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 */
 GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk);
 
+/*make the file playable on a PSP
+@LogMsg: redirection for message or NULL for stdout
+*/
+GF_Err gf_media_make_psp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk);
+
 /*creates (if needed) a GF_ESD for the given track - THIS IS RESERVED for local playback
 only, since the OTI used when emulated is not standard...*/
 GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track);

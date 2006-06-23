@@ -110,9 +110,10 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		free(value);
 		break;
 	case SVG_Coordinates_datatype:
+	case SVG_Points_datatype:
 		l = *(GF_List**)value;
 		while (gf_list_count(l)) {
-			SVG_Number *n = gf_list_last(l);
+			void *n = gf_list_last(l);
 			gf_list_rem_last(l);
 			free(n);
 		}
@@ -192,6 +193,8 @@ void gf_svg_init_properties(SVGElement *p)
 	p->properties->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
 	p->properties->font_size.type = SVG_NUMBER_INHERIT;
 	p->properties->text_anchor = SVG_TEXTANCHOR_INHERIT;
+	p->properties->font_weight = SVG_FONTWEIGHT_INHERIT;
+	p->properties->visibility = SVG_VISIBILITY_INHERIT;
 
 	p->properties->stop_opacity.type = SVG_NUMBER_VALUE;
 	p->properties->stop_opacity.value = FIX_ONE;
@@ -224,6 +227,7 @@ void gf_svg_init_sync(SVGElement *p)
 void gf_svg_init_anim(SVGElement *p)
 {
 	GF_SAFEALLOC(p->anim, sizeof(SMILAnimationAttributes))				
+	p->anim->lsr_enabled = 1;
 	p->anim->keySplines = gf_list_new();
 	p->anim->keyTimes = gf_list_new();
 	p->anim->values.values = gf_list_new();

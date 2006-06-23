@@ -189,6 +189,17 @@ void SG_GraphRemoved(GF_Node *node, GF_SceneGraph *sg)
 	}
 }
 
+GFINLINE GF_Node *SG_SearchForNode(GF_SceneGraph *sg, GF_Node *node)
+{
+	u32 i;
+	for (i=0; i<sg->node_reg_size; i++) {
+		if (sg->node_registry[i] == node) {
+			return sg->node_registry[i];
+		}
+	}
+	return NULL;
+}
+
 void gf_sg_reset(GF_SceneGraph *sg)
 {
 	u32 i, type, count;
@@ -223,14 +234,14 @@ void gf_sg_reset(GF_SceneGraph *sg)
 	*/
 restart:
 	for (i=sg->node_reg_size; i>0; i--) {
+		Bool ignore = 0;
 		GF_Node *node = sg->node_registry[i-1];
-		sg->node_registry[i-1] = NULL;
 		if (!node) continue;
 
 		/*first replace all instances in parents by NULL WITHOUT UNREGISTERING (to avoid destroying the node).
 		This will take care of nodes referencing themselves*/
 #ifdef GF_ARRAY_PARENT_NODES
-		u32 j, count;
+		u32 j, count, k;
 		type = node->sgprivate->tag;
 #ifndef GPAC_DISABLE_SVG
 		if ((type>= GF_NODE_RANGE_FIRST_SVG) && (type<= GF_NODE_RANGE_LAST_SVG)) type = 1;
@@ -240,6 +251,11 @@ restart:
 		count = gf_list_count(node->sgprivate->parentNodes);
 		for (j=0; j<count; j++) {
 			GF_Node *par = gf_list_get(node->sgprivate->parentNodes, j);
+			if (SG_SearchForNode(sg, par) != NULL) {
+				ignore = 1;
+				break;
+			}
+
 #ifndef GPAC_DISABLE_SVG
 			if (type) {
 				ReplaceIRINode(par, node->sgprivate->NodeID, NULL);
@@ -247,6 +263,9 @@ restart:
 #endif
 				ReplaceDEFNode(par, node->sgprivate->NodeID, NULL, 0);
 		}
+		
+		if (ignore) continue;
+
 		/*then we remove the node from the registry and destroy it. This will take 
 		care of conditional case as we perform special checking when destroying commands*/
 		gf_list_reset(node->sgprivate->parentNodes);
@@ -261,6 +280,10 @@ restart:
 			type = 0;
 		while (nlist) {
 			GF_NodeList *next = nlist->next;
+			if (SG_SearchForNode(sg, nlist->node) != NULL) {
+				ignore = 1;
+				break;
+			}
 #ifndef GPAC_DISABLE_SVG
 			if (type) {
 				ReplaceIRINode(nlist->node, node, NULL);
@@ -271,11 +294,18 @@ restart:
 			free(nlist);
 			nlist = next;
 		}
+		if (ignore) {
+			node->sgprivate->parents = nlist;
+			continue;
+		}
+
 		node->sgprivate->parents = NULL;
 		}
 #endif
+		//sg->node_registry[i-1] = NULL;
 		count = sg->node_reg_size;
-		gf_node_del(node);
+		node->sgprivate->num_instances = 1;
+		gf_node_unregister(node, NULL);
 		if (count != sg->node_reg_size) goto restart;
 	}
 	sg->node_reg_size = 0;
@@ -309,17 +339,6 @@ GFINLINE GF_Node *SG_SearchForDuplicateNodeID(GF_SceneGraph *sg, u32 nodeID, GF_
 	for (i=0; i<sg->node_reg_size; i++) {
 		if (sg->node_registry[i] == toExclude) continue;
 		if (sg->node_registry[i]->sgprivate->NodeID == nodeID) {
-			return sg->node_registry[i];
-		}
-	}
-	return NULL;
-}
-
-GFINLINE GF_Node *SG_SearchForNode(GF_SceneGraph *sg, GF_Node *node)
-{
-	u32 i;
-	for (i=0; i<sg->node_reg_size; i++) {
-		if (sg->node_registry[i] == node) {
 			return sg->node_registry[i];
 		}
 	}

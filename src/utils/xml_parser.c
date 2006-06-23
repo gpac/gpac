@@ -235,7 +235,7 @@ static void xml_sax_node_start(GF_SAXParser *parser)
 static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 {
 	char szVal[XML_ATT_SIZE], *skip_chars;
-	u32 i;
+	u32 i, offset;
 	GF_XMLAttribute *att = NULL;
 
 	if (parser->sax_state==SAX_STATE_ATT_NAME) {
@@ -244,15 +244,28 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 		skip_chars = "\t\n\r";
 		if (parser->att_sep) att = gf_list_last(parser->attributes);
 	}
+	offset=0;
 	i=0;
-	while (parser->current_pos+i < parser->line_size) {
+	while (parser->current_pos+i+offset < parser->line_size) {
 		u8 c = parser->buffer[parser->current_pos+i];
 		if (strchr(skip_chars, c)) {
 			if (c=='\n') parser->line++;
-			if ((parser->sax_state==SAX_STATE_ATT_NAME) || !parser->att_sep) {
+			/*parsing an attribute name*/
+			if (parser->sax_state==SAX_STATE_ATT_NAME) {
+				/*skip spaces at end of attName but don't move current buffer*/
+				if (i) offset++;
+				/*drop spaces at begining of attName*/
+				else parser->current_pos++;
+				continue;
+			} 
+			/*waiting for attribute value start*/
+			else if (!parser->att_sep) {
+				/*drop spaces until delimiter is found*/
 				parser->current_pos++;
 				continue;
-			} else {
+			}
+			/*replace all chars by ' '*/
+			else {
 				c=' ';
 			}
 		}
@@ -323,6 +336,9 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 				szVal[i] = 0;
 				GF_SAFEALLOC(att, sizeof(GF_XMLAttribute));
 				att->name = strdup(szVal);
+				if (!strcmp(att->name, "vrml97Hint")) {
+					szVal[i] = 0;
+				}
 				gf_list_add(parser->attributes, att);
 				parser->current_pos+=i+1;
 				i=0;
@@ -857,13 +873,16 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 	unsigned char szLine[1026];
 	if (!parser->gz_in) return GF_BAD_PARAM;
 
+	parser->file_pos = 0;
+
 	while (!gzeof(parser->gz_in) && !parser->suspended) {
 		u32 read = gzread(parser->gz_in, szLine, 1024);
 		szLine[read] = 0;
 		szLine[read+1] = 0;
 		e = gf_xml_sax_parse(parser, szLine);
 		if (e) break;
-//		parser->file_pos = gztell(parser->gz_in);
+
+		parser->file_pos = gztell(parser->gz_in);
 		if (parser->file_pos > parser->file_size) parser->file_size = parser->file_pos + 1;
 		if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_pos, parser->file_size);
 	}

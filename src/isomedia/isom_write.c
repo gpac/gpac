@@ -3314,6 +3314,66 @@ GF_Err gf_isom_clone_root_od(GF_ISOFile *input, GF_ISOFile *output)
 	return GF_OK;
 }
 
+GF_Err gf_isom_remove_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID)
+{
+	u32 i, count;
+	GF_List *list;
+
+	if (trackNumber==(u32) -1) {
+		if (!movie) return GF_BAD_PARAM;
+		list = movie->TopBoxes;
+	} else if (trackNumber) {
+		GF_TrackBox *trak = gf_isom_get_track_from_file(movie, trackNumber);
+		if (!trak) return GF_BAD_PARAM;
+		list = trak->boxes;
+	} else {
+		if (!movie) return GF_BAD_PARAM;
+		list = movie->moov->boxes;
+	}
+	
+	count = gf_list_count(list);
+	for (i=0; i<count; i++) {
+		GF_UnknownUUIDBox *uuid = gf_list_get(list, i);
+		if (uuid->type != GF_ISOM_BOX_TYPE_UUID) continue;
+		if (memcmp(UUID, uuid->uuid, sizeof(bin128))) continue;
+		gf_list_rem(list, i);
+		i--;
+		count--;
+		gf_isom_box_del((GF_Box*)uuid);
+	}
+	return GF_OK;
+}
+
+
+GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, char *data, u32 data_size)
+{
+	GF_List *list;
+	GF_UnknownUUIDBox *uuid;
+
+	if (!data_size || !data) return GF_OK;
+
+	if (trackNumber==(u32) -1) {
+		if (!movie) return GF_BAD_PARAM;
+		list = movie->TopBoxes;
+	} else if (trackNumber) {
+		GF_TrackBox *trak = gf_isom_get_track_from_file(movie, trackNumber);
+		if (!trak) return GF_BAD_PARAM;
+		list = trak->boxes;
+	} else {
+		if (!movie) return GF_BAD_PARAM;
+		list = movie->moov->boxes;
+	}
+	
+	GF_SAFEALLOC(uuid, sizeof(GF_UnknownUUIDBox));
+	uuid->type = GF_ISOM_BOX_TYPE_UUID;
+	memcpy(uuid->uuid, UUID, sizeof(bin128));
+	uuid->dataSize = data_size;
+	uuid->data = malloc(sizeof(char)*data_size);
+	memcpy(uuid->data, data, sizeof(char)*data_size);
+	gf_list_add(list, uuid);
+	return GF_OK;
+}
+
 #endif	//GPAC_READ_ONLY
 
 

@@ -105,7 +105,8 @@ enum
 	GF_SOCK_IS_IPV6 = 1<<10,
 	GF_SOCK_NON_BLOCKING = 1<<11,
 	GF_SOCK_IS_MULTICAST = 1<<12,
-	GF_SOCK_IS_LISTENING = 1<<13
+	GF_SOCK_IS_LISTENING = 1<<13,
+	GF_SOCK_HAS_SOURCE = 1<<14
 };
 
 struct __tag_socket
@@ -380,7 +381,6 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 
 		memcpy(&sock->dest_addr, aip->ai_addr, aip->ai_addrlen);
 		sock->dest_addr_len = aip->ai_addrlen;
-
 		freeaddrinfo(res);
 		return GF_OK;
 	}
@@ -471,6 +471,13 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 	/*for all interfaces*/
 	for (aip=res; aip!=NULL; aip=aip->ai_next) {
 		if (type != (u32) aip->ai_socktype) continue;
+
+#ifdef WIN32
+		/*recurrent pb with win32: this is not a true dual-stack, listening with a v6 socket for v4 source is 
+		most of the time failing. On win32, only move for connection-less V6 sockets if no other way available*/
+		if (aip->ai_next && (aip->ai_next->ai_family==PF_INET)) continue;
+#endif
+
 		sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
 		if (sock->socket == INVALID_SOCKET) {
 			sock->socket = (SOCKET)NULL;
@@ -491,6 +498,9 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 
 		if (aip->ai_family==PF_INET6) sock->flags |= GF_SOCK_IS_IPV6;
 		else sock->flags &= ~GF_SOCK_IS_IPV6;
+
+		if (peer_name && peer_port) 
+			sock->flags |= GF_SOCK_HAS_SOURCE;
 
 		freeaddrinfo(res);
 		return GF_OK;
@@ -535,6 +545,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 			if (Host == NULL) return GF_IP_ADDRESS_NOT_FOUND;
 			memcpy((char *) &sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u32));
 		}
+		sock->flags |= GF_SOCK_HAS_SOURCE;
 	}
 #endif
 	return GF_OK;
@@ -784,6 +795,7 @@ GF_Err gf_sk_receive(GF_Socket *sock, unsigned char *buffer, u32 length, u32 sta
 	e = GF_OK;
 
 	*BytesRead = 0;
+	if (!sock->socket) return 0;
 	if (startFrom >= length) return 0;
 
 	//can we read?
@@ -799,16 +811,17 @@ GF_Err gf_sk_receive(GF_Socket *sock, unsigned char *buffer, u32 length, u32 sta
 		case EAGAIN:
 			return GF_IP_SOCK_WOULD_BLOCK;
 		default:
-//			fprintf(stdout, "error fetching %d\n", LASTSOCKERROR);
+			fprintf(stdout, "error fetching %d\n", LASTSOCKERROR);
 			return GF_IP_NETWORK_FAILURE;
 		}
 	}
 	if (!FD_ISSET(sock->socket, &Group)) {
 		return GF_IP_NETWORK_EMPTY;
 	}
-
-//	res = recv(sock->socket, buffer + startFrom, length - startFrom, 0);
-	res = recvfrom(sock->socket, buffer + startFrom, length - startFrom, 0, (struct sockaddr *)&sock->dest_addr, &sock->dest_addr_len);
+	if (sock->flags & GF_SOCK_HAS_SOURCE)
+		res = recvfrom(sock->socket, buffer + startFrom, length - startFrom, 0, (struct sockaddr *)&sock->dest_addr, &sock->dest_addr_len);
+	else
+		res = recv(sock->socket, buffer + startFrom, length - startFrom, 0);
 
 	if (res == SOCKET_ERROR) {
 		res = LASTSOCKERROR;

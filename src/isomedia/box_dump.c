@@ -25,21 +25,6 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/utf.h>
 
-GF_Err DumpBox(GF_Box *a, FILE * trace)
-{
-	if (a->size > 0xFFFFFFFF) {
-		fprintf(trace, "<BoxInfo LargeSize=\""LLD"\" ", a->size);
-	} else {
-		fprintf(trace, "<BoxInfo Size=\"%d\" ", (u32) a->size);
-	}
-	if (a->type == GF_ISOM_BOX_TYPE_UUID) {
-		fprintf(trace, "ExtendedType=\"%s\"/>\n", ((GF_UUIDBox*)a)->uuid);
-	} else {
-		fprintf(trace, "Type=\"%s\"/>\n", gf_4cc_to_str(a->type));
-	}
-	return GF_OK;
-}
-
 
 void NullBoxErr(FILE * trace)
 {
@@ -60,6 +45,28 @@ static void DumpData(FILE *trace, char *data, u32 dataLength)
 		fprintf(trace, "%02X", (unsigned char) data[i]);
 	}
 }
+
+GF_Err DumpBox(GF_Box *a, FILE * trace)
+{
+	if (a->size > 0xFFFFFFFF) {
+		fprintf(trace, "<BoxInfo LargeSize=\""LLD"\" ", a->size);
+	} else {
+		fprintf(trace, "<BoxInfo Size=\"%d\" ", (u32) a->size);
+	}
+	if (a->type == GF_ISOM_BOX_TYPE_UUID) {
+		u32 i;
+		fprintf(trace, "UUID=\"{");
+		for (i=0; i<16; i++) {
+			fprintf(trace, "%02X", (unsigned char) ((GF_UUIDBox*)a)->uuid[i]);
+			if ((i<15) && (i%4)==3) fprintf(trace, "-");
+		}
+		fprintf(trace, "}\"/>\n", ((GF_UUIDBox*)a)->uuid);
+	} else {
+		fprintf(trace, "Type=\"%s\"/>\n", gf_4cc_to_str(a->type));
+	}
+	return GF_OK;
+}
+
 
 GF_Err gb_box_dump(void *ptr, FILE * trace)
 {
@@ -366,6 +373,7 @@ GF_Err moov_dump(GF_Box *a, FILE * trace)
 
 	gb_box_array_dump(p->trackList, trace);
 	if (p->udta) gb_box_dump(p->udta, trace);
+	gb_box_array_dump(p->boxes, trace);
 	fprintf(trace, "</MovieBox>\n");
 	return GF_OK;
 }
@@ -634,6 +642,7 @@ GF_Err trak_dump(GF_Box *a, FILE * trace)
 	if (p->editBox) gb_box_dump(p->editBox, trace);
 	if (p->Media) gb_box_dump(p->Media, trace);
 	if (p->udta) gb_box_dump(p->udta, trace);	
+	gb_box_array_dump(p->boxes, trace);
 	fprintf(trace, "</TrackBox>\n");
 	return GF_OK;
 }
@@ -1117,7 +1126,9 @@ GF_Err mdia_dump(GF_Box *a, FILE * trace)
 GF_Err defa_dump(GF_Box *a, FILE * trace)
 {
 	GF_UnknownBox *p = (GF_UnknownBox *)a;
-	fprintf(trace, "<UnknownBox Type=\"%s\" Size=\"%d\"/>\n", gf_4cc_to_str(a->type), p->dataSize);
+	fprintf(trace, "<UnknownBox>\n");
+	DumpBox(a, trace);
+	fprintf(trace, "</UnknownBox>\n");
 	return GF_OK;
 }
 

@@ -2211,9 +2211,10 @@ GF_Err DumpProtoInsert(GF_SceneDumper *sdump, GF_Command *com)
 
 
 #ifndef GPAC_DISABLE_SVG
-static char *lsr_format_node_id(GF_Node *n, char *str)
+static char *lsr_format_node_id(GF_Node *n, u32 NodeID, char *str)
 {
-	if (n->sgprivate->NodeName) sprintf(str, "%s", n->sgprivate->NodeName);
+	if (!n) sprintf(str, "N%d", NodeID-1);
+	else if (n->sgprivate->NodeName) sprintf(str, "%s", n->sgprivate->NodeName);
 	else sprintf(str, "N%d", n->sgprivate->NodeID - 1);
 	return str;
 }
@@ -2225,11 +2226,14 @@ GF_Err DumpLSRNewScene(GF_SceneDumper *sdump, GF_Command *com)
 	fprintf(sdump->trace, "</lsr:NewScene>\n");
 	return GF_OK;
 }
-GF_Err DumpLSRAddReplace(GF_SceneDumper *sdump, GF_Command *com, Bool is_replace)
+
+GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 {
-	char szAtt[80000];
+	char szAtt[80000], *com_name;
 	GF_CommandField *f;
-	fprintf(sdump->trace, "<lsr:%s ref=\"%s\" ", is_replace ? "Replace" : "Add", lsr_format_node_id(com->node, szAtt));
+
+	com_name = (com->tag==GF_SG_LSR_REPLACE) ? "Replace" : ( (com->tag==GF_SG_LSR_ADD) ? "Add" : "Insert" );
+	fprintf(sdump->trace, "<lsr:%s ref=\"%s\" ", com_name, lsr_format_node_id(com->node, com->RouteID, szAtt));
 	f = gf_list_get(com->command_fields, 0);
 	if (f && (f->pos>=0) ) fprintf(sdump->trace, "index=\"%d\" ", f->pos);
 	if (f) {
@@ -2256,14 +2260,18 @@ GF_Err DumpLSRAddReplace(GF_SceneDumper *sdump, GF_Command *com, Bool is_replace
 				fprintf(sdump->trace, "attributeName=\"%s\" ", info.name);
 				if (f->field_ptr) {
 					info.far_ptr = f->field_ptr;
-					gf_svg_dump_attribute((SVGElement *)com->node, &info, szAtt);
+					if ((s32) f->pos >= 0) {
+						gf_svg_dump_attribute_indexed((SVGElement *)com->node, &info, szAtt);
+					} else {
+						gf_svg_dump_attribute((SVGElement *)com->node, &info, szAtt);
+					}
 					fprintf(sdump->trace, "value=\"%s\" ", szAtt);
 				}
 			}
 			if (com->fromNodeID) {
 				GF_FieldInfo op_info;
 				GF_Node *op = gf_sg_find_node(sdump->sg, com->fromNodeID);
-				fprintf(sdump->trace, "operandElementId=\"%s\" ", lsr_format_node_id(op, szAtt));
+				fprintf(sdump->trace, "operandElementId=\"%s\" ", lsr_format_node_id(op, com->RouteID, szAtt));
 				gf_node_get_field(op, com->fromFieldIndex, &op_info);
 				fprintf(sdump->trace, "operandAttributeName=\"%s\" ", op_info.name);
 			}
@@ -2282,7 +2290,7 @@ GF_Err DumpLSRAddReplace(GF_SceneDumper *sdump, GF_Command *com, Bool is_replace
 		for (i=0; i<count; i++) 
 			SD_DumpSVGElement(sdump, gf_list_get(f->node_list, i), com->node, 0);
 	}
-	fprintf(sdump->trace, "</lsr:Replace>\n");
+	fprintf(sdump->trace, "</lsr:%s>\n", com_name);
 	sdump->indent--;
 	return GF_OK;
 }
@@ -2294,7 +2302,7 @@ GF_Err DumpLSRDelete(GF_SceneDumper *sdump, GF_Command *com)
 {
 	char szID[1024];
 	GF_CommandField *f;
-	fprintf(sdump->trace, "<lsr:Delete ref=\"%s\" ", lsr_format_node_id(com->node, szID));
+	fprintf(sdump->trace, "<lsr:Delete ref=\"%s\" ", lsr_format_node_id(com->node, com->RouteID, szID));
 	f = gf_list_get(com->command_fields, 0);
 	if (f && (f->pos>=0) ) fprintf(sdump->trace, "index=\"%d\" ", f->pos);
 	fprintf(sdump->trace, "/>\n");
@@ -2417,11 +2425,11 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 #ifndef GPAC_DISABLE_SVG
 		/*laser commands*/
 		case GF_SG_LSR_NEW_SCENE: e = DumpLSRNewScene(sdump, com); break;
-		case GF_SG_LSR_ADD: e = DumpLSRAddReplace(sdump, com, 0); break;
+		case GF_SG_LSR_ADD: e = DumpLSRAddReplaceInsert(sdump, com); break;
 		case GF_SG_LSR_CLEAN: e = DumpLSRClean(sdump, com); break;
-		case GF_SG_LSR_REPLACE: e = DumpLSRAddReplace(sdump, com, 1); break;
+		case GF_SG_LSR_REPLACE: e = DumpLSRAddReplaceInsert(sdump, com); break;
 		case GF_SG_LSR_DELETE: e = DumpLSRDelete(sdump, com); break;
-		case GF_SG_LSR_INSERT: e = DumpLSRInsert(sdump, com); break;
+		case GF_SG_LSR_INSERT: e = DumpLSRAddReplaceInsert(sdump, com); break;
 		case GF_SG_LSR_RESTORE: e = DumpLSRRestore(sdump, com); break;
 		case GF_SG_LSR_SAVE: e = DumpLSRSave(sdump, com); break;
 		case GF_SG_LSR_SEND_EVENT: e = DumpLSRSendEvent(sdump, com); break;
@@ -2486,7 +2494,7 @@ void SD_DumpSVGElement(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool 
 	if (is_root) 
 		fprintf(sdump->trace, "xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" ");
 	
-	if (nID) fprintf(sdump->trace, "id=\"%s\" ", lsr_format_node_id(n, attValue));
+	if (nID) fprintf(sdump->trace, "id=\"%s\" ", lsr_format_node_id(n, 0, attValue));
 
 	proto = (GF_Node *) gf_node_new(sdump->sg, n->sgprivate->tag);
 	gf_node_register(proto, NULL);
