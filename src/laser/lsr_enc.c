@@ -278,9 +278,17 @@ static void lsr_write_fixed_16_8(GF_LASeRCodec *lsr, Fixed fix, const char *name
 {
 	u32 val;
 	if (fix<0) {
+#ifdef GPAC_FIXED_POINT
+		val = (1<<24) + fix / 256;
+#else
 		val = (1<<24) + FIX2INT(fix * 256);
+#endif
 	} else {
+#ifdef GPAC_FIXED_POINT
+		val = fix/256;
+#else
 		val = FIX2INT(fix*256);
+#endif
 	}
 	val &= 0x00FFFFFF;
 	GF_LSR_WRITE_INT(lsr, val, 24, name);

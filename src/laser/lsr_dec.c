@@ -395,14 +395,16 @@ static Fixed lsr_read_fixed_16_8(GF_LASeRCodec *lsr, const char *name)
 	if (val & (1<<23)) {
 		s32 res = val - (1<<24);
 #ifdef GPAC_FIXED_POINT
-		if (res < -FIX_ONE) return INT2FIX(res/256);
-#endif
+		return res*256;
+#else
 		return INT2FIX(res) / 256;
+#endif
 	} else {
 #ifdef GPAC_FIXED_POINT
-		if (val > FIX_ONE) return INT2FIX(val/256);
-#endif
+		return val*256;
+#else
 		return INT2FIX(val) / 256;
+#endif
 	}
 }
 
