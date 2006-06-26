@@ -336,12 +336,10 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 				szVal[i] = 0;
 				GF_SAFEALLOC(att, sizeof(GF_XMLAttribute));
 				att->name = strdup(szVal);
-				if (!strcmp(att->name, "vrml97Hint")) {
-					szVal[i] = 0;
-				}
 				gf_list_add(parser->attributes, att);
 				parser->current_pos+=i+1;
 				i=0;
+				offset=0;
 				att = NULL;
 				parser->att_sep = 0;
 			} else {
