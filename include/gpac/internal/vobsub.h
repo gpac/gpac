@@ -59,6 +59,7 @@ typedef struct _tag_vobsub_file
 
 GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, int *version);
 void   vobsub_free(vobsub_file *vobsub);
+GF_Err vobsub_get_subpic_duration(u8 *data, u32 psize, u32 dsize, u32 *duration);
 
 #ifdef __cplusplus
 }

@@ -854,7 +854,7 @@ void IS_LoadExternProto(GF_InlineScene *is, MFURL *url)
 	i=0;
 	while ((pl = gf_list_enum(is->extern_protos, &i)) ) {
 		if (pl->url == url) return;
-		if (pl->url->vals[0].OD_ID == url->vals[0].OD_ID) return;
+		if (pl->url->vals[0].OD_ID && (pl->url->vals[0].OD_ID == url->vals[0].OD_ID)) return;
 		if (pl->url->vals[0].url && url->vals[0].url && !stricmp(pl->url->vals[0].url, url->vals[0].url) ) return;
 	}
 	pl = malloc(sizeof(ProtoLink));

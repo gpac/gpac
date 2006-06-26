@@ -81,6 +81,7 @@ struct __tag_laser_codec
 	SVGrectElement *prev_rect;
 	SVGtextElement *prev_text;
 	SVGuseElement *prev_use;
+	GF_Node *current_root;
 
 	/*0: normal playback, store script content
 	  1: memory decoding of scene, decompress script into commands

@@ -684,7 +684,7 @@ static u32 xmt_parse_bool(GF_XMTParser *parser, const char *name, SFBool *val, c
 
 static u32 xmt_parse_string(GF_XMTParser *parser, const char *name, SFString *val, Bool is_mf, char *a_value)
 {
-	char value[5000];
+	char *value;
 	char sep[10];
 	u32 len;
 	u32 i=0;
@@ -724,6 +724,8 @@ static u32 xmt_parse_string(GF_XMTParser *parser, const char *name, SFString *va
 	k = 0;
 	i += strlen(sep);
 
+	value = strdup(str);
+
 	if (strncmp(&str[i], sep, strlen(sep))) {
 
 		while (str[i]) {
@@ -743,6 +745,7 @@ static u32 xmt_parse_string(GF_XMTParser *parser, const char *name, SFString *va
 	if (val->buffer) free(val->buffer);
 	val->buffer = NULL;
 	if (strlen(value)) val->buffer = strdup(value);
+	free(value);
 	return len;
 }
 

@@ -42,7 +42,7 @@ static void lsr_enc_log_bits(GF_LASeRCodec *lsr, u32 val, u32 nb_bits, const cha
 
 
 static void lsr_write_group_content(GF_LASeRCodec *lsr, SVGElement *elt, Bool skip_object_content);
-static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *comList, SVGconditionalElement *script);
+static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *comList, SVGconditionalElement *script, Bool first_implicit);
 static GF_Err lsr_write_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list, Bool reset_encoding_context);
 static void lsr_write_point_sequence(GF_LASeRCodec *lsr, GF_List *pts, const char *name);
 static void lsr_write_path_type(GF_LASeRCodec *lsr, SVG_PathData *path, const char *name);
@@ -705,7 +705,10 @@ static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 		case SVG_DOM_EVT_FOCUSIN: GF_LSR_WRITE_INT(lsr, 7, 6, "event"); break;
 		case SVG_DOM_EVT_FOCUSOUT: GF_LSR_WRITE_INT(lsr, 8, 6, "event"); break;
 		/*case SVG_DOM_EVT_KEYPRESS: GF_LSR_WRITE_INT(lsr, 1, 6, "event"); break;*/
-		case SVG_DOM_EVT_KEYDOWN: GF_LSR_WRITE_INT(lsr, 9, 6, "event"); break;
+		case SVG_DOM_EVT_KEYDOWN: 
+			/*encode as accessKey()*/
+			GF_LSR_WRITE_INT(lsr, evtParam ? 1 : 9, 6, "event"); 
+			break;
 		case SVG_DOM_EVT_KEYUP: GF_LSR_WRITE_INT(lsr, 10, 6, "event"); break;
 		case SVG_DOM_EVT_LOAD: GF_LSR_WRITE_INT(lsr, 11, 6, "event"); break;
 		case SVG_DOM_EVT_LONGKEYPRESS: GF_LSR_WRITE_INT(lsr, 12, 6, "event"); break;
@@ -1740,7 +1743,7 @@ static void lsr_write_value_with_units(GF_LASeRCodec *lsr, SVG_Number *n, const 
 
 static void lsr_write_clip_time(GF_LASeRCodec *lsr, SVG_Clock clock, const char *name)
 {
-	if (clock < 0) {
+	if (clock <= 0) {
 		GF_LSR_WRITE_INT(lsr, 0, 1, name);
 	} else {
 		GF_LSR_WRITE_INT(lsr, 1, 1, name);
@@ -1772,9 +1775,9 @@ static void lsr_write_attribute_type(GF_LASeRCodec *lsr, SVGElement *elt)
 static void lsr_write_preserve_aspect_ratio(GF_LASeRCodec *lsr, SVG_PreserveAspectRatio *preserveAspectRatio)
 {
 	if (preserveAspectRatio->align==SVG_PRESERVEASPECTRATIO_XMIDYMID) {
-		GF_LSR_WRITE_INT(lsr, 0, 1, "hasPreserveAR");
+		GF_LSR_WRITE_INT(lsr, 0, 1, "hasPreserveAspectRatio");
 	} else {
-		GF_LSR_WRITE_INT(lsr, 1, 1, "hasPreserveAR");
+		GF_LSR_WRITE_INT(lsr, 1, 1, "hasPreserveAspectRatio");
 		GF_LSR_WRITE_INT(lsr, 0, 1, "choice (meetOrSlice)");
 		GF_LSR_WRITE_INT(lsr, preserveAspectRatio->defer ? 1 : 0, 1, "choice (defer)");
 		switch (preserveAspectRatio->align) {
@@ -1982,7 +1985,7 @@ static void lsr_write_conditional(GF_LASeRCodec *lsr, SVGconditionalElement *elt
 	GF_LSR_WRITE_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
 	GF_LSR_WRITE_INT(lsr, elt->lsr_enabled ? 1 : 0, 1, "enabled");
 	lsr_write_any_attribute(lsr, (GF_Node *) elt, clone, 1);
-	lsr_write_command_list(lsr, elt->updates.com_list, elt);
+	lsr_write_command_list(lsr, elt->updates.com_list, elt, 0);
 	gf_node_unregister((GF_Node *)clone, NULL);
 }
 
@@ -3169,7 +3172,7 @@ static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 	return GF_OK;
 }
 
-static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGconditionalElement *cond)
+static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGconditionalElement *cond, Bool first_implicit)
 {
 	GF_CommandField *field;
 	u32 i, count;
@@ -3188,7 +3191,7 @@ static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVGc
 		old_bs = lsr->bs;
 		lsr->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	}
-	lsr_write_vluimsbf5(lsr, count, "occ0");
+	lsr_write_vluimsbf5(lsr, count-first_implicit, "occ0");
 
 	if (!com_list) goto exit;
 
@@ -3438,12 +3441,12 @@ static GF_Err lsr_write_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list, Bool r
 
 	/*RAP generation, encode NewScene with root node*/
 	if (!com_list) {
-		lsr_write_vluimsbf5(lsr, 1, "occ0");
+		lsr_write_vluimsbf5(lsr, 0, "occ0");
 		GF_LSR_WRITE_INT(lsr, 4, 4, "ch4");
 		lsr_write_any_attribute(lsr, NULL, NULL, 1);
 		lsr_write_svg(lsr, (SVGsvgElement *) gf_sg_get_root_node(lsr->sg) );
 	} else {
-		GF_Err e = lsr_write_command_list(lsr, com_list, NULL);
+		GF_Err e = lsr_write_command_list(lsr, com_list, NULL, 1);
 		if (e) return e;
 	}
 	GF_LSR_WRITE_INT(lsr, 0, 1, "opt_group");

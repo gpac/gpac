@@ -1443,8 +1443,13 @@ static Bool lsr_init_smil_times(GF_LASeRCodec *lsr, SVGElement *anim, GF_List *t
 				if (!t->element) return 0;
 				free(t->element_id);
 				t->element_id = NULL;
-			} else if (!t->element) {
-				t->element = (GF_Node*)parent;
+			} 
+			else if (!t->element) {
+				if (t->event.parameter && (t->event.type==SVG_DOM_EVT_KEYDOWN) ) {
+					t->element = lsr->sg->RootNode ? lsr->sg->RootNode : lsr->current_root;
+				} else {
+					t->element = (GF_Node*)parent;
+				}
 			}
 		}
 	}
@@ -2043,7 +2048,7 @@ static void lsr_read_clip_time(GF_LASeRCodec *lsr, SVG_Clock *clock, const char 
 			*clock /= lsr->time_resolution;
 		}
 	} else {
-		*clock = -1;
+		*clock = 0;
 	}
 }
 
@@ -2895,6 +2900,8 @@ static GF_Node *lsr_read_svg(GF_LASeRCodec *lsr)
 		elt->zoomAndPan = flag ? SVG_ZOOMANDPAN_MAGNIFY : SVG_ZOOMANDPAN_DISABLE;
 	}
 	lsr_read_any_attribute(lsr, (GF_Node *) elt, 1);
+	/*store current root for listeners with no focus target*/
+	lsr->current_root = (GF_Node *) elt;
 	lsr_read_group_content(lsr, (SVGElement *) elt, 0);
 	return (GF_Node *)elt;
 }
@@ -3958,9 +3965,7 @@ static GF_Err lsr_read_send_event(GF_LASeRCodec *lsr, GF_List *com_list)
 	lsr_read_vluimsbf5(lsr, "idref");
 	GF_LSR_READ_INT(lsr, flag, 1, "has_pointvalue");
 	if (flag) {
-		char *str = NULL;
-		lsr_read_byte_align_string(lsr, &str, "string");;
-		if (str) free(str);
+		lsr_read_byte_align_string(lsr, NULL, "string");;
 	}
 	lsr_read_any_attribute(lsr, NULL, 1);
 	return GF_OK;
@@ -3969,25 +3974,19 @@ static GF_Err lsr_read_send_event(GF_LASeRCodec *lsr, GF_List *com_list)
 static GF_Err lsr_read_save(GF_LASeRCodec *lsr, GF_List *com_list)
 {
 	u32 i, count;
-	char *str;
 	count = lsr_read_vluimsbf5(lsr, "nbIds");
 	for (i=0; i<count; i++) {
 		lsr_read_vluimsbf5(lsr, "ref[[i]]");
 		lsr_read_animatable_ex(lsr, "attr[[i]]", 0);
 	}
-	str = NULL;
-	lsr_read_byte_align_string(lsr, &str, "groupID");
-	if (str) free(str);
+	lsr_read_byte_align_string(lsr, NULL, "groupID");
 	lsr_read_any_attribute(lsr, NULL, 1);
 	return GF_OK;
 }
 
 static GF_Err lsr_read_restore(GF_LASeRCodec *lsr, GF_List *com_list)
 {
-	char *str;
-	str = NULL;
-	lsr_read_byte_align_string(lsr, &str, "groupID");
-	if (str) free(str);
+	lsr_read_byte_align_string(lsr, NULL, "groupID");
 	lsr_read_any_attribute(lsr, NULL, 1);
 	return GF_OK;
 }

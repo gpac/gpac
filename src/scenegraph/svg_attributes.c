@@ -3553,9 +3553,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 
 GF_Err gf_svg_dump_attribute_indexed(SVGElement *elt, GF_FieldInfo *info, char *attValue)
 {
-	u8 intVal = *(u8 *)info->far_ptr;
 	strcpy(attValue, "");
-	
 	switch (info->fieldType) {
 	case SVG_PointerEvents_datatype:
 		break;

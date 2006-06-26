@@ -4884,245 +4884,255 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 
 static void trim_ext(char *filename)
 {
-    char *pos = strchr(filename, '.');
+	char *pos = strchr(filename, '.');
 
-    if (pos != NULL) {
-        if (!stricmp(pos, ".idx") || !stricmp(pos, ".sub")) {
-            *pos = '\0';
-        }
-    }
+	if (pos != NULL) {
+		if (!stricmp(pos, ".idx") || !stricmp(pos, ".sub")) {
+			*pos = '\0';
+		}
+	}
 }
 
 GF_Err gf_import_vobsub(GF_MediaImporter *import)
 {
-    static u8     first_subpicture[] = { 0x00, 0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x04, 0xFF };
-    char          filename[GF_MAX_PATH];
-    FILE         *file = NULL;
-    int           version;
-    vobsub_file  *vobsub = NULL;
-    u32           c, trackID, track, di;
-    Bool          destroy_esd = 0;
-    GF_Err        err = GF_OK;
-    GF_ISOSample *samp = NULL;
-    GF_List      *subpic;
-    u32           total;
-    u8            buf[0x800];
+	static u8	  null_subpic[] = { 0x00, 0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x04, 0xFF };
+	char		  filename[GF_MAX_PATH];
+	FILE		 *file = NULL;
+	int		  version;
+	vobsub_file	  *vobsub = NULL;
+	u32		  c, trackID, track, di;
+	Bool		  destroy_esd = 0;
+	GF_Err		  err = GF_OK;
+	GF_ISOSample	 *samp = NULL;
+	GF_List		 *subpic;
+	u32		  total, last_samp_dur = 0;
+	u8		  buf[0x800];
 
-    strcpy(filename, import->in_name);
-    trim_ext(filename);
-    strcat(filename, ".idx");
+	strcpy(filename, import->in_name);
+	trim_ext(filename);
+	strcat(filename, ".idx");
 
-    file = gf_f64_open(filename, "r");
-    if (!file) {
-        err = gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", filename);
-        goto error;
-    }
-
-    GF_SAFEALLOC(vobsub, sizeof(vobsub_file));
-    if (!vobsub) {
-        err = gf_import_message(import, GF_OUT_OF_MEM, "Memory allocation failed");
-        goto error;
-    }
-
-    err = vobsub_read_idx(file, vobsub, &version);
-    fclose(file);
-
-    if (err != GF_OK) {
-        err = gf_import_message(import, err, "Reading VobSub file %s failed", filename);
-        goto error;
-    } else if (version < 6) {
-        err = gf_import_message(import, err, "Unsupported VobSub version", filename);
-        goto error;
-    }
-
-    if (import->flags & GF_IMPORT_PROBE_ONLY) {
-        import->nb_tracks = 0;
-        for (c = 0; c < 32; c++) {
-            if (vobsub->langs[c].id != 0) {
-                import->tk_info[import->nb_tracks].track_num = c + 1;
-                import->tk_info[import->nb_tracks].type      = GF_ISOM_MEDIA_SUBPIC;
-                import->tk_info[import->nb_tracks].flags     = 0;
-                import->nb_tracks++;
-            }
-        }
-        vobsub_free(vobsub);
-		return GF_OK;
-	}
-
-    strcpy(filename, import->in_name);
-    trim_ext(filename);
-    strcat(filename, ".sub");
-
-    file = gf_f64_open(filename, "rb");
-    if (!file) {
-        err = gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", filename);
-        goto error;
-    }
-
-    trackID = import->trackID;
-    if (!trackID) {
-        trackID = 0-1U;
-        if (vobsub->num_langs != 1) {
-            err = gf_import_message(import, GF_BAD_PARAM, "Several tracks in VobSub - please indicate track to import");
-            goto error;
-        }
-        for (c = 0; c < 32; c++) {
-            if (vobsub->langs[c].id != 0) {
-                trackID = c;
-                break;
-            }
-        }
-        if (trackID == 0-1U) {
-            err = gf_import_message(import, GF_URL_ERROR, "Cannot find track ID %d in file", trackID);
-            goto error;
-        }
-    }
-    trackID--;
-
-    if (!import->esd) {
-        import->esd = gf_odf_desc_esd_new(2);
-        destroy_esd = 1;
-    }
-    if (!import->esd->decoderConfig) {
-        import->esd->decoderConfig = (GF_DecoderConfig*)gf_odf_desc_new(GF_ODF_DCD_TAG);
-    }
-    if (!import->esd->slConfig) {
-        import->esd->slConfig = (GF_SLConfig*)gf_odf_desc_new(GF_ODF_SLC_TAG);
-    }
-    if (!import->esd->decoderConfig->decoderSpecificInfo) {
-        import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor*)gf_odf_desc_new(GF_ODF_DSI_TAG);
-    }
-
-    import->esd->decoderConfig->streamType           = GF_STREAM_ND_SUBPIC;
-	import->esd->decoderConfig->objectTypeIndication = 0xe0;
-
-    import->esd->decoderConfig->decoderSpecificInfo->dataLength = sizeof(vobsub->palette);
-    import->esd->decoderConfig->decoderSpecificInfo->data       = (char*)&vobsub->palette[0][0];
-
-    gf_import_message(import, GF_OK, "VobSub import - subpicture stream '%s'", vobsub->langs[trackID].name);
-
-    track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_SUBPIC, 90000);
-    if (!track) {
-        err = gf_isom_last_error(import->dest);
-        err = gf_import_message(import, err, "Could not create new track");
+	file = gf_f64_open(filename, "r");
+	if (!file) {
+		err = gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", filename);
 		goto error;
 	}
 
-    gf_isom_set_track_enabled(import->dest, track, 1);
+	GF_SAFEALLOC(vobsub, sizeof(vobsub_file));
+	if (!vobsub) {
+		err = gf_import_message(import, GF_OUT_OF_MEM, "Memory allocation failed");
+		goto error;
+	}
 
-    if (!import->esd->ESID) {
-        import->esd->ESID = gf_isom_get_track_id(import->dest, track);
-    }
-    import->final_trackID = import->esd->ESID;
+	err = vobsub_read_idx(file, vobsub, &version);
+	fclose(file);
+
+	if (err != GF_OK) {
+		err = gf_import_message(import, err, "Reading VobSub file %s failed", filename);
+		goto error;
+	} else if (version < 6) {
+		err = gf_import_message(import, err, "Unsupported VobSub version", filename);
+		goto error;
+	}
+
+	if (import->flags & GF_IMPORT_PROBE_ONLY) {
+		import->nb_tracks = 0;
+		for (c = 0; c < 32; c++) {
+			if (vobsub->langs[c].id != 0) {
+				import->tk_info[import->nb_tracks].track_num = c + 1;
+				import->tk_info[import->nb_tracks].type	     = GF_ISOM_MEDIA_SUBPIC;
+				import->tk_info[import->nb_tracks].flags     = 0;
+				import->nb_tracks++;
+			}
+		}
+		vobsub_free(vobsub);
+		return GF_OK;
+	}
+
+	strcpy(filename, import->in_name);
+	trim_ext(filename);
+	strcat(filename, ".sub");
+
+	file = gf_f64_open(filename, "rb");
+	if (!file) {
+		err = gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", filename);
+		goto error;
+	}
+
+	trackID = import->trackID;
+	if (!trackID) {
+		trackID = 0-1U;
+		if (vobsub->num_langs != 1) {
+			err = gf_import_message(import, GF_BAD_PARAM, "Several tracks in VobSub - please indicate track to import");
+			goto error;
+		}
+		for (c = 0; c < 32; c++) {
+			if (vobsub->langs[c].id != 0) {
+				trackID = c;
+				break;
+			}
+		}
+		if (trackID == 0-1U) {
+			err = gf_import_message(import, GF_URL_ERROR, "Cannot find track ID %d in file", trackID);
+			goto error;
+		}
+	}
+	trackID--;
+
+	if (!import->esd) {
+		import->esd = gf_odf_desc_esd_new(2);
+		destroy_esd = 1;
+	}
+	if (!import->esd->decoderConfig) {
+		import->esd->decoderConfig = (GF_DecoderConfig*)gf_odf_desc_new(GF_ODF_DCD_TAG);
+	}
+	if (!import->esd->slConfig) {
+		import->esd->slConfig = (GF_SLConfig*)gf_odf_desc_new(GF_ODF_SLC_TAG);
+	}
+	if (!import->esd->decoderConfig->decoderSpecificInfo) {
+		import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor*)gf_odf_desc_new(GF_ODF_DSI_TAG);
+	}
+
+	import->esd->decoderConfig->streamType		 = GF_STREAM_ND_SUBPIC;
+	import->esd->decoderConfig->objectTypeIndication = 0xe0;
+
+	import->esd->decoderConfig->decoderSpecificInfo->dataLength = sizeof(vobsub->palette);
+	import->esd->decoderConfig->decoderSpecificInfo->data	    = (char*)&vobsub->palette[0][0];
+
+	gf_import_message(import, GF_OK, "VobSub import - subpicture stream '%s'", vobsub->langs[trackID].name);
+
+	track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_SUBPIC, 90000);
+	if (!track) {
+		err = gf_isom_last_error(import->dest);
+		err = gf_import_message(import, err, "Could not create new track");
+		goto error;
+	}
+
+	gf_isom_set_track_enabled(import->dest, track, 1);
+
+	if (!import->esd->ESID) {
+		import->esd->ESID = gf_isom_get_track_id(import->dest, track);
+	}
+	import->final_trackID = import->esd->ESID;
 
 	gf_isom_new_mpeg4_description(import->dest, track, import->esd, NULL, NULL, &di);
 	gf_isom_set_track_layout_info(import->dest, track, vobsub->width << 16, vobsub->height << 16, 0, 0, 0);
-    gf_isom_set_media_language(import->dest, track, vobsub->langs[trackID].name);
+	gf_isom_set_media_language(import->dest, track, vobsub->langs[trackID].name);
 
-    samp = gf_isom_sample_new();
-    samp->IsRAP      = 1;
-    samp->dataLength = sizeof(first_subpicture);
-    samp->data       = first_subpicture;
+	samp = gf_isom_sample_new();
+	samp->IsRAP	 = 1;
+	samp->dataLength = sizeof(null_subpic);
+	samp->data	 = null_subpic;
 
-    gf_isom_add_sample(import->dest, track, di, samp);
+	gf_isom_add_sample(import->dest, track, di, samp);
 
-    subpic = vobsub->langs[trackID].subpos;
-    total  = gf_list_count(subpic);
+	subpic = vobsub->langs[trackID].subpos;
+	total  = gf_list_count(subpic);
 
-    for (c = 0; c < total; c++)
-    {
-        u32         i, left, psize, size, hsize;
-        u8         *packet;
-        vobsub_pos *pos = (vobsub_pos*)gf_list_get(subpic, c);
-        
-        if (import->duration && pos->start > import->duration) {
-            break;
-        }
+	for (c = 0; c < total; c++)
+	{
+		u32	    i, left, size, psize, dsize, hsize, duration;
+		u8	   *packet;
+		vobsub_pos *pos = (vobsub_pos*)gf_list_get(subpic, c);
+		
+		if (import->duration && pos->start > import->duration) {
+			break;
+		}
 
-        gf_f64_seek(file, pos->filepos, SEEK_SET);
-        if (gf_f64_tell(file) != pos->filepos) {
-            err = gf_import_message(import, GF_IO_ERR, "Could not seek in file");
-            goto error;
-        }
+		gf_f64_seek(file, pos->filepos, SEEK_SET);
+		if (gf_f64_tell(file) != pos->filepos) {
+			err = gf_import_message(import, GF_IO_ERR, "Could not seek in file");
+			goto error;
+		}
 
-        if (fread(buf, 1, sizeof(buf), file) != sizeof(buf)) {
-            err = gf_import_message(import, GF_IO_ERR, "Could not read from file");
-            goto error;
-        }
+		if (fread(buf, 1, sizeof(buf), file) != sizeof(buf)) {
+			err = gf_import_message(import, GF_IO_ERR, "Could not read from file");
+			goto error;
+		}
 
-        if (*(u32*)&buf[0x00] != 0xba010000        ||
-            *(u32*)&buf[0x0e] != 0xbd010000        ||
-            !(buf[0x15] & 0x80)                    ||
-            (buf[0x17] & 0xf0) != 0x20             ||
-            (buf[buf[0x16] + 0x17] & 0xe0) != 0x20)
-        {
-            gf_import_message(import, GF_CORRUPTED_DATA, "Corrupted data found in file %s", filename);
-            continue;
-        }
+		if (*(u32*)&buf[0x00] != 0xba010000		   ||
+		    *(u32*)&buf[0x0e] != 0xbd010000		   ||
+		    !(buf[0x15] & 0x80)				   ||
+		    (buf[0x17] & 0xf0) != 0x20			   ||
+		    (buf[buf[0x16] + 0x17] & 0xe0) != 0x20)
+		{
+			gf_import_message(import, GF_CORRUPTED_DATA, "Corrupted data found in file %s", filename);
+			continue;
+		}
 
-        psize = (buf[buf[0x16] + 0x18] << 8) + buf[buf[0x16] + 0x19];
-        GF_SAFEALLOC(packet, psize);
-        if (!packet) {
-            err = gf_import_message(import, GF_OUT_OF_MEM, "Memory allocation failed");
-            goto error;
-        }
+		psize = (buf[buf[0x16] + 0x18] << 8) + buf[buf[0x16] + 0x19];
+		dsize = (buf[buf[0x16] + 0x1a] << 8) + buf[buf[0x16] + 0x1b];
+		GF_SAFEALLOC(packet, psize);
+		if (!packet) {
+			err = gf_import_message(import, GF_OUT_OF_MEM, "Memory allocation failed");
+			goto error;
+		}
 
-        for (i = 0, left = psize; i < psize; i += size, left -= size) {
-            hsize = 0x18 + buf[0x16];
-            size  = MIN(left, 0x800 - hsize);
-            memcpy(packet + i, buf + hsize, size);
+		for (i = 0, left = psize; i < psize; i += size, left -= size) {
+			hsize = 0x18 + buf[0x16];
+			size  = MIN(left, 0x800 - hsize);
+			memcpy(packet + i, buf + hsize, size);
 
-            if (size != left) {
-                while (fread(buf, 1, sizeof(buf), file)) {
-                    if (buf[buf[0x16] + 0x17] == (trackID | 0x20)) {
-                        break;
-                    }
-                }
-            }
-        }
+			if (size != left) {
+				while (fread(buf, 1, sizeof(buf), file)) {
+					if (buf[buf[0x16] + 0x17] == (trackID | 0x20)) {
+						break;
+					}
+				}
+			}
+		}
 
-        if (i != psize || left > 0) {
-            gf_import_message(import, GF_CORRUPTED_DATA, "Corrupted data found in file %s", filename);
-            continue;
-        }
+		if (i != psize || left > 0) {
+			gf_import_message(import, GF_CORRUPTED_DATA, "Corrupted data found in file %s", filename);
+			continue;
+		}
 
-        samp->data       = packet;
-        samp->dataLength = psize;
-        samp->DTS        = pos->start * 90;
+		if (vobsub_get_subpic_duration(packet, psize, dsize, &duration) != GF_OK) {
+			gf_import_message(import, GF_CORRUPTED_DATA, "Corrupted data found in file %s", filename);
+			continue;
+		}
 
-        gf_isom_add_sample(import->dest, track, di, samp);
-        free(packet);
+		last_samp_dur = duration;
 
-        gf_import_progress(import, c, total);
+		samp->data	 = packet;
+		samp->dataLength = psize;
+		samp->DTS	 = pos->start * 90;
 
-        if (import->flags & GF_IMPORT_DO_ABORT) {
-            break;
-        }
-    }
+		gf_isom_add_sample(import->dest, track, di, samp);
+		free(packet);
 
-    MP4T_RecomputeBitRate(import->dest, track);
-    gf_import_progress(import, total, total);
+		gf_import_progress(import, c, total);
 
-    err = GF_OK;
+		if (import->flags & GF_IMPORT_DO_ABORT) {
+			break;
+		}
+	}
+
+	gf_isom_set_last_sample_duration(import->dest, track, last_samp_dur);
+
+	MP4T_RecomputeBitRate(import->dest, track);
+	gf_import_progress(import, total, total);
+
+	err = GF_OK;
 
 error:
-    if (import->esd && destroy_esd) {
-        import->esd->decoderConfig->decoderSpecificInfo->data = NULL;
-        gf_odf_desc_del((GF_Descriptor *)import->esd);
-        import->esd = NULL;
-    }
-    if (samp) {
-        samp->data = NULL;
-        gf_isom_sample_del(&samp);
-    }
-    if (vobsub) {
-        vobsub_free(vobsub);
-    }
-    if (file) {
-        fclose(file);
-    }
+	if (import->esd && destroy_esd) {
+		import->esd->decoderConfig->decoderSpecificInfo->data = NULL;
+		gf_odf_desc_del((GF_Descriptor *)import->esd);
+		import->esd = NULL;
+	}
+	if (samp) {
+		samp->data = NULL;
+		gf_isom_sample_del(&samp);
+	}
+	if (vobsub) {
+		vobsub_free(vobsub);
+	}
+	if (file) {
+		fclose(file);
+	}
 
-    return err;
+	return err;
 }
 
 GF_Err gf_media_import(GF_MediaImporter *importer)

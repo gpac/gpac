@@ -60,7 +60,7 @@ GF_Err DumpBox(GF_Box *a, FILE * trace)
 			fprintf(trace, "%02X", (unsigned char) ((GF_UUIDBox*)a)->uuid[i]);
 			if ((i<15) && (i%4)==3) fprintf(trace, "-");
 		}
-		fprintf(trace, "}\"/>\n", ((GF_UUIDBox*)a)->uuid);
+		fprintf(trace, "}\"/>\n");
 	} else {
 		fprintf(trace, "Type=\"%s\"/>\n", gf_4cc_to_str(a->type));
 	}
@@ -1125,7 +1125,6 @@ GF_Err mdia_dump(GF_Box *a, FILE * trace)
 
 GF_Err defa_dump(GF_Box *a, FILE * trace)
 {
-	GF_UnknownBox *p = (GF_UnknownBox *)a;
 	fprintf(trace, "<UnknownBox>\n");
 	DumpBox(a, trace);
 	fprintf(trace, "</UnknownBox>\n");

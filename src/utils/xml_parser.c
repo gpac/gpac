@@ -247,7 +247,7 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 	offset=0;
 	i=0;
 	while (parser->current_pos+i+offset < parser->line_size) {
-		u8 c = parser->buffer[parser->current_pos+i];
+		u8 c = parser->buffer[parser->current_pos+offset+i];
 		if (strchr(skip_chars, c)) {
 			if (c=='\n') parser->line++;
 			/*parsing an attribute name*/
