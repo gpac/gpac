@@ -494,11 +494,12 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 		} 
 
 
-		else if (event->event_type==GF_EVT_CHAR) {
+/*		else if (event->event_type==GF_EVT_CHAR) {
 		} else {
 			evt.type = ((event->event_type==GF_EVT_VKEYDOWN) || (event->event_type==GF_EVT_KEYDOWN)) ? SVG_DOM_EVT_KEYDOWN : SVG_DOM_EVT_KEYUP;
 			evt.detail = event->key.virtual_code;
 		}
+*/
 	}
 	return ret;
 }

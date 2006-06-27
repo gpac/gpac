@@ -123,19 +123,13 @@ II GPAC compilation
 		Set MP4Client as the active project
 		recompile (enabled plugins will be recompiled in the process)
 
-	II.6 Recompiling MP42AVI
-		MP42AVI is a tool used to convert BIFS animations (without sounds, image or video) to an uncompressed AVI file or a (sequence of) BMP or RAW files.
-		Recompile it only if you think it may be helpfull
-		Set MP42AVI as the active project
-		recompile (some plugins may be recompiled in the process)
-
-	II.7 Recompiling Osmo4/wxWidgets
+	II.6 Recompiling Osmo4/wxWidgets
 		Osmo4 / wxWidgets is the cross-platform GUI MPEG-4 player of GPAC. You must have wxWidgets 2.6.0 installed and configured on your system (this may be tricky. Please 
 		make sure you can recompile some sample wxWidgets applications from wxWidgets distribution first).
 		Set wxOsmo4 as the active project
 		recompile (some plugins may be recompiled in the process). You may need to change the linker settings, depending on your wxWidgets version and config
 
-	II.6 Recompiling Osmozilla
+	II.7 Recompiling Osmozilla
 		Osmozilla is GPAC plugin for Mozilla-based browsers, enabling to embed all GPAC supported contents in a web page. Recompile it only if you think it may 
 		be helpfull (Set as the active project and recompile)
 

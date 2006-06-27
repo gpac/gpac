@@ -94,13 +94,7 @@ III Running GPAC
 		MP4Box is a tool to encode, decode and manipulate MPEG-4 systems data. It does not need a configuration file.
 		Help for MP4Box is available on GPAC web site, with man MP4Box (except on MinGW) and with 'MP4Box -h'
 		
-	III.4 MP42AVI
-		MP42AVI is a tool used to decode a pure MPEG-4 BIFS presentation (only vector graphics, no audio, no image, no video) and output the result
-		as an uncompressed AVI file or a (sequence of) BMP/RAW files. Like MP4Client it needs a configuration file to work. Like MP4Client you can pass 
-		the config file as a parameter (-cfg) or modify the hardcoded paths in Applications/MP42AVI/main.c.
-		Note: MP42AVI uses the renderer indicated in the config file (default being 2D renderer).
-
-	III.5 Osmozilla
+	III.4 Osmozilla
 		Osmozilla is GPAC plugin for Mozilla-based browsers. It is by default installed to the user mozilla directory ~/.mozilla 
 		To install the plugin on the system
 		* get root

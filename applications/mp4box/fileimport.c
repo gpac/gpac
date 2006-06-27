@@ -126,6 +126,9 @@ void convert_file_info(char *inName, u32 trackID)
 	if (!found && trackID) fprintf(stdout, "Cannot find track %d in file\n", trackID);
 }
 
+static void import_prog(GF_MediaImporter *ti, u32 cur_sample, u32 sample_count) { gf_cbk_on_progress("Importing", cur_sample, sample_count); }
+
+
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
 	u32 track_id, i, delay, timescale, track;
@@ -234,6 +237,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	import.video_fps = force_fps;
 	import.frames_per_sample = frames_per_sample;
 	import.flags = import_flags;
+	import.import_progress = import_prog;
 
 
 	if (!import.nb_tracks) {

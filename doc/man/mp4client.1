@@ -11,7 +11,7 @@ MP4Client \- GPAC MPEG-4 command-line Player
 .
 .SH "DESCRIPTION"
 .LP 
-MP4Client is GPAC command-line player. It supports local playback, RTP streaming, HTTP faststart, many audio and video codecs, and most 2D features of MPEG-4. It also has JavaScript support.
+MP4Client is GPAC command-line player. It supports all GPAC playback features (2D and 3D support, local playback, RTP streaming, HTTP faststart, many audio and video codecs ...). MP4Client also supports visual extraction to BMP, RAW or AVI (no compression, no audio).
 .
 .
 .SH STARTUP OPTIONS
@@ -19,6 +19,12 @@ MP4Client is GPAC command-line player. It supports local playback, RTP streaming
 .TP
 .B \-c file
 specifies config file to use. Default config file is located in user home directory and created if not found.
+.TP
+.B \-rti file
+logs run-time information to file. Information logged is: FPS, CPU, Memory usage.
+.TP
+.B \-quiet
+removes script message, buffering and downloading status.
 .
 .SH PLAYBACK OPTIONS
 A file can be controled during playback by typing one of the following key at prompt.
@@ -189,6 +195,40 @@ Keys: left/right: Y-Axis rotate - up/down: X-Axis rotate
 .B SHIFT
 .Speeds up movement
 .
+.SH VISUAL EXTRACTION OPTIONS
+When used to dump a visual presentation, the client is no longer interactive. All GPAC features are supported during capture, except audio-related ones. The following options can be passed at prompt:
+.P
+.TP
+.B \-bmp [times]
+dumps the specified frames to BMP format. If no time is specified, capture is made at t=0s. time is given in millisecond, as an SMPTE time code or as HH:MM:SS:MS time code. You may specify several frame times by using a dash-separated list of times (eg, '0-10-15').
+.TP
+.B \-raw [times]
+dumps the specified frames to RAW format. If no time is specified, cpature is made at t=0s.
+.TP
+.B \-avi start:end
+dumps the specified segment to uncompressed AVI format.
+.TP
+.B \-fps rate
+specifies frame rate for AVI dumping. Default frame rate is 25.0.
+.TP
+.B \-size WxH
+specifies frame size for dumping. Default frame size is the scene size.
+.TP
+.B \-fill
+uses fill aspect ratio. By default, the scene aspect ratio is preserved when dumping.
+.TP
+.B \-show
+show window while dumping the content. By default, the window is hidden during capture.
+.TP
+.B \-2d
+forces usage of 2D renderer. By default, MP4Client uses the renderer indicated in GPAC configuration file.
+.TP
+.B \-3d
+forces usage of 3D renderer. By default, MP4Client uses the renderer indicated in GPAC configuration file.
+.TP
+.B \-quiet
+removes script message, buffering and downloading status.
+.
 .SH "FILES"
 .LP 
 .B GPAC Configuration File:
@@ -196,8 +236,8 @@ Keys: left/right: Y-Axis rotate - up/down: X-Axis rotate
 .
 .SH "AUTHORS"
 .LP 
-Jean Le Feuvre <jeanlf@users.sourceforge.net> - GPAC (c) 2000-2005
+Jean Le Feuvre <jeanlf@users.sourceforge.net> - GPAC (c) 2000-2005 - ENST 2005-200X
 .
 .SH "SEE ALSO"
 .LP 
-GPAC(1), MP42AVI(1), MP4Box(1)
+GPAC(1), MP4Box(1)
