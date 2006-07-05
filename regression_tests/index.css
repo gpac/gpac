@@ -15,11 +15,47 @@ body {
    margin-bottom: 1em;
 }
 
+#nav
+{
+	text-align: center;
+}
+
+#nav li
+{
+	display: inline;
+	list-style-type: none;
+	margin-right: 30px;
+	margin-left: 30px;
+}
+
 #content 
 {
 	width: 95%;
 	margin-left: 5px;
 	padding-top: 10px;
+}
+
+#left
+{
+    width: 48%;
+    float: left;
+    border: 1px;
+    border-style: dotted;
+    border-color: #0000bb;
+}
+
+#right
+{
+    width: 50%;
+    float: right;
+    border: 1px;
+    border-style: dotted;
+    border-color: #0000bb;
+}
+
+#description
+{
+	text-align: left;
 }
 
 #downloadbar
@@ -60,29 +96,8 @@ h3
 	background-color: #fff;
 }
 
-#description
-{
-    width: 48%;
-    float: left;
-	text-align: left;
-    border: 1px;
-    border-style: dotted;
-    border-color: #0000bb;
-}
-
-#contentview embed 
-{
-    margin-top: 10px; 
-    margin-bottom: 10px; 
-}
-
 #contentview
 {
-    border: 1px;
-    border-style: dotted;
-    border-color: #0000bb;
-    width: 50%;
-    float: right;
     text-align:center;
 }
 
@@ -110,15 +125,3 @@ h3
 	margin-right: 20px;
 }
 
-#nav
-{
-	text-align: center;
-}
-
-#nav li
-{
-	display: inline;
-	list-style-type: none;
-	margin-right: 30px;
-	margin-left: 30px;
-}

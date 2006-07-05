@@ -27,8 +27,25 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows basic 2D shapes" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Base Geometry Test"
+   info [
+    "The MPEG-4 primitive to display a graphical object on screen is the Shape node."
+    "This node has a child node contained in the geometry property." 
+    "This test shows the possible 2D nodes allowed in the geometry property of the Shape node." 
+    "Allowed nodes are:" 
+    "* IndexedLineSet2D: to draw polylines (is not considered close even if last point = first point"
+    "* Circle: the only property is the radius, the origin of the local coordinate system is the center of the circle" 
+    "* Rectangle: the only property is the size (WxH), the origin of the local coordinate system is the center of the rectangle"
+    "* Curve2D: to display complex paths using Bezier Curves, has two properties: type, points. Type gives the drawing types (segments or bezier), points gives the list of points to be consumed when reading the types"
+    "* IndexedFaceSet2D: similar to IndexedLineSet2D, but is implicitely closed"
+    "* PointSet2D: a list of points to be displayed (useless ?)"
+    "cf bifs-2D-shapes-indexfaceset2D"
+    "cf bifs-2D-shapes-xcurve2D"
+    ""
+    ""
+    "GPAC Regression Tests" 
+    "(C) 2002-2004 GPAC Team"
+   ]
+   title "Basic 2D Geometry nodes"
   }
   Transform2D {
    translation -150 150

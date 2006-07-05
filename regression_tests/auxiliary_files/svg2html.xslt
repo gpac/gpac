@@ -4,14 +4,17 @@
     xmlns:xsl = "http://www.w3.org/1999/XSL/Transform"
     xmlns:xs = "http://www.w3.org/2001/XMLSchema"
     xmlns:svg = "http://www.w3.org/2000/svg">
-    <xsl:output
-        method = "html"
-        version = "1.0"
-        encoding = "UTF-8"
-        indent = "yes"/>
+    <xsl:output method = "xml" version = "1.0" encoding = "UTF-8" indent = "yes"/>
     <xsl:param name = "filename"/>
     <xsl:param name = "previous"/>
     <xsl:param name = "next"/>
+    <xsl:param name = "use3d"/>
+    <xsl:param name = "snapshot1"/>
+    <xsl:param name = "snapshot2"/>
+    <xsl:param name = "snapshot3"/>
+    <xsl:param name = "snapshot4"/>
+    <xsl:param name = "snapshot5"/>
+    <xsl:param name = "snapshot6"/>
     <xsl:param name = "title" select = "//svg:title"/>
     <xsl:template match = "/">
         <html>
@@ -19,10 +22,7 @@
                 <title>
                     <xsl:value-of select = "$title"/>
                 </title>
-                <link
-                    rel = "stylesheet"
-                    type = "text/css"
-                    href = "index.css"/>
+                <link rel = "stylesheet" type = "text/css" href = "index.css"/>
             </head>
             <body>
                 <h1 id = "title">
@@ -46,53 +46,70 @@
                     </ul>
                 </div>
                 <div id = "content">
-                    <div id = "description">
-                        <h2>Description</h2>
-                        <xsl:value-of select = "//svg:desc"/>
-                    </div>
-                    <div id = "contentview">
-                        <h2>Content</h2>
+                    <div id = "left">                
+                        <div id = "description">
+                            <h2>Description</h2>
+                            <xsl:value-of select = "//svg:desc"/>
+                        </div>
                         <div id = "downloadbar">
+                            <h2>Download</h2>
                             <ul>
-                                <li>
-                                    <a href = "{$filename}.svg">Download SVG file</a>
-                                </li>
-                                <li>
-                                    <a href = "{$filename}.mp4">Download LASeR file (MP4/LASeR)</a>
-                                </li>
+                                <li><a href = "{$filename}.svg">SVG </a></li>
+                                <li><a href = "{$filename}.mp4">LASeR (as MP4 file)</a></li>
                             </ul>
                         </div>
-                        <object
-                            id = "player"
-                            width = "{//svg:svg/@width}"
-                            height = "{//svg:svg/@height}"
-                            type = "application/x-gpac"
-                            pluginspage = "http://perso.enst.fr/~lefeuvre/GPAC/GPAC%20Framework%200.4.1%20Setup.exe">
-                            <param name = "src" value = "{$filename}.svg"/>
-                            Your browser does not have the GPAC plugin, go to http://gpac.sourceforge.net ...
-                        </object>
-                        <form name = "formname">
-                            <input
-                                type = "button"
-                                value = "Play"
-                                onclick = "Play(document.player)"/>
-                            <input
-                                type = "button"
-                                value = "Pause"
-                                onclick = "Pause(document.player)"/>
-                            <input
-                                type = "button"
-                                value = "Reload"
-                                onclick = "Reload(document.player)"/>
-                        </form>
                     </div>
-                    <div id = "snapshotview">
-                        <h2>Snapshots</h2>
+                    <div id = "right">                
+                        <div id = "contentview">
+                            <h2>Viewer</h2>
+                            <object id = "player" type = "application/x-gpac"
+                                width = "{//svg:svg/@width}"
+                                height = "{//svg:svg/@height}"                                
+                                pluginspage = "http://perso.enst.fr/~lefeuvre/GPAC/GPAC%20Framework%200.4.1%20Setup.exe">
+                                <param name = "src" value = "{$filename}.svg"/>
+Your browser does not have the GPAC plugin installed, visit http://gpac.sourceforge.net for more information ...</object>
+                            <form name = "formname">
+                                <input type = "button" value = "Play" onclick = "document.player.Play()"/>
+                                <input type = "button" value = "Pause" onclick = "document.player.Pause()"/>
+                                <input type = "button" value = "Reload" onclick = "document.player.Reload()"/>
+                            </form>
+                        </div>
                     </div>
-                    <div id = "codeview">
-                        <h2>SVG Code</h2>
-                        <iframe frameborder = "0" src = "{$filename}.svg"></iframe>
-                    </div>
+                    <xsl:if test = "$snapshot1">
+                        <div id = "snapshotview">
+                            <h2>Snapshots</h2>
+                            <table>
+                                <tr>
+                                    <xsl:if test = "$snapshot1"><td>At time T = <xsl:value-of select="$snapshot1"/></td></xsl:if>
+                                    <xsl:if test = "$snapshot2"><td>At time T = <xsl:value-of select="$snapshot2"/></td></xsl:if>
+                                    <xsl:if test = "$snapshot3"><td>At time T = <xsl:value-of select="$snapshot3"/></td></xsl:if>
+                                    <xsl:if test = "$snapshot4"><td>At time T = <xsl:value-of select="$snapshot4"/></td></xsl:if>
+                                    <xsl:if test = "$snapshot5"><td>At time T = <xsl:value-of select="$snapshot5"/></td></xsl:if>
+                                    <xsl:if test = "$snapshot6"><td>At time T = <xsl:value-of select="$snapshot6"/></td></xsl:if>
+                                </tr>
+                                <tr>
+                                    <xsl:if test = "$snapshot1">
+                                        <td><img src = "{$filename}_1.bmp" alt = "{concat('Snapshot #1 at time ',$snapshot1)}"/></td>
+                                    </xsl:if>
+                                    <xsl:if test = "$snapshot2">
+                                        <td><img src = "{$filename}_2.bmp" alt = "{concat('Snapshot #2 at time ',$snapshot2)}"/></td>
+                                    </xsl:if>
+                                    <xsl:if test = "$snapshot3">
+                                        <td><img src = "{$filename}_3.bmp" alt = "{concat('Snapshot #3 at time ',$snapshot3)}"/></td>
+                                    </xsl:if>
+                                    <xsl:if test = "$snapshot4">
+                                        <td><img src = "{$filename}_4.bmp" alt = "{concat('Snapshot #4 at time ',$snapshot4)}"/></td>
+                                    </xsl:if>
+                                    <xsl:if test = "$snapshot5">
+                                        <td><img src = "{$filename}_5.bmp" alt = "{concat('Snapshot #5 at time ',$snapshot5)}"/></td>
+                                    </xsl:if>
+                                    <xsl:if test = "$snapshot6">
+                                        <td><img src = "{$filename}_6.bmp" alt = "{concat('Snapshot #6 at time ',$snapshot6)}"/></td>
+                                    </xsl:if>
+                                </tr>
+                            </table>
+                        </div>
+                    </xsl:if>
                 </div>
             </body>
         </html>

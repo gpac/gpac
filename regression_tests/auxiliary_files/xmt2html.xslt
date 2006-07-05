@@ -3,14 +3,8 @@
     version = "2.0"
     xmlns:xsl = "http://www.w3.org/1999/XSL/Transform"
     xmlns:xs = "http://www.w3.org/2001/XMLSchema"
-    xmlns:fn = "http://www.w3.org/2005/xpath-functions"
-    xmlns:xdt = "http://www.w3.org/2005/xpath-datatypes"
     xmlns:xmt = "urn:mpeg:mpeg4:xmta:schema:2002">
-    <xsl:output
-        method = "html"
-        version = "1.0"
-        encoding = "UTF-8"
-        indent = "yes"/>
+    <xsl:output method = "xml" version = "1.0" encoding = "UTF-8" indent = "yes"/>
     <xsl:param name = "filename"/>
     <xsl:param name = "previous"/>
     <xsl:param name = "next"/>
@@ -28,10 +22,7 @@
                 <title>
                     <xsl:value-of select = "$title"/>
                 </title>
-                <link
-                    rel = "stylesheet"
-                    type = "text/css"
-                    href = "index.css"/>
+                <link rel = "stylesheet" type = "text/css" href = "index.css"/>
             </head>
             <body>
                 <h1 id = "title">
@@ -55,81 +46,73 @@
                     </ul>
                 </div>
                 <div id = "content">
-                    <div id = "description">
-                        <h2>Description</h2>
-                        <xsl:call-template name = "xmtDescriptionToParagraph">
-                            <xsl:with-param name = "string" select = "substring-after(//xmt:WorldInfo/@info, '&quot;')"/>
-                        </xsl:call-template>
-                    </div>
-                    <div id = "contentview">
+                    <div id = "left">                
+                        <div id = "description">
+                            <h2>Description</h2>
+                            <xsl:call-template name = "xmtDescriptionToParagraph"><xsl:with-param name = "string" 
+                            select = "substring-after(//xmt:WorldInfo/@info, '&quot;')"/></xsl:call-template>
+                        </div>
                         <div id = "downloadbar">
                             <h2>Download</h2>
                             <ul>
-                                <li>
-                                    <a href = "{$filename}.mp4">BIFS/MP4</a>
-                                </li>
-                                <li>
-                                    <a href = "{$filename}.bt">BT</a>
-                                </li>
-                                <li>
-                                    <a href = "{$filename}.xmt">XMT-A</a>
-                                </li>
+                                <li><a href = "{$filename}.mp4">BIFS/MP4</a></li>
+                                <li><a href = "{$filename}.bt">BT</a></li>
+                                <li><a href = "{$filename}.xmt">XMT-A</a></li>
                             </ul>
                         </div>
-                        <h2>Viewer</h2>
-                        <object
-                            id = "player"
-                            width = "{//xmt:commandStream/xmt:size/@pixelWidth}"
-                            height = "{//xmt:commandStream/xmt:size/@pixelHeight}"
-                            type = "application/x-gpac"
-                            pluginspage = "http://perso.enst.fr/~lefeuvre/GPAC/GPAC%20Framework%200.4.1%20Setup.exe">
-                            <param name = "src" value = "{$filename}.mp4"/>
-                            <xsl:if test = "$use3d">
-                                <param name = "use3d" value = "true"/>
-                            </xsl:if>
-							Your browser does not have the GPAC plugin, go to http://gpac.sourceforge.net ...
-                        </object>
-                        <form name = "formname">
-                            <input
-                                type = "button"
-                                value = "Play"
-                                onclick = "document.player.Play()"/>
-                            <input
-                                type = "button"
-                                value = "Pause"
-                                onclick = "document.player.Pause()"/>
-                            <input
-                                type = "button"
-                                value = "Reload"
-                                onclick = "document.player.Reload()"/>
-                        </form>
                     </div>
-                    <div id = "snapshotview">
-                        <h2>Snapshots</h2>
-                        <xsl:if test = "$snapshot1">
-                            <img src = "{$filename}_1.bmp" alt = "Snapshot #1"/>
-                        </xsl:if>
-                        <xsl:if test = "$snapshot2">
-                            <img src = "{$filename}_2.bmp" alt = "Snapshot #2"/>
-                        </xsl:if>
-                        <xsl:if test = "$snapshot3">
-                            <img src = "{$filename}_3.bmp" alt = "Snapshot #3"/>
-                        </xsl:if>
-                        <xsl:if test = "$snapshot4">
-                            <img src = "{$filename}_4.bmp" alt = "Snapshot #4"/>
-                        </xsl:if>
-                        <xsl:if test = "$snapshot5">
-                            <img src = "{$filename}_5.bmp" alt = "Snapshot #5"/>
-                        </xsl:if>
-                        <xsl:if test = "$snapshot6">
-                            <img src = "{$filename}_6.bmp" alt = "Snapshot #6"/>
-                        </xsl:if>
+                    <div id = "right">                
+                        <div id = "contentview">
+                            <h2>Viewer</h2>
+                            <object id = "player" type = "application/x-gpac"
+                                width = "{//xmt:commandStream/xmt:size/@pixelWidth}" 
+                                height = "{//xmt:commandStream/xmt:size/@pixelHeight}"                            
+                                pluginspage = "http://perso.enst.fr/~lefeuvre/GPAC/GPAC%20Framework%200.4.1%20Setup.exe">
+                                <param name = "src" value = "{$filename}.mp4"/>
+                                <xsl:if test = "$use3d"><param name = "use3d" value = "true"/></xsl:if>
+Your browser does not have the GPAC plugin installed, visit http://gpac.sourceforge.net for more information ...</object>
+                            <form name = "formname">
+                                <input type = "button" value = "Play" onclick = "document.player.Play()"/>
+                                <input type = "button" value = "Pause" onclick = "document.player.Pause()"/>
+                                <input type = "button" value = "Reload" onclick = "document.player.Reload()"/>
+                            </form>
+                        </div>
                     </div>
-                    <div id = "codeview">
-                        <h2>Codes XMT &amp; BT</h2>
-                        <iframe frameborder = "0" src = "{$filename}.xmt"></iframe>
-                        <iframe frameborder = "0" src = "{$filename}.bt"></iframe>
-                    </div>
+                    <xsl:if test = "$snapshot1">
+                        <div id = "snapshotview">
+                            <h2>Snapshots</h2>
+                            <table>
+                                <tr>
+                                    <xsl:if test = "$snapshot1"><td>At time T = <xsl:value-of select="$snapshot1"/></td></xsl:if>
+                                    <xsl:if test = "$snapshot2"><td>At time T = <xsl:value-of select="$snapshot2"/></td></xsl:if>
+                                    <xsl:if test = "$snapshot3"><td>At time T = <xsl:value-of select="$snapshot3"/></td></xsl:if>
+                                    <xsl:if test = "$snapshot4"><td>At time T = <xsl:value-of select="$snapshot4"/></td></xsl:if>
+                                    <xsl:if test = "$snapshot5"><td>At time T = <xsl:value-of select="$snapshot5"/></td></xsl:if>
+                                    <xsl:if test = "$snapshot6"><td>At time T = <xsl:value-of select="$snapshot6"/></td></xsl:if>
+                                </tr>
+                                <tr>
+                                    <xsl:if test = "$snapshot1">
+                                        <td><img src = "{$filename}_1.bmp" alt = "{concat('Snapshot #1 at time ',$snapshot1)}"/></td>
+                                    </xsl:if>
+                                    <xsl:if test = "$snapshot2">
+                                        <td><img src = "{$filename}_2.bmp" alt = "{concat('Snapshot #2 at time ',$snapshot2)}"/></td>
+                                    </xsl:if>
+                                    <xsl:if test = "$snapshot3">
+                                        <td><img src = "{$filename}_3.bmp" alt = "{concat('Snapshot #3 at time ',$snapshot3)}"/></td>
+                                    </xsl:if>
+                                    <xsl:if test = "$snapshot4">
+                                        <td><img src = "{$filename}_4.bmp" alt = "{concat('Snapshot #4 at time ',$snapshot4)}"/></td>
+                                    </xsl:if>
+                                    <xsl:if test = "$snapshot5">
+                                        <td><img src = "{$filename}_5.bmp" alt = "{concat('Snapshot #5 at time ',$snapshot5)}"/></td>
+                                    </xsl:if>
+                                    <xsl:if test = "$snapshot6">
+                                        <td><img src = "{$filename}_6.bmp" alt = "{concat('Snapshot #6 at time ',$snapshot6)}"/></td>
+                                    </xsl:if>
+                                </tr>
+                            </table>
+                        </div>
+                    </xsl:if>
                 </div>
             </body>
         </html>
@@ -138,15 +121,31 @@
         <xsl:param name = "string"/>
         <xsl:choose>
             <xsl:when test = "contains($string,'&quot; &quot;')">
-                <xsl:value-of select = "substring-before($string,'&quot; &quot;')"/>
+				<xsl:call-template name="xmtCfToA">
+					<xsl:with-param name="string"><xsl:value-of select = "substring-before($string,'&quot; &quot;')"/></xsl:with-param>
+				</xsl:call-template>
                 <br/>
                 <xsl:call-template name = "xmtDescriptionToParagraph">
                     <xsl:with-param name = "string" select = "substring-after($string,'&quot; &quot;')"/>
                 </xsl:call-template>
             </xsl:when>
             <xsl:otherwise>
-                <xsl:value-of select = "substring-before($string,'&quot;')"/>
+				<xsl:call-template name="xmtCfToA">
+					<xsl:with-param name="string"><xsl:value-of select = "substring-before($string,'&quot;')"/></xsl:with-param>
+				</xsl:call-template>
                 <br/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+    <xsl:template name = "xmtCfToA">
+        <xsl:param name = "string"/>
+        <xsl:choose>
+            <xsl:when test = "contains($string,'cf ')">
+				<xsl:variable name="astring"><xsl:value-of select = "substring-after($string,'cf ')"/></xsl:variable>
+                See also <a><xsl:attribute name="href"><xsl:value-of select="$astring"/>.html</xsl:attribute><xsl:value-of select="$astring"/></a>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select = "$string"/>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>

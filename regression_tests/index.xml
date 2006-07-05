@@ -1,19 +1,44 @@
 <testsuitelist> 
+<format name="X3D">
+<category name="2D tools">
+<file name="x3d-2D-Arc2d" type="x3dv" use3d="true" /> 
+<file name="x3d-2D-ArcClose2d" type="x3dv" use3d="true" /> 
+<file name="x3d-2D-Polyline2d" type="x3dv" use3d="true" /> 
+<file name="x3d-2D-Polypoint2d" type="x3dv" use3d="true" /> 
+<file name="x3d-2D-TriangleSet2d" type="x3dv" use3d="true" /> 
+<file name="x3d-2D-Disk2d" type="x3dv" use3d="true" /> 
+</category>
+<category name="3D tools">
+<file name="x3d-3D-IndexedTriangleFanSet" type="x3dv" use3d="true" /> 
+<file name="x3d-3D-IndexedTriangleSet" type="x3dv" use3d="true" /> 
+<file name="x3d-3D-IndexedTriangleStripSet" type="x3dv" use3d="true" /> 
+<file name="x3d-3D-LineSet" type="x3dv" use3d="true" /> 
+<file name="x3d-3D-TriangleFanSet" type="x3dv" use3d="true" /> 
+<file name="x3d-3D-TriangleSet" type="x3dv" use3d="true" /> 
+<file name="x3d-3D-TriangleStripSet" type="x3dv" use3d="true" /> 
+</category>
+<category name="Miscellaneous primitives">
+<file name="x3d-misc-HatchStyle" type="x3dv" use3d="true" /> 
+<file name="x3d-misc-ColorRGBA" type="x3dv" use3d="true" /> 
+<file name="x3d-misc-KeySensor" type="x3dv" use3d="true" /> 
+<file name="x3d-misc-StringSensor" type="x3dv" use3d="true" /> 
+</category>
+</format>
 <format name="SVG">
 <category name="Static Vector Graphics (no interactivity)">
 <file name="svg-chaise" type="svg" /> 
 </category>
 <category name="Animated Vector Graphics (no interactivity)">
-<file name="svg-anim" type="svg" /> 
-</category>
-</format>
-<format name="BIFS">
-<category name="2D Shapes">
-<file name="bifs-2D-shapes-all" type="bt">
+<file name="svg-anim" type="svg"> 
     <snapshot time="3"/>
     <snapshot time="7"/>
     <snapshot time="9.5"/>
 </file>
+</category>
+</format>
+<format name="BIFS">
+<category name="2D Shapes">
+<file name="bifs-2D-shapes-all" type="bt"/>
 <file name="bifs-2D-shapes-indexfaceset2D" type="bt" /> 
 <file name="bifs-2D-shapes-indexlineset2D" type="bt" /> 
 <file name="bifs-2D-shapes-pointset2D" type="bt" /> 
@@ -346,31 +371,6 @@
 <file name="bifs-misc-hc-proto-pathextrusion" type="bt" use3d="true"/> 
 <file name="bifs-misc-hc-proto-planarextrusion" type="bt" use3d="true"/> 
 <file name="bifs-misc-hc-proto-planeclipper" type="bt" use3d="true"/> 
-</category>
-</format>
-<format name="X3D">
-<category name="X3D 2D tools">
-<file name="x3d-2D-Arc2d" type="x3dv" use3d="true" /> 
-<file name="x3d-2D-ArcClose2d" type="x3dv" use3d="true" /> 
-<file name="x3d-2D-Polyline2d" type="x3dv" use3d="true" /> 
-<file name="x3d-2D-Polypoint2d" type="x3dv" use3d="true" /> 
-<file name="x3d-2D-TriangleSet2d" type="x3dv" use3d="true" /> 
-<file name="x3d-2D-Disk2d" type="x3dv" use3d="true" /> 
-</category>
-<category name="X3D 3D tools">
-<file name="x3d-3D-IndexedTriangleFanSet" type="x3dv" use3d="true" /> 
-<file name="x3d-3D-IndexedTriangleSet" type="x3dv" use3d="true" /> 
-<file name="x3d-3D-IndexedTriangleStripSet" type="x3dv" use3d="true" /> 
-<file name="x3d-3D-LineSet" type="x3dv" use3d="true" /> 
-<file name="x3d-3D-TriangleFanSet" type="x3dv" use3d="true" /> 
-<file name="x3d-3D-TriangleSet" type="x3dv" use3d="true" /> 
-<file name="x3d-3D-TriangleStripSet" type="x3dv" use3d="true" /> 
-</category>
-<category name="X3D Misc">
-<file name="x3d-misc-HatchStyle" type="x3dv" use3d="true" /> 
-<file name="x3d-misc-ColorRGBA" type="x3dv" use3d="true" /> 
-<file name="x3d-misc-KeySensor" type="x3dv" use3d="true" /> 
-<file name="x3d-misc-StringSensor" type="x3dv" use3d="true" /> 
 </category>
 </format>
 </testsuitelist> 
