@@ -308,10 +308,26 @@ Section "Osmozilla (GPAC Plugin for Mozilla)"
   WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "XPTPath" "$INSTDIR\mozilla\nposmozilla.xpt"
   WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Version" "${GPAC_VERSION}"
   WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Vendor" "GPAC"
-  WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Description" "Osmo4/GPAC plugin for Mozilla"
+  WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Description" "GPAC plugin"
   WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "ProductName" "Osmozilla"
 
 
+SectionEnd
+
+
+Section "GPAX (GPAC ActiveX Control)"
+  SectionIn 1 2
+  SetOutPath $INSTDIR
+  File "..\GPAX.dll"
+  WriteRegStr HKCR GPAC "InstallDir" "$INSTDIR"
+  RegDLL "$INSTDIR\GPAX.dll"
+SectionEnd
+
+
+Section "MP4Client (GPAC Command-line client/grabber)"
+  SectionIn 1 2
+  SetOutPath $INSTDIR
+  File "..\MP4Client.exe"
 SectionEnd
 
 
@@ -351,7 +367,7 @@ Section "Uninstall"
   RMDir "$SMPROGRAMS\Osmo4"
   Delete "$QUICKLAUNCH\Osmo4.lnk"
   Delete "$DESKTOP\Osmo4.lnk"
-
+  UnRegDLL "$INSTDIR\GPAX.dll"
   Push $INSTDIR
   Call un.RemoveFromPath
 

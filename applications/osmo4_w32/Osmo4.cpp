@@ -212,9 +212,10 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		gpac->m_pMainWnd->PostMessage(WM_CONSOLEMSG, 1000, 0);
 		break;
 
-	case GF_EVT_SIZE:
+	case GF_EVT_SCENE_SIZE:
 		gpac->orig_width = evt->size.width;
 		gpac->orig_height = evt->size.height;
+	case GF_EVT_SIZE:
 		if (gpac->m_term && !pFrame->m_bFullScreen) 
 			pFrame->PostMessage(WM_SETSIZE, evt->size.width, evt->size.height);
 		break;

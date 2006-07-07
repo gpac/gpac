@@ -473,9 +473,28 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_ENCA: return enca_New();
 	case GF_ISOM_BOX_TYPE_ENCV: return encv_New();
 	case GF_ISOM_BOX_TYPE_ENCS: return encs_New();
+	case GF_ISOM_BOX_TYPE_UUID: return uuid_New();
 
-	case GF_ISOM_BOX_TYPE_UUID:
-		return uuid_New();
+	/* Apple extensions */
+	case GF_ISOM_BOX_TYPE_ILST: return ilst_New();
+	
+	case GF_ISOM_BOX_TYPE_0xA9NAM:
+	case GF_ISOM_BOX_TYPE_0xA9CMT:
+	case GF_ISOM_BOX_TYPE_0xA9DAY:
+	case GF_ISOM_BOX_TYPE_0xA9ART:
+	case GF_ISOM_BOX_TYPE_0xA9TRK:
+	case GF_ISOM_BOX_TYPE_0xA9ALB:
+	case GF_ISOM_BOX_TYPE_0xA9COM:
+	case GF_ISOM_BOX_TYPE_0xA9WRT:
+	case GF_ISOM_BOX_TYPE_0xA9TOO:
+	case GF_ISOM_BOX_TYPE_GNRE:
+	case GF_ISOM_BOX_TYPE_DISK:
+	case GF_ISOM_BOX_TYPE_TRKN:
+	case GF_ISOM_BOX_TYPE_TMPO:
+	case GF_ISOM_BOX_TYPE_CPIL:
+	case GF_ISOM_BOX_TYPE_COVR: return ListItem_New(boxType);
+
+	case GF_ISOM_BOX_TYPE_DATA: return data_New();
 
 	default:
 		a = defa_New();
@@ -656,6 +675,28 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_UUID:
 		uuid_del(a);
 		return;
+
+	/* Apple extensions */
+	case GF_ISOM_BOX_TYPE_ILST: ilst_del(a); return;
+	
+	case GF_ISOM_BOX_TYPE_0xA9NAM:
+	case GF_ISOM_BOX_TYPE_0xA9CMT:
+	case GF_ISOM_BOX_TYPE_0xA9DAY:
+	case GF_ISOM_BOX_TYPE_0xA9ART:
+	case GF_ISOM_BOX_TYPE_0xA9TRK:
+	case GF_ISOM_BOX_TYPE_0xA9ALB:
+	case GF_ISOM_BOX_TYPE_0xA9COM:
+	case GF_ISOM_BOX_TYPE_0xA9WRT:
+	case GF_ISOM_BOX_TYPE_0xA9TOO:
+	case GF_ISOM_BOX_TYPE_GNRE:
+	case GF_ISOM_BOX_TYPE_DISK:
+	case GF_ISOM_BOX_TYPE_TRKN:
+	case GF_ISOM_BOX_TYPE_TMPO:
+	case GF_ISOM_BOX_TYPE_CPIL:
+	case GF_ISOM_BOX_TYPE_COVR: ListItem_del(a); return;
+
+	case GF_ISOM_BOX_TYPE_DATA: data_del(a); return;
+
 	default:
 		defa_del(a);
 		return;
@@ -821,8 +862,29 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_ENCA: return mp4a_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_ENCV: return mp4v_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_ENCS: return mp4s_Read(a, bs);
-
 	case GF_ISOM_BOX_TYPE_UUID: return uuid_Read(a, bs);
+	
+	/* Apple extensions */
+	case GF_ISOM_BOX_TYPE_ILST: return ilst_Read(a, bs);
+
+	case GF_ISOM_BOX_TYPE_0xA9NAM:
+	case GF_ISOM_BOX_TYPE_0xA9CMT:
+	case GF_ISOM_BOX_TYPE_0xA9DAY:
+	case GF_ISOM_BOX_TYPE_0xA9ART:
+	case GF_ISOM_BOX_TYPE_0xA9TRK:
+	case GF_ISOM_BOX_TYPE_0xA9ALB:
+	case GF_ISOM_BOX_TYPE_0xA9COM:
+	case GF_ISOM_BOX_TYPE_0xA9WRT:
+	case GF_ISOM_BOX_TYPE_0xA9TOO:
+	case GF_ISOM_BOX_TYPE_GNRE:
+	case GF_ISOM_BOX_TYPE_DISK:
+	case GF_ISOM_BOX_TYPE_TRKN:
+	case GF_ISOM_BOX_TYPE_TMPO:
+	case GF_ISOM_BOX_TYPE_CPIL:
+	case GF_ISOM_BOX_TYPE_COVR: return ListItem_Read(a, bs);
+
+	case GF_ISOM_BOX_TYPE_DATA: return data_Read(a, bs);
+
 	default:
 		return defa_Read(a, bs);
 	}
@@ -990,8 +1052,29 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_ENCA: return mp4a_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_ENCV: return mp4v_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_ENCS: return mp4s_Write(a, bs);
-
 	case GF_ISOM_BOX_TYPE_UUID: return uuid_Write(a, bs);
+
+	/* Apple extensions */
+	case GF_ISOM_BOX_TYPE_ILST: return ilst_Write(a, bs);
+
+	case GF_ISOM_BOX_TYPE_0xA9NAM:
+	case GF_ISOM_BOX_TYPE_0xA9CMT:
+	case GF_ISOM_BOX_TYPE_0xA9DAY:
+	case GF_ISOM_BOX_TYPE_0xA9ART:
+	case GF_ISOM_BOX_TYPE_0xA9TRK:
+	case GF_ISOM_BOX_TYPE_0xA9ALB:
+	case GF_ISOM_BOX_TYPE_0xA9COM:
+	case GF_ISOM_BOX_TYPE_0xA9WRT:
+	case GF_ISOM_BOX_TYPE_0xA9TOO:
+	case GF_ISOM_BOX_TYPE_GNRE:
+	case GF_ISOM_BOX_TYPE_DISK:
+	case GF_ISOM_BOX_TYPE_TRKN:
+	case GF_ISOM_BOX_TYPE_TMPO:
+	case GF_ISOM_BOX_TYPE_CPIL:
+	case GF_ISOM_BOX_TYPE_COVR: return ListItem_Write(a, bs);
+
+	case GF_ISOM_BOX_TYPE_DATA: return data_Write(a, bs);
+
 	default:
 		return defa_Write(a, bs);
 	}
@@ -1157,6 +1240,28 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_ENCV: return mp4v_Size(a);
 	case GF_ISOM_BOX_TYPE_ENCS: return mp4s_Size(a);
 	case GF_ISOM_BOX_TYPE_UUID: return uuid_Size(a);
+
+	/* Apple extensions */
+	case GF_ISOM_BOX_TYPE_ILST: return ilst_Size(a);
+
+	case GF_ISOM_BOX_TYPE_0xA9NAM:
+	case GF_ISOM_BOX_TYPE_0xA9CMT:
+	case GF_ISOM_BOX_TYPE_0xA9DAY:
+	case GF_ISOM_BOX_TYPE_0xA9ART:
+	case GF_ISOM_BOX_TYPE_0xA9TRK:
+	case GF_ISOM_BOX_TYPE_0xA9ALB:
+	case GF_ISOM_BOX_TYPE_0xA9COM:
+	case GF_ISOM_BOX_TYPE_0xA9WRT:
+	case GF_ISOM_BOX_TYPE_0xA9TOO:
+	case GF_ISOM_BOX_TYPE_GNRE:
+	case GF_ISOM_BOX_TYPE_DISK:
+	case GF_ISOM_BOX_TYPE_TRKN:
+	case GF_ISOM_BOX_TYPE_TMPO:
+	case GF_ISOM_BOX_TYPE_CPIL:
+	case GF_ISOM_BOX_TYPE_COVR: return ListItem_Size(a);
+
+	case GF_ISOM_BOX_TYPE_DATA: return data_Size(a);
+
 	default: return defa_Size(a);
 	}
 }

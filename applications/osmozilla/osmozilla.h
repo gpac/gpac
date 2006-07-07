@@ -119,15 +119,12 @@ public:
 	void shut();
 	NPBool isInitialized() {return mInitialized;}
 
+
+	NPError SetWindow(NPWindow* aWindow);
+	NPError NewStream(NPMIMEType type, NPStream * stream, NPBool seekable,uint16 * stype);
+	NPError DestroyStream(NPStream * stream, NPError reason);
 	NPError GetValue(NPPVariable aVariable, void *aValue);
     virtual uint16 HandleEvent(void* event);
- 
-	NPError SetWindow(NPWindow* aWindow);
-	NPError DestroyStream(NPStream * stream, NPError reason);
-	NPError NewStream(NPMIMEType type, NPStream * stream, NPBool seekable,uint16 * stype);
-	void StreamAsFile(NPStream* stream, const char* fname);
-	void URLNotify(const char *url, NPReason reason, void *notifyData);
-	void SetArg(nsPluginCreateData * aCreateDataStruct);
     
 
 	nsOsmozillaPeer * getScriptablePeer();
@@ -135,33 +132,17 @@ public:
 	// locals
 	const char * getVersion();
 
-	GF_Terminal *m_term;
-	GF_User m_user;
-
-	char *m_szURL;
-
-	Bool m_isopen, m_paused, m_url_changed, m_bForce3D;
-	u32 max_duration;
-	Bool can_seek;
-	uint32 m_height, m_width;
 	int m_argc;
 	char **m_argv;
 	char **m_argn;
 	nsOsmozillaPeer *mScriptablePeer;
 
-	u32 current_time_ms, m_prev_time;
-	Float current_FPS;
-
-	unsigned char * m_navigate_url;
 	void Pause();
 	void Play();
-	void Reload();
-	void PlayFromTime(u32 time);
+	void Stop();
 
-	void SetOptions();
+	Bool EventProc(GF_Event *evt);
 
-	/*general options*/
-	Bool m_Loop, m_bAutoStart, m_bIsConnected;
 
 private:
 	NPP mInstance;
@@ -170,7 +151,6 @@ private:
 #ifdef XP_WIN
 	HWND m_hWnd;
 #endif
-
 #ifdef XP_UNIX
 	Window mWindow;
 	Display *mDisplay;
@@ -182,14 +162,24 @@ private:
 	NPWindow *window;
 #endif
 
-	/*Display *mDisplay;
-	int mX, mY;
-	int mWidth, mHeight;
-	Visual* mVisual;
-	Colormap mColormap;
-	unsigned int mDepth;
+	/*general options*/
+	Bool m_bLoop, m_bAutoStart, m_bIsConnected;
 
-	GC mGC;*/
+	GF_Terminal *m_term;
+	GF_User m_user;
+
+	char *m_szURL;
+
+	Bool m_isopen, m_paused, m_url_changed, m_bUse3D;
+	u32 max_duration;
+	Bool m_bCanSeek;
+	Double m_Duration;
+	uint32 m_height, m_width;
+	unsigned char *m_navigate_url;
+	u32 current_time_ms, m_prev_time;
+	Float current_FPS;
+
+	void SetOptions();
 };
 
 // We must implement nsIClassInfo because it signals the

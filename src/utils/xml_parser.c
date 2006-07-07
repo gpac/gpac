@@ -653,7 +653,10 @@ restart:
 			parser->sax_state = SAX_STATE_ATT_NAME;
 			parser->elt_start_pos = parser->file_pos + parser->current_pos;
 			parser->current_pos+=1+i;
-			if (!strncmp(parser->node_name, "!--", 3)) parser->sax_state = SAX_STATE_COMMENT;
+			if (!strncmp(parser->node_name, "!--", 3)) { 
+				parser->sax_state = SAX_STATE_COMMENT;
+				if (i>3) parser->current_pos -= (i-3);
+			}
 			else if (!strcmp(parser->node_name, "?xml")) parser->init_state = 1;
 			else if (!strcmp(parser->node_name, "!DOCTYPE")) 
 				parser->init_state = 2;

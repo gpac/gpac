@@ -2242,7 +2242,7 @@ GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 			if ((f->fieldIndex==(u32)-1) && (f->fieldType==SVG_String_datatype)) {
 				fprintf(sdump->trace, "attributeName=\"textContent\" ");
 				fprintf(sdump->trace, "value=\"");
-				DumpUTFString(sdump, *(SVG_String*)f->field_ptr);
+				if (f->field_ptr) DumpUTFString(sdump, *(SVG_String*)f->field_ptr);
 				fprintf(sdump->trace, "\" ");
 			} else if (f->fieldIndex==(u32)-2) {
 				char *att_name = NULL;

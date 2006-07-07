@@ -177,12 +177,13 @@ u32 SR_RenderRun(void *par)
 		else
 			gf_sr_simulation_tick(sr);
 	}
+#if 0
 
 	/*destroy video out*/
 	sr->video_out->Shutdown(sr->video_out);
 	gf_modules_close_interface((GF_BaseInterface *)sr->video_out);
 	sr->video_out = NULL;
-
+#endif
 	sr->video_th_state = 3;
 	return 0;
 }
@@ -623,7 +624,13 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 	/*here's a nasty trick: the app may respond to this by calling a gf_sr_set_size from a different
 	thread, but in an atomic way (typically happen on Win32 when changing the window size). WE MUST
 	NOTIFY THE SIZE CHANGE AFTER RELEASING THE RENDERER MUTEX*/
-	if (do_notif) GF_USER_SETSIZE(sr->user, width, height);
+	if (do_notif && sr->user->EventProc) {
+		GF_Event evt;
+		evt.type = GF_EVT_SCENE_SIZE;
+		evt.size.width = width;
+		evt.size.height = height;
+		sr->user->EventProc(sr->user->opaque, &evt);
+	}
 	sr->draw_next_frame = 1;
 	return GF_OK;
 }
@@ -1047,12 +1054,14 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	}
 	gf_mx_v(sr->ev_mx);
 
+#if 0
 	if (sr->frame_number == 0 && sr->user->EventProc) {
 		GF_Event evt;
 		evt.type = GF_EVT_RESET_RTI;
 		evt.caption.caption = "RESET - Before first call to draw scene";
 		sr->user->EventProc(sr->user->opaque, &evt);
 	}
+#endif
 
 	/*execute all routes before updating textures, otherwise nodes inside composite texture may never see their
 	dirty flag set*/
@@ -1118,6 +1127,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	sr->frame_time[sr->current_frame] = end_time;
 
 	sr->frame_number++;
+#if 0
 	if (sr->user->EventProc) {
 		char legend[100];
 		GF_Event evt;
@@ -1126,6 +1136,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 		evt.caption.caption = legend;
 		sr->user->EventProc(sr->user->opaque, &evt);
 	}
+#endif
 
 	/*step mode on, pause and return*/
 	if (sr->step_mode) {
@@ -1175,7 +1186,7 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 		gf_sr_reset_graphics(sr);
 		break;
 	case GF_EVT_SIZE:
-		/*resize message from plugin - only indicate a resetup of video, no resize*/
+		/*resize message from plugin: if we own the output, resize*/
 		if (!sr->user->os_window_handler) {
 			/*EXTRA CARE HERE: the caller (video output) is likely a different thread than the renderer one, and the
 			renderer may be locked on the video output (flush or whatever)!!
@@ -1185,6 +1196,10 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 			sr->new_height = event->size.height;
 			sr->msg_type |= GF_SR_CFG_SET_SIZE;
 			if (lock_ok) gf_sr_lock(sr, 0);
+		}
+		/*otherwise let the user decide*/
+		else {
+			GF_USER_SENDEVENT(sr->user, event);
 		}
 		break;
 	case GF_EVT_VKEYDOWN:

@@ -132,7 +132,13 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		}
 		return 1;
 	case WM_DESTROY:
-		PostQuitMessage (0);
+		if (ctx->owns_hwnd || (hWnd==ctx->fs_hwnd)) {
+			PostQuitMessage (0);
+		} else if (ctx->orig_wnd_proc) {
+			/*restore window proc*/
+			SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, ctx->orig_wnd_proc);
+			ctx->orig_wnd_proc = 0L;
+		}
 		break;
 	case WM_ACTIVATE:
 #if 1
@@ -362,7 +368,7 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 
 	if (ctx->owns_hwnd) {
 		PostMessage(ctx->os_hwnd, WM_DESTROY, 0, 0);
-	} else {
+	} else if (ctx->orig_wnd_proc) {
 		/*restore window proc*/
 		SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, ctx->orig_wnd_proc);
 		ctx->orig_wnd_proc = 0L;

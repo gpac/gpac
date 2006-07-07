@@ -38,6 +38,7 @@ typedef struct
 	GF_Err last_error;
 	GF_SAXParser *sax_parser;
 	Bool has_root;
+	u32 command_depth;
 	
 	/* stack of SVG nodes*/
 	GF_List *node_stack;
@@ -197,7 +198,12 @@ static void svg_parse_element_id(GF_SVGParser *parser, SVGElement *elt, char *no
 
 	unided_elt = (SVGElement *)gf_sg_find_node_by_name(parser->load->scene_graph, nodename);
 	if (unided_elt) {
-		svg_report(parser, GF_BAD_PARAM, "Node %s already defined in document.", nodename);
+		if (!parser->command_depth) {
+			svg_report(parser, GF_BAD_PARAM, "Node %s already defined in document.", nodename);
+		} else {
+			svg_report(parser, GF_OK, "Warning: Node %s already defined in document.", nodename);
+			gf_node_set_id((GF_Node *)elt, gf_node_get_id((GF_Node*)unided_elt), nodename);
+		}
 	} else {
 		id = svg_get_node_id(parser, nodename);
 		gf_node_set_id((GF_Node *)elt, id, nodename);
@@ -858,6 +864,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		/*command parsing*/
 		com_type = lsr_get_command_by_name(name);
 		if (com_type != GF_SG_UNDEFINED) {
+			SVGNodeStack *top;
 			GF_Err e;
 			parser->command = gf_sg_command_new(parser->load->scene_graph, com_type);
 			if (cond) {
@@ -865,8 +872,16 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			} else {
 				gf_list_add(parser->laser_au->commands, parser->command);
 			}
+			/*this is likely a conditional start - update unknown depth level*/	
+			top = gf_list_last(parser->node_stack);
+			if (top) {
+				top->unknown_depth ++;
+				parser->command_depth++;
+			}
+
 			e = lsr_parse_command(parser, attributes);
 			if (e!= GF_OK) parser->command->node = NULL;
+
 			return;
 		}
 	}
@@ -888,7 +903,8 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 	else if (!parent && parser->has_root) {
 		GF_CommandField *field = gf_list_get(parser->command->command_fields, 0);
 		assert(field);
-		assert(!field->fieldType);
+		/*either not assigned or textContent*/
+		assert(!field->fieldType || (field->fieldType==SVG_String_datatype));
 		if (field->new_node) {
 			field->node_list = gf_list_new();
 			field->field_ptr = &field->node_list;
@@ -954,6 +970,7 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 	} else if (top) {
 		if (top->unknown_depth) {
 			top->unknown_depth--;
+			if (!top->unknown_depth) parser->command_depth --;
 		} else {
 			svg_report(parser, GF_BAD_PARAM, "SVG depth mismatch");
 		}
@@ -1005,7 +1022,6 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 				break;
 			}
 		}
-		while (j && result[j]==' ') j--;
 		result[j] = 0;
 		len = j;
 	}
@@ -1040,6 +1056,11 @@ skip_xml_space:
 
 	if (!node) {
 		GF_CommandField *field = gf_list_get(parser->command->command_fields, 0);
+
+		free(result);
+		return;
+		
+		
 		if (!field) {
 			field = gf_sg_command_field_new(parser->command);
 			field->pos = -1;

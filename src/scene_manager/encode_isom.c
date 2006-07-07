@@ -79,7 +79,11 @@ static void gf_sm_finalize_mux(GF_ISOFile *mp4, GF_ESD *src, u32 offset_ts)
 		gf_isom_set_edit_segment(mp4, track, off, dur, 0, GF_ISOM_EDIT_NORMAL);
 	}
 	/*set track interleaving ID*/
-	if (mux && mux->GroupID) gf_isom_set_track_group(mp4, track, mux->GroupID);
+	if (mux) {
+		if (mux->GroupID) gf_isom_set_track_group(mp4, track, mux->GroupID);
+		if (mux->import_flags & GF_IMPORT_USE_COMPACT_SIZE) 
+			gf_isom_use_compact_size(mp4, track, 1);
+	}
 }
 
 static GF_Err gf_sm_import_ui_stream(GF_ISOFile *mp4, GF_ESD *src)
@@ -702,7 +706,7 @@ force_scene_rap:
 			/*time in sec conversion*/
 			if (au->timing_sec) au->timing = (u64) (au->timing_sec * esd->slConfig->timestampResolution);
 
-			if (!j) init_offset = (u32) au->timing;
+			if (j==1) init_offset = (u32) au->timing;
 
 			samp->DTS = au->timing - init_offset;
 			samp->IsRAP = au->is_rap;

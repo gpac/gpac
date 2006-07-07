@@ -825,10 +825,8 @@ typedef u8 SVG_SpreadMethod;
 
 typedef enum {
 	LASeR_CHOICE_ALL   = 0,
-	LASeR_CHOICE_CLIP  = 1,
-	LASeR_CHOICE_DELTA = 2,
-	LASeR_CHOICE_NONE  = 3,
-	LASeR_CHOICE_N	   = 4
+	LASeR_CHOICE_NONE  = 1,
+	LASeR_CHOICE_N	   = 2
 } LASeR_Choice_enum;
 
 typedef struct {

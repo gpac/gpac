@@ -179,6 +179,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	}
 		break;
 	
+	case GF_EVT_SCENE_SIZE:
 	case GF_EVT_SIZE:
 		do_layout(1);
 		break;

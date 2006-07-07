@@ -2141,10 +2141,6 @@ GF_Err laser_parse_choice(LASeR_Choice *choice, char *attribute_content)
 		choice->type = LASeR_CHOICE_NONE;
 	} else if (!strcmp(attribute_content, "all")) {
 		choice->type = LASeR_CHOICE_ALL;
-	} else if (!strcmp(attribute_content, "clip")) {
-		choice->type = LASeR_CHOICE_CLIP;
-	} else if (!strcmp(attribute_content, "delta")) {
-		choice->type = LASeR_CHOICE_DELTA;
 	} else {
 		choice->type = LASeR_CHOICE_N;
 		choice->choice_index = atoi(attribute_content);
@@ -2666,6 +2662,12 @@ void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type)
 			return path;
 		}
 		break;
+	case LASeR_Choice_datatype:
+	{
+		LASeR_Choice *ch;
+		GF_SAFEALLOC(ch, sizeof(SVG_Focus));
+		return ch;
+	}
 	case SVG_Focus_datatype:
 	{
 		SVG_Focus *foc;
@@ -2693,17 +2695,21 @@ static void svg_dump_color(SVG_Color *col, char *attValue)
 		}
 	} else {
 		u32 i, count = sizeof(predefined_colors) / sizeof(struct predef_col);
+		u32 r, g, b;
+		r = FIX2INT(255*col->red);
+		g = FIX2INT(255*col->green);
+		b = FIX2INT(255*col->blue);
 		for (i=0; i<count; i++) {
 			if (
-				(255*FIX2FLT(col->red) == predefined_colors[i].r)
-				&& (255*FIX2FLT(col->green) == predefined_colors[i].g)
-				&& (255*FIX2FLT(col->blue) == predefined_colors[i].b)
+				(r == predefined_colors[i].r)
+				&& (g == predefined_colors[i].g)
+				&& (b == predefined_colors[i].b)
 			) {
 				strcpy(attValue, predefined_colors[i].name);
 				return;
 			}
 		}
-		sprintf(attValue, "#%02X%02X%02X", (u32) (255*FIX2FLT(col->red)), (u32) (255*FIX2FLT(col->green)), (u32) (255*FIX2FLT(col->blue)) );
+		sprintf(attValue, "#%02X%02X%02X", r, g, b);
 		/*compress it...*/
 		if ( (attValue[1]==attValue[2]) && (attValue[3]==attValue[4]) && (attValue[5]==attValue[6]) )
 			sprintf(attValue, "#%c%c%c", attValue[1], attValue[3], attValue[5]);
@@ -3110,8 +3116,6 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 	case LASeR_Choice_datatype:
 		if (intVal==LASeR_CHOICE_ALL) strcpy(attValue, "all");
 		else if (intVal==LASeR_CHOICE_NONE) strcpy(attValue, "none");
-		else if (intVal==LASeR_CHOICE_CLIP) strcpy(attValue, "clip");
-		else if (intVal==LASeR_CHOICE_DELTA) strcpy(attValue, "delta");
 		else if (intVal==LASeR_CHOICE_N) {
 			char szT[1000];
 			sprintf(szT, "%d", ((LASeR_Choice *)info->far_ptr)->choice_index);		

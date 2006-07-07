@@ -28,6 +28,7 @@
 #include <gpac/internal/renderer_dev.h>
 #include <gpac/constants.h>
 #include <gpac/options.h>
+#include <gpac/network.h>
 
 u32 gf_term_get_time(GF_Terminal *term)
 {
@@ -625,8 +626,9 @@ void gf_term_handle_services(GF_Terminal *term)
 	
 	/*need to reload*/
 	if (term->reload_state == 1) {
-		term->reload_state = 2;
+		term->reload_state = 0;
 		gf_term_disconnect(term);
+		term->reload_state = 2;
 	}
 	if (term->reload_state == 2) {
 		term->reload_state = 0;
@@ -815,11 +817,14 @@ GF_Node *gf_term_pick_node(GF_Terminal *term, s32 X, s32 Y)
 	return gf_sr_pick_node(term->renderer, X, Y);
 }
 
-void gf_term_reload(GF_Terminal *term)
+void gf_term_navigate_to(GF_Terminal *term, const char *toURL)
 {
-	if (!term->root_scene) return;
+	if (!toURL && !term->root_scene) return;
 	if (term->reload_url) free(term->reload_url);
-	term->reload_url = strdup(term->root_scene->root_od->net_service->url);
+	term->reload_url = NULL;
+	if (term->root_scene) 
+		term->reload_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, toURL);
+	if (!term->reload_url) term->reload_url = strdup(toURL);
 	term->reload_state = 1;
 }
 

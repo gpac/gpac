@@ -94,7 +94,8 @@ enum
 	ET_RSHIFT=46,
 	ET_RSHIFTFILL=47,
 	ET_BOOLEAN=48,
-	NUMBER_OF_EXPR_TYPE=49
+	ET_VAR=49,
+	NUMBER_OF_EXPR_TYPE=50
 };
 
 GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStream *bs, GF_Node *n);

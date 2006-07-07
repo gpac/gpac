@@ -290,7 +290,7 @@ typedef struct
 	GF_Node *owner;
 	GF_Renderer *compositor;
 	GROUPINGNODESTACK2D
-	Bool enabled;
+	Bool enabled, is_over;
 	SensorHandler hdl;
 } AnchorStack;
 
@@ -332,13 +332,22 @@ static Bool OnAnchor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_mat
 	AnchorStack *st = (AnchorStack *) gf_node_get_private(sh->owner);
 	M_Anchor *an = (M_Anchor *) sh->owner;
 
+	if (ev->context==NULL) {
+		evt.type = GF_EVT_NAVIGATE_INFO;
+		evt.navigate.to_url = "";
+		st->compositor->user->EventProc(st->compositor->user->opaque, &evt);
+		st->is_over = 0;
+		return 0;
+	}
+
 	if (ev->event_type == GF_EVT_MOUSEMOVE) {
-		if (st->compositor->user->EventProc) {
+		if (!st->is_over && st->compositor->user->EventProc) {
 			evt.type = GF_EVT_NAVIGATE_INFO;
 			evt.navigate.to_url = an->description.buffer;
 			if (!evt.navigate.to_url || !strlen(evt.navigate.to_url)) evt.navigate.to_url = an->url.vals[0].url;
 			st->compositor->user->EventProc(st->compositor->user->opaque, &evt);
 		}
+		st->is_over = 1;
 		return 0;
 	}
 

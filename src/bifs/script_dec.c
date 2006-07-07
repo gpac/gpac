@@ -57,7 +57,7 @@ typedef struct
 
 
 void SFS_Identifier(ScriptParser *parser);
-void SFS_Arguments(ScriptParser *parser);
+void SFS_Arguments(ScriptParser *parser, Bool is_var);
 void SFS_StatementBlock(ScriptParser *parser, Bool functBody);
 void SFS_Statement(ScriptParser *parser);
 void SFS_IfStatement(ScriptParser *parser);
@@ -217,7 +217,7 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStrea
 	while (gf_bs_read_int(bs, 1)) {
 		SFS_AddString(&parser, "function ");
 		SFS_Identifier(&parser);
-		SFS_Arguments(&parser);
+		SFS_Arguments(&parser, 0);
 		SFS_Space(&parser);
 		SFS_StatementBlock(&parser, 1);
 		SFS_Line(&parser);
@@ -266,11 +266,11 @@ void SFS_Identifier(ScriptParser *parser)
 	}
 }
 
-void SFS_Arguments(ScriptParser *parser)
+void SFS_Arguments(ScriptParser *parser, Bool is_var)
 {
 	u32 val;
 	if (parser->codec->LastError) return;
-	SFS_AddString(parser, "(");
+	if (!is_var) SFS_AddString(parser, "(");
 	
 	val = gf_bs_read_int(parser->bs, 1);
 	while (val) {
@@ -278,7 +278,7 @@ void SFS_Arguments(ScriptParser *parser)
 		val = gf_bs_read_int(parser->bs, 1);
 		if (val) SFS_AddString(parser, ",");
 	}
-	SFS_AddString(parser, ")");
+	if (!is_var) SFS_AddString(parser, ")");
 }
 
 void SFS_StatementBlock(ScriptParser *parser, Bool funcBody)
@@ -610,7 +610,12 @@ void SFS_Expression(ScriptParser *parser)
     case ET_BOOLEAN: 
 		SFS_GetBoolean(parser);
         break;
+	case ET_VAR:
+		SFS_AddString(parser, "var ");
+		SFS_Arguments(parser, 1);
+		break;
 	default:
+		assert(0);
 		break;
 	}
 }

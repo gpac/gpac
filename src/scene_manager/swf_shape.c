@@ -123,17 +123,17 @@ GF_Node *SWF_GetAppearance(SWFReader *read, GF_Node *parent, u32 fill_col, Fixed
 		}
 	}
 
-	sprintf(szDEF, "FILLAPP_%d", gf_list_count(read->apps));
-
-	read->load->ctx->max_node_id++;
-	ID = read->load->ctx->max_node_id;
-
-	gf_node_set_id((GF_Node *)app, ID, szDEF);
-	SWF_InsertAppearance(read, (GF_Node *)app);
 	gf_node_register((GF_Node *)app, parent);
-	
-	gf_list_add(read->apps, app);
-	
+
+	if (read->load->swf_import_flags & GF_SM_SWF_REUSE_APPEARANCE) {
+		sprintf(szDEF, "FILLAPP_%d", gf_list_count(read->apps));
+		read->load->ctx->max_node_id++;
+		ID = read->load->ctx->max_node_id;
+
+		gf_node_set_id((GF_Node *)app, ID, szDEF);
+		SWF_InsertAppearance(read, (GF_Node *)app);
+		gf_list_add(read->apps, app);
+	}
 	return (GF_Node *) app;
 }
 

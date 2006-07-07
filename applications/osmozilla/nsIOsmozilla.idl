@@ -4,5 +4,5 @@
 interface nsIOsmozilla : nsISupports {
   void Pause();
   void Play();
-  void Reload();
+  void Stop();
 };

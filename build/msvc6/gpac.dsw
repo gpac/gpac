@@ -3,6 +3,21 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
+Project: "GPAX"=..\..\applications\GPAX\GPAX.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libgpac_dll
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "Osmo4"=.\Osmo4.dsp - Package Owner=<4>
 
 Package=<5>
@@ -262,6 +277,21 @@ Package=<4>
 ###############################################################################
 
 Project: "gdip_raster"=.\gdip_raster.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libgpac_dll
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "gvm"=..\..\applications\gvm\gvm.dsp - Package Owner=<4>
 
 Package=<5>
 {{{

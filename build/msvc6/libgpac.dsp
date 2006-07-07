@@ -317,6 +317,10 @@ SOURCE=..\..\src\isomedia\box_code_3gpp.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\isomedia\box_code_apple.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\isomedia\box_code_base.c
 # End Source File
 # Begin Source File

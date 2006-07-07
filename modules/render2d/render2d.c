@@ -513,7 +513,7 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	Bool act;
 	s32 key_inv;
 	Fixed key_trans;
-	DrawableContext *ctx;
+	DrawableContext *ctx, *prev_ctx;
 	UserEvent2D evt, *ev;
 	Render2D *sr = (Render2D *)vr->user_priv;
 
@@ -546,6 +546,7 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 		}
 	}
 	
+	prev_ctx = sr->grab_ctx;
 	if (!sr->is_tracking) {
 		ctx = VS2D_PickSensitiveNode(sr->surface, ev->x, ev->y);
 		sr->grab_ctx = ctx;
@@ -607,8 +608,16 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 			count--;
 			i-= 1;
 		}
-	}	
-	
+	}
+	/*some sensors may not register with us, we still call them*/
+	if (prev_ctx && (prev_ctx != ctx)) {
+		count = gf_list_count(prev_ctx->sensors);
+		for (i=count; i>0; i--) {
+			SensorContext *sc = gf_list_get(prev_ctx->sensors, i-1);
+			sc->h_node->OnUserEvent(sc->h_node, ev, NULL);
+		}
+	}
+
 	/*activate current one if any*/
 	if (ctx) {
 		ev->context = ctx;

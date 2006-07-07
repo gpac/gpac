@@ -115,13 +115,11 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	GF_Event evt;
 	switch (msg) {
 	case WM_SIZE:
-	if (0) {
 		GAPIPriv *ctx = (GAPIPriv *)the_video_driver->opaque;
 		evt.type = GF_EVT_SIZE;
 		evt.size.width = LOWORD(lParam);
 		evt.size.height = HIWORD(lParam);
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
-	}
 		break;
 	case WM_CLOSE:
 		evt.type = GF_EVT_QUIT;

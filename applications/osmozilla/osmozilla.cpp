@@ -174,7 +174,7 @@ nsOsmozillaInstance::nsOsmozillaInstance(nsPluginCreateData * aCreateDataStruct)
 #ifdef XP_WIN
 	m_hWnd = NULL;
 #endif
-	
+
 	mScriptablePeer = NULL;
 	mInitialized = 0;
 
@@ -183,8 +183,9 @@ nsOsmozillaInstance::nsOsmozillaInstance(nsPluginCreateData * aCreateDataStruct)
 	m_term = NULL;
 	m_bIsConnected = 0;
 	
-	
-	SetArg(aCreateDataStruct);
+	m_argc=aCreateDataStruct->argc;
+	m_argv=aCreateDataStruct->argv;
+	m_argn=aCreateDataStruct->argn;
 }
 
 nsOsmozillaInstance::~nsOsmozillaInstance()
@@ -207,6 +208,7 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	const char *str;
 	
 	if(aWindow == NULL) return FALSE;
+	
 
 #ifdef XP_WIN
 	gpac_cfg = "GPAC.cfg";
@@ -310,71 +312,98 @@ NPError nsOsmozillaInstance::GetValue(NPPVariable aVariable, void *aValue)
     return rv;
 }
 
-Bool Osmozilla_EventProc(void *priv, GF_Event *evt)
+Bool nsOsmozillaInstance::EventProc(GF_Event *evt)
 {
-	nsOsmozillaInstance *gpac = (nsOsmozillaInstance *) priv;
-	if (!gpac->m_term) return 0;
-	
+	char msg[1024];
+
+	if (!m_term) return 0;
+
 	switch (evt->type) {
 	case GF_EVT_MESSAGE:
-	/*FIXME !!!*/
-#if 0
-	{	
-		const char *servName = "main service";
 		if (!evt->message.message) return 0;
-		if (evt->message.error) 
-			fprintf(stdout, "plugin :%s (%s): %s\n", evt->message.message, servName, gf_error_to_string(evt->message.error));
-		/*file download*/
-		else if (strstr(evt->message.message, "Download") || strstr(evt->message.message, "Buffering") || strstr(evt->message.message, "Importing")) 
-			fprintf(stdout, "plugin :%s (%s)\r", evt->message.message, servName);
+		if (evt->message.error)
+			sprintf((char *)msg, "GPAC: %s (%s)", evt->message.message, gf_error_to_string(evt->message.error));
 		else
-			fprintf(stdout, "plugin :%s (%s)\n", evt->message.message, servName);
-	}
-#endif
+			sprintf((char *)msg, "GPAC: %s", evt->message.message);
+
+		NPN_Status(mInstance, msg);
 		break;
 
+	/*IGNORE any scene size, just work with the size allocated in the parent doc*/
+	case GF_EVT_SCENE_SIZE:	
+		gf_term_set_size(m_term, m_width, m_height);
+		break;
+	/*window has been resized (full-screen plugin), resize*/
 	case GF_EVT_SIZE:	
-    gf_term_set_size(gpac->m_term, gpac->m_width, gpac->m_height);
+		m_width = evt->size.width;
+		m_height = evt->size.height;
+		gf_term_set_size(m_term, m_width, m_height);
 		break;
 	case GF_EVT_CONNECT:	
-		gpac->m_bIsConnected = 1;
-		/*pause upon connection*/
-		if (!gpac->m_bAutoStart) {
-			gpac->m_bAutoStart = 1;
-			gf_term_set_option(gpac->m_term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
-		}
+		m_bIsConnected = evt->connect.is_connected;
 		break;
-	case GF_EVT_DURATION:		
+	case GF_EVT_DURATION:	
+		m_bCanSeek = evt->duration.can_seek;
+		m_Duration = evt->duration.duration;
 		break;
 	case GF_EVT_LDOUBLECLICK:
-		gf_term_set_option(gpac->m_term, GF_OPT_FULLSCREEN, !gf_term_get_option(gpac->m_term, GF_OPT_FULLSCREEN));
+		gf_term_set_option(m_term, GF_OPT_FULLSCREEN, !gf_term_get_option(m_term, GF_OPT_FULLSCREEN));
 		break;
 	case GF_EVT_VKEYDOWN:
 		if ((evt->key.key_states & GF_KM_ALT)) {
 	    } else {
 			switch (evt->key.vk_code) {
 			case GF_VK_HOME:
-				gf_term_set_option(gpac->m_term, GF_OPT_NAVIGATION_TYPE, 1);
+				gf_term_set_option(m_term, GF_OPT_NAVIGATION_TYPE, 1);
 				break;
 			case GF_VK_ESCAPE:
-				gf_term_set_option(gpac->m_term, GF_OPT_FULLSCREEN, !gf_term_get_option(gpac->m_term, GF_OPT_FULLSCREEN));
+				gf_term_set_option(m_term, GF_OPT_FULLSCREEN, !gf_term_get_option(m_term, GF_OPT_FULLSCREEN));
 				break;
 			}
-    }
-    break;
+		}
+	    break;
+	case GF_EVT_NAVIGATE_INFO:
+		strcpy(msg, evt->navigate.to_url);
+		NPN_Status(mInstance, msg);
+		break;
+	case GF_EVT_NAVIGATE:
+		if (gf_term_is_supported_url(m_term, evt->navigate.to_url, 1, 1)) {
+			gf_term_navigate_to(m_term, evt->navigate.to_url);
+			return 1;
+		} else {
+			u32 i;
+			char *target = "_self";
+
+			for (i=0; i<evt->navigate.param_count; i++) {
+				if (!strcmp(evt->navigate.parameters[i], "_parent")) target = "_parent";
+				else if (!strcmp(evt->navigate.parameters[i], "_blank")) target = "_blank";
+				else if (!strcmp(evt->navigate.parameters[i], "_top")) target = "_top";
+				else if (!strcmp(evt->navigate.parameters[i], "_new")) target = "_new";
+				else if (!strnicmp(evt->navigate.parameters[i], "_target=", 8)) target = (char *) evt->navigate.parameters[i]+8;
+			}
+			NPN_GetURL(mInstance, evt->navigate.to_url, target);
+			return 1;
+		}
+		break;
 	}
 	return 0;
 }
 
+Bool Osmozilla_EventProc(void *priv, GF_Event *evt)
+{
+	nsOsmozillaInstance *gpac = (nsOsmozillaInstance *) priv;
+	return gpac->EventProc(evt);
+}
 
 NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 {
 	if (mInitialized) {
-    m_width = aWindow->width;
-    m_height = aWindow->height;
-    if (m_bIsConnected) gf_term_set_size(m_term, m_width, m_height);
-    return TRUE;
-  }
+		m_width = aWindow->width;
+		m_height = aWindow->height;
+		if (m_bIsConnected) gf_term_set_size(m_term, m_width, m_height);
+		return TRUE;
+	}
+	
 	if(aWindow == NULL) return FALSE;
 
 	m_width = aWindow->width;
@@ -387,94 +416,95 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 #endif
 
 #ifdef XP_UNIX
-  m_user.os_window_handler = aWindow->window;
-  /*HACK - although we don't use the display in the X11 plugin, this is 
-used to signal that the user is mozilla and prevent some X11 calls crashing the browser in file playing mode (eg, "firefox myfile.mp4" )*/
-  m_user.os_display =((NPSetWindowCallbackStruct *)aWindow->ws_info)->display;
-  XSynchronize((Display *) m_user.os_display, True);
-  m_user.os_window_handler = aWindow->window;
+	m_user.os_window_handler = aWindow->window;
+	/*HACK - although we don't use the display in the X11 plugin, this is used to signal that 
+	the user is mozilla and prevent some X11 calls crashing the browser in file playing mode 
+	(eg, "firefox myfile.mp4" )*/
+	m_user.os_display =((NPSetWindowCallbackStruct *)aWindow->ws_info)->display;
+	XSynchronize((Display *) m_user.os_display, True);
+	m_user.os_window_handler = aWindow->window;
 #endif
 
-	gf_cfg_set_key(m_user.config, "Rendering", "RendererName", m_bForce3D ? "GPAC 3D Renderer" : "GPAC 2D Renderer");
-	m_bForce3D = 0;
+ 	m_prev_time = 0;
+	m_url_changed = 0;
+	SetOptions();
+ 
+    /*setup 3D mode if requested*/
+	gf_cfg_set_key(m_user.config, "Rendering", "RendererName", m_bUse3D ? "GPAC 3D Renderer" : "GPAC 2D Renderer");
 	m_term = gf_term_new(&m_user);
 	if (! m_term) return NPERR_GENERIC_ERROR;
 
-	m_prev_time = 0;
-	SetOptions();
-	m_url_changed = 0;
 	mInitialized = TRUE;
 
+	/*stream not ready*/
 	if (!m_szURL) return TRUE;
-
-	/*all protocols not handled by mozilla are just ignored, so we get them from the option list
-	and forget about mozilla...*/
-	if (!strnicmp(m_szURL, "rtsp://", 7) 
-		|| !strnicmp(m_szURL, "rtp://", 6) 
-		) {
-
-		if (m_bAutoStart) 
-			gf_term_connect(m_term, (const char *) m_szURL);
-	} else {
-		free(m_szURL);
-		m_szURL = NULL;
-	}
+	/*connect from 0 and pause if not autoplay*/
+	gf_term_connect_from_time(m_term, m_szURL, 0, m_bAutoStart ? 0 : 1);
 	return TRUE;
 }
 
 void nsOsmozillaInstance::SetOptions()
 {
-	const char *sOpt = gf_cfg_get_key(m_user.config, "General", "Loop");
-	m_Loop = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
+	m_bLoop = 0;
 	m_bAutoStart = 1;
-	m_bForce3D = 0;		
+	m_bUse3D = 0;		
 
 	/*options sent from plugin*/
 	for(int i=0;i<m_argc;i++) {   
-		if (!stricmp(m_argn[i],"Autostart") && !stricmp(m_argv[i], "False")) 
+		if (!stricmp(m_argn[i],"autostart") && (!stricmp(m_argv[i], "false") || !stricmp(m_argv[i], "no")) ) 
 			m_bAutoStart = 0;
 
 		else if (!stricmp(m_argn[i],"src") ) {
+			if (m_szURL) free(m_szURL);
 			m_szURL = strdup(m_argv[i]);
 		}
-		else if (!stricmp(m_argn[i],"use3d") && !stricmp(m_argv[i], "true") ) {
-			m_bForce3D = 1;
+		else if (!stricmp(m_argn[i],"use3d") && (!stricmp(m_argv[i], "true") || !stricmp(m_argv[i], "yes") ) ) {
+			m_bUse3D = 1;
 		}
-		else if (!stricmp(m_argn[i],"AspectRatio")) {
+		else if (!stricmp(m_argn[i],"loop") && (!stricmp(m_argv[i], "true") || !stricmp(m_argv[i], "yes") ) ) {
+			m_bLoop = 1;
+		}
+		else if (!stricmp(m_argn[i],"aspectratio")) {
 			u32 ar = GF_ASPECT_RATIO_KEEP;
-			if (!stricmp(m_argv[i], "Keep")) ar = GF_ASPECT_RATIO_KEEP;
+			if (!stricmp(m_argv[i], "keep")) ar = GF_ASPECT_RATIO_KEEP;
 			else if (!stricmp(m_argv[i], "16:9")) ar = GF_ASPECT_RATIO_16_9;
 			else if (!stricmp(m_argv[i], "4:3")) ar = GF_ASPECT_RATIO_4_3;
-			else if (!stricmp(m_argv[i], "Fill")) ar = GF_ASPECT_RATIO_FILL_SCREEN;
+			else if (!stricmp(m_argv[i], "fill")) ar = GF_ASPECT_RATIO_FILL_SCREEN;
 			gf_term_set_option(m_term, GF_OPT_ASPECT_RATIO, ar);
 		}
 	}
+
+	/*URL is not absolute, request new stream to mozilla - we don't pass absolute URLs since some may not be 
+	handled by gecko */
+	if (m_szURL) {
+		Bool absolute_url = 0;
+		if (strstr(m_szURL, "://")) absolute_url = 1;
+		else if (m_szURL[0] == '/') {
+			FILE *test = fopen(m_szURL, "rb");
+			if (test) {	
+				absolute_url = 1;
+				fclose(test);
+			}
+		}
+		else if ((m_szURL[1] == ':') && (m_szURL[2] == '\\')) absolute_url = 1;
+
+		if (!absolute_url) NPN_GetURL(mInstance, m_szURL, NULL);
+		free(m_szURL);
+		m_szURL = NULL;
+	}
+
 }
 
 NPError nsOsmozillaInstance::NewStream(NPMIMEType type, NPStream * stream,
 				    NPBool seekable, uint16 * stype)
 {
+	if (m_szURL) free(m_szURL);
 	m_szURL = strdup((const char *)stream->url);
 
-	Bool reload = 0;
-	const char *rend_name = gf_cfg_get_key(m_user.config, "Rendering", "RendererName");
-	if (m_bForce3D) {
-		if (strstr(rend_name, "2D")) {
-			gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 3D Renderer");
-			reload = 1;
-		}
-		m_bForce3D = 0;
-	} else {
-		if (strstr(rend_name, "3D")) {
-			gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 2D Renderer");
-			reload = 1;
-		}
-	}
-	if (reload) {
-		gf_term_del(m_term);
-		m_term = gf_term_new(&m_user);
-	}
-	gf_term_connect(m_term, (const char *) m_szURL);
+	/*connect from 0 and pause if not autoplay*/
+	gf_term_connect_from_time(m_term, m_szURL, 0, m_bAutoStart ? 0 : 1);
+
+	/*we handle data fetching ourselves*/
     *stype = NP_SEEK;
     return NPERR_NO_ERROR;
 }
@@ -489,47 +519,34 @@ NPError nsOsmozillaInstance::DestroyStream(NPStream * stream, NPError reason)
 	return NPERR_NO_ERROR;
 }
 
-void nsOsmozillaInstance::StreamAsFile(NPStream* stream, const char* fname)
-{
-	m_szURL = strdup((const char *)stream->url);
-	gf_term_connect(m_term, (const char *) m_szURL);
-}
-
-void nsOsmozillaInstance::URLNotify(const char *url, NPReason reason, void *notifyData)
-{
-}
-
 uint16 nsOsmozillaInstance::HandleEvent(void* event)
 {
   return true;
 }
  
-void nsOsmozillaInstance::SetArg(nsPluginCreateData * aCreateDataStruct)
-{
-	m_argc=aCreateDataStruct->argc;
-	m_argv=aCreateDataStruct->argv;
-	m_argn=aCreateDataStruct->argn;
-}
-
 void nsOsmozillaInstance::Pause()
 {
-	gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
+	if (m_term) {
+		if (gf_term_get_option(m_term, GF_OPT_PLAY_STATE) == GF_STATE_PAUSED) {
+	        gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
+		} else {
+	        gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
+		}
+	}
 }
 
 void nsOsmozillaInstance::Play()
 {
-	/*for RTSP & co*/
-	if (!m_bIsConnected && !m_bAutoStart) {
-		m_bAutoStart = 1;
-		gf_term_connect(m_term, (const char *) m_szURL);
-	}
-	else
+	if (!m_bIsConnected) {
+		if (m_szURL) gf_term_connect(m_term, (const char *) m_szURL);
+	} else {
 		gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
+	}
 }
 
-void nsOsmozillaInstance::Reload()
+void nsOsmozillaInstance::Stop()
 {
-	gf_term_reload(m_term);
+	gf_term_disconnect(m_term);
 }
 
 
@@ -575,9 +592,9 @@ NS_IMETHODIMP nsOsmozillaPeer::Play()
 	return NS_OK;
 }
 
-NS_IMETHODIMP nsOsmozillaPeer::Reload()
+NS_IMETHODIMP nsOsmozillaPeer::Stop()
 {
-	mPlugin->Reload();
+	mPlugin->Stop();
 	return NS_OK;
 }
 

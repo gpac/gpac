@@ -813,7 +813,7 @@ void gf_node_render(GF_Node *node, void *renderStack)
 #ifdef GF_CYCLIC_RENDER_ON
 	u32 max_pass;
 #endif
-	if (!node) return;
+	if (!node || !node->sgprivate) return;
 
 #ifdef GF_CYCLIC_RENDER_ON
 	max_pass = (node->sgprivate->render_pass>>16);
@@ -871,7 +871,10 @@ void gf_node_render_children(GF_Node *node, void *renderStack)
 {
 	u32 i;
 	GF_Node *ptr;
-	GF_ParentNode *par = (GF_ParentNode *)node;
+	GF_ParentNode *par;
+	if (!node->sgprivate) return;
+
+	par = (GF_ParentNode *)node;
 	i=0;
 	while ((ptr = gf_list_enum(par->children, &i))) {
 		gf_node_render(ptr, renderStack);
@@ -948,11 +951,6 @@ void gf_node_setup(GF_Node *p, u32 tag)
 #ifdef GF_ARRAY_PARENT_NODES
 	p->sgprivate->parentNodes = gf_list_new();
 #endif
-}
-
-NodePriv *Node_GetPriv(GF_Node *node)
-{
-	return node->sgprivate;
 }
 
 GF_Node *gf_sg_new_base_node()

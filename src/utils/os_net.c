@@ -37,7 +37,7 @@
 
 #if !defined(__GNUC__)
 
-#if defined(IPV6_MULTICAST_IF)
+#if defined(IPV6_MULTICAST_IF) && 0
 #define GPAC_IPV6 1
 #pragma message("Using WinSock IPV6")
 #else

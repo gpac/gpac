@@ -146,6 +146,8 @@ enum
 	/*when using SplitTimeline, this flag will prevent generating an AnimationStream in the scene (this is used
 	by direct playback only)*/
 	GF_SM_SWF_NO_ANIM_STREAM = (1<<8),
+	/*enable appearance reuse*/
+	GF_SM_SWF_REUSE_APPEARANCE = (1<<9)
 };
 
 /*general loader flags*/

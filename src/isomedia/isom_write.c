@@ -2999,8 +2999,10 @@ u64 gf_isom_estimate_size(GF_ISOFile *movie)
 	for (i=0; i<count; i++) {
 		mdat_size += gf_isom_get_media_data_size(movie, i+1);
 	}
-	mdat_size += 8;
-	if (mdat_size > 0xFFFFFFFF) mdat_size += 8;
+	if (mdat_size) {
+		mdat_size += 8;
+		if (mdat_size > 0xFFFFFFFF) mdat_size += 8;
+	}
 
 	i=0;
 	while ((a = gf_list_enum(movie->TopBoxes, &i))) {
@@ -3373,6 +3375,120 @@ GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, char *d
 	gf_list_add(list, uuid);
 	return GF_OK;
 }
+
+/*Apple extensions*/
+
+GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 data_len)
+{
+	GF_Err e;
+	GF_ItemListBox *ilst;
+	GF_MetaBox *meta;
+	GF_ListItemBox **info;
+	u32 btype;
+
+	e = CanAccessMovie(mov, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	meta = gf_isom_apple_create_meta_extensions(mov);
+	if (!meta) return GF_BAD_PARAM;
+
+	ilst = gf_ismo_locate_box(meta->other_boxes, GF_ISOM_BOX_TYPE_ILST, NULL);
+	if (!ilst) return GF_NOT_SUPPORTED;
+
+	btype = 0;
+	switch (tag) {
+	case GF_ISOM_ITUNE_NAME: 
+		btype = GF_ISOM_BOX_TYPE_0xA9NAM;
+		info = &ilst->name; 
+		break;
+	case GF_ISOM_ITUNE_COMMENT: 
+		btype = GF_ISOM_BOX_TYPE_0xA9CMT;
+		info = &ilst->comment; 
+		break;
+	case GF_ISOM_ITUNE_CREATED: 
+		btype = GF_ISOM_BOX_TYPE_0xA9DAY;
+		info = &ilst->created; 
+		break;
+	case GF_ISOM_ITUNE_ARTIST: 
+		btype = GF_ISOM_BOX_TYPE_0xA9ART;
+		info = &ilst->artist; 
+		break;
+	case GF_ISOM_ITUNE_TRACK: 
+		btype = GF_ISOM_BOX_TYPE_0xA9TRK;
+		info = &ilst->track; 
+		break;
+	case GF_ISOM_ITUNE_ALBUM: 
+		btype = GF_ISOM_BOX_TYPE_0xA9ALB;
+		info = &ilst->album; 
+		break;
+	case GF_ISOM_ITUNE_COMPOSER: 
+		btype = GF_ISOM_BOX_TYPE_0xA9COM;
+		info = &ilst->composer; 
+		break;
+	case GF_ISOM_ITUNE_WRITER: 
+		btype = GF_ISOM_BOX_TYPE_0xA9WRT;
+		info = &ilst->writer; 
+		break;
+	case GF_ISOM_ITUNE_ENCODER: 
+		btype = GF_ISOM_BOX_TYPE_0xA9TOO;
+		info = &ilst->encoder; 
+		break;
+	case GF_ISOM_ITUNE_GENRE: 
+		btype = GF_ISOM_BOX_TYPE_GNRE;
+		info = &ilst->genre; 
+		break;
+	case GF_ISOM_ITUNE_DISK: 
+		btype = GF_ISOM_BOX_TYPE_DISK;
+		info = &ilst->disk; 
+		break;
+	case GF_ISOM_ITUNE_TRACKNUMBER: 
+		btype = GF_ISOM_BOX_TYPE_TRKN;
+		info = &ilst->trackNumber; 
+		break;
+	case GF_ISOM_ITUNE_TEMPO: 
+		btype = GF_ISOM_BOX_TYPE_TMPO;
+		info = &ilst->tempo; 
+		break;
+	case GF_ISOM_ITUNE_COMPILATION: 
+		btype = GF_ISOM_BOX_TYPE_CPIL;
+		info = &ilst->compilation; 
+		break;
+	case GF_ISOM_ITUNE_COVER_ART: 
+		btype = GF_ISOM_BOX_TYPE_COVR;
+		info = &ilst->coverArt; 
+		break;
+	case GF_ISOM_ITUNE_ITUNES_DATA: 
+		btype = GF_ISOM_BOX_TYPE_iTunesSpecificInfo;
+		info = &ilst->iTunesSpecificInfo; 
+		break;
+	default: return GF_BAD_PARAM;
+	}
+
+	if (*info != NULL) {
+		gf_isom_box_del((GF_Box *) *info);
+		*info = NULL;
+	}
+	if (data != NULL) {
+		*info = (GF_ListItemBox *)gf_isom_box_new(btype);
+		if (*info == NULL) return GF_OUT_OF_MEM;
+		(*info)->data->flags = 0x1;
+		(*info)->data->dataSize = data_len;
+		(*info)->data->data = malloc(sizeof(char)*data_len);
+		memcpy((*info)->data->data , data, sizeof(char)*data_len);
+	} else if (data_len && (tag==GF_ISOM_ITUNE_GENRE)) {
+		GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		if (data_len<256) gf_bs_write_u8(bs, data_len);
+		else if (data_len<65536) gf_bs_write_u16(bs, data_len);
+		else if (data_len<16777216) gf_bs_write_u24(bs, data_len);
+		else gf_bs_write_u32(bs, data_len);
+		gf_bs_get_content(bs, (unsigned char **) & (*info)->data->data, &(*info)->data->dataSize);
+		(*info)->data->flags = 0;
+		gf_bs_del(bs);
+	}
+	return GF_OK;
+}
+
+
 
 #endif	//GPAC_READ_ONLY
 

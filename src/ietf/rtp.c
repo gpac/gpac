@@ -155,6 +155,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 			}
 			//else bind and set remote destination
 			else {
+				if (!ch->net_info.port_first) ch->net_info.port_first = ch->net_info.client_port_first;
 				e = gf_sk_bind(ch->rtp, ch->net_info.port_first, ch->net_info.destination, ch->net_info.client_port_first, GF_SOCK_REUSE_PORT);
 				if (e) return e;
 			}
@@ -197,6 +198,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 				if (e) return e;
 			}
 		} else {
+			if (!ch->net_info.port_last) ch->net_info.port_last = ch->net_info.client_port_last;
 			//Bind to multicast (auto-join the group)
 			e = gf_sk_setup_multicast(ch->rtcp, ch->net_info.source, ch->net_info.port_last, ch->net_info.TTL, (IsSource==2), local_interface_ip);
 			if (e) return e;

@@ -444,20 +444,20 @@ GF_Err Media_FindDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNname
 			if (entry->flags == 1) {
 				//if nothing specified, get the dataRef
 				if (!URLname && !URNname) {
-					*dataRefIndex = i+1;
+					*dataRefIndex = i;
 					return GF_OK;
 				}
 			} else {
 				//OK, check if we have URL
 				if (URLname && !strcmp(URLname, entry->location)) {
-					*dataRefIndex = i+1;
+					*dataRefIndex = i;
 					return GF_OK;
 				}
 			}
 		} else {
 			//this is a URN one, only check the URN name (URL optional)
 			if (URNname && !strcmp(URNname, ((GF_DataEntryURNBox *)entry)->nameURN)) {
-				*dataRefIndex = i+1;
+				*dataRefIndex = i;
 				return GF_OK;
 			}
 		}

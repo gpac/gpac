@@ -87,6 +87,7 @@ GF_Err meta_AddBox(GF_Box *s, GF_Box *a)
 	//case ???: ptr->IPMP_control = (???*)a; break;
 	case GF_ISOM_BOX_TYPE_XML: 
 	case GF_ISOM_BOX_TYPE_BXML: 
+	case GF_ISOM_BOX_TYPE_ILST: 
 		gf_list_add(ptr->other_boxes, a); break;
 	default: 
 		gf_isom_box_del(a); 

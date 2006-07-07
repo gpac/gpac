@@ -62,7 +62,6 @@ static Bool Run;
 static Bool CanSeek = 0;
 static u32 Volume=100;
 static char the_url[GF_MAX_PATH];
-static Bool NavigateTo = 0;
 static char the_next_url[GF_MAX_PATH];
 static Bool no_mime_check = 0;
 static Bool be_quiet = 0;
@@ -427,9 +426,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		break;
 	case GF_EVT_NAVIGATE:
 		if (gf_term_is_supported_url(term, evt->navigate.to_url, 1, no_mime_check)) {
-			/*eek that's ugly but I don't want to write an event queue for that*/
-			strcpy(the_next_url, evt->navigate.to_url);
-			NavigateTo = 1;
+			strcpy(the_url, evt->navigate.to_url);
+			fprintf(stdout, "Navigating to URL %s\n", the_url);
+			gf_term_navigate_to(term, evt->navigate.to_url);
 			return 1;
 		} else {
 			fprintf(stdout, "Navigation destination not supported\nGo to URL: %s\n", evt->navigate.to_url);
@@ -826,14 +825,6 @@ int main (int argc, char **argv)
 	while (Run) {
 		char c;
 		
-		if (NavigateTo) {
-			fprintf(stdout, "Navigating to URL %s\n", the_next_url);
-			NavigateTo = 0;
-			gf_term_disconnect(term);
-			strcpy(the_url, the_next_url);
-			gf_term_connect(term, the_url);
-		}
-
 		/*we don't want getchar to block*/
 		if (!has_input()) {
 			UpdateRTInfo();

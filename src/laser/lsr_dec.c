@@ -716,12 +716,25 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 
 static Fixed lsr_translate_coords(GF_LASeRCodec *lsr, u32 val, u32 nb_bits)
 {
+#ifdef GPAC_FIXED_POINT
+	if (val >> (nb_bits-1) ) {
+		s32 neg = (s32) val - (1<<nb_bits);
+		if (neg < -FIX_ONE / 2) 
+			return 2 * gf_divfix(INT2FIX(neg/2), lsr->res_factor);
+		return gf_divfix(INT2FIX(neg), lsr->res_factor);
+	} else {
+		if (val > FIX_ONE / 2) 
+			return 2 * gf_divfix(INT2FIX(val/2), lsr->res_factor);
+		return gf_divfix(INT2FIX(val), lsr->res_factor);
+	}
+#else
 	if (val >> (nb_bits-1) ) {
 		s32 neg = (s32) val - (1<<nb_bits);
 		return gf_divfix(INT2FIX(neg), lsr->res_factor);
 	} else {
 		return gf_divfix(INT2FIX(val), lsr->res_factor);
 	}
+#endif
 }
 
 static Fixed lsr_translate_scale(GF_LASeRCodec *lsr, u32 val)
@@ -1716,7 +1729,7 @@ static void lsr_read_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *anim, u32
 	} else {
 		GF_LSR_READ_INT(lsr, coded_type, 4, "type");
 		anim->value = lsr_read_an_anim_value(lsr, coded_type, type, name);
-		anim->type = type;
+		anim->type = coded_type;
 	}
 }
 
@@ -1976,7 +1989,8 @@ static void lsr_read_coord_list(GF_LASeRCodec *lsr, GF_List *coords, const char 
     count = lsr_read_vluimsbf5(lsr, "nb_coords");
 	for (i=0; i<count; i++) {
 		u32 res;
-		SVG_Coordinate *f = malloc(sizeof(SVG_Coordinate ));
+		SVG_Coordinate *f;
+		GF_SAFEALLOC(f, sizeof(SVG_Coordinate ));
 		GF_LSR_READ_INT(lsr, res, lsr->coord_bits, name);
 		f->value = lsr_translate_coords(lsr, res, lsr->coord_bits);
 		gf_list_add(coords, f);
@@ -2049,7 +2063,7 @@ static void lsr_read_clip_time(GF_LASeRCodec *lsr, SVG_Clock *clock, const char 
 	GF_LSR_READ_INT(lsr, flag, 1, name);
 	if (flag) {
 		GF_LSR_READ_INT(lsr, flag, 1, "isEnum");
-		if (flag) {
+		if (!flag) {
 			GF_LSR_READ_INT(lsr, flag, 1, "sign");
 			flag = lsr_read_vluimsbf5(lsr, "val");
 			*clock = flag;
@@ -2212,6 +2226,7 @@ static void lsr_translate_anim_trans_value(SMIL_AnimateValue *val, u32 transform
 {
 	SVG_Point_Angle *p;
 	Fixed *f;
+	u32 coded_type = val->type;
 
 	val->transform_type = transform_type;
 	val->type = SVG_Matrix_datatype;
@@ -2220,9 +2235,34 @@ static void lsr_translate_anim_trans_value(SMIL_AnimateValue *val, u32 transform
 	case SVG_TRANSFORM_ROTATE:
 		p = malloc(sizeof(SVG_Point_Angle));
 		p->x = p->y = 0;
-		p->angle = ((SVG_Number *)val->value)->value;
-		free(val->value);
+		if (coded_type==8) {
+			GF_List *l = val->value;
+			f = gf_list_get(l, 0);
+			if (f) { p->angle = *f; free(f); }
+			f = gf_list_get(l, 1);
+			if (f) { p->x = *f; free(f); }
+			f = gf_list_get(l, 2);
+			if (f) { p->y = *f; free(f); }
+			gf_list_del(l);
+		} else {
+			p->angle = ((SVG_Number *)val->value)->value;
+			free(val->value);
+		}
 		val->value = p;
+		break;
+	case SVG_TRANSFORM_SCALE:
+		if (coded_type==8) {
+			SVG_Point *pt;
+			GF_List *l = val->value;
+			GF_SAFEALLOC(pt , sizeof(SVG_Point));
+			f = gf_list_get(l, 0);
+			if (f) { pt->x = *f; free(f); }
+			f = gf_list_get(l, 1);
+			if (f) { pt->y = *f; free(f); }
+			else pt->y = pt->x;
+			gf_list_del(l);
+			val->value = pt;
+		}
 		break;
 	case SVG_TRANSFORM_SKEWX:
 	case SVG_TRANSFORM_SKEWY:
@@ -2320,6 +2360,8 @@ static GF_Node *lsr_read_animateTransform(GF_LASeRCodec *lsr, SVGElement *parent
 	lsr_read_id(lsr, (GF_Node *) elt);
 	lsr_read_rare(lsr, (SVGElement *) elt);
 	elt->anim->attributeName.type = lsr_read_animatable(lsr, "attributeName");
+	/*if not specified, defaults to transform*/
+	if ((s32) elt->anim->attributeName.type == -1) elt->anim->attributeName.type = 105;
 
 	/*enumeration rotate{0} scale{1} skewX{2} skewY{3} translate{4}*/
 	GF_LSR_READ_INT(lsr, flag, 3, "rotscatra");
@@ -2767,7 +2809,7 @@ static GF_Node *lsr_read_selector(GF_LASeRCodec *lsr)
 	if (flag) {
 		GF_LSR_READ_INT(lsr, flag, 1, "choice");
 		if (flag) {
-			GF_LSR_READ_INT(lsr, elt->choice.type, 2, "type");
+			GF_LSR_READ_INT(lsr, elt->choice.type, 1, "type");
 		} else {
 			GF_LSR_READ_INT(lsr, elt->choice.choice_index, 8, "value");
 			elt->choice.type = LASeR_CHOICE_N;
@@ -3563,6 +3605,20 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 coded_t
 		}
 	}
 		break;
+		break;
+	case LASeR_Choice_datatype:
+		GF_LSR_READ_INT(lsr, is_default, 1, "isDefaultValue"); 
+		if (is_default) ((LASeR_Choice *)val)->type = LASeR_CHOICE_ALL;
+		else {
+			GF_LSR_READ_INT(lsr, has_escape, 1, "escapeFlag"); 
+			if (has_escape) {
+				GF_LSR_READ_INT(lsr, escape_val, 2, "escapeEnum"); 
+				((LASeR_Choice *)val)->type = escape_val ? LASeR_CHOICE_NONE : LASeR_CHOICE_ALL;
+			} else {
+				((LASeR_Choice *)val)->type = LASeR_CHOICE_N;
+				((LASeR_Choice *)val)->choice_index = lsr_read_vluimsbf5(lsr, "value"); 
+			}
+		}
 		break;
 	default:
 		if ((fieldType>=SVG_FillRule_datatype) && (fieldType<=SVG_TransformBehavior_datatype)) {

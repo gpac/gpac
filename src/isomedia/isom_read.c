@@ -2046,3 +2046,70 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 	return GF_ISOM_BRAND_3GG6;
 }
 
+GF_ItemListBox *gf_ismo_locate_box(GF_List *list, u32 boxType, bin128 UUID)
+{
+	u32 i;
+	GF_Box *box;
+	i=0;
+	while ((box = gf_list_enum(list, &i))) {
+		if (box->type == boxType) {
+			GF_UUIDBox* box2 = (GF_UUIDBox* )box;
+			if (boxType != GF_ISOM_BOX_TYPE_UUID) return (GF_ItemListBox *)box;
+			if (!memcmp(box2->uuid, UUID, 16)) return (GF_ItemListBox *)box;
+		}
+	}
+	return NULL;
+}
+
+/*Apple extensions*/
+
+
+GF_Err gf_isom_apple_get_tag(GF_ISOFile *mov, u32 tag, const char **data, u32 *data_len)
+{
+	GF_ListItemBox *info;
+	GF_ItemListBox *ilst;
+	GF_MetaBox *meta;
+	
+	*data = NULL;
+	*data_len = 0;
+
+	meta = gf_isom_apple_get_meta_extensions(mov);
+	if (!meta) return GF_URL_ERROR;
+
+	ilst = gf_ismo_locate_box(meta->other_boxes, GF_ISOM_BOX_TYPE_ILST, NULL);
+	if (!ilst) return GF_URL_ERROR;
+
+	switch (tag) {
+	case GF_ISOM_ITUNE_NAME: info = ilst->name; break;
+	case GF_ISOM_ITUNE_COMMENT: info = ilst->comment; break;
+	case GF_ISOM_ITUNE_CREATED: info = ilst->created; break;
+	case GF_ISOM_ITUNE_ARTIST: info = ilst->artist; break;
+	case GF_ISOM_ITUNE_TRACK: info = ilst->track; break;
+	case GF_ISOM_ITUNE_ALBUM: info = ilst->album; break;
+	case GF_ISOM_ITUNE_COMPOSER: info = ilst->composer; break;
+	case GF_ISOM_ITUNE_WRITER: info = ilst->writer; break;
+	case GF_ISOM_ITUNE_ENCODER: info = ilst->encoder; break;
+	case GF_ISOM_ITUNE_GENRE: info = ilst->genre; break;
+	case GF_ISOM_ITUNE_DISK: info = ilst->disk; break;
+	case GF_ISOM_ITUNE_TRACKNUMBER: info = ilst->trackNumber; break;
+	case GF_ISOM_ITUNE_TEMPO: info = ilst->tempo; break;
+	case GF_ISOM_ITUNE_COMPILATION: info = ilst->compilation; break;
+	case GF_ISOM_ITUNE_COVER_ART: info = ilst->coverArt; break;
+	case GF_ISOM_ITUNE_ITUNES_DATA: info = ilst->iTunesSpecificInfo; break;
+	case GF_ISOM_ITUNE_PROBE: return GF_OK;
+	default: return GF_BAD_PARAM;
+	}
+	if (!info || !info->data || !info->data->data) return GF_URL_ERROR;
+
+	if ((tag == GF_ISOM_ITUNE_GENRE) && (info->data->flags == 0)) {
+		if (info->data->dataSize && (info->data->dataSize < 5)) {
+			GF_BitStream* bs = gf_bs_new(info->data->data, info->data->dataSize, GF_BITSTREAM_READ);
+			*data_len = gf_bs_read_int(bs, info->data->dataSize * 8);
+		}
+		return GF_OK;
+	}
+	if (info->data->flags != 0x1) return GF_URL_ERROR;
+	*data = info->data->data;
+	*data_len = info->data->dataSize;
+	return GF_OK;
+}

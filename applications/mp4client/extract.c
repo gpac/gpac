@@ -145,16 +145,16 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 				break;
 			case GF_PIXEL_RGB_565:
 				col = * (u16 *)ptr;
-				fputc(colmask(col >> (11 - 3), 3), fout);
-				fputc(colmask(col >> (5 - 2), 2), fout);
 				fputc(colmask(col << 3, 3), fout);
+				fputc(colmask(col >> (5 - 2), 2), fout);
+				fputc(colmask(col >> (11 - 3), 3), fout);
 				ptr+=2;
 				break;
 			case GF_PIXEL_RGB_555:
 				col = * (u16 *)ptr;
-				fputc(colmask(col >> (10 - 3), 3), fout);
-				fputc(colmask(col >> (5 - 3), 3), fout);
 				fputc(colmask(col << 3, 3), fout);
+				fputc(colmask(col >> (5 - 3), 3), fout);
+				fputc(colmask(col >> (10 - 3), 3), fout);
 				ptr+=2;
 				break;
 			}

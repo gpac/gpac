@@ -1448,7 +1448,7 @@ static void lsr_write_an_anim_value(GF_LASeRCodec *lsr, void *val, u32 lsr_type,
 			}
 		} else if ((svg_type==SVG_Matrix_datatype) && (transform_type==SVG_TRANSFORM_SCALE)) {
 			SVG_Point *pt = val;
-			count = (pt->x == pt->y) ? 2 : 1;
+			count = (pt->x == pt->y) ? 1 : 2;
 			lsr_write_vluimsbf5(lsr, count, "count");
 			lsr_write_fixed_16_8(lsr, pt->x, "val");
 			if (count==2) lsr_write_fixed_16_8(lsr, pt->y, "val");
@@ -1991,6 +1991,9 @@ static void lsr_write_conditional(GF_LASeRCodec *lsr, SVGconditionalElement *elt
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
 	lsr_write_smil_times(lsr, elt->lsr_begin, "begin", 1);
 	GF_LSR_WRITE_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
+	/*FIXME to remove from DCOR SDL*/
+	lsr_write_href(lsr, NULL);
+
 	GF_LSR_WRITE_INT(lsr, elt->lsr_enabled ? 1 : 0, 1, "enabled");
 	lsr_write_any_attribute(lsr, (GF_Node *) elt, clone, 1);
 	lsr_write_command_list(lsr, elt->updates.com_list, elt, 0);
@@ -2430,7 +2433,7 @@ static void lsr_write_selector(GF_LASeRCodec *lsr, SVGselectorElement *elt)
 			GF_LSR_WRITE_INT(lsr, elt->choice.choice_index, 8, "value");
 		} else {
 			GF_LSR_WRITE_INT(lsr, 1, 1, "choice");
-			GF_LSR_WRITE_INT(lsr, elt->choice.type, 2, "type");
+			GF_LSR_WRITE_INT(lsr, elt->choice.type, 1, "type");
 		}
 	}
 	lsr_write_any_attribute(lsr, (GF_Node *) elt, clone, 1);
@@ -2824,6 +2827,7 @@ static void lsr_write_scene_content_model(GF_LASeRCodec *lsr, SVGElement *parent
 	case TAG_SVG_rect:
 		/*type is written in encoding fct for samepolyline handling*/
 		lsr_write_rect(lsr, node, 0); break;
+	case TAG_SVG_conditional: GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_conditional, 6, "ch4"); lsr_write_conditional(lsr, node); break;
 	case TAG_SVG_rectClip: GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_rectClip, 6, "ch4"); lsr_write_rectClip(lsr, node); break;
 	case TAG_SVG_script: GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_script, 6, "ch4"); lsr_write_script(lsr, node); break;
 	case TAG_SVG_selector: GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_selector, 6, "ch4"); lsr_write_selector(lsr, node); break;
@@ -3067,7 +3071,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVGElement *elt, u32 fiel
 		case SVG_String_datatype:
 		case SVG_ContentType_datatype:
 		case SVG_LanguageID_datatype:
-			lsr_write_byte_align_string(lsr, * (DOM_String *)val, "val");
+			lsr_write_byte_align_string(lsr, val ? * (DOM_String *)val : "", "val");
 			break;
 		case SVG_Motion_datatype:
 			lsr_write_coordinate(lsr, ((SVG_Point *)val)->x, 0, "pointValueX");
@@ -3078,6 +3082,20 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVGElement *elt, u32 fiel
 			break;
 		case SVG_PathData_datatype:
 			lsr_write_path_type(lsr, val, "val");
+			break;
+		case LASeR_Choice_datatype:
+		{
+			LASeR_Choice *ch = val;
+			GF_LSR_WRITE_INT(lsr, (ch->type==LASeR_CHOICE_ALL) ? 1 : 0, 1, "isDefaultValue"); 
+			if (ch->type!=LASeR_CHOICE_ALL) {
+				GF_LSR_WRITE_INT(lsr, (ch->type==LASeR_CHOICE_NONE) ? 1 : 0, 1, "escapeFlag"); 
+				if (ch->type==LASeR_CHOICE_NONE) {
+					GF_LSR_WRITE_INT(lsr, LASeR_CHOICE_NONE, 2, "escapeEnum"); 
+				} else {
+					lsr_write_vluimsbf5(lsr, ((LASeR_Choice *)val)->choice_index, "value"); 
+				}
+			}
+		}
 			break;
 		default:
 			if ((fieldType>=SVG_FillRule_datatype) && (fieldType<=SVG_TransformBehavior_datatype)) {

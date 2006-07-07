@@ -1,0 +1,56 @@
+// GPAX.idl : IDL source for GPAX.dll
+//
+
+// This file will be processed by the MIDL tool to
+// produce the type library (GPAX.tlb) and marshalling code.
+
+import "oaidl.idl";
+import "ocidl.idl";
+#include "olectl.h"
+	
+
+	[
+		object,
+		uuid(E2A9A937-BB35-47E0-8942-964806299AB4),
+		dual,
+		helpstring("IGPAX Interface"),
+		pointer_default(unique)
+	]
+	interface IGPAX : IDispatch
+	{
+		[id(2), helpstring("Play Movie")] HRESULT Play();
+		[id(3), helpstring("Pause/Resume Movie")] HRESULT Pause();
+		[id(4), helpstring("Stop Movie")] HRESULT Stop();
+		[id(5), helpstring("Reload Movie")] HRESULT Reload();
+	};
+
+[
+	uuid(E64FAC7F-0134-4A75-A7DA-80D53EBC56A6),
+	version(1.0),
+	helpstring("GPAX ActiveX Control")
+]
+library GPAXLib
+{
+	importlib("stdole32.tlb");
+	importlib("stdole2.tlb");
+
+	[
+		uuid(1FDA32FC-4C9A-461F-B33B-0715B0343006),
+		helpstring("_IGPAXEvents Interface")
+	]
+	dispinterface _IGPAXEvents
+	{
+		properties:
+		methods:
+	};
+
+	[
+		uuid(181D18E6-4DC1-4B55-B72E-BE2A10064995),
+		helpstring("GPAC Class")
+	]
+	coclass GPAX
+	{
+		[default] interface IGPAX;
+		[default, source] dispinterface _IGPAXEvents;
+	};
+};

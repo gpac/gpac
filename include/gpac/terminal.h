@@ -43,9 +43,10 @@ GF_Err gf_term_del(GF_Terminal *term);
 void gf_term_connect(GF_Terminal *term, const char *URL);
 /*disconnects the url*/
 void gf_term_disconnect(GF_Terminal *term);
-/*reloads (shutdown/restart) the current url if any. This is the only safe way of restarting a 
-presentation from inside the EventProc where doing a disconnect/connect could deadlock*/
-void gf_term_reload(GF_Terminal *term);
+/*navigates to a given destination or shutdown/restart the current one if any.
+This is the only safe way of restarting/jumping a presentation from inside the EventProc 
+where doing a disconnect/connect could deadlock if toURL is NULL, uses the current URL*/
+void gf_term_navigate_to(GF_Terminal *term, const char *toURL);
 /*restarts url from given time (in ms). Return value: 
 	0: service is not connected yet
 	1: service has no seeking capabilities

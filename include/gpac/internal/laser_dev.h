@@ -176,6 +176,7 @@ s32 gf_lsr_field_to_attrib_type(GF_Node *n, u32 fieldIndex);
 
 #define LSR_UPDATE_TYPE_SCALE			78
 #define LSR_UPDATE_TYPE_ROTATE			75
+#define LSR_UPDATE_TYPE_TRANSFORM		105
 #define LSR_UPDATE_TYPE_TRANSLATION		107
 #define LSR_UPDATE_TYPE_TEXT_CONTENT	104
 

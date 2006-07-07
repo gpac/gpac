@@ -67,6 +67,7 @@ typedef struct
 	u32 chunkDur;
 	u64 DTSprev;
 	u8 isDone;
+	u64 prev_offset;
 	GF_MediaBox *mdia;
 	/*each writer has a sampleToChunck and ChunkOffset tables
 	these tables are filled during emulation mode and then will	replace the table in the GF_SampleTableBox*/
@@ -135,7 +136,7 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 	for (i = 0; i < trackCount; i++) {
 		trak = gf_isom_get_track(movie->moov, i+1);
 		
-		writer = (TrackWriter*)malloc(sizeof(TrackWriter));
+		GF_SAFEALLOC(writer, sizeof(TrackWriter));
 		if (!writer) goto exit;
 		writer->sampleNumber = 1;
 		writer->mdia = trak->Media;
@@ -180,6 +181,7 @@ static void ShiftMetaOffset(GF_MetaBox *meta, u64 offset)
 	count = gf_list_count(meta->item_locations->location_entries);
 	for (i=0; i<count; i++) {
 		GF_ItemLocationEntry *iloc = gf_list_get(meta->item_locations->location_entries, i);
+		if (iloc->data_reference_index) continue;
 		if (!iloc->base_offset) {
 			GF_ItemExtentEntry *entry = gf_list_get(iloc->extent_entries, 0);
 			if (entry && !entry->extent_length && !entry->original_extent_offset && (gf_list_count(iloc->extent_entries)==1) )
@@ -402,11 +404,11 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 			}
 		}
 
-		iloc->base_offset = baseOffset;
-
 		it_size = 0;
 		/*for self contained only*/
 		if (!iloc->data_reference_index) {
+			iloc->base_offset = baseOffset;
+	
 			/*new resource*/
 			if (iinf->full_path) {
 				FILE *src = gf_f64_open(iinf->full_path, "rb");
@@ -466,6 +468,16 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 			}
 			baseOffset += it_size;
 			*mdatSize += it_size;
+		} else {
+			/*we MUST have at least one extent for the dref data*/
+			if (!gf_list_count(iloc->extent_entries)) {
+				GF_SAFEALLOC(entry, sizeof(GF_ItemExtentEntry));
+				gf_list_add(iloc->extent_entries, entry);
+			}
+			entry = gf_list_get(iloc->extent_entries, 0);
+			entry->extent_offset = 0;
+			/*0 means full length of referenced file*/
+			entry->extent_length = 0;
 		}
 	}
 	/*update offset & size length fields*/
@@ -858,6 +870,9 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 					offset += sampSize;
 					totSize += sampSize;
 				} else {
+					if (curWriter->prev_offset != sampOffset) forceNewChunk = 1;
+					curWriter->prev_offset = sampOffset + sampSize;
+
 					//we have a DataRef, so use the offset idicated in sampleToChunk 
 					//and ChunkOffset tables...
 					e = stbl_SetChunkAndOffset(curWriter->mdia->information->sampleTable, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, sampOffset, 0);
@@ -1014,9 +1029,12 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 							offset += sampSize;
 							mdatSize += sampSize;
 						} else {
+							if (curWriter->prev_offset != sampOffset) forceNewChunk = 1;
+							curWriter->prev_offset = sampOffset + sampSize;
+
 							//we have a DataRef, so use the offset idicated in sampleToChunk 
 							//and ChunkOffset tables...
-							e = stbl_SetChunkAndOffset(curWriter->mdia->information->sampleTable, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, sampOffset, 0);
+							e = stbl_SetChunkAndOffset(curWriter->mdia->information->sampleTable, curWriter->sampleNumber, descIndex, curWriter->stsc, &curWriter->stco, sampOffset, forceNewChunk);
 							if (e) return e;
 						}
 					} else {
@@ -1089,7 +1107,8 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 	if (e) goto exit;
 
 	firstSize = GetMoovAndMetaSize(movie, writers);
-	offset = firstSize + 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
+	offset = firstSize;
+	if (movie->mdat->dataSize) offset += 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
 	e = ShiftOffset(movie, writers, offset);
 	if (e) goto exit;
 	//get the size and see if it has changed (eg, we moved to 64 bit offsets)
@@ -1097,7 +1116,8 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 	if (firstSize != finalSize) {
 		//we need to remove our offsets
 		ResetWriters(writers);
-		finalOffset = finalSize + 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
+		finalOffset = finalSize;
+		if (movie->mdat->dataSize) finalOffset += 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
 		//OK, now we're sure about the final size -> shift the offsets
 		//we don't need to re-emulate, as the only thing that changed is the offset
 		//so just shift the offset
@@ -1109,11 +1129,13 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 	if (e) goto exit;
 
 	/*we have 8 extra bytes for large size (not computed in gf_isom_box_size) */
-	if (movie->mdat->dataSize > 0xFFFFFFFF) movie->mdat->dataSize += 8;
-	e = gf_isom_box_size((GF_Box *)movie->mdat);
-	if (e) goto exit;
-	e = gf_isom_box_write((GF_Box *)movie->mdat, bs);
-	if (e) goto exit;
+	if (movie->mdat->dataSize) {
+		if (movie->mdat->dataSize > 0xFFFFFFFF) movie->mdat->dataSize += 8;
+		e = gf_isom_box_size((GF_Box *)movie->mdat);
+		if (e) goto exit;
+		e = gf_isom_box_write((GF_Box *)movie->mdat, bs);
+		if (e) goto exit;
+	}
 
 	//we don't need the offset as we are writing...
 	ResetWriters(writers);

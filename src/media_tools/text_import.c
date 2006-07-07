@@ -1212,7 +1212,8 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 				last_sample_duration = s->DTS;
 			}
 
-			gf_isom_add_sample(import->dest, track, descIndex, s);
+			e = gf_isom_add_sample(import->dest, track, descIndex, s);
+			if (e) goto exit;
 			gf_isom_sample_del(&s);
 			nb_samples++;
 

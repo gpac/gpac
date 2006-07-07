@@ -419,7 +419,7 @@ char *gf_bt_get_string(GF_BTParser *parser)
 			size += 500;
 		}
 
-		if ((parser->line_buffer[parser->line_pos]=='/') && (parser->line_buffer[parser->line_pos+1]=='/') ) {
+		if ((parser->line_buffer[parser->line_pos]=='/') && (parser->line_buffer[parser->line_pos+1]=='/') && (parser->line_buffer[parser->line_pos-1]!=':') ) {
 			/*this looks like a comment*/
 			if (!strstr(&parser->line_buffer[parser->line_pos], "\"")) {
 				gf_bt_check_line(parser);

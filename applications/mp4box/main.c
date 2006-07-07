@@ -746,6 +746,7 @@ u32 get_file_type_by_ext(char *inName)
 		else if (!stricmp(ext, "lsr") || !stricmp(ext, "saf")) type = 6;
 		else if (!stricmp(ext, "svg")) type = 4;
 		else if (!stricmp(ext, "xsr")) type = 4;
+		else if (!stricmp(ext, "xml")) type = 4;
 		else if (!stricmp(ext, "swf")) type = 5;
 		else type = 0;
 	}
@@ -786,7 +787,7 @@ typedef struct
 		8: dump XML
 	*/
 	u32 act_type;
-	Bool root_meta;
+	Bool root_meta, use_dref;
 	u32 trackID;
 	u32 meta_4cc;
 	char szPath[GF_MAX_PATH];
@@ -829,6 +830,7 @@ static Bool parse_meta_args(MetaAction *meta, char *opts)
 		else if (!strnicmp(szSlot, "path=", 5)) { strcpy(meta->szPath, szSlot+5); ret = 1; }
 		else if (!strnicmp(szSlot, "mime=", 5)) { strcpy(meta->mime_type, szSlot+5); ret = 1; }
 		else if (!strnicmp(szSlot, "encoding=", 9)) { strcpy(meta->enc_type, szSlot+9); ret = 1; }
+		else if (!strnicmp(szSlot, "dref", 4)) { meta->use_dref = 1; ret = 1; }
 		else if (!stricmp(szSlot, "binary")) {
 			if (meta->act_type==4) meta->act_type=5;
 			ret = 1;
@@ -900,7 +902,7 @@ int main(int argc, char **argv)
 	u32 i, MTUSize, stat_level, hint_flags, MakeISMA, Make3GP, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, do_package, remove_root_od, make_psp;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts;
-	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump;
+	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itune_tags;
 	GF_ISOFile *file;
 
 	if (argc < 2) {
@@ -923,7 +925,7 @@ int main(int argc, char **argv)
 	track_dump_type = 0;
 	ismaCrypt = 0;
 	file = NULL;
-	pes_dump = NULL;
+	itune_tags = pes_dump = NULL;
 	memset(&opts, 0, sizeof(opts));
 	
 	trackID = stat_level = hint_flags = 0;
@@ -1099,6 +1101,7 @@ int main(int argc, char **argv)
 			i++;
 			Frag = 1;
 		} 
+		else if (!stricmp(arg, "-itags")) { CHECK_NEXT_ARG itune_tags = argv[i+1]; i++; open_edit = 1; }
 		else if (!stricmp(arg, "-hint")) { open_edit = 1; HintIt = 1; }
 		else if (!stricmp(arg, "-unhint")) { open_edit = 1; remove_hint = 1; }
 		else if (!stricmp(arg, "-copy")) HintCopy = 1;
@@ -1816,7 +1819,8 @@ int main(int argc, char **argv)
 	} 
 
 	if (dump_mode) {
-		if (dump_file_text(inName, dump_std ? NULL : outfile, dump_mode-1, do_log)) return 1;
+		e = dump_file_text(inName, dump_std ? NULL : outfile, dump_mode-1, do_log);
+		if (e) goto err_exit;
 	}
 	if (stat_level) dump_scene_stats(inName, dump_std ? NULL : outfile, stat_level);
 #endif
@@ -1869,7 +1873,7 @@ int main(int argc, char **argv)
 #ifndef GPAC_READ_ONLY
 		case 0:
 			/*remove main brand when modifying...*/
-			if (meta->root_meta) {
+			if (0 && meta->root_meta) {
 				u32 m = gf_isom_get_meta_type(file, meta->root_meta, tk);
 				if (m && (m!=meta->meta_4cc)) gf_isom_modify_alternate_brand(file, m, 0);
 			}
@@ -1883,7 +1887,7 @@ int main(int argc, char **argv)
 					strlen(meta->szName) ? meta->szName : NULL,  
 					strlen(meta->mime_type) ? meta->mime_type : NULL,  
 					strlen(meta->enc_type) ? meta->enc_type : NULL,  
-					NULL,  NULL);
+					meta->use_dref ? meta->szPath : NULL,  NULL);
 			needSave = 1;
 			break;
 		case 2:
@@ -2057,6 +2061,59 @@ int main(int argc, char **argv)
 			break;
 		}
 		if (e) goto err_exit;
+	}
+
+	if (itune_tags) {
+		char *tags = itune_tags;
+		while (tags) {
+			u32 itag;
+			char *val;
+			char *sep = strchr(tags, ':');
+			while (sep) {
+				if (!strnicmp(sep+1, "album=", 6)) break;
+				if (!strnicmp(sep+1, "artist=", 7)) break;
+				if (!strnicmp(sep+1, "comment=", 8)) break;
+				if (!strnicmp(sep+1, "compilation=", 12)) break;
+				if (!strnicmp(sep+1, "composer=", 8)) break;
+				if (!strnicmp(sep+1, "created=", 8)) break;
+				if (!strnicmp(sep+1, "disk=", 5)) break;
+				if (!strnicmp(sep+1, "encoder=", 8)) break;
+				if (!strnicmp(sep+1, "genre=", 6)) break;
+				if (!strnicmp(sep+1, "name=", 5)) break;
+				if (!strnicmp(sep+1, "tempo=", 6)) break;
+				if (!strnicmp(sep+1, "track=", 6)) break;
+				if (!strnicmp(sep+1, "tracknum=", 9)) break;
+				if (!strnicmp(sep+1, "writer=", 7)) break;
+				sep = strchr(sep, ':');
+			}
+			if (sep) sep[0] = 0;
+			if (!strnicmp(tags, "album=", 6)) itag = GF_ISOM_ITUNE_ALBUM;
+			else if (!strnicmp(tags, "artist=", 7)) itag = GF_ISOM_ITUNE_ARTIST;
+			else if (!strnicmp(tags, "comment=", 8)) itag = GF_ISOM_ITUNE_COMMENT;
+			else if (!strnicmp(tags, "compilation=", 12)) itag = GF_ISOM_ITUNE_COMPILATION;
+			else if (!strnicmp(tags, "composer=", 8)) itag = GF_ISOM_ITUNE_COMPOSER;
+			else if (!strnicmp(tags, "created=", 8)) itag = GF_ISOM_ITUNE_CREATED;
+			else if (!strnicmp(tags, "disk=", 5)) itag = GF_ISOM_ITUNE_DISK;
+			else if (!strnicmp(tags, "encoder=", 8)) itag = GF_ISOM_ITUNE_ENCODER;
+			else if (!strnicmp(tags, "genre=", 6)) itag = GF_ISOM_ITUNE_GENRE;
+			else if (!strnicmp(tags, "name=", 5)) itag = GF_ISOM_ITUNE_NAME;
+			else if (!strnicmp(tags, "tempo=", 6)) itag = GF_ISOM_ITUNE_TEMPO;
+			else if (!strnicmp(tags, "track=", 6)) itag = GF_ISOM_ITUNE_TRACK;
+			else if (!strnicmp(tags, "tracknum=", 9)) itag = GF_ISOM_ITUNE_TRACKNUMBER;
+			else if (!strnicmp(tags, "writer=", 7)) itag = GF_ISOM_ITUNE_WRITER;
+			val = strchr(tags, '=') + 1;
+			if ((val[0]==':') || !val[0] || !stricmp(val, "NULL") ) val = NULL;
+
+			gf_isom_apple_set_tag(file, itag, val, val ? strlen(val) : 0);
+			needSave = 1;
+
+			if (sep) {
+				sep[0] = ':';
+				tags = sep+1;
+			} else {
+				tags = NULL;
+			}
+		}
 	}
 
 	if (Frag) {

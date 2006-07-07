@@ -33,8 +33,8 @@ class NS_NO_VTABLE nsIOsmozilla : public nsISupports {
   /* void Play (); */
   NS_IMETHOD Play(void) = 0;
 
-  /* void Reload (); */
-  NS_IMETHOD Reload(void) = 0;
+  /* void Stop (); */
+  NS_IMETHOD Stop(void) = 0;
 
 };
 
@@ -42,19 +42,19 @@ class NS_NO_VTABLE nsIOsmozilla : public nsISupports {
 #define NS_DECL_NSIOSMOZILLA \
   NS_IMETHOD Pause(void); \
   NS_IMETHOD Play(void); \
-  NS_IMETHOD Reload(void); 
+  NS_IMETHOD Stop(void); 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object. */
 #define NS_FORWARD_NSIOSMOZILLA(_to) \
   NS_IMETHOD Pause(void) { return _to Pause(); } \
   NS_IMETHOD Play(void) { return _to Play(); } \
-  NS_IMETHOD Reload(void) { return _to Reload(); } 
+  NS_IMETHOD Stop(void) { return _to Stop(); } 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object in a safe way. */
 #define NS_FORWARD_SAFE_NSIOSMOZILLA(_to) \
   NS_IMETHOD Pause(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Pause(); } \
   NS_IMETHOD Play(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Play(); } \
-  NS_IMETHOD Reload(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Reload(); } 
+  NS_IMETHOD Stop(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Stop(); } 
 
 #if 0
 /* Use the code below as a template for the implementation class for this interface. */
@@ -96,8 +96,8 @@ NS_IMETHODIMP nsOsmozilla::Play()
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-/* void Reload (); */
-NS_IMETHODIMP nsOsmozilla::Reload()
+/* void Stop (); */
+NS_IMETHODIMP nsOsmozilla::Stop()
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }

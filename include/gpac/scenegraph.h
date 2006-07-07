@@ -45,6 +45,8 @@ enum {
 	TAG_UndefinedNode = 1,
 	/*all proto instances have this tag*/
 	TAG_ProtoNode,
+	/*DOM text node: the sgprivate structure is NULL for all these nodes, and they don't have children !!*/
+	TAG_TextNode,
 
 	/*reserved TAG ranges per standard*/
 
@@ -82,6 +84,12 @@ typedef struct
 	BASE_NODE
 	CHILDREN
 } GF_ParentNode;
+
+typedef struct
+{
+	BASE_NODE
+	char *textContent;
+} GF_TextNode;
 
 /*tag is set upon creation and cannot be modified*/
 u32 gf_node_get_tag(GF_Node*);

@@ -393,6 +393,8 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "GroupID")) ret += sscanf(val, "%d", &mi->GroupID);
 		else if (!stricmp(fieldName, "startTime")) ret += sscanf(val, "%d", &mi->startTime);
 		else if (!stricmp(fieldName, "duration")) ret += sscanf(val, "%d", &mi->duration);
+		else if (!stricmp(fieldName, "compactSize"))
+		{ ret = 1; if (!stricmp(val, "true") || !stricmp(val, "1")) mi->import_flags |= GF_IMPORT_USE_COMPACT_SIZE; }
 		else if (!stricmp(fieldName, "useDataReference"))
 		{ ret = 1; if (!stricmp(val, "true") || !stricmp(val, "1")) mi->import_flags |= GF_IMPORT_USE_DATAREF; }
 		else if (!stricmp(fieldName, "noFrameDrop"))

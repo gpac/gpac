@@ -63,6 +63,8 @@ enum
 	GF_IMPORT_SKIP_TXT_BOX = 1<<6,
 	/*indicates to keep unknown tracks from .MOV/.IsoMedia files*/
 	GF_IMPORT_KEEP_ALL_TRACKS = 1<<7,
+	/*uses compact size in .MOV/.IsoMedia files*/
+	GF_IMPORT_USE_COMPACT_SIZE = 1<<8,
 	
 	/*when set, only updates tracks info and return*/
 	GF_IMPORT_PROBE_ONLY	= 1<<20,

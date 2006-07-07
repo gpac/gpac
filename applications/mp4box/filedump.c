@@ -1187,7 +1187,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 void DumpMovieInfo(GF_ISOFile *file)
 {
 	GF_InitialObjectDescriptor *iod;
-	u32 i, brand, min, timescale, count;
+	u32 i, brand, min, timescale, count, tag_len;
+	const char *tag;
 	u64 create, modif;
 	char szDur[50];
 	
@@ -1248,6 +1249,24 @@ void DumpMovieInfo(GF_ISOFile *file)
 			gf_isom_get_chapter(file, 0, i+1, &time, &name);
 			fprintf(stdout, "\tChapter #%d - %s - \"%s\"\n", i+1, format_duration(time, 1000, szDur), name);
 		}
+	}
+
+	if (gf_isom_apple_get_tag(file, 0, &tag, &tag_len) == GF_OK) {
+		fprintf(stdout, "\niTunes Info:\n");
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_NAME, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tName: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_ARTIST, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tArtist: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_ALBUM, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tAlbum: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COMMENT, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tComment: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACK, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tTrack: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COMPOSER, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tComposer: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_WRITER, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tWriter: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_GENRE, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tGenre: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COMPILATION, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tCompilation: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_CREATED, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tCreated: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_DISK, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tDisk: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_ENCODER, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tEncoder: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TEMPO, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tTempo: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACKNUMBER, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tTrackNumber: %s\n", tag);
 	}
 
 	fprintf(stdout, "\n");

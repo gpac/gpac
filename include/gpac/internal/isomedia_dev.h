@@ -232,6 +232,29 @@ enum
 	GF_ISOM_BOX_TYPE_SNRO	= GF_4CC( 's', 'n', 'r', 'o' ),
 	GF_ISOM_BOX_TYPE_RTPO	= GF_4CC( 'r', 't', 'p', 'o' ),
 	
+	/* Apple extensions */
+
+	GF_ISOM_BOX_TYPE_ILST	= GF_4CC( 'i', 'l', 's', 't' ),
+	GF_ISOM_BOX_TYPE_0xA9NAM	= GF_4CC( 0xA9, 'n', 'a', 'm' ),
+	GF_ISOM_BOX_TYPE_0xA9CMT	= GF_4CC( 0xA9, 'c', 'm', 't' ),
+	GF_ISOM_BOX_TYPE_0xA9DAY	= GF_4CC( 0xA9, 'd', 'a', 'y' ),
+	GF_ISOM_BOX_TYPE_0xA9ART	= GF_4CC( 0xA9, 'A', 'R', 'T' ),
+	GF_ISOM_BOX_TYPE_0xA9TRK	= GF_4CC( 0xA9, 't', 'r', 'k' ),
+	GF_ISOM_BOX_TYPE_0xA9ALB	= GF_4CC( 0xA9, 'a', 'l', 'b' ),
+	GF_ISOM_BOX_TYPE_0xA9COM	= GF_4CC( 0xA9, 'c', 'o', 'm' ),
+	GF_ISOM_BOX_TYPE_0xA9WRT	= GF_4CC( 0xA9, 'w', 'r', 't' ),
+	GF_ISOM_BOX_TYPE_0xA9TOO	= GF_4CC( 0xA9, 't', 'o', 'o' ),
+	GF_ISOM_BOX_TYPE_GNRE	= GF_4CC( 'g', 'n', 'r', 'e' ),
+	GF_ISOM_BOX_TYPE_DISK	= GF_4CC( 'd', 'i', 's', 'k' ),
+	GF_ISOM_BOX_TYPE_TRKN	= GF_4CC( 't', 'r', 'k', 'n' ),
+	GF_ISOM_BOX_TYPE_TMPO	= GF_4CC( 't', 'm', 'p', 'o' ),
+	GF_ISOM_BOX_TYPE_CPIL	= GF_4CC( 'c', 'p', 'i', 'l' ),
+	GF_ISOM_BOX_TYPE_COVR	= GF_4CC( 'c', 'o', 'v', 'r' ),
+	GF_ISOM_BOX_TYPE_iTunesSpecificInfo	= GF_4CC( '-', '-', '-', '-' ),
+	GF_ISOM_BOX_TYPE_DATA	= GF_4CC( 'd', 'a', 't', 'a' ),
+
+	GF_ISOM_HANDLER_TYPE_MDIR	= GF_4CC( 'm', 'd', 'i', 'r' ),
+	
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
 
 	/*generic handlers*/
@@ -1518,7 +1541,42 @@ typedef struct
 	GF_List *boxList;
 } GF_HintInfoBox;
 
+/*Apple extension*/
 
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 reserved;
+	u8 *data;
+	u32 dataSize;
+} GF_DataBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	GF_DataBox *data;
+} GF_ListItemBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	GF_ListItemBox *name;
+	GF_ListItemBox *comment;
+	GF_ListItemBox *created;
+	GF_ListItemBox *artist;
+	GF_ListItemBox *track;
+	GF_ListItemBox *album;
+	GF_ListItemBox *composer;
+	GF_ListItemBox *writer;
+	GF_ListItemBox *encoder;
+	GF_ListItemBox *genre;
+	GF_ListItemBox *disk;
+	GF_ListItemBox *trackNumber;
+	GF_ListItemBox *tempo;
+	GF_ListItemBox *compilation;
+	GF_ListItemBox *coverArt;
+	GF_ListItemBox *iTunesSpecificInfo;
+} GF_ItemListBox;
 
 /*
 		Data Map (media storage) stuff
@@ -1814,6 +1872,9 @@ Bool IsHintTrack(GF_TrackBox *trak);
 Bool CheckHintFormat(GF_TrackBox *trak, u32 HintType);
 u32 GetHintFormat(GF_TrackBox *trak);
 
+
+/*locate a box by its type or UUID*/
+GF_ItemListBox *gf_ismo_locate_box(GF_List *list, u32 boxType, bin128 UUID);
 
 
 /*
@@ -2639,6 +2700,26 @@ GF_Err iKMS_Size(GF_Box *s);
 GF_Err iSFM_Size(GF_Box *s);
 #endif
 
+/* Apple extensions */
+void ilst_del(GF_Box *s);
+void ListItem_del(GF_Box *s);
+void data_del(GF_Box *s);
+GF_Err ilst_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err ListItem_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err data_Read(GF_Box *s, GF_BitStream *bs);
+GF_Box *ilst_New();
+GF_Box *ListItem_New(u32 type);
+GF_Box *data_New();
+#ifndef GPAC_READ_ONLY
+GF_Err ilst_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err ListItem_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err data_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err ilst_Size(GF_Box *s);
+GF_Err ListItem_Size(GF_Box *s);
+GF_Err data_Size(GF_Box *s);
+#endif
+
+
 GF_Err gb_box_array_dump(GF_List *list, FILE * trace);
 GF_Err reftype_dump(GF_Box *a, FILE * trace);
 GF_Err free_dump(GF_Box *a, FILE * trace);
@@ -2770,7 +2851,17 @@ GF_Err frma_dump(GF_Box *a, FILE * trace);
 GF_Err schm_dump(GF_Box *a, FILE * trace);
 GF_Err schi_dump(GF_Box *a, FILE * trace);
 
+/*Apple extensions*/
+GF_Err ilst_dump(GF_Box *a, FILE * trace);
+GF_Err ListItem_dump(GF_Box *a, FILE * trace);
+GF_Err data_dump(GF_Box *a, FILE * trace);
 
+/*Apple extensions*/
+GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov);
+
+#ifndef GPAC_READ_ONLY
+GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov);
+#endif //GPAC_READ_ONLY
 
 #ifdef __cplusplus
 }

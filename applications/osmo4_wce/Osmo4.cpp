@@ -60,9 +60,10 @@ Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
 		pFrame->console_message = event->message.message;
 		pFrame->PostMessage(WM_CONSOLEMSG, 0, 0);
 		break;
-	case GF_EVT_SIZE:
+	case GF_EVT_SCENE_SIZE:
 		app->m_scene_width = event->size.width;
 		app->m_scene_height = event->size.height;
+	case GF_EVT_SIZE:
 		if (!pFrame->m_full_screen) 
 			pFrame->PostMessage(WM_SETSIZE, event->size.width, event->size.height);
 		break;

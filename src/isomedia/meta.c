@@ -328,7 +328,7 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 
 
 	/*assume 32bit max size = 4Go should be sufficient for a DID!!*/
-	xmlfile = fopen(XMLFileName, "rt");
+	xmlfile = fopen(XMLFileName, "rb");
 	if (!xmlfile) return GF_URL_ERROR;
 	fseek(xmlfile, 0, SEEK_END);
 	xml->xml_length = ftell(xmlfile);
@@ -436,7 +436,7 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 	/*file not copied, just referenced*/
 	if (URL || URN) {
 		u32 dataRefIndex;
-		if (!meta->item_locations) meta->file_locations = (GF_DataInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DINF);
+		if (!meta->file_locations) meta->file_locations = (GF_DataInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DINF);
 		if (!meta->file_locations->dref) meta->file_locations->dref = (GF_DataReferenceBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DREF);
 		e = Media_FindDataRef(meta->file_locations->dref, (char *) URL, (char *) URN, &dataRefIndex);
 		if (e) return e;

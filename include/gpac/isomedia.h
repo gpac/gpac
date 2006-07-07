@@ -265,6 +265,7 @@ enum
 	GF_ISOM_PL_INLINE,
 };
 
+
 /********************************************************************
 				GENERAL API FUNCTIONS
 ********************************************************************/
@@ -1653,6 +1654,43 @@ GF_Err gf_isom_set_meta_primary_item(GF_ISOFile *file, Bool root_meta, u32 track
 
 #endif
 
+
+/********************************************************************
+				iTunes info tags
+********************************************************************/
+enum
+{
+	/*probe is only used ti check if iTunes info are present*/
+	GF_ISOM_ITUNE_PROBE,
+	GF_ISOM_ITUNE_ALBUM,
+	GF_ISOM_ITUNE_ARTIST,
+	GF_ISOM_ITUNE_COMMENT,
+	GF_ISOM_ITUNE_COMPILATION,
+	GF_ISOM_ITUNE_COMPOSER,
+	GF_ISOM_ITUNE_COVER_ART,
+	GF_ISOM_ITUNE_CREATED,
+	GF_ISOM_ITUNE_DISK,
+	GF_ISOM_ITUNE_ENCODER,
+	GF_ISOM_ITUNE_GENRE,
+	GF_ISOM_ITUNE_ITUNES_DATA,
+	GF_ISOM_ITUNE_NAME,
+	GF_ISOM_ITUNE_TEMPO,
+	GF_ISOM_ITUNE_TRACK,
+	GF_ISOM_ITUNE_TRACKNUMBER,
+	GF_ISOM_ITUNE_WRITER
+};
+/*get the given tag info. 
+!! 'genre' may be coded by ID, the libisomedia doesn't translate the ID. In such a case, the result data is set to NULL 
+and the data_len to the genre ID
+returns GF_URL_ERROR if no tag is present in the file
+*/
+GF_Err gf_isom_apple_get_tag(GF_ISOFile *mov, u32 tag, const char **data, u32 *data_len);
+#ifndef GPAC_READ_ONLY
+/*set the given tag info. If data and data_len are 0, removes the given tag
+For 'genre', data may be NULL in which case the genre ID taken from the data_len parameter
+*/
+GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 data_len);
+#endif
 
 
 #ifdef __cplusplus

@@ -55,6 +55,7 @@ Bool V4S_EventProc(void *par, GF_Event *evt)
 	case GF_EVT_REFRESH:
 		gf_term_set_option(panel->GetMPEG4Terminal(), GF_OPT_REFRESH, 0);
 		break;
+	case GF_EVT_SCENE_SIZE:
 	case GF_EVT_SIZE:
 //		gf_sr_set_size(panel->GetSceneRenderer(), evt->size.width, evt->size.height);
 		panel->Update();

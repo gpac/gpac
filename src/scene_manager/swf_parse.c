@@ -595,11 +595,11 @@ void swf_resort_path(SWFPath *a, SWFReader *read)
 	}
 
 restart:
-	i=0;
-	while ((p = gf_list_enum(paths, &i))) {
-
+	for (i=0; i<gf_list_count(paths); i++) {
+		p = gf_list_get(paths, i);
 		j=i+1;
-		while ((np = gf_list_enum(paths, &j))) {
+		for (j=i+1; j < gf_list_count(paths); j++) {
+			np = gf_list_get(paths, j);
 	
 			/*check if any next subpath ends at the same place we're starting*/
 			if ((np->pts[np->nbPts-1].x == p->pts[0].x) && (np->pts[np->nbPts-1].y == p->pts[0].y)) {
@@ -990,6 +990,9 @@ GF_Node *SWF_GetNode(SWFReader *read, u32 ID)
 	sprintf(szDEF, "Text%d", ID);
 	n = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 	if (n) return n;
+	sprintf(szDEF, "Button%d", ID);
+	n = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
+	if (n) return n;
 	return NULL;
 }
 DispShape *SWF_GetDepthEntry(SWFReader *read, u32 Depth, Bool create)
@@ -1079,6 +1082,87 @@ GF_Err swf_def_shape(SWFReader *read, u32 revision)
 	new_node = swf_parse_shape_def(read, 1, revision);
 	if (!new_node) return GF_OK;
 	return SWF_InsertNode(read, new_node);
+}
+
+typedef struct
+{
+	Bool hitTest, down, over, up;
+	u32 character_id;
+	u16 depth;
+	GF_Matrix2D mx;
+	GF_ColorMatrix cmx;
+} SWF_ButtonRecord;
+
+GF_Err swf_def_button(SWFReader *read, u32 revision)
+{
+	char szName[1024];
+	SWF_ButtonRecord recs[40];
+	u32 i, ID, nb_but_rec;
+	M_Switch *button;
+	Bool has_actions;
+
+	has_actions = 0;
+	ID = swf_get_16(read);
+	if (revision==1) {
+		gf_bs_read_int(read->bs, 7);
+		gf_bs_read_int(read->bs, 1);
+		has_actions = swf_get_16(read);
+	}
+	nb_but_rec = 0;
+	while (1) {
+		SWF_ButtonRecord *rec = &recs[nb_but_rec];
+		gf_bs_read_int(read->bs, 4);
+		rec->hitTest = gf_bs_read_int(read->bs, 1);
+		rec->down = gf_bs_read_int(read->bs, 1);
+		rec->over = gf_bs_read_int(read->bs, 1);
+		rec->up = gf_bs_read_int(read->bs, 1);
+		if (!rec->hitTest && !rec->up && !rec->over && !rec->down) break;
+		rec->character_id = swf_get_16(read);
+		rec->depth = swf_get_16(read);
+		swf_get_matrix(read, &rec->mx, 0);
+		if (revision==1) swf_get_colormatrix(read, &rec->cmx);
+		else gf_cmx_init(&rec->cmx);
+		gf_bs_align(read->bs);
+		nb_but_rec++;
+	}
+	if (revision==0) {
+		while (1) {
+			u32 act_type = gf_bs_read_u8(read->bs);
+			if (!act_type) break; 
+			if (act_type > 0x80) {
+				u32 len = swf_get_16(read); 
+				gf_bs_skip_bytes(read->bs, len);
+			}
+		}
+	} else {
+		while (has_actions) {
+			has_actions = swf_get_16(read);
+			swf_get_16(read);
+			while (1) {
+				u32 act_type = gf_bs_read_u8(read->bs);
+				if (act_type > 0x80) {
+					u32 len = swf_get_16(read); 
+					gf_bs_skip_bytes(read->bs, len);
+				}
+			}
+		}
+	}
+	button = (M_Switch *) SWF_NewNode(read, TAG_MPEG4_Switch);
+	sprintf(szName, "Button%d", ID);
+	read->load->ctx->max_node_id++;
+	ID = read->load->ctx->max_node_id;
+	gf_node_set_id((GF_Node *)button, ID, szName);
+	SWF_InsertNode(read, (GF_Node *)button);
+	/*by default show first character*/
+	button->whichChoice = 0;
+	for (i=0; i<nb_but_rec; i++) {
+		GF_Node *character = SWF_GetNode(read, recs[i].character_id);
+		if (character) {
+			gf_list_add(button->choice, character);
+			gf_node_register(character, (GF_Node *)button);
+		}
+	}
+	return GF_OK;
 }
 
 Bool swf_mat_is_identity(GF_Matrix2D *mat)
@@ -1270,7 +1354,7 @@ GF_Err swf_place_obj(SWFReader *read, u32 revision)
 	/*and write command*/
 	com = gf_sg_command_new(read->load->scene_graph, GF_SG_INDEXED_REPLACE);
 	/*in sprite definiton, modify at sprite root level*/
-	if (read->current_sprite_id) {
+	if (0 && read->current_sprite_id) {
 		sprintf(szDEF, "Sprite%d_root", read->current_sprite_id);
 		com->node = gf_sg_find_node_by_name(read->load->scene_graph, szDEF);
 		depth = 0;
@@ -1774,7 +1858,7 @@ GF_Err swf_def_sprite(SWFReader *read)
 	/*inactive by default (until inserted)*/
 	((M_AnimationStream *)n)->startTime = -1;
 	/*loop by default - not 100% sure from SWF spec, I believe a sprite loops until removed from DList*/
-	((M_AnimationStream *)n)->loop = 1;
+	((M_AnimationStream *)n)->loop = 0;
 
 	/*create sprite grouping node*/
 	n = SWF_NewNode(read, TAG_MPEG4_Group);
@@ -2220,11 +2304,12 @@ GF_Err swf_process_tag(SWFReader *read)
 	case SWF_STARTSOUND: return swf_start_sound(read);
 	case SWF_SOUNDSTREAMBLOCK: return swf_soundstream_block(read);
 
+	case SWF_DEFINEBUTTON: return swf_def_button(read, 0);
+	case SWF_DEFINEBUTTON2: return swf_def_button(read, 1);
 	case SWF_DEFINEBUTTONSOUND:
-	case SWF_DEFINEBUTTON:
-	case SWF_DEFINEBUTTON2:
 	case SWF_DOACTION:
 		read->has_interact = 1;
+		swf_report(read, GF_OK, "skipping tag %s", swf_get_tag(read->tag) );
 		return swf_func_skip(read);
 
 /*	case SWF_DEFINEBITSJPEG: return swf_def_bits_jpeg(read);
@@ -2521,7 +2606,7 @@ GF_Err gf_sm_load_run_SWF(GF_SceneLoader *load)
 		if (read->flat_limit != 0) 
 			swf_report(read, GF_OK, "%d points removed while parsing shapes (Flattening limit %.4f)", read->flatten_points, read->flat_limit);
 
-		if (read->has_interact) swf_report(read, GF_OK, "Buttons and ActionScripts are not supported and have been removed");
+		if (read->has_interact) swf_report(read, GF_OK, "ActionScripts and interactions are not supported and have been removed");
 	}
 	return e;
 }

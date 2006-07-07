@@ -290,6 +290,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVT_QUIT:
 	case GF_EVT_VIEWPOINTS:
 	case GF_EVT_STREAMLIST:
+	case GF_EVT_SCENE_SIZE:
 	case GF_EVT_SIZE:
 	{
 		wxGPACEvent wxevt(app);
@@ -1516,11 +1517,11 @@ void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 			break;
 		}
 		break;
+	case GF_EVT_SCENE_SIZE:
+		m_orig_width = event.gpac_evt.size.width;
+		m_orig_height = event.gpac_evt.size.height;
 	case GF_EVT_SIZE:
-		if (gf_term_get_option(m_term, GF_OPT_FULLSCREEN)) {
-			m_orig_width = event.gpac_evt.size.width;
-			m_orig_height = event.gpac_evt.size.height;
-		} else {
+		if (! gf_term_get_option(m_term, GF_OPT_FULLSCREEN)) {
 			DoLayout(event.gpac_evt.size.width, event.gpac_evt.size.height);
 		}
 		break;

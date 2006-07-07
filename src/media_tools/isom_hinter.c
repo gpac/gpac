@@ -916,7 +916,13 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, config_bytes, config_size); 
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine); 
 		free(config_bytes); 
-	} 
+	}
+	/*extensions for some mobile phones*/
+	if (Width && Height) {
+		sprintf(sdpLine, "a=framesize:%d %d-%d", tkHint->rtp_p->PayloadType, Width, Height);
+		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
+	}
+
 	gf_isom_set_track_enabled(tkHint->file, tkHint->HintTrack, 1);
 	return GF_OK;
 }

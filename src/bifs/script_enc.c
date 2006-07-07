@@ -143,6 +143,7 @@ enum
 	TOK_SWITCH,
 	TOK_CASE,
 	TOK_DEFAULT,
+	TOK_VAR,
 	NUMBER_OF_KEYWORD,
 	TOK_LEFT_BRACE = NUMBER_OF_KEYWORD,
 	TOK_RIGHT_BRACE,
@@ -212,6 +213,7 @@ const char *tok_names[] =
 	"switch",
 	"case",
 	"default",
+    "var",
 	"{",
 	"}",
 	"(",
@@ -256,7 +258,7 @@ const char *tok_names[] =
 	"&=",
 	"^=",
 	"|=",
-	".",
+	",",
 	";",
 	":",
 	"identifier",
@@ -279,7 +281,8 @@ const char* sc_keywords [] =
 	"new",
 	"switch",
 	"case",
-	"default"
+	"default",
+	"var"
 };
 
 Bool SFE_GetNumber(ScriptEnc *sc_enc)
@@ -311,6 +314,7 @@ Bool SFE_GetNumber(ScriptEnc *sc_enc)
 Bool SFE_NextToken(ScriptEnc *sc_enc)
 {
 	u32 i;
+	if (sc_enc->err) return 0;
 	while (strchr(" \t\r\n", sc_enc->cur_buf[0])) sc_enc->cur_buf++;
 	if ((sc_enc->cur_buf[0] == '/') && (sc_enc->cur_buf[1] == '*')) {
 		sc_enc->cur_buf += 2;
@@ -337,7 +341,7 @@ Bool SFE_NextToken(ScriptEnc *sc_enc)
 		sc_enc->token_code = TOK_IDENTIFIER;
 		/*check keyword*/
 		for (i=0; i<NUMBER_OF_KEYWORD; i++) {
-			if (!stricmp(sc_enc->token, sc_keywords[i])) {
+			if (!strcmp(sc_enc->token, sc_keywords[i])) {
 				sc_enc->token_code = i;
 				return 1;
 			}
@@ -625,6 +629,7 @@ void SFE_PutInteger(ScriptEnc *sc_enc, char *str)
 
 u32 SFE_LoadExpression(ScriptEnc *sc_enc, u32 *expr_sep)
 {
+	Bool is_var = 0;
 	u32 close_code, open_code;
 	u32 count = 0;
 	u32 nbExpr = 1;
@@ -652,8 +657,12 @@ u32 SFE_LoadExpression(ScriptEnc *sc_enc, u32 *expr_sep)
 			gf_list_add(sc_enc->id_buf, strdup(sc_enc->token));
 			break;
 		}
-		sc_enc->expr_toks[sc_enc->expr_toks_len] = sc_enc->token_code;
-		sc_enc->expr_toks_len++;
+
+		if (sc_enc->token_code==TOK_VAR) is_var = 1;
+		if (!is_var || (sc_enc->token_code!=TOK_COMMA)) {
+			sc_enc->expr_toks[sc_enc->expr_toks_len] = sc_enc->token_code;
+			sc_enc->expr_toks_len++;
+		}
 
 		open_code = sc_enc->token_code;
 		close_code = 0;
@@ -661,7 +670,7 @@ u32 SFE_LoadExpression(ScriptEnc *sc_enc, u32 *expr_sep)
 		else if (sc_enc->token_code == TOK_LEFT_BRACKET) close_code = TOK_RIGHT_BRACKET;
 
 		/*other expr*/
-		if (sc_enc->token_code == TOK_COMMA) {
+		if ((sc_enc->token_code == TOK_COMMA) && (sc_enc->expr_toks[0] != TOK_VAR) ){
 			expr_sep[nbExpr++] = sc_enc->expr_toks_len - 1;
 		} 
 		/*sub-expr*/
@@ -692,7 +701,7 @@ break_loop:
 		|| (sc_enc->token_code == TOK_STRING) || (sc_enc->token_code == TOK_BOOLEAN) ) {
 		gf_list_add(sc_enc->id_buf, strdup(sc_enc->token));
 	}
-	if (sc_enc->token_code != TOK_CONDSEP) {
+	if ((sc_enc->token_code != TOK_CONDSEP) && (sc_enc->expr_toks[0] != TOK_VAR)) {
 		sc_enc->expr_toks[sc_enc->expr_toks_len] = sc_enc->token_code;
 		sc_enc->expr_toks_len++;
 	}
@@ -1175,6 +1184,9 @@ u32 TOK_To_ET(u32 tok)
 	case TOK_ANDEQ : return ET_ANDEQ;
 	case TOK_XOREQ : return ET_XOREQ;
 	case TOK_OREQ : return ET_OREQ;
+	case TOK_FUNCTION: return ET_FUNCTION_CALL;
+	case TOK_VAR: 
+		return ET_VAR;
 	default:
 		assert(0);
 		return -1;
@@ -1231,6 +1243,7 @@ static const char *expr_name[] ={
 "ET_RSHIFT",
 "ET_RSHIFTFILL",
 "ET_BOOLEAN",
+"ET_VAR",
 "NUMBER_OF_EXPR_TYPE"
 };
 
@@ -1285,7 +1298,8 @@ static s32 ET_Rank[NUMBER_OF_EXPR_TYPE] =
 	5,// ET_LSHIFT
 	6,// ET_RSHIFT
 	6,// ET_RSHIFTFILL
-	0 // ET_BOOLEAN
+	0, // ET_BOOLEAN
+	14 // ET_VAR
 
 /*
 	0, 0, 0,			// variable, number, string
@@ -1427,7 +1441,7 @@ u32 SFE_Expression(ScriptEnc *sc_enc, u32 start, u32 end, Bool memberAccess)
 		case TOK_CONDSEP:
 			break;
 		default:
-			if (curTok < TOK_MULTIPLY || curTok > TOK_OREQ) {
+			if (curTok && (curTok != TOK_VAR) && (curTok < TOK_MULTIPLY || curTok > TOK_OREQ)) {
 				fprintf(stdout, "Script Error: illegal token %s read\n", tok_names[curTok]);
 				sc_enc->err = GF_BAD_PARAM;
 				return 0;
@@ -1540,6 +1554,17 @@ u32 SFE_Expression(ScriptEnc *sc_enc, u32 start, u32 end, Bool memberAccess)
 		gf_list_rem(sc_enc->id_buf, 0);
 		SFE_PutBoolean(sc_enc, str);
 		free(str);
+		break;
+    case ET_VAR:
+		while (1) {
+			str = gf_list_get(sc_enc->id_buf, 0);
+			if (!str) break;
+			gf_list_rem(sc_enc->id_buf, 0);
+			GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "hasArgument", NULL);
+			SFE_PutIdentifier(sc_enc, str);
+			free(str);
+		}
+		GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "hasArgument", NULL);
 		break;
 	case ET_STRING:
 		str = gf_list_get(sc_enc->id_buf, 0);

@@ -65,14 +65,16 @@ enum {
 	GF_EVT_KEYUP,
 	/*window events*/
 	/*size has changed - indicate new w & h in .x end .y fields of event. 
-	When sent to the user event proc, signals the scene size (if indicated in scene) upon connection
-		if scene size hasn't changed (seeking or other) this event is not sent
 	When sent from gpac to a video plugin, indicates the output size should be changed. This is only sent when the plugin
 	manages the output video himself
 	When sent from a video plugin to gpac, indicates the output size has been changed. This is only sent when the plugin
 	manages the output video himself
 	*/
 	GF_EVT_SIZE,		
+	/*signals the scene size (if indicated in scene) upon connection (sent to the user event proc only)
+		if scene size hasn't changed (seeking or other) this event is not sent
+	*/
+	GF_EVT_SCENE_SIZE,		
 	GF_EVT_SHOWHIDE,	/*window show/hide (minimized or other). This is also sent to the user to signal focus switch in fullscreen*/
 	GF_EVT_SET_CURSOR,	/*set mouse cursor*/
 	GF_EVT_SET_CAPTION,	/*set window caption*/
