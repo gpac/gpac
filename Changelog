@@ -1,4 +1,14 @@
-Latest CVS Changes 13/06/06
+Latest CVS Changes 06/07/06
+  - commit of GPAX (GPAC ActiveX) - controller only works in IE and ActiveX control tester for now.
+  - bug fixes and API changes to Osmozilla to keep in sync with GPAX. Sample html file can be found in applications/GPAX.
+    NOTE: both plugin now support browser navigation (ie link to html within MPEG-4 content)
+  - committed patch from Andrew Voznytsa (with slight modif) for iTunes tag support. Tagging can be done with MP4Box -itags option. The tags are passed in a single string, separated by ':', formatted as 'tag_name=tag_value'. Supported tags names are: album, artist, comment, compilation, composer, created, disk, encoder, genre, name, tempo, track, tracknum, writer.
+     NOTE: to make sure you mp4 is importable on an iPod, you must:
+       - use .m4a extension
+       - specify the right brands: MP4Box -brand "M4A " -ab mp42
+     This process will soon be automated in mp4 box...
+  - more LASeR fixes
+  - fixed AVC/H264 parsing (pic size detection on interleaved stream and cropping were broken)
   - changed all audio and video media in regression tests.
   - added MPEG-1/2 raw importing (extensions: .m1v and .m2v).
   - cleanup of gpac/src/Makefile: no more recursive makes for libgpac
@@ -8,7 +18,6 @@ Latest CVS Changes 13/06/06
   - cleanup of Makefiles (gpac can now be compiled outside the main source tree with gcc, eg $ ~/cvs/test>../gpac/configure
   - added support for majorbrand versioning in MP4Box: "-brand GPAC:2" will set the major brand to GPAC, with a version of 2.
   - initial version of MPEG-2 TS demuxer (MP4Box and client plugin)
-  - more LASeR debug and support...
   - regression tests (.bt and .x3dv) are now part of the CVS & GPAC source tree
   - added 2D/3D selection param for osmozilla: use3d="true" or use3d="false" to force renderer used.
   - added SAF (LASeR Simple Aggregation Format)  support: mux and demux (MP4Box) + SAF input plugin.
