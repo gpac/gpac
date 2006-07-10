@@ -33,8 +33,27 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows Mouse input sensor" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "InputSensor Test - Mouse device"
+   info [
+    "This test shows usage of the InputSensor node to detect keys and trigger of events"
+    "The InputSensor in this case has a url which points to a specific pseudo-media object. This object contains one stream, called interaction stream."
+    "This stream is made of Device Data Frame whose content is specialized depending on the kind of input device."
+    "The InputSensor node in the scene specifies how to dispatch the content of the DDF."
+    "For each piece of information in the DDF, a REPLACE command is associated."
+    "The value of the target property is replaced by the associated content from the DDF."
+    "" 
+    "If the configuration of the stream says 'MouseSensor', like here, the input device is a mouse and the DDF content is as follows:"
+    "- the mouse position," 
+    "- the status of the left button," 
+    "- the status of the middle button," 
+    "- the status of the right button," 
+    "- and the status of the wheel." 
+    "This configuration allows doing different things than the TouchSensor because the TouchSensor cannot give information about the buttons, or the wheel. On the other hand, it can be triggered based on sibling geometry, which is not the case of the InputSensor node in MouseSensor mode." 
+    "In this example, the result of the InputSensor node triggers ECMAScript actions." 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "InputSensor Node for mouse events (MouseSensor)"
   }
   Transform2D {
    translation -120 -100

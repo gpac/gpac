@@ -27,8 +27,14 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows usage of cap styles" "in XLineProperties node" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "XLineProperties Test"
+   info [
+    "This test shows the usage of cap styles of the XLineProperties node"
+    "Moving the mouse over the 'Anim' button will superpose the different lines to highlight the linecap differences" 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "Changing line caps using the XLineProperties node"
   }
   DEF TR1 Transform2D {
    translation -190 0

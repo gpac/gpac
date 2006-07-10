@@ -33,8 +33,14 @@ OrderedGroup {
    backColor 1 1 0
   }
   WorldInfo {
-   info ["This shows Bitmap with scale 0.75 0.75" "in Pixel Metrics" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Bitmap Test"
+   info [
+    "This test shows an Image (the Osmo4 logo), which has an alpha component being display on a yellow background."
+    "The geometry node use to display the image is a Bitmap node with a scale of 0.75 0.75"
+    ""
+    "GPAC Regression Tests" 
+    "(C) 2002-2004 GPAC Team"
+   ]
+   title "Bitmap and Transparent Images"
   }
   Transform2D {
    children [

@@ -27,8 +27,18 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows basic transform2D on a rectangle" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Base Transform Test"
+   info [
+    "This test shows how to apply affine transformations on a rectangle."
+    "A graphical object can be moved, rotated or scaled using the Transform2D node."     
+    "The object (or objects) to be transformed is (are) placed in the children property of the Transform2D node." 
+    "The Transform2D node indicates the transformation from the local coordinate system to the global coordinate system. It applies to any graphical object." 
+    "Possible transformations are limited to translation, rotation (including with a center different from the origin) and scaling (including along different axes that original system) using respectively the translation, rotationAngle, center, scale, scaleOrientation." 
+    "For skewing, you should see the TransformMatrix2D node." 
+    "cf bifs-2D-positioning-transformmatrix2D" 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"]
+   title "Apply transformations on local coordinate systems - Transform2D node"
   }
   Transform2D {
    translation -100 150

@@ -27,8 +27,16 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows Linear gradient" "with varying interpolation" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Gradient Linear Test"
+   info [
+    "This test shows how to fill object with linear gradients." 
+    "Here the start and end point of the gradient are close"
+    "You can click on the rectangle to move the start and the end of gradient." 
+    "You can also drag it." 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "Linear Gradient"
   }
   Transform2D {
    children [

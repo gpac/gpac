@@ -24,8 +24,17 @@ InitialObjectDescriptor {
 OrderedGroup {
  children [
   WorldInfo {
-   info ["This shows field replacement" "through BIFS commands" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "field replace test"
+   info [
+    "This test shows field replacement using BIFS commands."
+    "At initialization, the scene shows a polygon filled in red"
+    "At 2s, the scene is modified and the polygon is not filled, just the border is diplayed."
+    "The command used in this sequence replaces the content of the field and not just a single value"
+    "It applies to both SFField and MFField, for replacement of single value in an MFField, use Indexed Replacement"
+    "cf bifs-command-replace-index"
+    ""
+    "GPAC Regression Tests" 
+    "(C) 2002-2004 GPAC Team"]
+   title "Field Replacement"
   }
   DEF BACK Background2D {
    backColor 1 1 1

@@ -33,8 +33,26 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows usage of KeySensor" "and triggering of events" "" "GPAC Regression Tests" "(C) 2002-2003 ENST"]
-   title "InputSensor test - KeySensor device"
+   info [
+    "This test shows usage of the InputSensor node to detect keys and trigger of events"
+    "The InputSensor in this case has a url which points to a specific pseudo-media object. This object contains one stream, called interaction stream."
+    "This stream is made of Device Data Frame whose content is specialized depending on the kind of input device."
+    "The InputSensor node in the scene specifies how to dispatch the content of the DDF."
+    "For each piece of information in the DDF, a REPLACE command is associated."
+    "The value of the target property is replaced by the associated content from the DDF."
+    "" 
+    "If the configuration of the stream says 'KeySensor', like here, the input device is a keyboard and the DDF content is as follows:"
+    "- the key code for the pressed key (0 if none)," 
+    "- the key code for the released key (0 if none),"
+    "- the key code for the action key (F1, ...) pressed (0 if none),"
+    "- the key code for the action key (F1, ...) released (0 for none),"
+    "- and the state of the modifier keys (CTRL, ALT and Shift)." 
+    "In this example, the target nodes are Valuator nodes which cast the key code into the char representation, and the result is displayed." 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "InputSensor Node for detecting keys (KeySensor)"
   }
   DEF N33 Switch {
    choice [

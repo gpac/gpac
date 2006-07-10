@@ -27,8 +27,24 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows Material Node usage" "with transparency tests" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Material properties"
+   info [
+    "This test shows how to specify the filling and simple outlining of 2D shapes"
+    "It uses the Material2D node. The filled property indicates if the shape is filled or not. The emissiveColor property specifies the fill color if filled or the outline color if not filled. Transparency can be set using the transparency property." 
+    "In this simple example, the width and other properties of the outline cannot be set. To set more properties, use the LineProperties or XLineProperties nodes." 
+    "cf bifs-2D-painting-lineproperties" 
+    "cf bifs-2D-painting-xlineproperties-cap"
+    "cf bifs-2D-painting-xlineproperties-compositetexture2D"
+    "cf bifs-2D-painting-xlineproperties-dash"
+    "cf bifs-2D-painting-xlineproperties-imagetexture"
+    "cf bifs-2D-painting-xlineproperties-join"
+    "cf bifs-2D-painting-xlineproperties-lineargradient"
+    "cf bifs-2D-painting-xlineproperties-radialgradient"
+    "cf bifs-2D-painting-xlineproperties-scalable"
+    "cf bifs-2D-painting-xlineproperties-transparent"
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"]
+   title "Material2D properties"
   }
   Transform2D {
    translation -180 0

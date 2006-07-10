@@ -33,8 +33,16 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows dynamic bitmap scaling" "over static bitmaps" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Bitmap Test"
+   info [
+    "This test shows an image whose size is animated." 
+    "The result is displayed on top of a static image."
+    "Both textures use a Bitmap node to allow efficient handling of the textures."
+    "The resizing of the image is not done using a Transform2D node (or TransformMatrix2D) but by changing the size property of the Bitmap node."
+    "" 
+    "GPAC Regression Tests"
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "Image Resizing"
   }
   Transform2D {
    translation 0 100
@@ -103,7 +111,6 @@ OrderedGroup {
     }
    ]
   }
-
   DEF TS TimeSensor {
    loop TRUE
   }
@@ -117,7 +124,7 @@ OrderedGroup {
 ROUTE TS.fraction_changed TO PI.set_fraction
 ROUTE PI.value_changed TO BMP.scale
 
-AT 0 {
+RAP AT 0 {
   UPDATE OD [
    ObjectDescriptor {
     objectDescriptorID 10

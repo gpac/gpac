@@ -33,8 +33,16 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows basic 2D shapes" "with image texture mapping" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Image Texture Test"
+   info [
+    "This test shows image displayed on the basic 2D shapes." 
+    "Image is considered as a texture and described in the ImageTexture node." 
+    "The url of this node points to the image using any internet protocol (http, rtsp) or using MPEG-4 OD." 
+    "The ImageTexture node is associated to the geometry as a children of the Shape node. The image is then clipped along the bounding box of the shape." 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "Displaying Images as a texture on any shape"
   }
   Transform2D {
    translation -150 150

@@ -24,8 +24,15 @@ InitialObjectDescriptor {
 OrderedGroup {
  children [
   WorldInfo {
-   info ["This shows node replacement" "through BIFS commands" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "node replace test"
+   info [
+    "This test shows node replacement through BIFS commands" 
+    "Initally, the scene has a white background, but at 2s the Background2D node is replaced by a new node defining a yellow background."
+    "The same test could be done replacing the field backColor of the Background2D node, this would be a field replacement."
+    ""
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "Node Replacement"
   }
   DEF BACK Background2D {
    backColor 1 1 1

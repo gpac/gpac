@@ -27,8 +27,15 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows IndexedFaceSet2D" "with different color fill mode" "Gradient Vertexes are not implemented under Linux/GPAC" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "IndexedFaceSet2D Test"
+   info [
+    "This test shows a bit more how to use the IndexedFaceSet2D node with different color fill modes."
+    "This node can hold a Coordinate2D node to list points and use the coordIndex field to form faces (-1 separated indexes)."
+    "Each face can have different color. If colorPerVertex is TRUE each point has a separate color and the result is that a face is filled using color interpolation."
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "IndexedFaceSet2D and Color Modes"
   }
   Transform2D {
    scale 0.8 0.8

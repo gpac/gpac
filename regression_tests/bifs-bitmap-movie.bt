@@ -33,8 +33,14 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows dragable bitmap with outscale" "with movieTexture in Meter Metrics" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Bitmap Test"
+   info [
+    "The Bitmap node is a geometry node which defines a rectangle on which the texture is mapped. The difference with a Rectangle node is that its size is given by the texture, hence no resampling of the texture is needed during the display. Hardware accelerated operations can be used." 
+    "This test shows a dragable video. The Bitmap node allows efficient draging and display of the video." 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "Efficient Display of Video using the Bitmap node"
   }
   Transform2D {
    scale 2 2

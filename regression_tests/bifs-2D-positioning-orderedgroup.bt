@@ -27,8 +27,18 @@ OrderedGroup {
    backColor 1 1 0
   }
   WorldInfo {
-   info ["This shows OrderedGroup node" "with order modification" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "OrderedGroup Test"
+   info [
+    "This test shows the usage of the OrderedGroup node." 
+    "The OrderedGroup node is similar to the Group node but allows for more possibilities."
+    "The difference is the addition of the 'order' property which explicitely gives the display order of the children of the OrderedGroup."
+    "Order varies from 0 to N-1, where N is the number of children. [3 2 1 0] will display the children in reverse order."
+    "This test shows how to interactively change the order based on a click."
+    "If you click on the rectangle or the circle, and keep the mouse button down, the display order is reversed. If you release the button, the display order goes back to initial."
+    ""
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "OrderedGroup"
   }
   DEF OG OrderedGroup {
    order [1 0]

@@ -27,8 +27,14 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows a touchSensor emitting current position event" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "TouchSensor test"
+   info [   
+    "This test shows how to retrieve the mouse position when it is moved."
+    "The TouchSensor node generates the hitPoint event, which is a 3D point, when the mouse moves. This can be used in scripts to trigger actions." 
+    ""
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "TouchSensor & hitPoint"
   }
   Transform2D {
    children [

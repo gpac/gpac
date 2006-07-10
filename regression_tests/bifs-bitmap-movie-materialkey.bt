@@ -33,8 +33,15 @@ OrderedGroup {
    backColor 0 0 1
   }
   WorldInfo {
-   info ["This shows dragable bitmap with outscale" "with movieTexture in Meter Metrics" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Bitmap Test"
+   info [
+    "This test shows how to do Color Keying on Video."
+    "The MaterialKey node allows defining a key color or color range and to make that color transparent in the texture. The degree of transparency can be specified using the transparency property." 
+     
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2004 GPAC Team"
+   ]
+   title "Color Keying on Video using the MaterialKey node"
   }
   Transform2D {
    scale 2 2
@@ -49,6 +56,8 @@ OrderedGroup {
         }
         material MaterialKey {
          isKeyed TRUE
+         lowThreshold 0
+         highThreshold 1
          keyColor 0 0 0
          transparency 1
         }

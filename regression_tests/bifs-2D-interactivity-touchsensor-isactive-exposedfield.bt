@@ -27,8 +27,16 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows a touchSensor controling a material.filled" "through an isActive eventOut" "the modified field is routed to the second material.filled" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "TouchSensor test"
+   info [   
+    "This test shows a TouchSensor node used to modify the filled property of 2 Material2D nodes."
+    "cf bifs-2D-interactivity-touchsensor-isactive" 
+    "The difference with the above test is the event propagation. Instead of routing the TouchSensor isActive event to both Material2D node, the event is only sent to one Material2D node, but since the emissiveColor field is an exposedField, it generate in turns a new event and that event is routed to the second Material2D node." 
+    ""
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "TouchSensor, isActive & Event Propagation"
+
   }
   Transform2D {
    scale 0.5 0.5

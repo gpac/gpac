@@ -27,8 +27,14 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows usage of line transparency" "and line alignment" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "XLineProperties Test"
+   info [
+    "This test shows usage of line transparency and line alignment" 
+    "The outline or its outside is centered on the shape depending on the value of the isCenterAligned."
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "Positioning lines and setting transparency using the XLineProperties node"
   }
   Transform2D {
    translation -100 100

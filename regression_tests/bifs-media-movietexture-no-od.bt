@@ -33,8 +33,13 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows MovieTexture with a non-OD URL (direct addressing)" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "MovieTexture Test"
+   info [
+    "This test shows how a URL in a MovieTexture node can be a regular URL (http, file, ...) and not an OD URL."
+    ""
+    "GPAC Regression Tests"
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "Video referenced by a non-OD URL"
   }
   Sound2D {
    source AudioClip {

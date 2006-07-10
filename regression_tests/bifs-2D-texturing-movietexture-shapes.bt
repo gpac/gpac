@@ -33,8 +33,16 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows basic 2D shapes" "with movie texture mapping" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "MovieTexture Test"
+   info [
+    "This test shows a video displayed on the basic 2D shapes." 
+    "Video, like image, is considered as a texture and described in the MovieTexture node." 
+    "The url of this node points to the video using any internet protocol (http, rtsp) or using MPEG-4 OD." 
+    "The MovieTexture node is associated to the geometry as a children of the Shape node. The video is then clipped along the bounding box of the shape." 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "Displaying Videos as a texture on any shape"
   }
   Transform2D {
    translation -150 150

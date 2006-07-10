@@ -33,8 +33,13 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows reuse of an object" "under a ColorTransform with regular components" "" "GPAC Regression Tests" "(C) 2002-2006 GPAC Team"]
-   title "ColorTranform Test"
+   info [
+    "This test shows how to modify the color components of an image using the ColorTransform node."
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "ColorTranform on an image"
   }
   DEF TR Transform2D {
    children [

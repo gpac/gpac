@@ -27,8 +27,15 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows CompositeTexture2D" "with dynamic background binding" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Composite Texture Test"
+   info [
+    "This test shows the usage of the CompositeTexture node and how its background can be changed dynamically."
+    "Here, the texture is a circle repeated on the X and Y directions. Just one circle object is used here, the result of the drawing is translated in each directions, the object is not duplicated." 
+    "When the user moves the mouse over a circle, the background is changed. When the user clicks on a circle, the background is also changed." 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "CompositeTexture and Background2D nodes"
   }
   Shape {
    appearance Appearance {

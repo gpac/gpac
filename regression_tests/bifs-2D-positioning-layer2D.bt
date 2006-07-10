@@ -25,26 +25,69 @@ OrderedGroup {
  children [
   Background2D {  backColor 1 1 1  }
   WorldInfo {
-   info ["This shows a rectangle in layer 2D with varrying size" "over a circle" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Layer2D Test"
-  }
-  Shape {
-   appearance Appearance {
-    material Material2D {
-     emissiveColor 1 1 0
-     filled TRUE
-    }
-   }
-   geometry Circle {
-    radius 50
-   }
+   info [
+    "This test shows the usage of the Layer2D node." 
+    "A 2D layer is defined with a size 200x200, its content is a grey square and a grey ellipse."
+    "Within the layer, the content is clipped along the 200x200 rectangle and filled with a red background." 
+    "Behind this layer, a rotated blue rectangle is displayed."
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "Layer2D - Rectangular Axis Aligned Clipping"
   }
   Transform2D {
-   translation -50 -50
+    translation 125 125
+    children [
+        Shape {
+            appearance Appearance { material Material2D { filled TRUE emissiveColor 1 1 0 } }
+            geometry Rectangle { size 50 50 }
+        }
+        Shape {
+            appearance Appearance { material Material2D { filled TRUE emissiveColor 0 0 0 } }
+            geometry Text { string "Click Me" fontStyle FontStyle { justify [ "MIDDLE" "MIDDLE" ] size 10 }}
+        }
+        DEF S TouchSensor {}
+    ] 
+  }
+  Transform2D {
+    rotationAngle 0.57
    children [
-    DEF L Layer2D {
+    Shape {
+     appearance Appearance {
+      material Material2D {
+       filled TRUE
+       emissiveColor 0 0 1
+      }
+     }
+     geometry Rectangle {
+      size 100 400
+     }
+    }
+   ]
+  }
+  DEF ROT Transform2D {
+   translation 0 0
+   children [
+    Layer2D {
      size 200 200
      children [
+        Background2D { backColor 1 0 0 }
+      Transform2D {
+       translation -100 0
+       children [
+        Shape {
+         appearance Appearance {
+          material Material2D {
+           filled TRUE
+          }
+         }
+         geometry Ellipse {
+          radius 100 400
+         }
+        }
+       ]
+      }
       Transform2D {
        translation 25 0
        children [
@@ -64,16 +107,23 @@ OrderedGroup {
     }
    ]
   }
-  DEF TS TimeSensor {
-   loop TRUE
+  DEF C Conditional {
+    buffer {
+        REPLACE TS.startTime BY 0
+    }
   }
-  DEF PI PositionInterpolator2D {
-   key [0 0.5 1]
-   keyValue [200 200 0 0 200 200]
+  DEF TS TimeSensor {
+    cycleInterval 5
+    startTime -1
+  }
+  DEF SI ScalarInterpolator {
+   key [0 1]
+   keyValue [0 1.57]
   }
  ]
 }
 
-ROUTE TS.fraction_changed TO PI.set_fraction
-ROUTE PI.value_changed TO L.size
+ROUTE S.isActive TO C.activate
+ROUTE TS.fraction_changed TO SI.set_fraction
+ROUTE SI.value_changed TO ROT.rotationAngle
 

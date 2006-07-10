@@ -26,8 +26,13 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows PointSet2D" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "PointSet2D Test"
+   info [
+       "This shows the use of PointSet2D which is to display individual pixels on the screen." 
+       "" 
+       "GPAC Regression Tests" 
+       "(C) 2002-2006 GPAC Team"
+   ]
+   title "PointSet2D"
   }
   Transform2D {
    children [

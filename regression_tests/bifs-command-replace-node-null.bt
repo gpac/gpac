@@ -24,8 +24,15 @@ InitialObjectDescriptor {
 OrderedGroup {
  children [
   WorldInfo {
-   info ["This shows node replacement by NULL" "through BIFS commands" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "NULL NODE replace test"
+   info [
+    "This test shows a BIFS command replacing a node by the NULL node" 
+    "Initially, the scene has a white background but at 2s, the Background2D node is replaced by a NULL node. Since the Background2D node is not used anymore, it is deleted." 
+    "Replacing with a NULL node does not change the index of the following siblings."
+    ""
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "Node Replacement with a NULL node"
   }
   DEF BACK Background2D {
    backColor 1 1 1

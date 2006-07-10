@@ -32,15 +32,15 @@
                     <ul>
                         <xsl:if test = "$previous">
                             <li>
-                                <a href = "{$previous}.html">previous</a>
+                                <a href = "{$previous}.html">Previous</a>
                             </li>
                         </xsl:if>
                         <li>
-                            <a href = "index.html">index</a>
+                            <a href = "index.html">Index</a>
                         </li>
                         <xsl:if test = "$next">
                             <li>
-                                <a href = "{$next}.html">next</a>
+                                <a href = "{$next}.html">Next</a>
                             </li>
                         </xsl:if>
                     </ul>

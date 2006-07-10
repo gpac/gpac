@@ -27,8 +27,14 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows Linear gradient" "with different spread method" "and animated end point" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Gradient Linear Test"
+   info [
+    "This test shows the different methods for spreading the gradients when the size of the object to be filled is large" 
+    "The end point of the gradient is also animated to change the gradient aspect." 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "Linear Gradient Spread Methods"
   }
   Transform2D {
    translation 0 -150

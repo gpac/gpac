@@ -27,8 +27,15 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows XCurve2D new features" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "XCurve2D Test"
+   info [
+       "This shows the use of XCurve2D." 
+       "This node is an extension of the Curve2D node. It allows more drawing types: quadratic Bezier curves and elliptical arcs."
+       "Both XCurve2D and Curve2D are similar to IndexedFaceSet2D and IndexedLineSet2D because they can be used to represent polygons and polylines. The difference is that it is not possible to assign a color or texture per point, nor a color per closed path. "
+       "" 
+       "GPAC Regression Tests" 
+       "(C) 2002-2006 GPAC Team"
+    ]
+   title "XCurve2D"
   }
   Transform2D {
    translation -150 140

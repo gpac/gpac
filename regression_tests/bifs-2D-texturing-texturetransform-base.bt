@@ -33,8 +33,14 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows ImageTexture" "with textureTransform and transparency" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "TextureTransform Test"
+   info [
+    "This test shows how a texture can be modified: either changing its positionning in the shape or its transparency" 
+    "The positioning is given using the TextureTransform node and the transparency using the Material2D node." 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "TextureTransform"
   }
   Transform2D {
    translation -180 0

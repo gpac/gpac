@@ -27,8 +27,14 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows usage of scalable flag" "in XLineProperties node" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "XLineProperties Test"
+   info [
+    "This test shows the usage of scalable flag in the XLineProperties node" 
+    "We see that the right line's width changes during the animation while the left one does not change." 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2004 GPAC Team"
+    ]
+    title "Scalability of the outline - the XLineProperties node"
   }
   DEF TR1 Transform2D {
    scale 2 2

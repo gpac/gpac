@@ -33,8 +33,14 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows textureTransform" "with user interaction" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "TextureTransform Test"
+   info [
+    "This test shows how to apply transformations to texture independantly of the transformation on the shape." 
+    "The TextureTransform node is used here." 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "Transforming Textures"      
   }
   Transform2D {
    translation -150 100

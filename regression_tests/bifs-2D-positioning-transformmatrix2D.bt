@@ -27,8 +27,16 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows usage of transformMatrix2D" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "TransformMatrix2D Test"
+    "This test shows how to apply affine transformations on a rectangle."
+    "The TransformMatrix2D works like the Transform2D node, but it requires giving the coefficients of a 3x2 matrix."
+    "It allows for skewing and for simple animations of skewing." 
+    "Click on the transformed rectangles to start transformation animations." 
+    "cf bifs-2D-positioning-transform2D" 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "Apply transformations on local coordinate systems - TransformMatrix2D node"  
   }
   TransformMatrix2D {
    tx 175

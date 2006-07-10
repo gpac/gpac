@@ -27,8 +27,16 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows two ProximitySensor2D" "on a single shape" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "ProximitySensor2D test"
+   info [
+    "This test shows the usage of the ProximitySensor2D node"
+    "Two ProximitySensor2D nodes are placed on a single shape. The Shape is a 300x300 rectangle, and the ProximitySensor2D nodes define two areas centered on the rectangle: a 50x50 rectangle and a 200x200 rectangle." 
+    "When the mouse enters or exits an area, an action is triggered."
+    "Here, nothing happens when the mouse enters the object, then it turns red if the mouse enters the first area, and it turns empty if the mouse enters the second area." 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "ProximitySensor2D"
   }
   DEF T1 Transform2D {
    children [

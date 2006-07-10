@@ -33,8 +33,14 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows ImageTexture" "with textureTransform and transparency" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Image Texture Test"
+   info [
+    "This test shows a texture being transformed (e.g. skewed) and this transformation is animated." 
+    "The TransformMatrix2D is used here to allow skewing." 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "ImageTexture"
   }
   Transform2D {
    translation -180 100

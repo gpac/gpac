@@ -33,8 +33,16 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows PlaneSensor2D" "with and without auto-offset field" "with a texture-mapped shape" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "PlaneSensor2D test"
+   info [
+    "This test shows the use of the PlaneSensor2D node, and its auto-offset property." 
+    "The PlaneSensor2D is used to detect mouse motion between mouse down and mouse up." 
+    "This allows to move objects between mouse down and mouse up." 
+    "The auto-offset is used to automatically store the mouse position at mouse release and use it as the offset to the next translation." 
+    "This tests shows two images (clipped by circles) which can be dragged." 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"]
+   title "PlaneSensor2D for dragging objects"
   }
   DEF T1 Transform2D {
    translation -150 0

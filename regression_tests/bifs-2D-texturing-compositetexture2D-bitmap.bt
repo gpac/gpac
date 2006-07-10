@@ -27,8 +27,17 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows transparent CompositeTexture2D (no background)" "used with a bitmap node" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Composite Texture Test"
+   info [
+    "This test shows the usage of the CompositeTexture node."
+    "It allows defining a texture made of vector graphics objects, and to use the texture like images or video. It enables using hardware acceleration for texture operations."
+    "In mixed 3D/2D environment, it allows mapping 2D graphics on 3D objects."
+    "Texture in general may be repeated without the complexity of duplicating and translating the objects."
+    "Here, the texture is an animated circle on a red background. The resulting texture is used on a Bitmap node." 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "CompositeTexture and Bitmap nodes"
   }
   Shape {
    appearance Appearance {

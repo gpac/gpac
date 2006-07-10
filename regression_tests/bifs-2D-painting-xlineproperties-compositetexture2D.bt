@@ -27,8 +27,13 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows line texturing" "with an composite texture" "using variable width and different line alignment" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "XLineProperties Test"
+   info [
+    "This shows line texturing with a composite texture using the CompositeTexture2D node using variable width and different line alignment" 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "Complex line texturing with the XLineProperties node"
   }
   Transform2D {
    translation 0 150

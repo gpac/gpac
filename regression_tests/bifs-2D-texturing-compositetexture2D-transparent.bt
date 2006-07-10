@@ -27,39 +27,64 @@ OrderedGroup {
    backColor 1 1 0
   }
   WorldInfo {
-   info ["This shows transparent CompositeTexture2D" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Composite Texture Test"
+   info [
+    "This test shows how transparency applies to composite textures."
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "CompositeTexture and Transparency"
   }
-  Shape {
-   appearance Appearance {
-    material DEF M1 Material2D {
-     emissiveColor 0 1 0
-    }
-    texture CompositeTexture2D {
-     pixelWidth 100
-     pixelHeight 100
-     children [
-      DEF S Shape {
+  Transform2D {
+   translation -20 80
+   rotationAngle 0.57
+   children [
+      Shape {
        appearance Appearance {
         material Material2D {
-         emissiveColor 0 0 0
+         emissiveColor 1 0 0
          filled TRUE
-         transparency 0.5
         }
        }
-       geometry Circle {
-        radius 50
-       }
+       geometry Rectangle { size 380 40 }
       }
-      DEF TS TouchSensor {}
-     ]
-    }
-    textureTransform TextureTransform {
-     scale 8 4
-    }
-   }
-   #geometry Curve2D { type [2] point Coordinate2D { point [-300 0 -150 -500 150 500 300 0] } }
-   geometry Rectangle { size 300 150 }
+   ]
+  }
+  Transform2D {
+   translation -20 80
+   children [
+      Shape {
+       appearance Appearance {
+        material DEF M1 Material2D {
+         emissiveColor 0 1 0
+        }
+        texture CompositeTexture2D {
+         pixelWidth 100
+         pixelHeight 100
+         children [
+          DEF S Shape {
+           appearance Appearance {
+            material Material2D {
+             emissiveColor 0 0 0
+             filled TRUE
+             transparency 0.5
+            }
+           }
+           geometry Circle {
+            radius 50
+           }
+          }
+          DEF TS TouchSensor {}
+         ]
+        }
+        textureTransform TextureTransform {
+         scale 8 4
+        }
+       }
+       #geometry Curve2D { type [2] point Coordinate2D { point [-300 0 -150 -500 150 500 300 0] } }
+       geometry Rectangle { size 300 150 }
+      }
+    ]
   }
   Transform2D {
    translation 140 -100
@@ -76,7 +101,7 @@ OrderedGroup {
         }
        }
        geometry Text {
-        string ["Composite Texture Pattern" "Black color with 0.5 transparency"]
+        string ["Composite Texture Pattern" "Black Circle Half-Transparent"]
         fontStyle DEF FS FontStyle {
          family ["SANS"]
          justify ["MIDDLE" "BEGIN"]

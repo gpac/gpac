@@ -38,7 +38,12 @@
 
 		<xsl:template match="file">
             <xsl:if test="not(@generate-html)or @generate-html != 'false'">
-    			<li><a href="{@name}.html"><xsl:value-of select="@name"/></a></li>
+    			<li><a href="{@name}.html">
+    			<xsl:choose>
+    			    <xsl:when test="@title"><xsl:value-of select="@title"/></xsl:when>
+    			    <xsl:otherwise><xsl:value-of select="@name"/></xsl:otherwise>
+    			</xsl:choose>
+    			</a></li>
     		</xsl:if>
 		</xsl:template>
 </xsl:stylesheet>

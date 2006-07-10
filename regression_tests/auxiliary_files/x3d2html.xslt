@@ -30,11 +30,11 @@
                 <div id = "nav">
                     <ul>
                         <xsl:if test = "$previous">
-                            <li><a href = "{$previous}.html">previous</a></li>
+                            <li><a href = "{$previous}.html">Previous</a></li>
                         </xsl:if>
-                        <li><a href = "index.html">index</a></li>
+                        <li><a href = "index.html">Index</a></li>
                         <xsl:if test = "$next">
-                            <li><a href = "{$next}.html">next</a></li>
+                            <li><a href = "{$next}.html">Next</a></li>
                         </xsl:if>
                     </ul>
                 </div>

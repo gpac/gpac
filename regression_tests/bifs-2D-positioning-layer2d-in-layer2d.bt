@@ -30,10 +30,16 @@ InitialObjectDescriptor {
 
 OrderedGroup {
  children [
-  DEF B1 Background2D {backColor 1.0 1.0 1.0}
+  DEF B1 Background2D {backColor 1 1 1}
   WorldInfo {
-   title "Layer2D Test"
-   info ["This shows layer2D with background and a child layer2D" "Both layer sizes are animated" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
+   title "Nested Clipping - Layer2D"
+   info [
+    "This test shows nested Layer2D nodes." 
+    "Both layer sizes are animated" 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
   }
 
   Transform2D {

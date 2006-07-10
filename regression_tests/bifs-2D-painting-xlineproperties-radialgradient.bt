@@ -27,8 +27,12 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows line texturing" "with a radial gradient with differenty spread method" "and animated focal point" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "XLineProperties Test"
+   info [
+    "This test shows line texturing with a radial gradient with different spread method and animated focal point"
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"]
+   title "Radial Gradient on lines using XLineProperties node"
   }
   Transform2D {
    translation 0 -150

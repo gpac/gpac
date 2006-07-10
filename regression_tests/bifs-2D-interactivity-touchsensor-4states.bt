@@ -28,14 +28,12 @@ OrderedGroup {
   }
   WorldInfo {
    info [
-    "This test shows a TouchSensor node used to modify the filled property of 2 Material2D nodes." 
-    "The TouchSensor node sends an isActive event each time a Mouse Button is pressed. The value of the event is TRUE if the Mouse is over a sibling shape of the TouchSensor node. Otherwise it is FALSE." 
-    "In this example, the event value is routed to the filled property of 2 different circles. So, when the mouse is clicked on the square, both circled are filled and when the mouse is released, both circles become empty."
-    ""
+    "This shows how to make a 4 states button" 
+    "" 
     "GPAC Regression Tests" 
     "(C) 2002-2006 GPAC Team"
    ]
-   title "TouchSensor & isActive"
+   title "4 States Button"
   }
   Transform2D {
    scale 0.5 0.5
@@ -55,7 +53,6 @@ OrderedGroup {
        }
       }
       DEF TS1 TouchSensor {}
-      DEF TS2 TouchSensor {}
      ]
     }
     Transform2D {
@@ -65,6 +62,7 @@ OrderedGroup {
        appearance Appearance {
         material DEF M1 Material2D {
          emissiveColor 1 1 0
+         filled TRUE
         }
        }
        geometry Circle {
@@ -73,26 +71,33 @@ OrderedGroup {
       }
      ]
     }
-    Transform2D {
-     translation 100 -50
-     children [
-      Shape {
-       appearance Appearance {
-        material DEF M2 Material2D {
-         emissiveColor 0 1 1
+    DEF OverC Conditional {
+        buffer {
+            REPLACE M1.emissiveColor BY 1 1 0
         }
-       }
-       geometry Circle {
-        radius 50
-       }
-      }
-     ]
+    }
+    DEF OverRC Conditional {
+        buffer {
+            REPLACE M1.emissiveColor BY 0 1 1
+        }
+    }
+    DEF C Conditional {
+        buffer {
+            REPLACE M1.emissiveColor BY 1 0 0
+        }
+    }
+    DEF RC Conditional {
+        buffer {
+            REPLACE M1.emissiveColor BY 0 0 1
+        }
     }
    ]
   }
  ]
 }
 
-ROUTE TS1.isActive TO M1.filled
-ROUTE TS2.isActive TO M2.filled
+ROUTE TS1.isActive TO C.activate
+ROUTE TS1.isActive TO RC.reverseActivate
+ROUTE TS1.isOver TO OverC.activate
+ROUTE TS1.isOver TO OverRC.reverseActivate
 

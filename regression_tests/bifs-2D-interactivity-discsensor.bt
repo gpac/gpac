@@ -33,8 +33,14 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows disc sensor" "with and without auto-offset field" "with a texture-mapped shape" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Disc Sensor test"
+   info [
+    "This test shows the use of the disc sensor which computes the angle in the mouse motion between mouse down and mouse up."
+    "It also uses the auto-offset field, which allows storing reusing the angle from the previous mouse up."
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "DiscSensor"
   }
   DEF T1 Transform2D {
    scale 1 2

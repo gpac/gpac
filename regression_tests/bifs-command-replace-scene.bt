@@ -27,8 +27,15 @@ OrderedGroup {
    backColor 1 1 0
   }
   WorldInfo {
-   info ["This shows scene replacement" "through BIFS commands" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "scene replace test"
+   info [
+    "This test shows scene replacement using BIFS commands."
+    "At initialization, the scene is empty, only a yellow background."
+    "At 2s, the whole scene is replaced by a new one containing a red polygon."
+    "All resources belonging to the previous scene are reclaimed."
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2004 GPAC Team"]
+   title "Scene Replacement"
   }
  ]
 }

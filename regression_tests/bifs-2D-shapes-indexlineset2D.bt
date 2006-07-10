@@ -27,8 +27,14 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows IndexedLineSet2D" "with different color fill mode" "Gradient Vertexes are not implemented under Linux/GPAC" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "IndexedLineSet2D Test"
+   info [
+    "This test shows a bit more how to use the IndexedLineSet2D node with different line color modes."
+    "Similarly to the IndexedFaceSet2D, one can give a color to each point." 
+    "The result will be a line with a gradient color" 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"]
+   title "IndexedLineSet2D"
   }
   Transform2D {
    scale 0.5 0.5

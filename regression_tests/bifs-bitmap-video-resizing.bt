@@ -33,8 +33,15 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows dynamic bitmap scaling" "over static bitmaps" "" "GPAC Regression Tests" "(C) 2002-2004 GPAC Team"]
-   title "Bitmap Test"
+   info [
+    "This test shows a video whose size is animated, the result is displayed on top of a static image." 
+    "Both textures use a Bitmap node to allow efficient handling of the textures." 
+    "The resizing of the video is not done using a Transform2D node (or TransformMatrix2D) but by changing the size property of the Bitmap node." 
+    "" 
+    "GPAC Regression Tests" 
+    "(C) 2002-2006 GPAC Team"
+   ]
+   title "Bitmap Video Resizing"
   }
   Transform2D {
    translation 0 100

@@ -28,22 +28,21 @@ OrderedGroup {
   }
   WorldInfo {
    info [
-    "The MPEG-4 primitive to display a graphical object on screen is the Shape node."
-    "This node has a child node contained in the geometry property." 
-    "This test shows the possible 2D nodes allowed in the geometry property of the Shape node." 
-    "Allowed nodes are:" 
-    "* IndexedLineSet2D: to draw polylines (is not considered close even if last point = first point"
-    "* Circle: the only property is the radius, the origin of the local coordinate system is the center of the circle" 
-    "* Rectangle: the only property is the size (WxH), the origin of the local coordinate system is the center of the rectangle"
-    "* Curve2D: to display complex paths using Bezier Curves, has two properties: type, points. Type gives the drawing types (segments or bezier), points gives the list of points to be consumed when reading the types"
-    "* IndexedFaceSet2D: similar to IndexedLineSet2D, but is implicitely closed"
-    "* PointSet2D: a list of points to be displayed (useless ?)"
+    "The MPEG-4 primitive to display graphical objects on screen is the Shape node."
+    "This node has a child node contained in its geometry property." 
+    "This test shows the possible 2D nodes allowed in this geometry property:" 
+    "* Rectangle: its only property is its size (WxH). The origin of its local coordinate system is the center of the rectangle."
+    "* Circle: its only property is its radius. The origin of its local coordinate system is the center of the circle." 
+    "* IndexedLineSet2D: this node is used to draw polylines. This geometry is not considered closed, even if last point = first point, so it cannot be filled. The origin of its local coordinate system is the point of coordinate (0,0)."
+    "* IndexedFaceSet2D: this node is similar to IndexedLineSet2D. It is used to display polygons (i.e. a list of segments implicitely closed by the segment [last point, first point]). The origin of its local coordinate system is the point of coordinate (0,0)."
     "cf bifs-2D-shapes-indexfaceset2D"
+    "* Curve2D: this node is used to display complex paths using Bezier Curves, has two properties: type, points. Type gives the drawing types (segments or bezier), points gives the list of points to be consumed when reading the types. The node XCurve2D allows more drawing types (elliptical arcs ...)"
     "cf bifs-2D-shapes-xcurve2D"
+    "* PointSet2D: a list of points to be displayed (not really useful)"
     ""
     ""
     "GPAC Regression Tests" 
-    "(C) 2002-2004 GPAC Team"
+    "(C) 2002-2006 GPAC Team"
    ]
    title "Basic 2D Geometry nodes"
   }
