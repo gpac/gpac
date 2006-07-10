@@ -495,13 +495,7 @@ EXPORTS
 	gf_isom_guess_specification
 	gf_isom_delete_text_sample
 	gf_isom_has_sync_shadows
-
-; Apple extensions
-	gf_isom_apple_get_name
-	gf_isom_apple_get_comment
-	gf_isom_apple_get_artist
-	gf_isom_apple_get_album
-	gf_isom_apple_get_genre
+	gf_isom_apple_get_tag
 
 ;NON-READ-ONLY exports
 ;	gf_isom_set_timescale
@@ -641,19 +635,7 @@ EXPORTS
 ;	gf_isom_remove_meta_xml
 ;	gf_isom_extract_meta_xml
 ;	gf_isom_extract_meta_item
-
-; Apple extensions
-	gf_isom_apple_set_name
-	gf_isom_apple_set_comment
-	gf_isom_apple_set_artist
-	gf_isom_apple_set_album
-	gf_isom_apple_set_genre
-
-	gf_isom_apple_remove_name
-	gf_isom_apple_remove_comment
-	gf_isom_apple_remove_artist
-	gf_isom_apple_remove_album
-	gf_isom_apple_remove_genre
+;	gf_isom_apple_set_tag
 
 ;end GPAC_READ_ONLY
 
