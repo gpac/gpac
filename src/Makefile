@@ -4,6 +4,15 @@ vpath %.c $(SRC_PATH)/src
 
 CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
 
+ifeq ($(DEBUGBUILD), yes)
+CFLAGS+=-g
+LDFLAGS+=-g
+endif
+
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
+endif
 
 ## libgpac objects gathering: src/utils
 LIBGPAC_UTILS=utils/os_divers.o utils/os_net.o utils/os_module.o utils/os_thread.o utils/list.o utils/base_encoding.o utils/bitstream.o utils/color.o utils/configfile.o utils/downloader.o utils/error.o utils/math.o utils/path2d.o utils/path2d_stroker.o utils/module.o utils/token.o utils/url.o utils/utf.o utils/xml_parser.o
