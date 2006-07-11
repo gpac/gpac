@@ -50,7 +50,13 @@ static GF_Err SA2DR_InitFontEngine(GF_FontRaster *dr)
 	if (FT_Init_FreeType(&ftpriv->library) ) return GF_IO_ERR;
 
 	/*remove the final delimiter*/
+#if defined(WIN32)
+#pragma message("using C:\\WINDOWS\\Fonts directory for fonts")
     ftpriv->font_dir = strdup("C:\\WINDOWS\\Fonts");
+#else if defined(_WIN32_WCE)
+#pragma message("using \\Windows directory for fonts")
+    ftpriv->font_dir = strdup("\\Windows");
+#endif
 	strcpy(ftpriv->font_serif,"Arial");
 	strcpy(ftpriv->font_sans,"Times New Roman");
 	strcpy(ftpriv->font_fixed,"Courier New");

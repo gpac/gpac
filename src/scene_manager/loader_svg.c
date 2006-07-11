@@ -91,6 +91,7 @@ typedef struct {
 
 static GF_Err svg_report(GF_SVGParser *parser, GF_Err e, char *format, ...)
 {
+#ifdef PRINT_MESSAGE
 	va_list args;
 	va_start(args, format);
 	if (parser->load->OnMessage) {
@@ -106,6 +107,7 @@ static GF_Err svg_report(GF_SVGParser *parser, GF_Err e, char *format, ...)
 	}
 	va_end(args);
 	if (e) parser->last_error = e;
+#endif
 	return e;
 }
 static void svg_progress(void *cbk, u32 done, u32 total)

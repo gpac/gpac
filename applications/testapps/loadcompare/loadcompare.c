@@ -30,11 +30,28 @@ enum {
 };
 
 typedef struct {
+	char filename[100];
+	u32 size;
+	u32 gpacxml_loadtime;
+	u32 libxml_loadtime;
+	u32 gz_size;
+	u32 gpacxml_gz_loadtime;
+	u32 libxml_gz_loadtime;
+	u32 track_size;
+	u32 track_loadtime;
+	u32 decoded_size;
+	u32 decoded_loadtime;
+} LoadData;
+
+typedef struct {
 	FILE *out;
 	u32 type;
 	u32 nbloads;
 	u32 verbose;
 	Bool regenerate;
+	Bool spread_repeat;
+	u32 repeat_index;
+	GF_List *data;
 } GF_LoadCompare;
 
 GF_Err load_mp4(GF_LoadCompare *lc, GF_ISOFile *mp4, u32 *loadtime)
@@ -43,10 +60,12 @@ GF_Err load_mp4(GF_LoadCompare *lc, GF_ISOFile *mp4, u32 *loadtime)
 	GF_SceneLoader load;
 	GF_SceneGraph *sg;
 	u32 i, starttime, endtime;
+	u32 nb;
+	if (lc->spread_repeat) nb = 1;
+	else nb = lc->nbloads ;
 	
 	*loadtime = 0;
-
-	for (i = 0; i<lc->nbloads; i++) {
+	for (i = 0; i< nb; i++) {
 		memset(&load, 0, sizeof(GF_SceneLoader));
 		sg = gf_sg_new();
 		load.ctx = gf_sm_new(sg);
@@ -77,16 +96,20 @@ void load_progress(void *cbk, u32 done, u32 total) {
 	fprintf(stdout, "%d/%d\r", done, total);
 }
 
-GF_Err load_file(GF_LoadCompare *lc, char *item_path, u32 *loadtime)
+GF_Err gpacctx_load_file(GF_LoadCompare *lc, char *item_path, u32 *loadtime)
 {
 	GF_Err e = GF_OK;
 	GF_SceneLoader load;
 	GF_SceneGraph *sg;
 	u32 i, starttime, endtime;
 	
+	u32 nb;
+	if (lc->spread_repeat) nb = 1;
+	else nb = lc->nbloads ;
+
 	*loadtime = 0;
 
-	for (i = 0; i<lc->nbloads; i++) {
+	for (i = 0; i<nb; i++) {
 		memset(&load, 0, sizeof(GF_SceneLoader));
 		sg = gf_sg_new();
 		load.ctx = gf_sm_new(sg);
@@ -203,14 +226,13 @@ GF_Err encode_laser(GF_LoadCompare *lc, char *item_path, GF_ISOFile *mp4, GF_SME
 	return e;
 }
 
-GF_Err get_mp4_laser_load_and_size(GF_LoadCompare *lc, char *item_name, char *item_path, u32 *loadtime, u32 *size)
+GF_Err create_laser_mp4(GF_LoadCompare *lc, char *item_name, char *item_path, u32 *size)
 {
 	char mp4_path[100], *ext;
 	GF_Err e = GF_OK;
 	GF_ISOFile *mp4;
 
 	*size = 0;
-	*loadtime = 0;
 
 	strcpy(mp4_path, item_name);
 	ext = strrchr(mp4_path, '.');
@@ -239,16 +261,37 @@ GF_Err get_mp4_laser_load_and_size(GF_LoadCompare *lc, char *item_name, char *it
 				e = get_laser_track_size(mp4, size);
 				if (e) {
 					if (lc->verbose) fprintf(stdout, "Could not get MP4 file size\n");
-				} else {
-					e = load_mp4(lc, mp4, loadtime);
-					if (e) {
-						if (lc->verbose) fprintf(stdout, "Could not get MP4 file load time\n");
-					}	
-				}
+				} 
 				gf_isom_close(mp4);
 			}
 		}
 	}
+	return e;
+}
+
+
+GF_Err get_mp4_loadtime(GF_LoadCompare *lc, char *item_name, char *item_path, u32 *loadtime)
+{
+	char mp4_path[100], *ext;
+	GF_Err e = GF_OK;
+	GF_ISOFile *mp4;
+
+	*loadtime = 0;
+
+	strcpy(mp4_path, item_name);
+	ext = strrchr(mp4_path, '.');
+	strcpy(ext, ".mp4");
+	mp4 = gf_isom_open(mp4_path, GF_ISOM_OPEN_READ, NULL);
+	if (!mp4) {
+		if (lc->verbose) fprintf(stdout, "Could not open file %s for reading\n", mp4_path);
+		e = GF_IO_ERR;
+	} else {
+		e = load_mp4(lc, mp4, loadtime);
+		if (e) {
+			if (lc->verbose) fprintf(stdout, "Could not get MP4 file load time\n");
+		}	
+	}
+	gf_isom_close(mp4);
 	return e;
 }
 
@@ -307,9 +350,13 @@ GF_Err libxml_load_svg(GF_LoadCompare *lc, char *item_path, u32 *loadtime)
 	u32 i, starttime, endtime;
 	void *p;
 	
+	u32 nb;
+	if (lc->spread_repeat) nb = 1;
+	else nb = lc->nbloads ;
+
 	*loadtime = 0;
 
-	for (i = 0; i<lc->nbloads; i++) {
+	for (i = 0; i<nb; i++) {
 		sg = gf_sg_new();
 
 		starttime = gf_sys_clock();
@@ -327,13 +374,12 @@ GF_Err libxml_load_svg(GF_LoadCompare *lc, char *item_path, u32 *loadtime)
 	return e;
 }
 
-GF_Err get_loadtime_and_size(GF_LoadCompare *lc, char *item_name, char *item_path, u32 *loadtime, u32 *size)
+GF_Err get_size(GF_LoadCompare *lc, char *item_name, char *item_path, u32 *size)
 {
 	GF_Err e = GF_OK;
 	FILE *file = NULL;
 
 	*size = 0;
-	*loadtime = 0;
 
 	file = fopen(item_path, "rt");
 	if (!file) {
@@ -346,14 +392,12 @@ GF_Err get_loadtime_and_size(GF_LoadCompare *lc, char *item_name, char *item_pat
 		if (*size == 0) {
 			if (lc->verbose) fprintf(stdout, "File %s has a size of 0\n", item_path);
 			e = GF_IO_ERR;
-		} else {
-			e = load_file(lc, item_path, loadtime);
-		}		
+		} 		
 	}
 	return e;
 }
 
-GF_Err get_decoded_svg_load_and_size(GF_LoadCompare *lc, char *item_name, char *item_path, u32 *loadtime, u32 *size)
+GF_Err get_decoded_svg_loadtime_and_size(GF_LoadCompare *lc, char *item_name, char *item_path, u32 *loadtime, u32 *size)
 {
 	GF_Err e = GF_OK;
 	char svg_out_name[256];
@@ -368,15 +412,16 @@ GF_Err get_decoded_svg_load_and_size(GF_LoadCompare *lc, char *item_name, char *
 
 	e = decode_svg(lc, item_name, item_path, svg_out_name);
 	if (!e) {
-		e = get_loadtime_and_size(lc, svg_out_name, svg_out_name, loadtime, size);
+		e = get_size(lc, svg_out_name, svg_out_name, size);
 		if (e) {
-			fprintf(stderr, "Error computing SVG size and load time from MP4 file\n");
+			return e;
 		}
+		e = gpacctx_load_file(lc, svg_out_name, loadtime);
 	}
 	return e;
 }
 
-GF_Err get_gz_loadtime_and_size(GF_LoadCompare *lc, char *item_name, char *item_path, u32 *loadtime, u32 *size, Bool useLibXML)
+GF_Err create_gz_file(GF_LoadCompare *lc, char *item_name, char *item_path, u32 *size)
 {
 	char buffer[100];
 	char gz_path[256];
@@ -386,7 +431,6 @@ GF_Err get_gz_loadtime_and_size(GF_LoadCompare *lc, char *item_name, char *item_
 	u32 read;
 
 	*size = 0;
-	*loadtime = 0;
 
 	strcpy(gz_path, item_name);
 	strcat(gz_path, "z");
@@ -407,97 +451,141 @@ GF_Err get_gz_loadtime_and_size(GF_LoadCompare *lc, char *item_name, char *item_
 		if (*size == 0) {
 			if (lc->verbose) fprintf(stdout, "File %s has a size of 0\n", gz_path);
 			e = GF_IO_ERR;
-		} else {
-			if (useLibXML) {
-				e = libxml_load_svg(lc, item_path, loadtime);
-			} else {
-				e = load_file(lc, item_path, loadtime);
-			}
-		}
+		} 
 	}
-
 	return e;
+}
+
+GF_Err get_gz_loadtime(GF_LoadCompare *lc, char *item_name, char *item_path, u32 *loadtime, Bool useLibXML)
+{
+	char gz_path[256];
+	GF_Err e = GF_OK;
+	*loadtime = 0;
+
+	strcpy(gz_path, item_name);
+	strcat(gz_path, "z");
+
+	if (useLibXML) {
+		e = libxml_load_svg(lc, gz_path, loadtime);
+	} else {
+		e = gpacctx_load_file(lc, gz_path, loadtime);
+	}
+	return e;
+}
+
+void print_load_data(GF_LoadCompare *lc, LoadData *ld)
+{
+	if (lc->verbose) fprintf(stdout, "Processing %s\n", ld->filename);
+	fprintf(lc->out, "%s\t", ld->filename);
+
+	if (lc->verbose) fprintf(stdout, "File Size %d\n", ld->size);
+	fprintf(lc->out, "%d\t", ld->size);
+
+	if (lc->verbose) fprintf(stdout, "GPAC XML Load Time %d\n", ld->gpacxml_loadtime);
+	fprintf(lc->out, "%d\t", ld->gpacxml_loadtime);
+
+	if (lc->verbose) fprintf(stdout, "LibXML Load Time %d \n", ld->libxml_loadtime);
+	fprintf(lc->out, "%d\t", ld->libxml_loadtime);
+
+	if (lc->verbose) fprintf(stdout, "GZ Size %d\n", ld->gz_size);
+	fprintf(lc->out, "%d\t", ld->gz_size);
+
+	if (lc->verbose) fprintf(stdout, "GZ Load Time %d\n", ld->gpacxml_gz_loadtime);
+	fprintf(lc->out, "%d\t", ld->gpacxml_gz_loadtime);
+
+	if (lc->verbose) fprintf(stdout, "LibXML GZ Load Time %d\n", ld->libxml_gz_loadtime);
+	fprintf(lc->out, "%d\t", ld->libxml_gz_loadtime);
+
+	if (lc->verbose) fprintf(stdout, "MP4 Track Size %d\n", ld->track_size);
+	fprintf(lc->out, "%d\t", ld->track_size);
+
+	if (lc->verbose) fprintf(stdout, "MP4 Track Load Time %d\n", ld->track_loadtime);
+	fprintf(lc->out, "%d\t", ld->track_loadtime);
+
+	if (lc->verbose) fprintf(stdout, "Decoded Size %d\n", ld->decoded_size);
+	fprintf(lc->out, "%d\t", ld->decoded_size);
+
+	if (lc->verbose) fprintf(stdout, "Decoded Load Time %d \n", ld->decoded_loadtime);
+	fprintf(lc->out, "%d\t", ld->decoded_loadtime);
+
+	if (lc->verbose) fprintf(stdout, "Done %s\n", ld->filename);
+	fprintf(lc->out, "\n");
+	fflush(lc->out);
 }
 
 Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 {
 	GF_Err e;
 	GF_LoadCompare *lc = cbck;
-	u32 loadtime, size;
+	u32 loadtime;
+	LoadData *ld;
 
-	if (lc->verbose) fprintf(stdout, "Processing %s\n", item_path);
-	fprintf(lc->out, "%s\t", item_name);
+	if (lc->repeat_index == 0) {
+		GF_SAFEALLOC(ld, sizeof(LoadData));
+		gf_list_add(lc->data, ld);
+		strcpy(ld->filename, item_name);
 
-	if (lc->type == SVG) {
-		e = get_loadtime_and_size(lc, item_name, item_path, &loadtime, &size);
-		if (e) {
-			fprintf(stderr, "Error computing SVG load time and size %s\n", item_path);
-			return 1;
-		} 
-		if (lc->verbose) fprintf(stdout, "SVG Load Time %d - Size %d\n", loadtime, size);
-		fprintf(lc->out, "%d\t%d\t", size, loadtime);
+		e = get_size(lc, item_name, item_path, &ld->size);
+		if (e) return 1;
 
-		libxml_load_svg(lc, item_path, &loadtime);
-		if (lc->verbose) fprintf(stdout, "LibXML Load Time %d \n", loadtime);
-		fprintf(lc->out, "%d\t", loadtime);
+		e = create_gz_file(lc, item_name, item_path, &ld->gz_size);
+		if (e) return 1;
 
-		e = get_gz_loadtime_and_size(lc, item_name, item_path, &loadtime, &size, 0);
-		if (e) {
-			fprintf(stderr, "Error computing SVGZ load time and size %s\n", item_path);
-			return 1;
-		} 
-		if (lc->verbose) fprintf(stdout, "SVGZ Load Time %d - Size %d\n", loadtime, size);
-		fprintf(lc->out, "%d\t%d\t", size, loadtime);
+		e = create_laser_mp4(lc, item_name, item_path, &ld->track_size);
+		if (e) return 1;
 
-		e = get_gz_loadtime_and_size(lc, item_name, item_path, &loadtime, &size, 1);
-		if (e) {
-			fprintf(stderr, "Error computing LibXML GZ load time %s\n", item_path);
-			return 1;
-		} 
-		if (lc->verbose) fprintf(stdout, "LibXML GZ Load Time %d\n", loadtime);
-		fprintf(lc->out, "%d\t", loadtime);
-
-		e = get_mp4_laser_load_and_size(lc, item_name, item_path, &loadtime, &size);
-		if (e) {
-			fprintf(stderr, "Error computing MP4/LASeR load time and size %s\n", item_path);
-			return 1;
-		} 
-		if (lc->verbose) fprintf(stdout, "MP4/LASeR Load Time %d - Size %d\n", loadtime, size);
-		fprintf(lc->out, "%d\t%d\t", size, loadtime);
-
-		e = get_decoded_svg_load_and_size(lc, item_name, item_path, &loadtime, &size);
-		if (e) {
-			fprintf(stderr, "Error computing decoded SVG load time and size %s\n", item_path);
-			return 1;
-		} 
-		if (lc->verbose) fprintf(stdout, "Decoded SVG Load Time %d - Size %d\n", loadtime, size);
-		fprintf(lc->out, "%d\t%d\t", size, loadtime);
-	} else if (lc->type == XMT) {
-		char *ext1, *ext2;
-		e = get_loadtime_and_size(lc, item_name, item_path, &loadtime, &size);
-		if (e) {
-			fprintf(stderr, "Error computing decoded XMT load time and size %s\n", item_path);
-			return 1;
-		} 
-		if (lc->verbose) fprintf(stdout, "Decoded XMT Load Time %d - Size %d\n", loadtime, size);
-		fprintf(lc->out, "%d\t%d\t", size, loadtime);
-
-		ext1 = strrchr(item_name, '.');
-		ext2 = strrchr(item_path, '.');
-		ext1[1] = 'b'; ext1[2] = 't'; ext1[3] = 0;
-		ext2[1] = 'b'; ext2[2] = 't'; ext2[3] = 0;
-		e = get_loadtime_and_size(lc, item_name, item_path, &loadtime, &size);
-		if (e) {
-			fprintf(stderr, "Error computing decoded BT load time and size %s\n", item_path);
-			return 1;
-		} 
-		if (lc->verbose) fprintf(stdout, "Decoded BT Load Time %d - Size %d\n", loadtime, size);
-		fprintf(lc->out, "%d\t%d\t", size, loadtime);
+	} else {
+		LoadData *tmp;
+		u32 pos = 0;
+		ld = NULL;
+		while (tmp = gf_list_enum(lc->data, &pos)) {
+			if (!strcmp(tmp->filename, item_name)) {
+				ld = tmp;
+				break;
+			}
+		}
+		if (ld == NULL) return 1;
 	}
 
-	if (lc->verbose) fprintf(stdout, "Done %s\n", item_path);
-	fprintf(lc->out, "\n");
-	fflush(lc->out);
+
+	if (lc->type == SVG) {
+		/* GPAC XML loader */
+		e = gpacctx_load_file(lc, item_path, &loadtime);
+		if (e) return 1;
+		ld->gpacxml_loadtime += loadtime;
+
+		e = get_gz_loadtime(lc, item_name, item_path, &loadtime, 0);
+		if (e) return 1;
+		ld->gpacxml_gz_loadtime += loadtime;
+
+		/* LibXML and LibXML GZ loadings */
+		e = libxml_load_svg(lc, item_path, &loadtime);
+		if (e) return 1;
+		ld->libxml_loadtime += loadtime;
+
+		e = get_gz_loadtime(lc, item_name, item_path, &loadtime, 1);
+		if (e) return 1;
+		ld->libxml_gz_loadtime += loadtime;
+
+		/* MP4 Loading */
+		e = get_mp4_loadtime(lc, item_name, item_path, &loadtime);
+		if (e) return 1;
+		ld->track_loadtime += loadtime;
+
+/*		e = get_decoded_svg_loadtime_and_size(lc, item_name, item_path, &loadtime, &ld->decoded_size);
+		if (e) return 1;
+		ld->decoded_loadtime += loadtime;*/
+
+	} else if (lc->type == XMT) {
+		e = gpacctx_load_file(lc, item_path, &loadtime);
+		if (e) return 1;
+		ld->gpacxml_loadtime += loadtime;
+	}
+
+	if (!lc->spread_repeat) {
+		print_load_data(lc, ld);
+		free(ld);
+	}
 	return 0;
 }
 
@@ -544,6 +632,8 @@ int main(int argc, char **argv)
 			lc.type = XMT;
 		} else if (!stricmp(arg, "-svg")) {
 			lc.type = SVG;
+		} else if (!stricmp(arg, "-spread_repeat")) {
+			lc.spread_repeat = 1;
 		} else if (!stricmp(arg, "-verbose")) {
 			lc.verbose = (u32)atoi(argv[i+1]);
 			i++;
@@ -566,16 +656,39 @@ int main(int argc, char **argv)
 		fprintf(lc.out,"File Name\tXMT Size\tXMT Load Time\tBT Size\tBT Load Time\n");
 	}
 
+	lc.data = gf_list_new();
+
 	if (single) {
+		LoadData *ld;
 		char *tmp = strrchr(in, GF_PATH_SEPARATOR);
 		loadcompare_one(&lc, tmp+1, in);
+		ld = gf_list_get(lc.data, 0);
+		print_load_data(&lc, ld);
+		free(ld);
 	} else {
-		if (lc.type == SVG) {
-			gf_enum_directory(in, 0, loadcompare_one, &lc, "svg");
-		} else if (lc.type == XMT) {
-			gf_enum_directory(in, 0, loadcompare_one, &lc, "xmt");
+		if (lc.spread_repeat) {
+			for (lc.repeat_index = 0; lc.repeat_index < lc.nbloads; lc.repeat_index ++) {
+				if (lc.verbose) fprintf(stdout, "Loop %d\n", lc.repeat_index);
+				if (lc.type == SVG) {
+					gf_enum_directory(in, 0, loadcompare_one, &lc, "svg");
+				} else if (lc.type == XMT) {
+					gf_enum_directory(in, 0, loadcompare_one, &lc, "xmt");
+				}
+			}
+			for (i=0; i<gf_list_count(lc.data); i++) {
+				LoadData *ld = gf_list_get(lc.data, i);
+				print_load_data(&lc, ld);
+				free(ld);
+			}
+		} else {
+			if (lc.type == SVG) {
+				gf_enum_directory(in, 0, loadcompare_one, &lc, "svg");
+			} else if (lc.type == XMT) {
+				gf_enum_directory(in, 0, loadcompare_one, &lc, "xmt");
+			}
 		}
 	}
+	gf_list_del(lc.data);
 		
 	if (lc.out) fclose(lc.out);
 	gf_sys_close();

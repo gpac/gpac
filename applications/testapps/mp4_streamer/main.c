@@ -375,7 +375,7 @@ GF_Err rtp_init_packetizer(RTP_Caller *caller)
 
 	caller->packetizer = gf_rtp_builder_new(GP_RTP_PAYT_MPEG4, NULL, GP_RTP_PCK_SIGNAL_RAP, caller, OnNewPacket, OnPacketDone, NULL, OnData);
 	gf_rtp_builder_init(caller->packetizer, payload_type, 1500, 0, 
-		/*stream type*/GF_STREAM_SCENE, /*objecttypeindication */1, 
+		/*stream type*/5, /*objecttypeindication */107, 
 		0, 0, 0, 0, 0, 0, 0, NULL); 
 	payload_type++;
 

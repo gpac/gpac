@@ -2416,7 +2416,9 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 		svg_parse_clock_value(attribute_content, info->far_ptr);
 		break;
 	default:
+#ifdef PRINT_WARNING
 		fprintf(stdout, "Warning: skipping unsupported attribute %s\n", info->name);
+#endif
 		break;
 	}
 	return GF_OK;
@@ -2441,7 +2443,9 @@ void svg_parse_one_style(SVGElement *elt, char *one_style)
 		gf_svg_parse_attribute(elt, &info, c, 0, 0);
 	} else {
 #ifndef _WIN32_WCE
+#ifdef PRINT_WARNING
 		fprintf(stderr, "Error: Attribute %s does not belong to element %s.\n", attributeName, gf_svg_get_element_name(gf_node_get_tag((GF_Node*)elt)));
+#endif
 #endif
 	}
 	free(attributeName);
@@ -2675,7 +2679,10 @@ void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type)
 		return foc;
 	}
 	default:
+#ifdef PRINT_WARNING
 		fprintf(stdout, "Error: Type not supported: %d.\n", attribute_type);
+#endif
+		break;
 	} 
 	return NULL;
 }
@@ -2824,7 +2831,9 @@ static void svg_dump_path(SVG_PathData *path, char *attValue)
 			strcat(attValue, "Z");
 			break;
 		default:
+#ifdef PRINT_WARNING
 			fprintf(stdout, "WARING: unknown SVG path command %d\n", command);
+#endif
 			break;
 		}
 	}

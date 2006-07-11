@@ -51,7 +51,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
-# ADD LINK32 zlib.lib winmm.lib /nologo /subsystem:console /machine:I386 /out:"../../../bin/w32_rel/LoadCompare.exe" /libpath:"../../../extra_lib/lib/w32_rel"
+# ADD LINK32 zlib.lib winmm.lib  libxml2.lib /nologo /subsystem:console /machine:I386 /out:"../../../bin/w32_rel/LoadCompare.exe" /libpath:"../../../extra_lib/lib/w32_rel"
 
 !ELSEIF  "$(CFG)" == "LoadCompare - Win32 Debug"
 
@@ -75,7 +75,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 zlib.lib winmm.lib /nologo /subsystem:console /pdb:"obj/loadcompare_deb//LoadCompare.pdb" /debug /machine:I386 /out:"../../../bin/w32_deb/LoadCompare.exe" /pdbtype:sept /libpath:"../../../extra_lib/lib/w32_deb"
+# ADD LINK32 zlib.lib winmm.lib libxml2.lib /nologo /subsystem:console /pdb:"obj/loadcompare_deb//LoadCompare.pdb" /debug /machine:I386 /out:"../../../bin/w32_deb/LoadCompare.exe" /pdbtype:sept /libpath:"../../../extra_lib/lib/w32_deb"
 # SUBTRACT LINK32 /pdb:none
 
 !ENDIF 
@@ -90,6 +90,14 @@ LINK32=link.exe
 # Begin Source File
 
 SOURCE=.\loadcompare.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\modules\svg_loader\lsr_parser.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\modules\svg_loader\svg_parser.c
 # End Source File
 # End Group
 # Begin Group "Header Files"
