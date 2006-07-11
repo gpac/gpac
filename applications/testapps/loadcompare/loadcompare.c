@@ -319,6 +319,7 @@ GF_Err libxml_load_svg(GF_LoadCompare *lc, char *item_path, u32 *loadtime)
 		DANAE_SVGParser_Terminate();
 
 		endtime = gf_sys_clock();
+		if (lc->verbose) fprintf(stdout, "LibXML single parsing: %d\n", endtime-starttime);
 		*loadtime += endtime-starttime;
 
 		gf_sg_del(sg);
@@ -375,7 +376,7 @@ GF_Err get_decoded_svg_load_and_size(GF_LoadCompare *lc, char *item_name, char *
 	return e;
 }
 
-GF_Err get_gz_loadtime_and_size(GF_LoadCompare *lc, char *item_name, char *item_path, u32 *loadtime, u32 *size)
+GF_Err get_gz_loadtime_and_size(GF_LoadCompare *lc, char *item_name, char *item_path, u32 *loadtime, u32 *size, Bool useLibXML)
 {
 	char buffer[100];
 	char gz_path[256];
@@ -407,7 +408,11 @@ GF_Err get_gz_loadtime_and_size(GF_LoadCompare *lc, char *item_name, char *item_
 			if (lc->verbose) fprintf(stdout, "File %s has a size of 0\n", gz_path);
 			e = GF_IO_ERR;
 		} else {
-			e = load_file(lc, item_path, loadtime);
+			if (useLibXML) {
+				e = libxml_load_svg(lc, item_path, loadtime);
+			} else {
+				e = load_file(lc, item_path, loadtime);
+			}
 		}
 	}
 
@@ -436,13 +441,21 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 		if (lc->verbose) fprintf(stdout, "LibXML Load Time %d \n", loadtime);
 		fprintf(lc->out, "%d\t", loadtime);
 
-		e = get_gz_loadtime_and_size(lc, item_name, item_path, &loadtime, &size);
+		e = get_gz_loadtime_and_size(lc, item_name, item_path, &loadtime, &size, 0);
 		if (e) {
 			fprintf(stderr, "Error computing SVGZ load time and size %s\n", item_path);
 			return 1;
 		} 
 		if (lc->verbose) fprintf(stdout, "SVGZ Load Time %d - Size %d\n", loadtime, size);
 		fprintf(lc->out, "%d\t%d\t", size, loadtime);
+
+		e = get_gz_loadtime_and_size(lc, item_name, item_path, &loadtime, &size, 1);
+		if (e) {
+			fprintf(stderr, "Error computing LibXML GZ load time %s\n", item_path);
+			return 1;
+		} 
+		if (lc->verbose) fprintf(stdout, "LibXML GZ Load Time %d\n", loadtime);
+		fprintf(lc->out, "%d\t", loadtime);
 
 		e = get_mp4_laser_load_and_size(lc, item_name, item_path, &loadtime, &size);
 		if (e) {
@@ -548,7 +561,7 @@ int main(int argc, char **argv)
 	}
 
 	if (lc.type == SVG) {
-		fprintf(lc.out,"File Name\tSVG Size\tSVG Load Time\tLibXML Load Time\tSVGZ Size\tSVGZ Load Time\tMP4 Size\tMP4 Load Time\tDecoded SVG Size\tDecoded SVG Load Time\n");
+		fprintf(lc.out,"File Name\tSVG Size\tSVG Load Time\tLibXML Load Time\tSVGZ Size\tSVGZ Load Time\tLibXML GZ Load Time\tMP4 Size\tMP4 Load Time\tDecoded SVG Size\tDecoded SVG Load Time\n");
 	} else if (lc.type == XMT) {
 		fprintf(lc.out,"File Name\tXMT Size\tXMT Load Time\tBT Size\tBT Load Time\n");
 	}
