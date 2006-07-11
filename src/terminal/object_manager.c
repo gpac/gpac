@@ -1078,7 +1078,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 		com.play.speed = 1.0;
 		/*play from requested time (seeking or non-mpeg4 media control)*/
 		if (odm->media_start_time && !ch->clock->clock_init) {
-			ck_time = odm->media_start_time;
+			ck_time = (Double) (s64) odm->media_start_time;
 			ck_time /= 1000;
 		}
 		/*play from current time*/

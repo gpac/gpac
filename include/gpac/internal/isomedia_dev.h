@@ -127,6 +127,7 @@ enum
 	GF_ISOM_BOX_TYPE_FTYP	= GF_4CC( 'f', 't', 'y', 'p' ),
 	GF_ISOM_BOX_TYPE_FADB	= GF_4CC( 'p', 'a', 'd', 'b' ),
 	GF_ISOM_BOX_TYPE_PDIN	= GF_4CC( 'p', 'd', 'i', 'n' ),
+	GF_ISOM_BOX_TYPE_SDTP	= GF_4CC( 's', 'd', 't', 'p' ),
 
 #ifndef	GF_ISOM_NO_FRAGMENTS
 	/*Movie Fragments*/
@@ -883,6 +884,14 @@ typedef struct
 	u8 *padbits;
 } GF_PaddingBitsBox;
 
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 sampleCount;
+	/*each dep type is packed on 1 byte*/
+	u8 *sample_info;
+} GF_SampleDependencyTypeBox;
+
 
 typedef struct
 {
@@ -898,6 +907,7 @@ typedef struct
 	GF_ShadowSyncBox *ShadowSync;
 	GF_DegradationPriorityBox *DegradationPriority;
 	GF_PaddingBitsBox *PaddingBits;
+	GF_SampleDependencyTypeBox *SampleDep;
 	GF_SampleFragmentBox *Fragments;
 
 	u32 MaxSamplePerChunk;
@@ -1792,6 +1802,8 @@ GF_Err stbl_GetSampleShadow(GF_ShadowSyncBox *stsh, u32 *sampleNumber, u32 *sync
 GF_Err stbl_GetPaddingBits(GF_PaddingBitsBox *padb, u32 SampleNumber, u8 *PadBits);
 u32 stbl_GetSampleFragmentCount(GF_SampleFragmentBox *stsf, u32 sampleNumber);
 u32 stbl_GetSampleFragmentSize(GF_SampleFragmentBox *stsf, u32 sampleNumber, u32 FragmentIndex);
+GF_Err stbl_GetSampleDepType(GF_SampleDependencyTypeBox *stbl, u32 SampleNumber, u32 *dependsOn, u32 *dependedOn, u32 *redundant);
+
 /*unpack sample2chunk and chunk offset so that we have 1 sample per chunk (edition mode only)*/
 GF_Err stbl_UnpackOffsets(GF_SampleTableBox *stbl);
 GF_Err SetTrackDuration(GF_TrackBox *trak);
@@ -1848,6 +1860,9 @@ GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 Str
 /*EDIT LIST functions*/
 GF_EdtsEntry *CreateEditEntry(u64 EditDuration, u64 MediaTime, u8 EditMode);
 
+GF_Err stbl_SetRedundant(GF_SampleTableBox *stbl, u32 sampleNumber);
+GF_Err stbl_AddRedundant(GF_SampleTableBox *stbl, u32 sampleNumber);
+
 /*REMOVE functions*/
 GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDuration);
 GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber);
@@ -1857,6 +1872,7 @@ GF_Err stbl_RemoveRAP(GF_SampleTableBox *stbl, u32 sampleNumber);
 GF_Err stbl_RemoveShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber);
 GF_Err stbl_RemovePaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber);
 GF_Err stbl_RemoveSampleFragments(GF_SampleTableBox *stbl, u32 sampleNumber);
+GF_Err stbl_RemoveRedundant(GF_SampleTableBox *stbl, u32 SampleNumber);
 
 #ifndef	GF_ISOM_NO_FRAGMENTS
 GF_Err StoreFragment(GF_ISOFile *movie);
@@ -2087,6 +2103,7 @@ GF_Box *stsz_New();
 GF_Box *stco_New();
 GF_Box *stss_New();
 GF_Box *stdp_New();
+GF_Box *sdtp_New();
 GF_Box *co64_New();
 GF_Box *esds_New();
 GF_Box *minf_New();
@@ -2137,6 +2154,7 @@ void stsz_del(GF_Box *);
 void stco_del(GF_Box *);
 void stss_del(GF_Box *);
 void stdp_del(GF_Box *);
+void sdtp_del(GF_Box *);
 void co64_del(GF_Box *);
 void esds_del(GF_Box *);
 void minf_del(GF_Box *);
@@ -2187,6 +2205,7 @@ GF_Err stsz_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err stco_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err stss_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err stdp_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err sdtp_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err co64_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err esds_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err minf_Write(GF_Box *s, GF_BitStream *bs);
@@ -2237,6 +2256,7 @@ GF_Err stsz_Size(GF_Box *);
 GF_Err stco_Size(GF_Box *);
 GF_Err stss_Size(GF_Box *);
 GF_Err stdp_Size(GF_Box *);
+GF_Err sdtp_Size(GF_Box *);
 GF_Err co64_Size(GF_Box *);
 GF_Err esds_Size(GF_Box *);
 GF_Err minf_Size(GF_Box *);
@@ -2287,6 +2307,7 @@ GF_Err stsz_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err stco_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err stss_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err stdp_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err sdtp_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err co64_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err esds_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err minf_Read(GF_Box *s, GF_BitStream *bs);
@@ -2755,6 +2776,7 @@ GF_Err stsz_dump(GF_Box *a, FILE * trace);
 GF_Err stco_dump(GF_Box *a, FILE * trace);
 GF_Err stss_dump(GF_Box *a, FILE * trace);
 GF_Err stdp_dump(GF_Box *a, FILE * trace);
+GF_Err sdtp_dump(GF_Box *a, FILE * trace);
 GF_Err co64_dump(GF_Box *a, FILE * trace);
 GF_Err esds_dump(GF_Box *a, FILE * trace);
 GF_Err minf_dump(GF_Box *a, FILE * trace);

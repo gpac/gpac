@@ -50,7 +50,11 @@ typedef struct
 	u64 DTS;
 	/*relative offset for composition if needed*/
 	u32 CTS_Offset;
-	/*Random Access Point flag - 1 is regular RAP (read/write) , 2 is SyncShadow (read mode only)*/
+	/*Random Access Point flag:
+	 0: not random access
+	 1: regular RAP, 
+	 2: sample is a redundant RAP. If set when adding the sample, this will create a sample dependency entry
+	*/
 	u8 IsRAP;
 } GF_ISOSample;
 
@@ -514,6 +518,9 @@ Bool gf_isom_has_time_offset(GF_ISOFile *the_file, u32 trackNumber);
 
 /*returns 1 if the track has sync shadow samples*/
 Bool gf_isom_has_sync_shadows(GF_ISOFile *the_file, u32 trackNumber);
+
+/*returns 1 if the track has sample dep indications*/
+Bool gf_isom_has_sample_dependency(GF_ISOFile *the_file, u32 trackNumber);
 
 /*rough estimation of file size, only works for completely self-contained files and without fragmentation
 for the current time*/

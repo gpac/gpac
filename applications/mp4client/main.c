@@ -53,7 +53,7 @@ void set_echo_off(Bool echo_off);
 
 Bool is_connected = 0;
 GF_Terminal *term;
-u32 Duration;
+u64 Duration;
 GF_Err last_error = GF_OK;
 
 static GF_Config *cfg_file;
@@ -302,7 +302,8 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		memory_at_gpac_load = 0;
 		break;
 	case GF_EVT_DURATION:
-		Duration = (u32) (evt->duration.duration*1000);
+		Duration = 1000;
+		Duration = (u64) (((s64) Duration) * evt->duration.duration);
 		CanSeek = evt->duration.can_seek;
 		break;
 	case GF_EVT_MESSAGE:
@@ -336,7 +337,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			switch (evt->key.vk_code) {
 			case GF_VK_LEFT:
 				if (Duration>=2000) {
-					s32 res = gf_term_get_time_in_ms(term) - 5*Duration/100;
+					s32 res = gf_term_get_time_in_ms(term) - (s32) (5*Duration/100);
 					if (res<0) res=0;
 					fprintf(stdout, "seeking to %.2f %% (", 100.0*(s64)res / (s64)Duration);
 					PrintTime(res);
@@ -346,7 +347,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 				break;
 			case GF_VK_RIGHT:
 				if (Duration>=2000) {
-					u32 res = gf_term_get_time_in_ms(term) + 5*Duration/100;
+					u32 res = gf_term_get_time_in_ms(term) + (s32) (5*Duration/100);
 					if (res>=Duration) res = 0;
 					fprintf(stdout, "seeking to %.2f %% (", 100.0*(s64)res / (s64)Duration);
 					PrintTime(res);
@@ -917,8 +918,8 @@ int main (int argc, char **argv)
 				fprintf(stdout, " (current %.2f %%)\nEnter Seek percentage:\n", res);
 				if (scanf("%d", &seekTo) == 1) { 
 					if (seekTo > 100) seekTo = 100;
-					res = (Double)Duration; res /= 100; res *= seekTo;
-					gf_term_play_from_time(term, (u32) res, 0);
+					res = (Double)(s64)Duration; res /= 100; res *= seekTo;
+					gf_term_play_from_time(term, (u64) (s64) res, 0);
 				}
 			}
 			break;

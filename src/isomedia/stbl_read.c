@@ -450,6 +450,21 @@ GF_Err stbl_GetPaddingBits(GF_PaddingBitsBox *padb, u32 SampleNumber, u8 *PadBit
 	return GF_OK;
 }
 
+//Set the RAP flag of a sample
+GF_Err stbl_GetSampleDepType(GF_SampleDependencyTypeBox *sdep, u32 SampleNumber, u32 *dependsOn, u32 *dependedOn, u32 *redundant)
+{
+	u8 flag;
+
+	assert(dependsOn && dependedOn && redundant);
+	*dependsOn = *dependedOn = *redundant = 0;
+
+	if (SampleNumber > sdep->sampleCount) return GF_BAD_PARAM;
+	flag = sdep->sample_info[SampleNumber-1];
+	*dependsOn = (flag >> 4) & 3;
+	*dependedOn = (flag >> 2) & 3;
+	*redundant = (flag) & 3;
+	return GF_OK;
+}
 
 u32 stbl_GetSampleFragmentCount(GF_SampleFragmentBox *stsf, u32 sampleNumber)
 {

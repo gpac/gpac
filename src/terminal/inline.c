@@ -1367,7 +1367,7 @@ void gf_is_restart_dynamic(GF_InlineScene *is, u64 from_time)
 	/*restart objects*/
 	i=0;
 	while ((odm = gf_list_enum(to_restart, &i))) {
-		odm->media_start_time = (u32) from_time;
+		odm->media_start_time = from_time;
 		gf_odm_start(odm);
 	}
 	gf_list_del(to_restart);

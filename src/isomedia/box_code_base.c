@@ -4361,6 +4361,7 @@ void stbl_del(GF_Box *s)
 	if (ptr->ShadowSync) gf_isom_box_del((GF_Box *) ptr->ShadowSync);
 	if (ptr->SyncSample) gf_isom_box_del((GF_Box *) ptr->SyncSample);
 	if (ptr->TimeToSample) gf_isom_box_del((GF_Box *) ptr->TimeToSample);
+	if (ptr->SampleDep) gf_isom_box_del((GF_Box *) ptr->SampleDep);
 	if (ptr->PaddingBits) gf_isom_box_del((GF_Box *) ptr->PaddingBits);
 	if (ptr->Fragments) gf_isom_box_del((GF_Box *) ptr->Fragments);
 
@@ -4417,6 +4418,10 @@ GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a)
 		if (ptr->DegradationPriority) return GF_ISOM_INVALID_FILE;
 		ptr->DegradationPriority = (GF_DegradationPriorityBox *)a;
 		break;
+	case GF_ISOM_BOX_TYPE_SDTP:
+		if (ptr->SampleDep) return GF_ISOM_INVALID_FILE;
+		ptr->SampleDep= (GF_SampleDependencyTypeBox *)a;
+		break;
 
 	case GF_ISOM_BOX_TYPE_STSF:
 		if (ptr->Fragments) return GF_ISOM_INVALID_FILE;
@@ -4439,20 +4444,26 @@ GF_Err stbl_Read(GF_Box *s, GF_BitStream *bs)
 	GF_Box *a;
 	//we need to parse DegPrior in a special way
 	GF_Err stdp_Read(GF_Box *s, GF_BitStream *bs);
+	GF_Err sdtp_Read(GF_Box *s, GF_BitStream *bs);
 	GF_SampleTableBox *ptr = (GF_SampleTableBox *)s;
 
 	while (ptr->size) {
 		e = gf_isom_parse_box(&a, bs);
 		if (e) return e;
 		//we need to read the DegPriority in a different way...
-		if (a->type == GF_ISOM_BOX_TYPE_STDP) {
+		if ((a->type == GF_ISOM_BOX_TYPE_STDP) || (a->type == GF_ISOM_BOX_TYPE_SDTP)) { 
 			u64 s = a->size;
 			if (!ptr->SampleSize) {
 				gf_isom_box_del(a);
 				return GF_ISOM_INVALID_FILE;
 			}
-			((GF_DegradationPriorityBox *)a)->entryCount = ptr->SampleSize->sampleCount;
-			e = stdp_Read(a, bs);
+			if (a->type == GF_ISOM_BOX_TYPE_STDP) {
+				((GF_DegradationPriorityBox *)a)->entryCount = ptr->SampleSize->sampleCount;
+				e = stdp_Read(a, bs);
+			} else {
+				((GF_SampleDependencyTypeBox *)a)->sampleCount = ptr->SampleSize->sampleCount;
+				e = sdtp_Read(a, bs);
+			}
 			if (e) {
 				gf_isom_box_del(a);
 				return e;
@@ -4531,6 +4542,10 @@ GF_Err stbl_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->DegradationPriority, bs);
 		if (e) return e;
 	}
+	if (ptr->SampleDep && ptr->SampleDep->sampleCount) {
+		e = gf_isom_box_write((GF_Box *) ptr->SampleDep, bs);
+		if (e) return e;
+	}
 	if (ptr->PaddingBits) {
 		e = gf_isom_box_write((GF_Box *) ptr->PaddingBits, bs);
 		if (e) return e;
@@ -4600,6 +4615,11 @@ GF_Err stbl_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *) ptr->SyncSample);
 		if (e) return e;
 		ptr->size += ptr->SyncSample->size;
+	}
+	if (ptr->SampleDep && ptr->SampleDep->sampleCount) {
+		e = gf_isom_box_size((GF_Box *) ptr->SampleDep);
+		if (e) return e;
+		ptr->size += ptr->SampleDep->size;
 	}
 	//padb
 	if (ptr->PaddingBits) {
@@ -6944,6 +6964,68 @@ GF_Err pdin_Size(GF_Box *s)
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	ptr->size += 8*ptr->count;
+	return GF_OK;
+}
+
+#endif //GPAC_READ_ONLY
+
+
+
+
+GF_Box *sdtp_New()
+{
+	GF_SampleDependencyTypeBox *tmp = (GF_SampleDependencyTypeBox*) malloc(sizeof(GF_SampleDependencyTypeBox));
+	if (tmp == NULL) return NULL;
+	memset(tmp, 0, sizeof(GF_SampleDependencyTypeBox));
+	gf_isom_full_box_init((GF_Box *)tmp);
+	tmp->flags = 1;
+	tmp->type = GF_ISOM_BOX_TYPE_SDTP;
+	return (GF_Box *)tmp;
+}
+
+
+void sdtp_del(GF_Box *s)
+{
+	GF_SampleDependencyTypeBox *ptr = (GF_SampleDependencyTypeBox*)s;
+	if (ptr == NULL) return;
+	if (ptr->sample_info) free(ptr->sample_info);
+	free(ptr);
+}
+
+
+GF_Err sdtp_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_SampleDependencyTypeBox *ptr = (GF_SampleDependencyTypeBox*)s;
+
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	GF_SAFEALLOC(ptr->sample_info, sizeof(u8)*ptr->sampleCount);
+	gf_bs_read_data(bs, ptr->sample_info, ptr->sampleCount);
+	ptr->size -= ptr->sampleCount;
+	return GF_OK;
+}
+
+//from here, for write/edit versions
+#ifndef GPAC_READ_ONLY
+
+GF_Err sdtp_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_SampleDependencyTypeBox *ptr = (GF_SampleDependencyTypeBox *)s;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_data(bs, ptr->sample_info, ptr->sampleCount);
+	return GF_OK;
+}
+
+GF_Err sdtp_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_SampleDependencyTypeBox *ptr = (GF_SampleDependencyTypeBox *)s;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	ptr->size += ptr->sampleCount;
 	return GF_OK;
 }
 

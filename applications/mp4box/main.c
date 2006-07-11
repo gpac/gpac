@@ -1315,7 +1315,13 @@ int main(int argc, char **argv)
 			i++;
 		} else if (!stricmp(arg, "-shadow")) {
 			CHECK_NEXT_ARG
-			if (opts.flags & GF_SM_ENCODE_RAP_INBAND) opts.flags ^= GF_SM_ENCODE_RAP_INBAND;
+			opts.flags &= ~GF_SM_ENCODE_RAP_INBAND;
+			opts.flags |= GF_SM_ENCODE_RAP_SHADOW;
+			opts.rap_freq = atoi(argv[i+1]);
+			i++;
+		} else if (!stricmp(arg, "-carousel")) {
+			CHECK_NEXT_ARG
+			opts.flags &= ~(GF_SM_ENCODE_RAP_INBAND | GF_SM_ENCODE_RAP_SHADOW);
 			opts.rap_freq = atoi(argv[i+1]);
 			i++;
 		} 

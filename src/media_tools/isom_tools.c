@@ -613,6 +613,8 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	u8 defaultPadding;
 	u16 defaultDegradationPriority;
 	GF_Err e;
+	const char *tag;
+	u32 tag_len;
 	GF_ESD *esd;
 	GF_ISOFile *output;
 	GF_ISOSample *sample, *next;
@@ -624,8 +626,11 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	output = gf_isom_open(output_file, GF_ISOM_OPEN_WRITE, NULL);
 	if (!output) return gf_isom_last_error(NULL);
 
+
 	nb_samp = 0;
 	fragmenters = gf_list_new();
+	
+	/*FIXME - ALL THESE SHOULD GO DO A clone_movie item !!*/
 	e = gf_isom_set_brand_info(output, GF_ISOM_BRAND_MP42, 1);
 	if (e) goto err_exit;
 	e = gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_ISOM, 1);
@@ -633,8 +638,34 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 
 	//copy movie desc
 	gf_isom_clone_root_od(input, output);
+	//clone copyright
+	count = gf_isom_get_copyright_count(input);
+	if (count) {
+		const char *lang, *note;
+		for (i=0; i<count; i++) {
+			gf_isom_get_copyright(input, i+1, &lang, &note);
+			gf_isom_set_copyright(output, (char *)lang, (char *)note);
+		}
+	}
+	count = gf_isom_get_chapter_count(input, 0);
+	if (count) {
+		const char *name;
+		u64 time;
+		for (i=0; i<count; i++) {
+			gf_isom_get_chapter(input, 0, i+1, &time, &name);
+			gf_isom_add_chapter(output, 0, time, (char *)name);
+		}
+	}
 
-	MaxFragmentDuration = (u32) (max_duration * gf_isom_get_timescale(input));
+	if (gf_isom_apple_get_tag(input, 0, &tag, &tag_len) == GF_OK) {
+		for (i=GF_ISOM_ITUNE_ALBUM; i<GF_ISOM_ITUNE_WRITER; i++) {
+			if (gf_isom_apple_get_tag(input, GF_ISOM_ITUNE_NAME, &tag, &tag_len)==GF_OK) 
+				gf_isom_apple_set_tag(output, GF_ISOM_ITUNE_NAME, tag, tag_len);
+		}
+	}
+
+
+	MaxFragmentDuration = (u32) (max_duration * 1000);
 	//duplicates all tracks
 	for (i=0; i<gf_isom_get_track_count(input); i++) {
 		TrackNum = gf_isom_new_track(output, gf_isom_get_track_id(input, i+1), gf_isom_get_media_type(input, i+1), gf_isom_get_media_timescale(input, i+1));

@@ -380,9 +380,9 @@ static GF_ESD *gf_sm_locate_esd(GF_SceneManager *ctx, u16 ES_ID)
 static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, u32 scene_type)
 {
 	char *data;
-	Bool is_in_iod, delete_desc, first_scene_id, rap_inband, rap_shadow;
-	u32 i, j, di, rate, init_offset, data_len, count, track, rap_delay, flags;
-	u64 last_rap, dur, time_slice, avg_rate;
+	Bool is_in_iod, delete_desc, first_scene_id;
+	u32 i, j, di, rate, init_offset, data_len, count, track, rap_delay, flags, rap_mode;
+	u64 last_rap, dur, time_slice, avg_rate, prev_dts;
 	GF_Err e;
 	FILE *logs;
 	GF_InitialObjectDescriptor *iod;
@@ -395,13 +395,11 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 	GF_LASeRCodec *lsr_enc;
 #endif
 
-	rap_inband = rap_shadow = 0;
+	rap_mode = 0;
 	if (opts && opts->rap_freq) {
-		if (opts->flags & GF_SM_ENCODE_RAP_INBAND) {
-			rap_inband = 1;
-		} else {
-			rap_shadow = 1;
-		}
+		if (opts->flags & GF_SM_ENCODE_RAP_INBAND) rap_mode = 3;
+		else if (opts->flags & GF_SM_ENCODE_RAP_SHADOW) rap_mode = 2;
+		else rap_mode = 1;
 	}
 
 	e = GF_OK;
@@ -699,6 +697,7 @@ force_scene_rap:
 		rap_delay = 0;
 		if (opts) rap_delay = opts->rap_freq * esd->slConfig->timestampResolution / 1000;
 
+		prev_dts = 0;
 		init_offset = 0;
 		j=0;
 		while ((au = gf_list_enum(sc->AUs, &j))) {
@@ -713,7 +712,7 @@ force_scene_rap:
 			if (samp->IsRAP) last_rap = au->timing;
 
 			/*inband RAP insertion*/
-			if (rap_inband) {
+			if (rap_mode==3) {
 				if (samp->DTS - last_rap < rap_delay) {
 					/*first encode command*/
 					if (bifs_enc)
@@ -746,9 +745,41 @@ force_scene_rap:
 				else if (lsr_enc)
 					e = gf_laser_encode_au(lsr_enc, sc->ESID, au->commands, 0, &samp->data, &samp->dataLength);
 #endif
+
 			}
-			/*if no commands don't add the AU*/
-			if (!e && samp->dataLength) e = gf_isom_add_sample(mp4, track, di, samp);
+
+
+			/*carousel generation*/
+			if (!e && (rap_mode == 1)) {
+				if (samp->DTS - last_rap > rap_delay) {
+					GF_ISOSample *car_samp = gf_isom_sample_new();
+					u64 r_dts = samp->DTS;
+				
+					/*then get RAP*/
+					if (bifs_enc)
+						e = gf_bifs_encoder_get_rap(bifs_enc, &car_samp->data, &car_samp->dataLength);
+#ifndef GPAC_DISABLE_SVG
+					else if (lsr_enc)
+						e = gf_laser_encoder_get_rap(lsr_enc, &car_samp->data, &car_samp->dataLength);
+#endif
+					car_samp->IsRAP = 2;					
+					while (1) {
+						car_samp->DTS = last_rap+rap_delay;
+						if (car_samp->DTS==prev_dts) car_samp->DTS++;
+						e = gf_isom_add_sample(mp4, track, di, car_samp);
+						if (e) break;
+						last_rap+=rap_delay;
+						if (last_rap + rap_delay >= r_dts) break;
+					}
+					gf_isom_sample_del(&car_samp);
+				}
+				if (!e && samp->dataLength) e = gf_isom_add_sample(mp4, track, di, samp);
+				/*accumulate commmands*/
+				e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
+			} else {
+				/*if no commands don't add the AU*/
+				if (!e && samp->dataLength) e = gf_isom_add_sample(mp4, track, di, samp);
+			}
 
 			dur = au->timing;
 			avg_rate += samp->dataLength;
@@ -760,6 +791,8 @@ force_scene_rap:
 				time_slice = samp->DTS;
 			}
 			
+		
+			prev_dts = samp->DTS;
 			gf_isom_sample_del(&samp);
 			if (e) goto exit;
 		}
@@ -774,7 +807,7 @@ force_scene_rap:
 		gf_isom_change_mpeg4_description(mp4, track, 1, esd);
 
 		/*sync shadow generation*/
-		if (rap_shadow) {
+		if (rap_mode==2) {
 			u32 au_count = gf_list_count(sc->AUs);
 			GF_AUContext *au;
 			last_rap = 0;

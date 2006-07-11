@@ -52,10 +52,10 @@ void gf_term_navigate_to(GF_Terminal *term, const char *toURL);
 	1: service has no seeking capabilities
 	2: service has been seeked
 */
-u32 gf_term_play_from_time(GF_Terminal *term, u32 from_time, Bool pause_at_first_frame);
+u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, Bool pause_at_first_frame);
 /*connect URL and seek right away - only needed when reloading the complete player (avoids waiting
 for connection and post a seek..)*/
-void gf_term_connect_from_time(GF_Terminal *term, const char *URL, u32 time_in_ms, Bool pause_at_first_frame);
+void gf_term_connect_from_time(GF_Terminal *term, const char *URL, u64 time_in_ms, Bool pause_at_first_frame);
 
 /*returns current framerate
 	if @absoluteFPS is set, the return value is the absolute framerate, eg NbFrameCount/NbTimeSpent regardless of

@@ -129,6 +129,7 @@ GF_Err gb_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_STCO: return stco_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_STSS: return stss_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_STDP: return stdp_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_SDTP: return sdtp_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_CO64: return co64_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_ESDS: return esds_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_MINF: return minf_dump(a, trace);
@@ -482,6 +483,7 @@ GF_Err stbl_dump(GF_Box *a, FILE * trace)
 	gb_box_dump(p->SampleSize, trace);
 	gb_box_dump(p->ChunkOffset, trace);
 	if (p->DegradationPriority) gb_box_dump(p->DegradationPriority, trace);
+	if (p->SampleDep) gb_box_dump(p->SampleDep, trace);
 	if (p->PaddingBits) gb_box_dump(p->PaddingBits, trace);
 	if (p->Fragments) gb_box_dump(p->Fragments, trace);
 
@@ -1012,6 +1014,47 @@ GF_Err stdp_dump(GF_Box *a, FILE * trace)
 		}
 	}
 	fprintf(trace, "</DegradationPriorityBox>\n");
+	return GF_OK;
+}
+
+GF_Err sdtp_dump(GF_Box *a, FILE * trace)
+{
+	GF_SampleDependencyTypeBox *p;
+	u32 i;
+
+	p = (GF_SampleDependencyTypeBox*)a;
+	fprintf(trace, "<SampleDependencyTypeBox SampleCount=\"%d\">\n", p->sampleCount);
+	DumpBox(a, trace);
+	gb_full_box_dump(a, trace);
+
+	if (!p->sample_info) {
+		fprintf(trace, "<!--Warning: No sample dependencies indications-->\n");
+	} else {
+		for (i=0; i<p->sampleCount; i++) {
+			u8 flag = p->sample_info[i];
+			fprintf(trace, "<SampleDependencyEntry ");
+			switch ( (flag >> 4) & 3) {
+			case 0: fprintf(trace, "dependsOnOther=\"unknown\" "); break;
+			case 1: fprintf(trace, "dependsOnOther=\"yes\" "); break;
+			case 2: fprintf(trace, "dependsOnOther=\"no\" "); break;
+			case 3: fprintf(trace, "dependsOnOther=\"!! RESERVED !!\" "); break;
+			}
+			switch ( (flag >> 2) & 3) {
+			case 0: fprintf(trace, "dependedOn=\"unknown\" "); break;
+			case 1: fprintf(trace, "dependedOn=\"yes\" "); break;
+			case 2: fprintf(trace, "dependedOn=\"no\" "); break;
+			case 3: fprintf(trace, "dependedOn=\"!! RESERVED !!\" "); break;
+			}
+			switch ( flag & 3) {
+			case 0: fprintf(trace, "hasRedundancy=\"unknown\" "); break;
+			case 1: fprintf(trace, "hasRedundancy=\"yes\" "); break;
+			case 2: fprintf(trace, "hasRedundancy=\"no\" "); break;
+			case 3: fprintf(trace, "hasRedundancy=\"!! RESERVED !!\" "); break;
+			}
+			fprintf(trace, " />\n");
+		}
+	}
+	fprintf(trace, "</SampleDependencyTypeBox>\n");
 	return GF_OK;
 }
 

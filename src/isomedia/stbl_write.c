@@ -449,6 +449,42 @@ GF_Err stbl_AddRAP(GF_SyncSampleBox *stss, u32 sampleNumber)
 	return GF_OK;
 }
 
+GF_Err stbl_AddRedundant(GF_SampleTableBox *stbl, u32 sampleNumber)
+{
+	GF_SampleDependencyTypeBox *sdtp;
+
+	if (stbl->SampleDep == NULL) {
+		stbl->SampleDep = (GF_SampleDependencyTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SDTP);
+		if (!stbl->SampleDep) return GF_OUT_OF_MEM;
+	}
+	sdtp = stbl->SampleDep;
+	if (sdtp->sampleCount + 1 < sampleNumber) {
+		u32 missed = sampleNumber-1 - sdtp->sampleCount;
+		sdtp->sample_info = (u8*) realloc(sdtp->sample_info, sizeof(u8) * (sdtp->sampleCount+missed) );
+		while (missed) {
+			u8 isRAP;
+			if (stbl->SyncSample) stbl_GetSampleRAP(stbl->SyncSample, sdtp->sampleCount+1, &isRAP, NULL, NULL);
+			else isRAP = 1;
+			sdtp->sample_info[sdtp->sampleCount] = isRAP ? 0x20 : 0;
+			sdtp->sampleCount++;
+			missed--;
+		}
+	}
+
+	sdtp->sample_info = (u8*) realloc(sdtp->sample_info, sizeof(u8) * (sdtp->sampleCount + 1));
+	if (!sdtp->sample_info) return GF_OUT_OF_MEM;
+	if (sdtp->sampleCount < sampleNumber) {
+		sdtp->sample_info[sdtp->sampleCount] = 0x21;
+	} else {
+		u32 snum = sampleNumber-1;
+		memmove(sdtp->sample_info+snum+1, sdtp->sample_info+snum, sizeof(u8) * (sdtp->sampleCount - snum) );
+		sdtp->sample_info[snum] = 0x21;
+	}
+	//update our list
+	sdtp->sampleCount ++;
+	return GF_OK;
+}
+
 //this function is always called in INCREASING order of shadow sample numbers
 GF_Err stbl_AddShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber, u32 shadowNumber)
 {
@@ -780,6 +816,16 @@ GF_Err stbl_SetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 isRAP)
 	stss->sampleNumbers = newNum;
 	stss->entryCount ++;
 	return GF_OK;
+}
+
+GF_Err stbl_SetRedundant(GF_SampleTableBox *stbl, u32 sampleNumber)
+{
+	if (stbl->SampleDep->sampleCount < sampleNumber) {
+		return stbl_AddRedundant(stbl, sampleNumber);
+	} else {
+		stbl->SampleDep->sample_info[sampleNumber-1] = 0x21;
+		return GF_OK;
+	}
 }
 
 GF_Err stbl_SetSyncShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber, u32 syncSample)
@@ -1130,6 +1176,20 @@ found:
 	return GF_OK;
 }
 
+GF_Err stbl_RemoveRedundant(GF_SampleTableBox *stbl, u32 SampleNumber)
+{
+	u32 i;
+
+	if (!stbl->SampleDep) return GF_OK;
+	if (stbl->SampleDep->sampleCount < SampleNumber) return GF_BAD_PARAM;
+
+	i = stbl->SampleDep->sampleCount - SampleNumber;
+	if (i) memmove(&stbl->SampleDep->sample_info[SampleNumber-1], & stbl->SampleDep->sample_info[SampleNumber], sizeof(u8)*i);
+	stbl->SampleDep->sample_info = realloc(stbl->SampleDep->sample_info, sizeof(u8) * (stbl->SampleDep->sampleCount-1));
+	stbl->SampleDep->sampleCount-=1;
+	return GF_OK;
+}
+
 GF_Err stbl_RemoveShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber)
 {
 	u32 i;
@@ -1215,6 +1275,7 @@ GF_Err stbl_RemovePaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber)
 	stbl->PaddingBits->padbits = p;
 	return GF_OK;
 }
+
 
 GF_Err stbl_AddSampleFragment(GF_SampleTableBox *stbl, u32 sampleNumber, u16 size)
 {
@@ -1512,17 +1573,20 @@ void stbl_AppendCTSOffset(GF_SampleTableBox *stbl, u32 CTSOffset)
 
 void stbl_AppendDegradation(GF_SampleTableBox *stbl, u16 DegradationPriority)
 {
-	u32 i;
-	u16 *prio;
 	if (!stbl->DegradationPriority) stbl->DegradationPriority = (GF_DegradationPriorityBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STDP);
 
-	prio = malloc(sizeof(u16) * stbl->SampleSize->sampleCount);
-	memset(prio, 0, sizeof(prio));
-	for (i=0; i<stbl->DegradationPriority->entryCount; i++) prio[i] = stbl->DegradationPriority->priorities[i];
-	prio[stbl->SampleSize->sampleCount-1] = DegradationPriority;
-	if (stbl->DegradationPriority->priorities) free(stbl->DegradationPriority->priorities);
-	stbl->DegradationPriority->priorities = prio;
+	stbl->DegradationPriority->priorities = (u16 *)realloc(stbl->DegradationPriority->priorities, sizeof(u16) * stbl->SampleSize->sampleCount);
+	stbl->DegradationPriority->priorities[stbl->SampleSize->sampleCount-1] = DegradationPriority;
 	stbl->DegradationPriority->entryCount = stbl->SampleSize->sampleCount;
+}
+
+void stbl_AppendDepType(GF_SampleTableBox *stbl, u32 DepType)
+{
+	if (!stbl->SampleDep) stbl->SampleDep= (GF_SampleDependencyTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SDTP);
+	stbl->SampleDep->sample_info = realloc(stbl->SampleDep->sample_info, sizeof(u8)*stbl->SampleSize->sampleCount );
+	stbl->SampleDep->sample_info[stbl->SampleDep->sampleCount] = DepType;
+	stbl->SampleDep->sampleCount = stbl->SampleSize->sampleCount;
+
 }
 
 

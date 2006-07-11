@@ -120,7 +120,7 @@ proceed_box:
 		return GF_ISOM_INCOMPLETE_FILE;
 	}
 	//we need a special reading for these boxes...
-	if (newBox->type == GF_ISOM_BOX_TYPE_STDP) {
+	if ((newBox->type == GF_ISOM_BOX_TYPE_STDP) || (newBox->type == GF_ISOM_BOX_TYPE_SDTP)) {
 		newBox->size = size;
 		*outBox = newBox;
 		return GF_OK;
@@ -362,6 +362,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_STCO: return stco_New();
 	case GF_ISOM_BOX_TYPE_STSS: return stss_New();
 	case GF_ISOM_BOX_TYPE_STDP: return stdp_New();
+	case GF_ISOM_BOX_TYPE_SDTP: return sdtp_New();
 	case GF_ISOM_BOX_TYPE_CO64: return co64_New();
 	case GF_ISOM_BOX_TYPE_ESDS: return esds_New();
 	case GF_ISOM_BOX_TYPE_MINF: return minf_New();
@@ -563,6 +564,7 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_STCO: stco_del(a); return;
 	case GF_ISOM_BOX_TYPE_STSS: stss_del(a); return;
 	case GF_ISOM_BOX_TYPE_STDP: stdp_del(a); return;
+	case GF_ISOM_BOX_TYPE_SDTP: sdtp_del(a); return;
 	case GF_ISOM_BOX_TYPE_CO64: co64_del(a); return;
 	case GF_ISOM_BOX_TYPE_ESDS: esds_del(a); return;
 	case GF_ISOM_BOX_TYPE_MINF: minf_del(a); return;
@@ -756,6 +758,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_STCO: return stco_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_STSS: return stss_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_STDP: return stdp_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_SDTP: return sdtp_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_CO64: return co64_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_ESDS: return esds_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_MINF: return minf_Read(a, bs);
@@ -947,6 +950,7 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_STCO: return stco_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_STSS: return stss_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_STDP: return stdp_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_SDTP: return sdtp_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_CO64: return co64_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_ESDS: return esds_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_MINF: return minf_Write(a, bs);
@@ -1134,7 +1138,7 @@ GF_Err gf_isom_box_size(GF_Box *a)
 		return stsz_Size(a);
 	case GF_ISOM_BOX_TYPE_STCO: return stco_Size(a);
 	case GF_ISOM_BOX_TYPE_STSS: return stss_Size(a);
-	case GF_ISOM_BOX_TYPE_STDP: return stdp_Size(a);
+	case GF_ISOM_BOX_TYPE_SDTP: return sdtp_Size(a);
 	case GF_ISOM_BOX_TYPE_CO64: return co64_Size(a);
 	case GF_ISOM_BOX_TYPE_ESDS: return esds_Size(a);
 	case GF_ISOM_BOX_TYPE_MINF: return minf_Size(a);

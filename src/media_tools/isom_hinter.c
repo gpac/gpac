@@ -409,7 +409,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					required_rate = default_rtp_rate;
 				}
 				/*systems streams*/
-				else if (gf_isom_has_sync_shadows(file, TrackNum)) {
+				else if (gf_isom_has_sync_shadows(file, TrackNum) || gf_isom_has_sample_dependency(file, TrackNum)) {
 					flags |= GP_RTP_PCK_AUTO_CAROUSEL;
 				}
 				gf_odf_desc_del((GF_Descriptor*)esd);

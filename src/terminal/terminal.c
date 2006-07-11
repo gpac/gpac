@@ -391,7 +391,7 @@ GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
 	return GF_OK;
 }
 
-void gf_term_connect_from_time(GF_Terminal * term, const char *URL, u32 startTime, Bool pause_at_first_frame)
+void gf_term_connect_from_time(GF_Terminal * term, const char *URL, u64 startTime, Bool pause_at_first_frame)
 {
 	GF_InlineScene *is;
 	GF_ObjectManager *odm;
@@ -423,7 +423,7 @@ void gf_term_connect_from_time(GF_Terminal * term, const char *URL, u32 startTim
 	odm->term = term;
 	gf_term_lock_net(term, 0);
 
-	odm->media_start_time = (u32) startTime;
+	odm->media_start_time = (u64) startTime;
 	/*render first visual frame and pause*/
 	if (pause_at_first_frame)
 		gf_term_set_play_state(term, GF_STATE_STEP_PAUSE, 0, 0);
@@ -752,7 +752,7 @@ GF_Err gf_term_connect_remote_channel(GF_Terminal *term, GF_Channel *ch, char *U
 	return GF_OK;
 }
 
-Bool gf_term_play_from_time(GF_Terminal *term, u32 from_time, Bool pause_at_first_frame)
+u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, Bool pause_at_first_frame)
 {
 	if (!term || !term->root_scene || !term->root_scene->root_od) return 0;
 	if (term->root_scene->root_od->no_time_ctrl) return 1;

@@ -293,12 +293,12 @@ void gf_mo_play(GF_MediaObject *mo, Double media_offset, Bool can_loop)
 		if (mo->odm->no_time_ctrl) {
 			mo->odm->media_start_time = 0;
 		} else {
-			mo->odm->media_start_time = (u32) (media_offset*1000);
+			mo->odm->media_start_time = (u64) (media_offset*1000);
 			if (mo->odm->duration && (mo->odm->media_start_time > mo->odm->duration)) {
 				if (can_loop) {
-					mo->odm->media_start_time %= (u32) mo->odm->duration;
+					mo->odm->media_start_time %= mo->odm->duration;
 				} else {
-					mo->odm->media_start_time = (u32) mo->odm->duration;
+					mo->odm->media_start_time = mo->odm->duration;
 				}
 			}
 		}

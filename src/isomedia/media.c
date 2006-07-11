@@ -277,6 +277,18 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		//if no SyncSample, all samples are sync (cf spec)
 		(*samp)->IsRAP = 1;
 	}
+	/*overwrite sync sample with sample dep if any*/
+	if (mdia->information->sampleTable->SampleDep) {
+		u32 dependsOn, dependedOn, redundant;
+		e = stbl_GetSampleDepType(mdia->information->sampleTable->SampleDep, sampleNumber, &dependsOn, &dependedOn, &redundant);
+		if (!e) {
+			if (dependsOn==1) (*samp)->IsRAP = 0;
+			else if (dependsOn==2) (*samp)->IsRAP = 1;
+			/*if not depended upon and redundant, mark as carousel sample*/
+			if ((dependedOn==2) && (redundant==1)) (*samp)->IsRAP = 2;
+			/*TODO FIXME - we must enhance the IsRAP semantics to carry disposable info ... */
+		}
+	}
 	/*get sync shadow*/
 	if (Media_IsSampleSyncShadow(mdia->information->sampleTable->ShadowSync, sampleNumber)) (*samp)->IsRAP = 2;
 
@@ -657,6 +669,10 @@ GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, GF_ISOSample *sample,
 			}
 		}
 	}
+	if (sample->IsRAP==2) {
+		e = stbl_AddRedundant(stbl, sampleNumber);
+		if (e) return e;
+	}
 
 	//and update the chunks
 	e = stbl_AddChunkOffset(mdia, sampleNumber, StreamDescIndex, data_offset);
@@ -699,6 +715,9 @@ GF_Err UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, u32 size, u32 CTS, u64 
 				if (i+1 != sampleNumber) stbl_AddRAP(stbl->SyncSample, i+1);
 			}
 		}
+	}
+	if (isRap==2) {
+		stbl_SetRedundant(stbl, sampleNumber);
 	}
 	return GF_OK;
 }

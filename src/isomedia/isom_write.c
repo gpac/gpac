@@ -925,6 +925,11 @@ GF_Err gf_isom_remove_sample(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumbe
 		e = stbl_RemoveRAP(trak->Media->information->sampleTable, sampleNumber);
 		if (e) return e;
 	}
+	//remove sample dep
+	if (trak->Media->information->sampleTable->SampleDep) {
+		e = stbl_RemoveRedundant(trak->Media->information->sampleTable, sampleNumber);
+		if (e) return e;
+	}
 	//remove shadow
 	if (trak->Media->information->sampleTable->ShadowSync) {
 		e = stbl_RemoveShadow(trak->Media->information->sampleTable->ShadowSync, sampleNumber);

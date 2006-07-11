@@ -1127,7 +1127,7 @@ void gf_es_on_connect(GF_Channel *ch)
 	com.command_type = GF_NET_CHAN_DURATION;
 	com.base.on_channel = ch;
 	if (gf_term_service_command(ch->service, &com) == GF_OK)
-		gf_odm_set_duration(ch->odm, ch, (u32) (1000*com.duration.duration));
+		gf_odm_set_duration(ch->odm, ch, (u64) (1000*com.duration.duration));
 }
 
 static void KMS_OnData(void *cbck, char *data, u32 size, u32 state, GF_Err e)

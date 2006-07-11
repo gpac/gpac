@@ -272,8 +272,10 @@ enum
 {
 	/*if flag set, DEF names are encoded*/
 	GF_SM_ENCODE_USE_NAMES =	1,
-	/*if flag set, RAP are generated inband rather than as sync shadow*/
+	/*if flag set, RAP are generated inband rather than as redundant samples*/
 	GF_SM_ENCODE_RAP_INBAND = 2,
+	/*if flag set, RAP are generated inband rather than as sync shadow samples*/
+	GF_SM_ENCODE_RAP_SHADOW = 4,
 };
 
 typedef struct

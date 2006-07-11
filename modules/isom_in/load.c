@@ -47,12 +47,12 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 		seg->SegmentName = strdup(name);
 		gf_list_add(iod->OCIDescriptors, seg);
 		if (prev_seg) {
-			prev_seg->Duration = (u32) (start - prev_start);
+			prev_seg->Duration = (Double) (s64) (start - prev_start);
 			prev_seg->Duration /= 1000;
 		} else if (start) {
 			prev_seg = (GF_Segment *) gf_odf_desc_new(GF_ODF_SEGMENT_TAG);
 			prev_seg->startTime = 0;
-			prev_seg->Duration = (u32) (start);
+			prev_seg->Duration = (Double) (s64) (start);
 			prev_seg->Duration /= 1000;
 			gf_list_insert(iod->OCIDescriptors, prev_seg, 0);
 		}
@@ -63,7 +63,7 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 		start = 1000*gf_isom_get_duration(file);
 		start /= gf_isom_get_timescale(file);
 		if (start>prev_start) {
-			prev_seg->Duration = (u32) (start - prev_start);
+			prev_seg->Duration = (Double) (s64) (start - prev_start);
 			prev_seg->Duration /= 1000;
 		}
 	}

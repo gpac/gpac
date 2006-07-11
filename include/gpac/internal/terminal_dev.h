@@ -643,7 +643,7 @@ struct _od_manager
 	upon start: media start time as requested by scene renderer (eg not media control)
 	set to -1 upon stop to postpone stop request
 	*/
-	u32 media_start_time;
+	u64 media_start_time;
 	/*playback end in media time (eg, duration OR end_range if MediaControl)*/
 	u32 range_end;
 	/*the one and only media control currently attached to this object*/

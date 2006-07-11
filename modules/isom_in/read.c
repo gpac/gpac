@@ -525,9 +525,9 @@ GF_Err ISOR_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 	return GF_OK;
 }
 
-static u32 check_round(ISOMChannel *ch, u32 val_ts, Double val_range, Bool make_greater)
+static u64 check_round(ISOMChannel *ch, u64 val_ts, Double val_range, Bool make_greater)
 {
-	Double round_check = val_ts;
+	Double round_check = (Double) (s64) val_ts;
 	round_check /= ch->time_scale;
 //	if (round_check != val_range) val_ts += make_greater ? 1 : -1;
 	return val_ts;
@@ -586,16 +586,16 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		ch->start = ch->end = 0;
 		if (com->play.speed>0) {
 			if (com->play.start_range>=0) {
-				ch->start = (u32) (ch->time_scale * com->play.start_range);
+				ch->start = (u64) (s64) (com->play.start_range * ch->time_scale);
 				ch->start = check_round(ch, ch->start, com->play.start_range, 1);
 			}
 			if (com->play.end_range >= com->play.start_range) {
-				ch->end = (u32) (ch->time_scale * com->play.end_range);
+				ch->end = (u64) (s64) (com->play.end_range*ch->time_scale);
 				ch->end = check_round(ch, ch->end, com->play.end_range, 0);
 			}
 		} else if (com->play.speed<0) {
-			if (com->play.end_range>=com->play.start_range) ch->start = (u32) (ch->time_scale * com->play.start_range);
-			if (com->play.end_range >= 0) ch->end = (u32) (ch->time_scale * com->play.end_range);
+			if (com->play.end_range>=com->play.start_range) ch->start = (u64) (s64) (com->play.start_range * ch->time_scale);
+			if (com->play.end_range >= 0) ch->end = (u64) (s64) (com->play.end_range*ch->time_scale);
 		}
 		ch->is_playing = 1;
 		return GF_OK;

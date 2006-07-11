@@ -73,8 +73,7 @@ typedef struct
 
 	Bool has_edit_list;
 	u32 sample_num;
-	u64 sample_time;
-	u32 start, end;
+	u64 sample_time, start, end;
 	Double speed;
 
 	u32 time_scale;
