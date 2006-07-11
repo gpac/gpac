@@ -39,12 +39,10 @@ static xmlNodePtr lsr_toElement(xmlNodePtr ptr)
 	return NULL;
 }
 
-#ifdef DANAE
 Bool SVG_CheckDownload(SVGParser *parser)
 {
 	return 1;
 }
-#endif
 
 GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 {

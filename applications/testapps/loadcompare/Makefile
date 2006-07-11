@@ -14,17 +14,10 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-#file format is read-only
-ifeq ($(GPACREADONLY), yes)
-CFLAGS+= -DGPAC_READ_ONLY
-endif
-
-ifeq ($(DISABLE_SVG), yes)
-CFLAGS+=-DGPAC_DISABLE_SVG
-endif
+CFLAGS+=$(XML2_CFLAGS)
 
 #common obj
-OBJS= loadcompare.o
+OBJS= loadcompare.o ../../../modules/svg_loader/svg_parser.o ../../../modules/svg_loader/lsr_parser.o  
 
 LINKFLAGS=-L../../../bin/gcc
 ifeq ($(CONFIG_WIN32),yes)

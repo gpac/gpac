@@ -365,7 +365,7 @@ u32 svg_get_next_node_id(SVGParser *parser)
 	return ID;
 }
 
-u32 svg_get_node_id(SVGParser *parser, xmlChar *nodename)
+static u32 svg_get_node_id(SVGParser *parser, xmlChar *nodename)
 {
 	GF_Node *n;
 	u32 ID;
