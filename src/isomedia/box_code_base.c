@@ -4453,15 +4453,17 @@ GF_Err stbl_Read(GF_Box *s, GF_BitStream *bs)
 		//we need to read the DegPriority in a different way...
 		if ((a->type == GF_ISOM_BOX_TYPE_STDP) || (a->type == GF_ISOM_BOX_TYPE_SDTP)) { 
 			u64 s = a->size;
+/*
 			if (!ptr->SampleSize) {
 				gf_isom_box_del(a);
 				return GF_ISOM_INVALID_FILE;
 			}
+*/
 			if (a->type == GF_ISOM_BOX_TYPE_STDP) {
-				((GF_DegradationPriorityBox *)a)->entryCount = ptr->SampleSize->sampleCount;
+				if (ptr->SampleSize) ((GF_DegradationPriorityBox *)a)->entryCount = ptr->SampleSize->sampleCount;
 				e = stdp_Read(a, bs);
 			} else {
-				((GF_SampleDependencyTypeBox *)a)->sampleCount = ptr->SampleSize->sampleCount;
+				if (ptr->SampleSize) ((GF_SampleDependencyTypeBox *)a)->sampleCount = ptr->SampleSize->sampleCount;
 				e = sdtp_Read(a, bs);
 			}
 			if (e) {
@@ -4732,7 +4734,8 @@ GF_Err stdp_Read(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-
+	/*out-of-order stdp, assume no padding at the end*/
+	if (!ptr->entryCount) ptr->entryCount = (u32) (ptr->size-8) / 2;
 	ptr->priorities = (u16 *) malloc(ptr->entryCount * sizeof(u16));
 	if (ptr->priorities == NULL) return GF_OUT_OF_MEM;
 	for (entry = 0; entry < ptr->entryCount; entry++) {
@@ -7000,6 +7003,8 @@ GF_Err sdtp_Read(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
+	/*out-of-order sdtp, assume no padding at the end*/
+	if (!ptr->sampleCount) ptr->sampleCount = (u32) (ptr->size - 8);
 	GF_SAFEALLOC(ptr->sample_info, sizeof(u8)*ptr->sampleCount);
 	gf_bs_read_data(bs, ptr->sample_info, ptr->sampleCount);
 	ptr->size -= ptr->sampleCount;

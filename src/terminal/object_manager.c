@@ -549,7 +549,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		if (root == odm) gf_odm_start(odm);
 	}
 
-	if (odm->codec && odm->codec->ck->no_time_ctrl) gf_odm_start(odm);
+	if (odm->codec && odm->codec->ck && odm->codec->ck->no_time_ctrl) gf_odm_start(odm);
 	
 	/*for objects inserted by user (subs & co), auto select*/
 	if (odm->term->root_scene->is_dynamic_scene && odm->parent_OD) {

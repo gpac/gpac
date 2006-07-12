@@ -808,8 +808,8 @@ force_scene_rap:
 
 		/*sync shadow generation*/
 		if (rap_mode==2) {
-			u32 au_count = gf_list_count(sc->AUs);
 			GF_AUContext *au;
+			u32 au_count = gf_list_count(sc->AUs);
 			last_rap = 0;
 			for (j=0; j<au_count; j++) {
 				au = gf_list_get(sc->AUs, j);

@@ -287,6 +287,8 @@ static Bool FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 Object
 	/*cap query*/
 	case 0:
 		return 1;
+	default:
+		return 0;
 	}
 	if (gf_m4a_get_config((unsigned char *) decSpecInfo, decSpecInfoSize, &a_cfg) != GF_OK) return 0;
 	/*BSAC not supported*/

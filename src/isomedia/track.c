@@ -412,7 +412,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 *moof_offset
 
 			//CTS
 			cts_offset = (trun->flags & GF_ISOM_TRUN_CTS_OFFSET) ? ent->CTS_Offset : 0;
-			if (cts_offset) stbl_AppendCTSOffset(trak->Media->information->sampleTable, cts_offset);
+			stbl_AppendCTSOffset(trak->Media->information->sampleTable, cts_offset);
 			
 			//flags
 			sync = GF_ISOM_GET_FRAG_SYNC(flags);

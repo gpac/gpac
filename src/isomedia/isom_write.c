@@ -629,6 +629,7 @@ GF_Err gf_isom_add_sample_shadow(GF_ISOFile *movie, u32 trackNumber, GF_ISOSampl
 	u32 descIndex;
 	u32 sampleNum, prevSampleNum;
 	GF_DataEntryURLBox *Dentry;
+	Bool offset_times = 0;
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -655,6 +656,8 @@ GF_Err gf_isom_add_sample_shadow(GF_ISOFile *movie, u32 trackNumber, GF_ISOSampl
 
 	prev = gf_isom_get_sample_info(movie, trackNumber, sampleNum, &descIndex, NULL);
 	if (!prev) return gf_isom_last_error(movie);
+	/*for conformance*/
+	if (sample->DTS==prev->DTS) offset_times = 1;
 	gf_isom_sample_del(&prev);
 
 	e = Media_GetSampleDesc(trak->Media, descIndex, &entry, &dataRefIndex);
@@ -671,7 +674,9 @@ GF_Err gf_isom_add_sample_shadow(GF_ISOFile *movie, u32 trackNumber, GF_ISOSampl
 	if (e) return e;
 
 	data_offset = gf_isom_datamap_get_offset(trak->Media->information->dataHandler);
+	if (offset_times) sample->DTS += 1; 
 	e = Media_AddSample(trak->Media, data_offset, sample, descIndex, sampleNum);
+	if (offset_times) sample->DTS -= 1; 
 	if (e) return e;
 	//add the media data
 	e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, sample->data, sample->dataLength);

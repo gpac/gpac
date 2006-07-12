@@ -474,11 +474,11 @@ GF_Err stbl_AddRedundant(GF_SampleTableBox *stbl, u32 sampleNumber)
 	sdtp->sample_info = (u8*) realloc(sdtp->sample_info, sizeof(u8) * (sdtp->sampleCount + 1));
 	if (!sdtp->sample_info) return GF_OUT_OF_MEM;
 	if (sdtp->sampleCount < sampleNumber) {
-		sdtp->sample_info[sdtp->sampleCount] = 0x21;
+		sdtp->sample_info[sdtp->sampleCount] = 0x29;
 	} else {
 		u32 snum = sampleNumber-1;
 		memmove(sdtp->sample_info+snum+1, sdtp->sample_info+snum, sizeof(u8) * (sdtp->sampleCount - snum) );
-		sdtp->sample_info[snum] = 0x21;
+		sdtp->sample_info[snum] = 0x29;
 	}
 	//update our list
 	sdtp->sampleCount ++;
@@ -823,7 +823,7 @@ GF_Err stbl_SetRedundant(GF_SampleTableBox *stbl, u32 sampleNumber)
 	if (stbl->SampleDep->sampleCount < sampleNumber) {
 		return stbl_AddRedundant(stbl, sampleNumber);
 	} else {
-		stbl->SampleDep->sample_info[sampleNumber-1] = 0x21;
+		stbl->SampleDep->sample_info[sampleNumber-1] = 0x29;
 		return GF_OK;
 	}
 }

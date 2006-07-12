@@ -230,7 +230,7 @@ static void xml_sax_node_start(GF_SAXParser *parser)
 	xml_sax_reset_attributes(parser);
 }
 
-#define XML_ATT_SIZE 8000
+#define XML_ATT_SIZE 1024
 
 static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 {
@@ -347,6 +347,7 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 				i++;
 			}
 		} else if (parser->sax_state==SAX_STATE_ATT_VALUE) {
+
 			if ( (!parser->att_sep && ((c=='\"') || (c=='\'')) ) || (c==parser->att_sep) ) {
 				if (!parser->att_sep) {
 					parser->att_sep = c;
@@ -401,6 +402,15 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 				}
 				szVal[i] = c;
 				i++;
+				/*handle large attribute values !!*/
+				if (i+1 == XML_ATT_SIZE) {
+					u32 len = att->value ? strlen(att->value) : 0;
+					att->value = realloc(att->value, sizeof(char)* (i+len+1));
+					memcpy(att->value + len, szVal, i);
+					att->value[len+i] = 0;
+					parser->current_pos += i;
+					i=0;
+				}
 			} else {
 				parser->current_pos++;
 			}
