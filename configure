@@ -1,4 +1,3 @@
-#!/bin/sh
 # GPAC MPEG-4 SDK configure script (c) 2003-2005 Jean Le Feuvre
 #		inspired from ffmpeg configure by Fabrice Bellard (c) 2000-2002
 
@@ -85,6 +84,7 @@ CPPFLAGS=""
 GPAC_SH_FLAGS=-lpthread
 DYN_LIB_SUFFIX="so"
 X11_PATH="/usr/X11R6"
+is_64="no"
 
 #Configure Usage
 if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
@@ -179,6 +179,7 @@ case "$cpu" in
   ;;
   x86_64|amd64)
     cpu="x86"
+    is_64="yes"
     canon_arch="`cc -dumpmachine | sed -e 's,\([^-]*\)-.*,\1,'`"
     if [ x"$canon_arch" = x"x86_64" -o x"$canon_arch" = x"amd64" ]; then
       if [ -z "`echo $CFLAGS | grep -- -m32`"  ]; then
@@ -1109,6 +1110,8 @@ elif test "$cpu" = "powerpc" ; then
 elif test "$cpu" = "mips" ; then
   echo "TARGET_ARCH_MIPS=yes" >> config.mak
 fi
+
+
 if test "$bigendian" = "yes" ; then
   echo "IS_BIGENDIAN=yes" >> config.mak
 fi
@@ -1213,7 +1216,11 @@ if test "$has_x11_shm" = "yes"; then
 echo "USE_X11_SHM=$has_x11_shm" >> config.mak
 fi
 
+if test "$is_64" = "yes"; then
+echo "X11_LIB_PATH=$X11_PATH/lib64" >> config.mak
+else
 echo "X11_LIB_PATH=$X11_PATH/lib" >> config.mak
+fi
 echo "X11_INC_PATH=$X11_PATH/include" >> config.mak
 
 #overwrite memory tracking in setup.h
