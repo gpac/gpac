@@ -66,7 +66,7 @@ GF_Err AdjustHintInfo(GF_HintSampleEntryBox *entry, u32 HintSampleNumber)
 	for (i=0; i<count; i++) {
 		pck = gf_list_get(entry->hint_sample->packetTable, i);
 		if (offset && entry->hint_sample->dataLength) {
-			//adjust any offset in this packet (GF_SampleDTE)
+			//adjust any offset in this packet
 			e = gf_isom_hint_pck_offset(entry->hint_sample->HintType, pck, offset, HintSampleNumber);
 			if (e) return e;
 		}
