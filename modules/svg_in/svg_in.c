@@ -136,7 +136,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 					break;
 				}
 
-				e = gf_sm_load_string(&svgin->loader, file_buf);
+				e = gf_sm_load_string(&svgin->loader, file_buf, 0);
 				svgin->file_pos += nb_read;
 				/*handle decompression*/
 				if (svgin->file_pos > svgin->file_size) svgin->file_size = svgin->file_pos + 1;
@@ -149,7 +149,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 		}
 		break;
 	case SVG_IN_OTI_STREAMING_SVG:
-		e = gf_sm_load_string(&svgin->loader, inBuffer);
+		e = gf_sm_load_string(&svgin->loader, inBuffer, 0);
 		break;
 	case SVG_IN_OTI_STREAMING_SVG_GZ:
 	{
@@ -174,7 +174,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 					break;
 				}
 				svg_data[d_stream.total_out - done] = 0;
-				e = gf_sm_load_string(&svgin->loader, svg_data);
+				e = gf_sm_load_string(&svgin->loader, svg_data, 0);
 				if (e || (err== Z_STREAM_END)) break;
 				done = d_stream.total_out;
 				d_stream.avail_out = 2048;

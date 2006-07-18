@@ -9,48 +9,86 @@ import "ocidl.idl";
 #include "olectl.h"
 	
 
-	[
-		object,
-		uuid(E2A9A937-BB35-47E0-8942-964806299AB4),
-		dual,
-		helpstring("IGPAX Interface"),
-		pointer_default(unique)
-	]
-	interface IGPAX : IDispatch
-	{
-		[id(2), helpstring("Play Movie")] HRESULT Play();
-		[id(3), helpstring("Pause/Resume Movie")] HRESULT Pause();
-		[id(4), helpstring("Stop Movie")] HRESULT Stop();
-		[id(5), helpstring("Reload Movie")] HRESULT Reload();
-	};
-
 [
 	uuid(E64FAC7F-0134-4A75-A7DA-80D53EBC56A6),
 	version(1.0),
 	helpstring("GPAX ActiveX Control")
 ]
+
 library GPAXLib
 {
-	importlib("stdole32.tlb");
 	importlib("stdole2.tlb");
+
+    // Forward declare all types defined in this typelib
+    interface IGPAX;
+    dispinterface IGPAXEvents;
+
+    const int DISPID_SRC        = 100;
+    const int DISPID_AutoStart  = 101;
+
+
+	//IDispatch interface
+	[
+		odl,
+		uuid(E2A9A937-BB35-47E0-8942-964806299AB4),
+		helpstring("GPAC ActiveX Control"),
+		dual,
+		hidden,
+		oleautomation
+	]
+	interface IGPAX : IDispatch
+	{
+		/*functions*/
+		[helpstring("Play Movie")] HRESULT Play();
+		[helpstring("Pause/Resume Movie")] HRESULT Pause();
+		[helpstring("Stop Movie")] HRESULT Stop();
+		[helpstring("Update Scene")] HRESULT Update([in] BSTR mtype, [in] BSTR updates);
+
+
+		/*properties*/
+        [id(DISPID_SRC), propget, helpstring("Get/Set the media source")]
+        HRESULT src([out, retval] BSTR* url);
+        [id(DISPID_SRC), propput, helpstring("Get/Set the media source")]
+        HRESULT src([in] BSTR url);
+
+        [id(DISPID_AutoStart), propget, helpstring("Get/Set automatic playback upon load")]
+        HRESULT AutoStart([out, retval] VARIANT_BOOL* autoplay);
+        [id(DISPID_AutoStart), propput, helpstring("Get/Set automatic playback upon load")]
+        HRESULT AutoStart([in] VARIANT_BOOL autoplay);
+	};
+
+
+	//event interface
+    const int DISPID_PlayEvent  = 100;
+    const int DISPID_PauseEvent = 101;
+    const int DISPID_StopEvent  = 102;
 
 	[
 		uuid(1FDA32FC-4C9A-461F-B33B-0715B0343006),
-		helpstring("_IGPAXEvents Interface")
+		helpstring("GPAX Control Events")
 	]
-	dispinterface _IGPAXEvents
+	dispinterface IGPAXEvents
 	{
 		properties:
 		methods:
+            [id(DISPID_PlayEvent), helpstring("Playing")]
+            void Play();
+            [id(DISPID_PauseEvent), helpstring("Paused")]
+            void Pause();
+            [id(DISPID_StopEvent), helpstring("Stopped")]
+            void Stop();
 	};
 
+
+	//AX control
 	[
 		uuid(181D18E6-4DC1-4B55-B72E-BE2A10064995),
-		helpstring("GPAC Class")
+		helpstring("GPAC Control"),
+		control
 	]
 	coclass GPAX
 	{
 		[default] interface IGPAX;
-		[default, source] dispinterface _IGPAXEvents;
+		[default, source] dispinterface IGPAXEvents;
 	};
 };

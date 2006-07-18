@@ -314,7 +314,10 @@ void ListItem_del(GF_Box *s)
 {
 	GF_ListItemBox *ptr = (GF_ListItemBox *) s;
 	if (ptr == NULL) return;
-	if (ptr->data != NULL) gf_isom_box_del((GF_Box *)ptr->data);
+	if (ptr->data != NULL) {
+		if (ptr->data->data) free(ptr->data->data);
+		free(ptr->data);
+	}
 	free(ptr);
 }
 
@@ -326,18 +329,26 @@ GF_Err ListItem_Read(GF_Box *s,GF_BitStream *bs)
 	GF_ListItemBox *ptr = (GF_ListItemBox *)s;
 
 	sub_type = gf_bs_peek_bits(bs, 32, 0);
-	if (sub_type) {
+	/*iTunes way*/
+	if (sub_type == GF_ISOM_BOX_TYPE_DATA ) {
 		e = gf_isom_parse_box(&a, bs);
 		if (e) return e;
 		if (ptr->size<a->size) return GF_ISOM_INVALID_FILE;
 		ptr->size -= a->size;
-	} else {
-		gf_bs_read_u32(bs);
-		ptr->size -= 4;
+
+		if (a && ptr->data) gf_isom_box_del((GF_Box *) ptr->data);
+		ptr->data = (GF_DataBox *)a;
 	}
-
-	ptr->data = (GF_DataBox *)a;
-
+	/*QT way*/
+	else {
+		ptr->data->type = 0;
+		ptr->data->dataSize = gf_bs_read_u16(bs);
+		gf_bs_read_u16(bs);
+		ptr->data->data = malloc(sizeof(char)*(ptr->data->dataSize + 1));
+		gf_bs_read_data(bs, ptr->data->data, ptr->data->dataSize);
+		ptr->data->data[ptr->data->dataSize] = 0;
+		ptr->size -= ptr->data->dataSize;
+	}
 	return GF_OK;
 }
 
@@ -372,7 +383,13 @@ GF_Err ListItem_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 
-	return gf_isom_box_write((GF_Box* )ptr->data, bs);
+	/*iTune way*/
+	if (ptr->data->type) return gf_isom_box_write((GF_Box* )ptr->data, bs);
+	/*QT way*/
+	gf_bs_write_u16(bs, ptr->data->dataSize);
+	gf_bs_write_u16(bs, 0);
+	gf_bs_write_data(bs, ptr->data->data, ptr->data->dataSize);
+	return GF_OK;
 }
 
 GF_Err ListItem_Size(GF_Box *s)
@@ -383,11 +400,16 @@ GF_Err ListItem_Size(GF_Box *s)
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
 
-	e = gf_isom_box_size((GF_Box *)ptr->data);
-	if (e) return e;
-
-	ptr->size += ptr->data->size;
-
+	/*iTune way*/
+	if (ptr->data && ptr->data->type) {
+		e = gf_isom_box_size((GF_Box *)ptr->data);
+		if (e) return e;
+		ptr->size += ptr->data->size;
+	}
+	/*QT way*/
+	else {
+		ptr->size += ptr->data->dataSize + 4;
+	}
 	return GF_OK;
 }
 

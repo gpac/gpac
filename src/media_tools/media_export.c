@@ -31,6 +31,7 @@
 
 #include <gpac/internal/avilib.h>
 #include <gpac/internal/ogg.h>
+#include <gpac/internal/vobsub.h>
 
 static GF_Err gf_export_message(GF_MediaExporter *dumper, GF_Err e, char *format, ...)
 {
@@ -384,6 +385,122 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	return GF_OK;
 }
 
+static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 track, u8 *dsi, u32 dsiSize)
+{
+	FILE			*fidx, *fsub;
+	u32				 width, height, i, count, di;
+	GF_ISOSample	*samp;
+	char			 lang[] = "\0\0\0\0";
+
+	/* Check decoder specific information (palette) size - should be 64 */
+	if (dsiSize != 64) {
+		return gf_export_message(dumper, GF_CORRUPTED_DATA, "Invalid decoder specific info size - must be 64 but is %d", dsiSize);
+	}
+
+	/* Create an idx file */
+	fidx = gf_f64_open(szName, "w");
+	if (!fidx) {
+		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
+	}
+
+	/* Create a sub file */
+	vobsub_trim_ext(szName);
+	szName = strcat(szName, ".sub");
+	fsub = gf_f64_open(szName, "wb");
+	if (!fsub) {
+		fclose(fidx);
+		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
+	}
+
+	/* Retrieve original subpicture resolution */
+	gf_isom_get_track_layout_info(dumper->file, track, &width, &height, NULL, NULL, NULL);
+
+	/* Write header */
+	fputs("# VobSub index file, v7 (do not modify this line!)\n#\n", fidx);
+
+	/* Write original subpicture resolution */
+	fprintf(fidx, "size: %ux%u\n", width, height);
+
+	/* Write palette */
+	fputs("palette:", fidx);
+	for (i = 0; i < 16; i++) {
+		s32 y, u, v, r, g, b;
+
+		y = (s32)dsi[(i<<2)+1] - 0x10;
+		u = (s32)dsi[(i<<2)+3] - 0x80;
+		v = (s32)dsi[(i<<2)+2] - 0x80;
+		r = (298 * y           + 409 * v + 128) >> 8;
+		g = (298 * y - 100 * u - 208 * v + 128) >> 8;
+		b = (298 * y + 516 * u           + 128) >> 8;
+
+		if (i) fputc(',', fidx);
+
+#define CLIP(x) (((x) >= 0) ? (((x) < 256) ? (x) : 255) : 0)
+		fprintf(fidx, " %02x%02x%02x", CLIP(r), CLIP(g), CLIP(b));
+#undef CLIP
+	}
+	fputc('\n', fidx);
+
+	/* Write some other useful values */
+	fputs("# ON: displays only forced subtitles, OFF: shows everything\n", fidx);
+	fputs("forced subs: OFF\n\n", fidx);
+
+	/* Write current language index */
+	fputs("# Language index in use\nlangidx: 0\n", fidx);
+
+	/* Write language header */
+	gf_isom_get_media_language(dumper->file, track, lang);
+	fprintf(fidx, "id: %s, index: 0\n", vobsub_lang_id(lang));
+
+	/* Retrieve sample count */
+	count = gf_isom_get_sample_count(dumper->file, track);
+
+	/* Process samples (skip first - because it is special) */
+	for (i = 2; i <= count; i++)
+	{
+		u64 dts;
+		u32 hh, mm, ss, ms;
+
+		samp = gf_isom_get_sample(dumper->file, track, i+1, &di);
+		if (!samp) {
+			break;
+		}
+
+		dts = samp->DTS / 90;
+		ms  = (u32)(dts % 1000);
+		dts = dts / 1000;
+		ss  = (u32)(dts % 60);
+		dts = dts / 60;
+		mm  = (u32)(dts % 60);
+		hh  = (u32)(dts / 60);
+		fprintf(fidx, "timestamp: %02u:%02u:%02u:%03u, filepos: %09lx\n", hh, mm, ss, ms, gf_f64_tell(fsub));
+
+		if (vobsub_packetize_subpicture(fsub, samp->DTS, samp->data, samp->dataLength) != GF_OK) {
+			gf_isom_sample_del(&samp);
+			fclose(fsub);
+			fclose(fidx);
+			return gf_export_message(dumper, GF_IO_ERR, "Unable packetize subpicture into file %s\n", szName);
+		}
+
+		gf_isom_sample_del(&samp);
+		dump_progress(dumper, i + 1, count);
+
+		if (dumper->flags & GF_EXPORT_DO_ABORT) {
+			break;
+		}
+	}
+
+	/* Delete sample if any */
+	if (samp) {
+		gf_isom_sample_del(&samp);
+	}
+
+	fclose(fsub);
+	fclose(fidx);
+
+	return GF_OK;
+}
+
 /*QCP codec GUIDs*/
 static const unsigned char *QCP_QCELP_GUID_1 = "\x41\x6D\x7F\x5E\x15\xB1\xD0\x11\xBA\x91\x00\x80\x5F\xB4\xB9\x7E";
 static const unsigned char *QCP_EVRC_GUID = "\x8D\xD4\x89\xE6\x76\x90\xB5\x46\x91\xEF\x73\x6A\x51\x00\xCE\xB4";
@@ -401,7 +518,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	GF_M4ADecSpecInfo a_cfg;
 	GF_BitStream *bs;
 	u32 track, i, di, count, m_type, m_stype, dsi_size, qcp_type;
-	Bool is_ogg, has_qcp_pad;
+	Bool is_ogg, has_qcp_pad, is_vobsub;
 	u32 aac_type, is_aac;
 	char *dsi;
 	QCPRateTable rtable[8];
@@ -418,6 +535,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	is_aac = aac_type = 0;
 	qcp_type = 0;
 	is_ogg = 0;
+	is_vobsub = 0;
 	udesc = NULL;
 	dcfg = NULL;
 	if ((m_stype==GF_ISOM_SUBTYPE_MPEG4) || (m_stype==GF_ISOM_SUBTYPE_MPEG4_CRYP)) 
@@ -526,6 +644,22 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				return gf_export_message(dumper, GF_NOT_SUPPORTED, "Unknown audio in track ID %d - use NHNT", dumper->trackID);
 			}
 			break;
+		case GF_STREAM_ND_SUBPIC:
+			switch (dcfg->objectTypeIndication)
+			{
+			case 0xe0:
+				is_vobsub = 1;
+				dsi = dcfg->decoderSpecificInfo->data;
+				dcfg->decoderSpecificInfo->data = NULL;
+				dsi_size = dcfg->decoderSpecificInfo->dataLength;
+				strcat(szName, ".idx");
+				gf_export_message(dumper, GF_OK, "Extracting NeroDigital VobSub subpicture stream");
+				break;
+			default:
+				gf_odf_desc_del((GF_Descriptor *) dcfg);
+				return gf_export_message(dumper, GF_NOT_SUPPORTED, "Unknown subpicture stream in track ID %d - use NHNT", dumper->trackID);
+			}
+			break;
 		default:
 			gf_odf_desc_del((GF_Descriptor *) dcfg);
 			return gf_export_message(dumper, GF_NOT_SUPPORTED, "Cannot extract systems track ID %d in raw format - use NHNT", dumper->trackID);
@@ -585,6 +719,8 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	}
 
 	if (is_ogg) return gf_dump_to_ogg(dumper, szName, track);
+
+	if (is_vobsub) return gf_dump_to_vobsub(dumper, szName, track, dsi, dsi_size);
 
 	if (qcp_type>1) {
 		if (dumper->flags & GF_EXPORT_USE_QCP) {

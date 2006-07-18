@@ -28,7 +28,7 @@
 
 typedef struct _tag_lang_type
 {
-	char id[2];
+	char id[3];
 	char lang[4];
 } lang_type;
 
@@ -174,30 +174,37 @@ static lang_type lang_table[] =
 	{"zu", "zul" }
 };
 
-static s32 find_lang(u16 id)
+s32 vobsub_lang_name(u16 id)
 {
 	u16 lang_id;
-	s32 mid, lo, hi;
+	s32 i, count;
 
-	lo = 0;
-	hi = (sizeof(lang_table) / sizeof(lang_table[0])) - 1;
+	count = (sizeof(lang_table) / sizeof(lang_table[0]));
 
-	while (lo < hi)
-	{
-		mid = (lo + hi) >> 1;
-		lang_id = (lang_table[mid].id[0]<<8) | lang_table[mid].id[1];
+	for (i = 0; i < count; i++) {
+		lang_id = (lang_table[i].id[0]<<8) | lang_table[i].id[1];
 
-		if (id < lang_id) {
-			hi = mid;
-		} else if (id > lang_id) {
-			lo = mid;
-		} else {
-			return mid;
+		if (id == lang_id) {
+			return i;
 		}
 	}
 
-	lang_id = (lang_table[lo].id[0]<<8) | lang_table[lo].id[1];
-	return (id == lang_id ? lo : 0);
+	return 0; /* Undefined - und */
+}
+
+char *vobsub_lang_id(char *name)
+{
+	s32 i, count;
+
+	count = (sizeof(lang_table) / sizeof(lang_table[0]));
+
+	for (i = 0; i < count; i++) {
+		if (!stricmp(lang_table[i].lang, name)) {
+			return lang_table[i].id;
+		}
+	}
+
+	return "--"; /* Undefined */
 }
 
 static char *strltrim(char *str)
@@ -314,18 +321,15 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 
 			for (c = 0; c < 16; c++)
 			{
-				u8 r, g, b, y, u, v;
+				u8 r, g, b;
 
 				r = palette[c][2];
 				g = palette[c][1];
 				b = palette[c][0];
-				y = abs(r *  2104 + g *  4130 + b *  802 + 4096 +  131072) >> 13;
-				u = abs(r * -1214 + g * -2384 + b * 3598 + 4096 + 1048576) >> 13;
-				v = abs(r *  3598 + g * -3013 + b * -585 + 4096 + 1048576) >> 13;
 				vobsub->palette[c][0] = 0;
-				vobsub->palette[c][1] = (y > 235) ? 235 : y;
-				vobsub->palette[c][2] = (v > 240) ? 240 : v;
-				vobsub->palette[c][3] = (u > 240) ? 240 : u;
+				vobsub->palette[c][1] = (( 66 * r + 129 * g +  25 * b + 128 +  4096) >> 8) & 0xff;
+				vobsub->palette[c][2] = ((112 * r -  94 * g -  18 * b + 128 + 32768) >> 8) & 0xff;
+				vobsub->palette[c][3] = ((-38 * r -  74 * g + 112 * b + 128 + 32768) >> 8) & 0xff;
 			}
 		}
 		else if (stricmp(entry, "id") == 0)
@@ -350,7 +354,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 			}
 
 			vobsub->langs[id].id   = lang_id;
-			vobsub->langs[id].name = lang_table[find_lang((u16)lang_id)].lang;
+			vobsub->langs[id].name = lang_table[vobsub_lang_name((u16)lang_id)].lang;
 
 			vobsub->langs[id].subpos = gf_list_new();
 			if (vobsub->langs[id].subpos == NULL)
@@ -530,6 +534,118 @@ GF_Err vobsub_get_subpic_duration(u8 *data, u32 psize, u32 dsize, u32 *duration)
 	} while (i <= nxt_dcsq && i < psize);
 
 	*duration = stop_stm - start_stm;
+
+	return GF_OK;
+}
+
+GF_Err vobsub_packetize_subpicture(FILE *fsub, u64 pts, u8 *data, u32 dataSize)
+{
+	u8	buf[0x800], ptsbuf[5];
+	u8	*p;
+	int	put_pts = 1; 
+
+	/* Build PTS buffer */
+	ptsbuf[0] = (u8)(((pts >> 29) & 0x0e) | 0x21);
+	ptsbuf[1] = (u8)(((pts >> 22) & 0xff));
+	ptsbuf[2] = (u8)(((pts >> 14) & 0xfe) | 0x01);
+	ptsbuf[3] = (u8)(((pts >>  7) & 0xff));
+	ptsbuf[4] = (u8)(((pts <<  1) & 0xfe) | 0x01);
+
+	while (dataSize > 0)
+	{
+		u32 padLen = 0;
+		u32 dataLen = sizeof(buf);
+		u32 packLen;
+
+		/* Zerofill packet */
+		memset(buf, 0, sizeof(buf));
+		p = buf;
+
+		/* Put pack header */
+		*p++ = 0x00;
+		*p++ = 0x00;
+		*p++ = 0x01;
+		*p++ = 0xba;
+		*p++ = 0x40;
+
+		/* Jump to PES header */
+		p += 9;
+
+		/* Put PES header */
+		*p++ = 0x00;
+		*p++ = 0x00;
+		*p++ = 0x01;
+		*p++ = 0xbd;
+
+		/* Compute max size of content */
+		dataLen -= 14; /* Pack header */
+		dataLen -=  4; /* Start code + Stream ID */
+		dataLen -=  2; /* PES packet size */
+		dataLen -=  3; /* PES header extension */
+		dataLen -= put_pts ? 5 : 0; /* PTS */
+		dataLen -=  1; /* Substream ID */
+
+		/* Check if the subpicture data fits in packet */
+		if (dataSize <= dataLen) {
+			padLen  = dataLen - dataSize;
+			dataLen = dataSize;
+		}
+
+		/* Compute and put packet size (PES header extension + PTS + Substream ID + data + padding) */
+		packLen = 3 + (put_pts ? 5 : 0) + 1 + dataLen + ((padLen < 6) ? padLen : 0);
+		*p++ = (packLen >> 8) & 0xff;
+		*p++ = packLen & 0xff;
+
+		/* Put PES header extension */
+		*p++ = 0x80;
+		*p++ = put_pts ? 0x80 : 0x00;
+		*p++ = (put_pts ? 5 : 0) + ((padLen < 6) ? padLen : 0);
+
+		/* Put PTS */
+		if (put_pts) {
+			*p++ = ptsbuf[0];
+			*p++ = ptsbuf[1];
+			*p++ = ptsbuf[2];
+			*p++ = ptsbuf[3];
+			*p++ = ptsbuf[4];
+		}
+
+		/* Skip padding bytes */
+		if (padLen < 6) {
+			p += padLen;
+		}
+
+		/* Put Substream ID */
+		*p++ = 0x20;
+
+		/* Copy data into packet buffer */
+		memcpy(p, data, dataLen);
+		p += dataLen;
+
+		/* Put padding bytes if padding len >= 6 */
+		if (padLen >= 6) {
+			padLen -= 6;
+			*p++ = 0x00;
+			*p++ = 0x00;
+			*p++ = 0x01;
+			*p++ = 0xbe;
+			*p++ = (padLen >> 8) & 0xff;
+			*p++ = padLen & 0xff;
+			memset(p, 0, padLen);
+		}
+
+		/* Write packet into file */
+		if (fwrite(buf, sizeof(buf), 1, fsub) != 1) {
+			return GF_IO_ERR;
+		}
+
+		/* Move data pointer... */
+		data += dataLen;
+		dataSize -= dataLen;
+
+		/* Next packet (if any) will not contain PTS */
+		put_pts = 0;
+	}
 
 	return GF_OK;
 }

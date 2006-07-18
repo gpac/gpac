@@ -1048,6 +1048,18 @@ int main (int argc, char **argv)
 			ResetCaption();
 			break;
 
+		case 'u':
+		{
+			GF_Err e;
+			char szCom[8192];
+			fprintf(stdout, "Enter command to send:\n");
+			fflush(stdin);
+			szCom[0] = 0;
+			scanf("%[^\t\n]", szCom);
+			e = gf_term_scene_update(term, NULL, szCom);
+			if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
+		}
+			break;
 		case 'h':
 			PrintHelp();
 			break;

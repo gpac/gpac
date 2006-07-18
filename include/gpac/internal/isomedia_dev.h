@@ -245,6 +245,8 @@ enum
 	GF_ISOM_BOX_TYPE_0xA9COM	= GF_4CC( 0xA9, 'c', 'o', 'm' ),
 	GF_ISOM_BOX_TYPE_0xA9WRT	= GF_4CC( 0xA9, 'w', 'r', 't' ),
 	GF_ISOM_BOX_TYPE_0xA9TOO	= GF_4CC( 0xA9, 't', 'o', 'o' ),
+	GF_ISOM_BOX_TYPE_0xA9CPY	= GF_4CC( 0xA9, 'c', 'p', 'y' ),
+	GF_ISOM_BOX_TYPE_0xA9DES	= GF_4CC( 0xA9, 'd', 'e', 's' ),
 	GF_ISOM_BOX_TYPE_GNRE	= GF_4CC( 'g', 'n', 'r', 'e' ),
 	GF_ISOM_BOX_TYPE_DISK	= GF_4CC( 'd', 'i', 's', 'k' ),
 	GF_ISOM_BOX_TYPE_TRKN	= GF_4CC( 't', 'r', 'k', 'n' ),

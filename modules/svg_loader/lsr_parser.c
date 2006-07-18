@@ -30,6 +30,18 @@
 
 extern Bool xmllib_is_init;
 
+
+Bool SVG_CheckDownload(SVGParser *parser)
+{
+	u32 size;
+	FILE *f = fopen(parser->file_name, "rt");
+	fseek(f, 0, SEEK_END);
+	size = ftell(f);
+	fclose(f);
+	if (size==parser->file_size) return 1;
+	return 0;
+}
+
 static xmlNodePtr lsr_toElement(xmlNodePtr ptr)
 {
 	while (ptr) {
@@ -37,11 +49,6 @@ static xmlNodePtr lsr_toElement(xmlNodePtr ptr)
 		ptr = ptr->next;
 	}
 	return NULL;
-}
-
-Bool SVG_CheckDownload(SVGParser *parser)
-{
-	return 1;
 }
 
 GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)

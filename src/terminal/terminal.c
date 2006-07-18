@@ -29,6 +29,8 @@
 #include <gpac/constants.h>
 #include <gpac/options.h>
 #include <gpac/network.h>
+/*textual command processing*/
+#include <gpac/scene_manager.h>
 
 u32 gf_term_get_time(GF_Terminal *term)
 {
@@ -907,3 +909,110 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 	odm->net_service->ifce->ConnectService(odm->net_service->ifce, odm->net_service, odm->net_service->url);
 }
 
+GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
+{
+	GF_Err e;
+	GF_StreamContext *sc;
+	GF_ESD *esd;
+	Bool is_xml = 0;
+	Double time = 0;
+	u32 i, tag;
+	GF_SceneLoader load;
+
+	if (!term) return GF_BAD_PARAM;
+
+	memset(&load, 0, sizeof(GF_SceneLoader));
+	load.localPath = gf_cfg_get_key(term->user->config, "General", "CacheDirectory");
+	load.flags = GF_SM_LOAD_FOR_PLAYBACK | GF_SM_LOAD_CONTEXT_READY;
+	load.type = GF_SM_LOAD_BT;
+
+	if (!term->root_scene) {
+		gf_term_lock_net(term, 1);
+		/*create a new scene*/
+		term->root_scene = gf_is_new(NULL);
+		gf_sg_set_javascript_api(term->root_scene->graph, &term->js_ifce);
+		term->root_scene->root_od = gf_odm_new();
+		term->root_scene = term->root_scene;
+		term->root_scene->root_od->parentscene = NULL;
+		term->root_scene->root_od->subscene = term->root_scene;
+		term->root_scene->root_od->term = term;
+		gf_term_lock_net(term, 0);
+		load.ctx = gf_sm_new(term->root_scene->graph);
+	} else if (term->root_scene->root_od->OD) {
+		load.ctx = gf_sm_new(term->root_scene->graph);
+		/*restore streams*/
+		i=0;
+		while ((esd = gf_list_enum(term->root_scene->root_od->OD->ESDescriptors, &i)) ) {
+			switch (esd->decoderConfig->streamType) {
+			case GF_STREAM_OD:
+			case GF_STREAM_SCENE:
+			case GF_STREAM_PRIVATE_SCENE:
+				sc = gf_sm_stream_new(load.ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
+				if (esd->decoderConfig->streamType=GF_STREAM_PRIVATE_SCENE) sc->streamType = GF_STREAM_SCENE;
+				sc->timeScale = esd->slConfig->timestampResolution;
+				break;
+			}
+		}
+	}
+	load.ctx->max_node_id = gf_sg_get_max_node_id(term->root_scene->graph);
+
+	i=0;
+	while ((com[i] == ' ') || (com[i] == '\r') || (com[i] == '\n') || (com[i] == '\t')) i++;
+	if (com[i]=='<') is_xml = 1;
+
+	load.type = is_xml ? GF_SM_LOAD_XMTA : GF_SM_LOAD_BT;
+	time = gf_is_get_time(term->root_scene);
+
+
+	if (type && (!stricmp(type, "application/x-laser+xml") || !stricmp(type, "laser"))) {
+		load.type = GF_SM_LOAD_XSR;
+		time = gf_is_get_time(term->root_scene);
+	}
+	else if (type && (!stricmp(type, "image/svg+xml") || !stricmp(type, "svg")) ) {
+		load.type = GF_SM_LOAD_XSR;
+		time = gf_is_get_time(term->root_scene);
+	}
+	else if (type && (!stricmp(type, "model/x3d+xml") || !stricmp(type, "x3d")) ) load.type = GF_SM_LOAD_X3D;
+	else if (type && (!stricmp(type, "model/x3d+vrml") || !stricmp(type, "x3dv")) ) load.type = GF_SM_LOAD_X3DV;
+	else if (type && (!stricmp(type, "model/vrml") || !stricmp(type, "vrml")) ) load.type = GF_SM_LOAD_VRML;
+	else if (type && (!stricmp(type, "application/x-xmt") || !stricmp(type, "xmt")) ) load.type = GF_SM_LOAD_XMTA;
+	else if (type && (!stricmp(type, "application/x-bt") || !stricmp(type, "bt")) ) load.type = GF_SM_LOAD_BT;
+	else if (gf_sg_get_root_node(term->root_scene->graph)) {
+		tag = gf_node_get_tag(gf_sg_get_root_node(term->root_scene->graph));
+
+		if (tag >= GF_NODE_RANGE_FIRST_SVG) {
+			load.type = GF_SM_LOAD_XSR;
+			time = gf_is_get_time(term->root_scene);
+		} else if (tag>=GF_NODE_RANGE_FIRST_X3D) {
+			load.type = is_xml ? GF_SM_LOAD_X3D : GF_SM_LOAD_X3DV;
+		} else {
+			load.type = is_xml ? GF_SM_LOAD_XMTA : GF_SM_LOAD_BT;
+			time = gf_is_get_time(term->root_scene);
+		}
+	}
+
+	e = gf_sm_load_string(&load, com, 1);
+	if (!e) {
+		u32 j, au_count, st_count;
+		st_count = gf_list_count(load.ctx->streams);
+		for (i=0; i<st_count; i++) {
+			sc = gf_list_get(load.ctx->streams, i);
+			au_count = gf_list_count(sc->AUs);
+			for (j=0; j<au_count; j++) {
+				GF_AUContext *au = gf_list_get(sc->AUs, j);
+				e = gf_sg_command_apply_list(term->root_scene->graph, au->commands, time);
+				if (e) break;
+			}
+		}
+	}
+	if (!term->root_scene->graph_attached) {
+		if (!load.ctx->scene_width || !load.ctx->scene_height) {
+//			load.ctx->scene_width = term->renderer->width;
+//			load.ctx->scene_height = term->renderer->height;
+		}
+		gf_sg_set_scene_size_info(term->root_scene->graph, load.ctx->scene_width, load.ctx->scene_height, load.ctx->is_pixel_metrics);
+		gf_is_attach_to_renderer(term->root_scene);
+	}
+	gf_sm_del(load.ctx);
+	return e;
+}

@@ -2777,10 +2777,15 @@ GF_Err gf_sm_load_init_xmt_string(GF_SceneLoader *load, char *str_data)
 			return e;
 		}
 		str_data += 4;
+
+		if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
+			parser->doc_type = (load->type==GF_SM_LOAD_X3D) ? 2 : 1;
+			parser->doc_state = 3;
+		}
 	}
 	e = gf_xml_sax_parse(parser->sax_parser, str_data);
-	if (e<0) xmt_report(parser, e, "Invalid XML document: %s", gf_xml_sax_get_error(parser->sax_parser));
-	return e;
+	if (e<0) return xmt_report(parser, e, "Invalid XML document: %s", gf_xml_sax_get_error(parser->sax_parser));
+	return GF_OK;
 }
 
 

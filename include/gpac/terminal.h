@@ -91,6 +91,20 @@ GF_Err gf_term_set_simulation_frame_rate(GF_Terminal * term, Double frame_rate);
 /*gets simulation frame rate*/
 Double gf_term_get_simulation_frame_rate(GF_Terminal *term);
 
+/*sends a set of scene commands (BT, XMT, X3D, LASeR+XML) to the scene
+type indicates the language used - accepted values are 
+	"model/x3d+xml" or "x3d": commands is an X3D+XML scene
+	"model/x3d+vrml" or  "xrdv": commands is an X3D+VRML scene
+	"model/vrml" or "vrml": commands is an VRML scene
+	"application/x-xmt" or "xmt": commands is an XMT-A scene or a list of XMT-A updates
+	"application/x-bt" or "bt": commands is a BT scene or a list of BT updates
+	"image/svg+xml" or "svg": commands is an SVG scene
+	"application/x-laser+xml" or "laser": commands is an SVG/LASeR+XML  scene or a list of LASeR+XML updates
+	if not specified, the type will be guessed from the current root node if any
+*/
+GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com);
+
+
 /*request visual output size change:
 	* NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)
 	* if the user app manages the output window it shall resize it before calling this

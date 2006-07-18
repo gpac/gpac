@@ -60,7 +60,7 @@ class ATL_NO_VTABLE CGPAXPlugin :
             public ISpecifyPropertyPagesImpl<CGPAXPlugin>,
             public IQuickActivateImpl<CGPAXPlugin>,
             public IDataObjectImpl<CGPAXPlugin>,
-            public IProvideClassInfo2Impl<&CLSID_GPAX, &DIID__IGPAXEvents, &LIBID_GPAXLib>,
+            public IProvideClassInfo2Impl<&CLSID_GPAX, &DIID_IGPAXEvents, &LIBID_GPAXLib>,
             public IPropertyNotifySinkCP<CGPAXPlugin>,
             public CComCoClass<CGPAXPlugin, &CLSID_GPAX>,
 			public IPersistPropertyBagImpl<CGPAXPlugin>,
@@ -77,6 +77,7 @@ public:
 		m_bIsConnected = 0;
 		m_bUse3D = 0;
 		m_AR = GF_ASPECT_RATIO_KEEP;
+		m_url[0] = 0;
 		m_pBrowser = NULL;
     }
 
@@ -160,11 +161,17 @@ public:
 
     // IGPAX
 public:
-	//Interface methods: four methods are implemented for video/audio control
-	STDMETHOD(Reload)();
+	//Interface methods
 	STDMETHOD(Stop)();
 	STDMETHOD(Pause)();
 	STDMETHOD(Play)();
+    STDMETHOD(Update)(BSTR mtype,BSTR updates);
+
+	//Interface properties
+    STDMETHODIMP get_src(BSTR *url);
+    STDMETHODIMP put_src(BSTR url);
+    STDMETHODIMP get_AutoStart(VARIANT_BOOL *as);
+    STDMETHODIMP put_AutoStart(VARIANT_BOOL as);
 
 	//Customed Window Message functions: OnCreate and OnDestroy are called when a window
 	//is created or destroyed. OnDraw is to establish inital connection.
@@ -179,6 +186,7 @@ public:
 	//the interface IPersistPropertyBag enable MSIE and ActiveX Control to communicate these
 	//properties included in tags <PARAM> 
     STDMETHODIMP Load(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog);
+    STDMETHODIMP Save(LPPROPERTYBAG, BOOL, BOOL);
 
 private:
 	Bool ReadParamString(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog, WCHAR *name, TCHAR *buf, int bufsize);
@@ -192,6 +200,7 @@ private:
 
 	u32 m_width, m_height, m_AR;
 	Bool m_bIsConnected, m_bInitialDraw, m_bAutoPlay, m_bUse3D, m_bLoop;
+
 };
 
 

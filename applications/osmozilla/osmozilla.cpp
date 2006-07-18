@@ -549,6 +549,11 @@ void nsOsmozillaInstance::Stop()
 	gf_term_disconnect(m_term);
 }
 
+void nsOsmozillaInstance::Update(const char *type, const char *commands)
+{
+	if (m_term) gf_term_scene_update(m_term, (char *) type, (char *) commands);
+}
+
 
 // Scriptability related code
 
@@ -580,22 +585,14 @@ nsOsmozillaPeer::~nsOsmozillaPeer()
 //NS_IMPL_ISUPPORTS2(nsOsmozillaPeer, nsITestPlugin, nsIClassInfo)
 
 	// the following method will be callable from JavaScript
-NS_IMETHODIMP nsOsmozillaPeer::Pause()
-{
-	mPlugin->Pause();
-	return NS_OK;
-}
+NS_IMETHODIMP nsOsmozillaPeer::Pause() { mPlugin->Pause(); return NS_OK; }
+NS_IMETHODIMP nsOsmozillaPeer::Play() { mPlugin->Play(); return NS_OK; }
+NS_IMETHODIMP nsOsmozillaPeer::Stop() { mPlugin->Stop(); return NS_OK; }
 
-NS_IMETHODIMP nsOsmozillaPeer::Play()
+NS_IMETHODIMP nsOsmozillaPeer::Update(const char *type, const char *commands) 
 {
-	mPlugin->Play();
-	return NS_OK;
-}
-
-NS_IMETHODIMP nsOsmozillaPeer::Stop()
-{
-	mPlugin->Stop();
-	return NS_OK;
+	mPlugin->Update(type, commands); 
+	return NS_OK; 
 }
 
 void nsOsmozillaPeer::SetInstance(nsOsmozillaInstance * plugin)

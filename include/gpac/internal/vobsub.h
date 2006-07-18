@@ -57,9 +57,23 @@ typedef struct _tag_vobsub_file
 	vobsub_lang langs[32];
 } vobsub_file;
 
+GFINLINE static void vobsub_trim_ext(char *filename)
+{
+	char *pos = strchr(filename, '.');
+
+	if (pos != NULL) {
+		if (!stricmp(pos, ".idx") || !stricmp(pos, ".sub")) {
+			*pos = '\0';
+		}
+	}
+}
+
+s32    vobsub_lang_name(u16 id);
+char  *vobsub_lang_id(char *name);
 GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, int *version);
 void   vobsub_free(vobsub_file *vobsub);
 GF_Err vobsub_get_subpic_duration(u8 *data, u32 psize, u32 dsize, u32 *duration);
+GF_Err vobsub_packetize_subpicture(FILE *fsub, u64 pts, u8 *data, u32 dataSize);
 
 #ifdef __cplusplus
 }

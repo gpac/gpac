@@ -378,7 +378,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 					break;
 				}
 
-				e = gf_sm_load_string(&priv->load, file_buf);
+				e = gf_sm_load_string(&priv->load, file_buf, 0);
 				priv->file_pos += nb_read;
 				if (e) break;
 				diff = gf_sys_clock() - entry_time;

@@ -230,8 +230,10 @@ void gf_sm_load_done(GF_SceneLoader *load);
 !! THE LOADER TYPE MUST BE ASSIGNED (BT/WRL/XMT/X3D/SVG only) !!
 The string MUST be at least 4 bytes long in order to detect BOM (unicode encoding). 
 The string can ba either UTF-8 or UTF-16 data
+if clean_at_end is set, associated parser is destroyed. Otherwise, a call to gf_sm_load_done must be done 
+to clean ressources (needed for SAX progressive loading)
 */
-GF_Err gf_sm_load_string(GF_SceneLoader *load, char *str);
+GF_Err gf_sm_load_string(GF_SceneLoader *load, char *str, Bool clean_at_end);
 
 
 /*scene dump mode*/

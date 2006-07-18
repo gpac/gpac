@@ -42,6 +42,8 @@ typedef struct
 	char token[500];
 	u32 token_code;
 
+	u32 cur_line;
+
 	Bool emul;
 
 	char expr_toks[500];
@@ -315,7 +317,10 @@ Bool SFE_NextToken(ScriptEnc *sc_enc)
 {
 	u32 i;
 	if (sc_enc->err) return 0;
-	while (strchr(" \t\r\n", sc_enc->cur_buf[0])) sc_enc->cur_buf++;
+	while (strchr(" \t\r\n", sc_enc->cur_buf[0])) {
+		if (sc_enc->cur_buf[0]=='\n') sc_enc->cur_line ++;
+		sc_enc->cur_buf++;
+	}
 	if ((sc_enc->cur_buf[0] == '/') && (sc_enc->cur_buf[1] == '*')) {
 		sc_enc->cur_buf += 2;
 		while ((sc_enc->cur_buf[0] != '*') || (sc_enc->cur_buf[1] != '/')) {
@@ -656,6 +661,8 @@ u32 SFE_LoadExpression(ScriptEnc *sc_enc, u32 *expr_sep)
 		case TOK_BOOLEAN:
 			gf_list_add(sc_enc->id_buf, strdup(sc_enc->token));
 			break;
+		case TOK_FUNCTION:
+			goto break_loop;
 		}
 
 		if (sc_enc->token_code==TOK_VAR) is_var = 1;
@@ -668,6 +675,7 @@ u32 SFE_LoadExpression(ScriptEnc *sc_enc, u32 *expr_sep)
 		close_code = 0;
 		if (sc_enc->token_code == TOK_LEFT_CURVE) close_code = TOK_RIGHT_CURVE;
 		else if (sc_enc->token_code == TOK_LEFT_BRACKET) close_code = TOK_RIGHT_BRACKET;
+		else if (sc_enc->token_code == TOK_LEFT_BRACE) close_code = TOK_RIGHT_BRACE;
 
 		/*other expr*/
 		if ((sc_enc->token_code == TOK_COMMA) && (sc_enc->expr_toks[0] != TOK_VAR) ){
@@ -701,7 +709,8 @@ break_loop:
 		|| (sc_enc->token_code == TOK_STRING) || (sc_enc->token_code == TOK_BOOLEAN) ) {
 		gf_list_add(sc_enc->id_buf, strdup(sc_enc->token));
 	}
-	if ((sc_enc->token_code != TOK_CONDSEP) && (sc_enc->expr_toks[0] != TOK_VAR)) {
+	
+	if ((sc_enc->token_code != TOK_CONDSEP) && (sc_enc->token_code != TOK_RIGHT_BRACE) && (sc_enc->expr_toks[0] != TOK_VAR)) {
 		sc_enc->expr_toks[sc_enc->expr_toks_len] = sc_enc->token_code;
 		sc_enc->expr_toks_len++;
 	}
@@ -1009,9 +1018,10 @@ void SFE_StatementBlock(ScriptEnc *sc_enc)
 void SFE_Function(ScriptEnc *sc_enc)
 {
 	char szName[1000];
+
 	SFE_NextToken(sc_enc);
 	SFE_CheckToken(sc_enc, TOK_FUNCTION);
-	
+
 	SFE_NextToken(sc_enc);
 	SFE_CheckToken(sc_enc, TOK_IDENTIFIER);
 	strcpy(szName, sc_enc->token);
@@ -1328,6 +1338,7 @@ u32 MoveToToken(ScriptEnc *sc_enc, u32 endTok, u32 cur, u32 end)
 	
 	if (endTok == TOK_RIGHT_CURVE) startTok = TOK_LEFT_CURVE;
 	else if (endTok == TOK_RIGHT_BRACKET) startTok = TOK_LEFT_BRACKET;
+	else if (endTok == TOK_RIGHT_BRACE) startTok = TOK_LEFT_BRACE;
 	else if (endTok == TOK_CONDSEP) startTok = TOK_CONDTEST;
 	else {
 		fprintf(stderr, "Script Error: illegal MoveToToken %s\n", tok_names[endTok]);
@@ -1410,6 +1421,21 @@ u32 SFE_Expression(ScriptEnc *sc_enc, u32 start, u32 end, Bool memberAccess)
 			n = MoveToToken(sc_enc, TOK_RIGHT_CURVE, n, end);
 			curTok = TOK_RIGHT_CURVE;
 			break;
+		case TOK_FUNCTION:
+			curExpr = ET_FUNCTION_ASSIGN;
+			break;
+		case TOK_PLUS:
+			if (
+				prevTok==TOK_RIGHT_CURVE || prevTok==TOK_RIGHT_BRACKET ||
+				prevTok==TOK_IDENTIFIER || prevTok==TOK_NUMBER ||
+				prevTok==TOK_STRING || prevTok==TOK_INCREMENT ||
+				prevTok==TOK_DECREMENT
+			) {
+				curExpr = ET_PLUS;
+			} else {
+				goto skip_token;
+			}
+			break;
 		case TOK_MINUS:
 			if (
 				prevTok==TOK_RIGHT_CURVE || prevTok==TOK_RIGHT_BRACKET ||
@@ -1440,8 +1466,16 @@ u32 SFE_Expression(ScriptEnc *sc_enc, u32 start, u32 end, Bool memberAccess)
 			break;
 		case TOK_CONDSEP:
 			break;
+		case TOK_LEFT_BRACE:
+			curExpr = ET_CURVED_EXPR;
+			n = MoveToToken(sc_enc, TOK_RIGHT_BRACE, n, end);
+			curTok = TOK_RIGHT_BRACE;
+			break;
+			break;
 		default:
-			if (curTok && (curTok != TOK_VAR) && (curTok < TOK_MULTIPLY || curTok > TOK_OREQ)) {
+
+			if (curTok && (curTok != TOK_VAR)  
+				&& (curTok < TOK_MULTIPLY || curTok > TOK_OREQ)) {
 				fprintf(stdout, "Script Error: illegal token %s read\n", tok_names[curTok]);
 				sc_enc->err = GF_BAD_PARAM;
 				return 0;
@@ -1464,6 +1498,7 @@ u32 SFE_Expression(ScriptEnc *sc_enc, u32 start, u32 end, Bool memberAccess)
 			finalPos = curPos;
 		}
 		prevTok = curTok;
+skip_token:
 		curTok = sc_enc->expr_toks[++n];
 	} while (n<end);
 
@@ -1603,6 +1638,15 @@ u32 SFE_Expression(ScriptEnc *sc_enc, u32 start, u32 end, Bool memberAccess)
 		break;
 	case ET_CONDTEST:
 		SFE_ConditionTest(sc_enc, start, finalPos, end);
+		break;
+	case ET_FUNCTION_ASSIGN:
+		SFE_NextToken(sc_enc);
+		SFE_CheckToken(sc_enc, TOK_LEFT_CURVE);
+
+		SFE_Arguments(sc_enc);
+		SFE_StatementBlock(sc_enc);
+		SFE_NextToken(sc_enc);
+		SFE_CheckToken(sc_enc, TOK_SEMICOLON);
 		break;
 	default:
 		fprintf(stderr, "Error: illegal expression type %s\n", expr_name[expr]);

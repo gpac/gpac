@@ -3335,8 +3335,8 @@ static void JSScript_Load(GF_Node *node)
 
 static JSRuntime *js_runtime = 0;
 static u32 nb_inst = 0;
-const long MAX_HEAP_BYTES = 4L * 1024L * 1024L;
-const long STACK_CHUNK_BYTES = 4024L;
+const long MAX_HEAP_BYTES = 8L * 1024L * 1024L;
+const long STACK_CHUNK_BYTES = 8*1024L;
 
 JSContext *gf_sg_ecmascript_new()
 {

@@ -3011,7 +3011,15 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 			if (parser->top_nodes) {
 				gf_list_add(parser->top_nodes, node);
 			} else if (!vrml_root_node) {
-				init_com->node = node;
+				if (init_com) init_com->node = node;
+				else if (parser->load->flags & GF_SM_LOAD_CONTEXT_READY) {
+					GF_Command *com = gf_sg_command_new(parser->load->scene_graph, GF_SG_SCENE_REPLACE);
+					assert(!parser->bifs_au);
+					assert(parser->bifs_es);
+					parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, 0, 0, 1);
+					gf_list_add(parser->bifs_au->commands, com);
+					com->node = node;
+				}
 			} else {
 				gf_node_insert_child(vrml_root_node, node, -1);
 			}
@@ -3279,17 +3287,23 @@ GF_Err gf_sm_load_init_BTString(GF_SceneLoader *load, char *str)
 		i=0;
 		while ((sc = gf_list_enum(load->ctx->streams, &i))){ 
 			switch (sc->streamType) {
-			case GF_STREAM_SCENE: if (!parser->bifs_es) parser->bifs_es = sc; break;
+			case GF_STREAM_SCENE: 
+			case GF_STREAM_PRIVATE_SCENE: 
+				if (!parser->bifs_es) parser->bifs_es = sc; break;
 			case GF_STREAM_OD: if (!parser->od_es) parser->od_es = sc; break;
 			default: break;
 			}
 		}
-		/*need at least one scene stream*/
+		/*scene creation - pick up a size*/
 		if (!parser->bifs_es) {
-			gf_sm_load_done_BT(load);
-			return GF_BAD_PARAM;
+			parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, 0);
+
+			parser->load->ctx->scene_width = 0;
+			parser->load->ctx->scene_height = 0;
+			parser->load->ctx->is_pixel_metrics = 1;
+		
 		}
-		parser->base_bifs_id = parser->bifs_es->ESID;
+		else parser->base_bifs_id = parser->bifs_es->ESID;
 		if (parser->od_es) parser->base_od_id = parser->od_es->ESID; 
 		/*that's it, nothing else to do*/
 		return GF_OK;

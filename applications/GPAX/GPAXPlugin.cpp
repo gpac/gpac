@@ -30,6 +30,9 @@
 #include <gpac/utf.h>
 
 
+
+
+
 /////////////////////////////////////////////////////////////////////////////
 // CGPAXPlugin
 
@@ -324,12 +327,38 @@ STDMETHODIMP CGPAXPlugin::Load(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog)
 			isp->Release();
 		}
 	}
-
-	if (m_pBrowser) {
-		m_pBrowser->put_StatusText(L"GPAC Ready");
-	}
+	if (m_pBrowser) m_pBrowser->put_StatusText(L"GPAC Ready");
 
 	return IPersistPropertyBagImpl<CGPAXPlugin>::Load(pPropBag, pErrorLog);
+}
+
+STDMETHODIMP CGPAXPlugin::Save(LPPROPERTYBAG pPropBag, BOOL fClearDirty, BOOL fSaveAllProperties)
+{
+	u16 wurl[MAXLEN_URL];
+	const char *sptr;
+	u16 len;
+
+    VARIANT value;
+    if( pPropBag == NULL) return E_INVALIDARG;
+
+    VariantInit(&value);
+
+    V_VT(&value) = VT_BOOL;
+    V_BOOL(&value) = m_bAutoPlay ? VARIANT_TRUE : VARIANT_FALSE;
+    pPropBag->Write(OLESTR("AutoStart"), &value);
+    VariantClear(&value);
+
+    V_VT(&value) = VT_BSTR;
+
+	sptr = (const char *)m_url;
+	len = gf_utf8_mbstowcs(wurl, MAXLEN_URL, &sptr);
+    V_BSTR(&value) = SysAllocStringLen(NULL, len+1);
+	memcpy(V_BSTR(&value) , wurl, len*sizeof(u16));
+	V_BSTR(&value) [len] = 0;
+	
+    pPropBag->Write(OLESTR("src"), &value);
+    VariantClear(&value);
+    return S_OK;
 }
 
 STDMETHODIMP CGPAXPlugin::Play()
@@ -364,12 +393,61 @@ STDMETHODIMP CGPAXPlugin::Stop()
     return S_OK;
 }
 
-STDMETHODIMP CGPAXPlugin::Reload()
+STDMETHODIMP CGPAXPlugin::Update(BSTR _mtype, BSTR _updates)
 {
-    if (m_term && strlen(m_url)) {
-        gf_term_disconnect(m_term);
-        gf_term_connect(m_term, m_url);
-		gf_term_set_option(m_term, GF_OPT_ASPECT_RATIO, m_AR);
-    }
+    if (m_term) {
+		u16 *srcp;
+		u32 len;
+		char mtype[1024], *updates;
+
+		srcp = _mtype;
+		len = gf_utf8_wcstombs(mtype, 1024, (const u16 **)&srcp);
+		mtype[len] = 0;
+
+		srcp = _updates;
+		len = gf_utf8_wcstombs(NULL, 0, (const u16 **)&srcp);
+		if (len) {
+			updates = (char *) malloc(sizeof(char) * (len+1));
+			srcp = _updates;
+			len = gf_utf8_wcstombs(updates, len, (const u16 **)&srcp);
+			updates[len] = 0;
+			gf_term_scene_update(m_term, mtype, updates);
+			free(updates);
+		}
+	}
+    return S_OK;
+}
+
+STDMETHODIMP CGPAXPlugin::get_src(BSTR *url)
+{
+	u16 wurl[MAXLEN_URL];
+	const char *sptr;
+	u16 len;
+    if (url==NULL) return E_POINTER;
+
+	sptr = (const char *)m_url;
+	len = gf_utf8_mbstowcs(wurl, MAXLEN_URL, &sptr);
+    *url = SysAllocStringLen(NULL, len+1);
+	memcpy(*url, wurl, len*sizeof(u16));
+	*url[len] = 0;
+    return S_OK;
+}
+STDMETHODIMP CGPAXPlugin::put_src(BSTR url)
+{
+	const u16 *srcp = url;
+	u32 len = gf_utf8_wcstombs(m_url, MAXLEN_URL, &srcp);
+	m_url[len] = 0;
+    return S_OK;
+}
+
+STDMETHODIMP CGPAXPlugin::get_AutoStart(VARIANT_BOOL *as)
+{
+    if (as==NULL) return E_POINTER;
+    *as = m_bAutoPlay ? VARIANT_TRUE: VARIANT_FALSE;
+    return S_OK;
+}
+STDMETHODIMP CGPAXPlugin::put_AutoStart(VARIANT_BOOL as)
+{
+    m_bAutoPlay = (as !=VARIANT_FALSE) ? TRUE: FALSE;
     return S_OK;
 }

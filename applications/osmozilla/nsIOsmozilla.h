@@ -36,25 +36,31 @@ class NS_NO_VTABLE nsIOsmozilla : public nsISupports {
   /* void Stop (); */
   NS_IMETHOD Stop(void) = 0;
 
+  /* void Update (in string type, in string commands); */
+  NS_IMETHOD Update(const char *type, const char *commands) = 0;
+
 };
 
 /* Use this macro when declaring classes that implement this interface. */
 #define NS_DECL_NSIOSMOZILLA \
   NS_IMETHOD Pause(void); \
   NS_IMETHOD Play(void); \
-  NS_IMETHOD Stop(void); 
+  NS_IMETHOD Stop(void); \
+  NS_IMETHOD Update(const char *type, const char *commands); 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object. */
 #define NS_FORWARD_NSIOSMOZILLA(_to) \
   NS_IMETHOD Pause(void) { return _to Pause(); } \
   NS_IMETHOD Play(void) { return _to Play(); } \
-  NS_IMETHOD Stop(void) { return _to Stop(); } 
+  NS_IMETHOD Stop(void) { return _to Stop(); } \
+  NS_IMETHOD Update(const char *type, const char *commands) { return _to Update(type, commands); } 
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object in a safe way. */
 #define NS_FORWARD_SAFE_NSIOSMOZILLA(_to) \
   NS_IMETHOD Pause(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Pause(); } \
   NS_IMETHOD Play(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Play(); } \
-  NS_IMETHOD Stop(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Stop(); } 
+  NS_IMETHOD Stop(void) { return !_to ? NS_ERROR_NULL_POINTER : _to->Stop(); } \
+  NS_IMETHOD Update(const char *type, const char *commands) { return !_to ? NS_ERROR_NULL_POINTER : _to->Update(type, commands); } 
 
 #if 0
 /* Use the code below as a template for the implementation class for this interface. */
@@ -98,6 +104,12 @@ NS_IMETHODIMP nsOsmozilla::Play()
 
 /* void Stop (); */
 NS_IMETHODIMP nsOsmozilla::Stop()
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+/* void Update (in string type, in string commands); */
+NS_IMETHODIMP nsOsmozilla::Update(const char *type, const char *commands)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }

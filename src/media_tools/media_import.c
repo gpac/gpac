@@ -578,7 +578,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
 	import->final_trackID = import->esd->ESID;
 	gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
-	gf_isom_set_audio_info(import->dest, track, di, sr, (hdr.nb_ch>1) ? 2 : 1, 16);
+	gf_isom_set_audio_info(import->dest, track, di, sr, (hdr.nb_ch>2) ? 3 : hdr.nb_ch, 16);
 
 	e = GF_OK;
 	/*add first sample*/
@@ -4882,17 +4882,6 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	return GF_OK;
 }
 
-static void trim_ext(char *filename)
-{
-	char *pos = strchr(filename, '.');
-
-	if (pos != NULL) {
-		if (!stricmp(pos, ".idx") || !stricmp(pos, ".sub")) {
-			*pos = '\0';
-		}
-	}
-}
-
 GF_Err gf_import_vobsub(GF_MediaImporter *import)
 {
 	static u8	  null_subpic[] = { 0x00, 0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x04, 0xFF };
@@ -4909,7 +4898,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 	u8		  buf[0x800];
 
 	strcpy(filename, import->in_name);
-	trim_ext(filename);
+	vobsub_trim_ext(filename);
 	strcat(filename, ".idx");
 
 	file = gf_f64_open(filename, "r");
@@ -4950,7 +4939,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 	}
 
 	strcpy(filename, import->in_name);
-	trim_ext(filename);
+	vobsub_trim_ext(filename);
 	strcat(filename, ".sub");
 
 	file = gf_f64_open(filename, "rb");

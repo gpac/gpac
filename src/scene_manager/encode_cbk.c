@@ -269,7 +269,7 @@ GF_Err gf_beng_encode_from_string(GF_BifsEngine *codec, char *auString, GF_Err (
 	codec->load.flags = GF_SM_LOAD_MPEG4_STRICT | GF_SM_LOAD_CONTEXT_READY;
 	codec->load.type = GF_SM_LOAD_BT;
 
-	e = gf_sm_load_string(&codec->load, auString);
+	e = gf_sm_load_string(&codec->load, auString, 0);
 	if (e) goto exit;
 
 	e = gf_sm_live_encode_bifs_au(codec, codec->currentAUCount, AUCallback); 
@@ -402,7 +402,7 @@ GF_BifsEngine *gf_beng_init_from_string(void *calling_object, char * inputContex
 	} else {
 		codec->load.type = GF_SM_LOAD_BT;
 	}
-	e = gf_sm_load_string(&codec->load, inputContext);
+	e = gf_sm_load_string(&codec->load, inputContext, 0);
 
 	if (e) {
 		fprintf(stderr, "Cannot load context from %s: error %s\n", inputContext, gf_error_to_string(e));

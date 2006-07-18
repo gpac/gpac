@@ -249,8 +249,6 @@ GF_Err gf_sm_load_init_xmt(GF_SceneLoader *load);
 void gf_sm_load_done_xmt(GF_SceneLoader *load);
 GF_Err gf_sm_load_run_xmt(GF_SceneLoader *load);
 GF_Err gf_sm_load_init_xmt_string(GF_SceneLoader *load, char *str);
-GF_Err gf_sm_load_done_xmt_string(GF_SceneLoader *load);
-
 
 GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load);
 void gf_sm_load_done_MP4(GF_SceneLoader *load);
@@ -309,7 +307,7 @@ static GF_Err gf_sm_load_init_from_string(GF_SceneLoader *load, char *str)
 	return GF_NOT_SUPPORTED;
 }
 
-static void gf_sm_load_done_string(GF_SceneLoader *load)
+static void gf_sm_load_done_string(GF_SceneLoader *load, Bool do_clean)
 {
 	switch (load->type) {
 	case GF_SM_LOAD_BT:
@@ -320,6 +318,7 @@ static void gf_sm_load_done_string(GF_SceneLoader *load)
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
 		/*we do not reset it here to enable SAX parsing*/
+		if (do_clean) gf_sm_load_done_xmt(load); 
 		break;
 #ifndef GPAC_DISABLE_SVG
 	/*we do not reset it here to enable SAX parsing*/
@@ -332,12 +331,12 @@ static void gf_sm_load_done_string(GF_SceneLoader *load)
 	}
 }
 
-GF_Err gf_sm_load_string(GF_SceneLoader *load, char *str)
+GF_Err gf_sm_load_string(GF_SceneLoader *load, char *str, Bool do_clean)
 {
 	GF_Err e = gf_sm_load_init_from_string(load, str);
 	if (e) return e;
 	e = gf_sm_load_run(load);
-	gf_sm_load_done_string(load);
+	gf_sm_load_done_string(load, do_clean);
 	return e;
 }
 

@@ -25,6 +25,7 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/utf.h>
 
+static GF_Err apple_tag_dump(GF_Box *a, FILE * trace);
 
 void NullBoxErr(FILE * trace)
 {
@@ -237,6 +238,26 @@ GF_Err gb_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_ENCV: return mp4v_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_ENCS: return mp4s_dump(a, trace);
 
+
+	case GF_ISOM_BOX_TYPE_0xA9NAM:
+	case GF_ISOM_BOX_TYPE_0xA9CMT:
+	case GF_ISOM_BOX_TYPE_0xA9DAY:
+	case GF_ISOM_BOX_TYPE_0xA9ART:
+	case GF_ISOM_BOX_TYPE_0xA9TRK:
+	case GF_ISOM_BOX_TYPE_0xA9ALB:
+	case GF_ISOM_BOX_TYPE_0xA9COM:
+	case GF_ISOM_BOX_TYPE_0xA9WRT:
+	case GF_ISOM_BOX_TYPE_0xA9TOO:
+	case GF_ISOM_BOX_TYPE_0xA9CPY:
+	case GF_ISOM_BOX_TYPE_0xA9DES:
+	case GF_ISOM_BOX_TYPE_GNRE:
+	case GF_ISOM_BOX_TYPE_DISK:
+	case GF_ISOM_BOX_TYPE_TRKN:
+	case GF_ISOM_BOX_TYPE_TMPO:
+	case GF_ISOM_BOX_TYPE_CPIL:
+	case GF_ISOM_BOX_TYPE_COVR:
+	case GF_ISOM_BOX_TYPE_iTunesSpecificInfo:
+		return apple_tag_dump(a, trace);
 	/*Apple extensions*/
 	case GF_ISOM_BOX_TYPE_ILST: return ilst_dump(a, trace);
 
@@ -267,7 +288,9 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 	GF_Box *box;
 	if (!mov || !trace) return GF_BAD_PARAM;
 
+	fprintf(trace, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 	fprintf(trace, "<!--MP4Box dump trace-->\n");
+
 	fprintf(trace, "<IsoMediaFile Name=\"%s\">\n", mov->fileName);
 
 	i=0;
@@ -605,7 +628,11 @@ GF_Err dpin_dump(GF_Box *a, FILE * trace)
 GF_Err hdlr_dump(GF_Box *a, FILE * trace)
 {
 	GF_HandlerBox *p = (GF_HandlerBox *)a;
-	fprintf(trace, "<HandlerBox Type=\"%s\" Name=\"%s\">\n", gf_4cc_to_str(p->handlerType), p->nameUTF8);
+	if ((u32) p->nameUTF8[0] == strlen(p->nameUTF8+1)) {
+		fprintf(trace, "<HandlerBox Type=\"%s\" Name=\"%s\">\n", gf_4cc_to_str(p->handlerType), p->nameUTF8+1);
+	} else {
+		fprintf(trace, "<HandlerBox Type=\"%s\" Name=\"%s\">\n", gf_4cc_to_str(p->handlerType), p->nameUTF8);
+	}
 	DumpBox(a, trace);
 	gb_full_box_dump(a, trace);
 	fprintf(trace, "</HandlerBox>\n");
@@ -2826,7 +2853,7 @@ GF_Err gf_isom_dump_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber, u32 S
 
 /* Apple extensions */
 
-GF_Err itunes_dump(GF_Box *a, FILE * trace)
+static GF_Err apple_tag_dump(GF_Box *a, FILE * trace)
 {
 	Bool no_dump = 0;
 	char *name = "unknown";
@@ -2841,6 +2868,8 @@ GF_Err itunes_dump(GF_Box *a, FILE * trace)
 	case GF_ISOM_BOX_TYPE_0xA9COM: name = "Compositor"; break;
 	case GF_ISOM_BOX_TYPE_0xA9WRT: name = "Writer"; break;
 	case GF_ISOM_BOX_TYPE_0xA9TOO: name = "Encoder"; break;
+	case GF_ISOM_BOX_TYPE_0xA9CPY: name = "Copyright"; break;
+	case GF_ISOM_BOX_TYPE_0xA9DES: name = "Description"; break;
 	case GF_ISOM_BOX_TYPE_GNRE: name = "Genre"; break;
 	case GF_ISOM_BOX_TYPE_DISK: name = "Disk"; break;
 	case GF_ISOM_BOX_TYPE_TRKN: name = "TrackNumber"; break;
@@ -2849,11 +2878,11 @@ GF_Err itunes_dump(GF_Box *a, FILE * trace)
 	case GF_ISOM_BOX_TYPE_COVR: name = "CoverArt"; no_dump = 1; break;
 	case GF_ISOM_BOX_TYPE_iTunesSpecificInfo: name = "iTunes Specific"; no_dump = 1; break;
 	}
-	fprintf(trace, "<iTune%sBox", name);
+	fprintf(trace, "<%sBox", name);
 	if (!no_dump) fprintf(trace, " value=\"%s\" ", itune->data->data);
-	fprintf(trace, ">\n", name);
+	fprintf(trace, ">\n");
 	DumpBox(a, trace);
-	fprintf(trace, "</iTune%sBox>\n", name);
+	fprintf(trace, "</%sBox>\n", name);
 	return GF_OK;
 }
 
@@ -2865,43 +2894,43 @@ GF_Err ilst_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<ItemListBox>\n");
 	DumpBox(a, trace);
 	if(ptr->name != NULL){
-		e = itunes_dump((GF_Box *)ptr->name, trace);
+		e = apple_tag_dump((GF_Box *)ptr->name, trace);
 		if(e) return e;
 	}
 	if(ptr->comment != NULL){
-		e = itunes_dump((GF_Box *)ptr->comment, trace);
+		e = apple_tag_dump((GF_Box *)ptr->comment, trace);
 		if(e) return e;
 	}
 	if(ptr->created != NULL){
-		e = itunes_dump((GF_Box *)ptr->created, trace);
+		e = apple_tag_dump((GF_Box *)ptr->created, trace);
 		if(e) return e;
 	}
 	if(ptr->artist != NULL){
-		e = itunes_dump((GF_Box *)ptr->artist, trace);
+		e = apple_tag_dump((GF_Box *)ptr->artist, trace);
 		if(e) return e;
 	}
 	if(ptr->album != NULL){
-		e = itunes_dump((GF_Box *)ptr->album, trace);
+		e = apple_tag_dump((GF_Box *)ptr->album, trace);
 		if(e) return e;
 	}
 	if(ptr->track != NULL){
-		e = itunes_dump((GF_Box *)ptr->track, trace);
+		e = apple_tag_dump((GF_Box *)ptr->track, trace);
 		if(e) return e;
 	}
 	if(ptr->composer != NULL){
-		e = itunes_dump((GF_Box *)ptr->composer, trace);
+		e = apple_tag_dump((GF_Box *)ptr->composer, trace);
 		if(e) return e;
 	}
 	if(ptr->writer != NULL){
-		e = itunes_dump((GF_Box *)ptr->writer, trace);
+		e = apple_tag_dump((GF_Box *)ptr->writer, trace);
 		if(e) return e;
 	}
 	if(ptr->encoder != NULL){
-		e = itunes_dump((GF_Box *)ptr->encoder, trace);
+		e = apple_tag_dump((GF_Box *)ptr->encoder, trace);
 		if(e) return e;
 	}
 	if(ptr->genre != NULL){
-		e = itunes_dump((GF_Box *)ptr->genre, trace);
+		e = apple_tag_dump((GF_Box *)ptr->genre, trace);
 		if(e) return e;
 	}
 	if(ptr->disk != NULL){
@@ -2909,11 +2938,11 @@ GF_Err ilst_dump(GF_Box *a, FILE * trace)
 		if(e) return e;
 	}
 	if(ptr->trackNumber != NULL){
-		e = itunes_dump((GF_Box *)ptr->trackNumber, trace);
+		e = apple_tag_dump((GF_Box *)ptr->trackNumber, trace);
 		if(e) return e;
 	}
 	if(ptr->compilation != NULL){
-		e = itunes_dump((GF_Box *)ptr->compilation, trace);
+		e = apple_tag_dump((GF_Box *)ptr->compilation, trace);
 		if(e) return e;
 	}
 	if(ptr->tempo != NULL){
@@ -2921,11 +2950,11 @@ GF_Err ilst_dump(GF_Box *a, FILE * trace)
 		if(e) return e;
 	}
 	if(ptr->coverArt != NULL){
-		e = itunes_dump((GF_Box *)ptr->coverArt, trace);
+		e = apple_tag_dump((GF_Box *)ptr->coverArt, trace);
 		if(e) return e;
 	}
 	if(ptr->iTunesSpecificInfo != NULL){
-		e = itunes_dump((GF_Box *)ptr->iTunesSpecificInfo, trace);
+		e = apple_tag_dump((GF_Box *)ptr->iTunesSpecificInfo, trace);
 		if(e) return e;
 	}
 	fprintf(trace, "</ItemListBox>\n");

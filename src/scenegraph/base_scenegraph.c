@@ -251,7 +251,7 @@ restart:
 		count = gf_list_count(node->sgprivate->parentNodes);
 		for (j=0; j<count; j++) {
 			GF_Node *par = gf_list_get(node->sgprivate->parentNodes, j);
-			if (SG_SearchForNode(sg, par) != NULL) {
+			if ((par != node) && (SG_SearchForNode(sg, par) != NULL)) {
 				ignore = 1;
 				break;
 			}
@@ -280,7 +280,7 @@ restart:
 			type = 0;
 		while (nlist) {
 			GF_NodeList *next = nlist->next;
-			if (SG_SearchForNode(sg, nlist->node) != NULL) {
+			if ((nlist->node!=node) && SG_SearchForNode(sg, nlist->node) != NULL) {
 				ignore = 1;
 				break;
 			}

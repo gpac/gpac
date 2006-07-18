@@ -207,17 +207,6 @@ static GF_Err SVG_ReleaseScene(GF_SceneDecoder *plug)
 	return GF_OK;
 }
 
-Bool SVG_CheckDownload(SVGParser *parser)
-{
-	u32 size;
-	FILE *f = fopen(parser->file_name, "rt");
-	fseek(f, 0, SEEK_END);
-	size = ftell(f);
-	fclose(f);
-	if (size==parser->file_size) return 1;
-	return 0;
-}
-
 static GF_Err SVG_AttachStream(GF_BaseDecoder *plug, 
 									 u16 ES_ID, 
 									 unsigned char *decSpecInfo, 

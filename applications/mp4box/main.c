@@ -900,7 +900,7 @@ int main(int argc, char **argv)
 	TrackAction tracks[MAX_CUMUL_OPS];
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
 	u32 i, MTUSize, stat_level, hint_flags, MakeISMA, Make3GP, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version;
-	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, do_package, remove_root_od, make_psp;
+	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, do_package, remove_root_od, make_psp, make_m4a;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itune_tags;
 	GF_ISOFile *file;
@@ -920,7 +920,7 @@ int main(int argc, char **argv)
 	split_size = 0;
 	MTUSize = 1450;
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = 0;
-	do_package = chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = make_psp = 0;
+	do_package = chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = make_psp = make_m4a = 0;
 	x3d_info = MakeISMA = Make3GP = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = 0;
 	track_dump_type = 0;
 	ismaCrypt = 0;
@@ -1784,12 +1784,17 @@ int main(int argc, char **argv)
 			Make3GP = 1;
 			make_psp = 0;
 		}
+		else if (!strcmp(szExt, ".m4a")) {
+			MakeISMA = 0;
+			Make3GP = 0;
+			make_psp = 0;
+			make_m4a = 1;
+		}
 		else if (!strcmp(szExt, ".psp")) {
 			MakeISMA = 0;
 			Make3GP = 0;
 			make_psp = 1;
 		}
-
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 		outfile[strlen(outfile)-1] = 0;
 	}
@@ -1990,6 +1995,12 @@ int main(int argc, char **argv)
 			fprintf(stdout, "Converting to PSP file...\n");
 			e = gf_media_make_psp(file, NULL, NULL);
 			if (e) goto err_exit;
+			needSave = 1;
+		}
+		if (make_m4a) {
+			fprintf(stdout, "Setting up M4A file...\n");
+			gf_isom_set_brand_info(file, GF_4CC('M','4','A',' '), 0);
+			gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_MP42, 1);
 			needSave = 1;
 		}
 		if (ismaCrypt) {

@@ -186,8 +186,6 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStrea
 	parser.identifiers = gf_list_new();
 	parser.new_line = codec->dec_memory_mode ? "\n" : NULL;
 	parser.indent = 0;
-	//reset URL
-	gf_sg_vrml_mf_reset(&pNode->url, GF_SG_VRML_MFSCRIPT);
 
 	//first parse fields
 
@@ -225,13 +223,9 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStrea
 
 	SFS_Line(&parser);
 
-	if (has_fields) {
-		gf_sg_vrml_mf_alloc(&pNode->url, GF_SG_VRML_MFSCRIPT, 1);
-		pNode->url.count = 1;
-		pNode->url.vals[0].script_text = strdup(parser.string);
-	} else {
-		script_field->script_text = strdup(parser.string);
-	}
+	if (script_field->script_text) free(script_field->script_text);
+	script_field->script_text = strdup(parser.string);
+
 exit:
 	//clean up
 	while (gf_list_count(parser.identifiers)) {
@@ -613,6 +607,11 @@ void SFS_Expression(ScriptParser *parser)
 	case ET_VAR:
 		SFS_AddString(parser, "var ");
 		SFS_Arguments(parser, 1);
+		break;
+	case ET_FUNCTION_ASSIGN:
+		SFS_AddString(parser, "function ");
+		SFS_Arguments(parser, 0);
+		SFS_StatementBlock(parser, 1);
 		break;
 	default:
 		assert(0);

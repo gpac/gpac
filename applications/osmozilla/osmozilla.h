@@ -140,6 +140,7 @@ public:
 	void Pause();
 	void Play();
 	void Stop();
+	void Update(const char *type, const char *commands);
 
 	Bool EventProc(GF_Event *evt);
 
