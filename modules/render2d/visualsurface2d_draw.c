@@ -228,6 +228,7 @@ static void VS2D_DrawGradient(VisualSurface2D *surf, GF_Path *path, GF_TextureHa
 	gf_mx2d_add_matrix(&g_mat, &ctx->transform);
 
 	r2d->stencil_set_matrix(txh->hwtx, &g_mat);
+	r2d->stencil_set_color_matrix(txh->hwtx, &ctx->cmat);
 
 	fill = ctx->aspect.filled;
 	ctx->aspect.filled = 1;

@@ -42,6 +42,7 @@ typedef struct _evg_surface EVGSurface;
 	GF_Matrix2D pmat;					\
 	GF_Matrix2D smat;					\
 	GF_Rect frame;					\
+	GF_ColorMatrix cmat;			\
 
 typedef struct _evg_base_stencil
 {
@@ -221,7 +222,6 @@ typedef struct
 	Fixed cur_y, inc_x, inc_y;
 
 	u32 mod, filter;
-	GF_ColorMatrix cmat;
 	u32 replace_col;
 	Bool cmat_is_replace;
 

@@ -3138,6 +3138,7 @@ GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
 	if (!parser->is_wrl) {
 		parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, 0);
 		parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, 0, 0, 1);
+		parser->load->ctx->is_pixel_metrics = 1;
 	}
 
 	if (load->OnMessage) load->OnMessage(load->cbk, ((parser->is_wrl==2) ? "X3D (WRL) Scene Parsing" : (parser->is_wrl ? "VRML Scene Parsing" : "MPEG-4 (BT) Scene Parsing")), GF_OK);

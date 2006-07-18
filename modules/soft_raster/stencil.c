@@ -155,6 +155,7 @@ GF_STENCIL evg_stencil_new(GF_Raster2D *_dr, GF_StencilType type)
 	if (st) {
 		gf_mx2d_init(st->pmat);
 		gf_mx2d_init(st->smat);
+		gf_cmx_init(&st->cmat);
 	}
 	return st;
 }
@@ -297,13 +298,17 @@ EVGStencil *evg_linear_gradient_brush()
 static void rg_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 count) 
 {
 	Fixed x, y, dx, dy, b, val;
+	Bool has_cmat;
 	s32 pos;
+	u32 col;
 	u32 *data = surf->stencil_pix_run;
 	EVG_RadialGradient *_this = (EVG_RadialGradient *) p;
 
 	x = INT2FIX(_x);
 	y = INT2FIX(_y);
 	gf_mx2d_apply_coords(&_this->smat, &x, &y);
+
+	has_cmat = _this->cmat.identity ? 0 : 1;
 
 	dx = x - _this->d_f.x;
 	dy = y - _this->d_f.y;
@@ -312,7 +317,12 @@ static void rg_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 cou
 		val = gf_mulfix(b, b) + gf_mulfix(_this->rad, gf_mulfix(dx, dx)+gf_mulfix(dy, dy));
 		b += gf_sqrt(val);
 		pos = FIX2INT(EVGGRADIENTBUFFERSIZE*b);
+		if (has_cmat) {
+			col = gradient_get_color((EVG_BaseGradient *)_this, pos);
+			*data++ = gf_cmx_apply(&p->cmat, col);
+		} else {
 		*data++ = gradient_get_color((EVG_BaseGradient *)_this, pos);
+		}
 		dx += _this->d_i.x;
 		dy += _this->d_i.y;
 		count--;
@@ -707,7 +717,7 @@ GF_Err evg_stencil_set_filter(GF_STENCIL st, GF_TextureFilter filter_mode)
 GF_Err evg_stencil_set_color_matrix(GF_STENCIL st, GF_ColorMatrix *cmat)
 {
 	EVG_Texture *_this = (EVG_Texture *)st;
-	if (!_this || !cmat || (_this->type!=GF_STENCIL_TEXTURE)) return GF_BAD_PARAM;
+	if (!_this || !cmat) return GF_BAD_PARAM;
 	gf_cmx_copy(&_this->cmat, cmat);
 	return GF_OK;
 }
@@ -715,7 +725,7 @@ GF_Err evg_stencil_set_color_matrix(GF_STENCIL st, GF_ColorMatrix *cmat)
 GF_Err evg_stencil_reset_color_matrix(GF_STENCIL st)
 {
 	EVG_Texture *_this = (EVG_Texture *)st;
-	if (!_this || (_this->type!=GF_STENCIL_TEXTURE)) return GF_BAD_PARAM;
+	if (!_this) return GF_BAD_PARAM;
 	gf_cmx_init(&_this->cmat);
 	return GF_OK;
 }
