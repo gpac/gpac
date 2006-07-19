@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "GPAX"=..\..\applications\GPAX\GPAX.dsp - Package Owner=<4>
+Project: "GPAX"=.\GPAX.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
