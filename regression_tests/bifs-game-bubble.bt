@@ -88,9 +88,10 @@ OrderedGroup {
       title "Classic Bubble Game"
       info [
         "This test shows the classic bubble game."
-        "It features the use of :" 
-        " - a PROTO which defines the Bubble node. This node takes as input the index of the bubble. The bubble outputs this index on separate events when the mouse enters the bubble or a click on the bubble happens. This PROTO does not use scripts itself but is used by script" 
-        " - a Script node which handles the dynamic positionning of the bubbles and the game logic. You can modify the number of lines and columns in the bubble grid." 
+        "It features:" 
+        " - a PROTO which defines a single Bubble node. This node takes as input the index of the bubble in the bubbleGrid. The bubble outputs this index on separate events: one when the mouse enters the bubble and one when a click on the bubble happens. This PROTO does not use any scripting for that." 
+        " - a Script node which handles the initialization (colors, size, index) and dynamic positionning of the bubbles. It is also responsible for the game logic."
+        "The number of of lines and columns in the bubble grid can be easily modified in the Script node." 
         "" 
         "GPAC Regression Tests" 
         "(C) 2002-2006 GPAC Team"        
@@ -213,6 +214,10 @@ OrderedGroup {
       		 bubble.alignStroke = FALSE;
            bubble.strokeWidth = 2;
            bubble.strokeTransparency = 0.3;
+        }
+
+        function set_visible(bubble) {
+          bubble.display = 0;
         }
 
         function bubble(parent, line, column) {          
@@ -341,7 +346,7 @@ OrderedGroup {
            			start = end = i;
            			while ((end<nbLines)&&(bubbleGrid[end*nbCols+j].state == exploded_state)) {
         				  // ????
-                  bubbleGrid[end*nbCols+j].display = 0;
+        				  set_visible(bubbleGrid[end*nbCols+j]);
            				end++;
            			}
            			lg = end-start;
@@ -375,9 +380,8 @@ OrderedGroup {
         	bubbleGrid[ldst*nbCols+cdst].blue = bubbleGrid[lsrc*nbCols+csrc].blue;
         	bubbleGrid[ldst*nbCols+cdst].state = bubbleGrid[lsrc*nbCols+csrc].state;
         	if (bubbleGrid[ldst*nbCols+cdst].state != empty_state) 
-            bubbleGrid[ldst*nbCols+cdst].display = 0;
-        	bubbleGrid[lsrc*nbCols+csrc].state = empty_state;
-        	bubbleGrid[lsrc*nbCols+csrc].display = -1;
+            set_visible(bubbleGrid[ldst*nbCols+cdst]);
+          set_empty(bubbleGrid[lsrc*nbCols+csrc]);
         }
       
         function movecolumn(colnumber, delta) {
