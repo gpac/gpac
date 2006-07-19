@@ -86,7 +86,7 @@ OrderedGroup {
   children [
     WorldInfo {
       title "Classic Bubble Game"
-      description [
+      info [
         "This test shows the classic bubble game."
         "It features the use of :" 
         " - a PROTO which defines the Bubble node. This node takes as input the index of the bubble. The bubble outputs this index on separate events when the mouse enters the bubble or a click on the bubble happens. This PROTO does not use scripts itself but is used by script" 
