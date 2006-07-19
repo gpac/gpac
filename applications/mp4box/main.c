@@ -1059,6 +1059,7 @@ int main(int argc, char **argv)
 			dump_m2ts = 1;
 			if ( ((i+1<(u32) argc) && inName) || (i+2<(u32) argc) ) {
 				if (argv[i+1][0] != '-') pes_dump = argv[i+1];
+				i++;
 			}
 		}
 

@@ -54,8 +54,8 @@ Bool SVG_SetMFURLFromURI(GF_Renderer *sr, MFURL *mfurl, SVG_IRI *iri)
 		const char *cache_dir = gf_cfg_get_key(sr->user->config, "General", "CacheDirectory");
 		ret = gf_svg_store_embedded_data(iri, cache_dir, "embedded_");
 	}
-	sfurl->url = strdup(iri->iri);
 #endif
+	sfurl->url = strdup(iri->iri);
 	return ret;
 }
 

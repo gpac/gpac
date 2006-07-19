@@ -198,6 +198,7 @@ typedef struct tag_m2ts_pes
 
 	/* MPEG-4 Streams carried in MPEG-2 data */
 	Bool has_SL; 
+	GF_ESD *esd;
 	Bool has_FMC;
 	u32 ES_ID;
 } GF_M2TS_PES;

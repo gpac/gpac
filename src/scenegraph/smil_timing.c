@@ -317,7 +317,7 @@ Bool gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 	if (rti->scene_time == scene_time) return 0;
 	rti->scene_time = scene_time;
 	rti->cycle_number++;
-	rti->evaluate = NULL;
+	rti->evaluate = NULL;	
 
 //	fprintf(stdout, "Scene Time: %f - Timing Stack: %8x, Status: %d\n", scene_time, rti, rti->status);
 
@@ -342,6 +342,7 @@ waiting_to_begin:
 			rti->status = SMIL_STATUS_ACTIVE;
 			memset(&evt, 0, sizeof(evt));
 			evt.type = SVG_DOM_EVT_BEGIN;
+//			fprintf(stdout, "Time %f - Firing DOM %s.beginEvent\n", scene_time, rti->timed_elt->sgprivate->NodeName);
 			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 		}
 		else return ret;
@@ -370,6 +371,7 @@ waiting_to_begin:
 //				gf_smil_timing_print_interval(stack->current_interval);
 				memset(&evt, 0, sizeof(evt));
 				evt.type = SVG_DOM_EVT_BEGIN;
+//				fprintf(stdout, "Time %f - Firing DOM %s.beginEvent\n", scene_time, rti->timed_elt->sgprivate->NodeName);
 				gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 			} 
 		}
@@ -383,6 +385,7 @@ waiting_to_begin:
 			memset(&evt, 0, sizeof(evt));
 			evt.type = SVG_DOM_EVT_REPEAT;
 			evt.detail = rti->current_interval->nb_iterations;
+//			fprintf(stdout, "Time %f - Firing DOM %s.repeatEvent\n", scene_time, rti->timed_elt->sgprivate->NodeName);
 			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 		}
 	}
@@ -398,6 +401,7 @@ post_active:
 		}
 		memset(&evt, 0, sizeof(evt));
 		evt.type = SVG_DOM_EVT_END;
+//		fprintf(stdout, "Time %f - Firing DOM %s.endEvent\n", scene_time, rti->timed_elt->sgprivate->NodeName);
 		gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 	}
 

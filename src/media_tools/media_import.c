@@ -4618,6 +4618,56 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;
 					break;
+				case GF_M2TS_SYSTEMS_MPEG4_PES:
+				case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
+					if (pes->stream_type == GF_M2TS_SYSTEMS_MPEG4_PES) {
+						import->tk_info[idx].media_type = GF_4CC('S','L','P',' ');
+					} else {
+						import->tk_info[idx].media_type = GF_4CC('S','L','S',' ');
+					}
+					if (prog->pmt_iod) {
+						u32 k, esd_count = gf_list_count(prog->pmt_iod->ESDescriptors);
+						for (k = 0; k < esd_count; k++) {
+							GF_ESD *esd = gf_list_get(prog->pmt_iod->ESDescriptors, k);
+							if (esd->ESID != pes->ES_ID) continue;
+							switch (esd->decoderConfig->streamType) {
+							case GF_STREAM_SCENE:
+								import->tk_info[idx].type = GF_ISOM_MEDIA_SCENE;
+								break;
+							case GF_STREAM_VISUAL:
+								import->tk_info[idx].type = GF_ISOM_MEDIA_VISUAL;
+								break;
+							case GF_STREAM_AUDIO:
+								import->tk_info[idx].type = GF_ISOM_MEDIA_AUDIO;
+								break;
+							case GF_STREAM_MPEG7:
+								import->tk_info[idx].type = GF_ISOM_MEDIA_MPEG7;
+								break;
+							case GF_STREAM_IPMP:
+								import->tk_info[idx].type = GF_ISOM_MEDIA_IPMP;
+								break;
+							case GF_STREAM_OCI:
+								import->tk_info[idx].type = GF_ISOM_MEDIA_OCI;
+								break;
+							case GF_STREAM_MPEGJ:
+								import->tk_info[idx].type = GF_ISOM_MEDIA_MPEGJ;
+								break;
+							case GF_STREAM_OD:
+								import->tk_info[idx].type = GF_ISOM_MEDIA_OD;
+								break;
+							case GF_STREAM_INTERACT:
+								import->tk_info[idx].type = GF_ISOM_MEDIA_SCENE;
+								break;
+							default:
+								import->tk_info[idx].type = GF_ISOM_MEDIA_ESM;
+								break;
+							}
+						}
+					}
+					if (import->tk_info[idx].type == 0) import->tk_info[idx].type = GF_ISOM_MEDIA_ESM;
+					import->tk_info[idx].lang = pes->lang;
+					import->nb_tracks++;
+					break;
 				}
 			}
 		}
@@ -4716,6 +4766,28 @@ void on_m2ts_import_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		}
 		if (pck->stream->pid != import->trackID) return;
 		if (pck->stream->vid_h || pck->stream->aud_sr) import->flags |= GF_IMPORT_DO_ABORT;
+		break;
+	case GF_M2TS_EVT_SL_PCK:
+		{
+			GF_M2TS_SL_PCK *sl_pck = par;
+			if (import->flags & GF_IMPORT_PROBE_ONLY) {
+				for (i=0; i<import->nb_tracks; i++) {
+					if (import->tk_info[i].track_num == sl_pck->stream->pid) {
+						if (sl_pck->stream->aud_sr) {
+							import->tk_info[i].audio_info.sample_rate = sl_pck->stream->aud_sr;
+							import->tk_info[i].audio_info.nb_channels = sl_pck->stream->aud_nb_ch;
+						} else {
+							import->tk_info[i].video_info.width = sl_pck->stream->vid_w;
+							import->tk_info[i].video_info.height = sl_pck->stream->vid_h;
+						}
+						break;
+					}
+				}
+				return;
+			}
+			if (sl_pck->stream->pid != import->trackID) return;
+			if (sl_pck->stream->vid_h || sl_pck->stream->aud_sr) import->flags |= GF_IMPORT_DO_ABORT;
+		}
 		break;
 	}
 }
@@ -4825,6 +4897,8 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	/* First parsing to get the PMT and so on (GF_IMPORT_PROBE_ONLY or not)*/
 	while (!feof(mts)) {
 		size = fread(data, 1, 188, mts);
+		done += size;
+		gf_import_progress(import, (u32) done, (u32) fsize);
 		if (size<188) break;
 
 		gf_m2ts_process_data(ts, data, size);

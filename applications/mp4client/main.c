@@ -231,12 +231,12 @@ static void init_rti_logs(char *rti_file, char *url)
 		fprintf(rti_logs, "!! GPAC RunTime Info");
 		if (url) fprintf(rti_logs, "for file %s", url);
 		fprintf(rti_logs, " !!\n");
-		fprintf(rti_logs, "SysTime(ms)\tFPS\tM(kB)\tCPU\tSceneTime(ms)\n");
+		fprintf(rti_logs, "SysTime(ms)\tSceneTime(ms)\tCPU\tFPS\tMemory(kB)\tObservation\n");
 		memory_at_gpac_load = 0;
 	}
 }
 
-static void UpdateRTInfo()
+static void UpdateRTInfo(const char *legend)
 {
 	GF_SystemRTInfo rti;
 
@@ -258,12 +258,13 @@ static void UpdateRTInfo()
 	}
 	if (rti_logs) {
 		if (!memory_at_gpac_load) memory_at_gpac_load = rti.gpac_memory;
-		fprintf(rti_logs, "%d\t%d\t%d\t%d\t%d\n", 
+		fprintf(rti_logs, "%d\t%d\t%d\t%d\t%d\t%s\n", 
 			gf_sys_clock(),
+			gf_term_get_time_in_ms(term),
+			rti.total_cpu_usage,
 			(u32) gf_term_get_framerate(term, 0),
 			(u32) ((rti.gpac_memory - memory_at_gpac_load) / 1024), 
-			rti.total_cpu_usage,
-			gf_term_get_time_in_ms(term)
+			legend
 			);
 	}
 }
@@ -299,7 +300,11 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
 	switch (evt->type) {
 	case GF_EVT_UPDATE_RTI:
+		UpdateRTInfo(evt->caption.caption);
+		break;
+	case GF_EVT_RESET_RTI:
 		memory_at_gpac_load = 0;
+		UpdateRTInfo(evt->caption.caption);
 		break;
 	case GF_EVT_DURATION:
 		Duration = 1000;
@@ -783,7 +788,7 @@ int main (int argc, char **argv)
 
 	if (rti_file) {
 		memory_at_gpac_load = 0;
-		UpdateRTInfo();
+		UpdateRTInfo("Before connecting ...");
 	}
 
 	Run = 1;
@@ -828,7 +833,7 @@ int main (int argc, char **argv)
 		
 		/*we don't want getchar to block*/
 		if (!has_input()) {
-			UpdateRTInfo();
+//			UpdateRTInfo("");
 			gf_sleep(RTI_UPDATE_TIME_MS);
 			continue;
 		}
@@ -1069,7 +1074,7 @@ int main (int argc, char **argv)
 	}
 
 	gf_term_disconnect(term);
-	if (rti_file) UpdateRTInfo();
+	if (rti_file) UpdateRTInfo("disconnected");
 
 	fprintf(stdout, "Deleting terminal... ");
 	if (playlist) fclose(playlist);

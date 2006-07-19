@@ -26,7 +26,7 @@
 #include <gpac/avparse.h>
 #include <gpac/constants.h>
 
-
+#define DEBUG_TS_PACKET 0
 
 typedef struct
 {
@@ -96,6 +96,8 @@ const char *gf_m2ts_get_stream_name(u32 streamType)
 	case GF_M2TS_AUDIO_AC3: return "Dolby AC3 Audio";
 	case GF_M2TS_AUDIO_DTS: return "Dolby DTS Audio";
 	case GF_M2TS_SUBTITLE_DVB: return "DVB Subtitle";
+	case GF_M2TS_SYSTEMS_MPEG4_PES: return "MPEG-4 SL (PES)";
+	case GF_M2TS_SYSTEMS_MPEG4_SECTIONS: return "MPEG-4 SL (Section)";
 	default: return "Unknown";
 	}
 }
@@ -221,11 +223,6 @@ static void gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u6
 		if (DTS) pes->DTS = DTS;
 		else pes->DTS = PTS;
 	}
-
-/*
-	if (pes->pid == 120) 
-		fprintf(stdout, "PES    PID: %d DTS: "LLD" PTS: "LLD"\n", pes->pid, pes->DTS, pes->PTS);
-*/
 
 	/*dispatch frame*/
 	pck.stream = pes;
@@ -501,15 +498,9 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 	if (sec->syntax_indicator) {
 		/*remove crc32*/
 		sec->length -= 4;
-		if (1 || gf_m2ts_crc32_check(data, sec->length)) {
+		if (gf_m2ts_crc32_check(data, sec->length)) {
 			s32 cur_sec_num;
 			sec->sec_id = (data[3]<<8) | data[4];
-			if (sec->sec_id != 0 && sec->sec_id != 1){
-				FILE *out = fopen("section_type.txt", "a+t");
-				fprintf(out,"section_id BIFS4/5OD %d \n", sec->sec_id);
-				fclose(out);
-			}
-
 			sec->version_number = (data[5] >> 1) & 0x1f;
 			sec->current_next_indicator = (data[5] & 0x1) ? 1 : 0;
 			cur_sec_num = data[6];
@@ -626,7 +617,9 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 		return;
 	} else {
 		if (sec->received+data_size > sec->length) {
+#if 0
 			gf_m2ts_report(ts, GF_OK, "Skipping %d bytes of garbage in section", data_size - (sec->length - sec->received) );
+#endif
 			data_size = sec->length - sec->received;
 		}
 
@@ -657,16 +650,16 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, unsigned ch
 
 	/*skip if already received*/
 	if (is_repeated) {
-		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SDT_UPDATE, NULL);
+		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SDT_REPEAT, NULL);
 		return;
 	}
 
 	// 0x42 SDT for actual ts , 0x46 SDT for other ts
 	// 0x4a BAT section, 0x72 ST section
 	if (es->sec->table_id != 0x42) {
-		if (es->sec->table_id == 0x46) gf_m2ts_report(ts, GF_OK, "SDT for other ts");
+/*		if (es->sec->table_id == 0x46) gf_m2ts_report(ts, GF_OK, "SDT for other ts");
 		if (es->sec->table_id == 0x4a) gf_m2ts_report(ts, GF_OK, "BAT sectin");
-		if (es->sec->table_id == 0x72) gf_m2ts_report(ts, GF_OK, "ST section");
+		if (es->sec->table_id == 0x72) gf_m2ts_report(ts, GF_OK, "ST section");*/
 		gf_m2ts_reset_sdt(ts);
 		return;
 	}
@@ -675,7 +668,7 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, unsigned ch
 	free(es->sec->section);
 	es->sec->section = NULL;
 	es->sec->length = es->sec->received = 0;
-	gf_m2ts_report(ts, GF_OK, "SDT for actual ts");
+//	gf_m2ts_report(ts, GF_OK, "SDT for actual ts");
 	gf_m2ts_reset_sdt(ts);
 
 	orig_net_id = (data[0] << 8) | data[1];
@@ -745,6 +738,7 @@ static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, un
 	/*skip if already received*/
 	if (is_repeated) return;
 
+//	fprintf(stdout, "Section for PID %d\n", es->pid);
 	sl_pck.data = data;
 	sl_pck.data_len = data_size;
 	sl_pck.stream = pes;
@@ -787,7 +781,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pmt, unsigned c
 				label = data[7];
 				
 				iod_bs = gf_bs_new(data+8, data_size-8, GF_BITSTREAM_READ);
-#if 1
+#if 0
 				printf("Parsing IOD descriptor ... ");
 				if (gf_odf_parse_descriptor(iod_bs , (GF_Descriptor **) &pmt->program->pmt_iod, &size) == GF_OK)
 					printf("done.\n");
@@ -838,9 +832,15 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pmt, unsigned c
 				tag = data[5];
 				len = data[6];
 				if (tag == 30) { // SL Descriptor tag identifier from MPEG-2 tables
+					GF_ESD *esd;
+					u32 esd_index = 0;
 					pes->ES_ID = ((data[7] & 0x1f) << 8) | data[8];
 					
 					pes->has_SL = 1;
+					while (esd = gf_list_enum(pmt->program->pmt_iod->ESDescriptors, &esd_index)) {
+						if (esd->ESID == pes->ES_ID) pes->esd = esd;
+					}
+					
 					//printf("PID: %d, ESID: %d\n", pes->pid, pes->ES_ID);
 				} else  {
 					/* Ignore unknown descriptors */
@@ -873,11 +873,6 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pmt, unsigned c
 		pos += desc_len;
 		data += desc_len;
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
-		if (0){
-			FILE *t = fopen("PID_ESID.txt", "a+t");
-			fprintf(t, "PID %d \tES_ID %d \t section19/18pes %d \n", pes->pid, pes->ES_ID, pes->stream_type);
-			fclose(t);
-		}
 	}
 	evt_type = pmt->sec->section_init ? GF_M2TS_EVT_PMT_UPDATE : GF_M2TS_EVT_PMT_FOUND;
 	if (ts->on_event) ts->on_event(ts, evt_type, pmt->program);
@@ -976,7 +971,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 		gf_m2ts_gather_section(ts, pes->sec, (GF_M2TS_ES *)pes, hdr, data, data_size);
 		return;
 	}else if (pes->stream_type == 0x12){
-		// 
+		u32 i = 0;
 	}
 
 	if (!pes->reframe) return;
@@ -1009,6 +1004,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 				/*3-byte start-code + 6 bytes header + hdr extensions*/
 				len = 9 + pesh.hdr_data_len;
 
+//				fprintf(stdout, "SL Packet in PES for %d\n", pes->pid);
 				sl_pck.data = pes->data + len;
 				sl_pck.data_len = pes->data_len - len;
 				sl_pck.stream = pes;
@@ -1075,35 +1071,9 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	hdr.scrambling_ctrl = (data[3] >> 6) & 0x3;
 	hdr.adaptation_field = (data[3] >> 4) & 0x3;
 	hdr.continuity_counter = data[3] & 0xf;
-
-/* */
-	if (0){
-	FILE *ts_out;
-	
-	ts_out = fopen("test_mux2.ts","a+b");
-		if (!ts_out) return;
-	
-			if (hdr.pid == 0){
-				fwrite(data, 1, 188 , ts_out);
-			}
-			if (hdr.pid == 610){
-				fwrite(data, 1, 188 , ts_out);
-			}
-			if (hdr.pid == 620){
-				fwrite(data, 1, 188 , ts_out);
-			}
-			if (hdr.pid == 330){
-				u16 pid = 0x276;
-				data[1] = data[1] | (pid >> 8);
-				data[2] = data[2] | (pid);
-				pid = ( (data[1]&0x1f) << 8) | data[2];
-				fwrite(data, 1, 188 , ts_out);
-			}
-
-	fclose(ts_out);
-	}
-
-/* */
+#if DEBUG_TS_PACKET
+	fprintf(stdout, "Packet PID %d\n", hdr.pid);
+#endif
 
 	paf = NULL;
 	payload_size = 184;
