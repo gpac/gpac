@@ -221,7 +221,8 @@ OrderedGroup {
         }
 
         function bubble(parent, line, column) {          
-          var bubble = new SFNode('_Proto1');
+          var bubble;
+          bubble = new SFNode('_Proto1');
           bubble.position = new SFVec2f(2*column*(bubble_radius+1), 2*line*(bubble_radius+1));
           bubble.index = line*nbCols+column + 1; //1-based index
           bubble.size = bubble_radius;
@@ -277,11 +278,11 @@ OrderedGroup {
         }
         
         function propagate(line, column, color) {          
-        	var colmin, colmax, curcol, k;
+        	var colmin, colmax, curcol, k, res;
 //      	  print('propagate l: '+line+' c: '+column);
         	if ( isColorEqual(bubbleGrid[line*nbCols+column].color, color) && 
                (bubbleGrid[line*nbCols+column].state == neutral_state)) {
-         		var res = 1;
+         		res = 1;
          		set_selected(bubbleGrid[line*nbCols+column]);
         		
         		//before the bubble on the same line
