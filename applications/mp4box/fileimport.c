@@ -1460,6 +1460,7 @@ GF_ISOFile *package_file(char *file_name, const char *tmpdir)
 	if (e<0) goto exit;
 	e = GF_OK;
 
+	mtype = 0;
 	if (!stricmp(type, "svg")) mtype = ascii ? GF_4CC('s','v','g',' ') : GF_4CC('s','v','g','z');
 	else if (!stricmp(type, "smil")) mtype = ascii ? GF_4CC('s','m','i','l') : GF_4CC('s','m','l','z');
 	else if (!stricmp(type, "x3d")) mtype = ascii ? GF_4CC('x','3','d',' ')  : GF_4CC('x','3','d','z')  ;

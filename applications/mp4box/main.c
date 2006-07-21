@@ -2088,9 +2088,9 @@ int main(int argc, char **argv)
 	if (itune_tags) {
 		char *tags = itune_tags;
 		while (tags) {
-			u32 itag;
 			char *val;
 			char *sep = strchr(tags, ':');
+			u32 itag = 0;
 			while (sep) {
 				if (!strnicmp(sep+1, "album=", 6)) break;
 				if (!strnicmp(sep+1, "artist=", 7)) break;

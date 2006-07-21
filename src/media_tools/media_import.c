@@ -653,6 +653,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 	u64 pos;
 	u32 duration;
 
+	destroy_esd = forced_packed = 0;
 	mdia = gf_f64_open(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Opening %s failed", import->in_name);
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
