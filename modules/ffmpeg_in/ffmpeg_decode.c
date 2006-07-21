@@ -570,7 +570,7 @@ redecode:
 				pict.linesize[1] = pict.linesize[2] = ffd->ctx->width/2;
 				pix_out = PIX_FMT_YUV420P;
 				if (!mmlevel && ffd->frame->interlaced_frame) {
-					s32 res = avpicture_deinterlace((AVPicture *) ffd->frame, (AVPicture *) ffd->frame, ffd->ctx->pix_fmt, ffd->ctx->width, ffd->ctx->height);
+					avpicture_deinterlace((AVPicture *) ffd->frame, (AVPicture *) ffd->frame, ffd->ctx->pix_fmt, ffd->ctx->width, ffd->ctx->height);
 				}
 			}
 			pict.data[3] = 0;
