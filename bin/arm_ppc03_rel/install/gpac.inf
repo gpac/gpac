@@ -1,21 +1,23 @@
 [Version]
 Signature = "$Windows NT$"
-Provider = "GPAC 0.4.1"
+Provider = "GPAC 0.4.2"
 CESignature = "$Windows CE$"
 
 [CEStrings]
-;replace by Osmophone for Smartphone install
+;Osmo4 for PocketPC install, Osmophone for Smartphone install
 AppName = Osmo4
 InstallDir = \Program Files\GPAC
 
 [Strings]
-;replace by osmophone.exe for Smartphone install
+;Osmo4.exe for PocketPC install, Osmophone.exe for Smartphone install
 ExeName = Osmo4.exe
 
 [DefaultInstall]
-CopyFiles = Exefiles
+CopyFiles = BinFiles , Exefiles
 AddReg = GPACReg
 CEShortcuts = Shortcut , ProgLink
+CESelfRegister=GPAX.dll
+
 
 [SourceDisksNames]
 
@@ -23,9 +25,9 @@ CEShortcuts = Shortcut , ProgLink
 2 =, "Extra Files",, .
 
 [SourceDisksFiles]
-
 libgpac.dll = 1
 %ExeName% = 1
+GPAX.dll = 1
 
 ;comment this one if not using SpiderMonkey
 js.dll = 1
@@ -70,18 +72,22 @@ libGLES_CM.dll = 1
 ; Ouput directories for files & shortcuts
 
 [DestinationDirs]
-
+BinFiles = 0, %CE2% 
 Exefiles = 0, %InstallDir%
 Shortcut = 0, %CE17%
 ProgLink = 0, %CE11%
 DefaultDestDir = 0, %InstallDir%
 
+[BinFiles]
+;"gx.dll"
+"libgpac.dll"
+"GPAX.dll"
+"js.dll"
+"libGLES_CM.dll"
+;"libxml2.dll"
 
 [Exefiles]
-;"gx.dll"
 "%ExeName%"
-"libgpac.dll"
-"js.dll"
 "gm_aac_in.dll"
 "gm_amr_dec.dll"
 ;"gm_amr_float_dec.dll"
@@ -104,17 +110,20 @@ DefaultDestDir = 0, %InstallDir%
 ;"gm_ogg_xiph.dll"
 
 "gm_render3d.dll"
-"libGLES_CM.dll"
 
 ;"gm_svg_loader.dll"
-;"libxml2.dll"
 
 [GPACReg]
+;GPAC cfg file location
+HKCR,GPAC,InstallDir,0x00000000,%InstallDir%
+
 ;GPAC cfg file association
 HKCR,.cfg,,0x00000000,txtfile
+
 ;MP4 file association
 HKCR,.mp4,,0x00000000,mp4file
 HKCR,mp4file\Shell\Open\Command,,0x00000000,"""%InstallDir%\%ExeName%""" """%%L"""
+
 ;Icon number is bin ID of ressource in app
 HKCR,mp4file\DefaultIcon,,0x00000000,"%InstallDir%\%ExeName%,-128"
 

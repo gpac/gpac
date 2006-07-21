@@ -24,12 +24,16 @@ END_OBJECT_MAP()
 // DLL Entry Point
 
 extern "C"
+#ifdef _WIN32_WCE
+BOOL WINAPI DllMain(HANDLE hInstance, DWORD dwReason, LPVOID /*lpReserved*/)
+#else
 BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID /*lpReserved*/)
+#endif
 {
     if (dwReason == DLL_PROCESS_ATTACH)
     {
-        _Module.Init(ObjectMap, hInstance, &LIBID_GPAXLib);
-        DisableThreadLibraryCalls(hInstance);
+        _Module.Init(ObjectMap, (HINSTANCE) hInstance, &LIBID_GPAXLib);
+        DisableThreadLibraryCalls((HINSTANCE) hInstance);
     }
     else if (dwReason == DLL_PROCESS_DETACH)
         _Module.Term();

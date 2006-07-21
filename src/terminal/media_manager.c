@@ -75,7 +75,8 @@ void gf_mm_del(GF_MediaManager *mgr)
 {
 	if (mgr->th) {
 		mgr->state = 0;
-		while (mgr->state!=2) gf_sleep(0);
+		while (mgr->state!=2) 
+			gf_sleep(0);
 
 		assert(! gf_list_count(mgr->threaded_codecs));
 		assert(! gf_list_count(mgr->unthreaded_codecs));

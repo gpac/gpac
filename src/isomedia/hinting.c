@@ -661,7 +661,6 @@ GF_Err gf_isom_hint_rtp_read(GF_RTPPacket *ptr, GF_BitStream *bs)
 
 GF_Err gf_isom_hint_rtp_offset(GF_RTPPacket *ptr, u32 offset, u32 HintSampleNumber)
 {
-#if 0
 	u32 count, i;
 	GF_GenericDTE *dte;
 	GF_Err e;
@@ -672,7 +671,6 @@ GF_Err gf_isom_hint_rtp_offset(GF_RTPPacket *ptr, u32 offset, u32 HintSampleNumb
 		e = OffsetDTE(dte, offset, HintSampleNumber);
 		if (e) return e;
 	}
-#endif
 	return GF_OK;
 }
 

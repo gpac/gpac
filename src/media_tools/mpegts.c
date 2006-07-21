@@ -146,7 +146,6 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 {
 	Bool start_code_found = 0;
 	u32 nal_type, sc_pos = 0;
-	u32 to_send = data_len;
 	GF_M2TS_PES_PCK pck;
 
 	if (PTS) {
@@ -268,6 +267,14 @@ static void gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u6
 					case 2: pes->vid_par = (4<<16) | 3; break;
 					case 3: pes->vid_par = (16<<16) | 9; break;
 					case 4: pes->vid_par = (2<<16) | 21; break;
+					}
+				}
+				if (pes->frame_state==0x00) {
+					switch ((data[5] >> 3) & 0x7) {
+					case 1: 
+						pck.flags |= GF_M2TS_PES_PCK_I_FRAME; break;
+					case 2: pck.flags |= GF_M2TS_PES_PCK_P_FRAME; break;
+					case 3: pck.flags |= GF_M2TS_PES_PCK_B_FRAME; break;
 					}
 				}
 			}
@@ -837,7 +844,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pmt, unsigned c
 					pes->ES_ID = ((data[7] & 0x1f) << 8) | data[8];
 					
 					pes->has_SL = 1;
-					while (esd = gf_list_enum(pmt->program->pmt_iod->ESDescriptors, &esd_index)) {
+					while ( (esd = gf_list_enum(pmt->program->pmt_iod->ESDescriptors, &esd_index)) ) {
 						if (esd->ESID == pes->ES_ID) pes->esd = esd;
 					}
 					
@@ -970,9 +977,8 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	if (pes->stream_type == 0x13) { 		
 		gf_m2ts_gather_section(ts, pes->sec, (GF_M2TS_ES *)pes, hdr, data, data_size);
 		return;
-	}else if (pes->stream_type == 0x12){
-		u32 i = 0;
-	}
+	} 
+//	else if (pes->stream_type == 0x12) { }
 
 	if (!pes->reframe) return;
 

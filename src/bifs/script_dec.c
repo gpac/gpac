@@ -172,7 +172,6 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStrea
 	u32 i, count, nbBits;
 	char *ptr;
 	ScriptParser parser;
-	M_Script *pNode = (M_Script *)n;
 	Bool has_fields = 0;
 	e = GF_OK;
 	if (gf_node_get_tag(n) != TAG_MPEG4_Script) return GF_NON_COMPLIANT_BITSTREAM;

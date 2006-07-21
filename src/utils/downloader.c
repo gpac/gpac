@@ -787,7 +787,7 @@ static GFINLINE void gf_dm_data_recieved(GF_DownloadSession *sess, char *data, u
 		} else {
 			sess->bytes_per_sec = (1000 * (sess->bytes_in_wnd)) / runtime;
 			if (runtime>1000) {
-				sess->window_start += 500;
+				sess->window_start += runtime/2;
 				sess->bytes_in_wnd = sess->bytes_per_sec / 2;
 			}
 		}

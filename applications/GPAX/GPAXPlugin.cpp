@@ -36,8 +36,20 @@
 /////////////////////////////////////////////////////////////////////////////
 // CGPAXPlugin
 
+#if 0
+static print_err(char *msg, char *title)
+{
+	u16 w_msg[1024], w_title[1024];
+	CE_CharToWide(msg, w_msg);
+	CE_CharToWide(title, w_title);
+	::MessageBox(NULL, w_msg, w_title, MB_OK);
+}
+#endif
+
+
 void CGPAXPlugin::SetStatusText(char *msg)
 {
+#ifndef _WIN32_WCE
 	if (m_pBrowser) {
 		if (msg) {
 			u16 w_msg[1024];
@@ -47,6 +59,7 @@ void CGPAXPlugin::SetStatusText(char *msg)
 			m_pBrowser->put_StatusText(L"");
 		}
 	}
+#endif
 }
 //GPAC player Event Handler. not yet implemented, just dummies here
 Bool CGPAXPlugin::EventProc(GF_Event *evt)
@@ -112,7 +125,9 @@ Bool CGPAXPlugin::EventProc(GF_Event *evt)
 		if (gf_term_is_supported_url(m_term, evt->navigate.to_url, 1, 1)) {
 			gf_term_navigate_to(m_term, evt->navigate.to_url);
 			return 1;
-		} else if (m_pBrowser) {
+		} 
+#ifndef _WIN32_WCE
+		else if (m_pBrowser) {
 			u32 i;
 			const char **sz_ptr;
 			u16 w_szTar[1024], w_szURL[1024];
@@ -136,6 +151,7 @@ Bool CGPAXPlugin::EventProc(GF_Event *evt)
 			m_pBrowser->Navigate(w_szURL, &flags, &target, NULL, NULL);;
 			return 1;
 		}
+#endif
 		break;
     }
     return 0;
@@ -149,7 +165,7 @@ Bool GPAX_EventProc(void *ptr, GF_Event *evt)
 
 //Read Parameters from pPropBag given by MSIE
 Bool CGPAXPlugin::ReadParamString(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog,
-                                 WCHAR *name, TCHAR *buf, int bufsize)
+                                 WCHAR *name, char *buf, int bufsize)
 {
     VARIANT v;
     HRESULT hr;
@@ -162,9 +178,14 @@ Bool CGPAXPlugin::ReadParamString(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog,
     {
         if(v.vt==VT_BSTR && v.bstrVal)
         {
-            USES_CONVERSION;
-            lstrcpyn(buf,OLE2T(v.bstrVal),bufsize);
-            retval=1;
+//            USES_CONVERSION;
+//            lstrcpyn(buf,OLE2T(v.bstrVal),bufsize);
+			const u16 *srcp = v.bstrVal;
+			u32 len = gf_utf8_wcstombs(buf, bufsize, &srcp);
+			if (len>=0) {
+				buf[len] = 0;
+				retval=1;
+			}
         }
         VariantClear(&v);
     }
@@ -177,7 +198,6 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 {
     if (m_term) return 0;
 	
-		
     unsigned char config_path[GF_MAX_PATH];
     char *gpac_cfg;
     const char *str;
@@ -185,17 +205,27 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
     if (m_hWnd==NULL) return 0;
     gpac_cfg = "GPAC.cfg";
 
-#ifdef _DEBUG
+#if defined(_DEBUG) && !defined(_WIN32_WCE)
 	strcpy((char *) config_path, "D:\\cvs\\gpac\\bin\\w32_deb\\");
 #else
 	//Here we retrieve GPAC config file in the install diractory, which is indicated in the 
 	//Registry
     HKEY hKey = NULL;
     DWORD dwSize;
+#ifdef _WIN32_WCE
+    u16 w_path[1024];
+	RegOpenKeyEx(HKEY_CLASSES_ROOT, TEXT("GPAC"), 0, KEY_READ, &hKey);
+	DWORD dwType = REG_SZ;
+    dwSize = GF_MAX_PATH;
+    RegQueryValueEx(hKey, TEXT("InstallDir"), 0, &dwType, (LPBYTE) w_path, &dwSize);
+	CE_WideToChar(w_path, (char *)config_path);
+    RegCloseKey(hKey);
+#else
     RegOpenKeyEx(HKEY_CLASSES_ROOT, "GPAC", 0, KEY_READ, &hKey);
     dwSize = GF_MAX_PATH;
     RegQueryValueEx(hKey, "InstallDir", NULL, NULL, (unsigned char*) config_path, &dwSize);
     RegCloseKey(hKey);
+#endif
 #endif
 
 	//Create a structure m_user for initialize the terminal. the parameters to set:
@@ -229,7 +259,6 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
     ::GetWindowRect(m_hWnd, &rc);
     m_width = rc.right-rc.left;
     m_height = rc.bottom-rc.top;
-
 	if (m_bAutoPlay && strlen(m_url)) Play();
     return 0;
 
@@ -244,7 +273,7 @@ err_exit:
 	return 1;
 }
 
-CGPAXPlugin::~CGPAXPlugin()
+void CGPAXPlugin::UnloadTerm()
 {
 	if (m_term) {
 		GF_Terminal *a_term = m_term;
@@ -254,9 +283,19 @@ CGPAXPlugin::~CGPAXPlugin()
 	if (m_user.modules) gf_modules_del(m_user.modules);
 	if (m_user.config) gf_cfg_del(m_user.config);
 	memset(&m_user, 0, sizeof(m_user));
-
+}
+CGPAXPlugin::~CGPAXPlugin()
+{
+	UnloadTerm();
+#ifndef _WIN32_WCE
 	if (m_pBrowser) m_pBrowser->Release();
 	m_pBrowser = NULL;
+#endif
+}
+LRESULT CGPAXPlugin::OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+	UnloadTerm();
+    return 0;
 }
 
 
@@ -294,27 +333,9 @@ STDMETHODIMP CGPAXPlugin::Load(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog)
     if (ReadParamString(pPropBag,pErrorLog,L"loop", szOpt, 1024))
 		m_bLoop = !stricmp(szOpt, "true") ? 0 : 1;
 
-	/*get absolute URL*/
-	if (strlen(m_url)) {
-		IMoniker* pMoniker	= NULL;
-		LPOLESTR sDisplayName;
+	UpdateURL();
 
-		if (SUCCEEDED(m_spClientSite->GetMoniker(OLEGETMONIKER_TEMPFORUSER,
-										   OLEWHICHMK_CONTAINER,
-										   &pMoniker) ) ) {
-			char parent_url[1024];
-			pMoniker->GetDisplayName(NULL, NULL, &sDisplayName);
-			wcstombs(parent_url, sDisplayName, 300);
-			pMoniker->Release();
-
-
-			char *abs_url = gf_url_concatenate(parent_url, m_url);
-			if (abs_url) {
-				strcpy(m_url, abs_url);
-				free(abs_url);
-			}
-		}
-	}
+#ifndef _WIN32_WCE
 	/*get the top-level container*/
 	if (!m_pBrowser) {
 		IServiceProvider *isp, *isp2 = NULL;
@@ -328,8 +349,32 @@ STDMETHODIMP CGPAXPlugin::Load(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog)
 		}
 	}
 	if (m_pBrowser) m_pBrowser->put_StatusText(L"GPAC Ready");
+#endif
 
 	return IPersistPropertyBagImpl<CGPAXPlugin>::Load(pPropBag, pErrorLog);
+}
+
+void CGPAXPlugin::UpdateURL()
+{
+	/*get absolute URL*/
+	if (!strlen(m_url)) return;
+	IMoniker* pMoniker	= NULL;
+	LPOLESTR sDisplayName;
+
+	if (SUCCEEDED(m_spClientSite->GetMoniker(OLEGETMONIKER_TEMPFORUSER,
+									   OLEWHICHMK_CONTAINER,
+									   &pMoniker) ) ) {
+		char parent_url[1024];
+		pMoniker->GetDisplayName(NULL, NULL, &sDisplayName);
+		wcstombs(parent_url, sDisplayName, 300);
+		pMoniker->Release();
+
+		char *abs_url = gf_url_concatenate(parent_url, m_url);
+		if (abs_url) {
+			strcpy(m_url, abs_url);
+			free(abs_url);
+		}
+	}
 }
 
 STDMETHODIMP CGPAXPlugin::Save(LPPROPERTYBAG pPropBag, BOOL fClearDirty, BOOL fSaveAllProperties)
@@ -437,6 +482,7 @@ STDMETHODIMP CGPAXPlugin::put_src(BSTR url)
 	const u16 *srcp = url;
 	u32 len = gf_utf8_wcstombs(m_url, MAXLEN_URL, &srcp);
 	m_url[len] = 0;
+	UpdateURL();
     return S_OK;
 }
 
@@ -451,3 +497,50 @@ STDMETHODIMP CGPAXPlugin::put_AutoStart(VARIANT_BOOL as)
     m_bAutoPlay = (as !=VARIANT_FALSE) ? TRUE: FALSE;
     return S_OK;
 }
+
+STDMETHODIMP CGPAXPlugin::GetInterfaceSafetyOptions(      
+    REFIID riid,
+    DWORD *pdwSupportedOptions,
+    DWORD *pdwEnabledOptions
+)
+{
+    if( (NULL == pdwSupportedOptions) || (NULL == pdwEnabledOptions) )
+        return E_POINTER;
+
+    *pdwSupportedOptions = INTERFACESAFE_FOR_UNTRUSTED_DATA|INTERFACESAFE_FOR_UNTRUSTED_CALLER;
+
+    if ((IID_IDispatch == riid) || (IID_IGPAX == riid)) {
+        *pdwEnabledOptions = INTERFACESAFE_FOR_UNTRUSTED_CALLER;
+        return NOERROR;
+    }
+    else if (IID_IPersistPropertyBag == riid)  {
+        *pdwEnabledOptions = INTERFACESAFE_FOR_UNTRUSTED_DATA;
+        return NOERROR;
+    }
+    *pdwEnabledOptions = 0;
+    return E_NOINTERFACE;
+};
+
+STDMETHODIMP CGPAXPlugin::SetInterfaceSafetyOptions(      
+    REFIID riid,
+    DWORD dwOptionSetMask,
+    DWORD dwEnabledOptions
+)
+{
+    if ((IID_IDispatch == riid) || (IID_IGPAX == riid) ) {
+        if( (INTERFACESAFE_FOR_UNTRUSTED_CALLER == dwOptionSetMask)
+         && (INTERFACESAFE_FOR_UNTRUSTED_CALLER == dwEnabledOptions) ) {
+            return NOERROR;
+        }
+        return E_FAIL;
+    }
+    else if (IID_IPersistPropertyBag == riid) {
+        if( (INTERFACESAFE_FOR_UNTRUSTED_DATA == dwOptionSetMask)
+         && (INTERFACESAFE_FOR_UNTRUSTED_DATA == dwEnabledOptions) ) {
+            return NOERROR;
+        }
+        return E_FAIL;
+    }
+    return E_FAIL;
+};
+

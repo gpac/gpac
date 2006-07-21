@@ -48,23 +48,25 @@ class ATL_NO_VTABLE CGPAXPlugin :
             public CComObjectRootEx<CComSingleThreadModel>,
             public IDispatchImpl<IGPAX, &IID_IGPAX, &LIBID_GPAXLib>,
             public CComControl<CGPAXPlugin>,
-            public IPersistStreamInitImpl<CGPAXPlugin>,
+            public CComCoClass<CGPAXPlugin, &CLSID_GPAX>,
             public IOleControlImpl<CGPAXPlugin>,
             public IOleObjectImpl<CGPAXPlugin>,
             public IOleInPlaceActiveObjectImpl<CGPAXPlugin>,
             public IViewObjectExImpl<CGPAXPlugin>,
             public IOleInPlaceObjectWindowlessImpl<CGPAXPlugin>,
+            public IProvideClassInfo2Impl<&CLSID_GPAX, &DIID_IGPAXEvents, &LIBID_GPAXLib>,
+
+			public IPersistStreamInitImpl<CGPAXPlugin>,
             public ISupportErrorInfo,
             public IConnectionPointContainerImpl<CGPAXPlugin>,
             public IPersistStorageImpl<CGPAXPlugin>,
             public ISpecifyPropertyPagesImpl<CGPAXPlugin>,
             public IQuickActivateImpl<CGPAXPlugin>,
             public IDataObjectImpl<CGPAXPlugin>,
-            public IProvideClassInfo2Impl<&CLSID_GPAX, &DIID_IGPAXEvents, &LIBID_GPAXLib>,
             public IPropertyNotifySinkCP<CGPAXPlugin>,
-            public CComCoClass<CGPAXPlugin, &CLSID_GPAX>,
+
 			public IPersistPropertyBagImpl<CGPAXPlugin>,
-			public IObjectSafetyImpl<CGPAXPlugin, INTERFACESAFE_FOR_UNTRUSTED_CALLER>
+			public IObjectSafetyImpl<CGPAXPlugin, INTERFACESAFE_FOR_UNTRUSTED_CALLER | INTERFACESAFE_FOR_UNTRUSTED_DATA>
 
 {
 public:
@@ -78,7 +80,11 @@ public:
 		m_bUse3D = 0;
 		m_AR = GF_ASPECT_RATIO_KEEP;
 		m_url[0] = 0;
+#ifndef _WIN32_WCE
 		m_pBrowser = NULL;
+#endif
+
+		m_dwCurrentSafety = INTERFACESAFE_FOR_UNTRUSTED_CALLER | INTERFACESAFE_FOR_UNTRUSTED_DATA;
     }
 
 	~CGPAXPlugin();
@@ -87,21 +93,40 @@ public:
 
 
     DECLARE_REGISTRY_RESOURCEID(IDR_GPAXPLUGIN)
-
     DECLARE_PROTECT_FINAL_CONSTRUCT()
+
+    static LPCTSTR GetWindowClassName() { return TEXT("GPAC ActiveX"); }
 
     BEGIN_COM_MAP(CGPAXPlugin)
     COM_INTERFACE_ENTRY(IGPAX)
     COM_INTERFACE_ENTRY(IDispatch)
     COM_INTERFACE_ENTRY(IViewObjectEx)
-    COM_INTERFACE_ENTRY(IViewObject2)
-    COM_INTERFACE_ENTRY(IViewObject)
-    COM_INTERFACE_ENTRY(IOleInPlaceObjectWindowless)
-    COM_INTERFACE_ENTRY(IOleInPlaceObject)
-    COM_INTERFACE_ENTRY2(IOleWindow, IOleInPlaceObjectWindowless)
-    COM_INTERFACE_ENTRY(IOleInPlaceActiveObject)
+    COM_INTERFACE_ENTRY(IProvideClassInfo)
     COM_INTERFACE_ENTRY(IOleControl)
     COM_INTERFACE_ENTRY(IOleObject)
+
+    COM_INTERFACE_ENTRY_IMPL(IViewObjectEx)
+    COM_INTERFACE_ENTRY_IMPL_IID(IID_IViewObject2, IViewObjectEx)
+    COM_INTERFACE_ENTRY_IMPL_IID(IID_IViewObject, IViewObjectEx)
+    COM_INTERFACE_ENTRY_IMPL_IID(IID_IOleWindow, IOleInPlaceObjectWindowless)
+    COM_INTERFACE_ENTRY_IMPL_IID(IID_IOleInPlaceObject, IOleInPlaceObjectWindowless)
+    COM_INTERFACE_ENTRY_IMPL_IID(IID_IOleWindow, IOleInPlaceActiveObject)
+    
+	COM_INTERFACE_ENTRY_IMPL(IOleInPlaceActiveObject)
+    COM_INTERFACE_ENTRY_IMPL(IOleInPlaceObjectWindowless)
+	
+	COM_INTERFACE_ENTRY(IObjectSafety)
+	COM_INTERFACE_ENTRY(IPersistPropertyBag)
+    COM_INTERFACE_ENTRY_IMPL_IID(IID_IPersist, IPersistPropertyBag)
+	
+/*	COM_INTERFACE_ENTRY(IViewObject)
+    COM_INTERFACE_ENTRY(IViewObject2)
+    COM_INTERFACE_ENTRY2(IOleWindow, IOleInPlaceObjectWindowless)
+    COM_INTERFACE_ENTRY(IOleInPlaceObject)
+	*/
+
+	COM_INTERFACE_ENTRY(IProvideClassInfo2)
+
     COM_INTERFACE_ENTRY(IPersistStreamInit)
     COM_INTERFACE_ENTRY2(IPersist, IPersistStreamInit)
     COM_INTERFACE_ENTRY(ISupportErrorInfo)
@@ -110,18 +135,10 @@ public:
     COM_INTERFACE_ENTRY(IQuickActivate)
     COM_INTERFACE_ENTRY(IPersistStorage)
     COM_INTERFACE_ENTRY(IDataObject)
-    COM_INTERFACE_ENTRY(IProvideClassInfo)
-    COM_INTERFACE_ENTRY(IProvideClassInfo2)
-	COM_INTERFACE_ENTRY(IObjectSafety)
-	COM_INTERFACE_ENTRY(IPersistPropertyBag)
+
     END_COM_MAP()
 
     BEGIN_PROP_MAP(CGPAXPlugin)
-    PROP_DATA_ENTRY("_cx", m_sizeExtent.cx, VT_UI4)
-    PROP_DATA_ENTRY("_cy", m_sizeExtent.cy, VT_UI4)
-    // Example entries
-    // PROP_ENTRY("Property Description", dispid, clsid)
-    // PROP_PAGE(CLSID_StockColorPage)
     END_PROP_MAP()
 
     BEGIN_CONNECTION_POINT_MAP(CGPAXPlugin)
@@ -132,6 +149,7 @@ public:
     CHAIN_MSG_MAP(CComControl<CGPAXPlugin>)
     DEFAULT_REFLECTION_HANDLER()
 	MESSAGE_HANDLER(WM_CREATE, OnCreate)
+	MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 
     END_MSG_MAP()
     // Handler prototypes:
@@ -155,6 +173,17 @@ public:
         }
         return S_FALSE;
     }
+    STDMETHODIMP GetInterfaceSafetyOptions(      
+        REFIID riid,
+        DWORD *pdwSupportedOptions,
+        DWORD *pdwEnabledOptions
+    );
+
+    STDMETHODIMP SetInterfaceSafetyOptions(      
+        REFIID riid,
+        DWORD dwOptionSetMask,
+        DWORD dwEnabledOptions
+    );
 
     // IViewObjectEx
     DECLARE_VIEW_STATUS(VIEWSTATUS_SOLIDBKGND | VIEWSTATUS_OPAQUE)
@@ -177,6 +206,7 @@ public:
 	//is created or destroyed. OnDraw is to establish inital connection.
     HRESULT OnDraw(ATL_DRAWINFO& di);
     LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+    LRESULT OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
 	//IPersistPropertyBag method: to handle persist property packed and transfered by MSIE
 	//in html doc, the ActiveX control is added by tags
@@ -189,14 +219,18 @@ public:
     STDMETHODIMP Save(LPPROPERTYBAG, BOOL, BOOL);
 
 private:
-	Bool ReadParamString(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog, WCHAR *name, TCHAR *buf, int bufsize);
+	Bool ReadParamString(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog, WCHAR *name, char *buf, int bufsize);
 	void SetStatusText(char *msg);
+	void UpdateURL();
+	void UnloadTerm();
 
 	GF_Terminal *m_term;
     GF_User m_user;
-	TCHAR m_url[MAXLEN_URL];
+	char m_url[MAXLEN_URL];
+#ifndef _WIN32_WCE
 	/*pointer to the parent browser if any*/
 	IWebBrowser2 *m_pBrowser;
+#endif
 
 	u32 m_width, m_height, m_AR;
 	Bool m_bIsConnected, m_bInitialDraw, m_bAutoPlay, m_bUse3D, m_bLoop;

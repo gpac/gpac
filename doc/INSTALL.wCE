@@ -1,17 +1,17 @@
-Installation instructions for GPAC 0.4.1 on windows CE platform
-last modified: October 2005
+Installation instructions for GPAC 0.4.2 on windows CE platform
+last modified: July 2006
 
 0 Foreword
 	Compilation has only been tested with eVC3/evc4 and ARM platforms
 	
-	GPAC 0.4.0 should be stable on most PDA devices running PocketPC 2002 and 2003 - it has NOT been tested on SmartPhones or PocketPC 2005 devices. 
+	GPAC 0.4.2 should be stable on most devices running PocketPC/SmartPhone 2002 and 2003. 
 
 	The output directory for all plugins and applications for Windows PocketPC 2002 is
 		gpac/bin/arm_ppc02_deb in debug mode 
 		gpac/bin/arm_ppc02_rel in release mode
 
 	The output directory for all plugins and applications for Windows PocketPC 2003 is
-		gpac/bin/arm_ppc03deb in debug mode
+		gpac/bin/arm_ppc03_deb in debug mode
 		gpac/bin/arm_ppc03_rel in release mode
 	
 	As of 0.2.2, GPAC cannot be compiled without ZLIB. You'd better make sure it is installed locally or on your system (zlib is provided in gpac_extra_libs package)
@@ -24,20 +24,21 @@ I Extra lib installation
 II GPAC compilation
 
 	open /build/msevc3/GPAC.dsw (GPAC workspace) with MS eVC3
-	open /build/msevc4/GPAC.dsw (GPAC workspace) with MS eVC3
+	 OR
+	open /build/msevc4/GPAC.dsw (GPAC workspace) with MS eVC4
 	
 	NEVER ATTEMPT TO LOAD A PROJECT OUTSIDE THIS WORKSPACE
 	
-	II.1 Recompiling libgpac
+	II.1 Setting up libgpac
 		libgpac is the core library of the GPAC framework used by all GPAC applications 
-		Set the "libgpac_dll" project as the active one
-		If you have not installed the SpiderMonkey (JavaScript, libjs) library, remove the GPAC_HAS_SPIDERMONKEY preprocessor variable from the libgpac project settings (not "libgpac_dll" !!)
-		recompile
+
+		If you have not installed the SpiderMonkey (JavaScript, libjs) library, 
+     - remove the GPAC_HAS_SPIDERMONKEY preprocessor variable from the libgpac project settings
+     - remove the js.lib from libgpac_dll linker settings
 		
 		If you are compiling for PocketPC 2003 OS, and wish to use the Intel GPP library:
 		- add GPAC_USE_IGPP or GPAC_USE_IGPP_HP (for HighPrecision) to libgpac compilation settings
-		- add gpp_WMMX40_d.lib to the debug link settings and gpp_WMMX40_r.lib to the release link settings of libgpac_dll project (and make sure the directory
-		these libraries are lacated in is known to evc4)
+		- add gpp_WMMX40_d.lib to the debug link settings and gpp_WMMX40_r.lib to the release link settings of libgpac_dll project (and make sure the directory where these libraries are is known to evc4)
 	
 	II.2 Checking Plugins
 		
@@ -73,36 +74,38 @@ II GPAC compilation
 			Note that if you have only installed libogg you can also remove the "ogg" project from the workspace, it won't be any usefull.
 				
     * render3d:
-      GPAC can use OpenGL ES for 3D rendering on embedded devices, but you will need development files of OpenGL ES. If you do not plan to support
-      OpenGL_ES, simply remove this project from the workspace
+      GPAC can use OpenGL ES for 3D rendering on embedded devices, but you will need development files of OpenGL ES. 
       GPAC has been tested with 2 implementations of OpenGL ES:
       * HybridGraphics one (cf http://www.hybrid.fi/), by far the most efficient one tested, available for evc4/PockePC 2003 only
       * Vincent3D (aka ogl-es, cf http://ogl-es.sourceforge.net/), slower but with good visual results
       
-      The Klimt library (cf http://studierstube.org/klimt/), which is not 100% OpenGL_ES compliant, may be used but needs some code rewrite here and there,
+      To setup OpenGL ES, get one of these libraries, configure the IDE to locate the include and lib files (or copy them in gpac/extra_lib/ which is setup by default)
+      The GL ES lib shall be named "libGLES_CM.lib", and the GL ES include files shall be located in a "GLES" directory, the include path pointing to its parent directory.
+      
+      NOTE 1: The Klimt library (cf http://studierstube.org/klimt/), which is not 100% OpenGL_ES compliant, may be used but needs some code rewrite here and there,
       mainly in gapi video output.
+
+      NOTE 2: If you do not plan to support 3D rendering, simply remove this project from the workspace, and remove the following in GAPI project settings:
+        * GPAC_USE_OGL_ES from preprocessor options (debug and release)
+        * libGLES_CM.lib from linker settings (debug and release)
 
 		* gapi:
 			you must make sure you have installed the GAPI SDK for windows (also known as GX) before compiling - cf gpac_extra_libs/ReadMe
 			
-			evc4 only: 
-			  if you do not have an OpenGL_ES implementation for PocketPC2003, remove the GPAC_USE_OGL_ES directive from the project compilation 
-			  settings, and remove libGLES_CM.lib from the project link settings
-
 		* svg_loader:
 			the svg reader requires libxml2 for SVG parsing. WinCE binaries of LibXML2 are available in gpac_extra_lib package, and can be recompiled from the official libxml2 soiurce tree (http://www.xmlsoft.org).
 			To install the precompiled binaries from gpac_extra_lib, refer to libxml2_arm_wince.zip included in the gpac extra lib package.
 			To install from the official libxm2 source tree, rebuild libxml2 for ARM and update svg_loader project settings to point to the right directories for include and library files.
-			If you don't want to install libxml2 or don't plan to test svg, simply remove the "svg_loader" project from the workspace (DEL).
+			If you don't want to install libxml2, simply remove the "svg_loader" project from the workspace (DEL).
+			
+			NOTE: GPAC has its own XML sax parser, you will still be able to play SVG files without libXML.
       			
   II.3 Recompiling
 	  select the target platform (PocketPC or Smartphone)
 	  Rebuild all (Build->Batch Build->Rebuild All)
 	  
 	  Note:
-  	  Osmo4 build will fail for smartphone devices, the GPAC GUI available on this platform is Osmophone
-	    Osmophone build will fail for PocketPC devices, the GPAC GUI available on this platform is Osmo4
-		
+  	  Osmo4 build will fail for smartphone devices, the GPAC GUI available on this platform is Osmophone		
 						
 	II.4 Launching Osmo4 or Osmophone
 		Osmo4/Osmophone will automatically create a config file in the Osmo4/Osmophone executable directory if needed. You must copy all plugins to this 
@@ -117,6 +120,7 @@ III GPAC Installer for WinCE
 		
 		* compile GPAC for PocketPC 2002/2003
 		* make sure the js.dll is copied in the release build directory if you have compiled GPAC with SpiderMonkey support, otherwise comment lines "js.dll" in gpac.inf
+		* make sure the libGLES_CM.dll is copied in the release build directory if you have compiled with OpenGL ES support, otherwise comment lines "libGLES_CM.dll" and "gm_render3d.dll" in gpac.inf
 		* make sure the libxml2.dll is copied in the release build directory if you have compiled the svg loader, otherwise comment lines "libxml2.dll" in gpac.inf
 		* remove any lines in gpac.inf that refer to plugins you have not built.
 		* if you have built the smartphone version, change AppName and ExeName accordingly in gpac.inf

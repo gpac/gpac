@@ -303,7 +303,7 @@ CAPTION "About Osmophone"
 FONT 8, "System"
 BEGIN
     ICON            IDI_ICON,IDC_STATIC,6,4,21,20
-    LTEXT           "Osmo4/GPAC\nversion 0.4.1",IDC_STATIC,33,6,46,17
+    LTEXT           "Osmo4/GPAC\nversion 0.4.2",IDC_STATIC,33,6,46,17
     CTEXT           "Copyright (c) 2005 ENST\nAll Rights Reserved\n\nLicensed under LGPL",
                     IDC_STATIC,2,28,87,39
 END

@@ -25,7 +25,7 @@ InitialObjectDescriptor {
 OrderedGroup {
  children [
   Background2D {
-   backColor 1 1 0
+   backColor 1 1 1
   }
   Shape {
    appearance Appearance {

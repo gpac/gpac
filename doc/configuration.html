@@ -8,7 +8,7 @@
 
 <p style="text-align: center;">
 <br/>
-<b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.1-DEV</span></b>
+<b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.2</span></b>
 <br/>
 <b><span style="Font-Size: 18pt">Last Modified February 2006</span></b>
 </p>
@@ -502,7 +502,7 @@ Specifies if cached files with same name should be kept or not. If not, an integ
 <ul>
 <li><i>"yes"</i>: SAX parsing is used with progressive loading of the document.</li>
 <li><i>"no"</i>: SAX parsing is used, document will first be completely downloaded.</li>
-<li><i>"DOM"</i>: DOM parsing is used, document will first be completely downloaded. Only supported by libXML2 plugin, other plugin handle it as "no".</li>
+<li><i>"DOM"</i>: DOM parsing is used, document will first be completely downloaded. Only supported by libXML2 plugin, otherwise handled as "no".</li>
 </ul>
 <b>MaxDuration</b> [value <i>positive integer</i>]
 <p style="text-indent: 5%">

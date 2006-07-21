@@ -67,13 +67,11 @@ GF_Thread *gf_th_new()
 
 #ifdef WIN32
 DWORD WINAPI RunThread(void *ptr)
-#else
-void *RunThread(void *ptr)
-#endif
 {
-#ifdef WIN32
 	DWORD ret = 0;
 #else
+void *RunThread(void *ptr)
+{
 	u32 ret = 0;
 #endif
 	GF_Thread *t = (GF_Thread *)ptr;
@@ -176,8 +174,8 @@ void gf_th_del(GF_Thread *t)
 void gf_th_set_priority(GF_Thread *t, s32 priority)
 {
 #ifdef WIN32
-	/*in WinCE, threading scheduling is just a pain*/
-#ifndef WIN32_WCE
+	/*!! in WinCE, changin thread priority is extremely dangerous, it may freeze threads randomly !!*/
+#ifndef _WIN32_WCE
 	SetThreadPriority(t ? t->threadH : GetCurrentThread(), priority);
 #endif
 
@@ -278,8 +276,7 @@ void gf_mx_v(GF_Mutex *mx)
 	if (mx->HolderCount == 0) {
 		mx->Holder = 0;
 #ifdef WIN32
-		caller = ReleaseMutex(mx->hMutex);
-		assert(caller);
+		ReleaseMutex(mx->hMutex);
 #else
 		pthread_mutex_unlock(&mx->hMutex);
 #endif

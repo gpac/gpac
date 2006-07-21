@@ -1,5 +1,5 @@
-Installation instructions for GPAC 0.4.1 on Familiar+GPE platforms
-last modified: October 2005
+Installation instructions for GPAC 0.4.2 on Familiar+GPE platforms
+last modified: July 2006
 
 0 Foreword
   This file is about installing the GPAC framework on an arm device running Linux familiar (cf http://www.handhelds.org)
@@ -29,7 +29,7 @@ II GPAC compilation
     (make sure to update the local sdl-cfg according to your needs)
 		
   	If you can't get SDL and don't have OSS audio nor X11 video support on your system, you won't be able to play any presentation with GPAC, 
-  	but you can still use other applications from GPAC (MP4Box and MP42AVI).
+  	but you can still use MP4Box.
 
 	II.2 wxWidgets Support
 		GPAC comes with a GUI player called Osmo4. To compile this player you will need wxWidgets 2.6.0 (2.5.2 should work) installed on your system. 
@@ -37,11 +37,14 @@ II GPAC compilation
 		You can always use GPAC command-line player MP4Client.
 
 	II.3 libxml2 Support
-		GPAC can be used to play very simple SVG files. The SVG plugin however relies on libxml2 for SVG parsing. If this library is not installed on the system, SVG support will be disabled. 
+		GPAC can be used to play some SVG files. You may want to use libXML2 for SVG loading, although this is not a requirement (If this library is not installed on the system, 
+		SVG support will still be enabled with GPAC's own XML parser). 
+  If this library is not installed on the system, SVG support will be disabled. 
 		If you have libxml2 but it is not installed on your system, you will have to modify gpac/configure or gpac/modules/svg_loader/Makefile scripts to compile by hand. 
 
 	II.4 OpenGL ES support
-	  OpenGL ES is not yes supported on Familiar-GPE
+	  OpenGL ES is not yes supported on Familiar-GPE. However, GPAC renderer supports OpenGL ES API. Porting the 3D module only requires modifying the X11 output (modules/x11_out) for
+	  OpenGL ES.
 
 	II.5 Building GPAC
 		go to root of gpac distribution. Note: you may need to "chmod +x" the configure file.
@@ -82,7 +85,7 @@ III Running GPAC
 
 		The config file is called ".gpacrc" and is located in the user home directory. You may run the client with a different config file by using the "-c" option.
 		
-		*If you don't see any output window, check the config file doesn't use raw_out.so as a video renderer (or simply remove raw_out.so if	you don't plan to use MP42AVI).
+		*If you don't see any output window, check the config file doesn't use raw_out.so as a video renderer (or simply remove raw_out.so).
 		
 	III.2 Osmo4
 		Osmo4 is the GUI frontend to GPAC. If you have installed Osmo4 on your system, the first launch of the player should ask you to locate a 

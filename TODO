@@ -1,7 +1,7 @@
-todo items as of version 0.4.0:
+todo items as of version 0.4.2:
 	* add complete trace system
 	* more refinement for several top scenes support (display overlays & co).
-	* prot to evc4 & Smartphones
+	* more work on LASeR and SVG support
 
 utopic roadmap
 v0.5.0:

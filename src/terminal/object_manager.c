@@ -499,7 +499,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	numOK = odm->pending_channels = 0;
 
 	/*empty IOD, use a dynamic scene*/
-	if (!gf_list_count(odm->OD->ESDescriptors) && (odm->subscene->root_od==odm)) {
+	if (!gf_list_count(odm->OD->ESDescriptors) && odm->subscene && (odm->subscene->root_od==odm)) {
 		odm->subscene->is_dynamic_scene = 1;
 		gf_odm_start(odm);
 	} else {

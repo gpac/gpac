@@ -209,7 +209,7 @@ GF_AVCConfig *gf_isom_avc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	entry = gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, DescriptionIndex-1);
 	if (!entry) return NULL;
 	if (entry->type != GF_ISOM_BOX_TYPE_AVC1) return NULL;
-
+	if (!entry->avc_config) return NULL;
 	return AVC_DuplicateConfig(entry->avc_config->config);
 }
 

@@ -530,7 +530,7 @@ void latm_flush(GP_RTPPacketizer *builder)
 	builder->rtp_header.TimeStamp = (u32) builder->sl_header.compositionTimeStamp; 
 }
 
-GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize) 
+GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration) 
 {
 	u32 size, latm_hdr_size, i, data_offset; 
 	Bool fragmented; 
@@ -541,6 +541,10 @@ GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_si
 		return GF_OK; 
 	}
 	
+	if ((builder->flags & GP_RTP_PCK_USE_MULTI) && builder->max_ptime) {
+		if ((u32) builder->sl_header.compositionTimeStamp + duration >= builder->rtp_header.TimeStamp + builder->max_ptime) 
+			latm_flush(builder);
+	}
 	/*compute max size for frame, flush current if this doesn't fit*/
 	latm_hdr_size = (data_size / 255) + 1; 
 	if (latm_hdr_size+data_size > builder->Path_MTU - builder->bytesInPacket) {
@@ -595,6 +599,7 @@ GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_si
 		builder->bytesInPacket += size;
 
 		data_offset += size;
+
 		/*fragmented AU, always flush packet*/
 		if (!builder->rtp_header.Marker) latm_flush(builder);
 	} 

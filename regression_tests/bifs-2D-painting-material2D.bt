@@ -128,7 +128,7 @@ OrderedGroup {
     USE TR
     Shape {
      appearance Appearance {
-      material Material2D {
+      material DEF M Material2D {
        emissiveColor 1 0 1
        filled TRUE
        transparency 0.6
@@ -152,5 +152,3 @@ OrderedGroup {
   }
  ]
 }
-
-

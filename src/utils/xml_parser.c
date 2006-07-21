@@ -198,14 +198,14 @@ static void xml_sax_node_end(GF_SAXParser *parser, Bool had_children)
 static void xml_sax_reset_attributes(GF_SAXParser *parser)
 {
 	/*destroy attributes*/
-	while (1) {
-		GF_XMLAttribute * att = gf_list_last(parser->attributes);
-		if (!att) break;
-		gf_list_rem_last(parser->attributes);
+	u32 i=0;
+	GF_XMLAttribute *att;
+	while ((att = gf_list_enum(parser->attributes, &i)) ) {
 		if (att->name) free(att->name);
 		if (att->value) free(att->value);
 		free(att);
 	}
+	gf_list_reset(parser->attributes);
 }
 
 static void xml_sax_node_start(GF_SAXParser *parser)
@@ -728,13 +728,9 @@ static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
 	} else {
 		u32 l1 = strlen(parser->orig_buffer);
 		u32 l2 = strlen(string);
-		char *buf = malloc(sizeof(char)* (l1+l2+1) );
-		if (!buf) return GF_OUT_OF_MEM;
-		memcpy(buf, parser->orig_buffer, l1);
-		memcpy(buf + l1, string, l2);
-		buf[l1+l2] = 0;
-		free(parser->orig_buffer);
-		parser->orig_buffer = buf;
+		parser->orig_buffer = realloc(parser->orig_buffer, sizeof(char) * (l1+l2+1));
+		memcpy(parser->orig_buffer + l1, string, l2);
+		parser->orig_buffer[l1+l2] = 0;		
 		parser->buffer = parser->orig_buffer + parser->current_pos;
 	}
 	return GF_OK;
@@ -878,16 +874,18 @@ static void xml_sax_reset(GF_SAXParser *parser)
 	parser->current_pos = 0;
 }
 
+#define XML_INPUT_SIZE	1024
+
 static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 {
 	GF_Err e = GF_EOS;
-	unsigned char szLine[1026];
+	unsigned char szLine[XML_INPUT_SIZE+2];
 	if (!parser->gz_in) return GF_BAD_PARAM;
 
 	parser->file_pos = 0;
 
 	while (!gzeof(parser->gz_in) && !parser->suspended) {
-		u32 read = gzread(parser->gz_in, szLine, 1024);
+		u32 read = gzread(parser->gz_in, szLine, XML_INPUT_SIZE);
 		szLine[read] = 0;
 		szLine[read+1] = 0;
 		e = gf_xml_sax_parse(parser, szLine);
@@ -909,7 +907,7 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	FILE *test;
 	GF_Err e;
 	gzFile gzInput;
-	unsigned char szLine[1024];
+	unsigned char szLine[6];
 
 	/*check file exists and gets its size (zlib doesn't support SEEK_END)*/
 	test = fopen(fileName, "rb");
@@ -984,7 +982,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 {
 	u32 state, att_len;
 	z_off_t pos;
-	char szLine1[1024], szLine2[1024], *szLine, *cur_line, *sep, *start, first_c, *result;
+	char szLine1[XML_INPUT_SIZE+2], szLine2[XML_INPUT_SIZE+2], *szLine, *cur_line, *sep, *start, first_c, *result;
 	if (!parser->gz_in) return NULL;
 
 	result = NULL;
@@ -992,7 +990,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 	szLine1[0] = szLine2[0] = 0;
 	pos = gztell(parser->gz_in);
 	att_len = strlen(parser->buffer);
-	if (att_len<2048) att_len = 2048;
+	if (att_len<2*XML_INPUT_SIZE) att_len = 2*XML_INPUT_SIZE;
 	GF_SAFEALLOC(szLine, sizeof(char)*att_len);
 	strcpy(szLine, parser->buffer);
 	cur_line = szLine;
@@ -1007,8 +1005,8 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 		} else {
 			cur_line = szLine2;
 		}
-		read = gzread(parser->gz_in, cur_line, 1023);
-		cur_line[read] = 0;
+		read = gzread(parser->gz_in, cur_line, XML_INPUT_SIZE);
+		cur_line[read] = cur_line[read+1] = 0;
 
 		strcat(szLine, cur_line);
 retry:

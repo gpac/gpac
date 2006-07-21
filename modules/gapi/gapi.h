@@ -44,6 +44,7 @@ extern "C" {
 typedef struct
 {
 	HWND hWnd;
+	DWORD orig_wnd_proc;
 	GF_Mutex *mx;
 
 	GXKeyList keys;

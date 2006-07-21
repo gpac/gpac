@@ -255,6 +255,21 @@ Package=<4>
 
 ###############################################################################
 
+Project: "render3d"=.\render3d.vcp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libgpac_dll
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "rtp_in"=.\rtp_in.vcp - Package Owner=<4>
 
 Package=<5>

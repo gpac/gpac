@@ -43,9 +43,10 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /Yu"stdafx.h" /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /ZI /Od /I "../../include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /FR /Yu"stdafx.h" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /ZI /Od /I "../../include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /FR /FD /GZ /c
+# SUBTRACT CPP /YX /Yc /Yu
 # ADD BASE RSC /l 0x804 /d "_DEBUG"
-# ADD RSC /l 0x804 /d "_DEBUG"
+# ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -89,6 +90,17 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 js32.lib zlib.lib winmm.lib ws2_32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /pdbtype:sept /libpath:"../gpac/extra_lib/lib/w32_deb"
 # ADD LINK32 js32.lib zlib.lib winmm.lib ws2_32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /out:"../../bin/w32_rel/GPAX.dll" /pdbtype:sept /libpath:"../../extra_lib/lib/w32_rel"
+# Begin Custom Build - Performing registration
+OutDir=.\obj/w32_rel
+TargetPath=\CVS\gpac\bin\w32_rel\GPAX.dll
+InputPath=\CVS\gpac\bin\w32_rel\GPAX.dll
+SOURCE="$(InputPath)"
+
+"$(OutDir)\regsvr32.trg" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	regsvr32 /s /c "$(TargetPath)" 
+	echo regsvr32 exec. time > "$(OutDir)\regsvr32.trg" 
+	
+# End Custom Build
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
 PostBuild_Cmds=copy ..\..\bin\w32_rel\GPAX.dll "C:\Program Files\GPAC"
@@ -100,9 +112,10 @@ PostBuild_Cmds=copy ..\..\bin\w32_rel\GPAX.dll "C:\Program Files\GPAC"
 
 # Name "GPAX - Win32 Debug"
 # Name "GPAX - Win32 Release"
-# Begin Group "Source Files"
+# Begin Source File
 
-# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
+SOURCE=..\..\applications\GPAX\gpax.bmp
+# End Source File
 # Begin Source File
 
 SOURCE=..\..\applications\GPAX\GPAX.cpp
@@ -110,6 +123,10 @@ SOURCE=..\..\applications\GPAX\GPAX.cpp
 # Begin Source File
 
 SOURCE=..\..\applications\GPAX\GPAX.def
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\applications\GPAX\GPAX.h
 # End Source File
 # Begin Source File
 
@@ -121,37 +138,37 @@ SOURCE=..\..\applications\GPAX\GPAX.rc
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\applications\GPAX\GPAX.rgs
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\applications\GPAX\GPAX.tlb
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\applications\GPAX\GPAX_i.c
+# PROP Exclude_From_Build 1
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\applications\GPAX\GPAXPlugin.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\applications\GPAX\GPAXPlugin.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\applications\GPAX\resource.h
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\applications\GPAX\StdAfx.cpp
 # End Source File
-# End Group
-# Begin Group "Header Files"
-
-# PROP Default_Filter "h;hpp;hxx;hm;inl"
-# End Group
-# Begin Group "Resource Files"
-
-# PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
 # Begin Source File
 
-SOURCE=..\..\applications\GPAX\gpax.bmp
+SOURCE=..\..\applications\GPAX\StdAfx.h
 # End Source File
-# Begin Source File
-
-SOURCE=.\gpax.bmp
-# End Source File
-# Begin Source File
-
-SOURCE=.\GPAX.rgs
-# End Source File
-# Begin Source File
-
-SOURCE=.\GPAXProp.rgs
-# End Source File
-# End Group
 # End Target
 # End Project
 # Section GPAX : {00000000-0000-0000-0000-800000800000}

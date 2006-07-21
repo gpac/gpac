@@ -417,7 +417,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 				continue;
 			}
 
-#if defined (_MSC_VER) || defined(__MINGW32__)
+#if defined (WIN32) && !defined(__GNUC__)
 			if (sscanf(pos + strlen(buf), "%I64x", &vspos->filepos) != 1)
 #else
 			if (sscanf(pos + strlen(buf), "%llx", &vspos->filepos) != 1)

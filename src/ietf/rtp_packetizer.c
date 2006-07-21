@@ -100,7 +100,7 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_si
 	case GP_RTP_PAYT_EVRC_SMV:
 		return gp_rtp_builder_do_smv(builder, data, data_size, IsAUEnd, FullAUSize);
 	case GP_RTP_PAYT_LATM: 
-		return gp_rtp_builder_do_latm(builder, data, data_size, IsAUEnd, FullAUSize); 
+		return gp_rtp_builder_do_latm(builder, data, data_size, IsAUEnd, FullAUSize, duration); 
  	default:
 		return GF_BAD_PARAM;
 	}

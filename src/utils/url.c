@@ -102,7 +102,10 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	if ( (strlen(parentName) > GF_MAX_PATH) || (strlen(pathName) > GF_MAX_PATH) ) return NULL;
 
 	prot_type = URL_GetProtocolType(pathName);
-	if (prot_type != GF_URL_TYPE_RELATIVE) return strdup(pathName);
+	if (prot_type != GF_URL_TYPE_RELATIVE) {
+		outPath = strdup(pathName);
+		goto check_spaces;
+	}
 
 	pathSepCount = 0;
 	name = NULL;
@@ -138,7 +141,10 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 		}
 	}
 	//if i==0, the parent path was relative, just return the pathName
-	if (!i) return strdup(pathName);
+	if (!i) {
+		outPath = strdup(pathName);
+		goto check_spaces;
+	}
 
 	psep = (prot_type == GF_URL_TYPE_FILE) ? GF_PATH_SEPARATOR : '/';
 
@@ -149,6 +155,14 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	if ((prot_type == GF_URL_TYPE_FILE) && (GF_PATH_SEPARATOR != '/')) {
 		for (i = 0; i<strlen(outPath); i++) 
 			if (outPath[i]=='/') outPath[i] = GF_PATH_SEPARATOR;
+	}
+
+check_spaces:
+	while (1) {
+		char *str = strstr(outPath, "%20");
+		if (!str) break;
+		str[0] = ' ';
+		memmove(str+1, str+3, strlen(str)-2);
 	}
 	return outPath;
 }

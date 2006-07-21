@@ -549,9 +549,17 @@ void nsOsmozillaInstance::Stop()
 	gf_term_disconnect(m_term);
 }
 
+#include <gpac/term_info.h>
 void nsOsmozillaInstance::Update(const char *type, const char *commands)
 {
-	if (m_term) gf_term_scene_update(m_term, (char *) type, (char *) commands);
+	if (m_term) {
+		GF_Err e = gf_term_scene_update(m_term, (char *) type, (char *) commands);
+		if (e) {
+			char szMsg[1024];
+			sprintf((char *)szMsg, "GPAC: Error applying update (%s)", gf_error_to_string(e) );
+			NPN_Status(mInstance, szMsg);
+		}
+	}
 }
 
 

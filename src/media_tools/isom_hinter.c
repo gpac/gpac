@@ -688,6 +688,7 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 		}
 		
 		duration = gf_isom_get_sample_duration(tkHint->file, tkHint->TrackNum, i+1);
+		ts = (u32) (ft * (s64) (duration));
 
 		/*unpack nal units*/
 		if (tkHint->avc_nalu_size) {

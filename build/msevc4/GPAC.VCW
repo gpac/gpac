@@ -3,6 +3,21 @@ Microsoft eMbedded Visual Tools Workspace File, Format Version 4.00
 
 ###############################################################################
 
+Project: "GPAX"=.\GPAX.VCP - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libgpac_dll
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "Osmo4"=.\Osmo4.vcp - Package Owner=<4>
 
 Package=<5>
@@ -79,21 +94,6 @@ Package=<4>
 ###############################################################################
 
 Project: "dummy_in"=.\dummy_in.vcp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libgpac_dll
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "ffmpeg_in"=.\ffmpeg_in.vcp - Package Owner=<4>
 
 Package=<5>
 {{{

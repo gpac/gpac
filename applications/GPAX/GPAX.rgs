@@ -1,42 +1,42 @@
 HKCR
 {
-	NoRemove '.aac'
+	ForceRemove '.aac'
 	{
 		val 'Content Type' = s 'audio/aac'
 	}
-	NoRemove '.amr'
+	ForceRemove '.amr'
 	{
 		val 'Content Type' = s 'audio/amr'
 	}
-	NoRemove '.mp4'
+	ForceRemove '.mp4'
 	{
 		val 'Content Type' = s 'application/mp4'
 	}
-	NoRemove '.3gp'
+	ForceRemove '.3gp'
 	{
 		val 'Content Type' = s 'video/3gpp'
 	}
-	NoRemove '.3g2'
+	ForceRemove '.3g2'
 	{
 		val 'Content Type' = s 'video/3gpp2'
 	}
-	NoRemove '.wrl'
+	ForceRemove '.wrl'
 	{
 		val 'Content Type' = s 'model/vrml'
 	}
-	NoRemove '.x3dv'
+	ForceRemove '.x3dv'
 	{
 		val 'Content Type' = s 'model/x3d+vrml'
 	}
-	NoRemove '.x3d'
+	ForceRemove '.x3d'
 	{
 		val 'Content Type' = s 'model/x3d+xml'
 	}
-	NoRemove '.svg'
+	ForceRemove '.svg'
 	{
 		val 'Content Type' = s 'image/svg+xml'
 	}
-	NoRemove '.sdp'
+	ForceRemove '.sdp'
 	{
 		val 'Content Type' = s 'application/sdp'
 	}
@@ -59,7 +59,7 @@ HKCR
 			ForceRemove 'Programmable'
 			InprocServer32 = s '%MODULE%'
 			{
-				val ThreadingModel = s 'Apartment'
+				val ThreadingModel = s 'Both'
 			}
 			ForceRemove 'Control'
 			ForceRemove 'Insertable'
@@ -83,7 +83,7 @@ HKCR
 		}
 	}
 
-	NoRemove MIME
+	ForceRemove MIME
 	{
 		NoRemove Database
 		{

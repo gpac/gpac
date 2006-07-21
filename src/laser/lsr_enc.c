@@ -1871,7 +1871,7 @@ static void lsr_write_animateMotion(GF_LASeRCodec *lsr, SVGanimateMotionElement 
 	lsr_write_fraction_12(lsr, elt->anim->keyTimes, "keyTimes");
 	lsr_write_anim_values(lsr, &elt->anim->values, "values");
 	/*TO BE REMOVED from COR*/
-	lsr_write_attribute_type(lsr, (SVGElement *)elt);
+	//lsr_write_attribute_type(lsr, (SVGElement *)elt);
 	lsr_write_smil_times(lsr, elt->timing->begin, "begin", 1);
 	lsr_write_duration(lsr, &elt->timing->dur, "dur");
 	lsr_write_anim_fill(lsr, elt->timing->fill, "fill");
@@ -1992,7 +1992,7 @@ static void lsr_write_conditional(GF_LASeRCodec *lsr, SVGconditionalElement *elt
 	lsr_write_smil_times(lsr, elt->lsr_begin, "begin", 1);
 	GF_LSR_WRITE_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
 	/*FIXME to remove from DCOR SDL*/
-	lsr_write_href(lsr, NULL);
+	//lsr_write_href(lsr, NULL);
 
 	GF_LSR_WRITE_INT(lsr, elt->lsr_enabled ? 1 : 0, 1, "enabled");
 	lsr_write_any_attribute(lsr, (GF_Node *) elt, clone, 1);
@@ -3071,7 +3071,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVGElement *elt, u32 fiel
 		case SVG_String_datatype:
 		case SVG_ContentType_datatype:
 		case SVG_LanguageID_datatype:
-			lsr_write_byte_align_string(lsr, val ? * (DOM_String *)val : "", "val");
+			lsr_write_byte_align_string(lsr, val ? ((char *) *(DOM_String *)val) : "", "val");
 			break;
 		case SVG_Motion_datatype:
 			lsr_write_coordinate(lsr, ((SVG_Point *)val)->x, 0, "pointValueX");

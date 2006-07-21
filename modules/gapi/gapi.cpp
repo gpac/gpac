@@ -30,6 +30,10 @@
 
 #include "gapi.h"
 
+#ifdef GPAC_USE_OGL_ES
+#pragma message("Compiling GAPI with OpenGL-ES support")
+#endif
+
 static Bool is_landscape = 0;
 
 
@@ -115,18 +119,29 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	GF_Event evt;
 	switch (msg) {
 	case WM_SIZE:
+	{
 		GAPIPriv *ctx = (GAPIPriv *)the_video_driver->opaque;
 		evt.type = GF_EVT_SIZE;
 		evt.size.width = LOWORD(lParam);
 		evt.size.height = HIWORD(lParam);
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
+	}
 		break;
 	case WM_CLOSE:
 		evt.type = GF_EVT_QUIT;
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		return 1;
 	case WM_DESTROY:
-		PostQuitMessage (0);
+	{
+		GAPIPriv *ctx = (GAPIPriv *)the_video_driver->opaque;
+		if (ctx->owns_hwnd ) {
+			PostQuitMessage (0);
+		} else if (ctx->orig_wnd_proc) {
+			/*restore window proc*/
+			SetWindowLong(ctx->hWnd, GWL_WNDPROC, ctx->orig_wnd_proc);
+			ctx->orig_wnd_proc = 0L;
+		}
+	}
 		break;
 
 	case WM_ERASEBKGND:
@@ -251,6 +266,7 @@ void GAPI_SetupWindow(GF_VideoOutput *dr)
 		if (!ctx->hThread) return;
 		ctx->owns_hwnd = 1;
 	} else {
+		ctx->orig_wnd_proc = GetWindowLong(ctx->hWnd, GWL_WNDPROC);
 		/*override window proc*/
 		SetWindowLong(ctx->hWnd, GWL_WNDPROC, (DWORD) GAPI_WindowProc);
 	}
@@ -266,6 +282,10 @@ void GAPI_ShutdownWindow(GF_VideoOutput *dr)
 		UnregisterClass(_T("GPAC GAPI Output"), GetModuleHandle(_T("gapi.dll")));
 		CloseHandle(ctx->hThread);
 		ctx->hThread = NULL;
+	} else if (ctx->orig_wnd_proc) {
+		/*restore window proc*/
+		SetWindowLong(ctx->hWnd, GWL_WNDPROC, ctx->orig_wnd_proc);
+		ctx->orig_wnd_proc = 0L;
 	}
 	ctx->hWnd = NULL;
 	the_video_driver = NULL;

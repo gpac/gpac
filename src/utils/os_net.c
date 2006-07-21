@@ -865,7 +865,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 	*newConnection = NULL;
 	if (!sock || !(sock->flags & GF_SOCK_IS_LISTENING) ) return GF_BAD_PARAM;
 
-#if 0
+#if 1
 	//can we read?
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);

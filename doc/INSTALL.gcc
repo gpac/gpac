@@ -1,4 +1,4 @@
-Installation instructions for GPAC 0.4.1 on GCC-powered platforms
+Installation instructions for GPAC 0.4.2 on GCC-powered platforms
 last modified: October 2005
 
 0 Foreword
@@ -17,8 +17,8 @@ II GPAC compilation
 		    --sdl-cfg=path/to/local/sdlcfg/
     (make sure to update the local sdl-cfg according to your needs)
 		
-  	If you can't get SDL and don't have OSS audio nor X11 video support on your system, you won't be able to play any presentation with GPAC, 
-  	but you can still use other applications from GPAC (MP4Box and MP42AVI).
+  	If you can't get SDL and don't have OSS or WAV audio nor DirectX or X11 video support on your system, you won't be able to play any presentation with GPAC, 
+  	but you can still use MP4Box.
 
 	II.2 wxWidgets Support
 		GPAC comes with a GUI player called Osmo4. To compile this player you will need wxWidgets 2.6.0 (2.5.2 should work) installed on your system. 
@@ -26,7 +26,8 @@ II GPAC compilation
 		If you don't use wxWidgets, you can always use GPAC command-line player MP4Client.
 
 	II.3 libxml2 Support
-		GPAC can be used to play very simple SVG files. The SVG plugin however relies on libxml2 for SVG parsing. If this library is not installed on the system, SVG support will be disabled. 
+		GPAC can be used to play some SVG files. You may want to use libXML2 for SVG loading, although this is not a requirement (If this library is not installed on the system, 
+		SVG support will still be enabled with GPAC's own XML parser). 
 		If you have libxml2 but it is not installed on your system, you will have to modify gpac/configure or gpac/modules/svg_loader/Makefile scripts to compile by hand. 
 		MINGW users: libXML2 is quite impossible to compile under MinGW, you'll usuall get plenty of errors and only a partial compil. Sorry about that.
 
@@ -47,7 +48,7 @@ II GPAC compilation
 		get root
 		type "make install" in gpac/
 		
-		This will install MP4Client, Osmo4 if configured, MP42AVI, MP4Box and all plugins as well as GPAC documentation man: MP4Box(1), MP4Client(1), MP42AVI(1) and GPAC(1).
+		This will install MP4Client, Osmo4 if configured, MP4Box and all plugins as well as GPAC documentation man: MP4Box(1), MP4Client(1) and GPAC(1).
 		type "make uninstall" to remove gpac from your system
 
 	II.7 Installing GPAC SDK
@@ -81,7 +82,7 @@ III Running GPAC
 
 		The config file is called ".gpacrc" and is located in the user home directory. You may run the client with a different config file by using the "-c" option.
 		
-		*If you don't see any output window, check the config file doesn't use raw_out.so as a video renderer (or simply remove raw_out.so if	you don't plan to use MP42AVI).
+		*If you don't see any output window, check the config file doesn't use raw_out.so as a video renderer (or simply remove raw_out.so).
 		
 		MINGW USERS: there are known and terrible bugs with MSys rxvt stdio buffering, do NOT use it to run MP4Client unless you want to understand
 		these bugs. Use w32 CMD.exe instead. Other GPAC apps are no pb for MSys rxvt.

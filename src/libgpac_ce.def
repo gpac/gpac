@@ -655,6 +655,7 @@ EXPORTS
 	gf_term_download_del
 	gf_term_download_update_stats
 	gf_term_add_media
+	gf_term_scene_update
 
 ;ietf.h exports
 	gf_rtsp_nc_to_string
@@ -991,7 +992,7 @@ EXPORTS
 	gf_term_del
 	gf_term_connect
 	gf_term_disconnect
-	gf_term_reload
+	gf_term_navigate_to
 	gf_term_play_from_time
 	gf_term_set_option
 	gf_term_get_option

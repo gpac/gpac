@@ -1,32 +1,19 @@
-del /S *.obj
-del /S *.lib
-del /S *.pch
-del /S *.pdb
-del /S *.idb
-del /S *.exp
-del /S *.plg
-del /S *.res
-del /S *.plg
-del /S *.ncb
-del /S *.opt
-del /S *.APS
-del /S *.ilk
-del /S *.SUP
-del /S *.sbr
-del /S *.map
-del /S *.vcl
-del /S *.o
+cd src
+DEL /S *.obj *.lib *.pch *.pdb *.idb *.exp *.plg *.res *.plg *.ncb *.opt *.APS *.ilk *.SUP *.sbr *.map *.vcl *.o *.dll *.exe *.a *.NCB *.OPT *.vcb *.vco *.bsc *.HLP *.hm *.LOG *.ph
+cd ..
 
-del /S *.dll
-del /s *.exe
-del /s *.a
-del /S *.NCB
-del /S *.OPT
-del /S *.vcb
-del /S *.vco
-del /S *.bsc
+cd modules
+DEL /S *.obj *.lib *.pch *.pdb *.idb *.exp *.plg *.res *.plg *.ncb *.opt *.APS *.ilk *.SUP *.sbr *.map *.vcl *.o *.dll *.exe *.a *.NCB *.OPT *.vcb *.vco *.bsc *.HLP *.hm *.LOG *.ph
+cd ..
 
-del /S *.HLP
-del /S *.hm
-del /S *.LOG
-del /S *.ph
+cd build
+DEL /S *.obj *.lib *.pch *.pdb *.idb *.exp *.plg *.res *.plg *.ncb *.opt *.APS *.ilk *.SUP *.sbr *.map *.vcl *.o *.dll *.exe *.a *.NCB *.OPT *.vcb *.vco *.bsc *.HLP *.hm *.LOG *.ph
+cd ..
+
+cd applications
+DEL /S *.obj *.lib *.pch *.pdb *.idb *.exp *.plg *.res *.plg *.ncb *.opt *.APS *.ilk *.SUP *.sbr *.map *.vcl *.o *.dll *.exe *.a *.NCB *.OPT *.vcb *.vco *.bsc *.HLP *.hm *.LOG *.ph
+cd ..
+
+
+
+

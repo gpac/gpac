@@ -887,7 +887,7 @@ DEP_CPP_BOX_C=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\isomedia\box_code_base.c
+SOURCE=..\..\src\isomedia\box_code_apple.c
 DEP_CPP_BOX_CO=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
@@ -901,7 +901,7 @@ DEP_CPP_BOX_CO=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\isomedia\box_code_isma.c
+SOURCE=..\..\src\isomedia\box_code_base.c
 DEP_CPP_BOX_COD=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
@@ -915,8 +915,22 @@ DEP_CPP_BOX_COD=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\isomedia\box_code_meta.c
+SOURCE=..\..\src\isomedia\box_code_isma.c
 DEP_CPP_BOX_CODE=\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\internal\isomedia_dev.h"\
+	"..\..\include\gpac\isomedia.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\tools.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\isomedia\box_code_meta.c
+DEP_CPP_BOX_CODE_=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -2077,7 +2091,9 @@ DEP_CPP_MEDIA_E=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\avilib.h"\
 	"..\..\include\gpac\internal\media_dev.h"\
+	"..\..\include\gpac\internal\odf_dev.h"\
 	"..\..\include\gpac\internal\ogg.h"\
+	"..\..\include\gpac\internal\vobsub.h"\
 	"..\..\include\gpac\isomedia.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\media_tools.h"\
@@ -2099,7 +2115,9 @@ DEP_CPP_MEDIA_I=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\internal\avilib.h"\
 	"..\..\include\gpac\internal\media_dev.h"\
+	"..\..\include\gpac\internal\odf_dev.h"\
 	"..\..\include\gpac\internal\ogg.h"\
+	"..\..\include\gpac\internal\vobsub.h"\
 	"..\..\include\gpac\isomedia.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\media_tools.h"\
@@ -3180,6 +3198,7 @@ DEP_CPP_TERMI=\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\internal\renderer_dev.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
+	"..\..\include\gpac\isomedia.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\mediaobject.h"\
@@ -3191,9 +3210,11 @@ DEP_CPP_TERMI=\
 	"..\..\include\gpac\modules\service.h"\
 	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\renderer.h"\
+	"..\..\include\gpac\scene_manager.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\

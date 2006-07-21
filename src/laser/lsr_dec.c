@@ -2184,7 +2184,7 @@ static GF_Node *lsr_read_animateMotion(GF_LASeRCodec *lsr, SVGElement *parent)
 	lsr_read_fraction_12(lsr, elt->anim->keyTimes, "keyTimes");
 	lsr_read_anim_values(lsr, &elt->anim->values, 0xFFFF, "values");
 	/*TO BE REMOVED from COR*/
-	lsr_read_attribute_type(lsr, (SVGElement *)elt);
+	//lsr_read_attribute_type(lsr, (SVGElement *)elt);
 	lsr_read_smil_times(lsr, elt->timing->begin, "begin", 1);
 	lsr_read_duration(lsr, &elt->timing->dur, "dur");
 	lsr_read_anim_fill(lsr, &elt->timing->fill, "fill");
@@ -2462,7 +2462,7 @@ static GF_Node *lsr_read_conditional(GF_LASeRCodec *lsr)
 	lsr_read_smil_times(lsr, elt->lsr_begin, "begin", 1);
 	GF_LSR_READ_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
 	/*FIXME to remove from DCOR SDL*/
-	lsr_read_href(lsr, (SVGElement *)elt);
+	//lsr_read_href(lsr, (SVGElement *)elt);
 	GF_LSR_READ_INT(lsr, elt->lsr_enabled, 1, "enabled");
 	lsr_read_any_attribute(lsr, (GF_Node *) elt, 1);
 	lsr_read_command_list(lsr, NULL, elt, 0);

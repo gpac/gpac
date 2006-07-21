@@ -1551,6 +1551,10 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	/*init libgpac*/
+	gf_sys_init();
+
+
 	if (do_saf && !encode) {
 		switch (get_file_type_by_ext(inName)) {
 		case 2: case 3: case 4: 
@@ -2249,15 +2253,21 @@ int main(int argc, char **argv)
 	} else {
 		gf_isom_delete(file);
 	}
+	/*close libgpac*/
+	gf_sys_close();
 
 	if (e) fprintf(stdout, "Error: %s\n", gf_error_to_string(e));
 	return (e!=GF_OK) ? 1 : 0;
 #else
+	/*close libgpac*/
+	gf_sys_close();
 	gf_isom_delete(file);
 	fprintf(stdout, "Error: Read-only version of MP4Box.\n");
 	return 1;
 #endif
 err_exit:
+	/*close libgpac*/
+	gf_sys_close();
 	if (file) gf_isom_delete(file);
 	fprintf(stdout, "\n\tError: %s\n", gf_error_to_string(e));
 	return 1;

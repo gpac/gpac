@@ -948,11 +948,13 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 			case GF_STREAM_SCENE:
 			case GF_STREAM_PRIVATE_SCENE:
 				sc = gf_sm_stream_new(load.ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
-				if (esd->decoderConfig->streamType=GF_STREAM_PRIVATE_SCENE) sc->streamType = GF_STREAM_SCENE;
+				if (esd->decoderConfig->streamType==GF_STREAM_PRIVATE_SCENE) sc->streamType = GF_STREAM_SCENE;
 				sc->timeScale = esd->slConfig->timestampResolution;
 				break;
 			}
 		}
+	} else {
+		return GF_BAD_PARAM;
 	}
 	load.ctx->max_node_id = gf_sg_get_max_node_id(term->root_scene->graph);
 

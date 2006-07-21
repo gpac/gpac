@@ -558,3 +558,4 @@ GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov)
 	return meta;
 }
 #endif
+

@@ -1,5 +1,5 @@
-Installation instructions for GPAC 0.4.0 on windows platform
-last modified: July 2005
+Installation instructions for GPAC 0.4.2 on windows platform
+last modified: July 2006
 
 0 Foreword
 	Compilation has only been tested with MSVC 6, not .NET
@@ -133,6 +133,10 @@ II GPAC compilation
 		Osmozilla is GPAC plugin for Mozilla-based browsers, enabling to embed all GPAC supported contents in a web page. Recompile it only if you think it may 
 		be helpfull (Set as the active project and recompile)
 
+	II.7 Recompiling GPAX
+		GPAX is GPAC ActiveX control, only usable as an Internet Explorer plugin for now, enabling to embed all GPAC supported contents in a web page. Recompile it only if you think it may 
+		be helpfull (Set as the active project and recompile)
+
 III Launching the applications
 
 	If you have compiled libgpac with SpiderMonkey (JavaScript) enabled, copy the JS32.dll file in the output directory.
@@ -149,15 +153,21 @@ to first launch Osmo4 to get a working config file.
 	If the config file is not found, a new one is created in the current directory. You can pass a given config file as a parameter (MP4Client -c config_path).
 	You can also modify the hardcoded path in MP4Client (gpac/Applications/MP4Client/main.c) to point to gpac output directory and recompile.
 	
-	MP42AVI needs GPAC configuration file to run. It will by default search for the file in a hardcoded directory that will likely not work. 
-	You can pass a given config file as a parameter (MP42AVI -cfg config_path).
-	You can also modify the hardcoded path in MP42AVI (gpac/Applications/MP4Client/main.c) to point to gpac output directory and recompile.
-	
+		
 	Osmozilla cannot be launched without a mozilla-based web browser. You should not try to install it in any other wau than with  the GPAC installer 
 	(cf below). Once installed, you may try any test in an html page viewed with your browser, for instance:
-      	<embed SRC="myfile.mp4" type="application/mp4" width="120" height="100" />
+      	<object type="application/mp4" width="120" height="100">
+        <param name="src" value"myfile.mp4" /> 
+      	</object>
    To make sure your browser has loaded the osmozilla plugin and to check the mime types supported, try typing "about:plugins" in your browser address bar.
-
+		
+	GPAX cannot be launched without Internet Explorer. You should not try to install it in any other way than with the GPAC installer 
+	(cf below). Once installed, you may try any test in an html page viewed with your browser, for instance:
+      	<object type="application/mp4" width="120" height="100">
+        <param name="src" value"myfile.mp4" /> 
+      	</object>
+      	
+      	
 IV Configuration
 	
 	IV.0 Foreword

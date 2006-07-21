@@ -510,6 +510,7 @@ Bool tx_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Matrix *
 
 static Bool tx_enable_matte_texture(GF_Node *n)
 {
+/*
 	GF_TextureHandler *b_surf;
 	GF_TextureHandler *a_surf;
 	GF_TextureHandler *alpha_surf;
@@ -519,15 +520,15 @@ static Bool tx_enable_matte_texture(GF_Node *n)
 	tx_set_image(b_surf, 0);
 	tx_bind(b_surf);
 
-/*
 	a_surf = R3D_GetTextureHandler(matte->surfaceA);
 	alpha_surf = R3D_GetTextureHandler(matte->alphaSurface);
 
 	if (!alpha_surf || !alpha_surf->hwtx) return 0;
 	tx_set_image(alpha_surf, 0);
 	tx_bind_with_mode(alpha_surf, tx_is_transparent(b_surf), ((GLTexture *)b_surf->hwtx)->blend_mode);
-*/
 	return 1;
+*/
+	return 0;
 }
 
 Bool tx_is_transparent(GF_TextureHandler *txh)

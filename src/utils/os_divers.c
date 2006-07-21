@@ -51,9 +51,15 @@
 #include <errno.h>
 #endif
 
+
 #define SLEEP_ABS_SELECT		1
 
 static u32 sys_start_time = 0;
+#endif
+
+
+#ifndef _WIN32_WCE
+#include <locale.h>
 #endif
 
 
@@ -636,6 +642,10 @@ void gf_sys_init()
 		memset(&the_rti, 0, sizeof(GF_SystemRTInfo));
 		the_rti.pid = getpid();
 		sys_start_time = gf_sys_clock();
+#endif
+
+#ifndef _WIN32_WCE
+		setlocale( LC_NUMERIC, "C" ); 
 #endif
 	}
 	sys_init += 1;

@@ -75,7 +75,13 @@ enum
 enum
 {
 	GF_M2TS_PES_PCK_RAP = 1,
-	GF_M2TS_PES_PCK_AU_START = 1<<1
+	GF_M2TS_PES_PCK_AU_START = 1<<1,
+	/*visual frame starting in this packet is an I frame or IDR (AVC/H264)*/
+	GF_M2TS_PES_PCK_I_FRAME = 1<<2,
+	/*visual frame starting in this packet is a P frame*/
+	GF_M2TS_PES_PCK_P_FRAME = 1<<3,
+	/*visual frame starting in this packet is a B frame*/
+	GF_M2TS_PES_PCK_B_FRAME = 1<<4
 };
 
 /*Events used by the MPEGTS demuxer*/
