@@ -646,13 +646,14 @@ restart:
 			parser->node_name[i] = 0;
 			if (is_end) {
 				xml_sax_flush_text(parser);
-				parser->elt_end_pos = parser->file_pos + parser->current_pos;
+				parser->elt_end_pos = parser->file_pos + parser->current_pos + i;
 				if (is_end==2) {
 					parser->node_name[i-1] = 0;
 					gf_list_add(parser->nodes, strdup(parser->node_name));
 					xml_sax_node_start(parser);
 					xml_sax_node_end(parser, 0);
 				} else {
+					parser->elt_end_pos += strlen(parser->node_name);
 					xml_sax_node_end(parser, 1);
 				}
 				if (parser->sax_state == SAX_STATE_SYNTAX_ERROR) break;
