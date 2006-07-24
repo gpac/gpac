@@ -5,7 +5,7 @@
     <xsl:template match="svg-status-query">
 		<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
         	<head>
-        		<title>SVG 1.1 Test Suite - GPAC Implementation Status</title>
+        		<title>SVG 1.1 <xsl:value-of select="@profile"/> Test Suite - GPAC Implementation Status </title>
 				<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
         		<link rel="stylesheet" type="text/css" href="http://www.w3.org/StyleSheets/TR/base.css"/>
         		<style type="text/css" xml:space="preserve">
