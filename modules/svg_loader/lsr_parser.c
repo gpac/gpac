@@ -180,7 +180,7 @@ GF_Err lsr_parse_command(SVGParser *parser, xmlNodePtr com)
 
 GF_Err SVGParser_ParseLASeR(SVGParser *parser)
 {
-	GF_Err e;
+	GF_Err e = GF_OK;
 	u32 scene_time;
 	xmlNodePtr com;
 	xmlAttrPtr attributes;
