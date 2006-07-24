@@ -41,18 +41,18 @@ HKCR
 		val 'Content Type' = s 'application/sdp'
 	}
 	
-	GPAX.GPAXPlugin.1 = s 'GPAX Class'
+	GPAX.GPAXPlugin.1 = s 'GPAC ActiveX'
 	{
 		CLSID = s '{181D18E6-4DC1-4B55-B72E-BE2A10064995}'
 	}
-	GPAX.GPAXPlugin = s 'GPAX Class'
+	GPAX.GPAXPlugin = s 'GPAC ActiveX'
 	{
 		CLSID = s '{181D18E6-4DC1-4B55-B72E-BE2A10064995}'
 		CurVer = s 'GPAX.GPAXPlugin.1'
 	}
 	NoRemove CLSID
 	{
-		ForceRemove {181D18E6-4DC1-4B55-B72E-BE2A10064995} = s 'GPAX Class'
+		ForceRemove {181D18E6-4DC1-4B55-B72E-BE2A10064995} = s 'GPAC ActiveX'
 		{
 			ProgID = s 'GPAX.GPAXPlugin.1'
 			VersionIndependentProgID = s 'GPAX.GPAXPlugin'
@@ -83,7 +83,7 @@ HKCR
 		}
 	}
 
-	ForceRemove MIME
+	NoRemove MIME
 	{
 		NoRemove Database
 		{

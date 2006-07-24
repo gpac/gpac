@@ -5,7 +5,7 @@ WindowIcon on
 Icon "..\Osmo4.ico"
 UninstallIcon "..\Osmo4.ico"
 
-!define GPAC_VERSION	0.4.1
+!define GPAC_VERSION	0.4.2 
 
 Name "GPAC Framework ${GPAC_VERSION}"
 OutFile "GPAC Framework ${GPAC_VERSION} Setup.exe"

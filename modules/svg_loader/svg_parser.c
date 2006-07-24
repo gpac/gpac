@@ -200,10 +200,12 @@ void svg_characters(void *user_data, const xmlChar *ch, s32 len)
 
 		gf_node_changed((GF_Node *)elt, NULL);
 	}
+#if 0
 	if (is_svg_script_element(elt))
 	{
 		SVGscriptElement *script = (SVGscriptElement *)elt;
 	}
+#endif
 }
 
 // TODO verifiy good practices to replace entities
@@ -365,7 +367,7 @@ u32 svg_get_next_node_id(SVGParser *parser)
 	return ID;
 }
 
-static u32 svg_get_node_id(SVGParser *parser, xmlChar *nodename)
+u32 svg_get_node_id(SVGParser *parser, xmlChar *nodename)
 {
 	GF_Node *n;
 	u32 ID;

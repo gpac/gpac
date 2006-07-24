@@ -328,6 +328,18 @@ Bool nsOsmozillaInstance::EventProc(GF_Event *evt)
 
 		NPN_Status(mInstance, msg);
 		break;
+	case GF_EVT_PROGRESS:
+		if (evt->progress.done == evt->progress.total) {
+			NPN_Status(mInstance, "");
+		} else {
+			char *szTitle = "";
+			if (evt->progress.progress_type==0) szTitle = "Buffer ";
+			else if (evt->progress.progress_type==1) szTitle = "Download ";
+			else if (evt->progress.progress_type==2) szTitle = "Import ";
+			sprintf(msg, "(GPAC) %s: %02.2f", szTitle, (100.0*evt->progress.done) / evt->progress.total);
+			NPN_Status(mInstance, msg);
+		}
+		break;
 
 	/*IGNORE any scene size, just work with the size allocated in the parent doc*/
 	case GF_EVT_SCENE_SIZE:	

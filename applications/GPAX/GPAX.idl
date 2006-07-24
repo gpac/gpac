@@ -59,10 +59,6 @@ library GPAXLib
 
 
 	//event interface
-    const int DISPID_PlayEvent  = 100;
-    const int DISPID_PauseEvent = 101;
-    const int DISPID_StopEvent  = 102;
-
 	[
 		uuid(1FDA32FC-4C9A-461F-B33B-0715B0343006),
 		helpstring("GPAX Control Events")
@@ -71,12 +67,6 @@ library GPAXLib
 	{
 		properties:
 		methods:
-            [id(DISPID_PlayEvent), helpstring("Playing")]
-            void Play();
-            [id(DISPID_PauseEvent), helpstring("Paused")]
-            void Pause();
-            [id(DISPID_StopEvent), helpstring("Stopped")]
-            void Stop();
 	};
 
 

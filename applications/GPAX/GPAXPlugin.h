@@ -83,6 +83,7 @@ public:
 #ifndef _WIN32_WCE
 		m_pBrowser = NULL;
 #endif
+		memset(&m_user, 0, sizeof(m_user));
 
 		m_dwCurrentSafety = INTERFACESAFE_FOR_UNTRUSTED_CALLER | INTERFACESAFE_FOR_UNTRUSTED_DATA;
     }

@@ -131,6 +131,7 @@ SOURCE=..\..\applications\GPAX\GPAX.h
 # Begin Source File
 
 SOURCE=..\..\applications\GPAX\GPAX.idl
+# ADD MTL /tlb ".\GPAX.tlb"
 # End Source File
 # Begin Source File
 
@@ -139,15 +140,6 @@ SOURCE=..\..\applications\GPAX\GPAX.rc
 # Begin Source File
 
 SOURCE=..\..\applications\GPAX\GPAX.rgs
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\applications\GPAX\GPAX.tlb
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\applications\GPAX\GPAX_i.c
-# PROP Exclude_From_Build 1
 # End Source File
 # Begin Source File
 
