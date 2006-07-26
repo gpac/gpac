@@ -3575,9 +3575,9 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 coded_t
 		break;
 	case SVG_Motion_datatype:
 		lsr_read_coordinate(lsr, &num, 0, "pointValueX");
-		((SVG_Point *)val)->x = num.value;
+		((SVG_Matrix *)val)->m[2] = num.value;
 		lsr_read_coordinate(lsr, &num, 0, "pointValueY");
-		((SVG_Point *)val)->y = num.value;
+		((SVG_Matrix *)val)->m[5] = num.value;
 		break;
 	case SVG_Points_datatype:
 		lsr_read_point_sequence(lsr, *(GF_List **)val, "val");

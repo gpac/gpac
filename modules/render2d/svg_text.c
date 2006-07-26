@@ -35,6 +35,7 @@ typedef struct
 	Drawable *draw;
 	Fixed prev_size;
 	u32 prev_flags;
+	u32 prev_anchor;
 } SVG_TextStack;
 
 /* TODO: implement all the missing features: horizontal/vertical, ltr/rtl, tspan, tref ... */
@@ -60,11 +61,14 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 	}
 	gf_mx2d_copy(backup_matrix, eff->transform);
 
-	gf_mx2d_pre_multiply(&eff->transform, &text->transform);
+	if (((SVGTransformableElement *)node)->motionTransform) 
+		gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
+	gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
 
-
-	if ( (st->prev_size != eff->svg_props->font_size->value) || (st->prev_flags != *eff->svg_props->font_style)
-		|| (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) 
+	if ( (st->prev_size != eff->svg_props->font_size->value) || 
+		 (st->prev_flags != *eff->svg_props->font_style) || 
+		 (st->prev_anchor != *eff->svg_props->text_anchor) ||
+		 (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) 
 	) {
 		unsigned short *wcText;
 		Fixed ascent, descent, font_height;
@@ -139,6 +143,7 @@ static void SVG_Render_text(GF_Node *node, void *rs)
 		cs->node_changed = 1;
 		st->prev_size = eff->svg_props->font_size->value;
 		st->prev_flags = *eff->svg_props->font_style;
+		st->prev_anchor = *eff->svg_props->text_anchor;
 	}
 	ctx = SVG_drawable_init_context(cs, eff);
 	if (ctx) {

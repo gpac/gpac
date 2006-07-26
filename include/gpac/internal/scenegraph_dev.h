@@ -306,7 +306,6 @@ void *gf_svg_get_property_pointer(SVGPropertiesPointers *rendering_property_cont
 								  SVGProperties *elt_property_context, 
 								  void *input_attribute);
 void gf_svg_attributes_copy_computed_value(GF_FieldInfo *out, GF_FieldInfo *in, SVGElement*elt, void *orig_dom_ptr, SVGPropertiesPointers *inherited_props);
-void gf_svg_attributes_pointer_update(GF_FieldInfo *a, GF_FieldInfo *prop, GF_FieldInfo *current_color);
 
 
 /* reset functions for SVG types */
@@ -385,15 +384,17 @@ Bool gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time);
     - all the animations applying to the same attribute,
     - the specified value before any inheritance has been applied nor any animation started 
 	    (as specified in the SVG document),
-    - the presentation value passed from one animation to the next one,
-	- a pointer to the value of the color property (for handling of 'currentColor'),
+    - the presentation value passed from one animation to the next one, at the same level in the tree
+	- a pointer to presentation value passed from the previous level in the tree
+	- a pointer to the value of the color property (for handling of 'currentColor'), from previous level in the tree
 	- the location of the attribute in the elt structure when it was created 
 	   (used for fast comparison of SVG properties when animating from/to/by/values/... inherited values)
 */
 typedef struct {
 	GF_List *anims;
-	GF_FieldInfo saved_specified_value;
+	GF_FieldInfo specified_value;
 	GF_FieldInfo presentation_value;
+	GF_FieldInfo parent_presentation_value;
 	GF_FieldInfo current_color_value;
 	void *orig_dom_ptr;
 } SMIL_AttributeAnimations;

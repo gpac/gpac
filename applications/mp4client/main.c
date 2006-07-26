@@ -391,6 +391,10 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		case 'f':
 			fprintf(stdout, "Rendering rate: %f FPS\n", gf_term_get_framerate(term, 0));
 			break;
+		case 'T':
+		case 't':
+			fprintf(stdout, "Scene Time: %f \n", gf_term_get_time_in_ms(term)/1000.0);
+			break;
 		case 'R':
 		case 'r':
 //			gf_term_set_option(term, GF_OPT_REFRESH, 1);

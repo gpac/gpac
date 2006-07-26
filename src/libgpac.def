@@ -1145,7 +1145,8 @@ EXPORTS
 	gf_svg_parse_style
 	gf_svg_properties_init_pointers
 	gf_svg_properties_reset_pointers
-	gf_svg_apply_inheritance_and_animation
+	gf_svg_apply_inheritance
+	gf_svg_apply_animations
 	gf_svg_register_iri
 	gf_svg_unregister_iri
 	gf_svg_path_build

@@ -1109,6 +1109,9 @@ typedef struct _svg_element {
 typedef struct _svg_transformable_element {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	/* motionTransform is a pseudo-attribute which holds the supplemental transform 
+   computed by animateMotions elements */
+	SVG_Matrix *motionTransform;
 } SVGTransformableElement;
 
 typedef struct
@@ -1129,11 +1132,8 @@ u32 gf_node_svg_type_by_class_name(const char *element_name);
 void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props);
 void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props);
 
-/* Updates the passed SVG Styling Properties Pointers with the properties of the given SVG element:
-	1- applies inheritance whenever needed.
-	2- applies any running animation on the element
-*/
-void gf_svg_apply_inheritance_and_animation(GF_Node *node, SVGPropertiesPointers *render_svg_props);
+void gf_svg_apply_inheritance(SVGElement *elt, SVGPropertiesPointers *render_svg_props);
+void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_props);
 
 
 void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type);
@@ -1144,6 +1144,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *a, GF_FieldInfo *b);
 GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp);
 /* c = a + b */
 GF_Err gf_svg_attributes_add(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldInfo *c, Bool clamp);
+Bool gf_svg_attribute_is_interpolatable(u32 type) ;
 /* c = coef * a + (1 - coef) * b */
 GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldInfo *c, Fixed coef, Bool clamp);
 /* c = alpha * a + beta * b */

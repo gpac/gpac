@@ -1009,6 +1009,7 @@ void generateNode(FILE *output, SVGElement* svg_elt)
 
 	if (svg_elt->has_transform) {
 		fprintf(output, "\tSVG_Matrix transform;\n");
+		fprintf(output, "\tSVG_Matrix *motionTransform;\n");
 	}
 
 	if (svg_elt->has_xy) {
@@ -1125,6 +1126,19 @@ u32 generateTransformInfo(FILE *output, SVGElement *elt, u32 start)
 	fprintf(output, "\t\t\tinfo->name = \"transform\";\n");
 	fprintf(output, "\t\t\tinfo->fieldType = SVG_Matrix_datatype;\n");
 	fprintf(output, "\t\t\tinfo->far_ptr = &((SVGTransformableElement *)node)->transform;\n");
+	fprintf(output, "\t\t\treturn GF_OK;\n");
+	i++;
+	return i;
+}
+
+u32 generateMotionTransformInfo(FILE *output, SVGElement *elt, u32 start)
+{
+	u32 i = start;
+
+	fprintf(output, "\t\tcase %d:\n", i);
+	fprintf(output, "\t\t\tinfo->name = \"motionTransform\";\n");
+	fprintf(output, "\t\t\tinfo->fieldType = SVG_Matrix_datatype;\n");
+	fprintf(output, "\t\t\tinfo->far_ptr = ((SVGTransformableElement *)node)->motionTransform;\n");
 	fprintf(output, "\t\t\treturn GF_OK;\n");
 	i++;
 	return i;
@@ -1295,6 +1309,10 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 			fprintf(output, "\tfree(p->%s);\n", att->implementation_name);
 		}
 	}
+	if (svg_elt->has_transform) {
+		fprintf(output, "\tif (p->motionTransform) free(p->motionTransform);\n");
+	} 
+
 	fprintf(output, "\tgf_sg_parent_reset((GF_Node *) p);\n");
 	fprintf(output, "\tgf_node_free((GF_Node *)p);\n");
 	fprintf(output, "}\n\n");
@@ -1319,8 +1337,10 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 6, "((SVGElement *)node)->anim->", svg_elt->nb_atts);
 	if (svg_elt->has_conditional) 
 		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 7, "((SVGElement *)node)->conditional->", svg_elt->nb_atts);
-	if (svg_elt->has_transform) 
+	if (svg_elt->has_transform) {
 		svg_elt->nb_atts = generateTransformInfo(output, svg_elt, svg_elt->nb_atts);
+		svg_elt->nb_atts = generateMotionTransformInfo(output, svg_elt, svg_elt->nb_atts);
+	}
 	if (svg_elt->has_xy) 
 		svg_elt->nb_atts = generateXYInfo(output, svg_elt, svg_elt->nb_atts);
 

@@ -35,6 +35,10 @@
 #include "stacks2d.h"
 
 void SVG_Render_base(GF_Node *node, RenderEffect2D *eff, SVGPropertiesPointers *backup_props);
+void svg_render_node(GF_Node *node, RenderEffect2D *eff);
+void svg_render_node_list(GF_List *children, RenderEffect2D *eff);
+void svg_get_nodes_bounds(GF_Node *self, GF_List *children, RenderEffect2D *eff);
+
 
 /* Creates a rendering context and Translates the SVG Styling properties into a context
    that the renderer can understand */
@@ -57,9 +61,6 @@ void SVG_Init_line(Render2D *sr, GF_Node *node);
 void SVG_Init_polyline(Render2D *sr, GF_Node *node);
 void SVG_Init_polygon(Render2D *sr, GF_Node *node);
 void SVG_Init_path(Render2D *sr, GF_Node *node);
-void SVG_Init_rectClip(Render2D *sr, GF_Node *node);
-void SVG_Init_selector(Render2D *sr, GF_Node *node);
-void SVG_Init_simpleLayout(Render2D *sr, GF_Node *node);
 
 void SVG_Init_use(Render2D *se, GF_Node *node);
 

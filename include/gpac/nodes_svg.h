@@ -24,9 +24,9 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Thu Jun 22 15:29:41 2006
+	DO NOT MOFIFY - File generated on GMT Mon Jul 24 16:28:15 2006
 
-	BY SVGGen for GPAC Version 0.4.1-DEV
+	BY SVGGen for GPAC Version 0.4.2
 */
 
 #ifndef _GF_SVG_NODES_H
@@ -106,6 +106,7 @@ typedef struct _tagSVGaElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	SVG_ID target;
 } SVGaElement;
 
@@ -142,6 +143,7 @@ typedef struct _tagSVGanimationElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Length width;
@@ -161,6 +163,7 @@ typedef struct _tagSVGcircleElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	SVG_Coordinate cx;
 	SVG_Coordinate cy;
 	SVG_Length r;
@@ -206,6 +209,7 @@ typedef struct _tagSVGellipseElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	SVG_Length rx;
 	SVG_Length ry;
 	SVG_Coordinate cx;
@@ -278,6 +282,7 @@ typedef struct _tagSVGforeignObjectElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Length width;
@@ -289,6 +294,7 @@ typedef struct _tagSVGgElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 } SVGgElement;
 
 
@@ -327,6 +333,7 @@ typedef struct _tagSVGimageElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Length width;
@@ -339,6 +346,7 @@ typedef struct _tagSVGlineElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	SVG_Coordinate x1;
 	SVG_Coordinate y1;
 	SVG_Coordinate x2;
@@ -397,6 +405,7 @@ typedef struct _tagSVGpathElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	SVG_Number pathLength;
 	SVG_PathData d;
 } SVGpathElement;
@@ -406,6 +415,7 @@ typedef struct _tagSVGpolygonElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	SVG_Points points;
 } SVGpolygonElement;
 
@@ -414,6 +424,7 @@ typedef struct _tagSVGpolylineElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	SVG_Points points;
 } SVGpolylineElement;
 
@@ -447,6 +458,7 @@ typedef struct _tagSVGrectElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 	SVG_Length width;
@@ -460,6 +472,7 @@ typedef struct _tagSVGrectClipElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	LASeR_Size size;
 } SVGrectClipElement;
 
@@ -474,6 +487,7 @@ typedef struct _tagSVGselectorElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	LASeR_Choice choice;
 } SVGselectorElement;
 
@@ -488,6 +502,7 @@ typedef struct _tagSVGsimpleLayoutElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	LASeR_Size delta;
 } SVGsimpleLayoutElement;
 
@@ -528,6 +543,7 @@ typedef struct _tagSVGswitchElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 } SVGswitchElement;
 
 
@@ -541,6 +557,7 @@ typedef struct _tagSVGtextElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	SVG_Coordinates x;
 	SVG_Coordinates y;
 	SVG_Numbers rotate;
@@ -552,6 +569,7 @@ typedef struct _tagSVGtextAreaElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	SVG_Length width;
 	SVG_Length height;
 	SVG_Coordinate x;
@@ -576,6 +594,7 @@ typedef struct _tagSVGuseElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	SVG_Coordinate x;
 	SVG_Coordinate y;
 } SVGuseElement;
@@ -585,6 +604,7 @@ typedef struct _tagSVGvideoElement
 {
 	BASE_SVG_ELEMENT
 	SVG_Matrix transform;
+	SVG_Matrix *motionTransform;
 	SVG_TransformBehavior transformBehavior;
 	SVG_Overlay overlay;
 	SVG_Coordinate x;

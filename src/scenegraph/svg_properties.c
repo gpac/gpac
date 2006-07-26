@@ -234,18 +234,14 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)
 	memset(svg_props, 0, sizeof(SVGPropertiesPointers));
 }
 
-/* Updates the passed SVG Styling Properties Pointers with the properties of the given SVG element:
-	1- applies inheritance whenever needed.
-	2- applies any running animation on the element
-
+/* 
 	TODO: Check if all properties are implemented 
 */
-void gf_svg_apply_inheritance_and_animation(GF_Node *node, SVGPropertiesPointers *render_svg_props)
+void gf_svg_apply_inheritance(SVGElement *elt, SVGPropertiesPointers *render_svg_props) 
 {
-	u32 count_all, i;
-	SVGElement *elt = (SVGElement*)node;
+	if (!elt || !render_svg_props) return;
 
-	/*Step 1: perform inheritance*/
+	/* Perform inheritance of all the properties */
 	if (render_svg_props && elt->properties) {
 		if (elt->properties->color.color.type != SVG_COLOR_INHERIT) 
 			render_svg_props->color = &elt->properties->color;
@@ -329,100 +325,61 @@ void gf_svg_apply_inheritance_and_animation(GF_Node *node, SVGPropertiesPointers
 		if (elt->properties->vector_effect != SVG_VECTOREFFECT_INHERIT)
 			render_svg_props->vector_effect = &elt->properties->vector_effect;
 	}
-
-	/*Step 2: handle all animations*/
-	/*TODO FIXME - THIS IS WRONG, we're changing orders of animations which may corrupt the visual result*/
-	count_all = gf_node_animation_count(node);
-	/* Loop 1: For all animated attributes */
-	for (i = 0; i < count_all; i++) {
-		u32 j, count;
-		
-		SMIL_AttributeAnimations *aa = gf_node_animation_get(node, i);		
-		count = gf_list_count(aa->anims);
-		if (!count) continue;
-	
-		/* Resetting the presentation value issued at the previous rendering cycle to the computed value:
-		   The result is either: 
-			- the specified value (if no inheritance)
-			- the inherited value from the current property context (if the specified value is 'inherit')
-			- the value of the color property (if the specified value is 'currentColor') */
-		gf_svg_attributes_copy_computed_value(&(aa->presentation_value), &(aa->saved_specified_value), 
-											  (SVGElement*)node, aa->orig_dom_ptr, render_svg_props);
-
-		/* we also need a special handling of the keyword 'currentColor' if used in animation values */
-		aa->current_color_value.fieldType = SVG_Paint_datatype;
-		aa->current_color_value.far_ptr = render_svg_props->color;
-
-		/* Loop 2: For all animations targetting the current attribute */
-		for (j = 0; j < count; j++) {
-			SMIL_Anim_RTI *rai = gf_list_get(aa->anims, j);			
-			SMIL_Timing_RTI *rti = rai->anim_elt->timing->runtime;
-			Double scene_time = gf_node_get_scene_time(node);
-			if (rti->evaluate) {
-				Fixed simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
-				rti->evaluate(rti, simple_time);
-			}
-		}
-		/* end of Loop 2 */
-
-		/*TODO FIXME, we need a finer granularity here 
-		  and we must know if the animated attribute has changed or not (freeze)...*/
-		gf_node_dirty_set(node, GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_SVG_APPEARANCE_DIRTY, 0);
-
-	}
 }
 
 /* Equivalent to "get_property_pointer_by_name" but without string comparison
-   Returns a pointer to the property in the given rendering property context based on the input attribute and the element property context.
-	rendering_property_context: contains a list of pointers to the CSS properties used for rendering 
-    elt_property_context:       contains the pointers to the CSS properties of a given SVG element,
-	input_attribute:            is the attribute which has the same name as the property we want
+   Returns a pointer to the property in the given output property context based 
+   on the input attribute and the input property context.
+	output_property_context: contains a list of pointers to the CSS properties 
+    input_property_context:  contains a list of pointers to the CSS properties of a given SVG element,
+	input_attribute:         is the pointer to attribute of the same SVG element
+	                         and which has the same name as the property we want
 
   Principle:
-	if the pointer to the attribute NNN is equal to the pointer elt_property_context->XXX, 
-	then we return the properties called XXX from the rendering property context 
-	(ie. rendering_property_context->XXX)
+	if the pointer to the attribute NNN is equal to the pointer input_property_context->XXX, 
+	then we return the properties called XXX from the output property context 
+	(ie. output_property_context->XXX)
 */
-void *gf_svg_get_property_pointer(SVGPropertiesPointers *rendering_property_context, 
-								  SVGProperties *elt_property_context, 
+void *gf_svg_get_property_pointer(SVGPropertiesPointers *output_property_context, 
+								  SVGProperties *input_property_context, 
 								  void *input_attribute)
 {
-	if (!rendering_property_context || !elt_property_context) return NULL;
-	else if (input_attribute == &elt_property_context->color) return rendering_property_context->color;
-	else if (input_attribute == &elt_property_context->fill) return rendering_property_context->fill;
-	else if (input_attribute == &elt_property_context->stroke) return rendering_property_context->stroke;
-	else if (input_attribute == &elt_property_context->solid_color) return rendering_property_context->solid_color;
-	else if (input_attribute == &elt_property_context->stop_color) return rendering_property_context->stop_color;
-	else if (input_attribute == &elt_property_context->viewport_fill) return rendering_property_context->viewport_fill;
-	else if (input_attribute == &elt_property_context->fill_opacity) return rendering_property_context->fill_opacity;
-	else if (input_attribute == &elt_property_context->solid_opacity) return rendering_property_context->solid_opacity;
-	else if (input_attribute == &elt_property_context->stop_opacity) return rendering_property_context->stop_opacity;
-	else if (input_attribute == &elt_property_context->stroke_opacity) return rendering_property_context->stop_opacity;
-	else if (input_attribute == &elt_property_context->viewport_fill_opacity) return rendering_property_context->viewport_fill_opacity;
-	else if (input_attribute == &elt_property_context->audio_level) return rendering_property_context->audio_level;
-	else if (input_attribute == &elt_property_context->color_rendering) return rendering_property_context->color_rendering;
-	else if (input_attribute == &elt_property_context->image_rendering) return rendering_property_context->image_rendering;
-	else if (input_attribute == &elt_property_context->shape_rendering) return rendering_property_context->shape_rendering;
-	else if (input_attribute == &elt_property_context->text_rendering) return rendering_property_context->text_rendering;
-	else if (input_attribute == &elt_property_context->display) return rendering_property_context->display;
-	else if (input_attribute == &elt_property_context->display_align) return rendering_property_context->display_align;
-	else if (input_attribute == &elt_property_context->fill_rule) return rendering_property_context->fill_rule;
-	else if (input_attribute == &elt_property_context->font_family) return rendering_property_context->font_family;
-	else if (input_attribute == &elt_property_context->font_size) return rendering_property_context->font_size;
-	else if (input_attribute == &elt_property_context->font_style) return rendering_property_context->font_style;
-	else if (input_attribute == &elt_property_context->font_weight) return rendering_property_context->font_weight;
-	else if (input_attribute == &elt_property_context->line_increment) return rendering_property_context->line_increment;
-	else if (input_attribute == &elt_property_context->pointer_events) return rendering_property_context->pointer_events;
-	else if (input_attribute == &elt_property_context->stroke_dasharray) return rendering_property_context->stroke_dasharray;
-	else if (input_attribute == &elt_property_context->stroke_dashoffset) return rendering_property_context->stroke_dashoffset;
-	else if (input_attribute == &elt_property_context->stroke_linecap) return rendering_property_context->stroke_linecap;
-	else if (input_attribute == &elt_property_context->stroke_linejoin) return rendering_property_context->stroke_linejoin;
-	else if (input_attribute == &elt_property_context->stroke_miterlimit) return rendering_property_context->stroke_miterlimit;
-	else if (input_attribute == &elt_property_context->stroke_width) return rendering_property_context->stroke_width;
-	else if (input_attribute == &elt_property_context->text_anchor) return rendering_property_context->text_anchor;
-	else if (input_attribute == &elt_property_context->vector_effect) return rendering_property_context->vector_effect;
-	else if (input_attribute == &elt_property_context->visibility) return rendering_property_context->visibility;
-	else if (input_attribute == &elt_property_context->opacity) return rendering_property_context->opacity;
-	else if (input_attribute == &elt_property_context->overflow) return rendering_property_context->overflow;
+	if (!output_property_context || !input_property_context) return NULL;
+	else if (input_attribute == &input_property_context->color) return output_property_context->color;
+	else if (input_attribute == &input_property_context->fill) return output_property_context->fill;
+	else if (input_attribute == &input_property_context->stroke) return output_property_context->stroke;
+	else if (input_attribute == &input_property_context->solid_color) return output_property_context->solid_color;
+	else if (input_attribute == &input_property_context->stop_color) return output_property_context->stop_color;
+	else if (input_attribute == &input_property_context->viewport_fill) return output_property_context->viewport_fill;
+	else if (input_attribute == &input_property_context->fill_opacity) return output_property_context->fill_opacity;
+	else if (input_attribute == &input_property_context->solid_opacity) return output_property_context->solid_opacity;
+	else if (input_attribute == &input_property_context->stop_opacity) return output_property_context->stop_opacity;
+	else if (input_attribute == &input_property_context->stroke_opacity) return output_property_context->stop_opacity;
+	else if (input_attribute == &input_property_context->viewport_fill_opacity) return output_property_context->viewport_fill_opacity;
+	else if (input_attribute == &input_property_context->audio_level) return output_property_context->audio_level;
+	else if (input_attribute == &input_property_context->color_rendering) return output_property_context->color_rendering;
+	else if (input_attribute == &input_property_context->image_rendering) return output_property_context->image_rendering;
+	else if (input_attribute == &input_property_context->shape_rendering) return output_property_context->shape_rendering;
+	else if (input_attribute == &input_property_context->text_rendering) return output_property_context->text_rendering;
+	else if (input_attribute == &input_property_context->display) return output_property_context->display;
+	else if (input_attribute == &input_property_context->display_align) return output_property_context->display_align;
+	else if (input_attribute == &input_property_context->fill_rule) return output_property_context->fill_rule;
+	else if (input_attribute == &input_property_context->font_family) return output_property_context->font_family;
+	else if (input_attribute == &input_property_context->font_size) return output_property_context->font_size;
+	else if (input_attribute == &input_property_context->font_style) return output_property_context->font_style;
+	else if (input_attribute == &input_property_context->font_weight) return output_property_context->font_weight;
+	else if (input_attribute == &input_property_context->line_increment) return output_property_context->line_increment;
+	else if (input_attribute == &input_property_context->pointer_events) return output_property_context->pointer_events;
+	else if (input_attribute == &input_property_context->stroke_dasharray) return output_property_context->stroke_dasharray;
+	else if (input_attribute == &input_property_context->stroke_dashoffset) return output_property_context->stroke_dashoffset;
+	else if (input_attribute == &input_property_context->stroke_linecap) return output_property_context->stroke_linecap;
+	else if (input_attribute == &input_property_context->stroke_linejoin) return output_property_context->stroke_linejoin;
+	else if (input_attribute == &input_property_context->stroke_miterlimit) return output_property_context->stroke_miterlimit;
+	else if (input_attribute == &input_property_context->stroke_width) return output_property_context->stroke_width;
+	else if (input_attribute == &input_property_context->text_anchor) return output_property_context->text_anchor;
+	else if (input_attribute == &input_property_context->vector_effect) return output_property_context->vector_effect;
+	else if (input_attribute == &input_property_context->visibility) return output_property_context->visibility;
+	else if (input_attribute == &input_property_context->opacity) return output_property_context->opacity;
+	else if (input_attribute == &input_property_context->overflow) return output_property_context->overflow;
 	else return NULL;
 }

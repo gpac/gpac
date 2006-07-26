@@ -24,9 +24,9 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Thu Jun 22 15:29:41 2006
+	DO NOT MOFIFY - File generated on GMT Mon Jul 24 16:28:15 2006
 
-	BY SVGGen for GPAC Version 0.4.1-DEV
+	BY SVGGen for GPAC Version 0.4.2
 */
 
 #include <gpac/nodes_svg.h>
@@ -61,6 +61,7 @@ static void gf_svg_a_del(GF_Node *node)
 	SVGaElement *p = (SVGaElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
 	if (p->target) free(p->target);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -399,6 +400,11 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 66:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 67:
 			info->name = "target";
 			info->fieldType = SVG_ID_datatype;
 			info->far_ptr = & ((SVGaElement *)node)->target;
@@ -1291,6 +1297,7 @@ static void gf_svg_animation_del(GF_Node *node)
 {
 	SVGanimationElement *p = (SVGanimationElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -1574,31 +1581,36 @@ static GF_Err gf_svg_animation_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 55:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 56:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->x;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->y;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->width;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->height;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "preserveAspectRatio";
 			info->fieldType = SVG_PreserveAspectRatio_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->preserveAspectRatio;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "initialVisibility";
 			info->fieldType = SVG_InitialVisibility_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->initialVisibility;
@@ -1887,6 +1899,7 @@ static void gf_svg_circle_del(GF_Node *node)
 {
 	SVGcircleElement *p = (SVGcircleElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -2190,16 +2203,21 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 59:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 60:
 			info->name = "cx";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->cx;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "cy";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->cy;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "r";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->r;
@@ -2836,6 +2854,7 @@ static void gf_svg_ellipse_del(GF_Node *node)
 {
 	SVGellipseElement *p = (SVGellipseElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -3139,21 +3158,26 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 59:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 60:
 			info->name = "rx";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->rx;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "ry";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->ry;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "cx";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->cx;
 			return GF_OK;
-		case 62:
+		case 63:
 			info->name = "cy";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->cy;
@@ -3715,6 +3739,7 @@ static void gf_svg_foreignObject_del(GF_Node *node)
 {
 	SVGforeignObjectElement *p = (SVGforeignObjectElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -4053,21 +4078,26 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 66:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 67:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->x;
 			return GF_OK;
-		case 67:
+		case 68:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->y;
 			return GF_OK;
-		case 68:
+		case 69:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->width;
 			return GF_OK;
-		case 69:
+		case 70:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->height;
@@ -4100,6 +4130,7 @@ static void gf_svg_g_del(GF_Node *node)
 {
 	SVGgElement *p = (SVGgElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -4402,6 +4433,11 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
+		case 59:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
 }
@@ -4700,6 +4736,7 @@ static void gf_svg_image_del(GF_Node *node)
 {
 	SVGimageElement *p = (SVGimageElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -4918,26 +4955,31 @@ static GF_Err gf_svg_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 42:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 43:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->x;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->y;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->width;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->height;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "preserveAspectRatio";
 			info->fieldType = SVG_PreserveAspectRatio_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->preserveAspectRatio;
@@ -4970,6 +5012,7 @@ static void gf_svg_line_del(GF_Node *node)
 {
 	SVGlineElement *p = (SVGlineElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -5273,21 +5316,26 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 59:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 60:
 			info->name = "x1";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->x1;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "y1";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->y1;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "x2";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->x2;
 			return GF_OK;
-		case 62:
+		case 63:
 			info->name = "y2";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->y2;
@@ -5989,6 +6037,7 @@ static void gf_svg_path_del(GF_Node *node)
 	SVGpathElement *p = (SVGpathElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
 	gf_svg_reset_path(p->d);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -6292,11 +6341,16 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 59:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 60:
 			info->name = "pathLength";
 			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = & ((SVGpathElement *)node)->pathLength;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "d";
 			info->fieldType = SVG_PathData_datatype;
 			info->far_ptr = & ((SVGpathElement *)node)->d;
@@ -6331,6 +6385,7 @@ static void gf_svg_polygon_del(GF_Node *node)
 	SVGpolygonElement *p = (SVGpolygonElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
 	gf_svg_delete_points(p->points);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -6634,6 +6689,11 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 59:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 60:
 			info->name = "points";
 			info->fieldType = SVG_Points_datatype;
 			info->far_ptr = & ((SVGpolygonElement *)node)->points;
@@ -6668,6 +6728,7 @@ static void gf_svg_polyline_del(GF_Node *node)
 	SVGpolylineElement *p = (SVGpolylineElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
 	gf_svg_delete_points(p->points);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -6971,6 +7032,11 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 59:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 60:
 			info->name = "points";
 			info->fieldType = SVG_Points_datatype;
 			info->far_ptr = & ((SVGpolylineElement *)node)->points;
@@ -7452,6 +7518,7 @@ static void gf_svg_rect_del(GF_Node *node)
 {
 	SVGrectElement *p = (SVGrectElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -7755,31 +7822,36 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 59:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 60:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->x;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->y;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->width;
 			return GF_OK;
-		case 62:
+		case 63:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->height;
 			return GF_OK;
-		case 63:
+		case 64:
 			info->name = "rx";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->rx;
 			return GF_OK;
-		case 64:
+		case 65:
 			info->name = "ry";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->ry;
@@ -7812,6 +7884,7 @@ static void gf_svg_rectClip_del(GF_Node *node)
 {
 	SVGrectClipElement *p = (SVGrectClipElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -8115,6 +8188,11 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 59:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 60:
 			info->name = "size";
 			info->fieldType = LASeR_Size_datatype;
 			info->far_ptr = & ((SVGrectClipElement *)node)->size;
@@ -8214,6 +8292,7 @@ static void gf_svg_selector_del(GF_Node *node)
 {
 	SVGselectorElement *p = (SVGselectorElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -8517,6 +8596,11 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 59:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 60:
 			info->name = "choice";
 			info->fieldType = LASeR_Choice_datatype;
 			info->far_ptr = & ((SVGselectorElement *)node)->choice;
@@ -8718,6 +8802,7 @@ static void gf_svg_simpleLayout_del(GF_Node *node)
 {
 	SVGsimpleLayoutElement *p = (SVGsimpleLayoutElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -9021,6 +9106,11 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 59:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 60:
 			info->name = "delta";
 			info->fieldType = LASeR_Size_datatype;
 			info->far_ptr = & ((SVGsimpleLayoutElement *)node)->delta;
@@ -9913,6 +10003,7 @@ static void gf_svg_switch_del(GF_Node *node)
 {
 	SVGswitchElement *p = (SVGswitchElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -10215,6 +10306,11 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
+		case 59:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
 }
@@ -10313,6 +10409,7 @@ static void gf_svg_text_del(GF_Node *node)
 	gf_svg_reset_base_element((SVGElement *)p);
 	gf_svg_delete_coordinates(p->x);
 	gf_svg_delete_coordinates(p->y);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -10616,21 +10713,26 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 59:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 60:
 			info->name = "x";
 			info->fieldType = SVG_Coordinates_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->x;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "y";
 			info->fieldType = SVG_Coordinates_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->y;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "rotate";
 			info->fieldType = SVG_Numbers_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->rotate;
 			return GF_OK;
-		case 62:
+		case 63:
 			info->name = "editable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->editable;
@@ -10663,6 +10765,7 @@ static void gf_svg_textArea_del(GF_Node *node)
 {
 	SVGtextAreaElement *p = (SVGtextAreaElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -10966,26 +11069,31 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 59:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 60:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->width;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->height;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->x;
 			return GF_OK;
-		case 62:
+		case 63:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->y;
 			return GF_OK;
-		case 63:
+		case 64:
 			info->name = "editable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->editable;
@@ -11409,6 +11517,7 @@ static void gf_svg_use_del(GF_Node *node)
 {
 	SVGuseElement *p = (SVGuseElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -11747,11 +11856,16 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 66:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 67:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGuseElement *)node)->x;
 			return GF_OK;
-		case 67:
+		case 68:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGuseElement *)node)->y;
@@ -11787,6 +11901,7 @@ static void gf_svg_video_del(GF_Node *node)
 {
 	SVGvideoElement *p = (SVGvideoElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -12080,41 +12195,46 @@ static GF_Err gf_svg_video_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
 		case 57:
+			info->name = "motionTransform";
+			info->fieldType = SVG_Matrix_datatype;
+			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
+			return GF_OK;
+		case 58:
 			info->name = "transformBehavior";
 			info->fieldType = SVG_TransformBehavior_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->transformBehavior;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "overlay";
 			info->fieldType = SVG_Overlay_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->overlay;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->x;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->y;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->width;
 			return GF_OK;
-		case 62:
+		case 63:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->height;
 			return GF_OK;
-		case 63:
+		case 64:
 			info->name = "preserveAspectRatio";
 			info->fieldType = SVG_PreserveAspectRatio_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->preserveAspectRatio;
 			return GF_OK;
-		case 64:
+		case 65:
 			info->name = "initialVisibility";
 			info->fieldType = SVG_InitialVisibility_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->initialVisibility;
@@ -12247,59 +12367,59 @@ void gf_svg_element_del(SVGElement *elt)
 u32 gf_svg_get_attribute_count(GF_Node *node)
 {
 	switch (node->sgprivate->tag) {
-		case TAG_SVG_a: return 67;
+		case TAG_SVG_a: return 68;
 		case TAG_SVG_animate: return 35;
 		case TAG_SVG_animateColor: return 35;
 		case TAG_SVG_animateMotion: return 37;
 		case TAG_SVG_animateTransform: return 36;
-		case TAG_SVG_animation: return 61;
+		case TAG_SVG_animation: return 62;
 		case TAG_SVG_audio: return 44;
-		case TAG_SVG_circle: return 62;
+		case TAG_SVG_circle: return 63;
 		case TAG_SVG_conditional: return 9;
 		case TAG_SVG_cursorManager: return 16;
 		case TAG_SVG_defs: return 41;
 		case TAG_SVG_desc: return 7;
 		case TAG_SVG_discard: return 15;
-		case TAG_SVG_ellipse: return 63;
+		case TAG_SVG_ellipse: return 64;
 		case TAG_SVG_font: return 9;
 		case TAG_SVG_font_face: return 35;
 		case TAG_SVG_font_face_name: return 8;
 		case TAG_SVG_font_face_src: return 7;
 		case TAG_SVG_font_face_uri: return 14;
-		case TAG_SVG_foreignObject: return 70;
-		case TAG_SVG_g: return 59;
+		case TAG_SVG_foreignObject: return 71;
+		case TAG_SVG_g: return 60;
 		case TAG_SVG_glyph: return 13;
 		case TAG_SVG_handler: return 8;
 		case TAG_SVG_hkern: return 12;
-		case TAG_SVG_image: return 47;
-		case TAG_SVG_line: return 63;
+		case TAG_SVG_image: return 48;
+		case TAG_SVG_line: return 64;
 		case TAG_SVG_linearGradient: return 55;
 		case TAG_SVG_listener: return 15;
 		case TAG_SVG_metadata: return 7;
 		case TAG_SVG_missing_glyph: return 9;
 		case TAG_SVG_mpath: return 14;
-		case TAG_SVG_path: return 61;
-		case TAG_SVG_polygon: return 60;
-		case TAG_SVG_polyline: return 60;
+		case TAG_SVG_path: return 62;
+		case TAG_SVG_polygon: return 61;
+		case TAG_SVG_polyline: return 61;
 		case TAG_SVG_prefetch: return 19;
 		case TAG_SVG_radialGradient: return 56;
-		case TAG_SVG_rect: return 65;
-		case TAG_SVG_rectClip: return 60;
+		case TAG_SVG_rect: return 66;
+		case TAG_SVG_rectClip: return 61;
 		case TAG_SVG_script: return 7;
-		case TAG_SVG_selector: return 60;
+		case TAG_SVG_selector: return 61;
 		case TAG_SVG_set: return 27;
-		case TAG_SVG_simpleLayout: return 60;
+		case TAG_SVG_simpleLayout: return 61;
 		case TAG_SVG_solidColor: return 41;
 		case TAG_SVG_stop: return 42;
 		case TAG_SVG_svg: return 68;
-		case TAG_SVG_switch: return 59;
+		case TAG_SVG_switch: return 60;
 		case TAG_SVG_tbreak: return 7;
-		case TAG_SVG_text: return 63;
-		case TAG_SVG_textArea: return 64;
+		case TAG_SVG_text: return 64;
+		case TAG_SVG_textArea: return 65;
 		case TAG_SVG_title: return 7;
 		case TAG_SVG_tspan: return 58;
-		case TAG_SVG_use: return 68;
-		case TAG_SVG_video: return 65;
+		case TAG_SVG_use: return 69;
+		case TAG_SVG_video: return 66;
 		default: return 0;
 	}
 }

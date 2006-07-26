@@ -3074,8 +3074,8 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVGElement *elt, u32 fiel
 			lsr_write_byte_align_string(lsr, val ? ((char *) *(DOM_String *)val) : "", "val");
 			break;
 		case SVG_Motion_datatype:
-			lsr_write_coordinate(lsr, ((SVG_Point *)val)->x, 0, "pointValueX");
-			lsr_write_coordinate(lsr, ((SVG_Point *)val)->y, 0, "pointValueY");
+			lsr_write_coordinate(lsr, ((SVG_Matrix *)val)->m[2], 0, "pointValueX");
+			lsr_write_coordinate(lsr, ((SVG_Matrix *)val)->m[5], 0, "pointValueY");
 			break;
 		case SVG_Points_datatype:
 			lsr_write_point_sequence(lsr, *(GF_List **)val, "val");

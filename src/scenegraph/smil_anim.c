@@ -26,6 +26,36 @@
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_svg.h>
 
+
+void gf_svg_attributes_resolve_unspecified(GF_FieldInfo *in, GF_FieldInfo *p)
+{
+	if (in->fieldType == 0) *in = *p;
+}
+
+/* 
+	Replaces the far pointer of the attribute value with either:
+     - the pointer to the value which is inherited (if inherited)
+	 - otherwise no replacement, the attribute value can be used as is.
+*/
+void gf_svg_attributes_resolve_inherit(GF_FieldInfo *in, GF_FieldInfo *prop)
+{
+	if (gf_svg_is_inherit(in)) *in = *prop;
+}
+
+/* 
+	Replaces the far pointer of the attribute value with either:
+	 - the pointer to the value of the color attribute (if this attribute is set to currentColor) 
+	 - otherwise no replacement, the attribute value can be used as is.
+*/
+void gf_svg_attributes_resolve_currentColor(GF_FieldInfo *in, GF_FieldInfo *current_color)
+{
+	if ((in->fieldType == SVG_Paint_datatype) && gf_svg_is_current_color(in)) {
+		*in = *current_color;
+	} 
+}
+
+/* The important steps in the animation is to resolve the inherit (and currentColor) values 
+   to perform the interpolation. The function used for that is gf_svg_attributes_pointer_update */
 static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normalized_simple_time)
 {
 	SMILAnimationAttributes *anim = rai->anim_elt->anim;
@@ -38,16 +68,21 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 	Fixed interval_duration;
 	Fixed interpolation_coefficient;
 
+	u32 real_calcMode;
+
 	memset(&value_info, 0, sizeof(GF_FieldInfo));
 	value_info.fieldType = anim->values.type;
 	value_info.eventType = anim->values.transform_type;
 	value_info_next = value_info;
 
+	real_calcMode = (gf_svg_attribute_is_interpolatable(anim->values.type)?anim->calcMode:SMIL_CALCMODE_DISCRETE);
+
 	nbValues = gf_list_count(values);
 	if (nbValues == 1) {
 		if (rai->previous_key_index != 0) {
 			value_info.far_ptr = gf_list_get(values, 0);
-			gf_svg_attributes_pointer_update(&value_info, &rai->owner->presentation_value, &rai->owner->current_color_value);
+			//gf_svg_attributes_resolve_currentColor(&value_info, &rai->owner->current_color_value);
+			//gf_svg_attributes_resolve_inherit(&value_info, &rai->owner->parent_presentation_value);
 			gf_svg_attributes_copy(&rai->interpolated_value, &value_info, 0);
 			rai->previous_key_index = 0;
 			rai->target_value_changed = 1;
@@ -77,13 +112,21 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 		else interpolation_coefficient = 1;
 //		fprintf(stdout, "Using Key Times: index %d, interval duration %.2f, coeff: %.2f\n", keyTimeIndex, interval_duration, interpolation_coefficient);
 	} else {
-		if (anim->calcMode == SMIL_CALCMODE_DISCRETE) {
+		if (real_calcMode) {
 			Fixed tmp = normalized_simple_time*nbValues;
-			keyValueIndex = FIX2INT(gf_floor(tmp));
+			if (normalized_simple_time == FIX_ONE) {
+				keyValueIndex = nbValues-1;
+			} else {
+				keyValueIndex = FIX2INT(gf_floor(tmp));
+			}
 			interpolation_coefficient = tmp - INT2FIX(keyValueIndex);
 		} else {
 			Fixed tmp = normalized_simple_time*(nbValues-1);
-			keyValueIndex = FIX2INT(gf_floor(tmp));
+			if (normalized_simple_time == FIX_ONE) {
+				keyValueIndex = nbValues-2;
+			} else {
+				keyValueIndex = FIX2INT(gf_floor(tmp));
+			}
 			interpolation_coefficient = tmp - INT2FIX(keyValueIndex);
 		}
 		//fprintf(stdout, "No KeyTimes: key index %d, coeff: %.2f\n", keyValueIndex, FIX2FLT(interpolation_coefficient));
@@ -105,10 +148,11 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 	rai->previous_coef = interpolation_coefficient;
 	rai->target_value_changed = 1;
 
-	switch (anim->calcMode) {
+	switch (real_calcMode) {
 	case SMIL_CALCMODE_DISCRETE:
 		value_info.far_ptr = gf_list_get(values, keyValueIndex);
-		gf_svg_attributes_pointer_update(&value_info, &rai->owner->presentation_value, &rai->owner->current_color_value);
+		//gf_svg_attributes_resolve_currentColor(&value_info, &rai->owner->current_color_value);
+		//gf_svg_attributes_resolve_inherit(&value_info, &rai->owner->parent_presentation_value);
 		gf_svg_attributes_copy(&rai->interpolated_value, &value_info, 0);
 		break;
 	case SMIL_CALCMODE_PACED:
@@ -118,13 +162,23 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 	case SMIL_CALCMODE_LINEAR:
 		if (keyValueIndex == nbValues - 1) {
 			value_info.far_ptr = gf_list_get(values, nbValues - 1);
-			gf_svg_attributes_pointer_update(&value_info, &rai->owner->presentation_value, &rai->owner->current_color_value);
+			//gf_svg_attributes_resolve_currentColor(&value_info, &rai->owner->current_color_value);
+			//gf_svg_attributes_resolve_inherit(&value_info, &rai->owner->parent_presentation_value);
 			gf_svg_attributes_copy(&rai->interpolated_value, &value_info, 0);
 		} else {
+			
 			value_info.far_ptr = gf_list_get(values, keyValueIndex);
-			gf_svg_attributes_pointer_update(&value_info, &rai->owner->presentation_value, &rai->owner->current_color_value);
-			value_info_next.far_ptr = gf_list_get(values, keyValueIndex+1);
-			gf_svg_attributes_pointer_update(&value_info_next, &rai->owner->presentation_value, &rai->owner->current_color_value);
+			if (gf_svg_attribute_is_interpolatable(anim->values.type)) {
+				gf_svg_attributes_resolve_currentColor(&value_info, &rai->owner->current_color_value);			
+				gf_svg_attributes_resolve_inherit(&value_info, &rai->owner->parent_presentation_value);
+			}
+			
+			value_info_next.far_ptr = gf_list_get(values, keyValueIndex+1);			
+			if (gf_svg_attribute_is_interpolatable(anim->values.type)) {
+				gf_svg_attributes_resolve_currentColor(&value_info_next, &rai->owner->current_color_value);
+				gf_svg_attributes_resolve_inherit(&value_info_next, &rai->owner->parent_presentation_value);
+			}
+
 			gf_svg_attributes_interpolate(&value_info, &value_info_next, &rai->interpolated_value, interpolation_coefficient, 1);
 		}
 		break;
@@ -138,7 +192,8 @@ static void gf_smil_anim_set(SMIL_Anim_RTI *rai)
 	to_info.fieldType = rai->anim_elt->anim->to.type;
 	to_info.eventType = rai->anim_elt->anim->to.transform_type;
 	to_info.far_ptr   = rai->anim_elt->anim->to.value;
-	gf_svg_attributes_pointer_update(&to_info, &rai->owner->presentation_value, &rai->owner->current_color_value);
+//	gf_svg_attributes_resolve_currentColor(&to_info, &rai->owner->current_color_value);
+//	gf_svg_attributes_resolve_inherit(&to_info, &rai->owner->parent_presentation_value);
 
 	gf_svg_attributes_copy(&rai->interpolated_value, &to_info, 0);
 	rai->target_value_changed = 1;
@@ -157,12 +212,20 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 	from_info.fieldType = anim->from.type;
 	from_info.eventType = anim->from.transform_type;
 	from_info.far_ptr = anim->from.value;
-	gf_svg_attributes_pointer_update(&from_info, &rai->owner->presentation_value, &rai->owner->current_color_value);
+	gf_svg_attributes_resolve_unspecified(&from_info, &rai->owner->presentation_value);
+	if (gf_svg_attribute_is_interpolatable(anim->from.type)) {
+		gf_svg_attributes_resolve_currentColor(&from_info, &rai->owner->current_color_value);
+		gf_svg_attributes_resolve_inherit(&from_info, &rai->owner->parent_presentation_value);
+	}
 
 	to_info.fieldType = anim->to.type;
 	to_info.eventType = anim->to.transform_type;
 	to_info.far_ptr = anim->to.value;
-	gf_svg_attributes_pointer_update(&to_info, &rai->owner->presentation_value, &rai->owner->current_color_value);
+	gf_svg_attributes_resolve_unspecified(&to_info, &rai->owner->presentation_value);
+	if (gf_svg_attribute_is_interpolatable(anim->from.type)) {
+		gf_svg_attributes_resolve_currentColor(&to_info, &rai->owner->current_color_value);
+		gf_svg_attributes_resolve_inherit(&to_info, &rai->owner->parent_presentation_value);
+	}
 
 	switch (anim->calcMode) {
 	case SMIL_CALCMODE_DISCRETE:
@@ -196,12 +259,19 @@ static void gf_smil_anim_animate_from_by(SMIL_Anim_RTI *rai, Fixed normalized_si
 	from_info.fieldType = anim->from.type;
 	from_info.eventType = anim->from.transform_type;
 	from_info.far_ptr = anim->from.value;
-	gf_svg_attributes_pointer_update(&from_info, &rai->owner->presentation_value, &rai->owner->current_color_value);
+	gf_svg_attributes_resolve_unspecified(&from_info, &rai->owner->presentation_value);
+	if (gf_svg_attribute_is_interpolatable(anim->from.type)) {
+		gf_svg_attributes_resolve_currentColor(&from_info, &rai->owner->current_color_value);
+		gf_svg_attributes_resolve_inherit(&from_info, &rai->owner->parent_presentation_value);
+	}
 
 	by_info.fieldType = anim->by.type;
 	by_info.eventType = anim->by.transform_type;
 	by_info.far_ptr = anim->by.value;
-	gf_svg_attributes_pointer_update(&by_info, &rai->owner->presentation_value, &rai->owner->current_color_value);
+	if (gf_svg_attribute_is_interpolatable(anim->from.type)) {
+		gf_svg_attributes_resolve_currentColor(&by_info, &rai->owner->current_color_value);
+		gf_svg_attributes_resolve_inherit(&by_info, &rai->owner->parent_presentation_value);
+	}
 
 	switch (anim->calcMode) {
 	case SMIL_CALCMODE_DISCRETE:
@@ -303,27 +373,10 @@ static void gf_smil_anim_get_last_specified_value(SMIL_Anim_RTI *rai)
 		rai->last_specified_value.eventType = rai->owner->presentation_value.eventType;
 		rai->last_specified_value.far_ptr = rai->owner->presentation_value.far_ptr;
 	}
-	gf_svg_attributes_pointer_update(&rai->last_specified_value, &rai->owner->presentation_value, &rai->owner->current_color_value);
-}
-
-#if 0
-/* TODO: fix this ... */
-static void gf_smil_anim_get_last_nb_iterations(SMIL_Anim_RTI *rai, u32 *nb_iterations)
-{
-	if (rai->anim_elt->timing->repeatCount.type) {
-		*nb_iterations = (u32)rai->anim_elt->timing->repeatCount.count;
-	} else {
-		*nb_iterations = (u32)rai->anim_elt->timing->repeatDur.clock_value;
+	if (gf_svg_attribute_is_interpolatable(rai->last_specified_value.fieldType)) {
+		gf_svg_attributes_resolve_currentColor(&rai->last_specified_value, &rai->owner->current_color_value);
+		gf_svg_attributes_resolve_inherit(&rai->last_specified_value, &rai->owner->parent_presentation_value);
 	}
-}
-#endif
-
-static void gf_smil_anim_apply_accumulate(SMIL_Anim_RTI *rai)
-{
-	u32 nb_iterations = rai->anim_elt->timing->runtime->current_interval->nb_iterations;
-	if (rai->anim_elt->anim->accumulate == SMIL_ACCUMULATE_SUM && nb_iterations > 0) {
-		gf_svg_attributes_muladd(INT2FIX(nb_iterations), &rai->last_specified_value, FIX_ONE, &rai->interpolated_value, &rai->interpolated_value, 1);
-	} 
 }
 
 static SMIL_Anim_RTI *gf_smil_anim_get_anim_runtime_from_timing(SMIL_Timing_RTI *rti)
@@ -344,8 +397,6 @@ static SMIL_Anim_RTI *gf_smil_anim_get_anim_runtime_from_timing(SMIL_Timing_RTI 
 	return NULL;
 }
 
-/* Compute the Animation Value (AV), possibly based on the Underlying Value (read-only) in the case 
-of from-less/to-less/inherit values animations */
 static void gf_smil_anim_compute_interpolation_value(SMIL_Anim_RTI *rai, Fixed normalized_simple_time)
 {
 	SVGElement *e = rai->anim_elt;
@@ -362,20 +413,31 @@ static void gf_smil_anim_compute_interpolation_value(SMIL_Anim_RTI *rai, Fixed n
 	}
 
 	if (gf_list_count(e->anim->values.values)) {
-		/* Ignore from/to/by*/
+		/* Ignore 'from'/'to'/'by'*/
 		gf_smil_anim_animate_using_values(rai, normalized_simple_time);
 	} else if (e->anim->by.type && (e->anim->to.type == 0)) {
-		/* no to but a by, this is a by or a from-by animation */
+		/* 'to' is not specified but 'by' is, so this is a 'by' animation or a 'from'-'by' animation */
 		gf_smil_anim_animate_from_by(rai, normalized_simple_time);
 	} else { 
+		/* Ignore 'by' if specified */
 		gf_smil_anim_animate_from_to(rai, normalized_simple_time);
 	}
+}
+
+/* if the animation behavior is accumulative and this is not the first iteration,
+   then we modify the interpolation value as follows:
+    interpolation value += last specified value * number of iterations completed */
+static void gf_smil_anim_apply_accumulate(SMIL_Anim_RTI *rai)
+{
+	u32 nb_iterations = rai->anim_elt->timing->runtime->current_interval->nb_iterations;
+	if (rai->anim_elt->anim->accumulate == SMIL_ACCUMULATE_SUM && nb_iterations > 0) {
+		gf_svg_attributes_muladd(INT2FIX(nb_iterations), &rai->last_specified_value, FIX_ONE, &rai->interpolated_value, &rai->interpolated_value, 1);
+	} 
 }
 
 static void gf_smil_anim_animate(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
 {
 	SMIL_Anim_RTI *rai = gf_smil_anim_get_anim_runtime_from_timing(rti);
-
 	if (!rai) return;
 
 //	fprintf(stdout, "Animation: %x @ time : %f\n", rti, normalized_simple_time);
@@ -392,6 +454,8 @@ static void gf_smil_anim_animate(SMIL_Timing_RTI *rti, Fixed normalized_simple_t
 	}
 }
 
+/* copy/paste of the animate function except for the optimization which consists in 
+   not recomputing the interpolation value */
 static void gf_smil_anim_freeze(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
 {
 	SMIL_Anim_RTI *rai = gf_smil_anim_get_anim_runtime_from_timing(rti);
@@ -399,12 +463,17 @@ static void gf_smil_anim_freeze(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 
 //	fprintf(stdout, "Freeze: %x @ time : %f\n", rti, normalized_simple_time);
 
-	/* we do the accumulation only once and store the result in interpolated value */
+	/* We do the accumulation only once and store the result in interpolated value */
 	if (rti->cycle_number == rti->first_frozen) {
 		rai->target_value_changed = 0;
 		gf_smil_anim_compute_interpolation_value(rai, normalized_simple_time);
 		if (rai->target_value_changed) gf_smil_anim_apply_accumulate(rai);
 	} 
+	/* 
+		We still need to apply additive/replace behavior even when frozen 
+		because we don't know how many other animations have run during this cycle,
+		on this attribute, before the current one, which might have changed the underlying value. 
+	*/
 	if (rai->anim_elt->anim->additive == SMIL_ADDITIVE_SUM) {
 		gf_svg_attributes_add(&rai->owner->presentation_value, &rai->interpolated_value, &rai->owner->presentation_value, 1);
 	} else {
@@ -419,8 +488,57 @@ static void gf_smil_anim_restore(SMIL_Timing_RTI *rti, Fixed normalized_simple_t
 
 //	fprintf(stdout, "Restore: %x @ time : %f\n", rti, normalized_simple_time);
 
-	gf_svg_attributes_copy(&rai->owner->presentation_value, &rai->owner->saved_specified_value, 0);
+	gf_svg_attributes_copy(&rai->owner->presentation_value, &rai->owner->specified_value, 0);
 	//gf_list_del_item(rai->owner->anims, rai);
+}
+
+void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_props)
+{
+	u32 count_all, i;
+	SVGElement *elt = (SVGElement*)node;
+
+	/*TODO FIXME - THIS IS WRONG, we're changing orders of animations which may corrupt the visual result*/
+	/* Perform all the animations on this node */
+	count_all = gf_node_animation_count(node);
+	for (i = 0; i < count_all; i++) {
+		/* Performing the animations for a given animated attribute */
+		u32 j, count;
+		
+		SMIL_AttributeAnimations *aa = gf_node_animation_get(node, i);		
+		count = gf_list_count(aa->anims);
+		if (!count) continue;
+	
+		/* Resetting the presentation value computed during the previous rendering cycle 
+		   to the specified value */
+		gf_svg_attributes_copy(&(aa->presentation_value), &(aa->specified_value), 0);
+
+		/* Storing the pointer to the parent presentation value, 
+		   i.e. the presentation value issued at the parent level in the tree */
+		aa->parent_presentation_value = aa->presentation_value;
+		aa->parent_presentation_value.far_ptr = gf_svg_get_property_pointer(render_svg_props, 
+																			((SVGElement*)node)->properties,
+																			aa->orig_dom_ptr);
+
+		/* Storing also the pointer to the presentation value of the color property 
+		   (special handling of the keyword 'currentColor' if used in animation values) */
+		aa->current_color_value.fieldType = SVG_Paint_datatype;
+		aa->current_color_value.far_ptr = &((SVGElement*)node)->properties->color;
+
+		for (j = 0; j < count; j++) {
+			SMIL_Anim_RTI *rai = gf_list_get(aa->anims, j);			
+			SMIL_Timing_RTI *rti = rai->anim_elt->timing->runtime;
+			Double scene_time = gf_node_get_scene_time(node);
+			if (rti->evaluate) {
+				Fixed simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
+				rti->evaluate(rti, simple_time);
+			}
+		}
+
+		/*TODO FIXME, we need a finer granularity here 
+		  and we must know if the animated attribute has changed or not (freeze)...*/
+		gf_node_dirty_set(node, GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_SVG_APPEARANCE_DIRTY, 0);
+	}
+
 }
 
 void gf_smil_anim_init_runtime_info(SVGElement *e)
@@ -433,8 +551,27 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 	if (e->anim->attributeName.name) {
 		gf_node_get_field_by_name((GF_Node *)e->xlink->href.target, e->anim->attributeName.name, &target_attribute);
 	} else {
-		/* if attributeName is not specified it is a transform attribute */
-		gf_node_get_field_by_name((GF_Node *)e->xlink->href.target, "transform", &target_attribute);
+		/* 
+		All animation elements should have a target attribute except for animateMotion
+		cf http://www.w3.org/mid/u403c21ajf1sjqtk58g0g38eaep9f9g2ss@hive.bjoern.hoehrmann.de
+		"For animateMotion the attributeName is implied and cannot be specified; 
+		animateTransform requires specification of the attribute name and any attribute that is
+		a transform-like attribute can be a target, e.g. gradientTransform."
+		*/
+		if (gf_node_get_tag((GF_Node *)e) == TAG_SVG_animateMotion) {
+			SVGTransformableElement *tr_e = (SVGTransformableElement *)e->xlink->href.target;
+			/* 
+			   Initialization of the pseudo attribute motionTransform, 
+			   which holds the supplemental matrix until all animateMotion are done 
+			*/
+			if (!tr_e->motionTransform) {
+				tr_e->motionTransform = malloc(sizeof(GF_Matrix2D));
+				gf_mx2d_init(*tr_e->motionTransform);
+			}
+			gf_node_get_field_by_name((GF_Node *)tr_e, "motionTransform", &target_attribute);
+		} else {
+			fprintf(stderr, "No target attribute defined in animation element\n");
+		}
 	}
 
 	GF_SAFEALLOC(rai, sizeof(SMIL_Anim_RTI))
@@ -446,6 +583,7 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 
 	if (gf_node_get_tag((GF_Node *)e) == TAG_SVG_animateMotion) {
 		SVGanimateMotionElement *am = (SVGanimateMotionElement *)e;
+
 		rai->rotate = am->rotate.type;
 		if (e->anim->to.type == 0 && e->anim->by.type == 0 && e->anim->values.type == 0) {
 			rai->path = gf_path_new();
@@ -490,11 +628,14 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 	if (!aa) {
 		GF_SAFEALLOC(aa, sizeof(SMIL_AttributeAnimations))
 
-		/* Save the DOM value before any animation starts */
-		aa->saved_specified_value = target_attribute;
-		aa->orig_dom_ptr = target_attribute.far_ptr;
-		aa->saved_specified_value.far_ptr = gf_svg_create_attribute_value(target_attribute.fieldType, 0);
-		gf_svg_attributes_copy(&aa->saved_specified_value, &target_attribute, 0);
+		/* 
+			Save the DOM specified value before any animation starts 
+			We save also the memory address of the pointer (orig_dom_ptr)
+		*/
+		aa->specified_value = target_attribute;
+		aa->orig_dom_ptr = aa->specified_value.far_ptr;
+		aa->specified_value.far_ptr = gf_svg_create_attribute_value(target_attribute.fieldType, 0);
+		gf_svg_attributes_copy(&aa->specified_value, &target_attribute, 0);
 
 		/* Stores the pointer to the presentation value */
 		aa->presentation_value = target_attribute;
@@ -525,7 +666,7 @@ void gf_smil_anim_delete_animations(SVGElement *e)
 	for (i = 0; i < gf_node_animation_count((GF_Node *)e); i ++) {
 		SMIL_Anim_RTI *rai;
 		SMIL_AttributeAnimations *aa = gf_node_animation_get((GF_Node *)e, i);
-		gf_svg_delete_attribute_value(aa->saved_specified_value.fieldType, aa->saved_specified_value.far_ptr, e->sgprivate->scenegraph);
+		gf_svg_delete_attribute_value(aa->specified_value.fieldType, aa->specified_value.far_ptr, e->sgprivate->scenegraph);
 		j=0;
 		while ((rai = gf_list_enum(aa->anims, &j))) {
 			gf_smil_anim_delete_runtime_info(rai);

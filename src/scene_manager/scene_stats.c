@@ -264,6 +264,7 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 			}
 		}
 		break;
+	case SVG_Motion_datatype:
 	case SVG_Matrix_datatype:
 		{
 			GF_Matrix2D *mx = field->far_ptr;
@@ -276,9 +277,6 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 				StatFixed(stat, mx->m[5], 0);
 			} 
 		}
-		break;
-	case SVG_Motion_datatype:
-		StatSFVec2f(stat, field->far_ptr);
 		break;
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype: 

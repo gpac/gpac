@@ -1764,6 +1764,15 @@ static u32 svg_parse_point(SVG_Point *p, char *value_string)
 	return i;
 }
 
+static u32 svg_parse_point_into_matrix(SVG_Matrix *p, char *value_string)
+{
+	u32 i = 0;
+	gf_mx2d_init(*p);
+	i+=svg_parse_float(&(value_string[i]), &(p->m[2]), 0);
+	i+=svg_parse_float(&(value_string[i]), &(p->m[5]), 0);
+	return i;
+}
+
 static void svg_parse_points(GF_List *values, char *value_string)
 {
 	u32 i = 0;
@@ -2159,6 +2168,10 @@ GF_Err laser_parse_size(LASeR_Size *size, char *attribute_content)
 /* Parse an SVG attribute */
 GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type)
 {
+	u32 len = strlen(attribute_content);
+	while (*attribute_content == ' ') attribute_content++;
+	while (attribute_content[len-1] == ' ') { attribute_content[len-1] = 0; len--; }
+
 	switch (info->fieldType) {
 	case SVG_Boolean_datatype:
 		svg_parse_boolean((SVG_Boolean *)info->far_ptr, attribute_content);
@@ -2353,7 +2366,7 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 		svg_parse_preserveaspectratio(info->far_ptr, attribute_content);
 		break;
 	case SVG_Motion_datatype:
-		svg_parse_point(info->far_ptr, attribute_content);
+		svg_parse_point_into_matrix(info->far_ptr, attribute_content);
 		break;
 	case SVG_TransformType_datatype:
 		svg_parse_animatetransform_type(info->far_ptr, attribute_content);
@@ -2609,9 +2622,10 @@ void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type)
 		break;
 	case SVG_Motion_datatype:
 		{
-			SVG_Point *p;
-			GF_SAFEALLOC(p, sizeof(SVG_Point));
-			return p;
+			SVG_Matrix *m;
+			GF_SAFEALLOC(m, sizeof(SVG_Matrix))
+			gf_mx2d_init(*m);
+			return m;
 		}
 		break;
 	case SVG_ViewBox_datatype:
@@ -3291,8 +3305,8 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 	case SVG_Motion_datatype:
 	{
 #if DUMP_COORDINATES
-		SVG_Point *pt = (SVG_Point *)info->far_ptr;
-		sprintf(attValue, "%g %g", FIX2FLT(pt->x), FIX2FLT(pt->y));
+		SVG_Matrix *m = (SVG_Matrix *)info->far_ptr;
+		sprintf(attValue, "%g %g", FIX2FLT(m->m[2]), FIX2FLT(m->m[5]));
 #endif
 	}
 		break;
@@ -3726,6 +3740,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	if (f1->fieldType!=f2->fieldType) return 0;
 	if (f1->far_ptr && !f2->far_ptr) return 0;
 	if (f2->far_ptr && !f1->far_ptr) return 0;
+	if (!f1->far_ptr) return 1; 
 	v1 = *(u8 *)f1->far_ptr;
 	v2 = *(u8 *)f2->far_ptr;
 
@@ -3898,14 +3913,6 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 
 	/* required for animateMotion */
 	case SVG_Motion_datatype:
-	{
-		SVG_Point *pt1 = (SVG_Point *)f1->far_ptr;
-		SVG_Point *pt2 = (SVG_Point *)f2->far_ptr;
-		if (pt1->x != pt2->x) return 0;
-		if (pt1->y != pt2->y) return 0;
-		return 1;
-	}
-		break;
 	case SVG_Matrix_datatype:
 		return svg_matrices_equal(f1->far_ptr, f2->far_ptr);
 
@@ -4305,7 +4312,7 @@ static GF_Err svg_matrix_muladd(Fixed alpha, SVG_Matrix *a, Fixed beta, SVG_Matr
 		c->m[3] = gf_mulfix(alpha, a->m[3]) + gf_mulfix(beta, b->m[3]);
 		c->m[4] = gf_mulfix(alpha, a->m[4]) + gf_mulfix(beta, b->m[4]);
 		c->m[5] = gf_mulfix(alpha, a->m[5]) + gf_mulfix(beta, b->m[5]);
-		fprintf(stdout, "SVG: Warning, multiplication of matrices not supported\n");
+//		fprintf(stdout, "SVG: Warning, multiplication of matrices not supported\n");
 	}
 	return GF_OK;
 }
@@ -4377,7 +4384,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 		return svg_dasharray_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
 
 	case SVG_Motion_datatype:
-		return svg_point_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
+		return svg_matrix_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
 
 	case SVG_Matrix_datatype:
 		if (!b->eventType) {
@@ -4580,12 +4587,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 		return svg_dasharray_copy(a->far_ptr, b->far_ptr);
 
 	case SVG_Motion_datatype:
-		if (a->fieldType == SVG_Matrix_datatype) {
-			((SVG_Matrix *)a->far_ptr)->m[2] = ((SVG_Point *)b->far_ptr)->x;
-			((SVG_Matrix *)a->far_ptr)->m[5] = ((SVG_Point *)b->far_ptr)->y;
-		} else if (a->fieldType == SVG_Motion_datatype) {
-			*(SVG_Point *)a->far_ptr = *(SVG_Point *)b->far_ptr;
-		}
+		gf_mx2d_copy(*(SVG_Matrix *)a->far_ptr, *(SVG_Matrix *)b->far_ptr);
 		return GF_OK;
 
 	case SVG_Matrix_datatype:
@@ -4721,6 +4723,36 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 GF_Err gf_svg_attributes_add(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldInfo *c, Bool clamp)
 {
 	return gf_svg_attributes_muladd(FIX_ONE, a, FIX_ONE, b, c, clamp);
+}
+
+Bool gf_svg_attribute_is_interpolatable(u32 type) 
+{
+	switch (type) {
+	/* additive types which can really be interpolated */
+	case SVG_Color_datatype:
+	case SVG_Paint_datatype:
+	case SVG_Number_datatype:
+	case SVG_StrokeWidth_datatype:
+	case SVG_Length_datatype:
+	case SVG_Coordinate_datatype:
+	case SVG_Opacity_datatype:
+	case SVG_StrokeMiterLimit_datatype:
+	case SVG_FontSize_datatype:
+	case SVG_StrokeDashOffset_datatype:
+	case SVG_AudioLevel_datatype:
+	case SVG_LineIncrement_datatype:
+	case SVG_ViewBox_datatype:
+	case SVG_Points_datatype:
+	case SVG_Numbers_datatype:
+	case SVG_Coordinates_datatype:
+	case SVG_PathData_datatype:
+	case SVG_StrokeDashArray_datatype:
+	case SVG_Motion_datatype:
+	case SVG_Matrix_datatype:
+	case LASeR_Size_datatype:
+		return 1;
+	} 
+	return 0;
 }
 
 GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldInfo *c, Fixed coef, Bool clamp)
@@ -4922,24 +4954,14 @@ Bool gf_svg_is_current_color(GF_FieldInfo *a)
 	return 0;
 }
 
-/* Replaces the far pointer to the attribute value with either:
-     - the pointer to the value which is inherited 
-	 - the pointer to the value of the color attribute (if this attribute is set to currentColor) */
-void gf_svg_attributes_pointer_update(GF_FieldInfo *in, GF_FieldInfo *prop, GF_FieldInfo *current_color)
-{
-	if ((in->fieldType == SVG_Paint_datatype) && gf_svg_is_current_color(in)) {
-		*in = *current_color;
-	} else if (in->fieldType == 0 || gf_svg_is_inherit(in)) {
-		*in = *prop;
-	}
-}
 
 /* 
 	Returns the computed value based on the specified value, the element and the property context 
 	  computed_field_info: the far pointer in this struct is the computed value 
 	  specified_field_info: the far pointer in this struct is the specified value 
 	  elt: is the current SVG element to which attribute belongs
-	  orig_dom_ptr: is the address of the attribute created when creating the element (before it was used as presentation value)
+	  orig_dom_ptr: is the address of the attribute created when creating the element 
+	                (before it was used as presentation value)
 	  inherited_props: the current context of properties (as pointers to where the real value is)
 */
 void gf_svg_attributes_copy_computed_value(GF_FieldInfo *computed_field_info, 
