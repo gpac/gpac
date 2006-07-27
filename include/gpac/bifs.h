@@ -85,9 +85,6 @@ u8 gf_bifs_encoder_get_version(GF_BifsEncoder *codec, u16 ESID);
 /*Encodes current graph as a scene replace*/
 GF_Err gf_bifs_encoder_get_rap(GF_BifsEncoder *codec, char **out_data, u32 *out_data_length);
 
-/*set trace file for BIFS encoding*/
-void gf_bifs_encoder_set_trace(GF_BifsEncoder *codec, FILE *trace);
-
 #ifdef __cplusplus
 }
 #endif

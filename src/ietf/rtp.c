@@ -625,9 +625,6 @@ void gf_rtp_get_ports(GF_RTPChannel *ch, u16 *rtp_port, u16 *rtcp_port)
 
 #define SN_CHECK_OFFSET		0x0A
 
-
-#define REORDER_DEBUG	0
-
 GF_RTPReorder *gf_rtp_reorderer_new(u32 MaxCount, u32 MaxDelay)
 {
 	GF_RTPReorder *tmp;
@@ -714,9 +711,8 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, void *pck, u32 pck_size, u32 pck_
 		it->next = po->in;
 		po->in = it;
 		po->Count += 1;
-#if REORDER_DEBUG
-		fprintf(stdout, "INSERTING AT HEAD\n");
-#endif
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: inserting packet %d at head\n", pck_seqnum));
 		return GF_OK;
 	}
 
@@ -731,11 +727,12 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, void *pck, u32 pck_size, u32 pck_
 		if (!cur->next) {
 			cur->next = it;
 			po->Count += 1;
-#if REORDER_DEBUG
+#ifndef GPAC_DISABLE_LOG
 			if (cur->pck_seq_num +1 != it->pck_seq_num) 
-				fprintf(stdout, "!! Got %d expected %d\n", cur->pck_seq_num+1, it->pck_seq_num);
+				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[rtp] Packet Reorderer: got %d expected %d\n", cur->pck_seq_num+1, it->pck_seq_num));
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Appending packet %d\n", pck_seqnum));
 #endif
-			//done
 			return GF_OK;
 		}
 
@@ -747,9 +744,8 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, void *pck, u32 pck_size, u32 pck_
 			it->next = cur->next;
 			cur->next = it;
 			po->Count += 1;
-#if REORDER_DEBUG
-			fprintf(stdout, "INSERTING\n");
-#endif
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Inserting packet %d", pck_seqnum));
 			//done
 			return GF_OK;
 		}
@@ -760,9 +756,7 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, void *pck, u32 pck_size, u32 pck_
 discard:
 	free(it->pck);
 	free(it);
-#if REORDER_DEBUG
-	fprintf(stdout, "DROP");
-#endif
+	GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[rtp] Packet Reorderer: Dropping packet %d", pck_seqnum));
 	return GF_OK;
 }
 
@@ -798,9 +792,9 @@ void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size)
 	if (( (u16) (po->in->pck_seq_num + bounds + 1) == (u16) (po->in->next->pck_seq_num + bounds)) 
 		|| (po->MaxCount && po->Count == po->MaxCount) ) {
 
-#if REORDER_DEBUG
+#ifndef GPAC_DISABLE_LOG
 		if (po->in->pck_seq_num + 1 != po->in->next->pck_seq_num) 
-			fprintf(stdout, "Fetched %d expected %d\n", po->in->pck_seq_num + 1, po->in->next->pck_seq_num);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[rtp] Packet Reorderer: Fetched %d expected %d\n", po->in->pck_seq_num, po->in->next->pck_seq_num));
 #endif
 		goto send_it;
 	}
@@ -809,16 +803,12 @@ void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size)
 check_timeout:
 		if (!po->LastTime) {
 			po->LastTime = gf_sys_clock();
-#if REORDER_DEBUG
-			fprintf(stdout, "starting reorder timeout\n");
-#endif
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: starting timeout at %d\n", po->LastTime));
 			return NULL;
 		}
 		//if exceeding the delay send the head
 		if (gf_sys_clock() - po->LastTime >= po->MaxDelay) {
-#if REORDER_DEBUG
-			fprintf(stdout, "RTP Forcing output after %d ms wait (max allowed %d)\n", gf_sys_clock() - po->LastTime, po->MaxDelay);
-#endif
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Forcing output after %d ms wait (max allowed %d)\n", gf_sys_clock() - po->LastTime, po->MaxDelay));
 			goto send_it;
 		}
 	}
@@ -835,5 +825,6 @@ send_it:
 	//release the item
 	ret = t->pck;
 	free(t);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Fetching %d\n", po->in->pck_seq_num));
 	return ret;
 }

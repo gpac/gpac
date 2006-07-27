@@ -68,24 +68,6 @@ static Bool svg_check_download(SVGIn *svgin)
 	return 0;
 }
 
-static void SVG_OnMessage(void *cbk, char *szMsg, GF_Err e)
-{
-	SVGIn *svgin = (SVGIn*)cbk;
-	gf_term_message(svgin->inline_scene->root_od->term, svgin->inline_scene->root_od->net_service->url, szMsg, e);
-}
-
-static void SVG_OnProgress(void *cbk, u32 done, u32 tot)
-{
-	GF_Event evt;
-	SVGIn *svgin = (SVGIn*)cbk;
-	evt.type = GF_EVT_PROGRESS;
-	evt.progress.progress_type = 2;
-	evt.progress.done = done;
-	evt.progress.total = tot;
-	evt.progress.service = svgin->inline_scene->root_od->net_service->url;
-	GF_USER_SENDEVENT(svgin->inline_scene->root_od->term->user, &evt);
-}
-
 #define SVG_PROGRESSIVE_BUFFER_SIZE		4096
 
 static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32 inBufferLength, 
@@ -127,7 +109,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 				file_buf[nb_read] = file_buf[nb_read+1] = 0;
 				if (!nb_read) {
 					if (gzeof(svgin->src)) {
-						SVG_OnProgress(svgin, svgin->file_pos, svgin->file_size);
+						gf_set_progress("SVG Parsing", svgin->file_pos, svgin->file_size);
 						gzclose(svgin->src);
 						svgin->src = NULL;
 						e = GF_EOS;
@@ -143,7 +125,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 				if (e) break;
 
 				diff = gf_sys_clock() - entry_time;
-				SVG_OnProgress(svgin, svgin->file_pos, svgin->file_size);
+				gf_set_progress("SVG Parsing", svgin->file_pos, svgin->file_size);
 				if (diff > svgin->sax_max_duration) break;
 			}
 		}
@@ -206,9 +188,6 @@ static GF_Err SVG_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool
 	svgin->loader.scene_graph = scene->graph;
 	svgin->loader.localPath = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
 	svgin->loader.type = GF_SM_LOAD_SVG;
-	svgin->loader.OnMessage = SVG_OnMessage;
-	svgin->loader.OnProgress = SVG_OnProgress;
-	svgin->loader.cbk = svgin;
 	svgin->loader.flags = GF_SM_LOAD_FOR_PLAYBACK;
 	return GF_OK;
 }

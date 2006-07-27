@@ -393,6 +393,47 @@ DEP_CPP_ILS2D=\
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\modules\render2d\laser_base.c
+DEP_CPP_LASER=\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\renderer_dev.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
+	"..\..\include\gpac\nodes_mpeg4.h"\
+	"..\..\include\gpac\nodes_svg.h"\
+	"..\..\include\gpac\nodes_x3d.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\renderer.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	"..\..\modules\render2d\drawable.h"\
+	"..\..\modules\render2d\grouping.h"\
+	"..\..\modules\render2d\laser_stacks.h"\
+	"..\..\modules\render2d\render2d.h"\
+	"..\..\modules\render2d\stacks2d.h"\
+	"..\..\modules\render2d\svg_stacks.h"\
+	"..\..\modules\render2d\visualsurface2d.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\render2d\laser_stacks.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\modules\render2d\layout.c
 DEP_CPP_LAYOU=\
 	"..\..\include\gpac\color.h"\
@@ -534,6 +575,7 @@ DEP_CPP_RENDER=\
 	"..\..\include\gpac\user.h"\
 	"..\..\modules\render2d\drawable.h"\
 	"..\..\modules\render2d\grouping.h"\
+	"..\..\modules\render2d\laser_stacks.h"\
 	"..\..\modules\render2d\render2d.h"\
 	"..\..\modules\render2d\stacks2d.h"\
 	"..\..\modules\render2d\svg_stacks.h"\

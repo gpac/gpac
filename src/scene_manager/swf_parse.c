@@ -1541,7 +1541,7 @@ GF_Err swf_def_font(SWFReader *read, u32 revision)
 
 			checkpos = swf_get_file_pos(read);
 			if (checkpos != start + code_offset) {
-				fprintf(stdout, "ERROR: BAD CODE OFFSET\n");
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[SWF Parsing] bad code offset in font\n"));
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 
@@ -2342,7 +2342,7 @@ GF_Err SWF_ParseTag(SWFReader *read)
 	}
 	pos = swf_get_file_pos(read);
 	diff = pos + read->size;
-	if (read->load->OnProgress) read->load->OnProgress(read->load->cbk, pos, read->length);
+	gf_set_progress("SWF Parsing", pos, read->length);
 
 	e = swf_process_tag(read);
 	swf_align(read);
@@ -2367,24 +2367,16 @@ GF_Err SWF_ParseTag(SWFReader *read)
 
 void swf_report(SWFReader *read, GF_Err e, char *format, ...)
 {
-	va_list args;
-	va_start(args, format);
-	if (read->load->OnMessage) {
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_level && (gf_log_tools & GF_LOG_PARSER)) {
 		char szMsg[2048];
-		char szMsgFull[2048];
+		va_list args;
+		va_start(args, format);
 		vsprintf(szMsg, format, args);
-		if (e) {
-			sprintf(szMsgFull, "(Frame %d TAG %s) %s", read->current_frame+1, swf_get_tag(read->tag), szMsg);
-			read->load->OnMessage(read->load->cbk, szMsgFull, e);
-		} else {
-			read->load->OnMessage(read->load->cbk, szMsg, e);
-		}
-	} else {
-		if (e) fprintf(stdout, "(Frame %d TAG %s) ", read->current_frame+1, swf_get_tag(read->tag));
-		vfprintf(stdout, format, args);
-		fprintf(stdout, "\n");
+		va_end(args);
+		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[SWF Parsing] %s (frame %d)\n", szMsg, read->current_frame+1) );
 	}
-	va_end(args);
+#endif
 }
 
 
@@ -2599,7 +2591,7 @@ GF_Err gf_sm_load_run_SWF(GF_SceneLoader *load)
 	/*parse all tags*/
 	e = GF_OK;
 	while (e == GF_OK) e = SWF_ParseTag(read);
-	if (load->OnProgress) load->OnProgress(load->cbk, read->length, read->length);
+	gf_set_progress("SWF Parsing", read->length, read->length);
 
 	if (e==GF_EOS) e = GF_OK;
 	if (!e) {
@@ -2722,7 +2714,7 @@ GF_Err gf_sm_load_init_SWF(GF_SceneLoader *load)
 	read->frame_rate = swf_get_16(read)>>8;
 	read->frame_count = swf_get_16(read);
 	
-	swf_report(read, GF_OK, "SWF Import - Scene Size %dx%d - %d frames @ %d FPS", load->ctx->scene_width, load->ctx->scene_height, read->frame_count, read->frame_rate);
+	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("SWF Import - Scene Size %dx%d - %d frames @ %d FPS", load->ctx->scene_width, load->ctx->scene_height, read->frame_count, read->frame_rate));
 
 	/*init scene*/
 	if (read->flags & GF_SM_SWF_SPLIT_TIMELINE) read->flags |= GF_SM_SWF_STATIC_DICT;

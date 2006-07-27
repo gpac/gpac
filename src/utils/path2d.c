@@ -646,7 +646,7 @@ GF_Err gf_path_get_bounds(GF_Path *gp, GF_Rect *rc)
 static GF_Err gf_subdivide_cubic(GF_Path *gp, Fixed x0, Fixed y0, Fixed x1, Fixed y1, Fixed x2, Fixed y2, Fixed x3, Fixed y3, Fixed fineness)
 {
 	GF_Point2D pt;
-	Fixed x3_0, y3_0, z3_0, z1_dot, z2_dot, z1_perp, z2_perp;
+	Fixed x3_0, y3_0, z3_0, z1_0, z1_dot, z2_dot, z1_perp, z2_perp;
 	Fixed max_perp;
 	Fixed x_m, y_m, xa1, ya1, xa2, ya2, xb1, yb1, xb2, yb2;
 	GF_Err e;
@@ -657,8 +657,11 @@ static GF_Err gf_subdivide_cubic(GF_Path *gp, Fixed x0, Fixed y0, Fixed x1, Fixe
 	/*z3_0 is dist z0-z3*/
 	z3_0 = gf_v2d_len(&pt);
 
-	/* todo: this test is far from satisfactory. */
-	if (z3_0 < FIX_ONE/100)
+	pt.x = x1 - x0;
+	pt.y = y1 - y0;
+	z1_0 = gf_v2d_len(&pt);
+
+	if ((z3_0 < FIX_ONE/100) && (z1_0 < FIX_ONE/100)) 
 		goto nosubdivide;
 
 	/* perp is distance from line, multiplied by dist z0-z3 */

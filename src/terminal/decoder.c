@@ -357,7 +357,7 @@ check_unit:
 		/*hack for RTSP streaming of systems streams, except InputSensor*/
 		if (!ch->is_pulling && (codec->type != GF_STREAM_INTERACT) && (AU->dataLength == codec->prev_au_size)) {
 			gf_es_drop_au(ch);
-			fprintf(stdout, "Same MPEG-4 Systems AU detected - dropping\n");
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Decoder] Same MPEG-4 Systems AU detected - dropping\n"));
 			goto check_unit;
 		}
 		/*seeking for systems is done by not releasing the graph until seek is done*/
@@ -637,6 +637,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 				/*extremely late, even if we decode the renderer will drop the frame 
 				so set the level to drop*/
 				mmlevel = GF_CODEC_LEVEL_DROP;
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Decoder] ODM%d: frame too late (%d vs %d) - dropping\n", codec->odm->OD->objectDescriptorID, AU->CTS, obj_time));
 			}
 			/*we are late according to the media manager*/
 			else if (codec->PriorityBoost) {
@@ -701,6 +702,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 					codec->cur_video_frames += 1;
 				}
 			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Decoder] ODM%d: decoded frame TS %d in %d ms\n", codec->odm->OD->objectDescriptorID, AU->CTS, now));
 			break;
 		/*this happens a lot when using non-MPEG-4 streams (ex: ffmpeg demuxer)*/
 		case GF_PACKED_FRAMES:
@@ -725,6 +727,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 				AU->CTS += deltaTS;
 			}
 			codec_update_stats(codec, 0, now);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Decoder] ODM%d: decoded packed frame TS %d in %d ms\n", codec->odm->OD->objectDescriptorID, AU->CTS, now));
 			continue;
 		default:
 			UnlockCompositionUnit(codec, AU->CTS, 0);

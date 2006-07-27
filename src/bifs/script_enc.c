@@ -53,7 +53,7 @@ typedef struct
 
 
 #define SFE_WRITE_INT(sc_enc, val, nbBits, str1, str2)	\
-		if (!sc_enc->emul) GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, val, nbBits, str1, str2);	\
+		if (!sc_enc->emul) GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, val, nbBits, str1, str2);	\
 
 
 static GF_Err EncScriptFields(ScriptEnc *sc_enc)
@@ -68,21 +68,21 @@ static GF_Err EncScriptFields(ScriptEnc *sc_enc)
 	nbBits = gf_get_bit_size(nbFields);
 	if (nbFields+1 > 4 + gf_get_bit_size(nbFields)) use_list = 0;
 	if (!nbFields) {
-		GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "Script::isList", NULL);
-		GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "end", NULL);
+		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "Script::isList", NULL);
+		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "end", NULL);
 		return GF_OK;
 	}
-	GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, use_list ? 1 : 0, 1, "Script::isList", NULL);
+	GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, use_list ? 1 : 0, 1, "Script::isList", NULL);
 	if (!use_list) {
-		GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, nbBits, 4, "nbBits", NULL);
-		GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, nbFields, nbBits, "count", NULL);
+		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, nbBits, 4, "nbBits", NULL);
+		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, nbFields, nbBits, "count", NULL);
 	}
 
 	nbBitsProto = 0;
 	if (sc_enc->codec->encoding_proto) nbBitsProto = gf_get_bit_size(gf_sg_proto_get_field_count(sc_enc->codec->encoding_proto) - 1);
 
 	for (i=0; i<nbFields; i++) {
-		if (use_list) GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "end", NULL);
+		if (use_list) GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "end", NULL);
 
 		gf_node_get_field(sc_enc->script, i+3, &info);
 		switch (info.eventType) {
@@ -96,8 +96,8 @@ static GF_Err EncScriptFields(ScriptEnc *sc_enc)
 			eType = GF_SG_SCRIPT_TYPE_FIELD;
 			break;
 		}
-		GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, eType, 2, "eventType", NULL);
-		GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, info.fieldType, 6, "fieldType", NULL);
+		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, eType, 2, "eventType", NULL);
+		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, info.fieldType, 6, "fieldType", NULL);
 		gf_bifs_enc_name(sc_enc->codec, sc_enc->bs, (char *) info.name);
 		/*this is an identifier for script*/
 		gf_list_add(sc_enc->identifiers, strdup(info.name));
@@ -105,27 +105,27 @@ static GF_Err EncScriptFields(ScriptEnc *sc_enc)
 		if (sc_enc->codec->encoding_proto) {
 			GF_Route *isedField = gf_bifs_enc_is_field_ised(sc_enc->codec, sc_enc->script, i+3);
 			if (isedField) {
-				GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "isedField", NULL);
+				GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "isedField", NULL);
 
 				if (isedField->ToNode == sc_enc->script) {
-					GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, isedField->FromField.fieldIndex, nbBitsProto, "protoField", NULL);
+					GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, isedField->FromField.fieldIndex, nbBitsProto, "protoField", NULL);
 				} else {
-					GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, isedField->ToField.fieldIndex, nbBitsProto, "protoField", NULL);
+					GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, isedField->ToField.fieldIndex, nbBitsProto, "protoField", NULL);
 				}
 				continue;
 			}
-			GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "isedField", NULL);
+			GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "isedField", NULL);
 		}
 		/*default value*/
 		if (eType == GF_SG_SCRIPT_TYPE_FIELD) {
-			GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, (info.far_ptr) ? 1 : 0, 1, "hasInitialValue", NULL);
+			GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, (info.far_ptr) ? 1 : 0, 1, "hasInitialValue", NULL);
 			if (info.far_ptr) {
 				e = gf_bifs_enc_field(sc_enc->codec, sc_enc->bs, sc_enc->script, &info);
 				if (e) return e;
 			}
 		}
 	}
-	if (use_list) GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "end", NULL);
+	if (use_list) GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "end", NULL);
 	return GF_OK;
 }
 
@@ -302,7 +302,7 @@ Bool SFE_GetNumber(ScriptEnc *sc_enc)
 		if (tolower(sc_enc->cur_buf[i])=='e') exp = 1;
 		i++;
 		if (!sc_enc->cur_buf[i]) {
-			fprintf(stdout, "Invalid script syntax");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: Invalid number syntax (%s)\n", sc_enc->cur_buf));
 			sc_enc->err = GF_BAD_PARAM;
 			return 0;
 		}
@@ -326,7 +326,7 @@ Bool SFE_NextToken(ScriptEnc *sc_enc)
 		while ((sc_enc->cur_buf[0] != '*') || (sc_enc->cur_buf[1] != '/')) {
 			sc_enc->cur_buf++;
 			if (!sc_enc->cur_buf[0] || !sc_enc->cur_buf[1]) {
-				fprintf(stdout, "cannot find closing comment */");
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: cannot find closing comment */\n"));
 				sc_enc->err = GF_BAD_PARAM;
 				return 0;
 			}
@@ -555,7 +555,7 @@ Bool SFE_NextToken(ScriptEnc *sc_enc)
 		sc_enc->token_code = TOK_RIGHT_BRACKET;
 		break;
 	default:
-		fprintf(stdout, "Unrecognized symbol %c\n", sc_enc->cur_buf[i]);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: Unrecognized symbol %c\n", sc_enc->cur_buf[i]));
 		sc_enc->err = GF_BAD_PARAM;
 		return 0;
 	}
@@ -566,7 +566,7 @@ Bool SFE_NextToken(ScriptEnc *sc_enc)
 Bool SFE_CheckToken(ScriptEnc *sc_enc, u32 token)
 {
 	if (sc_enc->token_code != token) {
-		fprintf(stdout, "Script error: expecting \"%s\" got \"%s\"\n", tok_names[token] , tok_names[sc_enc->token_code]);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: Bad token (expecting \"%s\" got \"%s\")\n", tok_names[token] , tok_names[sc_enc->token_code]));
 		return 0;
 	}
 	return 1;
@@ -587,11 +587,11 @@ void SFE_PutIdentifier(ScriptEnc *sc_enc, char *id)
 		nbBits = 0;
 		length = gf_list_count(sc_enc->identifiers) - 1;
 		while (length > 0) { length >>= 1; nbBits ++; }
-		GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "recieved", str);
-		GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, i-1, nbBits, "identifierCode", str);
+		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "recieved", str);
+		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, i-1, nbBits, "identifierCode", str);
 		return;
 	} 
-	GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "recieved", id);
+	GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "recieved", id);
 	gf_list_add(sc_enc->identifiers, strdup(id));
 	gf_bifs_enc_name(sc_enc->codec, sc_enc->bs, id);
 }
@@ -603,10 +603,10 @@ void SFE_Arguments(ScriptEnc *sc_enc)
 		if (!SFE_NextToken(sc_enc)) return;
 		if (sc_enc->token_code == TOK_RIGHT_CURVE) break;
 		else if (sc_enc->token_code == TOK_COMMA) continue;
-		GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "hasArgument", NULL);
+		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "hasArgument", NULL);
 		SFE_PutIdentifier(sc_enc, sc_enc->token);
 	}
-	GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "hasArgument", NULL);
+	GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "hasArgument", NULL);
 }
 
 void SFE_StatementBlock(ScriptEnc *sc_enc);
@@ -623,13 +623,13 @@ void SFE_PutInteger(ScriptEnc *sc_enc, char *str)
 	} else if (isdigit(str[0])) {
 		val = strtoul(str, (char **) NULL, 10);
 	} else {
-		fprintf(stdout, "Script Error: %s is not an integer\n", str);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: %s is not an integer\n", str));
 		sc_enc->err = GF_BAD_PARAM;
 		return;
 	}
 	nbBits = gf_get_bit_size(val);
-	GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, nbBits, 5, "nbBitsInteger", NULL);
-	GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, val, nbBits, "value", sc_enc->token);
+	GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, nbBits, 5, "nbBitsInteger", NULL);
+	GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, val, nbBits, "value", sc_enc->token);
 }
 
 u32 SFE_LoadExpression(ScriptEnc *sc_enc, u32 *expr_sep)
@@ -701,7 +701,7 @@ u32 SFE_LoadExpression(ScriptEnc *sc_enc, u32 *expr_sep)
 
 break_loop:
 	if (sc_enc->err) {
-		fprintf(stdout, "Script Error: end of compoundExpression not found\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: end of compoundExpression not found\n"));
 		return 0;
 	}
 	expr_sep[nbExpr] = sc_enc->expr_toks_len;
@@ -875,12 +875,12 @@ u32 SFE_PutCaseInteger(ScriptEnc *sc_enc, char *str, u32 nbBits)
 	} else if (isdigit(str[0])) {
 		val = strtoul(str, (char **) NULL, 10);
 	} else {
-		fprintf(stdout, "Script Error: %s is not an integer\n", str);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: %s is not an integer\n", str));
 		sc_enc->err = GF_BAD_PARAM;
 		return 0;
 	}
 	if (!sc_enc->emul) {
-		GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, val, nbBits, "value", sc_enc->token);
+		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, val, nbBits, "value", sc_enc->token);
 	} else {
 		nbBits = gf_get_bit_size(val);
 	}
@@ -1033,7 +1033,7 @@ void SFE_Function(ScriptEnc *sc_enc)
 	SFE_Arguments(sc_enc);
 	SFE_StatementBlock(sc_enc);
 
-	if (sc_enc->err) fprintf(stdout, "Error while parsing function %s\n", szName);
+	if (sc_enc->err) GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: Error while parsing function %s\n", szName));
 }
 
 
@@ -1052,13 +1052,13 @@ GF_Err SFScript_Encode(GF_BifsEncoder *codec, SFScript *script_field, GF_BitStre
 	sc_enc.err = GF_OK;
 
 	if (codec->is_encoding_command) {
-		GF_BE_WRITE_INT(codec, bs, 1, 1, "Script::isList", NULL);
-		GF_BE_WRITE_INT(codec, bs, 1, 1, "end", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, 1, 1, "Script::isList", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, 1, 1, "end", NULL);
 	} else {	
 		EncScriptFields(&sc_enc);
 	}
 	/*reserevd*/
-	GF_BE_WRITE_INT(codec, bs, 1, 1, "reserved", NULL);
+	GF_BIFS_WRITE_INT(codec, bs, 1, 1, "reserved", NULL);
 
 	if (script_field) {
 		sc_enc.cur_buf = script_field->script_text;
@@ -1082,11 +1082,11 @@ GF_Err SFScript_Encode(GF_BifsEncoder *codec, SFScript *script_field, GF_BitStre
 			sc_enc.cur_buf++;
 			continue;
 		}
-		GF_BE_WRITE_INT(codec, bs, 1, 1, "hasFunction", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, 1, 1, "hasFunction", NULL);
 		SFE_Function(&sc_enc);
 		if (sc_enc.err) break;
 	}
-	GF_BE_WRITE_INT(codec, bs, 0, 1, "hasFunction", NULL);
+	GF_BIFS_WRITE_INT(codec, bs, 0, 1, "hasFunction", NULL);
 
 	//clean up
 	while (gf_list_count(sc_enc.identifiers)) {
@@ -1121,7 +1121,7 @@ void SFE_PutReal(ScriptEnc *sc_enc, char *str)
 		else if (c == '-') 
 			{SFE_WRITE_INT(sc_enc, 12, 4, "floatChar", "Sign");}
 		else {
-			fprintf(stderr, "Script Error: %s is not a real number\n", str);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: %s is not a real number\n", str));
 			sc_enc->err = GF_BAD_PARAM;
 			return;
 		}
@@ -1150,7 +1150,7 @@ void SFE_PutBoolean(ScriptEnc *sc_enc, char *str)
 
 #define CHECK_TOK(x) \
 	if (curTok != x) { \
-		fprintf(stdout, "Script Error: Token %s read, %s expected\n", tok_names[curTok], tok_names[x]); \
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: Token %s read, %s expected\n", tok_names[curTok], tok_names[x])); \
 		sc_enc->err = GF_BAD_PARAM;	\
 	}	\
 
@@ -1341,7 +1341,7 @@ u32 MoveToToken(ScriptEnc *sc_enc, u32 endTok, u32 cur, u32 end)
 	else if (endTok == TOK_RIGHT_BRACE) startTok = TOK_LEFT_BRACE;
 	else if (endTok == TOK_CONDSEP) startTok = TOK_CONDTEST;
 	else {
-		fprintf(stderr, "Script Error: illegal MoveToToken %s\n", tok_names[endTok]);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: illegal MoveToToken %s\n", tok_names[endTok]));
 		sc_enc->err = GF_BAD_PARAM;
 		return -1;
 	}
@@ -1476,7 +1476,7 @@ u32 SFE_Expression(ScriptEnc *sc_enc, u32 start, u32 end, Bool memberAccess)
 
 			if (curTok && (curTok != TOK_VAR)  
 				&& (curTok < TOK_MULTIPLY || curTok > TOK_OREQ)) {
-				fprintf(stdout, "Script Error: illegal token %s read\n", tok_names[curTok]);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: illegal token %s read\n", tok_names[curTok]));
 				sc_enc->err = GF_BAD_PARAM;
 				return 0;
 			}
@@ -1506,7 +1506,7 @@ skip_token:
 		if (finalPos==start) {}
 		else if (finalPos==end-1) expr = ET_POST_INCREMENT;
 		else {
-			fprintf(stdout, "Script Error: illegal Increment expression\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: illegal Increment expression\n"));
 			sc_enc->err = GF_BAD_PARAM;
 			return expr;
 		}
@@ -1514,7 +1514,7 @@ skip_token:
 		if (finalPos==start) {}
 		else if (finalPos==end-1) expr = ET_POST_DECREMENT;
 		else {
-			fprintf(stdout, "Script Error: illegal Decrement expression\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: illegal Decrement expression\n"));
 			sc_enc->err = GF_BAD_PARAM;
 			return expr;
 		}
@@ -1560,7 +1560,7 @@ skip_token:
 	{
 		u32 ret = SFE_Expression(sc_enc, start, finalPos, 0);
 		if ( ret != ET_IDENTIFIER && ret != ET_OBJECT_MEMBER_ACCESS && ret != ET_ARRAY_DEREFERENCE ) {
-			fprintf(stdout, "Script Error: LeftVariable expected, %s returned\n", expr_name[ret]);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: LeftVariable expected, %s returned\n", expr_name[ret]));
 			sc_enc->err = GF_BAD_PARAM;
 			return expr;
 		}
@@ -1595,11 +1595,11 @@ skip_token:
 			str = gf_list_get(sc_enc->id_buf, 0);
 			if (!str) break;
 			gf_list_rem(sc_enc->id_buf, 0);
-			GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "hasArgument", NULL);
+			GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "hasArgument", NULL);
 			SFE_PutIdentifier(sc_enc, str);
 			free(str);
 		}
-		GF_BE_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "hasArgument", NULL);
+		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "hasArgument", NULL);
 		break;
 	case ET_STRING:
 		str = gf_list_get(sc_enc->id_buf, 0);
@@ -1649,7 +1649,7 @@ skip_token:
 		SFE_CheckToken(sc_enc, TOK_SEMICOLON);
 		break;
 	default:
-		fprintf(stderr, "Error: illegal expression type %s\n", expr_name[expr]);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: illegal expression type %s\n", expr_name[expr]));
 		sc_enc->err = GF_BAD_PARAM;
 		break;
 	}

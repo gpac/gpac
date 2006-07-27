@@ -160,7 +160,7 @@ void OD_ParseFileData(char *fileName, char **out_data, u32 *out_data_size)
 	*out_data_size = 0;
 	f = fopen(fileName, "rb");
 	if (!f) {
-		fprintf(stdout, "WARNING: cannot open data file %s - ignoring config\n", fileName);
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ODF Parse] cannot open data file %s - skipping\n", fileName));
 		return;
 	}
 	fseek(f, 0, SEEK_END);

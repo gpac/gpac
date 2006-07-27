@@ -138,6 +138,20 @@ u32 get_sys_col(int idx)
 	return res;
 }
 
+static void Osmo4_progress_cbk(void *usr, char *title, u32 done, u32 total)
+{
+	if (!total) return;
+	CMainFrame *pFrame = (CMainFrame *) ((WinGPAC *) usr)->m_pMainWnd;
+	s32 prog = (s32) ( (100 * (u64)done) / total);
+	if (pFrame->m_last_prog < prog) {
+		pFrame->console_err = GF_OK;
+		pFrame->m_last_prog = prog;
+		pFrame->console_message.Format("%s %02d %%", title, prog);
+		pFrame->PostMessage(WM_CONSOLEMSG, 0, 0);
+		if (done==total) pFrame->m_last_prog = -1;
+	}
+}
+
 static log_msg(char *msg)
 {
 	::MessageBox(NULL, msg, "GPAC", MB_OK);
@@ -191,21 +205,11 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		gpac->m_pMainWnd->PostMessage(WM_CONSOLEMSG, 0, 0);
 		break;
 	case GF_EVT_PROGRESS:
-		if (evt->progress.total) {
-			s32 prog = (s32) ( (100 * (u64)evt->progress.done) / evt->progress.total);
-			if (pFrame->m_last_prog < prog) {
-				pFrame->console_err = GF_OK;
-				char *szType;
-				pFrame->m_last_prog = prog;
-				if (evt->progress.progress_type==0) szType = "Buffer ";
-				else if (evt->progress.progress_type==1) szType = "Download ";
-				else if (evt->progress.progress_type==2) szType = "Import ";
-				pFrame->console_message.Format("%s %02d %%", szType, prog);
-				gpac->m_pMainWnd->PostMessage(WM_CONSOLEMSG, 0, 0);
-
-				if (evt->progress.done==evt->progress.total) pFrame->m_last_prog = -1;
-			}
-		}
+		char *szType;
+		if (evt->progress.progress_type==0) szType = "Buffer ";
+		else if (evt->progress.progress_type==1) szType = "Download ";
+		else if (evt->progress.progress_type==2) szType = "Import ";
+		gf_set_progress(szType, evt->progress.done, evt->progress.total);
 		break;
 	case GF_EVT_NAVIGATE_INFO:
 		pFrame->console_message = evt->navigate.to_url;
@@ -533,6 +537,8 @@ BOOL WinGPAC::InitInstance()
 	m_reset = 0;
 	orig_width = 320;
 	orig_height = 240;
+
+	gf_set_progress_callback(this, Osmo4_progress_cbk);
 
 	m_term = gf_term_new(&m_user);
 	if (! m_term) {

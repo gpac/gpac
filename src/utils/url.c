@@ -74,7 +74,6 @@ char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 		pathName += 6;
 		/*not sure if "file:///C:\..." is std, but let's handle it anyway*/
 		if ((pathName[0]=='/') && (pathName[2]==':')) pathName += 1;
-		fprintf(stdout, "abs URL is %s\n", pathName);
 		return strdup(pathName);
 	}
 	if (prot_type==GF_URL_TYPE_ANY) return NULL;

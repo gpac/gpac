@@ -51,7 +51,7 @@ static char *AI_FetchFrame(void *callback, u32 *size, u32 audio_delay_ms)
 
 	/*too early (silence insertions), don't render*/
 	if (drift + (s32) audio_delay_ms + MIN_RESYNC_TIME < 0) {
-		//fprintf(stdout, "audio too early %d (CTS %d)\n", drift + audio_delay_ms + MIN_RESYNC_TIME, ai->stream->current_ts);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Audio Render] audio too early %d (CTS %d)\n", drift + audio_delay_ms + MIN_RESYNC_TIME, ai->stream->current_ts));
 		ai->need_release = 0;
 		gf_mo_release_data(ai->stream, 0, 0);
 		return NULL;
@@ -64,7 +64,7 @@ static char *AI_FetchFrame(void *callback, u32 *size, u32 audio_delay_ms)
 			ai->need_release = 0;
 			return AI_FetchFrame(callback, size, audio_delay_ms);
 		}
-		//fprintf(stdout, "Audio clock: delay %d - obj time %d - CTS %d - adjust drift %d\n", audio_delay_ms, obj_time - audio_delay_ms, ai->stream->current_ts, drift);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Audio Render] Audio clock: delay %d - obj time %d - CTS %d - adjust drift %d\n", audio_delay_ms, obj_time - audio_delay_ms, ai->stream->current_ts, drift));
 		gf_mo_adjust_clock(ai->stream, drift);
 	}
 

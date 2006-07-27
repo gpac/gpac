@@ -110,29 +110,22 @@ typedef struct
 
 static GF_Err xmt_report(GF_XMTParser *parser, GF_Err e, char *format, ...)
 {
-	va_list args;
-	va_start(args, format);
-	if (parser->load->OnMessage) {
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_level && (gf_log_tools & GF_LOG_PARSER)) {
 		char szMsg[2048];
-		char szMsgFull[2048];
+		va_list args;
+		va_start(args, format);
 		vsprintf(szMsg, format, args);
-		sprintf(szMsgFull, "(line %d) %s", gf_xml_sax_get_line(parser->sax_parser), szMsg);
-		parser->load->OnMessage(parser->load->cbk, szMsgFull, e);
-	} else {
-		fprintf(stdout, "(line %d) ", gf_xml_sax_get_line(parser->sax_parser));
-		vfprintf(stdout, format, args);
-		fprintf(stdout, "\n");
+		va_end(args);
+		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[XMT Parsing] %s (line %d)\n", szMsg, gf_xml_sax_get_line(parser->sax_parser)) );
 	}
-	va_end(args);
-	if (e) 
-		parser->last_error = e;
+#endif
+	if (e) parser->last_error = e;
 	return e;
 }
 static void xmt_progress(void *cbk, u32 done, u32 total)
 {
-	GF_XMTParser *parser = cbk;
-	if (parser->load && parser->load->OnProgress)
-		parser->load->OnProgress(parser->load->cbk, done, total);
+	gf_set_progress("XMT Parsing", done, total);
 }
 static Bool xmt_esid_available(GF_XMTParser *parser, u16 ESID) 
 {
@@ -2748,11 +2741,8 @@ GF_Err gf_sm_load_init_xmt(GF_SceneLoader *load)
 
 	if (!load->fileName) return GF_BAD_PARAM;
 	parser = xmt_new_parser(load);
-
-	if (load->OnMessage) load->OnMessage(load->cbk, "MPEG-4 (XMT) Scene Parsing", GF_OK);
-	else fprintf(stdout, "MPEG-4 (XMT) Scene Parsing\n");
-
-	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, parser->load->OnProgress ? xmt_progress : NULL);
+	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("XMT: MPEG-4 (XMT) Scene Parsing\n"));
+	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, xmt_progress);
 	if (e<0) xmt_report(parser, e, "Invalid XML document: %s", gf_xml_sax_get_error(parser->sax_parser));
 	return parser->last_error;
 }

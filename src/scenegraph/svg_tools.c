@@ -91,7 +91,7 @@ void gf_sg_handle_dom_event(SVGhandlerElement *hdl, GF_DOM_Event *event)
 		if (hdl->sgprivate->scenegraph->svg_js->script_execute(hdl->sgprivate->scenegraph, hdl->textContent, event)) return;
 #endif
 	/*no clue what this is*/
-	fprintf(stdout, "SVG: Unknown handler\n");
+	GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[SVG] Unknown event handler\n"));
 }
 
 static void svg_process_event(SVGlistenerElement *listen, GF_DOM_Event *event)

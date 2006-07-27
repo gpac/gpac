@@ -133,10 +133,6 @@ typedef struct __track_import
 	u32 trackID;
 	/*media source - selects importer type based on extension*/
 	char *in_name;
-	/*progress notif - if NULL dumps to stdout*/
-	void (*import_progress)(struct __track_import*, u32 cur_sample, u32 sample_count);
-	/*messages notif - if NULL dumps to stdout*/
-	void (*import_message)(struct __track_import*, GF_Err e, const char *message);
 	/*import duration if any*/
 	u32 duration;
 	/*importer flags*/
@@ -152,9 +148,6 @@ typedef struct __track_import
 	/*track ID of imported media in destination file*/
 	u32 final_trackID;
 	
-	/*opaque user handle*/
-	void *user_data;
-
 	/*for MP4 import only*/
 	GF_ISOFile *orig;
 
@@ -215,17 +208,10 @@ typedef struct __track_exporter
 	u32 sample_num;
 	/*out name WITHOUT extension*/
 	char *out_name;
-	/*progress notif - if NULL prints to stdout*/
-	void (*export_progress)(struct __track_exporter*, u32 cur_sample, u32 sample_count);
-	/*messages notif - if NULL prints to stdout*/
-	void (*export_message)(struct __track_exporter*, GF_Err e, const char *message);
 	/*dump type*/
 	u32 flags;
 	/*non-IsoMedia file (AVI)*/
 	char *in_name;
-
-	/*opaque user handle*/
-	void *user_data;
 } GF_MediaExporter;
 
 /*if error returns same value as error signaled in message*/
@@ -240,8 +226,7 @@ typedef struct __tag_isom_hinter GF_RTPHinter;
 
 GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum, 
 							u32 Path_MTU, u32 max_ptime, u32 default_rtp_rate, u32 hint_flags, u8 PayloadID, 
-							Bool copy_media, u32 InterleaveGroupID, u8 InterleaveGroupPriority,
-							void (*OnProgress)(void *cbk_obj, u32 done, u32 total), void *cbk_obj, GF_Err *e);
+							Bool copy_media, u32 InterleaveGroupID, u8 InterleaveGroupPriority, GF_Err *e);
 /*delete the track hinter*/
 void gf_hinter_track_del(GF_RTPHinter *tkHinter);
 /*hints all samples in the media track*/
@@ -286,7 +271,7 @@ signal data mime-type (OD, BIFS or any) */
 Bool gf_hinter_can_embbed_data(char *data, u32 data_size, u32 streamType);
 
 /*save file as fragmented movie*/
-GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double MaxFragmentDuration, void (*OnProgress)(void *cbk, u32 total, u32 done), void *cbk);
+GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double MaxFragmentDuration);
 
 /*adds chapter info contained in file - import_fps is optional (most formats don't use it), defaults to 25*/
 GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import_fps);
@@ -295,19 +280,16 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 /*make the file ISMA compliant: creates ISMA BIFS / OD tracks if needed, and update audio/video IDs
 the file should not contain more than one audio and one video track
 @keepImage: if set, generates system info if image is found - only used for image imports
-@LogMsg: redirection for message or NULL for stdout
 */
-GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, Bool no_ocr, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk);
+GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, Bool no_ocr);
 
 /*make the file 3GP compliant && sets profile
-@LogMsg: redirection for message or NULL for stdout
 */
-GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk);
+GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file);
 
 /*make the file playable on a PSP
-@LogMsg: redirection for message or NULL for stdout
 */
-GF_Err gf_media_make_psp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk);
+GF_Err gf_media_make_psp(GF_ISOFile *mp4file);
 
 /*creates (if needed) a GF_ESD for the given track - THIS IS RESERVED for local playback
 only, since the OTI used when emulated is not standard...*/

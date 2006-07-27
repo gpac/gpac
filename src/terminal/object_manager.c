@@ -1175,7 +1175,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	/*Handle broadcast environment, do not stop the object if no time control and instruction
 	comes from the scene*/
 	if (odm->no_time_ctrl && !force_close) {
-		//fprintf(stdout, "OD%d - broadcast detected, ignoring Stop from scene\n", odm->OD->objectDescriptorID);
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[MediaObject] ODM%d - broadcast detected, ignoring Stop from scene\n", odm->OD->objectDescriptorID);
 		return;
 	}
 #endif

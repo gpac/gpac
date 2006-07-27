@@ -456,8 +456,6 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	GF_SceneGraph *pSG;
 	GF_Route *r;
 
-//	fprintf(stdout, "unregister %8x from %8x\n", pNode, parentNode);
-
 	if (!pNode) return GF_OK;
 	pSG = pNode->sgprivate->scenegraph;
 	/*if this is a proto its is registered in its parent graph, not the current*/
@@ -538,8 +536,6 @@ GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 	GF_SceneGraph *pSG; 
 	if (!node) return GF_OK;
 	
-//	fprintf(stdout, "register %8x in %8x\n", node, parentNode);
-
 	pSG = node->sgprivate->scenegraph;
 	/*if this is a proto register to the parent graph, not the current*/
 	if (node == (GF_Node*)pSG->pOwningProto) pSG = pSG->parent_scene;

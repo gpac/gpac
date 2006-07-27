@@ -38,7 +38,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start, const char *tmpdir);
 GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir);
 
-GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts);
+GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *logs);
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir);
 
 GF_ISOFile *package_file(char *file_name, const char *tmpdir);
@@ -64,7 +64,7 @@ const char *GetLanguageCode(char *lang);
 void dump_mpeg2_ts(char *mpeg2ts_in, char *pes_out_name);
 
 
-Bool quiet_mode = 0;
+Bool quiet = 0;
 
 /*some global vars for swf import :(*/
 u32 swf_flags = 0;
@@ -229,7 +229,7 @@ void PrintEncodeUsage()
 			"                       * Note: cannot be used with -shadow\n"
 			" -shadow time_ms:     forces BIFS sync shadow sample generation every time_ms.\n"
 			"                       * Note: cannot be used with -sync\n"
-			" -log:                generates BIFS encoder log file\n"
+			" -log:                generates scene codec log file if available\n"
 			" -ms file:            specifies file for track importing\n"
 			"\nChunk Processing\n"
 			" -ctx-in file:        specifies initial context (MP4/BT/XMT)\n"
@@ -451,6 +451,14 @@ void PrintUsage()
 }
 
 
+void scene_coding_log(void *cbk, u32 log_level, u32 log_tool, const char *fmt, va_list vlist)
+{
+	FILE *logs = cbk;
+	if (log_tool != GF_LOG_CODING) return;
+    vfprintf(logs, fmt, vlist);
+	fflush(logs);
+}
+
 #ifndef GPAC_READ_ONLY
 
 /*
@@ -591,8 +599,7 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 		}
 		if (interleave) sl_mode |= GP_RTP_PCK_USE_INTERLEAVING;
 
-		hinter = gf_hinter_track_new(file, i+1, MTUSize, max_ptime, rtp_rate, sl_mode, init_payt, copy, media_group, media_prio, 
-			quiet_mode ? NULL : gf_cbk_on_progress, "Hinting", &e);
+		hinter = gf_hinter_track_new(file, i+1, MTUSize, max_ptime, rtp_rate, sl_mode, init_payt, copy, media_group, media_prio, &e);
 
 		if (!hinter) {
 			if (e) {
@@ -765,6 +772,8 @@ static Bool can_convert_to_isma(GF_ISOFile *file)
 }
 #endif
 
+static void progress_quiet(void *cbck, char *title, u32 done, u32 total) { }
+
 
 typedef struct
 {
@@ -794,7 +803,6 @@ typedef struct
 	char szName[1024], mime_type[1024], enc_type[1024];
 	u32 item_id;
 } MetaAction;
-
 
 /*for SDP_EX, AddTrack and RemTrack*/
 #define MAX_CUMUL_OPS	20
@@ -948,7 +956,7 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-?")) { PrintUsage(); return 0; }
 		else if (!stricmp(arg, "-version")) { PrintVersion(); return 0; }
 		else if (!stricmp(arg, "-sdp")) print_sdp = 1;
-		else if (!stricmp(arg, "-quiet")) quiet_mode = 1;
+		else if (!stricmp(arg, "-quiet")) quiet = 1;
 		else if (!stricmp(arg, "-info")) {
 			print_info = 1;
 			if ((i+1<(u32) argc) && (sscanf(argv[i+1], "%d", &info_track_id)==1)) {
@@ -1551,6 +1559,13 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+	gf_log_set_level(GF_LOG_INFO);
+	gf_log_set_tools(GF_LOG_CONTAINER|GF_LOG_SCENE|GF_LOG_PARSER|GF_LOG_AUTHOR);
+	if (quiet) {
+		gf_log_set_level(0);
+		gf_set_progress_callback(NULL, progress_quiet);
+
+	}
 	/*init libgpac*/
 	gf_sys_init();
 
@@ -1679,16 +1694,17 @@ int main(int argc, char **argv)
 #endif
 	else if (encode) {
 #ifndef GPAC_READ_ONLY
-		char logfile[5000];
+		FILE *logs = NULL;
 		if (do_log) {
+			char logfile[5000];
 			strcpy(logfile, inName);
 			if (strchr(logfile, '.')) {
 				while (logfile[strlen(logfile)-1] != '.') logfile[strlen(logfile)-1] = 0;
 				logfile[strlen(logfile)-1] = 0;
 			}
-			strcat(logfile, "_log.txt");
+			strcat(logfile, "_enc.logs");
+			logs = fopen(logfile, "wt");
 		}
-
 		strcpy(outfile, outName ? outName : inName);
 		if (strchr(outfile, '.')) {
 			while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
@@ -1696,9 +1712,9 @@ int main(int argc, char **argv)
 		}
 		strcat(outfile, ".mp4");
 		file = gf_isom_open(outfile, GF_ISOM_WRITE_EDIT, tmpdir);
-		opts.logFile = do_log ? logfile : NULL;
 		opts.mediaSource = mediaSource ? mediaSource : outfile;
-		e = EncodeFile(inName, file, &opts);
+		e = EncodeFile(inName, file, &opts, logs);
+		if (logs) fclose(logs);
 		if (e) goto err_exit;
 #else
 		fprintf(stdout, "Cannot encode file - read-only release\n");
@@ -1986,19 +2002,19 @@ int main(int argc, char **argv)
 		if (MakeISMA) {
 			fprintf(stdout, "Converting to ISMA Audio-Video MP4 file...\n");
 			/*keep ESIDs when doing ISMACryp*/
-			e = gf_media_make_isma(file, ismaCrypt ? 1 : 0, 0, (MakeISMA==2) ? 1 : 0, NULL, NULL);
+			e = gf_media_make_isma(file, ismaCrypt ? 1 : 0, 0, (MakeISMA==2) ? 1 : 0);
 			if (e) goto err_exit;
 			needSave = 1;
 		}
 		if (Make3GP) {
 			fprintf(stdout, "Converting to 3GP file...\n");
-			e = gf_media_make_3gpp(file, NULL, NULL);
+			e = gf_media_make_3gpp(file);
 			if (e) goto err_exit;
 			needSave = 1;
 		}
 		if (make_psp) {
 			fprintf(stdout, "Converting to PSP file...\n");
-			e = gf_media_make_psp(file, NULL, NULL);
+			e = gf_media_make_psp(file);
 			if (e) goto err_exit;
 			needSave = 1;
 		}
@@ -2015,9 +2031,9 @@ int main(int argc, char **argv)
 					e = GF_BAD_PARAM;
 					goto err_exit;
 				}
-				e = gf_ismacryp_crypt_file(file, drm_file, NULL, NULL);
+				e = gf_ismacryp_crypt_file(file, drm_file);
 			} else if (ismaCrypt ==2) {
-				e = gf_ismacryp_decrypt_file(file, drm_file, NULL, NULL);
+				e = gf_ismacryp_decrypt_file(file, drm_file);
 			}
 			if (e) goto err_exit;
 			needSave = 1;
@@ -2142,7 +2158,7 @@ int main(int argc, char **argv)
 		if (!InterleavingTime) InterleavingTime = 0.5;
 		if (HintIt) fprintf(stdout, "Warning: cannot hint and fragment - ignoring hint\n");
 		fprintf(stdout, "Fragmenting file (%.3f seconds fragments)\n", InterleavingTime);
-		e = gf_media_fragment_file(file, outfile, InterleavingTime, quiet_mode ? NULL : gf_cbk_on_progress, "Fragmenting");
+		e = gf_media_fragment_file(file, outfile, InterleavingTime);
 		if (e) fprintf(stdout, "Error while fragmenting file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		if (!e && !outName && !force_new) {
@@ -2244,7 +2260,8 @@ int main(int argc, char **argv)
 		else if (FullInter) fprintf(stdout, "Full Interleaving\n");
 		else if (do_flat || !InterleavingTime) fprintf(stdout, "Flat storage\n");
 		else fprintf(stdout, "%.3f secs Interleaving%s\n", InterleavingTime, old_interleave ? " - no drift control" : "");
-		e = gf_isom_close_progress(file, quiet_mode ? NULL : gf_cbk_on_progress, "Writing");
+
+		e = gf_isom_close(file);
 		if (e) goto err_exit;
 		if (!outName && !encode && !force_new && !do_package) {
 			if (remove(inName)) fprintf(stdout, "Error removing file %s\n", inName);

@@ -291,9 +291,6 @@ GF_ISOFile *gf_isom_open(const char *fileName, u32 OpenMode, const char *tmp_dir
 
 /*close the file, write it if new/edited*/
 GF_Err gf_isom_close(GF_ISOFile *the_file);
-/*same as above + progress notification (may be NULL). Gives an estimation of media samples to be written
-to disk*/
-GF_Err gf_isom_close_progress(GF_ISOFile *the_file, void (*progress)(void *cbk, u32 done, u32 total), void *cbck);
 
 /*delete the movie without saving it.*/
 void gf_isom_delete(GF_ISOFile *the_file);
@@ -1391,7 +1388,7 @@ GF_Err gf_isom_avc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 Desc
 and ESD will be emulated for text tracks.*/
 GF_Err gf_isom_text_set_streaming_mode(GF_ISOFile *the_file, Bool do_convert);
 
-GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, Bool srt_dump, void (*OnProgress)(void *cbj, u32 done, u32 total), void *cbk);
+GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, Bool srt_dump);
 
 /*returns encoded TX3G box (text sample description for 3GPP text streams) as needed by RTP or other standards:
 	@sidx: 1-based stream description index

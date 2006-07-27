@@ -2339,7 +2339,7 @@ static char *ttd_format_time(u64 ts, u32 timescale, char *szDur, Bool is_srt)
 	return szDur;
 }
 
-static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dump, void (*OnProgress)(void *cbj, u32 done, u32 total), void *cbk)
+static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dump)
 {
 	u32 i, j, count, di, len, nb_descs, shift_offset[20], so_count;
 	u64 last_DTS;
@@ -2548,18 +2548,18 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		fprintf(dump, "</TextSample>\n");
 		gf_isom_sample_del(&s);
 		gf_isom_delete_text_sample(txt);
-		if (OnProgress) OnProgress(cbk, i, count);
+		gf_set_progress("TTXT Extract", i, count);
 	}
 	if (last_DTS < trak->Media->mediaHeader->duration) {
 		fprintf(dump, "<TextSample sampleTime=\"%s\" text=\"\" />\n", ttd_format_time(trak->Media->mediaHeader->duration, trak->Media->mediaHeader->timeScale, szDur, 0));
 	}
 
 	fprintf(dump, "</TextStream>\n");
-	if (count && OnProgress) OnProgress(cbk, count, count);
+	if (count) gf_set_progress("TTXT Extract", count, count);
 	return GF_OK;
 }
 
-static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump, void (*OnProgress)(void *cbj, u32 done, u32 total), void *cbk)
+static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump)
 {
 	u32 i, j, k, count, di, len, ts, cur_frame;
 	u64 start, end;
@@ -2692,16 +2692,16 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 		gf_isom_sample_del(&s);
 		gf_isom_delete_text_sample(txt);
 		fprintf(dump, "\n");
-		if (OnProgress) OnProgress(cbk, i, count);
+		gf_set_progress("SRT Extract", i, count);
 	}
-	if (count && OnProgress) OnProgress(cbk, count, count);
+	if (count) gf_set_progress("SRT Extract", i, count);
 	return GF_OK;
 }
 
-GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, Bool srt_dump, void (*OnProgress)(void *cbj, u32 done, u32 total), void *cbk)
+GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, Bool srt_dump)
 {
-	if (srt_dump) return gf_isom_dump_srt_track(the_file, track, dump, OnProgress, cbk);
-	return gf_isom_dump_ttxt_track(the_file, track, dump, OnProgress, cbk);
+	if (srt_dump) return gf_isom_dump_srt_track(the_file, track, dump);
+	return gf_isom_dump_ttxt_track(the_file, track, dump);
 }
 
 

@@ -36,9 +36,10 @@
 
 
 extern u32 swf_flags;
-extern Bool quiet_mode;
 extern Float swf_flatten_angle;
 extern u32 get_file_type_by_ext(char *inName);
+
+void scene_coding_log(void *cbk, u32 log_level, u32 log_tool, const char *fmt, va_list vlist);
 
 #ifndef GPAC_READ_ONLY
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample);
@@ -98,6 +99,10 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 	GF_SceneGraph *sg;
 	GF_SceneLoader load;
 	u32 ftype;
+	u32 prev_level = gf_log_level;
+	u32 prev_tools = gf_log_tools;
+	gf_log_cbk prev_logs = NULL;
+	FILE *logs = NULL;
 	e = GF_OK;
 
 	sg = gf_sg_new();
@@ -105,8 +110,6 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 	memset(&load, 0, sizeof(GF_SceneLoader));
 	load.fileName = file;
 	load.ctx = ctx;
-	load.OnProgress = quiet_mode ? NULL : gf_cbk_on_progress;
-	load.cbk = "Parsing";
 	load.swf_import_flags = swf_flags;
 	load.swf_flatten_limit = swf_flatten_angle;
 
@@ -136,10 +139,24 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 		}
 	}
 
-	if (do_log) load.flags = GF_SM_LOAD_DUMP_BINARY;
+	if (do_log) {
+		char szLog[GF_MAX_PATH];
+		sprintf(szLog, "%s_dec.logs", inName);
+		logs = fopen(szLog, "wt");
+
+		gf_log_set_tools(GF_LOG_CODING);
+		gf_log_set_level(GF_LOG_DEBUG);
+		prev_logs = gf_log_set_callback(logs, scene_coding_log);
+	}
 	e = gf_sm_load_init(&load);
 	if (!e) e = gf_sm_load_run(&load);
 	gf_sm_load_done(&load);
+	if (logs) {
+		gf_log_set_tools(gf_log_tools);
+		gf_log_set_level(gf_log_level);
+		gf_log_set_callback(NULL, prev_logs);
+		fclose(logs);
+	}
 	if (!e) {
 		fprintf(stdout, "Scene loaded - dumping %d systems streams\n", gf_list_count(ctx->streams));
 		e = gf_sm_dump(ctx, inName, dump_mode);
@@ -307,8 +324,6 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 		}
 	}
 
-	load.cbk = "Parsing";
-	load.OnProgress = quiet_mode ? NULL : gf_cbk_on_progress;
 	e = gf_sm_load_init(&load);
 	if (!e) e = gf_sm_load_run(&load);
 	gf_sm_load_done(&load);
@@ -384,7 +399,7 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 			fprintf(dump, "</GraphStatistics>\n");
 		}
 
-		if (!quiet_mode) gf_cbk_on_progress("Analysing AU", i+1, count);
+		gf_set_progress("Analysing AU", i+1, count);
 	}
 
 
@@ -692,10 +707,10 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 			}
 
 			fprintf(dump, "\n");
-			if (!quiet_mode) gf_cbk_on_progress("Analysing Track Timing", j+1, count);
+			gf_set_progress("Analysing Track Timing", j+1, count);
 		}
 		fprintf(dump, "\n\n");
-		if (!quiet_mode) gf_cbk_on_progress("Analysing Track Timing", count, count);
+		gf_set_progress("Analysing Track Timing", count, count);
 	}
 	if (inName) fclose(dump);
 	if (has_error) fprintf(stdout, "\tFile has CTTS table errors\n");
@@ -763,7 +778,7 @@ void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_
 	} else {
 		dump = stdout;
 	}
-	e = gf_isom_text_dump(file, track, dump, to_srt, quiet_mode ? NULL : gf_cbk_on_progress, "Converting");
+	e = gf_isom_text_dump(file, track, dump, to_srt);
 	if (inName) fclose(dump);
 
 	if (e) fprintf(stdout, "Conversion failed (%s)\n", gf_error_to_string(e));
@@ -1465,9 +1480,8 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name)
 		gf_m2ts_process_data(ts, data, size);
 
 		fdone += size;
-		gf_cbk_on_progress("MPEG-2 TS Parsing", fdone, fsize);
+		gf_set_progress("MPEG-2 TS Parsing", fdone, fsize);
 	}
-	//gf_cbk_on_progress("MPEG-2 TS Parsing", fsize, fsize);
 
 	fclose(src);
 	gf_m2ts_demux_del(ts);

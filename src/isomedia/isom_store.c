@@ -82,8 +82,6 @@ typedef struct
 	u32 size;
 	GF_ISOFile *movie;
 	u32 total_samples, nb_done;
-	void (*progress)(void *cbk, u32 done, u32 total);
-	void *cbck;
 } MovieWriter;
 
 void CleanWriters(GF_List *writers)
@@ -365,10 +363,8 @@ GF_Err WriteSample(MovieWriter *mw, u32 size, u64 offset, u8 isEdited, GF_BitStr
 	bytes = gf_bs_write_data(bs, (unsigned char*)mw->buffer, size);
 	if (bytes != size) return GF_IO_ERR;
 
-	if (mw->progress) {
-		mw->nb_done++;
-		mw->progress(mw->cbck, mw->nb_done, mw->total_samples);
-	}
+	mw->nb_done++;
+	gf_set_progress("ISO File Writing", mw->nb_done, mw->total_samples);
 	return GF_OK;
 }
 
@@ -1167,7 +1163,7 @@ exit:
 }
 
 
-GF_Err WriteToFile(GF_ISOFile *movie, void (*progress)(void *cbk, u32 done, u32 total), void *cbck)
+GF_Err WriteToFile(GF_ISOFile *movie)
 {
 	FILE *stream;
 	GF_BitStream *bs;
@@ -1182,8 +1178,6 @@ GF_Err WriteToFile(GF_ISOFile *movie, void (*progress)(void *cbk, u32 done, u32 
 
 	memset(&mw, 0, sizeof(mw));
 	mw.movie = movie;
-	mw.progress = progress;
-	mw.cbck = cbck;
 
 	//capture mode: we don't need a new bitstream
 	if (movie->openMode == GF_ISOM_OPEN_WRITE) {
@@ -1218,8 +1212,8 @@ GF_Err WriteToFile(GF_ISOFile *movie, void (*progress)(void *cbk, u32 done, u32 
 		fclose(stream);
 	}
 	if (mw.buffer) free(mw.buffer);
-	if (progress && (mw.nb_done<mw.total_samples)) {
-		progress(cbck, mw.total_samples, mw.total_samples);
+	if (mw.nb_done<mw.total_samples) {
+		gf_set_progress("ISO File Writing", mw.total_samples, mw.total_samples);
 	}
 	return e;
 }

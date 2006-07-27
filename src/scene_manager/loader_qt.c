@@ -33,18 +33,16 @@
 
 static GF_Err gf_qt_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
 {
-	va_list args;
-	va_start(args, format);
-	if (load->OnMessage) {
-		char szMsg[2048];
-		char szMsgFull[2048];
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_level && (gf_log_tools & GF_LOG_PARSER)) {
+		char szMsg[1024];
+		va_list args;
+		va_start(args, format);
 		vsprintf(szMsg, format, args);
-		load->OnMessage(load->cbk, szMsgFull, e);
-	} else {
-		vfprintf(stdout, format, args);
-		fprintf(stdout, "\n");
+		va_end(args);
+		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[QT Parsing] %s\n", szMsg) );
 	}
-	va_end(args);
+#endif
 	return e;
 }
 
@@ -110,7 +108,7 @@ GF_Err gf_sm_load_init_QT(GF_SceneLoader *load)
 		return gf_qt_report(load, GF_NOT_SUPPORTED, "Movie %s doesn't look a Cubic QTVR - sorry...", load->fileName);
 	}
 
-	gf_qt_report(load, GF_OK, "Importing Cubic QTVR Movie");
+	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("QT: Importing Cubic QTVR Movie"));
 
 	/*create scene*/
 	sg = load->ctx->scene_graph;

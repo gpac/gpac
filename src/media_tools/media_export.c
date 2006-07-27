@@ -35,30 +35,19 @@
 
 static GF_Err gf_export_message(GF_MediaExporter *dumper, GF_Err e, char *format, ...)
 {
-	va_list args;
 	if (dumper->flags & GF_EXPORT_PROBE_ONLY) return e;
 
-	va_start(args, format);
-	if (dumper->export_message) {
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_level && (gf_log_tools & GF_LOG_AUTHOR)) {
+		va_list args;
 		char szMsg[1024];
+		va_start(args, format);
 		vsprintf(szMsg, format, args);
-		dumper->export_message(dumper, e, szMsg);
-	} else {
-		vfprintf(stdout,format,args);
-		fprintf(stdout, "\n");
-		if (e) fprintf(stderr, "Error: %s\n", gf_error_to_string(e));
+		va_end(args);
+		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_AUTHOR, ("%s\n", szMsg) );
 	}
-	va_end(args);
+#endif
 	return e;
-}
-
-void dump_progress(GF_MediaExporter *dumper, u32 cur_samp, u32 count)
-{
-	if (dumper->export_progress) {
-		dumper->export_progress(dumper, cur_samp, count);
-	} else {
-		gf_cbk_on_progress("Exporting", cur_samp, count);
-	}
 }
 
 /*that's very very crude, we only support vorbis & theora in MP4 - this will need cleanup as soon as possible*/
@@ -159,7 +148,7 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 		gf_isom_sample_del(&samp);
 		samp = next_samp;
 		next_samp = NULL;
-		dump_progress(dumper, i+1, count);
+		gf_set_progress("OGG Export", i+1, count);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 
 		while (ogg_stream_pageout(&os, &og)>0) {
@@ -212,9 +201,9 @@ GF_Err gf_export_hint(GF_MediaExporter *dumper)
 		fclose(out);
 		free(pck);
 		i++;
-		if (count) dump_progress(dumper, sn, count);
+		if (count) gf_set_progress("Hint Export", sn, count);
 	}
-	if (count) dump_progress(dumper, count, count);
+	if (count) gf_set_progress("Hint Export", count, count);
 
 	return GF_OK;
 }
@@ -377,7 +366,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
 		gf_bs_write_data(bs, samp->data, samp->dataLength);
 		gf_isom_sample_del(&samp);
-		dump_progress(dumper, i+1, count);
+		gf_set_progress("Media Export", i+1, count);
 		gf_bs_del(bs);
 		fclose(out);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
@@ -486,7 +475,7 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 		}
 
 		gf_isom_sample_del(&samp);
-		dump_progress(dumper, i + 1, count);
+		gf_set_progress("VobSub Export", i + 1, count);
 
 		if (dumper->flags & GF_EXPORT_DO_ABORT) {
 			break;
@@ -925,7 +914,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		}
 		if (!avccfg) gf_bs_write_data(bs, samp->data, samp->dataLength);
 		gf_isom_sample_del(&samp);
-		dump_progress(dumper, i+1, count);
+		gf_set_progress("Media Export", i+1, count);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 	}
 	if (has_qcp_pad) gf_bs_write_u8(bs, 0);
@@ -990,7 +979,7 @@ GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 			}
 			AVI_read_frame(in, frame, &key);
 			if ((u32) size>4) fwrite(frame, 1, size, fout);
-			dump_progress(dumper, i+1, num_samples);
+			gf_set_progress("AVI Extract", i+1, num_samples);
 		}
 		free(frame);
 		fclose(fout);
@@ -1036,7 +1025,7 @@ GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 		if (!size) break;
 		num_samples += size;
 		fwrite(frame, 1, size, fout);
-		dump_progress(dumper, num_samples, tot_size);
+		gf_set_progress("AVI Extract", num_samples, tot_size);
 
 	}
 
@@ -1145,7 +1134,7 @@ GF_Err gf_media_export_nhnt(GF_MediaExporter *dumper)
 
 		pos += samp->dataLength;
 		gf_isom_sample_del(&samp);
-		dump_progress(dumper, i+1, count);
+		gf_set_progress("NHNT Export", i+1, count);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 	}
 	fclose(out_med);
@@ -1231,9 +1220,9 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 			}
 		}
 		gf_isom_sample_del(&samp);
-		dump_progress(dumper, i, count);
+		gf_set_progress("ISO File Export", i, count);
 	}
-	dump_progress(dumper, count, count);
+	gf_set_progress("ISO File Export", count, count);
 
 	if (msubtype == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
 		esd = gf_isom_get_esd(infile, inTrackNum, 1);
@@ -1453,7 +1442,7 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 			AVI_write_frame(avi_out, dumdata, 1, 0);
 			frame_d--;
 		}
-		dump_progress(dumper, i+1, count);
+		gf_set_progress("AVI Export", i+1, count);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 	}
 
@@ -1568,7 +1557,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper)
 
 		pos += samp->dataLength;
 		gf_isom_sample_del(&samp);
-		dump_progress(dumper, i+1, count);
+		gf_set_progress("NHML Export", i+1, count);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 	}
 	fprintf(nhml, "</NHNTStream>\n");
@@ -1673,7 +1662,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 			fwrite(data, size, 1, saf_f);
 			free(data);
 		}
-		dump_progress(dumper, samp_done, tot_samp);
+		gf_set_progress("SAF Export", samp_done, tot_samp);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 	}	
 	gf_saf_mux_for_time(mux, (u32) -1, 1, &data, &size);
@@ -1802,10 +1791,10 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 		if (size<188) break;
 		gf_m2ts_process_data(ts, data, size);
 		fdone += size;
-		dump_progress(dumper, fdone, fsize);
+		gf_set_progress("MPEG-2 TS Extract", fdone, fsize);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 	}
-	dump_progress(dumper, fsize, fsize);
+	gf_set_progress("MPEG-2 TS Extract", fsize, fsize);
 	fclose(dst);
 	fclose(src);
 	gf_m2ts_demux_del(ts);

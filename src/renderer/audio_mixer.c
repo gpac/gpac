@@ -595,7 +595,9 @@ single_source_mix:
 
 	/*not completely filled*/
 	if (buffer_size) {
-		//if (!data) fprintf(stdout, "NOT ENOUGH INPUT DATA %d remain\n", buffer_size);
+		if (!data) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Audio Mixer] not enough input data (%d still to fill)\n", buffer_size));
+		}
 		memset(ptr, 0, buffer_size);
 	}
 

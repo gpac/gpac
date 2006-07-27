@@ -252,8 +252,10 @@ char *gf_strdup(const char *str);
 
 #if defined (WIN32) && !defined(__GNUC__)
 #define LLD "%I64d"
+#define LLU "%I64u"
 #else
 #define LLD "%lld"
+#define LLU "%llu"
 #endif
 
 #ifdef __cplusplus

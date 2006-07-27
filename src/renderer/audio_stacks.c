@@ -485,7 +485,7 @@ static void AB_ReleaseFrame(void *callback, u32 nb_bytes)
 			/*reading faster than buffering - let's still attempt to fill the buffer*/
 #if 0
 			st->write_pos = st->buffer_size;
-			fprintf(stdout, "Warning: AudioBuffer done playing before buffer filling done\n");
+			GF_LOG(GF_LOG_WARNING, GF_LOG_RENDER, ("[AudioBuffer] done playing before buffer filling done\n"));
 #endif
 		} else if ( ((M_AudioBuffer*)st->output.owner)->loop) {
 			st->read_pos = 0;

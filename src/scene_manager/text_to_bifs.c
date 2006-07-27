@@ -96,7 +96,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	GF_StreamContext *sc = NULL;
 
 	if (!ctx->scene_graph) {
-		fprintf(stdout, "Error importing SRT: base scene not assigned\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] base scene not assigned\n"));
 		return GF_BAD_PARAM;
 	}
 	i=0;
@@ -106,20 +106,20 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	}
 
 	if (!sc) {
-		fprintf(stdout, "Error importing SRT: Cannot locate base scene\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] cannot locate base scene\n"));
 		return GF_BAD_PARAM;
 	}
 	if (!mux->textNode) {
-		fprintf(stdout, "Error importing SRT: Target text node unspecified\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] Target text node unspecified\n"));
 		return GF_BAD_PARAM;
 	}
 	text = gf_sg_find_node_by_name(ctx->scene_graph, mux->textNode);
 	if (!text) {
-		fprintf(stdout, "Error importing SRT: Cannot find target text node %s\n", mux->textNode);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] cannot find target text node %s\n", mux->textNode));
 		return GF_BAD_PARAM;
 	}
 	if (gf_node_get_field_by_name(text, "string", &string) != GF_OK) {
-		fprintf(stdout, "Error importing SRT: Target text node %s doesn't look like text\n", mux->textNode);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] Target text node %s doesn't look like text\n", mux->textNode));
 		return GF_BAD_PARAM;
 	}
 
@@ -127,18 +127,18 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	if (mux->fontNode) {
 		font = gf_sg_find_node_by_name(ctx->scene_graph, mux->fontNode);
 		if (!font) {
-			fprintf(stdout, "Error importing SRT: Cannot find target font node %s\n", mux->fontNode);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] cannot find target font node %s\n", mux->fontNode));
 			return GF_BAD_PARAM;
 		}
 		if (gf_node_get_field_by_name(font, "style", &style) != GF_OK) {
-			fprintf(stdout, "Error importing SRT: Target font node %s doesn't look like font\n", mux->fontNode);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] Target font node %s doesn't look like font\n", mux->fontNode));
 			return GF_BAD_PARAM;
 		}
 	}
 
 	srt_in = fopen(mux->file_name, "rt");
 	if (!srt_in) {
-		fprintf(stdout, "Cannot open input SRT %s\n", mux->file_name);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] cannot open input file %s\n", mux->file_name));
 		return GF_URL_ERROR;
 	}
 
@@ -216,12 +216,12 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		switch (state) {
 		case 0:
 			if (sscanf(szLine, "%d", &line) != 1) {
-				fprintf(stdout, "Bad SRT format\n");
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] bad frame format (src: %s)\n", szLine));
 				e = GF_CORRUPTED_DATA;
 				goto exit;
 			}
 			if (line != curLine + 1) {
-				fprintf(stdout, "Error importing SRT frame (previous %d, current %d)\n", curLine, line);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] bad frame: previous %d - current %d (src: %s)\n", curLine, line, szLine));
 				e = GF_CORRUPTED_DATA;
 				goto exit;
 			}
@@ -230,13 +230,13 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			break;
 		case 1:
 			if (sscanf(szLine, "%d:%d:%d,%d --> %d:%d:%d,%d", &sh, &sm, &ss, &sms, &eh, &em, &es, &ems) != 8) {
-				fprintf(stdout, "Error importing SRT frame %d\n", curLine);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] bad frame %d (src: %s)\n", curLine, szLine));
 				e = GF_CORRUPTED_DATA;
 				goto exit;
 			}
 			start = (3600*sh + 60*sm + ss)*1000 + sms;
 			if (start<end) {
-				fprintf(stdout, "WARNING: corrupted SRT frame starts before end of previous one (SRT Frame %d) - adjusting time stamps\n", curLine);
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[srt->bifs] corrupted frame starts before end of previous one (SRT Frame %d) - adjusting time stamps\n", curLine));
 				start = end;
 			}
 			end = (3600*eh + 60*em + es)*1000 + ems;
@@ -345,7 +345,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	GF_StreamContext *sc = NULL;
 
 	if (!ctx->scene_graph) {
-		fprintf(stdout, "Error importing SUB: base scene not assigned\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] base scene not assigned\n"));
 		return GF_BAD_PARAM;
 	}
 	i=0;
@@ -355,20 +355,20 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	}
 
 	if (!sc) {
-		fprintf(stdout, "Error importing SUB: Cannot locate base scene\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] cannot locate base scene\n"));
 		return GF_BAD_PARAM;
 	}
 	if (!mux->textNode) {
-		fprintf(stdout, "Error importing SUB: Target text node unspecified\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] target text node unspecified\n"));
 		return GF_BAD_PARAM;
 	}
 	text = gf_sg_find_node_by_name(ctx->scene_graph, mux->textNode);
 	if (!text) {
-		fprintf(stdout, "Error importing SUB: Cannot find target text node %s\n", mux->textNode);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] cannot find target text node %s\n", mux->textNode));
 		return GF_BAD_PARAM;
 	}
 	if (gf_node_get_field_by_name(text, "string", &string) != GF_OK) {
-		fprintf(stdout, "Error importing SUB: Target text node %s doesn't look like text\n", mux->textNode);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] target text node %s doesn't look like text\n", mux->textNode));
 		return GF_BAD_PARAM;
 	}
 
@@ -376,18 +376,18 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	if (mux->fontNode) {
 		font = gf_sg_find_node_by_name(ctx->scene_graph, mux->fontNode);
 		if (!font) {
-			fprintf(stdout, "Error importing SUB: Cannot find target font node %s\n", mux->fontNode);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] cannot find target font node %s\n", mux->fontNode));
 			return GF_BAD_PARAM;
 		}
 		if (gf_node_get_field_by_name(font, "style", &style) != GF_OK) {
-			fprintf(stdout, "Error importing SUB: Target font node %s doesn't look like font\n", mux->fontNode);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] target font node %s doesn't look like font\n", mux->fontNode));
 			return GF_BAD_PARAM;
 		}
 	}
 
 	sub_in = fopen(mux->file_name, "rt");
 	if (!sub_in) {
-		fprintf(stdout, "Cannot open input SUB %s\n", mux->file_name);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] cannot open input file %s\n", mux->file_name));
 		return GF_URL_ERROR;
 	}
 
@@ -422,7 +422,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 
 		i=0;
 		if (szLine[i] != '{') {
-			fprintf(stdout, "Bad SUB file (line %d): expecting \"{\" got \"%c\"\n", line, szLine[i]);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] Bad frame (line %d): expecting \"{\" got \"%c\"\n", line, szLine[i]));
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			break;
 		}
@@ -430,13 +430,13 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		szTime[i] = 0;
 		start = atoi(szTime);
 		if (start<end) {
-			fprintf(stdout, "WARNING: corrupted SUB frame (line %d) - starts (at %d ms) before end of previous one (%d ms) - adjusting time stamps\n", line, start, end);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[sub->bifs] corrupted SUB frame (line %d) - starts (at %d ms) before end of previous one (%d ms) - adjusting time stamps\n", line, start, end));
 			start = end;
 		}
 		j=i+2;
 		i=0;
 		if (szLine[i+j] != '{') {
-			fprintf(stdout, "Bad SUB file - expecting \"{\" got \"%c\"\n", szLine[i]);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] Bad frame - expecting \"{\" got \"%c\"\n", szLine[i]));
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			break;
 		}
@@ -446,7 +446,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		j+=i+2;
 
 		if (start>end) {
-			fprintf(stdout, "WARNING: corrupted SUB frame (line %d) - ends (at %d ms) before start of current frame (%d ms) - skipping\n", line, end, start);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[sub->bifs] corrupted frame (line %d) - ends (at %d ms) before start of current frame (%d ms) - skipping\n", line, end, start));
 			continue;
 		}
 

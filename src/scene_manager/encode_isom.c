@@ -126,7 +126,7 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 		u32 mtype, track;
 		if (!src->slConfig) src->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 		if (!src->decoderConfig) {
-			fprintf(stdout, "ESD with URL string needs a decoder config with remote stream type to be encoded\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISO File Encode] ESD with URL string needs a decoder config with remote stream type to be encoded\n"));
 			return GF_BAD_PARAM;
 		}
 		/*however we still need a track to store the ESD ...*/
@@ -157,7 +157,7 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 			mtype = GF_ISOM_MEDIA_TEXT;
 			break;
 		default:
-			fprintf(stdout, "Unsupported media type %d for ESD with URL string\n", src->decoderConfig->streamType);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISO File Encode] Unsupported media type %d for ESD with URL string\n", src->decoderConfig->streamType));
 			return GF_BAD_PARAM;
 		}
 		track = gf_isom_new_track(mp4, src->ESID, mtype, 1000);
@@ -226,7 +226,7 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 			else if (src->decoderConfig->streamType == GF_STREAM_AUDIO) isAudio = 1;
 		}
 		if (!isAudio && !isVideo) {
-			fprintf(stdout, "Please specify video or audio for AVI import (file#audio, file#video)\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISO File Encode] missing track specifier for AVI import (file#audio, file#video)\n"));
 			return GF_NOT_SUPPORTED;
 		}
 		if (isVideo) import.trackID = 1;
@@ -384,7 +384,6 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 	u32 i, j, di, rate, init_offset, data_len, count, track, rap_delay, flags, rap_mode;
 	u64 last_rap, dur, time_slice, avg_rate, prev_dts;
 	GF_Err e;
-	FILE *logs;
 	GF_InitialObjectDescriptor *iod;
 	GF_AUContext *au;
 	GF_ISOSample *samp;
@@ -445,9 +444,6 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 		if ((scene_type==0) && (gf_node_get_tag(n)>GF_NODE_RANGE_LAST_X3D) ) return GF_OK;
 	}
 
-	logs = NULL;
-	if (opts && opts->logFile) logs = fopen(opts->logFile, "wt");
-
 	bifs_enc = NULL;
 #ifndef GPAC_DISABLE_SVG
 	lsr_enc = NULL;
@@ -455,7 +451,6 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 
 	if (!scene_type) {
 		bifs_enc = gf_bifs_encoder_new(ctx->scene_graph);
-		if (logs) gf_bifs_encoder_set_trace(bifs_enc, logs);
 		/*no streams defined, encode a RAP*/
 		if (!j) {
 			delete_desc = 0;
@@ -468,7 +463,6 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 	if (scene_type==1) {
 #ifndef GPAC_DISABLE_SVG
 		lsr_enc = gf_laser_encoder_new(ctx->scene_graph);
-		if (logs) gf_laser_set_trace(lsr_enc, logs);
 		/*no streams defined, encode a RAP*/
 		if (!j) {
 			delete_desc = 0;
@@ -850,7 +844,6 @@ exit:
 #ifndef GPAC_DISABLE_SVG
 	if (lsr_enc) gf_laser_encoder_del(lsr_enc);
 #endif
-	if (logs) fclose(logs);
 	if (esd && delete_desc) gf_odf_desc_del((GF_Descriptor *) esd);
 	return e;
 }
@@ -982,7 +975,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 							case GF_ODF_ESD_TAG:
 								e = gf_sm_import_stream(ctx, mp4, imp_esd, mediaSource);
 								if (e) {
-									fprintf(stdout, "Error importing stream %d\n", imp_esd->ESID);
+									GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISO File Encode] cannot import stream %d (error %s)\n", imp_esd->ESID, gf_error_to_string(e)));
 									gf_odf_com_del(&com);
 									goto err_exit;
 								}
@@ -992,7 +985,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 							case GF_ODF_ESD_INC_TAG:
 								break;
 							default:
-								fprintf(stdout, "Invalid descriptor in OD%d.ESDescr\n", od->objectDescriptorID);
+								GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[ISO File Encode] Invalid descriptor in OD%d.ESDescr\n", od->objectDescriptorID));
 								e = GF_BAD_PARAM;
 								goto err_exit;
 								break;
@@ -1011,7 +1004,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 						case GF_ODF_ESD_TAG:
 							e = gf_sm_import_stream(ctx, mp4, imp_esd, mediaSource);
 							if (e) {
-								fprintf(stdout, "Error importing stream %d\n", imp_esd->ESID);
+								GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISO File Encode] cannot import stream %d (error %s)\n", imp_esd->ESID, gf_error_to_string(e)));
 								gf_odf_com_del(&com);
 								goto err_exit;
 							}
@@ -1021,7 +1014,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 						case GF_ODF_ESD_INC_TAG:
 							break;
 						default:
-							fprintf(stdout, "Invalid descriptor in ESDUpdate (OD %d)\n", esdU->ODID);
+							GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[ISO File Encode] Invalid descriptor in ESDUpdate (OD %d)\n", esdU->ODID));
 							e = GF_BAD_PARAM;
 							goto err_exit;
 							break;

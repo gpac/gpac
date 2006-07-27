@@ -49,9 +49,6 @@ struct __tag_isom_hinter
 	/*rtp builder*/
 	GP_RTPPacketizer *rtp_p;
 
-	void (*OnProgress)(void *cbk_obj, u32 done, u32 total);
-	void *cbk_obj;
-
 	u32 bandwidth, nb_chan;
 
 	/*NALU size for H264/AVC*/
@@ -240,8 +237,7 @@ void MP4T_OnNewPacket(void *cbk, GF_RTPHeader *header)
 
 GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum, 
 							u32 Path_MTU, u32 max_ptime, u32 default_rtp_rate, u32 flags, u8 PayloadID, 
-							Bool copy_media, u32 InterleaveGroupID, u8 InterleaveGroupPriority,
-							void (*OnProgress)(void *cbk_obj, u32 done, u32 total), void *cbk_obj, GF_Err *e)
+							Bool copy_media, u32 InterleaveGroupID, u8 InterleaveGroupPriority, GF_Err *e)
 {
 
 	GF_SLConfig my_sl;
@@ -268,7 +264,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 		u8 em;
 		gf_isom_get_edit_segment(file, TrackNum, 1, &et, &sd, &mt, &em);
 		if ((nbEdts>2) || (em!=GF_ISOM_EDIT_EMPTY)) {
-			fprintf(stdout, "Cannot hint track whith EditList\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[rtp hinter] Cannot hint track whith EditList\n"));
 			return NULL;
 		}
 	}
@@ -496,8 +492,6 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 
 	tmp->file = file;
 	tmp->TrackNum = TrackNum;
-	tmp->OnProgress = OnProgress;
-	tmp->cbk_obj = cbk_obj;
 	tmp->avc_nalu_size = avc_nalu_size;
 	tmp->nb_chan = nb_ch;
 
@@ -721,9 +715,7 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 		tkHint->rtp_p->sl_header.packetSequenceNumber += 1;
 
 		//signal some progress
-		if(tkHint->OnProgress != NULL){
-			tkHint->OnProgress(tkHint->cbk_obj, tkHint->CurrentSample, tkHint->TotalSample);
-		}
+		gf_set_progress("Hinting", tkHint->CurrentSample, tkHint->TotalSample);
 
 		tkHint->rtp_p->sl_header.AU_sequenceNumber += 1;
 		gf_isom_sample_del(&samp);
@@ -1038,7 +1030,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 					esd->URLString = malloc(sizeof(char) * size64);
 					strcpy(esd->URLString, sdpLine);
 				} else {
-					fprintf(stdout, "Warning: OD sample too large to be embedded in IOD - ISAM disabled\n");
+					GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[rtp hinter] OD sample too large to be embedded in IOD - ISMA disabled\n"));
 					is_ok = 0;
 				}
 				gf_isom_sample_del(&samp);
@@ -1072,7 +1064,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 				esd->URLString = malloc(sizeof(char) * (strlen(sdpLine)+1));
 				strcpy(esd->URLString, sdpLine);
 			} else {
-				fprintf(stdout, "Warning: Scene description sample too large to be embedded in IOD - ISMA disabled\n");
+				GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[rtp hinter] Scene description sample too large to be embedded in IOD - ISMA disabled\n"));
 				is_ok = 0;
 			}
 			gf_isom_sample_del(&samp);

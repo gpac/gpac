@@ -646,8 +646,9 @@ typedef struct
 	struct JSObject *js_obj;
 	struct JSObject *js_browser;
 	/*all attached objects (eg, not created by the script) are stored here so that we don't
-	allocate them again and again and again when getting properties...*/
-	GF_List *obj_bank;
+	allocate them again and again when getting properties. Garbage collection is performed (if needed)
+	on these objects after each eventIn execution*/
+	GF_List *js_cache;
 #endif
 
 	void (*JS_PreDestroy)(GF_Node *node);
@@ -697,6 +698,7 @@ typedef struct
 {
 	GF_FieldInfo field;
 	GF_Node *owner;
+	JSObject *obj;
 
 	/*JS list for MFFields or NULL*/
 	JSObject *js_list;
@@ -709,7 +711,7 @@ typedef struct
 } GF_JSField;
 
 void gf_sg_script_to_node_field(JSContext *c, jsval v, GF_FieldInfo *field, GF_Node *owner, GF_JSField *parent);
-jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_Node *parent);
+jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_Node *parent, Bool no_cache);
 
 
 

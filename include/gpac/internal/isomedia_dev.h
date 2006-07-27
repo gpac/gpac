@@ -1825,7 +1825,7 @@ GF_Err CanAccessMovie(GF_ISOFile *movie, u32 Mode);
 GF_ISOFile *gf_isom_create_movie(const char *fileName, u32 OpenMode, const char *tmp_dir);
 void gf_isom_insert_moov(GF_ISOFile *file);
 
-GF_Err WriteToFile(GF_ISOFile *movie, void (*progress)(void *cbk, u32 done, u32 total), void *cbck);
+GF_Err WriteToFile(GF_ISOFile *movie);
 GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, u32 DataReferenceIndex, GF_ESD *esd, u32 *outStreamIndex);
 u8 RequestTrack(GF_MovieBox *moov, u32 TrackID);
 /*Track-Media setup*/

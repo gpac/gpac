@@ -27,19 +27,11 @@
 #include <gpac/bitstream.h>
 #include <gpac/math.h>
 
-static void lsr_enc_log_bits(GF_LASeRCodec *lsr, u32 val, u32 nb_bits, const char *name)
-{
-	if (!lsr->trace) return;
-	fprintf(lsr->trace, "%s\t\t%d\t\t%d", name, nb_bits, val);
-	fprintf(lsr->trace, "\n");
-}
-
 
 #define GF_LSR_WRITE_INT(_codec, _val, _nbBits, _str)	{\
 	gf_bs_write_int(_codec->bs, _val, _nbBits);	\
-	lsr_enc_log_bits(_codec, _val, _nbBits, _str); \
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", _str, _nbBits, _val)); \
 	}\
-
 
 static void lsr_write_group_content(GF_LASeRCodec *lsr, SVGElement *elt, Bool skip_object_content);
 static GF_Err lsr_write_command_list(GF_LASeRCodec *lsr, GF_List *comList, SVGconditionalElement *script, Bool first_implicit);
@@ -77,12 +69,6 @@ void gf_laser_encoder_del(GF_LASeRCodec *codec)
 	free(codec);
 }
 
-
-void gf_laser_set_trace(GF_LASeRCodec *codec, FILE *trace)
-{
-	codec->trace = trace;
-	if (trace) fprintf(codec->trace, "Name\t\tNbBits\t\tValue\t\t//comment\n\n");
-}
 
 static LASeRStreamInfo *lsr_get_stream(GF_LASeRCodec *codec, u16 ESID)
 {
@@ -216,7 +202,7 @@ static void lsr_write_vluimsbf5(GF_LASeRCodec *lsr, u32 val, const char *name)
 		gf_bs_write_int(lsr->bs, nb_words ? 1 : 0, 1);
 	}
 	gf_bs_write_int(lsr->bs, val, nb_bits);
-	lsr_enc_log_bits(lsr, val, nb_tot, name);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", name, nb_tot, val));
 }
 
 static void lsr_write_vluimsbf8(GF_LASeRCodec *lsr, u32 val, const char *name)
@@ -233,7 +219,7 @@ static void lsr_write_vluimsbf8(GF_LASeRCodec *lsr, u32 val, const char *name)
 		gf_bs_write_int(lsr->bs, nb_words ? 1 : 0, 1);
 	}
 	gf_bs_write_int(lsr->bs, val, nb_bits);
-	lsr_enc_log_bits(lsr, val, nb_tot, name);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", name, nb_tot, val));
 }
 
 static void lsr_write_extension(GF_LASeRCodec *lsr, char *data, u32 len, const char *name)
@@ -350,7 +336,7 @@ static void lsr_write_byte_align_string(GF_LASeRCodec *lsr, char *str, const cha
 	gf_bs_align(lsr->bs);
 	lsr_write_vluimsbf8(lsr, len, "len");
 	if (len) gf_bs_write_data(lsr->bs, str, len);
-	lsr_enc_log_bits(lsr, 0, 8*len, name);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%s\n", name, 8*len, str ? str : ""));
 }
 static void lsr_write_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, const char *name, Bool is_iri)
 {
@@ -426,7 +412,7 @@ static void lsr_write_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *na
 		idx = lsr_get_col_index(lsr, &paint->color);
 		if (idx<0) { 
 			idx = 0; 
-			fprintf(stdout, "Warning: color not in colorTable\n"); 
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[LASeR] color not in colorTable\n")); 
 		}
 		GF_LSR_WRITE_INT(lsr, (u32) idx, lsr->colorIndexBits, name);
 	} else {
@@ -448,7 +434,9 @@ static void lsr_write_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *na
 			switch (paint->type) {
 			case SVG_PAINT_INHERIT: GF_LSR_WRITE_INT(lsr, 0, 2, "choice"); break;
 			case SVG_PAINT_COLOR: 
-				if (paint->color.type > SVG_COLOR_CURRENTCOLOR) fprintf(stdout, "Warning: SVG system colors not codable in LASeR\n");
+				if (paint->color.type > SVG_COLOR_CURRENTCOLOR) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] SVG system colors not codable in LASeR - skipping\n"));
+				}
 				GF_LSR_WRITE_INT(lsr, 1, 2, "choice"); 
 				break;
 			default: GF_LSR_WRITE_INT(lsr, 2, 2, "choice"); break;
@@ -532,11 +520,15 @@ static u32 lsr_translate_coords(GF_LASeRCodec *lsr, Fixed x, u32 nb_bits)
 	s32 res;
 	res = FIX2INT( gf_divfix(x, lsr->res_factor) );
 	if (res>=0) {
-		if (res & (1<<(nb_bits-1)) ) fprintf(stdout, "nb_bits %d not large enough to encode positive number %g!\n", nb_bits, FIX2FLT(x));
+		if (res & (1<<(nb_bits-1)) ) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] nb_bits %d not large enough to encode positive number %g!\n", nb_bits, FIX2FLT(x) ));
+		}
 		return (u32) res;
 	}
 	res += (1<<nb_bits);
-	if (res<0) fprintf(stdout, "nb_bits %d not large enough to encode negative number %g!\n", nb_bits, FIX2FLT(x));
+	if (res<0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] nb_bits %d not large enough to encode negative number %g!\n", nb_bits, FIX2FLT(x) ));
+	}
 	assert( res & (1<<(nb_bits-1)) );
 	return res;
 }
@@ -732,7 +724,7 @@ static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 		case SVG_DOM_EVT_UNLOAD: GF_LSR_WRITE_INT(lsr, 24, 6, "event"); break;
 		case SVG_DOM_EVT_ZOOM: GF_LSR_WRITE_INT(lsr, 25, 6, "event"); break;
 		default:
-			fprintf(stdout, "Unsupported LASER event\n");
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] Unsupported LASER event %d\n", evtType) );
 			GF_LSR_WRITE_INT(lsr, 0, 6, "event"); break;
 			return;
 		}
@@ -1194,7 +1186,9 @@ static void lsr_write_animatable(GF_LASeRCodec *lsr, SMIL_AttributeName *anim_ty
 		a_type = -1;
 	}
 	
-	if (a_type<0) fprintf(stdout, "Unsupported attributeName\n");
+	if (a_type<0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] Unsupported attributeName %s\n", anim_type->name));
+	}
 	GF_LSR_WRITE_INT(lsr, 1, 1, "hasAttributeName");
 	GF_LSR_WRITE_INT(lsr, 0, 1, "choice");
 	GF_LSR_WRITE_INT(lsr, (u8) a_type, 8, "attributeType");
@@ -1394,7 +1388,7 @@ static void lsr_write_an_anim_value(GF_LASeRCodec *lsr, void *val, u32 lsr_type,
 	{
 		s32 idx = lsr_get_font_index(lsr, val);
 		if (idx<0) {
-			fprintf(stdout, "WARNING: corrupted font table while encoding anim value\n");
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] corrupted font table while encoding anim value\n"));
 			idx=0;
 		}
 		lsr_write_vluimsbf5(lsr, idx, name);
@@ -1481,7 +1475,7 @@ static void lsr_write_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val, con
 	} else {
 		type = svg_type_to_lsr_anim(val->type, val->transform_type, NULL, val);
 		if (type==255) {
-			fprintf(stdout, "WARNING - unsupported anim type %d - skipping\n", val->type);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] unsupported anim type %d - skipping\n", val->type ));
 			GF_LSR_WRITE_INT(lsr, 0, 1, name);
 		} else {
 			GF_LSR_WRITE_INT(lsr, 1, 1, name);
@@ -1503,7 +1497,7 @@ static void lsr_write_anim_values(GF_LASeRCodec *lsr, SMIL_AnimateValues *anims,
 	}
 	type = svg_type_to_lsr_anim(anims->type, anims->transform_type, anims->values, NULL);
 	if (type==255) {
-		fprintf(stdout, "WARNING - unsupported anim type %d - skipping\n", anims->type);
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] unsupported anim type %d - skipping\n", anims->type ));
 		GF_LSR_WRITE_INT(lsr, 0, 1, name);
 	} else {
 		GF_LSR_WRITE_INT(lsr, 1, 1, name);
@@ -2861,16 +2855,18 @@ static void lsr_write_scene_content_model(GF_LASeRCodec *lsr, SVGElement *parent
 		break;
 #else
 		/*hack for encoding - needs cleaning*/
-		fprintf(stdout, "Warning: node %s not part of LASeR children nodes - skipping\n", gf_node_get_class_name(node));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] node %s not part of LASeR children nodes - skipping\n", gf_node_get_class_name(node)));
 		GF_LSR_WRITE_INT(lsr, LSR_SCENE_CONTENT_MODEL_textContent, 6, "ch4"); 
 		lsr_write_byte_align_string(lsr, "", "textContent");
 		break;
 #endif
 	}
 }
+
 static void lsr_write_update_content_model(GF_LASeRCodec *lsr, SVGElement *parent, void *node)
 {
 	u32 tag = gf_node_get_tag(node);
+	
 	if (tag==TAG_SVG_conditional) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "ch4"); 
 		GF_LSR_WRITE_INT(lsr, LSR_UPDATE_CONTENT_MODEL2_conditional, 3, "ch61"); 
@@ -2953,7 +2949,7 @@ static void lsr_write_group_content(GF_LASeRCodec *lsr, SVGElement *elt, Bool sk
 	for (i=0; i<count; i++) {
 		void *n = gf_list_get(elt->children, i);
 		lsr_write_scene_content_model(lsr, elt, n);
-		if (lsr->trace) fprintf(lsr->trace, "//end %s\n", gf_node_get_class_name(n));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] ############## end %s ###########\n", gf_node_get_class_name(n)));
 	}
 }
 
@@ -3108,7 +3104,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVGElement *elt, u32 fiel
 					lsr_write_vluimsbf5(lsr, v, "val");
 				}
 			} else {
-				fprintf(stdout, "Warning: update value not implemented for type %d - please fix or report\n", fieldType);
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] update value not implemented for type %d - please fix or report\n", fieldType));
 			}
 		}
 	}

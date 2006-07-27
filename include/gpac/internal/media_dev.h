@@ -29,7 +29,6 @@
 #include <gpac/media_tools.h>
 
 GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...);
-void gf_import_progress(GF_MediaImporter *import, u32 cur_samp, u32 count);
 
 /*returns 0 if not a start code, or size of start code (3 or 4 bytes). If start code, bitstream
 is positionned AFTER start code*/

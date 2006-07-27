@@ -190,17 +190,20 @@ static JSBool global_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *v
 }
 
 /*creates a new SVGelement wrapper for the given node if needed, and stores it in node bank*/
-static JSObject *svg_elt_construct(JSContext *c, GF_Node *n)
+static JSObject *svg_elt_construct(JSContext *c, GF_Node *n, Bool search_bank)
 {
 	u32 i, count;
 	GF_Node *m;
 	JSObject *obj;
 	GF_SVGJS *svg_js = get_svg_js(c);
-	count = gf_list_count(svg_js->node_bank);
-	for (i=0; i<count; i++) {
-		obj = gf_list_get(svg_js->node_bank, i);
-		m = JS_GetPrivate(c, obj);
-		if (m==n) return obj;
+
+	if (search_bank) {
+		count = gf_list_count(svg_js->node_bank);
+		for (i=0; i<count; i++) {
+			obj = gf_list_get(svg_js->node_bank, i);
+			m = JS_GetPrivate(c, obj);
+			if (m==n) return obj;
+		}
 	}
 	obj = JS_NewObject(c, &svgClass, 0, 0);
 	JS_SetPrivate(c, obj, n);
@@ -368,7 +371,7 @@ static JSBool doc_create_element(JSContext *c, JSObject *obj, uintN argc, jsval 
 	tag = gf_node_svg_type_by_class_name(eltName);
 	if (!tag) return JS_FALSE;
 	n = (GF_Node *) gf_node_new(sg, tag);
-	*rval = OBJECT_TO_JSVAL(svg_elt_construct(c, n));
+	*rval = OBJECT_TO_JSVAL(svg_elt_construct(c, n, 0));
 	return JS_TRUE;
 }
 static JSBool doc_get_element_by_id(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -384,7 +387,7 @@ static JSBool doc_get_element_by_id(JSContext *c, JSObject *obj, uintN argc, jsv
 	if (!name) return JS_FALSE;
 	n = gf_sg_find_node_by_name(sg, name);
 	if (n) {
-		*rval = OBJECT_TO_JSVAL(svg_elt_construct(c, n));
+		*rval = OBJECT_TO_JSVAL(svg_elt_construct(c, n, 1));
 		return JS_TRUE;
 	}
 	return JS_FALSE;
@@ -457,7 +460,7 @@ static JSBool svg_doc_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *
 		case 5: *vp = OBJECT_TO_JSVAL(sg->svg_js->global); return JS_TRUE;
 		/*documentElement*/
 		case 6: 
-			if (sg->RootNode) *vp = OBJECT_TO_JSVAL(svg_elt_construct(c, sg->RootNode) );
+			if (sg->RootNode) *vp = OBJECT_TO_JSVAL(svg_elt_construct(c, sg->RootNode, 1) );
 			return JS_TRUE;
 		/*global*/
 		case 7: 
@@ -511,15 +514,19 @@ static void svg_elt_finalize(JSContext *c, JSObject *obj)
 static void svg_elt_add(JSContext *c, GF_Node *par, GF_Node *n, s32 pos) 
 {
 	Bool do_init = n->sgprivate->num_instances ? 0 : 1;
-	gf_list_insert( ((GF_ParentNode *)par)->children, n, (u32) pos);
+	if (pos<0) gf_list_add( ((GF_ParentNode *)par)->children, n);
+	else gf_list_insert( ((GF_ParentNode *)par)->children, n, (u32) pos);
 	gf_node_register(n, par);
+
 	if (do_init && !n->sgprivate->PreDestroyNode && !n->sgprivate->RenderNode) {
-		GF_DOM_Event evt;
 		gf_node_init(n);
 
-		memset(&evt, 0, sizeof(GF_DOM_Event));
-		evt.type = SVG_DOM_EVT_LOAD;
-		gf_dom_event_fire(n, NULL, &evt);
+		if (n->sgprivate->events) {
+			GF_DOM_Event evt;
+			memset(&evt, 0, sizeof(GF_DOM_Event));
+			evt.type = SVG_DOM_EVT_LOAD;
+			gf_dom_event_fire(n, NULL, &evt);
+		}
 	}
 	svg_node_changed(par, NULL);
 }
@@ -632,6 +639,7 @@ static JSBool svg_elt_set_attr(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	char *attName, *attValue, *inNS;
 	SVGElement *elt = (SVGElement *)JS_GetPrivate(c, obj);
 	if (!elt || (argc>3)) return JS_FALSE;
+
 	inNS = NULL;
 	if (argc==3) {
 		if (JSVAL_IS_STRING(argv[0])) {
@@ -1494,7 +1502,7 @@ static JSBool svg_get_focused_object(JSContext *c, JSObject *obj, uintN argc, js
 		return JS_FALSE;
 
 	if (par.focused) {
-		*rval = OBJECT_TO_JSVAL(svg_elt_construct(c, par.focused));
+		*rval = OBJECT_TO_JSVAL(svg_elt_construct(c, par.focused, 1));
 	}
 	return JS_TRUE;
 }
@@ -1528,7 +1536,7 @@ static JSBool svg_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		case 2:
 			a_node = gf_node_get_parent((GF_Node *) n, 0);
 			if (a_node) {
-				*vp = OBJECT_TO_JSVAL(svg_elt_construct(c, a_node) );
+				*vp = OBJECT_TO_JSVAL(svg_elt_construct(c, a_node, 1) );
 			}
 			return JS_TRUE;
 		/*ownerDocument*/
@@ -1552,7 +1560,7 @@ static JSBool svg_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		case 6: 
 			a_node = gf_list_get(n->children, 0);
 			if (a_node) {
-				*vp = OBJECT_TO_JSVAL(svg_elt_construct(c, a_node));
+				*vp = OBJECT_TO_JSVAL(svg_elt_construct(c, a_node, 1));
 			}
 			return JS_TRUE;
 		/*lastElementChild*/
@@ -1560,7 +1568,7 @@ static JSBool svg_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 			count = gf_list_count(n->children);
 			a_node = count ? gf_list_get(n->children, count-1) : NULL;
 			if (a_node) {
-				*vp = OBJECT_TO_JSVAL(svg_elt_construct(c, a_node) );
+				*vp = OBJECT_TO_JSVAL(svg_elt_construct(c, a_node, 1) );
 			}
 			return JS_TRUE;
 		/*nextElementSibling - NOT SUPPORTED*/
@@ -1923,9 +1931,9 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			*vp = STRING_TO_JSVAL( s );
 			break;
 		/*target*/
-		case 1: *vp = OBJECT_TO_JSVAL(svg_elt_construct(c, evt->target) ); return JS_TRUE;
+		case 1: *vp = OBJECT_TO_JSVAL(svg_elt_construct(c, evt->target, 1) ); return JS_TRUE;
 		/*currentTarget*/
-		case 2: *vp = OBJECT_TO_JSVAL(svg_elt_construct(c, evt->currentTarget) ); return JS_TRUE;
+		case 2: *vp = OBJECT_TO_JSVAL(svg_elt_construct(c, evt->currentTarget, 1) ); return JS_TRUE;
 		/*namespaceURI*/
 		case 3: return JS_FALSE;
 		/*bubbles*/
@@ -1943,7 +1951,7 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 		/*button*/
 		case 11: *vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
 		/*relatedTarget*/
-		case 12: *vp = OBJECT_TO_JSVAL(svg_elt_construct(c, evt->relatedTarget) ); return JS_TRUE;
+		case 12: *vp = OBJECT_TO_JSVAL(svg_elt_construct(c, evt->relatedTarget, 1) ); return JS_TRUE;
 		/*keyIndentifier, keyChar, charCode: wrap up to same value*/
 		case 14: *vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
 

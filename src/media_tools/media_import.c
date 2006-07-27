@@ -41,26 +41,17 @@
 
 GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...)
 {
-	va_list args;
-	va_start(args, format);
-	if (import->import_message) {
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_level && (gf_log_tools & GF_LOG_AUTHOR)) {
+		va_list args;
 		char szMsg[1024];
+		va_start(args, format);
 		vsprintf(szMsg, format, args);
-		import->import_message(import, e, szMsg);
-	} else {
-		vfprintf(stdout,format,args);
-		if (e) fprintf(stderr, " (%s)", gf_error_to_string(e));
-		fprintf(stdout, "\n");
+		va_end(args);
+		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_AUTHOR), GF_LOG_CODING, ("%s\n", szMsg) );
 	}
-	va_end(args);
+#endif
 	return e;
-}
-
-void gf_import_progress(GF_MediaImporter *import, u32 cur_samp, u32 count)
-{
-	if (import->import_progress) {
-		import->import_progress(import, cur_samp, count);
-	}
 }
 
 static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
@@ -240,7 +231,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import)
 
 	gf_import_message(import, GF_OK, "%s import - size %d x %d", (OTI==0x6C) ? "JPEG" : "PNG", w, h);
 
-	gf_import_progress(import, 0, 1);
+	gf_set_progress("Importing Image", 0, 1);
 	if (import->flags & GF_IMPORT_USE_DATAREF) {
 		e = gf_isom_add_sample_reference(import->dest, track, di, samp, (u64) 0);
 	} else {
@@ -248,7 +239,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import)
 		e = gf_isom_add_sample(import->dest, track, di, samp);
 		samp->data = NULL;
 	}
-	gf_import_progress(import, 1, 1);
+	gf_set_progress("Importing Image", 1, 1);
 
 	gf_isom_sample_del(&samp);
 
@@ -371,7 +362,7 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 			gf_isom_add_sample(import->dest, track, di, samp);
 		}
 
-		gf_import_progress(import, done, tot_size);
+		gf_set_progress("Importing MP3", done, tot_size);
 
 		samp->DTS += gf_mp3_window_size(hdr);
 		done += samp->dataLength;
@@ -379,7 +370,7 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
 	MP4T_RecomputeBitRate(import->dest, track);
-	gf_import_progress(import, tot_size, tot_size);
+	gf_set_progress("Importing MP3", tot_size, tot_size);
 
 exit:
 	if (import->esd && destroy_esd) {
@@ -618,7 +609,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 			gf_isom_add_sample(import->dest, track, di, samp);
 		}
 
-		gf_import_progress(import, done, tot_size);
+		gf_set_progress("Importing AAC", done, tot_size);
 		samp->DTS += 1024;
 		done += samp->dataLength;
 		if (duration && (samp->DTS > duration)) break;
@@ -626,7 +617,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	}
 	MP4T_RecomputeBitRate(import->dest, track);
 	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, acfg.audioPL);
-	gf_import_progress(import, tot_size, tot_size);
+	gf_set_progress("Importing AAC", tot_size, tot_size);
 
 exit:
 	if (import->esd && destroy_esd) {
@@ -844,7 +835,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 		}
 		samp->DTS += dts_inc;
 		nb_samp++;
-		gf_import_progress(import, done_size, tot_size);
+		gf_set_progress("Importing M4V", done_size, tot_size);
 		done_size += samp->dataLength;
 		if (e) break;
 		if (duration && (samp->DTS > duration)) break;
@@ -855,7 +846,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 	if (ref_frame && has_cts_offset) 
 		gf_isom_modify_cts_offset(import->dest, track, ref_frame, (1+b_frames)*dts_inc);
 
-	gf_import_progress(import, nb_samp, nb_samp);
+	gf_set_progress("Importing M4V", nb_samp, nb_samp);
 	if (has_cts_offset) {
 		gf_import_message(import, GF_OK, "Has B-Frames (%d max consecutive B-VOPs)", max_b);
 		gf_isom_set_cts_packing(import->dest, track, 0);
@@ -1183,7 +1174,7 @@ proceed:
 			if (nb_f>2) gf_import_message(import, GF_OK, "Warning: more than 2 frames packed together");
 		}
 		samp_offset = 0;
-		gf_import_progress(import, i, num_samples);
+		gf_set_progress("Importing AVI Video", i, num_samples);
 		if (duration && (samp->DTS > duration)) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) 
 			break;
@@ -1193,7 +1184,7 @@ proceed:
 	if (ref_frame && has_cts_offset) 
 		gf_isom_modify_cts_offset(import->dest, track, ref_frame, (1+b_frames)*dts_inc);
 
-	gf_import_progress(import, num_samples, num_samples);
+	gf_set_progress("Importing AVI Video", num_samples, num_samples);
 
 
 	num_samples = gf_isom_get_sample_count(import->dest, track);
@@ -1380,14 +1371,14 @@ GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 		}
 
 		samp->DTS += gf_mp3_window_size(hdr);
-		gf_import_progress(import, done, tot_size);
+		gf_set_progress("Importing AVI Audio", done, tot_size);
 
 		done += size;
 		if (duration && (samp->DTS > duration) ) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
 	
-	gf_import_progress(import, tot_size, tot_size);
+	gf_set_progress("Importing AVI Audio", tot_size, tot_size);
 
 	gf_import_message(import, GF_OK, "Import done - %s bit rate MP3 detected", is_cbr ? "constant" : "variable");
 	samp->data = NULL;
@@ -1619,7 +1610,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		}
 		sampDTS = samp->DTS;
 		gf_isom_sample_del(&samp);
-		gf_import_progress(import, i+1, num_samples);
+		gf_set_progress("Importing ISO File", i+1, num_samples);
 		if (duration && (sampDTS > duration) ) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 		if (e) break;
@@ -1771,7 +1762,7 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 		gf_isom_sample_del(&samp);
 
 		last_pos = (u32) mpeg2ps_get_video_pos(ps, streamID);
-		gf_import_progress(import, last_pos, file_size);
+		gf_set_progress("Importing MPEG-PS Video", last_pos, file_size);
 
 		if (ftype != 3) {
 			gf_isom_modify_cts_offset(import->dest, track, ref_frame, (frames-ref_frame)*dts_inc);
@@ -1783,7 +1774,7 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
 	gf_isom_set_cts_packing(import->dest, track, 0);
-	if (last_pos!=file_size) gf_import_progress(import, frames, frames);
+	if (last_pos!=file_size) gf_set_progress("Importing MPEG-PS Video", frames, frames);
 
 	MP4T_RecomputeBitRate(import->dest, track);
 
@@ -1893,7 +1884,7 @@ GF_Err gf_import_mpeg_ps_audio(GF_MediaImporter *import)
 		gf_isom_add_sample(import->dest, track, di, samp);
 		samp->DTS += gf_mp3_window_size(hdr);
 		last_pos = (u32) mpeg2ps_get_audio_pos(ps, streamID);
-		gf_import_progress(import, last_pos, file_size);
+		gf_set_progress("Importing MPEG-PS Audio", last_pos, file_size);
 		frames++;
 		if (duration && (samp->DTS>=duration)) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
@@ -1901,7 +1892,7 @@ GF_Err gf_import_mpeg_ps_audio(GF_MediaImporter *import)
 
 	samp->data = NULL;
 	gf_isom_sample_del(&samp);
-	if (last_pos!=file_size) gf_import_progress(import, frames, frames);
+	if (last_pos!=file_size) gf_set_progress("Importing MPEG-PS Audio", frames, frames);
 	MP4T_RecomputeBitRate(import->dest, track);
 
 exit:
@@ -2126,12 +2117,12 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 			}
 		}
 		media_done += samp->dataLength;
-		gf_import_progress(import, (u32) media_done, (u32) media_size);
+		gf_set_progress("Importing NHNT", (u32) media_done, (u32) media_size);
 		if (!gf_bs_available(bs)) break;
 		if (duration && (samp->DTS > duration)) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
-	if (media_done!=media_size) gf_import_progress(import, (u32) media_size, (u32) media_size);
+	if (media_done!=media_size) gf_set_progress("Importing NHNT", (u32) media_size, (u32) media_size);
 	gf_isom_sample_del(&samp);	
 	MP4T_RecomputeBitRate(import->dest, track);
 
@@ -2294,7 +2285,7 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dic
 	if (dict && *dict) {
 		err = deflateSetDictionary(&stream, *dict, strlen(*dict));
 		if (err != Z_OK) {
-			fprintf(stdout, "Error assigning dictionary\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHML import] Error assigning dictionary\n"));
 			deflateEnd(&stream);
 			free(dest);
 			return GF_IO_ERR;
@@ -2307,7 +2298,7 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dic
         return GF_IO_ERR;
     }
     if (samp->dataLength<stream.total_out) {
-		fprintf(stdout, "Warning: compressed data (%d) bigger than input data (%d)\n", (u32) stream.total_out, (u32) samp->dataLength);
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHML import] compressed data (%d) bigger than input data (%d)\n", (u32) stream.total_out, (u32) samp->dataLength));
 	}
 	if (dict) {
 		if (*dict) free(*dict);
@@ -2327,10 +2318,10 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dic
     return GF_OK;
 }
 
-static void dom_on_progress(void *cbk, u32 done, u32 tot)
+static void nhml_on_progress(void *cbk, u32 done, u32 tot)
 {
 	GF_MediaImporter *import = cbk;
-	import->import_progress(import, done, tot);
+	gf_set_progress("NHML Loading", done, tot);
 }
 
 /*FIXME - need LARGE FILE support in NHNT - add a new version*/
@@ -2370,7 +2361,7 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 	strcat(szInfo, ".info");
 
 	parser = gf_xml_dom_new();
-	e = gf_xml_dom_parse(parser, import->in_name, import->import_progress ? dom_on_progress : NULL, import);
+	e = gf_xml_dom_parse(parser, import->in_name, nhml_on_progress, import);
 	if (e) {
 		fclose(nhml);
 		gf_import_message(import, e, "Error parsing NHML file: Line %d - %s", gf_xml_dom_get_line(parser), gf_xml_dom_get_error(parser));
@@ -2669,11 +2660,11 @@ GF_Err gf_import_nhml(GF_MediaImporter *import)
 		samp->CTS_Offset = 0;
 		samp->DTS += dts_inc;
 		media_done += samp->dataLength;
-		gf_import_progress(import, (u32) media_done, (u32) (media_size ? media_size : media_done+1) );
+		gf_set_progress("Importing NHML", (u32) media_done, (u32) (media_size ? media_size : media_done+1) );
 		if (duration && (samp->DTS > duration)) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
-	if (media_done!=media_size) gf_import_progress(import, (u32) media_size, (u32) media_size);
+	if (media_done!=media_size) gf_set_progress("Importing NHML", (u32) media_size, (u32) media_size);
 	gf_isom_sample_del(&samp);	
 	MP4T_RecomputeBitRate(import->dest, track);
 
@@ -2698,11 +2689,12 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 	GF_Err e;
 	u32 track, trackID, di, max_size, duration, sample_rate, block_size, i;
 	GF_ISOSample *samp;
-	char magic[20];
+	char magic[20], *msg;
 	Bool delete_esd, update_gpp_cfg;
 	u32 media_size, media_done, offset, mtype, oti, nb_frames;
 	GF_3GPConfig gpp_cfg;
 	FILE *mdia;
+	msg = NULL;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->nb_tracks = 1;
@@ -2725,18 +2717,21 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		fseek(mdia, 6, SEEK_SET);
 		mtype = GF_ISOM_SUBTYPE_3GP_AMR;
 		update_gpp_cfg = 1;
+		msg = "Importing AMR";
 	}
 	else if (!strnicmp(magic, "#!EVRC\n", 7)) {
 		gf_import_message(import, GF_OK, "Importing EVRC Audio");
 		fseek(mdia, 7, SEEK_SET);
 		mtype = GF_ISOM_SUBTYPE_3GP_EVRC;
 		oti = 0xA0;
+		msg = "Importing EVRC";
 	}
 	else if (!strnicmp(magic, "#!SMV\n", 6)) {
 		gf_import_message(import, GF_OK, "Importing SMV Audio");
 		fseek(mdia, 6, SEEK_SET);
 		mtype = GF_ISOM_SUBTYPE_3GP_SMV;
 		oti = 0xA1;
+		msg = "Importing SMV";
 	}
 	else if (!strnicmp(magic, "#!AMR_MC1.0\n", 12)) {
 		fclose(mdia);
@@ -2749,6 +2744,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		sample_rate = 16000;
 		block_size = 320;
 		update_gpp_cfg = 1;
+		msg = "Importing AMR-WB";
 	}
 	else if (!strnicmp(magic, "#!AMR-WB_MC1.0\n", 15)) {
 		fclose(mdia);
@@ -2756,9 +2752,9 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 	}
 	else {
 		char *ext = strrchr(import->in_name, '.');
-		if (ext && !stricmp(ext, ".amr")) { mtype = GF_ISOM_SUBTYPE_3GP_AMR; update_gpp_cfg = 1; ext = "AMR"; }
-		else if (ext && !stricmp(ext, ".evc")) { mtype = GF_ISOM_SUBTYPE_3GP_EVRC; oti = 0xA0; ext = "EVRC"; }
-		else if (ext && !stricmp(ext, ".smv")) { mtype = GF_ISOM_SUBTYPE_3GP_SMV; oti = 0xA1; ext = "SMV"; }
+		if (ext && !stricmp(ext, ".amr")) { mtype = GF_ISOM_SUBTYPE_3GP_AMR; update_gpp_cfg = 1; ext = "AMR"; msg = "Importing AMR";}
+		else if (ext && !stricmp(ext, ".evc")) { mtype = GF_ISOM_SUBTYPE_3GP_EVRC; oti = 0xA0; ext = "EVRC"; msg = "Importing EVRC";}
+		else if (ext && !stricmp(ext, ".smv")) { mtype = GF_ISOM_SUBTYPE_3GP_SMV; oti = 0xA1; ext = "SMV"; msg = "Importing SMV";}
 		else {
 			fclose(mdia);
 			return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Corrupted AMR/SMV/EVRC file header");
@@ -2880,7 +2876,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 
 		samp->DTS += block_size;
 		media_done += samp->dataLength;
-		gf_import_progress(import, (u32) media_done, (u32) media_size);
+		gf_set_progress(msg, (u32) media_done, (u32) media_size);
 		if (duration && (samp->DTS > duration)) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
@@ -3134,13 +3130,10 @@ GF_Err gf_import_qcp(GF_MediaImporter *import)
 				chunk_size -= size;
 				samp->DTS += block_size;
 				if (size_in_packets) {
-					gf_import_progress(import, (u32) nb_pck, (u32) size_in_packets);
+					gf_set_progress("Importing QCP", (u32) nb_pck, (u32) size_in_packets);
 				} else {
-					gf_import_progress(import, (u32) media_done, (u32) media_size);
+					gf_set_progress("Importing QCP", (u32) media_done, (u32) media_size);
 				}
-				if (nb_pck==1504) 
-					nb_pck=1504;
-
 				nb_pck++;
 				media_done += samp->dataLength;
 				if (duration && (samp->DTS > duration)) break;
@@ -3157,7 +3150,7 @@ GF_Err gf_import_qcp(GF_MediaImporter *import)
 	gf_isom_sample_del(&samp);	
 	gf_isom_set_brand_info(import->dest, GF_ISOM_BRAND_3G2A, 65536);
 	if (import->flags & GF_IMPORT_FORCE_MPEG4) MP4T_RecomputeBitRate(import->dest, track);
-	gf_import_progress(import, size_in_packets, size_in_packets);
+	gf_set_progress("Importing QCP", size_in_packets, size_in_packets);
 
 exit:
 	if (delete_esd && import->esd) {
@@ -3327,7 +3320,7 @@ GF_Err gf_import_h263(GF_MediaImporter *import)
 		samp->DTS += dts_inc;
 		nb_samp ++;
 		offset += samp->dataLength;
-		gf_import_progress(import, media_done, media_size);
+		gf_set_progress("Importing H263", media_done, media_size);
 		media_done += samp->dataLength;
 
 		if ((duration && (samp->DTS > duration) ) || (import->flags & GF_IMPORT_DO_ABORT)) {
@@ -3336,7 +3329,7 @@ GF_Err gf_import_h263(GF_MediaImporter *import)
 	}
 	free(samp_data);
 	gf_isom_sample_del(&samp);
-	gf_import_progress(import, nb_samp, nb_samp);
+	gf_set_progress("Importing H263", nb_samp, nb_samp);
 	gf_isom_modify_alternate_brand(import->dest, GF_4CC('3','g','g','6'), 1);
 	gf_isom_modify_alternate_brand(import->dest, GF_4CC('3','g','g','5'), 1);
 
@@ -3582,7 +3575,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 			gf_isom_add_sample(import->dest, track, di, samp);
 			gf_isom_sample_del(&samp);
 			cur_samp++;
-			gf_import_progress(import, (u32) nal_start, tot_size);
+			gf_set_progress("Importing AVC-H264", (u32) nal_start, tot_size);
 			first_nal = 1;
 
 			if (min_poc > last_poc) 
@@ -3728,7 +3721,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 		sample_data = NULL;
 		gf_isom_add_sample(import->dest, track, di, samp);
 		gf_isom_sample_del(&samp);
-		gf_import_progress(import, (u32) cur_samp, cur_samp+1);
+		gf_set_progress("Importing AVC-H264", (u32) cur_samp, cur_samp+1);
 		cur_samp++;
 	}
 
@@ -3792,7 +3785,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 		gf_isom_remove_cts_info(import->dest, track);
 	}
 
-	gf_import_progress(import, (u32) cur_samp, cur_samp);
+	gf_set_progress("Importing AVC-H264", (u32) cur_samp, cur_samp);
 
 	gf_isom_set_visual_info(import->dest, track, di, max_w, max_h);
 	avccfg->nal_unit_size = size_length/8;
@@ -4105,7 +4098,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 				samp->DTS += dts_inc;
 			}
 
-			gf_import_progress(import, (u32) done, (u32) tot_size);
+			gf_set_progress("Importing OGG Video", (u32) done, (u32) tot_size);
 			done += oggpacket.bytes;
 			if ((duration && (samp->DTS > duration) ) || (import->flags & GF_IMPORT_DO_ABORT)) {
 				go = 0;
@@ -4113,7 +4106,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 			}
 		}
 	}
-	gf_import_progress(import, (u32) tot_size, (u32) tot_size);
+	gf_set_progress("Importing OGG Video", (u32) tot_size, (u32) tot_size);
 
 	if (!serial_no) {
 		gf_import_message(import, GF_OK, "OGG: No supported video found");
@@ -4121,7 +4114,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 		MP4T_RecomputeBitRate(import->dest, track);
 
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, 0xFE);
-		gf_import_progress(import, (u32) tot_size, (u32) tot_size);
+		gf_set_progress("Importing OGG Video", (u32) tot_size, (u32) tot_size);
 	}
 	
 exit:
@@ -4281,7 +4274,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 			samp->DTS += block_size;
 
-			gf_import_progress(import, (u32) done, (u32) tot_size);
+			gf_set_progress("Importing OGG Audio", (u32) done, (u32) tot_size);
 			done += oggpacket.bytes;
 			if ((duration && (samp->DTS > duration) ) || (import->flags & GF_IMPORT_DO_ABORT)) {
 				go = 0;
@@ -4289,14 +4282,14 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 			}
 		}
 	}
-	gf_import_progress(import, (u32) tot_size, (u32) tot_size);
+	gf_set_progress("Importing OGG Audio", (u32) tot_size, (u32) tot_size);
 
 	if (!serial_no) {
 		gf_import_message(import, GF_OK, "OGG: No supported audio found");
 	} else {
 		samp->data = NULL;
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, 0xFE);
-		gf_import_progress(import, (u32) tot_size, (u32) tot_size);
+		gf_set_progress("Importing OGG Audio", (u32) tot_size, (u32) tot_size);
 
 		MP4T_RecomputeBitRate(import->dest, track);
 	}
@@ -4527,7 +4520,7 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 				gf_isom_add_sample(import->dest, track, 1, samp);
 			}
 			gf_isom_sample_del(&samp);
-			gf_import_progress(import, (u32) gf_bs_get_position(bs), tot);
+			gf_set_progress("Importing SAF", (u32) gf_bs_get_position(bs), tot);
 		}
 		gf_bs_skip_bytes(bs, au_size);
 	}
@@ -4535,7 +4528,7 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 	fclose(saf);
 	if (import->flags & GF_IMPORT_PROBE_ONLY) return GF_OK;
 
-	gf_import_progress(import, tot, tot);
+	gf_set_progress("Importing SAF", tot, tot);
 	MP4T_RecomputeBitRate(import->dest, track);
 	return GF_OK;
 }
@@ -4827,7 +4820,9 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 	if (!(pck->flags & GF_M2TS_PES_PCK_AU_START)) {
 		e = gf_isom_append_sample_data(import->dest, tsimp->track, pck->data, pck->data_len);
-		if (e) fprintf(stdout, "Error adding sample data!!\n");
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error appending sample data\n"));
+		}
 		if (pck->flags & GF_M2TS_PES_PCK_I_FRAME) tsimp->nb_i++;
 		if (pck->flags & GF_M2TS_PES_PCK_P_FRAME) tsimp->nb_p++;
 		if (pck->flags & GF_M2TS_PES_PCK_B_FRAME) tsimp->nb_b++;
@@ -4838,9 +4833,6 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	samp->DTS = pck->DTS ? pck->DTS : pck->PTS;
 	samp->CTS_Offset = (u32) (pck->PTS - samp->DTS);
 
-/*	if (pck->stream->pid == 130 || pck->stream->pid == 130 ) 
-		fprintf(stdout, "Sample PID: %d DTS: "LLD" CTS_Offset: %d\n", pck->stream->pid, samp->DTS, samp->CTS_Offset);
-*/
 	if (pck->stream->first_dts == samp->DTS) {
 
 		u32 w = 0;
@@ -4873,8 +4865,9 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		samp->data = pck->data;
 		samp->dataLength = pck->data_len;
 		e = gf_isom_add_sample(import->dest, tsimp->track, 1, samp);
-		if (e) fprintf(stdout, "Error adding sample !!\n");
-
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error adding sample\n"));
+		}
 		if (import->duration && (import->duration<=(samp->DTS+samp->CTS_Offset)/90))
 			import->flags |= GF_IMPORT_DO_ABORT;
 
@@ -4882,7 +4875,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		if (pck->flags & GF_M2TS_PES_PCK_P_FRAME) tsimp->nb_p++;
 		if (pck->flags & GF_M2TS_PES_PCK_B_FRAME) tsimp->nb_b++;
 	} else {
-		fprintf(stdout, "ERROR: negative time sample !!\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] negative time sample - skipping\n"));
 	}
 	samp->data = NULL;
 	gf_isom_sample_del(&samp);
@@ -4919,7 +4912,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	while (!feof(mts)) {
 		size = fread(data, 1, 188, mts);
 		done += size;
-		gf_import_progress(import, (u32) done, (u32) fsize);
+		gf_set_progress("Importing MPEG-2 TS", (u32) done, (u32) fsize);
 		if (size<188) break;
 
 		gf_m2ts_process_data(ts, data, size);
@@ -4950,9 +4943,9 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			gf_m2ts_process_data(ts, data, size);
 			if (import->flags & GF_IMPORT_DO_ABORT) break;
 			done += size;
-			gf_import_progress(import, (u32) done, (u32) fsize);
+			gf_set_progress("Importing MPEG-2 TS", (u32) done, (u32) fsize);
 		}
-		gf_import_progress(import, (u32) fsize, (u32) fsize);
+		gf_set_progress("Importing MPEG-2 TS", (u32) fsize, (u32) fsize);
 		MP4T_RecomputeBitRate(import->dest, tsimp.track);
 
 		/* creation of the edit lists */
@@ -5186,7 +5179,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 		gf_isom_add_sample(import->dest, track, di, samp);
 		free(packet);
 
-		gf_import_progress(import, c, total);
+		gf_set_progress("Importing VobSub", c, total);
 
 		if (import->flags & GF_IMPORT_DO_ABORT) {
 			break;
@@ -5196,7 +5189,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 	gf_isom_set_last_sample_duration(import->dest, track, last_samp_dur);
 
 	MP4T_RecomputeBitRate(import->dest, track);
-	gf_import_progress(import, total, total);
+	gf_set_progress("Importing VobSub", total, total);
 
 	err = GF_OK;
 

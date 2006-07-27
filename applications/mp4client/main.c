@@ -332,7 +332,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		if (evt->progress.progress_type==0) szTitle = "Buffer ";
 		else if (evt->progress.progress_type==1) szTitle = "Download ";
 		else if (evt->progress.progress_type==2) szTitle = "Import ";
-		gf_cbk_on_progress(szTitle, evt->progress.done, evt->progress.total);
+		gf_set_progress(szTitle, evt->progress.done, evt->progress.total);
 	}
 		break;
 	
@@ -599,6 +599,46 @@ void set_navigation()
 	if (e) fprintf(stdout, "Error setting mode: %s\n", gf_error_to_string(e));
 }
 
+static u32 parse_log_tools(char *val)
+{
+	char *sep;
+	u32 flags = 0;
+	while (val) {
+		sep = strchr(val, ':');
+		if (sep) sep[0] = 0;
+		if (!stricmp(val, "core")) flags |= GF_LOG_CODING;
+		else if (!stricmp(val, "coding")) flags |= GF_LOG_CODING;
+		else if (!stricmp(val, "container")) flags |= GF_LOG_CONTAINER;
+		else if (!stricmp(val, "network")) flags |= GF_LOG_NETWORK;
+		else if (!stricmp(val, "rtp")) flags |= GF_LOG_RTP;
+		else if (!stricmp(val, "author")) flags |= GF_LOG_AUTHOR;
+		else if (!stricmp(val, "sync")) flags |= GF_LOG_SYNC;
+		else if (!stricmp(val, "codec")) flags |= GF_LOG_CODEC;
+		else if (!stricmp(val, "parser")) flags |= GF_LOG_PARSER;
+		else if (!stricmp(val, "media")) flags |= GF_LOG_MEDIA;
+		else if (!stricmp(val, "scene")) flags |= GF_LOG_SCENE;
+		else if (!stricmp(val, "script")) flags |= GF_LOG_SCRIPT;
+		else if (!stricmp(val, "compose")) flags |= GF_LOG_COMPOSE;
+		else if (!stricmp(val, "render")) flags |= GF_LOG_RENDER;
+		else if (!stricmp(val, "service")) flags |= GF_LOG_SERVICE;
+		else if (!stricmp(val, "mmio")) flags |= GF_LOG_MMIO;
+		else if (!stricmp(val, "none")) flags = 0;
+		else if (!stricmp(val, "all")) flags = 0xFFFFFFFF;
+		if (!sep) break;
+		sep[0] = ':';
+		val = sep+1;
+	}
+	return flags;
+}
+static u32 parse_log_level(char *val)
+{
+	if (!stricmp(val, "error")) return GF_LOG_ERROR;
+	if (!stricmp(val, "warning")) return GF_LOG_WARNING;
+	if (!stricmp(val, "info")) return GF_LOG_INFO;
+	if (!stricmp(val, "debug")) return GF_LOG_DEBUG;
+	return 0;
+}
+
 static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 {
 	char *str;
@@ -640,6 +680,13 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 	return 1;
 }
 
+static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
+{
+	FILE *logs = cbk;
+    vfprintf(logs, fmt, list);
+	fflush(logs);
+}
+
 int main (int argc, char **argv)
 
 {
@@ -651,6 +698,7 @@ int main (int argc, char **argv)
 	GF_User user;
 	GF_SystemRTInfo rti;
 	FILE *playlist = NULL;
+	FILE *logfile = NULL;
 
 	/*by default use current dir*/
 	strcpy(the_url, ".");
@@ -698,6 +746,16 @@ int main (int argc, char **argv)
 			rend_mode = 2;
 		} else if (!strcmp(arg, "-quiet")) {
 			be_quiet = 1;
+		} else if (!strcmp(arg, "-log-file")) {
+			logfile = fopen(argv[i+1], "wt");
+			gf_log_set_callback(logfile, on_gpac_log);
+			i++;
+		} else if (!strcmp(arg, "-log-level")) {
+			gf_log_set_level(parse_log_level(argv[i+1]));
+			i++;
+		} else if (!strcmp(arg, "-log-tools")) {
+			gf_log_set_tools(parse_log_tools(argv[i+1]));
+			i++;
 		} else {
 			PrintUsage();
 			return 1;
@@ -706,12 +764,14 @@ int main (int argc, char **argv)
 	if (dump_mode && !url_arg) {
 		fprintf(stdout, "Missing argument for dump\n");
 		PrintUsage();
+		if (logfile) fclose(logfile);
 		return 1;
 	}
 	if (dump_mode) rti_file = NULL;
 	cfg_file = loadconfigfile(the_cfg);
 	if (!cfg_file) {
 		fprintf(stdout, "Error: Configuration File \"GPAC.cfg\" not found\n");
+		if (logfile) fclose(logfile);
 		return 1;
 	}
 
@@ -739,6 +799,7 @@ int main (int argc, char **argv)
 		gf_modules_del(user.modules);
 		gf_cfg_del(cfg_file);
 		gf_sys_close();
+		if (logfile) fclose(logfile);
 		return 1;
 	}
 	fprintf(stdout, "OK (%d found in %s)\n", i, str);
@@ -756,6 +817,7 @@ int main (int argc, char **argv)
 		gf_modules_del(user.modules);
 		gf_cfg_del(cfg_file);
 		gf_sys_close();
+		if (logfile) fclose(logfile);
 		return 1;
 	}
 	fprintf(stdout, "OK\n");
@@ -873,7 +935,7 @@ int main (int argc, char **argv)
 				gf_term_connect(term, the_url);
 			}
 			break;
-		case 'M':
+		case 'P':
 			if (playlist) {
 				u32 count;
 				gf_term_disconnect(term);
@@ -1068,6 +1130,23 @@ int main (int argc, char **argv)
 			if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
 		}
 			break;
+
+		case 'L':
+		{
+			char szLog[1024];
+			fprintf(stdout, "Enter new log level:\n");
+			scanf("%s", szLog);
+			gf_log_set_level(parse_log_level(szLog));
+		}
+			break;
+		case 'M':
+		{
+			char szLog[1024];
+			fprintf(stdout, "Enter new log tools:\n");
+			scanf("%s", szLog);
+			gf_log_set_tools(parse_log_tools(szLog));
+		}
+			break;
 		case 'h':
 			PrintHelp();
 			break;
@@ -1092,6 +1171,7 @@ exit:
 	gf_cfg_del(cfg_file);
 	gf_sys_close();
 	if (rti_logs) fclose(rti_logs);
+	if (logfile) fclose(logfile);
 	return 0;
 }
 

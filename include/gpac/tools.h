@@ -58,14 +58,14 @@ extern "C" {
  *	Macro giving GPAC version expressed as a printable string
 */
 /*KEEP SPACE SEPARATORS FOR MAKE / GREP (SEE MAIN MAKEFILE)!!!, and NO SPACE in GPAC_VERSION for proper install*/
-#define GPAC_VERSION       "0.4.2"
+#define GPAC_VERSION       "0.4.3-DEV"
 /*!
  *	\brief GPAC Version
  *	\hideinitializer
  *
  *	Macro giving GPAC version expressed as an integer, where version X.Y.Z is coded as 0x00XXYYZZ
 */
-#define GPAC_VERSION_INT	0x00000402
+#define GPAC_VERSION_INT	0x00000403
 
 /*!
  *	\brief Memory allocation
@@ -231,6 +231,150 @@ typedef enum
 */
 const char *gf_error_to_string(GF_Err e);
 
+/*! @} */
+
+/*! \addtogroup log_grp logging tools
+ *	\ingroup utils_grp
+ *	@{
+ */
+
+/*!
+ * GPAC Log Levels
+ *	\hideinitializer
+ * 
+ * These levels describes messages priority used when filtering logs
+ */
+enum
+{
+	/*! Log message describes an error*/
+	GF_LOG_ERROR = 1,
+	/*! Log message describes a warning*/
+	GF_LOG_WARNING,
+	/*! Log message is informational (state, etc..)*/
+	GF_LOG_INFO,
+	/*! Log message is a debug info*/
+	GF_LOG_DEBUG,
+};
+
+/*!
+ *	\brief Log level assignment
+ *
+ * Sets the level used for log filtering. By default no log is performed
+ *	\param level log level used.
+ *
+ */
+void gf_log_set_level(u32 level);
+
+
+/*!
+ * GPAC Log tools
+ *	\hideinitializer
+ *
+ * These flags describes which sub-part of GPAC generates the log and are used when filtering logs
+ */
+enum
+{
+	/*! Log message from the core library (init, threads, network calls, etc)*/
+	GF_LOG_CORE = 1,
+	/*! Log message from a raw media parser (BIFS, LASeR, A/V formats)*/
+	GF_LOG_CODING= 1<<1,
+	/*! Log message from a bitstream parser (IsoMedia, MPEG-2 TS, OGG, ...)*/
+	GF_LOG_CONTAINER = 1<<2,
+	/*! Log message from the network stack (messages & co)*/
+	GF_LOG_NETWORK = 1<<3,
+	/*! Log message from the RTP/RTCP stack (TS info) and packet structure & hinting (debug)*/
+	GF_LOG_RTP = 1<<4,
+	/*! Log message from authoring subsystem (file manip, import/export)*/
+	GF_LOG_AUTHOR = 1<<5,
+	/*! Log message from the sync layer of the terminal*/
+	GF_LOG_SYNC = 1<<6,
+	/*! Log message from a codec*/
+	GF_LOG_CODEC = 1<<7,
+	/*! Log message from any XML parser (context loading, etc)*/
+	GF_LOG_PARSER = 1<<8,
+	/*! Log message from the terminal/renderer, indicating media object state*/
+	GF_LOG_MEDIA = 1<<9,
+	/*! Log message from the scene graph/scene manager (handling of nodes and attribute modif, DOM core)*/
+	GF_LOG_SCENE = 1<<10,
+	/*! Log message from the scripting engine*/
+	GF_LOG_SCRIPT = 1<<11,
+	/*! Log message from event handling, animations and scene timing*/
+	GF_LOG_COMPOSE = 1<<12,
+	/*! Log message from renderer*/
+	GF_LOG_RENDER = 1<<13,
+	/*! Log message from a media service*/
+	GF_LOG_SERVICE = 1<<14,
+	/*! Log message from multimedia I/O devices (audio/video input/output, ...)*/
+	GF_LOG_MMIO = 1<<15
+};
+
+/*!
+ *	\brief Log modules assignment
+ *
+ * Sets the modules to be checked for log filtering. By default no modules are logged.
+ *	\param tools log tools filtered. This is an OR'ed combinaison of log module flags
+ *
+ */
+void gf_log_set_tools(u32 tools);
+
+/*!
+ *	\brief Log Message Callback
+ *
+ * The gf_log_cbk type is the type for the callback of the \ref gf_log_set_callback function. By default all logs are redirected to stdout
+ *	\param cbck Opaque user data.
+ *	\param log_level level of the log. This value is not guaranteed in multi-threaded context.
+ *	\param log_tool tool emitting the log. This value is not guaranteed in multi-threaded context.
+ *	\param fmt message log format.
+ *	\param vlist message log param.
+ *
+ */
+typedef void (*gf_log_cbk)(void *cbck, u32 log_level, u32 log_tool, const char* fmt, va_list vlist);
+
+/*!
+ *	\brief Log overwrite
+ *
+ *	Assigns a user-defined callback for printing log messages. By default all logs are redirected to stdout
+ *	\param usr_cbk Opaque user data 
+ *	\param cbk  callback log function
+ *	\return previous callback function
+*/
+gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk);
+
+/*!
+ \cond DUMMY_DOXY_SECTION
+*/
+
+#ifndef GPAC_DISABLE_LOG
+/*note: 
+		to turn log on, change to GPAC_ENABLE_LOG
+		to turn log off, change to GPAC_DISABLE_LOG
+	this is needed by configure+sed to modify this file directly
+*/
+#define GPAC_ENABLE_LOG
+#endif
+
+/*!
+ \endcond
+*/
+
+
+#ifdef GPAC_DISABLE_LOG
+#define GF_LOG(_ll, _lm, __args) 
+#else
+void gf_log(const char *fmt, ...);
+extern u32 gf_log_level;
+extern u32 gf_log_tools;
+extern u32 call_lev;
+extern u32 call_tool;
+/*!
+ *	\brief Message logging
+ *	\hideinitializer
+ *
+ *	Macro for logging messages. Usage is GF_LOG(log_lev, log_module, (fmt, ...)). The log function is only called if log filtering allows it. This avoids fetching logged parameters when the tool is not being logged.
+*/
+#define GF_LOG(_log_level, _log_tools, __args) if ((gf_log_level >= (_log_level)) && (gf_log_tools & (_log_tools))) { call_lev = _log_level; call_tool = _log_tools; gf_log __args ;}
+#endif
+
 
 /*! @} */
 
@@ -294,24 +438,44 @@ void gf_delete_file(char *fileName);
 FILE *gf_temp_file_new();
 
 
-/*formats progress to stdout, title IS a string, but declared as void * to avoid GCC warnings!! */
 /*!
  *	\brief Progress formatting
  *
- *	Formats a progress bar to standard output
+ *	Signals progress in GPAC's operations. Note that progress signaling with this function is not thread-safe, the main purpose is to use it for authoring tools only.
  *	\param title title string of the progress, or NULL for no progress
  *	\param done Current amount performed of the action.
  *	\param total Total amount of the action.
- *	\note "title" is declared as void * to avoid GCC warnings when used as a callback.
  */
-void gf_cbk_on_progress(void *title, u32 done, u32 total);
+void gf_set_progress(char *title, u32 done, u32 total);
 
 /*!
- *\addtogroup cpu_grp CPU tools
- *\ingroup utils_grp
- *\brief CPU and system time functions
+ *	\brief Progress Callback
  *
- *This section documents CPU management and time functionalities in GPAC.
+ * The gf_on_progress_cbk type is the type for the callback of the \ref gf_set_progress_callback function
+ *	\param cbck Opaque user data.
+ *	\param title preogress title.
+ *	\param done Current amount performed of the action
+ *	\param total Total amount of the action.
+ *
+ */
+typedef void (*gf_on_progress_cbk)(void *cbck, char *title, u32 done, u32 total);
+
+/*!
+ *	\brief Progress overwriting
+ *
+ *	Iverwrites the progress signaling function by a user-defined one.
+ *	\param user_cbk Opaque user data
+ *	\param prog_cbk new callback function to use. Passing NULL restore default GPAC stdout notification.
+ */
+void gf_set_progress_callback(void *user_cbk, gf_on_progress_cbk prog_cbk);
+
+
+/*!
+ *\addtogroup cpu_grp Time tools
+ *\ingroup utils_grp
+ *\brief System time and CPU functions
+ *
+ *This section documents time functionalities and CPU management in GPAC.
   *	@{
  */
 

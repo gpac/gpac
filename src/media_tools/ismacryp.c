@@ -32,31 +32,10 @@
 #include <gpac/crypt.h>
 
 
-#ifndef GPAC_READ_ONLY
-/*in ISMA.c*/
-void log_message(void (*LogMsg)(void *cbk, const char *szMsg), void *cbk, char *format, ...);
-void ismac_progress(void (*prog)(void *cbk, u32 done, u32 total), void *cbk, u32 done, u32 total)
-{
-	if (prog) prog(cbk, done, total);
-	else gf_cbk_on_progress("Processing", done, total);
-}
-#else
-void log_message(void (*LogMsg)(void *cbk, const char *szMsg), void *cbk, char *format, ...)
-{
-}
-void ismac_progress(void (*prog)(void *cbk, u32 done, u32 total), void *cbk, u32 done, u32 total)
-{
-}
-#endif
-
-
 typedef struct 
 {
 	GF_List *tcis;
 	Bool has_common_key;
-
-	void (*logs)(void *cbk, const char *szMsg);
-	void *cbk;
 } ISMACrypInfo; 
 
 void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_space, GF_List *attributes)
@@ -88,7 +67,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 					tkc->key[j/2] = v;
 				}
 			} else {
-				log_message(info->logs, info->cbk, "Warning: Key is not 16-bytes long - skipping");
+				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMA E&A] Key is not 16-bytes long - skipping\n"));
 			}
 		}
 		else if (!stricmp(att->name, "salt")) {
@@ -143,14 +122,12 @@ static void del_crypt_info(ISMACrypInfo *info)
 	free(info);
 }
 
-static ISMACrypInfo *load_crypt_file(const char *file, void (*logs)(void *cbk, const char *szMsg), void *cbk)
+static ISMACrypInfo *load_crypt_file(const char *file)
 {
 	GF_Err e;
 	ISMACrypInfo *info;
 	GF_SAXParser *sax;
 	GF_SAFEALLOC(info, sizeof(ISMACrypInfo));
-	info->logs = logs;
-	info->cbk = cbk;
 	info->tcis = gf_list_new();
 	sax = gf_xml_sax_new(isma_ea_node_start, NULL, NULL, info);
 	e = gf_xml_sax_parse_file(sax, file, NULL);
@@ -171,7 +148,7 @@ GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char 
 	GF_TrackCryptInfo *tci;
 
 	e = GF_OK;
-	info = load_crypt_file(drm_file, NULL, NULL);
+	info = load_crypt_file(drm_file);
 	if (!info) return GF_NOT_SUPPORTED;
 	count = gf_list_count(info->tcis);
 	for (i=0; i<count; i++) {
@@ -244,7 +221,7 @@ static GFINLINE void resync_IV(GF_Crypt *mc, u64 BSO, char *salt)
 	}
 }
 
-GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*logs)(void *cbk, const char *szMsg), void (*progress)(void *cbk, u32 done, u32 total), void *cbk)
+GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u32 done, u32 total), void *cbk)
 {
 	GF_Err e;
 	Bool use_sel_enc;
@@ -262,7 +239,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 
 	mc = gf_crypt_open("AES-128", "CTR");
 	if (!mc) {
-		log_message(logs, cbk, "Cannot open AES-128 CTR cryptography - skipping", tci->trackID);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Cannot open AES-128 CTR cryptography\n", tci->trackID));
 		return GF_IO_ERR;
 	}
 
@@ -271,11 +248,11 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	e = gf_crypt_init(mc, tci->key, 16, IV);
 	if (e) {
 		gf_crypt_close(mc);
-		log_message(logs, cbk, "Error %s initializing AES-128 CTR", gf_error_to_string(e));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] cannot initialize AES-128 CTR (%s)\n", gf_error_to_string(e)));
 		return GF_IO_ERR;
 	}
 
-	log_message(logs, cbk, "Decrypting track ID %d - KMS: %s%s", tci->trackID, tci->KMS_URI, use_sel_enc ? " - Selective Decryption" : "");
+	GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA E&A] Decrypting track ID %d - KMS: %s%s\n", tci->trackID, tci->KMS_URI, use_sel_enc ? " - Selective Decryption" : ""));
 
 	/*start as initialized*/
 	prev_sample_encrypted = 1;
@@ -302,13 +279,15 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 
 		gf_isom_update_sample(mp4, track, i+1, samp, 1);
 		gf_isom_sample_del(&samp);
-		ismac_progress(progress, cbk, i+1, count);
+		gf_set_progress("ISMA Decrypt", i+1, count);
 	}
 
 	gf_crypt_close(mc);
 	/*and remove protection info*/
 	e = gf_isom_remove_ismacryp_protection(mp4, track, 1);
-	if (e) log_message(logs, cbk, "Error %s removing ISMACryp signature from trackID %d", gf_error_to_string(e), tci->trackID);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Error ISMACryp signature from trackID %d: %s\n", tci->trackID, gf_error_to_string(e)));
+	}
 
 	/*remove all IPMP ptrs*/
 	esd = gf_isom_get_esd(mp4, track, 1);
@@ -360,7 +339,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	return GF_OK;
 }
 
-GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file, void (*logs)(void *cbk, const char *szMsg), void *cbk)
+GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 {
 	GF_Err e;
 	Bool is_ismacryp;
@@ -372,9 +351,9 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file, void (*lo
 	count = 0;
 	info = NULL;
 	if (drm_file) {
-		info = load_crypt_file(drm_file, logs, cbk);
+		info = load_crypt_file(drm_file);
 		if (!info) {
-			log_message(logs, cbk, "Cannot open or validate xml file %s", drm_file);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Cannot open or validate xml file %s\n", drm_file));
 			return GF_NOT_SUPPORTED;
 		}
 		count = gf_list_count(info->tcis);
@@ -416,14 +395,14 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file, void (*lo
 		e = gf_isom_get_ismacryp_info(mp4, i+1, 1, NULL, &scheme_type, NULL, &scheme_URI, &KMS_URI, NULL, NULL, NULL);
 
 		if (!e && (scheme_type != GF_ISOM_ISMACRYP_SCHEME)) {
-			log_message(logs, cbk, "Encrypted track #%d uses an unsupported encryption scheme: %s", trackID, gf_4cc_to_str(scheme_type));
-			if (scheme_URI) log_message(logs, cbk, "scheme defined at %s", scheme_URI);
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA E&A] Encrypted track #%d uses an unsupported encryption scheme: %s - skipping\n", trackID, gf_4cc_to_str(scheme_type)));
+			if (scheme_URI) GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISMA E&A] scheme defined at %s\n", scheme_URI));
 			continue;
 		} else if (!is_ismacryp) {
-			log_message(logs, cbk, "TrackID %d not crypted with ISMACrypt - skipping", trackID);
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA E&A] TrackID %d not crypted with ISMACrypt - skipping\n", trackID));
 			continue;
 		} else if (e) {
-			log_message(logs, cbk, "TrackID %d not compliant with ISMACrypt - skipping", trackID);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMA E&A] TrackID %d not compliant with ISMACrypt - skipping\n", trackID));
 			continue;
 		}
 		/*get key and salt from KMS*/
@@ -437,7 +416,7 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file, void (*lo
 		/*MPEG4IP*/
 		else if (!stricmp(KMS_URI, "AudioKey") || !stricmp(KMS_URI, "VideoKey")) {
 			if (!gf_ismacryp_mpeg4ip_get_info(trackID, (char *) KMS_URI, tci.key, tci.salt)) {
-				log_message(logs, cbk, "Couldn't load MPEG4IP ISMACryp keys for TrackID %d", trackID);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Couldn't load MPEG4IP ISMACryp keys for TrackID %d\n", trackID));
 				continue;
 			}
 		} else if (!drm_file) {
@@ -445,32 +424,32 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file, void (*lo
 			if (!stricmp(scheme_URI, "urn:gpac:isma:encryption_scheme")) test = fopen(KMS_URI, "rt");
 
 			if (!test) {
-				log_message(logs, cbk, "TrackID %d does not contain decryption keys - skipping", trackID);
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA E&A] TrackID %d does not contain decryption keys - skipping\n", trackID));
 				continue;
 			}
 			fclose(test);
 			if (gf_ismacryp_gpac_get_info(tci.trackID, (char *) KMS_URI, tci.key, tci.salt) != GF_OK) {
-				log_message(logs, cbk, "Couldn't load TrackID %d keys in GPAC DRM file %s", tci.trackID, KMS_URI);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Couldn't load TrackID %d keys in GPAC DRM file %s\n", tci.trackID, KMS_URI));
 				continue;
 			}
 		}
 
 		if (strlen(tci.KMS_URI) && strcmp(KMS_URI, tci.KMS_URI) )
-			log_message(logs, cbk, "Warning: KMS URI for trackID %d Mismatch", trackID);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMA E&A] KMS URI for trackID %d Mismatch\n", trackID));
 
 		if (drm_file || (KMS_URI && strncmp(KMS_URI, "(key)", 5)) ) {
 			strcpy(tci.KMS_URI, KMS_URI);
 		} else {
 			strcpy(tci.KMS_URI, "self-contained");
 		}
-		e = gf_ismacryp_decrypt_track(mp4,&tci, logs, NULL, cbk);
+		e = gf_ismacryp_decrypt_track(mp4, &tci, NULL, NULL);
 		if (e) break;
 	}
 	if (info) del_crypt_info(info);
 	return e;
 }
 
-GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*logs)(void *cbk, const char *szMsg), void (*progress)(void *cbk, u32 done, u32 total), void *cbk)
+GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u32 done, u32 total), void *cbk)
 {
 	char IV[16];
 	GF_ISOSample *samp;
@@ -488,13 +467,13 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 
 	track = gf_isom_get_track_by_id(mp4, tci->trackID);
 	if (!track) {
-		log_message(logs, cbk, "Cannot find TrackID %d in input file - skipping", tci->trackID);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Cannot find TrackID %d in input file - skipping\n", tci->trackID));
 		return GF_OK;
 	}
 	esd = gf_isom_get_esd(mp4, track, 1);
 	if (esd && (esd->decoderConfig->streamType==GF_STREAM_OD)) {
 		gf_odf_desc_del((GF_Descriptor *) esd);
-		log_message(logs, cbk, "!! Cannot encrypt OD tracks !! - skipping");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Cannot encrypt OD tracks - skipping"));
 		return GF_NOT_SUPPORTED;
 	}
 	if (esd) gf_odf_desc_del((GF_Descriptor*) esd);
@@ -503,7 +482,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 
 	if (!gf_isom_has_sync_points(mp4, track) &&
 	((tci->sel_enc_type==GF_ISMACRYP_SELENC_RAP) || (tci->sel_enc_type==GF_ISMACRYP_SELENC_NON_RAP)) ) {
-		log_message(logs, cbk, "Warning: All samples in trackID %d are random access - disabling selective encryption", tci->trackID);
+		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMA E&A] All samples in trackID %d are random access - disabling selective encryption\n", tci->trackID));
 		tci->sel_enc_type = GF_ISMACRYP_SELENC_NONE;
 	}
 	else if ((tci->sel_enc_type==GF_ISMACRYP_SELENC_RAND) || (tci->sel_enc_type==GF_ISMACRYP_SELENC_RAND_RANGE)) {
@@ -515,19 +494,19 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	else if (BSO<0xFFFFFFFF) IV_size = 4;
 	else IV_size = 8;
 
-	log_message(logs, cbk, "Encrypting track ID %d - KMS: %s%s", tci->trackID, tci->KMS_URI, tci->sel_enc_type ? " - Selective Encryption" : "");
+	GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA E&A] Encrypting track ID %d - KMS: %s%s\n", tci->trackID, tci->KMS_URI, tci->sel_enc_type ? " - Selective Encryption" : ""));
 
 	/*init crypto*/
 	memset(IV, 0, sizeof(char)*16);
 	memcpy(IV, tci->salt, sizeof(char)*8);
 	mc = gf_crypt_open("AES-128", "CTR");
 	if (!mc) {
-		log_message(logs, cbk, "Cannot open AES-128 CTR - skipping");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Cannot open AES-128 CTR\n"));
 		return GF_IO_ERR;
 	}
 	e = gf_crypt_init(mc, tci->key, 16, IV);
 	if (e) {
-		log_message(logs, cbk, "Cannot initialize AES-128 CTR (%s) - skipping", gf_error_to_string(e));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Cannot initialize AES-128 CTR (%s)\n", gf_error_to_string(e)) );
 		gf_crypt_close(mc);
 		return GF_IO_ERR;
 	}
@@ -618,7 +597,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		gf_isom_ismacryp_delete_sample(isamp);
 		gf_isom_update_sample(mp4, track, i+1, samp, 1);
 		gf_isom_sample_del(&samp);
-		ismac_progress(progress, cbk, i+1, count);
+		gf_set_progress("ISMA Encrypt", i+1, count);
 	}
 	gf_isom_set_cts_packing(mp4, track, 0);
 	gf_crypt_close(mc);
@@ -693,16 +672,16 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	return e;
 }
 
-GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4, const char *drm_file, void (*logs)(void *cbk, const char *szMsg), void *cbk)
+GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 {
 	GF_Err e;
 	u32 i, count, nb_tracks, common_idx, idx;
 	ISMACrypInfo *info;
 	GF_TrackCryptInfo *tci;
 
-	info = load_crypt_file(drm_file, logs, cbk);
+	info = load_crypt_file(drm_file);
 	if (!info) {
-		log_message(logs, cbk, "Cannot open or validate xml file %s", drm_file);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA E&A] Cannot open or validate xml file %s\n", drm_file));
 		return GF_NOT_SUPPORTED;
 	}
 	e = GF_OK;
@@ -731,7 +710,7 @@ GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4, const char *drm_file, void (*logs
 		/*default to FILE uri*/
 		if (!strlen(tci->KMS_URI)) strcpy(tci->KMS_URI, drm_file);
 
-		e = gf_ismacryp_encrypt_track(mp4, tci, logs, NULL, cbk);
+		e = gf_ismacryp_encrypt_track(mp4, tci, NULL, NULL);
 		if (e) break;
 	}
 	del_crypt_info(info);

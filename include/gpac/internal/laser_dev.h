@@ -47,7 +47,6 @@ struct __tag_laser_codec
 	GF_BitStream *bs;
 	GF_SceneGraph *sg;
 	GF_Err last_error;
-	FILE *trace;
 
 	/*all attached streams*/
 	GF_List *streamInfo;

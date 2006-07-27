@@ -84,9 +84,6 @@ static void tti_setup_object(TTIn *tti)
 	gf_term_add_media(tti->service, (GF_Descriptor *)od, 0);
 }
 
-void tti_progress(GF_MediaImporter *ti, u32 cur_sample, u32 sample_count) {}
-void tti_message(GF_MediaImporter *ti, GF_Err e, const char *message) {}
-
 
 GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 {
@@ -112,10 +109,7 @@ GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 	tti->szFile = strdup(szFILE);
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
-	import.import_progress = tti_progress;
-	import.import_message = tti_message;
 	import.dest = tti->mp4;
-	import.user_data = tti;
 	/*override layout from sub file*/
 	import.flags = GF_IMPORT_SKIP_TXT_BOX;
 	import.in_name = (char *) url;

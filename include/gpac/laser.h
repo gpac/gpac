@@ -77,10 +77,6 @@ GF_Err gf_laser_encoder_get_config(GF_LASeRCodec *codec, u16 ESID, char **out_da
 GF_Err gf_laser_encoder_get_rap(GF_LASeRCodec *codec, char **out_data, u32 *out_data_length);
 
 
-/*set trace file for laser encoding*/
-void gf_laser_set_trace(GF_LASeRCodec *codec, FILE *trace);
-
-
 #endif
 
 #ifdef __cplusplus

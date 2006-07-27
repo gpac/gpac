@@ -120,18 +120,16 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 
 static void mp4_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
 {
-	va_list args;
-	va_start(args, format);
-	if (load->OnMessage) {
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_level && (gf_log_tools & GF_LOG_PARSER)) {
 		char szMsg[1024];
+		va_list args;
+		va_start(args, format);
 		vsprintf(szMsg, format, args);
-		load->OnMessage(load->cbk, szMsg, e);
-	} else {
-		if (e) fprintf(stdout, "%s: ", gf_error_to_string(e));
-		vfprintf(stdout, format, args);
-		fprintf(stdout, "\n");
+		va_end(args);
+		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[MP4 Loading] %s\n", szMsg) );
 	}
-	va_end(args);
+#endif
 }
 
 GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
@@ -156,15 +154,6 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 	logs = NULL;
 #ifndef GPAC_DISABLE_SVG
 	lsr_dec = gf_laser_decoder_new(load->scene_graph);
-	if (load->flags & GF_SM_LOAD_DUMP_BINARY) {
-		char szLogs[1024], *sep;
-		strcpy(szLogs, load->fileName);
-		sep = strrchr(szLogs, '.');
-		if (sep) sep[0] = 0;
-		strcat(szLogs, "_dec_logs.txt");
-		logs = fopen(szLogs, "wt");
-		gf_laser_set_trace(lsr_dec, logs);
-	}
 #endif
 	esd = NULL;
 	/*load each stream*/
@@ -207,7 +196,7 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 			/*BIFS*/
 			if (esd->decoderConfig->objectTypeIndication<=2) {
 				if (!esd->dependsOnESID && nbBifs && !i) 
-					mp4_report(load, GF_OK, "Warning: several scene namespaces used or improper scene dependencies in file - import may be incorrect");
+					mp4_report(load, GF_OK, "several scene namespaces used or improper scene dependencies in file - import may be incorrect");
 				e = gf_bifs_decoder_configure_stream(bifs_dec, esd->ESID, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, esd->decoderConfig->objectTypeIndication);
 				if (e) goto exit;
 				nbBifs++;
@@ -216,7 +205,7 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 			/*LASER*/
 			else if (esd->decoderConfig->objectTypeIndication==0x09) {
 				if (!esd->dependsOnESID && nbBifs && !i) 
-					mp4_report(load, GF_OK, "Warning: several scene namespaces used or improper scene dependencies in file - import may be incorrect");
+					mp4_report(load, GF_OK, "several scene namespaces used or improper scene dependencies in file - import may be incorrect");
 				e = gf_laser_decoder_configure_stream(lsr_dec, esd->ESID, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 				if (e) goto exit;
 				nbLaser++;
@@ -267,10 +256,13 @@ GF_Err gf_sm_load_run_MP4(GF_SceneLoader *load)
 				}
 			}
 			gf_isom_sample_del(&samp);
-			if (e) goto exit;
+			if (e) {
+				mp4_report(load, gf_isom_last_error(load->isom), "decoding sample %d from track ID %d failed", j+1, gf_isom_get_track_id(load->isom, i+1));
+				goto exit;
+			}
 
 			samp_done++;
-			if (load->OnProgress) load->OnProgress(load->cbk, samp_done, nb_samp);
+			gf_set_progress("MP4 Loading", samp_done, nb_samp);
 		}
 		gf_odf_desc_del((GF_Descriptor *) esd);
 		esd = NULL;
@@ -337,8 +329,7 @@ GF_Err gf_sm_load_init_MP4(GF_SceneLoader *load)
 	if (!esd) return GF_OK;
 
 	e = GF_OK;
-	if (load->OnMessage) load->OnMessage(load->cbk, scene_msg, GF_OK);
-	else fprintf(stdout, "%s\n", scene_msg);
+	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("%s\n", scene_msg));
 
 	track = i+1;
 

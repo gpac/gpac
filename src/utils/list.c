@@ -27,28 +27,28 @@
 /* GF_List modes, ONLY ONE CAN BE DEFINED
 
 	linked-list
-	#define GF_ARRAY_LINKED
+	#define GF_LIST_LINKED
 
 	double navigation linked-list
-	#define GF_ARRAY_DOUBLE_LINKED
+	#define GF_LIST_DOUBLE_LINKED
 
 	single step memory array
-	#define GF_ARRAY_ARRAY
+	#define GF_LIST_ARRAY
 
-	default mode is array with step aloc of GF_ARRAY_STEP_ALLOC
+	default mode is array with step aloc of GF_LIST_STEP_ALLOC
 */
 
 /*after some tuning, this seems to be the fastest mode on WINCE*/
 #ifdef _WIN32_WCE
-#define GF_ARRAY_LINKED
+#define GF_LIST_LINKED
 #else
-#define GF_ARRAY_ARRAY
+#define GF_LIST_ARRAY
 #endif
 
-#define GF_ARRAY_STEP_ALLOC	10
+#define GF_LIST_STEP_ALLOC	10
 
 
-#if defined(GF_ARRAY_LINKED)
+#if defined(GF_LIST_LINKED)
 
 typedef struct tagIS
 {
@@ -231,7 +231,7 @@ GF_Err gf_list_insert(GF_List *ptr, void *item, u32 position)
 	return GF_OK;
 }
 
-#elif defined(GF_ARRAY_DOUBLE_LINKED)
+#elif defined(GF_LIST_DOUBLE_LINKED)
 
 
 typedef struct tagIS
@@ -446,7 +446,7 @@ GF_Err gf_list_insert(GF_List *ptr, void *item, u32 position)
 	return GF_OK;
 }
 
-#elif defined(GF_ARRAY_ARRAY)
+#elif defined(GF_LIST_ARRAY)
 
 struct _tag_array
 {
@@ -584,7 +584,7 @@ void gf_list_del(GF_List *ptr)
 
 static void realloc_chain(GF_List *ptr)
 {
-	ptr->allocSize += GF_ARRAY_STEP_ALLOC;
+	ptr->allocSize += GF_LIST_STEP_ALLOC;
 	ptr->slots = realloc(ptr->slots, ptr->allocSize*sizeof(void*));
 }
 

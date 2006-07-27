@@ -1676,14 +1676,13 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 			do_copy = 0;
 			break;
 		case 5: /*user unregistered */
-#if 0
 		{
-			u32 i;
-			for (i=0;i<psize;i++) fprintf(stdout, "%c", buffer[start+2+i]);
-			fprintf(stdout, "\n");
+			u8 prev = buffer[start+2+psize];
+			buffer[start+2+psize] = 0;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[avc-h264] SEI user message %s\n", buffer+start+2)); 
+			buffer[start+2+psize] = prev;
 		}
 			break;
-#endif
 		
 		case 6: /*recovery point*/
 			{

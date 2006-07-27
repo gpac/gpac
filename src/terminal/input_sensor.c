@@ -151,10 +151,8 @@ static GF_Err IS_AttachStream(GF_BaseDecoder *plug,
 		add_field(is, GF_SG_VRML_SFFLOAT, "wordScore");
 	
 		if (!htk_num_users) {
-			fprintf(stdout, "loading HTK...");
 			HTK_Init(is->szHTKPath);
 			htk_num_users++;
-			fprintf(stdout, "done\n");
 		}
 		
 		sprintf(szName, "HTKD_%d", (u32) is);
@@ -863,8 +861,6 @@ u32 RunHTKDec(void *par)
 	word_index = HTK_GetWordIndex();
 	word_score = HTK_GetWordScore();
 
-	fprintf(stdout, "HTK result: %s %d %f\n", szWord, word_index, word_score);
-
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	
 	/*HTK sensor buffer format: SFString - SFInt32 - SFFloat*/
@@ -920,8 +916,6 @@ void StartHTK(ISPriv *is_dec)
 	if (is_dec->htk_running && run) return;
 	if (!is_dec->htk_running && !run) return;
 	
-	fprintf(stdout, "Starting HTK recognition\n");
-
 	is_dec->htk_running = run;
 	if (run) {
 		HTK_SetDictionary(is_dec->szHTKPath);

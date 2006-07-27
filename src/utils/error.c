@@ -125,7 +125,7 @@ static const char *szProg[] =
 
 static u32 prev_pos = 0;
 static u32 prev_pc = 0;
-void gf_cbk_on_progress(void *_title, u32 done, u32 total)
+static void gf_on_progress_stdout(char *_title, u32 done, u32 total)
 {
 	Double prog;
 	u32 pos;
@@ -154,20 +154,77 @@ void gf_cbk_on_progress(void *_title, u32 done, u32 total)
 	}
 }
 
-#if 0
-static s32 log_level = 0;
+static gf_on_progress_cbk prog_cbk = NULL;
+static void *user_cbk;
 
-static s32 log_flags = 0xFFFFFFFF;
+void gf_set_progress(char *title, u32 done, u32 total)
+{
+	if (prog_cbk) {
+		prog_cbk(user_cbk, title, done, total);
+	} else {
+		gf_on_progress_stdout(title, done, total);
+	}
+}
+void gf_set_progress_callback(void *_user_cbk, gf_on_progress_cbk _prog_cbk)
+{
+	prog_cbk = _prog_cbk;
+	user_cbk = _user_cbk;
+}
 
-void gf_trace(s32 level, u32 logflags, const char *mod_name, const char *fmt, ...)
+
+#ifndef GPAC_DISABLE_LOG
+
+u32 gf_log_level = 0;
+u32 gf_log_tools = 0;
+
+u32 call_lev = 0;
+u32 call_tool = 0;
+
+void default_log_callback(void *cbck, u32 level, u32 tool, const char* fmt, va_list vlist)
+{
+    vfprintf(stdout, fmt, vlist);
+}
+
+
+static void *user_cbk = NULL;
+static gf_log_cbk log_cbk = default_log_callback;
+
+void gf_log(const char *fmt, ...)
 {
 	va_list vl;
-	if (level<log_level) return;
 	va_start(vl, fmt);
-	fprintf(stderr, "%s: ", mod_name);
-	vfprintf(stderr, fmt, vl);
+	log_cbk(user_cbk, call_lev, call_tool, fmt, vl);
 	va_end(vl);
 }
+
+void gf_log_set_level(u32 level)
+{
+	gf_log_level = level;
+}
+void gf_log_set_tools(u32 modules)
+{
+	gf_log_tools = modules;
+}
+gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk)
+{
+	gf_log_cbk prev_cbk = log_cbk;
+	log_cbk = cbk;
+	if (!log_cbk) log_cbk = default_log_callback;
+	user_cbk = usr_cbk;
+	return prev_cbk;
+}
+#else
+void gf_log_set_level(u32 level)
+{
+}
+void gf_log_set_tools(u32 modules)
+{
+}
+gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk)
+{
+	return NULL;
+}
+
 #endif
 
 

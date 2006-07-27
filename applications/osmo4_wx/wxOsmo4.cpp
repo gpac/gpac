@@ -156,6 +156,22 @@ u32 get_sys_col(int idx)
 }
 #endif
 
+static void wxOsmo4_progress_cbk(void *usr, char *title, u32 done, u32 total)
+{
+	if (!total) return;
+	wxOsmo4Frame *app = (wxOsmo4Frame *)usr;
+	s32 prog = (s32) ( (100 * (u64)done) / total);
+	if (app->m_last_prog < prog) {
+		app->m_last_prog = prog;
+		if (prog<100) {
+			app->SetStatus(wxString::Format(wxT("%s %02d %%"), title, prog));
+		} else {
+			app->SetStatus(wxT(""));
+			app->m_last_prog = -1;
+		}
+	}
+}
+
 Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
 	wxCommandEvent event;
@@ -200,24 +216,11 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		break;
 	case GF_EVT_PROGRESS:
 	{
-		if (evt->progress.total) {
-			s32 prog = (s32) ( (100 * (u64)evt->progress.done) / evt->progress.total);
-			if (app->m_last_prog < prog) {
-				app->m_last_prog = prog;
-				if (prog<100) {
-					wxString sTitle;
-					if (evt->progress.progress_type==0) sTitle = wxT("Buffer ");
-					else if (evt->progress.progress_type==1) sTitle = wxT("Download ");
-					else if (evt->progress.progress_type==2) sTitle = wxT("Import ");
-					sTitle += wxString::Format(wxT("%02d %%"), prog);
-					app->SetStatus(sTitle);
-				} else {
-					app->SetStatus(wxT(""));
-					app->m_last_prog = -1;
-				}
-
-			}
-		}
+		char *sTitle;
+		if (evt->progress.progress_type==0) sTitle = "Buffer";
+		else if (evt->progress.progress_type==1) sTitle = "Download";
+		else if (evt->progress.progress_type==2) sTitle = "Import";
+		gf_set_progress(sTitle, evt->progress.done, evt->progress.total);
 	}
 		break;
 	
@@ -689,7 +692,7 @@ wxDEFAULT_FRAME_STYLE
 	m_chapters_start = NULL;
 	m_bViewRTI = 0;
 
-	gf_sys_init();
+	gf_set_progress_callback(this, wxOsmo4_progress_cbk);
 
 	myDropfiles *droptarget = new myDropfiles();
 	droptarget->m_pMain = this;
@@ -936,7 +939,6 @@ wxOsmo4Frame::~wxOsmo4Frame()
 
 	if (m_user.modules) gf_modules_del(m_user.modules);
 	if (m_user.config) gf_cfg_del(m_user.config);
-	gf_sys_close();
 
 	if (m_chapters_start) free(m_chapters_start);
 	if (m_pView) delete m_pView;

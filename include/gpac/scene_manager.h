@@ -164,9 +164,7 @@ enum
 	/*special flag indicating that the context is already loaded & valid (eg no default stream creations & co)
 	this is used when performing diff encoding (eg the file to load only has updates).
 	When set, gf_sm_load_init will NOT attempt to parse first frame*/
-	GF_SM_LOAD_CONTEXT_READY = 4,
-	/*indicates binary reading should be dumped (LSR only)*/
-	GF_SM_LOAD_DUMP_BINARY = 8,
+	GF_SM_LOAD_CONTEXT_READY = 4
 };
 
 /*loader type, usually detected based on file ext*/
@@ -195,12 +193,6 @@ typedef struct
 	const char *fileName;
 	/*IsoMedia file to import (we need to be able to load from an opened file for scene stats)*/
 	GF_ISOFile *isom;
-	/*message reporter*/
-	void (*OnMessage)(void *cbk, char *msg, GF_Err e);
-	/*progress callback - can be frames, bytes etc.. depending on file being loaded*/
-	void (*OnProgress)(void *cbk, u32 done, u32 to_do);
-	/*user callback*/
-	void *cbk;
 	/*swf import flags*/
 	u32 swf_import_flags;
 	/*swf flatten limit: angle limit below which 2 lines are considered as aligned, 
@@ -286,8 +278,6 @@ typedef struct
 	u32 flags;
 	/*delay between 2 RAP in ms. If 0 RAPs are not forced - BIFS and LASeR only for now*/
 	u32 rap_freq;
-	/*encoding log or NULL*/
-	char *logFile;
 	/*if set, any unknown stream in the scene will be looked for in @mediaSource (MP4 only)*/
 	char *mediaSource;
 	/*LASeR */

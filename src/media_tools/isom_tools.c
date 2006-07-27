@@ -70,23 +70,7 @@ static const u8 ISMA_BIFS_AI[] =
 };
 
 
-void log_message(void (*LogMsg)(void *cbk, const char *szMsg), void *cbk, char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	if (LogMsg) {
-		char szMsg[1024];
-		vsprintf(szMsg, format, args);
-		LogMsg(cbk, szMsg);
-	} else {
-		vfprintf(stderr, format,args);
-		fprintf(stderr, "\n");
-	}
-	va_end(args);
-}
-
-
-GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, Bool no_ocr, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk)
+GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, Bool no_ocr)
 {
 	u32 AudioTrack, VideoTrack, Tracks, i, mType, bifsT, odT, descIndex, VideoType, VID, AID, bifsID, odID;
 	u32 bifs, w, h;
@@ -132,13 +116,13 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 				/*only ONE video stream possible with ISMA*/
 				if (VID) {
 					if (esd) gf_odf_desc_del((GF_Descriptor*)esd);
-					log_message(LogMsg, cbk, "More than one video track found, cannot ISMA'ize file - remove extra track(s)");
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA convert] More than one video track found, cannot convert file - remove extra track(s)\n"));
 					return GF_NOT_SUPPORTED;
 				}
 				VID = gf_isom_get_track_id(mp4file, i+1);
 				is_image = image_track;
 			} else {
-				log_message(LogMsg, cbk, "Visual track ID %d: only one sample found, assuming image and removing track", gf_isom_get_track_id(mp4file, i+1) );
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA convert] Visual track ID %d: only one sample found, assuming image and removing track\n", gf_isom_get_track_id(mp4file, i+1) ) );
 				gf_isom_remove_track(mp4file, i+1);
 				i -= 1;
 				Tracks = gf_isom_get_track_count(mp4file);
@@ -147,7 +131,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 		case GF_ISOM_MEDIA_AUDIO:
 			if (AID) {
 				if (esd) gf_odf_desc_del((GF_Descriptor*)esd);
-				log_message(LogMsg, cbk, "More than one audio track found, cannot ISMA'ized file - remove extra track(s)");
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA convert] More than one audio track found, cannot convert file - remove extra track(s)\n") );
 				return GF_NOT_SUPPORTED;
 			}
 			AID = gf_isom_get_track_id(mp4file, i+1);
@@ -155,9 +139,9 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 		/*clean file*/
 		default:
 			if (mType==GF_ISOM_MEDIA_HINT) {
-				log_message(LogMsg, cbk, "Removing Hint track ID %d", gf_isom_get_track_id(mp4file, i+1) );
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA convert] Removing Hint track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 			} else {
-				log_message(LogMsg, cbk, "Removing MPEG-4 Systems track ID %d", gf_isom_get_track_id(mp4file, i+1) );
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA convert] Removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 			}
 			gf_isom_remove_track(mp4file, i+1);
 			i -= 1;
@@ -228,7 +212,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 					w = dsi.width;
 					h = dsi.height;
 					gf_isom_set_visual_info(mp4file, VideoTrack, 1, w, h);
-					log_message(LogMsg, cbk, "Adjusting visual track size to %d x %d", w, h);
+					GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA convert] Adjusting visual track size to %d x %d\n", w, h));
 				}
 				if (dsi.par_num && (dsi.par_den!=dsi.par_num)) {
 					w *= dsi.par_num;
@@ -386,7 +370,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 }
 
 
-GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk)
+GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 {
 	u32 Tracks, i, mType, nb_vid, nb_avc, nb_aud, nb_txt, nb_non_mp4;
 	Bool is_3g2 = 0;
@@ -411,7 +395,7 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const c
 		case GF_ISOM_MEDIA_VISUAL:
 			/*remove image tracks if wanted*/
 			if (gf_isom_get_sample_count(mp4file, i+1)<=1) {
-				log_message(LogMsg, cbk, "Visual track ID %d: only one sample found, assuming image and removing track", gf_isom_get_track_id(mp4file, i+1) );
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Visual track ID %d: only one sample found, assuming image and removing track\n", gf_isom_get_track_id(mp4file, i+1) ));
 				goto remove_track;
 			}
 
@@ -431,14 +415,14 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const c
 					if ((esd->decoderConfig->objectTypeIndication==0x20) || (esd->decoderConfig->objectTypeIndication==0x21) ) {
 						nb_vid++;
 					} else {
-						log_message(LogMsg, cbk, "Video format not supported by 3GP - removing track ID %d", gf_isom_get_track_id(mp4file, i+1) );
+						GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Video format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 						goto remove_track;
 					}
 					gf_odf_desc_del((GF_Descriptor *)esd);
 				}
 				break;
 			default:
-				log_message(LogMsg, cbk, "Video format not supported by 3GP - removing track ID %d", gf_isom_get_track_id(mp4file, i+1) );
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Video format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 				goto remove_track;
 			}
 			break;
@@ -467,14 +451,14 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const c
 					nb_aud++;
 					break;
 				default:
-					log_message(LogMsg, cbk, "Audio format not supported by 3GP - removing track ID %d", gf_isom_get_track_id(mp4file, i+1) );
+					GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Audio format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 					goto remove_track;
 				}
 				gf_odf_desc_del((GF_Descriptor *)esd);
 			}
 				break;
 			default:
-				log_message(LogMsg, cbk, "Audio format not supported by 3GP - removing track ID %d", gf_isom_get_track_id(mp4file, i+1) );
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Audio format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 				goto remove_track;
 			}
 			break;
@@ -484,9 +468,9 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file, void (*LogMsg)(void *cbk, const c
 		/*clean file*/
 		default:
 			if (mType==GF_ISOM_MEDIA_HINT) {
-				log_message(LogMsg, cbk, "Removing Hint track ID %d", gf_isom_get_track_id(mp4file, i+1) );
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Removing Hint track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 			} else {
-				log_message(LogMsg, cbk, "Removing system track ID %d", gf_isom_get_track_id(mp4file, i+1) );
+				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Removing system track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 			}
 
 remove_track:
@@ -505,7 +489,7 @@ remove_track:
 		gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP6, 0);
 		gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, 0);
 		gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GG6, 0);
-		log_message(LogMsg, cbk, "Setting major brand to 3GPP2");
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP2\n"));
 	} else {
 		/*update FType*/
 		if ((nb_vid>1) || (nb_aud>1) || (nb_txt>1)) {
@@ -514,7 +498,7 @@ remove_track:
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP6, 0);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, 0);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, 0);
-			log_message(LogMsg, cbk, "Setting major brand to 3GPP Generic file");
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP Generic file\n"));
 		} 
 		/*commented for QT compatibility, although this is correct (qt doesn't understand 3GP6 brand)*/
 		else if (nb_txt && 0) {
@@ -522,18 +506,19 @@ remove_track:
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, 1);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, 1);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GG6, 0);
-			log_message(LogMsg, cbk, "Setting major brand to 3GPP V6 file");
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP V6 file\n"));
 		} else if (nb_avc) {
 			gf_isom_set_brand_info(mp4file, GF_ISOM_BRAND_3GP6, 0/*1024*/);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_AVC1, 1);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, 0);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, 0);
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP V6 file + AVC compatible\n"));
 		} else {
 			gf_isom_set_brand_info(mp4file, nb_avc ? GF_ISOM_BRAND_3GP6 : GF_ISOM_BRAND_3GP5, 0/*1024*/);
 			gf_isom_modify_alternate_brand(mp4file, nb_avc ? GF_ISOM_BRAND_3GP5 : GF_ISOM_BRAND_3GP6, 0);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, 1);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GG6, 0);
-			log_message(LogMsg, cbk, "Setting major brand to 3GPP V5 file");
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP V5 file\n"));
 		}
 	}
 	/*add/remove MP4 brands and add isom*/
@@ -543,7 +528,7 @@ remove_track:
 	return GF_OK;
 }
 
-GF_Err gf_media_make_psp(GF_ISOFile *mp4, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk)
+GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 {
 	u32 i, count;
 	u32 nb_a, nb_v;
@@ -566,7 +551,7 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4, void (*LogMsg)(void *cbk, const char *
 		}
 	}
 	if ((nb_v != 1) && (nb_a!=1)) {
-		log_message(LogMsg, cbk, "PSP Movies need one audio track and one video track");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[PSP convert] Movies need one audio track and one video track\n" ));
 		return GF_BAD_PARAM;
 	}
 	for (i=0; i<count; i++) {
@@ -583,7 +568,7 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4, void (*LogMsg)(void *cbk, const char *
 			gf_isom_add_uuid(mp4, i+1, psp_track_uuid, (char *) psp_track_sig, 28);
 			break;
 		default:
-			log_message(LogMsg, cbk, "Removing track ID %d", gf_isom_get_track_id(mp4, i+1) );
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[PSP convert] Removing track ID %d\n", gf_isom_get_track_id(mp4, i+1) ));
 			gf_isom_remove_track(mp4, i+1);
 			i -= 1;
 			count -= 1;
@@ -605,7 +590,7 @@ typedef struct
 } TrackFragmenter;
 
 
-GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration, void (*OnProgress)(void *cbk, u32 total, u32 done), void *cbk)
+GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration)
 {
 	u8 NbBits;
 	u32 i, TrackNum, descIndex, j, count;
@@ -762,7 +747,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 								 defaultDuration, NbBits, 0);
 				if (e) goto err_exit;
 
-				if (OnProgress) OnProgress(cbk, nb_done, nb_samp);
+				gf_set_progress("ISO File Fragmenting", nb_done, nb_samp);
 				nb_done++;
 
 				gf_isom_sample_del(&sample);
@@ -796,7 +781,7 @@ err_exit:
 	gf_list_del(fragmenters);
 	if (e) gf_isom_delete(output);
 	else gf_isom_close(output);
-	if (OnProgress) OnProgress(cbk, nb_samp, nb_samp);
+	gf_set_progress("ISO File Fragmenting", nb_samp, nb_samp);
 	return e;
 }
 

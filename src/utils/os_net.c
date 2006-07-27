@@ -811,7 +811,7 @@ GF_Err gf_sk_receive(GF_Socket *sock, unsigned char *buffer, u32 length, u32 sta
 		case EAGAIN:
 			return GF_IP_SOCK_WOULD_BLOCK;
 		default:
-			fprintf(stdout, "error fetching %d\n", LASTSOCKERROR);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[socket] cannot select (error %d)\n", LASTSOCKERROR));
 			return GF_IP_NETWORK_FAILURE;
 		}
 	}
@@ -835,7 +835,7 @@ GF_Err gf_sk_receive(GF_Socket *sock, unsigned char *buffer, u32 length, u32 sta
 		case ECONNABORTED:
 			return GF_IP_CONNECTION_CLOSED;
 		default:
-//			fprintf(stdout, "error fetching %d\n", res);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[socket] cannot read from network (%d)\n", LASTSOCKERROR));
 			return GF_IP_NETWORK_FAILURE;
 		}
 	}

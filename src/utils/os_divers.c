@@ -608,12 +608,16 @@ void gf_sys_init()
 		if (QueryPerformanceFrequency(&frequency)) {
 			QueryPerformanceCounter(&init_counter);
 			OS_GetSysClock = OS_GetSysClockHIGHRES;
+			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] using WIN32 performance timer\n"));
 		} else {
 #ifndef _WIN32_WCE
 			timeBeginPeriod(1);
 #endif
 			OS_GetSysClock = OS_GetSysClockNORMAL;
+			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] using WIN32 regular timer\n"));
 		}
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] checking for run-time info tools"));
 #if defined(_WIN32_WCE)
 		last_total_k_u_time = last_process_k_u_time = 0;
 		last_update_time = 0;
@@ -624,15 +628,25 @@ void gf_sys_init()
 #else
 		/*cpu usage tools are buried in win32 dlls...*/
 		MyGetSystemTimes = (NTGetSystemTimes) GetProcAddress(GetModuleHandle("kernel32.dll"), "GetSystemTimes");
-		if (!MyGetSystemTimes) 
+		if (!MyGetSystemTimes) {
 			MyQuerySystemInfo = (NTQuerySystemInfo) GetProcAddress(GetModuleHandle("ntdll.dll"), "NtQuerySystemInformation");
+			if (MyQuerySystemInfo) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_CORE, (" - CPU: QuerySystemInformation"));
+			}
+		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, (" - CPU: GetSystemsTimes"));
+		}
 		psapi_hinst = LoadLibrary("psapi.dll");
 		MyGetProcessMemoryInfo = (NTGetProcessMemoryInfo) GetProcAddress(psapi_hinst, "GetProcessMemoryInfo");
+		if (MyGetProcessMemoryInfo) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, (" - memory: GetProcessMemoryInfo"));
+		}
 		last_process_k_u_time = last_proc_idle_time = last_proc_k_u_time = 0;
 		last_update_time = 0;
 		memset(&the_rti, 0, sizeof(GF_SystemRTInfo));
 		the_rti.pid = GetCurrentProcessId();
 #endif
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("\n"));
 
 #else
 		/*linux threads...*/
@@ -643,6 +657,7 @@ void gf_sys_init()
 		the_rti.pid = getpid();
 		sys_start_time = gf_sys_clock();
 #endif
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] process id %d\n", the_rti.pid));
 
 #ifndef _WIN32_WCE
 		setlocale( LC_NUMERIC, "C" ); 
@@ -982,13 +997,15 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		   &sigignore, &sigcatch, &wchan, &nswap, &cnswap, &exit_signal, &processor);
  
       if (res) process_u_k_time = (u64) (cutime + cstime);
-      else fprintf(stdout, "parse error\n");
+      else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] PROC %s parse error\n", szProc));
+	  }
     } else {
-      fprintf(stdout, "error reading pid/stat\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] error reading pid/stat\n\n", szProc));
     }
     fclose(f);
   } else {
-    fprintf(stdout, "cannot open %s\n", szProc);
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] cannot open %s\n", szProc));
   }
   sprintf(szProc, "/proc/%d/status", the_rti.pid);
   f = fopen(szProc, "r");
@@ -1001,7 +1018,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
     }
     fclose(f);
   } else {
-    fprintf(stdout, "cannot open %s\n", szProc);
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] cannot open %s\n", szProc));
   }
 #endif
 
@@ -1021,7 +1038,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
     }
     fclose(f);
   } else {
-    fprintf(stdout, "cannot open /proc/meminfo\n");
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] cannot open /proc/meminfo\n"));
   }
 
 

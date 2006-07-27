@@ -74,9 +74,9 @@ int main(int argc, char **argv)
 		gf_m2ts_process_data(ts, data, size);
 
 		fdone += size;
-		gf_cbk_on_progress("MPEG-2 TS Parsing", fdone, fsize);
+		gf_set_progress("MPEG-2 TS Parsing", fdone, fsize);
 	}
-	gf_cbk_on_progress("MPEG-2 TS Parsing", fsize, fsize);
+	gf_set_progress("MPEG-2 TS Parsing", fsize, fsize);
 
 	fclose(src);
 	gf_m2ts_demux_del(ts);

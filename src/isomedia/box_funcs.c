@@ -100,9 +100,12 @@ proceed_box:
 		size = gf_bs_read_u64(bs);
 		hdr_size += 8;
 	}
-//	gf_trace(2, 0, "ISOMedia", "Read Box type %s size %d\n", gf_4cc_to_str(type), size);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size "LLU" start "LLU"\n", gf_4cc_to_str(type), size, start));
 
-	if ( size < hdr_size ) return GF_ISOM_INVALID_FILE;
+	if ( size < hdr_size ) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box size "LLD" less than box header size %d\n", size, hdr_size));
+		return GF_ISOM_INVALID_FILE;
+	}
 
 	//OK, create the box based on the type
 	newBox = gf_isom_box_new(type);
@@ -134,19 +137,19 @@ proceed_box:
 	if (e && (e != GF_ISOM_INCOMPLETE_FILE)) {
 		gf_isom_box_del(newBox);
 		*outBox = NULL;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box failed (%s)\n", gf_error_to_string(e)));
 		return e;
 	}
 
 	if (end-start > size) {
-		//gf_trace(0, 0, "ISOMedia", "Box size %d invalid (read %d)\n", (u32) size, (u32) end-start);
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box size "LLU" invalid (read "LLU")\n", size, end-start));
 		/*let's still try to load the file since no error was notified*/
 		gf_bs_seek(bs, start+size);
 	} else if (end-start < size) {
 		u32 to_skip = (u32) (size-(end-start));
-		//gf_trace(1, 0, "ISOMedia", "Box has %d extra bytes\n", to_skip);
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box has %d extra bytes\n", to_skip));
 		gf_bs_skip_bytes(bs, to_skip);
 	}
-
 	*outBox = newBox;
 	return e;
 }

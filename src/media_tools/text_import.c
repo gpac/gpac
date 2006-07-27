@@ -408,7 +408,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 				gf_isom_text_reset(samp);
 
 				//gf_import_progress(import, nb_samp, nb_samp+1);
-				gf_import_progress(import, ftell(srt_in), file_size);
+				gf_set_progress("Importing SRT", ftell(srt_in), file_size);
 				if (duration && (end >= duration)) break;
 			}
 			if (!sOK) break;
@@ -576,7 +576,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	}
 	gf_isom_delete_text_sample(samp);
 	gf_isom_set_last_sample_duration(import->dest, track, 0);
-	gf_import_progress(import, nb_samp, nb_samp);
+	gf_set_progress("Importing SRT", nb_samp, nb_samp);
 
 exit:
 	if (e) gf_isom_remove_track(import->dest, track);
@@ -796,7 +796,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		nb_samp++;
 		gf_isom_text_reset(samp);
 		prev_end = end;
-		gf_import_progress(import, ftell(sub_in), file_size);
+		gf_set_progress("Importing SUB", ftell(sub_in), file_size);
 		if (duration && (end >= duration)) break;
 	}
 	/*final flush*/
@@ -811,7 +811,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 	gf_isom_delete_text_sample(samp);
 	
 	gf_isom_set_last_sample_duration(import->dest, track, 0);
-	gf_import_progress(import, nb_samp, nb_samp);
+	gf_set_progress("Importing SUB", nb_samp, nb_samp);
 
 exit:
 	if (e) gf_isom_remove_track(import->dest, track);
@@ -901,15 +901,9 @@ char *ttxt_parse_string(GF_MediaImporter *import, char *str)
 	return str;
 }
 
-/*for GCC warnings*/
-static void dom_import_progress(void *cbk, u32 cur_samp, u32 count)
+static void ttxt_import_progress(void *cbk, u32 cur_samp, u32 count)
 {
-	GF_MediaImporter *import = cbk;
-	if (import->import_progress) {
-		import->import_progress(import, cur_samp, count);
-	} else {
-		gf_import_progress(import, cur_samp, count);
-	}
+	gf_set_progress("TTXT Loading", cur_samp, count);
 }
 
 static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
@@ -925,7 +919,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 	if (import->flags==GF_IMPORT_PROBE_ONLY) return GF_OK;
 
 	parser = gf_xml_dom_new();
-	e = gf_xml_dom_parse(parser, import->in_name, dom_import_progress, import);
+	e = gf_xml_dom_parse(parser, import->in_name, ttxt_import_progress, import);
 	if (e) {
 		gf_import_message(import, e, "Error parsing TTXT file: Line %d - %s", gf_xml_dom_get_line(parser), gf_xml_dom_get_error(parser));
 		gf_xml_dom_del(parser);
@@ -1217,7 +1211,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 			gf_isom_sample_del(&s);
 			nb_samples++;
 
-			gf_import_progress(import, nb_samples, nb_children);
+			gf_set_progress("Importing TTXT", nb_samples, nb_children);
 			if (import->duration && (ts>import->duration)) break;
 		}
 	}
@@ -1225,7 +1219,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 		gf_isom_remove_sample(import->dest, track, nb_samples);
 		gf_isom_set_last_sample_duration(import->dest, track, (u32) last_sample_duration);
 	}
-	gf_import_progress(import, nb_samples, nb_samples);
+	gf_set_progress("Importing TTXT", nb_samples, nb_samples);
 
 exit:
 	gf_xml_dom_del(parser);
@@ -1279,10 +1273,15 @@ typedef struct
 	}	
 
 
+static void texml_import_progress(void *cbk, u32 cur_samp, u32 count)
+{
+	gf_set_progress("TeXML Loading", cur_samp, count);
+}
+
 static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 {
 	GF_Err e;
-	u32 track, ID, nb_samples, nb_descs, timescale, w, h, i, j, k;
+	u32 track, ID, nb_samples, nb_children, nb_descs, timescale, w, h, i, j, k;
 	u64 DTS;
 	s32 tx, ty, layer;
 	GF_StyleRecord styles[50];
@@ -1294,7 +1293,7 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 	if (import->flags==GF_IMPORT_PROBE_ONLY) return GF_OK;
 
 	parser = gf_xml_dom_new();
-	e = gf_xml_dom_parse(parser, import->in_name, dom_import_progress, import);
+	e = gf_xml_dom_parse(parser, import->in_name, texml_import_progress, import);
 	if (e) {
 		gf_import_message(import, e, "Error parsing TeXML file: Line %d - %s", gf_xml_dom_get_line(parser), gf_xml_dom_get_error(parser));
 		gf_xml_dom_del(parser);
@@ -1350,6 +1349,7 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 
 	gf_import_message(import, GF_OK, "Timed Text (QT TeXML) Import - Track Size %d x %d", w, h);
 
+	nb_children = gf_list_count(root->content);
 	nb_descs = 0;
 	nb_samples = 0;
 	i=0;
@@ -1629,11 +1629,12 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 			gf_isom_sample_del(&s);
 			nb_samples++;
 			DTS += duration;
+			gf_set_progress("Importing TeXML", nb_samples, nb_children);
 			if (import->duration && (DTS*1000> timescale*import->duration)) break;
 		}
 	}
 	gf_isom_set_last_sample_duration(import->dest, track, 0);
-	gf_import_progress(import, nb_samples, nb_samples);
+	gf_set_progress("Importing TeXML", nb_samples, nb_samples);
 
 exit:
 	gf_xml_dom_del(parser);

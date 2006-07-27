@@ -16,7 +16,11 @@ EXPORTS
 	gf_rand
 	gf_get_user_name
 	gf_enum_directory
-	gf_cbk_on_progress
+	gf_log_set_level
+	gf_log_set_tools
+	gf_log_set_callback
+	gf_set_progress
+	gf_set_progress_callback
 	gf_temp_file_new
 	gf_delete_file
 	gf_malloc
@@ -401,7 +405,6 @@ EXPORTS
 	gf_isom_probe_file
 	gf_isom_open
 	gf_isom_close
-	gf_isom_close_progress
 	gf_isom_delete
 	gf_isom_get_mode
 	gf_isom_open_progressive
@@ -866,7 +869,6 @@ EXPORTS
 	gf_bifs_encoder_get_config
 	gf_bifs_encoder_get_version
 	gf_bifs_encoder_get_rap
-	gf_bifs_encoder_set_trace
 	gf_bifs_get_aq_info
 
 
@@ -1130,7 +1132,6 @@ EXPORTS
 	gf_laser_encode_au
 	gf_laser_encoder_get_config
 	gf_laser_encoder_get_rap
-	gf_laser_set_trace
 
 ;SVG exports
 	gf_node_svg_type_by_class_name

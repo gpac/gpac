@@ -1196,7 +1196,7 @@ void DumpNode(GF_SceneDumper *sdump, GF_Node *node, Bool in_list, char *fieldCon
 	if (node->sgprivate->tag>GF_NODE_RANGE_LAST_X3D) return;
 
 	if (!SD_CanDumpNode(sdump, node)) {
-		fprintf(stdout, "Warning: node %s not part of %s standard - removing\n", gf_node_get_class_name(node), sdump->X3DDump ? "X3D" : (sdump->dump_mode==GF_SM_DUMP_VRML) ? "VRML" : "MPEG4");
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[Scene Dump] node %s not part of %s standard - removing\n", gf_node_get_class_name(node), sdump->X3DDump ? "X3D" : (sdump->dump_mode==GF_SM_DUMP_VRML) ? "VRML" : "MPEG4"));
 		if (!in_list) fprintf(sdump->trace, "NULL");
 		return;
 	}
@@ -2347,7 +2347,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 	for (i=0; i<count; i++) {
 		GF_Command *com = gf_list_get(comList, i);
 		if (i && !remain && (sdump->X3DDump || (sdump->dump_mode==GF_SM_DUMP_VRML))) {
-			fprintf(stdout, "Warning: MPEG-4 Commands found, not supported in %s - skipping\n", sdump->X3DDump ? "X3D" : "VRML");
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[Scene Dump] MPEG-4 Commands found, not supported in %s - skipping\n", sdump->X3DDump ? "X3D" : "VRML"));
 			break;
 		}
 		if (has_scene_replace && (com->tag != GF_SG_ROUTE_INSERT)) {
@@ -2873,7 +2873,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 	if (!dumper->X3DDump && first_par) fprintf(dumper->trace, " </par>\n");
 
 	if (gf_list_count(sample_list) && (dumper->X3DDump || (dumper->dump_mode==GF_SM_DUMP_VRML)) ) {
-		fprintf(stdout, "Warning: MPEG-4 Commands found, not supported in %s - skipping\n", dumper->X3DDump ? "X3D" : "VRML");
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[Scene Dump] MPEG-4 Commands found, not supported in %s - skipping\n", dumper->X3DDump ? "X3D" : "VRML"));
 	}
 
 exit:

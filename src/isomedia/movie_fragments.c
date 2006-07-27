@@ -70,7 +70,7 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie)
 	gf_isom_get_duration(movie);
 
 	//write movie
-	e = WriteToFile(movie, NULL, NULL);
+	e = WriteToFile(movie);
 	if (e) return e;
 
 	//make sure we do have all we need. If not this is not an error, just consider 

@@ -147,24 +147,6 @@ static Bool CTXLoad_CheckDownload(CTXLoadPriv *priv)
 	return 0;
 }
 
-static void CTXLoad_OnMessage(void *cbk, char *szMsg, GF_Err e)
-{
-	CTXLoadPriv *priv = (CTXLoadPriv *)cbk;
-	gf_term_message(priv->inline_scene->root_od->term, priv->inline_scene->root_od->net_service->url, szMsg, e);
-}
-
-static void CTXLoad_OnProgress(void *cbk, u32 done, u32 tot)
-{
-	GF_Event evt;
-	CTXLoadPriv *priv = (CTXLoadPriv *)cbk;
-	evt.type = GF_EVT_PROGRESS;
-	evt.progress.progress_type = 2;
-	evt.progress.done = done;
-	evt.progress.total = tot;
-	evt.progress.service = priv->inline_scene->root_od->net_service->url;
-	GF_USER_SENDEVENT(priv->inline_scene->root_od->term->user, &evt);
-}
-
 
 static GF_Err CTXLoad_Setup(GF_BaseDecoder *plug)
 {
@@ -174,11 +156,8 @@ static GF_Err CTXLoad_Setup(GF_BaseDecoder *plug)
 	priv->ctx = gf_sm_new(priv->inline_scene->graph);
 	memset(&priv->load, 0, sizeof(GF_SceneLoader));
 	priv->load.ctx = priv->ctx;
-	priv->load.cbk = priv;
 	priv->load.scene_graph = priv->inline_scene->graph;
 	priv->load.fileName = priv->file_name;
-	priv->load.OnMessage = CTXLoad_OnMessage;
-	priv->load.OnProgress = CTXLoad_OnProgress;
 	priv->load.flags = GF_SM_LOAD_FOR_PLAYBACK;
 	priv->load.localPath = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
 	priv->load.swf_import_flags = GF_SM_SWF_STATIC_DICT | GF_SM_SWF_QUAD_CURVE | GF_SM_SWF_SCALABLE_LINE;
@@ -368,7 +347,6 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 				file_buf[nb_read] = 0;
 				if (!nb_read) {
 					if (priv->file_pos==priv->file_size) {
-						CTXLoad_OnProgress(priv, priv->file_pos, priv->file_size);
 						fclose(priv->src);
 						priv->src = NULL;
 						priv->load_flags = 2;
@@ -382,7 +360,6 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 				priv->file_pos += nb_read;
 				if (e) break;
 				diff = gf_sys_clock() - entry_time;
-				CTXLoad_OnProgress(priv, priv->file_pos, priv->file_size);
 				if (diff > priv->sax_max_duration) break;
 			}
 			if (!priv->inline_scene->graph_attached) {

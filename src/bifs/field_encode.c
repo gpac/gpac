@@ -47,7 +47,6 @@ GF_Err gf_bifs_field_index_by_mode(GF_Node *node, u32 all_ind, u8 indexMode, u32
 	return GF_BAD_PARAM;
 }
 
-void BE_LogFloat(GF_BifsEncoder *codec, Fixed val, u32 nbBits, char *str, char *com);
 
 void BE_WriteSFFloat(GF_BifsEncoder *codec, Fixed val, GF_BitStream *bs, char *com)
 {
@@ -55,7 +54,7 @@ void BE_WriteSFFloat(GF_BifsEncoder *codec, Fixed val, GF_BitStream *bs, char *c
 		gf_bifs_enc_mantissa_float(codec, val, bs);
 	} else {
 		gf_bs_write_float(bs, FIX2FLT(val));
-		BE_LogFloat(codec, val, 32, "SFFloat", com);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] SFFloat\t\t32\t\t%g\t\t%s\n", FIX2FLT(val), com ? com : "") );	
 	}
 }
 
@@ -70,7 +69,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	}
 	switch (field->fieldType) {
 	case GF_SG_VRML_SFBOOL:
-		GF_BE_WRITE_INT(codec, bs, * ((SFBool *)field->far_ptr), 1, "SFBool", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, * ((SFBool *)field->far_ptr), 1, "SFBool", NULL);
 		break;
 	case GF_SG_VRML_SFCOLOR:
 		BE_WriteSFFloat(codec, ((SFColor *)field->far_ptr)->red, bs, "color.red");
@@ -81,7 +80,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		BE_WriteSFFloat(codec, * ((SFFloat *)field->far_ptr), bs, NULL);
 		break;
 	case GF_SG_VRML_SFINT32:
-		GF_BE_WRITE_INT(codec, bs, * ((SFInt32 *)field->far_ptr), 32, "SFInt32", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, * ((SFInt32 *)field->far_ptr), 32, "SFInt32", NULL);
 		break;
 	case GF_SG_VRML_SFROTATION:
 		BE_WriteSFFloat(codec, ((SFRotation  *)field->far_ptr)->x, bs, "rot.x");
@@ -96,16 +95,16 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		char *str = ((SFString*)field->far_ptr)->buffer;
 		u32 len = str ? strlen(str) : 0;
 		u32 val = gf_get_bit_size(len);
-		GF_BE_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
-		GF_BE_WRITE_INT(codec, bs, len, val, "length", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, len, val, "length", NULL);
 		for (i=0; i<len; i++) gf_bs_write_int(bs, str[i], 8);
-		if (codec->trace) fprintf(codec->trace, "string\t\t%d\t\t%s\n", 8*len, str);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] string\t\t%d\t\t%s\n", 8*len, str) );
 	}
 		break;
 
 	case GF_SG_VRML_SFTIME:
 		gf_bs_write_double(bs, *((SFTime *)field->far_ptr));
-		if (codec->trace) fprintf(codec->trace, "SFTime\t\t%d\t\t%g\n", 64, *((SFTime *)field->far_ptr));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] SFTime\t\t%d\t\t%g\n", 64, *((SFTime *)field->far_ptr)));
 		break;
 
 	case GF_SG_VRML_SFVEC2F:
@@ -122,17 +121,17 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	case GF_SG_VRML_SFURL:
 	{
 		SFURL *url = (SFURL *) field->far_ptr;
-		GF_BE_WRITE_INT(codec, bs, (url->OD_ID>0) ? 1 : 0, 1, "hasODID", "SFURL");
+		GF_BIFS_WRITE_INT(codec, bs, (url->OD_ID>0) ? 1 : 0, 1, "hasODID", "SFURL");
 		if (url->OD_ID>0) {
-			GF_BE_WRITE_INT(codec, bs, url->OD_ID, 10, "ODID", "SFURL");
+			GF_BIFS_WRITE_INT(codec, bs, url->OD_ID, 10, "ODID", "SFURL");
 		} else {
 			u32 i;
 			u32 len = url->url ? strlen(url->url) : 0;
 			u32 val = gf_get_bit_size(len);
-			GF_BE_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
-			GF_BE_WRITE_INT(codec, bs, len, val, "length", NULL);
+			GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
+			GF_BIFS_WRITE_INT(codec, bs, len, val, "length", NULL);
 			for (i=0; i<len; i++) gf_bs_write_int(bs, url->url[i], 8);
-			if (codec->trace) fprintf(codec->trace, "string\t\t%d\t\t%s\t\t//SFURL\n", 8*len, url->url);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] string\t\t%d\t\t%s\t\t//SFURL\n", 8*len, url->url));
 		}
 	}
 		break;
@@ -140,12 +139,12 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	{
 		u32 size, i;
 		SFImage *img = (SFImage *)field->far_ptr;
-		GF_BE_WRITE_INT(codec, bs, img->width, 12, "width", "SFImage");
-		GF_BE_WRITE_INT(codec, bs, img->height, 12, "height", "SFImage");
-		GF_BE_WRITE_INT(codec, bs, img->numComponents - 1, 2, "nbComp", "SFImage");
+		GF_BIFS_WRITE_INT(codec, bs, img->width, 12, "width", "SFImage");
+		GF_BIFS_WRITE_INT(codec, bs, img->height, 12, "height", "SFImage");
+		GF_BIFS_WRITE_INT(codec, bs, img->numComponents - 1, 2, "nbComp", "SFImage");
 		size = img->width * img->height * img->numComponents;
 		for (i=0; i<size; i++) gf_bs_write_int(bs, img->pixels[i], 8);
-		if (codec->trace) fprintf(codec->trace, "pixels\t\t%d\t\tnot dumped\t\t//SFImage\n", 8*size);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] pixels\t\t%d\t\tnot dumped\t\t//SFImage\n", 8*size));
 	}
 		break;
 
@@ -158,20 +157,20 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		if (gf_list_count(cb->commandList)) {
 			u32 i, nbBits;
 			GF_BitStream *bs_cond = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			if (codec->trace) fprintf(codec->trace, "/*SFCommandBuffer*/\n");
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] /*SFCommandBuffer*/\n" ));
 			e = gf_bifs_enc_commands(codec, cb->commandList, bs_cond);
 			if (!e) gf_bs_get_content(bs_cond, &cb->buffer, &cb->bufferSize);
 			gf_bs_del(bs_cond);
 			if (e) return e;
-			if (codec->trace) fprintf(codec->trace, "/*End SFCommandBuffer*/\n");
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] /*End SFCommandBuffer*/\n"));
 			nbBits = gf_get_bit_size(cb->bufferSize);
-			GF_BE_WRITE_INT(codec, bs, nbBits, 5, "NbBits", NULL);
-			GF_BE_WRITE_INT(codec, bs, cb->bufferSize, nbBits, "BufferSize", NULL);
-			for (i=0; i<cb->bufferSize; i++) GF_BE_WRITE_INT(codec, bs, cb->buffer[i], 8, "buffer byte", NULL);
+			GF_BIFS_WRITE_INT(codec, bs, nbBits, 5, "NbBits", NULL);
+			GF_BIFS_WRITE_INT(codec, bs, cb->bufferSize, nbBits, "BufferSize", NULL);
+			for (i=0; i<cb->bufferSize; i++) GF_BIFS_WRITE_INT(codec, bs, cb->buffer[i], 8, "buffer byte", NULL);
 		}
 		/*empty command buffer*/
 		else {
-			GF_BE_WRITE_INT(codec, bs, 0, 5, "NbBits", NULL);
+			GF_BIFS_WRITE_INT(codec, bs, 0, 5, "NbBits", NULL);
 		}
 	}
 		break;
@@ -210,12 +209,12 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		nbF = gf_list_count(list);
 	}
 	/*reserved*/
-	GF_BE_WRITE_INT(codec, bs, 0, 1, "reserved", NULL);
+	GF_BIFS_WRITE_INT(codec, bs, 0, 1, "reserved", NULL);
 	if (!nbF) {
 		/*is list*/
-		GF_BE_WRITE_INT(codec, bs, 1, 1, "isList", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, 1, 1, "isList", NULL);
 		/*end flag*/
-		GF_BE_WRITE_INT(codec, bs, 1, 1, "end", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, 1, 1, "end", NULL);
 		return GF_OK;
 	}
 
@@ -224,10 +223,10 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	nbBits = gf_get_bit_size(nbF);
 	if (nbBits + 5 > nbF + 1) use_list = 1;
 
-	GF_BE_WRITE_INT(codec, bs, use_list, 1, "isList", NULL);
+	GF_BIFS_WRITE_INT(codec, bs, use_list, 1, "isList", NULL);
 	if (!use_list) {
-		GF_BE_WRITE_INT(codec, bs, nbBits, 5, "nbBits", NULL);
-		GF_BE_WRITE_INT(codec, bs, nbF, nbBits, "length", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, nbBits, 5, "nbBits", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, nbF, nbBits, "length", NULL);
 	}
 
 	memset(&sffield, 0, sizeof(GF_FieldInfo));
@@ -239,7 +238,7 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	initial_qp = codec->ActiveQP ? 1 : 0;
 	for (i=0; i<nbF; i++) {
 
-		if (use_list) GF_BE_WRITE_INT(codec, bs, 0, 1, "end", NULL);
+		if (use_list) GF_BIFS_WRITE_INT(codec, bs, 0, 1, "end", NULL);
 
 		if (field->fieldType != GF_SG_VRML_MFNODE) {
 			gf_sg_vrml_mf_get_item(field->far_ptr, field->fieldType, &sffield.far_ptr, i);
@@ -270,7 +269,7 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		}
 	}
 
-	if (use_list) GF_BE_WRITE_INT(codec, bs, 1, 1, "end", NULL);
+	if (use_list) GF_BIFS_WRITE_INT(codec, bs, 1, 1, "end", NULL);
 	if (qp_on) gf_bifs_enc_qp_remove(codec, initial_qp);
 	/*for QP14*/
 	gf_bifs_enc_qp14_set_length(codec, nbF);
@@ -291,7 +290,7 @@ GF_Err gf_bifs_enc_field(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node
 	/*TO DO : PMF support*/
 
 	if (codec->info->config.UsePredictiveMFField) {
-		GF_BE_WRITE_INT(codec, bs, 0, 1, "usePredictive", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, 0, 1, "usePredictive", NULL);
 	}
 	return gf_bifs_enc_mf_field(codec, bs, node, field);
 }
@@ -349,8 +348,8 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 	if (node->sgprivate->tag==TAG_MPEG4_Script) count = 3;
 
 	if (!count) {
-		GF_BE_WRITE_INT(codec, bs, 0, 1, "isMask", NULL);
-		GF_BE_WRITE_INT(codec, bs, 1, 1, "end", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, 0, 1, "isMask", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, 1, 1, "end", NULL);
 		return GF_OK;
 	}
 
@@ -426,11 +425,11 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 	else if (count < 1+nbFinal*(1+numBitsDEF)) 
 		use_list = 0;
 
-	GF_BE_WRITE_INT(codec, bs, use_list ? 0 : 1, 1, "isMask", NULL);
+	GF_BIFS_WRITE_INT(codec, bs, use_list ? 0 : 1, 1, "isMask", NULL);
 
 	for (i=0; i<count; i++) {
 		if (enc_fields[i] == -1) {
-			if (!use_list) GF_BE_WRITE_INT(codec, bs, 0, 1, "Mask", NULL);
+			if (!use_list) GF_BIFS_WRITE_INT(codec, bs, 0, 1, "Mask", NULL);
 			continue;
 		}
 		allInd = (u32) enc_fields[i];
@@ -440,17 +439,17 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 			isedField = gf_bifs_enc_is_field_ised(codec, node, allInd);
 			if (isedField) {
 				if (use_list) {
-					GF_BE_WRITE_INT(codec, bs, 0, 1, "end", NULL);
+					GF_BIFS_WRITE_INT(codec, bs, 0, 1, "end", NULL);
 				} else {
-					GF_BE_WRITE_INT(codec, bs, 1, 1, "Mask", NULL);
+					GF_BIFS_WRITE_INT(codec, bs, 1, 1, "Mask", NULL);
 				}
-				GF_BE_WRITE_INT(codec, bs, 1, 1, "isedField", NULL);
-				if (use_list) GF_BE_WRITE_INT(codec, bs, allInd, numBitsALL, "nodeField", NULL);
+				GF_BIFS_WRITE_INT(codec, bs, 1, 1, "isedField", NULL);
+				if (use_list) GF_BIFS_WRITE_INT(codec, bs, allInd, numBitsALL, "nodeField", NULL);
 
 				if (isedField->ToNode == node) {
-					GF_BE_WRITE_INT(codec, bs, isedField->FromField.fieldIndex, nbBitsProto, "protoField", NULL);
+					GF_BIFS_WRITE_INT(codec, bs, isedField->FromField.fieldIndex, nbBitsProto, "protoField", NULL);
 				} else {
-					GF_BE_WRITE_INT(codec, bs, isedField->ToField.fieldIndex, nbBitsProto, "protoField", NULL);
+					GF_BIFS_WRITE_INT(codec, bs, isedField->ToField.fieldIndex, nbBitsProto, "protoField", NULL);
 				}
 				continue;
 			}
@@ -459,29 +458,29 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 		gf_node_get_field(node, allInd, &field);
 		if (use_list) {
 			/*not end flag*/
-			GF_BE_WRITE_INT(codec, bs, 0, 1, "end", NULL);
+			GF_BIFS_WRITE_INT(codec, bs, 0, 1, "end", NULL);
 		} else {
 			/*mask flag*/
-			GF_BE_WRITE_INT(codec, bs, 1, 1, "Mask", NULL);
+			GF_BIFS_WRITE_INT(codec, bs, 1, 1, "Mask", NULL);
 		}
 		/*not ISed field*/
-		if (codec->encoding_proto) GF_BE_WRITE_INT(codec, bs, 0, 1, "isedField", NULL);
+		if (codec->encoding_proto) GF_BIFS_WRITE_INT(codec, bs, 0, 1, "isedField", NULL);
 		if (use_list) {
 			if (codec->encoding_proto || nodeIsFDP) {
 				u32 ind=0;
 				/*for proto, we're in ALL mode and we need DEF mode*/
 				/*for FDP, encoding requires to get def id from all id as fields 2 and 3 are reversed*/
 				gf_bifs_field_index_by_mode(node, allInd, GF_SG_FIELD_CODING_DEF, &ind);
-				GF_BE_WRITE_INT(codec, bs, ind, numBitsDEF, "field", (char*)field.name);
+				GF_BIFS_WRITE_INT(codec, bs, ind, numBitsDEF, "field", (char*)field.name);
 			} else {
-				GF_BE_WRITE_INT(codec, bs, i, numBitsDEF, "field", (char*)field.name);
+				GF_BIFS_WRITE_INT(codec, bs, i, numBitsDEF, "field", (char*)field.name);
 			}
 		}
 		e = gf_bifs_enc_field(codec, bs, node, &field);
 		if (e) goto exit;
 	}
 	/*end flag*/
-	if (use_list) GF_BE_WRITE_INT(codec, bs, 1, 1, "end", NULL);
+	if (use_list) GF_BIFS_WRITE_INT(codec, bs, 1, 1, "end", NULL);
 exit:
 	free(enc_fields);
 	return e;
@@ -510,13 +509,13 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 
 	/*NULL node is a USE of maxID*/
 	if (!node) {
-		GF_BE_WRITE_INT(codec, bs, 1, 1, "USE", NULL);
-		GF_BE_WRITE_INT(codec, bs, (1<<codec->info->config.NodeIDBits) - 1 , codec->info->config.NodeIDBits, "NodeID", "NULL");
+		GF_BIFS_WRITE_INT(codec, bs, 1, 1, "USE", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, (1<<codec->info->config.NodeIDBits) - 1 , codec->info->config.NodeIDBits, "NodeID", "NULL");
 		return GF_OK;
 	}
 
 	flag = BE_NodeIsUSE(codec, node);
-	GF_BE_WRITE_INT(codec, bs, flag ? 1 : 0, 1, "USE", (char*)gf_node_get_class_name(node));
+	GF_BIFS_WRITE_INT(codec, bs, flag ? 1 : 0, 1, "USE", (char*)gf_node_get_class_name(node));
 
 	if (flag) {
 		gf_bs_write_int(bs, node->sgprivate->NodeID - 1, codec->info->config.NodeIDBits);
@@ -551,7 +550,7 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 		node_type = gf_bifs_get_node_type(NDT_Tag, node_tag, BVersion);
 		NDTBits = gf_bifs_get_ndt_bits(NDT_Tag, BVersion);
 		if (BVersion==2 && (node_tag==TAG_ProtoNode)) node_type = 1;
-		GF_BE_WRITE_INT(codec, bs, node_type, NDTBits, "ndt", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, node_type, NDTBits, "ndt", NULL);
 		if (node_type) break;
 
 		BVersion += 1;
@@ -559,15 +558,15 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	}
 	if (BVersion==2 && node_type==1) {
 		GF_Proto *proto = ((GF_ProtoInstance *)node)->proto_interface;
-		GF_BE_WRITE_INT(codec, bs, proto->ID, codec->info->config.ProtoIDBits, "protoID", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, proto->ID, codec->info->config.ProtoIDBits, "protoID", NULL);
 	}
 
 	/*special handling of 3D mesh*/
 
 	/*DEF'd node*/
-	GF_BE_WRITE_INT(codec, bs, node->sgprivate->NodeID ? 1 : 0, 1, "DEF", NULL);
+	GF_BIFS_WRITE_INT(codec, bs, node->sgprivate->NodeID ? 1 : 0, 1, "DEF", NULL);
 	if (node->sgprivate->NodeID) {
-		GF_BE_WRITE_INT(codec, bs, node->sgprivate->NodeID - 1, codec->info->config.NodeIDBits, "NodeID", NULL);
+		GF_BIFS_WRITE_INT(codec, bs, node->sgprivate->NodeID - 1, codec->info->config.NodeIDBits, "NodeID", NULL);
 		if (codec->info->UseName) gf_bifs_enc_name(codec, bs, node->sgprivate->NodeName);
 	}
 

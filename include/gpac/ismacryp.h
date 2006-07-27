@@ -69,22 +69,22 @@ typedef struct
 } GF_TrackCryptInfo;
 
 /*encrypts track - logs, progress: info callbacks, NULL for stdout*/
-GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*logs)(void *cbk, const char *szMsg), void (*progress)(void *cbk, u32 done, u32 total), void *cbk);
+GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u32 done, u32 total), void *cbk);
 
 /*decrypts track - logs, progress: info callbacks, NULL for stdout*/
-GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*logs)(void *cbk, const char *szMsg), void (*progress)(void *cbk, u32 done, u32 total), void *cbk);
+GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u32 done, u32 total), void *cbk);
 
 /*decrypt a file 
 @drm_file: location of DRM data (cf MP4Box doc).
 @LogMsg: redirection for message or NULL for stdout
 */
-GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4file, const char *drm_file, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk);
+GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4file, const char *drm_file);
 
 /*Crypt a the file 
 @drm_file: location of DRM data.
 @LogMsg: redirection for message or NULL for stdout
 */
-GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4file, const char *drm_file, void (*LogMsg)(void *cbk, const char *szMsg), void *cbk);
+GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4file, const char *drm_file);
 
 /*loads key and salt from a LOCAL gpac-DRM file (cf MP4Box doc)*/
 GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char *salt);

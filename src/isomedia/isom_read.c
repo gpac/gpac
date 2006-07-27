@@ -185,7 +185,7 @@ GF_ISOFile *gf_isom_open(const char *fileName, u32 OpenMode, const char *tmp_dir
 	return (GF_ISOFile *) movie;
 }
 
-GF_Err gf_isom_close_progress(GF_ISOFile *movie, void (*progress)(void *cbk, u32 done, u32 total), void *cbck)
+GF_Err gf_isom_close(GF_ISOFile *movie)
 {
 	GF_Err e;
 	if (movie == NULL) return GF_ISOM_INVALID_FILE;
@@ -202,7 +202,7 @@ GF_Err gf_isom_close_progress(GF_ISOFile *movie, void (*progress)(void *cbk, u32
 			e = StoreFragment(movie);
 		} else 
 #endif
-			e = WriteToFile(movie, progress, cbck);
+			e = WriteToFile(movie);
 	}
 	
 #endif	//GPAC_READ_ONLY
@@ -212,10 +212,6 @@ GF_Err gf_isom_close_progress(GF_ISOFile *movie, void (*progress)(void *cbk, u32
 	return e;
 }
 
-GF_Err gf_isom_close(GF_ISOFile *the_file)
-{
-	return gf_isom_close_progress(the_file, NULL, NULL);
-}
 
 Bool gf_isom_has_root_od(GF_ISOFile *movie)
 {

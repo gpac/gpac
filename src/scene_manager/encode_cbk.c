@@ -142,15 +142,19 @@ static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
 	were specified*/
 	nbb = gf_get_bit_size(codec->ctx->max_node_id);
 	if (!bcfg->nodeIDbits) bcfg->nodeIDbits = nbb;
-	else if (bcfg->nodeIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.NodeIDBits TOO SMALL\n");
-
+	else if (bcfg->nodeIDbits<nbb) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[BIFS] BIFSConfig.NodeIDBits too small (%d bits vs %d nodes)\n", bcfg->nodeIDbits, codec->ctx->max_node_id));
+	}
 	nbb = gf_get_bit_size(codec->ctx->max_route_id);
 	if (!bcfg->routeIDbits) bcfg->routeIDbits = nbb;
-	else if (bcfg->routeIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.RouteIDBits TOO SMALL\n");
-
+	else if (bcfg->routeIDbits<nbb) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[BIFS] BIFSConfig.RouteIDBits too small (%d bits vs %d routes)\n", bcfg->routeIDbits, codec->ctx->max_route_id));
+	}
 	nbb = gf_get_bit_size(codec->ctx->max_proto_id);
 	if (!bcfg->protoIDbits) bcfg->protoIDbits=nbb;
-	else if (bcfg->protoIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.ProtoIDBits TOO SMALL\n");
+	else if (bcfg->protoIDbits<nbb) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[BIFS] BIFSConfig.ProtoIDBits too small (%d bits vs %d protos)\n", bcfg->protoIDbits, codec->ctx->max_proto_id));
+	}
 
 	/*this is the real pb, not stored in cfg or file level, set at EACH replaceScene*/
 	encode_names = 0;
@@ -304,7 +308,7 @@ GF_Err gf_beng_encode_from_file(GF_BifsEngine *codec, char *auFile, GF_Err (*AUC
 	if (!e) e = gf_sm_load_run(&codec->load);
 	gf_sm_load_done(&codec->load);
 	if (e) {
-		fprintf(stderr, "Cannot load AU File %s: error %s\n", auFile, gf_error_to_string(e));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] cannot load AU File %s (error %s)\n", auFile, gf_error_to_string(e)));
 		goto exit;
 	}
 
@@ -360,12 +364,12 @@ GF_BifsEngine *gf_beng_init(void *calling_object, char * inputContext)
 	gf_sm_load_done(&(codec->load));
 
 	if (e) {
-		fprintf(stderr, "Cannot load context from %s: error %s\n", inputContext, gf_error_to_string(e));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] Cannot load context from %s (error %s)\n", inputContext, gf_error_to_string(e)));
 		goto exit;
 	}
 	e = gf_sm_live_setup(codec);
 	if (e!=GF_OK) {
-		fprintf(stderr, "Cannot init BIFS encoder for context: error %s\n", gf_error_to_string(e));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] cannot init scene encoder for context (error %s)\n", gf_error_to_string(e)));
 		goto exit;
 	}
 	return codec;
@@ -405,7 +409,7 @@ GF_BifsEngine *gf_beng_init_from_string(void *calling_object, char * inputContex
 	e = gf_sm_load_string(&codec->load, inputContext, 0);
 
 	if (e) {
-		fprintf(stderr, "Cannot load context from %s: error %s\n", inputContext, gf_error_to_string(e));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] cannot load context from %s (error %s)\n", inputContext, gf_error_to_string(e)));
 		goto exit;
 	}
 	if (!codec->ctx->root_od) {
@@ -416,7 +420,7 @@ GF_BifsEngine *gf_beng_init_from_string(void *calling_object, char * inputContex
 
 	e = gf_sm_live_setup(codec);
 	if (e!=GF_OK) {
-		fprintf(stderr, "Cannot init BIFS encoder for context: error %s\n", gf_error_to_string(e));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] cannot init scene encoder for context (error %s)\n", gf_error_to_string(e)));
 		goto exit;
 	}
 	return codec;

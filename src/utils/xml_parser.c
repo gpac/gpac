@@ -213,7 +213,6 @@ static void xml_sax_node_start(GF_SAXParser *parser)
 	char *sep;
 	char *name = gf_list_last(parser->nodes);
 		
-	//fprintf(stdout, "parsing node %s\n", name);
 	if (parser->sax_node_start) {
 		sep = strchr(name, ':');
 		if (sep) {
@@ -899,6 +898,9 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 	if (gzeof(parser->gz_in)) {
 		if (!e) e = GF_EOS;
 		if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_size, parser->file_size);
+
+		gzclose(parser->gz_in);
+		parser->gz_in = 0;
 	}
 	return e;
 }

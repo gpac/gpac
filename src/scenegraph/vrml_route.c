@@ -155,19 +155,12 @@ Bool gf_sg_route_activate(GF_Route *r)
 			if (r->FromField.eventType == GF_SG_EVENT_OUT) return 0;
 		}
 	}
-#if 0
+#ifndef GPAC_DISABLE_LOG
 	if (r->IS_route) {
-		fprintf(stdout, "EXEC %s.%s IS %s.%s", r->FromNode->sgprivate->NodeName, r->FromField.name, r->ToNode->sgprivate->NodeName, r->ToField.name);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[VRML Event] executing %s.%s IS %s.%s\n", r->FromNode->sgprivate->NodeName, r->FromField.name, r->ToNode->sgprivate->NodeName, r->ToField.name));
 	} else {
-		fprintf(stdout, "EXEC ROUTE %s.%s TO %s.%s", r->FromNode->sgprivate->NodeName, r->FromField.name, r->ToNode->sgprivate->NodeName, r->ToField.name);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[VRML Event] executing ROUTE %s.%s TO %s.%s\n", r->FromNode->sgprivate->NodeName, r->FromField.name, r->ToNode->sgprivate->NodeName, r->ToField.name));
 	}
-	if (r->FromField.fieldType==GF_SG_VRML_SFBOOL) {
-		fprintf(stdout, "\tBOOL VAL: %d", *((SFBool*)r->FromField.far_ptr) );
-	}
-	else if (r->FromField.fieldType==GF_SG_VRML_SFINT32) {
-		fprintf(stdout, "\tINT VAL: %d", *((SFInt32*)r->FromField.far_ptr) );
-	}
-	fprintf(stdout, "\n");
 #endif
 
 	ret = 1;

@@ -91,30 +91,22 @@ typedef struct {
 
 static GF_Err svg_report(GF_SVGParser *parser, GF_Err e, char *format, ...)
 {
-#ifdef PRINT_MESSAGE
-	va_list args;
-	va_start(args, format);
-	if (parser->load->OnMessage) {
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_level && (gf_log_tools & GF_LOG_PARSER)) {
 		char szMsg[2048];
-		char szMsgFull[2048];
+		va_list args;
+		va_start(args, format);
 		vsprintf(szMsg, format, args);
-		sprintf(szMsgFull, "(line %d) %s", gf_xml_sax_get_line(parser->sax_parser), szMsg);
-		parser->load->OnMessage(parser->load->cbk, szMsgFull, e);
-	} else {
-		fprintf(stdout, "(line %d) ", gf_xml_sax_get_line(parser->sax_parser));
-		vfprintf(stdout, format, args);
-		fprintf(stdout, "\n");
+		va_end(args);
+		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[SVG Parsing] %s (line %d)\n", szMsg, gf_xml_sax_get_line(parser->sax_parser)) );
 	}
-	va_end(args);
-	if (e) parser->last_error = e;
 #endif
+	if (e) parser->last_error = e;
 	return e;
 }
 static void svg_progress(void *cbk, u32 done, u32 total)
 {
-	GF_SVGParser *parser = cbk;
-	if (parser->load && parser->load->OnProgress) 
-		parser->load->OnProgress(parser->load->cbk, done, total);
+	gf_set_progress("SVG Parsing", done, total);
 }
 
 static void svg_init_root_element(GF_SVGParser *parser, SVGsvgElement *root_svg)
@@ -530,7 +522,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 				}
 			}
 			else {
-				svg_report(parser, GF_OK, "Unknown attribute %s on element %s\n", (char *)att->name, gf_node_get_class_name((GF_Node *)elt));
+				svg_report(parser, GF_OK, "Unknown attribute %s on element %s - skipping\n", (char *)att->name, gf_node_get_class_name((GF_Node *)elt));
 			}
 		}
 	}
@@ -1140,11 +1132,11 @@ GF_Err gf_sm_load_init_SVG(GF_SceneLoader *load)
 	if (!load->fileName) return GF_BAD_PARAM;
 	parser = svg_new_parser(load);
 
-	if (load->OnMessage) load->OnMessage(load->cbk, (load->type==GF_SM_LOAD_XSR) ? "MPEG-4 (LASER) Scene Parsing" : "SVG Scene Parsing", GF_OK);
-	else fprintf(stdout, (load->type==GF_SM_LOAD_XSR) ? "MPEG-4 (LASER) Scene Parsing\n" : "SVG Scene Parsing\n");
 
-	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, parser->load->OnProgress ? svg_progress : NULL);
-	if (e<0) return svg_report(parser, e, "Unable to open file %s", load->fileName);
+	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ( (load->type==GF_SM_LOAD_XSR) ? "SVG: MPEG-4 (LASER) Scene Parsing\n" : "SVG: SVG Scene Parsing\n"));
+
+	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, svg_progress);
+	if (e<0) return svg_report(parser, e, "Unable to parse file %s: %s", load->fileName, gf_xml_sax_get_error(parser->sax_parser) );
 	return parser->last_error;
 }
 
@@ -1163,7 +1155,7 @@ GF_Err gf_sm_load_init_SVGString(GF_SceneLoader *load, char *str_data)
 		parser = svg_new_parser(load);
 		e = gf_xml_sax_init(parser->sax_parser, BOM);
 		if (e) {
-			svg_report(parser, e, "Error initializing SAX parser");
+			svg_report(parser, e, "Error initializing SAX parser: %s", gf_xml_sax_get_error(parser->sax_parser) );
 			return e;
 		}
 		str_data += 4;

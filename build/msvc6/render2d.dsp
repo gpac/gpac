@@ -130,6 +130,14 @@ SOURCE=..\..\modules\render2d\ils2d.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\modules\render2d\laser_base.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\render2d\laser_stacks.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\modules\render2d\layout.c
 # End Source File
 # Begin Source File

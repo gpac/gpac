@@ -447,25 +447,3 @@ u8 gf_bifs_encoder_get_version(GF_BifsEncoder *codec, u16 ESID)
 	return ret;
 }
 
-
-void gf_bifs_enc_log_bits(GF_BifsEncoder *codec, s32 val, u32 nbBits, char *str, char *com)
-{
-	if (!codec->trace) return;
-	fprintf(codec->trace, "%s\t\t%d\t\t%d", str, nbBits, val);
-	if (com) fprintf(codec->trace, "\t\t//%s", com);
-	fprintf(codec->trace, "\n");
-}
-
-void BE_LogFloat(GF_BifsEncoder *codec, Fixed val, u32 nbBits, char *str, char *com)
-{
-	if (!codec->trace) return;
-	fprintf(codec->trace, "%s\t\t%d\t\t%g", str, nbBits, FIX2FLT(val));
-	if (com) fprintf(codec->trace, "\t\t//%s", com);
-	fprintf(codec->trace, "\n");
-}
-
-void gf_bifs_encoder_set_trace(GF_BifsEncoder *codec, FILE *trace)
-{
-	codec->trace = trace;
-	if (trace) fprintf(codec->trace, "Name\t\tNbBits\t\tValue\t\t//comment\n\n");
-}

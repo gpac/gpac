@@ -22,7 +22,11 @@ EXPORTS
 	gf_utc_time_since_1970
 	gf_get_user_name
 	gf_enum_directory
-	gf_cbk_on_progress
+	gf_log_set_level
+	gf_log_set_tools
+	gf_log_set_callback
+	gf_set_progress
+	gf_set_progress_callback
 	gf_malloc
 	gf_realloc
 	gf_free
@@ -401,7 +405,6 @@ EXPORTS
 	gf_isom_probe_file
 	gf_isom_open
 	gf_isom_close
-	gf_isom_close_progress
 	gf_isom_delete
 	gf_isom_get_mode
 	gf_isom_open_progressive
@@ -1121,7 +1124,8 @@ EXPORTS
 	gf_svg_parse_style
 	gf_svg_properties_init_pointers
 	gf_svg_properties_reset_pointers
-	gf_svg_apply_inheritance_and_animation
+	gf_svg_apply_inheritance
+	gf_svg_apply_animations
 	gf_svg_register_iri
 	gf_svg_unregister_iri
 	gf_svg_path_build

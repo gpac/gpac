@@ -184,7 +184,7 @@ GF_Err gf_sk_set_block_mode(GF_Socket *sock, Bool NonBlockingOn);
  *\param port port number to bind this socket to
  *\param peer_name the remote server address
  *\param peer_port remote port number to connect the socket to
- *\param re_use set to 1 to enable reuse of ports on a single machine, 0 otherwise
+ *\param options list of option for the bind operation.
  */
 GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32 options);
 /*!
@@ -349,7 +349,6 @@ s32 gf_sk_get_handle(GF_Socket *sock);
  *\brief gets ipv6 support
  *
  *Returns IPV6 support information.
- *\param none
  *\return 2 if the machine has IPV6 support, 1 if the library was compiled with IPV6 support, 0 otherwise
  */
 u32 gf_net_has_ipv6();

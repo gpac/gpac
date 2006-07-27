@@ -28,17 +28,9 @@
 #include <gpac/bitstream.h>
 #include <gpac/math.h>
 
-static void lsr_dec_log_bits(GF_LASeRCodec *lsr, u32 val, u32 nb_bits, const char *name)
-{
-	if (!lsr->trace) return;
-	fprintf(lsr->trace, "%s\t\t%d\t\t%d", name, nb_bits, val);
-	fprintf(lsr->trace, "\n");
-	fflush(lsr->trace);
-}
-
 #define GF_LSR_READ_INT(_codec, _val, _nbBits, _str)	{\
 	_val = gf_bs_read_int(_codec->bs, _nbBits);	\
-	lsr_dec_log_bits(_codec, _val, _nbBits, _str); \
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", _str, _nbBits, _val)); \
 	}\
 
 
@@ -92,13 +84,6 @@ void gf_laser_decoder_del(GF_LASeRCodec *codec)
 	gf_list_del(codec->defered_listeners);
 	gf_list_del(codec->unresolved_commands);
 	free(codec);
-}
-
-
-void gf_laser_decoder_set_trace(GF_LASeRCodec *codec, FILE *trace)
-{
-	codec->trace = trace;
-	if (trace) fprintf(codec->trace, "Name\t\tNbBits\t\tValue\t\t//comment\n\n");
 }
 
 static LASeRStreamInfo *lsr_get_stream(GF_LASeRCodec *codec, u16 ESID)
@@ -244,7 +229,7 @@ static u32 lsr_read_vluimsbf5(GF_LASeRCodec *lsr, const char *name)
 	nb_bits = nb_words*4;
 	nb_tot += nb_bits;
 	val = gf_bs_read_int(lsr->bs, nb_bits);
-	lsr_dec_log_bits(lsr, val, nb_tot, name);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", name, nb_tot, val));
 	return val;
 }
 static u32 lsr_read_vluimsbf8(GF_LASeRCodec *lsr, const char *name)
@@ -258,7 +243,7 @@ static u32 lsr_read_vluimsbf8(GF_LASeRCodec *lsr, const char *name)
 	nb_bits = nb_words*7;
 	nb_tot += nb_bits;
 	val = gf_bs_read_int(lsr->bs, nb_bits);
-	lsr_dec_log_bits(lsr, val, nb_tot, name);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", name, nb_tot, val));
 	return val;
 }
 
@@ -468,7 +453,7 @@ static void lsr_read_byte_align_string(GF_LASeRCodec *lsr, unsigned char **str, 
 	} else {
 		while (len) { gf_bs_read_int(lsr->bs, 8); len--; }
 	}
-	lsr_dec_log_bits(lsr, 0, 8*len, name);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%s\n", name, 8*len, *str));
 }
 
 static void lsr_read_text_content(GF_LASeRCodec *lsr, unsigned char **txt, const char *name)
@@ -896,7 +881,7 @@ static void lsr_read_event_type(GF_LASeRCodec *lsr, XMLEV_Event *evtType)
 		case 24: evtType->type = SVG_DOM_EVT_UNLOAD; break;
 		case 25: evtType->type = SVG_DOM_EVT_ZOOM; break;
 		default:
-			fprintf(stdout, "Unsupported LASER event\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[LASeR] Undefined LASeR event %d\n", flag));
 			break;
 		}
 		if ((flag==1) || (flag==12)) {
@@ -2347,7 +2332,7 @@ static void lsr_translate_anim_trans_values(SMIL_AnimateValues *val, u32 transfo
 			gf_list_insert(val->values, pt, i);
 			break;
 		default:
-			fprintf(stdout, "unknown transform type\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[LASeR] unknown transform type %d\n", transform_type));
 			break;
 		}
 	}
@@ -3362,7 +3347,7 @@ static void lsr_read_group_content(GF_LASeRCodec *lsr, SVGElement *elt, Bool ski
 			if (n) {
 				gf_node_register(n, (GF_Node *)elt);
 				gf_list_add(elt->children, n);
-				if (lsr->trace) fprintf(lsr->trace, "//end %s\n", gf_node_get_class_name(n));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] ############## end %s ###########\n", gf_node_get_class_name(n)));
 			} else {
 				/*either error or text content*/
 			}
@@ -3385,7 +3370,7 @@ static void lsr_read_group_content_post_init(GF_LASeRCodec *lsr, SVGElement *elt
 			if (n) {
 				gf_node_register(n, (GF_Node *)elt);
 				gf_list_add(elt->children, n);
-				if (lsr->trace) fprintf(lsr->trace, "//end %s\n", gf_node_get_class_name(n));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] ############## end %s ###########\n", gf_node_get_class_name(n)));
 			} else {
 				/*either error or text content*/
 			}
@@ -3627,7 +3612,7 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 coded_t
 			if (is_default) *(u8 *)val = 0;
 			else *(u8 *)val = lsr_read_vluimsbf5(lsr, "val");
 		} else {
-			fprintf(stdout, "Warning: update value not supported\n");
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] Warning: update value not supported: fieldType %d - coded type %d\n", fieldType, coded_type));
 		}
 	}
 	if (node) {

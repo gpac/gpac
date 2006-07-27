@@ -122,8 +122,6 @@ struct __tag_bifs_dec
 
 	Bool ignore_size;
 	Double cts_offset;
-	
-//	GF_Mutex *mx;
 };
 
 
@@ -183,13 +181,8 @@ struct __tag_bifs_enc
 
 	GF_Proto *encoding_proto;
 
-//	GF_Mutex *mx;
-
 	/*keep track of DEF/USE*/
 	GF_List *encoded_nodes;
-
-	FILE *trace;
-
 	Bool is_encoding_command;
 };
 
@@ -203,15 +196,12 @@ GF_Err gf_bifs_enc_route(GF_BifsEncoder *codec, GF_Route *r, GF_BitStream *bs);
 void gf_bifs_enc_name(GF_BifsEncoder *codec, GF_BitStream *bs, char *name);
 GF_Node *gf_bifs_enc_find_node(GF_BifsEncoder *codec, u32 nodeID);
 
-void gf_bifs_enc_log_bits(GF_BifsEncoder *codec, s32 val, u32 nbBits, char *str, char *com);
-
-#define GF_BE_WRITE_INT(codec, bs, val, nbBits, str, com)	{\
-	gf_bs_write_int(bs, val, nbBits);	\
-	gf_bifs_enc_log_bits(codec, val, nbBits, str, com);	}\
-
+#define GF_BIFS_WRITE_INT(codec, bs, val, nbBits, str, com)	{\
+		gf_bs_write_int(bs, val, nbBits);	\
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] %s\t\t%d\t\t%d\t\t%s\n", str, nbBits, val, com ? com : "") );	\
+	} \
 
 GF_Route *gf_bifs_enc_is_field_ised(GF_BifsEncoder *codec, GF_Node *node, u32 fieldIndex);
-
 
 /*get field QP and anim info*/
 Bool gf_bifs_get_aq_info(GF_Node *Node, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits);

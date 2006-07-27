@@ -99,20 +99,16 @@ void gf_bt_resolve_routes(GF_BTParser *parser, Bool clean);
 
 static GF_Err gf_bt_report(GF_BTParser *parser, GF_Err e, char *format, ...)
 {
-	va_list args;
-	va_start(args, format);
-	if (parser->load->OnMessage) {
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_level && (gf_log_tools & GF_LOG_PARSER)) {
 		char szMsg[2048];
-		char szMsgFull[2048];
+		va_list args;
+		va_start(args, format);
 		vsprintf(szMsg, format, args);
-		sprintf(szMsgFull, "(line %d) %s", parser->line, szMsg);
-		parser->load->OnMessage(parser->load->cbk, szMsgFull, e);
-	} else {
-		fprintf(stdout, "(line %d) ", parser->line);
-		vfprintf(stdout, format, args);
-		fprintf(stdout, "\n");
+		va_end(args);
+		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[BT/WRL Parsing] %s (line %d)\n", szMsg, parser->line));
 	}
-	va_end(args);
+#endif
 	if (e) parser->last_error = e;
 	return e;
 }
@@ -260,11 +256,11 @@ next_line:
 		parser->line_pos = 0;
 		parser->line++;
 
-		if (parser->load && parser->load->OnProgress) {
+		{
 			u32 pos = gztell(parser->gz_in);
 			if (pos>=parser->file_pos) {
 				parser->file_pos = pos;
-				parser->load->OnProgress(parser->load->cbk, pos, parser->file_size);
+				gf_set_progress("BT Parsing", pos, parser->file_size);
 			}
 		}
 
@@ -511,7 +507,7 @@ static Bool check_keyword(GF_BTParser *parser, char *str, s32 *val)
 		sscanf(sep, "%c", &c);
 		res = c;
 	} else {
-		gf_bt_report(parser, GF_OK, "Warning: unrecognized keyword %s", str);
+		gf_bt_report(parser, GF_OK, "unrecognized keyword %s - skipping", str);
 		res = 0;
 	}
 	if (strchr(str, '-')) *val = -res;
@@ -988,7 +984,7 @@ u32 gf_bt_get_def_id(GF_BTParser *parser, char *defName)
 		/*if an existing node use*/
 		if (n) {
 			u32 nID = gf_bt_get_next_node_id(parser);
-			gf_bt_report(parser, GF_OK, "WARNING: changing node \"%s\" ID from %d to %d", n->sgprivate->NodeName, n->sgprivate->NodeID-1, nID-1);
+			gf_bt_report(parser, GF_OK, "changing node \"%s\" ID from %d to %d", n->sgprivate->NodeName, n->sgprivate->NodeID-1, nID-1);
 			gf_node_set_id(n, nID, n->sgprivate->NodeName);
 		}
 		if (parser->load->ctx && (parser->load->ctx->max_node_id<ID)) parser->load->ctx->max_node_id=ID;
@@ -1033,7 +1029,7 @@ void gf_bt_check_unresolved_nodes(GF_BTParser *parser)
 	for (i=0; i<count; i++) {
 		GF_Node *n = gf_list_get(parser->undef_nodes, i);
 		assert(n->sgprivate->NodeName);
-		fprintf(stdout, "Cannot find node %s\n", n->sgprivate->NodeName);
+		gf_bt_report(parser, GF_BAD_PARAM, "Cannot find node %s\n", n->sgprivate->NodeName);
 	}
 	parser->last_error = GF_BAD_PARAM;
 }
@@ -1113,7 +1109,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 			if (gf_bt_has_been_def(parser, name)) {
 				undef_node = NULL;
 				ID = gf_bt_get_def_id(parser, name);
-				gf_bt_report(parser, GF_OK, "Warning: Node %s has been DEFed several times, IDs may get corrupted", name);
+				gf_bt_report(parser, GF_OK, "Node %s has been DEFed several times, IDs may get corrupted", name);
 			}
 		} else {
 			ID = gf_bt_get_def_id(parser, name);
@@ -1691,7 +1687,7 @@ next_field:
 
 	/*parse proto code */
 	if (!gf_bt_check_code(parser, '{')) {
-		gf_bt_report(parser, GF_OK, "Warning: empty proto body");
+		gf_bt_report(parser, GF_OK, "empty proto body");
 		return GF_OK;
 	}
 
@@ -2518,7 +2514,7 @@ static void gf_bt_add_desc(GF_BTParser *parser, GF_Descriptor *par, GF_Descripto
 {
 	GF_Err e = gf_odf_desc_add_desc(par, child);
 	if (e) {
-		gf_bt_report(parser, GF_OK, "Invalid child descriptor in field %s", fieldName);
+		gf_bt_report(parser, GF_OK, "Invalid child descriptor in field %s - skipping", fieldName);
 		gf_odf_desc_del(child);
 	}
 }
@@ -3131,8 +3127,7 @@ GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
 		parser->base_bifs_id = parser->bifs_es->ESID;
 		if (parser->od_es) parser->base_od_id = parser->od_es->ESID; 
 
-		if (load->OnMessage) load->OnMessage(load->cbk, "MPEG-4 (BT) Scene Chunk Parsing", GF_OK);
-		else fprintf(stdout, "MPEG-4 (BT) Scene Chunk Parsing\n");
+		GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("BT: MPEG-4 (BT) Scene Chunk Parsing"));
 
 		/*that's it, nothing else to do*/
 		return GF_OK;
@@ -3149,8 +3144,7 @@ GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
 		parser->load->ctx->is_pixel_metrics = 1;
 	}
 
-	if (load->OnMessage) load->OnMessage(load->cbk, ((parser->is_wrl==2) ? "X3D (WRL) Scene Parsing" : (parser->is_wrl ? "VRML Scene Parsing" : "MPEG-4 (BT) Scene Parsing")), GF_OK);
-	else fprintf(stdout, ((parser->is_wrl==2) ? "X3D (WRL) Scene Parsing\n" : (parser->is_wrl ? "VRML Scene Parsing\n" : "MPEG-4 (BT) Scene Parsing\n")));
+	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ( ((parser->is_wrl==2) ? "BT: X3D (WRL) Scene Parsing\n" : (parser->is_wrl ? "BT: VRML Scene Parsing\n" : "BT: MPEG-4 Scene Parsing\n")) ));
 
 	/*default scene replace - we create it no matter what since it is used to store BIFS config
 	when parsing IOD.*/
@@ -3196,13 +3190,11 @@ GF_Err gf_sm_load_run_BT(GF_SceneLoader *load)
 }
 
 
-GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str, void (*OnMessage)(void *cbk, char *msg, GF_Err e), void *cbk)
+GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str)
 {
 	GF_SceneLoader ctx;
 	GF_BTParser parser;
 	memset(&ctx, 0, sizeof(GF_SceneLoader));
-	ctx.OnMessage = OnMessage;
-	ctx.cbk = cbk;
 	ctx.scene_graph = in_scene;
 	memset(&parser, 0, sizeof(GF_BTParser));
 	parser.line_buffer = node_str;

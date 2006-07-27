@@ -73,7 +73,7 @@ int main(int argc, char **argv)
 	}
 	
 	fprintf(stdout, "\nDone writing samples\n");
-	e = gf_isom_close_progress(movie, gf_cbk_on_progress, "Writing");
+	e = gf_isom_close(movie);
 	if (e) {
 		fprintf(stdout, "Error writing file\n");
 		return 1;
