@@ -1140,7 +1140,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 			}
 		} else {
 			gf_term_service_command(ch->service, &com);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MediaObject] ODM%d: At OTB %d requesting PLAY from %g to %g\n", odm->OD->objectDescriptorID, gf_clock_time(ch->clock), com.play.start_range, com.play.end_range));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[MediaObject] ODM%d: At OTB %d requesting PLAY from %g to %g\n", odm->OD->objectDescriptorID, gf_clock_time(ch->clock), com.play.start_range, com.play.end_range));
 		}
 	}
 	odm->media_start_time = 0;
@@ -1207,7 +1207,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 		if (ch->service) {
 			com.base.on_channel = ch;
 			gf_term_service_command(ch->service, &com);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MediaObject] ODM%d: At OTB %d requesting STOP\n", odm->OD->objectDescriptorID, gf_clock_time(ch->clock)));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[MediaObject] ODM%d: At OTB %d requesting STOP\n", odm->OD->objectDescriptorID, gf_clock_time(ch->clock)));
 		}
 	}
 

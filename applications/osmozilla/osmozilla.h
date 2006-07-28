@@ -180,6 +180,7 @@ private:
 	u32 current_time_ms, m_prev_time;
 	Float current_FPS;
 
+	void ReloadTerminal();
 	void SetOptions();
 };
 

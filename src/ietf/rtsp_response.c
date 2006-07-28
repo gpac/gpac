@@ -391,7 +391,7 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 		memcpy(rsp->body, sess->TCPBuffer+sess->CurrentPos + BodyStart, rsp->Content_Length);
 	}	
 
-	if (sess->rtsp_log) fprintf(sess->rtsp_log, "\n/*RTSP Get Response*/\n\n%s\n", sess->TCPBuffer+sess->CurrentPos);
+	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Got Response:\n%s\n", sess->TCPBuffer+sess->CurrentPos));
 	
 	//reset TCP buffer
 	sess->CurrentPos += BodyStart + rsp->Content_Length;

@@ -360,14 +360,21 @@ const char *static_gpac_get_url()
 	return (const char *) static_szCmdLine;
 }
 
+static void osmo4_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_list list)
+{
+	FILE *logs = (FILE *) cbk;
+    vfprintf(logs, fmt, list);
+	fflush(logs);
+}
 
 BOOL WinGPAC::InitInstance()
 {
 	CCommandLineInfo cmdInfo;
 
-	gf_sys_init();
+	m_logs = NULL;
 
 	m_term = NULL;
+
 	memset(&m_user, 0, sizeof(GF_User));
 
 	strcpy((char *) szAppPath, AfxGetApp()->m_pszHelpFilePath);
@@ -530,6 +537,61 @@ BOOL WinGPAC::InitInstance()
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "dx_hw");
 	}
 
+	/*check log file*/
+	str = gf_cfg_get_key(m_user.config, "General", "LogFile");
+	if (str) {
+		m_logs = fopen(str, "wt");
+		gf_log_set_callback(m_logs, osmo4_do_log);
+	}
+	else m_logs = NULL;
+
+	/*set log level*/
+	m_log_level = 0;
+	str = gf_cfg_get_key(m_user.config, "General", "LogLevel");
+	if (str) {
+		if (!stricmp(str, "debug")) m_log_level = GF_LOG_DEBUG;
+		else if (!stricmp(str, "info")) m_log_level = GF_LOG_INFO;
+		else if (!stricmp(str, "warning")) m_log_level = GF_LOG_WARNING;
+		else if (!stricmp(str, "error")) m_log_level = GF_LOG_ERROR;
+		gf_log_set_level(m_log_level);
+	}
+
+	/*set log tools*/
+	m_log_tools = 0;
+	str = gf_cfg_get_key(m_user.config, "General", "LogTools");
+	if (str) {
+		char *sep;
+		char *val = (char *) str;
+		while (val) {
+			sep = strchr(val, ':');
+			if (sep) sep[0] = 0;
+			if (!stricmp(val, "core")) m_log_tools |= GF_LOG_CODING;
+			else if (!stricmp(val, "coding")) m_log_tools |= GF_LOG_CODING;
+			else if (!stricmp(val, "container")) m_log_tools |= GF_LOG_CONTAINER;
+			else if (!stricmp(val, "network")) m_log_tools |= GF_LOG_NETWORK;
+			else if (!stricmp(val, "rtp")) m_log_tools |= GF_LOG_RTP;
+			else if (!stricmp(val, "author")) m_log_tools |= GF_LOG_AUTHOR;
+			else if (!stricmp(val, "sync")) m_log_tools |= GF_LOG_SYNC;
+			else if (!stricmp(val, "codec")) m_log_tools |= GF_LOG_CODEC;
+			else if (!stricmp(val, "parser")) m_log_tools |= GF_LOG_PARSER;
+			else if (!stricmp(val, "media")) m_log_tools |= GF_LOG_MEDIA;
+			else if (!stricmp(val, "scene")) m_log_tools |= GF_LOG_SCENE;
+			else if (!stricmp(val, "script")) m_log_tools |= GF_LOG_SCRIPT;
+			else if (!stricmp(val, "compose")) m_log_tools |= GF_LOG_COMPOSE;
+			else if (!stricmp(val, "render")) m_log_tools |= GF_LOG_RENDER;
+			else if (!stricmp(val, "service")) m_log_tools |= GF_LOG_SERVICE;
+			else if (!stricmp(val, "mmio")) m_log_tools |= GF_LOG_MMIO;
+			else if (!stricmp(val, "none")) m_log_tools = 0;
+			else if (!stricmp(val, "all")) m_log_tools = 0xFFFFFFFF;
+			if (!sep) break;
+			sep[0] = ':';
+			val = sep+1;
+		}
+		gf_log_set_tools(m_log_tools);
+	}
+
+	gf_sys_init();
+
 	m_user.opaque = this;
 	m_user.os_window_handler = pFrame->m_pWndView->m_hWnd;
 	m_user.EventProc = Osmo4_EventProc;
@@ -602,6 +664,7 @@ int WinGPAC::ExitInstance()
 		CloseHandle(m_hMutex);
 		static_gpac_hwnd = NULL;
 	}
+	if (m_logs) fclose(m_logs);
 	return CWinApp::ExitInstance();
 }
 

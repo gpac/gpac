@@ -104,16 +104,6 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 	} else {
 		rtp->frequency_drop = 0;
 	}
-	
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "LogFile");
-	if (sOpt && strlen(sOpt)) {
-		if (!stricmp(sOpt, "stdout"))
-			rtp->logs = stdout;
-		else
-			rtp->logs = fopen(sOpt, "wt");
-	} else {
-		rtp->logs = NULL;
-	}
 	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "DisableRTCP");
 	rtp->disable_rtcp = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 
@@ -623,9 +613,6 @@ void RTP_Delete(GF_BaseInterface *bi)
 		free(priv->sdp_temp->remote_url);
 		free(priv->sdp_temp);
 	}
-
-	if (priv->logs && (priv->logs != stdout) ) fclose(priv->logs);
-
 	gf_list_del(priv->channels);
 	gf_th_del(priv->th);
 	gf_mx_del(priv->mx);

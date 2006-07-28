@@ -177,13 +177,10 @@ u32 SR_RenderRun(void *par)
 		else
 			gf_sr_simulation_tick(sr);
 	}
-#if 0
-
-	/*destroy video out*/
+	/*destroy video out here if w're using openGL, to avoid threading issues*/
 	sr->video_out->Shutdown(sr->video_out);
 	gf_modules_close_interface((GF_BaseInterface *)sr->video_out);
 	sr->video_out = NULL;
-#endif
 	sr->video_th_state = 3;
 	return 0;
 }

@@ -236,8 +236,13 @@ void R3D_DrawScene(GF_VisualRenderer *vr)
 	if (top_node) {
 		if (!sr->main_surface_setup) {
 			tag = gf_node_get_tag(top_node);
-			sr->surface->width = sr->compositor->scene_width;
-			sr->surface->height = sr->compositor->scene_height;
+			if (!sr->compositor->has_size_info) {
+				sr->surface->width = sr->out_width;
+				sr->surface->height = sr->out_height;
+			} else {
+				sr->surface->width = sr->compositor->scene_width;
+				sr->surface->height = sr->compositor->scene_height;
+			}
 			if ((tag>=GF_NODE_RANGE_FIRST_X3D) && (tag<=GF_NODE_RANGE_LAST_X3D)) {
 				sr->surface->camera.is_3D = 1;
 				sr->root_is_3D = 2;

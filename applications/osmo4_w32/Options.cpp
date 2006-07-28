@@ -66,6 +66,7 @@ BOOL COptions::OnInitDialog()
 	m_stream.Create(IDD_OPT_STREAM, this);
 	m_cache.Create(IDD_OPT_MCACHE, this);
 	m_files.Create(IDD_OPT_FILETYPES, this);
+	m_logs.Create(IDD_OPT_LOGS, this);
 
 	m_Selector.AddString("General");
 	m_Selector.AddString("MPEG-4 Systems");
@@ -80,12 +81,13 @@ BOOL COptions::OnInitDialog()
 	m_Selector.AddString("Real-Time Streaming");
 	m_Selector.AddString("Streaming Cache");
 	m_Selector.AddString("File Types");
+	m_Selector.AddString("Log System");
 
 	HideAll();
 
 	const char *sOpt = gf_cfg_get_key(GetApp()->m_user.config, "General", "ConfigPanel");
 	u32 sel = sOpt ? atoi(sOpt) : 0;
-	if (sel>12) sel=12;
+	if (sel>13) sel=13;
 	m_Selector.SetCurSel(sel);
 	m_general.ShowWindow(SW_SHOW);
 	
@@ -113,6 +115,8 @@ void COptions::HideAll()
 	m_decoder.ShowWindow(SW_HIDE);
 	m_cache.ShowWindow(SW_HIDE);
 	m_files.ShowWindow(SW_HIDE);
+	m_files.ShowWindow(SW_HIDE);
+	m_logs.ShowWindow(SW_HIDE);
 }
 
 void COptions::OnSelchangeSelect() 
@@ -132,6 +136,7 @@ void COptions::OnSelchangeSelect()
 	case 10: m_stream.ShowWindow(SW_SHOW); break;
 	case 11: m_cache.ShowWindow(SW_SHOW); break;
 	case 12: m_files.ShowWindow(SW_SHOW); break;
+	case 13: m_logs.ShowWindow(SW_SHOW); break;
 	}
 }
 
@@ -150,6 +155,7 @@ void COptions::OnSaveopt()
 	m_font.SaveOptions();
 	m_stream.SaveOptions();
 	m_cache.SaveOptions();
+	m_logs.SaveOptions();
 
 	WinGPAC *gpac = GetApp();
 	if (!need_reload) {
@@ -999,6 +1005,7 @@ void COptAudio::OnSelchangeDriverList()
 		m_Notifs.ShowWindow(SW_HIDE);
 	}
 }
+
 
 
 
@@ -1858,4 +1865,129 @@ void OptFiles::OnAssociate()
 			sKey = tmp;
 		}
 	}	
+}
+
+COptLogs::COptLogs(CWnd* pParent /*=NULL*/)
+	: CDialog(COptLogs::IDD, pParent)
+{
+	//{{AFX_DATA_INIT(COptLogs)
+		// NOTE: the ClassWizard will add member initialization here
+	//}}AFX_DATA_INIT
+}
+
+
+void COptLogs::DoDataExchange(CDataExchange* pDX)
+{
+	CDialog::DoDataExchange(pDX);
+	//{{AFX_DATA_MAP(COptLogs)
+	DDX_Control(pDX, IDC_TOOL_SYNC, m_sync);
+	DDX_Control(pDX, IDC_TOOL_SCRIPT, m_script);
+	DDX_Control(pDX, IDC_TOOL_SCENE, m_scene);
+	DDX_Control(pDX, IDC_TOOL_RTP, m_rtp);
+	DDX_Control(pDX, IDC_TOOL_RENDER, m_render);
+	DDX_Control(pDX, IDC_TOOL_PARSER, m_parser);
+	DDX_Control(pDX, IDC_TOOL_NET, m_net);
+	DDX_Control(pDX, IDC_TOOL_MMIO, m_mmio);
+	DDX_Control(pDX, IDC_TOOL_MEDIA, m_media);
+	DDX_Control(pDX, IDC_TOOL_CORE, m_core);
+	DDX_Control(pDX, IDC_TOOL_CONTAINER, m_container);
+	DDX_Control(pDX, IDC_TOOL_COMPOSE, m_compose);
+	DDX_Control(pDX, IDC_TOOL_CODING, m_coding);
+	DDX_Control(pDX, IDC_TOOL_CODEC, m_codec);
+	DDX_Control(pDX, IDC_TOOL_AUTHOR, m_author);
+	DDX_Control(pDX, IDC_LOG_LEVEL, m_Level);
+	//}}AFX_DATA_MAP
+}
+
+
+BEGIN_MESSAGE_MAP(COptLogs, CDialog)
+	//{{AFX_MSG_MAP(COptLogs)
+	//}}AFX_MSG_MAP
+END_MESSAGE_MAP()
+
+/////////////////////////////////////////////////////////////////////////////
+// COptLogs message handlers
+
+BOOL COptLogs::OnInitDialog() 
+{
+	CDialog::OnInitDialog();
+
+	WinGPAC *gpac = GetApp();
+	switch (gpac->m_log_level) {
+	case GF_LOG_ERROR: m_Level.SetCurSel(1); break;
+	case GF_LOG_WARNING: m_Level.SetCurSel(2); break;
+	case GF_LOG_INFO: m_Level.SetCurSel(3); break;
+	case GF_LOG_DEBUG: m_Level.SetCurSel(4); break;
+	default: m_Level.SetCurSel(0); break;
+	}
+
+	m_sync.SetCheck(gpac->m_log_tools & GF_LOG_SYNC);
+	m_script.SetCheck(gpac->m_log_tools & GF_LOG_SCRIPT);
+	m_scene.SetCheck(gpac->m_log_tools & GF_LOG_SCENE);
+	m_rtp.SetCheck(gpac->m_log_tools & GF_LOG_RTP);
+	m_render.SetCheck(gpac->m_log_tools & GF_LOG_RENDER);
+	m_parser.SetCheck(gpac->m_log_tools & GF_LOG_PARSER);
+	m_net.SetCheck(gpac->m_log_tools & GF_LOG_NETWORK);
+	m_mmio.SetCheck(gpac->m_log_tools & GF_LOG_MMIO);
+	m_media.SetCheck(gpac->m_log_tools & GF_LOG_MEDIA);
+	m_core.SetCheck(gpac->m_log_tools & GF_LOG_CORE);
+	m_container.SetCheck(gpac->m_log_tools & GF_LOG_CONTAINER);
+	m_compose.SetCheck(gpac->m_log_tools & GF_LOG_COMPOSE);
+	m_coding.SetCheck(gpac->m_log_tools & GF_LOG_CODING);
+	m_codec.SetCheck(gpac->m_log_tools & GF_LOG_CODEC);
+	m_author.SetCheck(gpac->m_log_tools & GF_LOG_AUTHOR);
+
+	return TRUE;
+}
+
+void COptLogs::SaveOptions()
+{
+	WinGPAC *gpac = GetApp();
+	CString str = "";
+	u32 flags = 0;
+
+	switch (m_Level.GetCurSel()) {
+	case 1: 
+		gf_cfg_set_key(gpac->m_user.config, "General", "LogLevel", "error");
+		gpac->m_log_level = GF_LOG_ERROR;
+		break;
+	case 2: 
+		gf_cfg_set_key(gpac->m_user.config, "General", "LogLevel", "warning");
+		gpac->m_log_level = GF_LOG_WARNING;
+		break;
+	case 3: 
+		gf_cfg_set_key(gpac->m_user.config, "General", "LogLevel", "info");
+		gpac->m_log_level = GF_LOG_INFO;
+		break;
+	case 4: 
+		gf_cfg_set_key(gpac->m_user.config, "General", "LogLevel", "debug");
+		gpac->m_log_level = GF_LOG_DEBUG;
+		break;
+	default: 
+		gf_cfg_set_key(gpac->m_user.config, "General", "LogLevel", "none");
+		gpac->m_log_level = 0;
+		break;
+	}
+	gf_log_set_level(gpac->m_log_level);
+
+
+	if (m_sync.GetCheck()) { flags |= GF_LOG_SYNC; str +="sync:"; }
+	if (m_script.GetCheck()) { flags |= GF_LOG_SCRIPT; str +="script:"; }
+	if (m_scene.GetCheck()) { flags |= GF_LOG_SCENE; str +="scene:"; }
+	if (m_rtp.GetCheck()) { flags |= GF_LOG_RTP; str +="rtp:"; }
+	if (m_render.GetCheck()) { flags |= GF_LOG_RENDER; str +="render:"; }
+	if (m_parser.GetCheck()) { flags |= GF_LOG_PARSER; str +="parser:"; }
+	if (m_net.GetCheck()) { flags |= GF_LOG_NETWORK; str +="network:"; }
+	if (m_mmio.GetCheck()) { flags |= GF_LOG_MMIO; str +="mmio:"; }
+	if (m_media.GetCheck()) { flags |= GF_LOG_MEDIA; str +="media:"; }
+	if (m_core.GetCheck()) { flags |= GF_LOG_CORE; str +="core:"; }
+	if (m_container.GetCheck()) { flags |= GF_LOG_CONTAINER; str +="container:"; }
+	if (m_compose.GetCheck()) { flags |= GF_LOG_COMPOSE; str +="compose:"; }
+	if (m_coding.GetCheck()) { flags |= GF_LOG_CODING; str +="coding:"; }
+	if (m_codec.GetCheck()) { flags |= GF_LOG_CODEC; str +="codec:"; }
+	if (m_author.GetCheck()) { flags |= GF_LOG_AUTHOR; str +="author:"; }
+
+	gf_cfg_set_key(gpac->m_user.config, "General", "LogTools", str);
+	gpac->m_log_tools = flags;
+	gf_log_set_tools(gpac->m_log_tools);
 }

@@ -299,8 +299,23 @@ static void DrawBackground(DrawableContext *ctx)
 		}		
 		ctx->redraw_flags = bcks->txh.hwtx ? 0 : CTX_APP_DIRTY;
 	} else {
-		/*directly clear with specified color*/
-		VS2D_Clear(ctx->surface, &ctx->clip, ctx->aspect.fill_color);
+		/*direct rendering, render without clippers */
+		if (ctx->surface->render->top_effect->trav_flags & TF_RENDER_DIRECT) {
+			/*directly clear with specified color*/
+			VS2D_Clear(ctx->surface, &ctx->clip, ctx->aspect.fill_color);
+		} else {
+			u32 i;
+			GF_IRect clip;
+			for (i=0; i<ctx->surface->to_redraw.count; i++) {
+				/*there's an opaque region above, don't draw*/
+				if (ctx->surface->draw_node_index<ctx->surface->to_redraw.opaque_node_index[i]) continue;
+				clip = ctx->clip;
+				gf_irect_intersect(&clip, &ctx->surface->to_redraw.list[i]);
+				if (clip.width && clip.height) {
+					VS2D_Clear(ctx->surface, &clip, ctx->aspect.fill_color);
+				}
+			}
+		}
 		ctx->redraw_flags = 0;
 	}
 }

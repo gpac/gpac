@@ -262,6 +262,9 @@ public:
 	void DoLayout(u32 v_width = 0, u32 v_height = 0);
 	s32 m_last_prog;
 
+	FILE *m_logs;
+	u32 m_log_level, m_log_tools;
+
 protected:
 
 private:

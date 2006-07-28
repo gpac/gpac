@@ -172,11 +172,10 @@ void gf_set_progress_callback(void *_user_cbk, gf_on_progress_cbk _prog_cbk)
 }
 
 
-#ifndef GPAC_DISABLE_LOG
-
 u32 gf_log_level = 0;
 u32 gf_log_tools = 0;
 
+#ifndef GPAC_DISABLE_LOG
 u32 call_lev = 0;
 u32 call_tool = 0;
 
@@ -186,14 +185,14 @@ void default_log_callback(void *cbck, u32 level, u32 tool, const char* fmt, va_l
 }
 
 
-static void *user_cbk = NULL;
+static void *user_log_cbk = NULL;
 static gf_log_cbk log_cbk = default_log_callback;
 
 void gf_log(const char *fmt, ...)
 {
 	va_list vl;
 	va_start(vl, fmt);
-	log_cbk(user_cbk, call_lev, call_tool, fmt, vl);
+	log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
 	va_end(vl);
 }
 
@@ -205,15 +204,27 @@ void gf_log_set_tools(u32 modules)
 {
 	gf_log_tools = modules;
 }
+void gf_log_lt(u32 ll, u32 lt)
+{
+	call_lev = ll;
+	call_tool = lt;
+}
+
 gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk)
 {
 	gf_log_cbk prev_cbk = log_cbk;
 	log_cbk = cbk;
 	if (!log_cbk) log_cbk = default_log_callback;
-	user_cbk = usr_cbk;
+	user_log_cbk = usr_cbk;
 	return prev_cbk;
 }
 #else
+void gf_log(const char *fmt, ...)
+{
+}
+void gf_log_lt(u32 ll, lt)
+{
+}
 void gf_log_set_level(u32 level)
 {
 }

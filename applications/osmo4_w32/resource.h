@@ -80,6 +80,7 @@
 #define IDC_ZOOM_SCALABLE               1046
 #define IDD_OPENFILE                    1047
 #define IDC_SINGLE_INSTANCE             1048
+#define IDD_OPT_LOGS                    1048
 #define IDC_VIDEO_LIST                  1049
 #define IDC_FONT_LIST                   1050
 #define IDC_BROWSE_FONT                 1051
@@ -150,17 +151,33 @@
 #define ID_OPT_QUALITY                  1127
 #define ID_FILE_PROP                    1128
 #define ID_FILE_STEP                    1129
+#define IDC_LOG_LEVEL                   1129
 #define IDD_CONFIGURE                   1130
+#define IDC_TOOL_CORE                   1130
 #define ID_VIEW_SCALABLE                1131
+#define IDC_TOOL_CODING                 1131
 #define ID_OPEN_URL                     1132
+#define IDC_TOOL_CONTAINER              1132
 #define ID_FILE_RELOAD                  1133
+#define IDC_TOOL_NET                    1133
 #define ID_FILE_PLAY                    1134
+#define IDC_TOOL_RTP                    1134
 #define ID_NAVIGATE_NONE                1135
+#define IDC_TOOL_AUTHOR                 1135
 #define ID_NAVIGATE_WALK                1136
+#define IDC_TOOL_SYNC                   1136
 #define ID_NAVIGATE_FLY                 1137
+#define IDC_TOOL_CODEC                  1137
 #define ID_NAVIGATE_EXAM                1138
+#define IDC_TOOL_PARSER                 1138
 #define ID_NAVIGATE_PAN                 1139
+#define IDC_TOOL_MEDIA                  1139
 #define ID_NAVIGATE_SLIDE               1140
+#define IDC_TOOL_SCENE                  1140
+#define IDC_TOOL_SCRIPT                 1141
+#define IDC_TOOL_COMPOSE                1142
+#define IDC_TOOL_RENDER                 1143
+#define IDC_TOOL_MMIO                   1144
 #define ID_NAVIGATE_GAME                1150
 #define ID_NAV_RESET                    1151
 #define ID_FILE_STOP                    1152
@@ -275,7 +292,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        189
 #define _APS_NEXT_COMMAND_VALUE         32961
-#define _APS_NEXT_CONTROL_VALUE         1129
+#define _APS_NEXT_CONTROL_VALUE         1131
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

@@ -1,3 +1,7 @@
+Latest CVS changes: 27/07/06
+  - added GPAC log system - doc still to come
+  - major speed improvements in MPEG-4/VRML scripts and SVG uDOM regarding node creation
+
 21/07/06: GPAC 0.4.2
   - commit of GPAX (GPAC ActiveX) - controller only works in IE and ActiveX control tester for now.
   - API changes to Osmozilla to keep in sync with GPAX. Sample html file can be found in applications/GPAX.

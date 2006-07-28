@@ -227,8 +227,6 @@ RTPSession *RP_NewSession(RTPClient *rtp, char *session_control)
 
 	if (!rtsp) return NULL;
 
-	gf_rtsp_set_logs(rtsp, rtp->logs);
-
 	tmp = malloc(sizeof(RTPSession));
 	memset(tmp, 0, sizeof(RTPSession));
 	tmp->owner = rtp;

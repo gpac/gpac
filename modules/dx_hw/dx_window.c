@@ -161,6 +161,9 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 			vout->on_event(vout->evt_cbk_hdl, &evt);
 		}
 		break;
+	case WM_KILLFOCUS:
+		if (hWnd==ctx->os_hwnd) ctx->has_focus = 0;
+		break;
 
 	case WM_MOUSEMOVE:
 		if (ctx->cur_hwnd!=hWnd) break;
@@ -191,6 +194,10 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		evt.type = GF_EVT_LEFTDOWN;
 		DD_GetCoordinates(lParam, &evt);
 		vout->on_event(vout->evt_cbk_hdl, &evt);
+		if (!ctx->has_focus && (hWnd==ctx->os_hwnd)) {
+			ctx->has_focus = 1;
+			SetFocus(ctx->os_hwnd);
+		}
 		break;
 	case WM_LBUTTONUP:
 		release_mouse(ctx, hWnd, vout);
@@ -204,6 +211,10 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		evt.type = GF_EVT_RIGHTDOWN;
 		DD_GetCoordinates(lParam, &evt);
 		vout->on_event(vout->evt_cbk_hdl, &evt);
+		if (!ctx->has_focus && (hWnd==ctx->os_hwnd)) {
+			ctx->has_focus = 1;
+			SetFocus(ctx->os_hwnd);
+		}
 		break;
 	case WM_RBUTTONUP:
 		release_mouse(ctx, hWnd, vout);
@@ -218,6 +229,10 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		evt.type = GF_EVT_MIDDLEDOWN;
 		DD_GetCoordinates(lParam, &evt);
 		vout->on_event(vout->evt_cbk_hdl, &evt);
+		if (!ctx->has_focus && (hWnd==ctx->os_hwnd)) {
+			ctx->has_focus = 1;
+			SetFocus(ctx->os_hwnd);
+		}
 		break;
 	case WM_MBUTTONUP:
 		release_mouse(ctx, hWnd, vout);
@@ -322,6 +337,9 @@ u32 DD_WindowThread(void *par)
 	}
 	ShowWindow(ctx->fs_hwnd, SW_HIDE);
 	ctx->th_state = 1;
+
+	/*if visible set focus*/
+	if (!ctx->switch_res) SetFocus(ctx->os_hwnd);
 
 	ctx->switch_res = 0;
 	SetWindowLong(ctx->os_hwnd, GWL_USERDATA, (LONG) vout);

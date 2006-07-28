@@ -370,15 +370,19 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	bck = NULL;
 	if (gf_list_count(surf->back_stack)) bck = gf_list_get(surf->back_stack, 0);
 	if (bck) {
-		if (!bck->isBound) redraw_all = 1;
-		surf->last_had_back = 1;
-		bck_ctx = b2D_GetContext(bck, surf->back_stack);
-		if (bck_ctx->redraw_flags) redraw_all = 1;
+		if (!bck->isBound) {
+			if (surf->last_had_back) redraw_all = 1;
+			surf->last_had_back = 0;
+		} else {
+			if (!surf->last_had_back) redraw_all = 1;
+			surf->last_had_back = 1;
+			bck_ctx = b2D_GetContext(bck, surf->back_stack);
+			if (bck_ctx->redraw_flags) redraw_all = 1;
+		}
 	} else if (surf->last_had_back) {
 		surf->last_had_back = 0;
 		redraw_all = 1;
 	}
-	surf->last_had_back = 0;
 	
 	max_nodes_allowed = (u32) ((surf->top_clipper.width / MIN_BBOX_SIZE) * (surf->top_clipper.height / MIN_BBOX_SIZE));
 	count = surf->num_contexts;
@@ -395,7 +399,7 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 		/*node has changed, add to redraw area*/
 		if (!redraw_all && ctx->redraw_flags) {
 			ra_union_rect(&surf->to_redraw, ctx->clip);
-			CHECK_MAX_NODE
+//			CHECK_MAX_NODE
 		}
 		/*otherwise try to remove any sensor hidden below*/
 		//if (!ctx->transparent) remove_hidden_sensors(surf, num_to_draw, ctx);
@@ -410,7 +414,7 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 		while (drawable_get_previous_bound(n, &refreshRect, surf)) {
 			if (!redraw_all) {
 				ra_union_rect(&surf->to_redraw, refreshRect);
-				CHECK_MAX_NODE
+//				CHECK_MAX_NODE
 			}
 		}
 		/*if node is marked as undrawn, remove from surface*/
@@ -425,7 +429,7 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	/*no visual rendering*/
 	//if (!surf->render->cur_width && !surf->render->cur_height) goto exit;
 
-	CHECK_MAX_NODE
+//	CHECK_MAX_NODE
 
 	if (redraw_all) {
 		ra_clear(&surf->to_redraw);
@@ -441,36 +445,34 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	has_changed = 1;
 
 	/*redraw everything*/
-	if (redraw_all) {
-		if (bck && bck->isBound) {
-			bck_ctx->unclip = gf_rect_ft(&surf->surf_rect);
-			bck_ctx->clip = surf->surf_rect;
-			bck_ctx->node->Draw(bck_ctx);
-		} else {
-			VS2D_Clear(surf, &surf->surf_rect, 0);
-		}
+	if (bck_ctx) {
+		surf->draw_node_index = 0;
+		bck_ctx->unclip = gf_rect_ft(&surf->surf_rect);
+		bck_ctx->clip = surf->surf_rect;
+		bck_ctx->node->Draw(bck_ctx);
 	} else {
 		count = surf->to_redraw.count;
 		if (bck_ctx) bck_ctx->unclip = gf_rect_ft(&surf->surf_rect);
 		for (k=0; k<count; k++) {
+			GF_IRect rc;
 			/*opaque area, skip*/
 			if (surf->to_redraw.opaque_node_index[k] > 0) continue;
-			if (bck_ctx) {
-				bck_ctx->clip = surf->to_redraw.list[k];
-				bck_ctx->node->Draw(bck_ctx);
-			} else {
-				GF_IRect rc = surf->to_redraw.list[k];
-				gf_irect_intersect(&rc, &surf->top_clipper);
-				VS2D_Clear(surf, &rc, 0);
-			}
+			rc = surf->to_redraw.list[k];
+			gf_irect_intersect(&rc, &surf->top_clipper);
+			VS2D_Clear(surf, &rc, 0);
 		}
 	}
 
+#ifndef GPAC_DISABLE_LOG
+	if ((gf_log_level >= GF_LOG_DEBUG) && (gf_log_tools & GF_LOG_RENDER)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Redraw %d / %d nodes (all: %s)", num_changed, surf->num_contexts, redraw_all ? "yes" : "no"));
+		if (surf->to_redraw.count>1) GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("\n"));
 
-/*
-	fprintf(stdout, "%d nodes to redraw (%d total) - %d dirty rects\n", num_changed, surf->num_contexts, surf->to_redraw.count);
-	fprintf(stdout, "DR: X:%d Y:%d W:%d H:%d\n", surf->to_redraw.list[0].x, surf->to_redraw.list[0].y, surf->to_redraw.list[0].width, surf->to_redraw.list[0].height);
-*/
+		for (i=0; i<surf->to_redraw.count; i++)
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("\tDirtyRect #%d: %d:%d@%dx%d\n", i+1, surf->to_redraw.list[i].x, surf->to_redraw.list[i].y, surf->to_redraw.list[i].width, surf->to_redraw.list[i].height));
+	}
+#endif
+	
 	refreshRect = surf->to_redraw.list[0];
 	for (i=0; i<surf->num_contexts; i++) {
 		ctx = surf->contexts[i];

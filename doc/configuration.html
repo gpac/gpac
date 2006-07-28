@@ -8,9 +8,9 @@
 
 <p style="text-align: center;">
 <br/>
-<b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.2</span></b>
+<b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.3-DEV</span></b>
 <br/>
-<b><span style="Font-Size: 18pt">Last Modified February 2006</span></b>
+<b><span style="Font-Size: 18pt">Last Modified July 2006</span></b>
 </p>
 
 <br/><br/>
@@ -141,6 +141,37 @@ Specifies the directory of the last local file opened. Smartphone Windows only
 <b>Browser</b> [value: <i>string</i>]
 <p style="text-indent: 5%">
 Specifies prefered browser for WWW anchors and scene graph viewing - Only used by Osmo4/wxWidgets.
+</p>
+
+<b>LogFile</b> [value: <i>filename</i>]
+<p style="text-indent: 5%">
+Specifies where to output GPAC's log. By default, the logs are written to stdout. Note that GPAC may be compiled without log support.
+</p>
+<b>LogLevel</b> [value: <i>"none", "error", "warning", "info", "debug"</i>]
+<p style="text-indent: 5%">
+Specifies the level of the log. By default, no log is performed.
+</p>
+<b>LogTools</b> [value: a &apos;:&apos;-separated list of the following values]
+<p style="text-indent: 5%">
+Specifies which set of tools from GPAC should be logged. Available tools are:
+<ul>
+<li><i>core</i> : libgpac core</li>
+<li><i>coding</i> : bitstream formats (audio, video, scene)</li>
+<li><i>container</i> : container formats (ISO File, MPEG-2 TS, AVI, ...)</li>
+<li><i>network</i> : network data exept RTP trafic</li>
+<li><i>rtp</i> : rtp trafic</li>
+<li><i>author</i> : authoring tools (hint, import, export)</li>
+<li><i>sync</i> : terminal sync layer</li>
+<li><i>codec</i> : terminal codec messages</li>
+<li><i>parser</i> : scene parsers (svg, xmt, bt) and other</li>
+<li><i>media</i> : terminal media object management</li>
+<li><i>scene</i> : scene graph and scene manager</li>
+<li><i>script</i> : scripting engine messages</li>
+<li><i>compose</i> : composition engine (events, etc)</li>
+<li><i>render</i> : renderng engine (2D, 3D, etc)</li>
+<li><i>service</i> : network service management</li>
+<li><i>mmio</i> : Audio/Video HW I/O management</li>
+</ul>
 </p>
 
 
@@ -458,9 +489,6 @@ Specifies the sequence number of the first RTP packet to be droped - 0 means no 
 <b>PacketDropFrequency</b> [value: <i>positive integer</i>]
 <p style="text-indent: 5%">
 Specifies the frequency at which SL packets are droped. If value is 20, one packet every 20 recieved packets will be droped. Used for packet drop simulation tests.</p>
-<b>LogFile</b> [value: <i>filename</i>]
-<p style="text-indent: 5%">
-If set, specifies a file where RTSP traffic is logged - use "stdout" for stdout.</p>
 
 <br/><br/>
 

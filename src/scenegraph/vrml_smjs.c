@@ -183,12 +183,16 @@ static JSFunctionSpec globalFunctions[] = {
 
 static JSBool getName(JSContext *c, JSObject *obj, uintN n, jsval *v, jsval *rval)
 {
-	*rval = STRING_TO_JSVAL(JS_InternString(c, "GPAC Browser"));
+	JSString *s = JS_NewStringCopyZ(c, "GPAC Browser");
+	if (!s) return JS_FALSE;
+	*rval = STRING_TO_JSVAL(s); 
 	return JS_TRUE;
 }
 static JSBool getVersion(JSContext*c, JSObject*obj, uintN n, jsval *v, jsval *rval)
 {
-	*rval = STRING_TO_JSVAL(JS_InternString( c, GPAC_VERSION));
+	JSString *s = JS_NewStringCopyZ(c, GPAC_VERSION);
+	if (!s) return JS_FALSE;
+	*rval = STRING_TO_JSVAL(s); 
 	return JS_TRUE;
 }
 static JSBool getCurrentSpeed(JSContext *c, JSObject *o, uintN n, jsval *v, jsval *rval)
@@ -208,7 +212,9 @@ static JSBool getWorldURL(JSContext*c, JSObject*obj, uintN n, jsval *v, jsval *r
 	GF_Node *node = JS_GetContextPrivate(c);
 	if (!ifce || !ifce->ScriptAction) return JS_FALSE;
 	if (ifce->ScriptAction(ifce->callback, GF_JSAPI_OP_GET_SCENE_URI, node->sgprivate->scenegraph->RootNode, &par)) {
-		*rval = STRING_TO_JSVAL(JS_InternString( c, par.uri.url));
+		JSString *s = JS_NewStringCopyZ(c, par.uri.url);
+		if (!s) return JS_FALSE;
+		*rval = STRING_TO_JSVAL(s);
 		return JS_TRUE;
 	}
 	return JS_FALSE;
@@ -3211,6 +3217,8 @@ static void JSScript_LoadVRML(GF_Node *node)
 	str = NULL;
 	for (i=0; i<script->url.count; i++) {
 		str = script->url.vals[i].script_text;
+		while (strchr("\n\t ", str[0])) str++;
+
 		if (!strnicmp(str, "javascript:", 11)) str += 11;
 		else if (!strnicmp(str, "vrmlscript:", 11)) str += 11;
 		else if (!strnicmp(str, "ecmascript:", 11)) str += 11;

@@ -1152,13 +1152,21 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 				if (index < nor_count) nor = normal->vector.vals[index];
 			}
 			if (faces[cur_face]->v_count<3) faces[cur_face]->v_count=0;
-			/*compute face normal*/
+			/*compute face normal - watchout for colinear vectors*/
 			else if (smooth_normals) {
-				SFVec3f v1, v2;
+				SFVec3f v1, v2, fn;
+				u32 k=2;
 				gf_vec_diff(v1, faces[cur_face]->vertices[1].pos, faces[cur_face]->vertices[0].pos);
-				gf_vec_diff(v2, faces[cur_face]->vertices[2].pos, faces[cur_face]->vertices[0].pos);
-				faces_info[cur_face].nor = gf_vec_cross(v1, v2);
-				gf_vec_norm(&faces_info[cur_face].nor);
+				while (k<faces[cur_face]->v_count) {
+					gf_vec_diff(v2, faces[cur_face]->vertices[k].pos, faces[cur_face]->vertices[0].pos);
+					fn = gf_vec_cross(v1, v2);
+					if (gf_vec_len(fn)) {
+						gf_vec_norm(&fn);
+						faces_info[cur_face].nor = fn;
+						break;
+					}
+					k++;
+				}
 			}
 			cur_face++;
 		} else {
@@ -1898,8 +1906,10 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 			break;
 		}
 
-		if (smooth_normals) faces_info[begin_face].nor = vx.normal;
-
+		if (smooth_normals) {
+			faces_info[begin_face].nor = vx.normal;
+			assert(gf_vec_len(vx.normal));
+		}
 		cur_pts_in_cross = 0;
 		cur = 0;
 		for (i=0; i<path->n_contours; i++) {
@@ -1950,7 +1960,10 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 			break;
 		}
 
-		if (smooth_normals) faces_info[end_face].nor = vx.normal;
+		if (smooth_normals) {
+			faces_info[end_face].nor = vx.normal;
+			assert(gf_vec_len(vx.normal));
+		}
 		cur_pts_in_cross = 0;
 
 		cur = 0;

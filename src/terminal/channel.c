@@ -716,7 +716,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 #if 1
 			if (!ch->clock->clock_init) {
 				gf_clock_set_time(ch->clock, ch->CTS);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d - AU DTS %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS));
+				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d - AU DTS %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS));
 			} else if (ch->clock->no_time_ctrl && 0) {
 				s32 offset = gf_term_get_time(ch->odm->term);
 				offset -= ch->clock->StartTime;

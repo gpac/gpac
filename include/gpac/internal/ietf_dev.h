@@ -152,8 +152,6 @@ struct __tag_rtp_channel
 	u32 last_SR_rtp_time;
 	/*payload info*/
 	u32 total_pck, total_bytes;
-
-	FILE *rtp_log;
 };
 
 /*gets UTC in the channel RTP timescale*/
@@ -272,8 +270,6 @@ struct _tag_rtsp_session
 	GF_List *TCPChannels;
 	/*thread-safe, full duplex library for PLAY and RECORD*/
 	GF_Mutex *mx;
-
-	FILE *rtsp_log;
 };
 
 GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort);

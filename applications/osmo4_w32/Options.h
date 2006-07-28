@@ -508,6 +508,57 @@ protected:
 };
 
 /////////////////////////////////////////////////////////////////////////////
+// COptLogs dialog
+
+class COptLogs : public CDialog
+{
+// Construction
+public:
+	COptLogs(CWnd* pParent = NULL);   // standard constructor
+	void SaveOptions();
+
+// Dialog Data
+	//{{AFX_DATA(COptLogs)
+	enum { IDD = IDD_OPT_LOGS };
+	CButton	m_sync;
+	CButton	m_script;
+	CButton	m_scene;
+	CButton	m_rtp;
+	CButton	m_render;
+	CButton	m_parser;
+	CButton	m_net;
+	CButton	m_mmio;
+	CButton	m_media;
+	CButton	m_core;
+	CButton	m_container;
+	CButton	m_compose;
+	CButton	m_coding;
+	CButton	m_codec;
+	CButton	m_author;
+	CComboBox	m_Level;
+	//}}AFX_DATA
+
+
+// Overrides
+	// ClassWizard generated virtual function overrides
+	//{{AFX_VIRTUAL(COptLogs)
+	protected:
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+	//}}AFX_VIRTUAL
+
+// Implementation
+protected:
+
+	// Generated message map functions
+	//{{AFX_MSG(COptLogs)
+	virtual BOOL OnInitDialog();
+	//}}AFX_MSG
+	DECLARE_MESSAGE_MAP()
+};
+
+
+
+/////////////////////////////////////////////////////////////////////////////
 // COptions dialog
 
 class COptions : public CDialog
@@ -550,6 +601,7 @@ protected:
 	COptStream m_stream;
 	COptMCache m_cache;
 	OptFiles m_files;
+	COptLogs m_logs;
 
 	void HideAll();
 

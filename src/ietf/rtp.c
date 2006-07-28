@@ -329,7 +329,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 	}
 
 	if (!ch->ntp_init && ch->SenderSSRC && (ch->SenderSSRC != rtp_hdr->SSRC) ) {
-		//if (ch->rtp_log ) fprintf(ch->rtp_log, "SSRC mismatch: %d vs %d\n", rtp_hdr->SSRC, ch->SenderSSRC);
+		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] SSRC mismatch: %d vs %d\n", rtp_hdr->SSRC, ch->SenderSSRC));
 		return GF_IP_NETWORK_EMPTY;
 	}
 
@@ -379,16 +379,12 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 	}
 	ch->last_pck_sn = CurrSeq;
 
-
-	if (ch->rtp_log) {
-#if 0
-		if (ch->last_pck_sn + 1 != rtp_hdr->SequenceNumber) 
-			fprintf(ch->rtp_log, "RTP Pck Loss %d -> %d\n", ch->last_pck_sn, rtp_hdr->SequenceNumber);
-#else
+#ifndef GPAC_DISABLE_LOG
+	if ((gf_log_level >= (GF_LOG_DEBUG)) && (gf_log_tools & (GF_LOG_RTP)))  {
 		ch->total_pck++;
 		ch->total_bytes += pck_size-12;
 
-		fprintf(ch->rtp_log, "RTP\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP]\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
 									ch->SenderSSRC,
 									rtp_hdr->TimeStamp,
 									rtp_hdr->SequenceNumber,
@@ -398,9 +394,9 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 									lost,
 									ch->total_pck,
 									ch->total_bytes
-				);
-#endif
+				));
 	}
+#endif
 
 	//we work with no CSRC so payload offset is always 12
 	*PayloadStart = 12;
@@ -587,19 +583,14 @@ u32 gf_rtp_get_local_ssrc(GF_RTPChannel *ch)
 }
 
 
-void gf_rtp_set_log(GF_RTPChannel *ch, FILE *log)
-{
-	if (ch) ch->rtp_log = log;
-	if (log) {
-		fprintf(log,	"#RTP log format:\n"
-						"#RTP SenderSSRC RTP_TimeStamp RTP_SeqNum NTP@Recv Deviance Jitter NbLost NbTotPck NbTotBytes\n"
-						"#RTCP Sender reports log format:\n"
-						"#RTCP-SR SenderSSRC RTP_TimeStamp@NTP NbTotPck NbTotBytes NTP\n"
-						"#RTCP Receiver reports log format:\n"
-						"#RTCP-RR StreamSSRC Jitter ExtendedSeqNum ExpectDiff LossDiff NTP\n"
-				);
-	}
-}
+#if 0
+	"#RTP log format:\n"
+	"#RTP SenderSSRC RTP_TimeStamp RTP_SeqNum NTP@Recv Deviance Jitter NbLost NbTotPck NbTotBytes\n"
+	"#RTCP Sender reports log format:\n"
+	"#RTCP-SR SenderSSRC RTP_TimeStamp@NTP NbTotPck NbTotBytes NTP\n"
+	"#RTCP Receiver reports log format:\n"
+	"#RTCP-RR StreamSSRC Jitter ExtendedSeqNum ExpectDiff LossDiff NTP\n"
+#endif
 
 Float gf_rtp_get_loss(GF_RTPChannel *ch)
 {

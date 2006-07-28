@@ -91,7 +91,7 @@ typedef struct
 	
 	GF_List *surfaces;	//surfaces list
 
-	Bool is_init, fullscreen;
+	Bool is_init, fullscreen, has_focus;
 
 	/*backbuffer size before entering fullscreen mode (used for restore) */
 	u32 store_width, store_height;

@@ -710,6 +710,45 @@ BEGIN
     LTEXT           "Plugin",IDC_FILES_PLUG,8,49,154,8
 END
 
+IDD_OPT_LOGS DIALOG DISCARDABLE  0, 20, 169, 76
+STYLE DS_MODALFRAME | DS_CONTROL | WS_CHILD
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "Level",IDC_STATIC,6,7,18,8
+    COMBOBOX        IDC_LOG_LEVEL,30,4,64,74,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    CONTROL         "core",IDC_TOOL_CORE,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,3,23,30,10
+    CONTROL         "coding",IDC_TOOL_CODING,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,3,33,37,10
+    CONTROL         "container",IDC_TOOL_CONTAINER,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,3,43,45,10
+    CONTROL         "network",IDC_TOOL_NET,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,3,53,41,10
+    CONTROL         "rtp",IDC_TOOL_RTP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
+                    3,63,24,10
+    CONTROL         "author",IDC_TOOL_AUTHOR,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,48,24,36,10
+    CONTROL         "sync",IDC_TOOL_SYNC,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,48,34,31,10
+    CONTROL         "codec",IDC_TOOL_CODEC,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,48,44,36,10
+    CONTROL         "parser",IDC_TOOL_PARSER,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,48,54,35,10
+    CONTROL         "media",IDC_TOOL_MEDIA,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,48,64,35,10
+    CONTROL         "scene",IDC_TOOL_SCENE,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,86,24,35,10
+    CONTROL         "script",IDC_TOOL_SCRIPT,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,86,34,33,10
+    CONTROL         "compose",IDC_TOOL_COMPOSE,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,86,44,45,10
+    CONTROL         "render",IDC_TOOL_RENDER,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,86,54,36,10
+    CONTROL         "mmio",IDC_TOOL_MMIO,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,86,64,32,10
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -767,6 +806,11 @@ BEGIN
     END
 
     IDD_OPT_FILETYPES, DIALOG
+    BEGIN
+        RIGHTMARGIN, 168
+    END
+
+    IDD_OPT_LOGS, DIALOG
     BEGIN
         RIGHTMARGIN, 168
     END
@@ -898,6 +942,21 @@ BEGIN
 0x754d, 0x6c74, 0x2069, 0x6854, 0x6572, 0x6461, "\000" 
     IDC_DEC_THREAD, 0x403, 5, 0
 0x7246, 0x6565, "\000" 
+    0
+END
+
+IDD_OPT_LOGS DLGINIT
+BEGIN
+    IDC_LOG_LEVEL, 0x403, 9, 0
+0x6944, 0x6173, 0x6c62, 0x6465, "\000" 
+    IDC_LOG_LEVEL, 0x403, 6, 0
+0x7245, 0x6f72, 0x0072, 
+    IDC_LOG_LEVEL, 0x403, 8, 0
+0x6157, 0x6e72, 0x6e69, 0x0067, 
+    IDC_LOG_LEVEL, 0x403, 5, 0
+0x6e49, 0x6f66, "\000" 
+    IDC_LOG_LEVEL, 0x403, 6, 0
+0x6544, 0x7562, 0x0067, 
     0
 END
 

@@ -1095,7 +1095,7 @@ void R2D_DrawBitmap(VisualSurface2D *surf, struct _gf_sr_texture_handler *txh, G
 		e = surf->render->compositor->video_out->Blit(surf->render->compositor->video_out, &video_src, &src_wnd, &dst_wnd, col_key);
 		/*HW pb, try soft*/
 		if (e) {
-			fprintf(stdout, "Error during hardware blit - trying with soft one\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RENDER, ("[Render 2D] Error during hardware blit - trying with soft one\n"));
 			use_soft_stretch = 1;
 		}
 	}

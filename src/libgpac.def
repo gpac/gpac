@@ -19,6 +19,10 @@ EXPORTS
 	gf_log_set_level
 	gf_log_set_tools
 	gf_log_set_callback
+	gf_log
+	gf_log_lt
+	gf_log_tools
+	gf_log_level
 	gf_set_progress
 	gf_set_progress_callback
 	gf_temp_file_new
@@ -705,7 +709,6 @@ EXPORTS
 	gf_rtsp_get_session_ip
 	gf_rtsp_get_next_interleave_id
 	gf_rtsp_get_remote_address
-	gf_rtsp_set_logs
 	gf_rtsp_get_session_port
 	gf_rtp_new
 	gf_rtp_del
@@ -723,7 +726,6 @@ EXPORTS
 	gf_rtp_send_rtcp_report
 	gf_rtp_send_bye
 	gf_rtp_send_packet
-	gf_rtp_set_log
 	gf_rtp_set_info_rtcp
 	gf_rtp_is_unicast
 	gf_rtp_is_interleaved

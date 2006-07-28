@@ -113,20 +113,23 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size)
 
 			rtcp_hdr.Length -= 5;
 
-			if (ch->rtp_log) {
+#ifndef GPAC_DISABLE_LOG
+			if ((gf_log_level >= (GF_LOG_DEBUG)) && (gf_log_tools & (GF_LOG_RTP)))  {
+#ifndef _WIN32_WCE
 				time_t gtime = ch->last_SR_NTP_sec - GF_NTP_SEC_1900_TO_1970;
-				fprintf(ch->rtp_log, "\nRTCP-SR\t%d\t%d\t%d\t%d\t%s\n", 
+				const char *ascTime = asctime(gmtime(&gtime));
+#else
+				const char *ascTime = "Not Available";
+#endif
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] RTCP-SR\t%d\t%d\t%d\t%d\t%s\n", 
 									ch->SenderSSRC,
 									ch->last_SR_rtp_time,
 									ch->total_pck,
 									ch->total_bytes,
-#ifndef _WIN32_WCE
-									asctime(gmtime(&gtime))
-#else
-									"Not Available"
-#endif
-				);
+									ascTime
+				));
 			}
+#endif
 			
 			//common encoding for SR and RR
 			goto process_reports;
@@ -340,21 +343,24 @@ static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 	gf_bs_write_u32(bs, (NTP_Time - ch->last_report_time));
 
 
-	if (ch->rtp_log) {
-		time_t gtime = sec - GF_NTP_SEC_1900_TO_1970;
-		fprintf(ch->rtp_log, "\nRTCP-RR\t%d\t%d\t%d\t%d\t%d\t%s\n", 
-							ch->SSRC,
-							ch->Jitter >> 4,
-							extended,
-							expect_diff,
-							loss_diff,
+#ifndef GPAC_DISABLE_LOG
+	if ((gf_log_level >= (GF_LOG_DEBUG)) && (gf_log_tools & (GF_LOG_RTP)))  {
 #ifndef _WIN32_WCE
-									asctime(gmtime(&gtime))
+		time_t gtime = ch->last_SR_NTP_sec - GF_NTP_SEC_1900_TO_1970;
+		const char *ascTime = asctime(gmtime(&gtime));
 #else
-									"Not Available"
+		const char *ascTime = "Not Available";
 #endif
-		);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] RTCP-RR\t%d\t%d\t%d\t%d\t%d\t%s\n", 
+						ch->SSRC,
+						ch->Jitter >> 4,
+						extended,
+						expect_diff,
+						loss_diff,
+						ascTime
+		));
 	}
+#endif
 
 	size += 24;
 	return size;

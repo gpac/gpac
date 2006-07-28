@@ -478,11 +478,6 @@ u8 gf_rtsp_get_next_interleave_id(GF_RTSPSession *sess);
 /*gets the IP address of the connected peer - buffer shall be GF_MAX_IP_NAME_LEN long*/
 GF_Err gf_rtsp_get_remote_address(GF_RTSPSession *sess, char *buffer);
 
-/*sets log file for RTSP session*/
-void gf_rtsp_set_logs(GF_RTSPSession *sess, FILE *log);
-
-
-
 
 /*
 		RTP LIB EXPORTS
@@ -613,8 +608,6 @@ GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
 
 /*send RTP packet*/
 GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *extra_header, u32 extra_header_size, char *pck, u32 pck_size);
-/*sets log file on RTP channel*/
-void gf_rtp_set_log(GF_RTPChannel *ch, FILE *log);
 
 enum
 {

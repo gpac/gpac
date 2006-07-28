@@ -254,7 +254,7 @@ static Bool DS_RestoreBuffer(LPDIRECTSOUNDBUFFER pDSBuffer)
 	DWORD dwStatus;
     IDirectSoundBuffer_GetStatus(pDSBuffer, &dwStatus );
     if( dwStatus & DSBSTATUS_BUFFERLOST ) {
-		fprintf(stdout, "DS buffer lost\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectSound] buffer lost\n"));
 		IDirectSoundBuffer_Restore(pDSBuffer);
 	    IDirectSoundBuffer_GetStatus(pDSBuffer, &dwStatus);
 		if( dwStatus & DSBSTATUS_BUFFERLOST ) return 1;
@@ -274,7 +274,7 @@ void DS_FillBuffer(GF_AudioOutput *dr, u32 buffer)
 
 	/*restoring*/
     if (DS_RestoreBuffer(ctx->pOutput)) {
-		fprintf(stdout, "restoring DS buffer\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectSound] restoring sound buffer\n"));
 		return;
 	}
 	
@@ -283,7 +283,7 @@ void DS_FillBuffer(GF_AudioOutput *dr, u32 buffer)
 	pLock = NULL;
     if( FAILED( hr = IDirectSoundBuffer_Lock(ctx->pOutput, pos, ctx->buffer_size,  
 			&pLock,  &size, NULL, NULL, 0L ) ) ) {
-		fprintf(stdout, "Error locking DS buffer\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectSound] Error locking sound buffer\n"));
         return;
 	}
 
@@ -293,7 +293,7 @@ void DS_FillBuffer(GF_AudioOutput *dr, u32 buffer)
 
 	/*update current pos*/
     if( FAILED( hr = IDirectSoundBuffer_Unlock(ctx->pOutput, pLock, size, NULL, 0)) ) {
-		fprintf(stdout, "Error unlocking DS buffer\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectSound] Error unlocking sound buffer\n"));
 	}
 	ctx->frame_state[buffer] = 1;
 }
@@ -326,14 +326,14 @@ void DS_WriteAudio(GF_AudioOutput *dr)
 
 	/*wait for end of current play buffer*/
 	if (IDirectSoundBuffer_GetCurrentPosition(ctx->pOutput, &in_play, NULL) != DS_OK ) {
-		fprintf(stdout, "error getting DS buffer poitions\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectSound] error getting sound buffer poitions\n"));
 		return;
 	}
 	in_play = (in_play / ctx->buffer_size);
 	retry = 6;
 	while (retry) {
 		if (IDirectSoundBuffer_GetCurrentPosition(ctx->pOutput, &cur_play, NULL) != DS_OK ) {
-			fprintf(stdout, "error getting DS buffer poitions\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectSound] error getting sound buffer poitions\n"));
 			return;
 		}
 		cur_play = (cur_play / ctx->buffer_size);

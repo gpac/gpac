@@ -359,12 +359,12 @@ GF_Err gf_rtsp_send_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	if (e) goto exit;
 
 
+	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Sending Command:\n%s\n", result));
+
 	//send buffer
 	e = gf_rtsp_send_data(sess, result, size);
 	if (e) goto exit;
 
-
-	if (sess->rtsp_log) fprintf(sess->rtsp_log, "\n/*RTSP Send Command*/\n\n%s\n", result);
 
 	//update our state
 	if (!strcmp(com->method, GF_RTSP_RECORD)) sess->RTSP_State = GF_RTSP_STATE_WAIT_FOR_CONTROL;

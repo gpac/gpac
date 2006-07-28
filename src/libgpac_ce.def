@@ -25,6 +25,10 @@ EXPORTS
 	gf_log_set_level
 	gf_log_set_tools
 	gf_log_set_callback
+	gf_log
+	gf_log_lt
+	gf_log_tools
+	gf_log_level
 	gf_set_progress
 	gf_set_progress_callback
 	gf_malloc
@@ -698,7 +702,6 @@ EXPORTS
 	gf_rtsp_get_session_ip
 	gf_rtsp_get_next_interleave_id
 	gf_rtsp_get_remote_address
-	gf_rtsp_set_logs
 	gf_rtsp_get_session_port
 	gf_rtp_new
 	gf_rtp_del
@@ -716,7 +719,6 @@ EXPORTS
 	gf_rtp_send_rtcp_report
 	gf_rtp_send_bye
 	gf_rtp_send_packet
-	gf_rtp_set_log
 	gf_rtp_set_info_rtcp
 	gf_rtp_is_unicast
 	gf_rtp_is_interleaved
@@ -1138,3 +1140,6 @@ EXPORTS
 	gf_dom_event_fire
 	gf_dom_event_type_by_name
 	gf_dom_event_get_name
+	gf_smil_timing_init_runtime_info
+	gf_smil_timing_get_normalized_simple_time
+	gf_smil_timing_is_active

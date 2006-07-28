@@ -246,7 +246,11 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
     m_user.opaque = this;
     m_user.EventProc = GPAX_EventProc;
 
-	gf_cfg_set_key(m_user.config, "Rendering", "RendererName", m_bUse3D ? "GPAC 3D Renderer" : "GPAC 2D Renderer");
+	if (strstr(m_url, ".wrl") || strstr(m_url, ".x3d") || strstr(m_url, ".x3dv")) {
+		gf_cfg_set_key(m_user.config, "Rendering", "RendererName", "GPAC 3D Renderer");
+	} else {
+		gf_cfg_set_key(m_user.config, "Rendering", "RendererName", m_bUse3D ? "GPAC 3D Renderer" : "GPAC 2D Renderer");
+	}
 
 	//create a terminal
     m_term = gf_term_new(&m_user);

@@ -34,6 +34,12 @@
 #include "../bifs/quant.h"
 
 typedef struct
+{
+	GF_Node *node;
+	GF_FieldInfo container_field;
+} XMTNodeStack;
+
+typedef struct
 {	
 	/*1: XMT-A, 2: X3D, 3: XMT-O (not supported yet) */
 	u32 doc_type;
@@ -44,7 +50,7 @@ typedef struct
 	GF_SceneLoader *load;
 	GF_Err last_error;
 	GF_SAXParser *sax_parser;
-	Bool has_root;
+	XMTNodeStack *x3d_root;
 	
 	/* stack of nodes for SAX parsing*/
 	GF_List *nodes;
@@ -83,11 +89,6 @@ typedef struct
 	GF_List *script_to_load;
 } GF_XMTParser;
 
-typedef struct
-{
-	GF_Node *node;
-	GF_FieldInfo container_field;
-} XMTNodeStack;
 
 typedef struct
 {
@@ -1719,6 +1720,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			gf_list_add(l, node);
 			gf_node_register(node, parent->node);
 		}
+		gf_node_changed(parent->node, NULL);
 	}
 		
 	if (!parser->parsing_proto && (tag || proto) )
@@ -2353,10 +2355,8 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 	if (parser->doc_state != 4) return;
 
 	top = gf_list_last(parser->nodes);
+	if (!top) top = parser->x3d_root;
 
-	if (parser->has_root) {
-		assert(top || parser->command);
-	}
 	elt = xmt_parse_element(parser, (char *) name, name_space, attributes, top);
 	if (!elt) return;
 	GF_SAFEALLOC(new_top, sizeof(XMTNodeStack));
@@ -2420,6 +2420,10 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 				gf_node_register(node, NULL);
 				gf_sg_set_root_node(parser->load->scene_graph, node);
 				gf_node_init(node);
+
+				/*create a default top for X3D*/
+				GF_SAFEALLOC(parser->x3d_root, sizeof(XMTNodeStack));
+				parser->x3d_root->node = node;
 			}
 			/*XMT-O header*/
 			else if ((parser->doc_type == 3) && !strcmp(name, "head")) parser->doc_state = 2;

@@ -629,10 +629,15 @@ static void RenderLayer2D(GF_Node *node, void *rs)
 	}
 
 	back = NULL;
-	if (gf_list_count(l2D->backs) ) back = gf_list_get(l2D->backs, 0);
+	if (gf_list_count(l2D->backs) ) {
+		back = gf_list_get(l2D->backs, 0);
+		if (!back->isBound) back = NULL;
+	}
 	vp = NULL;
-	if (gf_list_count(l2D->views)) vp = gf_list_get(l2D->views, 0);
-
+	if (gf_list_count(l2D->views)) {
+		vp = gf_list_get(l2D->views, 0);
+		if (!vp->isBound) vp = NULL;
+	}
 	if (!eff->is_pixel_metrics) gf_mx2d_add_scale(&eff->transform, eff->min_hsize, eff->min_hsize);
 	l2D->clip = R2D_ClipperToPixelMetrics(eff, l->size);
 

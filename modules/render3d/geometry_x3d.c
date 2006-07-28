@@ -504,7 +504,7 @@ static void BuildTriangleStripSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_col
 			if (indices) {
 				if (indices->count<=cur_idx) return;
 				if (indices->vals[cur_idx] == -1) {
-					fprintf(stdout, "bad formatted triangle strip\n");
+					GF_LOG(GF_LOG_ERROR, GF_LOG_RENDER, ("[Render 3D] bad formatted X3D triangle strip\n"));
 					return;
 				}
 				idx = indices->vals[cur_idx];
@@ -755,7 +755,7 @@ static void BuildTriangleFanSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color
 			if (indices) {
 				if (indices->count<=cur_idx) return;
 				if (indices->vals[cur_idx] == -1) {
-					fprintf(stdout, "bad formatted triangle set\n");
+					GF_LOG(GF_LOG_ERROR, GF_LOG_RENDER, ("[Render 3D] bad formatted X3D triangle set\n"));
 					return;
 				}
 				idx = indices->vals[cur_idx];

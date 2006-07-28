@@ -192,7 +192,7 @@ Bool gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos)
 			if (CU->next->TS > obj_time) break;
 			nb_droped ++;
 			if (nb_droped>1) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[MediaObject] ODM%d: droping frame TS %d time %d\n", mo->odm->OD->objectDescriptorID, CU->TS, obj_time));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[MediaObject] ODM%d: At OTB %d dropped frame TS %d\n", obj_time, mo->odm->OD->objectDescriptorID, CU->TS));
 				mo->odm->codec->nb_droped++;
 			}
 			/*discard*/

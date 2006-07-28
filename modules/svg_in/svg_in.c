@@ -64,7 +64,6 @@ static Bool svg_check_download(SVGIn *svgin)
 	size = ftell(f);
 	fclose(f);
 	if (size==svgin->file_size) return 1;
-	fprintf(stdout, "dnld not complete %d / %d\n", size, svgin->file_size);
 	return 0;
 }
 

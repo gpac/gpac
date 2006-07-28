@@ -250,7 +250,7 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 			settings.dmPelsHeight = dd->fs_height;
 			settings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
 			if ( ChangeDisplaySettings(&settings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL ) {
-				fprintf(stdout, "cannot change display settings...\n");
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectDraw] cannot change display settings\n"));
 				e = GF_IO_ERR;
 			} 
 

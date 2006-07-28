@@ -658,9 +658,7 @@ void VS_DrawMesh(RenderEffect3D *eff, GF_Mesh *mesh)
 /*uncomment to disable frustum cull*/
 //#define DISABLE_VIEW_CULL
 
-#define DEBUG_VIEW_CULL		0
-
-#if DEBUG_VIEW_CULL
+#ifndef GPAC_DISABLE_LOG
 static const char *szPlaneNames [] = 
 {
 	"Near", "Far", "Left", "Right", "Bottom", "Top"
@@ -687,9 +685,7 @@ Bool node_cull(RenderEffect3D *eff, GF_BBox *bbox, Bool skip_near)
 	/*empty bounds*/
 	if (!bbox->is_set) {
 		eff->cull_flag = CULL_OUTSIDE;
-#if DEBUG_VIEW_CULL
-		fprintf(stdout, "CULL OUT (bbox not set)\n");
-#endif
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Culling: Node out (bbox not set)\n"));
 		return 0;
 	}
 
@@ -701,9 +697,7 @@ Bool node_cull(RenderEffect3D *eff, GF_BBox *bbox, Bool skip_near)
 	/*if camera is inside bbox consider we intersect*/
 	if (gf_bbox_point_inside(&b, &cam->position)) {
 		eff->cull_flag = CULL_INTERSECTS;
-#if DEBUG_VIEW_CULL
-		fprintf(stdout, "CULL INTER (camera in box test)\n");
-#endif
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Culling: Node intersect (camera in box test)\n"));
 		return 1;
 	}
 	/*first check: sphere vs frustum sphere intersection, this will discard far objects quite fast*/
@@ -711,9 +705,7 @@ Bool node_cull(RenderEffect3D *eff, GF_BBox *bbox, Bool skip_near)
 	rad = b.radius + cam->radius;
 	if (gf_vec_len(cdiff) > rad) {
 		eff->cull_flag = CULL_OUTSIDE;
-#if DEBUG_VIEW_CULL
-		fprintf(stdout, "CULL OUT (sphere-sphere test)\n");
-#endif
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Culling: Node out (sphere-sphere test)\n"));
 		return 0;
 	}
 
@@ -730,9 +722,7 @@ Bool node_cull(RenderEffect3D *eff, GF_BBox *bbox, Bool skip_near)
 			Fixed d = gf_plane_get_distance(&cam->planes[i], &b.center);
 			if (d<irad) {
 				eff->cull_flag = CULL_OUTSIDE;
-#if DEBUG_VIEW_CULL
-				fprintf(stdout, "CULL OUT (sphere-planes test) plane %s\n", szPlaneNames[i]);
-#endif
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Culling: Node out (sphere-planes test) plane %s\n", szPlaneNames[i]));
 				return 0;
 			}
 			/*intersect, move to n-p vertex test*/
@@ -748,25 +738,19 @@ Bool node_cull(RenderEffect3D *eff, GF_BBox *bbox, Bool skip_near)
 		/*check p-vertex: if not in plane, we're out (since p-vertex is the closest point to the plane)*/
 		if (gf_plane_get_distance(&cam->planes[i], &vertices[p_idx])<0) {
 			eff->cull_flag = CULL_OUTSIDE;
-#if DEBUG_VIEW_CULL
-			fprintf(stdout, "CULL OUT (p-vertex test) plane %s\n", szPlaneNames[i]);
-#endif
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Culling: Node out (p-vertex test) plane %s\n", szPlaneNames[i]));
 			return 0;
 		}
 		/*check n-vertex: if not in plane, we're intersecting*/
 		if (gf_plane_get_distance(&cam->planes[i], &vertices[7-p_idx])<0) {
 			eff->cull_flag = CULL_INTERSECTS;
-#if DEBUG_VIEW_CULL
-			fprintf(stdout, "CULL INTER (n-vertex test) plane %s\n", szPlaneNames[i]);
-#endif
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Culling: Node intersect (n-vertex test) plane %s\n", szPlaneNames[i]));
 			return 1;
 		}
 	}
 
 	eff->cull_flag = CULL_INSIDE;
-#if DEBUG_VIEW_CULL
-	fprintf(stdout, "CULL IN (%s test)\n", do_sphere ? "sphere-planes" : "n-p vertex");
-#endif
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Culling: Node inside (%s test)\n", do_sphere ? "sphere-planes" : "n-p vertex"));
 	return 1;
 }
 
@@ -1226,9 +1210,6 @@ static void reset_collide_cursor(Render3D *sr)
 	}
 }
 
-
-#define DEBUG_PICKING	0
-
 Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_UserEvent *ev, GF_List *node_list)
 {
 	Fixed x, y;
@@ -1294,16 +1275,11 @@ Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_UserEvent *ev,
 	/*also update hit info world ray in case we have a grabbed sensor with mouse off*/
 	sr->hit_info.world_ray = eff->ray;
 
-#if DEBUG_PICKING
-	{
-	SFVec3f c2d;
-	fprintf(stdout, "cast ray\n\tOrigin %.4f %.4f %.4f - End %.4f %.4f %.4f\n\tDir %.4f %.4f %.4f\n", 
+#ifndef GPAC_DISABLE_LOG
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] cast ray\n\tOrigin %.4f %.4f %.4f - End %.4f %.4f %.4f\n\tDir %.4f %.4f %.4f\n", 
 		FIX2FLT(eff->ray.orig.x), FIX2FLT(eff->ray.orig.y), FIX2FLT(eff->ray.orig.z),
 		FIX2FLT(end.x), FIX2FLT(end.y), FIX2FLT(end.z),
-		FIX2FLT(eff->ray.dir.x), FIX2FLT(eff->ray.dir.y), FIX2FLT(eff->ray.dir.z));
-	if (R3D_Get2DPlaneIntersection(&eff->ray, &c2d))
-		fprintf(stdout, "\tAt z=0: %.4f %.4f %.4f\n", FIX2FLT(c2d.x), FIX2FLT(c2d.y), FIX2FLT(c2d.z));
-	}
+		FIX2FLT(eff->ray.dir.x), FIX2FLT(eff->ray.dir.y), FIX2FLT(eff->ray.dir.z)));
 #endif
 
 	if (!sr->is_grabbed) sr->hs_grab = NULL;
@@ -1440,9 +1416,7 @@ void drawable_do_pick(GF_Node *n, RenderEffect3D *eff)
 		p.normal = r.dir;
 		p.d = -1 * gf_vec_dot(p.normal, hit);
 		if (gf_bbox_plane_relation(&st->mesh->bounds, &p) == GF_BBOX_FRONT) {
-#if DEBUG_PICKING
-			fprintf(stdout, "bounding box of node %s (DEF %s) below current hit point - skipping\n", gf_node_get_class_name(n), gf_node_get_name(n));
-#endif
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Picking: bounding box of node %s (DEF %s) below current hit point - skipping\n", gf_node_get_class_name(n), gf_node_get_name(n)));
 			return;
 		}
 	}
@@ -1456,9 +1430,7 @@ void drawable_do_pick(GF_Node *n, RenderEffect3D *eff)
 		if (0 && sr->hs_grab && (gf_list_find(eff->sensors, sr->hs_grab)>=0) ) {
 			gf_mx_copy(sr->hit_info.world_to_local, eff->model_matrix);
 			gf_mx_copy(sr->hit_info.local_to_world, mx);
-#if DEBUG_PICKING
-			fprintf(stdout, "found grabed sensor - storing matrices\n");
-#endif
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Picking: found grabed sensor - storing matrices\n"));
 		}
 		return;
 	}
@@ -1469,9 +1441,7 @@ void drawable_do_pick(GF_Node *n, RenderEffect3D *eff)
 
 	for (i=0; i<eff->num_clip_planes; i++) {
 		if (gf_plane_get_distance(&eff->clip_planes[i], &world_pt) < 0) {
-#if DEBUG_PICKING
-			fprintf(stdout, "node %s (def %s) is not in clipper half space\n", gf_node_get_class_name(n), gf_node_get_name(n));
-#endif
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Picking: node %s (def %s) is not in clipper half space\n", gf_node_get_class_name(n), gf_node_get_name(n)));
 			return;
 		}
 	}
@@ -1479,9 +1449,7 @@ void drawable_do_pick(GF_Node *n, RenderEffect3D *eff)
 	gf_vec_diff(vdiff, world_pt, eff->ray.orig);
 	sqdist = gf_vec_lensq(vdiff);
 	if (sr->sq_dist && (sr->sq_dist+FIX_EPSILON<sqdist)) {
-#if DEBUG_PICKING
-		fprintf(stdout, "node %s (def %s) is farther (%g) than current pick (%g)\n", gf_node_get_class_name(n), gf_node_get_name(n), FIX2FLT(sqdist), FIX2FLT(sr->sq_dist));
-#endif
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Picking: node %s (def %s) is farther (%g) than current pick (%g)\n", gf_node_get_class_name(n), gf_node_get_name(n), FIX2FLT(sqdist), FIX2FLT(sr->sq_dist)));
 		return;
 	}
 
@@ -1504,15 +1472,9 @@ void drawable_do_pick(GF_Node *n, RenderEffect3D *eff)
 		sr->hit_info.appear = NULL;
 	}
 	sr->picked = n;
-#if DEBUG_PICKING
-	fprintf(stdout, "node %s (def %s) is under mouse - hit %g %g %g\n", gf_node_get_class_name(n), gf_node_get_name(n),
-			FIX2FLT(world_pt.x), FIX2FLT(world_pt.y), FIX2FLT(world_pt.z));
-#endif
-
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Picking: node %s (def %s) is under mouse - hit %g %g %g\n", gf_node_get_class_name(n), gf_node_get_name(n),
+			FIX2FLT(world_pt.x), FIX2FLT(world_pt.y), FIX2FLT(world_pt.z)));
 }
-
-
-#define DEBUG_COLLISION		0
 
 void VS_DoCollisions(RenderEffect3D *eff, GF_List *node_list)
 {
@@ -1580,9 +1542,7 @@ void VS_DoCollisions(RenderEffect3D *eff, GF_List *node_list)
 	if (eff->camera->collide_flags & CF_GRAVITY) {
 		diff = eff->camera->ground_dist - eff->camera->avatar_size.y;
 		if (eff->camera->last_had_ground && (-diff>eff->camera->avatar_size.z)) {
-#if DEBUG_COLLISION
-			fprintf(stdout, "Obstacle detected - too high (dist %g)\n", diff);
-#endif
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Collision: Obstacle detected - too high (dist %g)\n", diff));
 			eff->camera->position = eff->camera->last_pos;
 			eff->camera->flags |= CAM_IS_DIRTY;
 		} else {
@@ -1590,9 +1550,7 @@ void VS_DoCollisions(RenderEffect3D *eff, GF_List *node_list)
 				|| (!eff->camera->jumping && (ABS(diff)>FIX_ONE/1000) )) {
 				eff->camera->last_had_ground = 1;
 				n = gf_vec_scale(eff->camera->up, -diff);
-#if DEBUG_COLLISION
-				fprintf(stdout, "Ground detected camera position: %g %g %g - offset: %g %g %g (dist %g)\n", eff->camera->position.x, eff->camera->position.y, eff->camera->position.z, n.x, n.y, n.z, diff);
-#endif
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Collision: Ground detected camera position: %g %g %g - offset: %g %g %g (dist %g)\n", eff->camera->position.x, eff->camera->position.y, eff->camera->position.z, n.x, n.y, n.z, diff));
 
 				gf_vec_add(eff->camera->position, eff->camera->position, n);
 				gf_vec_add(eff->camera->target, eff->camera->target, n);
@@ -1615,31 +1573,24 @@ void VS_DoCollisions(RenderEffect3D *eff, GF_List *node_list)
 		if (eff->surface->render->collide_mode==GF_COLLISION_NORMAL) {
 			eff->camera->position = eff->camera->last_pos;
 			eff->camera->flags |= CAM_IS_DIRTY;
-#if DEBUG_COLLISION
-			fprintf(stdout, "Collision detected - restoring previous pos\n");
-#endif
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Collision: Collision detected - restoring previous avatar position\n"));
 		} else {
 			/*camera displacement collision*/
 			if (eff->camera->collide_dist) {
-#if DEBUG_COLLISION
 				if (eff->camera->collide_dist>=eff->camera->avatar_size.x)
-					fprintf(stdout, "WARNING: Collision distance %g greater than avatar collide size %g\n", eff->camera->collide_dist, eff->camera->avatar_size.x);
-#endif
+					GF_LOG(GF_LOG_WARNING, GF_LOG_RENDER, ("[Render 3D] Collision: Collision distance %g greater than avatar collide size %g\n", eff->camera->collide_dist, eff->camera->avatar_size.x));
+
 				/*safety check due to precision, always stay below collide dist*/
 				if (eff->camera->collide_dist>=eff->camera->avatar_size.x) eff->camera->collide_dist = eff->camera->avatar_size.x;
 
 				gf_vec_diff(n, eff->camera->position, eff->camera->collide_point);
 				gf_vec_norm(&n);
 				n = gf_vec_scale(n, eff->camera->avatar_size.x - eff->camera->collide_dist);
-#if DEBUG_COLLISION
-				fprintf(stdout, "offseting camera: position: %g %g %g - offset: %g %g %g\n", eff->camera->position.x, eff->camera->position.y, eff->camera->position.z, n.x, n.y, n.z);
-#endif
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Collision: offseting camera: position: %g %g %g - offset: %g %g %g\n", eff->camera->position.x, eff->camera->position.y, eff->camera->position.z, n.x, n.y, n.z));
 				gf_vec_add(eff->camera->position, eff->camera->position, n);
 				gf_vec_add(eff->camera->target, eff->camera->target, n);
 			} else {
-#if DEBUG_COLLISION
-				fprintf(stdout, "Collision detected and camera on hit point - restoring previous pos\n");
-#endif
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Collision: Collision detected and camera on hit point - restoring previous avatar position\n"));
 				eff->camera->position = eff->camera->last_pos;
 			}
 			eff->camera->last_pos = eff->camera->position;
@@ -1648,9 +1599,7 @@ void VS_DoCollisions(RenderEffect3D *eff, GF_List *node_list)
 	} else {
 		reset_collide_cursor(eff->surface->render);
 		eff->camera->last_pos = eff->camera->position;
-#if DEBUG_COLLISION
-		fprintf(stdout, "no collision found\n");
-#endif
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Collision: no collision found\n"));
 	}
 
 	if (eff->camera->flags & CAM_IS_DIRTY) VS_SetupProjection(eff);
@@ -1706,10 +1655,6 @@ void drawable_do_collide(GF_Node *node, RenderEffect3D *eff)
 
 	/*check for any collisions*/
 	if (gf_mesh_closest_face(st->mesh, pos, m_dist, &collide_pt)) {
-#if DEBUG_COLLISION
-		gf_vec_diff(v1, pos, collide_pt);
-		gf_vec_norm(&v1);
-#endif
 		/*get transformed hit*/
 		gf_mx_apply_vec(&eff->model_matrix, &collide_pt);
 		gf_vec_diff(v2, eff->camera->position, collide_pt);
@@ -1718,17 +1663,21 @@ void drawable_do_collide(GF_Node *node, RenderEffect3D *eff)
 			eff->camera->collide_dist = dist;
 			eff->camera->collide_flags |= CF_COLLISION;
 			eff->camera->collide_point = collide_pt;
-#if DEBUG_COLLISION
-			fprintf(stdout, "Collision at %g %g %g (WC) - dist (%g) - local normal %g %g %g\n", 
-				eff->camera->collide_point.x, eff->camera->collide_point.y, eff->camera->collide_point.z, 
-				dist, 
-				v1.x, v1.y, v1.z);
+
+#ifndef GPAC_DISABLE_LOG
+			if ((gf_log_level >= GF_LOG_DEBUG) && (gf_log_tools & GF_LOG_RENDER)) { 				
+				gf_vec_diff(v1, pos, collide_pt);
+				gf_vec_norm(&v1);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Collision: found at %g %g %g (WC) - dist (%g) - local normal %g %g %g\n", 
+					eff->camera->collide_point.x, eff->camera->collide_point.y, eff->camera->collide_point.z, 
+					dist, 
+					v1.x, v1.y, v1.z));
+			}
 #endif
 		} 
-		
-#if DEBUG_COLLISION
-		else fprintf(stdout, "Existing collision (dist %g) closer than current collsion (dist %g)\n", eff->camera->collide_dist, dist);
-#endif
+		else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Collision: Existing collision (dist %g) closer than current collsion (dist %g)\n", eff->camera->collide_dist, dist));
+		}
 	}
 
 	if (eff->camera->collide_flags & CF_DO_GRAVITY) {
@@ -1752,16 +1701,14 @@ void drawable_do_collide(GF_Node *node, RenderEffect3D *eff)
 				eff->camera->ground_dist = dist;
 				eff->camera->collide_flags |= CF_GRAVITY;
 				eff->camera->ground_point = collide_pt;
-#if DEBUG_COLLISION
-				fprintf(stdout, "Ground found at %g %g %g (WC) - dist %g - local normal %g %g %g\n", 
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Collision: Ground found at %g %g %g (WC) - dist %g - local normal %g %g %g\n", 
 					eff->camera->ground_point.x, eff->camera->ground_point.y, eff->camera->ground_point.z, 
 					dist, 
-					v1.x, v1.y, v1.z);
-#endif
+					v1.x, v1.y, v1.z));
 			} 
-#if DEBUG_COLLISION
-			else fprintf(stdout, "Existing ground (dist %g) closer than current (dist %g)\n", eff->camera->ground_dist, dist);
-#endif
+			else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Collision: Existing ground (dist %g) closer than current (dist %g)\n", eff->camera->ground_dist, dist));
+			}
 		} 
 	}
 }

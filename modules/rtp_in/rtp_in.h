@@ -96,8 +96,6 @@ typedef struct
 	u32 media_type;
 	/*prevents client port override by server*/
 	Bool force_client_ports;
-	/*logs*/
-	FILE *logs;
 } RTPClient;
 
 /*rtsp session*/

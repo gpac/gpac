@@ -46,7 +46,7 @@ typedef struct
 
 static void CALLBACK mesh_tess_begin(GLenum which) { assert(which==GL_TRIANGLES); }
 static void CALLBACK mesh_tess_end(void) { }
-static void CALLBACK mesh_tess_error(GLenum error_code) { fprintf(stdout, "%s\n", gluErrorString(error_code)); }
+static void CALLBACK mesh_tess_error(GLenum error_code) { GF_LOG(GF_LOG_ERROR, GF_LOG_RENDER, ("[Render 3D] Tesselate error %s\n", gluErrorString(error_code))); }
 /*only needed to force GL_TRIANGLES*/
 static void CALLBACK mesh_tess_edgeflag(GLenum flag) { }
 

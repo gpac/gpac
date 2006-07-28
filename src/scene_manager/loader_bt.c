@@ -91,6 +91,8 @@ typedef struct
 	GF_StreamContext *od_es;
 	GF_AUContext *od_au;
 	u32 base_od_id;
+
+	GF_List *scripts;
 } GF_BTParser;
 
 GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdList);
@@ -1373,7 +1375,8 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 			if (!parser->cur_com->scripts_to_load) parser->cur_com->scripts_to_load = gf_list_new();
 			gf_list_add(parser->cur_com->scripts_to_load, node);
 		} else {
-			gf_sg_script_load(node);
+			/*postpone script init since it may use routes/nodes not yet defined ...*/
+			gf_list_add(parser->scripts, node);
 		}
 	}
 	return node;
@@ -3033,6 +3036,13 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 	}
 	gf_bt_resolve_routes(parser, 0);
 	gf_bt_check_unresolved_nodes(parser);
+
+	/*load scripts*/	
+	while (gf_list_count(parser->scripts)) {
+		GF_Node *n = gf_list_get(parser->scripts, 0);
+		gf_list_rem(parser->scripts, 0);
+		gf_sg_script_load(n);
+	}
 	return parser->last_error;
 }
 
@@ -3100,6 +3110,7 @@ GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
 	parser->undef_nodes = gf_list_new();
 	parser->def_nodes = gf_list_new();
 	parser->peeked_nodes = gf_list_new();
+	parser->scripts = gf_list_new();
 
 	/*chunk parsing*/
 	if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
@@ -3175,6 +3186,8 @@ void gf_sm_load_done_BT(GF_SceneLoader *load)
 		free(d);
 	}
 	gf_list_del(parser->def_symbols);
+	gf_list_del(parser->scripts);
+
 	gzclose(parser->gz_in);
 	free(parser->line_buffer);
 	free(parser);
@@ -3217,6 +3230,7 @@ GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str)
 		free(d);
 	}
 	gf_list_del(parser.def_symbols);
+	gf_list_del(parser.scripts);
 
 	return parser.top_nodes;
 }
@@ -3231,6 +3245,7 @@ GF_Err gf_sm_load_done_BTString(GF_SceneLoader *load)
 	gf_list_del(parser->inserted_routes);
 	gf_list_del(parser->undef_nodes);
 	gf_list_del(parser->def_nodes);
+	gf_list_del(parser->scripts);
 	free(parser);
 	load->loader_priv = NULL;
 	return GF_OK;
@@ -3265,6 +3280,7 @@ GF_Err gf_sm_load_init_BTString(GF_SceneLoader *load, char *str)
 	parser->inserted_routes = gf_list_new();
 	parser->undef_nodes = gf_list_new();
 	parser->def_nodes = gf_list_new();
+	parser->scripts = gf_list_new();
 
 	/*chunk parsing*/
 	if (load->flags & GF_SM_LOAD_CONTEXT_READY) {

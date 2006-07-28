@@ -294,7 +294,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVT_VIEWPOINTS:
 	case GF_EVT_STREAMLIST:
 	case GF_EVT_SCENE_SIZE:
-	case GF_EVT_SIZE:
+//	case GF_EVT_SIZE:
 	{
 		wxGPACEvent wxevt(app);
 		wxevt.gpac_evt = *evt;
@@ -466,6 +466,19 @@ void wxOsmo4Frame::CheckVideoOut()
 	SetWindowStyle(wxDEFAULT_FRAME_STYLE & ~(wxMAXIMIZE_BOX | wxRESIZE_BORDER));
 }
 
+static void wxOsmo4_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_list list)
+{
+	wxOsmo4Frame *osmo = (wxOsmo4Frame *)cbk;
+
+	if (osmo->m_logs) {
+		vfprintf(osmo->m_logs, fmt, list);
+		fflush(osmo->m_logs);
+	} else {
+		::wxVLogMessage(fmt, list);
+	}
+}
+
+
 Bool wxOsmo4Frame::LoadTerminal()
 {
 	m_term = NULL;
@@ -554,8 +567,61 @@ Bool wxOsmo4Frame::LoadTerminal()
 	if (szAppPath[strlen(szAppPath)] != GF_PATH_SEPARATOR)
 		sprintf(szAppPath, "%s%c", szAppPath, GF_PATH_SEPARATOR);
 
+
+	/*check log file*/
+	const char *str = gf_cfg_get_key(m_user.config, "General", "LogFile");
+	if (str) m_logs = fopen(str, "wt");
+	gf_log_set_callback(this, wxOsmo4_do_log);
+
+	/*set log level*/
+	m_log_level = 0;
+	str = gf_cfg_get_key(m_user.config, "General", "LogLevel");
+	if (str) {
+		if (!stricmp(str, "debug")) m_log_level = GF_LOG_DEBUG;
+		else if (!stricmp(str, "info")) m_log_level = GF_LOG_INFO;
+		else if (!stricmp(str, "warning")) m_log_level = GF_LOG_WARNING;
+		else if (!stricmp(str, "error")) m_log_level = GF_LOG_ERROR;
+		gf_log_set_level(m_log_level);
+	}
+
+	/*set log tools*/
+	m_log_tools = 0;
+	str = gf_cfg_get_key(m_user.config, "General", "LogTools");
+	if (str) {
+		char *sep;
+		char *val = (char *) str;
+		while (val) {
+			sep = strchr(val, ':');
+			if (sep) sep[0] = 0;
+			if (!stricmp(val, "core")) m_log_tools |= GF_LOG_CODING;
+			else if (!stricmp(val, "coding")) m_log_tools |= GF_LOG_CODING;
+			else if (!stricmp(val, "container")) m_log_tools |= GF_LOG_CONTAINER;
+			else if (!stricmp(val, "network")) m_log_tools |= GF_LOG_NETWORK;
+			else if (!stricmp(val, "rtp")) m_log_tools |= GF_LOG_RTP;
+			else if (!stricmp(val, "author")) m_log_tools |= GF_LOG_AUTHOR;
+			else if (!stricmp(val, "sync")) m_log_tools |= GF_LOG_SYNC;
+			else if (!stricmp(val, "codec")) m_log_tools |= GF_LOG_CODEC;
+			else if (!stricmp(val, "parser")) m_log_tools |= GF_LOG_PARSER;
+			else if (!stricmp(val, "media")) m_log_tools |= GF_LOG_MEDIA;
+			else if (!stricmp(val, "scene")) m_log_tools |= GF_LOG_SCENE;
+			else if (!stricmp(val, "script")) m_log_tools |= GF_LOG_SCRIPT;
+			else if (!stricmp(val, "compose")) m_log_tools |= GF_LOG_COMPOSE;
+			else if (!stricmp(val, "render")) m_log_tools |= GF_LOG_RENDER;
+			else if (!stricmp(val, "service")) m_log_tools |= GF_LOG_SERVICE;
+			else if (!stricmp(val, "mmio")) m_log_tools |= GF_LOG_MMIO;
+			else if (!stricmp(val, "none")) m_log_tools = 0;
+			else if (!stricmp(val, "all")) m_log_tools = 0xFFFFFFFF;
+			if (!sep) break;
+			sep[0] = ':';
+			val = sep+1;
+		}
+		gf_log_set_tools(m_log_tools);
+	}
+
+	gf_sys_init();
+
 	::wxLogMessage(wxT("GPAC configuration file opened - looking for modules"));
-	const char *str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
+	str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	Bool first_launch = 0;
 	if (!str) {
 	  first_launch = 1;
@@ -565,8 +631,9 @@ Bool wxOsmo4Frame::LoadTerminal()
 		str = abs_gpac_path.mb_str(wxConvUTF8);
 #endif
 	}
-	m_user.modules = gf_modules_new((const unsigned char *) str, m_user.config);
 
+
+	m_user.modules = gf_modules_new((const unsigned char *) str, m_user.config);
 	/*initial launch*/
 	if (first_launch || !gf_modules_get_count(m_user.modules)) {
 		const char *sOpt;
@@ -691,7 +758,7 @@ wxDEFAULT_FRAME_STYLE
 	m_num_chapters = 0;
 	m_chapters_start = NULL;
 	m_bViewRTI = 0;
-
+	m_logs = NULL;
 	gf_set_progress_callback(this, wxOsmo4_progress_cbk);
 
 	myDropfiles *droptarget = new myDropfiles();
@@ -938,6 +1005,7 @@ wxOsmo4Frame::~wxOsmo4Frame()
 	sel_menu = NULL;
 
 	if (m_user.modules) gf_modules_del(m_user.modules);
+	gf_sys_close();
 	if (m_user.config) gf_cfg_del(m_user.config);
 
 	if (m_chapters_start) free(m_chapters_start);

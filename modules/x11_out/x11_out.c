@@ -222,6 +222,10 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		    break;
 		    
 		  case ButtonPress:
+			  if (!xWindow->fullscreen && !xWindow->has_focus) {
+				  xWindow->has_focus = 1;
+				  XSetInputFocus(xWindow->display, xWindow->wnd, RevertToParent, CurrentTime);
+			  }
 		  case ButtonRelease:
 		    //				last_mouse_move = xevent.xbutton.time;
 		    evt.mouse.x = xevent.xbutton.x;
@@ -271,6 +275,12 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		  case UnmapNotify:
 		    break;
 		  case ReparentNotify:
+		    break;
+		  case FocusOut:
+			if (!xWindow->fullscreen) xWindow->has_focus = 0;
+		    break;
+		  case FocusIn:
+			if (!xWindow->fullscreen) xWindow->has_focus = 1;
 		    break;
 		    
 		  case DestroyNotify:
@@ -568,7 +578,7 @@ static int X11_BadAccess_ByPass(Display * display,
 	else
 	{
 		XGetErrorText(display, event->error_code, (char *) &msg, 60);
-		fprintf(stdout,"X11 Err: %s\n",msg);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Error %s\n",msg));
 	}
 	return 0;
 }
@@ -620,7 +630,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 								   xWindow->visual, 0, NULL);
 
 	XSelectInput(xWindow->display, xWindow->full_wnd,
-					ExposureMask | PointerMotionMask | ButtonReleaseMask | ButtonPressMask | KeyPressMask | KeyReleaseMask);
+					FocusChangeMask | ExposureMask | PointerMotionMask | ButtonReleaseMask | ButtonPressMask | KeyPressMask | KeyReleaseMask);
 
 	if (!xWindow->par_wnd) {
 		xWindow->w_width = 320;
@@ -649,17 +659,17 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	old_handler = XSetErrorHandler(X11_BadAccess_ByPass);
 	selectinput_err = 0;
 	XSelectInput(xWindow->display, xWindow->wnd,
-		StructureNotifyMask | PropertyChangeMask | ExposureMask |
+		FocusChangeMask | StructureNotifyMask | PropertyChangeMask | ExposureMask |
 		PointerMotionMask | ButtonReleaseMask | ButtonPressMask |
 		KeyPressMask | KeyReleaseMask);
 	XSync(xWindow->display, False);
 	XSetErrorHandler(old_handler);
-	if (selectinput_err)
-	{
-        	XSelectInput(xWindow->display, xWindow->wnd,
+	if (selectinput_err) {
+       	XSelectInput(xWindow->display, xWindow->wnd,
 			StructureNotifyMask | PropertyChangeMask | ExposureMask |
 			KeyPressMask | KeyReleaseMask);
-		fprintf(stdout, "\n\nERROR SELECTING INPUT FOCUS\n\n");
+
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Cannot select input focus\n"));
 	}
 	XSync(xWindow->display, False);
 	XMapWindow (xWindow->display, (Window) xWindow->wnd);
@@ -695,7 +705,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		xWindow->videoaccesstype = VIDEO_XI_SHMPIXMAP;
 	    } else {
 	      xWindow->videoaccesstype = VIDEO_XI_SHMSTD;
-	      //fprintf(stdout, "\nUsing X11 Hardware Blit\n");
+	      GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Using X11 Hardware Blit\n"));
 	    }
 	  }
 	}
@@ -753,7 +763,9 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	  if (xWindow->gl_cfg.double_buffered) attribs[i++] = GLX_DOUBLEBUFFER;
 	  attribs[i++] = None;
 	  xWindow->glx_visualinfo = glXChooseVisual(xWindow->display, xWindow->screennum, attribs);
-	  if (!xWindow->glx_visualinfo) fprintf(stdout, "Error selecting GL display\n");
+	  if (!xWindow->glx_visualinfo) {
+		  GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Error selecting GL display\n");
+	  }
 	}
 #endif
 	xWindow->setup_done = 1;

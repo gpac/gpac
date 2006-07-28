@@ -400,7 +400,7 @@ GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess)
 	} 
 	/*end of packet*/
 	else if (sess->payloadSize - sess->pck_start <= Size) {
-		if (!sess->pck_start && sess->rtsp_log) fprintf(sess->rtsp_log, "Missed begining of RTP packet %d\n", Size);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP over RTSP] Missed begining of packet (%d bytes)\n", Size));
 
 		res = sess->payloadSize - sess->pck_start;
 		memcpy(sess->rtsp_pck_buf + sess->pck_start, buffer, res);
@@ -418,7 +418,7 @@ GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess)
 	}
 	/*middle of packet*/
 	else {
-		if (!sess->pck_start && sess->rtsp_log) fprintf(sess->rtsp_log, "Missed begining of RTP packet\n");
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP over RTSP] Missed begining of RTP packet\n"));
 		memcpy(sess->rtsp_pck_buf + sess->pck_start, buffer, Size);
 		sess->pck_start += Size;
 		sess->CurrentPos += Size;
@@ -534,12 +534,6 @@ GF_Err gf_rtsp_set_buffer_size(GF_RTSPSession *sess, u32 BufferSize)
 	sess->SockBufferSize = BufferSize;
 	return GF_OK;
 }
-
-void gf_rtsp_set_logs(GF_RTSPSession *sess, FILE *log)
-{
-	if (sess) sess->rtsp_log = log;
-}
-
 
 
 static Bool HTTP_RandInit = 1;

@@ -214,8 +214,6 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	tmp->rtp_ch = gf_rtp_new();
 	if (ctrl) tmp->control = strdup(ctrl);
 	tmp->ES_ID = ESID;
-	gf_rtp_set_log(tmp->rtp_ch, rtp->logs);
-
 
 	memset(&trans, 0, sizeof(GF_RTSPTransport));
 	if (conn && gf_sk_is_multicast_address(conn->host)) {

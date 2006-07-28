@@ -408,7 +408,7 @@ void VS3D_DrawNormals(RenderEffect3D *eff, GF_Mesh *mesh)
 #ifdef GPAC_USE_OGL_ES
 	glColor4x(0, 0, 0, 1);
 #else
-	glColor3f(0, 0, 0);
+	glColor3f(1, 1, 1);
 #endif
 
 	if (eff->surface->render->draw_normals==GF_NORMALS_VERTEX) {
