@@ -78,7 +78,7 @@
     <data type='anyURI'/>
   </define>
 
-  <define name='Paint.datatype'                 ><data type='string'/></define>
+  <define name='Paint.datatype'><data type='string'/></define>
 
   <define name='ListOfIRI.datatype'>
     <data type='string'/>

@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Jul 28 14:50:58 2006
+	DO NOT MOFIFY - File generated on GMT Fri Jul 28 15:56:10 2006
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -53,11 +53,11 @@ static const s32 animateTransform_field_to_attrib_type[] = {
 };
 
 static const s32 animation_field_to_attrib_type[] = {
--1, -1, -1, 125, 124, -1, 24, -1, 28, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 119, 121, 122, 117, 120, 118, 123, 6, 22, 19, 68, 69, 73, -1, -1, -1, 95, 98, -1, 97, 70, 71, -1, 72, 100, 105, 114, 126, 113, 36, 66, -1
+-1, -1, -1, 125, 124, -1, 24, 4, 17, 37, 64, 79, 103, 110, 111, 112, -1, 28, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 119, 121, 122, 117, 120, 118, 123, 6, 22, 19, 68, 69, 73, -1, -1, -1, 95, 98, -1, 97, 70, 71, -1, 72, 100, 105, 114, 126, 113, 36, 66, -1
 };
 
 static const s32 audio_field_to_attrib_type[] = {
--1, -1, -1, 125, 124, -1, 24, 119, 121, 122, 117, 120, 118, 123, 6, 22, 19, 68, 69, 73, -1, -1, -1, 10, 11, 95, 98, -1, 97, 70, 71, -1, 72, 100
+-1, -1, -1, 125, 124, -1, 24, 4, 17, 37, 64, 79, 103, 110, 111, 112, 119, 121, 122, 117, 120, 118, 123, 6, 22, 19, 68, 69, 73, -1, -1, -1, 10, 11, 95, 98, -1, 97, 70, 71, -1, 72, 100
 };
 
 static const s32 circle_field_to_attrib_type[] = {
@@ -81,7 +81,7 @@ static const s32 desc_field_to_attrib_type[] = {
 };
 
 static const s32 discard_field_to_attrib_type[] = {
--1, -1, -1, 125, 124, -1, 24, 119, 121, 122, 117, 120, 118, 123, 6
+-1, -1, -1, 125, 124, -1, 24, 119, 121, 122, 117, 120, 118, 123, 6, 70, 71, -1, 72, 100
 };
 
 static const s32 ellipse_field_to_attrib_type[] = {
@@ -94,10 +94,6 @@ static const s32 font_field_to_attrib_type[] = {
 
 static const s32 font_face_field_to_attrib_type[] = {
 -1, -1, -1, 125, 124, -1, 24, 29, 31, 33, 32, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
-};
-
-static const s32 font_face_name_field_to_attrib_type[] = {
--1, -1, -1, 125, 124, -1, 24, -1
 };
 
 static const s32 font_face_src_field_to_attrib_type[] = {
@@ -241,7 +237,7 @@ static const s32 use_field_to_attrib_type[] = {
 };
 
 static const s32 video_field_to_attrib_type[] = {
--1, -1, -1, 125, 124, -1, 24, -1, 28, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 119, 121, 122, 117, 120, 118, 123, 6, 22, 19, 68, 69, 73, -1, -1, -1, 10, 11, 95, 98, -1, 97, 70, 71, -1, 72, 100, 105, 106, 61, 114, 126, 113, 36, 66, -1
+-1, -1, -1, 125, 124, -1, 24, 4, 17, 37, 64, 79, 103, 110, 111, 112, -1, 28, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 119, 121, 122, 117, 120, 118, 123, 6, 22, 19, 68, 69, 73, -1, -1, -1, 10, 11, 95, 98, -1, 97, 70, 71, -1, 72, 100, 105, 106, 61, 114, 126, 113, 36, 66, -1
 };
 
 s32 gf_lsr_field_to_attrib_type(GF_Node *n, u32 fieldIndex)
@@ -280,8 +276,6 @@ s32 gf_lsr_field_to_attrib_type(GF_Node *n, u32 fieldIndex)
 		return font_field_to_attrib_type[fieldIndex];
 	case TAG_SVG_font_face:
 		return font_face_field_to_attrib_type[fieldIndex];
-	case TAG_SVG_font_face_name:
-		return font_face_name_field_to_attrib_type[fieldIndex];
 	case TAG_SVG_font_face_src:
 		return font_face_src_field_to_attrib_type[fieldIndex];
 	case TAG_SVG_font_face_uri:

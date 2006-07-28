@@ -200,6 +200,13 @@
     </element>
   </define>
 
+  <define name='DTM.AT' combine='interleave'>
+    <ref name='svg.Core.attr'/>
+  </define>
+
+  <define name='DTM.CM'>
+    <text/>
+  </define>
   <define name='title'>
     <element name='title'>
       <ref name='DTM.AT'/>
@@ -214,13 +221,6 @@
     </element>
   </define>
 
-  <define name='DTM.AT' combine='interleave'>
-    <ref name='svg.Core.attr'/>
-  </define>
-
-  <define name='DTM.CM'>
-    <text/>
-  </define>
 
 
 

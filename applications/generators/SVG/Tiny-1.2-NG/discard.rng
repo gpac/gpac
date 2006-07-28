@@ -32,6 +32,7 @@
     <ref name='svg.Core.attr'/>
     <ref name='svg.XLinkRequired.attr'/>
     <ref name='svg.AnimateBegin.attr'/>
+	<ref name='svg.Conditional.attr'/>
   </define>
 
   <define name='discard.CM'>

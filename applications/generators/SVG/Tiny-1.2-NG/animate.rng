@@ -130,6 +130,7 @@
     -->
   <define name='svg.AnimateCommon.attr'>
     <ref name='svg.XLink.attr'/>
+	<ref name='svg.Conditional.attr'/>
   </define>
 
   <define name='svg.AnimateAttributeCommon.attr'>

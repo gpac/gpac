@@ -41,6 +41,15 @@
       </attribute>
     </optional>
     <optional>
+      <attribute name='font-variant' svg:animatable='true' svg:inheritable='true'>
+        <choice>
+          <value>normal</value>
+          <value>small-caps</value>
+          <value>inherit</value>
+        </choice>
+      </attribute>
+    </optional>
+    <optional>
       <attribute name='font-weight' svg:animatable='true' svg:inheritable='true'>
         <choice>
           <value>normal</value>
@@ -71,12 +80,11 @@
       </attribute>
     </optional>
     <optional>
-      <attribute name='display-align' svg:animatable='true' svg:inheritable='true'>
+      <attribute name='text-align' svg:animatable='true' svg:inheritable='true'>
         <choice>
-          <value>auto</value>
-          <value>before</value>
+          <value>start</value>
           <value>center</value>
-          <value>after</value>
+          <value>end</value>
           <value>inherit</value>
         </choice>
       </attribute>
@@ -93,7 +101,10 @@
   <define name='svg.Editable.attr' combine='interleave'>
     <optional>
       <attribute name='editable' svg:animatable='false' svg:inheritable='false'>
-        <ref name='Boolean.datatype'/>
+          <choice>
+  					<value>none</value>
+  					<value>simple</value>
+  				</choice>
       </attribute>
     </optional>
   </define>

@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Jul 28 14:50:58 2006
+	DO NOT MOFIFY - File generated on GMT Fri Jul 28 15:56:10 2006
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -58,7 +58,6 @@ enum {
 	TAG_SVG_ellipse,
 	TAG_SVG_font,
 	TAG_SVG_font_face,
-	TAG_SVG_font_face_name,
 	TAG_SVG_font_face_src,
 	TAG_SVG_font_face_uri,
 	TAG_SVG_foreignObject,
@@ -257,13 +256,6 @@ typedef struct _tagSVGfont_faceElement
 	SVG_Number overline_position;
 	SVG_Number overline_thickness;
 } SVGfont_faceElement;
-
-
-typedef struct _tagSVGfont_face_nameElement
-{
-	BASE_SVG_ELEMENT
-	SVG_String name;
-} SVGfont_face_nameElement;
 
 
 typedef struct _tagSVGfont_face_srcElement

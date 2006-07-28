@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Jul 28 14:50:58 2006
+	DO NOT MOFIFY - File generated on GMT Fri Jul 28 15:56:10 2006
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -136,7 +136,7 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -251,7 +251,7 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -261,7 +261,7 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -1373,7 +1373,7 @@ static GF_Err gf_svg_animation_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -1715,7 +1715,7 @@ static GF_Err gf_svg_audio_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -1966,7 +1966,7 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -2081,7 +2081,7 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -2091,7 +2091,7 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -2506,7 +2506,7 @@ static GF_Err gf_svg_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -2621,7 +2621,7 @@ static GF_Err gf_svg_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -2631,7 +2631,7 @@ static GF_Err gf_svg_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -2729,6 +2729,7 @@ void *gf_svg_new_discard()
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
 	gf_svg_init_timing((SVGElement *)p);
+	gf_svg_init_conditional((SVGElement *)p);
 	return p;
 }
 
@@ -2817,6 +2818,31 @@ static GF_Err gf_svg_discard_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->name = "begin";
 			info->fieldType = SMIL_Times_datatype;
 			info->far_ptr = &((SVGElement *)node)->timing->begin;
+			return GF_OK;
+		case 15:
+			info->name = "requiredExtensions";
+			info->fieldType = SVG_ListOfIRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
+			return GF_OK;
+		case 16:
+			info->name = "requiredFeatures";
+			info->fieldType = SVG_ListOfIRI_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
+			return GF_OK;
+		case 17:
+			info->name = "requiredFonts";
+			info->fieldType = SVG_FontList_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
+			return GF_OK;
+		case 18:
+			info->name = "requiredFormats";
+			info->fieldType = SVG_FormatList_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
+			return GF_OK;
+		case 19:
+			info->name = "systemLanguage";
+			info->fieldType = SVG_LanguageIDs_datatype;
+			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
@@ -2921,7 +2947,7 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -3036,7 +3062,7 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -3046,7 +3072,7 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -3466,78 +3492,6 @@ static GF_Err gf_svg_font_face_get_attribute(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
-void *gf_svg_new_font_face_name()
-{
-	SVGfont_face_nameElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGfont_face_nameElement));
-	if (!p) return NULL;
-	gf_node_setup((GF_Node *)p, TAG_SVG_font_face_name);
-	gf_sg_parent_setup((GF_Node *) p);
-#ifdef GF_NODE_USE_POINTERS
-	((GF_Node *p)->sgprivate->name = "font_face_name";
-	((GF_Node *p)->sgprivate->node_del = SVG_font_face_name_Del;
-	((GF_Node *p)->sgprivate->get_field = SVG_font_face_name_get_attribute;
-#endif
-	gf_svg_init_core((SVGElement *)p);
-	return p;
-}
-
-static void gf_svg_font_face_name_del(GF_Node *node)
-{
-	SVGfont_face_nameElement *p = (SVGfont_face_nameElement *)node;
-	gf_svg_reset_base_element((SVGElement *)p);
-	free(p->name);
-	gf_sg_parent_reset((GF_Node *) p);
-	gf_node_free((GF_Node *)p);
-}
-
-static GF_Err gf_svg_font_face_name_get_attribute(GF_Node *node, GF_FieldInfo *info)
-{
-	switch (info->fieldIndex) {
-		case 0:
-			info->name = "id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
-			return GF_OK;
-		case 1:
-			info->name = "xml:id";
-			info->fieldType = SVG_ID_datatype;
-			info->far_ptr = &node->sgprivate->NodeName;
-			return GF_OK;
-		case 2:
-			info->name = "class";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = &((SVGElement *)node)->core->_class;
-			return GF_OK;
-		case 3:
-			info->name = "xml:lang";
-			info->fieldType = SVG_LanguageID_datatype;
-			info->far_ptr = &((SVGElement *)node)->core->lang;
-			return GF_OK;
-		case 4:
-			info->name = "xml:base";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = &((SVGElement *)node)->core->base;
-			return GF_OK;
-		case 5:
-			info->name = "xml:space";
-			info->fieldType = XML_Space_datatype;
-			info->far_ptr = &((SVGElement *)node)->core->space;
-			return GF_OK;
-		case 6:
-			info->name = "externalResourcesRequired";
-			info->fieldType = SVG_Boolean_datatype;
-			info->far_ptr = &((SVGElement *)node)->core->eRR;
-			return GF_OK;
-		case 7:
-			info->name = "name";
-			info->fieldType = SVG_String_datatype;
-			info->far_ptr = & ((SVGfont_face_nameElement *)node)->name;
-			return GF_OK;
-		default: return GF_BAD_PARAM;
-	}
-}
-
 void *gf_svg_new_font_face_src()
 {
 	SVGfont_face_srcElement *p;
@@ -3806,7 +3760,7 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -3921,7 +3875,7 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -3931,7 +3885,7 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -4197,7 +4151,7 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -4312,7 +4266,7 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -4322,7 +4276,7 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -4717,7 +4671,6 @@ void *gf_svg_new_image()
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
-	gf_svg_init_properties((SVGElement *)p);
 	gf_svg_init_focus((SVGElement *)p);
 	gf_svg_init_xlink((SVGElement *)p);
 	gf_svg_init_conditional((SVGElement *)p);
@@ -4804,7 +4757,7 @@ static GF_Err gf_svg_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -4818,201 +4771,161 @@ static GF_Err gf_svg_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->visibility;
 			return GF_OK;
 		case 16:
-			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
-			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
+			info->name = "opacity";
+			info->fieldType = SVG_Opacity_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->opacity;
 			return GF_OK;
 		case 17:
-			info->name = "display";
-			info->fieldType = SVG_Display_datatype;
-			info->far_ptr = &((SVGElement *)node)->properties->display;
-			return GF_OK;
-		case 18:
-			info->name = "image-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = &((SVGElement *)node)->properties->image_rendering;
-			return GF_OK;
-		case 19:
-			info->name = "pointer-events";
-			info->fieldType = SVG_PointerEvents_datatype;
-			info->far_ptr = &((SVGElement *)node)->properties->pointer_events;
-			return GF_OK;
-		case 20:
-			info->name = "shape-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = &((SVGElement *)node)->properties->shape_rendering;
-			return GF_OK;
-		case 21:
-			info->name = "text-rendering";
-			info->fieldType = SVG_RenderingHint_datatype;
-			info->far_ptr = &((SVGElement *)node)->properties->text_rendering;
-			return GF_OK;
-		case 22:
-			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
-			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
-			return GF_OK;
-		case 23:
-			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
-			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
-			return GF_OK;
-		case 24:
-			info->name = "visibility";
-			info->fieldType = SVG_Visibility_datatype;
-			info->far_ptr = &((SVGElement *)node)->properties->visibility;
-			return GF_OK;
-		case 25:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 26:
+		case 18:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 27:
+		case 19:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 28:
+		case 20:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 29:
+		case 21:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 30:
+		case 22:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 31:
+		case 23:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 32:
+		case 24:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 33:
+		case 25:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 34:
+		case 26:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 35:
+		case 27:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 36:
+		case 28:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 37:
+		case 29:
 			info->name = "xlink:href";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->href;
 			return GF_OK;
-		case 38:
+		case 30:
 			info->name = "xlink:show";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->show;
 			return GF_OK;
-		case 39:
+		case 31:
 			info->name = "xlink:title";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->title;
 			return GF_OK;
-		case 40:
+		case 32:
 			info->name = "xlink:actuate";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->actuate;
 			return GF_OK;
-		case 41:
+		case 33:
 			info->name = "xlink:role";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->role;
 			return GF_OK;
-		case 42:
+		case 34:
 			info->name = "xlink:arcrole";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->arcrole;
 			return GF_OK;
-		case 43:
+		case 35:
 			info->name = "xlink:type";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->type;
 			return GF_OK;
-		case 44:
+		case 36:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 45:
+		case 37:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 46:
+		case 38:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 47:
+		case 39:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 48:
+		case 40:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 49:
+		case 41:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 50:
+		case 42:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 51:
+		case 43:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->x;
 			return GF_OK;
-		case 52:
+		case 44:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->y;
 			return GF_OK;
-		case 53:
+		case 45:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->width;
 			return GF_OK;
-		case 54:
+		case 46:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->height;
 			return GF_OK;
-		case 55:
+		case 47:
 			info->name = "preserveAspectRatio";
 			info->fieldType = SVG_PreserveAspectRatio_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->preserveAspectRatio;
@@ -5120,7 +5033,7 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -5235,7 +5148,7 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -5245,7 +5158,7 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -5475,7 +5388,7 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -5590,7 +5503,7 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -5600,7 +5513,7 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -6145,7 +6058,7 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -6260,7 +6173,7 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -6270,7 +6183,7 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -6493,7 +6406,7 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -6608,7 +6521,7 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -6618,7 +6531,7 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -6836,7 +6749,7 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -6951,7 +6864,7 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -6961,7 +6874,7 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -7310,7 +7223,7 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -7425,7 +7338,7 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -7435,7 +7348,7 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -7626,7 +7539,7 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -7741,7 +7654,7 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -7751,7 +7664,7 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -7992,7 +7905,7 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -8107,7 +8020,7 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -8117,7 +8030,7 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -8400,7 +8313,7 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -8515,7 +8428,7 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -8525,7 +8438,7 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -8910,7 +8823,7 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -9025,7 +8938,7 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -9035,7 +8948,7 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -9247,7 +9160,7 @@ static GF_Err gf_svg_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -9362,7 +9275,7 @@ static GF_Err gf_svg_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -9372,7 +9285,7 @@ static GF_Err gf_svg_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -9484,7 +9397,7 @@ static GF_Err gf_svg_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -9599,7 +9512,7 @@ static GF_Err gf_svg_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -9609,7 +9522,7 @@ static GF_Err gf_svg_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -9735,7 +9648,7 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -9850,7 +9763,7 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -9860,7 +9773,7 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -10111,7 +10024,7 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -10226,7 +10139,7 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -10236,7 +10149,7 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -10517,7 +10430,7 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -10632,7 +10545,7 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -10642,7 +10555,7 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -10873,7 +10786,7 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -10988,7 +10901,7 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -10998,7 +10911,7 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -11298,7 +11211,7 @@ static GF_Err gf_svg_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -11413,7 +11326,7 @@ static GF_Err gf_svg_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -11423,7 +11336,7 @@ static GF_Err gf_svg_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -11625,7 +11538,7 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -11740,7 +11653,7 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 36:
 			info->name = "stroke-miterlimit";
-			info->fieldType = SVG_StrokeMiterLimit_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_miterlimit;
 			return GF_OK;
 		case 37:
@@ -11750,7 +11663,7 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 38:
 			info->name = "stroke-width";
-			info->fieldType = SVG_StrokeWidth_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
@@ -12010,7 +11923,7 @@ static GF_Err gf_svg_video_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Paint_datatype;
+			info->fieldType = SVG_Color_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -12291,7 +12204,6 @@ SVGElement *gf_svg_create_node(u32 ElementTag)
 		case TAG_SVG_ellipse: return gf_svg_new_ellipse();
 		case TAG_SVG_font: return gf_svg_new_font();
 		case TAG_SVG_font_face: return gf_svg_new_font_face();
-		case TAG_SVG_font_face_name: return gf_svg_new_font_face_name();
 		case TAG_SVG_font_face_src: return gf_svg_new_font_face_src();
 		case TAG_SVG_font_face_uri: return gf_svg_new_font_face_uri();
 		case TAG_SVG_foreignObject: return gf_svg_new_foreignObject();
@@ -12352,7 +12264,6 @@ void gf_svg_element_del(SVGElement *elt)
 		case TAG_SVG_ellipse: gf_svg_ellipse_del(node); return;
 		case TAG_SVG_font: gf_svg_font_del(node); return;
 		case TAG_SVG_font_face: gf_svg_font_face_del(node); return;
-		case TAG_SVG_font_face_name: gf_svg_font_face_name_del(node); return;
 		case TAG_SVG_font_face_src: gf_svg_font_face_src_del(node); return;
 		case TAG_SVG_font_face_uri: gf_svg_font_face_uri_del(node); return;
 		case TAG_SVG_foreignObject: gf_svg_foreignObject_del(node); return;
@@ -12408,11 +12319,10 @@ u32 gf_svg_get_attribute_count(GF_Node *node)
 		case TAG_SVG_cursorManager: return 16;
 		case TAG_SVG_defs: return 41;
 		case TAG_SVG_desc: return 7;
-		case TAG_SVG_discard: return 15;
+		case TAG_SVG_discard: return 20;
 		case TAG_SVG_ellipse: return 64;
 		case TAG_SVG_font: return 9;
 		case TAG_SVG_font_face: return 35;
-		case TAG_SVG_font_face_name: return 8;
 		case TAG_SVG_font_face_src: return 7;
 		case TAG_SVG_font_face_uri: return 14;
 		case TAG_SVG_foreignObject: return 71;
@@ -12420,7 +12330,7 @@ u32 gf_svg_get_attribute_count(GF_Node *node)
 		case TAG_SVG_glyph: return 13;
 		case TAG_SVG_handler: return 8;
 		case TAG_SVG_hkern: return 12;
-		case TAG_SVG_image: return 56;
+		case TAG_SVG_image: return 48;
 		case TAG_SVG_line: return 64;
 		case TAG_SVG_linearGradient: return 55;
 		case TAG_SVG_listener: return 15;
@@ -12472,7 +12382,6 @@ GF_Err gf_svg_get_attribute_info(GF_Node *node, GF_FieldInfo *info)
 		case TAG_SVG_ellipse: return gf_svg_ellipse_get_attribute(node, info);
 		case TAG_SVG_font: return gf_svg_font_get_attribute(node, info);
 		case TAG_SVG_font_face: return gf_svg_font_face_get_attribute(node, info);
-		case TAG_SVG_font_face_name: return gf_svg_font_face_name_get_attribute(node, info);
 		case TAG_SVG_font_face_src: return gf_svg_font_face_src_get_attribute(node, info);
 		case TAG_SVG_font_face_uri: return gf_svg_font_face_uri_get_attribute(node, info);
 		case TAG_SVG_foreignObject: return gf_svg_foreignObject_get_attribute(node, info);
@@ -12532,7 +12441,6 @@ u32 gf_node_svg_type_by_class_name(const char *element_name)
 	if (!stricmp(element_name, "ellipse")) return TAG_SVG_ellipse;
 	if (!stricmp(element_name, "font")) return TAG_SVG_font;
 	if (!stricmp(element_name, "font-face")) return TAG_SVG_font_face;
-	if (!stricmp(element_name, "font-face-name")) return TAG_SVG_font_face_name;
 	if (!stricmp(element_name, "font-face-src")) return TAG_SVG_font_face_src;
 	if (!stricmp(element_name, "font-face-uri")) return TAG_SVG_font_face_uri;
 	if (!stricmp(element_name, "foreignObject")) return TAG_SVG_foreignObject;
@@ -12591,7 +12499,6 @@ const char *gf_svg_get_element_name(u32 tag)
 	case TAG_SVG_ellipse: return "ellipse";
 	case TAG_SVG_font: return "font";
 	case TAG_SVG_font_face: return "font-face";
-	case TAG_SVG_font_face_name: return "font-face-name";
 	case TAG_SVG_font_face_src: return "font-face-src";
 	case TAG_SVG_font_face_uri: return "font-face-uri";
 	case TAG_SVG_foreignObject: return "foreignObject";

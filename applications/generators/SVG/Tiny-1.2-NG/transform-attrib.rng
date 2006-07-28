@@ -14,7 +14,10 @@
   <define name='svg.Transform.attr' combine='interleave'>
     <optional>
       <attribute name='transform' svg:animatable='true' svg:inheritable='false'>
-        <ref name='TransformList.datatype'/>
+		<choice>
+          <ref name='TransformList.datatype'/>
+          <value>none</value>
+        </choice>
       </attribute>
     </optional>
   </define>

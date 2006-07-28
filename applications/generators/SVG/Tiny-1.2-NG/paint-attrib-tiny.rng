@@ -78,7 +78,7 @@
       <attribute name='stroke-miterlimit' svg:animatable='true' svg:inheritable='true'>
         <choice>
           <value>inherit</value>
-          <data type='float'/>
+          <ref name='Number.datatype'/>
         </choice>
       </attribute>
     </optional>
@@ -86,7 +86,7 @@
       <attribute name='stroke-width' svg:animatable='true' svg:inheritable='true'>
         <choice>
           <value>inherit</value>
-          <data type='float'/>
+          <ref name='Length.datatype'/>
         </choice>
       </attribute>
     </optional>

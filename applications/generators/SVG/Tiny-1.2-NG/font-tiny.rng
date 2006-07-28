@@ -346,29 +346,4 @@
     </zeroOrMore>
   </define>
 
-
-
-  <!-- ... font-face-name ......................................... -->
-  <define name='font-face-name'>
-    <element name='font-face-name'>
-      <ref name='font-face-name.AT'/>
-      <ref name='font-face-name.CM'/>
-    </element>
-  </define>
-
-  <define name='font-face-name.AT' combine='interleave'>
-    <ref name='svg.Core.attr'/>
-    <optional>
-      <attribute name='name' svg:animatable='false' svg:inheritable='false'><text/></attribute>
-    </optional>
-  </define>
-
-  <define name='font-face-name.CM'>
-    <zeroOrMore>
-      <choice>
-        <ref name='svg.Desc.group'/>
-      </choice>
-    </zeroOrMore>
-  </define>
-
 </grammar>

@@ -18,6 +18,11 @@
     This is done in anticipation of XLink 1.1 which is to make this change, and
     to conform to implementation reality.
     -->
+  <!-- @@ 
+    This used to be required for real, but all attributes became optional.
+    Some simplifications to the rest of the schema may have thus become
+    possible.
+    -->
 
   <define name='svg.XLinkBase.attr' combine='interleave'>
     <optional>
@@ -40,11 +45,6 @@
     </optional>
   </define>
 
-  <!-- @@ 
-    This used to be required for real, but all attributes became optional.
-    Some simplifications to the rest of the schema may have thus become
-    possible.
-    -->
   <define name='svg.XLinkHrefRequired.attr' combine='interleave'>
     <optional>
       <attribute name='xlink:href' svg:animatable='true' svg:inheritable='false'>

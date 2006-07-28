@@ -15,7 +15,7 @@
     <optional>
       <attribute name='vector-effect' svg:animatable='true' svg:inheritable='false'>
         <choice>
-          <value>default</value>
+          <value>none</value>
           <value>non-scaling-stroke</value>
           <value>inherit</value>
         </choice>

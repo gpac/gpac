@@ -16,7 +16,8 @@
       <attribute name='viewport-fill' svg:animatable='true' svg:inheritable='false'>
         <choice>
           <value>inherit</value>
-          <ref name='Paint.datatype'/>
+          <value>none</value>
+          <ref name='Color.datatype'/>
         </choice>
       </attribute>
     </optional>

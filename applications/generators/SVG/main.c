@@ -50,17 +50,24 @@ static GF_List *globalAttrGrp;
 /* SVG Generic */
 static char *core[] = { "id", "class", "xml:id", "xml:base", "xml:lang", "xml:space", "externalResourceRequired" };
 
-/* Properties Generic */
-static char *properties[] = {
-   /* media only*/
+/* Media Properties */
+static char *media_properties[] = {
   "audio-level", "display", "image-rendering", "pointer-events", "shape-rendering", "text-rendering", 
-  "viewport-fill", "viewport-fill-opacity", "visibility", 
-  /* others */
+  "viewport-fill", "viewport-fill-opacity", "visibility"
+};
+
+/* others */
+static char *other_properties[] = {
   "color", "color-rendering", "display-align", "fill", "fill-opacity", "fill-rule", 
   "font-family", "font-size", "font-style", "font-weight", "line-increment", 
   "solid-color", "solid-opacity", "stop-color", "stop-opacity", 
   "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", 
-   "stroke-opacity", "stroke-width", "text-anchor", "vector-effect", "opacity"
+   "stroke-opacity", "stroke-width", "text-anchor", "vector-effect"
+};
+
+/* only opacity on image */
+static char *opacity_properties[] = {
+ "opacity"
 };
 
 /* Focus */
@@ -96,71 +103,21 @@ static char *conditional[] = {
 };
 
 typedef struct {
-	int names_length; 
-	char **names; // names of all the RNG definition to map
 	int array_length;
 	char **array; // mapping of constructs to the RNG definition
 } _atts;
 
-static char *svg_xml_generic_names[] = 
-{ 
-	"svg.Core.attr", 
-	"svg.CorePreserve.attr", 
-	"svg.External.attr" 
-};
-
-static char *properties_generic_names[] = 
-{ 
-	"svg.Properties.attr", 
-	"svg.Media.attr",
-	"svg.Opacity.attr" 
-};
-
-static char *focus_generic_names[] = { 
-	"svg.FocusHighlight.attr", 
-	"svg.Focus.attr"
-};
-
-static char *xlink_generic_names[] = { 
-	"svg.AnimateCommon.attr", 
-	"svg.XlinkEmbed.attr",
-	"svg.XLinkRequired.attr", 
-	"svg.XLinkReplace.attr", 
-	"svg.ContentType.attr"
-};
-
-static char *timing_generic_names[] = { 
-	"svg.MediaClip.attr",
-	"svg.AnimateTiming.attr", 
-	"svg.AnimateTimingNoMinMax.attr", 
-	"svg.AnimateBegin.attr",
-	"svg.AnimateTimingNoFillNoMinMax.attr" 
-};
-
-static char *sync_generic_names[] = { 
-	"svg.AnimateSync.attr",
-	"svg.AnimateSyncDefault.attr"
-};
-
-static char *animate_generic_names[] = { 
-	"svg.AnimateAttributeCommon.attr",
-	"svg.AnimateToCommon.attr",
-	"svg.AnimateValueCommon.attr",
-	"svg.AnimateAdditionCommon.attr", 
-	"svg.AnimateTypeCommon.attr"
-};
-
-static char *conditional_generic_names[] = { "svg.Conditional.attr" };
-
 static _atts generic_attributes[] = {
-	{ 2, svg_xml_generic_names,		7, core },
-	{ 3, properties_generic_names, 35, properties },
-	{ 2, focus_generic_names,	   12, focus },
-	{ 5, xlink_generic_names,		7, xlink },
-	{ 5, timing_generic_names,		11, timing },
-	{ 2, sync_generic_names,		6, sync },
-	{ 5, animate_generic_names,	   13, anim },
-	{ 1, conditional_generic_names,	5, conditional}
+	{ 7, core },
+	{ 25, other_properties },
+	{ 9, media_properties },
+	{ 1, opacity_properties },
+	{ 12, focus },
+	{ 7, xlink },
+	{ 11, timing },
+	{ 6, sync },
+	{ 13, anim },
+	{ 5, conditional}
 };
 
 /* 
@@ -176,6 +133,7 @@ typedef struct
 	Bool has_xml_generic;
 	Bool has_media_properties;
 	Bool has_properties;
+	Bool has_opacity_properties;
 	Bool has_focus;
 	Bool has_xlink;
 	Bool has_timing;
@@ -383,10 +341,11 @@ static Bool setGenericAttributesFlags(char *name, SVGElement *e)
 		e->has_xml_generic = 1;
 	} else if (!strcmp(name, "svg.Properties.attr")) {
 		e->has_properties = 1;
+		e->has_media_properties = 1;
 	} else if (!strcmp(name, "svg.Media.attr")) {
-		e->has_properties = 1;
+		e->has_media_properties = 1;
 	} else if (!strcmp(name, "svg.Opacity.attr")) {
-		e->has_properties = 1;
+		e->has_opacity_properties = 1;
 	} else if (!strcmp(name, "svg.FocusHighlight.attr") || 
 		       !strcmp(name, "svg.Focus.attr")) {
 		e->has_focus = 1;
@@ -690,6 +649,8 @@ void setAttributeType(SVGAttribute *att)
 			strcpy(att->impl_type, "SVG_SpreadMethod");
 		} else if (!strcmp(att->svg_name, "gradientTransform")) {
 			strcpy(att->impl_type, "SVG_Matrix");
+		} else if (!strcmp(att->svg_name, "editable")) {
+			strcpy(att->impl_type, "SVG_Boolean");
 		} else {
 			strcpy(att->impl_type, "SVG_String");
 			fprintf(stdout, "Warning: using type SVG_String for attribute %s.\n", att->svg_name);
@@ -1203,7 +1164,9 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 	fprintf(output, "#endif\n");
 
 	fprintf(output, "\tgf_svg_init_core((SVGElement *)p);\n");		
-	if (svg_elt->has_properties) {
+	if (svg_elt->has_properties || 
+		svg_elt->has_media_properties || 
+		svg_elt->has_opacity_properties) {
 		fprintf(output, "\tgf_svg_init_properties((SVGElement *)p);\n");		
 	} 
 	if (svg_elt->has_focus) {
@@ -1271,6 +1234,9 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 		fprintf(output, "\tp->fx.value = FIX_ONE/2;\n");
 		fprintf(output, "\tp->fy.value = FIX_ONE/2;\n");
 	}
+	else if (!strcmp(svg_elt->svg_name, "video") || !strcmp(svg_elt->svg_name, "audio") || !strcmp(svg_elt->svg_name, "animation")) {
+		fprintf(output, "\tp->timing->dur.type = SMIL_DURATION_MEDIA;\n");
+	}
 	fprintf(output, "\treturn p;\n}\n\n");
 
 	/* Destructor */
@@ -1323,20 +1289,24 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 	svg_elt->nb_atts = 0;
 	svg_elt->nb_atts = generateCoreInfo(output, svg_elt, svg_elt->nb_atts);
 
+	if (svg_elt->has_media_properties) 
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 2, "((SVGElement *)node)->properties->", svg_elt->nb_atts);
 	if (svg_elt->has_properties) 
 		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 1, "((SVGElement *)node)->properties->", svg_elt->nb_atts);
+	if (svg_elt->has_opacity_properties) 
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 3, "((SVGElement *)node)->properties->", svg_elt->nb_atts);
 	if (svg_elt->has_focus) 
-		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 2, "((SVGElement *)node)->focus->", svg_elt->nb_atts);
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 4, "((SVGElement *)node)->focus->", svg_elt->nb_atts);
 	if (svg_elt->has_xlink) 
-		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 3, "((SVGElement *)node)->xlink->", svg_elt->nb_atts);
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 5, "((SVGElement *)node)->xlink->", svg_elt->nb_atts);
 	if (svg_elt->has_timing) 
-		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 4, "((SVGElement *)node)->timing->", svg_elt->nb_atts);
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 6, "((SVGElement *)node)->timing->", svg_elt->nb_atts);
 	if (svg_elt->has_sync) 
-		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 5, "((SVGElement *)node)->sync->", svg_elt->nb_atts);
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 7, "((SVGElement *)node)->sync->", svg_elt->nb_atts);
 	if (svg_elt->has_animation) 
-		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 6, "((SVGElement *)node)->anim->", svg_elt->nb_atts);
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 8, "((SVGElement *)node)->anim->", svg_elt->nb_atts);
 	if (svg_elt->has_conditional) 
-		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 7, "((SVGElement *)node)->conditional->", svg_elt->nb_atts);
+		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 9, "((SVGElement *)node)->conditional->", svg_elt->nb_atts);
 	if (svg_elt->has_transform) {
 		svg_elt->nb_atts = generateTransformInfo(output, svg_elt, svg_elt->nb_atts);
 		svg_elt->nb_atts = generateMotionTransformInfo(output, svg_elt, svg_elt->nb_atts);
@@ -1503,7 +1473,7 @@ void replaceIncludes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 	xmlXPathFreeObject(xpathObj);
 }
 
-static char *attribute_name_type_list[] = {
+static char *laser_attribute_name_type_list[] = {
 	"a.target", "accumulate", "additive", "attributeName", "audio-level", "bandwidth", "begin", "calcMode", "children", "choice", "clipBegin", "clipEnd", "color", "color-rendering", "cx", "cy", "d", "display", "display-align", "dur", "editable", "enabled", "end", "event", "externalResourcesRequired", "fill", "fill-opacity", "fill-rule", "focusable", "font-family", "font-size", "font-style", "font-variant", "font-weight", "gradientUnits", "handler", "height", "image-rendering", "keyPoints", "keySplines", "keyTimes", "line-increment", "listener.target", "mediaCharacterEncoding", "mediaContentEncodings", "mediaSize", "mediaTime", "nav-down", "nav-down-left", "nav-down-right", "nav-left", "nav-next", "nav-prev", "nav-right", "nav-up", "nav-up-left", "nav-up-right", "observer", "offset", "opacity", "overflow", "overlay", "path", "pathLength", "pointer-events", "points", "preserveAspectRatio", "r", "repeatCount", "repeatDur", "requiredExtensions", "requiredFeatures", "requiredFormats", "restart", "rotate", "rotation", "rx", "ry", "scale", "shape-rendering", "size", "solid-color", "solid-opacity", "stop-color", "stop-opacity", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "svg.height", "svg.width", "syncBehavior", "syncBehaviorDefault", "syncReference", "syncTolerance", "syncToleranceDefault", "systemLanguage", "text-anchor", "text-decoration", "text-rendering", "textContent", "transform", "transformBehavior", "translation", "vector-effect", "viewBox", "viewport-fill", "viewport-fill-opacity", "visibility", "width", "x", "x1", "x2", "xlink:actuate", "xlink:arcrole", "xlink:href", "xlink:role", "xlink:show", "xlink:title", "xlink:type", "xml:base", "xml:lang", "y", "y1", "y2", "zoomAndPan", NULL
 };
 
@@ -1511,8 +1481,8 @@ static char *attribute_name_type_list[] = {
 static s32 get_lsr_att_name_type(const char *name)
 {
 	u32 i = 0;
-	while (attribute_name_type_list[i]) {
-		if (!strcmp(name, attribute_name_type_list[i])) return i;
+	while (laser_attribute_name_type_list[i]) {
+		if (!strcmp(name, laser_attribute_name_type_list[i])) return i;
 		i++;
 	}
 	return -1;
@@ -1527,7 +1497,7 @@ void generateGenericAttrib(FILE *output, SVGElement *elt, u32 index)
 		if (a) {
 			s32 type = get_lsr_att_name_type(att_name);
 			/*SMIL anim fill not updatable*/
-			if ((index==4) && !strcmp(att_name, "fill")) {
+			if ((index==6) && !strcmp(att_name, "fill")) {
 				type = -1;
 			}
 			fprintf(output, ", %d", type);
@@ -1554,13 +1524,15 @@ static void generate_laser_tables(GF_List *svg_elements)
 
 		/*core info: id, xml:id, class, xml:lang, xml:base, xml:space, externalResourcesRequired*/
 		fprintf(output, "-1, -1, -1, 125, 124, -1, 24");
+		if (elt->has_media_properties) generateGenericAttrib(output, elt, 2);
 		if (elt->has_properties) generateGenericAttrib(output, elt, 1);
-		if (elt->has_focus) generateGenericAttrib(output, elt, 2); 
-		if (elt->has_xlink) generateGenericAttrib(output, elt, 3);
-		if (elt->has_timing) generateGenericAttrib(output, elt, 4);
-		if (elt->has_sync) generateGenericAttrib(output, elt, 5);
-		if (elt->has_animation) generateGenericAttrib(output, elt, 6);
-		if (elt->has_conditional) generateGenericAttrib(output, elt, 7);
+		if (elt->has_opacity_properties) generateGenericAttrib(output, elt, 3);
+		if (elt->has_focus) generateGenericAttrib(output, elt, 4); 
+		if (elt->has_xlink) generateGenericAttrib(output, elt, 5);
+		if (elt->has_timing) generateGenericAttrib(output, elt, 6);
+		if (elt->has_sync) generateGenericAttrib(output, elt, 7);
+		if (elt->has_animation) generateGenericAttrib(output, elt, 8);
+		if (elt->has_conditional) generateGenericAttrib(output, elt, 9);
 		/*WATCHOUT - HARDCODED VALUES*/
 		if (elt->has_transform) fprintf(output, ", 105");
 		if (elt->has_xy) fprintf(output, ", 116, 129");
