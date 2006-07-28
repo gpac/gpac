@@ -66,6 +66,13 @@ void gf_smil_timing_delete_runtime_info(SVGElement *timed_elt)
 	timed_elt->timing->runtime = NULL;
 }
 
+Bool gf_smil_timing_is_active(GF_Node *node) 
+{
+	SVGElement *e = (SVGElement *)node;
+	if (!e->timing || !e->timing->runtime) return 0;
+	return (e->timing->runtime->status == SMIL_STATUS_ACTIVE);
+}
+
 /* computes the active duration for the given interval,
    assumes that the values of begin and end have been set
    and that begin is defined (i.e. a positive value)*/
@@ -319,6 +326,7 @@ Bool gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 	rti->cycle_number++;
 	rti->evaluate = NULL;	
 
+//	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("\n", gf_node_get_name(node), scene_time));
 //	fprintf(stdout, "Scene Time: %f - Timing Stack: %8x, Status: %d\n", scene_time, rti, rti->status);
 
 	if (rti->status == SMIL_STATUS_STARTUP) {
@@ -342,7 +350,7 @@ waiting_to_begin:
 			rti->status = SMIL_STATUS_ACTIVE;
 			memset(&evt, 0, sizeof(evt));
 			evt.type = SVG_DOM_EVT_BEGIN;
-//			fprintf(stdout, "Time %f - Firing DOM %s.beginEvent\n", scene_time, rti->timed_elt->sgprivate->NodeName);
+//			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[DOM Events] Firing event %s.beginEvent at time %g\n", gf_node_get_name(node), scene_time));
 			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 		}
 		else return ret;
@@ -381,6 +389,10 @@ waiting_to_begin:
 		//simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
 		cur_id = rti->current_interval->nb_iterations;
 		rti->evaluate = rti->activation;
+		if (!rti->postpone) {
+			Fixed simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
+			rti->evaluate(rti, simple_time);
+		}
 		if (cur_id < rti->current_interval->nb_iterations) {
 			memset(&evt, 0, sizeof(evt));
 			evt.type = SVG_DOM_EVT_REPEAT;
@@ -398,6 +410,10 @@ post_active:
 		} else {
 			rti->status = SMIL_STATUS_DONE;
 			rti->evaluate = rti->restore;
+			if (!rti->postpone) {
+				Fixed simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
+				rti->evaluate(rti, simple_time);
+			}
 		}
 		memset(&evt, 0, sizeof(evt));
 		evt.type = SVG_DOM_EVT_END;
@@ -407,6 +423,10 @@ post_active:
 
 	if (rti->status == SMIL_STATUS_FROZEN) {
 		rti->evaluate = rti->freeze;
+		if (!rti->postpone) {
+			Fixed simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
+			rti->evaluate(rti, simple_time);
+		}
 	}
 
 	if ((rti->status == SMIL_STATUS_DONE) || (rti->status == SMIL_STATUS_FROZEN)) {

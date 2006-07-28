@@ -26,6 +26,32 @@
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_svg.h>
 
+GF_Err gf_node_animation_add(GF_Node *node, void *animation)
+{
+	if (!node || !animation) return GF_BAD_PARAM;
+	if (!node->sgprivate->animations) node->sgprivate->animations = gf_list_new();
+	return gf_list_add(node->sgprivate->animations, animation);
+}
+
+GF_Err gf_node_animation_del(GF_Node *node)
+{
+	if (!node || !node->sgprivate->animations) return GF_BAD_PARAM;
+	gf_list_del(node->sgprivate->animations);
+	return GF_OK;
+}
+
+u32 gf_node_animation_count(GF_Node *node)
+{
+	if (!node || !node->sgprivate->animations) return 0;
+	return gf_list_count(node->sgprivate->animations);
+}
+
+void *gf_node_animation_get(GF_Node *node, u32 i)
+{
+	if (!node || !node->sgprivate->animations) return 0;
+	return gf_list_get(node->sgprivate->animations, i);
+}
+
 
 void gf_svg_attributes_resolve_unspecified(GF_FieldInfo *in, GF_FieldInfo *p)
 {
@@ -646,6 +672,7 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 	}
 	rai->owner = aa;
 
+	e->timing->runtime->postpone = 1;
 	e->timing->runtime->activation = gf_smil_anim_animate;
 	e->timing->runtime->freeze = gf_smil_anim_freeze;
 	e->timing->runtime->restore = gf_smil_anim_restore;

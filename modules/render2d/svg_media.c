@@ -332,114 +332,69 @@ void SVG_Init_image(Render2D *sr, GF_Node *node)
 /*********************/
 /* SVG video element */
 /*********************/
-
-static void SVG_Activate_video(SVG_video_stack *stack, SVGvideoElement *video)
-{
-	MFURL *txurl = &(((SVG_video_stack *)gf_node_get_private((GF_Node *)video))->txurl);
-	stack->isActive = 1;
-	if (!stack->txh.is_open) {
-		gf_sr_texture_play(&stack->txh, txurl);
-	}
-	gf_mo_set_speed(stack->txh.stream, FIX_ONE);
-}
-
-/*
-static void SVG_Deactivate_video(SVG_video_stack *stack, SVGvideoElement *video)
-{
-	stack->isActive = 0;
-	stack->time_handle.needs_unregister = 1;
-
-	if (stack->txh.is_open) {
-		gf_sr_texture_stop(&stack->txh);
-	}
-}
-*/
-
 static void SVG_Update_video(GF_TextureHandler *txh)
 {
-	//SVGvideoElement *txnode = (SVGvideoElement *) txh->owner;
 	SVG_video_stack *st = (SVG_video_stack *) gf_node_get_private(txh->owner);
-	//MFURL *txurl = &(st->txurl);
 
-	/*setup texture if needed*/
-	if (!txh->is_open) return;
-	if (!st->isActive && st->first_frame_fetched) return;
+	if (!txh->is_open) {
+		/*opens stream only at first access to fetch first frame if needed*/
+		if (!st->first_frame_fetched &&
+			(((SVGvideoElement *)txh->owner)->initialVisibility == SVG_INITIALVISIBILTY_ALWAYS)) {
+			gf_sr_texture_play(txh, &st->txurl);
+			gf_sr_invalidate(txh->compositor, NULL);
+			return;
+		} else {
+			return;
+		}
+	} 
 
 	/*when fetching the first frame disable resync*/
 	gf_sr_texture_update_frame(txh, 0);
 
-	if (txh->stream_finished) {
-		/*
-		if (MT_GetLoop(st, txnode)) {
-			gf_sr_texture_restart(txh);
-		}
-		//if active deactivate
-		else if (txnode->isActive && gf_mo_should_deactivate(st->txh.stream) ) {
-			MT_Deactivate(st, txnode);
-		}
-		*/
-	}
-	/* first frame is fetched */
+	/* only when needs_refresh = 1, first frame is fetched */
 	if (!st->first_frame_fetched && (txh->needs_refresh) ) {
 		st->first_frame_fetched = 1;
-		/*
-		txnode->duration_changed = gf_mo_get_duration(txh->stream);
-		gf_node_event_out_str(txh->owner, "duration_changed");
-		*/
-		/*stop stream if needed
-		if (!txnode->isActive && txh->is_open) {
+		/*stop stream if needed*/
+		if (!gf_smil_timing_is_active(txh->owner)) {
 			gf_sr_texture_stop(txh);
 			//make sure the refresh flag is not cleared
 			txh->needs_refresh = 1;
 		}
-		*/
 	}
 	/*we have no choice but retraversing the graph until we're inactive since the movie framerate and
 	the renderer framerate are likely to be different */
 	if (!txh->stream_finished) 
 		gf_sr_invalidate(txh->compositor, NULL);
-
 }
 
-static void SVG_UpdateTime_video(GF_TimeNode *st)
+static void svg_video_smil_freeze(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
 {
-	Double sceneTime;
-	SVGvideoElement *video = (SVGvideoElement *)st->obj;
-	SVG_video_stack *stack = (SVG_video_stack *)gf_node_get_private(st->obj);
-	MFURL *txurl = &(stack->txurl);
+	SVG_video_stack *stack = (SVG_video_stack *)gf_node_get_private((GF_Node *)rti->timed_elt);
+	gf_sr_texture_stop(&stack->txh);
+}
+
+static void svg_video_smil_restore(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
+{
+	SVG_video_stack *stack = (SVG_video_stack *)gf_node_get_private((GF_Node *)rti->timed_elt);
+	gf_sr_texture_stop(&stack->txh);
+	stack->first_frame_fetched = 0;
+	gf_sr_invalidate(stack->txh.compositor, NULL);
+}
+
+static void svg_video_smil_activate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
+{
+	SVG_video_stack *stack = (SVG_video_stack *)gf_node_get_private((GF_Node *)rti->timed_elt);
 	
-	/*not active, store start time and speed */
-	if (!stack->isActive) {
-		//stack->start_time = mt->startTime;
-		stack->start_time = 0;
-	}
-
-	sceneTime = gf_node_get_scene_time(st->obj);
-
-	if (sceneTime < stack->start_time //||
-		/*special case if we're getting active AFTER stoptime 
-		(!mt->isActive && (mt->stopTime > stack->start_time) && (time>=mt->stopTime)) */
-		) {
-		/*opens stream only at first access to fetch first frame*/
-		if (stack->fetch_first_frame) {
-			stack->fetch_first_frame = 0;
-			if (!stack->txh.is_open)
-				gf_sr_texture_play(&stack->txh, txurl);
+	if (stack->txh.is_open) { 
+		if (stack->current_iter < rti->current_interval->nb_iterations) {
+//			gf_sr_texture_stop(&stack->txh);
+			gf_sr_texture_restart(&stack->txh);
+			stack->current_iter = rti->current_interval->nb_iterations;
 		}
 		return;
+	} else {
+		gf_sr_texture_play(&stack->txh, &stack->txurl);
 	}
-
-	/*
-	if (MT_GetSpeed(stack, mt) && mt->isActive) {
-		// if stoptime is reached (>startTime) deactivate
-		if ((mt->stopTime > stack->start_time) && (time >= mt->stopTime) ) {
-			MT_Deactivate(stack, mt);
-			return;
-		}
-	}
-	*/
-
-	if (!stack->isActive) SVG_Activate_video(stack, video);
 }
 
 static void SVG_Destroy_video(GF_Node *node)
@@ -448,7 +403,6 @@ static void SVG_Destroy_video(GF_Node *node)
 	gf_sr_texture_destroy(&st->txh);
 	gf_sg_mfurl_del(st->txurl);
 
-	if (st->time_handle.is_registered) gf_sr_unregister_time_node(st->txh.compositor, &st->time_handle);
 	drawable_del(st->graph);
 	free(st);
 }
@@ -466,18 +420,23 @@ void SVG_Init_video(Render2D *sr, GF_Node *node)
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.update_texture_fcnt = SVG_Update_video;
 	st->txh.flags = 0;
-	st->time_handle.UpdateTimeNode = SVG_UpdateTime_video;
-	st->time_handle.obj = node;
-	st->fetch_first_frame = 1;
-	
+
 	/* create an MFURL from the SVG iri */
 	SVG_SetMFURLFromURI(sr->compositor, &(st->txurl), & ((SVGvideoElement *)node)->xlink->href);
 
-	gf_sr_register_time_node(st->txh.compositor, &st->time_handle);	
+	gf_smil_timing_init_runtime_info((SVGElement *)node);
+	if (((SVGElement *)node)->timing->runtime) {
+		SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
+		rti->activation = svg_video_smil_activate;
+		rti->freeze = svg_video_smil_freeze;
+		rti->restore = svg_video_smil_restore;
+	}
 	
 	gf_node_set_private(node, st);
 	gf_node_set_render_function(node, SVG_Render_bitmap);
 	gf_node_set_predestroy_function(node, SVG_Destroy_video);
+
+
 }
 
 /*********************/

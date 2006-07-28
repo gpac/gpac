@@ -2206,6 +2206,8 @@ GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, c
 
 	if (!xml_file || !xmlFrom || !xmlTo) return GF_BAD_PARAM;
 
+	memset(&breaker, 0, sizeof(XMLBreaker));
+
 	xml = fopen(xml_file, "rb");
 	if (!xml) {
 		e = gf_import_message(import, GF_BAD_PARAM, "NHML import failure: file %s not found", xml_file);

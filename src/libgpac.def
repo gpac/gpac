@@ -1108,6 +1108,7 @@ EXPORTS
 	gf_term_message
 	gf_mo_get_loop
 	gf_mo_set_speed
+	gf_mo_get_duration
 
 ;mpegts.h exports
 	gf_m2ts_demux_new
@@ -1160,4 +1161,6 @@ EXPORTS
 	gf_dom_event_fire
 	gf_dom_event_type_by_name
 	gf_dom_event_get_name
-
+	gf_smil_timing_init_runtime_info
+	gf_smil_timing_get_normalized_simple_time
+	gf_smil_timing_is_active

@@ -287,6 +287,9 @@ void gf_mo_play(GF_MediaObject *mo, Double media_offset, Bool can_loop)
 
 	gf_term_lock_net(mo->term, 1);
 	if (!mo->num_open && mo->odm) {
+		Bool is_restart = 0;
+		if (mo->odm->media_start_time == (u64) -1) is_restart = 1;
+
 		if (mo->odm->no_time_ctrl) {
 			mo->odm->media_start_time = 0;
 		} else {
@@ -299,7 +302,12 @@ void gf_mo_play(GF_MediaObject *mo, Double media_offset, Bool can_loop)
 				}
 			}
 		}
-		gf_odm_start(mo->odm);
+		if (is_restart) {
+			gf_list_del_item(mo->odm->term->od_pending, mo->odm);
+			MC_Restart(mo->odm);
+		} else {
+			gf_odm_start(mo->odm);
+		}
 	} else {
 		if (mo->num_to_restart) mo->num_restart--;
 		if (!mo->num_restart && (mo->num_to_restart==mo->num_open+1) ) {
@@ -318,11 +326,15 @@ void gf_mo_stop(GF_MediaObject *mo)
 	assert(mo->num_open);
 	mo->num_open--;
 	if (!mo->num_open && mo->odm) {
+		gf_mx_p(mo->odm->term->net_mx);
 		/*do not stop directly, this can delete channel data currently being decoded (BIFS anim & co)*/
 		if (gf_list_find(mo->odm->term->od_pending, mo->odm)<0) {
-			mo->odm->media_start_time = -1;
 			gf_list_add(mo->odm->term->od_pending, mo->odm);
+			mo->odm->media_start_time = -1;
+		} else if (mo->odm->media_start_time >= 0) {
+			gf_list_del_item(mo->odm->term->od_pending, mo->odm);
 		}
+		gf_mx_v(mo->odm->term->net_mx);
 	} else {
 		if (!mo->num_to_restart) {
 			mo->num_restart = mo->num_to_restart = mo->num_open + 1;

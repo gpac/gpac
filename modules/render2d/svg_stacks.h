@@ -83,10 +83,8 @@ void SVG_Init_image(Render2D *se, GF_Node *node);
 typedef struct
 {
 	BASE_IMAGE_STACK
-	GF_TimeNode time_handle;
-	Bool fetch_first_frame, first_frame_fetched;
-	Double start_time;
-	Bool isActive;
+	Bool first_frame_fetched;
+	u32 current_iter;
 } SVG_video_stack;
 void SVG_Init_video(Render2D *se, GF_Node *node);
 

@@ -45,6 +45,7 @@ u32 gf_dom_event_type_by_name(const char *name)
 	if (!strcmp(name, "mouseout"))	return SVG_DOM_EVT_MOUSEOUT;
 	if (!strcmp(name, "mousemove")) return SVG_DOM_EVT_MOUSEMOVE;
 	if (!strcmp(name, "load"))		return SVG_DOM_EVT_LOAD;
+	if (!strcmp(name, "SVGLoad"))	return SVG_DOM_EVT_LOAD;
 	if (!strcmp(name, "unload"))	return SVG_DOM_EVT_UNLOAD;
 	if (!strcmp(name, "error"))		return SVG_DOM_EVT_ERROR;
 	if (!strcmp(name, "resize"))	return SVG_DOM_EVT_RESIZE;
@@ -762,41 +763,45 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 	} 
 
 	else {
-		char token[500];
+		char *tmp2;
 		v->type = GF_SMIL_TIME_EVENT;
-		if ((tmp = strchr(d, '+')) || (tmp = strchr(d, '-'))) {
-			len = tmp - d;
-			while (d[len-1] == ' ' && len > 0) len--;
-			memcpy(token, d, len);
-			token[len] = 0;
-			svg_parse_clock_value(tmp, &(v->clock));
+		if (tmp = strchr(d, '.')) {
+			tmp[0] = 0;
+			v->element_id = strdup(d);
+			tmp[0] = '.';
+			tmp++;
 		} else {
-			strcpy(token, d);
-			len = strlen(d);
+			tmp = d;
 		}
-		if (!strchr(token, '.')) {
-			/* animation event name only */
-			v->event.type = gf_dom_event_type_by_name(token);
+		if (tmp2 = strchr(tmp, '(')) {
+			tmp2[0] = 0;
+			v->event.type = gf_dom_event_type_by_name(tmp);
+			tmp2[0] = '(';
+			tmp2++;
+			v->event.parameter = atoi(tmp2);
+			tmp = strchr(tmp2, ')');
+			if (!tmp) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] expecting ')' in SMIL Time %s\n", d));
+				return;
+			}			
+			tmp++;
 		} else {
-			u32 i;
-			for (i = 0; i < len; i++) {
-				if (token[i] == '\\' && (i+1 < len) && token[i+1] == '.') i++;
-				else if (token[i] == '.') {
-					token[i] = 0;
-					v->element_id = strdup(token);
-					token[i] = '.';
-					v->event.type = gf_dom_event_type_by_name(token+i+1);
-				}
-			}
-		}
+			if ((tmp2 = strchr(tmp, '+')) || (tmp2 = strchr(tmp, '-'))) {
+				char c = *tmp2, offset[100];
+				tmp2[0] = 0;
+				v->event.type = gf_dom_event_type_by_name(tmp);
+				if (v->event.type == SVG_DOM_EVT_REPEAT) v->event.parameter = 1;
+				tmp2[0] = c;
+				tmp2++;
 
-		if (v->event.type == SVG_DOM_EVT_REPEAT) { //repeat
-			tmp = strchr(token, '(');
-			if (tmp) {
-				tmp++;
-				v->event.parameter = atoi(tmp);
+				len = tmp2 - d;
+				while (d[len-1] == ' ' && len > 0) len--;
+				memcpy(offset, d, len);
+				offset[len] = 0;
+				svg_parse_clock_value(offset, &(v->clock));
 			} else {
-				v->event.parameter = 1;
+				v->event.type = gf_dom_event_type_by_name(tmp);
+				if (v->event.type == SVG_DOM_EVT_REPEAT) v->event.parameter = 1;
 			}
 		}
 	}

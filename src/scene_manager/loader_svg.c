@@ -252,10 +252,10 @@ static Bool svg_parse_animation(GF_SVGParser *parser, GF_SceneGraph *sg, Defered
 	u32 tag;
 	u8 anim_value_type = 0, anim_transform_type = 0;
 
-	if (!anim->target) anim->target = (SVGElement *) gf_sg_find_node_by_name(sg, anim->target_id + 1);
-	if (!anim->target) return 0;
-
 	if (anim->resolve_stage==0) {
+		if (!anim->target) anim->target = (SVGElement *) gf_sg_find_node_by_name(sg, anim->target_id + 1);
+		if (!anim->target) return 0;
+
 		/*setup IRI ptr*/
 		anim->animation_elt->xlink->href.type = SVG_IRI_ELEMENTID;
 		anim->animation_elt->xlink->href.target = anim->target;
@@ -284,6 +284,7 @@ static Bool svg_parse_animation(GF_SVGParser *parser, GF_SceneGraph *sg, Defered
 				anim->resolve_stage = 1;
 				return svg_parse_animation(parser, sg, anim, nodeID);
 			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] missing attributeName attribute on %s\n", anim->animation_elt->sgprivate->NodeName));
 				return 1;
 			}
 		}
@@ -434,6 +435,14 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 		anim->animation_elt = elt;
 		anim->target = parent;
 		anim->anim_parent = parent;
+	} else if (tag == TAG_SVG_video || tag == TAG_SVG_audio || tag == TAG_SVG_animation) {
+		/* warning: we use the DeferedAnimation structure for some timing nodes which are not 
+		   animations, but we put the parse stage at 1 (timing) see svg_parse_animation. */
+		GF_SAFEALLOC(anim, sizeof(DeferedAnimation));
+		/*default anim target is parent node*/
+		anim->animation_elt = elt;
+		anim->anim_parent = parent;
+		anim->resolve_stage = 1;
 	}
 
 	/*parse all att*/

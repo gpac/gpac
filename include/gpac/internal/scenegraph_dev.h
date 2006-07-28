@@ -289,6 +289,7 @@ void gf_svg_init_core(SVGElement *p);
 
 Bool gf_sg_svg_node_changed(GF_Node *node, GF_FieldInfo *field);
 void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field);
+Bool gf_smil_timing_is_active(GF_Node *node);
 
 GF_Err gf_svg_get_attribute_info(GF_Node *node, GF_FieldInfo *info);
 u32 gf_svg_get_attribute_count(GF_Node *);
@@ -358,6 +359,10 @@ typedef struct _smil_timing_rti
 	GF_List *intervals;
 	s32	current_interval_index;
 	SMIL_Interval *current_interval;
+
+	/* evaluation of timing attributes and activation of the timed element may be postponed in some cases
+	   for instance, animation elements are activated when traversing the tree, but audio elements are not traversed.*/
+	Bool postpone;
 
 	void (*evaluate)(struct _smil_timing_rti *rti, Fixed normalized_simple_time);
 
@@ -439,6 +444,9 @@ void gf_smil_anim_delete_animations(SVGElement *e);
 
 void gf_svg_init_lsr_conditional(SVGCommandBuffer *script);
 void gf_svg_reset_lsr_conditional(SVGCommandBuffer *script);
+
+void gf_sg_handle_dom_event(void *hdl, GF_DOM_Event *event);
+void gf_smil_setup_events(GF_Node *node);
 
 #endif
 
