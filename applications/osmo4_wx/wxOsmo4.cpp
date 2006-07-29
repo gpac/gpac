@@ -474,7 +474,7 @@ static void wxOsmo4_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_l
 		vfprintf(osmo->m_logs, fmt, list);
 		fflush(osmo->m_logs);
 	} else {
-		::wxVLogMessage(fmt, list);
+		::wxVLogMessage(wxString(fmt, wxConvUTF8), list);
 	}
 }
 

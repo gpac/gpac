@@ -765,7 +765,7 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 	else {
 		char *tmp2;
 		v->type = GF_SMIL_TIME_EVENT;
-		if (tmp = strchr(d, '.')) {
+		if ((tmp = strchr(d, '.'))) {
 			tmp[0] = 0;
 			v->element_id = strdup(d);
 			tmp[0] = '.';
@@ -773,7 +773,7 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 		} else {
 			tmp = d;
 		}
-		if (tmp2 = strchr(tmp, '(')) {
+		if ((tmp2 = strchr(tmp, '('))) {
 			tmp2[0] = 0;
 			v->event.type = gf_dom_event_type_by_name(tmp);
 			tmp2[0] = '(';
@@ -4985,3 +4985,4 @@ void gf_svg_attributes_copy_computed_value(GF_FieldInfo *computed_field_info,
 		gf_svg_attributes_copy(computed_field_info, specified_field_info, 0);
 	}
 }
+

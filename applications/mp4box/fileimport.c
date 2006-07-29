@@ -1157,8 +1157,8 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 		}
 		e = gf_sm_encode_to_file(ctx, mp4, opts);
 		if (logs) {
-			gf_log_set_tools(gf_log_tools);
-			gf_log_set_level(gf_log_level);
+			gf_log_set_tools(prev_tools);
+			gf_log_set_level(prev_level);
 			gf_log_set_callback(NULL, prev_logs);
 		}
 	}

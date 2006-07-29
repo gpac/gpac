@@ -152,8 +152,8 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 	if (!e) e = gf_sm_load_run(&load);
 	gf_sm_load_done(&load);
 	if (logs) {
-		gf_log_set_tools(gf_log_tools);
-		gf_log_set_level(gf_log_level);
+		gf_log_set_tools(prev_tools);
+		gf_log_set_level(prev_level);
 		gf_log_set_callback(NULL, prev_logs);
 		fclose(logs);
 	}

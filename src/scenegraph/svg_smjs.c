@@ -233,7 +233,7 @@ static JSFunctionSpec globalClassFuncs[] = {
 	{0}
 };
 
-void gf_sg_handle_dom_event(void *hdl, GF_DOM_Event *event);
+void gf_sg_handle_dom_event(struct _tagSVGhandlerElement *hdl, GF_DOM_Event *event);
 
 /*eventListeners routines used by document, element anbd connection interfaces*/
 static JSBool udom_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)

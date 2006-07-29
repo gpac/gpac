@@ -2322,7 +2322,6 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dic
 
 static void nhml_on_progress(void *cbk, u32 done, u32 tot)
 {
-	GF_MediaImporter *import = cbk;
 	gf_set_progress("NHML Loading", done, tot);
 }
 

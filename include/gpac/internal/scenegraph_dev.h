@@ -445,7 +445,7 @@ void gf_smil_anim_delete_animations(SVGElement *e);
 void gf_svg_init_lsr_conditional(SVGCommandBuffer *script);
 void gf_svg_reset_lsr_conditional(SVGCommandBuffer *script);
 
-void gf_sg_handle_dom_event(void *hdl, GF_DOM_Event *event);
+void gf_sg_handle_dom_event(struct _tagSVGhandlerElement *hdl, GF_DOM_Event *event);
 void gf_smil_setup_events(GF_Node *node);
 
 #endif

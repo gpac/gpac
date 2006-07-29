@@ -764,7 +764,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	  attribs[i++] = None;
 	  xWindow->glx_visualinfo = glXChooseVisual(xWindow->display, xWindow->screennum, attribs);
 	  if (!xWindow->glx_visualinfo) {
-		  GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Error selecting GL display\n");
+		  GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Error selecting GL display\n"));
 	  }
 	}
 #endif

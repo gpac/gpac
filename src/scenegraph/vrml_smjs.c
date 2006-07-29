@@ -517,10 +517,12 @@ void Script_FieldChanged(JSContext *c, GF_Node *parent, GF_JSField *parent_owner
 			gf_node_changed(parent, field);
 			return;
 		}
-		gf_sg_proto_check_field_change(parent, field->fieldIndex);
 		/*field has changed, set routes...*/
-		gf_node_event_out(parent, field->fieldIndex);
-		gf_node_changed(parent, field);
+  if (parent->sgprivate->tag == TAG_ProtoNode)gf_sg_proto_check_field_change(parent, field->fieldIndex);
+  else {
+ 		gf_node_event_out(parent, field->fieldIndex);
+	 	gf_node_changed(parent, field);
+	 }
 		return;
 	}
 	/*otherwise mark field if eventOut*/
@@ -1825,7 +1827,6 @@ JSBool array_setElement(JSContext *c, JSObject *obj, jsval id, jsval *rval)
 	JSString *str;
 	char *str_val;
 	void *sf_slot;
-	Bool val_changed = 1;
 	GF_JSField *ptr = (GF_JSField *) JS_GetPrivate(c, obj);
 	ind = JSVAL_TO_INT(id);
 

@@ -521,7 +521,6 @@ static void gf_smil_anim_restore(SMIL_Timing_RTI *rti, Fixed normalized_simple_t
 void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_props)
 {
 	u32 count_all, i;
-	SVGElement *elt = (SVGElement*)node;
 
 	/*TODO FIXME - THIS IS WRONG, we're changing orders of animations which may corrupt the visual result*/
 	/* Perform all the animations on this node */

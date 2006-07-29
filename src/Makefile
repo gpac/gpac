@@ -33,7 +33,7 @@ LIBGPAC_ODF=odf/desc_private.o odf/descriptors.o odf/ipmpx_code.o odf/ipmpx_dump
 LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegraph/commands.o scenegraph/mpeg4_nodes.o scenegraph/mpeg4_valuator.o scenegraph/vrml_interpolators.o scenegraph/vrml_proto.o scenegraph/vrml_route.o scenegraph/vrml_script.o scenegraph/vrml_smjs.o scenegraph/vrml_tools.o scenegraph/x3d_nodes.o 
 
 ifeq ($(DISABLE_SVG), no)
-LIBGPAC_SCENE+=scenegraph/svg_attributes.o scenegraph/svg_nodes.o scenegraph/svg_tools.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o
+LIBGPAC_SCENE+=scenegraph/svg_attributes.o scenegraph/svg_nodes.o scenegraph/svg_tools.o scenegraph/svg_types.o scenegraph/svg_smjs.o scenegraph/smil_anim.o scenegraph/smil_timing.o scenegraph/svg_properties.o scenegraph/dom_events.o
 endif
 
 
