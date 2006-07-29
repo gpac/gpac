@@ -133,7 +133,7 @@ NPError NS_PluginGetValue(NPPVariable aVariable, void *aValue)
 		*((char **)aValue) = "Osmozilla";
 		break;
 	case NPPVpluginDescriptionString:
-		*((char **)aValue) = "GPAC Plugin for Mozilla. For more information go to <a href=\"http://gpac.sourceforge.net\">GPAC website</a>";
+		*((char **)aValue) = "GPAC Plugin " GPAC_VERSION " for Mozilla. For more information go to <a href=\"http://gpac.sourceforge.net\">GPAC website</a>";
 		break;
 	default:
 		err = NPERR_INVALID_PARAM;
@@ -451,8 +451,6 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 	if (! m_term) return NPERR_GENERIC_ERROR;
 
 	mInitialized = TRUE;
-
-	SetFocus((HWND)m_user.os_window_handler);
 	
 	/*stream not ready*/
 	if (!m_szURL) return TRUE;
@@ -546,7 +544,6 @@ NPError nsOsmozillaInstance::NewStream(NPMIMEType type, NPStream * stream,
 	ReloadTerminal();
 	/*connect from 0 and pause if not autoplay*/
 	gf_term_connect_from_time(m_term, m_szURL, 0, m_bAutoStart ? 0 : 1);
-	SetFocus((HWND)m_user.os_window_handler);
 
 	/*we handle data fetching ourselves*/
     *stype = NP_SEEK;
