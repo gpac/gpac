@@ -167,6 +167,7 @@ CMainFrame::CMainFrame()
 	m_last_prog = -1;
 	m_timer_on = 0;
 	m_show_rti = 0;
+	nb_viewpoints = 0;
 }
 
 CMainFrame::~CMainFrame()
@@ -530,6 +531,7 @@ LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 	app->m_reconnect_time = 0;
 	app->start_mode = 0;
 	app->UpdatePlayButton();
+	nb_viewpoints = 0;
 	return 1;	
 }
 

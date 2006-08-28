@@ -1665,7 +1665,7 @@ void drawable_do_collide(GF_Node *node, RenderEffect3D *eff)
 			eff->camera->collide_point = collide_pt;
 
 #ifndef GPAC_DISABLE_LOG
-			if ((gf_log_level >= GF_LOG_DEBUG) && (gf_log_tools & GF_LOG_RENDER)) { 				
+			if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_RENDER)) { 				
 				gf_vec_diff(v1, pos, collide_pt);
 				gf_vec_norm(&v1);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 3D] Collision: found at %g %g %g (WC) - dist (%g) - local normal %g %g %g\n", 

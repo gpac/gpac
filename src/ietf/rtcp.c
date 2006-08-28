@@ -114,7 +114,7 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size)
 			rtcp_hdr.Length -= 5;
 
 #ifndef GPAC_DISABLE_LOG
-			if ((gf_log_level >= (GF_LOG_DEBUG)) && (gf_log_tools & (GF_LOG_RTP)))  {
+			if ((gf_log_get_level() >= (GF_LOG_DEBUG)) && (gf_log_get_tools() & (GF_LOG_RTP)))  {
 #ifndef _WIN32_WCE
 				time_t gtime = ch->last_SR_NTP_sec - GF_NTP_SEC_1900_TO_1970;
 				const char *ascTime = asctime(gmtime(&gtime));
@@ -344,7 +344,7 @@ static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 
 
 #ifndef GPAC_DISABLE_LOG
-	if ((gf_log_level >= (GF_LOG_DEBUG)) && (gf_log_tools & (GF_LOG_RTP)))  {
+	if ((gf_log_get_level() >= (GF_LOG_DEBUG)) && (gf_log_get_tools() & (GF_LOG_RTP)))  {
 #ifndef _WIN32_WCE
 		time_t gtime = ch->last_SR_NTP_sec - GF_NTP_SEC_1900_TO_1970;
 		const char *ascTime = asctime(gmtime(&gtime));

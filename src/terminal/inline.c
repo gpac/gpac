@@ -1344,6 +1344,7 @@ void gf_is_restart_dynamic(GF_InlineScene *is, u64 from_time)
 	GF_List *to_restart;
 	GF_ObjectManager *odm;
 
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[InlineScene] Restarting from "LLD"\n", from_time));
 	to_restart = gf_list_new();
 	i=0;
 	while ((odm = gf_list_enum(is->ODlist, &i))) {

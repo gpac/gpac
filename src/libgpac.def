@@ -16,13 +16,13 @@ EXPORTS
 	gf_rand
 	gf_get_user_name
 	gf_enum_directory
+	gf_log_get_tools
+	gf_log_get_level
 	gf_log_set_level
 	gf_log_set_tools
 	gf_log_set_callback
 	gf_log
 	gf_log_lt
-	gf_log_tools
-	gf_log_level
 	gf_set_progress
 	gf_set_progress_callback
 	gf_temp_file_new

@@ -883,7 +883,7 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 				} else if (sscanf(szTS, "%d:%d:%d:%d", &h, &m, &s, &ms) == 4) {
 					ts = (h*3600 + m*60+s)*1000+ms;
 				} else if (sscanf(szTS, "%d:%d:%d", &h, &m, &s) == 3) {
-					ts = (h*3600 + m*60+s);
+					ts = (h*3600 + m*60+s) * 1000;
 				}
 			}
 		} 
@@ -922,7 +922,7 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 				} else if (sscanf(str, "%d:%d:%d:%d", &h, &m, &s, &ms) == 4) {
 					ts = (h*3600 + m*60+s)*1000+ms;
 				} else if (sscanf(str, "%d:%d:%d", &h, &m, &s) == 3) {
-					ts = (h*3600 + m*60+s);
+					ts = (h*3600 + m*60+s) * 1000;
 				}
 			}
 			if (state==2) {

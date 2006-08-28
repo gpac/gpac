@@ -380,7 +380,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 	ch->last_pck_sn = CurrSeq;
 
 #ifndef GPAC_DISABLE_LOG
-	if ((gf_log_level >= (GF_LOG_DEBUG)) && (gf_log_tools & (GF_LOG_RTP)))  {
+	if ((gf_log_get_level() >= (GF_LOG_DEBUG)) && (gf_log_get_tools() & (GF_LOG_RTP)))  {
 		ch->total_pck++;
 		ch->total_bytes += pck_size-12;
 

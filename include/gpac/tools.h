@@ -360,9 +360,10 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk);
 
 /*this is all a bit ugly, but most compilers don't properly handle variadic macros...*/
 void gf_log(const char *fmt, ...);
-extern u32 gf_log_level;
-extern u32 gf_log_tools;
 void gf_log_lt(u32 ll, u32 lt);
+
+u32 gf_log_get_level();
+u32 gf_log_get_tools();
 
 #ifdef GPAC_DISABLE_LOG
 #define GF_LOG(_ll, _lm, __args) 
@@ -373,7 +374,7 @@ void gf_log_lt(u32 ll, u32 lt);
  *
  *	Macro for logging messages. Usage is GF_LOG(log_lev, log_module, (fmt, ...)). The log function is only called if log filtering allows it. This avoids fetching logged parameters when the tool is not being logged.
 */
-#define GF_LOG(_log_level, _log_tools, __args) if ((gf_log_level >= (_log_level)) && (gf_log_tools & (_log_tools))) { gf_log_lt(_log_level, _log_tools); gf_log __args ;}
+#define GF_LOG(_log_level, _log_tools, __args) if ((gf_log_get_level() >= (_log_level)) && (gf_log_get_tools() & (_log_tools))) { gf_log_lt(_log_level, _log_tools); gf_log __args ;}
 #endif
 
 

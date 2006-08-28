@@ -92,7 +92,7 @@ typedef struct {
 static GF_Err svg_report(GF_SVGParser *parser, GF_Err e, char *format, ...)
 {
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_level && (gf_log_tools & GF_LOG_PARSER)) {
+	if (gf_log_get_level() && (gf_log_get_tools() & GF_LOG_PARSER)) {
 		char szMsg[2048];
 		va_list args;
 		va_start(args, format);

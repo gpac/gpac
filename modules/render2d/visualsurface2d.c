@@ -464,7 +464,7 @@ Bool VS2D_TerminateDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	}
 
 #ifndef GPAC_DISABLE_LOG
-	if ((gf_log_level >= GF_LOG_DEBUG) && (gf_log_tools & GF_LOG_RENDER)) {
+	if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_RENDER)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Render 2D] Redraw %d / %d nodes (all: %s)", num_changed, surf->num_contexts, redraw_all ? "yes" : "no"));
 		if (surf->to_redraw.count>1) GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("\n"));
 

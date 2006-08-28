@@ -172,12 +172,16 @@ void gf_set_progress_callback(void *_user_cbk, gf_on_progress_cbk _prog_cbk)
 }
 
 
-u32 gf_log_level = 0;
-u32 gf_log_tools = 0;
+u32 global_log_level = 0;
+u32 global_log_tools = 0;
+
 
 #ifndef GPAC_DISABLE_LOG
 u32 call_lev = 0;
 u32 call_tool = 0;
+
+u32 gf_log_get_level() { return global_log_level; }
+u32 gf_log_get_tools() { return global_log_tools; }
 
 void default_log_callback(void *cbck, u32 level, u32 tool, const char* fmt, va_list vlist)
 {
@@ -198,11 +202,11 @@ void gf_log(const char *fmt, ...)
 
 void gf_log_set_level(u32 level)
 {
-	gf_log_level = level;
+	global_log_level = level;
 }
 void gf_log_set_tools(u32 modules)
 {
-	gf_log_tools = modules;
+	global_log_tools = modules;
 }
 void gf_log_lt(u32 ll, u32 lt)
 {
