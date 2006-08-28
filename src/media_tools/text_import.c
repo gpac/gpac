@@ -877,21 +877,45 @@ void ttxt_parse_text_style(GF_MediaImporter *import, GF_XMLNode *n, GF_StyleReco
 	}
 }
 
-char *ttxt_parse_string(GF_MediaImporter *import, char *str)
+char *ttxt_parse_string(GF_MediaImporter *import, char *str, Bool strip_lines)
 {
 	u32 i=0;
 	u32 k=0;
 	u32 len = strlen(str);
 	u32 state = 0;
-	if (str[0]!='\'') return str;
 
+	if (!strip_lines) {
+		for (i=0; i<len; i++) {
+			if ((str[i] == '\r') && (str[i+1] == '\n')) {
+				i++;
+			}
+			str[k] = str[i];
+			k++;
+		}
+		str[k]=0;
+		return str;
+	}
+
+	if (str[0]!='\'') return str;
 	for (i=0; i<len; i++) {
 		if (str[i] == '\'') {
-			if (!state && k) {
-				str[k]='\n';
-				k++;
+
+			if (!state) {
+				if (k) {
+					str[k]='\n';
+					k++;
+				}
+				state = !state;
+			} else if (state) {
+				if ( (i+1==len) || 
+					((str[i+1]==' ') || (str[i+1]=='\n') || (str[i+1]=='\r') || (str[i+1]=='\t') || (str[i+1]=='\'')) 
+				) {
+					state = !state;
+				} else {
+					str[k] = str[i];
+					k++;
+				}
 			}
-			state = !state;
 		} else if (state) {
 			str[k] = str[i];
 			k++;
@@ -1075,7 +1099,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 			GF_ISOSample *s;
 			GF_TextSample * samp;
 			u32 ts, descIndex;
-			
+			Bool has_text = 0;
 			if (!nb_descs) {
 				e = gf_import_message(import, GF_BAD_PARAM, "Invalid Timed Text file - text stream header not found or empty");
 				goto exit;
@@ -1098,18 +1122,28 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 				else if (!strcmp(att->name, "sampleDescriptionIndex")) descIndex = atoi(att->value);
 				else if (!strcmp(att->name, "text")) {
 					u32 len;
-					char *str = ttxt_parse_string(import, att->value);
+					char *str = ttxt_parse_string(import, att->value, 1);
 					len = strlen(str);
 					gf_isom_text_add_text(samp, str, len);
 					last_sample_empty = len ? 0 : 1;
+					has_text = 1;
 				}
 				else if (!strcmp(att->name, "scrollDelay")) gf_isom_text_set_scroll_delay(samp, (u32) (1000*atoi(att->value)));
 				else if (!strcmp(att->name, "highlightColor")) gf_isom_text_set_highlight_color_argb(samp, ttxt_get_color(import, att->value));
 				else if (!strcmp(att->name, "wrap") && !strcmp(att->value, "Automatic")) gf_isom_text_set_wrap(samp, 0x01);
 			}
+
 			/*get all modifiers*/
 			j=0;
 			while ( (ext=gf_list_enum(node->content, &j))) {
+				if (!has_text && (ext->type==GF_XML_TEXT_TYPE)) {
+					u32 len;
+					char *str = ttxt_parse_string(import, ext->name, 0);
+					len = strlen(str);
+					gf_isom_text_add_text(samp, str, len);
+					last_sample_empty = len ? 0 : 1;
+					has_text = 1;
+				}
 				if (ext->type) continue;
 
 				if (!stricmp(ext->name, "Style")) {

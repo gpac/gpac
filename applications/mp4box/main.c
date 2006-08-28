@@ -404,10 +404,10 @@ void PrintSWFUsage()
 			"MP4Box can import simple Macromedia Flash files (\".SWF\")\n"
 			"You can specify a SWF input file with \'-bt\', \'xmt\' and \'-mp4\' options\n"
 			"\n"
-			" -static:             all SWF defines are placed in first scene replace\n"
+			" -global:             all SWF defines are placed in first scene replace\n"
 			"                       * Note: By default SWF defines are sent when needed\n"
 			" -ctrl:               uses a dedicated stream for movie control\n"
-			"                       * Note: Forces \'-static\'\n"
+			"                       * Note: Forces \'-global\'\n"
 			" -no-text:            removes all SWF text\n"
 			" -no-font:            removes all embedded SWF Fonts (terminal fonts used)\n"
 			" -no-line:            removes all lines from SWF shapes\n"
@@ -1073,7 +1073,7 @@ int main(int argc, char **argv)
 
 #ifndef GPAC_READ_ONLY
 		/*SWF importer options*/
-		else if (!stricmp(arg, "-static")) swf_flags |= GF_SM_SWF_STATIC_DICT;
+		else if (!stricmp(arg, "-global")) swf_flags |= GF_SM_SWF_STATIC_DICT;
 		else if (!stricmp(arg, "-ctrl")) swf_flags |= GF_SM_SWF_SPLIT_TIMELINE;
 		else if (!stricmp(arg, "-no-text")) swf_flags |= GF_SM_SWF_NO_TEXT;
 		else if (!stricmp(arg, "-no-font")) swf_flags |= GF_SM_SWF_NO_FONT;
