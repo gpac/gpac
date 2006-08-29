@@ -448,15 +448,15 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 		gf_cfg_set_key(m_user.config, "Rendering", "RendererName", m_bUse3D ? "GPAC 3D Renderer" : "GPAC 2D Renderer");
 	}
 	m_term = gf_term_new(&m_user);
-	if (! m_term) return NPERR_GENERIC_ERROR;
+	if (! m_term) return FALSE;
 
 	mInitialized = TRUE;
 	
 	/*stream not ready*/
-	if (!m_szURL) return TRUE;
+	if (!m_szURL || !m_bAutoStart) return TRUE;
 
 	/*connect from 0 and pause if not autoplay*/
-	gf_term_connect_from_time(m_term, m_szURL, 0, m_bAutoStart ? 0 : 1);
+	gf_term_connect(m_term, m_szURL);
 	return TRUE;
 }
 
@@ -505,9 +505,12 @@ void nsOsmozillaInstance::SetOptions()
 		}
 		else if ((m_szURL[1] == ':') && (m_szURL[2] == '\\')) absolute_url = 1;
 
-		if (!absolute_url) NPN_GetURL(mInstance, m_szURL, NULL);
-		free(m_szURL);
-		m_szURL = NULL;
+		if (!absolute_url) {
+			char *url = m_szURL;
+			m_szURL = NULL;
+			NPN_GetURL(mInstance, url, NULL);
+			free(url);
+		}
 	}
 
 }
@@ -543,7 +546,8 @@ NPError nsOsmozillaInstance::NewStream(NPMIMEType type, NPStream * stream,
 
 	ReloadTerminal();
 	/*connect from 0 and pause if not autoplay*/
-	gf_term_connect_from_time(m_term, m_szURL, 0, m_bAutoStart ? 0 : 1);
+	if (m_bAutoStart)
+		gf_term_connect(m_term, m_szURL);
 
 	/*we handle data fetching ourselves*/
     *stype = NP_SEEK;

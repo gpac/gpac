@@ -263,7 +263,7 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
     ::GetWindowRect(m_hWnd, &rc);
     m_width = rc.right-rc.left;
     m_height = rc.bottom-rc.top;
-	if (m_bAutoPlay && strlen(m_url)) Play();
+	if (m_bAutoStart && strlen(m_url)) Play();
     return 0;
 
 	//Error Processing
@@ -307,7 +307,7 @@ HRESULT CGPAXPlugin::OnDraw(ATL_DRAWINFO& di)
 {
 	if (m_term && m_bInitialDraw) {
 		m_bInitialDraw = FALSE;
-		if (m_bAutoPlay) Play();
+		if (m_bAutoStart) Play();
 	}
     return S_OK;
 }
@@ -322,7 +322,7 @@ STDMETHODIMP CGPAXPlugin::Load(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog)
     ReadParamString(pPropBag,pErrorLog,L"src", m_url, MAXLEN_URL);
 
     if (ReadParamString(pPropBag,pErrorLog,L"autostart", szOpt, 1024))
-		m_bAutoPlay = (!stricmp(szOpt, "false") || !stricmp(szOpt, "no")) ? 0 : 1;
+		m_bAutoStart = (!stricmp(szOpt, "false") || !stricmp(szOpt, "no")) ? 0 : 1;
 
     if (ReadParamString(pPropBag,pErrorLog,L"use3d", szOpt, 1024))
 		m_bUse3D = (!stricmp(szOpt, "true") || !stricmp(szOpt, "yes")) ? 1 : 0;
@@ -393,7 +393,7 @@ STDMETHODIMP CGPAXPlugin::Save(LPPROPERTYBAG pPropBag, BOOL fClearDirty, BOOL fS
     VariantInit(&value);
 
     V_VT(&value) = VT_BOOL;
-    V_BOOL(&value) = m_bAutoPlay ? VARIANT_TRUE : VARIANT_FALSE;
+    V_BOOL(&value) = m_bAutoStart ? VARIANT_TRUE : VARIANT_FALSE;
     pPropBag->Write(OLESTR("AutoStart"), &value);
     VariantClear(&value);
 
@@ -493,12 +493,12 @@ STDMETHODIMP CGPAXPlugin::put_src(BSTR url)
 STDMETHODIMP CGPAXPlugin::get_AutoStart(VARIANT_BOOL *as)
 {
     if (as==NULL) return E_POINTER;
-    *as = m_bAutoPlay ? VARIANT_TRUE: VARIANT_FALSE;
+    *as = m_bAutoStart ? VARIANT_TRUE: VARIANT_FALSE;
     return S_OK;
 }
 STDMETHODIMP CGPAXPlugin::put_AutoStart(VARIANT_BOOL as)
 {
-    m_bAutoPlay = (as !=VARIANT_FALSE) ? TRUE: FALSE;
+    m_bAutoStart = (as !=VARIANT_FALSE) ? TRUE: FALSE;
     return S_OK;
 }
 

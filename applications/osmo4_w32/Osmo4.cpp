@@ -647,6 +647,9 @@ BOOL WinGPAC::InitInstance()
 			pFrame->m_pPlayList->Play();
 		}
 #endif
+
+		sOpt = gf_cfg_get_key(GetApp()->m_user.config, "General", "StartupFile");
+		if (sOpt) gf_term_connect(m_term, sOpt);
 	}
 	pFrame->SetFocus();
 	pFrame->SetForegroundWindow();

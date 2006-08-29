@@ -1147,8 +1147,8 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 		fprintf(stdout, "Error loading file %s\n", gf_error_to_string(e));
 		goto err_exit;
 	} else {
-		u32 prev_level = gf_log_level;
-		u32 prev_tools = gf_log_tools;
+		u32 prev_level = gf_log_get_level();
+		u32 prev_tools = gf_log_get_tools();
 		gf_log_cbk prev_logs = NULL;
 		if (logs) {
 			gf_log_set_tools(GF_LOG_CODING);

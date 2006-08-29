@@ -99,8 +99,8 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 	GF_SceneGraph *sg;
 	GF_SceneLoader load;
 	u32 ftype;
-	u32 prev_level = gf_log_level;
-	u32 prev_tools = gf_log_tools;
+	u32 prev_level = gf_log_get_level();
+	u32 prev_tools = gf_log_get_tools();
 	gf_log_cbk prev_logs = NULL;
 	FILE *logs = NULL;
 	e = GF_OK;

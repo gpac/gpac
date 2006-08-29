@@ -835,7 +835,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 		}
 		samp->DTS += dts_inc;
 		nb_samp++;
-		gf_set_progress("Importing M4V", done_size, tot_size);
+		gf_set_progress("Importing M4V", done_size/1024, tot_size/1024);
 		done_size += samp->dataLength;
 		if (e) break;
 		if (duration && (samp->DTS > duration)) break;
@@ -1762,7 +1762,7 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 		gf_isom_sample_del(&samp);
 
 		last_pos = (u32) mpeg2ps_get_video_pos(ps, streamID);
-		gf_set_progress("Importing MPEG-PS Video", last_pos, file_size);
+		gf_set_progress("Importing MPEG-PS Video", last_pos/1024, file_size/1024);
 
 		if (ftype != 3) {
 			gf_isom_modify_cts_offset(import->dest, track, ref_frame, (frames-ref_frame)*dts_inc);
@@ -1884,7 +1884,7 @@ GF_Err gf_import_mpeg_ps_audio(GF_MediaImporter *import)
 		gf_isom_add_sample(import->dest, track, di, samp);
 		samp->DTS += gf_mp3_window_size(hdr);
 		last_pos = (u32) mpeg2ps_get_audio_pos(ps, streamID);
-		gf_set_progress("Importing MPEG-PS Audio", last_pos, file_size);
+		gf_set_progress("Importing MPEG-PS Audio", last_pos/1024, file_size/1024);
 		frames++;
 		if (duration && (samp->DTS>=duration)) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
@@ -2117,12 +2117,12 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 			}
 		}
 		media_done += samp->dataLength;
-		gf_set_progress("Importing NHNT", (u32) media_done, (u32) media_size);
+		gf_set_progress("Importing NHNT", (u32) (media_done/1024), (u32) (media_size/1024));
 		if (!gf_bs_available(bs)) break;
 		if (duration && (samp->DTS > duration)) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
-	if (media_done!=media_size) gf_set_progress("Importing NHNT", (u32) media_size, (u32) media_size);
+	if (media_done!=media_size) gf_set_progress("Importing NHNT", (u32) (media_size/1024), (u32) (media_size/1024));
 	gf_isom_sample_del(&samp);	
 	MP4T_RecomputeBitRate(import->dest, track);
 
@@ -3576,7 +3576,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 			gf_isom_add_sample(import->dest, track, di, samp);
 			gf_isom_sample_del(&samp);
 			cur_samp++;
-			gf_set_progress("Importing AVC-H264", (u32) nal_start, tot_size);
+			gf_set_progress("Importing AVC-H264", (u32) (nal_start/1024), tot_size/1024);
 			first_nal = 1;
 
 			if (min_poc > last_poc) 
@@ -4099,7 +4099,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 				samp->DTS += dts_inc;
 			}
 
-			gf_set_progress("Importing OGG Video", (u32) done, (u32) tot_size);
+			gf_set_progress("Importing OGG Video", (u32) (done/1024), (u32) (tot_size/1024));
 			done += oggpacket.bytes;
 			if ((duration && (samp->DTS > duration) ) || (import->flags & GF_IMPORT_DO_ABORT)) {
 				go = 0;
@@ -4107,7 +4107,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 			}
 		}
 	}
-	gf_set_progress("Importing OGG Video", (u32) tot_size, (u32) tot_size);
+	gf_set_progress("Importing OGG Video", (u32) (tot_size/1024), (u32) (tot_size/1024));
 
 	if (!serial_no) {
 		gf_import_message(import, GF_OK, "OGG: No supported video found");
@@ -4115,7 +4115,6 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 		MP4T_RecomputeBitRate(import->dest, track);
 
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, 0xFE);
-		gf_set_progress("Importing OGG Video", (u32) tot_size, (u32) tot_size);
 	}
 	
 exit:
@@ -4913,7 +4912,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	while (!feof(mts)) {
 		size = fread(data, 1, 188, mts);
 		done += size;
-		gf_set_progress("Importing MPEG-2 TS", (u32) done, (u32) fsize);
+		gf_set_progress("Importing MPEG-2 TS", (u32) (done/1024), (u32) (fsize/1024));
 		if (size<188) break;
 
 		gf_m2ts_process_data(ts, data, size);
@@ -4944,9 +4943,9 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			gf_m2ts_process_data(ts, data, size);
 			if (import->flags & GF_IMPORT_DO_ABORT) break;
 			done += size;
-			gf_set_progress("Importing MPEG-2 TS", (u32) done, (u32) fsize);
+			gf_set_progress("Importing MPEG-2 TS", (u32) (done/1024), (u32) (fsize/1024));
 		}
-		gf_set_progress("Importing MPEG-2 TS", (u32) fsize, (u32) fsize);
+		gf_set_progress("Importing MPEG-2 TS", (u32) (fsize/1024), (u32) (fsize/1024));
 		MP4T_RecomputeBitRate(import->dest, tsimp.track);
 
 		/* creation of the edit lists */

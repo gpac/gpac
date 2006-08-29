@@ -72,7 +72,7 @@ class ATL_NO_VTABLE CGPAXPlugin :
 public:
     CGPAXPlugin() {
 		m_term = NULL;
-		m_bAutoPlay = TRUE;
+		m_bAutoStart = TRUE;
 		m_bInitialDraw = TRUE;
 		m_bWindowOnly = TRUE;  //to declare that the control is a window control in order
 							   //to inherit the member variable m_hWnd which contains the window handler
@@ -234,7 +234,7 @@ private:
 #endif
 
 	u32 m_width, m_height, m_AR;
-	Bool m_bIsConnected, m_bInitialDraw, m_bAutoPlay, m_bUse3D, m_bLoop;
+	Bool m_bIsConnected, m_bInitialDraw, m_bAutoStart, m_bUse3D, m_bLoop;
 
 };
 

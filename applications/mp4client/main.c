@@ -919,6 +919,11 @@ int main (int argc, char **argv)
 		}
 	} else {
 		fprintf(stdout, "Hit 'h' for help\n\n");
+		str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
+		if (str) {
+			strcpy(the_url, "MP4Client "GPAC_VERSION);
+			gf_term_connect(term, str);
+		}
 	}
 
 
