@@ -79,6 +79,9 @@ endif
 	install -m 644 doc/man/mp4box.1 $(mandir)/man1/
 	install -m 644 doc/man/mp4client.1 $(mandir)/man1/
 	install -m 644 doc/man/gpac.1 $(mandir)/man1/
+	install -d "$(prefix)/share"
+	install -d "$(prefix)/share/gpac"
+	install -m 644 bin/gpac.mp4 $(prefix)/share/gpac/
 
 uninstall:
 	$(MAKE) -C applications uninstall
@@ -89,6 +92,7 @@ uninstall:
 	rm -rf $(mandir)/man1/mp4box.1
 	rm -rf $(mandir)/man1/mp4client.1
 	rm -rf $(mandir)/man1/gpac.1
+	rm -rf $(prefix)/share/gpac
 
 install-lib:
 	mkdir -p "$(prefix)/include/gpac"

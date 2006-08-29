@@ -105,6 +105,7 @@ public:
 	/*filter progress events to avoid killing importers with status bar text display...*/
 	s32 m_last_prog;
 	Bool m_show_rti;
+	Bool m_bStartupFile;
 
 public:
 	void SetFullscreen();

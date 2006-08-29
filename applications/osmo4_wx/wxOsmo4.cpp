@@ -679,17 +679,23 @@ Bool wxOsmo4Frame::LoadTerminal()
 		}
 
 #ifdef WIN32
+		unsigned char str_path[MAX_PATH];
 		sOpt = gf_cfg_get_key(m_user.config, "Rendering", "Raster2D");
 		if (!sOpt) gf_cfg_set_key(m_user.config, "Rendering", "Raster2D", "gdip_rend");
 		sOpt = gf_cfg_get_key(m_user.config, "General", "CacheDirectory");
 		if (!sOpt) {
-			unsigned char str_path[MAX_PATH];
 			sprintf((char *) str_path, "%scache", abs_gpac_path.mb_str(wxConvUTF8));
 			gf_cfg_set_key(m_user.config, "General", "CacheDirectory", (const char *) str_path);
 		}
 		/*by default use GDIplus, much faster than freetype on font loading*/
 		gf_cfg_set_key(m_user.config, "FontEngine", "DriverName", "gdip_rend");
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "DirectX Video Output");
+
+		sOpt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
+		if (!sOpt) {
+			sprintf((char *) str_path, "%sgpac.mp4", abs_gpac_path.mb_str(wxConvUTF8));
+			gf_cfg_set_key(m_user.config, "General", "StartupFile", (const char *) str_path);
+		}
 #else
 		wxDirDialog dlg3(NULL, wxT("Please specify a cache directory for GPAC"));
 		dlg3.SetPath(wxT("/tmp"));
@@ -708,6 +714,22 @@ Bool wxOsmo4Frame::LoadTerminal()
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "X11 Video Output");
 		gf_cfg_set_key(m_user.config, "Render2D", "ScalableZoom", "yes");
 #endif
+
+		sOpt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
+		if (!sOpt) {
+			FILE *test;
+			test = fopen("/usr/local/share/gpac/gpac.mp4", "rb");
+			if (test) {
+				gf_cfg_set_key(m_user.config, "General", "StartupFile", "/usr/local/share/gpac/gpac.mp4");
+				fclose(test);
+			} else {
+				test = fopen("/usr/share/gpac/gpac.mp4", "rb");
+				if (test) {
+					gf_cfg_set_key(m_user.config, "General", "StartupFile", "/usr/share/gpac/gpac.mp4");
+					fclose(test);
+				}
+			}
+		}
 
 #endif
 	}	
@@ -759,6 +781,7 @@ wxDEFAULT_FRAME_STYLE
 	m_chapters_start = NULL;
 	m_bViewRTI = 0;
 	m_logs = NULL;
+	m_bStartupFile = 0;
 	gf_set_progress_callback(this, wxOsmo4_progress_cbk);
 
 	myDropfiles *droptarget = new myDropfiles();
@@ -987,10 +1010,17 @@ wxDEFAULT_FRAME_STYLE
 			if (m_pPlayList->m_cur_entry>=(s32)gf_list_count(m_pPlayList->m_entries))
 				m_pPlayList->m_cur_entry = -1;
 		}
+
+		sOpt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
+		if (sOpt) {
+			gf_term_connect(m_term, sOpt);
+			m_bStartupFile = 1;
+		}
 	}
 
 	sOpt = gf_cfg_get_key(m_user.config, "Audio", "DriverName");
-        if (!strcmp(sOpt, "No Audio Output Available")) {
+
+	if (!strcmp(sOpt, "No Audio Output Available")) {
 	  ::wxLogMessage(wxT("WARNING: no audio output availble - make sure no other program is locking the sound card"));
 	  SetStatus(wxT("No audio ouput available"));
 
@@ -1328,6 +1358,7 @@ void wxOsmo4Frame::DoConnect()
 	wxString txt = wxT("Osmo4 - ");
 	txt += m_pPlayList->GetDisplayName();
 	SetTitle(txt);
+	m_bStartupFile = 0;
 	gf_term_connect(m_term, url.mb_str(wxConvUTF8));
 }
 
@@ -1806,7 +1837,7 @@ void wxOsmo4Frame::OnSlide(wxScrollEvent &event)
 
 void wxOsmo4Frame::ReloadTerminal()
 {
-	Bool reconnect = m_connected;
+	Bool reconnect = (m_connected && !m_bStartupFile) ? 1 : 0;
 	::wxLogMessage(wxT("Reloading GPAC Terminal"));
 
 	u32 reconnect_time = 0;
@@ -1829,6 +1860,8 @@ void wxOsmo4Frame::ReloadTerminal()
 		} else {
 			gf_term_connect(m_term, m_pPlayList->GetURL().mb_str(wxConvUTF8));
 		}
+	} else if (m_bStartupFile) {
+		gf_term_connect(m_term, gf_cfg_get_key(m_user.config, "General", "StartupFile") );
 	}
 	::wxLogMessage(wxT("GPAC Terminal reloaded"));
 

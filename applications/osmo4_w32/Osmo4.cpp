@@ -472,6 +472,7 @@ BOOL WinGPAC::InitInstance()
 		/*inital launch*/
 		m_user.modules = gf_modules_new((const unsigned char *) szAppPath, m_user.config);
 		if (m_user.modules) {
+			unsigned char str_path[MAX_PATH];
 			gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) szAppPath);
 
 			sOpt = gf_cfg_get_key(m_user.config, "Rendering", "Raster2D");
@@ -479,7 +480,6 @@ BOOL WinGPAC::InitInstance()
 
 			sOpt = gf_cfg_get_key(m_user.config, "General", "CacheDirectory");
 			if (!sOpt) {
-				unsigned char str_path[MAX_PATH];
 				sprintf((char *) str_path, "%scache", szAppPath);
 				gf_cfg_set_key(m_user.config, "General", "CacheDirectory", (const char *) str_path);
 			}
@@ -499,6 +499,9 @@ BOOL WinGPAC::InitInstance()
 					gf_modules_close_interface((GF_BaseInterface *)ifce);
 				}
 			}
+
+			sprintf((char *) str_path, "%sgpac.mp4", szAppPath);
+			gf_cfg_set_key(m_user.config, "General", "StartupFile", (const char *) str_path);
 		}
 
 		/*check audio config on windows, force config*/
@@ -674,8 +677,8 @@ int WinGPAC::ExitInstance()
 
 void WinGPAC::ReloadTerminal()
 {
-	Bool reconnect = m_isopen;
 	CMainFrame *pFrame = (CMainFrame *) m_pMainWnd;
+	Bool reconnect = (m_isopen && pFrame->m_bStartupFile) ? 1 : 0;
 	pFrame->console_err = GF_OK;
 	pFrame->console_message = "Reloading GPAC Terminal";
 	m_pMainWnd->PostMessage(WM_CONSOLEMSG, 0, 0);
@@ -694,6 +697,10 @@ void WinGPAC::ReloadTerminal()
 	m_pMainWnd->PostMessage(WM_CONSOLEMSG, 0, 0);
 	UpdateRenderSwitch();
 	if (reconnect) m_pMainWnd->PostMessage(WM_OPENURL);
+	else {
+		const char *sOpt = gf_cfg_get_key(GetApp()->m_user.config, "General", "StartupFile");
+		if (sOpt) gf_term_connect(m_term, sOpt);
+	}
 }
 
 
