@@ -68,7 +68,6 @@ void V4SceneManager::LoadFileOld(const char *path)
 		memset(&load, 0, sizeof(GF_SceneLoader));
 		load.fileName = path;
 		load.ctx = m_pSm;
-		load.cbk = this;
 		if (strstr(path, ".mp4") || strstr(path, ".MP4") ) load.isom = gf_isom_open(path, GF_ISOM_OPEN_READ, NULL);
 		gf_sm_load_init(&load);
 		gf_sm_load_run(&load);
@@ -128,7 +127,6 @@ void V4SceneManager::LoadFile(const char *path)
 	memset(&load, 0, sizeof(GF_SceneLoader));
 	load.fileName = path;
 	load.ctx = m_pSm;
-	load.cbk = this;
 	if (strstr(path, ".mp4") || strstr(path, ".MP4") ) load.isom = gf_isom_open(path, GF_ISOM_OPEN_READ, NULL);
 	gf_sm_load_init(&load);
 	gf_sm_load_run(&load);
@@ -174,7 +172,6 @@ void V4SceneManager::SaveFile(const char *path)
 	GF_ISOFile *mp4 = gf_isom_open(path, GF_ISOM_WRITE_EDIT, NULL);
 	m_pSm->max_node_id = gf_sg_get_max_node_id(m_pSm->scene_graph);
 	memset(&opts, 0, sizeof(opts));
-	opts.logFile = "c:\\log.txt";
 	opts.flags = GF_SM_LOAD_MPEG4_STRICT;
 	gf_sm_encode_to_file(m_pSm, mp4, &opts);
 	gf_isom_close(mp4);

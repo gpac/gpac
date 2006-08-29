@@ -162,6 +162,7 @@ CMainFrame::CMainFrame()
 	m_pPlayList = NULL;
 	m_pWndView = new CChildView();
 	m_bInitShow = TRUE;
+	m_bStartupFile = TRUE;
 	m_num_chapters = 0;
 	m_chapters_start = NULL;
 	m_last_prog = -1;
@@ -518,6 +519,7 @@ LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 	Bool do_pause;
 	WinGPAC *app = GetApp();
 	CString txt, url;
+	m_bStartupFile = FALSE;
 	txt = "Osmo4 - ";
 	txt += m_pPlayList->GetDisplayName();
 

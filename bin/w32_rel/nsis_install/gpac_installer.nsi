@@ -5,7 +5,7 @@ WindowIcon on
 Icon "..\Osmo4.ico"
 UninstallIcon "..\Osmo4.ico"
 
-!define GPAC_VERSION	0.4.3 
+!define GPAC_VERSION	0.4.3-DEV 
 
 Name "GPAC Framework ${GPAC_VERSION}"
 OutFile "GPAC Framework ${GPAC_VERSION} Setup.exe"
@@ -77,6 +77,7 @@ Section "Osmo4/GPAC Player"
   File /oname=License.txt "..\..\..\COPYING"
   File /oname=Changelog.txt "..\..\..\Changelog"
   File "..\..\..\doc\configuration.html"
+  File "..\..\..\doc\gpac.mp4"
 
   File "..\Osmo4.exe"
   File "..\Osmo4.ico"

@@ -709,7 +709,7 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	Render2D *sr = (Render2D *)vr->user_priv;
 	GF_Node *top_node = gf_sg_get_root_node(sr->compositor->scene);
 
-	if (!top_node) return;
+	if (!top_node || !sr->out_width) return;
 
 	if (!sr->main_surface_setup) {
 		sr->use_dom_events = 0;
@@ -782,6 +782,7 @@ static GF_Err R2D_RecomputeAR(GF_VisualRenderer *vr)
 	sr->out_width = sr->compositor->width;
 	sr->out_height = sr->compositor->height;
 	sr->cur_width = sr->compositor->scene_width;
+	assert(sr->cur_width );
 	sr->cur_height = sr->compositor->scene_height;
 	sr->out_x = 0;
 	sr->out_y = 0;

@@ -372,7 +372,7 @@ private:
 
 	u32 m_num_chapters;
 	Double *m_chapters_start;
-	Bool m_bExternalView, m_bViewRTI;
+	Bool m_bExternalView, m_bViewRTI, m_bStartupFile;
 
 	void ShowViewWindow(Bool do_show);
 };

@@ -52,6 +52,7 @@ u8 get_a_char();
 void set_echo_off(Bool echo_off);
 
 Bool is_connected = 0;
+Bool startup_file = 0;
 GF_Terminal *term;
 u64 Duration;
 GF_Err last_error = GF_OK;
@@ -923,6 +924,7 @@ int main (int argc, char **argv)
 		if (str) {
 			strcpy(the_url, "MP4Client "GPAC_VERSION);
 			gf_term_connect(term, str);
+			startup_file = 1;
 		}
 	}
 
@@ -943,6 +945,7 @@ int main (int argc, char **argv)
 			Run = 0;
 			break;
 		case 'o':
+			startup_file = 0;
 			gf_term_disconnect(term);
 			fprintf(stdout, "Enter the absolute URL\n");
 			scanf("%s", the_url);
@@ -985,7 +988,7 @@ int main (int argc, char **argv)
 		case 'r':
 			if (is_connected) {
 				gf_term_disconnect(term);
-				gf_term_connect(term, the_url);
+				gf_term_connect(term, startup_file ? gf_cfg_get_key(cfg_file, "General", "StartupFile") : the_url);
 			}
 			break;
 		
@@ -1098,7 +1101,7 @@ int main (int argc, char **argv)
 		case '3':
 		{
 			u32 now = gf_term_get_time_in_ms(term);
-			Bool reconnect = is_connected;
+			Bool reconnect = (is_connected && !startup_file) ? 1 : 0;
 			str = gf_cfg_get_key(cfg_file, "Rendering", "RendererName");
 			if (strstr(str, "2D") && (c=='2')) { fprintf(stdout, "Already using 2D Renderer\n"); break; }
 			if (strstr(str, "3D") && (c=='3')) { fprintf(stdout, "Already using 3D Renderer\n"); break; }
@@ -1111,6 +1114,9 @@ int main (int argc, char **argv)
 			}
 			fprintf(stdout, "Using %s\n", gf_cfg_get_key(cfg_file, "Rendering", "RendererName"));
 			if (reconnect) gf_term_connect_from_time(term, the_url, now, 0);
+			else if (startup_file) {
+				gf_term_connect(term, gf_cfg_get_key(cfg_file, "General", "StartupFile"));
+			}
 		}
 			break;
 		case 'k':
