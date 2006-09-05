@@ -351,6 +351,7 @@ static void RenderLayer3D(GF_Node *node, void *rs)
 
 	/*compute viewport in surface coordinate*/
 	rc = st->clip;
+	gf_mx_apply_rect(&prev_cam->modelview, &rc);
 	gf_mx_apply_rect(&eff->model_matrix, &rc);
 	if (eff->surface->render->surface==eff->surface) {
 		gf_mx_init(model_backup);
@@ -367,10 +368,10 @@ static void RenderLayer3D(GF_Node *node, void *rs)
 	st->cam.vp.x += sw/2;
 	st->cam.vp.y -= st->cam.vp.height;
 	st->cam.vp.y += sh/2;
-	if (st->cam.vp.x<0) { st->cam.vp.width += st->cam.vp.x; st->cam.vp.x = 0; }
-	if (st->cam.vp.y<0) { st->cam.vp.height += st->cam.vp.y; st->cam.vp.y = 0; }
-	if (st->cam.vp.width>sw) st->cam.vp.width = sw;
-	if (st->cam.vp.height>sh) st->cam.vp.height = sh;
+//	if (st->cam.vp.x<0) { st->cam.vp.width += st->cam.vp.x; st->cam.vp.x = 0; }
+//	if (st->cam.vp.y<0) { st->cam.vp.height += st->cam.vp.y; st->cam.vp.y = 0; }
+//	if (st->cam.vp.width>sw) st->cam.vp.width = sw;
+//	if (st->cam.vp.height>sh) st->cam.vp.height = sh;
 
 	eff->camera->width = eff->camera->vp.width;
 	eff->camera->height = eff->camera->vp.height;

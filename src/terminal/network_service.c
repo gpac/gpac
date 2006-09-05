@@ -302,7 +302,6 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		if (com->buffer.occupancy==(u32) -1) com->buffer.occupancy = 0;
 		return;
 	}
-
 	if (!com->base.on_channel) return;
 
 	ch = gf_term_get_channel(service, com->base.on_channel);
@@ -652,6 +651,10 @@ void NM_DeleteService(GF_ClientService *ns)
 	free(ns);
 }
 
+GF_InputService *gf_term_get_service_interface(GF_ClientService *serv)
+{
+	return serv ? serv->ifce : NULL;
+}
 
 GF_DownloadSession * gf_term_download_new(GF_ClientService *service, const char *url, u32 flags, void (*OnData)(void *cbk, char *data, u32 data_size, u32 state, GF_Err error), void *cbk)
 {

@@ -1146,9 +1146,11 @@ void gf_is_regenerate(GF_InlineScene *is)
 	first_odm = NULL;
 	i=0;
 	while ((odm = gf_list_enum(is->ODlist, &i))) {
+		while (odm->remote_OD) odm = odm->remote_OD;
 		if (!odm->codec || (odm->codec->type!=GF_STREAM_VISUAL)) continue;
+		while (odm->parent_OD) odm = odm->parent_OD;
 
-		if (is_odm_url(&is->audio_url, odm)) {
+		if (is_odm_url(&is->visual_url, odm)) {
 			gf_sg_vrml_mf_append(&mt->url, GF_SG_VRML_MFURL, (void **) &sfu);
 			sfu->OD_ID = is->visual_url.OD_ID;
 			if (is->visual_url.url) sfu->url = strdup(is->visual_url.url);
@@ -1160,7 +1162,8 @@ void gf_is_regenerate(GF_InlineScene *is)
 			nb_obj++;
 			break;
 		}
-		if (!first_odm) first_odm = odm;
+		if (!first_odm)
+			first_odm = odm;
 	}
 	if (first_odm) {
 		if (is->visual_url.url) free(is->visual_url.url);
@@ -1170,6 +1173,8 @@ void gf_is_regenerate(GF_InlineScene *is)
 		gf_sg_vrml_mf_append(&mt->url, GF_SG_VRML_MFURL, (void **) &sfu);
 		sfu->OD_ID = is->visual_url.OD_ID;
 		if (is->visual_url.url) sfu->url = strdup(is->visual_url.url);
+	
+		while (first_odm->remote_OD) first_odm = first_odm->remote_OD;
 		if (first_odm->mo) {
 			gf_is_get_video_size(first_odm->mo, &w, &h);
 			gf_sg_set_scene_size_info(is->graph, w, h, 1);

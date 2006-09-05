@@ -3482,9 +3482,18 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 dat
 		*info = (GF_ListItemBox *)gf_isom_box_new(btype);
 		if (*info == NULL) return GF_OUT_OF_MEM;
 		(*info)->data->flags = 0x1;
+		if (tag==GF_ISOM_ITUNE_COVER_ART) {
+			if (data_len & 0x80000000) {
+				data_len = (data_len & 0x7FFFFFFF);
+				(*info)->data->flags = 14;
+			} else {
+				(*info)->data->flags = 13;
+			}
+		}
 		(*info)->data->dataSize = data_len;
 		(*info)->data->data = malloc(sizeof(char)*data_len);
 		memcpy((*info)->data->data , data, sizeof(char)*data_len);
+
 	} else if (data_len && (tag==GF_ISOM_ITUNE_GENRE)) {
 		GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		if (data_len<256) gf_bs_write_u8(bs, data_len);

@@ -1041,6 +1041,8 @@ EXPORTS
 	gf_term_get_simulation_frame_rate
 	gf_term_step_clocks
 	gf_term_process
+	gf_term_get_service_interface
+	gf_term_get_service_info
 
 ;renderer.h exports
 	gf_sr_new

@@ -225,6 +225,8 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		break;
 
 	case GF_EVT_CONNECT:
+		if (pFrame->m_bStartupFile) return 0;
+
 		pFrame->BuildStreamList(1);
 		if (evt->connect.is_connected) {
 			pFrame->BuildChapterList(0);
