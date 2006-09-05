@@ -42,6 +42,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir);
 
 GF_ISOFile *package_file(char *file_name, const char *tmpdir);
+GF_Err dump_cover_art(GF_ISOFile *file, char *inName);
 #endif
 
 /*in filedump.c*/
@@ -909,7 +910,7 @@ int main(int argc, char **argv)
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
 	u32 i, MTUSize, stat_level, hint_flags, MakeISMA, Make3GP, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, do_package, remove_root_od, make_psp, make_m4a;
-	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts;
+	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts, dump_cart;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itune_tags;
 	GF_ISOFile *file;
 
@@ -929,7 +930,7 @@ int main(int argc, char **argv)
 	MTUSize = 1450;
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = 0;
 	do_package = chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = make_psp = make_m4a = 0;
-	x3d_info = MakeISMA = Make3GP = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = 0;
+	x3d_info = MakeISMA = Make3GP = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = 0;
 	track_dump_type = 0;
 	ismaCrypt = 0;
 	file = NULL;
@@ -1042,6 +1043,8 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-stats")) stat_level = 2;
 		else if (!stricmp(arg, "-statx")) stat_level = 3;
 		else if (!stricmp(arg, "-diso")) dump_isom = 1;
+		else if (!stricmp(arg, "-dump-cover")) dump_cart = 1;
+
 		else if (!stricmp(arg, "-dmp4")) {
 			dump_isom = 1;
 			fprintf(stdout, "WARNING: \"-dmp4\" is deprecated - use \"-diso\" option\n");
@@ -1867,6 +1870,8 @@ int main(int argc, char **argv)
 	if (dump_cr) dump_file_ismacryp(file, dump_std ? NULL : outfile);
 	if ((dump_ttxt || dump_srt) && trackID) dump_timed_text_track(file, trackID, dump_std ? NULL : outfile, 0, dump_srt);
 	
+	if (dump_cart) dump_cover_art(file, outfile);
+
 #ifndef GPAC_READ_ONLY
 	if (split_duration || split_size) {
 		split_isomedia_file(file, split_duration, split_size, inName, InterleavingTime, split_start, tmpdir);
@@ -1961,8 +1966,6 @@ int main(int argc, char **argv)
 	}
 
 #ifndef GPAC_READ_ONLY
-
-
 	if (remove_sys_tracks) {
 		remove_systems_tracks(file);
 		needSave = 1;
@@ -2106,7 +2109,7 @@ int main(int argc, char **argv)
 		while (tags) {
 			char *val;
 			char *sep = strchr(tags, ':');
-			u32 itag = 0;
+			u32 tlen, itag = 0;
 			while (sep) {
 				if (!strnicmp(sep+1, "album=", 6)) break;
 				if (!strnicmp(sep+1, "artist=", 7)) break;
@@ -2139,10 +2142,28 @@ int main(int argc, char **argv)
 			else if (!strnicmp(tags, "track=", 6)) itag = GF_ISOM_ITUNE_TRACK;
 			else if (!strnicmp(tags, "tracknum=", 9)) itag = GF_ISOM_ITUNE_TRACKNUMBER;
 			else if (!strnicmp(tags, "writer=", 7)) itag = GF_ISOM_ITUNE_WRITER;
+			else if (!strnicmp(tags, "cover=", 6)) itag = GF_ISOM_ITUNE_COVER_ART;
 			val = strchr(tags, '=') + 1;
 			if ((val[0]==':') || !val[0] || !stricmp(val, "NULL") ) val = NULL;
 
-			gf_isom_apple_set_tag(file, itag, val, val ? strlen(val) : 0);
+			tlen = val ? strlen(val) : 0;
+			if (itag == GF_ISOM_ITUNE_COVER_ART) {
+				char *d, *ext;
+				FILE *t = fopen(val, "rb");
+				fseek(t, 0, SEEK_END);
+				tlen = ftell(t);
+				fseek(t, 0, SEEK_SET);
+				d = malloc(sizeof(char) * tlen);
+				fread(d, tlen, 1, t);
+				fclose(t);
+				
+				ext = strrchr(val, '.');
+				if (!stricmp(ext, ".png")) tlen |= 0x80000000;
+				e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_COVER_ART, d, tlen);
+				free(d);
+			} else {
+				gf_isom_apple_set_tag(file, itag, val, tlen);
+			}
 			needSave = 1;
 
 			if (sep) {

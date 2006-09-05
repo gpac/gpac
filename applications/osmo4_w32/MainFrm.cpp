@@ -1382,6 +1382,7 @@ void CMainFrame::BuildChapterList(Bool reset_only)
 {
 	CMenu *pChaps;
 	ODInfo odi;
+	NetInfoCommand com;
 	WinGPAC *app = GetApp();
 
 	/*THIS IS HARCODED FROM THE MENU LAYOUT */
@@ -1414,6 +1415,17 @@ void CMainFrame::BuildChapterList(Bool reset_only)
 		m_chapters_start = (Double *) realloc(m_chapters_start, sizeof(Double)*(m_num_chapters+1));
 		m_chapters_start[m_num_chapters] = seg->startTime;
 		m_num_chapters++;
+	}
+
+	/*get any service info*/
+	if (!m_bStartupFile && gf_term_get_service_info(app->m_term, root_od, &com) == GF_OK) {
+		CString title("");
+		if (com.track_info) { title.Format("%02d ", (u32) (com.track_info>>16) ); }
+		if (com.artist) { title += com.artist; title += " "; }
+		if (com.name) { title += com.name; title += " "; }
+		if (com.album) { title += "("; title += com.album; title += ")"; }
+		
+		SetWindowText(title);
 	}
 }
 

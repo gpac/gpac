@@ -104,6 +104,8 @@ GF_Rect R3D_UpdateClipper(RenderEffect3D *eff, GF_Rect this_clip, Bool *need_res
 		eff->clipper = clip;
 		/*retranslate to world coords*/
 		gf_mx_apply_rect(&eff->model_matrix, &eff->clipper);
+		/*if 2D, also update with user zoom and translation*/
+		if (!eff->camera->is_3D) gf_mx_apply_rect(&eff->camera->modelview, &eff->clipper);
 		eff->has_clip = 1;
 	}
 	return clip;

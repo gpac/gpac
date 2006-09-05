@@ -83,7 +83,10 @@ enum
 	/*retrieves network stats for service/channel; app->module*/
 	GF_NET_GET_STATS,
 	/*retrieves whether service can be cached (rtp, http streaming radios, etc) or not. No associated struct*/
-	GF_NET_IS_CACHABLE
+	GF_NET_IS_CACHABLE,
+
+	/*sets info for service - net->term only*/
+	GF_NET_SERVICE_INFO,
 };
 
 /*channel command for all commands that don't need params:
@@ -209,7 +212,7 @@ Notes
 file downloader (cf below) shall NOT answer, the app manages downloader bandwidth internally.
 2: BANDWIDTH USED BY SIGNALING PROTOCOL IS IGNORED IN GPAC
 */
-typedef struct __netcom
+typedef struct __netstatcom
 {
 	u32 command_type;
 	/*MAY BE NULL, in which case the module must fill in ONLY the control channel part. This
@@ -228,6 +231,24 @@ typedef struct __netcom
 	u16 multiplex_port;
 } GF_NetComStats;
 
+
+/*GF_NET_SERVICE_INFO*/
+typedef struct __netinfocom
+{
+	u32 command_type;
+	/*currently NULL only*/
+	LPNETCHANNEL on_channel;
+	/*packed trackNumber(16 bits)/totaltrack(16 bits)*/
+	u32 track_info;
+	u32 genre;
+	const char *album;
+	const char *artist;
+	const char *comment;
+	const char *composer;
+	const char *name;
+	const char *writer;
+} GF_NetComInfo;
+
 typedef union __netcommand
 {
 	u32 command_type;
@@ -242,6 +263,7 @@ typedef union __netcommand
 	GF_NetComStats net_stats;
 	GF_NetComISMACryp isma_cryp;
 	GF_NetComGetESD cache_esd;
+	GF_NetComInfo info;
 } GF_NetworkCommand;
 
 /*
@@ -360,6 +382,8 @@ void gf_term_add_media(GF_ClientService *service, GF_Descriptor *media_desc, Boo
 Bool gf_term_check_extension(GF_InputService *ifce, const char *mimeType, const char *extList, const char *description, const char *fileExt);
 /*register mime types & file extensions - most modules should only need the check version above*/
 void gf_term_register_mime_type(GF_InputService *ifce, const char *mimeType, const char *extList, const char *description);
+
+GF_InputService *gf_term_get_service_interface(GF_ClientService *service);
 
 /*file downloading - can and MUST be used by any module (regardless of license) in order not to interfere 
 with net management*/

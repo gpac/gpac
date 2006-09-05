@@ -2106,14 +2106,16 @@ GF_Err gf_isom_apple_get_tag(GF_ISOFile *mov, u32 tag, const char **data, u32 *d
 	if (!info || !info->data || !info->data->data) return GF_URL_ERROR;
 
 	if ((tag == GF_ISOM_ITUNE_GENRE) && (info->data->flags == 0)) {
-		if (info->data->dataSize && (info->data->dataSize < 5)) {
+		if (info->data->dataSize && (info->data->dataSize>2) && (info->data->dataSize < 5)) {
 			GF_BitStream* bs = gf_bs_new(info->data->data, info->data->dataSize, GF_BITSTREAM_READ);
 			*data_len = gf_bs_read_int(bs, info->data->dataSize * 8);
+			gf_bs_del(bs);
+			return GF_OK;
 		}
-		return GF_OK;
 	}
-	if (info->data->flags != 0x1) return GF_URL_ERROR;
+//	if (info->data->flags != 0x1) return GF_URL_ERROR;
 	*data = info->data->data;
 	*data_len = info->data->dataSize;
+	if ((tag==GF_ISOM_ITUNE_COVER_ART) && (info->data->flags==14)) *data_len |= (1<<31);
 	return GF_OK;
 }

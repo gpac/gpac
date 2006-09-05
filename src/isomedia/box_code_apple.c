@@ -328,8 +328,8 @@ GF_Err ListItem_Read(GF_Box *s,GF_BitStream *bs)
 	GF_Box *a = NULL;
 	GF_ListItemBox *ptr = (GF_ListItemBox *)s;
 
-	sub_type = gf_bs_peek_bits(bs, 32, 0);
-	/*iTunes way*/
+	/*iTunes way: there's a data atom containing the data*/
+	sub_type = gf_bs_peek_bits(bs, 32, 4);
 	if (sub_type == GF_ISOM_BOX_TYPE_DATA ) {
 		e = gf_isom_parse_box(&a, bs);
 		if (e) return e;

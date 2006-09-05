@@ -83,12 +83,13 @@ void isor_declare_objects(ISOMReader *read)
 {
 	GF_ObjectDescriptor *od;
 	GF_ESD *esd;
-	u32 i, count, ocr_es_id;
+	const char *tag;
+	u32 i, count, ocr_es_id, tlen;
 
 	ocr_es_id = 0;
 
 	/*TODO check for alternate tracks*/
-	count  =gf_isom_get_track_count(read->mov);
+	count = gf_isom_get_track_count(read->mov);
 	for (i=0; i<count; i++) {
 		if (!gf_isom_is_track_enabled(read->mov, i+1)) continue;
 	
@@ -109,6 +110,31 @@ void isor_declare_objects(ISOMReader *read)
 			esd->OCRESID = ocr_es_id;
 			gf_list_add(od->ESDescriptors, esd);
 			gf_term_add_media(read->service, (GF_Descriptor*)od, 1);
+		}
+	}
+	/*if cover art, extract it in cache*/
+	if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COVER_ART, &tag, &tlen)==GF_OK) {
+		const char *cdir = gf_modules_get_option((GF_BaseInterface *)gf_term_get_service_interface(read->service), "General", "CacheDirectory");
+		if (cdir) {
+			char szName[GF_MAX_PATH], *sep;
+			FILE *t;
+			sep = strrchr(gf_isom_get_filename(read->mov), '\\');
+			if (!sep) sep = strrchr(gf_isom_get_filename(read->mov), '/');
+
+			if ((cdir[strlen(cdir)-1] != '\\') && (cdir[strlen(cdir)-1] != '/')) {
+				sprintf(szName, "%s/%s_cover.%s", cdir, sep, (tlen & 0x80000000) ? "png" : "jpg");
+			} else {
+				sprintf(szName, "%s%s_cover.%s", cdir, sep, (tlen & 0x80000000) ? "png" : "jpg");
+			}
+			t = fopen(szName, "wb");
+			if (t) {
+				fwrite(tag, tlen & 0x7FFFFFFF, 1, t);
+				fclose(t);
+				od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+				od->objectDescriptorID = 1050;
+				od->URLString = strdup(szName);
+				gf_term_add_media(read->service, (GF_Descriptor*)od, 1);
+			}
 		}
 	}
 	gf_term_add_media(read->service, NULL, 0);

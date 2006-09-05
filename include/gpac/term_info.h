@@ -118,9 +118,13 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 */
 Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, const char **server, const char **path, u32 *bytes_done, u32 *total_bytes, u32 *bytes_per_sec);
 
-/*same principles as above , struct __netcom is defined in net_api.h*/
-typedef struct __netcom NetStatCommand;
+/*same principles as above , struct __netcom is defined in service.h*/
+typedef struct __netstatcom NetStatCommand;
 Bool gf_term_get_channel_net_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, u32 *chid, NetStatCommand *netcom, GF_Err *ret_code);
+
+/*same principles as above , struct __netinfo is defined in service.h*/
+typedef struct __netinfocom NetInfoCommand;
+GF_Err gf_term_get_service_info(GF_Terminal *term, GF_ObjectManager *odm, NetInfoCommand *netcom);
 
 /*retrieves world info of the scene @od belongs to. 
 If @odm is or points to an inlined OD the world info of the inlined content is retrieved

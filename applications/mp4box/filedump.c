@@ -92,6 +92,50 @@ const char *GetLanguageCode(char *lang)
 
 #ifndef GPAC_READ_ONLY
 
+GF_Err dump_cover_art(GF_ISOFile *file, char *inName)
+{
+	const char *tag;
+	char szName[1024];
+	FILE *t;
+	u32 tag_len;
+	GF_Err e = gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COVER_ART, &tag, &tag_len);
+	if (e!=GF_OK) {
+		if (e==GF_URL_ERROR) {
+			fprintf(stdout, "No cover art found\n");
+			return GF_OK;
+		}
+		return e;
+	}
+
+	sprintf(szName, "%s.%s", inName, (tag_len>>31) ? "png" : "jpg");
+	t = fopen(szName, "wb");
+	fwrite(tag, tag_len & 0x7FFFFFFF, 1, t);
+	
+	fclose(t);
+	return GF_OK;
+}
+
+GF_Err set_cover_art(GF_ISOFile *file, char *inName)
+{
+	GF_Err e;
+	char *tag, *ext;
+	FILE *t;
+	u32 tag_len;
+	t = fopen(inName, "rb");
+	fseek(t, 0, SEEK_END);
+	tag_len = ftell(t);
+	fseek(t, 0, SEEK_SET);
+	tag = malloc(sizeof(char) * tag_len);
+	fread(tag, tag_len, 1, t);
+	fclose(t);
+	
+	ext = strrchr(inName, '.');
+	if (!stricmp(ext, ".png")) tag_len |= 0x80000000;
+	e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_COVER_ART, tag, tag_len);
+	free(tag);
+	return e;
+}
+
 GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 {
 	GF_Err e;
@@ -1228,6 +1272,33 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	}
 }
 
+static const char* ID3v1Genres[] = {
+    "Blues", "Classic Rock", "Country", "Dance", "Disco",
+		"Funk", "Grunge", "Hip-Hop", "Jazz", "Metal",
+		"New Age", "Oldies", "Other", "Pop", "R&B",
+		"Rap", "Reggae", "Rock", "Techno", "Industrial",
+		"Alternative", "Ska", "Death Metal", "Pranks", "Soundtrack",
+		"Euro-Techno", "Ambient", "Trip-Hop", "Vocal", "Jazz+Funk",
+    "Fusion", "Trance", "Classical", "Instrumental", "Acid",
+		"House", "Game", "Sound Clip", "Gospel", "Noise",
+		"AlternRock", "Bass", "Soul", "Punk", "Space", 
+		"Meditative", "Instrumental Pop", "Instrumental Rock", "Ethnic", "Gothic", 
+		"Darkwave", "Techno-Industrial", "Electronic", "Pop-Folk", "Eurodance", 
+		"Dream", "Southern Rock", "Comedy", "Cult", "Gangsta",
+		"Top 40", "Christian Rap", "Pop/Funk", "Jungle", "Native American",
+		"Cabaret", "New Wave", "Psychadelic", "Rave", "Showtunes",
+		"Trailer", "Lo-Fi", "Tribal", "Acid Punk", "Acid Jazz",
+		"Polka", "Retro", "Musical", "Rock & Roll", "Hard Rock",
+		"Folk", "Folk/Rock", "National Folk", "Swing",
+}; 
+static const char *get_genre(u32 tag)
+{
+	if ((tag>0) && (tag <= (sizeof(ID3v1Genres)/sizeof(const char *)) )) {
+		return ID3v1Genres[tag-1];
+	}
+	return "Unknown";
+}
+
 void DumpMovieInfo(GF_ISOFile *file)
 {
 	GF_InitialObjectDescriptor *iod;
@@ -1301,16 +1372,33 @@ void DumpMovieInfo(GF_ISOFile *file)
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_ARTIST, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tArtist: %s\n", tag);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_ALBUM, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tAlbum: %s\n", tag);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COMMENT, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tComment: %s\n", tag);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACK, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tTrack: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACK, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tTrack: %d / %d\n", tag[3], tag[5]);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COMPOSER, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tComposer: %s\n", tag);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_WRITER, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tWriter: %s\n", tag);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_GENRE, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tGenre: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_GENRE, &tag, &tag_len)==GF_OK) {
+			if (tag[0]) {
+				fprintf(stdout, "\tGenre: %s\n", tag);
+			} else {
+				fprintf(stdout, "\tGenre: %s\n", get_genre(tag[1]));
+			}
+		}
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COMPILATION, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tCompilation: %s\n", tag);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_CREATED, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tCreated: %s\n", tag);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_DISK, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tDisk: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_DISK, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tDisk: %d / %d\n", tag[3], tag[5]);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_ENCODER, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tEncoder: %s\n", tag);
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TEMPO, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tTempo: %s\n", tag);
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TEMPO, &tag, &tag_len)==GF_OK) {
+			if (tag[0]) {
+				fprintf(stdout, "\tTempo (BPM): %s\n", tag);
+			} else {
+				fprintf(stdout, "\tTempo (BPM): %d\n", tag[1]);
+			}
+		}
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_TRACKNUMBER, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tTrackNumber: %s\n", tag);
+
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COVER_ART, &tag, &tag_len)==GF_OK) {
+			if (tag_len>>31) fprintf(stdout, "\tCover Art: PNG File\n");
+			else fprintf(stdout, "\tCover Art: JPEC File\n");
+		}
 	}
 
 	fprintf(stdout, "\n");
