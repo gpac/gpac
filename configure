@@ -686,19 +686,6 @@ fi
 #end wx test
 
 
-#look for X11 shared memory support
-cat > $TMPC << EOF
-#include <X11/Xlib.h>
-#include <X11/extensions/XShm.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-int main( void ) { return 0; }
-EOF
-
-if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
-has_x11_shm="yes"
-fi
-
 # look for IPv6
 cat > $TMPC << EOF
 #include <sys/types.h>
@@ -790,6 +777,20 @@ for opt do
   ;;
   esac
 done
+
+
+#look for X11 shared memory support
+cat > $TMPC << EOF
+#include <X11/Xlib.h>
+#include <X11/extensions/XShm.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
+has_x11_shm="yes"
+fi
 
 #GCC opt
 if test "$no_gcc_opt" = "no"; then
@@ -933,10 +934,6 @@ fi
 
 if test x"$mandir" = x""; then
 mandir="${prefix}/man"
-fi
-
-if test "$cpu" = "armv4l"; then
-X11_PATH=""
 fi
 
 version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h | cut -d '"' -f 2`
