@@ -316,7 +316,7 @@ static s32 lsr_get_col_index(GF_LASeRCodec *lsr, SVG_Color *color)
 	return -2;
 }
 
-static void lsr_write_line_increment_type(GF_LASeRCodec *lsr, SVG_LineIncrement *li, const char *name)
+static void lsr_write_line_increment_type(GF_LASeRCodec *lsr, SVG_Number *li, const char *name)
 {
 	if (li->type==SVG_NUMBER_INHERIT) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "choice");
@@ -1249,12 +1249,8 @@ static u32 svg_type_to_lsr_anim(u32 svg_type, u32 transform_type, GF_List *vals,
 	case SVG_String_datatype:
 		return 0;
 	/*all length types*/
-	case SVG_StrokeMiterLimit_datatype:
+	case SVG_Number_datatype:
 	case SVG_FontSize_datatype:
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_AudioLevel_datatype:
-	case SVG_LineIncrement_datatype:
-	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 		return 1;
@@ -1265,8 +1261,10 @@ static u32 svg_type_to_lsr_anim(u32 svg_type, u32 transform_type, GF_List *vals,
 	case SVG_Points_datatype:
 		return 3;
 	/*all 0 - 1 types*/
+/*
 	case SVG_Opacity_datatype:
 		return 4;
+*/
 	case SVG_Paint_datatype:
 		return 5;
 	/*all enums (u8) types*/ 
@@ -2975,6 +2973,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVGElement *elt, u32 fiel
 			paint = (SVG_Paint *)val;
 			lsr_write_paint(lsr, val, "val"); 
 			break;
+/*
 		case SVG_Opacity_datatype:
 		case SVG_AudioLevel_datatype:
 			n = val;
@@ -2985,6 +2984,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVGElement *elt, u32 fiel
 				lsr_write_fixed_clamp(lsr, n->value, "val");
 			}
 			break;
+*/
 		case SVG_Matrix_datatype:
 			switch (transformType) {
 			case SVG_TRANSFORM_SCALE:
@@ -3004,10 +3004,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVGElement *elt, u32 fiel
 			}
 			break;
 		case SVG_Number_datatype:
-		case SVG_StrokeMiterLimit_datatype:
 		case SVG_FontSize_datatype:
-		case SVG_StrokeDashOffset_datatype:
-		case SVG_StrokeWidth_datatype:
 		case SVG_Length_datatype:
 			n = val;
 			if (n->type==SVG_NUMBER_INHERIT) {
@@ -3018,6 +3015,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVGElement *elt, u32 fiel
 				lsr_write_fixed_16_8(lsr, n->value, "val");
 			}
 			break;
+/*
 		case SVG_LineIncrement_datatype:
 			n = val;
 			if (n->type==SVG_NUMBER_INHERIT) {
@@ -3033,6 +3031,7 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVGElement *elt, u32 fiel
 				}
 			}
 			break;
+*/
 		case SVG_Rotate_datatype:
 			n = val;
 			if (n->type==SVG_NUMBER_INHERIT) {
@@ -3048,9 +3047,11 @@ static void lsr_write_update_value(GF_LASeRCodec *lsr, SVGElement *elt, u32 fiel
 				}
 			}
 			break;
+/*
 		case SVG_NumberOrPercentage_datatype:
 			lsr_write_value_with_units(lsr, val, "val");
 			break;
+*/
 		case SVG_Coordinate_datatype:
 			n = val;
 			lsr_write_coordinate(lsr, n->value, 0, "val");

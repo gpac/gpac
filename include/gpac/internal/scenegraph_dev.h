@@ -375,6 +375,11 @@ typedef struct _smil_timing_rti
 	/* is called (only once) when the timed element is restored */
 	void (*restore)(struct _smil_timing_rti *rti, Fixed normalized_simple_time);
 
+	/* is called only when the timed element is inactive and receives a fraction event, the second parameter is ignored */
+	void (*fraction_activation)(struct _smil_timing_rti *rti, Fixed normalized_simple_time);
+	/* simulated normalized simple time */
+	Fixed fraction;
+
 } SMIL_Timing_RTI;
 
 void gf_smil_timing_init_runtime_info(SVGElement *timed_elt);
@@ -730,6 +735,7 @@ void JSScript_LoadSVG(GF_Node *node);
 typedef struct __tag_svg_script_ctx 
 {
 	Bool (*script_execute)(struct __tag_scene_graph *sg, char *utf8_script, GF_DOM_Event *event);
+	Bool (*handler_execute)(GF_Node *n, GF_DOM_Event *event);
 	void (*on_node_destroy)(struct __tag_scene_graph *sg, GF_Node *n);
 
 	JSContext *js_ctx;

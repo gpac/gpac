@@ -27,6 +27,16 @@
 
 #include <gpac/nodes_svg.h>
 
+Bool is_svg_animation_tag(u32 tag)
+{
+	return (tag == TAG_SVG_set ||
+			tag == TAG_SVG_animate ||
+			tag == TAG_SVG_animateColor ||
+			tag == TAG_SVG_animateTransform ||
+			tag == TAG_SVG_animateMotion || 
+			tag == TAG_SVG_discard)?1:0;
+}
+
 Bool gf_sg_svg_node_init(GF_Node *node)
 {
 	switch (node->sgprivate->tag) {
@@ -37,6 +47,8 @@ Bool gf_sg_svg_node_init(GF_Node *node)
 	case TAG_SVG_conditional:
 		return 1;
 	case TAG_SVG_handler:
+		if (node->sgprivate->scenegraph->script_load) 
+			node->sgprivate->scenegraph->script_load(node);
 		if (node->sgprivate->scenegraph->js_ifce)
 			((SVGhandlerElement *)node)->handle_event = gf_sg_handle_dom_event;
 		return 1;

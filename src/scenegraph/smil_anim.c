@@ -455,7 +455,7 @@ static void gf_smil_anim_compute_interpolation_value(SMIL_Anim_RTI *rai, Fixed n
     interpolation value += last specified value * number of iterations completed */
 static void gf_smil_anim_apply_accumulate(SMIL_Anim_RTI *rai)
 {
-	u32 nb_iterations = rai->anim_elt->timing->runtime->current_interval->nb_iterations;
+	u32 nb_iterations = (rai->anim_elt->timing->runtime->current_interval?rai->anim_elt->timing->runtime->current_interval->nb_iterations:1);
 	if (rai->anim_elt->anim->accumulate == SMIL_ACCUMULATE_SUM && nb_iterations > 0) {
 		gf_svg_attributes_muladd(INT2FIX(nb_iterations), &rai->last_specified_value, FIX_ONE, &rai->interpolated_value, &rai->interpolated_value, 1);
 	} 
@@ -478,6 +478,12 @@ static void gf_smil_anim_animate(SMIL_Timing_RTI *rti, Fixed normalized_simple_t
 	} else {
 		gf_svg_attributes_copy(&rai->owner->presentation_value, &rai->interpolated_value, 1);
 	}
+}
+
+static void gf_smil_anim_animate_with_fraction(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
+{
+	gf_smil_anim_animate(rti, rti->fraction);
+	rti->evaluate = NULL;
 }
 
 /* copy/paste of the animate function except for the optimization which consists in 
@@ -675,6 +681,7 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 	e->timing->runtime->activation = gf_smil_anim_animate;
 	e->timing->runtime->freeze = gf_smil_anim_freeze;
 	e->timing->runtime->restore = gf_smil_anim_restore;
+	e->timing->runtime->fraction_activation = gf_smil_anim_animate_with_fraction;
 	gf_smil_anim_get_last_specified_value(rai);
 }
 

@@ -38,7 +38,7 @@ enum {
 
 	/* keyword enum types */
 	SVG_FillRule_datatype					= 1,
-	SVG_Clip_datatype = SVG_FillRule_datatype,
+//	SVG_Clip_datatype = SVG_FillRule_datatype,
 	SVG_StrokeLineJoin_datatype				= 2,
 	SVG_StrokeLineCap_datatype				= 3,
 	SVG_FontStyle_datatype					= 4,
@@ -77,14 +77,14 @@ enum {
 
 	/* SVG Number */
 	SVG_Number_datatype						= 50,
-	SVG_NumberOrPercentage_datatype			= 51,
-	SVG_Opacity_datatype					= 52,
-	SVG_StrokeMiterLimit_datatype			= 53,
+//	SVG_NumberOrPercentage_datatype			= 51,
+//	SVG_Opacity_datatype					= 52,
+//	SVG_StrokeMiterLimit_datatype			= 53,
 	SVG_FontSize_datatype					= 54,
-	SVG_StrokeDashOffset_datatype			= 55,
-	SVG_AudioLevel_datatype					= 56,
-	SVG_LineIncrement_datatype				= 57,
-	SVG_StrokeWidth_datatype				= 58,
+//	SVG_StrokeDashOffset_datatype			= 55,
+//	SVG_AudioLevel_datatype					= 56,
+//	SVG_LineIncrement_datatype				= 57,
+//	SVG_StrokeWidth_datatype				= 58,
 	SVG_Length_datatype						= 59,
 	SVG_Coordinate_datatype					= 60,
 	SVG_Rotate_datatype						= 61,
@@ -107,6 +107,7 @@ enum {
 	/* animated (untyped) value */
 	SMIL_AnimateValue_datatype				= 85,
 	SMIL_AnimateValues_datatype				= 86,
+	
 	SMIL_Duration_datatype					= 87,
 	SMIL_RepeatCount_datatype				= 88,
 	SMIL_AttributeName_datatype				= 89,
@@ -162,25 +163,30 @@ typedef DOM_String SVG_ID;
 typedef DOM_String SVG_LinkTarget;
 typedef DOM_String SVG_GradientOffset;
 
-/*DOM event type*/
-typedef u32 SVG_XSLT_QName;
-typedef u32 SVG_XML_Name;
-
 typedef Double SVG_Clock;
 
 typedef GF_List *SVG_Numbers;
+typedef GF_List *SVG_Coordinates;
 typedef GF_List	*SVG_FeatureList;
 typedef GF_List	*SVG_ExtensionList;
 typedef GF_List	*SVG_FormatList;
 typedef GF_List	*SVG_ListOfIRI;
 typedef GF_List	*SVG_LanguageIDs;
 typedef GF_List	*SVG_FontList;
+typedef GF_List *SVG_TransformList;
+typedef GF_List *SVG_Points;
+typedef GF_List *SMIL_Times;
+typedef GF_List *SMIL_KeyTimes;
+typedef GF_List *SMIL_KeyPoints;
+/* Fixed between 0 and 1 */
+typedef GF_List *SMIL_KeySplines;
 
 /* SMIL Anim types */
 typedef struct {
 	char *name;
 	u32 type;
-	/* used in case type is SVG_Matrix_datatype */
+	/* used in case type is SVG_Matrix_datatype, 
+	we need to precise the transformation type (see SVG_TRANSFORM_TRANSLATE...) */
 	u32 transform_type;
 
 	void *field_ptr;
@@ -225,8 +231,6 @@ typedef struct {
 	Double clock;
 } SMIL_Time;
 
-typedef GF_List * SMIL_Times;
-
 enum {
 	SMIL_DURATION_UNSPECIFIED = 0,
 	SMIL_DURATION_INDEFINITE  = 1,
@@ -237,7 +241,6 @@ typedef struct {
 	u8 type;
 	Double clock_value;
 } SMIL_Duration;
-
 
 enum {
 	SMIL_RESTART_ALWAYS = 0,
@@ -274,12 +277,6 @@ typedef struct {
 	GF_List *values;
 } SMIL_AnimateValues;
 
-typedef GF_List * SMIL_KeyTimes;
-typedef GF_List * SMIL_KeyPoints;
-
-/* Fixed between 0 and 1 */
-typedef GF_List * SMIL_KeySplines;
-
 enum {
 	SMIL_ADDITIVE_REPLACE = 0,
 	SMIL_ADDITIVE_SUM
@@ -301,7 +298,6 @@ enum {
 typedef u8 SMIL_CalcMode;
 /* end of SMIL Anim types */
 
-
 enum {
 	SVG_IRI_IRI = 0,
 	SVG_IRI_ELEMENTID
@@ -311,7 +307,6 @@ typedef struct {
 	u8 *iri;
 	struct _svg_element *target;
 } SVG_IRI;
-
 
 enum
 {
@@ -325,7 +320,6 @@ typedef struct
 	u8 type;
 	SVG_IRI target;
 } SVG_Focus;
-
 
 enum {
 	SVG_FONTFAMILY_INHERIT,
@@ -365,7 +359,6 @@ typedef struct {
 typedef struct {
 	Fixed x, y;
 } SVG_Point;
-typedef GF_List * SVG_Points;
 
 typedef struct {
 	Fixed x, y, angle;
@@ -384,7 +377,7 @@ enum {
 	SVG_FILLRULE_NONZERO,
 	SVG_FILLRULE_INHERIT
 };
-typedef u8 SVG_FillRule, SVG_Clip;
+typedef u8 SVG_FillRule;
 	
 enum {
 	SVG_STROKELINEJOIN_MITER = GF_LINE_JOIN_MITER_SVG,
@@ -484,19 +477,10 @@ typedef struct {
 	u8 type;
 	Fixed value;
 } SVG_Number, 
-  SVG_Opacity, 
-  SVG_StrokeMiterLimit, 
   SVG_FontSize, 
-  SVG_StrokeDashOffset,
-  SVG_AudioLevel,
-  SVG_LineIncrement,
   SVG_Length, 
   SVG_Coordinate, 
-  SVG_StrokeWidth,
-  SVG_NumberOrPercentage,
   SVG_Rotate;
-
-typedef GF_List * SVG_Coordinates;
 
 typedef GF_Matrix2D SVG_Matrix;
 
@@ -511,7 +495,6 @@ enum {
 };
 
 typedef u8 SVG_TransformType; 
-typedef GF_List * SVG_TransformList;
 
 enum {
 	SVG_FONTWEIGHT_100 = 0, 
@@ -858,14 +841,14 @@ typedef struct {
 	SVG_Paint					*stop_color;
 	SVG_Paint					*viewport_fill;
 
-	SVG_Opacity					*fill_opacity;
-	SVG_Opacity					*solid_opacity;
-	SVG_Opacity					*stop_opacity;
-	SVG_Opacity					*stroke_opacity;
-	SVG_Opacity					*viewport_fill_opacity;
-	SVG_Opacity					*opacity; /* Restricted property in Tiny 1.2 */
+	SVG_Number					*fill_opacity;
+	SVG_Number					*solid_opacity;
+	SVG_Number					*stop_opacity;
+	SVG_Number					*stroke_opacity;
+	SVG_Number					*viewport_fill_opacity;
+	SVG_Number					*opacity; /* Restricted property in Tiny 1.2 */
 
-	SVG_AudioLevel				*audio_level;
+	SVG_Number					*audio_level;
 
 	SVG_RenderingHint			*color_rendering;
 	SVG_RenderingHint			*image_rendering;
@@ -881,7 +864,7 @@ typedef struct {
 	SVG_FontStyle				*font_style; 
 	SVG_FontWeight				*font_weight; 
 	SVG_FontVariant				*font_variant; 
-	SVG_LineIncrement			*line_increment;	
+	SVG_Number					*line_increment;	
 	SVG_TextAnchor				*text_anchor;
 	SVG_DisplayAlign			*display_align;
 	
@@ -890,11 +873,11 @@ typedef struct {
 	SVG_FillRule				*fill_rule; 
 	
 	SVG_StrokeDashArray			*stroke_dasharray;
-	SVG_StrokeDashOffset		*stroke_dashoffset;
+	SVG_Length					*stroke_dashoffset;
 	SVG_StrokeLineCap			*stroke_linecap; 
 	SVG_StrokeLineJoin			*stroke_linejoin; 
-	SVG_StrokeMiterLimit		*stroke_miterlimit; 
-	SVG_StrokeWidth				*stroke_width;
+	SVG_Number					*stroke_miterlimit; 
+	SVG_Length					*stroke_width;
 	SVG_VectorEffect			*vector_effect;
 		
 	/* Full 1.1 props, i.e. not implemented */
@@ -942,14 +925,14 @@ typedef struct {
 	SVG_Paint					stop_color;
 	SVG_Paint					viewport_fill;
 
-	SVG_Opacity					fill_opacity;
-	SVG_Opacity					solid_opacity;
-	SVG_Opacity					stop_opacity;
-	SVG_Opacity					stroke_opacity;
-	SVG_Opacity					viewport_fill_opacity;
-	SVG_Opacity					opacity; /* Restricted property in Tiny 1.2 */
+	SVG_Number					fill_opacity;
+	SVG_Number					solid_opacity;
+	SVG_Number					stop_opacity;
+	SVG_Number					stroke_opacity;
+	SVG_Number					viewport_fill_opacity;
+	SVG_Number					opacity; /* Restricted property in Tiny 1.2 */
 
-	SVG_AudioLevel				audio_level;
+	SVG_Number  				audio_level;
 
 	SVG_RenderingHint			color_rendering;
 	SVG_RenderingHint			image_rendering;
@@ -965,7 +948,7 @@ typedef struct {
 	SVG_FontStyle				font_style; 
 	SVG_FontWeight				font_weight; 
 	SVG_FontVariant				font_variant; 
-	SVG_LineIncrement			line_increment;
+	SVG_Number					line_increment;
 	SVG_TextAnchor				text_anchor;
 	SVG_DisplayAlign			display_align;
 
@@ -974,11 +957,11 @@ typedef struct {
 	SVG_FillRule				fill_rule; 
 
 	SVG_StrokeDashArray			stroke_dasharray;
-	SVG_StrokeDashOffset		stroke_dashoffset;
+	SVG_Length					stroke_dashoffset;
 	SVG_StrokeLineCap			stroke_linecap; 
 	SVG_StrokeLineJoin			stroke_linejoin; 
-	SVG_StrokeMiterLimit		stroke_miterlimit; 
-	SVG_StrokeWidth				stroke_width;
+	SVG_Number					stroke_miterlimit; 
+	SVG_Length					stroke_width;
 	SVG_VectorEffect			vector_effect;	
 
 	/* Full 1.1 props, i.e. not implemented */
@@ -1135,6 +1118,7 @@ void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props);
 void gf_svg_apply_inheritance(SVGElement *elt, SVGPropertiesPointers *render_svg_props);
 void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_props);
 
+Bool is_svg_animation_tag(u32 tag);
 
 void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type);
 void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg);
@@ -1207,6 +1191,8 @@ enum {
 	SVG_DOM_EVT_ATTR_MODIFIED,
 	SVG_DOM_EVT_CHAR_DATA_MODIFIED,
 
+	SVG_DOM_EVT_BATTERY,
+	SVG_DOM_EVT_CPU,
 	SVG_DOM_EVT_UNKNOWN,
 };
 
@@ -1236,6 +1222,11 @@ typedef struct
 	GF_Rect screen_rect;
 	GF_Point2D prev_translate, new_translate;
 	Fixed prev_scale, new_scale;
+	/* CPU */
+	u32 cpu_percentage;
+	/* Battery */
+	Bool onBattery;
+	u32 batteryState, batteryLevel;
 } GF_DOM_Event;
 
 

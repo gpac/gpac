@@ -42,6 +42,7 @@ void gf_smil_timing_init_runtime_info(SVGElement *timed_elt)
 	rti->activation = gf_smil_timing_null_timed_function;
 	rti->freeze = gf_smil_timing_null_timed_function;
 	rti->restore = gf_smil_timing_null_timed_function;
+	rti->fraction_activation = gf_smil_timing_null_timed_function;
 	rti->scene_time = -1;
 
 	timed_elt->timing->runtime = rti;
@@ -324,10 +325,15 @@ Bool gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 	if (rti->scene_time == scene_time) return 0;
 	rti->scene_time = scene_time;
 	rti->cycle_number++;
+
+	/* for fraction events, we indicate that the scene needs redraw */
+	if (rti->evaluate == rti->fraction_activation) { return 1; }
+
 	rti->evaluate = NULL;	
 
 //	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("\n", gf_node_get_name(node), scene_time));
 //	fprintf(stdout, "Scene Time: %f - Timing Stack: %8x, Status: %d\n", scene_time, rti, rti->status);
+
 
 	if (rti->status == SMIL_STATUS_STARTUP) {
 		s32 interval_index;
@@ -454,6 +460,8 @@ Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double sce
 	Double activeTime;
 	Double simpleTime;
 	Fixed normalizedSimpleTime;
+
+	if (!rti->current_interval) return 0;
 
 	activeTime			 = scene_time - rti->current_interval->begin;
 	if (rti->current_interval->active_duration != -1 && activeTime > rti->current_interval->active_duration) return FIX_ONE;

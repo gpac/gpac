@@ -120,7 +120,6 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		gf_list_del(l);
 		free(value);
 		break;
-	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 	case SVG_Visibility_datatype:
