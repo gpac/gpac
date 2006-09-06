@@ -68,31 +68,31 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 
 
 	/* Opacity Related Properties */
-	GF_SAFEALLOC(svg_props->fill_opacity, sizeof(SVG_Opacity));
+	GF_SAFEALLOC(svg_props->fill_opacity, sizeof(SVG_Number));
 	svg_props->fill_opacity->type = SVG_NUMBER_VALUE;
 	svg_props->fill_opacity->value = FIX_ONE;
 	
-	GF_SAFEALLOC(svg_props->stroke_opacity, sizeof(SVG_Opacity));
+	GF_SAFEALLOC(svg_props->stroke_opacity, sizeof(SVG_Number));
 	svg_props->stroke_opacity->type = SVG_NUMBER_VALUE;
 	svg_props->stroke_opacity->value = FIX_ONE;
 
-	GF_SAFEALLOC(svg_props->opacity, sizeof(SVG_Opacity));
+	GF_SAFEALLOC(svg_props->opacity, sizeof(SVG_Number));
 	svg_props->opacity->type = SVG_NUMBER_VALUE;
 	svg_props->opacity->value = FIX_ONE;
 
-	GF_SAFEALLOC(svg_props->viewport_fill_opacity, sizeof(SVG_Opacity));
+	GF_SAFEALLOC(svg_props->viewport_fill_opacity, sizeof(SVG_Number));
 	svg_props->viewport_fill_opacity->type = SVG_NUMBER_VALUE;
 	svg_props->viewport_fill_opacity->value = FIX_ONE;
 
-	GF_SAFEALLOC(svg_props->solid_opacity, sizeof(SVG_Opacity));
+	GF_SAFEALLOC(svg_props->solid_opacity, sizeof(SVG_Number));
 	svg_props->solid_opacity->type = SVG_NUMBER_VALUE;
 	svg_props->solid_opacity->value = FIX_ONE;
 
-	GF_SAFEALLOC(svg_props->stop_opacity, sizeof(SVG_Opacity));
+	GF_SAFEALLOC(svg_props->stop_opacity, sizeof(SVG_Number));
 	svg_props->stop_opacity->type = SVG_NUMBER_VALUE;
 	svg_props->stop_opacity->value = FIX_ONE;
 
-	GF_SAFEALLOC(svg_props->audio_level, sizeof(SVG_AudioLevel));
+	GF_SAFEALLOC(svg_props->audio_level, sizeof(SVG_Number));
 	svg_props->audio_level->type = SVG_NUMBER_VALUE;
 	svg_props->audio_level->value = FIX_ONE;
 
@@ -140,7 +140,7 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 	GF_SAFEALLOC(svg_props->display_align, sizeof(SVG_DisplayAlign));
 	*svg_props->display_align = SVG_DISPLAYALIGN_AUTO;
 
-	GF_SAFEALLOC(svg_props->line_increment, sizeof(SVG_LineIncrement));
+	GF_SAFEALLOC(svg_props->line_increment, sizeof(SVG_Number));
 	svg_props->line_increment->type = SVG_NUMBER_AUTO;
 	svg_props->line_increment->value = FIX_ONE;
 
@@ -152,7 +152,7 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 	GF_SAFEALLOC(svg_props->fill_rule, sizeof(SVG_FillRule));
 	*svg_props->fill_rule = SVG_FILLRULE_NONZERO;
 
-	GF_SAFEALLOC(svg_props->stroke_width, sizeof(SVG_StrokeWidth));
+	GF_SAFEALLOC(svg_props->stroke_width, sizeof(SVG_Length));
 	svg_props->stroke_width->type = SVG_NUMBER_VALUE;
 	svg_props->stroke_width->value = FIX_ONE;
 
@@ -162,11 +162,11 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 	GF_SAFEALLOC(svg_props->stroke_linejoin, sizeof(SVG_StrokeLineJoin));
 	*(svg_props->stroke_linejoin) = SVG_STROKELINEJOIN_MITER;
 
-	GF_SAFEALLOC(svg_props->stroke_miterlimit, sizeof(SVG_StrokeMiterLimit));
+	GF_SAFEALLOC(svg_props->stroke_miterlimit, sizeof(SVG_Number));
 	svg_props->stroke_miterlimit->type = SVG_NUMBER_VALUE;
 	svg_props->stroke_miterlimit->value = 4*FIX_ONE;
 
-	GF_SAFEALLOC(svg_props->stroke_dashoffset , sizeof(SVG_StrokeDashOffset));
+	GF_SAFEALLOC(svg_props->stroke_dashoffset , sizeof(SVG_Length));
 	svg_props->stroke_dashoffset->type = SVG_NUMBER_VALUE;
 	svg_props->stroke_dashoffset->value = 0;
 

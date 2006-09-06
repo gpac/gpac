@@ -3271,6 +3271,9 @@ static void JSScript_Load(GF_Node *node)
 	case TAG_SVG_script:
 		JSScript_LoadSVG(node);
 		break;
+	case TAG_SVG_handler:
+		JSScript_LoadSVGHandlerElement(node);
+		break;
 #endif
 	default:
 		break;

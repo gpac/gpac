@@ -58,6 +58,8 @@ u32 gf_dom_event_type_by_name(const char *name)
 	if (!strcmp(name, "keydown"))	return SVG_DOM_EVT_KEYDOWN;
 	if (!strcmp(name, "keypress") || !stricmp(name, "accesskey"))	return SVG_DOM_EVT_KEYDOWN;
 	if (!strcmp(name, "longkeypress") || !stricmp(name, "longaccesskey"))	return SVG_DOM_EVT_LONGKEYPRESS;
+	if (!strcmp(name, "battery"))		return SVG_DOM_EVT_BATTERY;
+	if (!strcmp(name, "cpu"))		return SVG_DOM_EVT_CPU;
 	return SVG_DOM_EVT_UNKNOWN;
 }
 
@@ -2299,18 +2301,14 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 /* end of keyword type parsing */
 
 	/* keyword | floats */
-	case SVG_Opacity_datatype:
+/*	case SVG_Opacity_datatype:
 	case SVG_AudioLevel_datatype:
 		svg_parse_number(info->far_ptr, attribute_content, 1);
 		break;
+*/
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype: 
-	case SVG_StrokeWidth_datatype:
-	case SVG_NumberOrPercentage_datatype:
-	case SVG_StrokeMiterLimit_datatype:
 	case SVG_FontSize_datatype:
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_LineIncrement_datatype:
 	case SVG_Rotate_datatype:
 	case SVG_Number_datatype:
 		svg_parse_number(info->far_ptr, attribute_content, 0);
@@ -2558,16 +2556,11 @@ void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type)
 		break;
 
 	/* inheritable floats */
-	case SVG_Opacity_datatype:
-	case SVG_StrokeMiterLimit_datatype:
 	case SVG_FontSize_datatype:
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_AudioLevel_datatype:
-	case SVG_LineIncrement_datatype:
-	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 	case SVG_Rotate_datatype:
+	case SVG_Number_datatype:
 		{
 			SVG_Number *number;
 			GF_SAFEALLOC(number, sizeof(SVG_Number))
@@ -3153,13 +3146,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 /* end of keyword type parsing */
 
 	/* inheritable floats */
-	case SVG_Opacity_datatype:
-	case SVG_StrokeMiterLimit_datatype:
 	case SVG_FontSize_datatype:
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_AudioLevel_datatype:
-	case SVG_LineIncrement_datatype:
-	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 	case SVG_Rotate_datatype:
@@ -3799,13 +3786,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	}
 		break;
 
-	case SVG_Opacity_datatype:
-	case SVG_StrokeMiterLimit_datatype:
 	case SVG_FontSize_datatype:
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_AudioLevel_datatype:
-	case SVG_LineIncrement_datatype:
-	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 	case SVG_Rotate_datatype:
@@ -4354,15 +4335,9 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 		}
 
 	case SVG_Number_datatype:
-	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
-	case SVG_Opacity_datatype:
-	case SVG_StrokeMiterLimit_datatype:
 	case SVG_FontSize_datatype:
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_AudioLevel_datatype:
-	case SVG_LineIncrement_datatype:
 		return svg_number_muladd(alpha, a->far_ptr, beta, b->far_ptr, c->far_ptr);
 
 	case SVG_ViewBox_datatype:
@@ -4555,15 +4530,9 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 		break;
 
 	case SVG_Number_datatype:
-	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
-	case SVG_Opacity_datatype:
-	case SVG_StrokeMiterLimit_datatype:
 	case SVG_FontSize_datatype:
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_AudioLevel_datatype:
-	case SVG_LineIncrement_datatype:
 		*((SVG_Number *)a->far_ptr) = *((SVG_Number *)b->far_ptr);
 		break;
 
@@ -4730,21 +4699,14 @@ Bool gf_svg_attribute_is_interpolatable(u32 type)
 	case SVG_Color_datatype:
 	case SVG_Paint_datatype:
 	case SVG_Number_datatype:
-	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
-	case SVG_Opacity_datatype:
-	case SVG_StrokeMiterLimit_datatype:
 	case SVG_FontSize_datatype:
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_AudioLevel_datatype:
-	case SVG_LineIncrement_datatype:
 	case SVG_ViewBox_datatype:
 	case SVG_Points_datatype:
 	case SVG_Numbers_datatype:
 	case SVG_Coordinates_datatype:
 	case SVG_PathData_datatype:
-	case SVG_StrokeDashArray_datatype:
 	case SVG_Motion_datatype:
 	case SVG_Matrix_datatype:
 	case LASeR_Size_datatype:
@@ -4767,21 +4729,14 @@ GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldI
 	case SVG_Color_datatype:
 	case SVG_Paint_datatype:
 	case SVG_Number_datatype:
-	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
-	case SVG_Opacity_datatype:
-	case SVG_StrokeMiterLimit_datatype:
 	case SVG_FontSize_datatype:
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_AudioLevel_datatype:
-	case SVG_LineIncrement_datatype:
 	case SVG_ViewBox_datatype:
 	case SVG_Points_datatype:
 	case SVG_Numbers_datatype:
 	case SVG_Coordinates_datatype:
 	case SVG_PathData_datatype:
-	case SVG_StrokeDashArray_datatype:
 	case SVG_Motion_datatype:
 	case SVG_Matrix_datatype:
 	case LASeR_Size_datatype:
@@ -4876,13 +4831,8 @@ Bool gf_svg_is_inherit(GF_FieldInfo *a)
 	case SVG_Paint_datatype:
 		return (((SVG_Paint *)a->far_ptr)->type == SVG_PAINT_INHERIT);
 		break;
-	case SVG_Opacity_datatype:
-	case SVG_AudioLevel_datatype:
 	case SVG_FontSize_datatype:
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_StrokeMiterLimit_datatype:
-	case SVG_LineIncrement_datatype:
-	case SVG_StrokeWidth_datatype:
+	case SVG_Number_datatype:
 		return (((SVG_Number *)a->far_ptr)->type == SVG_NUMBER_INHERIT);
 		break;
 	case SVG_RenderingHint_datatype:

@@ -68,12 +68,9 @@ static void svg_node_changed(GF_Node *n, GF_FieldInfo *info)
 		case SVG_Color_datatype:
 		case SVG_Paint_datatype:
 		case SVG_FillRule_datatype:
-		case SVG_Opacity_datatype:
+//		case SVG_Opacity_datatype:
 		case SVG_StrokeLineJoin_datatype:
 		case SVG_StrokeLineCap_datatype:
-		case SVG_StrokeMiterLimit_datatype:
-		case SVG_StrokeDashOffset_datatype:
-		case SVG_StrokeWidth_datatype:
 		case SVG_StrokeDashArray_datatype:
 			gf_node_dirty_set(n, GF_SG_SVG_APPEARANCE_DIRTY, 0);
 			break;
@@ -233,6 +230,7 @@ static JSFunctionSpec globalClassFuncs[] = {
 	{0}
 };
 
+Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event);
 void gf_sg_handle_dom_event(struct _tagSVGhandlerElement *hdl, GF_DOM_Event *event);
 
 /*eventListeners routines used by document, element anbd connection interfaces*/
@@ -763,16 +761,10 @@ static JSBool udom_get_trait(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 
 	switch (info.fieldType) {
 	/* inheritable floats */
-	case SVG_Opacity_datatype:
-	case SVG_StrokeMiterLimit_datatype:
 	case SVG_FontSize_datatype:
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_AudioLevel_datatype:
-	case SVG_LineIncrement_datatype:
 	case SVG_Color_datatype:
 	case SVG_Paint_datatype:
 	/* inheritable float and unit */
-	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 	/*Number*/
@@ -873,13 +865,8 @@ static JSBool udom_get_float_trait(JSContext *c, JSObject *obj, uintN argc, jsva
 
 	switch (info.fieldType) {
 	/* inheritable floats */
-	case SVG_Opacity_datatype:
-	case SVG_StrokeMiterLimit_datatype:
+	case SVG_Number_datatype:
 	case SVG_FontSize_datatype:
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_AudioLevel_datatype:
-	case SVG_LineIncrement_datatype:
-	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 	{
@@ -1054,16 +1041,10 @@ static JSBool udom_set_trait(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 
 	switch (info.fieldType) {
 	/* inheritable floats */
-	case SVG_Opacity_datatype:
-	case SVG_StrokeMiterLimit_datatype:
 	case SVG_FontSize_datatype:
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_AudioLevel_datatype:
-	case SVG_LineIncrement_datatype:
 	case SVG_Color_datatype:
 	case SVG_Paint_datatype:
 	/* inheritable float and unit */
-	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 	/*Number*/
@@ -1146,15 +1127,10 @@ static JSBool udom_set_float_trait(JSContext *c, JSObject *obj, uintN argc, jsva
 
 	switch (info.fieldType) {
 	/* inheritable floats */
-	case SVG_Opacity_datatype:
-	case SVG_StrokeMiterLimit_datatype:
 	case SVG_FontSize_datatype:
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_AudioLevel_datatype:
-	case SVG_LineIncrement_datatype:
-	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
+	case SVG_Number_datatype:
 	{
 		SVG_Number *l = (SVG_Number *)info.far_ptr;
 		l->type=SVG_NUMBER_VALUE;
@@ -1645,16 +1621,9 @@ static JSBool svg_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		if ( gf_node_get_field_by_name((GF_Node *)n, name, &info) != GF_OK) return JS_TRUE;
 
 		switch (info.fieldType) {
-		case SVG_Opacity_datatype:
-		case SVG_AudioLevel_datatype:
 		case SVG_Length_datatype:
 		case SVG_Coordinate_datatype: 
-		case SVG_StrokeWidth_datatype:
-		case SVG_NumberOrPercentage_datatype:
-		case SVG_StrokeMiterLimit_datatype:
 		case SVG_FontSize_datatype:
-		case SVG_StrokeDashOffset_datatype:
-		case SVG_LineIncrement_datatype:
 		case SVG_Rotate_datatype:
 		case SVG_Number_datatype:
 			if ( ((SVG_Number*)info.far_ptr)->type==SVG_NUMBER_INHERIT) {
@@ -1731,16 +1700,9 @@ static JSBool svg_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 			gf_svg_parse_attribute(n, &info, str, 0, 0);
 		} else {
 			switch (info.fieldType) {
-			case SVG_Opacity_datatype:
-			case SVG_AudioLevel_datatype:
 			case SVG_Length_datatype:
 			case SVG_Coordinate_datatype: 
-			case SVG_StrokeWidth_datatype:
-			case SVG_NumberOrPercentage_datatype:
-			case SVG_StrokeMiterLimit_datatype:
 			case SVG_FontSize_datatype:
-			case SVG_StrokeDashOffset_datatype:
-			case SVG_LineIncrement_datatype:
 			case SVG_Rotate_datatype:
 			case SVG_Number_datatype:
 				if (JSVAL_IS_NUMBER(*vp)) {
@@ -2724,6 +2686,25 @@ static void svg_node_destroy(GF_SceneGraph *sg, GF_Node *n)
 
 }
 
+static GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
+{
+	GF_SVGJS *svg_js;
+	GF_SAFEALLOC(svg_js, sizeof(GF_SVGJS));
+	/*create new ecmascript context*/
+	svg_js->js_ctx = gf_sg_ecmascript_new();
+	if (!svg_js->js_ctx) {
+		free(svg_js);
+		return GF_SCRIPT_ERROR;
+	}
+	svg_js->on_node_destroy = svg_node_destroy;
+	svg_js->script_execute = svg_script_execute;
+	svg_js->handler_execute = svg_script_execute_handler;
+	sg->svg_js = svg_js;
+	/*load SVG & DOM APIs*/
+	svg_init_js_api(sg);
+	return GF_OK;
+}
+
 void JSScript_LoadSVG(GF_Node *node)
 {
 	GF_SVGJS *svg_js;
@@ -2733,19 +2714,7 @@ void JSScript_LoadSVG(GF_Node *node)
 	if (/*!script->xlink->type || strcmp(script->xlink->type, "text/ecmascript") || */ !script->textContent) return;
 
 	if (!node->sgprivate->scenegraph->svg_js) {
-		GF_SVGJS *svg_js;
-		GF_SAFEALLOC(svg_js, sizeof(GF_SVGJS));
-		/*create new ecmascript context*/
-		svg_js->js_ctx = gf_sg_ecmascript_new();
-		if (!svg_js->js_ctx) {
-			free(svg_js);
-			return;
-		}
-		svg_js->on_node_destroy = svg_node_destroy;
-		svg_js->script_execute = svg_script_execute;
-		node->sgprivate->scenegraph->svg_js = svg_js;
-		/*load SVG & DOM APIs*/
-		svg_init_js_api(node->sgprivate->scenegraph);
+		if (JSScript_CreateSVGContext(node->sgprivate->scenegraph) != GF_OK) return;
 	}
 	svg_js = node->sgprivate->scenegraph->svg_js;
 	if (!node->sgprivate->PreDestroyNode ) {
@@ -2761,6 +2730,44 @@ void JSScript_LoadSVG(GF_Node *node)
 	return;
 }
 
+Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
+{
+	GF_SVGJS *svg_js;
+	JSBool ret;
+	GF_DOM_Event *prev_event = NULL;
+	jsval rval;
+	SVGhandlerElement *handler = (SVGhandlerElement *)node;
+	if (/*!script->xlink->type || strcmp(script->xlink->type, "text/ecmascript") || */ !handler->textContent) return 0;
+
+	svg_js = node->sgprivate->scenegraph->svg_js;
+
+	prev_event = JS_GetPrivate(svg_js->js_ctx, svg_js->event);
+	JS_SetPrivate(svg_js->js_ctx, svg_js->event, event);
+
+	ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, handler->textContent, strlen(handler->textContent), 0, 0, &rval);
+	JS_SetPrivate(svg_js->js_ctx, svg_js->event, prev_event);
+
+	if (ret==JS_FALSE) {
+		node->sgprivate->scenegraph->js_ifce->ScriptMessage(node->sgprivate->scenegraph->js_ifce->callback, GF_SCRIPT_ERROR, "SVG: Invalid handler textContent");
+		return 0;
+	}
+	return 1;
+}
+
+void JSScript_LoadSVGHandlerElement(GF_Node *node)
+{
+	GF_SVGJS *svg_js;
+
+	if (!node->sgprivate->scenegraph->svg_js) {
+		if (JSScript_CreateSVGContext(node->sgprivate->scenegraph) != GF_OK) return;
+	}
+	svg_js = node->sgprivate->scenegraph->svg_js;
+	if (!node->sgprivate->PreDestroyNode ) {
+		svg_js->nb_scripts++;
+		node->sgprivate->PreDestroyNode = svg_script_predestroy;
+	}
+	return;
+}
 
 #endif
 

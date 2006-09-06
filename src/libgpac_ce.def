@@ -15,6 +15,7 @@ EXPORTS
 	gf_sys_close
 	gf_sys_clock
 	gf_sys_get_rti
+  gf_sys_get_battery_state
 	gf_4cc_to_str
 	gf_error_to_string
 	gf_rand_init

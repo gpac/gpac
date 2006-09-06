@@ -60,7 +60,7 @@ void gf_sg_handle_dom_event(SVGhandlerElement *hdl, GF_DOM_Event *event)
 {
 #ifdef GPAC_HAS_SPIDERMONKEY
 	if (hdl->sgprivate->scenegraph->svg_js) 
-		if (hdl->sgprivate->scenegraph->svg_js->script_execute(hdl->sgprivate->scenegraph, hdl->textContent, event)) return;
+		if (hdl->sgprivate->scenegraph->svg_js->handler_execute((GF_Node *)hdl, event)) return;
 #endif
 	/*no clue what this is*/
 	GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[SVG] Unknown event handler\n"));
@@ -77,6 +77,17 @@ static void svg_process_event(SVGlistenerElement *listen, GF_DOM_Event *event)
 		} else if (gf_list_count(cond->updates.com_list)) {
 			gf_sg_command_apply_list(listen->sgprivate->scenegraph, cond->updates.com_list, gf_node_get_scene_time((GF_Node*)listen) );
 		}
+		return;
+	} else if (is_svg_animation_tag(handler->sgprivate->tag) && handler->anim && handler->timing->runtime) {
+		if (event->type == SVG_DOM_EVT_BATTERY) {
+			handler->timing->runtime->fraction = gf_divfix(INT2FIX(event->batteryLevel), INT2FIX(100));
+		} else if (event->type == SVG_DOM_EVT_CPU) {
+			handler->timing->runtime->fraction = gf_divfix(INT2FIX(event->cpu_percentage), INT2FIX(100));
+		}
+		handler->timing->runtime->fraction = (handler->timing->runtime->fraction>FIX_ONE?FIX_ONE:handler->timing->runtime->fraction);
+		handler->timing->runtime->fraction = (handler->timing->runtime->fraction<0?0:handler->timing->runtime->fraction);
+		handler->timing->runtime->evaluate = handler->timing->runtime->fraction_activation;
+//		printf("event handled %f\n",FLT2FIX(handler->timing->runtime->fraction));
 		return;
 	}
 #if 0

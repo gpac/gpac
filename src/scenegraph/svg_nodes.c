@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Jul 28 15:56:10 2006
+	DO NOT MOFIFY - File generated on GMT Fri Jul 28 16:58:24 2006
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -106,7 +106,7 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -141,7 +141,7 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -171,7 +171,7 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -201,7 +201,7 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -211,7 +211,7 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -221,7 +221,7 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -236,7 +236,7 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -256,7 +256,7 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -1343,7 +1343,7 @@ static GF_Err gf_svg_animation_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -1378,7 +1378,7 @@ static GF_Err gf_svg_animation_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -1685,7 +1685,7 @@ static GF_Err gf_svg_audio_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -1720,7 +1720,7 @@ static GF_Err gf_svg_audio_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -1936,7 +1936,7 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -1971,7 +1971,7 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -2001,7 +2001,7 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -2031,7 +2031,7 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -2041,7 +2041,7 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -2051,7 +2051,7 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -2066,7 +2066,7 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -2086,7 +2086,7 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -2476,7 +2476,7 @@ static GF_Err gf_svg_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -2511,7 +2511,7 @@ static GF_Err gf_svg_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -2541,7 +2541,7 @@ static GF_Err gf_svg_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -2571,7 +2571,7 @@ static GF_Err gf_svg_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -2581,7 +2581,7 @@ static GF_Err gf_svg_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -2591,7 +2591,7 @@ static GF_Err gf_svg_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -2606,7 +2606,7 @@ static GF_Err gf_svg_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -2626,7 +2626,7 @@ static GF_Err gf_svg_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -2917,7 +2917,7 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -2952,7 +2952,7 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -2982,7 +2982,7 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -3012,7 +3012,7 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -3022,7 +3022,7 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -3032,7 +3032,7 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -3047,7 +3047,7 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -3067,7 +3067,7 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -3730,7 +3730,7 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -3765,7 +3765,7 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -3795,7 +3795,7 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -3825,7 +3825,7 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -3835,7 +3835,7 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -3845,7 +3845,7 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -3860,7 +3860,7 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -3880,7 +3880,7 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -4121,7 +4121,7 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -4156,7 +4156,7 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -4186,7 +4186,7 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -4216,7 +4216,7 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -4226,7 +4226,7 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -4236,7 +4236,7 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -4251,7 +4251,7 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -4271,7 +4271,7 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -4727,7 +4727,7 @@ static GF_Err gf_svg_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -4762,7 +4762,7 @@ static GF_Err gf_svg_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -4772,7 +4772,7 @@ static GF_Err gf_svg_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 16:
 			info->name = "opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->opacity;
 			return GF_OK;
 		case 17:
@@ -5003,7 +5003,7 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -5038,7 +5038,7 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -5068,7 +5068,7 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -5098,7 +5098,7 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -5108,7 +5108,7 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -5118,7 +5118,7 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -5133,7 +5133,7 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -5153,7 +5153,7 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -5358,7 +5358,7 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -5393,7 +5393,7 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -5423,7 +5423,7 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -5453,7 +5453,7 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -5463,7 +5463,7 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -5473,7 +5473,7 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -5488,7 +5488,7 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -5508,7 +5508,7 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -6028,7 +6028,7 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -6063,7 +6063,7 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -6093,7 +6093,7 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -6123,7 +6123,7 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -6133,7 +6133,7 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -6143,7 +6143,7 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -6158,7 +6158,7 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -6178,7 +6178,7 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -6376,7 +6376,7 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -6411,7 +6411,7 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -6441,7 +6441,7 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -6471,7 +6471,7 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -6481,7 +6481,7 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -6491,7 +6491,7 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -6506,7 +6506,7 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -6526,7 +6526,7 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -6719,7 +6719,7 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -6754,7 +6754,7 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -6784,7 +6784,7 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -6814,7 +6814,7 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -6824,7 +6824,7 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -6834,7 +6834,7 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -6849,7 +6849,7 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -6869,7 +6869,7 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -7193,7 +7193,7 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -7228,7 +7228,7 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -7258,7 +7258,7 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -7288,7 +7288,7 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -7298,7 +7298,7 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -7308,7 +7308,7 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -7323,7 +7323,7 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -7343,7 +7343,7 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -7509,7 +7509,7 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -7544,7 +7544,7 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -7574,7 +7574,7 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -7604,7 +7604,7 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -7614,7 +7614,7 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -7624,7 +7624,7 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -7639,7 +7639,7 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -7659,7 +7659,7 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -7875,7 +7875,7 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -7910,7 +7910,7 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -7940,7 +7940,7 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -7970,7 +7970,7 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -7980,7 +7980,7 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -7990,7 +7990,7 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -8005,7 +8005,7 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -8025,7 +8025,7 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -8283,7 +8283,7 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -8318,7 +8318,7 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -8348,7 +8348,7 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -8378,7 +8378,7 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -8388,7 +8388,7 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -8398,7 +8398,7 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -8413,7 +8413,7 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -8433,7 +8433,7 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -8793,7 +8793,7 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -8828,7 +8828,7 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -8858,7 +8858,7 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -8888,7 +8888,7 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -8898,7 +8898,7 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -8908,7 +8908,7 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -8923,7 +8923,7 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -8943,7 +8943,7 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -9130,7 +9130,7 @@ static GF_Err gf_svg_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -9165,7 +9165,7 @@ static GF_Err gf_svg_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -9195,7 +9195,7 @@ static GF_Err gf_svg_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -9225,7 +9225,7 @@ static GF_Err gf_svg_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -9235,7 +9235,7 @@ static GF_Err gf_svg_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -9245,7 +9245,7 @@ static GF_Err gf_svg_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -9260,7 +9260,7 @@ static GF_Err gf_svg_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -9280,7 +9280,7 @@ static GF_Err gf_svg_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -9367,7 +9367,7 @@ static GF_Err gf_svg_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -9402,7 +9402,7 @@ static GF_Err gf_svg_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -9432,7 +9432,7 @@ static GF_Err gf_svg_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -9462,7 +9462,7 @@ static GF_Err gf_svg_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -9472,7 +9472,7 @@ static GF_Err gf_svg_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -9482,7 +9482,7 @@ static GF_Err gf_svg_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -9497,7 +9497,7 @@ static GF_Err gf_svg_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -9517,7 +9517,7 @@ static GF_Err gf_svg_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -9618,7 +9618,7 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -9653,7 +9653,7 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -9683,7 +9683,7 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -9713,7 +9713,7 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -9723,7 +9723,7 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -9733,7 +9733,7 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -9748,7 +9748,7 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -9768,7 +9768,7 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -9994,7 +9994,7 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -10029,7 +10029,7 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -10059,7 +10059,7 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -10089,7 +10089,7 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -10099,7 +10099,7 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -10109,7 +10109,7 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -10124,7 +10124,7 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -10144,7 +10144,7 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -10400,7 +10400,7 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -10435,7 +10435,7 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -10465,7 +10465,7 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -10495,7 +10495,7 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -10505,7 +10505,7 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -10515,7 +10515,7 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -10530,7 +10530,7 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -10550,7 +10550,7 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -10756,7 +10756,7 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -10791,7 +10791,7 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -10821,7 +10821,7 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -10851,7 +10851,7 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -10861,7 +10861,7 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -10871,7 +10871,7 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -10886,7 +10886,7 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -10906,7 +10906,7 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -11181,7 +11181,7 @@ static GF_Err gf_svg_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -11216,7 +11216,7 @@ static GF_Err gf_svg_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -11246,7 +11246,7 @@ static GF_Err gf_svg_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -11276,7 +11276,7 @@ static GF_Err gf_svg_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -11286,7 +11286,7 @@ static GF_Err gf_svg_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -11296,7 +11296,7 @@ static GF_Err gf_svg_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -11311,7 +11311,7 @@ static GF_Err gf_svg_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -11331,7 +11331,7 @@ static GF_Err gf_svg_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -11508,7 +11508,7 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -11543,7 +11543,7 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:
@@ -11573,7 +11573,7 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 20:
 			info->name = "fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->fill_opacity;
 			return GF_OK;
 		case 21:
@@ -11603,7 +11603,7 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 26:
 			info->name = "line-increment";
-			info->fieldType = SVG_LineIncrement_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->line_increment;
 			return GF_OK;
 		case 27:
@@ -11613,7 +11613,7 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 28:
 			info->name = "solid-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->solid_opacity;
 			return GF_OK;
 		case 29:
@@ -11623,7 +11623,7 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 30:
 			info->name = "stop-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stop_opacity;
 			return GF_OK;
 		case 31:
@@ -11638,7 +11638,7 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 33:
 			info->name = "stroke-dashoffset";
-			info->fieldType = SVG_StrokeDashOffset_datatype;
+			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_dashoffset;
 			return GF_OK;
 		case 34:
@@ -11658,7 +11658,7 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 37:
 			info->name = "stroke-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_opacity;
 			return GF_OK;
 		case 38:
@@ -11893,7 +11893,7 @@ static GF_Err gf_svg_video_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 7:
 			info->name = "audio-level";
-			info->fieldType = SVG_AudioLevel_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->audio_level;
 			return GF_OK;
 		case 8:
@@ -11928,7 +11928,7 @@ static GF_Err gf_svg_video_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 14:
 			info->name = "viewport-fill-opacity";
-			info->fieldType = SVG_Opacity_datatype;
+			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill_opacity;
 			return GF_OK;
 		case 15:

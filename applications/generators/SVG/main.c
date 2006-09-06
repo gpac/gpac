@@ -530,10 +530,6 @@ void setAttributeType(SVGAttribute *att)
 			strcpy(att->impl_type, "SVG_FillRule");
 		} else if (!strcmp(att->svg_name, "font-family")) {
 			strcpy(att->impl_type, "SVG_FontFamily");
-		} else if (!strcmp(att->svg_name, "stroke-miterlimit")) {
-			strcpy(att->impl_type, "SVG_StrokeMiterLimit");
-		} else if (!strcmp(att->svg_name, "stroke-width")) {
-			strcpy(att->impl_type, "SVG_StrokeWidth");
 		} else if (!strcmp(att->svg_name, "calcMode")) {
 			strcpy(att->impl_type, "SMIL_CalcMode");
 		} else if (!strcmp(att->svg_name, "values")) {
@@ -544,7 +540,9 @@ void setAttributeType(SVGAttribute *att)
 			strcpy(att->impl_type, "SMIL_KeySplines");
 		} else if (!strcmp(att->svg_name, "keyPoints")) {
 			strcpy(att->impl_type, "SMIL_KeyPoints");
-		} else if (!strcmp(att->svg_name, "from") || !strcmp(att->svg_name, "to") || !strcmp(att->svg_name, "by")) {
+		} else if (!strcmp(att->svg_name, "from") || 
+				   !strcmp(att->svg_name, "to") || 
+				   !strcmp(att->svg_name, "by")) {
 			strcpy(att->impl_type, "SMIL_AnimateValue");
 		} else if (!strcmp(att->svg_name, "additive")) {
 			strcpy(att->impl_type, "SMIL_Additive");
@@ -643,7 +641,8 @@ void setAttributeType(SVGAttribute *att)
 			strcpy(att->impl_type, "SVG_Boolean");
 		} else if (!strcmp(att->svg_name, "choice")) {
 			strcpy(att->impl_type, "LASeR_Choice");
-		} else if (!strcmp(att->svg_name, "size") || !strcmp(att->svg_name, "delta")) {
+		} else if (!strcmp(att->svg_name, "size") || 
+				   !strcmp(att->svg_name, "delta")) {
 			strcpy(att->impl_type, "LASeR_Size");
 		} else if (!strcmp(att->svg_name, "spreadMethod")) {
 			strcpy(att->impl_type, "SVG_SpreadMethod");
@@ -656,30 +655,12 @@ void setAttributeType(SVGAttribute *att)
 			fprintf(stdout, "Warning: using type SVG_String for attribute %s.\n", att->svg_name);
 		}
 	} else {
-		if (!strcmp(att->svg_name, "fill-opacity")) {
-			strcpy(att->impl_type, "SVG_Opacity");
-		} else if (!strcmp(att->svg_name, "opacity")) {
-			strcpy(att->impl_type, "SVG_Opacity");
-		} else if (!strcmp(att->svg_name, "solid-opacity")) {
-			strcpy(att->impl_type, "SVG_Opacity");
-		} else if (!strcmp(att->svg_name, "stop-opacity")) {
-			strcpy(att->impl_type, "SVG_Opacity");
-		} else if (!strcmp(att->svg_name, "stroke-opacity")) {
-			strcpy(att->impl_type, "SVG_Opacity");
-		} else if (!strcmp(att->svg_name, "viewport-fill-opacity")) {
-			strcpy(att->impl_type, "SVG_Opacity");
-		} else if (!strcmp(att->svg_name, "audio-level")) {
-			strcpy(att->impl_type, "SVG_AudioLevel");
-		} else if (!strcmp(att->svg_name, "stroke-dashoffset")) {
-			strcpy(att->impl_type, "SVG_StrokeDashOffset");
-		} else if (!strcmp(att->svg_name, "color")) {
+		if (!strcmp(att->svg_name, "color")) {
 			strcpy(att->impl_type, "SVG_Paint");
 		} else if (!strcmp(att->svg_name, "syncTolerance")) {
 			strcpy(att->impl_type, "SMIL_SyncTolerance");
 		} else if (!strcmp(att->svg_name, "syncToleranceDefault")) {
 			strcpy(att->impl_type, "SMIL_SyncTolerance");
-		} else if (!strcmp(att->svg_name, "line-increment")) {
-			strcpy(att->impl_type, "SVG_LineIncrement");
 		} else if (!strcmp(att->svg_name, "transform")) {
 			strcpy(att->impl_type, "SVG_Matrix");
 		} else if (!strcmp(att->svg_name, "event") || !strcmp(att->svg_name, "ev:event")) {

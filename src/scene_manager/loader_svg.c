@@ -157,16 +157,6 @@ void svg_reset_defered_animations(GF_List *l)
 	}
 }
 
-static Bool is_svg_animation_tag(u32 tag)
-{
-	return (tag == TAG_SVG_set ||
-			tag == TAG_SVG_animate ||
-			tag == TAG_SVG_animateColor ||
-			tag == TAG_SVG_animateTransform ||
-			tag == TAG_SVG_animateMotion || 
-			tag == TAG_SVG_discard)?1:0;
-}
-
 u32 svg_get_node_id(GF_SVGParser *parser, char *nodename)
 {
 	GF_Node *n;
@@ -499,6 +489,19 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 				svg_post_process_href(parser, iri);
 			}
 		} else if (!strnicmp(att->name, "xmlns", 5)) {
+		} else if (!stricmp(att->name, "ev:event") &&  tag == TAG_SVG_handler) {
+			/* When the handler element specifies the event attribute, an implicit listener is defined */
+			GF_Node *node = (GF_Node *)elt;
+			SVGlistenerElement *listener;
+			listener = (SVGlistenerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
+			gf_node_register((GF_Node *)listener, node);
+			gf_list_add( ((GF_ParentNode *)node)->children, listener);
+			/* this listener listens to the given type of event */
+			((SVGhandlerElement *)node)->ev_event.type = listener->event.type = gf_dom_event_type_by_name(att->value);
+			listener->handler.target = (SVGElement *)node;
+			/* this listener listens with the parent of the handler as the event target */
+			listener->target.target = parent;
+			gf_dom_listener_add((GF_Node *) parent, (GF_Node *) listener);
 		} else {
 			u32 evtType = SVG_DOM_EVT_UNKNOWN;
 			if (!strncmp(att->name, "on", 2)) evtType = gf_dom_event_type_by_name(att->name + 2);

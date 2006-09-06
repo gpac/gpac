@@ -1051,6 +1051,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	}
 	gf_mx_v(sr->ev_mx);
 
+
 #if 0
 	if (sr->frame_number == 0 && sr->user->EventProc) {
 		GF_Event evt;
@@ -1065,6 +1066,30 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	gf_sg_activate_routes(sr->scene);
 
 #ifndef GPAC_DISABLE_SVG
+	{
+		GF_Node *root = gf_sg_get_root_node(sr->scene);
+		GF_DOM_Event evt;
+		if (gf_dom_listener_count(root)) {
+			u32 i, count;
+			count = gf_dom_listener_count(root);
+			for (i=0;i<count; i++) {
+				SVGlistenerElement *l = gf_dom_listener_get(root, i);
+				if (l->event.type == SVG_DOM_EVT_CPU) {
+					GF_SystemRTInfo sys_rti;
+					if (gf_sys_get_rti(500, &sys_rti, GF_RTI_ALL_PROCESSES_TIMES)) {
+						evt.type = SVG_DOM_EVT_CPU;
+						evt.cpu_percentage = sys_rti.total_cpu_usage;
+						//printf("%d\n",sys_rti.total_cpu_usage);
+						gf_dom_event_fire(root, NULL, &evt);
+					} 
+				} else if (l->event.type == SVG_DOM_EVT_BATTERY) { //&& l->observer.target == (SVGElement *)node) {
+					evt.type = SVG_DOM_EVT_BATTERY;
+					gf_sys_get_battery_state(&evt.onBattery, &evt.batteryState, &evt.batteryLevel);
+					gf_dom_event_fire(root, NULL, &evt);
+				}
+			}
+		}
+	}
 	if (gf_sg_notify_smil_timed_elements(sr->scene)) {
 		sr->draw_next_frame = 1;
 	}

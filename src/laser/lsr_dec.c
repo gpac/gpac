@@ -420,7 +420,7 @@ static void lsr_get_color(GF_LASeRCodec *lsr, u32 idx, SVG_Color *color)
 }
 
 
-static void lsr_read_line_increment_type(GF_LASeRCodec *lsr, SVG_LineIncrement *li, const char *name)
+static void lsr_read_line_increment_type(GF_LASeRCodec *lsr, SVG_Number *li, const char *name)
 {
 	u32 val;
 	GF_LSR_READ_INT(lsr, val, 1, "choice");
@@ -3446,7 +3446,7 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 coded_t
 		paint = (SVG_Paint *)val;
 		lsr_read_paint(lsr, val, "val"); 
 		break;
-	case SVG_Opacity_datatype:
+/*
 	case SVG_AudioLevel_datatype:
 		n = val;
 		GF_LSR_READ_INT(lsr, is_default, 1, "isDefaultValue"); 
@@ -3456,6 +3456,7 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 coded_t
 			n->value = lsr_read_fixed_clamp(lsr, "val");
 		}
 		break;
+*/
 	case SVG_Matrix_datatype:
 		switch (tr_type) {
 		case SVG_TRANSFORM_SCALE:
@@ -3477,12 +3478,8 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 coded_t
 		}
 		break;
 	case SVG_Number_datatype:
-	case SVG_StrokeMiterLimit_datatype:
 	case SVG_FontSize_datatype:
-	case SVG_StrokeDashOffset_datatype:
-	case SVG_StrokeWidth_datatype:
 	case SVG_Length_datatype:
-	case SVG_LineIncrement_datatype:
 		n = val;
 		/*coordinate !!*/
 		if (coded_type==76) {
@@ -3524,10 +3521,12 @@ static void lsr_read_update_value(GF_LASeRCodec *lsr, GF_Node *node, u32 coded_t
 			}
 		}
 		break;
+/*
 	case SVG_NumberOrPercentage_datatype:
 		n = val;
 		lsr_read_value_with_units(lsr, val, "val");
 		break;
+*/
 	case SVG_Coordinates_datatype:
 		lsr_read_float_list(lsr, *(GF_List **)val, "val");
 		break;
