@@ -3269,10 +3269,8 @@ static void JSScript_Load(GF_Node *node)
 		break;
 #ifndef GPAC_DISABLE_SVG
 	case TAG_SVG_script:
-		JSScript_LoadSVG(node);
-		break;
 	case TAG_SVG_handler:
-		JSScript_LoadSVGHandlerElement(node);
+		JSScript_LoadSVG(node);
 		break;
 #endif
 	default:
