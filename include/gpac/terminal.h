@@ -112,7 +112,7 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com);
 GF_Err gf_term_set_size(GF_Terminal *term, u32 NewWidth, u32 NewHeight);
 
 /*decodes all pending media and render frame. This can only be used when the terminal runs
-in the non-threaded mode(GF_TERM_INIT_NOT_THREADED flag set)*/
+in the non-threaded mode(GF_TERM_NOT_THREADED flag set)*/
 GF_Err gf_term_process(GF_Terminal *term);
 
 /*post user interaction to terminal*/

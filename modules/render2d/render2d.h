@@ -45,9 +45,6 @@ typedef struct _render_2d
 	/*simple counter for composite texture check*/
 	u32 frame_num;
 
-	/*current background color*/
-	u32 back_color;
-
 	/*tracking status*/
 	Bool is_tracking;
 	struct _drawable_context *grab_ctx;
@@ -67,9 +64,9 @@ typedef struct _render_2d
 	Bool locked;
 	Bool scalable_zoom, enable_yuv_hw;
 
-	/*current output info: screen size and top-left point of video surface, and current scaled scene size*/
-	u32 out_width, out_height, out_x, out_y, cur_width, cur_height;
-	/*scale factor (scaleble zoom only)*/
+	/*current output info: top-left point of scene viewport (according to user AR settings), and current scaled scene size*/
+	u32 offset_x, offset_y, cur_width, cur_height;
+	/*scale factor (scalable zoom only)*/
 	Fixed scale_x, scale_y;
 	/*rotation angle*/
 	Fixed rotation;

@@ -176,6 +176,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 			mouse_start_timer(ctx, hWnd, vout);
 		}
 		break;
+
 	case WM_TIMER:
 		if (wParam==10) {
 			if (ctx->fullscreen && (ctx->cursor_type!=GF_CURSOR_HIDE)) {
@@ -288,8 +289,61 @@ send_key:
 	return DefWindowProc (hWnd, msg, wParam, lParam);
 }
 
+#ifndef WS_EX_LAYERED
+#define WS_EX_LAYERED 0x80000 
+#define LWA_COLORKEY   0x00000001
+#define LWA_ALPHA      0x00000002
+#endif
+typedef BOOL (WINAPI* typSetLayeredWindowAttributes)(HWND,COLORREF,BYTE,DWORD);
+
+
+static void SetWindowless(GF_VideoOutput *vout, HWND hWnd)
+{
+	const char *opt;
+	u8 a, r, g, b;
+	COLORREF ckey;
+	typSetLayeredWindowAttributes _SetLayeredWindowAttributes;
+	HMODULE hUser32;
+	u32 isWin2K;
+	OSVERSIONINFO Version = {sizeof(OSVERSIONINFO)};
+	GetVersionEx(&Version);
+	isWin2K = (Version.dwPlatformId == VER_PLATFORM_WIN32_NT && Version.dwMajorVersion >= 5); 
+	if (!isWin2K) return;
+	
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Enabling windowless mode\n"));
+	hUser32 = GetModuleHandle("USER32.DLL");
+	if (hUser32 == NULL) return;
+
+	_SetLayeredWindowAttributes = (typSetLayeredWindowAttributes) GetProcAddress(hUser32,"SetLayeredWindowAttributes");
+	if (_SetLayeredWindowAttributes == NULL) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[DX Out] Win32 layered windows not supported\n"));
+		return;
+	}
+
+	SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
+
+	/*get background ckey*/
+	opt = gf_modules_get_option((GF_BaseInterface *)vout, "Rendering", "ColorKey");
+	if (!opt) {
+		gf_modules_set_option((GF_BaseInterface *)vout, "Rendering", "ColorKey", "FFFEFEFE");
+		opt = "FFFEFEFE";
+	}
+
+	sscanf(opt, "%02X%02X%02X%02X", &a, &r, &g, &b);
+	ckey = RGB(r, g, b);
+	if (a<255)
+		_SetLayeredWindowAttributes(hWnd, ckey, a, LWA_COLORKEY|LWA_ALPHA);
+	else
+		_SetLayeredWindowAttributes(hWnd, ckey, 0, LWA_COLORKEY);
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Using color key %s\n", opt));
+}
+
+ 
+
 u32 DD_WindowThread(void *par)
 {
+	u32 flags;
 	RECT rc;
 	MSG msg;
 	WNDCLASS wc;
@@ -308,13 +362,19 @@ u32 DD_WindowThread(void *par)
 	wc.lpszClassName = "GPAC DirectDraw Output";
 	RegisterClass (&wc);
 
+	flags = ctx->switch_res;
+	ctx->switch_res = 0;
+
 	if (!ctx->os_hwnd) {
-		ctx->os_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw Output", WS_OVERLAPPEDWINDOW, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+		if (flags & GF_TERM_WINDOWLESS) ctx->windowless = 1;
+
+		ctx->os_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw Output", ctx->windowless ? WS_POPUP : WS_OVERLAPPEDWINDOW, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+
 		if (ctx->os_hwnd == NULL) {
 			ctx->th_state = 2;
 			return 1;
 		}
-		if (ctx->switch_res) {
+		if (flags & GF_TERM_INIT_HIDE) {
 			ShowWindow(ctx->os_hwnd, SW_HIDE);
 		} else {
 			SetForegroundWindow(ctx->os_hwnd);
@@ -328,6 +388,8 @@ u32 DD_WindowThread(void *par)
 		ctx->off_w = rc.right - rc.left - 100;
 		ctx->off_h = rc.bottom - rc.top - 100;
 		ctx->owns_hwnd = 1;
+
+		if (ctx->windowless) SetWindowless(vout, ctx->os_hwnd);
 	}
 
 	ctx->fs_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw FS Output", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
@@ -361,7 +423,7 @@ u32 DD_WindowThread(void *par)
 }
 
 
-void DD_SetupWindow(GF_VideoOutput *dr, Bool hide)
+void DD_SetupWindow(GF_VideoOutput *dr, u32 flags)
 {
 	DDContext *ctx = (DDContext *)dr->opaque;
 
@@ -370,7 +432,7 @@ void DD_SetupWindow(GF_VideoOutput *dr, Bool hide)
 		/*override window proc*/
 		SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, (DWORD) DD_WindowProc);
 	}
-	ctx->switch_res = hide;
+	ctx->switch_res = flags;
 	/*create our event thread - since we always have a dedicated window for fullscreen, we need that
 	even when a window is passed to us*/
 	ctx->th = gf_th_new();
@@ -451,13 +513,41 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 	case GF_EVT_SET_CAPTION:
 		if (evt->caption.caption) SetWindowText(ctx->os_hwnd, evt->caption.caption);
 		break;
+	case GF_EVT_MOVE:
+		if (evt->move.relative == 2) {
+			u32 x, y, fsw, fsh;
+			x = y = 0;
+			fsw = GetSystemMetrics(SM_CXSCREEN);
+			fsh = GetSystemMetrics(SM_CYSCREEN);
+
+			if (evt->move.align_x==1) x = (fsw - ctx->width) / 2;
+			else if (evt->move.align_x==2) x = fsw - ctx->width;
+
+			if (evt->move.align_y==1) y = (fsh - ctx->height) / 2;
+			else if (evt->move.align_y==2) y = fsh - ctx->height;
+
+			SetWindowPos(ctx->os_hwnd, NULL, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+		}
+		else if (evt->move.relative) {
+			POINT pt;
+			pt.x = pt.y = 0;
+			MapWindowPoints(ctx->os_hwnd, NULL, &pt, 1);
+			SetWindowPos(ctx->os_hwnd, NULL, evt->move.x + pt.x, evt->move.y + pt.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+		} else {
+			SetWindowPos(ctx->os_hwnd, NULL, evt->move.x, evt->move.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+		}
+		break;
 	case GF_EVT_SHOWHIDE:
 		ShowWindow(ctx->os_hwnd, evt->show.show_type ? SW_SHOW : SW_HIDE);
 		break;
 	/*if scene resize resize window*/
 	case GF_EVT_SIZE:
 		if (ctx->owns_hwnd) {
-			SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width + ctx->off_w, evt->size.height + ctx->off_h, SWP_NOZORDER | SWP_NOMOVE);
+			if (ctx->windowless)
+				SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE);
+			else 
+				SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width + ctx->off_w, evt->size.height + ctx->off_h, SWP_NOZORDER | SWP_NOMOVE);
+
 			if (ctx->fullscreen) {
 				ctx->store_width = evt->size.width;
 				ctx->store_height = evt->size.height;

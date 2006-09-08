@@ -671,6 +671,9 @@ GF_MediaObject *gf_is_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_t
 			&& is_match_obj_type(obj->type, obj_type_hint)
 			) return obj;
 	}
+	/*we cannot create an OD manager at this point*/
+	if (obj_type_hint==GF_MEDIA_OBJECT_UNDEF) return NULL;
+
 	/*create a new object identification*/
 	obj = gf_mo_new(is->root_od->term);
 	obj->OD_ID = OD_ID;

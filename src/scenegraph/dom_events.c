@@ -122,6 +122,7 @@ static void svg_process_event(SVGlistenerElement *listen, GF_DOM_Event *event)
 		return;
 	}
 #endif
+	if (handler->sgprivate->tag != TAG_SVG_handler) return;
 	if (!handler->handle_event) return;
 	if (handler->ev_event.type != event->type) return;
 	handler->handle_event(handler, event);

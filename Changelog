@@ -1,5 +1,8 @@
 Latest CVS changes: 27/07/06
-  - added GPAC log system - doc still to come
+  - added windowless mode on Win32: transparent background color is defined in the config file ( [Rendering] ColorKey )
+  - added iTunes tag support in GPAC clients (ID3 tags not supported yet)
+  - fixed some iTunes tags handling bug, and added cover art support (extract/set) in MP4Box
+  - added GPAC log system
   - major speed improvements in MPEG-4/VRML scripts and SVG uDOM regarding node creation
 
 21/07/06: GPAC 0.4.2

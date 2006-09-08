@@ -53,6 +53,7 @@ void set_echo_off(Bool echo_off);
 
 Bool is_connected = 0;
 Bool startup_file = 0;
+GF_User user;
 GF_Terminal *term;
 u64 Duration;
 GF_Err last_error = GF_OK;
@@ -65,6 +66,13 @@ static u32 Volume=100;
 static char the_url[GF_MAX_PATH];
 static Bool no_mime_check = 0;
 static Bool be_quiet = 0;
+
+/*windowless options*/
+u32 align_mode = 0;
+u32 init_w = 0;
+u32 init_h = 0;
+u32 last_x, last_y;
+Bool right_down = 0;
 
 #ifndef GPAC_READ_ONLY
 void dump_frame(GF_Terminal *term, char *rad_path, u32 dump_type, u32 frameNum);
@@ -84,7 +92,7 @@ void PrintUsage()
 		"\t        \"info\"       : logs error+warning+info messages\n"
 		"\t        \"debug\"      : logs all messages\n"
 		"\n"
-		"\t-log-tool lt:   sets tool(s) to log. List of \':\'-separated values:\n"
+		"\t-log-tools lt:  sets tool(s) to log. List of \':\'-separated values:\n"
 		"\t        \"core\"       : libgpac core\n"
 		"\t        \"coding\"     : bitstream formats (audio, video, scene)\n"
 		"\t        \"container\"  : container formats (ISO File, MPEG-2 TS, AVI, ...)\n"
@@ -104,12 +112,17 @@ void PrintUsage()
 		"\t        \"none\"       : no tool logged\n"
 		"\t        \"all\"        : all tools logged\n"
 		"\n"
+		"\t-size WxH:      specifies visual size (default: scene size)\n"
+		"\t-no-wnd:        uses windowless mode (Win32 only)\n"
+		"\t-align vh:      specifies v and h alignment for windowless mode\n"
+		"                   possible v values: t(op), m(iddle), b(ottom)\n"
+		"                   possible h values: l(eft), m(iddle), r(ight)\n"
+		"                   default alignment is top-left\n"
 		"Dumper Options:\n"
 		"\t-bmp [times]:   dumps given frames to bmp\n"
 		"\t-raw [times]:   dumps given frames to bmp\n"
 		"\t-avi [times]:   dumps given file to raw avi\n"
 		"\t-fps FPS:       specifies frame rate for AVI dumping (default: 25.0)\n"
-		"\t-size WxH:      specifies size for dumping (default: scene size)\n"
 		"\t-2d:            uses 2D renderer\n"
 		"\t-3d:            uses 3D renderer\n"
 		"\t-fill:          uses fill aspect ratio for dumping (default: none)\n"
@@ -304,11 +317,28 @@ static void ResetCaption()
 	if (display_rti) return;
 	event.type = GF_EVT_SET_CAPTION;
 	if (is_connected) {
-		char *str = strrchr(the_url, '\\');
-		if (!str) str = strrchr(the_url, '/');
-		event.caption.caption = str ? str+1 : the_url;
+		char szName[1024];
+		NetInfoCommand com;
+		/*get any service info*/
+		if (!startup_file && gf_term_get_service_info(term, gf_term_get_root_object(term), &com) == GF_OK) {
+			strcpy(szName, "");
+			if (com.track_info) { 
+				char szBuf[10];
+				sprintf(szBuf, "%02d ", (u32) (com.track_info>>16) );
+				strcat(szName, szBuf);
+			}
+			if (com.artist) { strcat(szName, com.artist); strcat(szName, " "); }
+			if (com.name) { strcat(szName, com.name); strcat(szName, " "); }
+			if (com.album) { strcat(szName, "("); strcat(szName, com.album); strcat(szName, ")"); }
+			
+			event.caption.caption = szName;
+		} else {
+			char *str = strrchr(the_url, '\\');
+			if (!str) str = strrchr(the_url, '/');
+			event.caption.caption = str ? str+1 : the_url;
+		}
 	} else {
-		event.caption.caption = "GPAC MP4Client";
+		event.caption.caption = "GPAC MP4Client " GPAC_VERSION;
 	}
 	gf_term_user_event(term, &event);
 }
@@ -327,6 +357,8 @@ u32 get_sys_col(int idx)
 
 Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
+	if (!term) return 0;
+
 	switch (evt->type) {
 	case GF_EVT_UPDATE_RTI:
 		UpdateRTInfo(evt->caption.caption);
@@ -413,6 +445,27 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		gf_term_set_option(term, GF_OPT_FULLSCREEN, !gf_term_get_option(term, GF_OPT_FULLSCREEN));
 		return 0;
 
+	case GF_EVT_RIGHTDOWN:
+		right_down = 1;
+		last_x = evt->mouse.x;
+		last_y = evt->mouse.y;
+		return 0;
+	case GF_EVT_RIGHTUP:
+		right_down = 0;
+		last_x = evt->mouse.x;
+		last_y = evt->mouse.y;
+		return 0;
+	case GF_EVT_MOUSEMOVE:
+		if (right_down && (user.init_flags & GF_TERM_WINDOWLESS) ) {
+			GF_Event move;
+			move.move.x = evt->mouse.x - last_x;
+			move.move.y = evt->mouse.y - last_y;
+			move.type = GF_EVT_MOVE;
+			move.move.relative = 1;
+			gf_term_user_event(term, &move);
+		}
+		return 0;
+
 	/*we use CTRL and not ALT for keys, since windows shortcuts keypressed with ALT*/
 	case GF_EVT_KEYDOWN:
 		if (!(evt->key.key_states & GF_KM_CTRL)) return 0;
@@ -455,8 +508,22 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			is_connected = 0;
 			Duration = 0;
 		}
+		if (init_w && init_h) {
+			gf_term_set_size(term, init_w, init_h);
+		}
 		ResetCaption();
 		break;
+	case GF_EVT_SIZE:
+		if (user.init_flags & GF_TERM_WINDOWLESS) {
+			GF_Event move;
+			move.type = GF_EVT_MOVE;
+			move.move.align_x = align_mode & 0xFF;
+			move.move.align_y = (align_mode>>8) & 0xFF;
+			move.move.relative = 2;
+			gf_term_user_event(term, &move);
+		}
+		break;
+
 	case GF_EVT_QUIT:
 		Run = 0;
 		break;
@@ -725,7 +792,6 @@ int main (int argc, char **argv)
 	Double fps = 25.0;
 	Bool ret, fill_ar, visible;
 	char *url_arg, *the_cfg, *rti_file;
-	GF_User user;
 	GF_SystemRTInfo rti;
 	FILE *playlist = NULL;
 	FILE *logfile = NULL;
@@ -786,7 +852,16 @@ int main (int argc, char **argv)
 		} else if (!strcmp(arg, "-log-tools")) {
 			gf_log_set_tools(parse_log_tools(argv[i+1]));
 			i++;
-		} else {
+		} else if (!strcmp(arg, "-align")) {
+			if (argv[i+1][0]=='m') align_mode = 1;
+			else if (argv[i+1][0]=='b') align_mode = 2;
+			align_mode <<= 8;
+			if (argv[i+1][1]=='m') align_mode |= 1;
+			else if (argv[i+1][1]=='r') align_mode |= 2;
+			i++;
+		}
+		else if (!strcmp(arg, "-no-wnd")) user.init_flags |= GF_TERM_WINDOWLESS;
+		else {
 			PrintUsage();
 			return 1;
 		}
@@ -813,10 +888,13 @@ int main (int argc, char **argv)
 
 	/*setup dumping options*/
 	if (dump_mode) {
-		if (rend_mode==2) user.init_flags |= GF_TERM_INIT_FORCE_3D;
-		else if (rend_mode==1) user.init_flags |= GF_TERM_INIT_FORCE_2D;
-		user.init_flags |= GF_TERM_INIT_NOT_THREADED /*| GF_TERM_INIT_HIDE*/;
+		if (rend_mode==2) user.init_flags |= GF_TERM_FORCE_3D;
+		else if (rend_mode==1) user.init_flags |= GF_TERM_FORCE_2D;
+		user.init_flags |= GF_TERM_NOT_THREADED /*| GF_TERM_INIT_HIDE*/;
 		if (!visible) user.init_flags |= GF_TERM_INIT_HIDE;
+	} else {
+		init_w = width;
+		init_h = height;
 	}
 
 	fprintf(stdout, "Loading modules ... ");
@@ -1100,12 +1178,16 @@ int main (int argc, char **argv)
 		case '2':
 		case '3':
 		{
+			GF_Terminal *a_term;
 			u32 now = gf_term_get_time_in_ms(term);
 			Bool reconnect = (is_connected && !startup_file) ? 1 : 0;
 			str = gf_cfg_get_key(cfg_file, "Rendering", "RendererName");
 			if (strstr(str, "2D") && (c=='2')) { fprintf(stdout, "Already using 2D Renderer\n"); break; }
 			if (strstr(str, "3D") && (c=='3')) { fprintf(stdout, "Already using 3D Renderer\n"); break; }
-			gf_term_del(term);
+			if (is_connected) gf_term_disconnect(term);
+			a_term = term;
+			term = NULL;
+			gf_term_del(a_term);
 			gf_cfg_set_key(cfg_file, "Rendering", "RendererName", (c=='2') ? "GPAC 2D Renderer" : "GPAC 3D Renderer");
 			term = gf_term_new(&user);
 			if (!term) {

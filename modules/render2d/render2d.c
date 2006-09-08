@@ -39,8 +39,8 @@ void R2D_MapCoordsToAR(Render2D *sr, s32 inX, s32 inY, Fixed *x, Fixed *y)
 		inX = inX - sr->compositor->width /2;
 		inY = sr->compositor->height/2 - inY;
 	} else {
-		inX -= sr->out_x;
-		inY -= sr->out_y;
+		inX -= sr->offset_x;
+		inY -= sr->offset_y;
 	}
 	*x = INT2FIX(inX);
 	*y = INT2FIX(inY);
@@ -48,12 +48,9 @@ void R2D_MapCoordsToAR(Render2D *sr, s32 inX, s32 inY, Fixed *x, Fixed *y)
 	/*if no size info scaling is never applied*/
 	if (!sr->compositor->has_size_info) return;
 
-	if (sr->scalable_zoom) {
-		*x = gf_muldiv(*x, INT2FIX(sr->cur_width), INT2FIX(sr->out_width));
-		*y = gf_muldiv(*y, INT2FIX(sr->cur_height), INT2FIX(sr->out_height));
-	} else {
-		*x = gf_muldiv(*x, INT2FIX(sr->compositor->scene_width ), INT2FIX(sr->out_width));
-		*y = gf_muldiv(*y, INT2FIX(sr->compositor->scene_height), INT2FIX(sr->out_height));
+	if (!sr->scalable_zoom) {
+		*x = gf_muldiv(*x, INT2FIX(sr->compositor->scene_width ), INT2FIX(sr->compositor->width));
+		*y = gf_muldiv(*y, INT2FIX(sr->compositor->scene_height), INT2FIX(sr->compositor->height));
 	}
 }
 
@@ -82,6 +79,10 @@ static void R2D_SetUserTransform(Render2D *sr, Fixed zoom, Fixed tx, Fixed ty, B
 //	gf_mx2d_add_scale(&sr->top_effect->transform, sr->zoom, sr->zoom);
 	gf_mx2d_add_translation(&sr->top_effect->transform, sr->trans_x, sr->trans_y);
 	if (sr->rotation) gf_mx2d_add_rotation(&sr->top_effect->transform, 0, 0, sr->rotation);
+
+	if (!sr->surface->center_coords) 
+		gf_mx2d_add_translation(&sr->top_effect->transform, INT2FIX(sr->offset_x), INT2FIX(sr->offset_y));
+
 	sr->compositor->draw_next_frame = 1;
 	sr->top_effect->invalidate_all = 1;
 
@@ -98,10 +99,10 @@ static void R2D_SetUserTransform(Render2D *sr, Fixed zoom, Fixed tx, Fixed ty, B
 			/*cannot get params for scroll events*/
 			evt.type = SVG_DOM_EVT_SCROLL;
 		} else {
-			evt.screen_rect.x = INT2FIX(sr->out_x);
-			evt.screen_rect.y = INT2FIX(sr->out_y);
-			evt.screen_rect.width = INT2FIX(sr->out_width);
-			evt.screen_rect.height = INT2FIX(sr->out_height);
+			evt.screen_rect.x = INT2FIX(sr->offset_x);
+			evt.screen_rect.y = INT2FIX(sr->offset_y);
+			evt.screen_rect.width = INT2FIX(sr->cur_width);
+			evt.screen_rect.height = INT2FIX(sr->cur_height);
 			evt.prev_translate.x = old_tx;
 			evt.prev_translate.y = old_ty;
 			evt.new_translate.x = sr->trans_x;
@@ -709,13 +710,12 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	Render2D *sr = (Render2D *)vr->user_priv;
 	GF_Node *top_node = gf_sg_get_root_node(sr->compositor->scene);
 
-	if (!top_node || !sr->out_width) return;
+	if (!top_node /*|| !sr->out_width*/) return;
 
 	if (!sr->main_surface_setup) {
 		sr->use_dom_events = 0;
 		sr->main_surface_setup = 1;
 		sr->surface->center_coords = 1;
-		sr->surface->default_back_color = 0xFF000000;
 
 		sr->top_effect->is_pixel_metrics = gf_sg_use_pixel_metrics(sr->compositor->scene);
 		sr->top_effect->min_hsize = INT2FIX(MIN(sr->compositor->scene_width, sr->compositor->scene_height)) / 2;
@@ -724,7 +724,6 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 		{
 			u32 node_tag = gf_node_get_tag(top_node);
 			if ((node_tag>=GF_NODE_RANGE_FIRST_SVG) && (node_tag<=GF_NODE_RANGE_LAST_SVG)) {
-				sr->surface->default_back_color = 0xFFFFFFFF;
 				sr->surface->center_coords = 0;
 				sr->main_surface_setup = 2;
 				sr->use_dom_events = 1;
@@ -755,10 +754,9 @@ void R2D_DrawScene(GF_VisualRenderer *vr)
 	sr->top_effect->invalidate_all = 0;
 
 	/*and flush*/
-	rc.x = sr->out_x; 
-	rc.y = sr->out_y; 
-	rc.w = sr->out_width;	
-	rc.h = sr->out_height;		
+	rc.x = rc.y = 0; 
+	rc.w = sr->compositor->width;	
+	rc.h = sr->compositor->height;		
 	sr->compositor->video_out->Flush(sr->compositor->video_out, &rc);
 	sr->frame_num++;
 }
@@ -774,25 +772,22 @@ static GF_Err R2D_RecomputeAR(GF_VisualRenderer *vr)
 {
 	Double ratio;
 	GF_Event evt;
+	u32 out_width, out_height;
 	Fixed scaleX, scaleY;
 	Render2D *sr = (Render2D *)vr->user_priv;
 	if (!sr->compositor->scene_height || !sr->compositor->scene_width) return GF_OK;
 	if (!sr->compositor->height || !sr->compositor->width) return GF_OK;
 
-	sr->out_width = sr->compositor->width;
-	sr->out_height = sr->compositor->height;
 	sr->cur_width = sr->compositor->scene_width;
-	assert(sr->cur_width );
 	sr->cur_height = sr->compositor->scene_height;
-	sr->out_x = 0;
-	sr->out_y = 0;
+	sr->offset_x = sr->offset_y = 0;
 
 	/*force complete clean*/
 	sr->top_effect->invalidate_all = 1;
 
 	if (!sr->compositor->has_size_info && !(sr->compositor->override_size_flags & 2) ) {
-		sr->compositor->scene_width = sr->cur_width = sr->out_width;
-		sr->compositor->scene_height = sr->cur_height = sr->out_height;
+		sr->cur_width = sr->compositor->width;
+		sr->cur_height = sr->compositor->height;
 		R2D_SetScaling(sr, FIX_ONE, FIX_ONE);
 		/*and resize hardware surface*/
 		evt.type = GF_EVT_VIDEO_SETUP;
@@ -800,60 +795,70 @@ static GF_Err R2D_RecomputeAR(GF_VisualRenderer *vr)
 		evt.size.height = sr->cur_height;
 		return sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
 	}
+	out_width = sr->compositor->width;
+	out_height = sr->compositor->height;
 
 	switch (sr->compositor->aspect_ratio) {
 	case GF_ASPECT_RATIO_FILL_SCREEN:
 		break;
 	case GF_ASPECT_RATIO_16_9:
-		sr->out_width = sr->compositor->width;
-		sr->out_height = 9 * sr->compositor->width / 16;
-		if (sr->out_height>sr->compositor->height) {
-			sr->out_height = sr->compositor->height;
-			sr->out_width = 16 * sr->compositor->height / 9;
+		out_width = sr->compositor->width;
+		out_height = 9 * sr->compositor->width / 16;
+		if (out_height>sr->compositor->height) {
+			out_height = sr->compositor->height;
+			out_width = 16 * sr->compositor->height / 9;
 		}
 		break;
 	case GF_ASPECT_RATIO_4_3:
-		sr->out_width = sr->compositor->width;
-		sr->out_height = 3 * sr->compositor->width / 4;
-		if (sr->out_height>sr->compositor->height) {
-			sr->out_height = sr->compositor->height;
-			sr->out_width = 4 * sr->compositor->height / 3;
+		out_width = sr->compositor->width;
+		out_height = 3 * sr->compositor->width / 4;
+		if (out_height>sr->compositor->height) {
+			out_height = sr->compositor->height;
+			out_width = 4 * sr->compositor->height / 3;
 		}
 		break;
 	default:
 		ratio = sr->compositor->scene_height;
 		ratio /= sr->compositor->scene_width;
-		if (sr->out_width * ratio > sr->out_height) {
-			sr->out_width = sr->out_height * sr->compositor->scene_width;
-			sr->out_width /= sr->compositor->scene_height;
+		if (out_width * ratio > out_height) {
+			out_width = out_height * sr->compositor->scene_width;
+			out_width /= sr->compositor->scene_height;
 		}
 		else {
-			sr->out_height = sr->out_width * sr->compositor->scene_height;
-			sr->out_height /= sr->compositor->scene_width;
+			out_height = out_width * sr->compositor->scene_height;
+			out_height /= sr->compositor->scene_width;
 		}
 		break;
 	}
-	sr->out_x = (sr->compositor->width - sr->out_width) / 2;
-	sr->out_y = (sr->compositor->height - sr->out_height) / 2;
+	sr->offset_x = (sr->compositor->width - out_width) / 2;
+	sr->offset_y = (sr->compositor->height - out_height) / 2;
+
+	scaleX = gf_divfix(INT2FIX(out_width), INT2FIX(sr->compositor->scene_width));
+	scaleY = gf_divfix(INT2FIX(out_height), INT2FIX(sr->compositor->scene_height));
 
 	if (!sr->scalable_zoom) {
 		sr->cur_width = sr->compositor->scene_width;
 		sr->cur_height = sr->compositor->scene_height;
-		scaleX = FIX_ONE;
-		scaleY = FIX_ONE;
+		out_width = FIX2INT(gf_divfix(INT2FIX(sr->compositor->width), scaleX));
+		out_height = FIX2INT(gf_divfix(INT2FIX(sr->compositor->height), scaleY));
+
+		sr->offset_x = (out_width - sr->cur_width) / 2;
+		sr->offset_y = (out_height - sr->cur_height) / 2;
+
+		scaleX = scaleY = FIX_ONE;
 	} else {
-		sr->cur_width = sr->out_width;
-		sr->cur_height = sr->out_height;
-		scaleX = gf_divfix(INT2FIX(sr->out_width), INT2FIX(sr->compositor->scene_width));
-		scaleY = gf_divfix(INT2FIX(sr->out_height), INT2FIX(sr->compositor->scene_height));
+		sr->cur_width = out_width;
+		sr->cur_height = out_height;
+		out_width = sr->compositor->width;
+		out_height = sr->compositor->height;
 	}
 	/*set scale factor*/
 	R2D_SetScaling(sr, scaleX, scaleY);
 	gf_sr_invalidate(sr->compositor, NULL);
 	/*and resize hardware surface*/
 	evt.type = GF_EVT_VIDEO_SETUP;
-	evt.size.width = sr->cur_width;
-	evt.size.height = sr->cur_height;
+	evt.size.width = out_width;
+	evt.size.height = out_height;
 	return sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
 }
 
@@ -1044,6 +1049,10 @@ void R2D_DrawBitmap(VisualSurface2D *surf, struct _gf_sr_texture_handler *txh, G
 	if (tmp >= final.y)
 		start_y = FIX2INT( gf_divfix(tmp - final.y, h_scale) );
 	
+	/*add AR offset */
+	clipped_final.x += surf->render->offset_x;
+	clipped_final.y += surf->render->offset_y;
+
 	dst_wnd.x = (u32) clipped_final.x;
 	dst_wnd.y = (u32) clipped_final.y;
 	dst_wnd.w = (u32) clipped_final.width;

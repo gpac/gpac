@@ -1417,37 +1417,41 @@ static Fixed gf_path_get_dash(GF_PenSettings *pen, u32 dash_slot, u32 *next_slot
 /* Credits go to Raph Levien for libart / art_vpath_dash */
 
 /* FIXEME - NOT DONE - Merge first and last subpaths when first and last dash segment are joined a closepath. */
-static GF_Err gf_path_mergedashes(GF_Path *gp, u32 first_index)
+static GF_Err gf_path_mergedashes(GF_Path *gp, u32 start_contour_index)
 {
-	u32 i, first_pt, nb_pts;
-	if (first_index) {
-		nb_pts = 1+gp->contours[first_index] - gp->contours[first_index-1];
-		first_pt = gp->contours[first_index-1]+1;
+	u32 i, dash_first_pt, dash_nb_pts;
+	if (start_contour_index) {
+		dash_nb_pts = gp->contours[start_contour_index] - gp->contours[start_contour_index-1];
+		dash_first_pt = gp->contours[start_contour_index-1]+1;
 	} else {
-		nb_pts = gp->contours[first_index]+1;
-		first_pt = 0;
+		dash_nb_pts = gp->contours[start_contour_index]+1;
+		dash_first_pt = 0;
 	}
 	/*skip first point of first dash in subpath (same as last point of last dash)*/
-	i = first_pt+1;
-	for (;i<nb_pts; i++) {
-		GF_Err e = gf_path_add_line_to_vec(gp, &gp->points[i]);
+	for (i=1;i<dash_nb_pts; i++) {
+		GF_Err e = gf_path_add_line_to_vec(gp, &gp->points[dash_first_pt + i]);
 		if (e) return e;
 	}
 	/*remove initial dash*/
-	memmove(gp->points+first_pt, gp->points+first_pt+nb_pts, sizeof(GF_Point2D)*(gp->n_points-nb_pts));
-	memmove(gp->tags+first_pt, gp->tags+first_pt+nb_pts, sizeof(u8)*(gp->n_points-nb_pts));
-	gp->n_points-=nb_pts;
-	for (i=first_index; i<gp->n_contours-1; i++) {
-		gp->contours[i] = gp->contours[i+1] - nb_pts; 
+	gp->n_points -= dash_nb_pts;
+	memmove(gp->points + dash_first_pt, gp->points + dash_first_pt + dash_nb_pts, sizeof(GF_Point2D)*(gp->n_points - dash_first_pt));
+	memmove(gp->tags + dash_first_pt, gp->tags + dash_first_pt + dash_nb_pts, sizeof(u8)*(gp->n_points - dash_first_pt));
+
+	for (i=start_contour_index; i<gp->n_contours-1; i++) {
+		gp->contours[i] = gp->contours[i+1] - dash_nb_pts; 
 	}
 	gp->n_contours--;
+	gp->contours = realloc(gp->contours, sizeof(u32)*gp->n_contours);
+
+/*
 	gp->points = realloc(gp->points, sizeof(GF_Point2D)*gp->n_points);
 	gp->tags = realloc(gp->tags, sizeof(u8)*gp->n_points);
-	gp->contours = realloc(gp->contours, sizeof(u32)*gp->n_contours);
+	gp->n_alloc_points = gp->n_points;
+*/
 	return 0;
 }
 
-static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_PenSettings *pen)
+static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_PenSettings *pen, Fixed length_scale)
 {
 	Fixed *dists;
 	Fixed totaldist;
@@ -1456,6 +1460,7 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 	s32 offsetinit, next_offset;
 	s32 toggleinit;
 	s32 firstindex;
+	Bool toggle_check;
 	GF_Err e;
 	u32 i, start_ind;
 	Fixed phase;
@@ -1469,8 +1474,10 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 	offsetinit = 0;
 
 	dash = gf_path_get_dash(pen, offsetinit, &next_offset);
+	if (length_scale) dash = gf_mulfix(dash, length_scale);
 	firstindex = -1;
-	
+	toggle_check = 0;
+
 	start_ind = 0;
 	dist = 0;
 
@@ -1503,6 +1510,7 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 			totaldist += dists[i];
 		}
 	}
+
 	/* subpath fits within first dash and no offset*/
 	if (!dist && totaldist <= dash) {
 		if (toggleinit) {
@@ -1538,13 +1546,15 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 			x = pts[i].x + gf_mulfix(a, dx);
 			y = pts[i].y + gf_mulfix(a, dy);
 			
-			if (toggle) {
-				e = gf_path_add_line_to(dashed, x, y);
-				if (e) goto err_exit;
-			}
-			else {
-				e = gf_path_add_move_to(dashed, x, y);
-				if (e) goto err_exit;
+			if (!toggle_check || ((x != pts[i].x) || (y != pts[i].y))) {
+				if (toggle) {
+					e = gf_path_add_line_to(dashed, x, y);
+					if (e) goto err_exit;
+				}
+				else {
+					e = gf_path_add_move_to(dashed, x, y);
+					if (e) goto err_exit;
+				}
 			}
 			
 			/* advance to next dash */
@@ -1552,15 +1562,18 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 			phase = 0;
 			offset = next_offset;
 			dash = gf_path_get_dash(pen, offset, &next_offset);
+			if (length_scale) dash = gf_mulfix(dash, length_scale);
 		}
 		/* end of line in subpath is next */
 		else {
 			phase += dists[i] - dist;
 			i ++;
+			toggle_check = 0;
 			dist = 0;
 			if (toggle) {
 				e = gf_path_add_line_to_vec(dashed, &pts[i]);
 				if (e) goto err_exit;
+				toggle_check = 1;
 				
 				if ( (firstindex>=0) && (i == (nb_pts - 1) && ((firstindex + 1) != (s32) start_ind ) ))  {
 					/*merge if closed path*/
@@ -1574,24 +1587,47 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 	}
 
 err_exit:
+//	pen->dash_offset = dist;
 	free(dists);
 	return GF_OK;
 }
 
 static GF_Path *gf_path_dash(GF_Path *path, GF_PenSettings *pen)
 {
-	u32 i, nb_pts;
+	u32 i, j, nb_pts;
 	GF_Point2D *pts;
+	Fixed length_scale = 0;
 	Fixed dash_off = pen->dash_offset;
 	GF_Path *dashed = gf_path_new();
 
+
+	/* calculate line lengths and update offset*/
+	if (pen->path_length) {
+		Fixed totaldist = 0;
+		nb_pts = 0;
+		for (i=0; i<path->n_contours; i++) {
+			pts = &path->points[nb_pts];
+			nb_pts = 1+path->contours[i] - nb_pts;
+
+			for (j=0; j<nb_pts-1; j++) {
+				GF_Point2D diff;
+				diff.x = pts[j+1].x - pts[j].x;
+				diff.y = pts[j+1].y - pts[j].y;
+				totaldist += gf_v2d_len(&diff);
+			}
+			nb_pts = 1+path->contours[i];
+		}
+		length_scale = gf_divfix(totaldist, pen->path_length);
+		pen->dash_offset = gf_mulfix(pen->dash_offset, length_scale);
+	}
 
 	nb_pts = 0;
 	for (i=0; i<path->n_contours; i++) {
 		pts = &path->points[nb_pts];
 		nb_pts = 1+path->contours[i] - nb_pts;
-		evg_dash_subpath(dashed, pts, nb_pts, pen);
+		evg_dash_subpath(dashed, pts, nb_pts, pen, length_scale);
 		nb_pts = 1+path->contours[i];
+//		if (length_scale) pen->dash_offset = gf_mulfix(pen->dash_offset, length_scale);
 	}
 	pen->dash_offset = dash_off;
 	dashed->flags |= GF_PATH_FILL_ZERO_NONZERO;

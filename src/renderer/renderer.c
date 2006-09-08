@@ -114,11 +114,11 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 				fs_width = sr->width;
 				fs_height = sr->height;
 			}
+			evt.type = GF_EVT_SIZE;
+			evt.size.width = sr->new_width;
+			evt.size.height = sr->new_height;
 			/*send resize event*/
 			if (!(sr->msg_type & GF_SR_CFG_WINDOWSIZE_NOTIF)) {
-				evt.type = GF_EVT_SIZE;
-				evt.size.width = sr->new_width;
-				evt.size.height = sr->new_height;
 				sr->video_out->ProcessEvent(sr->video_out, &evt);
 			}
 			if (restore_fs) {
@@ -131,6 +131,10 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 				gf_sr_set_output_size(sr, sr->new_width, sr->new_height);
 			}
 			sr->new_width = sr->new_height = 0;
+			
+//			if (!sr->user->os_window_handler) 
+//				GF_USER_SENDEVENT(sr->user, &evt);
+
 		}
 		/*aspect ratio modif*/
 		if (sr->msg_type & GF_SR_CFG_AR) {
@@ -228,7 +232,7 @@ static GF_Renderer *SR_New(GF_User *user)
 	tmp->user = user;
 
 	/*load renderer to check for GL flag*/
-	if (! (user->init_flags & (GF_TERM_INIT_FORCE_2D | GF_TERM_INIT_FORCE_3D)) ) {
+	if (! (user->init_flags & (GF_TERM_FORCE_2D | GF_TERM_FORCE_3D)) ) {
 		sOpt = gf_cfg_get_key(user->config, "Rendering", "RendererName");
 		if (sOpt) {
 			tmp->visual_renderer = (GF_VisualRenderer *) gf_modules_load_interface_by_name(user->modules, sOpt, GF_RENDERER_INTERFACE);
@@ -242,8 +246,8 @@ static GF_Renderer *SR_New(GF_User *user)
 		for (i=0; i<count; i++) {
 			tmp->visual_renderer = (GF_VisualRenderer *) gf_modules_load_interface(user->modules, i, GF_RENDERER_INTERFACE);
 			if (tmp->visual_renderer) {
-				if ((tmp->visual_renderer->bNeedsGL && (user->init_flags & GF_TERM_INIT_FORCE_2D)) 
-					|| (!tmp->visual_renderer->bNeedsGL && (user->init_flags & GF_TERM_INIT_FORCE_3D)) ) {
+				if ((tmp->visual_renderer->bNeedsGL && (user->init_flags & GF_TERM_FORCE_2D)) 
+					|| (!tmp->visual_renderer->bNeedsGL && (user->init_flags & GF_TERM_FORCE_3D)) ) {
 
 					gf_modules_close_interface((GF_BaseInterface *)tmp->visual_renderer);
 					tmp->visual_renderer = NULL;
@@ -563,18 +567,28 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 	sr->scene = scene_graph;
 	do_notif = 0;
 	if (scene_graph) {
+		const char *opt;
+		u32 tag;
+		SVGsvgElement *root;
 		Bool had_size_info = sr->has_size_info;
 		/*get pixel size if any*/
 		gf_sg_get_scene_size_info(sr->scene, &width, &height);
 		sr->has_size_info = (width && height) ? 1 : 0;
 		if (sr->has_size_info != had_size_info) sr->scene_width = sr->scene_height = 0;
 
+		/*default back color is black*/
+		if (! (sr->user->init_flags & GF_TERM_WINDOWLESS)) sr->back_color = 0xFF000000;
+
 #ifndef GPAC_DISABLE_SVG
-		/*hack for SVG where size is set in %*/
-		if (!sr->has_size_info) {
-			SVGsvgElement *root = (SVGsvgElement *) gf_sg_get_root_node(sr->scene);
-			u32 tag = gf_node_get_tag((GF_Node*)root);
-			if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+		root = (SVGsvgElement *) gf_sg_get_root_node(sr->scene);
+		tag = gf_node_get_tag((GF_Node*)root);
+		if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+
+			/*default back color is white*/
+			if (! (sr->user->init_flags & GF_TERM_WINDOWLESS)) sr->back_color = 0xFFFFFFFF;
+
+			/*hack for SVG where size is set in %*/
+			if (!sr->has_size_info) {
 				SVG_Length l;
 				sr->has_size_info = 1;
 				sr->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
@@ -593,6 +607,16 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 			}
 		}
 #endif
+		/*default back color is key color*/
+		if (sr->user->init_flags & GF_TERM_WINDOWLESS) {
+			opt = gf_cfg_get_key(sr->user->config, "Rendering", "ColorKey");
+			if (opt) {
+				u8 r, g, b, a;
+				sscanf(opt, "%02X%02X%02X%02X", &a, &r, &g, &b);
+				sr->back_color = GF_COL_ARGB(0xFF, r, g, b);
+			}
+		}
+
 		/*set scene size only if different, otherwise keep scaling/FS*/
 		if ( !width || (sr->scene_width!=width) || !height || (sr->scene_height!=height)) {
 			do_notif = sr->has_size_info || (!sr->scene_width && !sr->scene_height);
@@ -1310,6 +1334,7 @@ void gf_sr_user_event(GF_Renderer *sr, GF_Event *event)
 {
 	switch (event->type) {
 	case GF_EVT_SHOWHIDE:
+	case GF_EVT_MOVE:
 	case GF_EVT_SET_CAPTION:
 		sr->video_out->ProcessEvent(sr->video_out, event);
 		break;

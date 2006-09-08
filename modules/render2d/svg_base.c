@@ -300,11 +300,11 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 	if (svg->x.value || svg->y.value) gf_mx2d_add_translation(&eff->transform, svg->x.value, svg->y.value);
 	SVGSetViewport(eff, svg, is_root_svg);
 
-	/* TODO: FIX ME: this only works for single SVG elemnt in the doc*/
+	/* TODO: FIX ME: this only works for single SVG element in the doc*/
 	viewport_color = GF_COL_ARGB_FIXED(eff->svg_props->viewport_fill_opacity->value, eff->svg_props->viewport_fill->color.red, eff->svg_props->viewport_fill->color.green, eff->svg_props->viewport_fill->color.blue);
-	if (eff->surface->render->back_color != viewport_color) {
+	if (eff->surface->render->compositor->back_color != viewport_color) {
 		eff->invalidate_all = 1;
-		eff->surface->render->back_color = viewport_color;
+		eff->surface->render->compositor->back_color = viewport_color;
 	}
 		
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
@@ -484,7 +484,7 @@ void SVG_Init_switch(Render2D *sr, GF_Node *node)
 
 
 static void SVG_DrawablePostRender(Drawable *cs, SVGPropertiesPointers *backup_props, 
-								   SVGTransformableElement *elt, RenderEffect2D *eff, Bool rectangular)
+								   SVGTransformableElement *elt, RenderEffect2D *eff, Bool rectangular, Fixed path_length)
 {
 	GF_Matrix2D backup_matrix;
 	DrawableContext *ctx;
@@ -521,6 +521,7 @@ static void SVG_DrawablePostRender(Drawable *cs, SVGPropertiesPointers *backup_p
 			else if (GF_COL_A(ctx->aspect.fill_color) != 0xFF) ctx->transparent = 1;
 			else if (ctx->transform.m[1] || ctx->transform.m[3]) ctx->transparent = 1;
 		}
+		if (path_length) ctx->aspect.pen_props.path_length = path_length;
 		drawctx_store_original_bounds(ctx);
 		drawable_finalize_render(ctx, eff);
 	}
@@ -575,7 +576,7 @@ static void SVG_Render_rect(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)rect, (RenderEffect2D *)rs, 1);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)rect, (RenderEffect2D *)rs, 1, 0);
 }
 
 void SVG_Init_rect(Render2D *sr, GF_Node *node)
@@ -599,7 +600,7 @@ static void SVG_Render_circle(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)circle, (RenderEffect2D *)rs, 0);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)circle, (RenderEffect2D *)rs, 0, 0);
 }
 
 void SVG_Init_circle(Render2D *sr, GF_Node *node)
@@ -622,7 +623,7 @@ static void SVG_Render_ellipse(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)ellipse, (RenderEffect2D *)rs, 0);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)ellipse, (RenderEffect2D *)rs, 0, 0);
 }
 
 void SVG_Init_ellipse(Render2D *sr, GF_Node *node)
@@ -646,7 +647,7 @@ static void SVG_Render_line(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)line, (RenderEffect2D *)rs, 0);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)line, (RenderEffect2D *)rs, 0, 0);
 }
 
 void SVG_Init_line(Render2D *sr, GF_Node *node)
@@ -681,7 +682,7 @@ static void SVG_Render_polyline(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)polyline, (RenderEffect2D *)rs, 0);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)polyline, (RenderEffect2D *)rs, 0, 0);
 }
 
 void SVG_Init_polyline(Render2D *sr, GF_Node *node)
@@ -717,7 +718,7 @@ static void SVG_Render_polygon(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)polygon, (RenderEffect2D *)rs, 0);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)polygon, (RenderEffect2D *)rs, 0, 0);
 }
 
 void SVG_Init_polygon(Render2D *sr, GF_Node *node)
@@ -745,7 +746,7 @@ static void SVG_Render_path(GF_Node *node, void *rs)
 		gf_node_dirty_clear(node, 0);
 		cs->node_changed = 1;
 	}
-	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)path, eff, 0);
+	SVG_DrawablePostRender(cs, &backup_props, (SVGTransformableElement *)path, eff, 0, (path->pathLength.type==SVG_NUMBER_VALUE) ? path->pathLength.value : 0);
 }
 
 void SVG_Init_path(Render2D *sr, GF_Node *node)

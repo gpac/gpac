@@ -460,7 +460,7 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 	ctx->os_handle = os_handle;
 	ctx->is_init = 0;
 	ctx->is_3D_out = cfg ? 1 : 0;
-	ctx->systems_memory = (init_flags & GF_TERM_INIT_NOT_THREADED) ? 2 : 0;
+	ctx->systems_memory = (init_flags & GF_TERM_NOT_THREADED) ? 2 : 0;
 	if (!SDLOUT_InitSDL()) return GF_IO_ERR;
 	ctx->sdl_th_state = 0;
 	gf_th_run(ctx->sdl_th, SDLVid_EventProc, dr);

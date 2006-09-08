@@ -550,6 +550,8 @@ typedef struct
 	Fixed dash_offset;
 	/*! The dash pattern used for curstom dashing*/
 	GF_DashSettings *dash_set;
+	/*! The author-specified path length. Ignored if <= 0*/
+	Fixed path_length;
 } GF_PenSettings;
 
 /*! brief builds the vectorial outline of a path

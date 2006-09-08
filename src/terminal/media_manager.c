@@ -62,7 +62,7 @@ GF_MediaManager *gf_mm_new(GF_Terminal *term, u32 threading_mode)
 
 	tmp->interrupt_cycle_ms = 33;
 	tmp->threading_mode = threading_mode;
-	if (term->user->init_flags & GF_TERM_INIT_NOT_THREADED) return tmp;
+	if (term->user->init_flags & GF_TERM_NOT_THREADED) return tmp;
 
 	tmp->th = gf_th_new();
 	tmp->state = 1;

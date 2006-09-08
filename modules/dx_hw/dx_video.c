@@ -169,8 +169,8 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 	DDCONTEXT
 	dd->os_hwnd = (HWND) os_handle;
 	
-	if (init_flags & GF_TERM_INIT_NOT_THREADED) dd->systems_memory = 2;
-	DD_SetupWindow(dr, init_flags & GF_TERM_INIT_HIDE);
+	if (init_flags & GF_TERM_NOT_THREADED) dd->systems_memory = 2;
+	DD_SetupWindow(dr, init_flags);
 	/*fatal error*/
 	if (!dd->os_hwnd) return GF_IO_ERR;
 	dd->cur_hwnd = dd->os_hwnd;
@@ -277,12 +277,12 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 }
 
 
-
 static GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 {
 	RECT rc;
 	HRESULT hr;
 	DDCONTEXT;
+
 
 	if (!dd) return GF_BAD_PARAM;
 	if (dd->is_3D_out) {
@@ -295,6 +295,18 @@ static GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 	}
 	if (!dd->ddraw_init) return GF_BAD_PARAM;
 
+	if (!dd->fullscreen && dd->windowless) {
+		HDC hdc;
+		/*lock backbuffer HDC*/
+		dr->LockOSContext(dr, 1);
+		/*get window hdc and copy from backbuffer to window*/
+		hdc = GetDC(dd->os_hwnd);
+		BitBlt(hdc, 0, 0, dd->width, dd->height, dd->lock_hdc, 0, 0, SRCCOPY );
+		ReleaseDC(dd->os_hwnd, hdc);
+		/*unlock backbuffer HDC*/
+		dr->LockOSContext(dr, 0);
+		return GF_OK;
+	}
 	if (dest) {
 		POINT pt;
 		pt.x = dest->x;

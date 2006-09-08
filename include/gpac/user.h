@@ -78,6 +78,7 @@ enum {
 	GF_EVT_SHOWHIDE,	/*window show/hide (minimized or other). This is also sent to the user to signal focus switch in fullscreen*/
 	GF_EVT_SET_CURSOR,	/*set mouse cursor*/
 	GF_EVT_SET_CAPTION,	/*set window caption*/
+	GF_EVT_MOVE,		/*move window*/
 	GF_EVT_REFRESH, /*window needs repaint (whenever needed, eg restore, hide->show, background refresh, paint)*/
 	GF_EVT_QUIT,	/*window is being closed*/
 	/*video hw setup message:
@@ -238,6 +239,18 @@ typedef struct
 	const char *caption;
 } GF_EventCaption;
 
+/*event proc: never posted*/
+typedef struct
+{
+	/*GF_EVT_MOVE*/
+	u8 type;
+	s32 x, y;
+	/*0: absolute positionning, 1: relative move, 2: use alignment constraints*/
+	Bool relative;
+	/*0: left/top, 1: middle, 2: right/bottom*/
+	u8 align_x, align_y;
+} GF_EventMove;
+
 /*duration may be signaled several times: it may change when setting up streams
 event proc return value: ignored*/
 typedef struct
@@ -351,6 +364,7 @@ typedef union
 	GF_EventCursor cursor;
 	GF_EventAuthorize auth;
 	GF_EventSysColors sys_cols;
+	GF_EventMove move;
 } GF_Event;
 	
 
@@ -359,7 +373,7 @@ enum
 	/*display should be hidden upon initialization*/
 	GF_TERM_INIT_HIDE = 1,
 	/*no audio renderer will be created*/
-	GF_TERM_INIT_NO_AUDIO = 1<<1,
+	GF_TERM_NO_AUDIO = 1<<1,
 	/*terminal is used to extract content: 
 		* audio render is disabled
 		* media codecs are not threaded
@@ -368,11 +382,13 @@ enum
 		* frame-rate regulation is disabled (no sleep)
 		* the user is responsible for updating the terminal
 	*/
-	GF_TERM_INIT_NOT_THREADED = 1<<2,
+	GF_TERM_NOT_THREADED = 1<<2,
 	/*forces 2D renderer, regardless of config file*/
-	GF_TERM_INIT_FORCE_2D = 1<<3,
+	GF_TERM_FORCE_2D = 1<<3,
 	/*forces 3D renderer, regardless of config file*/
-	GF_TERM_INIT_FORCE_3D = 1<<4
+	GF_TERM_FORCE_3D = 1<<4,
+	/*works in windowless mode - experimental, only supported on Win32*/
+	GF_TERM_WINDOWLESS = 1<<5
 };
 
 /*user object for all callbacks*/
