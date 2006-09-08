@@ -80,7 +80,7 @@ GF_AudioRenderer *gf_sr_ar_load(GF_User *user)
 	ar->mixer = gf_mixer_new(ar);
 	ar->user = user;
 
-	if (! (user->init_flags & GF_TERM_INIT_NO_AUDIO) ) {
+	if (! (user->init_flags & GF_TERM_NO_AUDIO) ) {
 
 		/*get a prefered renderer*/
 		sOpt = gf_cfg_get_key(user->config, "Audio", "DriverName");

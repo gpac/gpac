@@ -150,7 +150,14 @@ void VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 
 	/*setup clipper*/
 	if (surf->center_coords) {
-		rc = gf_rect_center(INT2FIX(surf->width), INT2FIX(surf->height));
+		if (!surf->composite) {
+			if (surf->render->scalable_zoom)
+				rc = gf_rect_center(INT2FIX(surf->render->compositor->width), INT2FIX(surf->render->compositor->height));
+			else
+				rc = gf_rect_center(INT2FIX(surf->render->cur_width + 2*surf->render->offset_x), INT2FIX(surf->render->cur_height + 2*surf->render->offset_y));
+		} else {
+			rc = gf_rect_center(INT2FIX(surf->width), INT2FIX(surf->height));
+		}
 	} else {
 		rc.x = 0;
 		rc.width = INT2FIX(surf->width);
@@ -164,6 +171,19 @@ void VS2D_InitDraw(VisualSurface2D *surf, RenderEffect2D *eff)
 	/*setup surface, brush and pen */
 	VS2D_InitSurface(surf);
 
+	/*setup top clipper*/
+	if (surf->center_coords) {
+		rc = gf_rect_center(INT2FIX(surf->width), INT2FIX(surf->height));
+	} else {
+		rc.width = INT2FIX(surf->width);
+		rc.height = INT2FIX(surf->height);
+		rc.x = 0;
+		rc.y = rc.height;
+		if (surf->render->surface==surf) {
+			rc.x += INT2FIX(surf->render->offset_x);
+			rc.y += INT2FIX(surf->render->offset_y);
+		}
+	}
 	/*setup viewport*/
 	if (gf_list_count(surf->view_stack)) {
 		M_Viewport *vp = (M_Viewport *) gf_list_get(surf->view_stack, 0);

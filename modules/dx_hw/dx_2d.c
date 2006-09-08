@@ -28,27 +28,6 @@
 #define DDCONTEXT	DDContext *dd = (DDContext *)dr->opaque;
 #define DDBACK		DDSurface *pBack = (DDSurface *) gf_list_get(dd->surfaces, 0);
 
-static GF_Err DD_Clear(GF_VideoOutput *dr)
-{
-	HRESULT hr = S_OK;
-	DDBLTFX ddbltfx;
-	DDCONTEXT;
-
-	if (!dd->pPrimary) return GF_OK;
-
-	ZeroMemory( &ddbltfx, sizeof(ddbltfx) );
-	ddbltfx.dwSize = sizeof(ddbltfx);
-	ddbltfx.dwFillColor = 0;
-
-#ifdef USE_DX_3
-	hr = IDirectDrawSurface_Blt(dd->pPrimary, NULL, NULL, NULL, DDBLT_COLORFILL, &ddbltfx );
-#else
-	hr = IDirectDrawSurface7_Blt(dd->pPrimary, NULL, NULL, NULL, DDBLT_COLORFILL, &ddbltfx );
-#endif
-	return FAILED(hr) ? GF_IO_ERR : GF_OK;
-}
-
-
 static GF_Err DD_ClearBackBuffer(GF_VideoOutput *dr, u32 color)
 {
 	HRESULT hr;
@@ -95,7 +74,6 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height)
 
 
 	if (dd->pBack && !dd->fullscreen && (dd->width == Width) && (dd->height == Height) ) {
-		DD_Clear(dr);
 		return GF_OK;
 	}
 
@@ -138,7 +116,6 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height)
 		dd->fs_store_width = Width;
 		dd->fs_store_height = Height;
 	}
-	DD_Clear(dr);
 	DD_ClearBackBuffer(dr, 0xFF000000);
 
 	if (!dd->yuv_init) DD_InitYUV(dr);

@@ -663,7 +663,7 @@ StrikeInfo2D *drawctx_get_strikeinfo(DrawableContext *ctx, GF_Path *path)
 
 	/*node changed or outline not build*/
 	now = lp ? R2D_LP_GetLastUpdateTime(lp) : si->last_update_time;
-	if (!si->outline || (now!=si->last_update_time) || (si->line_scale != ctx->aspect.line_scale)) {
+	if (!si->outline || (now!=si->last_update_time) || (si->line_scale != ctx->aspect.line_scale) || (si->path_length != ctx->aspect.pen_props.path_length)) {
 		u32 i;
 		Fixed w = ctx->aspect.pen_props.width;
 		Fixed dash_o = ctx->aspect.pen_props.dash_offset;

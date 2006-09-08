@@ -174,7 +174,7 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 		}
 	}
 
-	if (term->user->init_flags & GF_TERM_INIT_NOT_THREADED){
+	if (term->user->init_flags & GF_TERM_NOT_THREADED){
 		gf_mm_set_threading(term->mediaman, 1);
 	} else {
 		prio = GF_THREAD_PRIORITY_NORMAL;
@@ -238,9 +238,9 @@ GF_Terminal *gf_term_new(GF_User *user)
 	tmp->js_ifce.GetScriptFile = OnJSGetScriptFile;
 
 	/*this is not changeable at runtime*/
-	if (user->init_flags & GF_TERM_INIT_NOT_THREADED) {
+	if (user->init_flags & GF_TERM_NOT_THREADED) {
 		tmp->render_frames = 2;
-		user->init_flags |= GF_TERM_INIT_NO_AUDIO;
+		user->init_flags |= GF_TERM_NO_AUDIO;
 	} else {
 		cf = gf_cfg_get_key(user->config, "Systems", "NoVisualThread");
 		if (!cf || !stricmp(cf, "no")) {

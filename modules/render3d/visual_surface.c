@@ -874,7 +874,9 @@ void VS_InitRender(RenderEffect3D *eff)
 	/*clear if not in layer*/
 	else if (!in_layer) {
 		SFColor col;
-		col.red = col.green = col.blue = 0;
+		col.red = INT2FIX((eff->surface->render->compositor->back_color>>16)&0xFF) / 255;
+		col.green = INT2FIX((eff->surface->render->compositor->back_color>>8)&0xFF) / 255;
+		col.blue = INT2FIX((eff->surface->render->compositor->back_color)&0xFF) / 255;
 		/*if composite surface, clear with alpha = 0*/
 		VS3D_ClearSurface(eff->surface, col, (eff->surface==eff->surface->render->surface) ? FIX_ONE : 0);
 	}

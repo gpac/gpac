@@ -2432,6 +2432,19 @@ void wxOsmo4Frame::BuildChapterList(Bool reset_only)
 		m_chapters_start[m_num_chapters] = seg->startTime;
 		m_num_chapters++;
 	}
+
+	/*get any service info*/
+	NetInfoCommand com;
+	if (!m_bStartupFile && gf_term_get_service_info(m_term, root_od, &com) == GF_OK) {
+		wxString title("");
+		if (com.track_info) { title.Format("%02d ", (u32) (com.track_info>>16) ); }
+		if (com.artist) { title += com.artist; title += " "; }
+		if (com.name) { title += com.name; title += " "; }
+		if (com.album) { title += "("; title += com.album; title += ")"; }
+		
+		SetTitle(title);
+	}
+
 }
 
 void wxOsmo4Frame::OnChapterSel(wxCommandEvent & event)

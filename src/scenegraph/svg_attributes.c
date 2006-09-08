@@ -2685,7 +2685,7 @@ void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type)
 		return foc;
 	}
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Type not supported: %d.\n", attribute_type));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Cannot create animatable attribute pointer %d - Type not supported.\n", attribute_type));
 		break;
 	} 
 	return NULL;

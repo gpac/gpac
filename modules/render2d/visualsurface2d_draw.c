@@ -75,9 +75,8 @@ void VS2D_Clear(VisualSurface2D *surf, GF_IRect *rc, u32 BackColor)
 #endif
 	if (!surf->the_surface) return;
 	
-	if (!BackColor) {
-		if (!surf->composite) BackColor = surf->default_back_color;
-	}
+	if (!BackColor && !surf->composite) BackColor = surf->render->compositor->back_color;
+
 	surf->render->compositor->r2d->surface_clear(surf->the_surface, rc, BackColor);
 }
 

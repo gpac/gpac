@@ -312,7 +312,10 @@ void RenderMediaControl(GF_Node *node, void *rs)
 		}
 	} else {
 		stack->stream = gf_is_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF);
-		if (!stack->stream || !stack->stream->odm) return;
+		if (!stack->stream || !stack->stream->odm) {
+			if (stack->control->url.count) gf_term_invalidate_renderer(stack->parent->root_od->term);
+			return;
+		}
 		gf_sg_vrml_field_copy(&stack->url, &stack->control->url, GF_SG_VRML_MFURL);
 		ODM_SetMediaControl((GF_ObjectManager *) stack->stream->odm, stack);
 

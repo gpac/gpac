@@ -251,6 +251,8 @@ typedef struct
 	/*we also MUST handle width changes due to scale transforms, most content is designed with width=cst 
 	whatever the transformation*/
 	Fixed line_scale;
+	/*SVG path length*/
+	Fixed path_length;
 	/*set only for text*/
 	GF_Path *original;
 } StrikeInfo2D;

@@ -178,8 +178,8 @@ static void RenderBackground2D(GF_Node *node, void *rs)
 
 	if (!eff->draw_background) return;
 
-	if (eff->back_stack == eff->surface->back_stack)
-		eff->surface->render->back_color = GF_COL_ARGB_FIXED(FIX_ONE, bck->backColor.red, bck->backColor.green, bck->backColor.blue);
+//	if (eff->back_stack == eff->surface->back_stack)
+//		eff->surface->render->back_color = GF_COL_ARGB_FIXED(FIX_ONE, bck->backColor.red, bck->backColor.green, bck->backColor.blue);
 
 	if (eff->parent) {
 		group2d_add_to_context_list(eff->parent, &status->ctx);

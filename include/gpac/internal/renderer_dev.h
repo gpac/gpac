@@ -149,6 +149,9 @@ struct __tag_base_renderer
 	/*for size*/
 	u32 new_width, new_height;
 
+	/*current background color*/
+	u32 back_color;
+
 	/*unit box (1.0 size) and unit sphere (1.0 radius)*/
 	u32 draw_bvol;
 

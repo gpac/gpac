@@ -225,8 +225,6 @@ typedef struct _visual_surface_2D
 	/*currently active sensors*/
 	GF_List *sensors;	
 	Bool last_had_back;
-	/*black for BIFS, white for SVG/LASeR/etc*/
-	u32 default_back_color;
 
 	/*signals that the surface is attached to buffer/device/stencil*/
 	Bool is_attached;
