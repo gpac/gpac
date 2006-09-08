@@ -300,7 +300,7 @@ typedef BOOL (WINAPI* typSetLayeredWindowAttributes)(HWND,COLORREF,BYTE,DWORD);
 static void SetWindowless(GF_VideoOutput *vout, HWND hWnd)
 {
 	const char *opt;
-	u8 a, r, g, b;
+	u32 a, r, g, b;
 	COLORREF ckey;
 	typSetLayeredWindowAttributes _SetLayeredWindowAttributes;
 	HMODULE hUser32;

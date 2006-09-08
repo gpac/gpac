@@ -823,6 +823,8 @@ static void svg_parse_transform(SVG_Matrix *mat, char *attribute_content)
 	i = 0;
 	while (str[i] != 0) {
 		while (str[i] == ' ') i++;
+		if (str[i] == ',') i++;
+		while (str[i] == ' ') i++;
 		if (strstr(str+i, "scale")==str+i) {
 			Fixed sx, sy;
 			i += 5;
