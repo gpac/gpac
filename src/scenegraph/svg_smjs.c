@@ -2722,6 +2722,8 @@ void JSScript_LoadSVG(GF_Node *node)
 		node->sgprivate->PreDestroyNode = svg_script_predestroy;
 	}
 
+	if (node->sgprivate->tag == TAG_SVG_handler) return;
+
 	ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, script->textContent, strlen(script->textContent), 0, 0, &rval);
 	if (ret==JS_FALSE) {
 		node->sgprivate->scenegraph->js_ifce->ScriptMessage(node->sgprivate->scenegraph->js_ifce->callback, GF_SCRIPT_ERROR, "SVG: Invalid script");
@@ -2752,21 +2754,6 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 		return 0;
 	}
 	return 1;
-}
-
-void JSScript_LoadSVGHandlerElement(GF_Node *node)
-{
-	GF_SVGJS *svg_js;
-
-	if (!node->sgprivate->scenegraph->svg_js) {
-		if (JSScript_CreateSVGContext(node->sgprivate->scenegraph) != GF_OK) return;
-	}
-	svg_js = node->sgprivate->scenegraph->svg_js;
-	if (!node->sgprivate->PreDestroyNode ) {
-		svg_js->nb_scripts++;
-		node->sgprivate->PreDestroyNode = svg_script_predestroy;
-	}
-	return;
 }
 
 #endif

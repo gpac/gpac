@@ -888,7 +888,12 @@ static void SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 #endif
 		}
 	} else {
-		u32 tag = gf_node_get_tag((GF_Node *)a->xlink->href.target);
+		u32 tag;
+		if (!a->xlink->href.target) {
+			/* TODO: check if href can be resolved */
+			return;
+		} 
+		tag = gf_node_get_tag((GF_Node *)a->xlink->href.target);
 		if (tag == TAG_SVG_set ||
 			tag == TAG_SVG_animate ||
 			tag == TAG_SVG_animateColor ||

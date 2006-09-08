@@ -4646,11 +4646,11 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 		((SVG_IRI *)a->far_ptr)->type = ((SVG_IRI *)b->far_ptr)->type;
 		if ( ((SVG_IRI *)a->far_ptr)->iri) free(((SVG_IRI *)a->far_ptr)->iri);
 		((SVG_IRI *)a->far_ptr)->iri = strdup(((SVG_IRI *)b->far_ptr)->iri);
+		((SVG_IRI *)a->far_ptr)->target = ((SVG_IRI *)b->far_ptr)->target;
 		if (((SVG_IRI *)a->far_ptr)->type == SVG_IRI_ELEMENTID) {
 			GF_Node *n = (GF_Node *) ((SVG_IRI *)b->far_ptr)->target;
-			((SVG_IRI *)a->far_ptr)->target = ((SVG_IRI *)b->far_ptr)->target;
 			/*TODO Check if assigning IRI from # scenegraph can happen*/
-			gf_svg_register_iri(gf_node_get_graph(n), a->far_ptr);
+			if (n) gf_svg_register_iri(gf_node_get_graph(n), a->far_ptr);
 		}
 		return GF_OK;
 	
