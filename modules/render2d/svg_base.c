@@ -301,12 +301,13 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 	SVGSetViewport(eff, svg, is_root_svg);
 
 	/* TODO: FIX ME: this only works for single SVG element in the doc*/
-	viewport_color = GF_COL_ARGB_FIXED(eff->svg_props->viewport_fill_opacity->value, eff->svg_props->viewport_fill->color.red, eff->svg_props->viewport_fill->color.green, eff->svg_props->viewport_fill->color.blue);
-	if (eff->surface->render->compositor->back_color != viewport_color) {
-		eff->invalidate_all = 1;
-		eff->surface->render->compositor->back_color = viewport_color;
+	if (eff->svg_props->viewport_fill_opacity->type != SVG_PAINT_NONE) {
+		viewport_color = GF_COL_ARGB_FIXED((1-eff->svg_props->viewport_fill_opacity->value), eff->svg_props->viewport_fill->color.red, eff->svg_props->viewport_fill->color.green, eff->svg_props->viewport_fill->color.blue);
+		if (eff->surface->render->compositor->back_color != viewport_color) {
+			eff->invalidate_all = 1;
+			eff->surface->render->compositor->back_color = viewport_color;
+		}
 	}
-		
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
 		svg_get_nodes_bounds(node, svg->children, eff);
 		memcpy(eff->svg_props, &backup_props, styling_size);
