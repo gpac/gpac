@@ -569,7 +569,6 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 	if (scene_graph) {
 		const char *opt;
 		u32 tag;
-		SVGsvgElement *root;
 		Bool had_size_info = sr->has_size_info;
 		/*get pixel size if any*/
 		gf_sg_get_scene_size_info(sr->scene, &width, &height);
@@ -580,7 +579,8 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 		if (! (sr->user->init_flags & GF_TERM_WINDOWLESS)) sr->back_color = 0xFF000000;
 
 #ifndef GPAC_DISABLE_SVG
-		root = (SVGsvgElement *) gf_sg_get_root_node(sr->scene);
+		{
+		SVGsvgElement *root = (SVGsvgElement *) gf_sg_get_root_node(sr->scene);
 		tag = gf_node_get_tag((GF_Node*)root);
 		if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
 
@@ -605,6 +605,7 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 					height = 240; //FIX2INT(root->viewBox.height);
 				}
 			}
+		}
 		}
 #endif
 		/*default back color is key color*/
