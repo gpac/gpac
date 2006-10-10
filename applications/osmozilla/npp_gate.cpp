@@ -35,12 +35,8 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-
-////////////////////////////////////////////////////////////
-//
-// Implementation of plugin entry points (NPP_*)
-//
 #include "osmozilla.h"
+
 
 // here the plugin creates a plugin instance object which 
 // will be associated with this newly created NPP instance and 
@@ -196,14 +192,13 @@ void NPP_StreamAsFile (NPP instance, NPStream* stream, const char* fname)
 
 void NPP_Print (NPP instance, NPPrint* printInfo)
 {
-  if(instance == NULL)
-    return;
+	if(instance == NULL)
+		return;
 
-  nsPluginInstanceBase * plugin = (nsPluginInstanceBase *)instance->pdata;
-  if(plugin == NULL) 
-    return;
-
-  plugin->Print(printInfo);
+	nsPluginInstanceBase * plugin = (nsPluginInstanceBase *)instance->pdata;
+	if(plugin == NULL) 
+		return;
+	plugin->Print(printInfo);
 }
 
 void NPP_URLNotify(NPP instance, const char* url, NPReason reason, void* notifyData)
