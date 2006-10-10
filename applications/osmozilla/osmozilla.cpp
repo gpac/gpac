@@ -43,7 +43,11 @@
 
 #include "osmozilla.h"
 
+#include <gpac/terminal.h>
 #include <gpac/options.h>
+#include <gpac/internal/avilib.h>
+#include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/renderer_dev.h>
 
 nsIServiceManager *gServiceManager = NULL;
 
@@ -214,7 +218,7 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	gpac_cfg = "GPAC.cfg";
 #ifdef _DEBUG
 //#if 0
-	strcpy((char *) config_path, "D:\\CVS\\gpac\\bin\\w32_deb");
+	strcpy((char *) config_path, "c:\\Temp");
 #else
 	HKEY hKey = NULL;
 	DWORD dwSize;
@@ -592,6 +596,98 @@ void nsOsmozillaInstance::Play()
 void nsOsmozillaInstance::Stop()
 {
 	gf_term_disconnect(m_term);
+}
+
+void nsOsmozillaInstance::Print(NPPrint* printInfo)
+{
+	if (printInfo->mode == NP_EMBED)
+	{
+		NPEmbedPrint *ep = (NPEmbedPrint *)printInfo;
+#ifdef XP_MACOS
+		/*
+		ep->platformPrint contains a THPrint reference on MacOS
+		*/
+		}
+#endif  // XP_MACOS
+#ifdef XP_UNIX
+		/*
+		ep->platformPrint  contains a NPPrintCallbackStruct on Unix and
+		the plug-in location and size in the NPWindow are in page coordinates (720/ inch), but the printer requires point coordinates (72/inch)
+		*/
+#endif  // XP_UNIX
+#ifdef XP_WIN
+		/*
+		The coordinates for the window rectangle are in TWIPS format. 
+		This means that you need to convert the x-y coordinates using the Windows API call DPtoLP when you output text
+		*/
+		HDC pDC = (HDC)printInfo->print.embedPrint.platformPrint;
+		GF_VideoSurface fb;
+		LPBITMAPINFO info; // Structure for storing the DIB information,  
+							// it will be used by 'StretchDIBits()' 
+		int xsrc, ysrc;
+		int xdst, ydst;
+		u16 src_16;
+		COLORREF color;
+		unsigned char *src;
+		/*lock the source buffer */
+		gf_sr_get_screen_buffer(m_term->renderer, &fb);
+		HDC	srcDC = CreateCompatibleDC(pDC);
+		HBITMAP hbit = CreateCompatibleBitmap(srcDC, fb.width, fb.height);
+		SelectObject(srcDC, hbit);
+
+		for (ysrc=0; ysrc<fb.height; ysrc++)
+		{
+			src = fb.video_buffer + ysrc * fb.pitch;
+			for (xsrc=0; xsrc<fb.width; xsrc++)
+			{
+				switch(fb.pixel_format)
+				{
+				case GF_PIXEL_RGB_32:
+				case GF_PIXEL_ARGB:
+					color = RGB(src[2], src[1], src[0]);
+					src+=4;
+					break;
+				case GF_PIXEL_BGR_32:
+				case GF_PIXEL_RGBA:
+					color = RGB(src[1], src[2], src[3]);
+					src+=4;
+					break;
+				case GF_PIXEL_RGB_24:
+					color = RGB(src[0], src[1], src[2]);
+					src+=3;
+					break;
+				case GF_PIXEL_BGR_24:
+					color = RGB(src[2], src[1], src[0]);
+					src+=3;
+					break;
+				case GF_PIXEL_RGB_565:
+					src_16 = * ( (u16 *)src );
+					color = RGB((src_16 >> 3) & 0xfc, (src_16 << 3) & 0xf8, (src_16 >> 8) & 0xf8);
+					src+=2;
+					break;
+				case GF_PIXEL_RGB_555:
+					src_16 = * (u16 *)src;
+					color = RGB((src_16 << 3) & 0xf8, (src_16 >> 2) & 0xf8, (src_16 >> 7) & 0xf8);
+					src+=2;
+					break;
+				}
+				SetPixel(srcDC, xsrc, ysrc, color);
+			}
+		}
+
+		StretchBlt(pDC, printInfo->print.embedPrint.window.x, printInfo->print.embedPrint.window.y, printInfo->print.embedPrint.window.width, 
+			printInfo->print.embedPrint.window.height, srcDC, 0, 0, fb.width, fb.height, SRCCOPY); 
+		/*unlock GPAC frame buffer */
+		gf_sr_release_screen_buffer(m_term->renderer, &fb);
+		/* free allocated objects */
+		DeleteObject(hbit);
+		DeleteObject(srcDC);
+#endif   // XP_WIN
+	} else if (printInfo->mode == NP_FULL)
+	{
+		NPFullPrint *ep = (NPFullPrint *)printInfo;
+		// TODO present the print dialog and manage the print
+	}
 }
 
 #include <gpac/term_info.h>

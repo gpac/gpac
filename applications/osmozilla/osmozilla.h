@@ -141,7 +141,7 @@ public:
 	void Play();
 	void Stop();
 	void Update(const char *type, const char *commands);
-
+	void Print(NPPrint* printInfo);
 	Bool EventProc(GF_Event *evt);
 
 
