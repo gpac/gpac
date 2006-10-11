@@ -598,6 +598,29 @@ void nsOsmozillaInstance::Stop()
 	gf_term_disconnect(m_term);
 }
 
+PBITMAPINFO CreateBitmapInfoStruct(GF_VideoSurface *pfb)
+{ 
+    PBITMAPINFO pbmi; 
+    WORD    cClrBits; 
+
+	cClrBits = 32;
+
+    pbmi = (PBITMAPINFO) LocalAlloc(LPTR, 
+                    sizeof(BITMAPINFOHEADER)); 
+
+    pbmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER); 
+	pbmi->bmiHeader.biWidth = pfb->width;
+	pbmi->bmiHeader.biHeight = 1;
+    pbmi->bmiHeader.biPlanes = 1; 
+    pbmi->bmiHeader.biBitCount = cClrBits; 
+
+    pbmi->bmiHeader.biCompression = BI_RGB; 
+    pbmi->bmiHeader.biSizeImage = ((pbmi->bmiHeader.biWidth * cClrBits +31) & ~31) /8
+                                  * pbmi->bmiHeader.biHeight; 
+     pbmi->bmiHeader.biClrImportant = 0; 
+     return pbmi; 
+}
+
 void nsOsmozillaInstance::Print(NPPrint* printInfo)
 {
 	if (printInfo->mode == NP_EMBED)
@@ -624,6 +647,7 @@ void nsOsmozillaInstance::Print(NPPrint* printInfo)
 		GF_VideoSurface fb;
 		LPBITMAPINFO info; // Structure for storing the DIB information,  
 							// it will be used by 'StretchDIBits()' 
+		COLORREF c;
 		int xsrc, ysrc;
 		int xdst, ydst;
 		u16 src_16;
@@ -631,57 +655,81 @@ void nsOsmozillaInstance::Print(NPPrint* printInfo)
 		unsigned char *src;
 		/*lock the source buffer */
 		gf_sr_get_screen_buffer(m_term->renderer, &fb);
-		HDC	srcDC = CreateCompatibleDC(pDC);
-		HBITMAP hbit = CreateCompatibleBitmap(srcDC, fb.width, fb.height);
-		SelectObject(srcDC, hbit);
-
+		BITMAPINFO	*infoSrc = CreateBitmapInfoStruct(&fb);
+		float deltay = (float)printInfo->print.embedPrint.window.height/(float)fb.height;
+		int	ysuiv = 0;
+		unsigned char *ligne = (unsigned char *) LocalAlloc(GMEM_FIXED, fb.width*4);
 		for (ysrc=0; ysrc<fb.height; ysrc++)
 		{
+			unsigned char *dst = ligne;
 			src = fb.video_buffer + ysrc * fb.pitch;
 			for (xsrc=0; xsrc<fb.width; xsrc++)
 			{
-				switch(fb.pixel_format)
-				{
+				switch (fb.pixel_format) {
 				case GF_PIXEL_RGB_32:
 				case GF_PIXEL_ARGB:
-					color = RGB(src[2], src[1], src[0]);
+					dst[0] = src[0];
+					dst[1] = src[1];
+					dst[2] = src[2];
 					src+=4;
 					break;
 				case GF_PIXEL_BGR_32:
 				case GF_PIXEL_RGBA:
-					color = RGB(src[1], src[2], src[3]);
+					dst[0] = src[3];
+					dst[1] = src[2];
+					dst[2] = src[1];
 					src+=4;
 					break;
 				case GF_PIXEL_RGB_24:
-					color = RGB(src[0], src[1], src[2]);
+					dst[0] = src[2];
+					dst[1] = src[1];
+					dst[2] = src[0];
 					src+=3;
 					break;
 				case GF_PIXEL_BGR_24:
-					color = RGB(src[2], src[1], src[0]);
+					dst[0] = src[2];
+					dst[1] = src[1];
+					dst[2] = src[0];
 					src+=3;
 					break;
 				case GF_PIXEL_RGB_565:
 					src_16 = * ( (u16 *)src );
-					color = RGB((src_16 >> 3) & 0xfc, (src_16 << 3) & 0xf8, (src_16 >> 8) & 0xf8);
+					dst[2] = (src_16 >> 8) & 0xf8;
+					dst[2] += dst[2]>>5;
+					dst[1] = (src_16 >> 3) & 0xfc;
+					dst[1] += dst[1]>>6;
+					dst[0] = (src_16 << 3) & 0xf8;
+					dst[0] += dst[0]>>5;
 					src+=2;
 					break;
 				case GF_PIXEL_RGB_555:
 					src_16 = * (u16 *)src;
-					color = RGB((src_16 << 3) & 0xf8, (src_16 >> 2) & 0xf8, (src_16 >> 7) & 0xf8);
+					dst[2] = (src_16 >> 7) & 0xf8;
+					dst[2] += dst[2]>>5;
+					dst[1] = (src_16 >> 2) & 0xf8;
+					dst[1] += dst[1]>>5;
+					dst[0] = (src_16 << 3) & 0xf8;
+					dst[0] += dst[0]>>5;
 					src+=2;
 					break;
 				}
-				SetPixel(srcDC, xsrc, ysrc, color);
+				dst += 4;
 			}
+			int ycrt = ysuiv;
+			ysuiv = ((float)ysrc+1.0)*deltay;
+			int delta = ysuiv-ycrt;
+			StretchDIBits(
+				pDC, printInfo->print.embedPrint.window.x, ycrt+printInfo->print.embedPrint.window.y, printInfo->print.embedPrint.window.width, 
+				delta, 
+				0, 0, fb.width, 1,
+				ligne, infoSrc, DIB_RGB_COLORS, SRCCOPY);
 		}
 
-		StretchBlt(pDC, printInfo->print.embedPrint.window.x, printInfo->print.embedPrint.window.y, printInfo->print.embedPrint.window.width, 
-			printInfo->print.embedPrint.window.height, srcDC, 0, 0, fb.width, fb.height, SRCCOPY); 
 		/*unlock GPAC frame buffer */
 		gf_sr_release_screen_buffer(m_term->renderer, &fb);
-		/* free allocated objects */
-		DeleteObject(hbit);
-		DeleteObject(srcDC);
+		/* free temporary  objects */
+		GlobalFree(ligne);
+		LocalFree(infoSrc);
 #endif   // XP_WIN
 	} else if (printInfo->mode == NP_FULL)
 	{
