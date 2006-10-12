@@ -26,6 +26,42 @@
 #ifndef GPAC_DISABLE_SVG
 
 #include <gpac/nodes_svg.h>
+#include <gpac/internal/renderer_dev.h>
+
+/************************/
+/* Generic URI handling */
+/************************/
+
+Bool gf_svg_set_mfurl_from_uri(GF_Renderer *sr, MFURL *mfurl, SVG_IRI *iri) 
+{
+	Bool ret = 1;
+	SFURL *sfurl = NULL;
+	if (!iri->iri) return 0;
+
+	gf_sg_vrml_mf_reset(mfurl, GF_SG_VRML_MFURL);
+	mfurl->count = 1;
+	GF_SAFEALLOC(mfurl->vals, sizeof(SFURL))
+	sfurl = mfurl->vals;
+	sfurl->OD_ID = 0;
+#ifndef DANAE
+	if (!strncmp(iri->iri, "data:", 5)) {
+		const char *cache_dir = gf_cfg_get_key(sr->user->config, "General", "CacheDirectory");
+		ret = gf_svg_store_embedded_data(iri, cache_dir, "embedded_");
+	}
+#endif
+	sfurl->url = strdup(iri->iri);
+	return ret;
+}
+
+Bool gf_svg_check_url_change(MFURL *url, SVG_IRI *iri)
+{
+	if (url->count && !iri->iri) return 1;
+	if (!url->count && iri->iri) return 1;
+	if (!url->count) return 0;
+	if (!strcmp(url->vals[0].url, iri->iri)) return 0;
+	return 1;
+}
+
 
 Bool is_svg_animation_tag(u32 tag)
 {
@@ -37,6 +73,23 @@ Bool is_svg_animation_tag(u32 tag)
 			tag == TAG_SVG_discard)?1:0;
 }
 
+extern u32 cond_execution_nb;
+extern u32 cond_execution_time;
+
+static void lsr_conditional_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
+{	
+	SVGconditionalElement *cond = (SVGconditionalElement *)rti->timed_elt;
+	if (cond->updates.data) {
+		cond->updates.exec_command_list(cond);
+	} else if (gf_list_count(cond->updates.com_list)) {
+		u32 before = gf_sys_clock();
+		gf_sg_command_apply_list(cond->sgprivate->scenegraph, cond->updates.com_list, gf_node_get_scene_time((GF_Node*)cond) );
+		cond_execution_time += gf_sys_clock() - before;
+		cond_execution_nb ++;
+		fprintf(stderr,"Cond. exec: %d\r", cond_execution_nb);
+	}
+}
+
 Bool gf_sg_svg_node_init(GF_Node *node)
 {
 	switch (node->sgprivate->tag) {
@@ -45,6 +98,9 @@ Bool gf_sg_svg_node_init(GF_Node *node)
 			node->sgprivate->scenegraph->script_load(node);
 		return 1;
 	case TAG_SVG_conditional:
+		gf_smil_timing_init_runtime_info((SVGElement *)node);
+		((SVGElement *)node)->timing->runtime->activation = lsr_conditional_evaluate;
+		gf_smil_setup_events(node);
 		return 1;
 	case TAG_SVG_handler:
 		if (node->sgprivate->scenegraph->script_load) 
@@ -78,6 +134,7 @@ Bool gf_sg_svg_node_changed(GF_Node *node, GF_FieldInfo *field)
 	case TAG_SVG_animate: 
 	case TAG_SVG_animateColor: 
 	case TAG_SVG_animateTransform: 
+	case TAG_SVG_conditional: 
 		gf_smil_timing_modified(node, field);
 		return 1;
 	case TAG_SVG_audio: 

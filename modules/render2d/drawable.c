@@ -800,42 +800,49 @@ static GF_TextureHandler *svg_get_texture_handle(GF_Node *node, DOM_String uri)
 
 static void setup_SVG_drawable_context(DrawableContext *ctx, SVGPropertiesPointers props)
 {
+	Fixed clamped_solid_opacity = FIX_ONE;
+	Fixed clamped_fill_opacity = (props.fill_opacity->value < 0 ? 0 : (props.fill_opacity->value > FIX_ONE ? FIX_ONE : props.fill_opacity->value));
+	Fixed clamped_stroke_opacity = (props.stroke_opacity->value < 0 ? 0 : (props.stroke_opacity->value > FIX_ONE ? FIX_ONE : props.stroke_opacity->value));	
+
 	ctx->aspect.fill_alpha = 255;
 	ctx->aspect.filled = (props.fill->type != SVG_PAINT_NONE);
+
 	if (props.fill->type==SVG_PAINT_URI) {
 		if (svg_get_texture_type(ctx->node->owner, props.fill->uri) == TAG_SVG_solidColor) {
 			SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)svg_get_texture_target(ctx->node->owner, props.fill->uri);
-			ctx->aspect.fill_color = GF_COL_ARGB_FIXED(solidColorElt->properties->solid_opacity.value, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);			
+			if (solidColorElt) clamped_solid_opacity = (solidColorElt->properties->solid_opacity.value < 0 ? 0 : (solidColorElt->properties->solid_opacity.value > FIX_ONE ? FIX_ONE : solidColorElt->properties->solid_opacity.value));
+			ctx->aspect.fill_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);			
 		} else {
 			ctx->h_texture = svg_get_texture_handle(ctx->node->owner, props.fill->uri);
 			ctx->aspect.filled = 0;
 		}
 	}
 	else if (props.fill->color.type == SVG_COLOR_CURRENTCOLOR) {
-		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(props.fill_opacity->value, props.color->color.red, props.color->color.green, props.color->color.blue);
+		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(clamped_fill_opacity, props.color->color.red, props.color->color.green, props.color->color.blue);
 	} else if (props.fill->color.type == SVG_COLOR_RGBCOLOR) {
-		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(props.fill_opacity->value, props.fill->color.red, props.fill->color.green, props.fill->color.blue);
+		ctx->aspect.fill_color = GF_COL_ARGB_FIXED(clamped_fill_opacity, props.fill->color.red, props.fill->color.green, props.fill->color.blue);
 	} else if (props.fill->color.type >= SVG_COLOR_ACTIVE_BORDER) {
 		ctx->aspect.fill_color = ctx->surface->render->compositor->sys_colors[props.fill->color.type - 3];
-		ctx->aspect.fill_color |= ((u32) (props.fill_opacity->value*255) ) << 24;
+		ctx->aspect.fill_color |= ((u32) (clamped_fill_opacity*255) ) << 24;
 	}
 
 	ctx->aspect.has_line = (props.stroke->type != SVG_PAINT_NONE);
 	if (props.stroke->type==SVG_PAINT_URI) {
 		if (svg_get_texture_type(ctx->node->owner, props.stroke->uri) == TAG_SVG_solidColor) {
 			SVGsolidColorElement *solidColorElt = (SVGsolidColorElement *)svg_get_texture_target(ctx->node->owner, props.stroke->uri);
-			ctx->aspect.line_color = GF_COL_ARGB_FIXED(solidColorElt->properties->solid_opacity.value, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);
+			if (solidColorElt) clamped_solid_opacity = (solidColorElt->properties->solid_opacity.value < 0 ? 0 : (solidColorElt->properties->solid_opacity.value > FIX_ONE ? FIX_ONE : solidColorElt->properties->solid_opacity.value));
+			ctx->aspect.line_color = GF_COL_ARGB_FIXED(clamped_solid_opacity, solidColorElt->properties->solid_color.color.red, solidColorElt->properties->solid_color.color.green, solidColorElt->properties->solid_color.color.blue);
 		} else {
 			ctx->aspect.line_texture = svg_get_texture_handle(ctx->node->owner, props.stroke->uri);
 		}
 	}
 	else if (props.stroke->color.type == SVG_COLOR_CURRENTCOLOR) {
-		ctx->aspect.line_color = GF_COL_ARGB_FIXED(props.stroke_opacity->value, props.color->color.red, props.color->color.green, props.color->color.blue);
+		ctx->aspect.line_color = GF_COL_ARGB_FIXED(clamped_stroke_opacity, props.color->color.red, props.color->color.green, props.color->color.blue);
 	} else if (props.stroke->color.type == SVG_COLOR_RGBCOLOR) {
-		ctx->aspect.line_color = GF_COL_ARGB_FIXED(props.stroke_opacity->value, props.stroke->color.red, props.stroke->color.green, props.stroke->color.blue);
+		ctx->aspect.line_color = GF_COL_ARGB_FIXED(clamped_stroke_opacity, props.stroke->color.red, props.stroke->color.green, props.stroke->color.blue);
 	} else if (props.stroke->color.type >= SVG_COLOR_ACTIVE_BORDER) {
 		ctx->aspect.line_color = ctx->surface->render->compositor->sys_colors[SVG_COLOR_ACTIVE_BORDER - 3];
-		ctx->aspect.line_color |= ((u32) (props.stroke_opacity->value*255)) << 24;
+		ctx->aspect.line_color |= ((u32) (clamped_stroke_opacity*255)) << 24;
 	}
 	if (props.stroke_dasharray->type != SVG_STROKEDASHARRAY_NONE) {
 		ctx->aspect.pen_props.dash = GF_DASH_STYLE_CUSTOM_ABS;

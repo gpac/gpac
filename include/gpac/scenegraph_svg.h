@@ -29,6 +29,7 @@
 extern "C" {
 #endif
 
+#include <gpac/internal/terminal_dev.h>
 #include <gpac/scenegraph.h>
 #include <gpac/path2d.h>
 
@@ -74,6 +75,7 @@ enum {
 	SVG_Overlay_datatype					= 34,
 	SVG_TransformBehavior_datatype			= 35,
 	SVG_SpreadMethod_datatype				= 36,
+	SVG_TextAlign_datatype					= 37,
 
 	/* SVG Number */
 	SVG_Number_datatype						= 50,
@@ -561,6 +563,14 @@ enum {
 typedef u8 SVG_DisplayAlign;
 
 enum {
+	SVG_TEXTALIGN_INHERIT	= 0,
+	SVG_TEXTALIGN_START		= 1,
+	SVG_TEXTALIGN_CENTER	= 2,
+	SVG_TEXTALIGN_END		= 3
+};
+typedef u8 SVG_TextAlign;
+
+enum {
 	SVG_STROKEDASHARRAY_NONE	= 0,
 	SVG_STROKEDASHARRAY_INHERIT = 1,
 	SVG_STROKEDASHARRAY_ARRAY	= 2
@@ -867,7 +877,8 @@ typedef struct {
 	SVG_Number					*line_increment;	
 	SVG_TextAnchor				*text_anchor;
 	SVG_DisplayAlign			*display_align;
-	
+	SVG_TextAlign				*text_align;
+
 	SVG_PointerEvents			*pointer_events;
 	
 	SVG_FillRule				*fill_rule; 
@@ -951,6 +962,7 @@ typedef struct {
 	SVG_Number					line_increment;
 	SVG_TextAnchor				text_anchor;
 	SVG_DisplayAlign			display_align;
+	SVG_TextAlign				text_align;
 
 	SVG_PointerEvents			pointer_events;
 
@@ -1091,6 +1103,7 @@ typedef struct _svg_element {
 
 typedef struct _svg_transformable_element {
 	BASE_SVG_ELEMENT
+	Bool is_ref_transform;
 	SVG_Matrix transform;
 	/* motionTransform is a pseudo-attribute which holds the supplemental transform 
    computed by animateMotions elements */
@@ -1145,6 +1158,9 @@ Bool gf_svg_store_embedded_data(SVG_IRI *iri, const char *cache_dir, const char 
 void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points);
 void gf_svg_register_iri(GF_SceneGraph *sg, SVG_IRI *iri);
 void gf_svg_unregister_iri(GF_SceneGraph *sg, SVG_IRI *iri);
+
+Bool gf_svg_set_mfurl_from_uri(void *sr, void *mfurl, SVG_IRI *iri);
+Bool gf_svg_check_url_change(void *url, SVG_IRI *iri);
 
 
 /* 
@@ -1249,6 +1265,11 @@ handler element to allow for handler function override*/
 struct _tagSVGhandlerElement *gf_dom_listener_build(GF_Node *node, XMLEV_Event event);
 
 Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg);
+
+/* Use the xlink:href attribute to create a new subscene */
+GF_InlineScene *gf_svg_subscene_get(SVGElement *elt);
+
+void gf_svg_subscene_start(GF_InlineScene *is);
 
 enum {
 	DOM_KEY_UNIDENTIFIED = 0, 

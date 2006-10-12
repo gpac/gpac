@@ -657,6 +657,7 @@ EXPORTS
 	gf_term_on_command
 	gf_term_on_sl_packet
 	gf_term_get_service_url
+	gf_term_get_service_interface
 	gf_term_register_mime_type
 	gf_term_check_extension
 	gf_term_download_new

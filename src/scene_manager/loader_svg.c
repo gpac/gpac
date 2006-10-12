@@ -183,9 +183,9 @@ static void svg_parse_element_id(GF_SVGParser *parser, SVGElement *elt, char *no
 	unided_elt = (SVGElement *)gf_sg_find_node_by_name(parser->load->scene_graph, nodename);
 	if (unided_elt) {
 		if (!parser->command_depth) {
-			svg_report(parser, GF_BAD_PARAM, "Node %s already defined in document.", nodename);
+			svg_report(parser, GF_BAD_PARAM, "element with id='%s' already defined in document.", nodename);
 		} else {
-			svg_report(parser, GF_OK, "Warning: Node %s already defined in document.", nodename);
+			svg_report(parser, GF_OK, "Warning: element with id='%s' already defined in document.", nodename);
 			gf_node_set_id((GF_Node *)elt, gf_node_get_id((GF_Node*)unided_elt), nodename);
 		}
 	} else {
@@ -274,8 +274,7 @@ static Bool svg_parse_animation(GF_SVGParser *parser, GF_SceneGraph *sg, Defered
 				anim->resolve_stage = 1;
 				return svg_parse_animation(parser, sg, anim, nodeID);
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] missing attributeName attribute on %s\n", anim->animation_elt->sgprivate->NodeName));
-				return 1;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] missing attributeName attribute on %s\n", anim->animation_elt->sgprivate->NodeName));
 			}
 		}
 
@@ -425,7 +424,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 		anim->animation_elt = elt;
 		anim->target = parent;
 		anim->anim_parent = parent;
-	} else if (tag == TAG_SVG_video || tag == TAG_SVG_audio || tag == TAG_SVG_animation) {
+	} else if (tag == TAG_SVG_video || tag == TAG_SVG_audio || tag == TAG_SVG_animation || tag == TAG_SVG_conditional) {
 		/* warning: we use the DeferedAnimation structure for some timing nodes which are not 
 		   animations, but we put the parse stage at 1 (timing) see svg_parse_animation. */
 		GF_SAFEALLOC(anim, sizeof(DeferedAnimation));
@@ -643,6 +642,7 @@ static GF_Err lsr_parse_command(GF_SVGParser *parser, GF_List *attr)
 		parser->command->node = gf_sg_find_node_by_name(parser->load->scene_graph, atNode);
 		if (!parser->command->node) return svg_report(parser, GF_BAD_PARAM, "Cannot find node node ref %s for command", atNode);
 		if (atAtt || (index>=0) ) {
+			if (!strcmp(atAtt, "children")) atAtt = NULL;
 			if (atAtt && gf_node_get_field_by_name(parser->command->node, atAtt, &info) != GF_OK)
 				return svg_report(parser, GF_BAD_PARAM, "Attribute %s does not belong to node %s", atAtt, atNode);
 
@@ -766,7 +766,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 	}
 
 	/*saf setup*/
-	if (!parent && (parser->load->type==GF_SM_LOAD_XSR)) {
+	if (!parent && (parser->load->type==GF_SM_LOAD_XSR) || cond) {
 		u32 com_type;
 		/*nothing to do, the context is already created*/
 		if (!strcmp(name, "SAFSession")) return;
@@ -863,7 +863,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		if (!strcmp(name, "endOfSAFSession") ) {
 			return;
 		}
-		if (!parser->laser_au) {
+		if (!parser->laser_au && !cond) {
 			svg_report(parser, GF_BAD_PARAM, "LASeR Scene unit not defined for command %s", name);
 			return;
 		}
@@ -1107,6 +1107,14 @@ skip_xml_space:
 		SVGscriptElement *sc = (SVGscriptElement*)node;
 		if (sc->textContent) free(sc->textContent);
 		sc->textContent = result;
+		gf_node_init((GF_Node *)node);
+		return;
+	}
+	case TAG_SVG_handler:
+	{
+		SVGhandlerElement *h = (SVGhandlerElement*)node;
+		if (h->textContent) free(h->textContent);
+		h->textContent = result;
 		gf_node_init((GF_Node *)node);
 		return;
 	}

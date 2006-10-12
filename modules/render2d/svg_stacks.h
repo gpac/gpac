@@ -93,7 +93,10 @@ void SVG_Init_audio(Render2D *se, GF_Node *node);
 void SVG_Init_linearGradient(Render2D *sr, GF_Node *node);
 void SVG_Init_radialGradient(Render2D *sr, GF_Node *node);
 GF_TextureHandler *svg_gradient_get_texture(GF_Node *node);
-#endif
 
-#endif
+void SVG_Init_animation(Render2D *se, GF_Node *node);
+
+#endif //GPAC_DISABLE_SVG
+
+#endif //_SVG_STACKS_H
 

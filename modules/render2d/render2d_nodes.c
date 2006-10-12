@@ -114,30 +114,35 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 		
 #ifndef GPAC_DISABLE_SVG
 	/*SVG part*/
-	case TAG_SVG_svg:		SVG_Init_svg(sr, node); break;
-	case TAG_SVG_g:			SVG_Init_g(sr, node); break;
-	case TAG_SVG_switch:	SVG_Init_switch(sr, node); break;
-	case TAG_SVG_rect:		SVG_Init_rect(sr, node); break;
-	case TAG_SVG_circle:	SVG_Init_circle(sr, node); break;
-	case TAG_SVG_ellipse:	SVG_Init_ellipse(sr, node); break;
-	case TAG_SVG_line:		SVG_Init_line(sr, node); break;
-	case TAG_SVG_polyline:	SVG_Init_polyline(sr, node); break;
-	case TAG_SVG_polygon:	SVG_Init_polygon(sr, node); break;
-	case TAG_SVG_text:		SVG_Init_text(sr, node); break;
-	case TAG_SVG_path:		SVG_Init_path(sr, node); break;
-	case TAG_SVG_use:		SVG_Init_use(sr, node); break;
+	case TAG_SVG_svg:				SVG_Init_svg(sr, node); break;
+	case TAG_SVG_g:					SVG_Init_g(sr, node); break;
+	case TAG_SVG_switch:			SVG_Init_switch(sr, node); break;
+	case TAG_SVG_rect:				SVG_Init_rect(sr, node); break;
+	case TAG_SVG_circle:			SVG_Init_circle(sr, node); break;
+	case TAG_SVG_ellipse:			SVG_Init_ellipse(sr, node); break;
+	case TAG_SVG_line:				SVG_Init_line(sr, node); break;
+	case TAG_SVG_polyline:			SVG_Init_polyline(sr, node); break;
+	case TAG_SVG_polygon:			SVG_Init_polygon(sr, node); break;
+	case TAG_SVG_text:				SVG_Init_text(sr, node); break;
+	case TAG_SVG_path:				SVG_Init_path(sr, node); break;
+	case TAG_SVG_use:				SVG_Init_use(sr, node); break;
 
-	case TAG_SVG_a:			SVG_Init_a(sr, node); break;
+	case TAG_SVG_a:					SVG_Init_a(sr, node); break;
 
-	case TAG_SVG_image:		SVG_Init_image(sr, node); break;
-	case TAG_SVG_video:		SVG_Init_video(sr, node); break;
-	case TAG_SVG_audio:		SVG_Init_audio(sr, node); break;
-	case TAG_SVG_linearGradient:			SVG_Init_linearGradient(sr, node); break;
-	case TAG_SVG_radialGradient:			SVG_Init_radialGradient(sr, node); break;
+	case TAG_SVG_image:				SVG_Init_image(sr, node); break;
+	case TAG_SVG_video:				SVG_Init_video(sr, node); break;
+	case TAG_SVG_audio:				SVG_Init_audio(sr, node); break;
+	case TAG_SVG_linearGradient:	SVG_Init_linearGradient(sr, node); break;
+	case TAG_SVG_radialGradient:	SVG_Init_radialGradient(sr, node); break;
+	case TAG_SVG_solidColor:		SVG_Init_solidColor(sr, node); break;
+	case TAG_SVG_stop:				SVG_Init_stop(sr, node); break;
 
-	case TAG_SVG_rectClip: LASeR_Init_rectClip(sr, node); break;
-	case TAG_SVG_selector: LASeR_Init_selector(sr, node); break;
-	case TAG_SVG_simpleLayout: LASeR_Init_simpleLayout(sr, node); break;
+	case TAG_SVG_animation:			SVG_Init_animation(sr, node); break;
+
+	case TAG_SVG_rectClip:			LASeR_Init_rectClip(sr, node); break;
+	case TAG_SVG_selector:			LASeR_Init_selector(sr, node); break;
+	case TAG_SVG_simpleLayout:		LASeR_Init_simpleLayout(sr, node); break;
+
 #endif
 	default: break;
 	}

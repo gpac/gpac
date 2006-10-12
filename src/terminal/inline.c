@@ -105,6 +105,8 @@ void gf_is_del(GF_InlineScene *is)
 		/*reset pointer to NULL in case nodes try to access scene time*/
 		is->scene_codec = NULL;
 	}
+	/**/
+	gf_sr_add_secondary_scene(is->root_od->term->renderer, is->graph, 1);
 
 	/*delete the scene graph*/
 	gf_sg_del(is->graph);

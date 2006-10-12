@@ -79,10 +79,28 @@ void svg_get_nodes_bounds(GF_Node *self, GF_List *children, RenderEffect2D *eff)
 	eff->bounds = rc;
 }
 
+void gf_svg_apply_local_transformation(RenderEffect2D *eff, GF_Node *node, GF_Matrix2D *backup_matrix)
+{
+	gf_mx2d_copy(*backup_matrix, eff->transform);
+
+	if (((SVGTransformableElement *)node)->is_ref_transform) 
+		gf_mx2d_copy(eff->transform, eff->vb_transform);
+
+	if (((SVGTransformableElement *)node)->motionTransform) 
+		gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
+
+	gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
+}
+
+void gf_svg_restore_parent_transformation(RenderEffect2D *eff, GF_Matrix2D *backup_matrix)
+{
+	gf_mx2d_copy(eff->transform, *backup_matrix);  
+}
+
 /* Set the viewport of the renderer based on the element that contains a viewport 
    TODO: change the SVGsvgElement into an element that has a viewport (more generic)
 */
-static void SVGSetViewport(RenderEffect2D *eff, SVGsvgElement *svg, Bool is_root) 
+static void gf_svg_set_viewport_transformation(RenderEffect2D *eff, SVGsvgElement *svg, Bool is_root) 
 {
 	GF_Matrix2D mat;
 	Fixed real_width, real_height;
@@ -248,7 +266,7 @@ static void SVGSetViewport(RenderEffect2D *eff, SVGsvgElement *svg, Bool is_root
 				if (!is_root) {
 					rc.x = 0;
 					rc.y = real_height;
-					gf_mx2d_apply_rect(&eff->transform, &rc);
+					gf_mx2d_apply_rect(&eff->vb_transform, &rc);
 				} else {
 					rc.x = dx;
 					rc.y = dy + real_height;
@@ -257,7 +275,7 @@ static void SVGSetViewport(RenderEffect2D *eff, SVGsvgElement *svg, Bool is_root
 			}
 		}
 	}
-	gf_mx2d_pre_multiply(&eff->transform, &mat);
+	gf_mx2d_pre_multiply(&eff->vb_transform, &mat);
 }
 
 /* Node specific rendering functions
@@ -280,12 +298,12 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 	SVGsvgElement *svg = (SVGsvgElement *)node;
 	RenderEffect2D *eff = (RenderEffect2D *) rs;
 
-	/* initializes the styling properties and the geometric transformation */
+	/*enable or disable navigation*/
+	eff->surface->render->navigation_disabled = (svg->zoomAndPan == SVG_ZOOMANDPAN_DISABLE) ? 1 : 0;
+
 	if (!eff->svg_props) {
 		eff->svg_props = (SVGPropertiesPointers *) gf_node_get_private(node);
 		is_root_svg = 1;
-		/*To allow pan navigation*/
-		//eff->transform.m[5] *= -1;
 	}
 
 	SVG_Render_base(node, rs, &backup_props);
@@ -297,12 +315,16 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 
 	top_clip = eff->surface->top_clipper;
 	gf_mx2d_copy(backup_matrix, eff->transform);
-	if (svg->x.value || svg->y.value) gf_mx2d_add_translation(&eff->transform, svg->x.value, svg->y.value);
-	SVGSetViewport(eff, svg, is_root_svg);
+	gf_mx2d_init(eff->vb_transform);
+	gf_svg_set_viewport_transformation(eff, svg, is_root_svg);
+	gf_mx2d_pre_multiply(&eff->transform, &eff->vb_transform);
+
+	if (!is_root_svg && (svg->x.value || svg->y.value)) 
+		gf_mx2d_add_translation(&eff->transform, svg->x.value, svg->y.value);
 
 	/* TODO: FIX ME: this only works for single SVG element in the doc*/
-	if (eff->svg_props->viewport_fill_opacity->type != SVG_PAINT_NONE) {
-		viewport_color = GF_COL_ARGB_FIXED((1-eff->svg_props->viewport_fill_opacity->value), eff->svg_props->viewport_fill->color.red, eff->svg_props->viewport_fill->color.green, eff->svg_props->viewport_fill->color.blue);
+	if (is_root_svg && eff->svg_props->viewport_fill->type != SVG_PAINT_NONE) {
+		viewport_color = GF_COL_ARGB_FIXED(eff->svg_props->viewport_fill_opacity->value, eff->svg_props->viewport_fill->color.red, eff->svg_props->viewport_fill->color.green, eff->svg_props->viewport_fill->color.blue);
 		if (eff->surface->render->compositor->back_color != viewport_color) {
 			eff->invalidate_all = 1;
 			eff->surface->render->compositor->back_color = viewport_color;
@@ -310,15 +332,11 @@ static void SVG_Render_svg(GF_Node *node, void *rs)
 	}
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
 		svg_get_nodes_bounds(node, svg->children, eff);
-		memcpy(eff->svg_props, &backup_props, styling_size);
-		return;
+	} else {
+		svg_render_node_list(svg->children, eff);
 	}
 
-	/*enable or disable navigation*/
-	eff->surface->render->navigation_disabled = (svg->zoomAndPan == SVG_ZOOMANDPAN_DISABLE) ? 1 : 0;
-
-	svg_render_node_list(svg->children, eff);
-	gf_mx2d_copy(eff->transform, backup_matrix);  
+	gf_svg_restore_parent_transformation(eff, &backup_matrix);
 	memcpy(eff->svg_props, &backup_props, styling_size);
 	eff->surface->top_clipper = top_clip;
 }
@@ -362,21 +380,13 @@ static void SVG_Render_g(GF_Node *node, void *rs)
 		return;
 	}	
 	
+	gf_svg_apply_local_transformation(eff, node, &backup_matrix);
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
-		if (((SVGTransformableElement *)node)->motionTransform) 
-			gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
-		gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
 		svg_get_nodes_bounds(node, g->children, eff);
-		memcpy(eff->svg_props, &backup_props, styling_size);
-		return;
+	} else {
+		svg_render_node_list(g->children, eff);
 	}
-
-	gf_mx2d_copy(backup_matrix, eff->transform);
-	if (((SVGTransformableElement *)node)->motionTransform) 
-		gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
-	gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
-	svg_render_node_list(g->children, eff);
-	gf_mx2d_copy(eff->transform, backup_matrix);  
+	gf_svg_restore_parent_transformation(eff, &backup_matrix);
 	memcpy(eff->svg_props, &backup_props, styling_size);
 }
 
@@ -447,34 +457,25 @@ static void SVG_Render_switch(GF_Node *node, void *rs)
 	SVG_Render_base(node, rs, &backup_props);
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE) {
+		gf_svg_restore_parent_transformation(eff, &backup_matrix);
 		memcpy(eff->svg_props, &backup_props, styling_size);
 		return;
 	}
 	
+	gf_svg_apply_local_transformation(eff, node, &backup_matrix);
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
-		if (((SVGTransformableElement *)node)->motionTransform) 
-			gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
-		gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
 		svg_get_nodes_bounds(node, s->children, eff);
-		memcpy(eff->svg_props, &backup_props, styling_size);
-		return;
-	}
-
-	gf_mx2d_copy(backup_matrix, eff->transform);
-	if (((SVGTransformableElement *)node)->motionTransform) 
-		gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
-	gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
-
-	count = gf_list_count(s->children);
-	for (i=0; i<count; i++) {
-		child = gf_list_get(s->children, i);
-		if (eval_conditional(eff->surface->render->compositor, child)) {
-			svg_render_node((GF_Node*)child, eff);
-			break;
+	} else {
+		count = gf_list_count(s->children);
+		for (i=0; i<count; i++) {
+			child = gf_list_get(s->children, i);
+			if (eval_conditional(eff->surface->render->compositor, child)) {
+				svg_render_node((GF_Node*)child, eff);
+				break;
+			}
 		}
 	}
-
-	gf_mx2d_copy(eff->transform, backup_matrix);  
+	gf_svg_restore_parent_transformation(eff, &backup_matrix);
 	memcpy(eff->svg_props, &backup_props, styling_size);
 }
 
@@ -491,24 +492,17 @@ static void SVG_DrawablePostRender(Drawable *cs, SVGPropertiesPointers *backup_p
 	DrawableContext *ctx;
 
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
-		if (elt->motionTransform)
-			gf_mx2d_pre_multiply(&eff->transform, elt->motionTransform);
-		gf_mx2d_pre_multiply(&eff->transform, &elt->transform);
-		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) gf_path_get_bounds(cs->path, &eff->bounds);
-		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
-		return;
+		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) 
+			gf_path_get_bounds(cs->path, &eff->bounds);
+		goto end;
 	}
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
-		memcpy(eff->svg_props, backup_props, sizeof(SVGPropertiesPointers));
-		return;
+		goto end;
 	}
 
-	gf_mx2d_copy(backup_matrix, eff->transform);
-	if (elt->motionTransform)
-		gf_mx2d_pre_multiply(&eff->transform, elt->motionTransform);
-	gf_mx2d_pre_multiply(&eff->transform, &elt->transform);
+	gf_svg_apply_local_transformation(eff, (GF_Node *)elt, &backup_matrix);
 
 	if (*(eff->svg_props->fill_rule)==SVG_FILLRULE_NONZERO) cs->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
 	else cs->path->flags &= ~GF_PATH_FILL_ZERO_NONZERO;
@@ -527,7 +521,8 @@ static void SVG_DrawablePostRender(Drawable *cs, SVGPropertiesPointers *backup_p
 		drawable_finalize_render(ctx, eff);
 	}
 
-	gf_mx2d_copy(eff->transform, backup_matrix);  
+	gf_svg_restore_parent_transformation(eff, &backup_matrix);
+end:
 	memcpy(eff->svg_props, backup_props, sizeof(SVGPropertiesPointers));
 }
 
@@ -764,53 +759,101 @@ static void SVG_Render_use(GF_Node *node, void *rs)
   	GF_Matrix2D translate;
 	SVGPropertiesPointers backup_props;
 	RenderEffect2D *eff = rs;
+	SVGPropertiesPointers new_props, *old_props;
 
+	memset(&new_props, 0, sizeof(SVGPropertiesPointers));
 	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
-	if (!use->xlink->href.target) return;
 
 	gf_mx2d_init(translate);
 	translate.m[2] = use->x.value;
 	translate.m[5] = use->y.value;
 
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
-		if (((SVGTransformableElement *)node)->motionTransform)
-			gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
-		gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
-
-		if ( use->xlink->href.target && (*(eff->svg_props->display) != SVG_DISPLAY_NONE)) {
-			gf_node_render((GF_Node *)use->xlink->href.target, eff);
+		gf_svg_apply_local_transformation(eff, node, &backup_matrix);
+		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
+			if (use->xlink->href.type == SVG_IRI_ELEMENTID) {
+				gf_node_render((GF_Node *)use->xlink->href.target, eff);
+			} else {
+				GF_InlineScene *is = gf_node_get_private(node);
+				GF_Node *subroot = gf_sg_get_root_node(is->graph);
+				gf_svg_properties_init_pointers(&new_props);
+				old_props = eff->svg_props;
+				eff->svg_props = &new_props;
+				gf_svg_properties_init_pointers(eff->svg_props);
+				gf_node_render(subroot, eff);
+				eff->svg_props = old_props;
+				gf_svg_properties_reset_pointers(&new_props);
+			}
 			gf_mx2d_apply_rect(&translate, &eff->bounds);
 		}
-		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
-		return;
+		gf_svg_restore_parent_transformation(eff, &backup_matrix);
+		goto end;
 	}
-
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
-		memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
-		return;
+		goto end;
 	}
 
-	gf_mx2d_copy(backup_matrix, eff->transform);
+	gf_svg_apply_local_transformation(eff, node, &backup_matrix);
 
-	if (((SVGTransformableElement *)node)->motionTransform) 
-		gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
-	gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
 	gf_mx2d_pre_multiply(&eff->transform, &translate);
-
 	prev_use = eff->parent_use;
 	eff->parent_use = (GF_Node *)use;
-	gf_node_render((GF_Node *)use->xlink->href.target, eff);
+	if (use->xlink->href.type == SVG_IRI_ELEMENTID) {
+		gf_node_render((GF_Node *)use->xlink->href.target, eff);
+	} else {
+		GF_InlineScene *is = gf_node_get_private(node);
+		char *fragment;
+		GF_Node *subroot;
+		
+		subroot = gf_sg_get_root_node(is->graph);
+		if (fragment = strchr(use->xlink->href.iri, '#')) {
+			subroot = gf_sg_find_node_by_name(is->graph, fragment+1);
+		}
+		if (subroot) {
+//			old_props = eff->svg_props;
+//			eff->svg_props = &new_props;
+//			gf_svg_properties_init_pointers(eff->svg_props);
+			gf_node_render(subroot, eff);
+//			eff->svg_props = old_props;
+//			gf_svg_properties_reset_pointers(&new_props);
+		}
+	}
 	eff->parent_use = prev_use;
 
-	gf_mx2d_copy(eff->transform, backup_matrix);  
+	gf_svg_restore_parent_transformation(eff, &backup_matrix);  
+end:
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 }
 
+void SVG_Destroy_use(GF_Node *node)
+{
+/*	GF_InlineScene *is = gf_node_get_private(node);
+	if (is) {
+		if(is->root_od->mo->num_open == 1) {
+			gf_sr_add_secondary_scene(is->root_od->term->renderer, is->graph, 1);
+		}
+		gf_svg_subscene_stop(is);
+	}
+*/}
+
 void SVG_Init_use(Render2D *sr, GF_Node *node)
 {
+	SVGuseElement *use = (SVGuseElement *)node;
+
+	if (use->xlink->href.type == SVG_IRI_IRI) {
+		GF_InlineScene *is = gf_svg_subscene_get((SVGElement *)use);
+		if (is) {
+			if (is->root_od->mo->num_open == 0) {
+				gf_sr_add_secondary_scene(is->root_od->term->renderer, is->graph, 0);
+			}
+			gf_svg_subscene_start(is);
+			gf_node_set_private(node, is);
+		}
+	} 
 	gf_node_set_render_function(node, SVG_Render_use);
+	gf_node_set_predestroy_function(node, SVG_Destroy_use);
 }
 
 /* end of rendering of basic shapes */
@@ -826,30 +869,21 @@ static void SVG_Render_a(GF_Node *node, void *rs)
 	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
 
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
-		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
-			if (((SVGTransformableElement *)node)->motionTransform)
-				gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
-			gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
+		gf_svg_apply_local_transformation(eff, node, &backup_matrix);
+		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) 
 			svg_get_nodes_bounds(node, a->children, eff);
-		}
+		gf_svg_restore_parent_transformation(eff, &backup_matrix);  
 		memcpy(eff->svg_props, &backup_props, styling_size);
 		return;
 	}
 
 	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
 		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
-		memcpy(eff->svg_props, &backup_props, styling_size);
-		return;
+	} else {
+		gf_svg_apply_local_transformation(eff, node, &backup_matrix);
+		svg_render_node_list(a->children, eff);
+		gf_svg_restore_parent_transformation(eff, &backup_matrix);  
 	}
-
-	gf_mx2d_copy(backup_matrix, eff->transform);
-	if (((SVGTransformableElement *)node)->motionTransform)
-		gf_mx2d_pre_multiply(&eff->transform, ((SVGTransformableElement *)node)->motionTransform);
-	gf_mx2d_pre_multiply(&eff->transform, &((SVGTransformableElement *)node)->transform);
-
-	svg_render_node_list(a->children, eff);
-
-	gf_mx2d_copy(eff->transform, backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, styling_size);
 }
 
@@ -886,6 +920,8 @@ static void SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 #ifdef DANAE
 			loadDanaeUrl(compositor->danae_session, a->xlink->href.iri);
 #else
+			evt.navigate.param_count = 1;
+			evt.navigate.parameters = &a->target;
 			compositor->user->EventProc(compositor->user->opaque, &evt);
 #endif
 		}
@@ -1025,6 +1061,24 @@ static void SVG_UpdateGradient(SVG_GradientStack *st, GF_List *children)
 	st->txh.compositor->r2d->stencil_set_gradient_mode(st->txh.hwtx, /*lg->spreadMethod*/ GF_GRADIENT_MODE_PAD);
 }
 
+static void SVG_Render_PaintServer(GF_Node *node, void *rs)
+{
+	SVGPropertiesPointers backup_props;
+	u32 styling_size = sizeof(SVGPropertiesPointers);
+	SVGElement *elt = (SVGElement *)node;
+	RenderEffect2D *eff = (RenderEffect2D *) rs;
+
+	SVG_Render_base(node, rs, &backup_props);
+	
+	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+		return;
+	} else {
+		svg_render_node_list(elt->children, eff);
+	}
+	memcpy(eff->svg_props, &backup_props, styling_size);
+}
+
+
 /* linear gradient */
 
 static void SVG_UpdateLinearGradient(GF_TextureHandler *txh)
@@ -1076,6 +1130,7 @@ void SVG_Init_linearGradient(Render2D *sr, GF_Node *node)
 	st->txh.compute_gradient_matrix = SVG_LG_ComputeMatrix;
 	gf_node_set_private(node, st);
 	gf_node_set_predestroy_function(node, SVG_DestroyGradient);
+	gf_node_set_render_function(node, SVG_Render_PaintServer);
 }
 
 /* radial gradient */
@@ -1134,6 +1189,17 @@ void SVG_Init_radialGradient(Render2D *sr, GF_Node *node)
 	st->txh.compute_gradient_matrix = SVG_RG_ComputeMatrix;
 	gf_node_set_private(node, st);
 	gf_node_set_predestroy_function(node, SVG_DestroyGradient);
+	gf_node_set_render_function(node, SVG_Render_PaintServer);
+}
+
+void SVG_Init_solidColor(Render2D *sr, GF_Node *node)
+{
+	gf_node_set_render_function(node, SVG_Render_PaintServer);
+}
+
+void SVG_Init_stop(Render2D *sr, GF_Node *node)
+{
+	gf_node_set_render_function(node, SVG_Render_PaintServer);
 }
 
 GF_TextureHandler *svg_gradient_get_texture(GF_Node *node)

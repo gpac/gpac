@@ -53,9 +53,17 @@ void *gf_node_animation_get(GF_Node *node, u32 i)
 }
 
 
-void gf_svg_attributes_resolve_unspecified(GF_FieldInfo *in, GF_FieldInfo *p)
+void gf_svg_attributes_resolve_unspecified(GF_FieldInfo *in, GF_FieldInfo *p, GF_FieldInfo *t)
 {
-	if (in->fieldType == 0) *in = *p;
+	if (in->fieldType == 0) {
+		if (p->fieldType == SVG_Matrix_datatype) {
+			/* if the input value is not specified, and the presentation value is of type Matrix,
+			   then we should use the default identity transform instead of the presentation value */
+			*in = *t;
+		} else {
+			*in = *p;
+		}
+	}
 }
 
 /* 
@@ -238,7 +246,7 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 	from_info.fieldType = anim->from.type;
 	from_info.eventType = anim->from.transform_type;
 	from_info.far_ptr = anim->from.value;
-	gf_svg_attributes_resolve_unspecified(&from_info, &rai->owner->presentation_value);
+	gf_svg_attributes_resolve_unspecified(&from_info, &rai->owner->presentation_value, &rai->default_transform_value);
 	if (gf_svg_attribute_is_interpolatable(anim->from.type)) {
 		gf_svg_attributes_resolve_currentColor(&from_info, &rai->owner->current_color_value);
 		gf_svg_attributes_resolve_inherit(&from_info, &rai->owner->parent_presentation_value);
@@ -247,7 +255,7 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 	to_info.fieldType = anim->to.type;
 	to_info.eventType = anim->to.transform_type;
 	to_info.far_ptr = anim->to.value;
-	gf_svg_attributes_resolve_unspecified(&to_info, &rai->owner->presentation_value);
+	gf_svg_attributes_resolve_unspecified(&to_info, &rai->owner->presentation_value, &rai->default_transform_value);
 	if (gf_svg_attribute_is_interpolatable(anim->from.type)) {
 		gf_svg_attributes_resolve_currentColor(&to_info, &rai->owner->current_color_value);
 		gf_svg_attributes_resolve_inherit(&to_info, &rai->owner->parent_presentation_value);
@@ -285,8 +293,8 @@ static void gf_smil_anim_animate_from_by(SMIL_Anim_RTI *rai, Fixed normalized_si
 	from_info.fieldType = anim->from.type;
 	from_info.eventType = anim->from.transform_type;
 	from_info.far_ptr = anim->from.value;
-	gf_svg_attributes_resolve_unspecified(&from_info, &rai->owner->presentation_value);
-	if (gf_svg_attribute_is_interpolatable(anim->from.type)) {
+	gf_svg_attributes_resolve_unspecified(&from_info, &rai->owner->presentation_value, &rai->default_transform_value);
+	if (gf_svg_attribute_is_interpolatable(from_info.fieldType)) {
 		gf_svg_attributes_resolve_currentColor(&from_info, &rai->owner->current_color_value);
 		gf_svg_attributes_resolve_inherit(&from_info, &rai->owner->parent_presentation_value);
 	}
@@ -294,7 +302,7 @@ static void gf_smil_anim_animate_from_by(SMIL_Anim_RTI *rai, Fixed normalized_si
 	by_info.fieldType = anim->by.type;
 	by_info.eventType = anim->by.transform_type;
 	by_info.far_ptr = anim->by.value;
-	if (gf_svg_attribute_is_interpolatable(anim->from.type)) {
+	if (gf_svg_attribute_is_interpolatable(from_info.fieldType)) {
 		gf_svg_attributes_resolve_currentColor(&by_info, &rai->owner->current_color_value);
 		gf_svg_attributes_resolve_inherit(&by_info, &rai->owner->parent_presentation_value);
 	}
@@ -338,10 +346,10 @@ static Bool gf_svg_compute_path_anim(SMIL_Anim_RTI *rai, GF_Matrix2D *m, Fixed n
 		gf_mx2d_add_rotation(m, m->m[2], m->m[5], GF_PI);
 		break;
 	default:
-		((GF_Matrix2D *)rai->interpolated_value.far_ptr)->m[0] = 1;
-		((GF_Matrix2D *)rai->interpolated_value.far_ptr)->m[1] = 0;
-		((GF_Matrix2D *)rai->interpolated_value.far_ptr)->m[3] = 0;
-		((GF_Matrix2D *)rai->interpolated_value.far_ptr)->m[4] = 1;
+		m->m[0] = FIX_ONE;
+		m->m[1] = 0;
+		m->m[3] = 0;
+		m->m[4] = FIX_ONE;
 	}
 	return res;
 }
@@ -349,7 +357,7 @@ static Bool gf_svg_compute_path_anim(SMIL_Anim_RTI *rai, GF_Matrix2D *m, Fixed n
 static void gf_smil_anim_animate_using_path(SMIL_Anim_RTI *rai, Fixed normalized_simple_time)
 {
 	Bool res = 0;
-	gf_svg_compute_path_anim(rai, rai->interpolated_value.far_ptr, normalized_simple_time);
+	res = gf_svg_compute_path_anim(rai, rai->interpolated_value.far_ptr, normalized_simple_time);
 	if (res) rai->target_value_changed = 1;
 }
 
@@ -457,7 +465,7 @@ static void gf_smil_anim_apply_accumulate(SMIL_Anim_RTI *rai)
 {
 	u32 nb_iterations = (rai->anim_elt->timing->runtime->current_interval?rai->anim_elt->timing->runtime->current_interval->nb_iterations:1);
 	if (rai->anim_elt->anim->accumulate == SMIL_ACCUMULATE_SUM && nb_iterations > 0) {
-		gf_svg_attributes_muladd(INT2FIX(nb_iterations), &rai->last_specified_value, FIX_ONE, &rai->interpolated_value, &rai->interpolated_value, 1);
+		gf_svg_attributes_muladd(FIX_ONE, &rai->interpolated_value, INT2FIX(nb_iterations), &rai->last_specified_value, &rai->interpolated_value, 1);
 	} 
 }
 
@@ -601,12 +609,26 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 			}
 			gf_node_get_field_by_name((GF_Node *)tr_e, "motionTransform", &target_attribute);
 		} else {
-			fprintf(stderr, "No target attribute defined in animation element\n");
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[SVG] missing attributeName attribute on %s\n", e->sgprivate->NodeName));
+			return;
 		}
 	}
 
+	if (!gf_list_count(e->anim->values.values) && (e->anim->to.type == 0) && e->anim->by.type) {
+		/* if this is a 'by' animation without from the animation is defined to be additive
+		   see http://www.w3.org/TR/2005/REC-SMIL2-20051213/animation.html#AnimationNS-FromToBy
+		   we override the additive attribute */
+		e->anim->additive = SMIL_ADDITIVE_SUM;
+	} 
+
+
 	GF_SAFEALLOC(rai, sizeof(SMIL_Anim_RTI))
 	rai->anim_elt = e;	
+
+	gf_mx2d_init(rai->identity);
+	rai->default_transform_value.far_ptr = &rai->identity;
+	rai->default_transform_value.fieldType = SVG_Matrix_datatype;
+
 	rai->interpolated_value = target_attribute;
 	rai->interpolated_value.far_ptr = gf_svg_create_attribute_value(target_attribute.fieldType, 0);
 	rai->previous_key_index = -1;
@@ -734,11 +756,10 @@ void gf_smil_anim_init_node(GF_Node *node)
 	} 
 
 	if (!anim_elt->xlink->href.target) return;
-
 	gf_smil_timing_init_runtime_info(anim_elt);
-	if (anim_elt->anim) gf_smil_anim_init_runtime_info(anim_elt);
-	/*THIS IS A DISCARD OR THIS CRASHES.*/
-	else {
+	if (anim_elt->anim) {
+		gf_smil_anim_init_runtime_info(anim_elt);	
+	} else { /*THIS IS A DISCARD OR THIS CRASHES.*/
 		anim_elt->timing->runtime->activation = gf_smil_anim_discard;
 	}
 

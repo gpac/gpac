@@ -30,44 +30,6 @@
 
 #include <gpac/internal/scenegraph_dev.h>
 
-#ifdef DANAE
-int processDanaeAudio(void *param, unsigned int scene_time);
-#endif
-
-/************************/
-/* Generic URI handling */
-/************************/
-
-Bool SVG_SetMFURLFromURI(GF_Renderer *sr, MFURL *mfurl, SVG_IRI *iri) 
-{
-	Bool ret = 1;
-	SFURL *sfurl = NULL;
-	if (!iri->iri) return 0;
-
-	gf_sg_vrml_mf_reset(mfurl, GF_SG_VRML_MFURL);
-	mfurl->count = 1;
-	GF_SAFEALLOC(mfurl->vals, sizeof(SFURL))
-	sfurl = mfurl->vals;
-	sfurl->OD_ID = 0;
-#ifndef DANAE
-	if (!strncmp(iri->iri, "data:", 5)) {
-		const char *cache_dir = gf_cfg_get_key(sr->user->config, "General", "CacheDirectory");
-		ret = gf_svg_store_embedded_data(iri, cache_dir, "embedded_");
-	}
-#endif
-	sfurl->url = strdup(iri->iri);
-	return ret;
-}
-
-static Bool SVG_check_url_change(MFURL *url, SVG_IRI *iri)
-{
-	if (url->count && !iri->iri) return 1;
-	if (!url->count && iri->iri) return 1;
-	if (!url->count) return 0;
-	if (!strcmp(url->vals[0].url, iri->iri)) return 0;
-	return 1;
-}
-
 #if 0
 static void SVG_ComputeAR(Fixed objw, Fixed objh, Fixed viewportw, Fixed viewporth,
 						  SVG_PreserveAspectRatio *par, GF_Matrix2D *par_mat)
@@ -199,12 +161,12 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 		}
 
 		/*if open and changed, stop and play*/
-		if (SVG_check_url_change(&st->txurl, & ((SVGElement *)node)->xlink->href)) {
+		if (gf_svg_check_url_change(&st->txurl, & ((SVGElement *)node)->xlink->href)) {
 			const char *cache_dir = gf_cfg_get_key(st->txh.compositor->user->config, "General", "CacheDirectory");
 			gf_svg_store_embedded_data(& ((SVGElement *)node)->xlink->href, cache_dir, "embedded_");
 
-			if (SVG_check_url_change(&st->txurl, & ((SVGElement *)node)->xlink->href)) {
-				SVG_SetMFURLFromURI(st->txh.compositor, &(st->txurl), & ((SVGElement*)node)->xlink->href);
+			if (gf_svg_check_url_change(&st->txurl, & ((SVGElement *)node)->xlink->href)) {
+				gf_svg_set_mfurl_from_uri(st->txh.compositor, &(st->txurl), & ((SVGElement*)node)->xlink->href);
 				if (st->txh.is_open) gf_sr_texture_stop(&st->txh);
 				fprintf(stdout, "URL changed to %s\n", st->txurl.vals[0].url);
 				gf_sr_texture_play(&st->txh, &st->txurl);
@@ -321,7 +283,7 @@ void SVG_Init_image(Render2D *sr, GF_Node *node)
 	st->txh.flags = 0;
 
 	/* builds the MFURL to be used by the texture */
-	SVG_SetMFURLFromURI(sr->compositor, &(st->txurl), & ((SVGimageElement*)node)->xlink->href);
+	gf_svg_set_mfurl_from_uri(sr->compositor, &(st->txurl), & ((SVGimageElement*)node)->xlink->href);
 
 	gf_node_set_private(node, st);
 	gf_node_set_render_function(node, SVG_Render_bitmap);
@@ -391,7 +353,6 @@ static void svg_video_smil_activate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 			gf_sr_texture_restart(&stack->txh);
 			stack->current_iter = rti->current_interval->nb_iterations;
 		}
-		return;
 	} else {
 		gf_sr_texture_play(&stack->txh, &stack->txurl);
 	}
@@ -422,7 +383,7 @@ void SVG_Init_video(Render2D *sr, GF_Node *node)
 	st->txh.flags = 0;
 
 	/* create an MFURL from the SVG iri */
-	SVG_SetMFURLFromURI(sr->compositor, &(st->txurl), & ((SVGvideoElement *)node)->xlink->href);
+	gf_svg_set_mfurl_from_uri(sr->compositor, &(st->txurl), & ((SVGvideoElement *)node)->xlink->href);
 
 	gf_smil_timing_init_runtime_info((SVGElement *)node);
 	if (((SVGElement *)node)->timing->runtime) {
@@ -445,33 +406,39 @@ void SVG_Init_video(Render2D *sr, GF_Node *node)
 typedef struct
 {
 	GF_AudioInput input;
-	GF_TimeNode time_handle;
 	Bool is_active;
-	Double start_time;
 	MFURL aurl;
-#ifdef DANAE
-	GF_Renderer *comp;
-	void *dmo;
-#endif
+	u32 current_iter;
 } SVG_audio_stack;
 
-
-static void SVG_Activate_audio(SVG_audio_stack *st, SVGaudioElement *audio)
+static void svg_audio_smil_freeze(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
 {
-	MFURL *aurl = &(((SVG_audio_stack *)gf_node_get_private((GF_Node*)audio))->aurl);
-
-	gf_sr_audio_open(&st->input, aurl);
-	st->is_active = 1;
-	gf_mo_set_speed(st->input.stream, FIX_ONE);
-	/*rerender all graph to get parent audio group*/
-	gf_sr_invalidate(st->input.compositor, NULL);
+	SVG_audio_stack *stack = (SVG_audio_stack *)gf_node_get_private((GF_Node *)rti->timed_elt);
+	gf_sr_audio_stop(&stack->input);
+	stack->is_active = 0;
 }
 
-static void SVG_Deactivate_audio(SVG_audio_stack *st)
+static void svg_audio_smil_restore(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
 {
-	gf_sr_audio_stop(&st->input);
-	st->is_active = 0;
-	st->time_handle.needs_unregister = 1;
+	SVG_audio_stack *stack = (SVG_audio_stack *)gf_node_get_private((GF_Node *)rti->timed_elt);
+	gf_sr_audio_stop(&stack->input);
+	stack->is_active = 0;
+}
+
+static void svg_audio_smil_activate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
+{
+	SVG_audio_stack *stack = (SVG_audio_stack *)gf_node_get_private((GF_Node *)rti->timed_elt);
+	
+	if (!stack->is_active) { 
+		gf_sr_audio_open(&stack->input, &stack->aurl);
+		gf_mo_set_speed(stack->input.stream, FIX_ONE);
+		stack->is_active = 1;
+	} else {
+		if (stack->current_iter < rti->current_interval->nb_iterations) {
+			gf_sr_audio_restart(&stack->input);
+			stack->current_iter = rti->current_interval->nb_iterations;
+		}
+	}
 }
 
 static void SVG_Render_audio(GF_Node *node, void *rs)
@@ -480,24 +447,6 @@ static void SVG_Render_audio(GF_Node *node, void *rs)
 	RenderEffect2D *eff = (RenderEffect2D*)rs;
 	SVG_audio_stack *st = (SVG_audio_stack *)gf_node_get_private(node);
 
-#ifdef DANAE
-	if (st->is_active) {
-		if (!st->dmo) st->dmo = getDanaeMediaOjbectFromUrl(st->comp->danae_session, st->aurl.vals[0].url, 2);
-		if (st->dmo) {
-				processDanaeAudio(st->dmo, (u32) (gf_node_get_scene_time(node)*1000));
-				st->comp->draw_next_frame = 1;
-		}
-	}
-
-#else
-	/*check end of stream*/
-	if (st->input.stream && st->input.stream_finished) {
-		if (gf_mo_get_loop(st->input.stream, 0)) {
-			gf_sr_audio_restart(&st->input);
-		} else if (st->is_active /*&& gf_mo_should_deactivate(st->input.stream)*/) {
-			SVG_Deactivate_audio(st);
-		}
-	}
 	if (st->is_active) {
 		gf_sr_audio_register(&st->input, (GF_BaseEffect*)rs);
 	}
@@ -515,33 +464,6 @@ static void SVG_Render_audio(GF_Node *node, void *rs)
 	}
 
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
-
-#endif
-}
-
-static void SVG_UpdateTime_audio(GF_TimeNode *tn)
-{
-	Double sceneTime;
-	SVGaudioElement *audio = (SVGaudioElement *)tn->obj;
-	SVG_audio_stack *st = (SVG_audio_stack *)gf_node_get_private(tn->obj);
-
-	if (! st->is_active) {
-		//st->start_time = as->startTime;
-		st->start_time = 0;
-		//st->input.speed = as->speed;
-	}
-	sceneTime = gf_node_get_scene_time(tn->obj);
-	//if ((sceneTime<st->start_time) || (st->start_time<0)) return;
-	
-	/*
-	if (st->input.input_ifce.GetSpeed(st->input.input_ifce.callback) && st->is_active) {
-		if ( (as->stopTime > st->start_time) && (time>=as->stopTime)) {
-			SVG_Deactivate_audio(st, audio);
-			return;
-		}
-	}
-	*/
-	if (!st->is_active) SVG_Activate_audio(st, audio);
 }
 
 static void SVG_Destroy_audio(GF_Node *node)
@@ -549,37 +471,159 @@ static void SVG_Destroy_audio(GF_Node *node)
 	SVG_audio_stack *st = (SVG_audio_stack *)gf_node_get_private(node);
 	gf_sr_audio_stop(&st->input);
 	gf_sr_audio_unregister(&st->input);
-	if (st->time_handle.is_registered) {
-		gf_sr_unregister_time_node(st->input.compositor, &st->time_handle);
-	}
 	gf_sg_mfurl_del(st->aurl);
-#ifdef DANAE
-	if (st->dmo) releaseDanaeMediaObject(st->dmo); 
-#endif
 	free(st);
 }
 
 void SVG_Init_audio(Render2D *sr, GF_Node *node)
 {
 	SVG_audio_stack *st;
-	GF_SAFEALLOC(st, sizeof(SVG_audio_stack))
+	GF_SAFEALLOC(st, sizeof(SVG_audio_stack));
 
 	gf_sr_audio_setup(&st->input, sr->compositor, node);
 
-	st->time_handle.UpdateTimeNode = SVG_UpdateTime_audio;
-	st->time_handle.obj = node;
-
 	/* creates an MFURL from the URI of the SVG element */
-	SVG_SetMFURLFromURI(sr->compositor, &(st->aurl), & ((SVGaudioElement *)node)->xlink->href);
+	gf_svg_set_mfurl_from_uri(sr->compositor, &(st->aurl), & ((SVGaudioElement *)node)->xlink->href);
 
+	gf_smil_timing_init_runtime_info((SVGElement *)node);
+	if (((SVGElement *)node)->timing->runtime) {
+		SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
+		rti->activation = svg_audio_smil_activate;
+		rti->freeze = svg_audio_smil_freeze;
+		rti->restore = svg_audio_smil_restore;
+	}
+	
 	gf_node_set_private(node, st);
 	gf_node_set_render_function(node, SVG_Render_audio);
 	gf_node_set_predestroy_function(node, SVG_Destroy_audio);
+}
 
-	gf_sr_register_time_node(sr->compositor, &st->time_handle);
-#ifdef DANAE
-	st->comp = sr->compositor;
-#endif
+/***********************************
+ *  'animation' specific functions *
+ ***********************************/
+typedef struct {
+	GF_InlineScene *is;
+	u32 current_iter;
+} SVGAnimationStack;
+
+static void svg_animation_smil_freeze(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
+{
+	SVGAnimationStack *st;
+	st = gf_node_get_private((GF_Node *)rti->timed_elt);
+	if (st->is && st->is->root_od->mo->num_open) {
+		gf_svg_subscene_stop(st->is, 0);
+	}
+}
+
+static void svg_animation_smil_restore(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
+{
+	SVGAnimationStack *st;
+	st = gf_node_get_private((GF_Node *)rti->timed_elt);
+	if (st->is && st->is->root_od->mo->num_open) {
+		gf_svg_subscene_stop(st->is, 1);
+	}
+}
+
+static void svg_animation_smil_activate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
+{
+	SVGAnimationStack *st;
+
+	st = gf_node_get_private((GF_Node *)rti->timed_elt);
+	if (st->is) {
+		if (st->current_iter < rti->current_interval->nb_iterations) {
+			gf_mo_restart(st->is->root_od->mo);
+			st->current_iter = rti->current_interval->nb_iterations;
+		} 
+		gf_sg_notify_smil_timed_elements(st->is->graph);
+	} else {
+		GF_Node *root;
+		st->is = gf_svg_subscene_get((SVGElement *)rti->timed_elt);
+		if (!st->is) return;
+		gf_svg_subscene_start(st->is);
+		gf_sr_add_secondary_scene(st->is->root_od->term->renderer, st->is->graph, 0);
+		
+		root = gf_sg_get_root_node(st->is->graph);
+		if (!root) return;
+		/*add the animation node as parent of new scene root (this enables correct subtree dirty state)*/
+		if (gf_list_find(st->is->inline_nodes, (GF_Node *)rti->timed_elt)<0) {
+			gf_list_add(st->is->inline_nodes, (GF_Node *)rti->timed_elt);
+			gf_node_register(root, (GF_Node *)rti->timed_elt);
+		}
+	}
+	
+}
+
+void SVG_Render_animation(GF_Node *n, void *rs)
+{
+	GF_Matrix2D backup_matrix;
+	SVGPropertiesPointers backup_props;
+	RenderEffect2D *eff = (RenderEffect2D*)rs;
+	SVGanimationElement *a = (SVGanimationElement*)n;
+	GF_Node *root;
+	SVGAnimationStack *st;
+  	GF_Matrix2D translate;
+	SVGPropertiesPointers new_props, *old_props;
+
+	memset(&new_props, 0, sizeof(SVGPropertiesPointers));
+
+	/*for heritage and anims*/
+	SVG_Render_base(n, (RenderEffect2D *)rs, &backup_props);
+
+	st = gf_node_get_private(n);
+	if (!st->is) return;
+
+	gf_mx2d_init(translate);
+	translate.m[2] = a->x.value;
+	translate.m[5] = a->y.value;
+	
+	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
+		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
+		goto end;
+	}
+
+	gf_svg_apply_local_transformation(eff, n, &backup_matrix);
+	gf_mx2d_pre_multiply(&eff->transform, &translate);
+
+	root = gf_sg_get_root_node(st->is->graph);
+	if (root) {
+		old_props = eff->svg_props;
+		eff->svg_props = &new_props;
+		gf_svg_properties_init_pointers(eff->svg_props);
+		gf_sr_render_inline(st->is->root_od->term->renderer, root, rs);
+		eff->svg_props = old_props;
+		gf_svg_properties_reset_pointers(&new_props);
+	}
+
+	gf_svg_restore_parent_transformation(eff, &backup_matrix);  
+	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+end:
+	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+}
+
+void SVG_Destroy_animation(GF_Node *node)
+{
+	SVGAnimationStack *st;
+	st = gf_node_get_private(node);
+	free(st);
+}
+
+
+void SVG_Init_animation(Render2D *sr, GF_Node *node)
+{
+	SVGAnimationStack *st;
+	GF_SAFEALLOC(st, sizeof(SVGAnimationStack));
+	gf_node_set_private(node, st);
+
+	gf_smil_timing_init_runtime_info((SVGElement *)node);
+	if (((SVGElement *)node)->timing->runtime) {
+		SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
+		rti->activation = svg_animation_smil_activate;
+		rti->freeze = svg_animation_smil_freeze;
+		rti->restore = svg_animation_smil_restore;
+	}
+
+	gf_node_set_render_function(node, SVG_Render_animation);
+	gf_node_set_predestroy_function(node, SVG_Destroy_animation);
 }
 
 #endif //GPAC_DISABLE_SVG

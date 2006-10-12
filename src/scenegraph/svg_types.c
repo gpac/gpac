@@ -169,36 +169,6 @@ void gf_svg_init_core(SVGElement *p)
 	GF_SAFEALLOC(p->core, sizeof(XMLCoreAttributes))
 }
 
-void gf_svg_init_properties(SVGElement *p) 
-{
-	GF_SAFEALLOC(p->properties, sizeof(SVGProperties))
-	p->properties->fill.type = SVG_PAINT_INHERIT;
-	
-	p->properties->color.type = SVG_PAINT_COLOR;
-	p->properties->color.color.type = SVG_COLOR_INHERIT;
-
-	p->properties->fill_rule = SVG_FILLRULE_INHERIT;
-	p->properties->fill_opacity.type = SVG_NUMBER_INHERIT;
-	p->properties->opacity.type = SVG_NUMBER_INHERIT;
-	p->properties->stroke.type = SVG_PAINT_INHERIT;
-	p->properties->viewport_fill.type = SVG_PAINT_INHERIT;
-	p->properties->stop_color.type = SVG_PAINT_INHERIT;
-	p->properties->stroke_opacity.type = SVG_NUMBER_INHERIT;
-	p->properties->stroke_width.type = SVG_NUMBER_INHERIT;
-	p->properties->stroke_linejoin = SVG_STROKELINEJOIN_INHERIT;
-	p->properties->stroke_linecap = SVG_STROKELINECAP_INHERIT;
-	p->properties->stroke_miterlimit.type = SVG_NUMBER_INHERIT;
-	p->properties->stroke_dasharray.type = SVG_STROKEDASHARRAY_INHERIT;
-	p->properties->stroke_dashoffset.type = SVG_NUMBER_INHERIT;
-	p->properties->font_size.type = SVG_NUMBER_INHERIT;
-	p->properties->text_anchor = SVG_TEXTANCHOR_INHERIT;
-	p->properties->font_weight = SVG_FONTWEIGHT_INHERIT;
-	p->properties->visibility = SVG_VISIBILITY_INHERIT;
-
-	p->properties->stop_opacity.type = SVG_NUMBER_VALUE;
-	p->properties->stop_opacity.value = FIX_ONE;
-}
-
 void gf_svg_init_focus(SVGElement *p)
 {
 	GF_SAFEALLOC(p->focus, sizeof(SVGFocusAttributes))

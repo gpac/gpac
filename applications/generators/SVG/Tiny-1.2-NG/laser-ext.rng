@@ -19,7 +19,7 @@
   </define>
 
   <!-- ... script ................................................. -->
-  <define name='lsr:conditional'>
+  <define name='conditional'>
     <element name='conditional'>
       <ref name='conditional.AT'/>
       <ref name='conditional.CM'/>
@@ -27,13 +27,9 @@
   </define>
 
   <define name='conditional.AT' combine='interleave'>
+    <ref name='svg.AnimateBegin.attr'/>
     <optional>
-      <attribute name='lsr:begin' svg:animatable='false' svg:inheritable='false'>
-		<text/>
-	  </attribute>
-    </optional>
-    <optional>
-      <attribute name='lsr:enabled' svg:animatable='false' svg:inheritable='false'>
+      <attribute name='enabled' svg:animatable='false' svg:inheritable='false'>
         <ref name='Boolean.datatype'/>
       </attribute>
     </optional>

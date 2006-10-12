@@ -82,6 +82,7 @@ static void svg_node_changed(GF_Node *n, GF_FieldInfo *info)
 		case SVG_Length_datatype:
 		case SVG_PathData_datatype:
 		case SVG_FontFamily_datatype:
+		case SVG_Coordinate_datatype:
 			gf_node_dirty_set(n, 0, 0);
 			break;
 		default:
@@ -798,6 +799,7 @@ static JSBool udom_get_trait(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	case SVG_Overflow_datatype:
 	case SVG_ZoomAndPan_datatype:
 	case SVG_DisplayAlign_datatype:
+	case SVG_TextAlign_datatype:
 	case SVG_PointerEvents_datatype:
 	case SVG_RenderingHint_datatype:
 	case SVG_VectorEffect_datatype:
@@ -996,7 +998,7 @@ static JSBool udom_get_rgb_color_trait(JSContext *c, JSObject *obj, uintN argc, 
 	case SVG_Paint_datatype:
 	{
 		SVG_Paint *paint = (SVG_Paint *)info.far_ptr;
-		if (paint->type==SVG_PAINT_COLOR) {
+		if (1 || paint->type==SVG_PAINT_COLOR) {
 			newObj = JS_NewObject(c, &rgbClass, 0, 0);
 			GF_SAFEALLOC(rgb, sizeof(rgbCI));
 			rgb->r = (u8) (255*FIX2FLT(paint->color.red) );
@@ -2731,6 +2733,8 @@ void JSScript_LoadSVG(GF_Node *node)
 	}
 	return;
 }
+extern u32 script_execution_nb;
+extern u32 script_execution_time;
 
 Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 {
@@ -2746,7 +2750,13 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 	prev_event = JS_GetPrivate(svg_js->js_ctx, svg_js->event);
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, event);
 
-	ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, handler->textContent, strlen(handler->textContent), 0, 0, &rval);
+	{
+		u32 before = gf_sys_clock();
+		ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, handler->textContent, strlen(handler->textContent), 0, 0, &rval);
+		script_execution_time += gf_sys_clock() - before;
+		script_execution_nb ++;
+		fprintf(stderr,"Script exec: %d\r", script_execution_nb);
+	}
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, prev_event);
 
 	if (ret==JS_FALSE) {
