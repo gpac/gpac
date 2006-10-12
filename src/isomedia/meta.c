@@ -204,7 +204,7 @@ GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num
 		char buf_cache[4096];
 		u64 remain;
 		GF_ItemExtentEntry *extent_entry = gf_list_get(location_entry->extent_entries, i);
-		gf_bs_seek(file->movieFileMap->bs, location_entry->base_offset + extent_entry->extent_offset);
+		gf_bs_seek(file->movieFileMap->bs, /*location_entry->base_offset +*/ extent_entry->extent_offset);
 
 		remain = extent_entry->extent_length;
 		while (remain) {

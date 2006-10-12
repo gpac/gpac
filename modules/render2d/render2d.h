@@ -158,11 +158,13 @@ typedef struct _render2d_effect
 	/*current background and viewport stacks*/
 	GF_List *back_stack, *view_stack;
 
-	/*current transformation from top-level. If TF_RENDER_GET_BOUNDS is set, this shall be updated
-	to the matrix at current level*/
+	/*current transformation from top-level. 
+	If TF_RENDER_GET_BOUNDS is set, this shall be updated to the matrix at current level*/
 	GF_Matrix2D transform;
 	/*current color transformation from top-level*/
 	GF_ColorMatrix color_mat;
+	/* Contains the viewbox transform, used for svg ref() transform */
+	GF_Matrix2D vb_transform;
 
 	/*if set all nodes shall be redrawn - set only at specific places in the tree*/
 	Bool invalidate_all;

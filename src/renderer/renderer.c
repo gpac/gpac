@@ -357,6 +357,7 @@ static GF_Renderer *SR_New(GF_User *user)
 	SR_SetFontEngine(tmp);
 	
 	tmp->extra_scenes = gf_list_new();
+	tmp->secondary_scenes = gf_list_new();
 	tmp->interaction_level = GF_INTERACT_NORMAL | GF_INTERACT_INPUT_SENSOR | GF_INTERACT_NAVIGATION;
 	return tmp;
 }
@@ -402,7 +403,6 @@ void gf_sr_del(GF_Renderer *sr)
 {
 	if (!sr) return;
 
-
 	gf_sr_lock(sr, 1);
 
 	if (sr->VisualThread) {
@@ -436,6 +436,7 @@ void gf_sr_del(GF_Renderer *sr)
 	gf_list_del(sr->textures);
 	gf_list_del(sr->time_nodes);
 	gf_list_del(sr->extra_scenes);
+	gf_list_del(sr->secondary_scenes);
 
 	gf_sr_lock(sr, 0);
 	gf_mx_del(sr->mx);
@@ -1054,6 +1055,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 
 	gf_sr_reconfig_task(sr);
 
+	/* if there is no scene, we draw a black screen to flush the screen */
 	if (!sr->scene) {
 		sr->visual_renderer->DrawScene(sr->visual_renderer);
 		gf_sr_lock(sr, 0);
@@ -1091,7 +1093,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	gf_sg_activate_routes(sr->scene);
 
 #ifndef GPAC_DISABLE_SVG
-	{
+	{ /* Experimental (Not SVG compliant system events (i.e. battery, cpu ...) triggered to the root node)*/
 		GF_Node *root = gf_sg_get_root_node(sr->scene);
 		GF_DOM_Event evt;
 		if (gf_dom_listener_count(root)) {
@@ -1115,8 +1117,14 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 			}
 		}
 	}
+
 	if (gf_sg_notify_smil_timed_elements(sr->scene)) {
 		sr->draw_next_frame = 1;
+	}
+	for (i=0; i<gf_list_count(sr->secondary_scenes); i++) {
+		if (gf_sg_notify_smil_timed_elements(gf_list_get(sr->secondary_scenes, i))) {
+			sr->draw_next_frame = 1;
+		}
 	}
 #endif
 
@@ -1133,12 +1141,14 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	if (sr->draw_next_frame) {
 		sr->draw_next_frame = 0;
 		sr->visual_renderer->DrawScene(sr->visual_renderer);
+#if 0
 		if (sr->frame_number == 0 && sr->user->EventProc) {
 			GF_Event evt;
 			evt.type = GF_EVT_UPDATE_RTI;
 			evt.caption.caption = "Before first call to draw scene";
 			sr->user->EventProc(sr->user->opaque, &evt);
 		}
+#endif
 		sr->reset_graphics = 0;
 
 		if (sr->stress_mode) {
@@ -1363,3 +1373,17 @@ void *gf_sr_get_visual_renderer(GF_Renderer *sr)
 	return sr->visual_renderer;
 }
 
+void gf_sr_add_secondary_scene(GF_Renderer *sr, GF_SceneGraph *scene, Bool remove)
+{
+	u32 i;
+	gf_sr_lock(sr, 1);
+	for (i=0; i<gf_list_count(sr->secondary_scenes); i++) {
+		if (scene == gf_list_get(sr->secondary_scenes, i)) {
+			if (remove) gf_list_rem(sr->secondary_scenes, i);
+			gf_sr_lock(sr, 0);
+			return;
+		}
+	}
+	if (!remove) gf_list_add(sr->secondary_scenes, scene);
+	gf_sr_lock(sr, 0);
+}

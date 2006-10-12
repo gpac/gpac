@@ -810,7 +810,7 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 }
 
 /* Parses an SVG transform attribute and collapses all in the given matrix */
-static void svg_parse_transform(SVG_Matrix *mat, char *attribute_content) 
+static Bool svg_parse_transform(SVG_Matrix *mat, char *attribute_content) 
 {
 	SVG_Matrix tmp;
 
@@ -927,8 +927,37 @@ static void svg_parse_transform(SVG_Matrix *mat, char *attribute_content)
 			gf_mx2d_add_matrix(&tmp, mat);
 			gf_mx2d_copy(*mat, tmp);
 			while(str[i] != 0 && str[i] == ' ') i++;
+		} else if (strstr(str+i, "ref")==str+i) {
+			i+=3;
+			while(str[i] != 0 && str[i] == ' ') i++;
+			if (str[i] == '(') {
+				i++;
+				while(str[i] != 0 && str[i] == ' ') i++;
+				if (str[i] == 's' && str[i+1] == 'v' && str[i+2] == 'g') {
+					i+=3;
+					while(str[i] != 0 && str[i] == ' ') i++;					
+					if (str[i] == ',') i++;
+					else if (str[i] == ')') {
+						i++;
+						return 1;
+					} else goto err_ref;
+					i+=svg_parse_float(&(str[i]), &(mat->m[2]), 0);
+					i+=svg_parse_float(&(str[i]), &(mat->m[5]), 0);
+					while(str[i] != 0 && str[i] == ' ') i++;
+					if (str[i] == ')')  i++;
+				} else {
+					goto err_ref;
+				}
+				return 1;
+			} else {
+err_ref:
+			/* erroneous syntax, looking for closing parenthesis */
+				while(str[i] != 0 && str[i] != ')') i++;
+				i++;
+			}
 		}
 	}
+	return 0;
 }
 
 /* TODO: Change the function to handle elliptical arcs, requires changing data structure */
@@ -1293,6 +1322,19 @@ static void svg_parse_displayalign(SVG_DisplayAlign *value, char *value_string)
 	}
 }
 
+static void svg_parse_textalign(SVG_TextAlign *value, char *value_string)
+{ 
+	if (!strcmp(value_string, "inherit")) {
+		*value = SVG_TEXTALIGN_INHERIT;
+	} else if (!strcmp(value_string, "start")) {
+		*value = SVG_TEXTALIGN_START;
+	} else if (!strcmp(value_string, "center")) {
+		*value = SVG_TEXTALIGN_CENTER;
+	} else if (!strcmp(value_string, "end")) {
+		*value = SVG_TEXTALIGN_END;
+	} 
+}
+
 static void svg_parse_pointerevents(SVG_PointerEvents *value, char *value_string)
 {
 	if (!strcmp(value_string, "inherit")) {
@@ -1586,7 +1628,8 @@ static void smil_parse_time_list(SVGElement *e, GF_List *values, char *begin_or_
 			v = gf_list_get(values, 0);
 			gf_list_rem(values, 0);
 			added = 0;
-			for (i=0; i<gf_list_count(sorted); i++) {
+			count = gf_list_count(sorted);
+			for (i=0; i<count; i++) {
 				sv = gf_list_get(sorted, i);
 				if (v->type >= GF_SMIL_TIME_EVENT) {
 					/* unresolved or indefinite so add at the end of the sorted list */
@@ -1597,10 +1640,12 @@ static void smil_parse_time_list(SVGElement *e, GF_List *values, char *begin_or_
 					if (sv->type >= GF_SMIL_TIME_EVENT) {
 						gf_list_insert(sorted, v, i);
 						added = 1;
+						break;
 					} else {
 						if (v->clock <= sv->clock) {
 							gf_list_insert(sorted, v, i);
 							added = 1;
+							break;
 						}
 					}
 				}
@@ -2229,6 +2274,9 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 	case SVG_DisplayAlign_datatype:
 		svg_parse_displayalign((SVG_DisplayAlign *)info->far_ptr, attribute_content);
 		break;
+	case SVG_TextAlign_datatype:
+		svg_parse_textalign((SVG_TextAlign *)info->far_ptr, attribute_content);
+		break;
 	case SVG_PointerEvents_datatype:
 		svg_parse_pointerevents((SVG_PointerEvents *)info->far_ptr, attribute_content);
 		break;
@@ -2362,8 +2410,8 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 		svg_parse_fontfamily(info->far_ptr, attribute_content);
 		break;
 	case SVG_Matrix_datatype:
-		if (transform_type == SVG_TRANSFORM_MATRIX)
-			svg_parse_transform(info->far_ptr, attribute_content);
+		if (transform_type == SVG_TRANSFORM_MATRIX) 
+			((SVGTransformableElement *)elt)->is_ref_transform = svg_parse_transform(info->far_ptr, attribute_content);		
 		else 
 			svg_parse_transform_animation_value(elt, info->far_ptr, attribute_content, transform_type);
 		break;
@@ -2526,6 +2574,7 @@ void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type)
 	case SVG_Overflow_datatype:
 	case SVG_ZoomAndPan_datatype:
 	case SVG_DisplayAlign_datatype:
+	case SVG_TextAlign_datatype:
 	case SVG_PointerEvents_datatype:
 	case SVG_RenderingHint_datatype:
 	case SVG_VectorEffect_datatype:
@@ -3001,6 +3050,12 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 		else if (intVal==SVG_DISPLAYALIGN_BEFORE) strcpy(attValue, "before");
 		else if (intVal==SVG_DISPLAYALIGN_CENTER) strcpy(attValue, "center");
 		else if (intVal==SVG_DISPLAYALIGN_AFTER) strcpy(attValue, "after");
+		break;
+	case SVG_TextAlign_datatype:
+		if (intVal==SVG_TEXTALIGN_INHERIT) strcpy(attValue, "inherit");
+		else if (intVal==SVG_TEXTALIGN_START) strcpy(attValue, "start");
+		else if (intVal==SVG_TEXTALIGN_CENTER) strcpy(attValue, "center");
+		else if (intVal==SVG_TEXTALIGN_END) strcpy(attValue, "end");
 		break;
 	case SVG_PointerEvents_datatype:
 		if (intVal==SVG_POINTEREVENTS_INHERIT) strcpy(attValue, "inherit");
@@ -3760,6 +3815,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	case SVG_Overflow_datatype:
 	case SVG_ZoomAndPan_datatype:
 	case SVG_DisplayAlign_datatype:
+	case SVG_TextAlign_datatype:
 	case SVG_PointerEvents_datatype:
 	case SVG_RenderingHint_datatype:
 	case SVG_VectorEffect_datatype:
@@ -4385,28 +4441,28 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 					return GF_NOT_SUPPORTED;
 				}
 			} else {
-				/* a and b are matrices but b is not */
+				/* a and c are matrices but b is not */
 				GF_Matrix2D tmp;
-				if ((alpha != FIX_ONE) && (beta != FIX_ONE)) {
+				if (alpha != FIX_ONE) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Parsing] matrix operations not supported\n"));
 					return GF_NOT_SUPPORTED;
 				}
 				gf_mx2d_init(tmp);
 				switch (b->eventType) {
 				case SVG_TRANSFORM_TRANSLATE:
-					gf_mx2d_add_translation(&tmp, ((SVG_Point *)b->far_ptr)->x, ((SVG_Point *)b->far_ptr)->y);
+					gf_mx2d_add_translation(&tmp, gf_mulfix(((SVG_Point *)b->far_ptr)->x, beta), gf_mulfix(((SVG_Point *)b->far_ptr)->y, beta));
 					break;
 				case SVG_TRANSFORM_SCALE:
-					gf_mx2d_add_scale(&tmp, ((SVG_Point *)b->far_ptr)->x, ((SVG_Point *)b->far_ptr)->y);
+					gf_mx2d_add_scale(&tmp, gf_mulfix(((SVG_Point *)b->far_ptr)->x, beta), gf_mulfix(((SVG_Point *)b->far_ptr)->y, beta));
 					break;
 				case SVG_TRANSFORM_ROTATE:
-					gf_mx2d_add_rotation(&tmp, ((SVG_Point_Angle *)b->far_ptr)->x, ((SVG_Point_Angle *)b->far_ptr)->y, ((SVG_Point_Angle *)b->far_ptr)->angle);
+					gf_mx2d_add_rotation(&tmp, gf_mulfix(((SVG_Point_Angle *)b->far_ptr)->x, beta), gf_mulfix(((SVG_Point_Angle *)b->far_ptr)->y, beta), gf_mulfix(((SVG_Point_Angle *)b->far_ptr)->angle, beta));
 					break;
 				case SVG_TRANSFORM_SKEWX:
-					gf_mx2d_add_skew_x(&tmp, *(Fixed*)b->far_ptr);
+					gf_mx2d_add_skew_x(&tmp, gf_mulfix(*(Fixed*)b->far_ptr, beta));
 					break;
 				case SVG_TRANSFORM_SKEWY:
-					gf_mx2d_add_skew_y(&tmp, *(Fixed*)b->far_ptr);
+					gf_mx2d_add_skew_y(&tmp, gf_mulfix(*(Fixed*)b->far_ptr, beta));
 					break;
 				default:
 					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[SVG Parsing] copy of attributes %s not supported\n", a->name));
@@ -4469,6 +4525,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 	case SVG_Overflow_datatype:
 	case SVG_ZoomAndPan_datatype:
 	case SVG_DisplayAlign_datatype:
+	case SVG_TextAlign_datatype:
 	case SVG_PointerEvents_datatype:
 	case SVG_RenderingHint_datatype:
 	case SVG_VectorEffect_datatype:
@@ -4623,6 +4680,7 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 	case SVG_Overflow_datatype:
 	case SVG_ZoomAndPan_datatype:
 	case SVG_DisplayAlign_datatype:
+	case SVG_TextAlign_datatype:
 	case SVG_PointerEvents_datatype:
 	case SVG_RenderingHint_datatype:
 	case SVG_VectorEffect_datatype:
@@ -4775,6 +4833,7 @@ GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldI
 	case SVG_Overflow_datatype:
 	case SVG_ZoomAndPan_datatype:
 	case SVG_DisplayAlign_datatype:
+	case SVG_TextAlign_datatype:
 	case SVG_PointerEvents_datatype:
 	case SVG_RenderingHint_datatype:
 	case SVG_VectorEffect_datatype:
@@ -4819,72 +4878,6 @@ GF_Err gf_svg_attributes_interpolate(GF_FieldInfo *a, GF_FieldInfo *b, GF_FieldI
 	}
 	return GF_OK;
 
-}
-
-/* TODO: Check that all possibly inherited types are treated */
-Bool gf_svg_is_inherit(GF_FieldInfo *a)
-{
-	if (!a->far_ptr) return 1;
-
-	switch (a->fieldType) {
-	case SVG_Color_datatype:
-		return (((SVG_Color *)a->far_ptr)->type == SVG_COLOR_INHERIT);
-		break;
-	case SVG_Paint_datatype:
-		return (((SVG_Paint *)a->far_ptr)->type == SVG_PAINT_INHERIT);
-		break;
-	case SVG_FontSize_datatype:
-	case SVG_Number_datatype:
-		return (((SVG_Number *)a->far_ptr)->type == SVG_NUMBER_INHERIT);
-		break;
-	case SVG_RenderingHint_datatype:
-		return (*((SVG_RenderingHint *)a->far_ptr) == SVG_RENDERINGHINT_INHERIT);
-		break;
-	case SVG_Display_datatype:
-		return (*((SVG_Display *)a->far_ptr) == SVG_DISPLAY_INHERIT);
-		break;
-	case SVG_DisplayAlign_datatype:
-		return (*((SVG_DisplayAlign *)a->far_ptr) == SVG_DISPLAYALIGN_INHERIT);
-		break;
-	case SVG_FillRule_datatype:
-		return (*((SVG_FillRule *)a->far_ptr) == SVG_FILLRULE_INHERIT);
-		break;
-	case SVG_FontFamily_datatype:
-		return (((SVG_FontFamily *)a->far_ptr)->type == SVG_FONTFAMILY_INHERIT);
-		break;
-	case SVG_FontStyle_datatype:
-		return (*((SVG_FontStyle *)a->far_ptr) == SVG_FONTSTYLE_INHERIT);
-		break;
-	case SVG_FontWeight_datatype:
-		return (*((SVG_FontWeight *)a->far_ptr) == SVG_FONTWEIGHT_INHERIT);
-		break;
-	case SVG_PointerEvents_datatype:
-		return (*((SVG_PointerEvents *)a->far_ptr) == SVG_POINTEREVENTS_INHERIT);
-		break;
-	case SVG_StrokeDashArray_datatype:
-		return (((SVG_StrokeDashArray *)a->far_ptr)->type == SVG_STROKEDASHARRAY_INHERIT);
-		break;
-	case SVG_StrokeLineCap_datatype:
-		return (*((SVG_StrokeLineCap *)a->far_ptr) == SVG_STROKELINECAP_INHERIT);
-		break;
-	case SVG_StrokeLineJoin_datatype:
-		return (*((SVG_StrokeLineJoin *)a->far_ptr) == SVG_STROKELINEJOIN_INHERIT);
-		break;
-	case SVG_TextAnchor_datatype:
-		return (*((SVG_TextAnchor *)a->far_ptr) == SVG_TEXTANCHOR_INHERIT);
-		break;
-	case SVG_VectorEffect_datatype:
-		return (*((SVG_VectorEffect *)a->far_ptr) == SVG_VECTOREFFECT_INHERIT);
-		break;
-	case SVG_Visibility_datatype:
-		return (*((SVG_Visibility *)a->far_ptr) == SVG_VISIBILITY_INHERIT);
-		break;
-	case SVG_Overflow_datatype:
-		return (*((SVG_Overflow *)a->far_ptr) == SVG_OVERFLOW_INHERIT);
-		break;
-	default:
-		return 0;
-	}
 }
 
 Bool gf_svg_is_current_color(GF_FieldInfo *a)

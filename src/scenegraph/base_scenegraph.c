@@ -154,35 +154,45 @@ void SG_GraphRemoved(GF_Node *node, GF_SceneGraph *sg)
 	GF_FieldInfo info;
 	GF_Node *n;
 	GF_List *mflist;
+	u32 tag;
 
+	tag = gf_node_get_tag(node);
 	count = gf_node_get_field_count(node);
-	for (i=0; i<count; i++) {
-		gf_node_get_field(node, i, &info);
-		if (info.fieldType==GF_SG_VRML_SFNODE) {
-			n = *(GF_Node **) info.far_ptr;
-			if (n) {
-				if (n->sgprivate->scenegraph==sg) {
-					/*if root of graph, skip*/
-					if (sg->RootNode!=n) {
-						gf_node_unregister(n, node);
-						/*don't forget to remove node...*/
-						*(GF_Node **) info.far_ptr = NULL;
+#ifndef GPAC_DISABLE_SVG
+	if ((tag>= GF_NODE_RANGE_FIRST_SVG) && (tag<= GF_NODE_RANGE_LAST_SVG)) {
+		/* TODO */
+		tag = 0;
+	} else 
+#endif
+	{
+		for (i=0; i<count; i++) {
+			gf_node_get_field(node, i, &info);
+			if (info.fieldType==GF_SG_VRML_SFNODE) {
+				n = *(GF_Node **) info.far_ptr;
+				if (n) {
+					if (n->sgprivate->scenegraph==sg) {
+						/*if root of graph, skip*/
+						if (sg->RootNode!=n) {
+							gf_node_unregister(n, node);
+							/*don't forget to remove node...*/
+							*(GF_Node **) info.far_ptr = NULL;
+						}
+					} else {
+						SG_GraphRemoved(n, sg);
 					}
-				} else {
-					SG_GraphRemoved(n, sg);
 				}
 			}
-		}
-		else if (info.fieldType==GF_SG_VRML_MFNODE) {
-			mflist = *(GF_List **) info.far_ptr;
-			j=0;
-			while ((n = gf_list_enum(mflist, &j))) {
-				if (n->sgprivate->scenegraph==sg) {
-					gf_node_unregister(n, node);
-					j--;
-					gf_list_rem(mflist, j);
-				} else {
-					SG_GraphRemoved(n, sg);
+			else if (info.fieldType==GF_SG_VRML_MFNODE) {
+				mflist = *(GF_List **) info.far_ptr;
+				j=0;
+				while ((n = gf_list_enum(mflist, &j))) {
+					if (n->sgprivate->scenegraph==sg) {
+						gf_node_unregister(n, node);
+						j--;
+						gf_list_rem(mflist, j);
+					} else {
+						SG_GraphRemoved(n, sg);
+					}
 				}
 			}
 		}

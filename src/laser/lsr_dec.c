@@ -2444,11 +2444,11 @@ static GF_Node *lsr_read_conditional(GF_LASeRCodec *lsr)
 	SVGconditionalElement*elt = (SVGconditionalElement*) gf_node_new(lsr->sg, TAG_SVG_conditional);
 	lsr_read_id(lsr, (GF_Node *) elt);
 	lsr_read_rare(lsr, (SVGElement*) elt);
-	lsr_read_smil_times(lsr, elt->lsr_begin, "begin", 1);
+	lsr_read_smil_times(lsr, elt->timing->begin, "begin", 1);
 	GF_LSR_READ_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
 	/*FIXME to remove from DCOR SDL*/
 	//lsr_read_href(lsr, (SVGElement *)elt);
-	GF_LSR_READ_INT(lsr, elt->lsr_enabled, 1, "enabled");
+	GF_LSR_READ_INT(lsr, elt->enabled, 1, "enabled");
 	lsr_read_any_attribute(lsr, (GF_Node *) elt, 1);
 	lsr_read_command_list(lsr, NULL, elt, 0);
 	return (GF_Node *)elt;

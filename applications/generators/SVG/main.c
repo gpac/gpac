@@ -62,7 +62,7 @@ static char *other_properties[] = {
   "font-family", "font-size", "font-style", "font-weight", "line-increment", 
   "solid-color", "solid-opacity", "stop-color", "stop-opacity", 
   "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", 
-   "stroke-opacity", "stroke-width", "text-anchor", "vector-effect"
+   "stroke-opacity", "stroke-width", "text-align", "text-anchor", "vector-effect"
 };
 
 /* only opacity on image */
@@ -109,7 +109,7 @@ typedef struct {
 
 static _atts generic_attributes[] = {
 	{ 7, core },
-	{ 25, other_properties },
+	{ 26, other_properties },
 	{ 9, media_properties },
 	{ 1, opacity_properties },
 	{ 12, focus },
@@ -310,7 +310,7 @@ static Bool isGenericAttributesGroup(char *name)
 		!strcmp(name, "svg.XLinkEmbed.attr") ||
 		!strcmp(name, "svg.XLinkRequired.attr") ||
 		!strcmp(name, "svg.XLinkReplace.attr") ||
-		!strcmp(name, "svg.ContentType.attr") ||
+//		!strcmp(name, "svg.ContentType.attr") ||
 		!strcmp(name, "svg.AnimateTiming.attr") ||
 		!strcmp(name, "svg.AnimateTimingNoMinMax.attr") ||
 		!strcmp(name, "svg.AnimateBegin.attr") || 
@@ -352,8 +352,8 @@ static Bool setGenericAttributesFlags(char *name, SVGElement *e)
 	} else if (!strcmp(name, "svg.AnimateCommon.attr") ||
 			   !strcmp(name, "svg.XLinkEmbed.attr") ||
 			   !strcmp(name, "svg.XLinkRequired.attr") ||
-			   !strcmp(name, "svg.XLinkReplace.attr") ||
-			   !strcmp(name, "svg.ContentType.attr")) {
+			   !strcmp(name, "svg.XLinkReplace.attr")) { //||
+//			   !strcmp(name, "svg.ContentType.attr")) {
 		e->has_xlink = 1;
 	} else if (!strcmp(name, "svg.AnimateTiming.attr") ||
 			   !strcmp(name, "svg.AnimateTimingNoMinMax.attr") ||
@@ -502,7 +502,7 @@ xmlNodeSetPtr findNodes( xmlXPathContextPtr ctxt, xmlChar * path )
 
 void setAttributeType(SVGAttribute *att) 
 {
-	if (!att->svg_type) {
+	if (!att->svg_type) { /* if the type is not given in the RNG, we explicitely set it */
 		if (!strcmp(att->svg_name, "textContent")) {
 			strcpy(att->impl_type, "SVG_TextContent");
 		} else if (!strcmp(att->svg_name, "class")) {
@@ -549,8 +549,7 @@ void setAttributeType(SVGAttribute *att)
 		} else if (!strcmp(att->svg_name, "accumulate")) {
 			strcpy(att->impl_type, "SMIL_Accumulate");
 		} else if (!strcmp(att->svg_name, "begin") ||
-				   !strcmp(att->svg_name, "end") ||
-				   !strcmp(att->svg_name, "lsr:begin")
+				   !strcmp(att->svg_name, "end") 
 				  ) {
 			strcpy(att->impl_type, "SMIL_Times");
 		} else if (!strcmp(att->svg_name, "clipBegin") ||
@@ -599,6 +598,8 @@ void setAttributeType(SVGAttribute *att)
 			strcpy(att->impl_type, "SVG_VectorEffect");
 		} else if (!strcmp(att->svg_name, "display-align")) {
 			strcpy(att->impl_type, "SVG_DisplayAlign");
+		} else if (!strcmp(att->svg_name, "text-align")) {
+			strcpy(att->impl_type, "SVG_TextAlign");
 		} else if (!strcmp(att->svg_name, "propagate")) {
 			strcpy(att->impl_type, "XMLEV_Propagate");
 		} else if (!strcmp(att->svg_name, "defaultAction")) {
@@ -651,11 +652,14 @@ void setAttributeType(SVGAttribute *att)
 		} else if (!strcmp(att->svg_name, "editable")) {
 			strcpy(att->impl_type, "SVG_Boolean");
 		} else {
+			/* For all other attributes, we use String as default type */
 			strcpy(att->impl_type, "SVG_String");
 			fprintf(stdout, "Warning: using type SVG_String for attribute %s.\n", att->svg_name);
 		}
-	} else {
+	} else { /* for some attributes, the type given in the RNG needs to be overriden */
 		if (!strcmp(att->svg_name, "color")) {
+			strcpy(att->impl_type, "SVG_Paint");
+		} else if (!strcmp(att->svg_name, "viewport-fill")) {
 			strcpy(att->impl_type, "SVG_Paint");
 		} else if (!strcmp(att->svg_name, "syncTolerance")) {
 			strcpy(att->impl_type, "SMIL_SyncTolerance");
@@ -950,6 +954,7 @@ void generateNode(FILE *output, SVGElement* svg_elt)
 	fprintf(output, "\tBASE_SVG_ELEMENT\n");
 
 	if (svg_elt->has_transform) {
+		fprintf(output, "\tBool is_ref_transform;\n");
 		fprintf(output, "\tSVG_Matrix transform;\n");
 		fprintf(output, "\tSVG_Matrix *motionTransform;\n");
 	}
@@ -1175,7 +1180,7 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 
 	if (!strcmp(svg_elt->implementation_name, "conditional")) {
 		fprintf(output, "\tgf_svg_init_lsr_conditional(&p->updates);\n");
-		fprintf(output, "\tp->lsr_begin = gf_list_new();\n");
+		fprintf(output, "\tgf_svg_init_timing((SVGElement *)p);\n");		
 
 	} 
 
@@ -1203,6 +1208,12 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 		fprintf(output, "\tp->height.type = SVG_NUMBER_PERCENTAGE;\n");
 		fprintf(output, "\tp->height.value = INT2FIX(100);\n");
 	}
+	else if (!strcmp(svg_elt->svg_name, "solidColor")) {
+		fprintf(output, "\tp->properties->solid_opacity.value = FIX_ONE;\n");
+	}
+	else if (!strcmp(svg_elt->svg_name, "stop")) {
+		fprintf(output, "\tp->properties->stop_opacity.value = FIX_ONE;\n");
+	}
 	else if (!strcmp(svg_elt->svg_name, "linearGradient")) {
 		fprintf(output, "\tp->x2.value = FIX_ONE;\n");
 		fprintf(output, "\tgf_mx2d_init(p->gradientTransform);\n");
@@ -1228,7 +1239,6 @@ void generateNodeImpl(FILE *output, SVGElement* svg_elt)
 
 	if (!strcmp(svg_elt->implementation_name, "conditional")) {
 		fprintf(output, "\tgf_svg_reset_lsr_conditional(&p->updates);\n");
-		fprintf(output, "\tgf_smil_delete_times(p->lsr_begin);\n");
 	} 
 	else if (!strcmp(svg_elt->implementation_name, "a")) {
 		fprintf(output, "\tif (p->target) free(p->target);\n");

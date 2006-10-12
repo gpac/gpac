@@ -445,6 +445,7 @@ static void UpdateDiscard(GF_TimeNode *st)
 	} else {
 		gf_node_unregister(st->obj, NULL);
 	}
+//	st->needs_unregister = 1;
 }
 
 void InitDiscard(GF_Renderer *sr, GF_Node *node)

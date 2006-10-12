@@ -70,15 +70,7 @@ static void svg_process_event(SVGlistenerElement *listen, GF_DOM_Event *event)
 {
 	SVGhandlerElement *handler = (SVGhandlerElement *) listen->handler.target;
 	if (!handler) return;
-	if (handler->sgprivate->tag == TAG_SVG_conditional) {
-		SVGconditionalElement *cond = (SVGconditionalElement *)handler;
-		if (cond->updates.data) {
-			cond->updates.exec_command_list(cond);
-		} else if (gf_list_count(cond->updates.com_list)) {
-			gf_sg_command_apply_list(listen->sgprivate->scenegraph, cond->updates.com_list, gf_node_get_scene_time((GF_Node*)listen) );
-		}
-		return;
-	} else if (is_svg_animation_tag(handler->sgprivate->tag) && handler->anim && handler->timing->runtime) {
+	if (is_svg_animation_tag(handler->sgprivate->tag) && handler->anim && handler->timing->runtime) {
 		if (event->type == SVG_DOM_EVT_BATTERY) {
 			handler->timing->runtime->fraction = gf_divfix(INT2FIX(event->batteryLevel), INT2FIX(100));
 		} else if (event->type == SVG_DOM_EVT_CPU) {

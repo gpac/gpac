@@ -31,6 +31,7 @@ static void gf_smil_timing_null_timed_function(SMIL_Timing_RTI *rti, Fixed norma
 
 void gf_smil_timing_init_runtime_info(SVGElement *timed_elt)
 {
+	GF_SceneGraph *sg;
 	SMIL_Timing_RTI *rti;
 	if (!timed_elt->timing) return;
 	if (timed_elt->timing->runtime) return;
@@ -42,12 +43,14 @@ void gf_smil_timing_init_runtime_info(SVGElement *timed_elt)
 	rti->activation = gf_smil_timing_null_timed_function;
 	rti->freeze = gf_smil_timing_null_timed_function;
 	rti->restore = gf_smil_timing_null_timed_function;
-	rti->fraction_activation = gf_smil_timing_null_timed_function;
+	rti->fraction_activation = NULL;
 	rti->scene_time = -1;
 
 	timed_elt->timing->runtime = rti;
 
-	gf_list_add(timed_elt->sgprivate->scenegraph->smil_timed_elements, rti);
+	sg = timed_elt->sgprivate->scenegraph;
+//	while (sg->parent_scene) sg = sg->parent_scene;
+	gf_list_add(sg->smil_timed_elements, rti);
 }
 
 void gf_smil_timing_delete_runtime_info(SVGElement *timed_elt)
@@ -327,7 +330,7 @@ Bool gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 	rti->cycle_number++;
 
 	/* for fraction events, we indicate that the scene needs redraw */
-	if (rti->evaluate == rti->fraction_activation) { return 1; }
+	if (rti->fraction_activation != NULL && rti->evaluate == rti->fraction_activation) { return 1; }
 
 	rti->evaluate = NULL;	
 

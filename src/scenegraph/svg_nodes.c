@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Jul 28 16:58:24 2006
+	DO NOT MOFIFY - File generated on GMT Fri Oct 06 18:37:52 2006
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -136,7 +136,7 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -265,146 +265,151 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "xlink:href";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->href;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "xlink:show";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->show;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "xlink:title";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->title;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "xlink:actuate";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->actuate;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "xlink:role";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->role;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "xlink:arcrole";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->arcrole;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "xlink:type";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->type;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 62:
+		case 63:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 63:
+		case 64:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 64:
+		case 65:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 65:
+		case 66:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 66:
+		case 67:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 67:
+		case 68:
 			info->name = "target";
 			info->fieldType = SVG_ID_datatype;
 			info->far_ptr = & ((SVGaElement *)node)->target;
@@ -1373,7 +1378,7 @@ static GF_Err gf_svg_animation_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -1641,6 +1646,7 @@ static void gf_svg_audio_del(GF_Node *node)
 {
 	SVGaudioElement *p = (SVGaudioElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	free(p->type);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -1715,7 +1721,7 @@ static GF_Err gf_svg_audio_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -1863,6 +1869,11 @@ static GF_Err gf_svg_audio_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
+		case 43:
+			info->name = "type";
+			info->fieldType = SVG_ContentType_datatype;
+			info->far_ptr = & ((SVGaudioElement *)node)->type;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
 }
@@ -1966,7 +1977,7 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -2095,121 +2106,126 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "cx";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->cx;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "cy";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->cy;
 			return GF_OK;
-		case 62:
+		case 63:
 			info->name = "r";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGcircleElement *)node)->r;
@@ -2231,9 +2247,9 @@ void *gf_svg_new_conditional()
 	((GF_Node *p)->sgprivate->get_field = SVG_conditional_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
+	gf_svg_init_timing((SVGElement *)p);
 	gf_svg_init_lsr_conditional(&p->updates);
-	p->lsr_begin = gf_list_new();
-	p->lsr_enabled = 1;
+	gf_svg_init_timing((SVGElement *)p);
 	return p;
 }
 
@@ -2242,7 +2258,6 @@ static void gf_svg_conditional_del(GF_Node *node)
 	SVGconditionalElement *p = (SVGconditionalElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
 	gf_svg_reset_lsr_conditional(&p->updates);
-	gf_smil_delete_times(p->lsr_begin);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -2286,14 +2301,14 @@ static GF_Err gf_svg_conditional_get_attribute(GF_Node *node, GF_FieldInfo *info
 			info->far_ptr = &((SVGElement *)node)->core->eRR;
 			return GF_OK;
 		case 7:
-			info->name = "lsr:begin";
+			info->name = "begin";
 			info->fieldType = SMIL_Times_datatype;
-			info->far_ptr = & ((SVGconditionalElement *)node)->lsr_begin;
+			info->far_ptr = &((SVGElement *)node)->timing->begin;
 			return GF_OK;
 		case 8:
-			info->name = "lsr:enabled";
+			info->name = "enabled";
 			info->fieldType = SVG_Boolean_datatype;
-			info->far_ptr = & ((SVGconditionalElement *)node)->lsr_enabled;
+			info->far_ptr = & ((SVGconditionalElement *)node)->enabled;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
@@ -2506,7 +2521,7 @@ static GF_Err gf_svg_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -2635,11 +2650,16 @@ static GF_Err gf_svg_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
@@ -2947,7 +2967,7 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -3076,126 +3096,131 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "rx";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->rx;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "ry";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->ry;
 			return GF_OK;
-		case 62:
+		case 63:
 			info->name = "cx";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->cx;
 			return GF_OK;
-		case 63:
+		case 64:
 			info->name = "cy";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGellipseElement *)node)->cy;
@@ -3760,7 +3785,7 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -3889,161 +3914,166 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "xlink:href";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->href;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "xlink:show";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->show;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "xlink:title";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->title;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "xlink:actuate";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->actuate;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "xlink:role";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->role;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "xlink:arcrole";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->arcrole;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "xlink:type";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->type;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 62:
+		case 63:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 63:
+		case 64:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 64:
+		case 65:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 65:
+		case 66:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 66:
+		case 67:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 67:
+		case 68:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->x;
 			return GF_OK;
-		case 68:
+		case 69:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->y;
 			return GF_OK;
-		case 69:
+		case 70:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->width;
 			return GF_OK;
-		case 70:
+		case 71:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGforeignObjectElement *)node)->height;
@@ -4151,7 +4181,7 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -4280,106 +4310,111 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
@@ -4503,7 +4538,6 @@ void *gf_svg_new_handler()
 	((GF_Node *p)->sgprivate->get_field = SVG_handler_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
-	gf_svg_init_xlink((SVGElement *)p);
 	return p;
 }
 
@@ -4511,6 +4545,7 @@ static void gf_svg_handler_del(GF_Node *node)
 {
 	SVGhandlerElement *p = (SVGhandlerElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	free(p->type);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -4557,6 +4592,11 @@ static GF_Err gf_svg_handler_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->name = "ev:event";
 			info->fieldType = XMLEV_Event_datatype;
 			info->far_ptr = & ((SVGhandlerElement *)node)->ev_event;
+			return GF_OK;
+		case 8:
+			info->name = "type";
+			info->fieldType = SVG_ContentType_datatype;
+			info->far_ptr = & ((SVGhandlerElement *)node)->type;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
@@ -4682,6 +4722,7 @@ static void gf_svg_image_del(GF_Node *node)
 {
 	SVGimageElement *p = (SVGimageElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	free(p->type);
 	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
@@ -4757,7 +4798,7 @@ static GF_Err gf_svg_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -4930,6 +4971,11 @@ static GF_Err gf_svg_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->fieldType = SVG_PreserveAspectRatio_datatype;
 			info->far_ptr = & ((SVGimageElement *)node)->preserveAspectRatio;
 			return GF_OK;
+		case 48:
+			info->name = "type";
+			info->fieldType = SVG_ContentType_datatype;
+			info->far_ptr = & ((SVGimageElement *)node)->type;
+			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
 }
@@ -5033,7 +5079,7 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -5162,126 +5208,131 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "x1";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->x1;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "y1";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->y1;
 			return GF_OK;
-		case 62:
+		case 63:
 			info->name = "x2";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->x2;
 			return GF_OK;
-		case 63:
+		case 64:
 			info->name = "y2";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlineElement *)node)->y2;
@@ -5388,7 +5439,7 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -5517,81 +5568,86 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "xlink:href";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->href;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "xlink:show";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->show;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "xlink:title";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->title;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "xlink:actuate";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->actuate;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "xlink:role";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->role;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "xlink:arcrole";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->arcrole;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "xlink:type";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->type;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "gradientUnits";
 			info->fieldType = SVG_GradientUnit_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->gradientUnits;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "spreadMethod";
 			info->fieldType = SVG_SpreadMethod_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->spreadMethod;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "gradientTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->gradientTransform;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "x1";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->x1;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "y1";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->y1;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "x2";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->x2;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "y2";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGlinearGradientElement *)node)->y2;
@@ -6058,7 +6114,7 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -6187,116 +6243,121 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "pathLength";
 			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = & ((SVGpathElement *)node)->pathLength;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "d";
 			info->fieldType = SVG_PathData_datatype;
 			info->far_ptr = & ((SVGpathElement *)node)->d;
@@ -6406,7 +6467,7 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -6535,111 +6596,116 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "points";
 			info->fieldType = SVG_Points_datatype;
 			info->far_ptr = & ((SVGpolygonElement *)node)->points;
@@ -6749,7 +6815,7 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -6878,111 +6944,116 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "points";
 			info->fieldType = SVG_Points_datatype;
 			info->far_ptr = & ((SVGpolylineElement *)node)->points;
@@ -7223,7 +7294,7 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -7352,86 +7423,91 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "xlink:href";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->href;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "xlink:show";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->show;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "xlink:title";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->title;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "xlink:actuate";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->actuate;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "xlink:role";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->role;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "xlink:arcrole";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->arcrole;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "xlink:type";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->type;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "fx";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->fx;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "fy";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->fy;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "gradientUnits";
 			info->fieldType = SVG_GradientUnit_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->gradientUnits;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "spreadMethod";
 			info->fieldType = SVG_SpreadMethod_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->spreadMethod;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "gradientTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->gradientTransform;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "cx";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->cx;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "cy";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->cy;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "r";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGradialGradientElement *)node)->r;
@@ -7539,7 +7615,7 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -7668,136 +7744,141 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->x;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->y;
 			return GF_OK;
-		case 62:
+		case 63:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->width;
 			return GF_OK;
-		case 63:
+		case 64:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->height;
 			return GF_OK;
-		case 64:
+		case 65:
 			info->name = "rx";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->rx;
 			return GF_OK;
-		case 65:
+		case 66:
 			info->name = "ry";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGrectElement *)node)->ry;
@@ -7905,7 +7986,7 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -8034,111 +8115,116 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "size";
 			info->fieldType = LASeR_Size_datatype;
 			info->far_ptr = & ((SVGrectClipElement *)node)->size;
@@ -8160,7 +8246,6 @@ void *gf_svg_new_script()
 	((GF_Node *p)->sgprivate->get_field = SVG_script_get_attribute;
 #endif
 	gf_svg_init_core((SVGElement *)p);
-	gf_svg_init_xlink((SVGElement *)p);
 	return p;
 }
 
@@ -8168,6 +8253,7 @@ static void gf_svg_script_del(GF_Node *node)
 {
 	SVGscriptElement *p = (SVGscriptElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	free(p->type);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
 }
@@ -8209,6 +8295,11 @@ static GF_Err gf_svg_script_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->name = "externalResourcesRequired";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->core->eRR;
+			return GF_OK;
+		case 7:
+			info->name = "type";
+			info->fieldType = SVG_ContentType_datatype;
+			info->far_ptr = & ((SVGscriptElement *)node)->type;
 			return GF_OK;
 		default: return GF_BAD_PARAM;
 	}
@@ -8313,7 +8404,7 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -8442,111 +8533,116 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "choice";
 			info->fieldType = LASeR_Choice_datatype;
 			info->far_ptr = & ((SVGselectorElement *)node)->choice;
@@ -8823,7 +8919,7 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -8952,111 +9048,116 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "delta";
 			info->fieldType = LASeR_Size_datatype;
 			info->far_ptr = & ((SVGsimpleLayoutElement *)node)->delta;
@@ -9079,6 +9180,7 @@ void *gf_svg_new_solidColor()
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
+	p->properties->solid_opacity.value = FIX_ONE;
 	return p;
 }
 
@@ -9160,7 +9262,7 @@ static GF_Err gf_svg_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -9289,11 +9391,16 @@ static GF_Err gf_svg_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
@@ -9316,6 +9423,7 @@ void *gf_svg_new_stop()
 #endif
 	gf_svg_init_core((SVGElement *)p);
 	gf_svg_init_properties((SVGElement *)p);
+	p->properties->stop_opacity.value = FIX_ONE;
 	return p;
 }
 
@@ -9397,7 +9505,7 @@ static GF_Err gf_svg_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -9526,16 +9634,21 @@ static GF_Err gf_svg_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "offset";
 			info->fieldType = SVG_Number_datatype;
 			info->far_ptr = & ((SVGstopElement *)node)->offset;
@@ -9648,7 +9761,7 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -9777,146 +9890,151 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "syncBehaviorDefault";
 			info->fieldType = SMIL_SyncBehavior_datatype;
 			info->far_ptr = &((SVGElement *)node)->sync->syncBehaviorDefault;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "syncToleranceDefault";
 			info->fieldType = SMIL_SyncTolerance_datatype;
 			info->far_ptr = &((SVGElement *)node)->sync->syncToleranceDefault;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "viewBox";
 			info->fieldType = SVG_ViewBox_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->viewBox;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "zoomAndPan";
 			info->fieldType = SVG_ZoomAndPan_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->zoomAndPan;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "version";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->version;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "baseProfile";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->baseProfile;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "contentScriptType";
 			info->fieldType = SVG_ContentType_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->contentScriptType;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "snapshotTime";
 			info->fieldType = SVG_Clock_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->snapshotTime;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "timelineBegin";
 			info->fieldType = SVG_TimelineBegin_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->timelineBegin;
 			return GF_OK;
-		case 62:
+		case 63:
 			info->name = "playbackOrder";
 			info->fieldType = SVG_PlaybackOrder_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->playbackOrder;
 			return GF_OK;
-		case 63:
+		case 64:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->x;
 			return GF_OK;
-		case 64:
+		case 65:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->y;
 			return GF_OK;
-		case 65:
+		case 66:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->width;
 			return GF_OK;
-		case 66:
+		case 67:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->height;
 			return GF_OK;
-		case 67:
+		case 68:
 			info->name = "preserveAspectRatio";
 			info->fieldType = SVG_PreserveAspectRatio_datatype;
 			info->far_ptr = & ((SVGsvgElement *)node)->preserveAspectRatio;
@@ -10024,7 +10142,7 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -10153,106 +10271,111 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
@@ -10430,7 +10553,7 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -10559,126 +10682,131 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "x";
 			info->fieldType = SVG_Coordinates_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->x;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "y";
 			info->fieldType = SVG_Coordinates_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->y;
 			return GF_OK;
-		case 62:
+		case 63:
 			info->name = "rotate";
 			info->fieldType = SVG_Numbers_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->rotate;
 			return GF_OK;
-		case 63:
+		case 64:
 			info->name = "editable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = & ((SVGtextElement *)node)->editable;
@@ -10786,7 +10914,7 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -10915,131 +11043,136 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->width;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->height;
 			return GF_OK;
-		case 62:
+		case 63:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->x;
 			return GF_OK;
-		case 63:
+		case 64:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->y;
 			return GF_OK;
-		case 64:
+		case 65:
 			info->name = "editable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = & ((SVGtextAreaElement *)node)->editable;
@@ -11211,7 +11344,7 @@ static GF_Err gf_svg_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -11340,96 +11473,101 @@ static GF_Err gf_svg_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
@@ -11538,7 +11676,7 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -11667,151 +11805,156 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->properties->stroke_width;
 			return GF_OK;
 		case 39:
+			info->name = "text-align";
+			info->fieldType = SVG_TextAlign_datatype;
+			info->far_ptr = &((SVGElement *)node)->properties->text_align;
+			return GF_OK;
+		case 40:
 			info->name = "text-anchor";
 			info->fieldType = SVG_TextAnchor_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->text_anchor;
 			return GF_OK;
-		case 40:
+		case 41:
 			info->name = "vector-effect";
 			info->fieldType = SVG_VectorEffect_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->vector_effect;
 			return GF_OK;
-		case 41:
+		case 42:
 			info->name = "focusHighlight";
 			info->fieldType = SVG_FocusHighlight_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusHighlight;
 			return GF_OK;
-		case 42:
+		case 43:
 			info->name = "focusable";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->focusable;
 			return GF_OK;
-		case 43:
+		case 44:
 			info->name = "nav-down";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down;
 			return GF_OK;
-		case 44:
+		case 45:
 			info->name = "nav-down-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_left;
 			return GF_OK;
-		case 45:
+		case 46:
 			info->name = "nav-down-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_down_right;
 			return GF_OK;
-		case 46:
+		case 47:
 			info->name = "nav-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_left;
 			return GF_OK;
-		case 47:
+		case 48:
 			info->name = "nav-next";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_next;
 			return GF_OK;
-		case 48:
+		case 49:
 			info->name = "nav-prev";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_prev;
 			return GF_OK;
-		case 49:
+		case 50:
 			info->name = "nav-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_right;
 			return GF_OK;
-		case 50:
+		case 51:
 			info->name = "nav-up";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up;
 			return GF_OK;
-		case 51:
+		case 52:
 			info->name = "nav-up-left";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_left;
 			return GF_OK;
-		case 52:
+		case 53:
 			info->name = "nav-up-right";
 			info->fieldType = SVG_Focus_datatype;
 			info->far_ptr = &((SVGElement *)node)->focus->nav_up_right;
 			return GF_OK;
-		case 53:
+		case 54:
 			info->name = "xlink:href";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->href;
 			return GF_OK;
-		case 54:
+		case 55:
 			info->name = "xlink:show";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->show;
 			return GF_OK;
-		case 55:
+		case 56:
 			info->name = "xlink:title";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->title;
 			return GF_OK;
-		case 56:
+		case 57:
 			info->name = "xlink:actuate";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->actuate;
 			return GF_OK;
-		case 57:
+		case 58:
 			info->name = "xlink:role";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->role;
 			return GF_OK;
-		case 58:
+		case 59:
 			info->name = "xlink:arcrole";
 			info->fieldType = SVG_IRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->arcrole;
 			return GF_OK;
-		case 59:
+		case 60:
 			info->name = "xlink:type";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->xlink->type;
 			return GF_OK;
-		case 60:
+		case 61:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 61:
+		case 62:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 62:
+		case 63:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 63:
+		case 64:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 64:
+		case 65:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 65:
+		case 66:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 66:
+		case 67:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 67:
+		case 68:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGuseElement *)node)->x;
 			return GF_OK;
-		case 68:
+		case 69:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGuseElement *)node)->y;
@@ -11848,6 +11991,7 @@ static void gf_svg_video_del(GF_Node *node)
 {
 	SVGvideoElement *p = (SVGvideoElement *)node;
 	gf_svg_reset_base_element((SVGElement *)p);
+	free(p->type);
 	if (p->motionTransform) free(p->motionTransform);
 	gf_sg_parent_reset((GF_Node *) p);
 	gf_node_free((GF_Node *)p);
@@ -11923,7 +12067,7 @@ static GF_Err gf_svg_video_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			return GF_OK;
 		case 13:
 			info->name = "viewport-fill";
-			info->fieldType = SVG_Color_datatype;
+			info->fieldType = SVG_Paint_datatype;
 			info->far_ptr = &((SVGElement *)node)->properties->viewport_fill;
 			return GF_OK;
 		case 14:
@@ -12177,6 +12321,11 @@ static GF_Err gf_svg_video_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = & ((SVGvideoElement *)node)->preserveAspectRatio;
 			return GF_OK;
 		case 64:
+			info->name = "type";
+			info->fieldType = SVG_ContentType_datatype;
+			info->far_ptr = & ((SVGvideoElement *)node)->type;
+			return GF_OK;
+		case 65:
 			info->name = "initialVisibility";
 			info->fieldType = SVG_InitialVisibility_datatype;
 			info->far_ptr = & ((SVGvideoElement *)node)->initialVisibility;
@@ -12307,58 +12456,58 @@ void gf_svg_element_del(SVGElement *elt)
 u32 gf_svg_get_attribute_count(GF_Node *node)
 {
 	switch (node->sgprivate->tag) {
-		case TAG_SVG_a: return 68;
+		case TAG_SVG_a: return 69;
 		case TAG_SVG_animate: return 35;
 		case TAG_SVG_animateColor: return 35;
 		case TAG_SVG_animateMotion: return 37;
 		case TAG_SVG_animateTransform: return 36;
 		case TAG_SVG_animation: return 61;
-		case TAG_SVG_audio: return 43;
-		case TAG_SVG_circle: return 63;
+		case TAG_SVG_audio: return 44;
+		case TAG_SVG_circle: return 64;
 		case TAG_SVG_conditional: return 9;
 		case TAG_SVG_cursorManager: return 16;
-		case TAG_SVG_defs: return 41;
+		case TAG_SVG_defs: return 42;
 		case TAG_SVG_desc: return 7;
 		case TAG_SVG_discard: return 20;
-		case TAG_SVG_ellipse: return 64;
+		case TAG_SVG_ellipse: return 65;
 		case TAG_SVG_font: return 9;
 		case TAG_SVG_font_face: return 35;
 		case TAG_SVG_font_face_src: return 7;
 		case TAG_SVG_font_face_uri: return 14;
-		case TAG_SVG_foreignObject: return 71;
-		case TAG_SVG_g: return 60;
+		case TAG_SVG_foreignObject: return 72;
+		case TAG_SVG_g: return 61;
 		case TAG_SVG_glyph: return 13;
-		case TAG_SVG_handler: return 8;
+		case TAG_SVG_handler: return 9;
 		case TAG_SVG_hkern: return 12;
-		case TAG_SVG_image: return 48;
-		case TAG_SVG_line: return 64;
-		case TAG_SVG_linearGradient: return 55;
+		case TAG_SVG_image: return 49;
+		case TAG_SVG_line: return 65;
+		case TAG_SVG_linearGradient: return 56;
 		case TAG_SVG_listener: return 15;
 		case TAG_SVG_metadata: return 7;
 		case TAG_SVG_missing_glyph: return 9;
 		case TAG_SVG_mpath: return 14;
-		case TAG_SVG_path: return 62;
-		case TAG_SVG_polygon: return 61;
-		case TAG_SVG_polyline: return 61;
+		case TAG_SVG_path: return 63;
+		case TAG_SVG_polygon: return 62;
+		case TAG_SVG_polyline: return 62;
 		case TAG_SVG_prefetch: return 19;
-		case TAG_SVG_radialGradient: return 56;
-		case TAG_SVG_rect: return 66;
-		case TAG_SVG_rectClip: return 61;
-		case TAG_SVG_script: return 7;
-		case TAG_SVG_selector: return 61;
+		case TAG_SVG_radialGradient: return 57;
+		case TAG_SVG_rect: return 67;
+		case TAG_SVG_rectClip: return 62;
+		case TAG_SVG_script: return 8;
+		case TAG_SVG_selector: return 62;
 		case TAG_SVG_set: return 27;
-		case TAG_SVG_simpleLayout: return 61;
-		case TAG_SVG_solidColor: return 41;
-		case TAG_SVG_stop: return 42;
-		case TAG_SVG_svg: return 68;
-		case TAG_SVG_switch: return 60;
+		case TAG_SVG_simpleLayout: return 62;
+		case TAG_SVG_solidColor: return 42;
+		case TAG_SVG_stop: return 43;
+		case TAG_SVG_svg: return 69;
+		case TAG_SVG_switch: return 61;
 		case TAG_SVG_tbreak: return 7;
-		case TAG_SVG_text: return 64;
-		case TAG_SVG_textArea: return 65;
+		case TAG_SVG_text: return 65;
+		case TAG_SVG_textArea: return 66;
 		case TAG_SVG_title: return 7;
-		case TAG_SVG_tspan: return 58;
-		case TAG_SVG_use: return 69;
-		case TAG_SVG_video: return 65;
+		case TAG_SVG_tspan: return 59;
+		case TAG_SVG_use: return 70;
+		case TAG_SVG_video: return 66;
 		default: return 0;
 	}
 }

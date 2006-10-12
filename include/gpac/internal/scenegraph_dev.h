@@ -39,7 +39,6 @@
 
 //#define GF_ARRAY_PARENT_NODES
 
-
 void gf_node_setup(GF_Node *p, u32 tag);
 
 typedef struct _node_list
@@ -417,6 +416,10 @@ typedef struct {
 
 	/* animation element */
 	SVGElement *anim_elt;
+
+	/* in case of animateTransform without from or to, the underlying value is the identity transform */
+	GF_Matrix2D identity;
+	GF_FieldInfo default_transform_value;
 
 	/* result of the animation */
 	GF_FieldInfo interpolated_value;

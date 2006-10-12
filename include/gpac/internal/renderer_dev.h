@@ -87,12 +87,14 @@ struct __tag_base_renderer
 	u32 video_th_state;
 	GF_Mutex *mx;
 
-	/*the scene graph*/
+	/*the main scene graph*/
 	GF_SceneGraph *scene;
 	/*extra scene graphs (OSD, etc), always registered in draw order. That's the module responsability
 	to draw them*/
 	GF_List *extra_scenes;
 
+	/* These scenes are not drawn but need to be traverse for timing */
+	GF_List *secondary_scenes;
 	
 	/*all time nodes registered*/
 	GF_List *time_nodes;
@@ -553,6 +555,9 @@ typedef struct
 /*register audio node with parent audio renderer (mixer or main renderer)*/
 void gf_sr_audio_register(GF_AudioInput *ai, GF_BaseEffect *eff);
 void gf_sr_audio_unregister(GF_AudioInput *ai);
+
+/*add secondary scene graph for SVG resource documents*/
+void gf_sr_add_secondary_scene(GF_Renderer *sr, GF_SceneGraph *scene, Bool remove);
 
 #endif	/*_GF_RENDERER_DEV_H_*/
 

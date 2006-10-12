@@ -1281,6 +1281,7 @@ static u32 svg_type_to_lsr_anim(u32 svg_type, u32 transform_type, GF_List *vals,
 	case SVG_Overflow_datatype:
 	case SVG_ZoomAndPan_datatype:
 	case SVG_DisplayAlign_datatype:
+	case SVG_TextAlign_datatype:
 	case SVG_PointerEvents_datatype:
 	case SVG_RenderingHint_datatype:
 	case SVG_VectorEffect_datatype:
@@ -1981,12 +1982,12 @@ static void lsr_write_conditional(GF_LASeRCodec *lsr, SVGconditionalElement *elt
 	gf_node_register((GF_Node *)clone, NULL);
 	lsr_write_id(lsr, (GF_Node *) elt);
 	lsr_write_rare(lsr, (GF_Node *) elt, (GF_Node *) clone);
-	lsr_write_smil_times(lsr, elt->lsr_begin, "begin", 1);
+	lsr_write_smil_times(lsr, elt->timing->begin, "begin", 1);
 	GF_LSR_WRITE_INT(lsr, elt->core->eRR, 1, "externalResourcesRequired");
 	/*FIXME to remove from DCOR SDL*/
 	//lsr_write_href(lsr, NULL);
 
-	GF_LSR_WRITE_INT(lsr, elt->lsr_enabled ? 1 : 0, 1, "enabled");
+	GF_LSR_WRITE_INT(lsr, elt->enabled ? 1 : 0, 1, "enabled");
 	lsr_write_any_attribute(lsr, (GF_Node *) elt, clone, 1);
 	lsr_write_command_list(lsr, elt->updates.com_list, elt, 0);
 	gf_node_unregister((GF_Node *)clone, NULL);

@@ -10,7 +10,7 @@ EXPORTS
 	gf_sleep
 	gf_sys_clock
 	gf_sys_get_rti
-  gf_sys_get_battery_state
+	gf_sys_get_battery_state
 	gf_4cc_to_str
 	gf_error_to_string
 	gf_rand_init
@@ -1070,6 +1070,7 @@ EXPORTS
 	gf_sr_render_inline
 	gf_sr_set_size
 	gf_sr_register_extra_graph
+	gf_sr_add_secondary_scene
 
 ;render_dev.h exports
 	gf_sr_register_time_node
@@ -1169,3 +1170,10 @@ EXPORTS
 	gf_smil_timing_init_runtime_info
 	gf_smil_timing_get_normalized_simple_time
 	gf_smil_timing_is_active
+	gf_svg_set_mfurl_from_uri
+	gf_svg_check_url_change
+	gf_svg_subscene_get
+	gf_svg_subscene_start
+	gf_svg_subscene_stop
+	gf_sg_notify_smil_timed_elements
+	gf_mo_restart
