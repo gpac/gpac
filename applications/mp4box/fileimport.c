@@ -184,6 +184,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 		else if (!strnicmp(ext+1, "name=", 5)) handler_name = strdup(ext+6);
 		else if (!strnicmp(ext+1, "fmt=", 4)) fmt = strdup(ext+5);
+		/*unrecognized, assume name has colon in it*/
+		else {
+		 ext = ext2;
+		 continue;
+		}
 
 		if (ext2) ext2[0] = ':';
 		ext2 = ext+1;
