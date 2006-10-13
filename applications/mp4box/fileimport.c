@@ -182,7 +182,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				sscanf(ext+5, "%d:%d", &par_n, &par_d);
 			}
 		}
-		else if (!strnicmp(ext+1, "name=", 5)) handler_name = strdup(ext+6);
+		else if (!strnicmp(ext+1, "name=", 5)) handler_name = ext+6;
 		else if (!strnicmp(ext+1, "fmt=", 4)) fmt = strdup(ext+5);
 		/*unrecognized, assume name has colon in it*/
 		else {
@@ -305,7 +305,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	}
 
 exit:
-	if (handler_name) free(handler_name);
+//	if (handler_name) free(handler_name);
 	if (fmt) free(fmt);
 	return e;
 }
