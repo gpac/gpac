@@ -682,7 +682,7 @@ void TTD_SplitChunks(GF_TextSample *txt, u32 nb_chars, GF_List *chunks, GF_Box *
 		/*need to split chunk at begin*/
 		if (tc->start_char<start_char) {
 			TTDTextChunk *tc2;
-			GF_SAFEALLOC(tc2, sizeof(TTDTextChunk));
+			tc2 = (TTDTextChunk *) malloc(sizeof(TTDTextChunk));
 			memcpy(tc2, tc, sizeof(TTDTextChunk));
 			tc2->start_char = start_char;
 			tc2->end_char = tc->end_char;
@@ -694,7 +694,7 @@ void TTD_SplitChunks(GF_TextSample *txt, u32 nb_chars, GF_List *chunks, GF_Box *
 		/*need to split chunks at end*/
 		if (tc->end_char>end_char) {
 			TTDTextChunk *tc2;
-			GF_SAFEALLOC(tc2, sizeof(TTDTextChunk));
+			tc2 = (TTDTextChunk *) malloc(sizeof(TTDTextChunk));
 			memcpy(tc2, tc, sizeof(TTDTextChunk));
 			tc2->start_char = tc->start_char;
 			tc2->end_char = end_char;
@@ -878,7 +878,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	chunks = gf_list_new();
 	/*flatten all modifiers*/
 	if (!txt->styles || !txt->styles->entry_count) {
-		GF_SAFEALLOC(tc, sizeof(TTDTextChunk));
+		GF_SAFEALLOC(tc, TTDTextChunk);
 		tc->end_char = char_count;
 		gf_list_add(chunks, tc);
 	} else {
@@ -890,12 +890,12 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 			if (srec->startCharOffset==srec->endCharOffset) continue;
 			/*handle not continuous modifiers*/
 			if (char_offset < srec->startCharOffset) {
-				GF_SAFEALLOC(tc, sizeof(TTDTextChunk));
+				GF_SAFEALLOC(tc, TTDTextChunk);
 				tc->start_char = char_offset;
 				tc->end_char = srec->startCharOffset;
 				gf_list_add(chunks, tc);
 			}
-			GF_SAFEALLOC(tc, sizeof(TTDTextChunk));
+			GF_SAFEALLOC(tc, TTDTextChunk);
 			tc->start_char = srec->startCharOffset;
 			tc->end_char = srec->endCharOffset;
 			tc->srec = srec;
@@ -904,7 +904,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 		}
 
 		if (srec->endCharOffset<char_count) {
-			GF_SAFEALLOC(tc, sizeof(TTDTextChunk));
+			GF_SAFEALLOC(tc, TTDTextChunk);
 			tc->start_char = char_offset;
 			tc->end_char = char_count;
 			gf_list_add(chunks, tc);
@@ -1102,9 +1102,9 @@ GF_BaseDecoder *NewTimedTextDec()
 	TTDPriv *priv;
 	GF_SceneDecoder *tmp;
 	
-	GF_SAFEALLOC(tmp, sizeof(GF_SceneDecoder));
+	GF_SAFEALLOC(tmp, GF_SceneDecoder);
 	if (!tmp) return NULL;
-	GF_SAFEALLOC(priv, sizeof(TTDPriv));
+	GF_SAFEALLOC(priv, TTDPriv);
 
 	tmp->privateStack = priv;
 	tmp->AttachStream = TTD_AttachStream;

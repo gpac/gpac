@@ -338,8 +338,8 @@ void swf_parse_styles(SWFReader *read, u32 revision, SWFShape *shape, u32 *bits_
 				swf_align(read);
 				style->nbGrad = swf_read_int(read, 8);
 				if (style->nbGrad) {
-					GF_SAFEALLOC(style->grad_col, sizeof(u32) * style->nbGrad);
-					GF_SAFEALLOC(style->grad_ratio, sizeof(u8) * style->nbGrad);
+					style->grad_col = (u32 *) malloc(sizeof(u32) * style->nbGrad);
+					style->grad_ratio = (u8 *) malloc(sizeof(u8) * style->nbGrad);
 					for (j=0; j<style->nbGrad; j++) {
 						style->grad_ratio[j] = swf_read_int(read, 8);
 						if (revision==2) style->grad_col[j] = swf_get_argb(read);
@@ -352,8 +352,8 @@ void swf_parse_styles(SWFReader *read, u32 revision, SWFShape *shape, u32 *bits_
 						u32 i;
 						u32 *grad_col;
 						u8 *grad_ratio;
-						GF_SAFEALLOC(grad_ratio, sizeof(u8) * (style->nbGrad+1));
-						GF_SAFEALLOC(grad_col, sizeof(u32) * (style->nbGrad+1));
+						grad_ratio = (u8 *) malloc(sizeof(u8) * (style->nbGrad+1));
+						grad_col = (u32 *) malloc(sizeof(u32) * (style->nbGrad+1));
 						grad_col[0] = style->grad_col[0];
 						grad_ratio[0] = 0;
 						for (i=0; i<style->nbGrad; i++) {
@@ -2659,7 +2659,7 @@ GF_Err gf_sm_load_init_SWF(GF_SceneLoader *load)
 	input = fopen(load->fileName, "rb");
 	if (!input) return GF_URL_ERROR;
 
-	GF_SAFEALLOC(read, sizeof(SWFReader));
+	GF_SAFEALLOC(read, SWFReader);
 	read->load = load;
 	
 	e = GF_OK;

@@ -357,7 +357,6 @@ static GF_Renderer *SR_New(GF_User *user)
 	SR_SetFontEngine(tmp);
 	
 	tmp->extra_scenes = gf_list_new();
-	tmp->secondary_scenes = gf_list_new();
 	tmp->interaction_level = GF_INTERACT_NORMAL | GF_INTERACT_INPUT_SENSOR | GF_INTERACT_NAVIGATION;
 	return tmp;
 }
@@ -436,8 +435,6 @@ void gf_sr_del(GF_Renderer *sr)
 	gf_list_del(sr->textures);
 	gf_list_del(sr->time_nodes);
 	gf_list_del(sr->extra_scenes);
-	gf_list_del(sr->secondary_scenes);
-
 	gf_sr_lock(sr, 0);
 	gf_mx_del(sr->mx);
 	free(sr);
@@ -1121,11 +1118,14 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	if (gf_sg_notify_smil_timed_elements(sr->scene)) {
 		sr->draw_next_frame = 1;
 	}
+#if 0
 	for (i=0; i<gf_list_count(sr->secondary_scenes); i++) {
 		if (gf_sg_notify_smil_timed_elements(gf_list_get(sr->secondary_scenes, i))) {
 			sr->draw_next_frame = 1;
 		}
 	}
+#endif
+
 #endif
 
 	/*update all textures*/
@@ -1157,6 +1157,15 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 		}
 	}
 
+	/*release all textures - we must release them to handle a same OD being used by several textures*/
+	count = gf_list_count(sr->textures);
+	for (i=0; i<count; i++) {
+		GF_TextureHandler *st = gf_list_get(sr->textures, i);
+		gf_sr_texture_release_stream(st);
+	}
+	end_time = gf_sys_clock() - in_time;
+
+
 	/*update all timed nodes */
 	for (i=0; i<gf_list_count(sr->time_nodes); i++) {
 		GF_TimeNode *tn = gf_list_get(sr->time_nodes, i);
@@ -1169,14 +1178,6 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 			continue;
 		}
 	}
-
-	/*release all textures - we must release them to handle a same OD being used by several textures*/
-	count = gf_list_count(sr->textures);
-	for (i=0; i<count; i++) {
-		GF_TextureHandler *st = gf_list_get(sr->textures, i);
-		gf_sr_texture_release_stream(st);
-	}
-	end_time = gf_sys_clock() - in_time;
 
 	gf_sr_lock(sr, 0);
 
@@ -1223,9 +1224,9 @@ GF_Err gf_sr_set_viewpoint(GF_Renderer *sr, u32 viewpoint_idx, const char *viewp
 	return sr->visual_renderer->SetViewpoint(sr->visual_renderer, viewpoint_idx, viewpoint_name);
 }
 
-void gf_sr_render_inline(GF_Renderer *sr, GF_Node *inline_root, void *rs)
+void gf_sr_render_inline(GF_Renderer *sr, GF_Node *inline_parent, GF_Node *inline_root, void *rs)
 {
-	if (sr->visual_renderer->RenderInline) sr->visual_renderer->RenderInline(sr->visual_renderer, inline_root, rs);
+	if (sr->visual_renderer->RenderInline) sr->visual_renderer->RenderInline(sr->visual_renderer, inline_parent, inline_root, rs);
 }
 
 static void gf_sr_on_event(void *cbck, GF_Event *event)
@@ -1371,19 +1372,4 @@ u32 gf_sr_get_audio_delay(GF_Renderer *sr)
 void *gf_sr_get_visual_renderer(GF_Renderer *sr)
 {
 	return sr->visual_renderer;
-}
-
-void gf_sr_add_secondary_scene(GF_Renderer *sr, GF_SceneGraph *scene, Bool remove)
-{
-	u32 i;
-	gf_sr_lock(sr, 1);
-	for (i=0; i<gf_list_count(sr->secondary_scenes); i++) {
-		if (scene == gf_list_get(sr->secondary_scenes, i)) {
-			if (remove) gf_list_rem(sr->secondary_scenes, i);
-			gf_sr_lock(sr, 0);
-			return;
-		}
-	}
-	if (!remove) gf_list_add(sr->secondary_scenes, scene);
-	gf_sr_lock(sr, 0);
 }

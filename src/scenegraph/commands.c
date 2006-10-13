@@ -31,7 +31,7 @@
 GF_Command *gf_sg_command_new(GF_SceneGraph *graph, u32 tag)
 {
 	GF_Command *ptr;
-	GF_SAFEALLOC(ptr, sizeof(GF_Command));
+	GF_SAFEALLOC(ptr, GF_Command);
 	if (!ptr) return NULL;
 	ptr->tag = tag;
 	ptr->in_scene = graph;
@@ -574,7 +574,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 GF_CommandField *gf_sg_command_field_new(GF_Command *com)
 {
 	GF_CommandField *ptr;
-	GF_SAFEALLOC(ptr, sizeof(GF_CommandField));
+	GF_SAFEALLOC(ptr, GF_CommandField);
 	gf_list_add(com->command_fields, ptr);
 	return ptr;
 }

@@ -99,7 +99,7 @@ GF_Err gf_rtsp_refill_buffer(GF_RTSPSession *sess)
 
 //	printf("Forcing reading\n");
 	
-	ptr = malloc(sizeof(char) * res);
+	ptr = (char *)malloc(sizeof(char) * res);
 	memcpy(ptr, sess->TCPBuffer+sess->CurrentPos, res);
 	memcpy(sess->TCPBuffer, ptr, res);
 	free(ptr);
@@ -108,7 +108,7 @@ GF_Err gf_rtsp_refill_buffer(GF_RTSPSession *sess)
 	sess->CurrentSize = res;
 
 	//now read from current pos
-	e = gf_sk_receive(sess->connection, sess->TCPBuffer + sess->CurrentSize, 
+	e = gf_sk_receive(sess->connection, (unsigned char *)sess->TCPBuffer + sess->CurrentSize, 
 				RTSP_TCP_BUF_SIZE - sess->CurrentSize, 
 				0, &res);
 
@@ -126,7 +126,7 @@ GF_Err gf_rtsp_fill_buffer(GF_RTSPSession *sess)
 	if (!sess->connection) return GF_IP_NETWORK_EMPTY;
 
 	if (sess->CurrentSize == sess->CurrentPos) {
-		e = gf_sk_receive(sess->connection, sess->TCPBuffer, RTSP_TCP_BUF_SIZE, 0, &sess->CurrentSize);
+		e = gf_sk_receive(sess->connection, (unsigned char *)sess->TCPBuffer, RTSP_TCP_BUF_SIZE, 0, &sess->CurrentSize);
 		sess->CurrentPos = 0;
 		sess->TCPBuffer[sess->CurrentSize] = 0;
 		if (e) sess->CurrentSize = 0;
@@ -146,8 +146,7 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 	//only support for RTP/AVP for now
 	if (strnicmp(buffer, "RTP/AVP", 7) && strnicmp(buffer, "RTP/SAVP", 8)) return NULL;
 
-	tmp = malloc(sizeof(GF_RTSPTransport));
-	memset(tmp, 0, sizeof(GF_RTSPTransport));
+	GF_SAFEALLOC(tmp, GF_RTSPTransport);
 
 	IsFirst = 1;
 	pos = 0;
@@ -195,7 +194,7 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 		else if (!stricmp(param_name, "port")) sscanf(param_val, "%hd-%hd", &tmp->port_first, &tmp->port_last);
 		else if (!stricmp(param_name, "server_port")) sscanf(param_val, "%hd-%hd", &tmp->port_first, &tmp->port_last);
 		else if (!stricmp(param_name, "client_port")) sscanf(param_val, "%hd-%hd", &tmp->client_port_first, &tmp->client_port_last);
-		else if (!stricmp(param_name, "ssrc")) sscanf(param_val, "%d", &tmp->SSRC);
+		else if (!stricmp(param_name, "ssrc")) sscanf(param_val, "%X", &tmp->SSRC);
 	}
 	return tmp;
 }
@@ -204,8 +203,8 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 
 GF_Err gf_rtsp_parse_header(char *buffer, u32 BufferSize, u32 BodyStart, GF_RTSPCommand *com, GF_RTSPResponse *rsp)
 {
-	unsigned char LineBuffer[1024];
-	unsigned char HeaderBuf[100], ValBuf[1024], temp[400];
+	char LineBuffer[1024];
+	char HeaderBuf[100], ValBuf[1024], temp[400];
 	s32 Pos, LinePos;
 	u32 HeaderLine;
 

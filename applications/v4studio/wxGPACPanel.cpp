@@ -13,6 +13,7 @@
 #include "V4StudioApp.h"
 #include "V4Service.h"
 
+
 bool GPACInit(void *application, GF_Terminal **term, GF_User *user, bool quiet);
 
 wxGPACPanel::wxGPACPanel(V4SceneManager *parent, const char *path) 
@@ -276,7 +277,7 @@ bool GPACInit(void *application, GF_Terminal **term, GF_User *user, bool quiet)
 		str = abs_gpac_path.c_str();
 #endif
 	}
-	user->modules = gf_modules_new((const unsigned char *) str, user->config);
+	user->modules = gf_modules_new(str, user->config);
 
 	/*initial launch*/
 	if (first_launch || !gf_modules_get_count(user->modules)) {
@@ -288,7 +289,7 @@ bool GPACInit(void *application, GF_Terminal **term, GF_User *user, bool quiet)
 			if ( dlg.ShowModal() != wxID_OK ) return false;
 			str = dlg.GetPath().c_str();;
 	
-			user->modules = gf_modules_new((const unsigned char *) str, user->config);
+			user->modules = gf_modules_new(str, user->config);
 			if (!user->modules || !gf_modules_get_count(user->modules) ) {
 				wxMessageDialog(NULL, "Cannot find any modules for GPAC", "Init error", wxOK);
 				gf_cfg_del(user->config);

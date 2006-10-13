@@ -50,7 +50,7 @@ void MC_Restart(GF_ObjectManager *odm)
 	u32 i;
 	u32 current_seg;
 	MediaControlStack *ctrl;
-	if (!odm || odm->no_time_ctrl) return;
+	if (!odm || (odm->flags & GF_ODM_NO_TIME_CTRL) ) return;
 
 	ctrl = ODM_GetMediaControl(odm);
 	if (ctrl) {
@@ -89,9 +89,6 @@ void MC_Restart(GF_ObjectManager *odm)
 	/*do stop/start in 2 pass, it's much cleaner for servers*/
 	i=0;
 	while ((ctrl_od = gf_list_enum(odm->parentscene->ODlist, &i))) {
-		/*get the final OD*/
-		while (ctrl_od->remote_OD) ctrl_od = ctrl_od->remote_OD;
-
 		if (!gf_odm_shares_clock(ctrl_od, ck)) continue;
 		/*if running, stop and collect for restart*/
 		if (ctrl_od->is_open) {
@@ -136,14 +133,15 @@ void MC_Resume(GF_ObjectManager *odm)
 	GF_InlineScene *in_scene;
 	GF_Clock *ck;
 
-	if (odm->no_time_ctrl) return;
+	if (odm->flags & GF_ODM_NO_TIME_CTRL) return;
 
 	/*otherwise locate all objects sharing the clock*/
 	ck = gf_odm_get_media_clock(odm);
 	if (!ck) return;
 
 	in_scene = odm->parentscene;
-	if (odm->subscene && odm->subscene->root_od==odm) {
+	if (odm->subscene) {
+		assert(odm->subscene->root_od==odm);
 		assert(odm->subscene->is_dynamic_scene || gf_odm_shares_clock(odm, ck) );
 		/*resume root*/
 		gf_odm_resume(odm);
@@ -166,14 +164,15 @@ void MC_Pause(GF_ObjectManager *odm)
 	GF_InlineScene *in_scene;
 	GF_Clock *ck;
 
-	if (odm->no_time_ctrl) return;
+	if (odm->flags & GF_ODM_NO_TIME_CTRL) return;
 
 	/*otherwise locate all objects sharing the clock*/
 	ck = gf_odm_get_media_clock(odm);
 	if (!ck) return;
 
 	in_scene = odm->parentscene;
-	if (odm->subscene && odm->subscene->root_od==odm) {
+	if (odm->subscene) {
+		assert(odm->subscene->root_od==odm);
 		assert(odm->subscene->is_dynamic_scene || gf_odm_shares_clock(odm, ck) );
 		/*pause root*/
 		gf_odm_pause(odm);
@@ -196,14 +195,15 @@ void MC_SetSpeed(GF_ObjectManager *odm, Fixed speed)
 	GF_InlineScene *in_scene;
 	GF_Clock *ck;
 
-	if (odm->no_time_ctrl) return;
+	if (odm->flags & GF_ODM_NO_TIME_CTRL) return;
 
 	/*otherwise locate all objects sharing the clock*/
 	ck = gf_odm_get_media_clock(odm);
 	if (!ck) return;
 
 	in_scene = odm->parentscene;
-	if (odm->subscene && odm->subscene->root_od==odm) {
+	if (odm->subscene) {
+		assert(odm->subscene->root_od==odm);
 		assert( gf_odm_shares_clock(odm, ck) );
 		gf_odm_set_speed(odm, speed);
 		in_scene = odm->subscene;
@@ -278,7 +278,7 @@ void RenderMediaControl(GF_Node *node, void *rs)
 			gf_sg_vrml_mf_reset(&stack->url, GF_SG_VRML_MFURL);
 
 			prev = stack->stream;
-			stack->stream = gf_is_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF);
+			stack->stream = gf_is_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF, 0);
 			if (stack->stream) {
 				if (!stack->stream->odm) return;
 				/*MediaControl on inline: if dynamic scene, make sure it is connected before attaching...*/
@@ -311,7 +311,7 @@ void RenderMediaControl(GF_Node *node, void *rs)
 			}
 		}
 	} else {
-		stack->stream = gf_is_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF);
+		stack->stream = gf_is_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF, 0);
 		if (!stack->stream || !stack->stream->odm) {
 			if (stack->control->url.count) gf_term_invalidate_renderer(stack->parent->root_od->term);
 			return;

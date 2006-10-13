@@ -166,22 +166,22 @@ void gf_smil_delete_key_types(GF_List *l)
 
 void gf_svg_init_core(SVGElement *p) 
 {
-	GF_SAFEALLOC(p->core, sizeof(XMLCoreAttributes))
+	GF_SAFEALLOC(p->core, XMLCoreAttributes)
 }
 
 void gf_svg_init_focus(SVGElement *p)
 {
-	GF_SAFEALLOC(p->focus, sizeof(SVGFocusAttributes))
+	GF_SAFEALLOC(p->focus, SVGFocusAttributes)
 }
 
 void gf_svg_init_xlink(SVGElement *p)
 {
-	GF_SAFEALLOC(p->xlink, sizeof(XLinkAttributes))
+	GF_SAFEALLOC(p->xlink, XLinkAttributes)
 }
 
 void gf_svg_init_timing(SVGElement *p)
 {
-	GF_SAFEALLOC(p->timing, sizeof(SMILTimingAttributes))		
+	GF_SAFEALLOC(p->timing, SMILTimingAttributes)
 	p->timing->begin = gf_list_new();
 	p->timing->end = gf_list_new();
 	p->timing->min.type = SMIL_DURATION_DEFINED;
@@ -190,12 +190,12 @@ void gf_svg_init_timing(SVGElement *p)
 
 void gf_svg_init_sync(SVGElement *p)
 {
-	GF_SAFEALLOC(p->sync, sizeof(SMILSyncAttributes))				
+	GF_SAFEALLOC(p->sync, SMILSyncAttributes)
 }
 
 void gf_svg_init_anim(SVGElement *p)
 {
-	GF_SAFEALLOC(p->anim, sizeof(SMILAnimationAttributes))				
+	GF_SAFEALLOC(p->anim, SMILAnimationAttributes)
 	p->anim->lsr_enabled = 1;
 	p->anim->keySplines = gf_list_new();
 	p->anim->keyTimes = gf_list_new();
@@ -206,7 +206,7 @@ void gf_svg_init_anim(SVGElement *p)
 
 void gf_svg_init_conditional(SVGElement *p)
 {
-	GF_SAFEALLOC(p->conditional, sizeof(SVGConditionalAttributes))				
+	GF_SAFEALLOC(p->conditional, SVGConditionalAttributes)
 	p->conditional->requiredExtensions = gf_list_new();
 	p->conditional->requiredFeatures = gf_list_new();
 	p->conditional->requiredFonts = gf_list_new();

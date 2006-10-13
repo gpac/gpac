@@ -87,7 +87,7 @@ GF_Err gf_sr_texture_play_from(GF_TextureHandler *txh, MFURL *url, Double media_
 	txh->dmo = getDanaeMediaOjbectFromUrl(txh->compositor->danae_session, url->vals[0].url, (gf_node_get_tag(txh->owner)==TAG_SVG_video) ? 1 : 0);
 #else 
 	/*get media object*/
-	txh->stream = gf_mo_find(txh->owner, url);
+	txh->stream = gf_mo_find(txh->owner, url, 0);
 	/*bad/Empty URL*/
 	if (!txh->stream) return GF_NOT_SUPPORTED;
 	/*request play*/
@@ -105,7 +105,7 @@ GF_Err gf_sr_texture_play(GF_TextureHandler *txh, MFURL *url)
 	Bool loop = 0;
 	if (txh->compositor->term && (txh->compositor->term->play_state!=GF_STATE_PLAYING)) {
 		offset = gf_node_get_scene_time(txh->owner);
-		loop = gf_mo_get_loop(gf_mo_find(txh->owner, url), 0);
+		loop = gf_mo_get_loop(gf_mo_find(txh->owner, url, 0), 0);
 	}
 	return gf_sr_texture_play_from(txh, url, offset, loop);
 }
@@ -142,6 +142,8 @@ void gf_sr_texture_restart(GF_TextureHandler *txh)
 
 void gf_sr_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 {
+	u32 size, ts;
+
 	/*already refreshed*/
 	if (txh->needs_refresh) return;
 
@@ -182,15 +184,11 @@ void gf_sr_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		return;
 	}
 
-	/*this is in case the texture was not release at previous cycle if the node hasn't been drawn
-	we need a better way to do this since it locks video memory*/
-	if (txh->needs_release) {
-		gf_mo_release_data(txh->stream, txh->stream->current_size, 0);
-	}
-	txh->needs_release = gf_mo_fetch_data(txh->stream, !disable_resync, &txh->stream_finished);
+	/*should never happen!!*/
+	if (txh->needs_release) gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 
 	/*check init flag*/
-	if (!(txh->stream->mo_flags & GF_MO_IS_INIT)) {
+	if (!(gf_mo_get_flags(txh->stream) & GF_MO_IS_INIT)) {
 		/*if we had a texture this means the object has changed - delete texture and force next frame 
 		rendering (this will take care of OD reuse)*/
 		if (txh->hwtx) {
@@ -202,27 +200,32 @@ void gf_sr_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 			return;
 		}
 	}
+	txh->data = gf_mo_fetch_data(txh->stream, !disable_resync, &txh->stream_finished, &ts, &size);
 
 	/*if no frame or muted don't draw*/
-	if (!txh->stream->current_frame || !txh->stream->current_size) return;
+	if (!txh->data || !size) return;
+
+	txh->needs_release = 1; 
 
 	/*if setup and same frame return*/
-	if (txh->hwtx && (txh->stream_finished || (txh->last_frame_time==txh->stream->current_ts)) ) {
+	if (txh->hwtx && (txh->stream_finished || (txh->last_frame_time==ts)) ) {
 		if (txh->needs_release) {
-			gf_mo_release_data(txh->stream, txh->stream->current_size, 0);
+			gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 			txh->needs_release = 0;
 		}
 		return;
 	}
-	txh->last_frame_time = txh->stream->current_ts;
+	txh->last_frame_time = ts;
 	if (gf_mo_is_muted(txh->stream)) return;
 
 	if (!txh->hwtx) {
 		txh->compositor->visual_renderer->AllocTexture(txh);
 		if (!txh->hwtx) return;
 
+		gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat);
+
 		txh->transparent = 0;
-		switch (txh->stream->pixelFormat) {
+		switch (txh->pixelformat) {
 		case GF_PIXEL_ALPHAGREY:
 		case GF_PIXEL_ARGB:
 		case GF_PIXEL_RGBA:
@@ -231,15 +234,8 @@ void gf_sr_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 			break;
 		}
 
-		txh->stream->mo_flags |= GF_MO_IS_INIT;
+		gf_mo_set_flag(txh->stream, GF_MO_IS_INIT, 1);
 	}
-
-	txh->width = txh->stream->width;
-	txh->height = txh->stream->height;
-	txh->pixelformat = txh->stream->pixelFormat;
-	txh->stride = txh->stream->stride;
-	txh->data = txh->stream->current_frame;
-	txh->pixel_ar = txh->stream->pixel_ar;
 
 #endif
 	/*try to push texture on graphics but don't complain if failure*/
@@ -253,7 +249,7 @@ void gf_sr_texture_release_stream(GF_TextureHandler *txh)
 {
 	if (txh->needs_release) {
 		assert(txh->stream);
-		gf_mo_release_data(txh->stream, txh->stream->current_size, 0);
+		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 		txh->needs_release = 0;
 	}
 	txh->needs_refresh = 0;

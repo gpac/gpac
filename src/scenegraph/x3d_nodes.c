@@ -24,9 +24,9 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Wed Jan 18 11:14:18 2006
+	DO NOT MOFIFY - File generated on GMT Fri Sep 15 09:05:10 2006
 
-	BY X3DGen for GPAC Version 0.4.1-DEV
+	BY X3DGen for GPAC Version 0.4.3-DEV
 */
 
 
@@ -119,7 +119,7 @@ static GF_Err Anchor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Anchor_Create()
 {
 	X_Anchor *p;
-	GF_SAFEALLOC(p, sizeof(X_Anchor));
+	GF_SAFEALLOC(p, X_Anchor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Anchor);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -216,7 +216,7 @@ static GF_Err Appearance_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Appearance_Create()
 {
 	X_Appearance *p;
-	GF_SAFEALLOC(p, sizeof(X_Appearance));
+	GF_SAFEALLOC(p, X_Appearance);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Appearance);
 
@@ -290,7 +290,7 @@ static GF_Err Arc2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Arc2D_Create()
 {
 	X_Arc2D *p;
-	GF_SAFEALLOC(p, sizeof(X_Arc2D));
+	GF_SAFEALLOC(p, X_Arc2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Arc2D);
 
@@ -374,7 +374,7 @@ static GF_Err ArcClose2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *ArcClose2D_Create()
 {
 	X_ArcClose2D *p;
-	GF_SAFEALLOC(p, sizeof(X_ArcClose2D));
+	GF_SAFEALLOC(p, X_ArcClose2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_ArcClose2D);
 
@@ -509,7 +509,7 @@ static GF_Err AudioClip_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *AudioClip_Create()
 {
 	X_AudioClip *p;
-	GF_SAFEALLOC(p, sizeof(X_AudioClip));
+	GF_SAFEALLOC(p, X_AudioClip);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_AudioClip);
 
@@ -659,7 +659,7 @@ static GF_Err Background_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Background_Create()
 {
 	X_Background *p;
-	GF_SAFEALLOC(p, sizeof(X_Background));
+	GF_SAFEALLOC(p, X_Background);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Background);
 
@@ -750,7 +750,7 @@ static GF_Err Billboard_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Billboard_Create()
 {
 	X_Billboard *p;
-	GF_SAFEALLOC(p, sizeof(X_Billboard));
+	GF_SAFEALLOC(p, X_Billboard);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Billboard);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -835,7 +835,7 @@ static GF_Err BooleanFilter_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *BooleanFilter_Create()
 {
 	X_BooleanFilter *p;
-	GF_SAFEALLOC(p, sizeof(X_BooleanFilter));
+	GF_SAFEALLOC(p, X_BooleanFilter);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_BooleanFilter);
 
@@ -932,7 +932,7 @@ static GF_Err BooleanSequencer_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *BooleanSequencer_Create()
 {
 	X_BooleanSequencer *p;
-	GF_SAFEALLOC(p, sizeof(X_BooleanSequencer));
+	GF_SAFEALLOC(p, X_BooleanSequencer);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_BooleanSequencer);
 
@@ -1001,7 +1001,7 @@ static GF_Err BooleanToggle_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *BooleanToggle_Create()
 {
 	X_BooleanToggle *p;
-	GF_SAFEALLOC(p, sizeof(X_BooleanToggle));
+	GF_SAFEALLOC(p, X_BooleanToggle);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_BooleanToggle);
 
@@ -1070,7 +1070,7 @@ static GF_Err BooleanTrigger_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *BooleanTrigger_Create()
 {
 	X_BooleanTrigger *p;
-	GF_SAFEALLOC(p, sizeof(X_BooleanTrigger));
+	GF_SAFEALLOC(p, X_BooleanTrigger);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_BooleanTrigger);
 
@@ -1132,7 +1132,7 @@ static GF_Err Box_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Box_Create()
 {
 	X_Box *p;
-	GF_SAFEALLOC(p, sizeof(X_Box));
+	GF_SAFEALLOC(p, X_Box);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Box);
 
@@ -1197,7 +1197,7 @@ static GF_Err Circle2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Circle2D_Create()
 {
 	X_Circle2D *p;
-	GF_SAFEALLOC(p, sizeof(X_Circle2D));
+	GF_SAFEALLOC(p, X_Circle2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Circle2D);
 
@@ -1304,7 +1304,7 @@ static GF_Err Collision_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Collision_Create()
 {
 	X_Collision *p;
-	GF_SAFEALLOC(p, sizeof(X_Collision));
+	GF_SAFEALLOC(p, X_Collision);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Collision);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -1369,7 +1369,7 @@ static GF_Err Color_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Color_Create()
 {
 	X_Color *p;
-	GF_SAFEALLOC(p, sizeof(X_Color));
+	GF_SAFEALLOC(p, X_Color);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Color);
 
@@ -1452,7 +1452,7 @@ static GF_Err ColorInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *ColorInterpolator_Create()
 {
 	X_ColorInterpolator *p;
-	GF_SAFEALLOC(p, sizeof(X_ColorInterpolator));
+	GF_SAFEALLOC(p, X_ColorInterpolator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_ColorInterpolator);
 
@@ -1514,7 +1514,7 @@ static GF_Err ColorRGBA_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *ColorRGBA_Create()
 {
 	X_ColorRGBA *p;
-	GF_SAFEALLOC(p, sizeof(X_ColorRGBA));
+	GF_SAFEALLOC(p, X_ColorRGBA);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_ColorRGBA);
 
@@ -1594,7 +1594,7 @@ static GF_Err Cone_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Cone_Create()
 {
 	X_Cone *p;
-	GF_SAFEALLOC(p, sizeof(X_Cone));
+	GF_SAFEALLOC(p, X_Cone);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Cone);
 
@@ -1678,7 +1678,7 @@ static GF_Err Contour2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Contour2D_Create()
 {
 	X_Contour2D *p;
-	GF_SAFEALLOC(p, sizeof(X_Contour2D));
+	GF_SAFEALLOC(p, X_Contour2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Contour2D);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -1742,7 +1742,7 @@ static GF_Err ContourPolyline2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *ContourPolyline2D_Create()
 {
 	X_ContourPolyline2D *p;
-	GF_SAFEALLOC(p, sizeof(X_ContourPolyline2D));
+	GF_SAFEALLOC(p, X_ContourPolyline2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_ContourPolyline2D);
 
@@ -1805,7 +1805,7 @@ static GF_Err Coordinate_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Coordinate_Create()
 {
 	X_Coordinate *p;
-	GF_SAFEALLOC(p, sizeof(X_Coordinate));
+	GF_SAFEALLOC(p, X_Coordinate);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Coordinate);
 
@@ -1868,7 +1868,7 @@ static GF_Err CoordinateDouble_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *CoordinateDouble_Create()
 {
 	X_CoordinateDouble *p;
-	GF_SAFEALLOC(p, sizeof(X_CoordinateDouble));
+	GF_SAFEALLOC(p, X_CoordinateDouble);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_CoordinateDouble);
 
@@ -1931,7 +1931,7 @@ static GF_Err Coordinate2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Coordinate2D_Create()
 {
 	X_Coordinate2D *p;
-	GF_SAFEALLOC(p, sizeof(X_Coordinate2D));
+	GF_SAFEALLOC(p, X_Coordinate2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Coordinate2D);
 
@@ -2015,7 +2015,7 @@ static GF_Err CoordinateInterpolator_get_field(GF_Node *node, GF_FieldInfo *info
 static GF_Node *CoordinateInterpolator_Create()
 {
 	X_CoordinateInterpolator *p;
-	GF_SAFEALLOC(p, sizeof(X_CoordinateInterpolator));
+	GF_SAFEALLOC(p, X_CoordinateInterpolator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_CoordinateInterpolator);
 
@@ -2099,7 +2099,7 @@ static GF_Err CoordinateInterpolator2D_get_field(GF_Node *node, GF_FieldInfo *in
 static GF_Node *CoordinateInterpolator2D_Create()
 {
 	X_CoordinateInterpolator2D *p;
-	GF_SAFEALLOC(p, sizeof(X_CoordinateInterpolator2D));
+	GF_SAFEALLOC(p, X_CoordinateInterpolator2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_CoordinateInterpolator2D);
 
@@ -2185,7 +2185,7 @@ static GF_Err Cylinder_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Cylinder_Create()
 {
 	X_Cylinder *p;
-	GF_SAFEALLOC(p, sizeof(X_Cylinder));
+	GF_SAFEALLOC(p, X_Cylinder);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Cylinder);
 
@@ -2313,7 +2313,7 @@ static GF_Err CylinderSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *CylinderSensor_Create()
 {
 	X_CylinderSensor *p;
-	GF_SAFEALLOC(p, sizeof(X_CylinderSensor));
+	GF_SAFEALLOC(p, X_CylinderSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_CylinderSensor);
 
@@ -2405,7 +2405,7 @@ static GF_Err DirectionalLight_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *DirectionalLight_Create()
 {
 	X_DirectionalLight *p;
-	GF_SAFEALLOC(p, sizeof(X_DirectionalLight));
+	GF_SAFEALLOC(p, X_DirectionalLight);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_DirectionalLight);
 
@@ -2482,7 +2482,7 @@ static GF_Err Disk2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Disk2D_Create()
 {
 	X_Disk2D *p;
-	GF_SAFEALLOC(p, sizeof(X_Disk2D));
+	GF_SAFEALLOC(p, X_Disk2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Disk2D);
 
@@ -2633,7 +2633,7 @@ static GF_Err ElevationGrid_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *ElevationGrid_Create()
 {
 	X_ElevationGrid *p;
-	GF_SAFEALLOC(p, sizeof(X_ElevationGrid));
+	GF_SAFEALLOC(p, X_ElevationGrid);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_ElevationGrid);
 
@@ -2657,6 +2657,667 @@ static GF_Node *ElevationGrid_Create()
 	p->xSpacing = FLT2FIX(1.0);
 	p->zDimension = 0;
 	p->zSpacing = FLT2FIX(1.0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	EspduTransform Node deletion
+*/
+
+static void EspduTransform_Del(GF_Node *node)
+{
+	X_EspduTransform *p = (X_EspduTransform *) node;
+	gf_sg_sfstring_del(p->address);
+	gf_sg_mfint32_del(p->articulationParameterDesignatorArray);
+	gf_sg_mfint32_del(p->articulationParameterChangeIndicatorArray);
+	gf_sg_mfint32_del(p->articulationParameterIdPartAttachedToArray);
+	gf_sg_mfint32_del(p->articulationParameterTypeArray);
+	gf_sg_mffloat_del(p->articulationParameterArray);
+	gf_sg_vrml_parent_reset(node);	
+	gf_sg_sfstring_del(p->marking);
+	gf_sg_sfstring_del(p->multicastRelayHost);
+	gf_sg_sfstring_del(p->networkMode);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 EspduTransform_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 86;
+}
+
+static GF_Err EspduTransform_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "addChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_EspduTransform *)node)->on_addChildren;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((X_EspduTransform *)node)->addChildren;
+		return GF_OK;
+	case 1:
+		info->name = "removeChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_EspduTransform *)node)->on_removeChildren;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((X_EspduTransform *)node)->removeChildren;
+		return GF_OK;
+	case 2:
+		info->name = "set_articulationParameterValue0";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_EspduTransform *)node)->on_set_articulationParameterValue0;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->set_articulationParameterValue0;
+		return GF_OK;
+	case 3:
+		info->name = "set_articulationParameterValue1";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_EspduTransform *)node)->on_set_articulationParameterValue1;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->set_articulationParameterValue1;
+		return GF_OK;
+	case 4:
+		info->name = "set_articulationParameterValue2";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_EspduTransform *)node)->on_set_articulationParameterValue2;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->set_articulationParameterValue2;
+		return GF_OK;
+	case 5:
+		info->name = "set_articulationParameterValue3";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_EspduTransform *)node)->on_set_articulationParameterValue3;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->set_articulationParameterValue3;
+		return GF_OK;
+	case 6:
+		info->name = "set_articulationParameterValue4";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_EspduTransform *)node)->on_set_articulationParameterValue4;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->set_articulationParameterValue4;
+		return GF_OK;
+	case 7:
+		info->name = "set_articulationParameterValue5";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_EspduTransform *)node)->on_set_articulationParameterValue5;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->set_articulationParameterValue5;
+		return GF_OK;
+	case 8:
+		info->name = "set_articulationParameterValue6";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_EspduTransform *)node)->on_set_articulationParameterValue6;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->set_articulationParameterValue6;
+		return GF_OK;
+	case 9:
+		info->name = "set_articulationParameterValue7";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_EspduTransform *)node)->on_set_articulationParameterValue7;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->set_articulationParameterValue7;
+		return GF_OK;
+	case 10:
+		info->name = "address";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_EspduTransform *) node)->address;
+		return GF_OK;
+	case 11:
+		info->name = "applicationID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->applicationID;
+		return GF_OK;
+	case 12:
+		info->name = "articulationParameterCount";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->articulationParameterCount;
+		return GF_OK;
+	case 13:
+		info->name = "articulationParameterDesignatorArray";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->articulationParameterDesignatorArray;
+		return GF_OK;
+	case 14:
+		info->name = "articulationParameterChangeIndicatorArray";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->articulationParameterChangeIndicatorArray;
+		return GF_OK;
+	case 15:
+		info->name = "articulationParameterIdPartAttachedToArray";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->articulationParameterIdPartAttachedToArray;
+		return GF_OK;
+	case 16:
+		info->name = "articulationParameterTypeArray";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->articulationParameterTypeArray;
+		return GF_OK;
+	case 17:
+		info->name = "articulationParameterArray";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->articulationParameterArray;
+		return GF_OK;
+	case 18:
+		info->name = "center";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_EspduTransform *) node)->center;
+		return GF_OK;
+	case 19:
+		info->name = "children";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((X_EspduTransform *)node)->children;
+		return GF_OK;
+	case 20:
+		info->name = "collisionType";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->collisionType;
+		return GF_OK;
+	case 21:
+		info->name = "deadReckoning";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->deadReckoning;
+		return GF_OK;
+	case 22:
+		info->name = "detonationLocation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_EspduTransform *) node)->detonationLocation;
+		return GF_OK;
+	case 23:
+		info->name = "detonationRelativeLocation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_EspduTransform *) node)->detonationRelativeLocation;
+		return GF_OK;
+	case 24:
+		info->name = "detonationResult";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->detonationResult;
+		return GF_OK;
+	case 25:
+		info->name = "entityCategory";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->entityCategory;
+		return GF_OK;
+	case 26:
+		info->name = "entityCountry";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->entityCountry;
+		return GF_OK;
+	case 27:
+		info->name = "entityDomain";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->entityDomain;
+		return GF_OK;
+	case 28:
+		info->name = "entityExtra";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->entityExtra;
+		return GF_OK;
+	case 29:
+		info->name = "entityID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->entityID;
+		return GF_OK;
+	case 30:
+		info->name = "entityKind";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->entityKind;
+		return GF_OK;
+	case 31:
+		info->name = "entitySpecific";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->entitySpecific;
+		return GF_OK;
+	case 32:
+		info->name = "entitySubCategory";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->entitySubCategory;
+		return GF_OK;
+	case 33:
+		info->name = "eventApplicationID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->eventApplicationID;
+		return GF_OK;
+	case 34:
+		info->name = "eventEntityID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->eventEntityID;
+		return GF_OK;
+	case 35:
+		info->name = "eventNumber";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->eventNumber;
+		return GF_OK;
+	case 36:
+		info->name = "eventSiteID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->eventSiteID;
+		return GF_OK;
+	case 37:
+		info->name = "fired1";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_EspduTransform *) node)->fired1;
+		return GF_OK;
+	case 38:
+		info->name = "fired2";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_EspduTransform *) node)->fired2;
+		return GF_OK;
+	case 39:
+		info->name = "fireMissionIndex";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->fireMissionIndex;
+		return GF_OK;
+	case 40:
+		info->name = "firingRange";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->firingRange;
+		return GF_OK;
+	case 41:
+		info->name = "firingRate";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->firingRate;
+		return GF_OK;
+	case 42:
+		info->name = "forceID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->forceID;
+		return GF_OK;
+	case 43:
+		info->name = "fuse";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->fuse;
+		return GF_OK;
+	case 44:
+		info->name = "linearVelocity";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_EspduTransform *) node)->linearVelocity;
+		return GF_OK;
+	case 45:
+		info->name = "linearAcceleration";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_EspduTransform *) node)->linearAcceleration;
+		return GF_OK;
+	case 46:
+		info->name = "marking";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_EspduTransform *) node)->marking;
+		return GF_OK;
+	case 47:
+		info->name = "multicastRelayHost";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_EspduTransform *) node)->multicastRelayHost;
+		return GF_OK;
+	case 48:
+		info->name = "multicastRelayPort";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->multicastRelayPort;
+		return GF_OK;
+	case 49:
+		info->name = "munitionApplicationID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->munitionApplicationID;
+		return GF_OK;
+	case 50:
+		info->name = "munitionEndPoint";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_EspduTransform *) node)->munitionEndPoint;
+		return GF_OK;
+	case 51:
+		info->name = "munitionEntityID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->munitionEntityID;
+		return GF_OK;
+	case 52:
+		info->name = "munitionQuantity";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->munitionQuantity;
+		return GF_OK;
+	case 53:
+		info->name = "munitionSiteID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->munitionSiteID;
+		return GF_OK;
+	case 54:
+		info->name = "munitionStartPoint";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_EspduTransform *) node)->munitionStartPoint;
+		return GF_OK;
+	case 55:
+		info->name = "networkMode";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_EspduTransform *) node)->networkMode;
+		return GF_OK;
+	case 56:
+		info->name = "port";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->port;
+		return GF_OK;
+	case 57:
+		info->name = "readInterval";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((X_EspduTransform *) node)->readInterval;
+		return GF_OK;
+	case 58:
+		info->name = "rotation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((X_EspduTransform *) node)->rotation;
+		return GF_OK;
+	case 59:
+		info->name = "scale";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_EspduTransform *) node)->scale;
+		return GF_OK;
+	case 60:
+		info->name = "scaleOrientation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((X_EspduTransform *) node)->scaleOrientation;
+		return GF_OK;
+	case 61:
+		info->name = "siteID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->siteID;
+		return GF_OK;
+	case 62:
+		info->name = "translation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_EspduTransform *) node)->translation;
+		return GF_OK;
+	case 63:
+		info->name = "warhead";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_EspduTransform *) node)->warhead;
+		return GF_OK;
+	case 64:
+		info->name = "writeInterval";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((X_EspduTransform *) node)->writeInterval;
+		return GF_OK;
+	case 65:
+		info->name = "rtpHeaderExpected";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_EspduTransform *) node)->rtpHeaderExpected;
+		return GF_OK;
+	case 66:
+		info->name = "articulationParameterValue0_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->articulationParameterValue0_changed;
+		return GF_OK;
+	case 67:
+		info->name = "articulationParameterValue1_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->articulationParameterValue1_changed;
+		return GF_OK;
+	case 68:
+		info->name = "articulationParameterValue2_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->articulationParameterValue2_changed;
+		return GF_OK;
+	case 69:
+		info->name = "articulationParameterValue3_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->articulationParameterValue3_changed;
+		return GF_OK;
+	case 70:
+		info->name = "articulationParameterValue4_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->articulationParameterValue4_changed;
+		return GF_OK;
+	case 71:
+		info->name = "articulationParameterValue5_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->articulationParameterValue5_changed;
+		return GF_OK;
+	case 72:
+		info->name = "articulationParameterValue6_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->articulationParameterValue6_changed;
+		return GF_OK;
+	case 73:
+		info->name = "articulationParameterValue7_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_EspduTransform *) node)->articulationParameterValue7_changed;
+		return GF_OK;
+	case 74:
+		info->name = "collideTime";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((X_EspduTransform *) node)->collideTime;
+		return GF_OK;
+	case 75:
+		info->name = "detonateTime";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((X_EspduTransform *) node)->detonateTime;
+		return GF_OK;
+	case 76:
+		info->name = "firedTime";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((X_EspduTransform *) node)->firedTime;
+		return GF_OK;
+	case 77:
+		info->name = "isActive";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_EspduTransform *) node)->isActive;
+		return GF_OK;
+	case 78:
+		info->name = "isCollided";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_EspduTransform *) node)->isCollided;
+		return GF_OK;
+	case 79:
+		info->name = "isDetonated";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_EspduTransform *) node)->isDetonated;
+		return GF_OK;
+	case 80:
+		info->name = "isNetworkReader";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_EspduTransform *) node)->isNetworkReader;
+		return GF_OK;
+	case 81:
+		info->name = "isNetworkWriter";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_EspduTransform *) node)->isNetworkWriter;
+		return GF_OK;
+	case 82:
+		info->name = "isRtpHeaderHeard";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_EspduTransform *) node)->isRtpHeaderHeard;
+		return GF_OK;
+	case 83:
+		info->name = "isStandAlone";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_EspduTransform *) node)->isStandAlone;
+		return GF_OK;
+	case 84:
+		info->name = "timestamp";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((X_EspduTransform *) node)->timestamp;
+		return GF_OK;
+	case 85:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_EspduTransform *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *EspduTransform_Create()
+{
+	X_EspduTransform *p;
+	GF_SAFEALLOC(p, X_EspduTransform);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_EspduTransform);
+	gf_sg_vrml_parent_setup((GF_Node *) p);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "EspduTransform";
+	((GF_Node *)p)->sgprivate->node_del = EspduTransform_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = EspduTransform_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = EspduTransform_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->address.buffer = malloc(sizeof(char) * 10);
+	strcpy(p->address.buffer, "localhost");
+	p->applicationID = 1;
+	p->articulationParameterCount = 0;
+	p->center.x = FLT2FIX(0);
+	p->center.y = FLT2FIX(0);
+	p->center.z = FLT2FIX(0);
+	p->collisionType = 0;
+	p->deadReckoning = 0;
+	p->detonationLocation.x = FLT2FIX(0);
+	p->detonationLocation.y = FLT2FIX(0);
+	p->detonationLocation.z = FLT2FIX(0);
+	p->detonationRelativeLocation.x = FLT2FIX(0);
+	p->detonationRelativeLocation.y = FLT2FIX(0);
+	p->detonationRelativeLocation.z = FLT2FIX(0);
+	p->detonationResult = 0;
+	p->entityCategory = 0;
+	p->entityCountry = 0;
+	p->entityDomain = 0;
+	p->entityExtra = 0;
+	p->entityID = 0;
+	p->entityKind = 0;
+	p->entitySpecific = 0;
+	p->entitySubCategory = 0;
+	p->eventApplicationID = 1;
+	p->eventEntityID = 0;
+	p->eventNumber = 0;
+	p->eventSiteID = 0;
+	p->fireMissionIndex = 0;
+	p->firingRange = FLT2FIX(0.0);
+	p->firingRate = 0;
+	p->forceID = 0;
+	p->fuse = 0;
+	p->linearVelocity.x = FLT2FIX(0);
+	p->linearVelocity.y = FLT2FIX(0);
+	p->linearVelocity.z = FLT2FIX(0);
+	p->linearAcceleration.x = FLT2FIX(0);
+	p->linearAcceleration.y = FLT2FIX(0);
+	p->linearAcceleration.z = FLT2FIX(0);
+	p->multicastRelayPort = 0;
+	p->munitionApplicationID = 1;
+	p->munitionEndPoint.x = FLT2FIX(0);
+	p->munitionEndPoint.y = FLT2FIX(0);
+	p->munitionEndPoint.z = FLT2FIX(0);
+	p->munitionEntityID = 0;
+	p->munitionQuantity = 0;
+	p->munitionSiteID = 0;
+	p->munitionStartPoint.x = FLT2FIX(0);
+	p->munitionStartPoint.y = FLT2FIX(0);
+	p->munitionStartPoint.z = FLT2FIX(0);
+	p->networkMode.buffer = malloc(sizeof(char) * 11);
+	strcpy(p->networkMode.buffer, "standAlone");
+	p->port = 0;
+	p->readInterval = 0.1;
+	p->rotation.x = FLT2FIX(0);
+	p->rotation.y = FLT2FIX(0);
+	p->rotation.z = FLT2FIX(1);
+	p->rotation.q = FLT2FIX(0);
+	p->scale.x = FLT2FIX(1);
+	p->scale.y = FLT2FIX(1);
+	p->scale.z = FLT2FIX(1);
+	p->scaleOrientation.x = FLT2FIX(0);
+	p->scaleOrientation.y = FLT2FIX(0);
+	p->scaleOrientation.z = FLT2FIX(1);
+	p->scaleOrientation.q = FLT2FIX(0);
+	p->siteID = 0;
+	p->translation.x = FLT2FIX(0);
+	p->translation.y = FLT2FIX(0);
+	p->translation.z = FLT2FIX(0);
+	p->warhead = 0;
+	p->writeInterval = 1.0;
 	return (GF_Node *)p;
 }
 
@@ -2794,7 +3455,7 @@ static GF_Err Extrusion_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Extrusion_Create()
 {
 	X_Extrusion *p;
-	GF_SAFEALLOC(p, sizeof(X_Extrusion));
+	GF_SAFEALLOC(p, X_Extrusion);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Extrusion);
 
@@ -2902,7 +3563,7 @@ static GF_Err FillProperties_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *FillProperties_Create()
 {
 	X_FillProperties *p;
-	GF_SAFEALLOC(p, sizeof(X_FillProperties));
+	GF_SAFEALLOC(p, X_FillProperties);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_FillProperties);
 
@@ -3002,7 +3663,7 @@ static GF_Err Fog_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Fog_Create()
 {
 	X_Fog *p;
-	GF_SAFEALLOC(p, sizeof(X_Fog));
+	GF_SAFEALLOC(p, X_Fog);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Fog);
 
@@ -3122,7 +3783,7 @@ static GF_Err FontStyle_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *FontStyle_Create()
 {
 	X_FontStyle *p;
-	GF_SAFEALLOC(p, sizeof(X_FontStyle));
+	GF_SAFEALLOC(p, X_FontStyle);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_FontStyle);
 
@@ -3152,6 +3813,1119 @@ static GF_Node *FontStyle_Create()
 	p->style.buffer = malloc(sizeof(char) * 6);
 	strcpy(p->style.buffer, "PLAIN");
 	p->topToBottom = 1;
+	return (GF_Node *)p;
+}
+
+
+/*
+	GeoCoordinate Node deletion
+*/
+
+static void GeoCoordinate_Del(GF_Node *node)
+{
+	X_GeoCoordinate *p = (X_GeoCoordinate *) node;
+	gf_sg_mfvec3d_del(p->point);
+	gf_node_unregister((GF_Node *) p->geoOrigin, node);	
+	gf_sg_mfstring_del(p->geoSystem);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 GeoCoordinate_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 4;
+}
+
+static GF_Err GeoCoordinate_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "point";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC3D;
+		info->far_ptr = & ((X_GeoCoordinate *) node)->point;
+		return GF_OK;
+	case 1:
+		info->name = "geoOrigin";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFGeoOriginNode;
+		info->far_ptr = & ((X_GeoCoordinate *)node)->geoOrigin;
+		return GF_OK;
+	case 2:
+		info->name = "geoSystem";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFSTRING;
+		info->far_ptr = & ((X_GeoCoordinate *) node)->geoSystem;
+		return GF_OK;
+	case 3:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_GeoCoordinate *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *GeoCoordinate_Create()
+{
+	X_GeoCoordinate *p;
+	GF_SAFEALLOC(p, X_GeoCoordinate);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_GeoCoordinate);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "GeoCoordinate";
+	((GF_Node *)p)->sgprivate->node_del = GeoCoordinate_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = GeoCoordinate_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = GeoCoordinate_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->geoSystem.vals = malloc(sizeof(SFString)*2);
+	p->geoSystem.count = 2;
+	p->geoSystem.vals[0] = malloc(sizeof(char) * 3);
+	strcpy(p->geoSystem.vals[0], "GD");
+	p->geoSystem.vals[1] = malloc(sizeof(char) * 3);
+	strcpy(p->geoSystem.vals[1], "WE");
+	return (GF_Node *)p;
+}
+
+
+/*
+	GeoElevationGrid Node deletion
+*/
+
+static void GeoElevationGrid_Del(GF_Node *node)
+{
+	X_GeoElevationGrid *p = (X_GeoElevationGrid *) node;
+	gf_sg_mfdouble_del(p->set_height);
+	gf_node_unregister((GF_Node *) p->color, node);	
+	gf_node_unregister((GF_Node *) p->normal, node);	
+	gf_node_unregister((GF_Node *) p->texCoord, node);	
+	gf_sg_sfstring_del(p->geoGridOrigin);
+	gf_node_unregister((GF_Node *) p->geoOrigin, node);	
+	gf_sg_mfstring_del(p->geoSystem);
+	gf_sg_mfdouble_del(p->height);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 GeoElevationGrid_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 19;
+}
+
+static GF_Err GeoElevationGrid_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "set_height";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_GeoElevationGrid *)node)->on_set_height;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_GeoElevationGrid *) node)->set_height;
+		return GF_OK;
+	case 1:
+		info->name = "color";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFColorNode;
+		info->far_ptr = & ((X_GeoElevationGrid *)node)->color;
+		return GF_OK;
+	case 2:
+		info->name = "normal";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFNormalNode;
+		info->far_ptr = & ((X_GeoElevationGrid *)node)->normal;
+		return GF_OK;
+	case 3:
+		info->name = "texCoord";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFTextureCoordinateNode;
+		info->far_ptr = & ((X_GeoElevationGrid *)node)->texCoord;
+		return GF_OK;
+	case 4:
+		info->name = "yScale";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_GeoElevationGrid *) node)->yScale;
+		return GF_OK;
+	case 5:
+		info->name = "ccw";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_GeoElevationGrid *) node)->ccw;
+		return GF_OK;
+	case 6:
+		info->name = "colorPerVertex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_GeoElevationGrid *) node)->colorPerVertex;
+		return GF_OK;
+	case 7:
+		info->name = "creaseAngle";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_GeoElevationGrid *) node)->creaseAngle;
+		return GF_OK;
+	case 8:
+		info->name = "geoGridOrigin";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_GeoElevationGrid *) node)->geoGridOrigin;
+		return GF_OK;
+	case 9:
+		info->name = "geoOrigin";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFGeoOriginNode;
+		info->far_ptr = & ((X_GeoElevationGrid *)node)->geoOrigin;
+		return GF_OK;
+	case 10:
+		info->name = "geoSystem";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFSTRING;
+		info->far_ptr = & ((X_GeoElevationGrid *) node)->geoSystem;
+		return GF_OK;
+	case 11:
+		info->name = "height";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_GeoElevationGrid *) node)->height;
+		return GF_OK;
+	case 12:
+		info->name = "normalPerVertex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_GeoElevationGrid *) node)->normalPerVertex;
+		return GF_OK;
+	case 13:
+		info->name = "solid";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_GeoElevationGrid *) node)->solid;
+		return GF_OK;
+	case 14:
+		info->name = "xDimension";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_GeoElevationGrid *) node)->xDimension;
+		return GF_OK;
+	case 15:
+		info->name = "xSpacing";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFDOUBLE;
+		info->far_ptr = & ((X_GeoElevationGrid *) node)->xSpacing;
+		return GF_OK;
+	case 16:
+		info->name = "zDimension";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_GeoElevationGrid *) node)->zDimension;
+		return GF_OK;
+	case 17:
+		info->name = "zSpacing";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFDOUBLE;
+		info->far_ptr = & ((X_GeoElevationGrid *) node)->zSpacing;
+		return GF_OK;
+	case 18:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_GeoElevationGrid *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *GeoElevationGrid_Create()
+{
+	X_GeoElevationGrid *p;
+	GF_SAFEALLOC(p, X_GeoElevationGrid);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_GeoElevationGrid);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "GeoElevationGrid";
+	((GF_Node *)p)->sgprivate->node_del = GeoElevationGrid_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = GeoElevationGrid_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = GeoElevationGrid_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->yScale = FLT2FIX(1.0);
+	p->ccw = 1;
+	p->colorPerVertex = 1;
+	p->creaseAngle = FLT2FIX(0.0);
+	p->geoGridOrigin.buffer = malloc(sizeof(char) * 6);
+	strcpy(p->geoGridOrigin.buffer, "0 0 0");
+	p->geoSystem.vals = malloc(sizeof(SFString)*2);
+	p->geoSystem.count = 2;
+	p->geoSystem.vals[0] = malloc(sizeof(char) * 3);
+	strcpy(p->geoSystem.vals[0], "GD");
+	p->geoSystem.vals[1] = malloc(sizeof(char) * 3);
+	strcpy(p->geoSystem.vals[1], "WE");
+	p->normalPerVertex = 1;
+	p->solid = 1;
+	p->xDimension = 0;
+	p->xSpacing = (SFDouble) 1.0;
+	p->zDimension = 0;
+	p->zSpacing = (SFDouble) 1.0;
+	return (GF_Node *)p;
+}
+
+
+/*
+	GeoLocation Node deletion
+*/
+
+static void GeoLocation_Del(GF_Node *node)
+{
+	X_GeoLocation *p = (X_GeoLocation *) node;
+	gf_sg_vrml_parent_reset(node);	
+	gf_node_unregister((GF_Node *) p->geoOrigin, node);	
+	gf_sg_mfstring_del(p->geoSystem);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 GeoLocation_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 7;
+}
+
+static GF_Err GeoLocation_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "addChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_GeoLocation *)node)->on_addChildren;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((X_GeoLocation *)node)->addChildren;
+		return GF_OK;
+	case 1:
+		info->name = "removeChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_GeoLocation *)node)->on_removeChildren;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((X_GeoLocation *)node)->removeChildren;
+		return GF_OK;
+	case 2:
+		info->name = "children";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((X_GeoLocation *)node)->children;
+		return GF_OK;
+	case 3:
+		info->name = "geoCoords";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3D;
+		info->far_ptr = & ((X_GeoLocation *) node)->geoCoords;
+		return GF_OK;
+	case 4:
+		info->name = "geoOrigin";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFGeoOriginNode;
+		info->far_ptr = & ((X_GeoLocation *)node)->geoOrigin;
+		return GF_OK;
+	case 5:
+		info->name = "geoSystem";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFSTRING;
+		info->far_ptr = & ((X_GeoLocation *) node)->geoSystem;
+		return GF_OK;
+	case 6:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_GeoLocation *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *GeoLocation_Create()
+{
+	X_GeoLocation *p;
+	GF_SAFEALLOC(p, X_GeoLocation);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_GeoLocation);
+	gf_sg_vrml_parent_setup((GF_Node *) p);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "GeoLocation";
+	((GF_Node *)p)->sgprivate->node_del = GeoLocation_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = GeoLocation_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = GeoLocation_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->geoCoords.x = (SFDouble) 0;
+	p->geoCoords.y = (SFDouble) 0;
+	p->geoCoords.z = (SFDouble) 0;
+	p->geoSystem.vals = malloc(sizeof(SFString)*2);
+	p->geoSystem.count = 2;
+	p->geoSystem.vals[0] = malloc(sizeof(char) * 3);
+	strcpy(p->geoSystem.vals[0], "GD");
+	p->geoSystem.vals[1] = malloc(sizeof(char) * 3);
+	strcpy(p->geoSystem.vals[1], "WE");
+	return (GF_Node *)p;
+}
+
+
+/*
+	GeoLOD Node deletion
+*/
+
+static void GeoLOD_Del(GF_Node *node)
+{
+	X_GeoLOD *p = (X_GeoLOD *) node;
+	gf_sg_mfurl_del(p->child1Url);
+	gf_sg_mfurl_del(p->child2Url);
+	gf_sg_mfurl_del(p->child3Url);
+	gf_sg_mfurl_del(p->child4Url);
+	gf_node_unregister((GF_Node *) p->geoOrigin, node);	
+	gf_sg_mfstring_del(p->geoSystem);
+	gf_sg_mfurl_del(p->rootUrl);
+	gf_node_list_del((GF_List *) p->rootNode, node);	
+	gf_node_list_del((GF_List *) p->children, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 GeoLOD_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 12;
+}
+
+static GF_Err GeoLOD_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "center";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3D;
+		info->far_ptr = & ((X_GeoLOD *) node)->center;
+		return GF_OK;
+	case 1:
+		info->name = "child1Url";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFURL;
+		info->far_ptr = & ((X_GeoLOD *) node)->child1Url;
+		return GF_OK;
+	case 2:
+		info->name = "child2Url";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFURL;
+		info->far_ptr = & ((X_GeoLOD *) node)->child2Url;
+		return GF_OK;
+	case 3:
+		info->name = "child3Url";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFURL;
+		info->far_ptr = & ((X_GeoLOD *) node)->child3Url;
+		return GF_OK;
+	case 4:
+		info->name = "child4Url";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFURL;
+		info->far_ptr = & ((X_GeoLOD *) node)->child4Url;
+		return GF_OK;
+	case 5:
+		info->name = "geoOrigin";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFGeoOriginNode;
+		info->far_ptr = & ((X_GeoLOD *)node)->geoOrigin;
+		return GF_OK;
+	case 6:
+		info->name = "geoSystem";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFSTRING;
+		info->far_ptr = & ((X_GeoLOD *) node)->geoSystem;
+		return GF_OK;
+	case 7:
+		info->name = "range";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_GeoLOD *) node)->range;
+		return GF_OK;
+	case 8:
+		info->name = "rootUrl";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFURL;
+		info->far_ptr = & ((X_GeoLOD *) node)->rootUrl;
+		return GF_OK;
+	case 9:
+		info->name = "rootNode";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((X_GeoLOD *)node)->rootNode;
+		return GF_OK;
+	case 10:
+		info->name = "children";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((X_GeoLOD *)node)->children;
+		return GF_OK;
+	case 11:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_GeoLOD *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *GeoLOD_Create()
+{
+	X_GeoLOD *p;
+	GF_SAFEALLOC(p, X_GeoLOD);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_GeoLOD);
+	p->rootNode = gf_list_new();	
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "GeoLOD";
+	((GF_Node *)p)->sgprivate->node_del = GeoLOD_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = GeoLOD_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = GeoLOD_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->center.x = (SFDouble) 0;
+	p->center.y = (SFDouble) 0;
+	p->center.z = (SFDouble) 0;
+	p->geoSystem.vals = malloc(sizeof(SFString)*2);
+	p->geoSystem.count = 2;
+	p->geoSystem.vals[0] = malloc(sizeof(char) * 3);
+	strcpy(p->geoSystem.vals[0], "GD");
+	p->geoSystem.vals[1] = malloc(sizeof(char) * 3);
+	strcpy(p->geoSystem.vals[1], "WE");
+	p->range = FLT2FIX(10);
+	return (GF_Node *)p;
+}
+
+
+/*
+	GeoMetadata Node deletion
+*/
+
+static void GeoMetadata_Del(GF_Node *node)
+{
+	X_GeoMetadata *p = (X_GeoMetadata *) node;
+	gf_node_list_del((GF_List *) p->data, node);	
+	gf_sg_mfstring_del(p->summary);
+	gf_sg_mfurl_del(p->url);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 GeoMetadata_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 4;
+}
+
+static GF_Err GeoMetadata_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "data";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((X_GeoMetadata *)node)->data;
+		return GF_OK;
+	case 1:
+		info->name = "summary";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFSTRING;
+		info->far_ptr = & ((X_GeoMetadata *) node)->summary;
+		return GF_OK;
+	case 2:
+		info->name = "url";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFURL;
+		info->far_ptr = & ((X_GeoMetadata *) node)->url;
+		return GF_OK;
+	case 3:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_GeoMetadata *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *GeoMetadata_Create()
+{
+	X_GeoMetadata *p;
+	GF_SAFEALLOC(p, X_GeoMetadata);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_GeoMetadata);
+	p->data = gf_list_new();	
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "GeoMetadata";
+	((GF_Node *)p)->sgprivate->node_del = GeoMetadata_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = GeoMetadata_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = GeoMetadata_get_field;
+
+#endif
+
+
+	/*default field values*/
+	return (GF_Node *)p;
+}
+
+
+/*
+	GeoOrigin Node deletion
+*/
+
+static void GeoOrigin_Del(GF_Node *node)
+{
+	X_GeoOrigin *p = (X_GeoOrigin *) node;
+	gf_sg_mfstring_del(p->geoSystem);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 GeoOrigin_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 4;
+}
+
+static GF_Err GeoOrigin_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "geoCoords";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3D;
+		info->far_ptr = & ((X_GeoOrigin *) node)->geoCoords;
+		return GF_OK;
+	case 1:
+		info->name = "geoSystem";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFSTRING;
+		info->far_ptr = & ((X_GeoOrigin *) node)->geoSystem;
+		return GF_OK;
+	case 2:
+		info->name = "rotateYUp";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_GeoOrigin *) node)->rotateYUp;
+		return GF_OK;
+	case 3:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_GeoOrigin *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *GeoOrigin_Create()
+{
+	X_GeoOrigin *p;
+	GF_SAFEALLOC(p, X_GeoOrigin);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_GeoOrigin);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "GeoOrigin";
+	((GF_Node *)p)->sgprivate->node_del = GeoOrigin_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = GeoOrigin_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = GeoOrigin_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->geoCoords.x = (SFDouble) 0;
+	p->geoCoords.y = (SFDouble) 0;
+	p->geoCoords.z = (SFDouble) 0;
+	p->geoSystem.vals = malloc(sizeof(SFString)*2);
+	p->geoSystem.count = 2;
+	p->geoSystem.vals[0] = malloc(sizeof(char) * 3);
+	strcpy(p->geoSystem.vals[0], "GD");
+	p->geoSystem.vals[1] = malloc(sizeof(char) * 3);
+	strcpy(p->geoSystem.vals[1], "WE");
+	return (GF_Node *)p;
+}
+
+
+/*
+	GeoPositionInterpolator Node deletion
+*/
+
+static void GeoPositionInterpolator_Del(GF_Node *node)
+{
+	X_GeoPositionInterpolator *p = (X_GeoPositionInterpolator *) node;
+	gf_sg_mffloat_del(p->key);
+	gf_sg_mfvec3d_del(p->keyValue);
+	gf_node_unregister((GF_Node *) p->geoOrigin, node);	
+	gf_sg_mfstring_del(p->geoSystem);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 GeoPositionInterpolator_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 8;
+}
+
+static GF_Err GeoPositionInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "set_fraction";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_GeoPositionInterpolator *)node)->on_set_fraction;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_GeoPositionInterpolator *) node)->set_fraction;
+		return GF_OK;
+	case 1:
+		info->name = "key";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((X_GeoPositionInterpolator *) node)->key;
+		return GF_OK;
+	case 2:
+		info->name = "keyValue";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC3D;
+		info->far_ptr = & ((X_GeoPositionInterpolator *) node)->keyValue;
+		return GF_OK;
+	case 3:
+		info->name = "geoOrigin";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFGeoOriginNode;
+		info->far_ptr = & ((X_GeoPositionInterpolator *)node)->geoOrigin;
+		return GF_OK;
+	case 4:
+		info->name = "geoSystem";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFSTRING;
+		info->far_ptr = & ((X_GeoPositionInterpolator *) node)->geoSystem;
+		return GF_OK;
+	case 5:
+		info->name = "geovalue_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFVEC3D;
+		info->far_ptr = & ((X_GeoPositionInterpolator *) node)->geovalue_changed;
+		return GF_OK;
+	case 6:
+		info->name = "value_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_GeoPositionInterpolator *) node)->value_changed;
+		return GF_OK;
+	case 7:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_GeoPositionInterpolator *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *GeoPositionInterpolator_Create()
+{
+	X_GeoPositionInterpolator *p;
+	GF_SAFEALLOC(p, X_GeoPositionInterpolator);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_GeoPositionInterpolator);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "GeoPositionInterpolator";
+	((GF_Node *)p)->sgprivate->node_del = GeoPositionInterpolator_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = GeoPositionInterpolator_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = GeoPositionInterpolator_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->geoSystem.vals = malloc(sizeof(SFString)*2);
+	p->geoSystem.count = 2;
+	p->geoSystem.vals[0] = malloc(sizeof(char) * 3);
+	strcpy(p->geoSystem.vals[0], "GD");
+	p->geoSystem.vals[1] = malloc(sizeof(char) * 3);
+	strcpy(p->geoSystem.vals[1], "WE");
+	return (GF_Node *)p;
+}
+
+
+/*
+	GeoTouchSensor Node deletion
+*/
+
+static void GeoTouchSensor_Del(GF_Node *node)
+{
+	X_GeoTouchSensor *p = (X_GeoTouchSensor *) node;
+	gf_node_unregister((GF_Node *) p->geoOrigin, node);	
+	gf_sg_mfstring_del(p->geoSystem);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 GeoTouchSensor_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 11;
+}
+
+static GF_Err GeoTouchSensor_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "enabled";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_GeoTouchSensor *) node)->enabled;
+		return GF_OK;
+	case 1:
+		info->name = "geoOrigin";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFGeoOriginNode;
+		info->far_ptr = & ((X_GeoTouchSensor *)node)->geoOrigin;
+		return GF_OK;
+	case 2:
+		info->name = "geoSystem";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFSTRING;
+		info->far_ptr = & ((X_GeoTouchSensor *) node)->geoSystem;
+		return GF_OK;
+	case 3:
+		info->name = "hitNormal_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_GeoTouchSensor *) node)->hitNormal_changed;
+		return GF_OK;
+	case 4:
+		info->name = "hitPoint_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_GeoTouchSensor *) node)->hitPoint_changed;
+		return GF_OK;
+	case 5:
+		info->name = "hitTexCoord_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFVEC2F;
+		info->far_ptr = & ((X_GeoTouchSensor *) node)->hitTexCoord_changed;
+		return GF_OK;
+	case 6:
+		info->name = "hitGeoCoord_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFVEC3D;
+		info->far_ptr = & ((X_GeoTouchSensor *) node)->hitGeoCoord_changed;
+		return GF_OK;
+	case 7:
+		info->name = "isActive";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_GeoTouchSensor *) node)->isActive;
+		return GF_OK;
+	case 8:
+		info->name = "isOver";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_GeoTouchSensor *) node)->isOver;
+		return GF_OK;
+	case 9:
+		info->name = "touchTime";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((X_GeoTouchSensor *) node)->touchTime;
+		return GF_OK;
+	case 10:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_GeoTouchSensor *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *GeoTouchSensor_Create()
+{
+	X_GeoTouchSensor *p;
+	GF_SAFEALLOC(p, X_GeoTouchSensor);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_GeoTouchSensor);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "GeoTouchSensor";
+	((GF_Node *)p)->sgprivate->node_del = GeoTouchSensor_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = GeoTouchSensor_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = GeoTouchSensor_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->enabled = 1;
+	p->geoSystem.vals = malloc(sizeof(SFString)*2);
+	p->geoSystem.count = 2;
+	p->geoSystem.vals[0] = malloc(sizeof(char) * 3);
+	strcpy(p->geoSystem.vals[0], "GD");
+	p->geoSystem.vals[1] = malloc(sizeof(char) * 3);
+	strcpy(p->geoSystem.vals[1], "WE");
+	return (GF_Node *)p;
+}
+
+
+/*
+	GeoViewpoint Node deletion
+*/
+
+static void GeoViewpoint_Del(GF_Node *node)
+{
+	X_GeoViewpoint *p = (X_GeoViewpoint *) node;
+	gf_sg_sfstring_del(p->set_orientation);
+	gf_sg_sfstring_del(p->set_position);
+	gf_sg_sfstring_del(p->description);
+	gf_sg_mfstring_del(p->navType);
+	gf_node_unregister((GF_Node *) p->geoOrigin, node);	
+	gf_sg_mfstring_del(p->geoSystem);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 GeoViewpoint_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 16;
+}
+
+static GF_Err GeoViewpoint_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "set_bind";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_GeoViewpoint *)node)->on_set_bind;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_GeoViewpoint *) node)->set_bind;
+		return GF_OK;
+	case 1:
+		info->name = "set_orientation";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_GeoViewpoint *)node)->on_set_orientation;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_GeoViewpoint *) node)->set_orientation;
+		return GF_OK;
+	case 2:
+		info->name = "set_position";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_GeoViewpoint *)node)->on_set_position;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_GeoViewpoint *) node)->set_position;
+		return GF_OK;
+	case 3:
+		info->name = "description";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_GeoViewpoint *) node)->description;
+		return GF_OK;
+	case 4:
+		info->name = "fieldOfView";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_GeoViewpoint *) node)->fieldOfView;
+		return GF_OK;
+	case 5:
+		info->name = "headlight";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_GeoViewpoint *) node)->headlight;
+		return GF_OK;
+	case 6:
+		info->name = "jump";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_GeoViewpoint *) node)->jump;
+		return GF_OK;
+	case 7:
+		info->name = "navType";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFSTRING;
+		info->far_ptr = & ((X_GeoViewpoint *) node)->navType;
+		return GF_OK;
+	case 8:
+		info->name = "bindTime";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((X_GeoViewpoint *) node)->bindTime;
+		return GF_OK;
+	case 9:
+		info->name = "isBound";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_GeoViewpoint *) node)->isBound;
+		return GF_OK;
+	case 10:
+		info->name = "geoOrigin";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFGeoOriginNode;
+		info->far_ptr = & ((X_GeoViewpoint *)node)->geoOrigin;
+		return GF_OK;
+	case 11:
+		info->name = "geoSystem";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFSTRING;
+		info->far_ptr = & ((X_GeoViewpoint *) node)->geoSystem;
+		return GF_OK;
+	case 12:
+		info->name = "orientation";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((X_GeoViewpoint *) node)->orientation;
+		return GF_OK;
+	case 13:
+		info->name = "position";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3D;
+		info->far_ptr = & ((X_GeoViewpoint *) node)->position;
+		return GF_OK;
+	case 14:
+		info->name = "speedFactor";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_GeoViewpoint *) node)->speedFactor;
+		return GF_OK;
+	case 15:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_GeoViewpoint *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *GeoViewpoint_Create()
+{
+	X_GeoViewpoint *p;
+	GF_SAFEALLOC(p, X_GeoViewpoint);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_GeoViewpoint);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "GeoViewpoint";
+	((GF_Node *)p)->sgprivate->node_del = GeoViewpoint_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = GeoViewpoint_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = GeoViewpoint_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->fieldOfView = FLT2FIX(0.785398);
+	p->headlight = 1;
+	p->jump = 1;
+	p->navType.vals = malloc(sizeof(SFString)*2);
+	p->navType.count = 2;
+	p->navType.vals[0] = malloc(sizeof(char) * 8);
+	strcpy(p->navType.vals[0], "EXAMINE");
+	p->navType.vals[1] = malloc(sizeof(char) * 4);
+	strcpy(p->navType.vals[1], "ANY");
+	p->geoSystem.vals = malloc(sizeof(SFString)*2);
+	p->geoSystem.count = 2;
+	p->geoSystem.vals[0] = malloc(sizeof(char) * 3);
+	strcpy(p->geoSystem.vals[0], "GD");
+	p->geoSystem.vals[1] = malloc(sizeof(char) * 3);
+	strcpy(p->geoSystem.vals[1], "WE");
+	p->orientation.x = FLT2FIX(0);
+	p->orientation.y = FLT2FIX(0);
+	p->orientation.z = FLT2FIX(1);
+	p->orientation.q = FLT2FIX(0);
+	p->position.x = (SFDouble) 0;
+	p->position.y = (SFDouble) 0;
+	p->position.z = (SFDouble) 100000;
+	p->speedFactor = FLT2FIX(1.0);
 	return (GF_Node *)p;
 }
 
@@ -3217,7 +4991,7 @@ static GF_Err Group_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Group_Create()
 {
 	X_Group *p;
-	GF_SAFEALLOC(p, sizeof(X_Group));
+	GF_SAFEALLOC(p, X_Group);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Group);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -3233,6 +5007,750 @@ static GF_Node *Group_Create()
 
 
 	/*default field values*/
+	return (GF_Node *)p;
+}
+
+
+/*
+	HAnimDisplacer Node deletion
+*/
+
+static void HAnimDisplacer_Del(GF_Node *node)
+{
+	X_HAnimDisplacer *p = (X_HAnimDisplacer *) node;
+	gf_sg_mfint32_del(p->coordIndex);
+	gf_sg_mfvec3f_del(p->displacements);
+	gf_sg_sfstring_del(p->name);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 HAnimDisplacer_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 5;
+}
+
+static GF_Err HAnimDisplacer_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "coordIndex";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((X_HAnimDisplacer *) node)->coordIndex;
+		return GF_OK;
+	case 1:
+		info->name = "displacements";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC3F;
+		info->far_ptr = & ((X_HAnimDisplacer *) node)->displacements;
+		return GF_OK;
+	case 2:
+		info->name = "name";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_HAnimDisplacer *) node)->name;
+		return GF_OK;
+	case 3:
+		info->name = "weight";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_HAnimDisplacer *) node)->weight;
+		return GF_OK;
+	case 4:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_HAnimDisplacer *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *HAnimDisplacer_Create()
+{
+	X_HAnimDisplacer *p;
+	GF_SAFEALLOC(p, X_HAnimDisplacer);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_HAnimDisplacer);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "HAnimDisplacer";
+	((GF_Node *)p)->sgprivate->node_del = HAnimDisplacer_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = HAnimDisplacer_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = HAnimDisplacer_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->weight = FLT2FIX(0.0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	HAnimHumanoid Node deletion
+*/
+
+static void HAnimHumanoid_Del(GF_Node *node)
+{
+	X_HAnimHumanoid *p = (X_HAnimHumanoid *) node;
+	gf_sg_mfstring_del(p->info);
+	gf_node_list_del((GF_List *) p->joints, node);	
+	gf_sg_sfstring_del(p->name);
+	gf_node_list_del((GF_List *) p->segments, node);	
+	gf_node_list_del((GF_List *) p->sites, node);	
+	gf_node_list_del((GF_List *) p->skeleton, node);	
+	gf_node_list_del((GF_List *) p->skin, node);	
+	gf_node_unregister((GF_Node *) p->skinCoord, node);	
+	gf_node_unregister((GF_Node *) p->skinNormal, node);	
+	gf_sg_sfstring_del(p->version);
+	gf_node_list_del((GF_List *) p->viewpoints, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 HAnimHumanoid_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 17;
+}
+
+static GF_Err HAnimHumanoid_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "center";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_HAnimHumanoid *) node)->center;
+		return GF_OK;
+	case 1:
+		info->name = "info";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFSTRING;
+		info->far_ptr = & ((X_HAnimHumanoid *) node)->info;
+		return GF_OK;
+	case 2:
+		info->name = "joints";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFHAnimNode;
+		info->far_ptr = & ((X_HAnimHumanoid *)node)->joints;
+		return GF_OK;
+	case 3:
+		info->name = "name";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_HAnimHumanoid *) node)->name;
+		return GF_OK;
+	case 4:
+		info->name = "rotation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((X_HAnimHumanoid *) node)->rotation;
+		return GF_OK;
+	case 5:
+		info->name = "scale";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_HAnimHumanoid *) node)->scale;
+		return GF_OK;
+	case 6:
+		info->name = "scaleOrientation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((X_HAnimHumanoid *) node)->scaleOrientation;
+		return GF_OK;
+	case 7:
+		info->name = "segments";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFHAnimNode;
+		info->far_ptr = & ((X_HAnimHumanoid *)node)->segments;
+		return GF_OK;
+	case 8:
+		info->name = "sites";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFHAnimNode;
+		info->far_ptr = & ((X_HAnimHumanoid *)node)->sites;
+		return GF_OK;
+	case 9:
+		info->name = "skeleton";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFHAnimNode;
+		info->far_ptr = & ((X_HAnimHumanoid *)node)->skeleton;
+		return GF_OK;
+	case 10:
+		info->name = "skin";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((X_HAnimHumanoid *)node)->skin;
+		return GF_OK;
+	case 11:
+		info->name = "skinCoord";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFCoordinateNode;
+		info->far_ptr = & ((X_HAnimHumanoid *)node)->skinCoord;
+		return GF_OK;
+	case 12:
+		info->name = "skinNormal";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFNormalNode;
+		info->far_ptr = & ((X_HAnimHumanoid *)node)->skinNormal;
+		return GF_OK;
+	case 13:
+		info->name = "translation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_HAnimHumanoid *) node)->translation;
+		return GF_OK;
+	case 14:
+		info->name = "version";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_HAnimHumanoid *) node)->version;
+		return GF_OK;
+	case 15:
+		info->name = "viewpoints";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFViewpointNode;
+		info->far_ptr = & ((X_HAnimHumanoid *)node)->viewpoints;
+		return GF_OK;
+	case 16:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_HAnimHumanoid *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *HAnimHumanoid_Create()
+{
+	X_HAnimHumanoid *p;
+	GF_SAFEALLOC(p, X_HAnimHumanoid);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_HAnimHumanoid);
+	p->joints = gf_list_new();	
+	p->segments = gf_list_new();	
+	p->sites = gf_list_new();	
+	p->skeleton = gf_list_new();	
+	p->skin = gf_list_new();	
+	p->viewpoints = gf_list_new();	
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "HAnimHumanoid";
+	((GF_Node *)p)->sgprivate->node_del = HAnimHumanoid_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = HAnimHumanoid_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = HAnimHumanoid_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->center.x = FLT2FIX(0);
+	p->center.y = FLT2FIX(0);
+	p->center.z = FLT2FIX(0);
+	p->rotation.x = FLT2FIX(0);
+	p->rotation.y = FLT2FIX(0);
+	p->rotation.z = FLT2FIX(1);
+	p->rotation.q = FLT2FIX(0);
+	p->scale.x = FLT2FIX(1);
+	p->scale.y = FLT2FIX(1);
+	p->scale.z = FLT2FIX(1);
+	p->scaleOrientation.x = FLT2FIX(0);
+	p->scaleOrientation.y = FLT2FIX(0);
+	p->scaleOrientation.z = FLT2FIX(1);
+	p->scaleOrientation.q = FLT2FIX(0);
+	p->translation.x = FLT2FIX(0);
+	p->translation.y = FLT2FIX(0);
+	p->translation.z = FLT2FIX(0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	HAnimJoint Node deletion
+*/
+
+static void HAnimJoint_Del(GF_Node *node)
+{
+	X_HAnimJoint *p = (X_HAnimJoint *) node;
+	gf_sg_vrml_parent_reset(node);	
+	gf_node_list_del((GF_List *) p->displacers, node);	
+	gf_sg_mffloat_del(p->llimit);
+	gf_sg_sfstring_del(p->name);
+	gf_sg_mfint32_del(p->skinCoordIndex);
+	gf_sg_mffloat_del(p->skinCoordWeight);
+	gf_sg_mffloat_del(p->stiffness);
+	gf_sg_mffloat_del(p->ulimit);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 HAnimJoint_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 17;
+}
+
+static GF_Err HAnimJoint_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "addChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_HAnimJoint *)node)->on_addChildren;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFHAnimNode;
+		info->far_ptr = & ((X_HAnimJoint *)node)->addChildren;
+		return GF_OK;
+	case 1:
+		info->name = "removeChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_HAnimJoint *)node)->on_removeChildren;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFHAnimNode;
+		info->far_ptr = & ((X_HAnimJoint *)node)->removeChildren;
+		return GF_OK;
+	case 2:
+		info->name = "children";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFHAnimNode;
+		info->far_ptr = & ((X_HAnimJoint *)node)->children;
+		return GF_OK;
+	case 3:
+		info->name = "center";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_HAnimJoint *) node)->center;
+		return GF_OK;
+	case 4:
+		info->name = "displacers";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFHAnimDisplacerNode;
+		info->far_ptr = & ((X_HAnimJoint *)node)->displacers;
+		return GF_OK;
+	case 5:
+		info->name = "limitOrientation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((X_HAnimJoint *) node)->limitOrientation;
+		return GF_OK;
+	case 6:
+		info->name = "llimit";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((X_HAnimJoint *) node)->llimit;
+		return GF_OK;
+	case 7:
+		info->name = "name";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_HAnimJoint *) node)->name;
+		return GF_OK;
+	case 8:
+		info->name = "rotation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((X_HAnimJoint *) node)->rotation;
+		return GF_OK;
+	case 9:
+		info->name = "scale";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_HAnimJoint *) node)->scale;
+		return GF_OK;
+	case 10:
+		info->name = "scaleOrientation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((X_HAnimJoint *) node)->scaleOrientation;
+		return GF_OK;
+	case 11:
+		info->name = "skinCoordIndex";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((X_HAnimJoint *) node)->skinCoordIndex;
+		return GF_OK;
+	case 12:
+		info->name = "skinCoordWeight";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((X_HAnimJoint *) node)->skinCoordWeight;
+		return GF_OK;
+	case 13:
+		info->name = "stiffness";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((X_HAnimJoint *) node)->stiffness;
+		return GF_OK;
+	case 14:
+		info->name = "translation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_HAnimJoint *) node)->translation;
+		return GF_OK;
+	case 15:
+		info->name = "ulimit";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((X_HAnimJoint *) node)->ulimit;
+		return GF_OK;
+	case 16:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_HAnimJoint *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *HAnimJoint_Create()
+{
+	X_HAnimJoint *p;
+	GF_SAFEALLOC(p, X_HAnimJoint);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_HAnimJoint);
+	gf_sg_vrml_parent_setup((GF_Node *) p);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "HAnimJoint";
+	((GF_Node *)p)->sgprivate->node_del = HAnimJoint_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = HAnimJoint_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = HAnimJoint_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->center.x = FLT2FIX(0);
+	p->center.y = FLT2FIX(0);
+	p->center.z = FLT2FIX(0);
+	p->limitOrientation.x = FLT2FIX(0);
+	p->limitOrientation.y = FLT2FIX(0);
+	p->limitOrientation.z = FLT2FIX(1);
+	p->limitOrientation.q = FLT2FIX(0);
+	p->rotation.x = FLT2FIX(0);
+	p->rotation.y = FLT2FIX(0);
+	p->rotation.z = FLT2FIX(1);
+	p->rotation.q = FLT2FIX(0);
+	p->scale.x = FLT2FIX(1);
+	p->scale.y = FLT2FIX(1);
+	p->scale.z = FLT2FIX(1);
+	p->scaleOrientation.x = FLT2FIX(0);
+	p->scaleOrientation.y = FLT2FIX(0);
+	p->scaleOrientation.z = FLT2FIX(1);
+	p->scaleOrientation.q = FLT2FIX(0);
+	p->stiffness.vals = malloc(sizeof(SFFloat)*3);
+	p->stiffness.count = 3;
+	p->stiffness.vals[0] = FLT2FIX(0);
+	p->stiffness.vals[1] = FLT2FIX(0);
+	p->stiffness.vals[2] = FLT2FIX(0);
+	p->translation.x = FLT2FIX(0);
+	p->translation.y = FLT2FIX(0);
+	p->translation.z = FLT2FIX(0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	HAnimSegment Node deletion
+*/
+
+static void HAnimSegment_Del(GF_Node *node)
+{
+	X_HAnimSegment *p = (X_HAnimSegment *) node;
+	gf_sg_vrml_parent_reset(node);	
+	gf_node_unregister((GF_Node *) p->coord, node);	
+	gf_node_list_del((GF_List *) p->displacers, node);	
+	gf_sg_mffloat_del(p->momentsOfInertia);
+	gf_sg_sfstring_del(p->name);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 HAnimSegment_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 10;
+}
+
+static GF_Err HAnimSegment_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "addChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_HAnimSegment *)node)->on_addChildren;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((X_HAnimSegment *)node)->addChildren;
+		return GF_OK;
+	case 1:
+		info->name = "removeChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_HAnimSegment *)node)->on_removeChildren;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((X_HAnimSegment *)node)->removeChildren;
+		return GF_OK;
+	case 2:
+		info->name = "children";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((X_HAnimSegment *)node)->children;
+		return GF_OK;
+	case 3:
+		info->name = "centerOfMass";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_HAnimSegment *) node)->centerOfMass;
+		return GF_OK;
+	case 4:
+		info->name = "coord";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFCoordinateNode;
+		info->far_ptr = & ((X_HAnimSegment *)node)->coord;
+		return GF_OK;
+	case 5:
+		info->name = "displacers";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFHAnimDisplacerNode;
+		info->far_ptr = & ((X_HAnimSegment *)node)->displacers;
+		return GF_OK;
+	case 6:
+		info->name = "mass";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_HAnimSegment *) node)->mass;
+		return GF_OK;
+	case 7:
+		info->name = "momentsOfInertia";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((X_HAnimSegment *) node)->momentsOfInertia;
+		return GF_OK;
+	case 8:
+		info->name = "name";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_HAnimSegment *) node)->name;
+		return GF_OK;
+	case 9:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_HAnimSegment *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *HAnimSegment_Create()
+{
+	X_HAnimSegment *p;
+	GF_SAFEALLOC(p, X_HAnimSegment);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_HAnimSegment);
+	gf_sg_vrml_parent_setup((GF_Node *) p);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "HAnimSegment";
+	((GF_Node *)p)->sgprivate->node_del = HAnimSegment_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = HAnimSegment_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = HAnimSegment_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->centerOfMass.x = FLT2FIX(0);
+	p->centerOfMass.y = FLT2FIX(0);
+	p->centerOfMass.z = FLT2FIX(0);
+	p->mass = FLT2FIX(0);
+	p->momentsOfInertia.vals = malloc(sizeof(SFFloat)*9);
+	p->momentsOfInertia.count = 9;
+	p->momentsOfInertia.vals[0] = FLT2FIX(0);
+	p->momentsOfInertia.vals[1] = FLT2FIX(0);
+	p->momentsOfInertia.vals[2] = FLT2FIX(0);
+	p->momentsOfInertia.vals[3] = FLT2FIX(0);
+	p->momentsOfInertia.vals[4] = FLT2FIX(0);
+	p->momentsOfInertia.vals[5] = FLT2FIX(0);
+	p->momentsOfInertia.vals[6] = FLT2FIX(0);
+	p->momentsOfInertia.vals[7] = FLT2FIX(0);
+	p->momentsOfInertia.vals[8] = FLT2FIX(0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	HAnimSite Node deletion
+*/
+
+static void HAnimSite_Del(GF_Node *node)
+{
+	X_HAnimSite *p = (X_HAnimSite *) node;
+	gf_sg_vrml_parent_reset(node);	
+	gf_sg_sfstring_del(p->name);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 HAnimSite_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 10;
+}
+
+static GF_Err HAnimSite_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "addChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_HAnimSite *)node)->on_addChildren;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((X_HAnimSite *)node)->addChildren;
+		return GF_OK;
+	case 1:
+		info->name = "removeChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_HAnimSite *)node)->on_removeChildren;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((X_HAnimSite *)node)->removeChildren;
+		return GF_OK;
+	case 2:
+		info->name = "children";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((X_HAnimSite *)node)->children;
+		return GF_OK;
+	case 3:
+		info->name = "center";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_HAnimSite *) node)->center;
+		return GF_OK;
+	case 4:
+		info->name = "name";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_HAnimSite *) node)->name;
+		return GF_OK;
+	case 5:
+		info->name = "rotation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((X_HAnimSite *) node)->rotation;
+		return GF_OK;
+	case 6:
+		info->name = "scale";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_HAnimSite *) node)->scale;
+		return GF_OK;
+	case 7:
+		info->name = "scaleOrientation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((X_HAnimSite *) node)->scaleOrientation;
+		return GF_OK;
+	case 8:
+		info->name = "translation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_HAnimSite *) node)->translation;
+		return GF_OK;
+	case 9:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_HAnimSite *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *HAnimSite_Create()
+{
+	X_HAnimSite *p;
+	GF_SAFEALLOC(p, X_HAnimSite);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_HAnimSite);
+	gf_sg_vrml_parent_setup((GF_Node *) p);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "HAnimSite";
+	((GF_Node *)p)->sgprivate->node_del = HAnimSite_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = HAnimSite_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = HAnimSite_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->center.x = FLT2FIX(0);
+	p->center.y = FLT2FIX(0);
+	p->center.z = FLT2FIX(0);
+	p->rotation.x = FLT2FIX(0);
+	p->rotation.y = FLT2FIX(0);
+	p->rotation.z = FLT2FIX(1);
+	p->rotation.q = FLT2FIX(0);
+	p->scale.x = FLT2FIX(1);
+	p->scale.y = FLT2FIX(1);
+	p->scale.z = FLT2FIX(1);
+	p->scaleOrientation.x = FLT2FIX(0);
+	p->scaleOrientation.y = FLT2FIX(0);
+	p->scaleOrientation.z = FLT2FIX(1);
+	p->scaleOrientation.q = FLT2FIX(0);
+	p->translation.x = FLT2FIX(0);
+	p->translation.y = FLT2FIX(0);
+	p->translation.z = FLT2FIX(0);
 	return (GF_Node *)p;
 }
 
@@ -3293,7 +5811,7 @@ static GF_Err ImageTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *ImageTexture_Create()
 {
 	X_ImageTexture *p;
-	GF_SAFEALLOC(p, sizeof(X_ImageTexture));
+	GF_SAFEALLOC(p, X_ImageTexture);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_ImageTexture);
 
@@ -3479,7 +5997,7 @@ static GF_Err IndexedFaceSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *IndexedFaceSet_Create()
 {
 	X_IndexedFaceSet *p;
-	GF_SAFEALLOC(p, sizeof(X_IndexedFaceSet));
+	GF_SAFEALLOC(p, X_IndexedFaceSet);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_IndexedFaceSet);
 
@@ -3593,7 +6111,7 @@ static GF_Err IndexedLineSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *IndexedLineSet_Create()
 {
 	X_IndexedLineSet *p;
-	GF_SAFEALLOC(p, sizeof(X_IndexedLineSet));
+	GF_SAFEALLOC(p, X_IndexedLineSet);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_IndexedLineSet);
 
@@ -3721,7 +6239,7 @@ static GF_Err IndexedTriangleFanSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *IndexedTriangleFanSet_Create()
 {
 	X_IndexedTriangleFanSet *p;
-	GF_SAFEALLOC(p, sizeof(X_IndexedTriangleFanSet));
+	GF_SAFEALLOC(p, X_IndexedTriangleFanSet);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_IndexedTriangleFanSet);
 
@@ -3852,7 +6370,7 @@ static GF_Err IndexedTriangleSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *IndexedTriangleSet_Create()
 {
 	X_IndexedTriangleSet *p;
-	GF_SAFEALLOC(p, sizeof(X_IndexedTriangleSet));
+	GF_SAFEALLOC(p, X_IndexedTriangleSet);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_IndexedTriangleSet);
 
@@ -3983,7 +6501,7 @@ static GF_Err IndexedTriangleStripSet_get_field(GF_Node *node, GF_FieldInfo *inf
 static GF_Node *IndexedTriangleStripSet_Create()
 {
 	X_IndexedTriangleStripSet *p;
-	GF_SAFEALLOC(p, sizeof(X_IndexedTriangleStripSet));
+	GF_SAFEALLOC(p, X_IndexedTriangleStripSet);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_IndexedTriangleStripSet);
 
@@ -4056,7 +6574,7 @@ static GF_Err Inline_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Inline_Create()
 {
 	X_Inline *p;
-	GF_SAFEALLOC(p, sizeof(X_Inline));
+	GF_SAFEALLOC(p, X_Inline);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Inline);
 
@@ -4154,7 +6672,7 @@ static GF_Err IntegerSequencer_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *IntegerSequencer_Create()
 {
 	X_IntegerSequencer *p;
-	GF_SAFEALLOC(p, sizeof(X_IntegerSequencer));
+	GF_SAFEALLOC(p, X_IntegerSequencer);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_IntegerSequencer);
 
@@ -4229,7 +6747,7 @@ static GF_Err IntegerTrigger_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *IntegerTrigger_Create()
 {
 	X_IntegerTrigger *p;
-	GF_SAFEALLOC(p, sizeof(X_IntegerTrigger));
+	GF_SAFEALLOC(p, X_IntegerTrigger);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_IntegerTrigger);
 
@@ -4342,7 +6860,7 @@ static GF_Err KeySensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *KeySensor_Create()
 {
 	X_KeySensor *p;
-	GF_SAFEALLOC(p, sizeof(X_KeySensor));
+	GF_SAFEALLOC(p, X_KeySensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_KeySensor);
 
@@ -4417,7 +6935,7 @@ static GF_Err LineProperties_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *LineProperties_Create()
 {
 	X_LineProperties *p;
-	GF_SAFEALLOC(p, sizeof(X_LineProperties));
+	GF_SAFEALLOC(p, X_LineProperties);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_LineProperties);
 
@@ -4499,7 +7017,7 @@ static GF_Err LineSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *LineSet_Create()
 {
 	X_LineSet *p;
-	GF_SAFEALLOC(p, sizeof(X_LineSet));
+	GF_SAFEALLOC(p, X_LineSet);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_LineSet);
 
@@ -4514,6 +7032,109 @@ static GF_Node *LineSet_Create()
 
 
 	/*default field values*/
+	return (GF_Node *)p;
+}
+
+
+/*
+	LoadSensor Node deletion
+*/
+
+static void LoadSensor_Del(GF_Node *node)
+{
+	X_LoadSensor *p = (X_LoadSensor *) node;
+	gf_node_list_del((GF_List *) p->watchList, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 LoadSensor_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 8;
+}
+
+static GF_Err LoadSensor_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "enabled";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_LoadSensor *) node)->enabled;
+		return GF_OK;
+	case 1:
+		info->name = "timeOut";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((X_LoadSensor *) node)->timeOut;
+		return GF_OK;
+	case 2:
+		info->name = "watchList";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFStreamingNode;
+		info->far_ptr = & ((X_LoadSensor *)node)->watchList;
+		return GF_OK;
+	case 3:
+		info->name = "isActive";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_LoadSensor *) node)->isActive;
+		return GF_OK;
+	case 4:
+		info->name = "isLoaded";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_LoadSensor *) node)->isLoaded;
+		return GF_OK;
+	case 5:
+		info->name = "loadTime";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((X_LoadSensor *) node)->loadTime;
+		return GF_OK;
+	case 6:
+		info->name = "progress";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_LoadSensor *) node)->progress;
+		return GF_OK;
+	case 7:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_LoadSensor *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *LoadSensor_Create()
+{
+	X_LoadSensor *p;
+	GF_SAFEALLOC(p, X_LoadSensor);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_LoadSensor);
+	p->watchList = gf_list_new();	
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "LoadSensor";
+	((GF_Node *)p)->sgprivate->node_del = LoadSensor_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = LoadSensor_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = LoadSensor_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->enabled = 1;
+	p->timeOut = 0;
 	return (GF_Node *)p;
 }
 
@@ -4592,7 +7213,7 @@ static GF_Err LOD_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *LOD_Create()
 {
 	X_LOD *p;
-	GF_SAFEALLOC(p, sizeof(X_LOD));
+	GF_SAFEALLOC(p, X_LOD);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_LOD);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -4688,7 +7309,7 @@ static GF_Err Material_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Material_Create()
 {
 	X_Material *p;
-	GF_SAFEALLOC(p, sizeof(X_Material));
+	GF_SAFEALLOC(p, X_Material);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Material);
 
@@ -4777,7 +7398,7 @@ static GF_Err MetadataDouble_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *MetadataDouble_Create()
 {
 	X_MetadataDouble *p;
-	GF_SAFEALLOC(p, sizeof(X_MetadataDouble));
+	GF_SAFEALLOC(p, X_MetadataDouble);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MetadataDouble);
 
@@ -4854,7 +7475,7 @@ static GF_Err MetadataFloat_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *MetadataFloat_Create()
 {
 	X_MetadataFloat *p;
-	GF_SAFEALLOC(p, sizeof(X_MetadataFloat));
+	GF_SAFEALLOC(p, X_MetadataFloat);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MetadataFloat);
 
@@ -4931,7 +7552,7 @@ static GF_Err MetadataInteger_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *MetadataInteger_Create()
 {
 	X_MetadataInteger *p;
-	GF_SAFEALLOC(p, sizeof(X_MetadataInteger));
+	GF_SAFEALLOC(p, X_MetadataInteger);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MetadataInteger);
 
@@ -5009,7 +7630,7 @@ static GF_Err MetadataSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *MetadataSet_Create()
 {
 	X_MetadataSet *p;
-	GF_SAFEALLOC(p, sizeof(X_MetadataSet));
+	GF_SAFEALLOC(p, X_MetadataSet);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MetadataSet);
 	p->value = gf_list_new();	
@@ -5087,7 +7708,7 @@ static GF_Err MetadataString_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *MetadataString_Create()
 {
 	X_MetadataString *p;
-	GF_SAFEALLOC(p, sizeof(X_MetadataString));
+	GF_SAFEALLOC(p, X_MetadataString);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MetadataString);
 
@@ -5222,7 +7843,7 @@ static GF_Err MovieTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *MovieTexture_Create()
 {
 	X_MovieTexture *p;
-	GF_SAFEALLOC(p, sizeof(X_MovieTexture));
+	GF_SAFEALLOC(p, X_MovieTexture);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MovieTexture);
 
@@ -5326,7 +7947,7 @@ static GF_Err MultiTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *MultiTexture_Create()
 {
 	X_MultiTexture *p;
-	GF_SAFEALLOC(p, sizeof(X_MultiTexture));
+	GF_SAFEALLOC(p, X_MultiTexture);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MultiTexture);
 	p->texture = gf_list_new();	
@@ -5395,7 +8016,7 @@ static GF_Err MultiTextureCoordinate_get_field(GF_Node *node, GF_FieldInfo *info
 static GF_Node *MultiTextureCoordinate_Create()
 {
 	X_MultiTextureCoordinate *p;
-	GF_SAFEALLOC(p, sizeof(X_MultiTextureCoordinate));
+	GF_SAFEALLOC(p, X_MultiTextureCoordinate);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MultiTextureCoordinate);
 	p->texCoord = gf_list_new();	
@@ -5460,7 +8081,7 @@ static GF_Err MultiTextureTransform_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *MultiTextureTransform_Create()
 {
 	X_MultiTextureTransform *p;
-	GF_SAFEALLOC(p, sizeof(X_MultiTextureTransform));
+	GF_SAFEALLOC(p, X_MultiTextureTransform);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_MultiTextureTransform);
 	p->textureTransform = gf_list_new();	
@@ -5575,7 +8196,7 @@ static GF_Err NavigationInfo_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *NavigationInfo_Create()
 {
 	X_NavigationInfo *p;
-	GF_SAFEALLOC(p, sizeof(X_NavigationInfo));
+	GF_SAFEALLOC(p, X_NavigationInfo);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_NavigationInfo);
 
@@ -5658,7 +8279,7 @@ static GF_Err Normal_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Normal_Create()
 {
 	X_Normal *p;
-	GF_SAFEALLOC(p, sizeof(X_Normal));
+	GF_SAFEALLOC(p, X_Normal);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Normal);
 
@@ -5742,7 +8363,7 @@ static GF_Err NormalInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *NormalInterpolator_Create()
 {
 	X_NormalInterpolator *p;
-	GF_SAFEALLOC(p, sizeof(X_NormalInterpolator));
+	GF_SAFEALLOC(p, X_NormalInterpolator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_NormalInterpolator);
 
@@ -5757,6 +8378,1237 @@ static GF_Node *NormalInterpolator_Create()
 
 
 	/*default field values*/
+	return (GF_Node *)p;
+}
+
+
+/*
+	NurbsCurve Node deletion
+*/
+
+static void NurbsCurve_Del(GF_Node *node)
+{
+	X_NurbsCurve *p = (X_NurbsCurve *) node;
+	gf_sg_mfvec3f_del(p->controlPoint);
+	gf_sg_mfdouble_del(p->weight);
+	gf_sg_mffloat_del(p->knot);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 NurbsCurve_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 7;
+}
+
+static GF_Err NurbsCurve_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "controlPoint";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC3F;
+		info->far_ptr = & ((X_NurbsCurve *) node)->controlPoint;
+		return GF_OK;
+	case 1:
+		info->name = "tessellation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsCurve *) node)->tessellation;
+		return GF_OK;
+	case 2:
+		info->name = "weight";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_NurbsCurve *) node)->weight;
+		return GF_OK;
+	case 3:
+		info->name = "closed";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_NurbsCurve *) node)->closed;
+		return GF_OK;
+	case 4:
+		info->name = "knot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((X_NurbsCurve *) node)->knot;
+		return GF_OK;
+	case 5:
+		info->name = "order";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsCurve *) node)->order;
+		return GF_OK;
+	case 6:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_NurbsCurve *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *NurbsCurve_Create()
+{
+	X_NurbsCurve *p;
+	GF_SAFEALLOC(p, X_NurbsCurve);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_NurbsCurve);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "NurbsCurve";
+	((GF_Node *)p)->sgprivate->node_del = NurbsCurve_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = NurbsCurve_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = NurbsCurve_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->tessellation = 0;
+	p->order = 3;
+	return (GF_Node *)p;
+}
+
+
+/*
+	NurbsCurve2D Node deletion
+*/
+
+static void NurbsCurve2D_Del(GF_Node *node)
+{
+	X_NurbsCurve2D *p = (X_NurbsCurve2D *) node;
+	gf_sg_mfvec2f_del(p->controlPoint);
+	gf_sg_mffloat_del(p->weight);
+	gf_sg_mffloat_del(p->knot);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 NurbsCurve2D_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 7;
+}
+
+static GF_Err NurbsCurve2D_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "controlPoint";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC2F;
+		info->far_ptr = & ((X_NurbsCurve2D *) node)->controlPoint;
+		return GF_OK;
+	case 1:
+		info->name = "tessellation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsCurve2D *) node)->tessellation;
+		return GF_OK;
+	case 2:
+		info->name = "weight";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((X_NurbsCurve2D *) node)->weight;
+		return GF_OK;
+	case 3:
+		info->name = "knot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((X_NurbsCurve2D *) node)->knot;
+		return GF_OK;
+	case 4:
+		info->name = "order";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsCurve2D *) node)->order;
+		return GF_OK;
+	case 5:
+		info->name = "closed";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_NurbsCurve2D *) node)->closed;
+		return GF_OK;
+	case 6:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_NurbsCurve2D *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *NurbsCurve2D_Create()
+{
+	X_NurbsCurve2D *p;
+	GF_SAFEALLOC(p, X_NurbsCurve2D);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_NurbsCurve2D);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "NurbsCurve2D";
+	((GF_Node *)p)->sgprivate->node_del = NurbsCurve2D_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = NurbsCurve2D_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = NurbsCurve2D_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->tessellation = 0;
+	p->order = 3;
+	return (GF_Node *)p;
+}
+
+
+/*
+	NurbsOrientationInterpolator Node deletion
+*/
+
+static void NurbsOrientationInterpolator_Del(GF_Node *node)
+{
+	X_NurbsOrientationInterpolator *p = (X_NurbsOrientationInterpolator *) node;
+	gf_node_unregister((GF_Node *) p->controlPoints, node);	
+	gf_sg_mfdouble_del(p->knot);
+	gf_sg_mfdouble_del(p->weight);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 NurbsOrientationInterpolator_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 7;
+}
+
+static GF_Err NurbsOrientationInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "set_fraction";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_NurbsOrientationInterpolator *)node)->on_set_fraction;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_NurbsOrientationInterpolator *) node)->set_fraction;
+		return GF_OK;
+	case 1:
+		info->name = "controlPoints";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFCoordinateNode;
+		info->far_ptr = & ((X_NurbsOrientationInterpolator *)node)->controlPoints;
+		return GF_OK;
+	case 2:
+		info->name = "knot";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_NurbsOrientationInterpolator *) node)->knot;
+		return GF_OK;
+	case 3:
+		info->name = "order";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsOrientationInterpolator *) node)->order;
+		return GF_OK;
+	case 4:
+		info->name = "weight";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_NurbsOrientationInterpolator *) node)->weight;
+		return GF_OK;
+	case 5:
+		info->name = "value_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((X_NurbsOrientationInterpolator *) node)->value_changed;
+		return GF_OK;
+	case 6:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_NurbsOrientationInterpolator *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *NurbsOrientationInterpolator_Create()
+{
+	X_NurbsOrientationInterpolator *p;
+	GF_SAFEALLOC(p, X_NurbsOrientationInterpolator);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_NurbsOrientationInterpolator);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "NurbsOrientationInterpolator";
+	((GF_Node *)p)->sgprivate->node_del = NurbsOrientationInterpolator_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = NurbsOrientationInterpolator_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = NurbsOrientationInterpolator_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->order = 3;
+	return (GF_Node *)p;
+}
+
+
+/*
+	NurbsPatchSurface Node deletion
+*/
+
+static void NurbsPatchSurface_Del(GF_Node *node)
+{
+	X_NurbsPatchSurface *p = (X_NurbsPatchSurface *) node;
+	gf_node_unregister((GF_Node *) p->controlPoint, node);	
+	gf_node_unregister((GF_Node *) p->texCoord, node);	
+	gf_sg_mfdouble_del(p->weight);
+	gf_sg_mfdouble_del(p->uKnot);
+	gf_sg_mfdouble_del(p->vKnot);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 NurbsPatchSurface_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 15;
+}
+
+static GF_Err NurbsPatchSurface_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "controlPoint";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFCoordinateNode;
+		info->far_ptr = & ((X_NurbsPatchSurface *)node)->controlPoint;
+		return GF_OK;
+	case 1:
+		info->name = "texCoord";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFTextureCoordinateNode;
+		info->far_ptr = & ((X_NurbsPatchSurface *)node)->texCoord;
+		return GF_OK;
+	case 2:
+		info->name = "uTessellation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsPatchSurface *) node)->uTessellation;
+		return GF_OK;
+	case 3:
+		info->name = "vTessellation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsPatchSurface *) node)->vTessellation;
+		return GF_OK;
+	case 4:
+		info->name = "weight";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_NurbsPatchSurface *) node)->weight;
+		return GF_OK;
+	case 5:
+		info->name = "solid";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_NurbsPatchSurface *) node)->solid;
+		return GF_OK;
+	case 6:
+		info->name = "uClosed";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_NurbsPatchSurface *) node)->uClosed;
+		return GF_OK;
+	case 7:
+		info->name = "uDimension";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsPatchSurface *) node)->uDimension;
+		return GF_OK;
+	case 8:
+		info->name = "uKnot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_NurbsPatchSurface *) node)->uKnot;
+		return GF_OK;
+	case 9:
+		info->name = "uOrder";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsPatchSurface *) node)->uOrder;
+		return GF_OK;
+	case 10:
+		info->name = "vClosed";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_NurbsPatchSurface *) node)->vClosed;
+		return GF_OK;
+	case 11:
+		info->name = "vDimension";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsPatchSurface *) node)->vDimension;
+		return GF_OK;
+	case 12:
+		info->name = "vKnot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_NurbsPatchSurface *) node)->vKnot;
+		return GF_OK;
+	case 13:
+		info->name = "vOrder";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsPatchSurface *) node)->vOrder;
+		return GF_OK;
+	case 14:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_NurbsPatchSurface *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *NurbsPatchSurface_Create()
+{
+	X_NurbsPatchSurface *p;
+	GF_SAFEALLOC(p, X_NurbsPatchSurface);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_NurbsPatchSurface);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "NurbsPatchSurface";
+	((GF_Node *)p)->sgprivate->node_del = NurbsPatchSurface_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = NurbsPatchSurface_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = NurbsPatchSurface_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->uTessellation = 0;
+	p->vTessellation = 0;
+	p->solid = 1;
+	p->uDimension = 0;
+	p->uOrder = 3;
+	p->vDimension = 0;
+	p->vOrder = 3;
+	return (GF_Node *)p;
+}
+
+
+/*
+	NurbsPositionInterpolator Node deletion
+*/
+
+static void NurbsPositionInterpolator_Del(GF_Node *node)
+{
+	X_NurbsPositionInterpolator *p = (X_NurbsPositionInterpolator *) node;
+	gf_node_unregister((GF_Node *) p->controlPoints, node);	
+	gf_sg_mfdouble_del(p->knot);
+	gf_sg_mfdouble_del(p->weight);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 NurbsPositionInterpolator_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 7;
+}
+
+static GF_Err NurbsPositionInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "set_fraction";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_NurbsPositionInterpolator *)node)->on_set_fraction;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_NurbsPositionInterpolator *) node)->set_fraction;
+		return GF_OK;
+	case 1:
+		info->name = "controlPoints";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFCoordinateNode;
+		info->far_ptr = & ((X_NurbsPositionInterpolator *)node)->controlPoints;
+		return GF_OK;
+	case 2:
+		info->name = "knot";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_NurbsPositionInterpolator *) node)->knot;
+		return GF_OK;
+	case 3:
+		info->name = "order";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsPositionInterpolator *) node)->order;
+		return GF_OK;
+	case 4:
+		info->name = "weight";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_NurbsPositionInterpolator *) node)->weight;
+		return GF_OK;
+	case 5:
+		info->name = "value_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_NurbsPositionInterpolator *) node)->value_changed;
+		return GF_OK;
+	case 6:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_NurbsPositionInterpolator *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *NurbsPositionInterpolator_Create()
+{
+	X_NurbsPositionInterpolator *p;
+	GF_SAFEALLOC(p, X_NurbsPositionInterpolator);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_NurbsPositionInterpolator);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "NurbsPositionInterpolator";
+	((GF_Node *)p)->sgprivate->node_del = NurbsPositionInterpolator_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = NurbsPositionInterpolator_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = NurbsPositionInterpolator_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->order = 3;
+	return (GF_Node *)p;
+}
+
+
+/*
+	NurbsSet Node deletion
+*/
+
+static void NurbsSet_Del(GF_Node *node)
+{
+	X_NurbsSet *p = (X_NurbsSet *) node;
+	gf_node_list_del((GF_List *) p->addGeometry, node);	
+	gf_node_list_del((GF_List *) p->removeGeometry, node);	
+	gf_node_list_del((GF_List *) p->geometry, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 NurbsSet_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 5;
+}
+
+static GF_Err NurbsSet_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "addGeometry";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_NurbsSet *)node)->on_addGeometry;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFNurbsSurfaceNode;
+		info->far_ptr = & ((X_NurbsSet *)node)->addGeometry;
+		return GF_OK;
+	case 1:
+		info->name = "removeGeometry";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_NurbsSet *)node)->on_removeGeometry;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFNurbsSurfaceNode;
+		info->far_ptr = & ((X_NurbsSet *)node)->removeGeometry;
+		return GF_OK;
+	case 2:
+		info->name = "geometry";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFNurbsSurfaceNode;
+		info->far_ptr = & ((X_NurbsSet *)node)->geometry;
+		return GF_OK;
+	case 3:
+		info->name = "tessellationScale";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_NurbsSet *) node)->tessellationScale;
+		return GF_OK;
+	case 4:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_NurbsSet *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *NurbsSet_Create()
+{
+	X_NurbsSet *p;
+	GF_SAFEALLOC(p, X_NurbsSet);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_NurbsSet);
+	p->geometry = gf_list_new();	
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "NurbsSet";
+	((GF_Node *)p)->sgprivate->node_del = NurbsSet_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = NurbsSet_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = NurbsSet_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->tessellationScale = FLT2FIX(1.0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	NurbsSurfaceInterpolator Node deletion
+*/
+
+static void NurbsSurfaceInterpolator_Del(GF_Node *node)
+{
+	X_NurbsSurfaceInterpolator *p = (X_NurbsSurfaceInterpolator *) node;
+	gf_node_unregister((GF_Node *) p->controlPoints, node);	
+	gf_sg_mfdouble_del(p->weight);
+	gf_sg_mfdouble_del(p->uKnot);
+	gf_sg_mfdouble_del(p->vKnot);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 NurbsSurfaceInterpolator_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 12;
+}
+
+static GF_Err NurbsSurfaceInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "set_fraction";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_NurbsSurfaceInterpolator *)node)->on_set_fraction;
+		info->fieldType = GF_SG_VRML_SFVEC2F;
+		info->far_ptr = & ((X_NurbsSurfaceInterpolator *) node)->set_fraction;
+		return GF_OK;
+	case 1:
+		info->name = "controlPoints";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFCoordinateNode;
+		info->far_ptr = & ((X_NurbsSurfaceInterpolator *)node)->controlPoints;
+		return GF_OK;
+	case 2:
+		info->name = "weight";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_NurbsSurfaceInterpolator *) node)->weight;
+		return GF_OK;
+	case 3:
+		info->name = "position_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_NurbsSurfaceInterpolator *) node)->position_changed;
+		return GF_OK;
+	case 4:
+		info->name = "normal_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_NurbsSurfaceInterpolator *) node)->normal_changed;
+		return GF_OK;
+	case 5:
+		info->name = "uDimension";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsSurfaceInterpolator *) node)->uDimension;
+		return GF_OK;
+	case 6:
+		info->name = "uKnot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_NurbsSurfaceInterpolator *) node)->uKnot;
+		return GF_OK;
+	case 7:
+		info->name = "uOrder";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsSurfaceInterpolator *) node)->uOrder;
+		return GF_OK;
+	case 8:
+		info->name = "vDimension";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsSurfaceInterpolator *) node)->vDimension;
+		return GF_OK;
+	case 9:
+		info->name = "vKnot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_NurbsSurfaceInterpolator *) node)->vKnot;
+		return GF_OK;
+	case 10:
+		info->name = "vOrder";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsSurfaceInterpolator *) node)->vOrder;
+		return GF_OK;
+	case 11:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_NurbsSurfaceInterpolator *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *NurbsSurfaceInterpolator_Create()
+{
+	X_NurbsSurfaceInterpolator *p;
+	GF_SAFEALLOC(p, X_NurbsSurfaceInterpolator);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_NurbsSurfaceInterpolator);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "NurbsSurfaceInterpolator";
+	((GF_Node *)p)->sgprivate->node_del = NurbsSurfaceInterpolator_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = NurbsSurfaceInterpolator_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = NurbsSurfaceInterpolator_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->uDimension = 0;
+	p->uOrder = 3;
+	p->vDimension = 0;
+	p->vOrder = 3;
+	return (GF_Node *)p;
+}
+
+
+/*
+	NurbsSweptSurface Node deletion
+*/
+
+static void NurbsSweptSurface_Del(GF_Node *node)
+{
+	X_NurbsSweptSurface *p = (X_NurbsSweptSurface *) node;
+	gf_node_unregister((GF_Node *) p->crossSectionCurve, node);	
+	gf_node_unregister((GF_Node *) p->trajectoryCurve, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 NurbsSweptSurface_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 5;
+}
+
+static GF_Err NurbsSweptSurface_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "crossSectionCurve";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFNurbsControlCurveNode;
+		info->far_ptr = & ((X_NurbsSweptSurface *)node)->crossSectionCurve;
+		return GF_OK;
+	case 1:
+		info->name = "trajectoryCurve";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFNurbsCurveNode;
+		info->far_ptr = & ((X_NurbsSweptSurface *)node)->trajectoryCurve;
+		return GF_OK;
+	case 2:
+		info->name = "ccw";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_NurbsSweptSurface *) node)->ccw;
+		return GF_OK;
+	case 3:
+		info->name = "solid";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_NurbsSweptSurface *) node)->solid;
+		return GF_OK;
+	case 4:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_NurbsSweptSurface *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *NurbsSweptSurface_Create()
+{
+	X_NurbsSweptSurface *p;
+	GF_SAFEALLOC(p, X_NurbsSweptSurface);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_NurbsSweptSurface);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "NurbsSweptSurface";
+	((GF_Node *)p)->sgprivate->node_del = NurbsSweptSurface_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = NurbsSweptSurface_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = NurbsSweptSurface_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->ccw = 1;
+	p->solid = 1;
+	return (GF_Node *)p;
+}
+
+
+/*
+	NurbsSwungSurface Node deletion
+*/
+
+static void NurbsSwungSurface_Del(GF_Node *node)
+{
+	X_NurbsSwungSurface *p = (X_NurbsSwungSurface *) node;
+	gf_node_unregister((GF_Node *) p->profileCurve, node);	
+	gf_node_unregister((GF_Node *) p->trajectoryCurve, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 NurbsSwungSurface_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 5;
+}
+
+static GF_Err NurbsSwungSurface_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "profileCurve";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFNurbsControlCurveNode;
+		info->far_ptr = & ((X_NurbsSwungSurface *)node)->profileCurve;
+		return GF_OK;
+	case 1:
+		info->name = "trajectoryCurve";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFNurbsControlCurveNode;
+		info->far_ptr = & ((X_NurbsSwungSurface *)node)->trajectoryCurve;
+		return GF_OK;
+	case 2:
+		info->name = "ccw";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_NurbsSwungSurface *) node)->ccw;
+		return GF_OK;
+	case 3:
+		info->name = "solid";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_NurbsSwungSurface *) node)->solid;
+		return GF_OK;
+	case 4:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_NurbsSwungSurface *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *NurbsSwungSurface_Create()
+{
+	X_NurbsSwungSurface *p;
+	GF_SAFEALLOC(p, X_NurbsSwungSurface);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_NurbsSwungSurface);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "NurbsSwungSurface";
+	((GF_Node *)p)->sgprivate->node_del = NurbsSwungSurface_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = NurbsSwungSurface_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = NurbsSwungSurface_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->ccw = 1;
+	p->solid = 1;
+	return (GF_Node *)p;
+}
+
+
+/*
+	NurbsTextureCoordinate Node deletion
+*/
+
+static void NurbsTextureCoordinate_Del(GF_Node *node)
+{
+	X_NurbsTextureCoordinate *p = (X_NurbsTextureCoordinate *) node;
+	gf_sg_mfvec2f_del(p->controlPoint);
+	gf_sg_mffloat_del(p->weight);
+	gf_sg_mfdouble_del(p->uKnot);
+	gf_sg_mfdouble_del(p->vKnot);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 NurbsTextureCoordinate_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 9;
+}
+
+static GF_Err NurbsTextureCoordinate_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "controlPoint";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC2F;
+		info->far_ptr = & ((X_NurbsTextureCoordinate *) node)->controlPoint;
+		return GF_OK;
+	case 1:
+		info->name = "weight";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((X_NurbsTextureCoordinate *) node)->weight;
+		return GF_OK;
+	case 2:
+		info->name = "uDimension";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsTextureCoordinate *) node)->uDimension;
+		return GF_OK;
+	case 3:
+		info->name = "uKnot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_NurbsTextureCoordinate *) node)->uKnot;
+		return GF_OK;
+	case 4:
+		info->name = "uOrder";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsTextureCoordinate *) node)->uOrder;
+		return GF_OK;
+	case 5:
+		info->name = "vDimension";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsTextureCoordinate *) node)->vDimension;
+		return GF_OK;
+	case 6:
+		info->name = "vKnot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_NurbsTextureCoordinate *) node)->vKnot;
+		return GF_OK;
+	case 7:
+		info->name = "vOrder";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsTextureCoordinate *) node)->vOrder;
+		return GF_OK;
+	case 8:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_NurbsTextureCoordinate *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *NurbsTextureCoordinate_Create()
+{
+	X_NurbsTextureCoordinate *p;
+	GF_SAFEALLOC(p, X_NurbsTextureCoordinate);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_NurbsTextureCoordinate);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "NurbsTextureCoordinate";
+	((GF_Node *)p)->sgprivate->node_del = NurbsTextureCoordinate_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = NurbsTextureCoordinate_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = NurbsTextureCoordinate_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->uDimension = 0;
+	p->uOrder = 3;
+	p->vDimension = 0;
+	p->vOrder = 3;
+	return (GF_Node *)p;
+}
+
+
+/*
+	NurbsTrimmedSurface Node deletion
+*/
+
+static void NurbsTrimmedSurface_Del(GF_Node *node)
+{
+	X_NurbsTrimmedSurface *p = (X_NurbsTrimmedSurface *) node;
+	gf_node_list_del((GF_List *) p->addTrimmingContour, node);	
+	gf_node_list_del((GF_List *) p->removeTrimmingContour, node);	
+	gf_node_list_del((GF_List *) p->trimmingContour, node);	
+	gf_node_unregister((GF_Node *) p->controlPoint, node);	
+	gf_node_unregister((GF_Node *) p->texCoord, node);	
+	gf_sg_mfdouble_del(p->weight);
+	gf_sg_mfdouble_del(p->uKnot);
+	gf_sg_mfdouble_del(p->vKnot);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 NurbsTrimmedSurface_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 18;
+}
+
+static GF_Err NurbsTrimmedSurface_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "addTrimmingContour";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_NurbsTrimmedSurface *)node)->on_addTrimmingContour;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFNurbsControlCurveNode;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *)node)->addTrimmingContour;
+		return GF_OK;
+	case 1:
+		info->name = "removeTrimmingContour";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((X_NurbsTrimmedSurface *)node)->on_removeTrimmingContour;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFNurbsControlCurveNode;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *)node)->removeTrimmingContour;
+		return GF_OK;
+	case 2:
+		info->name = "trimmingContour";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFNurbsControlCurveNode;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *)node)->trimmingContour;
+		return GF_OK;
+	case 3:
+		info->name = "controlPoint";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFCoordinateNode;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *)node)->controlPoint;
+		return GF_OK;
+	case 4:
+		info->name = "texCoord";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFTextureCoordinateNode;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *)node)->texCoord;
+		return GF_OK;
+	case 5:
+		info->name = "uTessellation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *) node)->uTessellation;
+		return GF_OK;
+	case 6:
+		info->name = "vTessellation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *) node)->vTessellation;
+		return GF_OK;
+	case 7:
+		info->name = "weight";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *) node)->weight;
+		return GF_OK;
+	case 8:
+		info->name = "solid";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *) node)->solid;
+		return GF_OK;
+	case 9:
+		info->name = "uClosed";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *) node)->uClosed;
+		return GF_OK;
+	case 10:
+		info->name = "uDimension";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *) node)->uDimension;
+		return GF_OK;
+	case 11:
+		info->name = "uKnot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *) node)->uKnot;
+		return GF_OK;
+	case 12:
+		info->name = "uOrder";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *) node)->uOrder;
+		return GF_OK;
+	case 13:
+		info->name = "vClosed";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *) node)->vClosed;
+		return GF_OK;
+	case 14:
+		info->name = "vDimension";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *) node)->vDimension;
+		return GF_OK;
+	case 15:
+		info->name = "vKnot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFDOUBLE;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *) node)->vKnot;
+		return GF_OK;
+	case 16:
+		info->name = "vOrder";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *) node)->vOrder;
+		return GF_OK;
+	case 17:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_NurbsTrimmedSurface *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *NurbsTrimmedSurface_Create()
+{
+	X_NurbsTrimmedSurface *p;
+	GF_SAFEALLOC(p, X_NurbsTrimmedSurface);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_NurbsTrimmedSurface);
+	p->trimmingContour = gf_list_new();	
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "NurbsTrimmedSurface";
+	((GF_Node *)p)->sgprivate->node_del = NurbsTrimmedSurface_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = NurbsTrimmedSurface_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = NurbsTrimmedSurface_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->uTessellation = 0;
+	p->vTessellation = 0;
+	p->solid = 1;
+	p->uDimension = 0;
+	p->uOrder = 3;
+	p->vDimension = 0;
+	p->vOrder = 3;
 	return (GF_Node *)p;
 }
 
@@ -5825,7 +9677,7 @@ static GF_Err OrientationInterpolator_get_field(GF_Node *node, GF_FieldInfo *inf
 static GF_Node *OrientationInterpolator_Create()
 {
 	X_OrientationInterpolator *p;
-	GF_SAFEALLOC(p, sizeof(X_OrientationInterpolator));
+	GF_SAFEALLOC(p, X_OrientationInterpolator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_OrientationInterpolator);
 
@@ -5900,7 +9752,7 @@ static GF_Err PixelTexture_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *PixelTexture_Create()
 {
 	X_PixelTexture *p;
-	GF_SAFEALLOC(p, sizeof(X_PixelTexture));
+	GF_SAFEALLOC(p, X_PixelTexture);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_PixelTexture);
 
@@ -6019,7 +9871,7 @@ static GF_Err PlaneSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *PlaneSensor_Create()
 {
 	X_PlaneSensor *p;
-	GF_SAFEALLOC(p, sizeof(X_PlaneSensor));
+	GF_SAFEALLOC(p, X_PlaneSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_PlaneSensor);
 
@@ -6126,7 +9978,7 @@ static GF_Err PointLight_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *PointLight_Create()
 {
 	X_PointLight *p;
-	GF_SAFEALLOC(p, sizeof(X_PointLight));
+	GF_SAFEALLOC(p, X_PointLight);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_PointLight);
 
@@ -6211,7 +10063,7 @@ static GF_Err PointSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *PointSet_Create()
 {
 	X_PointSet *p;
-	GF_SAFEALLOC(p, sizeof(X_PointSet));
+	GF_SAFEALLOC(p, X_PointSet);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_PointSet);
 
@@ -6274,7 +10126,7 @@ static GF_Err Polyline2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Polyline2D_Create()
 {
 	X_Polyline2D *p;
-	GF_SAFEALLOC(p, sizeof(X_Polyline2D));
+	GF_SAFEALLOC(p, X_Polyline2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Polyline2D);
 
@@ -6337,7 +10189,7 @@ static GF_Err Polypoint2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Polypoint2D_Create()
 {
 	X_Polypoint2D *p;
-	GF_SAFEALLOC(p, sizeof(X_Polypoint2D));
+	GF_SAFEALLOC(p, X_Polypoint2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Polypoint2D);
 
@@ -6420,7 +10272,7 @@ static GF_Err PositionInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *PositionInterpolator_Create()
 {
 	X_PositionInterpolator *p;
-	GF_SAFEALLOC(p, sizeof(X_PositionInterpolator));
+	GF_SAFEALLOC(p, X_PositionInterpolator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_PositionInterpolator);
 
@@ -6503,7 +10355,7 @@ static GF_Err PositionInterpolator2D_get_field(GF_Node *node, GF_FieldInfo *info
 static GF_Node *PositionInterpolator2D_Create()
 {
 	X_PositionInterpolator2D *p;
-	GF_SAFEALLOC(p, sizeof(X_PositionInterpolator2D));
+	GF_SAFEALLOC(p, X_PositionInterpolator2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_PositionInterpolator2D);
 
@@ -6613,7 +10465,7 @@ static GF_Err ProximitySensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *ProximitySensor_Create()
 {
 	X_ProximitySensor *p;
-	GF_SAFEALLOC(p, sizeof(X_ProximitySensor));
+	GF_SAFEALLOC(p, X_ProximitySensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_ProximitySensor);
 
@@ -6635,6 +10487,234 @@ static GF_Node *ProximitySensor_Create()
 	p->size.y = FLT2FIX(0);
 	p->size.z = FLT2FIX(0);
 	p->enabled = 1;
+	return (GF_Node *)p;
+}
+
+
+/*
+	ReceiverPdu Node deletion
+*/
+
+static void ReceiverPdu_Del(GF_Node *node)
+{
+	X_ReceiverPdu *p = (X_ReceiverPdu *) node;
+	gf_sg_sfstring_del(p->address);
+	gf_sg_sfstring_del(p->multicastRelayHost);
+	gf_sg_sfstring_del(p->networkMode);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 ReceiverPdu_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 26;
+}
+
+static GF_Err ReceiverPdu_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "address";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->address;
+		return GF_OK;
+	case 1:
+		info->name = "applicationID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->applicationID;
+		return GF_OK;
+	case 2:
+		info->name = "entityID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->entityID;
+		return GF_OK;
+	case 3:
+		info->name = "multicastRelayHost";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->multicastRelayHost;
+		return GF_OK;
+	case 4:
+		info->name = "multicastRelayPort";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->multicastRelayPort;
+		return GF_OK;
+	case 5:
+		info->name = "networkMode";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->networkMode;
+		return GF_OK;
+	case 6:
+		info->name = "port";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->port;
+		return GF_OK;
+	case 7:
+		info->name = "radioID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->radioID;
+		return GF_OK;
+	case 8:
+		info->name = "readInterval";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->readInterval;
+		return GF_OK;
+	case 9:
+		info->name = "receivedPower";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->receivedPower;
+		return GF_OK;
+	case 10:
+		info->name = "receiverState";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->receiverState;
+		return GF_OK;
+	case 11:
+		info->name = "rtpHeaderExpected";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->rtpHeaderExpected;
+		return GF_OK;
+	case 12:
+		info->name = "siteID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->siteID;
+		return GF_OK;
+	case 13:
+		info->name = "transmitterApplicationID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->transmitterApplicationID;
+		return GF_OK;
+	case 14:
+		info->name = "transmitterEntityID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->transmitterEntityID;
+		return GF_OK;
+	case 15:
+		info->name = "transmitterRadioID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->transmitterRadioID;
+		return GF_OK;
+	case 16:
+		info->name = "transmitterSiteID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->transmitterSiteID;
+		return GF_OK;
+	case 17:
+		info->name = "whichGeometry";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->whichGeometry;
+		return GF_OK;
+	case 18:
+		info->name = "writeInterval";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->writeInterval;
+		return GF_OK;
+	case 19:
+		info->name = "isActive";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->isActive;
+		return GF_OK;
+	case 20:
+		info->name = "isNetworkReader";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->isNetworkReader;
+		return GF_OK;
+	case 21:
+		info->name = "isNetworkWriter";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->isNetworkWriter;
+		return GF_OK;
+	case 22:
+		info->name = "isRtpHeaderHeard";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->isRtpHeaderHeard;
+		return GF_OK;
+	case 23:
+		info->name = "isStandAlone";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->isStandAlone;
+		return GF_OK;
+	case 24:
+		info->name = "timestamp";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((X_ReceiverPdu *) node)->timestamp;
+		return GF_OK;
+	case 25:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_ReceiverPdu *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *ReceiverPdu_Create()
+{
+	X_ReceiverPdu *p;
+	GF_SAFEALLOC(p, X_ReceiverPdu);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_ReceiverPdu);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "ReceiverPdu";
+	((GF_Node *)p)->sgprivate->node_del = ReceiverPdu_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = ReceiverPdu_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = ReceiverPdu_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->address.buffer = malloc(sizeof(char) * 10);
+	strcpy(p->address.buffer, "localhost");
+	p->applicationID = 1;
+	p->entityID = 0;
+	p->multicastRelayPort = 0;
+	p->networkMode.buffer = malloc(sizeof(char) * 11);
+	strcpy(p->networkMode.buffer, "standAlone");
+	p->port = 0;
+	p->radioID = 0;
+	p->readInterval = FLT2FIX(0.1);
+	p->receivedPower = FLT2FIX(0.0);
+	p->receiverState = 0;
+	p->siteID = 0;
+	p->transmitterApplicationID = 1;
+	p->transmitterEntityID = 0;
+	p->transmitterRadioID = 0;
+	p->transmitterSiteID = 0;
+	p->whichGeometry = 1;
+	p->writeInterval = FLT2FIX(1.0);
 	return (GF_Node *)p;
 }
 
@@ -6682,7 +10762,7 @@ static GF_Err Rectangle2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Rectangle2D_Create()
 {
 	X_Rectangle2D *p;
-	GF_SAFEALLOC(p, sizeof(X_Rectangle2D));
+	GF_SAFEALLOC(p, X_Rectangle2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Rectangle2D);
 
@@ -6767,7 +10847,7 @@ static GF_Err ScalarInterpolator_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *ScalarInterpolator_Create()
 {
 	X_ScalarInterpolator *p;
-	GF_SAFEALLOC(p, sizeof(X_ScalarInterpolator));
+	GF_SAFEALLOC(p, X_ScalarInterpolator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_ScalarInterpolator);
 
@@ -6842,7 +10922,7 @@ static GF_Err Script_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Script_Create()
 {
 	X_Script *p;
-	GF_SAFEALLOC(p, sizeof(X_Script));
+	GF_SAFEALLOC(p, X_Script);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Script);
 
@@ -6914,7 +10994,7 @@ static GF_Err Shape_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Shape_Create()
 {
 	X_Shape *p;
-	GF_SAFEALLOC(p, sizeof(X_Shape));
+	GF_SAFEALLOC(p, X_Shape);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Shape);
 
@@ -6929,6 +11009,234 @@ static GF_Node *Shape_Create()
 
 
 	/*default field values*/
+	return (GF_Node *)p;
+}
+
+
+/*
+	SignalPdu Node deletion
+*/
+
+static void SignalPdu_Del(GF_Node *node)
+{
+	X_SignalPdu *p = (X_SignalPdu *) node;
+	gf_sg_sfstring_del(p->address);
+	gf_sg_mfint32_del(p->data);
+	gf_sg_sfstring_del(p->multicastRelayHost);
+	gf_sg_sfstring_del(p->networkMode);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 SignalPdu_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 26;
+}
+
+static GF_Err SignalPdu_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "address";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_SignalPdu *) node)->address;
+		return GF_OK;
+	case 1:
+		info->name = "applicationID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_SignalPdu *) node)->applicationID;
+		return GF_OK;
+	case 2:
+		info->name = "data";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((X_SignalPdu *) node)->data;
+		return GF_OK;
+	case 3:
+		info->name = "dataLength";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_SignalPdu *) node)->dataLength;
+		return GF_OK;
+	case 4:
+		info->name = "encodingScheme";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_SignalPdu *) node)->encodingScheme;
+		return GF_OK;
+	case 5:
+		info->name = "entityID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_SignalPdu *) node)->entityID;
+		return GF_OK;
+	case 6:
+		info->name = "multicastRelayHost";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_SignalPdu *) node)->multicastRelayHost;
+		return GF_OK;
+	case 7:
+		info->name = "multicastRelayPort";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_SignalPdu *) node)->multicastRelayPort;
+		return GF_OK;
+	case 8:
+		info->name = "networkMode";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_SignalPdu *) node)->networkMode;
+		return GF_OK;
+	case 9:
+		info->name = "port";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_SignalPdu *) node)->port;
+		return GF_OK;
+	case 10:
+		info->name = "radioID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_SignalPdu *) node)->radioID;
+		return GF_OK;
+	case 11:
+		info->name = "readInterval";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_SignalPdu *) node)->readInterval;
+		return GF_OK;
+	case 12:
+		info->name = "rtpHeaderExpected";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_SignalPdu *) node)->rtpHeaderExpected;
+		return GF_OK;
+	case 13:
+		info->name = "sampleRate";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_SignalPdu *) node)->sampleRate;
+		return GF_OK;
+	case 14:
+		info->name = "samples";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_SignalPdu *) node)->samples;
+		return GF_OK;
+	case 15:
+		info->name = "siteID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_SignalPdu *) node)->siteID;
+		return GF_OK;
+	case 16:
+		info->name = "tdlType";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_SignalPdu *) node)->tdlType;
+		return GF_OK;
+	case 17:
+		info->name = "whichGeometry";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_SignalPdu *) node)->whichGeometry;
+		return GF_OK;
+	case 18:
+		info->name = "writeInterval";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_SignalPdu *) node)->writeInterval;
+		return GF_OK;
+	case 19:
+		info->name = "isActive";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_SignalPdu *) node)->isActive;
+		return GF_OK;
+	case 20:
+		info->name = "isNetworkReader";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_SignalPdu *) node)->isNetworkReader;
+		return GF_OK;
+	case 21:
+		info->name = "isNetworkWriter";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_SignalPdu *) node)->isNetworkWriter;
+		return GF_OK;
+	case 22:
+		info->name = "isRtpHeaderHeard";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_SignalPdu *) node)->isRtpHeaderHeard;
+		return GF_OK;
+	case 23:
+		info->name = "isStandAlone";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_SignalPdu *) node)->isStandAlone;
+		return GF_OK;
+	case 24:
+		info->name = "timestamp";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((X_SignalPdu *) node)->timestamp;
+		return GF_OK;
+	case 25:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_SignalPdu *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *SignalPdu_Create()
+{
+	X_SignalPdu *p;
+	GF_SAFEALLOC(p, X_SignalPdu);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_SignalPdu);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "SignalPdu";
+	((GF_Node *)p)->sgprivate->node_del = SignalPdu_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = SignalPdu_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = SignalPdu_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->address.buffer = malloc(sizeof(char) * 10);
+	strcpy(p->address.buffer, "localhost");
+	p->applicationID = 1;
+	p->dataLength = 0;
+	p->encodingScheme = 0;
+	p->entityID = 0;
+	p->multicastRelayPort = 0;
+	p->networkMode.buffer = malloc(sizeof(char) * 11);
+	strcpy(p->networkMode.buffer, "standAlone");
+	p->port = 0;
+	p->radioID = 0;
+	p->readInterval = FLT2FIX(0.1);
+	p->sampleRate = 0;
+	p->samples = 0;
+	p->siteID = 0;
+	p->tdlType = 0;
+	p->whichGeometry = 1;
+	p->writeInterval = FLT2FIX(1.0);
 	return (GF_Node *)p;
 }
 
@@ -7032,7 +11340,7 @@ static GF_Err Sound_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Sound_Create()
 {
 	X_Sound *p;
-	GF_SAFEALLOC(p, sizeof(X_Sound));
+	GF_SAFEALLOC(p, X_Sound);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Sound);
 
@@ -7107,7 +11415,7 @@ static GF_Err Sphere_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Sphere_Create()
 {
 	X_Sphere *p;
-	GF_SAFEALLOC(p, sizeof(X_Sphere));
+	GF_SAFEALLOC(p, X_Sphere);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Sphere);
 
@@ -7213,7 +11521,7 @@ static GF_Err SphereSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *SphereSensor_Create()
 {
 	X_SphereSensor *p;
-	GF_SAFEALLOC(p, sizeof(X_SphereSensor));
+	GF_SAFEALLOC(p, X_SphereSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_SphereSensor);
 
@@ -7335,7 +11643,7 @@ static GF_Err SpotLight_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *SpotLight_Create()
 {
 	X_SpotLight *p;
-	GF_SAFEALLOC(p, sizeof(X_SpotLight));
+	GF_SAFEALLOC(p, X_SpotLight);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_SpotLight);
 
@@ -7417,7 +11725,7 @@ static GF_Err StaticGroup_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *StaticGroup_Create()
 {
 	X_StaticGroup *p;
-	GF_SAFEALLOC(p, sizeof(X_StaticGroup));
+	GF_SAFEALLOC(p, X_StaticGroup);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_StaticGroup);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -7506,7 +11814,7 @@ static GF_Err StringSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *StringSensor_Create()
 {
 	X_StringSensor *p;
-	GF_SAFEALLOC(p, sizeof(X_StringSensor));
+	GF_SAFEALLOC(p, X_StringSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_StringSensor);
 
@@ -7594,7 +11902,7 @@ static GF_Err Switch_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Switch_Create()
 {
 	X_Switch *p;
-	GF_SAFEALLOC(p, sizeof(X_Switch));
+	GF_SAFEALLOC(p, X_Switch);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Switch);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -7680,7 +11988,7 @@ static GF_Err Text_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Text_Create()
 {
 	X_Text *p;
-	GF_SAFEALLOC(p, sizeof(X_Text));
+	GF_SAFEALLOC(p, X_Text);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Text);
 
@@ -7839,7 +12147,7 @@ static GF_Err TextureBackground_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TextureBackground_Create()
 {
 	X_TextureBackground *p;
-	GF_SAFEALLOC(p, sizeof(X_TextureBackground));
+	GF_SAFEALLOC(p, X_TextureBackground);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TextureBackground);
 
@@ -7910,7 +12218,7 @@ static GF_Err TextureCoordinate_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TextureCoordinate_Create()
 {
 	X_TextureCoordinate *p;
-	GF_SAFEALLOC(p, sizeof(X_TextureCoordinate));
+	GF_SAFEALLOC(p, X_TextureCoordinate);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TextureCoordinate);
 
@@ -7980,7 +12288,7 @@ static GF_Err TextureCoordinateGenerator_get_field(GF_Node *node, GF_FieldInfo *
 static GF_Node *TextureCoordinateGenerator_Create()
 {
 	X_TextureCoordinateGenerator *p;
-	GF_SAFEALLOC(p, sizeof(X_TextureCoordinateGenerator));
+	GF_SAFEALLOC(p, X_TextureCoordinateGenerator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TextureCoordinateGenerator);
 
@@ -8062,7 +12370,7 @@ static GF_Err TextureTransform_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TextureTransform_Create()
 {
 	X_TextureTransform *p;
-	GF_SAFEALLOC(p, sizeof(X_TextureTransform));
+	GF_SAFEALLOC(p, X_TextureTransform);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TextureTransform);
 
@@ -8203,7 +12511,7 @@ static GF_Err TimeSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TimeSensor_Create()
 {
 	X_TimeSensor *p;
-	GF_SAFEALLOC(p, sizeof(X_TimeSensor));
+	GF_SAFEALLOC(p, X_TimeSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TimeSensor);
 
@@ -8278,7 +12586,7 @@ static GF_Err TimeTrigger_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TimeTrigger_Create()
 {
 	X_TimeTrigger *p;
-	GF_SAFEALLOC(p, sizeof(X_TimeTrigger));
+	GF_SAFEALLOC(p, X_TimeTrigger);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TimeTrigger);
 
@@ -8383,7 +12691,7 @@ static GF_Err TouchSensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TouchSensor_Create()
 {
 	X_TouchSensor *p;
-	GF_SAFEALLOC(p, sizeof(X_TouchSensor));
+	GF_SAFEALLOC(p, X_TouchSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TouchSensor);
 
@@ -8494,7 +12802,7 @@ static GF_Err Transform_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Transform_Create()
 {
 	X_Transform *p;
-	GF_SAFEALLOC(p, sizeof(X_Transform));
+	GF_SAFEALLOC(p, X_Transform);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Transform);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -8527,6 +12835,350 @@ static GF_Node *Transform_Create()
 	p->translation.x = FLT2FIX(0);
 	p->translation.y = FLT2FIX(0);
 	p->translation.z = FLT2FIX(0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	TransmitterPdu Node deletion
+*/
+
+static void TransmitterPdu_Del(GF_Node *node)
+{
+	X_TransmitterPdu *p = (X_TransmitterPdu *) node;
+	gf_sg_sfstring_del(p->address);
+	gf_sg_sfstring_del(p->multicastRelayHost);
+	gf_sg_sfstring_del(p->networkMode);
+	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_free((GF_Node *)p);
+}
+
+
+static u32 TransmitterPdu_get_field_count(GF_Node *node, u8 dummy)
+{
+	return 42;
+}
+
+static GF_Err TransmitterPdu_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "address";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->address;
+		return GF_OK;
+	case 1:
+		info->name = "antennaLocation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->antennaLocation;
+		return GF_OK;
+	case 2:
+		info->name = "antennaPatternLength";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->antennaPatternLength;
+		return GF_OK;
+	case 3:
+		info->name = "antennaPatternType";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->antennaPatternType;
+		return GF_OK;
+	case 4:
+		info->name = "applicationID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->applicationID;
+		return GF_OK;
+	case 5:
+		info->name = "cryptoKeyID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->cryptoKeyID;
+		return GF_OK;
+	case 6:
+		info->name = "cryptoSystem";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->cryptoSystem;
+		return GF_OK;
+	case 7:
+		info->name = "entityID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->entityID;
+		return GF_OK;
+	case 8:
+		info->name = "frequency";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->frequency;
+		return GF_OK;
+	case 9:
+		info->name = "inputSource";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->inputSource;
+		return GF_OK;
+	case 10:
+		info->name = "lengthOfModulationParameters";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->lengthOfModulationParameters;
+		return GF_OK;
+	case 11:
+		info->name = "modulationTypeDetail";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->modulationTypeDetail;
+		return GF_OK;
+	case 12:
+		info->name = "modulationTypeMajor";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->modulationTypeMajor;
+		return GF_OK;
+	case 13:
+		info->name = "modulationTypeSpreadSpectrum";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->modulationTypeSpreadSpectrum;
+		return GF_OK;
+	case 14:
+		info->name = "modulationTypeSystem";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->modulationTypeSystem;
+		return GF_OK;
+	case 15:
+		info->name = "multicastRelayHost";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->multicastRelayHost;
+		return GF_OK;
+	case 16:
+		info->name = "multicastRelayPort";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->multicastRelayPort;
+		return GF_OK;
+	case 17:
+		info->name = "networkMode";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->networkMode;
+		return GF_OK;
+	case 18:
+		info->name = "port";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->port;
+		return GF_OK;
+	case 19:
+		info->name = "power";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->power;
+		return GF_OK;
+	case 20:
+		info->name = "radioEntityTypeCategory";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->radioEntityTypeCategory;
+		return GF_OK;
+	case 21:
+		info->name = "radioEntityTypeCountry";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->radioEntityTypeCountry;
+		return GF_OK;
+	case 22:
+		info->name = "radioEntityTypeDomain";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->radioEntityTypeDomain;
+		return GF_OK;
+	case 23:
+		info->name = "radioEntityTypeKind";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->radioEntityTypeKind;
+		return GF_OK;
+	case 24:
+		info->name = "radioEntityTypeNomenclature";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->radioEntityTypeNomenclature;
+		return GF_OK;
+	case 25:
+		info->name = "radioEntityTypeNomenclatureVersion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->radioEntityTypeNomenclatureVersion;
+		return GF_OK;
+	case 26:
+		info->name = "radioID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->radioID;
+		return GF_OK;
+	case 27:
+		info->name = "readInterval";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->readInterval;
+		return GF_OK;
+	case 28:
+		info->name = "relativeAntennaLocation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->relativeAntennaLocation;
+		return GF_OK;
+	case 29:
+		info->name = "rtpHeaderExpected";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->rtpHeaderExpected;
+		return GF_OK;
+	case 30:
+		info->name = "siteID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->siteID;
+		return GF_OK;
+	case 31:
+		info->name = "transmitFrequencyBandwidth";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->transmitFrequencyBandwidth;
+		return GF_OK;
+	case 32:
+		info->name = "transmitState";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->transmitState;
+		return GF_OK;
+	case 33:
+		info->name = "whichGeometry";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->whichGeometry;
+		return GF_OK;
+	case 34:
+		info->name = "writeInterval";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->writeInterval;
+		return GF_OK;
+	case 35:
+		info->name = "isActive";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->isActive;
+		return GF_OK;
+	case 36:
+		info->name = "isNetworkReader";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->isNetworkReader;
+		return GF_OK;
+	case 37:
+		info->name = "isNetworkWriter";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->isNetworkWriter;
+		return GF_OK;
+	case 38:
+		info->name = "isRtpHeaderHeard";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->isRtpHeaderHeard;
+		return GF_OK;
+	case 39:
+		info->name = "isStandAlone";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->isStandAlone;
+		return GF_OK;
+	case 40:
+		info->name = "timestamp";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((X_TransmitterPdu *) node)->timestamp;
+		return GF_OK;
+	case 41:
+		info->name = "metadata";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFMetadataNode;
+		info->far_ptr = & ((X_TransmitterPdu *)node)->metadata;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+
+static GF_Node *TransmitterPdu_Create()
+{
+	X_TransmitterPdu *p;
+	GF_SAFEALLOC(p, X_TransmitterPdu);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_X3D_TransmitterPdu);
+
+#ifdef GF_NODE_USE_POINTERS
+
+	((GF_Node *)p)->sgprivate->name = "TransmitterPdu";
+	((GF_Node *)p)->sgprivate->node_del = TransmitterPdu_Del;
+	((GF_Node *)p)->sgprivate->get_field_count = TransmitterPdu_get_field_count;
+	((GF_Node *)p)->sgprivate->get_field = TransmitterPdu_get_field;
+
+#endif
+
+
+	/*default field values*/
+	p->address.buffer = malloc(sizeof(char) * 10);
+	strcpy(p->address.buffer, "localhost");
+	p->antennaLocation.x = FLT2FIX(0);
+	p->antennaLocation.y = FLT2FIX(0);
+	p->antennaLocation.z = FLT2FIX(0);
+	p->antennaPatternLength = 0;
+	p->antennaPatternType = 0;
+	p->applicationID = 1;
+	p->cryptoKeyID = 0;
+	p->cryptoSystem = 0;
+	p->entityID = 0;
+	p->frequency = 0;
+	p->inputSource = 0;
+	p->lengthOfModulationParameters = 0;
+	p->modulationTypeDetail = 0;
+	p->modulationTypeMajor = 0;
+	p->modulationTypeSpreadSpectrum = 0;
+	p->modulationTypeSystem = 0;
+	p->multicastRelayPort = 0;
+	p->networkMode.buffer = malloc(sizeof(char) * 11);
+	strcpy(p->networkMode.buffer, "standAlone");
+	p->port = 0;
+	p->power = FLT2FIX(0.0);
+	p->radioEntityTypeCategory = 0;
+	p->radioEntityTypeCountry = 0;
+	p->radioEntityTypeDomain = 0;
+	p->radioEntityTypeKind = 0;
+	p->radioEntityTypeNomenclature = 0;
+	p->radioEntityTypeNomenclatureVersion = 0;
+	p->radioID = 0;
+	p->readInterval = FLT2FIX(0.1);
+	p->relativeAntennaLocation.x = FLT2FIX(0);
+	p->relativeAntennaLocation.y = FLT2FIX(0);
+	p->relativeAntennaLocation.z = FLT2FIX(0);
+	p->siteID = 0;
+	p->transmitFrequencyBandwidth = FLT2FIX(0.0);
+	p->transmitState = 0;
+	p->whichGeometry = 1;
+	p->writeInterval = FLT2FIX(1.0);
 	return (GF_Node *)p;
 }
 
@@ -8631,7 +13283,7 @@ static GF_Err TriangleFanSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TriangleFanSet_Create()
 {
 	X_TriangleFanSet *p;
-	GF_SAFEALLOC(p, sizeof(X_TriangleFanSet));
+	GF_SAFEALLOC(p, X_TriangleFanSet);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TriangleFanSet);
 
@@ -8747,7 +13399,7 @@ static GF_Err TriangleSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TriangleSet_Create()
 {
 	X_TriangleSet *p;
-	GF_SAFEALLOC(p, sizeof(X_TriangleSet));
+	GF_SAFEALLOC(p, X_TriangleSet);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TriangleSet);
 
@@ -8814,7 +13466,7 @@ static GF_Err TriangleSet2D_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TriangleSet2D_Create()
 {
 	X_TriangleSet2D *p;
-	GF_SAFEALLOC(p, sizeof(X_TriangleSet2D));
+	GF_SAFEALLOC(p, X_TriangleSet2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TriangleSet2D);
 
@@ -8933,7 +13585,7 @@ static GF_Err TriangleStripSet_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *TriangleStripSet_Create()
 {
 	X_TriangleStripSet *p;
-	GF_SAFEALLOC(p, sizeof(X_TriangleStripSet));
+	GF_SAFEALLOC(p, X_TriangleStripSet);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_TriangleStripSet);
 
@@ -9049,7 +13701,7 @@ static GF_Err Viewpoint_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *Viewpoint_Create()
 {
 	X_Viewpoint *p;
-	GF_SAFEALLOC(p, sizeof(X_Viewpoint));
+	GF_SAFEALLOC(p, X_Viewpoint);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_Viewpoint);
 
@@ -9153,7 +13805,7 @@ static GF_Err VisibilitySensor_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *VisibilitySensor_Create()
 {
 	X_VisibilitySensor *p;
-	GF_SAFEALLOC(p, sizeof(X_VisibilitySensor));
+	GF_SAFEALLOC(p, X_VisibilitySensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_VisibilitySensor);
 
@@ -9230,7 +13882,7 @@ static GF_Err WorldInfo_get_field(GF_Node *node, GF_FieldInfo *info)
 static GF_Node *WorldInfo_Create()
 {
 	X_WorldInfo *p;
-	GF_SAFEALLOC(p, sizeof(X_WorldInfo));
+	GF_SAFEALLOC(p, X_WorldInfo);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_X3D_WorldInfo);
 
@@ -9314,6 +13966,8 @@ GF_Node *gf_sg_x3d_node_new(u32 NodeTag)
 		return Disk2D_Create();
 	case TAG_X3D_ElevationGrid:
 		return ElevationGrid_Create();
+	case TAG_X3D_EspduTransform:
+		return EspduTransform_Create();
 	case TAG_X3D_Extrusion:
 		return Extrusion_Create();
 	case TAG_X3D_FillProperties:
@@ -9322,8 +13976,36 @@ GF_Node *gf_sg_x3d_node_new(u32 NodeTag)
 		return Fog_Create();
 	case TAG_X3D_FontStyle:
 		return FontStyle_Create();
+	case TAG_X3D_GeoCoordinate:
+		return GeoCoordinate_Create();
+	case TAG_X3D_GeoElevationGrid:
+		return GeoElevationGrid_Create();
+	case TAG_X3D_GeoLocation:
+		return GeoLocation_Create();
+	case TAG_X3D_GeoLOD:
+		return GeoLOD_Create();
+	case TAG_X3D_GeoMetadata:
+		return GeoMetadata_Create();
+	case TAG_X3D_GeoOrigin:
+		return GeoOrigin_Create();
+	case TAG_X3D_GeoPositionInterpolator:
+		return GeoPositionInterpolator_Create();
+	case TAG_X3D_GeoTouchSensor:
+		return GeoTouchSensor_Create();
+	case TAG_X3D_GeoViewpoint:
+		return GeoViewpoint_Create();
 	case TAG_X3D_Group:
 		return Group_Create();
+	case TAG_X3D_HAnimDisplacer:
+		return HAnimDisplacer_Create();
+	case TAG_X3D_HAnimHumanoid:
+		return HAnimHumanoid_Create();
+	case TAG_X3D_HAnimJoint:
+		return HAnimJoint_Create();
+	case TAG_X3D_HAnimSegment:
+		return HAnimSegment_Create();
+	case TAG_X3D_HAnimSite:
+		return HAnimSite_Create();
 	case TAG_X3D_ImageTexture:
 		return ImageTexture_Create();
 	case TAG_X3D_IndexedFaceSet:
@@ -9348,6 +14030,8 @@ GF_Node *gf_sg_x3d_node_new(u32 NodeTag)
 		return LineProperties_Create();
 	case TAG_X3D_LineSet:
 		return LineSet_Create();
+	case TAG_X3D_LoadSensor:
+		return LoadSensor_Create();
 	case TAG_X3D_LOD:
 		return LOD_Create();
 	case TAG_X3D_Material:
@@ -9376,6 +14060,28 @@ GF_Node *gf_sg_x3d_node_new(u32 NodeTag)
 		return Normal_Create();
 	case TAG_X3D_NormalInterpolator:
 		return NormalInterpolator_Create();
+	case TAG_X3D_NurbsCurve:
+		return NurbsCurve_Create();
+	case TAG_X3D_NurbsCurve2D:
+		return NurbsCurve2D_Create();
+	case TAG_X3D_NurbsOrientationInterpolator:
+		return NurbsOrientationInterpolator_Create();
+	case TAG_X3D_NurbsPatchSurface:
+		return NurbsPatchSurface_Create();
+	case TAG_X3D_NurbsPositionInterpolator:
+		return NurbsPositionInterpolator_Create();
+	case TAG_X3D_NurbsSet:
+		return NurbsSet_Create();
+	case TAG_X3D_NurbsSurfaceInterpolator:
+		return NurbsSurfaceInterpolator_Create();
+	case TAG_X3D_NurbsSweptSurface:
+		return NurbsSweptSurface_Create();
+	case TAG_X3D_NurbsSwungSurface:
+		return NurbsSwungSurface_Create();
+	case TAG_X3D_NurbsTextureCoordinate:
+		return NurbsTextureCoordinate_Create();
+	case TAG_X3D_NurbsTrimmedSurface:
+		return NurbsTrimmedSurface_Create();
 	case TAG_X3D_OrientationInterpolator:
 		return OrientationInterpolator_Create();
 	case TAG_X3D_PixelTexture:
@@ -9396,6 +14102,8 @@ GF_Node *gf_sg_x3d_node_new(u32 NodeTag)
 		return PositionInterpolator2D_Create();
 	case TAG_X3D_ProximitySensor:
 		return ProximitySensor_Create();
+	case TAG_X3D_ReceiverPdu:
+		return ReceiverPdu_Create();
 	case TAG_X3D_Rectangle2D:
 		return Rectangle2D_Create();
 	case TAG_X3D_ScalarInterpolator:
@@ -9404,6 +14112,8 @@ GF_Node *gf_sg_x3d_node_new(u32 NodeTag)
 		return Script_Create();
 	case TAG_X3D_Shape:
 		return Shape_Create();
+	case TAG_X3D_SignalPdu:
+		return SignalPdu_Create();
 	case TAG_X3D_Sound:
 		return Sound_Create();
 	case TAG_X3D_Sphere:
@@ -9436,6 +14146,8 @@ GF_Node *gf_sg_x3d_node_new(u32 NodeTag)
 		return TouchSensor_Create();
 	case TAG_X3D_Transform:
 		return Transform_Create();
+	case TAG_X3D_TransmitterPdu:
+		return TransmitterPdu_Create();
 	case TAG_X3D_TriangleFanSet:
 		return TriangleFanSet_Create();
 	case TAG_X3D_TriangleSet:
@@ -9519,6 +14231,8 @@ const char *gf_sg_x3d_node_get_class_name(u32 NodeTag)
 		return "Disk2D";
 	case TAG_X3D_ElevationGrid:
 		return "ElevationGrid";
+	case TAG_X3D_EspduTransform:
+		return "EspduTransform";
 	case TAG_X3D_Extrusion:
 		return "Extrusion";
 	case TAG_X3D_FillProperties:
@@ -9527,8 +14241,36 @@ const char *gf_sg_x3d_node_get_class_name(u32 NodeTag)
 		return "Fog";
 	case TAG_X3D_FontStyle:
 		return "FontStyle";
+	case TAG_X3D_GeoCoordinate:
+		return "GeoCoordinate";
+	case TAG_X3D_GeoElevationGrid:
+		return "GeoElevationGrid";
+	case TAG_X3D_GeoLocation:
+		return "GeoLocation";
+	case TAG_X3D_GeoLOD:
+		return "GeoLOD";
+	case TAG_X3D_GeoMetadata:
+		return "GeoMetadata";
+	case TAG_X3D_GeoOrigin:
+		return "GeoOrigin";
+	case TAG_X3D_GeoPositionInterpolator:
+		return "GeoPositionInterpolator";
+	case TAG_X3D_GeoTouchSensor:
+		return "GeoTouchSensor";
+	case TAG_X3D_GeoViewpoint:
+		return "GeoViewpoint";
 	case TAG_X3D_Group:
 		return "Group";
+	case TAG_X3D_HAnimDisplacer:
+		return "HAnimDisplacer";
+	case TAG_X3D_HAnimHumanoid:
+		return "HAnimHumanoid";
+	case TAG_X3D_HAnimJoint:
+		return "HAnimJoint";
+	case TAG_X3D_HAnimSegment:
+		return "HAnimSegment";
+	case TAG_X3D_HAnimSite:
+		return "HAnimSite";
 	case TAG_X3D_ImageTexture:
 		return "ImageTexture";
 	case TAG_X3D_IndexedFaceSet:
@@ -9553,6 +14295,8 @@ const char *gf_sg_x3d_node_get_class_name(u32 NodeTag)
 		return "LineProperties";
 	case TAG_X3D_LineSet:
 		return "LineSet";
+	case TAG_X3D_LoadSensor:
+		return "LoadSensor";
 	case TAG_X3D_LOD:
 		return "LOD";
 	case TAG_X3D_Material:
@@ -9581,6 +14325,28 @@ const char *gf_sg_x3d_node_get_class_name(u32 NodeTag)
 		return "Normal";
 	case TAG_X3D_NormalInterpolator:
 		return "NormalInterpolator";
+	case TAG_X3D_NurbsCurve:
+		return "NurbsCurve";
+	case TAG_X3D_NurbsCurve2D:
+		return "NurbsCurve2D";
+	case TAG_X3D_NurbsOrientationInterpolator:
+		return "NurbsOrientationInterpolator";
+	case TAG_X3D_NurbsPatchSurface:
+		return "NurbsPatchSurface";
+	case TAG_X3D_NurbsPositionInterpolator:
+		return "NurbsPositionInterpolator";
+	case TAG_X3D_NurbsSet:
+		return "NurbsSet";
+	case TAG_X3D_NurbsSurfaceInterpolator:
+		return "NurbsSurfaceInterpolator";
+	case TAG_X3D_NurbsSweptSurface:
+		return "NurbsSweptSurface";
+	case TAG_X3D_NurbsSwungSurface:
+		return "NurbsSwungSurface";
+	case TAG_X3D_NurbsTextureCoordinate:
+		return "NurbsTextureCoordinate";
+	case TAG_X3D_NurbsTrimmedSurface:
+		return "NurbsTrimmedSurface";
 	case TAG_X3D_OrientationInterpolator:
 		return "OrientationInterpolator";
 	case TAG_X3D_PixelTexture:
@@ -9601,6 +14367,8 @@ const char *gf_sg_x3d_node_get_class_name(u32 NodeTag)
 		return "PositionInterpolator2D";
 	case TAG_X3D_ProximitySensor:
 		return "ProximitySensor";
+	case TAG_X3D_ReceiverPdu:
+		return "ReceiverPdu";
 	case TAG_X3D_Rectangle2D:
 		return "Rectangle2D";
 	case TAG_X3D_ScalarInterpolator:
@@ -9609,6 +14377,8 @@ const char *gf_sg_x3d_node_get_class_name(u32 NodeTag)
 		return "Script";
 	case TAG_X3D_Shape:
 		return "Shape";
+	case TAG_X3D_SignalPdu:
+		return "SignalPdu";
 	case TAG_X3D_Sound:
 		return "Sound";
 	case TAG_X3D_Sphere:
@@ -9641,6 +14411,8 @@ const char *gf_sg_x3d_node_get_class_name(u32 NodeTag)
 		return "TouchSensor";
 	case TAG_X3D_Transform:
 		return "Transform";
+	case TAG_X3D_TransmitterPdu:
+		return "TransmitterPdu";
 	case TAG_X3D_TriangleFanSet:
 		return "TriangleFanSet";
 	case TAG_X3D_TriangleSet:
@@ -9723,6 +14495,8 @@ void gf_sg_x3d_node_del(GF_Node *node)
 		Disk2D_Del(node); return;
 	case TAG_X3D_ElevationGrid:
 		ElevationGrid_Del(node); return;
+	case TAG_X3D_EspduTransform:
+		EspduTransform_Del(node); return;
 	case TAG_X3D_Extrusion:
 		Extrusion_Del(node); return;
 	case TAG_X3D_FillProperties:
@@ -9731,8 +14505,36 @@ void gf_sg_x3d_node_del(GF_Node *node)
 		Fog_Del(node); return;
 	case TAG_X3D_FontStyle:
 		FontStyle_Del(node); return;
+	case TAG_X3D_GeoCoordinate:
+		GeoCoordinate_Del(node); return;
+	case TAG_X3D_GeoElevationGrid:
+		GeoElevationGrid_Del(node); return;
+	case TAG_X3D_GeoLocation:
+		GeoLocation_Del(node); return;
+	case TAG_X3D_GeoLOD:
+		GeoLOD_Del(node); return;
+	case TAG_X3D_GeoMetadata:
+		GeoMetadata_Del(node); return;
+	case TAG_X3D_GeoOrigin:
+		GeoOrigin_Del(node); return;
+	case TAG_X3D_GeoPositionInterpolator:
+		GeoPositionInterpolator_Del(node); return;
+	case TAG_X3D_GeoTouchSensor:
+		GeoTouchSensor_Del(node); return;
+	case TAG_X3D_GeoViewpoint:
+		GeoViewpoint_Del(node); return;
 	case TAG_X3D_Group:
 		Group_Del(node); return;
+	case TAG_X3D_HAnimDisplacer:
+		HAnimDisplacer_Del(node); return;
+	case TAG_X3D_HAnimHumanoid:
+		HAnimHumanoid_Del(node); return;
+	case TAG_X3D_HAnimJoint:
+		HAnimJoint_Del(node); return;
+	case TAG_X3D_HAnimSegment:
+		HAnimSegment_Del(node); return;
+	case TAG_X3D_HAnimSite:
+		HAnimSite_Del(node); return;
 	case TAG_X3D_ImageTexture:
 		ImageTexture_Del(node); return;
 	case TAG_X3D_IndexedFaceSet:
@@ -9757,6 +14559,8 @@ void gf_sg_x3d_node_del(GF_Node *node)
 		LineProperties_Del(node); return;
 	case TAG_X3D_LineSet:
 		LineSet_Del(node); return;
+	case TAG_X3D_LoadSensor:
+		LoadSensor_Del(node); return;
 	case TAG_X3D_LOD:
 		LOD_Del(node); return;
 	case TAG_X3D_Material:
@@ -9785,6 +14589,28 @@ void gf_sg_x3d_node_del(GF_Node *node)
 		Normal_Del(node); return;
 	case TAG_X3D_NormalInterpolator:
 		NormalInterpolator_Del(node); return;
+	case TAG_X3D_NurbsCurve:
+		NurbsCurve_Del(node); return;
+	case TAG_X3D_NurbsCurve2D:
+		NurbsCurve2D_Del(node); return;
+	case TAG_X3D_NurbsOrientationInterpolator:
+		NurbsOrientationInterpolator_Del(node); return;
+	case TAG_X3D_NurbsPatchSurface:
+		NurbsPatchSurface_Del(node); return;
+	case TAG_X3D_NurbsPositionInterpolator:
+		NurbsPositionInterpolator_Del(node); return;
+	case TAG_X3D_NurbsSet:
+		NurbsSet_Del(node); return;
+	case TAG_X3D_NurbsSurfaceInterpolator:
+		NurbsSurfaceInterpolator_Del(node); return;
+	case TAG_X3D_NurbsSweptSurface:
+		NurbsSweptSurface_Del(node); return;
+	case TAG_X3D_NurbsSwungSurface:
+		NurbsSwungSurface_Del(node); return;
+	case TAG_X3D_NurbsTextureCoordinate:
+		NurbsTextureCoordinate_Del(node); return;
+	case TAG_X3D_NurbsTrimmedSurface:
+		NurbsTrimmedSurface_Del(node); return;
 	case TAG_X3D_OrientationInterpolator:
 		OrientationInterpolator_Del(node); return;
 	case TAG_X3D_PixelTexture:
@@ -9805,6 +14631,8 @@ void gf_sg_x3d_node_del(GF_Node *node)
 		PositionInterpolator2D_Del(node); return;
 	case TAG_X3D_ProximitySensor:
 		ProximitySensor_Del(node); return;
+	case TAG_X3D_ReceiverPdu:
+		ReceiverPdu_Del(node); return;
 	case TAG_X3D_Rectangle2D:
 		Rectangle2D_Del(node); return;
 	case TAG_X3D_ScalarInterpolator:
@@ -9813,6 +14641,8 @@ void gf_sg_x3d_node_del(GF_Node *node)
 		Script_Del(node); return;
 	case TAG_X3D_Shape:
 		Shape_Del(node); return;
+	case TAG_X3D_SignalPdu:
+		SignalPdu_Del(node); return;
 	case TAG_X3D_Sound:
 		Sound_Del(node); return;
 	case TAG_X3D_Sphere:
@@ -9845,6 +14675,8 @@ void gf_sg_x3d_node_del(GF_Node *node)
 		TouchSensor_Del(node); return;
 	case TAG_X3D_Transform:
 		Transform_Del(node); return;
+	case TAG_X3D_TransmitterPdu:
+		TransmitterPdu_Del(node); return;
 	case TAG_X3D_TriangleFanSet:
 		TriangleFanSet_Del(node); return;
 	case TAG_X3D_TriangleSet:
@@ -9897,11 +14729,26 @@ u32 gf_sg_x3d_node_get_field_count(GF_Node *node)
 	case TAG_X3D_DirectionalLight:return DirectionalLight_get_field_count(node, 0);
 	case TAG_X3D_Disk2D:return Disk2D_get_field_count(node, 0);
 	case TAG_X3D_ElevationGrid:return ElevationGrid_get_field_count(node, 0);
+	case TAG_X3D_EspduTransform:return EspduTransform_get_field_count(node, 0);
 	case TAG_X3D_Extrusion:return Extrusion_get_field_count(node, 0);
 	case TAG_X3D_FillProperties:return FillProperties_get_field_count(node, 0);
 	case TAG_X3D_Fog:return Fog_get_field_count(node, 0);
 	case TAG_X3D_FontStyle:return FontStyle_get_field_count(node, 0);
+	case TAG_X3D_GeoCoordinate:return GeoCoordinate_get_field_count(node, 0);
+	case TAG_X3D_GeoElevationGrid:return GeoElevationGrid_get_field_count(node, 0);
+	case TAG_X3D_GeoLocation:return GeoLocation_get_field_count(node, 0);
+	case TAG_X3D_GeoLOD:return GeoLOD_get_field_count(node, 0);
+	case TAG_X3D_GeoMetadata:return GeoMetadata_get_field_count(node, 0);
+	case TAG_X3D_GeoOrigin:return GeoOrigin_get_field_count(node, 0);
+	case TAG_X3D_GeoPositionInterpolator:return GeoPositionInterpolator_get_field_count(node, 0);
+	case TAG_X3D_GeoTouchSensor:return GeoTouchSensor_get_field_count(node, 0);
+	case TAG_X3D_GeoViewpoint:return GeoViewpoint_get_field_count(node, 0);
 	case TAG_X3D_Group:return Group_get_field_count(node, 0);
+	case TAG_X3D_HAnimDisplacer:return HAnimDisplacer_get_field_count(node, 0);
+	case TAG_X3D_HAnimHumanoid:return HAnimHumanoid_get_field_count(node, 0);
+	case TAG_X3D_HAnimJoint:return HAnimJoint_get_field_count(node, 0);
+	case TAG_X3D_HAnimSegment:return HAnimSegment_get_field_count(node, 0);
+	case TAG_X3D_HAnimSite:return HAnimSite_get_field_count(node, 0);
 	case TAG_X3D_ImageTexture:return ImageTexture_get_field_count(node, 0);
 	case TAG_X3D_IndexedFaceSet:return IndexedFaceSet_get_field_count(node, 0);
 	case TAG_X3D_IndexedLineSet:return IndexedLineSet_get_field_count(node, 0);
@@ -9914,6 +14761,7 @@ u32 gf_sg_x3d_node_get_field_count(GF_Node *node)
 	case TAG_X3D_KeySensor:return KeySensor_get_field_count(node, 0);
 	case TAG_X3D_LineProperties:return LineProperties_get_field_count(node, 0);
 	case TAG_X3D_LineSet:return LineSet_get_field_count(node, 0);
+	case TAG_X3D_LoadSensor:return LoadSensor_get_field_count(node, 0);
 	case TAG_X3D_LOD:return LOD_get_field_count(node, 0);
 	case TAG_X3D_Material:return Material_get_field_count(node, 0);
 	case TAG_X3D_MetadataDouble:return MetadataDouble_get_field_count(node, 0);
@@ -9928,6 +14776,17 @@ u32 gf_sg_x3d_node_get_field_count(GF_Node *node)
 	case TAG_X3D_NavigationInfo:return NavigationInfo_get_field_count(node, 0);
 	case TAG_X3D_Normal:return Normal_get_field_count(node, 0);
 	case TAG_X3D_NormalInterpolator:return NormalInterpolator_get_field_count(node, 0);
+	case TAG_X3D_NurbsCurve:return NurbsCurve_get_field_count(node, 0);
+	case TAG_X3D_NurbsCurve2D:return NurbsCurve2D_get_field_count(node, 0);
+	case TAG_X3D_NurbsOrientationInterpolator:return NurbsOrientationInterpolator_get_field_count(node, 0);
+	case TAG_X3D_NurbsPatchSurface:return NurbsPatchSurface_get_field_count(node, 0);
+	case TAG_X3D_NurbsPositionInterpolator:return NurbsPositionInterpolator_get_field_count(node, 0);
+	case TAG_X3D_NurbsSet:return NurbsSet_get_field_count(node, 0);
+	case TAG_X3D_NurbsSurfaceInterpolator:return NurbsSurfaceInterpolator_get_field_count(node, 0);
+	case TAG_X3D_NurbsSweptSurface:return NurbsSweptSurface_get_field_count(node, 0);
+	case TAG_X3D_NurbsSwungSurface:return NurbsSwungSurface_get_field_count(node, 0);
+	case TAG_X3D_NurbsTextureCoordinate:return NurbsTextureCoordinate_get_field_count(node, 0);
+	case TAG_X3D_NurbsTrimmedSurface:return NurbsTrimmedSurface_get_field_count(node, 0);
 	case TAG_X3D_OrientationInterpolator:return OrientationInterpolator_get_field_count(node, 0);
 	case TAG_X3D_PixelTexture:return PixelTexture_get_field_count(node, 0);
 	case TAG_X3D_PlaneSensor:return PlaneSensor_get_field_count(node, 0);
@@ -9938,10 +14797,12 @@ u32 gf_sg_x3d_node_get_field_count(GF_Node *node)
 	case TAG_X3D_PositionInterpolator:return PositionInterpolator_get_field_count(node, 0);
 	case TAG_X3D_PositionInterpolator2D:return PositionInterpolator2D_get_field_count(node, 0);
 	case TAG_X3D_ProximitySensor:return ProximitySensor_get_field_count(node, 0);
+	case TAG_X3D_ReceiverPdu:return ReceiverPdu_get_field_count(node, 0);
 	case TAG_X3D_Rectangle2D:return Rectangle2D_get_field_count(node, 0);
 	case TAG_X3D_ScalarInterpolator:return ScalarInterpolator_get_field_count(node, 0);
 	case TAG_X3D_Script:return Script_get_field_count(node, 0);
 	case TAG_X3D_Shape:return Shape_get_field_count(node, 0);
+	case TAG_X3D_SignalPdu:return SignalPdu_get_field_count(node, 0);
 	case TAG_X3D_Sound:return Sound_get_field_count(node, 0);
 	case TAG_X3D_Sphere:return Sphere_get_field_count(node, 0);
 	case TAG_X3D_SphereSensor:return SphereSensor_get_field_count(node, 0);
@@ -9958,6 +14819,7 @@ u32 gf_sg_x3d_node_get_field_count(GF_Node *node)
 	case TAG_X3D_TimeTrigger:return TimeTrigger_get_field_count(node, 0);
 	case TAG_X3D_TouchSensor:return TouchSensor_get_field_count(node, 0);
 	case TAG_X3D_Transform:return Transform_get_field_count(node, 0);
+	case TAG_X3D_TransmitterPdu:return TransmitterPdu_get_field_count(node, 0);
 	case TAG_X3D_TriangleFanSet:return TriangleFanSet_get_field_count(node, 0);
 	case TAG_X3D_TriangleSet:return TriangleSet_get_field_count(node, 0);
 	case TAG_X3D_TriangleSet2D:return TriangleSet2D_get_field_count(node, 0);
@@ -10003,11 +14865,26 @@ GF_Err gf_sg_x3d_node_get_field(GF_Node *node, GF_FieldInfo *field)
 	case TAG_X3D_DirectionalLight: return DirectionalLight_get_field(node, field);
 	case TAG_X3D_Disk2D: return Disk2D_get_field(node, field);
 	case TAG_X3D_ElevationGrid: return ElevationGrid_get_field(node, field);
+	case TAG_X3D_EspduTransform: return EspduTransform_get_field(node, field);
 	case TAG_X3D_Extrusion: return Extrusion_get_field(node, field);
 	case TAG_X3D_FillProperties: return FillProperties_get_field(node, field);
 	case TAG_X3D_Fog: return Fog_get_field(node, field);
 	case TAG_X3D_FontStyle: return FontStyle_get_field(node, field);
+	case TAG_X3D_GeoCoordinate: return GeoCoordinate_get_field(node, field);
+	case TAG_X3D_GeoElevationGrid: return GeoElevationGrid_get_field(node, field);
+	case TAG_X3D_GeoLocation: return GeoLocation_get_field(node, field);
+	case TAG_X3D_GeoLOD: return GeoLOD_get_field(node, field);
+	case TAG_X3D_GeoMetadata: return GeoMetadata_get_field(node, field);
+	case TAG_X3D_GeoOrigin: return GeoOrigin_get_field(node, field);
+	case TAG_X3D_GeoPositionInterpolator: return GeoPositionInterpolator_get_field(node, field);
+	case TAG_X3D_GeoTouchSensor: return GeoTouchSensor_get_field(node, field);
+	case TAG_X3D_GeoViewpoint: return GeoViewpoint_get_field(node, field);
 	case TAG_X3D_Group: return Group_get_field(node, field);
+	case TAG_X3D_HAnimDisplacer: return HAnimDisplacer_get_field(node, field);
+	case TAG_X3D_HAnimHumanoid: return HAnimHumanoid_get_field(node, field);
+	case TAG_X3D_HAnimJoint: return HAnimJoint_get_field(node, field);
+	case TAG_X3D_HAnimSegment: return HAnimSegment_get_field(node, field);
+	case TAG_X3D_HAnimSite: return HAnimSite_get_field(node, field);
 	case TAG_X3D_ImageTexture: return ImageTexture_get_field(node, field);
 	case TAG_X3D_IndexedFaceSet: return IndexedFaceSet_get_field(node, field);
 	case TAG_X3D_IndexedLineSet: return IndexedLineSet_get_field(node, field);
@@ -10020,6 +14897,7 @@ GF_Err gf_sg_x3d_node_get_field(GF_Node *node, GF_FieldInfo *field)
 	case TAG_X3D_KeySensor: return KeySensor_get_field(node, field);
 	case TAG_X3D_LineProperties: return LineProperties_get_field(node, field);
 	case TAG_X3D_LineSet: return LineSet_get_field(node, field);
+	case TAG_X3D_LoadSensor: return LoadSensor_get_field(node, field);
 	case TAG_X3D_LOD: return LOD_get_field(node, field);
 	case TAG_X3D_Material: return Material_get_field(node, field);
 	case TAG_X3D_MetadataDouble: return MetadataDouble_get_field(node, field);
@@ -10034,6 +14912,17 @@ GF_Err gf_sg_x3d_node_get_field(GF_Node *node, GF_FieldInfo *field)
 	case TAG_X3D_NavigationInfo: return NavigationInfo_get_field(node, field);
 	case TAG_X3D_Normal: return Normal_get_field(node, field);
 	case TAG_X3D_NormalInterpolator: return NormalInterpolator_get_field(node, field);
+	case TAG_X3D_NurbsCurve: return NurbsCurve_get_field(node, field);
+	case TAG_X3D_NurbsCurve2D: return NurbsCurve2D_get_field(node, field);
+	case TAG_X3D_NurbsOrientationInterpolator: return NurbsOrientationInterpolator_get_field(node, field);
+	case TAG_X3D_NurbsPatchSurface: return NurbsPatchSurface_get_field(node, field);
+	case TAG_X3D_NurbsPositionInterpolator: return NurbsPositionInterpolator_get_field(node, field);
+	case TAG_X3D_NurbsSet: return NurbsSet_get_field(node, field);
+	case TAG_X3D_NurbsSurfaceInterpolator: return NurbsSurfaceInterpolator_get_field(node, field);
+	case TAG_X3D_NurbsSweptSurface: return NurbsSweptSurface_get_field(node, field);
+	case TAG_X3D_NurbsSwungSurface: return NurbsSwungSurface_get_field(node, field);
+	case TAG_X3D_NurbsTextureCoordinate: return NurbsTextureCoordinate_get_field(node, field);
+	case TAG_X3D_NurbsTrimmedSurface: return NurbsTrimmedSurface_get_field(node, field);
 	case TAG_X3D_OrientationInterpolator: return OrientationInterpolator_get_field(node, field);
 	case TAG_X3D_PixelTexture: return PixelTexture_get_field(node, field);
 	case TAG_X3D_PlaneSensor: return PlaneSensor_get_field(node, field);
@@ -10044,10 +14933,12 @@ GF_Err gf_sg_x3d_node_get_field(GF_Node *node, GF_FieldInfo *field)
 	case TAG_X3D_PositionInterpolator: return PositionInterpolator_get_field(node, field);
 	case TAG_X3D_PositionInterpolator2D: return PositionInterpolator2D_get_field(node, field);
 	case TAG_X3D_ProximitySensor: return ProximitySensor_get_field(node, field);
+	case TAG_X3D_ReceiverPdu: return ReceiverPdu_get_field(node, field);
 	case TAG_X3D_Rectangle2D: return Rectangle2D_get_field(node, field);
 	case TAG_X3D_ScalarInterpolator: return ScalarInterpolator_get_field(node, field);
 	case TAG_X3D_Script: return Script_get_field(node, field);
 	case TAG_X3D_Shape: return Shape_get_field(node, field);
+	case TAG_X3D_SignalPdu: return SignalPdu_get_field(node, field);
 	case TAG_X3D_Sound: return Sound_get_field(node, field);
 	case TAG_X3D_Sphere: return Sphere_get_field(node, field);
 	case TAG_X3D_SphereSensor: return SphereSensor_get_field(node, field);
@@ -10064,6 +14955,7 @@ GF_Err gf_sg_x3d_node_get_field(GF_Node *node, GF_FieldInfo *field)
 	case TAG_X3D_TimeTrigger: return TimeTrigger_get_field(node, field);
 	case TAG_X3D_TouchSensor: return TouchSensor_get_field(node, field);
 	case TAG_X3D_Transform: return Transform_get_field(node, field);
+	case TAG_X3D_TransmitterPdu: return TransmitterPdu_get_field(node, field);
 	case TAG_X3D_TriangleFanSet: return TriangleFanSet_get_field(node, field);
 	case TAG_X3D_TriangleSet: return TriangleSet_get_field(node, field);
 	case TAG_X3D_TriangleSet2D: return TriangleSet2D_get_field(node, field);
@@ -10113,11 +15005,26 @@ u32 gf_node_x3d_type_by_class_name(const char *node_name)
 	if (!strcmp(node_name, "DirectionalLight")) return TAG_X3D_DirectionalLight;
 	if (!strcmp(node_name, "Disk2D")) return TAG_X3D_Disk2D;
 	if (!strcmp(node_name, "ElevationGrid")) return TAG_X3D_ElevationGrid;
+	if (!strcmp(node_name, "EspduTransform")) return TAG_X3D_EspduTransform;
 	if (!strcmp(node_name, "Extrusion")) return TAG_X3D_Extrusion;
 	if (!strcmp(node_name, "FillProperties")) return TAG_X3D_FillProperties;
 	if (!strcmp(node_name, "Fog")) return TAG_X3D_Fog;
 	if (!strcmp(node_name, "FontStyle")) return TAG_X3D_FontStyle;
+	if (!strcmp(node_name, "GeoCoordinate")) return TAG_X3D_GeoCoordinate;
+	if (!strcmp(node_name, "GeoElevationGrid")) return TAG_X3D_GeoElevationGrid;
+	if (!strcmp(node_name, "GeoLocation")) return TAG_X3D_GeoLocation;
+	if (!strcmp(node_name, "GeoLOD")) return TAG_X3D_GeoLOD;
+	if (!strcmp(node_name, "GeoMetadata")) return TAG_X3D_GeoMetadata;
+	if (!strcmp(node_name, "GeoOrigin")) return TAG_X3D_GeoOrigin;
+	if (!strcmp(node_name, "GeoPositionInterpolator")) return TAG_X3D_GeoPositionInterpolator;
+	if (!strcmp(node_name, "GeoTouchSensor")) return TAG_X3D_GeoTouchSensor;
+	if (!strcmp(node_name, "GeoViewpoint")) return TAG_X3D_GeoViewpoint;
 	if (!strcmp(node_name, "Group")) return TAG_X3D_Group;
+	if (!strcmp(node_name, "HAnimDisplacer")) return TAG_X3D_HAnimDisplacer;
+	if (!strcmp(node_name, "HAnimHumanoid")) return TAG_X3D_HAnimHumanoid;
+	if (!strcmp(node_name, "HAnimJoint")) return TAG_X3D_HAnimJoint;
+	if (!strcmp(node_name, "HAnimSegment")) return TAG_X3D_HAnimSegment;
+	if (!strcmp(node_name, "HAnimSite")) return TAG_X3D_HAnimSite;
 	if (!strcmp(node_name, "ImageTexture")) return TAG_X3D_ImageTexture;
 	if (!strcmp(node_name, "IndexedFaceSet")) return TAG_X3D_IndexedFaceSet;
 	if (!strcmp(node_name, "IndexedLineSet")) return TAG_X3D_IndexedLineSet;
@@ -10130,6 +15037,7 @@ u32 gf_node_x3d_type_by_class_name(const char *node_name)
 	if (!strcmp(node_name, "KeySensor")) return TAG_X3D_KeySensor;
 	if (!strcmp(node_name, "LineProperties")) return TAG_X3D_LineProperties;
 	if (!strcmp(node_name, "LineSet")) return TAG_X3D_LineSet;
+	if (!strcmp(node_name, "LoadSensor")) return TAG_X3D_LoadSensor;
 	if (!strcmp(node_name, "LOD")) return TAG_X3D_LOD;
 	if (!strcmp(node_name, "Material")) return TAG_X3D_Material;
 	if (!strcmp(node_name, "MetadataDouble")) return TAG_X3D_MetadataDouble;
@@ -10144,6 +15052,17 @@ u32 gf_node_x3d_type_by_class_name(const char *node_name)
 	if (!strcmp(node_name, "NavigationInfo")) return TAG_X3D_NavigationInfo;
 	if (!strcmp(node_name, "Normal")) return TAG_X3D_Normal;
 	if (!strcmp(node_name, "NormalInterpolator")) return TAG_X3D_NormalInterpolator;
+	if (!strcmp(node_name, "NurbsCurve")) return TAG_X3D_NurbsCurve;
+	if (!strcmp(node_name, "NurbsCurve2D")) return TAG_X3D_NurbsCurve2D;
+	if (!strcmp(node_name, "NurbsOrientationInterpolator")) return TAG_X3D_NurbsOrientationInterpolator;
+	if (!strcmp(node_name, "NurbsPatchSurface")) return TAG_X3D_NurbsPatchSurface;
+	if (!strcmp(node_name, "NurbsPositionInterpolator")) return TAG_X3D_NurbsPositionInterpolator;
+	if (!strcmp(node_name, "NurbsSet")) return TAG_X3D_NurbsSet;
+	if (!strcmp(node_name, "NurbsSurfaceInterpolator")) return TAG_X3D_NurbsSurfaceInterpolator;
+	if (!strcmp(node_name, "NurbsSweptSurface")) return TAG_X3D_NurbsSweptSurface;
+	if (!strcmp(node_name, "NurbsSwungSurface")) return TAG_X3D_NurbsSwungSurface;
+	if (!strcmp(node_name, "NurbsTextureCoordinate")) return TAG_X3D_NurbsTextureCoordinate;
+	if (!strcmp(node_name, "NurbsTrimmedSurface")) return TAG_X3D_NurbsTrimmedSurface;
 	if (!strcmp(node_name, "OrientationInterpolator")) return TAG_X3D_OrientationInterpolator;
 	if (!strcmp(node_name, "PixelTexture")) return TAG_X3D_PixelTexture;
 	if (!strcmp(node_name, "PlaneSensor")) return TAG_X3D_PlaneSensor;
@@ -10154,10 +15073,12 @@ u32 gf_node_x3d_type_by_class_name(const char *node_name)
 	if (!strcmp(node_name, "PositionInterpolator")) return TAG_X3D_PositionInterpolator;
 	if (!strcmp(node_name, "PositionInterpolator2D")) return TAG_X3D_PositionInterpolator2D;
 	if (!strcmp(node_name, "ProximitySensor")) return TAG_X3D_ProximitySensor;
+	if (!strcmp(node_name, "ReceiverPdu")) return TAG_X3D_ReceiverPdu;
 	if (!strcmp(node_name, "Rectangle2D")) return TAG_X3D_Rectangle2D;
 	if (!strcmp(node_name, "ScalarInterpolator")) return TAG_X3D_ScalarInterpolator;
 	if (!strcmp(node_name, "Script")) return TAG_X3D_Script;
 	if (!strcmp(node_name, "Shape")) return TAG_X3D_Shape;
+	if (!strcmp(node_name, "SignalPdu")) return TAG_X3D_SignalPdu;
 	if (!strcmp(node_name, "Sound")) return TAG_X3D_Sound;
 	if (!strcmp(node_name, "Sphere")) return TAG_X3D_Sphere;
 	if (!strcmp(node_name, "SphereSensor")) return TAG_X3D_SphereSensor;
@@ -10174,6 +15095,7 @@ u32 gf_node_x3d_type_by_class_name(const char *node_name)
 	if (!strcmp(node_name, "TimeTrigger")) return TAG_X3D_TimeTrigger;
 	if (!strcmp(node_name, "TouchSensor")) return TAG_X3D_TouchSensor;
 	if (!strcmp(node_name, "Transform")) return TAG_X3D_Transform;
+	if (!strcmp(node_name, "TransmitterPdu")) return TAG_X3D_TransmitterPdu;
 	if (!strcmp(node_name, "TriangleFanSet")) return TAG_X3D_TriangleFanSet;
 	if (!strcmp(node_name, "TriangleSet")) return TAG_X3D_TriangleSet;
 	if (!strcmp(node_name, "TriangleSet2D")) return TAG_X3D_TriangleSet2D;

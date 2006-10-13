@@ -236,14 +236,14 @@ xmlChar *svg_expand_entities(SVGParser	*parser, xmlChar *originalStyle)
 						entity_len = j - i -1;
 						if (entity_len)
 						{
-							GF_SAFEALLOC(value_string, entity_len+1);
+							value_string = (char *) malloc(sizeof(char) * (entity_len+1));
 							memcpy(value_string, str+i+1, entity_len);
 							value_string[entity_len] = 0;
 							ent = svg_get_entity(parser, value_string);
 							if (ent)
 							{
 								newlen = strlen(ent->content);
-								GF_SAFEALLOC(newStyle, len+newlen-entity_len);
+								newStyle = (char *) malloc(sizeof(char) * (len+newlen-entity_len));
 								memcpy(newStyle, style, i);
 								memcpy(newStyle+i, ent->content, newlen);
 								memcpy(newStyle+i+newlen, style+i+entity_len+1, len-i-entity_len-1);
@@ -841,7 +841,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 				{
 					s32	position;
 
-					GF_SAFEALLOC(de,sizeof(defered_element))
+					GF_SAFEALLOC(de, defered_element)
 
 					// de->node = node; we need to save some attributes for future parsing
 					// and not parse these attributes below
@@ -1006,7 +1006,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 SVGParser *NewSVGParser()
 {
 	SVGParser *tmp;
-	GF_SAFEALLOC(tmp, sizeof(SVGParser));
+	GF_SAFEALLOC(tmp, SVGParser);
 	return tmp;
 }
 
@@ -1114,7 +1114,7 @@ GF_Err SVGParser_ParseFullDoc(SVGParser *parser)
 
 static void SVGParser_InitSaxHandler(SVGParser *parser)
 {
-	GF_SAFEALLOC(parser->sax_handler, sizeof(xmlSAXHandler))
+	GF_SAFEALLOC(parser->sax_handler, xmlSAXHandler)
 	parser->sax_handler->startDocument	= svg_start_document;
 	parser->sax_handler->endDocument	= svg_end_document;
 	parser->sax_handler->characters		= svg_characters;

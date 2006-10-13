@@ -332,7 +332,7 @@ static void SetWindowless(GF_VideoOutput *vout, HWND hWnd)
 	sscanf(opt, "%02X%02X%02X%02X", &a, &r, &g, &b);
 	ckey = RGB(r, g, b);
 	if (a<255)
-		_SetLayeredWindowAttributes(hWnd, ckey, a, LWA_COLORKEY|LWA_ALPHA);
+		_SetLayeredWindowAttributes(hWnd, ckey, (u8) a, LWA_COLORKEY|LWA_ALPHA);
 	else
 		_SetLayeredWindowAttributes(hWnd, ckey, 0, LWA_COLORKEY);
 

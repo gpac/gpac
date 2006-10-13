@@ -39,26 +39,21 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 	
 	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "RTPoverRTSP");
 	if (sOpt && !stricmp(sOpt, "yes")) {
-		rtp->rtp_mode = 1;
-		/*HTTP tunnel*/
-		if ((rtp->default_port==80) || (rtp->default_port==8080)) rtp->rtp_mode = 2;
+		rtp->transport_mode = 1;
+	} else if (sOpt && !stricmp(sOpt, "OnlyCritical")) {
+		rtp->transport_mode = 2;
 	} else {
-		rtp->rtp_mode = 0;
+		rtp->transport_mode = 0;
 	}
-
-	if (rtp->default_mcast_ifce) free(rtp->default_mcast_ifce);
-	rtp->default_mcast_ifce = NULL;
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "DefaultMCastInterface");
-	if (sOpt) rtp->default_mcast_ifce = strdup(sOpt);
 
 	/*
 		get heneral network config for UDP
 	*/
 	/*if UDP not available don't try it*/
 	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "UDPNotAvailable");
-	if (!rtp->rtp_mode && sOpt && !stricmp(sOpt, "yes")) rtp->rtp_mode = 1;
+	if (!rtp->transport_mode && sOpt && !stricmp(sOpt, "yes")) rtp->transport_mode = 1;
 	
-	if (!rtp->rtp_mode) {
+	if (!rtp->transport_mode) {
 		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "UDPTimeout");
 		if (sOpt ) {
 			rtp->udp_time_out = atoi(sOpt);
@@ -66,24 +61,7 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 			rtp->udp_time_out = 10000;
 		}
 	}
-
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "BufferLength");
-	if (sOpt) {
-		rtp->buffer_len_ms = atoi(sOpt);
-	} else {
-		rtp->buffer_len_ms = 1000;
-	}
-	rtp->rebuffer_len_ms = 0;
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "RebufferLength");
-	if (sOpt) rtp->rebuffer_len_ms = atoi(sOpt);
 	
-	rtp->reorder_size = 0;
-	if (!rtp->rtp_mode) {
-		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "ReorderSize");
-		if (sOpt) rtp->reorder_size = atoi(sOpt);
-	}
-	if (!rtp->reorder_size) rtp->reorder_size = 10;
-
 	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "RTSPTimeout");
 	if (sOpt ) {
 		rtp->time_out = atoi(sOpt);
@@ -104,30 +82,25 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 	} else {
 		rtp->frequency_drop = 0;
 	}
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "DisableRTCP");
-	rtp->disable_rtcp = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "ForceClientPorts");
-	rtp->force_client_ports = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
-
-	rtp->handle_announce = 0;
-	rtp->bandwidth = 10000000;
+//	rtp->handle_announce = 0;
 }
 
-static void RP_close_service_thread(RTPClient *rtp)
+static void RP_cleanup(RTPClient *rtp)
 {
-	gf_mx_p(rtp->mx);
+	RTSPSession *sess;
 
 	while (gf_list_count(rtp->channels)) {
 		RTPStream *ch = gf_list_get(rtp->channels, 0);
 		gf_list_rem(rtp->channels, 0);
 		RP_DeleteStream(ch);
 	}
-	if (rtp->rtsp_session) 
-		RP_RemoveSession(rtp->rtsp_session, 1);
 
-	rtp->rtsp_session = NULL;
-	
+	while ( (sess = gf_list_last(rtp->sessions)) ) {
+		gf_list_rem_last(rtp->sessions);
+		RP_RemoveSession(sess, 1);
+	}
+
 	if (rtp->session_desc) gf_odf_desc_del(rtp->session_desc);
 	rtp->session_desc = NULL;
 
@@ -136,6 +109,14 @@ static void RP_close_service_thread(RTPClient *rtp)
 		free(rtp->sdp_temp);
 	}
 	rtp->sdp_temp = NULL;
+}
+
+static void RP_close_service_thread(RTPClient *rtp)
+{
+	gf_mx_p(rtp->mx);
+
+	RP_cleanup(rtp);
+
 	gf_term_on_disconnect(rtp->service, NULL, GF_OK);
 
 	gf_mx_v(rtp->mx);
@@ -143,43 +124,48 @@ static void RP_close_service_thread(RTPClient *rtp)
 
 u32 RP_Thread(void *param)
 {
-	u32 i, nb_inter;
+	u32 i;
 	GF_NetworkCommand com;
+	RTSPSession *sess;
 	RTPStream *ch;
 	RTPClient *rtp = param;
 
-	rtp->status = 1;
+	rtp->th_state = 1;
 	com.command_type = GF_NET_CHAN_BUFFER_QUERY;
-	while (rtp->status) {
+	while (rtp->th_state) {
 		gf_mx_p(rtp->mx);
 
 		/*fecth data on udp*/
-		nb_inter = 0;
 		i=0;
 		while ((ch = gf_list_enum(rtp->channels, &i))) {
-			if ((ch->flags & CH_EOS) || (ch->status!=RTP_Running) ) continue;
+			if ((ch->flags & RTP_EOS) || (ch->status!=RTP_Running) ) continue;
 			/*for interleaved channels don't read too fast, query the buffer occupancy*/
-			if (ch->flags & CH_IsInterleaved) {
+			if (ch->flags & RTP_INTERLEAVED) {
 				com.base.on_channel = ch->channel;
 				gf_term_on_command(rtp->service, &com, GF_OK);
 				/*if no buffering, use a default value (3 sec of data should do it)*/
 				if (!com.buffer.max) com.buffer.max = 3000;
-				if (com.buffer.occupancy <= com.buffer.max) nb_inter++;
+				if (com.buffer.occupancy <= com.buffer.max) ch->rtsp->flags |= RTSP_TCP_FLUSH;
 			} else {
 				RP_ReadStream(ch);
 			}
 		}
-		gf_mx_v(rtp->mx);
 		
 		/*and process commands / flush TCP*/
-		if (rtp->rtsp_session) RP_ProcessCommands(rtp->rtsp_session, nb_inter);
+		i=0;
+		while ((sess = gf_list_enum(rtp->sessions, &i))) {
+			RP_ProcessCommands(sess);
+		}
+
+		gf_mx_v(rtp->mx);
+
 		gf_sleep(1);
 	}
 
 	if (rtp->dnload) gf_term_download_del(rtp->dnload);
 	rtp->dnload = NULL;
 
-	rtp->status = 2;
+	rtp->th_state = 2;
 	return 0;
 }
 
@@ -205,7 +191,7 @@ static Bool RP_CanHandleURL(GF_InputService *plug, const char *url)
 
 static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
-	RTPSession *sess;
+	RTSPSession *sess;
 	RTPClient *priv = plug->priv;
 
 	/*store user address*/
@@ -255,7 +241,7 @@ static GF_Err RP_CloseService(GF_InputService *plug)
 {
 	RTPClient *rtp = plug->priv;
 	RP_close_service_thread(rtp);
-	if (rtp->status==1) rtp->status = 0;
+	if (rtp->th_state==1) rtp->th_state = 0;
 	return GF_OK;
 }
 
@@ -281,7 +267,7 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 {
 	u32 ESID;
 	RTPStream *ch;
-	RTPSession *sess;
+	RTSPSession *sess;
 	char *es_url;
 	RTPClient *priv = plug->priv;
 	if (upstream) return GF_NOT_SUPPORTED;
@@ -376,21 +362,30 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_INTERACTIVE:
 		/*looks like pure RTP / multicast etc, not interactive*/
 		if (!ch->control) return GF_NOT_SUPPORTED;
-		else if (ch->flags & CH_HasRange) return GF_OK;
+		/*emulated broadcast mode*/
+		else if (ch->flags & RTP_FORCE_BROADCAST) return GF_NOT_SUPPORTED;
+		/*regular rtsp mode*/
+		else if (ch->flags & RTP_HAS_RANGE) return GF_OK;
 		/*embedded data*/
 		else if (strstr(ch->control, "application")) return GF_OK;
 		return GF_NOT_SUPPORTED;
 	case GF_NET_CHAN_BUFFER:
 		if (!(ch->rtp_ch || ch->rtsp || !ch->control)) {
-		  com->buffer.max = com->buffer.min = 0;
+			com->buffer.max = com->buffer.min = 0;
 		} else {
-		  com->buffer.max = priv->buffer_len_ms;
-		  com->buffer.min = priv->rebuffer_len_ms;
-		  if (priv->rebuffer_len_ms>=priv->buffer_len_ms) com->buffer.min = 0;
+			const char *opt;
+			/*amount of buffering in ms*/
+			opt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "BufferLength");
+			com->buffer.max = opt ? atoi(opt) : 1000;
+			/*rebuffer low limit in ms - if the amount of buffering is less than this, rebuffering will never occur*/
+			opt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "RebufferLength");
+			if (opt) com->buffer.min = atoi(opt);
+			else com->buffer.min = 500;
+			if (com->buffer.min >= com->buffer.max ) com->buffer.min = 0;
 		}
 		return GF_OK;
 	case GF_NET_CHAN_DURATION:
-		com->duration.duration = (ch->flags & CH_HasRange) ? (ch->range_end - ch->range_start) : 0;
+		com->duration.duration = (ch->flags & RTP_HAS_RANGE) ? (ch->range_end - ch->range_start) : 0;
 		return GF_OK;
 	/*RTP channel config is done upon connection, once the complete SL mapping is known
 	however we must store some info not carried in SDP*/
@@ -402,7 +397,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 	case GF_NET_CHAN_PLAY:
 		/*is this RTSP or direct RTP?*/
-		ch->flags &= ~CH_EOS;
+		ch->flags &= ~RTP_EOS;
 		if (ch->rtsp) {
 			RP_UserCommand(ch->rtsp, ch, com);
 		} else {
@@ -416,7 +411,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			} else {
 				/*direct channel, store current start*/
 				ch->current_start = com->play.start_range;
-				ch->flags |= CH_NewAU;
+				ch->flags |= RTP_NEW_AU;
 			}
 		}
 		return GF_OK;
@@ -453,7 +448,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			u32 time;
 			Float bps;
 			com->net_stats.pck_loss_percentage = gf_rtp_get_loss(ch->rtp_ch);
-			if (ch->flags & CH_IsInterleaved) {
+			if (ch->flags & RTP_INTERLEAVED) {
 				com->net_stats.multiplex_port = gf_rtsp_get_session_port(ch->rtsp->session);
 				com->net_stats.port = gf_rtp_get_low_interleave_id(ch->rtp_ch);
 				com->net_stats.ctrl_port = gf_rtp_get_hight_interleave_id(ch->rtp_ch);
@@ -497,7 +492,7 @@ static GF_Err RP_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char
 		out_sl_hdr->compositionTimeStampFlag = 1;
 		out_sl_hdr->randomAccessPointFlag = 1;
 		*out_reception_status = GF_OK;
-		*is_new_data = (ch->flags & CH_NewAU) ? 1 : 0;
+		*is_new_data = (ch->flags & RTP_NEW_AU) ? 1 : 0;
 
 		/*decode data*/
 		data = strstr(data, ",");
@@ -505,12 +500,12 @@ static GF_Err RP_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char
 		*out_data_size = gf_base64_decode(data, strlen(data), ch->buffer, RTP_BUFFER_SIZE);
 		/*FIXME - currently only support for empty SL header*/
 		*out_data_ptr = ch->buffer;
-		ch->flags &= ~CH_NewAU;
+		ch->flags &= ~RTP_NEW_AU;
 	} else {
 		*out_data_ptr = NULL;
 		*out_data_size = 0;
 		*out_reception_status = GF_EOS;
-		ch->flags |= CH_EOS;
+		ch->flags |= RTP_EOS;
 	}
 	return GF_OK;
 }
@@ -532,7 +527,7 @@ static GF_Err RP_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 
 static Bool RP_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
-	RTPSession *sess;
+	RTSPSession *sess;
 	RTPClient *priv = plug->priv;
 
 	if (strstr(url, "data:application/mpeg4-od-au;base64") 
@@ -552,7 +547,7 @@ GF_InputService *RTP_Load()
 {
 	RTPClient *priv;
 	GF_InputService *plug;
-	GF_SAFEALLOC(plug, sizeof(GF_InputService));
+	GF_SAFEALLOC(plug, GF_InputService);
 
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC RTP/RTSP Client", "gpac distribution")
 
@@ -571,14 +566,12 @@ GF_InputService *RTP_Load()
 
 	priv = malloc(sizeof(RTPClient));
 	memset(priv, 0, sizeof(RTPClient));
+	priv->sessions = gf_list_new();
 	priv->channels = gf_list_new();
 
 	plug->priv = priv;
 	
 	priv->time_out = 30000;
-	priv->buffer_len_ms = 5000;
-	priv->rebuffer_len_ms = 500;
-
 	priv->mx = gf_mx_new();
 	priv->th = gf_th_new();
 	
@@ -593,30 +586,17 @@ void RTP_Delete(GF_BaseInterface *bi)
 	priv = plug->priv;
 
 	retry = 20;
-	while ((priv->status==1) && retry) {
+	while ((priv->th_state==1) && retry) {
 		gf_sleep(10);
 		retry--;
 	}
 	assert(retry);
 
-	/*delete all streams*/
-	while (gf_list_count(priv->channels)) {
-		RTPStream *ch = gf_list_get(priv->channels, 0);
-		gf_list_rem(priv->channels, 0);
-		RP_DeleteStream(ch);
-	}
-
-	if (priv->rtsp_session) RP_RemoveSession(priv->rtsp_session, 1);
-	if (priv->session_desc) gf_odf_desc_del(priv->session_desc);
-	priv->session_desc = NULL;
-	if (priv->sdp_temp) {
-		free(priv->sdp_temp->remote_url);
-		free(priv->sdp_temp);
-	}
-	gf_list_del(priv->channels);
+	RP_cleanup(priv);
 	gf_th_del(priv->th);
 	gf_mx_del(priv->mx);
-	if (priv->default_mcast_ifce) free(priv->default_mcast_ifce);
+	gf_list_del(priv->sessions);
+	gf_list_del(priv->channels);
 	free(priv);
 	free(bi);
 }

@@ -49,7 +49,7 @@ void effect3d_reset(RenderEffect3D *eff)
 RenderEffect3D *effect3d_new()
 {
 	RenderEffect3D *eff;
-	GF_SAFEALLOC(eff, sizeof(RenderEffect3D));
+	GF_SAFEALLOC(eff, RenderEffect3D);
 	eff->sensors = gf_list_new();
 	eff->local_lights = gf_list_new();
 	return eff;
@@ -635,7 +635,7 @@ GF_Err R3D_SetViewpoint(GF_VisualRenderer *vr, u32 viewpoint_idx, const char *vi
 
 
 /*render inline scene*/
-void R3D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_root, void *rs)
+void R3D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_parent, GF_Node *inline_root, void *rs)
 {
 	Bool use_pm;
 	u32 h, w;

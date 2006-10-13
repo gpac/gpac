@@ -312,7 +312,7 @@ GF_Err gp_rtp_builder_do_h264(GP_RTPPacketizer *builder, char *data, u32 data_si
 		builder->rtp_header.SequenceNumber += 1;
 		builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
 		
-		bs = gf_bs_new(hdr, 2, GF_BITSTREAM_WRITE);
+		bs = gf_bs_new((unsigned char *) hdr, 2, GF_BITSTREAM_WRITE);
 		gf_bs_write_int(bs, 0, 5);
 		gf_bs_write_int(bs, Pbit, 1);
 		gf_bs_write_int(bs, 0, 10);
@@ -388,7 +388,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 		gf_bs_write_u16(bs, txt_size);
 		gf_bs_get_content(bs, &hdr, &hdr_size);
 		gf_bs_del(bs);
-		builder->OnData(builder->cbk_obj, hdr, hdr_size, 0);
+		builder->OnData(builder->cbk_obj, (char *) hdr, hdr_size, 0);
 		builder->bytesInPacket += hdr_size;
 		free(hdr);
 		
@@ -456,7 +456,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 		gf_bs_write_u16(bs, samp_size);
 		gf_bs_get_content(bs, &hdr, &hdr_size);
 		gf_bs_del(bs);
-		builder->OnData(builder->cbk_obj, hdr, hdr_size, 0);
+		builder->OnData(builder->cbk_obj, (char *) hdr, hdr_size, 0);
 		builder->bytesInPacket += hdr_size;
 		free(hdr);
 	
@@ -510,7 +510,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 
 		gf_bs_get_content(bs, &hdr, &hdr_size);
 		gf_bs_del(bs);
-		builder->OnData(builder->cbk_obj, hdr, hdr_size, 0);
+		builder->OnData(builder->cbk_obj, (char *) hdr, hdr_size, 0);
 		builder->bytesInPacket += hdr_size;
 		free(hdr);
 

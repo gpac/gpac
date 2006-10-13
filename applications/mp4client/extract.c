@@ -230,16 +230,16 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 					break;
 				case GF_PIXEL_RGB_565:
 					src_16 = * ( (u16 *)src );
-					dst[2] = (src_16 >> 8) & 0xf8;
-					dst[1] = (src_16 >> 3) & 0xfc;
-					dst[0] = (src_16 << 3) & 0xf8;
+					dst[2] = colmask(src_16 >> 8/*(11 - 3)*/, 3);
+					dst[1] = colmask(src_16 >> 3/*(5 - 2)*/, 2);
+					dst[0] = colmask(src_16 << 3, 3);
 					src+=2;
 					break;
 				case GF_PIXEL_RGB_555:
 					src_16 = * (u16 *)src;
-					dst[2] = (src_16 >> 7) & 0xf8;
-					dst[1] = (src_16 >> 2) & 0xf8;
-					dst[0] = (src_16 << 3) & 0xf8;
+					dst[2] = colmask(src_16 >> 7/*(10 - 3)*/, 3);
+					dst[1] = colmask(src_16 >> 2/*(5 - 3)*/, 3);
+					dst[0] = colmask(src_16 << 3, 3);
 					src+=2;
 					break;
 				}

@@ -41,6 +41,10 @@
 #include <gpac/modules/video_out.h>
 #include <gpac/modules/audio_out.h>
 
+/*SVG properties*/
+#ifndef GPAC_DISABLE_SVG
+#include <gpac/scenegraph_svg.h>
+#endif
 
 #ifdef DANAE
 void *getDanaeMediaOjbectFromUrl(void *session, char *url, int dmo_type);
@@ -92,9 +96,6 @@ struct __tag_base_renderer
 	/*extra scene graphs (OSD, etc), always registered in draw order. That's the module responsability
 	to draw them*/
 	GF_List *extra_scenes;
-
-	/* These scenes are not drawn but need to be traverse for timing */
-	GF_List *secondary_scenes;
 	
 	/*all time nodes registered*/
 	GF_List *time_nodes;
@@ -329,7 +330,7 @@ struct visual_render_module
 	/*signals the hw driver has been reseted to reload cfg*/	
 	void (*GraphicsReset)(GF_VisualRenderer *vr);
 	/*render inline scene*/
-	void (*RenderInline)(GF_VisualRenderer *vr, GF_Node *inline_root, void *rs);
+	void (*RenderInline)(GF_VisualRenderer *vr, GF_Node *inline_parent, GF_Node *inline_root, void *rs);
 	/*get viewpoints/viewports for main scene - idx is 1-based, or 0 to retrieve by viewpoint name.
 	if idx is greater than number of viewpoints return GF_EOS*/
 	GF_Err (*GetViewpoint)(GF_VisualRenderer *vr, u32 viewpoint_idx, const char **outName, Bool *is_bound);
@@ -541,14 +542,28 @@ enum
 /*base class for the traversing context: this is needed so that audio renderer can work without knowledge of
 the used graphics driver. All traversing contexts must derive from this one
 rend_flag (needed for audio): one of the above*/
-#define AUDIO_EFFECT_CLASS	\
+
+#ifdef GPAC_DISABLE_SVG
+
+#define BASE_EFFECT_CLASS	\
 	struct _audio_group *audio_parent;	\
 	GF_SoundInterface *sound_holder;	\
 	u32 trav_flags;	\
 
+#else
+
+#define BASE_EFFECT_CLASS	\
+	struct _audio_group *audio_parent;	\
+	GF_SoundInterface *sound_holder;	\
+	u32 trav_flags;	\
+	SVGPropertiesPointers *svg_props;	\
+
+#endif
+
+
 typedef struct 
 {
-	AUDIO_EFFECT_CLASS	
+	BASE_EFFECT_CLASS	
 } GF_BaseEffect;
 
 
@@ -556,8 +571,11 @@ typedef struct
 void gf_sr_audio_register(GF_AudioInput *ai, GF_BaseEffect *eff);
 void gf_sr_audio_unregister(GF_AudioInput *ai);
 
-/*add secondary scene graph for SVG resource documents*/
-void gf_sr_add_secondary_scene(GF_Renderer *sr, GF_SceneGraph *scene, Bool remove);
+
+#ifndef GPAC_DISABLE_SVG
+Bool gf_term_set_mfurl_from_uri(GF_Terminal *sr, MFURL *mfurl, SVG_IRI *iri);
+#endif
+
 
 #endif	/*_GF_RENDERER_DEV_H_*/
 

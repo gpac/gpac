@@ -45,7 +45,7 @@ static Bool lsr_setup_smil_anim(GF_LASeRCodec *lsr, SVGElement *anim, SVGElement
 GF_LASeRCodec *gf_laser_decoder_new(GF_SceneGraph *graph)
 {
 	GF_LASeRCodec *tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_LASeRCodec));
+	GF_SAFEALLOC(tmp, GF_LASeRCodec);
 	if (!tmp) return NULL;
 	tmp->streamInfo = gf_list_new();
 	tmp->font_table = gf_list_new();
@@ -102,7 +102,7 @@ GF_Err gf_laser_decoder_configure_stream(GF_LASeRCodec *codec, u16 ESID, char *d
 	LASeRStreamInfo *info;
 	GF_BitStream *bs;
 	if (lsr_get_stream(codec, ESID) != NULL) return GF_BAD_PARAM;
-	GF_SAFEALLOC(info, sizeof(LASeRStreamInfo));
+	GF_SAFEALLOC(info, LASeRStreamInfo);
 	info->ESID = ESID;
 	bs = gf_bs_new(dsi, dsi_len, GF_BITSTREAM_READ);
 
@@ -489,7 +489,7 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 		sep = strchr(cur, '\'');
 		if (!sep) {
 			if (is_iri) {
-				GF_SAFEALLOC(iri, sizeof(SVG_IRI));
+				GF_SAFEALLOC(iri, SVG_IRI);
 				iri->iri = strdup(cur);
 				iri->type = SVG_IRI_IRI;
 				gf_list_add(l, iri);
@@ -501,7 +501,7 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 		sep2 = strchr(sep + 1, '\'');
 		if (!sep2) {
 			if (is_iri) {
-				GF_SAFEALLOC(iri, sizeof(SVG_IRI));
+				GF_SAFEALLOC(iri, SVG_IRI);
 				iri->iri = strdup(cur);
 				iri->type = SVG_IRI_IRI;
 				gf_list_add(l, iri);
@@ -512,7 +512,7 @@ static void lsr_read_byte_align_string_list(GF_LASeRCodec *lsr, GF_List *l, cons
 		}
 		sep2[0] = 0;
 		if (is_iri) {
-			GF_SAFEALLOC(iri, sizeof(SVG_IRI));
+			GF_SAFEALLOC(iri, SVG_IRI);
 			iri->iri = strdup(sep+1);
 			iri->type = SVG_IRI_IRI;
 			gf_list_add(l, iri);
@@ -897,7 +897,7 @@ static SMIL_Time *lsr_read_smil_time(GF_LASeRCodec *lsr)
 	SMIL_Time *t;
 	u32 val;
 
-	GF_SAFEALLOC(t, sizeof(SMIL_Time));
+	GF_SAFEALLOC(t, SMIL_Time);
 	t->type = GF_SMIL_TIME_CLOCK;
 
 	GF_LSR_READ_INT(lsr, val, 1, "hasEvent");
@@ -948,7 +948,7 @@ static void lsr_read_smil_times(GF_LASeRCodec *lsr, GF_List *l, const char *name
 	GF_LSR_READ_INT(lsr, val, 1, "choice");
 	if (val) {
 		if (l) {
-			GF_SAFEALLOC(v, sizeof(SMIL_Time));
+			GF_SAFEALLOC(v, SMIL_Time);
 			v->type = GF_SMIL_TIME_INDEFINITE;
 			gf_list_add(l, v);
 		}
@@ -1287,13 +1287,13 @@ static void lsr_translate_anim_value(SMIL_AnimateValue *val, u32 coded_type)
 		SVG_StrokeDashArray *da;
 		GF_List *l = val->value;
 		u32 i;
-		GF_SAFEALLOC(da, sizeof(SVG_StrokeDashArray));
+		GF_SAFEALLOC(da, SVG_StrokeDashArray);
 		da->array.count = gf_list_count(l);
 		if (!da->array.count) {
 			da->type = SVG_STROKEDASHARRAY_INHERIT;
 		} else {
 			da->type = SVG_STROKEDASHARRAY_ARRAY;
-			GF_SAFEALLOC(da->array.vals, sizeof(Fixed)*da->array.count);
+			da->array.vals = (Fixed *) malloc(sizeof(Fixed)*da->array.count);
 			for (i=0; i<da->array.count; i++) {
 				Fixed *v = gf_list_get(l, i);
 				da->array.vals[i] = *v;
@@ -1308,7 +1308,7 @@ static void lsr_translate_anim_value(SMIL_AnimateValue *val, u32 coded_type)
 	{
 		SVG_ViewBox *vb;
 		GF_List *l = val->value;
-		GF_SAFEALLOC(vb, sizeof(SVG_ViewBox));
+		GF_SAFEALLOC(vb, SVG_ViewBox);
 		if (gf_list_count(l)==4) {
 			vb->x = * ((Fixed *)gf_list_get(l, 0));
 			vb->y = * ((Fixed *)gf_list_get(l, 1));
@@ -1367,13 +1367,13 @@ static void lsr_translate_anim_values(SMIL_AnimateValues *val, u32 coded_type)
 			SVG_StrokeDashArray *da;
 			GF_List *l = gf_list_get(list, i);
 			u32 j;
-			GF_SAFEALLOC(da, sizeof(SVG_StrokeDashArray));
+			GF_SAFEALLOC(da, SVG_StrokeDashArray);
 			da->array.count = gf_list_count(l);
 			if (!da->array.count) {
 				da->type = SVG_STROKEDASHARRAY_INHERIT;
 			} else {
 				da->type = SVG_STROKEDASHARRAY_ARRAY;
-				GF_SAFEALLOC(da->array.vals, sizeof(Fixed)*da->array.count);
+				da->array.vals = (Fixed *)malloc(sizeof(Fixed)*da->array.count);
 				for (j=0; j<da->array.count; j++) {
 					Fixed *v = gf_list_get(l, j);
 					da->array.vals[j] = *v;
@@ -1389,7 +1389,7 @@ static void lsr_translate_anim_values(SMIL_AnimateValues *val, u32 coded_type)
 		{
 			SVG_ViewBox *vb;
 			GF_List *l = gf_list_get(list, i);
-			GF_SAFEALLOC(vb, sizeof(SVG_ViewBox));
+			GF_SAFEALLOC(vb, SVG_ViewBox);
 			if (gf_list_count(l)==4) {
 				vb->x = * ((Fixed *)gf_list_get(l, 0));
 				vb->y = * ((Fixed *)gf_list_get(l, 1));
@@ -1633,7 +1633,7 @@ static void *lsr_read_an_anim_value(GF_LASeRCodec *lsr, u32 coded_type, u32 type
 		}
 		return num;
     case 5: 
-		GF_SAFEALLOC(paint, sizeof(SVG_Paint));
+		GF_SAFEALLOC(paint, SVG_Paint);
 		lsr_read_paint(lsr, paint, name); 
 		return paint;
     case 6: 
@@ -1683,7 +1683,7 @@ static void *lsr_read_an_anim_value(GF_LASeRCodec *lsr, u32 coded_type, u32 type
 	{
 		SVG_FontFamily *ft;
 		u32 idx;
-		GF_SAFEALLOC(ft, sizeof(SVG_FontFamily));
+		GF_SAFEALLOC(ft, SVG_FontFamily);
 		if (escapeFlag) {
 			ft->type = SVG_FONTFAMILY_INHERIT;
 		} else {
@@ -1695,7 +1695,7 @@ static void *lsr_read_an_anim_value(GF_LASeRCodec *lsr, u32 coded_type, u32 type
 		return ft;
 	}
     case 12: 
-		GF_SAFEALLOC(iri, sizeof(SVG_IRI));
+		GF_SAFEALLOC(iri, SVG_IRI);
 		lsr_read_any_uri(lsr, iri, name); 
 		return iri;
     default:
@@ -1746,7 +1746,7 @@ static Fixed *lsr_read_fraction_12_item(GF_LASeRCodec *lsr)
 {
 	u32 flag;
 	Fixed *f;
-	GF_SAFEALLOC(f, sizeof(Fixed));
+	GF_SAFEALLOC(f, Fixed);
 	GF_LSR_READ_INT(lsr, flag, 1, "hasShort");
 	if (flag) {
 		GF_LSR_READ_INT(lsr, flag, 1, "isZero");
@@ -1975,7 +1975,7 @@ static void lsr_read_coord_list(GF_LASeRCodec *lsr, GF_List *coords, const char 
 	for (i=0; i<count; i++) {
 		u32 res;
 		SVG_Coordinate *f;
-		GF_SAFEALLOC(f, sizeof(SVG_Coordinate ));
+		GF_SAFEALLOC(f, SVG_Coordinate );
 		GF_LSR_READ_INT(lsr, res, lsr->coord_bits, name);
 		f->value = lsr_translate_coords(lsr, res, lsr->coord_bits);
 		gf_list_add(coords, f);
@@ -2239,7 +2239,7 @@ static void lsr_translate_anim_trans_value(SMIL_AnimateValue *val, u32 transform
 		if (coded_type==8) {
 			SVG_Point *pt;
 			GF_List *l = val->value;
-			GF_SAFEALLOC(pt , sizeof(SVG_Point));
+			GF_SAFEALLOC(pt , SVG_Point);
 			f = gf_list_get(l, 0);
 			if (f) { pt->x = *f; free(f); }
 			f = gf_list_get(l, 1);

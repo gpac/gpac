@@ -241,7 +241,7 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	if (!m_user.config) goto err_exit;
 
 	str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
-	m_user.modules = gf_modules_new((const unsigned char *) str, m_user.config);
+	m_user.modules = gf_modules_new(str, m_user.config);
 	if (!gf_modules_get_count(m_user.modules)) goto err_exit;
 
 	m_user.opaque = this;

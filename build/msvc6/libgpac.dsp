@@ -825,6 +825,10 @@ SOURCE=..\..\src\terminal\object_manager.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\terminal\svg_external.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\terminal\term_node_init.c
 # End Source File
 # Begin Source File

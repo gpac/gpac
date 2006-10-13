@@ -147,7 +147,7 @@ GF_Err chpl_Read(GF_Box *s,GF_BitStream *bs)
 
 	count = 0;
 	while (nb_chaps) {
-		GF_SAFEALLOC(ce, sizeof(GF_ChapterEntry));
+		GF_SAFEALLOC(ce, GF_ChapterEntry);
 		ce->start_time = gf_bs_read_u64(bs);
 		len = gf_bs_read_u8(bs);
 		if (len) {
@@ -917,7 +917,7 @@ GF_Err edts_Read(GF_Box *s, GF_BitStream *bs)
 GF_Box *edts_New()
 {
 	GF_EditBox *tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_EditBox));
+	GF_SAFEALLOC(tmp, GF_EditBox);
 	if (tmp == NULL) return NULL;
 	tmp->type = GF_ISOM_BOX_TYPE_EDTS;
 	return (GF_Box *) tmp;
@@ -3838,7 +3838,7 @@ GF_Err mvex_Size(GF_Box *s)
 GF_Box *mehd_New()
 {
 	GF_MovieExtendsHeaderBox *tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_MovieExtendsHeaderBox));
+	GF_SAFEALLOC(tmp, GF_MovieExtendsHeaderBox);
 	if (tmp == NULL) return NULL;
 	tmp->type = GF_ISOM_BOX_TYPE_MEHD;
 	return (GF_Box *)tmp;
@@ -7005,7 +7005,7 @@ GF_Err sdtp_Read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	/*out-of-order sdtp, assume no padding at the end*/
 	if (!ptr->sampleCount) ptr->sampleCount = (u32) (ptr->size - 8);
-	GF_SAFEALLOC(ptr->sample_info, sizeof(u8)*ptr->sampleCount);
+	ptr->sample_info = (u8 *) malloc(sizeof(u8)*ptr->sampleCount);
 	gf_bs_read_data(bs, ptr->sample_info, ptr->sampleCount);
 	ptr->size -= ptr->sampleCount;
 	return GF_OK;

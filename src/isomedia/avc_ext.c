@@ -42,7 +42,7 @@ void AVC_RewriteESDescriptor(GF_AVCSampleEntryBox *avc)
 		u32 i=0; 
 		GF_Descriptor *desc,*clone;
 		i=0;
-		while ((desc = gf_list_enum(avc->descr->descriptors, &i))) {
+		while ((desc = (GF_Descriptor *)gf_list_enum(avc->descr->descriptors, &i))) {
 			clone = NULL;
 			gf_odf_desc_copy(desc, &clone);
 			if (gf_odf_desc_add_desc((GF_Descriptor *)avc->esd, clone) != GF_OK) 
@@ -75,12 +75,12 @@ GF_Err AVC_UpdateESD(GF_AVCSampleEntryBox *avc, GF_ESD *esd)
 		if (esd->ipiPtr) { gf_list_add(avc->descr->descriptors, esd->ipiPtr); esd->ipiPtr= NULL; }
 
 		while (gf_list_count(esd->IPIDataSet)) {
-			GF_Descriptor *desc = gf_list_get(esd->IPIDataSet, 0);
+			GF_Descriptor *desc = (GF_Descriptor *)gf_list_get(esd->IPIDataSet, 0);
 			gf_list_rem(esd->IPIDataSet, 0);
 			gf_list_add(avc->descr->descriptors, desc);
 		}
 		while (gf_list_count(esd->IPMPDescriptorPointers)) {
-			GF_Descriptor *desc = gf_list_get(esd->IPMPDescriptorPointers, 0);
+			GF_Descriptor *desc = (GF_Descriptor *)gf_list_get(esd->IPMPDescriptorPointers, 0);
 			gf_list_rem(esd->IPMPDescriptorPointers, 0);
 			gf_list_add(avc->descr->descriptors, desc);
 		}
@@ -89,7 +89,7 @@ GF_Err AVC_UpdateESD(GF_AVCSampleEntryBox *avc, GF_ESD *esd)
 			esd->langDesc = NULL;
 		}
 		while (gf_list_count(esd->extensionDescriptors)) {
-			GF_Descriptor *desc = gf_list_get(esd->extensionDescriptors, 0);
+			GF_Descriptor *desc = (GF_Descriptor *)gf_list_get(esd->extensionDescriptors, 0);
 			gf_list_rem(esd->extensionDescriptors, 0);
 			gf_list_add(avc->descr->descriptors, desc);
 		}
@@ -119,8 +119,8 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 
 	count = gf_list_count(cfg->sequenceParameterSets);
 	for (i=0; i<count; i++) {
-		p1 = gf_list_get(cfg->sequenceParameterSets, i);
-		p2 = malloc(sizeof(GF_AVCConfigSlot));
+		p1 = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSets, i);
+		p2 = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
 		p2->size = p1->size;
 		p2->data = malloc(sizeof(char)*p1->size);
 		memcpy(p2->data, p1->data, sizeof(char)*p1->size);
@@ -129,8 +129,8 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 
 	count = gf_list_count(cfg->pictureParameterSets);
 	for (i=0; i<count; i++) {
-		p1 = gf_list_get(cfg->pictureParameterSets, i);
-		p2 = malloc(sizeof(GF_AVCConfigSlot));
+		p1 = (GF_AVCConfigSlot*)gf_list_get(cfg->pictureParameterSets, i);
+		p2 = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
 		p2->size = p1->size;
 		p2->data = malloc(sizeof(char)*p1->size);
 		memcpy(p2->data, p1->data, sizeof(char)*p1->size);
@@ -189,7 +189,7 @@ GF_Err gf_isom_avc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 Desc
 	if (e) return e;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !cfg || !DescriptionIndex) return GF_BAD_PARAM;
-	entry = gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, DescriptionIndex-1);
+	entry = (GF_AVCSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, DescriptionIndex-1);
 	if (!entry) return GF_BAD_PARAM;
 	if (entry->type != GF_ISOM_BOX_TYPE_AVC1) return GF_BAD_PARAM;
 
@@ -198,6 +198,28 @@ GF_Err gf_isom_avc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 Desc
 	AVC_RewriteESDescriptor(entry);
 	return GF_OK;
 }
+
+GF_Err gf_isom_set_ipod_compatible(GF_ISOFile *the_file, u32 trackNumber)
+{
+	static u8 ipod_ext[][16] = { { 0x6B, 0x68, 0x40, 0xF2, 0x5F, 0x24, 0x4F, 0xC5, 0xBA, 0x39, 0xA5, 0x1B, 0xCF, 0x03, 0x23, 0xF3} };
+	GF_TrackBox *trak;
+	GF_Err e;
+	GF_AVCSampleEntryBox *entry;
+
+	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media) return GF_BAD_PARAM;
+	entry = (GF_AVCSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, 0);
+	if (!entry) return GF_OK;
+	if (entry->type != GF_ISOM_BOX_TYPE_AVC1) return GF_OK;
+
+	if (!entry->ipod_ext) entry->ipod_ext = (GF_UnknownUUIDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_UUID);
+	memcpy(entry->ipod_ext->uuid, ipod_ext, sizeof(u8)*16);
+	entry->ipod_ext->dataSize = 0;
+	return GF_OK;
+}
+
 #endif
 
 GF_AVCConfig *gf_isom_avc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
@@ -206,7 +228,7 @@ GF_AVCConfig *gf_isom_avc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	GF_AVCSampleEntryBox *entry;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
-	entry = gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, DescriptionIndex-1);
+	entry = (GF_AVCSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, DescriptionIndex-1);
 	if (!entry) return NULL;
 	if (entry->type != GF_ISOM_BOX_TYPE_AVC1) return NULL;
 	if (!entry->avc_config) return NULL;
@@ -438,6 +460,7 @@ void avc1_del(GF_Box *s)
 	if (ptr->bitrate) gf_isom_box_del((GF_Box *) ptr->bitrate);
 	if (ptr->descr) gf_isom_box_del((GF_Box *) ptr->descr);
 	if (ptr->protection_info) gf_isom_box_del((GF_Box *)ptr->protection_info);
+	if (ptr->ipod_ext) gf_isom_box_del((GF_Box *)ptr->ipod_ext);
 	/*for publishing*/
 	if (ptr->slc) gf_odf_desc_del((GF_Descriptor *)ptr->slc);
 	if (ptr->esd) gf_odf_desc_del((GF_Descriptor *)ptr->esd);
@@ -459,6 +482,10 @@ GF_Err avc1_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_M4DS:
 		if (ptr->descr) return GF_ISOM_INVALID_FILE;
 		ptr->descr = (GF_MPEG4ExtensionDescriptorsBox *)a;
+		break;
+	case GF_ISOM_BOX_TYPE_UUID:
+		if (ptr->ipod_ext) return GF_ISOM_INVALID_FILE;
+		ptr->ipod_ext = (GF_UnknownUUIDBox *)a;
 		break;
 	default:
 		gf_isom_box_del(a);
@@ -502,6 +529,10 @@ GF_Err avc1_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->avc_config, bs);
 		if (e) return e;
 	}
+	if (ptr->ipod_ext)	{
+		e = gf_isom_box_write((GF_Box *) ptr->ipod_ext, bs);
+		if (e) return e;
+	}
 	if (ptr->bitrate) {
 		e = gf_isom_box_write((GF_Box *) ptr->bitrate, bs);
 		if (e) return e;
@@ -526,6 +557,11 @@ GF_Err avc1_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *) ptr->avc_config); 
 		if (e) return e;
 		ptr->size += ptr->avc_config->size;
+	}
+	if (ptr->ipod_ext) {
+		e = gf_isom_box_size((GF_Box *) ptr->ipod_ext);
+		if (e) return e;
+		ptr->size += ptr->ipod_ext->size;
 	}
 	if (ptr->bitrate) {
 		e = gf_isom_box_size((GF_Box *) ptr->bitrate);

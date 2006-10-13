@@ -28,8 +28,8 @@
 
 GF_RTSPResponse *gf_rtsp_response_new()
 {
-	GF_RTSPResponse *tmp = malloc(sizeof(GF_RTSPResponse));
-	memset(tmp, 0, sizeof(GF_RTSPResponse));
+	GF_RTSPResponse *tmp;
+	GF_SAFEALLOC(tmp, GF_RTSPResponse);
 	tmp->Transports = gf_list_new();
 	tmp->RTP_Infos = gf_list_new();
 	tmp->Xtensions = gf_list_new();
@@ -96,19 +96,19 @@ void gf_rtsp_response_reset(GF_RTSPResponse *rsp)
 	rsp->SessionTimeOut = 0;
 
 	while (gf_list_count(rsp->Transports)) {
-		trans = gf_list_get(rsp->Transports, 0);
+		trans = (GF_RTSPTransport*) gf_list_get(rsp->Transports, 0);
 		gf_list_rem(rsp->Transports, 0);
 		gf_rtsp_transport_del(trans);
 	}
 
 	while (gf_list_count(rsp->RTP_Infos)) {
-		inf = gf_list_get(rsp->RTP_Infos, 0);
+		inf = (GF_RTPInfo*) gf_list_get(rsp->RTP_Infos, 0);
 		gf_list_rem(rsp->RTP_Infos, 0);
 		if (inf->url) free(inf->url);
 		free(inf);
 	}
 	while (gf_list_count(rsp->Xtensions)) {
-		att = gf_list_get(rsp->Xtensions, 0);
+		att = (GF_X_Attribute*)gf_list_get(rsp->Xtensions, 0);
 		gf_list_rem(rsp->Xtensions, 0);
 		free(att->Name);
 		free(att->Value);
@@ -137,8 +137,7 @@ GF_RTSPRange *gf_rtsp_range_parse(char *range_buf)
 	//only support for NPT
 	if (!strstr(range_buf, "npt")) return NULL;
 	
-	rg = malloc(sizeof(GF_RTSPRange));
-	memset(rg, 0, sizeof(GF_RTSPRange));
+	GF_SAFEALLOC(rg, GF_RTSPRange);
 	i = sscanf(range_buf, "npt=%lf-%lf", &rg->start, &rg->end);
 	if (i == 1) {
 		rg->end = -1.0;
@@ -162,7 +161,7 @@ GF_RTSPTransport *gf_rtsp_transport_clone(GF_RTSPTransport *original)
 
 	if (!original) return NULL;	
 	
-	tr = malloc(sizeof(GF_RTSPTransport));
+	tr = (GF_RTSPTransport*) malloc(sizeof(GF_RTSPTransport));
 	memcpy(tr, original, sizeof(GF_RTSPTransport));
 	tr->destination = tr->source = tr->Profile = NULL;
 	if (original->destination) tr->destination = strdup(original->destination);
@@ -173,8 +172,8 @@ GF_RTSPTransport *gf_rtsp_transport_clone(GF_RTSPTransport *original)
 
 GF_RTSPRange *gf_rtsp_range_new()
 {
-	GF_RTSPRange *tmp = malloc(sizeof(GF_RTSPRange));
-	memset(tmp, 0, sizeof(GF_RTSPRange));
+	GF_RTSPRange *tmp;
+	GF_SAFEALLOC(tmp, GF_RTSPRange);
 	return tmp;
 }
 
@@ -264,9 +263,7 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 			LinePos = gf_token_get(Value, LinePos, ",\r\n", LineBuffer, 400);
 			if (LinePos <= 0) return;
 
-			info = malloc(sizeof(GF_RTPInfo));
-			memset(info, 0, sizeof(GF_RTPInfo));
-
+			GF_SAFEALLOC(info, GF_RTPInfo);
 			Pos = 0;
 			while (1) {	
 				Pos = gf_token_get(LineBuffer, Pos, " ;", buf, 100);
@@ -294,7 +291,7 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 	}
 	//check for extended attributes
 	else if (!strnicmp(Header, "x-", 2)) {
-		x_Att = malloc(sizeof(GF_X_Attribute));
+		x_Att = (GF_X_Attribute*)malloc(sizeof(GF_X_Attribute));
 		x_Att->Name = strdup(Header+2);
 		x_Att->Value = NULL;
 		if (Value && strlen(Value)) x_Att->Value = strdup(Value);
@@ -308,9 +305,9 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 //parse all fields in the header
 GF_Err RTSP_ParseResponseHeader(GF_RTSPSession *sess, GF_RTSPResponse *rsp, u32 BodyStart)
 {
-	unsigned char LineBuffer[1024];
-	unsigned char ValBuf[400];
-	unsigned char *buffer;
+	char LineBuffer[1024];
+	char ValBuf[400];
+	char *buffer;
 	s32 Pos, ret;
 	u32 Size;
 
@@ -387,7 +384,7 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 
 	//copy the body if any
 	if (!e && rsp->Content_Length) {
-		rsp->body = malloc(sizeof(char) * (rsp->Content_Length));
+		rsp->body = (char *)malloc(sizeof(char) * (rsp->Content_Length));
 		memcpy(rsp->body, sess->TCPBuffer+sess->CurrentPos + BodyStart, rsp->Content_Length);
 	}	
 
@@ -478,7 +475,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	*out_buffer = NULL;
 
 	size = RTSP_WRITE_STEPALLOC;
-	buffer = malloc(size);
+	buffer = (char *) malloc(size);
 	cur_pos = 0;
 
 	//RTSP line
@@ -559,7 +556,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 		for (i=0; i<count; i++) {
 			//line separator for headers
 			if (i) RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n ,");
-			info = gf_list_get(rsp->RTP_Infos, i);
+			info = (GF_RTPInfo*)gf_list_get(rsp->RTP_Infos, i);
 			
 			if (info->url) {
 				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "url=");
@@ -595,7 +592,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 		for (i=0; i<count; i++) {
 			//line separator for headers
 			if (i) RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n ,");
-			trans = gf_list_get(rsp->Transports, i);
+			trans = (GF_RTSPTransport*)gf_list_get(rsp->Transports, i);
 
 			//then write the structure
 			RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, trans->Profile);
@@ -661,7 +658,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	//eXtensions
 	count = gf_list_count(rsp->Xtensions);
 	for (i=0; i<count; i++) {
-		att = gf_list_get(rsp->Xtensions, i);
+		att = (GF_X_Attribute*)gf_list_get(rsp->Xtensions, i);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "x-");
 		RTSP_WRITE_HEADER(buffer, size, cur_pos, att->Name, att->Value);	
 	}
@@ -670,7 +667,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	//then body
 	RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, rsp->body);
 
-	*out_buffer = buffer;
+	*out_buffer = (unsigned char *) buffer;
 	*out_size = strlen(buffer);
 	return GF_OK;
 }
@@ -691,7 +688,7 @@ GF_Err gf_rtsp_send_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	if (e) goto exit;
 
 	//send buffer
-	e = gf_rtsp_send_data(sess, buffer, size);
+	e = gf_rtsp_send_data(sess, (unsigned char *) buffer, size);
 	if (e) return e;
 //	printf("RTSP Send Response\n\n%s\n\n", buffer);
 

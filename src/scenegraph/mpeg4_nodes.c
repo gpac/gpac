@@ -24,9 +24,9 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Thu Apr 27 17:00:33 2006
+	DO NOT MOFIFY - File generated on GMT Fri Sep 15 09:04:18 2006
 
-	BY MPEG4Gen for GPAC Version 0.4.1-DEV
+	BY MPEG4Gen for GPAC Version 0.4.3-DEV
 */
 
 #include <gpac/nodes_mpeg4.h>
@@ -149,7 +149,7 @@ static Bool Anchor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 GF_Node *Anchor_Create()
 {
 	M_Anchor *p;
-	GF_SAFEALLOC(p, sizeof(M_Anchor));
+	GF_SAFEALLOC(p, M_Anchor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Anchor);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -283,7 +283,7 @@ static Bool AnimationStream_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u
 GF_Node *AnimationStream_Create()
 {
 	M_AnimationStream *p;
-	GF_SAFEALLOC(p, sizeof(M_AnimationStream));
+	GF_SAFEALLOC(p, M_AnimationStream);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AnimationStream);
 
@@ -390,7 +390,7 @@ static Bool Appearance_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 GF_Node *Appearance_Create()
 {
 	M_Appearance *p;
-	GF_SAFEALLOC(p, sizeof(M_Appearance));
+	GF_SAFEALLOC(p, M_Appearance);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Appearance);
 
@@ -568,7 +568,7 @@ static Bool AudioBuffer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 GF_Node *AudioBuffer_Create()
 {
 	M_AudioBuffer *p;
-	GF_SAFEALLOC(p, sizeof(M_AudioBuffer));
+	GF_SAFEALLOC(p, M_AudioBuffer);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AudioBuffer);
 	p->children = gf_list_new();	
@@ -717,7 +717,7 @@ static Bool AudioClip_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 GF_Node *AudioClip_Create()
 {
 	M_AudioClip *p;
-	GF_SAFEALLOC(p, sizeof(M_AudioClip));
+	GF_SAFEALLOC(p, M_AudioClip);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AudioClip);
 
@@ -857,7 +857,7 @@ static Bool AudioDelay_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 GF_Node *AudioDelay_Create()
 {
 	M_AudioDelay *p;
-	GF_SAFEALLOC(p, sizeof(M_AudioDelay));
+	GF_SAFEALLOC(p, M_AudioDelay);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AudioDelay);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -1022,7 +1022,7 @@ static Bool AudioFX_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType
 GF_Node *AudioFX_Create()
 {
 	M_AudioFX *p;
-	GF_SAFEALLOC(p, sizeof(M_AudioFX));
+	GF_SAFEALLOC(p, M_AudioFX);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AudioFX);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -1185,7 +1185,7 @@ static Bool AudioMix_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 GF_Node *AudioMix_Create()
 {
 	M_AudioMix *p;
-	GF_SAFEALLOC(p, sizeof(M_AudioMix));
+	GF_SAFEALLOC(p, M_AudioMix);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AudioMix);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -1366,7 +1366,7 @@ static Bool AudioSource_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 GF_Node *AudioSource_Create()
 {
 	M_AudioSource *p;
-	GF_SAFEALLOC(p, sizeof(M_AudioSource));
+	GF_SAFEALLOC(p, M_AudioSource);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AudioSource);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -1517,7 +1517,7 @@ static Bool AudioSwitch_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 GF_Node *AudioSwitch_Create()
 {
 	M_AudioSwitch *p;
-	GF_SAFEALLOC(p, sizeof(M_AudioSwitch));
+	GF_SAFEALLOC(p, M_AudioSwitch);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AudioSwitch);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -1710,7 +1710,7 @@ static Bool Background_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 GF_Node *Background_Create()
 {
 	M_Background *p;
-	GF_SAFEALLOC(p, sizeof(M_Background));
+	GF_SAFEALLOC(p, M_Background);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Background);
 
@@ -1831,7 +1831,7 @@ static Bool Background2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 GF_Node *Background2D_Create()
 {
 	M_Background2D *p;
-	GF_SAFEALLOC(p, sizeof(M_Background2D));
+	GF_SAFEALLOC(p, M_Background2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Background2D);
 
@@ -1952,7 +1952,7 @@ static Bool Billboard_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 GF_Node *Billboard_Create()
 {
 	M_Billboard *p;
-	GF_SAFEALLOC(p, sizeof(M_Billboard));
+	GF_SAFEALLOC(p, M_Billboard);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Billboard);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -2052,7 +2052,7 @@ static Bool Bitmap_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 GF_Node *Bitmap_Create()
 {
 	M_Bitmap *p;
-	GF_SAFEALLOC(p, sizeof(M_Bitmap));
+	GF_SAFEALLOC(p, M_Bitmap);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Bitmap);
 
@@ -2138,7 +2138,7 @@ static Bool Box_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fi
 GF_Node *Box_Create()
 {
 	M_Box *p;
-	GF_SAFEALLOC(p, sizeof(M_Box));
+	GF_SAFEALLOC(p, M_Box);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Box);
 
@@ -2237,7 +2237,7 @@ static Bool Circle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 GF_Node *Circle_Create()
 {
 	M_Circle *p;
-	GF_SAFEALLOC(p, sizeof(M_Circle));
+	GF_SAFEALLOC(p, M_Circle);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Circle);
 
@@ -2362,7 +2362,7 @@ static Bool Collision_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 GF_Node *Collision_Create()
 {
 	M_Collision *p;
-	GF_SAFEALLOC(p, sizeof(M_Collision));
+	GF_SAFEALLOC(p, M_Collision);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Collision);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -2461,7 +2461,7 @@ static Bool Color_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, 
 GF_Node *Color_Create()
 {
 	M_Color *p;
-	GF_SAFEALLOC(p, sizeof(M_Color));
+	GF_SAFEALLOC(p, M_Color);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Color);
 
@@ -2580,7 +2580,7 @@ static Bool ColorInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 GF_Node *ColorInterpolator_Create()
 {
 	M_ColorInterpolator *p;
-	GF_SAFEALLOC(p, sizeof(M_ColorInterpolator));
+	GF_SAFEALLOC(p, M_ColorInterpolator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ColorInterpolator);
 
@@ -2739,7 +2739,7 @@ static Bool CompositeTexture2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 GF_Node *CompositeTexture2D_Create()
 {
 	M_CompositeTexture2D *p;
-	GF_SAFEALLOC(p, sizeof(M_CompositeTexture2D));
+	GF_SAFEALLOC(p, M_CompositeTexture2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_CompositeTexture2D);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -2917,7 +2917,7 @@ static Bool CompositeTexture3D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 GF_Node *CompositeTexture3D_Create()
 {
 	M_CompositeTexture3D *p;
-	GF_SAFEALLOC(p, sizeof(M_CompositeTexture3D));
+	GF_SAFEALLOC(p, M_CompositeTexture3D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_CompositeTexture3D);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -3029,7 +3029,7 @@ static Bool Conditional_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 GF_Node *Conditional_Create()
 {
 	M_Conditional *p;
-	GF_SAFEALLOC(p, sizeof(M_Conditional));
+	GF_SAFEALLOC(p, M_Conditional);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Conditional);
 	p->buffer.commandList = gf_list_new();	
@@ -3138,7 +3138,7 @@ static Bool Cone_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, F
 GF_Node *Cone_Create()
 {
 	M_Cone *p;
-	GF_SAFEALLOC(p, sizeof(M_Cone));
+	GF_SAFEALLOC(p, M_Cone);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Cone);
 
@@ -3239,7 +3239,7 @@ static Bool Coordinate_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 GF_Node *Coordinate_Create()
 {
 	M_Coordinate *p;
-	GF_SAFEALLOC(p, sizeof(M_Coordinate));
+	GF_SAFEALLOC(p, M_Coordinate);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Coordinate);
 
@@ -3336,7 +3336,7 @@ static Bool Coordinate2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 GF_Node *Coordinate2D_Create()
 {
 	M_Coordinate2D *p;
-	GF_SAFEALLOC(p, sizeof(M_Coordinate2D));
+	GF_SAFEALLOC(p, M_Coordinate2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Coordinate2D);
 
@@ -3456,7 +3456,7 @@ static Bool CoordinateInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *Q
 GF_Node *CoordinateInterpolator_Create()
 {
 	M_CoordinateInterpolator *p;
-	GF_SAFEALLOC(p, sizeof(M_CoordinateInterpolator));
+	GF_SAFEALLOC(p, M_CoordinateInterpolator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_CoordinateInterpolator);
 
@@ -3576,7 +3576,7 @@ static Bool CoordinateInterpolator2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 
 GF_Node *CoordinateInterpolator2D_Create()
 {
 	M_CoordinateInterpolator2D *p;
-	GF_SAFEALLOC(p, sizeof(M_CoordinateInterpolator2D));
+	GF_SAFEALLOC(p, M_CoordinateInterpolator2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_CoordinateInterpolator2D);
 
@@ -3694,7 +3694,7 @@ static Bool Curve2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType
 GF_Node *Curve2D_Create()
 {
 	M_Curve2D *p;
-	GF_SAFEALLOC(p, sizeof(M_Curve2D));
+	GF_SAFEALLOC(p, M_Curve2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Curve2D);
 
@@ -3809,7 +3809,7 @@ static Bool Cylinder_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 GF_Node *Cylinder_Create()
 {
 	M_Cylinder *p;
-	GF_SAFEALLOC(p, sizeof(M_Cylinder));
+	GF_SAFEALLOC(p, M_Cylinder);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Cylinder);
 
@@ -3972,7 +3972,7 @@ static Bool CylinderSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 GF_Node *CylinderSensor_Create()
 {
 	M_CylinderSensor *p;
-	GF_SAFEALLOC(p, sizeof(M_CylinderSensor));
+	GF_SAFEALLOC(p, M_CylinderSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_CylinderSensor);
 
@@ -4114,7 +4114,7 @@ static Bool DirectionalLight_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 GF_Node *DirectionalLight_Create()
 {
 	M_DirectionalLight *p;
-	GF_SAFEALLOC(p, sizeof(M_DirectionalLight));
+	GF_SAFEALLOC(p, M_DirectionalLight);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_DirectionalLight);
 
@@ -4269,7 +4269,7 @@ static Bool DiscSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 GF_Node *DiscSensor_Create()
 {
 	M_DiscSensor *p;
-	GF_SAFEALLOC(p, sizeof(M_DiscSensor));
+	GF_SAFEALLOC(p, M_DiscSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_DiscSensor);
 
@@ -4483,7 +4483,7 @@ static Bool ElevationGrid_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 
 GF_Node *ElevationGrid_Create()
 {
 	M_ElevationGrid *p;
-	GF_SAFEALLOC(p, sizeof(M_ElevationGrid));
+	GF_SAFEALLOC(p, M_ElevationGrid);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ElevationGrid);
 
@@ -4694,7 +4694,7 @@ static Bool Extrusion_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 GF_Node *Extrusion_Create()
 {
 	M_Extrusion *p;
-	GF_SAFEALLOC(p, sizeof(M_Extrusion));
+	GF_SAFEALLOC(p, M_Extrusion);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Extrusion);
 
@@ -4858,7 +4858,7 @@ static Bool Fog_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fi
 GF_Node *Fog_Create()
 {
 	M_Fog *p;
-	GF_SAFEALLOC(p, sizeof(M_Fog));
+	GF_SAFEALLOC(p, M_Fog);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Fog);
 
@@ -5014,7 +5014,7 @@ static Bool FontStyle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 GF_Node *FontStyle_Create()
 {
 	M_FontStyle *p;
-	GF_SAFEALLOC(p, sizeof(M_FontStyle));
+	GF_SAFEALLOC(p, M_FontStyle);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_FontStyle);
 
@@ -5184,7 +5184,7 @@ static Bool Form_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, F
 GF_Node *Form_Create()
 {
 	M_Form *p;
-	GF_SAFEALLOC(p, sizeof(M_Form));
+	GF_SAFEALLOC(p, M_Form);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Form);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -5291,7 +5291,7 @@ static Bool Group_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, 
 GF_Node *Group_Create()
 {
 	M_Group *p;
-	GF_SAFEALLOC(p, sizeof(M_Group));
+	GF_SAFEALLOC(p, M_Group);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Group);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -5391,7 +5391,7 @@ static Bool ImageTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 GF_Node *ImageTexture_Create()
 {
 	M_ImageTexture *p;
-	GF_SAFEALLOC(p, sizeof(M_ImageTexture));
+	GF_SAFEALLOC(p, M_ImageTexture);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ImageTexture);
 
@@ -5631,7 +5631,7 @@ static Bool IndexedFaceSet_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 GF_Node *IndexedFaceSet_Create()
 {
 	M_IndexedFaceSet *p;
-	GF_SAFEALLOC(p, sizeof(M_IndexedFaceSet));
+	GF_SAFEALLOC(p, M_IndexedFaceSet);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_IndexedFaceSet);
 
@@ -5816,7 +5816,7 @@ static Bool IndexedFaceSet2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 GF_Node *IndexedFaceSet2D_Create()
 {
 	M_IndexedFaceSet2D *p;
-	GF_SAFEALLOC(p, sizeof(M_IndexedFaceSet2D));
+	GF_SAFEALLOC(p, M_IndexedFaceSet2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_IndexedFaceSet2D);
 
@@ -5962,7 +5962,7 @@ static Bool IndexedLineSet_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 GF_Node *IndexedLineSet_Create()
 {
 	M_IndexedLineSet *p;
-	GF_SAFEALLOC(p, sizeof(M_IndexedLineSet));
+	GF_SAFEALLOC(p, M_IndexedLineSet);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_IndexedLineSet);
 
@@ -6107,7 +6107,7 @@ static Bool IndexedLineSet2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 GF_Node *IndexedLineSet2D_Create()
 {
 	M_IndexedLineSet2D *p;
-	GF_SAFEALLOC(p, sizeof(M_IndexedLineSet2D));
+	GF_SAFEALLOC(p, M_IndexedLineSet2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_IndexedLineSet2D);
 
@@ -6195,7 +6195,7 @@ static Bool Inline_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 GF_Node *Inline_Create()
 {
 	M_Inline *p;
-	GF_SAFEALLOC(p, sizeof(M_Inline));
+	GF_SAFEALLOC(p, M_Inline);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Inline);
 
@@ -6308,7 +6308,7 @@ static Bool LOD_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fi
 GF_Node *LOD_Create()
 {
 	M_LOD *p;
-	GF_SAFEALLOC(p, sizeof(M_LOD));
+	GF_SAFEALLOC(p, M_LOD);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_LOD);
 	p->level = gf_list_new();	
@@ -6448,7 +6448,7 @@ static Bool Layer2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType
 GF_Node *Layer2D_Create()
 {
 	M_Layer2D *p;
-	GF_SAFEALLOC(p, sizeof(M_Layer2D));
+	GF_SAFEALLOC(p, M_Layer2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Layer2D);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -6603,7 +6603,7 @@ static Bool Layer3D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType
 GF_Node *Layer3D_Create()
 {
 	M_Layer3D *p;
-	GF_SAFEALLOC(p, sizeof(M_Layer3D));
+	GF_SAFEALLOC(p, M_Layer3D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Layer3D);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -6812,7 +6812,7 @@ static Bool Layout_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 GF_Node *Layout_Create()
 {
 	M_Layout *p;
-	GF_SAFEALLOC(p, sizeof(M_Layout));
+	GF_SAFEALLOC(p, M_Layout);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Layout);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -6947,7 +6947,7 @@ static Bool LineProperties_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 GF_Node *LineProperties_Create()
 {
 	M_LineProperties *p;
-	GF_SAFEALLOC(p, sizeof(M_LineProperties));
+	GF_SAFEALLOC(p, M_LineProperties);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_LineProperties);
 
@@ -7090,7 +7090,7 @@ static Bool ListeningPoint_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 GF_Node *ListeningPoint_Create()
 {
 	M_ListeningPoint *p;
-	GF_SAFEALLOC(p, sizeof(M_ListeningPoint));
+	GF_SAFEALLOC(p, M_ListeningPoint);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ListeningPoint);
 
@@ -7254,7 +7254,7 @@ static Bool Material_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 GF_Node *Material_Create()
 {
 	M_Material *p;
-	GF_SAFEALLOC(p, sizeof(M_Material));
+	GF_SAFEALLOC(p, M_Material);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Material);
 
@@ -7388,7 +7388,7 @@ static Bool Material2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 GF_Node *Material2D_Create()
 {
 	M_Material2D *p;
-	GF_SAFEALLOC(p, sizeof(M_Material2D));
+	GF_SAFEALLOC(p, M_Material2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Material2D);
 
@@ -7537,7 +7537,7 @@ static Bool MovieTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 GF_Node *MovieTexture_Create()
 {
 	M_MovieTexture *p;
-	GF_SAFEALLOC(p, sizeof(M_MovieTexture));
+	GF_SAFEALLOC(p, M_MovieTexture);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_MovieTexture);
 
@@ -7689,7 +7689,7 @@ static Bool NavigationInfo_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 GF_Node *NavigationInfo_Create()
 {
 	M_NavigationInfo *p;
-	GF_SAFEALLOC(p, sizeof(M_NavigationInfo));
+	GF_SAFEALLOC(p, M_NavigationInfo);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_NavigationInfo);
 
@@ -7798,7 +7798,7 @@ static Bool Normal_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 GF_Node *Normal_Create()
 {
 	M_Normal *p;
-	GF_SAFEALLOC(p, sizeof(M_Normal));
+	GF_SAFEALLOC(p, M_Normal);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Normal);
 
@@ -7918,7 +7918,7 @@ static Bool NormalInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 GF_Node *NormalInterpolator_Create()
 {
 	M_NormalInterpolator *p;
-	GF_SAFEALLOC(p, sizeof(M_NormalInterpolator));
+	GF_SAFEALLOC(p, M_NormalInterpolator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_NormalInterpolator);
 
@@ -8035,7 +8035,7 @@ static Bool OrderedGroup_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 GF_Node *OrderedGroup_Create()
 {
 	M_OrderedGroup *p;
-	GF_SAFEALLOC(p, sizeof(M_OrderedGroup));
+	GF_SAFEALLOC(p, M_OrderedGroup);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_OrderedGroup);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -8155,7 +8155,7 @@ static Bool OrientationInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *
 GF_Node *OrientationInterpolator_Create()
 {
 	M_OrientationInterpolator *p;
-	GF_SAFEALLOC(p, sizeof(M_OrientationInterpolator));
+	GF_SAFEALLOC(p, M_OrientationInterpolator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_OrientationInterpolator);
 
@@ -8258,7 +8258,7 @@ static Bool PixelTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 GF_Node *PixelTexture_Create()
 {
 	M_PixelTexture *p;
-	GF_SAFEALLOC(p, sizeof(M_PixelTexture));
+	GF_SAFEALLOC(p, M_PixelTexture);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PixelTexture);
 
@@ -8406,7 +8406,7 @@ static Bool PlaneSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 GF_Node *PlaneSensor_Create()
 {
 	M_PlaneSensor *p;
-	GF_SAFEALLOC(p, sizeof(M_PlaneSensor));
+	GF_SAFEALLOC(p, M_PlaneSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PlaneSensor);
 
@@ -8561,7 +8561,7 @@ static Bool PlaneSensor2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 
 GF_Node *PlaneSensor2D_Create()
 {
 	M_PlaneSensor2D *p;
-	GF_SAFEALLOC(p, sizeof(M_PlaneSensor2D));
+	GF_SAFEALLOC(p, M_PlaneSensor2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PlaneSensor2D);
 
@@ -8731,7 +8731,7 @@ static Bool PointLight_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 GF_Node *PointLight_Create()
 {
 	M_PointLight *p;
-	GF_SAFEALLOC(p, sizeof(M_PointLight));
+	GF_SAFEALLOC(p, M_PointLight);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PointLight);
 
@@ -8840,7 +8840,7 @@ static Bool PointSet_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 GF_Node *PointSet_Create()
 {
 	M_PointSet *p;
-	GF_SAFEALLOC(p, sizeof(M_PointSet));
+	GF_SAFEALLOC(p, M_PointSet);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PointSet);
 
@@ -8936,7 +8936,7 @@ static Bool PointSet2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 GF_Node *PointSet2D_Create()
 {
 	M_PointSet2D *p;
-	GF_SAFEALLOC(p, sizeof(M_PointSet2D));
+	GF_SAFEALLOC(p, M_PointSet2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PointSet2D);
 
@@ -9055,7 +9055,7 @@ static Bool PositionInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QTy
 GF_Node *PositionInterpolator_Create()
 {
 	M_PositionInterpolator *p;
-	GF_SAFEALLOC(p, sizeof(M_PositionInterpolator));
+	GF_SAFEALLOC(p, M_PositionInterpolator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PositionInterpolator);
 
@@ -9174,7 +9174,7 @@ static Bool PositionInterpolator2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *Q
 GF_Node *PositionInterpolator2D_Create()
 {
 	M_PositionInterpolator2D *p;
-	GF_SAFEALLOC(p, sizeof(M_PositionInterpolator2D));
+	GF_SAFEALLOC(p, M_PositionInterpolator2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PositionInterpolator2D);
 
@@ -9314,7 +9314,7 @@ static Bool ProximitySensor2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 GF_Node *ProximitySensor2D_Create()
 {
 	M_ProximitySensor2D *p;
-	GF_SAFEALLOC(p, sizeof(M_ProximitySensor2D));
+	GF_SAFEALLOC(p, M_ProximitySensor2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ProximitySensor2D);
 
@@ -9459,7 +9459,7 @@ static Bool ProximitySensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u
 GF_Node *ProximitySensor_Create()
 {
 	M_ProximitySensor *p;
-	GF_SAFEALLOC(p, sizeof(M_ProximitySensor));
+	GF_SAFEALLOC(p, M_ProximitySensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ProximitySensor);
 
@@ -9956,7 +9956,7 @@ static Bool QuantizationParameter_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QT
 GF_Node *QuantizationParameter_Create()
 {
 	M_QuantizationParameter *p;
-	GF_SAFEALLOC(p, sizeof(M_QuantizationParameter));
+	GF_SAFEALLOC(p, M_QuantizationParameter);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_QuantizationParameter);
 
@@ -10091,7 +10091,7 @@ static Bool Rectangle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 GF_Node *Rectangle_Create()
 {
 	M_Rectangle *p;
-	GF_SAFEALLOC(p, sizeof(M_Rectangle));
+	GF_SAFEALLOC(p, M_Rectangle);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Rectangle);
 
@@ -10212,7 +10212,7 @@ static Bool ScalarInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 GF_Node *ScalarInterpolator_Create()
 {
 	M_ScalarInterpolator *p;
-	GF_SAFEALLOC(p, sizeof(M_ScalarInterpolator));
+	GF_SAFEALLOC(p, M_ScalarInterpolator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ScalarInterpolator);
 
@@ -10311,7 +10311,7 @@ static Bool Script_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 GF_Node *Script_Create()
 {
 	M_Script *p;
-	GF_SAFEALLOC(p, sizeof(M_Script));
+	GF_SAFEALLOC(p, M_Script);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Script);
 
@@ -10407,7 +10407,7 @@ static Bool Shape_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, 
 GF_Node *Shape_Create()
 {
 	M_Shape *p;
-	GF_SAFEALLOC(p, sizeof(M_Shape));
+	GF_SAFEALLOC(p, M_Shape);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Shape);
 
@@ -10601,7 +10601,7 @@ static Bool Sound_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, 
 GF_Node *Sound_Create()
 {
 	M_Sound *p;
-	GF_SAFEALLOC(p, sizeof(M_Sound));
+	GF_SAFEALLOC(p, M_Sound);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Sound);
 
@@ -10736,7 +10736,7 @@ static Bool Sound2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType
 GF_Node *Sound2D_Create()
 {
 	M_Sound2D *p;
-	GF_SAFEALLOC(p, sizeof(M_Sound2D));
+	GF_SAFEALLOC(p, M_Sound2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Sound2D);
 
@@ -10824,7 +10824,7 @@ static Bool Sphere_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 GF_Node *Sphere_Create()
 {
 	M_Sphere *p;
-	GF_SAFEALLOC(p, sizeof(M_Sphere));
+	GF_SAFEALLOC(p, M_Sphere);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Sphere);
 
@@ -10947,7 +10947,7 @@ static Bool SphereSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 GF_Node *SphereSensor_Create()
 {
 	M_SphereSensor *p;
-	GF_SAFEALLOC(p, sizeof(M_SphereSensor));
+	GF_SAFEALLOC(p, M_SphereSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_SphereSensor);
 
@@ -11151,7 +11151,7 @@ static Bool SpotLight_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 GF_Node *SpotLight_Create()
 {
 	M_SpotLight *p;
-	GF_SAFEALLOC(p, sizeof(M_SpotLight));
+	GF_SAFEALLOC(p, M_SpotLight);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_SpotLight);
 
@@ -11270,7 +11270,7 @@ static Bool Switch_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType,
 GF_Node *Switch_Create()
 {
 	M_Switch *p;
-	GF_SAFEALLOC(p, sizeof(M_Switch));
+	GF_SAFEALLOC(p, M_Switch);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Switch);
 	p->choice = gf_list_new();	
@@ -11385,7 +11385,7 @@ static Bool TermCap_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType
 GF_Node *TermCap_Create()
 {
 	M_TermCap *p;
-	GF_SAFEALLOC(p, sizeof(M_TermCap));
+	GF_SAFEALLOC(p, M_TermCap);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TermCap);
 
@@ -11510,7 +11510,7 @@ static Bool Text_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, F
 GF_Node *Text_Create()
 {
 	M_Text *p;
-	GF_SAFEALLOC(p, sizeof(M_Text));
+	GF_SAFEALLOC(p, M_Text);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Text);
 
@@ -11608,7 +11608,7 @@ static Bool TextureCoordinate_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 GF_Node *TextureCoordinate_Create()
 {
 	M_TextureCoordinate *p;
-	GF_SAFEALLOC(p, sizeof(M_TextureCoordinate));
+	GF_SAFEALLOC(p, M_TextureCoordinate);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TextureCoordinate);
 
@@ -11740,7 +11740,7 @@ static Bool TextureTransform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 GF_Node *TextureTransform_Create()
 {
 	M_TextureTransform *p;
-	GF_SAFEALLOC(p, sizeof(M_TextureTransform));
+	GF_SAFEALLOC(p, M_TextureTransform);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TextureTransform);
 
@@ -11881,7 +11881,7 @@ static Bool TimeSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 GF_Node *TimeSensor_Create()
 {
 	M_TimeSensor *p;
-	GF_SAFEALLOC(p, sizeof(M_TimeSensor));
+	GF_SAFEALLOC(p, M_TimeSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TimeSensor);
 
@@ -12007,7 +12007,7 @@ static Bool TouchSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 GF_Node *TouchSensor_Create()
 {
 	M_TouchSensor *p;
-	GF_SAFEALLOC(p, sizeof(M_TouchSensor));
+	GF_SAFEALLOC(p, M_TouchSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TouchSensor);
 
@@ -12172,7 +12172,7 @@ static Bool Transform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 GF_Node *Transform_Create()
 {
 	M_Transform *p;
-	GF_SAFEALLOC(p, sizeof(M_Transform));
+	GF_SAFEALLOC(p, M_Transform);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Transform);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -12358,7 +12358,7 @@ static Bool Transform2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 GF_Node *Transform2D_Create()
 {
 	M_Transform2D *p;
-	GF_SAFEALLOC(p, sizeof(M_Transform2D));
+	GF_SAFEALLOC(p, M_Transform2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Transform2D);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -12773,7 +12773,7 @@ static Bool Valuator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 GF_Node *Valuator_Create()
 {
 	M_Valuator *p;
-	GF_SAFEALLOC(p, sizeof(M_Valuator));
+	GF_SAFEALLOC(p, M_Valuator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Valuator);
 
@@ -12931,7 +12931,7 @@ static Bool Viewpoint_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 GF_Node *Viewpoint_Create()
 {
 	M_Viewpoint *p;
-	GF_SAFEALLOC(p, sizeof(M_Viewpoint));
+	GF_SAFEALLOC(p, M_Viewpoint);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Viewpoint);
 
@@ -13072,7 +13072,7 @@ static Bool VisibilitySensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 GF_Node *VisibilitySensor_Create()
 {
 	M_VisibilitySensor *p;
-	GF_SAFEALLOC(p, sizeof(M_VisibilitySensor));
+	GF_SAFEALLOC(p, M_VisibilitySensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_VisibilitySensor);
 
@@ -13165,7 +13165,7 @@ static Bool WorldInfo_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 GF_Node *WorldInfo_Create()
 {
 	M_WorldInfo *p;
-	GF_SAFEALLOC(p, sizeof(M_WorldInfo));
+	GF_SAFEALLOC(p, M_WorldInfo);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_WorldInfo);
 
@@ -13373,7 +13373,7 @@ static Bool AcousticMaterial_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 GF_Node *AcousticMaterial_Create()
 {
 	M_AcousticMaterial *p;
-	GF_SAFEALLOC(p, sizeof(M_AcousticMaterial));
+	GF_SAFEALLOC(p, M_AcousticMaterial);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AcousticMaterial);
 
@@ -13555,7 +13555,7 @@ static Bool AcousticScene_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 
 GF_Node *AcousticScene_Create()
 {
 	M_AcousticScene *p;
-	GF_SAFEALLOC(p, sizeof(M_AcousticScene));
+	GF_SAFEALLOC(p, M_AcousticScene);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_AcousticScene);
 
@@ -13716,7 +13716,7 @@ static Bool ApplicationWindow_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 GF_Node *ApplicationWindow_Create()
 {
 	M_ApplicationWindow *p;
-	GF_SAFEALLOC(p, sizeof(M_ApplicationWindow));
+	GF_SAFEALLOC(p, M_ApplicationWindow);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ApplicationWindow);
 
@@ -13937,7 +13937,7 @@ static Bool DirectiveSound_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 GF_Node *DirectiveSound_Create()
 {
 	M_DirectiveSound *p;
-	GF_SAFEALLOC(p, sizeof(M_DirectiveSound));
+	GF_SAFEALLOC(p, M_DirectiveSound);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_DirectiveSound);
 
@@ -14071,7 +14071,7 @@ static Bool Hierarchical3DMesh_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 GF_Node *Hierarchical3DMesh_Create()
 {
 	M_Hierarchical3DMesh *p;
-	GF_SAFEALLOC(p, sizeof(M_Hierarchical3DMesh));
+	GF_SAFEALLOC(p, M_Hierarchical3DMesh);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Hierarchical3DMesh);
 
@@ -14216,7 +14216,7 @@ static Bool MaterialKey_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 GF_Node *MaterialKey_Create()
 {
 	M_MaterialKey *p;
-	GF_SAFEALLOC(p, sizeof(M_MaterialKey));
+	GF_SAFEALLOC(p, M_MaterialKey);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_MaterialKey);
 
@@ -14539,7 +14539,7 @@ static Bool PerceptualParameters_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QTy
 GF_Node *PerceptualParameters_Create()
 {
 	M_PerceptualParameters *p;
-	GF_SAFEALLOC(p, sizeof(M_PerceptualParameters));
+	GF_SAFEALLOC(p, M_PerceptualParameters);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PerceptualParameters);
 
@@ -14765,7 +14765,7 @@ static Bool TemporalTransform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 GF_Node *TemporalTransform_Create()
 {
 	M_TemporalTransform *p;
-	GF_SAFEALLOC(p, sizeof(M_TemporalTransform));
+	GF_SAFEALLOC(p, M_TemporalTransform);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TemporalTransform);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -14925,7 +14925,7 @@ static Bool TemporalGroup_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 
 GF_Node *TemporalGroup_Create()
 {
 	M_TemporalGroup *p;
-	GF_SAFEALLOC(p, sizeof(M_TemporalGroup));
+	GF_SAFEALLOC(p, M_TemporalGroup);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TemporalGroup);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -15034,7 +15034,7 @@ static Bool ServerCommand_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 
 GF_Node *ServerCommand_Create()
 {
 	M_ServerCommand *p;
-	GF_SAFEALLOC(p, sizeof(M_ServerCommand));
+	GF_SAFEALLOC(p, M_ServerCommand);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ServerCommand);
 
@@ -15140,7 +15140,7 @@ static Bool InputSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 GF_Node *InputSensor_Create()
 {
 	M_InputSensor *p;
-	GF_SAFEALLOC(p, sizeof(M_InputSensor));
+	GF_SAFEALLOC(p, M_InputSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_InputSensor);
 	p->buffer.commandList = gf_list_new();	
@@ -15272,7 +15272,7 @@ static Bool MatteTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 GF_Node *MatteTexture_Create()
 {
 	M_MatteTexture *p;
-	GF_SAFEALLOC(p, sizeof(M_MatteTexture));
+	GF_SAFEALLOC(p, M_MatteTexture);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_MatteTexture);
 
@@ -15393,7 +15393,7 @@ static Bool MediaBuffer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 GF_Node *MediaBuffer_Create()
 {
 	M_MediaBuffer *p;
-	GF_SAFEALLOC(p, sizeof(M_MediaBuffer));
+	GF_SAFEALLOC(p, M_MediaBuffer);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_MediaBuffer);
 
@@ -15532,7 +15532,7 @@ static Bool MediaControl_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *
 GF_Node *MediaControl_Create()
 {
 	M_MediaControl *p;
-	GF_SAFEALLOC(p, sizeof(M_MediaControl));
+	GF_SAFEALLOC(p, M_MediaControl);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_MediaControl);
 
@@ -15655,7 +15655,7 @@ static Bool MediaSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *A
 GF_Node *MediaSensor_Create()
 {
 	M_MediaSensor *p;
-	GF_SAFEALLOC(p, sizeof(M_MediaSensor));
+	GF_SAFEALLOC(p, M_MediaSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_MediaSensor);
 
@@ -15775,7 +15775,7 @@ static Bool CoordinateInterpolator4D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 
 GF_Node *CoordinateInterpolator4D_Create()
 {
 	M_CoordinateInterpolator4D *p;
-	GF_SAFEALLOC(p, sizeof(M_CoordinateInterpolator4D));
+	GF_SAFEALLOC(p, M_CoordinateInterpolator4D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_CoordinateInterpolator4D);
 
@@ -15888,7 +15888,7 @@ static Bool NonLinearDeformer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 GF_Node *NonLinearDeformer_Create()
 {
 	M_NonLinearDeformer *p;
-	GF_SAFEALLOC(p, sizeof(M_NonLinearDeformer));
+	GF_SAFEALLOC(p, M_NonLinearDeformer);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_NonLinearDeformer);
 
@@ -16079,7 +16079,7 @@ static Bool PositionAnimator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, 
 GF_Node *PositionAnimator_Create()
 {
 	M_PositionAnimator *p;
-	GF_SAFEALLOC(p, sizeof(M_PositionAnimator));
+	GF_SAFEALLOC(p, M_PositionAnimator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PositionAnimator);
 
@@ -16277,7 +16277,7 @@ static Bool PositionAnimator2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType
 GF_Node *PositionAnimator2D_Create()
 {
 	M_PositionAnimator2D *p;
-	GF_SAFEALLOC(p, sizeof(M_PositionAnimator2D));
+	GF_SAFEALLOC(p, M_PositionAnimator2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PositionAnimator2D);
 
@@ -16409,7 +16409,7 @@ static Bool PositionInterpolator4D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *Q
 GF_Node *PositionInterpolator4D_Create()
 {
 	M_PositionInterpolator4D *p;
-	GF_SAFEALLOC(p, sizeof(M_PositionInterpolator4D));
+	GF_SAFEALLOC(p, M_PositionInterpolator4D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PositionInterpolator4D);
 
@@ -16576,7 +16576,7 @@ static Bool ScalarAnimator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 GF_Node *ScalarAnimator_Create()
 {
 	M_ScalarAnimator *p;
-	GF_SAFEALLOC(p, sizeof(M_ScalarAnimator));
+	GF_SAFEALLOC(p, M_ScalarAnimator);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ScalarAnimator);
 
@@ -16719,7 +16719,7 @@ static Bool Clipper2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATy
 GF_Node *Clipper2D_Create()
 {
 	M_Clipper2D *p;
-	GF_SAFEALLOC(p, sizeof(M_Clipper2D));
+	GF_SAFEALLOC(p, M_Clipper2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Clipper2D);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -17069,7 +17069,7 @@ static Bool ColorTransform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 GF_Node *ColorTransform_Create()
 {
 	M_ColorTransform *p;
-	GF_SAFEALLOC(p, sizeof(M_ColorTransform));
+	GF_SAFEALLOC(p, M_ColorTransform);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_ColorTransform);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -17186,7 +17186,7 @@ static Bool Ellipse_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType
 GF_Node *Ellipse_Create()
 {
 	M_Ellipse *p;
-	GF_SAFEALLOC(p, sizeof(M_Ellipse));
+	GF_SAFEALLOC(p, M_Ellipse);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Ellipse);
 
@@ -17356,7 +17356,7 @@ static Bool LinearGradient_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 GF_Node *LinearGradient_Create()
 {
 	M_LinearGradient *p;
-	GF_SAFEALLOC(p, sizeof(M_LinearGradient));
+	GF_SAFEALLOC(p, M_LinearGradient);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_LinearGradient);
 
@@ -17543,7 +17543,7 @@ static Bool PathLayout_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 GF_Node *PathLayout_Create()
 {
 	M_PathLayout *p;
-	GF_SAFEALLOC(p, sizeof(M_PathLayout));
+	GF_SAFEALLOC(p, M_PathLayout);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_PathLayout);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -17731,7 +17731,7 @@ static Bool RadialGradient_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8
 GF_Node *RadialGradient_Create()
 {
 	M_RadialGradient *p;
-	GF_SAFEALLOC(p, sizeof(M_RadialGradient));
+	GF_SAFEALLOC(p, M_RadialGradient);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_RadialGradient);
 
@@ -17920,7 +17920,7 @@ static Bool TransformMatrix2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType,
 GF_Node *TransformMatrix2D_Create()
 {
 	M_TransformMatrix2D *p;
-	GF_SAFEALLOC(p, sizeof(M_TransformMatrix2D));
+	GF_SAFEALLOC(p, M_TransformMatrix2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_TransformMatrix2D);
 	gf_sg_vrml_parent_setup((GF_Node *) p);
@@ -18100,7 +18100,7 @@ static Bool Viewport_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 GF_Node *Viewport_Create()
 {
 	M_Viewport *p;
-	GF_SAFEALLOC(p, sizeof(M_Viewport));
+	GF_SAFEALLOC(p, M_Viewport);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Viewport);
 
@@ -18227,7 +18227,7 @@ static Bool XCurve2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *ATyp
 GF_Node *XCurve2D_Create()
 {
 	M_XCurve2D *p;
-	GF_SAFEALLOC(p, sizeof(M_XCurve2D));
+	GF_SAFEALLOC(p, M_XCurve2D);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_XCurve2D);
 
@@ -18437,7 +18437,7 @@ static Bool XFontStyle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AT
 GF_Node *XFontStyle_Create()
 {
 	M_XFontStyle *p;
-	GF_SAFEALLOC(p, sizeof(M_XFontStyle));
+	GF_SAFEALLOC(p, M_XFontStyle);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_XFontStyle);
 
@@ -18681,7 +18681,7 @@ static Bool XLineProperties_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u
 GF_Node *XLineProperties_Create()
 {
 	M_XLineProperties *p;
-	GF_SAFEALLOC(p, sizeof(M_XLineProperties));
+	GF_SAFEALLOC(p, M_XLineProperties);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_XLineProperties);
 

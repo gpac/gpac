@@ -1021,6 +1021,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						fprintf(stdout, "\n\n\tNon-compliant AVC track: SPS/PPS not found in sample description\n");
 					} else {
 						fprintf(stdout, "Profile %s @ Level %g\n", gf_avc_get_profile_name(avccfg->AVCProfileIndication), ((Double)avccfg->AVCLevelIndication)/10.0 );
+						fprintf(stdout, "NAL Unit length bits: %d\n", 8*avccfg->nal_unit_size);
+
 #ifndef GPAC_READ_ONLY
 						slc = gf_list_get(avccfg->sequenceParameterSets, 0);
 						gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);

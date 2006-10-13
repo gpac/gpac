@@ -345,7 +345,7 @@ GF_BifsEngine *gf_beng_init(void *calling_object, char * inputContext)
 
 	if (!inputContext) return NULL;
 
-	GF_SAFEALLOC(codec, sizeof(GF_BifsEngine))
+	GF_SAFEALLOC(codec, GF_BifsEngine)
 	if (!codec) return NULL;
 
 	codec->calling_object = calling_object;
@@ -386,7 +386,7 @@ GF_BifsEngine *gf_beng_init_from_string(void *calling_object, char * inputContex
 
 	if (!inputContext) return NULL;
 
-	GF_SAFEALLOC(codec, sizeof(GF_BifsEngine))
+	GF_SAFEALLOC(codec, GF_BifsEngine)
 	if (!codec) return NULL;
 
 	codec->calling_object = calling_object;

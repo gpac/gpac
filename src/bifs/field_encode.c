@@ -92,7 +92,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	case GF_SG_VRML_SFSTRING:
 	{
 		u32 i;
-		char *str = ((SFString*)field->far_ptr)->buffer;
+		char *str = (char *) ((SFString*)field->far_ptr)->buffer;
 		u32 len = str ? strlen(str) : 0;
 		u32 val = gf_get_bit_size(len);
 		GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
@@ -244,7 +244,7 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			gf_sg_vrml_mf_get_item(field->far_ptr, field->fieldType, &sffield.far_ptr, i);
 			e = gf_bifs_enc_sf_field(codec, bs, node, &sffield);
 		} else {
-			child = gf_list_get(list, i);
+			child = (GF_Node*)gf_list_get(list, i);
 			e = gf_bifs_enc_node(codec, child, field->NDTtype, bs);
 
 			/*activate QP*/
@@ -304,7 +304,7 @@ GF_Route *gf_bifs_enc_is_field_ised(GF_BifsEncoder *codec, GF_Node *node, u32 fi
 
 	if (node->sgprivate->events) {
 		i=0;
-		while ((r = gf_list_enum(node->sgprivate->events, &i))) {
+		while ((r = (GF_Route*)gf_list_enum(node->sgprivate->events, &i))) {
 			if (!r->IS_route) continue;
 			if ((r->ToNode == node) && (r->ToField.fieldIndex==fieldIndex)) return r;
 			else if ((r->FromNode == node) && (r->FromField.fieldIndex==fieldIndex)) return r;
@@ -312,7 +312,7 @@ GF_Route *gf_bifs_enc_is_field_ised(GF_BifsEncoder *codec, GF_Node *node, u32 fi
 	}
 
 	i=0;
-	while ((r = gf_list_enum(codec->encoding_proto->sub_graph->Routes, &i))) {
+	while ((r = (GF_Route*)gf_list_enum(codec->encoding_proto->sub_graph->Routes, &i))) {
 		if (!r->IS_route) continue;
 		if ((r->ToNode == node) && (r->ToField.fieldIndex==fieldIndex)) return r;
 		else if ((r->FromNode == node) && (r->FromField.fieldIndex==fieldIndex)) return r;
@@ -362,7 +362,7 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 	
 	numBitsDEF = gf_get_bit_size(gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_DEF) - 1);
 
-	enc_fields = malloc(sizeof(s32) * count);
+	enc_fields = (s32*)malloc(sizeof(s32) * count);
 	nbFinal = 0;
 	for (i=0; i<count; i++) {
 		enc_fields[i] = -1;

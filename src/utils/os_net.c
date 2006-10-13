@@ -37,7 +37,7 @@
 
 #if !defined(__GNUC__)
 
-#if defined(IPV6_MULTICAST_IF) && 0
+#if defined(IPV6_MULTICAST_IF)
 #define GPAC_IPV6 1
 #pragma message("Using WinSock IPV6")
 #else
@@ -61,6 +61,10 @@
 /*the number of sockets used. This because the WinSock lib needs init*/
 static int wsa_init = 0;
 
+#include <gpac/network.h>
+
+/*end-win32*/
+
 #else
 /*non-win32*/
 #include <unistd.h>
@@ -80,16 +84,22 @@ static int wsa_init = 0;
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+#include <gpac/network.h>
+
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #define LASTSOCKERROR errno
 
-typedef int SOCKET;
+typedef s32 SOCKET;
 #define closesocket(v) close(v)
 
 #endif
 
-#include <gpac/network.h>
+#ifdef __SYMBIAN32__
+#define SSO_CAST 
+#else
+#define SSO_CAST (const char *)
+#endif
 
 
 #define SOCK_MICROSEC_WAIT	500
@@ -248,7 +258,8 @@ GF_Socket *gf_sk_new(u32 SocketType)
 #endif
 	if ((SocketType != GF_SOCK_TYPE_UDP) && (SocketType != GF_SOCK_TYPE_TCP)) return NULL;
 
-	GF_SAFEALLOC(tmp, sizeof(GF_Socket) );
+	GF_SAFEALLOC(tmp, GF_Socket);
+	if (!tmp) return NULL;
 	if (SocketType == GF_SOCK_TYPE_TCP) tmp->flags |= GF_SOCK_IS_TCP;
 
 #ifdef GPAC_IPV6
@@ -402,8 +413,10 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 		Host = gethostbyname(PeerName);
 		if (Host == NULL) {
 			switch (LASTSOCKERROR) {
+#ifndef __SYMBIAN32__
 			case ENETDOWN: return GF_IP_NETWORK_FAILURE;
 			//case ENOHOST: return GF_IP_ADDRESS_NOT_FOUND;
+#endif
 			default: return GF_IP_NETWORK_FAILURE;
 			}
 		}
@@ -414,12 +427,9 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber)
 		ret = connect(sock->socket, (struct sockaddr *) &sock->dest_addr, sizeof(struct sockaddr));
 		if (ret == SOCKET_ERROR) {
 			switch (LASTSOCKERROR) {
-			case EAGAIN:
-				return GF_IP_SOCK_WOULD_BLOCK;
-			case EISCONN:
-				return GF_OK;
-			default:
-				return GF_IP_CONNECTION_FAILURE;
+			case EAGAIN: return GF_IP_SOCK_WOULD_BLOCK;
+			case EISCONN: return GF_OK;
+			default: return GF_IP_CONNECTION_FAILURE;
 			}
 		}
 	}
@@ -530,7 +540,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 	addrlen = sizeof(struct sockaddr_in);
 	if (options & GF_SOCK_REUSE_PORT) {
 		optval = 1;
-		setsockopt(sock->socket, SOL_SOCKET, SO_REUSEADDR, (const char *) &optval, sizeof(optval));
+		setsockopt(sock->socket, SOL_SOCKET, SO_REUSEADDR, SSO_CAST &optval, sizeof(optval));
 	}
 	/*bind the socket*/
 	ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, addrlen);
@@ -555,15 +565,19 @@ GF_Err gf_sk_bind(GF_Socket *sock, u16 port, char *peer_name, u16 peer_port, u32
 GF_Err gf_sk_send(GF_Socket *sock, unsigned char *buffer, u32 length)
 {
 	GF_Err e;
-	u32 Count, Res, ready;
+	u32 Count, Res;
+#ifndef __SYMBIAN32__
+	u32 ready;
 	struct timeval timeout;
 	fd_set Group;
+#endif
 
 	e = GF_OK;
 
 	//the socket must be bound or connected
 	if (!sock || !sock->socket) return GF_BAD_PARAM;
 
+#ifndef __SYMBIAN32__
 	//can we write?
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
@@ -583,22 +597,25 @@ GF_Err gf_sk_send(GF_Socket *sock, unsigned char *buffer, u32 length)
 	if (!ready || !FD_ISSET(sock->socket, &Group)) {
 		return GF_IP_NETWORK_EMPTY;
 	}
+#endif
 
 	//direct writing
 	Count = 0;
 	while (Count < length) {
 		if (sock->flags & GF_SOCK_IS_TCP) {
-			Res = send(sock->socket, &buffer[Count], length - Count, 0);
+			Res = send(sock->socket, (char *) &buffer[Count], length - Count, 0);
 		} else {
-			Res = sendto(sock->socket, &buffer[Count], length - Count, 0, (struct sockaddr *) &sock->dest_addr, sock->dest_addr_len);
+			Res = sendto(sock->socket, (char *) &buffer[Count], length - Count, 0, (struct sockaddr *) &sock->dest_addr, sock->dest_addr_len);
 		}
 		if (Res == SOCKET_ERROR) {
 			switch (LASTSOCKERROR) {
 			case EAGAIN:
 				return GF_IP_SOCK_WOULD_BLOCK;
+#ifndef __SYMBIAN32__
 			case ENOTCONN:
 			case ECONNRESET:
 				return GF_IP_CONNECTION_CLOSED;
+#endif
 			default:
 				return GF_IP_NETWORK_FAILURE;
 			}
@@ -731,7 +748,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 
 	/*enable address reuse*/
 	optval = SO_REUSEADDR;
-	setsockopt(sock->socket, SOL_SOCKET, SO_REUSEADDR, (const char *) &optval, sizeof(optval));
+	setsockopt(sock->socket, SOL_SOCKET, SO_REUSEADDR, SSO_CAST &optval, sizeof(optval));
 
 	if (local_interface_ip) local_add_id = inet_addr(local_interface_ip);
 	else local_add_id = htonl(INADDR_ANY);
@@ -788,16 +805,20 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 GF_Err gf_sk_receive(GF_Socket *sock, unsigned char *buffer, u32 length, u32 startFrom, u32 *BytesRead)
 {
 	GF_Err e;
-	u32 res, ready;
+	u32 res;
+#ifndef __SYMBIAN32__
+	u32 ready;
 	struct timeval timeout;
 	fd_set Group;
+#endif
 
 	e = GF_OK;
 
 	*BytesRead = 0;
-	if (!sock->socket) return 0;
-	if (startFrom >= length) return 0;
+	if (!sock->socket) return GF_BAD_PARAM;
+	if (startFrom >= length) return GF_IO_ERR;
 
+#ifndef __SYMBIAN32__
 	//can we read?
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
@@ -818,22 +839,26 @@ GF_Err gf_sk_receive(GF_Socket *sock, unsigned char *buffer, u32 length, u32 sta
 	if (!FD_ISSET(sock->socket, &Group)) {
 		return GF_IP_NETWORK_EMPTY;
 	}
+#endif
+
 	if (sock->flags & GF_SOCK_HAS_SOURCE)
-		res = recvfrom(sock->socket, buffer + startFrom, length - startFrom, 0, (struct sockaddr *)&sock->dest_addr, &sock->dest_addr_len);
+		res = recvfrom(sock->socket, (char *) buffer + startFrom, length - startFrom, 0, (struct sockaddr *)&sock->dest_addr, &sock->dest_addr_len);
 	else
-		res = recv(sock->socket, buffer + startFrom, length - startFrom, 0);
+		res = recv(sock->socket, (char *) buffer + startFrom, length - startFrom, 0);
 
 	if (res == SOCKET_ERROR) {
 		res = LASTSOCKERROR;
 		switch (res) {
-		case EMSGSIZE:
-			return GF_OUT_OF_MEM;
 		case EAGAIN:
 			return GF_IP_SOCK_WOULD_BLOCK;
+#ifndef __SYMBIAN32__
+		case EMSGSIZE:
+			return GF_OUT_OF_MEM;
 		case ENOTCONN:
 		case ECONNRESET:
 		case ECONNABORTED:
 			return GF_IP_CONNECTION_CLOSED;
+#endif
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[socket] cannot read from network (%d)\n", LASTSOCKERROR));
 			return GF_IP_NETWORK_FAILURE;
@@ -857,15 +882,17 @@ GF_Err gf_sk_listen(GF_Socket *sock, u32 MaxConnection)
 
 GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 {
-	u32 client_address_size, ready, res;
+	u32 client_address_size, res;
 	SOCKET sk;
+#ifndef __SYMBIAN32__
+	u32 ready;
 	struct timeval timeout;
 	fd_set Group;
-
+#endif
 	*newConnection = NULL;
 	if (!sock || !(sock->flags & GF_SOCK_IS_LISTENING) ) return GF_BAD_PARAM;
 
-#if 1
+#ifndef __SYMBIAN32__
 	//can we read?
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
@@ -903,7 +930,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 		}		
 	}
 
-	(*newConnection) = malloc(sizeof(GF_Socket));
+	(*newConnection) = (GF_Socket *) malloc(sizeof(GF_Socket));
 	(*newConnection)->socket = sk;
 	(*newConnection)->flags = sock->flags & ~GF_SOCK_IS_LISTENING;
 #ifdef GPAC_IPV6
@@ -924,7 +951,7 @@ GF_Err gf_sk_get_local_info(GF_Socket *sock, u16 *Port, u32 *Familly)
 #else
 	struct sockaddr_in the_add;
 #endif
-	u32 size, fam;
+	u32 size;
 
 	if (!sock || !sock->socket) return GF_BAD_PARAM;
 
@@ -940,10 +967,13 @@ GF_Err gf_sk_get_local_info(GF_Socket *sock, u16 *Port, u32 *Familly)
 #endif
 	}
 	if (Familly) {
-		size = 4;
+/*		size = 4;
 		if (getsockopt(sock->socket, SOL_SOCKET, SO_TYPE, (char *) &fam, &size) == SOCKET_ERROR)
 			return GF_IP_NETWORK_FAILURE;
 		*Familly = fam;
+*/
+		if (sock->flags & GF_SOCK_IS_TCP) *Familly = GF_SOCK_TYPE_TCP;
+		else  *Familly = GF_SOCK_TYPE_UDP;
 	}
 	return GF_OK;
 }
@@ -957,8 +987,10 @@ GF_Err gf_sk_server_mode(GF_Socket *sock, Bool serverOn)
 		return GF_BAD_PARAM;
 
 	one = serverOn ? 1 : 0;
-	setsockopt(sock->socket, IPPROTO_TCP, TCP_NODELAY, (char *) &one, sizeof(u32));
+	setsockopt(sock->socket, IPPROTO_TCP, TCP_NODELAY, SSO_CAST &one, sizeof(u32));
+#ifndef __SYMBIAN32__
 	setsockopt(sock->socket, SOL_SOCKET, SO_KEEPALIVE, (char *) &one, sizeof(u32));
+#endif
 	return GF_OK;
 }
 
@@ -982,22 +1014,26 @@ GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
 
 
 //send length bytes of a buffer
-GF_Err gf_sk_send_to(GF_Socket *sock, unsigned char *buffer, u32 length, unsigned char *remoteHost, u16 remotePort)
+GF_Err gf_sk_send_to(GF_Socket *sock, unsigned char *buffer, u32 length, char *remoteHost, u16 remotePort)
 {
-	u32 Count, Res, ready, remote_add_len;
+	u32 Count, Res, remote_add_len;
 #ifdef GPAC_IPV6
 	struct sockaddr_storage remote_add;
 #else
 	struct sockaddr_in remote_add;
 	struct hostent *Host;
 #endif
+#ifndef __SYMBIAN32__
+	u32 ready;
 	struct timeval timeout;
 	fd_set Group;
+#endif
 
 	//the socket must be bound or connected
 	if (!sock || !sock->socket) return GF_BAD_PARAM;
 	if (remoteHost && !remotePort) return GF_BAD_PARAM;
 
+#ifndef __SYMBIAN32__
 	//can we write?
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
@@ -1014,6 +1050,8 @@ GF_Err gf_sk_send_to(GF_Socket *sock, unsigned char *buffer, u32 length, unsigne
 		}
 	}
 	if (!ready || !FD_ISSET(sock->socket, &Group)) return GF_IP_NETWORK_EMPTY;
+#endif
+
 
 	/*setup the address*/
 #ifdef GPAC_IPV6
@@ -1051,7 +1089,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, unsigned char *buffer, u32 length, unsigne
 #endif		
 	Count = 0;
 	while (Count < length) {
-		Res = sendto(sock->socket, &buffer[Count], length - Count, 0, (struct sockaddr *) &remote_add, remote_add_len); 		
+		Res = sendto(sock->socket, (char *) &buffer[Count], length - Count, 0, (struct sockaddr *) &remote_add, remote_add_len); 		
 		if (Res == SOCKET_ERROR) {
 			switch (LASTSOCKERROR) {
 			case EAGAIN:
@@ -1071,16 +1109,19 @@ GF_Err gf_sk_send_to(GF_Socket *sock, unsigned char *buffer, u32 length, unsigne
 GF_Err gf_sk_receive_wait(GF_Socket *sock, unsigned char *buffer, u32 length, u32 startFrom, u32 *BytesRead, u32 Second )
 {
 	GF_Err e;
-	u32 res, ready;
+	u32 res;
+#ifndef __SYMBIAN32__
+	u32 ready;
 	struct timeval timeout;
 	fd_set Group;
-
+#endif
 	e = GF_OK;
 
 	*BytesRead = 0;
-	if (startFrom >= length) return 0;
+	if (startFrom >= length) return GF_OK;
 
 
+#ifndef __SYMBIAN32__
 	//can we read?
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
@@ -1100,8 +1141,10 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, unsigned char *buffer, u32 length, u3
 	if (!FD_ISSET(sock->socket, &Group)) {
 		return GF_IP_NETWORK_EMPTY;
 	}
+#endif
 
-	res = recv(sock->socket, buffer + startFrom, length - startFrom, 0);
+
+	res = recv(sock->socket, (char *) buffer + startFrom, length - startFrom, 0);
 	if (res == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
 		case EAGAIN:
@@ -1120,15 +1163,18 @@ GF_Err gf_sk_send_wait(GF_Socket *sock, unsigned char *buffer, u32 length, u32 S
 {
 
 	GF_Err e;
-	u32 Count, Res, ready;
+	u32 Count, Res;
+#ifndef __SYMBIAN32__
+	u32 ready;
 	struct timeval timeout;
 	fd_set Group;
-
+#endif
 	e = GF_OK;
 
 	//the socket must be bound or connected
 	if (!sock || !sock->socket) return GF_BAD_PARAM;
 
+#ifndef __SYMBIAN32__
 	//can we write?
 	FD_ZERO(&Group);
 	FD_SET(sock->socket, &Group);
@@ -1148,17 +1194,20 @@ GF_Err gf_sk_send_wait(GF_Socket *sock, unsigned char *buffer, u32 length, u32 S
 	if (!ready || !FD_ISSET(sock->socket, &Group)) {
 		return GF_IP_NETWORK_EMPTY;
 	}
+#endif
 
 	//direct writing
 	Count = 0;
 	while (Count < length) {
-		Res = send(sock->socket, &buffer[Count], length - Count, 0);
+		Res = send(sock->socket, (char *) &buffer[Count], length - Count, 0);
 		if (Res == SOCKET_ERROR) {
 			switch (LASTSOCKERROR) {
 			case EAGAIN:
 				return GF_IP_SOCK_WOULD_BLOCK;
-			case ECONNRESET:
+#ifndef __SYMBIAN32__
+			case ECONNRESET: 
 				return GF_IP_CONNECTION_CLOSED;
+#endif
 			default:
 				return GF_IP_NETWORK_FAILURE;
 			}
@@ -1169,11 +1218,7 @@ GF_Err gf_sk_send_wait(GF_Socket *sock, unsigned char *buffer, u32 length, u32 S
 }
 
 
-
-
-
-
-
+#if 0
 
 //Socket Group for select(). The group is a collection of sockets ready for reading / writing
 typedef struct __tag_sock_group
@@ -1190,7 +1235,7 @@ typedef struct __tag_sock_group
 
 GF_SocketGroup *NewSockGroup()
 {	
-	GF_SocketGroup *tmp = malloc(sizeof(GF_SocketGroup));
+	GF_SocketGroup *tmp = (GF_SocketGroup*)malloc(sizeof(GF_SocketGroup));
 	if (!tmp) return NULL;
 	FD_ZERO(&tmp->ReadGroup);
 	FD_ZERO(&tmp->WriteGroup);
@@ -1261,4 +1306,4 @@ u32 SKG_Select(GF_SocketGroup *group)
 	return ready;
 }
 
-
+#endif

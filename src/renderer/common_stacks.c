@@ -91,13 +91,14 @@ typedef struct
 
 static void DestroyAnimationStream(GF_Node *node)
 {
+	M_AnimationStream *as = (M_AnimationStream *)node;
 	AnimationStreamStack *st = (AnimationStreamStack *) gf_node_get_private(node);
 
 	if (st->time_handle.is_registered) {
 		gf_sr_unregister_time_node(st->compositor, &st->time_handle);
 	}
-	if (st->stream && st->stream->num_open) {
-		st->stream->mo_flags |= GF_MO_DISPLAY_REMOVE;
+	if (st->stream && as->isActive) {
+		gf_mo_set_flag(st->stream, GF_MO_DISPLAY_REMOVE, 1);
 		gf_mo_stop(st->stream);
 	}
 	gf_sg_vrml_mf_reset(&st->current_url, GF_SG_VRML_MFURL);
@@ -110,7 +111,7 @@ static void AS_CheckURL(AnimationStreamStack *stack, M_AnimationStream *as)
 	if (!stack->stream) {
 		gf_sg_vrml_mf_reset(&stack->current_url, GF_SG_VRML_MFURL);
 		gf_sg_vrml_field_copy(&stack->current_url, &as->url, GF_SG_VRML_MFURL);
-		stack->stream = gf_mo_find((GF_Node *)as, &as->url);
+		stack->stream = gf_mo_find((GF_Node *)as, &as->url, 0);
 		gf_sr_invalidate(stack->compositor, NULL);
 
 		/*if changed while playing trigger*/
@@ -126,10 +127,10 @@ static void AS_CheckURL(AnimationStreamStack *stack, M_AnimationStream *as)
 		gf_sg_vrml_field_copy(&stack->current_url, &as->url, GF_SG_VRML_MFURL);
 		/*if changed while playing stop old source*/
 		if (as->isActive) {
-			stack->stream->mo_flags |= GF_MO_DISPLAY_REMOVE;
+			gf_mo_set_flag(stack->stream, GF_MO_DISPLAY_REMOVE, 1);
 			gf_mo_stop(stack->stream);
 		}
-		stack->stream = gf_mo_find((GF_Node *)as, &as->url);
+		stack->stream = gf_mo_find((GF_Node *)as, &as->url, 0);
 		/*if changed while playing play new source*/
 		if (as->isActive) {
 			gf_mo_play(stack->stream, 0, 0);
@@ -166,7 +167,7 @@ static void AS_Deactivate(AnimationStreamStack *stack, M_AnimationStream *as)
 	}
 	if (stack->stream) {
 		if (gf_mo_url_changed(stack->stream, &as->url)) 
-			stack->stream->mo_flags |= GF_MO_DISPLAY_REMOVE;
+			gf_mo_set_flag(stack->stream, GF_MO_DISPLAY_REMOVE, 1);
 		gf_mo_stop(stack->stream);
 	}
 	stack->time_handle.needs_unregister = 1;

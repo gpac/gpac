@@ -78,7 +78,7 @@ static void svg_process_event(SVGlistenerElement *listen, GF_DOM_Event *event)
 		}
 		handler->timing->runtime->fraction = (handler->timing->runtime->fraction>FIX_ONE?FIX_ONE:handler->timing->runtime->fraction);
 		handler->timing->runtime->fraction = (handler->timing->runtime->fraction<0?0:handler->timing->runtime->fraction);
-		handler->timing->runtime->evaluate = handler->timing->runtime->fraction_activation;
+		handler->timing->runtime->evaluate_status = SMIL_TIMING_EVAL_FRACTION;
 //		printf("event handled %f\n",FLT2FIX(handler->timing->runtime->fraction));
 		return;
 	}
@@ -94,7 +94,7 @@ static void svg_process_event(SVGlistenerElement *listen, GF_DOM_Event *event)
 		else times = handler->timing->begin;
 
 		/*solve*/
-		GF_SAFEALLOC(resolved, sizeof(SMIL_Time));
+		GF_SAFEALLOC(resolved, SMIL_Time);
 		resolved->type = SMIL_TIME_CLOCK;
 		resolved->clock = gf_node_get_scene_time((GF_Node *)handler) + listen->lsr_delay;
 		resolved->dynamic_type=2;
@@ -254,7 +254,7 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 			if (proto->event.parameter!=evt->detail) continue;
 		}
 		/*solve*/
-		GF_SAFEALLOC(resolved, sizeof(SMIL_Time));
+		GF_SAFEALLOC(resolved, SMIL_Time);
 		resolved->type = GF_SMIL_TIME_EVENT_RESLOVED;
 		resolved->clock = scene_time + proto->clock;
 

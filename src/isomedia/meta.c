@@ -443,7 +443,7 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 	location_entry->data_reference_index = 0;
 	if (self_reference) {
 		GF_ItemExtentEntry *entry;
-		GF_SAFEALLOC(entry, sizeof(GF_ItemExtentEntry));
+		GF_SAFEALLOC(entry, GF_ItemExtentEntry);
 		gf_list_add(location_entry->extent_entries, entry);
 		if (!infe->item_name) infe->item_name = strdup("");
 		return GF_OK;
@@ -467,7 +467,7 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 	if ((file->openMode == GF_ISOM_OPEN_WRITE) && !location_entry->data_reference_index) {
 		FILE *src;
 		GF_ItemExtentEntry *entry;
-		GF_SAFEALLOC(entry, sizeof(GF_ItemExtentEntry));
+		GF_SAFEALLOC(entry, GF_ItemExtentEntry);
 
 		location_entry->base_offset = gf_bs_get_position(file->editFileMap->bs);
 

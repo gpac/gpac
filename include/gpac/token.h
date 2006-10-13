@@ -56,7 +56,7 @@ extern "C" {
  *\param token_size output buffer allocated size
  *\return position of the first char in the buffer after the last terminating separator, or -1 if token could not be found
  */
-s32 gf_token_get(unsigned char *buffer, s32 start, unsigned char *separators, unsigned char *token, s32 token_size);
+s32 gf_token_get(char *buffer, s32 start, char *separators, char *token, s32 token_size);
 /*!
  *\brief get string component without delimitting characters
  *
@@ -69,7 +69,7 @@ s32 gf_token_get(unsigned char *buffer, s32 start, unsigned char *separators, un
  *\param token_size output buffer allocated size
  *\return position of the first char in the buffer after the last terminating separator, or -1 if token could not be found
  */
-s32 gf_token_get_strip(unsigned char *buffer, s32 start, unsigned char *separators, unsigned char *strip_set, unsigned char *token, s32 token_size);
+s32 gf_token_get_strip(char *buffer, s32 start, char *separators, char *strip_set, char *token, s32 token_size);
 /*!
  *\brief line removal
  *
@@ -81,7 +81,7 @@ s32 gf_token_get_strip(unsigned char *buffer, s32 start, unsigned char *separato
  *\param line_buffer_size output buffer allocated size
  *\return position of the first char in the buffer after the last line delimiter, or -1 if no line could be found
  */
-s32 gf_token_get_line(unsigned char	*buffer, u32 start, u32 size, unsigned char *line_buffer, u32 line_buffer_size);
+s32 gf_token_get_line(char	*buffer, u32 start, u32 size, char *line_buffer, u32 line_buffer_size);
 /*!
  *\brief pattern location
  *
@@ -92,7 +92,7 @@ s32 gf_token_get_line(unsigned char	*buffer, u32 start, u32 size, unsigned char 
  *\param pattern pattern to locate
  *\return position of the first char in the buffer after the pattern, or -1 if pattern could not be found
  */
-s32 gf_token_find(unsigned char *buffer, u32 start, u32 size, unsigned char *pattern);
+s32 gf_token_find(char *buffer, u32 start, u32 size, char *pattern);
 
 
 /*! @} */

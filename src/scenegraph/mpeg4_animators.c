@@ -463,7 +463,7 @@ void PA_Init(GF_Node *n)
 {
 	M_PositionAnimator *sa = (M_PositionAnimator*)n;
 	AnimatorStack *stack;
-	GF_SAFEALLOC(stack, sizeof(AnimatorStack));
+	GF_SAFEALLOC(stack, AnimatorStack);
 	stack->is_dirty = 1;
 	gf_node_set_private(n, stack);
 	gf_node_set_predestroy_function(n, Anim_Destroy);
@@ -620,7 +620,7 @@ void PA2D_Init(GF_Node *n)
 {
 	M_PositionAnimator2D *sa = (M_PositionAnimator2D *)n;
 	AnimatorStack *stack;
-	GF_SAFEALLOC(stack, sizeof(AnimatorStack));
+	GF_SAFEALLOC(stack, AnimatorStack);
 	stack->is_dirty = 1;
 	gf_node_set_private(n, stack);
 	gf_node_set_predestroy_function(n, Anim_Destroy);
@@ -772,7 +772,7 @@ void SA_Init(GF_Node *n)
 {
 	M_ScalarAnimator *sa = (M_ScalarAnimator *)n;
 	AnimatorStack *stack;
-	GF_SAFEALLOC(stack, sizeof(AnimatorStack));
+	GF_SAFEALLOC(stack, AnimatorStack);
 	stack->is_dirty = 1;
 	gf_node_set_private(n, stack);
 	gf_node_set_predestroy_function(n, Anim_Destroy);

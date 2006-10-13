@@ -66,7 +66,7 @@ GF_SceneManager *gf_sm_new(GF_SceneGraph *graph)
 	GF_SceneManager *tmp;
 	
 	if (!graph) return NULL;
-	GF_SAFEALLOC(tmp, sizeof(GF_SceneManager));
+	GF_SAFEALLOC(tmp, GF_SceneManager);
 	tmp->streams = gf_list_new();
 	tmp->scene_graph = graph;
 	return tmp;
@@ -479,7 +479,7 @@ void *DANAE_NewSceneLoader(char *filename, void *scene_graph)
 {
 	GF_SceneLoader *scene_loader;
 	
-	GF_SAFEALLOC(scene_loader, sizeof(GF_SceneLoader));
+	GF_SAFEALLOC(scene_loader, GF_SceneLoader);
 	scene_loader->fileName = filename;
 	scene_loader->scene_graph = scene_graph;
    	scene_loader->flags = GF_SM_LOAD_FOR_PLAYBACK;

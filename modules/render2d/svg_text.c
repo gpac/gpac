@@ -173,7 +173,7 @@ void SVG_DestroyText(GF_Node *node)
 void SVG_Init_text(Render2D *sr, GF_Node *node)
 {
 	SVG_TextStack *stack;
-	GF_SAFEALLOC(stack, sizeof(SVG_TextStack));
+	GF_SAFEALLOC(stack, SVG_TextStack);
 	stack->draw = drawable_new();
 	stack->draw->IsPointOver = SVG_text_PointOver;
 	gf_sr_traversable_setup(stack->draw, node, sr->compositor);

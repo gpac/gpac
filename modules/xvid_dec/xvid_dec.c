@@ -313,8 +313,8 @@ GF_BaseDecoder *NewXVIDDec()
 	GF_MediaDecoder *ifcd;
 	XVIDDec *dec;
 	
-	GF_SAFEALLOC(ifcd, sizeof(GF_MediaDecoder));
-	GF_SAFEALLOC(dec, sizeof(XVIDDec));
+	GF_SAFEALLOC(ifcd, GF_MediaDecoder);
+	GF_SAFEALLOC(dec, XVIDDec);
 	GF_REGISTER_MODULE_INTERFACE(ifcd, GF_MEDIA_DECODER_INTERFACE, "XviD Decoder", "gpac distribution")
 
 	ifcd->privateStack = dec;

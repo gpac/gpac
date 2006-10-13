@@ -453,7 +453,7 @@ void gf_m2ts_es_del(GF_M2TS_ES *es)
 static GF_M2TS_SectionFilter *gf_m2ts_section_filter_new(gf_m2ts_section_callback process_section_callback)
 {
 	GF_M2TS_SectionFilter *sec;
-	GF_SAFEALLOC(sec, sizeof(GF_M2TS_SectionFilter));
+	GF_SAFEALLOC(sec, GF_M2TS_SectionFilter);
 	sec->cc = -1;
 	sec->process_section = process_section_callback;
 	return sec;
@@ -534,8 +534,8 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		if (sec->data) {
 			if (sec->current_next_indicator) {
 				if (!es){
-					GF_SAFEALLOC(es, sizeof(GF_M2TS_ES));
-					GF_SAFEALLOC(es->sec, sizeof(GF_M2TS_SectionFilter));
+					GF_SAFEALLOC(es, GF_M2TS_ES);
+					GF_SAFEALLOC(es->sec, GF_M2TS_SectionFilter);
 					es->sec->table_id = sec->table_id;
 				}
 				sec->process_section(ts, es, sec->data, sec->data_size, is_repeated);
@@ -670,7 +670,7 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, unsigned ch
 		GF_M2TS_SDT *sdt;
 		u32 descs_size, d_pos, ulen;
 		
-		GF_SAFEALLOC(sdt, sizeof(GF_M2TS_SDT));
+		GF_SAFEALLOC(sdt, GF_M2TS_SDT);
 		gf_list_add(ts->SDTs, sdt);
 
 		sdt->service_id = (data[pos]<<8) + data[pos+1];
@@ -800,7 +800,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_ES *pmt, unsigned c
 
 	while (pos<data_size) {
 		u32 d_pos;
-		GF_SAFEALLOC(pes, sizeof(GF_M2TS_PES));
+		GF_SAFEALLOC(pes, GF_M2TS_PES);
 
 		pes->program = pmt->program;
 		gf_list_add(pmt->program->streams, pes);
@@ -887,13 +887,13 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_ES *es, unsigned ch
 	nb_progs = data_size / 4;
 
 	for (i=0; i<nb_progs; i++) {
-		GF_SAFEALLOC(prog, sizeof(GF_M2TS_Program));
+		GF_SAFEALLOC(prog, GF_M2TS_Program);
 		prog->streams = gf_list_new();
 		gf_list_add(ts->programs, prog);
 		prog->number = (data[0]<<8) | data[1];
 		prog->pmt_pid = (data[2]&0x1f)<<8 | data[3];
 		data += 4;
-		GF_SAFEALLOC(pmt, sizeof(GF_M2TS_ES));
+		GF_SAFEALLOC(pmt, GF_M2TS_ES);
 		gf_list_add(prog->streams, pmt);
 		pmt->pid = prog->pmt_pid;
 		pmt->program = prog;
@@ -1063,8 +1063,9 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	hdr.scrambling_ctrl = (data[3] >> 6) & 0x3;
 	hdr.adaptation_field = (data[3] >> 4) & 0x3;
 	hdr.continuity_counter = data[3] & 0xf;
+
 #if DEBUG_TS_PACKET
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] "Packet PID %d\n", hdr.pid));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Packet PID %d\n", hdr.pid));
 #endif
 
 	paf = NULL;
@@ -1247,7 +1248,7 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 GF_M2TS_Demuxer *gf_m2ts_demux_new()
 {
 	GF_M2TS_Demuxer *ts;
-	GF_SAFEALLOC(ts, sizeof(GF_M2TS_Demuxer));
+	GF_SAFEALLOC(ts, GF_M2TS_Demuxer);
 	ts->programs = gf_list_new();
 	ts->SDTs = gf_list_new();
 

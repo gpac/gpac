@@ -3276,6 +3276,10 @@ DEP_CPP_OBJECT=\
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\terminal\svg_external.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\terminal\term_node_init.c
 DEP_CPP_TERM_=\
 	"..\..\include\gpac\bitstream.h"\

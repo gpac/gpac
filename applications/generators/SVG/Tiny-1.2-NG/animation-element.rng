@@ -32,6 +32,7 @@
     <ref name='svg.Core.attr'/>
     <ref name='svg.FocusHighlight.attr'/>
     <ref name='svg.Media.attr'/>
+	<ref name='svg.MediaClip.attr'/>
     <ref name='svg.Conditional.attr'/>
     <ref name='svg.External.attr'/>
     <ref name='svg.XLinkEmbed.attr'/>

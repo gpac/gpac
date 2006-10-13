@@ -436,6 +436,7 @@ LONG CMainFrame::OnSetSize(WPARAM wParam, LPARAM lParam)
 	AdjustWindowRectEx(&winRect, GetStyle(), TRUE, GetExStyle());
 	winRect.bottom -= winRect.top;
 	winRect.right -= winRect.left;
+	winRect.left = winRect.top = 0;
 
 	RECT rc2;
 	m_Address.GetClientRect(&rc2);
@@ -941,12 +942,6 @@ void CMainFrame::BuildStreamList(Bool reset_only)
 		ODInfo info;
 		GF_ObjectManager *odm = gf_term_get_object(app->m_term, root_od, i);
 		if (!odm) return;
-		GF_ObjectManager *remote = odm;
-		while (1) {
-			remote = gf_term_get_remote_object(app->m_term, odm);
-			if (remote) odm = remote;
-			else break;
-		}
 
 		if (gf_term_get_object_info(app->m_term, odm, &info) != GF_OK) break;
 		if (info.owns_service) {
@@ -1071,12 +1066,6 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT ID, BOOL bSys)
 				pPopupMenu->EnableMenuItem(i, MF_DISABLED | MF_BYPOSITION);
 			} else {
 				ODInfo info;
-				GF_ObjectManager *remote = odm;
-				while (1) {
-					remote = gf_term_get_remote_object(app->m_term, odm);
-					if (remote) odm = remote;
-					else break;
-				}
 
 				gf_term_get_object_info(app->m_term, odm, &info);
 				pPopupMenu->EnableMenuItem(i, MF_BYPOSITION);

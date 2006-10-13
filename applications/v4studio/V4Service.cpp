@@ -6,6 +6,7 @@
 
 extern "C" {
 
+	
 V4Channel *V4Service::V4_GetChannel(V4Service *v4service, LPNETCHANNEL ch)
 {
 	u32 i;

@@ -51,6 +51,9 @@ endif
 
 ## libgpac objects gathering: src/terminal
 LIBGPAC_TERMINAL=terminal/channel.o terminal/clock.o terminal/decoder.o terminal/term_node_init.o terminal/inline.o terminal/input_sensor.o terminal/media_control.o terminal/media_manager.o terminal/media_memory.o terminal/media_object.o terminal/media_sensor.o terminal/network_service.o terminal/object_browser.o terminal/object_manager.o terminal/terminal.o 
+ifeq ($(DISABLE_SVG), no)
+LIBGPAC_TERMINAL+=terminal/svg_external.o
+endif
 
 ## libgpac objects gathering: src/renderer
 LIBGPAC_RENDERER=renderer/audio_input.o renderer/audio_mixer.o renderer/audio_render.o renderer/audio_stacks.o renderer/base_textures.o renderer/common_stacks.o renderer/renderer.o renderer/texturing.o 

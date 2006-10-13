@@ -419,7 +419,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 	if (parent && elt) gf_list_add(parent->children, elt);
 
 	if (is_svg_animation_tag(tag)) {
-		GF_SAFEALLOC(anim, sizeof(DeferedAnimation));
+		GF_SAFEALLOC(anim, DeferedAnimation);
 		/*default anim target is parent node*/
 		anim->animation_elt = elt;
 		anim->target = parent;
@@ -427,7 +427,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 	} else if (tag == TAG_SVG_video || tag == TAG_SVG_audio || tag == TAG_SVG_animation || tag == TAG_SVG_conditional) {
 		/* warning: we use the DeferedAnimation structure for some timing nodes which are not 
 		   animations, but we put the parse stage at 1 (timing) see svg_parse_animation. */
-		GF_SAFEALLOC(anim, sizeof(DeferedAnimation));
+		GF_SAFEALLOC(anim, DeferedAnimation);
 		/*default anim target is parent node*/
 		anim->animation_elt = elt;
 		anim->anim_parent = parent;
@@ -900,7 +900,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		if (parent) parent->unknown_depth++;
 		return;
 	}
-	GF_SAFEALLOC(stack, sizeof(SVGNodeStack));
+	GF_SAFEALLOC(stack, SVGNodeStack);
 	stack->node = (GF_Node *) elt;
 	gf_list_add(parser->node_stack, stack);
 
@@ -1130,7 +1130,7 @@ static GF_SVGParser *svg_new_parser(GF_SceneLoader *load)
 {
 	GF_SVGParser *parser;
 	if ((load->type==GF_SM_LOAD_XSR) && !load->ctx) return NULL;
-	GF_SAFEALLOC(parser, sizeof(GF_SVGParser));
+	GF_SAFEALLOC(parser, GF_SVGParser);
 	parser->node_stack = gf_list_new();
 	parser->defered_hrefs = gf_list_new();
 	parser->defered_animations = gf_list_new();

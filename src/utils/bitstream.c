@@ -527,7 +527,7 @@ u64 gf_bs_available(GF_BitStream *bs)
 	if ( (bs->bsmode == GF_BITSTREAM_WRITE) 
 		|| (bs->bsmode == GF_BITSTREAM_WRITE_DYN) 
 		)
-		return -1;
+		return (u64) -1;
 
 	/*we are in MEM mode*/
 	if (bs->bsmode == GF_BITSTREAM_READ) {
@@ -550,14 +550,14 @@ return nbBytes cut*/
 static u32 BS_CutBuffer(GF_BitStream *bs)
 {	
 	u32 nbBytes;
-	if ( (bs->bsmode != GF_BITSTREAM_WRITE_DYN) && (bs->bsmode != GF_BITSTREAM_WRITE)) return -1;
+	if ( (bs->bsmode != GF_BITSTREAM_WRITE_DYN) && (bs->bsmode != GF_BITSTREAM_WRITE)) return (u32) -1;
 	/*Align our buffer or we're dead!*/
 	gf_bs_align(bs);
 
 	nbBytes = (u32) (bs->size - bs->position);
 	if (!nbBytes || (nbBytes == 0xFFFFFFFF) || (bs->position >= 0xFFFFFFFF)) return 0;
 	bs->original = (char*)realloc(bs->original, (u32) bs->position);
-	if (! bs->original) return -1;
+	if (! bs->original) return (u32) -1;
 	/*just in case, re-adjust..*/
 	bs->size = bs->position;
 	return nbBytes;

@@ -472,7 +472,7 @@ static GF_Err BD_DecFieldReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 		GF_List *list = * ((GF_List **) field.far_ptr);
 		prev_list = gf_list_new();
 		while (gf_list_count(list)) {
-			GF_Node *n = gf_list_get(list, 0);
+			GF_Node *n = (GF_Node *) gf_list_get(list, 0);
 			gf_list_rem(list, 0);
 			gf_list_add(prev_list, n);
 		}
@@ -570,7 +570,7 @@ exit:
 	return e;
 }
 
-static u32 BD_DecRouteReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
+static GF_Err BD_DecRouteReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 RouteID, numBits, ind, node_id, fromID, toID;

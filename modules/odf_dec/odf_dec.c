@@ -52,7 +52,7 @@ static GF_Err ODF_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool
 
 static void ODS_SetupOD(GF_InlineScene *is, GF_ObjectDescriptor *od)
 {
-	GF_ObjectManager *odm, *parent;
+	GF_ObjectManager *odm;
 	odm = gf_is_find_odm(is, od->objectDescriptorID);
 	/*remove the old OD*/
 	if (odm) gf_odm_disconnect(odm, 1);
@@ -63,9 +63,7 @@ static void ODS_SetupOD(GF_InlineScene *is, GF_ObjectDescriptor *od)
 	gf_list_add(is->ODlist, odm);
 
 	/*locate service owner*/
-	parent = is->root_od;
-	while (parent->remote_OD) parent = parent->remote_OD;
-	gf_odm_setup_object(odm, parent->net_service);
+	gf_odm_setup_object(odm, is->root_od->net_service);
 }
 
 static GF_Err ODS_ODUpdate(ODPriv *priv, GF_ODUpdate *odU)
@@ -107,8 +105,6 @@ static GF_Err ODS_UpdateESD(ODPriv *priv, GF_ESDUpdate *ESDs)
 	odm = gf_is_find_odm(priv->scene, ESDs->ODID);
 	/*spec: "ignore"*/
 	if (!odm) return GF_OK;
-	/*spec: "ES_DescriptorUpdate shall not be applied on object descriptors that have set URL_Flag to '1' (see 8.6.3)."*/
-	if (odm->remote_OD) return GF_NON_COMPLIANT_BITSTREAM;
 
 	count = gf_list_count(ESDs->ESDescriptors);
 
@@ -147,8 +143,6 @@ static GF_Err ODS_RemoveESD(ODPriv *priv, GF_ESDRemove *ESDs)
 	odm = gf_is_find_odm(priv->scene, ESDs->ODID);
 	/*spec: "ignore"*/
 	if (!odm) return GF_OK;
-	/*spec: "ES_DescriptorRemove shall not be applied on object descriptors that have set URL_Flag to '1' (see 8.6.3)."*/
-	if (odm->remote_OD) return GF_NON_COMPLIANT_BITSTREAM;
 
 	for (i=0; i<ESDs->NbESDs; i++) {
 		/*blindly call remove*/
@@ -272,9 +266,9 @@ GF_BaseDecoder *NewODDec()
 	GF_SceneDecoder *tmp;
 	ODPriv *priv;
 	
-	GF_SAFEALLOC(tmp, sizeof(GF_SceneDecoder));
+	GF_SAFEALLOC(tmp, GF_SceneDecoder);
 	if (!tmp) return NULL;
-	GF_SAFEALLOC(priv, sizeof(ODPriv));
+	GF_SAFEALLOC(priv, ODPriv);
 
 	tmp->privateStack = priv;
 	tmp->AttachStream = ODF_AttachStream;

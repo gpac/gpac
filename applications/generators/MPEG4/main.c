@@ -867,7 +867,7 @@ void WriteNodeCode(GF_List *BNodes)
 		//		Constructor
 		//
 
-		fprintf(f, "\n\nGF_Node *%s_Create()\n{\n\tM_%s *p;\n\tGF_SAFEALLOC(p, sizeof(M_%s));\n", n->name, n->name, n->name);
+		fprintf(f, "\n\nGF_Node *%s_Create()\n{\n\tM_%s *p;\n\tGF_SAFEALLOC(p, M_%s);\n", n->name, n->name, n->name);
 		fprintf(f, "\tif(!p) return NULL;\n");
 		fprintf(f, "\tgf_node_setup((GF_Node *)p, TAG_MPEG4_%s);\n", n->name);
 

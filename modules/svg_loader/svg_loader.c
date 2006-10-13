@@ -231,8 +231,9 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
 		parser->file_size = gf_bs_read_u32(bs);
 		gf_bs_del(bs);
-		GF_SAFEALLOC(parser->file_name, sizeof(char)*(1 + decSpecInfoSize - sizeof(u32)) );
+		parser->file_name = (char *) malloc(sizeof(char)*(1 + decSpecInfoSize - sizeof(u32)) );
 		memcpy(parser->file_name, decSpecInfo + sizeof(u32), decSpecInfoSize - sizeof(u32) );
+		parser->file_name[decSpecInfoSize - sizeof(u32)] = 0;
 		break;
 	}
 	parser->oti = objectTypeIndication;
@@ -307,7 +308,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	GF_SceneDecoder *sdec;
 	if (InterfaceType != GF_SCENE_DECODER_INTERFACE) return NULL;
 	
-	GF_SAFEALLOC(sdec, sizeof(GF_SceneDecoder))
+	GF_SAFEALLOC(sdec, GF_SceneDecoder)
 	GF_REGISTER_MODULE_INTERFACE(sdec, GF_SCENE_DECODER_INTERFACE, "GPAC SVG Parser", "gpac distribution");
 
 	parser = NewSVGParser();

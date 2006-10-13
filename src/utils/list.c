@@ -476,17 +476,13 @@ GF_Err gf_list_add(GF_List *ptr, void* item)
     if (! ptr) return GF_BAD_PARAM;
 
 	ptr->entryCount ++;
-	ptr->slots = realloc(ptr->slots, ptr->entryCount*sizeof(void*));
+	ptr->slots = (void **) realloc(ptr->slots, ptr->entryCount*sizeof(void*));
 	if (!ptr->slots) {
 		ptr->entryCount = 0;
 		return GF_OUT_OF_MEM;
 	}
 	ptr->slots[ptr->entryCount-1] = item;
 	return GF_OK;
-}
-
-void ChainExpand(GF_List *ptr, u32 nbItems)
-{
 }
 
 u32 gf_list_count(GF_List *ptr)
@@ -515,7 +511,7 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 	if (i) memmove(&ptr->slots[itemNumber], & ptr->slots[itemNumber +1], sizeof(void *)*i);
 	ptr->slots[ptr->entryCount-1] = NULL;
 	ptr->entryCount -= 1;
-	ptr->slots = realloc(ptr->slots, sizeof(void*)*ptr->entryCount);
+	ptr->slots = (void **) realloc(ptr->slots, sizeof(void*)*ptr->entryCount);
 	return GF_OK;
 }
 
@@ -523,7 +519,7 @@ GF_Err gf_list_rem_last(GF_List *ptr)
 {
 	if ( !ptr || !ptr->slots || !ptr->entryCount) return GF_BAD_PARAM;
 	ptr->entryCount -= 1;
-	ptr->slots = realloc(ptr->slots, sizeof(void*)*ptr->entryCount);
+	ptr->slots = (void **) realloc(ptr->slots, sizeof(void*)*ptr->entryCount);
 	return GF_OK;
 }
 
@@ -535,7 +531,7 @@ GF_Err gf_list_insert(GF_List *ptr, void *item, u32 position)
 	if (!ptr || !item) return GF_BAD_PARAM;
 	/*if last entry or first of an empty array...*/
 	if (position >= ptr->entryCount) return gf_list_add(ptr, item);
-	ptr->slots = realloc(ptr->slots, (ptr->entryCount+1)*sizeof(void*));
+	ptr->slots = (void **) realloc(ptr->slots, (ptr->entryCount+1)*sizeof(void*));
 	i = ptr->entryCount - position;
 	memmove(&ptr->slots[position + 1], &ptr->slots[position], sizeof(void *)*i);
 	ptr->entryCount++;
@@ -597,14 +593,6 @@ GF_Err gf_list_add(GF_List *ptr, void* item)
 	ptr->slots[ptr->entryCount] = item;
 	ptr->entryCount ++;
 	return GF_OK;
-}
-
-void ChainExpand(GF_List *ptr, u32 nbItems)
-{
-	if (ptr->entryCount+nbItems>ptr->allocSize) {
-		ptr->allocSize = ptr->entryCount+nbItems;
-		ptr->slots = realloc(ptr->slots, ptr->allocSize*sizeof(void*));
-	}
 }
 
 u32 gf_list_count(GF_List *ptr)

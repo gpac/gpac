@@ -34,7 +34,7 @@ static GFINLINE GF_Err OD_ReadUTF8String(GF_BitStream *bs, char **string, Bool i
 	*read = 1;
 	len = gf_bs_read_int(bs, 8) + 1;
 	if (!isUTF8) len *= 2;
-	GF_SAFEALLOC( (*string), sizeof(char)*len);
+	(*string) = (char *) malloc(sizeof(char)*len);
 	if (! (*string) ) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, (*string), len);
 	*read += len;
@@ -1775,7 +1775,7 @@ GF_Err gf_odf_read_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd, u32 DescS
 	if (nonLen) {
 		//here we have no choice but do the job ourselves
 		//because the length is not encoded on 8 bits
-		GF_SAFEALLOC(etd->NonItemText, (1+nonLen) * (etd->isUTF8 ? 1 : 2));
+		etd->NonItemText = (char *) malloc(sizeof(char) * (1+nonLen) * (etd->isUTF8 ? 1 : 2));
 		if (! etd->NonItemText) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, etd->NonItemText, nonLen * (etd->isUTF8 ? 1 : 2));
 		nbBytes += nonLen * (etd->isUTF8 ? 1 : 2);
@@ -2102,7 +2102,7 @@ GF_Err gf_odf_write_ipi_ptr(GF_BitStream *bs, GF_IPIPtr *ipid)
 GF_Descriptor *gf_odf_new_ipmp()
 {
 	GF_IPMP_Descriptor *newDesc;
-	GF_SAFEALLOC(newDesc, sizeof(GF_IPMP_Descriptor));
+	GF_SAFEALLOC(newDesc, GF_IPMP_Descriptor);
 	if (!newDesc) return NULL;
 
 	newDesc->ipmpx_data = gf_list_new();
@@ -2241,7 +2241,7 @@ GF_Err gf_odf_write_ipmp(GF_BitStream *bs, GF_IPMP_Descriptor *ipmp)
 GF_Descriptor *gf_odf_new_ipmp_ptr()
 {
 	GF_IPMPPtr *newDesc;
-	GF_SAFEALLOC(newDesc, sizeof(GF_IPMPPtr));
+	GF_SAFEALLOC(newDesc, GF_IPMPPtr);
 	if (!newDesc) return NULL;
 	newDesc->tag = GF_ODF_IPMP_PTR_TAG;
 	return (GF_Descriptor *) newDesc;

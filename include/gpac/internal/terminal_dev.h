@@ -157,7 +157,7 @@ void gf_is_buffering_info(GF_InlineScene *is);
 /*the inline rendering function*/
 void gf_is_render(GF_Node *pInline, void *render_stack);
 void gf_is_attach_to_renderer(GF_InlineScene *is);
-struct _mediaobj *gf_is_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_type_hint);
+struct _mediaobj *gf_is_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines);
 void gf_is_setup_object(GF_InlineScene *is, GF_ObjectManager *odm);
 /*restarts inline scene - care has to be taken not to remove the scene while it is traversed*/
 void gf_is_restart(GF_InlineScene *is);
@@ -216,8 +216,8 @@ struct _tag_terminal
 	GF_List *net_services_to_remove;
 	/*channels waiting for service CONNECT ack to be setup*/
 	GF_List *channels_pending;
-	/*od pending for play*/
-	GF_List *od_pending;
+	/*media objects pending for stop/play*/
+	GF_List *media_queue;
 	/*network lock*/
 	GF_Mutex *net_mx;
 	/*all X3D key/mouse/string sensors*/
@@ -260,8 +260,10 @@ service restart
 void gf_term_handle_services(GF_Terminal *app);
 /*close service and queue for delete*/
 void gf_term_close_services(GF_Terminal *app, GF_ClientService *service);
+
 /*locks net manager*/
 void gf_term_lock_net(GF_Terminal *app, Bool LockIt);
+
 
 /*locks scene renderer*/
 void gf_term_lock_renderer(GF_Terminal *app, Bool LockIt);
@@ -271,8 +273,7 @@ u32 gf_term_get_time(GF_Terminal *term);
 void gf_term_invalidate_renderer(GF_Terminal *term);
 
 /*callbacks for scene graph library so that all related ESM nodes are properly instanciated*/
-void gf_term_on_node_init(void *_is, GF_Node *node);
-void gf_term_on_node_modified(void *_is, GF_Node *node); 
+void gf_term_node_callback(void *_is, u32 type, GF_Node *node, void *param);
 
 /*add/rem node requiring a call to render without being present in traversed graph (VRML/MPEG-4 protos). 
 For these nodes, the traverse effect passed will be NULL.*/
@@ -355,8 +356,10 @@ hasOCR indicates whether the stream being attached carries object clock referenc
 @is: inline scene to solve clock dependencies
 */
 GF_Clock *gf_clock_attach(GF_List *clocks, GF_InlineScene *is, u16 OCR_ES_ID, u16 ES_ID, s32 hasOCR);
-/*reset clock (only called by channel owning clock*/
+/*reset clock (only called by channel owning clock)*/
 void gf_clock_reset(GF_Clock *ck);
+/*stops clock (only called for scene clock)*/
+void gf_clock_stop(GF_Clock *ck);
 /*return clock time in ms*/
 u32 gf_clock_time(GF_Clock *ck);
 /*sets clock time - FIXME: drift updates for OCRs*/
@@ -604,34 +607,49 @@ GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm);
 /*all inserted ODs have this ODID*/
 #define GF_ESM_DYNAMIC_OD_ID	1050
 
+enum
+{
+	GF_ODM_NO_TIME_CTRL = (1<<1),
+	GF_ODM_INHERIT_TIMELINE = (1<<2),
+	GF_ODM_REMOTE_OD = (1<<3),
+	GF_ODM_INLINE_PROFILES = (1<<4),
+};
+
 struct _od_manager
 {
-	GF_ObjectDescriptor *OD;
-	/*remote od manager*/
-	struct _od_manager *remote_OD;
-	/*parent od manager for remote od*/
-	struct _od_manager *parent_OD;
-	/*the service used by this ODM. If the service private data is this ODM, then the service was created for this ODM*/
-	GF_ClientService *net_service;
-	/*channels associated with this object (media channels, OCR, IPMP, OCI, etc)*/
-	GF_List *channels;
-	/*sub scene for inline or NULL */
-	struct _inline_scene *subscene;
-	/*parent scene or NULL for root scene*/
-	struct _inline_scene *parentscene;
 	/*pointer to terminal*/
 	struct _tag_terminal *term;
+	/*the service used by this ODM. If the service private data is this ODM, then the service was created for this ODM*/
+	GF_ClientService *net_service;
+	/*parent scene or NULL for root scene*/
+	struct _inline_scene *parentscene;
+	/*channels associated with this object (media channels, OCR, IPMP, OCI, etc)*/
+	GF_List *channels;
+	/*sub scene for inline/animation or NULL */
+	struct _inline_scene *subscene;
 	/*object codec (media or BIFS for AnimationStream) attached if any*/
 	struct _generic_codec *codec;
 	/*OCI codec attached if any*/
 	struct _generic_codec *oci_codec;
 	/*OCR codec attached if any*/
 	struct _generic_codec *ocr_codec;
+
+	/*MPEG-4 object descriptor*/
+	GF_ObjectDescriptor *OD;
+
+	u32 flags;
+
+	/*this flag is set if ANY stream of this OD has no time control capabilities*/
+//	Bool no_time_ctrl;
+//	Bool inherit_timeline;
+
+
 	/*PLs*/
-	s32 Audio_PL, Graphics_PL, OD_PL, Scene_PL, Visual_PL;
-	Bool ProfileInlining;
+	u8 Audio_PL, Graphics_PL, OD_PL, Scene_PL, Visual_PL;
+	
 	/*interface with scene rendering*/
 	struct _mediaobj *mo;
+	
 	/*number of channels with connection not yet acknowledge*/
 	u32 pending_channels;
 	Bool is_open;
@@ -643,18 +661,16 @@ struct _od_manager
 	upon start: media start time as requested by scene renderer (eg not media control)
 	set to -1 upon stop to postpone stop request
 	*/
-	u64 media_start_time;
-	/*playback end in media time (eg, duration OR end_range if MediaControl)*/
-	u32 range_end;
+	u64 media_start_time, media_stop_time;
+
 	/*the one and only media control currently attached to this object*/
 	struct _media_control *media_ctrl;
 	/*the list of media control controling the object*/
 	GF_List *mc_stack;
 	/*the media sensor(s) attached to this object*/
 	GF_List *ms_stack;
-	/*this flag is set if ANY stream of this OD has no time control capabilities*/
-	Bool no_time_ctrl;
 };
+
 
 GF_ObjectManager *gf_odm_new();
 void gf_odm_del(GF_ObjectManager *ODMan);
@@ -696,6 +712,47 @@ void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url);
 Bool gf_odm_shares_clock(GF_ObjectManager *odm, struct _object_clock *ock);
 /*refresh all ODs when an non-interactive stream is found*/
 void gf_odm_refresh_uninteractives(GF_ObjectManager *odm);
+
+GF_Segment *gf_odm_find_segment(GF_ObjectManager *odm, char *descName);
+
+
+/*GF_MediaObject: link between real object manager and scene. although there is a one-to-one mapping between a 
+MediaObject and an ObjectManager, we have to keep them seperated in order to handle OD remove commands which destroy
+ObjectManagers. */
+struct _mediaobj
+{
+	/*type is as defined in constants.h # GF_MEDIA_OBJECT_* */
+	u32 type;
+	/*one of the above flags*/
+	u32 flags;
+
+
+	/* private to ESM*/
+
+	/*media object manager - private to the sync engine*/
+	struct _od_manager *odm;
+	/*OD ID of the object*/
+	u32 OD_ID;
+	/*OD URL for object not using MPEG4 OD urls*/
+	MFURL URLs;
+	/*session join*/
+	u32 num_open;
+	/*shared object restart handling*/
+	u32 num_to_restart, num_restart;
+	Fixed speed;
+
+	/*shared object info: if 0 a new frame will be checked, otherwise current is returned*/
+	u32 nb_fetch;
+	/*frame presentation time*/
+	u32 timestamp;
+	/*data frame size*/
+	u32 framesize;
+	/*pointer to data frame */
+	unsigned char *frame;
+};
+
+GF_MediaObject *gf_mo_new();
+
 
 /*used for delayed channel setup*/
 typedef struct 

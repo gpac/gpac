@@ -63,8 +63,8 @@ GF_BaseDecoder *OGG_LoadDecoder()
 {
 	GF_MediaDecoder *ifce;
 	OGGWraper *wrap;
-	GF_SAFEALLOC(ifce, sizeof(GF_MediaDecoder));
-	GF_SAFEALLOC(wrap, sizeof(OGGWraper));
+	GF_SAFEALLOC(ifce, GF_MediaDecoder);
+	GF_SAFEALLOC(wrap, OGGWraper);
 	ifce->privateStack = wrap;
 	ifce->CanHandleStream = OGG_CanHandleStream;
 	GF_REGISTER_MODULE_INTERFACE(ifce, GF_MEDIA_DECODER_INTERFACE, "GPAC XIPH.org package", "gpac distribution")

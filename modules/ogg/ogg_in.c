@@ -183,7 +183,7 @@ static GF_ObjectDescriptor *OGG_GetOD(OGGStream *st)
 	else esd->slConfig->useRandomAccessPointFlag = 1;
 
 	esd->decoderConfig->decoderSpecificInfo->dataLength = st->dsi_len;
-	GF_SAFEALLOC(esd->decoderConfig->decoderSpecificInfo->data, st->dsi_len);
+	esd->decoderConfig->decoderSpecificInfo->data = (char *) malloc(sizeof(char) * st->dsi_len);
 	memcpy(esd->decoderConfig->decoderSpecificInfo->data, st->dsi, sizeof(char) * st->dsi_len);
 	gf_list_add(od->ESDescriptors, esd);
 	return od;
@@ -341,7 +341,7 @@ static void OGG_NewStream(OGGReader *read, ogg_page *oggpage)
 		}
 	}
 
-	GF_SAFEALLOC(st, sizeof(OGGStream));
+	GF_SAFEALLOC(st, OGGStream);
     st->serial_no = serial_no;
     ogg_stream_init(&st->os, st->serial_no);
 	ogg_stream_pagein(&st->os, oggpage);

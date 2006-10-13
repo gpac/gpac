@@ -42,7 +42,7 @@ static void ReplaceIRINode(GF_Node *FromNode, GF_Node *oldNode, GF_Node *newNode
 GF_SceneGraph *gf_sg_new()
 {
 	GF_SceneGraph *tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_SceneGraph));
+	GF_SAFEALLOC(tmp, GF_SceneGraph);
 	if (!tmp) return NULL;
 
 	tmp->protos = gf_list_new();
@@ -71,49 +71,36 @@ GF_SceneGraph *gf_sg_new_subscene(GF_SceneGraph *scene)
 	tmp = gf_sg_new();
 	if (!tmp) return NULL;
 	tmp->parent_scene = scene;
-	tmp->userpriv = scene->userpriv;
-	/*by default use the same scene time (protos need that) - user overrides it if needed (inlineScene)*/
-	tmp->GetSceneTime = scene->GetSceneTime;
-	tmp->SceneCallback = scene->SceneCallback;
-	tmp->GetExternProtoLib = scene->GetExternProtoLib;
 	tmp->js_ifce = scene->js_ifce;
 	tmp->script_load = scene->script_load;
 
 #ifdef GF_CYCLIC_RENDER_ON
 	tmp->max_cyclic_render = scene->max_cyclic_render;
 #endif
-	tmp->UserNodeInit = scene->UserNodeInit;
-	tmp->NodeInitCallback = scene->NodeInitCallback;
-	tmp->NodeModified = scene->NodeModified;
-	tmp->ModifCallback = scene->ModifCallback;
+	/*by default use the same callbacks*/
+	tmp->userpriv = scene->userpriv;
+	tmp->GetSceneTime = scene->GetSceneTime;
+	tmp->GetExternProtoLib = scene->GetExternProtoLib;
+	tmp->NodeCallback = scene->NodeCallback;
 	return tmp;
 }
 
 
-void gf_sg_set_init_callback(GF_SceneGraph *sg, void (*UserNodeInit)(void *NodeInitCallback, GF_Node *newNode), void *NodeInitCallback)
+void gf_sg_set_node_callback(GF_SceneGraph *sg, void (*NodeCallback)(void *user_priv, u32 type, GF_Node *node, void *ctxdata) )
 {
-	sg->UserNodeInit = UserNodeInit;
-	sg->NodeInitCallback = NodeInitCallback;
+	sg->NodeCallback = NodeCallback;
 }
 
-/*set node modified callback*/
-void gf_sg_set_modified_callback(GF_SceneGraph *sg, void (*UserNodeModified)(void *NodeModifiedCallback, GF_Node *newNode), void *NodeModifiedCallback)
-{
-	sg->NodeModified = UserNodeModified;
-	sg->ModifCallback = NodeModifiedCallback;
-}
-
-void gf_sg_set_scene_time_callback(GF_SceneGraph *sg, Double (*GetSceneTime)(void *scene_callback), void *cbck)
+void gf_sg_set_scene_time_callback(GF_SceneGraph *sg, Double (*GetSceneTime)(void *user_priv))
 {
 	sg->GetSceneTime = GetSceneTime;
-	sg->SceneCallback = cbck;
 }
 
 
 Double gf_node_get_scene_time(GF_Node *node)
 {
 	if (!node || !node->sgprivate->scenegraph->GetSceneTime) return 0.0;
-	return node->sgprivate->scenegraph->GetSceneTime(node->sgprivate->scenegraph->SceneCallback);
+	return node->sgprivate->scenegraph->GetSceneTime(node->sgprivate->scenegraph->userpriv);
 }
 
 void gf_sg_set_max_render_cycle(GF_SceneGraph *sg, u16 max_cycle)
@@ -858,7 +845,7 @@ void gf_node_render(GF_Node *node, void *renderStack)
 			return;
 		}
 		node = proto_inst->RenderingNode;
-		node->sgprivate->scenegraph->NodeModified(node->sgprivate->scenegraph->ModifCallback, node);
+		node->sgprivate->scenegraph->NodeCallback(node->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_MODIFIED, node, NULL);
 	}
 #ifdef GF_CYCLIC_RENDER_ON
 	if (node->sgprivate->RenderNode && (node->sgprivate->render_pass < node->sgprivate->scenegraph->max_cyclic_render)) {
@@ -951,7 +938,7 @@ u32 gf_sg_get_max_node_id(GF_SceneGraph *sg)
 
 void gf_node_setup(GF_Node *p, u32 tag)
 {
-	GF_SAFEALLOC(p->sgprivate, sizeof(NodePriv));
+	GF_SAFEALLOC(p->sgprivate, NodePriv);
 	p->sgprivate->tag = tag;
 	p->sgprivate->is_dirty = GF_SG_NODE_DIRTY;
 #ifdef GF_ARRAY_PARENT_NODES
@@ -1086,6 +1073,7 @@ static GFINLINE void dirty_children(GF_Node *node, u16 val)
 }
 static void dirty_parents(GF_Node *node)
 {
+	Bool check_root = 1;
 #ifdef GF_ARRAY_PARENT_NODES
 	u32 i, count = gf_list_count(node->sgprivate->parentNodes);
 	for (i=0; i<count; i++) {
@@ -1093,6 +1081,7 @@ static void dirty_parents(GF_Node *node)
 		if (p->sgprivate->is_dirty & GF_SG_CHILD_DIRTY) continue;
 		p->sgprivate->is_dirty |= GF_SG_CHILD_DIRTY;
 		dirty_parents(p);
+		check_root = 0;
 	}
 #else
 	GF_NodeList *nlist = node->sgprivate->parents;
@@ -1102,9 +1091,11 @@ static void dirty_parents(GF_Node *node)
 			p->sgprivate->is_dirty |= GF_SG_CHILD_DIRTY;
 			dirty_parents(p);
 		}
+		check_root = 0;
 		nlist = nlist->next;
 	}
 #endif
+	if (check_root && (node==node->sgprivate->scenegraph->RootNode) && node->sgprivate->scenegraph->NodeCallback) node->sgprivate->scenegraph->NodeCallback(node->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_GRAPH_DIRTY, NULL, NULL);
 }
 
 void gf_node_dirty_set(GF_Node *node, u16 flags, Bool and_dirty_parents)
@@ -1156,7 +1147,7 @@ void gf_node_init(GF_Node *node)
 	GF_SceneGraph *pSG = node->sgprivate->scenegraph;
 	assert(pSG);
 	/*no user-defined init, consider the scenegraph is only used for parsing/encoding/decoding*/
-	if (!pSG->UserNodeInit) return;
+	if (!pSG->NodeCallback) return;
 
 	/*internal nodes*/
 	if (gf_sg_vrml_node_init(node)) return;
@@ -1164,7 +1155,7 @@ void gf_node_init(GF_Node *node)
 	else if (gf_sg_svg_node_init(node)) return;
 #endif
 	/*user defined init*/
-	else pSG->UserNodeInit(pSG->NodeInitCallback, node);
+	else pSG->NodeCallback(pSG->userpriv, GF_SG_CALLBACK_INIT, node, NULL);
 }
 
 
@@ -1184,7 +1175,7 @@ void gf_node_changed(GF_Node *node, GF_FieldInfo *field)
 
 	/*force child dirty tag*/
 	if (field && ((field->fieldType==GF_SG_VRML_SFNODE) || (field->fieldType==GF_SG_VRML_MFNODE))) node->sgprivate->is_dirty |= GF_SG_CHILD_DIRTY;
-	if (sg->NodeModified) sg->NodeModified(sg->ModifCallback, node);
+	if (sg->NodeCallback) sg->NodeCallback(sg->userpriv, GF_SG_CALLBACK_MODIFIED, node, field);
 }
 
 void gf_node_del(GF_Node *node)

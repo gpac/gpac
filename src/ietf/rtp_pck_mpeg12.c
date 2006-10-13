@@ -87,7 +87,7 @@ static GF_Err gp_rtp_builder_do_mpeg12Audio(GP_RTPPacketizer *builder, char *dat
 		if (builder->OnDataReference) 
 			builder->OnDataReference(builder->cbk_obj, pck_size, offset);
 		else
-			gf_bs_write_data(builder->payload, data + offset, pck_size);
+			gf_bs_write_data(builder->payload, (unsigned char *) data + offset, pck_size);
 
 		data_size -= pck_size;
 		builder->bytesInPacket += pck_size;
@@ -103,8 +103,8 @@ static GF_Err gp_rtp_builder_do_mpeg12Audio(GP_RTPPacketizer *builder, char *dat
 	return GF_OK;
 }
 
-s32 MPEG12_FindNextSliceStart(const u8 *pbuffer, u32 startoffset, u32 buflen, u32 *slice_offset);
-s32 MPEG12_FindNextStartCode(const u8 *pbuffer, u32 buflen, u32 *optr, u32 *scode);
+s32 MPEG12_FindNextSliceStart(unsigned char *pbuffer, u32 startoffset, u32 buflen, u32 *slice_offset);
+s32 MPEG12_FindNextStartCode(unsigned char *pbuffer, u32 buflen, u32 *optr, u32 *scode);
 
 #define MPEG12_PICTURE_START_CODE         0x00000100
 #define MPEG12_SEQUENCE_START_CODE        0x000001b3
@@ -125,7 +125,7 @@ static GF_Err gp_rtp_builder_do_mpeg12Video(GP_RTPPacketizer *builder, char *dat
     while (1) {
 		u32 oldoffset;
 		oldoffset = offset;
-		if (MPEG12_FindNextStartCode(data + offset, data_size - offset, &offset, &startcode) < 0)
+		if (MPEG12_FindNextStartCode((unsigned char *) data + offset, data_size - offset, &offset, &startcode) < 0)
 			break;
 
 		offset += oldoffset;
@@ -160,7 +160,7 @@ static GF_Err gp_rtp_builder_do_mpeg12Video(GP_RTPPacketizer *builder, char *dat
 
 	buffer = data;
     prev_slice = 0;
-	start_with_slice = (MPEG12_FindNextSliceStart(buffer, offset, data_size, &next_slice) >= 0) ? 1 : 0;
+	start_with_slice = (MPEG12_FindNextSliceStart((unsigned char *)buffer, offset, data_size, &next_slice) >= 0) ? 1 : 0;
     offset = 0;
 	slices_done = 0;
 	got_slice = start_with_slice;
@@ -181,7 +181,7 @@ static GF_Err gp_rtp_builder_do_mpeg12Video(GP_RTPPacketizer *builder, char *dat
 			
 			while (!slices_done && (next_slice <= max_pck_size)) {
 				prev_slice = next_slice;
-				if (MPEG12_FindNextSliceStart(buffer, next_slice + 4, data_size, &next_slice) >= 0) {
+				if (MPEG12_FindNextSliceStart((unsigned char *)buffer, next_slice + 4, data_size, &next_slice) >= 0) {
 					got_slice = 1;
 				} else {
 					slices_done = 1;

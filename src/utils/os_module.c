@@ -67,6 +67,7 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 #endif
 	
 	if (inst->lib_handle) return 1;
+
 #ifdef _WIN32_WCE
 	sprintf(s_path, "%s%c%s", inst->plugman->dir, GF_PATH_SEPARATOR, inst->szName);
 	CE_CharToWide(s_path, path);
@@ -178,7 +179,7 @@ Bool enum_modules(void *cbck, char *item_name, char *item_path)
 #endif
 
 
-	GF_SAFEALLOC(inst, sizeof(ModuleInstance));
+	GF_SAFEALLOC(inst, ModuleInstance);
 	inst->interfaces = gf_list_new();
 	inst->plugman = pm;
 	strcpy(inst->szName, item_name);

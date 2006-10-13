@@ -189,7 +189,7 @@ static void SAF_OnData(void *cbk, char *data, u32 size, u32 status, GF_Err e)
 				gf_bs_skip_bytes(bs, au_size);
 			} else {
 				SAFChannel *first = gf_list_get(read->channels, 0);
-				GF_SAFEALLOC(ch, sizeof(SAFChannel));
+				GF_SAFEALLOC(ch, SAFChannel);
 				ch->stream_id = stream_id;
 				ch->esd = gf_odf_desc_esd_new(0);
 				ch->esd->ESID = stream_id;

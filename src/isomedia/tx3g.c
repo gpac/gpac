@@ -60,7 +60,7 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 
 	txt->font_table = (GF_FontTableBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_FTAB);
 	txt->font_table->entry_count = desc->font_count;
-	GF_SAFEALLOC(txt->font_table->fonts, sizeof(GF_FontRecord) * desc->font_count);
+	txt->font_table->fonts = (GF_FontRecord *) malloc(sizeof(GF_FontRecord) * desc->font_count);
 	for (i=0; i<desc->font_count; i++) {
 		txt->font_table->fonts[i].fontID = desc->fonts[i].fontID;
 		if (desc->fonts[i].fontName) txt->font_table->fonts[i].fontName = strdup(desc->fonts[i].fontName);
@@ -106,7 +106,7 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 	txt->font_table = (GF_FontTableBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_FTAB);
 	txt->font_table->entry_count = desc->font_count;
 
-	GF_SAFEALLOC(txt->font_table->fonts, sizeof(GF_FontRecord) * desc->font_count);
+	txt->font_table->fonts = (GF_FontRecord *) malloc(sizeof(GF_FontRecord) * desc->font_count);
 	for (i=0; i<desc->font_count; i++) {
 		txt->font_table->fonts[i].fontID = desc->fonts[i].fontID;
 		if (desc->fonts[i].fontName) txt->font_table->fonts[i].fontName = strdup(desc->fonts[i].fontName);
@@ -376,7 +376,7 @@ GF_Err gf_isom_text_has_similar_description(GF_ISOFile *movie, u32 trackNumber, 
 GF_TextSample *gf_isom_new_text_sample()
 {
 	GF_TextSample *res;
-	GF_SAFEALLOC(res, sizeof(GF_TextSample));
+	GF_SAFEALLOC(res, GF_TextSample);
 	if (!res) return NULL;
 	res->others = gf_list_new();
 	return res;
@@ -431,7 +431,8 @@ GF_TextSample *gf_isom_parse_texte_sample(GF_BitStream *bs)
 	if (s->len) {
 		/*2 extra bytes for UTF-16 term char just in case (we don't know if a BOM marker is present or 
 		not since this may be a sample carried over RTP*/
-		GF_SAFEALLOC(s->text, sizeof(char)*(s->len+2) );
+		s->text = (char *) malloc(sizeof(char)*(s->len+2) );
+		s->text[s->len] = 0; s->text[s->len+1] = 0;
 		gf_bs_read_data(bs, s->text, s->len);
 	}
 

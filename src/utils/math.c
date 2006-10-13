@@ -30,6 +30,10 @@
 
 #include <gpac/math.h>
 
+#ifdef __SYMBIAN32__
+#include <math.h>
+#endif
+
 u32 gf_get_bit_size(u32 MaxVal)
 {
 	u32 k=0;

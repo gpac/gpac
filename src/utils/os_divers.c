@@ -1092,18 +1092,15 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 #endif
 
 
-Bool gf_sys_get_battery_state(Bool *onBattery, u32 *state, u32*level) {
-#ifdef WIN32
-#ifdef _WIN32_WCE
-#else
+Bool gf_sys_get_battery_state(Bool *onBattery, u32 *state, u32*level) 
+{
+#if defined(WIN32) && !defined(_WIN32_WCE)
 	SYSTEM_POWER_STATUS sps;
 	if (!onBattery || !state || !level) return 0;
 	GetSystemPowerStatus(&sps);
 	*onBattery = sps.ACLineStatus;
 	*state = sps.BatteryFlag;
 	*level = sps.BatteryLifePercent;
-#endif
-#else 
 #endif
 	return 1;
 }

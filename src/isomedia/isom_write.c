@@ -1612,7 +1612,7 @@ GF_Err gf_isom_add_chapter(GF_ISOFile *movie, u32 trackNumber, u64 timestamp, ch
 		gf_list_add(map->boxList, ptr);
 	}
 
-	GF_SAFEALLOC(ce, sizeof(GF_ChapterEntry));
+	GF_SAFEALLOC(ce, GF_ChapterEntry);
 	ce->start_time = timestamp * 10000L;
 	ce->name = name ? strdup(name) : NULL;
 
@@ -3220,6 +3220,7 @@ GF_Err gf_isom_make_interleave(GF_ISOFile *file, Double TimeInSec)
 	return gf_isom_set_interleave_time(file, (u32) (TimeInSec * gf_isom_get_timescale(file)));
 }
 
+
 GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const char *nameUTF8)
 {
 	GF_TrackBox *trak;
@@ -3326,6 +3327,7 @@ GF_Err gf_isom_clone_root_od(GF_ISOFile *input, GF_ISOFile *output)
 	return GF_OK;
 }
 
+
 GF_Err gf_isom_remove_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID)
 {
 	u32 i, count;
@@ -3376,7 +3378,7 @@ GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, char *d
 		list = movie->moov->boxes;
 	}
 	
-	GF_SAFEALLOC(uuid, sizeof(GF_UnknownUUIDBox));
+	GF_SAFEALLOC(uuid, GF_UnknownUUIDBox);
 	uuid->type = GF_ISOM_BOX_TYPE_UUID;
 	memcpy(uuid->uuid, UUID, sizeof(bin128));
 	uuid->dataSize = data_size;

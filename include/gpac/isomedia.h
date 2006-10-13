@@ -1694,6 +1694,9 @@ GF_Err gf_isom_apple_get_tag(GF_ISOFile *mov, u32 tag, const char **data, u32 *d
 For 'genre', data may be NULL in which case the genre ID taken from the data_len parameter
 */
 GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 data_len);
+
+/*sets compatibility tag on AVC tracks (needed by iPod to play files... hurray for standards)*/
+GF_Err gf_isom_set_ipod_compatible(GF_ISOFile *the_file, u32 trackNumber);
 #endif
 
 

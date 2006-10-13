@@ -314,7 +314,7 @@ GF_Err DC_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char
 		gf_term_on_connect(read->service, channel, GF_STREAM_NOT_FOUND);
 	} else {
 		DummyChannel *dc;
-		GF_SAFEALLOC(dc, sizeof(DummyChannel));
+		GF_SAFEALLOC(dc, DummyChannel);
 		dc->ch = channel;
 		dc->ESID = ESID;
 		gf_list_add(read->channels, dc);
@@ -372,7 +372,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	GF_InputService *plug;
 	if (InterfaceType != GF_NET_CLIENT_INTERFACE) return NULL;
 
-	GF_SAFEALLOC(plug, sizeof(GF_InputService));
+	GF_SAFEALLOC(plug, GF_InputService);
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC Dummy Loader", "gpac distribution")
 
 	plug->CanHandleURL = DC_CanHandleURL;
@@ -385,7 +385,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	plug->CanHandleURLInService = DC_CanHandleURLInService;
 	plug->ChannelGetSLP = DC_ChannelGetSLP;
 	plug->ChannelReleaseSLP = DC_ChannelReleaseSLP;
-	GF_SAFEALLOC(read, sizeof(DCReader));
+	GF_SAFEALLOC(read, DCReader);
 	read->channels = gf_list_new();
 	plug->priv = read;
 	return (GF_BaseInterface *)plug;

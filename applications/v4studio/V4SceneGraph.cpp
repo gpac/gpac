@@ -7,18 +7,6 @@
 
 #include "V4Service.h"
 
-void node_init(void *cbkObject, GF_Node *node)
-{
-	switch (gf_node_get_tag(node)) {
-	case TAG_MPEG4_Conditional:
-	case TAG_MPEG4_QuantizationParameter:
-		break;
-	default:
-		gf_sr_on_node_init(((V4SceneGraph *)cbkObject)->GetSceneRenderer(), node);
-		break;
-	}
-}
-
 V4SceneGraph::V4SceneGraph(V4StudioFrame *parent) : frame(parent)
 {
 	m_pSm = NULL;
@@ -91,7 +79,7 @@ void V4SceneGraph::LoadNew()
 
 	m_pIs = gf_is_new(NULL);
 	m_pSg = m_pIs->graph;
-	gf_sg_set_init_callback(m_pSg, node_init, this);
+	gf_sg_set_init_callback(m_pSg, v4s_node_init, this);
 	gf_sr_set_scene(m_pSr, m_pSg);
 
 	m_pSm = gf_sm_new(m_pSg);

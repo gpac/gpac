@@ -137,12 +137,12 @@ proceed_box:
 	if (e && (e != GF_ISOM_INCOMPLETE_FILE)) {
 		gf_isom_box_del(newBox);
 		*outBox = NULL;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box failed (%s)\n", gf_error_to_string(e)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box \"%s\" failed (%s)\n", gf_4cc_to_str(type), gf_error_to_string(e)));
 		return e;
 	}
 
 	if (end-start > size) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box size "LLU" invalid (read "LLU")\n", size, end-start));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" size "LLU" invalid (read "LLU")\n", gf_4cc_to_str(type), size, end-start));
 		/*let's still try to load the file since no error was notified*/
 		gf_bs_seek(bs, start+size);
 	} else if (end-start < size) {
@@ -198,7 +198,11 @@ GF_Err gf_isom_read_box_list(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)
 			if (a) gf_isom_box_del(a);
 			return e;
 		}
-		if (parent->size < a->size) return GF_ISOM_INVALID_FILE;
+		if (parent->size < a->size) {
+			if (a) gf_isom_box_del(a);
+			return GF_OK;
+			//return GF_ISOM_INVALID_FILE;
+		}
 		parent->size -= a->size;
 		e = add_box(parent, a);
 		if (e) {

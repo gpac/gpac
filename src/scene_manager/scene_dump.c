@@ -77,7 +77,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *rad_name, char inde
 {
 	GF_SceneDumper *tmp;
 	if (!graph) return NULL;
-	GF_SAFEALLOC(tmp, sizeof(GF_SceneDumper));
+	GF_SAFEALLOC(tmp, GF_SceneDumper);
 
 	/*store original*/
 	tmp->dump_mode = dump_mode;

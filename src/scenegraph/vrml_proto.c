@@ -40,7 +40,7 @@ GF_Proto *gf_sg_proto_new(GF_SceneGraph *inScene, u32 ProtoID, char *name, Bool 
 		if (tmp) return NULL;
 	}
 
-	GF_SAFEALLOC(tmp, sizeof(GF_Proto));
+	GF_SAFEALLOC(tmp, GF_Proto)
 	if (!tmp) return NULL;
 
 	tmp->proto_fields = gf_list_new();
@@ -192,7 +192,7 @@ GF_ProtoFieldInterface *gf_sg_proto_field_new(GF_Proto *proto, u32 fieldType, u3
 		tmp = gf_sg_proto_field_find_by_name(proto, fieldName);
 		if (tmp) return NULL;
 	}
-	GF_SAFEALLOC(tmp, sizeof(GF_ProtoFieldInterface));
+	GF_SAFEALLOC(tmp, GF_ProtoFieldInterface)
 	if (!tmp) return NULL;
 
 	tmp->FieldType = fieldType;
@@ -396,9 +396,9 @@ GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_pa
 			/*update SFTime that must be updated when cloning the node*/
 			if (orig->sgprivate->tag == TAG_ProtoNode) {
 				if (gf_sg_proto_field_is_sftime_offset(orig, &field_orig))
-					*((SFTime *)field.far_ptr) += inScene->GetSceneTime(inScene->SceneCallback);
+					*((SFTime *)field.far_ptr) += inScene->GetSceneTime(inScene->userpriv);
 			} else if (!stricmp(field_orig.name, "startTime") || !stricmp(field_orig.name, "startTime") ) {
-				*((SFTime *)field.far_ptr) += inScene->GetSceneTime(inScene->SceneCallback);
+				*((SFTime *)field.far_ptr) += inScene->GetSceneTime(inScene->userpriv);
 			}
 			break;
 		default:
@@ -540,12 +540,12 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 		GF_ProtoFieldInterface *pfi;
 		GF_SceneGraph *extern_lib;
 		if (!owner->parent_graph->GetExternProtoLib) return;
-		extern_lib = owner->parent_graph->GetExternProtoLib(proto->parent_graph->SceneCallback, &owner->ExternProto);
+		extern_lib = owner->parent_graph->GetExternProtoLib(proto->parent_graph->userpriv, &owner->ExternProto);
 		if (!extern_lib) return;
 
 		/*this is an hardcoded proto - all routes, node modifications and co are handled internally*/
 		if (extern_lib == GF_SG_INTERNAL_PROTO) {
-			owner->parent_graph->UserNodeInit(owner->parent_graph->NodeInitCallback, (GF_Node *) proto_node);
+			owner->parent_graph->NodeCallback(owner->parent_graph->userpriv, GF_SG_CALLBACK_INIT, (GF_Node *) proto_node, NULL);
 			return;
 		}
 		/*not loaded yet*/
@@ -648,7 +648,7 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 	GF_ProtoFieldInterface *field;
 
 	GF_ProtoInstance *proto_node;
-	GF_SAFEALLOC(proto_node, sizeof(GF_ProtoInstance));
+	GF_SAFEALLOC(proto_node, GF_ProtoInstance)
 	if (!proto_node) return NULL;
 
 	gf_node_setup((GF_Node *)proto_node, TAG_ProtoNode);
@@ -824,7 +824,7 @@ GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node 
 		}
 	}
 
-	GF_SAFEALLOC(r, sizeof(GF_Route));
+	GF_SAFEALLOC(r, GF_Route)
 	if (!r) return GF_OUT_OF_MEM;
 	r->IS_route = 1;
 
@@ -883,7 +883,7 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 		}
 	}
 
-	GF_SAFEALLOC(r, sizeof(GF_Route));
+	GF_SAFEALLOC(r, GF_Route)
 	if (!r) return GF_OUT_OF_MEM;
 	r->IS_route = 1;
 

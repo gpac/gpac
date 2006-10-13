@@ -1581,8 +1581,10 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 	
 	spine = thespine->vals;
 	nb_spine = thespine->count;
-	GF_SAFEALLOC(SCPs, sizeof(SCP) * nb_spine);
-	GF_SAFEALLOC(SCPi, sizeof(SCPInfo) * nb_spine);
+	SCPs = (SCP *)malloc(sizeof(SCP) * nb_spine);
+	memset(SCPs, 0, sizeof(SCP) * nb_spine);
+	SCPi = (SCPInfo *) malloc(sizeof(SCPInfo) * nb_spine);
+	memset(SCPi, 0, sizeof(SCPInfo) * nb_spine);
 
 	/*collect all # SCPs: 
 	1- if a spine has identical consecutive points with # orientation, these points use the same SCPs

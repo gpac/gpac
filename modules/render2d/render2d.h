@@ -146,7 +146,7 @@ enum
 /*the traversing context: set_up at top-level and passed through SFNode_Render*/
 typedef struct _render2d_effect
 {
-	AUDIO_EFFECT_CLASS
+	BASE_EFFECT_CLASS
 
 	/*current graph traversed is in pixel metrics*/
 	Bool is_pixel_metrics;
@@ -187,7 +187,6 @@ typedef struct _render2d_effect
 
 	/* Styling Property and others for SVG context */
 #ifndef GPAC_DISABLE_SVG
-	SVGPropertiesPointers *svg_props;
 	GF_Node *parent_use;
 	/*number of listeners in the current tree branch*/
 	u32 nb_listeners;
@@ -218,6 +217,12 @@ GF_TextureHandler *R2D_GetTextureHandler(GF_Node *n);
 
 /*converts clipper to pixel metrics (used by layer, layout, etc)*/
 GF_Rect R2D_ClipperToPixelMetrics(RenderEffect2D *eff, SFVec2f size);
+
+
+#ifndef GPAC_DISABLE_SVG
+void R2D_RenderInlineAnimation(GF_Node *anim, GF_Node *sub_root, void *rs);
+void R2D_RenderUse(GF_Node *anim, GF_Node *sub_root, void *rs);
+#endif
 
 #endif
 

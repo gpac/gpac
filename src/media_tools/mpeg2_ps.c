@@ -70,7 +70,7 @@ typedef struct mpeg2ps_record_pes_t
   u64 location;
 } mpeg2ps_record_pes_t;
 
-s32 MPEG12_FindNextStartCode(const u8 *pbuffer, u32 buflen, u32 *optr, u32 *scode)
+s32 MPEG12_FindNextStartCode(unsigned char *pbuffer, u32 buflen, u32 *optr, u32 *scode)
 {
   u32 value;
   u32 offset;
@@ -92,7 +92,7 @@ s32 MPEG12_FindNextStartCode(const u8 *pbuffer, u32 buflen, u32 *optr, u32 *scod
   return -1;
 }
 
-s32 MPEG12_FindNextSliceStart(const u8 *pbuffer, u32 startoffset, u32 buflen, u32 *slice_offset)
+s32 MPEG12_FindNextSliceStart(unsigned char *pbuffer, u32 startoffset, u32 buflen, u32 *slice_offset)
 {
 	u32 slicestart, code;
 	while (MPEG12_FindNextStartCode(pbuffer + startoffset, buflen - startoffset, &slicestart, &code) >= 0) {
@@ -216,7 +216,7 @@ static s64 file_size(FILE *fd)
 static mpeg2ps_record_pes_t *create_record (s64 loc, u64 ts)
 {
   mpeg2ps_record_pes_t *ret;
-  GF_SAFEALLOC(ret, sizeof(mpeg2ps_record_pes_t));
+  GF_SAFEALLOC(ret, mpeg2ps_record_pes_t);
 
   ret->next_rec = NULL;
   ret->dts = ts;
@@ -289,7 +289,7 @@ static Double mpeg12_frame_rate_table[16] =
 };
 
 #define SEQ_ID 1
-int MPEG12_ParseSeqHdr(u8 *pbuffer, u32 buflen, s32 *have_mpeg2, u32 *height, u32 *width, 
+int MPEG12_ParseSeqHdr(unsigned char *pbuffer, u32 buflen, s32 *have_mpeg2, u32 *height, u32 *width, 
 								  Double *frame_rate, Double *bitrate, u32 *aspect_ratio)
 {
   u32 aspect_code;
@@ -368,13 +368,13 @@ int MPEG12_ParseSeqHdr(u8 *pbuffer, u32 buflen, s32 *have_mpeg2, u32 *height, u3
 }
 
 
-s32 MPEG12_PictHdrType (u8 *pbuffer)
+s32 MPEG12_PictHdrType (unsigned char *pbuffer)
 {
   pbuffer += sizeof(u32);
   return ((pbuffer[1] >> 3) & 0x7);
 }
 
-u16 MPEG12_PictHdrTempRef(u8 *pbuffer)
+u16 MPEG12_PictHdrTempRef(unsigned char *pbuffer)
 {
   pbuffer += sizeof(u32);
   return ((pbuffer[0] << 2) | ((pbuffer[1] >> 6) & 0x3));
@@ -401,7 +401,7 @@ static mpeg2ps_stream_t *mpeg2ps_stream_create (u8 stream_id,
 						u8 substream)
 {
   mpeg2ps_stream_t *ptr;
-  GF_SAFEALLOC(ptr, sizeof(mpeg2ps_stream_t));
+  GF_SAFEALLOC(ptr, mpeg2ps_stream_t);
   ptr->m_stream_id = stream_id;
   ptr->m_substream_id = substream;
   ptr->is_video = stream_id >= 0xe0;
@@ -1637,7 +1637,7 @@ u32 mpeg2ps_get_audio_stream_bitrate (mpeg2ps_t *ps, u32 streamno)
 mpeg2ps_t *mpeg2ps_init (const char *filename)
 {
   mpeg2ps_t *ps;
-  GF_SAFEALLOC(ps, sizeof(mpeg2ps_t));
+  GF_SAFEALLOC(ps, mpeg2ps_t);
 
   if (ps == NULL) {
     return NULL;

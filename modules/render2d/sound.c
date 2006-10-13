@@ -68,7 +68,7 @@ static u8 SND2D_GetPriority(GF_Node *node)
 void R2D_InitSound2D(Render2D *sr, GF_Node *node)
 {
 	Sound2DStack *snd;
-	GF_SAFEALLOC(snd, sizeof(Sound2DStack));
+	GF_SAFEALLOC(snd, Sound2DStack);
 	snd->snd_ifce.GetChannelVolume = SND2D_GetChannelVolume;
 	snd->snd_ifce.GetPriority = SND2D_GetPriority;
 	snd->snd_ifce.owner = node;

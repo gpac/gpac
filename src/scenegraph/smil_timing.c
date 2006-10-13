@@ -25,7 +25,7 @@
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_svg.h>
 
-static void gf_smil_timing_null_timed_function(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
+static void gf_smil_timing_null_timed_function(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 state)
 {
 }
 
@@ -36,25 +36,23 @@ void gf_smil_timing_init_runtime_info(SVGElement *timed_elt)
 	if (!timed_elt->timing) return;
 	if (timed_elt->timing->runtime) return;
 
-	GF_SAFEALLOC(rti, sizeof(SMIL_Timing_RTI))
+	GF_SAFEALLOC(rti, SMIL_Timing_RTI)
 	rti->timed_elt = timed_elt;
 	rti->status = SMIL_STATUS_STARTUP;
 	rti->intervals = gf_list_new();
-	rti->activation = gf_smil_timing_null_timed_function;
-	rti->freeze = gf_smil_timing_null_timed_function;
-	rti->restore = gf_smil_timing_null_timed_function;
-	rti->fraction_activation = NULL;
+	rti->evaluate = gf_smil_timing_null_timed_function;
 	rti->scene_time = -1;
 
 	timed_elt->timing->runtime = rti;
 
 	sg = timed_elt->sgprivate->scenegraph;
-//	while (sg->parent_scene) sg = sg->parent_scene;
+	while (sg->parent_scene) sg = sg->parent_scene;
 	gf_list_add(sg->smil_timed_elements, rti);
 }
 
 void gf_smil_timing_delete_runtime_info(SVGElement *timed_elt)
 {
+	GF_SceneGraph *sg;
 	u32 i;
 	SMIL_Timing_RTI *rti;
 
@@ -65,7 +63,9 @@ void gf_smil_timing_delete_runtime_info(SVGElement *timed_elt)
 		free(interval);
 	}
 	gf_list_del(rti->intervals);
-	gf_list_del_item(timed_elt->sgprivate->scenegraph->smil_timed_elements, rti);
+	sg = timed_elt->sgprivate->scenegraph;
+	while (sg->parent_scene) sg = sg->parent_scene;
+	gf_list_del_item(sg->smil_timed_elements, rti);
 	free(rti);
 	timed_elt->timing->runtime = NULL;
 }
@@ -175,7 +175,7 @@ static void gf_smil_timing_add_new_interval(SMIL_Timing_RTI *rti, SMIL_Interval 
 
 
 	if (!interval) {
-		GF_SAFEALLOC(interval, sizeof(SMIL_Interval));
+		GF_SAFEALLOC(interval, SMIL_Interval)
 		interval->begin = begin;
 		gf_list_add(rti->intervals, interval);
 	}
@@ -295,25 +295,24 @@ static s32 gf_smil_timing_find_interval_index(SMIL_Timing_RTI *rti, Double scene
 Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg)
 {
 	SMIL_Timing_RTI *rti;
-	Double scene_time;
 	u32 active_count = 0, i = 0;
 
 	if (!sg) return 0;
-	scene_time = sg->GetSceneTime(sg->SceneCallback);
 
-	sg->reeval_timing = 0;
+	sg->update_smil_timing = 0;
 	while((rti = gf_list_enum(sg->smil_timed_elements, &i))) {
-		active_count += gf_smil_timing_notify_time(rti, scene_time);
+		//scene_time = rti->timed_elt->sgprivate->scenegraph->GetSceneTime(rti->timed_elt->sgprivate->scenegraph->userpriv);
+		active_count += gf_smil_timing_notify_time(rti, gf_node_get_scene_time((GF_Node*)rti->timed_elt) );
 	}
 	/*in case an anim triggers another one previously inactivated...
 	TODO FIXME: it would be much better to stack anim as active/inactive*/
-	while (sg->reeval_timing) {
-		sg->reeval_timing = 0;
+	while (sg->update_smil_timing) {
+		sg->update_smil_timing = 0;
 		i = 0;
 		while((rti = gf_list_enum(sg->smil_timed_elements, &i))) {
 			/*this means the anim has been, modified, re-evaluate it*/
 			if (rti->scene_time==-1) 
-				active_count += gf_smil_timing_notify_time(rti, scene_time);
+				active_count += gf_smil_timing_notify_time(rti, gf_node_get_scene_time((GF_Node*)rti->timed_elt) );
 		}
 	}
 	return (active_count>0);
@@ -322,6 +321,7 @@ Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg)
 /* Returns 1 when a rendering traversal is required!!! */
 Bool gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 {
+	Fixed simple_time;
 	Bool ret = 0;
 	GF_DOM_Event evt;
 	
@@ -330,9 +330,10 @@ Bool gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 	rti->cycle_number++;
 
 	/* for fraction events, we indicate that the scene needs redraw */
-	if (rti->fraction_activation != NULL && rti->evaluate == rti->fraction_activation) { return 1; }
+	if (rti->evaluate_status == SMIL_TIMING_EVAL_FRACTION) 
+		return 1;
 
-	rti->evaluate = NULL;	
+	rti->evaluate_status = SMIL_TIMING_EVAL_NONE;	
 
 //	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("\n", gf_node_get_name(node), scene_time));
 //	fprintf(stdout, "Scene Time: %f - Timing Stack: %8x, Status: %d\n", scene_time, rti, rti->status);
@@ -395,20 +396,22 @@ waiting_to_begin:
 
 		ret = 1;
 		
-		//simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
 		cur_id = rti->current_interval->nb_iterations;
-		rti->evaluate = rti->activation;
-		if (!rti->postpone) {
-			Fixed simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
-			rti->evaluate(rti, simple_time);
-		}
+		simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
 		if (cur_id < rti->current_interval->nb_iterations) {
 			memset(&evt, 0, sizeof(evt));
 			evt.type = SVG_DOM_EVT_REPEAT;
 			evt.detail = rti->current_interval->nb_iterations;
 //			fprintf(stdout, "Time %f - Firing DOM %s.repeatEvent\n", scene_time, rti->timed_elt->sgprivate->NodeName);
 			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
+			rti->evaluate_status = SMIL_TIMING_EVAL_RESTART;		
+		} else {
+			rti->evaluate_status = SMIL_TIMING_EVAL_UPDATE;
 		}
+		if (!rti->postpone) {
+			rti->evaluate(rti, simple_time, rti->evaluate_status);
+		}
+		
 	}
 
 post_active:
@@ -418,10 +421,10 @@ post_active:
 			rti->first_frozen = rti->cycle_number;
 		} else {
 			rti->status = SMIL_STATUS_DONE;
-			rti->evaluate = rti->restore;
+			rti->evaluate_status = SMIL_TIMING_EVAL_REMOVE;
 			if (!rti->postpone) {
 				Fixed simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
-				rti->evaluate(rti, simple_time);
+				rti->evaluate(rti, simple_time, rti->evaluate_status);
 			}
 		}
 		memset(&evt, 0, sizeof(evt));
@@ -431,10 +434,10 @@ post_active:
 	}
 
 	if (rti->status == SMIL_STATUS_FROZEN) {
-		rti->evaluate = rti->freeze;
+		rti->evaluate_status = SMIL_TIMING_EVAL_FREEZE;
 		if (!rti->postpone) {
 			Fixed simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
-			rti->evaluate(rti, simple_time);
+			rti->evaluate(rti, simple_time, rti->evaluate_status);
 		}
 	}
 
@@ -450,7 +453,7 @@ post_active:
 //				gf_smil_timing_print_interval(stack->current_interval);
 
 				rti->status = SMIL_STATUS_WAITING_TO_BEGIN;
-				rti->evaluate = NULL;
+				rti->evaluate_status = SMIL_TIMING_EVAL_NONE;
 				goto waiting_to_begin;
 			}
 		}
@@ -487,6 +490,7 @@ Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double sce
 
 void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 {
+	GF_SceneGraph *sg;
 	SVGElement *e = (SVGElement *)node;
 	SMIL_Timing_RTI *rti;
 	
@@ -496,6 +500,8 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 
 	/*recompute interval list*/
 	rti->scene_time = -1;
-	node->sgprivate->scenegraph->reeval_timing = 1;
+	sg = node->sgprivate->scenegraph;
+	while (sg->parent_scene) sg = sg->parent_scene;
+	sg->update_smil_timing = 1;
 	gf_smil_timing_refresh_interval_list(rti);
 }

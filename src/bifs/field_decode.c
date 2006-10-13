@@ -132,7 +132,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		if (gf_bs_available(bs) < length) return GF_NON_COMPLIANT_BITSTREAM;
 
 		if ( ((SFString *)field->far_ptr)->buffer ) free( ((SFString *)field->far_ptr)->buffer);
-		((SFString *)field->far_ptr)->buffer = malloc(sizeof(char)*(length+1));
+		((SFString *)field->far_ptr)->buffer = (unsigned char *)malloc(sizeof(char)*(length+1));
 		memset(((SFString *)field->far_ptr)->buffer , 0, length+1);
 		for (i=0; i<length; i++) {
 			 ((SFString *)field->far_ptr)->buffer[i] = gf_bs_read_int(bs, 8);
@@ -154,7 +154,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 			if (gf_bs_available(bs) < length) return GF_NON_COMPLIANT_BITSTREAM;
 			buffer = NULL;
 			if (length) {
-				buffer = malloc(sizeof(char)*(length+1));
+				buffer = (char *)malloc(sizeof(char)*(length+1));
 				memset(buffer, 0, length+1);
 				for (i=0; i<length; i++) buffer[i] = gf_bs_read_int(bs, 8);
 			}
@@ -182,7 +182,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		((SFImage *)field->far_ptr)->width = w;
 		((SFImage *)field->far_ptr)->height = h;
 		((SFImage *)field->far_ptr)->numComponents = length;
-		((SFImage *)field->far_ptr)->pixels = malloc(sizeof(char)*size);
+		((SFImage *)field->far_ptr)->pixels = (unsigned char *)malloc(sizeof(char)*size);
 		//WARNING: Buffers are NOT ALIGNED IN THE BITSTREAM
 		for (i=0; i<size; i++) {
 			((SFImage *)field->far_ptr)->pixels[i] = gf_bs_read_int(bs, 8);
@@ -196,7 +196,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 			sfcb->buffer = NULL;
 		}
 		while (gf_list_count(sfcb->commandList)) {
-			GF_Command *com = gf_list_get(sfcb->commandList, 0);
+			GF_Command *com = (GF_Command*)gf_list_get(sfcb->commandList, 0);
 			gf_list_rem(sfcb->commandList, 0);
 			gf_sg_command_del(com);
 		}
@@ -207,7 +207,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 
 		sfcb->bufferSize = length;
 		if (length) {
-			sfcb->buffer = malloc(sizeof(char)*(length));
+			sfcb->buffer = (unsigned char *)malloc(sizeof(char)*(length));
 			//WARNING Buffers are NOT ALIGNED IN THE BITSTREAM
 			for (i=0; i<length; i++) {
 				sfcb->buffer[i] = gf_bs_read_int(bs, 8);
@@ -218,7 +218,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		SFCommandBufferChanged(codec, node);
 		/*memory mode, register command buffer for later parsing*/
 		if (codec->dec_memory_mode) {
-			CommandBufferItem *cbi = malloc(sizeof(CommandBufferItem));
+			CommandBufferItem *cbi = (CommandBufferItem *)malloc(sizeof(CommandBufferItem));
 			cbi->node = node;
 			cbi->cb = sfcb;
 			gf_list_add(codec->command_buffers, cbi);
@@ -244,7 +244,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		*((GF_Node **) field->far_ptr) = new_node;
 		break;
 	case GF_SG_VRML_SFSCRIPT:
-		codec->LastError = SFScript_Parse(codec, field->far_ptr, bs, node);
+		codec->LastError = SFScript_Parse(codec, (SFScript*)field->far_ptr, bs, node);
 		break;
 	default:
 		return GF_NON_COMPLIANT_BITSTREAM;

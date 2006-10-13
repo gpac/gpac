@@ -949,7 +949,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	gf_sys_init();
 
-	user.modules = gf_modules_new((const unsigned char *) str, user.config);
+	user.modules = gf_modules_new(str, user.config);
 	if (!gf_modules_get_count(user.modules)) {
 		MessageBox(GetForegroundWindow(), _T("No modules found"), _T("GPAC Init Error"), MB_OK);
 		gf_modules_del(user.modules);

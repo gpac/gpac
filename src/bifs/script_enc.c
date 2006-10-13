@@ -581,7 +581,7 @@ void SFE_PutIdentifier(ScriptEnc *sc_enc, char *id)
 	if (sc_enc->emul) return;
 
 	i=0;
-	while ((str = gf_list_enum(sc_enc->identifiers, &i))) {
+	while ((str = (char *)gf_list_enum(sc_enc->identifiers, &i))) {
 		if (strcmp(str, id)) continue;
 
 		nbBits = 0;
@@ -1061,9 +1061,9 @@ GF_Err SFScript_Encode(GF_BifsEncoder *codec, SFScript *script_field, GF_BitStre
 	GF_BIFS_WRITE_INT(codec, bs, 1, 1, "reserved", NULL);
 
 	if (script_field) {
-		sc_enc.cur_buf = script_field->script_text;
+		sc_enc.cur_buf = (char *)script_field->script_text;
 	} else if (((M_Script*)n)->url.count) {
-		sc_enc.cur_buf = ((M_Script*)n)->url.vals[0].script_text;
+		sc_enc.cur_buf = (char *)((M_Script*)n)->url.vals[0].script_text;
 	}
 	if (sc_enc.cur_buf) {
 		if (!strnicmp(sc_enc.cur_buf, "javascript:", 11) 
@@ -1090,14 +1090,14 @@ GF_Err SFScript_Encode(GF_BifsEncoder *codec, SFScript *script_field, GF_BitStre
 
 	//clean up
 	while (gf_list_count(sc_enc.identifiers)) {
-		ptr = gf_list_get(sc_enc.identifiers, 0);
+		ptr = (char *)gf_list_get(sc_enc.identifiers, 0);
 		gf_list_rem(sc_enc.identifiers, 0);
 		free(ptr);
 	}
 	gf_list_del(sc_enc.identifiers);
 	/*in case of error this is needed*/
 	while (gf_list_count(sc_enc.id_buf)) {
-		ptr = gf_list_get(sc_enc.id_buf, 0);
+		ptr = (char *)gf_list_get(sc_enc.id_buf, 0);
 		gf_list_rem(sc_enc.id_buf, 0);
 		free(ptr);
 	}
@@ -1569,7 +1569,7 @@ skip_token:
 		break;
 
 	case ET_IDENTIFIER:
-		str = gf_list_get(sc_enc->id_buf, 0);
+		str = (char *)gf_list_get(sc_enc->id_buf, 0);
 		gf_list_rem(sc_enc->id_buf, 0);
 		/*TODO: when accessing member, we should try to translate proto fields into _fieldALL when not
 		using USENAMEs...*/
@@ -1579,20 +1579,20 @@ skip_token:
 		free(str);
 		break;
 	case ET_NUMBER:
-		str = gf_list_get(sc_enc->id_buf, 0);
+		str = (char *)gf_list_get(sc_enc->id_buf, 0);
 		gf_list_rem(sc_enc->id_buf, 0);
 		SFE_PutNumber(sc_enc, str);
 		free(str);
 		break;
     case ET_BOOLEAN:
-		str = gf_list_get(sc_enc->id_buf, 0);
+		str = (char *)gf_list_get(sc_enc->id_buf, 0);
 		gf_list_rem(sc_enc->id_buf, 0);
 		SFE_PutBoolean(sc_enc, str);
 		free(str);
 		break;
     case ET_VAR:
 		while (1) {
-			str = gf_list_get(sc_enc->id_buf, 0);
+			str = (char *)gf_list_get(sc_enc->id_buf, 0);
 			if (!str) break;
 			gf_list_rem(sc_enc->id_buf, 0);
 			GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "hasArgument", NULL);
@@ -1602,7 +1602,7 @@ skip_token:
 		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "hasArgument", NULL);
 		break;
 	case ET_STRING:
-		str = gf_list_get(sc_enc->id_buf, 0);
+		str = (char *)gf_list_get(sc_enc->id_buf, 0);
 		gf_list_rem(sc_enc->id_buf, 0);
 		if (!sc_enc->emul) gf_bifs_enc_name(sc_enc->codec, sc_enc->bs, str);
 		free(str);
@@ -1663,7 +1663,7 @@ void SFE_FunctionCall(ScriptEnc *sc_enc, u32 start, u32 end)
 	char *str;
 	curTok = sc_enc->expr_toks[start++];
 	CHECK_TOK(TOK_IDENTIFIER);
-	str = gf_list_get(sc_enc->id_buf, 0);
+	str = (char *)gf_list_get(sc_enc->id_buf, 0);
 	gf_list_rem(sc_enc->id_buf, 0);
 	SFE_PutIdentifier(sc_enc, str);
 	free(str);
@@ -1684,7 +1684,7 @@ void SFE_ObjectMemberAccess(ScriptEnc *sc_enc, u32 start, u32 op, u32 end)
 	CHECK_TOK(TOK_PERIOD);
 	curTok = sc_enc->expr_toks[end-1];
 	CHECK_TOK(TOK_IDENTIFIER);
-	str = gf_list_get(sc_enc->id_buf, 0);
+	str = (char *)gf_list_get(sc_enc->id_buf, 0);
 	gf_list_rem(sc_enc->id_buf, 0);
     SFE_PutIdentifier(sc_enc, str);
 	free(str);
@@ -1700,7 +1700,7 @@ void SFE_ObjectMethodCall(ScriptEnc *sc_enc, u32 start, u32 op, u32 end)
 	CHECK_TOK(TOK_PERIOD);
 	curTok = sc_enc->expr_toks[op+1];
 	CHECK_TOK(TOK_IDENTIFIER);
-	str = gf_list_get(sc_enc->id_buf, 0);
+	str = (char *)gf_list_get(sc_enc->id_buf, 0);
 	gf_list_rem(sc_enc->id_buf, 0);
     SFE_PutIdentifier(sc_enc, str);
 	free(str);
@@ -1732,7 +1732,7 @@ void SFE_ObjectConstruct(ScriptEnc *sc_enc, u32 start, u32 op, u32 end)
 	CHECK_TOK(TOK_NEW);
 	curTok = sc_enc->expr_toks[start++];
 	CHECK_TOK(TOK_IDENTIFIER);
-	str = gf_list_get(sc_enc->id_buf, 0);
+	str = (char *)gf_list_get(sc_enc->id_buf, 0);
 	gf_list_rem(sc_enc->id_buf, 0);
 	SFE_PutIdentifier(sc_enc, str);
 	free(str);

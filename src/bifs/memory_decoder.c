@@ -203,7 +203,7 @@ static GF_Err BM_ParseProtoDelete(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Li
 		count = 0;
 		flag = gf_bs_read_int(bs, 1);
 		while (flag) {
-			com->del_proto_list = realloc(com->del_proto_list, sizeof(u32) * (com->del_proto_list_size+1));
+			com->del_proto_list = (u32*)realloc(com->del_proto_list, sizeof(u32) * (com->del_proto_list_size+1));
 			com->del_proto_list[count] = gf_bs_read_int(bs, codec->info->config.ProtoIDBits);
 			com->del_proto_list_size++;
 			flag = gf_bs_read_int(bs, 1);
@@ -211,7 +211,7 @@ static GF_Err BM_ParseProtoDelete(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Li
 	} else {
 		flag = gf_bs_read_int(bs, 5);
 		com->del_proto_list_size = gf_bs_read_int(bs, flag);
-		com->del_proto_list = realloc(com->del_proto_list, sizeof(u32) * (com->del_proto_list_size));
+		com->del_proto_list = (u32*)realloc(com->del_proto_list, sizeof(u32) * (com->del_proto_list_size));
 		flag = 0;
 		while (flag<com->del_proto_list_size) {
 			com->del_proto_list[flag] = gf_bs_read_int(bs, codec->info->config.ProtoIDBits);
@@ -671,7 +671,7 @@ GF_Err BM_ParseIndexValueReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Lis
 	return codec->LastError;
 }
 
-u32 BM_ParseRouteReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_list)
+GF_Err BM_ParseRouteReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_list)
 {
 	GF_Err e;
 	GF_Command *com;
@@ -749,7 +749,7 @@ GF_Err BM_SceneReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 	gf_list_add(com_list, com);
 	/*insert routes*/
 	while (gf_list_count(codec->scenegraph->Routes)) {
-		GF_Route *r = gf_list_get(codec->scenegraph->Routes, 0);
+		GF_Route *r = (GF_Route*)gf_list_get(codec->scenegraph->Routes, 0);
 		GF_Command *ri = gf_sg_command_new(codec->current_graph, GF_SG_ROUTE_INSERT);
 		gf_list_rem(codec->scenegraph->Routes, 0);
 		ri->fromFieldIndex = r->FromField.fieldIndex;
@@ -775,7 +775,7 @@ GF_Err BM_ParseCommand(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 	go = 1;
 	e = GF_OK;
 
-	codec->LastError = 0;
+	codec->LastError = GF_OK;
 	count = 0;
 
 	while (go) {
@@ -829,7 +829,7 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, 
 	/*setup current scene graph*/
 	codec->current_graph = codec->scenegraph;
 
-	bs = gf_bs_new(data, data_length, GF_BITSTREAM_READ);
+	bs = gf_bs_new((unsigned char *)data, data_length, GF_BITSTREAM_READ);
 	gf_bs_set_eos_callback(bs, BM_EndOfStream, codec);
 
 	e = BM_ParseCommand(codec, bs, com_list);
@@ -842,7 +842,7 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, 
 		GF_List *nextPass = gf_list_new();
 		while (NbPass) {
 			while (gf_list_count(codec->command_buffers)) {
-				cbi = gf_list_get(codec->command_buffers, 0);
+				cbi = (CommandBufferItem *)gf_list_get(codec->command_buffers, 0);
 				gf_list_rem(codec->command_buffers, 0);
 				codec->current_graph = gf_node_get_graph(cbi->node);
 				e = GF_OK;
@@ -860,12 +860,12 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, 
 				while (gf_list_count(cbi->cb->commandList)) {
 					u32 i;
 					GF_CommandField *cf;
-					GF_Command *com = gf_list_get(cbi->cb->commandList, 0);
+					GF_Command *com = (GF_Command *)gf_list_get(cbi->cb->commandList, 0);
 					gf_list_rem(cbi->cb->commandList, 0);
-					cf = gf_list_get(com->command_fields, 0);
+					cf = (GF_CommandField *) gf_list_get(com->command_fields, 0);
 					if (cf && cf->fieldType==GF_SG_VRML_SFCOMMANDBUFFER) {
 						for (i=0; i<gf_list_count(codec->command_buffers); i++) {
-							CommandBufferItem *cbi2 = gf_list_get(codec->command_buffers, i);
+							CommandBufferItem *cbi2 = (CommandBufferItem *)gf_list_get(codec->command_buffers, i);
 							if (cbi2->cb == cf->field_ptr) {
 								free(cbi2);
 								gf_list_rem(codec->command_buffers, i);
@@ -880,19 +880,19 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, 
 			if (!gf_list_count(nextPass)) break;
 			/*prepare next pass*/
 			while (gf_list_count(nextPass)) {
-				cbi = gf_list_get(nextPass, 0);
+				cbi = (CommandBufferItem *)gf_list_get(nextPass, 0);
 				gf_list_rem(nextPass, 0);
 				gf_list_add(codec->command_buffers, cbi);
 			}
 			NbPass --;
 			if (NbPass > gf_list_count(codec->command_buffers)) NbPass = gf_list_count(codec->command_buffers);
-			codec->LastError = 0;
+			codec->LastError = GF_OK;
 		}
 		gf_list_del(nextPass);
 	}
 	/*if err or not reset conditionals*/
 	while (gf_list_count(codec->command_buffers)) {
-		CommandBufferItem *cbi = gf_list_get(codec->command_buffers, 0);
+		CommandBufferItem *cbi = (CommandBufferItem *)gf_list_get(codec->command_buffers, 0);
 		free(cbi);
 		gf_list_rem(codec->command_buffers, 0);
 	}

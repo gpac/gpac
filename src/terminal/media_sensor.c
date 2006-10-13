@@ -44,16 +44,12 @@ void RenderMediaSensor(GF_Node *node, void *rs)
 	GF_Clock *ck;
 	MediaSensorStack *st = gf_node_get_private(node);
 
-	if (!st->stream) st->stream = gf_mo_find(node, &st->sensor->url);
+	if (!st->stream) st->stream = gf_mo_find(node, &st->sensor->url, 0);
 	if (!st->stream || !st->stream->odm) return;
 
 	if (!st->is_init) {
-		/*get resolved OD*/
-		st->odm = st->stream->odm;
-		while (st->odm->remote_OD) st->odm = st->odm->remote_OD;
-
-		gf_list_add(st->odm->ms_stack, st);
-		gf_odm_init_segments(st->odm, st->seg, &st->sensor->url);
+		gf_list_add(st->stream->odm->ms_stack, st);
+		gf_odm_init_segments(st->stream->odm, st->seg, &st->sensor->url);
 		st->is_init = 1;
 		st->active_seg = 0;
 		
@@ -64,21 +60,21 @@ void RenderMediaSensor(GF_Node *node, void *rs)
 	ck = NULL;
 	/*check inline scenes - if the scene is set to restart DON'T MODIFY SENSOR: since we need a 2 render
 	passes to restart inline, scene is considered as not running*/
-	if (st->odm->subscene && !st->odm->subscene->needs_restart) {
-		if (st->odm->subscene->scene_codec) ck = st->odm->subscene->scene_codec->ck;
+	if (st->stream->odm->subscene && !st->stream->odm->subscene->needs_restart) {
+		if (st->stream->odm->subscene->scene_codec) ck = st->stream->odm->subscene->scene_codec->ck;
 		/*dynamic scene*/
-		else ck = st->odm->subscene->dyn_ck;
+		else ck = st->stream->odm->subscene->dyn_ck;
 		/*since audio may be used alone through an inline scene, we need to refresh the graph*/
-		if (st->odm->is_open) gf_term_invalidate_renderer(st->odm->term);
+		if (st->stream->odm->is_open) gf_term_invalidate_renderer(st->stream->odm->term);
 	}
 	/*check anim streams*/
-	else if (st->odm->codec && (st->odm->codec->type==GF_STREAM_SCENE)) ck = st->odm->codec->ck;
+	else if (st->stream->odm->codec && (st->stream->odm->codec->type==GF_STREAM_SCENE)) ck = st->stream->odm->codec->ck;
 	/*check OCR streams*/
-	else if (st->odm->ocr_codec) ck = st->odm->ocr_codec->ck;
+	else if (st->stream->odm->ocr_codec) ck = st->stream->odm->ocr_codec->ck;
 
 	if (ck && gf_clock_is_started(ck) ) {
-		st->odm->current_time = gf_clock_time(ck);
-		MS_UpdateTiming(st->odm);
+		st->stream->odm->current_time = gf_clock_time(ck);
+		MS_UpdateTiming(st->stream->odm);
 	}
 }
 
@@ -108,7 +104,7 @@ void MS_Modified(GF_Node *node)
 	if (st->stream && st->stream->odm) 
 		gf_list_del_item(st->stream->odm->ms_stack, st);
 
-	st->stream = gf_mo_find(node, &st->sensor->url);
+	st->stream = gf_mo_find(node, &st->sensor->url, 0);
 	st->is_init = 0;
 	gf_term_invalidate_renderer(st->parent->root_od->term);
 }
@@ -147,7 +143,7 @@ void MS_UpdateTiming(GF_ObjectManager *odm)
 				/*check for end of scene (MediaSensor on inline)*/
 				if (odm->subscene && odm->subscene->duration) {
 					GF_Clock *ck = gf_odm_get_media_clock(odm);
-					if (ck->has_seen_eos && media_sens->sensor->isActive && (1000*time>(Double) (s64)odm->subscene->duration)) {
+					if (ck->has_seen_eos && media_sens->sensor->isActive && (1000*time>=(Double) (s64)odm->subscene->duration)) {
 						media_sens->sensor->isActive = 0;
 						gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
 					}

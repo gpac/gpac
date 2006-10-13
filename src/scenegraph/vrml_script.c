@@ -183,7 +183,7 @@ void gf_sg_script_init(GF_Node *node)
 	GF_ScriptPriv *priv;
 
 
-	GF_SAFEALLOC(priv, sizeof(GF_ScriptPriv));
+	GF_SAFEALLOC(priv, GF_ScriptPriv)
 	priv->fields = gf_list_new();
 
 	gf_node_set_private(node, priv);
@@ -213,7 +213,7 @@ GF_ScriptField *gf_sg_script_field_new(GF_Node *node, u32 eventType, u32 fieldTy
 	if (eventType > GF_SG_SCRIPT_TYPE_EVENT_OUT) return NULL;
 	priv = gf_node_get_private(node);
 
-	GF_SAFEALLOC(field, sizeof(GF_ScriptField));
+	GF_SAFEALLOC(field, GF_ScriptField)
 	field->fieldType = fieldType;
 	field->name = strdup(name);
 

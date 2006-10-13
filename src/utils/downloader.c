@@ -419,7 +419,7 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 #define GF_WAIT_REPLY_SLEEP	20
 static u32 gf_dm_session_thread(void *par)
 {
-	GF_DownloadSession *sess = par;
+	GF_DownloadSession *sess = (GF_DownloadSession *)par;
 
 	sess->flags &= ~GF_DOWNLOAD_SESSION_THREAD_DEAD;
 	while (1) {
@@ -468,7 +468,8 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, char *url, u32 dl_fla
 	}
 
 
-	GF_SAFEALLOC(sess, sizeof(GF_DownloadSession));
+	sess = (GF_DownloadSession *)malloc(sizeof(GF_DownloadSession));
+	memset((void *)sess, 0, sizeof(GF_DownloadSession));
 	sess->flags = dl_flags;
 	sess->OnDataRcv = OnDataRcv;
 	sess->usr_cbk = usr_cbk;
@@ -503,7 +504,7 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 		*out_read = size;
 	} else 
 #endif
-		e = gf_sk_receive(sess->sock, data, data_size, 0, out_read);
+		e = gf_sk_receive(sess->sock, (unsigned char *)data, data_size, 0, out_read);
 	
 	return e;
 }
@@ -670,14 +671,14 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 	const char *opt;
 	GF_DownloadManager *dm;
 	if (!cfg) return NULL;
-	GF_SAFEALLOC(dm, sizeof(GF_DownloadManager));
+	GF_SAFEALLOC(dm, GF_DownloadManager);
 	dm->sessions = gf_list_new();
 	dm->cfg = cfg;
 
 	opt = gf_cfg_get_key(cfg, "General", "CacheDirectory");
 	if (opt) {
 		if (opt[strlen(opt)-1] != GF_PATH_SEPARATOR) {
-			dm->cache_directory = malloc(sizeof(char)* (strlen(opt)+2));
+			dm->cache_directory = (char *) malloc(sizeof(char)* (strlen(opt)+2));
 			sprintf(dm->cache_directory, "%s%c", opt, GF_PATH_SEPARATOR);
 		} else {
 			dm->cache_directory = strdup(opt);
@@ -703,7 +704,7 @@ void gf_dm_del(GF_DownloadManager *dm)
 {
 	/*this should never happen (bad cleanup from user)*/
 	while (gf_list_count(dm->sessions)) {
-		GF_DownloadSession *sess = gf_list_get(dm->sessions, 0);
+		GF_DownloadSession *sess = (GF_DownloadSession *) gf_list_get(dm->sessions, 0);
 		gf_dm_sess_del(sess);
 	}
 	gf_list_del(dm->sessions);
@@ -887,18 +888,18 @@ void http_do_requests(GF_DownloadSession *sess)
 	GF_Err e;
 	Bool is_ice;
 	char sHTTP[GF_DOWNLOAD_BUFFER_SIZE];
-	unsigned char buf[1024];
-	unsigned char comp[400];
-	unsigned char *new_location;
+	char buf[1024];
+	char comp[400];
+	char *new_location;
 	char *hdr;
-	s32 bytesRead, res;
+	u32 bytesRead, res;
 	s32 LinePos, Pos;
 	u32 rsp_code, BodyStart, ContentLength, first_byte, last_byte, total_size, range, no_range;
 
 	/*sent HTTP request*/
 	if (sess->status==GF_DOWNLOAD_STATE_CONNECTED) {
-		unsigned char range_buf[1024];
-		unsigned char pass_buf[1024];
+		char range_buf[1024];
+		char pass_buf[1024];
 		const char *user_agent;
 		u32 size;
 
@@ -917,7 +918,7 @@ void http_do_requests(GF_DownloadSession *sess)
 				sess->passwd = strdup(szPASS);
 			}
 			sprintf(pass_buf, "%s:%s", sess->user, sess->passwd);
-			size = gf_base64_encode(pass_buf, strlen(pass_buf), range_buf, 1024);
+			size = gf_base64_encode((unsigned char *)pass_buf, strlen(pass_buf), (unsigned char *)range_buf, 1024);
 			range_buf[size] = 0;
 			sprintf(pass_buf, "Authorization: Basic %s", range_buf);
 		}
@@ -966,10 +967,10 @@ void http_do_requests(GF_DownloadSession *sess)
 #ifdef GPAC_HAS_SSL
 		if (sess->ssl) {
 			e = GF_IP_NETWORK_FAILURE;
-			if (!SSL_write(sess->ssl, sHTTP, strlen(sHTTP))) e = GF_OK;
+			if (!SSL_write(sess->ssl, (unsigned char *)sHTTP, strlen(sHTTP))) e = GF_OK;
 		} else 
 #endif
-			e = gf_sk_send(sess->sock, sHTTP, strlen(sHTTP));
+			e = gf_sk_send(sess->sock, (unsigned char *)sHTTP, strlen(sHTTP));
 
 		if (e) {
 			sess->status = GF_DOWNLOAD_STATE_UNAVAILABLE;
@@ -1231,7 +1232,7 @@ void http_do_requests(GF_DownloadSession *sess)
 			if (sess->flags & GF_DOWNLOAD_SESSION_NOT_CACHED) {
 				if (sess->init_data) free(sess->init_data);
 				sess->init_data_size = bytesRead - BodyStart;
-				sess->init_data = malloc(sizeof(char) * sess->init_data_size);
+				sess->init_data = (char *) malloc(sizeof(char) * sess->init_data_size);
 				memcpy(sess->init_data, sHTTP+BodyStart, sess->init_data_size);
 			}
 		}

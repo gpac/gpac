@@ -485,9 +485,9 @@ RTSP server through an HTTP tunnel, and transport will take place on the RTSP co
 <b>ReorderSize</b> [value: <i>positive integer</i>]
 <p style="text-indent: 5%">
 Size of the RTP reordering buffer - 0 means no reordering. Ignored when transport takes place on the RTSP connection. The bigger this value, the longer the reordering delay will be.</p>
-<b>RTPoverRTSP</b> [value: <i>"yes" "no"</i>]
+<b>RTPoverRTSP</b> [value: <i>"yes" "no" "OnlyCritical"</i>]
 <p style="text-indent: 5%">
-Specifies whether RTP packets should be carried on the RTSP connection (TCP or UDP) when possible, or carried on UDP. If the connection port is an HTTP port, this value is assumed to be true.</p>
+Specifies whether RTP packets should be carried on the RTSP connection (TCP or UDP), or carried on UDP. If the connection port is an HTTP port, this value is assumed to be true. If set to <i>OnlyCritical</i>, transport will take place on TCP only if a critical media (eg, neither audio nor video) is found in the session.</p>
 <b>RTSPTimeout</b> [value: <i>positive integer</i>]
 <p style="text-indent: 5%">
 Specifies connection timeout with the server: an RTSP request is considered as failed when the timeout expires.</p>

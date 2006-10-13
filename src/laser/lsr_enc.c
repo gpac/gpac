@@ -42,7 +42,7 @@ static void lsr_write_path_type(GF_LASeRCodec *lsr, SVG_PathData *path, const ch
 GF_LASeRCodec *gf_laser_encoder_new(GF_SceneGraph *graph)
 {
 	GF_LASeRCodec *tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_LASeRCodec));
+	GF_SAFEALLOC(tmp, GF_LASeRCodec);
 	if (!tmp) return NULL;
 	tmp->streamInfo = gf_list_new();
 	tmp->font_table = gf_list_new();
@@ -85,7 +85,7 @@ GF_Err gf_laser_encoder_new_stream(GF_LASeRCodec *codec, u16 ESID, GF_LASERConfi
 {
 	LASeRStreamInfo *pInfo;
 	if (lsr_get_stream(codec, ESID) != NULL) return GF_BAD_PARAM;
-	GF_SAFEALLOC(pInfo, sizeof(LASeRStreamInfo));
+	GF_SAFEALLOC(pInfo, LASeRStreamInfo);
 	pInfo->ESID = ESID;
 	memcpy(&pInfo->cfg, cfg, sizeof(GF_LASERConfig));
 	if (!pInfo->cfg.time_resolution) pInfo->cfg.time_resolution = 1000;

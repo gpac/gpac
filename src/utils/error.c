@@ -43,7 +43,7 @@ void *gf_malloc(size_t size)
 void *gf_realloc(void *ptr, size_t size)
 {
 	size_t prev_size;
-	char *ptr_g = ptr;
+	char *ptr_g = (char *)ptr;
 	if (!ptr) return gf_malloc(size);
 	ptr_g -= sizeof(size_t);
 	prev_size = *(size_t *)ptr_g;
@@ -51,7 +51,7 @@ void *gf_realloc(void *ptr, size_t size)
 	assert(gpac_allocated_memory >= prev_size);
 #endif
 	gpac_allocated_memory -= prev_size;
-	ptr_g = realloc(ptr_g, size+sizeof(size_t));
+	ptr_g = (char *) realloc(ptr_g, size+sizeof(size_t));
 	*(size_t *)ptr_g = size;
 	gpac_allocated_memory += size;
 	return ptr_g + sizeof(size_t);
@@ -71,7 +71,7 @@ void gf_free(void *ptr)
 char *gf_strdup(const char *str)
 {
 	size_t len = strlen(str) + 1;
-	char *ptr = gf_malloc(len);
+	char *ptr = (char *) gf_malloc(len);
 	memcpy(ptr, str, len);
 	return ptr;
 }
@@ -129,7 +129,7 @@ static void gf_on_progress_stdout(char *_title, u32 done, u32 total)
 {
 	Double prog;
 	u32 pos;
-	char *szT = _title ? (char *)_title : "";
+	char *szT = _title ? (char *)_title : (char *) "";
 	prog = done;
 	prog /= total;
 	pos = MIN((u32) (20 * prog), 20);

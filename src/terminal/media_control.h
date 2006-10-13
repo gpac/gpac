@@ -88,8 +88,6 @@ typedef struct _media_sensor
 	Bool is_init;
 	/*stream owner*/
 	GF_MediaObject *stream;
-	/*object controled - not the same as stream->odm in case of remote ODs*/
-	GF_ObjectManager *odm;
 
 	/*private cache (avoids browsing all sensor*/
 	u32 active_seg;

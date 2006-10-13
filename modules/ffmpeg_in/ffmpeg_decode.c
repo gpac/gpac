@@ -659,7 +659,7 @@ static const char *FFDEC_GetCodecName(GF_BaseDecoder *dec)
 {
 	FFDec *ffd = dec->privateStack;
 	if (ffd->codec) {
-		sprintf(szCodec, "FFMPEG %s (v%s)", ffd->codec->name ? ffd->codec->name : "unknown", FFMPEG_VERSION);
+		sprintf(szCodec, "FFMPEG %s", ffd->codec->name ? ffd->codec->name : "unknown");
 		return szCodec;
 	}
 	return NULL;
@@ -674,8 +674,8 @@ void *FFDEC_Load()
     avcodec_init();
 	avcodec_register_all();
 
-	GF_SAFEALLOC(ptr , sizeof(GF_MediaDecoder));
-	GF_SAFEALLOC(priv , sizeof(FFDec));
+	GF_SAFEALLOC(ptr , GF_MediaDecoder);
+	GF_SAFEALLOC(priv , FFDec);
 	ptr->privateStack = priv;
 
 	ptr->AttachStream = FFDEC_AttachStream;

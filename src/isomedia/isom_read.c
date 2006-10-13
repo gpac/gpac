@@ -59,7 +59,7 @@ u8 gf_isom_get_mode(GF_ISOFile *the_file)
 GF_ISOSample *gf_isom_sample_new()
 {
 	GF_ISOSample *tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_ISOSample));
+	GF_SAFEALLOC(tmp, GF_ISOSample);
 	return tmp;
 }
 

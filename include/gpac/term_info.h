@@ -45,9 +45,12 @@ GF_ObjectManager *gf_term_get_root_object(GF_Terminal *term);
 u32 gf_term_get_object_count(GF_Terminal *term, GF_ObjectManager *scene_od);
 /*returns indexed (0-based) OD manager in the scene*/
 GF_ObjectManager *gf_term_get_object(GF_Terminal *term, GF_ObjectManager *scene_od, u32 index);
-/*returns remote GF_ObjectManager of this OD if any, NULL otherwise*/
-GF_ObjectManager *gf_term_get_remote_object(GF_Terminal *term, GF_ObjectManager *odm);
-/*returns 0 if not inline, 1 if inline, 2 if externProto scene*/
+/*return values:
+	0: regular media object, not inline
+	1: root scene
+	2: inline scene
+	3: externProto library
+*/
 u32 gf_term_object_subscene_type(GF_Terminal *term, GF_ObjectManager *odm);
 
 /*select given object when stream selection is available*/

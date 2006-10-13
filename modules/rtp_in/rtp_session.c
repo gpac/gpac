@@ -24,14 +24,14 @@
 
 #include "rtp_in.h"
 
-void RP_SendFailure(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
+void RP_SendFailure(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 {
 	char sMsg[1000];
 	sprintf(sMsg, "Cannot send %s", com->method);
 	gf_term_on_message(sess->owner->service, e, sMsg);
 }
 
-Bool RP_ProcessResponse(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
+Bool RP_ProcessResponse(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 {
 	if (!strcmp(com->method, GF_RTSP_DESCRIBE)) 
 		return RP_ProcessDescribe(sess, com, e);
@@ -47,7 +47,7 @@ Bool RP_ProcessResponse(RTPSession *sess, GF_RTSPCommand *com, GF_Err e)
 /*access to command list is protected bymutex, BUT ONLY ACCESS - this way we're sure that command queueing
 from app will not deadlock if we're waiting for the app to release any mutex (don't forget play request may 
 come on stream N while we're processing stream P setup)*/
-static GF_RTSPCommand *RP_GetCommand(RTPSession *sess)
+static GF_RTSPCommand *RP_GetCommand(RTSPSession *sess)
 {
 	GF_RTSPCommand *com;
 	gf_mx_p(sess->owner->mx);
@@ -56,14 +56,14 @@ static GF_RTSPCommand *RP_GetCommand(RTPSession *sess)
 	return com;
 }
 
-static void RP_RemoveCommand(RTPSession *sess)
+static void RP_RemoveCommand(RTSPSession *sess)
 {
 	gf_mx_p(sess->owner->mx);
 	gf_list_rem(sess->rtsp_commands, 0);
 	gf_mx_v(sess->owner->mx);
 }
 
-void RP_ProcessCommands(RTPSession *sess, Bool read_tcp)
+void RP_ProcessCommands(RTSPSession *sess)
 {
 	GF_RTSPCommand *com;
 	GF_Err e;
@@ -72,15 +72,16 @@ void RP_ProcessCommands(RTPSession *sess, Bool read_tcp)
 	com = RP_GetCommand(sess);
 
 	/*if asked or command to send, flushout TCP - TODO: check what's going on with ANNOUNCE*/
-	if ((com && !sess->wait_for_reply) || read_tcp) {
+	if ((com && !(sess->flags & RTSP_WAIT_REPLY) ) || (sess->flags & RTSP_TCP_FLUSH) ) {
 		while (1) {
 			e = gf_rtsp_session_read(sess->session);
 			if (e) break;
 		}
+		sess->flags &= ~RTSP_TCP_FLUSH;
 	}
 
 	/*handle response or announce*/
-	if ( (com && sess->wait_for_reply) || (!com && sess->owner->handle_announce)) {
+	if ( (com && (sess->flags & RTSP_WAIT_REPLY) ) /*|| (!com && sess->owner->handle_announce)*/) {
 		e = gf_rtsp_get_response(sess->session, sess->rtsp_rsp);
 		if (e!= GF_IP_NETWORK_EMPTY) {
 			/*if 0, this is a service connect error -> plugin may be discarded */
@@ -88,7 +89,7 @@ void RP_ProcessCommands(RTPSession *sess, Bool read_tcp)
 
 			RP_RemoveCommand(sess);
 			gf_rtsp_command_del(com);
-			sess->wait_for_reply = 0;
+			sess->flags &= ~RTSP_WAIT_REPLY;
 			sess->command_time = 0;
 		} else {
 			/*evaluate timeout*/
@@ -104,7 +105,7 @@ void RP_ProcessCommands(RTPSession *sess, Bool read_tcp)
 				RP_ProcessResponse(sess, com, GF_IP_NETWORK_FAILURE);
 				RP_RemoveCommand(sess);
 				gf_rtsp_command_del(com);
-				sess->wait_for_reply = 0;
+				sess->flags &= ~RTSP_WAIT_REPLY;
 				sess->command_time = 0;
 				gf_rtsp_reset_aggregation(sess->session);
 			}
@@ -123,7 +124,7 @@ void RP_ProcessCommands(RTPSession *sess, Bool read_tcp)
 		RP_SendFailure(sess, com, GF_IP_NETWORK_FAILURE);
 		RP_RemoveCommand(sess);
 		gf_rtsp_command_del(com);
-		sess->wait_for_reply = 0;
+		sess->flags &= ~RTSP_WAIT_REPLY;
 		sess->command_time = 0;
 		return;
 	}
@@ -157,7 +158,7 @@ void RP_ProcessCommands(RTPSession *sess, Bool read_tcp)
 		RP_ProcessResponse(sess, com, e);
 	} else {
 		sess->command_time = gf_sys_clock();
-		sess->wait_for_reply = 1;
+		sess->flags |= RTSP_WAIT_REPLY;
 	}
 
 exit:
@@ -169,7 +170,7 @@ exit:
 	if (e) {
 		RP_RemoveCommand(sess);
 		gf_rtsp_command_del(com);
-		sess->wait_for_reply = 0;
+		sess->flags &= ~RTSP_WAIT_REPLY;
 		sess->command_time = 0;
 	}
 }
@@ -197,20 +198,26 @@ found:
 }
 
 /*locate session by control*/
-RTPSession *RP_CheckSession(RTPClient *rtp, char *control)
+RTSPSession *RP_CheckSession(RTPClient *rtp, char *control)
 {
-	if (!control || !rtp->rtsp_session) return NULL;
-	if (gf_rtsp_is_my_session(rtp->rtsp_session->session, control)) return rtp->rtsp_session;
+	u32 i;
+	RTSPSession *sess;
+	if (!control) return NULL;
+
+	if (!strcmp(control, "*")) control = (char *) gf_term_get_service_url(rtp->service);
+
+	i=0;
+	while ( (sess = gf_list_enum(rtp->sessions, &i)) ) {
+		if (gf_rtsp_is_my_session(sess->session, control)) return sess;
+	}
 	return NULL;
 }
 
-RTPSession *RP_NewSession(RTPClient *rtp, char *session_control)
+RTSPSession *RP_NewSession(RTPClient *rtp, char *session_control)
 {
 	char *szCtrl, *szExt;
-	RTPSession *tmp;
+	RTSPSession *tmp;
 	GF_RTSPSession *rtsp;
-
-	if (rtp->rtsp_session) return NULL;
 
 	/*little fix: some servers don't understand DESCRIBE URL/trackID=, so remove the trackID...*/
 	szCtrl = strdup(session_control);
@@ -227,21 +234,20 @@ RTPSession *RP_NewSession(RTPClient *rtp, char *session_control)
 
 	if (!rtsp) return NULL;
 
-	tmp = malloc(sizeof(RTPSession));
-	memset(tmp, 0, sizeof(RTPSession));
+	tmp = malloc(sizeof(RTSPSession));
+	memset(tmp, 0, sizeof(RTSPSession));
 	tmp->owner = rtp;
 	tmp->session = rtsp;
 
-	if (rtp->rtp_mode) {
+	if (rtp->transport_mode) {
 		gf_rtsp_set_buffer_size(rtsp, RTSP_TCP_BUFFER_SIZE);
 	} else {
 		gf_rtsp_set_buffer_size(rtsp, RTSP_BUFFER_SIZE);
 	}
-	rtp->rtsp_session = tmp;
-
 	tmp->rtsp_commands = gf_list_new();
-
 	tmp->rtsp_rsp = gf_rtsp_response_new();	
+
+	gf_list_add(rtp->sessions, tmp);
 
 	return tmp;
 }
@@ -250,7 +256,7 @@ GF_Err RP_AddStream(RTPClient *rtp, RTPStream *stream, char *session_control)
 {
 	Bool has_aggregated_control;
 	char *service_name, *ctrl;
-	RTPSession *in_session = rtp->rtsp_session;
+	RTSPSession *in_session = RP_CheckSession(rtp, session_control);
 
 	has_aggregated_control = 0;
 	if (session_control) {
@@ -260,14 +266,16 @@ GF_Err RP_AddStream(RTPClient *rtp, RTPStream *stream, char *session_control)
 
 	/*regular setup in an established session (RTSP DESCRIBE)*/
 	if (in_session) {
-		in_session->has_aggregated_control = has_aggregated_control;
+		in_session->flags |= RTSP_AGG_CONTROL;
 		stream->rtsp = in_session;
 		gf_list_add(rtp->channels, stream);
 		return GF_OK;
 	}
 
 	/*setup through SDP with control - assume this is RTSP and try to create a session*/
-	if (stream->control && session_control) {
+	if (stream->control) {
+		/*no session control, use stream control*/
+		if (!session_control) session_control = stream->control;
 		/*stream control is relative to main session*/
 		if (strnicmp(stream->control, "rtsp://", 7) && strnicmp(stream->control, "rtspu://", 7)) {
 			/*locate session by control*/
@@ -305,7 +313,7 @@ GF_Err RP_AddStream(RTPClient *rtp, RTPStream *stream, char *session_control)
 	}
 
 	if (in_session) {
-		in_session->has_aggregated_control = has_aggregated_control;
+		in_session->flags |= RTSP_AGG_CONTROL;
 	} else if (stream->control) {
 		free(stream->control);
 		stream->control = NULL;
@@ -330,7 +338,7 @@ void RP_RemoveStream(RTPClient *rtp, RTPStream *ch)
 	gf_mx_v(rtp->mx);
 }
 
-void RP_ResetSession(RTPSession *sess, GF_Err e)
+void RP_ResetSession(RTSPSession *sess, GF_Err e)
 {
 	GF_RTSPCommand *com;
 	u32 first = 1;
@@ -346,11 +354,11 @@ void RP_ResetSession(RTPSession *sess, GF_Err e)
 	}
 	/*reset session state*/	
 	gf_rtsp_session_reset(sess->session, 1);
-	sess->wait_for_reply = 0;
+	sess->flags &= ~RTSP_WAIT_REPLY;
 }
 
 
-void RP_RemoveSession(RTPSession *sess, Bool immediate_shutdown)
+void RP_RemoveSession(RTSPSession *sess, Bool immediate_shutdown)
 {
 	/*shutdown session*/
 	RP_Teardown(sess, NULL);

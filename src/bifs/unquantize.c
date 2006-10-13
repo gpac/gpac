@@ -74,7 +74,7 @@ GF_Err gf_bifs_dec_qp_remove(GF_BifsDecoder *codec, Bool ActivatePrev)
 	if (!ActivatePrev) return GF_OK;
 
 	if (gf_list_count(codec->QPs)) {
-		codec->ActiveQP = gf_list_get(codec->QPs, 0);
+		codec->ActiveQP = (M_QuantizationParameter*)gf_list_get(codec->QPs, 0);
 		gf_list_rem(codec->QPs, 0);
 	} else if (codec->GlobalQP) {
 		codec->ActiveQP = codec->GlobalQP;

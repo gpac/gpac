@@ -181,7 +181,7 @@ BOOL COsmo4::InitInstance()
 	pFrame->ShowWindow(m_nCmdShow);
 	pFrame->UpdateWindow();
 
-	unsigned char config_path[MAX_PATH];
+	char config_path[MAX_PATH];
 	CE_WideToChar((unsigned short *) (LPCTSTR) AfxGetApp()->m_pszHelpFilePath, (char *) config_path);
 
 	while (config_path[strlen((char *) config_path)-1] != '\\') config_path[strlen((char *) config_path)-1] = 0;
@@ -205,11 +205,11 @@ BOOL COsmo4::InitInstance()
 		}
 	}
 	const char *str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
-	m_user.modules = gf_modules_new((const unsigned char *) str, m_user.config);
+	m_user.modules = gf_modules_new(str, m_user.config);
 	if (!m_user.modules) {
 		const char *sOpt;
 		/*inital launch*/
-		m_user.modules = gf_modules_new((const unsigned char *) config_path, m_user.config);
+		m_user.modules = gf_modules_new(config_path, m_user.config);
 		if (m_user.modules) {
 			gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) config_path);
 

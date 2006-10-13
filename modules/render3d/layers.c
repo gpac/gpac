@@ -524,7 +524,7 @@ l3d_exit:
 void R3D_InitLayer3D(Render3D *sr, GF_Node *node)
 {
 	Layer3DStack *stack;
-	GF_SAFEALLOC(stack, sizeof(Layer3DStack));
+	GF_SAFEALLOC(stack, Layer3DStack);
 	SetupGroupingNode((GroupingNode*)stack, sr->compositor, node, ((M_Layer3D *)node)->children);
 	stack->backs = gf_list_new();
 	stack->views = gf_list_new();
