@@ -38,7 +38,7 @@ u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 	//only if the socket exist (otherwise RTSP interleaved channel)
 	if (!ch || !ch->rtcp) return 0;
 
-	e = gf_sk_receive(ch->rtcp, buffer, buffer_size, 0, &res);
+	e = gf_sk_receive(ch->rtcp, (unsigned char *)buffer, buffer_size, 0, &res);
 	if (e) return 0;
 	return res;
 }
@@ -181,7 +181,7 @@ process_reports:
 					if (!sdes_type) break;
 					sdes_len = gf_bs_read_u8(bs);
 					val += 1;
-					gf_bs_read_data(bs, sdes_buffer, sdes_len);
+					gf_bs_read_data(bs, (unsigned char *) sdes_buffer, sdes_len);
 					sdes_buffer[sdes_len] = 0;
 					val += sdes_len;
 				}
@@ -236,7 +236,7 @@ process_reports:
 */
 		default:
 			//read all till end
-			gf_bs_read_data(bs, sdes_buffer, rtcp_hdr.Length*4);
+			gf_bs_read_data(bs, (unsigned char *) sdes_buffer, rtcp_hdr.Length*4);
 			rtcp_hdr.Length = 0;
 			break;
 		}
@@ -407,7 +407,7 @@ static u32 RTCP_FormatSDES(GF_RTPChannel *ch, GF_BitStream *bs)
 	gf_bs_write_u8(bs, 1);
 	//length and cname
 	gf_bs_write_u8(bs, strlen(ch->CName));	
-	gf_bs_write_data(bs, ch->CName, strlen(ch->CName));
+	gf_bs_write_data(bs, (unsigned char *) ch->CName, strlen(ch->CName));
 
 	gf_bs_write_u8(bs, 0);
 
@@ -465,7 +465,7 @@ GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
 	gf_bs_del(bs);
 
 	if (ch->rtcp) {
-		e = gf_sk_send(ch->rtcp, report_buf, report_size);
+		e = gf_sk_send(ch->rtcp, (unsigned char *) report_buf, report_size);
 	} else {
 		if (RTP_TCPCallback) 
 			e = RTP_TCPCallback(rtsp_cbk, report_buf, report_size);
@@ -508,7 +508,7 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch,
 
 
 	if (ch->rtcp) {
-		e = gf_sk_send(ch->rtcp, report_buf, report_size);
+		e = gf_sk_send(ch->rtcp, (unsigned char *) report_buf, report_size);
 	} else {
 		if (RTP_TCPCallback) 
 			e = RTP_TCPCallback(rtsp_cbk, report_buf, report_size);

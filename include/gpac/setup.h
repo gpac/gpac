@@ -56,7 +56,6 @@ typedef char s8;
 #define GF_PATH_SEPARATOR	'\\'
 #define GF_MAX_PATH	260
 
-
 /*WINCE config*/
 #if defined(_WIN32_WCE)
 
@@ -129,8 +128,50 @@ typedef unsigned int size_t;
 
 
 #endif	/*END WIN32 non win-ce*/
+/*end WIN32 config*/
 
-#else	/*end WIN32 config*/
+/*start SYMBIAN config*/
+#elif defined(__SYMBIAN32__)
+
+#define GFINLINE inline
+#define GF_PATH_SEPARATOR	'/'
+
+/*we must explicitely export our functions...*/
+#define GF_EXPORT EXPORT_C
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <limits.h>
+#include <ctype.h>
+#include <string.h>
+#include <assert.h>
+
+typedef unsigned __int64 u64;
+typedef unsigned int u32;
+typedef unsigned short u16;
+typedef unsigned char u8;
+typedef __int64 s64;
+typedef int s32;
+typedef short s16;
+typedef char s8;
+
+#pragma mpwc_relax on
+
+/*SYMBIAN always fixed-point*/
+#ifndef GPAC_FIXED_POINT
+#define GPAC_FIXED_POINT
+#endif
+
+#define GF_MAX_PATH	260
+
+/*sorry this was developed under w32 :)*/
+#define stricmp		strcasecmp
+#define strnicmp	strncasecmp
+
+/*end SYMBIAN config*/
+
+#else 
 
 /*UNIX likes*/
 
@@ -257,6 +298,13 @@ char *gf_strdup(const char *str);
 #define LLD "%lld"
 #define LLU "%llu"
 #endif
+
+
+#ifndef GF_EXPORT
+/*use def files for windows or let compiler decide*/
+#define GF_EXPORT 
+#endif
+
 
 #ifdef __cplusplus
 }

@@ -46,7 +46,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 	ISMACrypInfo *info = sax_cbck;
 	if (stricmp(node_name, "ISMACrypTrack")) return;
 
-	GF_SAFEALLOC(tkc, sizeof(GF_TrackCryptInfo));
+	GF_SAFEALLOC(tkc, GF_TrackCryptInfo);
 	gf_list_add(info->tcis, tkc);
 
 	while ( (att = gf_list_enum(attributes, &i))) {
@@ -127,7 +127,7 @@ static ISMACrypInfo *load_crypt_file(const char *file)
 	GF_Err e;
 	ISMACrypInfo *info;
 	GF_SAXParser *sax;
-	GF_SAFEALLOC(info, sizeof(ISMACrypInfo));
+	GF_SAFEALLOC(info, ISMACrypInfo);
 	info->tcis = gf_list_new();
 	sax = gf_xml_sax_new(isma_ea_node_start, NULL, NULL, info);
 	e = gf_xml_sax_parse_file(sax, file, NULL);

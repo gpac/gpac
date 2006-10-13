@@ -352,7 +352,7 @@ void SVG_Init_svg(Render2D *sr, GF_Node *node)
 {
 	SVGPropertiesPointers *svgp;
 
-	GF_SAFEALLOC(svgp, sizeof(SVGPropertiesPointers));
+	GF_SAFEALLOC(svgp, SVGPropertiesPointers);
 	gf_svg_properties_init_pointers(svgp);
 	gf_node_set_private(node, svgp);
 
@@ -751,111 +751,6 @@ void SVG_Init_path(Render2D *sr, GF_Node *node)
 	gf_node_set_render_function(node, SVG_Render_path);
 }
 
-static void SVG_Render_use(GF_Node *node, void *rs)
-{
-	GF_Node *prev_use;
-	GF_Matrix2D backup_matrix;
-	SVGuseElement *use = (SVGuseElement *)node;
-  	GF_Matrix2D translate;
-	SVGPropertiesPointers backup_props;
-	RenderEffect2D *eff = rs;
-	SVGPropertiesPointers new_props, *old_props;
-
-	memset(&new_props, 0, sizeof(SVGPropertiesPointers));
-	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
-
-	gf_mx2d_init(translate);
-	translate.m[2] = use->x.value;
-	translate.m[5] = use->y.value;
-
-	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
-		gf_svg_apply_local_transformation(eff, node, &backup_matrix);
-		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
-			if (use->xlink->href.type == SVG_IRI_ELEMENTID) {
-				gf_node_render((GF_Node *)use->xlink->href.target, eff);
-			} else {
-				GF_InlineScene *is = gf_node_get_private(node);
-				GF_Node *subroot = gf_sg_get_root_node(is->graph);
-				gf_svg_properties_init_pointers(&new_props);
-				old_props = eff->svg_props;
-				eff->svg_props = &new_props;
-				gf_svg_properties_init_pointers(eff->svg_props);
-				gf_node_render(subroot, eff);
-				eff->svg_props = old_props;
-				gf_svg_properties_reset_pointers(&new_props);
-			}
-			gf_mx2d_apply_rect(&translate, &eff->bounds);
-		}
-		gf_svg_restore_parent_transformation(eff, &backup_matrix);
-		goto end;
-	}
-
-	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
-		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
-		goto end;
-	}
-
-	gf_svg_apply_local_transformation(eff, node, &backup_matrix);
-
-	gf_mx2d_pre_multiply(&eff->transform, &translate);
-	prev_use = eff->parent_use;
-	eff->parent_use = (GF_Node *)use;
-	if (use->xlink->href.type == SVG_IRI_ELEMENTID) {
-		gf_node_render((GF_Node *)use->xlink->href.target, eff);
-	} else {
-		GF_InlineScene *is = gf_node_get_private(node);
-		char *fragment;
-		GF_Node *subroot;
-		
-		subroot = gf_sg_get_root_node(is->graph);
-		if (fragment = strchr(use->xlink->href.iri, '#')) {
-			subroot = gf_sg_find_node_by_name(is->graph, fragment+1);
-		}
-		if (subroot) {
-//			old_props = eff->svg_props;
-//			eff->svg_props = &new_props;
-//			gf_svg_properties_init_pointers(eff->svg_props);
-			gf_node_render(subroot, eff);
-//			eff->svg_props = old_props;
-//			gf_svg_properties_reset_pointers(&new_props);
-		}
-	}
-	eff->parent_use = prev_use;
-
-	gf_svg_restore_parent_transformation(eff, &backup_matrix);  
-end:
-	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
-}
-
-void SVG_Destroy_use(GF_Node *node)
-{
-/*	GF_InlineScene *is = gf_node_get_private(node);
-	if (is) {
-		if(is->root_od->mo->num_open == 1) {
-			gf_sr_add_secondary_scene(is->root_od->term->renderer, is->graph, 1);
-		}
-		gf_svg_subscene_stop(is);
-	}
-*/}
-
-void SVG_Init_use(Render2D *sr, GF_Node *node)
-{
-	SVGuseElement *use = (SVGuseElement *)node;
-
-	if (use->xlink->href.type == SVG_IRI_IRI) {
-		GF_InlineScene *is = gf_svg_subscene_get((SVGElement *)use);
-		if (is) {
-			if (is->root_od->mo->num_open == 0) {
-				gf_sr_add_secondary_scene(is->root_od->term->renderer, is->graph, 0);
-			}
-			gf_svg_subscene_start(is);
-			gf_node_set_private(node, is);
-		}
-	} 
-	gf_node_set_render_function(node, SVG_Render_use);
-	gf_node_set_predestroy_function(node, SVG_Destroy_use);
-}
-
 /* end of rendering of basic shapes */
 
 
@@ -941,7 +836,7 @@ static void SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 			u32 i, count, found;
 			SVGsetElement *set = (SVGsetElement *)a->xlink->href.target;
 			SMIL_Time *begin;
-			GF_SAFEALLOC(begin, sizeof(SMIL_Time));
+			GF_SAFEALLOC(begin, SMIL_Time);
 			begin->type = GF_SMIL_TIME_EVENT_RESLOVED;
 			begin->clock = gf_node_get_scene_time((GF_Node *)set);
 

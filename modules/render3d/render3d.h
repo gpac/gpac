@@ -185,7 +185,7 @@ enum
 /*the traversing context: set_up at top-level and passed through SFNode_Render*/
 typedef struct _render3d_effect
 {
-	AUDIO_EFFECT_CLASS
+	BASE_EFFECT_CLASS
 
 	u32 traversing_mode;
 

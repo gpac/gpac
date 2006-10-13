@@ -85,7 +85,7 @@ static void SFS_AddString(ScriptParser *parser, char *str)
 	if (!str) return;
 	if (strlen(parser->string) + strlen(str) >= parser->length) {
 		parser->length += PARSER_STEP_ALLOC;
-		new_str = malloc(sizeof(char)*parser->length);
+		new_str = (char *)malloc(sizeof(char)*parser->length);
 		strcpy(new_str, parser->string);
 		free(parser->string);
 		parser->string = new_str;
@@ -183,7 +183,7 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStrea
 	parser.string = (char *) malloc(sizeof(char)* parser.length);
 	parser.string[0] = 0;
 	parser.identifiers = gf_list_new();
-	parser.new_line = codec->dec_memory_mode ? "\n" : NULL;
+	parser.new_line = (char *) (codec->dec_memory_mode ? "\n" : NULL);
 	parser.indent = 0;
 
 	//first parse fields
@@ -223,12 +223,12 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStrea
 	SFS_Line(&parser);
 
 	if (script_field->script_text) free(script_field->script_text);
-	script_field->script_text = strdup(parser.string);
+	script_field->script_text = (unsigned char *) strdup(parser.string);
 
 exit:
 	//clean up
 	while (gf_list_count(parser.identifiers)) {
-		ptr = gf_list_get(parser.identifiers, 0);
+		ptr = (char *)gf_list_get(parser.identifiers, 0);
 		free(ptr);
 		gf_list_rem(parser.identifiers, 0);
 	}
@@ -249,7 +249,7 @@ void SFS_Identifier(ScriptParser *parser)
 	//recieved
 	if (gf_bs_read_int(parser->bs, 1)) {
 		index = gf_bs_read_int(parser->bs, gf_get_bit_size(gf_list_count(parser->identifiers) - 1));
-		SFS_AddString(parser, gf_list_get(parser->identifiers, index));
+		SFS_AddString(parser, (char *)gf_list_get(parser->identifiers, index));
 	}
 	//parse
 	else{

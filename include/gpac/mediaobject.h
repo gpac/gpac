@@ -46,69 +46,12 @@ therefore it is the task of the media management app to setup clear links betwee
 	TODO - add interface for shape coding positioning in mediaObject and in the decoder API
 */
 
-enum
-{
-	/*this is set to 0 by the OD manager whenever a change occur in the media (w/h change, SR change, etc) 
-	as a hint for the renderer*/
-	GF_MO_IS_INIT = (1<<1),
-	/*this is used for 3D/GL rendering to indicate an image has been vertically flipped*/
-	GF_MO_IS_FLIP = (1<<2),
-	/*used by animation stream to remove TEXT from display upon delete and URL change*/
-	GF_MO_DISPLAY_REMOVE = (1<<3),
-};
-
-struct _mediaobj
-{
-	/*type is as defined in constants.h # GF_MEDIA_OBJECT_* */
-	u32 type;
-	/*one of the above flags*/
-	u32 mo_flags;
-	/*audio props*/
-	u32 sample_rate;
-	u32 bits_per_sample;
-	u32 num_channels;
-	/*cf constants.h for audio channel cfg*/
-	u32 channel_config;
-
-	/*video props*/
-	Fixed FPS;	/*this is not known by default, but computed on the fly*/
-	u32 width, height, stride, pixel_ar;
-	u32 pixelFormat;
-	/*changing at each frame for shape coding, or always 0 for frame coding, indicates 
-	X and Y coordinate of object in frame(width, height)*/
-	u32 offset_x, offset_y;
-	/*shared object info: if 0 a new frame will be checked, otherwise current is returned*/
-	u32 num_fetched;
-	/*frame presentation time*/
-	u32 current_ts;
-	/*data frame size*/
-	u32 current_size;
-	/*pointer to data frame */
-	unsigned char *current_frame;
-
-	/* private to ESM*/
-	struct _tag_terminal *term;
-	/*media object manager - private to the sync engine*/
-	struct _od_manager *odm;
-	/*OD ID of the object*/
-	u32 OD_ID;
-	/*OD URL for object not using MPEG4 OD urls*/
-	MFURL URLs;
-	/*session join*/
-	u32 num_open;
-	/*shared object restart handling*/
-	u32 num_to_restart, num_restart;
-	Fixed speed;
-};
-
 typedef struct _mediaobj GF_MediaObject;
-
-GF_MediaObject *gf_mo_new(GF_Terminal *term);
 
 /*locate media object related to the given node - url designes the object to find - returns NULL if
 URL cannot be handled - note that until the mediaObject.isInit member is true, the media object is not valid
 (and could actually never be) */
-GF_MediaObject *gf_mo_find(GF_Node *node, MFURL *url);
+GF_MediaObject *gf_mo_find(GF_Node *node, MFURL *url, Bool lock_timelines);
 /*opens media object*/
 void gf_mo_play(GF_MediaObject *mo, Double media_offset, Bool can_loop);
 /*stops media object - video memory is not reset, last frame is kept*/
@@ -139,11 +82,13 @@ mediaControl status */
 Bool gf_mo_should_deactivate(GF_MediaObject *mo);
 /*checks whether the target object is changed - you MUST use this in order to detect url changes*/
 Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url);
-/*fetch media data - returns 1 if new frame (in which case media info of the GF_MediaObject structure are updated)
-0 otherwise - eos is set if stream is finished. if resync is specified and no frame is locked the video memory is
-resync'ed to its object clock (eg frame droping) 
+
+
+/*fetch media data 
+
 */
-Bool gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos);
+unsigned char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestamp, u32 *size);
+
 /*release given amount of media data - nb_bytes is used for audio - if forceDrop is set, the unlocked frame will be 
 droped if all bytes are consumed, otherwise it will be droped based on object time - typically, video fetches with the resync
 flag set and release without forceDrop, while audio fetches without resync but forces buffer drop. If forceDrop is set to 2, 
@@ -160,6 +105,25 @@ Bool gf_mo_is_done(GF_MediaObject *mo);
 /*resyncs clock - only audio objects are allowed to use this*/
 void gf_mo_adjust_clock(GF_MediaObject *mo, s32 ms_drift);
 
+
+
+Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *stride, u32 *pixel_ar, u32 *pixelFormat);
+
+Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config);
+
+enum
+{
+	/*this is set to 0 by the OD manager whenever a change occur in the media (w/h change, SR change, etc) 
+	as a hint for the renderer*/
+	GF_MO_IS_INIT = (1<<1),
+	/*this is used for 3D/GL rendering to indicate an image has been vertically flipped*/
+	GF_MO_IS_FLIP = (1<<2),
+	/*used by animation stream to remove TEXT from display upon delete and URL change*/
+	GF_MO_DISPLAY_REMOVE = (1<<3),
+};
+
+u32 gf_mo_get_flags(GF_MediaObject *mo);
+void gf_mo_set_flag(GF_MediaObject *mo, u32 flag, Bool set_on);
 
 #ifdef __cplusplus
 }

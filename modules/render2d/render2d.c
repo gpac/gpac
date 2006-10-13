@@ -1292,8 +1292,9 @@ u32 R2D_GetOption(GF_VisualRenderer *vr, u32 option)
 	}
 }
 
+
 /*render inline scene*/
-void R2D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_root, void *rs)
+static void R2D_RenderInlineMPEG4(GF_VisualRenderer *vr, GF_Node *inline_parent, GF_Node *inline_root, void *rs)
 {
 	Bool use_pm;
 	u32 h, w;
@@ -1326,6 +1327,42 @@ void R2D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_root, void *rs)
 	gf_node_render(inline_root, rs);
 	eff->is_pixel_metrics = !use_pm;
 	gf_mx2d_copy(eff->transform, mx_bck);
+}
+
+void R2D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_parent, GF_Node *inline_root, void *rs)
+{
+	u32 tag;
+	if (!inline_root) return;
+
+	switch (gf_node_get_tag(inline_parent)) {
+#ifndef GPAC_DISABLE_SVG
+	case TAG_SVG_animation:
+		tag = gf_node_get_tag(inline_root);
+		if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
+			R2D_RenderInlineAnimation(inline_parent, inline_root, rs);
+		} else {
+			RenderEffect2D *eff = (RenderEffect2D *)rs;
+			GF_Matrix2D mx, bck;
+			gf_mx2d_copy(bck, eff->transform);
+			gf_mx2d_init(mx);
+			/*match both coordinate systems:
+			1- we decide SVG center is aligned with BIFS center, so no translation
+			2- since parent is SVG (top-left origin), flip the entire subscene
+			*/
+			gf_mx2d_add_scale(&mx, 1, -1);
+			gf_mx2d_pre_multiply(&eff->transform, &mx);
+			R2D_RenderInlineMPEG4(vr, inline_parent, inline_root, rs);
+			gf_mx2d_copy(eff->transform, bck);
+		}
+		break;
+	case TAG_SVG_use:
+		R2D_RenderUse(inline_parent, inline_root, rs);
+		break;
+#endif
+	default:
+		R2D_RenderInlineMPEG4(vr, inline_parent, inline_root, rs);
+		break;
+	}
 }
 
 GF_Err R2D_GetScreenBuffer(GF_VisualRenderer *vr, GF_VideoSurface *framebuffer)

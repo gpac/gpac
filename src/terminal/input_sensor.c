@@ -331,7 +331,7 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u32
 	i=0;
 	while ((st = gf_list_enum(priv->is_nodes, &i))) {
 		assert(st->is);
-		assert(st->is_mo);
+		assert(st->mo);
 		if (!st->is->enabled) continue;
 
 		count = gf_list_count(st->is->buffer.commandList);
@@ -410,7 +410,7 @@ static void IS_Unregister(ISStack *st)
 	u32 i;
 	GF_ObjectManager *odm;
 	ISPriv *is_dec;
-	odm = st->is_mo->odm;
+	odm = st->mo->odm;
 	if (!odm) return;
 
 	assert(odm->codec && (odm->codec->type == GF_STREAM_INTERACT));
@@ -425,8 +425,8 @@ static void IS_Unregister(ISStack *st)
 		}
 	}
 	/*stop stream*/
-	if (st->is_mo->num_open) gf_mo_stop(st->is_mo);
-	st->is_mo = NULL;
+	if (st->mo->num_open) gf_mo_stop(st->mo);
+	st->mo = NULL;
 	st->registered = 0;
 }
 
@@ -435,7 +435,7 @@ static void IS_Register(GF_Node *n)
 	GF_ObjectManager *odm;
 	ISPriv *is_dec;
 	ISStack *st = gf_node_get_private(n);
-	odm = st->is_mo->odm;
+	odm = st->mo->odm;
 	if (!odm) return;
 
 	assert(odm->codec && (odm->codec->type == GF_STREAM_INTERACT));
@@ -448,7 +448,7 @@ static void IS_Register(GF_Node *n)
 	StartHTK(is_dec);
 #endif
 	/*start stream*/
-	gf_mo_play(st->is_mo, 0, 0);
+	gf_mo_play(st->mo, 0, 0);
 
 	gf_term_rem_render_node(odm->term, n);
 }
@@ -459,9 +459,9 @@ static void RenderInputSensor(GF_Node *node, void *rs)
 	M_InputSensor *is = (M_InputSensor *)node;
 
 	/*get decoder object */
-	if (!st->is_mo) st->is_mo = gf_mo_find(node, &is->url);
+	if (!st->mo) st->mo = gf_mo_find(node, &is->url, 0);
 	/*register with decoder*/
-	if (st->is_mo && !st->registered) IS_Register(node);
+	if (st->mo && !st->registered) IS_Register(node);
 }
 
 void DestroyInputSensor(GF_Node *node)
@@ -496,11 +496,11 @@ void InputSensorModified(GF_Node *node)
 	GF_MediaObject *mo;
 	ISStack *st = gf_node_get_private(node);
 
-	mo = gf_mo_find(node, &st->is->url);
-	if ((mo!=st->is_mo) || !st->registered){
-		if (mo!=st->is_mo) {
-			if (st->is_mo) IS_Unregister(st);
-			st->is_mo = mo;
+	mo = gf_mo_find(node, &st->is->url, 0);
+	if ((mo!=st->mo) || !st->registered){
+		if (mo!=st->mo) {
+			if (st->mo) IS_Unregister(st);
+			st->mo = mo;
 		}
 		if (st->is->enabled) 
 			IS_Register(node);
@@ -508,7 +508,7 @@ void InputSensorModified(GF_Node *node)
 			return;
 	} else if (!st->is->enabled) {
 		IS_Unregister(st);
-		st->is_mo = NULL;
+		st->mo = NULL;
 		return;
 	}
 
@@ -832,7 +832,7 @@ void DestroyStringSensor(GF_Node *node)
 void InitStringSensor(GF_InlineScene *is, GF_Node *node)
 {
 	StringSensorStack*st;
-	GF_SAFEALLOC(st, sizeof(StringSensorStack));
+	GF_SAFEALLOC(st, StringSensorStack)
 	st->term = is->root_od->term;
 	gf_node_set_private(node, st);
 	gf_node_set_predestroy_function(node, DestroyStringSensor);

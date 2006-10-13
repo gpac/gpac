@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Oct 06 18:37:52 2006
+	DO NOT MOFIFY - File generated on GMT Fri Oct 13 09:42:05 2006
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -38,7 +38,7 @@
 void *gf_svg_new_a()
 {
 	SVGaElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGaElement));
+	GF_SAFEALLOC(p, SVGaElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_a);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -421,7 +421,7 @@ static GF_Err gf_svg_a_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_animate()
 {
 	SVGanimateElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGanimateElement));
+	GF_SAFEALLOC(p, SVGanimateElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_animate);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -630,7 +630,7 @@ static GF_Err gf_svg_animate_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_animateColor()
 {
 	SVGanimateColorElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGanimateColorElement));
+	GF_SAFEALLOC(p, SVGanimateColorElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_animateColor);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -839,7 +839,7 @@ static GF_Err gf_svg_animateColor_get_attribute(GF_Node *node, GF_FieldInfo *inf
 void *gf_svg_new_animateMotion()
 {
 	SVGanimateMotionElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGanimateMotionElement));
+	GF_SAFEALLOC(p, SVGanimateMotionElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_animateMotion);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -1064,7 +1064,7 @@ static GF_Err gf_svg_animateMotion_get_attribute(GF_Node *node, GF_FieldInfo *in
 void *gf_svg_new_animateTransform()
 {
 	SVGanimateTransformElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGanimateTransformElement));
+	GF_SAFEALLOC(p, SVGanimateTransformElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_animateTransform);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -1278,7 +1278,7 @@ static GF_Err gf_svg_animateTransform_get_attribute(GF_Node *node, GF_FieldInfo 
 void *gf_svg_new_animation()
 {
 	SVGanimationElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGanimationElement));
+	GF_SAFEALLOC(p, SVGanimationElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_animation);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -1532,86 +1532,96 @@ static GF_Err gf_svg_animation_get_attribute(GF_Node *node, GF_FieldInfo *info)
 			info->far_ptr = &((SVGElement *)node)->timing->fill;
 			return GF_OK;
 		case 44:
+			info->name = "clipBegin";
+			info->fieldType = SVG_Clock_datatype;
+			info->far_ptr = &((SVGElement *)node)->timing->clipBegin;
+			return GF_OK;
+		case 45:
+			info->name = "clipEnd";
+			info->fieldType = SVG_Clock_datatype;
+			info->far_ptr = &((SVGElement *)node)->timing->clipEnd;
+			return GF_OK;
+		case 46:
 			info->name = "syncBehavior";
 			info->fieldType = SMIL_SyncBehavior_datatype;
 			info->far_ptr = &((SVGElement *)node)->sync->syncBehavior;
 			return GF_OK;
-		case 45:
+		case 47:
 			info->name = "syncTolerance";
 			info->fieldType = SMIL_SyncTolerance_datatype;
 			info->far_ptr = &((SVGElement *)node)->sync->syncTolerance;
 			return GF_OK;
-		case 46:
+		case 48:
 			info->name = "syncMaster";
 			info->fieldType = SVG_Boolean_datatype;
 			info->far_ptr = &((SVGElement *)node)->sync->syncMaster;
 			return GF_OK;
-		case 47:
+		case 49:
 			info->name = "syncReference";
 			info->fieldType = SVG_String_datatype;
 			info->far_ptr = &((SVGElement *)node)->sync->syncReference;
 			return GF_OK;
-		case 48:
+		case 50:
 			info->name = "requiredExtensions";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredExtensions;
 			return GF_OK;
-		case 49:
+		case 51:
 			info->name = "requiredFeatures";
 			info->fieldType = SVG_ListOfIRI_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFeatures;
 			return GF_OK;
-		case 50:
+		case 52:
 			info->name = "requiredFonts";
 			info->fieldType = SVG_FontList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFonts;
 			return GF_OK;
-		case 51:
+		case 53:
 			info->name = "requiredFormats";
 			info->fieldType = SVG_FormatList_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->requiredFormats;
 			return GF_OK;
-		case 52:
+		case 54:
 			info->name = "systemLanguage";
 			info->fieldType = SVG_LanguageIDs_datatype;
 			info->far_ptr = &((SVGElement *)node)->conditional->systemLanguage;
 			return GF_OK;
-		case 53:
+		case 55:
 			info->name = "transform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = &((SVGTransformableElement *)node)->transform;
 			return GF_OK;
-		case 54:
+		case 56:
 			info->name = "motionTransform";
 			info->fieldType = SVG_Matrix_datatype;
 			info->far_ptr = ((SVGTransformableElement *)node)->motionTransform;
 			return GF_OK;
-		case 55:
+		case 57:
 			info->name = "x";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->x;
 			return GF_OK;
-		case 56:
+		case 58:
 			info->name = "y";
 			info->fieldType = SVG_Coordinate_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->y;
 			return GF_OK;
-		case 57:
+		case 59:
 			info->name = "width";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->width;
 			return GF_OK;
-		case 58:
+		case 60:
 			info->name = "height";
 			info->fieldType = SVG_Length_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->height;
 			return GF_OK;
-		case 59:
+		case 61:
 			info->name = "preserveAspectRatio";
 			info->fieldType = SVG_PreserveAspectRatio_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->preserveAspectRatio;
 			return GF_OK;
-		case 60:
+		case 62:
 			info->name = "initialVisibility";
 			info->fieldType = SVG_InitialVisibility_datatype;
 			info->far_ptr = & ((SVGanimationElement *)node)->initialVisibility;
@@ -1623,7 +1633,7 @@ static GF_Err gf_svg_animation_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_audio()
 {
 	SVGaudioElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGaudioElement));
+	GF_SAFEALLOC(p, SVGaudioElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_audio);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -1881,7 +1891,7 @@ static GF_Err gf_svg_audio_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_circle()
 {
 	SVGcircleElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGcircleElement));
+	GF_SAFEALLOC(p, SVGcircleElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_circle);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -2237,7 +2247,7 @@ static GF_Err gf_svg_circle_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_conditional()
 {
 	SVGconditionalElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGconditionalElement));
+	GF_SAFEALLOC(p, SVGconditionalElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_conditional);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -2317,7 +2327,7 @@ static GF_Err gf_svg_conditional_get_attribute(GF_Node *node, GF_FieldInfo *info
 void *gf_svg_new_cursorManager()
 {
 	SVGcursorManagerElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGcursorManagerElement));
+	GF_SAFEALLOC(p, SVGcursorManagerElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_cursorManager);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -2429,7 +2439,7 @@ static GF_Err gf_svg_cursorManager_get_attribute(GF_Node *node, GF_FieldInfo *in
 void *gf_svg_new_defs()
 {
 	SVGdefsElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGdefsElement));
+	GF_SAFEALLOC(p, SVGdefsElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_defs);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -2671,7 +2681,7 @@ static GF_Err gf_svg_defs_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_desc()
 {
 	SVGdescElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGdescElement));
+	GF_SAFEALLOC(p, SVGdescElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_desc);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -2737,7 +2747,7 @@ static GF_Err gf_svg_desc_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_discard()
 {
 	SVGdiscardElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGdiscardElement));
+	GF_SAFEALLOC(p, SVGdiscardElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_discard);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -2871,7 +2881,7 @@ static GF_Err gf_svg_discard_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_ellipse()
 {
 	SVGellipseElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGellipseElement));
+	GF_SAFEALLOC(p, SVGellipseElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_ellipse);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -3232,7 +3242,7 @@ static GF_Err gf_svg_ellipse_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_font()
 {
 	SVGfontElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGfontElement));
+	GF_SAFEALLOC(p, SVGfontElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_font);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -3308,7 +3318,7 @@ static GF_Err gf_svg_font_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_font_face()
 {
 	SVGfont_faceElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGfont_faceElement));
+	GF_SAFEALLOC(p, SVGfont_faceElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_font_face);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -3520,7 +3530,7 @@ static GF_Err gf_svg_font_face_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_font_face_src()
 {
 	SVGfont_face_srcElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGfont_face_srcElement));
+	GF_SAFEALLOC(p, SVGfont_face_srcElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_font_face_src);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -3586,7 +3596,7 @@ static GF_Err gf_svg_font_face_src_get_attribute(GF_Node *node, GF_FieldInfo *in
 void *gf_svg_new_font_face_uri()
 {
 	SVGfont_face_uriElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGfont_face_uriElement));
+	GF_SAFEALLOC(p, SVGfont_face_uriElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_font_face_uri);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -3688,7 +3698,7 @@ static GF_Err gf_svg_font_face_uri_get_attribute(GF_Node *node, GF_FieldInfo *in
 void *gf_svg_new_foreignObject()
 {
 	SVGforeignObjectElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGforeignObjectElement));
+	GF_SAFEALLOC(p, SVGforeignObjectElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_foreignObject);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -4085,7 +4095,7 @@ static GF_Err gf_svg_foreignObject_get_attribute(GF_Node *node, GF_FieldInfo *in
 void *gf_svg_new_g()
 {
 	SVGgElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGgElement));
+	GF_SAFEALLOC(p, SVGgElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_g);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -4426,7 +4436,7 @@ static GF_Err gf_svg_g_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_glyph()
 {
 	SVGglyphElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGglyphElement));
+	GF_SAFEALLOC(p, SVGglyphElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_glyph);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -4528,7 +4538,7 @@ static GF_Err gf_svg_glyph_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_handler()
 {
 	SVGhandlerElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGhandlerElement));
+	GF_SAFEALLOC(p, SVGhandlerElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_handler);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -4605,7 +4615,7 @@ static GF_Err gf_svg_handler_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_hkern()
 {
 	SVGhkernElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGhkernElement));
+	GF_SAFEALLOC(p, SVGhkernElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_hkern);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -4700,7 +4710,7 @@ static GF_Err gf_svg_hkern_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_image()
 {
 	SVGimageElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGimageElement));
+	GF_SAFEALLOC(p, SVGimageElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_image);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -4983,7 +4993,7 @@ static GF_Err gf_svg_image_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_line()
 {
 	SVGlineElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGlineElement));
+	GF_SAFEALLOC(p, SVGlineElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_line);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -5344,7 +5354,7 @@ static GF_Err gf_svg_line_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_linearGradient()
 {
 	SVGlinearGradientElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGlinearGradientElement));
+	GF_SAFEALLOC(p, SVGlinearGradientElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_linearGradient);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -5659,7 +5669,7 @@ static GF_Err gf_svg_linearGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 void *gf_svg_new_listener()
 {
 	SVGlistenerElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGlistenerElement));
+	GF_SAFEALLOC(p, SVGlistenerElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_listener);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -5768,7 +5778,7 @@ static GF_Err gf_svg_listener_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_metadata()
 {
 	SVGmetadataElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGmetadataElement));
+	GF_SAFEALLOC(p, SVGmetadataElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_metadata);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -5834,7 +5844,7 @@ static GF_Err gf_svg_metadata_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_missing_glyph()
 {
 	SVGmissing_glyphElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGmissing_glyphElement));
+	GF_SAFEALLOC(p, SVGmissing_glyphElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_missing_glyph);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -5913,7 +5923,7 @@ static GF_Err gf_svg_missing_glyph_get_attribute(GF_Node *node, GF_FieldInfo *in
 void *gf_svg_new_mpath()
 {
 	SVGmpathElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGmpathElement));
+	GF_SAFEALLOC(p, SVGmpathElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_mpath);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -6015,7 +6025,7 @@ static GF_Err gf_svg_mpath_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_path()
 {
 	SVGpathElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGpathElement));
+	GF_SAFEALLOC(p, SVGpathElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_path);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -6369,7 +6379,7 @@ static GF_Err gf_svg_path_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_polygon()
 {
 	SVGpolygonElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGpolygonElement));
+	GF_SAFEALLOC(p, SVGpolygonElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_polygon);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -6717,7 +6727,7 @@ static GF_Err gf_svg_polygon_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_polyline()
 {
 	SVGpolylineElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGpolylineElement));
+	GF_SAFEALLOC(p, SVGpolylineElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_polyline);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -7065,7 +7075,7 @@ static GF_Err gf_svg_polyline_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_prefetch()
 {
 	SVGprefetchElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGprefetchElement));
+	GF_SAFEALLOC(p, SVGprefetchElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_prefetch);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -7195,7 +7205,7 @@ static GF_Err gf_svg_prefetch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_radialGradient()
 {
 	SVGradialGradientElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGradialGradientElement));
+	GF_SAFEALLOC(p, SVGradialGradientElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_radialGradient);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -7519,7 +7529,7 @@ static GF_Err gf_svg_radialGradient_get_attribute(GF_Node *node, GF_FieldInfo *i
 void *gf_svg_new_rect()
 {
 	SVGrectElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGrectElement));
+	GF_SAFEALLOC(p, SVGrectElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_rect);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -7890,7 +7900,7 @@ static GF_Err gf_svg_rect_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_rectClip()
 {
 	SVGrectClipElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGrectClipElement));
+	GF_SAFEALLOC(p, SVGrectClipElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_rectClip);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -8236,7 +8246,7 @@ static GF_Err gf_svg_rectClip_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_script()
 {
 	SVGscriptElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGscriptElement));
+	GF_SAFEALLOC(p, SVGscriptElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_script);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -8308,7 +8318,7 @@ static GF_Err gf_svg_script_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_selector()
 {
 	SVGselectorElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGselectorElement));
+	GF_SAFEALLOC(p, SVGselectorElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_selector);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -8654,7 +8664,7 @@ static GF_Err gf_svg_selector_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_set()
 {
 	SVGsetElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGsetElement));
+	GF_SAFEALLOC(p, SVGsetElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_set);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -8823,7 +8833,7 @@ static GF_Err gf_svg_set_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_simpleLayout()
 {
 	SVGsimpleLayoutElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGsimpleLayoutElement));
+	GF_SAFEALLOC(p, SVGsimpleLayoutElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_simpleLayout);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -9169,7 +9179,7 @@ static GF_Err gf_svg_simpleLayout_get_attribute(GF_Node *node, GF_FieldInfo *inf
 void *gf_svg_new_solidColor()
 {
 	SVGsolidColorElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGsolidColorElement));
+	GF_SAFEALLOC(p, SVGsolidColorElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_solidColor);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -9412,7 +9422,7 @@ static GF_Err gf_svg_solidColor_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_stop()
 {
 	SVGstopElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGstopElement));
+	GF_SAFEALLOC(p, SVGstopElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_stop);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -9660,7 +9670,7 @@ static GF_Err gf_svg_stop_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_svg()
 {
 	SVGsvgElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGsvgElement));
+	GF_SAFEALLOC(p, SVGsvgElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_svg);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -10046,7 +10056,7 @@ static GF_Err gf_svg_svg_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_switch()
 {
 	SVGswitchElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGswitchElement));
+	GF_SAFEALLOC(p, SVGswitchElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_switch);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -10387,7 +10397,7 @@ static GF_Err gf_svg_switch_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_tbreak()
 {
 	SVGtbreakElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGtbreakElement));
+	GF_SAFEALLOC(p, SVGtbreakElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_tbreak);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -10453,7 +10463,7 @@ static GF_Err gf_svg_tbreak_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_text()
 {
 	SVGtextElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGtextElement));
+	GF_SAFEALLOC(p, SVGtextElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_text);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -10818,7 +10828,7 @@ static GF_Err gf_svg_text_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_textArea()
 {
 	SVGtextAreaElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGtextAreaElement));
+	GF_SAFEALLOC(p, SVGtextAreaElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_textArea);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -11184,7 +11194,7 @@ static GF_Err gf_svg_textArea_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_title()
 {
 	SVGtitleElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGtitleElement));
+	GF_SAFEALLOC(p, SVGtitleElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_title);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -11250,7 +11260,7 @@ static GF_Err gf_svg_title_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_tspan()
 {
 	SVGtspanElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGtspanElement));
+	GF_SAFEALLOC(p, SVGtspanElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_tspan);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -11579,7 +11589,7 @@ static GF_Err gf_svg_tspan_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_use()
 {
 	SVGuseElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGuseElement));
+	GF_SAFEALLOC(p, SVGuseElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_use);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -11966,7 +11976,7 @@ static GF_Err gf_svg_use_get_attribute(GF_Node *node, GF_FieldInfo *info)
 void *gf_svg_new_video()
 {
 	SVGvideoElement *p;
-	GF_SAFEALLOC(p, sizeof(SVGvideoElement));
+	GF_SAFEALLOC(p, SVGvideoElement);
 	if (!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_SVG_video);
 	gf_sg_parent_setup((GF_Node *) p);
@@ -12461,7 +12471,7 @@ u32 gf_svg_get_attribute_count(GF_Node *node)
 		case TAG_SVG_animateColor: return 35;
 		case TAG_SVG_animateMotion: return 37;
 		case TAG_SVG_animateTransform: return 36;
-		case TAG_SVG_animation: return 61;
+		case TAG_SVG_animation: return 63;
 		case TAG_SVG_audio: return 44;
 		case TAG_SVG_circle: return 64;
 		case TAG_SVG_conditional: return 9;

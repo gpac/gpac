@@ -207,7 +207,7 @@ static void OnPacketDone(void *cbk, GF_RTPHeader *header)
 		u32 lv_currentPacketSize; // in bits
 		
 		RTP_Packet *tmp;
-		GF_SAFEALLOC(tmp, sizeof(RTP_Packet));
+		GF_SAFEALLOC(tmp, RTP_Packet);
 		memcpy(&tmp->header, header, sizeof(GF_RTPHeader));
 		tmp->payload = caller->payload;
 		caller->payload = NULL;
@@ -272,7 +272,7 @@ static void OnPacketDone(void *cbk, GF_RTPHeader *header)
 		u32 lv_currentPacketSize; // in bits
 		
 		RTP_Packet *tmp;
-		GF_SAFEALLOC(tmp, sizeof(RTP_Packet));
+		GF_SAFEALLOC(tmp, RTP_Packet);
 		memcpy(&tmp->header, header, sizeof(GF_RTPHeader));
 		tmp->payload = caller->payload;
 		caller->payload = NULL;

@@ -39,13 +39,13 @@ typedef struct
 
 void Conditional_PreDestroy(GF_Node *n)
 {
-	ConditionalStack *priv = gf_node_get_private(n);
+	ConditionalStack *priv = (ConditionalStack*)gf_node_get_private(n);
 	if (priv) free(priv);
 }
 
 void Conditional_BufferReplaced(GF_BifsDecoder *codec, GF_Node *n)
 {
-	ConditionalStack *priv = gf_node_get_private(n);
+	ConditionalStack *priv = (ConditionalStack*)gf_node_get_private(n);
 	if (!priv || (gf_node_get_tag(n) != TAG_MPEG4_Conditional)) return;
 	priv->info = codec->info;
 }
@@ -57,7 +57,7 @@ static void Conditional_execute(M_Conditional *node)
 	GF_BifsDecoder *codec;
 	GF_Proto *prevproto;
 	GF_SceneGraph *prev_graph;
-	ConditionalStack *priv = gf_node_get_private((GF_Node*)node);
+	ConditionalStack *priv = (ConditionalStack*)gf_node_get_private((GF_Node*)node);
 	if (!priv) return;
 
 	/*set the codec working graph to the node one (to handle conditional in protos)*/
@@ -106,10 +106,10 @@ void SetupConditional(GF_BifsDecoder *codec, GF_Node *node)
 {
 	ConditionalStack *priv;
 	if (gf_node_get_tag(node) != TAG_MPEG4_Conditional) return;
-	priv =malloc(sizeof(ConditionalStack));
+	priv = (ConditionalStack*)malloc(sizeof(ConditionalStack));
 
 	/*needed when initializing extern protos*/
-	if (!codec->info) codec->info = gf_list_get(codec->streamInfo, 0);
+	if (!codec->info) codec->info = (BIFSStreamInfo*)gf_list_get(codec->streamInfo, 0);
 	if (!codec->info) return;
 
 	priv->info = codec->info;
@@ -126,7 +126,7 @@ void BIFS_SetupConditionalClone(GF_Node *node, GF_Node *orig)
 	M_Conditional *ptr;
 	u32 i;
 	ConditionalStack *priv_orig, *priv;
-	priv_orig = gf_node_get_private(orig);
+	priv_orig = (ConditionalStack*)gf_node_get_private(orig);
 	/*looks we're not in BIFS*/
 	if (!priv_orig) {
 		GF_Command *ori_com;
@@ -136,13 +136,13 @@ void BIFS_SetupConditionalClone(GF_Node *node, GF_Node *orig)
 		gf_node_init(node);
 		/*and clone all commands*/
 		i=0;
-		while ((ori_com = gf_list_enum(c_orig->buffer.commandList, &i))) {
+		while ((ori_com = (GF_Command*)gf_list_enum(c_orig->buffer.commandList, &i))) {
 			GF_Command *dest_com = gf_sg_command_clone(ori_com, gf_node_get_graph(node));
 			if (dest_com) gf_list_add(c_dest->buffer.commandList, dest_com);
 		}
 		return;
 	}
-	priv = malloc(sizeof(ConditionalStack));
+	priv = (ConditionalStack*)malloc(sizeof(ConditionalStack));
 	priv->codec = priv_orig->codec;
 	priv->info = priv_orig->info;
 	gf_node_set_predestroy_function(node, Conditional_PreDestroy);

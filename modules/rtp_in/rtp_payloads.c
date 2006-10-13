@@ -136,7 +136,7 @@ static GF_Err payt_set_param(RTPStream *ch, char *param_name, char *param_val)
 	/*H264/AVC config - we only handle mode 0 and 1*/
 	else if (!stricmp(param_name, "packetization-mode")) ch->packetization_mode = 1;
 	/*AMR config*/
-	else if (!stricmp(param_name, "octet-align")) ch->flags |= CH_AMR_Align;
+	else if (!stricmp(param_name, "octet-align")) ch->flags |= RTP_AMR_ALIGN;
 	/*ISMACryp config*/
 	else if (!stricmp(param_name, "ISMACrypCryptoSuite")) {
 		if (!stricmp(param_val, "AES_CTR_128")) ch->isma_scheme = GF_4CC('i','A','E','C');
@@ -144,18 +144,18 @@ static GF_Err payt_set_param(RTPStream *ch, char *param_name, char *param_val)
 	}
 	else if (!stricmp(param_name, "ISMACrypSelectiveEncryption")) {
 		if (!stricmp(param_val, "1") || !stricmp(param_val, "true"))
-			ch->flags |= CH_UseSelEnc;
+			ch->flags |= RTP_ISMA_SEL_ENC;
 		else
-			ch->flags &= ~CH_UseSelEnc;
+			ch->flags &= ~RTP_ISMA_SEL_ENC;
 	}
 	else if (!stricmp(param_name, "ISMACrypIVLength")) ch->sl_map.IV_length = atoi(param_val);
 	else if (!stricmp(param_name, "ISMACrypDeltaIVLength")) ch->sl_map.IV_delta_length = atoi(param_val);
 	else if (!stricmp(param_name, "ISMACrypKeyIndicatorLength")) ch->sl_map.KI_length = atoi(param_val);
 	else if (!stricmp(param_name, "ISMACrypKeyIndicatorPerAU")) {
 		if (!stricmp(param_val, "1") || !stricmp(param_val, "true"))
-			ch->flags |= CH_UseKeyIDXPerAU;
+			ch->flags |= RTP_ISMA_HAS_KEY_IDX;
 		else 
-			ch->flags &= ~CH_UseKeyIDXPerAU;
+			ch->flags &= ~RTP_ISMA_HAS_KEY_IDX;
 	}
 	else if (!stricmp(param_name, "ISMACrypKey")) ch->key = strdup(param_val);
 	
@@ -174,7 +174,7 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 	/*setup channel*/
 	gf_rtp_setup_payload(ch->rtp_ch, map);
 
-	if (!stricmp(map->payload_name, "enc-mpeg4-generic")) ch->flags |= CH_HasISMACryp;
+	if (!stricmp(map->payload_name, "enc-mpeg4-generic")) ch->flags |= RTP_HAS_ISMACRYP;
 
 	/*then process all FMTPs*/
 	i=0;
@@ -241,11 +241,11 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 	case GP_RTP_PAYT_MPEG4:
 		/*mark if AU header is present*/
 		ch->sl_map.auh_first_min_len = 0;
-		if (ch->flags & CH_HasISMACryp) {
+		if (ch->flags & RTP_HAS_ISMACRYP) {
 			if (!ch->isma_scheme) ch->isma_scheme = GF_4CC('i','A','E','C');
 			if (!ch->sl_map.IV_length) ch->sl_map.IV_length = 4;
 
-			if (ch->flags & CH_UseSelEnc) ch->sl_map.auh_first_min_len += 8;
+			if (ch->flags & RTP_ISMA_SEL_ENC) ch->sl_map.auh_first_min_len += 8;
 			else ch->sl_map.auh_first_min_len += 8*(ch->sl_map.IV_length+ch->sl_map.KI_length);
 		}
 		ch->sl_map.auh_first_min_len += ch->sl_map.CTSDeltaLength;
@@ -267,7 +267,7 @@ u32 payt_setup(RTPStream *ch, GF_RTPMap *map, GF_SDPMedia *media)
 		}
 		/*MPEG-4 video, check RAPs if not indicated*/
 		if ((ch->sl_map.StreamType == GF_STREAM_VISUAL) && (ch->sl_map.ObjectTypeIndication == 0x20) && !ch->sl_map.RandomAccessIndication) {
-			ch->flags |= CH_M4V_CheckRAP;
+			ch->flags |= RTP_M4V_CHECK_RAP;
 		}
 		break;
 	case GP_RTP_PAYT_MPEG12:
@@ -518,7 +518,7 @@ void RP_ParsePayloadMPEG4(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 s
 
 	ch->sl_hdr.accessUnitEndFlag = hdr->Marker;
 	/*override some defaults for RFC 3016*/
-	if (ch->flags & CH_NewAU) {
+	if (ch->flags & RTP_NEW_AU) {
 		ch->sl_hdr.accessUnitStartFlag = 1;
 	} else {
 		ch->sl_hdr.accessUnitStartFlag = 0;
@@ -533,9 +533,9 @@ void RP_ParsePayloadMPEG4(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 s
 		
 		if ((!num_au && ch->sl_map.auh_first_min_len) || (num_au && ch->sl_map.auh_min_len)) {
 			/*ISMACryp*/
-			if (ch->flags & CH_HasISMACryp) {
+			if (ch->flags & RTP_HAS_ISMACRYP) {
 				ch->sl_hdr.isma_encrypted = 1;
-				if (ch->flags & CH_UseSelEnc) {
+				if (ch->flags & RTP_ISMA_SEL_ENC) {
 					ch->sl_hdr.isma_encrypted = gf_bs_read_int(hdr_bs, 1);
 					gf_bs_read_int(hdr_bs, 7);
 				}
@@ -550,7 +550,7 @@ void RP_ParsePayloadMPEG4(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 s
 				}
 				if (ch->sl_map.KI_length) {
 					/*NOT SUPPORTED YET*/
-					if (!num_au || !(ch->flags & CH_UseKeyIDXPerAU) ) {
+					if (!num_au || !(ch->flags & RTP_ISMA_HAS_KEY_IDX) ) {
 						gf_bs_skip_bytes(hdr_bs, ch->sl_map.KI_length);
 					}
 				}
@@ -627,10 +627,10 @@ void RP_ParsePayloadMPEG4(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 s
 
 		/*force indication of CTS whenever we have a new AU*/
 		
-		ch->sl_hdr.compositionTimeStampFlag = (ch->flags & CH_NewAU) ? 1 : 0;
+		ch->sl_hdr.compositionTimeStampFlag = (ch->flags & RTP_NEW_AU) ? 1 : 0;
 
 		/*locate VOP start code*/
-		if (ch->sl_hdr.accessUnitStartFlag && (ch->flags & CH_M4V_CheckRAP)) {
+		if (ch->sl_hdr.accessUnitStartFlag && (ch->flags & RTP_M4V_CHECK_RAP)) {
 			u32 i;
 			Bool is_rap = 0;
 			unsigned char *pay = payload + pay_start;
@@ -654,7 +654,7 @@ void RP_ParsePayloadMPEG4(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 s
 
 		ch->sl_hdr.compositionTimeStampFlag = 0;
 		
-		if (ch->flags & CH_HasISMACryp) ch->sl_hdr.isma_BSO += au_size;
+		if (ch->flags & RTP_HAS_ISMACRYP) ch->sl_hdr.isma_BSO += au_size;
 
 		if (au_hdr_size < ch->sl_map.auh_min_len) break;
 		pay_start += au_size;
@@ -663,9 +663,9 @@ void RP_ParsePayloadMPEG4(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 s
 	}
 
 	if (hdr->Marker)
-		ch->flags |= CH_NewAU;
+		ch->flags |= RTP_NEW_AU;
 	else
-		ch->flags &= ~CH_NewAU;
+		ch->flags &= ~RTP_NEW_AU;
 
 	gf_bs_del(hdr_bs);
 }
@@ -681,7 +681,7 @@ void RP_ParsePayloadMPEG12Audio(RTPStream *ch, GF_RTPHeader *hdr, char *payload,
 	ch->sl_hdr.decodingTimeStamp = hdr->TimeStamp;
 
 	ch->sl_hdr.accessUnitStartFlag = ch->sl_hdr.accessUnitEndFlag ? 1 : 0;
-	if (ch->flags & CH_NewAU) ch->sl_hdr.accessUnitStartFlag = 1;
+	if (ch->flags & RTP_NEW_AU) ch->sl_hdr.accessUnitStartFlag = 1;
 
 	/*get frag header*/
 	bs = gf_bs_new(payload, size, GF_BITSTREAM_READ);
@@ -727,7 +727,7 @@ void RP_ParsePayloadMPEG12Audio(RTPStream *ch, GF_RTPHeader *hdr, char *payload,
 		ch->sl_hdr.compositionTimeStamp += ts;
 		ch->sl_hdr.decodingTimeStamp += ts;
 	}
-	ch->flags |= CH_NewAU;
+	ch->flags |= RTP_NEW_AU;
 }
 
 void RP_ParsePayloadMPEG12Video(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 size)
@@ -743,9 +743,9 @@ void RP_ParsePayloadMPEG12Video(RTPStream *ch, GF_RTPHeader *hdr, char *payload,
 	size -= 4;
 
 	/*missed something*/
-	if (ch->sl_hdr.compositionTimeStamp != hdr->TimeStamp) ch->flags |= CH_NewAU;
+	if (ch->sl_hdr.compositionTimeStamp != hdr->TimeStamp) ch->flags |= RTP_NEW_AU;
 
-	ch->sl_hdr.accessUnitStartFlag = (ch->flags & CH_NewAU) ? 1 : 0;
+	ch->sl_hdr.accessUnitStartFlag = (ch->flags & RTP_NEW_AU) ? 1 : 0;
 	ch->sl_hdr.accessUnitEndFlag = hdr->Marker ? 1 : 0;
 	ch->sl_hdr.randomAccessPointFlag = (pic_type==1) ? 1 : 0;
 
@@ -757,9 +757,9 @@ void RP_ParsePayloadMPEG12Video(RTPStream *ch, GF_RTPHeader *hdr, char *payload,
 	}
 	gf_term_on_sl_packet(ch->owner->service, ch->channel, payload, size, &ch->sl_hdr, GF_OK);
 	if (hdr->Marker) {
-		ch->flags |= CH_NewAU;
+		ch->flags |= RTP_NEW_AU;
 	} else {
-		ch->flags &= ~CH_NewAU;
+		ch->flags &= ~RTP_NEW_AU;
 	}
 }
 
@@ -783,7 +783,7 @@ void RP_ParsePayloadAMR(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 siz
 	/*we support max 30 frames in one RTP packet...*/
 	u32 nbFrame, i, frame_size;
 	/*not supported yet*/
-	if (!(ch->flags & CH_AMR_Align) ) return;
+	if (!(ch->flags & RTP_AMR_ALIGN) ) return;
 
 	/*process toc and locate start of payload data*/
 	nbFrame = 0;
@@ -1070,9 +1070,9 @@ void RP_ParsePayloadH264(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 si
 	if (nal_type<23) {
 		if (nal_type==5) {
 			ch->sl_hdr.randomAccessPointFlag = 1;
-			ch->flags &= ~CH_AVC_WaitRAP;
+			ch->flags &= ~RTP_AVC_WAIT_RAP;
 		}
-		else if (ch->flags & CH_AVC_WaitRAP) return;
+		else if (ch->flags & RTP_AVC_WAIT_RAP) return;
 
 		ch->sl_hdr.accessUnitEndFlag = 0;
 		/*signal NALU size on 4 bytes*/
@@ -1093,9 +1093,9 @@ void RP_ParsePayloadH264(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 si
 			offset += 2;
 			if ((payload[offset] & 0x1F) == 5) {
 				ch->sl_hdr.randomAccessPointFlag = 1;
-				ch->flags &= ~CH_AVC_WaitRAP;
+				ch->flags &= ~RTP_AVC_WAIT_RAP;
 			}
-			if (ch->flags & CH_AVC_WaitRAP) send = 0;
+			if (ch->flags & RTP_AVC_WAIT_RAP) send = 0;
 
 			/*signal NALU size on 4 bytes*/
 			nalhdr[0] = nal_size>>24; nalhdr[1] = nal_size>>16; nalhdr[2] = nal_size>>8; nalhdr[3] = nal_size&0xFF;
@@ -1117,9 +1117,9 @@ void RP_ParsePayloadH264(RTPStream *ch, GF_RTPHeader *hdr, char *payload, u32 si
 		if (is_start) rtp_avc_flush(ch, hdr, 1);
 
 		if ((payload[1] & 0x1F) == 5) {
-			ch->flags &= ~CH_AVC_WaitRAP;
+			ch->flags &= ~RTP_AVC_WAIT_RAP;
 			ch->sl_hdr.randomAccessPointFlag = 1;
-		} else if (ch->flags & CH_AVC_WaitRAP) return;
+		} else if (ch->flags & RTP_AVC_WAIT_RAP) return;
 
 		/*setup*/
 		if (!ch->inter_bs) {

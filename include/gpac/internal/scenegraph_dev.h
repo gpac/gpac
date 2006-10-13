@@ -116,7 +116,6 @@ struct __tag_scene_graph
 	GF_Node **node_registry;
 	u32 node_reg_alloc, node_reg_size;
 
-
 	/*all routes available*/
 	GF_List *Routes;
 
@@ -141,24 +140,18 @@ struct __tag_scene_graph
 	/*since events may trigger deletion of objects we use a 2 step delete*/
 	GF_List *routes_to_destroy;
 
-	/*node init callback*/
-	void (*UserNodeInit)(void *appCallback, GF_Node *newNode);
-	void *NodeInitCallback;
-	/*real scene time callback*/
-	Double (*GetSceneTime)(void *scene_callback);
-	void *SceneCallback;
-
 	u32 simulation_tick;
-
-	/*node modification callback*/
-	void (*NodeModified)(void *ModifCallback, GF_Node *node);
-	void *ModifCallback;
-
-
-	GF_SceneGraph *(*GetExternProtoLib)(void *SceneCallback, MFURL *lib_url);
 
 	/*user private data*/
 	void *userpriv;
+
+	/*callback routines*/
+	/*node callback*/
+	void (*NodeCallback)(void *user_priv, u32 type, GF_Node *node, void *ctxdata);
+	/*real scene time callback*/
+	Double (*GetSceneTime)(void *userpriv);
+
+	GF_SceneGraph *(*GetExternProtoLib)(void *userpriv, MFURL *lib_url);
 
 	/*parent scene if any*/
 	struct __tag_scene_graph *parent_scene;
@@ -183,7 +176,7 @@ struct __tag_scene_graph
 #ifndef GPAC_DISABLE_SVG
 	GF_List *xlink_hrefs;
 	GF_List *smil_timed_elements;
-	Bool reeval_timing;
+	Bool update_smil_timing;
 #ifdef GPAC_HAS_SPIDERMONKEY
 	struct __tag_svg_script_ctx *svg_js;
 #endif
@@ -344,6 +337,16 @@ typedef struct {
 
 } SMIL_Interval;
 
+enum
+{
+	SMIL_TIMING_EVAL_NONE = 0,
+	SMIL_TIMING_EVAL_UPDATE,
+	SMIL_TIMING_EVAL_FREEZE,
+	SMIL_TIMING_EVAL_REMOVE,
+	SMIL_TIMING_EVAL_RESTART,
+	SMIL_TIMING_EVAL_FRACTION,
+};
+
 typedef struct _smil_timing_rti
 {
 	SVGElement *timed_elt;
@@ -363,8 +366,10 @@ typedef struct _smil_timing_rti
 	   for instance, animation elements are activated when traversing the tree, but audio elements are not traversed.*/
 	Bool postpone;
 
-	void (*evaluate)(struct _smil_timing_rti *rti, Fixed normalized_simple_time);
+	void (*evaluate)(struct _smil_timing_rti *rti, Fixed normalized_simple_time, u32 state);
+	u32 evaluate_status;
 
+#if 0
 	/* is called only when the timed element is active */
 	void (*activation)(struct _smil_timing_rti *rti, Fixed normalized_simple_time);
 
@@ -376,6 +381,7 @@ typedef struct _smil_timing_rti
 
 	/* is called only when the timed element is inactive and receives a fraction event, the second parameter is ignored */
 	void (*fraction_activation)(struct _smil_timing_rti *rti, Fixed normalized_simple_time);
+#endif
 	/* simulated normalized simple time */
 	Fixed fraction;
 

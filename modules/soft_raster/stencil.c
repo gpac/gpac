@@ -202,7 +202,7 @@ GF_Err evg_stencil_set_matrix(GF_STENCIL st, GF_Matrix2D *mx)
 EVGStencil *evg_solid_brush()
 {
 	EVG_Brush *tmp;
-	GF_SAFEALLOC(tmp, sizeof(EVG_Brush));
+	GF_SAFEALLOC(tmp, EVG_Brush);
 	if (!tmp) return 0L;
 	tmp->fill_run = NULL;
 	tmp->color = 0xFF000000;
@@ -279,7 +279,7 @@ EVGStencil *evg_linear_gradient_brush()
 {
 	s32 i;
 	EVG_LinearGradient *tmp;
-	GF_SAFEALLOC(tmp, sizeof(EVG_LinearGradient));
+	GF_SAFEALLOC(tmp, EVG_LinearGradient);
 	if (!tmp) return 0L;
 	gf_mx2d_init(tmp->vecmat);
 	tmp->fill_run = lgb_fill_run;
@@ -352,7 +352,7 @@ EVGStencil *evg_radial_gradient_brush()
 {
 	s32 i;
 	EVG_RadialGradient *tmp;
-	GF_SAFEALLOC(tmp, sizeof(EVG_RadialGradient));
+	GF_SAFEALLOC(tmp, EVG_RadialGradient);
 	if (!tmp) return 0L;
 
 	tmp->fill_run = rg_fill_run;
@@ -584,7 +584,7 @@ void evg_bmp_init(EVGStencil *p)
 EVGStencil *evg_gf_sr_texture_brush()
 {
 	EVG_Texture *tmp;
-	GF_SAFEALLOC(tmp, sizeof(EVG_Texture));
+	GF_SAFEALLOC(tmp, EVG_Texture);
 	if (!tmp) return 0L;
 
 	tmp->fill_run = bmp_fill_run;
@@ -815,7 +815,7 @@ GF_Err evg_stencil_create_texture(GF_STENCIL st, u32 width, u32 height, GF_Pixel
 	_this->stride = width*_this->Bpp;
 
 	if (_this->pixels) free(_this->pixels);
-	GF_SAFEALLOC(_this->pixels , sizeof(char) * _this->stride * _this->height);
+	_this->pixels = (char *) malloc(sizeof(char) * _this->stride * _this->height);
 	_this->owns_texture = 1;
 	gf_sr_texture_set_callback(_this);
 	return GF_OK;

@@ -394,7 +394,7 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 	switch (xWindow->videoaccesstype) {
 #ifdef GPAC_HAS_X11_SHM
 	case VIDEO_XI_SHMPIXMAP:
-		GF_SAFEALLOC(xWindow->shmseginfo, sizeof (XShmSegmentInfo));
+		GF_SAFEALLOC(xWindow->shmseginfo, XShmSegmentInfo);
 		xWindow->shmseginfo->shmid = shmget(IPC_PRIVATE, size, IPC_CREAT | 0777);
 		xWindow->shmseginfo->shmaddr = shmat(xWindow->shmseginfo->shmid, 0, 0);
 		xWindow->back_buffer->buffer = (unsigned char *) xWindow->shmseginfo->shmaddr;
@@ -407,7 +407,7 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 		break;
 
 	case VIDEO_XI_SHMSTD:
-		GF_SAFEALLOC(xWindow->shmseginfo, sizeof (XShmSegmentInfo));
+		GF_SAFEALLOC(xWindow->shmseginfo, XShmSegmentInfo);
 		xWindow->surface = XShmCreateImage (xWindow->display, xWindow->visual,
 										 xWindow->depth, ZPixmap, NULL, xWindow->shmseginfo, 
 										 VideoWidth, VideoHeight);
@@ -423,7 +423,7 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 #endif
 
 	case VIDEO_XI_STANDARD:
-		GF_SAFEALLOC(xWindow->back_buffer->buffer, size * sizeof (unsigned char));
+		xWindow->back_buffer->buffer = (char *) malloc(sizeof(char)*size);
 		xWindow->surface = XCreateImage (xWindow->display, xWindow->visual,
 				      xWindow->depth, ZPixmap,
 				      0,
@@ -711,7 +711,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	}
 #endif
 
-	GF_SAFEALLOC(xWindow->back_buffer, sizeof (X11WrapSurface));
+	GF_SAFEALLOC(xWindow->back_buffer, X11WrapSurface);
 	xWindow->back_buffer->id = -1;
 
 
@@ -818,9 +818,9 @@ void *NewX11VideoOutput ()
 {
 	GF_VideoOutput *driv;
 	XWindow *xWindow;
-	GF_SAFEALLOC(driv, sizeof(GF_VideoOutput));
+	GF_SAFEALLOC(driv, GF_VideoOutput);
 	if (!driv) return NULL;
-	GF_SAFEALLOC(xWindow, sizeof(XWindow));
+	GF_SAFEALLOC(xWindow, XWindow);
 	if (!xWindow) {
 		free(driv);
 		return NULL;

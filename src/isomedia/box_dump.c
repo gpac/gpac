@@ -1417,6 +1417,7 @@ GF_Err avc1_dump(GF_Box *a, FILE * trace)
 
 	fprintf(trace, "<AVCSampleEntryBox>\n");
 	if (p->avc_config) gb_box_dump(p->avc_config, trace);
+	if (p->ipod_ext) gb_box_dump(p->ipod_ext, trace);
 	if (p->descr) gb_box_dump(p->descr, trace);
 	if (p->bitrate) gb_box_dump(p->bitrate, trace);
 	DumpBox(a, trace);

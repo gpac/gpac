@@ -66,7 +66,7 @@ void RP_ConfirmChannelConnect(RTPStream *ch, GF_Err e)
 	shoud NEVER be seen with systems streams and is overriden for video (cf below)*/
 	com.cfg.sl_config.hasRandomAccessUnitsOnlyFlag = ch->sl_map.RandomAccessIndication ? 0 : 1;
 	/*checking RAP for video*/
-	if (ch->flags & CH_M4V_CheckRAP) {
+	if (ch->flags & RTP_M4V_CHECK_RAP) {
 		com.cfg.sl_config.useRandomAccessPointFlag = 1;
 		com.cfg.sl_config.hasRandomAccessUnitsOnlyFlag = 0;
 	}
@@ -77,7 +77,7 @@ void RP_ConfirmChannelConnect(RTPStream *ch, GF_Err e)
 	gf_term_on_command(ch->owner->service, &com, GF_OK);
 
 	/*ISMACryp config*/
-	if (ch->flags & CH_HasISMACryp) {
+	if (ch->flags & RTP_HAS_ISMACRYP) {
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.base.on_channel = ch->channel;
 		com.command_type = GF_NET_CHAN_ISMACRYP_CFG;
@@ -93,14 +93,25 @@ void RP_ConfirmChannelConnect(RTPStream *ch, GF_Err e)
 
 GF_Err RP_InitStream(RTPStream *ch, Bool ResetOnly)
 {
-	ch->flags |= CH_NewAU;
+	ch->flags |= RTP_NEW_AU;
 	/*reassembler cleanup*/
 	if (ch->inter_bs) gf_bs_del(ch->inter_bs);
 	ch->inter_bs = NULL;
 
 	if (!ResetOnly) {
+		const char *mcast_ifce = NULL;
+		u32 reorder_size = 0;
+		if (!ch->owner->transport_mode) {
+			const char *sOpt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ReorderSize");
+			if (sOpt) reorder_size = atoi(sOpt);
+			else reorder_size = 10;
+
+		
+			mcast_ifce = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "DefaultMCastInterface");
+		}
+
 		memset(&ch->sl_hdr, 0, sizeof(GF_SLHeader));
-		return gf_rtp_initialize(ch->rtp_ch, RTP_BUFFER_SIZE, 0, 0, ch->owner->reorder_size, 200, ch->owner->default_mcast_ifce);
+		return gf_rtp_initialize(ch->rtp_ch, RTP_BUFFER_SIZE, 0, 0, reorder_size, 200, (char *)mcast_ifce);
 	}
 	//just reset the sockets
 	gf_rtp_reset_buffers(ch->rtp_ch);
@@ -112,7 +123,7 @@ void RP_DisconnectStream(RTPStream *ch)
 	/*no check for teardown, this is done at STOP stage*/
 #if 0
 	ch->status = RTP_Disconnected;
-	ch->flags &= ~CH_Connected;
+	ch->flags &= ~RTP_CONNECTED;
 #endif
 	ch->channel = NULL;
 }
@@ -143,6 +154,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	RTPStream *tmp;
 	GF_RTPMap *map;
 	u32 i, ESID, rtp_format;
+	Bool force_bcast = 0;
 	Double Start, End;
 	GF_X_Attribute *att;
 	char *ctrl;
@@ -158,6 +170,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	i=0;
 	while ((att = gf_list_enum(media->Attributes, &i))) {
 		if (!stricmp(att->Name, "control")) ctrl = att->Value;
+		else if (!stricmp(att->Name, "gpac-broadcast")) force_bcast = 1;
 		else if (!stricmp(att->Name, "mpeg4-esid") && att->Value) ESID = atoi(att->Value);
 		else if (!stricmp(att->Name, "range") && !range) range = gf_rtsp_range_parse(att->Value);
 	}
@@ -228,11 +241,8 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		trans.client_port_first = media->PortNumber;
 		trans.client_port_last = media->PortNumber + 1;
 		/*we should take care of AVP vs SAVP however most servers don't understand RTP/SAVP client requests*/
-		if (rtp->rtp_mode && rtp->rtsp_session) {
-			trans.Profile = GF_RTSP_PROFILE_RTP_AVP_TCP;
-		} else {
-			trans.Profile = media->Profile;
-		}
+		if (rtp->transport_mode==1) trans.Profile = GF_RTSP_PROFILE_RTP_AVP_TCP;
+		else trans.Profile = media->Profile;
 	}
 	gf_rtp_setup_transport(tmp->rtp_ch, &trans, NULL);
 
@@ -244,9 +254,14 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 
 //	tmp->status = NM_Disconnected;
 
+	ctrl = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), "Streaming", "DisableRTCP");
+	if (!ctrl || stricmp(ctrl, "yes")) tmp->flags |= RTP_ENABLE_RTCP;
+
 	tmp->range_start = Start;
 	tmp->range_end = End;
-	if (End != -1.0) tmp->flags |= CH_HasRange;
+	if (End != -1.0) tmp->flags |= RTP_HAS_RANGE;
+
+	if (force_bcast) tmp->flags |= RTP_FORCE_BROADCAST;
 	return tmp;
 }
 
@@ -291,7 +306,7 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 			com.map_time.reset_buffers = 1;
 			gf_term_on_command(ch->owner->service, &com, GF_OK);
 
-			if (ch->rtptype==GP_RTP_PAYT_H264_AVC) ch->flags |= CH_AVC_WaitRAP;
+			if (ch->rtptype==GP_RTP_PAYT_H264_AVC) ch->flags |= RTP_AVC_WAIT_RAP;
 		}
 		/*this is RESUME on channel, filter packet based on time (darwin seems to send
 		couple of packet before)
@@ -328,12 +343,12 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 	}
 
 	/*last check: signal EOS if we're close to end range in case the server do not send RTCP BYE*/
-	if ((ch->flags & CH_HasRange) && !(ch->flags & CH_EOS) ) {
+	if ((ch->flags & RTP_HAS_RANGE) && !(ch->flags & RTP_EOS) ) {
 		/*also check last CTS*/
 		Double ts = (Double) ((u32) ch->sl_hdr.compositionTimeStamp - hdr.TimeStamp);
 		ts /= ch->clock_rate;
 		if (ABSDIFF(ch->range_end, (ts + ch->current_start + gf_rtp_get_current_time(ch->rtp_ch)) ) < 0.2) {
-			ch->flags |= CH_EOS;
+			ch->flags |= RTP_EOS;
 			ch->stat_stop_time = gf_sys_clock();
 			gf_term_on_sl_packet(ch->owner->service, ch->channel, NULL, 0, NULL, GF_EOS);
 		}
@@ -351,7 +366,7 @@ void RP_ProcessRTCP(RTPStream *ch, char *pck, u32 size)
 	e = gf_rtp_decode_rtcp(ch->rtp_ch, pck, size);
 	
 	if (e == GF_EOS) {
-		ch->flags |= CH_EOS;
+		ch->flags |= RTP_EOS;
 		ch->stat_stop_time = gf_sys_clock();
 		gf_term_on_sl_packet(ch->owner->service, ch->channel, NULL, 0, NULL, GF_EOS);
 	}
@@ -405,7 +420,7 @@ void RP_ReadStream(RTPStream *ch)
 	}
 
 	/*and send the report*/
-	if (!ch->owner->disable_rtcp) gf_rtp_send_rtcp_report(ch->rtp_ch, SendTCPData, ch);
+	if (ch->flags & RTP_ENABLE_RTCP) gf_rtp_send_rtcp_report(ch->rtp_ch, SendTCPData, ch);
 	
 	if (tot_size) ch->owner->udp_time_out = 0;
 

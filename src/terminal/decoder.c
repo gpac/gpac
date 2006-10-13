@@ -69,7 +69,7 @@ GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm)
 {
 	GF_Codec *tmp;
 	if (!codec->decio) return NULL;
-	GF_SAFEALLOC(tmp, sizeof(GF_Codec));
+	GF_SAFEALLOC(tmp, GF_Codec);
 	tmp->type = codec->type;
 	tmp->inChannels = gf_list_new();	
 	tmp->Status = GF_ESM_CODEC_STOP;
@@ -406,15 +406,18 @@ check_unit:
 	/*in broadcast mode, generate a scene if none is available*/
 	else if (codec->ck->no_time_ctrl) {
 		GF_InlineScene *is = codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene;
+
+		/*static OD resources (embedded in ESD) in broadcast mode, reset time*/
+		if (codec->flags & GF_ESM_CODEC_IS_STATIC_OD) gf_clock_reset(codec->ck);
+		/*generate a temp scene if none is in place*/
 		if (is->graph_attached != 1 ) {
 			Bool prev_dyn = is->is_dynamic_scene; 
 			is->is_dynamic_scene = 1;
 			gf_is_regenerate(is);
 			is->graph_attached = 2;
 			is->is_dynamic_scene = prev_dyn;
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Decoder] Got OD resources before scene - generating temporary scene\n"));
 		}
-		/*static OD resources (embedded in ESD) in broadcast mode, reset time*/
-		if (codec->flags & GF_ESM_CODEC_IS_STATIC_OD) gf_clock_reset(codec->ck);
 	}
 
 	/*always force redraw for system codecs*/

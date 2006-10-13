@@ -25,11 +25,14 @@
 
 #include <gpac/path2d.h>
 
+#ifdef __SYMBIAN32__
+#include <math.h>
+#endif
 
 GF_Path *gf_path_new()
 {
 	GF_Path *gp;
-	GF_SAFEALLOC(gp, sizeof(GF_Path));
+	GF_SAFEALLOC(gp, GF_Path);
 	gp->fineness = FIX_ONE;
 	return gp;
 }
@@ -52,13 +55,13 @@ void gf_path_reset(GF_Path *gp)
 GF_Path *gf_path_clone(GF_Path *gp)
 {
 	GF_Path *dst;
-	GF_SAFEALLOC(dst, sizeof(GF_Path));
+	GF_SAFEALLOC(dst, GF_Path);
 	if (!dst) return NULL;
-	dst->contours = malloc(sizeof(u32)*gp->n_contours);
+	dst->contours = (u32 *)malloc(sizeof(u32)*gp->n_contours);
 	if (!dst->contours) { free(dst); return NULL; }
-	dst->points = malloc(sizeof(GF_Point2D)*gp->n_points);
+	dst->points = (GF_Point2D *) malloc(sizeof(GF_Point2D)*gp->n_points);
 	if (!dst->points) { free(dst->contours); free(dst); return NULL; }
-	dst->tags = malloc(sizeof(u8)*gp->n_points);
+	dst->tags = (u8 *) malloc(sizeof(u8)*gp->n_points);
 	if (!dst->tags) { free(dst->points); free(dst->contours); free(dst); return NULL; }
 	memcpy(dst->contours, gp->contours, sizeof(u32)*gp->n_contours);
 	dst->n_contours = gp->n_contours;
@@ -85,8 +88,8 @@ void gf_path_del(GF_Path *gp)
 #define GF_2D_REALLOC_POINT(_gp, _nb)	\
 	if (_gp->n_alloc_points <= _gp->n_points+_nb) {	\
 		_gp->n_alloc_points += PATH_POINT_ALLOC_STEP;	\
-		_gp->points = realloc(_gp->points, sizeof(GF_Point2D)*(_gp->n_alloc_points));	\
-		_gp->tags = realloc(_gp->tags, sizeof(u8)*(_gp->n_alloc_points));	\
+		_gp->points = (GF_Point2D *)realloc(_gp->points, sizeof(GF_Point2D)*(_gp->n_alloc_points));	\
+		_gp->tags = (u8 *) realloc(_gp->tags, sizeof(u8)*(_gp->n_alloc_points));	\
 	}	\
 
 GF_Err gf_path_add_move_to(GF_Path *gp, Fixed x, Fixed y)
@@ -100,7 +103,7 @@ GF_Err gf_path_add_move_to(GF_Path *gp, Fixed x, Fixed y)
 		return GF_OK;
 	}
 
-	gp->contours = realloc(gp->contours, sizeof(u32)*(gp->n_contours+1));
+	gp->contours = (u32 *) realloc(gp->contours, sizeof(u32)*(gp->n_contours+1));
 	GF_2D_REALLOC_POINT(gp, 1)
 
 	gp->points[gp->n_points].x = x;
@@ -305,7 +308,7 @@ GF_Err gf_path_add_bezier(GF_Path *gp, GF_Point2D *pts, u32 nbPoints)
 	GF_Point2D *newpts;
 	if (!gp->n_points) return GF_BAD_PARAM;
 
-	newpts = malloc(sizeof(GF_Point2D) * (nbPoints+1));
+	newpts = (GF_Point2D *) malloc(sizeof(GF_Point2D) * (nbPoints+1));
 	newpts[0] = gp->points[gp->n_points-1];
 	memcpy(&newpts[1], pts, sizeof(GF_Point2D) * nbPoints);
 	
@@ -939,14 +942,14 @@ GF_PathIterator *gf_path_iterator_new(GF_Path *gp)
 	u32 i, j, cur;
 	GF_Point2D start, end;
 
-	GF_SAFEALLOC(it, sizeof(GF_PathIterator));
+	GF_SAFEALLOC(it, GF_PathIterator);
 	if (!it) return NULL;
 	flat = gf_path_get_flatten(gp);
 	if (!flat) {
 		free(it);
 		return NULL;
 	}
-	it->seg = malloc(sizeof(IterInfo) * flat->n_points);
+	it->seg = (IterInfo *) malloc(sizeof(IterInfo) * flat->n_points);
 	it->num_seg = 0;
 	it->length = 0;
 	cur = 0;

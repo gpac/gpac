@@ -72,12 +72,12 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 	file = fopen(fileName, "rt");
 	if (!file) return NULL;
 
-	tmp = malloc(sizeof(GF_Config));
-	memset(tmp, 0, sizeof(GF_Config));
+	tmp = (GF_Config *)malloc(sizeof(GF_Config));
+	memset((void *)tmp, 0, sizeof(GF_Config));
 
-	tmp->filePath = malloc(sizeof(char) * (strlen(filePath)+1));
+	tmp->filePath = (char *)malloc(sizeof(char) * (strlen(filePath)+1));
 	strcpy(tmp->filePath, filePath ? filePath : "");
-	tmp->fileName = malloc(sizeof(char) * (strlen(fileName)+1));
+	tmp->fileName = (char *)malloc(sizeof(char) * (strlen(fileName)+1));
 	strcpy(tmp->fileName, fileName);
 	tmp->sections = gf_list_new();
 
@@ -98,7 +98,7 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 		
 		//new section
 		if (line[0] == '[') {
-			p = malloc(sizeof(IniSection));
+			p = (IniSection *) malloc(sizeof(IniSection));
 			p->keys = gf_list_new();
 			strcpy(p->section_name, line + 1);
 			p->section_name[strlen(line) - 2] = 0;
@@ -114,7 +114,9 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 				fclose(file);
 				return NULL;
 			}
-			GF_SAFEALLOC(k, sizeof(IniKey));
+//			GF_SAFEALLOC(k, IniKey)
+			k = (IniKey *) malloc(sizeof(IniKey));
+			memset((void *)k, 0, sizeof(IniKey));
 			ret = strchr(line, '=');
 			if (ret) {
 				ret[0] = 0;
@@ -139,7 +141,7 @@ void DelSection(IniSection *ptr)
 	if (!ptr) return;
 
 	while (gf_list_count(ptr->keys)) {
-		k = gf_list_get(ptr->keys, 0);
+		k = (IniKey *) gf_list_get(ptr->keys, 0);
 		if (k->value) free(k->value);
 		if (k->name) free(k->name);
 		free(k);
@@ -163,10 +165,10 @@ GF_Err WriteIniFile(GF_Config *iniFile)
 	if (!file) return GF_IO_ERR;
 
 	i=0;
-	while ( (sec = gf_list_enum(iniFile->sections, &i)) ) {
+	while ( (sec = (IniSection *) gf_list_enum(iniFile->sections, &i)) ) {
 		fprintf(file, "[%s]\n", sec->section_name);
 		j=0;
-		while ( (key = gf_list_enum(sec->keys, &j)) ) {
+		while ( (key = (IniKey *) gf_list_enum(sec->keys, &j)) ) {
 			fprintf(file, "%s=%s\n", key->name, key->value);
 		}
 		//end of section
@@ -183,7 +185,7 @@ void gf_cfg_del(GF_Config *iniFile)
 
 	WriteIniFile(iniFile);
 	while (gf_list_count(iniFile->sections)) {
-		p = gf_list_get(iniFile->sections, 0);
+		p = (IniSection *) gf_list_get(iniFile->sections, 0);
 		DelSection(p);
 		gf_list_rem(iniFile->sections, 0);
 	}
@@ -206,14 +208,14 @@ const char *gf_cfg_get_key(GF_Config *iniFile, const char *secName, const char *
 	IniKey *key;
 
 	i=0;
-	while ( (sec = gf_list_enum(iniFile->sections, &i)) ) {
+	while ( (sec = (IniSection *) gf_list_enum(iniFile->sections, &i)) ) {
 		if (!strcmp(secName, sec->section_name)) goto get_key;
 	}
 	return NULL;
 
 get_key:
 	i=0;
-	while ( (key = gf_list_enum(sec->keys, &i)) ) {
+	while ( (key = (IniKey *) gf_list_enum(sec->keys, &i)) ) {
 		if (!strcmp(key->name, keyName)) return key->value;
 	}
 	return NULL;
@@ -230,11 +232,11 @@ GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyNa
 	if (!iniFile || !secName || !keyName) return GF_BAD_PARAM;
 
 	i=0;
-	while ((sec = gf_list_enum(iniFile->sections, &i)) ) {
+	while ((sec = (IniSection *) gf_list_enum(iniFile->sections, &i)) ) {
 		if (!strcmp(secName, sec->section_name)) goto get_key;
 	}
 	//need a new key
-	sec = malloc(sizeof(IniSection));
+	sec = (IniSection *) malloc(sizeof(IniSection));
 	strcpy(sec->section_name, secName);
 	sec->keys = gf_list_new();
 	iniFile->hasChanged = 1;
@@ -242,12 +244,12 @@ GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyNa
 
 get_key:
 	i=0;
-	while ( (key = gf_list_enum(sec->keys, &i) ) ) {
+	while ( (key = (IniKey *) gf_list_enum(sec->keys, &i) ) ) {
 		if (!strcmp(key->name, keyName)) goto set_value;
 	}
 	if (!keyValue) return GF_OK;
 	//need a new key
-	key = malloc(sizeof(IniKey));
+	key = (IniKey *) malloc(sizeof(IniKey));
 	key->name = strdup(keyName);
 	key->value = strdup("");
 	iniFile->hasChanged = 1;
@@ -277,7 +279,7 @@ u32 gf_cfg_get_section_count(GF_Config *iniFile)
 }
 const char *gf_cfg_get_section_name(GF_Config *iniFile, u32 secIndex)
 {
-	IniSection *is = gf_list_get(iniFile->sections, secIndex);
+	IniSection *is = (IniSection *) gf_list_get(iniFile->sections, secIndex);
 	if (!is) return NULL;
 	return is->section_name;
 }
@@ -285,7 +287,7 @@ u32 gf_cfg_get_key_count(GF_Config *iniFile, const char *secName)
 {
 	u32 i = 0;
 	IniSection *sec;
-	while ( (sec = gf_list_enum(iniFile->sections, &i)) ) {
+	while ( (sec = (IniSection *) gf_list_enum(iniFile->sections, &i)) ) {
 		if (!strcmp(secName, sec->section_name)) return gf_list_count(sec->keys);
 	}
 	return 0;
@@ -295,9 +297,9 @@ const char *gf_cfg_get_key_name(GF_Config *iniFile, const char *secName, u32 key
 {
 	u32 i = 0;
 	IniSection *sec;
-	while ( (sec = gf_list_enum(iniFile->sections, &i) ) ) {
+	while ( (sec = (IniSection *) gf_list_enum(iniFile->sections, &i) ) ) {
 		if (!strcmp(secName, sec->section_name)) {
-			IniKey *key = gf_list_get(sec->keys, keyIndex);
+			IniKey *key = (IniKey *) gf_list_get(sec->keys, keyIndex);
 			return key ? key->name : NULL;
 		}
 	}
@@ -313,17 +315,17 @@ GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *ke
 	if (!iniFile || !secName || !keyName|| !keyValue) return GF_BAD_PARAM;
 
 	i=0;
-	while ( (sec = gf_list_enum(iniFile->sections, &i) ) ) {
+	while ( (sec = (IniSection *) gf_list_enum(iniFile->sections, &i) ) ) {
 		if (!strcmp(secName, sec->section_name)) break;
 	}
 	if (!sec) return GF_BAD_PARAM;
 
 	i=0;
-	while ( (key = gf_list_enum(sec->keys, &i) ) ) {
+	while ( (key = (IniKey *) gf_list_enum(sec->keys, &i) ) ) {
 		if (!strcmp(key->name, keyName)) return GF_BAD_PARAM;
 	}
 
-	key = malloc(sizeof(IniKey));
+	key = (IniKey *) malloc(sizeof(IniKey));
 	key->name = strdup(keyName);
 	key->value = strdup(keyValue);
 	gf_list_insert(sec->keys, key, index);

@@ -125,7 +125,7 @@ GF_Err gf_sr_set_viewpoint(GF_Renderer *sr, u32 viewpoint_idx, const char *viewp
 
 /*render subscene root node. rs is the current traverse stack
 this is needed to handle graph metrics changes between scenes...*/
-void gf_sr_render_inline(GF_Renderer *sr, GF_Node *inline_root, void *rs);
+void gf_sr_render_inline(GF_Renderer *sr, GF_Node *inline_parent, GF_Node *inline_root, void *rs);
 
 /*set outupt size*/
 GF_Err gf_sr_set_size(GF_Renderer *sr, u32 NewWidth, u32 NewHeight);

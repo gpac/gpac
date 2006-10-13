@@ -166,7 +166,7 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 			gf_svg_store_embedded_data(& ((SVGElement *)node)->xlink->href, cache_dir, "embedded_");
 
 			if (gf_svg_check_url_change(&st->txurl, & ((SVGElement *)node)->xlink->href)) {
-				gf_svg_set_mfurl_from_uri(st->txh.compositor, &(st->txurl), & ((SVGElement*)node)->xlink->href);
+				gf_term_set_mfurl_from_uri(st->txh.compositor->term, &(st->txurl), & ((SVGElement*)node)->xlink->href);
 				if (st->txh.is_open) gf_sr_texture_stop(&st->txh);
 				fprintf(stdout, "URL changed to %s\n", st->txurl.vals[0].url);
 				gf_sr_texture_play(&st->txh, &st->txurl);
@@ -271,7 +271,7 @@ static void SVG_Destroy_image(GF_Node *node)
 void SVG_Init_image(Render2D *sr, GF_Node *node)
 {
 	SVG_image_stack *st;
-	GF_SAFEALLOC(st, sizeof(SVG_image_stack))
+	GF_SAFEALLOC(st, SVG_image_stack)
 	st->graph = drawable_new();
 
 	gf_sr_traversable_setup(st->graph, node, sr->compositor);
@@ -283,7 +283,7 @@ void SVG_Init_image(Render2D *sr, GF_Node *node)
 	st->txh.flags = 0;
 
 	/* builds the MFURL to be used by the texture */
-	gf_svg_set_mfurl_from_uri(sr->compositor, &(st->txurl), & ((SVGimageElement*)node)->xlink->href);
+	gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), & ((SVGimageElement*)node)->xlink->href);
 
 	gf_node_set_private(node, st);
 	gf_node_set_render_function(node, SVG_Render_bitmap);
@@ -329,32 +329,27 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 		gf_sr_invalidate(txh->compositor, NULL);
 }
 
-static void svg_video_smil_freeze(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
+static void svg_video_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status)
 {
 	SVG_video_stack *stack = (SVG_video_stack *)gf_node_get_private((GF_Node *)rti->timed_elt);
-	gf_sr_texture_stop(&stack->txh);
-}
 
-static void svg_video_smil_restore(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
-{
-	SVG_video_stack *stack = (SVG_video_stack *)gf_node_get_private((GF_Node *)rti->timed_elt);
-	gf_sr_texture_stop(&stack->txh);
-	stack->first_frame_fetched = 0;
-	gf_sr_invalidate(stack->txh.compositor, NULL);
-}
-
-static void svg_video_smil_activate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
-{
-	SVG_video_stack *stack = (SVG_video_stack *)gf_node_get_private((GF_Node *)rti->timed_elt);
-	
-	if (stack->txh.is_open) { 
-		if (stack->current_iter < rti->current_interval->nb_iterations) {
-//			gf_sr_texture_stop(&stack->txh);
-			gf_sr_texture_restart(&stack->txh);
-			stack->current_iter = rti->current_interval->nb_iterations;
+	switch (status) {
+	case SMIL_TIMING_EVAL_UPDATE:
+		if (!stack->txh.is_open) { 
+			gf_sr_texture_play(&stack->txh, &stack->txurl);
 		}
-	} else {
-		gf_sr_texture_play(&stack->txh, &stack->txurl);
+		break;
+	case SMIL_TIMING_EVAL_FREEZE:
+		gf_sr_texture_stop(&stack->txh);
+		break;
+	case SMIL_TIMING_EVAL_REMOVE:
+		gf_sr_texture_stop(&stack->txh);
+		stack->txh.stream = NULL;
+		gf_sr_invalidate(stack->txh.compositor, NULL);
+		break;
+	case SMIL_TIMING_EVAL_RESTART:
+		gf_sr_texture_restart(&stack->txh);
+		break;
 	}
 }
 
@@ -371,7 +366,7 @@ static void SVG_Destroy_video(GF_Node *node)
 void SVG_Init_video(Render2D *sr, GF_Node *node)
 {
 	SVG_video_stack *st;
-	GF_SAFEALLOC(st, sizeof(SVG_video_stack))
+	GF_SAFEALLOC(st, SVG_video_stack)
 	st->graph = drawable_new();
 
 	gf_sr_traversable_setup(st->graph, node, sr->compositor);
@@ -383,14 +378,12 @@ void SVG_Init_video(Render2D *sr, GF_Node *node)
 	st->txh.flags = 0;
 
 	/* create an MFURL from the SVG iri */
-	gf_svg_set_mfurl_from_uri(sr->compositor, &(st->txurl), & ((SVGvideoElement *)node)->xlink->href);
+	gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->txurl), & ((SVGvideoElement *)node)->xlink->href);
 
 	gf_smil_timing_init_runtime_info((SVGElement *)node);
 	if (((SVGElement *)node)->timing->runtime) {
 		SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
-		rti->activation = svg_video_smil_activate;
-		rti->freeze = svg_video_smil_freeze;
-		rti->restore = svg_video_smil_restore;
+		rti->evaluate = svg_video_smil_evaluate;
 	}
 	
 	gf_node_set_private(node, st);
@@ -403,41 +396,30 @@ void SVG_Init_video(Render2D *sr, GF_Node *node)
 /*********************/
 /* SVG audio element */
 /*********************/
-typedef struct
-{
-	GF_AudioInput input;
-	Bool is_active;
-	MFURL aurl;
-	u32 current_iter;
-} SVG_audio_stack;
 
-static void svg_audio_smil_freeze(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
-{
-	SVG_audio_stack *stack = (SVG_audio_stack *)gf_node_get_private((GF_Node *)rti->timed_elt);
-	gf_sr_audio_stop(&stack->input);
-	stack->is_active = 0;
-}
-
-static void svg_audio_smil_restore(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
-{
-	SVG_audio_stack *stack = (SVG_audio_stack *)gf_node_get_private((GF_Node *)rti->timed_elt);
-	gf_sr_audio_stop(&stack->input);
-	stack->is_active = 0;
-}
-
-static void svg_audio_smil_activate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
+static void svg_audio_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status)
 {
 	SVG_audio_stack *stack = (SVG_audio_stack *)gf_node_get_private((GF_Node *)rti->timed_elt);
 	
-	if (!stack->is_active) { 
-		gf_sr_audio_open(&stack->input, &stack->aurl);
-		gf_mo_set_speed(stack->input.stream, FIX_ONE);
-		stack->is_active = 1;
-	} else {
-		if (stack->current_iter < rti->current_interval->nb_iterations) {
-			gf_sr_audio_restart(&stack->input);
-			stack->current_iter = rti->current_interval->nb_iterations;
+	switch (status) {
+	case SMIL_TIMING_EVAL_UPDATE:
+		if (!stack->is_active) { 
+			gf_sr_audio_open(&stack->input, &stack->aurl);
+			gf_mo_set_speed(stack->input.stream, FIX_ONE);
+			stack->is_active = 1;
 		}
+		break;
+	case SMIL_TIMING_EVAL_RESTART:
+		if (stack->is_active) gf_sr_audio_restart(&stack->input);
+		break;
+	case SMIL_TIMING_EVAL_FREEZE:
+		gf_sr_audio_stop(&stack->input);
+		stack->is_active = 0;
+		break;
+	case SMIL_TIMING_EVAL_REMOVE:
+		gf_sr_audio_stop(&stack->input);
+		stack->is_active = 0;
+		break;
 	}
 }
 
@@ -478,19 +460,17 @@ static void SVG_Destroy_audio(GF_Node *node)
 void SVG_Init_audio(Render2D *sr, GF_Node *node)
 {
 	SVG_audio_stack *st;
-	GF_SAFEALLOC(st, sizeof(SVG_audio_stack));
+	GF_SAFEALLOC(st, SVG_audio_stack)
 
 	gf_sr_audio_setup(&st->input, sr->compositor, node);
 
 	/* creates an MFURL from the URI of the SVG element */
-	gf_svg_set_mfurl_from_uri(sr->compositor, &(st->aurl), & ((SVGaudioElement *)node)->xlink->href);
+	gf_term_set_mfurl_from_uri(sr->compositor->term, &(st->aurl), & ((SVGaudioElement *)node)->xlink->href);
 
 	gf_smil_timing_init_runtime_info((SVGElement *)node);
 	if (((SVGElement *)node)->timing->runtime) {
 		SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
-		rti->activation = svg_audio_smil_activate;
-		rti->freeze = svg_audio_smil_freeze;
-		rti->restore = svg_audio_smil_restore;
+		rti->evaluate = svg_audio_smil_evaluate;
 	}
 	
 	gf_node_set_private(node, st);
@@ -498,79 +478,65 @@ void SVG_Init_audio(Render2D *sr, GF_Node *node)
 	gf_node_set_predestroy_function(node, SVG_Destroy_audio);
 }
 
-/***********************************
- *  'animation' specific functions *
- ***********************************/
-typedef struct {
-	GF_InlineScene *is;
-	u32 current_iter;
-} SVGAnimationStack;
 
-static void svg_animation_smil_freeze(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
+
+void R2D_RenderUse(GF_Node *node, GF_Node *sub_root, void *rs)
 {
-	SVGAnimationStack *st;
-	st = gf_node_get_private((GF_Node *)rti->timed_elt);
-	if (st->is && st->is->root_od->mo->num_open) {
-		gf_svg_subscene_stop(st->is, 0);
-	}
-}
+	GF_Matrix2D backup_matrix;
+  	GF_Matrix2D translate;
+	GF_Node *prev_use;
+	SVGuseElement *use = (SVGuseElement *)node;
+	SVGPropertiesPointers backup_props;
+	RenderEffect2D *eff = rs;
+	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
 
-static void svg_animation_smil_restore(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
-{
-	SVGAnimationStack *st;
-	st = gf_node_get_private((GF_Node *)rti->timed_elt);
-	if (st->is && st->is->root_od->mo->num_open) {
-		gf_svg_subscene_stop(st->is, 1);
-	}
-}
+	gf_mx2d_init(translate);
+	translate.m[2] = use->x.value;
+	translate.m[5] = use->y.value;
 
-static void svg_animation_smil_activate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
-{
-	SVGAnimationStack *st;
-
-	st = gf_node_get_private((GF_Node *)rti->timed_elt);
-	if (st->is) {
-		if (st->current_iter < rti->current_interval->nb_iterations) {
-			gf_mo_restart(st->is->root_od->mo);
-			st->current_iter = rti->current_interval->nb_iterations;
+	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
+		gf_svg_apply_local_transformation(eff, node, &backup_matrix);
+		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
+			gf_node_render(sub_root, eff);
+			gf_mx2d_apply_rect(&translate, &eff->bounds);
 		} 
-		gf_sg_notify_smil_timed_elements(st->is->graph);
-	} else {
-		GF_Node *root;
-		st->is = gf_svg_subscene_get((SVGElement *)rti->timed_elt);
-		if (!st->is) return;
-		gf_svg_subscene_start(st->is);
-		gf_sr_add_secondary_scene(st->is->root_od->term->renderer, st->is->graph, 0);
-		
-		root = gf_sg_get_root_node(st->is->graph);
-		if (!root) return;
-		/*add the animation node as parent of new scene root (this enables correct subtree dirty state)*/
-		if (gf_list_find(st->is->inline_nodes, (GF_Node *)rti->timed_elt)<0) {
-			gf_list_add(st->is->inline_nodes, (GF_Node *)rti->timed_elt);
-			gf_node_register(root, (GF_Node *)rti->timed_elt);
-		}
+		gf_svg_restore_parent_transformation(eff, &backup_matrix);
+		goto end;
 	}
-	
+
+	if (*(eff->svg_props->display) == SVG_DISPLAY_NONE ||
+		*(eff->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) {
+		goto end;
+	}
+
+	gf_svg_apply_local_transformation(eff, node, &backup_matrix);
+
+	gf_mx2d_pre_multiply(&eff->transform, &translate);
+	prev_use = eff->parent_use;
+	eff->parent_use = (GF_Node *)sub_root;
+	gf_node_render(sub_root, eff);
+	eff->parent_use = prev_use;
+	gf_svg_restore_parent_transformation(eff, &backup_matrix);  
+
+end:
+	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 }
 
-void SVG_Render_animation(GF_Node *n, void *rs)
+
+void R2D_RenderInlineAnimation(GF_Node *anim, GF_Node *sub_root, void *rs)
 {
 	GF_Matrix2D backup_matrix;
 	SVGPropertiesPointers backup_props;
 	RenderEffect2D *eff = (RenderEffect2D*)rs;
-	SVGanimationElement *a = (SVGanimationElement*)n;
-	GF_Node *root;
-	SVGAnimationStack *st;
+	SVGanimationElement *a = (SVGanimationElement*)anim;
   	GF_Matrix2D translate;
 	SVGPropertiesPointers new_props, *old_props;
 
 	memset(&new_props, 0, sizeof(SVGPropertiesPointers));
 
 	/*for heritage and anims*/
-	SVG_Render_base(n, (RenderEffect2D *)rs, &backup_props);
+	SVG_Render_base(anim, (RenderEffect2D *)rs, &backup_props);
 
-	st = gf_node_get_private(n);
-	if (!st->is) return;
 
 	gf_mx2d_init(translate);
 	translate.m[2] = a->x.value;
@@ -581,49 +547,37 @@ void SVG_Render_animation(GF_Node *n, void *rs)
 		goto end;
 	}
 
-	gf_svg_apply_local_transformation(eff, n, &backup_matrix);
+	gf_svg_apply_local_transformation(eff, anim, &backup_matrix);
 	gf_mx2d_pre_multiply(&eff->transform, &translate);
 
+#if 0
+	st = gf_node_get_private(n);
+	if (!st->is) return;
 	root = gf_sg_get_root_node(st->is->graph);
 	if (root) {
 		old_props = eff->svg_props;
 		eff->svg_props = &new_props;
 		gf_svg_properties_init_pointers(eff->svg_props);
-		gf_sr_render_inline(st->is->root_od->term->renderer, root, rs);
+		//gf_sr_render_inline(st->is->root_od->term->renderer, root, rs);
+		gf_node_render(root, rs);
 		eff->svg_props = old_props;
 		gf_svg_properties_reset_pointers(&new_props);
-	}
+//	}
+#endif
+
+	old_props = eff->svg_props;
+	eff->svg_props = &new_props;
+	gf_svg_properties_init_pointers(eff->svg_props);
+
+	gf_node_render(sub_root, rs);
+	eff->svg_props = old_props;
+	gf_svg_properties_reset_pointers(&new_props);
 
 	gf_svg_restore_parent_transformation(eff, &backup_matrix);  
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+
 end:
 	memcpy(eff->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
-}
-
-void SVG_Destroy_animation(GF_Node *node)
-{
-	SVGAnimationStack *st;
-	st = gf_node_get_private(node);
-	free(st);
-}
-
-
-void SVG_Init_animation(Render2D *sr, GF_Node *node)
-{
-	SVGAnimationStack *st;
-	GF_SAFEALLOC(st, sizeof(SVGAnimationStack));
-	gf_node_set_private(node, st);
-
-	gf_smil_timing_init_runtime_info((SVGElement *)node);
-	if (((SVGElement *)node)->timing->runtime) {
-		SMIL_Timing_RTI *rti = ((SVGElement *)node)->timing->runtime;
-		rti->activation = svg_animation_smil_activate;
-		rti->freeze = svg_animation_smil_freeze;
-		rti->restore = svg_animation_smil_restore;
-	}
-
-	gf_node_set_render_function(node, SVG_Render_animation);
-	gf_node_set_predestroy_function(node, SVG_Destroy_animation);
 }
 
 #endif //GPAC_DISABLE_SVG

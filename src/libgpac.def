@@ -910,8 +910,7 @@ EXPORTS
 	gf_sg_new
 	gf_sg_new_subscene
 	gf_sg_set_scene_time_callback
-	gf_sg_set_init_callback
-	gf_sg_set_modified_callback
+	gf_sg_set_node_callback
 	gf_sg_set_proto_loader
 	gf_sg_del
 	gf_sg_set_private
@@ -1021,7 +1020,6 @@ EXPORTS
 	gf_term_get_root_object
 	gf_term_get_object_count
 	gf_term_get_object
-	gf_term_get_remote_object
 	gf_term_object_subscene_type
 	gf_term_select_object
 	gf_term_get_object_info
@@ -1070,7 +1068,6 @@ EXPORTS
 	gf_sr_render_inline
 	gf_sr_set_size
 	gf_sr_register_extra_graph
-	gf_sr_add_secondary_scene
 
 ;render_dev.h exports
 	gf_sr_register_time_node
@@ -1110,11 +1107,15 @@ EXPORTS
 	gf_odm_disconnect
 	gf_odm_setup_es
 	gf_odm_remove_es
-	gf_term_on_node_init
 	gf_term_message
 	gf_mo_get_loop
 	gf_mo_set_speed
 	gf_mo_get_duration
+	gf_mo_get_visual_info
+	gf_mo_get_audio_info
+	gf_mo_get_flags
+	gf_mo_set_flag
+	gf_term_node_callback
 
 ;mpegts.h exports
 	gf_m2ts_demux_new
@@ -1170,10 +1171,6 @@ EXPORTS
 	gf_smil_timing_init_runtime_info
 	gf_smil_timing_get_normalized_simple_time
 	gf_smil_timing_is_active
-	gf_svg_set_mfurl_from_uri
 	gf_svg_check_url_change
-	gf_svg_subscene_get
-	gf_svg_subscene_start
-	gf_svg_subscene_stop
 	gf_sg_notify_smil_timed_elements
-	gf_mo_restart
+	gf_term_set_mfurl_from_uri

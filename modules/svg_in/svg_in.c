@@ -53,7 +53,6 @@ typedef struct
 	u16 base_es_id;
 	u32 file_pos;
 	gzFile *src;
-	Bool attached;
 } SVGIn;
 
 static Bool svg_check_download(SVGIn *svgin)
@@ -170,9 +169,13 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer, u3
 	}
 
 exit:
-	if (!svgin->attached && (gf_sg_get_root_node(svgin->loader.scene_graph)!=NULL) ) {
+	if ((svgin->inline_scene->graph_attached!=1) && (gf_sg_get_root_node(svgin->loader.scene_graph)!=NULL) ) {
 		gf_is_attach_to_renderer(svgin->inline_scene);
-		svgin->attached = 1;
+	}
+	/*prepare for next playback*/
+	if (e==GF_EOS) {
+		gf_sm_load_done(&svgin->loader);
+		svgin->loader.fileName = NULL;
 	}
 	return e;
 }
@@ -221,8 +224,9 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug,
 		svgin->file_size = gf_bs_read_u32(bs);
 		svgin->file_pos = 0;
 		gf_bs_del(bs);
-		GF_SAFEALLOC(svgin->file_name, sizeof(char)*(1 + decSpecInfoSize - sizeof(u32)) );
+		svgin->file_name =  (char *) malloc(sizeof(char)*(1 + decSpecInfoSize - sizeof(u32)) );
 		memcpy(svgin->file_name, decSpecInfo + sizeof(u32), decSpecInfoSize - sizeof(u32) );
+		svgin->file_name[decSpecInfoSize - sizeof(u32) ] = 0;
 		break;
 	}
 	svgin->oti = objectTypeIndication;
@@ -296,10 +300,10 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 
 	if (InterfaceType != GF_SCENE_DECODER_INTERFACE) return NULL;
 	
-	GF_SAFEALLOC(sdec, sizeof(GF_SceneDecoder))
+	GF_SAFEALLOC(sdec, GF_SceneDecoder)
 	GF_REGISTER_MODULE_INTERFACE(sdec, GF_SCENE_DECODER_INTERFACE, "GPAC SVG Parser", "gpac distribution");
 
-	GF_SAFEALLOC(svgin, sizeof(SVGIn));
+	GF_SAFEALLOC(svgin, SVGIn);
 	sdec->privateStack = svgin;
 	sdec->AttachStream = SVG_AttachStream;
 	sdec->CanHandleStream = SVG_CanHandleStream;

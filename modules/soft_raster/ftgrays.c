@@ -754,7 +754,7 @@ int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 EVG_Raster evg_raster_new()
 {
 	TRaster *raster;
-	GF_SAFEALLOC(raster , sizeof(TRaster));
+	GF_SAFEALLOC(raster , TRaster);
 	return raster;
 }
 

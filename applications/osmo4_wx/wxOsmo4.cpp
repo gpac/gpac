@@ -633,7 +633,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 	}
 
 
-	m_user.modules = gf_modules_new((const unsigned char *) str, m_user.config);
+	m_user.modules = gf_modules_new(str, m_user.config);
 	/*initial launch*/
 	if (first_launch || !gf_modules_get_count(m_user.modules)) {
 		const char *sOpt;
@@ -644,7 +644,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 			if ( dlg.ShowModal() != wxID_OK ) return false;
 			str = dlg.GetPath().mb_str(wxConvUTF8);
 	
-			m_user.modules = gf_modules_new((const unsigned char *) str, m_user.config);
+			m_user.modules = gf_modules_new(str, m_user.config);
 			if (!m_user.modules || !gf_modules_get_count(m_user.modules) ) {
 				wxMessageDialog(NULL, wxT("Cannot find any modules for GPAC"), wxT("Init error"), wxOK);
 				gf_cfg_del(m_user.config);
@@ -2235,13 +2235,6 @@ void wxOsmo4Frame::BuildStreamList(Bool reset_only)
 		GF_ObjectManager *odm = gf_term_get_object(m_term, root_od, i);
 		if (!odm) return;
 
-		GF_ObjectManager *remote = odm;
-		while (1) {
-			remote = gf_term_get_remote_object(m_term, odm);
-			if (remote) odm = remote;
-			else break;
-		}
-
 		if (gf_term_get_object_info(m_term, odm, &info) != GF_OK) break;
 
 		if (info.owns_service) {
@@ -2295,12 +2288,6 @@ void wxOsmo4Frame::OnUpdateStreamSel(wxUpdateUIEvent & event)
 
 	GF_ObjectManager *odm = gf_term_get_object(m_term, root_od, ID);
 	if (!odm) return;
-	GF_ObjectManager *remote = odm;
-	while (1) {
-		remote = gf_term_get_remote_object(m_term, odm);
-		if (remote) odm = remote;
-		else break;
-	}
 
 	ODInfo info;
 	gf_term_get_object_info(m_term, odm, &info);

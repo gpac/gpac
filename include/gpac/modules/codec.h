@@ -204,8 +204,9 @@ typedef struct _scenedecoder
 	This is called once upon creation of the decoder (several times if re-entrant)
 	*/
 	GF_Err (*AttachScene)(struct _scenedecoder *, LPINLINESCENE is, Bool is_scene_root);
-	/*releases scene. If decoder manages nodes / resources in the scene, THESE MUST BE DESTROYED. 
-	May be NULL if decoder doesn't manage nodes but only create them (like BIFS, OD)
+	/*releases scene. If the decoder manages nodes / resources in the scene, 
+	THESE MUST BE DESTROYED. May be NULL if decoder doesn't manage nodes but only create them (like BIFS, OD) and
+	doesn't have to be instructed the scene is about to be resumed
 	This is called each time the scene is about to be reseted (eg, seek and destroy)
 	*/
 	GF_Err (*ReleaseScene)(struct _scenedecoder *);

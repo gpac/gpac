@@ -73,7 +73,7 @@ extern "C" {
  *
  *	Macro allocating memory and zero-ing it
 */
-#define GF_SAFEALLOC(__ptr, __size) __ptr = malloc(__size); if (__ptr) memset(__ptr, 0, __size);
+#define GF_SAFEALLOC(__ptr, __struct) __ptr = (__struct *) malloc(sizeof(__struct)); if (__ptr) memset((void *) __ptr, 0, sizeof(__struct));
 
 /*!
  *	\brief 4CC Formatting
@@ -471,6 +471,7 @@ typedef void (*gf_on_progress_cbk)(void *cbck, char *title, u32 done, u32 total)
  */
 void gf_set_progress_callback(void *user_cbk, gf_on_progress_cbk prog_cbk);
 
+const char* gf_gpac_version();
 
 /*!
  *\addtogroup cpu_grp Time tools

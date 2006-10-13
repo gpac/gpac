@@ -56,7 +56,7 @@ GF_BaseDecoder *NewBaseDecoder()
 {
 	GF_MediaDecoder *ifce;
 	IMGDec *wrap;
-	GF_SAFEALLOC(ifce, sizeof(GF_MediaDecoder));
+	GF_SAFEALLOC(ifce, GF_MediaDecoder);
 	wrap = malloc(sizeof(IMGDec));
 	memset(wrap, 0, sizeof(IMGDec));
 	ifce->privateStack = wrap;

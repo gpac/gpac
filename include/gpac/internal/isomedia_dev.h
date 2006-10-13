@@ -725,6 +725,8 @@ typedef struct
 	GF_SLConfig *slc;
 	/*internally emulated esd*/
 	GF_ESD *esd;
+	/*iPod's hack*/
+	GF_UnknownUUIDBox *ipod_ext;
 } GF_AVCSampleEntryBox;
 
 

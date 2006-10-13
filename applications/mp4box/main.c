@@ -110,6 +110,7 @@ void PrintGeneralUsage()
 			" -3gp                 rewrites as 3GPP(2) file (no more MPEG-4 Systems Info)\n"
 			"                       * Note 1: some tracks may be removed in the process\n"
 			"                       * Note 2: always on for *.3gp *.3g2 *.3gpp\n"
+			" -ipod                rewrites the file for iPod\n"
 			" -brand ABCD[:v]      sets major brand of file, with optional version\n"
 			" -ab ABCD             adds given brand to file's alternate brand list\n"
 			" -rb ABCD             removes given brand from file's alternate brand list\n"
@@ -206,7 +207,7 @@ void PrintImportUsage()
 			"When specified by track the syntax is \":opt\" or \":opt=val\".\n\n"
 			" -dref:               keeps media data in original file\n"
 			" -no-drop:             forces constant FPS when importing AVI video\n"
-			" -packed:             forces packed bitstream when importing raw ASP\n"
+			" -packed:             * forces packed bitstream when importing raw ASP\n"
 			" -sbr:                backward compatible signaling of AAC-SBR\n"
 			" -sbrx:               non-backward compatible signaling of AAC-SBR\n"
 			"                       * Note: SBR AAC cannot be detected at import time\n"
@@ -897,6 +898,15 @@ typedef struct
 	s32 par_num, par_den;
 } TrackAction;
 
+enum
+{
+	GF_ISOM_CONV_TYPE_ISMA = 1,
+	GF_ISOM_CONV_TYPE_ISMA_EX,
+	GF_ISOM_CONV_TYPE_3GPP,
+	GF_ISOM_CONV_TYPE_IPOD,
+	GF_ISOM_CONV_TYPE_PSP
+};
+
 int main(int argc, char **argv)
 {
 	char outfile[5000];
@@ -909,8 +919,8 @@ int main(int argc, char **argv)
 	char *szTracksToAdd[MAX_CUMUL_OPS];
 	TrackAction tracks[MAX_CUMUL_OPS];
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
-	u32 i, MTUSize, stat_level, hint_flags, MakeISMA, Make3GP, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version;
-	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, do_package, remove_root_od, make_psp, make_m4a;
+	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type;
+	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, do_package, remove_root_od;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts, dump_cart;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itune_tags;
 	GF_ISOFile *file;
@@ -930,8 +940,8 @@ int main(int argc, char **argv)
 	split_size = 0;
 	MTUSize = 1450;
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = 0;
-	do_package = chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = make_psp = make_m4a = 0;
-	x3d_info = MakeISMA = Make3GP = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = 0;
+	do_package = chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
+	x3d_info = conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = 0;
 	track_dump_type = 0;
 	ismaCrypt = 0;
 	file = NULL;
@@ -1090,11 +1100,13 @@ int main(int argc, char **argv)
 			swf_flatten_angle = (Float) atof(argv[i+1]);
 			i++;
 		}
-		else if (!stricmp(arg, "-isma")) { MakeISMA = 1; open_edit = 1; }
-		else if (!stricmp(arg, "-3gp")) { Make3GP = 1; open_edit = 1; }
+		else if (!stricmp(arg, "-isma")) { conv_type = GF_ISOM_CONV_TYPE_ISMA; open_edit = 1; }
+		else if (!stricmp(arg, "-3gp")) { conv_type = GF_ISOM_CONV_TYPE_3GPP; open_edit = 1; }
+		else if (!stricmp(arg, "-ipod")) { conv_type = GF_ISOM_CONV_TYPE_IPOD; open_edit = 1; }
+		else if (!stricmp(arg, "-ismax")) { conv_type = GF_ISOM_CONV_TYPE_ISMA_EX; open_edit = 1; }
+
 		else if (!stricmp(arg, "-no-sys") || !stricmp(arg, "-nosys")) { remove_sys_tracks = 1; open_edit = 1; }
 		else if (!stricmp(arg, "-no-iod")) { remove_root_od = 1; open_edit = 1; }
-		else if (!stricmp(arg, "-ismax")) { MakeISMA = 2; open_edit = 1; }
 		else if (!stricmp(arg, "-out")) { CHECK_NEXT_ARG outName = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-tmp")) { CHECK_NEXT_ARG tmpdir = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-cprt")) { CHECK_NEXT_ARG cprt = argv[i+1]; i++; open_edit = 1; }
@@ -1646,7 +1658,7 @@ int main(int argc, char **argv)
 		/*unless explicitly asked, remove all systems tracks*/
 		if (!keep_sys_tracks) remove_systems_tracks(file);
 		needSave = 1;
-		if (!MakeISMA && !Make3GP) MakeISMA = can_convert_to_isma(file);
+		if (!conv_type && can_convert_to_isma(file)) conv_type = GF_ISOM_CONV_TYPE_ISMA;
 	}
 
 	if (nb_cat) {
@@ -1682,7 +1694,7 @@ int main(int argc, char **argv)
 		if (!keep_sys_tracks) remove_systems_tracks(file);
 
 		needSave = 1;
-		if (!MakeISMA && !Make3GP) MakeISMA = can_convert_to_isma(file);
+		if (conv_type && can_convert_to_isma(file)) conv_type = GF_ISOM_CONV_TYPE_ISMA;
 	}
 #endif
 #ifndef GPAC_READ_ONLY
@@ -1804,22 +1816,13 @@ int main(int argc, char **argv)
 		strcpy(szExt, strchr(outfile, '.'));
 		strlwr(szExt);
 		/*turn on 3GP saving*/
-		if (!strcmp(szExt, ".3gp") || !strcmp(szExt, ".3gpp") || !strcmp(szExt, ".3g2")) {
-			MakeISMA = 0;
-			Make3GP = 1;
-			make_psp = 0;
-		}
-		else if (!strcmp(szExt, ".m4a")) {
-			MakeISMA = 0;
-			Make3GP = 0;
-			make_psp = 0;
-			make_m4a = 1;
-		}
-		else if (!strcmp(szExt, ".psp")) {
-			MakeISMA = 0;
-			Make3GP = 0;
-			make_psp = 1;
-		}
+		if (!strcmp(szExt, ".3gp") || !strcmp(szExt, ".3gpp") || !strcmp(szExt, ".3g2")) 
+			conv_type = GF_ISOM_CONV_TYPE_3GPP;
+		else if (!strcmp(szExt, ".m4a") || !strcmp(szExt, ".m4v"))
+			conv_type = GF_ISOM_CONV_TYPE_IPOD;
+		else if (!strcmp(szExt, ".psp"))
+			conv_type = GF_ISOM_CONV_TYPE_PSP;
+
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 		outfile[strlen(outfile)-1] = 0;
 	}
@@ -1962,7 +1965,7 @@ int main(int argc, char **argv)
 	if (remove_sys_tracks) {
 		remove_systems_tracks(file);
 		needSave = 1;
-		MakeISMA = 0;
+		if (conv_type < GF_ISOM_CONV_TYPE_ISMA_EX) conv_type = 0;
 	}
 	if (remove_root_od) {
 		gf_isom_remove_root_od(file);
@@ -1995,28 +1998,48 @@ int main(int argc, char **argv)
 				sprintf(outfile, "out_%s", rel_name ? rel_name + 1 : inName);
 			}
 		}
-		if (MakeISMA) {
+		if ((conv_type == GF_ISOM_CONV_TYPE_ISMA) || (conv_type == GF_ISOM_CONV_TYPE_ISMA_EX)) {
 			fprintf(stdout, "Converting to ISMA Audio-Video MP4 file...\n");
 			/*keep ESIDs when doing ISMACryp*/
-			e = gf_media_make_isma(file, ismaCrypt ? 1 : 0, 0, (MakeISMA==2) ? 1 : 0);
+			e = gf_media_make_isma(file, ismaCrypt ? 1 : 0, 0, (conv_type==GF_ISOM_CONV_TYPE_ISMA_EX) ? 1 : 0);
 			if (e) goto err_exit;
 			needSave = 1;
 		}
-		if (Make3GP) {
+		if (conv_type == GF_ISOM_CONV_TYPE_3GPP) {
 			fprintf(stdout, "Converting to 3GP file...\n");
 			e = gf_media_make_3gpp(file);
 			if (e) goto err_exit;
 			needSave = 1;
 		}
-		if (make_psp) {
+		if (conv_type == GF_ISOM_CONV_TYPE_PSP) {
 			fprintf(stdout, "Converting to PSP file...\n");
 			e = gf_media_make_psp(file);
 			if (e) goto err_exit;
 			needSave = 1;
 		}
-		if (make_m4a) {
-			fprintf(stdout, "Setting up M4A file...\n");
-			gf_isom_set_brand_info(file, GF_4CC('M','4','A',' '), 0);
+		if (conv_type == GF_ISOM_CONV_TYPE_IPOD) {
+			u32 major_brand = 0;
+
+			fprintf(stdout, "Setting up iTune/iPod file...\n");
+
+			for (i=0; i<gf_isom_get_track_count(file); i++) {
+				u32 mType = gf_isom_get_media_type(file, i+1);
+				switch (mType) {
+				case GF_ISOM_MEDIA_VISUAL:
+					major_brand = GF_4CC('M','4','V',' ');
+					gf_isom_set_ipod_compatible(file, i+1);
+					if (gf_isom_get_media_subtype(file, i+1, 1) == GF_ISOM_SUBTYPE_AVC_H264) {
+						fprintf(stdout, "Forcing AVC/H264 SAR to 1:1...\n");
+						gf_media_change_par(file, i+1, 1, 1);
+					}
+					break;
+				case GF_ISOM_MEDIA_AUDIO:
+					if (!major_brand) major_brand = GF_4CC('M','4','A',' ');
+					else gf_isom_modify_alternate_brand(file, GF_4CC('M','4','A',' '), 1);
+					break;
+				}
+			}
+			gf_isom_set_brand_info(file, major_brand, 0);
 			gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_MP42, 1);
 			needSave = 1;
 		}
@@ -2118,7 +2141,8 @@ int main(int argc, char **argv)
 				if (!strnicmp(sep+1, "track=", 6)) break;
 				if (!strnicmp(sep+1, "tracknum=", 9)) break;
 				if (!strnicmp(sep+1, "writer=", 7)) break;
-				sep = strchr(sep, ':');
+				if (!strnicmp(sep+1, "cover=", 6)) break;
+				sep = strchr(sep+1, ':');
 			}
 			if (sep) sep[0] = 0;
 			if (!strnicmp(tags, "album=", 6)) itag = GF_ISOM_ITUNE_ALBUM;
@@ -2154,7 +2178,7 @@ int main(int argc, char **argv)
 				if (!stricmp(ext, ".png")) tlen |= 0x80000000;
 				e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_COVER_ART, d, tlen);
 				free(d);
-			} else {
+			} else if (itag) {
 				gf_isom_apple_set_tag(file, itag, val, tlen);
 			}
 			needSave = 1;

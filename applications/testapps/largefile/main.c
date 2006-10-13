@@ -53,8 +53,9 @@ int main(int argc, char **argv)
 
 	samp = gf_isom_sample_new();
 	samp->dataLength = 1024*1024;
-	GF_SAFEALLOC(samp->data, sizeof(char)*samp->dataLength);
-	
+	samp->data = malloc(sizeof(char)*samp->dataLength);
+  memset(samp->data, 0, sizeof(char)*samp->dataLength);
+  
 	for (i=0; i<nb_samp; i++) {
 		if (samp->DTS % 25) samp->IsRAP = 0;
 		else samp->IsRAP = 1;

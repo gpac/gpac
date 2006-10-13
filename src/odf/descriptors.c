@@ -441,7 +441,7 @@ GF_Err gf_odf_encode_ui_config(GF_UIConfig *cfg, GF_DefaultDescriptor **out_dsi)
 GF_AVCConfig *gf_odf_avc_cfg_new()
 {
 	GF_AVCConfig *cfg;
-	GF_SAFEALLOC(cfg, sizeof(GF_AVCConfig));
+	GF_SAFEALLOC(cfg, GF_AVCConfig);
 	if (!cfg) return NULL;
 	cfg->sequenceParameterSets = gf_list_new();
 	cfg->pictureParameterSets = gf_list_new();

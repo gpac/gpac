@@ -25,14 +25,13 @@
 #include "module_wrap.h"
 #include <gpac/config.h>
 
-GF_ModuleManager *gf_modules_new(const unsigned char *directory, GF_Config *config)
+GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 {
 	GF_ModuleManager *tmp;
 	if (!directory || !strlen(directory) || (strlen(directory) > GF_MAX_PATH)) return NULL;
 
-	tmp = malloc(sizeof(GF_ModuleManager));
+	GF_SAFEALLOC(tmp, GF_ModuleManager);
 	if (!tmp) return NULL;
-	memset(tmp, sizeof(GF_ModuleManager), 0);
 	strcpy(tmp->dir, directory);
 
 	/*remove the final delimiter*/
@@ -54,7 +53,7 @@ void gf_modules_del(GF_ModuleManager *pm)
 
 	/*unload all modules*/
 	while (gf_list_count(pm->plug_list)) {
-		inst = gf_list_get(pm->plug_list, 0);
+		inst = (ModuleInstance *) gf_list_get(pm->plug_list, 0);
 		gf_modules_free_module(inst);
 		gf_list_rem(pm->plug_list, 0);
 	}
@@ -62,11 +61,11 @@ void gf_modules_del(GF_ModuleManager *pm)
 	free(pm);
 }
 
-Bool gf_module_is_loaded(GF_ModuleManager *pm, unsigned char *filename) 
+Bool gf_module_is_loaded(GF_ModuleManager *pm, char *filename) 
 {
 	u32 i = 0;
 	ModuleInstance *inst;
-	while ( (inst = gf_list_enum(pm->plug_list, &i) ) ) {
+	while ( (inst = (ModuleInstance *) gf_list_enum(pm->plug_list, &i) ) ) {
 		if (!strcmp(inst->szName, filename)) return 1;
 	}
 	return 0;
@@ -85,7 +84,7 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	GF_BaseInterface *ifce;
 
 	if (!pm) return NULL;
-	inst = gf_list_get(pm->plug_list, whichplug);
+	inst = (ModuleInstance *) gf_list_get(pm->plug_list, whichplug);
 	if (!inst) return NULL;
 	if (!gf_modules_load_library(inst)) return NULL;
 
@@ -135,7 +134,7 @@ GF_Err gf_modules_close_interface(GF_BaseInterface *ifce)
 	ModuleInstance *par;
 	u32 i;
 	if (!ifce) return GF_BAD_PARAM;
-	par = ifce->HPLUG;
+	par = (ModuleInstance *) ifce->HPLUG;
 
 	if (!par || !ifce->InterfaceType) return GF_BAD_PARAM;
 
@@ -171,7 +170,7 @@ GF_Err gf_modules_set_option(GF_BaseInterface *ifce, const char *secName, const 
 
 const char *gf_modules_get_file_name(GF_ModuleManager *pm, u32 i)
 {
-	ModuleInstance *inst = gf_list_get(pm->plug_list, i);
+	ModuleInstance *inst = (ModuleInstance *) gf_list_get(pm->plug_list, i);
 	if (!inst) return NULL;
 	return inst->szName;
 }

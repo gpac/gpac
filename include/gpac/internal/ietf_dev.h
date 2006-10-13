@@ -115,7 +115,6 @@ struct __tag_rtp_channel
 	/*num loops of pck sn*/
 	u32 num_sn_loops;
 	/*some mapping info - we should support # payloads*/
-	char PayloadName[40];
 	u8 PayloadType;
 	u32 TimeScale;
 
@@ -174,12 +173,12 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 
 #define RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, str)		\
 		if (str) {		\
-			if (strlen(str)+pos >= buf_size) {	\
+			if (strlen((const char *) str)+pos >= buf_size) {	\
 				buf_size += RTSP_WRITE_STEPALLOC;	\
-				buf = realloc(buf, buf_size);		\
+				buf = (char *) realloc(buf, buf_size);		\
 			}	\
-			strcpy(buf+pos, str);		\
-			pos += strlen(str);		\
+			strcpy(buf+pos, (const char *) str);		\
+			pos += strlen((const char *) str);		\
 		}
 
 #define RTSP_WRITE_HEADER(buf, buf_size, pos, type, str)		\

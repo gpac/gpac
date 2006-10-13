@@ -177,6 +177,7 @@ bad_input:
 size_t gf_utf8_wcslen (const unsigned short *s)
 {
   const unsigned short* ptr;
-  for (ptr = s; *ptr != (unsigned short)'\0'; ptr++);
+  for (ptr = s; *ptr != (unsigned short)'\0'; ptr++) {
+  }
   return ptr - s;
 }

@@ -77,7 +77,7 @@ typedef struct
 	/*stream context*/
 	u16 ES_ID;
 	Bool registered;
-	GF_MediaObject *is_mo;
+	GF_MediaObject *mo;
 	M_InputSensor *is;
 } ISStack;
 

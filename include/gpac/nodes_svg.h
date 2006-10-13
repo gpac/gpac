@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Oct 06 18:37:52 2006
+	DO NOT MOFIFY - File generated on GMT Fri Oct 13 09:42:05 2006
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -38,11 +38,6 @@ extern "C" {
 
 #include <gpac/scenegraph_svg.h>
 
-
-u32 cond_execution_nb;
-u32 cond_execution_time;
-u32 script_execution_nb;
-u32 script_execution_time;
 
 /* Definition of SVG element internal tags */
 /* TAG names are made of "TAG_SVG" + SVG element name (with - replaced by _) */

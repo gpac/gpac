@@ -1091,7 +1091,7 @@ void VS_RegisterContext(RenderEffect3D *eff, GF_Node *node_to_draw, GF_BBox *bou
 	}
 
 
-	GF_SAFEALLOC(ctx, sizeof(Draw3DContext));
+	GF_SAFEALLOC(ctx, Draw3DContext);
 	ctx->directional_lights = gf_list_new();
 	ctx->node_to_draw = node_to_draw;
 

@@ -100,7 +100,7 @@ void drawctx_store_original_bounds(struct _drawable_context *ctx)
 Drawable *drawable_new()
 {
 	Drawable *tmp;
-	GF_SAFEALLOC(tmp, sizeof(Drawable))
+	GF_SAFEALLOC(tmp, Drawable)
 	tmp->on_surfaces = gf_list_new();
 	tmp->path = gf_path_new();
 	/*init with default*/

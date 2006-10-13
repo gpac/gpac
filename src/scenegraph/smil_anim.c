@@ -361,17 +361,6 @@ static void gf_smil_anim_animate_using_path(SMIL_Anim_RTI *rai, Fixed normalized
 	if (res) rai->target_value_changed = 1;
 }
 
-static void gf_smil_anim_discard(SMIL_Timing_RTI *rti, Fixed normalized_scene_time)
-{
-	GF_Node *targetNode = (GF_Node *)rti->timed_elt->xlink->href.target;
-	if (!targetNode) return;
-	/* deletes the node and replace all references to that node to NULL */
-	gf_node_replace(targetNode, NULL, 0);
-	/* sets the node to NULL in case of future calls to discard */
-	rti->timed_elt->xlink->href.target = NULL;
-	/* TODO: The animation (discard) does not need to run again */
-	/* TODO: Invalidate the scene ?*/
-}
 
 static void gf_smil_anim_get_last_specified_value(SMIL_Anim_RTI *rai)
 {
@@ -491,7 +480,7 @@ static void gf_smil_anim_animate(SMIL_Timing_RTI *rti, Fixed normalized_simple_t
 static void gf_smil_anim_animate_with_fraction(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
 {
 	gf_smil_anim_animate(rti, rti->fraction);
-	rti->evaluate = NULL;
+	rti->evaluate_status = SMIL_TIMING_EVAL_NONE;
 }
 
 /* copy/paste of the animate function except for the optimization which consists in 
@@ -521,7 +510,7 @@ static void gf_smil_anim_freeze(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 	}
 }
 
-static void gf_smil_anim_restore(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
+static void gf_smil_anim_remove(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
 {
 	SMIL_Anim_RTI *rai = gf_smil_anim_get_anim_runtime_from_timing(rti);
 	if (!rai) return;
@@ -530,6 +519,25 @@ static void gf_smil_anim_restore(SMIL_Timing_RTI *rti, Fixed normalized_simple_t
 
 	gf_svg_attributes_copy(&rai->owner->presentation_value, &rai->owner->specified_value, 0);
 	//gf_list_del_item(rai->owner->anims, rai);
+}
+
+static void gf_smil_anim_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_simple_time, u32 state)
+{
+	switch (state) {
+	case SMIL_TIMING_EVAL_UPDATE: 
+	case SMIL_TIMING_EVAL_RESTART:
+		gf_smil_anim_animate(rti, normalized_simple_time);
+		break;
+	case SMIL_TIMING_EVAL_FREEZE: 
+		gf_smil_anim_freeze(rti, normalized_simple_time);
+		break;
+	case SMIL_TIMING_EVAL_REMOVE: 
+		gf_smil_anim_remove(rti, normalized_simple_time);
+		break;
+	case SMIL_TIMING_EVAL_FRACTION: 
+		gf_smil_anim_animate_with_fraction(rti, normalized_simple_time);
+		break;
+	}
 }
 
 void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_props)
@@ -566,10 +574,12 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 		for (j = 0; j < count; j++) {
 			SMIL_Anim_RTI *rai = gf_list_get(aa->anims, j);			
 			SMIL_Timing_RTI *rti = rai->anim_elt->timing->runtime;
-			Double scene_time = gf_node_get_scene_time(node);
-			if (rti->evaluate) {
+			//Double scene_time = gf_node_get_scene_time(node);
+			Double scene_time = rti->scene_time;
+
+			if (rti->evaluate_status) {
 				Fixed simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
-				rti->evaluate(rti, simple_time);
+				rti->evaluate(rti, simple_time, rti->evaluate_status);
 			}
 		}
 
@@ -579,6 +589,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 	}
 
 }
+
 
 void gf_smil_anim_init_runtime_info(SVGElement *e)
 {
@@ -621,8 +632,8 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 		e->anim->additive = SMIL_ADDITIVE_SUM;
 	} 
 
+	GF_SAFEALLOC(rai, SMIL_Anim_RTI)
 
-	GF_SAFEALLOC(rai, sizeof(SMIL_Anim_RTI))
 	rai->anim_elt = e;	
 
 	gf_mx2d_init(rai->identity);
@@ -679,7 +690,7 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 		aa = NULL;
 	}
 	if (!aa) {
-		GF_SAFEALLOC(aa, sizeof(SMIL_AttributeAnimations))
+		GF_SAFEALLOC(aa, SMIL_AttributeAnimations)
 
 		/* 
 			Save the DOM specified value before any animation starts 
@@ -700,10 +711,7 @@ void gf_smil_anim_init_runtime_info(SVGElement *e)
 	rai->owner = aa;
 
 	e->timing->runtime->postpone = 1;
-	e->timing->runtime->activation = gf_smil_anim_animate;
-	e->timing->runtime->freeze = gf_smil_anim_freeze;
-	e->timing->runtime->restore = gf_smil_anim_restore;
-	e->timing->runtime->fraction_activation = gf_smil_anim_animate_with_fraction;
+	e->timing->runtime->evaluate = gf_smil_anim_evaluate;
 	gf_smil_anim_get_last_specified_value(rai);
 }
 
@@ -759,10 +767,7 @@ void gf_smil_anim_init_node(GF_Node *node)
 	gf_smil_timing_init_runtime_info(anim_elt);
 	if (anim_elt->anim) {
 		gf_smil_anim_init_runtime_info(anim_elt);	
-	} else { /*THIS IS A DISCARD OR THIS CRASHES.*/
-		anim_elt->timing->runtime->activation = gf_smil_anim_discard;
 	}
-
 }
 
 /* TODO: update for elliptical arcs */		

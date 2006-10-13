@@ -82,7 +82,7 @@ static Bool OnJSGetScriptFile(void *opaque, GF_SceneGraph *parent_graph, const c
 	if (!parent_graph || !OnDone) return 0;
 	is = gf_sg_get_private(parent_graph);
 	if (!is) return 0;
-	GF_SAFEALLOC(jsdnload, sizeof(JSDownload));
+	GF_SAFEALLOC(jsdnload, JSDownload)
 	jsdnload->OnDone = OnDone;
 	jsdnload->cbk = cbk;
 	jsdnload->sess = gf_term_download_new(is->root_od->net_service, url, 0, JS_OnData, jsdnload);
@@ -266,7 +266,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	tmp->net_services = gf_list_new();
 	tmp->net_services_to_remove = gf_list_new();
 	tmp->channels_pending = gf_list_new();
-	tmp->od_pending = gf_list_new();
+	tmp->media_queue = gf_list_new();
 	
 	tmp->net_mx = gf_mx_new();
 	tmp->input_streams = gf_list_new();
@@ -319,9 +319,9 @@ GF_Err gf_term_del(GF_Terminal * term)
 	gf_list_del(term->x3d_sensors);
 	assert(!gf_list_count(term->channels_pending));
 	gf_list_del(term->channels_pending);
-	assert(!gf_list_count(term->od_pending));
+	assert(!gf_list_count(term->media_queue));
 	assert(!term->nodes_pending);
-	gf_list_del(term->od_pending);
+	gf_list_del(term->media_queue);
 	if (term->downloader) gf_dm_del(term->downloader);
 	gf_mx_del(term->net_mx);
 	gf_sys_close();
@@ -522,7 +522,6 @@ u32 Term_CheckClocks(GF_ClientService *ns, GF_InlineScene *is)
 		i=0;
 		while ( (odm = gf_list_enum(is->ODlist, &i)) ) {
 			if (odm->net_service != ns) {
-				while (odm->remote_OD) odm = odm->remote_OD;
 				if (!Term_CheckClocks(odm->net_service, NULL)) return 0;
 			}
 		}
@@ -536,15 +535,13 @@ u32 Term_CheckClocks(GF_ClientService *ns, GF_InlineScene *is)
 
 u32 Term_CheckIsOver(GF_Terminal *term)
 {
-	GF_ObjectManager *odm;
 	if (!term->root_scene) return 1;
 	/*if input sensors consider the scene runs forever*/
 	if (gf_list_count(term->input_streams)) return 0;
 	if (gf_list_count(term->x3d_sensors)) return 0;
-	odm = term->root_scene->root_od;
-	while (odm->remote_OD) odm = odm->remote_OD;
+
 	/*check no clocks are still running*/
-	if (!Term_CheckClocks(odm->net_service, term->root_scene)) return 0;
+	if (!Term_CheckClocks(term->root_scene->root_od->net_service, term->root_scene)) return 0;
 	if (term->root_scene->is_dynamic_scene) return 1;
 	/*ask renderer if there are sensors*/
 	return gf_sr_get_option(term->renderer, GF_OPT_IS_FINISHED);
@@ -577,16 +574,17 @@ GF_Err gf_term_set_size(GF_Terminal * term, u32 NewWidth, u32 NewHeight)
 	return gf_sr_set_size(term->renderer, NewWidth, NewHeight);
 }
 
-
 void gf_term_handle_services(GF_Terminal *term)
 {
 	GF_ClientService *ns;
 
 	/*play ODs that need it*/
 	gf_mx_p(term->net_mx);
-	while (gf_list_count(term->od_pending)) {
-		GF_ObjectManager *odm = gf_list_get(term->od_pending, 0);
-		gf_list_rem(term->od_pending, 0);
+	while (gf_list_count(term->media_queue)) {
+		GF_ObjectManager *odm = gf_list_get(term->media_queue, 0);
+		gf_list_rem(term->media_queue, 0);
+		/*unlock net before sending play/pause*/
+		gf_mx_v(term->net_mx);
 		/*this is a stop*/
 		if (odm->media_start_time == -1) {
 			odm->media_start_time = 0;
@@ -596,6 +594,9 @@ void gf_term_handle_services(GF_Terminal *term)
 		else {
 			gf_odm_play(odm);
 		}
+	
+		/*relock net before sending play/pause*/
+		gf_mx_p(term->net_mx);
 	}
 	gf_mx_v(term->net_mx);
 
@@ -675,6 +676,7 @@ void gf_term_lock_renderer(GF_Terminal *term, Bool LockIt)
 {
 	gf_sr_lock(term->renderer, LockIt);
 }
+
 
 void gf_term_lock_net(GF_Terminal *term, Bool LockIt)
 {
@@ -757,7 +759,7 @@ GF_Err gf_term_connect_remote_channel(GF_Terminal *term, GF_Channel *ch, char *U
 u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, Bool pause_at_first_frame)
 {
 	if (!term || !term->root_scene || !term->root_scene->root_od) return 0;
-	if (term->root_scene->root_od->no_time_ctrl) return 1;
+	if (term->root_scene->root_od->flags & GF_ODM_NO_TIME_CTRL) return 1;
 
 	/*for dynamic scene OD ressources are static and all object use the same clock, so don't restart the root 
 	OD, just act as a mediaControl on all playing streams*/
@@ -783,7 +785,7 @@ u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, Bool pause_at_first
 	gf_odm_stop(term->root_scene->root_od, 1);
 	gf_is_disconnect(term->root_scene, 0);
 	/*make sure we don't have OD queued*/
-	while (gf_list_count(term->od_pending)) gf_list_rem(term->od_pending, 0);
+	while (gf_list_count(term->media_queue)) gf_list_rem(term->media_queue, 0);
 	term->root_scene->root_od->media_start_time = from_time;
 
 	gf_odm_start(term->root_scene->root_od);
@@ -852,7 +854,7 @@ GF_Err gf_term_add_object(GF_Terminal *term, const char *url, Bool auto_play)
 	mfurl.count = 1;
 	mfurl.vals = &sfurl;
 	/*only text tracks are supported for now...*/
-	mo = gf_is_get_media_object(term->root_scene, &mfurl, GF_MEDIA_OBJECT_TEXT);
+	mo = gf_is_get_media_object(term->root_scene, &mfurl, GF_MEDIA_OBJECT_TEXT, 1);
 	if (mo) {
 		/*check if we must deactivate it*/
 		if (mo->odm) {
@@ -932,7 +934,6 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 		term->root_scene = gf_is_new(NULL);
 		gf_sg_set_javascript_api(term->root_scene->graph, &term->js_ifce);
 		term->root_scene->root_od = gf_odm_new();
-		term->root_scene = term->root_scene;
 		term->root_scene->root_od->parentscene = NULL;
 		term->root_scene->root_od->subscene = term->root_scene;
 		term->root_scene->root_od->term = term;

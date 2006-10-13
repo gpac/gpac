@@ -41,20 +41,12 @@ static Bool check_in_scene(GF_InlineScene *scene, GF_ObjectManager *odm)
 	GF_ObjectManager *ptr, *root;
 	if (!scene) return 0;
 	root = scene->root_od;
-	while (1) {
-		if (odm == root) return 1;
-		if (!root->remote_OD) break;
-		root = root->remote_OD;
-	}
+	if (odm == root) return 1;
 	scene = root->subscene;
 
 	i=0;
 	while ((ptr = gf_list_enum(scene->ODlist, &i))) {
-		while (1) {
-			if (ptr == odm) return 1;
-			if (!ptr->remote_OD) break;
-			ptr = ptr->remote_OD;
-		}
+		if (ptr == odm) return 1;
 		if (check_in_scene(ptr->subscene, odm)) return 1;
 	}
 	return 0;
@@ -93,15 +85,6 @@ GF_ObjectManager *gf_term_get_object(GF_Terminal *term, GF_ObjectManager *scene_
 	return (GF_ObjectManager *) gf_list_get(scene_od->subscene->ODlist, index);
 }
 
-/*returns remote GF_ObjectManager of this OD if any, NULL otherwise*/
-GF_ObjectManager *gf_term_get_remote_object(GF_Terminal *term, GF_ObjectManager *odm)
-{
-	if (!term || !odm) return NULL;
-	if (!gf_term_check_odm(term, odm)) return NULL;
-	return odm->remote_OD;
-}
-
-
 u32 gf_term_object_subscene_type(GF_Terminal *term, GF_ObjectManager *odm)
 {
 	Bool IS_IsProtoLibObject(GF_InlineScene *is, GF_ObjectManager *odm);
@@ -110,7 +93,7 @@ u32 gf_term_object_subscene_type(GF_Terminal *term, GF_ObjectManager *odm)
 	if (!gf_term_check_odm(term, odm)) return 0;
 
 	if (!odm->subscene) return 0;
-	if (odm->parentscene) return IS_IsProtoLibObject(odm->parentscene, odm) ? 2 : 1;
+	if (odm->parentscene) return IS_IsProtoLibObject(odm->parentscene, odm) ? 3 : 2;
 	return 1;
 }
 
@@ -193,7 +176,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 
 	info->has_profiles = (odm->Audio_PL<0) ? 0 : 1;
 	if (info->has_profiles) {
-		info->inline_pl = odm->ProfileInlining;
+		info->inline_pl = (odm->flags & GF_ODM_INLINE_PROFILES) ? 1 : 0;
 		info->OD_pl = odm->OD_PL; 
 		info->scene_pl = odm->Scene_PL;
 		info->audio_pl = odm->Audio_PL;
@@ -222,8 +205,9 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 		}
 	} 
 	
-	if (odm->subscene && (odm->subscene->root_od==odm) && odm->subscene->scene_codec) {
+	if (odm->subscene && odm->subscene->scene_codec) {
 		GF_BaseDecoder *dec = odm->subscene->scene_codec->decio;
+		assert(odm->subscene->root_od==odm) ;
 		info->od_type = odm->subscene->scene_codec->type;
 		if (!dec->GetName) {
 			info->codec_name = dec->module_name;
@@ -234,20 +218,14 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 	} else if (odm->mo) {
 		switch (info->od_type) {
 		case GF_STREAM_VISUAL:
-			info->width = odm->mo->width;
-			info->height = odm->mo->height;
-			info->pixelFormat = odm->mo->pixelFormat;
-			info->par = odm->mo->pixel_ar;
+			gf_mo_get_visual_info(odm->mo, &info->width, &info->height, NULL, &info->par, &info->pixelFormat);
 			break;
 		case GF_STREAM_AUDIO:
-			info->sample_rate = odm->mo->sample_rate;
-			info->bits_per_sample = odm->mo->bits_per_sample;
-			info->num_channels = odm->mo->num_channels;
+			gf_mo_get_audio_info(odm->mo, &info->sample_rate, &info->bits_per_sample, &info->num_channels, NULL);
 			info->clock_drift = 0;
 			break;
 		case GF_STREAM_TEXT:
-			info->width = odm->mo->width;
-			info->height = odm->mo->height;
+			gf_mo_get_visual_info(odm->mo, &info->width, &info->height, NULL, NULL, NULL);
 			break;
 		}
 	}
@@ -311,7 +289,6 @@ const char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od
 {
 	GF_Node *info;
 	u32 i;
-	GF_ObjectManager *odm;
 	if (!term) return NULL;
 	info = NULL;
 	if (!scene_od) {
@@ -319,9 +296,7 @@ const char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od
 		info = term->root_scene->world_info;
 	} else {
 		if (!gf_term_check_odm(term, scene_od)) return NULL;
-		odm = scene_od;
-		while (odm->remote_OD) odm = odm->remote_OD;
-		info = (odm->subscene ? odm->subscene->world_info : odm->parentscene->world_info);
+		info = (scene_od->subscene ? scene_od->subscene->world_info : scene_od->parentscene->world_info);
 	}
 	if (!info) return NULL;
 	
@@ -359,7 +334,6 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, Bool xml_dump, Bool
 			odm = term->root_scene->root_od;
 	}
 
-	while (odm->remote_OD) odm = odm->remote_OD;
 	if (odm->subscene) {
 		if (!odm->subscene->graph) return GF_IO_ERR;
 		sg = odm->subscene->graph;

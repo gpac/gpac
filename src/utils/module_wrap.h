@@ -37,7 +37,7 @@ typedef void (*ShutdownInterface) (void *interface_obj);
 typedef struct
 {
 	struct __tag_mod_man *plugman;
-	unsigned char szName[GF_MAX_PATH];
+	char szName[GF_MAX_PATH];
 	GF_List *interfaces;
 	
 	/*library is loaded only when an interface is attached*/
@@ -51,21 +51,29 @@ typedef struct
 struct __tag_mod_man
 {
 	/*location of the modules*/
-	unsigned char dir[GF_MAX_PATH];
+	char dir[GF_MAX_PATH];
 	GF_List *plug_list;
 	GF_Config *cfg;
 	/*the one and only ssl instance used throughout the client engine*/
 	void *ssl_inst;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+	
 /*returns 1 if a module with the same filename is already loaded*/
-Bool gf_module_is_loaded(GF_ModuleManager *pm, unsigned char *filename);
+Bool gf_module_is_loaded(GF_ModuleManager *pm, char *filename);
 
 /*these are OS specific*/
 void gf_modules_free_module(ModuleInstance *inst);
 Bool gf_modules_load_library(ModuleInstance *inst);
 void gf_modules_unload_library(ModuleInstance *inst);
 u32 gf_modules_refresh(GF_ModuleManager *pm);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/*_GF_MODULE_WRAP_H_*/
 

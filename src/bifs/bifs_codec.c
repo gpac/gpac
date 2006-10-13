@@ -70,7 +70,7 @@ static GF_Err ParseConfig(GF_BitStream *bs, BIFSStreamInfo *info, u32 version)
 static void bifs_info_del(BIFSStreamInfo *info)
 {
 	while (1) {
-		BIFSElementaryMask *em = gf_list_last(info->config.elementaryMasks);
+		BIFSElementaryMask *em = (BIFSElementaryMask *)gf_list_last(info->config.elementaryMasks);
 		if (!em) break;
 		gf_list_rem_last(info->config.elementaryMasks);
 		free(em);
@@ -80,8 +80,8 @@ static void bifs_info_del(BIFSStreamInfo *info)
 
 GF_BifsDecoder *gf_bifs_decoder_new(GF_SceneGraph *scenegraph, Bool command_dec)
 {
-	GF_BifsDecoder * tmp = malloc(sizeof(GF_BifsDecoder));
-	memset(tmp, 0, sizeof(GF_BifsDecoder));
+	GF_BifsDecoder *tmp;
+	GF_SAFEALLOC(tmp, GF_BifsDecoder);
 
 	tmp->QPs = gf_list_new();
 	tmp->streamInfo = gf_list_new();
@@ -106,7 +106,7 @@ BIFSStreamInfo *gf_bifs_dec_get_stream(GF_BifsDecoder * codec, u16 ESID)
 	BIFSStreamInfo *ptr;
 
 	i=0;
-	while ((ptr = gf_list_enum(codec->streamInfo, &i))) {
+	while ((ptr = (BIFSStreamInfo *) gf_list_enum(codec->streamInfo, &i))) {
 		if(ptr->ESID==ESID) return ptr;
 	}
 	return NULL;
@@ -126,9 +126,8 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 	}
 
 	
-	bs = gf_bs_new(DecoderSpecificInfo, DecoderSpecificInfoLength, GF_BITSTREAM_READ);
-	pInfo = malloc(sizeof(BIFSStreamInfo));
-	memset(pInfo, 0, sizeof(BIFSStreamInfo));
+	bs = gf_bs_new((unsigned char *) DecoderSpecificInfo, DecoderSpecificInfoLength, GF_BITSTREAM_READ);
+	GF_SAFEALLOC(pInfo, BIFSStreamInfo);
 	pInfo->ESID = ESID;
 
 	pInfo->config.version = objectTypeIndication;
@@ -172,7 +171,7 @@ GF_Err gf_bifs_decoder_remove_stream(GF_BifsDecoder *codec, u16 ESID)
 	BIFSStreamInfo *ptr;
 
 	i=0;
-	while ((ptr = gf_list_enum(codec->streamInfo, &i))) {
+	while ((ptr = (BIFSStreamInfo*)gf_list_enum(codec->streamInfo, &i))) {
 		if(ptr->ESID==ESID) {
 			free(ptr);
 			gf_list_rem(codec->streamInfo, i-1);
@@ -191,7 +190,7 @@ void gf_bifs_decoder_del(GF_BifsDecoder *codec)
 
 	/*destroy all config*/
 	while (gf_list_count(codec->streamInfo)) {
-		BIFSStreamInfo *p = gf_list_get(codec->streamInfo, 0);
+		BIFSStreamInfo *p = (BIFSStreamInfo*)gf_list_get(codec->streamInfo, 0);
 		bifs_info_del(p);
 		gf_list_rem(codec->streamInfo, 0);
 	}
@@ -229,7 +228,7 @@ GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_l
 	codec->current_graph = codec->scenegraph;
 	codec->cts_offset = ts_offset;
 
-	bs = gf_bs_new(data, data_length, GF_BITSTREAM_READ);
+	bs = gf_bs_new((unsigned char *)data, data_length, GF_BITSTREAM_READ);
 	gf_bs_set_eos_callback(bs, BD_EndOfStream, codec);
 
 	if (codec->info->config.elementaryMasks) {
@@ -271,9 +270,8 @@ GF_Node *gf_bifs_enc_find_node(GF_BifsEncoder *codec, u32 nodeID)
 GF_BifsEncoder *gf_bifs_encoder_new(GF_SceneGraph *graph)
 {
 	GF_BifsEncoder * tmp;
-	tmp = malloc(sizeof(GF_BifsEncoder));
+	GF_SAFEALLOC(tmp, GF_BifsEncoder);
 	if (!tmp) return NULL;
-	memset(tmp, 0, sizeof(GF_BifsEncoder));
 	tmp->QPs = gf_list_new();
 	tmp->streamInfo = gf_list_new();
 	tmp->info = NULL;	
@@ -289,7 +287,7 @@ static BIFSStreamInfo *BE_GetStream(GF_BifsEncoder * codec, u16 ESID)
 	BIFSStreamInfo *ptr;
 
 	i=0;
-	while ((ptr = gf_list_enum(codec->streamInfo, &i))) {
+	while ((ptr = (BIFSStreamInfo*)gf_list_enum(codec->streamInfo, &i))) {
 		if(ptr->ESID==ESID) return ptr;
 	}
 	return NULL;
@@ -302,7 +300,7 @@ void gf_bifs_encoder_del(GF_BifsEncoder *codec)
 	gf_list_del(codec->QPs);
 	/*destroy all config*/
 	while (gf_list_count(codec->streamInfo)) {
-		BIFSStreamInfo *p = gf_list_get(codec->streamInfo, 0);
+		BIFSStreamInfo *p = (BIFSStreamInfo*)gf_list_get(codec->streamInfo, 0);
 		bifs_info_del(p);
 		gf_list_rem(codec->streamInfo, 0);
 	}
@@ -323,8 +321,7 @@ GF_Err gf_bifs_encoder_new_stream(GF_BifsEncoder *codec, u16 ESID, GF_BIFSConfig
 		return GF_BAD_PARAM;
 	}
 	
-	pInfo = malloc(sizeof(BIFSStreamInfo));
-	memset(pInfo, 0, sizeof(BIFSStreamInfo));
+	GF_SAFEALLOC(pInfo, BIFSStreamInfo);
 	pInfo->ESID = ESID;
 	pInfo->UseName = encodeNames;
 	pInfo->config.Height = cfg->pixelHeight;
@@ -341,8 +338,8 @@ GF_Err gf_bifs_encoder_new_stream(GF_BifsEncoder *codec, u16 ESID, GF_BIFSConfig
 		count = gf_list_count(cfg->elementaryMasks);
 		for (i=0; i<count; i++) {
 			BIFSElementaryMask *bem;
-			GF_ElementaryMask *em = gf_list_get(cfg->elementaryMasks, i);
-			GF_SAFEALLOC(bem, sizeof(BIFSElementaryMask));
+			GF_ElementaryMask *em = (GF_ElementaryMask *)gf_list_get(cfg->elementaryMasks, i);
+			GF_SAFEALLOC(bem, BIFSElementaryMask);
 			if (em->node_id) bem->node = gf_sg_find_node(codec->scene_graph, em->node_id);
 			else if (em->node_name) bem->node = gf_sg_find_node_by_name(codec->scene_graph, em->node_name);
 			bem->node_id = em->node_id;
@@ -413,8 +410,8 @@ GF_Err gf_bifs_encoder_get_config(GF_BifsEncoder *codec, u16 ESID, char **out_da
 		gf_bs_write_int(bs, codec->info->config.BAnimRAP, 1);
 		count = gf_list_count(codec->info->config.elementaryMasks);
 		for (i=0; i<count; i++) {
-			BIFSElementaryMask *em = gf_list_get(codec->info->config.elementaryMasks, i);
-			if (em->node) gf_bs_write_int(bs, gf_node_get_id(em->node), codec->info->config.NodeIDBits);
+			BIFSElementaryMask *em = (BIFSElementaryMask *)gf_list_get(codec->info->config.elementaryMasks, i);
+			if (em->node) gf_bs_write_int(bs, gf_node_get_id((GF_Node*)em->node), codec->info->config.NodeIDBits);
 			else  gf_bs_write_int(bs, em->node_id, codec->info->config.NodeIDBits);
 			gf_bs_write_int(bs, (i+1==count) ? 0 : 1, 1);
 		}

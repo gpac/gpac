@@ -37,6 +37,12 @@ void InitMediaSensor(GF_InlineScene *is, GF_Node *node);
 void MS_Modified(GF_Node *node);
 void InitInline(GF_InlineScene *is, GF_Node *node);
 
+
+#ifndef GPAC_DISABLE_SVG
+void SVG_Init_animation(GF_InlineScene *is, GF_Node *node);
+void SVG_Init_use(GF_InlineScene *is, GF_Node *node);
+#endif
+
 void Destroy_WorldInfo(GF_Node *node)
 {
 	GF_InlineScene *is = gf_node_get_private(node);
@@ -93,6 +99,9 @@ void gf_term_on_node_init(void *_is, GF_Node *node)
 		gf_node_set_render_function(node, Render_SVGtitle);
 		gf_node_set_private(node, is);
 		break;
+
+	case TAG_SVG_animation:	SVG_Init_animation(is, node); break;
+	case TAG_SVG_use: SVG_Init_use(is, node); break;
 #endif
 
 	default: gf_sr_on_node_init(is->root_od->term->renderer, node); break;
@@ -118,5 +127,21 @@ void gf_term_on_node_modified(void *_is, GF_Node *node)
 	case TAG_MPEG4_InputSensor: InputSensorModified(node); break;
 	case TAG_MPEG4_Conditional: break;
 	default: gf_sr_invalidate(is->root_od->term->renderer, node); break;
+	}
+}
+
+void gf_term_node_callback(void *_is, u32 type, GF_Node *n, void *param)
+{
+	if (type==GF_SG_CALLBACK_MODIFIED) gf_term_on_node_modified(_is, n);
+	else if (type==GF_SG_CALLBACK_INIT) gf_term_on_node_init(_is, n);
+	/*get all inline nodes using this subscene and bubble up...*/
+	else if (type==GF_SG_CALLBACK_GRAPH_DIRTY) {
+		u32 i=0;
+		GF_Node *root;
+		GF_InlineScene *is = (GF_InlineScene *)_is;
+
+		while ((root=gf_list_enum(is->inline_nodes, &i))) {
+			gf_node_dirty_set(root, GF_SG_CHILD_DIRTY, 1);
+		}
 	}
 }

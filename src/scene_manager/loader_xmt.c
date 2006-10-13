@@ -188,7 +188,7 @@ static void xmt_new_od_link(GF_XMTParser *parser, GF_ObjectDescriptor *od, char 
 			return;
 		}
 	}
-	GF_SAFEALLOC(odl, sizeof(XMT_ODLink));
+	GF_SAFEALLOC(odl, XMT_ODLink);
 	odl->mf_urls = gf_list_new();
 	odl->od = od;
 	if (ID) od->objectDescriptorID = ID;
@@ -226,7 +226,7 @@ static void xmt_new_od_link_from_node(GF_XMTParser *parser, char *name, MFURL *u
 			return;
 		}
 	}
-	GF_SAFEALLOC(odl, sizeof(XMT_ODLink));
+	GF_SAFEALLOC(odl, XMT_ODLink);
 	odl->mf_urls = gf_list_new();
 	if (url) gf_list_add(odl->mf_urls, url);
 	if (ID) odl->ID = ID;
@@ -265,7 +265,7 @@ static void xmt_new_esd_link(GF_XMTParser *parser, GF_ESD *esd, char *desc_name,
 		}
 		return;
 	}
-	GF_SAFEALLOC(esdl, sizeof(XMT_ESDLink));
+	GF_SAFEALLOC(esdl, XMT_ESDLink);
 	esdl->esd = esd;
 	esd->ESID = esdl->ESID = binID;
 	if (desc_name) {
@@ -2359,7 +2359,7 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 
 	elt = xmt_parse_element(parser, (char *) name, name_space, attributes, top);
 	if (!elt) return;
-	GF_SAFEALLOC(new_top, sizeof(XMTNodeStack));
+	GF_SAFEALLOC(new_top, XMTNodeStack);
 	new_top->node = elt;
 	gf_list_add(parser->nodes, new_top);
 
@@ -2422,7 +2422,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 				gf_node_init(node);
 
 				/*create a default top for X3D*/
-				GF_SAFEALLOC(parser->x3d_root, sizeof(XMTNodeStack));
+				GF_SAFEALLOC(parser->x3d_root, XMTNodeStack);
 				parser->x3d_root->node = node;
 			}
 			/*XMT-O header*/
@@ -2720,7 +2720,7 @@ static GF_XMTParser *xmt_new_parser(GF_SceneLoader *load)
 {
 	GF_XMTParser *parser;
 	if ((load->type==GF_SM_LOAD_XSR) && !load->ctx) return NULL;
-	GF_SAFEALLOC(parser, sizeof(GF_XMTParser));
+	GF_SAFEALLOC(parser, GF_XMTParser);
 	parser->nodes = gf_list_new();
 	parser->descriptors = gf_list_new();
 	parser->od_links = gf_list_new();

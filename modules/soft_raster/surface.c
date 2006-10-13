@@ -38,7 +38,7 @@ static void get_surface_world_matrix(EVGSurface *_this, GF_Matrix2D *mat)
 GF_SURFACE evg_surface_new(GF_Raster2D *_dr, Bool center_coords)
 {
 	EVGSurface *_this;
-	GF_SAFEALLOC(_this, sizeof(EVGSurface));
+	GF_SAFEALLOC(_this, EVGSurface);
 	if (_this) {
 		_this->center_coords = center_coords;
 		_this->texture_filter = GF_TEXTURE_FILTER_DEFAULT;
@@ -84,7 +84,7 @@ GF_Err evg_surface_attach_to_callbacks(GF_SURFACE _this, GF_RasterCallback *call
 	surf->width = width;
 	surf->height = height;
 	if (surf->stencil_pix_run) free(surf->stencil_pix_run);
-	GF_SAFEALLOC(surf->stencil_pix_run , sizeof(u32) * (width+2));
+	surf->stencil_pix_run = (u32 *) malloc(sizeof(u32) * (width+2));
 
 	surf->raster_cbk = callbacks->cbk;
 	surf->raster_fill_run_alpha = callbacks->fill_run_alpha;
@@ -120,7 +120,7 @@ GF_Err evg_surface_attach_to_buffer(GF_SURFACE _this, unsigned char *pixels, u32
 	surf->stride = stride;
 	surf->width = width;
 	if (surf->stencil_pix_run) free(surf->stencil_pix_run);
-	GF_SAFEALLOC(surf->stencil_pix_run , sizeof(u32) * (width+2));
+	surf->stencil_pix_run = (u32 *) malloc(sizeof(u32) * (width+2));
 	surf->height = height;
 	surf->pixels = pixels;
 	surf->pixelFormat = pixelFormat;
@@ -163,7 +163,7 @@ GF_Err evg_surface_attach_to_texture(GF_SURFACE _this, GF_STENCIL sten)
 	}
 	surf->stride = tx->stride;
 	if (surf->stencil_pix_run) free(surf->stencil_pix_run);
-	GF_SAFEALLOC(surf->stencil_pix_run , sizeof(u32) * (tx->width+2));
+	surf->stencil_pix_run = (u32 *) malloc(sizeof(u32) * (tx->width+2));
 
 	surf->width = tx->width;
 	surf->height = tx->height;

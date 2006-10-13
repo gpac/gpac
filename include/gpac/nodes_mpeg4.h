@@ -24,9 +24,9 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Thu Apr 27 17:00:33 2006
+	DO NOT MOFIFY - File generated on GMT Fri Sep 15 09:04:18 2006
 
-	BY MPEG4Gen for GPAC Version 0.4.1-DEV
+	BY MPEG4Gen for GPAC Version 0.4.3-DEV
 */
 
 #ifndef _nodes_mpeg4_H

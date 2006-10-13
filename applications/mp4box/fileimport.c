@@ -358,7 +358,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 	if (!stricmp(ext, ".3gp") || !stricmp(ext, ".3g2")) conv_type = 2;
 
 	count = gf_isom_get_track_count(mp4);
-	GF_SAFEALLOC(tks, sizeof(TKInfo)*count);
+	tks = (TKInfo *)malloc(sizeof(TKInfo)*count);
+	memset(tks, 0, sizeof(TKInfo)*count);
 
 	e = GF_OK;
 	max_dur = 0;

@@ -152,6 +152,8 @@ static void Osmo4_progress_cbk(void *usr, char *title, u32 done, u32 total)
 	}
 }
 
+#define W32_MIN_WIDTH 120
+
 static log_msg(char *msg)
 {
 	::MessageBox(NULL, msg, "GPAC", MB_OK);
@@ -219,9 +221,13 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 	case GF_EVT_SCENE_SIZE:
 		gpac->orig_width = evt->size.width;
 		gpac->orig_height = evt->size.height;
-	case GF_EVT_SIZE:
 		if (gpac->m_term && !pFrame->m_bFullScreen) 
 			pFrame->PostMessage(WM_SETSIZE, evt->size.width, evt->size.height);
+		break;
+	/*don't resize on win32 msg notif*/
+	case GF_EVT_SIZE:
+		if (gpac->m_term && !pFrame->m_bFullScreen && gpac->orig_width && (evt->size.width < W32_MIN_WIDTH) ) 
+			pFrame->PostMessage(WM_SETSIZE, W32_MIN_WIDTH, (W32_MIN_WIDTH*gpac->orig_height) / gpac->orig_width);
 		break;
 
 	case GF_EVT_CONNECT:
@@ -468,11 +474,11 @@ BOOL WinGPAC::InitInstance()
 	if (m_SingleInstance) static_gpac_hwnd = m_pMainWnd->m_hWnd;
 
 	const char *str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
-	m_user.modules = gf_modules_new((const unsigned char *) str, m_user.config);
+	m_user.modules = gf_modules_new(str, m_user.config);
 	if (!m_user.modules) {
 		const char *sOpt;
 		/*inital launch*/
-		m_user.modules = gf_modules_new((const unsigned char *) szAppPath, m_user.config);
+		m_user.modules = gf_modules_new(szAppPath, m_user.config);
 		if (m_user.modules) {
 			unsigned char str_path[MAX_PATH];
 			gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) szAppPath);

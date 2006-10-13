@@ -115,7 +115,7 @@ void gf_mm_add_codec(GF_MediaManager *mgr, GF_Codec *codec)
 	cd = mm_get_codec(mgr->unthreaded_codecs, codec);
 	if (cd) goto exit;
 
-	GF_SAFEALLOC(cd, sizeof(CodecEntry));
+	GF_SAFEALLOC(cd, CodecEntry);
 	cd->dec = codec;
 	cd->mm = mgr;
 
@@ -418,12 +418,12 @@ void gf_mm_stop_codec(GF_Codec *codec)
 	if (ce->mx) gf_mx_p(ce->mx);
 	else gf_mx_p(mgr->mx);
 	
-	if (codec->decio && codec->odm->mo && (codec->odm->mo->mo_flags & GF_MO_DISPLAY_REMOVE) ) {
+	if (codec->decio && codec->odm->mo && (codec->odm->mo->flags & GF_MO_DISPLAY_REMOVE) ) {
 		GF_CodecCapability cap;
 		cap.CapCode = GF_CODEC_SHOW_SCENE;
 		cap.cap.valueInt = 0;
 		gf_codec_set_capability(codec, cap);
-		codec->odm->mo->mo_flags &= ~GF_MO_DISPLAY_REMOVE;
+		codec->odm->mo->flags &= ~GF_MO_DISPLAY_REMOVE;
 	}
 
 	/*set status directly and don't touch CB state*/

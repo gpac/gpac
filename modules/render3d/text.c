@@ -181,7 +181,7 @@ Bool TextLine_TextureIsReady(CachedTextLine *tl)
 		return 0;
 	}
 
-	GF_SAFEALLOC(tl->tx_data, sizeof(char)*tl->tx_width*tl->tx_height*4);
+	tl->tx_data = (char *) malloc(sizeof(char)*tl->tx_width*tl->tx_height*4);
 	/*FIXME - make it work with alphagrey...*/
 	e = r2d->stencil_set_texture(texture2D, tl->tx_data, tl->tx_width, tl->tx_height, 4*tl->tx_width, GF_PIXEL_ARGB, GF_PIXEL_ARGB, 1);
 	if (!e) e = r2d->surface_attach_to_texture(surf, texture2D);
@@ -1012,7 +1012,7 @@ static Bool TextIntersectWithRay(GF_Node *owner, GF_Ray *ray, SFVec3f *outPoint)
 void R3D_InitText(Render3D *sr, GF_Node *node)
 {
 	TextStack *stack;
-	GF_SAFEALLOC(stack, sizeof(TextStack));
+	GF_SAFEALLOC(stack, TextStack);
 	stack2D_setup((stack2D *)stack, sr->compositor, node);
 	/*override all funct*/
 	stack->ascent = stack->descent = 0;

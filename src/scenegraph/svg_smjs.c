@@ -90,8 +90,8 @@ static void svg_node_changed(GF_Node *n, GF_FieldInfo *info)
 		}
 	}
 	/*trigger rendering*/
-	if (n->sgprivate->scenegraph->NodeModified)
-		n->sgprivate->scenegraph->NodeModified(n->sgprivate->scenegraph->ModifCallback, NULL);
+	if (n->sgprivate->scenegraph->NodeCallback)
+		n->sgprivate->scenegraph->NodeCallback(n->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_MODIFIED, n, info);
 }
 
 
@@ -930,7 +930,7 @@ static JSBool udom_get_rect_trait(JSContext *c, JSObject *obj, uintN argc, jsval
 		rectCI *rc;
 		SVG_ViewBox *v = (SVG_ViewBox *)info.far_ptr;
 		newObj = JS_NewObject(c, &rectClass, 0, 0);
-		GF_SAFEALLOC(rc, sizeof(rectCI));
+		GF_SAFEALLOC(rc, rectCI);
 		rc->x = FIX2FLT(v->x);
 		rc->y = FIX2FLT(v->y);
 		rc->w = FIX2FLT(v->width);
@@ -986,7 +986,7 @@ static JSBool udom_get_rgb_color_trait(JSContext *c, JSObject *obj, uintN argc, 
 		if (col->type == SVG_COLOR_CURRENTCOLOR) return JS_FALSE;
 		if (col->type == SVG_COLOR_INHERIT) return JS_FALSE;
 		newObj = JS_NewObject(c, &rgbClass, 0, 0);
-		GF_SAFEALLOC(rgb, sizeof(rgbCI));
+		GF_SAFEALLOC(rgb, rgbCI);
 		rgb->r = (u8) (255*FIX2FLT(col->red)) ;
 		rgb->g = (u8) (255*FIX2FLT(col->green)) ;
 		rgb->b = (u8) (255*FIX2FLT(col->blue)) ;
@@ -1000,7 +1000,7 @@ static JSBool udom_get_rgb_color_trait(JSContext *c, JSObject *obj, uintN argc, 
 		SVG_Paint *paint = (SVG_Paint *)info.far_ptr;
 		if (1 || paint->type==SVG_PAINT_COLOR) {
 			newObj = JS_NewObject(c, &rgbClass, 0, 0);
-			GF_SAFEALLOC(rgb, sizeof(rgbCI));
+			GF_SAFEALLOC(rgb, rgbCI);
 			rgb->r = (u8) (255*FIX2FLT(paint->color.red) );
 			rgb->g = (u8) (255*FIX2FLT(paint->color.green) );
 			rgb->b = (u8) (255*FIX2FLT(paint->color.blue) );
@@ -1372,7 +1372,7 @@ static JSBool svg_create_svg_matrix_components(JSContext *c, JSObject *obj, uint
 	jsdouble v;
 	if (!JS_InstanceOf(c, obj, &svgClass, NULL) ) return JS_FALSE;
 	if (argc!=6) return JS_FALSE;
-	GF_SAFEALLOC(mx, sizeof(GF_Matrix2D));
+	GF_SAFEALLOC(mx, GF_Matrix2D)
 	JS_ValueToNumber(c, argv[0], &v);
 	mx->m[0] = FLT2FIX(v);
 	JS_ValueToNumber(c, argv[1], &v);
@@ -1396,7 +1396,7 @@ static JSBool svg_create_svg_rect(JSContext *c, JSObject *obj, uintN argc, jsval
 	JSObject *r;
 	if (!JS_InstanceOf(c, obj, &svgClass, NULL) ) return JS_FALSE;
 	if (argc) return JS_FALSE;
-	GF_SAFEALLOC(rc, sizeof(rectCI));
+	GF_SAFEALLOC(rc, rectCI);
 	r = JS_NewObject(c, &rectClass, 0, 0);
 	JS_SetPrivate(c, r, rc);
 	*rval = OBJECT_TO_JSVAL(r);
@@ -1408,7 +1408,7 @@ static JSBool svg_create_svg_path(JSContext *c, JSObject *obj, uintN argc, jsval
 	JSObject *p;
 	if (!JS_InstanceOf(c, obj, &svgClass, NULL) ) return JS_FALSE;
 	if (argc) return JS_FALSE;
-	GF_SAFEALLOC(path, sizeof(pathCI));
+	GF_SAFEALLOC(path, pathCI);
 	p = JS_NewObject(c, &pathClass, 0, 0);
 	JS_SetPrivate(c, p, path);
 	*rval = OBJECT_TO_JSVAL(p);
@@ -1420,7 +1420,7 @@ static JSBool svg_create_svg_color(JSContext *c, JSObject *obj, uintN argc, jsva
 	JSObject *p;
 	if (!JS_InstanceOf(c, obj, &svgClass, NULL) ) return JS_FALSE;
 	if (argc!=3) return JS_FALSE;
-	GF_SAFEALLOC(col, sizeof(rgbCI));
+	GF_SAFEALLOC(col, rgbCI);
 	col->r = JSVAL_TO_INT(argv[0]);
 	col->g = JSVAL_TO_INT(argv[1]);
 	col->b = JSVAL_TO_INT(argv[2]);
@@ -2023,7 +2023,7 @@ static void baseCI_finalize(JSContext *c, JSObject *obj)
 static JSBool rgb_constructor(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	rgbCI *p;
-	GF_SAFEALLOC(p, sizeof(rgbCI));
+	GF_SAFEALLOC(p, rgbCI);
 	JS_SetPrivate(c, obj, p);
 	*rval = OBJECT_TO_JSVAL(obj);
 	return JS_TRUE;
@@ -2070,7 +2070,7 @@ static JSPropertySpec rgbClassProps[] = {
 static JSBool rect_constructor(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	rectCI *p;
-	GF_SAFEALLOC(p, sizeof(rectCI));
+	GF_SAFEALLOC(p, rectCI);
 	JS_SetPrivate(c, obj, p);
 	*rval = OBJECT_TO_JSVAL(obj);
 	return JS_TRUE;
@@ -2131,7 +2131,7 @@ static JSPropertySpec rectClassProps[] = {
 static JSBool point_constructor(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	pointCI *p;
-	GF_SAFEALLOC(p, sizeof(pointCI));
+	GF_SAFEALLOC(p, pointCI);
 	JS_SetPrivate(c, obj, p);
 	*rval = OBJECT_TO_JSVAL(obj);
 	return JS_TRUE;
@@ -2191,7 +2191,7 @@ static JSObject *svg_new_path_object(JSContext *c, SVG_PathData *d)
 {
 	JSObject *obj;
 	pathCI *p;
-	GF_SAFEALLOC(p, sizeof(pathCI));
+	GF_SAFEALLOC(p, pathCI);
 	if (d) {
 		u32 i, count;
 		p->nb_coms = gf_list_count(d->commands);
@@ -2213,7 +2213,7 @@ static JSObject *svg_new_path_object(JSContext *c, SVG_PathData *d)
 static JSBool pathCI_constructor(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	pathCI *p;
-	GF_SAFEALLOC(p, sizeof(pathCI));
+	GF_SAFEALLOC(p, pathCI);
 	JS_SetPrivate(c, obj, p);
 	*rval = OBJECT_TO_JSVAL(obj);
 	return JS_TRUE;
@@ -2691,7 +2691,7 @@ static void svg_node_destroy(GF_SceneGraph *sg, GF_Node *n)
 static GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 {
 	GF_SVGJS *svg_js;
-	GF_SAFEALLOC(svg_js, sizeof(GF_SVGJS));
+	GF_SAFEALLOC(svg_js, GF_SVGJS);
 	/*create new ecmascript context*/
 	svg_js->js_ctx = gf_sg_ecmascript_new();
 	if (!svg_js->js_ctx) {
@@ -2733,8 +2733,6 @@ void JSScript_LoadSVG(GF_Node *node)
 	}
 	return;
 }
-extern u32 script_execution_nb;
-extern u32 script_execution_time;
 
 Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 {
@@ -2751,11 +2749,7 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, event);
 
 	{
-		u32 before = gf_sys_clock();
 		ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, handler->textContent, strlen(handler->textContent), 0, 0, &rval);
-		script_execution_time += gf_sys_clock() - before;
-		script_execution_nb ++;
-		fprintf(stderr,"Script exec: %d\r", script_execution_nb);
 	}
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, prev_event);
 

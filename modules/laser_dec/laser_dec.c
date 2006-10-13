@@ -130,9 +130,9 @@ GF_BaseDecoder *NewLSRDec()
 	LSRPriv *priv;
 	GF_SceneDecoder *tmp;
 	
-	GF_SAFEALLOC(tmp, sizeof(GF_SceneDecoder));
+	GF_SAFEALLOC(tmp, GF_SceneDecoder);
 	if (!tmp) return NULL;
-	GF_SAFEALLOC(priv, sizeof(LSRPriv));
+	GF_SAFEALLOC(priv, LSRPriv);
 	priv->codec = NULL;
 	tmp->privateStack = priv;
 	tmp->AttachStream = LSR_AttachStream;

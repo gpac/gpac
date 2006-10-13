@@ -250,18 +250,29 @@ void gf_sg_del(GF_SceneGraph *sg);
 /*reset the full graph - all nodes, routes and protos are destroyed*/
 void gf_sg_reset(GF_SceneGraph *sg);
 
-/*set the scene timer (fct returns time in sec)*/
-void gf_sg_set_scene_time_callback(GF_SceneGraph *scene, Double (*GetSceneTime)(void *SceneCallback), void *SceneCallback);
-/*set node init callback: function called upon node creation. 
-Application should instanciate the node rendering stack and any desired callback*/
-void gf_sg_set_init_callback(GF_SceneGraph *sg, void (*UserNodeInit)(void *NodeInitCallback, GF_Node *newNode), void *NodeInitCallback);
-/*set node modified callback: any modification on nodes can be notified so that an application 
-can decide whether the scene must be redrawned or not. You typically will set the dirty flags here*/
-void gf_sg_set_modified_callback(GF_SceneGraph *sg, void (*UserNodeModified)(void *NodeModifiedCallback, GF_Node *newNode), void *NodeModifiedCallback);
-
 /*set/get user private data*/
 void gf_sg_set_private(GF_SceneGraph *sg, void *user_priv);
 void *gf_sg_get_private(GF_SceneGraph *sg);
+
+/*set the scene timer (fct returns time in sec)*/
+void gf_sg_set_scene_time_callback(GF_SceneGraph *scene, Double (*GetSceneTime)(void *user_priv) );
+
+enum
+{
+	/*function called upon node creation. 
+		ctxdata is not used*/
+	GF_SG_CALLBACK_INIT = 0,
+	/*function called upon node modification. You typically will set some of the dirty flags here.
+		ctxdata is the fieldInfo pointer of the modified field*/
+	GF_SG_CALLBACK_MODIFIED,
+	/*function called when the a "set dirty" propagates to root node of the graph
+		ctxdata is not used*/
+	GF_SG_CALLBACK_GRAPH_DIRTY,
+};
+
+/*set node callback: function called upon node creation. 
+Application should instanciate the node rendering stack and any desired callback*/
+void gf_sg_set_node_callback(GF_SceneGraph *sg, void (*NodeCallback)(void *user_priv, u32 type, GF_Node *node, void *ctxdata) );
 
 /*get/set the root node of the graph*/
 GF_Node *gf_sg_get_root_node(GF_SceneGraph *sg);

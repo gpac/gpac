@@ -49,7 +49,7 @@ GF_Err gppa_Read(GF_Box *s, GF_BitStream *bs)
 GF_Box *gppa_New(u32 type)
 {
 	GF_3GPPAudioSampleEntryBox *tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_3GPPAudioSampleEntryBox));
+	GF_SAFEALLOC(tmp, GF_3GPPAudioSampleEntryBox);
 	if (tmp == NULL) return NULL;
 	gf_isom_audio_sample_entry_init((GF_AudioSampleEntryBox*)tmp);
 	tmp->type = type;
@@ -89,7 +89,7 @@ GF_Err gppa_Size(GF_Box *s)
 GF_Box *gppv_New(u32 type)
 {
 	GF_3GPPVisualSampleEntryBox *tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_3GPPVisualSampleEntryBox));
+	GF_SAFEALLOC(tmp, GF_3GPPVisualSampleEntryBox);
 	if (tmp == NULL) return NULL;
 	gf_isom_video_sample_entry_init((GF_VisualSampleEntryBox *)tmp);
 	tmp->type = type;
@@ -254,7 +254,7 @@ GF_Err gppc_Size(GF_Box *s)
 GF_Box *ftab_New()
 {
 	GF_FontTableBox *tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_FontTableBox));
+	GF_SAFEALLOC(tmp, GF_FontTableBox);
 	if (!tmp) return NULL;
 	tmp->type = GF_ISOM_BOX_TYPE_FTAB;
 	return (GF_Box *) tmp;
@@ -275,14 +275,15 @@ GF_Err ftab_Read(GF_Box *s, GF_BitStream *bs)
 	u32 i;
 	GF_FontTableBox *ptr = (GF_FontTableBox *)s;
 	ptr->entry_count = gf_bs_read_u16(bs);
-	GF_SAFEALLOC(ptr->fonts, sizeof(GF_FontRecord)*ptr->entry_count);
+	ptr->fonts = (GF_FontRecord *) malloc(sizeof(GF_FontRecord)*ptr->entry_count);
 	for (i=0; i<ptr->entry_count; i++) {
 		u32 len;
 		ptr->fonts[i].fontID = gf_bs_read_u16(bs);
 		len = gf_bs_read_u8(bs);
 		if (len) {
-			GF_SAFEALLOC(ptr->fonts[i].fontName, sizeof(char)*(len+1));
+			ptr->fonts[i].fontName = (char *)malloc(sizeof(char)*(len+1));
 			gf_bs_read_data(bs, ptr->fonts[i].fontName, len);
+			ptr->fonts[i].fontName[len] = 0;
 		}
 	}
 	return GF_OK;
@@ -331,7 +332,7 @@ GF_Err ftab_Size(GF_Box *s)
 GF_Box *tx3g_New()
 {
 	GF_TextSampleEntryBox *tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_TextSampleEntryBox));
+	GF_SAFEALLOC(tmp, GF_TextSampleEntryBox);
 	if (!tmp) return NULL;
 	tmp->type = GF_ISOM_BOX_TYPE_TX3G;
 	return (GF_Box *) tmp;
@@ -480,7 +481,7 @@ GF_Err tx3g_Size(GF_Box *s)
 GF_Box *styl_New()
 {
 	GF_TextStyleBox *tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_TextStyleBox));
+	GF_SAFEALLOC(tmp, GF_TextStyleBox);
 	if (!tmp) return NULL;
 	tmp->type = GF_ISOM_BOX_TYPE_STYL;
 	return (GF_Box *) tmp;
@@ -499,7 +500,7 @@ GF_Err styl_Read(GF_Box *s, GF_BitStream *bs)
 	GF_TextStyleBox*ptr = (GF_TextStyleBox*)s;
 	ptr->entry_count = gf_bs_read_u16(bs);
 	if (ptr->entry_count) {
-		GF_SAFEALLOC(ptr->styles, sizeof(GF_StyleRecord)*ptr->entry_count);
+		ptr->styles = (GF_StyleRecord*)malloc(sizeof(GF_StyleRecord)*ptr->entry_count);
 		for (i=0; i<ptr->entry_count; i++) {
 			gpp_read_style(bs, &ptr->styles[i]);
 		}
@@ -534,7 +535,7 @@ GF_Err styl_Size(GF_Box *s)
 GF_Box *hlit_New()
 {
 	GF_TextHighlightBox *tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_TextHighlightBox));
+	GF_SAFEALLOC(tmp, GF_TextHighlightBox);
 	if (!tmp) return NULL;
 	tmp->type = GF_ISOM_BOX_TYPE_HLIT;
 	return (GF_Box *) tmp;
@@ -578,7 +579,7 @@ GF_Err hlit_Size(GF_Box *s)
 GF_Box *hclr_New()
 {
 	GF_TextHighlightColorBox*tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_TextHighlightColorBox));
+	GF_SAFEALLOC(tmp, GF_TextHighlightColorBox);
 	if (!tmp) return NULL;
 	tmp->type = GF_ISOM_BOX_TYPE_HCLR;
 	return (GF_Box *) tmp;
@@ -620,7 +621,7 @@ GF_Err hclr_Size(GF_Box *s)
 GF_Box *krok_New()
 {
 	GF_TextKaraokeBox*tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_TextKaraokeBox));
+	GF_SAFEALLOC(tmp, GF_TextKaraokeBox);
 	if (!tmp) return NULL;
 	tmp->type = GF_ISOM_BOX_TYPE_KROK;
 	return (GF_Box *) tmp;
@@ -641,7 +642,7 @@ GF_Err krok_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->entrycount = gf_bs_read_u16(bs);
 	if (ptr->entrycount) {
 		u32 i;
-		GF_SAFEALLOC(ptr->records, sizeof(KaraokeRecord)*ptr->entrycount);
+		ptr->records = (KaraokeRecord*)malloc(sizeof(KaraokeRecord)*ptr->entrycount);
 		for (i=0; i<ptr->entrycount; i++) {
 			ptr->records[i].highlight_endtime = gf_bs_read_u32(bs);
 			ptr->records[i].start_charoffset = gf_bs_read_u16(bs);
@@ -684,7 +685,7 @@ GF_Err krok_Size(GF_Box *s)
 GF_Box *dlay_New()
 {
 	GF_TextScrollDelayBox*tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_TextScrollDelayBox));
+	GF_SAFEALLOC(tmp, GF_TextScrollDelayBox);
 	if (!tmp) return NULL;
 	tmp->type = GF_ISOM_BOX_TYPE_DLAY;
 	return (GF_Box *) tmp;
@@ -726,7 +727,7 @@ GF_Err dlay_Size(GF_Box *s)
 GF_Box *href_New()
 {
 	GF_TextHyperTextBox*tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_TextHyperTextBox));
+	GF_SAFEALLOC(tmp, GF_TextHyperTextBox);
 	if (!tmp) return NULL;
 	tmp->type = GF_ISOM_BOX_TYPE_HREF;
 	return (GF_Box *) tmp;
@@ -748,13 +749,15 @@ GF_Err href_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->endcharoffset = gf_bs_read_u16(bs);
 	len = gf_bs_read_u8(bs);
 	if (len) {
-		GF_SAFEALLOC(ptr->URL, sizeof(char) * (len+1));
+		ptr->URL = (char *) malloc(sizeof(char) * (len+1));
 		gf_bs_read_data(bs, ptr->URL, len);
+		ptr->URL[len] = 0;
 	}
 	len = gf_bs_read_u8(bs);
 	if (len) {
-		GF_SAFEALLOC(ptr->URL_hint, sizeof(char) * (len+1));
+		ptr->URL_hint = (char *) malloc(sizeof(char) * (len+1));
 		gf_bs_read_data(bs, ptr->URL_hint, len);
+		ptr->URL_hint[len]= 0;
 	}
 	return GF_OK;
 }
@@ -804,7 +807,7 @@ GF_Err href_Size(GF_Box *s)
 GF_Box *tbox_New()
 {
 	GF_TextBoxBox*tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_TextBoxBox));
+	GF_SAFEALLOC(tmp, GF_TextBoxBox);
 	if (!tmp) return NULL;
 	tmp->type = GF_ISOM_BOX_TYPE_TBOX;
 	return (GF_Box *) tmp;
@@ -847,7 +850,7 @@ GF_Err tbox_Size(GF_Box *s)
 GF_Box *blnk_New()
 {
 	GF_TextBlinkBox*tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_TextBlinkBox));
+	GF_SAFEALLOC(tmp, GF_TextBlinkBox);
 	if (!tmp) return NULL;
 	tmp->type = GF_ISOM_BOX_TYPE_BLNK;
 	return (GF_Box *) tmp;
@@ -891,7 +894,7 @@ GF_Err blnk_Size(GF_Box *s)
 GF_Box *twrp_New()
 {
 	GF_TextWrapBox*tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_TextWrapBox));
+	GF_SAFEALLOC(tmp, GF_TextWrapBox);
 	if (!tmp) return NULL;
 	tmp->type = GF_ISOM_BOX_TYPE_TWRP;
 	return (GF_Box *) tmp;

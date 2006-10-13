@@ -31,8 +31,7 @@
 GF_RTPChannel *gf_rtp_new()
 {
 	GF_RTPChannel *tmp;
-	tmp = malloc(sizeof(GF_RTPChannel));
-	memset(tmp, 0, sizeof(GF_RTPChannel));
+	GF_SAFEALLOC(tmp, GF_RTPChannel);
 	tmp->first_SR = 1;
 	tmp->SSRC = gf_rand();
 	
@@ -87,6 +86,8 @@ GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, c
 	} else {
 		ch->net_info.source = strdup(remote_address);
 	}
+	if (trans_info->SSRC) ch->SenderSSRC = trans_info->SSRC;
+
 	//check we REALLY have unicast or multicast
 	if (gf_sk_is_multicast_address(ch->net_info.source) && ch->net_info.IsUnicast) return GF_SERVICE_ERROR;
 	return GF_OK;
@@ -99,7 +100,7 @@ void gf_rtp_reset_buffers(GF_RTPChannel *ch)
 	if (ch->rtcp) gf_sk_reset(ch->rtcp);
 	if (ch->po) gf_rtp_reorderer_reset(ch->po);
 	/*also reset ssrc*/
-	ch->SenderSSRC = 0;
+	//ch->SenderSSRC = 0;
 	ch->first_SR = 1;
 }
 
@@ -114,7 +115,7 @@ GF_Err gf_rtp_set_info_rtp(GF_RTPChannel *ch, u32 seq_num, u32 rtp_time, u32 ssr
 	//reset RTCP
 	ch->ntp_init = 0;
 	ch->first_SR = 1;
-	ch->SenderSSRC = ssrc;
+	if (ssrc) ch->SenderSSRC = ssrc;
 	ch->total_pck = ch->total_bytes = ch->last_num_pck_rcv = ch->last_num_pck_expected = ch->last_num_pck_loss = ch->tot_num_pck_rcv = ch->tot_num_pck_expected = ch->rtcp_bytes_sent = 0;
 	return GF_OK;
 }
@@ -173,7 +174,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 
 		if (IsSource) {
 			if (ch->send_buffer) free(ch->send_buffer);
-			ch->send_buffer = malloc(sizeof(char) * PathMTU);
+			ch->send_buffer = (char *) malloc(sizeof(char) * PathMTU);
 			ch->send_buffer_size = PathMTU;
 		}
 		
@@ -269,7 +270,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 	//only if the socket exist (otherwise RTSP interleaved channel)
 	if (!ch || !ch->rtp) return 0;
 
-	e = gf_sk_receive(ch->rtp, buffer, buffer_size, 0, &res);
+	e = gf_sk_receive(ch->rtp, (unsigned char *)buffer, buffer_size, 0, &res);
 	if (!res || e || (res < 12)) res = 0;
 
 	//add the packet to our Queue if any
@@ -280,7 +281,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 		}
 
 		//pck queue may need to be flushed
-		pck = gf_rtp_reorderer_get(ch->po, &res);
+		pck = (char *) gf_rtp_reorderer_get(ch->po, &res);
 		if (pck) {
 			memcpy(buffer, pck, res);
 			free(pck);
@@ -439,7 +440,7 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *extra_
 	//we don't support multiple CSRC now. Only one source (the server) is allowed
 	if (rtp_hdr->CSRCCount) return GF_NOT_SUPPORTED;
 
-	bs = gf_bs_new(ch->send_buffer, ch->send_buffer_size, GF_BITSTREAM_WRITE);
+	bs = gf_bs_new((unsigned char *)ch->send_buffer, ch->send_buffer_size, GF_BITSTREAM_WRITE);
 	
 	//write header
 	gf_bs_write_int(bs, rtp_hdr->Version, 2);
@@ -466,7 +467,7 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *extra_
 	}
 	//payload
 	memcpy(ch->send_buffer + Start, pck, pck_size);
-	e = gf_sk_send(ch->rtp, ch->send_buffer, Start + pck_size);
+	e = gf_sk_send(ch->rtp, (unsigned char *)ch->send_buffer, Start + pck_size);
 	if (e) return e;
 
 	//Update RTCP for sender reports
@@ -565,7 +566,6 @@ GF_Err gf_rtp_setup_payload(GF_RTPChannel *ch, GF_RTPMap *map)
 {
 	if (!ch || !map) return GF_BAD_PARAM;
 	ch->PayloadType = map->PayloadType;
-	strcpy(ch->PayloadName, map->payload_name ? map->payload_name : "");
 	ch->TimeScale = map->ClockRate;
 	return GF_OK;
 }
@@ -622,8 +622,7 @@ GF_RTPReorder *gf_rtp_reorderer_new(u32 MaxCount, u32 MaxDelay)
 	
 	if (MaxCount <= 1 || !MaxDelay) return NULL;
 
-	tmp = malloc(sizeof(GF_RTPReorder));
-	memset(tmp, 0, sizeof(GF_RTPReorder));
+	GF_SAFEALLOC(tmp , GF_RTPReorder);
 	tmp->MaxCount = MaxCount;
 	tmp->MaxDelay = MaxDelay;
 	return tmp;
@@ -663,7 +662,7 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, void *pck, u32 pck_size, u32 pck_
 
 	if (!po) return GF_BAD_PARAM;
 
-	it = malloc(sizeof(GF_POItem));
+	it = (GF_POItem *) malloc(sizeof(GF_POItem));
 	it->pck_seq_num = pck_seqnum;
 	it->next = NULL;
 	it->size = pck_size;
@@ -807,6 +806,7 @@ check_timeout:
 
 
 send_it:
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Fetching %d\n", po->in->pck_seq_num));
 	*pck_size = po->in->size;
 	t = po->in;
 	po->in = po->in->next;
@@ -816,6 +816,5 @@ send_it:
 	//release the item
 	ret = t->pck;
 	free(t);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[rtp] Packet Reorderer: Fetching %d\n", po->in->pck_seq_num));
 	return ret;
 }

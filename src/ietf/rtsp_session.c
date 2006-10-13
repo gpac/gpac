@@ -120,8 +120,7 @@ GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort)
 	e = RTSP_UnpackURL(sURL, server, &Port, service, &UseTCP);
 	if (e) return NULL;
 
-	sess = malloc(sizeof(GF_RTSPSession));
-	memset(sess, 0, sizeof(GF_RTSPSession));
+	GF_SAFEALLOC(sess, GF_RTSPSession);
 
 	sess->ConnectionType = UseTCP ? GF_SOCK_TYPE_TCP : GF_SOCK_TYPE_UDP;
 	if (Port) sess->Port = Port;
@@ -166,7 +165,7 @@ void RemoveTCPChannels(GF_RTSPSession *sess)
 {
 	GF_TCPChan *ch;
 	while (gf_list_count(sess->TCPChannels)) {
-		ch = gf_list_get(sess->TCPChannels, 0);
+		ch = (GF_TCPChan*)gf_list_get(sess->TCPChannels, 0);
 		free(ch);
 		gf_list_rem(sess->TCPChannels, 0);
 	}
@@ -311,7 +310,7 @@ GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, unsigned char *buffer, u32 Size)
 
 	//RTSP requests on HTTP are base 64 encoded
 	if (sess->HasTunnel) {
-		char buf64[3000];
+		unsigned char buf64[3000];
 		Size64 = gf_base64_encode(buffer, Size, buf64, 3000);
 		buf64[Size64] = 0;
 		//send on http connection
@@ -328,7 +327,7 @@ static GF_TCPChan *GetTCPChannel(GF_RTSPSession *sess, u8 rtpID, u8 rtcpID, Bool
 	GF_TCPChan *ptr;
 	u32 i, count = gf_list_count(sess->TCPChannels);
 	for (i=0; i<count; i++) {
-		ptr = gf_list_get(sess->TCPChannels, i);
+		ptr = (GF_TCPChan *)gf_list_get(sess->TCPChannels, i);
 		if (ptr->rtpID == rtpID) goto exit;;
 		if (ptr->rtcpID == rtcpID) goto exit;
 	}
@@ -390,7 +389,7 @@ GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess)
 			sess->payloadSize = paySize;
 			sess->pck_start = Size-4;
 			if (sess->rtsp_pck_size < paySize) {
-				sess->rtsp_pck_buf = realloc(sess->rtsp_pck_buf, paySize);
+				sess->rtsp_pck_buf = (char *)realloc(sess->rtsp_pck_buf, sizeof(char)*paySize);
 				sess->rtsp_pck_size = paySize;
 			}
 			memcpy(sess->rtsp_pck_buf, buffer+4, Size-4);
@@ -493,7 +492,7 @@ GF_Err gf_rtsp_register_interleave(GF_RTSPSession *sess, void *the_ch, u8 LowInt
 	//do NOT register twice
 	ptr = GetTCPChannel(sess, LowInterID, HighInterID, 0);
 	if (!ptr) {
-		ptr = malloc(sizeof(GF_TCPChan));
+		ptr = (GF_TCPChan *)malloc(sizeof(GF_TCPChan));
 		ptr->ch_ptr = the_ch;
 		ptr->rtpID = LowInterID;
 		ptr->rtcpID = HighInterID;
@@ -518,10 +517,10 @@ GF_Err gf_rtsp_set_interleave_callback(GF_RTSPSession *sess,
 	//realloc or alloc
 	if (sess->rtsp_pck_buf && sess->rtsp_pck_size != RTSP_PCK_SIZE) {
 		sess->rtsp_pck_size = RTSP_PCK_SIZE;
-		sess->rtsp_pck_buf = realloc(sess->rtsp_pck_buf, sess->rtsp_pck_size);
+		sess->rtsp_pck_buf = (char *)realloc(sess->rtsp_pck_buf, sizeof(char)*sess->rtsp_pck_size);
 	} else if (!sess->rtsp_pck_buf) {
 		sess->rtsp_pck_size = RTSP_PCK_SIZE;
-		sess->rtsp_pck_buf = realloc(sess->rtsp_pck_buf, sess->rtsp_pck_size);
+		sess->rtsp_pck_buf = (char *)realloc(sess->rtsp_pck_buf, sizeof(char)*sess->rtsp_pck_size);
 		sess->pck_start = 0;
 	}
 	gf_mx_v(sess->mx);
@@ -587,11 +586,11 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 	pos += sprintf(buffer + pos, "Cache-Control: no-cache\r\n\r\n" );	
 	
 	//	send it!
-	e = gf_sk_send_wait(sess->connection, buffer, strlen(buffer), HTTP_WAIT_SEC);
+	e = gf_sk_send_wait(sess->connection, (unsigned char *)buffer, strlen(buffer), HTTP_WAIT_SEC);
 	if (e) return e;
 	
 	//	2. wait for "HTTP/1.0 200 OK"
-	e = gf_sk_receive_wait(sess->connection, buffer, GF_RTSP_DEFAULT_BUFFER, 0, &size, HTTP_WAIT_SEC);
+	e = gf_sk_receive_wait(sess->connection, (unsigned char *)buffer, GF_RTSP_DEFAULT_BUFFER, 0, &size, HTTP_WAIT_SEC);
 	if (e) return e;
 	
 	//get HTTP/1.0 200 OK
@@ -615,7 +614,7 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 	pos += sprintf(buffer + pos, "Expires: Sun. 9 Jan 1972 00:00:00 GMT\r\n\r\n");
  
 	//	send it!
-	e = gf_sk_send_wait(sess->http, buffer, strlen(buffer), HTTP_WAIT_SEC);
+	e = gf_sk_send_wait(sess->http, (unsigned char *)buffer, strlen(buffer), HTTP_WAIT_SEC);
 	
 	return e;
 }
@@ -658,8 +657,7 @@ GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener)
 	}
 	
 	//OK create a new session
-	sess = malloc(sizeof(GF_RTSPSession));
-	memset(sess, 0, sizeof(GF_RTSPSession));
+	GF_SAFEALLOC(sess, GF_RTSPSession);
 
 	sess->connection = new_conn;
 	sess->Port = port;
@@ -741,7 +739,7 @@ u8 gf_rtsp_get_next_interleave_id(GF_RTSPSession *sess)
 	GF_TCPChan *ch;
 	id = 0;
 	i=0;
-	while ((ch = gf_list_enum(sess->TCPChannels, &i))) {
+	while ((ch = (GF_TCPChan *)gf_list_enum(sess->TCPChannels, &i))) {
 		if (ch->rtpID >= id) id = ch->rtpID + 1;
 		if (ch->rtcpID >= id) id = ch->rtcpID + 1;
 	}

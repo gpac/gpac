@@ -296,7 +296,7 @@ next_line:
 				sep = strchr(buf, ' ');
 				if (sep && (sep[1]!='\n') ) {
 					BTDefSymbol *def;
-					GF_SAFEALLOC(def, sizeof(BTDefSymbol));
+					GF_SAFEALLOC(def, BTDefSymbol);
 					sep[0] = 0;
 					def->name = strdup(buf);
 					sep[0] = ' ';
@@ -3067,9 +3067,10 @@ GF_Err gf_sm_load_init_BT(GF_SceneLoader *load)
 	gzInput = gzopen(load->fileName, "rb");
 	if (!gzInput) return GF_IO_ERR;
 
-	GF_SAFEALLOC(parser, sizeof(GF_BTParser));
+	GF_SAFEALLOC(parser, GF_BTParser);
 	parser->load = load;
-	GF_SAFEALLOC(parser->line_buffer, sizeof(char)*BT_LINE_SIZE);
+	parser->line_buffer = (char *) malloc(sizeof(char)*BT_LINE_SIZE);
+	memset(parser->line_buffer, 0, sizeof(char)*BT_LINE_SIZE);
 	parser->file_size = size;
 
 	gzgets(gzInput, BOM, 5);

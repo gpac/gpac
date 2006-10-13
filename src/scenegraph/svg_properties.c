@@ -35,7 +35,7 @@
 */
 void gf_svg_init_properties(SVGElement *p) 
 {
-	GF_SAFEALLOC(p->properties, sizeof(SVGProperties))
+	GF_SAFEALLOC(p->properties, SVGProperties)
 
 	p->properties->audio_level.type = SVG_NUMBER_VALUE;
 	p->properties->audio_level.value = FIX_ONE;
@@ -152,138 +152,138 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 {
 	if (!svg_props) return;
 
-	GF_SAFEALLOC(svg_props->audio_level, sizeof(SVG_Number));
+	GF_SAFEALLOC(svg_props->audio_level, SVG_Number);
 	svg_props->audio_level->type = SVG_NUMBER_VALUE;
 	svg_props->audio_level->value = FIX_ONE;
 
-	GF_SAFEALLOC(svg_props->color, sizeof(SVG_Paint));
+	GF_SAFEALLOC(svg_props->color, SVG_Paint);
 	svg_props->color->type = SVG_PAINT_COLOR;
 	svg_props->color->color.type = SVG_COLOR_RGBCOLOR;
 	/* svg_props->color->red, green, blue set to zero, so initial value for color property is black */
 
-	GF_SAFEALLOC(svg_props->color_rendering, sizeof(SVG_RenderingHint));
+	GF_SAFEALLOC(svg_props->color_rendering, SVG_RenderingHint);
 	*svg_props->color_rendering = SVG_RENDERINGHINT_AUTO;
 
-	GF_SAFEALLOC(svg_props->display, sizeof(SVG_Display));
+	GF_SAFEALLOC(svg_props->display, SVG_Display);
 	*svg_props->display = SVG_DISPLAY_INLINE;
 
-	GF_SAFEALLOC(svg_props->display_align, sizeof(SVG_DisplayAlign));
+	GF_SAFEALLOC(svg_props->display_align, SVG_DisplayAlign);
 	*svg_props->display_align = SVG_DISPLAYALIGN_AUTO;
 
-	GF_SAFEALLOC(svg_props->fill, sizeof(SVG_Paint));
+	GF_SAFEALLOC(svg_props->fill, SVG_Paint);
 	svg_props->fill->type = SVG_PAINT_COLOR;
 	svg_props->fill->color.type = SVG_COLOR_RGBCOLOR;
 	/* svg_props->fill->color.red, green, blue set to zero, so initial value for fill color is black */
 
-	GF_SAFEALLOC(svg_props->fill_opacity, sizeof(SVG_Number));
+	GF_SAFEALLOC(svg_props->fill_opacity, SVG_Number);
 	svg_props->fill_opacity->type = SVG_NUMBER_VALUE;
 	svg_props->fill_opacity->value = FIX_ONE;
 	
-	GF_SAFEALLOC(svg_props->fill_rule, sizeof(SVG_FillRule));
+	GF_SAFEALLOC(svg_props->fill_rule, SVG_FillRule);
 	*svg_props->fill_rule = SVG_FILLRULE_NONZERO;
 
-	GF_SAFEALLOC(svg_props->font_family, sizeof(SVG_FontFamily));
+	GF_SAFEALLOC(svg_props->font_family, SVG_FontFamily);
 	svg_props->font_family->type = SVG_FONTFAMILY_VALUE;
 	svg_props->font_family->value = strdup("Arial");
 
-	GF_SAFEALLOC(svg_props->font_size, sizeof(SVG_FontSize));
+	GF_SAFEALLOC(svg_props->font_size, SVG_FontSize);
 	svg_props->font_size->type = SVG_NUMBER_VALUE;
 	svg_props->font_size->value = 12*FIX_ONE;
 
-	GF_SAFEALLOC(svg_props->font_style, sizeof(SVG_FontStyle));
+	GF_SAFEALLOC(svg_props->font_style, SVG_FontStyle);
 	*svg_props->font_style = SVG_FONTSTYLE_NORMAL;
 
-	GF_SAFEALLOC(svg_props->font_variant, sizeof(SVG_FontVariant));
+	GF_SAFEALLOC(svg_props->font_variant, SVG_FontVariant);
 	*svg_props->font_variant = SVG_FONTVARIANT_NORMAL;
 
-	GF_SAFEALLOC(svg_props->font_weight, sizeof(SVG_FontWeight));
+	GF_SAFEALLOC(svg_props->font_weight, SVG_FontWeight);
 	*svg_props->font_weight = SVG_FONTWEIGHT_NORMAL;
 
-	GF_SAFEALLOC(svg_props->image_rendering, sizeof(SVG_RenderingHint));
+	GF_SAFEALLOC(svg_props->image_rendering, SVG_RenderingHint);
 	*svg_props->image_rendering = SVG_RENDERINGHINT_AUTO;
 
-	GF_SAFEALLOC(svg_props->line_increment, sizeof(SVG_Number));
+	GF_SAFEALLOC(svg_props->line_increment, SVG_Number);
 	svg_props->line_increment->type = SVG_NUMBER_AUTO;
 	svg_props->line_increment->value = FIX_ONE;
 
-	GF_SAFEALLOC(svg_props->opacity, sizeof(SVG_Number));
+	GF_SAFEALLOC(svg_props->opacity, SVG_Number);
 	svg_props->opacity->type = SVG_NUMBER_VALUE;
 	svg_props->opacity->value = FIX_ONE;
 
-	GF_SAFEALLOC(svg_props->pointer_events, sizeof(SVG_PointerEvents));
+	GF_SAFEALLOC(svg_props->pointer_events, SVG_PointerEvents);
 	*svg_props->pointer_events = SVG_POINTEREVENTS_VISIBLEPAINTED;
 
-	GF_SAFEALLOC(svg_props->shape_rendering, sizeof(SVG_RenderingHint));
+	GF_SAFEALLOC(svg_props->shape_rendering, SVG_RenderingHint);
 	*svg_props->shape_rendering = SVG_RENDERINGHINT_AUTO;
 
-	GF_SAFEALLOC(svg_props->solid_color, sizeof(SVG_Paint));
+	GF_SAFEALLOC(svg_props->solid_color, SVG_Paint);
 	svg_props->solid_color->type = SVG_PAINT_COLOR;
 	svg_props->solid_color->color.type = SVG_COLOR_RGBCOLOR;
 	/* svg_props->solid_color->color.red, green, blue set to zero, so initial value for solid_color is black */
 
-	GF_SAFEALLOC(svg_props->solid_opacity, sizeof(SVG_Number));
+	GF_SAFEALLOC(svg_props->solid_opacity, SVG_Number);
 	svg_props->solid_opacity->type = SVG_NUMBER_VALUE;
 	svg_props->solid_opacity->value = FIX_ONE;
 
-	GF_SAFEALLOC(svg_props->stop_color, sizeof(SVG_Paint));
+	GF_SAFEALLOC(svg_props->stop_color, SVG_Paint);
 	svg_props->stop_color->type = SVG_PAINT_COLOR;
 	svg_props->stop_color->color.type = SVG_COLOR_RGBCOLOR;
 	/* svg_props->stop_color->color.red, green, blue set to zero, so initial value for stop_color is black */
 
-	GF_SAFEALLOC(svg_props->stop_opacity, sizeof(SVG_Number));
+	GF_SAFEALLOC(svg_props->stop_opacity, SVG_Number);
 	svg_props->stop_opacity->type = SVG_NUMBER_VALUE;
 	svg_props->stop_opacity->value = FIX_ONE;
 
-	GF_SAFEALLOC(svg_props->stroke, sizeof(SVG_Paint));
+	GF_SAFEALLOC(svg_props->stroke, SVG_Paint);
 	svg_props->stroke->type = SVG_PAINT_NONE;
 	svg_props->stroke->color.type = SVG_COLOR_RGBCOLOR;
 	/* svg_props->stroke->color.red, green, blue set to zero, so initial value for stroke color is black */
 
-	GF_SAFEALLOC(svg_props->stroke_dasharray, sizeof(SVG_StrokeDashArray));
+	GF_SAFEALLOC(svg_props->stroke_dasharray, SVG_StrokeDashArray);
 	svg_props->stroke_dasharray->type = SVG_STROKEDASHARRAY_NONE;
 
-	GF_SAFEALLOC(svg_props->stroke_dashoffset , sizeof(SVG_Length));
+	GF_SAFEALLOC(svg_props->stroke_dashoffset , SVG_Length);
 	svg_props->stroke_dashoffset->type = SVG_NUMBER_VALUE;
 	svg_props->stroke_dashoffset->value = 0;
 
-	GF_SAFEALLOC(svg_props->stroke_linecap, sizeof(SVG_StrokeLineCap));
+	GF_SAFEALLOC(svg_props->stroke_linecap, SVG_StrokeLineCap);
 	*svg_props->stroke_linecap = SVG_STROKELINECAP_BUTT;
 
-	GF_SAFEALLOC(svg_props->stroke_linejoin, sizeof(SVG_StrokeLineJoin));
+	GF_SAFEALLOC(svg_props->stroke_linejoin, SVG_StrokeLineJoin);
 	*svg_props->stroke_linejoin = SVG_STROKELINEJOIN_MITER;
 
-	GF_SAFEALLOC(svg_props->stroke_miterlimit, sizeof(SVG_Number));
+	GF_SAFEALLOC(svg_props->stroke_miterlimit, SVG_Number);
 	svg_props->stroke_miterlimit->type = SVG_NUMBER_VALUE;
 	svg_props->stroke_miterlimit->value = 4*FIX_ONE;
 
-	GF_SAFEALLOC(svg_props->stroke_opacity, sizeof(SVG_Number));
+	GF_SAFEALLOC(svg_props->stroke_opacity, SVG_Number);
 	svg_props->stroke_opacity->type = SVG_NUMBER_VALUE;
 	svg_props->stroke_opacity->value = FIX_ONE;
 
-	GF_SAFEALLOC(svg_props->stroke_width, sizeof(SVG_Length));
+	GF_SAFEALLOC(svg_props->stroke_width, SVG_Length);
 	svg_props->stroke_width->type = SVG_NUMBER_VALUE;
 	svg_props->stroke_width->value = FIX_ONE;
 
-	GF_SAFEALLOC(svg_props->text_align, sizeof(SVG_TextAlign));
+	GF_SAFEALLOC(svg_props->text_align, SVG_TextAlign);
 	*svg_props->text_align = SVG_TEXTALIGN_START;
 
-	GF_SAFEALLOC(svg_props->text_anchor, sizeof(SVG_TextAnchor));
+	GF_SAFEALLOC(svg_props->text_anchor, SVG_TextAnchor);
 	*svg_props->text_anchor = SVG_TEXTANCHOR_START;
 
-	GF_SAFEALLOC(svg_props->text_rendering, sizeof(SVG_RenderingHint));
+	GF_SAFEALLOC(svg_props->text_rendering, SVG_RenderingHint);
 	*svg_props->text_rendering = SVG_RENDERINGHINT_AUTO;
 
-	GF_SAFEALLOC(svg_props->vector_effect, sizeof(SVG_VectorEffect));
+	GF_SAFEALLOC(svg_props->vector_effect, SVG_VectorEffect);
 	*svg_props->vector_effect = SVG_VECTOREFFECT_NONE;
 
-	GF_SAFEALLOC(svg_props->viewport_fill, sizeof(SVG_Paint));
+	GF_SAFEALLOC(svg_props->viewport_fill, SVG_Paint);
 	svg_props->viewport_fill->type = SVG_PAINT_NONE;
 
-	GF_SAFEALLOC(svg_props->viewport_fill_opacity, sizeof(SVG_Number));
+	GF_SAFEALLOC(svg_props->viewport_fill_opacity, SVG_Number);
 	svg_props->viewport_fill_opacity->type = SVG_NUMBER_VALUE;
 	svg_props->viewport_fill_opacity->value = FIX_ONE;
 
-	GF_SAFEALLOC(svg_props->visibility, sizeof(SVG_Visibility));
+	GF_SAFEALLOC(svg_props->visibility, SVG_Visibility);
 	*svg_props->visibility = SVG_VISIBILITY_VISIBLE;
 
 }

@@ -122,7 +122,7 @@ u32 gf_rtp_build_au_hdr_write(GP_RTPPacketizer *builder, u32 PayloadSize, u32 RT
 	/*key*/
 	if (builder->slMap.KI_length) {
 		if (builder->first_sl_in_rtp || (builder->flags & GP_RTP_PCK_KEY_IDX_PER_AU)) {
-			if (builder->key_indicator) gf_bs_write_data(builder->pck_hdr, builder->key_indicator, builder->slMap.KI_length);
+			if (builder->key_indicator) gf_bs_write_data(builder->pck_hdr, (unsigned char *)builder->key_indicator, builder->slMap.KI_length);
 			else gf_bs_write_int(builder->pck_hdr, 0, 8*builder->slMap.KI_length);
 			nbBits += 8*builder->slMap.KI_length;
 		}
@@ -311,7 +311,7 @@ GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, char *data, u32 data_s
 		if (builder->OnDataReference) 
 			builder->OnDataReference(builder->cbk_obj, pckSize, data_size - bytesLeftInPacket);
 		else
-			gf_bs_write_data(builder->payload, data + (data_size - bytesLeftInPacket), pckSize);
+			gf_bs_write_data(builder->payload, (unsigned char *)data + (data_size - bytesLeftInPacket), pckSize);
 
 
 		bytesLeftInPacket -= pckSize;
@@ -581,7 +581,7 @@ GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_si
 	
 		/* compute AudioMuxUnit header */ 
 		latm_hdr_size = (size / 255) + 1; 
-		latm_hdr = malloc( sizeof(char) * latm_hdr_size); 
+		latm_hdr = (unsigned char *)malloc( sizeof(char) * latm_hdr_size); 
 		for (i=0; i<latm_hdr_size-1; i++)  latm_hdr[i] = 255; 
 		latm_hdr[latm_hdr_size-1] = size % 255; 
 		

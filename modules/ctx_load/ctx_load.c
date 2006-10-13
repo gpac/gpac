@@ -63,7 +63,7 @@ static GF_Err CTXLoad_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapabi
 
 static void ODS_SetupOD(GF_InlineScene *is, GF_ObjectDescriptor *od)
 {
-	GF_ObjectManager *odm, *parent;
+	GF_ObjectManager *odm;
 	odm = gf_is_find_odm(is, od->objectDescriptorID);
 	/*remove the old OD*/
 	if (odm) gf_odm_disconnect(odm, 1);
@@ -74,9 +74,7 @@ static void ODS_SetupOD(GF_InlineScene *is, GF_ObjectDescriptor *od)
 	gf_list_add(is->ODlist, odm);
 
 	/*locate service owner*/
-	parent = is->root_od;
-	while (parent->remote_OD) parent = parent->remote_OD;
-	gf_odm_setup_object(odm, parent->net_service);
+	gf_odm_setup_object(odm, is->root_od->net_service);
 }
 
 
@@ -96,30 +94,29 @@ static void CTXLoad_Reset(CTXLoadPriv *priv)
 
 void CTXLoad_OnActivate(GF_Node *node)
 {
-	CTXLoadPriv *priv = (CTXLoadPriv *) gf_node_get_private(node);
+	GF_InlineScene *is = (GF_InlineScene *) gf_node_get_private(node);
 	M_Conditional*c = (M_Conditional*)node;
 	/*always apply in parent graph to handle protos correctly*/
-	if (c->activate) gf_sg_command_apply_list(gf_node_get_graph(node), c->buffer.commandList, gf_is_get_time(priv->inline_scene));
+	if (c->activate) gf_sg_command_apply_list(gf_node_get_graph(node), c->buffer.commandList, gf_is_get_time(is));
 }
 void CTXLoad_OnReverseActivate(GF_Node *node)
 {
-	CTXLoadPriv *priv = (CTXLoadPriv *) gf_node_get_private(node);
+	GF_InlineScene *is = (GF_InlineScene *) gf_node_get_private(node);
 	M_Conditional*c = (M_Conditional*)node;
 	/*always apply in parent graph to handle protos correctly*/
 	if (!c->reverseActivate) 
-		gf_sg_command_apply_list(gf_node_get_graph(node), c->buffer.commandList, gf_is_get_time(priv->inline_scene));
+		gf_sg_command_apply_list(gf_node_get_graph(node), c->buffer.commandList, gf_is_get_time(is));
 }
 
-void CTXLoad_NodeInit(void *cbk, GF_Node *node)
+void CTXLoad_NodeCallback(void *cbk, u32 type, GF_Node *node, void *param)
 {
-	CTXLoadPriv *priv = (CTXLoadPriv *) cbk;
-	if (gf_node_get_tag(node) == TAG_MPEG4_Conditional) {
+	if ((type==GF_SG_CALLBACK_INIT) && (gf_node_get_tag(node) == TAG_MPEG4_Conditional) ) {
 		M_Conditional*c = (M_Conditional*)node;
 		c->on_activate = CTXLoad_OnActivate;
 		c->on_reverseActivate = CTXLoad_OnReverseActivate;
-		gf_node_set_private(node, priv);
+		gf_node_set_private(node, cbk);
 	} else {
-		gf_term_on_node_init(priv->inline_scene, node);
+		gf_term_node_callback(cbk, type, node, param);
 	}
 }
 
@@ -174,6 +171,7 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug,
 {
 	const char *ext;
 	GF_BitStream *bs;
+	u32 size;
 	CTXLoadPriv *priv = plug->privateStack;
 	if (Upstream) return GF_NOT_SUPPORTED;
 
@@ -195,8 +193,10 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug,
 	bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
 	priv->file_size = gf_bs_read_u32(bs);
 	gf_bs_del(bs);
-	GF_SAFEALLOC(priv->file_name, sizeof(char)*(1 + decSpecInfoSize - sizeof(u32)) );
+	size = decSpecInfoSize - sizeof(u32);
+	priv->file_name = (char *) malloc(sizeof(char)*(1 + size) );
 	memcpy(priv->file_name, decSpecInfo + sizeof(u32),  sizeof(char)*(decSpecInfoSize - sizeof(u32)) );
+	priv->file_name[size] = 0;
 	priv->nb_streams = 1;
 	priv->load_flags = 0;
 	priv->base_stream_id = ES_ID;
@@ -238,8 +238,7 @@ static GF_Err CTXLoad_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, 
 
 	priv->inline_scene = scene;
 	priv->app = scene->root_od->term;
-
-	gf_sg_set_init_callback(scene->graph, CTXLoad_NodeInit, priv);
+	gf_sg_set_node_callback(scene->graph, CTXLoad_NodeCallback);
 
 	return GF_OK;
 }
@@ -380,7 +379,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, unsigned char *inBuffer
 				gf_sg_set_scene_size_info(priv->inline_scene->graph, priv->ctx->scene_width, priv->ctx->scene_height, priv->ctx->is_pixel_metrics);
 				/*VRML, override base clock*/
 				if ((priv->load.type==GF_SM_LOAD_VRML) || (priv->load.type==GF_SM_LOAD_X3DV) || (priv->load.type==GF_SM_LOAD_X3D)) {
-					gf_sg_set_scene_time_callback(priv->inline_scene->graph, CTXLoad_GetVRMLTime, priv);
+					gf_sg_set_scene_time_callback(priv->inline_scene->graph, CTXLoad_GetVRMLTime);
 					gf_sg_set_proto_loader(priv->inline_scene->graph, CTXLoad_GetProtoLib);
 				}
 			}
@@ -663,8 +662,8 @@ GF_BaseDecoder *NewContextLoader()
 	CTXLoadPriv *priv;
 	GF_SceneDecoder *tmp;
 	
-	GF_SAFEALLOC(tmp, sizeof(GF_SceneDecoder));
-	GF_SAFEALLOC(priv, sizeof(CTXLoadPriv));
+	GF_SAFEALLOC(tmp, GF_SceneDecoder);
+	GF_SAFEALLOC(priv, CTXLoadPriv);
 	priv->files_to_delete = gf_list_new();
 
 	tmp->privateStack = priv;

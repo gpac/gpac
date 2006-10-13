@@ -305,7 +305,7 @@ Bool tx_convert(GF_TextureHandler *txh)
 	case GF_PIXEL_RGB_24:
 	case GF_PIXEL_RGB_32:
 	case GF_PIXEL_RGBA:
-		if (txh->stream && !(txh->stream->mo_flags & GF_MO_IS_FLIP) ) {
+		if (txh->stream && !(gf_mo_get_flags(txh->stream) & GF_MO_IS_FLIP) ) {
 			u32 i, hy;
 			char *tmp;
 			/*flip image*/
@@ -317,7 +317,7 @@ Bool tx_convert(GF_TextureHandler *txh)
 				memcpy(txh->data + (txh->height - 1 - i) * txh->stride, tmp, txh->stride);
 			}
 			free(tmp);
-			txh->stream->mo_flags |= GF_MO_IS_FLIP;
+			gf_mo_set_flag(txh->stream, GF_MO_IS_FLIP, 1);
 		}
 		gltx->conv_format = txh->pixelformat;
 		gltx->tx_flags |= TX_NEEDS_HW_LOAD;

@@ -35,7 +35,7 @@
 GF_DBUnit *gf_db_unit_new()
 {
 	GF_DBUnit *tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_DBUnit));
+	GF_SAFEALLOC(tmp, GF_DBUnit)
 	return tmp;
 }
 
@@ -50,7 +50,7 @@ void gf_db_unit_del(GF_DBUnit *db)
 static GF_CMUnit *gf_cm_unit_new()
 {
 	GF_CMUnit *tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_CMUnit));
+	GF_SAFEALLOC(tmp, GF_CMUnit)
 	return tmp;
 }
 
@@ -73,7 +73,7 @@ GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity)
 	u32 i;
 	if (!capacity) return NULL;
 	
-	GF_SAFEALLOC(tmp, sizeof(GF_CompositionMemory));
+	GF_SAFEALLOC(tmp, GF_CompositionMemory)
 
 	tmp->Capacity = capacity;
 	tmp->UnitSize = UnitSize;
@@ -337,7 +337,7 @@ void gf_cm_reset(GF_CompositionMemory *cb)
 	cb->UnitCount = 0;
 	cb->HasSeenEOS = 0;
 
-	if (cb->odm->mo) cb->odm->mo->current_ts = 0;
+	if (cb->odm->mo) cb->odm->mo->timestamp = 0;
 	gf_cm_lock(cb, 0);
 }
 
@@ -424,7 +424,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 	if (!cb->output->dataLength) {
 		if ((cb->Status != CB_STOP) && cb->HasSeenEOS && (cb->odm && cb->odm->codec)) {
 			cb->Status = CB_STOP;
-			cb->odm->current_time = cb->odm->range_end;
+			cb->odm->current_time = (u32) cb->odm->media_stop_time;
 			MS_UpdateTiming(cb->odm);
 		}
 		goto exit;
@@ -437,7 +437,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 		/*handle visual object - EOS if no more data (we keep the last CU for rendering, so check next one)*/
 		if (cb->HasSeenEOS && (!cb->output->next->dataLength || (cb->Capacity==1))) {
 			cb->Status = CB_STOP;
-			cb->odm->current_time = cb->odm->range_end;
+			cb->odm->current_time = (u32) cb->odm->media_stop_time;
 		}
 		MS_UpdateTiming(cb->odm);
 	}

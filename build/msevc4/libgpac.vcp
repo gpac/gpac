@@ -1752,17 +1752,29 @@ DEP_CPP_SVG_T=\
 	"..\..\extra_lib\include\js\jspubtd.h"\
 	"..\..\extra_lib\include\js\jstypes.h"\
 	"..\..\include\gpac\base_coding.h"\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\config.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\renderer_dev.h"\
 	"..\..\include\gpac\internal\scenegraph_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\audio_out.h"\
+	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\modules\raster2d.h"\
+	"..\..\include\gpac\modules\video_out.h"\
 	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
 	
 NODEP_CPP_SVG_T=\
 	"..\..\extra_lib\include\js\jsstddef.h"\
@@ -2848,6 +2860,7 @@ DEP_CPP_DECOD=\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
@@ -3183,6 +3196,52 @@ DEP_CPP_OBJECT=\
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\terminal\svg_external.c
+DEP_CPP_SVG_E=\
+	"..\..\extra_lib\include\js\jsapi.h"\
+	"..\..\extra_lib\include\js\jsautocfg.h"\
+	"..\..\extra_lib\include\js\jscompat.h"\
+	"..\..\extra_lib\include\js\jscpucfg.h"\
+	"..\..\extra_lib\include\js\jslong.h"\
+	"..\..\extra_lib\include\js\jsosdep.h"\
+	"..\..\extra_lib\include\js\jsotypes.h"\
+	"..\..\extra_lib\include\js\jspubtd.h"\
+	"..\..\extra_lib\include\js\jstypes.h"\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\crypt.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\internal\scenegraph_dev.h"\
+	"..\..\include\gpac\internal\terminal_dev.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\mediaobject.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\nodes_svg.h"\
+	"..\..\include\gpac\path2d.h"\
+	"..\..\include\gpac\renderer.h"\
+	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
+	"..\..\include\gpac\scenegraph_vrml.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\terminal.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\user.h"\
+	
+NODEP_CPP_SVG_E=\
+	"..\..\extra_lib\include\js\jsstddef.h"\
+	"..\..\extra_lib\include\js\platform.h"\
+	
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\terminal\term_node_init.c
 DEP_CPP_TERM_=\
 	"..\..\include\gpac\bitstream.h"\
@@ -3246,6 +3305,7 @@ DEP_CPP_TERMI=\
 	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scene_manager.h"\
 	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
@@ -3278,6 +3338,7 @@ DEP_CPP_AUDIO=\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\thread.h"\
@@ -3304,6 +3365,7 @@ DEP_CPP_AUDIO_=\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\thread.h"\
@@ -3330,6 +3392,7 @@ DEP_CPP_AUDIO_R=\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\thread.h"\
@@ -3358,6 +3421,7 @@ DEP_CPP_AUDIO_S=\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\thread.h"\
@@ -3387,6 +3451,7 @@ DEP_CPP_BASE_T=\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\renderer.h"\
 	"..\..\include\gpac\scenegraph.h"\
+	"..\..\include\gpac\scenegraph_svg.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\thread.h"\

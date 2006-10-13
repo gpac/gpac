@@ -149,29 +149,36 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 		}
 	}
 
+	/*this is channel connection*/
 	ch = gf_term_get_channel(service, netch);
 	if (!ch) return;
 
-	/*this is channel connection*/
-	if (err) {
-		gf_term_message(term, service->url, "Channel Connection Failed", err);
-		ch->es_state = GF_ESM_ES_UNAVAILABLE;
-		return;
-	}
-
+	/*confirm channel connection even if error - this allow playback of objects even if not all streams are setup
+	*/
 	gf_term_lock_net(term, 1);
 	gf_es_on_connect(ch);
 	gf_term_lock_net(term, 0);
 
-	/*in case the OD user has requested a play send a PLAY on the object (Play request are skiped
-	until all channels are connected) */
-	if (ch->odm->mo && ch->odm->mo->num_open) {
+	if (err) {
+		gf_term_message(term, service->url, "Channel Connection Failed", err);
+		ch->es_state = GF_ESM_ES_UNAVAILABLE;
+//		return;
+	}
+
+	/*Plays request are skiped until all channels are connected. We send a PLAY on the objecy in case 
+		1-OD user has requested a play 
+		2-this is a channel of the root OD
+	*/
+	if ( (ch->odm->mo && ch->odm->mo->num_open) 
+		|| !ch->odm->parentscene
+	) {
 		gf_odm_start(ch->odm);
 	}
-	/*if this is a channel in the root OD play */
-	else if (! ch->odm->parentscene) {
-		gf_odm_start(ch->odm);
+#if 0
+	else if (ch->odm->codec && ch->odm->codec->ck && ch->odm->codec->ck->no_time_ctrl) {
+		gf_odm_play(ch->odm);
 	}
+#endif
 }
 
 static void term_on_disconnect(void *user_priv, GF_ClientService *service, LPNETCHANNEL netch, GF_Err response)
@@ -348,7 +355,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 	case GF_NET_CHAN_GET_ESD:
 		gf_term_lock_net(term, 1);
 		com->cache_esd.esd = ch->esd;
-		com->cache_esd.is_iod_stream = (ch->odm->subscene && (ch->odm->subscene->root_od==ch->odm)) ? 1 : 0;
+		com->cache_esd.is_iod_stream = (ch->odm->subscene /*&& (ch->odm->subscene->root_od==ch->odm)*/) ? 1 : 0;
 		gf_term_lock_net(term, 0);
 		return;
 	default:

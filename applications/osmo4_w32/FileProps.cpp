@@ -81,7 +81,6 @@ BOOL CFileProps::OnInitDialog()
 
 void CFileProps::WriteInlineTree(GF_ObjectManager *root_od, HTREEITEM parent)
 {
-	ODInfo info;
 	WinGPAC *gpac = GetApp();
 
 	/*browse all ODs*/
@@ -92,26 +91,17 @@ void CFileProps::WriteInlineTree(GF_ObjectManager *root_od, HTREEITEM parent)
 		if (!odm) return;
 		HTREEITEM item = m_ODTree.InsertItem("Object Descriptor", 0, 0, parent);
 		m_ODTree.SetItemData(item, (DWORD) odm);
-		/*browse all remotes*/
-		while (1) {
-			GF_ObjectManager *remote = gf_term_get_remote_object(gpac->m_term, odm);
-			if (!remote) break;
-			if (gf_term_get_object_info(gpac->m_term, odm, &info) != GF_OK) break;
-			char sText[5000];
-			sprintf(sText, "Remote OD (%s)", info.od->URLString);
-			
-			m_ODTree.SetItemText(item, sText);
-			item = m_ODTree.InsertItem("Object Descriptor", 0, 0, item);
-			m_ODTree.SetItemData(item, (DWORD) remote);
-			odm = remote;
-		}
 		/*if inline propagate*/
 		switch (gf_term_object_subscene_type(gpac->m_term, odm)) {
 		case 1:
-			m_ODTree.SetItemText(item, "Inline Scene");
+			m_ODTree.SetItemText(item, "Root Scene");
 			WriteInlineTree(odm, item);
 			break;
 		case 2:
+			m_ODTree.SetItemText(item, "Inline Scene");
+			WriteInlineTree(odm, item);
+			break;
+		case 3:
 			m_ODTree.SetItemText(item, "Extern Proto Lib");
 			WriteInlineTree(odm, item);
 			break;
@@ -123,7 +113,6 @@ void CFileProps::WriteInlineTree(GF_ObjectManager *root_od, HTREEITEM parent)
 
 void CFileProps::RewriteODTree()
 {
-	ODInfo info;
 	WinGPAC *gpac = GetApp();
 	
 	m_ODTree.DeleteAllItems();
@@ -134,21 +123,7 @@ void CFileProps::RewriteODTree()
 	HTREEITEM root = m_ODTree.InsertItem("Root OD", 0, 0);
 	m_ODTree.SetItemData(root, (DWORD) root_odm);
 
-	/*browse all remotes*/
-	while (1) {
-		GF_ObjectManager *remote = gf_term_get_remote_object(gpac->m_term, root_odm);
-		if (!remote) break;
-		if (gf_term_get_object_info(gpac->m_term, root_odm, &info) != GF_OK) break;
-		char sText[5000];
-		sprintf(sText, "Remote OD (%s)", info.od->URLString);
-		m_ODTree.SetItemText(root, sText);
-
-		root = m_ODTree.InsertItem("Object Descriptor", 0, 0, root);
-		m_ODTree.SetItemData(root, (DWORD) remote);
-		root_odm = remote;
-	}
-
-	m_ODTree.SetItemText(root, "Inline Scene");
+	m_ODTree.SetItemText(root, "Root Scene");
 	WriteInlineTree(root_odm, root);
 }
 

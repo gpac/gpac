@@ -26,12 +26,25 @@ V4SceneManager::~V4SceneManager()
 	m_gpac_panel = NULL;
 }
 
+void v4s_node_init(void *cbkObject, u32 type, GF_Node *node, void *param)
+{
+	if (type==GF_SG_CALLBACK_INIT) {
+		switch (gf_node_get_tag(node)) {
+		case TAG_MPEG4_Conditional:
+		case TAG_MPEG4_QuantizationParameter:
+			break;
+		default:
+			gf_sr_on_node_init(((V4SceneManager *)cbkObject)->GetSceneRenderer(), node);
+			break;
+		}
+	}
+}
+
 void V4SceneManager::LoadNew() 
 {
-	void node_init(void *cbkObject, GF_Node *node);
-
 	m_pIs = gf_is_new(NULL);
-	gf_sg_set_init_callback(m_pIs->graph, node_init, this);
+	gf_sg_set_private(m_pIs->graph, this);
+	gf_sg_set_node_callback(m_pIs->graph, v4s_node_init);
 	m_gpac_panel = new wxGPACPanel(this, NULL);
 	GF_Terminal *term = m_gpac_panel->GetMPEG4Terminal();
 	gf_sr_set_scene(term->renderer, m_pIs->graph);
@@ -573,18 +586,6 @@ GF_Node * V4SceneManager::HasDefParent(GF_Node * node) {
   }
 
   return NULL;
-}
-
-void node_init(void *cbkObject, GF_Node *node)
-{
-	switch (gf_node_get_tag(node)) {
-	case TAG_MPEG4_Conditional:
-	case TAG_MPEG4_QuantizationParameter:
-		break;
-	default:
-		gf_sr_on_node_init(((V4SceneManager *)cbkObject)->GetSceneRenderer(), node);
-		break;
-	}
 }
 
 void V4SceneManager::CreateIDandAddToPool(GF_Node *node)

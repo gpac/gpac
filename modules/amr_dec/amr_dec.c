@@ -284,7 +284,7 @@ GF_MediaDecoder *NewAMRDecoder()
 {
 	AMRDec *dec;
 	GF_MediaDecoder *ifce;
-	GF_SAFEALLOC(ifce , sizeof(GF_MediaDecoder));
+	GF_SAFEALLOC(ifce , GF_MediaDecoder);
 	dec = malloc(sizeof(AMRDec));
 	memset(dec, 0, sizeof(AMRDec));
 	ifce->privateStack = dec;

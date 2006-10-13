@@ -125,7 +125,6 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_SVG_polygon:			SVG_Init_polygon(sr, node); break;
 	case TAG_SVG_text:				SVG_Init_text(sr, node); break;
 	case TAG_SVG_path:				SVG_Init_path(sr, node); break;
-	case TAG_SVG_use:				SVG_Init_use(sr, node); break;
 
 	case TAG_SVG_a:					SVG_Init_a(sr, node); break;
 
@@ -136,8 +135,6 @@ void R2D_NodeInit(GF_VisualRenderer *vr, GF_Node *node)
 	case TAG_SVG_radialGradient:	SVG_Init_radialGradient(sr, node); break;
 	case TAG_SVG_solidColor:		SVG_Init_solidColor(sr, node); break;
 	case TAG_SVG_stop:				SVG_Init_stop(sr, node); break;
-
-	case TAG_SVG_animation:			SVG_Init_animation(sr, node); break;
 
 	case TAG_SVG_rectClip:			LASeR_Init_rectClip(sr, node); break;
 	case TAG_SVG_selector:			LASeR_Init_selector(sr, node); break;

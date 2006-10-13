@@ -429,7 +429,7 @@ void R3D_InitMatteTexture(Render3D *sr, GF_Node *node)
 {
 	M_MatteTexture *matte = (M_MatteTexture *)node;
 	MatteTextureStack *st;
-	GF_SAFEALLOC(st, sizeof(MatteTextureStack));
+	GF_SAFEALLOC(st, MatteTextureStack);
 	gf_sr_texture_setup(&st->txh, sr->compositor, node);
 	st->txh.flags = GF_SR_TEXTURE_MATTE;
 	st->txh.update_texture_fcnt = UpdateMatteTexture;

@@ -28,30 +28,31 @@
 
 static char *AI_FetchFrame(void *callback, u32 *size, u32 audio_delay_ms)
 {
-	u32 obj_time;
+	char *frame;
+	u32 obj_time, ts;
 	s32 drift;
 	GF_AudioInput *ai = (GF_AudioInput *) callback;
 	/*even if the stream is signaled as finished we must check it, because it may have been restarted by a mediaControl*/
 	if (!ai->stream) return NULL;
 	
-	ai->need_release = gf_mo_fetch_data(ai->stream, 0, &ai->stream_finished);
+	frame = gf_mo_fetch_data(ai->stream, 0, &ai->stream_finished, &ts, size);
 	/*invalidate scene on end of stream to refresh audio graph*/
 	if (ai->stream_finished) gf_sr_invalidate(ai->compositor, NULL);
 
 	/*no more data or not enough data, reset syncro drift*/
-	if (!ai->need_release) {
+	if (!frame) {
 		gf_mo_adjust_clock(ai->stream, 0);
 		return NULL;
 	}
-	*size = ai->stream->current_size;
-
+	ai->need_release = 1;
+	
 	gf_mo_get_object_time(ai->stream, &obj_time);
 	obj_time += audio_delay_ms;
-	drift = obj_time - ai->stream->current_ts;
+	drift = obj_time - ts;
 
 	/*too early (silence insertions), don't render*/
 	if (drift + (s32) audio_delay_ms + MIN_RESYNC_TIME < 0) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Audio Render] audio too early %d (CTS %d)\n", drift + audio_delay_ms + MIN_RESYNC_TIME, ai->stream->current_ts));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Audio Render] audio too early %d (CTS %d)\n", drift + audio_delay_ms + MIN_RESYNC_TIME, ts));
 		ai->need_release = 0;
 		gf_mo_release_data(ai->stream, 0, 0);
 		return NULL;
@@ -60,15 +61,15 @@ static char *AI_FetchFrame(void *callback, u32 *size, u32 audio_delay_ms)
 	if (audio_delay_ms) {
 		/*CU is way too late, discard and fetch a new one - this usually happen when media speed is more than 1*/
 		if (drift>500) {
-			gf_mo_release_data(ai->stream, ai->stream->current_size, 2);
+			gf_mo_release_data(ai->stream, *size, 2);
 			ai->need_release = 0;
 			return AI_FetchFrame(callback, size, audio_delay_ms);
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Audio Render] Audio clock: delay %d - obj time %d - CTS %d - adjust drift %d\n", audio_delay_ms, obj_time - audio_delay_ms, ai->stream->current_ts, drift));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RENDER, ("[Audio Render] Audio clock: delay %d - obj time %d - CTS %d - adjust drift %d\n", audio_delay_ms, obj_time - audio_delay_ms, ts, drift));
 		gf_mo_adjust_clock(ai->stream, drift);
 	}
 
-	return ai->stream->current_frame;
+	return frame;
 }
 
 static void AI_ReleaseFrame(void *callback, u32 nb_bytes)
@@ -109,19 +110,17 @@ static Bool AI_GetConfig(GF_AudioInterface *aifc, Bool for_recf)
 	GF_AudioInput *ai = (GF_AudioInput *) aifc->callback;
 	if (!ai->stream) return 0;
 	/*watchout for object reuse*/
-	if (aifc->sr && (ai->stream->mo_flags & GF_MO_IS_INIT)) return 1;
+	if (aifc->sr && (gf_mo_get_flags(ai->stream) & GF_MO_IS_INIT)) return 1;
 	if (!for_recf) 
 		return 0;
 
-	aifc->sr = ai->stream->sample_rate;
-	aifc->chan = ai->stream->num_channels;
-	aifc->bps = ai->stream->bits_per_sample;
-	aifc->ch_cfg = ai->stream->channel_config;
+	gf_mo_get_audio_info(ai->stream, &aifc->sr, &aifc->bps , &aifc->chan, &aifc->ch_cfg);
+
 	if (aifc->sr * aifc->chan * aifc->bps && ((aifc->chan<=2) || aifc->ch_cfg))  {
-		ai->stream->mo_flags |= GF_MO_IS_INIT;
+		gf_mo_set_flag(ai->stream, GF_MO_IS_INIT, 1);
 		return 1;
 	}
-	ai->stream->mo_flags &= ~GF_MO_IS_INIT;
+	gf_mo_set_flag(ai->stream, GF_MO_IS_INIT, 0);
 	return 0;
 }
 
@@ -150,7 +149,7 @@ GF_Err gf_sr_audio_open(GF_AudioInput *ai, MFURL *url)
 	if (ai->is_open) return GF_BAD_PARAM;
 
 	/*get media object*/
-	ai->stream = gf_mo_find(ai->owner, url);
+	ai->stream = gf_mo_find(ai->owner, url, 0);
 	/*bad URL*/
 	if (!ai->stream) return GF_NOT_SUPPORTED;
 
@@ -162,7 +161,7 @@ GF_Err gf_sr_audio_open(GF_AudioInput *ai, MFURL *url)
 
 	ai->stream_finished = 0;
 	ai->is_open = 1;
-	ai->stream->mo_flags = 0;
+	gf_mo_set_flag(ai->stream, GF_MO_IS_INIT, 0);
 	return GF_OK;
 }
 
@@ -187,7 +186,7 @@ void gf_sr_audio_stop(GF_AudioInput *ai)
 void gf_sr_audio_restart(GF_AudioInput *ai)
 {
 	if (!ai->is_open) return;
-	if (ai->need_release) gf_mo_release_data(ai->stream, ai->stream->current_size, 1);
+	if (ai->need_release) gf_mo_release_data(ai->stream, 0xFFFFFFFF, 2);
 	ai->need_release = 0;
 	ai->stream_finished = 0;
 	gf_mo_restart(ai->stream);

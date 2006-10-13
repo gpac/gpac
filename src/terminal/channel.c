@@ -1039,7 +1039,7 @@ void gf_es_on_connect(GF_Channel *ch)
 	com.command_type = GF_NET_CHAN_INTERACTIVE;
 	if (gf_term_service_command(ch->service, &com)!=GF_OK) {
 		ch->clock->no_time_ctrl = 1;
-		ch->odm->no_time_ctrl = 1;
+		ch->odm->flags |= GF_ODM_NO_TIME_CTRL;
 		gf_odm_refresh_uninteractives(ch->odm);
 	}
 

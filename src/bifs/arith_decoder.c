@@ -81,8 +81,8 @@ struct _aadecoder
 
 GF_AAModel *gp_bifs_aa_model_new()
 {
-	GF_AAModel *tmp = malloc(sizeof(GF_AAModel));
-	memset(tmp, 0, sizeof(GF_AAModel));
+	GF_AAModel *tmp;
+	GF_SAFEALLOC(tmp, GF_AAModel);
 	return tmp;
 }
 
@@ -99,8 +99,8 @@ void gp_bifs_aa_model_init(GF_AAModel *model, u32 nbBits)
 	model->nb_symb = 1<<nbBits;
 	if (model->cumul_freq) free(model->cumul_freq);
 	if (model->freq) free(model->freq);
-	model->freq = malloc(sizeof(s32) * model->nb_symb);
-	model->cumul_freq = malloc(sizeof(s32) * (model->nb_symb+1));
+	model->freq = (s32*)malloc(sizeof(s32) * model->nb_symb);
+	model->cumul_freq = (s32*)malloc(sizeof(s32) * (model->nb_symb+1));
 
 	for(i=0; i<model->nb_symb; i++) {
 		model->freq[i]=1;
@@ -133,8 +133,8 @@ void gf_bs_rewind_bits(GF_BitStream *bs, u64 nbBits);
 
 GF_AADecoder *gp_bifs_aa_dec_new(GF_BitStream *bs)
 {
-	GF_AADecoder *tmp = malloc(sizeof(GF_AADecoder));
-	memset(tmp, 0, sizeof(GF_AADecoder));
+	GF_AADecoder *tmp;
+	GF_SAFEALLOC(tmp, GF_AADecoder);
 	tmp->bs = bs;
 	return tmp;
 }

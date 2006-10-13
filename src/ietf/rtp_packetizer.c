@@ -42,9 +42,9 @@ GP_RTPPacketizer *gf_rtp_builder_new(u32 rtp_payt, GF_SLConfig *slc, u32 flags,
 	GP_RTPPacketizer *tmp;
 	if (!rtp_payt || !cbk_obj | !OnPacketDone) return NULL;
 	
-	tmp = malloc(sizeof(GP_RTPPacketizer));
+	GF_SAFEALLOC(tmp, GP_RTPPacketizer);
 	if (!tmp) return NULL;
-	memset(tmp, 0, sizeof(GP_RTPPacketizer));
+
 	if (slc) {
 		memcpy(&tmp->sl_config, slc, sizeof(GF_SLConfig));
 	} else {
@@ -383,7 +383,7 @@ void gp_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_i
 		/*force flush if no provision for keyIndicator per AU*/
 		builder->force_flush = (builder->flags & GP_RTP_PCK_KEY_IDX_PER_AU) ? 0 : 1;
 
-		if (!builder->key_indicator) builder->key_indicator = malloc(sizeof(char)*builder->slMap.KI_length);
+		if (!builder->key_indicator) builder->key_indicator = (char *) malloc(sizeof(char)*builder->slMap.KI_length);
 		memcpy(builder->key_indicator, key_indicator, sizeof(char)*builder->slMap.KI_length);
 	}
 	if (builder->IV != IV) {

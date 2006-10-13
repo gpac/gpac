@@ -125,8 +125,8 @@ GF_Renderer *SR_NewStandaloneRenderer()
 {
 	GF_GLConfig cfg, *gl_cfg;
 	GF_Renderer *tmp;
-	GF_SAFEALLOC(tmp, sizeof(GF_Renderer))
-	GF_SAFEALLOC(tmp->user, sizeof(GF_User))
+	GF_SAFEALLOC(tmp, GF_Renderer)
+	tmp->user, GF_User)
 
 	tmp->visual_renderer = NewVisualRenderer();
 	tmp->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;

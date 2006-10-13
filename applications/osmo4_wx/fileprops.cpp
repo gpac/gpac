@@ -93,8 +93,6 @@ END_EVENT_TABLE()
 
 void wxFileProps::RewriteODTree()
 {
-	ODInfo info;
-	
 	GF_ObjectManager *root_odm = gf_term_get_root_object(m_pApp->m_term);
 	if (!root_odm) return;
 
@@ -103,28 +101,12 @@ void wxFileProps::RewriteODTree()
 	m_pTreeView->AddRoot(wxT("Root OD"), -1, -1, root);
 	wxTreeItemId rootId = m_pTreeView->GetRootItem();
 
-	/*browse all remotes*/
-	while (1) {
-		GF_ObjectManager *remote = gf_term_get_remote_object(m_pApp->m_term, root_odm);
-		if (!remote) break;
-		if (gf_term_get_object_info(m_pApp->m_term, root_odm, &info) != GF_OK) break;
-		m_pTreeView->SetItemText(rootId, wxT("Remote OD ") + wxString(info.od->URLString, wxConvUTF8) );
-
-		root = new ODTreeData(remote);
-		m_pTreeView->AppendItem(rootId, wxT("Object Descriptor"), -1, -1, root);
-		m_pTreeView->SetItemText(rootId, wxT("Inline Scene"));
-		rootId = root->GetId();
-		root_odm = remote;
-	}
-
 	WriteInlineTree(root);
 	SetInfo(root_odm);
 }
 
 void wxFileProps::WriteInlineTree(ODTreeData *root)
 {
-	ODInfo info;
-
 	/*browse all ODs*/
 	u32 count = gf_term_get_object_count(m_pApp->m_term, root->m_pODMan);
 
@@ -134,26 +116,17 @@ void wxFileProps::WriteInlineTree(ODTreeData *root)
 		ODTreeData *odd = new ODTreeData(odm);
 		m_pTreeView->AppendItem(root->GetId(), wxT("Object Descriptor"), -1, -1, odd);
 
-		/*browse all remotes*/
-		while (1) {
-			GF_ObjectManager *remote = gf_term_get_remote_object(m_pApp->m_term, odm);
-			if (!remote) break;
-			if (gf_term_get_object_info(m_pApp->m_term, odm, &info) != GF_OK) break;
-			m_pTreeView->SetItemText(odd->GetId(), wxT("Remote OD ") + wxString(info.od->URLString, wxConvUTF8) );
-
-			ODTreeData *rem = new ODTreeData(remote);
-			m_pTreeView->AppendItem(odd->GetId(), wxT("Object Descriptor"), -1, -1, rem);
-			odd = rem;
-			odm = remote;
-		}
-
 		/*if inline propagate*/
 		switch (gf_term_object_subscene_type(m_pApp->m_term, odm)) {
 		case 1:
-			m_pTreeView->SetItemText(odd->GetId(), wxT("Inline Scene"));
+			m_pTreeView->SetItemText(odd->GetId(), wxT("Root Scene"));
 			WriteInlineTree(odd);
 			break;
 		case 2:
+			m_pTreeView->SetItemText(odd->GetId(), wxT("Inline Scene"));
+			WriteInlineTree(odd);
+			break;
+		case 3:
 			m_pTreeView->SetItemText(odd->GetId(), wxT("Extern Proto Lib"));
 			break;
 		default:

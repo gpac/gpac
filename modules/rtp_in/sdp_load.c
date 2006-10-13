@@ -70,11 +70,27 @@ GF_Err RP_SetupSDP(RTPClient *rtp, GF_SDPInfo *sdp, RTPStream *stream)
 			return e;
 		}
 
-		if (!(ch->flags & CH_HasRange)) {
+		if (!(ch->flags & RTP_HAS_RANGE)) {
 			ch->range_start = Start;
 			ch->range_end = End;
-			if (End > 0) ch->flags |= CH_HasRange;
+			if (End > 0) ch->flags |= RTP_HAS_RANGE;
 		}
+
+		/*force interleaving*/	
+		if (ch->rtsp && (rtp->transport_mode==2)) {
+			switch (ch->sl_map.StreamType) {
+			case GF_STREAM_VISUAL:
+			case GF_STREAM_AUDIO:
+				break;
+			default:
+				if (! (ch->rtsp->flags & RTSP_FORCE_INTER) ) {
+					gf_rtsp_set_buffer_size(ch->rtsp->session, RTSP_TCP_BUFFER_SIZE);
+					ch->rtsp->flags |= RTSP_FORCE_INTER;
+				}
+				break;
+			}
+		}
+	
 	}
 	return GF_OK;
 }
@@ -253,6 +269,20 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 						iod_str = NULL;
 						break;
 					}
+				}
+			} 
+			if (!iod_str) {
+				RTPStream *ch;
+				Bool needs_iod = 0;
+				i=0;
+				while ((ch = gf_list_enum(rtp->channels, &i))) {
+					if ((ch->rtptype==GP_RTP_PAYT_MPEG4) && (ch->sl_map.StreamType==GF_STREAM_SCENE) ) {
+						needs_iod = 1;
+						break;
+					}
+				}
+				if (needs_iod) {
+					rtp->session_desc = (GF_Descriptor *)RP_GetChannelOD(ch, 0, 0);
 				}
 			}
 			

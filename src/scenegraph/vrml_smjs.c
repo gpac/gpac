@@ -138,7 +138,7 @@ static GFINLINE GF_JSInterface *JS_GetInterface(JSContext *c)
 static GFINLINE GF_JSField *NewJSField()
 {
 	GF_JSField *ptr;
-	GF_SAFEALLOC(ptr, sizeof(GF_JSField));
+	GF_SAFEALLOC(ptr, GF_JSField)
 	return ptr;
 }
 
@@ -899,7 +899,7 @@ static GFINLINE GF_JSField *SFImage_Create(JSContext *c, JSObject *obj, u32 w, u
 	v->width = w;
 	v->height = h;
 	v->numComponents = nbComp;
-	GF_SAFEALLOC(v->pixels, sizeof(u8) * nbComp * w * h);
+	v->pixels = (u8 *) malloc(sizeof(u8) * nbComp * w * h);
 	len = MIN(nbComp * w * h, pixels->count);
 	for (i=0; i<len; i++) v->pixels[i] = (u8) pixels->vals[i];
 	JS_SetPrivate(c, obj, field);
@@ -981,7 +981,7 @@ static JSBool image_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			pixels = (MFInt32 *) ((GF_JSField *) JS_GetPrivate(c, JSVAL_TO_OBJECT(*vp)))->field.far_ptr;
 			if (sfi->pixels) free(sfi->pixels);
 			len = sfi->width*sfi->height*sfi->numComponents;
-			GF_SAFEALLOC(sfi->pixels, sizeof(char)*len);
+			sfi->pixels = (char *) malloc(sizeof(char)*len);
 			len = MAX(len, pixels->count);
 			for (i=0; i<len; i++) sfi->pixels[i] = (u8) pixels->vals[i];
 			changed = 1;

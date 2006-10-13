@@ -187,8 +187,8 @@ static s32 ft_stroke_border_grow(FT_StrokeBorder  border, u32 new_points)
 		while ( cur_max < new_max )
 			cur_max += ( cur_max >> 1 ) + 16;
 		
-		border->points = realloc(border->points, sizeof(GF_Point2D)*cur_max);
-		border->tags = realloc(border->tags, sizeof(u8)*cur_max);
+		border->points = (GF_Point2D *) realloc(border->points, sizeof(GF_Point2D)*cur_max);
+		border->tags = (u8 *) realloc(border->tags, sizeof(u8)*cur_max);
 		if (!border->points || !border->tags) return -1;
 		border->max_points = cur_max;
 	}
@@ -1187,7 +1187,7 @@ static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 	GF_Point2D   v_start;
 	GF_Point2D*  point;
 	GF_Point2D*  limit;
-	char*       tags;
+	u8 *tags;
 	s32 error;
 	u32 n;         /* index of contour in outline     */
 	u32 first;     /* index of first point in contour */
@@ -1441,14 +1441,14 @@ static GF_Err gf_path_mergedashes(GF_Path *gp, u32 start_contour_index)
 		gp->contours[i] = gp->contours[i+1] - dash_nb_pts; 
 	}
 	gp->n_contours--;
-	gp->contours = realloc(gp->contours, sizeof(u32)*gp->n_contours);
+	gp->contours = (u32 *)realloc(gp->contours, sizeof(u32)*gp->n_contours);
 
 /*
 	gp->points = realloc(gp->points, sizeof(GF_Point2D)*gp->n_points);
 	gp->tags = realloc(gp->tags, sizeof(u8)*gp->n_points);
 	gp->n_alloc_points = gp->n_points;
 */
-	return 0;
+	return GF_OK;
 }
 
 static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_PenSettings *pen, Fixed length_scale)
@@ -1457,7 +1457,8 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 	Fixed totaldist;
 	Fixed dash;
 	Fixed dist;
-	s32 offsetinit, next_offset;
+	s32 offsetinit;
+	u32 next_offset;
 	s32 toggleinit;
 	s32 firstindex;
 	Bool toggle_check;
@@ -1466,7 +1467,7 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 	Fixed phase;
 	s32 offset, toggle;
 	
-	dists = malloc(sizeof (Fixed) * nb_pts);
+	dists = (Fixed *)malloc(sizeof (Fixed) * nb_pts);
 	if (dists == NULL) return GF_OUT_OF_MEM;
 	
 	/* initial values */
@@ -1684,7 +1685,7 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 	/*if dashing, first flatten path then dash all segments*/
 	dashed = NULL;
 	/*security, seen in some SVG files*/
-	if (pen.dash_set && (pen.dash_set->num_dash==1) && (pen.dash_set->dashes[0]==0)) pen.dash = 0;
+	if (pen.dash_set && (pen.dash_set->num_dash==1) && (pen.dash_set->dashes[0]==0)) pen.dash = GF_DASH_STYLE_PLAIN;
 	if (pen.dash) {
 		GF_Path *flat;
 		flat = gf_path_get_flatten(path);
@@ -1704,9 +1705,9 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 			FT_StrokeBorder sborder;
 			outline = gf_path_new();
 			if (nb_pt) {
-				outline->points = malloc(sizeof(GF_Point2D)*nb_pt);
-				outline->tags = malloc(sizeof(u8)*nb_pt);
-				outline->contours = malloc(sizeof(u32)*nb_cnt);
+				outline->points = (GF_Point2D *) malloc(sizeof(GF_Point2D)*nb_pt);
+				outline->tags = (u8 *) malloc(sizeof(u8)*nb_pt);
+				outline->contours = (u32 *) malloc(sizeof(u32)*nb_cnt);
 				outline->n_alloc_points = nb_pt;
 				sborder = &stroker.borders[0];
 				if (sborder->valid ) ft_stroke_border_export(sborder, outline);

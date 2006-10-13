@@ -134,7 +134,7 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 	for (i = 0; i < trackCount; i++) {
 		trak = gf_isom_get_track(movie->moov, i+1);
 		
-		GF_SAFEALLOC(writer, sizeof(TrackWriter));
+		GF_SAFEALLOC(writer, TrackWriter);
 		if (!writer) goto exit;
 		writer->sampleNumber = 1;
 		writer->mdia = trak->Media;
@@ -416,7 +416,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 				if (maxExtendSize<it_size) maxExtendSize = it_size;
 
 				if (!gf_list_count(iloc->extent_entries)) {
-					GF_SAFEALLOC(entry, sizeof(GF_ItemExtentEntry));
+					GF_SAFEALLOC(entry, GF_ItemExtentEntry);
 					gf_list_add(iloc->extent_entries, entry);
 				}
 				entry = gf_list_get(iloc->extent_entries, 0);
@@ -467,7 +467,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 		} else {
 			/*we MUST have at least one extent for the dref data*/
 			if (!gf_list_count(iloc->extent_entries)) {
-				GF_SAFEALLOC(entry, sizeof(GF_ItemExtentEntry));
+				GF_SAFEALLOC(entry, GF_ItemExtentEntry);
 				gf_list_add(iloc->extent_entries, entry);
 			}
 			entry = gf_list_get(iloc->extent_entries, 0);

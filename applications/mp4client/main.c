@@ -1375,12 +1375,6 @@ void ViewOD(GF_Terminal *term, u32 OD_ID)
 		return;
 	}
 
-	while (odi.od && odi.od->URLString) {
-		fprintf(stdout, "OD %d points to %s\n", odi.od->objectDescriptorID, odi.od->URLString);
-		odm = gf_term_get_remote_object(term, odm);
-		if (!odm) return;
-		if (gf_term_get_object_info(term, odm, &odi) != GF_OK) return;
-	}
 	if (!odi.od) {
 		fprintf(stdout, "Service not attached\n");
 		return;
@@ -1647,11 +1641,6 @@ void PrintODTiming(GF_Terminal *term, GF_ObjectManager *odm)
 	if (!odm) return;
 
 	if (gf_term_get_object_info(term, odm, &odi) != GF_OK) return;
-	while (odi.od && odi.od->URLString) {
-		odm = gf_term_get_remote_object(term, odm);
-		if (!odm) return;
-		if (gf_term_get_object_info(term, odm, &odi) != GF_OK) return;
-	}
 	if (!odi.od) {
 		fprintf(stdout, "Service not attached\n");
 		return;
@@ -1678,11 +1667,6 @@ void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm)
 	if (!odm) return;
 
 	if (gf_term_get_object_info(term, odm, &odi) != GF_OK) return;
-	while (odi.od && odi.od->URLString) {
-		odm = gf_term_get_remote_object(term, odm);
-		if (!odm) return;
-		if (gf_term_get_object_info(term, odm, &odi) != GF_OK) return;
-	}
 	if (!odi.od) {
 		fprintf(stdout, "Service not attached\n");
 		return;

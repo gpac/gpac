@@ -106,7 +106,7 @@ typedef struct
  \code
 GF_BaseInterface *MyDecoderInterfaceLoad() {
 	GF_MediaDecoder *ifce;
-	GF_SAFEALLOC(ifce, sizeof(GF_MediaDecoder));
+	GF_SAFEALLOC(ifce, GF_MediaDecoder);
 	GF_REGISTER_MODULE_INTERFACE(ifce, GF_MEDIA_DECODER_INTERFACE, "Sample Decoder", "The Author")
 	//follows any initialization private to the decoder
 	return (GF_BaseInterface *)ifce;
@@ -127,7 +127,7 @@ GF_BaseInterface *MyDecoderInterfaceLoad() {
  *file with the rest of the GPAC framework.
  *\return the module manager object
 */
-GF_ModuleManager *gf_modules_new(const unsigned char *directory, GF_Config *cfgFile);
+GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *cfgFile);
 /*!
  *\brief module manager destructor
  *

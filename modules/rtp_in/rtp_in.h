@@ -50,9 +50,9 @@ typedef struct
 	/*the one and only IOD*/
 	GF_Descriptor *session_desc;
 
-	/*current rtsp session if any*/
-	struct _rtp_session *rtsp_session;
-
+	/*RTSP sessions*/
+	GF_List *sessions;
+	/*RTP/RTCP media channels*/
 	GF_List *channels;
 
 	/*sdp downloader*/
@@ -60,33 +60,20 @@ typedef struct
 	/*initial sdp download if any (temp storage)*/
 	struct _sdp_fetch *sdp_temp;
 
-
+	/*RTSP communication/deinterleaver thread*/
 	GF_Mutex *mx;
 	GF_Thread *th;
-	u32 status, disable_rtcp;
-
+	u32 th_state;
 
 	/*RTSP config*/
-	/*transport mode. 0 is udp, 1 is tcp, 2 is tcp with HTTP tunnel*/
-	u32 rtp_mode;
+	/*transport mode. 0 is udp, 1 is tcp, 3 is tcp if unreliable media */
+	u32 transport_mode;
 	/*default RTSP port*/
 	u16 default_port;
-	/*net bandwidth (connection speed) in bits per sec*/
-	u32 bandwidth;
-	/*if set ANNOUNCE (sent by server) will be handled*/
-	Bool handle_announce;
 	/*signaling timeout in msec*/
 	u32 time_out;
 	/*udp timeout in msec*/
 	u32 udp_time_out;
-	/*use rtp reordering*/
-	u32 reorder_size;
-	/*amount of buffering in ms*/
-	u32 buffer_len_ms;
-	/*rebuffer low limit in ms - if the amount of buffering is less than this, rebuffering will never occur*/
-	u32 rebuffer_len_ms;
-	/*default interface for multicast*/
-	char *default_mcast_ifce;
 
 	/*packet drop emulation*/
 	u32 first_packet_drop;
@@ -94,13 +81,24 @@ typedef struct
 
 	/*for single-object control*/
 	u32 media_type;
-	/*prevents client port override by server*/
-	Bool force_client_ports;
+
+	/*if set ANNOUNCE (sent by server) will be handled*/
+//	Bool handle_announce;
 } RTPClient;
+
+enum
+{
+	RTSP_AGG_CONTROL = 1,
+	RTSP_TCP_FLUSH = 1<<1,
+	RTSP_FORCE_INTER = 1<<2,
+	RTSP_WAIT_REPLY = 1<<3
+};
 
 /*rtsp session*/
 typedef struct _rtp_session
 {
+	u32 flags;
+
 	/*owner*/
 	RTPClient *owner;
 
@@ -113,24 +111,21 @@ typedef struct _rtp_session
 	/*response object*/
 	GF_RTSPResponse *rtsp_rsp;
 
-	Bool has_aggregated_control;
 	Double last_range;
-
-	Bool wait_for_reply;
 	u32 command_time;
 	GF_List *rtsp_commands;
-} RTPSession;
+} RTSPSession;
 
 /*creates new RTSP session handler*/
-RTPSession *RP_NewSession(RTPClient *rtp, char *session_control);
+RTSPSession *RP_NewSession(RTPClient *rtp, char *session_control);
 /*disconnects and destroy RTSP session handler - if immediate_shutdown do not wait for response*/
-void RP_RemoveSession(RTPSession *sess, Bool immediate_shutdown);
+void RP_RemoveSession(RTSPSession *sess, Bool immediate_shutdown);
 /*check session by control string*/
-RTPSession *RP_CheckSession(RTPClient *rtp, char *control);
+RTSPSession *RP_CheckSession(RTPClient *rtp, char *control);
 
 void RP_SetupObjects(RTPClient *rtp);
 
-void RP_ProcessCommands(RTPSession *sess, Bool read_tcp);
+void RP_ProcessCommands(RTSPSession *sess);
 
 /*RTP channel state*/
 enum
@@ -153,29 +148,42 @@ enum
 /*rtp channel flags*/
 enum
 {
+	/*static RTP channel flags*/
+
+	/*set if sending RTCP reports is enabled (default)*/
+	RTP_ENABLE_RTCP = 1,
 	/*set if stream control possible*/
-	CH_HasRange = 1,
+	RTP_HAS_RANGE = (1<<1),
+	/*set if RTP over RTSP*/
+	RTP_INTERLEAVED = (1<<2),
+	/*broadcast emultaion is on (no time control for stream)*/
+	RTP_FORCE_BROADCAST = (1<<3),
+	
+	/*RTP payload flags*/
+
+	/*AWFULL hack at rtp level to cope with ffmpeg h264 crashes when jumping in stream without IDR*/
+	RTP_AVC_WAIT_RAP = (1<<10),
+	/*AMR config*/
+	RTP_AMR_ALIGN = (1<<11),
+	/*for RFC3016, signals bitstream inspection for RAP discovery*/
+	RTP_M4V_CHECK_RAP = (1<<12),
+	/*ISMACryp stuff*/
+	RTP_HAS_ISMACRYP = (1<<13),
+	RTP_ISMA_SEL_ENC = (1<<14),
+	RTP_ISMA_HAS_KEY_IDX = (1<<15),
+	
+
+	/*RTP channel runtime flags*/
+
 	/*set if next command (PLAY/PAUSE) is to be skipped (aggregation control)*/
-	CH_SkipNextCommand = (1<<1),
+	RTP_SKIP_NEXT_COM = (1<<20),
 	/*AU end was detected (eg next packet is AU start)*/
-	CH_NewAU = (1<<2),
+	RTP_NEW_AU = (1<<21),
 	/*indicates whether channel creation has been acknowledged or not
 	this is needed to filter real channel_connect calls from RTSP re-setup (after STOP) ones*/
-	CH_Connected = (1<<3),
-	/*set if RTP over RTSP*/
-	CH_IsInterleaved = (1<<4),
+	RTP_CONNECTED = (1<<22),
 	/*EOS signaled (RTCP or range-based)*/
-	CH_EOS = (1<<5),
-	/*AWFULL hack at rtp level to cope with ffmpeg h264 crashes when jumping in stream without IDR*/
-	CH_AVC_WaitRAP = (1<<7),
-	/*AMR config*/
-	CH_AMR_Align = (1<<8),
-	/*for RFC3016, signals bitstream inspection for RAP discovery*/
-	CH_M4V_CheckRAP = (1<<9),
-	/*ISMACryp stuff*/
-	CH_HasISMACryp = (1<<10),
-	CH_UseSelEnc = (1<<11),
-	CH_UseKeyIDXPerAU = (1<<12),
+	RTP_EOS = (1<<23),
 };
 
 /*rtp channel*/
@@ -189,7 +197,7 @@ typedef struct
 	u32 flags;
 
 	/*control session (may be null)*/
-	RTPSession *rtsp;
+	RTSPSession *rtsp;
 
 	/*logical app channel*/
 	LPNETCHANNEL channel;
@@ -227,7 +235,7 @@ typedef struct
 	/*stats*/
 	u32 rtp_bytes, rtcp_bytes, stat_start_time, stat_stop_time;
 
-	/*inter-packet reconstruction bitstream (for TTU and H264)*/
+	/*inter-packet reconstruction bitstream (for 3GP text and H264)*/
 	GF_BitStream *inter_bs;
 
 	/*H264/AVC config*/
@@ -311,24 +319,24 @@ typedef struct
 } ChannelControl;
 
 /*RTSP signaling */
-Bool RP_PreprocessDescribe(RTPSession *sess, GF_RTSPCommand *com);
-Bool RP_ProcessDescribe(RTPSession *sess, GF_RTSPCommand *com, GF_Err e);
-void RP_ProcessSetup(RTPSession *sess, GF_RTSPCommand *com, GF_Err e);
-void RP_ProcessTeardown(RTPSession *sess, GF_RTSPCommand *com, GF_Err e);
-Bool RP_PreprocessUserCom(RTPSession *sess, GF_RTSPCommand *com);
-void RP_ProcessUserCommand(RTPSession *sess, GF_RTSPCommand *com, GF_Err e);
+Bool RP_PreprocessDescribe(RTSPSession *sess, GF_RTSPCommand *com);
+Bool RP_ProcessDescribe(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e);
+void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e);
+void RP_ProcessTeardown(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e);
+Bool RP_PreprocessUserCom(RTSPSession *sess, GF_RTSPCommand *com);
+void RP_ProcessUserCommand(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e);
 
 /*send describe - if esd_url is given, this is a describe on es*/
-void RP_Describe(RTPSession *sess, char *esd_url, LPNETCHANNEL channel);
+void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel);
 /*send setup for stream*/
 void RP_Setup(RTPStream *ch);
 /*filter setup if no session (rtp only), otherwise setup channel - ch_desc may be NULL
 if channel association is already done*/
 GF_Err RP_SetupChannel(RTPStream *ch, ChannelDescribe *ch_desc);
 /*send command for stream - handles aggregation*/
-void RP_UserCommand(RTPSession *sess, RTPStream *ch, GF_NetworkCommand *command);
+void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command);
 /*disconnect the session - if @ch, only the channel is teardown*/
-void RP_Teardown(RTPSession *sess, RTPStream *ch);
+void RP_Teardown(RTSPSession *sess, RTPStream *ch);
 
 /*emulate IOD*/
 GF_Descriptor *RP_EmulateIOD(RTPClient *rtp, const char *sub_url);

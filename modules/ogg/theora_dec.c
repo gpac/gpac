@@ -211,7 +211,7 @@ static const char *THEO_GetCodecName(GF_BaseDecoder *dec)
 u32 NewTheoraDecoder(GF_BaseDecoder *ifcd)
 {
 	TheoraDec *dec;
-	GF_SAFEALLOC(dec, sizeof(TheoraDec));
+	GF_SAFEALLOC(dec, TheoraDec);
 	((OGGWraper *)ifcd->privateStack)->opaque = dec;
 	((OGGWraper *)ifcd->privateStack)->type = OGG_THEORA;
 	/*setup our own interface*/	
