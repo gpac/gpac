@@ -158,32 +158,48 @@ u32 gf_isom_get_meta_item_by_id(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	return 0;
 }
 
-GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num, const char *dump_file_name)
+GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, const char *dump_file_name)
 {
 	char szPath[1024];
 	GF_ItemExtentEntry *extent_entry;
 	FILE *resource = NULL;
 	u32 i, count;
-	GF_ItemInfoEntryBox *item_entry;
 	GF_ItemLocationEntry *location_entry;
+	u32 item_num;
+	char *item_name = NULL;
 
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
 	if (!meta || !meta->item_infos || !meta->item_locations) return GF_BAD_PARAM;
 
-	item_entry = gf_list_get(meta->item_infos->item_infos, item_num-1);
-	if (!item_entry) return GF_BAD_PARAM;
+	item_num = gf_isom_get_meta_item_by_id(file, root_meta, track_num, item_id);
+	if (item_num) {
+		GF_ItemInfoEntryBox *item_entry;
+		item_entry = gf_list_get(meta->item_infos->item_infos, item_num-1);
+		item_name = item_entry->item_name;
+	} 
 
 	location_entry = NULL;
 	count = gf_list_count(meta->item_locations->location_entries);
 	for (i=0; i<count; i++) {
 		location_entry = gf_list_get(meta->item_locations->location_entries, i);
-		if (location_entry->item_ID == item_entry->item_ID) break;
+		if (location_entry->item_ID == item_id) break;
 		location_entry = NULL;
 	}
 
 	if (!location_entry) return GF_BAD_PARAM;
 	/*FIXME*/
-	if (location_entry->data_reference_index) return GF_NOT_SUPPORTED;
+	if (location_entry->data_reference_index) {
+		char *item_url = NULL, *item_urn = NULL;
+		GF_Box *a = gf_list_get(meta->file_locations->dref->boxList, location_entry->data_reference_index-1);
+		if (a->type==GF_ISOM_BOX_TYPE_URL) {
+			item_url = ((GF_DataEntryURLBox*)a)->location;
+		} else if (a->type==GF_ISOM_BOX_TYPE_URN) {
+			item_url = ((GF_DataEntryURNBox*)a)->location;
+			item_urn = ((GF_DataEntryURNBox*)a)->nameURN;
+		}
+		fprintf(stdout, "Item already outside the ISO file at URL: %s, URN: %s\n", (item_url?item_url:"N/A"), (item_urn?item_urn:"N/A"));
+		return GF_OK;
+	}
 
 	/*don't extract self-reference item*/
 	count = gf_list_count(location_entry->extent_entries);
@@ -195,8 +211,8 @@ GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num
 	if (dump_file_name) {
 		strcpy(szPath, dump_file_name);
 	} else {
-		if (item_entry->item_name) strcpy(szPath, item_entry->item_name);
-		else sprintf(szPath, "item_id%02d", item_entry->item_ID);
+		if (item_name) strcpy(szPath, item_name);
+		else sprintf(szPath, "item_id%02d", item_id);
 	}
 	resource = gf_f64_open(szPath, "wb");
 		
@@ -493,15 +509,17 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 }
 
 
-GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num)
+GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id)
 {
 	GF_ItemInfoEntryBox *iinf;
 	u32 i, count;
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
+	u32 item_num;
 	if (!meta || !meta->item_infos || !meta->item_locations) return GF_BAD_PARAM;
 
+	item_num = gf_isom_get_meta_item_by_id(file, root_meta, track_num, item_id);
+	if (!item_num) return GF_BAD_PARAM;
 	iinf = gf_list_get(meta->item_infos->item_infos, item_num-1);
-	if (!iinf) return GF_BAD_PARAM;
 	gf_list_rem(meta->item_infos->item_infos, item_num-1);
 
 	count = gf_list_count(meta->item_locations->location_entries);
@@ -520,23 +538,16 @@ GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	return GF_OK;
 }
 
-GF_Err gf_isom_set_meta_primary_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num)
+GF_Err gf_isom_set_meta_primary_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id)
 {
-	GF_ItemInfoEntryBox *infe;
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
 	if (!meta || !meta->item_infos || !meta->item_locations) return GF_BAD_PARAM;
 	/*either one or the other*/
 	if (gf_isom_has_meta_xml(file, root_meta, track_num)) return GF_BAD_PARAM;
 
-	if (!item_num) {
-		if (meta->primary_resource) gf_isom_box_del((GF_Box*)meta->primary_resource);
-		meta->primary_resource = NULL;
-		return GF_OK;
-	}
-	if (!meta->primary_resource) meta->primary_resource = (GF_PrimaryItemBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_PITM);
-
-	infe = gf_list_get(meta->item_infos->item_infos, item_num-1);
-	meta->primary_resource->item_ID = infe->item_ID;
+	if (meta->primary_resource) gf_isom_box_del((GF_Box*)meta->primary_resource);
+	meta->primary_resource = (GF_PrimaryItemBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_PITM);
+	meta->primary_resource->item_ID = item_id;
 	return GF_OK;
 }
 

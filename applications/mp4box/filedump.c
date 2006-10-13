@@ -907,17 +907,20 @@ static char *format_date(u64 time, char *szTime)
 
 static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *name)
 {
-	u32 i, count, brand;
+	u32 i, count, brand, primary_id;
 	brand = gf_isom_get_meta_type(file, root_meta, tk_num);
 	if (!brand) return;
 
 	count = gf_isom_get_meta_item_count(file, root_meta, tk_num);
-	fprintf(stdout, "%s type: \"%s\" - %d resource item(s)\n", name, gf_4cc_to_str(brand), count);
+	primary_id = gf_isom_get_meta_primary_item_id(file, root_meta, tk_num);
+	fprintf(stdout, "%s type: \"%s\" - %d resource item(s)\n", name, gf_4cc_to_str(brand), (count+(primary_id>0)));
 	switch (gf_isom_has_meta_xml(file, root_meta, tk_num)) {
 	case 1: fprintf(stdout, "Meta has XML resource\n"); break;
 	case 2: fprintf(stdout, "Meta has BinaryXML resource\n"); break;
 	}
-
+	if (primary_id) {
+		fprintf(stdout, "Primary Item - ID %d\n", primary_id); 
+	} 
 	for (i=0; i<count; i++) {
 		const char *it_name, *mime, *enc, *url, *urn;
 		Bool self_ref;

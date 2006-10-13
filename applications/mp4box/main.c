@@ -817,6 +817,7 @@ static Bool parse_meta_args(MetaAction *meta, char *opts)
 	meta->mime_type[0] = 0;
 	meta->enc_type[0] = 0;
 	meta->szName[0] = 0;
+	meta->szPath[0] = 0;
 	meta->trackID = 0;
 	meta->root_meta = 1;
 
@@ -1899,12 +1900,10 @@ int main(int argc, char **argv)
 
 	for (i=0; i<nb_meta_act; i++) {
 		u32 tk = 0;
-		u32 item_nb = 0;
 		Bool self_ref;
 		MetaAction *meta = &metas[i];
 
 		if (meta->trackID) tk = gf_isom_get_track_by_id(file, meta->trackID);
-		item_nb = gf_isom_get_meta_item_by_id(file, meta->root_meta, tk, meta->item_id);
 
 		switch (meta->act_type) {
 #ifndef GPAC_READ_ONLY
@@ -1928,11 +1927,11 @@ int main(int argc, char **argv)
 			needSave = 1;
 			break;
 		case 2:
-			e = gf_isom_remove_meta_item(file, meta->root_meta, tk, item_nb);
+			e = gf_isom_remove_meta_item(file, meta->root_meta, tk, meta->item_id);
 			needSave = 1;
 			break;
 		case 3:
-			e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, item_nb);
+			e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
 			needSave = 1;
 			break;
 		case 4:
@@ -1945,13 +1944,7 @@ int main(int argc, char **argv)
 			needSave = 1;
 			break;
 		case 8:
-			gf_isom_get_meta_item_info(file, meta->root_meta, tk, item_nb, NULL, NULL, &self_ref, NULL, NULL, NULL, NULL, NULL);
-			if (self_ref) {
-				e = GF_OK;
-				fprintf(stdout, "Warning: item is the file itself - skipping extraction\n");
-			} else {
-				e = gf_isom_extract_meta_item(file, meta->root_meta, tk, item_nb, strlen(meta->szPath) ? meta->szPath : NULL);
-			}
+			e = gf_isom_extract_meta_item(file, meta->root_meta, tk, meta->item_id, strlen(meta->szPath) ? meta->szPath : NULL);
 			break;
 #endif
 		case 7:
