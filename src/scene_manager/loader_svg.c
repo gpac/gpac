@@ -157,43 +157,6 @@ void svg_reset_defered_animations(GF_List *l)
 	}
 }
 
-u32 svg_get_node_id(GF_SVGParser *parser, char *nodename)
-{
-	GF_Node *n;
-	u32 ID;
-	if (sscanf(nodename, "N%d", &ID) == 1) {
-		ID ++;
-		n = gf_sg_find_node(parser->load->scene_graph, ID);
-		if (n) {
-			u32 nID = gf_sg_get_next_available_node_id(parser->load->scene_graph);
-			const char *nname = gf_node_get_name(n);
-			gf_node_set_id(n, nID, nname);
-		}
-	} else {
-		ID = gf_sg_get_next_available_node_id(parser->load->scene_graph);
-	}
-	return ID;
-}
-
-static void svg_parse_element_id(GF_SVGParser *parser, SVGElement *elt, char *nodename)
-{
-	u32 id = 0;
-	SVGElement *unided_elt;
-
-	unided_elt = (SVGElement *)gf_sg_find_node_by_name(parser->load->scene_graph, nodename);
-	if (unided_elt) {
-		if (!parser->command_depth) {
-			svg_report(parser, GF_BAD_PARAM, "element with id='%s' already defined in document.", nodename);
-		} else {
-			svg_report(parser, GF_OK, "Warning: element with id='%s' already defined in document.", nodename);
-			gf_node_set_id((GF_Node *)elt, gf_node_get_id((GF_Node*)unided_elt), nodename);
-		}
-	} else {
-		id = svg_get_node_id(parser, nodename);
-		gf_node_set_id((GF_Node *)elt, id, nodename);
-	}
-}
-
 static void svg_post_process_href(GF_SVGParser *parser, SVG_IRI *iri)
 {
 	/*keep data when encoding*/
@@ -444,11 +407,8 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 		if (!stricmp(att->name, "style")) {
 			/* Special case: style if present will always be first in the list */
 			gf_svg_parse_style(elt, att->value);
-		} else if (!stricmp(att->name, "id")) {
-			svg_parse_element_id(parser, elt, att->value);
-			ided = 1;
-		} else if (!stricmp(att->name, "xml:id")) {
-			svg_parse_element_id(parser, elt, att->value);
+		} else if (!stricmp(att->name, "id") || !stricmp(att->name, "xml:id")) {
+			gf_svg_parse_element_id(elt, att->value, parser->command_depth);
 			ided = 1;
 		} else if (anim && !stricmp(att->name, "attributeName")) {
 			anim->attributeName = att->value;
