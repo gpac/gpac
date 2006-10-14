@@ -2219,6 +2219,42 @@ GF_Err laser_parse_size(LASeR_Size *size, char *attribute_content)
 	i+=svg_parse_float(&(str[i]), &(size->height), 0);
 	return GF_OK;
 }
+
+GF_Err gf_svg_parse_element_id(SVGElement *elt, char *nodename, u32 command_depth)
+{
+	u32 id = 0;
+	SVGElement *unided_elt;
+	GF_SceneGraph *sg = gf_node_get_graph((GF_Node *)elt);
+
+	unided_elt = (SVGElement *)gf_sg_find_node_by_name(sg, nodename);
+	if (unided_elt) {
+		/* An element with the same id is already in the document
+		   Is it in an update, in which case it may be normal, otherwise it's an error.*/		
+		if (!command_depth) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] element with id='%s' already defined in document.\n", nodename));
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] element with id='%s' already defined in document.\n", nodename));
+			gf_node_set_id((GF_Node *)elt, gf_node_get_id((GF_Node*)unided_elt), nodename);
+		}
+	} else {
+		u32 id;
+		if (sscanf(nodename, "N%d", &id) == 1) {
+			GF_Node *n;
+			id++;
+			n = gf_sg_find_node(sg, id);
+			if (n) { /* an existing node was found with this binary id, reassign a new one */
+				u32 nID = gf_sg_get_next_available_node_id(sg);
+				const char *nname = gf_node_get_name(n);
+				gf_node_set_id(n, nID, nname);
+			}
+		} else {
+			id = gf_sg_get_next_available_node_id(sg);
+		}
+		gf_node_set_id((GF_Node *)elt, id, nodename);
+	}
+	return GF_OK;
+}
+
 /* Parse an SVG attribute */
 GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type, u8 transform_type)
 {
@@ -2423,6 +2459,12 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 		break;
 	case SVG_TransformType_datatype:
 		svg_parse_animatetransform_type(info->far_ptr, attribute_content);
+		break;
+
+	case SVG_ID_datatype:
+		/* This should not be use when parsing a LASeR update */
+		/* If an ID is parsed outside from the parser (e.g. script), we may try to resolve animations ... */
+		gf_svg_parse_element_id(elt, attribute_content, 0);
 		break;
 
 	case SVG_String_datatype:
