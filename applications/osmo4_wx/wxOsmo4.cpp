@@ -2423,11 +2423,11 @@ void wxOsmo4Frame::BuildChapterList(Bool reset_only)
 	/*get any service info*/
 	NetInfoCommand com;
 	if (!m_bStartupFile && gf_term_get_service_info(m_term, root_od, &com) == GF_OK) {
-		wxString title("");
-		if (com.track_info) { title.Format("%02d ", (u32) (com.track_info>>16) ); }
-		if (com.artist) { title += com.artist; title += " "; }
-		if (com.name) { title += com.name; title += " "; }
-		if (com.album) { title += "("; title += com.album; title += ")"; }
+		wxString title = wxT("");
+		if (com.track_info) { title.Format(wxT("%02d "), (u32) (com.track_info>>16) ); }
+		if (com.artist) { title.Append(wxString(com.artist, wxConvUTF8)); title += wxT(" "); }
+		if (com.name) { title.Append(wxString(com.name, wxConvUTF8)); title += wxT(" "); }
+		if (com.album) { title += wxT("("); title.Append(wxString(com.album, wxConvUTF8)); title += wxT(")"); }
 		
 		SetTitle(title);
 	}
