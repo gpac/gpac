@@ -626,7 +626,7 @@ static void JS_ObjectDestroyed(JSContext *c, JSObject *obj)
 {
 	GF_ScriptPriv *priv = JS_GetScriptStack(c);
 	JS_SetPrivate(c, obj, 0);
-	gf_list_del_item(priv->js_cache, obj);
+	if (priv->js_cache) gf_list_del_item(priv->js_cache, obj);
 }
 
 
@@ -703,6 +703,7 @@ static JSBool SFNodeConstructor(JSContext *c, JSObject *obj, uintN argc, jsval *
 	GF_Proto *proto;
 	GF_SceneGraph *sg;
 	char *node_name;
+	GF_ScriptPriv *priv = JS_GetScriptStack(c);
 	M_Script *sc = JS_GetScript(c);
 	if (!argc) {
 		field = NewJSField();
@@ -757,6 +758,11 @@ static JSBool SFNodeConstructor(JSContext *c, JSObject *obj, uintN argc, jsval *
 	field->field.fieldType = GF_SG_VRML_SFNODE;
 	field->temp_node = new_node;
 	field->field.far_ptr = &field->temp_node;
+
+	field->obj = obj;
+	JS_AddRoot(c, &field->obj);
+	if (priv->js_cache) gf_list_add(priv->js_cache, obj);
+
 	JS_SetPrivate(c, obj, field);
 	*rval = OBJECT_TO_JSVAL(obj);
 
@@ -2641,7 +2647,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 
 
 	/*look into object bank in case we already have this object*/
-	if (parent && !skip_cache) {
+	if (parent && !skip_cache && priv->js_cache) {
 		i=0;
 		while ((obj = gf_list_enum(priv->js_cache, &i))) {
 			jsf = (GF_JSField *) JS_GetPrivate(priv->js_ctx, obj);
@@ -2931,17 +2937,18 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 				if (!proto_inst->RenderingNode) 
 					gf_sg_proto_instanciate(proto_inst);
 			}
-			if (parent) {
-				slot = NewJSField();
-				slot->owner = parent;
-			} else {
-				slot = NewJSField();
-			}
+			slot = NewJSField();
+			slot->owner = parent;
 			slot->temp_node = n;
 			slot->field.far_ptr = & slot->temp_node;
 			slot->field.fieldType = GF_SG_VRML_SFNODE;
+
 			gf_node_register(n, parent);
 			JS_SetPrivate(priv->js_ctx, pf, slot);
+
+			//slot->obj = pf;
+			//JS_AddRoot(priv->js_ctx, &slot->obj);
+			//gf_list_add(priv->js_cache, pf);
 
 			newVal = OBJECT_TO_JSVAL(pf);
 			JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
@@ -2959,7 +2966,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 	if (jsf) {
 		JS_SetPrivate(priv->js_ctx, obj, jsf);
 		/*if this is the obj corresponding to an existing node, store it*/
-		if (parent && !skip_cache) {
+		if (parent && !skip_cache && priv->js_cache) {
 			jsf->obj = obj;
 			JS_AddRoot(priv->js_ctx, &jsf->obj);
 			gf_list_add(priv->js_cache, obj);
@@ -2986,6 +2993,10 @@ static void JS_Protect(GF_ScriptPriv *priv)
 
 static void JS_Unprotect(GF_ScriptPriv *priv)
 {
+	/*do not force GC, only do it if needed. Otherwise this would extremely slow down eventIn handling, 
+	especially periodic events (timers & co)*/
+	//JS_MaybeGC(priv->js_ctx);
+
 	if (priv->js_cache) {
 		u32 i, count = gf_list_count(priv->js_cache);
 		for (i=0; i<count; i++) {
@@ -2997,9 +3008,6 @@ static void JS_Unprotect(GF_ScriptPriv *priv)
 			}
 		}
 	}
-	/*do not force GC, only do it if needed. Otherwise this would extremely slow down eventIn handling, 
-	especially periodic events (timers & co)*/
-	JS_MaybeGC(priv->js_ctx);
 }
 
 static void JS_PreDestroy(GF_Node *node)
@@ -3092,14 +3100,14 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	if (! JS_LookupProperty(priv->js_ctx, priv->js_obj, sf->name, &fval)) return;
 	if (JSVAL_IS_VOID(fval)) return;
 
-	argv[0] = gf_sg_script_to_smjs_field(priv, in_field, node, 1);
+	argv[0] = gf_sg_script_to_smjs_field(priv, in_field, node, 0);
 
 	memset(&t_info, 0, sizeof(GF_FieldInfo));
 	t_info.far_ptr = &sf->last_route_time;
 	t_info.fieldType = GF_SG_VRML_SFTIME;
 	t_info.fieldIndex = -1;
 	t_info.name = "timestamp";
-	argv[1] = gf_sg_script_to_smjs_field(priv, &t_info, node, 1);
+	argv[1] = gf_sg_script_to_smjs_field(priv, &t_info, node, 0);
 
 	/*protect object cache*/
 	JS_Protect(priv);
@@ -3281,7 +3289,7 @@ static void JSScript_Load(GF_Node *node)
 
 static JSRuntime *js_runtime = 0;
 static u32 nb_inst = 0;
-const long MAX_HEAP_BYTES = 8L * 1024L * 1024L;
+const long MAX_HEAP_BYTES = 1024 * 1024L;
 const long STACK_CHUNK_BYTES = 8*1024L;
 
 JSContext *gf_sg_ecmascript_new()

@@ -90,6 +90,7 @@ typedef struct
 {
 	u32 event_type;
 	Fixed x, y;
+	u32 button;
 	/*current context passed to the sensor - if NULL the event is not over the node (deactivation)*/
 	struct _drawable_context *context;
 } UserEvent2D;

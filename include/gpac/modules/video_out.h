@@ -38,8 +38,10 @@
 extern "C" {
 #endif
 
+/*include module system*/
+#include <gpac/module.h>
 /*include event system*/
-#include <gpac/user.h>
+#include <gpac/events.h>
 /*include framebuffer definition*/
 #include <gpac/color.h>
 
@@ -106,11 +108,11 @@ typedef struct _video_out
 	GF_Err (*SetFullScreen) (struct _video_out *vout, Bool fs_on, u32 *new_disp_width, u32 *new_disp_height);
 
 	/*window events sent to output:
-	GF_EVT_SET_CURSOR: sets cursor
-	GF_EVT_SET_CAPTION: sets caption
-	GF_EVT_SHOWHIDE: show/hide output window for self-managed output
-	GF_EVT_SIZE:  inital window resize upon scene load
-	GF_EVT_VIDEO_SETUP: all HW related setup:
+	GF_EVENT_SET_CURSOR: sets cursor
+	GF_EVENT_SET_CAPTION: sets caption
+	GF_EVENT_SHOWHIDE: show/hide output window for self-managed output
+	GF_EVENT_SIZE:  inital window resize upon scene load
+	GF_EVENT_VIDEO_SETUP: all HW related setup:
 		* for 2D output, this means resizing the backbuffer if needed (depending on HW constraints)
 		* for 3D output, this means re-setup of OpenGL context (depending on HW constraints). Depending on windowing systems 
 			and implementations, it could be possible to resize a window without destroying the GL context.

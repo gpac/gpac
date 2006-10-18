@@ -549,14 +549,18 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 	left_but_down = middle_but_down = right_but_down = 0;
 	wheel_pos = 0;
 	switch (event->type) {
-	case GF_EVT_LEFTDOWN: left_but_down = 2; break;
-	case GF_EVT_LEFTUP: left_but_down = 1; break;
-	case GF_EVT_RIGHTDOWN: right_but_down = 2; break;
-	case GF_EVT_RIGHTUP: right_but_down = 1; break;
-	case GF_EVT_MIDDLEDOWN: middle_but_down = 2; break;
-	case GF_EVT_MIDDLEUP: middle_but_down = 1; break;
-	case GF_EVT_MOUSEWHEEL: wheel_pos = event->wheel_pos; break;
-	case GF_EVT_MOUSEMOVE: break;
+	case GF_EVENT_MOUSEDOWN:
+		if (event->button==GF_MOUSE_RIGHT) right_but_down = 2;
+		else if (event->button==GF_MOUSE_MIDDLE) middle_but_down = 2;
+		else if (event->button==GF_MOUSE_LEFT) left_but_down = 2;
+		break;
+	case GF_EVENT_MOUSEUP:
+		if (event->button==GF_MOUSE_RIGHT) right_but_down = 1;
+		else if (event->button==GF_MOUSE_MIDDLE) middle_but_down = 1;
+		else if (event->button==GF_MOUSE_LEFT) left_but_down = 1;
+		break;
+	case GF_EVENT_MOUSEWHEEL: wheel_pos = event->wheel_pos; break;
+	case GF_EVENT_MOUSEMOVE: break;
 	default: return;
 	}
 
@@ -610,7 +614,7 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 	free(buf);
 }
 
-void gf_term_keyboard_input(GF_Terminal *term, s32 keyPressed, s32 keyReleased, s32 actionKeyPressed, s32 actionKeyReleased, u32 shiftKeyDown, u32 controlKeyDown, u32 altKeyDown)
+void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp, u32 shiftKeyDown, u32 controlKeyDown, u32 altKeyDown)
 {
 	u32 i;
 	GF_BitStream *bs;
@@ -618,7 +622,9 @@ void gf_term_keyboard_input(GF_Terminal *term, s32 keyPressed, s32 keyReleased, 
 	unsigned char *buf;
 	X_KeySensor *n;
 	u32 buf_size;
+	u32 actionKey = 0;
 	GF_Codec *cod;
+	s32 keyPressed, keyReleased, actionKeyPressed, actionKeyReleased;
 
 	if (!term || (!gf_list_count(term->input_streams) && !gf_list_count(term->x3d_sensors)) ) return;
 
@@ -629,6 +635,48 @@ void gf_term_keyboard_input(GF_Terminal *term, s32 keyPressed, s32 keyReleased, 
 	slh.compositionTimeStamp = 0;
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	keyPressed = keyReleased = actionKeyPressed = actionKeyReleased = 0;
+	/*key-sensor codes*/
+	switch (key_code) {
+	case GF_KEY_F1: actionKey = 1; break;
+	case GF_KEY_F2: actionKey = 2; break;
+	case GF_KEY_F3: actionKey = 3; break;
+	case GF_KEY_F4: actionKey = 4; break;
+	case GF_KEY_F5: actionKey = 5; break;
+	case GF_KEY_F6: actionKey = 6; break;
+	case GF_KEY_F7: actionKey = 7; break;
+	case GF_KEY_F8: actionKey = 8; break;
+	case GF_KEY_F9: actionKey = 9; break;
+	case GF_KEY_F10: actionKey = 10; break;
+	case GF_KEY_F11: actionKey = 11; break;
+	case GF_KEY_F12: actionKey = 12; break;
+	case GF_KEY_HOME: actionKey = 13; break;
+	case GF_KEY_END: actionKey = 14; break;
+	case GF_KEY_PAGEUP: actionKey = 15; break;
+	case GF_KEY_PAGEDOWN: actionKey = 16; break;
+	case GF_KEY_UP: actionKey = 17; break;
+	case GF_KEY_DOWN: actionKey = 18; break;
+	case GF_KEY_LEFT: actionKey = 19; break;
+	case GF_KEY_RIGHT: actionKey = 20; break;
+	default: actionKey = 0; break;
+	}
+	if (actionKey) {
+		if (isKeyUp) 
+			actionKeyReleased = actionKey;
+		else 
+			actionKeyPressed = actionKey;
+	} else {
+		/*handle numeric pad*/
+		if ((key_code>=GF_KEY_0) && (key_code<=GF_KEY_9) ) {
+			key_code = key_code + 0x30 - GF_KEY_0;
+		} 
+		else 
+			key_code = hw_code;
+
+		if (isKeyUp) keyReleased = key_code;
+		else keyPressed = key_code;
+	}
 
 	gf_bs_write_int(bs, keyPressed ? 1 : 0, 1); 
 	if (keyPressed) gf_bs_write_int(bs, keyPressed, 32);

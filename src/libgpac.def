@@ -1171,6 +1171,6 @@ EXPORTS
 	gf_smil_timing_init_runtime_info
 	gf_smil_timing_get_normalized_simple_time
 	gf_smil_timing_is_active
-	gf_svg_check_url_change
 	gf_sg_notify_smil_timed_elements
 	gf_term_set_mfurl_from_uri
+	gf_term_check_iri_change

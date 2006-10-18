@@ -174,7 +174,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 		}
 	}
 
-	info->has_profiles = (odm->Audio_PL<0) ? 0 : 1;
+	info->has_profiles = (odm->flags & GF_ODM_HAS_PROFILES) ? 1 : 0;
 	if (info->has_profiles) {
 		info->inline_pl = (odm->flags & GF_ODM_INLINE_PROFILES) ? 1 : 0;
 		info->OD_pl = odm->OD_PL; 

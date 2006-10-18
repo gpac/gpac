@@ -36,7 +36,7 @@
 	{	\
 		GF_Event evt;	\
 		if (_user->EventProc) {	\
-			evt.type = GF_EVT_SIZE;	\
+			evt.type = GF_EVENT_SIZE;	\
 			evt.size.width = _w;	\
 			evt.size.height = _h;	\
 			_user->EventProc(_user->opaque, &evt);	\
@@ -114,7 +114,7 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 				fs_width = sr->width;
 				fs_height = sr->height;
 			}
-			evt.type = GF_EVT_SIZE;
+			evt.type = GF_EVENT_SIZE;
 			evt.size.width = sr->new_width;
 			evt.size.height = sr->new_height;
 			/*send resize event*/
@@ -152,7 +152,7 @@ static void gf_sr_reconfig_task(GF_Renderer *sr)
 	if (sr->reset_graphics) {
 		sr->visual_renderer->GraphicsReset(sr->visual_renderer);
 
-		evt.type = GF_EVT_SYS_COLORS;
+		evt.type = GF_EVENT_SYS_COLORS;
 		if (sr->user->EventProc && sr->user->EventProc(sr->user->opaque, &evt) ) {
 			u32 i;
 			for (i=0; i<28; i++) {
@@ -610,7 +610,7 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 		if (sr->user->init_flags & GF_TERM_WINDOWLESS) {
 			opt = gf_cfg_get_key(sr->user->config, "Rendering", "ColorKey");
 			if (opt) {
-				u8 r, g, b, a;
+				u32 r, g, b, a;
 				sscanf(opt, "%02X%02X%02X%02X", &a, &r, &g, &b);
 				sr->back_color = GF_COL_ARGB(0xFF, r, g, b);
 			}
@@ -646,7 +646,7 @@ GF_Err gf_sr_set_scene(GF_Renderer *sr, GF_SceneGraph *scene_graph)
 	NOTIFY THE SIZE CHANGE AFTER RELEASING THE RENDERER MUTEX*/
 	if (do_notif && sr->user->EventProc) {
 		GF_Event evt;
-		evt.type = GF_EVT_SCENE_SIZE;
+		evt.type = GF_EVENT_SCENE_SIZE;
 		evt.size.width = width;
 		evt.size.height = height;
 		sr->user->EventProc(sr->user->opaque, &evt);
@@ -795,7 +795,7 @@ GF_Err gf_sr_set_option(GF_Renderer *sr, u32 type, u32 value)
 		sr->is_hidden = !value;
 		if (sr->video_out->ProcessEvent) {
 			GF_Event evt;
-			evt.type = GF_EVT_SHOWHIDE;
+			evt.type = GF_EVENT_SHOWHIDE;
 			evt.show.show_type = value ? 1 : 0;
 			e = sr->video_out->ProcessEvent(sr->video_out, &evt);
 		}
@@ -959,7 +959,7 @@ static void SR_UserInputIntern(GF_Renderer *sr, GF_Event *event)
 {
 	GF_UserEvent *ev;
 
-	if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) && (event->type<=GF_EVT_MOUSEWHEEL))
+	if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) && (event->type<=GF_EVENT_MOUSEWHEEL))
 		gf_term_mouse_input(sr->term, &event->mouse);
 
 	if (!sr->interaction_level || (sr->interaction_level==GF_INTERACT_INPUT_SENSOR) ) {
@@ -968,14 +968,14 @@ static void SR_UserInputIntern(GF_Renderer *sr, GF_Event *event)
 	}
 
 	switch (event->type) {
-	case GF_EVT_MOUSEMOVE:
+	case GF_EVENT_MOUSEMOVE:
 	{
 		u32 i, count;
 		gf_mx_p(sr->ev_mx);
 		count = gf_list_count(sr->events);
 		for (i=0; i<count; i++) {
 			ev = gf_list_get(sr->events, i);
-			if (ev->event_type == GF_EVT_MOUSEMOVE) {
+			if (ev->event_type == GF_EVENT_MOUSEMOVE) {
 				ev->mouse =  event->mouse;
 				gf_mx_v(sr->ev_mx);
 				return;
@@ -986,9 +986,9 @@ static void SR_UserInputIntern(GF_Renderer *sr, GF_Event *event)
 	default:
 		ev = malloc(sizeof(GF_UserEvent));
 		ev->event_type = event->type;
-		if (event->type<=GF_EVT_MOUSEWHEEL) {
+		if (event->type<=GF_EVENT_MOUSEWHEEL) {
 			ev->mouse = event->mouse;
-		} else if (event->type==GF_EVT_CHAR) {
+		} else if (event->type==GF_EVENT_TEXTINPUT) {
 			ev->character = event->character;
 		} else {
 			ev->key = event->key;
@@ -1013,19 +1013,19 @@ static void SR_ForwardUserEvent(GF_Renderer *sr, GF_UserEvent *ev)
 	GF_Event event;
 
 	event.type = ev->event_type;
-	if (ev->event_type<=GF_EVT_MOUSEWHEEL) {
+	if (ev->event_type<=GF_EVENT_MOUSEWHEEL) {
 		event.mouse = ev->mouse;
 	} else {
 		event.key = ev->key;
 	}
 	GF_USER_SENDEVENT(sr->user, &event);
 
-	if (ev->event_type==GF_EVT_LEFTUP) {
+	if ((ev->event_type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		u32 now;
 		/*emulate doubleclick*/
 		now = gf_sys_clock();
 		if (now - last_lclick_time < 250) {
-			event.type = GF_EVT_LDOUBLECLICK;
+			event.type = GF_EVENT_MOUSEDOUBLECLICK;
 			event.mouse.key_states = sr->key_states;
 			event.mouse.x = ev->mouse.x;
 			event.mouse.y = ev->mouse.y;
@@ -1079,7 +1079,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 #if 0
 	if (sr->frame_number == 0 && sr->user->EventProc) {
 		GF_Event evt;
-		evt.type = GF_EVT_RESET_RTI;
+		evt.type = GF_EVENT_RESET_RTI;
 		evt.caption.caption = "RESET - Before first call to draw scene";
 		sr->user->EventProc(sr->user->opaque, &evt);
 	}
@@ -1098,16 +1098,16 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 			count = gf_dom_listener_count(root);
 			for (i=0;i<count; i++) {
 				SVGlistenerElement *l = gf_dom_listener_get(root, i);
-				if (l->event.type == SVG_DOM_EVT_CPU) {
+				if (l->event.type == GF_EVENT_CPU) {
 					GF_SystemRTInfo sys_rti;
 					if (gf_sys_get_rti(500, &sys_rti, GF_RTI_ALL_PROCESSES_TIMES)) {
-						evt.type = SVG_DOM_EVT_CPU;
+						evt.type = GF_EVENT_CPU;
 						evt.cpu_percentage = sys_rti.total_cpu_usage;
 						//printf("%d\n",sys_rti.total_cpu_usage);
 						gf_dom_event_fire(root, NULL, &evt);
 					} 
-				} else if (l->event.type == SVG_DOM_EVT_BATTERY) { //&& l->observer.target == (SVGElement *)node) {
-					evt.type = SVG_DOM_EVT_BATTERY;
+				} else if (l->event.type == GF_EVENT_BATTERY) { //&& l->observer.target == (SVGElement *)node) {
+					evt.type = GF_EVENT_BATTERY;
 					gf_sys_get_battery_state(&evt.onBattery, &evt.batteryState, &evt.batteryLevel);
 					gf_dom_event_fire(root, NULL, &evt);
 				}
@@ -1144,7 +1144,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 #if 0
 		if (sr->frame_number == 0 && sr->user->EventProc) {
 			GF_Event evt;
-			evt.type = GF_EVT_UPDATE_RTI;
+			evt.type = GF_EVENT_UPDATE_RTI;
 			evt.caption.caption = "Before first call to draw scene";
 			sr->user->EventProc(sr->user->opaque, &evt);
 		}
@@ -1189,7 +1189,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	if (sr->user->EventProc) {
 		char legend[100];
 		GF_Event evt;
-		evt.type = GF_EVT_UPDATE_RTI;
+		evt.type = GF_EVENT_UPDATE_RTI;
 		sprintf(legend, "After rendering of frame %d", sr->frame_number);
 		evt.caption.caption = legend;
 		sr->user->EventProc(sr->user->opaque, &evt);
@@ -1237,13 +1237,13 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 	if (!sr || !sr->visual_renderer) return;
 
 	switch (event->type) {
-	case GF_EVT_REFRESH:
+	case GF_EVENT_REFRESH:
 		sr->draw_next_frame = 1;
 		break;
-	case GF_EVT_VIDEO_SETUP:
+	case GF_EVENT_VIDEO_SETUP:
 		gf_sr_reset_graphics(sr);
 		break;
-	case GF_EVT_SIZE:
+	case GF_EVENT_SIZE:
 		/*resize message from plugin: if we own the output, resize*/
 		if (!sr->user->os_window_handler) {
 			/*EXTRA CARE HERE: the caller (video output) is likely a different thread than the renderer one, and the
@@ -1260,76 +1260,41 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 			GF_USER_SENDEVENT(sr->user, event);
 		}
 		break;
-	case GF_EVT_VKEYDOWN:
+
+	case GF_EVENT_KEYDOWN:
+	case GF_EVENT_KEYUP:
 		s = c = m = 0;
-		switch (event->key.vk_code) {
-		case GF_VK_SHIFT: s = 2; sr->key_states |= GF_KM_SHIFT; break;
-		case GF_VK_CONTROL: c = 2; sr->key_states |= GF_KM_CTRL; break;
-		case GF_VK_MENU: m = 2; sr->key_states |= GF_KM_ALT; break;
+		switch (event->key.key_code) {
+		case GF_KEY_SHIFT: s = (event->type==GF_EVENT_KEYDOWN) ? 2 : 1; sr->key_states |= GF_KEY_MOD_SHIFT; break;
+		case GF_KEY_CONTROL: c = (event->type==GF_EVENT_KEYDOWN) ? 2 : 1; sr->key_states |= GF_KEY_MOD_CTRL; break;
+		case GF_KEY_ALT: m = (event->type==GF_EVENT_KEYDOWN) ? 2 : 1; sr->key_states |= GF_KEY_MOD_ALT; break;
 		}
-		event->key.key_states = sr->key_states;
+		event->key.flags |= sr->key_states;
 		/*key sensor*/
 		if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) ) {
-			if (event->key.vk_code<=GF_VK_RIGHT) gf_term_keyboard_input(sr->term, 0, 0, event->key.vk_code, 0, s, c, m);
-			else gf_term_keyboard_input(sr->term, event->key.virtual_code, 0, 0, 0, s, c, m);
+			gf_term_keyboard_input(sr->term, event->key.key_code, event->key.hw_code, (event->type==GF_EVENT_KEYDOWN) ? 0 : 1, s, c, m);
 		}		
 		SR_UserInputIntern(sr, event);
 		break;
 
-	case GF_EVT_VKEYUP:
-		s = c = m = 0;
-		switch (event->key.vk_code) {
-		case GF_VK_SHIFT: s = 1; sr->key_states &= ~GF_KM_SHIFT; break;
-		case GF_VK_CONTROL: c = 1; sr->key_states &= ~GF_KM_CTRL; break;
-		case GF_VK_MENU: m = 1; sr->key_states &= ~GF_KM_ALT; break;
-		}
-		event->key.key_states = sr->key_states;
-
-		/*key sensor*/
-		if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) ) {
-			if (event->key.vk_code<=GF_VK_RIGHT) gf_term_keyboard_input(sr->term, 0, 0, 0, event->key.vk_code, s, c, m);
-			else gf_term_keyboard_input(sr->term, 0, event->key.virtual_code, 0, 0, s, c, m);
-		}
-		SR_UserInputIntern(sr, event);
-		break;
-
-	/*for key sensor*/
-	case GF_EVT_KEYDOWN:
-		event->key.key_states = sr->key_states;
-		if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) )
-			gf_term_keyboard_input(sr->term, event->key.virtual_code, 0, 0, 0, 0, 0, 0);
-		SR_UserInputIntern(sr, event);
-		break;
-
-	case GF_EVT_KEYUP:
-		event->key.key_states = sr->key_states;
-		if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) )
-			gf_term_keyboard_input(sr->term, 0, event->key.virtual_code, 0, 0, 0, 0, 0);
-		SR_UserInputIntern(sr, event);
-		break;
-
-	case GF_EVT_CHAR:
+	case GF_EVENT_TEXTINPUT:
 		if (sr->term && (sr->interaction_level & GF_INTERACT_INPUT_SENSOR) )
 			gf_term_string_input(sr->term , event->character.unicode_char);
 		SR_UserInputIntern(sr, event);
 		break;
 	/*switch fullscreen off!!!*/
-	case GF_EVT_SHOWHIDE:
+	case GF_EVENT_SHOWHIDE:
 		gf_sr_set_option(sr, GF_OPT_FULLSCREEN, !sr->fullscreen);
 		break;
 
-	case GF_EVT_SET_CAPTION:
+	case GF_EVENT_SET_CAPTION:
 		sr->video_out->ProcessEvent(sr->video_out, event);
 		break;
 
-	case GF_EVT_MOUSEMOVE:
-	case GF_EVT_LEFTDOWN:
-	case GF_EVT_RIGHTDOWN:
-	case GF_EVT_RIGHTUP:
-	case GF_EVT_MIDDLEDOWN:
-	case GF_EVT_MIDDLEUP:
-	case GF_EVT_MOUSEWHEEL:
-	case GF_EVT_LEFTUP:
+	case GF_EVENT_MOUSEMOVE:
+	case GF_EVENT_MOUSEDOWN:
+	case GF_EVENT_MOUSEUP:
+	case GF_EVENT_MOUSEWHEEL:
 		event->mouse.key_states = sr->key_states;
 		SR_UserInputIntern(sr, event);
 		break;
@@ -1345,9 +1310,9 @@ static void gf_sr_on_event(void *cbck, GF_Event *event)
 void gf_sr_user_event(GF_Renderer *sr, GF_Event *event)
 {
 	switch (event->type) {
-	case GF_EVT_SHOWHIDE:
-	case GF_EVT_MOVE:
-	case GF_EVT_SET_CAPTION:
+	case GF_EVENT_SHOWHIDE:
+	case GF_EVENT_MOVE:
+	case GF_EVENT_SET_CAPTION:
 		sr->video_out->ProcessEvent(sr->video_out, event);
 		break;
 	default:

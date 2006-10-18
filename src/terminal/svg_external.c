@@ -53,6 +53,15 @@ Bool gf_term_set_mfurl_from_uri(GF_Terminal *term, MFURL *mfurl, SVG_IRI *iri)
 	return ret;
 }
 
+Bool gf_term_check_iri_change(GF_Terminal *term, MFURL *url, SVG_IRI *iri)
+{
+	if (url->count && !iri->iri) return 1;
+	if (!url->count && iri->iri) return 1;
+	if (!url->count) return 0;
+	if (!strcmp(url->vals[0].url, iri->iri)) return 0;
+	return 1;
+}
+
 
 /* Creates a subscene from the xlink:href */
 static GF_InlineScene *gf_svg_get_subscene(SVGElement *elt, Bool use_sync)
@@ -264,7 +273,7 @@ static void SVG_Render_use(GF_Node *node, void *rs)
 		
 		shadow_root = gf_sg_get_root_node(is->graph);
 
-		if (fragment = strchr(use->xlink->href.iri, '#')) {
+		if ((fragment = strchr(use->xlink->href.iri, '#')) ) {
 			shadow_root = gf_sg_find_node_by_name(is->graph, fragment+1);
 		}
 		if (shadow_root) {

@@ -74,7 +74,7 @@ static Bool OnDiscSensor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor
 	
 	if (ev->context == NULL) {
 		if (stack->last_not_over) {
-			if (ev->event_type == GF_EVT_LEFTUP) {
+			if ((ev->event_type == GF_EVENT_MOUSEUP) && (ev->button==GF_MOUSE_LEFT)) {
 				R2D_UnregisterSensor(stack->compositor, &stack->hdl);
 				sr->is_tracking = 0;
 				stack->mouse_down = 0;
@@ -95,7 +95,7 @@ static Bool OnDiscSensor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor
 	X = ev->x;
 	Y = ev->y;
 
-	if ((ev->event_type == GF_EVT_LEFTDOWN) && !stack->mouse_down) {
+	if ((ev->event_type == GF_EVENT_MOUSEDOWN) && (ev->button==GF_MOUSE_LEFT) && !stack->mouse_down) {
 		stack->mouse_down = 1;
 		/*store inverse of initial matrix*/
 		gf_mx2d_copy(stack->inv_init_matrix, *sensor_matrix);
@@ -106,7 +106,7 @@ static Bool OnDiscSensor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor
 		gf_node_event_out_str(sh->owner, "isActive");
 		R2D_RegisterSensor(stack->compositor, &stack->hdl);	
 	}
-	else if ((ev->event_type == GF_EVT_LEFTUP) && stack->mouse_down) {
+	else if ((ev->event_type == GF_EVENT_MOUSEUP) && (ev->button==GF_MOUSE_LEFT) && stack->mouse_down) {
 		R2D_UnregisterSensor(stack->compositor, &stack->hdl);
 		sr->is_tracking = 0;
 		stack->mouse_down = 0;
@@ -122,7 +122,7 @@ static Bool OnDiscSensor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor
 		gf_node_event_out_str(sh->owner, "isActive");
 		gf_mx2d_init(stack->inv_init_matrix);
 	}
-	else if ((ev->event_type == GF_EVT_MOUSEMOVE) && stack->mouse_down) {
+	else if ((ev->event_type == GF_EVENT_MOUSEMOVE) && stack->mouse_down) {
 		sr->is_tracking = 1;
 		gf_mx2d_apply_coords(&stack->inv_init_matrix, &X, &Y);
 		ds->rotation_changed = ds_point_to_angle(stack, ds, X, Y);
@@ -215,7 +215,7 @@ static Bool OnPlaneSensor2D(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sen
 	// this function is called when the mouse is not on a object
 	if (ev->context == NULL) {
 		if (stack->last_not_over) {
-			if (ev->event_type == GF_EVT_LEFTUP) {
+			if ((ev->event_type == GF_EVENT_MOUSEUP) && (ev->button==GF_MOUSE_LEFT)) {
 				sr->is_tracking = 0;
 				stack->mouse_down = 0;
 				if (ps->isActive) {
@@ -242,7 +242,7 @@ static Bool OnPlaneSensor2D(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sen
 	Y = ev->y;
 	gf_mx2d_apply_coords(&inv, &X, &Y);
 
-	if ((ev->event_type == GF_EVT_LEFTDOWN) && !stack->mouse_down) {
+	if ((ev->event_type == GF_EVENT_MOUSEDOWN) && (ev->button==GF_MOUSE_LEFT) && !stack->mouse_down) {
 		stack->mouse_down = 1;
 		gf_mx2d_copy(stack->init_matrix, *sensor_matrix);
 		stack->start_drag.x = X;
@@ -252,7 +252,7 @@ static Bool OnPlaneSensor2D(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sen
 		gf_node_event_out_str(sh->owner, "isActive");
 	}
 
-	if (ev->event_type == GF_EVT_LEFTUP && stack->mouse_down) {
+	if (ev->event_type == GF_EVENT_MOUSEUP && (ev->button==GF_MOUSE_LEFT) && stack->mouse_down) {
 		R2D_UnregisterSensor(stack->compositor, &stack->hdl);
 		sr->is_tracking = 0;
 		stack->mouse_down = 0;
@@ -269,7 +269,7 @@ static Bool OnPlaneSensor2D(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sen
 		return 0;
 	}
 
-	if ( (ev->event_type == GF_EVT_MOUSEMOVE) && stack->mouse_down) {
+	if ( (ev->event_type == GF_EVENT_MOUSEMOVE) && stack->mouse_down) {
 		sr->is_tracking = 1;
 		ps->trackPoint_changed.x = X;
 		ps->trackPoint_changed.y = Y;
@@ -439,7 +439,7 @@ static Bool OnTouchSensor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *senso
 		}
 
 		if (ts->isActive) {
-			if (ev->event_type == GF_EVT_LEFTUP) {
+			if ((ev->event_type == GF_EVENT_MOUSEUP) && (ev->button==GF_MOUSE_LEFT)) {
 				ts->isOver = 0;
 				gf_node_event_out_str(sh->owner, "isOver");
 				ts->isActive = 0;
@@ -455,20 +455,20 @@ static Bool OnTouchSensor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *senso
 		}
 		return 0;
 	}
-	if ((ev->event_type == GF_EVT_MOUSEMOVE) && !ts->isOver) {
+	if ((ev->event_type == GF_EVENT_MOUSEMOVE) && !ts->isOver) {
 		ts->isOver = 1;
 		gf_node_event_out_str(sh->owner, "isOver");
 		R2D_RegisterSensor(stack->compositor, &stack->hdl);
 	}
 
-	if ((ev->event_type == GF_EVT_LEFTDOWN) && !stack->mouse_down) {
+	if ((ev->event_type == GF_EVENT_MOUSEDOWN) && (ev->button==GF_MOUSE_LEFT) && !stack->mouse_down) {
 		ts->isActive = 1;
 		gf_node_event_out_str(sh->owner, "isActive");
 		stack->mouse_down = 1;
 	}
 
 	// If the button is first released, then generate an isActive = FALSE event, and ungrab all movement events.
-	if ((ev->event_type == GF_EVT_LEFTUP) && stack->mouse_down) {
+	if ((ev->event_type == GF_EVENT_MOUSEUP) && (ev->button==GF_MOUSE_LEFT) && stack->mouse_down) {
 		ts->isActive = 0;
 		gf_node_event_out_str(sh->owner, "isActive");
 		stack->mouse_down = 0;

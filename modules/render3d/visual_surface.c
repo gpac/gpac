@@ -1207,7 +1207,7 @@ static void reset_collide_cursor(Render3D *sr)
 	if (sr->last_cursor == GF_CURSOR_COLLIDE) {
 		GF_Event evt;
 		sr->last_cursor = evt.cursor.cursor_type = GF_CURSOR_NORMAL;
-		evt.type = GF_EVT_SET_CURSOR;
+		evt.type = GF_EVENT_SET_CURSOR;
 		sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
 	}
 }
@@ -1224,7 +1224,7 @@ Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_UserEvent *ev,
 	Render3D *sr = surf->render;
 
 	count = 0;
-	if ((ev->event_type > GF_EVT_LEFTUP) || sr->nav_is_grabbed) return 0;
+	if ((ev->event_type > GF_EVENT_MOUSEMOVE) || sr->nav_is_grabbed) return 0;
 
 	eff->camera = &surf->camera;
 	eff->surface = surf;
@@ -1312,7 +1312,7 @@ Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_UserEvent *ev,
 				hs_grabbed = hs;
 				sr->hs_grab = hs;
 			} else {
-				hs->OnUserEvent(hs, 0, ev->event_type, &sr->hit_info);
+				hs->OnUserEvent(hs, 0, ev, &sr->hit_info);
 			}
 		}
 	}
@@ -1320,7 +1320,7 @@ Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_UserEvent *ev,
 	count = gf_list_count(sr->sensors);
 	for (i=0; i<count; i++) {
 		hs = gf_list_get(sr->sensors, i);
-		hs->OnUserEvent(hs, 1, ev->event_type, &sr->hit_info);
+		hs->OnUserEvent(hs, 1, ev, &sr->hit_info);
 		stype = gf_node_get_tag(hs->owner);
 		if (hs==hs_grabbed) hs_grabbed = NULL;
 	}
@@ -1331,7 +1331,7 @@ Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_UserEvent *ev,
 
 	/*check if we have a grabbed sensor*/
 	if (hs_grabbed) {
-		hs_grabbed->OnUserEvent(hs_grabbed, 0, ev->event_type, &sr->hit_info);
+		hs_grabbed->OnUserEvent(hs_grabbed, 0, ev, &sr->hit_info);
 		gf_list_reset(sr->prev_sensors);
 		gf_list_add(sr->prev_sensors, hs_grabbed);
 		stype = gf_node_get_tag(hs_grabbed->owner);
@@ -1369,7 +1369,7 @@ Bool VS_ExecuteEvent(VisualSurface *surf, RenderEffect3D *eff, GF_UserEvent *ev,
 		}
 		if ((stype != GF_CURSOR_NORMAL) || (sr->last_cursor != stype)) {
 			GF_Event evt;
-			evt.type = GF_EVT_SET_CURSOR;
+			evt.type = GF_EVENT_SET_CURSOR;
 			evt.cursor.cursor_type = stype;
 			sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
 			sr->last_cursor = stype;
@@ -1566,7 +1566,7 @@ void VS_DoCollisions(RenderEffect3D *eff, GF_List *node_list)
 		if (eff->surface->render->last_cursor != GF_CURSOR_COLLIDE) {
 			GF_Event evt;
 			eff->camera->last_had_col = 1;
-			evt.type = GF_EVT_SET_CURSOR;
+			evt.type = GF_EVENT_SET_CURSOR;
 			eff->surface->render->last_cursor = evt.cursor.cursor_type = GF_CURSOR_COLLIDE;
 			eff->surface->render->compositor->video_out->ProcessEvent(eff->surface->render->compositor->video_out, &evt);
 		}

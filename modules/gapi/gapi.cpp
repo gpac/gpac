@@ -66,53 +66,209 @@ static void GAPI_GetCoordinates(DWORD lParam, GF_Event *evt)
 	}
 }
 
-static u32 GAPI_TranslateActionKey(u32 VirtKey) 
+static void w32_translate_key(u32 wParam, u32 lParam, GF_EventKey *evt)
 {
-	switch (VirtKey) {
-	case VK_HOME: return GF_VK_HOME;
-	case VK_END: return GF_VK_END;
-	case VK_NEXT: return GF_VK_PRIOR;
-	case VK_PRIOR: return GF_VK_NEXT;
-	case VK_UP: return is_landscape ? GF_VK_RIGHT : GF_VK_UP;
-	case VK_DOWN: return is_landscape ? GF_VK_LEFT : GF_VK_DOWN;
-	case VK_LEFT: return is_landscape ? GF_VK_UP : GF_VK_LEFT;
-	case VK_RIGHT: return is_landscape ? GF_VK_DOWN : GF_VK_RIGHT;
-	case VK_F1: return GF_VK_F1;
-	case VK_F2: return GF_VK_F2;
-	case VK_F3: return GF_VK_F3;
-	case VK_F4: return GF_VK_F4;
-	case VK_F5: return GF_VK_F5;
-	case VK_F6: return GF_VK_F6;
-	case VK_F7: return GF_VK_F7;
-	case VK_F8: return GF_VK_F8;
-	case VK_F9: return GF_VK_F9;
-	case VK_F10: return GF_VK_F10;
-	case VK_F11: return GF_VK_F11;
-	case VK_F12: return GF_VK_F12;
-	case VK_RETURN: return GF_VK_RETURN;
-	case VK_ESCAPE: return GF_VK_ESCAPE;
-	case VK_SHIFT: return GF_VK_SHIFT;
-	case VK_CONTROL: return GF_VK_CONTROL;
-	case VK_MENU: return GF_VK_MENU;
-	default: return 0;
+	evt->hw_code = wParam;
+	switch (wParam) {
+	case VK_BACK: evt->key_code = GF_KEY_BACKSPACE; break;
+	case VK_TAB: evt->key_code = GF_KEY_TAB; break;
+	case VK_CLEAR: evt->key_code = GF_KEY_CLEAR; break;
+	case VK_RETURN: evt->key_code = GF_KEY_ENTER; break;
+	case VK_SHIFT: evt->key_code = GF_KEY_SHIFT; break;
+	case VK_CONTROL: evt->key_code = GF_KEY_CONTROL; break;
+	case VK_MENU: evt->key_code = GF_KEY_ALT; break;
+	case VK_PAUSE: evt->key_code = GF_KEY_PAUSE; break;
+	case VK_CAPITAL: evt->key_code = GF_KEY_CAPSLOCK; break;
+	case VK_KANA: evt->key_code = GF_KEY_KANAMODE; break;
+	case VK_JUNJA: evt->key_code = GF_KEY_JUNJAMODE; break;
+	case VK_FINAL: evt->key_code = GF_KEY_FINALMODE; break;
+	case VK_KANJI: evt->key_code = GF_KEY_KANJIMODE; break;
+	case VK_ESCAPE: evt->key_code = GF_KEY_ESCAPE; break;
+	case VK_CONVERT: evt->key_code = GF_KEY_CONVERT; break;
+	case VK_SPACE: evt->key_code = GF_KEY_SPACE; break;
+	case VK_PRIOR: evt->key_code = GF_KEY_PAGEUP; break;
+	case VK_NEXT: evt->key_code = GF_KEY_PAGEDOWN; break;
+	case VK_END: evt->key_code = GF_KEY_END; break;
+	case VK_HOME: evt->key_code = GF_KEY_HOME; break;
+	case VK_LEFT: evt->key_code = GF_KEY_LEFT; break;
+	case VK_UP: evt->key_code = GF_KEY_UP; break;
+	case VK_RIGHT: evt->key_code = GF_KEY_RIGHT; break;
+	case VK_DOWN: evt->key_code = GF_KEY_DOWN; break;
+	case VK_SELECT: evt->key_code = GF_KEY_SELECT; break;
+	case VK_PRINT: 
+	case VK_SNAPSHOT:
+		evt->key_code = GF_KEY_PRINTSCREEN; break;
+	case VK_EXECUTE: evt->key_code = GF_KEY_EXECUTE; break;
+	case VK_INSERT: evt->key_code = GF_KEY_INSERT; break;
+	case VK_DELETE: evt->key_code = GF_KEY_DEL; break;
+	case VK_HELP: evt->key_code = GF_KEY_HELP; break;
+
+/*	case VK_LWIN: return ;
+	case VK_RWIN: return ;
+	case VK_APPS: return ;
+*/
+	case VK_NUMPAD0: 
+		evt->key_code = GF_KEY_0;
+		evt->flags = GF_KEY_EXT_NUMPAD;
+		break;
+	case VK_NUMPAD1:
+		evt->key_code = GF_KEY_1;
+		evt->flags = GF_KEY_EXT_NUMPAD;
+		break;
+	case VK_NUMPAD2:
+		evt->key_code = GF_KEY_2;
+		evt->flags = GF_KEY_EXT_NUMPAD;
+		break;
+	case VK_NUMPAD3:
+		evt->key_code = GF_KEY_3;
+		evt->flags = GF_KEY_EXT_NUMPAD;
+		break;
+	case VK_NUMPAD4:
+		evt->key_code = GF_KEY_4;
+		evt->flags = GF_KEY_EXT_NUMPAD;
+		break;
+	case VK_NUMPAD5:
+		evt->key_code = GF_KEY_5;
+		evt->flags = GF_KEY_EXT_NUMPAD;
+		break;
+	case VK_NUMPAD6:
+		evt->key_code = GF_KEY_6;
+		evt->flags = GF_KEY_EXT_NUMPAD;
+		break;
+	case VK_NUMPAD7:
+		evt->key_code = GF_KEY_7;
+		evt->flags = GF_KEY_EXT_NUMPAD;
+		break;
+	case VK_NUMPAD8:
+		evt->key_code = GF_KEY_8;
+		evt->flags = GF_KEY_EXT_NUMPAD;
+		break;
+	case VK_NUMPAD9:
+		evt->key_code = GF_KEY_9;
+		evt->flags = GF_KEY_EXT_NUMPAD;
+		break;
+	case VK_MULTIPLY: 
+		evt->key_code = GF_KEY_STAR;
+		evt->flags = GF_KEY_EXT_NUMPAD;
+		break;
+	case VK_ADD: 
+		evt->key_code = GF_KEY_PLUS;
+		evt->flags = GF_KEY_EXT_NUMPAD;
+		break;
+	case VK_SEPARATOR:
+		evt->key_code = GF_KEY_FULLSTOP;
+		evt->flags = GF_KEY_EXT_NUMPAD;
+		break;
+	case VK_SUBTRACT:
+		evt->key_code = GF_KEY_HYPHEN;
+		evt->flags = GF_KEY_EXT_NUMPAD;
+		break;
+	case VK_DECIMAL:
+		evt->key_code = GF_KEY_COMMA;
+		evt->flags = GF_KEY_EXT_NUMPAD;
+		break;
+	case VK_DIVIDE:
+		evt->key_code = GF_KEY_SLASH;
+		evt->flags = GF_KEY_EXT_NUMPAD;
+		break;
+	case VK_F1: evt->key_code = GF_KEY_F1; break;
+	case VK_F2: evt->key_code = GF_KEY_F2; break;
+	case VK_F3: evt->key_code = GF_KEY_F3; break;
+	case VK_F4: evt->key_code = GF_KEY_F4; break;
+	case VK_F5: evt->key_code = GF_KEY_F5; break;
+	case VK_F6: evt->key_code = GF_KEY_F6; break;
+	case VK_F7: evt->key_code = GF_KEY_F7; break;
+	case VK_F8: evt->key_code = GF_KEY_F8; break;
+	case VK_F9: evt->key_code = GF_KEY_F9; break;
+	case VK_F10: evt->key_code = GF_KEY_F10; break;
+	case VK_F11: evt->key_code = GF_KEY_F11; break;
+	case VK_F12: evt->key_code = GF_KEY_F12; break;
+	case VK_F13: evt->key_code = GF_KEY_F13; break;
+	case VK_F14: evt->key_code = GF_KEY_F14; break;
+	case VK_F15: evt->key_code = GF_KEY_F15; break;
+	case VK_F16: evt->key_code = GF_KEY_F16; break;
+	case VK_F17: evt->key_code = GF_KEY_F17; break;
+	case VK_F18: evt->key_code = GF_KEY_F18; break;
+	case VK_F19: evt->key_code = GF_KEY_F19; break;
+	case VK_F20: evt->key_code = GF_KEY_F20; break;
+	case VK_F21: evt->key_code = GF_KEY_F21; break;
+	case VK_F22: evt->key_code = GF_KEY_F22; break;
+	case VK_F23: evt->key_code = GF_KEY_F23; break;
+	case VK_F24: evt->key_code = GF_KEY_F24; break;
+
+	case VK_NUMLOCK: evt->key_code = GF_KEY_NUMLOCK; break;
+	case VK_SCROLL: evt->key_code = GF_KEY_SCROLL; break;
+
+/*
+ * VK_L* & VK_R* - left and right Alt, Ctrl and Shift virtual keys.
+ * Used only as parameters to GetAsyncKeyState() and GetKeyState().
+ * No other API or message will distinguish left and right keys in this way.
+ */
+	case VK_LSHIFT: 
+		evt->key_code = GF_KEY_SHIFT;
+		evt->flags = GF_KEY_EXT_LEFT;
+		break;
+	case VK_RSHIFT:
+		evt->key_code = GF_KEY_SHIFT;
+		evt->flags = GF_KEY_EXT_RIGHT;
+		break;
+	case VK_LCONTROL:
+		evt->key_code = GF_KEY_CONTROL;
+		evt->flags = GF_KEY_EXT_LEFT;
+		break;
+	case VK_RCONTROL:
+		evt->key_code = GF_KEY_CONTROL;
+		evt->flags = GF_KEY_EXT_RIGHT;
+		break;
+	case VK_LMENU:
+		evt->key_code = GF_KEY_ALT;
+		evt->flags = GF_KEY_EXT_LEFT;
+		break;
+	case VK_RMENU:
+		evt->key_code = GF_KEY_ALT;
+		evt->flags = GF_KEY_EXT_RIGHT;
+		break;
+
+#if(WINVER >= 0x0400)
+	case VK_PROCESSKEY: evt->key_code = GF_KEY_PROCESS; break;
+#endif /* WINVER >= 0x0400 */
+
+	case VK_ATTN: evt->key_code = GF_KEY_ATTN; break;
+	case VK_CRSEL: evt->key_code = GF_KEY_CRSEL; break;
+	case VK_EXSEL: evt->key_code = GF_KEY_EXSEL; break;
+	case VK_EREOF: evt->key_code = GF_KEY_ERASEEOF; break;
+	case VK_PLAY: evt->key_code = GF_KEY_PLAY; break;
+	case VK_ZOOM: evt->key_code = GF_KEY_ZOOM; break;
+	//case VK_NONAME: evt->key_code = GF_KEY_NONAME; break;
+	//case VK_PA1: evt->key_code = GF_KEY_PA1; break;
+	case VK_OEM_CLEAR: evt->key_code = GF_KEY_CLEAR; break;
+
+	/*thru VK_9 are the same as ASCII '0' thru '9' (0x30 - 0x39) */
+	/* VK_A thru VK_Z are the same as ASCII 'A' thru 'Z' (0x41 - 0x5A) */
+	default: 
+		if ((wParam>=0x30) && (wParam<=0x39))  evt->key_code = GF_KEY_0 + wParam-0x30;
+		else if ((wParam>=0x41) && (wParam<=0x5A))  evt->key_code = GF_KEY_A + wParam-0x51;
+		else {
+			GAPIPriv *ctx = (GAPIPriv *)the_video_driver->opaque;
+			short res = (LOWORD(wParam) != 0x5b) ? LOWORD(wParam) : wParam;
+
+			if (res==ctx->keys.vkLeft) evt->key_code = is_landscape ? GF_KEY_UP : GF_KEY_LEFT;
+			else if (res==ctx->keys.vkRight) evt->key_code = is_landscape ? GF_KEY_DOWN : GF_KEY_RIGHT;
+			else if (res==ctx->keys.vkDown) evt->key_code = is_landscape ? GF_KEY_LEFT : GF_KEY_DOWN;
+			else if (res==ctx->keys.vkUp) evt->key_code = is_landscape ? GF_KEY_RIGHT : GF_KEY_UP;
+			else if (res==ctx->keys.vkStart) evt->key_code = GF_KEY_ENTER;
+			else if (res==ctx->keys.vkA) evt->key_code = GF_KEY_CONTROL;
+			else if (res==ctx->keys.vkB) evt->key_code = GF_KEY_SHIFT;
+			else if (res==ctx->keys.vkC) evt->key_code = GF_KEY_ALT;
+
+			else
+				evt->key_code = GF_KEY_UNIDENTIFIED;
+		}
+		break;
 	}
 }
 
-u32 GX_TRANSLATE_KEY(u32 vk)
-{
-	GAPIPriv *ctx = (GAPIPriv *)the_video_driver->opaque;
-	short res = (LOWORD(vk) != 0x5b) ? LOWORD(vk) : vk;
 
-	if (res==ctx->keys.vkLeft) return is_landscape ? GF_VK_UP : GF_VK_LEFT;
-	else if (res==ctx->keys.vkRight) return is_landscape ? GF_VK_DOWN : GF_VK_RIGHT;
-	else if (res==ctx->keys.vkDown) return is_landscape ? GF_VK_LEFT : GF_VK_DOWN;
-	else if (res==ctx->keys.vkUp) return is_landscape ? GF_VK_RIGHT : GF_VK_UP;
-	else if (res==ctx->keys.vkStart) return GF_VK_RETURN;
-	else if (res==ctx->keys.vkA) return GF_VK_CONTROL;
-	else if (res==ctx->keys.vkB) return GF_VK_SHIFT;
-	else if (res==ctx->keys.vkC) return GF_VK_MENU;
-	else return 0;
-}
 
 LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 {
@@ -121,14 +277,14 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	case WM_SIZE:
 	{
 		GAPIPriv *ctx = (GAPIPriv *)the_video_driver->opaque;
-		evt.type = GF_EVT_SIZE;
+		evt.type = GF_EVENT_SIZE;
 		evt.size.width = LOWORD(lParam);
 		evt.size.height = HIWORD(lParam);
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 	}
 		break;
 	case WM_CLOSE:
-		evt.type = GF_EVT_QUIT;
+		evt.type = GF_EVENT_QUIT;
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		return 1;
 	case WM_DESTROY:
@@ -145,7 +301,7 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		break;
 
 	case WM_ERASEBKGND:
-//		evt.type = GF_EVT_REFRESH;
+//		evt.type = GF_EVENT_REFRESH;
 //		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		break;
 	case WM_PAINT:
@@ -166,58 +322,34 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 
 	case WM_MOUSEMOVE:
 		GAPI_GetCoordinates(lParam, &evt);
-		evt.type = GF_EVT_MOUSEMOVE;
+		evt.type = GF_EVENT_MOUSEMOVE;
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		break;
 	case WM_LBUTTONDOWN:
 	case WM_LBUTTONDBLCLK:
 		GAPI_GetCoordinates(lParam, &evt);
-		evt.type = GF_EVT_LEFTDOWN;
+		evt.type = GF_EVENT_MOUSEDOWN;
+		evt.mouse.button = GF_MOUSE_LEFT;
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		break;
 	case WM_LBUTTONUP:
 		GAPI_GetCoordinates(lParam, &evt);
-		evt.type = GF_EVT_LEFTUP;
+		evt.type = GF_EVENT_MOUSEUP;
+		evt.mouse.button = GF_MOUSE_LEFT;
 		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		break;
 
 	/*FIXME - there's a bug on alt state (we miss one event)*/
 	case WM_SYSKEYDOWN:
 	case WM_SYSKEYUP:
-		evt.key.vk_code = GAPI_TranslateActionKey(wParam);
-		evt.key.virtual_code = wParam;
-		if (evt.key.vk_code) {
-			evt.type = (msg==WM_SYSKEYDOWN) ? GF_EVT_VKEYDOWN : GF_EVT_VKEYUP;
-			if (evt.key.vk_code<=GF_VK_RIGHT) evt.key.virtual_code = 0;
-			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
-		}
-		break;
 	case WM_KEYDOWN:
 	case WM_KEYUP:
-		/*emulate button actions as vk codes*/
-		if ((evt.key.vk_code = GX_TRANSLATE_KEY(wParam)) != 0) {
-			evt.key.virtual_code = wParam;
-			evt.type = (msg==WM_KEYDOWN) ? GF_EVT_VKEYDOWN : GF_EVT_VKEYUP;
-			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
-			break;
-		}
-
-		evt.key.vk_code = GAPI_TranslateActionKey(wParam);
-		evt.key.virtual_code = wParam;
-		if (evt.key.vk_code) {
-			evt.type = (msg==WM_KEYDOWN) ? GF_EVT_VKEYDOWN : GF_EVT_VKEYUP;
-			if (evt.key.vk_code<=GF_VK_RIGHT) evt.key.virtual_code = 0;
-			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
-			/*also send a normal key for non-key-sensors*/
-			if (evt.key.vk_code>GF_VK_RIGHT) goto send_key;
-		} else {
-send_key:
-			evt.type = (msg==WM_KEYDOWN) ? GF_EVT_KEYDOWN : GF_EVT_KEYUP;
-			the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
-		}
+		w32_translate_key(wParam, lParam, &evt.key);
+		evt.type = ((msg==WM_SYSKEYDOWN) || (msg==WM_KEYDOWN))  ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
+		the_video_driver->on_event(the_video_driver->evt_cbk_hdl, &evt);
 		break;
 	case WM_CHAR:
-		evt.type = GF_EVT_CHAR;
+		evt.type = GF_EVENT_TEXTINPUT;
 		evt.character.unicode_char = wParam;
 		break;
 	}
@@ -414,7 +546,7 @@ GF_Err GAPI_SetupOGL_ES(GF_VideoOutput *dr)
 		gctx->surface = 0L;
 		return GF_IO_ERR;
 	}
-	evt.type = GF_EVT_VIDEO_SETUP;
+	evt.type = GF_EVENT_VIDEO_SETUP;
 	dr->on_event(dr->evt_cbk_hdl, &evt);	
 	return GF_OK;
 }
@@ -737,13 +869,13 @@ static GF_Err GAPI_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	GAPICTX(dr);
 	if (!evt) return GF_OK;
 	switch (evt->type) {
-	case GF_EVT_SHOWHIDE:
+	case GF_EVENT_SHOWHIDE:
 		if (gctx->hWnd) ShowWindow(gctx->hWnd, evt->show.show_type ? SW_SHOW : SW_HIDE);
 		break;
-	case GF_EVT_SIZE:
+	case GF_EVENT_SIZE:
 		/*nothing to do since we don't own the window*/
 		break;
-	case GF_EVT_VIDEO_SETUP:
+	case GF_EVENT_VIDEO_SETUP:
 #ifdef GPAC_USE_OGL_ES
 		if (gctx->is_3D) return GAPI_SetupOGL_ES(the_video_driver);
 #endif

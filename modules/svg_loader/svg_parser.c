@@ -441,7 +441,7 @@ void svg_parse_dom_attributes(SVGParser *parser,
 			} else if (strcmp(attributes->name, "style")) {
 				GF_FieldInfo info;
 				u32 evtType = gf_dom_event_type_by_name((char *) attributes->name + 2);
-				if (evtType != SVG_DOM_EVT_UNKNOWN) {
+				if (evtType != GF_EVENT_UNKNOWN) {
 					XMLEV_Event evt;
 					SVGhandlerElement *handler;
 					evt.parameter = 0;
@@ -607,7 +607,7 @@ void svg_parse_dom_defered_animations(SVGParser *parser, xmlNodePtr node, SVGEle
 		GF_DOM_Event evt;
 		gf_node_init((GF_Node *)elt);
 		memset(&evt, 0, sizeof(GF_DOM_Event));
-		evt.type = SVG_DOM_EVT_LOAD;
+		evt.type = GF_EVENT_LOAD;
 		gf_dom_event_fire((GF_Node*)elt, NULL, &evt);
 	}
 }
@@ -667,7 +667,7 @@ SVGElement *svg_parse_dom_element(SVGParser *parser, xmlNodePtr node, SVGElement
 		GF_DOM_Event evt;
 		gf_node_init((GF_Node *)elt);
 		memset(&evt, 0, sizeof(GF_DOM_Event));
-		evt.type = SVG_DOM_EVT_LOAD;
+		evt.type = GF_EVENT_LOAD;
 		gf_dom_event_fire((GF_Node *)elt, NULL, &evt);
 	}
 	return elt;
@@ -934,7 +934,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 		} else {
 			GF_FieldInfo info;
 			u32 evtType = gf_dom_event_type_by_name((char *) (char *)attrs[attribute_index] + 2);
-			if (evtType != SVG_DOM_EVT_UNKNOWN) {
+			if (evtType != GF_EVENT_UNKNOWN) {
 				XMLEV_Event evt;
 				SVGhandlerElement *handler;
 				evt.parameter = 0;
@@ -995,7 +995,7 @@ SVGElement *svg_parse_sax_element(SVGParser *parser, const xmlChar *name, const 
 		gf_node_init((GF_Node *)elt);
 		/*fire initialization event*/
 		memset(&evt, 0, sizeof(GF_DOM_Event));
-		evt.type = SVG_DOM_EVT_LOAD;
+		evt.type = GF_EVENT_LOAD;
 		gf_dom_event_fire((GF_Node *) elt, NULL, &evt);
 	}
 	return elt;

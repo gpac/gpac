@@ -77,43 +77,124 @@ GF_Err X11_Flush(struct _video_out *vout, GF_Window * dest)
  * Translate X_Key to GF_Key
  */
 //=====================================
-static u32 X11_TranslateActionKey (u32 VirtKey)
+static u32 x11_translate_key(u32 X11Key, GF_EventKey *evt)
 {
-	switch (VirtKey) {
-	case XK_Home: return GF_VK_HOME;
-	case XK_End: return GF_VK_END;
-	case XK_Page_Up: return GF_VK_PRIOR;
-	case XK_Page_Down: return GF_VK_NEXT;
-	case XK_Up: return GF_VK_UP;
-	case XK_Down: return GF_VK_DOWN;
-	case XK_Left: return GF_VK_LEFT;
-	case XK_Right: return GF_VK_RIGHT;
-	case XK_F1: return GF_VK_F1;
-	case XK_F2: return GF_VK_F2;
-	case XK_F3: return GF_VK_F3;
-	case XK_F4: return GF_VK_F4;
-	case XK_F5: return GF_VK_F5;
-	case XK_F6: return GF_VK_F6;
-	case XK_F7: return GF_VK_F7;
-	case XK_F8: return GF_VK_F8;
-	case XK_F9: return GF_VK_F9;
-	case XK_F10: return GF_VK_F10;
-	case XK_F11: return GF_VK_F11;
-	case XK_F12: return GF_VK_F12;
-	case XK_KP_Enter: return GF_VK_RETURN;
-	case XK_Return: return GF_VK_RETURN;
-	case XK_Escape: return GF_VK_ESCAPE;
-	case XK_Shift_L:
+	evt->hw_code = X11Key;
+	switch (X11Key) {
+
+	case XK_BackSpace: evt->key_code = GF_KEY_BACKSPACE; break;
+	case XK_Tab: evt->key_code = GF_KEY_TAB; break;
+	case XK_Linefeed: evt->key_code = GF_KEY_LINEFEED; break;
+	case XK_Clear: evt->key_code = GF_KEY_CLEAR; break;
+
+	case XK_KP_Enter:
+		evt->flags = GF_KEY_EXT_NUMPAD; 
+	case XK_Return: 
+		evt->key_code = GF_KEY_ENTER; 
+		break;
+	case XK_Pause: evt->key_code = GF_KEY_PAUSE; break;
+	case XK_Scroll_Lock: evt->key_code = GF_KEY_SCROLL; break;
+	case XK_Escape: evt->key_code = GF_KEY_ESCAPE; break;
+	case XK_KP_Delete: 
+		evt->flags = GF_KEY_EXT_NUMPAD; 
+	case XK_Delete: 
+		evt->key_code = GF_KEY_DEL; 
+		break;
+
+	case XK_Kanji: evt->key_code = GF_KEY_KANJIMODE; break;
+	case XK_Katakana: evt->key_code = GF_KEY_JAPANESEKATAKANA; break;
+	case XK_Romaji: evt->key_code = GF_KEY_JAPANESEROMAJI; break;
+	case XK_Hiragana: evt->key_code = GF_KEY_JAPANESEHIRAGANA; break;
+	case XK_Kana_Lock: evt->key_code = GF_KEY_KANAMODE; break;
+
+	case XK_Home: evt->key_code = GF_KEY_HOME; break;
+	case XK_Left: evt->key_code = GF_KEY_LEFT; break;
+	case XK_Up: evt->key_code = GF_KEY_UP; break;
+	case XK_Right: evt->key_code = GF_KEY_RIGHT; break;
+	case XK_Down: evt->key_code = GF_KEY_DOWN; break;
+	case XK_Page_Up: evt->key_code = GF_KEY_PRIOR; break;
+	case XK_Page_Down: evt->key_code = GF_KEY_NEXT; break;
+	case XK_End: evt->key_code = GF_KEY_END; break;
+	case XK_Begin: evt->key_code = GF_KEY_BEGIN; break;
+
+
+	case XK_Select: evt->key_code = GF_KEY_SELECT; break;
+	case XK_Print: evt->key_code = GF_KEY_PRINTSCREEN; break;
+	case XK_Execute: evt->key_code = GF_KEY_EXECUTE; break;
+	case XK_Insert: evt->key_code = GF_KEY_INSERT; break;
+	case XK_Undo: evt->key_code = GF_KEY_UNDO; break;
+	//case XK_Redo: evt->key_code = GF_KEY_BEGIN; break;
+	//case XK_Menu: evt->key_code = GF_KEY_BEGIN; break;
+	case XK_Find: evt->key_code = GF_KEY_FIND; break;
+	case XK_Cancel: evt->key_code = GF_KEY_CANCEL; break;
+	case XK_Help: evt->key_code = GF_KEY_HELP; break;
+	//case XK_Break: evt->key_code = GF_KEY_BREAK; break;
+	//case XK_Mode_switch: evt->key_code = GF_KEY_BEGIN; break;
+	case XK_Num_Lock: evt->key_code = GF_KEY_NUMLOCK; break;
+	
+	case XK_F1: evt->key_code = GF_KEY_F1; break;
+	case XK_F2: evt->key_code = GF_KEY_F2; break;
+	case XK_F3: evt->key_code = GF_KEY_F3; break;
+	case XK_F4: evt->key_code = GF_KEY_F4; break;
+	case XK_F5: evt->key_code = GF_KEY_F5; break;
+	case XK_F6: evt->key_code = GF_KEY_F6; break;
+	case XK_F7: evt->key_code = GF_KEY_F7; break;
+	case XK_F8: evt->key_code = GF_KEY_F8; break;
+	case XK_F9: evt->key_code = GF_KEY_F9; break;
+	case XK_F10: evt->key_code = GF_KEY_F10; break;
+	case XK_F11: evt->key_code = GF_KEY_F11; break;
+	case XK_F12: evt->key_code = GF_KEY_F12; break;
+	case XK_F13: evt->key_code = GF_KEY_F13; break;
+	case XK_F14: evt->key_code = GF_KEY_F14; break;
+	case XK_F15: evt->key_code = GF_KEY_F15; break;
+	case XK_F16: evt->key_code = GF_KEY_F16; break;
+	case XK_F17: evt->key_code = GF_KEY_F17; break;
+	case XK_F18: evt->key_code = GF_KEY_F18; break;
+	case XK_F19: evt->key_code = GF_KEY_F19; break;
+	case XK_F20: evt->key_code = GF_KEY_F20; break;
+	case XK_F21: evt->key_code = GF_KEY_F21; break;
+	case XK_F22: evt->key_code = GF_KEY_F22; break;
+	case XK_F23: evt->key_code = GF_KEY_F23; break;
+	case XK_F24: evt->key_code = GF_KEY_F24; break;
+
+	case XK_KP_Decimal: 
+		evt->flags = GF_KEY_EXT_NUMPAD; 
+		evt->key_code = GF_KEY_COMMA; 
+		break;
+
+	case XK_KP_0: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_0; break;
+	case XK_KP_1: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_1; break;
+	case XK_KP_2: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_2; break;
+	case XK_KP_3: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_3; break;
+	case XK_KP_4: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_4; break;
+	case XK_KP_5: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_5; break;
+	case XK_KP_6: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_6; break;
+	case XK_KP_7: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_7; break;
+	case XK_KP_8: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_8; break;
+	case XK_KP_9: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_9; break;
+		
+
 	case XK_Shift_R:
-		return GF_VK_SHIFT;
-	case XK_Control_L:
+		evt->flags = GF_KEY_EXT_RIGHT;
+	case XK_Shift_L:
+		evt->key_code = GF_KEY_SHIFT; 
+		break;
 	case XK_Control_R:
-		return GF_VK_CONTROL;
-	case XK_Alt_L:
+		evt->flags = GF_KEY_EXT_RIGHT;
+	case XK_Control_L:
+		evt->key_code = GF_KEY_CONTROL; 
+		break;
 	case XK_Alt_R:
-		return GF_VK_MENU;
+		evt->flags = GF_KEY_EXT_RIGHT;
+	case XK_Alt_L:
+		evt->key_code = GF_KEY_MENU; 
+		break;
 	default:
-		return 0;
+		if ((X11Key>=0x30) && (X11Key<=0x39))  evt->key_code = GF_KEY_0 + X11Key-0x30;
+		else if ((X11Key>=0x41) && (X11Key<=0x5A))  evt->key_code = GF_KEY_A + X11Key-0x51;
+		else
+			evt->key_code = 0; 
+		break;
 	}
 }
 
@@ -172,7 +253,7 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		    if ((unsigned int) xevent.xconfigure.width != xWindow->w_width
 			|| (unsigned int) xevent.xconfigure.height != xWindow->w_height)
 		      {
-			evt.type = GF_EVT_SIZE;
+			evt.type = GF_EVENT_SIZE;
 			xWindow->w_width = evt.size.width = xevent.xconfigure.width;
 			xWindow->w_height = evt.size.height = xevent.xconfigure.height;
 			vout->on_event(vout->evt_cbk_hdl, &evt);
@@ -183,43 +264,35 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		     */
 		  case Expose:
 		    if (xevent.xexpose.count > 0)	break;
-		    evt.type = GF_EVT_REFRESH;
+		    evt.type = GF_EVENT_REFRESH;
 		    vout->on_event (vout->evt_cbk_hdl, &evt);
 		    break;
 		    
 		    /* Have we been requested to quit (or another client message?) */
 		  case ClientMessage:
 		    if ( (xevent.xclient.format == 32) && (xevent.xclient.data.l[0] == xWindow->WM_DELETE_WINDOW) ) {
-		      evt.type = GF_EVT_QUIT;
+		      evt.type = GF_EVENT_QUIT;
 		      vout->on_event(vout->evt_cbk_hdl, &evt);
 		    }
 		    break;
 
 		  case KeyPress:
 		  case KeyRelease:
-		    evt.key.virtual_code = XKeycodeToKeysym (xWindow->display, xevent.xkey.keycode, 0);
-		    evt.key.vk_code = X11_TranslateActionKey (evt.key.virtual_code);
+		    evt.key.hw_code = XKeycodeToKeysym (xWindow->display, xevent.xkey.keycode, 0);
+		    x11_translate_key(evt.key.hw_code, &evt);
 		    evt.key.virtual_code &= 0xFF;
-		    
-		    if (evt.key.vk_code) {
-		      evt.type = (xevent.type ==KeyPress) ? GF_EVT_VKEYDOWN :GF_EVT_VKEYUP;
-		      if (evt.key.vk_code <= GF_VK_RIGHT) evt.key.virtual_code = 0;
-		      vout->on_event (vout->evt_cbk_hdl, &evt);
-		      /*also send a normal key for non-key-sensors */
-		      if (evt.key.vk_code > GF_VK_RIGHT) goto send_key;
-		    } else {
-		    send_key:
-		      XLookupString (&xevent.xkey, (char *) keybuf, sizeof(keybuf), NULL, &state);
-		      evt.type = (xevent.type == KeyPress) ? GF_EVT_KEYDOWN : GF_EVT_KEYUP;
-		      vout->on_event (vout->evt_cbk_hdl, &evt);
-		      
-		      if ((xevent.type == KeyPress) && keybuf[0]) {
-			evt.character.unicode_char = keybuf[0];
-			evt.type = GF_EVT_CHAR;
+			evt.type = (xevent.type ==KeyPress) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
 			vout->on_event (vout->evt_cbk_hdl, &evt);
-		      }
-		    }
-		    break;
+		    
+			if (xevent.type ==KeyPress) {
+				XLookupString (&xevent.xkey, (char *) keybuf, sizeof(keybuf), NULL, &state);
+				if (keybuf[0]) {
+					evt.character.unicode_char = keybuf[0];
+					evt.type = GF_EVENT_TEXTINPUT;
+					vout->on_event (vout->evt_cbk_hdl, &evt);
+				}
+			}
+			break;
 		    
 		  case ButtonPress:
 			  if (!xWindow->fullscreen && !xWindow->has_focus) {
@@ -230,27 +303,28 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		    //				last_mouse_move = xevent.xbutton.time;
 		    evt.mouse.x = xevent.xbutton.x;
 		    evt.mouse.y = xevent.xbutton.y;
+			evt.type = (xevent.type == ButtonRelease) ? GF_EVENT_MOUSEUP : GF_EVENT_MOUSEDOWN;
 		    
 		    switch (xevent.xbutton.button) {
 		    case Button1:
-		      evt.type = (xevent.type == ButtonRelease) ? GF_EVT_LEFTUP : GF_EVT_LEFTDOWN;
+		      evt.mouse.button = GF_MOUSE_LEFT;
 		      vout->on_event (vout->evt_cbk_hdl, &evt);
 		      break;
 		    case Button2:
-		      evt.type = (xevent.type == ButtonRelease) ? GF_EVT_MIDDLEUP : GF_EVT_MIDDLEDOWN;
+		      evt.mouse.button = GF_MOUSE_MIDDLE;
 		      vout->on_event (vout->evt_cbk_hdl, &evt);
 		      break;
 		    case Button3:
-		      evt.type = (xevent.type == ButtonRelease) ? GF_EVT_RIGHTUP: GF_EVT_RIGHTDOWN;
+		      evt.mouse.button = GF_MOUSE_RIGHT;
 		      vout->on_event (vout->evt_cbk_hdl, &evt);
 		      break;
 		    case Button4:
-		      evt.type = GF_EVT_MOUSEWHEEL;
+		      evt.type = GF_EVENT_MOUSEWHEEL;
 		      evt.mouse.wheel_pos = FIX_ONE;
 		      vout->on_event(vout->evt_cbk_hdl, &evt);
 		      break;
 		    case Button5:
-		      evt.type = GF_EVT_MOUSEWHEEL;
+		      evt.type = GF_EVENT_MOUSEWHEEL;
 		      evt.mouse.wheel_pos = -FIX_ONE;
 		      vout->on_event(vout->evt_cbk_hdl, &evt);
 		      break;
@@ -260,7 +334,7 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		    break;
 		    
 		  case MotionNotify:
-		    evt.type = GF_EVT_MOUSEMOVE;
+		    evt.type = GF_EVENT_MOUSEMOVE;
 		    evt.mouse.x = xevent.xmotion.x;
 		    evt.mouse.y = xevent.xmotion.y;
 		    vout->on_event (vout->evt_cbk_hdl, &evt);
@@ -284,7 +358,7 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		    break;
 		    
 		  case DestroyNotify:
-		      evt.type = GF_EVT_QUIT;
+		      evt.type = GF_EVENT_QUIT;
 		      vout->on_event(vout->evt_cbk_hdl, &evt);
 		    break;
 		    
@@ -307,7 +381,7 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
   if (!xWin->glx_context) return GF_IO_ERR;
   if ( ! glXMakeCurrent(xWin->display, xWin->fullscreen ? xWin->full_wnd : xWin->wnd, xWin->glx_context) ) return GF_IO_ERR;
   XSync(xWin->display, False);
-  evt.type = GF_EVT_VIDEO_SETUP;
+  evt.type = GF_EVENT_VIDEO_SETUP;
   vout->on_event (vout->evt_cbk_hdl,&evt);
   xWin->is_init = 1;
   return GF_OK;
@@ -457,14 +531,14 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 	if (evt) {
 
 	switch (evt->type) {
-	case GF_EVT_SET_CURSOR:
+	case GF_EVENT_SET_CURSOR:
 		break;
-	case GF_EVT_SET_CAPTION:
+	case GF_EVENT_SET_CAPTION:
 		if (!xWindow->par_wnd) XStoreName (xWindow->display, xWindow->wnd, evt->caption.caption);
 		break;
-	case GF_EVT_SHOWHIDE:
+	case GF_EVENT_SHOWHIDE:
 		break;
-	case GF_EVT_SIZE:
+	case GF_EVENT_SIZE:
 		/*if owning the window and not in fullscreen, resize it (initial scene size)*/
 	xWindow->w_width = evt->size.width;
 	xWindow->w_height = evt->size.height;
@@ -479,7 +553,7 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 	    }
 	  }
 	  break;
-	case GF_EVT_VIDEO_SETUP:
+	case GF_EVENT_VIDEO_SETUP:
 		/*and resetup HW*/
 #ifdef GPAC_HAS_OPENGL
 		if (xWindow->is_3D_out) return X11_SetupGL(vout);

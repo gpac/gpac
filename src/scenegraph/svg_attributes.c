@@ -24,6 +24,7 @@
  */
 
 #include <gpac/base_coding.h>
+#include <gpac/events.h>
 #include <gpac/scenegraph_svg.h>
 #include <gpac/internal/scenegraph_dev.h>
 
@@ -35,262 +36,269 @@
 */
 u32 gf_dom_event_type_by_name(const char *name)
 {
-	if (!strcmp(name, "focusin"))	return SVG_DOM_EVT_FOCUSIN;
-	if (!strcmp(name, "focusout"))	return SVG_DOM_EVT_FOCUSOUT;
-	if (!strcmp(name, "activate"))	return SVG_DOM_EVT_ACTIVATE;
-	if (!strcmp(name, "click"))		return SVG_DOM_EVT_CLICK;
-	if (!strcmp(name, "mouseup"))	return SVG_DOM_EVT_MOUSEUP;
-	if (!strcmp(name, "mousedown")) return SVG_DOM_EVT_MOUSEDOWN;
-	if (!strcmp(name, "mouseover")) return SVG_DOM_EVT_MOUSEOVER;
-	if (!strcmp(name, "mouseout"))	return SVG_DOM_EVT_MOUSEOUT;
-	if (!strcmp(name, "mousemove")) return SVG_DOM_EVT_MOUSEMOVE;
-	if (!strcmp(name, "load"))		return SVG_DOM_EVT_LOAD;
-	if (!strcmp(name, "SVGLoad"))	return SVG_DOM_EVT_LOAD;
-	if (!strcmp(name, "unload"))	return SVG_DOM_EVT_UNLOAD;
-	if (!strcmp(name, "error"))		return SVG_DOM_EVT_ERROR;
-	if (!strcmp(name, "resize"))	return SVG_DOM_EVT_RESIZE;
-	if (!strcmp(name, "scroll"))	return SVG_DOM_EVT_SCROLL;
-	if (!strcmp(name, "zoom"))		return SVG_DOM_EVT_ZOOM;
-	if (!strcmp(name, "begin"))		return SVG_DOM_EVT_BEGIN;
-	if (!strcmp(name, "end"))		return SVG_DOM_EVT_END;
-	if (!strncmp(name, "repeat", 6))	return SVG_DOM_EVT_REPEAT;
-	if (!strcmp(name, "keyup"))		return SVG_DOM_EVT_KEYUP;
-	if (!strcmp(name, "keydown"))	return SVG_DOM_EVT_KEYDOWN;
-	if (!strcmp(name, "keypress") || !stricmp(name, "accesskey"))	return SVG_DOM_EVT_KEYDOWN;
-	if (!strcmp(name, "longkeypress") || !stricmp(name, "longaccesskey"))	return SVG_DOM_EVT_LONGKEYPRESS;
-	if (!strcmp(name, "battery"))		return SVG_DOM_EVT_BATTERY;
-	if (!strcmp(name, "cpu"))		return SVG_DOM_EVT_CPU;
-	return SVG_DOM_EVT_UNKNOWN;
+	if (!strcmp(name, "focusin"))	return GF_EVENT_FOCUSIN;
+	if (!strcmp(name, "focusout"))	return GF_EVENT_FOCUSOUT;
+	if (!strcmp(name, "activate"))	return GF_EVENT_ACTIVATE;
+	if (!strcmp(name, "click"))		return GF_EVENT_CLICK;
+	if (!strcmp(name, "mouseup"))	return GF_EVENT_MOUSEUP;
+	if (!strcmp(name, "mousedown")) return GF_EVENT_MOUSEDOWN;
+	if (!strcmp(name, "mouseover")) return GF_EVENT_MOUSEOVER;
+	if (!strcmp(name, "mouseout"))	return GF_EVENT_MOUSEOUT;
+	if (!strcmp(name, "mousemove")) return GF_EVENT_MOUSEMOVE;
+	if (!strcmp(name, "load"))		return GF_EVENT_LOAD;
+	if (!strcmp(name, "SVGLoad"))	return GF_EVENT_LOAD;
+	if (!strcmp(name, "unload"))	return GF_EVENT_UNLOAD;
+	if (!strcmp(name, "error"))		return GF_EVENT_ERROR;
+	if (!strcmp(name, "resize"))	return GF_EVENT_RESIZE;
+	if (!strcmp(name, "scroll"))	return GF_EVENT_SCROLL;
+	if (!strcmp(name, "zoom"))		return GF_EVENT_ZOOM;
+	if (!strcmp(name, "begin"))		return GF_EVENT_BEGIN;
+	if (!strcmp(name, "end"))		return GF_EVENT_END;
+	if (!strncmp(name, "repeat", 6))	return GF_EVENT_REPEAT;
+	if (!strcmp(name, "keyup"))		return GF_EVENT_KEYUP;
+	if (!strcmp(name, "keydown"))	return GF_EVENT_KEYDOWN;
+	if (!strcmp(name, "keypress") || !stricmp(name, "accesskey"))	return GF_EVENT_KEYDOWN;
+	if (!strcmp(name, "longkeypress") || !stricmp(name, "longaccesskey"))	return GF_EVENT_LONGKEYPRESS;
+	if (!strcmp(name, "battery"))		return GF_EVENT_BATTERY;
+	if (!strcmp(name, "cpu"))		return GF_EVENT_CPU;
+	return GF_EVENT_UNKNOWN;
 }
 
 const char *gf_dom_event_get_name(u32 type)
 {
 	switch (type) {
-	case SVG_DOM_EVT_FOCUSIN: return "focusin";
-	case SVG_DOM_EVT_FOCUSOUT: return "focusout";
-	case SVG_DOM_EVT_ACTIVATE: return "activate";
-	case SVG_DOM_EVT_CLICK: return "click";
-	case SVG_DOM_EVT_MOUSEUP: return "mouseup";
-	case SVG_DOM_EVT_MOUSEDOWN: return "mousedown";
-	case SVG_DOM_EVT_MOUSEOVER: return "mouseover";
-	case SVG_DOM_EVT_MOUSEOUT: return "mouseout";
-	case SVG_DOM_EVT_MOUSEMOVE: return "mousemove";
-	case SVG_DOM_EVT_LOAD: return "load";
-	case SVG_DOM_EVT_UNLOAD: return "unload";
-	case SVG_DOM_EVT_ERROR: return "error";
-	case SVG_DOM_EVT_RESIZE: return "resize";
-	case SVG_DOM_EVT_SCROLL: return "scroll";
-	case SVG_DOM_EVT_ZOOM: return "zoom";
-	case SVG_DOM_EVT_BEGIN: return "begin";
-	case SVG_DOM_EVT_END: return "end";
-	case SVG_DOM_EVT_REPEAT: return "repeat";
-	case SVG_DOM_EVT_KEYUP: return "keyup";
-	case SVG_DOM_EVT_KEYDOWN: return "keydown";
-/*	case SVG_DOM_EVT_KEYPRESS: return "keypress";*/
-	case SVG_DOM_EVT_LONGKEYPRESS: return "longkeypress";
+	case GF_EVENT_FOCUSIN: return "focusin";
+	case GF_EVENT_FOCUSOUT: return "focusout";
+	case GF_EVENT_ACTIVATE: return "activate";
+	case GF_EVENT_CLICK: return "click";
+	case GF_EVENT_MOUSEUP: return "mouseup";
+	case GF_EVENT_MOUSEDOWN: return "mousedown";
+	case GF_EVENT_MOUSEOVER: return "mouseover";
+	case GF_EVENT_MOUSEOUT: return "mouseout";
+	case GF_EVENT_MOUSEMOVE: return "mousemove";
+	case GF_EVENT_LOAD: return "load";
+	case GF_EVENT_UNLOAD: return "unload";
+	case GF_EVENT_ERROR: return "error";
+	case GF_EVENT_RESIZE: return "resize";
+	case GF_EVENT_SCROLL: return "scroll";
+	case GF_EVENT_ZOOM: return "zoom";
+	case GF_EVENT_BEGIN: return "begin";
+	case GF_EVENT_END: return "end";
+	case GF_EVENT_REPEAT: return "repeat";
+	case GF_EVENT_KEYUP: return "keyup";
+	case GF_EVENT_KEYDOWN: return "keydown";
+/*	case GF_EVENT_KEYPRESS: return "keypress";*/
+	case GF_EVENT_LONGKEYPRESS: return "longkeypress";
 	default: return "unknown";
 	}
 }
 
 static const struct predef_keyid {u32 key_code;  const char *name; } predefined_key_identifiers[] = 
 {
-	{ DOM_KEY_ACCEPT, "Accept" },
-	{ DOM_KEY_AGAIN, "Again" },
-	{ DOM_KEY_ALLCANDIDATES, "AllCandidates" },
-	{ DOM_KEY_ALPHANUM, "Alphanumeric" },
-	{ DOM_KEY_ALT, "Alt" },
-	{ DOM_KEY_ALTGRAPH, "AltGraph" },
-	{ DOM_KEY_APPS, "Apps" },
-	{ DOM_KEY_ATTN, "Attn" },
-	{ DOM_KEY_BROWSERBACK, "BrowserBack" },
-	{ DOM_KEY_BROWSERFAVORITES, "BrowserFavorites" },
-	{ DOM_KEY_BROWSERFORWARD, "BrowserForward" },
-	{ DOM_KEY_BROWSERHOME, "BrowserHome" },
-	{ DOM_KEY_BROWSERREFRESH, "BrowserRefresh" },
-	{ DOM_KEY_BROWSERSEARCH, "BrowserSearch" },
-	{ DOM_KEY_BROWSERSTOP, "BrowserStop" },
-	{ DOM_KEY_CAPSLOCK, "CapsLock" },
-	{ DOM_KEY_CLEAR, "Clear" },
-	{ DOM_KEY_CODEINPUT, "CodeInput" },
-	{ DOM_KEY_COMPOSE, "Compose" },
-	{ DOM_KEY_CONTROL, "Control" },
-	{ DOM_KEY_CRSEL, "Crsel" },
-	{ DOM_KEY_CONVERT, "Convert" },
-	{ DOM_KEY_COPY, "Copy"  },
-	{ DOM_KEY_CUT, "Cut" },
-	{ DOM_KEY_DOWN, "Down" },
-	{ DOM_KEY_END, "End" },
-	{ DOM_KEY_ENTER, "Enter" },
-	{ DOM_KEY_ERASEEOF, "EraseEof" },
-	{ DOM_KEY_EXECUTE, "Execute" },
-	{ DOM_KEY_EXSEL, "Exsel" },
-	{ DOM_KEY_F1, "F1" },
-	{ DOM_KEY_F2, "F2" },
-	{ DOM_KEY_F3, "F3" },
-	{ DOM_KEY_F4, "F4" },
-	{ DOM_KEY_F5, "F5" },
-	{ DOM_KEY_F6, "F6" },
-	{ DOM_KEY_F7, "F7" },
-	{ DOM_KEY_F8, "F8" },
-	{ DOM_KEY_F9, "F9" },
-	{ DOM_KEY_F10, "F10" },
-	{ DOM_KEY_F11, "F11" },
-	{ DOM_KEY_F12, "F12" },
-	{ DOM_KEY_F13, "F13" },
-	{ DOM_KEY_F14, "F14" },
-	{ DOM_KEY_F15, "F15" },
-	{ DOM_KEY_F16, "F16" },
-	{ DOM_KEY_F17, "F17" },
-	{ DOM_KEY_F18, "F18" },
-	{ DOM_KEY_F19, "F19" },
-	{ DOM_KEY_F20, "F20" },
-	{ DOM_KEY_F21, "F21" },
-	{ DOM_KEY_F22, "F22" },
-	{ DOM_KEY_F23, "F23" },
-	{ DOM_KEY_F24, "F24" },
-	{ DOM_KEY_FINALMODE, "FinalMode" },
-	{ DOM_KEY_FIND, "Find" },
-	{ DOM_KEY_FULLWIDTH, "FullWidth" },
-	{ DOM_KEY_HALFWIDTH, "HalfWidth" },
-	{ DOM_KEY_HANGULMODE, "HangulMode" },
-	{ DOM_KEY_HANJAMODE, "HanjaMode"   },
-	{ DOM_KEY_HELP, "Help" },
-	{ DOM_KEY_HIRAGANA, "Hiragana" },
-	{ DOM_KEY_HOME, "Home" },
-	{ DOM_KEY_INSERT, "Insert" },
-	{ DOM_KEY_JAPANESEHIRAGANA, "JapaneseHiragana" },
-	{ DOM_KEY_JAPANESEKATAKANA, "JapaneseKatakana" },
-	{ DOM_KEY_JAPANESEROMAJI, "JapaneseRomaji" },
-	{ DOM_KEY_JUNJAMODE, "JunjaMode" },
-	{ DOM_KEY_KANAMODE, "KanaMode"   },
-	{ DOM_KEY_KANJIMODE, "KanjiMode" },
-	{ DOM_KEY_KATAKANA, "Katakana"   },
-	{ DOM_KEY_LAUNCHAPPLICATION1, "LaunchApplication1" },
-	{ DOM_KEY_LAUNCHAPPLICATION2, "LaunchApplication2" },
-	{ DOM_KEY_LAUNCHMAIL, "LaunchMail" },
-	{ DOM_KEY_LEFT, "Left" },
-	{ DOM_KEY_META, "Meta" },
-	{ DOM_KEY_MEDIANEXTTRACK, "MediaNextTrack" },
-	{ DOM_KEY_MEDIAPLAYPAUSE, "MediaPlayPause" },
-	{ DOM_KEY_MEDIAPREVIOUSTRACK, "MediaPreviousTrack" },
-	{ DOM_KEY_MEDIASTOP, "MediaStop" },
-	{ DOM_KEY_MODECHANGE, "ModeChange" },
-	{ DOM_KEY_NONCONVERT, "Nonconvert" },
-	{ DOM_KEY_NUMLOCK, "NumLock" },
-	{ DOM_KEY_PAGEDOWN, "PageDown" },
-	{ DOM_KEY_PAGEUP, "PageUp" },
-	{ DOM_KEY_PASTE, "Paste" },
-	{ DOM_KEY_PAUSE, "Pause" },
-	{ DOM_KEY_PLAY, "Play" },
-	{ DOM_KEY_PREVIOUSCANDIDATE, "PreviousCandidate" },
-	{ DOM_KEY_PRINTSCREEN, "PrintScreen" },
-	{ DOM_KEY_PROCESS, "Process" },
-	{ DOM_KEY_PROPS, "Props" },
-	{ DOM_KEY_RIGHT, "Right" },
-	{ DOM_KEY_ROMANCHARACTERS, "RomanCharacters" },
-	{ DOM_KEY_SCROLL, "Scroll" },
-	{ DOM_KEY_SELECT, "Select" },
-	{ DOM_KEY_SELECTMEDIA, "SelectMedia" },
-	{ DOM_KEY_SHIFT, "Shift" },
-	{ DOM_KEY_STOP, "Stop" },
-	{ DOM_KEY_UP, "Up" },
-	{ DOM_KEY_UNDO, "Undo" },
-	{ DOM_KEY_VOLUMEDOWN, "VolumeDown" },
-	{ DOM_KEY_VOLUMEMUTE, "VolumeMute" },
-	{ DOM_KEY_VOLUMEUP, "VolumeUp" },
-	{ DOM_KEY_WIN, "Win" },
-	{ DOM_KEY_ZOOM, "Zoom" },
-	{ DOM_KEY_BACKSPACE, "U+0008" },
-	{ DOM_KEY_TAB, "U+0009" },
-	{ DOM_KEY_CANCEL, "U+0018" },
-	{ DOM_KEY_ESCAPE, "U+001B" },
-	{ DOM_KEY_SPACE, "U+0020" },
-	{ DOM_KEY_EXCLAMATION, "U+0021" },
-	{ DOM_KEY_QUOTATION, "U+0022" },
-	{ DOM_KEY_NUMBER, "U+0023" },
-	{ DOM_KEY_DOLLAR, "U+0024" },
-	{ DOM_KEY_AMPERSAND, "U+0026" },
-	{ DOM_KEY_APOSTROPHE, "U+0027" },
-	{ DOM_KEY_LEFTPARENTHESIS, "U+0028" },
-	{ DOM_KEY_RIGHTPARENTHESIS, "U+0029" },
-	{ DOM_KEY_STAR, "U+002A" },
-	{ DOM_KEY_PLUS, "U+002B" },
-	{ DOM_KEY_COMMA, "U+002C" },
-	{ DOM_KEY_HYPHEN, "U+002D" },
-	{ DOM_KEY_FULLSTOP, "U+002E" },
-	{ DOM_KEY_SLASH, "U+002F" },
-	{ DOM_KEY_0, "U+0030" },
-	{ DOM_KEY_1, "U+0031" },
-	{ DOM_KEY_2, "U+0032" },
-	{ DOM_KEY_3, "U+0033" },
-	{ DOM_KEY_4, "U+0034" },
-	{ DOM_KEY_5, "U+0035" },
-	{ DOM_KEY_6, "U+0036" },
-	{ DOM_KEY_7, "U+0037" },
-	{ DOM_KEY_8, "U+0038" },
-	{ DOM_KEY_9, "U+0039" },
-	{ DOM_KEY_COLON, "U+003A" },
-	{ DOM_KEY_SEMICOLON, "U+003B" },
-	{ DOM_KEY_LESSTHAN, "U+003C" },
-	{ DOM_KEY_EQUALS, "U+003D" },
-	{ DOM_KEY_GREATERTHAN, "U+003E" },
-	{ DOM_KEY_QUESTION, "U+003F" },
-	{ DOM_KEY_AT, "U+0040" },
-	{ DOM_KEY_A, "U+0041" },
-	{ DOM_KEY_B, "U+0042" },
-	{ DOM_KEY_C, "U+0043" },
-	{ DOM_KEY_D, "U+0044" },
-	{ DOM_KEY_E, "U+0045" },
-	{ DOM_KEY_F, "U+0046" },
-	{ DOM_KEY_G, "U+0047" },
-	{ DOM_KEY_H, "U+0048" },
-	{ DOM_KEY_I, "U+0049" },
-	{ DOM_KEY_J, "U+004A" },
-	{ DOM_KEY_K, "U+004B" },
-	{ DOM_KEY_L, "U+004C" },
-	{ DOM_KEY_M, "U+004D" },
-	{ DOM_KEY_N, "U+004E" },
-	{ DOM_KEY_O, "U+004F" },
-	{ DOM_KEY_P, "U+0050" },
-	{ DOM_KEY_Q, "U+0051" },
-	{ DOM_KEY_R, "U+0052" },
-	{ DOM_KEY_S, "U+0053" },
-	{ DOM_KEY_T, "U+0054" },
-	{ DOM_KEY_U, "U+0055" },
-	{ DOM_KEY_V, "U+0056" },
-	{ DOM_KEY_W, "U+0057" },
-	{ DOM_KEY_X, "U+0058" },
-	{ DOM_KEY_Y, "U+0059" },
-	{ DOM_KEY_Z, "U+005A" },
-	{ DOM_KEY_LEFTSQUAREBRACKET, "U+005B" },
-	{ DOM_KEY_BACKSLASH, "U+005C" },
-	{ DOM_KEY_RIGHTSQUAREBRACKET, "U+005D" },
-	{ DOM_KEY_CIRCUM, "U+005E" },
-	{ DOM_KEY_UNDERSCORE, "U+005F" },
-	{ DOM_KEY_GRAVEACCENT, "U+0060" },
-	{ DOM_KEY_LEFTCURLYBRACKET, "U+007B" },
-	{ DOM_KEY_PIPE, "U+007C" },
-	{ DOM_KEY_RIGHTCURLYBRACKET, "U+007D" },
-	{ DOM_KEY_DEL, "U+007F" },
-	{ DOM_KEY_INVERTEXCLAMATION, "U+00A1" },
-	{ DOM_KEY_DEADGRAVE, "U+0300" },
-	{ DOM_KEY_DEADEACUTE, "U+0301" },
-	{ DOM_KEY_DEADCIRCUM, "U+0302" },
-	{ DOM_KEY_DEADTILDE, "U+0303" },
-	{ DOM_KEY_DEADMACRON, "U+0304" },
-	{ DOM_KEY_DEADBREVE, "U+0306" },
-	{ DOM_KEY_DEADABOVEDOT, "U+0307" },
-	{ DOM_KEY_DEADDIARESIS, "U+0308" },
-	{ DOM_KEY_DEADRINGABOVE, "U+030A" },
-	{ DOM_KEY_DEADDOUBLEACUTE, "U+030B" },
-	{ DOM_KEY_DEADCARON, "U+030C" },
-	{ DOM_KEY_DEADCEDILLA, "U+0327" },
-	{ DOM_KEY_DEADOGONEK, "U+0328" },
-	{ DOM_KEY_DEADIOTA, "U+0345" },
-	{ DOM_KEY_EURO, "U+20AC" },
-	{ DOM_KEY_DEADVOICESOUND, "U+3099" },
-	{ DOM_KEY_DEADSEMIVOICESOUND, "U+309A" }
+	{ GF_KEY_ACCEPT, "Accept" },
+	{ GF_KEY_AGAIN, "Again" },
+	{ GF_KEY_ALLCANDIDATES, "AllCandidates" },
+	{ GF_KEY_ALPHANUM, "Alphanumeric" },
+	{ GF_KEY_ALT, "Alt" },
+	{ GF_KEY_ALTGRAPH, "AltGraph" },
+	{ GF_KEY_APPS, "Apps" },
+	{ GF_KEY_ATTN, "Attn" },
+	{ GF_KEY_BROWSERBACK, "BrowserBack" },
+	{ GF_KEY_BROWSERFAVORITES, "BrowserFavorites" },
+	{ GF_KEY_BROWSERFORWARD, "BrowserForward" },
+	{ GF_KEY_BROWSERHOME, "BrowserHome" },
+	{ GF_KEY_BROWSERREFRESH, "BrowserRefresh" },
+	{ GF_KEY_BROWSERSEARCH, "BrowserSearch" },
+	{ GF_KEY_BROWSERSTOP, "BrowserStop" },
+	{ GF_KEY_CAPSLOCK, "CapsLock" },
+	{ GF_KEY_CLEAR, "Clear" },
+	{ GF_KEY_CODEINPUT, "CodeInput" },
+	{ GF_KEY_COMPOSE, "Compose" },
+	{ GF_KEY_CONTROL, "Control" },
+	{ GF_KEY_CRSEL, "Crsel" },
+	{ GF_KEY_CONVERT, "Convert" },
+	{ GF_KEY_COPY, "Copy"  },
+	{ GF_KEY_CUT, "Cut" },
+	{ GF_KEY_DOWN, "Down" },
+	{ GF_KEY_END, "End" },
+	{ GF_KEY_ENTER, "Enter" },
+	{ GF_KEY_ERASEEOF, "EraseEof" },
+	{ GF_KEY_EXECUTE, "Execute" },
+	{ GF_KEY_EXSEL, "Exsel" },
+	{ GF_KEY_F1, "F1" },
+	{ GF_KEY_F2, "F2" },
+	{ GF_KEY_F3, "F3" },
+	{ GF_KEY_F4, "F4" },
+	{ GF_KEY_F5, "F5" },
+	{ GF_KEY_F6, "F6" },
+	{ GF_KEY_F7, "F7" },
+	{ GF_KEY_F8, "F8" },
+	{ GF_KEY_F9, "F9" },
+	{ GF_KEY_F10, "F10" },
+	{ GF_KEY_F11, "F11" },
+	{ GF_KEY_F12, "F12" },
+	{ GF_KEY_F13, "F13" },
+	{ GF_KEY_F14, "F14" },
+	{ GF_KEY_F15, "F15" },
+	{ GF_KEY_F16, "F16" },
+	{ GF_KEY_F17, "F17" },
+	{ GF_KEY_F18, "F18" },
+	{ GF_KEY_F19, "F19" },
+	{ GF_KEY_F20, "F20" },
+	{ GF_KEY_F21, "F21" },
+	{ GF_KEY_F22, "F22" },
+	{ GF_KEY_F23, "F23" },
+	{ GF_KEY_F24, "F24" },
+	{ GF_KEY_FINALMODE, "FinalMode" },
+	{ GF_KEY_FIND, "Find" },
+	{ GF_KEY_FULLWIDTH, "FullWidth" },
+	{ GF_KEY_HALFWIDTH, "HalfWidth" },
+	{ GF_KEY_HANGULMODE, "HangulMode" },
+	{ GF_KEY_HANJAMODE, "HanjaMode"   },
+	{ GF_KEY_HELP, "Help" },
+	{ GF_KEY_HIRAGANA, "Hiragana" },
+	{ GF_KEY_HOME, "Home" },
+	{ GF_KEY_INSERT, "Insert" },
+	{ GF_KEY_JAPANESEHIRAGANA, "JapaneseHiragana" },
+	{ GF_KEY_JAPANESEKATAKANA, "JapaneseKatakana" },
+	{ GF_KEY_JAPANESEROMAJI, "JapaneseRomaji" },
+	{ GF_KEY_JUNJAMODE, "JunjaMode" },
+	{ GF_KEY_KANAMODE, "KanaMode"   },
+	{ GF_KEY_KANJIMODE, "KanjiMode" },
+	{ GF_KEY_KATAKANA, "Katakana"   },
+	{ GF_KEY_LAUNCHAPPLICATION1, "LaunchApplication1" },
+	{ GF_KEY_LAUNCHAPPLICATION2, "LaunchApplication2" },
+	{ GF_KEY_LAUNCHMAIL, "LaunchMail" },
+	{ GF_KEY_LEFT, "Left" },
+	{ GF_KEY_META, "Meta" },
+	{ GF_KEY_MEDIANEXTTRACK, "MediaNextTrack" },
+	{ GF_KEY_MEDIAPLAYPAUSE, "MediaPlayPause" },
+	{ GF_KEY_MEDIAPREVIOUSTRACK, "MediaPreviousTrack" },
+	{ GF_KEY_MEDIASTOP, "MediaStop" },
+	{ GF_KEY_MODECHANGE, "ModeChange" },
+	{ GF_KEY_NONCONVERT, "Nonconvert" },
+	{ GF_KEY_NUMLOCK, "NumLock" },
+	{ GF_KEY_PAGEDOWN, "PageDown" },
+	{ GF_KEY_PAGEUP, "PageUp" },
+	{ GF_KEY_PASTE, "Paste" },
+	{ GF_KEY_PAUSE, "Pause" },
+	{ GF_KEY_PLAY, "Play" },
+	{ GF_KEY_PREVIOUSCANDIDATE, "PreviousCandidate" },
+	{ GF_KEY_PRINTSCREEN, "PrintScreen" },
+	{ GF_KEY_PROCESS, "Process" },
+	{ GF_KEY_PROPS, "Props" },
+	{ GF_KEY_RIGHT, "Right" },
+	{ GF_KEY_ROMANCHARACTERS, "RomanCharacters" },
+	{ GF_KEY_SCROLL, "Scroll" },
+	{ GF_KEY_SELECT, "Select" },
+	{ GF_KEY_SELECTMEDIA, "SelectMedia" },
+	{ GF_KEY_SHIFT, "Shift" },
+	{ GF_KEY_STOP, "Stop" },
+	{ GF_KEY_UP, "Up" },
+	{ GF_KEY_UNDO, "Undo" },
+	{ GF_KEY_VOLUMEDOWN, "VolumeDown" },
+	{ GF_KEY_VOLUMEMUTE, "VolumeMute" },
+	{ GF_KEY_VOLUMEUP, "VolumeUp" },
+	{ GF_KEY_WIN, "Win" },
+	{ GF_KEY_ZOOM, "Zoom" },
+	{ GF_KEY_BACKSPACE, "U+0008" },
+	{ GF_KEY_TAB, "U+0009" },
+	{ GF_KEY_CANCEL, "U+0018" },
+	{ GF_KEY_ESCAPE, "U+001B" },
+	{ GF_KEY_SPACE, "U+0020" },
+	{ GF_KEY_EXCLAMATION, "U+0021" },
+	{ GF_KEY_QUOTATION, "U+0022" },
+	{ GF_KEY_NUMBER, "U+0023" },
+	{ GF_KEY_DOLLAR, "U+0024" },
+	{ GF_KEY_AMPERSAND, "U+0026" },
+	{ GF_KEY_APOSTROPHE, "U+0027" },
+	{ GF_KEY_LEFTPARENTHESIS, "U+0028" },
+	{ GF_KEY_RIGHTPARENTHESIS, "U+0029" },
+	{ GF_KEY_STAR, "U+002A" },
+	{ GF_KEY_PLUS, "U+002B" },
+	{ GF_KEY_COMMA, "U+002C" },
+	{ GF_KEY_HYPHEN, "U+002D" },
+	{ GF_KEY_FULLSTOP, "U+002E" },
+	{ GF_KEY_SLASH, "U+002F" },
+	{ GF_KEY_0, "U+0030" },
+	{ GF_KEY_1, "U+0031" },
+	{ GF_KEY_2, "U+0032" },
+	{ GF_KEY_3, "U+0033" },
+	{ GF_KEY_4, "U+0034" },
+	{ GF_KEY_5, "U+0035" },
+	{ GF_KEY_6, "U+0036" },
+	{ GF_KEY_7, "U+0037" },
+	{ GF_KEY_8, "U+0038" },
+	{ GF_KEY_9, "U+0039" },
+	{ GF_KEY_COLON, "U+003A" },
+	{ GF_KEY_SEMICOLON, "U+003B" },
+	{ GF_KEY_LESSTHAN, "U+003C" },
+	{ GF_KEY_EQUALS, "U+003D" },
+	{ GF_KEY_GREATERTHAN, "U+003E" },
+	{ GF_KEY_QUESTION, "U+003F" },
+	{ GF_KEY_AT, "U+0040" },
+	{ GF_KEY_A, "U+0041" },
+	{ GF_KEY_B, "U+0042" },
+	{ GF_KEY_C, "U+0043" },
+	{ GF_KEY_D, "U+0044" },
+	{ GF_KEY_E, "U+0045" },
+	{ GF_KEY_F, "U+0046" },
+	{ GF_KEY_G, "U+0047" },
+	{ GF_KEY_H, "U+0048" },
+	{ GF_KEY_I, "U+0049" },
+	{ GF_KEY_J, "U+004A" },
+	{ GF_KEY_K, "U+004B" },
+	{ GF_KEY_L, "U+004C" },
+	{ GF_KEY_M, "U+004D" },
+	{ GF_KEY_N, "U+004E" },
+	{ GF_KEY_O, "U+004F" },
+	{ GF_KEY_P, "U+0050" },
+	{ GF_KEY_Q, "U+0051" },
+	{ GF_KEY_R, "U+0052" },
+	{ GF_KEY_S, "U+0053" },
+	{ GF_KEY_T, "U+0054" },
+	{ GF_KEY_U, "U+0055" },
+	{ GF_KEY_V, "U+0056" },
+	{ GF_KEY_W, "U+0057" },
+	{ GF_KEY_X, "U+0058" },
+	{ GF_KEY_Y, "U+0059" },
+	{ GF_KEY_Z, "U+005A" },
+	{ GF_KEY_LEFTSQUAREBRACKET, "U+005B" },
+	{ GF_KEY_BACKSLASH, "U+005C" },
+	{ GF_KEY_RIGHTSQUAREBRACKET, "U+005D" },
+	{ GF_KEY_CIRCUM, "U+005E" },
+	{ GF_KEY_UNDERSCORE, "U+005F" },
+	{ GF_KEY_GRAVEACCENT, "U+0060" },
+	{ GF_KEY_LEFTCURLYBRACKET, "U+007B" },
+	{ GF_KEY_PIPE, "U+007C" },
+	{ GF_KEY_RIGHTCURLYBRACKET, "U+007D" },
+	{ GF_KEY_DEL, "U+007F" },
+	{ GF_KEY_INVERTEXCLAMATION, "U+00A1" },
+	{ GF_KEY_DEADGRAVE, "U+0300" },
+	{ GF_KEY_DEADEACUTE, "U+0301" },
+	{ GF_KEY_DEADCIRCUM, "U+0302" },
+	{ GF_KEY_DEADTILDE, "U+0303" },
+	{ GF_KEY_DEADMACRON, "U+0304" },
+	{ GF_KEY_DEADBREVE, "U+0306" },
+	{ GF_KEY_DEADABOVEDOT, "U+0307" },
+	{ GF_KEY_DEADDIARESIS, "U+0308" },
+	{ GF_KEY_DEADRINGABOVE, "U+030A" },
+	{ GF_KEY_DEADDOUBLEACUTE, "U+030B" },
+	{ GF_KEY_DEADCARON, "U+030C" },
+	{ GF_KEY_DEADCEDILLA, "U+0327" },
+	{ GF_KEY_DEADOGONEK, "U+0328" },
+	{ GF_KEY_DEADIOTA, "U+0345" },
+	{ GF_KEY_EURO, "U+20AC" },
+	{ GF_KEY_DEADVOICESOUND, "U+3099" },
+	{ GF_KEY_DEADSEMIVOICESOUND, "U+309A" }
 };
+const char *gf_dom_get_key_name(u32 key_identifier)
+{
+	u32 count = sizeof(predefined_key_identifiers) / sizeof(struct predef_keyid);
+	if (!key_identifier || count<=key_identifier) return "Unknown";
+	return predefined_key_identifiers[key_identifier-1].name;
+}
+
 
 static void gf_dom_parse_key_identifier(u32 *key_identifier, char *attribute_content)
 {
@@ -300,13 +308,13 @@ static void gf_dom_parse_key_identifier(u32 *key_identifier, char *attribute_con
 		c[1] = 0;
 		strupr(c);
 		if (c[0] >= 'A' && c[0] <= 'Z') {
-			*key_identifier = DOM_KEY_A + (c[0] - 'A');
+			*key_identifier = GF_KEY_A + (c[0] - 'A');
 		} else if (c[0] >= '0' && c[0] <= '9') {
-			*key_identifier = DOM_KEY_0 + (c[0] - '0');
+			*key_identifier = GF_KEY_0 + (c[0] - '0');
 		} else if (c[0] == '@') {
-			*key_identifier = DOM_KEY_AT;
+			*key_identifier = GF_KEY_AT;
 		} else {
-			*key_identifier = DOM_KEY_UNIDENTIFIED;
+			*key_identifier = GF_KEY_UNIDENTIFIED;
 		}
 	} else {
 		u32 i, count;
@@ -317,7 +325,7 @@ static void gf_dom_parse_key_identifier(u32 *key_identifier, char *attribute_con
 				return;
 			}
 		}
-		*key_identifier = DOM_KEY_UNIDENTIFIED;
+		*key_identifier = GF_KEY_UNIDENTIFIED;
 	}
 }
 
@@ -755,7 +763,7 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 	else if ((tmp = strstr(d, "accessKey("))) {
 		char *sep;
 		v->type = GF_SMIL_TIME_EVENT;
-		v->event.type = SVG_DOM_EVT_KEYDOWN;
+		v->event.type = GF_EVENT_KEYDOWN;
 		v->element = e->sgprivate->scenegraph->RootNode;
 		tmp+=10;
 		sep = strchr(d, ')');
@@ -792,7 +800,7 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 				char c = *tmp2, offset[100];
 				tmp2[0] = 0;
 				v->event.type = gf_dom_event_type_by_name(tmp);
-				if (v->event.type == SVG_DOM_EVT_REPEAT) v->event.parameter = 1;
+				if (v->event.type == GF_EVENT_REPEAT) v->event.parameter = 1;
 				tmp2[0] = c;
 				tmp2++;
 
@@ -803,7 +811,7 @@ static void smil_parse_time(SVGElement *e, SMIL_Time *v, char *d)
 				svg_parse_clock_value(offset, &(v->clock));
 			} else {
 				v->event.type = gf_dom_event_type_by_name(tmp);
-				if (v->event.type == SVG_DOM_EVT_REPEAT) v->event.parameter = 1;
+				if (v->event.type == GF_EVENT_REPEAT) v->event.parameter = 1;
 			}
 		}
 	}
@@ -2220,17 +2228,16 @@ GF_Err laser_parse_size(LASeR_Size *size, char *attribute_content)
 	return GF_OK;
 }
 
-GF_Err gf_svg_parse_element_id(SVGElement *elt, char *nodename, u32 command_depth)
+GF_Err gf_svg_parse_element_id(SVGElement *elt, const char *nodename, Bool warning_if_defined)
 {
-	u32 id = 0;
 	SVGElement *unided_elt;
 	GF_SceneGraph *sg = gf_node_get_graph((GF_Node *)elt);
 
-	unided_elt = (SVGElement *)gf_sg_find_node_by_name(sg, nodename);
+	unided_elt = (SVGElement *)gf_sg_find_node_by_name(sg, (char *) nodename);
 	if (unided_elt) {
 		/* An element with the same id is already in the document
 		   Is it in an update, in which case it may be normal, otherwise it's an error.*/		
-		if (!command_depth) {
+		if (!warning_if_defined) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] element with id='%s' already defined in document.\n", nodename));
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] element with id='%s' already defined in document.\n", nodename));
@@ -2490,7 +2497,7 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 			sep[0] = 0;
 			xml_ev->type = gf_dom_event_type_by_name(attribute_content);
 			sep[0] = '(';
-			if (xml_ev->type == SVG_DOM_EVT_REPEAT) {
+			if (xml_ev->type == GF_EVENT_REPEAT) {
 				char _v;
 				sscanf(sep, "(%c)", &_v);
 				xml_ev->parameter = _v;
@@ -3550,7 +3557,7 @@ GF_Err gf_svg_dump_attribute(SVGElement *elt, GF_FieldInfo *info, char *attValue
 				strcat(attValue, szBuf);
 			}
 			else if (t->type==GF_SMIL_TIME_EVENT) {
-				if (t->event.type == SVG_DOM_EVT_KEYDOWN) {
+				if (t->event.type == GF_EVENT_KEYDOWN) {
 					svg_dump_access_key(&t->event, szBuf);
 					strcat(attValue, szBuf);
 				} else {
@@ -3730,7 +3737,7 @@ GF_Err gf_svg_dump_attribute_indexed(SVGElement *elt, GF_FieldInfo *info, char *
 		}
 		else if (t->type==GF_SMIL_TIME_EVENT) {
 			GF_Node *par = gf_node_get_parent((GF_Node *)elt, 0);
-			if (t->event.type == SVG_DOM_EVT_KEYDOWN) {
+			if (t->event.type == GF_EVENT_KEYDOWN) {
 				svg_dump_access_key(&t->event, attValue);
 			} else {
 				strcpy(attValue, "");

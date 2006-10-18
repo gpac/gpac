@@ -125,13 +125,6 @@ typedef struct _render3d
 
 } Render3D;
 
-/*user interaction event*/
-typedef struct
-{
-	u32 event_type;
-	Fixed x, y;
-} UserEvent3D;
-
 /*sensor node handler - this is not defined as a stack because Anchor is both a grouping node and a 
 sensor node, and we DO need the groupingnode stack...*/
 typedef struct _sensor3D_handler
@@ -143,7 +136,7 @@ typedef struct _sensor3D_handler
 	evt_type: mouse event type
 	hit_info: current hit info
 	*/
-	void (*OnUserEvent)(struct _sensor3D_handler *sh, Bool is_over, u32 eventType, RayHitInfo *hit_info);
+	void (*OnUserEvent)(struct _sensor3D_handler *sh, Bool is_over, GF_UserEvent *ev, RayHitInfo *hit_info);
 	/*set the node pointer here*/
 	GF_Node *owner;
 } SensorHandler;

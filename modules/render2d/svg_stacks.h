@@ -100,6 +100,13 @@ void SVG_Init_linearGradient(Render2D *sr, GF_Node *node);
 void SVG_Init_radialGradient(Render2D *sr, GF_Node *node);
 GF_TextureHandler *svg_gradient_get_texture(GF_Node *node);
 
+
+void SVG_Init_solidColor(Render2D *sr, GF_Node *node);
+void SVG_Init_stop(Render2D *sr, GF_Node *node);
+
+void gf_svg_apply_local_transformation(RenderEffect2D *eff, GF_Node *node, GF_Matrix2D *backup_matrix);
+void gf_svg_restore_parent_transformation(RenderEffect2D *eff, GF_Matrix2D *backup_matrix);
+
 #endif //GPAC_DISABLE_SVG
 
 #endif //_SVG_STACKS_H

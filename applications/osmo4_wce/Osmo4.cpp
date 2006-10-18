@@ -45,7 +45,7 @@ Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
 	if (!pFrame) return 0;
 
 	switch (event->type) {
-	case GF_EVT_MESSAGE:
+	case GF_EVENT_MESSAGE:
 		if (event->message.error!=GF_OK) {
 			if (event->message.error<GF_OK) {
 				pFrame->console_err = event->message.error;
@@ -60,17 +60,17 @@ Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
 		pFrame->console_message = event->message.message;
 		pFrame->PostMessage(WM_CONSOLEMSG, 0, 0);
 		break;
-	case GF_EVT_SCENE_SIZE:
+	case GF_EVENT_SCENE_SIZE:
 		app->m_scene_width = event->size.width;
 		app->m_scene_height = event->size.height;
-	case GF_EVT_SIZE:
+	case GF_EVENT_SIZE:
 		if (!pFrame->m_full_screen) 
 			pFrame->PostMessage(WM_SETSIZE, event->size.width, event->size.height);
 		break;
-	case GF_EVT_CONNECT:
+	case GF_EVENT_CONNECT:
 		app->m_open = event->connect.is_connected;
 		break;
-	case GF_EVT_DURATION:
+	case GF_EVENT_DURATION:
 		dur = (u32) (1000 * event->duration.duration);
 		if (dur<2000) dur = 0;
 		app->m_duration = dur;
@@ -83,55 +83,55 @@ Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
 				pFrame->PostMessage(WM_SETSIZE, 0, 0);
 		}
 		break;
-	case GF_EVT_NAVIGATE:
+	case GF_EVENT_NAVIGATE:
 		/*store URL since it may be destroyed, and post message*/
 		app->m_navigate_url = event->navigate.to_url;
 		pFrame->PostMessage(WM_NAVIGATE, NULL, NULL);
 		return 1;
-	case GF_EVT_QUIT:
+	case GF_EVENT_QUIT:
 		pFrame->PostMessage(WM_CLOSE, 0L, 0L);
 		break;
 	/*ipaq keys*/
-	case GF_EVT_VKEYDOWN:
-		switch (event->key.vk_code) {
-		case GF_VK_F1: 
+	case GF_EVENT_KEYDOWN:
+		switch (event->key.key_code) {
+		case GF_KEY_F1: 
 			pFrame->PostMessage(WM_COMMAND, ID_FILE_OPEN); 
 			break;
-		case GF_VK_F2:
+		case GF_KEY_F2:
 			pFrame->PostMessage(WM_QUIT); 
 			break;
-		case GF_VK_F3:
+		case GF_KEY_F3:
 			pFrame->PostMessage(WM_COMMAND, ID_FILE_RESTART);
 			break;
-		case GF_VK_F5:
+		case GF_KEY_F5:
 			pFrame->PostMessage(WM_COMMAND, ID_VIEW_FULLSCREEN);
 			break;
-		case GF_VK_RETURN:
+		case GF_KEY_ENTER:
 			pFrame->PostMessage(WM_COMMAND, ID_FILE_PAUSE);
 			break;
-		case GF_VK_LEFT:
+		case GF_KEY_LEFT:
 			if (app->m_duration>=2000) {
 				s32 res = gf_term_get_time_in_ms(app->m_term) - 5*app->m_duration/100;
 				if (res<0) res=0;
 				gf_term_play_from_time(app->m_term, res, 0);
 			}
 			break;
-		case GF_VK_RIGHT:
+		case GF_KEY_RIGHT:
 			if (app->m_duration>=2000) {
 				u32 res = gf_term_get_time_in_ms(app->m_term) + 5*app->m_duration/100;
 				if (res>=app->m_duration) res = 0;
 				gf_term_play_from_time(app->m_term, res, 0);
 			}
 			break;
-		case GF_VK_UP:
+		case GF_KEY_UP:
 			if (app->m_duration>=2000) pFrame->PostMessage(WM_COMMAND, ID_FILE_STEP);	
 			break;
-		case GF_VK_DOWN:
+		case GF_KEY_DOWN:
 			gf_term_set_option(app->m_term, GF_OPT_REFRESH, 0);
 			break;
 		}
 		break;
-	case GF_EVT_LDOUBLECLICK:
+	case GF_EVENT_MOUSEDOUBLECLICK:
 		pFrame->PostMessage(WM_COMMAND, ID_VIEW_FULLSCREEN);
 		return 0;
 	}
