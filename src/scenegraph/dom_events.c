@@ -25,6 +25,7 @@
 
 #ifndef GPAC_DISABLE_SVG
 
+#include <gpac/events.h>
 #include <gpac/nodes_svg.h>
 
 static void gf_smil_handle_event(GF_Node *anim, GF_FieldInfo *info, GF_DOM_Event *evt, Bool is_end);
@@ -71,14 +72,20 @@ static void svg_process_event(SVGlistenerElement *listen, GF_DOM_Event *event)
 	SVGhandlerElement *handler = (SVGhandlerElement *) listen->handler.target;
 	if (!handler) return;
 	if (is_svg_animation_tag(handler->sgprivate->tag) && handler->anim && handler->timing->runtime) {
-		if (event->type == SVG_DOM_EVT_BATTERY) {
+		if (event->type == GF_EVENT_BATTERY) {
 			handler->timing->runtime->fraction = gf_divfix(INT2FIX(event->batteryLevel), INT2FIX(100));
-		} else if (event->type == SVG_DOM_EVT_CPU) {
+		} else if (event->type == GF_EVENT_CPU) {
 			handler->timing->runtime->fraction = gf_divfix(INT2FIX(event->cpu_percentage), INT2FIX(100));
 		}
-		handler->timing->runtime->fraction = (handler->timing->runtime->fraction>FIX_ONE?FIX_ONE:handler->timing->runtime->fraction);
-		handler->timing->runtime->fraction = (handler->timing->runtime->fraction<0?0:handler->timing->runtime->fraction);
-		handler->timing->runtime->evaluate_status = SMIL_TIMING_EVAL_FRACTION;
+		switch (handler->timing->runtime->evaluate_status) {
+		case SMIL_TIMING_EVAL_NONE:
+			handler->timing->runtime->evaluate_status = SMIL_TIMING_EVAL_FRACTION;
+		case SMIL_TIMING_EVAL_FRACTION:
+			handler->timing->runtime->fraction = (handler->timing->runtime->fraction>FIX_ONE?FIX_ONE:handler->timing->runtime->fraction);
+			handler->timing->runtime->fraction = (handler->timing->runtime->fraction<0?0:handler->timing->runtime->fraction);
+			handler->timing->runtime->evaluate_status = SMIL_TIMING_EVAL_FRACTION;
+			break;
+		}
 //		printf("event handled %f\n",FLT2FIX(handler->timing->runtime->fraction));
 		return;
 	}
@@ -129,7 +136,7 @@ static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 		count = gf_list_count(node->sgprivate->events);
 		for (i=0; i<count; i++) {
 			SVGlistenerElement *listen = gf_list_get(node->sgprivate->events, i);
-			if (listen->event.type <= SVG_DOM_EVT_MOUSEMOVE) event->has_ui_events=1;
+			if (listen->event.type <= GF_EVENT_MOUSEMOVE) event->has_ui_events=1;
 			if (listen->event.type != event->type) continue;
 			event->currentTarget = node;
 			/*process event*/
@@ -137,7 +144,7 @@ static Bool sg_fire_dom_event(GF_Node *node, GF_DOM_Event *event)
 			
 			/*load event cannot bubble and can only be called once (on load :) ), remove it
 			to release some resources*/
-			if (event->type==SVG_DOM_EVT_LOAD) {
+			if (event->type==GF_EVENT_LOAD) {
 				gf_list_rem(node->sgprivate->events, i);
 				count--;
 				i--;
@@ -250,7 +257,7 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 		proto = gf_list_get(times, i);
 		if (proto->type != GF_SMIL_TIME_EVENT) continue;
 		if (proto->event.type != evt->type) continue;
-		if ((evt->type == SVG_DOM_EVT_KEYDOWN) || (evt->type == SVG_DOM_EVT_REPEAT)) {
+		if ((evt->type == GF_EVENT_KEYDOWN) || (evt->type == GF_EVENT_REPEAT)) {
 			if (proto->event.parameter!=evt->detail) continue;
 		}
 		/*solve*/

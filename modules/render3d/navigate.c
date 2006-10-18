@@ -245,7 +245,7 @@ static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
 	keys = sr->compositor->key_states;
 	x = y = 0;
 	/*renorm between -1, 1*/
-	if (ev->event_type<=GF_EVT_MOUSEWHEEL) {
+	if (ev->event_type<=GF_EVENT_MOUSEWHEEL) {
 		x = gf_divfix( INT2FIX(ev->mouse.x + (s32) sr->surface->width/2), INT2FIX(sr->surface->width));
 		y = gf_divfix( INT2FIX(ev->mouse.y + (s32) sr->surface->height/2), INT2FIX(sr->surface->height));
 	}
@@ -260,7 +260,7 @@ static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
 	key_exam = FIX_ONE/10;
 	key_inv = 1;
 
-	if (keys & GF_KM_SHIFT) {
+	if (keys & GF_KEY_MOD_SHIFT) {
 		dx *= 4;
 		dy *= 4;
 		key_pan *= 4;
@@ -269,32 +269,36 @@ static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
 	}
 
 	switch (ev->event_type) {
-	case GF_EVT_LEFTDOWN:
-		sr->grab_x = x;
-		sr->grab_y = y;
-		sr->nav_is_grabbed = 1;
+	case GF_EVENT_MOUSEDOWN:
+		/*left*/
+		if (ev->mouse.button==GF_MOUSE_LEFT) {
+			sr->grab_x = x;
+			sr->grab_y = y;
+			sr->nav_is_grabbed = 1;
 
-		/*change vp and examine center to current location*/
-		if ((keys & GF_KM_CTRL) && sr->sq_dist) {
-			cam->vp_position = cam->position;
-			cam->vp_orientation = camera_get_orientation(cam->position, cam->target, cam->up);
-			cam->vp_fov = cam->fieldOfView;
-			cam->examine_center = sr->hit_info.world_point;
-			camera_changed(sr, cam);
-			return 1;
+			/*change vp and examine center to current location*/
+			if ((keys & GF_KEY_MOD_CTRL) && sr->sq_dist) {
+				cam->vp_position = cam->position;
+				cam->vp_orientation = camera_get_orientation(cam->position, cam->target, cam->up);
+				cam->vp_fov = cam->fieldOfView;
+				cam->examine_center = sr->hit_info.world_point;
+				camera_changed(sr, cam);
+				return 1;
+			}
+		} 
+		/*right*/
+		else if (ev->mouse.button==GF_MOUSE_RIGHT) {
+			if (sr->nav_is_grabbed && (cam->navigate_mode==GF_NAVIGATE_WALK)) {
+				camera_jump(cam);
+				gf_sr_invalidate(sr->compositor, NULL);
+				return 1;
+			}
+			else if (keys & GF_KEY_MOD_CTRL) R3D_FitScene(sr);
 		}
-		break;
-	case GF_EVT_RIGHTDOWN:
-		if (sr->nav_is_grabbed && (cam->navigate_mode==GF_NAVIGATE_WALK)) {
-			camera_jump(cam);
-			gf_sr_invalidate(sr->compositor, NULL);
-			return 1;
-		}
-		else if (keys & GF_KM_CTRL) R3D_FitScene(sr);
 		break;
 
 	/* note: shortcuts are mostly the same as blaxxun contact, I don't feel like remembering 2 sets...*/
-	case GF_EVT_MOUSEMOVE:
+	case GF_EVENT_MOUSEMOVE:
 		if (!sr->nav_is_grabbed) {
 			if (cam->navigate_mode==GF_NAVIGATE_GAME) {
 				/*init mode*/
@@ -310,26 +314,26 @@ static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
 		case GF_NAVIGATE_WALK:
 		case GF_NAVIGATE_FLY:
 			view_pan_x(sr, cam, -dx);
-			if (keys & GF_KM_CTRL) view_pan_y(sr, cam, dy);
+			if (keys & GF_KEY_MOD_CTRL) view_pan_y(sr, cam, dy);
 			else view_translate_z(sr, cam, gf_mulfix(dy, trans_scale));
 			break;
 		case GF_NAVIGATE_VR:
 			view_pan_x(sr, cam, -dx);
-			if (keys & GF_KM_CTRL) view_zoom(sr, cam, dy);
+			if (keys & GF_KEY_MOD_CTRL) view_zoom(sr, cam, dy);
 			else view_pan_y(sr, cam, dy);
 			break;
 		case GF_NAVIGATE_PAN:
 			view_pan_x(sr, cam, -dx);
-			if (keys & GF_KM_CTRL) view_translate_z(sr, cam, gf_mulfix(dy, trans_scale));
+			if (keys & GF_KEY_MOD_CTRL) view_translate_z(sr, cam, gf_mulfix(dy, trans_scale));
 			else view_pan_y(sr, cam, dy);
 			break;
 		case GF_NAVIGATE_SLIDE:
 			view_translate_x(sr, cam, gf_mulfix(dx, trans_scale));
-			if (keys & GF_KM_CTRL) view_translate_z(sr, cam, gf_mulfix(dy, trans_scale));
+			if (keys & GF_KEY_MOD_CTRL) view_translate_z(sr, cam, gf_mulfix(dy, trans_scale));
 			else view_translate_y(sr, cam, gf_mulfix(dy, trans_scale));
 			break;
 		case GF_NAVIGATE_EXAMINE:
-			if (keys & GF_KM_CTRL) {
+			if (keys & GF_KEY_MOD_CTRL) {
 				view_translate_z(sr, cam, gf_mulfix(dy, trans_scale));
 				view_roll(sr, cam, gf_mulfix(dx, trans_scale));
 			} else {
@@ -338,7 +342,7 @@ static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
 			}
 			break;
 		case GF_NAVIGATE_ORBIT:
-			if (keys & GF_KM_CTRL) {
+			if (keys & GF_KEY_MOD_CTRL) {
 				view_translate_z(sr, cam, gf_mulfix(dy, trans_scale));
 			} else {
 				view_orbit_x(sr, cam, -gf_mulfix(GF_PI, dx));
@@ -354,7 +358,7 @@ static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
 		sr->grab_y = y;
 		return 1;
 
-	case GF_EVT_MOUSEWHEEL:
+	case GF_EVENT_MOUSEWHEEL:
 		switch (cam->navigate_mode) {
 		/*FIXME- we'll likely need a "step" value for walk at some point*/
 		case GF_NAVIGATE_WALK:
@@ -369,109 +373,105 @@ static Bool R3D_HandleEvents3D(Render3D *sr, GF_UserEvent *ev)
 		case GF_NAVIGATE_ORBIT:
 		case GF_NAVIGATE_PAN:
 			if (is_pixel_metrics) {
-				view_translate_z(sr, cam, gf_mulfix(trans_scale, ev->mouse.wheel_pos) * ((keys & GF_KM_SHIFT) ? 4 : 1));
+				view_translate_z(sr, cam, gf_mulfix(trans_scale, ev->mouse.wheel_pos) * ((keys & GF_KEY_MOD_SHIFT) ? 4 : 1));
 			} else {
-				view_translate_z(sr, cam, ev->mouse.wheel_pos * ((keys & GF_KM_SHIFT) ? 4 : 1));
+				view_translate_z(sr, cam, ev->mouse.wheel_pos * ((keys & GF_KEY_MOD_SHIFT) ? 4 : 1));
 			}
 			break;
 		}
 		return 1;
 
-	case GF_EVT_LEFTUP:
-		sr->nav_is_grabbed = 0;
+	case GF_EVENT_MOUSEUP:
+		if (ev->mouse.button==GF_MOUSE_LEFT) sr->nav_is_grabbed = 0;
 		break;
 
-	case GF_EVT_KEYDOWN:
-		if (ev->key.virtual_code=='\b') {
+	case GF_EVENT_KEYDOWN:
+		switch (ev->key.key_code) {
+		case GF_KEY_BACKSPACE:
 			gf_sr_reset_graphics(sr->compositor);
 			return 1;
-		}
-		else if ((ev->key.virtual_code=='c') || (ev->key.virtual_code=='C')) {
+		case GF_KEY_C:
 			sr->collide_mode = sr->collide_mode  ? GF_COLLISION_NONE : GF_COLLISION_DISPLACEMENT;
 			return 1;
-		}
-		else if ((ev->key.virtual_code=='j') || (ev->key.virtual_code=='J')) {
+		case GF_KEY_J:
 			if (cam->navigate_mode==GF_NAVIGATE_WALK) {
 				camera_jump(cam);
 				gf_sr_invalidate(sr->compositor, NULL);
 				return 1;
 			}
-		}
-		break;
-	case GF_EVT_VKEYDOWN:
-		switch (ev->key.vk_code) {
-		case GF_VK_HOME:
+			break;
+		case GF_KEY_HOME:
 			if (!sr->nav_is_grabbed) R3D_ResetCamera(sr);
 			break;
-		case GF_VK_END:
+		case GF_KEY_END:
 			if (cam->navigate_mode==GF_NAVIGATE_GAME) {
 				cam->navigate_mode = GF_NAVIGATE_WALK;
 				sr->nav_is_grabbed = 0;
 				return 1;
 			}
 			break;
-		case GF_VK_LEFT: key_inv = -1;
-		case GF_VK_RIGHT:
+		case GF_KEY_LEFT: key_inv = -1;
+		case GF_KEY_RIGHT:
 			switch (cam->navigate_mode) {
 			case GF_NAVIGATE_SLIDE:
-				if (keys & GF_KM_CTRL) view_pan_x(sr, cam, key_inv * key_pan);
+				if (keys & GF_KEY_MOD_CTRL) view_pan_x(sr, cam, key_inv * key_pan);
 				else view_translate_x(sr, cam, key_inv * key_trans);
 				break;
 			case GF_NAVIGATE_EXAMINE:
-				if (keys & GF_KM_CTRL) view_roll(sr, cam, gf_mulfix(dx, trans_scale));
+				if (keys & GF_KEY_MOD_CTRL) view_roll(sr, cam, gf_mulfix(dx, trans_scale));
 				else view_exam_x(sr, cam, -key_inv * key_exam);
 				break;
 			case GF_NAVIGATE_ORBIT:
-				if (keys & GF_KM_CTRL) view_translate_x(sr, cam, key_inv * key_trans);
+				if (keys & GF_KEY_MOD_CTRL) view_translate_x(sr, cam, key_inv * key_trans);
 				else view_orbit_x(sr, cam, -key_inv * key_exam);
 				break;
 			case GF_NAVIGATE_GAME: view_translate_x(sr, cam, key_inv * key_trans); break;
 			case GF_NAVIGATE_VR: view_pan_x(sr, cam, -key_inv * key_pan); break;
 			/*walk/fly/pan*/
 			default:
-				if (keys & GF_KM_CTRL) view_translate_x(sr, cam, key_inv * key_trans);
+				if (keys & GF_KEY_MOD_CTRL) view_translate_x(sr, cam, key_inv * key_trans);
 				else view_pan_x(sr, cam, -key_inv * key_pan);
 				break;
 			}
 			return 1;
-		case GF_VK_DOWN: key_inv = -1;
-		case GF_VK_UP:
-			if (keys & GF_KM_ALT) return 0;
+		case GF_KEY_DOWN: key_inv = -1;
+		case GF_KEY_UP:
+			if (keys & GF_KEY_MOD_ALT) return 0;
 			switch (cam->navigate_mode) {
 			case GF_NAVIGATE_SLIDE:
-				if (keys & GF_KM_CTRL) view_translate_z(sr, cam, key_inv * key_trans);
+				if (keys & GF_KEY_MOD_CTRL) view_translate_z(sr, cam, key_inv * key_trans);
 				else view_translate_y(sr, cam, key_inv * key_trans);
 				break;
 			case GF_NAVIGATE_EXAMINE:
-				if (keys & GF_KM_CTRL) view_translate_z(sr, cam, key_inv * key_trans);
+				if (keys & GF_KEY_MOD_CTRL) view_translate_z(sr, cam, key_inv * key_trans);
 				else view_exam_y(sr, cam, -key_inv * key_exam);
 				break;
 			case GF_NAVIGATE_ORBIT:
-				if (keys & GF_KM_CTRL) view_translate_y(sr, cam, key_inv * key_trans);
+				if (keys & GF_KEY_MOD_CTRL) view_translate_y(sr, cam, key_inv * key_trans);
 				else view_orbit_y(sr, cam, -key_inv * key_exam);
 				break;
 			case GF_NAVIGATE_PAN:
-				if (keys & GF_KM_CTRL) view_translate_y(sr, cam, key_inv * key_trans);
+				if (keys & GF_KEY_MOD_CTRL) view_translate_y(sr, cam, key_inv * key_trans);
 				else view_pan_y(sr, cam, key_inv * key_pan);
 				break;
 			case GF_NAVIGATE_GAME: view_translate_z(sr, cam, key_inv * key_trans); break;
 			case GF_NAVIGATE_VR:
-				if (keys & GF_KM_CTRL) view_zoom(sr, cam, key_inv * key_pan);
+				if (keys & GF_KEY_MOD_CTRL) view_zoom(sr, cam, key_inv * key_pan);
 				else view_pan_y(sr, cam, key_inv * key_pan);
 				break;
 			/*walk/fly*/
 			default:
-				if (keys & GF_KM_CTRL) view_pan_y(sr, cam, key_inv * key_pan);
+				if (keys & GF_KEY_MOD_CTRL) view_pan_y(sr, cam, key_inv * key_pan);
 				else view_translate_z(sr, cam, key_inv * key_trans);
 				break;
 			}
 			return 1;
 
-		case GF_VK_NEXT:
-			if (keys & GF_KM_CTRL) { view_zoom(sr, cam, FIX_ONE/10); return 1; }
+		case GF_KEY_PAGEDOWN:
+			if (keys & GF_KEY_MOD_CTRL) { view_zoom(sr, cam, FIX_ONE/10); return 1; }
 			break;
-		case GF_VK_PRIOR:
-			if (keys & GF_KM_CTRL) { view_zoom(sr, cam, -FIX_ONE/10); return 1; }
+		case GF_KEY_PAGEUP:
+			if (keys & GF_KEY_MOD_CTRL) { view_zoom(sr, cam, -FIX_ONE/10); return 1; }
 			break;
 		}
 		break;
@@ -504,11 +504,11 @@ static Bool VS_HandleEvents2D(VisualSurface *surf, GF_UserEvent *ev)
 
 	x = y = 0;
 	/*renorm between -1, 1*/
-	if (ev->event_type<=GF_EVT_MOUSEWHEEL) {
+	if (ev->event_type<=GF_EVENT_MOUSEWHEEL) {
 		x = INT2FIX(ev->mouse.x);
 		y = INT2FIX(ev->mouse.y);
 	} else {
-		if (!(keys & GF_KM_ALT) && (!surf->camera.navigate_mode || !(surf->camera.navigation_flags & NAV_ANY)) ) return 0;
+		if (!(keys & GF_KEY_MOD_ALT) && (!surf->camera.navigate_mode || !(surf->camera.navigation_flags & NAV_ANY)) ) return 0;
 	}
 	dx = x - surf->render->grab_x;
 	dy = y - surf->render->grab_y;
@@ -518,7 +518,7 @@ static Bool VS_HandleEvents2D(VisualSurface *surf, GF_UserEvent *ev)
 	key_trans = INT2FIX(2);
 	key_rot = FIX_ONE/10;
 
-	if (keys & GF_KM_SHIFT) {
+	if (keys & GF_KEY_MOD_SHIFT) {
 		dx *= 4;
 		dy *= 4;
 		key_rot *= 4;
@@ -528,20 +528,28 @@ static Bool VS_HandleEvents2D(VisualSurface *surf, GF_UserEvent *ev)
 	if (!is_pixel_metrics) { key_trans /= surf->width;}
 
 	switch (ev->event_type) {
-	case GF_EVT_LEFTDOWN:
-		surf->render->grab_x = x;
-		surf->render->grab_y = y;
-		surf->render->nav_is_grabbed = 1;
-		return 0;
-	case GF_EVT_LEFTUP:
-		surf->render->nav_is_grabbed = 0;
-		return 0;
+	case GF_EVENT_MOUSEDOWN:
+		/*left*/
+		if (ev->mouse.button==GF_MOUSE_LEFT) {
+			surf->render->grab_x = x;
+			surf->render->grab_y = y;
+			surf->render->nav_is_grabbed = 1;
+			return 0;
+		}
+		break;
 
-	case GF_EVT_MOUSEMOVE:
+	case GF_EVENT_MOUSEUP:
+		if (ev->mouse.button==GF_MOUSE_LEFT) {
+			surf->render->nav_is_grabbed = 0;
+			return 0;
+		}
+		break;
+
+	case GF_EVENT_MOUSEMOVE:
 		if (!surf->render->nav_is_grabbed) return 0;
 		switch (surf->camera.navigate_mode) {
 		case GF_NAVIGATE_SLIDE:
-			if (keys & GF_KM_CTRL) {
+			if (keys & GF_KEY_MOD_CTRL) {
 				Fixed new_zoom = surf->camera.zoom;
 				if (new_zoom > FIX_ONE) new_zoom += dy/20;
 				else new_zoom += dy/80;
@@ -561,22 +569,24 @@ static Bool VS_HandleEvents2D(VisualSurface *surf, GF_UserEvent *ev)
 		surf->render->grab_x = x;
 		surf->render->grab_y = y;
 		return 1;
-	case GF_EVT_VKEYDOWN:
-		if (ev->key.virtual_code=='\b') gf_sr_reset_graphics(surf->render->compositor);
-		switch (ev->key.vk_code) {
-		case GF_VK_HOME:
+	case GF_EVENT_KEYDOWN:
+		switch (ev->key.key_code) {
+		case GF_KEY_BACKSPACE:
+			gf_sr_reset_graphics(surf->render->compositor);
+			return 1;
+		case GF_KEY_HOME:
 			if (!surf->render->nav_is_grabbed) R3D_ResetCamera(surf->render);
 			return 1;
-		case GF_VK_LEFT: key_inv = -1;
-		case GF_VK_RIGHT:
+		case GF_KEY_LEFT: key_inv = -1;
+		case GF_KEY_RIGHT:
 			if (surf->camera.navigate_mode == GF_NAVIGATE_SLIDE) surf->camera.trans.x += key_inv*key_trans;
 			else surf->camera.rot.y -= key_inv * key_rot;
 			camera_changed(surf->render, &surf->camera);
 			return 1;
-		case GF_VK_DOWN: key_inv = -1;
-		case GF_VK_UP:
+		case GF_KEY_DOWN: key_inv = -1;
+		case GF_KEY_UP:
 			if (surf->camera.navigate_mode == GF_NAVIGATE_SLIDE) {
-				if (keys & GF_KM_CTRL) {
+				if (keys & GF_KEY_MOD_CTRL) {
 					Fixed new_zoom = surf->camera.zoom;
 					if (new_zoom > FIX_ONE) new_zoom += key_inv*FIX_ONE/10;
 					else new_zoom += key_inv*FIX_ONE/20;

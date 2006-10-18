@@ -161,11 +161,11 @@ static void SVG_Render_bitmap(GF_Node *node, void *rs)
 		}
 
 		/*if open and changed, stop and play*/
-		if (gf_svg_check_url_change(&st->txurl, & ((SVGElement *)node)->xlink->href)) {
+		if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, & ((SVGElement *)node)->xlink->href)) {
 			const char *cache_dir = gf_cfg_get_key(st->txh.compositor->user->config, "General", "CacheDirectory");
 			gf_svg_store_embedded_data(& ((SVGElement *)node)->xlink->href, cache_dir, "embedded_");
 
-			if (gf_svg_check_url_change(&st->txurl, & ((SVGElement *)node)->xlink->href)) {
+			if (gf_term_check_iri_change(st->txh.compositor->term, &st->txurl, & ((SVGElement *)node)->xlink->href)) {
 				gf_term_set_mfurl_from_uri(st->txh.compositor->term, &(st->txurl), & ((SVGElement*)node)->xlink->href);
 				if (st->txh.is_open) gf_sr_texture_stop(&st->txh);
 				fprintf(stdout, "URL changed to %s\n", st->txurl.vals[0].url);

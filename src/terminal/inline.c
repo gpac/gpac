@@ -410,7 +410,7 @@ void gf_is_buffering_info(GF_InlineScene *is)
 		}
 	}
 
-	evt.type = GF_EVT_PROGRESS;
+	evt.type = GF_EVENT_PROGRESS;
 	evt.progress.progress_type = 0;
 	evt.progress.service = is->root_od->net_service->url;
 	if (!max_buffer || !cur_buffer || (max_buffer <= cur_buffer)) {
@@ -807,7 +807,7 @@ void gf_is_set_duration(GF_InlineScene *is)
 
 	if ((is == is->root_od->term->root_scene) && is->root_od->term->user->EventProc) {
 		GF_Event evt;
-		evt.type = GF_EVT_DURATION;
+		evt.type = GF_EVENT_DURATION;
 		evt.duration.duration = dur;
 		evt.duration.can_seek = !(is->root_od->flags & GF_ODM_NO_TIME_CTRL);
 		if (dur<2.0) evt.duration.can_seek = 0;
@@ -1209,7 +1209,7 @@ void gf_is_regenerate(GF_InlineScene *is)
 		if (is->graph_attached) gf_sr_set_scene(is->root_od->term->renderer, NULL);
 		gf_sr_set_scene(is->root_od->term->renderer, is->graph);
 		is->graph_attached = 1;
-		evt.type = GF_EVT_STREAMLIST;
+		evt.type = GF_EVENT_STREAMLIST;
 		GF_USER_SENDEVENT(is->root_od->term->user,&evt);
 		IS_UpdateVideoPos(is);
 	} else {

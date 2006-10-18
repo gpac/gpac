@@ -26,6 +26,7 @@
 #include <gpac/internal/laser_dev.h>
 #include <gpac/bitstream.h>
 #include <gpac/math.h>
+#include <gpac/events.h>
 
 
 #define GF_LSR_WRITE_INT(_codec, _val, _nbBits, _str)	{\
@@ -682,12 +683,12 @@ static void lsr_write_fixed_clamp(GF_LASeRCodec *lsr, Fixed f, const char *name)
 
 static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 {
-	if (evtParam && (evtType!=SVG_DOM_EVT_KEYDOWN) && (evtType!=SVG_DOM_EVT_LONGKEYPRESS) ) {
+	if (evtParam && (evtType!=GF_EVENT_KEYDOWN) && (evtType!=GF_EVENT_LONGKEYPRESS) ) {
 		char szName[1024];
 		GF_LSR_WRITE_INT(lsr, 0, 1, "choice");
 		sprintf(szName, "%s(%c)", gf_dom_event_get_name(evtType), evtParam);
 		lsr_write_byte_align_string(lsr, szName, "evtString");
-	} else if (evtType==SVG_DOM_EVT_MOUSEMOVE) {
+	} else if (evtType==GF_EVENT_MOUSEMOVE) {
 		GF_LSR_WRITE_INT(lsr, 0, 1, "choice");
 		lsr_write_byte_align_string(lsr, "mousemove", "evtString");
 	} else {
@@ -696,39 +697,39 @@ static void lsr_write_event_type(GF_LASeRCodec *lsr, u32 evtType, u32 evtParam)
 		focusout{8} keydown{9} keyup{10} load{11} longaccesskey{12} mousedown{13} mouseout{14} mouseover{15} 
 		mouseup{16} pause{17} repeat{18} resize{19} resume{20} scroll{21} textinput{22} unload{23} zoom{24} */
 		switch (evtType) {
-		case SVG_DOM_EVT_ABORT: GF_LSR_WRITE_INT(lsr, 0, 6, "event"); break;
-		case SVG_DOM_EVT_ACTIVATE: GF_LSR_WRITE_INT(lsr, 2, 6, "event"); break;
-		case SVG_DOM_EVT_BEGIN: GF_LSR_WRITE_INT(lsr, 3, 6, "event"); break;
-		case SVG_DOM_EVT_CLICK: GF_LSR_WRITE_INT(lsr, 4, 6, "event"); break;
-		case SVG_DOM_EVT_END: GF_LSR_WRITE_INT(lsr, 5, 6, "event"); break;
-		case SVG_DOM_EVT_ERROR: GF_LSR_WRITE_INT(lsr, 6, 6, "event"); break;
-		case SVG_DOM_EVT_FOCUSIN: GF_LSR_WRITE_INT(lsr, 7, 6, "event"); break;
-		case SVG_DOM_EVT_FOCUSOUT: GF_LSR_WRITE_INT(lsr, 8, 6, "event"); break;
-		/*case SVG_DOM_EVT_KEYPRESS: GF_LSR_WRITE_INT(lsr, 1, 6, "event"); break;*/
-		case SVG_DOM_EVT_KEYDOWN: 
+		case GF_EVENT_ABORT: GF_LSR_WRITE_INT(lsr, 0, 6, "event"); break;
+		case GF_EVENT_ACTIVATE: GF_LSR_WRITE_INT(lsr, 2, 6, "event"); break;
+		case GF_EVENT_BEGIN: GF_LSR_WRITE_INT(lsr, 3, 6, "event"); break;
+		case GF_EVENT_CLICK: GF_LSR_WRITE_INT(lsr, 4, 6, "event"); break;
+		case GF_EVENT_END: GF_LSR_WRITE_INT(lsr, 5, 6, "event"); break;
+		case GF_EVENT_ERROR: GF_LSR_WRITE_INT(lsr, 6, 6, "event"); break;
+		case GF_EVENT_FOCUSIN: GF_LSR_WRITE_INT(lsr, 7, 6, "event"); break;
+		case GF_EVENT_FOCUSOUT: GF_LSR_WRITE_INT(lsr, 8, 6, "event"); break;
+		/*case GF_EVENT_KEYPRESS: GF_LSR_WRITE_INT(lsr, 1, 6, "event"); break;*/
+		case GF_EVENT_KEYDOWN: 
 			/*encode as accessKey()*/
 			GF_LSR_WRITE_INT(lsr, evtParam ? 1 : 9, 6, "event"); 
 			break;
-		case SVG_DOM_EVT_KEYUP: GF_LSR_WRITE_INT(lsr, 10, 6, "event"); break;
-		case SVG_DOM_EVT_LOAD: GF_LSR_WRITE_INT(lsr, 11, 6, "event"); break;
-		case SVG_DOM_EVT_LONGKEYPRESS: GF_LSR_WRITE_INT(lsr, 12, 6, "event"); break;
-		case SVG_DOM_EVT_MOUSEDOWN: GF_LSR_WRITE_INT(lsr, 13, 6, "event"); break;
-		case SVG_DOM_EVT_MOUSEMOVE: GF_LSR_WRITE_INT(lsr, 14, 6, "event"); break;		
-		case SVG_DOM_EVT_MOUSEOUT: GF_LSR_WRITE_INT(lsr, 15, 6, "event"); break;
-		case SVG_DOM_EVT_MOUSEOVER: GF_LSR_WRITE_INT(lsr, 16, 6, "event"); break;
-		case SVG_DOM_EVT_MOUSEUP: GF_LSR_WRITE_INT(lsr, 17, 6, "event"); break;
-		case SVG_DOM_EVT_REPEAT: GF_LSR_WRITE_INT(lsr, 19, 6, "event"); break;
-		case SVG_DOM_EVT_RESIZE: GF_LSR_WRITE_INT(lsr, 20, 6, "event"); break;
-		case SVG_DOM_EVT_SCROLL: GF_LSR_WRITE_INT(lsr, 22, 6, "event"); break;
-		case SVG_DOM_EVT_TEXTINPUT: GF_LSR_WRITE_INT(lsr, 23, 6, "event"); break;
-		case SVG_DOM_EVT_UNLOAD: GF_LSR_WRITE_INT(lsr, 24, 6, "event"); break;
-		case SVG_DOM_EVT_ZOOM: GF_LSR_WRITE_INT(lsr, 25, 6, "event"); break;
+		case GF_EVENT_KEYUP: GF_LSR_WRITE_INT(lsr, 10, 6, "event"); break;
+		case GF_EVENT_LOAD: GF_LSR_WRITE_INT(lsr, 11, 6, "event"); break;
+		case GF_EVENT_LONGKEYPRESS: GF_LSR_WRITE_INT(lsr, 12, 6, "event"); break;
+		case GF_EVENT_MOUSEDOWN: GF_LSR_WRITE_INT(lsr, 13, 6, "event"); break;
+		case GF_EVENT_MOUSEMOVE: GF_LSR_WRITE_INT(lsr, 14, 6, "event"); break;		
+		case GF_EVENT_MOUSEOUT: GF_LSR_WRITE_INT(lsr, 15, 6, "event"); break;
+		case GF_EVENT_MOUSEOVER: GF_LSR_WRITE_INT(lsr, 16, 6, "event"); break;
+		case GF_EVENT_MOUSEUP: GF_LSR_WRITE_INT(lsr, 17, 6, "event"); break;
+		case GF_EVENT_REPEAT: GF_LSR_WRITE_INT(lsr, 19, 6, "event"); break;
+		case GF_EVENT_RESIZE: GF_LSR_WRITE_INT(lsr, 20, 6, "event"); break;
+		case GF_EVENT_SCROLL: GF_LSR_WRITE_INT(lsr, 22, 6, "event"); break;
+		case GF_EVENT_TEXTINPUT: GF_LSR_WRITE_INT(lsr, 23, 6, "event"); break;
+		case GF_EVENT_UNLOAD: GF_LSR_WRITE_INT(lsr, 24, 6, "event"); break;
+		case GF_EVENT_ZOOM: GF_LSR_WRITE_INT(lsr, 25, 6, "event"); break;
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[LASeR] Unsupported LASER event %d\n", evtType) );
 			GF_LSR_WRITE_INT(lsr, 0, 6, "event"); break;
 			return;
 		}
-		if ((evtType==SVG_DOM_EVT_KEYDOWN) || (evtType==SVG_DOM_EVT_LONGKEYPRESS)) {
+		if ((evtType==GF_EVENT_KEYDOWN) || (evtType==GF_EVENT_LONGKEYPRESS)) {
 			if (evtParam) {
 				GF_LSR_WRITE_INT(lsr, 1, 1, "hasKeyCode");
 				lsr_write_vluimsbf5(lsr, evtParam, "keyCode");
@@ -2735,7 +2736,7 @@ static void lsr_write_listener(GF_LASeRCodec *lsr, SVGlistenerElement *elt)
 
 	GF_LSR_WRITE_INT(lsr, elt->defaultAction ? 1 : 0, 1, "hasDefaultAction");
 	if (elt->defaultAction) GF_LSR_WRITE_INT(lsr, 1, 1, "defaultAction");
-	if (elt->event.type != SVG_DOM_EVT_UNKNOWN) {
+	if (elt->event.type != GF_EVENT_UNKNOWN) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "hasEvent");
 		lsr_write_event_type(lsr, elt->event.type, elt->event.parameter);
 	} else {

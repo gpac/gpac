@@ -375,7 +375,7 @@ Bool r3d_handle_composite_event(Render3D *sr, GF_UserEvent *ev)
 	M_Appearance *ap = (M_Appearance *)sr->hit_info.appear;
 	assert(ap && ap->texture);
 
-	if (ev->event_type > GF_EVT_LEFTUP) return 0;
+	if (ev->event_type > GF_EVENT_MOUSEMOVE) return 0;
 
 	st = (CompositeTextureStack *) gf_node_get_private(ap->texture);
 

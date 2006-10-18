@@ -84,7 +84,7 @@ GF_Err R3D_SetViewpoint(GF_VisualRenderer *vr, u32 viewpoint_idx, const char *vi
 }
 
 
-#define VPCHANGED(__comp) { GF_Event evt; evt.type = GF_EVT_VIEWPOINTS; GF_USER_SENDEVENT(__comp->user, &evt); }
+#define VPCHANGED(__comp) { GF_Event evt; evt.type = GF_EVENT_VIEWPOINTS; GF_USER_SENDEVENT(__comp->user, &evt); }
 
 
 

@@ -142,7 +142,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 		/*reset main pointer*/
 		odm->term->root_scene = NULL;
 
-		evt.type = GF_EVT_CONNECT;
+		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = 0;
 		GF_USER_SENDEVENT(odm->term->user, &evt);
 	}
@@ -164,9 +164,8 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 
 	odm->net_service->nb_odm_users++;
 	if (odm->subscene) od_type = GF_MEDIA_OBJECT_SCENE;
+	else if (odm->mo) od_type = odm->mo->type;
 	else od_type = GF_MEDIA_OBJECT_UNDEF;
-
-	/*FIXME TODAY*/
 
 	/*for remote ODs, get expected OD type in case the service needs to generate the IOD on the fly*/
 	if (odm->parentscene && odm->OD && odm->OD->URLString) {
@@ -207,6 +206,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 		odm->OD_PL = the_iod->OD_profileAndLevel;
 		odm->Scene_PL = the_iod->scene_profileAndLevel;
 		odm->Visual_PL = the_iod->visual_profileAndLevel;
+		odm->flags |= GF_ODM_HAS_PROFILES;
 		if (the_iod->inlineProfileFlag) odm->flags |= GF_ODM_INLINE_PROFILES;
 		toolList = the_iod->IPMPToolList;
 		free(the_iod);
@@ -251,7 +251,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 err_exit:
 	if (!odm->parentscene) {
 		GF_Event evt;
-		evt.type = GF_EVT_CONNECT;
+		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = 0;
 		GF_USER_SENDEVENT(odm->term->user, &evt);
 	}
@@ -526,7 +526,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	} else {
 		/*othewise send a connect ack for top level*/
 		GF_Event evt;
-		evt.type = GF_EVT_CONNECT;
+		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = 1;
 		GF_USER_SENDEVENT(odm->term->user, &evt);
 	}
@@ -545,7 +545,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			gf_is_select_object(odm->term->root_scene, odm);
 			odm->OD_PL = 0;
 		}
-		evt.type = GF_EVT_STREAMLIST;
+		evt.type = GF_EVENT_STREAMLIST;
 		GF_USER_SENDEVENT(odm->term->user,&evt);
 	}
 }

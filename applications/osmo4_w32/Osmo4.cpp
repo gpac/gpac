@@ -167,7 +167,7 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 	if (!pFrame) return 0;
 
 	switch (evt->type) {
-	case GF_EVT_DURATION:
+	case GF_EVENT_DURATION:
 		dur = (u32) (1000 * evt->duration.duration);
 		//if (dur<1100) dur = 0;
 		pFrame->m_pPlayList->SetDuration((u32) evt->duration.duration );
@@ -182,7 +182,7 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		}
 		break;
 
-	case GF_EVT_MESSAGE:
+	case GF_EVENT_MESSAGE:
 		if (!evt->message.service || !strcmp(evt->message.service, (LPCSTR) pFrame->m_pPlayList->GetURL() )) {
 			pFrame->console_service = "main service";
 		} else {
@@ -206,31 +206,31 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		pFrame->console_message = evt->message.message;
 		gpac->m_pMainWnd->PostMessage(WM_CONSOLEMSG, 0, 0);
 		break;
-	case GF_EVT_PROGRESS:
+	case GF_EVENT_PROGRESS:
 		char *szType;
 		if (evt->progress.progress_type==0) szType = "Buffer ";
 		else if (evt->progress.progress_type==1) szType = "Download ";
 		else if (evt->progress.progress_type==2) szType = "Import ";
 		gf_set_progress(szType, evt->progress.done, evt->progress.total);
 		break;
-	case GF_EVT_NAVIGATE_INFO:
+	case GF_EVENT_NAVIGATE_INFO:
 		pFrame->console_message = evt->navigate.to_url;
 		gpac->m_pMainWnd->PostMessage(WM_CONSOLEMSG, 1000, 0);
 		break;
 
-	case GF_EVT_SCENE_SIZE:
+	case GF_EVENT_SCENE_SIZE:
 		gpac->orig_width = evt->size.width;
 		gpac->orig_height = evt->size.height;
 		if (gpac->m_term && !pFrame->m_bFullScreen) 
 			pFrame->PostMessage(WM_SETSIZE, evt->size.width, evt->size.height);
 		break;
 	/*don't resize on win32 msg notif*/
-	case GF_EVT_SIZE:
+	case GF_EVENT_SIZE:
 		if (gpac->m_term && !pFrame->m_bFullScreen && gpac->orig_width && (evt->size.width < W32_MIN_WIDTH) ) 
 			pFrame->PostMessage(WM_SETSIZE, W32_MIN_WIDTH, (W32_MIN_WIDTH*gpac->orig_height) / gpac->orig_width);
 		break;
 
-	case GF_EVT_CONNECT:
+	case GF_EVENT_CONNECT:
 		if (pFrame->m_bStartupFile) return 0;
 
 		pFrame->BuildStreamList(1);
@@ -251,76 +251,76 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		}
 		break;
 
-	case GF_EVT_QUIT:
+	case GF_EVENT_QUIT:
 		pFrame->PostMessage(WM_CLOSE, 0L, 0L);
 		break;
-	case GF_EVT_VKEYDOWN:
-		if (gpac->can_seek && evt->key.key_states & GF_KM_ALT) {
+	case GF_EVENT_KEYDOWN:
+		if (gpac->can_seek && evt->key.flags & GF_KEY_MOD_ALT) {
 			s32 res;
-			switch (evt->key.vk_code) {
-			case GF_VK_LEFT:
+			switch (evt->key.key_code) {
+			case GF_KEY_LEFT:
 				res = gf_term_get_time_in_ms(gpac->m_term) - 5*gpac->max_duration/100;
 				if (res<0) res=0;
 				gpac->PlayFromTime(res);
 				break;
-			case GF_VK_RIGHT:
+			case GF_KEY_RIGHT:
 				res = gf_term_get_time_in_ms(gpac->m_term) + 5*gpac->max_duration/100;
 				if ((u32) res>=gpac->max_duration) res = 0;
 				gpac->PlayFromTime(res);
 				break;
-			case GF_VK_DOWN:
+			case GF_KEY_DOWN:
 				res = gf_term_get_time_in_ms(gpac->m_term) - 60000;
 				if (res<0) res=0;
 				gpac->PlayFromTime(res);
 				break;
-			case GF_VK_UP:
+			case GF_KEY_UP:
 				res = gf_term_get_time_in_ms(gpac->m_term) + 60000;
 				if ((u32) res>=gpac->max_duration) res = 0;
 				gpac->PlayFromTime(res);
 				break;
 			}
-		} else if (evt->key.key_states & GF_KM_CTRL) {
-			switch (evt->key.vk_code) {
-			case GF_VK_LEFT:
+		} else if (evt->key.flags & GF_KEY_MOD_CTRL) {
+			switch (evt->key.key_code) {
+			case GF_KEY_LEFT:
 				pFrame->m_pPlayList->PlayPrev();
 				break;
-			case GF_VK_RIGHT:
+			case GF_KEY_RIGHT:
 				pFrame->m_pPlayList->PlayNext();
 				break;
 			}
 		} else {
-			switch (evt->key.vk_code) {
-			case GF_VK_HOME:
+			switch (evt->key.key_code) {
+			case GF_KEY_HOME:
 				gf_term_set_option(gpac->m_term, GF_OPT_NAVIGATION_TYPE, 1);
 				break;
-			case GF_VK_ESCAPE:
+			case GF_KEY_ESCAPE:
 				pFrame->PostMessage(WM_COMMAND, ID_VIEW_FULLSCREEN);
 				break;
 			}
 		}
 		break;
-	case GF_EVT_NAVIGATE:
+	case GF_EVENT_NAVIGATE:
 		/*fixme - a proper browser would require checking mime type & co*/
 		/*store URL since it may be destroyed, and post message*/
 		gpac->m_navigate_url = evt->navigate.to_url;
 		pFrame->PostMessage(WM_NAVIGATE, NULL, NULL);
 		return 1;
-	case GF_EVT_VIEWPOINTS:
+	case GF_EVENT_VIEWPOINTS:
 		pFrame->BuildViewList();
 		return 0;
-	case GF_EVT_STREAMLIST:
+	case GF_EVENT_STREAMLIST:
 		pFrame->BuildStreamList(0);
 		return 0;
-	case GF_EVT_LDOUBLECLICK:
+	case GF_EVENT_MOUSEDOUBLECLICK:
 		pFrame->PostMessage(WM_COMMAND, ID_VIEW_FULLSCREEN);
 		return 0;
-	case GF_EVT_AUTHORIZATION:
+	case GF_EVENT_AUTHORIZATION:
 	{
 		UserPassDialog passdlg;
 		return passdlg.GetPassword(evt->auth.site_url, evt->auth.user, evt->auth.password);
 	}
 
-	case GF_EVT_SYS_COLORS:
+	case GF_EVENT_SYS_COLORS:
 		evt->sys_cols.sys_colors[0] = get_sys_col(COLOR_ACTIVEBORDER);
 		evt->sys_cols.sys_colors[1] = get_sys_col(COLOR_ACTIVECAPTION);
 		evt->sys_cols.sys_colors[2] = get_sys_col(COLOR_APPWORKSPACE);

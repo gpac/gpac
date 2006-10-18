@@ -27,6 +27,7 @@
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/bitstream.h>
 #include <gpac/math.h>
+#include <gpac/events.h>
 
 #define GF_LSR_READ_INT(_codec, _val, _nbBits, _str)	{\
 	_val = gf_bs_read_int(_codec->bs, _nbBits);	\
@@ -856,30 +857,30 @@ static void lsr_read_event_type(GF_LASeRCodec *lsr, XMLEV_Event *evtType)
 		focusout{8} keydown{9} keyup{10} load{11} longaccesskey{12} mousedown{13} mousemove{14} mouseout{15} 
 		mouseover{16} mouseup{17} pause{18} repeat{19} resize{20} resume{21} scroll{22} textinput{23} unload{24} zoom{25} */
 		switch (flag) {
-		case 0: evtType->type = SVG_DOM_EVT_ABORT; break;
-		case 2: evtType->type = SVG_DOM_EVT_ACTIVATE; break;
-		case 3: evtType->type = SVG_DOM_EVT_BEGIN; break;
-		case 4: evtType->type = SVG_DOM_EVT_CLICK; break;
-		case 5: evtType->type = SVG_DOM_EVT_END; break;
-		case 6: evtType->type = SVG_DOM_EVT_ERROR; break;
-		case 7: evtType->type = SVG_DOM_EVT_FOCUSIN; break;
-		case 8: evtType->type = SVG_DOM_EVT_FOCUSOUT; break;
-		case 1: evtType->type = SVG_DOM_EVT_KEYDOWN; break; /* TODO FIXME was keypress and is useless and removed */
-		case 9: evtType->type = SVG_DOM_EVT_KEYDOWN; break;
-		case 10: evtType->type = SVG_DOM_EVT_KEYUP; break;
-		case 11: evtType->type = SVG_DOM_EVT_LOAD; break;
-		case 12: evtType->type = SVG_DOM_EVT_LONGKEYPRESS; break;
-		case 13: evtType->type = SVG_DOM_EVT_MOUSEDOWN; break;
-		case 14: evtType->type = SVG_DOM_EVT_MOUSEMOVE; break;
-		case 15: evtType->type = SVG_DOM_EVT_MOUSEOUT; break;
-		case 16: evtType->type = SVG_DOM_EVT_MOUSEOVER; break;
-		case 17: evtType->type = SVG_DOM_EVT_MOUSEUP; break;
-		case 19: evtType->type = SVG_DOM_EVT_REPEAT; break;
-		case 20: evtType->type = SVG_DOM_EVT_RESIZE; break;
-		case 22: evtType->type = SVG_DOM_EVT_SCROLL; break;
-		case 23: evtType->type = SVG_DOM_EVT_TEXTINPUT; break;
-		case 24: evtType->type = SVG_DOM_EVT_UNLOAD; break;
-		case 25: evtType->type = SVG_DOM_EVT_ZOOM; break;
+		case 0: evtType->type = GF_EVENT_ABORT; break;
+		case 2: evtType->type = GF_EVENT_ACTIVATE; break;
+		case 3: evtType->type = GF_EVENT_BEGIN; break;
+		case 4: evtType->type = GF_EVENT_CLICK; break;
+		case 5: evtType->type = GF_EVENT_END; break;
+		case 6: evtType->type = GF_EVENT_ERROR; break;
+		case 7: evtType->type = GF_EVENT_FOCUSIN; break;
+		case 8: evtType->type = GF_EVENT_FOCUSOUT; break;
+		case 1: evtType->type = GF_EVENT_KEYDOWN; break; /* TODO FIXME was keypress and is useless and removed */
+		case 9: evtType->type = GF_EVENT_KEYDOWN; break;
+		case 10: evtType->type = GF_EVENT_KEYUP; break;
+		case 11: evtType->type = GF_EVENT_LOAD; break;
+		case 12: evtType->type = GF_EVENT_LONGKEYPRESS; break;
+		case 13: evtType->type = GF_EVENT_MOUSEDOWN; break;
+		case 14: evtType->type = GF_EVENT_MOUSEMOVE; break;
+		case 15: evtType->type = GF_EVENT_MOUSEOUT; break;
+		case 16: evtType->type = GF_EVENT_MOUSEOVER; break;
+		case 17: evtType->type = GF_EVENT_MOUSEUP; break;
+		case 19: evtType->type = GF_EVENT_REPEAT; break;
+		case 20: evtType->type = GF_EVENT_RESIZE; break;
+		case 22: evtType->type = GF_EVENT_SCROLL; break;
+		case 23: evtType->type = GF_EVENT_TEXTINPUT; break;
+		case 24: evtType->type = GF_EVENT_UNLOAD; break;
+		case 25: evtType->type = GF_EVENT_ZOOM; break;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[LASeR] Undefined LASeR event %d\n", flag));
 			break;
@@ -1451,7 +1452,7 @@ static Bool lsr_init_smil_times(GF_LASeRCodec *lsr, SVGElement *anim, GF_List *t
 				t->element_id = NULL;
 			} 
 			else if (!t->element) {
-				if (t->event.parameter && (t->event.type==SVG_DOM_EVT_KEYDOWN) ) {
+				if (t->event.parameter && (t->event.type==GF_EVENT_KEYDOWN) ) {
 					t->element = lsr->sg->RootNode ? lsr->sg->RootNode : lsr->current_root;
 				} else {
 					t->element = (GF_Node*)parent;
@@ -3250,7 +3251,7 @@ static GF_Node *lsr_read_scene_content_model(GF_LASeRCodec *lsr, SVGElement *par
 	if (n) {
 		GF_DOM_Event evt;
 		memset(&evt, 0, sizeof(GF_DOM_Event));
-		evt.type = SVG_DOM_EVT_LOAD;
+		evt.type = GF_EVENT_LOAD;
 		gf_dom_event_fire(n, NULL, &evt);
 	}
 	return n;
@@ -3322,7 +3323,7 @@ static GF_Node *lsr_read_update_content_model(GF_LASeRCodec *lsr, SVGElement *pa
 	if (n) {
 		GF_DOM_Event evt;
 		memset(&evt, 0, sizeof(GF_DOM_Event));
-		evt.type = SVG_DOM_EVT_LOAD;
+		evt.type = GF_EVENT_LOAD;
 		gf_dom_event_fire(n, NULL, &evt);
 	}
 	return n;

@@ -609,10 +609,16 @@ GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm);
 
 enum
 {
+	/*flag set if object cannot be time-controloed*/
 	GF_ODM_NO_TIME_CTRL = (1<<1),
+	/*flag set if subscene uses parent scene timeline*/
 	GF_ODM_INHERIT_TIMELINE = (1<<2),
+	/*flag set if object has been redirected*/
 	GF_ODM_REMOTE_OD = (1<<3),
-	GF_ODM_INLINE_PROFILES = (1<<4),
+	/*flag set if object has profile indications*/
+	GF_ODM_HAS_PROFILES = (1<<4),
+	/*flag set if object governs profile of inline subscenes*/
+	GF_ODM_INLINE_PROFILES = (1<<5),
 };
 
 struct _od_manager
@@ -638,11 +644,6 @@ struct _od_manager
 	GF_ObjectDescriptor *OD;
 
 	u32 flags;
-
-	/*this flag is set if ANY stream of this OD has no time control capabilities*/
-//	Bool no_time_ctrl;
-//	Bool inherit_timeline;
-
 
 	/*PLs*/
 	u8 Audio_PL, Graphics_PL, OD_PL, Scene_PL, Visual_PL;

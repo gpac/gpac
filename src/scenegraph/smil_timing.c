@@ -24,6 +24,7 @@
 
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_svg.h>
+#include <gpac/events.h>
 
 static void gf_smil_timing_null_timed_function(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 state)
 {
@@ -359,7 +360,7 @@ waiting_to_begin:
 		if (scene_time >= rti->current_interval->begin) {
 			rti->status = SMIL_STATUS_ACTIVE;
 			memset(&evt, 0, sizeof(evt));
-			evt.type = SVG_DOM_EVT_BEGIN;
+			evt.type = GF_EVENT_BEGIN;
 //			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[DOM Events] Firing event %s.beginEvent at time %g\n", gf_node_get_name(node), scene_time));
 			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 		}
@@ -388,7 +389,7 @@ waiting_to_begin:
 				rti->current_interval = gf_list_get(rti->intervals, rti->current_interval_index);
 //				gf_smil_timing_print_interval(stack->current_interval);
 				memset(&evt, 0, sizeof(evt));
-				evt.type = SVG_DOM_EVT_BEGIN;
+				evt.type = GF_EVENT_BEGIN;
 //				fprintf(stdout, "Time %f - Firing DOM %s.beginEvent\n", scene_time, rti->timed_elt->sgprivate->NodeName);
 				gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 			} 
@@ -400,7 +401,7 @@ waiting_to_begin:
 		simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
 		if (cur_id < rti->current_interval->nb_iterations) {
 			memset(&evt, 0, sizeof(evt));
-			evt.type = SVG_DOM_EVT_REPEAT;
+			evt.type = GF_EVENT_REPEAT;
 			evt.detail = rti->current_interval->nb_iterations;
 //			fprintf(stdout, "Time %f - Firing DOM %s.repeatEvent\n", scene_time, rti->timed_elt->sgprivate->NodeName);
 			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
@@ -428,7 +429,7 @@ post_active:
 			}
 		}
 		memset(&evt, 0, sizeof(evt));
-		evt.type = SVG_DOM_EVT_END;
+		evt.type = GF_EVENT_END;
 //		fprintf(stdout, "Time %f - Firing DOM %s.endEvent\n", scene_time, rti->timed_elt->sgprivate->NodeName);
 		gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 	}

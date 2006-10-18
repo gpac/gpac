@@ -333,16 +333,16 @@ static Bool OnAnchor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_mat
 	M_Anchor *an = (M_Anchor *) sh->owner;
 
 	if (ev->context==NULL) {
-		evt.type = GF_EVT_NAVIGATE_INFO;
+		evt.type = GF_EVENT_NAVIGATE_INFO;
 		evt.navigate.to_url = "";
 		st->compositor->user->EventProc(st->compositor->user->opaque, &evt);
 		st->is_over = 0;
 		return 0;
 	}
 
-	if (ev->event_type == GF_EVT_MOUSEMOVE) {
+	if (ev->event_type == GF_EVENT_MOUSEMOVE) {
 		if (!st->is_over && st->compositor->user->EventProc) {
-			evt.type = GF_EVT_NAVIGATE_INFO;
+			evt.type = GF_EVENT_NAVIGATE_INFO;
 			evt.navigate.to_url = an->description.buffer;
 			if (!evt.navigate.to_url || !strlen(evt.navigate.to_url)) evt.navigate.to_url = an->url.vals[0].url;
 			st->compositor->user->EventProc(st->compositor->user->opaque, &evt);
@@ -351,9 +351,9 @@ static Bool OnAnchor(SensorHandler *sh, UserEvent2D *ev, GF_Matrix2D *sensor_mat
 		return 0;
 	}
 
-	if (ev->event_type != GF_EVT_LEFTUP) return 0;
+	if ((ev->event_type != GF_EVENT_MOUSEUP) || (ev->button!=GF_MOUSE_LEFT)) return 0;
 
-	evt.type = GF_EVT_NAVIGATE;
+	evt.type = GF_EVENT_NAVIGATE;
 	evt.navigate.param_count = an->parameter.count;
 	evt.navigate.parameters = (const char **) an->parameter.vals;
 	i=0;
@@ -393,7 +393,8 @@ static void on_activate_anchor(GF_Node *node)
 	AnchorStack *st = (AnchorStack *) gf_node_get_private(node);
 	if (!((M_Anchor *)node)->activate) return;
 
-	ev.event_type = GF_EVT_LEFTUP;
+	ev.event_type = GF_EVENT_MOUSEUP;
+	ev.button = GF_MOUSE_LEFT;
 	OnAnchor(&st->hdl, &ev, NULL);
 	return;
 }

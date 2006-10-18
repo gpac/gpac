@@ -26,6 +26,7 @@
 #include <gpac/constants.h>
 #include <gpac/utf.h>
 #include <gpac/xml.h>
+#include <gpac/events.h>
 #include <gpac/internal/bifs_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_svg.h>
@@ -408,7 +409,7 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 			/* Special case: style if present will always be first in the list */
 			gf_svg_parse_style(elt, att->value);
 		} else if (!stricmp(att->name, "id") || !stricmp(att->name, "xml:id")) {
-			gf_svg_parse_element_id(elt, att->value, parser->command_depth);
+			gf_svg_parse_element_id(elt, att->value, parser->command_depth ? 1 : 0);
 			ided = 1;
 		} else if (anim && !stricmp(att->name, "attributeName")) {
 			anim->attributeName = att->value;
@@ -462,12 +463,12 @@ static SVGElement *svg_parse_element(GF_SVGParser *parser, const char *name, con
 			listener->target.target = parent;
 			gf_dom_listener_add((GF_Node *) parent, (GF_Node *) listener);
 		} else {
-			u32 evtType = SVG_DOM_EVT_UNKNOWN;
+			u32 evtType = GF_EVENT_UNKNOWN;
 			if (!strncmp(att->name, "on", 2)) evtType = gf_dom_event_type_by_name(att->name + 2);
 
 			/*SVG 1.1 events: create a listener and a handler on the fly, register them with current node
 			and add listener struct*/
-			if (evtType != SVG_DOM_EVT_UNKNOWN) {
+			if (evtType != GF_EVENT_UNKNOWN) {
 				XMLEV_Event evt;
 				SVGhandlerElement *handler;
 				evt.type = evtType;
@@ -726,7 +727,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 	}
 
 	/*saf setup*/
-	if (!parent && (parser->load->type==GF_SM_LOAD_XSR) || cond) {
+	if ((!parent && (parser->load->type==GF_SM_LOAD_XSR)) || cond) {
 		u32 com_type;
 		/*nothing to do, the context is already created*/
 		if (!strcmp(name, "SAFSession")) return;
@@ -925,7 +926,7 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 		if (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) {
 			GF_DOM_Event evt;
 			memset(&evt, 0, sizeof(GF_DOM_Event));
-			evt.type = SVG_DOM_EVT_LOAD;
+			evt.type = GF_EVENT_LOAD;
 			gf_dom_event_fire(node, NULL, &evt);
 
 			/*init animateMotion once all children have been parsed tomake sure we get the mpath child if any*/

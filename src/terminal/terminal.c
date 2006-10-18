@@ -123,7 +123,7 @@ static Bool OnJSAction(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam *param)
 		if (gf_sg_get_private(gf_node_get_graph(n)) == term->root_scene) {
 			GF_Event evt;
 			if (!term->user->EventProc) return 0;
-			evt.type = GF_EVT_NAVIGATE;
+			evt.type = GF_EVENT_NAVIGATE;
 			evt.navigate.to_url = param->uri.url;
 			evt.navigate.parameters = param->uri.params;
 			evt.navigate.param_count = param->uri.nb_params;

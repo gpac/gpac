@@ -28,15 +28,6 @@
 #include <gpac/nodes_svg.h>
 #include <gpac/internal/renderer_dev.h>
 
-Bool gf_svg_check_url_change(MFURL *url, SVG_IRI *iri)
-{
-	if (url->count && !iri->iri) return 1;
-	if (!url->count && iri->iri) return 1;
-	if (!url->count) return 0;
-	if (!strcmp(url->vals[0].url, iri->iri)) return 0;
-	return 1;
-}
-
 Bool is_svg_animation_tag(u32 tag)
 {
 	return (tag == TAG_SVG_set ||

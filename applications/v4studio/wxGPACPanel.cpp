@@ -53,90 +53,94 @@ Bool V4S_EventProc(void *par, GF_Event *evt)
 	if (!panel->GetMPEG4Terminal()) return 0;
 
 	switch (evt->type) {
-	case GF_EVT_REFRESH:
+	case GF_EVENT_REFRESH:
 		gf_term_set_option(panel->GetMPEG4Terminal(), GF_OPT_REFRESH, 0);
 		break;
-	case GF_EVT_SCENE_SIZE:
-	case GF_EVT_SIZE:
+	case GF_EVENT_SCENE_SIZE:
+	case GF_EVENT_SIZE:
 //		gf_sr_set_size(panel->GetSceneRenderer(), evt->size.width, evt->size.height);
 		panel->Update();
 		break;
-	case GF_EVT_LEFTDOWN:
-		panel->picked = gf_sr_pick_node(panel->GetSceneRenderer(), evt->mouse.x, evt->mouse.y);
-		panel->m_iDragging ++;
-		if (panel->picked) {
-			panel->GetV4SceneManager()->GetV4StudioFrame()->GetTreeView()->SetSelectedItem(panel->picked);	
-			panel->dragX = evt->mouse.x;
-			panel->dragY = evt->mouse.y;
-			panel->m_transformMode = 0;
+	case GF_EVENT_MOUSEDOWN:
+		if (evt->mouse.button==GF_MOUSE_LEFT) {
+			panel->picked = gf_sr_pick_node(panel->GetSceneRenderer(), evt->mouse.x, evt->mouse.y);
+			panel->m_iDragging ++;
+			if (panel->picked) {
+				panel->GetV4SceneManager()->GetV4StudioFrame()->GetTreeView()->SetSelectedItem(panel->picked);	
+				panel->dragX = evt->mouse.x;
+				panel->dragY = evt->mouse.y;
+				panel->m_transformMode = 0;
+			}
+		}
+		else if (evt->mouse.button==GF_MOUSE_MIDDLE) {
+			panel->m_iDragging ++;
+			panel->picked = gf_sr_pick_node(panel->GetSceneRenderer(), evt->mouse.x, evt->mouse.y);
+			if (panel->picked) {
+				panel->GetV4SceneManager()->GetV4StudioFrame()->GetTreeView()->SetSelectedItem(panel->picked);	
+				panel->dragX = evt->mouse.x;
+				panel->dragY = evt->mouse.y;
+				panel->m_transformMode = 2;
+			}
+		}
+		else if (evt->mouse.button==GF_MOUSE_RIGHT) {
+			panel->m_iDragging ++;
+			panel->picked = gf_sr_pick_node(panel->GetSceneRenderer(), evt->mouse.x, evt->mouse.y);
+			if (panel->picked) {
+				panel->GetV4SceneManager()->GetV4StudioFrame()->GetTreeView()->SetSelectedItem(panel->picked);	
+				panel->dragX = evt->mouse.x;
+				panel->dragY = evt->mouse.y;
+				panel->m_transformMode = 1;
+			}
 		}
 		break;
-	case GF_EVT_LEFTUP:
-		panel->m_iDragging --;
-		if (panel->picked) {
-			int dX = evt->mouse.x - panel->dragX;
-			int dY = evt->mouse.y - panel->dragY;
-			panel->dragX = evt->mouse.x;
-			panel->dragY = evt->mouse.y;
-			wxString pos;
-			pos << dX;
-			pos << ',';
-			pos << dY;
-			panel->GetV4SceneManager()->GetV4StudioFrame()->GetTreeView()->Translate(dX,dY);
-			panel->GetV4SceneManager()->GetV4StudioFrame()->GetStatusBar()->SetStatusText(pos);
+	case GF_EVENT_MOUSEUP:
+		if (evt->mouse.button==GF_MOUSE_LEFT) {
+			panel->m_iDragging --;
+			if (panel->picked) {
+				int dX = evt->mouse.x - panel->dragX;
+				int dY = evt->mouse.y - panel->dragY;
+				panel->dragX = evt->mouse.x;
+				panel->dragY = evt->mouse.y;
+				wxString pos;
+				pos << dX;
+				pos << ',';
+				pos << dY;
+				panel->GetV4SceneManager()->GetV4StudioFrame()->GetTreeView()->Translate(dX,dY);
+				panel->GetV4SceneManager()->GetV4StudioFrame()->GetStatusBar()->SetStatusText(pos);
+			}
+		}
+		else if (evt->mouse.button==GF_MOUSE_MIDDLE) {
+			panel->m_iDragging --;
+			if (panel->picked) {
+				int dX = evt->mouse.x - panel->dragX;
+				int dY = evt->mouse.y - panel->dragY;
+				panel->dragX = evt->mouse.x;
+				panel->dragY = evt->mouse.y;
+				wxString pos;
+				pos << dX;
+				pos << ',';
+				pos << dY;
+				panel->GetV4SceneManager()->GetV4StudioFrame()->GetTreeView()->Rotate(dX,dY);
+				panel->GetV4SceneManager()->GetV4StudioFrame()->GetStatusBar()->SetStatusText(pos);
+			}
+		}
+		else if (evt->mouse.button==GF_MOUSE_RIGHT) {
+			panel->m_iDragging --;
+			if (panel->picked) {
+				int dX = evt->mouse.x - panel->dragX;
+				int dY = evt->mouse.y - panel->dragY;
+				panel->dragX = evt->mouse.x;
+				panel->dragY = evt->mouse.y;
+				wxString pos;
+				pos << dX;
+				pos << ',';
+				pos << dY;
+				panel->GetV4SceneManager()->GetV4StudioFrame()->GetTreeView()->Scale(dX,dY);
+				panel->GetV4SceneManager()->GetV4StudioFrame()->GetStatusBar()->SetStatusText(pos);
+			}
 		}
 		break;
-	case GF_EVT_RIGHTDOWN:
-		panel->m_iDragging ++;
-		panel->picked = gf_sr_pick_node(panel->GetSceneRenderer(), evt->mouse.x, evt->mouse.y);
-		if (panel->picked) {
-			panel->GetV4SceneManager()->GetV4StudioFrame()->GetTreeView()->SetSelectedItem(panel->picked);	
-			panel->dragX = evt->mouse.x;
-			panel->dragY = evt->mouse.y;
-			panel->m_transformMode = 1;
-		}
-		break;
-	case GF_EVT_RIGHTUP:
-		panel->m_iDragging --;
-		if (panel->picked) {
-			int dX = evt->mouse.x - panel->dragX;
-			int dY = evt->mouse.y - panel->dragY;
-			panel->dragX = evt->mouse.x;
-			panel->dragY = evt->mouse.y;
-			wxString pos;
-			pos << dX;
-			pos << ',';
-			pos << dY;
-			panel->GetV4SceneManager()->GetV4StudioFrame()->GetTreeView()->Scale(dX,dY);
-			panel->GetV4SceneManager()->GetV4StudioFrame()->GetStatusBar()->SetStatusText(pos);
-		}
-		break;
-	case GF_EVT_MIDDLEDOWN:
-		panel->m_iDragging ++;
-		panel->picked = gf_sr_pick_node(panel->GetSceneRenderer(), evt->mouse.x, evt->mouse.y);
-		if (panel->picked) {
-			panel->GetV4SceneManager()->GetV4StudioFrame()->GetTreeView()->SetSelectedItem(panel->picked);	
-			panel->dragX = evt->mouse.x;
-			panel->dragY = evt->mouse.y;
-			panel->m_transformMode = 2;
-		}
-		break;
-	case GF_EVT_MIDDLEUP:
-		panel->m_iDragging --;
-		if (panel->picked) {
-			int dX = evt->mouse.x - panel->dragX;
-			int dY = evt->mouse.y - panel->dragY;
-			panel->dragX = evt->mouse.x;
-			panel->dragY = evt->mouse.y;
-			wxString pos;
-			pos << dX;
-			pos << ',';
-			pos << dY;
-			panel->GetV4SceneManager()->GetV4StudioFrame()->GetTreeView()->Rotate(dX,dY);
-			panel->GetV4SceneManager()->GetV4StudioFrame()->GetStatusBar()->SetStatusText(pos);
-		}
-		break;
-	case GF_EVT_MOUSEMOVE:
+	case GF_EVENT_MOUSEMOVE:
 	{
 		wxString pos;
 		if (panel->picked && panel->m_iDragging) {
@@ -166,7 +170,7 @@ Bool V4S_EventProc(void *par, GF_Event *evt)
 		panel->GetV4SceneManager()->GetV4StudioFrame()->GetStatusBar()->SetStatusText(pos);
 	}
 		break;
-	case GF_EVT_QUIT:
+	case GF_EVENT_QUIT:
 		panel->GetV4SceneManager()->GetV4StudioFrame()->Close(TRUE);
 		break;
 	}

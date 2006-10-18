@@ -94,10 +94,10 @@ static void R2D_SetUserTransform(Render2D *sr, Fixed zoom, Fixed tx, Fixed ty, B
 		evt.new_scale = sr->scale_x*sr->zoom;
 
 		if (is_resize) {
-			evt.type = SVG_DOM_EVT_RESIZE;
+			evt.type = GF_EVENT_RESIZE;
 		} else if (evt.prev_scale == evt.new_scale) {
 			/*cannot get params for scroll events*/
-			evt.type = SVG_DOM_EVT_SCROLL;
+			evt.type = GF_EVENT_SCROLL;
 		} else {
 			evt.screen_rect.x = INT2FIX(sr->offset_x);
 			evt.screen_rect.y = INT2FIX(sr->offset_y);
@@ -107,7 +107,7 @@ static void R2D_SetUserTransform(Render2D *sr, Fixed zoom, Fixed tx, Fixed ty, B
 			evt.prev_translate.y = old_ty;
 			evt.new_translate.x = sr->trans_x;
 			evt.new_translate.y = sr->trans_y;
-			evt.type = SVG_DOM_EVT_ZOOM;
+			evt.type = GF_EVENT_ZOOM;
 		}
 		gf_dom_event_fire(gf_sg_get_root_node(sr->compositor->scene), NULL, &evt);
 	}
@@ -310,59 +310,9 @@ void R2D_UnregisterSensor(GF_Renderer *compositor, SensorHandler *sh)
 }
 
 
-#define R2DSETCURSOR(t) { GF_Event evt; evt.type = GF_EVT_SET_CURSOR; evt.cursor.cursor_type = (t); sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt); }
+#define R2DSETCURSOR(t) { GF_Event evt; evt.type = GF_EVENT_SET_CURSOR; evt.cursor.cursor_type = (t); sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt); }
 
 #ifndef GPAC_DISABLE_SVG
-
-static u32 gf_dom_translate_vkey(u32 gpac_key) 
-{
-	switch(gpac_key) {
-		case GF_VK_F1: return DOM_KEY_F1;
-		case GF_VK_F2: return DOM_KEY_F2;
-		case GF_VK_F3: return DOM_KEY_F3;
-		case GF_VK_F4: return DOM_KEY_F4;
-		case GF_VK_F5: return DOM_KEY_F5;
-		case GF_VK_F6: return DOM_KEY_F6;
-		case GF_VK_F7: return DOM_KEY_F7;
-		case GF_VK_F8: return DOM_KEY_F8;
-		case GF_VK_F9: return DOM_KEY_F9;
-		case GF_VK_F10: return DOM_KEY_F10;
-		case GF_VK_F11: return DOM_KEY_F11;
-		case GF_VK_F12: return DOM_KEY_F12;
-		case GF_VK_HOME: return DOM_KEY_HOME;
-		case GF_VK_END: return DOM_KEY_END;
-		case GF_VK_PRIOR: return DOM_KEY_PAGEUP;
-		case GF_VK_NEXT: return DOM_KEY_PAGEDOWN;
-		case GF_VK_UP: return DOM_KEY_UP;
-		case GF_VK_DOWN: return DOM_KEY_DOWN;
-		case GF_VK_LEFT: return DOM_KEY_LEFT;
-		case GF_VK_RIGHT: return DOM_KEY_RIGHT;
-		case GF_VK_RETURN: return DOM_KEY_ENTER;
-		case GF_VK_ESCAPE: return DOM_KEY_ESCAPE;
-		case GF_VK_SHIFT: return DOM_KEY_SHIFT;
-		case GF_VK_CONTROL: return DOM_KEY_CONTROL;
-		case GF_VK_MENU: return DOM_KEY_ALT;
-		}
-	return 0;
-}
-
-static u32 gf_dom_translate_key(u32 gpac_key)
-{
-	u32 dom_key;
-	char str[10]; 
-	char *strU;
-	str[0] = gpac_key;
-	str[1] = 0;
-	strU = strupr(str);
-	if ( strU[0] >= 'A' && strU[0] <= 'Z') {
-		dom_key = DOM_KEY_A + (strU[0] - 'A');
-	} else if (strU[0] >= '0' && str[0] <= '9') {
-		dom_key = DOM_KEY_0 + (strU[0] - '0');
-	} else {
-		dom_key = DOM_KEY_UNIDENTIFIED;
-	}			
-	return dom_key;
-}
 
 Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fixed Y)
 {
@@ -373,7 +323,7 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 
 	cursor_type = GF_CURSOR_NORMAL;
 	/*all mouse events*/
-	if (event->event_type<=GF_EVT_RIGHTUP) {
+	if (event->event_type<=GF_EVENT_MOUSEMOVE) {
 		DrawableContext *ctx = VS2D_PickContext(sr->surface, X, Y);
 		if (ctx) {
 			cursor_type = sr->last_sensor;
@@ -382,63 +332,57 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 			evt.clientY = evt.screenY = FIX2INT(Y);
 			evt.bubbles = 1;
 			evt.cancelable = 1;
-			evt.ctrl_key = (sr->compositor->key_states & GF_KM_CTRL) ? 1 : 0;
-			evt.shift_key = (sr->compositor->key_states & GF_KM_SHIFT) ? 1 : 0;
-			evt.alt_key = (sr->compositor->key_states & GF_KM_ALT) ? 1 : 0;
+			evt.key_flags = sr->compositor->key_states;
 
 			switch (event->event_type) {
-			case GF_EVT_MOUSEMOVE:
+			case GF_EVENT_MOUSEMOVE:
 				evt.cancelable = 0;
 				if (sr->grab_node != ctx->node) {
 					/*mouse out*/
 					if (sr->grab_node) {
 						evt.relatedTarget = ctx->node->owner;
-						evt.type = SVG_DOM_EVT_MOUSEOUT;
+						evt.type = GF_EVENT_MOUSEOUT;
 						ret += gf_dom_event_fire(sr->grab_node->owner, NULL, &evt);
 						/*prepare mouseOver*/
 						evt.relatedTarget = sr->grab_node->owner;
 					}
 					/*mouse over*/
-					evt.type = SVG_DOM_EVT_MOUSEOVER;
+					evt.type = GF_EVENT_MOUSEOVER;
 					ret += gf_dom_event_fire(ctx->node->owner, ctx->parent_use, &evt);
 
 					/*send focus out event*/
 					if (sr->grab_node || sr->focus_node) {
 						evt.relatedTarget = sr->grab_node ? sr->grab_node->owner: sr->focus_node;
-						evt.type = SVG_DOM_EVT_FOCUSOUT;
+						evt.type = GF_EVENT_FOCUSOUT;
 						ret += gf_dom_event_fire(evt.relatedTarget, NULL, &evt);
 					}
 					evt.relatedTarget = ctx->node->owner;
-					evt.type = SVG_DOM_EVT_FOCUSIN;
+					evt.type = GF_EVENT_FOCUSIN;
 					ret += gf_dom_event_fire(evt.relatedTarget, NULL, &evt);
 
 					sr->grab_ctx = ctx;
 					sr->grab_node = ctx->node;
 					sr->focus_node = ctx->node->owner;
 				} else {
-					evt.type = SVG_DOM_EVT_MOUSEMOVE;
+					evt.type = GF_EVENT_MOUSEMOVE;
 					ret += gf_dom_event_fire(ctx->node->owner, ctx->parent_use, &evt);
 				}
 				break;
-			case GF_EVT_LEFTDOWN:
-			case GF_EVT_MIDDLEDOWN:
-			case GF_EVT_RIGHTDOWN:
+			case GF_EVENT_MOUSEDOWN:
 				if ((sr->last_click_x!=evt.screenX) || (sr->last_click_y!=evt.screenY)) sr->num_clicks = 0;
-				evt.type = SVG_DOM_EVT_MOUSEDOWN;
-				evt.detail = (event->event_type - GF_EVT_LEFTDOWN)/2;
+				evt.type = GF_EVENT_MOUSEDOWN;
+				evt.detail = event->mouse.button;
 				ret += gf_dom_event_fire(ctx->node->owner, ctx->parent_use, &evt);
 				sr->last_click_x = evt.screenX;
 				sr->last_click_y = evt.screenY;
 				break;
-			case GF_EVT_LEFTUP:
-			case GF_EVT_MIDDLEUP:
-			case GF_EVT_RIGHTUP:
-				evt.type = SVG_DOM_EVT_MOUSEUP;
-				evt.detail = (event->event_type - GF_EVT_LEFTUP)/2;
+			case GF_EVENT_MOUSEUP:
+				evt.type = GF_EVENT_MOUSEUP;
+				evt.detail = event->mouse.button;
 				ret += gf_dom_event_fire(ctx->node->owner, ctx->parent_use, &evt);
 				if ((sr->last_click_x==evt.screenX) || (sr->last_click_y==evt.screenY)) {
 					sr->num_clicks ++;
-					evt.type = SVG_DOM_EVT_CLICK;
+					evt.type = GF_EVENT_CLICK;
 					evt.detail = sr->num_clicks;
 					ret += gf_dom_event_fire(ctx->node->owner, ctx->parent_use, &evt);
 				}
@@ -453,10 +397,8 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 				evt.clientY = evt.screenY = FIX2INT(Y);
 				evt.bubbles = 1;
 				evt.cancelable = 1;
-				evt.ctrl_key = (sr->compositor->key_states & GF_KM_CTRL) ? 1 : 0;
-				evt.shift_key = (sr->compositor->key_states & GF_KM_SHIFT) ? 1 : 0;
-				evt.alt_key = (sr->compositor->key_states & GF_KM_ALT) ? 1 : 0;
-				evt.type = SVG_DOM_EVT_MOUSEOUT;
+				evt.key_flags = sr->compositor->key_states;
+				evt.type = GF_EVENT_MOUSEOUT;
 				ret += gf_dom_event_fire(sr->grab_node->owner, NULL, &evt);
 				if (sr->grab_node->owner == sr->focus_node) sr->focus_node = NULL;
 			}
@@ -468,36 +410,27 @@ Bool R2D_ExecuteDOMEvent(GF_VisualRenderer *vr, GF_UserEvent *event, Fixed X, Fi
 			sr->last_sensor = cursor_type;
 		}
 	}
-	else if (event->event_type==GF_EVT_CHAR) {
+	else if (event->event_type==GF_EVENT_TEXTINPUT) {
 	} 
-	else if ((event->event_type>GF_EVT_CHAR) && (event->event_type<=GF_EVT_KEYUP)) {
+	else if ((event->event_type>=GF_EVENT_KEYUP) && (event->event_type<=GF_EVENT_LONGKEYPRESS)) {
 		memset(&evt, 0, sizeof(GF_DOM_Event));
-		evt.ctrl_key = (sr->compositor->key_states & GF_KM_CTRL) ? 1 : 0;
-		evt.shift_key = (sr->compositor->key_states & GF_KM_SHIFT) ? 1 : 0;
-		evt.alt_key = (sr->compositor->key_states & GF_KM_ALT) ? 1 : 0;
+		evt.key_flags = event->key.flags;
 		evt.bubbles = 1;
 		evt.cancelable = 1;
-		if (event->event_type==GF_EVT_VKEYDOWN || event->event_type==GF_EVT_VKEYDOWN) {
-			evt.detail = gf_dom_translate_vkey(event->key.vk_code);
-		} else {
-			evt.detail = gf_dom_translate_key(event->key.virtual_code);
-		}
-		if (event->event_type==GF_EVT_VKEYDOWN || event->event_type==GF_EVT_KEYDOWN)
-			evt.type = SVG_DOM_EVT_KEYDOWN;
-		else 
-			evt.type = SVG_DOM_EVT_KEYUP;
+		evt.type = event->event_type;
+		evt.detail = event->key.key_code;
+		evt.key_hw_code = event->key.hw_code;
 		ret += gf_dom_event_fire(sr->focus_node, NULL, &evt);
 
-		if ((event->event_type==GF_EVT_VKEYDOWN) && (event->key.vk_code==GF_VK_RETURN)) {
-			evt.type = SVG_DOM_EVT_ACTIVATE;
+		if ((event->event_type==GF_EVENT_KEYDOWN) && (event->key.key_code==GF_KEY_ENTER)) {
+			evt.type = GF_EVENT_ACTIVATE;
 			evt.detail = 0;
 			ret += gf_dom_event_fire(sr->focus_node, NULL, &evt);
 		} 
 
-
-/*		else if (event->event_type==GF_EVT_CHAR) {
+/*		else if (event->event_type==GF_EVENT_CHAR) {
 		} else {
-			evt.type = ((event->event_type==GF_EVT_VKEYDOWN) || (event->event_type==GF_EVT_KEYDOWN)) ? SVG_DOM_EVT_KEYDOWN : SVG_DOM_EVT_KEYUP;
+			evt.type = ((event->event_type==GF_EVENT_VKEYDOWN) || (event->event_type==GF_EVENT_KEYDOWN)) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
 			evt.detail = event->key.virtual_code;
 		}
 */
@@ -523,7 +456,7 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	evt.x = 0;
 	evt.y = 0;
 	ev = &evt;
-	if (event->event_type<=GF_EVT_MOUSEWHEEL) 
+	if (event->event_type<=GF_EVENT_MOUSEWHEEL) 
 		R2D_MapCoordsToAR(sr, event->mouse.x, event->mouse.y, &evt.x, &evt.y);
 
 #ifndef GPAC_DISABLE_SVG
@@ -537,7 +470,7 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	}
 #endif
 	
-	if (event->event_type>GF_EVT_LEFTUP) goto browser_event;
+	if ((event->event_type>GF_EVENT_MOUSEUP) || (ev->button!=GF_MOUSE_LEFT)) goto browser_event;
 	
 	if (sr->is_tracking) {
 		/*in case a node is inserted at the depth level of a node previously tracked (rrrhhhaaaa...) */
@@ -583,7 +516,7 @@ Bool R2D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 		if (type != GF_CURSOR_NORMAL) {
 			if (sr->last_sensor != type) {
 				GF_Event evt;
-				evt.type = GF_EVT_SET_CURSOR;
+				evt.type = GF_EVENT_SET_CURSOR;
 				evt.cursor.cursor_type = type;
 				sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
 				sr->last_sensor = type;
@@ -639,18 +572,20 @@ browser_event:
 
 	key_inv = 1;
 	key_trans = 2*FIX_ONE;
-	if (sr->compositor->key_states&GF_KM_SHIFT) key_trans *= 4;
+	if (sr->compositor->key_states & GF_KEY_MOD_SHIFT) key_trans *= 4;
 
 	switch (event->event_type) {
-	case GF_EVT_LEFTDOWN:
-		sr->grab_x = ev->x;
-		sr->grab_y = ev->y;
-		sr->grabbed = 1;
+	case GF_EVENT_MOUSEDOWN:
+		if (event->mouse.button==GF_MOUSE_LEFT) {
+			sr->grab_x = ev->x;
+			sr->grab_y = ev->y;
+			sr->grabbed = 1;
+		}
 		break;
-	case GF_EVT_LEFTUP:
-		sr->grabbed = 0;
+	case GF_EVENT_MOUSEUP:
+		if (event->mouse.button==GF_MOUSE_LEFT) sr->grabbed = 0;
 		break;
-	case GF_EVT_MOUSEMOVE:
+	case GF_EVENT_MOUSEMOVE:
 		if (sr->grabbed && (sr->navigate_mode == GF_NAVIGATE_SLIDE)) {
 			Fixed dx, dy;
 			dx = ev->x - sr->grab_x;
@@ -660,7 +595,7 @@ browser_event:
 				dy /= sr->cur_height;
 			}
 			/*set zoom*/
-			if (sr->compositor->key_states & GF_KM_CTRL) {
+			if (sr->compositor->key_states & GF_KEY_MOD_CTRL) {
 				Fixed new_zoom = sr->zoom;
 				if (new_zoom > FIX_ONE) new_zoom += dy/10;
 				else new_zoom += dy/40;
@@ -674,19 +609,19 @@ browser_event:
 			sr->grab_y = ev->y;
 		}
 		break;
-	case GF_EVT_VKEYDOWN:
-		switch (event->key.vk_code) {
-		case GF_VK_HOME:
+	case GF_EVENT_KEYDOWN:
+		switch (event->key.key_code) {
+		case GF_KEY_HOME:
 			if (!sr->grabbed) R2D_SetUserTransform(sr, FIX_ONE, 0, 0, 0);
 			break;
-		case GF_VK_LEFT: key_inv = -1;
-		case GF_VK_RIGHT:
+		case GF_KEY_LEFT: key_inv = -1;
+		case GF_KEY_RIGHT:
 			sr->trans_x += key_inv*key_trans;
 			R2D_SetUserTransform(sr, sr->zoom, sr->trans_x + key_inv*key_trans, sr->trans_y, 0);
 			break;
-		case GF_VK_DOWN: key_inv = -1;
-		case GF_VK_UP:
-			if (sr->compositor->key_states & GF_KM_CTRL) {
+		case GF_KEY_DOWN: key_inv = -1;
+		case GF_KEY_UP:
+			if (sr->compositor->key_states & GF_KEY_MOD_CTRL) {
 				Fixed new_zoom = sr->zoom;
 				if (new_zoom > FIX_ONE) new_zoom += key_inv*FIX_ONE/10;
 				else new_zoom += key_inv*FIX_ONE/20;
@@ -790,7 +725,7 @@ static GF_Err R2D_RecomputeAR(GF_VisualRenderer *vr)
 		sr->cur_height = sr->compositor->height;
 		R2D_SetScaling(sr, FIX_ONE, FIX_ONE);
 		/*and resize hardware surface*/
-		evt.type = GF_EVT_VIDEO_SETUP;
+		evt.type = GF_EVENT_VIDEO_SETUP;
 		evt.size.width = sr->cur_width;
 		evt.size.height = sr->cur_height;
 		return sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
@@ -856,7 +791,7 @@ static GF_Err R2D_RecomputeAR(GF_VisualRenderer *vr)
 	R2D_SetScaling(sr, scaleX, scaleY);
 	gf_sr_invalidate(sr->compositor, NULL);
 	/*and resize hardware surface*/
-	evt.type = GF_EVT_VIDEO_SETUP;
+	evt.type = GF_EVENT_VIDEO_SETUP;
 	evt.size.width = out_width;
 	evt.size.height = out_height;
 	return sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);
@@ -1009,8 +944,10 @@ void R2D_DrawBitmap(VisualSurface2D *surf, struct _gf_sr_texture_handler *txh, G
 			final.y = INT2FIX( cur_height / 2) - final.y;
 		}
 	} else {
-		final.y -= final.height;
-		clipped_final.y -= clipped_final.height;
+		final.x -= surf->render->offset_x;
+		clipped_final.x -= surf->render->offset_x;
+		final.y -= surf->render->offset_y + final.height;
+		clipped_final.y -= surf->render->offset_y + clipped_final.height;
 	}
 
 	/*make sure we lie in the final rect (this is needed for directRender mode)*/

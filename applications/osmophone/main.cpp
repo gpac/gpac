@@ -159,17 +159,17 @@ void set_full_screen()
 Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
 	switch (evt->type) {
-	case GF_EVT_DURATION:
+	case GF_EVENT_DURATION:
 		Duration = (u32) (evt->duration.duration*1000);
 		CanSeek = evt->duration.can_seek;
 		break;
-	case GF_EVT_MESSAGE:
+	case GF_EVENT_MESSAGE:
 	{
 		if (!evt->message.message) return 0;
 		set_status((char *) evt->message.message);
 	}
 		break;
-	case GF_EVT_PROGRESS:
+	case GF_EVENT_PROGRESS:
 	{
 		char *szTitle = "";
 		if (evt->progress.progress_type==0) szTitle = "Buffer ";
@@ -179,12 +179,12 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	}
 		break;
 	
-	case GF_EVT_SIZE:
+	case GF_EVENT_SIZE:
 		break;
-	case GF_EVT_SCENE_SIZE:
+	case GF_EVENT_SCENE_SIZE:
 		do_layout(1);
 		break;
-	case GF_EVT_CONNECT:
+	case GF_EVENT_CONNECT:
 		if (evt->connect.is_connected) {
 			is_connected = 1;
 			if (!backlight_off) set_backlight_state(1);
@@ -196,26 +196,22 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			Duration = 0;
 		}
 		break;
-	case GF_EVT_QUIT:
+	case GF_EVENT_QUIT:
 		break;
-	case GF_EVT_VKEYDOWN:
-		switch (evt->key.vk_code) {
-		case GF_VK_RETURN:
+	case GF_EVENT_KEYDOWN:
+		switch (evt->key.key_code) {
+		case GF_KEY_ENTER:
 			if (full_screen) set_full_screen();
 			break;
-		}
-		break;
-	case GF_EVT_KEYDOWN:
-		switch (evt->key.virtual_code) {
-		case '1':
+		case GF_KEY_1:
 			ctrl_mod_down = !ctrl_mod_down;
-			evt->key.vk_code = GF_VK_CONTROL;
-			evt->type = ctrl_mod_down ? GF_EVT_VKEYDOWN : GF_EVT_VKEYUP;
+			evt->key.key_code = GF_KEY_CONTROL;
+			evt->type = ctrl_mod_down ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
 			gf_term_user_event(term, evt);
 			break;
 		}
 		break;
-	case GF_EVT_LDOUBLECLICK:
+	case GF_EVENT_MOUSEDOUBLECLICK:
 		set_full_screen();
 		return 0;
 	}

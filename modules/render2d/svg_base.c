@@ -798,8 +798,8 @@ static void SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 #endif
 
 #ifndef DANAE
-	if (event->type==SVG_DOM_EVT_MOUSEOVER) {
-		evt.type = GF_EVT_NAVIGATE_INFO;
+	if (event->type==GF_EVENT_MOUSEOVER) {
+		evt.type = GF_EVENT_NAVIGATE_INFO;
 		evt.navigate.to_url = a->xlink->href.iri;
 		if (a->xlink->title) evt.navigate.to_url = a->xlink->title;
 		compositor->user->EventProc(compositor->user->opaque, &evt);
@@ -807,7 +807,7 @@ static void SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 	}
 #endif
 
-	evt.type = GF_EVT_NAVIGATE;
+	evt.type = GF_EVENT_NAVIGATE;
 	
 	if (a->xlink->href.type == SVG_IRI_IRI) {
 		evt.navigate.to_url = a->xlink->href.iri;
@@ -816,7 +816,7 @@ static void SVG_a_HandleEvent(SVGhandlerElement *handler, GF_DOM_Event *event)
 			loadDanaeUrl(compositor->danae_session, a->xlink->href.iri);
 #else
 			evt.navigate.param_count = 1;
-			evt.navigate.parameters = &a->target;
+			evt.navigate.parameters = (const char **) &a->target;
 			compositor->user->EventProc(compositor->user->opaque, &evt);
 #endif
 		}
@@ -875,14 +875,14 @@ void SVG_Init_a(Render2D *sr, GF_Node *node)
 
 	/*listener for onClick event*/
 	evt.parameter = 0;
-	evt.type = SVG_DOM_EVT_CLICK;
+	evt.type = GF_EVENT_CLICK;
 	handler = gf_dom_listener_build(node, evt);
 	/*and overwrite handler*/
 	handler->handle_event = SVG_a_HandleEvent;
 	gf_node_set_private((GF_Node *)handler, sr->compositor);
 
 	/*listener for activate event*/
-	evt.type = SVG_DOM_EVT_ACTIVATE;
+	evt.type = GF_EVENT_ACTIVATE;
 	handler = gf_dom_listener_build(node, evt);
 	/*and overwrite handler*/
 	handler->handle_event = SVG_a_HandleEvent;
@@ -890,7 +890,7 @@ void SVG_Init_a(Render2D *sr, GF_Node *node)
 
 #ifndef DANAE
 	/*listener for mouseover event*/
-	evt.type = SVG_DOM_EVT_MOUSEOVER;
+	evt.type = GF_EVENT_MOUSEOVER;
 	handler = gf_dom_listener_build(node, evt);
 	/*and overwrite handler*/
 	handler->handle_event = SVG_a_HandleEvent;

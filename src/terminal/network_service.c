@@ -96,7 +96,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 				gf_term_lock_net(term, 0);
 				if (!root->parentscene) {
 					GF_Event evt;
-					evt.type = GF_EVT_CONNECT;
+					evt.type = GF_EVENT_CONNECT;
 					evt.connect.is_connected = 0;
 					GF_USER_SENDEVENT(term->user, &evt);
 				} else {
@@ -718,7 +718,7 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 		/*notify some connection / ...*/
 		if (total_size) {
 			GF_Event evt;
-			evt.type = GF_EVT_PROGRESS;
+			evt.type = GF_EVENT_PROGRESS;
 			evt.progress.progress_type = 1;
 			evt.progress.service = szURI;
 			evt.progress.total = total_size;

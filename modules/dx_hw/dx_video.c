@@ -25,6 +25,8 @@
 
 #include "dx_hw.h"
 
+#include <gpac/user.h>
+
 #define DDCONTEXT	DDContext *dd = (DDContext *)dr->opaque;
 
 
@@ -155,7 +157,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
 	if (!dd->gl_HRC) return GF_IO_ERR;
 	if (!wglMakeCurrent(dd->gl_HDC, dd->gl_HRC)) return GF_IO_ERR;
 #endif
-	evt.type = GF_EVT_VIDEO_SETUP;
+	evt.type = GF_EVENT_VIDEO_SETUP;
 	dr->on_event(dr->evt_cbk_hdl, &evt);	
 	return GF_OK;
 }

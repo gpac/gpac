@@ -957,6 +957,10 @@ SOURCE=..\..\include\gpac\download.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\gpac\events.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\gpac\modules\font.h
 # End Source File
 # Begin Source File

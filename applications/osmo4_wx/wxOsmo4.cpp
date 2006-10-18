@@ -178,14 +178,14 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	wxOsmo4Frame *app = (wxOsmo4Frame *)ptr;
 
 	switch (evt->type) {
-	case GF_EVT_DURATION:
+	case GF_EVENT_DURATION:
 		app->m_duration = (u32) (evt->duration.duration*1000);
 		app->m_can_seek = evt->duration.can_seek;
 		if (app->m_duration<1100) app->m_can_seek = 0;
 		app->m_pProg->Enable(app->m_can_seek ? 1 : 0);
 		app->m_pPlayList->SetDuration((u32) evt->duration.duration);
 		break;
-	case GF_EVT_MESSAGE:
+	case GF_EVENT_MESSAGE:
 	{
 		const char *servName;
 		if (!evt->message.service || !strcmp(evt->message.service, app->m_pPlayList->GetURL().mb_str(wxConvUTF8))) {
@@ -214,7 +214,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			::wxLogMessage(wxString(evt->message.message, wxConvUTF8) + wxT(" (") + wxString(servName, wxConvUTF8) + wxT(")"));
 	}
 		break;
-	case GF_EVT_PROGRESS:
+	case GF_EVENT_PROGRESS:
 	{
 		char *sTitle;
 		if (evt->progress.progress_type==0) sTitle = "Buffer";
@@ -224,63 +224,70 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	}
 		break;
 	
-	case GF_EVT_VKEYDOWN:
-		if (app->m_can_seek && (evt->key.key_states & GF_KM_ALT)) {
+	case GF_EVENT_KEYDOWN:
+		if (app->m_can_seek && (evt->key.flags & GF_KEY_MOD_ALT)) {
 			s32 res;
-			switch (evt->key.vk_code) {
-			case GF_VK_LEFT:
+			switch (evt->key.key_code) {
+			case GF_KEY_LEFT:
 				res = gf_term_get_time_in_ms(app->m_term) - 5*app->m_duration/100;
 				if (res<0) res=0;
 				gf_term_play_from_time(app->m_term, res, 0);
 				break;
-			case GF_VK_RIGHT:
+			case GF_KEY_RIGHT:
 				res = gf_term_get_time_in_ms(app->m_term) + 5*app->m_duration/100;
 				if ((u32) res>=app->m_duration) res = 0;
 				gf_term_play_from_time(app->m_term, res, 0);
 				break;
-			case GF_VK_DOWN:
+			case GF_KEY_DOWN:
 				res = gf_term_get_time_in_ms(app->m_term) - 60000;
 				if (res<0) res=0;
 				gf_term_play_from_time(app->m_term, res, 0);
 				break;
-			case GF_VK_UP:
+			case GF_KEY_UP:
 				res = gf_term_get_time_in_ms(app->m_term) + 60000;
 				if ((u32) res>=app->m_duration) res = 0;
 				gf_term_play_from_time(app->m_term, res, 0);
 				break;
 			}
-		} else if (evt->key.key_states & GF_KM_CTRL) {
-			switch (evt->key.vk_code) {
-			case GF_VK_LEFT:
+		} else if (evt->key.flags & GF_KEY_MOD_CTRL) {
+			switch (evt->key.key_code) {
+			case GF_KEY_LEFT:
 				app->m_pPlayList->PlayPrev();
 				break;
-			case GF_VK_RIGHT:
+			case GF_KEY_RIGHT:
 				app->m_pPlayList->PlayNext();
 				break;
 			}
 		} else {
-			switch (evt->key.vk_code) {
-			case GF_VK_HOME:
+			switch (evt->key.key_code) {
+			case GF_KEY_HOME:
 				gf_term_set_option(app->m_term, GF_OPT_NAVIGATION_TYPE, 1);
 				break;
-			case GF_VK_ESCAPE:
+			case GF_KEY_ESCAPE:
 				if (gf_term_get_option(app->m_term, GF_OPT_FULLSCREEN)) 
 					gf_term_set_option(app->m_term, GF_OPT_FULLSCREEN, 0);
+				break;
+			default:
+			{
+				wxGPACEvent wxevt(app);
+				wxevt.gpac_evt = *evt;
+				app->AddPendingEvent(wxevt);
+			}
 				break;
 			}
 		}
 		break;
 
-	case GF_EVT_CONNECT:
+	case GF_EVENT_CONNECT:
 	{
 		wxGPACEvent wxevt(app);
-		wxevt.gpac_evt.type = GF_EVT_CONNECT;
+		wxevt.gpac_evt.type = GF_EVENT_CONNECT;
 		wxevt.gpac_evt.connect.is_connected = evt->connect.is_connected;
 		if (!evt->connect.is_connected) app->m_duration = 0;
 		app->AddPendingEvent(wxevt);
 	}
 		break;
-	case GF_EVT_NAVIGATE:
+	case GF_EVENT_NAVIGATE:
 	{
 		wxGPACEvent wxevt(app);
 		wxevt.to_url = wxString(evt->navigate.to_url, wxConvUTF8);
@@ -289,24 +296,21 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	}
 		return 1;
 
-	case GF_EVT_KEYDOWN:
-	case GF_EVT_QUIT:
-	case GF_EVT_VIEWPOINTS:
-	case GF_EVT_STREAMLIST:
-	case GF_EVT_SCENE_SIZE:
-//	case GF_EVT_SIZE:
+	case GF_EVENT_QUIT:
+	case GF_EVENT_VIEWPOINTS:
+	case GF_EVENT_STREAMLIST:
+	case GF_EVENT_SCENE_SIZE:
+//	case GF_EVENT_SIZE:
 	{
 		wxGPACEvent wxevt(app);
 		wxevt.gpac_evt = *evt;
 		app->AddPendingEvent(wxevt);
 	}
 		break;
-	case GF_EVT_LDOUBLECLICK:
+	case GF_EVENT_MOUSEDOUBLECLICK:
 		gf_term_set_option(app->m_term, GF_OPT_FULLSCREEN, !gf_term_get_option(app->m_term, GF_OPT_FULLSCREEN));
 		return 0;
-	case GF_EVT_LEFTDOWN:
-	case GF_EVT_RIGHTDOWN:
-	case GF_EVT_MIDDLEDOWN:
+	case GF_EVENT_MOUSEDOWN:
 		if (!gf_term_get_option(app->m_term, GF_OPT_FULLSCREEN)) {
 #ifdef __WXGTK__
 		  app->m_pVisual->SetFocus();
@@ -315,7 +319,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 #endif
 		}
 		break;
-	case GF_EVT_SYS_COLORS:
+	case GF_EVENT_SYS_COLORS:
 #ifdef WIN32
 		evt->sys_cols.sys_colors[0] = get_sys_col(COLOR_ACTIVEBORDER);
 		evt->sys_cols.sys_colors[1] = get_sys_col(COLOR_ACTIVECAPTION);
@@ -1570,7 +1574,7 @@ void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 	if (!m_term) return;
 
 	switch (event.gpac_evt.type) {
-	case GF_EVT_NAVIGATE:
+	case GF_EVENT_NAVIGATE:
 		if (gf_term_is_supported_url(m_term, event.to_url.mb_str(wxConvUTF8), 1, 0)) {
 			char *str = gf_url_concatenate(m_pPlayList->GetURL().mb_str(wxConvUTF8), event.to_url.mb_str(wxConvUTF8));
 			if (str) {
@@ -1587,16 +1591,16 @@ void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 		cmd += event.to_url;
 		wxExecute(cmd);
 		break;
-	case GF_EVT_QUIT:
+	case GF_EVENT_QUIT:
 		Close(TRUE);
 		break;
-	case GF_EVT_CONNECT:
+	case GF_EVENT_CONNECT:
 		BuildStreamList(0);
 		ConnectAcknowledged(event.gpac_evt.connect.is_connected);
 		break;
-	case GF_EVT_KEYDOWN:
-		if (!(event.gpac_evt.key.key_states & GF_KM_CTRL)) return;
-		switch (event.gpac_evt.key.virtual_code) {
+	case GF_EVENT_KEYDOWN:
+		if (!(event.gpac_evt.key.flags & GF_KEY_MOD_CTRL)) return;
+		switch (event.gpac_evt.key.key_code) {
 		case 'R':
 		case 'r':
 			gf_term_set_option(m_term, GF_OPT_REFRESH, 1);
@@ -1611,18 +1615,18 @@ void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 			break;
 		}
 		break;
-	case GF_EVT_SCENE_SIZE:
+	case GF_EVENT_SCENE_SIZE:
 		m_orig_width = event.gpac_evt.size.width;
 		m_orig_height = event.gpac_evt.size.height;
-	case GF_EVT_SIZE:
+	case GF_EVENT_SIZE:
 		if (! gf_term_get_option(m_term, GF_OPT_FULLSCREEN)) {
 			DoLayout(event.gpac_evt.size.width, event.gpac_evt.size.height);
 		}
 		break;
-	case GF_EVT_VIEWPOINTS:
+	case GF_EVENT_VIEWPOINTS:
 		BuildViewList();
 		break;
-	case GF_EVT_STREAMLIST:
+	case GF_EVENT_STREAMLIST:
 		BuildStreamList(0);
 		break;
 	}

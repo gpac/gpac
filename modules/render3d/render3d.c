@@ -303,7 +303,7 @@ static Bool R3D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	Render3D *sr = (Render3D *)vr->user_priv;
 	/*revert to BIFS like*/
 	evt = *event;
-	if (evt.event_type<=GF_EVT_LEFTUP) {
+	if (evt.event_type<=GF_EVENT_MOUSEMOVE) {
 		evt.mouse.x = event->mouse.x - sr->compositor->width/2;
 		evt.mouse.y = sr->compositor->height/2 - event->mouse.y;
 	}
@@ -312,7 +312,7 @@ static Bool R3D_ExecuteEvent(GF_VisualRenderer *vr, GF_UserEvent *event)
 	if ((sr->compositor->interaction_level & GF_INTERACT_NORMAL) && VS_ExecuteEvent(sr->surface, sr->top_effect, &evt, NULL)) 
 		return 1;
 	/*remember active layer on mouse click - may be NULL*/
-	if (event->event_type==GF_EVT_LEFTDOWN) sr->active_layer = sr->top_effect->collect_layer;
+	if ((event->event_type==GF_EVENT_MOUSEDOWN) && (event->mouse.button==GF_MOUSE_LEFT)) sr->active_layer = sr->top_effect->collect_layer;
 	/*process navigation events*/
 	if (sr->compositor->interaction_level & GF_INTERACT_NAVIGATION) return R3D_HandleUserEvent(sr, &evt);
 	return 0;
@@ -337,7 +337,7 @@ GF_Err R3D_RecomputeAR(GF_VisualRenderer *vr)
 	/*we're inside a resetup of the window, indocate HW reset */
 	if (sr->compositor->new_width || sr->compositor->new_height) {
 		GF_Event evt;
-		evt.type = GF_EVT_VIDEO_SETUP;
+		evt.type = GF_EVENT_VIDEO_SETUP;
 		evt.size.width = sr->compositor->width;
 		evt.size.height = sr->compositor->height;
 		sr->compositor->video_out->ProcessEvent(sr->compositor->video_out, &evt);

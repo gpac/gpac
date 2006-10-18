@@ -462,4 +462,5 @@ void InitDiscard(GF_Renderer *sr, GF_Node *node)
 	gf_sr_register_time_node(sr, &st->time_handle);
 }
 
+Bool gf_svg_check_url_change(MFURL *url, SVG_IRI *iri);
 #endif

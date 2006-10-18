@@ -294,7 +294,7 @@ static void UpdateRTInfo(const char *legend)
 		sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
 			gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
 
-		evt.type = GF_EVT_SET_CAPTION;
+		evt.type = GF_EVENT_SET_CAPTION;
 		evt.caption.caption = szMsg;
 		gf_term_user_event(term, &evt);
 	}
@@ -315,7 +315,7 @@ static void ResetCaption()
 {
 	GF_Event event;
 	if (display_rti) return;
-	event.type = GF_EVT_SET_CAPTION;
+	event.type = GF_EVENT_SET_CAPTION;
 	if (is_connected) {
 		char szName[1024];
 		NetInfoCommand com;
@@ -360,19 +360,19 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	if (!term) return 0;
 
 	switch (evt->type) {
-	case GF_EVT_UPDATE_RTI:
+	case GF_EVENT_UPDATE_RTI:
 		UpdateRTInfo(evt->caption.caption);
 		break;
-	case GF_EVT_RESET_RTI:
+	case GF_EVENT_RESET_RTI:
 		memory_at_gpac_load = 0;
 		UpdateRTInfo(evt->caption.caption);
 		break;
-	case GF_EVT_DURATION:
+	case GF_EVENT_DURATION:
 		Duration = 1000;
 		Duration = (u64) (((s64) Duration) * evt->duration.duration);
 		CanSeek = evt->duration.can_seek;
 		break;
-	case GF_EVT_MESSAGE:
+	case GF_EVENT_MESSAGE:
 	{
 		const char *servName;
 		if (!evt->message.service || !strcmp(evt->message.service, the_url)) {
@@ -388,7 +388,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			fprintf(stdout, "(%s) %s\r", servName, evt->message.message);
 	}
 		break;
-	case GF_EVT_PROGRESS:
+	case GF_EVENT_PROGRESS:
 	{
 		char *szTitle = "";
 		if (evt->progress.progress_type==0) szTitle = "Buffer ";
@@ -398,10 +398,41 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	}
 		break;
 	
-	case GF_EVT_VKEYDOWN:
-		if ((evt->key.key_states & GF_KM_ALT)) {
-			switch (evt->key.vk_code) {
-			case GF_VK_LEFT:
+
+	case GF_EVENT_MOUSEDOUBLECLICK:
+		gf_term_set_option(term, GF_OPT_FULLSCREEN, !gf_term_get_option(term, GF_OPT_FULLSCREEN));
+		return 0;
+
+	case GF_EVENT_MOUSEDOWN:
+		if (evt->mouse.button==GF_MOUSE_RIGHT) {
+			right_down = 1;
+			last_x = evt->mouse.x;
+			last_y = evt->mouse.y;
+		}
+		return 0;
+	case GF_EVENT_MOUSEUP:
+		if (evt->mouse.button==GF_MOUSE_RIGHT) {
+			right_down = 0;
+			last_x = evt->mouse.x;
+			last_y = evt->mouse.y;
+		}
+		return 0;
+	case GF_EVENT_MOUSEMOVE:
+		if (right_down && (user.init_flags & GF_TERM_WINDOWLESS) ) {
+			GF_Event move;
+			move.move.x = evt->mouse.x - last_x;
+			move.move.y = evt->mouse.y - last_y;
+			move.type = GF_EVENT_MOVE;
+			move.move.relative = 1;
+			gf_term_user_event(term, &move);
+		}
+		return 0;
+
+	/*we use CTRL and not ALT for keys, since windows shortcuts keypressed with ALT*/
+	case GF_EVENT_KEYDOWN:
+		if ((evt->key.flags & GF_KEY_MOD_ALT)) {
+			switch (evt->key.key_code) {
+			case GF_KEY_LEFT:
 				if (Duration>=2000) {
 					s32 res = gf_term_get_time_in_ms(term) - (s32) (5*Duration/100);
 					if (res<0) res=0;
@@ -411,7 +442,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 					gf_term_play_from_time(term, res, 0);
 				} 
 				break;
-			case GF_VK_RIGHT:
+			case GF_KEY_RIGHT:
 				if (Duration>=2000) {
 					u32 res = gf_term_get_time_in_ms(term) + (s32) (5*Duration/100);
 					if (res>=Duration) res = 0;
@@ -422,54 +453,26 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 				}
 				break;
 			/*these 2 are likely not supported by most audio ouput modules*/
-			case GF_VK_UP:
+			case GF_KEY_UP:
 				if (Volume!=100) { Volume = MIN(Volume + 5, 100); gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, Volume); } 
 				break;
-			case GF_VK_DOWN: 
+			case GF_KEY_DOWN: 
 				if (Volume) { Volume = (Volume > 5) ? (Volume-5) : 0; gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, Volume); }
 				break;
 			}
 		} else {
-			switch (evt->key.vk_code) {
-			case GF_VK_HOME:
+			switch (evt->key.key_code) {
+			case GF_KEY_HOME:
 				gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 1);
 				break;
-			case GF_VK_ESCAPE:
+			case GF_KEY_ESCAPE:
 				gf_term_set_option(term, GF_OPT_FULLSCREEN, !gf_term_get_option(term, GF_OPT_FULLSCREEN));
 				break;
 			}
 		}
-		return 0;
 
-	case GF_EVT_LDOUBLECLICK:
-		gf_term_set_option(term, GF_OPT_FULLSCREEN, !gf_term_get_option(term, GF_OPT_FULLSCREEN));
-		return 0;
-
-	case GF_EVT_RIGHTDOWN:
-		right_down = 1;
-		last_x = evt->mouse.x;
-		last_y = evt->mouse.y;
-		return 0;
-	case GF_EVT_RIGHTUP:
-		right_down = 0;
-		last_x = evt->mouse.x;
-		last_y = evt->mouse.y;
-		return 0;
-	case GF_EVT_MOUSEMOVE:
-		if (right_down && (user.init_flags & GF_TERM_WINDOWLESS) ) {
-			GF_Event move;
-			move.move.x = evt->mouse.x - last_x;
-			move.move.y = evt->mouse.y - last_y;
-			move.type = GF_EVT_MOVE;
-			move.move.relative = 1;
-			gf_term_user_event(term, &move);
-		}
-		return 0;
-
-	/*we use CTRL and not ALT for keys, since windows shortcuts keypressed with ALT*/
-	case GF_EVT_KEYDOWN:
-		if (!(evt->key.key_states & GF_KM_CTRL)) return 0;
-		switch (evt->key.virtual_code) {
+		if (!(evt->key.flags & GF_KEY_MOD_CTRL)) return 0;
+		switch (evt->key.key_code) {
 		case 'F':
 		case 'f':
 			fprintf(stdout, "Rendering rate: %f FPS\n", gf_term_get_framerate(term, 0));
@@ -498,7 +501,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 		break;
 
-	case GF_EVT_CONNECT:
+	case GF_EVENT_CONNECT:
 		if (evt->connect.is_connected) {
 			is_connected = 1;
 			fprintf(stdout, "Service Connected\n");
@@ -513,10 +516,10 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 		ResetCaption();
 		break;
-	case GF_EVT_SIZE:
+	case GF_EVENT_SIZE:
 		if (user.init_flags & GF_TERM_WINDOWLESS) {
 			GF_Event move;
-			move.type = GF_EVT_MOVE;
+			move.type = GF_EVENT_MOVE;
 			move.move.align_x = align_mode & 0xFF;
 			move.move.align_y = (align_mode>>8) & 0xFF;
 			move.move.relative = 2;
@@ -524,13 +527,13 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 		break;
 
-	case GF_EVT_QUIT:
+	case GF_EVENT_QUIT:
 		Run = 0;
 		break;
-	case GF_EVT_NAVIGATE_INFO:
+	case GF_EVENT_NAVIGATE_INFO:
 		fprintf(stdout, "Go to URL: \"%s\"\r", evt->navigate.to_url);
 		break;
-	case GF_EVT_NAVIGATE:
+	case GF_EVENT_NAVIGATE:
 		if (gf_term_is_supported_url(term, evt->navigate.to_url, 1, no_mime_check)) {
 			strcpy(the_url, evt->navigate.to_url);
 			fprintf(stdout, "Navigating to URL %s\n", the_url);
@@ -540,7 +543,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			fprintf(stdout, "Navigation destination not supported\nGo to URL: %s\n", evt->navigate.to_url);
 		}
 		break;
-	case GF_EVT_AUTHORIZATION:
+	case GF_EVENT_AUTHORIZATION:
 		if (!strlen(evt->auth.user)) {
 			fprintf(stdout, "Authorization required for site %s\n", evt->auth.site_url);
 			fprintf(stdout, "login: ");
@@ -553,7 +556,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		scanf("%s", evt->auth.password);
 		set_echo_off(0);
 		return 1;
-	case GF_EVT_SYS_COLORS:
+	case GF_EVENT_SYS_COLORS:
 #ifdef WIN32
 		evt->sys_cols.sys_colors[0] = get_sys_col(COLOR_ACTIVEBORDER);
 		evt->sys_cols.sys_colors[1] = get_sys_col(COLOR_ACTIVECAPTION);

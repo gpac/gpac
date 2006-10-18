@@ -1,5 +1,6 @@
-Latest CVS changes: 13/10/06
-  - added inital support for svg animation and svg use with external resources
+Latest CVS changes: 18/10/06
+  - moved key/mouse event subsystem to DOM3 model 
+  - added support for svg animation and svg use with external resources
   - cleanup of MPEG-4 RemoteOD + support for segment identifiers at scene level
   - added support for multiple RTSP sessions in an SDP description
   - added support for faked broadcast mode in SDP (forbids any timeline control by player except initial play/final stop)

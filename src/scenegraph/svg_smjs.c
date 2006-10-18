@@ -26,6 +26,7 @@
 #include <gpac/internal/scenegraph_dev.h>
 
 #ifndef GPAC_DISABLE_SVG
+#include <gpac/events.h>
 #include <gpac/nodes_svg.h>
 
 
@@ -273,7 +274,7 @@ static JSBool udom_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *
 	if(!callback) return JS_FALSE;
 
 	evtType = gf_dom_event_type_by_name(type);
-	if (evtType==SVG_DOM_EVT_UNKNOWN) return JS_FALSE;
+	if (evtType==GF_EVENT_UNKNOWN) return JS_FALSE;
 
 	/*emulate a listener for onClick event*/
 	listener = (SVGlistenerElement *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
@@ -326,7 +327,7 @@ static JSBool udom_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 	if(!callback) return JS_FALSE;
 
 	evtType = gf_dom_event_type_by_name(type);
-	if (evtType==SVG_DOM_EVT_UNKNOWN) return JS_FALSE;
+	if (evtType==GF_EVENT_UNKNOWN) return JS_FALSE;
 	
 	count = gf_list_count(node->sgprivate->events);
 	for (i=0; i<count; i++) {
@@ -523,7 +524,7 @@ static void svg_elt_add(JSContext *c, GF_Node *par, GF_Node *n, s32 pos)
 		if (n->sgprivate->events) {
 			GF_DOM_Event evt;
 			memset(&evt, 0, sizeof(GF_DOM_Event));
-			evt.type = SVG_DOM_EVT_LOAD;
+			evt.type = GF_EVENT_LOAD;
 			gf_dom_event_fire(n, NULL, &evt);
 		}
 	}
@@ -665,7 +666,7 @@ static JSBool svg_elt_set_attr(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	/*check for old adressing of events*/
 	evt.parameter = 0;
 	evt.type = gf_dom_event_type_by_name(attName + 2);
-	if (evt.type == SVG_DOM_EVT_UNKNOWN) return JS_FALSE;
+	if (evt.type == GF_EVENT_UNKNOWN) return JS_FALSE;
 
 	/*check if we're modifying an existing listener*/
 	count = gf_list_count(elt->sgprivate->events);
@@ -1835,21 +1836,21 @@ static JSPropertySpec eventProps[] = {
 	{"data",			13,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	/*keyboard*/
 	{"keyIdentifier",	14,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"keyChar",			14,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"charCode",		14,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+	{"keyChar",			15,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+	{"charCode",		15,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	/*wheelEvent*/
-	{"wheelDelta",		15,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+	{"wheelDelta",		16,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	/*progress*/
-	{"lengthComputable",16,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"typeArg",			17,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"loaded",			18,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"total",			19,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+	{"lengthComputable",17,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+	{"typeArg",			18,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+	{"loaded",			19,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+	{"total",			20,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	/*zoom*/
-	{"zoomRectScreen",	20,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"previousScale",	21,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"previousTranslate",	22,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"newScale",		23,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{"newTranslate",	24,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+	{"zoomRectScreen",	21,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+	{"previousScale",	22,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+	{"previousTranslate",	23,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+	{"newScale",		24,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+	{"newTranslate",	25,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 	{0}
 };
 
@@ -1916,11 +1917,16 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 		case 11: *vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
 		/*relatedTarget*/
 		case 12: *vp = OBJECT_TO_JSVAL(svg_elt_construct(c, evt->relatedTarget, 1) ); return JS_TRUE;
-		/*keyIndentifier, keyChar, charCode: wrap up to same value*/
-		case 14: *vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
+		/*DOM3 event keyIndentifier*/
+		case 14: 
+			s = JS_NewStringCopyZ(c, gf_dom_get_key_name(evt->detail) );
+			*vp = STRING_TO_JSVAL( s );
+			 return JS_TRUE;
+		/*Mozilla keyChar, charCode: wrap up to same value*/
+		case 15: *vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
 
 		/*zoomRectScreen*/
-		case 20:
+		case 21:
 		{
 			JSObject *r = JS_NewObject(c, &rectClass, 0, 0);
 			rectCI *rc = malloc(sizeof(rectCI));
@@ -1934,11 +1940,11 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			return JS_TRUE;
 		}
 		/*previousScale*/
-		case 21:
+		case 22:
 			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->prev_scale) );
 			return JS_TRUE;
 		/*previousTranslate*/
-		case 22:
+		case 23:
 		{
 			JSObject *p = JS_NewObject(c, &pointClass, 0, 0);
 			pointCI *pt = malloc(sizeof(pointCI));
@@ -1950,11 +1956,11 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			return JS_TRUE;
 		}
 		/*newScale*/
-		case 23:
+		case 24:
 			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->new_scale) );
 			return JS_TRUE;
 		/*newTranslate*/
-		case 24:
+		case 25:
 		{
 			JSObject *p = JS_NewObject(c, &pointClass, 0, 0);
 			pointCI *pt = malloc(sizeof(pointCI));
@@ -2739,7 +2745,7 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 	GF_SVGJS *svg_js;
 	JSBool ret;
 	GF_DOM_Event *prev_event = NULL;
-	jsval rval;
+	jsval fval, rval;
 	SVGhandlerElement *handler = (SVGhandlerElement *)node;
 	if (/*!script->xlink->type || strcmp(script->xlink->type, "text/ecmascript") || */ !handler->textContent) return 0;
 
@@ -2748,7 +2754,10 @@ Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event)
 	prev_event = JS_GetPrivate(svg_js->js_ctx, svg_js->event);
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, event);
 
-	{
+	if (JS_LookupProperty(svg_js->js_ctx, svg_js->global, handler->textContent, &fval)) {
+		svg_script_execute(node->sgprivate->scenegraph, handler->textContent, event);
+		//JS_CallFunctionValue(svg_js->js_ctx, svg_js->global, fval, 0, 0, &fval);
+	} else {
 		ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, handler->textContent, strlen(handler->textContent), 0, 0, &rval);
 	}
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, prev_event);
