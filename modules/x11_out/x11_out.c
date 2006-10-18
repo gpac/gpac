@@ -77,14 +77,14 @@ GF_Err X11_Flush(struct _video_out *vout, GF_Window * dest)
  * Translate X_Key to GF_Key
  */
 //=====================================
-static u32 x11_translate_key(u32 X11Key, GF_EventKey *evt)
+static void x11_translate_key(u32 X11Key, GF_EventKey *evt)
 {
-	evt->hw_code = X11Key;
+	evt->hw_code = X11Key & 0xFF;
 	switch (X11Key) {
 
 	case XK_BackSpace: evt->key_code = GF_KEY_BACKSPACE; break;
 	case XK_Tab: evt->key_code = GF_KEY_TAB; break;
-	case XK_Linefeed: evt->key_code = GF_KEY_LINEFEED; break;
+	//case XK_Linefeed: evt->key_code = GF_KEY_LINEFEED; break;
 	case XK_Clear: evt->key_code = GF_KEY_CLEAR; break;
 
 	case XK_KP_Enter:
@@ -93,10 +93,9 @@ static u32 x11_translate_key(u32 X11Key, GF_EventKey *evt)
 		evt->key_code = GF_KEY_ENTER; 
 		break;
 	case XK_Pause: evt->key_code = GF_KEY_PAUSE; break;
+	case XK_Caps_Lock: evt->key_code = GF_KEY_CAPSLOCK; break;
 	case XK_Scroll_Lock: evt->key_code = GF_KEY_SCROLL; break;
 	case XK_Escape: evt->key_code = GF_KEY_ESCAPE; break;
-	case XK_KP_Delete: 
-		evt->flags = GF_KEY_EXT_NUMPAD; 
 	case XK_Delete: 
 		evt->key_code = GF_KEY_DEL; 
 		break;
@@ -112,10 +111,10 @@ static u32 x11_translate_key(u32 X11Key, GF_EventKey *evt)
 	case XK_Up: evt->key_code = GF_KEY_UP; break;
 	case XK_Right: evt->key_code = GF_KEY_RIGHT; break;
 	case XK_Down: evt->key_code = GF_KEY_DOWN; break;
-	case XK_Page_Up: evt->key_code = GF_KEY_PRIOR; break;
-	case XK_Page_Down: evt->key_code = GF_KEY_NEXT; break;
+	case XK_Page_Up: evt->key_code = GF_KEY_PAGEUP; break;
+	case XK_Page_Down: evt->key_code = GF_KEY_PAGEDOWN; break;
 	case XK_End: evt->key_code = GF_KEY_END; break;
-	case XK_Begin: evt->key_code = GF_KEY_BEGIN; break;
+	//case XK_Begin: evt->key_code = GF_KEY_BEGIN; break;
 
 
 	case XK_Select: evt->key_code = GF_KEY_SELECT; break;
@@ -157,22 +156,51 @@ static u32 x11_translate_key(u32 X11Key, GF_EventKey *evt)
 	case XK_F23: evt->key_code = GF_KEY_F23; break;
 	case XK_F24: evt->key_code = GF_KEY_F24; break;
 
+	case XK_KP_Delete: 
 	case XK_KP_Decimal: 
 		evt->flags = GF_KEY_EXT_NUMPAD; 
 		evt->key_code = GF_KEY_COMMA; 
 		break;
 
-	case XK_KP_0: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_0; break;
-	case XK_KP_1: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_1; break;
-	case XK_KP_2: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_2; break;
-	case XK_KP_3: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_3; break;
-	case XK_KP_4: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_4; break;
-	case XK_KP_5: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_5; break;
-	case XK_KP_6: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_6; break;
-	case XK_KP_7: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_7; break;
-	case XK_KP_8: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_8; break;
-	case XK_KP_9: evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_9; break;
-		
+	case XK_KP_Insert:
+	case XK_KP_0: 
+		evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_0; break;
+	case XK_KP_End:
+	case XK_KP_1: 
+		evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_1; break;
+	case XK_KP_Down: 
+	case XK_KP_2: 
+		evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_2; break;
+	case XK_KP_Page_Down: 
+	case XK_KP_3:
+		 evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_3; break;
+	case XK_KP_Left: 
+	case XK_KP_4: 
+		evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_4; break;
+	case XK_KP_Begin: 
+	case XK_KP_5:
+		evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_5; break;
+	case XK_KP_Right: 
+	case XK_KP_6:
+		evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_6; break;
+	case XK_KP_Home: 
+	case XK_KP_7:
+		evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_7; break;
+	case XK_KP_Up: 
+	case XK_KP_8:
+		evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_8; break;
+	case XK_KP_Page_Up: 
+	case XK_KP_9:
+		evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_9; break;
+	case XK_KP_Add:
+		evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_PLUS; break;
+	case XK_KP_Subtract:
+		evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_HYPHEN; break;
+	case XK_KP_Multiply:
+		evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_STAR; break;
+	case XK_KP_Divide:
+		evt->flags = GF_KEY_EXT_NUMPAD; evt->key_code = GF_KEY_SLASH; break;
+
 
 	case XK_Shift_R:
 		evt->flags = GF_KEY_EXT_RIGHT;
@@ -187,13 +215,61 @@ static u32 x11_translate_key(u32 X11Key, GF_EventKey *evt)
 	case XK_Alt_R:
 		evt->flags = GF_KEY_EXT_RIGHT;
 	case XK_Alt_L:
-		evt->key_code = GF_KEY_MENU; 
+		evt->key_code = GF_KEY_ALT; 
 		break;
+	case XK_Super_R:
+		evt->flags = GF_KEY_EXT_RIGHT;
+	case XK_Super_L:
+		evt->key_code = GF_KEY_WIN; 
+		break;
+
+	case XK_Menu: evt->key_code = GF_KEY_META; break;
+#ifdef XK_XKB_KEYS
+	case XK_ISO_Level3_Shift: evt->key_code = GF_KEY_ALTGRAPH; break;
+
+#endif
+	case '!': evt->key_code = GF_KEY_EXCLAMATION; break;
+	case '"': evt->key_code = GF_KEY_QUOTATION; break;
+	case '#': evt->key_code = GF_KEY_NUMBER; break;
+	case '$': evt->key_code = GF_KEY_DOLLAR; break;
+	case '&': evt->key_code = GF_KEY_AMPERSAND; break;
+	case '\'': evt->key_code = GF_KEY_APOSTROPHE; break;
+	case '(': evt->key_code = GF_KEY_LEFTPARENTHESIS; break;
+	case ')': evt->key_code = GF_KEY_RIGHTPARENTHESIS; break;
+	case ',': evt->key_code = GF_KEY_COMMA; break;
+	case ':': evt->key_code = GF_KEY_COLON; break;
+	case ';': evt->key_code = GF_KEY_SEMICOLON; break;
+	case '<': evt->key_code = GF_KEY_LESSTHAN; break;
+	case '>': evt->key_code = GF_KEY_GREATERTHAN; break;
+	case '?': evt->key_code = GF_KEY_QUESTION; break;
+	case '@': evt->key_code = GF_KEY_AT; break;
+	case '[': evt->key_code = GF_KEY_LEFTSQUAREBRACKET; break;
+	case ']': evt->key_code = GF_KEY_RIGHTSQUAREBRACKET; break;
+	case '\\': evt->key_code = GF_KEY_BACKSLASH; break;
+	case '_': evt->key_code = GF_KEY_UNDERSCORE; break;
+	case '`': evt->key_code = GF_KEY_GRAVEACCENT; break;
+	case ' ': evt->key_code = GF_KEY_SPACE; break;
+	case '/': evt->key_code = GF_KEY_SLASH; break;
+	case '*': evt->key_code = GF_KEY_STAR; break;
+	case '-': evt->key_code = GF_KEY_HYPHEN; break;
+	case '+': evt->key_code = GF_KEY_PLUS; break;
+	case '=': evt->key_code = GF_KEY_EQUALS; break;
+	case '^': evt->key_code = GF_KEY_CIRCUM; break;
+	case '{': evt->key_code = GF_KEY_LEFTCURLYBRACKET; break;
+	case '}': evt->key_code = GF_KEY_RIGHTCURLYBRACKET; break;
+	case '|': evt->key_code = GF_KEY_PIPE; break;
 	default:
-		if ((X11Key>=0x30) && (X11Key<=0x39))  evt->key_code = GF_KEY_0 + X11Key-0x30;
-		else if ((X11Key>=0x41) && (X11Key<=0x5A))  evt->key_code = GF_KEY_A + X11Key-0x51;
-		else
+		if ((X11Key>='0') && (X11Key<='9'))  evt->key_code = GF_KEY_0 + X11Key - '0';
+		else if ((X11Key>='A') && (X11Key<='Z'))  evt->key_code = GF_KEY_A + X11Key - 'A';
+		/*DOM3: translate to A -> Z, not a -> z*/
+		else if ((X11Key>='a') && (X11Key<='z'))  {
+			evt->key_code = GF_KEY_A + X11Key - 'a';
+			evt->hw_code = X11Key - 'a' + 'A';
+		}
+		else {
 			evt->key_code = 0; 
+			fprintf(stdout, "unrecognized key %X\n", X11Key);
+		}
 		break;
 	}
 }
@@ -278,9 +354,7 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 
 		  case KeyPress:
 		  case KeyRelease:
-		    evt.key.hw_code = XKeycodeToKeysym (xWindow->display, xevent.xkey.keycode, 0);
-		    x11_translate_key(evt.key.hw_code, &evt);
-		    evt.key.virtual_code &= 0xFF;
+		    x11_translate_key(XKeycodeToKeysym (xWindow->display, xevent.xkey.keycode, 0), &evt.key);
 			evt.type = (xevent.type ==KeyPress) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
 			vout->on_event (vout->evt_cbk_hdl, &evt);
 		    
