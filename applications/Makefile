@@ -1,6 +1,6 @@
 include ../config.mak
 
-APPDIRS=mp4box mp4client
+APPDIRS=mp4box mp4client osmozilla
 
 ifeq ($(SRC_LOCAL_PATH), yes)
 ifeq ($(TARGET_ARCH_ARMV4L), yes)
@@ -10,14 +10,7 @@ endif
 endif
 
 V4STUDIODIR=
-INSTDIRS=mp4client
-
-#no osmozilla compilation for mingw, too many issues at the time being
-ifeq ($(CONFIG_WIN32), no)
-APPDIRS+=osmozilla
-INSTDIRS+=osmozilla
-endif
-
+INSTDIRS=mp4client osmozilla
 
 ifeq ($(USE_WXWIDGETS), yes)
 APPDIRS+=osmo4_wx

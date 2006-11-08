@@ -43,10 +43,8 @@
 
 #include "osmozilla.h"
 
-#include <gpac/terminal.h>
 #include <gpac/options.h>
-#include <gpac/internal/avilib.h>
-#include <gpac/internal/terminal_dev.h>
+/*access to framebuffer for printing - under dev ...*/
 #include <gpac/internal/renderer_dev.h>
 
 nsIServiceManager *gServiceManager = NULL;
@@ -598,6 +596,7 @@ void nsOsmozillaInstance::Stop()
 	gf_term_disconnect(m_term);
 }
 
+#ifdef XP_WIN
 PBITMAPINFO CreateBitmapInfoStruct(GF_VideoSurface *pfb)
 { 
     PBITMAPINFO pbmi; 
@@ -620,6 +619,7 @@ PBITMAPINFO CreateBitmapInfoStruct(GF_VideoSurface *pfb)
      pbmi->bmiHeader.biClrImportant = 0; 
      return pbmi; 
 }
+#endif
 
 void nsOsmozillaInstance::Print(NPPrint* printInfo)
 {
