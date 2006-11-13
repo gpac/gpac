@@ -37,6 +37,7 @@ GF_Err gf_node_animation_del(GF_Node *node)
 {
 	if (!node || !node->sgprivate->animations) return GF_BAD_PARAM;
 	gf_list_del(node->sgprivate->animations);
+	node->sgprivate->animations = NULL;
 	return GF_OK;
 }
 
@@ -52,6 +53,11 @@ void *gf_node_animation_get(GF_Node *node, u32 i)
 	return gf_list_get(node->sgprivate->animations, i);
 }
 
+GF_Err gf_node_animation_rem(GF_Node *node, u32 i)
+{
+	if (!node || !node->sgprivate->animations) return 0;
+	return gf_list_rem(node->sgprivate->animations, i);
+}
 
 void gf_svg_attributes_resolve_unspecified(GF_FieldInfo *in, GF_FieldInfo *p, GF_FieldInfo *t)
 {
@@ -424,10 +430,7 @@ static void gf_smil_anim_compute_interpolation_value(SMIL_Anim_RTI *rai, Fixed n
 {
 	SVGElement *e = rai->anim_elt;
 
-	if (gf_node_get_tag((GF_Node *)rai->anim_elt) == TAG_SVG_discard) {
-		/* TODO */
-		return;
-	} else if (rai->path) {
+	if (rai->path) {
 		gf_smil_anim_animate_using_path(rai, normalized_simple_time);
 		return;
 	} else if (gf_node_get_tag((GF_Node *)rai->anim_elt) == TAG_SVG_set) { 		
@@ -537,6 +540,11 @@ static void gf_smil_anim_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_simple_
 	case SMIL_TIMING_EVAL_FRACTION: 
 		gf_smil_anim_animate_with_fraction(rti, normalized_simple_time);
 		break;
+/*
+	discard should be done before in smil_notify_time
+	case SMIL_TIMING_EVAL_DISCARD:
+		break;
+*/
 	}
 }
 
@@ -589,7 +597,6 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 	}
 
 }
-
 
 void gf_smil_anim_init_runtime_info(SVGElement *e)
 {
@@ -723,6 +730,31 @@ void gf_smil_anim_delete_runtime_info(SMIL_Anim_RTI *rai)
 	free(rai);
 }
 
+void gf_smil_anim_remove_from_target(SVGElement *anim, SVGElement *target)
+{
+	u32 i, j;
+	if (!target) return;
+	for (i = 0; i < gf_node_animation_count((GF_Node *)target); i ++) {
+		SMIL_Anim_RTI *rai;
+		SMIL_AttributeAnimations *aa = gf_node_animation_get((GF_Node *)target, i);
+		j=0;
+		while ((rai = gf_list_enum(aa->anims, &j))) {
+			if (rai->anim_elt == anim) {
+				gf_list_rem(aa->anims, j-1);
+				gf_smil_anim_delete_runtime_info(rai);
+				break;
+			}
+		}
+		if (gf_list_count(aa->anims) == 0) {
+			gf_list_del(aa->anims);
+			gf_svg_delete_attribute_value(aa->specified_value.fieldType, aa->specified_value.far_ptr, target->sgprivate->scenegraph);
+			aa->presentation_value.far_ptr = aa->orig_dom_ptr;
+			gf_node_animation_rem((GF_Node *)target, i);
+			free(aa);
+		}
+	}
+}
+
 void gf_smil_anim_delete_animations(SVGElement *e)
 {
 	u32 i, j;
@@ -738,6 +770,13 @@ void gf_smil_anim_delete_animations(SVGElement *e)
 		free(aa);
 	}
 	gf_node_animation_del((GF_Node *)e);
+}
+
+void gf_smil_anim_init_discard(GF_Node *node)
+{
+	SVGdiscardElement *discard = (SVGdiscardElement *)node;
+	gf_smil_timing_init_runtime_info((SVGElement *)discard);
+	discard->timing->runtime->evaluate_status = SMIL_TIMING_EVAL_DISCARD;
 }
 
 void gf_smil_anim_init_node(GF_Node *node)
@@ -851,4 +890,3 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 		}
 	}	
 }
-

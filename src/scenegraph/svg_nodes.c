@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Oct 13 09:42:05 2006
+	DO NOT MOFIFY - File generated on GMT Thu Nov 09 12:07:36 2006
 
 	BY SVGGen for GPAC Version 0.4.3-DEV
 */
@@ -12698,6 +12698,64 @@ const char *gf_svg_get_element_name(u32 tag)
 	}
 }
 
+Bool gf_svg_is_element_transformable(u32 tag)
+{
+	switch(tag) {
+	case TAG_SVG_a:return 1;
+	case TAG_SVG_animate:return 0;
+	case TAG_SVG_animateColor:return 0;
+	case TAG_SVG_animateMotion:return 0;
+	case TAG_SVG_animateTransform:return 0;
+	case TAG_SVG_animation:return 1;
+	case TAG_SVG_audio:return 0;
+	case TAG_SVG_circle:return 1;
+	case TAG_SVG_conditional:return 0;
+	case TAG_SVG_cursorManager:return 0;
+	case TAG_SVG_defs:return 0;
+	case TAG_SVG_desc:return 0;
+	case TAG_SVG_discard:return 0;
+	case TAG_SVG_ellipse:return 1;
+	case TAG_SVG_font:return 0;
+	case TAG_SVG_font_face:return 0;
+	case TAG_SVG_font_face_src:return 0;
+	case TAG_SVG_font_face_uri:return 0;
+	case TAG_SVG_foreignObject:return 1;
+	case TAG_SVG_g:return 1;
+	case TAG_SVG_glyph:return 0;
+	case TAG_SVG_handler:return 0;
+	case TAG_SVG_hkern:return 0;
+	case TAG_SVG_image:return 1;
+	case TAG_SVG_line:return 1;
+	case TAG_SVG_linearGradient:return 0;
+	case TAG_SVG_listener:return 0;
+	case TAG_SVG_metadata:return 0;
+	case TAG_SVG_missing_glyph:return 0;
+	case TAG_SVG_mpath:return 0;
+	case TAG_SVG_path:return 1;
+	case TAG_SVG_polygon:return 1;
+	case TAG_SVG_polyline:return 1;
+	case TAG_SVG_prefetch:return 0;
+	case TAG_SVG_radialGradient:return 0;
+	case TAG_SVG_rect:return 1;
+	case TAG_SVG_rectClip:return 1;
+	case TAG_SVG_script:return 0;
+	case TAG_SVG_selector:return 1;
+	case TAG_SVG_set:return 0;
+	case TAG_SVG_simpleLayout:return 1;
+	case TAG_SVG_solidColor:return 0;
+	case TAG_SVG_stop:return 0;
+	case TAG_SVG_svg:return 0;
+	case TAG_SVG_switch:return 1;
+	case TAG_SVG_tbreak:return 0;
+	case TAG_SVG_text:return 1;
+	case TAG_SVG_textArea:return 1;
+	case TAG_SVG_title:return 0;
+	case TAG_SVG_tspan:return 0;
+	case TAG_SVG_use:return 1;
+	case TAG_SVG_video:return 1;
+	default: return 0;
+	}
+}
 #endif /*GPAC_DISABLE_SVG*/
 
 

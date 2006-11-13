@@ -270,7 +270,7 @@ static void init_rti_logs(char *rti_file, char *url)
 	if (rti_logs) fclose(rti_logs);
 	rti_logs = fopen(rti_file, "wt");
 	if (rti_logs) {
-		fprintf(rti_logs, "!! GPAC RunTime Info");
+		fprintf(rti_logs, "!! GPAC RunTime Info ");
 		if (url) fprintf(rti_logs, "for file %s", url);
 		fprintf(rti_logs, " !!\n");
 		fprintf(rti_logs, "SysTime(ms)\tSceneTime(ms)\tCPU\tFPS\tMemory(kB)\tObservation\n");
@@ -706,7 +706,7 @@ static u32 parse_log_tools(char *val)
 	while (val) {
 		sep = strchr(val, ':');
 		if (sep) sep[0] = 0;
-		if (!stricmp(val, "core")) flags |= GF_LOG_CODING;
+		if (!stricmp(val, "core")) flags |= GF_LOG_CORE;
 		else if (!stricmp(val, "coding")) flags |= GF_LOG_CODING;
 		else if (!stricmp(val, "container")) flags |= GF_LOG_CONTAINER;
 		else if (!stricmp(val, "network")) flags |= GF_LOG_NETWORK;
@@ -788,7 +788,6 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 }
 
 int main (int argc, char **argv)
-
 {
 	const char *str;
 	u32 i, width, height, times[100], nb_times, rend_mode, dump_mode;

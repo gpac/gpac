@@ -1269,7 +1269,6 @@ static void R2D_RenderInlineMPEG4(GF_VisualRenderer *vr, GF_Node *inline_parent,
 void R2D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_parent, GF_Node *inline_root, void *rs)
 {
 	u32 tag;
-	if (!inline_root) return;
 
 	switch (gf_node_get_tag(inline_parent)) {
 #ifndef GPAC_DISABLE_SVG
@@ -1297,6 +1296,7 @@ void R2D_RenderInline(GF_VisualRenderer *vr, GF_Node *inline_parent, GF_Node *in
 		break;
 #endif
 	default:
+		if (!inline_root) return;
 		R2D_RenderInlineMPEG4(vr, inline_parent, inline_root, rs);
 		break;
 	}

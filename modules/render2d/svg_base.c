@@ -532,6 +532,7 @@ static void SVG_Render_rect(GF_Node *node, void *rs)
 	Drawable *cs = (Drawable *)gf_node_get_private(node);
 	SVGrectElement *rect = (SVGrectElement *)node;
 
+
 	SVG_Render_base(node, (RenderEffect2D *)rs, &backup_props);
 	
 	/* 3) for a leaf node

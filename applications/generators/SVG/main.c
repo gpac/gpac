@@ -1714,6 +1714,16 @@ int main(int argc, char **argv)
 		}
 		fprintf(output, "\tdefault: return \"UndefinedNode\";\n\t}\n}\n\n");
 
+		/* Bool gf_svg_is_element_transformable(u32 tag) */
+		fprintf(output, "Bool gf_svg_is_element_transformable(u32 tag)\n{\n\tswitch(tag) {\n");
+		for (i=0; i<gf_list_count(svg_elements); i++) {
+			SVGElement *elt = (SVGElement *)gf_list_get(svg_elements, i);
+			fprintf(output, "\tcase TAG_SVG_%s:", elt->implementation_name);
+			if (elt->has_transform) fprintf(output, "return 1;\n");
+			else fprintf(output, "return 0;\n");
+		}
+		fprintf(output, "\tdefault: return 0;\n\t}\n}\n");
+
 		fprintf(output, "#endif /*GPAC_DISABLE_SVG*/\n\n");
 		EndFile(output, 1); 
 

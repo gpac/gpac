@@ -479,7 +479,9 @@ void SVG_Init_audio(Render2D *sr, GF_Node *node)
 }
 
 
-
+/* TODO: FIX ME we actually ignore the given sub_root since it is only valid 
+	     when animations have been performed,
+         animations evaluation (SVG_Render_base) should be part of the core renderer */
 void R2D_RenderUse(GF_Node *node, GF_Node *sub_root, void *rs)
 {
 	GF_Matrix2D backup_matrix;
@@ -497,7 +499,7 @@ void R2D_RenderUse(GF_Node *node, GF_Node *sub_root, void *rs)
 	if (eff->trav_flags & TF_RENDER_GET_BOUNDS) {
 		gf_svg_apply_local_transformation(eff, node, &backup_matrix);
 		if (*(eff->svg_props->display) != SVG_DISPLAY_NONE) {
-			gf_node_render(sub_root, eff);
+			gf_node_render((GF_Node*)use->xlink->href.target, eff);
 			gf_mx2d_apply_rect(&translate, &eff->bounds);
 		} 
 		gf_svg_restore_parent_transformation(eff, &backup_matrix);
@@ -513,8 +515,8 @@ void R2D_RenderUse(GF_Node *node, GF_Node *sub_root, void *rs)
 
 	gf_mx2d_pre_multiply(&eff->transform, &translate);
 	prev_use = eff->parent_use;
-	eff->parent_use = (GF_Node *)sub_root;
-	gf_node_render(sub_root, eff);
+	eff->parent_use = (GF_Node *)use->xlink->href.target;
+	gf_node_render((GF_Node *)use->xlink->href.target, eff);
 	eff->parent_use = prev_use;
 	gf_svg_restore_parent_transformation(eff, &backup_matrix);  
 

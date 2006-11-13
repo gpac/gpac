@@ -270,7 +270,6 @@ void gf_svg_delete_timing(SMILTimingAttributes *p)
 {
 	gf_smil_delete_times(p->begin);
 	gf_smil_delete_times(p->end);
-	if (p->runtime) free(p->runtime);
 	free(p);		
 }
 
@@ -331,9 +330,19 @@ void gf_svg_reset_base_element(SVGElement *p)
 	if (p->properties)	gf_svg_delete_properties(p->properties);
 	if (p->focus)		gf_svg_delete_focus(p, p->focus);
 	if (p->conditional) gf_svg_delete_conditional(p->conditional);
-	if (p->anim)		gf_svg_delete_anim(p->anim, p->sgprivate->scenegraph);
 	if (p->sync)		gf_svg_delete_sync(p->sync);
-	if (p->timing)		gf_svg_delete_timing(p->timing);
+
+	if (p->sgprivate->animations) gf_smil_anim_delete_animations(p);
+	if (p->anim)		{
+		gf_svg_delete_anim(p->anim, p->sgprivate->scenegraph);
+		gf_smil_anim_remove_from_target(p, p->xlink->href.target);
+	}
+	
+	if (p->timing)		{
+		gf_smil_timing_delete_runtime_info(p);
+		gf_svg_delete_timing(p->timing);
+	}
+	
 	if (p->xlink)		gf_svg_delete_xlink(p, p->xlink);
 }
 
