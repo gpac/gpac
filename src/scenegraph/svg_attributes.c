@@ -935,6 +935,7 @@ static Bool svg_parse_transform(SVG_Matrix *mat, char *attribute_content)
 			gf_mx2d_add_matrix(&tmp, mat);
 			gf_mx2d_copy(*mat, tmp);
 			while(str[i] != 0 && str[i] == ' ') i++;
+			if (str[i] == ')') i++;
 		} else if (strstr(str+i, "ref")==str+i) {
 			i+=3;
 			while(str[i] != 0 && str[i] == ' ') i++;
@@ -2453,9 +2454,11 @@ GF_Err gf_svg_parse_attribute(SVGElement *elt, GF_FieldInfo *info, char *attribu
 		svg_parse_fontfamily(info->far_ptr, attribute_content);
 		break;
 	case SVG_Matrix_datatype:
-		if (transform_type == SVG_TRANSFORM_MATRIX) 
-			((SVGTransformableElement *)elt)->is_ref_transform = svg_parse_transform(info->far_ptr, attribute_content);		
-		else 
+		if (transform_type == SVG_TRANSFORM_MATRIX) {
+			Bool is_ref = svg_parse_transform(info->far_ptr, attribute_content);
+			if (gf_svg_is_element_transformable(gf_node_get_tag((GF_Node *)elt)))
+				((SVGTransformableElement *)elt)->is_ref_transform = is_ref;
+		} else 
 			svg_parse_transform_animation_value(elt, info->far_ptr, attribute_content, transform_type);
 		break;
 	case SVG_PreserveAspectRatio_datatype:
@@ -4753,8 +4756,12 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 
 	case SVG_IRI_datatype:
 		((SVG_IRI *)a->far_ptr)->type = ((SVG_IRI *)b->far_ptr)->type;
-		if ( ((SVG_IRI *)a->far_ptr)->iri) free(((SVG_IRI *)a->far_ptr)->iri);
-		((SVG_IRI *)a->far_ptr)->iri = strdup(((SVG_IRI *)b->far_ptr)->iri);
+		if (((SVG_IRI *)a->far_ptr)->iri) free(((SVG_IRI *)a->far_ptr)->iri);
+		if (((SVG_IRI *)b->far_ptr)->iri) {
+			((SVG_IRI *)a->far_ptr)->iri = strdup(((SVG_IRI *)b->far_ptr)->iri);
+		} else {
+			((SVG_IRI *)a->far_ptr)->iri = strdup("");
+		}
 		((SVG_IRI *)a->far_ptr)->target = ((SVG_IRI *)b->far_ptr)->target;
 		if (((SVG_IRI *)a->far_ptr)->type == SVG_IRI_ELEMENTID) {
 			GF_Node *n = (GF_Node *) ((SVG_IRI *)b->far_ptr)->target;

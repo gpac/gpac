@@ -300,8 +300,8 @@ typedef u8 SMIL_CalcMode;
 /* end of SMIL Anim types */
 
 enum {
-	SVG_IRI_IRI = 0,
-	SVG_IRI_ELEMENTID
+	SVG_IRI_ELEMENTID = 0,
+	SVG_IRI_IRI = 1
 };
 typedef struct {
 	u8 type;
@@ -889,7 +889,7 @@ typedef struct {
 	SVG_Number					*stroke_miterlimit; 
 	SVG_Length					*stroke_width;
 	SVG_VectorEffect			*vector_effect;
-		
+	
 	/* Full 1.1 props, i.e. not implemented */
 /*
 	SVG_String *font;
@@ -1131,6 +1131,7 @@ void gf_svg_apply_inheritance(SVGElement *elt, SVGPropertiesPointers *render_svg
 void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_props);
 
 Bool is_svg_animation_tag(u32 tag);
+Bool gf_svg_is_element_transformable(u32 tag);
 
 void *gf_svg_create_attribute_value(u32 attribute_type, u8 transform_type);
 void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg);

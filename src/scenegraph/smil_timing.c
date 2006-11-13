@@ -297,13 +297,18 @@ Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg)
 {
 	SMIL_Timing_RTI *rti;
 	u32 active_count = 0, i = 0;
+	s32 ret;
 
 	if (!sg) return 0;
 
 	sg->update_smil_timing = 0;
 	while((rti = gf_list_enum(sg->smil_timed_elements, &i))) {
 		//scene_time = rti->timed_elt->sgprivate->scenegraph->GetSceneTime(rti->timed_elt->sgprivate->scenegraph->userpriv);
-		active_count += gf_smil_timing_notify_time(rti, gf_node_get_scene_time((GF_Node*)rti->timed_elt) );
+		ret = gf_smil_timing_notify_time(rti, gf_node_get_scene_time((GF_Node*)rti->timed_elt) );
+		if (ret == -1) // special case for discard element
+			i--;
+		else 
+			active_count += ret;
 	}
 	/*in case an anim triggers another one previously inactivated...
 	TODO FIXME: it would be much better to stack anim as active/inactive*/
@@ -312,18 +317,57 @@ Bool gf_sg_notify_smil_timed_elements(GF_SceneGraph *sg)
 		i = 0;
 		while((rti = gf_list_enum(sg->smil_timed_elements, &i))) {
 			/*this means the anim has been, modified, re-evaluate it*/
-			if (rti->scene_time==-1) 
-				active_count += gf_smil_timing_notify_time(rti, gf_node_get_scene_time((GF_Node*)rti->timed_elt) );
+			if (rti->scene_time==-1) {
+				ret = gf_smil_timing_notify_time(rti, gf_node_get_scene_time((GF_Node*)rti->timed_elt) );
+				if (ret == -1) // special case for discard element
+					i--;
+				else 
+					active_count += ret;
+			}
 		}
 	}
 	return (active_count>0);
 }
 
-/* Returns 1 when a rendering traversal is required!!! */
-Bool gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
+static Bool gf_smil_discard(SMIL_Timing_RTI *rti, Fixed scene_time)
+{
+	u32 nb_inst;
+	GF_Node *to_del;
+	SMIL_Time *begin;
+	SVGdiscardElement *discard = (SVGdiscardElement *)rti->timed_elt;
+	begin = gf_list_get(discard->timing->begin, 0);
+
+	if (!begin) return 0;
+	if (!GF_SMIL_TIME_IS_SPECIFIED_CLOCK(begin->type) ) return 0;
+	if (!discard->xlink->href.target) return 0;
+
+	if (begin->clock > scene_time) return 0;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SVG Composer] discarding element %s at time %f\n", gf_node_get_name((GF_Node *)discard->xlink->href.target), scene_time));
+
+	to_del = (GF_Node*)discard->xlink->href.target;
+	/*this takes care of cases where discard is a child of its target*/
+	gf_node_register((GF_Node *)rti->timed_elt, NULL);
+	nb_inst = gf_node_get_num_instances((GF_Node *)rti->timed_elt);
+	gf_node_replace(to_del, NULL, 0);
+	if (nb_inst == gf_node_get_num_instances((GF_Node *)rti->timed_elt)) {
+		gf_node_unregister((GF_Node *)rti->timed_elt, NULL);
+		/*after this the stack may be free'd*/
+		gf_node_replace((GF_Node *)rti->timed_elt, NULL, 0);
+	} else {
+		gf_node_unregister((GF_Node *)rti->timed_elt, NULL);
+	}
+	return 1;
+}
+
+/* Returns:
+	0 if no rendering traversal is required, 
+	1 if a rendering traversal is required!!!,
+   -1 if the time node is a discard which has been deleted!! */
+s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 {
 	Fixed simple_time;
-	Bool ret = 0;
+	s32 ret = 0;
 	GF_DOM_Event evt;
 	
 	if (rti->scene_time == scene_time) return 0;
@@ -333,6 +377,12 @@ Bool gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 	/* for fraction events, we indicate that the scene needs redraw */
 	if (rti->evaluate_status == SMIL_TIMING_EVAL_FRACTION) 
 		return 1;
+
+	if (rti->evaluate_status == SMIL_TIMING_EVAL_DISCARD) {
+		/* -1 is a special case when the discard is evaluated */
+		if (gf_smil_discard(rti, FLT2FIX(rti->scene_time))) return -1;
+		else return 0;
+	}
 
 	rti->evaluate_status = SMIL_TIMING_EVAL_NONE;	
 

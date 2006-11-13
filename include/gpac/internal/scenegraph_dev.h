@@ -345,6 +345,7 @@ enum
 	SMIL_TIMING_EVAL_REMOVE,
 	SMIL_TIMING_EVAL_RESTART,
 	SMIL_TIMING_EVAL_FRACTION,
+	SMIL_TIMING_EVAL_DISCARD,
 };
 
 typedef struct _smil_timing_rti
@@ -390,8 +391,8 @@ typedef struct _smil_timing_rti
 void gf_smil_timing_init_runtime_info(SVGElement *timed_elt);
 void gf_smil_timing_delete_runtime_info(SVGElement *timed_elt);
 Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double scene_time);
-/*returns 1 if animation changed the target value/element/... */
-Bool gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time);
+/*returns 1 if an animation changed a value in the rendering tree */
+s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time);
 
 /* SMIL Animation Structures */
 /* This structure is used per animated attribute,
@@ -452,9 +453,11 @@ typedef struct {
 } SMIL_Anim_RTI;
 
 void gf_smil_anim_init_node(GF_Node *node);
+void gf_smil_anim_init_discard(GF_Node *node);
 void gf_smil_anim_init_runtime_info(SVGElement *e);
 void gf_smil_anim_delete_runtime_info(SMIL_Anim_RTI *rai);
 void gf_smil_anim_delete_animations(SVGElement *e);
+void gf_smil_anim_remove_from_target(SVGElement *anim, SVGElement *target);
 
 void gf_svg_init_lsr_conditional(SVGCommandBuffer *script);
 void gf_svg_reset_lsr_conditional(SVGCommandBuffer *script);

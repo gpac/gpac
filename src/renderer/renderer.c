@@ -1079,8 +1079,8 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 #if 0
 	if (sr->frame_number == 0 && sr->user->EventProc) {
 		GF_Event evt;
-		evt.type = GF_EVENT_RESET_RTI;
-		evt.caption.caption = "RESET - Before first call to draw scene";
+		evt.type = GF_EVENT_UPDATE_RTI;
+		evt.caption.caption = "UPDATE - Before first call to draw scene";
 		sr->user->EventProc(sr->user->opaque, &evt);
 	}
 #endif
@@ -1141,7 +1141,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	if (sr->draw_next_frame) {
 		sr->draw_next_frame = 0;
 		sr->visual_renderer->DrawScene(sr->visual_renderer);
-#if 0
+#if 1
 		if (sr->frame_number == 0 && sr->user->EventProc) {
 			GF_Event evt;
 			evt.type = GF_EVENT_UPDATE_RTI;
@@ -1185,7 +1185,7 @@ void gf_sr_simulation_tick(GF_Renderer *sr)
 	sr->frame_time[sr->current_frame] = end_time;
 
 	sr->frame_number++;
-#if 0
+#if 1
 	if (sr->user->EventProc) {
 		char legend[100];
 		GF_Event evt;

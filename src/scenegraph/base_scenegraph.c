@@ -489,7 +489,9 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	pNode->sgprivate->num_instances -= 1;
 	
 	/*this is just an instance removed*/
-	if (pNode->sgprivate->num_instances) return GF_OK;
+	if (pNode->sgprivate->num_instances) {
+		return GF_OK;
+	}
 
 	
 #ifdef GF_ARRAY_PARENT_NODES
@@ -1189,12 +1191,7 @@ void gf_node_del(GF_Node *node)
 	else if (node->sgprivate->tag<=GF_NODE_RANGE_LAST_MPEG4) gf_sg_mpeg4_node_del(node);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) gf_sg_x3d_node_del(node);
 #ifndef GPAC_DISABLE_SVG
-	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) {
-		SVGElement *elt = (SVGElement *) node;
-		if (elt->sgprivate->animations) gf_smil_anim_delete_animations(elt);
-		if (elt->timing) gf_smil_timing_delete_runtime_info(elt);
-		gf_svg_element_del(elt);
-	}
+	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) gf_svg_element_del((SVGElement *) node);
 #endif
 	else gf_node_free(node);
 #endif
